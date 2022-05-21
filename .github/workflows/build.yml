@@ -1,0 +1,56 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - "*"
+  pull_request:
+    branches:
+      - "*"
+    types: [opened, synchronize, reopened]
+jobs:
+  build:
+    name: Build binaries
+    runs-on: windows-2022
+    strategy:
+      matrix:
+        configuration:
+          - Debug
+          - Release
+    steps:
+#      - name: Wait for previous workflows
+#        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+#        uses: softprops/turnstyle@v1
+#        with:
+#          poll-interval-seconds: 10
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check out files
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+          fetch-depth: 0
+          # NOTE - If LFS ever starts getting used during builds, switch this to true!
+          lfs: false
+
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.0.2
+
+      - name: Generate project files
+        #run: tools/premake5 vs2022 --ci-build
+        run: tools/premake5 vs2022
+
+      - name: Set up problem matching
+        uses: ammaraskar/msvc-problem-matcher@master
+
+      - name: Build ${{matrix.configuration}} binaries
+        run: msbuild /m /v:minimal /p:Configuration=${{matrix.configuration}} /p:Platform=x64 build/bo3.sln
+
+      - name: Upload ${{matrix.configuration}} binaries
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{matrix.configuration}} binaries
+          path: |
+            build/bin/x64/${{matrix.configuration}}/d3d11.dll
+            build/bin/x64/${{matrix.configuration}}/d3d11.pdb
