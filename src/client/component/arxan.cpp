@@ -30,6 +30,17 @@ namespace arxan
 
 		utils::hook::detour nt_close_hook;
 		utils::hook::detour nt_query_information_process_hook;
+		utils::hook::detour create_mutex_ex_a_hook;
+
+		HANDLE create_mutex_ex_a_stub(const LPSECURITY_ATTRIBUTES attributes, const LPCSTR name, const DWORD flags, const DWORD access)
+		{
+			if (name == "$ IDA trusted_idbs"s || name == "$ IDA registry mutex $"s)
+			{
+				return nullptr;
+			}
+
+			return create_mutex_ex_a_hook.invoke<HANDLE>(attributes, name, flags, access);
+		}
 
 		NTSTATUS WINAPI nt_query_information_process_stub(const HANDLE handle, const PROCESSINFOCLASS info_class,
 			const PVOID info,
@@ -108,6 +119,8 @@ namespace arxan
 		{
 			hide_being_debugged();
 			scheduler::loop(hide_being_debugged, scheduler::pipeline::async);
+
+			create_mutex_ex_a_hook.create(CreateMutexExA, create_mutex_ex_a_stub);
 
 			const utils::nt::library ntdll("ntdll.dll");
 			nt_close_hook.create(ntdll.get_proc<void*>("NtClose"), nt_close_stub);
