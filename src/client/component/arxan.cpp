@@ -10,19 +10,20 @@ namespace arxan
 	{
 		DWORD get_steam_pid()
 		{
-			static auto steam_pid = [] {
-			  HKEY hRegKey;
-			  DWORD pid{};
+			static auto steam_pid = []
+			{
+				HKEY reg_key;
+				DWORD pid{};
 
-			  if (RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Valve\\Steam\\ActiveProcess", 0, KEY_QUERY_VALUE,
-			    &hRegKey) != ERROR_SUCCESS)
-			    return pid;
+				if (RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Valve\\Steam\\ActiveProcess", 0, KEY_QUERY_VALUE,
+				                  &reg_key) != ERROR_SUCCESS)
+					return pid;
 
-			  DWORD dwLength = sizeof(pid);
-			  RegQueryValueExA(hRegKey, "pid", nullptr, nullptr, reinterpret_cast<BYTE*>(&pid), &dwLength);
-			  RegCloseKey(hRegKey);
+				DWORD length = sizeof(pid);
+				RegQueryValueExA(reg_key, "pid", nullptr, nullptr, reinterpret_cast<BYTE*>(&pid), &length);
+				RegCloseKey(reg_key);
 
-			  return pid;
+				return pid;
 			}();
 
 			return steam_pid;
@@ -32,7 +33,8 @@ namespace arxan
 		utils::hook::detour nt_query_information_process_hook;
 		utils::hook::detour create_mutex_ex_a_hook;
 
-		HANDLE create_mutex_ex_a_stub(const LPSECURITY_ATTRIBUTES attributes, const LPCSTR name, const DWORD flags, const DWORD access)
+		HANDLE create_mutex_ex_a_stub(const LPSECURITY_ATTRIBUTES attributes, const LPCSTR name, const DWORD flags,
+		                              const DWORD access)
 		{
 			if (name == "$ IDA trusted_idbs"s || name == "$ IDA registry mutex $"s)
 			{
@@ -43,8 +45,8 @@ namespace arxan
 		}
 
 		NTSTATUS WINAPI nt_query_information_process_stub(const HANDLE handle, const PROCESSINFOCLASS info_class,
-			const PVOID info,
-			const ULONG info_length, const PULONG ret_length)
+		                                                  const PVOID info,
+		                                                  const ULONG info_length, const PULONG ret_length)
 		{
 			auto* orig = static_cast<decltype(NtQueryInformationProcess)*>(nt_query_information_process_hook.
 				get_original());
@@ -125,7 +127,7 @@ namespace arxan
 			const utils::nt::library ntdll("ntdll.dll");
 			nt_close_hook.create(ntdll.get_proc<void*>("NtClose"), nt_close_stub);
 			nt_query_information_process_hook.create(ntdll.get_proc<void*>("NtQueryInformationProcess"),
-				nt_query_information_process_stub);
+			                                         nt_query_information_process_stub);
 
 			AddVectoredExceptionHandler(1, exception_filter);
 		}
