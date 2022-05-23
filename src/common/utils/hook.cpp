@@ -230,10 +230,14 @@ namespace utils::hook
 		return call(pointer, reinterpret_cast<void*>(data));
 	}
 
-	void jump(void* pointer, void* data, const bool use_far)
+	void jump(void* pointer, void* data, const bool use_far, const bool use_safe)
 	{
 		static const unsigned char jump_data[] = {
 			0x48, 0xb8, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0xff, 0xe0
+		};
+
+		static const unsigned char jump_data_safe[] = {
+			0xFF, 0x25, 0x00, 0x00, 0x00, 0x00
 		};
 
 		if (!use_far && is_relatively_far(pointer, data))
@@ -245,8 +249,16 @@ namespace utils::hook
 
 		if (use_far)
 		{
-			copy(patch_pointer, jump_data, sizeof(jump_data));
-			copy(patch_pointer + 2, &data, sizeof(data));
+			if (use_safe)
+			{
+				copy(patch_pointer, jump_data_safe, sizeof(jump_data_safe));
+				copy(patch_pointer + sizeof(jump_data_safe), &data, sizeof(data));
+			}
+			else
+			{
+				copy(patch_pointer, jump_data, sizeof(jump_data));
+				copy(patch_pointer + 2, &data, sizeof(data));
+			}
 		}
 		else
 		{
@@ -255,14 +267,14 @@ namespace utils::hook
 		}
 	}
 
-	void jump(const size_t pointer, void* data, const bool use_far)
+	void jump(const size_t pointer, void* data, const bool use_far, const bool use_safe)
 	{
-		return jump(reinterpret_cast<void*>(pointer), data, use_far);
+		return jump(reinterpret_cast<void*>(pointer), data, use_far, use_safe);
 	}
 
-	void jump(const size_t pointer, const size_t data, const bool use_far)
+	void jump(const size_t pointer, const size_t data, const bool use_far, const bool use_safe)
 	{
-		return jump(pointer, reinterpret_cast<void*>(data), use_far);
+		return jump(pointer, reinterpret_cast<void*>(data), use_far, use_safe);
 	}
 
 	void* assemble(const std::function<void(assembler&)>& asm_function)
@@ -295,6 +307,31 @@ namespace utils::hook
 	void inject(const size_t pointer, const void* data)
 	{
 		return inject(reinterpret_cast<void*>(pointer), data);
+	}
+
+	void move_hook(void* pointer)
+	{
+		auto* data_ptr = static_cast<uint8_t*>(pointer);
+		if (data_ptr[0] == 0xE9)
+		{
+			auto* target = follow_branch(data_ptr);
+			nop(data_ptr, 1);
+			jump(data_ptr + 1, target);
+		}
+		else if (data_ptr[0] == 0xFF && data_ptr[1] == 0x25)
+		{
+			copy(data_ptr + 1, data_ptr, 0x14);
+			nop(data_ptr, 1);
+		}
+		else
+		{
+			throw std::runtime_error("No branch instruction found");
+		}
+	}
+
+	void move_hook(const size_t pointer)
+	{
+		return move_hook(reinterpret_cast<void*>(pointer));
 	}
 
 	void* follow_branch(void* address)
