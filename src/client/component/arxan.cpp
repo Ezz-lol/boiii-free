@@ -33,6 +33,10 @@ namespace arxan
 		utils::hook::detour nt_query_system_information_hook;
 		utils::hook::detour nt_query_information_process_hook;
 		utils::hook::detour create_mutex_ex_a_hook;
+		utils::hook::detour get_window_text_a_hook;
+		utils::hook::detour get_window_text_w_hook;
+		utils::hook::detour get_class_name_a_hook;
+		utils::hook::detour get_class_name_w_hook;
 
 		HANDLE create_mutex_ex_a_stub(const LPSECURITY_ATTRIBUTES attributes, const LPCSTR name, const DWORD flags,
 		                              const DWORD access)
@@ -45,7 +49,7 @@ namespace arxan
 			return create_mutex_ex_a_hook.invoke<HANDLE>(attributes, name, flags, access);
 		}
 
-		void remove_evil_keywords_from_path(const UNICODE_STRING& string)
+		bool remove_evil_keywords_from_string(const UNICODE_STRING& string)
 		{
 			static const std::wstring evil_keywords[] =
 			{
@@ -58,11 +62,12 @@ namespace arxan
 
 			if (!string.Buffer || !string.Length)
 			{
-				return;
+				return false;
 			}
 
 			std::wstring_view path(string.Buffer, string.Length / sizeof(string.Buffer[0]));
 
+			bool modified = false;
 			for (const auto& keyword : evil_keywords)
 			{
 				while (true)
@@ -73,12 +78,86 @@ namespace arxan
 						break;
 					}
 
+					modified = true;
+
 					for (size_t i = 0; i < keyword.size(); ++i)
 					{
 						string.Buffer[pos + i] = L'a';
 					}
 				}
 			}
+
+			return modified;
+		}
+
+		bool remove_evil_keywords_from_string(wchar_t* str, const size_t length)
+		{
+			UNICODE_STRING unicode_string{};
+			unicode_string.Buffer = str;
+			unicode_string.Length = static_cast<uint16_t>(length);
+			unicode_string.MaximumLength = unicode_string.Length;
+
+			return remove_evil_keywords_from_string(unicode_string);
+		}
+
+		bool remove_evil_keywords_from_string(char* str, const size_t length)
+		{
+			std::string_view str_view(str, length);
+			std::wstring wstr(str_view.begin(), str_view.end());
+
+			if (!remove_evil_keywords_from_string(&wstr[0], wstr.size()))
+			{
+				return false;
+			}
+
+			const std::string regular_str(wstr.begin(), wstr.end());
+			memcpy(str, regular_str.data(), length);
+
+			return true;
+		}
+
+		int WINAPI get_window_text_w_stub(const HWND wnd, const LPWSTR str, const int max_count)
+		{
+			const auto res = get_window_text_w_hook.invoke<int>(wnd, str, max_count);
+			if (res)
+			{
+				remove_evil_keywords_from_string(str, res);
+			}
+
+			return res;
+		}
+
+		int WINAPI get_window_text_a_stub(const HWND wnd, const LPSTR str, const int max_count)
+		{
+			const auto res = get_window_text_a_hook.invoke<int>(wnd, str, max_count);
+			if (res)
+			{
+				remove_evil_keywords_from_string(str, res);
+			}
+
+			return res;
+		}
+
+		int WINAPI get_class_name_a_stub(const HWND wnd, const LPSTR class_name, const int max_count)
+		{
+			const auto res = get_class_name_a_hook.invoke<int>(wnd, class_name, max_count);
+			if (res)
+			{
+				remove_evil_keywords_from_string(class_name, res);
+			}
+
+			return res;
+		}
+
+		int WINAPI get_class_name_w_stub(const HWND wnd, const LPWSTR class_name, const int max_count)
+		{
+			const auto res = get_class_name_w_hook.invoke<int>(wnd, class_name, max_count);
+			if (res)
+			{
+				remove_evil_keywords_from_string(class_name, res);
+			}
+
+			return res;
 		}
 
 		NTSTATUS NTAPI nt_query_system_information_stub(const SYSTEM_INFORMATION_CLASS system_information_class,
@@ -97,7 +176,7 @@ namespace arxan
 					while (true)
 					{
 						const auto info = reinterpret_cast<SYSTEM_PROCESS_INFORMATION*>(addr);
-						remove_evil_keywords_from_path(info->ImageName);
+						remove_evil_keywords_from_string(info->ImageName);
 
 						if (!info->NextEntryOffset)
 						{
@@ -135,7 +214,7 @@ namespace arxan
 				}
 				else if (info_class == ProcessImageFileName || info_class == 43)
 				{
-					remove_evil_keywords_from_path(*static_cast<UNICODE_STRING*>(info));
+					remove_evil_keywords_from_string(*static_cast<UNICODE_STRING*>(info));
 				}
 				else if (info_class == 7) // ProcessDebugPort
 				{
@@ -249,6 +328,17 @@ namespace arxan
 			const auto nt_query_system_information = ntdll.get_proc<void*>("NtQuerySystemInformation");
 			nt_query_system_information_hook.create(nt_query_system_information, nt_query_system_information_stub);
 			utils::hook::move_hook(nt_query_system_information); // Satisfy arxan
+
+			/*get_window_text_a_hook.create(GetWindowTextA, get_window_text_a_stub);
+			get_window_text_w_hook.create(GetWindowTextW, get_window_text_w_stub);
+			get_class_name_a_hook.create(GetClassNameA, get_class_name_a_stub);
+			get_class_name_w_hook.create(GetClassNameW, get_class_name_w_stub);
+
+			// Satisfy arxan
+			utils::hook::move_hook(GetWindowTextA);
+			utils::hook::move_hook(GetWindowTextW);
+			utils::hook::move_hook(GetClassNameA);
+			utils::hook::move_hook(GetClassNameW);*/
 
 			AddVectoredExceptionHandler(1, exception_filter);
 		}
