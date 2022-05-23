@@ -7,7 +7,7 @@ namespace steam
 	{
 		void* get_dummy()
 		{
-			class blub
+			static class blub
 			{
 			public:
 				virtual uint64_t m0() { return 0; }
