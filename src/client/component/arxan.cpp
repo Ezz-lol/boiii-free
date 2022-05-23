@@ -30,6 +30,7 @@ namespace arxan
 		}
 
 		utils::hook::detour nt_close_hook;
+		utils::hook::detour nt_query_system_information_hook;
 		utils::hook::detour nt_query_information_process_hook;
 		utils::hook::detour create_mutex_ex_a_hook;
 
@@ -44,25 +45,90 @@ namespace arxan
 			return create_mutex_ex_a_hook.invoke<HANDLE>(attributes, name, flags, access);
 		}
 
-		NTSTATUS WINAPI nt_query_information_process_stub(const HANDLE handle, const PROCESSINFOCLASS info_class,
+		void remove_evil_keywords_from_path(const UNICODE_STRING& string)
+		{
+			static const std::wstring evil_keywords[] =
+			{
+				L"IDA",
+				L"ida",
+				L"HxD",
+				L"cheatengine",
+				L"Cheat Engine",
+			};
+
+			if (!string.Buffer || !string.Length)
+			{
+				return;
+			}
+
+			std::wstring_view path(string.Buffer, string.Length / sizeof(string.Buffer[0]));
+
+			for (const auto& keyword : evil_keywords)
+			{
+				while (true)
+				{
+					const auto pos = path.find(keyword);
+					if (pos == std::wstring::npos)
+					{
+						break;
+					}
+
+					OutputDebugStringW(path.data());
+
+					for (size_t i = 0; i < keyword.size(); ++i)
+					{
+						string.Buffer[pos + i] = L'a';
+					}
+
+					OutputDebugStringW(path.data());
+				}
+			}
+		}
+
+		NTSTATUS NTAPI nt_query_system_information_stub(const SYSTEM_INFORMATION_CLASS system_information_class,
+		                                                const PVOID system_information,
+		                                                const ULONG system_information_length,
+		                                                const PULONG return_length)
+		{
+			const auto status = nt_query_system_information_hook.invoke<NTSTATUS>(
+				system_information_class, system_information, system_information_length, return_length);
+
+			if (NT_SUCCESS(status))
+			{
+				if (system_information_class == SystemProcessInformation)
+				{
+					auto addr = static_cast<uint8_t*>(system_information);
+					while (true)
+					{
+						const auto info = reinterpret_cast<SYSTEM_PROCESS_INFORMATION*>(addr);
+						remove_evil_keywords_from_path(info->ImageName);
+
+						if (!info->NextEntryOffset)
+						{
+							break;
+						}
+
+						addr = addr + info->NextEntryOffset;
+					}
+				}
+			}
+
+			return status;
+		}
+
+		NTSTATUS WINAPI nt_query_information_process_stub(HANDLE handle, const PROCESSINFOCLASS info_class,
 		                                                  const PVOID info,
 		                                                  const ULONG info_length, const PULONG ret_length)
 		{
 			auto* orig = static_cast<decltype(NtQueryInformationProcess)*>(nt_query_information_process_hook.
 				get_original());
+
 			const auto status = orig(handle, info_class, info, info_length, ret_length);
 
 			if (NT_SUCCESS(status))
 			{
 				if (info_class == ProcessBasicInformation)
 				{
-					static DWORD explorer_pid = 0;
-					if (!explorer_pid)
-					{
-						auto* const shell_window = GetShellWindow();
-						GetWindowThreadProcessId(shell_window, &explorer_pid);
-					}
-
 					static_cast<PPROCESS_BASIC_INFORMATION>(info)->Reserved3 = PVOID(DWORD64(get_steam_pid()));
 				}
 				else if (info_class == 30) // ProcessDebugObjectHandle
@@ -70,6 +136,10 @@ namespace arxan
 					*static_cast<HANDLE*>(info) = nullptr;
 
 					return 0xC0000353;
+				}
+				else if (info_class == ProcessImageFileName || info_class == 43)
+				{
+					remove_evil_keywords_from_path(*static_cast<UNICODE_STRING*>(info));
 				}
 				else if (info_class == 7) // ProcessDebugPort
 				{
@@ -103,6 +173,11 @@ namespace arxan
 				return EXCEPTION_CONTINUE_EXECUTION;
 			}
 
+			if (info->ExceptionRecord->ExceptionCode == STATUS_ACCESS_VIOLATION)
+			{
+				//MessageBoxA(0, 0, "AV", 0);
+			}
+
 			return EXCEPTION_CONTINUE_SEARCH;
 		}
 
@@ -111,6 +186,47 @@ namespace arxan
 			auto* const peb = PPEB(__readgsqword(0x60));
 			peb->BeingDebugged = false;
 			*reinterpret_cast<PDWORD>(LPSTR(peb) + 0xBC) &= ~0x70;
+		}
+
+		void restore_debug_functions()
+		{
+			static const char* functions[] = {
+				"DbgBreakPoint",
+				"DbgUserBreakPoint",
+				"DbgUiConnectToDbg",
+				"DbgUiContinue",
+				"DbgUiConvertStateChangeStructure",
+				"DbgUiDebugActiveProcess",
+				"DbgUiGetThreadDebugObject",
+				"DbgUiIssueRemoteBreakin",
+				"DbgUiRemoteBreakin",
+				"DbgUiSetThreadDebugObject",
+				"DbgUiStopDebugging",
+				"DbgUiWaitStateChange",
+				"DbgPrintReturnControlC",
+				"DbgPrompt",
+			};
+
+			using buffer = uint8_t[15];
+			static buffer buffers[ARRAYSIZE(functions)] = {};
+			static bool loaded = false;
+
+			const utils::nt::library ntdll("ntdll.dll");
+
+			for (int i = 0; i < ARRAYSIZE(functions); ++i)
+			{
+				const auto func = ntdll.get_proc<void*>(functions[i]);
+				if (!loaded)
+				{
+					memcpy(buffers[i], func, sizeof(buffer));
+				}
+				else
+				{
+					utils::hook::copy(func, buffers[i], sizeof(buffer));
+				}
+			}
+
+			loaded = true;
 		}
 	}
 
@@ -122,12 +238,21 @@ namespace arxan
 			hide_being_debugged();
 			scheduler::loop(hide_being_debugged, scheduler::pipeline::async);
 
+			//restore_debug_functions();
+
 			create_mutex_ex_a_hook.create(CreateMutexExA, create_mutex_ex_a_stub);
 
 			const utils::nt::library ntdll("ntdll.dll");
 			nt_close_hook.create(ntdll.get_proc<void*>("NtClose"), nt_close_stub);
-			nt_query_information_process_hook.create(ntdll.get_proc<void*>("NtQueryInformationProcess"),
+
+			const auto nt_query_information_process = ntdll.get_proc<void*>("NtQueryInformationProcess");
+			nt_query_information_process_hook.create(nt_query_information_process,
 			                                         nt_query_information_process_stub);
+			utils::hook::move_hook(nt_query_information_process);
+
+			const auto nt_query_system_information = ntdll.get_proc<void*>("NtQuerySystemInformation");
+			nt_query_system_information_hook.create(nt_query_system_information, nt_query_system_information_stub);
+			utils::hook::move_hook(nt_query_system_information); // Satisfy arxan
 
 			AddVectoredExceptionHandler(1, exception_filter);
 		}
