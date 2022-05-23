@@ -73,14 +73,10 @@ namespace arxan
 						break;
 					}
 
-					OutputDebugStringW(path.data());
-
 					for (size_t i = 0; i < keyword.size(); ++i)
 					{
 						string.Buffer[pos + i] = L'a';
 					}
-
-					OutputDebugStringW(path.data());
 				}
 			}
 		}
