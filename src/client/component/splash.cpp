@@ -6,14 +6,14 @@
 
 namespace splash
 {
-namespace
-{
-        HANDLE load_splash_image()
-        {
-	  const auto self = utils::nt::library::get_by_address(load_splash_image);
-	  return LoadImageA(self, MAKEINTRESOURCE(IMAGE_SPLASH), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
-        }
-}
+	namespace
+	{
+		HANDLE load_splash_image()
+		{
+			const auto self = utils::nt::library::get_by_address(load_splash_image);
+			return LoadImageA(self, MAKEINTRESOURCE(IMAGE_SPLASH), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
+		}
+	}
 
 	class component final : public component_interface
 	{
@@ -46,9 +46,9 @@ namespace
 			this->window_ = nullptr;
 		}
 
-	        void post_unpack() override
+		void post_unpack() override
 		{
-		  this->destroy();
+			this->destroy();
 		}
 
 	private:
@@ -69,7 +69,7 @@ namespace
 		{
 			WNDCLASSA wnd_class;
 
-                        const utils::nt::library host{};
+			const utils::nt::library host{};
 
 			wnd_class.style = CS_DROPSHADOW;
 			wnd_class.cbClsExtra = 0;

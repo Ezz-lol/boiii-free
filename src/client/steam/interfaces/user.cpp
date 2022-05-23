@@ -139,7 +139,8 @@ namespace steam
 
 		// Create the call response
 		const auto result = callbacks::register_call();
-		const auto retvals = static_cast<encrypted_app_ticket_response*>(calloc(1, sizeof(encrypted_app_ticket_response)));
+		const auto retvals = static_cast<encrypted_app_ticket_response*>(calloc(
+			1, sizeof(encrypted_app_ticket_response)));
 		//::Utils::Memory::AllocateArray<EncryptedAppTicketResponse>();
 		retvals->m_e_result = 1;
 
@@ -161,34 +162,38 @@ namespace steam
 		return true;
 	}
 
-	 int user::GetGameBadgeLevel(int nSeries, bool bFoil)
+	int user::GetGameBadgeLevel(int nSeries, bool bFoil)
 	{
-	   return 1;
+		return 1;
 	}
-	 int user::GetPlayerSteamLevel()
-	 {
-	   return 0;
-	 }
-	 uint64_t user::RequestStoreAuthURL(const char* pchRedirectURL)
-	 {
-	   return 0;
-	 }
-	 bool user::BIsPhoneVerified()
-	 {
-	   return true;
-	 }
 
-	 bool user::BIsTwoFactorEnabled()
-	 {
-	   return true;
-	 }
+	int user::GetPlayerSteamLevel()
+	{
+		return 0;
+	}
 
-	 bool user::BIsPhoneIdentifying()
-	 {
-	   return false;
-	 }
-	 bool user::BIsPhoneRequiringVerification()
-	 {
-	   return false;
-	 }
+	uint64_t user::RequestStoreAuthURL(const char* pchRedirectURL)
+	{
+		return 0;
+	}
+
+	bool user::BIsPhoneVerified()
+	{
+		return true;
+	}
+
+	bool user::BIsTwoFactorEnabled()
+	{
+		return true;
+	}
+
+	bool user::BIsPhoneIdentifying()
+	{
+		return false;
+	}
+
+	bool user::BIsPhoneRequiringVerification()
+	{
+		return false;
+	}
 }

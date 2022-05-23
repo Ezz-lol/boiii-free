@@ -74,7 +74,8 @@ namespace scheduler
 				{
 					new_callbacks_.access([&](task_list& new_tasks)
 					{
-						tasks.insert(tasks.end(), std::move_iterator<task_list::iterator>(new_tasks.begin()), std::move_iterator<task_list::iterator>(new_tasks.end()));
+						tasks.insert(tasks.end(), std::move_iterator<task_list::iterator>(new_tasks.begin()),
+						             std::move_iterator<task_list::iterator>(new_tasks.end()));
 						new_tasks = {};
 					});
 				});
@@ -114,7 +115,7 @@ namespace scheduler
 	}
 
 	void schedule(const std::function<bool()>& callback, const pipeline type,
-		const std::chrono::milliseconds delay)
+	              const std::chrono::milliseconds delay)
 	{
 		assert(type >= 0 && type < pipeline::count);
 
@@ -127,7 +128,7 @@ namespace scheduler
 	}
 
 	void loop(const std::function<void()>& callback, const pipeline type,
-		const std::chrono::milliseconds delay)
+	          const std::chrono::milliseconds delay)
 	{
 		schedule([callback]()
 		{
@@ -137,7 +138,7 @@ namespace scheduler
 	}
 
 	void once(const std::function<void()>& callback, const pipeline type,
-		const std::chrono::milliseconds delay)
+	          const std::chrono::milliseconds delay)
 	{
 		schedule([callback]()
 		{

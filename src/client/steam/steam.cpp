@@ -105,13 +105,11 @@ namespace steam
 
 	bool SteamAPI_RestartAppIfNecessary()
 	{
-	  OutputDebugStringA(__FUNCTION__);
 		return false;
 	}
 
 	bool SteamAPI_Init()
 	{
-	  OutputDebugStringA(__FUNCTION__);
 		const std::filesystem::path steam_path = steam::SteamAPI_GetSteamInstallPath();
 		if (steam_path.empty()) return true;
 
@@ -124,42 +122,35 @@ namespace steam
 
 	void SteamAPI_RegisterCallResult(callbacks::base* result, const uint64_t call)
 	{
-	  OutputDebugStringA(__FUNCTION__);
 		callbacks::register_call_result(call, result);
 	}
 
 	void SteamAPI_RegisterCallback(callbacks::base* handler, const int callback)
 	{
-	  OutputDebugStringA(__FUNCTION__);
 		callbacks::register_callback(handler, callback);
 	}
 
 	void SteamAPI_RunCallbacks()
 	{
-	  OutputDebugStringA(__FUNCTION__);
 		callbacks::run_callbacks();
 	}
 
 	void SteamAPI_Shutdown()
 	{
-	  OutputDebugStringA(__FUNCTION__);
 	}
 
 	void SteamAPI_UnregisterCallResult(callbacks::base* result, const uint64_t call)
 	{
-	  OutputDebugStringA(__FUNCTION__);
 		callbacks::unregister_call_result(call, result);
 	}
 
 	void SteamAPI_UnregisterCallback(callbacks::base* handler)
 	{
-	  OutputDebugStringA(__FUNCTION__);
 		callbacks::unregister_callback(handler);
 	}
 
 	const char* SteamAPI_GetSteamInstallPath()
 	{
-	  OutputDebugStringA(__FUNCTION__);
 		static std::string install_path{};
 		if (!install_path.empty())
 		{
@@ -182,126 +173,109 @@ namespace steam
 
 		return install_path.data();
 	}
-	  void* SteamGameServer_GetHSteamPipe()
+
+	void* SteamGameServer_GetHSteamPipe()
 	{
-	    OutputDebugStringA(__FUNCTION__);
-	    return (void*)1;
+		return reinterpret_cast<void*>(1);
 	}
 
-void* SteamGameServer_GetHSteamUser()
+	void* SteamGameServer_GetHSteamUser()
 	{
-  OutputDebugStringA(__FUNCTION__);
-	    return (void*)1;
+		return reinterpret_cast<void*>(1);
 	}
 
-void* SteamAPI_GetHSteamUser()
-{
-  OutputDebugStringA(__FUNCTION__);
-  return (void*)1;
-}
-
-void* SteamAPI_GetHSteamPipe()
-{
-  OutputDebugStringA(__FUNCTION__);
-  return (void*)1;
-}
-
-void* SteamInternal_CreateInterface(const char* interfacename)
+	void* SteamAPI_GetHSteamUser()
 	{
-  OutputDebugStringA(__FUNCTION__);
-  OutputDebugStringA(interfacename);
-	  if(std::string(interfacename) == "SteamClient017") {
-	    static client c;
-	    return &c;
-	  }
-
-
-	  MessageBoxA(0, interfacename, __FUNCTION__, 0);
-	  return nullptr;//::utils::nt::library("steam_api64.dll").invoke<void*>("SteamInternal_CreateInterface", interfacename);
+		return reinterpret_cast<void*>(1);
 	}
 
-bool SteamInternal_GameServer_Init()
+	void* SteamAPI_GetHSteamPipe()
 	{
-  OutputDebugStringA(__FUNCTION__);
-  return true;
+		return reinterpret_cast<void*>(1);
+	}
+
+	void* SteamInternal_CreateInterface(const char* interfacename)
+	{
+		if (std::string(interfacename) == "SteamClient017")
+		{
+			static client c;
+			return &c;
+		}
+
+
+		MessageBoxA(0, interfacename, __FUNCTION__, 0);
+		return nullptr;
+	}
+
+	bool SteamInternal_GameServer_Init()
+	{
+		return true;
 	}
 
 	bool SteamGameServer_Init()
 	{
-	  OutputDebugStringA(__FUNCTION__);
 		return true;
 	}
 
 	void SteamGameServer_RunCallbacks()
 	{
-	  OutputDebugStringA(__FUNCTION__);
 	}
 
 	void SteamGameServer_Shutdown()
 	{
-	  OutputDebugStringA(__FUNCTION__);
 	}
 
 
 	friends* SteamFriends()
 	{
-	  OutputDebugStringA(__FUNCTION__);
 		static friends friends;
 		return &friends;
 	}
 
 	matchmaking* SteamMatchmaking()
 	{
-	  OutputDebugStringA(__FUNCTION__);
 		static matchmaking matchmaking;
 		return &matchmaking;
 	}
 
 	game_server* SteamGameServer()
 	{
-	  OutputDebugStringA(__FUNCTION__);
 		static game_server game_server;
 		return &game_server;
 	}
 
 	networking* SteamNetworking()
 	{
-	  OutputDebugStringA(__FUNCTION__);
 		static networking networking;
 		return &networking;
 	}
 
 	remote_storage* SteamRemoteStorage()
 	{
-	  OutputDebugStringA(__FUNCTION__);
 		static remote_storage remote_storage;
 		return &remote_storage;
 	}
 
 	user* SteamUser()
 	{
-	  OutputDebugStringA(__FUNCTION__);
 		static user user;
 		return &user;
 	}
 
 	utils* SteamUtils()
 	{
-	  OutputDebugStringA(__FUNCTION__);
 		static utils utils;
 		return &utils;
 	}
 
 	apps* SteamApps()
 	{
-	  OutputDebugStringA(__FUNCTION__);
 		static apps apps;
 		return &apps;
 	}
 
 	user_stats* SteamUserStats()
 	{
-	  OutputDebugStringA(__FUNCTION__);
 		static user_stats user_stats;
 		return &user_stats;
 	}

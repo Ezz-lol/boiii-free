@@ -7,13 +7,13 @@
 
 namespace console
 {
-        namespace
-        {
-	  void create_game_console()
-	  {
-	    reinterpret_cast<void(*)()>(utils::nt::library{}.get_ptr() + 0x2333F80)();
-	  }
-        }
+	namespace
+	{
+		void create_game_console()
+		{
+			reinterpret_cast<void(*)()>(utils::nt::library{}.get_ptr() + 0x2333F80)();
+		}
+	}
 
 	class component final : public component_interface
 	{
@@ -24,21 +24,21 @@ namespace console
 
 			this->console_runner_ = utils::thread::create_named_thread("Console IO", [this]
 			{
-			    create_game_console();
+				create_game_console();
 
-			    MSG msg{};
-			    while (!this->terminate_runner_)
-			    {
-			      if (PeekMessageA(&msg, nullptr, NULL, NULL, PM_REMOVE))
-			      {
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
-			      }
-			      else
-			      {
-				std::this_thread::sleep_for(1ms);
-			      }
-			    }
+				MSG msg{};
+				while (!this->terminate_runner_)
+				{
+					if (PeekMessageA(&msg, nullptr, NULL, NULL, PM_REMOVE))
+					{
+						TranslateMessage(&msg);
+						DispatchMessage(&msg);
+					}
+					else
+					{
+						std::this_thread::sleep_for(1ms);
+					}
+				}
 			});
 		}
 

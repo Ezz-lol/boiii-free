@@ -8,7 +8,8 @@ namespace steam
 		~screenshots() = default;
 
 		virtual uint64_t WriteScreenshot(void* pubRGB, uint32_t cubRGB, int nWidth, int nHeight);
-		virtual uint64_t AddScreenshotToLibrary(const char* pchFilename, const char* pchThumbnailFilename, int nWidth, int nHeight);
+		virtual uint64_t AddScreenshotToLibrary(const char* pchFilename, const char* pchThumbnailFilename, int nWidth,
+		                                        int nHeight);
 		virtual void TriggerScreenshot();
 		virtual void HookScreenshots(bool bHook);
 		virtual bool SetLocation(uint64_t hScreenshot, const char* pchLocation);

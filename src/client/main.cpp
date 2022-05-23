@@ -8,124 +8,138 @@
 
 namespace
 {
-DECLSPEC_NORETURN void WINAPI exit_hook(const int code)
-{
-	component_loader::pre_destroy();
-	exit(code);
-}
-
-VOID WINAPI initialize_critical_section(const LPCRITICAL_SECTION lpCriticalSection)
-{
-  component_loader::post_unpack();
-  InitializeCriticalSection(lpCriticalSection);
-}
-
-void patch_imports()
-{
-  const utils::nt::library game{};
-  const auto self = utils::nt::library::get_by_address(patch_imports);
-
-  auto patch_steam_import = [&](const std::string& func) {
-    const auto game_entry = game.get_iat_entry("steam_api64.dll", func);
-    if (!game_entry) {
-      throw std::runtime_error("Import '" + func + "' not found!");
-    }
-
-    const auto self_proc = self.get_proc<void*>(func);
-    if (!self_proc) {
-      throw std::runtime_error(func + " export not found");
-    }
-    utils::hook::set(game_entry, self_proc);
-  };
-
-  patch_steam_import("SteamAPI_RegisterCallback");
-  patch_steam_import("SteamAPI_RegisterCallResult");
-  patch_steam_import("SteamGameServer_Shutdown");
-  patch_steam_import("SteamGameServer_RunCallbacks");
-  patch_steam_import("SteamGameServer_GetHSteamPipe");
-  patch_steam_import("SteamGameServer_GetHSteamUser");
-  patch_steam_import("SteamInternal_GameServer_Init");
-  patch_steam_import("SteamAPI_UnregisterCallResult");
-  patch_steam_import("SteamAPI_UnregisterCallback");
-  patch_steam_import("SteamAPI_RunCallbacks");
-  //patch_steam_import("SteamAPI_Shutdown");
-  patch_steam_import("SteamInternal_CreateInterface");
-  patch_steam_import("SteamAPI_GetHSteamUser");
-  patch_steam_import("SteamAPI_GetHSteamPipe");
-  patch_steam_import("SteamAPI_Init");
-  patch_steam_import("SteamAPI_RestartAppIfNecessary");
-  
-  utils::hook::set(game.get_iat_entry("kernel32.dll", "InitializeCriticalSection"), initialize_critical_section);
-  utils::hook::set(game.get_iat_entry("kernel32.dll", "ExitProcess"), exit_hook);
-}
-
-bool run()
-{
-	srand(uint32_t(time(nullptr)) ^ (~GetTickCount()));
-
+	DECLSPEC_NORETURN void WINAPI exit_hook(const int code)
 	{
-		auto premature_shutdown = true;
-		const auto _ = utils::finally([&premature_shutdown]()
+		component_loader::pre_destroy();
+		exit(code);
+	}
+
+	VOID WINAPI initialize_critical_section(const LPCRITICAL_SECTION critical_section)
+	{
+		component_loader::post_unpack();
+		InitializeCriticalSection(critical_section);
+	}
+
+	void patch_imports()
+	{
+		const utils::nt::library game{};
+		const auto self = utils::nt::library::get_by_address(patch_imports);
+
+		auto patch_steam_import = [&](const std::string& func)
 		{
-			if (premature_shutdown)
+			const auto game_entry = game.get_iat_entry("steam_api64.dll", func);
+			if (!game_entry)
 			{
-				component_loader::pre_destroy();
+				throw std::runtime_error("Import '" + func + "' not found!");
 			}
-		});
 
-		try
-		{
-			patch_imports();
-
-			if (!component_loader::post_load())
+			const auto self_proc = self.get_proc<void*>(func);
+			if (!self_proc)
 			{
-				return false;
+				throw std::runtime_error(func + " export not found");
 			}
+			utils::hook::set(game_entry, self_proc);
+		};
 
-			premature_shutdown = false;
-		}
-		catch (std::exception& e)
+		patch_steam_import("SteamAPI_RegisterCallback");
+		patch_steam_import("SteamAPI_RegisterCallResult");
+		patch_steam_import("SteamGameServer_Shutdown");
+		patch_steam_import("SteamGameServer_RunCallbacks");
+		patch_steam_import("SteamGameServer_GetHSteamPipe");
+		patch_steam_import("SteamGameServer_GetHSteamUser");
+		patch_steam_import("SteamInternal_GameServer_Init");
+		patch_steam_import("SteamAPI_UnregisterCallResult");
+		patch_steam_import("SteamAPI_UnregisterCallback");
+		patch_steam_import("SteamAPI_RunCallbacks");
+		//patch_steam_import("SteamAPI_Shutdown");
+		patch_steam_import("SteamInternal_CreateInterface");
+		patch_steam_import("SteamAPI_GetHSteamUser");
+		patch_steam_import("SteamAPI_GetHSteamPipe");
+		patch_steam_import("SteamAPI_Init");
+		patch_steam_import("SteamAPI_RestartAppIfNecessary");
+
+		utils::hook::set(game.get_iat_entry("kernel32.dll", "InitializeCriticalSection"), initialize_critical_section);
+		utils::hook::set(game.get_iat_entry("kernel32.dll", "ExitProcess"), exit_hook);
+	}
+
+	void enable_dpi_awareness()
+	{
+		const utils::nt::library user32{"user32.dll"};
+		const auto set_dpi = user32
+			                     ? user32.get_proc<BOOL(WINAPI*)(DPI_AWARENESS_CONTEXT)>(
+				                     "SetProcessDpiAwarenessContext")
+			                     : nullptr;
+		if (set_dpi)
 		{
-			MessageBoxA(nullptr, e.what(), "ERROR", MB_ICONERROR);
-			return false;
+			set_dpi(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 		}
 	}
 
-	return true;
-}
+	bool run()
+	{
+		srand(uint32_t(time(nullptr)) ^ (~GetTickCount()));
+
+		{
+			auto premature_shutdown = true;
+			const auto _ = utils::finally([&premature_shutdown]()
+			{
+				if (premature_shutdown)
+				{
+					component_loader::pre_destroy();
+				}
+			});
+
+			try
+			{
+				enable_dpi_awareness();
+				patch_imports();
+
+				if (!component_loader::post_load())
+				{
+					return false;
+				}
+
+				premature_shutdown = false;
+			}
+			catch (std::exception& e)
+			{
+				MessageBoxA(nullptr, e.what(), "ERROR", MB_ICONERROR);
+				return false;
+			}
+		}
+
+		return true;
+	}
 }
 
 BOOL WINAPI DllMain(HINSTANCE, const DWORD reason, LPVOID)
 {
-  if (reason == DLL_PROCESS_ATTACH) {
-    if(!run()) {
-      return FALSE;
-    }
-  }
-  return TRUE;
+	if (reason == DLL_PROCESS_ATTACH)
+	{
+		if (!run())
+		{
+			return FALSE;
+		}
+	}
+	return TRUE;
 }
 
 extern "C" __declspec(dllexport)
-HRESULT D3D11CreateDevice(
-  void* pAdapter,
-  uint64_t DriverType,
-  HMODULE Software,
-  UINT Flags,
-  const void* pFeatureLevels,
-  UINT FeatureLevels,
-  UINT SDKVersion,
-  void** ppDevice,
-  void* pFeatureLevel,
-  void** ppImmediateContext
-)
+HRESULT D3D11CreateDevice(void* adapter, const uint64_t driver_type,
+                          const HMODULE software, const UINT flags,
+                          const void* p_feature_levels, const UINT feature_levels,
+                          const UINT sdk_version, void** device, void* feature_level,
+                          void** immediate_context)
 {
-  static auto func = [] {
-    char dir[MAX_PATH]{ 0 };
-    GetSystemDirectoryA(dir, sizeof(dir));
+	static auto func = []
+	{
+		char dir[MAX_PATH]{0};
+		GetSystemDirectoryA(dir, sizeof(dir));
 
-    const auto d3d11 = utils::nt::library::load(dir + "/d3d11.dll"s);
-    return d3d11.get_proc<decltype(&D3D11CreateDevice)>("D3D11CreateDevice");
-  }();
+		const auto d3d11 = utils::nt::library::load(dir + "/d3d11.dll"s);
+		return d3d11.get_proc<decltype(&D3D11CreateDevice)>("D3D11CreateDevice");
+	}();
 
-  return func(pAdapter, DriverType, Software, Flags, pFeatureLevels, FeatureLevels, SDKVersion, ppDevice, pFeatureLevel, ppImmediateContext);
+	return func(adapter, driver_type, software, flags, p_feature_levels, feature_levels, sdk_version, device,
+	            feature_level, immediate_context);
 }
