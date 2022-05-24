@@ -2,6 +2,7 @@
 #include "loader/component_loader.hpp"
 #include "scheduler.hpp"
 
+#include "steam/steam.hpp"
 #include <utils/hook.hpp>
 
 namespace arxan
@@ -10,20 +11,90 @@ namespace arxan
 	{
 		DWORD get_steam_pid()
 		{
-			static auto steam_pid = []
-			{
-				HKEY reg_key;
-				DWORD pid{};
+			HKEY reg_key;
+			DWORD pid{};
 
-				if (RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Valve\\Steam\\ActiveProcess", 0, KEY_QUERY_VALUE,
-				                  &reg_key) != ERROR_SUCCESS)
-					return pid;
-
-				DWORD length = sizeof(pid);
-				RegQueryValueExA(reg_key, "pid", nullptr, nullptr, reinterpret_cast<BYTE*>(&pid), &length);
-				RegCloseKey(reg_key);
-
+			if (RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Valve\\Steam\\ActiveProcess", 0, KEY_QUERY_VALUE,
+			                  &reg_key) != ERROR_SUCCESS)
 				return pid;
+
+			DWORD length = sizeof(pid);
+			RegQueryValueExA(reg_key, "pid", nullptr, nullptr, reinterpret_cast<BYTE*>(&pid), &length);
+			RegCloseKey(reg_key);
+
+			return pid;
+		}
+
+		bool is_valid_pid(const DWORD pid)
+		{
+			const auto handle = OpenProcess(SYNCHRONIZE, FALSE, pid);
+			if (!handle)
+			{
+				return false;
+			}
+
+			CloseHandle(handle);
+			return true;
+		}
+
+		void start_steam()
+		{
+			STARTUPINFOA startup_info;
+			PROCESS_INFORMATION process_info;
+
+			ZeroMemory(&startup_info, sizeof(startup_info));
+			ZeroMemory(&process_info, sizeof(process_info));
+			startup_info.cb = sizeof(startup_info);
+
+			const auto steam_folder = steam::SteamAPI_GetSteamInstallPath();
+			const auto steam_path = steam_folder + "\\steam.exe"s;
+			char cmd_line[] = "steam.exe -silent";
+
+			if (CreateProcessA(steam_path.data(), &cmd_line[0], nullptr, nullptr, false, NULL, nullptr, steam_folder,
+			                   &startup_info, &process_info))
+			{
+				CloseHandle(process_info.hThread);
+				CloseHandle(
+					process_info.hProcess);
+			}
+		}
+
+		void start_steam_if_wanted()
+		{
+			if (MessageBoxA(nullptr, "Steam must be running. Do you want to start it now?", "Information",
+			                MB_ICONINFORMATION | MB_YESNO) != IDYES)
+			{
+				TerminateProcess(GetCurrentProcess(), 1);
+			}
+
+			start_steam();
+		}
+
+		DWORD setup_and_get_steam_pid()
+		{
+			static DWORD steam_pid = []
+			{
+				auto pid = get_steam_pid();
+				if (is_valid_pid(pid))
+				{
+					return pid;
+				}
+
+				start_steam_if_wanted();
+
+				std::this_thread::sleep_for(3s);
+
+				for (int i = 0; i < 10; ++i)
+				{
+					std::this_thread::sleep_for(1s);
+					pid = get_steam_pid();
+					if (is_valid_pid(pid))
+					{
+						return pid;
+					}
+				}
+
+				return get_steam_pid();
 			}();
 
 			return steam_pid;
@@ -162,6 +233,10 @@ namespace arxan
 			return status;
 		}
 
+#define ProcessDebugPort 7
+#define ProcessDebugObjectHandle 30 // WinXP source says 31?
+#define ProcessDebugFlags 31 // WinXP source says 32?
+
 		NTSTATUS WINAPI nt_query_information_process_stub(HANDLE handle, const PROCESSINFOCLASS info_class,
 		                                                  const PVOID info,
 		                                                  const ULONG info_length, const PULONG ret_length)
@@ -175,23 +250,24 @@ namespace arxan
 			{
 				if (info_class == ProcessBasicInformation)
 				{
-					static_cast<PPROCESS_BASIC_INFORMATION>(info)->Reserved3 = PVOID(DWORD64(get_steam_pid()));
+					static_cast<PPROCESS_BASIC_INFORMATION>(info)->Reserved3 =
+						PVOID(DWORD64(setup_and_get_steam_pid()));
 				}
-				else if (info_class == 30) // ProcessDebugObjectHandle
+				else if (info_class == ProcessDebugObjectHandle)
 				{
 					*static_cast<HANDLE*>(info) = nullptr;
 
 					return 0xC0000353;
 				}
-				else if (info_class == ProcessImageFileName || info_class == 43)
+				else if (info_class == ProcessImageFileName || info_class == 43 /* ? */)
 				{
 					remove_evil_keywords_from_string(*static_cast<UNICODE_STRING*>(info));
 				}
-				else if (info_class == 7) // ProcessDebugPort
+				else if (info_class == ProcessDebugPort)
 				{
 					*static_cast<HANDLE*>(info) = nullptr;
 				}
-				else if (info_class == 31)
+				else if (info_class == ProcessDebugFlags)
 				{
 					*static_cast<ULONG*>(info) = 1;
 				}
@@ -259,7 +335,7 @@ namespace arxan
 
 			const utils::nt::library ntdll("ntdll.dll");
 
-			for (int i = 0; i < ARRAYSIZE(functions); ++i)
+			for (auto i = 0u; i < ARRAYSIZE(functions); ++i)
 			{
 				const auto func = ntdll.get_proc<void*>(functions[i]);
 				if (!loaded)
@@ -281,6 +357,8 @@ namespace arxan
 	public:
 		void post_load() override
 		{
+			setup_and_get_steam_pid();
+
 			hide_being_debugged();
 			scheduler::loop(hide_being_debugged, scheduler::pipeline::async);
 

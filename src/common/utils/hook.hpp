@@ -85,7 +85,7 @@ namespace utils::hook
 	class detour
 	{
 	public:
-		detour() = default;
+		detour();
 		detour(void* place, void* target);
 		detour(size_t place, void* target);
 		~detour();

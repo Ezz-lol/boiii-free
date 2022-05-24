@@ -7,22 +7,26 @@ namespace utils::hook
 {
 	namespace
 	{
-		[[maybe_unused]] class _
+		void* initialize_min_hook()
 		{
-		public:
-			_()
+			static class min_hook_init
 			{
-				if (MH_Initialize() != MH_OK)
+			public:
+				min_hook_init()
 				{
-					throw std::runtime_error("Failed to initialize MinHook");
+					if (MH_Initialize() != MH_OK)
+					{
+						throw std::runtime_error("Failed to initialize MinHook");
+					}
 				}
-			}
 
-			~_()
-			{
-				MH_Uninitialize();
-			}
-		} __;
+				~min_hook_init()
+				{
+					MH_Uninitialize();
+				}
+			} min_hook_init;
+			return &min_hook_init;
+		}
 	}
 
 	void assembler::pushad64()
@@ -95,11 +99,18 @@ namespace utils::hook
 		return Assembler::jmp(size_t(target));
 	}
 
-	detour::detour(const size_t place, void* target) : detour(reinterpret_cast<void*>(place), target)
+	detour::detour()
+	{
+		(void)initialize_min_hook();
+	}
+
+	detour::detour(const size_t place, void* target)
+		: detour(reinterpret_cast<void*>(place), target)
 	{
 	}
 
 	detour::detour(void* place, void* target)
+		: detour()
 	{
 		this->create(place, target);
 	}
