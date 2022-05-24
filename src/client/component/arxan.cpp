@@ -33,10 +33,6 @@ namespace arxan
 		utils::hook::detour nt_query_system_information_hook;
 		utils::hook::detour nt_query_information_process_hook;
 		utils::hook::detour create_mutex_ex_a_hook;
-		utils::hook::detour get_window_text_a_hook;
-		utils::hook::detour get_window_text_w_hook;
-		utils::hook::detour get_class_name_a_hook;
-		utils::hook::detour get_class_name_w_hook;
 
 		HANDLE create_mutex_ex_a_stub(const LPSECURITY_ATTRIBUTES attributes, const LPCSTR name, const DWORD flags,
 		                              const DWORD access)
@@ -116,45 +112,20 @@ namespace arxan
 			return true;
 		}
 
-		int WINAPI get_window_text_w_stub(const HWND wnd, const LPWSTR str, const int max_count)
-		{
-			const auto res = get_window_text_w_hook.invoke<int>(wnd, str, max_count);
-			if (res)
-			{
-				remove_evil_keywords_from_string(str, res);
-			}
-
-			return res;
-		}
 
 		int WINAPI get_window_text_a_stub(const HWND wnd, const LPSTR str, const int max_count)
 		{
-			const auto res = get_window_text_a_hook.invoke<int>(wnd, str, max_count);
+			std::wstring wstr{};
+			wstr.resize(max_count);
+
+			const auto res = GetWindowTextW(wnd, &wstr[0], max_count);
 			if (res)
 			{
-				remove_evil_keywords_from_string(str, res);
-			}
+				remove_evil_keywords_from_string(wstr.data(), res);
 
-			return res;
-		}
-
-		int WINAPI get_class_name_a_stub(const HWND wnd, const LPSTR class_name, const int max_count)
-		{
-			const auto res = get_class_name_a_hook.invoke<int>(wnd, class_name, max_count);
-			if (res)
-			{
-				remove_evil_keywords_from_string(class_name, res);
-			}
-
-			return res;
-		}
-
-		int WINAPI get_class_name_w_stub(const HWND wnd, const LPWSTR class_name, const int max_count)
-		{
-			const auto res = get_class_name_w_hook.invoke<int>(wnd, class_name, max_count);
-			if (res)
-			{
-				remove_evil_keywords_from_string(class_name, res);
+				const std::string regular_str(wstr.begin(), wstr.end());
+				memset(str, 0, max_count);
+				memcpy(str, regular_str.data(), res);
 			}
 
 			return res;
@@ -317,31 +288,36 @@ namespace arxan
 
 			create_mutex_ex_a_hook.create(CreateMutexExA, create_mutex_ex_a_stub);
 
+
 			const utils::nt::library ntdll("ntdll.dll");
 			nt_close_hook.create(ntdll.get_proc<void*>("NtClose"), nt_close_stub);
 
 			const auto nt_query_information_process = ntdll.get_proc<void*>("NtQueryInformationProcess");
 			nt_query_information_process_hook.create(nt_query_information_process,
 			                                         nt_query_information_process_stub);
-			utils::hook::move_hook(nt_query_information_process);
 
 			const auto nt_query_system_information = ntdll.get_proc<void*>("NtQuerySystemInformation");
 			nt_query_system_information_hook.create(nt_query_system_information, nt_query_system_information_stub);
-			utils::hook::move_hook(nt_query_system_information); // Satisfy arxan
+			nt_query_system_information_hook.move();
 
-			/*get_window_text_a_hook.create(GetWindowTextA, get_window_text_a_stub);
-			get_window_text_w_hook.create(GetWindowTextW, get_window_text_w_stub);
-			get_class_name_a_hook.create(GetClassNameA, get_class_name_a_stub);
-			get_class_name_w_hook.create(GetClassNameW, get_class_name_w_stub);
-
-			// Satisfy arxan
+			utils::hook::copy(this->window_text_buffer_, GetWindowTextA, sizeof(this->window_text_buffer_));
+			utils::hook::jump(GetWindowTextA, get_window_text_a_stub, true, true);
 			utils::hook::move_hook(GetWindowTextA);
-			utils::hook::move_hook(GetWindowTextW);
-			utils::hook::move_hook(GetClassNameA);
-			utils::hook::move_hook(GetClassNameW);*/
 
 			AddVectoredExceptionHandler(1, exception_filter);
 		}
+
+		void pre_destroy() override
+		{
+			utils::hook::copy(GetWindowTextA, this->window_text_buffer_, sizeof(this->window_text_buffer_));
+			nt_query_system_information_hook.clear();
+			nt_query_information_process_hook.clear();
+			nt_close_hook.clear();
+			create_mutex_ex_a_hook.clear();
+		}
+
+	private:
+		uint8_t window_text_buffer_[15]{};
 	};
 }
 

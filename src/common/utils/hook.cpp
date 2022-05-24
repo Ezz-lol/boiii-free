@@ -109,13 +109,19 @@ namespace utils::hook
 		this->clear();
 	}
 
-	void detour::enable() const
+	void detour::enable()
 	{
 		MH_EnableHook(this->place_);
+
+		if (!this->moved_data_.empty())
+		{
+			this->move();
+		}
 	}
 
-	void detour::disable() const
+	void detour::disable()
 	{
+		this->un_move();
 		MH_DisableHook(this->place_);
 	}
 
@@ -141,16 +147,31 @@ namespace utils::hook
 	{
 		if (this->place_)
 		{
+			this->un_move();
 			MH_RemoveHook(this->place_);
 		}
 
 		this->place_ = nullptr;
 		this->original_ = nullptr;
+		this->moved_data_ = {};
+	}
+
+	void detour::move()
+	{
+		this->moved_data_ = move_hook(this->place_);
 	}
 
 	void* detour::get_original() const
 	{
 		return this->original_;
+	}
+
+	void detour::un_move()
+	{
+		if (!this->moved_data_.empty())
+		{
+			copy(this->place_, this->moved_data_.data(), this->moved_data_.size());
+		}
 	}
 
 	bool iat(const nt::library& library, const std::string& target_library, const std::string& process, void* stub)
@@ -309,27 +330,37 @@ namespace utils::hook
 		return inject(reinterpret_cast<void*>(pointer), data);
 	}
 
-	void move_hook(void* pointer)
+	std::vector<uint8_t> move_hook(void* pointer)
 	{
+		std::vector<uint8_t> original_data{};
+
 		auto* data_ptr = static_cast<uint8_t*>(pointer);
 		if (data_ptr[0] == 0xE9)
 		{
+			original_data.resize(6);
+			memmove(original_data.data(), pointer, original_data.size());
+
 			auto* target = follow_branch(data_ptr);
 			nop(data_ptr, 1);
 			jump(data_ptr + 1, target);
 		}
 		else if (data_ptr[0] == 0xFF && data_ptr[1] == 0x25)
 		{
-			copy(data_ptr + 1, data_ptr, 0x14);
+			original_data.resize(15);
+			memmove(original_data.data(), pointer, original_data.size());
+
+			copy(data_ptr + 1, data_ptr, 14);
 			nop(data_ptr, 1);
 		}
 		else
 		{
 			throw std::runtime_error("No branch instruction found");
 		}
+
+		return original_data;
 	}
 
-	void move_hook(const size_t pointer)
+	std::vector<uint8_t> move_hook(const size_t pointer)
 	{
 		return move_hook(reinterpret_cast<void*>(pointer));
 	}

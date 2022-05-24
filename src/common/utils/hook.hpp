@@ -99,13 +99,15 @@ namespace utils::hook
 		{
 			if (this != &other)
 			{
-				this->~detour();
+				this->clear();
 
 				this->place_ = other.place_;
 				this->original_ = other.original_;
+				this->moved_data_ = other.moved_data_;
 
 				other.place_ = nullptr;
 				other.original_ = nullptr;
+				other.moved_data_ = {};
 			}
 
 			return *this;
@@ -114,12 +116,14 @@ namespace utils::hook
 		detour(const detour&) = delete;
 		detour& operator=(const detour&) = delete;
 
-		void enable() const;
-		void disable() const;
+		void enable();
+		void disable();
 
 		void create(void* place, void* target);
 		void create(size_t place, void* target);
 		void clear();
+
+		void move();
 
 		template <typename T>
 		T* get() const
@@ -136,8 +140,11 @@ namespace utils::hook
 		[[nodiscard]] void* get_original() const;
 
 	private:
+		std::vector<uint8_t> moved_data_{};
 		void* place_{};
 		void* original_{};
+
+		void un_move();
 	};
 
 	bool iat(const nt::library& library, const std::string& target_library, const std::string& process, void* stub);
@@ -163,8 +170,8 @@ namespace utils::hook
 	void inject(void* pointer, const void* data);
 	void inject(size_t pointer, const void* data);
 
-	void move_hook(void* pointer);
-	void move_hook(size_t pointer);
+	std::vector<uint8_t> move_hook(void* pointer);
+	std::vector<uint8_t> move_hook(size_t pointer);
 
 	template <typename T>
 	T extract(void* address)
