@@ -14,7 +14,8 @@ namespace arxan
 	namespace
 	{
 		const auto pseudo_steam_id = 0x1337;
-		const auto pseudo_steam_handle = reinterpret_cast<HANDLE>(reinterpret_cast<uint64_t>(INVALID_HANDLE_VALUE) - pseudo_steam_id);
+		const auto pseudo_steam_handle = reinterpret_cast<HANDLE>(reinterpret_cast<uint64_t>(INVALID_HANDLE_VALUE) -
+			pseudo_steam_id);
 
 		utils::hook::detour nt_close_hook;
 		utils::hook::detour nt_query_system_information_hook;
@@ -239,7 +240,8 @@ namespace arxan
 				return status;
 			}
 
-			status = nt_query_information_process_hook.invoke<NTSTATUS>(handle, info_class, info, info_length, ret_length);
+			status = nt_query_information_process_hook.invoke<NTSTATUS>(handle, info_class, info, info_length,
+			                                                            ret_length);
 
 			if (NT_SUCCESS(status))
 			{
@@ -347,6 +349,22 @@ namespace arxan
 
 			loaded = true;
 		}
+
+		const char* get_command_line_a_stub()
+		{
+			static auto cmd = []
+			{
+				std::string cmd_line = GetCommandLineA();
+				if (!strstr(cmd_line.data(), "fs_game"))
+				{
+					cmd_line += " +set fs_game \"T7x\"";
+				}
+
+				return cmd_line;
+			}();
+
+			return cmd.data();
+		}
 	}
 
 	class component final : public component_interface
@@ -382,6 +400,13 @@ namespace arxan
 			utils::hook::move_hook(GetWindowTextA);
 
 			AddVectoredExceptionHandler(1, exception_filter);
+
+			// TODO: Remove as soon as real hooking works
+			auto* cmd_func = utils::nt::library{}.get_iat_entry("kernel32.dll", "GetCommandLineA");
+			if (cmd_func)
+			{
+				utils::hook::set(cmd_func, get_command_line_a_stub);
+			}
 		}
 
 		void pre_destroy() override
@@ -391,6 +416,7 @@ namespace arxan
 			nt_query_information_process_hook.clear();
 			nt_close_hook.clear();
 			create_mutex_ex_a_hook.clear();
+			open_process_hook.clear();
 		}
 
 	private:
