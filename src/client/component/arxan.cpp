@@ -14,7 +14,7 @@ namespace arxan
 	namespace
 	{
 		const auto pseudo_steam_id = 0x1337;
-		const auto pseudo_steam_handle = HANDLE(uint64_t(INVALID_HANDLE_VALUE) - pseudo_steam_id);
+		const auto pseudo_steam_handle = reinterpret_cast<HANDLE>(reinterpret_cast<uint64_t>(INVALID_HANDLE_VALUE) - pseudo_steam_id);
 
 		utils::hook::detour nt_close_hook;
 		utils::hook::detour nt_query_system_information_hook;
@@ -24,7 +24,7 @@ namespace arxan
 
 		HANDLE process_id_to_handle(const DWORD pid)
 		{
-			return HANDLE(DWORD64(pid));
+			return reinterpret_cast<HANDLE>(static_cast<DWORD64>(pid));
 		}
 
 		void check_steam_install()
@@ -163,7 +163,7 @@ namespace arxan
 						const auto info = reinterpret_cast<SYSTEM_PROCESS_INFORMATION*>(addr);
 						remove_evil_keywords_from_string(info->ImageName);
 
-						static auto our_pid = process_id_to_handle(GetCurrentProcessId());
+						static const auto our_pid = process_id_to_handle(GetCurrentProcessId());
 
 						if (!injected_steam && info->UniqueProcessId != our_pid)
 						{
@@ -190,9 +190,9 @@ namespace arxan
 			return status;
 		}
 
-		bool handle_steam_process(HANDLE handle, const PROCESSINFOCLASS info_class,
-		                          const PVOID info,
-		                          const ULONG info_length, const PULONG ret_length, NTSTATUS* status)
+		bool handle_pseudo_steam_process(const HANDLE handle, const PROCESSINFOCLASS info_class,
+		                                 const PVOID info,
+		                                 const ULONG info_length, const PULONG ret_length, NTSTATUS* status)
 		{
 			if (handle != pseudo_steam_handle || info_class != 43)
 			{
@@ -229,20 +229,17 @@ namespace arxan
 			return true;
 		}
 
-		NTSTATUS WINAPI nt_query_information_process_stub(HANDLE handle, const PROCESSINFOCLASS info_class,
+		NTSTATUS WINAPI nt_query_information_process_stub(const HANDLE handle, const PROCESSINFOCLASS info_class,
 		                                                  const PVOID info,
 		                                                  const ULONG info_length, const PULONG ret_length)
 		{
 			NTSTATUS status{0};
-			if (handle_steam_process(handle, info_class, info, info_length, ret_length, &status))
+			if (handle_pseudo_steam_process(handle, info_class, info, info_length, ret_length, &status))
 			{
 				return status;
 			}
 
-			auto* orig = static_cast<decltype(NtQueryInformationProcess)*>(nt_query_information_process_hook.
-				get_original());
-
-			status = orig(handle, info_class, info, info_length, ret_length);
+			status = nt_query_information_process_hook.invoke<NTSTATUS>(handle, info_class, info, info_length, ret_length);
 
 			if (NT_SUCCESS(status))
 			{
@@ -282,8 +279,7 @@ namespace arxan
 			char info[16];
 			if (NtQueryObject(handle, OBJECT_INFORMATION_CLASS(4), &info, 2, nullptr) >= 0 && size_t(handle) != 0x12345)
 			{
-				auto* orig = static_cast<decltype(NtClose)*>(nt_close_hook.get_original());
-				return orig(handle);
+				return nt_close_hook.invoke<NTSTATUS>(handle);
 			}
 
 			return STATUS_INVALID_HANDLE;
@@ -306,7 +302,7 @@ namespace arxan
 
 		void hide_being_debugged()
 		{
-			auto* const peb = PPEB(__readgsqword(0x60));
+			auto* const peb = reinterpret_cast<PPEB>(__readgsqword(0x60));
 			peb->BeingDebugged = false;
 			*reinterpret_cast<PDWORD>(LPSTR(peb) + 0xBC) &= ~0x70;
 		}
