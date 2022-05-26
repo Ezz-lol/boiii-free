@@ -5,105 +5,47 @@
 #include "steam/steam.hpp"
 #include <utils/hook.hpp>
 
+#define ProcessDebugPort 7
+#define ProcessDebugObjectHandle 30 // WinXP source says 31?
+#define ProcessDebugFlags 31 // WinXP source says 32?
+
 namespace arxan
 {
 	namespace
 	{
-		DWORD get_steam_pid()
-		{
-			HKEY reg_key;
-			DWORD pid{};
-
-			if (RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Valve\\Steam\\ActiveProcess", 0, KEY_QUERY_VALUE,
-			                  &reg_key) != ERROR_SUCCESS)
-				return pid;
-
-			DWORD length = sizeof(pid);
-			RegQueryValueExA(reg_key, "pid", nullptr, nullptr, reinterpret_cast<BYTE*>(&pid), &length);
-			RegCloseKey(reg_key);
-
-			return pid;
-		}
-
-		bool is_valid_pid(const DWORD pid)
-		{
-			const auto handle = OpenProcess(SYNCHRONIZE, FALSE, pid);
-			if (!handle)
-			{
-				return false;
-			}
-
-			CloseHandle(handle);
-			return true;
-		}
-
-		void start_steam()
-		{
-			STARTUPINFOA startup_info;
-			PROCESS_INFORMATION process_info;
-
-			ZeroMemory(&startup_info, sizeof(startup_info));
-			ZeroMemory(&process_info, sizeof(process_info));
-			startup_info.cb = sizeof(startup_info);
-
-			const auto steam_folder = steam::SteamAPI_GetSteamInstallPath();
-			const auto steam_path = steam_folder + "\\steam.exe"s;
-			char cmd_line[] = "steam.exe -silent";
-
-			if (CreateProcessA(steam_path.data(), &cmd_line[0], nullptr, nullptr, false, NULL, nullptr, steam_folder,
-			                   &startup_info, &process_info))
-			{
-				CloseHandle(process_info.hThread);
-				CloseHandle(
-					process_info.hProcess);
-			}
-		}
-
-		void start_steam_if_wanted()
-		{
-			if (MessageBoxA(nullptr, "Steam must be running. Do you want to start it now?", "Information",
-			                MB_ICONINFORMATION | MB_YESNO) != IDYES)
-			{
-				TerminateProcess(GetCurrentProcess(), 1);
-			}
-
-			start_steam();
-		}
-
-		DWORD setup_and_get_steam_pid()
-		{
-			static DWORD steam_pid = []
-			{
-				auto pid = get_steam_pid();
-				if (is_valid_pid(pid))
-				{
-					return pid;
-				}
-
-				start_steam_if_wanted();
-
-				std::this_thread::sleep_for(3s);
-
-				for (int i = 0; i < 10; ++i)
-				{
-					std::this_thread::sleep_for(1s);
-					pid = get_steam_pid();
-					if (is_valid_pid(pid))
-					{
-						return pid;
-					}
-				}
-
-				return get_steam_pid();
-			}();
-
-			return steam_pid;
-		}
+		const auto pseudo_steam_id = 0x1337;
+		const auto pseudo_steam_handle = HANDLE(uint64_t(INVALID_HANDLE_VALUE) - pseudo_steam_id);
 
 		utils::hook::detour nt_close_hook;
 		utils::hook::detour nt_query_system_information_hook;
 		utils::hook::detour nt_query_information_process_hook;
 		utils::hook::detour create_mutex_ex_a_hook;
+		utils::hook::detour open_process_hook;
+
+		HANDLE process_id_to_handle(const DWORD pid)
+		{
+			return HANDLE(DWORD64(pid));
+		}
+
+		void check_steam_install()
+		{
+			if (!*steam::SteamAPI_GetSteamInstallPath())
+			{
+				MessageBoxA(nullptr, "Steam must be installed for the game to run. Please install steam!", "Error",
+				            MB_ICONERROR);
+				TerminateProcess(GetCurrentProcess(), 1);
+			}
+		}
+
+		HANDLE WINAPI open_process_stub(const DWORD access, const BOOL inherit, const DWORD pid)
+		{
+			if (pid == pseudo_steam_id)
+			{
+				return pseudo_steam_handle;
+			}
+
+			return open_process_hook.invoke<HANDLE>(access, inherit, pid);
+		}
 
 		HANDLE create_mutex_ex_a_stub(const LPSECURITY_ATTRIBUTES attributes, const LPCSTR name, const DWORD flags,
 		                              const DWORD access)
@@ -214,11 +156,26 @@ namespace arxan
 			{
 				if (system_information_class == SystemProcessInformation)
 				{
+					bool injected_steam = false;
 					auto addr = static_cast<uint8_t*>(system_information);
 					while (true)
 					{
 						const auto info = reinterpret_cast<SYSTEM_PROCESS_INFORMATION*>(addr);
 						remove_evil_keywords_from_string(info->ImageName);
+
+						static auto our_pid = process_id_to_handle(GetCurrentProcessId());
+
+						if (!injected_steam && info->UniqueProcessId != our_pid)
+						{
+							static wchar_t steam_path[] = L"steam.exe";
+
+							info->UniqueProcessId = process_id_to_handle(pseudo_steam_id);
+							info->ImageName.Buffer = steam_path;
+							info->ImageName.Length = static_cast<uint16_t>(wcslen(steam_path) * 2u);
+							info->ImageName.MaximumLength = info->ImageName.Length;
+
+							injected_steam = true;
+						}
 
 						if (!info->NextEntryOffset)
 						{
@@ -233,31 +190,70 @@ namespace arxan
 			return status;
 		}
 
-#define ProcessDebugPort 7
-#define ProcessDebugObjectHandle 30 // WinXP source says 31?
-#define ProcessDebugFlags 31 // WinXP source says 32?
+		bool handle_steam_process(HANDLE handle, const PROCESSINFOCLASS info_class,
+		                          const PVOID info,
+		                          const ULONG info_length, const PULONG ret_length, NTSTATUS* status)
+		{
+			if (handle != pseudo_steam_handle || info_class != 43)
+			{
+				return false;
+			}
+
+			const auto steam_folder = steam::SteamAPI_GetSteamInstallPath();
+			const auto steam_path = steam_folder + "\\steam.exe"s;
+			const std::wstring wide_path(steam_path.begin(), steam_path.end());
+
+			const auto required_size = static_cast<ULONG>((wide_path.size() + 1u) * 2u + sizeof(UNICODE_STRING));
+
+			if (ret_length)
+			{
+				*ret_length = required_size;
+			}
+
+			if (info_length < required_size)
+			{
+				*status = static_cast<LONG>(0xC0000004);
+				return true;
+			}
+
+			memset(info, 0, info_length);
+
+			auto& str = *static_cast<UNICODE_STRING*>(info);
+			str.Buffer = reinterpret_cast<wchar_t*>(&str + 1);
+			str.Length = static_cast<uint16_t>(wide_path.size() * 2u);
+			str.MaximumLength = str.Length;
+
+			memcpy(str.Buffer, wide_path.data(), str.Length);
+
+			*status = 0;
+			return true;
+		}
 
 		NTSTATUS WINAPI nt_query_information_process_stub(HANDLE handle, const PROCESSINFOCLASS info_class,
 		                                                  const PVOID info,
 		                                                  const ULONG info_length, const PULONG ret_length)
 		{
+			NTSTATUS status{0};
+			if (handle_steam_process(handle, info_class, info, info_length, ret_length, &status))
+			{
+				return status;
+			}
+
 			auto* orig = static_cast<decltype(NtQueryInformationProcess)*>(nt_query_information_process_hook.
 				get_original());
 
-			const auto status = orig(handle, info_class, info, info_length, ret_length);
+			status = orig(handle, info_class, info, info_length, ret_length);
 
 			if (NT_SUCCESS(status))
 			{
 				if (info_class == ProcessBasicInformation)
 				{
-					static_cast<PPROCESS_BASIC_INFORMATION>(info)->Reserved3 =
-						PVOID(DWORD64(setup_and_get_steam_pid()));
+					static_cast<PPROCESS_BASIC_INFORMATION>(info)->Reserved3 = process_id_to_handle(pseudo_steam_id);
 				}
 				else if (info_class == ProcessDebugObjectHandle)
 				{
 					*static_cast<HANDLE*>(info) = nullptr;
-
-					return 0xC0000353;
+					return static_cast<LONG>(0xC0000353);
 				}
 				else if (info_class == ProcessImageFileName || info_class == 43 /* ? */)
 				{
@@ -278,6 +274,11 @@ namespace arxan
 
 		NTSTATUS NTAPI nt_close_stub(const HANDLE handle)
 		{
+			if (handle == pseudo_steam_handle)
+			{
+				return 0;
+			}
+
 			char info[16];
 			if (NtQueryObject(handle, OBJECT_INFORMATION_CLASS(4), &info, 2, nullptr) >= 0 && size_t(handle) != 0x12345)
 			{
@@ -357,7 +358,7 @@ namespace arxan
 	public:
 		void post_load() override
 		{
-			setup_and_get_steam_pid();
+			check_steam_install();
 
 			hide_being_debugged();
 			scheduler::loop(hide_being_debugged, scheduler::pipeline::async);
@@ -377,6 +378,8 @@ namespace arxan
 			const auto nt_query_system_information = ntdll.get_proc<void*>("NtQuerySystemInformation");
 			nt_query_system_information_hook.create(nt_query_system_information, nt_query_system_information_stub);
 			nt_query_system_information_hook.move();
+
+			open_process_hook.create(OpenProcess, open_process_stub);
 
 			utils::hook::copy(this->window_text_buffer_, GetWindowTextA, sizeof(this->window_text_buffer_));
 			utils::hook::jump(GetWindowTextA, get_window_text_a_stub, true, true);
