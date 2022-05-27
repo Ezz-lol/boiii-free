@@ -13,7 +13,7 @@ namespace arxan
 {
 	namespace
 	{
-		const auto pseudo_steam_id = 0x1337;
+		constexpr auto pseudo_steam_id = 0x1337;
 		const auto pseudo_steam_handle = reinterpret_cast<HANDLE>(reinterpret_cast<uint64_t>(INVALID_HANDLE_VALUE) -
 			pseudo_steam_id);
 
@@ -26,16 +26,6 @@ namespace arxan
 		HANDLE process_id_to_handle(const DWORD pid)
 		{
 			return reinterpret_cast<HANDLE>(static_cast<DWORD64>(pid));
-		}
-
-		void check_steam_install()
-		{
-			if (!*steam::SteamAPI_GetSteamInstallPath())
-			{
-				MessageBoxA(nullptr, "Steam must be installed for the game to run. Please install steam!", "Error",
-				            MB_ICONERROR);
-				TerminateProcess(GetCurrentProcess(), 1);
-			}
 		}
 
 		HANDLE WINAPI open_process_stub(const DWORD access, const BOOL inherit, const DWORD pid)
@@ -372,8 +362,6 @@ namespace arxan
 	public:
 		void post_load() override
 		{
-			check_steam_install();
-
 			hide_being_debugged();
 			scheduler::loop(hide_being_debugged, scheduler::pipeline::async);
 

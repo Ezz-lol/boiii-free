@@ -76,6 +76,7 @@
 #include <optional>
 #include <unordered_set>
 #include <variant>
+#include <cassert>
 
 #include <MinHook.h>
 #include <asmjit/core/jitruntime.h>

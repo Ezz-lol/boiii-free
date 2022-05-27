@@ -77,7 +77,7 @@ namespace
 
 	bool run()
 	{
-		srand(uint32_t(time(nullptr)) ^ (~GetTickCount()));
+		srand(uint32_t(time(nullptr)) ^ ~(GetTickCount() * GetCurrentProcessId()));
 
 		{
 			auto premature_shutdown = true;

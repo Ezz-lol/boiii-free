@@ -2,6 +2,7 @@
 #include "steam.hpp"
 
 #include <utils/nt.hpp>
+#include <utils/io.hpp>
 
 namespace steam
 {
@@ -105,12 +106,21 @@ namespace steam
 
 	bool SteamAPI_RestartAppIfNecessary()
 	{
-		return false;
+		const std::string steam_path = SteamAPI_GetSteamInstallPath();
+		if (!steam_path.empty() && ::utils::io::file_exists(steam_path + "/steam.exe"))
+		{
+			return false;
+		}
+
+		MessageBoxA(nullptr, "Steam must be installed for the game to run. Please install steam!", "Error", MB_ICONERROR);
+		ShellExecuteA(nullptr, "open", "https://store.steampowered.com/about/", nullptr, nullptr, SW_SHOWNORMAL);
+		TerminateProcess(GetCurrentProcess(), 1);
+		return true;
 	}
 
 	bool SteamAPI_Init()
 	{
-		const std::filesystem::path steam_path = steam::SteamAPI_GetSteamInstallPath();
+		const std::filesystem::path steam_path = SteamAPI_GetSteamInstallPath();
 		if (steam_path.empty()) return true;
 
 		::utils::nt::library::load(steam_path / "tier0_s64.dll");

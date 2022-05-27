@@ -1,6 +1,8 @@
 #include <std_include.hpp>
 #include "component_loader.hpp"
 
+#include <utils/nt.hpp>
+
 void component_loader::register_component(std::unique_ptr<component_interface>&& component_)
 {
 	get_components().push_back(std::move(component_));
@@ -87,4 +89,11 @@ std::vector<std::unique_ptr<component_interface>>& component_loader::get_compone
 	});
 
 	return *components;
+}
+
+size_t operator"" _g(const size_t val)
+{
+	static auto base = size_t(utils::nt::library{}.get_ptr());
+	assert(base && "Failed to resolve base");
+	return base + (val - 0x140000000);
 }

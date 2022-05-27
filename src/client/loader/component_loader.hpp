@@ -56,3 +56,5 @@ namespace                                                 \
 {                                                         \
 	static component_loader::installer<name> __component; \
 }
+
+size_t operator"" _g(const size_t val);

@@ -11,7 +11,7 @@ namespace console
 	{
 		void create_game_console()
 		{
-			reinterpret_cast<void(*)()>(utils::nt::library{}.get_ptr() + 0x2333F80)();
+			reinterpret_cast<void(*)()>(0x142333F80_g)();
 		}
 	}
 
@@ -20,11 +20,23 @@ namespace console
 	public:
 		void post_unpack() override
 		{
+
 			this->terminate_runner_ = false;
 
 			this->console_runner_ = utils::thread::create_named_thread("Console IO", [this]
 			{
-				create_game_console();
+				{
+					utils::hook::detour d;
+					d.create(0x142333B40_g, utils::hook::assemble([](utils::hook::assembler& a)
+						{
+							a.mov(r8, "BOIII Console");
+							a.mov(r9d, 0x80CA0000);
+							a.sub(eax, edx);
+							a.jmp(0x142333B4F_g);
+						}));
+
+					create_game_console();
+				}
 
 				MSG msg{};
 				while (!this->terminate_runner_)
