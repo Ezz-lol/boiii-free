@@ -7,7 +7,7 @@ namespace steam
 {
 	const char* friends::GetPersonaName()
 	{
-		return "T7x User";
+		return "boiii";
 	}
 
 	unsigned long long friends::SetPersonaName(const char* pchPersonaName)

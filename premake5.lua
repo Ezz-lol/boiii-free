@@ -219,7 +219,7 @@ newaction {
 
 dependencies.load()
 
-workspace "bo3"
+workspace "boiii"
 	startproject "client"
 	location "./build"
 	objdir "%{wks.location}/obj"
