@@ -1,12 +1,162 @@
 #include "hook.hpp"
+
+#include <map>
+#include <MinHook.h>
+
+#include "concurrency.hpp"
 #include "string.hpp"
 
-#include <MinHook.h>
+#ifdef max
+#undef max
+#endif
+
+#ifdef min
+#undef min
+#endif
 
 namespace utils::hook
 {
 	namespace
 	{
+		uint8_t* allocate_somewhere_near(const void* base_address, const size_t size)
+		{
+			size_t offset = 0;
+			while (true)
+			{
+				offset += size;
+				auto* target_address = static_cast<const uint8_t*>(base_address) - offset;
+				if (is_relatively_far(base_address, target_address))
+				{
+					return nullptr;
+				}
+
+				const auto res = VirtualAlloc(const_cast<uint8_t*>(target_address), size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+				if (res)
+				{
+					if (is_relatively_far(base_address, target_address))
+					{
+						VirtualFree(res, 0, MEM_RELEASE);
+						return nullptr;
+					}
+
+					return static_cast<uint8_t*>(res);
+				}
+			}
+		}
+
+		class memory
+		{
+		public:
+			memory() = default;
+			memory(const void* ptr)
+				: memory()
+			{
+				this->length_ = 0x1000;
+				this->buffer_ = allocate_somewhere_near(ptr, this->length_);
+				if (!this->buffer_)
+				{
+					throw std::runtime_error("Failed to allocate");
+				}
+			}
+
+			~memory()
+			{
+				if (this->buffer_)
+				{
+					VirtualFree(this->buffer_, 0, MEM_RELEASE);
+				}
+			}
+
+			memory(memory&& obj) noexcept
+				: memory()
+			{
+				this->operator=(std::move(obj));
+			}
+
+			memory& operator=(memory&& obj) noexcept
+			{
+				if(this != &obj)
+				{
+					this->~memory();
+					this->buffer_ = obj.buffer_;
+					this->length_ = obj.length_;
+					this->offset_ = obj.offset_;
+
+					obj.buffer_ = nullptr;
+					obj.length_ = 0;
+					obj.offset_ = 0;
+				}
+
+				return *this;
+			}
+
+			void* allocate(const size_t length)
+			{
+				if(!this->buffer_) {
+					return nullptr;
+				}
+
+				if(this->offset_ + length > this->length_) {
+					return nullptr;
+				}
+
+				const auto ptr = this->get_ptr();
+				this->offset_ += length;
+				return ptr;
+			}
+
+			void* get_ptr() const
+			{
+				return this->buffer_ + this->offset_;
+			}
+
+		private:
+			uint8_t* buffer_{};
+			size_t length_{};
+			size_t offset_{};
+		};
+
+		void* get_memory_near(const void* address, const size_t size)
+		{
+			static concurrency::container<std::vector<memory>> memory_container{};
+
+			return memory_container.access<void*>([&](std::vector<memory>& memories)
+			{
+				for(auto& memory : memories)
+				{
+					if(!is_relatively_far(address, memory.get_ptr()))
+					{
+						return memory.allocate(size);
+					}
+				}
+
+				memories.emplace_back(address);
+				return memories.back().allocate(size);
+			});
+		}
+
+		concurrency::container<std::map<const void*, uint8_t>>& get_original_data_map()
+		{
+			static concurrency::container<std::map<const void*, uint8_t>> og_data{};
+			return og_data;
+		}
+
+		void store_original_data(const void* data, size_t length)
+		{
+			get_original_data_map().access([data, length](std::map<const void*, uint8_t>& og_map)
+			{
+				const auto data_ptr = static_cast<const uint8_t*>(data);
+				for(size_t i = 0; i < length; ++i)
+				{
+					const auto pos = data_ptr + i;
+					if(!og_map.contains(pos))
+					{
+						og_map[pos] = *pos;
+					}
+				}
+			});
+		}
+			
 		void* initialize_min_hook()
 		{
 			static class min_hook_init
@@ -140,6 +290,7 @@ namespace utils::hook
 	{
 		this->clear();
 		this->place_ = place;
+		store_original_data(place, 14);
 
 		if (MH_CreateHook(this->place_, target, &this->original_) != MH_OK)
 		{
@@ -192,6 +343,8 @@ namespace utils::hook
 		auto* const ptr = library.get_iat_entry(target_library, process);
 		if (!ptr) return false;
 
+		store_original_data(ptr, sizeof(*ptr));
+
 		DWORD protect;
 		VirtualProtect(ptr, sizeof(*ptr), PAGE_EXECUTE_READWRITE, &protect);
 
@@ -203,6 +356,8 @@ namespace utils::hook
 
 	void nop(void* place, const size_t length)
 	{
+		store_original_data(place, length);
+
 		DWORD old_protect{};
 		VirtualProtect(place, length, PAGE_EXECUTE_READWRITE, &old_protect);
 
@@ -219,6 +374,8 @@ namespace utils::hook
 
 	void copy(void* place, const void* data, const size_t length)
 	{
+		store_original_data(place, length);
+
 		DWORD old_protect{};
 		VirtualProtect(place, length, PAGE_EXECUTE_READWRITE, &old_protect);
 
@@ -244,7 +401,15 @@ namespace utils::hook
 	{
 		if (is_relatively_far(pointer, data))
 		{
-			throw std::runtime_error("Too far away to create 32bit relative branch");
+			auto* trampoline = get_memory_near(pointer, 14);
+			if (!trampoline)
+			{
+				throw std::runtime_error("Too far away to create 32bit relative branch");
+			}
+
+			call(pointer, trampoline);
+			jump(trampoline, data, true, true);
+			return;
 		}
 
 		auto* patch_pointer = PBYTE(pointer);
@@ -274,7 +439,14 @@ namespace utils::hook
 
 		if (!use_far && is_relatively_far(pointer, data))
 		{
-			throw std::runtime_error("Too far away to create 32bit relative branch");
+			auto* trampoline = get_memory_near(pointer, 14);
+			if(!trampoline)
+			{
+				throw std::runtime_error("Too far away to create 32bit relative branch");
+			}
+			jump(pointer, trampoline);
+			jump(trampoline, data, true, true);
+			return;
 		}
 
 		auto* patch_pointer = PBYTE(pointer);
@@ -385,5 +557,27 @@ namespace utils::hook
 		}
 
 		return extract<void*>(data + 1);
+	}
+
+	std::vector<uint8_t> query_original_data(const void* data, const size_t length)
+	{
+		std::vector<uint8_t> og_data{};
+		og_data.resize(length);
+		memcpy(og_data.data(), data, length);
+
+		get_original_data_map().access([data, length, &og_data](const std::map<const void*, uint8_t>& og_map)
+		{
+			auto* ptr = static_cast<const uint8_t*>(data);
+			for(size_t i = 0; i < length; ++i)
+			{
+				auto entry = og_map.find(ptr + i);
+				if(entry != og_map.end())
+				{
+					og_data[i] = entry->second;
+				}
+			}
+		});
+
+		return og_data;
 	}
 }

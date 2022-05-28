@@ -5,6 +5,8 @@
 #include "steam/steam.hpp"
 #include <utils/hook.hpp>
 
+#include "utils/string.hpp"
+
 #define ProcessDebugPort 7
 #define ProcessDebugObjectHandle 30 // WinXP source says 31?
 #define ProcessDebugFlags 31 // WinXP source says 32?
@@ -277,21 +279,6 @@ namespace arxan
 			return STATUS_INVALID_HANDLE;
 		}
 
-		LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS info)
-		{
-			if (info->ExceptionRecord->ExceptionCode == STATUS_INVALID_HANDLE)
-			{
-				return EXCEPTION_CONTINUE_EXECUTION;
-			}
-
-			if (info->ExceptionRecord->ExceptionCode == STATUS_ACCESS_VIOLATION)
-			{
-				//MessageBoxA(0, 0, "AV", 0);
-			}
-
-			return EXCEPTION_CONTINUE_SEARCH;
-		}
-
 		void hide_being_debugged()
 		{
 			auto* const peb = reinterpret_cast<PPEB>(__readgsqword(0x60));
@@ -340,6 +327,22 @@ namespace arxan
 			loaded = true;
 		}
 
+		LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS info)
+		{
+			if (info->ExceptionRecord->ExceptionCode == STATUS_INVALID_HANDLE)
+			{
+				return EXCEPTION_CONTINUE_EXECUTION;
+			}
+
+			if (info->ExceptionRecord->ExceptionCode == STATUS_ACCESS_VIOLATION)
+			{
+				//MessageBoxA(0, 0, "AV", 0);
+				//restore_debug_functions();
+			}
+
+			return EXCEPTION_CONTINUE_SEARCH;
+		}
+
 		const char* get_command_line_a_stub()
 		{
 			static auto cmd = []
@@ -357,6 +360,247 @@ namespace arxan
 		}
 	}
 
+	uint64_t get_integrity_data_qword(const uint8_t* address)
+	{
+		const auto og_data = utils::hook::query_original_data(address, 8);
+		return *reinterpret_cast<const uint64_t*>(og_data.data());
+	}
+
+	uint32_t get_integrity_data_dword(const uint8_t* address)
+	{
+		const auto og_data = utils::hook::query_original_data(address, 4);
+		return *reinterpret_cast<const uint32_t*>(og_data.data());
+	}
+
+	uint8_t get_integrity_data_byte(const uint8_t* address)
+	{
+		const auto og_data = utils::hook::query_original_data(address, 1);
+		return og_data[0];
+	}
+
+	void patch_check_type_1_xor()
+	{
+		const auto checks = "8B 00 33 45 ??"_sig;
+		for(size_t i = 0; i < checks.count(); ++i)
+		{
+			auto* addr = checks.get(i);
+
+			utils::hook::jump(addr, utils::hook::assemble([addr](utils::hook::assembler& a)
+			{
+				a.push(rax);
+				a.pushad64();
+
+				a.mov(rcx, rax);
+				a.call_aligned(get_integrity_data_dword);
+
+				a.mov(rcx, qword_ptr(rsp, 128));
+				a.movzx(ecx, eax);
+				a.mov(qword_ptr(rsp, 128), rcx);
+
+				a.popad64();
+				a.pop(rax);
+
+				// xor eax, [rbp+??h]
+				a.embedUInt8(addr[3]);
+				a.embedUInt8(addr[4]);
+				a.embedUInt8(addr[5]);
+				
+				a.jmp(addr + 5);
+			}));
+		}
+	}
+
+	void patch_check_type_1_direct()
+	{
+		auto patch_addr = [](uint8_t* addr)
+		{
+			// Skip false positives
+			// Prefixed 0x41 encodes a different instruction
+			if (addr[-1] == 0x41)
+			{
+				return;
+			}
+
+			utils::hook::jump(addr, utils::hook::assemble([addr](utils::hook::assembler& a)
+			{
+				a.push(rax);
+				a.pushad64();
+
+				a.mov(rcx, rax);
+				a.call_aligned(get_integrity_data_dword);
+
+				a.mov(rcx, qword_ptr(rsp, 128));
+				a.mov(ecx, eax);
+				a.mov(qword_ptr(rsp, 128), rcx);
+
+				a.popad64();
+				a.pop(rax);
+
+				a.embedUInt8(addr[3]);
+				a.embedUInt8(addr[4]);
+				a.embedUInt8(addr[5]);
+
+				a.jmp(addr + 5);
+			}));
+		};
+
+		// mov [rbp+??h], eax
+		auto checks = "8B 00 89 45 ??"_sig;
+		for(size_t i = 0; i < checks.count(); ++i)
+		{
+			auto* addr = checks.get(i);
+			patch_addr(addr);
+		}
+
+		// xor eax, [rbp+??h]
+		checks = "8B 00 33 45 ??"_sig;
+		for (size_t i = 0; i < checks.count(); ++i)
+		{
+			auto* addr = checks.get(i);
+			patch_addr(addr);
+		}
+	}
+
+	void patch_check_type_1_indirect()
+	{
+		auto patch_addr = [](uint8_t* addr)
+		{
+			const auto rex_prefixed = *addr == 0x48;
+			const auto jump_target = utils::hook::follow_branch(addr + (rex_prefixed ? 3 : 2));
+
+			utils::hook::jump(addr, utils::hook::assemble([addr, jump_target, rex_prefixed](utils::hook::assembler& a)
+			{
+				a.push(rax);
+				a.pushad64();
+
+				a.mov(rcx, rax);
+
+				if(rex_prefixed)
+				{
+					a.call_aligned(get_integrity_data_dword);
+
+					a.mov(rcx, qword_ptr(rsp, 128));
+					a.mov(ecx, eax);
+					a.mov(qword_ptr(rsp, 128), rcx);
+				}
+				else
+				{
+					a.mov(qword_ptr(rsp, 128), rax);
+				}
+
+				a.popad64();
+				a.pop(rax);
+
+				a.jmp(jump_target);
+			}));
+		};
+
+		// mov rax, [rax]; jmp ...
+		auto checks = "48 8B 00 E9"_sig;
+		for(size_t i = 0; i < checks.count(); ++i)
+		{
+			auto* addr = checks.get(i);
+			patch_addr(addr);
+		}
+
+		// mov eax, [rax]; jmp ...
+		checks = "8B 00 E9"_sig;
+		for (size_t i = 0; i < checks.count(); ++i)
+		{
+			auto* addr = checks.get(i);
+			patch_addr(addr);
+		}
+	}
+
+	void patch_check_type_2()
+	{
+		const auto checks = "0F B6 00 0F B6 C0 33 45 50 89 45 50"_sig;
+		for (size_t i = 0; i < checks.count(); ++i)
+		{
+			auto* addr = checks.get(i);
+
+			utils::hook::jump(addr, utils::hook::assemble([addr](utils::hook::assembler& a)
+			{
+				a.push(rax);
+				a.pushad64();
+
+				a.mov(rcx, rax);
+				a.call_aligned(get_integrity_data_byte);
+
+				a.mov(rcx, qword_ptr(rsp, 128));
+				a.movzx(ecx, al);
+				a.mov(qword_ptr(rsp, 128), rcx);
+
+				a.popad64();
+				a.pop(rax);
+
+				a.movzx(eax, al);
+				a.jmp(addr + 6);
+			}));
+		}
+	}
+
+	void patch_check_type_4()
+	{
+		const auto checks = "48 8B 04 10 48 89 45 20"_sig;
+		for (size_t i = 0; i < checks.count(); ++i)
+		{
+			auto* addr = checks.get(i);
+
+			utils::hook::jump(addr, utils::hook::assemble([addr](utils::hook::assembler& a)
+			{
+				a.mov(rax, qword_ptr(rax, rdx));
+				a.push(rax);
+				a.pushad64();
+
+				a.mov(rcx, rax);
+				a.call_aligned(get_integrity_data_qword);
+				a.mov(qword_ptr(rsp, 128), rax);
+
+				a.popad64();
+				a.pop(rax);
+
+				a.mov(qword_ptr(rbp, 0x20), rax);
+				a.jmp(addr + 8);
+			}));
+		}
+	}
+
+	void patch_check_type_5()
+	{
+		const auto checks = "0F B6 00 88 02"_sig;
+		for (size_t i = 0; i < checks.count(); ++i)
+		{
+			auto* addr = checks.get(i);
+
+			// Skip false positives
+			// Prefixed 0x41 encodes a different instruction
+			if(addr[-1] == 0x41)
+			{
+				continue;
+			}
+
+			utils::hook::jump(addr, utils::hook::assemble([addr](utils::hook::assembler& a)
+			{
+				a.push(rax);
+				a.pushad64();
+
+				a.mov(rcx, rax);
+				a.call_aligned(get_integrity_data_byte);
+
+				a.mov(rcx, qword_ptr(rsp, 128));
+				a.movzx(ecx, al);
+				a.mov(qword_ptr(rsp, 128), rcx);
+
+				a.popad64();
+				a.pop(rax);
+
+				a.mov(byte_ptr(rdx), al);
+				a.jmp(addr + 5);
+			}));
+		}
+	}
+
 	class component final : public component_interface
 	{
 	public:
@@ -365,10 +609,7 @@ namespace arxan
 			hide_being_debugged();
 			scheduler::loop(hide_being_debugged, scheduler::pipeline::async);
 
-			//restore_debug_functions();
-
 			create_mutex_ex_a_hook.create(CreateMutexExA, create_mutex_ex_a_stub);
-
 
 			const utils::nt::library ntdll("ntdll.dll");
 			nt_close_hook.create(ntdll.get_proc<void*>("NtClose"), nt_close_stub);
@@ -395,6 +636,15 @@ namespace arxan
 			{
 				utils::hook::set(cmd_func, get_command_line_a_stub);
 			}
+		}
+
+		void post_unpack() override
+		{
+			patch_check_type_1_direct();
+			patch_check_type_1_indirect();
+			patch_check_type_2();
+			patch_check_type_4();
+			patch_check_type_5();
 		}
 
 		void pre_destroy() override

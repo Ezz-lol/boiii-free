@@ -4,6 +4,14 @@
 
 #include <intrin.h>
 
+#ifdef max
+#undef max
+#endif
+
+#ifdef min
+#undef min
+#endif
+
 namespace utils::hook
 {
 	void signature::load_pattern(const std::string& pattern)

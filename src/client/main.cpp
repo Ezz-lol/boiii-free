@@ -110,16 +110,114 @@ namespace
 
 		return true;
 	}
+
+	class patch
+	{
+	public:
+		patch() = default;
+		patch(void* source, void* target)
+			: source_(source)
+		{
+			memcpy(this->data_, source, sizeof(this->data_));
+			utils::hook::jump(this->source_, target, true, true);
+		}
+
+		~patch()
+		{
+			if (source_)
+			{
+				utils::hook::copy(this->source_, this->data_, sizeof(this->data_));
+			}
+		}
+
+		patch(patch&& obj) noexcept
+			: patch()
+		{
+			this->operator=(std::move(obj));
+		}
+
+		patch& operator=(patch&& obj) noexcept
+		{
+			if (this != &obj)
+			{
+				this->~patch();
+
+				this->source_ = obj.source_;
+				memcpy(this->data_, obj.data_, sizeof(this->data_));
+
+				obj.source_ = nullptr;
+			}
+
+			return *this;
+		}
+
+	private:
+		void* source_{ nullptr };
+		uint8_t data_[15]{};
+	};
+
+	std::vector<patch> initialization_hooks{};
+
+	uint8_t* get_entry_point()
+	{
+		const utils::nt::library game{};
+		return game.get_ptr() + game.get_optional_header()->AddressOfEntryPoint;
+	}
+
+	std::vector<uint8_t*> get_tls_callbacks()
+	{
+		const utils::nt::library game{};
+		const auto& entry = game.get_optional_header()->DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];
+		if(!entry.VirtualAddress || !entry.Size)
+		{
+			return {};
+		}
+
+		const auto* tls_dir = reinterpret_cast<IMAGE_TLS_DIRECTORY*>(game.get_ptr() + entry.VirtualAddress);
+		auto* callback = reinterpret_cast<uint8_t**>(tls_dir->AddressOfCallBacks);
+
+		std::vector<uint8_t*> addresses{};
+		while(callback && *callback)
+		{
+			addresses.emplace_back(*callback);
+			++callback;
+		}
+
+		return addresses;
+	}
+
+	int patch_main()
+	{
+		initialization_hooks.clear();
+
+		if(!run())
+		{
+			return 1;
+		}
+
+		return reinterpret_cast<int(*)()>(get_entry_point())();
+	}
+
+	void nullsub()
+	{
+		
+	}
+
+	void patch_entry_point()
+	{
+		initialization_hooks.emplace_back(get_entry_point(), patch_main);
+
+		for(auto* tls_callback : get_tls_callbacks()) {
+			initialization_hooks.emplace_back(tls_callback, nullsub);
+		}
+	}
 }
 
 BOOL WINAPI DllMain(HINSTANCE, const DWORD reason, LPVOID)
 {
 	if (reason == DLL_PROCESS_ATTACH)
 	{
-		if (!run())
-		{
-			return FALSE;
-		}
+		patch_entry_point();
 	}
 	return TRUE;
 }

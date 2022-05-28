@@ -28,12 +28,12 @@ namespace console
 				{
 					utils::hook::detour d;
 					d.create(0x142333B40_g, utils::hook::assemble([](utils::hook::assembler& a)
-						{
-							a.mov(r8, "BOIII Console");
-							a.mov(r9d, 0x80CA0000);
-							a.sub(eax, edx);
-							a.jmp(0x142333B4F_g);
-						}));
+					{
+						a.mov(r8, "BOIII Console");
+						a.mov(r9d, 0x80CA0000);
+						a.sub(eax, edx);
+						a.jmp(0x142333B4F_g);
+					}));
 
 					create_game_console();
 				}

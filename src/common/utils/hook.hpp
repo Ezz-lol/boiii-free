@@ -186,13 +186,7 @@ namespace utils::hook
 	template <typename T>
 	static void set(void* place, T value)
 	{
-		DWORD old_protect;
-		VirtualProtect(place, sizeof(T), PAGE_EXECUTE_READWRITE, &old_protect);
-
-		*static_cast<T*>(place) = value;
-
-		VirtualProtect(place, sizeof(T), old_protect, &old_protect);
-		FlushInstructionCache(GetCurrentProcess(), place, sizeof(T));
+		copy(place, &value, sizeof(value));
 	}
 
 	template <typename T>
@@ -212,4 +206,6 @@ namespace utils::hook
 	{
 		return static_cast<T(*)(Args ...)>(func)(args...);
 	}
+
+	std::vector<uint8_t> query_original_data(const void* data, size_t length);
 }
