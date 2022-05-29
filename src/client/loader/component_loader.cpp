@@ -97,3 +97,15 @@ size_t operator"" _g(const size_t val)
 	assert(base && "Failed to resolve base");
 	return base + (val - 0x140000000);
 }
+
+size_t reverse_g(const size_t val)
+{
+	static auto base = size_t(utils::nt::library{}.get_ptr());
+	assert(base && "Failed to resolve base");
+	return (val - base) + 0x140000000;
+}
+
+size_t reverse_g(const void* val)
+{
+	return reverse_g(reinterpret_cast<size_t>(val));
+}

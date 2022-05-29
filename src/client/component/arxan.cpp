@@ -377,39 +377,7 @@ namespace arxan
 		const auto og_data = utils::hook::query_original_data(address, 1);
 		return og_data[0];
 	}
-
-	void patch_check_type_1_xor()
-	{
-		const auto checks = "8B 00 33 45 ??"_sig;
-		for(size_t i = 0; i < checks.count(); ++i)
-		{
-			auto* addr = checks.get(i);
-
-			utils::hook::jump(addr, utils::hook::assemble([addr](utils::hook::assembler& a)
-			{
-				a.push(rax);
-				a.pushad64();
-
-				a.mov(rcx, rax);
-				a.call_aligned(get_integrity_data_dword);
-
-				a.mov(rcx, qword_ptr(rsp, 128));
-				a.movzx(ecx, eax);
-				a.mov(qword_ptr(rsp, 128), rcx);
-
-				a.popad64();
-				a.pop(rax);
-
-				// xor eax, [rbp+??h]
-				a.embedUInt8(addr[3]);
-				a.embedUInt8(addr[4]);
-				a.embedUInt8(addr[5]);
-				
-				a.jmp(addr + 5);
-			}));
-		}
-	}
-
+	
 	void patch_check_type_1_direct()
 	{
 		auto patch_addr = [](uint8_t* addr)

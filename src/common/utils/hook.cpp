@@ -126,7 +126,11 @@ namespace utils::hook
 				{
 					if(!is_relatively_far(address, memory.get_ptr()))
 					{
-						return memory.allocate(size);
+						const auto buffer = memory.allocate(size);
+						if(buffer)
+						{
+							return buffer;
+						}
 					}
 				}
 
