@@ -41,10 +41,10 @@ namespace console
 				MSG msg{};
 				while (!this->terminate_runner_)
 				{
-					if (PeekMessageA(&msg, nullptr, NULL, NULL, PM_REMOVE))
+					if (PeekMessageW(&msg, nullptr, NULL, NULL, PM_REMOVE))
 					{
 						TranslateMessage(&msg);
-						DispatchMessage(&msg);
+						DispatchMessageW(&msg);
 					}
 					else
 					{

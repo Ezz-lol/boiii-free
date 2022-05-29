@@ -38,6 +38,19 @@ namespace splash
 			this->show();
 		}
 
+		void pre_start() override
+		{
+			if(this->window_)
+			{
+				MSG msg{};
+				while (PeekMessageW(&msg, nullptr, NULL, NULL, PM_REMOVE))
+				{
+					TranslateMessage(&msg);
+					DispatchMessageW(&msg);
+				}
+			}
+		}
+
 		void pre_destroy() override
 		{
 			this->destroy();
@@ -90,7 +103,7 @@ namespace splash
 			wnd_class.lpszMenuName = nullptr;
 			wnd_class.lpfnWndProc = DefWindowProcA;
 			wnd_class.hInstance = host;
-			wnd_class.hIcon = LoadIconA(host, reinterpret_cast<LPCSTR>(102));
+			wnd_class.hIcon = LoadIconA(host, MAKEINTRESOURCEA(1));
 			wnd_class.hCursor = LoadCursorA(nullptr, IDC_APPSTARTING);
 			wnd_class.hbrBackground = reinterpret_cast<HBRUSH>(6);
 			wnd_class.lpszClassName = "Black Ops III Splash Screen";
@@ -130,6 +143,8 @@ namespace splash
 							AdjustWindowRect(&rect, WS_CHILD | WS_VISIBLE | 0xEu, 0);
 							SetWindowPos(this->window_, nullptr, rect.left, rect.top, rect.right - rect.left,
 							             rect.bottom - rect.top, SWP_NOZORDER);
+
+							SetWindowRgn(this->window_, CreateRoundRectRgn(0, 0, rect.right - rect.left, rect.bottom - rect.top, 15, 15), TRUE);
 
 							ShowWindow(this->window_, SW_SHOW);
 							UpdateWindow(this->window_);
