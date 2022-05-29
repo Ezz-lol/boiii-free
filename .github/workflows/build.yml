@@ -45,7 +45,7 @@ jobs:
         uses: ammaraskar/msvc-problem-matcher@master
 
       - name: Build ${{matrix.configuration}} binaries
-        run: msbuild /m /v:minimal /p:Configuration=${{matrix.configuration}} /p:Platform=x64 build/bo3.sln
+        run: msbuild /m /v:minimal /p:Configuration=${{matrix.configuration}} /p:Platform=x64 build/boiii.sln
 
       - name: Upload ${{matrix.configuration}} binaries
         uses: actions/upload-artifact@v2
