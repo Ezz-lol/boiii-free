@@ -174,13 +174,12 @@ namespace
 
 	int patch_main()
 	{
-		initialization_hooks.clear();
-
 		if(!run())
 		{
 			return 1;
 		}
 
+		initialization_hooks.clear();
 		return reinterpret_cast<int(*)()>(get_entry_point())();
 	}
 

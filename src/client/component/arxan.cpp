@@ -608,11 +608,13 @@ namespace arxan
 
 		void post_unpack() override
 		{
-			/*patch_check_type_1_direct();
+			/*
+			patch_check_type_1_direct();
 			patch_check_type_1_indirect();
 			patch_check_type_2();
 			patch_check_type_4();
-			patch_check_type_5();*/
+			patch_check_type_5();
+			*/
 		}
 
 		void pre_destroy() override

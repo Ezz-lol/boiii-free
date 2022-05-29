@@ -32,9 +32,8 @@ namespace splash
 	{
 	public:
 		component()
+			: image_(load_splash_image())
 		{
-			image_ = load_splash_image();
-
 			enable_dpi_awareness();
 			this->show();
 		}

@@ -150,7 +150,7 @@ namespace scheduler
 	class component final : public component_interface
 	{
 	public:
-		void pre_start() override
+		void post_unpack() override
 		{
 			thread = utils::thread::create_named_thread("Async Scheduler", []()
 			{
