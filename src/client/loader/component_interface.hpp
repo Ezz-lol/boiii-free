@@ -5,7 +5,7 @@ class component_interface
 public:
 	virtual ~component_interface() = default;
 
-	virtual void post_load()
+	virtual void pre_start()
 	{
 	}
 

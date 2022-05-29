@@ -62,19 +62,6 @@ namespace
 		utils::hook::set(game.get_iat_entry("kernel32.dll", "ExitProcess"), exit_hook);
 	}
 
-	void enable_dpi_awareness()
-	{
-		const utils::nt::library user32{"user32.dll"};
-		const auto set_dpi = user32
-			                     ? user32.get_proc<BOOL(WINAPI*)(DPI_AWARENESS_CONTEXT)>(
-				                     "SetProcessDpiAwarenessContext")
-			                     : nullptr;
-		if (set_dpi)
-		{
-			set_dpi(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-		}
-	}
-
 	bool run()
 	{
 		srand(uint32_t(time(nullptr)) ^ ~(GetTickCount() * GetCurrentProcessId()));
@@ -91,10 +78,9 @@ namespace
 
 			try
 			{
-				enable_dpi_awareness();
 				patch_imports();
 
-				if (!component_loader::post_load())
+				if (!component_loader::pre_start())
 				{
 					return false;
 				}
@@ -219,6 +205,7 @@ BOOL WINAPI DllMain(HINSTANCE, const DWORD reason, LPVOID)
 	{
 		patch_entry_point();
 	}
+
 	return TRUE;
 }
 

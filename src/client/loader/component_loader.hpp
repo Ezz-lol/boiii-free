@@ -39,8 +39,8 @@ public:
 	}
 
 	static void register_component(std::unique_ptr<component_interface>&& component);
-	
-	static bool post_load();
+
+	static bool pre_start();
 	static void post_unpack();
 	static void pre_destroy();
 	static void clean();

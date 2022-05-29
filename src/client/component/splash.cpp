@@ -13,15 +13,29 @@ namespace splash
 			const auto self = utils::nt::library::get_by_address(load_splash_image);
 			return LoadImageA(self, MAKEINTRESOURCE(IMAGE_SPLASH), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
 		}
+
+		void enable_dpi_awareness()
+		{
+			const utils::nt::library user32{ "user32.dll" };
+			const auto set_dpi = user32
+				? user32.get_proc<BOOL(WINAPI*)(DPI_AWARENESS_CONTEXT)>(
+					"SetProcessDpiAwarenessContext")
+				: nullptr;
+			if (set_dpi)
+			{
+				set_dpi(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+			}
+		}
 	}
 
 	class component final : public component_interface
 	{
 	public:
-		void post_load() override
+		component()
 		{
 			image_ = load_splash_image();
 
+			enable_dpi_awareness();
 			this->show();
 		}
 

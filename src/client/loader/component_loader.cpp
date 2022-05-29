@@ -8,50 +8,88 @@ void component_loader::register_component(std::unique_ptr<component_interface>&&
 	get_components().push_back(std::move(component_));
 }
 
-bool component_loader::post_load()
+bool component_loader::pre_start()
 {
-	static auto handled = false;
-	if (handled) return true;
-	handled = true;
-
-	clean();
-
-	try
+	static auto res = []
 	{
-		for (const auto& component_ : get_components())
+		clean();
+
+		try
 		{
-			component_->post_load();
+			for (const auto& component_ : get_components())
+			{
+				component_->pre_start();
+			}
 		}
-	}
-	catch (premature_shutdown_trigger&)
-	{
-		return false;
-	}
+		catch (premature_shutdown_trigger&)
+		{
+			return false;
+		}
+		catch (const std::exception& e)
+		{
+			MessageBoxA(nullptr, e.what(), "Error", MB_ICONERROR);
+			return false;
+		}
 
-	return true;
+		return true;
+	}();
+
+	return res;
 }
 
 void component_loader::post_unpack()
 {
-	static auto handled = false;
-	if (handled) return;
-	handled = true;
-
-	for (const auto& component_ : get_components())
+	static auto res = []
 	{
-		component_->post_unpack();
+		clean();
+
+		try
+		{
+			for (const auto& component_ : get_components())
+			{
+				component_->post_unpack();
+			}
+		}
+		catch (const std::exception& e)
+		{
+			MessageBoxA(nullptr, e.what(), "Error", MB_ICONERROR);
+			return false;
+		}
+
+		return true;
+	}();
+
+	if (!res)
+	{
+		TerminateProcess(GetCurrentProcess(), 1);
 	}
 }
 
 void component_loader::pre_destroy()
 {
-	static auto handled = false;
-	if (handled) return;
-	handled = true;
-
-	for (const auto& component_ : get_components())
+	static auto res = []
 	{
-		component_->pre_destroy();
+		clean();
+
+		try
+		{
+			for (const auto& component_ : get_components())
+			{
+				component_->pre_destroy();
+			}
+		}
+		catch (const std::exception& e)
+		{
+			MessageBoxA(nullptr, e.what(), "Error", MB_ICONERROR);
+			return false;
+		}
+
+		return true;
+	}();
+
+	if (!res)
+	{
+		TerminateProcess(GetCurrentProcess(), 1);
 	}
 }
 
