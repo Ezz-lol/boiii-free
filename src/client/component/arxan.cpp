@@ -60,6 +60,9 @@ namespace arxan
 				L"HxD",
 				L"cheatengine",
 				L"Cheat Engine",
+				L"x96dbg",
+				L"x32dbg",
+				L"x64dbg",
 			};
 
 			if (!string.Buffer || !string.Length)

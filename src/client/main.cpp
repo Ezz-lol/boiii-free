@@ -101,6 +101,7 @@ namespace
 	{
 	public:
 		patch() = default;
+
 		patch(void* source, void* target)
 			: source_(source)
 		{
@@ -138,7 +139,7 @@ namespace
 		}
 
 	private:
-		void* source_{ nullptr };
+		void* source_{nullptr};
 		uint8_t data_[15]{};
 	};
 
@@ -154,7 +155,7 @@ namespace
 	{
 		const utils::nt::library game{};
 		const auto& entry = game.get_optional_header()->DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];
-		if(!entry.VirtualAddress || !entry.Size)
+		if (!entry.VirtualAddress || !entry.Size)
 		{
 			return {};
 		}
@@ -163,7 +164,7 @@ namespace
 		auto* callback = reinterpret_cast<uint8_t**>(tls_dir->AddressOfCallBacks);
 
 		std::vector<uint8_t*> addresses{};
-		while(callback && *callback)
+		while (callback && *callback)
 		{
 			addresses.emplace_back(*callback);
 			++callback;
@@ -174,7 +175,7 @@ namespace
 
 	int patch_main()
 	{
-		if(!run())
+		if (!run())
 		{
 			return 1;
 		}
@@ -185,14 +186,14 @@ namespace
 
 	void nullsub()
 	{
-		
 	}
 
 	void patch_entry_point()
 	{
 		initialization_hooks.emplace_back(get_entry_point(), patch_main);
 
-		for(auto* tls_callback : get_tls_callbacks()) {
+		for (auto* tls_callback : get_tls_callbacks())
+		{
 			initialization_hooks.emplace_back(tls_callback, nullsub);
 		}
 	}

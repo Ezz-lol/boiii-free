@@ -20,7 +20,6 @@ namespace console
 	public:
 		void post_unpack() override
 		{
-
 			this->terminate_runner_ = false;
 
 			this->console_runner_ = utils::thread::create_named_thread("Console IO", [this]
