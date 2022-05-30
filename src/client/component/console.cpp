@@ -30,6 +30,7 @@ namespace console
 
 			char buffer[1024]{0};
 			const int res = vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, fmt, ap);
+			(void)res;
 			print_message(buffer);
 
 			va_end(ap);
