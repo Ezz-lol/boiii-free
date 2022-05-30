@@ -16,11 +16,11 @@ namespace splash
 
 		void enable_dpi_awareness()
 		{
-			const utils::nt::library user32{ "user32.dll" };
+			const utils::nt::library user32{"user32.dll"};
 			const auto set_dpi = user32
-				? user32.get_proc<BOOL(WINAPI*)(DPI_AWARENESS_CONTEXT)>(
-					"SetProcessDpiAwarenessContext")
-				: nullptr;
+				                     ? user32.get_proc<BOOL(WINAPI*)(DPI_AWARENESS_CONTEXT)>(
+					                     "SetProcessDpiAwarenessContext")
+				                     : nullptr;
 			if (set_dpi)
 			{
 				set_dpi(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
@@ -40,15 +40,7 @@ namespace splash
 
 		void pre_start() override
 		{
-			if(this->window_)
-			{
-				MSG msg{};
-				while (PeekMessageW(&msg, nullptr, NULL, NULL, PM_REMOVE))
-				{
-					TranslateMessage(&msg);
-					DispatchMessageW(&msg);
-				}
-			}
+			this->draw_frame();
 		}
 
 		void pre_destroy() override
@@ -80,6 +72,16 @@ namespace splash
 	private:
 		HWND window_{};
 		HANDLE image_{};
+
+		void draw_frame() const
+		{
+			MSG msg{};
+			while (this->window_ && PeekMessageW(&msg, nullptr, NULL, NULL, PM_REMOVE))
+			{
+				TranslateMessage(&msg);
+				DispatchMessageW(&msg);
+			}
+		}
 
 		void destroy() const
 		{
@@ -144,7 +146,9 @@ namespace splash
 							SetWindowPos(this->window_, nullptr, rect.left, rect.top, rect.right - rect.left,
 							             rect.bottom - rect.top, SWP_NOZORDER);
 
-							SetWindowRgn(this->window_, CreateRoundRectRgn(0, 0, rect.right - rect.left, rect.bottom - rect.top, 15, 15), TRUE);
+							SetWindowRgn(this->window_,
+							             CreateRoundRectRgn(0, 0, rect.right - rect.left, rect.bottom - rect.top, 15,
+							                                15), TRUE);
 
 							ShowWindow(this->window_, SW_SHOW);
 							UpdateWindow(this->window_);

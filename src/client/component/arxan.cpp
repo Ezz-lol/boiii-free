@@ -362,22 +362,25 @@ namespace arxan
 
 	uint64_t get_integrity_data_qword(const uint8_t* address)
 	{
+		OutputDebugStringA(utils::string::va("8 bytes -> %p", address));
 		const auto og_data = utils::hook::query_original_data(address, 8);
 		return *reinterpret_cast<const uint64_t*>(og_data.data());
 	}
 
 	uint32_t get_integrity_data_dword(const uint8_t* address)
 	{
+		OutputDebugStringA(utils::string::va("4 bytes -> %p", address));
 		const auto og_data = utils::hook::query_original_data(address, 4);
 		return *reinterpret_cast<const uint32_t*>(og_data.data());
 	}
 
 	uint8_t get_integrity_data_byte(const uint8_t* address)
 	{
+		OutputDebugStringA(utils::string::va("1 bytes -> %p", address));
 		const auto og_data = utils::hook::query_original_data(address, 1);
 		return og_data[0];
 	}
-	
+
 	void patch_check_type_1_direct()
 	{
 		auto patch_addr = [](uint8_t* addr)
@@ -414,7 +417,7 @@ namespace arxan
 
 		// mov [rbp+??h], eax
 		auto checks = "8B 00 89 45 ??"_sig;
-		for(size_t i = 0; i < checks.count(); ++i)
+		for (size_t i = 0; i < checks.count(); ++i)
 		{
 			auto* addr = checks.get(i);
 			patch_addr(addr);
@@ -443,7 +446,7 @@ namespace arxan
 
 				a.mov(rcx, rax);
 
-				if(rex_prefixed)
+				if (rex_prefixed)
 				{
 					a.call_aligned(get_integrity_data_dword);
 
@@ -465,7 +468,7 @@ namespace arxan
 
 		// mov rax, [rax]; jmp ...
 		auto checks = "48 8B 00 E9"_sig;
-		for(size_t i = 0; i < checks.count(); ++i)
+		for (size_t i = 0; i < checks.count(); ++i)
 		{
 			auto* addr = checks.get(i);
 			patch_addr(addr);
@@ -480,9 +483,9 @@ namespace arxan
 		}
 	}
 
-	void patch_check_type_2()
+	void patch_check_type_2_direct()
 	{
-		const auto checks = "0F B6 00 0F B6 C0 33 45 50 89 45 50"_sig;
+		const auto checks = "0F B6 00 0F B6 C0"_sig;
 		for (size_t i = 0; i < checks.count(); ++i)
 		{
 			auto* addr = checks.get(i);
@@ -508,7 +511,35 @@ namespace arxan
 		}
 	}
 
-	void patch_check_type_4()
+	void patch_check_type_2_indirect()
+	{
+		const auto checks = "0F B6 00 E9"_sig;
+		for (size_t i = 0; i < checks.count(); ++i)
+		{
+			auto* addr = checks.get(i);
+			const auto jump_target = utils::hook::follow_branch(addr + 3);
+
+			utils::hook::jump(addr, utils::hook::assemble([addr, jump_target](utils::hook::assembler& a)
+			{
+				a.push(rax);
+				a.pushad64();
+
+				a.mov(rcx, rax);
+				a.call_aligned(get_integrity_data_byte);
+
+				a.mov(rcx, qword_ptr(rsp, 128));
+				a.movzx(ecx, al);
+				a.mov(qword_ptr(rsp, 128), rcx);
+
+				a.popad64();
+				a.pop(rax);
+
+				a.jmp(jump_target);
+			}));
+		}
+	}
+
+	void patch_check_type_4_direct()
 	{
 		const auto checks = "48 8B 04 10 48 89 45 20"_sig;
 		for (size_t i = 0; i < checks.count(); ++i)
@@ -534,7 +565,33 @@ namespace arxan
 		}
 	}
 
-	void patch_check_type_5()
+	void patch_check_type_4_indirect()
+	{
+		const auto checks = "48 8B 04 10 E9"_sig;
+		for (size_t i = 0; i < checks.count(); ++i)
+		{
+			auto* addr = checks.get(i);
+			const auto jump_target = utils::hook::follow_branch(addr + 4);
+
+			utils::hook::jump(addr, utils::hook::assemble([addr, jump_target](utils::hook::assembler& a)
+			{
+				a.mov(rax, qword_ptr(rax, rdx));
+				a.push(rax);
+				a.pushad64();
+
+				a.mov(rcx, rax);
+				a.call_aligned(get_integrity_data_qword);
+				a.mov(qword_ptr(rsp, 128), rax);
+
+				a.popad64();
+				a.pop(rax);
+
+				a.jmp(jump_target);
+			}));
+		}
+	}
+
+	void patch_check_type_5_direct()
 	{
 		const auto checks = "0F B6 00 88 02"_sig;
 		for (size_t i = 0; i < checks.count(); ++i)
@@ -543,7 +600,7 @@ namespace arxan
 
 			// Skip false positives
 			// Prefixed 0x41 encodes a different instruction
-			if(addr[-1] == 0x41)
+			if (addr[-1] == 0x41)
 			{
 				continue;
 			}
@@ -565,6 +622,43 @@ namespace arxan
 
 				a.mov(byte_ptr(rdx), al);
 				a.jmp(addr + 5);
+			}));
+		}
+	}
+
+
+	void patch_check_type_5_indirect()
+	{
+		const auto checks = "0F B6 00 E9"_sig;
+		for (size_t i = 0; i < checks.count(); ++i)
+		{
+			auto* addr = checks.get(i);
+
+			// Skip false positives
+			// Prefixed 0x41 encodes a different instruction
+			if (addr[-1] == 0x41)
+			{
+				continue;
+			}
+
+			const auto jump_target = utils::hook::follow_branch(addr + 4);
+
+			utils::hook::jump(addr, utils::hook::assemble([addr, jump_target](utils::hook::assembler& a)
+			{
+				a.push(rax);
+				a.pushad64();
+
+				a.mov(rcx, rax);
+				a.call_aligned(get_integrity_data_byte);
+
+				a.mov(rcx, qword_ptr(rsp, 128));
+				a.movzx(ecx, al);
+				a.mov(qword_ptr(rsp, 128), rcx);
+
+				a.popad64();
+				a.pop(rax);
+
+				a.jmp(jump_target);
 			}));
 		}
 	}
@@ -608,13 +702,15 @@ namespace arxan
 
 		void post_unpack() override
 		{
-			/*
 			patch_check_type_1_direct();
 			patch_check_type_1_indirect();
-			patch_check_type_2();
-			patch_check_type_4();
-			patch_check_type_5();
-			*/
+			patch_check_type_2_direct();
+			patch_check_type_2_indirect();
+			patch_check_type_4_direct();
+			patch_check_type_4_indirect();
+			patch_check_type_5_direct();
+			patch_check_type_5_indirect();
+			MessageBoxA(0, "done", 0, 0);
 		}
 
 		void pre_destroy() override
