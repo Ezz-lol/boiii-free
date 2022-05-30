@@ -4,6 +4,8 @@
 #include <utils/nt.hpp>
 #include <utils/io.hpp>
 
+#include "loader/component_loader.hpp"
+
 namespace steam
 {
 	uint64_t callbacks::call_id_ = 0;
@@ -109,6 +111,7 @@ namespace steam
 		const std::string steam_path = SteamAPI_GetSteamInstallPath();
 		if (!steam_path.empty() && ::utils::io::file_exists(steam_path + "/steam.exe"))
 		{
+			component_loader::post_unpack();
 			return false;
 		}
 

@@ -1,5 +1,4 @@
 #include <std_include.hpp>
-#include "console.hpp"
 #include "loader/component_loader.hpp"
 
 #include <utils/thread.hpp>
@@ -9,9 +8,31 @@ namespace console
 {
 	namespace
 	{
+		volatile bool g_started = false;
+
 		void create_game_console()
 		{
 			reinterpret_cast<void(*)()>(0x142333F80_g)();
+		}
+
+		void print_message(const char* message)
+		{
+			if (g_started)
+			{
+				reinterpret_cast<void(*)(int, int, const char*, ...)>(0x1421499C0_g)(0, 0, "%s", message);
+			}
+		}
+
+		void print_stub(const char* fmt, ...)
+		{
+			va_list ap;
+			va_start(ap, fmt);
+
+			char buffer[1024]{0};
+			const int res = vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, fmt, ap);
+			print_message(buffer);
+
+			va_end(ap);
 		}
 	}
 
@@ -20,6 +41,8 @@ namespace console
 	public:
 		void post_unpack() override
 		{
+			utils::hook::jump(printf, print_stub);
+
 			this->terminate_runner_ = false;
 
 			this->console_runner_ = utils::thread::create_named_thread("Console IO", [this]
@@ -33,8 +56,8 @@ namespace console
 						a.sub(eax, edx);
 						a.jmp(0x142333B4F_g);
 					}));
-
 					create_game_console();
+					g_started = true;
 				}
 
 				MSG msg{};

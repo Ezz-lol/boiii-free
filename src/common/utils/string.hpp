@@ -45,6 +45,8 @@ namespace utils::string
 		class entry final
 		{
 		public:
+			entry() = default;
+
 			explicit entry(const size_t _size = MinBufferSize) : size(_size), buffer(nullptr)
 			{
 				if (this->size < MinBufferSize) this->size = MinBufferSize;
@@ -70,12 +72,12 @@ namespace utils::string
 				this->allocate();
 			}
 
-			size_t size;
-			char* buffer;
+			size_t size{};
+			char* buffer{nullptr};
 		};
 
-		size_t current_buffer_;
-		entry string_pool_[Buffers];
+		size_t current_buffer_{};
+		entry string_pool_[Buffers]{};
 	};
 
 	const char* va(const char* fmt, ...);
