@@ -330,16 +330,100 @@ namespace arxan
 			loaded = true;
 		}
 
+		const std::pair<uint8_t*, size_t>& get_text_section()
+		{
+			static const std::pair<uint8_t*, size_t> text = []() -> std::pair<uint8_t*, size_t>
+				{
+					utils::nt::library game{};
+					for (const auto& section : game.get_section_headers())
+					{
+						std::string name(reinterpret_cast<char*>(section->Name), sizeof(section->Name));
+						name = name.data();
+						if (name == ".text"s)
+						{
+							return {game.get_ptr() + section->VirtualAddress, section->Misc.VirtualSize};
+						}
+					}
+
+					return {nullptr, 0};
+				}
+				();
+
+			return text;
+		}
+
+		bool was_in_text(ULONG_PTR addr)
+		{
+			return addr >= (ULONG_PTR)get_text_section().first && addr <= (ULONG_PTR)(get_text_section().first +
+				get_text_section().second);
+		}
+
+		void protect_text()
+		{
+			DWORD old_protect{};
+			VirtualProtect(get_text_section().first, get_text_section().second, PAGE_EXECUTE_READ, &old_protect);
+		}
+
+		void unprotect_text()
+		{
+			DWORD old_protect{};
+			VirtualProtect(get_text_section().first, get_text_section().second, PAGE_EXECUTE_READWRITE, &old_protect);
+		}
+
 		LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS info)
 		{
+			static thread_local struct
+			{
+				bool needs_protect_change = false;
+				bool had_single_step = false;
+			} analysis_context;
+
 			if (info->ExceptionRecord->ExceptionCode == STATUS_INVALID_HANDLE)
 			{
 				return EXCEPTION_CONTINUE_EXECUTION;
 			}
 
+			if (info->ExceptionRecord->ExceptionCode == EXCEPTION_SINGLE_STEP)
+			{
+				if (!analysis_context.needs_protect_change)
+				{
+					return EXCEPTION_CONTINUE_SEARCH;
+				}
+
+				analysis_context.needs_protect_change = false;
+
+				if (!analysis_context.had_single_step)
+				{
+					info->ContextRecord->EFlags &= 0x0100;
+				}
+
+				protect_text();
+				return EXCEPTION_CONTINUE_EXECUTION;
+			}
+
 			if (info->ExceptionRecord->ExceptionCode == STATUS_ACCESS_VIOLATION)
 			{
-				//MessageBoxA(0, 0, "AV", 0);
+				// Was write?
+				if (info->ExceptionRecord->ExceptionInformation[0] != 1)
+				{
+					return EXCEPTION_CONTINUE_SEARCH;
+				}
+
+				const auto addr = info->ExceptionRecord->ExceptionInformation[1];
+				if (!was_in_text(addr))
+				{
+					return EXCEPTION_CONTINUE_SEARCH;
+				}
+
+				analysis_context.needs_protect_change = true;
+				analysis_context.had_single_step = info->ContextRecord->EFlags & 0x0100;
+				info->ContextRecord->EFlags |= 0x0100;
+
+				OutputDebugStringA(utils::string::va("Switch at: %llX -> %llX (%llX -> %llX)", addr, reverse_g(addr),
+				                                     info->ContextRecord->Rip, reverse_g(info->ContextRecord->Rip)));
+
+				unprotect_text();
+				return EXCEPTION_CONTINUE_EXECUTION;
 				//restore_debug_functions();
 			}
 
@@ -716,6 +800,8 @@ namespace arxan
 			patch_check_type_5_indirect();
 			MessageBoxA(0, "done", 0, 0);
 			*/
+
+			//protect_text();
 		}
 
 		void pre_destroy() override
