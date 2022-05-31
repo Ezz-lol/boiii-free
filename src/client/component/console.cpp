@@ -23,6 +23,16 @@ namespace console
 			}
 		}
 
+		void execute_command(const char* command)
+		{
+			reinterpret_cast<void(*)(int, const char*, ...)>(0x1420EC8B0_g)(0, command);
+		}
+
+		void terminate_game()
+		{
+			execute_command("quit\n");
+		}
+
 		void print_stub(const char* fmt, ...)
 		{
 			va_list ap;
@@ -68,6 +78,11 @@ namespace console
 					{
 						TranslateMessage(&msg);
 						DispatchMessageW(&msg);
+
+						if(msg.message == WM_QUIT)
+						{
+							terminate_game();
+						}
 					}
 					else
 					{
