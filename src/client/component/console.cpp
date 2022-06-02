@@ -24,11 +24,6 @@ namespace console
 			}
 		}
 
-		void execute_command(const char* command)
-		{
-			game::Cbuf_AddText(0, command);
-		}
-
 		void print_stub(const char* fmt, ...)
 		{
 			va_list ap;
@@ -54,6 +49,9 @@ namespace console
 				SetBkColor((HDC)wParam, RGB(50, 50, 50));
 				SetTextColor((HDC)wParam, RGB(232, 230, 227));
 				return (INT_PTR)CreateSolidBrush(RGB(50, 50, 50));
+			case WM_QUIT:
+				game::Cbuf_AddText(0, "quit\n");
+				return DefWindowProcA(hWnd, uMsg, wParam, lParam);
 			default:
 				return utils::hook::invoke<LRESULT>(0x142333520_g, hWnd, uMsg, wParam, lParam);
 			}
@@ -90,7 +88,7 @@ namespace console
 				}
 				else
 				{
-					*b = source[i];
+					*b = source[i]; // C6011 here, should we be worried?
 					b++;
 				}
 				i++;
@@ -102,6 +100,7 @@ namespace console
 
 		void sys_create_console_stub(HINSTANCE hInstance)
 		{
+			// C6262
 			char text[CONSOLE_BUFFER_SIZE];
 			char cleanConsoleBuffer[CONSOLE_BUFFER_SIZE];
 
@@ -212,11 +211,6 @@ namespace console
 					{
 						TranslateMessage(&msg);
 						DispatchMessageW(&msg);
-
-						if (msg.message == WM_QUIT)
-						{
-							execute_command("quit\n");
-						}
 					}
 					else
 					{
