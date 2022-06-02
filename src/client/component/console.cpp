@@ -46,9 +46,9 @@ namespace console
 				SetBkColor(reinterpret_cast<HDC>(wparam), RGB(50, 50, 50));
 				SetTextColor(reinterpret_cast<HDC>(wparam), RGB(232, 230, 227));
 				return reinterpret_cast<INT_PTR>(CreateSolidBrush(RGB(50, 50, 50)));
-			case WM_QUIT:
+			case WM_CLOSE:
 				game::Cbuf_AddText(0, "quit\n");
-				return DefWindowProcA(hwnd, msg, wparam, lparam);
+				[[fallthrough]];
 			default:
 				return utils::hook::invoke<LRESULT>(0x142333520_g, hwnd, msg, wparam, lparam);
 			}
