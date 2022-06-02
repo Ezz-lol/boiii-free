@@ -4,6 +4,8 @@
 
 namespace game
 {
+	int Conbuf_CleanText(const char* source, char* target);
+
 	template <typename T>
 	class symbol
 	{
