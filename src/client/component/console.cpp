@@ -85,7 +85,7 @@ namespace console
 				return;
 			}
 
-			RECT rect;
+			RECT rect{};
 			rect.left = 0;
 			rect.right = 620;
 			rect.top = 0;
@@ -97,8 +97,8 @@ namespace console
 			const auto sheight = GetDeviceCaps(dc, 10);
 			ReleaseDC(GetDesktopWindow(), dc);
 
-			utils::hook::set<int>(game::s_wcd::windowWidth, rect.right - rect.left + 1);
-			utils::hook::set<int>(game::s_wcd::windowHeight, rect.bottom - rect.top + 1);
+			utils::hook::set<int>(game::s_wcd::windowWidth, (rect.right - rect.left + 1));
+			utils::hook::set<int>(game::s_wcd::windowHeight, (rect.bottom - rect.top + 1));
 
 			utils::hook::set<HWND>(game::s_wcd::hWnd, CreateWindowExA(
 				                       0, class_name, window_name, 0x80CA0000, (swidth - 600) / 2, (sheight - 450) / 2,
@@ -128,19 +128,20 @@ namespace console
 			}
 
 			// create the input line
+			const auto window_width = 608;
+
 			utils::hook::set<HWND>(game::s_wcd::hwndInputLine, CreateWindowExA(
-				                       0, "edit", nullptr, 0x50800080u, 6, 400, 608, 20, *game::s_wcd::hWnd,
+				                       0, "edit", nullptr, 0x50800080u, 6, 400, window_width, 20, *game::s_wcd::hWnd,
 				                       reinterpret_cast<HMENU>(0x65), h_instance, nullptr));
 			utils::hook::set<HWND>(game::s_wcd::hwndBuffer, CreateWindowExA(
-				                       0, "edit", nullptr, 0x50A00844u, 6, 70, 606, 324, *game::s_wcd::hWnd,
+				                       0, "edit", nullptr, 0x50A00844u, 6, 70, window_width, 324, *game::s_wcd::hWnd,
 				                       reinterpret_cast<HMENU>(0x64), h_instance, nullptr));
 			SendMessageA(*game::s_wcd::hwndBuffer, WM_SETFONT, reinterpret_cast<WPARAM>(*game::s_wcd::hfBufferFont), 0);
 
 			utils::hook::set<WNDPROC>(game::s_wcd::SysInputLineWndProc, reinterpret_cast<WNDPROC>(SetWindowLongPtrA(
 				                          *game::s_wcd::hwndInputLine, -4,
 				                          reinterpret_cast<LONG_PTR>(input_line_wnd_proc))));
-			SendMessageA(*game::s_wcd::hwndInputLine, WM_SETFONT, reinterpret_cast<WPARAM>(*game::s_wcd::hfBufferFont),
-			             0);
+			SendMessageA(*game::s_wcd::hwndInputLine, WM_SETFONT, reinterpret_cast<WPARAM>(*game::s_wcd::hfBufferFont), 0);
 
 			SetFocus(*game::s_wcd::hwndInputLine);
 			game::Con_GetTextCopy(text, 0x4000);
