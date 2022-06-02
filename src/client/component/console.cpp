@@ -7,7 +7,8 @@
 #include <utils/thread.hpp>
 #include <utils/hook.hpp>
 
-#define CONSOLE_BUFFER_SIZE		16384
+#define CONSOLE_BUFFER_SIZE 16384
+#define WINDOW_WIDTH 608
 
 namespace console
 {
@@ -128,13 +129,11 @@ namespace console
 			}
 
 			// create the input line
-			const auto window_width = 608;
-
 			utils::hook::set<HWND>(game::s_wcd::hwndInputLine, CreateWindowExA(
-				                       0, "edit", nullptr, 0x50800080u, 6, 400, window_width, 20, *game::s_wcd::hWnd,
+				                       0, "edit", nullptr, 0x50800080u, 6, 400, WINDOW_WIDTH, 20, *game::s_wcd::hWnd,
 				                       reinterpret_cast<HMENU>(0x65), h_instance, nullptr));
 			utils::hook::set<HWND>(game::s_wcd::hwndBuffer, CreateWindowExA(
-				                       0, "edit", nullptr, 0x50A00844u, 6, 70, window_width, 324, *game::s_wcd::hWnd,
+				                       0, "edit", nullptr, 0x50A00844u, 6, 70, WINDOW_WIDTH, 324, *game::s_wcd::hWnd,
 				                       reinterpret_cast<HMENU>(0x64), h_instance, nullptr));
 			SendMessageA(*game::s_wcd::hwndBuffer, WM_SETFONT, reinterpret_cast<WPARAM>(*game::s_wcd::hfBufferFont), 0);
 
