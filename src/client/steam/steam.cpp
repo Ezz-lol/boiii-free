@@ -115,7 +115,7 @@ namespace steam
 			return false;
 		}
 
-		MessageBoxA(nullptr, "Steam must be installed for the game to run. Please install steam!", "Error", MB_ICONERROR);
+		MessageBoxA(nullptr, "Steam must be installed for the game to run. Please install Steam!", "Error", MB_ICONERROR);
 		ShellExecuteA(nullptr, "open", "https://store.steampowered.com/about/", nullptr, nullptr, SW_SHOWNORMAL);
 		TerminateProcess(GetCurrentProcess(), 1);
 		return true;

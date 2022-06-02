@@ -93,6 +93,7 @@ END
 
 //ID_ICON               ICON   "resources/icon.ico"
 IMAGE_SPLASH          BITMAP "resources/splash.bmp"
+IMAGE_LOGO            BITMAP "resources/logo.bmp"
 
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
