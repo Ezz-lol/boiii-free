@@ -447,6 +447,16 @@ namespace arxan
 		}
 	}
 
+	int WINAPI get_system_metrics_stub(const int index)
+	{
+		if (SM_REMOTESESSION == index)
+		{
+			return 0;
+		}
+
+		return GetSystemMetrics(index);
+	}
+
 	uint64_t get_integrity_data_qword(const uint8_t* address)
 	{
 		OutputDebugStringA(utils::string::va("8 bytes -> %p", address));
@@ -779,12 +789,12 @@ namespace arxan
 
 			AddVectoredExceptionHandler(1, exception_filter);
 
+			auto* sys_met_import = utils::nt::library{}.get_iat_entry("user32.dll", "GetSystemMetrics");
+			if (sys_met_import) utils::hook::set(sys_met_import, get_system_metrics_stub);
+
 			// TODO: Remove as soon as real hooking works
-			auto* cmd_func = utils::nt::library{}.get_iat_entry("kernel32.dll", "GetCommandLineA");
-			if (cmd_func)
-			{
-				utils::hook::set(cmd_func, get_command_line_a_stub);
-			}
+			auto* get_cmd_import = utils::nt::library{}.get_iat_entry("kernel32.dll", "GetCommandLineA");
+			if (get_cmd_import) utils::hook::set(get_cmd_import, get_command_line_a_stub);
 		}
 
 		void post_unpack() override
