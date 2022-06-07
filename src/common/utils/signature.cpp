@@ -76,15 +76,15 @@ namespace utils::hook
 		}
 	}
 
-	std::vector<size_t> signature::process_range(uint8_t* start, const size_t length) const
+	signature::signature_result signature::process_range(uint8_t* start, const size_t length) const
 	{
 		if (this->has_sse_support()) return this->process_range_vectorized(start, length);
 		return this->process_range_linear(start, length);
 	}
 
-	std::vector<size_t> signature::process_range_linear(uint8_t* start, const size_t length) const
+	signature::signature_result signature::process_range_linear(uint8_t* start, const size_t length) const
 	{
-		std::vector<size_t> result;
+		std::vector<uint8_t*> result;
 
 		for (size_t i = 0; i < length; ++i)
 		{
@@ -101,16 +101,16 @@ namespace utils::hook
 
 			if (j == this->mask_.size())
 			{
-				result.push_back(size_t(address));
+				result.push_back(address);
 			}
 		}
 
 		return result;
 	}
 
-	std::vector<size_t> signature::process_range_vectorized(uint8_t* start, const size_t length) const
+	signature::signature_result signature::process_range_vectorized(uint8_t* start, const size_t length) const
 	{
-		std::vector<size_t> result;
+		std::vector<uint8_t*> result;
 		__declspec(align(16)) char desired_mask[16] = {0};
 
 		for (size_t i = 0; i < this->mask_.size(); i++)
@@ -133,7 +133,7 @@ namespace utils::hook
 
 			if (_mm_test_all_zeros(equivalence, equivalence))
 			{
-				result.push_back(size_t(address));
+				result.push_back(address);
 			}
 		}
 
@@ -164,7 +164,7 @@ namespace utils::hook
 		const auto grid = range / cores;
 
 		std::mutex mutex;
-		std::vector<size_t> result;
+		std::vector<uint8_t*> result;
 		std::vector<std::thread> threads;
 
 		for (auto i = 0u; i < cores; ++i)
@@ -173,7 +173,7 @@ namespace utils::hook
 			const auto length = (i + 1 == cores) ? (this->start_ + this->length_ - sub) - start : grid;
 			threads.emplace_back([&, start, length]()
 			{
-				auto local_result = this->process_range(start, length);
+				const auto local_result = this->process_range(start, length);
 				if (local_result.empty()) return;
 
 				std::lock_guard _(mutex);

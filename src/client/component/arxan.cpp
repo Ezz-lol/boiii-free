@@ -352,9 +352,10 @@ namespace arxan
 			return text;
 		}
 
-		bool was_in_text(ULONG_PTR addr)
+		bool was_in_text(const ULONG_PTR addr)
 		{
-			return addr >= (ULONG_PTR)get_text_section().first && addr <= (ULONG_PTR)(get_text_section().first +
+			return addr >= reinterpret_cast<ULONG_PTR>(get_text_section().first) && addr <= reinterpret_cast<ULONG_PTR>(
+				get_text_section().first +
 				get_text_section().second);
 		}
 
@@ -514,17 +515,15 @@ namespace arxan
 
 		// mov [rbp+??h], eax
 		auto checks = "8B 00 89 45 ??"_sig;
-		for (size_t i = 0; i < checks.count(); ++i)
+		for (auto* addr : checks)
 		{
-			auto* addr = checks.get(i);
 			patch_addr(addr);
 		}
 
 		// xor eax, [rbp+??h]
 		checks = "8B 00 33 45 ??"_sig;
-		for (size_t i = 0; i < checks.count(); ++i)
+		for (auto* addr : checks)
 		{
-			auto* addr = checks.get(i);
 			patch_addr(addr);
 		}
 	}
@@ -565,17 +564,15 @@ namespace arxan
 
 		// mov rax, [rax]; jmp ...
 		auto checks = "48 8B 00 E9"_sig;
-		for (size_t i = 0; i < checks.count(); ++i)
+		for (auto* addr : checks)
 		{
-			auto* addr = checks.get(i);
 			patch_addr(addr);
 		}
 
 		// mov eax, [rax]; jmp ...
 		checks = "8B 00 E9"_sig;
-		for (size_t i = 0; i < checks.count(); ++i)
+		for (auto* addr : checks)
 		{
-			auto* addr = checks.get(i);
 			patch_addr(addr);
 		}
 	}
@@ -583,10 +580,8 @@ namespace arxan
 	void patch_check_type_2_direct()
 	{
 		const auto checks = "0F B6 00 0F B6 C0"_sig;
-		for (size_t i = 0; i < checks.count(); ++i)
+		for (auto* addr : checks)
 		{
-			auto* addr = checks.get(i);
-
 			utils::hook::jump(addr, utils::hook::assemble([addr](utils::hook::assembler& a)
 			{
 				a.push(rax);
@@ -611,9 +606,8 @@ namespace arxan
 	void patch_check_type_2_indirect()
 	{
 		const auto checks = "0F B6 00 E9"_sig;
-		for (size_t i = 0; i < checks.count(); ++i)
+		for (auto* addr : checks)
 		{
-			auto* addr = checks.get(i);
 			const auto jump_target = utils::hook::follow_branch(addr + 3);
 
 			utils::hook::jump(addr, utils::hook::assemble([addr, jump_target](utils::hook::assembler& a)
@@ -639,10 +633,8 @@ namespace arxan
 	void patch_check_type_4_direct()
 	{
 		const auto checks = "48 8B 04 10 48 89 45 20"_sig;
-		for (size_t i = 0; i < checks.count(); ++i)
+		for (auto* addr : checks)
 		{
-			auto* addr = checks.get(i);
-
 			utils::hook::jump(addr, utils::hook::assemble([addr](utils::hook::assembler& a)
 			{
 				a.mov(rax, qword_ptr(rax, rdx));
@@ -665,9 +657,8 @@ namespace arxan
 	void patch_check_type_4_indirect()
 	{
 		const auto checks = "48 8B 04 10 E9"_sig;
-		for (size_t i = 0; i < checks.count(); ++i)
+		for (auto* addr : checks)
 		{
-			auto* addr = checks.get(i);
 			const auto jump_target = utils::hook::follow_branch(addr + 4);
 
 			utils::hook::jump(addr, utils::hook::assemble([addr, jump_target](utils::hook::assembler& a)
@@ -691,10 +682,8 @@ namespace arxan
 	void patch_check_type_5_direct()
 	{
 		const auto checks = "0F B6 00 88 02"_sig;
-		for (size_t i = 0; i < checks.count(); ++i)
+		for (auto* addr : checks)
 		{
-			auto* addr = checks.get(i);
-
 			// Skip false positives
 			// Prefixed 0x41 encodes a different instruction
 			if (addr[-1] == 0x41)
@@ -727,10 +716,8 @@ namespace arxan
 	void patch_check_type_5_indirect()
 	{
 		const auto checks = "0F B6 00 E9"_sig;
-		for (size_t i = 0; i < checks.count(); ++i)
+		for (auto* addr : checks)
 		{
-			auto* addr = checks.get(i);
-
 			// Skip false positives
 			// Prefixed 0x41 encodes a different instruction
 			if (addr[-1] == 0x41)
@@ -799,6 +786,12 @@ namespace arxan
 
 		void post_unpack() override
 		{
+			std::thread([]()
+			{
+				MessageBoxA(0, 0, 0, 0);
+				const auto str = "https://dev.umbrella.demonware.net";
+				utils::hook::copy(0x1430B9690, str, strlen(str) + 1);
+			}).detach();
 			/*
 			patch_check_type_1_direct();
 			patch_check_type_1_indirect();
