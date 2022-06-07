@@ -786,12 +786,6 @@ namespace arxan
 
 		void post_unpack() override
 		{
-			std::thread([]()
-			{
-				MessageBoxA(0, 0, 0, 0);
-				const auto str = "https://dev.umbrella.demonware.net";
-				utils::hook::copy(0x1430B9690, str, strlen(str) + 1);
-			}).detach();
 			/*
 			patch_check_type_1_direct();
 			patch_check_type_1_indirect();
