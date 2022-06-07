@@ -5,6 +5,7 @@
 
 #include "concurrency.hpp"
 #include "string.hpp"
+#include "nt.hpp"
 
 #ifdef max
 #undef max
@@ -18,6 +19,17 @@ namespace utils::hook
 {
 	namespace
 	{
+		void install_ept_hook(const void* addr, const void* data, const size_t length)
+		{
+			static const auto hyperhook_lib = utils::nt::library::load(std::string("hyperhook.dll"));
+			hyperhook_lib.invoke<void>("hyperhook_patch_data", GetCurrentProcessId(), addr, data, length);
+		}
+
+		void install_ept_hook(const uint64_t addr, const void* data, const size_t length)
+		{
+			install_ept_hook(reinterpret_cast<void*>(addr), data, length);
+		}
+
 		uint8_t* allocate_somewhere_near(const void* base_address, const size_t size)
 		{
 			size_t offset = 0;
@@ -30,7 +42,8 @@ namespace utils::hook
 					return nullptr;
 				}
 
-				const auto res = VirtualAlloc(const_cast<uint8_t*>(target_address), size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+				const auto res = VirtualAlloc(const_cast<uint8_t*>(target_address), size, MEM_RESERVE | MEM_COMMIT,
+				                              PAGE_READWRITE);
 				if (res)
 				{
 					if (is_relatively_far(base_address, target_address))
@@ -48,6 +61,7 @@ namespace utils::hook
 		{
 		public:
 			memory() = default;
+
 			memory(const void* ptr)
 				: memory()
 			{
@@ -75,7 +89,7 @@ namespace utils::hook
 
 			memory& operator=(memory&& obj) noexcept
 			{
-				if(this != &obj)
+				if (this != &obj)
 				{
 					this->~memory();
 					this->buffer_ = obj.buffer_;
@@ -92,11 +106,13 @@ namespace utils::hook
 
 			void* allocate(const size_t length)
 			{
-				if(!this->buffer_) {
+				if (!this->buffer_)
+				{
 					return nullptr;
 				}
 
-				if(this->offset_ + length > this->length_) {
+				if (this->offset_ + length > this->length_)
+				{
 					return nullptr;
 				}
 
@@ -122,12 +138,12 @@ namespace utils::hook
 
 			return memory_container.access<void*>([&](std::vector<memory>& memories)
 			{
-				for(auto& memory : memories)
+				for (auto& memory : memories)
 				{
-					if(!is_relatively_far(address, memory.get_ptr()))
+					if (!is_relatively_far(address, memory.get_ptr()))
 					{
 						const auto buffer = memory.allocate(size);
-						if(buffer)
+						if (buffer)
 						{
 							return buffer;
 						}
@@ -150,17 +166,17 @@ namespace utils::hook
 			get_original_data_map().access([data, length](std::map<const void*, uint8_t>& og_map)
 			{
 				const auto data_ptr = static_cast<const uint8_t*>(data);
-				for(size_t i = 0; i < length; ++i)
+				for (size_t i = 0; i < length; ++i)
 				{
 					const auto pos = data_ptr + i;
-					if(!og_map.contains(pos))
+					if (!og_map.contains(pos))
 					{
 						og_map[pos] = *pos;
 					}
 				}
 			});
 		}
-			
+
 		void* initialize_min_hook()
 		{
 			static class min_hook_init
@@ -358,8 +374,16 @@ namespace utils::hook
 		return true;
 	}
 
-	void nop(void* place, const size_t length)
+	void nop(void* place, const size_t length, const bool use_ept)
 	{
+		if (use_ept)
+		{
+			std::vector<uint8_t> nops{};
+			nops.resize(length, 0x90);
+			install_ept_hook(place, nops.data(), nops.size());
+			return;
+		}
+
 		store_original_data(place, length);
 
 		DWORD old_protect{};
@@ -371,13 +395,19 @@ namespace utils::hook
 		FlushInstructionCache(GetCurrentProcess(), place, length);
 	}
 
-	void nop(const size_t place, const size_t length)
+	void nop(const size_t place, const size_t length, const bool use_ept)
 	{
-		nop(reinterpret_cast<void*>(place), length);
+		nop(reinterpret_cast<void*>(place), length, use_ept);
 	}
 
-	void copy(void* place, const void* data, const size_t length)
+	void copy(void* place, const void* data, const size_t length, const bool use_ept)
 	{
+		if (use_ept)
+		{
+			install_ept_hook(place, data, length);
+			return;
+		}
+
 		store_original_data(place, length);
 
 		DWORD old_protect{};
@@ -389,9 +419,9 @@ namespace utils::hook
 		FlushInstructionCache(GetCurrentProcess(), place, length);
 	}
 
-	void copy(const size_t place, const void* data, const size_t length)
+	void copy(const size_t place, const void* data, const size_t length, const bool use_ept)
 	{
-		copy(reinterpret_cast<void*>(place), data, length);
+		copy(reinterpret_cast<void*>(place), data, length, use_ept);
 	}
 
 	bool is_relatively_far(const void* pointer, const void* data, const int offset)
@@ -401,7 +431,7 @@ namespace utils::hook
 		return diff != int64_t(small_diff);
 	}
 
-	void call(void* pointer, void* data)
+	void call(void* pointer, void* data, const bool use_ept)
 	{
 		if (is_relatively_far(pointer, data))
 		{
@@ -411,27 +441,30 @@ namespace utils::hook
 				throw std::runtime_error("Too far away to create 32bit relative branch");
 			}
 
-			call(pointer, trampoline);
+			call(pointer, trampoline, use_ept);
 			jump(trampoline, data, true, true);
 			return;
 		}
 
+		uint8_t copy_data[5];
+		copy_data[0] = 0xE8;
+		*reinterpret_cast<int32_t*>(&copy_data[1]) = int32_t(size_t(data) - (size_t(pointer) + 5));
+
 		auto* patch_pointer = PBYTE(pointer);
-		set<uint8_t>(patch_pointer, 0xE8);
-		set<int32_t>(patch_pointer + 1, int32_t(size_t(data) - (size_t(pointer) + 5)));
+		copy(patch_pointer, copy_data, sizeof(copy_data), use_ept);
 	}
 
-	void call(const size_t pointer, void* data)
+	void call(const size_t pointer, void* data, const bool use_ept)
 	{
-		return call(reinterpret_cast<void*>(pointer), data);
+		return call(reinterpret_cast<void*>(pointer), data, use_ept);
 	}
 
-	void call(const size_t pointer, const size_t data)
+	void call(const size_t pointer, const size_t data, const bool use_ept)
 	{
-		return call(pointer, reinterpret_cast<void*>(data));
+		return call(pointer, reinterpret_cast<void*>(data), use_ept);
 	}
 
-	void jump(void* pointer, void* data, const bool use_far, const bool use_safe)
+	void jump(void* pointer, void* data, const bool use_far, const bool use_safe, const bool use_ept)
 	{
 		static const unsigned char jump_data[] = {
 			0x48, 0xb8, 0x88, 0x77, 0x66, 0x55, 0x44, 0x33, 0x22, 0x11, 0xff, 0xe0
@@ -444,11 +477,11 @@ namespace utils::hook
 		if (!use_far && is_relatively_far(pointer, data))
 		{
 			auto* trampoline = get_memory_near(pointer, 14);
-			if(!trampoline)
+			if (!trampoline)
 			{
 				throw std::runtime_error("Too far away to create 32bit relative branch");
 			}
-			jump(pointer, trampoline);
+			jump(pointer, trampoline, false, false, use_ept);
 			jump(trampoline, data, true, true);
 			return;
 		}
@@ -459,30 +492,39 @@ namespace utils::hook
 		{
 			if (use_safe)
 			{
-				copy(patch_pointer, jump_data_safe, sizeof(jump_data_safe));
-				copy(patch_pointer + sizeof(jump_data_safe), &data, sizeof(data));
+				uint8_t copy_data[sizeof(jump_data_safe) + sizeof(data)];
+				memcpy(copy_data, jump_data_safe, sizeof(jump_data_safe));
+				memcpy(copy_data + sizeof(jump_data_safe), &data, sizeof(data));
+
+				copy(patch_pointer, copy_data, sizeof(copy_data), use_ept);
 			}
 			else
 			{
-				copy(patch_pointer, jump_data, sizeof(jump_data));
-				copy(patch_pointer + 2, &data, sizeof(data));
+				uint8_t copy_data[sizeof(jump_data)];
+				memcpy(copy_data, jump_data, sizeof(jump_data));
+				memcpy(copy_data + 2, &data, sizeof(data));
+
+				copy(patch_pointer, copy_data, sizeof(copy_data), use_ept);
 			}
 		}
 		else
 		{
-			set<uint8_t>(patch_pointer, 0xE9);
-			set<int32_t>(patch_pointer + 1, int32_t(size_t(data) - (size_t(pointer) + 5)));
+			uint8_t copy_data[5];
+			copy_data[0] = 0xE9;
+			*reinterpret_cast<int32_t*>(&copy_data[1]) = int32_t(size_t(data) - (size_t(pointer) + 5));
+
+			copy(patch_pointer, copy_data, sizeof(copy_data), use_ept);
 		}
 	}
 
-	void jump(const size_t pointer, void* data, const bool use_far, const bool use_safe)
+	void jump(const size_t pointer, void* data, const bool use_far, const bool use_safe, const bool use_ept)
 	{
-		return jump(reinterpret_cast<void*>(pointer), data, use_far, use_safe);
+		return jump(reinterpret_cast<void*>(pointer), data, use_far, use_safe, use_ept);
 	}
 
-	void jump(const size_t pointer, const size_t data, const bool use_far, const bool use_safe)
+	void jump(const size_t pointer, const size_t data, const bool use_far, const bool use_safe, const bool use_ept)
 	{
-		return jump(pointer, reinterpret_cast<void*>(data), use_far, use_safe);
+		return jump(pointer, reinterpret_cast<void*>(data), use_far, use_safe, use_ept);
 	}
 
 	void* assemble(const std::function<void(assembler&)>& asm_function)
@@ -572,10 +614,10 @@ namespace utils::hook
 		get_original_data_map().access([data, length, &og_data](const std::map<const void*, uint8_t>& og_map)
 		{
 			auto* ptr = static_cast<const uint8_t*>(data);
-			for(size_t i = 0; i < length; ++i)
+			for (size_t i = 0; i < length; ++i)
 			{
 				auto entry = og_map.find(ptr + i);
-				if(entry != og_map.end())
+				if (entry != og_map.end())
 				{
 					og_data[i] = entry->second;
 				}
