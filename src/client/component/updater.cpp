@@ -163,11 +163,6 @@ namespace updater
 			}
 		}
 
-		void pre_start() override
-		{
-			join();
-		}
-
 		void pre_destroy() override
 		{
 			join();
