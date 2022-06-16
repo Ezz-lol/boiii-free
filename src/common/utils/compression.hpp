@@ -24,5 +24,7 @@ namespace utils::compression
 		private:
 			std::unordered_map<std::string, std::string> files_;
 		};
+
+		std::unordered_map<std::string, std::string> extract(const std::string& data);
 	}
 };

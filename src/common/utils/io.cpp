@@ -6,7 +6,12 @@ namespace utils::io
 {
 	bool remove_file(const std::string& file)
 	{
-		return DeleteFileA(file.data()) == TRUE;
+		if(DeleteFileA(file.data()) != FALSE)
+		{
+			return true;
+		}
+
+		return GetLastError() == ERROR_FILE_NOT_FOUND;
 	}
 
 	bool move_file(const std::string& src, const std::string& target)
