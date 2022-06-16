@@ -98,7 +98,7 @@ namespace updater
 
 		void perform_update()
 		{
-			utils::progress_ui progress_ui{};
+			const utils::progress_ui progress_ui{};
 			progress_ui.set_title("Updating BOIII");
 			progress_ui.set_line(1, "Downloading update...");
 			progress_ui.show(true);

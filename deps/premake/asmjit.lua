@@ -13,7 +13,9 @@ function asmjit.includes()
 	}
 	
 	defines {
-		"ASMJIT_STATIC"
+		"ASMJIT_STATIC",
+		"ASMJIT_NO_AARCH64",
+		"ASMJIT_NO_FOREIGN",
 	}
 end
 
