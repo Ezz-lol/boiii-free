@@ -60,13 +60,15 @@ namespace splash
 			this->destroy();
 		}
 
-		void hide() const
+		void hide()
 		{
 			if (this->window_ && IsWindow(this->window_))
 			{
 				ShowWindow(this->window_, SW_HIDE);
 				UpdateWindow(this->window_);
 			}
+
+			this->destroy();
 		}
 
 	private:
@@ -82,12 +84,17 @@ namespace splash
 				ShowWindow(this->window_, SW_HIDE);
 				DestroyWindow(this->window_);
 				this->window_ = nullptr;
+
 				if (this->window_thread_.joinable())
 				{
 					this->window_thread_.join();
 				}
 
 				this->window_ = nullptr;
+			}
+			else if (this->window_thread_.joinable())
+			{
+				this->window_thread_.detach();
 			}
 		}
 
