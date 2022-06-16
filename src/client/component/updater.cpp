@@ -50,21 +50,9 @@ namespace updater
 			return get_self_file() + ".old";
 		}
 
-		std::string download_update(utils::progress_ui& progress_ui)
+		std::string download_update()
 		{
-			const auto data = utils::http::get_data(
-				BINARY_URL, {}, [&progress_ui](const size_t total, const size_t current)
-				{
-					if (progress_ui.is_cancelled())
-					{
-						throw std::runtime_error("Cancelled");
-					}
-
-					if (total > 0)
-					{
-						progress_ui.set_progress(current, total);
-					}
-				});
+			const auto data = utils::http::get_data(BINARY_URL);
 
 			if (!data)
 			{
@@ -115,7 +103,7 @@ namespace updater
 			progress_ui.set_line(1, "Downloading update...");
 			progress_ui.show(true);
 
-			const auto update_data = download_update(progress_ui);
+			const auto update_data = download_update();
 
 			if (progress_ui.is_cancelled())
 			{
