@@ -62,3 +62,11 @@ jobs:
           name: ${{matrix.configuration}} Binary
           path: |
             build/bin/x64/${{matrix.configuration}}/d3d11.dll
+
+      - name: Upload version
+        if: matrix.configuration == 'Release'
+        uses: actions/upload-artifact@v2
+        with:
+          name: Version
+          path: |
+            build/version.txt
