@@ -10,7 +10,7 @@ on:
     types: [opened, synchronize, reopened]
 jobs:
   build:
-    name: Build binaries
+    name: Build
     runs-on: windows-2022
     strategy:
       matrix:
@@ -44,13 +44,21 @@ jobs:
       - name: Set up problem matching
         uses: ammaraskar/msvc-problem-matcher@master
 
-      - name: Build ${{matrix.configuration}} binaries
+      - name: Build ${{matrix.configuration}}
         run: msbuild /m /v:minimal /p:Configuration=${{matrix.configuration}} /p:Platform=x64 build/boiii.sln
 
-      - name: Upload ${{matrix.configuration}} binaries
+      - name: Upload ${{matrix.configuration}} bundle
         uses: actions/upload-artifact@v2
         with:
-          name: ${{matrix.configuration}} binaries
+          name: ${{matrix.configuration}} Bundle
           path: |
             build/bin/x64/${{matrix.configuration}}/d3d11.dll
             build/bin/x64/${{matrix.configuration}}/d3d11.pdb
+
+      - name: Upload ${{matrix.configuration}} binary
+        if: matrix.configuration == 'Release'
+        uses: actions/upload-artifact@v2
+        with:
+          name: ${{matrix.configuration}} Binary
+          path: |
+            build/bin/x64/${{matrix.configuration}}/d3d11.dll
