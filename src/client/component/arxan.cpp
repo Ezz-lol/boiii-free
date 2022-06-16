@@ -24,6 +24,60 @@ namespace arxan
 		utils::hook::detour nt_query_information_process_hook;
 		utils::hook::detour create_mutex_ex_a_hook;
 		utils::hook::detour open_process_hook;
+		utils::hook::detour create_thread_hook;
+
+		void* original_first_tls_callback = nullptr;
+
+		void** get_tls_callbacks()
+		{
+			const utils::nt::library game{};
+			const auto& entry = game.get_optional_header()->DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];
+			if (!entry.VirtualAddress || !entry.Size)
+			{
+				return nullptr;
+			}
+
+			auto* tls_dir = reinterpret_cast<IMAGE_TLS_DIRECTORY*>(game.get_ptr() + entry.VirtualAddress);
+			return reinterpret_cast<void**>(tls_dir->AddressOfCallBacks);
+		}
+
+		void disable_tls_callbacks()
+		{
+			auto* tls_callbacks = get_tls_callbacks();
+			if (tls_callbacks)
+			{
+				original_first_tls_callback = *tls_callbacks;
+			}
+
+			utils::hook::set(tls_callbacks, nullptr);
+		}
+
+		void restore_tls_callbacks()
+		{
+			auto* tls_callbacks = get_tls_callbacks();
+			if (tls_callbacks)
+			{
+				utils::hook::set(tls_callbacks, original_first_tls_callback);
+			}
+		}
+
+		HANDLE WINAPI create_thread_stub(const LPSECURITY_ATTRIBUTES thread_attributes, const SIZE_T stack_size,
+		                                 const LPTHREAD_START_ROUTINE start_address, const LPVOID parameter,
+		                                 const DWORD creation_flags,
+		                                 const LPDWORD thread_id)
+		{
+			if (utils::nt::library::get_by_address(start_address) == utils::nt::library{})
+			{
+				restore_tls_callbacks();
+
+				create_thread_hook.clear();
+				return CreateThread(thread_attributes, stack_size, start_address, parameter, creation_flags,
+				                    thread_id);
+			}
+
+			return create_thread_hook.invoke<HANDLE>(thread_attributes, stack_size, start_address, parameter,
+			                                         creation_flags, thread_id);
+		}
 
 		HANDLE process_id_to_handle(const DWORD pid)
 		{
@@ -39,6 +93,7 @@ namespace arxan
 
 			return open_process_hook.invoke<HANDLE>(access, inherit, pid);
 		}
+
 
 		HANDLE create_mutex_ex_a_stub(const LPSECURITY_ATTRIBUTES attributes, const LPCSTR name, const DWORD flags,
 		                              const DWORD access)
@@ -752,9 +807,12 @@ namespace arxan
 	public:
 		void pre_start() override
 		{
+			disable_tls_callbacks();
+
 			hide_being_debugged();
 			scheduler::loop(hide_being_debugged, scheduler::pipeline::async);
 
+			create_thread_hook.create(CreateThread, create_thread_stub);
 			create_mutex_ex_a_hook.create(CreateMutexExA, create_mutex_ex_a_stub);
 
 			const utils::nt::library ntdll("ntdll.dll");
@@ -808,6 +866,7 @@ namespace arxan
 			nt_query_information_process_hook.clear();
 			nt_close_hook.clear();
 			create_mutex_ex_a_hook.clear();
+			create_thread_hook.clear();
 			open_process_hook.clear();
 		}
 
