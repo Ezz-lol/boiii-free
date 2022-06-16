@@ -51,7 +51,7 @@ namespace
 		patch_steam_import("SteamAPI_GetHSteamPipe");
 		patch_steam_import("SteamAPI_Init");
 		patch_steam_import("SteamAPI_RestartAppIfNecessary");
-		
+
 		utils::hook::set(game.get_iat_entry("kernel32.dll", "ExitProcess"), exit_hook);
 	}
 
