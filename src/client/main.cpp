@@ -14,12 +14,6 @@ namespace
 		exit(code);
 	}
 
-	VOID WINAPI initialize_critical_section(const LPCRITICAL_SECTION critical_section)
-	{
-		component_loader::post_unpack();
-		InitializeCriticalSection(critical_section);
-	}
-
 	void patch_imports()
 	{
 		const utils::nt::library game{};
@@ -57,8 +51,7 @@ namespace
 		patch_steam_import("SteamAPI_GetHSteamPipe");
 		patch_steam_import("SteamAPI_Init");
 		patch_steam_import("SteamAPI_RestartAppIfNecessary");
-
-		//utils::hook::set(game.get_iat_entry("kernel32.dll", "InitializeCriticalSection"), initialize_critical_section);
+		
 		utils::hook::set(game.get_iat_entry("kernel32.dll", "ExitProcess"), exit_hook);
 	}
 
