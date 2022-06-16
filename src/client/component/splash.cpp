@@ -1,5 +1,6 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
+#include "splash.hpp"
 #include "resource.hpp"
 
 #include <utils/nt.hpp>
@@ -35,33 +36,23 @@ namespace splash
 			: image_(load_splash_image())
 		{
 			enable_dpi_awareness();
-			this->show();
+			this->window_thread_ = std::thread([this]
+			{
+				this->draw();
+			});
 		}
 
-		void pre_start() override
+		~component()
 		{
-			this->draw_frame();
+			if (this->window_thread_.joinable())
+			{
+				this->window_thread_.detach();
+			}
 		}
 
 		void pre_destroy() override
 		{
 			this->destroy();
-
-			MSG msg;
-			while (this->window_ && IsWindow(this->window_))
-			{
-				if (PeekMessageA(&msg, nullptr, NULL, NULL, PM_REMOVE))
-				{
-					TranslateMessage(&msg);
-					DispatchMessage(&msg);
-				}
-				else
-				{
-					std::this_thread::sleep_for(1ms);
-				}
-			}
-
-			this->window_ = nullptr;
 		}
 
 		void post_unpack() override
@@ -69,28 +60,75 @@ namespace splash
 			this->destroy();
 		}
 
-	private:
-		HWND window_{};
-		HANDLE image_{};
-
-		void draw_frame() const
+		void hide() const
 		{
-			MSG msg{};
-			while (this->window_ && PeekMessageW(&msg, nullptr, NULL, NULL, PM_REMOVE))
+			if (this->window_ && IsWindow(this->window_))
 			{
-				TranslateMessage(&msg);
-				DispatchMessageW(&msg);
+				ShowWindow(this->window_, SW_HIDE);
+				UpdateWindow(this->window_);
 			}
 		}
 
-		void destroy() const
+	private:
+		std::atomic_bool join_safe_{false};
+		HWND window_{};
+		HANDLE image_{};
+		std::thread window_thread_{};
+
+		void destroy()
 		{
 			if (this->window_ && IsWindow(this->window_))
 			{
 				ShowWindow(this->window_, SW_HIDE);
 				DestroyWindow(this->window_);
-				UnregisterClassA("Black Ops III Splash Screen", utils::nt::library{});
+				this->window_ = nullptr;
+				if (this->window_thread_.joinable())
+				{
+					this->window_thread_.join();
+				}
+
+				this->window_ = nullptr;
 			}
+		}
+
+		void draw()
+		{
+			this->show();
+			while (this->draw_frame())
+			{
+				std::this_thread::sleep_for(1ms);
+			}
+
+			this->window_ = nullptr;
+			UnregisterClassA("Black Ops III Splash Screen", utils::nt::library{});
+		}
+
+		bool draw_frame() const
+		{
+			if (!this->window_)
+			{
+				return false;
+			}
+
+			MSG msg{};
+			bool success = true;
+
+			while (PeekMessageW(&msg, nullptr, NULL, NULL, PM_REMOVE))
+			{
+				TranslateMessage(&msg);
+				DispatchMessageW(&msg);
+
+				if (msg.message == WM_DESTROY && msg.hwnd == this->window_)
+				{
+					PostQuitMessage(0);
+				}
+
+				if (msg.message == WM_QUIT)
+				{
+					success = false;
+				}
+			}
+			return success;
 		}
 
 		void show()
@@ -158,6 +196,15 @@ namespace splash
 			}
 		}
 	};
+
+	void hide()
+	{
+		auto* splash_component = component_loader::get<component>();
+		if (splash_component)
+		{
+			splash_component->hide();
+		}
+	}
 }
 
 REGISTER_COMPONENT(splash::component)

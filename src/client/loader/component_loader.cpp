@@ -5,7 +5,14 @@
 
 void component_loader::register_component(std::unique_ptr<component_interface>&& component_)
 {
-	get_components().push_back(std::move(component_));
+	auto& components = get_components();
+	components.push_back(std::move(component_));
+
+	std::ranges::stable_sort(components, [](const std::unique_ptr<component_interface>& a,
+	                                        const std::unique_ptr<component_interface>& b)
+	{
+		return a->priority() > b->priority();
+	});
 }
 
 bool component_loader::pre_start()

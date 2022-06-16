@@ -870,6 +870,11 @@ namespace arxan
 			open_process_hook.clear();
 		}
 
+		int priority() override
+		{
+			return 9999;
+		}
+
 	private:
 		uint8_t window_text_buffer_[15]{};
 	};
