@@ -104,21 +104,11 @@ namespace steam
 		results_.clear();
 	}
 
-	extern "C" {
+	//extern "C" {
 
 	bool SteamAPI_RestartAppIfNecessary()
 	{
-		const std::string steam_path = SteamAPI_GetSteamInstallPath();
-		if (!steam_path.empty() && ::utils::io::file_exists(steam_path + "/steam.exe"))
-		{
-			component_loader::post_unpack();
-			return false;
-		}
-
-		MessageBoxA(nullptr, "Steam must be installed for the game to run. Please install Steam!", "Error", MB_ICONERROR);
-		ShellExecuteA(nullptr, "open", "https://store.steampowered.com/about/", nullptr, nullptr, SW_SHOWNORMAL);
-		TerminateProcess(GetCurrentProcess(), 1);
-		return true;
+		return false;
 	}
 
 	bool SteamAPI_Init()
@@ -293,5 +283,5 @@ namespace steam
 		return &user_stats;
 	}
 
-	}
+	//}
 }

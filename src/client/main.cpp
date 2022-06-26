@@ -5,54 +5,73 @@
 #include <utils/finally.hpp>
 #include <utils/hook.hpp>
 #include <utils/nt.hpp>
+#include <utils/io.hpp>
+
+#include <steam/steam.hpp>
 
 namespace
 {
+	std::pair<void**, void*> g_original_import{};
+
 	DECLSPEC_NORETURN void WINAPI exit_hook(const int code)
 	{
 		component_loader::pre_destroy();
 		exit(code);
 	}
 
+	std::pair<void**, void*> patch_steam_import(const std::string& func, void* function)
+	{
+		static const utils::nt::library game{};
+
+		const auto game_entry = game.get_iat_entry("steam_api64.dll", func);
+		if (!game_entry)
+		{
+			throw std::runtime_error("Import '" + func + "' not found!");
+		}
+
+		const auto original_import = game_entry;
+		utils::hook::set(game_entry, function);
+		return {game_entry, original_import};
+	}
+
+	bool restart_app_if_necessary_stub()
+	{
+		const std::string steam_path = steam::SteamAPI_GetSteamInstallPath();
+		if (steam_path.empty() || !::utils::io::file_exists(steam_path + "/steam.exe"))
+		{
+			MessageBoxA(nullptr, "Steam must be installed for the game to run. Please install Steam!", "Error",
+			            MB_ICONERROR);
+			ShellExecuteA(nullptr, "open", "https://store.steampowered.com/about/", nullptr, nullptr, SW_SHOWNORMAL);
+			TerminateProcess(GetCurrentProcess(), 1);
+		}
+
+		utils::hook::set(g_original_import.first, g_original_import.second);
+		patch_steam_import("SteamAPI_Shutdown", steam::SteamAPI_Shutdown);
+
+		component_loader::post_unpack();
+		return steam::SteamAPI_RestartAppIfNecessary();
+	}
+
 	void patch_imports()
 	{
-		const utils::nt::library game{};
-		const auto self = utils::nt::library::get_by_address(patch_imports);
+		patch_steam_import("SteamAPI_RegisterCallback", steam::SteamAPI_RegisterCallback);
+		patch_steam_import("SteamAPI_RegisterCallResult", steam::SteamAPI_RegisterCallResult);
+		patch_steam_import("SteamGameServer_Shutdown", steam::SteamGameServer_Shutdown);
+		patch_steam_import("SteamGameServer_RunCallbacks", steam::SteamGameServer_RunCallbacks);
+		patch_steam_import("SteamGameServer_GetHSteamPipe", steam::SteamGameServer_GetHSteamPipe);
+		patch_steam_import("SteamGameServer_GetHSteamUser", steam::SteamGameServer_GetHSteamUser);
+		patch_steam_import("SteamInternal_GameServer_Init", steam::SteamInternal_GameServer_Init);
+		patch_steam_import("SteamAPI_UnregisterCallResult", steam::SteamAPI_UnregisterCallResult);
+		patch_steam_import("SteamAPI_UnregisterCallback", steam::SteamAPI_UnregisterCallback);
+		patch_steam_import("SteamAPI_RunCallbacks", steam::SteamAPI_RunCallbacks);
+		patch_steam_import("SteamInternal_CreateInterface", steam::SteamInternal_CreateInterface);
+		patch_steam_import("SteamAPI_GetHSteamUser", steam::SteamAPI_GetHSteamUser);
+		patch_steam_import("SteamAPI_GetHSteamPipe", steam::SteamAPI_GetHSteamPipe);
+		patch_steam_import("SteamAPI_Init", steam::SteamAPI_Init);
+		//patch_steam_import("SteamAPI_Shutdown", steam::SteamAPI_Shutdown);
+		g_original_import = patch_steam_import("SteamAPI_RestartAppIfNecessary", restart_app_if_necessary_stub);
 
-		auto patch_steam_import = [&](const std::string& func)
-		{
-			const auto game_entry = game.get_iat_entry("steam_api64.dll", func);
-			if (!game_entry)
-			{
-				throw std::runtime_error("Import '" + func + "' not found!");
-			}
-
-			const auto self_proc = self.get_proc<void*>(func);
-			if (!self_proc)
-			{
-				throw std::runtime_error(func + " export not found");
-			}
-			utils::hook::set(game_entry, self_proc);
-		};
-
-		patch_steam_import("SteamAPI_RegisterCallback");
-		patch_steam_import("SteamAPI_RegisterCallResult");
-		patch_steam_import("SteamGameServer_Shutdown");
-		patch_steam_import("SteamGameServer_RunCallbacks");
-		patch_steam_import("SteamGameServer_GetHSteamPipe");
-		patch_steam_import("SteamGameServer_GetHSteamUser");
-		patch_steam_import("SteamInternal_GameServer_Init");
-		patch_steam_import("SteamAPI_UnregisterCallResult");
-		patch_steam_import("SteamAPI_UnregisterCallback");
-		patch_steam_import("SteamAPI_RunCallbacks");
-		//patch_steam_import("SteamAPI_Shutdown");
-		patch_steam_import("SteamInternal_CreateInterface");
-		patch_steam_import("SteamAPI_GetHSteamUser");
-		patch_steam_import("SteamAPI_GetHSteamPipe");
-		patch_steam_import("SteamAPI_Init");
-		patch_steam_import("SteamAPI_RestartAppIfNecessary");
-
-		utils::hook::set(game.get_iat_entry("kernel32.dll", "ExitProcess"), exit_hook);
+		utils::hook::set(utils::nt::library{}.get_iat_entry("kernel32.dll", "ExitProcess"), exit_hook);
 	}
 
 	bool run()
