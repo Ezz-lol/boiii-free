@@ -118,6 +118,7 @@ namespace arxan
 				L"x96dbg",
 				L"x32dbg",
 				L"x64dbg",
+				L"Wireshark",
 			};
 
 			if (!string.Buffer || !string.Length)
@@ -389,7 +390,7 @@ namespace arxan
 		{
 			static const std::pair<uint8_t*, size_t> text = []() -> std::pair<uint8_t*, size_t>
 				{
-					utils::nt::library game{};
+					const utils::nt::library game{};
 					for (const auto& section : game.get_section_headers())
 					{
 						std::string name(reinterpret_cast<char*>(section->Name), sizeof(section->Name));
