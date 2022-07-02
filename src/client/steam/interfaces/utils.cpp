@@ -50,7 +50,7 @@ namespace steam
 
 	unsigned int utils::GetAppID()
 	{
-		return 209660;
+		return 311210;
 	}
 
 	void utils::SetOverlayNotificationPosition(int eNotificationPosition)
