@@ -9,14 +9,6 @@ namespace steam
 		eNoServersListedOnMasterServer
 	} matchmaking_server_response;
 
-	class matchmaking_server_list_response
-	{
-	public:
-		virtual void ServerResponded(void* hRequest, int iServer) = 0;
-		virtual void ServerFailedToRespond(void* hRequest, int iServer) = 0;
-		virtual void RefreshComplete(void* hRequest, matchmaking_server_response response) = 0;
-	};
-
 	class servernetadr_t
 	{
 	public:
@@ -48,6 +40,21 @@ namespace steam
 		steam_id m_steamID;
 	};
 
+	class matchmaking_ping_response
+	{
+	public:
+		virtual void ServerResponded(gameserveritem_t& server) = 0;
+		virtual void ServerFailedToRespond() = 0;
+	};
+
+	class matchmaking_server_list_response
+	{
+	public:
+		virtual void ServerResponded(void* hRequest, int iServer) = 0;
+		virtual void ServerFailedToRespond(void* hRequest, int iServer) = 0;
+		virtual void RefreshComplete(void* hRequest, matchmaking_server_response response) = 0;
+	};
+
 	class matchmaking_servers
 	{
 	public:
@@ -55,7 +62,8 @@ namespace steam
 
 		virtual void* RequestInternetServerList(unsigned int iApp, void** ppchFilters, unsigned int nFilters,
 		                                        matchmaking_server_list_response* pRequestServersResponse);
-		virtual void* RequestLANServerList(unsigned int iApp, matchmaking_server_list_response* pRequestServersResponse);
+		virtual void* RequestLANServerList(unsigned int iApp,
+		                                   matchmaking_server_list_response* pRequestServersResponse);
 		virtual void* RequestFriendsServerList(unsigned int iApp, void** ppchFilters, unsigned int nFilters,
 		                                       matchmaking_server_list_response* pRequestServersResponse);
 		virtual void* RequestFavoritesServerList(unsigned int iApp, void** ppchFilters, unsigned int nFilters,
@@ -71,7 +79,7 @@ namespace steam
 		virtual bool IsRefreshing(void* hRequest);
 		virtual int GetServerCount(void* hRequest);
 		virtual void RefreshServer(void* hRequest, int iServer);
-		virtual int PingServer(unsigned int unIP, unsigned short usPort, void* pRequestServersResponse);
+		virtual void* PingServer(unsigned int unIP, unsigned short usPort, matchmaking_ping_response* pRequestServersResponse);
 		virtual int PlayerDetails(unsigned int unIP, unsigned short usPort, void* pRequestServersResponse);
 		virtual int ServerRules(unsigned int unIP, unsigned short usPort, void* pRequestServersResponse);
 		virtual void CancelServerQuery(int hServerQuery);
