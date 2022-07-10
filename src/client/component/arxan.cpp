@@ -37,7 +37,7 @@ namespace arxan
 				return nullptr;
 			}
 
-			auto* tls_dir = reinterpret_cast<IMAGE_TLS_DIRECTORY*>(game.get_ptr() + entry.VirtualAddress);
+                        const auto* tls_dir = reinterpret_cast<IMAGE_TLS_DIRECTORY*>(game.get_ptr() + entry.VirtualAddress);
 			return reinterpret_cast<void**>(tls_dir->AddressOfCallBacks);
 		}
 
@@ -246,7 +246,7 @@ namespace arxan
 		                                 const PVOID info,
 		                                 const ULONG info_length, const PULONG ret_length, NTSTATUS* status)
 		{
-			if (handle != pseudo_steam_handle || info_class != 43)
+			if (handle != pseudo_steam_handle || static_cast<int>(info_class) != 43)
 			{
 				return false;
 			}
@@ -305,7 +305,7 @@ namespace arxan
 					*static_cast<HANDLE*>(info) = nullptr;
 					return static_cast<LONG>(0xC0000353);
 				}
-				else if (info_class == ProcessImageFileName || info_class == 43 /* ? */)
+				else if (info_class == ProcessImageFileName || static_cast<int>(info_class) == 43 /* ? */)
 				{
 					remove_evil_keywords_from_string(*static_cast<UNICODE_STRING*>(info));
 				}
@@ -394,7 +394,8 @@ namespace arxan
 					for (const auto& section : game.get_section_headers())
 					{
 						std::string name(reinterpret_cast<char*>(section->Name), sizeof(section->Name));
-						name = name.data();
+						while (!name.empty() && !name.back()) name.pop_back();
+
 						if (name == ".text"s)
 						{
 							return {game.get_ptr() + section->VirtualAddress, section->Misc.VirtualSize};
@@ -666,7 +667,7 @@ namespace arxan
 		{
 			const auto jump_target = utils::hook::follow_branch(addr + 3);
 
-			utils::hook::jump(addr, utils::hook::assemble([addr, jump_target](utils::hook::assembler& a)
+			utils::hook::jump(addr, utils::hook::assemble([jump_target](utils::hook::assembler& a)
 			{
 				a.push(rax);
 				a.pushad64();
@@ -717,7 +718,7 @@ namespace arxan
 		{
 			const auto jump_target = utils::hook::follow_branch(addr + 4);
 
-			utils::hook::jump(addr, utils::hook::assemble([addr, jump_target](utils::hook::assembler& a)
+			utils::hook::jump(addr, utils::hook::assemble([jump_target](utils::hook::assembler& a)
 			{
 				a.mov(rax, qword_ptr(rax, rdx));
 				a.push(rax);
@@ -783,7 +784,7 @@ namespace arxan
 
 			const auto jump_target = utils::hook::follow_branch(addr + 4);
 
-			utils::hook::jump(addr, utils::hook::assemble([addr, jump_target](utils::hook::assembler& a)
+			utils::hook::jump(addr, utils::hook::assemble([jump_target](utils::hook::assembler& a)
 			{
 				a.push(rax);
 				a.pushad64();
