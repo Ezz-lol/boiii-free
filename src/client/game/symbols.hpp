@@ -5,11 +5,8 @@
 namespace game
 {
 	WEAK symbol<void(int localClientNum, const char* text)> Cbuf_AddText{0x1420EC8B0_g};
-
 	WEAK symbol<void(int channel, unsigned int label, const char* fmt, ...)> Com_Printf{0x1421499C0_g};
-
 	WEAK symbol<void(char* text, int maxSize)> Con_GetTextCopy{0x14133A7D0_g};
-
 	WEAK symbol<void()> Sys_ShowConsole{0x142333F80_g};
 
 	namespace s_wcd

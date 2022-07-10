@@ -17,7 +17,7 @@ namespace game
 
 		T* get() const
 		{
-			return reinterpret_cast<T*>((uint64_t)address_);
+			return address_;
 		}
 
 		operator T* () const
