@@ -1,9 +1,12 @@
 #pragma once
 
-//#include "structs.hpp"
+#include "structs.hpp"
 
 namespace game
 {
+	#define Com_Error(code, fmt, ...) \
+		Com_Error_(__FILE__, __LINE__, code, fmt, ##__VA_ARGS__)
+
 	int Conbuf_CleanText(const char* source, char* target);
 
 	template <typename T>
@@ -34,6 +37,8 @@ namespace game
 		T* address_;
 	};
 
+	// Global game definitions
+	constexpr auto CMD_MAX_NESTING = 8;
 }
 
 #include "symbols.hpp"

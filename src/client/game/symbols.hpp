@@ -4,10 +4,28 @@
 
 namespace game
 {
-	WEAK symbol<void(int localClientNum, const char* text)> Cbuf_AddText{0x1420EC8B0_g};
+	// Com
 	WEAK symbol<void(int channel, unsigned int label, const char* fmt, ...)> Com_Printf{0x1421499C0_g};
+	WEAK symbol<void(const char* file, int line, int code, const char* fmt, ...)> Com_Error_{0x1420F8BD0_g};
+
+	WEAK symbol<void(int localClientNum, const char* text)> Cbuf_AddText{0x1420EC8B0_g};
+	WEAK symbol<void(const char* cmdName, xcommand_t function, cmd_function_s* allocedCmd)> Cmd_AddCommandInternal{0x1420ED530_g};
 	WEAK symbol<void(char* text, int maxSize)> Con_GetTextCopy{0x14133A7D0_g};
+
+	// Sys
 	WEAK symbol<void()> Sys_ShowConsole{0x142333F80_g};
+	WEAK symbol<TLSData*()> Sys_GetTLS{0x142184210_g};
+
+	// Dvar
+	WEAK symbol<const dvar_t*(const char* dvarName)> Dvar_FindVar{0x1422BD730_g};
+	WEAK symbol<unsigned int(const char* str)> Dvar_GenerateHash{0x14133DBF0_g};
+	WEAK symbol<dvar_t*(unsigned int hash)> Dvar_FindMalleableVar{0x1422BD6A0_g};
+	WEAK symbol<const char*(const dvar_t* dvar)> Dvar_GetDebugName{0x1422BDCB0_g};
+	WEAK symbol<const char*(const dvar_t* dvar)> Dvar_GetString{0x1422BFFF0_g};
+
+	// Variables
+	WEAK symbol<cmd_function_s> cmd_functions{0x15689FF58_g};
+	WEAK symbol<CmdArgs> sv_cmd_args{0x15689CE30_g};
 
 	namespace s_wcd
 	{
