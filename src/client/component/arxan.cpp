@@ -807,6 +807,14 @@ namespace arxan
 	class component final : public component_interface
 	{
 	public:
+		component()
+		{
+#ifndef NDEBUG
+			auto* dll_characteristics = &utils::nt::library().get_optional_header()->DllCharacteristics;
+			utils::hook::set<WORD>(dll_characteristics, *dll_characteristics | IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE);
+#endif
+		}
+
 		void pre_start() override
 		{
 			disable_tls_callbacks();
