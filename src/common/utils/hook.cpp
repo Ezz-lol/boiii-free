@@ -161,9 +161,9 @@ namespace utils::hook
 			return og_data;
 		}
 
-		void store_original_data(const void* data, size_t length)
+		void store_original_data(const void* /*data*/, size_t /*length*/)
 		{
-			get_original_data_map().access([data, length](std::map<const void*, uint8_t>& og_map)
+			/*get_original_data_map().access([data, length](std::map<const void*, uint8_t>& og_map)
 			{
 				const auto data_ptr = static_cast<const uint8_t*>(data);
 				for (size_t i = 0; i < length; ++i)
@@ -174,7 +174,7 @@ namespace utils::hook
 						og_map[pos] = *pos;
 					}
 				}
-			});
+			});*/
 		}
 
 		void* initialize_min_hook()
