@@ -25,6 +25,7 @@ namespace arxan
 		utils::hook::detour create_mutex_ex_a_hook;
 		utils::hook::detour open_process_hook;
 		utils::hook::detour create_thread_hook;
+		utils::hook::detour get_thread_context_hook;
 
 		void* original_first_tls_callback = nullptr;
 
@@ -37,7 +38,7 @@ namespace arxan
 				return nullptr;
 			}
 
-                        const auto* tls_dir = reinterpret_cast<IMAGE_TLS_DIRECTORY*>(game.get_ptr() + entry.VirtualAddress);
+			const auto* tls_dir = reinterpret_cast<IMAGE_TLS_DIRECTORY*>(game.get_ptr() + entry.VirtualAddress);
 			return reinterpret_cast<void**>(tls_dir->AddressOfCallBacks);
 		}
 
@@ -515,6 +516,24 @@ namespace arxan
 		return GetSystemMetrics(index);
 	}
 
+	BOOL WINAPI get_thread_context_stub(const HANDLE thread_handle, const LPCONTEXT context)
+	{
+		constexpr auto debug_registers_flag = (CONTEXT_DEBUG_REGISTERS & ~CONTEXT_AMD64);
+		if (context->ContextFlags & debug_registers_flag)
+		{
+			auto* source = _ReturnAddress();
+			const auto game = utils::nt::library{};
+			const auto source_module = utils::nt::library::get_by_address(source);
+
+			if (source_module == game)
+			{
+				context->ContextFlags &= ~debug_registers_flag;
+			}
+		}
+
+		return get_thread_context_hook.invoke<BOOL>(thread_handle, context);
+	}
+
 	uint64_t get_integrity_data_qword(const uint8_t* address)
 	{
 		OutputDebugStringA(utils::string::va("8 bytes -> %p", address));
@@ -838,6 +857,11 @@ namespace arxan
 
 			open_process_hook.create(OpenProcess, open_process_stub);
 
+#ifndef NDEBUG
+			auto* get_thread_context_func = utils::nt::library("kernelbase.dll").get_proc<void*>("GetThreadContext");
+			get_thread_context_hook.create(get_thread_context_func, get_thread_context_stub);
+#endif
+
 			utils::hook::copy(this->window_text_buffer_, GetWindowTextA, sizeof(this->window_text_buffer_));
 			utils::hook::jump(GetWindowTextA, get_window_text_a_stub, true, true);
 			utils::hook::move_hook(GetWindowTextA);
@@ -878,6 +902,7 @@ namespace arxan
 			create_mutex_ex_a_hook.clear();
 			create_thread_hook.clear();
 			open_process_hook.clear();
+			get_thread_context_hook.clear();
 		}
 
 		int priority() override
