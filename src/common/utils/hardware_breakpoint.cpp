@@ -1,0 +1,115 @@
+#include "hardware_breakpoint.hpp"
+#include "thread.hpp"
+
+namespace utils::hardware_breakpoint
+{
+	namespace
+	{
+		void set_bits(uint64_t& value, const uint32_t bit_index, const uint32_t bits, const uint64_t new_value)
+		{
+			const uint64_t range_mask = (1ull << bits) - 1ull;
+			const uint64_t full_mask = ~(range_mask << bit_index);
+			value = (value & full_mask) | (new_value << bit_index);
+		}
+
+		void validate_index(const uint32_t index)
+		{
+			if (index >= 4)
+			{
+				throw std::runtime_error("Invalid index");
+			}
+		}
+
+		uint32_t translate_length(const uint32_t length)
+		{
+			if (length != 1 && length != 2 && length != 4)
+			{
+				throw std::runtime_error("Invalid length");
+			}
+
+			return length - 1;
+		}
+
+		class debug_context
+		{
+		public:
+			debug_context(uint32_t thread_id)
+				: handle_(thread_id, THREAD_SET_CONTEXT | THREAD_GET_CONTEXT)
+			{
+				if (!this->handle_)
+				{
+					throw std::runtime_error("Unable to access thread");
+				}
+
+				this->context_.ContextFlags = CONTEXT_DEBUG_REGISTERS;
+
+				if (!GetThreadContext(this->handle_, &this->context_))
+				{
+					throw std::runtime_error("Unable to get thread context");
+				}
+			}
+
+			~debug_context()
+			{
+				SetThreadContext(this->handle_, &this->context_);
+			}
+
+			CONTEXT* operator->()
+			{
+				return &this->context_;
+			}
+
+		private:
+			thread::handle handle_;
+			CONTEXT context_{};
+		};
+
+		uint32_t find_free_index(debug_context& context)
+		{
+			for (uint32_t i = 0; i < 4; ++i)
+			{
+				if ((context->Dr7 & (1ull << (i << 1ull))) == 0)
+				{
+					return i;
+				}
+			}
+
+			throw std::runtime_error("No free index");
+		}
+	}
+
+	uint32_t activate(void* address, const uint32_t length, const condition cond, const uint32_t thread_id)
+	{
+		return activate(reinterpret_cast<uint64_t>(address), length, cond, thread_id);
+	}
+
+	uint32_t activate(const uint64_t address, uint32_t length, const condition cond, const uint32_t thread_id)
+	{
+		debug_context context(thread_id);
+
+		const auto index = find_free_index(context);
+		length = translate_length(length);
+
+		(&context->Dr0)[index] = address;
+
+		set_bits(context->Dr7, 16 + (index << 2ull), 2, cond);
+		set_bits(context->Dr7, 18 + (index << 2ull), 2, length);
+		set_bits(context->Dr7, index << 1ull, 1, 1);
+
+		return index;
+	}
+
+	void deactivate(const uint32_t index, const uint32_t thread_id)
+	{
+		validate_index(index);
+
+		debug_context context(thread_id);
+		set_bits(context->Dr7, index << 1ull, 1, 0);
+	}
+
+	void deactivate_all(const uint32_t thread_id)
+	{
+		debug_context context(thread_id);
+		context->Dr7 = 0;
+	}
+}
