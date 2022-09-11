@@ -48,16 +48,11 @@ namespace utils::thread
 
 	std::vector<DWORD> get_thread_ids()
 	{
-		auto* const h = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, GetCurrentProcessId());
-		if (h == INVALID_HANDLE_VALUE)
+		nt::handle<INVALID_HANDLE_VALUE> h = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, GetCurrentProcessId());
+		if (!h)
 		{
 			return {};
 		}
-
-		const auto _ = utils::finally([h]()
-		{
-			CloseHandle(h);
-		});
 
 		THREADENTRY32 entry{};
 		entry.dwSize = sizeof(entry);
@@ -84,20 +79,15 @@ namespace utils::thread
 		return ids;
 	}
 
-	void for_each_thread(const std::function<void(HANDLE)>& callback)
+	void for_each_thread(const std::function<void(HANDLE)>& callback, const DWORD access)
 	{
 		const auto ids = get_thread_ids();
 
 		for (const auto& id : ids)
 		{
-			auto* const thread = OpenThread(THREAD_ALL_ACCESS, FALSE, id);
-			if (thread != nullptr)
+			handle thread(id, access);
+			if (thread)
 			{
-				const auto _ = utils::finally([thread]()
-				{
-					CloseHandle(thread);
-				});
-
 				callback(thread);
 			}
 		}
