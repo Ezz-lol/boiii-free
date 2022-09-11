@@ -70,13 +70,13 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "CompanyName", ""
-            VALUE "FileDescription", "bo3"
+            VALUE "CompanyName", "momo5502"
+            VALUE "FileDescription", "BOIII"
             VALUE "FileVersion", VERSION_FILE
             VALUE "InternalName", "something"
-            VALUE "LegalCopyright", "Copyright (C) 2022. All rights reserved."
+            VALUE "LegalCopyright", "Copyright (C) 2022 momo5502. All rights reserved."
             VALUE "OriginalFilename", "d3d11.dll"
-            VALUE "ProductName", "bo3"
+            VALUE "ProductName", "BOIII"
             VALUE "ProductVersion", VERSION_PRODUCT
         END
     END
