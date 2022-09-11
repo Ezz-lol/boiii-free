@@ -6,6 +6,7 @@
 #include <utils/hook.hpp>
 
 #include "utils/string.hpp"
+#include "utils/hardware_breakpoint.hpp"
 
 #define ProcessDebugPort 7
 #define ProcessDebugObjectHandle 30 // WinXP source says 31?
@@ -26,6 +27,8 @@ namespace arxan
 		utils::hook::detour open_process_hook;
 		utils::hook::detour create_thread_hook;
 		utils::hook::detour get_thread_context_hook;
+		utils::hook::detour zw_terminate_process_hook;
+		utils::hook::detour get_proc_address_hook;
 
 		void* original_first_tls_callback = nullptr;
 
@@ -431,18 +434,37 @@ namespace arxan
 
 		LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS info)
 		{
-			static thread_local struct
+			/*static thread_local struct
 			{
 				bool needs_protect_change = false;
 				bool had_single_step = false;
-			} analysis_context;
+ 			} analysis_context;*/
 
 			if (info->ExceptionRecord->ExceptionCode == STATUS_INVALID_HANDLE)
 			{
 				return EXCEPTION_CONTINUE_EXECUTION;
 			}
 
-			if (info->ExceptionRecord->ExceptionCode == EXCEPTION_SINGLE_STEP)
+			/*if (info->ExceptionRecord->ExceptionCode == EXCEPTION_SINGLE_STEP)
+			{
+				//utils::thread::suspend_other_threads();
+				//restore_debug_functions();
+				//MessageBoxA(0, "SS", 0, 0);
+				OutputDebugStringA("SINGLESTEP!\n");
+				return EXCEPTION_CONTINUE_EXECUTION;
+			}*/
+
+			/*if (info->ExceptionRecord->ExceptionCode == STATUS_ACCESS_VIOLATION)
+			{
+				utils::thread::suspend_other_threads();
+				restore_debug_functions();
+				MessageBoxA(nullptr, utils::string::va("AV at: %llX %llX",
+				                                       info->ContextRecord->Rip, reverse_g(info->ContextRecord->Rip)),
+				            nullptr, 0);
+				return EXCEPTION_CONTINUE_EXECUTION;
+			}*/
+
+			/*if (info->ExceptionRecord->ExceptionCode == EXCEPTION_SINGLE_STEP)
 			{
 				if (!analysis_context.needs_protect_change)
 				{
@@ -484,7 +506,7 @@ namespace arxan
 				unprotect_text();
 				return EXCEPTION_CONTINUE_EXECUTION;
 				//restore_debug_functions();
-			}
+			}*/
 
 			return EXCEPTION_CONTINUE_SEARCH;
 		}
@@ -823,6 +845,26 @@ namespace arxan
 		}
 	}
 
+	NTSTATUS NTAPI get_proc_address_stub(const HMODULE module_handle, const PANSI_STRING function_name,
+	                                     const WORD oridinal,
+	                                     PVOID* function_address, const BOOL b_value,
+	                                     PVOID* callback_address)
+	{
+		OutputDebugStringA(utils::string::va("Proc: %s %X\n",
+		                                     (function_name && function_name->Buffer)
+			                                     ? function_name->Buffer
+			                                     : "(null)", static_cast<DWORD>(oridinal)));
+
+		return get_proc_address_hook.invoke<NTSTATUS>(module_handle, function_name, oridinal, function_address, b_value,
+		                                              callback_address);
+	}
+
+	NTSTATUS zw_terminate_process_stub(const HANDLE process_handle, const NTSTATUS exit_status)
+	{
+		MessageBoxA(nullptr, "TERMINATING", nullptr, 0);
+		return zw_terminate_process_hook.invoke<NTSTATUS>(process_handle, exit_status);
+	}
+
 	class component final : public component_interface
 	{
 	public:
@@ -837,6 +879,7 @@ namespace arxan
 		void pre_start() override
 		{
 			disable_tls_callbacks();
+			restore_debug_functions();
 
 			hide_being_debugged();
 			scheduler::loop(hide_being_debugged, scheduler::pipeline::async);
@@ -874,6 +917,12 @@ namespace arxan
 			// TODO: Remove as soon as real hooking works
 			auto* get_cmd_import = utils::nt::library{}.get_iat_entry("kernel32.dll", "GetCommandLineA");
 			if (get_cmd_import) utils::hook::set(get_cmd_import, get_command_line_a_stub);
+			//zw_terminate_process_hook.create(ntdll.get_proc<void*>("ZwTerminateProcess"), zw_terminate_process_stub);
+			//zw_terminate_process_hook.move();
+
+			//auto* gpafc = ntdll.get_proc<void*>("LdrGetProcedureAddressForCaller");
+			//get_proc_address_hook.create(gpafc, get_proc_address_stub);
+			//get_proc_address_hook.move();
 		}
 
 		void post_unpack() override
@@ -903,6 +952,8 @@ namespace arxan
 			create_thread_hook.clear();
 			open_process_hook.clear();
 			get_thread_context_hook.clear();
+			zw_terminate_process_hook.clear();
+			get_proc_address_hook.clear();
 		}
 
 		int priority() override

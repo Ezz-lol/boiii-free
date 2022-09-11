@@ -54,6 +54,12 @@ namespace utils::hardware_breakpoint
 				SetThreadContext(this->handle_, &this->context_);
 			}
 
+			debug_context(const debug_context&) = delete;
+			debug_context& operator=(const debug_context&) = delete;
+
+			debug_context(debug_context&& obj) noexcept = delete;
+			debug_context& operator=(debug_context&& obj) noexcept = delete;
+
 			CONTEXT* operator->()
 			{
 				return &this->context_;
