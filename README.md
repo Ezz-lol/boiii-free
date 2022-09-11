@@ -12,7 +12,16 @@ Reverse Engineering and analysis of Call of Duty: Black Ops 3. Very experimental
 
 <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQeSXYzQITJrcjiifN1nqX1fsVE7VwLZ3vl2g&usqp=CAU">
 
-<br/>
+## Roadmap
+
+- [x] Steam API Emulation
+- [x] Steam Integrity Bypass
+- [x] Offline Multiplayer/Zombies/Campaign Support
+- [x] RE Tool Detection Bypass (IDA Pro, HxD, ...)
+- [x] Disable Hardware Breakpoint Detection
+- [ ] Disable Anti-Debugging mechanisms
+- [ ] Disable Integrity Checks
+- [ ] Demonware Emulation
 
 ## Download
 
@@ -23,8 +32,6 @@ Unzip <a href="https://nightly.link/momo5502/boiii/workflows/build/main/Release%
 - Clone the Git repo. Do NOT download it as ZIP, that won't work.
 - Update the submodules and run `premake5 vs2022` or simply use the delivered `generate.bat`.
 - Build via solution file in `build\boiii.sln`.
-
-<br/>
 
 ## Disclaimer
 
