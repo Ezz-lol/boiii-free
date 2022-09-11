@@ -8,7 +8,7 @@
 
 # BOIII
 
-Reverse Engineering and analysis of Call of Duty: Black Ops 3. Very experimental.
+Reverse engineering and analysis of Call of Duty: Black Ops 3. Very experimental.
 
 <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQeSXYzQITJrcjiifN1nqX1fsVE7VwLZ3vl2g&usqp=CAU">
 
@@ -19,7 +19,7 @@ Reverse Engineering and analysis of Call of Duty: Black Ops 3. Very experimental
 - [x] Offline Multiplayer/Zombies/Campaign Support
 - [x] RE Tool Detection Bypass (IDA Pro, HxD, ...)
 - [x] Disable Hardware Breakpoint Detection
-- [ ] Disable Anti-Debugging mechanisms
+- [ ] Disable Anti-Debugging Mechanisms
 - [ ] Disable Integrity Checks
 - [ ] Demonware Emulation
 
