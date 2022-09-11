@@ -927,6 +927,7 @@ namespace arxan
 
 		void post_unpack() override
 		{
+			//restore_debug_functions();
 			/*
 			patch_check_type_1_direct();
 			patch_check_type_1_indirect();
@@ -940,6 +941,15 @@ namespace arxan
 			*/
 
 			//protect_text();
+
+			/*auto tid = GetCurrentThreadId();
+			std::thread([tid]()
+			{
+				MessageBoxA(0, 0, 0, 0);
+				//utils::hook::set<uint8_t>(0x1423339C0_g, 0xC3);
+				utils::hardware_breakpoint::activate(0x1423339C0_g, 4,
+				                                     utils::hardware_breakpoint::read_write, tid);
+			}).detach();*/
 		}
 
 		void pre_destroy() override
