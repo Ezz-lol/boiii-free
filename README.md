@@ -3,7 +3,7 @@
 [![paypal](https://img.shields.io/badge/PayPal-support-blue.svg?logo=paypal)](https://paypal.me/momo5502)
 
 
-# BOIII
+# BOIII 🧟‍♂️
 
 Reverse engineering and analysis of Call of Duty: Black Ops 3. Very experimental.
 
