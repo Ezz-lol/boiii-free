@@ -1,9 +1,6 @@
 ![license](https://img.shields.io/github/license/momo5502/boiii.svg)
-[![open bugs](https://img.shields.io/github/issues/momo5502/boiii/bug?label=bugs)](https://github.com/momo5502/boiii/issues?q=is%3Aissue+is%3Aopen+label%3Abug)
-[![Build](https://github.com/momo5502/boiii/workflows/Build/badge.svg)](https://github.com/momo5502/boiii/actions)
+[![build](https://github.com/momo5502/boiii/workflows/Build/badge.svg)](https://github.com/momo5502/boiii/actions)
 [![paypal](https://img.shields.io/badge/PayPal-support-blue.svg?logo=paypal)](https://paypal.me/momo5502)
-[![patreon](https://img.shields.io/badge/Patreon-support-red.svg?logo=patreon)](https://www.patreon.com/xlabsproject)
-[![discord](https://img.shields.io/endpoint?url=https://momo5502.com/iw4x/members-badge.php)](https://discord.gg/sKeVmR3)
 
 
 # BOIII
