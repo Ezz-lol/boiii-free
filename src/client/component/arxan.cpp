@@ -950,6 +950,25 @@ namespace arxan
 				utils::hardware_breakpoint::activate(0x1423339C0_g, 4,
 				                                     utils::hardware_breakpoint::read_write, tid);
 			}).detach();*/
+
+			// Some integrity check patches. More to come.
+
+			/*
+			utils::hook::nop(0x142AA20A1_g, 4);
+			utils::hook::set<uint32_t>(0x15BDEC91F_g, 0xda894890);
+
+			utils::hook::nop(0x15E4EBFA6_g, 4);
+			utils::hook::set<uint32_t>(0x15EA17E28_g, 0xd1894890);
+
+			utils::hook::nop(0x15B7F5209_g, 6);
+			utils::hook::set<uint32_t>(0x15EFBB508_g, 0xc3894890);
+
+			utils::hook::set<uint32_t>(0x15D0379CC_g, 0xda894890); // rdx, rbx
+			utils::hook::set<uint32_t>(0x15D1177B8_g, 0xd1894890); // rcx, rdx
+			utils::hook::set<uint32_t>(0x15BFFF30D_g, 0xda894890); // rdx, rbx
+			utils::hook::set<uint32_t>(0x15DE3AAE7_g, 0xc8894890); // rax, rcx
+			utils::hook::set<uint32_t>(0x15E48F80C_g, 0xc3894890); // rbx, rax
+			*/
 		}
 
 		void pre_destroy() override
