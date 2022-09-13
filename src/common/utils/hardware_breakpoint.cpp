@@ -65,16 +65,21 @@ namespace utils::hardware_breakpoint
 				return &this->context_;
 			}
 
+			operator CONTEXT&()
+			{
+				return this->context_;
+			}
+
 		private:
 			thread::handle handle_;
 			CONTEXT context_{};
 		};
 
-		uint32_t find_free_index(debug_context& context)
+		uint32_t find_free_index(const CONTEXT& context)
 		{
 			for (uint32_t i = 0; i < 4; ++i)
 			{
-				if ((context->Dr7 & (1ull << (i << 1ull))) == 0)
+				if ((context.Dr7 & (1ull << (i << 1ull))) == 0)
 				{
 					return i;
 				}
@@ -84,38 +89,51 @@ namespace utils::hardware_breakpoint
 		}
 	}
 
+	uint32_t activate(const uint64_t address, uint32_t length, const condition cond, CONTEXT& context)
+	{
+		const auto index = find_free_index(context);
+		length = translate_length(length);
+
+		(&context.Dr0)[index] = address;
+
+		set_bits(context.Dr7, 16 + (index << 2ull), 2, cond);
+		set_bits(context.Dr7, 18 + (index << 2ull), 2, length);
+		set_bits(context.Dr7, index << 1ull, 1, 1);
+
+		return index;
+	}
+
 	uint32_t activate(void* address, const uint32_t length, const condition cond, const uint32_t thread_id)
 	{
 		return activate(reinterpret_cast<uint64_t>(address), length, cond, thread_id);
 	}
 
-	uint32_t activate(const uint64_t address, uint32_t length, const condition cond, const uint32_t thread_id)
+	uint32_t activate(const uint64_t address, const uint32_t length, const condition cond, const uint32_t thread_id)
 	{
 		debug_context context(thread_id);
+		return activate(address, length, cond, context);
+	}
 
-		const auto index = find_free_index(context);
-		length = translate_length(length);
-
-		(&context->Dr0)[index] = address;
-
-		set_bits(context->Dr7, 16 + (index << 2ull), 2, cond);
-		set_bits(context->Dr7, 18 + (index << 2ull), 2, length);
-		set_bits(context->Dr7, index << 1ull, 1, 1);
-
-		return index;
+	void deactivate(const uint32_t index, CONTEXT& context)
+	{
+		validate_index(index);
+		set_bits(context.Dr7, index << 1ull, 1, 0);
 	}
 
 	void deactivate(const uint32_t index, const uint32_t thread_id)
 	{
-		validate_index(index);
-
 		debug_context context(thread_id);
-		set_bits(context->Dr7, index << 1ull, 1, 0);
+		deactivate(index, context);
+	}
+
+	void deactivate_all(CONTEXT& context)
+	{
+		context.Dr7 = 0;
 	}
 
 	void deactivate_all(const uint32_t thread_id)
 	{
 		debug_context context(thread_id);
-		context->Dr7 = 0;
+		deactivate_all(context);
 	}
 }
