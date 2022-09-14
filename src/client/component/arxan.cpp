@@ -482,7 +482,7 @@ namespace arxan
 			}
 		};
 
-		bool patchMode = true;
+		bool patchMode = false;
 		std::unordered_map<uint64_t, integrity_handler_data> integrity_handlers;
 
 		void load_handlers()
@@ -708,11 +708,14 @@ namespace arxan
 						*h->computed_checksum = *h->original_checksum;
 						info->ContextRecord->Rax = *h->original_checksum;
 
-						static bool once = false;
-						if (!once)
+						if (old != *h->original_checksum)
 						{
 							//once = true;
-							OutputDebugStringA(utils::string::va("Adjusted wrong checksum: %X -> %X (%X)", old, *h->original_checksum, handler->second.checksum));
+							OutputDebugStringA(utils::string::va("Adjusted wrong checksum: %X -> %X", old, handler->second.checksum));
+						}
+						else
+						{
+								OutputDebugStringA("Nothing to adjust");
 						}
 
 						return EXCEPTION_CONTINUE_EXECUTION;
@@ -936,8 +939,29 @@ namespace arxan
 			{
 				MessageBoxA(0, 0, 0, 0);
 				protect_texts();
-				if (patchMode)
-					utils::hook::set<uint8_t>(0x1423339C0_g, 0xC3);
+				MessageBoxA(0, "PATCH?", 0, 0);
+				patchMode = true;
+				utils::hook::set<uint8_t>(0x1423339C0_g, 0xC3);
+
+				constexpr auto rdx_rbx = 0xda894890;
+			constexpr auto rcx_rdx = 0xd1894890;
+			constexpr auto rax_rcx = 0xc8894890;
+			constexpr auto rbx_rax = 0xc3894890;
+
+			utils::hook::nop(0x142AA20A1_g, 4);
+			utils::hook::set<uint32_t>(0x15BDEC91F_g, rdx_rbx);
+
+			utils::hook::nop(0x15E4EBFA6_g, 4);
+			utils::hook::set<uint32_t>(0x15EA17E28_g, rcx_rdx);
+
+			utils::hook::nop(0x15B7F5209_g, 6);
+			utils::hook::set<uint32_t>(0x15EFBB508_g, rbx_rax);
+
+			utils::hook::set<uint32_t>(0x15D0379CC_g, rdx_rbx);
+			utils::hook::set<uint32_t>(0x15D1177B8_g, rcx_rdx);
+			utils::hook::set<uint32_t>(0x15BFFF30D_g, rdx_rbx);
+			utils::hook::set<uint32_t>(0x15DE3AAE7_g, rax_rcx);
+			utils::hook::set<uint32_t>(0x15E48F80C_g, rbx_rax);
 			}).detach();
 
 
