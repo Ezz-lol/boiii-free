@@ -482,6 +482,7 @@ namespace arxan
 			}
 		};
 
+		bool patchMode = true;
 		std::unordered_map<uint64_t, integrity_handler_data> integrity_handlers;
 
 		void load_handlers()
@@ -686,70 +687,102 @@ namespace arxan
 				info->ContextRecord->EFlags |= 0x0100;
 
 				const auto data = *reinterpret_cast<uint32_t*>(info->ContextRecord->Rip);
-				if ((data & 0xFFFFFF) == 0x8A0489 && !integrity_handlers.contains(info->ContextRecord->Rip))
+				if ((data & 0xFFFFFF) == 0x8A0489)
 				{
-					auto checksum = static_cast<uint32_t>(info->ContextRecord->Rax);
-					auto offset = static_cast<int64_t>(info->ContextRecord->Rcx);
-					if (offset != 0)
-					{
-						OutputDebugStringA(utils::string::va("OFFSET: %X\n", offset));
-					}
+					auto handler = integrity_handlers.find(info->ContextRecord->Rip);
+					const auto contains = handler != integrity_handlers.end();
 
-					std::vector<uint32_t> discoveries{};
-
-					for (uint32_t stack = 0x30; stack < 0x80; stack += 8)
+					if (patchMode)
 					{
-						auto* value_ptr = *(uint32_t**)(info->ContextRecord->Rbp + stack);
-						auto* _addr = &value_ptr[offset];
-						if (IsBadReadPtr(_addr, 4) || *_addr != checksum)
+						unprotect_texts();
+
+						if (!contains)
 						{
-							continue;
+							OutputDebugStringA("Unknown handler executed :(");
+							return EXCEPTION_CONTINUE_EXECUTION;
 						}
 
-						discoveries.push_back(stack);
+						const auto old = info->ContextRecord->Rax;
+
+						auto h = (integrity_handler_context*)(info->ContextRecord->Rbp + handler->second.frame_offset);
+						*h->computed_checksum = *h->original_checksum;
+						info->ContextRecord->Rax = *h->original_checksum;
+
+						static bool once = false;
+						if (!once)
+						{
+							//once = true;
+							OutputDebugStringA(utils::string::va("Adjusted wrong checksum: %X -> %X (%X)", old, *h->original_checksum, handler->second.checksum));
+						}
+
+						return EXCEPTION_CONTINUE_EXECUTION;
 					}
 
-					if (discoveries.size() != 2)
+					if (!contains)
 					{
-						OutputDebugStringA(utils::string::va(
-							"!!! Unknown handler: %llX - Checksum: %X | rbp: %llX - offset: %X | discoveries: %zX",
-							info->ContextRecord->Rip,
-							checksum, info->ContextRecord->Rbp, offset, discoveries.size()));
+						auto checksum = static_cast<uint32_t>(info->ContextRecord->Rax);
+						auto offset = static_cast<int64_t>(info->ContextRecord->Rcx);
+						if (offset != 0)
+						{
+							OutputDebugStringA(utils::string::va("OFFSET: %X\n", offset));
+						}
 
-						for (auto discovery : discoveries)
+						std::vector<uint32_t> discoveries{};
+
+						for (uint32_t stack = 0x30; stack < 0x80; stack += 8)
+						{
+							auto* value_ptr = *(uint32_t**)(info->ContextRecord->Rbp + stack);
+							auto* _addr = &value_ptr[offset];
+							if (IsBadReadPtr(_addr, 4) || *_addr != checksum)
+							{
+								continue;
+							}
+
+							discoveries.push_back(stack);
+						}
+
+						if (discoveries.size() != 2)
 						{
 							OutputDebugStringA(utils::string::va(
-								"%X --> %llX",
-								discovery, *(uint32_t**)(info->ContextRecord->Rbp + discovery) + offset));
+								"!!! Unknown handler: %llX - Checksum: %X | rbp: %llX - offset: %X | discoveries: %zX",
+								info->ContextRecord->Rip,
+								checksum, info->ContextRecord->Rbp, offset, discoveries.size()));
+
+							for (auto discovery : discoveries)
+							{
+								OutputDebugStringA(utils::string::va(
+									"%X --> %llX",
+									discovery, *(uint32_t**)(info->ContextRecord->Rbp + discovery) + offset));
+							}
 						}
-					}
-					else
-					{
-						uint32_t* value_ptrs[] = {
-							*(uint32_t**)(info->ContextRecord->Rbp + discoveries[0]) + offset,
-							*(uint32_t**)(info->ContextRecord->Rbp + discoveries[1]) + offset
-						};
+						else
+						{
+							uint32_t* value_ptrs[] = {
+								*(uint32_t**)(info->ContextRecord->Rbp + discoveries[0]) + offset,
+								*(uint32_t**)(info->ContextRecord->Rbp + discoveries[1]) + offset
+							};
 
-						auto diff_0 = std::abs((int64_t)info->ContextRecord->Rbp - (int64_t)value_ptrs[0]);
-						auto diff_1 = std::abs((int64_t)info->ContextRecord->Rbp - (int64_t)value_ptrs[1]);
+							auto diff_0 = std::abs((int64_t)info->ContextRecord->Rbp - (int64_t)value_ptrs[0]);
+							auto diff_1 = std::abs((int64_t)info->ContextRecord->Rbp - (int64_t)value_ptrs[1]);
 
-						auto store_index = diff_0 < diff_1 ? 0 : 1;
-						auto other_index = 1 - store_index;
+							auto store_index = diff_0 < diff_1 ? 0 : 1;
+							auto other_index = 1 - store_index;
 
-						OutputDebugStringA(utils::string::va(
-							"Handler: %llX\t| Checksum: %X\t| Checksum in memory: %llX\t(%X)\t| Calculated checksum location: %llX\t(%X)",
-							info->ContextRecord->Rip,
-							checksum, value_ptrs[other_index], discoveries[other_index], value_ptrs[store_index],
-							discoveries[store_index]));
+							OutputDebugStringA(utils::string::va(
+								"Handler: %llX\t| Checksum: %X\t| Checksum in memory: %llX\t(%X)\t| Calculated checksum location: %llX\t(%X)",
+								info->ContextRecord->Rip,
+								checksum, value_ptrs[other_index], discoveries[other_index], value_ptrs[store_index],
+								discoveries[store_index]));
 
-						integrity_handler_data h{};
-						h.address = reverse_g(info->ContextRecord->Rip);
-						h.checksum = checksum;
-						h.checksum_address = reverse_g(value_ptrs[other_index]);
-						h.frame_offset = discoveries[store_index];
+							integrity_handler_data h{};
+							h.address = reverse_g(info->ContextRecord->Rip);
+							h.checksum = checksum;
+							h.checksum_address = reverse_g(value_ptrs[other_index]);
+							h.frame_offset = discoveries[store_index];
 
-						integrity_handlers[info->ContextRecord->Rip] = h;
-						write_handlers();
+							integrity_handlers[info->ContextRecord->Rip] = h;
+							write_handlers();
+						}
 					}
 				}
 				/*	OutputDebugStringA(utils::string::va("Switch at: %llX -> %llX (%llX -> %llX)", addr,
@@ -903,6 +936,8 @@ namespace arxan
 			{
 				MessageBoxA(0, 0, 0, 0);
 				protect_texts();
+				if (patchMode)
+					utils::hook::set<uint8_t>(0x1423339C0_g, 0xC3);
 			}).detach();
 
 
