@@ -5,10 +5,11 @@
 #include "steam/steam.hpp"
 #include <utils/hook.hpp>
 
+#include "utils/io.hpp"
 #include "utils/finally.hpp"
 #include "utils/string.hpp"
+#include "utils/thread.hpp"
 #include "utils/hardware_breakpoint.hpp"
-#include "utils/io.hpp"
 
 #define ProcessDebugPort 7
 #define ProcessDebugObjectHandle 30 // WinXP source says 31?
@@ -482,21 +483,25 @@ namespace arxan
 			}
 		};
 
-		bool patchMode = false;
 		std::unordered_map<uint64_t, integrity_handler_data> integrity_handlers;
 
 		void load_handlers()
 		{
-			std::string data{};
-			if (!utils::io::read_file("integrity.txt", &data)) return;
-
-			const auto lines = utils::string::split(data, '\n');
-			for (const auto& line : lines)
+			static auto x = []() -> int
 			{
-				if (line.empty())continue;
-				auto handler = integrity_handler_data::from_string(line);
-				integrity_handlers[operator"" _g(handler.address)] = handler;
-			}
+				std::string data{};
+				if (!utils::io::read_file("integrity.txt", &data)) return 0;
+
+				const auto lines = utils::string::split(data, '\n');
+				for (const auto& line : lines)
+				{
+					if (line.empty())continue;
+					auto handler = integrity_handler_data::from_string(line);
+					integrity_handlers[operator"" _g(handler.address)] = handler;
+				}
+				return 0;
+			}();
+			(void)x;
 		}
 
 		void write_handlers()
@@ -510,6 +515,136 @@ namespace arxan
 
 			utils::io::write_file("integrity.txt", txt);
 		}
+
+
+	uint32_t adjust_integrity_checksum(const uint64_t return_address, uint8_t* stack_frame, bool type)
+	{
+			if(type)
+			{
+		OutputDebugStringA("Type1");
+			}else
+			{
+						OutputDebugStringA("Type2");
+			}
+		//		MessageBoxA(0, "III", 0, 0);
+		const auto handler_address = return_address - 5;
+		const auto handler = integrity_handlers.at(handler_address);
+
+		const auto* context = reinterpret_cast<integrity_handler_context*>(stack_frame + handler.frame_offset);
+
+		if (*context->computed_checksum != *context->original_checksum)
+		{
+			OutputDebugStringA("Patching checksum :3");
+		}
+		else
+		{
+			OutputDebugStringA("Not patching");
+		}
+
+		*context->computed_checksum = *context->original_checksum;
+		return *context->original_checksum;
+	}
+
+	void patch_integrity_check(const integrity_handler_data& handler)
+	{
+
+		OutputDebugStringA(utils::string::va("Patching: %llX", handler.address));
+
+		const auto game_address = operator"" _g(handler.address);
+		constexpr auto inst_len = 3; // mov [rdx+rcx*4], eax		
+
+		const auto next_inst_addr = game_address + inst_len;
+		const auto next_inst = *reinterpret_cast<uint32_t*>(next_inst_addr);
+
+		// Basicblock is intact
+		if ((next_inst & 0xFF00FFFF) == 0xFF004583)
+		{
+			const uint8_t other_frame_offset = next_inst >> 16;
+			static const auto stub = utils::hook::assemble([](utils::hook::assembler& a)
+			{
+				a.mov(rax, qword_ptr(rsp));
+				a.sub(rax, 2); // Skip the push we inserted
+
+				a.push(rax);
+				a.pushad64();
+
+				a.mov(r8, 0);
+				a.mov(rcx, rax);
+				a.mov(rdx, rbp);
+				a.call_aligned(adjust_integrity_checksum);
+
+				a.mov(qword_ptr(rsp, 0x80), rax);
+
+				a.popad64();
+				a.pop(rax);
+
+				a.mov(dword_ptr(rdx, rcx, 4), eax);
+
+				a.pop(rax); // return addr
+				a.xchg(rax, qword_ptr(rsp)); // switch with push
+
+				a.add(dword_ptr(rbp, rax), 0xFFFFFFFF);
+
+				a.mov(rax, dword_ptr(rdx, rcx, 4)); // restore rax
+
+				a.ret();
+			});
+
+			utils::hook::set<uint16_t>(game_address, 0x6A | (other_frame_offset << 8)); // push other_frame_offset
+			utils::hook::call(game_address + 2, stub);
+		}
+		else if (*(uint8_t*)next_inst_addr == 0xE9)
+		{
+			const auto jump_target = utils::hook::extract<void*>(reinterpret_cast<void*>(next_inst_addr + 1));
+			const auto stub = utils::hook::assemble([jump_target](utils::hook::assembler& a)
+			{
+				a.mov(rax, qword_ptr(rsp));
+
+				a.push(rax);
+				a.pushad64();
+
+				a.mov(r8, 1);
+				a.mov(rcx, rax);
+				a.mov(rdx, rbp);
+				a.call_aligned(adjust_integrity_checksum);
+
+				a.mov(qword_ptr(rsp, 0x80), rax);
+
+				a.popad64();
+				a.pop(rax);
+
+				a.mov(dword_ptr(rdx, rcx, 4), eax);
+
+				a.add(rsp, 8);
+
+				a.jmp(jump_target);
+			});
+
+			utils::hook::call(game_address, stub);
+		}
+		else
+		{
+			OutputDebugStringA(utils::string::va("Unknown :( %llX", game_address));
+		}
+
+			OutputDebugStringA(utils::string::va("Patching done: %llX", handler.address));
+	}
+
+	void patch_integrity_checks()
+	{
+		load_handlers();
+
+		//utils::thread::suspend_other_threads();
+
+		for (const auto& handler : integrity_handlers)
+		{
+			patch_integrity_check(handler.second);
+		//	break;
+		}
+
+		OutputDebugStringA("Done patching");
+		//utils::thread::resume_other_threads();
+	}
 
 		LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS info)
 		{
@@ -687,39 +822,10 @@ namespace arxan
 				info->ContextRecord->EFlags |= 0x0100;
 
 				const auto data = *reinterpret_cast<uint32_t*>(info->ContextRecord->Rip);
-				if ((data & 0xFFFFFF) == 0x8A0489)
+				if (was_in_texts(info->ContextRecord->Rip) && (data & 0xFFFFFF) == 0x8A0489)
 				{
 					auto handler = integrity_handlers.find(info->ContextRecord->Rip);
 					const auto contains = handler != integrity_handlers.end();
-
-					if (patchMode)
-					{
-						unprotect_texts();
-
-						if (!contains)
-						{
-							OutputDebugStringA("Unknown handler executed :(");
-							return EXCEPTION_CONTINUE_EXECUTION;
-						}
-
-						const auto old = info->ContextRecord->Rax;
-
-						auto h = (integrity_handler_context*)(info->ContextRecord->Rbp + handler->second.frame_offset);
-						*h->computed_checksum = *h->original_checksum;
-						info->ContextRecord->Rax = *h->original_checksum;
-
-						if (old != *h->original_checksum)
-						{
-							//once = true;
-							OutputDebugStringA(utils::string::va("Adjusted wrong checksum: %X -> %X", old, handler->second.checksum));
-						}
-						else
-						{
-								OutputDebugStringA("Nothing to adjust");
-						}
-
-						return EXCEPTION_CONTINUE_EXECUTION;
-					}
 
 					if (!contains)
 					{
@@ -735,16 +841,19 @@ namespace arxan
 						for (uint32_t stack = 0x30; stack < 0x80; stack += 8)
 						{
 							auto* value_ptr = *(uint32_t**)(info->ContextRecord->Rbp + stack);
+							auto* value_ptr2 = *(uint32_t**)(info->ContextRecord->Rbp + stack + 8);
 							auto* _addr = &value_ptr[offset];
-							if (IsBadReadPtr(_addr, 4) || *_addr != checksum)
+							auto* _addr2 = &value_ptr2[offset];
+							if (IsBadReadPtr(_addr, 4) || *_addr != checksum || IsBadReadPtr(_addr2, 4))
 							{
 								continue;
 							}
 
 							discoveries.push_back(stack);
+							break;
 						}
 
-						if (discoveries.size() != 2)
+						if (discoveries.size() != 1)
 						{
 							OutputDebugStringA(utils::string::va(
 								"!!! Unknown handler: %llX - Checksum: %X | rbp: %llX - offset: %X | discoveries: %zX",
@@ -760,31 +869,59 @@ namespace arxan
 						}
 						else
 						{
-							uint32_t* value_ptrs[] = {
-								*(uint32_t**)(info->ContextRecord->Rbp + discoveries[0]) + offset,
-								*(uint32_t**)(info->ContextRecord->Rbp + discoveries[1]) + offset
-							};
+							auto h = (integrity_handler_context*)(info->ContextRecord->Rbp + discoveries[0]);
 
-							auto diff_0 = std::abs((int64_t)info->ContextRecord->Rbp - (int64_t)value_ptrs[0]);
-							auto diff_1 = std::abs((int64_t)info->ContextRecord->Rbp - (int64_t)value_ptrs[1]);
-
-							auto store_index = diff_0 < diff_1 ? 0 : 1;
-							auto other_index = 1 - store_index;
+							const auto correct_checksum = *h->original_checksum;
 
 							OutputDebugStringA(utils::string::va(
 								"Handler: %llX\t| Checksum: %X\t| Checksum in memory: %llX\t(%X)\t| Calculated checksum location: %llX\t(%X)",
 								info->ContextRecord->Rip,
-								checksum, value_ptrs[other_index], discoveries[other_index], value_ptrs[store_index],
-								discoveries[store_index]));
+								correct_checksum, h->original_checksum, discoveries[0] + 8, h->computed_checksum,
+								discoveries[0]));
+							if (correct_checksum != checksum)
+							{
+								info->ContextRecord->Rax = correct_checksum;
+								*h->computed_checksum = correct_checksum;
+								OutputDebugStringA("Corrected checksum of new handler");
+							}
 
-							integrity_handler_data h{};
-							h.address = reverse_g(info->ContextRecord->Rip);
-							h.checksum = checksum;
-							h.checksum_address = reverse_g(value_ptrs[other_index]);
-							h.frame_offset = discoveries[store_index];
+							integrity_handler_data hh{};
+							hh.address = reverse_g(info->ContextRecord->Rip);
+							hh.checksum = correct_checksum;
+							hh.checksum_address = reverse_g(h->original_checksum);
+							hh.frame_offset = discoveries[0];
 
-							integrity_handlers[info->ContextRecord->Rip] = h;
+							integrity_handlers[info->ContextRecord->Rip] = hh;
 							write_handlers();
+						}
+					}
+					else
+					{
+						/*OutputDebugStringA("Patching...");
+						info->ContextRecord->EFlags &= ~0x0100;
+						analysis_context.needs_protect_change = false;
+						patch_integrity_check(handler->second);*/
+
+						//utils::thread::suspend_other_threads();
+						//restore_debug_functions();
+						//MessageBoxA(0,0,0,0);
+
+						const auto old = info->ContextRecord->Rax;
+
+						auto h = (integrity_handler_context*)(info->ContextRecord->Rbp + handler->second.frame_offset);
+						
+						*h->computed_checksum = *h->original_checksum;
+						info->ContextRecord->Rax = *h->original_checksum;
+
+						if (old != *h->original_checksum)
+						{
+							//once = true;
+							OutputDebugStringA(utils::string::va("Adjusted wrong checksum: %X -> %X", old,
+							                                     handler->second.checksum));
+						}
+						else
+						{
+							OutputDebugStringA("Nothing to adjust");
 						}
 					}
 				}
@@ -865,6 +1002,19 @@ namespace arxan
 		return zw_terminate_process_hook.invoke<NTSTATUS>(process_handle, exit_status);
 	}
 
+	void verify_handlers()
+	{
+		for (auto& h : integrity_handlers)
+		{
+			if (h.second.checksum != *reinterpret_cast<uint32_t*>(operator"" _g(h.second.checksum_address)))
+			{
+				OutputDebugStringA(utils::string::va("Value does not match: %X -> %X | %llX", h.second.checksum,
+				                                     *reinterpret_cast<uint32_t*>(operator"" _g(
+					                                     h.second.checksum_address), h.second.address)));
+			}
+		}
+	}
+
 	class component final : public component_interface
 	{
 	public:
@@ -938,10 +1088,10 @@ namespace arxan
 			std::thread([]()
 			{
 				MessageBoxA(0, 0, 0, 0);
-				protect_texts();
-				MessageBoxA(0, "PATCH?", 0, 0);
-				patchMode = true;
-				utils::hook::set<uint8_t>(0x1423339C0_g, 0xC3);
+							protect_texts();
+				patch_integrity_checks();
+				//verify_handlers();
+				/*utils::hook::set<uint8_t>(0x1423339C0_g, 0xC3);
 
 				constexpr auto rdx_rbx = 0xda894890;
 			constexpr auto rcx_rdx = 0xd1894890;
@@ -961,7 +1111,7 @@ namespace arxan
 			utils::hook::set<uint32_t>(0x15D1177B8_g, rcx_rdx);
 			utils::hook::set<uint32_t>(0x15BFFF30D_g, rdx_rbx);
 			utils::hook::set<uint32_t>(0x15DE3AAE7_g, rax_rcx);
-			utils::hook::set<uint32_t>(0x15E48F80C_g, rbx_rax);
+			utils::hook::set<uint32_t>(0x15E48F80C_g, rbx_rax);*/
 			}).detach();
 
 
@@ -969,7 +1119,6 @@ namespace arxan
 			//activate(0x15D5F922A_g, 1, utils::hardware_breakpoint::execute, tid);
 			//activate(0x15BCA4A2A_g, 1, utils::hardware_breakpoint::execute, tid);
 			//activate(0x15C4BC192_g, 1, utils::hardware_breakpoint::execute, tid);
-			//activate(0x15DA1FBA1_g, 1, utils::hardware_breakpoint::execute, tid); // <--
 
 			//activate(0x15DB61C4A_g, 1, utils::hardware_breakpoint::execute, tid);
 			//activate(0x15BE5BC6D_g, 1, utils::hardware_breakpoint::execute, tid); // <--
