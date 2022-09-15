@@ -434,8 +434,12 @@ namespace arxan
 			return false;
 		}
 
+		bool ignore = false;
+
 		void protect_texts()
 		{
+			if(ignore) return;
+
 			const auto& texts = get_text_sections();
 			for (const auto& text : texts)
 			{
@@ -517,134 +521,134 @@ namespace arxan
 		}
 
 
-	uint32_t adjust_integrity_checksum(const uint64_t return_address, uint8_t* stack_frame, bool type)
-	{
-			if(type)
+		uint32_t adjust_integrity_checksum(const uint64_t return_address, uint8_t* stack_frame, bool type)
+		{
+			if (type)
 			{
-		OutputDebugStringA("Type1");
-			}else
-			{
-						OutputDebugStringA("Type2");
+				OutputDebugStringA("Type1");
 			}
-		//		MessageBoxA(0, "III", 0, 0);
-		const auto handler_address = return_address - 5;
-		const auto handler = integrity_handlers.at(handler_address);
-
-		const auto* context = reinterpret_cast<integrity_handler_context*>(stack_frame + handler.frame_offset);
-
-		if (*context->computed_checksum != *context->original_checksum)
-		{
-			OutputDebugStringA("Patching checksum :3");
-		}
-		else
-		{
-			OutputDebugStringA("Not patching");
-		}
-
-		*context->computed_checksum = *context->original_checksum;
-		return *context->original_checksum;
-	}
-
-	void patch_integrity_check(const integrity_handler_data& handler)
-	{
-
-		OutputDebugStringA(utils::string::va("Patching: %llX", handler.address));
-
-		const auto game_address = operator"" _g(handler.address);
-		constexpr auto inst_len = 3; // mov [rdx+rcx*4], eax		
-
-		const auto next_inst_addr = game_address + inst_len;
-		const auto next_inst = *reinterpret_cast<uint32_t*>(next_inst_addr);
-
-		// Basicblock is intact
-		if ((next_inst & 0xFF00FFFF) == 0xFF004583)
-		{
-			const uint8_t other_frame_offset = next_inst >> 16;
-			static const auto stub = utils::hook::assemble([](utils::hook::assembler& a)
+			else
 			{
-				a.mov(rax, qword_ptr(rsp));
-				a.sub(rax, 2); // Skip the push we inserted
+				OutputDebugStringA("Type2");
+			}
+			//		MessageBoxA(0, "III", 0, 0);
+			const auto handler_address = return_address - 5;
+			const auto handler = integrity_handlers.at(handler_address);
 
-				a.push(rax);
-				a.pushad64();
+			const auto* context = reinterpret_cast<integrity_handler_context*>(stack_frame + handler.frame_offset);
 
-				a.mov(r8, 0);
-				a.mov(rcx, rax);
-				a.mov(rdx, rbp);
-				a.call_aligned(adjust_integrity_checksum);
-
-				a.mov(qword_ptr(rsp, 0x80), rax);
-
-				a.popad64();
-				a.pop(rax);
-
-				a.mov(dword_ptr(rdx, rcx, 4), eax);
-
-				a.pop(rax); // return addr
-				a.xchg(rax, qword_ptr(rsp)); // switch with push
-
-				a.add(dword_ptr(rbp, rax), 0xFFFFFFFF);
-
-				a.mov(rax, dword_ptr(rdx, rcx, 4)); // restore rax
-
-				a.ret();
-			});
-
-			utils::hook::set<uint16_t>(game_address, 0x6A | (other_frame_offset << 8)); // push other_frame_offset
-			utils::hook::call(game_address + 2, stub);
-		}
-		else if (*(uint8_t*)next_inst_addr == 0xE9)
-		{
-			const auto jump_target = utils::hook::extract<void*>(reinterpret_cast<void*>(next_inst_addr + 1));
-			const auto stub = utils::hook::assemble([jump_target](utils::hook::assembler& a)
+			if (*context->computed_checksum != *context->original_checksum)
 			{
-				a.mov(rax, qword_ptr(rsp));
+				OutputDebugStringA("Patching checksum :3");
+			}
+			else
+			{
+				OutputDebugStringA("Not patching");
+			}
 
-				a.push(rax);
-				a.pushad64();
-
-				a.mov(r8, 1);
-				a.mov(rcx, rax);
-				a.mov(rdx, rbp);
-				a.call_aligned(adjust_integrity_checksum);
-
-				a.mov(qword_ptr(rsp, 0x80), rax);
-
-				a.popad64();
-				a.pop(rax);
-
-				a.mov(dword_ptr(rdx, rcx, 4), eax);
-
-				a.add(rsp, 8);
-
-				a.jmp(jump_target);
-			});
-
-			utils::hook::call(game_address, stub);
+			*context->computed_checksum = *context->original_checksum;
+			return *context->original_checksum;
 		}
-		else
+
+		void patch_integrity_check(const integrity_handler_data& handler)
 		{
-			OutputDebugStringA(utils::string::va("Unknown :( %llX", game_address));
-		}
+			OutputDebugStringA(utils::string::va("Patching: %llX", handler.address));
+
+			const auto game_address = operator"" _g(handler.address);
+			constexpr auto inst_len = 3; // mov [rdx+rcx*4], eax		
+
+			const auto next_inst_addr = game_address + inst_len;
+			const auto next_inst = *reinterpret_cast<uint32_t*>(next_inst_addr);
+
+			// Basicblock is intact
+			if ((next_inst & 0xFF00FFFF) == 0xFF004583)
+			{
+				const uint8_t other_frame_offset = next_inst >> 16;
+				static const auto stub = utils::hook::assemble([](utils::hook::assembler& a)
+				{
+					a.mov(rax, qword_ptr(rsp));
+					a.sub(rax, 2); // Skip the push we inserted
+
+					a.push(rax);
+					a.pushad64();
+
+					a.mov(r8, 0);
+					a.mov(rcx, rax);
+					a.mov(rdx, rbp);
+					a.call_aligned(adjust_integrity_checksum);
+
+					a.mov(qword_ptr(rsp, 0x80), rax);
+
+					a.popad64();
+					a.pop(rax);
+
+					a.mov(dword_ptr(rdx, rcx, 4), eax);
+
+					a.pop(rax); // return addr
+					a.xchg(rax, qword_ptr(rsp)); // switch with push
+
+					a.add(dword_ptr(rbp, rax), 0xFFFFFFFF);
+
+					a.mov(rax, dword_ptr(rdx, rcx, 4)); // restore rax
+
+					a.ret();
+				});
+
+				utils::hook::set<uint16_t>(game_address, 0x6A | (other_frame_offset << 8)); // push other_frame_offset
+				utils::hook::call(game_address + 2, stub);
+			}
+			else if (*(uint8_t*)next_inst_addr == 0xE9)
+			{
+				const auto jump_target = utils::hook::extract<void*>(reinterpret_cast<void*>(next_inst_addr + 1));
+				const auto stub = utils::hook::assemble([jump_target](utils::hook::assembler& a)
+				{
+					a.mov(rax, qword_ptr(rsp));
+
+					a.push(rax);
+					a.pushad64();
+
+					a.mov(r8, 1);
+					a.mov(rcx, rax);
+					a.mov(rdx, rbp);
+					a.call_aligned(adjust_integrity_checksum);
+
+					a.mov(qword_ptr(rsp, 0x80), rax);
+
+					a.popad64();
+					a.pop(rax);
+
+					a.mov(dword_ptr(rdx, rcx, 4), eax);
+
+					a.add(rsp, 8);
+
+					a.jmp(jump_target);
+				});
+
+				utils::hook::call(game_address, stub);
+			}
+			else
+			{
+				OutputDebugStringA(utils::string::va("Unknown :( %llX", game_address));
+			}
 
 			OutputDebugStringA(utils::string::va("Patching done: %llX", handler.address));
-	}
-
-	void patch_integrity_checks()
-	{
-		load_handlers();
-
-		//utils::thread::suspend_other_threads();
-
-		for (const auto& handler : integrity_handlers)
-		{
-			patch_integrity_check(handler.second);
-		//	break;
 		}
 
-		OutputDebugStringA("Done patching");
-		//utils::thread::resume_other_threads();
-	}
+		void patch_integrity_checks()
+		{
+			load_handlers();
+
+			//utils::thread::suspend_other_threads();
+
+			for (const auto& handler : integrity_handlers)
+			{
+				patch_integrity_check(handler.second);
+				//	break;
+			}
+
+			OutputDebugStringA("Done patching");
+			//utils::thread::resume_other_threads();
+		}
 
 		LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS info)
 		{
@@ -909,7 +913,7 @@ namespace arxan
 						const auto old = info->ContextRecord->Rax;
 
 						auto h = (integrity_handler_context*)(info->ContextRecord->Rbp + handler->second.frame_offset);
-						
+
 						*h->computed_checksum = *h->original_checksum;
 						info->ContextRecord->Rax = *h->original_checksum;
 
@@ -1085,11 +1089,22 @@ namespace arxan
 			MessageBoxA(0, "done", 0, 0);
 			*/
 
+
 			std::thread([]()
 			{
 				MessageBoxA(0, 0, 0, 0);
-							protect_texts();
+				protect_texts();
 				patch_integrity_checks();
+
+				while (true)
+				{
+					MessageBoxA(0, "Remove guard", 0, 0);
+					ignore = true;
+					unprotect_texts();
+					MessageBoxA(0, "Apply guard", 0, 0);
+					ignore = false;
+					protect_texts();
+				}
 				//verify_handlers();
 				/*utils::hook::set<uint8_t>(0x1423339C0_g, 0xC3);
 
