@@ -164,7 +164,7 @@ namespace console
 			this->console_runner_ = utils::thread::create_named_thread("Console IO", [this]
 			{
 				{
-					utils::hook::detour sys_create_console_hook;
+					static utils::hook::detour sys_create_console_hook;
 					sys_create_console_hook.create(0x1423339C0_g, sys_create_console_stub);
 
 					game::Sys_ShowConsole();
