@@ -438,7 +438,7 @@ namespace arxan
 
 		void protect_texts()
 		{
-			if(ignore) return;
+			if (ignore) return;
 
 			const auto& texts = get_text_sections();
 			for (const auto& text : texts)
@@ -521,58 +521,81 @@ namespace arxan
 		}
 
 
-		uint32_t adjust_integrity_checksum(const uint64_t return_address, uint8_t* stack_frame, bool type)
+		uint32_t adjust_integrity_checksum(const uint64_t return_address, uint8_t* stack_frame, const uint32_t current_checksum)
 		{
-			if (type)
+			uint32_t frame_offset = 0;
+			const auto handler_address = return_address - 5;
+			const auto handler = integrity_handlers.find(handler_address);
+			if(handler != integrity_handlers.end())
 			{
-				OutputDebugStringA("Type1");
+				frame_offset = handler->second.frame_offset;
 			}
 			else
 			{
-				OutputDebugStringA("Type2");
-			}
-			//		MessageBoxA(0, "III", 0, 0);
-			const auto handler_address = return_address - 5;
-			const auto handler = integrity_handlers.at(handler_address);
+				for(frame_offset = 0x38; frame_offset < 0x90; frame_offset += 8)
+				{
+					auto* potential_address = *reinterpret_cast<uint32_t**>(stack_frame + frame_offset);
 
-			const auto* context = reinterpret_cast<integrity_handler_context*>(stack_frame + handler.frame_offset);
+					int64_t diff = (uint64_t)stack_frame - (uint64_t)potential_address;
+					diff = std::abs(diff);
+
+					if(diff < 0x1000 && *potential_address == current_checksum)
+					{
+						break;
+					}
+				}
+
+				if(frame_offset >= 0x90)
+				{
+					OutputDebugStringA(utils::string::va("Unable to find frame offset for: %llX", return_address));
+					return current_checksum;
+				}
+				else
+				{
+					//OutputDebugStringA("Found frame for unknown handler");
+				}
+			}
+
+			const auto* context = reinterpret_cast<integrity_handler_context*>(stack_frame + frame_offset);
 
 			if (*context->computed_checksum != *context->original_checksum)
 			{
-				OutputDebugStringA("Patching checksum :3");
+				OutputDebugStringA(utils::string::va("Adjusting checksum (%llX): %X -> %X", handler_address, *context->computed_checksum, *context->original_checksum));
 			}
 			else
 			{
-				OutputDebugStringA("Not patching");
+				//OutputDebugStringA("Not patching");
 			}
 
 			*context->computed_checksum = *context->original_checksum;
 			return *context->original_checksum;
 		}
 
-		void patch_integrity_check(const integrity_handler_data& handler)
+		void patch_integrity_check(void* address)
 		{
-			OutputDebugStringA(utils::string::va("Patching: %llX", handler.address));
+			//OutputDebugStringA(utils::string::va("Patching: %llX", address));
 
-			const auto game_address = operator"" _g(handler.address);
+			const auto game_address = (uint64_t)address;
 			constexpr auto inst_len = 3; // mov [rdx+rcx*4], eax		
 
 			const auto next_inst_addr = game_address + inst_len;
 			const auto next_inst = *reinterpret_cast<uint32_t*>(next_inst_addr);
 
-			// Basicblock is intact
+			// Basic block is intact
 			if ((next_inst & 0xFF00FFFF) == 0xFF004583)
 			{
 				const uint8_t other_frame_offset = next_inst >> 16;
 				static const auto stub = utils::hook::assemble([](utils::hook::assembler& a)
 				{
-					a.mov(rax, qword_ptr(rsp));
+					a.push(rax);
+
+					a.mov(rax, qword_ptr(rsp, 8));
 					a.sub(rax, 2); // Skip the push we inserted
 
 					a.push(rax);
 					a.pushad64();
 
-					a.mov(r8, 0);
+					a.mov(r8, qword_ptr(rsp, 0x88));
 					a.mov(rcx, rax);
 					a.mov(rdx, rbp);
 					a.call_aligned(adjust_integrity_checksum);
@@ -581,6 +604,8 @@ namespace arxan
 
 					a.popad64();
 					a.pop(rax);
+
+					a.add(rsp, 8);
 
 					a.mov(dword_ptr(rdx, rcx, 4), eax);
 
@@ -597,17 +622,20 @@ namespace arxan
 				utils::hook::set<uint16_t>(game_address, 0x6A | (other_frame_offset << 8)); // push other_frame_offset
 				utils::hook::call(game_address + 2, stub);
 			}
+			// Split basic blocks
 			else if (*(uint8_t*)next_inst_addr == 0xE9)
 			{
 				const auto jump_target = utils::hook::extract<void*>(reinterpret_cast<void*>(next_inst_addr + 1));
 				const auto stub = utils::hook::assemble([jump_target](utils::hook::assembler& a)
 				{
-					a.mov(rax, qword_ptr(rsp));
-
 					a.push(rax);
+
+					a.mov(rax, qword_ptr(rsp, 8));
+					a.push(rax);
+
 					a.pushad64();
 
-					a.mov(r8, 1);
+					a.mov(r8, qword_ptr(rsp, 0x88));
 					a.mov(rcx, rax);
 					a.mov(rdx, rbp);
 					a.call_aligned(adjust_integrity_checksum);
@@ -616,6 +644,8 @@ namespace arxan
 
 					a.popad64();
 					a.pop(rax);
+
+					a.add(rsp, 8);
 
 					a.mov(dword_ptr(rdx, rcx, 4), eax);
 
@@ -630,8 +660,6 @@ namespace arxan
 			{
 				OutputDebugStringA(utils::string::va("Unknown :( %llX", game_address));
 			}
-
-			OutputDebugStringA(utils::string::va("Patching done: %llX", handler.address));
 		}
 
 		void patch_integrity_checks()
@@ -642,12 +670,35 @@ namespace arxan
 
 			for (const auto& handler : integrity_handlers)
 			{
-				patch_integrity_check(handler.second);
+				patch_integrity_check((void*)handler.first);
 				//	break;
 			}
 
 			OutputDebugStringA("Done patching");
 			//utils::thread::resume_other_threads();
+		}
+
+		void search_and_patch_integrity_checks()
+		{
+			OutputDebugStringA("Searching integrity handlers...");
+
+			auto intact_results = "89 04 8A 83 45 ? FF"_sig;
+			auto split_results = "89 04 8A E9"_sig;
+
+			int count = 0;
+			for(auto i : intact_results)
+			{
+				patch_integrity_check(i);
+				++count;
+			}
+
+			for(auto i : split_results)
+			{
+				patch_integrity_check(i);
+				++count;
+			}
+
+			OutputDebugStringA(utils::string::va("Patched %i integrity handlers!", count));
 		}
 
 		LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS info)
@@ -1089,12 +1140,13 @@ namespace arxan
 			MessageBoxA(0, "done", 0, 0);
 			*/
 
+			search_and_patch_integrity_checks();
 
-			std::thread([]()
+			/*std::thread([]()
 			{
 				MessageBoxA(0, 0, 0, 0);
 				protect_texts();
-				patch_integrity_checks();
+				search_and_patch_integrity_checks();
 
 				while (true)
 				{
@@ -1106,7 +1158,7 @@ namespace arxan
 					protect_texts();
 				}
 				//verify_handlers();
-				/*utils::hook::set<uint8_t>(0x1423339C0_g, 0xC3);
+				/utils::hook::set<uint8_t>(0x1423339C0_g, 0xC3);
 
 				constexpr auto rdx_rbx = 0xda894890;
 			constexpr auto rcx_rdx = 0xd1894890;
@@ -1127,7 +1179,7 @@ namespace arxan
 			utils::hook::set<uint32_t>(0x15BFFF30D_g, rdx_rbx);
 			utils::hook::set<uint32_t>(0x15DE3AAE7_g, rax_rcx);
 			utils::hook::set<uint32_t>(0x15E48F80C_g, rbx_rax);*/
-			}).detach();
+			//}).detach();
 
 
 			auto tid = GetCurrentThreadId();
