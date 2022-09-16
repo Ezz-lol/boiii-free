@@ -9,7 +9,9 @@ namespace game
 	WEAK symbol<void(const char* file, int line, int code, const char* fmt, ...)> Com_Error_{0x1420F8BD0_g};
 
 	WEAK symbol<void(int localClientNum, const char* text)> Cbuf_AddText{0x1420EC8B0_g};
-	WEAK symbol<void(const char* cmdName, xcommand_t function, cmd_function_s* allocedCmd)> Cmd_AddCommandInternal{0x1420ED530_g};
+	WEAK symbol<void(const char* cmdName, xcommand_t function, cmd_function_s* allocedCmd)> Cmd_AddCommandInternal{
+		0x1420ED530_g
+	};
 	WEAK symbol<void(char* text, int maxSize)> Con_GetTextCopy{0x14133A7D0_g};
 
 	// Sys
@@ -26,6 +28,11 @@ namespace game
 	// Variables
 	WEAK symbol<cmd_function_s> cmd_functions{0x15689FF58_g};
 	WEAK symbol<CmdArgs> sv_cmd_args{0x15689CE30_g};
+
+	// Rendering
+	WEAK symbol<void(const char*, int, void*, float, float, float, float, float, float*, int)> R_AddCmdDrawText{
+		0x141CD98D0_g
+	};
 
 	namespace s_wcd
 	{
