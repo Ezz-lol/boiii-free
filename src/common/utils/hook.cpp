@@ -43,7 +43,7 @@ namespace utils::hook
 				}
 
 				const auto res = VirtualAlloc(const_cast<uint8_t*>(target_address), size, MEM_RESERVE | MEM_COMMIT,
-				                              PAGE_READWRITE);
+				                              PAGE_EXECUTE_READWRITE);
 				if (res)
 				{
 					if (is_relatively_far(base_address, target_address))

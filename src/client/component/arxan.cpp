@@ -5,7 +5,10 @@
 #include "steam/steam.hpp"
 #include <utils/hook.hpp>
 
+#include "utils/io.hpp"
+#include "utils/finally.hpp"
 #include "utils/string.hpp"
+#include "utils/thread.hpp"
 #include "utils/hardware_breakpoint.hpp"
 
 #define ProcessDebugPort 7
@@ -390,123 +393,182 @@ namespace arxan
 			loaded = true;
 		}
 
-		const std::pair<uint8_t*, size_t>& get_text_section()
+		struct integrity_handler_context
 		{
-			static const std::pair<uint8_t*, size_t> text = []() -> std::pair<uint8_t*, size_t>
+			uint32_t* computed_checksum;
+			uint32_t* original_checksum;
+		};
+
+		// Pretty trashy, but working, heuristic to search integrity the handler context
+		bool is_handler_context(uint8_t* stack_frame, const uint32_t computed_checksum, const uint32_t frame_offset)
+		{
+			auto* potential_address = *reinterpret_cast<uint32_t**>(stack_frame + frame_offset);
+
+			int64_t diff = reinterpret_cast<uint64_t>(stack_frame) - reinterpret_cast<uint64_t>(potential_address);
+			diff = std::abs(diff);
+
+			return diff < 0x1000 && *potential_address == computed_checksum;
+		}
+
+		integrity_handler_context* search_handler_context(uint8_t* stack_frame, const uint32_t computed_checksum)
+		{
+			for (uint32_t frame_offset = 0x38; frame_offset < 0x90; frame_offset += 8)
+			{
+				if (is_handler_context(stack_frame, computed_checksum, frame_offset))
 				{
-					const utils::nt::library game{};
-					for (const auto& section : game.get_section_headers())
-					{
-						std::string name(reinterpret_cast<char*>(section->Name), sizeof(section->Name));
-						while (!name.empty() && !name.back()) name.pop_back();
-
-						if (name == ".text"s)
-						{
-							return {game.get_ptr() + section->VirtualAddress, section->Misc.VirtualSize};
-						}
-					}
-
-					return {nullptr, 0};
+					return reinterpret_cast<integrity_handler_context*>(stack_frame + frame_offset);
 				}
-				();
+			}
 
-			return text;
+			return nullptr;
 		}
 
-		bool was_in_text(const ULONG_PTR addr)
+		uint32_t adjust_integrity_checksum(const uint64_t return_address, uint8_t* stack_frame,
+		                                   const uint32_t current_checksum)
 		{
-			return addr >= reinterpret_cast<ULONG_PTR>(get_text_section().first) && addr <= reinterpret_cast<ULONG_PTR>(
-				get_text_section().first +
-				get_text_section().second);
+			//const auto handler_address = return_address - 5;
+			const auto* context = search_handler_context(stack_frame, current_checksum);
+
+			if (!context)
+			{
+				OutputDebugStringA(utils::string::va("Unable to find frame offset for: %llX", return_address));
+				return current_checksum;
+			}
+
+			const auto correct_checksum = *context->original_checksum;
+			*context->computed_checksum = correct_checksum;
+
+			/*if (current_checksum != correct_checksum)
+			{
+				OutputDebugStringA(utils::string::va("Adjusting checksum (%llX): %X -> %X", handler_address,
+				                                     current_checksum, correct_checksum));
+			}*/
+
+			return correct_checksum;
 		}
 
-		void protect_text()
+		void patch_intact_basic_block_integrity_check(void* address)
 		{
-			DWORD old_protect{};
-			VirtualProtect(get_text_section().first, get_text_section().second, PAGE_EXECUTE_READ, &old_protect);
+			const auto game_address = reinterpret_cast<uint64_t>(address);
+			constexpr auto inst_len = 3;
+
+			const auto next_inst_addr = game_address + inst_len;
+			const auto next_inst = *reinterpret_cast<uint32_t*>(next_inst_addr);
+
+			if ((next_inst & 0xFF00FFFF) != 0xFF004583)
+			{
+				throw std::runtime_error(utils::string::va("Unable to patch intact basic block: %llX", game_address));
+			}
+
+			const auto other_frame_offset = static_cast<uint8_t>(next_inst >> 16);
+			static const auto stub = utils::hook::assemble([](utils::hook::assembler& a)
+			{
+				a.push(rax);
+
+				a.mov(rax, qword_ptr(rsp, 8));
+				a.sub(rax, 2); // Skip the push we inserted
+
+				a.push(rax);
+				a.pushad64();
+
+				a.mov(r8, qword_ptr(rsp, 0x88));
+				a.mov(rcx, rax);
+				a.mov(rdx, rbp);
+				a.call_aligned(adjust_integrity_checksum);
+
+				a.mov(qword_ptr(rsp, 0x80), rax);
+
+				a.popad64();
+				a.pop(rax);
+
+				a.add(rsp, 8);
+
+				a.mov(dword_ptr(rdx, rcx, 4), eax);
+
+				a.pop(rax); // return addr
+				a.xchg(rax, qword_ptr(rsp)); // switch with push
+
+				a.add(dword_ptr(rbp, rax), 0xFFFFFFFF);
+
+				a.mov(rax, dword_ptr(rdx, rcx, 4)); // restore rax
+
+				a.ret();
+			});
+
+			// push other_frame_offset
+			utils::hook::set<uint16_t>(game_address, static_cast<uint16_t>(0x6A | (other_frame_offset << 8)));
+			utils::hook::call(game_address + 2, stub);
 		}
 
-		void unprotect_text()
+		void patch_split_basic_block_integrity_check(void* address)
 		{
-			DWORD old_protect{};
-			VirtualProtect(get_text_section().first, get_text_section().second, PAGE_EXECUTE_READWRITE, &old_protect);
+			const auto game_address = reinterpret_cast<uint64_t>(address);
+			constexpr auto inst_len = 3;
+
+			const auto next_inst_addr = game_address + inst_len;
+
+			if (*reinterpret_cast<uint8_t*>(next_inst_addr) != 0xE9)
+			{
+				throw std::runtime_error(utils::string::va("Unable to patch split basic block: %llX", game_address));
+			}
+
+			const auto jump_target = utils::hook::extract<void*>(reinterpret_cast<void*>(next_inst_addr + 1));
+			const auto stub = utils::hook::assemble([jump_target](utils::hook::assembler& a)
+			{
+				a.push(rax);
+
+				a.mov(rax, qword_ptr(rsp, 8));
+				a.push(rax);
+
+				a.pushad64();
+
+				a.mov(r8, qword_ptr(rsp, 0x88));
+				a.mov(rcx, rax);
+				a.mov(rdx, rbp);
+				a.call_aligned(adjust_integrity_checksum);
+
+				a.mov(qword_ptr(rsp, 0x80), rax);
+
+				a.popad64();
+				a.pop(rax);
+
+				a.add(rsp, 8);
+
+				a.mov(dword_ptr(rdx, rcx, 4), eax);
+
+				a.add(rsp, 8);
+
+				a.jmp(jump_target);
+			});
+
+			utils::hook::call(game_address, stub);
+		}
+
+		void search_and_patch_integrity_checks()
+		{
+			// There seem to be 1219 results.
+			// Searching them is quite slow.
+			// Maybe precomputing that might be better?
+			const auto intact_results = "89 04 8A 83 45 ? FF"_sig;
+			const auto split_results = "89 04 8A E9"_sig;
+
+			for (auto* i : intact_results)
+			{
+				patch_intact_basic_block_integrity_check(i);
+			}
+
+			for (auto* i : split_results)
+			{
+				patch_split_basic_block_integrity_check(i);
+			}
 		}
 
 		LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS info)
 		{
-			/*static thread_local struct
-			{
-				bool needs_protect_change = false;
-				bool had_single_step = false;
- 			} analysis_context;*/
-
 			if (info->ExceptionRecord->ExceptionCode == STATUS_INVALID_HANDLE)
 			{
 				return EXCEPTION_CONTINUE_EXECUTION;
 			}
-
-			/*if (info->ExceptionRecord->ExceptionCode == EXCEPTION_SINGLE_STEP)
-			{
-				//utils::thread::suspend_other_threads();
-				//restore_debug_functions();
-				//MessageBoxA(0, "SS", 0, 0);
-				OutputDebugStringA("SINGLESTEP!\n");
-				return EXCEPTION_CONTINUE_EXECUTION;
-			}*/
-
-			/*if (info->ExceptionRecord->ExceptionCode == STATUS_ACCESS_VIOLATION)
-			{
-				utils::thread::suspend_other_threads();
-				restore_debug_functions();
-				MessageBoxA(nullptr, utils::string::va("AV at: %llX %llX",
-				                                       info->ContextRecord->Rip, reverse_g(info->ContextRecord->Rip)),
-				            nullptr, 0);
-				return EXCEPTION_CONTINUE_EXECUTION;
-			}*/
-
-			/*if (info->ExceptionRecord->ExceptionCode == EXCEPTION_SINGLE_STEP)
-			{
-				if (!analysis_context.needs_protect_change)
-				{
-					return EXCEPTION_CONTINUE_SEARCH;
-				}
-
-				analysis_context.needs_protect_change = false;
-
-				if (!analysis_context.had_single_step)
-				{
-					info->ContextRecord->EFlags &= 0x0100;
-				}
-
-				protect_text();
-				return EXCEPTION_CONTINUE_EXECUTION;
-			}
-
-			if (info->ExceptionRecord->ExceptionCode == STATUS_ACCESS_VIOLATION)
-			{
-				// Was write?
-				if (info->ExceptionRecord->ExceptionInformation[0] != 1)
-				{
-					return EXCEPTION_CONTINUE_SEARCH;
-				}
-
-				const auto addr = info->ExceptionRecord->ExceptionInformation[1];
-				if (!was_in_text(addr))
-				{
-					return EXCEPTION_CONTINUE_SEARCH;
-				}
-
-				analysis_context.needs_protect_change = true;
-				analysis_context.had_single_step = info->ContextRecord->EFlags & 0x0100;
-				info->ContextRecord->EFlags |= 0x0100;
-
-				OutputDebugStringA(utils::string::va("Switch at: %llX -> %llX (%llX -> %llX)", addr, reverse_g(addr),
-				                                     info->ContextRecord->Rip, reverse_g(info->ContextRecord->Rip)));
-
-				unprotect_text();
-				return EXCEPTION_CONTINUE_EXECUTION;
-				//restore_debug_functions();
-			}*/
 
 			return EXCEPTION_CONTINUE_SEARCH;
 		}
@@ -554,295 +616,6 @@ namespace arxan
 		}
 
 		return get_thread_context_hook.invoke<BOOL>(thread_handle, context);
-	}
-
-	uint64_t get_integrity_data_qword(const uint8_t* address)
-	{
-		OutputDebugStringA(utils::string::va("8 bytes -> %p", address));
-		const auto og_data = utils::hook::query_original_data(address, 8);
-		return *reinterpret_cast<const uint64_t*>(og_data.data());
-	}
-
-	uint32_t get_integrity_data_dword(const uint8_t* address)
-	{
-		OutputDebugStringA(utils::string::va("4 bytes -> %p", address));
-		const auto og_data = utils::hook::query_original_data(address, 4);
-		return *reinterpret_cast<const uint32_t*>(og_data.data());
-	}
-
-	uint8_t get_integrity_data_byte(const uint8_t* address)
-	{
-		OutputDebugStringA(utils::string::va("1 bytes -> %p", address));
-		const auto og_data = utils::hook::query_original_data(address, 1);
-		return og_data[0];
-	}
-
-	void patch_check_type_1_direct()
-	{
-		auto patch_addr = [](uint8_t* addr)
-		{
-			// Skip false positives
-			// Prefixed 0x41 encodes a different instruction
-			if (addr[-1] == 0x41)
-			{
-				return;
-			}
-
-			utils::hook::jump(addr, utils::hook::assemble([addr](utils::hook::assembler& a)
-			{
-				a.push(rax);
-				a.pushad64();
-
-				a.mov(rcx, rax);
-				a.call_aligned(get_integrity_data_dword);
-
-				a.mov(rcx, qword_ptr(rsp, 128));
-				a.mov(ecx, eax);
-				a.mov(qword_ptr(rsp, 128), rcx);
-
-				a.popad64();
-				a.pop(rax);
-
-				a.embedUInt8(addr[3]);
-				a.embedUInt8(addr[4]);
-				a.embedUInt8(addr[5]);
-
-				a.jmp(addr + 5);
-			}));
-		};
-
-		// mov [rbp+??h], eax
-		auto checks = "8B 00 89 45 ??"_sig;
-		for (auto* addr : checks)
-		{
-			patch_addr(addr);
-		}
-
-		// xor eax, [rbp+??h]
-		checks = "8B 00 33 45 ??"_sig;
-		for (auto* addr : checks)
-		{
-			patch_addr(addr);
-		}
-	}
-
-	void patch_check_type_1_indirect()
-	{
-		auto patch_addr = [](uint8_t* addr)
-		{
-			const auto rex_prefixed = *addr == 0x48;
-			const auto jump_target = utils::hook::follow_branch(addr + (rex_prefixed ? 3 : 2));
-
-			utils::hook::jump(addr, utils::hook::assemble([addr, jump_target, rex_prefixed](utils::hook::assembler& a)
-			{
-				a.push(rax);
-				a.pushad64();
-
-				a.mov(rcx, rax);
-
-				if (rex_prefixed)
-				{
-					a.call_aligned(get_integrity_data_dword);
-
-					a.mov(rcx, qword_ptr(rsp, 128));
-					a.mov(ecx, eax);
-					a.mov(qword_ptr(rsp, 128), rcx);
-				}
-				else
-				{
-					a.mov(qword_ptr(rsp, 128), rax);
-				}
-
-				a.popad64();
-				a.pop(rax);
-
-				a.jmp(jump_target);
-			}));
-		};
-
-		// mov rax, [rax]; jmp ...
-		auto checks = "48 8B 00 E9"_sig;
-		for (auto* addr : checks)
-		{
-			patch_addr(addr);
-		}
-
-		// mov eax, [rax]; jmp ...
-		checks = "8B 00 E9"_sig;
-		for (auto* addr : checks)
-		{
-			patch_addr(addr);
-		}
-	}
-
-	void patch_check_type_2_direct()
-	{
-		const auto checks = "0F B6 00 0F B6 C0"_sig;
-		for (auto* addr : checks)
-		{
-			utils::hook::jump(addr, utils::hook::assemble([addr](utils::hook::assembler& a)
-			{
-				a.push(rax);
-				a.pushad64();
-
-				a.mov(rcx, rax);
-				a.call_aligned(get_integrity_data_byte);
-
-				a.mov(rcx, qword_ptr(rsp, 128));
-				a.movzx(ecx, al);
-				a.mov(qword_ptr(rsp, 128), rcx);
-
-				a.popad64();
-				a.pop(rax);
-
-				a.movzx(eax, al);
-				a.jmp(addr + 6);
-			}));
-		}
-	}
-
-	void patch_check_type_2_indirect()
-	{
-		const auto checks = "0F B6 00 E9"_sig;
-		for (auto* addr : checks)
-		{
-			const auto jump_target = utils::hook::follow_branch(addr + 3);
-
-			utils::hook::jump(addr, utils::hook::assemble([jump_target](utils::hook::assembler& a)
-			{
-				a.push(rax);
-				a.pushad64();
-
-				a.mov(rcx, rax);
-				a.call_aligned(get_integrity_data_byte);
-
-				a.mov(rcx, qword_ptr(rsp, 128));
-				a.movzx(ecx, al);
-				a.mov(qword_ptr(rsp, 128), rcx);
-
-				a.popad64();
-				a.pop(rax);
-
-				a.jmp(jump_target);
-			}));
-		}
-	}
-
-	void patch_check_type_4_direct()
-	{
-		const auto checks = "48 8B 04 10 48 89 45 20"_sig;
-		for (auto* addr : checks)
-		{
-			utils::hook::jump(addr, utils::hook::assemble([addr](utils::hook::assembler& a)
-			{
-				a.mov(rax, qword_ptr(rax, rdx));
-				a.push(rax);
-				a.pushad64();
-
-				a.mov(rcx, rax);
-				a.call_aligned(get_integrity_data_qword);
-				a.mov(qword_ptr(rsp, 128), rax);
-
-				a.popad64();
-				a.pop(rax);
-
-				a.mov(qword_ptr(rbp, 0x20), rax);
-				a.jmp(addr + 8);
-			}));
-		}
-	}
-
-	void patch_check_type_4_indirect()
-	{
-		const auto checks = "48 8B 04 10 E9"_sig;
-		for (auto* addr : checks)
-		{
-			const auto jump_target = utils::hook::follow_branch(addr + 4);
-
-			utils::hook::jump(addr, utils::hook::assemble([jump_target](utils::hook::assembler& a)
-			{
-				a.mov(rax, qword_ptr(rax, rdx));
-				a.push(rax);
-				a.pushad64();
-
-				a.mov(rcx, rax);
-				a.call_aligned(get_integrity_data_qword);
-				a.mov(qword_ptr(rsp, 128), rax);
-
-				a.popad64();
-				a.pop(rax);
-
-				a.jmp(jump_target);
-			}));
-		}
-	}
-
-	void patch_check_type_5_direct()
-	{
-		const auto checks = "0F B6 00 88 02"_sig;
-		for (auto* addr : checks)
-		{
-			// Skip false positives
-			// Prefixed 0x41 encodes a different instruction
-			if (addr[-1] == 0x41)
-			{
-				continue;
-			}
-
-			utils::hook::jump(addr, utils::hook::assemble([addr](utils::hook::assembler& a)
-			{
-				a.push(rax);
-				a.pushad64();
-
-				a.mov(rcx, rax);
-				a.call_aligned(get_integrity_data_byte);
-
-				a.mov(rcx, qword_ptr(rsp, 128));
-				a.movzx(ecx, al);
-				a.mov(qword_ptr(rsp, 128), rcx);
-
-				a.popad64();
-				a.pop(rax);
-
-				a.mov(byte_ptr(rdx), al);
-				a.jmp(addr + 5);
-			}));
-		}
-	}
-
-
-	void patch_check_type_5_indirect()
-	{
-		const auto checks = "0F B6 00 E9"_sig;
-		for (auto* addr : checks)
-		{
-			// Skip false positives
-			// Prefixed 0x41 encodes a different instruction
-			if (addr[-1] == 0x41)
-			{
-				continue;
-			}
-
-			const auto jump_target = utils::hook::follow_branch(addr + 4);
-
-			utils::hook::jump(addr, utils::hook::assemble([jump_target](utils::hook::assembler& a)
-			{
-				a.push(rax);
-				a.pushad64();
-
-				a.mov(rcx, rax);
-				a.call_aligned(get_integrity_data_byte);
-
-				a.mov(rcx, qword_ptr(rsp, 128));
-				a.movzx(ecx, al);
-				a.mov(qword_ptr(rsp, 128), rcx);
-
-				a.popad64();
-				a.pop(rax);
-
-				a.jmp(jump_target);
-			}));
-		}
 	}
 
 	NTSTATUS NTAPI get_proc_address_stub(const HMODULE module_handle, const PANSI_STRING function_name,
@@ -917,6 +690,7 @@ namespace arxan
 			// TODO: Remove as soon as real hooking works
 			auto* get_cmd_import = utils::nt::library{}.get_iat_entry("kernel32.dll", "GetCommandLineA");
 			if (get_cmd_import) utils::hook::set(get_cmd_import, get_command_line_a_stub);
+
 			//zw_terminate_process_hook.create(ntdll.get_proc<void*>("ZwTerminateProcess"), zw_terminate_process_stub);
 			//zw_terminate_process_hook.move();
 
@@ -927,48 +701,8 @@ namespace arxan
 
 		void post_unpack() override
 		{
+			search_and_patch_integrity_checks();
 			//restore_debug_functions();
-			/*
-			patch_check_type_1_direct();
-			patch_check_type_1_indirect();
-			patch_check_type_2_direct();
-			patch_check_type_2_indirect();
-			patch_check_type_4_direct();
-			patch_check_type_4_indirect();
-			patch_check_type_5_direct();
-			patch_check_type_5_indirect();
-			MessageBoxA(0, "done", 0, 0);
-			*/
-
-			//protect_text();
-
-			/*auto tid = GetCurrentThreadId();
-			std::thread([tid]()
-			{
-				MessageBoxA(0, 0, 0, 0);
-				//utils::hook::set<uint8_t>(0x1423339C0_g, 0xC3);
-				utils::hardware_breakpoint::activate(0x1423339C0_g, 4,
-				                                     utils::hardware_breakpoint::read_write, tid);
-			}).detach();*/
-
-			// Some integrity check patches. More to come.
-
-			/*
-			utils::hook::nop(0x142AA20A1_g, 4);
-			utils::hook::set<uint32_t>(0x15BDEC91F_g, 0xda894890);
-
-			utils::hook::nop(0x15E4EBFA6_g, 4);
-			utils::hook::set<uint32_t>(0x15EA17E28_g, 0xd1894890);
-
-			utils::hook::nop(0x15B7F5209_g, 6);
-			utils::hook::set<uint32_t>(0x15EFBB508_g, 0xc3894890);
-
-			utils::hook::set<uint32_t>(0x15D0379CC_g, 0xda894890); // rdx, rbx
-			utils::hook::set<uint32_t>(0x15D1177B8_g, 0xd1894890); // rcx, rdx
-			utils::hook::set<uint32_t>(0x15BFFF30D_g, 0xda894890); // rdx, rbx
-			utils::hook::set<uint32_t>(0x15DE3AAE7_g, 0xc8894890); // rax, rcx
-			utils::hook::set<uint32_t>(0x15E48F80C_g, 0xc3894890); // rbx, rax
-			*/
 		}
 
 		void pre_destroy() override
