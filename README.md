@@ -20,16 +20,6 @@ Reverse engineering and analysis of Call of Duty: Black Ops 3. Very experimental
 - [ ] Disable Anti-Debugging Mechanisms
 - [ ] Demonware Emulation
 
-## Download
-
-Unzip <a href="https://nightly.link/momo5502/boiii/workflows/build/main/Release%20Binary.zip">this</a> into your BOIII folder and run the BlackOps3.exe
-
-## Compile from source
-
-- Clone the Git repo. Do NOT download it as ZIP, that won't work.
-- Update the submodules and run `premake5 vs2022` or simply use the delivered `generate.bat`.
-- Build via solution file in `build\boiii.sln`.
-
 ## Disclaimer
 
 This software has been created purely for the purposes of
