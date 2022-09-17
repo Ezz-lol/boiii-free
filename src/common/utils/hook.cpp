@@ -345,22 +345,22 @@ namespace utils::hook
 		}
 	}
 
-	bool iat(const nt::library& library, const std::string& target_library, const std::string& process, void* stub)
+	std::optional<std::pair<void*, void*>> iat(const nt::library& library, const std::string& target_library, const std::string& process, void* stub)
 	{
-		if (!library.is_valid()) return false;
+		if (!library.is_valid()) return {};
 
 		auto* const ptr = library.get_iat_entry(target_library, process);
-		if (!ptr) return false;
+		if (!ptr) return {};
 
 		store_original_data(ptr, sizeof(*ptr));
 
 		DWORD protect;
 		VirtualProtect(ptr, sizeof(*ptr), PAGE_EXECUTE_READWRITE, &protect);
 
-		*ptr = stub;
+		std::swap(*ptr, stub);
 
 		VirtualProtect(ptr, sizeof(*ptr), protect, &protect);
-		return true;
+		return {{ptr, stub}};
 	}
 
 	void nop(void* place, const size_t length)

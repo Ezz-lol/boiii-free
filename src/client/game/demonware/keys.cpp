@@ -89,7 +89,7 @@ namespace demonware
 		std::memcpy(data.m_dec_key, &out_3[40], 16);
 		std::memcpy(data.m_enc_key, &out_3[56], 16);
 
-#ifdef DW_DEBUG
+#ifndef NDEBUG
 		printf("[DW] Response id: %s\n", utils::string::dump_hex(std::string(&out_2[8], 8)).data());
 		printf("[DW] Hash verify: %s\n", utils::string::dump_hex(std::string(&out_3[20], 20)).data());
 		printf("[DW] AES dec key: %s\n", utils::string::dump_hex(std::string(&out_3[40], 16)).data());

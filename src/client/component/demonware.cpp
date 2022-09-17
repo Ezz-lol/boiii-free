@@ -18,12 +18,13 @@ namespace demonware
 {
 	namespace
 	{
-		volatile bool exit_server;
-		std::thread server_thread;
-		utils::concurrency::container<std::unordered_map<SOCKET, bool>> blocking_sockets;
-		utils::concurrency::container<std::unordered_map<SOCKET, tcp_server*>> socket_map;
-		server_registry<tcp_server> tcp_servers;
-		server_registry<udp_server> udp_servers;
+		std::atomic_bool exit_server{false};
+		std::thread server_thread{};
+		utils::concurrency::container<std::unordered_map<SOCKET, bool>> blocking_sockets{};
+		utils::concurrency::container<std::unordered_map<SOCKET, tcp_server*>> socket_map{};
+		server_registry<tcp_server> tcp_servers{};
+		server_registry<udp_server> udp_servers{};
+		std::unordered_map<void*, void*> original_imports{};
 
 		tcp_server* find_server(const SOCKET socket)
 		{
@@ -118,7 +119,7 @@ namespace demonware
 			int getaddrinfo_stub(const char* name, const char* service,
 			                     const addrinfo* hints, addrinfo** res)
 			{
-#ifdef DW_DEBUG
+#ifndef NDEBUG
 				printf("[ network ]: [getaddrinfo]: \"%s\" \"%s\"\n", name, service);
 #endif
 
@@ -201,7 +202,7 @@ namespace demonware
 
 			hostent* gethostbyname_stub(const char* name)
 			{
-#ifdef DW_DEBUG
+#ifndef NDEBUG
 				printf("[ network ]: [gethostbyname]: \"%s\"\n", name);
 #endif
 
@@ -424,63 +425,6 @@ namespace demonware
 			}
 		}
 
-		void bd_logger_stub()
-		{
-			//printf("logged\n");
-		}
-
-#ifdef DW_DEBUG
-		void a(unsigned int n)
-		{
-			printf("bdAuth: Auth task failed with HTTP code [%u]\n", n);
-		}
-
-		void b(unsigned int n)
-		{
-			printf("bdAuth: Decoded client ticket of unexpected size [%u]\n", n);
-		}
-
-		void c(unsigned int n)
-		{
-			printf("bdAuth: Decoded server ticket of unexpected size [%u]\n", n);
-		}
-
-		void d()
-		{
-			printf("bdAuth: Auth ticket magic number mismatch\n");
-		}
-
-		void e()
-		{
-			printf("bdAuth: Cross Authentication completed\n");
-		}
-
-		void f()
-		{
-			printf("bdAuth: Auth task reply contains invalid data / format\n");
-		}
-
-		void g(unsigned int n)
-		{
-			printf("bdAuth: Auth task returned with error code [%u]\n", n);
-		}
-
-		void h(unsigned int n)
-		{
-			printf("bdAuth: Invalid or No Task ID [%u] in Auth reply\n", n);
-		}
-
-		void i()
-		{
-			printf("bdAuth: Received reply from DemonWare Auth server\n");
-		}
-
-		void l()
-		{
-			printf("bdAuth: Unknown error\n");
-		}
-#endif
-
 		utils::hook::detour handle_auth_reply_hook;
 
 		bool handle_auth_reply_stub(void* a1, void* a2, void* a3)
@@ -503,14 +447,16 @@ namespace demonware
 		{
 			const utils::nt::library game_module{};
 
-			auto result = false;
-			result = result || utils::hook::iat(game_module, "wsock32.dll", process, stub);
-			result = result || utils::hook::iat(game_module, "WS2_32.dll", process, stub);
+			std::optional<std::pair<void*, void*>> result{};
+			if(!result) result = utils::hook::iat(game_module, "wsock32.dll", process, stub);
+			if(!result) result = utils::hook::iat(game_module, "WS2_32.dll", process, stub);
 
 			if (!result)
 			{
 				throw std::runtime_error("Failed to hook: " + process);
 			}
+
+			original_imports[result->first] = result->second;
 		}
 	}
 
@@ -546,9 +492,9 @@ namespace demonware
 			register_hook("getpeername", io::getpeername_stub);
 			register_hook("getsockname", io::getsockname_stub);
 
-			//utils::hook::set<uint8_t>(0x7C0AD9_b, 0x0);  // CURLOPT_SSL_VERIFYPEER
-			//utils::hook::set<uint8_t>(0x7C0AC5_b, 0xAF); // CURLOPT_SSL_VERIFYHOST
-			//utils::hook::set<uint8_t>(0xA1327C_b, 0x0);  // HTTPS -> HTTP
+			utils::hook::set<uint8_t>(0x14293E829_g, 0x0); // CURLOPT_SSL_VERIFYPEER
+			utils::hook::set<uint8_t>(0x15F3CCFED_g, 0xAF); // CURLOPT_SSL_VERIFYHOST
+			utils::hook::set<uint8_t>(0x1430B9810_g, 0x0); // HTTPS -> HTTP
 
 			utils::hook::copy_string(0x1430B96E0_g, "http://prod.umbrella.demonware.net");
 			utils::hook::copy_string(0x1430B9BE0_g, "http://prod.uno.demonware.net/v1.0");
@@ -586,6 +532,11 @@ namespace demonware
 			if (server_thread.joinable())
 			{
 				server_thread.join();
+			}
+
+			for (const auto& import : original_imports)
+			{
+				utils::hook::set(import.first, import.second);
 			}
 		}
 	};

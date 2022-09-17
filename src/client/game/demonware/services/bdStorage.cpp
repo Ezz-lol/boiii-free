@@ -57,7 +57,7 @@ namespace demonware
 			}
 		}
 
-#ifdef DW_DEBUG
+#ifndef NDEBUG
 		printf("[DW]: [bdStorage]: missing publisher file: %s\n", name.data());
 #endif
 
@@ -76,7 +76,7 @@ namespace demonware
 		buffer->read_uint16(&offset);
 		buffer->read_string(&filename);
 
-#ifdef DW_DEBUG
+#ifndef NDEBUG
 		printf("[DW]: [bdStorage]: list publisher files: %s\n", filename.data());
 #endif
 
@@ -106,7 +106,7 @@ namespace demonware
 		buffer->read_string(&unk);
 		buffer->read_string(&filename);
 
-#ifdef DW_DEBUG
+#ifndef NDEBUG
 		printf("[DW]: [bdStorage]: loading publisher file: %s\n", filename.data());
 #endif
 
@@ -114,7 +114,7 @@ namespace demonware
 
 		if (this->load_publisher_resource(filename, data))
 		{
-#ifdef DW_DEBUG
+#ifndef NDEBUG
 			printf("[DW]: [bdStorage]: sending publisher file: %s, size: %lld\n", filename.data(), data.size());
 #endif
 
@@ -171,7 +171,7 @@ namespace demonware
 			info->filename = filename;
 			info->data = data;
 
-#ifdef DW_DEBUG
+#ifndef NDEBUG
 			printf("[DW]: [bdStorage]: set user file: %s\n", filename.data());
 #endif
 
@@ -206,7 +206,7 @@ namespace demonware
 			const auto path = get_user_file_path(filename);
 			if (!utils::io::read_file(path, &data))
 			{
-#ifdef DW_DEBUG
+#ifndef NDEBUG
 				printf("[DW]: [bdStorage]: get user file: missing file: %s, %s, %s\n", game.data(), filename.data(), platform.data());
 #endif
 				continue;
@@ -222,7 +222,7 @@ namespace demonware
 			reply->add(response);
 			++count;
 
-#ifdef DW_DEBUG
+#ifndef NDEBUG
 			printf("[DW]: [bdStorage]: get user file: %s, %s, %s\n", game.data(), filename.data(), platform.data());
 #endif
 		}

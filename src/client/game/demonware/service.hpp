@@ -51,7 +51,7 @@ namespace demonware
 
 			if (it != this->tasks_.end())
 			{
-#ifdef DW_DEBUG
+#ifndef NDEBUG
 				printf("[DW] %s: executing task '%d'\n", name_.data(), this->task_id_);
 #endif
 

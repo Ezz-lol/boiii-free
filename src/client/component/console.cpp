@@ -20,6 +20,10 @@ namespace console
 
 		void print_message(const char* message)
 		{
+#ifndef NDEBUG
+			OutputDebugStringA(message);
+#endif
+
 			if (started && !terminate_runner)
 			{
 				game::Com_Printf(0, 0, "%s", message);
