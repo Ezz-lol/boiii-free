@@ -2,6 +2,8 @@
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
 
+#include "scheduler.hpp"
+
 #include <utils/hook.hpp>
 #include <version.hpp>
 
@@ -39,7 +41,7 @@ namespace branding
 	public:
 		void post_unpack() override
 		{
-			r_end_frame_hook.create(0x142273560_g, r_end_frame_stub);
+			scheduler::loop(draw_branding, scheduler::renderer);
 		}
 	};
 }
