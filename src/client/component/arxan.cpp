@@ -6,10 +6,8 @@
 #include <utils/hook.hpp>
 
 #include "utils/io.hpp"
-#include "utils/finally.hpp"
 #include "utils/string.hpp"
 #include "utils/thread.hpp"
-#include "utils/hardware_breakpoint.hpp"
 
 #define ProcessDebugPort 7
 #define ProcessDebugObjectHandle 30 // WinXP source says 31?
@@ -426,11 +424,13 @@ namespace arxan
 		uint32_t adjust_integrity_checksum(const uint64_t return_address, uint8_t* stack_frame,
 		                                   const uint32_t current_checksum)
 		{
+			const auto handler_address = reverse_g(return_address - 5);
 			const auto* context = search_handler_context(stack_frame, current_checksum);
 
 			if (!context)
 			{
-				OutputDebugStringA(utils::string::va("Unable to find frame offset for: %llX", return_address));
+				MessageBoxA(nullptr, utils::string::va("No frame offset for: %llX", handler_address), "Error", MB_ICONERROR);
+				TerminateProcess(GetCurrentProcess(), 0xBAD);
 				return current_checksum;
 			}
 
@@ -440,7 +440,6 @@ namespace arxan
 			if (current_checksum != correct_checksum)
 			{
 #ifndef NDEBUG
-				const auto handler_address = return_address - 5;
 				printf("Adjusting checksum (%llX): %X -> %X\n", handler_address,
 				       current_checksum, correct_checksum);
 #endif
