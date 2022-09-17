@@ -136,17 +136,22 @@ std::vector<std::unique_ptr<component_interface>>& component_loader::get_compone
 	return *components;
 }
 
-size_t operator"" _g(const size_t val)
+size_t get_base()
 {
 	static auto base = size_t(utils::nt::library{}.get_ptr());
 	assert(base && "Failed to resolve base");
+	return base;
+}
+
+size_t operator"" _g(const size_t val)
+{
+	static auto base = get_base();
 	return base + (val - 0x140000000);
 }
 
 size_t reverse_g(const size_t val)
 {
-	static auto base = size_t(utils::nt::library{}.get_ptr());
-	assert(base && "Failed to resolve base");
+	static auto base = get_base();
 	return (val - base) + 0x140000000;
 }
 

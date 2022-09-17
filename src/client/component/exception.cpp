@@ -68,14 +68,15 @@ namespace exception
 
 		void display_error_dialog()
 		{
-			const std::string error_str = utils::string::va("Fatal error (0x%08X) at 0x%p.\n"
-			                                                "A minidump has been written.\n\n",
-			                                                exception_data.code, exception_data.address);
+			const std::string error_str = utils::string::va("Fatal error (0x%08X) at 0x%p (0x%p).\n"
+			                                                "A minidump has been written.\n",
+			                                                exception_data.code, exception_data.address,
+															reinterpret_cast<uint64_t>(exception_data.address) - get_base());
 
 			utils::thread::suspend_other_threads();
 			show_mouse_cursor();
 
-			MessageBoxA(nullptr, error_str.data(), "S1x ERROR", MB_ICONERROR);
+			MessageBoxA(nullptr, error_str.data(), "BOIII ERROR", MB_ICONERROR);
 			TerminateProcess(GetCurrentProcess(), exception_data.code);
 		}
 
@@ -86,11 +87,12 @@ namespace exception
 				recovery_data.last_recovery = std::chrono::high_resolution_clock::now();
 				++recovery_data.recovery_counts;
 
-				game::Com_Error(game::ERR_DROP, "Fatal error (0x%08X) at 0x%p.\nA minidump has been written.\n\n"
+				game::Com_Error(game::ERR_DROP, "Fatal error (0x%08X) at 0x%p (0x%p).\nA minidump has been written.\n\n"
 				                "BOIII has tried to recover your game, but it might not run stable anymore.\n\n"
 				                "Make sure to update your graphics card drivers and install operating system updates!\n"
 				                "Closing or restarting Steam might also help.",
-				                exception_data.code, exception_data.address);
+				                exception_data.code, exception_data.address,
+								reinterpret_cast<uint64_t>(exception_data.address) - get_base());
 			}
 			else
 			{
@@ -137,6 +139,7 @@ namespace exception
 			line("Timestamp: "s + get_timestamp());
 			line(utils::string::va("Exception: 0x%08X", exceptioninfo->ExceptionRecord->ExceptionCode));
 			line(utils::string::va("Address: 0x%llX", exceptioninfo->ExceptionRecord->ExceptionAddress));
+			line(utils::string::va("Base: 0x%llX", get_base()));
 
 #pragma warning(push)
 #pragma warning(disable: 4996)
