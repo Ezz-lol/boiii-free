@@ -149,21 +149,24 @@ namespace utils::hook
 
 	bool iat(const nt::library& library, const std::string& target_library, const std::string& process, void* stub);
 
-	void nop(void* place, size_t length, bool use_ept = false);
-	void nop(size_t place, size_t length, bool use_ept = false);
+	void nop(void* place, size_t length);
+	void nop(size_t place, size_t length);
 
-	void copy(void* place, const void* data, size_t length, bool use_ept = false);
-	void copy(size_t place, const void* data, size_t length, bool use_ept = false);
+	void copy(void* place, const void* data, size_t length);
+	void copy(size_t place, const void* data, size_t length);
+
+	void copy_string(void* place, const char* str);
+	void copy_string(size_t place, const char* str);
 
 	bool is_relatively_far(const void* pointer, const void* data, int offset = 5);
 
-	void call(void* pointer, void* data, bool use_ept = false);
-	void call(size_t pointer, void* data, bool use_ept = false);
-	void call(size_t pointer, size_t data, bool use_ept = false);
+	void call(void* pointer, void* data);
+	void call(size_t pointer, void* data);
+	void call(size_t pointer, size_t data);
 
-	void jump(void* pointer, void* data, bool use_far = false, bool use_safe = false, bool use_ept = false);
-	void jump(size_t pointer, void* data, bool use_far = false, bool use_safe = false, bool use_ept = false);
-	void jump(size_t pointer, size_t data, bool use_far = false, bool use_safe = false, bool use_ept = false);
+	void jump(void* pointer, void* data, bool use_far = false, bool use_safe = false);
+	void jump(size_t pointer, void* data, bool use_far = false, bool use_safe = false);
+	void jump(size_t pointer, size_t data, bool use_far = false, bool use_safe = false);
 
 	void* assemble(const std::function<void(assembler&)>& asm_function);
 
@@ -184,15 +187,15 @@ namespace utils::hook
 	void* follow_branch(void* address);
 
 	template <typename T>
-	static void set(void* place, T value, const bool use_ept = false)
+	static void set(void* place, T value = false)
 	{
-		copy(place, &value, sizeof(value), use_ept);
+		copy(place, &value, sizeof(value));
 	}
 
 	template <typename T>
-	static void set(const size_t place, T value, const bool use_ept = false)
+	static void set(const size_t place, T value = false)
 	{
-		return set<T>(reinterpret_cast<void*>(place), value, use_ept);
+		return set<T>(reinterpret_cast<void*>(place), value);
 	}
 
 	template <typename T, typename... Args>
