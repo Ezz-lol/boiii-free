@@ -1,5 +1,7 @@
 #pragma once
 
+#include "loader/component_loader.hpp"
+
 #define WEAK __declspec(selectany)
 
 namespace game
