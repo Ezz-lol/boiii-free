@@ -14,12 +14,13 @@ namespace console
 {
 	namespace
 	{
-		volatile bool g_started = false;
 		HANDLE logo;
+		std::atomic_bool started{false};
+		std::atomic_bool terminate_runner{false};
 
 		void print_message(const char* message)
 		{
-			if (g_started)
+			if (started && !terminate_runner)
 			{
 				game::Com_Printf(0, 0, "%s", message);
 			}
@@ -159,7 +160,7 @@ namespace console
 
 			utils::hook::jump(printf, print_stub);
 
-			this->terminate_runner_ = false;
+			terminate_runner = false;
 
 			this->console_runner_ = utils::thread::create_named_thread("Console IO", [this]
 			{
@@ -168,11 +169,11 @@ namespace console
 					sys_create_console_hook.create(0x1423339C0_g, sys_create_console_stub);
 
 					game::Sys_ShowConsole();
-					g_started = true;
+					started = true;
 				}
 
 				MSG msg{};
-				while (!this->terminate_runner_)
+				while (!terminate_runner)
 				{
 					if (PeekMessageW(&msg, nullptr, NULL, NULL, PM_REMOVE))
 					{
@@ -189,7 +190,7 @@ namespace console
 
 		void pre_destroy() override
 		{
-			this->terminate_runner_ = true;
+			terminate_runner = true;
 
 			if (this->console_runner_.joinable())
 			{
@@ -198,7 +199,6 @@ namespace console
 		}
 
 	private:
-		std::atomic_bool terminate_runner_{false};
 		std::thread console_runner_;
 	};
 }
