@@ -116,7 +116,7 @@ namespace demonware
 		namespace io
 		{
 			int getaddrinfo_stub(const char* name, const char* service,
-				const addrinfo* hints, addrinfo** res)
+			                     const addrinfo* hints, addrinfo** res)
 			{
 #ifdef DW_DEBUG
 				printf("[ network ]: [getaddrinfo]: \"%s\" \"%s\"\n", name, service);
@@ -289,14 +289,14 @@ namespace demonware
 			}
 
 			int sendto_stub(const SOCKET s, const char* buf, const int len, const int flags, const sockaddr* to,
-				const int tolen)
+			                const int tolen)
 			{
 				const auto* in_addr = reinterpret_cast<const sockaddr_in*>(to);
 				auto* server = udp_servers.find(in_addr->sin_addr.s_addr);
 
 				if (server)
 				{
-					server->handle_input(buf, len, { s, to, tolen });
+					server->handle_input(buf, len, {s, to, tolen});
 					return len;
 				}
 
@@ -304,7 +304,7 @@ namespace demonware
 			}
 
 			int recvfrom_stub(const SOCKET s, char* buf, const int len, const int flags, struct sockaddr* from,
-				int* fromlen)
+			                  int* fromlen)
 			{
 				// Not supported yet
 				if (is_socket_blocking(s, UDP_BLOCKING))
@@ -331,7 +331,7 @@ namespace demonware
 			}
 
 			int select_stub(const int nfds, fd_set* readfds, fd_set* writefds, fd_set* exceptfds,
-				struct timeval* timeout)
+			                struct timeval* timeout)
 			{
 				if (exit_server)
 				{
@@ -482,6 +482,7 @@ namespace demonware
 #endif
 
 		utils::hook::detour handle_auth_reply_hook;
+
 		bool handle_auth_reply_stub(void* a1, void* a2, void* a3)
 		{
 			// Skip bdAuth::validateResponseSignature
@@ -497,6 +498,20 @@ namespace demonware
 			//const auto* args = "StartServer";
 			//game::UI_RunMenuScript(0, &args);
 		}
+
+		void register_hook(const std::string& process, void* stub)
+		{
+			const utils::nt::library game_module{};
+
+			auto result = false;
+			result = result || utils::hook::iat(game_module, "wsock32.dll", process, stub);
+			result = result || utils::hook::iat(game_module, "WS2_32.dll", process, stub);
+
+			if (!result)
+			{
+				throw std::runtime_error("Failed to hook: " + process);
+			}
+		}
 	}
 
 	class component final : public component_interface
@@ -504,62 +519,42 @@ namespace demonware
 	public:
 		component()
 		{
-			udp_servers.create<stun_server>("phoenix.stun.us.demonware.net");
-			udp_servers.create<stun_server>("phoenix.stun.eu.demonware.net");
-			udp_servers.create<stun_server>("phoenix.stun.jp.demonware.net");
-			udp_servers.create<stun_server>("phoenix.stun.au.demonware.net");
-
 			udp_servers.create<stun_server>("stun.us.demonware.net");
 			udp_servers.create<stun_server>("stun.eu.demonware.net");
 			udp_servers.create<stun_server>("stun.jp.demonware.net");
 			udp_servers.create<stun_server>("stun.au.demonware.net");
 
-			tcp_servers.create<auth3_server>("mwr-pc-steam-auth3.prod.demonware.net");
-			tcp_servers.create<lobby_server>("mwr-pc-steam-lobby.prod.demonware.net");
+			tcp_servers.create<auth3_server>("ops3-pc-auth3.prod.demonware.net");
+			tcp_servers.create<lobby_server>("ops3-pc-lobby.prod.demonware.net");
 			tcp_servers.create<umbrella_server>("prod.umbrella.demonware.net");
 		}
-
-		/*void* load_import(const std::string& library, const std::string& function) override
-		{
-			if (library == "WS2_32.dll")
-			{
-				if (function == "#3") return io::closesocket_stub;
-				if (function == "#4") return io::connect_stub;
-				if (function == "#5") return io::getpeername_stub;
-				if (function == "#6") return io::getsockname_stub;
-				if (function == "#10") return io::ioctlsocket_stub;
-				if (function == "#16") return io::recv_stub;
-				if (function == "#17") return io::recvfrom_stub;
-				if (function == "#18") return io::select_stub;
-				if (function == "#19") return io::send_stub;
-				if (function == "#20") return io::sendto_stub;
-				if (function == "#52") return io::gethostbyname_stub;
-				if (function == "getaddrinfo") return io::getaddrinfo_stub;
-				if (function == "freeaddrinfo") return io::freeaddrinfo_stub;
-			}
-
-			if (function == "InternetGetConnectedState")
-			{
-				return io::internet_get_connected_state_stub;
-			}
-
-			return nullptr;
-		}*/
 
 		void post_unpack() override
 		{
 			server_thread = utils::thread::create_named_thread("Demonware", server_main);
-			
-			/*utils::hook::set<uint8_t>(0x7C0AD9_b, 0x0);  // CURLOPT_SSL_VERIFYPEER
-			utils::hook::set<uint8_t>(0x7C0AC5_b, 0xAF); // CURLOPT_SSL_VERIFYHOST
-			utils::hook::set<uint8_t>(0xA1327C_b, 0x0);  // HTTPS -> HTTP
 
-			std::memcpy(reinterpret_cast<void*>(0x8D0298_b), 
-				"http://prod.umbrella.demonware.net/v1.0/", sizeof("http://prod.umbrella.demonware.net/v1.0/"));
-			std::memcpy(reinterpret_cast<void*>(0x8D05A8_b),
-				"http://prod.uno.demonware.net/v1.0/", sizeof("http://prod.uno.demonware.net/v1.0/"));
-			std::memcpy(reinterpret_cast<void*>(0x9EDB08_b), "http://%s:%d/auth/", sizeof("http://%s:%d/auth/"));
+			register_hook("send", io::send_stub);
+			register_hook("recv", io::recv_stub);
+			register_hook("sendto", io::sendto_stub);
+			register_hook("recvfrom", io::recvfrom_stub);
+			register_hook("connect", io::connect_stub);
+			register_hook("closesocket", io::closesocket_stub);
+			register_hook("ioctlsocket", io::ioctlsocket_stub);
+			register_hook("gethostbyname", io::gethostbyname_stub);
+			register_hook("getaddrinfo", io::getaddrinfo_stub);
+			register_hook("freeaddrinfo", io::freeaddrinfo_stub);
+			register_hook("getpeername", io::getpeername_stub);
+			register_hook("getsockname", io::getsockname_stub);
 
+			//utils::hook::set<uint8_t>(0x7C0AD9_b, 0x0);  // CURLOPT_SSL_VERIFYPEER
+			//utils::hook::set<uint8_t>(0x7C0AC5_b, 0xAF); // CURLOPT_SSL_VERIFYHOST
+			//utils::hook::set<uint8_t>(0xA1327C_b, 0x0);  // HTTPS -> HTTP
+
+			utils::hook::copy_string(0x1430B96E0_g, "http://prod.umbrella.demonware.net");
+			utils::hook::copy_string(0x1430B9BE0_g, "http://prod.uno.demonware.net/v1.0");
+			utils::hook::copy_string(0x1430B93C8_g, "http://%s:%d/auth/");
+
+			/*
 			// utils::hook::set<uint8_t>(0x19F8C0_b, 0xC3); // SV_SendMatchData, not sure
 			utils::hook::nop(0x19BB67_b, 5); // LiveStorage_SendMatchDataComplete (crashes at the end of match)
 			utils::hook::nop(0x19BC3F_b, 5); // LiveStorage_GettingStoreConfigComplete probably (crashes randomly)
