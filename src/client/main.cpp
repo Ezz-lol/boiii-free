@@ -13,10 +13,10 @@ namespace
 {
 	std::pair<void**, void*> g_original_import{};
 
-	DECLSPEC_NORETURN void WINAPI exit_hook(const int code)
+	DECLSPEC_NORETURN void WINAPI exit_hook(const uint32_t code)
 	{
 		component_loader::pre_destroy();
-		exit(code);
+		ExitProcess(code);
 	}
 
 	std::pair<void**, void*> patch_steam_import(const std::string& func, void* function)

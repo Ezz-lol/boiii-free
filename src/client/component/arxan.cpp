@@ -211,7 +211,7 @@ namespace arxan
 
 			if (NT_SUCCESS(status))
 			{
-				if (system_information_class == SystemProcessInformation)
+				if (system_information_class == SystemProcessInformation && !utils::nt::is_shutdown_in_progress())
 				{
 					bool injected_steam = false;
 					auto addr = static_cast<uint8_t*>(system_information);
@@ -429,7 +429,8 @@ namespace arxan
 
 			if (!context)
 			{
-				MessageBoxA(nullptr, utils::string::va("No frame offset for: %llX", handler_address), "Error", MB_ICONERROR);
+				MessageBoxA(nullptr, utils::string::va("No frame offset for: %llX", handler_address), "Error",
+				            MB_ICONERROR);
 				TerminateProcess(GetCurrentProcess(), 0xBAD);
 				return current_checksum;
 			}
@@ -704,20 +705,6 @@ namespace arxan
 		{
 			search_and_patch_integrity_checks();
 			//restore_debug_functions();
-		}
-
-		void pre_destroy() override
-		{
-			utils::hook::copy(GetWindowTextA, this->window_text_buffer_, sizeof(this->window_text_buffer_));
-			nt_query_system_information_hook.clear();
-			nt_query_information_process_hook.clear();
-			nt_close_hook.clear();
-			create_mutex_ex_a_hook.clear();
-			create_thread_hook.clear();
-			open_process_hook.clear();
-			get_thread_context_hook.clear();
-			zw_terminate_process_hook.clear();
-			get_proc_address_hook.clear();
 		}
 
 		int priority() override

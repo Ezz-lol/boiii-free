@@ -23,7 +23,7 @@ namespace utils::nt
 	public:
 		static library load(const std::string& name);
 		static library load(const std::filesystem::path& path);
-		static library get_by_address(void* address);
+		static library get_by_address(const void* address);
 
 		library();
 		explicit library(const std::string& name);
@@ -164,6 +164,8 @@ namespace utils::nt
 	private:
 		HANDLE handle_{InvalidHandle};
 	};
+
+	bool is_shutdown_in_progress();
 
 	__declspec(noreturn) void raise_hard_exception();
 	std::string load_resource(int id);
