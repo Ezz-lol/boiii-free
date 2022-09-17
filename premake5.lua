@@ -77,6 +77,11 @@ newoption {
 	description = "Enable development builds of the client."
 }
 
+newoption {
+	trigger = "ci-build",
+	description = "Enable CI builds of the client."
+}
+
 newaction {
 	trigger = "version",
 	description = "Returns the version string for the current commit of the source code.",
@@ -244,7 +249,7 @@ workspace "boiii"
 		defines {"DEV_BUILD"}
 	end
 
-	if os.getenv("CI") then
+	if _OPTIONS["ci-build"] then
 		defines {"CI"}
 	end
 

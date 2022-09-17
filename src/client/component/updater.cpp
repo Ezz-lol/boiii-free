@@ -73,10 +73,7 @@ namespace updater
 			auto res = utils::compression::zip::extract(data);
 			if (res.size() == 1)
 			{
-				for (auto& file : res)
-				{
-					return std::move(file.second);
-				}
+				return std::move(res.begin()->second);
 			}
 
 			throw std::runtime_error("Invalid data");
@@ -195,6 +192,6 @@ namespace updater
 	};
 }
 
-#if !defined(DEBUG) && defined(CI)
+#if defined(NDEBUG) && defined(CI)
 REGISTER_COMPONENT(updater::component)
 #endif
