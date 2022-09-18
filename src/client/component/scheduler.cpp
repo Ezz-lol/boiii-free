@@ -85,6 +85,7 @@ namespace scheduler
 		volatile bool kill = false;
 		std::thread thread;
 		task_pipeline pipelines[pipeline::count];
+
 		utils::hook::detour r_end_frame_hook;
 		utils::hook::detour g_run_frame_hook;
 		utils::hook::detour main_frame_hook;
@@ -160,6 +161,13 @@ namespace scheduler
 					std::this_thread::sleep_for(10ms);
 				}
 			});
+		}
+
+		void post_unpack() override
+		{
+			r_end_frame_hook.create(0x142273560_g, r_end_frame_stub);	// some func called before R_EndFrame, maybe SND_EndFrame?
+			g_run_frame_hook.create(0x14065C360_g, server_frame_stub);	// GlassSv_Update
+			main_frame_hook.create(0x1420F9860_g, main_frame_stub);		// Com_Frame_Try_Block_Function
 		}
 
 		void pre_destroy() override
