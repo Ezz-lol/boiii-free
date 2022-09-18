@@ -74,6 +74,16 @@ namespace
 		utils::hook::set(utils::nt::library{}.get_iat_entry("kernel32.dll", "ExitProcess"), exit_hook);
 	}
 
+	void remove_crash_file()
+	{
+		const utils::nt::library game{};
+		const auto game_file = game.get_path();
+		auto game_path = std::filesystem::path(game_file);
+		game_path.replace_extension(".start");
+
+		utils::io::remove_file(game_path.generic_string());
+	}
+
 	bool run()
 	{
 		srand(uint32_t(time(nullptr)) ^ ~(GetTickCount() * GetCurrentProcessId()));
@@ -91,6 +101,7 @@ namespace
 			try
 			{
 				patch_imports();
+				remove_crash_file();
 
 				if (!component_loader::pre_start())
 				{
