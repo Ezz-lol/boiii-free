@@ -332,6 +332,11 @@ namespace utils::hook
 		this->moved_data_ = move_hook(this->place_);
 	}
 
+	void* detour::get_place() const
+	{
+		return this->place_;
+	}
+
 	void* detour::get_original() const
 	{
 		return this->original_;

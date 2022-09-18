@@ -125,6 +125,8 @@ namespace utils::hook
 
 		void move();
 
+		void* get_place() const;
+
 		template <typename T>
 		T* get() const
 		{
