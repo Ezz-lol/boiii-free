@@ -104,37 +104,42 @@ namespace steam
 
 	steam_id apps::GetAppOwner()
 	{
-	  return SteamUser()->GetSteamID();
+		return SteamUser()->GetSteamID();
 	}
 
 	const char* apps::GetLaunchQueryParam(const char* pchKey)
 	{
-	  return "";
+		return "";
 	}
+
 	bool apps::GetDlcDownloadProgress(uint32_t nAppID, uint64_t* punBytesDownloaded, uint64_t* punBytesTotal)
 	{
-	  *punBytesTotal = 0;
-	  *punBytesDownloaded = 0;
-	  return false;
+		*punBytesTotal = 0;
+		*punBytesDownloaded = 0;
+		return false;
 	}
+
 	int apps::GetAppBuildId()
 	{
-	  return 0;
+		return 0;
 	}
+
 	void apps::RequestAllProofOfPurchaseKeys()
 	{
-	  
 	}
+
 	uint64_t apps::GetFileDetails(const char* pszFileName)
 	{
-	  return 0;
+		return 0;
 	}
+
 	int apps::GetLaunchCommandLine(char* pszCommandLine, int cubCommandLine)
 	{
-	  return 0;
+		return 0;
 	}
+
 	bool apps::BIsSubscribedFromFamilySharing()
 	{
-	  return false;
+		return false;
 	}
 }
