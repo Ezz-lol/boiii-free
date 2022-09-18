@@ -145,7 +145,8 @@ namespace console
 			utils::hook::set<WNDPROC>(game::s_wcd::SysInputLineWndProc, reinterpret_cast<WNDPROC>(SetWindowLongPtrA(
 				                          *game::s_wcd::hwndInputLine, -4,
 				                          reinterpret_cast<LONG_PTR>(input_line_wnd_proc))));
-			SendMessageA(*game::s_wcd::hwndInputLine, WM_SETFONT, reinterpret_cast<WPARAM>(*game::s_wcd::hfBufferFont), 0);
+			SendMessageA(*game::s_wcd::hwndInputLine, WM_SETFONT, reinterpret_cast<WPARAM>(*game::s_wcd::hfBufferFont),
+			             0);
 
 			SetFocus(*game::s_wcd::hwndInputLine);
 			game::Con_GetTextCopy(text, 0x4000);
@@ -159,6 +160,9 @@ namespace console
 	public:
 		void post_unpack() override
 		{
+			//utils::hook::jump(0x1423337F0_g, print_message);
+			//utils::hook::jump(0x142333660_g, print_message);
+
 			const auto self = utils::nt::library::get_by_address(sys_create_console_stub);
 			logo = LoadImageA(self.get_handle(), MAKEINTRESOURCEA(IMAGE_LOGO), 0, 0, 0, LR_COPYFROMRESOURCE);
 

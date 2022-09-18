@@ -417,12 +417,6 @@ namespace demonware
 
 				return ioctlsocket(s, cmd, argp);
 			}
-
-			BOOL internet_get_connected_state_stub(LPDWORD, DWORD)
-			{
-				// Allow offline play
-				return TRUE;
-			}
 		}
 
 		utils::hook::detour handle_auth_reply_hook;

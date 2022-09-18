@@ -441,8 +441,8 @@ namespace arxan
 			if (current_checksum != correct_checksum)
 			{
 #ifndef NDEBUG
-				printf("Adjusting checksum (%llX): %X -> %X\n", handler_address,
-				       current_checksum, correct_checksum);
+				/*printf("Adjusting checksum (%llX): %X -> %X\n", handler_address,
+				       current_checksum, correct_checksum);*/
 #endif
 			}
 
