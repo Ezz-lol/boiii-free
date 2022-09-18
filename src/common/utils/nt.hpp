@@ -21,6 +21,7 @@ namespace utils::nt
 	class library final
 	{
 	public:
+		static library load(const char* name);
 		static library load(const std::string& name);
 		static library load(const std::filesystem::path& path);
 		static library get_by_address(const void* address);

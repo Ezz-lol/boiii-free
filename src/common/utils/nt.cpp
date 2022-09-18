@@ -2,9 +2,14 @@
 
 namespace utils::nt
 {
+	library library::load(const char* name)
+	{
+		return library(LoadLibraryA(name));
+	}
+
 	library library::load(const std::string& name)
 	{
-		return library(LoadLibraryA(name.data()));
+		return library::load(name.data());
 	}
 
 	library library::load(const std::filesystem::path& path)
