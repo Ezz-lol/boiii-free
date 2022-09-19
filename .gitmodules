@@ -4,9 +4,6 @@
 [submodule "deps/asmjit"]
 	path = deps/asmjit
 	url = https://github.com/asmjit/asmjit.git
-[submodule "deps/curl"]
-	path = deps/curl
-	url = https://github.com/curl/curl.git
 [submodule "deps/zlib"]
 	path = deps/zlib
 	url = https://github.com/madler/zlib.git
