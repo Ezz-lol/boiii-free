@@ -397,7 +397,7 @@ namespace arxan
 			uint32_t* original_checksum;
 		};
 
-		// Pretty trashy, but working, heuristic to search integrity the handler context
+		// Pretty trashy, but working, heuristic to search the integrity handler context
 		bool is_handler_context(uint8_t* stack_frame, const uint32_t computed_checksum, const uint32_t frame_offset)
 		{
 			auto* potential_address = *reinterpret_cast<uint32_t**>(stack_frame + frame_offset);
