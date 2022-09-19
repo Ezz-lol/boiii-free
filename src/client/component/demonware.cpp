@@ -478,6 +478,7 @@ namespace demonware
 			register_hook("sendto", io::sendto_stub);
 			register_hook("recvfrom", io::recvfrom_stub);
 			register_hook("connect", io::connect_stub);
+			register_hook("select", io::select_stub);
 			register_hook("closesocket", io::closesocket_stub);
 			register_hook("ioctlsocket", io::ioctlsocket_stub);
 			register_hook("gethostbyname", io::gethostbyname_stub);
