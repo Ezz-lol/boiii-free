@@ -391,21 +391,69 @@ namespace arxan
 			loaded = true;
 		}
 
+		const std::vector<std::pair<uint8_t*, size_t>>& get_text_sections()
+		{
+			static const std::vector<std::pair<uint8_t*, size_t>> text = []
+			{
+				std::vector<std::pair<uint8_t*, size_t>> texts{};
+
+				const utils::nt::library game{};
+				for (const auto& section : game.get_section_headers())
+				{
+					if (section->Characteristics & IMAGE_SCN_MEM_EXECUTE)
+					{
+						texts.emplace_back(game.get_ptr() + section->VirtualAddress, section->Misc.VirtualSize);
+					}
+				}
+
+				return texts;
+			}();
+
+			return text;
+		}
+
+		bool is_in_texts(const uint64_t addr)
+		{
+			const auto& texts = get_text_sections();
+			for (const auto& text : texts)
+			{
+				const auto start = reinterpret_cast<ULONG_PTR>(text.first);
+				if (addr >= start && addr <= (start + text.second))
+				{
+					return true;
+				}
+			}
+
+			return false;
+		}
+
+		bool is_in_texts(const void* addr)
+		{
+			return is_in_texts(reinterpret_cast<uint64_t>(addr));
+		}
+
 		struct integrity_handler_context
 		{
 			uint32_t* computed_checksum;
 			uint32_t* original_checksum;
 		};
 
+		bool is_on_stack(uint8_t* stack_frame, const void* pointer)
+		{
+			const auto stack_value = reinterpret_cast<uint64_t>(stack_frame);
+			const auto pointer_value = reinterpret_cast<uint64_t>(pointer);
+
+			const auto diff = static_cast<int64_t>(stack_value - pointer_value);
+			return std::abs(diff) < 0x1000;
+		}
+
 		// Pretty trashy, but working, heuristic to search the integrity handler context
 		bool is_handler_context(uint8_t* stack_frame, const uint32_t computed_checksum, const uint32_t frame_offset)
 		{
-			auto* potential_address = *reinterpret_cast<uint32_t**>(stack_frame + frame_offset);
-
-			int64_t diff = reinterpret_cast<uint64_t>(stack_frame) - reinterpret_cast<uint64_t>(potential_address);
-			diff = std::abs(diff);
-
-			return diff < 0x1000 && *potential_address == computed_checksum;
+			const auto* potential_context = reinterpret_cast<integrity_handler_context*>(stack_frame + frame_offset);
+			return is_on_stack(stack_frame, potential_context->computed_checksum)
+				&& *potential_context->computed_checksum == computed_checksum
+				&& is_in_texts(potential_context->original_checksum);
 		}
 
 		integrity_handler_context* search_handler_context(uint8_t* stack_frame, const uint32_t computed_checksum)
