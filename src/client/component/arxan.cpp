@@ -458,7 +458,7 @@ namespace arxan
 
 		integrity_handler_context* search_handler_context(uint8_t* stack_frame, const uint32_t computed_checksum)
 		{
-			for (uint32_t frame_offset = 0x38; frame_offset < 0x90; frame_offset += 8)
+			for (uint32_t frame_offset = 0; frame_offset < 0x90; frame_offset += 8)
 			{
 				if (is_handler_context(stack_frame, computed_checksum, frame_offset))
 				{
