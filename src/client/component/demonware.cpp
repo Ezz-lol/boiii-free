@@ -442,8 +442,8 @@ namespace demonware
 			const utils::nt::library game_module{};
 
 			std::optional<std::pair<void*, void*>> result{};
-			if(!result) result = utils::hook::iat(game_module, "wsock32.dll", process, stub);
-			if(!result) result = utils::hook::iat(game_module, "WS2_32.dll", process, stub);
+			if (!result) result = utils::hook::iat(game_module, "wsock32.dll", process, stub);
+			if (!result) result = utils::hook::iat(game_module, "WS2_32.dll", process, stub);
 
 			if (!result)
 			{
@@ -469,10 +469,8 @@ namespace demonware
 			tcp_servers.create<umbrella_server>("prod.umbrella.demonware.net");
 		}
 
-		void post_unpack() override
+		void pre_start() override
 		{
-			server_thread = utils::thread::create_named_thread("Demonware", server_main);
-
 			register_hook("send", io::send_stub);
 			register_hook("recv", io::recv_stub);
 			register_hook("sendto", io::sendto_stub);
@@ -486,6 +484,11 @@ namespace demonware
 			register_hook("freeaddrinfo", io::freeaddrinfo_stub);
 			register_hook("getpeername", io::getpeername_stub);
 			register_hook("getsockname", io::getsockname_stub);
+		}
+
+		void post_unpack() override
+		{
+			server_thread = utils::thread::create_named_thread("Demonware", server_main);
 
 			utils::hook::set<uint8_t>(0x14293E829_g, 0x0); // CURLOPT_SSL_VERIFYPEER
 			utils::hook::set<uint8_t>(0x15F3CCFED_g, 0xAF); // CURLOPT_SSL_VERIFYHOST

@@ -3,6 +3,7 @@ rapidjson = {
 }
 
 function rapidjson.import()
+	defines{"RAPIDJSON_HAS_STDSTRING"}
 	rapidjson.includes()
 end
 
