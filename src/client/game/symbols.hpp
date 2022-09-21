@@ -16,6 +16,9 @@ namespace game
 	};
 	WEAK symbol<void(char* text, int maxSize)> Con_GetTextCopy{0x14133A7D0_g};
 
+	// Live
+	WEAK symbol<bool(uint64_t, int*, bool)> Live_GetConnectivityInformation{0x141E0C410_g};
+
 	// Sys
 	WEAK symbol<void()> Sys_ShowConsole{0x142333F80_g};
 	WEAK symbol<TLSData*()> Sys_GetTLS{0x142184210_g};

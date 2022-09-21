@@ -123,6 +123,23 @@ namespace demonware
 		gmtime_s(&gmtm, &now);
 		strftime(date, 64, "%a, %d %b %G %T", &gmtm);
 
+		rapidjson::Document extra;
+		extra.SetObject();
+
+		std::string username = std::string(ticket.m_username, sizeof(ticket.m_username)).data();
+		extra.AddMember("username", username, extra.GetAllocator());
+		extra.AddMember("time_to_live", 9999, extra.GetAllocator());
+
+		const auto lul = utils::cryptography::base64::encode("lul");
+		extra.AddMember("extended_data", lul, extra.GetAllocator());
+
+		rapidjson::StringBuffer extra_buffer{};
+		rapidjson::Writer<rapidjson::StringBuffer, rapidjson::Document::EncodingType, rapidjson::ASCII<>>
+			extra_writer(extra_buffer);
+		extra.Accept(extra_writer);
+
+		std::string extra_data{};
+		extra_data.append(extra_buffer.GetString(), extra_buffer.GetLength());
 		// json content
 		rapidjson::Document doc;
 		doc.SetObject();
@@ -131,14 +148,15 @@ namespace demonware
 		doc.AddMember("code", "700", doc.GetAllocator());
 
 		auto seed = std::to_string(iv_seed);
-		doc.AddMember("iv_seed", rapidjson::StringRef(seed.data(), seed.size()), doc.GetAllocator());
-		doc.AddMember("client_ticket", rapidjson::StringRef(ticket_b64.data(), ticket_b64.size()), doc.GetAllocator());
-		doc.AddMember("server_ticket", rapidjson::StringRef(auth_data_b64.data(), auth_data_b64.size()),
-		              doc.GetAllocator());
+		doc.AddMember("iv_seed", seed, doc.GetAllocator());
+		doc.AddMember("client_ticket", ticket_b64, doc.GetAllocator());
+		doc.AddMember("server_ticket", auth_data_b64, doc.GetAllocator());
 		doc.AddMember("client_id", "", doc.GetAllocator());
 		doc.AddMember("account_type", "steam", doc.GetAllocator());
 		doc.AddMember("crossplay_enabled", false, doc.GetAllocator());
 		doc.AddMember("loginqueue_eanbled", false, doc.GetAllocator());
+		doc.AddMember("identity", identity, doc.GetAllocator());
+		doc.AddMember("extra_data", extra_data, doc.GetAllocator());
 
 		rapidjson::Value value{};
 		doc.AddMember("lsg_endpoint", value, doc.GetAllocator());

@@ -239,13 +239,14 @@ namespace utils::nt
 
 	std::string load_resource(const int id)
 	{
-		auto* const res = FindResource(library(), MAKEINTRESOURCE(id), RT_RCDATA);
+		const auto lib = library::get_by_address(load_resource);
+		auto* const res = FindResource(lib, MAKEINTRESOURCE(id), RT_RCDATA);
 		if (!res) return {};
 
-		auto* const handle = LoadResource(nullptr, res);
+		auto* const handle = LoadResource(lib, res);
 		if (!handle) return {};
 
-		return std::string(LPSTR(LockResource(handle)), SizeofResource(nullptr, res));
+		return std::string(LPSTR(LockResource(handle)), SizeofResource(lib, res));
 	}
 
 	void relaunch_self()

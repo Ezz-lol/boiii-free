@@ -419,24 +419,6 @@ namespace demonware
 			}
 		}
 
-		utils::hook::detour handle_auth_reply_hook;
-
-		bool handle_auth_reply_stub(void* a1, void* a2, void* a3)
-		{
-			// Skip bdAuth::validateResponseSignature
-			//utils::hook::set(0x7D4AB0_b, 0xC301B0);
-			// Skip bdAuth::processPlatformData
-			//utils::hook::set(0x7D55C0_b, 0xC301B0);
-
-			return handle_auth_reply_hook.invoke<bool>(a1, a2, a3);
-		}
-
-		void request_start_match_stub()
-		{
-			//const auto* args = "StartServer";
-			//game::UI_RunMenuScript(0, &args);
-		}
-
 		void register_hook(const std::string& process, void* stub)
 		{
 			const utils::nt::library game_module{};
@@ -498,30 +480,7 @@ namespace demonware
 			utils::hook::copy_string(0x1430B9BE0_g, "http://prod.uno.demonware.net/v1.0");
 			utils::hook::copy_string(0x1430B93C8_g, "http://%s:%d/auth/");
 
-			/*
-			// utils::hook::set<uint8_t>(0x19F8C0_b, 0xC3); // SV_SendMatchData, not sure
-			utils::hook::nop(0x19BB67_b, 5); // LiveStorage_SendMatchDataComplete (crashes at the end of match)
-			utils::hook::nop(0x19BC3F_b, 5); // LiveStorage_GettingStoreConfigComplete probably (crashes randomly)
-			utils::hook::nop(0x19BC48_b, 5); // similar to above (crashes in killcam)
-			utils::hook::set<uint8_t>(0x1A3340_b, 0xC3); // Live_CheckForFullDisconnect
-
-			// Remove some while loop that freezes the rendering for a few secs while connecting
-			utils::hook::nop(0x625555_b, 5);
-
-			handle_auth_reply_hook.create(0x7AC600_b, handle_auth_reply_stub);
-
-			// Skip update check in Live_SyncOnlineDataFlags
-			utils::hook::set(0x47A6D0_b, 0xC301B0);
-			// Remove update failed popup
-			utils::hook::set(0x47B2B0_b, 0xC301B0);
-
-			// xpartygo -> just start the match
-			utils::hook::jump(0x355B80_b, request_start_match_stub);
-
-			utils::hook::set(0x396AD0_b, 0xC301B0); // DB_IsZoneLoaded("ffotd")
-			utils::hook::set(0x4DD600_b, 0xC300B0); // dont use ffotd
-			utils::hook::set(0x4DD5B0_b, 0xC300B0); // dont dl ffotd
-			*/
+			utils::hook::set<uint32_t>(0x141EC4B50_g, 0xC3D08948); // Skip publisher file signature stuff
 		}
 
 		void pre_destroy() override

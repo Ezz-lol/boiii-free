@@ -1,0 +1,624 @@
+{
+	"version": 1,
+	"enabled": true,
+	"usertype": 0,
+	"experiment_data": 
+	[
+		{
+			"enabled": false,
+			"name": "sv_lootxp_rate",
+			"variants": [
+				{	
+					"include_rate": 7000
+				}, {
+					"include_rate": 500
+				}, {
+					"include_rate": 500
+				}, {
+					"include_rate": 500
+				}, {
+					"include_rate": 500
+				}, {
+					"include_rate": 500
+				}, {
+					"include_rate": 500
+				}
+			]
+		}, {
+			"enabled": false,
+			"name": "cl_playlist_order",
+			"variants": [
+				{
+					"include_rate": 5000
+				}, {
+					"include_rate": 2500
+				}
+			]
+		}, {
+			"enabled": true,
+			"name": "jul_2017_sales",
+			"variants": [
+				{
+					"include_rate": 5000
+				}, {
+					"include_rate": 2000
+				}, {
+					"include_rate": 1000
+				}, {
+					"include_rate": 1000
+				}, {
+					"include_rate": 1000
+				}
+			]
+		}, {
+			"enabled": true,
+			"name": "jul_2017_small",
+			"variants": [
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				}
+			]
+		} , {
+			"enabled": false,
+			"name": "com_test_exp",
+			"variants": [
+				{
+					"include_rate": 500
+				}, {
+					"include_rate": 500
+				}, {
+					"include_rate": 500
+				}, {
+					"include_rate": 500
+				}, {
+					"include_rate": 500
+				}, {
+					"include_rate": 500
+				}, {
+					"include_rate": 500
+				}, {
+					"include_rate": 500
+				}, {
+					"include_rate": 500
+				}, {
+					"include_rate": 500
+				}, {
+					"include_rate": 500
+				}
+			]
+		} , {
+			"enabled": false,
+			"name": "chris_exp",
+			"variants": [
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				}
+			]
+		}, {
+			"enabled": false,
+			"name": "chris_variable_discount",
+			"variants": [
+				{
+					"include_rate": 2500
+				},
+				{
+					"include_rate": 2500
+				},
+				{
+					"include_rate": 2500
+				},
+				{
+					"include_rate": 2500
+				}
+			]
+		}, {
+			"enabled": false,
+			"name": "no_dupe_preview",
+			"variants": [
+				{
+					"include_rate": 5000
+				},
+				{
+					"include_rate": 5000
+				}
+			]
+		}, {
+			"enabled": false,
+			"name": "bonus_crypto",
+			"variants": [
+				{
+					"include_rate": 2500
+				},
+				{
+					"include_rate": 2500
+				},
+				{
+					"include_rate": 2500
+				},
+				{
+					"include_rate": 2500
+				}
+			]
+		}, {
+			"enabled": true,
+			"name": "threepack_exp",
+			"variants": [
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				}
+			]
+		},{
+			"enabled": true,
+			"name": "dec_2017_bribe",
+			"variants": [
+				{
+					"include_rate": 2000
+				},
+				{
+					"include_rate": 2000
+				},
+				{
+					"include_rate": 2000
+				},
+				{
+					"include_rate": 2000
+				},
+				{
+					"include_rate": 2000
+				}
+			]
+		},{
+			"enabled": true,
+			"name": "zm_PlayerMessage",
+			"variants": [
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				}
+			]
+		}, {
+			"enabled": true,
+			"name": "ui_purchase_experiment",
+			"variants": [
+				{
+					"include_rate": 5000
+				},
+				{
+					"include_rate": 5000
+				}
+			]
+		}, {
+			"enabled": true,
+			"name": "store_image_experiment",
+			"variants": [
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				}
+			]
+		}, {
+			"enabled": true,
+			"name": "igs_bonus_image_experiment",
+			"variants": [
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				}
+			]
+		},{
+			"enabled": true,
+			"name": "bundle_and_bribe_experiment",
+			"variants": [
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				}
+			]
+		},{
+			"enabled": true,
+			"name": "most_popular_banner_experiment",
+			"variants": [
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				},
+				{
+					"include_rate": 1000
+				}
+			]
+		},{
+			"enabled": true,
+			"name": "outfit_purchase_experiment",
+			"variants": [
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				},
+				{
+					"include_rate": 500
+				}
+			]
+		}
+	]
+}

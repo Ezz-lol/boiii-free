@@ -95,6 +95,11 @@ END
 IMAGE_SPLASH          BITMAP "resources/splash.bmp"
 IMAGE_LOGO            BITMAP "resources/logo.bmp"
 
+DW_MOTD               RCDATA "resources/dw/experiments_tu32.gz"
+DW_CARDS              RCDATA "resources/dw/featured_cards-english_tu32.gz"
+DW_PLAYLISTS          RCDATA "resources/dw/playlists_tu32.gz"
+//DW_FASTFILE           RCDATA "resources/dw/en_core_ffotd_tu32_593.ff"
+
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////
 

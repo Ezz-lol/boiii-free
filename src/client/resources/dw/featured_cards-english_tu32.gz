@@ -1,0 +1,48 @@
+{
+    "version": 1,
+    "enabled": true,
+    "cards_count": 5,
+    "timer": 5000,
+    "data": [
+        {
+            "priority": "1",
+            "type": "crm",
+            "title": "TEMP TITLE",
+            "action_title": "Open",
+            "action": "opencrm",
+            "bg": "t7_store_featured_message"
+		},
+		{
+            "priority": "2",
+            "type": "crm",
+            "title": "TEMP TITLE",
+            "action_title": "Open",
+            "action": "opencrm",
+            "bg": "t7_store_featured_message"
+		},
+				{
+            "priority": "3",
+            "type": "crm",
+            "title": "TEMP TITLE",
+            "action_title": "Open",
+            "action": "opencrm",
+            "bg": "t7_store_featured_message"
+		},
+				{
+            "priority": "4",
+            "type": "crm",
+            "title": "TEMP TITLE",
+            "action_title": "Open",
+            "action": "opencrm",
+            "bg": "t7_store_featured_message"
+		},
+		{
+            "priority": "5",
+            "type": "motd",
+            "title": "MESSAGE OF THE DAY",
+            "action_title": "Open",
+            "action": "openmotd",
+            "bg": "t7_store_featured_message"
+        }
+    ]
+}
