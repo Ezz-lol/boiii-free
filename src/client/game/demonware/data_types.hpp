@@ -72,6 +72,33 @@ namespace demonware
 		}
 	};
 
+	struct bdFileQueryResult final : public bdTaskResult
+	{
+		std::uint64_t user_id;
+		std::string platform;
+		std::string filename;
+		std::uint32_t errorcode;
+		std::string filedata;
+
+		void serialize(byte_buffer* data) override
+		{
+			data->write_uint64(user_id);
+			data->write_string(platform);
+			data->write_string(filename);
+			data->write_uint32(errorcode);
+			data->write_blob(filedata);
+		}
+
+		void deserialize(byte_buffer* data) override
+		{
+			data->read_uint64(&user_id);
+			data->read_string(&platform);
+			data->read_string(&filename);
+			data->read_uint32(&errorcode);
+			data->read_blob(&filedata);
+		}
+	};
+
 	class bdTimeStamp final : public bdTaskResult
 	{
 	public:

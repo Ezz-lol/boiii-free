@@ -17,7 +17,7 @@ Reverse engineering and analysis of Call of Duty: Black Ops 3. Very experimental
 - [x] RE Tool Detection Bypass (IDA Pro, HxD, ...)
 - [x] Disable Hardware Breakpoint Detection
 - [x] Disable Integrity Checks
-- [ ] Demonware Emulation
+- [x] Demonware Emulation
 - [ ] Disable Anti-Debugging Mechanisms
 
 ## Download

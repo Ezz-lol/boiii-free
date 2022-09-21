@@ -222,52 +222,66 @@ namespace demonware
 
 	void bdStorage::get_files(service_server* server, byte_buffer* buffer) const
 	{
-		uint32_t unk32_0;
-		uint32_t numfiles, count = 0;
-		uint64_t owner;
-		std::string game, platform;
+		std::string context;
+		buffer->read_string(&context);
 
-		buffer->read_string(&game);
-		buffer->read_uint32(&unk32_0);
-		buffer->read_uint64(&owner);
-		buffer->read_string(&platform);
-		buffer->read_uint64(&owner);
-		buffer->read_string(&platform);
-		buffer->read_uint32(&numfiles);
+		printf("demonware: ctx '%s'\n", context.data());
 
-		auto reply = server->create_reply(this->task_id());
+		uint32_t count;
+		buffer->read_uint32(&count);
 
-		for (uint32_t i = 0; i < numfiles; i++)
+		std::vector<std::pair<uint64_t, std::string>> user_ctxs;
+
+		for (auto i = 0u; i < count; i++)
 		{
-			std::string filename, data;
-			buffer->read_string(&filename);
+			uint64_t user_id;
+			std::string acc_type;
+			buffer->read_uint64(&user_id);
+			buffer->read_string(&acc_type);
 
-			const auto path = get_user_file_path(filename);
-			if (!utils::io::read_file(path, &data))
-			{
-#ifndef NDEBUG
-				printf("[DW]: [bdStorage]: get user file: missing file: %s, %s, %s\n", game.data(), filename.data(),
-				       platform.data());
-#endif
-				continue;
-			}
-
-			auto response = new bdFile;
-			response->owner_id = owner;
-			response->unk = 0;
-			response->platform = platform;
-			response->filename = filename;
-			response->data = data;
-
-			reply->add(response);
-			++count;
-
-#ifndef NDEBUG
-			printf("[DW]: [bdStorage]: get user file: %s, %s, %s\n", game.data(), filename.data(), platform.data());
-#endif
+			printf("demonware: user 0x%llX '%s'\n", user_id, acc_type.data());
+			user_ctxs.emplace_back(user_id, acc_type);
 		}
 
-		if (count == numfiles)
+		buffer->read_uint32(&count);
+
+		std::vector<std::string> filenames;
+
+		for (auto i = 0u; i < count; i++)
+		{
+			std::string filename;
+			buffer->read_string(&filename);
+			printf("demonware: file '%s'\n", filename.data());
+
+			filenames.push_back(std::move(filename));
+		}
+
+		auto reply = server->create_reply(this->task_id());
+		uint32_t available = 0;
+
+		for (size_t i = 0u; i < filenames.size(); i++)
+		{
+			auto& name = filenames.at(i);
+			std::string filedata;
+			if (utils::io::read_file(get_user_file_path(name), &filedata))
+			{
+				auto* entry = new bdFileQueryResult;
+				entry->user_id = user_ctxs.at(i).first;
+				entry->platform = user_ctxs.at(i).second;
+				entry->filename = filenames.at(i);
+				entry->errorcode = 0;
+				entry->filedata = filedata;
+				reply->add(entry);
+				available++;
+				std::cout << "demonware: user file '" << name << "' dispatched.\n";
+			}
+			else
+			{
+				std::cout << "demonware: user file '" << name << "' not found.\n";
+			}
+		}
+
+		if (available == count)
 		{
 			reply->send();
 		}
