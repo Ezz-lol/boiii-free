@@ -482,9 +482,6 @@ namespace demonware
 
 			utils::hook::set<uint32_t>(0x141EC4B50_g, 0xC3D08948); // Skip publisher file signature stuff
 
-			utils::hook::set<uint32_t>(0x141EC4B40_g, 0xC301B0); // FFOTD is valid
-			utils::hook::set<uint32_t>(0x141EBDF30_g, 0xC301B0); // DDLs available
-			utils::hook::set<uint32_t>(0x141E968F0_g, 0xC301B0); // QOL finished
 		}
 
 		void pre_destroy() override

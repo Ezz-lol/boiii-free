@@ -23,7 +23,7 @@ namespace demonware
 		this->map_publisher_resource("motd-.*\\.gz", DW_MOTD);
 		this->map_publisher_resource("playlists(_.+)?\\.gz", DW_PLAYLISTS);
 		this->map_publisher_resource("featured_cards(.+)?\\.gz", DW_CARDS);
-		// this->map_publisher_resource(".*ffotd-.*\\.ff", DW_FASTFILE);
+		this->map_publisher_resource(".*ffotd.*\\.ff", DW_FASTFILE);
 	}
 
 	void bdStorage::map_publisher_resource(const std::string& expression, const INT id)
