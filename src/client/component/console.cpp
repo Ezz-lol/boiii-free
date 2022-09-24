@@ -21,7 +21,7 @@ namespace console
 		void print_message(const char* message)
 		{
 #ifndef NDEBUG
-			//OutputDebugStringA(message);
+			OutputDebugStringA(message);
 #endif
 
 			if (started && !terminate_runner)

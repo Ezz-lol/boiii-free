@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 
+#include <utils/io.hpp>
 #include <utils/hook.hpp>
 #include <utils/thread.hpp>
 
@@ -10,6 +11,8 @@
 #include "game/demonware/servers/stun_server.hpp"
 #include "game/demonware/servers/umbrella_server.hpp"
 #include "game/demonware/server_registry.hpp"
+
+#include "resource.hpp"
 
 #define TCP_BLOCKING true
 #define UDP_BLOCKING false
@@ -436,6 +439,120 @@ namespace demonware
 		}
 	}
 
+	struct FSCKData
+	{
+		bool bSuccess;
+		bool bInProgress;
+		bool bFileChecked;
+		hash_state hstate;
+		uint32_t fileIndex;
+		uint32_t filePointer;
+		byte data[65536];
+	};
+
+	void load_ffotd()
+	{
+		OutputDebugStringA("LOADING FASTFILE");
+
+		static const auto ffotd = utils::nt::load_resource(DW_FASTFILE);
+
+		game::XZoneInfo zone_info{};
+		zone_info.name = "core_ffotd_tu32_593";
+		zone_info.allocFlags = 0x2000;
+		zone_info.freeFlags = 0x40000000;
+		zone_info.allocSlot = 0;
+		zone_info.freeSlot = 0;
+		zone_info.fileBuffer.data = ffotd.data();
+		zone_info.fileBuffer.dataSize = ffotd.size();
+
+		game::DB_LoadXAssets(&zone_info, 1, false, false);
+
+		
+		OutputDebugStringA("DONE1 FASTFILE");
+
+		reinterpret_cast<void(*)()>(0x141424EB0_g)();
+		OutputDebugStringA("DONE2 FASTFILE");
+		*reinterpret_cast<bool*>(0x151843803_g) = true;
+		OutputDebugStringA("DONE3 FASTFILE");
+	}
+
+	void doLPCStuff()
+	{
+		auto& s_fsckData = *(FSCKData*)0x1562CDB00_g;
+		bool& s_lpcData_lpcBusy = *(bool*)0x1562CDACD_g;
+		bool& s_lpcData_lpcReady = *(bool*)0x1562CDACC_g;
+		uint8_t* s_localManifest = (uint8_t*)0x1562DDBE0_g;
+
+		std::string data = utils::io::read_file("LPC/.manifest");
+		if (data.empty())
+		{
+			s_lpcData_lpcBusy = false;
+			printf("LPC BAD :(\n");
+			return;
+		}
+
+		printf("LPC GOOD :)\n");
+
+		memcpy(s_localManifest, data.data(), data.size());
+
+		if (!s_fsckData.bInProgress)
+		{
+			// LPC_ResetFSCK
+			memset(&s_fsckData, 0, sizeof(s_fsckData));
+			s_fsckData.bSuccess = true;
+			s_fsckData.bInProgress = true;
+			s_lpcData_lpcBusy = true;
+
+			// LPC_TickFSCK
+			//reinterpret_cast<void(*)()>(0x141F03F00_g)();
+			//load_ffotd();
+
+			// Fuck it
+			s_fsckData.bSuccess = true;
+			s_fsckData.bInProgress = false;
+			s_lpcData_lpcBusy = false;
+			s_lpcData_lpcReady = true;
+		}
+	}
+
+	void getShotLang(game::XZoneInfo* zoneInfo, uint32_t zoneCount, bool sync, bool suppressSync)
+	{
+		printf("ZOOONEEE: %X %s\n", zoneCount, zoneInfo[0].name);
+		game::DB_LoadXAssets(zoneInfo, zoneCount, sync, suppressSync);
+	}
+
+	utils::hook::detour start;
+	utils::hook::detour suc;
+	utils::hook::detour fai;
+
+	void* succ(void* a1, void* a2)
+	{
+		printf("LPC SUCCESS\n");
+		return suc.invoke<void*>(a1, a2);
+	}
+
+	void* failc(void* a1, void* a2)
+	{
+		printf("LPC FAIL\n");
+		return fai.invoke<void*>(a1, a2);
+	}
+
+	void* startc(void* a1, void* a2)
+	{
+		printf("LPC START\n");
+		return start.invoke<void*>(a1, a2);
+	}
+
+	void statusss()
+	{
+		OutputDebugStringA("IT CXALLLED");
+	}
+
+	const char* getShotLangReal()
+	{
+		return "core_ffotd_tu32_593";
+	}
+
 	class component final : public component_interface
 	{
 	public:
@@ -482,6 +599,29 @@ namespace demonware
 
 			utils::hook::set<uint32_t>(0x141EC4B50_g, 0xC3D08948); // Skip publisher file signature stuff
 
+			//utils::hook::set<uint32_t>(0x141EC4B40_g, 0xC301B0); // FFOTD is valid
+			//utils::hook::set<uint32_t>(0x141EBDF30_g, 0xC301B0); // DDLs available
+			//utils::hook::set<uint32_t>(0x141E968F0_g, 0xC301B0); // QOL finished
+			//*(uint8_t*)0x151843808_g = 1; // 
+			//*(uint8_t*)0x151641C8A_g = 1; // DDLs
+			//*(uint32_t*)0x151412FB4_g = 4; // QOL
+
+			//utils::hook::jump(0x141F03A20_g, doLPCStuff);
+			//utils::hook::call(0x141EC462D_g, getShotLang);
+			utils::hook::call(0x141EC458C_g, getShotLangReal);
+
+			//start.create(0x141EC4400_g, startc);
+			//suc.create(0x141440B00_g, succ);
+			//fai.create(0x141440B10_g, failc);
+
+			/*utils::hook::jump(0x141EC4487_g, utils::hook::assemble([](utils::hook::assembler& a)
+			{
+				a.pushad64();
+				a.call_aligned(statusss);
+				a.popad64();
+				a.mov(qword_ptr(rsp, 0x288 + 0x8), rdi);
+				a.jmp(0x141EC448F_g);
+			}));*/
 		}
 
 		void pre_destroy() override
