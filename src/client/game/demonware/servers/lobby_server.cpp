@@ -32,6 +32,7 @@ namespace demonware
 		this->register_service<bdLeague>();
 		this->register_service<bdLeague2>();
 		this->register_service<bdPublisherVariables>();
+		this->register_service<bdDDL>();
 		this->register_service<bdPresence>();
 		this->register_service<bdMarketingComms>();
 		this->register_service<bdMatchMaking>();

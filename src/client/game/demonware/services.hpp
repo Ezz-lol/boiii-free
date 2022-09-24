@@ -34,6 +34,7 @@
 #include "services/bdLeague2.hpp"			// 82
 #include "services/bdStats3.hpp"            // 91
 #include "services/bdPublisherVariables.hpp"// 95
+#include "services/bdDDL.hpp"               // 96
 // AccountLinking                           // 86
 #include "services/bdPresence.hpp"          //103
 #include "services/bdMarketingComms.hpp"    //104

@@ -12,5 +12,6 @@ namespace demonware
 		void reportConsoleID(service_server* server, byte_buffer* buffer) const;
 		void reportConsoleDetails(service_server* server, byte_buffer* buffer) const;
 		void answerTOTPChallenge(service_server* server, byte_buffer* buffer) const;
+		void idk(service_server* server, byte_buffer* buffer) const;
 	};
 }
