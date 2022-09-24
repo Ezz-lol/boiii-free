@@ -2,6 +2,22 @@
 
 namespace game
 {
+	struct XZoneBuffer
+	{
+		const void* data;
+		size_t dataSize;
+	};
+
+	struct XZoneInfo
+	{
+		const char* name;
+		int allocFlags;
+		int freeFlags;
+		int allocSlot;
+		int freeSlot;
+		XZoneBuffer fileBuffer;
+	};
+
 	typedef void (*xcommand_t)();
 
 	enum errorCode

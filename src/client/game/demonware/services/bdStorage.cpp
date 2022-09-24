@@ -24,6 +24,8 @@ namespace demonware
 		this->map_publisher_resource("playlists(_.+)?\\.gz", DW_PLAYLISTS);
 		this->map_publisher_resource("featured_cards(.+)?\\.gz", DW_CARDS);
 		this->map_publisher_resource(".*ffotd.*\\.ff", DW_FASTFILE);
+		this->map_publisher_resource("keys\\.txt", DW_KEYS);
+		this->map_publisher_resource("qosconfig4\\.csv", DW_QOSCONFIG);
 	}
 
 	void bdStorage::map_publisher_resource(const std::string& expression, const INT id)
@@ -225,7 +227,7 @@ namespace demonware
 		std::string context;
 		buffer->read_string(&context);
 
-		printf("demonware: ctx '%s'\n", context.data());
+		//printf("demonware: ctx '%s'\n", context.data());
 
 		uint32_t count;
 		buffer->read_uint32(&count);
@@ -239,7 +241,7 @@ namespace demonware
 			buffer->read_uint64(&user_id);
 			buffer->read_string(&acc_type);
 
-			printf("demonware: user 0x%llX '%s'\n", user_id, acc_type.data());
+			//printf("demonware: user 0x%llX '%s'\n", user_id, acc_type.data());
 			user_ctxs.emplace_back(user_id, acc_type);
 		}
 
@@ -251,7 +253,7 @@ namespace demonware
 		{
 			std::string filename;
 			buffer->read_string(&filename);
-			printf("demonware: file '%s'\n", filename.data());
+			//printf("demonware: file '%s'\n", filename.data());
 
 			filenames.push_back(std::move(filename));
 		}
@@ -273,11 +275,11 @@ namespace demonware
 				entry->filedata = filedata;
 				reply->add(entry);
 				available++;
-				std::cout << "demonware: user file '" << name << "' dispatched.\n";
+				//std::cout << "demonware: user file '" << name << "' dispatched.\n";
 			}
 			else
 			{
-				std::cout << "demonware: user file '" << name << "' not found.\n";
+				//std::cout << "demonware: user file '" << name << "' not found.\n";
 			}
 		}
 

@@ -16,6 +16,9 @@ namespace game
 	};
 	WEAK symbol<void(char* text, int maxSize)> Con_GetTextCopy{0x14133A7D0_g};
 
+	// DB
+	WEAK symbol<void(XZoneInfo *zoneInfo, uint32_t zoneCount, bool sync, bool suppressSync)> DB_LoadXAssets{0x1414236A0_g};
+
 	// Live
 	WEAK symbol<bool(uint64_t, int*, bool)> Live_GetConnectivityInformation{0x141E0C410_g};
 

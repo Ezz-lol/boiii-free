@@ -9,3 +9,5 @@
 #define DW_CARDS              303
 #define DW_PLAYLISTS          304
 #define DW_FASTFILE           305
+#define DW_KEYS               306
+#define DW_QOSCONFIG          307
