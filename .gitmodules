@@ -19,3 +19,6 @@
 [submodule "deps/rapidjson"]
 	path = deps/rapidjson
 	url = https://github.com/Tencent/rapidjson.git
+[submodule "deps/udis86"]
+	path = deps/udis86
+	url = https://github.com/vmt/udis86.git
