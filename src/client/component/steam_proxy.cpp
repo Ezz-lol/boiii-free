@@ -169,6 +169,11 @@ namespace steam_proxy
 				return ownership_state::unowned;
 			}
 
+			if (is_disabled())
+			{
+				return ownership_state::success;
+			}
+
 			this->client_utils_.invoke<void>("SetAppIDForCurrentPipe", app_id, false);
 
 			char our_directory[MAX_PATH] = {0};
