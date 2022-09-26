@@ -46,7 +46,10 @@ namespace steam_proxy
 
 			this->load_client();
 			this->clean_up_on_error();
+		}
 
+		void post_unpack() override
+		{
 #ifndef DEV_BUILD
 			try
 			{
