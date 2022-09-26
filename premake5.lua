@@ -311,5 +311,21 @@ project "client"
 
 	dependencies.imports()
 
+
+project "runner"
+	kind "WindowedApp"
+	language "C++"
+
+	files {"./src/runner/**.rc", "./src/runner/**.hpp", "./src/runner/**.cpp", "./src/runner/resources/**.*"}
+
+	includedirs {"./src/runner", "./src/common", "%{prj.location}/src"}
+
+	links {"common"}
+
+	resincludedirs {"$(ProjectDir)src"}
+
+	dependencies.imports()
+
+
 group "Dependencies"
 	dependencies.projects()
