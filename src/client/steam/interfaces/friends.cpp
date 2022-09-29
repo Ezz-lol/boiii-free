@@ -1,5 +1,6 @@
 #include <std_include.hpp>
 #include "../steam.hpp"
+#include "component/steam_proxy.hpp"
 
 //#include <game/game.hpp>
 
@@ -7,7 +8,7 @@ namespace steam
 {
 	const char* friends::GetPersonaName()
 	{
-		return "boiii";
+		return steam_proxy::get_player_name();
 	}
 
 	unsigned long long friends::SetPersonaName(const char* pchPersonaName)

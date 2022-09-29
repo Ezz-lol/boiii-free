@@ -98,6 +98,11 @@ namespace steam_proxy
 			return steam_overlay_module_;
 		}
 
+		const char* get_player_name()
+		{
+			return this->client_friends_.invoke<const char*>("GetPersonaName");
+		}
+
 	private:
 		utils::nt::library steam_client_module_{};
 		utils::nt::library steam_overlay_module_{};
@@ -105,6 +110,7 @@ namespace steam_proxy
 		steam::interface client_engine_{};
 		steam::interface client_user_{};
 		steam::interface client_utils_{};
+		steam::interface client_friends_{};
 
 		void* steam_pipe_ = nullptr;
 		void* global_user_ = nullptr;
@@ -141,9 +147,10 @@ namespace steam_proxy
 			this->steam_pipe_ = this->steam_client_module_.invoke<void*>("Steam_CreateSteamPipe");
 			this->global_user_ = this->steam_client_module_.invoke<void*>(
 				"Steam_ConnectToGlobalUser", this->steam_pipe_);
-			this->client_user_ = this->client_engine_.invoke<void*>(8, this->steam_pipe_, this->global_user_);
+			this->client_user_ = this->client_engine_.invoke<void*>(8, this->global_user_, this->steam_pipe_);
 			// GetIClientUser
 			this->client_utils_ = this->client_engine_.invoke<void*>(14, this->steam_pipe_); // GetIClientUtils
+			this->client_friends_ = this->client_engine_.invoke<void*>(13, this->global_user_, this->steam_pipe_); // GetIClientFriends
 		}
 
 		ownership_state start_mod(const std::string& title, const size_t app_id)
@@ -235,6 +242,12 @@ namespace steam_proxy
 	{
 		// TODO: Find a better way to do this
 		return component_loader::get<component>()->get_overlay_module();
+	}
+
+	const char* get_player_name()
+	{
+		static std::string name = component_loader::get<component>()->get_player_name();
+		return name.data();
 	}
 }
 
