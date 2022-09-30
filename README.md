@@ -14,7 +14,7 @@ Reverse engineering and analysis of Call of Duty: Black Ops 3. Very experimental
 - [x] Steam API Emulation
 - [x] Steam Integrity Bypass
 - [x] Offline Multiplayer/Zombies/Campaign Support
-- [x] RE Tool Detection Bypass (IDA Pro, HxD, ...)
+- [x] RE Tool Detection Bypass (only the ones I use: IDA Pro, HxD, Wireshark)
 - [x] Disable Hardware Breakpoint Detection
 - [x] Disable Integrity Checks
 - [x] Demonware Emulation
