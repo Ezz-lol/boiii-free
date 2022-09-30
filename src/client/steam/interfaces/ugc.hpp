@@ -95,6 +95,7 @@ namespace steam
 
 		virtual uint64_t SubscribeItem(uint64_t nPublishedFileID);
 		virtual uint64_t UnsubscribeItem(uint64_t nPublishedFileID);
+		virtual uint32_t GetNumSubscribedItems();
 		virtual uint32_t GetSubscribedItems(uint64_t* pvecPublishedFileID, uint32_t cMaxEntries);
 
 		virtual uint32_t GetItemState(uint64_t nPublishedFileID);

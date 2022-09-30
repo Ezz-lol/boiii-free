@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 #include "../steam.hpp"
-
+#include "component/steam_proxy.hpp"
 
 namespace steam
 {
@@ -294,20 +294,73 @@ namespace steam
 		return 0;
 	}
 
+	uint32_t ugc::GetNumSubscribedItems()
+	{
+		::steam_proxy::update_subscribed_items();
+
+		uint32_t count = 0;
+		::steam_proxy::access_subscribed_items([&](const steam_proxy::subscribed_item_map& items)
+		{
+			count = static_cast<uint32_t>(items.size());
+		});
+
+		return count;
+	}
+
 	uint32_t ugc::GetSubscribedItems(uint64_t* pvecPublishedFileID, uint32_t cMaxEntries)
 	{
-		return 0;
+		uint32_t count = 0;
+		::steam_proxy::access_subscribed_items([&](const steam_proxy::subscribed_item_map& items)
+		{
+			for (const auto& item : items)
+			{
+				if (count < cMaxEntries)
+				{
+					pvecPublishedFileID[count] = item.first;
+					++count;
+				}
+			}
+		});
+
+		return count;
 	}
 
 	uint32_t ugc::GetItemState(uint64_t nPublishedFileID)
 	{
-		return 0;
+		uint32_t state = 0;
+		::steam_proxy::access_subscribed_items([&](const steam_proxy::subscribed_item_map& items)
+		{
+			const auto entry = items.find(nPublishedFileID);
+			if (entry != items.end())
+			{
+				state = entry->second.state;
+			}
+		});
+
+		return state;
 	}
 
 	bool ugc::GetItemInstallInfo(uint64_t nPublishedFileID, uint64_t* punSizeOnDisk, char* pchFolder,
 	                             uint32_t cchFolderSize, uint32_t* punTimeStamp)
 	{
-		return false;
+		bool found = false;
+		::steam_proxy::access_subscribed_items([&](const steam_proxy::subscribed_item_map& items)
+		{
+			const auto entry = items.find(nPublishedFileID);
+			if (entry != items.end())
+			{
+				const auto& item = entry->second;
+				found = item.available;
+				memcpy(pchFolder, item.path.data(),
+				       std::min(item.path.size() + 1, static_cast<size_t>(cchFolderSize)));
+				pchFolder[cchFolderSize - 1] = 0;
+
+				*punSizeOnDisk = item.size_on_disk;
+				*punTimeStamp = item.time_stamp;
+			}
+		});
+
+		return found;
 	}
 
 	bool ugc::GetItemDownloadInfo(uint64_t nPublishedFileID, uint64_t* punBytesDownloaded,

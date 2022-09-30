@@ -6,6 +6,8 @@
 #include <utils/nt.hpp>
 #include <utils/flags.hpp>
 #include <utils/string.hpp>
+#include <utils/finally.hpp>
+#include <utils/concurrency.hpp>
 #include <utils/binary_resource.hpp>
 
 #include "resource.hpp"
@@ -45,6 +47,7 @@ namespace steam_proxy
 			}*/
 
 			this->load_client();
+			update_subscribed_items();
 			this->clean_up_on_error();
 		}
 
@@ -103,6 +106,73 @@ namespace steam_proxy
 			return this->client_friends_.invoke<const char*>("GetPersonaName");
 		}
 
+		void update_subscribed_items()
+		{
+			subscribed_item_map map{};
+
+			const auto _ = utils::finally([&]
+			{
+				this->subscribed_items_.access([&](subscribed_item_map& items)
+				{
+					items = std::move(map);
+				});
+			});
+
+			if (!this->client_ugc_)
+			{
+				return;
+			}
+
+			try
+			{
+				const auto app_id = steam::SteamUtils()->GetAppID();
+				const auto num_items = this->client_ugc_.invoke<uint32_t>("GetNumSubscribedItems", app_id);
+
+				if (!num_items)
+				{
+					return;
+				}
+
+				std::vector<uint64_t> ids;
+				ids.resize(num_items);
+
+				auto result = this->client_ugc_.invoke<uint32_t>("GetSubscribedItems", app_id, ids.data(),
+				                                                 num_items);
+				result = std::min(num_items, result);
+
+				for (uint32_t i = 0; i < result; ++i)
+				{
+					char buffer[0x1000] = {0};
+					subscribed_item item{};
+
+					item.state = this->client_ugc_.invoke<uint32_t>("GetItemState", app_id, ids[i]);
+					item.available = this->client_ugc_.invoke<bool>("GetItemInstallInfo", app_id, ids[i],
+					                                                &item.size_on_disk,
+					                                                buffer,
+					                                                sizeof(buffer), &item.time_stamp);
+					item.path = buffer;
+
+					map[ids[i]] = std::move(item);
+				}
+			}
+			catch (std::exception& e)
+			{
+				OutputDebugStringA(e.what());
+				this->client_ugc_ = {};
+			}
+			catch (...)
+			{
+				OutputDebugStringA("Unk exc");
+				this->client_ugc_ = {};
+			}
+		}
+
+		void access_subscribed_items(
+			const std::function<void(const subscribed_item_map&)>& callback)
+		{
+			this->subscribed_items_.access(callback);
+		}
+
 	private:
 		utils::nt::library steam_client_module_{};
 		utils::nt::library steam_overlay_module_{};
@@ -111,6 +181,9 @@ namespace steam_proxy
 		steam::interface client_user_{};
 		steam::interface client_utils_{};
 		steam::interface client_friends_{};
+		steam::interface client_ugc_{};
+
+		utils::concurrency::container<subscribed_item_map> subscribed_items_;
 
 		void* steam_pipe_ = nullptr;
 		void* global_user_ = nullptr;
@@ -150,7 +223,10 @@ namespace steam_proxy
 			this->client_user_ = this->client_engine_.invoke<void*>(8, this->global_user_, this->steam_pipe_);
 			// GetIClientUser
 			this->client_utils_ = this->client_engine_.invoke<void*>(14, this->steam_pipe_); // GetIClientUtils
-			this->client_friends_ = this->client_engine_.invoke<void*>(13, this->global_user_, this->steam_pipe_); // GetIClientFriends
+			this->client_friends_ = this->client_engine_.invoke<void*>(13, this->global_user_, this->steam_pipe_);
+			// GetIClientFriends
+			this->client_ugc_ = this->client_engine_.invoke<void*>(61, this->global_user_, this->steam_pipe_);
+			// GetIClientUGC
 		}
 
 		ownership_state start_mod(const std::string& title, const size_t app_id)
@@ -248,6 +324,16 @@ namespace steam_proxy
 	{
 		static std::string name = component_loader::get<component>()->get_player_name();
 		return name.data();
+	}
+
+	void update_subscribed_items()
+	{
+		component_loader::get<component>()->update_subscribed_items();
+	}
+
+	void access_subscribed_items(const std::function<void(const subscribed_item_map&)>& callback)
+	{
+		component_loader::get<component>()->access_subscribed_items(callback);
 	}
 }
 
