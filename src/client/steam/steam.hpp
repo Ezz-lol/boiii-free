@@ -48,6 +48,7 @@ typedef union
 #include "interfaces/unified_messages.hpp"
 #include "interfaces/controller.hpp"
 #include "interfaces/client.hpp"
+#include "interfaces/ugc.hpp"
 
 namespace steam
 {

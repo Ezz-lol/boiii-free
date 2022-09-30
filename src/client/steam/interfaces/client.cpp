@@ -225,7 +225,8 @@ namespace steam
 
 	void* client::GetISteamUGC(HSteamUser hSteamUser, HSteamPipe hSteamPipe, const char* pchVersion)
 	{
-		return get_dummy();
+		static ugc u;
+		return &u;
 	}
 
 	void* client::GetISteamAppList(HSteamUser hSteamUser, HSteamPipe hSteamPipe, const char* pchVersion)
@@ -267,7 +268,7 @@ namespace steam
 
 	void* client::GetISteamVideo(HSteamUser hSteamuser, HSteamPipe hSteamPipe, const char* pchVersion)
 	{
-		return get_dummy(); //
+		return get_dummy();
 	}
 
 	void* client::GetISteamParentalSettings(HSteamUser hSteamuser, HSteamPipe hSteamPipe, const char* pchVersion)
