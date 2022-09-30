@@ -155,14 +155,8 @@ namespace steam_proxy
 					map[ids[i]] = std::move(item);
 				}
 			}
-			catch (std::exception& e)
-			{
-				OutputDebugStringA(e.what());
-				this->client_ugc_ = {};
-			}
 			catch (...)
 			{
-				OutputDebugStringA("Unk exc");
 				this->client_ugc_ = {};
 			}
 		}
