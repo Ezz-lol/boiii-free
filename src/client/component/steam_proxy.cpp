@@ -47,7 +47,6 @@ namespace steam_proxy
 			}*/
 
 			this->load_client();
-			update_subscribed_items();
 			this->clean_up_on_error();
 		}
 
