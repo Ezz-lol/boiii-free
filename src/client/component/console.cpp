@@ -50,15 +50,20 @@ namespace console
 
 		void empty_message_queue()
 		{
-			message_queue.access([](std::queue<std::string>& queue)
+			std::queue<std::string> current_queue{};
+
+			message_queue.access([&](std::queue<std::string>& queue)
 			{
-				while(!queue.empty())
-				{
-					auto& msg = queue.front();
-					print_message_to_console(msg.data());
-					queue.pop();
-				}
+				current_queue = std::move(queue);
+				queue = {};
 			});
+
+			while (!current_queue.empty())
+			{
+				auto& msg = current_queue.front();
+				print_message_to_console(msg.data());
+				current_queue.pop();
+			}
 		}
 
 		void print_stub(const char* fmt, ...)
@@ -203,6 +208,15 @@ namespace console
 
 			terminate_runner = false;
 
+			this->message_runner_ = std::thread([]
+			{
+				while (!terminate_runner)
+				{
+					empty_message_queue();
+					std::this_thread::sleep_for(10ms);
+				}
+			});
+
 			this->console_runner_ = utils::thread::create_named_thread("Console IO", [this]
 			{
 				{
@@ -223,7 +237,6 @@ namespace console
 					}
 					else
 					{
-						empty_message_queue();
 						std::this_thread::sleep_for(1ms);
 					}
 				}
@@ -234,6 +247,11 @@ namespace console
 		{
 			terminate_runner = true;
 
+			if (this->message_runner_.joinable())
+			{
+				this->message_runner_.join();
+			}
+
 			if (this->console_runner_.joinable())
 			{
 				this->console_runner_.join();
@@ -242,6 +260,7 @@ namespace console
 
 	private:
 		std::thread console_runner_;
+		std::thread message_runner_;
 	};
 }
 
