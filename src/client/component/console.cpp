@@ -45,7 +45,6 @@ namespace console
 				a.jmp(0x142333667_g);
 			});
 
-			OutputDebugStringA(message);
 			static_cast<void(*)(const char*)>(print_func)(message);
 		}
 
@@ -209,7 +208,7 @@ namespace console
 				while (!terminate_runner)
 				{
 					auto current_queue = empty_message_queue();
-					while(!current_queue.empty())
+					while (!current_queue.empty())
 					{
 						const auto& msg = current_queue.front();
 						print_message_to_console(msg.data());
