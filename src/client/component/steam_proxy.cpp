@@ -191,7 +191,7 @@ namespace steam_proxy
 		void pre_start() override
 		{
 			load_client();
-			clean_up_on_error();
+			perform_cleanup_if_needed();
 		}
 
 		void post_unpack() override
@@ -218,6 +218,8 @@ namespace steam_proxy
 				MessageBoxA(GetForegroundWindow(), e.what(), "BOIII Error", MB_ICONERROR);
 				TerminateProcess(GetCurrentProcess(), 1234);
 			}
+
+			clean_up_on_error();
 		}
 
 		void pre_destroy() override
