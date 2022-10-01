@@ -6,6 +6,7 @@
 
 #include <utils/thread.hpp>
 #include <utils/hook.hpp>
+#include <utils/concurrency.hpp>
 
 #define CONSOLE_BUFFER_SIZE 16384
 #define WINDOW_WIDTH 608
@@ -17,17 +18,47 @@ namespace console
 		HANDLE logo;
 		std::atomic_bool started{false};
 		std::atomic_bool terminate_runner{false};
+		utils::concurrency::container<std::queue<std::string>> message_queue{};
 
 		void print_message(const char* message)
 		{
-#ifndef NDEBUG
-			OutputDebugStringA(message);
-#endif
-
 			if (started && !terminate_runner)
 			{
 				game::Com_Printf(0, 0, "%s", message);
 			}
+		}
+
+		void queue_message(const char* message)
+		{
+			message_queue.access([message](std::queue<std::string>& queue)
+			{
+				queue.push(message);
+			});
+		}
+
+		void print_message_to_console(const char* message)
+		{
+			static auto print_func = utils::hook::assemble([](utils::hook::assembler& a)
+			{
+				a.push(rbx);
+				a.mov(eax, 0x8030);
+				a.jmp(0x142333667_g);
+			});
+
+			static_cast<void(*)(const char*)>(print_func)(message);
+		}
+
+		void empty_message_queue()
+		{
+			message_queue.access([](std::queue<std::string>& queue)
+			{
+				while(!queue.empty())
+				{
+					auto& msg = queue.front();
+					print_message_to_console(msg.data());
+					queue.pop();
+				}
+			});
 		}
 
 		void print_stub(const char* fmt, ...)
@@ -162,8 +193,8 @@ namespace console
 		{
 			utils::hook::set<uint8_t>(0x14133D2FE_g, 0xEB); // Always enable ingame console
 
-			//utils::hook::jump(0x1423337F0_g, print_message);
-			//utils::hook::jump(0x142333660_g, print_message);
+			utils::hook::jump(0x1423337F0_g, queue_message);
+			utils::hook::jump(0x142333660_g, queue_message);
 
 			const auto self = utils::nt::library::get_by_address(sys_create_console_stub);
 			logo = LoadImageA(self.get_handle(), MAKEINTRESOURCEA(IMAGE_LOGO), 0, 0, 0, LR_COPYFROMRESOURCE);
@@ -192,6 +223,7 @@ namespace console
 					}
 					else
 					{
+						empty_message_queue();
 						std::this_thread::sleep_for(1ms);
 					}
 				}
