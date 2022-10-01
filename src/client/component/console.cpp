@@ -45,10 +45,11 @@ namespace console
 				a.jmp(0x142333667_g);
 			});
 
+			OutputDebugStringA(message);
 			static_cast<void(*)(const char*)>(print_func)(message);
 		}
 
-		void empty_message_queue()
+		std::queue<std::string> empty_message_queue()
 		{
 			std::queue<std::string> current_queue{};
 
@@ -58,12 +59,7 @@ namespace console
 				queue = {};
 			});
 
-			while (!current_queue.empty())
-			{
-				auto& msg = current_queue.front();
-				print_message_to_console(msg.data());
-				current_queue.pop();
-			}
+			return current_queue;
 		}
 
 		void print_stub(const char* fmt, ...)
@@ -199,7 +195,7 @@ namespace console
 			utils::hook::set<uint8_t>(0x14133D2FE_g, 0xEB); // Always enable ingame console
 
 			utils::hook::jump(0x1423337F0_g, queue_message);
-			utils::hook::jump(0x142333660_g, queue_message);
+			utils::hook::nop(0x14233380A_g, 2); // Print from every thread
 
 			const auto self = utils::nt::library::get_by_address(sys_create_console_stub);
 			logo = LoadImageA(self.get_handle(), MAKEINTRESOURCEA(IMAGE_LOGO), 0, 0, 0, LR_COPYFROMRESOURCE);
@@ -208,16 +204,23 @@ namespace console
 
 			terminate_runner = false;
 
-			this->message_runner_ = std::thread([]
+			this->message_runner_ = utils::thread::create_named_thread("Console IO", []
 			{
 				while (!terminate_runner)
 				{
-					empty_message_queue();
-					std::this_thread::sleep_for(10ms);
+					auto current_queue = empty_message_queue();
+					while(!current_queue.empty())
+					{
+						const auto& msg = current_queue.front();
+						print_message_to_console(msg.data());
+						current_queue.pop();
+					}
+
+					std::this_thread::sleep_for(15ms);
 				}
 			});
 
-			this->console_runner_ = utils::thread::create_named_thread("Console IO", [this]
+			this->console_runner_ = utils::thread::create_named_thread("Console Window", [this]
 			{
 				{
 					static utils::hook::detour sys_create_console_hook;
@@ -237,7 +240,7 @@ namespace console
 					}
 					else
 					{
-						std::this_thread::sleep_for(1ms);
+						std::this_thread::sleep_for(5ms);
 					}
 				}
 			});
