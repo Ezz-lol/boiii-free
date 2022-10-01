@@ -235,6 +235,11 @@ namespace steam_proxy
 				steam_client_module.invoke<bool>("Steam_BReleaseSteamPipe", steam_pipe);
 			}
 		}
+
+		int priority() override
+		{
+			return 998; // Run after the updater
+		}
 	};
 
 	const utils::nt::library& get_overlay_module()
