@@ -486,7 +486,9 @@ namespace demonware
 			utils::hook::copy_string(0x1430B93C8_g, "http://%s:%d/auth/");
 
 			utils::hook::set<uint32_t>(0x141EC4B50_g, 0xC3D08948); // Skip publisher file signature stuff
-			utils::hook::call(0x141EC458C_g, get_ffotd_name); // Return unlocalized name
+			utils::hook::call(0x141EC458C_g, get_ffotd_name); // Return unlocalized ffotd name
+			utils::hook::set<uint64_t>(0x141F04550_g, 0xC300000001B8); // Kill LPC_File_SafeWrite
+			utils::hook::set<uint64_t>(0x141F03180_g, 0xC300000001B8); // Kill LPC_DeleteStale
 		}
 
 		void pre_destroy() override
