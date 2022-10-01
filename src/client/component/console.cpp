@@ -74,6 +74,29 @@ namespace console
 			va_end(ap);
 		}
 
+		INT_PTR get_gray_brush()
+		{
+			static struct brush
+			{
+				HBRUSH hbrush;
+
+				brush()
+				{
+					hbrush = CreateSolidBrush(RGB(50, 50, 50));
+				}
+
+				~brush()
+				{
+					if (hbrush)
+					{
+						DeleteObject(hbrush);
+					}
+				}
+			} b;
+
+			return reinterpret_cast<INT_PTR>(b.hbrush);
+		}
+
 		LRESULT con_wnd_proc(const HWND hwnd, const UINT msg, const WPARAM wparam, const LPARAM lparam)
 		{
 			switch (msg)
@@ -82,7 +105,7 @@ namespace console
 			case WM_CTLCOLORSTATIC:
 				SetBkColor(reinterpret_cast<HDC>(wparam), RGB(50, 50, 50));
 				SetTextColor(reinterpret_cast<HDC>(wparam), RGB(232, 230, 227));
-				return reinterpret_cast<INT_PTR>(CreateSolidBrush(RGB(50, 50, 50)));
+				return get_gray_brush();
 			case WM_CLOSE:
 				game::Cbuf_AddText(0, "quit\n");
 				[[fallthrough]];
@@ -215,7 +238,7 @@ namespace console
 						current_queue.pop();
 					}
 
-					std::this_thread::sleep_for(15ms);
+					std::this_thread::sleep_for(5ms);
 				}
 			});
 
