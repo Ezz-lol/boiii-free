@@ -18,9 +18,9 @@ namespace utils
 		this->dialog_->StopProgressDialog();
 	}
 
-	void progress_ui::show(const bool marquee) const
+	void progress_ui::show(const bool marquee, HWND parent) const
 	{
-		this->dialog_->StartProgressDialog(nullptr, nullptr, PROGDLG_AUTOTIME | (marquee ? PROGDLG_MARQUEEPROGRESS : 0), nullptr);
+		this->dialog_->StartProgressDialog(parent, nullptr, PROGDLG_AUTOTIME | (marquee ? PROGDLG_MARQUEEPROGRESS : 0), nullptr);
 	}
 
 	void progress_ui::set_progress(const size_t current, const size_t max) const

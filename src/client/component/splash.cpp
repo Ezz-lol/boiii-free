@@ -71,6 +71,11 @@ namespace splash
 			this->destroy();
 		}
 
+		HWND get_window() const
+		{
+			return this->window_;
+		}
+
 	private:
 		std::atomic_bool join_safe_{false};
 		HWND window_{};
@@ -211,6 +216,17 @@ namespace splash
 		{
 			splash_component->hide();
 		}
+	}
+
+	HWND get_window()
+	{
+		auto* splash_component = component_loader::get<component>();
+		if (splash_component)
+		{
+			return splash_component->get_window();
+		}
+
+		return nullptr;
 	}
 }
 

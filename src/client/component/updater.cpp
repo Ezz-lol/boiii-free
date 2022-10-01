@@ -93,12 +93,12 @@ namespace updater
 			}
 		}
 
-		void perform_update()
+		void perform_update(HWND parent_window)
 		{
 			const utils::progress_ui progress_ui{};
 			progress_ui.set_title("Updating BOIII");
 			progress_ui.set_line(1, "Downloading update...");
-			progress_ui.show(true);
+			progress_ui.show(true, parent_window);
 
 			const auto update_data = download_update();
 
@@ -180,8 +180,7 @@ namespace updater
 			{
 				if (requires_update())
 				{
-					splash::hide();
-					perform_update();
+					perform_update(splash::get_window());
 					activate_update();
 				}
 			}
