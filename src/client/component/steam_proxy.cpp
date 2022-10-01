@@ -93,6 +93,8 @@ namespace steam_proxy
 			client_engine = nullptr;
 			client_user = nullptr;
 			client_utils = nullptr;
+			client_friends = nullptr;
+			client_ugc = nullptr;
 
 			steam_pipe = nullptr;
 			global_user = nullptr;
@@ -100,24 +102,34 @@ namespace steam_proxy
 			steam_client_module = utils::nt::library{nullptr};
 		}
 
+		bool perform_cleanup_if_needed()
+		{
+			if (steam_client_module
+				&& steam_pipe
+				&& global_user
+				&& steam_client_module.invoke<bool>("Steam_BConnected", global_user,
+				                                    steam_pipe)
+				&& steam_client_module.invoke<bool>("Steam_BLoggedOn", global_user, steam_pipe)
+			)
+			{
+				return false;
+			}
+
+			do_cleanup();
+			return true;
+		}
+
 		void clean_up_on_error()
 		{
 			scheduler::schedule([]
 			{
-				if (steam_client_module
-					&& steam_pipe
-					&& global_user
-					&& steam_client_module.invoke<bool>("Steam_BConnected", global_user,
-					                                    steam_pipe)
-					&& steam_client_module.invoke<bool>("Steam_BLoggedOn", global_user, steam_pipe)
-				)
+				if (perform_cleanup_if_needed())
 				{
-					return scheduler::cond_continue;
+					return scheduler::cond_end;
 				}
 
-				do_cleanup();
-				return scheduler::cond_end;
-			});
+				return scheduler::cond_continue;
+			}, scheduler::main);
 		}
 
 		ownership_state start_mod_unsafe(const std::string& title, size_t app_id)
