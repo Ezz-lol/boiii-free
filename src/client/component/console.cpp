@@ -230,12 +230,19 @@ namespace console
 			{
 				while (!terminate_runner)
 				{
+					std::string message_buffer{};
 					auto current_queue = empty_message_queue();
+
 					while (!current_queue.empty())
 					{
 						const auto& msg = current_queue.front();
-						print_message_to_console(msg.data());
+						message_buffer.append(msg);
 						current_queue.pop();
+					}
+
+					if (!message_buffer.empty())
+					{
+						print_message_to_console(message_buffer.data());
 					}
 
 					std::this_thread::sleep_for(5ms);
