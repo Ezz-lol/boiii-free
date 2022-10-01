@@ -9,6 +9,9 @@ namespace splash
 {
 	namespace
 	{
+		HWND window{};
+		std::thread window_thread{};
+
 		HANDLE load_splash_image()
 		{
 			const auto self = utils::nt::library::get_by_address(load_splash_image);
@@ -27,6 +30,27 @@ namespace splash
 				set_dpi(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 			}
 		}
+
+		void destroy_window()
+		{
+			if (window && IsWindow(window))
+			{
+				ShowWindow(window, SW_HIDE);
+				DestroyWindow(window);
+				window = nullptr;
+
+				if (window_thread.joinable())
+				{
+					window_thread.join();
+				}
+
+				window = nullptr;
+			}
+			else if (window_thread.joinable())
+			{
+				window_thread.detach();
+			}
+		}
 	}
 
 	class component final : public component_interface
@@ -36,7 +60,7 @@ namespace splash
 			: image_(load_splash_image())
 		{
 			enable_dpi_awareness();
-			this->window_thread_ = std::thread([this]
+			window_thread = std::thread([this]
 			{
 				this->draw();
 			});
@@ -44,64 +68,25 @@ namespace splash
 
 		~component()
 		{
-			if (this->window_thread_.joinable())
+			if (window_thread.joinable())
 			{
-				this->window_thread_.detach();
+				window_thread.detach();
 			}
 		}
 
 		void pre_destroy() override
 		{
-			this->destroy();
+			destroy_window();
 		}
 
 		void post_unpack() override
 		{
-			this->destroy();
-		}
-
-		void hide()
-		{
-			if (this->window_ && IsWindow(this->window_))
-			{
-				ShowWindow(this->window_, SW_HIDE);
-				UpdateWindow(this->window_);
-			}
-
-			this->destroy();
-		}
-
-		HWND get_window() const
-		{
-			return this->window_;
+			destroy_window();
 		}
 
 	private:
 		std::atomic_bool join_safe_{false};
-		HWND window_{};
 		HANDLE image_{};
-		std::thread window_thread_{};
-
-		void destroy()
-		{
-			if (this->window_ && IsWindow(this->window_))
-			{
-				ShowWindow(this->window_, SW_HIDE);
-				DestroyWindow(this->window_);
-				this->window_ = nullptr;
-
-				if (this->window_thread_.joinable())
-				{
-					this->window_thread_.join();
-				}
-
-				this->window_ = nullptr;
-			}
-			else if (this->window_thread_.joinable())
-			{
-				this->window_thread_.detach();
-			}
-		}
 
 		void draw()
 		{
@@ -111,13 +96,13 @@ namespace splash
 				std::this_thread::sleep_for(1ms);
 			}
 
-			this->window_ = nullptr;
+			window = nullptr;
 			UnregisterClassA("Black Ops III Splash Screen", utils::nt::library{});
 		}
 
 		bool draw_frame() const
 		{
-			if (!this->window_)
+			if (!window)
 			{
 				return false;
 			}
@@ -130,7 +115,7 @@ namespace splash
 				TranslateMessage(&msg);
 				DispatchMessageW(&msg);
 
-				if (msg.message == WM_DESTROY && msg.hwnd == this->window_)
+				if (msg.message == WM_DESTROY && msg.hwnd == window)
 				{
 					PostQuitMessage(0);
 				}
@@ -167,17 +152,17 @@ namespace splash
 
 				if (image_)
 				{
-					this->window_ = CreateWindowExA(WS_EX_APPWINDOW, "Black Ops III Splash Screen", "BOIII",
-					                                WS_POPUP | WS_SYSMENU,
-					                                (x_pixels - 320) / 2, (y_pixels - 100) / 2, 320, 100, nullptr,
-					                                nullptr,
-					                                host, nullptr);
+					window = CreateWindowExA(WS_EX_APPWINDOW, "Black Ops III Splash Screen", "BOIII",
+					                         WS_POPUP | WS_SYSMENU,
+					                         (x_pixels - 320) / 2, (y_pixels - 100) / 2, 320, 100, nullptr,
+					                         nullptr,
+					                         host, nullptr);
 
-					if (this->window_)
+					if (window)
 					{
 						auto* const image_window = CreateWindowExA(0, "Static", nullptr, WS_CHILD | WS_VISIBLE | 0xEu,
 						                                           0, 0,
-						                                           320, 100, this->window_, nullptr, host, nullptr);
+						                                           320, 100, window, nullptr, host, nullptr);
 						if (image_window)
 						{
 							RECT rect;
@@ -193,15 +178,15 @@ namespace splash
 							rect.right = rect.left + width;
 							rect.bottom = rect.top + height;
 							AdjustWindowRect(&rect, WS_CHILD | WS_VISIBLE | 0xEu, 0);
-							SetWindowPos(this->window_, nullptr, rect.left, rect.top, rect.right - rect.left,
+							SetWindowPos(window, nullptr, rect.left, rect.top, rect.right - rect.left,
 							             rect.bottom - rect.top, SWP_NOZORDER);
 
-							SetWindowRgn(this->window_,
+							SetWindowRgn(window,
 							             CreateRoundRectRgn(0, 0, rect.right - rect.left, rect.bottom - rect.top, 15,
 							                                15), TRUE);
 
-							ShowWindow(this->window_, SW_SHOW);
-							UpdateWindow(this->window_);
+							ShowWindow(window, SW_SHOW);
+							UpdateWindow(window);
 						}
 					}
 				}
@@ -211,22 +196,18 @@ namespace splash
 
 	void hide()
 	{
-		auto* splash_component = component_loader::get<component>();
-		if (splash_component)
+		if (window && IsWindow(window))
 		{
-			splash_component->hide();
+			ShowWindow(window, SW_HIDE);
+			UpdateWindow(window);
 		}
+
+		destroy_window();
 	}
 
 	HWND get_window()
 	{
-		auto* splash_component = component_loader::get<component>();
-		if (splash_component)
-		{
-			return splash_component->get_window();
-		}
-
-		return nullptr;
+		return window;
 	}
 }
 

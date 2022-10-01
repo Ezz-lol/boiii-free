@@ -93,7 +93,7 @@ namespace updater
 			}
 		}
 
-		void perform_update(HWND parent_window)
+		void perform_update(const HWND parent_window)
 		{
 			const utils::progress_ui progress_ui{};
 			progress_ui.set_title("Updating BOIII");
