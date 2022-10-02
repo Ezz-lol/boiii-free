@@ -81,8 +81,8 @@ namespace console
 				HBRUSH hbrush;
 
 				brush()
+					: hbrush(CreateSolidBrush(RGB(50, 50, 50)))
 				{
-					hbrush = CreateSolidBrush(RGB(50, 50, 50));
 				}
 
 				~brush()
