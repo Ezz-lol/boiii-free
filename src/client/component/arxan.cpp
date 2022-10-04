@@ -700,7 +700,7 @@ namespace arxan
 		void pre_start() override
 		{
 			disable_tls_callbacks();
-			restore_debug_functions();
+			//restore_debug_functions();
 
 			hide_being_debugged();
 			scheduler::loop(hide_being_debugged, scheduler::pipeline::async);
