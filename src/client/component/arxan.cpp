@@ -741,8 +741,8 @@ namespace arxan
 			if (sys_met_import) utils::hook::set(sys_met_import, get_system_metrics_stub);
 
 			// TODO: Remove as soon as real hooking works
-			auto* get_cmd_import = utils::nt::library{}.get_iat_entry("kernel32.dll", "GetCommandLineA");
-			if (get_cmd_import) utils::hook::set(get_cmd_import, get_command_line_a_stub);
+			//auto* get_cmd_import = utils::nt::library{}.get_iat_entry("kernel32.dll", "GetCommandLineA");
+			//if (get_cmd_import) utils::hook::set(get_cmd_import, get_command_line_a_stub);
 
 			//zw_terminate_process_hook.create(ntdll.get_proc<void*>("ZwTerminateProcess"), zw_terminate_process_stub);
 			//zw_terminate_process_hook.move();
