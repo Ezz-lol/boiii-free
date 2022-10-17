@@ -227,8 +227,6 @@ namespace demonware
 		std::string context;
 		buffer->read_string(&context);
 
-		//printf("demonware: ctx '%s'\n", context.data());
-
 		uint32_t count;
 		buffer->read_uint32(&count);
 
@@ -241,7 +239,6 @@ namespace demonware
 			buffer->read_uint64(&user_id);
 			buffer->read_string(&acc_type);
 
-			//printf("demonware: user 0x%llX '%s'\n", user_id, acc_type.data());
 			user_ctxs.emplace_back(user_id, acc_type);
 		}
 
@@ -253,44 +250,39 @@ namespace demonware
 		{
 			std::string filename;
 			buffer->read_string(&filename);
-			//printf("demonware: file '%s'\n", filename.data());
-
 			filenames.push_back(std::move(filename));
 		}
 
 		auto reply = server->create_reply(this->task_id());
-		uint32_t available = 0;
-
 		for (size_t i = 0u; i < filenames.size(); i++)
 		{
+			auto* entry = new bdFileQueryResult;
+			entry->user_id = user_ctxs.at(i).first;
+			entry->platform = user_ctxs.at(i).second;
+			entry->filename = filenames.at(i);
+			entry->errorcode = 0;
+
 			auto& name = filenames.at(i);
 			std::string filedata;
 			if (utils::io::read_file(get_user_file_path(name), &filedata))
 			{
-				auto* entry = new bdFileQueryResult;
-				entry->user_id = user_ctxs.at(i).first;
-				entry->platform = user_ctxs.at(i).second;
-				entry->filename = filenames.at(i);
-				entry->errorcode = 0;
 				entry->filedata = filedata;
-				reply->add(entry);
-				available++;
-				//std::cout << "demonware: user file '" << name << "' dispatched.\n";
+#ifndef NDEBUG
+				printf("[DW]: [bdStorage]: get user file: %s\n", name.data());
+#endif
 			}
 			else
 			{
-				//std::cout << "demonware: user file '" << name << "' not found.\n";
+				entry->errorcode = game::BD_NO_FILE;
+#ifndef NDEBUG
+				printf("[DW]: [bdStorage]: missing user file: %s\n", name.data());
+#endif
 			}
+
+			reply->add(entry);
 		}
 
-		if (available == count)
-		{
-			reply->send();
-		}
-		else
-		{
-			server->create_reply(this->task_id(), game::BD_NO_FILE)->send();
-		}
+		reply->send();
 	}
 
 	void bdStorage::unk12(service_server* server, byte_buffer* buffer) const
