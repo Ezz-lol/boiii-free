@@ -24,6 +24,9 @@ namespace console
 		{
 			if (started && !terminate_runner)
 			{
+#ifndef NDEBUG
+				OutputDebugStringA(message);
+#endif
 				game::Com_Printf(0, 0, "%s", message);
 			}
 		}
