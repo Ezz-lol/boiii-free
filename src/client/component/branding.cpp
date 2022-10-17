@@ -36,7 +36,7 @@ namespace branding
 			{0x00000008, "LiveStats_Core_Ready(controllerIndex, MODE_NETWORK_ONLINE)"},
 		};
 
-		std::string GetConnectivityInfo()
+		std::string get_connectivity_info()
 		{
 			int bits = 0;
 			game::Live_GetConnectivityInformation(0, &bits, false);
@@ -47,8 +47,8 @@ namespace branding
 			{
 				auto value = 1 << i;
 
-				bool set = bits & value;
-				bool req = required_mask & value;
+				const bool set = bits & value;
+				const bool req = required_mask & value;
 				if (!req) continue;
 
 				std::string name = "?";
@@ -59,11 +59,7 @@ namespace branding
 					name = entry->second;
 				}
 
-				str += utils::string::va("%08X - %d - %s\n", value, (int)set, name.data());
-			}
-
-			for (const auto& bit : connectivity_bits)
-			{
+				str += utils::string::va("%08X - %d - %s\n", value, static_cast<int>(set), name.data());
 			}
 
 			return str;
@@ -80,7 +76,7 @@ namespace branding
 			if (!font) return;
 
 			std::string str = "BOIII: " VERSION;
-			//str += "\n\n" + GetConnectivityInfo();
+			//str += "\n\n" + get_connectivity_info();
 			game::R_AddCmdDrawText(str.data(), 0x7FFFFFFF, font, static_cast<float>(x),
 			                       y + static_cast<float>(font[2]) * scale,
 			                       scale, scale, 0.0f, color, game::ITEM_TEXTSTYLE_MONOSPACESHADOWED);
