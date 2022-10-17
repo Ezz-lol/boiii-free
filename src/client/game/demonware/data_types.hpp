@@ -234,4 +234,35 @@ namespace demonware
 			buffer->read_blob(&this->data);
 		}
 	};
+
+	class bdContextUserStorageFileInfo final : public bdTaskResult
+	{
+	public:
+		uint32_t create_time;
+		uint32_t modifed_time;
+		bool priv;
+		uint64_t owner_id;
+		std::string account_type;
+		std::string filename;
+
+		void serialize(byte_buffer* buffer) override
+		{
+			buffer->write_uint32(this->create_time);
+			buffer->write_uint32(this->modifed_time);
+			buffer->write_bool(this->priv);
+			buffer->write_uint64(this->owner_id);
+			buffer->write_string(this->account_type);
+			buffer->write_string(this->filename);
+		}
+
+		void deserialize(byte_buffer* buffer) override
+		{
+			buffer->read_uint32(&this->create_time);
+			buffer->read_uint32(&this->modifed_time);
+			buffer->read_bool(&this->priv);
+			buffer->read_uint64(&this->owner_id);
+			buffer->read_string(&this->account_type);
+			buffer->read_string(&this->filename);
+		}
+	};
 }

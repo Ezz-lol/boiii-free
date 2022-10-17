@@ -20,6 +20,7 @@ namespace demonware
 		void get_publisher_file(service_server* server, byte_buffer* buffer);
 		void set_user_file(service_server* server, byte_buffer* buffer) const;
 		void upload_files(service_server* server, byte_buffer* buffer) const;
+		void upload_files_new(service_server* server, byte_buffer* buffer) const;
 		void get_files(service_server* server, byte_buffer* buffer) const;
 		void unk12(service_server* server, byte_buffer* buffer) const;
 

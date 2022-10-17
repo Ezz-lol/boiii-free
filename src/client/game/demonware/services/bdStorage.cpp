@@ -16,6 +16,7 @@ namespace demonware
 		this->register_task(20, &bdStorage::list_publisher_files);
 		this->register_task(21, &bdStorage::get_publisher_file);
 		this->register_task(24, &bdStorage::upload_files);
+		this->register_task(18, &bdStorage::upload_files_new);
 		this->register_task(16, &bdStorage::get_files);
 		this->register_task(12, &bdStorage::unk12);
 		this->register_task(10, &bdStorage::set_user_file);
@@ -211,6 +212,52 @@ namespace demonware
 			info->platform = platform;
 			info->filename = filename;
 			info->data = data;
+
+#ifndef NDEBUG
+			printf("[DW]: [bdStorage]: set user file: %s\n", filename.data());
+#endif
+
+			reply->add(info);
+		}
+
+		reply->send();
+	}
+
+	void bdStorage::upload_files_new(service_server* server, byte_buffer* buffer) const
+	{
+		uint64_t owner;
+		uint32_t numfiles;
+		std::string game, platform;
+
+		buffer->read_string(&game);
+		buffer->read_uint64(&owner);
+		buffer->read_string(&platform);
+		buffer->read_uint32(&numfiles);
+
+		auto reply = server->create_reply(this->task_id());
+
+		for (uint32_t i = 0; i < numfiles; i++)
+		{
+			std::string filename, data;
+			uint32_t version;
+			bool priv;
+
+			buffer->read_string(&filename);
+			buffer->read_blob(&data);
+			buffer->read_uint32(&version);
+			buffer->read_bool(&priv);
+
+			const auto path = get_user_file_path(filename);
+			utils::io::write_file(path, data);
+
+			auto* info = new bdContextUserStorageFileInfo;
+
+			info->modifed_time = static_cast<uint32_t>(time(nullptr));
+			info->create_time = info->modifed_time;
+			info->priv = priv;
+			info->owner_id = owner;
+			info->account_type = platform;
+			info->filename = filename;
 
 #ifndef NDEBUG
 			printf("[DW]: [bdStorage]: set user file: %s\n", filename.data());
