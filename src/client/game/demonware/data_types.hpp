@@ -1,6 +1,7 @@
 #pragma once
 
 #include "byte_buffer.hpp"
+#include "game/structs.hpp"
 
 namespace demonware
 {
@@ -263,6 +264,227 @@ namespace demonware
 			buffer->read_uint64(&this->owner_id);
 			buffer->read_string(&this->account_type);
 			buffer->read_string(&this->filename);
+		}
+	};
+
+	class bdPerformanceValue final : public bdTaskResult
+	{
+	public:
+		uint64_t user_id;
+		int64_t performance;
+
+		void serialize(byte_buffer* buffer) override
+		{
+			buffer->write_uint64(this->user_id);
+			buffer->write_int64(this->performance);
+		}
+
+		void deserialize(byte_buffer* buffer) override
+		{
+			buffer->read_uint64(&this->user_id);
+			buffer->read_int64(&this->performance);
+		}
+	};
+
+	struct bdSockAddr final
+	{
+		bdSockAddr() : in_un(), m_family(AF_INET)
+		{
+		}
+
+		union
+		{
+			struct
+			{
+				char m_b1;
+				char m_b2;
+				char m_b3;
+				char m_b4;
+			} m_caddr;
+
+			unsigned int m_iaddr;
+
+			struct
+			{
+				unsigned __int16 m_w1;
+				unsigned __int16 m_w2;
+				unsigned __int16 m_w3;
+				unsigned __int16 m_w4;
+				unsigned __int16 m_w5;
+				unsigned __int16 m_w6;
+				unsigned __int16 m_w7;
+				unsigned __int16 m_w8;
+			} m_caddr6;
+
+			char m_iaddr6[16];
+			char m_sockaddr_storage[128];
+		} in_un;
+
+		unsigned __int16 m_family;
+	};
+
+	struct bdInetAddr final : bdTaskResult
+	{
+		bdSockAddr m_addr;
+
+		bool is_valid() const
+		{
+			return (this->m_addr.m_family == AF_INET /*|| this->m_addr.m_family == AF_INET6*/);
+		}
+
+		void serialize(byte_buffer* buffer) override
+		{
+			const auto data_types = buffer->is_using_data_types();
+			buffer->set_use_data_types(false);
+
+			if (this->m_addr.m_family == AF_INET)
+			{
+				buffer->write(4, &this->m_addr.in_un.m_caddr);
+			}
+
+			buffer->set_use_data_types(data_types);
+		}
+
+		void deserialize(byte_buffer* buffer) override
+		{
+			const auto data_types = buffer->is_using_data_types();
+			buffer->set_use_data_types(false);
+
+			if (this->m_addr.m_family == AF_INET)
+			{
+				buffer->read(4, &this->m_addr.in_un.m_caddr);
+			}
+
+			buffer->set_use_data_types(data_types);
+		}
+	};
+
+	struct bdAddr final : bdTaskResult
+	{
+		bdInetAddr m_address;
+		unsigned __int16 m_port{};
+
+		void serialize(byte_buffer* buffer) override
+		{
+			const bool data_types = buffer->is_using_data_types();
+			buffer->set_use_data_types(false);
+
+			this->m_address.serialize(buffer);
+			buffer->write_uint16(this->m_port);
+
+			buffer->set_use_data_types(data_types);
+		}
+
+		void deserialize(byte_buffer* buffer) override
+		{
+			const auto data_types = buffer->is_using_data_types();
+			buffer->set_use_data_types(false);
+
+			this->m_address.deserialize(buffer);
+			buffer->read_uint16(&this->m_port);
+
+			buffer->set_use_data_types(data_types);
+		}
+	};
+
+	struct bdCommonAddr : bdTaskResult
+	{
+		bdAddr m_local_addrs[5];
+		bdAddr m_public_addr;
+		game::bdNATType m_nat_type;
+		unsigned int m_hash;
+		bool m_is_loopback;
+
+		void serialize(byte_buffer* buffer) override
+		{
+			const auto data_types = buffer->is_using_data_types();
+			buffer->set_use_data_types(false);
+
+			auto valid = true;
+			for (uint32_t i = 0; i < 5 && i < ARRAYSIZE(this->m_local_addrs) && valid; ++i)
+			{
+				this->m_local_addrs[i].serialize(buffer);
+				valid = this->m_local_addrs[i].m_address.is_valid();
+			}
+
+			if (valid)
+			{
+				this->m_public_addr.serialize(buffer);
+				buffer->write_byte(this->m_nat_type);
+			}
+
+			buffer->set_use_data_types(data_types);
+		}
+
+		void deserialize(byte_buffer* buffer) override
+		{
+			const auto data_types = buffer->is_using_data_types();
+			buffer->set_use_data_types(false);
+
+			auto valid = true;
+			for (uint32_t i = 0; i < ARRAYSIZE(this->m_local_addrs) && valid; ++i)
+			{
+				bdAddr addr;
+				addr.deserialize(buffer);
+				this->m_local_addrs[i] = addr;
+				valid = this->m_local_addrs[i].m_address.is_valid();
+			}
+
+			if (valid)
+			{
+				this->m_public_addr.deserialize(buffer);
+				buffer->read_ubyte(reinterpret_cast<uint8_t*>(&this->m_nat_type));
+			}
+
+			buffer->set_use_data_types(data_types);
+		}
+	};
+
+	class bdSessionID final : public bdTaskResult
+	{
+	public:
+		uint64_t session_id;
+
+		void serialize(byte_buffer* buffer) override
+		{
+			buffer->write_blob(LPSTR(&this->session_id), sizeof this->session_id);
+		}
+
+		void deserialize(byte_buffer* buffer) override
+		{
+			int size{};
+			char* data{};
+			buffer->read_blob(&data, &size);
+
+			if (data && uint32_t(size) >= sizeof(this->session_id))
+			{
+				this->session_id = *reinterpret_cast<uint64_t*>(data);
+			}
+		}
+	};
+
+	class bdMatchMakingInfo final : bdTaskResult
+	{
+		bdSessionID m_sessionID;
+		std::string m_hostAddr;
+		uint32_t m_gameType;
+		uint32_t m_maxPlayers;
+		uint32_t m_numPlayers;
+
+		void serialize(byte_buffer* buffer) override
+		{
+			buffer->write_blob(this->m_hostAddr);
+			this->m_sessionID.serialize(buffer);
+			buffer->write_uint32(this->m_gameType);
+			buffer->write_uint32(this->m_maxPlayers);
+			buffer->write_uint32(this->m_numPlayers);
+		}
+
+		void deserialize(byte_buffer* buffer) override
+		{
+			buffer->read_blob(&this->m_hostAddr);
+			buffer->read_uint32(&this->m_gameType);
+			buffer->read_uint32(&this->m_maxPlayers);
 		}
 	};
 }
