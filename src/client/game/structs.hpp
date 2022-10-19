@@ -1,88 +1,10 @@
 #pragma once
 
+#ifdef __cplusplus
 namespace game
 {
-	struct XZoneBuffer
-	{
-		const void* data;
-		size_t dataSize;
-	};
-
-	struct XZoneInfo
-	{
-		const char* name;
-		int allocFlags;
-		int freeFlags;
-		int allocSlot;
-		int freeSlot;
-		XZoneBuffer fileBuffer;
-	};
-
-	typedef void (*xcommand_t)();
-
-	enum errorCode
-	{
-		ERROR_NONE = 0x0,
-		ERROR_FATAL = 0x1,
-		ERROR_DROP = 0x2,
-		ERROR_FROM_STARTUP = 0x4,
-		ERROR_SERVERDISCONNECT = 0x8,
-		ERROR_DISCONNECT = 0x10,
-		ERROR_SCRIPT = 0x20,
-		ERROR_SCRIPT_DROP = 0x40,
-		ERROR_LOCALIZATION = 0x80,
-		ERROR_UI = 0x100,
-		ERROR_LUA = 0x200,
-		ERROR_SOFTRESTART = 0x400,
-		ERROR_SOFTRESTART_KEEPDW = 0x800,
-	};
-
-	struct cmd_function_s
-	{
-		cmd_function_s* next;
-		const char* name;
-		const char* autoCompleteDir;
-		const char* autoCompleteExt;
-		xcommand_t function;
-	};
-
-	struct CmdArgs
-	{
-		int nesting;
-		int localClientNum[8];
-		int controllerIndex[8];
-		int argshift[8];
-		int argc[8];
-		const char** argv[8];
-		char textPool[8192];
-		const char* argvPool[512];
-		int usedTextPool[8];
-		int totalUsedArgvPool;
-		int totalUsedTextPool;
-	};
-
-	struct va_info_t
-	{
-		char va_string[4][1024];
-		int index;
-	};
-
-	struct TLSData
-	{
-		va_info_t* vaInfo;
-		jmp_buf* errorJmpBuf;
-		void* traceInfo;
-		CmdArgs* cmdArgs;
-		void* errorData;
-	};
-
-	struct dvar_t
-	{
-		unsigned int name;
-	}; // Incomplete
-
-
-	enum bdLobbyErrorCode : uint32_t
+#endif
+	enum bdLobbyErrorCode
 	{
 		BD_NO_ERROR = 0x0,
 		BD_TOO_MANY_TASKS = 0x1,
@@ -422,6 +344,14 @@ namespace game
 		BD_MAX_ERROR_CODE = 0x27E2,
 	};
 
+	enum bdNATType : uint8_t
+	{
+		BD_NAT_UNKNOWN = 0x0,
+		BD_NAT_OPEN = 0x1,
+		BD_NAT_MODERATE = 0x2,
+		BD_NAT_STRICT = 0x3,
+	};
+
 	enum itemTextStyle
 	{
 		ITEM_TEXTSTYLE_NORMAL = 0,
@@ -444,4 +374,123 @@ namespace game
 		ERR_LOCALIZATION = 6,
 		ERR_MAPLOADERRORSUMMARY = 7,
 	};
+
+	enum errorCode
+	{
+		ERROR_NONE = 0x0,
+		ERROR_FATAL = 0x1,
+		ERROR_DROP = 0x2,
+		ERROR_FROM_STARTUP = 0x4,
+		ERROR_SERVERDISCONNECT = 0x8,
+		ERROR_DISCONNECT = 0x10,
+		ERROR_SCRIPT = 0x20,
+		ERROR_SCRIPT_DROP = 0x40,
+		ERROR_LOCALIZATION = 0x80,
+		ERROR_UI = 0x100,
+		ERROR_LUA = 0x200,
+		ERROR_SOFTRESTART = 0x400,
+		ERROR_SOFTRESTART_KEEPDW = 0x800,
+	};
+
+	struct XZoneBuffer
+	{
+		const void* data;
+		size_t dataSize;
+	};
+
+	struct XZoneInfo
+	{
+		const char* name;
+		int allocFlags;
+		int freeFlags;
+		int allocSlot;
+		int freeSlot;
+		XZoneBuffer fileBuffer;
+	};
+
+	typedef void (*xcommand_t)();
+
+	struct cmd_function_s
+	{
+		cmd_function_s* next;
+		const char* name;
+		const char* autoCompleteDir;
+		const char* autoCompleteExt;
+		xcommand_t function;
+	};
+
+	struct CmdArgs
+	{
+		int nesting;
+		int localClientNum[8];
+		int controllerIndex[8];
+		int argshift[8];
+		int argc[8];
+		const char** argv[8];
+		char textPool[8192];
+		const char* argvPool[512];
+		int usedTextPool[8];
+		int totalUsedArgvPool;
+		int totalUsedTextPool;
+	};
+
+	struct va_info_t
+	{
+		char va_string[4][1024];
+		int index;
+	};
+
+	struct TLSData
+	{
+		va_info_t* vaInfo;
+		jmp_buf* errorJmpBuf;
+		void* traceInfo;
+		CmdArgs* cmdArgs;
+		void* errorData;
+	};
+
+	struct dvar_t
+	{
+		unsigned int name;
+	}; // Incomplete
+
+	struct netipv4_t
+	{
+		byte a;
+		byte b;
+		byte c;
+		byte d;
+	};
+
+	enum netadrtype_t
+	{
+		NA_BOT = 0x0,
+		NA_BAD = 0x1,
+		NA_LOOPBACK = 0x2,
+		NA_RAWIP = 0x3,
+		NA_IP = 0x4,
+	};
+
+	enum netsrc_t
+	{
+		NS_NULL = 0xFFFFFFFF,
+		NS_CLIENT1 = 0x0,
+		NS_CLIENT2 = 0x1,
+		NS_CLIENT3 = 0x2,
+		NS_CLIENT4 = 0x3,
+		NS_SERVER = 0x4,
+		NS_MAXCLIENTS = 0x4,
+		NS_PACKET = 0x5,
+	};
+
+	struct netadr_t
+	{
+		netipv4_t ipv4;
+		unsigned __int16 port;
+		netadrtype_t type;
+		netsrc_t localNetID;
+	};
+
+#ifdef __cplusplus
 }
+#endif
