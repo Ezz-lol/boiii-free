@@ -36,14 +36,16 @@ namespace game
 	WEAK symbol<const char*(const dvar_t* dvar)> Dvar_GetString{0x1422BFFF0_g};
 	WEAK symbol<void(const char *dvarName, const char *string, bool createIfMissing)> Dvar_SetFromStringByName{0x1422C7F60_g};
 
-	// Variables
-	WEAK symbol<cmd_function_s> cmd_functions{0x15689FF58_g};
-	WEAK symbol<CmdArgs> sv_cmd_args{0x15689CE30_g};
-
 	// Rendering
 	WEAK symbol<void(const char*, int, void*, float, float, float, float, float, float*, int)> R_AddCmdDrawText{
 		0x141CD98D0_g
 	};
+
+	// Variables
+	WEAK symbol<cmd_function_s> cmd_functions{0x15689FF58_g};
+	WEAK symbol<CmdArgs> sv_cmd_args{0x15689CE30_g};
+
+	WEAK symbol<SOCKET> ip_socket{0x157E77818_g};
 
 	namespace s_wcd
 	{
