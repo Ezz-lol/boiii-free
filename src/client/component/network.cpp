@@ -5,33 +5,57 @@
 
 #include <utils/hook.hpp>
 
+#include "utils/string.hpp"
+
 namespace network
 {
 	namespace
 	{
-		int net_compare_base_address(const game::netadr_t* a1, const game::netadr_t* a2)
-		{
-			if (a1->type == a2->type)
-			{
-				switch (a1->type)
-				{
-				case game::netadrtype_t::NA_BOT:
-				case game::netadrtype_t::NA_LOOPBACK:
-					return a1->port == a2->port;
+		using callback = std::function<void(const game::netadr_t&, const std::basic_string_view<uint8_t>&)>;
 
-				case game::netadrtype_t::NA_IP:
-					return memcmp(&a1->ipv4.a, &a2->ipv4.a, 4) == 0;
-				default:
-					break;
-				}
+		std::unordered_map<std::string, callback>& get_callbacks()
+		{
+			static std::unordered_map<std::string, callback> callbacks{};
+			return callbacks;
+		}
+
+		bool handle_command(game::netadr_t* address, const char* command, const game::msg_t* message)
+		{
+			/*const auto cmd_string = utils::string::to_lower(command);
+			auto& callbacks = get_callbacks();
+			const auto handler = callbacks.find(cmd_string);
+			const auto offset = cmd_string.size() + 5;
+			if (message->cursize < offset || handler == callbacks.end())
+			{
+			  return false;
 			}
+  
+			const std::basic_string_view data(message->data + offset, message->cursize - offset);
+  
+			handler->second(*address, data);
+			return true;*/
+
+			OutputDebugStringA(command);
 
 			return false;
 		}
 
-		int net_compare_address(const game::netadr_t* a1, const game::netadr_t* a2)
+		void handle_command_stub(utils::hook::assembler& a)
 		{
-			return net_compare_base_address(a1, a2) && a1->port == a2->port;
+			a.pushad64();
+
+			a.mov(r8, r12);
+			a.mov(rdx, rcx); // command
+			a.lea(rcx, qword_ptr(rsp, 0x30 + 0x80)); // address
+
+			a.call_aligned(handle_command);
+
+			a.movzx(rax, al);
+			a.mov(qword_ptr(rsp, 0x78), rax);
+
+			a.popad64();
+
+			a.jmp(0x14134D14B_g);
 		}
 	}
 
@@ -43,52 +67,65 @@ namespace network
 			// redirect dw_sendto to raw socket
 			utils::hook::jump(0x14233307E_g, 0x1423330C7_g);
 
+			utils::hook::nop(0x142333056_g, 5); // don't add sock to packet
+			utils::hook::set<uint8_t>(0x14233305E_g, 0); // don't add checksum to packet
+
+			utils::hook::set<uint8_t>(0x142332E55_g, 0); // clear local net id
+			utils::hook::jump(0x142332E72_g, 0x142332E8E_g); // skip checksum parsing
+
 			// intercept command handling
-			/*utils::hook::jump(0x14020A175, utils::hook::assemble(handle_command_stub), true);
+			utils::hook::jump(0x14134D146_g, utils::hook::assemble(handle_command_stub));
 
-			// handle xuid without secure connection
-			utils::hook::nop(0x14043FFF8, 6);
+			/*std::thread([]
+			{
+				while (true)
+				{
+					{
+						MessageBoxA(0, 0, 0, 0);
 
-			utils::hook::jump(0x1403DA700, net_compare_address);
-			utils::hook::jump(0x1403DA750, net_compare_base_address);
+						static auto& ip_socket = *(SOCKET*)0x157E77818_g;
+						if (!ip_socket)
+						{
+							ip_socket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-			// don't establish secure conenction
-			utils::hook::set<uint8_t>(0x140232BBD, 0xEB);
-			utils::hook::set<uint8_t>(0x140232C9A, 0xEB);
-			utils::hook::set<uint8_t>(0x140232F8D, 0xEB);
-			utils::hook::set<uint8_t>(0x14020862F, 0xEB);
+							const auto address = htonl(INADDR_ANY);
+							const auto port = htons(28960);
 
-			// ignore unregistered connection
-			utils::hook::jump(0x140439EA9, reinterpret_cast<void*>(0x140439E28));
-			utils::hook::set<uint8_t>(0x140439E9E, 0xEB);
+							sockaddr_in server_addr{};
+							server_addr.sin_family = AF_INET;
+							server_addr.sin_addr.s_addr = address;
+							server_addr.sin_port = port;
 
-			// disable xuid verification
-			utils::hook::set<uint8_t>(0x140022319, 0xEB);
-			utils::hook::set<uint8_t>(0x140022334, 0xEB);
+							if (bind(ip_socket, reinterpret_cast<sockaddr*>(&server_addr), sizeof(server_addr)) ==
+								SOCKET_ERROR)
+							{
+								throw std::runtime_error("Failed to bind socket");
+							}
+						}
 
-			// disable xuid verification
-			utils::hook::nop(0x14043CC4C, 2);
-			utils::hook::set<uint8_t>(0x14043CCA8, 0xEB);
+						std::string data = utils::string::va("\xFF\xFF\xFF\xFF" "getservers S1 %i full empty", 1);
 
-			// ignore configstring mismatch
-			utils::hook::set<uint8_t>(0x140211610, 0xEB);
+						game::netadr_t addr{};
+						addr.type = game::NA_RAWIP;
+						addr.port = 20810;
+						*(unsigned long*)&addr.ipv4.a = inet_addr("116.203.183.23");
+						addr.localNetID = game::NS_CLIENT1;
+						game::NET_SendPacket(game::NS_CLIENT1, (int)data.size(), data.data(), &addr);
+					}
+				}
+			}).detach();*/
+		}
 
-			// ignore dw handle in SV_PacketEvent
-			utils::hook::set<uint8_t>(0x140442F6D, 0xEB);
-			utils::hook::call(0x140442F61, &net_compare_address);
-
-			// ignore dw handle in SV_FindClientByAddress
-			utils::hook::set<uint8_t>(0x14044256D, 0xEB);
-			utils::hook::call(0x140442561, &net_compare_address);
-
-			// ignore dw handle in SV_DirectConnect
-			utils::hook::set<uint8_t>(0x140439BA8, 0xEB);
-			utils::hook::set<uint8_t>(0x140439DA5, 0xEB);
-			utils::hook::call(0x140439B9B, &net_compare_address);
-			utils::hook::call(0x140439D98, &net_compare_address);
-			*/
+		void pre_destroy() override
+		{
+			static auto& ip_socket = *(SOCKET*)0x157E77818_g;
+			if (ip_socket)
+			{
+				closesocket(ip_socket);
+				ip_socket = 0;
+			}
 		}
 	};
 }
 
-//REGISTER_COMPONENT(network::component)
+REGISTER_COMPONENT(network::component)

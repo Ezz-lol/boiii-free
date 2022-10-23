@@ -491,6 +491,57 @@ namespace game
 		netsrc_t localNetID;
 	};
 
+	typedef int qboolean;
+
+	enum PacketModeList
+	{
+		PACKETDATA_FIRST = 0x0,
+		PACKETDATA_UNDEFINED = 0x0,
+		PACKETDATA_HEADER = 0x1,
+		PACKETDATA_OVERHEAD = 0x2,
+		PACKETDATA_DATA = 0x3,
+		PACKETDATA_RELIABLEDATA = 0x4,
+		PACKETDATA_ZEROFLOAT = 0x5,
+		PACKETDATA_SMALLFLOAT = 0x6,
+		PACKETDATA_LARGEFLOAT = 0x7,
+		PACKETDATA_ZEROINT = 0x8,
+		PACKETDATA_SMALLANGLE = 0x9,
+		PACKETDATA_ZEROANGLE = 0xA,
+		PACKETDATA_TIMEDELTA = 0xB,
+		PACKETDATA_TIME = 0xC,
+		PACKETDATA_24BITFLAGINDEX = 0xD,
+		PACKETDATA_GROUNDENTITY = 0xE,
+		PACKETDATA_ENTITYNUM = 0xF,
+		PACKETDATA_LASTFIELDCHANGED = 0x10,
+		PACKETDATA_NOTNETWORKDATA = 0x11,
+		PACKETDATA_ORIGINDELTA = 0x12,
+		PACKETDATA_ORIGIN = 0x13,
+		NUM_PACKETDATA_MODES = 0x14,
+	};
+
+	struct PacketMode
+	{
+		unsigned int start;
+		PacketModeList mode;
+	};
+
+	struct msg_t
+	{
+		qboolean overflowed;
+		qboolean readOnly;
+		byte* data;
+		byte* splitData;
+		int maxsize;
+		int cursize;
+		int splitSize;
+		int readcount;
+		int bit;
+		int lastEntityRef;
+		qboolean flush;
+		netsrc_t targetLocalNetID;
+		//PacketMode analysis;
+	};
+
 #ifdef __cplusplus
 }
 #endif
