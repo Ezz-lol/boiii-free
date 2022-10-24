@@ -489,6 +489,8 @@ namespace demonware
 			utils::hook::call(0x141EC458C_g, get_ffotd_name); // Return unlocalized ffotd name
 			utils::hook::set<uint64_t>(0x141F04550_g, 0xC300000001B8); // Kill LPC_File_SafeWrite
 			utils::hook::set<uint64_t>(0x141F03180_g, 0xC300000001B8); // Kill LPC_DeleteStale
+			
+			utils::hook::set<uint8_t>(0x141E0AAAB_g, 0xEB); // Release un-handled reportReward spamming loop
 		}
 
 		void pre_destroy() override
