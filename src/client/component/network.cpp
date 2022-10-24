@@ -1,17 +1,18 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 
+#include "scheduler.hpp"
 #include "game/game.hpp"
 
 #include <utils/hook.hpp>
-
-#include "utils/string.hpp"
+#include <utils/string.hpp>
 
 namespace network
 {
 	namespace
 	{
-		using callback = std::function<void(const game::netadr_t&, const std::basic_string_view<uint8_t>&)>;
+		using data_view = std::basic_string_view<uint8_t>;
+		using callback = std::function<void(const game::netadr_t&, const data_view&)>;
 
 		std::unordered_map<std::string, callback>& get_callbacks()
 		{
@@ -19,34 +20,30 @@ namespace network
 			return callbacks;
 		}
 
-		bool handle_command(game::netadr_t* address, const char* command, const game::msg_t* message)
+		bool handle_command(const game::netadr_t* address, const char* command, const game::msg_t* message)
 		{
-			/*const auto cmd_string = utils::string::to_lower(command);
+			const auto cmd_string = utils::string::to_lower(command);
 			auto& callbacks = get_callbacks();
 			const auto handler = callbacks.find(cmd_string);
 			const auto offset = cmd_string.size() + 5;
-			if (message->cursize < offset || handler == callbacks.end())
+			if (message->cursize < 0 || static_cast<size_t>(message->cursize) < offset || handler == callbacks.end())
 			{
-			  return false;
+				return false;
 			}
-  
+
 			const std::basic_string_view data(message->data + offset, message->cursize - offset);
-  
+
 			handler->second(*address, data);
-			return true;*/
-
-			OutputDebugStringA(command);
-
-			return false;
+			return true;
 		}
 
 		void handle_command_stub(utils::hook::assembler& a)
 		{
 			a.pushad64();
 
-			a.mov(r8, r12);
+			a.mov(r8, r12); // msg
 			a.mov(rdx, rcx); // command
-			a.lea(rcx, qword_ptr(rsp, 0x30 + 0x80)); // address
+			a.mov(rcx, r15); // address
 
 			a.call_aligned(handle_command);
 
@@ -73,6 +70,10 @@ namespace network
 			}
 
 			s = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+			if (s == INVALID_SOCKET)
+			{
+				throw std::runtime_error("Unable to create socket");
+			}
 
 			socket_set_blocking(s, false);
 
@@ -90,6 +91,11 @@ namespace network
 				throw std::runtime_error("Failed to bind socket");
 			}
 		}
+
+		void on(const std::string& command, const callback& callback)
+		{
+			get_callbacks()[utils::string::to_lower(command)] = callback;
+		}
 	}
 
 	class component final : public component_interface
@@ -98,7 +104,7 @@ namespace network
 		void post_unpack() override
 		{
 			// redirect dw_sendto to raw socket
-			utils::hook::jump(0x14233307E_g, 0x1423330C7_g);
+			//utils::hook::jump(0x14233307E_g, 0x1423330C7_g);
 
 			utils::hook::nop(0x142333056_g, 5); // don't add sock to packet
 			utils::hook::set<uint8_t>(0x14233305E_g, 0); // don't add checksum to packet
@@ -114,14 +120,23 @@ namespace network
 			// intercept command handling
 			utils::hook::jump(0x14134D146_g, utils::hook::assemble(handle_command_stub));
 
+			on("getServersResponse", [](const game::netadr_t& /*source*/, const data_view& data)
+			{
+				OutputDebugStringA(utils::string::va("%.*s", static_cast<int>(data.size()), data.data()));
+			});
+
+			// TODO: Fix that
+			scheduler::once([]
+			{
+				create_ip_socket();
+			}, scheduler::main);
+
 			/*std::thread([]
 			{
 				while (true)
 				{
 					{
 						MessageBoxA(0, 0, 0, 0);
-
-						create_ip_socket();
 
 						std::string data = utils::string::va("\xFF\xFF\xFF\xFF" "getservers S1 %i full empty", 1);
 
