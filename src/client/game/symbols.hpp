@@ -23,7 +23,7 @@ namespace game
 	WEAK symbol<bool(uint64_t, int*, bool)> Live_GetConnectivityInformation{0x141E0C410_g};
 
 	// NET
-	WEAK symbol<bool(netsrc_t sock, int length, const void* data, netadr_t* to)> NET_SendPacket{0x142332F70_g};
+	WEAK symbol<bool(netsrc_t sock, int length, const void* data, const netadr_t* to)> NET_SendPacket{0x142332F70_g};
 	// Sys
 	WEAK symbol<void()> Sys_ShowConsole{0x142333F80_g};
 	WEAK symbol<TLSData*()> Sys_GetTLS{0x142184210_g};

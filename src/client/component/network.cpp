@@ -1,4 +1,5 @@
 #include <std_include.hpp>
+#include "network.hpp"
 #include "loader/component_loader.hpp"
 
 #include "scheduler.hpp"
@@ -11,9 +12,6 @@ namespace network
 {
 	namespace
 	{
-		using data_view = std::basic_string_view<uint8_t>;
-		using callback = std::function<void(const game::netadr_t&, const data_view&)>;
-
 		std::unordered_map<std::string, callback>& get_callbacks()
 		{
 			static std::unordered_map<std::string, callback> callbacks{};
@@ -91,11 +89,31 @@ namespace network
 				throw std::runtime_error("Failed to bind socket");
 			}
 		}
+	}
 
-		void on(const std::string& command, const callback& callback)
-		{
-			get_callbacks()[utils::string::to_lower(command)] = callback;
-		}
+	void on(const std::string& command, const callback& callback)
+	{
+		get_callbacks()[utils::string::to_lower(command)] = callback;
+	}
+
+	void send(const game::netadr_t& address, const std::string& command, const std::string& data, const char separator)
+	{
+		std::string packet = "\xFF\xFF\xFF\xFF";
+		packet.append(command);
+		packet.push_back(separator);
+		packet.append(data);
+
+		send_data(address, packet);
+	}
+
+	void send_data(const game::netadr_t& address, const void* data, const size_t size)
+	{
+		game::NET_SendPacket(game::NS_CLIENT1, static_cast<int>(size), data, &address);
+	}
+
+	void send_data(const game::netadr_t& address, const std::string& data)
+	{
+		send_data(address, data.data(), data.size());
 	}
 
 	class component final : public component_interface
@@ -135,18 +153,15 @@ namespace network
 			{
 				while (true)
 				{
-					{
-						MessageBoxA(0, 0, 0, 0);
+					MessageBoxA(0, 0, 0, 0);
 
-						std::string data = utils::string::va("\xFF\xFF\xFF\xFF" "getservers S1 %i full empty", 1);
+					game::netadr_t addr{};
+					addr.type = game::NA_RAWIP;
+					addr.port = 20810;
+					*reinterpret_cast<unsigned long*>(&addr.ipv4.a) = inet_addr("116.203.183.23");
+					addr.localNetID = game::NS_CLIENT1;
 
-						game::netadr_t addr{};
-						addr.type = game::NA_RAWIP;
-						addr.port = 20810;
-						*reinterpret_cast<unsigned long*>(&addr.ipv4.a) = inet_addr("116.203.183.23");
-						addr.localNetID = game::NS_CLIENT1;
-						game::NET_SendPacket(game::NS_CLIENT1, static_cast<int>(data.size()), data.data(), &addr);
-					}
+					send(addr, "getservers", utils::string::va("T7 %i full empty", 1));
 				}
 			}).detach();*/
 		}
