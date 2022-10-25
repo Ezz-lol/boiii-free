@@ -83,10 +83,13 @@ namespace network
 			server_addr.sin_addr.s_addr = address;
 			server_addr.sin_port = port;
 
-			if (bind(s, reinterpret_cast<sockaddr*>(&server_addr), sizeof(server_addr)) ==
+			int retries = 0;
+			while (bind(s, reinterpret_cast<sockaddr*>(&server_addr), sizeof(server_addr)) ==
 				SOCKET_ERROR)
 			{
-				throw std::runtime_error("Failed to bind socket");
+				if (++retries > 10) return;
+				server_addr.sin_port = htons(ntohs(server_addr.sin_port) + 1);
+			}
 			}
 		}
 	}
@@ -130,6 +133,8 @@ namespace network
 			utils::hook::nop(0x142332E43_g, 5); // don't read local net id
 			utils::hook::set<uint8_t>(0x142332E55_g, 0); // clear local net id
 			utils::hook::jump(0x142332E72_g, 0x142332E8E_g); // skip checksum parsing
+
+			utils::hook::set<uint32_t>(0x14134C6E0_g, 4); // set initial connection state to "connecting"
 
 			// Fix netadr types
 			//utils::hook::set<uint32_t>(0x142332DE5_g, game::NA_RAWIP); // raw socket type
