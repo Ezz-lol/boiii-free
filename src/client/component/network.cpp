@@ -132,8 +132,8 @@ namespace network
 			utils::hook::jump(0x142332E72_g, 0x142332E8E_g); // skip checksum parsing
 
 			// Fix netadr types
-			utils::hook::set<uint32_t>(0x142332DE5_g, game::NA_RAWIP); // raw socket type
-			utils::hook::set<uint32_t>(0x142332E00_g, game::NA_IP); // dw socket type
+			//utils::hook::set<uint32_t>(0x142332DE5_g, game::NA_RAWIP); // raw socket type
+			//utils::hook::set<uint32_t>(0x142332E00_g, game::NA_IP); // dw socket type
 
 			// intercept command handling
 			utils::hook::jump(0x14134D146_g, utils::hook::assemble(handle_command_stub));
