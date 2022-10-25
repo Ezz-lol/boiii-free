@@ -491,6 +491,32 @@ namespace game
 		netsrc_t localNetID;
 	};
 
+	struct XNADDR
+	{
+		byte addrBuff[37];
+	};
+
+	struct bdSecurityID
+	{
+		byte ab[8];
+	};
+
+	typedef bdSecurityID XNKID;
+
+	struct bdSecurityKey
+	{
+		byte ab[16];
+	};
+
+	typedef bdSecurityKey XNKEY;
+
+	struct XSESSION_INFO
+	{
+		XNKID sessionID;
+		XNADDR hostAddress;
+		XNKEY keyExchangeKey;
+	};
+
 	typedef int qboolean;
 
 	enum PacketModeList
