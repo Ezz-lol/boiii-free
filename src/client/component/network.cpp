@@ -144,10 +144,7 @@ namespace network
 			});
 
 			// TODO: Fix that
-			scheduler::once([]
-			{
-				create_ip_socket();
-			}, scheduler::main);
+			scheduler::once(create_ip_socket, scheduler::main);
 
 			/*std::thread([]
 			{
