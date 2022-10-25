@@ -90,7 +90,6 @@ namespace network
 				if (++retries > 10) return;
 				server_addr.sin_port = htons(ntohs(server_addr.sin_port) + 1);
 			}
-			}
 		}
 	}
 
