@@ -142,29 +142,9 @@ namespace network
 			// intercept command handling
 			utils::hook::jump(0x14134D146_g, utils::hook::assemble(handle_command_stub));
 
-			on("getServersResponse", [](const game::netadr_t& /*source*/, const data_view& data)
-			{
-				OutputDebugStringA(utils::string::va("%.*s", static_cast<int>(data.size()), data.data()));
-			});
 
 			// TODO: Fix that
 			scheduler::once(create_ip_socket, scheduler::main);
-
-			/*std::thread([]
-			{
-				while (true)
-				{
-					MessageBoxA(0, 0, 0, 0);
-
-					game::netadr_t addr{};
-					addr.type = game::NA_RAWIP;
-					addr.port = 20810;
-					*reinterpret_cast<unsigned long*>(&addr.ipv4.a) = inet_addr("116.203.183.23");
-					addr.localNetID = game::NS_CLIENT1;
-
-					send(addr, "getservers", utils::string::va("T7 %i full empty", 1));
-				}
-			}).detach();*/
 		}
 	};
 }
