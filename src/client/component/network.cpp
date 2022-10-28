@@ -91,6 +91,11 @@ namespace network
 				server_addr.sin_port = htons(ntohs(server_addr.sin_port) + 1);
 			}
 		}
+
+		int verify_checksum_stub(void* /*data*/, const int length)
+		{
+			return length;
+		}
 	}
 
 	void on(const std::string& command, const callback& callback)
@@ -128,7 +133,7 @@ namespace network
 
 			//utils::hook::nop(0x142332E43_g, 5); // don't read local net id
 			//utils::hook::set<uint8_t>(0x142332E55_g, 0); // clear local net id
-			utils::hook::jump(0x142332E72_g, 0x142332E8E_g); // skip checksum parsing
+			utils::hook::call(0x142332E81_g, verify_checksum_stub); // skip checksum verification
 
 			utils::hook::set<uint32_t>(0x14134C6E0_g, 5); // set initial connection state to challenging
 
