@@ -123,9 +123,6 @@ namespace network
 	public:
 		void post_unpack() override
 		{
-			// redirect dw_sendto to raw socket
-			//utils::hook::jump(0x14233307E_g, 0x1423330C7_g);
-
 			//utils::hook::nop(0x142333056_g, 5); // don't add sock to packet
 			utils::hook::set<uint8_t>(0x14233305E_g, 0); // don't add checksum to packet
 
