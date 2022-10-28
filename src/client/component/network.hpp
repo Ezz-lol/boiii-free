@@ -12,4 +12,6 @@ namespace network
 
 	void send_data(const game::netadr_t& address, const void* data, size_t length);
 	void send_data(const game::netadr_t& address, const std::string& data);
+
+	game::netadr_t address_from_string(const std::string& address);
 }

@@ -160,6 +160,25 @@ namespace network
 		send_data(address, data.data(), data.size());
 	}
 
+	game::netadr_t address_from_string(const std::string& address)
+	{
+		game::netadr_t addr{};
+		addr.localNetID = game::NS_SERVER;
+
+		if (!game::NET_StringToAdr(address.data(), &addr))
+		{
+			addr.type = game::NA_BAD;
+			return addr;
+		}
+
+		if (addr.type == game::NA_IP)
+		{
+			addr.type = game::NA_RAWIP;
+		}
+
+		return addr;
+	}
+
 	class component final : public component_interface
 	{
 	public:

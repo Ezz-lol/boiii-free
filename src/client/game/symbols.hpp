@@ -35,6 +35,8 @@ namespace game
 
 	// NET
 	WEAK symbol<bool(netsrc_t sock, int length, const void* data, const netadr_t* to)> NET_SendPacket{0x142332F70_g};
+	WEAK symbol<bool(char const*, netadr_t*)> NET_StringToAdr{0x1421731E0_g};
+	WEAK symbol<bool(netadr_t*, char const*)> NetAdr_InitFromString{0x142332F70_g};
 
 	// Sys
 	WEAK symbol<void()> Sys_ShowConsole{0x142333F80_g};
