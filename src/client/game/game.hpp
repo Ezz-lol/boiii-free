@@ -8,6 +8,7 @@ namespace game
 		Com_Error_(__FILE__, __LINE__, code, fmt, ##__VA_ARGS__)
 
 	int Conbuf_CleanText(const char* source, char* target);
+	game::eModes Com_SessionMode_GetMode();
 
 	template <typename T>
 	class symbol

@@ -13,6 +13,12 @@ namespace utils
 	{
 	}
 
+
+	info_string::info_string(const std::basic_string_view<uint8_t>& buffer)
+		: info_string(std::string_view(reinterpret_cast<const char*>(buffer.data()), buffer.size()))
+	{
+	}
+
 	void info_string::set(const std::string& key, const std::string& value)
 	{
 		this->key_value_pairs_[key] = value;

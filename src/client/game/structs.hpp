@@ -4,6 +4,17 @@
 namespace game
 {
 #endif
+
+	enum eModes
+	{
+		MODE_ZOMBIES = 0x0,
+		MODE_MULTIPLAYER = 0x1,
+		MODE_CAMPAIGN = 0x2,
+		MODE_COUNT = 0x3,
+		MODE_INVALID = 0x3,
+		MODE_FIRST = 0x0,
+	};
+
 	enum bdLobbyErrorCode
 	{
 		BD_NO_ERROR = 0x0,

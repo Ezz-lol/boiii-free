@@ -14,4 +14,47 @@ namespace network
 	void send_data(const game::netadr_t& address, const std::string& data);
 
 	game::netadr_t address_from_string(const std::string& address);
+
+	bool are_addresses_equal(const game::netadr_t& a, const game::netadr_t& b);
+}
+
+inline bool operator==(const game::netadr_t& a, const game::netadr_t& b)
+{
+	return network::are_addresses_equal(a, b); //
+}
+
+inline bool operator!=(const game::netadr_t& a, const game::netadr_t& b)
+{
+	return !(a == b); //
+}
+
+namespace std
+{
+	template <>
+	struct equal_to<game::netadr_t>
+	{
+		using result_type = bool;
+
+		bool operator()(const game::netadr_t& lhs, const game::netadr_t& rhs) const
+		{
+			return network::are_addresses_equal(lhs, rhs);
+		}
+	};
+
+	template <>
+	struct hash<game::netadr_t>
+	{
+		size_t operator()(const game::netadr_t& x) const noexcept
+		{
+			const auto type_hash = hash<uint32_t>()(x.type);
+
+			if (x.type != game::NA_IP && x.type != game::NA_RAWIP)
+			{
+				return type_hash;
+			}
+
+			return type_hash ^ hash<uint32_t>()(*reinterpret_cast<const uint32_t*>(&x.ipv4.a)) ^ hash<
+				uint16_t>()(x.port);
+		}
+	};
 }

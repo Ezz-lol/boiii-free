@@ -11,6 +11,7 @@ namespace utils
 		info_string() = default;
 		info_string(const std::string& buffer);
 		info_string(const std::string_view& buffer);
+		info_string(const std::basic_string_view<uint8_t>& buffer);
 
 		void set(const std::string& key, const std::string& value);
 		std::string get(const std::string& key) const;

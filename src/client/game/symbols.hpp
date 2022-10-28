@@ -8,13 +8,14 @@
 namespace game
 {
 	// CL
-	WEAK symbol<void(int controllerIndex, XSESSION_INFO* hostInfo, netadr_t* addr, int numPublicSlots,
+	WEAK symbol<void(int controllerIndex, XSESSION_INFO* hostInfo, const netadr_t* addr, int numPublicSlots,
 	                 int numPrivateSlots, const char* mapname, const char* gametype)> CL_ConnectFromLobby
 		{0x14134C570_g};
 
 	// Com
 	WEAK symbol<void(int channel, unsigned int label, const char* fmt, ...)> Com_Printf{0x1421499C0_g};
 	WEAK symbol<void(const char* file, int line, int code, const char* fmt, ...)> Com_Error_{0x1420F8BD0_g};
+	WEAK symbol<bool(eModes mode)> Com_SessionMode_IsMode{0x1420F7DD0_g};
 
 	WEAK symbol<void(int localClientNum, const char* text)> Cbuf_AddText{0x1420EC8B0_g};
 	WEAK symbol<void(const char* cmdName, xcommand_t function, cmd_function_s* allocedCmd)> Cmd_AddCommandInternal{

@@ -179,6 +179,22 @@ namespace network
 		return addr;
 	}
 
+	bool are_addresses_equal(const game::netadr_t& a, const game::netadr_t& b)
+	{
+		if (a.type != b.type)
+		{
+			return false;
+		}
+
+		if (a.type != game::NA_RAWIP && a.type != game::NA_IP)
+		{
+			return true;
+		}
+
+		return a.port == b.port && *reinterpret_cast<const uint32_t*>(&a.ipv4.a) == *reinterpret_cast<const uint32_t*>(&
+			b.ipv4.a);
+	}
+
 	class component final : public component_interface
 	{
 	public:

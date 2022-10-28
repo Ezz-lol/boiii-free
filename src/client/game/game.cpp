@@ -25,7 +25,8 @@ namespace game
 				b[1] = '\n';
 				b += 2;
 			}
-			else if (source && source[0] == '^' && source[1] && source[1] != '^' && source[1] >= 48 && source[1] <= 64) // Q_IsColorString
+			else if (source && source[0] == '^' && source[1] && source[1] != '^' && source[1] >= 48 && source[1] <= 64)
+			// Q_IsColorString
 			{
 				i++;
 			}
@@ -39,5 +40,10 @@ namespace game
 
 		*b = 0;
 		return static_cast<int>(b - target);
+	}
+
+	game::eModes Com_SessionMode_GetMode()
+	{
+		return game::eModes(*reinterpret_cast<uint32_t*>(0x1568EF7F4_g) << 28 >> 28);
 	}
 }
