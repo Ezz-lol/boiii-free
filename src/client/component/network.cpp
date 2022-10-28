@@ -7,6 +7,7 @@
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
+#include <utils/finally.hpp>
 
 namespace network
 {
@@ -92,9 +93,32 @@ namespace network
 			}
 		}
 
+		bool& socket_byte_missing()
+		{
+			static thread_local bool was_missing{false};
+			return was_missing;
+		}
+
+		uint8_t read_socket_byte_stub(game::msg_t* msg)
+		{
+			auto& byte_missing = socket_byte_missing();
+			byte_missing = msg->cursize >= 4 && *reinterpret_cast<int*>(msg->data) == -1;
+			if (byte_missing)
+			{
+				return game::NS_SERVER | (game::NS_SERVER << 4);
+			}
+
+			const auto _ = utils::finally([msg]
+			{
+				++msg->data;
+			});
+
+			return game::MSG_ReadByte(msg);
+		}
+
 		int verify_checksum_stub(void* /*data*/, const int length)
 		{
-			return length;
+			return length + (socket_byte_missing() ? 1 : 0);
 		}
 	}
 
@@ -113,9 +137,22 @@ namespace network
 		send_data(address, packet);
 	}
 
+	sockaddr_in convert_to_sockaddr(const game::netadr_t& address)
+	{
+		sockaddr_in to{};
+		to.sin_family = AF_INET;
+		to.sin_port = htons(address.port);
+		to.sin_addr.S_un.S_addr = *reinterpret_cast<const ULONG*>(&address.ipv4.a);
+		return to;
+	}
+
 	void send_data(const game::netadr_t& address, const void* data, const size_t size)
 	{
-		game::NET_SendPacket(game::NS_CLIENT1, static_cast<int>(size), data, &address);
+		//game::NET_SendPacket(game::NS_CLIENT1, static_cast<int>(size), data, &address);
+
+		const auto to = convert_to_sockaddr(address);
+		sendto(*game::ip_socket, static_cast<const char*>(data), static_cast<int>(size), 0,
+		       reinterpret_cast<const sockaddr*>(&to), sizeof(to));
 	}
 
 	void send_data(const game::netadr_t& address, const std::string& data)
@@ -128,12 +165,10 @@ namespace network
 	public:
 		void post_unpack() override
 		{
-			//utils::hook::nop(0x142333056_g, 5); // don't add sock to packet
-			utils::hook::set<uint8_t>(0x14233305E_g, 0); // don't add checksum to packet
-
-			//utils::hook::nop(0x142332E43_g, 5); // don't read local net id
-			//utils::hook::set<uint8_t>(0x142332E55_g, 0); // clear local net id
+			utils::hook::nop(0x142332E76_g, 4); // don't increment data pointer to optionally skip socket byte
+			utils::hook::call(0x142332E43_g, read_socket_byte_stub); // optionally read socket byte
 			utils::hook::call(0x142332E81_g, verify_checksum_stub); // skip checksum verification
+			utils::hook::set<uint8_t>(0x14233305E_g, 0); // don't add checksum to packet
 
 			utils::hook::set<uint32_t>(0x14134C6E0_g, 5); // set initial connection state to challenging
 
