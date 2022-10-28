@@ -130,8 +130,7 @@ namespace network
 			//utils::hook::set<uint8_t>(0x142332E55_g, 0); // clear local net id
 			utils::hook::jump(0x142332E72_g, 0x142332E8E_g); // skip checksum parsing
 
-			utils::hook::set<uint32_t>(0x14134C6E0_g, 4); // set initial connection state to "connecting"
-
+			utils::hook::set<uint32_t>(0x14134C6E0_g, 5); // set initial connection state to challenging
 
 			// intercept command handling
 			utils::hook::jump(0x14134D146_g, utils::hook::assemble(handle_command_stub));
