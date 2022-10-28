@@ -126,11 +126,11 @@ namespace network
 			// redirect dw_sendto to raw socket
 			//utils::hook::jump(0x14233307E_g, 0x1423330C7_g);
 
-			utils::hook::nop(0x142333056_g, 5); // don't add sock to packet
+			//utils::hook::nop(0x142333056_g, 5); // don't add sock to packet
 			utils::hook::set<uint8_t>(0x14233305E_g, 0); // don't add checksum to packet
 
-			utils::hook::nop(0x142332E43_g, 5); // don't read local net id
-			utils::hook::set<uint8_t>(0x142332E55_g, 0); // clear local net id
+			//utils::hook::nop(0x142332E43_g, 5); // don't read local net id
+			//utils::hook::set<uint8_t>(0x142332E55_g, 0); // clear local net id
 			utils::hook::jump(0x142332E72_g, 0x142332E8E_g); // skip checksum parsing
 
 			utils::hook::set<uint32_t>(0x14134C6E0_g, 4); // set initial connection state to "connecting"
