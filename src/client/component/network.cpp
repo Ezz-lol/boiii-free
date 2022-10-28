@@ -139,6 +139,7 @@ namespace network
 			// intercept command handling
 			utils::hook::jump(0x14134D146_g, utils::hook::assemble(handle_command_stub));
 
+			utils::hook::set<uint8_t>(0x14224E90D_g, 0xEB); // don't kick clients without dw handle
 
 			// TODO: Fix that
 			scheduler::once(create_ip_socket, scheduler::main);
