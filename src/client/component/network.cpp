@@ -135,9 +135,6 @@ namespace network
 
 			utils::hook::set<uint32_t>(0x14134C6E0_g, 4); // set initial connection state to "connecting"
 
-			// Fix netadr types
-			//utils::hook::set<uint32_t>(0x142332DE5_g, game::NA_RAWIP); // raw socket type
-			//utils::hook::set<uint32_t>(0x142332E00_g, game::NA_IP); // dw socket type
 
 			// intercept command handling
 			utils::hook::jump(0x14134D146_g, utils::hook::assemble(handle_command_stub));
