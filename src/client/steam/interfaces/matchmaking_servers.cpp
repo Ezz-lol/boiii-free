@@ -13,7 +13,11 @@ namespace steam
 			static gameserveritem_t server{};
 			server.m_NetAdr.m_usConnectionPort = 28960;
 			server.m_NetAdr.m_usQueryPort = 28960;
-			server.m_NetAdr.m_unIP = ntohl(inet_addr("192.168.178.34"));
+
+			uint32_t address{};
+			inet_pton(AF_INET, "192.168.178.34", &address);
+			server.m_NetAdr.m_unIP = ntohl(address);
+
 			server.m_nPing = 10;
 			server.m_bHadSuccessfulResponse = true;
 			server.m_bDoNotRefresh = false;
