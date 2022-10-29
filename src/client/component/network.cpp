@@ -205,11 +205,19 @@ namespace network
 		return a.port == b.port && a.addr == b.addr;
 	}
 
+	uint64_t ret2()
+	{
+		return 2;
+	}
+
 	class component final : public component_interface
 	{
 	public:
 		void post_unpack() override
 		{
+			//utils::hook::jump(0x14143CAB0_g, ret2); // patch dwGetConnectionStatus
+			//utils::hook::jump(0x14233307E_g, 0x1423330C7_g);
+
 			utils::hook::nop(0x142332E76_g, 4); // don't increment data pointer to optionally skip socket byte
 			utils::hook::call(0x142332E43_g, read_socket_byte_stub); // optionally read socket byte
 			utils::hook::call(0x142332E81_g, verify_checksum_stub); // skip checksum verification
