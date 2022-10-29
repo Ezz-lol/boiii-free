@@ -142,7 +142,7 @@ namespace network
 		sockaddr_in to{};
 		to.sin_family = AF_INET;
 		to.sin_port = htons(address.port);
-		to.sin_addr.S_un.S_addr = *reinterpret_cast<const ULONG*>(&address.ipv4.a);
+		to.sin_addr.S_un.S_addr = address.addr;
 		return to;
 	}
 
@@ -179,6 +179,17 @@ namespace network
 		return addr;
 	}
 
+	game::netadr_t address_from_ip(const uint32_t ip, const uint16_t port)
+	{
+		game::netadr_t addr{};
+		addr.localNetID = game::NS_SERVER;
+		addr.type = game::NA_RAWIP;
+		addr.port = port;
+		addr.addr = ip;
+
+		return addr;
+	}
+
 	bool are_addresses_equal(const game::netadr_t& a, const game::netadr_t& b)
 	{
 		if (a.type != b.type)
@@ -191,8 +202,7 @@ namespace network
 			return true;
 		}
 
-		return a.port == b.port && *reinterpret_cast<const uint32_t*>(&a.ipv4.a) == *reinterpret_cast<const uint32_t*>(&
-			b.ipv4.a);
+		return a.port == b.port && a.addr == b.addr;
 	}
 
 	class component final : public component_interface

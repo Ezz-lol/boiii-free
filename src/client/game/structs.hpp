@@ -5,6 +5,17 @@ namespace game
 {
 #endif
 
+	enum ControllerIndex_t
+	{
+		INVALID_CONTROLLER_PORT = 0xFFFFFFFF,
+		CONTROLLER_INDEX_FIRST = 0x0,
+		CONTROLLER_INDEX_0 = 0x0,
+		CONTROLLER_INDEX_1 = 0x1,
+		CONTROLLER_INDEX_2 = 0x2,
+		CONTROLLER_INDEX_3 = 0x3,
+		CONTROLLER_INDEX_COUNT = 0x4,
+	};
+
 	enum eModes
 	{
 		MODE_ZOMBIES = 0x0,
@@ -496,8 +507,13 @@ namespace game
 
 	struct netadr_t
 	{
-		netipv4_t ipv4;
-		unsigned __int16 port;
+		union
+		{
+			netipv4_t ipv4;
+			uint32_t addr;
+		};
+
+		uint16_t port;
 		netadrtype_t type;
 		netsrc_t localNetID;
 	};
@@ -520,6 +536,14 @@ namespace game
 	};
 
 	typedef bdSecurityKey XNKEY;
+
+	typedef uint64_t XUID;
+
+	struct SerializedAdr
+	{
+		byte valid;
+		byte addrBuff[37];
+	};
 
 	struct XSESSION_INFO
 	{
@@ -577,6 +601,166 @@ namespace game
 		qboolean flush;
 		netsrc_t targetLocalNetID;
 		//PacketMode analysis;
+	};
+
+	typedef void* bdCommonAddrRef;
+
+	struct HostInfo
+	{
+		uint64_t xuid;
+		char name[32];
+		netadr_t netAdr;
+		SerializedAdr serializedAdr;
+		bdSecurityID secId;
+		bdSecurityKey secKey;
+		uint32_t serverLocation;
+	};
+
+	enum LobbyType
+	{
+		LOBBY_TYPE_INVALID = 0xFFFFFFFF,
+		LOBBY_TYPE_PRIVATE = 0x0,
+		LOBBY_TYPE_GAME = 0x1,
+		LOBBY_TYPE_TRANSITION = 0x2,
+		LOBBY_TYPE_COUNT = 0x3,
+		LOBBY_TYPE_FIRST = 0x0,
+		LOBBY_TYPE_LAST = 0x2,
+		LOBBY_TYPE_AUTO = 0x3,
+	};
+
+	enum LobbyNetworkMode
+	{
+		LOBBY_NETWORKMODE_INVALID = 0xFFFFFFFF,
+		LOBBY_NETWORKMODE_LOCAL = 0x0,
+		LOBBY_NETWORKMODE_LAN = 0x1,
+		LOBBY_NETWORKMODE_LIVE = 0x2,
+		LOBBY_NETWORKMODE_COUNT = 0x3,
+	};
+
+	enum LobbyMainMode
+	{
+		LOBBY_MAINMODE_INVALID = 0xFFFFFFFF,
+		LOBBY_MAINMODE_CP = 0x0,
+		LOBBY_MAINMODE_MP = 0x1,
+		LOBBY_MAINMODE_ZM = 0x2,
+		LOBBY_MAINMODE_COUNT = 0x3,
+	};
+
+	struct LobbyParams
+	{
+		LobbyNetworkMode networkMode;
+		LobbyMainMode mainMode;
+	};
+
+	enum JoinType
+	{
+		JOIN_TYPE_NORMAL = 0x0,
+		JOIN_TYPE_PLAYLIST = 0x1,
+		JOIN_TYPE_FRIEND = 0x2,
+		JOIN_TYPE_INVITE = 0x3,
+		JOIN_TYPE_PARTY = 0x4,
+		JOIN_TYPE_COUNT = 0x5,
+	};
+
+	struct JoinHost
+	{
+		HostInfo info;
+		LobbyType lobbyType;
+		LobbyParams lobbyParams;
+		uint64_t reservationKey;
+		int retryTime;
+		int retryCount;
+	};
+
+	enum JoinSourceState
+	{
+		JOIN_SOURCE_STATE_IDLE = 0x0,
+		JOIN_SOURCE_STATE_CONNECT_TO_NEXT_HOST = 0x1,
+		JOIN_SOURCE_STATE_ASSOCIATING = 0x2,
+		JOIN_SOURCE_STATE_HANDSHAKING = 0x3,
+		JOIN_SOURCE_STATE_WAITING_FOR_AGREEMENT = 0x4,
+		JOIN_SOURCE_STATE_CONNECTION_FAILED = 0x5,
+		JOIN_SOURCE_STATE_CONNECTION_SUCCESS = 0x6,
+		JOIN_SOURCE_STATE_ENDING_HOST = 0x7,
+		JOIN_SOURCE_STATE_CLEANUP = 0x8,
+		JOIN_SOURCE_STATE_COUNT = 0x9,
+	};
+
+	enum JoinResult
+	{
+		JOIN_RESULT_INVALID = 0x0,
+		JOIN_RESULT_SUCCESS = 0x1,
+		JOIN_RESULT_CONNECT_TO_HOST_FAILURE = 0x2,
+		JOIN_RESULT_PROBE_SEND_FAILURE = 0x3,
+		JOIN_RESULT_PROBE_TIMEOUT = 0x4,
+		JOIN_RESULT_PROBE_INVALID_LOBBY = 0x5,
+		JOIN_RESULT_PROBE_INVALID_INFO = 0x6,
+		JOIN_RESULT_PROBE_RESULT_INVALID = 0x7,
+		JOIN_RESULT_INVALID_LOBBY = 0x8,
+		JOIN_RESULT_SEND_AGREEMENT_REQUEST_FAILED = 0x9,
+		JOIN_RESULT_HANDSHAKE_WINDOW_EXPIRED = 0xA,
+		JOIN_RESULT_AGREEMENT_WINDOW_EXPIRED = 0xB,
+		JOIN_RESULT_JOIN_DISABLED = 0xC,
+		JOIN_RESULT_JOIN_ALREADY_IN_PROGRESS = 0xD,
+		JOIN_RESULT_NOT_JOINABLE_NOT_HOSTING = 0xE,
+		JOIN_RESULT_NOT_JOINABLE_NOT_IDLE = 0xF,
+		JOIN_RESULT_NOT_JOINABLE_CLOSED = 0x10,
+		JOIN_RESULT_NOT_JOINABLE_INVITE_ONLY = 0x11,
+		JOIN_RESULT_NOT_JOINABLE_FRIENDS_ONLY = 0x12,
+		JOIN_RESULT_LOBBY_FULL = 0x13,
+		JOIN_RESULT_NETWORK_MODE_MISMATCH = 0x14,
+		JOIN_RESULT_MISMATCH_PLAYLISTID = 0x15,
+		JOIN_RESULT_MISMATCH_PLAYLIST_VERSION_TO_NEW = 0x16,
+		JOIN_RESULT_MISMATCH_PLAYLIST_VERSION_TO_OLD = 0x17,
+		JOIN_RESULT_MISMATCH_PROTOCOL_VERSION = 0x18,
+		JOIN_RESULT_MISMATCH_NETFIELD_CHECKSUM = 0x19,
+		JOIN_RESULT_MISMATCH_FFOTD_VERSION_TO_NEW = 0x1A,
+		JOIN_RESULT_MISMATCH_FFOTD_VERSION_TO_OLD = 0x1B,
+		JOIN_RESULT_MIGRATE_IN_PROGRESS = 0x1C,
+		JOIN_RESULT_COULD_NOT_RESERVE = 0x1D,
+		JOIN_RESPONSE_COUNT = 0x1E,
+	};
+
+	typedef void (*joinCompleteCallback)(const int, JoinResult);
+
+	struct AgreementStatus
+	{
+		XUID xuid;
+		char name[32];
+		bool responded;
+		bool agrees;
+		int startTime;
+		int responseTime;
+	};
+
+	struct Agreement
+	{
+		int nonce;
+		AgreementStatus status[18];
+		int requestCount;
+		int responseCount;
+		int agreeCount;
+	};
+
+	struct Join
+	{
+		JoinSourceState state;
+		int actionId;
+		int startTime;
+		int duration;
+		ControllerIndex_t controllerIndex;
+		LobbyType sourceLobbyType;
+		LobbyType targetLobbyType;
+		joinCompleteCallback joinComplete;
+		JoinHost hostList[50];
+		int hostCount;
+		int processedCount;
+		bool isFinalized;
+		JoinHost potentialHost;
+		Agreement agreement;
+		Agreement debugAgreement;
+		JoinType joinType;
+		JoinResult joinResult;
 	};
 
 #ifdef __cplusplus

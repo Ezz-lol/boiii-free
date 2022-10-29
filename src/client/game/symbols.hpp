@@ -40,6 +40,7 @@ namespace game
 	WEAK symbol<bool(netadr_t*, char const*)> NetAdr_InitFromString{0x142332F70_g};
 
 	// Sys
+	WEAK symbol<int()> Sys_Milliseconds{0x142333430_g};
 	WEAK symbol<void()> Sys_ShowConsole{0x142333F80_g};
 	WEAK symbol<TLSData*()> Sys_GetTLS{0x142184210_g};
 
@@ -63,6 +64,8 @@ namespace game
 	WEAK symbol<CmdArgs> sv_cmd_args{0x15689CE30_g};
 
 	WEAK symbol<SOCKET> ip_socket{0x157E77818_g};
+
+	WEAK symbol<Join> s_join{0x15574C640_g};
 
 	namespace s_wcd
 	{

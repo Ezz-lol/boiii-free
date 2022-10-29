@@ -14,6 +14,7 @@ namespace network
 	void send_data(const game::netadr_t& address, const std::string& data);
 
 	game::netadr_t address_from_string(const std::string& address);
+	game::netadr_t address_from_ip(uint32_t ip, uint16_t port);
 
 	bool are_addresses_equal(const game::netadr_t& a, const game::netadr_t& b);
 }
@@ -53,7 +54,7 @@ namespace std
 				return type_hash;
 			}
 
-			return type_hash ^ hash<uint32_t>()(*reinterpret_cast<const uint32_t*>(&x.ipv4.a)) ^ hash<
+			return type_hash ^ hash<uint32_t>()(x.addr) ^ hash<
 				uint16_t>()(x.port);
 		}
 	};

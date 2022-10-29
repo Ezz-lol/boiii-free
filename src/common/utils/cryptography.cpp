@@ -628,7 +628,7 @@ namespace utils::cryptography
 	std::string random::get_challenge()
 	{
 		std::string result;
-		result.resize(sizeof(uint32_t));
+		result.resize(sizeof(uint64_t));
 		random::get_data(result.data(), result.size());
 		return string::dump_hex(result, "");
 	}
