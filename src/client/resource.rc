@@ -91,7 +91,7 @@ END
 // Binary Data
 //
 
-//ID_ICON               ICON   "resources/icon.ico"
+ID_ICON               ICON   "resources/icon.ico"
 IMAGE_SPLASH          BITMAP "resources/splash.bmp"
 IMAGE_LOGO            BITMAP "resources/logo.bmp"
 
