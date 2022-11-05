@@ -89,6 +89,17 @@ namespace utils::hardware_breakpoint
 		}
 	}
 
+	void set_branch_tracing(const bool enabled, CONTEXT& context)
+	{
+		set_bits(context.Dr7, 8, 1, enabled ? 1 : 0);
+	}
+
+	void set_branch_tracing(const bool enabled, const uint32_t thread_id)
+	{
+		debug_context context(thread_id);
+		set_branch_tracing(enabled, context);
+	}
+
 	uint32_t activate(const uint64_t address, uint32_t length, const condition cond, CONTEXT& context)
 	{
 		const auto index = find_free_index(context);
