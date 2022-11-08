@@ -10,8 +10,9 @@
 #include "utils/thread.hpp"
 
 #define ProcessDebugPort 7
-#define ProcessDebugObjectHandle 30 // WinXP source says 31?
-#define ProcessDebugFlags 31 // WinXP source says 32?
+#define ProcessDebugObjectHandle 30
+#define ProcessDebugFlags 31
+#define ProcessImageFileNameWin32 43
 
 namespace arxan
 {
@@ -310,7 +311,8 @@ namespace arxan
 					*static_cast<HANDLE*>(info) = nullptr;
 					return static_cast<LONG>(0xC0000353);
 				}
-				else if (info_class == ProcessImageFileName || static_cast<int>(info_class) == 43 /* ? */)
+				else if (info_class == ProcessImageFileName || static_cast<int>(info_class) ==
+					ProcessImageFileNameWin32)
 				{
 					remove_evil_keywords_from_string(*static_cast<UNICODE_STRING*>(info));
 				}

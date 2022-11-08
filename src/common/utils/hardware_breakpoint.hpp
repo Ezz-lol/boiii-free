@@ -19,6 +19,10 @@ namespace utils::hardware_breakpoint
 	uint32_t activate(void* address, uint32_t length, condition cond, uint32_t thread_id = GetCurrentThreadId());
 	uint32_t activate(uint64_t address, uint32_t length, condition cond, uint32_t thread_id = GetCurrentThreadId());
 
+	void deactivate_address(uint64_t address, CONTEXT& context);
+	void deactivate_address(void* address, uint32_t thread_id = GetCurrentThreadId());
+	void deactivate_address(uint64_t address, uint32_t thread_id = GetCurrentThreadId());
+
 	void deactivate(uint32_t index, CONTEXT& context);
 	void deactivate(uint32_t index, uint32_t thread_id = GetCurrentThreadId());
 

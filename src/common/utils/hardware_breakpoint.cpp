@@ -125,6 +125,28 @@ namespace utils::hardware_breakpoint
 		return activate(address, length, cond, context);
 	}
 
+	void deactivate_address(const uint64_t address, CONTEXT& context)
+	{
+		for (auto i = 0; i < 4; ++i)
+		{
+			if ((&context.Dr0)[i] == address)
+			{
+				deactivate(i, context);
+			}
+		}
+	}
+
+	void deactivate_address(void* address, const uint32_t thread_id)
+	{
+		return deactivate_address(reinterpret_cast<uint64_t>(address), thread_id);
+	}
+
+	void deactivate_address(const uint64_t address, const uint32_t thread_id)
+	{
+		debug_context context(thread_id);
+		deactivate_address(address, context);
+	}
+
 	void deactivate(const uint32_t index, CONTEXT& context)
 	{
 		validate_index(index);
