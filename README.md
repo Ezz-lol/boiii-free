@@ -18,7 +18,10 @@ Reverse engineering and analysis of Call of Duty: Black Ops 3. Very experimental
 - [x] Disable Hardware Breakpoint Detection
 - [x] Disable Integrity Checks
 - [x] Demonware Emulation
-- [ ] Disable Anti-Debugging Mechanisms
+- [ ] Disable Anti-Debugging Mechanisms (probably never gonna happen cause who needs that if you have printf debugging)
+- [x] P2P multiplayer
+- [ ] Process hollowing loader
+- [ ] Dedicated Servers
 
 ## Disclaimer
 
