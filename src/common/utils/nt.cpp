@@ -251,7 +251,7 @@ namespace utils::nt
 
 	void relaunch_self()
 	{
-		const utils::nt::library self;
+		const auto self = utils::nt::library::get_by_address(relaunch_self);
 
 		STARTUPINFOA startup_info;
 		PROCESS_INFORMATION process_info;
