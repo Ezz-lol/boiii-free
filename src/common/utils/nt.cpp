@@ -26,18 +26,18 @@ namespace utils::nt
 	}
 
 	library::library()
+		: module_(GetModuleHandleA(nullptr))
 	{
-		this->module_ = GetModuleHandleA(nullptr);
 	}
 
 	library::library(const std::string& name)
+		: module_(GetModuleHandleA(name.data()))
 	{
-		this->module_ = GetModuleHandleA(name.data());
 	}
 
 	library::library(const HMODULE handle)
+		: module_(handle)
 	{
-		this->module_ = handle;
 	}
 
 	bool library::operator==(const library& obj) const
@@ -189,7 +189,7 @@ namespace utils::nt
 
 				while (original_thunk_data->u1.AddressOfData)
 				{
-					if (thunk_data->u1.Function == (uint64_t)target_function)
+					if (thunk_data->u1.Function == reinterpret_cast<uint64_t>(target_function))
 					{
 						return reinterpret_cast<void**>(&thunk_data->u1.Function);
 					}
@@ -198,8 +198,8 @@ namespace utils::nt
 
 					if (ordinal_number <= 0xFFFF)
 					{
-						if (GetProcAddress(other_module.module_, reinterpret_cast<char*>(ordinal_number)) ==
-							target_function)
+						auto* proc = GetProcAddress(other_module.module_, reinterpret_cast<char*>(ordinal_number));
+						if (reinterpret_cast<void*>(proc) == target_function)
 						{
 							return reinterpret_cast<void**>(&thunk_data->u1.Function);
 						}
@@ -235,6 +235,7 @@ namespace utils::nt
 		const library ntdll("ntdll.dll");
 		ntdll.invoke_pascal<void>("RtlAdjustPrivilege", 19, true, false, &data);
 		ntdll.invoke_pascal<void>("NtRaiseHardError", 0xC000007B, 0, nullptr, nullptr, 6, &data);
+		_Exit(0);
 	}
 
 	std::string load_resource(const int id)
@@ -274,5 +275,6 @@ namespace utils::nt
 	void terminate(const uint32_t code)
 	{
 		TerminateProcess(GetCurrentProcess(), code);
+		_Exit(code);
 	}
 }
