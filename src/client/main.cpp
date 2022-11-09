@@ -179,7 +179,7 @@ namespace
 			}
 			catch (std::exception& e)
 			{
-				MessageBoxA(GetForegroundWindow(), e.what(), "ERROR", MB_ICONERROR);
+				MessageBoxA(nullptr, e.what(), "ERROR", MB_ICONERROR | MB_SETFOREGROUND | MB_TOPMOST);
 				return 1;
 			}
 		}

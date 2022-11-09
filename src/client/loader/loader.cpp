@@ -107,7 +107,7 @@ namespace loader
 		const auto target = utils::nt::library::load(filename);
 		if (!target)
 		{
-			throw std::runtime_error{"Failed to map binary!"};
+			throw std::runtime_error{"Failed to map: " + filename};
 		}
 
 		load_imports(target);

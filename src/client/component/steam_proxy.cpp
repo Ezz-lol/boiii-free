@@ -215,7 +215,7 @@ namespace steam_proxy
 			catch (std::exception& e)
 			{
 				printf("Steam: %s\n", e.what());
-				MessageBoxA(GetForegroundWindow(), e.what(), "BOIII Error", MB_ICONERROR);
+				MessageBoxA(nullptr, e.what(), "BOIII Error", MB_ICONERROR | MB_SETFOREGROUND | MB_TOPMOST);
 				TerminateProcess(GetCurrentProcess(), 1234);
 			}
 
