@@ -174,7 +174,7 @@ namespace
 			}
 			catch (std::exception& e)
 			{
-				MessageBoxA(nullptr, e.what(), "ERROR", MB_ICONERROR);
+				MessageBoxA(GetForegroundWindow(), e.what(), "ERROR", MB_ICONERROR);
 				return 1;
 			}
 		}
