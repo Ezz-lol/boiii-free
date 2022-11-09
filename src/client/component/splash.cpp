@@ -132,15 +132,15 @@ namespace splash
 		{
 			WNDCLASSA wnd_class;
 
-			const utils::nt::library host{};
+			const auto self = utils::nt::library::get_by_address(load_splash_image);
 
 			wnd_class.style = CS_DROPSHADOW;
 			wnd_class.cbClsExtra = 0;
 			wnd_class.cbWndExtra = 0;
 			wnd_class.lpszMenuName = nullptr;
 			wnd_class.lpfnWndProc = DefWindowProcA;
-			wnd_class.hInstance = host;
-			wnd_class.hIcon = LoadIconA(host, MAKEINTRESOURCEA(1));
+			wnd_class.hInstance = self;
+			wnd_class.hIcon = LoadIconA(self, MAKEINTRESOURCEA(ID_ICON));
 			wnd_class.hCursor = LoadCursorA(nullptr, IDC_APPSTARTING);
 			wnd_class.hbrBackground = reinterpret_cast<HBRUSH>(6);
 			wnd_class.lpszClassName = "Black Ops III Splash Screen";
@@ -156,13 +156,13 @@ namespace splash
 					                         WS_POPUP | WS_SYSMENU,
 					                         (x_pixels - 320) / 2, (y_pixels - 100) / 2, 320, 100, nullptr,
 					                         nullptr,
-					                         host, nullptr);
+					                         self, nullptr);
 
 					if (window)
 					{
 						auto* const image_window = CreateWindowExA(0, "Static", nullptr, WS_CHILD | WS_VISIBLE | 0xEu,
 						                                           0, 0,
-						                                           320, 100, window, nullptr, host, nullptr);
+						                                           320, 100, window, nullptr, self, nullptr);
 						if (image_window)
 						{
 							RECT rect;
