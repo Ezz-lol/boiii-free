@@ -188,7 +188,7 @@ namespace steam_proxy
 	class component final : public component_interface
 	{
 	public:
-		void pre_start() override
+		void post_load() override
 		{
 			load_client();
 			perform_cleanup_if_needed();

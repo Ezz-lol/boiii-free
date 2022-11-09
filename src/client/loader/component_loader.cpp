@@ -15,7 +15,7 @@ void component_loader::register_component(std::unique_ptr<component_interface>&&
 	});
 }
 
-bool component_loader::pre_start()
+bool component_loader::pre_load()
 {
 	static auto res = []
 	{
@@ -25,7 +25,36 @@ bool component_loader::pre_start()
 		{
 			for (const auto& component_ : get_components())
 			{
-				component_->pre_start();
+				component_->pre_load();
+			}
+		}
+		catch (premature_shutdown_trigger&)
+		{
+			return false;
+		}
+		catch (const std::exception& e)
+		{
+			MessageBoxA(nullptr, e.what(), "Error", MB_ICONERROR);
+			return false;
+		}
+
+		return true;
+	}();
+
+	return res;
+}
+
+bool component_loader::post_load()
+{
+	static auto res = []
+	{
+		clean();
+
+		try
+		{
+			for (const auto& component_ : get_components())
+			{
+				component_->post_load();
 			}
 		}
 		catch (premature_shutdown_trigger&)

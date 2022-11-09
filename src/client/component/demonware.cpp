@@ -456,7 +456,7 @@ namespace demonware
 			tcp_servers.create<umbrella_server>("prod.umbrella.demonware.net");
 		}
 
-		void pre_start() override
+		void post_load() override
 		{
 			register_hook("send", io::send_stub);
 			register_hook("recv", io::recv_stub);

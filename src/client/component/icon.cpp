@@ -32,7 +32,7 @@ namespace icon
 	class component final : public component_interface
 	{
 	public:
-		void pre_start() override
+		void post_load() override
 		{
 			load_icon_a_hook.create(LoadIconA, load_icon_a_stub);
 		}

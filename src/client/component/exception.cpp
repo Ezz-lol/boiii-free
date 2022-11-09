@@ -202,7 +202,7 @@ namespace exception
 			SetUnhandledExceptionFilter(exception_filter);
 		}
 
-		void pre_start() override
+		void post_load() override
 		{
 			const utils::nt::library ntdll("ntdll.dll");
 			auto* set_filter = ntdll.get_proc<void(*)(LPTOP_LEVEL_EXCEPTION_FILTER)>("RtlSetUnhandledExceptionFilter");

@@ -157,6 +157,11 @@ namespace
 			{
 				remove_crash_file();
 
+				if (!component_loader::pre_load())
+				{
+					return 1;
+				}
+
 				entry_point = load_process("BlackOps3.exe");
 				if (!entry_point)
 				{
@@ -165,7 +170,7 @@ namespace
 
 				patch_imports();
 
-				if (!component_loader::pre_start())
+				if (!component_loader::post_load())
 				{
 					return 1;
 				}
