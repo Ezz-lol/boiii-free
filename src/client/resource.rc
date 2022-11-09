@@ -75,7 +75,7 @@ BEGIN
             VALUE "FileVersion", VERSION_FILE
             VALUE "InternalName", "something"
             VALUE "LegalCopyright", "Copyright (C) 2022 momo5502. All rights reserved."
-            VALUE "OriginalFilename", "d3d11.dll"
+            VALUE "OriginalFilename", "boiii.exe"
             VALUE "ProductName", "BOIII"
             VALUE "ProductVersion", VERSION_PRODUCT
         END
