@@ -52,8 +52,8 @@ jobs:
         with:
           name: ${{matrix.configuration}} Bundle
           path: |
-            build/bin/x64/${{matrix.configuration}}/d3d11.dll
-            build/bin/x64/${{matrix.configuration}}/d3d11.pdb
+            build/bin/x64/${{matrix.configuration}}/boiii.exe
+            build/bin/x64/${{matrix.configuration}}/boiii.pdb
 
       - name: Upload ${{matrix.configuration}} binary
         if: matrix.configuration == 'Release'
@@ -61,7 +61,7 @@ jobs:
         with:
           name: ${{matrix.configuration}} Binary
           path: |
-            build/bin/x64/${{matrix.configuration}}/d3d11.dll
+            build/bin/x64/${{matrix.configuration}}/boiii.exe
 
       - name: Upload version
         if: matrix.configuration == 'Release'
