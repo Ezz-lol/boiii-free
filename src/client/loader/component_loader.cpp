@@ -143,10 +143,15 @@ size_t get_base()
 	return base;
 }
 
-size_t operator"" _g(const size_t val)
+size_t get_game_address(const size_t val)
 {
 	static auto base = get_base();
 	return base + (val - 0x140000000);
+}
+
+size_t operator"" _g(const size_t val)
+{
+	return get_game_address(val);
 }
 
 size_t reverse_g(const size_t val)

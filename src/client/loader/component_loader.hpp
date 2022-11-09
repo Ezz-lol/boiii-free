@@ -58,6 +58,7 @@ namespace                                                 \
 }
 
 size_t get_base();
+size_t get_game_address(size_t val);
 size_t operator"" _g(size_t val);
 size_t reverse_g(size_t val);
 size_t reverse_g(const void* val);
