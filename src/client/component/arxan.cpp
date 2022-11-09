@@ -384,7 +384,7 @@ namespace arxan
 				{
 					continue;
 				}
-				
+
 				if (!loaded)
 				{
 					memcpy(buffers[i], func, sizeof(buffer));
@@ -698,14 +698,11 @@ namespace arxan
 	class component final : public component_interface
 	{
 	public:
-		component()
+		void pre_start() override
 		{
 			auto* dll_characteristics = &utils::nt::library().get_optional_header()->DllCharacteristics;
 			utils::hook::set<WORD>(dll_characteristics, *dll_characteristics | IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE);
-		}
 
-		void pre_start() override
-		{
 			disable_tls_callbacks();
 			restore_debug_functions();
 

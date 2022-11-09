@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 
 #include "loader/component_loader.hpp"
+#include "loader/loader.hpp"
 
 #include <utils/finally.hpp>
 #include <utils/hook.hpp>
@@ -11,6 +12,7 @@
 
 namespace
 {
+	volatile bool g_call_tls_callbacks = false;
 	std::pair<void**, void*> g_original_import{};
 
 	DECLSPEC_NORETURN void WINAPI exit_hook(const uint32_t code)
@@ -84,8 +86,61 @@ namespace
 		utils::io::remove_file(game_path.generic_string());
 	}
 
-	bool run()
+	PIMAGE_TLS_CALLBACK* get_tls_callbacks()
 	{
+		const utils::nt::library game{};
+		const auto& entry = game.get_optional_header()->DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];
+		if (!entry.VirtualAddress || !entry.Size)
+		{
+			return nullptr;
+		}
+
+		const auto* tls_dir = reinterpret_cast<IMAGE_TLS_DIRECTORY*>(game.get_ptr() + entry.VirtualAddress);
+		return reinterpret_cast<PIMAGE_TLS_CALLBACK*>(tls_dir->AddressOfCallBacks);
+	}
+
+	void run_tls_callbacks(const DWORD reason)
+	{
+		if (!g_call_tls_callbacks)
+		{
+			return;
+		}
+
+		auto* callback = get_tls_callbacks();
+		while (callback && *callback)
+		{
+			(*callback)(GetModuleHandleA(nullptr), reason, nullptr);
+			++callback;
+		}
+	}
+
+	[[maybe_unused]] thread_local struct tls_runner
+	{
+		tls_runner()
+		{
+			run_tls_callbacks(DLL_THREAD_ATTACH);
+		}
+
+		~tls_runner()
+		{
+			run_tls_callbacks(DLL_THREAD_DETACH);
+		}
+	} tls_runner;
+
+	FARPROC load_process(const std::string& procname)
+	{
+		const auto proc = loader::load_binary(procname);
+
+		auto* const peb = reinterpret_cast<PPEB>(__readgsqword(0x60));
+		peb->Reserved3[1] = proc.get_ptr();
+		static_assert(offsetof(PEB, Reserved3[1]) == 0x10);
+
+		return FARPROC(proc.get_ptr() + proc.get_relative_entry_point());
+	}
+
+	int main()
+	{
+		FARPROC entry_point{};
 		srand(uint32_t(time(nullptr)) ^ ~(GetTickCount() * GetCurrentProcessId()));
 
 		{
@@ -100,12 +155,19 @@ namespace
 
 			try
 			{
-				patch_imports();
 				remove_crash_file();
+
+				entry_point = load_process("BlackOps3.exe");
+				if (!entry_point)
+				{
+					throw std::runtime_error("Unable to load binary into memory");
+				}
+
+				patch_imports();
 
 				if (!component_loader::pre_start())
 				{
-					return false;
+					return 1;
 				}
 
 				premature_shutdown = false;
@@ -113,141 +175,17 @@ namespace
 			catch (std::exception& e)
 			{
 				MessageBoxA(nullptr, e.what(), "ERROR", MB_ICONERROR);
-				return false;
+				return 1;
 			}
 		}
 
-		return true;
-	}
-
-	class patch
-	{
-	public:
-		patch() = default;
-
-		patch(void* source, void* target)
-			: source_(source)
-		{
-			memcpy(this->data_, source, sizeof(this->data_));
-			utils::hook::jump(this->source_, target, true, true);
-		}
-
-		~patch()
-		{
-			if (source_)
-			{
-				utils::hook::copy(this->source_, this->data_, sizeof(this->data_));
-			}
-		}
-
-		patch(patch&& obj) noexcept
-			: patch()
-		{
-			this->operator=(std::move(obj));
-		}
-
-		patch& operator=(patch&& obj) noexcept
-		{
-			if (this != &obj)
-			{
-				this->~patch();
-
-				this->source_ = obj.source_;
-				memcpy(this->data_, obj.data_, sizeof(this->data_));
-
-				obj.source_ = nullptr;
-			}
-
-			return *this;
-		}
-
-	private:
-		void* source_{nullptr};
-		uint8_t data_[15]{};
-	};
-
-	std::vector<patch> initialization_hooks{};
-
-	uint8_t* get_entry_point()
-	{
-		const utils::nt::library game{};
-		return game.get_ptr() + game.get_optional_header()->AddressOfEntryPoint;
-	}
-
-	std::vector<uint8_t*> get_tls_callbacks()
-	{
-		const utils::nt::library game{};
-		const auto& entry = game.get_optional_header()->DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];
-		if (!entry.VirtualAddress || !entry.Size)
-		{
-			return {};
-		}
-
-		const auto* tls_dir = reinterpret_cast<IMAGE_TLS_DIRECTORY*>(game.get_ptr() + entry.VirtualAddress);
-		auto* callback = reinterpret_cast<uint8_t**>(tls_dir->AddressOfCallBacks);
-
-		std::vector<uint8_t*> addresses{};
-		while (callback && *callback)
-		{
-			addresses.emplace_back(*callback);
-			++callback;
-		}
-
-		return addresses;
-	}
-
-	int patch_main()
-	{
-		if (!run())
-		{
-			return 1;
-		}
-
-		initialization_hooks.clear();
-		return reinterpret_cast<int(*)()>(get_entry_point())();
-	}
-
-	void nullsub()
-	{
-	}
-
-	void patch_entry_point()
-	{
-		initialization_hooks.emplace_back(get_entry_point(), patch_main);
-
-		for (auto* tls_callback : get_tls_callbacks())
-		{
-			initialization_hooks.emplace_back(tls_callback, nullsub);
-		}
+		g_call_tls_callbacks = true;
+		return static_cast<int>(entry_point());
 	}
 }
 
-BOOL WINAPI DllMain(HINSTANCE, const DWORD reason, LPVOID)
+
+int __stdcall WinMain(HINSTANCE, HINSTANCE, PSTR, int)
 {
-	if (reason == DLL_PROCESS_ATTACH)
-	{
-		patch_entry_point();
-	}
-
-	return TRUE;
-}
-
-extern "C" __declspec(dllexport)
-HRESULT D3D11CreateDevice(void* adapter, const uint64_t driver_type,
-                          const HMODULE software, const UINT flags,
-                          const void* p_feature_levels, const UINT feature_levels,
-                          const UINT sdk_version, void** device, void* feature_level,
-                          void** immediate_context)
-{
-	static auto func = []
-	{
-		char dir[MAX_PATH]{0};
-		GetSystemDirectoryA(dir, sizeof(dir));
-
-		const auto d3d11 = utils::nt::library::load(dir + "/d3d11.dll"s);
-		return d3d11.get_proc<decltype(&D3D11CreateDevice)>("D3D11CreateDevice");
-	}();
-
-	return func(adapter, driver_type, software, flags, p_feature_levels, feature_levels, sdk_version, device,
-	            feature_level, immediate_context);
+	return main();
 }

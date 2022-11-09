@@ -138,8 +138,16 @@ std::vector<std::unique_ptr<component_interface>>& component_loader::get_compone
 
 size_t get_base()
 {
-	static auto base = size_t(utils::nt::library{}.get_ptr());
-	assert(base && "Failed to resolve base");
+	static auto base = []
+	{
+		const utils::nt::library host{};
+		if(!host || host == utils::nt::library::get_by_address(get_base))
+		{
+			throw std::runtime_error("Invalid host application");
+		}
+
+		return size_t(host.get_ptr());
+	}();
 	return base;
 }
 

@@ -18,13 +18,13 @@ namespace game
 
 	WEAK symbol<void(int localClientNum, const char* text)> Cbuf_AddText{0x1420EC8B0};
 	WEAK symbol<void(const char* cmdName, xcommand_t function, cmd_function_s* allocedCmd)> Cmd_AddCommandInternal{
-		0x1420ED530_g
+		0x1420ED530
 	};
 	WEAK symbol<void(char* text, int maxSize)> Con_GetTextCopy{0x14133A7D0};
 
 	// DB
 	WEAK symbol<void(XZoneInfo* zoneInfo, uint32_t zoneCount, bool sync, bool suppressSync)> DB_LoadXAssets{
-		0x1414236A0_g
+		0x1414236A0
 	};
 
 	// Live
@@ -50,12 +50,12 @@ namespace game
 	WEAK symbol<const char*(const dvar_t* dvar)> Dvar_GetDebugName{0x1422BDCB0};
 	WEAK symbol<const char*(const dvar_t* dvar)> Dvar_GetString{0x1422BFFF0};
 	WEAK symbol<void(const char* dvarName, const char* string, bool createIfMissing)> Dvar_SetFromStringByName{
-		0x1422C7F60_g
+		0x1422C7F60
 	};
 
 	// Rendering
 	WEAK symbol<void(const char*, int, void*, float, float, float, float, float, float*, int)> R_AddCmdDrawText{
-		0x141CD98D0_g
+		0x141CD98D0
 	};
 
 	// Variables

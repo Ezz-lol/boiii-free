@@ -8,8 +8,6 @@
 // Generated from the TEXTINCLUDE 2 resource.
 //
 #include "windows.h"
-#include "version.h"
-#include "resource.hpp"
 
 /////////////////////////////////////////////////////////////////////////////
 #undef APSTUDIO_READONLY_SYMBOLS
@@ -46,21 +44,13 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION VERSION_FILE_RC
- PRODUCTVERSION VERSION_PRODUCT_RC
+ FILEVERSION 1,0,0,0
+ PRODUCTVERSION 1,0,0,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
- FILEFLAGS VS_FF_DEBUG
-#else
-#ifdef PRERELEASE
- FILEFLAGS VS_FF_PRERELEASE
-#else
-#ifndef CI
- FILEFLAGS VS_FF_PRIVATEBUILD
+ FILEFLAGS 0x1L
 #else
  FILEFLAGS 0x0L
-#endif
-#endif
 #endif
  FILEOS 0x40004L
  FILETYPE VFT_DLL
@@ -70,14 +60,14 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "CompanyName", "momo5502"
-            VALUE "FileDescription", "BOIII"
-            VALUE "FileVersion", VERSION_FILE
-            VALUE "InternalName", "something"
-            VALUE "LegalCopyright", "Copyright (C) 2022 momo5502. All rights reserved."
-            VALUE "OriginalFilename", "d3d11.dll"
-            VALUE "ProductName", "BOIII"
-            VALUE "ProductVersion", VERSION_PRODUCT
+            VALUE "CompanyName", "X Labs"
+            VALUE "FileDescription", "TLS index allocation dll"
+            VALUE "FileVersion", "1.0.0.0"
+            VALUE "InternalName", "TLS DLL"
+            VALUE "LegalCopyright", "All rights reserved."
+            VALUE "OriginalFilename", "tlsdll.dll"
+            VALUE "ProductName", "tlsdll"
+            VALUE "ProductVersion", "1.0.0.0"
         END
     END
     BLOCK "VarFileInfo"
@@ -91,28 +81,7 @@ END
 // Binary Data
 //
 
-ID_ICON               ICON   "resources/icon.ico"
-IMAGE_SPLASH          BITMAP "resources/splash.bmp"
-IMAGE_LOGO            BITMAP "resources/logo.bmp"
-
-DW_MOTD               RCDATA "resources/dw/experiments_tu32.gz"
-DW_CARDS              RCDATA "resources/dw/featured_cards-english_tu32.gz"
-DW_PLAYLISTS          RCDATA "resources/dw/playlists_tu32.gz"
-DW_FASTFILE           RCDATA "resources/dw/core_ffotd_tu32_593.ff"
-DW_KEYS               RCDATA "resources/dw/keys.txt"
-DW_QOSCONFIG          RCDATA "resources/dw/qosconfig4.csv"
-
-#ifdef _DEBUG
-RUNNER                RCDATA "../../build/bin/x64/Debug/runner.exe"
-#else
-RUNNER                RCDATA "../../build/bin/x64/Release/runner.exe"
-#endif
-
-#ifdef _DEBUG
-TLS_DLL               RCDATA "../../build/bin/x64/Debug/tlsdll.dll"
-#else
-TLS_DLL               RCDATA "../../build/bin/x64/Release/tlsdll.dll"
-#endif
+// Nothing here
 
 #endif    // English (United States) resources
 /////////////////////////////////////////////////////////////////////////////

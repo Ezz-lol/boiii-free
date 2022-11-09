@@ -13,3 +13,4 @@
 #define DW_QOSCONFIG          307
 
 #define RUNNER                308
+#define TLS_DLL               309

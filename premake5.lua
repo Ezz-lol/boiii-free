@@ -285,10 +285,10 @@ project "common"
 	dependencies.imports()
 
 project "client"
-	kind "SharedLib"
+	kind "WindowedApp"
 	language "C++"
 
-	targetname "d3d11"
+	targetname "boiii"
 
 	pchheader "std_include.hpp"
 	pchsource "src/client/std_include.cpp"
@@ -310,6 +310,18 @@ project "client"
 	end
 
 	dependencies.imports()
+
+project "tlsdll"
+	kind "SharedLib"
+	language "C++"
+
+	files {"./src/tlsdll/**.rc", "./src/tlsdll/**.hpp", "./src/tlsdll/**.cpp", "./src/tlsdll/resources/**.*"}
+
+	includedirs {"./src/tlsdll", "%{prj.location}/src"}
+
+	links {"common"}
+
+	resincludedirs {"$(ProjectDir)src"}
 
 
 project "runner"
