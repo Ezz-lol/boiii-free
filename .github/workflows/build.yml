@@ -28,7 +28,7 @@ jobs:
 #          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check out files
-        uses: actions/checkout@v2.5.0
+        uses: actions/checkout@v3
         with:
           submodules: true
           fetch-depth: 0
