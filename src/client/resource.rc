@@ -103,12 +103,6 @@ DW_KEYS               RCDATA "resources/dw/keys.txt"
 DW_QOSCONFIG          RCDATA "resources/dw/qosconfig4.csv"
 
 #ifdef _DEBUG
-RUNNER                RCDATA "../../build/bin/x64/Debug/runner.exe"
-#else
-RUNNER                RCDATA "../../build/bin/x64/Release/runner.exe"
-#endif
-
-#ifdef _DEBUG
 TLS_DLL               RCDATA "../../build/bin/x64/Debug/tlsdll.dll"
 #else
 TLS_DLL               RCDATA "../../build/bin/x64/Release/tlsdll.dll"

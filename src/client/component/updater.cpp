@@ -130,7 +130,7 @@ namespace updater
 	class component final : public component_interface
 	{
 	public:
-		component()
+		void pre_load() override
 		{
 			cleanup_update();
 
@@ -138,14 +138,6 @@ namespace updater
 			{
 				this->update();
 			});
-		}
-
-		~component() override
-		{
-			if (this->update_thread_.joinable())
-			{
-				this->update_thread_.detach();
-			}
 		}
 
 		void pre_destroy() override

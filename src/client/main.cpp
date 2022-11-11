@@ -138,14 +138,40 @@ namespace
 		return FARPROC(proc.get_ptr() + proc.get_relative_entry_point());
 	}
 
+	bool handle_process_runner()
+	{
+		const auto* const command = "-proc ";
+		const char* parent_proc = strstr(GetCommandLineA(), command);
+
+		if (!parent_proc)
+		{
+			return false;
+		}
+
+		const auto pid = DWORD(atoi(parent_proc + strlen(command)));
+		const utils::nt::handle<> process_handle = OpenProcess(SYNCHRONIZE, FALSE, pid);
+		if (process_handle)
+		{
+			WaitForSingleObject(process_handle, INFINITE);
+		}
+
+		return true;
+	}
+
 	int main()
 	{
+		if (handle_process_runner())
+		{
+			TerminateProcess(GetCurrentProcess(), 0);
+			return 0;
+		}
+
 		FARPROC entry_point{};
 		srand(uint32_t(time(nullptr)) ^ ~(GetTickCount() * GetCurrentProcessId()));
 
 		{
 			auto premature_shutdown = true;
-			const auto _ = utils::finally([&premature_shutdown]()
+			const auto _ = utils::finally([&premature_shutdown]
 			{
 				if (premature_shutdown)
 				{

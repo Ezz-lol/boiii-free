@@ -19,8 +19,6 @@ namespace steam_proxy
 {
 	namespace
 	{
-		utils::binary_resource runner_file(RUNNER, "boiii-runner.exe");
-
 		utils::nt::library steam_client_module{};
 		utils::nt::library steam_overlay_module{};
 
@@ -155,7 +153,8 @@ namespace steam_proxy
 			char our_directory[MAX_PATH] = {0};
 			GetCurrentDirectoryA(sizeof(our_directory), our_directory);
 
-			const auto path = runner_file.get_extracted_file();
+			const auto self = utils::nt::library::get_by_address(start_mod_unsafe);
+			const auto path = self.get_path();
 			const std::string cmdline = utils::string::va("\"%s\" -proc %d", path.data(), GetCurrentProcessId());
 
 			steam::game_id game_id;

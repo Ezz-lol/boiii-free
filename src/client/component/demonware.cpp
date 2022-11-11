@@ -444,7 +444,7 @@ namespace demonware
 	class component final : public component_interface
 	{
 	public:
-		component()
+		void pre_load() override
 		{
 			udp_servers.create<stun_server>("stun.us.demonware.net");
 			udp_servers.create<stun_server>("stun.eu.demonware.net");

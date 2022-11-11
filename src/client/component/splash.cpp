@@ -56,9 +56,10 @@ namespace splash
 	class component final : public component_interface
 	{
 	public:
-		component()
-			: image_(load_splash_image())
+		void pre_load() override
 		{
+			this->image_ = load_splash_image();
+
 			enable_dpi_awareness();
 			window_thread = std::thread([this]
 			{
@@ -66,17 +67,13 @@ namespace splash
 			});
 		}
 
-		~component()
+		void pre_destroy() override
 		{
+			destroy_window();
 			if (window_thread.joinable())
 			{
 				window_thread.detach();
 			}
-		}
-
-		void pre_destroy() override
-		{
-			destroy_window();
 		}
 
 		void post_unpack() override

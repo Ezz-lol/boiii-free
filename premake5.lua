@@ -299,7 +299,7 @@ project "client"
 
 	resincludedirs {"$(ProjectDir)src"}
 
-	dependson {"tlsdll", "runner"}
+	dependson {"tlsdll"}
 
 	links {"common"}
 
@@ -322,21 +322,6 @@ project "tlsdll"
 	links {"common"}
 
 	resincludedirs {"$(ProjectDir)src"}
-
-
-project "runner"
-	kind "WindowedApp"
-	language "C++"
-
-	files {"./src/runner/**.rc", "./src/runner/**.hpp", "./src/runner/**.cpp", "./src/runner/resources/**.*"}
-
-	includedirs {"./src/runner", "./src/common", "%{prj.location}/src"}
-
-	links {"common"}
-
-	resincludedirs {"$(ProjectDir)src"}
-
-	dependencies.imports()
 
 
 group "Dependencies"
