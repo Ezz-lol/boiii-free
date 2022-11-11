@@ -196,7 +196,7 @@ namespace exception
 	class component final : public component_interface
 	{
 	public:
-		void pre_load() override
+		component()
 		{
 			main_thread_id = GetCurrentThreadId();
 			SetUnhandledExceptionFilter(exception_filter);

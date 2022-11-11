@@ -1,13 +1,19 @@
 #pragma once
 
+enum class component_priority
+{
+	min = 0,
+	// must run after the updater
+	steam_proxy,
+	updater,
+	// must have the highest priority
+	arxan,
+};
+
 class component_interface
 {
 public:
 	virtual ~component_interface() = default;
-
-	virtual void pre_load()
-	{
-	}
 
 	virtual void post_load()
 	{
@@ -21,13 +27,8 @@ public:
 	{
 	}
 
-	virtual bool is_supported()
+	virtual component_priority priority() const
 	{
-		return true;
-	}
-
-	virtual int priority()
-	{
-		return 0;
+		return component_priority::min;
 	}
 };

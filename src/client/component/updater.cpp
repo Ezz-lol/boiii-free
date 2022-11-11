@@ -130,7 +130,7 @@ namespace updater
 	class component final : public component_interface
 	{
 	public:
-		void pre_load() override
+		component()
 		{
 			cleanup_update();
 
@@ -150,9 +150,9 @@ namespace updater
 			join();
 		}
 
-		int priority() override
+		component_priority priority() const override
 		{
-			return 999;
+			return component_priority::updater;
 		}
 
 	private:

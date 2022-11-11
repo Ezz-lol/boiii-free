@@ -10,7 +10,9 @@ namespace splash
 	namespace
 	{
 		HWND window{};
+		HANDLE image{};
 		std::thread window_thread{};
+		std::atomic_bool join_safe{false};
 
 		HANDLE load_splash_image()
 		{
@@ -51,53 +53,73 @@ namespace splash
 				window_thread.detach();
 			}
 		}
-	}
 
-	class component final : public component_interface
-	{
-	public:
-		void pre_load() override
+		void show()
 		{
-			this->image_ = load_splash_image();
+			WNDCLASSA wnd_class;
 
-			enable_dpi_awareness();
-			window_thread = std::thread([this]
-			{
-				this->draw();
-			});
-		}
+			const auto self = utils::nt::library::get_by_address(load_splash_image);
 
-		void pre_destroy() override
-		{
-			destroy_window();
-			if (window_thread.joinable())
+			wnd_class.style = CS_DROPSHADOW;
+			wnd_class.cbClsExtra = 0;
+			wnd_class.cbWndExtra = 0;
+			wnd_class.lpszMenuName = nullptr;
+			wnd_class.lpfnWndProc = DefWindowProcA;
+			wnd_class.hInstance = self;
+			wnd_class.hIcon = LoadIconA(self, MAKEINTRESOURCEA(ID_ICON));
+			wnd_class.hCursor = LoadCursorA(nullptr, IDC_APPSTARTING);
+			wnd_class.hbrBackground = reinterpret_cast<HBRUSH>(6);
+			wnd_class.lpszClassName = "Black Ops III Splash Screen";
+
+			if (RegisterClassA(&wnd_class))
 			{
-				window_thread.detach();
+				const auto x_pixels = GetSystemMetrics(SM_CXFULLSCREEN);
+				const auto y_pixels = GetSystemMetrics(SM_CYFULLSCREEN);
+
+				if (image)
+				{
+					window = CreateWindowExA(WS_EX_APPWINDOW, "Black Ops III Splash Screen", "BOIII",
+					                         WS_POPUP | WS_SYSMENU,
+					                         (x_pixels - 320) / 2, (y_pixels - 100) / 2, 320, 100, nullptr,
+					                         nullptr,
+					                         self, nullptr);
+
+					if (window)
+					{
+						auto* const image_window = CreateWindowExA(0, "Static", nullptr, WS_CHILD | WS_VISIBLE | 0xEu,
+						                                           0, 0,
+						                                           320, 100, window, nullptr, self, nullptr);
+						if (image_window)
+						{
+							RECT rect;
+							SendMessageA(image_window, 0x172u, 0, reinterpret_cast<LPARAM>(image));
+							GetWindowRect(image_window, &rect);
+
+							const int width = rect.right - rect.left;
+							rect.left = (x_pixels - width) / 2;
+
+							const int height = rect.bottom - rect.top;
+							rect.top = (y_pixels - height) / 2;
+
+							rect.right = rect.left + width;
+							rect.bottom = rect.top + height;
+							AdjustWindowRect(&rect, WS_CHILD | WS_VISIBLE | 0xEu, 0);
+							SetWindowPos(window, nullptr, rect.left, rect.top, rect.right - rect.left,
+							             rect.bottom - rect.top, SWP_NOZORDER);
+
+							SetWindowRgn(window,
+							             CreateRoundRectRgn(0, 0, rect.right - rect.left, rect.bottom - rect.top, 15,
+							                                15), TRUE);
+
+							ShowWindow(window, SW_SHOW);
+							UpdateWindow(window);
+						}
+					}
+				}
 			}
 		}
 
-		void post_unpack() override
-		{
-			destroy_window();
-		}
-
-	private:
-		std::atomic_bool join_safe_{false};
-		HANDLE image_{};
-
-		void draw()
-		{
-			this->show();
-			while (this->draw_frame())
-			{
-				std::this_thread::sleep_for(1ms);
-			}
-
-			window = nullptr;
-			UnregisterClassA("Black Ops III Splash Screen", utils::nt::library{});
-		}
-
-		bool draw_frame() const
+		bool draw_frame()
 		{
 			if (!window)
 			{
@@ -125,69 +147,45 @@ namespace splash
 			return success;
 		}
 
-		void show()
+		void draw()
 		{
-			WNDCLASSA wnd_class;
-
-			const auto self = utils::nt::library::get_by_address(load_splash_image);
-
-			wnd_class.style = CS_DROPSHADOW;
-			wnd_class.cbClsExtra = 0;
-			wnd_class.cbWndExtra = 0;
-			wnd_class.lpszMenuName = nullptr;
-			wnd_class.lpfnWndProc = DefWindowProcA;
-			wnd_class.hInstance = self;
-			wnd_class.hIcon = LoadIconA(self, MAKEINTRESOURCEA(ID_ICON));
-			wnd_class.hCursor = LoadCursorA(nullptr, IDC_APPSTARTING);
-			wnd_class.hbrBackground = reinterpret_cast<HBRUSH>(6);
-			wnd_class.lpszClassName = "Black Ops III Splash Screen";
-
-			if (RegisterClassA(&wnd_class))
+			show();
+			while (draw_frame())
 			{
-				const auto x_pixels = GetSystemMetrics(SM_CXFULLSCREEN);
-				const auto y_pixels = GetSystemMetrics(SM_CYFULLSCREEN);
-
-				if (image_)
-				{
-					window = CreateWindowExA(WS_EX_APPWINDOW, "Black Ops III Splash Screen", "BOIII",
-					                         WS_POPUP | WS_SYSMENU,
-					                         (x_pixels - 320) / 2, (y_pixels - 100) / 2, 320, 100, nullptr,
-					                         nullptr,
-					                         self, nullptr);
-
-					if (window)
-					{
-						auto* const image_window = CreateWindowExA(0, "Static", nullptr, WS_CHILD | WS_VISIBLE | 0xEu,
-						                                           0, 0,
-						                                           320, 100, window, nullptr, self, nullptr);
-						if (image_window)
-						{
-							RECT rect;
-							SendMessageA(image_window, 0x172u, 0, reinterpret_cast<LPARAM>(image_));
-							GetWindowRect(image_window, &rect);
-
-							const int width = rect.right - rect.left;
-							rect.left = (x_pixels - width) / 2;
-
-							const int height = rect.bottom - rect.top;
-							rect.top = (y_pixels - height) / 2;
-
-							rect.right = rect.left + width;
-							rect.bottom = rect.top + height;
-							AdjustWindowRect(&rect, WS_CHILD | WS_VISIBLE | 0xEu, 0);
-							SetWindowPos(window, nullptr, rect.left, rect.top, rect.right - rect.left,
-							             rect.bottom - rect.top, SWP_NOZORDER);
-
-							SetWindowRgn(window,
-							             CreateRoundRectRgn(0, 0, rect.right - rect.left, rect.bottom - rect.top, 15,
-							                                15), TRUE);
-
-							ShowWindow(window, SW_SHOW);
-							UpdateWindow(window);
-						}
-					}
-				}
+				std::this_thread::sleep_for(1ms);
 			}
+
+			window = nullptr;
+			UnregisterClassA("Black Ops III Splash Screen", utils::nt::library{});
+		}
+	}
+
+	class component final : public component_interface
+	{
+	public:
+		component()
+		{
+			enable_dpi_awareness();
+
+			image = load_splash_image();
+			window_thread = std::thread([this]
+			{
+				draw();
+			});
+		}
+
+		void pre_destroy() override
+		{
+			destroy_window();
+			if (window_thread.joinable())
+			{
+				window_thread.detach();
+			}
+		}
+
+		void post_unpack() override
+		{
+			destroy_window();
 		}
 	};
 

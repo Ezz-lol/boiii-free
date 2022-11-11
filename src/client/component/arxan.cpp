@@ -757,9 +757,9 @@ namespace arxan
 			//restore_debug_functions();
 		}
 
-		int priority() override
+		component_priority priority() const override
 		{
-			return 9999;
+			return component_priority::arxan;
 		}
 
 	private:

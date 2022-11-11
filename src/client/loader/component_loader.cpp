@@ -3,166 +3,165 @@
 
 #include <utils/nt.hpp>
 
-void component_loader::register_component(std::unique_ptr<component_interface>&& component_)
+namespace component_loader
 {
-	auto& components = get_components();
-	components.push_back(std::move(component_));
-
-	std::ranges::stable_sort(components, [](const std::unique_ptr<component_interface>& a,
-	                                        const std::unique_ptr<component_interface>& b)
+	namespace
 	{
-		return a->priority() > b->priority();
-	});
-}
-
-bool component_loader::pre_load()
-{
-	static auto res = []
-	{
-		clean();
-
-		try
+		std::vector<std::unique_ptr<component_interface>>& get_components()
 		{
-			for (const auto& component_ : get_components())
+			using component_vector = std::vector<std::unique_ptr<component_interface>>;
+			using component_vector_container = std::unique_ptr<component_vector, std::function<void(component_vector*)>>
+				;
+
+			static component_vector_container components(new component_vector,
+			                                             [](const component_vector* component_vector)
+			                                             {
+				                                             pre_destroy();
+				                                             delete component_vector;
+			                                             });
+
+			return *components;
+		}
+
+		std::vector<registration_functor>& get_registration_functors()
+		{
+			static std::vector<registration_functor> functors;
+			return functors;
+		}
+
+		void activate_component(std::unique_ptr<component_interface> component)
+		{
+			auto& components = get_components();
+			components.push_back(std::move(component));
+
+			std::ranges::stable_sort(components, [](const std::unique_ptr<component_interface>& a,
+			                                        const std::unique_ptr<component_interface>& b)
 			{
-				component_->pre_load();
-			}
-		}
-		catch (premature_shutdown_trigger&)
-		{
-			return false;
-		}
-		catch (const std::exception& e)
-		{
-			MessageBoxA(nullptr, e.what(), "Error", MB_ICONERROR);
-			return false;
-		}
-
-		return true;
-	}();
-
-	return res;
-}
-
-bool component_loader::post_load()
-{
-	static auto res = []
-	{
-		clean();
-
-		try
-		{
-			for (const auto& component_ : get_components())
-			{
-				component_->post_load();
-			}
-		}
-		catch (premature_shutdown_trigger&)
-		{
-			return false;
-		}
-		catch (const std::exception& e)
-		{
-			MessageBoxA(nullptr, e.what(), "Error", MB_ICONERROR);
-			return false;
-		}
-
-		return true;
-	}();
-
-	return res;
-}
-
-void component_loader::post_unpack()
-{
-	static auto res = []
-	{
-		clean();
-
-		try
-		{
-			for (const auto& component_ : get_components())
-			{
-				component_->post_unpack();
-			}
-		}
-		catch (const std::exception& e)
-		{
-			MessageBoxA(nullptr, e.what(), "Error", MB_ICONERROR);
-			return false;
-		}
-
-		return true;
-	}();
-
-	if (!res)
-	{
-		TerminateProcess(GetCurrentProcess(), 1);
-	}
-}
-
-void component_loader::pre_destroy()
-{
-	static auto res = []
-	{
-		clean();
-
-		try
-		{
-			for (const auto& component_ : get_components())
-			{
-				component_->pre_destroy();
-			}
-		}
-		catch (const std::exception& e)
-		{
-			MessageBoxA(nullptr, e.what(), "Error", MB_ICONERROR);
-			return false;
-		}
-
-		return true;
-	}();
-
-	if (!res)
-	{
-		TerminateProcess(GetCurrentProcess(), 1);
-	}
-}
-
-void component_loader::clean()
-{
-	auto& components = get_components();
-	for (auto i = components.begin(); i != components.end();)
-	{
-		if (!(*i)->is_supported())
-		{
-			(*i)->pre_destroy();
-			i = components.erase(i);
-		}
-		else
-		{
-			++i;
+				return a->priority() > b->priority();
+			});
 		}
 	}
-}
 
-void component_loader::trigger_premature_shutdown()
-{
-	throw premature_shutdown_trigger();
-}
-
-std::vector<std::unique_ptr<component_interface>>& component_loader::get_components()
-{
-	using component_vector = std::vector<std::unique_ptr<component_interface>>;
-	using component_vector_container = std::unique_ptr<component_vector, std::function<void(component_vector*)>>;
-
-	static component_vector_container components(new component_vector, [](const component_vector* component_vector)
+	void register_component(registration_functor functor)
 	{
-		pre_destroy();
-		delete component_vector;
-	});
+		if (!get_components().empty())
+		{
+			throw std::runtime_error("Registration is too late");
+		}
 
-	return *components;
+		get_registration_functors().push_back(std::move(functor));
+	}
+
+	bool activate()
+	{
+		static auto res = []
+		{
+			try
+			{
+				for (auto& functor : get_registration_functors())
+				{
+					activate_component(functor());
+				}
+			}
+			catch (premature_shutdown_trigger&)
+			{
+				return false;
+			}
+			catch (const std::exception& e)
+			{
+				MessageBoxA(nullptr, e.what(), "Error", MB_ICONERROR | MB_SETFOREGROUND | MB_TOPMOST);
+				return false;
+			}
+
+			return true;
+		}();
+
+		return res;
+	}
+
+	bool post_load()
+	{
+		static auto res = []
+		{
+			try
+			{
+				for (const auto& component : get_components())
+				{
+					component->post_load();
+				}
+			}
+			catch (premature_shutdown_trigger&)
+			{
+				return false;
+			}
+			catch (const std::exception& e)
+			{
+				MessageBoxA(nullptr, e.what(), "Error", MB_ICONERROR | MB_SETFOREGROUND | MB_TOPMOST);
+				return false;
+			}
+
+			return true;
+		}();
+
+		return res;
+	}
+
+	void post_unpack()
+	{
+		static auto res = []
+		{
+			try
+			{
+				for (const auto& component : get_components())
+				{
+					component->post_unpack();
+				}
+			}
+			catch (const std::exception& e)
+			{
+				MessageBoxA(nullptr, e.what(), "Error", MB_ICONERROR | MB_SETFOREGROUND | MB_TOPMOST);
+				return false;
+			}
+
+			return true;
+		}();
+
+		if (!res)
+		{
+			TerminateProcess(GetCurrentProcess(), 1);
+		}
+	}
+
+	void pre_destroy()
+	{
+		static auto res = []
+		{
+			try
+			{
+				for (const auto& component : get_components())
+				{
+					component->pre_destroy();
+				}
+			}
+			catch (const std::exception& e)
+			{
+				MessageBoxA(nullptr, e.what(), "Error", MB_ICONERROR | MB_SETFOREGROUND | MB_TOPMOST);
+				return false;
+			}
+
+			return true;
+		}();
+
+		if (!res)
+		{
+			TerminateProcess(GetCurrentProcess(), 1);
+		}
+	}
+
+	void trigger_premature_shutdown()
+	{
+		throw premature_shutdown_trigger();
+	}
 }
 
 size_t get_base()
@@ -170,7 +169,7 @@ size_t get_base()
 	static auto base = []
 	{
 		const utils::nt::library host{};
-		if(!host || host == utils::nt::library::get_by_address(get_base))
+		if (!host || host == utils::nt::library::get_by_address(get_base))
 		{
 			throw std::runtime_error("Invalid host application");
 		}

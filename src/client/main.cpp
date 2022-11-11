@@ -183,7 +183,7 @@ namespace
 			{
 				remove_crash_file();
 
-				if (!component_loader::pre_load())
+				if (!component_loader::activate())
 				{
 					return 1;
 				}

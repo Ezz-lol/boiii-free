@@ -235,9 +235,9 @@ namespace steam_proxy
 			}
 		}
 
-		int priority() override
+		component_priority priority() const override
 		{
-			return 998; // Run after the updater
+			return component_priority::steam_proxy;
 		}
 	};
 
