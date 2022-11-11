@@ -3,6 +3,8 @@
 
 #include "scheduler.hpp"
 
+#include "game/game.hpp"
+
 #include <cassert>
 #include <utils/hook.hpp>
 #include <utils/concurrency.hpp>

@@ -71,7 +71,7 @@ namespace exception
 			const std::string error_str = utils::string::va("Fatal error (0x%08X) at 0x%p (0x%p).\n"
 			                                                "A minidump has been written.\n",
 			                                                exception_data.code, exception_data.address,
-				                                            reverse_g(reinterpret_cast<uint64_t>(exception_data.address)));
+				                                            game::derelocate(reinterpret_cast<uint64_t>(exception_data.address)));
 
 			utils::thread::suspend_other_threads();
 			show_mouse_cursor();
@@ -92,7 +92,7 @@ namespace exception
 				                "Make sure to update your graphics card drivers and install operating system updates!\n"
 				                "Closing or restarting Steam might also help.",
 				                exception_data.code, exception_data.address,
-					            reverse_g(reinterpret_cast<uint64_t>(exception_data.address)));
+					            game::derelocate(reinterpret_cast<uint64_t>(exception_data.address)));
 			}
 			else
 			{
@@ -139,7 +139,7 @@ namespace exception
 			line("Timestamp: "s + get_timestamp());
 			line(utils::string::va("Exception: 0x%08X", exceptioninfo->ExceptionRecord->ExceptionCode));
 			line(utils::string::va("Address: 0x%llX", exceptioninfo->ExceptionRecord->ExceptionAddress));
-			line(utils::string::va("Base: 0x%llX", get_base()));
+			line(utils::string::va("Base: 0x%llX", game::get_base()));
 
 #pragma warning(push)
 #pragma warning(disable: 4996)

@@ -1,49 +1,22 @@
 #include <std_include.hpp>
 
-#include "loader/component_loader.hpp"
 #include "game.hpp"
+#include <utils/nt.hpp>
 
 namespace game
 {
-	// inlined in cod, functionality stolen from https://github.com/id-Software/Quake-III-Arena/blob/master/code/win32/win_syscon.c#L520
-	int Conbuf_CleanText(const char* source, char* target)
+	size_t get_base()
 	{
-		char* b = target;
-		int i = 0;
-		while (source[i] && ((b - target) < sizeof(target) - 1))
+		static auto base = []
 		{
-			if (source[i] == '\n' && source[i + 1] == '\r')
+			const utils::nt::library host{};
+			if (!host || host == utils::nt::library::get_by_address(get_base))
 			{
-				b[0] = '\r';
-				b[1] = '\n';
-				b += 2;
-				i++;
+				throw std::runtime_error("Invalid host application");
 			}
-			else if (source[i] == '\r' || source[i] == '\n')
-			{
-				b[0] = '\r';
-				b[1] = '\n';
-				b += 2;
-			}
-			else if (source && source[0] == '^' && source[1] && source[1] != '^' && source[1] >= 48 && source[1] <= 64)
-			// Q_IsColorString
-			{
-				i++;
-			}
-			else
-			{
-				*b = source[i]; // C6011 here, should we be worried?
-				b++;
-			}
-			i++;
-		}
 
-		*b = 0;
-		return static_cast<int>(b - target);
-	}
-
-	game::eModes Com_SessionMode_GetMode()
-	{
-		return game::eModes(*reinterpret_cast<uint32_t*>(0x1568EF7F4_g) << 28 >> 28);
+			return size_t(host.get_ptr());
+		}();
+		return base;
 	}
 }

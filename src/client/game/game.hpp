@@ -1,15 +1,27 @@
 #pragma once
 
 #include "structs.hpp"
-#include "loader/component_loader.hpp"
 
 namespace game
 {
-#define Com_Error(code, fmt, ...) \
-		Com_Error_(__FILE__, __LINE__, code, fmt, ##__VA_ARGS__)
+	size_t get_base();
 
-	int Conbuf_CleanText(const char* source, char* target);
-	game::eModes Com_SessionMode_GetMode();
+	inline size_t relocate(const size_t val)
+	{
+		const auto base = get_base();
+		return base + (val - 0x140000000);
+	}
+
+	inline size_t derelocate(const size_t val)
+	{
+		const auto base = get_base();
+		return (val - base) + 0x140000000;
+	}
+
+	inline size_t derelocate(const void* val)
+	{
+		return derelocate(reinterpret_cast<size_t>(val));
+	}
 
 	template <typename T>
 	class symbol
@@ -22,7 +34,7 @@ namespace game
 
 		T* get() const
 		{
-			return reinterpret_cast<T*>(get_game_address(this->address_));
+			return reinterpret_cast<T*>(relocate(this->address_));
 		}
 
 		operator T*() const
@@ -41,6 +53,11 @@ namespace game
 
 	// Global game definitions
 	constexpr auto CMD_MAX_NESTING = 8;
+}
+
+inline size_t operator"" _g(const size_t val)
+{
+	return game::relocate(val);
 }
 
 #include "symbols.hpp"

@@ -124,9 +124,7 @@ namespace console
 
 		void sys_create_console_stub(const HINSTANCE h_instance)
 		{
-			// C6262
-			char text[CONSOLE_BUFFER_SIZE];
-			char clean_console_buffer[CONSOLE_BUFFER_SIZE];
+			char text[CONSOLE_BUFFER_SIZE]{0};
 
 			const auto* class_name = "BOIII WinConsole";
 			const auto* window_name = "BOIII Console";
@@ -206,9 +204,8 @@ namespace console
 			             0);
 
 			SetFocus(*game::s_wcd::hwndInputLine);
-			game::Con_GetTextCopy(text, 0x4000);
-			game::Conbuf_CleanText(text, clean_console_buffer);
-			SetWindowTextA(*game::s_wcd::hwndBuffer, clean_console_buffer);
+			game::Con_GetTextCopy(text, std::min(0x4000, static_cast<int>(sizeof(text))));
+			SetWindowTextA(*game::s_wcd::hwndBuffer, text);
 		}
 	}
 

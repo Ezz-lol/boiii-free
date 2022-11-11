@@ -6,6 +6,9 @@
 
 namespace game
 {
+#define Com_Error(code, fmt, ...) \
+		Com_Error_(__FILE__, __LINE__, code, fmt, ##__VA_ARGS__)
+
 	// CL
 	WEAK symbol<void(int controllerIndex, XSESSION_INFO* hostInfo, const netadr_t* addr, int numPublicSlots,
 	                 int numPrivateSlots, const char* mapname, const char* gametype)> CL_ConnectFromLobby
@@ -77,4 +80,7 @@ namespace game
 		WEAK symbol<int> windowWidth{0x157E78068};
 		WEAK symbol<WNDPROC> SysInputLineWndProc{0x157E78070};
 	}
+
+	// Reimplementations
+	eModes Com_SessionMode_GetMode();
 }
