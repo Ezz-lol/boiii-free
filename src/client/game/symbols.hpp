@@ -62,6 +62,7 @@ namespace game
 	};
 
 	// Variables
+
 	WEAK symbol<cmd_function_s> cmd_functions{0x15689FF58};
 	WEAK symbol<CmdArgs> sv_cmd_args{0x15689CE30};
 
@@ -80,6 +81,9 @@ namespace game
 		WEAK symbol<int> windowWidth{0x157E78068};
 		WEAK symbol<WNDPROC> SysInputLineWndProc{0x157E78070};
 	}
+
+	// Global game definitions
+	constexpr auto CMD_MAX_NESTING = 8;
 
 	// Reimplementations
 	eModes Com_SessionMode_GetMode();

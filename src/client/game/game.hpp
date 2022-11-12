@@ -50,9 +50,6 @@ namespace game
 	private:
 		size_t address_;
 	};
-
-	// Global game definitions
-	constexpr auto CMD_MAX_NESTING = 8;
 }
 
 inline size_t operator"" _g(const size_t val)
