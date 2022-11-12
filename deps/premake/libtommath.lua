@@ -19,6 +19,7 @@ function libtommath.includes()
 		"LTM_DESC",
 		"__STDC_IEC_559__",
 		"MP_NO_DEV_URANDOM",
+		"ARGTYPE=4",
 	}
 end
 
