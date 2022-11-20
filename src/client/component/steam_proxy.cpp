@@ -8,9 +8,6 @@
 #include <utils/string.hpp>
 #include <utils/finally.hpp>
 #include <utils/concurrency.hpp>
-#include <utils/binary_resource.hpp>
-
-#include "resource.hpp"
 
 #include "steam/interface.hpp"
 #include "steam/steam.hpp"
