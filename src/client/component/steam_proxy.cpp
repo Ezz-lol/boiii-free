@@ -83,7 +83,7 @@ namespace steam_proxy
 			client_user = client_engine.invoke<void*>(8, global_user, steam_pipe);
 			client_utils = client_engine.invoke<void*>(14, steam_pipe);
 			client_friends = client_engine.invoke<void*>(13, global_user, steam_pipe);
-			client_ugc = client_engine.invoke<void*>(61, global_user, steam_pipe);
+			client_ugc = client_engine.invoke<void*>(62, global_user, steam_pipe);
 		}
 
 		void do_cleanup()
