@@ -42,7 +42,7 @@ namespace updater
 		std::string get_self_file()
 		{
 			const auto self = utils::nt::library::get_by_address(get_self_file);
-			return self.get_path();
+			return self.get_path().generic_string();
 		}
 
 		std::string get_leftover_file()

@@ -4,9 +4,9 @@
 
 namespace utils::io
 {
-	bool remove_file(const std::string& file)
+	bool remove_file(const std::filesystem::path& file)
 	{
-		if(DeleteFileA(file.data()) != FALSE)
+		if(DeleteFileW(file.wstring().data()) != FALSE)
 		{
 			return true;
 		}
@@ -14,9 +14,9 @@ namespace utils::io
 		return GetLastError() == ERROR_FILE_NOT_FOUND;
 	}
 
-	bool move_file(const std::string& src, const std::string& target)
+	bool move_file(const std::filesystem::path& src, const std::filesystem::path& target)
 	{
-		return MoveFileA(src.data(), target.data()) == TRUE;
+		return MoveFileW(src.wstring().data(), target.wstring().data()) == TRUE;
 	}
 
 	bool file_exists(const std::string& file)
@@ -37,7 +37,7 @@ namespace utils::io
 
 		if (stream.is_open())
 		{
-			stream.write(data.data(), data.size());
+			stream.write(data.data(), static_cast<std::streamsize>(data.size()));
 			stream.close();
 			return true;
 		}
@@ -68,8 +68,8 @@ namespace utils::io
 
 			if (size > -1)
 			{
-				data->resize(static_cast<uint32_t>(size));
-				stream.read(const_cast<char*>(data->data()), size);
+				data->resize(static_cast<std::uint32_t>(size));
+				stream.read(data->data(), size);
 				stream.close();
 				return true;
 			}
@@ -78,7 +78,7 @@ namespace utils::io
 		return false;
 	}
 
-	size_t file_size(const std::string& file)
+	std::size_t file_size(const std::string& file)
 	{
 		if (file_exists(file))
 		{
@@ -87,29 +87,29 @@ namespace utils::io
 			if (stream.good())
 			{
 				stream.seekg(0, std::ios::end);
-				return static_cast<size_t>(stream.tellg());
+				return static_cast<std::size_t>(stream.tellg());
 			}
 		}
 
 		return 0;
 	}
 
-	bool create_directory(const std::string& directory)
+	bool create_directory(const std::filesystem::path& directory)
 	{
 		return std::filesystem::create_directories(directory);
 	}
 
-	bool directory_exists(const std::string& directory)
+	bool directory_exists(const std::filesystem::path& directory)
 	{
 		return std::filesystem::is_directory(directory);
 	}
 
-	bool directory_is_empty(const std::string& directory)
+	bool directory_is_empty(const std::filesystem::path& directory)
 	{
 		return std::filesystem::is_empty(directory);
 	}
 
-	std::vector<std::string> list_files(const std::string& directory)
+	std::vector<std::string> list_files(const std::filesystem::path& directory)
 	{
 		std::vector<std::string> files;
 

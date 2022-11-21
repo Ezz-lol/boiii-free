@@ -6,8 +6,7 @@
 
 namespace game
 {
-#define Com_Error(code, fmt, ...) \
-		Com_Error_(__FILE__, __LINE__, code, fmt, ##__VA_ARGS__)
+#define Com_Error(code, fmt, ...) Com_Error_(__FILE__, __LINE__, code, fmt, ##__VA_ARGS__)
 
 	// CL
 	WEAK symbol<void(int controllerIndex, XSESSION_INFO* hostInfo, const netadr_t* addr, int numPublicSlots,
@@ -85,6 +84,14 @@ namespace game
 	// Global game definitions
 	constexpr auto CMD_MAX_NESTING = 8;
 
-	// Reimplementations
+	struct cmd_args_t
+	{
+		CmdArgs* operator->() const
+		{
+			return Sys_GetTLS()->cmdArgs;
+		}
+	};
+
+	// Re-implementations
 	eModes Com_SessionMode_GetMode();
 }

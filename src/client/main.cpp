@@ -83,7 +83,7 @@ namespace
 		auto game_path = std::filesystem::path(game_file);
 		game_path.replace_extension(".start");
 
-		utils::io::remove_file(game_path.generic_string());
+		utils::io::remove_file(game_path);
 	}
 
 	PIMAGE_TLS_CALLBACK* get_tls_callbacks()

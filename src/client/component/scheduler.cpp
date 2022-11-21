@@ -5,7 +5,6 @@
 
 #include "game/game.hpp"
 
-#include <cassert>
 #include <utils/hook.hpp>
 #include <utils/concurrency.hpp>
 #include <utils/thread.hpp>

@@ -1,5 +1,4 @@
 #include <std_include.hpp>
-#include "network.hpp"
 #include "loader/component_loader.hpp"
 
 #include "scheduler.hpp"
@@ -8,6 +7,8 @@
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/finally.hpp>
+
+#include "network.hpp"
 
 namespace network
 {

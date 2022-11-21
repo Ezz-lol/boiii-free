@@ -121,28 +121,28 @@ namespace utils::nt
 
 	std::string library::get_name() const
 	{
-		if (!this->is_valid()) return "";
+		if (!this->is_valid()) return {};
 
-		auto path = this->get_path();
-		const auto pos = path.find_last_of("/\\");
-		if (pos == std::string::npos) return path;
+		const auto path = this->get_path();
+		const auto pos = path.generic_string().find_last_of("/\\");
+		if (pos == std::string::npos) return path.generic_string();
 
-		return path.substr(pos + 1);
+		return path.generic_string().substr(pos + 1);
 	}
 
-	std::string library::get_path() const
+	std::filesystem::path library::get_path() const
 	{
-		if (!this->is_valid()) return "";
+		if (!this->is_valid()) return {};
 
-		char name[MAX_PATH] = {0};
-		GetModuleFileNameA(this->module_, name, sizeof name);
+		wchar_t name[MAX_PATH] = {0};
+		GetModuleFileNameW(this->module_, name, MAX_PATH);
 
-		return name;
+		return {name};
 	}
 
-	std::string library::get_folder() const
+	std::filesystem::path library::get_folder() const
 	{
-		if (!this->is_valid()) return "";
+		if (!this->is_valid()) return {};
 
 		const auto path = std::filesystem::path(this->get_path());
 		return path.parent_path().generic_string();
@@ -265,7 +265,7 @@ namespace utils::nt
 		GetCurrentDirectoryA(sizeof(current_dir), current_dir);
 		auto* const command_line = GetCommandLineA();
 
-		CreateProcessA(self.get_path().data(), command_line, nullptr, nullptr, false, NULL, nullptr, current_dir,
+		CreateProcessA(self.get_path().generic_string().data(), command_line, nullptr, nullptr, false, NULL, nullptr, current_dir,
 		               &startup_info, &process_info);
 
 		if (process_info.hThread && process_info.hThread != INVALID_HANDLE_VALUE) CloseHandle(process_info.hThread);
