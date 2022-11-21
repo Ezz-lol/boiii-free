@@ -32,7 +32,7 @@ namespace utils
 			return value->second;
 		}
 
-		return "";
+		return {};
 	}
 
 	void info_string::parse(std::string buffer)

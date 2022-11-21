@@ -36,9 +36,9 @@ namespace utils::string
 
 	std::string to_lower(std::string text)
 	{
-		std::transform(text.begin(), text.end(), text.begin(), [](const char input)
+		std::transform(text.begin(), text.end(), text.begin(), [](const unsigned char input)
 		{
-			return static_cast<char>(tolower(input));
+			return static_cast<char>(std::tolower(input));
 		});
 
 		return text;
@@ -46,9 +46,9 @@ namespace utils::string
 
 	std::string to_upper(std::string text)
 	{
-		std::transform(text.begin(), text.end(), text.begin(), [](const char input)
+		std::transform(text.begin(), text.end(), text.begin(), [](const unsigned char input)
 		{
-			return static_cast<char>(toupper(input));
+			return static_cast<char>(std::toupper(input));
 		});
 
 		return text;
@@ -105,12 +105,12 @@ namespace utils::string
 		return {};
 	}
 
-	void strip(const char* in, char* out, int max)
+	void strip(const char* in, char* out, size_t max)
 	{
 		if (!in || !out) return;
 
 		max--;
-		auto current = 0;
+		size_t current = 0;
 		while (*in != 0 && current < max)
 		{
 			const auto color_index = (*(in + 1) - 48) >= 0xC ? 7 : (*(in + 1) - 48);
@@ -128,11 +128,10 @@ namespace utils::string
 
 			++in;
 		}
+
 		*out = '\0';
 	}
 
-#pragma warning(push)
-#pragma warning(disable: 4100)
 	std::string convert(const std::wstring& wstr)
 	{
 		std::string result;
@@ -158,7 +157,6 @@ namespace utils::string
 
 		return result;
 	}
-#pragma warning(pop)
 
 	std::string replace(std::string str, const std::string& from, const std::string& to)
 	{

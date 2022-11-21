@@ -153,7 +153,7 @@ namespace steam_proxy
 
 			const auto self = utils::nt::library::get_by_address(start_mod_unsafe);
 			const auto path = self.get_path();
-			const std::string cmdline = utils::string::va("\"%s\" -proc %d", path.data(), GetCurrentProcessId());
+			const auto* cmdline = utils::string::va("\"%s\" -proc %d", path.generic_string().data(), GetCurrentProcessId());
 
 			steam::game_id game_id;
 			game_id.raw.type = 1; // k_EGameIDTypeGameMod
@@ -162,7 +162,7 @@ namespace steam_proxy
 			const auto* mod_id = "bo3";
 			game_id.raw.mod_id = *reinterpret_cast<const unsigned int*>(mod_id) | 0x80000000;
 
-			client_user.invoke<bool>("SpawnProcess", path.data(), cmdline.data(), our_directory,
+			client_user.invoke<bool>("SpawnProcess", path.generic_string().data(), cmdline, our_directory,
 			                         &game_id.bits, title.data(), 0, 0, 0);
 
 			return ownership_state::success;

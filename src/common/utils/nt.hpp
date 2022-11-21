@@ -41,27 +41,27 @@ namespace utils::nt
 		operator HMODULE() const;
 
 		void unprotect() const;
-		void* get_entry_point() const;
-		size_t get_relative_entry_point() const;
+		[[nodiscard]] void* get_entry_point() const;
+		[[nodiscard]] size_t get_relative_entry_point() const;
 
-		bool is_valid() const;
-		std::string get_name() const;
-		std::string get_path() const;
-		std::string get_folder() const;
-		std::uint8_t* get_ptr() const;
+		[[nodiscard]] bool is_valid() const;
+		[[nodiscard]] std::string get_name() const;
+		[[nodiscard]] std::filesystem::path get_path() const;
+		[[nodiscard]] std::filesystem::path get_folder() const;
+		[[nodiscard]] std::uint8_t* get_ptr() const;
 		void free();
 
-		HMODULE get_handle() const;
+		[[nodiscard]] HMODULE get_handle() const;
 
 		template <typename T>
-		T get_proc(const std::string& process) const
+		[[nodiscard]] T get_proc(const std::string& process) const
 		{
 			if (!this->is_valid()) T{};
 			return reinterpret_cast<T>(GetProcAddress(this->module_, process.data()));
 		}
 
 		template <typename T>
-		std::function<T> get(const std::string& process) const
+		[[nodiscard]] std::function<T> get(const std::string& process) const
 		{
 			if (!this->is_valid()) return std::function<T>();
 			return static_cast<T*>(this->get_proc<void*>(process));
@@ -91,13 +91,13 @@ namespace utils::nt
 			return T();
 		}
 
-		std::vector<PIMAGE_SECTION_HEADER> get_section_headers() const;
+		[[nodiscard]] std::vector<PIMAGE_SECTION_HEADER> get_section_headers() const;
 
-		PIMAGE_NT_HEADERS get_nt_headers() const;
-		PIMAGE_DOS_HEADER get_dos_header() const;
-		PIMAGE_OPTIONAL_HEADER get_optional_header() const;
+		[[nodiscard]] PIMAGE_NT_HEADERS get_nt_headers() const;
+		[[nodiscard]] PIMAGE_DOS_HEADER get_dos_header() const;
+		[[nodiscard]] PIMAGE_OPTIONAL_HEADER get_optional_header() const;
 
-		void** get_iat_entry(const std::string& module_name, const std::string& proc_name) const;
+		[[nodiscard]] void** get_iat_entry(const std::string& module_name, const std::string& proc_name) const;
 
 	private:
 		HMODULE module_;
