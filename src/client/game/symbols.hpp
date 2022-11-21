@@ -84,6 +84,14 @@ namespace game
 	// Global game definitions
 	constexpr auto CMD_MAX_NESTING = 8;
 
-	// Reimplementations
+	struct cmd_args_t
+	{
+		CmdArgs* operator->() const
+		{
+			return Sys_GetTLS()->cmdArgs;
+		}
+	};
+
+	// Re-implementations
 	eModes Com_SessionMode_GetMode();
 }
