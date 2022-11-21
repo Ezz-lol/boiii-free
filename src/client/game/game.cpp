@@ -19,4 +19,11 @@ namespace game
 		}();
 		return base;
 	}
+
+	CmdArgs* cmd_args_t::operator->() const
+	{
+		return Sys_GetTLS()->cmdArgs;
+	}
+
+	cmd_args_t cmd_args;
 }

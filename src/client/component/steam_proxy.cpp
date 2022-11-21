@@ -1,7 +1,5 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
-#include "steam_proxy.hpp"
-#include "scheduler.hpp"
 
 #include <utils/nt.hpp>
 #include <utils/flags.hpp>
@@ -11,6 +9,9 @@
 
 #include "steam/interface.hpp"
 #include "steam/steam.hpp"
+
+#include "steam_proxy.hpp"
+#include "scheduler.hpp"
 
 namespace steam_proxy
 {

@@ -77,7 +77,7 @@ namespace branding
 
 			std::string str = "BOIII: " VERSION;
 			//str += "\n\n" + get_connectivity_info();
-			game::R_AddCmdDrawText(str.data(), 0x7FFFFFFF, font, static_cast<float>(x),
+			game::R_AddCmdDrawText(str.data(), std::numeric_limits<int>::max(), font, static_cast<float>(x),
 			                       y + static_cast<float>(font[2]) * scale,
 			                       scale, scale, 0.0f, color, game::ITEM_TEXTSTYLE_NORMAL);
 		}

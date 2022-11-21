@@ -50,6 +50,13 @@ namespace game
 	private:
 		size_t address_;
 	};
+
+	struct cmd_args_t
+	{
+		CmdArgs* operator->() const;
+	};
+
+	extern cmd_args_t cmd_args;
 }
 
 inline size_t operator"" _g(const size_t val)

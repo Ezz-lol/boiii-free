@@ -1,11 +1,11 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
+#include "game/game.hpp"
+#include "steam/steam.hpp"
 
 #include "party.hpp"
 #include "network.hpp"
 #include "scheduler.hpp"
-#include "game/game.hpp"
-#include "steam/steam.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>

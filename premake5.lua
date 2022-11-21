@@ -77,11 +77,6 @@ newoption {
 	description = "Enable development builds of the client."
 }
 
-newoption {
-	trigger = "ci-build",
-	description = "Enable CI builds of the client."
-}
-
 newaction {
 	trigger = "version",
 	description = "Returns the version string for the current commit of the source code.",
@@ -249,7 +244,7 @@ workspace "boiii"
 		defines {"DEV_BUILD"}
 	end
 
-	if _OPTIONS["ci-build"] then
+	if os.getenv("CI") then
 		defines {"CI"}
 	end
 
@@ -262,7 +257,7 @@ workspace "boiii"
 	filter "configurations:Release"
 		optimize "Size"
 		buildoptions {"/GL"}
-		linkoptions { "/IGNORE:4702", "/LTCG" }
+		linkoptions {"/IGNORE:4702", "/LTCG"}
 		defines {"NDEBUG"}
 		flags {"FatalCompileWarnings"}
 	filter {}
