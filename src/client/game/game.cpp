@@ -15,7 +15,7 @@ namespace game
 				throw std::runtime_error("Invalid host application");
 			}
 
-			return size_t(host.get_ptr());
+			return reinterpret_cast<size_t>(host.get_ptr());
 		}();
 		return base;
 	}
