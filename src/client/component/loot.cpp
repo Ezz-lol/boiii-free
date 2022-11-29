@@ -2,9 +2,8 @@
 #include "loader/component_loader.hpp"
 
 #include <utils/hook.hpp>
-#include <utils/thread.hpp>
 
-#include <component/scheduler.hpp>
+#include "scheduler.hpp"
 #include "game/game.hpp"
 
 namespace loot
@@ -15,25 +14,28 @@ namespace loot
 		utils::hook::detour liveinventory_getitemquantity_hook;
 		utils::hook::detour liveinventory_areextraslotspurchased_hook;
 
-		int loot_getitemquantity_stub(const game::ControllerIndex_t controllerIndex, const game::eModes mode, const int itemId)
+		int loot_getitemquantity_stub(const game::ControllerIndex_t /*controller_index*/, const game::eModes mode, const int /*item_id*/)
 		{
-			if (mode == game::eModes::MODE_ZOMBIES) {
+			if (mode == game::eModes::MODE_ZOMBIES)
+			{
 				return 999;
 			}
+
 			return 1;
 		}
 
-		int liveinventory_getitemquantity_stub(const game::ControllerIndex_t controllerIndex, const int itemId)
+		int liveinventory_getitemquantity_stub(const game::ControllerIndex_t controller_index, const int item_id)
 		{
 			// Item id's for extra CaC slots, CWL camo's and paid specialist outfits
-			if (itemId == 99003 || itemId >= 99018 && itemId <= 99021 || itemId == 99025 || itemId >= 90047 && itemId <= 90064) {
+			if (item_id == 99003 || item_id >= 99018 && item_id <= 99021 || item_id == 99025 || item_id >= 90047 && item_id <= 90064)
+			{
 				return 1;
 			}
 
-			return liveinventory_getitemquantity_hook.invoke<int>(controllerIndex, itemId);
+			return liveinventory_getitemquantity_hook.invoke<int>(controller_index, item_id);
 		}
 
-		bool liveinventory_areextraslotspurchased_stub(const game::ControllerIndex_t controllerIndex)
+		bool liveinventory_areextraslotspurchased_stub(const game::ControllerIndex_t /*controller_index*/)
 		{
 			return true;
 		}
@@ -57,6 +59,5 @@ namespace loot
 		}
 	};
 };
-
 
 REGISTER_COMPONENT(loot::component)
