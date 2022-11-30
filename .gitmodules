@@ -22,3 +22,6 @@
 [submodule "deps/udis86"]
 	path = deps/udis86
 	url = https://github.com/vmt/udis86.git
+[submodule "deps/discord-rpc"]
+	path = deps/discord-rpc
+	url = https://github.com/momo5502/discord-rpc.git
