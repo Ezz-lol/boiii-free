@@ -50,11 +50,7 @@ namespace discord
 
 			this->initialized_ = true;
 
-			scheduler::once([]()
-			{
-				scheduler::once(Discord_RunCallbacks, scheduler::pipeline::async);
-				scheduler::loop(Discord_RunCallbacks, scheduler::pipeline::async, 15s);
-			}, scheduler::pipeline::main);
+			scheduler::loop(Discord_RunCallbacks, scheduler::pipeline::async, 1s);
 		}
 
 		void pre_destroy() override
