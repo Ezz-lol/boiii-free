@@ -211,6 +211,4 @@ namespace utils::hook
 	{
 		return static_cast<T(*)(Args ...)>(func)(args...);
 	}
-
-	std::vector<uint8_t> query_original_data(const void* data, size_t length);
 }

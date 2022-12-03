@@ -144,28 +144,6 @@ namespace utils::hook
 			});
 		}
 
-		concurrency::container<std::map<const void*, uint8_t>>& get_original_data_map()
-		{
-			static concurrency::container<std::map<const void*, uint8_t>> og_data{};
-			return og_data;
-		}
-
-		void store_original_data(const void* /*data*/, size_t /*length*/)
-		{
-			/*get_original_data_map().access([data, length](std::map<const void*, uint8_t>& og_map)
-			{
-				const auto data_ptr = static_cast<const uint8_t*>(data);
-				for (size_t i = 0; i < length; ++i)
-				{
-					const auto pos = data_ptr + i;
-					if (!og_map.contains(pos))
-					{
-						og_map[pos] = *pos;
-					}
-				}
-			});*/
-		}
-
 		void* initialize_min_hook()
 		{
 			static class min_hook_init
@@ -299,7 +277,6 @@ namespace utils::hook
 	{
 		this->clear();
 		this->place_ = place;
-		store_original_data(place, 14);
 
 		if (MH_CreateHook(this->place_, target, &this->original_) != MH_OK)
 		{
@@ -357,8 +334,6 @@ namespace utils::hook
 		auto* const ptr = library.get_iat_entry(target_library, process);
 		if (!ptr) return {};
 
-		store_original_data(ptr, sizeof(*ptr));
-
 		DWORD protect;
 		VirtualProtect(ptr, sizeof(*ptr), PAGE_EXECUTE_READWRITE, &protect);
 
@@ -370,8 +345,6 @@ namespace utils::hook
 
 	void nop(void* place, const size_t length)
 	{
-		store_original_data(place, length);
-
 		DWORD old_protect{};
 		VirtualProtect(place, length, PAGE_EXECUTE_READWRITE, &old_protect);
 
@@ -388,8 +361,6 @@ namespace utils::hook
 
 	void copy(void* place, const void* data, const size_t length)
 	{
-		store_original_data(place, length);
-
 		DWORD old_protect{};
 		VirtualProtect(place, length, PAGE_EXECUTE_READWRITE, &old_protect);
 
@@ -593,27 +564,5 @@ namespace utils::hook
 		}
 
 		return extract<void*>(data + 1);
-	}
-
-	std::vector<uint8_t> query_original_data(const void* data, const size_t length)
-	{
-		std::vector<uint8_t> og_data{};
-		og_data.resize(length);
-		memcpy(og_data.data(), data, length);
-
-		get_original_data_map().access([data, length, &og_data](const std::map<const void*, uint8_t>& og_map)
-		{
-			auto* ptr = static_cast<const uint8_t*>(data);
-			for (size_t i = 0; i < length; ++i)
-			{
-				auto entry = og_map.find(ptr + i);
-				if (entry != og_map.end())
-				{
-					og_data[i] = entry->second;
-				}
-			}
-		});
-
-		return og_data;
 	}
 }
