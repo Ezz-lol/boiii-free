@@ -218,6 +218,17 @@ namespace utils::nt
 		return nullptr;
 	}
 
+	bool is_wine()
+	{
+		static const auto has_wine_export = []() -> bool
+		{
+			const library ntdll("ntdll.dll");
+			return ntdll.get_proc<void*>("wine_get_version");
+		}();
+
+		return has_wine_export;
+	}
+
 	bool is_shutdown_in_progress()
 	{
 		static auto* shutdown_in_progress = []

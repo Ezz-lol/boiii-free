@@ -166,6 +166,7 @@ namespace utils::nt
 		HANDLE handle_{InvalidHandle};
 	};
 
+	bool is_wine();
 	bool is_shutdown_in_progress();
 
 	__declspec(noreturn) void raise_hard_exception();
