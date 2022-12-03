@@ -9,9 +9,16 @@ namespace loader
 {
 	namespace
 	{
-		void load_imports(const utils::nt::library& target) 
+		template <typename T>
+		T offset_pointer(void* data, const ptrdiff_t offset)
 		{
-			const auto* const import_directory = &target.get_optional_header()->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+			return reinterpret_cast<T>(reinterpret_cast<uintptr_t>(data) + offset);
+		}
+
+		void load_imports(const utils::nt::library& target)
+		{
+			const auto* const import_directory = &target.get_optional_header()->DataDirectory[
+				IMAGE_DIRECTORY_ENTRY_IMPORT];
 
 			auto* descriptor = PIMAGE_IMPORT_DESCRIPTOR(target.get_ptr() + import_directory->VirtualAddress);
 
@@ -68,6 +75,66 @@ namespace loader
 			}
 		}
 
+		void load_relocations(const utils::nt::library& target)
+		{
+			if (!utils::nt::is_wine())
+			{
+				return;
+			}
+
+			auto* current_base = target.get_ptr();
+			const auto initial_base = target.get_optional_header()->ImageBase;
+			const auto delta = reinterpret_cast<ptrdiff_t>(current_base) - initial_base;
+
+			PIMAGE_DATA_DIRECTORY directory = &target.get_optional_header()->DataDirectory[
+				IMAGE_DIRECTORY_ENTRY_BASERELOC];
+			if (directory->Size == 0)
+			{
+				return;
+			}
+
+			auto* relocation = reinterpret_cast<PIMAGE_BASE_RELOCATION>(current_base + directory->VirtualAddress);
+			while (relocation->VirtualAddress > 0)
+			{
+				unsigned char* dest = current_base + relocation->VirtualAddress;
+
+				auto* rel_info = offset_pointer<uint16_t*>(relocation, sizeof(IMAGE_BASE_RELOCATION));
+				const auto* rel_info_end = offset_pointer<uint16_t*>(
+						rel_info, relocation->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION));
+
+				for (; rel_info < rel_info_end; ++rel_info)
+				{
+					const int type = *rel_info >> 12;
+					const int offset = *rel_info & 0xfff;
+
+					switch (type)
+					{
+					case IMAGE_REL_BASED_ABSOLUTE:
+						break;
+
+					case IMAGE_REL_BASED_HIGHLOW:
+					{
+						auto* patch_address = reinterpret_cast<DWORD*>(dest + offset);
+						utils::hook::set(patch_address, *patch_address + static_cast<DWORD>(delta));
+						break;
+					}
+
+					case IMAGE_REL_BASED_DIR64:
+					{
+						auto* patch_address = reinterpret_cast<ULONGLONG*>(dest + offset);
+						utils::hook::set(patch_address, *patch_address + static_cast<ULONGLONG>(delta));
+						break;
+					}
+
+					default:
+						throw std::runtime_error("Unknown relocation type: " + std::to_string(type));
+					}
+				}
+
+				relocation = offset_pointer<PIMAGE_BASE_RELOCATION>(relocation, relocation->SizeOfBlock);
+			}
+		}
+
 		void load_tls(const utils::nt::library& target)
 		{
 			if (target.get_optional_header()->DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].Size)
@@ -110,6 +177,7 @@ namespace loader
 			throw std::runtime_error{"Failed to map: " + filename};
 		}
 
+		load_relocations(target);
 		load_imports(target);
 		load_tls(target);
 
