@@ -144,8 +144,10 @@ namespace loader
 					get_optional_header()
 					->DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS].VirtualAddress);
 
+				auto* tls_start = PVOID(source_tls->StartAddressOfRawData);
 				const auto tls_size = source_tls->EndAddressOfRawData - source_tls->StartAddressOfRawData;
 				const auto tls_index = *reinterpret_cast<DWORD*>(target_tls->AddressOfIndex);
+
 				utils::hook::set<DWORD>(source_tls->AddressOfIndex, tls_index);
 
 				if (target_tls->AddressOfCallBacks)
@@ -154,14 +156,11 @@ namespace loader
 				}
 
 				DWORD old_protect;
-				VirtualProtect(PVOID(target_tls->StartAddressOfRawData),
-				               source_tls->EndAddressOfRawData - source_tls->StartAddressOfRawData, PAGE_READWRITE,
-				               &old_protect);
+				VirtualProtect(tls_start, tls_size, PAGE_READWRITE, &old_protect);
 
 				auto* const tls_base = *reinterpret_cast<LPVOID*>(__readgsqword(0x58) + 8ull * tls_index);
-				std::memmove(tls_base, PVOID(source_tls->StartAddressOfRawData), tls_size);
-				std::memmove(PVOID(target_tls->StartAddressOfRawData), PVOID(source_tls->StartAddressOfRawData),
-				             tls_size);
+				std::memmove(tls_base, tls_start, tls_size);
+				std::memmove(PVOID(target_tls->StartAddressOfRawData), tls_start, tls_size);
 
 				VirtualProtect(target_tls, sizeof(*target_tls), PAGE_READWRITE, &old_protect);
 				*target_tls = *source_tls;
