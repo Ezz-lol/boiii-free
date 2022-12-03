@@ -215,7 +215,6 @@ namespace
 	}
 }
 
-
 int __stdcall WinMain(HINSTANCE, HINSTANCE, PSTR, int)
 {
 	return main();

@@ -7,7 +7,6 @@ namespace dedicated
 {
 	namespace
 	{
-		
 	}
 
 	class component final : public component_interface
@@ -15,7 +14,6 @@ namespace dedicated
 	public:
 		void post_unpack() override
 		{
-			
 		}
 	};
 }

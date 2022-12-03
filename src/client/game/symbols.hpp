@@ -56,7 +56,7 @@ namespace game
 	};
 
 	// Rendering
-	WEAK symbol<void(const char*, int, void*, float, float, float, float, float, float*, int)> R_AddCmdDrawText{
+	WEAK symbol<void(const char*, int, const void*, float, float, float, float, float, const float*, int)> R_AddCmdDrawText{
 		0x141CD98D0
 	};
 
