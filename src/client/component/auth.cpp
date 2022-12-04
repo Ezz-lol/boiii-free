@@ -5,6 +5,7 @@
 
 #include <game/game.hpp>
 
+#include <utils/nt.hpp>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/smbios.hpp>
@@ -80,14 +81,30 @@ namespace auth
 		}
 	}
 
+	bool is_second_instance()
+	{
+		static const auto is_first = []
+		{
+			static utils::nt::handle<> mutex = CreateMutexA(nullptr, FALSE, "boiii_mutex");
+			return mutex && GetLastError() != ERROR_ALREADY_EXISTS;
+		}();
+
+		return !is_first;
+	}
+
 	uint64_t get_guid()
 	{
-		/*if (game::environment::is_dedi())
+		static const auto guid = []() -> uint64_t
 		{
-			return 0x110000100000000 | (::utils::cryptography::random::get_integer() & ~0x80000000);
-		}*/
+			if (is_second_instance())
+			{
+				return 0x110000100000000 | (::utils::cryptography::random::get_integer() & ~0x80000000);
+			}
 
-		return get_key().get_hash();
+			return get_key().get_hash();
+		}();
+
+		return guid;
 	}
 
 	class component final : public component_interface
