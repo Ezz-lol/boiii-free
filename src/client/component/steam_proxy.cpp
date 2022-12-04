@@ -49,11 +49,11 @@ namespace steam_proxy
 		{
 			if (!steam_client_module) return nullptr;
 
-			for (auto i = 1; i > 0; ++i)
+			for (auto i = 1; i <= 999; ++i)
 			{
 				std::string name = utils::string::va("CLIENTENGINE_INTERFACE_VERSION%03i", i);
 				auto* const temp_client_engine = steam_client_module
-					.invoke<void*>("CreateInterface", name.data(), nullptr);
+						.invoke<void*>("CreateInterface", name.data(), nullptr);
 				if (temp_client_engine) return temp_client_engine;
 			}
 
@@ -76,7 +76,7 @@ namespace steam_proxy
 
 			steam_pipe = steam_client_module.invoke<void*>("Steam_CreateSteamPipe");
 			global_user = steam_client_module.invoke<void*>(
-				"Steam_ConnectToGlobalUser", steam_pipe);
+					"Steam_ConnectToGlobalUser", steam_pipe);
 
 			client_user = client_engine.invoke<void*>(8, global_user, steam_pipe);
 			client_utils = client_engine.invoke<void*>(14, steam_pipe);
@@ -137,8 +137,11 @@ namespace steam_proxy
 
 			if (!client_user.invoke<bool>("BIsSubscribedApp", app_id))
 			{
-				//app_id = 480; // Spacewar
+#ifdef DEV_BUILD
+				app_id = 480; // Spacewar
+#else
 				return ownership_state::unowned;
+#endif
 			}
 
 			if (is_disabled())
@@ -153,7 +156,8 @@ namespace steam_proxy
 
 			const auto self = utils::nt::library::get_by_address(start_mod_unsafe);
 			const auto path = self.get_path();
-			const auto* cmdline = utils::string::va("\"%s\" -proc %d", path.generic_string().data(), GetCurrentProcessId());
+			const auto* cmdline = utils::string::va("\"%s\" -proc %d", path.generic_string().data(),
+			                                        GetCurrentProcessId());
 
 			steam::game_id game_id;
 			game_id.raw.type = 1; // k_EGameIDTypeGameMod
@@ -180,6 +184,25 @@ namespace steam_proxy
 				return ownership_state::error;
 			}
 		}
+
+		void evaluate_ownership_state(const ownership_state state)
+		{
+#ifdef DEV_BUILD
+			(void)state;
+#else
+			switch (state)
+			{
+			case ownership_state::nosteam:
+				throw std::runtime_error("Steam must be running to play this game!");
+			case ownership_state::unowned:
+				throw std::runtime_error("You must own the game on steam to play this mod!");
+			case ownership_state::error:
+				throw std::runtime_error("Failed to verify ownership of the game!");
+			case ownership_state::success:
+				break;
+			}
+#endif
+		}
 	}
 
 	class component final : public component_interface
@@ -193,29 +216,8 @@ namespace steam_proxy
 
 		void post_unpack() override
 		{
-			try
-			{
-				const auto res = start_mod("\xE2\x98\x84\xEF\xB8\x8F" " BOIII"s, steam::SteamUtils()->GetAppID());
-
-				switch (res)
-				{
-				case ownership_state::nosteam:
-					throw std::runtime_error("Steam must be running to play this game!");
-				case ownership_state::unowned:
-					throw std::runtime_error("You must own the game on steam to play this mod!");
-				case ownership_state::error:
-					throw std::runtime_error("Failed to verify ownership of the game!");
-				case ownership_state::success:
-					break;
-				}
-			}
-			catch (std::exception& e)
-			{
-				printf("Steam: %s\n", e.what());
-				MessageBoxA(nullptr, e.what(), "BOIII Error", MB_ICONERROR | MB_SETFOREGROUND | MB_TOPMOST);
-				TerminateProcess(GetCurrentProcess(), 1234);
-			}
-
+			const auto res = start_mod("\xE2\x98\x84\xEF\xB8\x8F" " BOIII"s, steam::SteamUtils()->GetAppID());
+			evaluate_ownership_state(res);
 			clean_up_on_error();
 		}
 
@@ -310,7 +312,7 @@ namespace steam_proxy
 	}
 
 	void access_subscribed_items(
-		const std::function<void(const subscribed_item_map&)>& callback)
+			const std::function<void(const subscribed_item_map&)>& callback)
 	{
 		subscribed_items.access(callback);
 	}
