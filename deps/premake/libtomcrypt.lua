@@ -19,6 +19,7 @@ function libtomcrypt.includes()
 		"LTC_NO_FAST",
 		"LTC_NO_PROTOTYPES",
 		"LTC_NO_RSA_BLINDING",
+		"LTC_NO_FILE",
 		"ARGTYPE=4",
 	}
 end
@@ -35,6 +36,7 @@ function libtomcrypt.project()
 		}
 
 		removefiles {
+			path.join(libtomcrypt.source, "src/**/*_test.c"),
 			path.join(libtomcrypt.source, "src/**/*tab.c"),
 			path.join(libtomcrypt.source, "src/encauth/ocb3/**.c"),
 		}
