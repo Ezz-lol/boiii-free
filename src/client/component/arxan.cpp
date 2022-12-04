@@ -133,7 +133,7 @@ namespace arxan
 				return false;
 			}
 
-			std::wstring_view path(string.Buffer, string.Length / sizeof(string.Buffer[0]));
+			const std::wstring_view path(string.Buffer, string.Length / sizeof(string.Buffer[0]));
 
 			bool modified = false;
 			for (const auto& keyword : evil_keywords)
@@ -173,7 +173,7 @@ namespace arxan
 			std::string_view str_view(str, length);
 			std::wstring wstr(str_view.begin(), str_view.end());
 
-			if (!remove_evil_keywords_from_string(&wstr[0], wstr.size()))
+			if (!remove_evil_keywords_from_string(wstr.data(), wstr.size()))
 			{
 				return false;
 			}
@@ -190,7 +190,7 @@ namespace arxan
 			std::wstring wstr{};
 			wstr.resize(max_count);
 
-			const auto res = GetWindowTextW(wnd, &wstr[0], max_count);
+			const auto res = GetWindowTextW(wnd, wstr.data(), max_count);
 			if (res)
 			{
 				remove_evil_keywords_from_string(wstr.data(), res);
