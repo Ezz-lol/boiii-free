@@ -7,6 +7,7 @@
 #include <utils/thread.hpp>
 #include <utils/hook.hpp>
 #include <utils/concurrency.hpp>
+#include <utils/image.hpp>
 
 #define CONSOLE_BUFFER_SIZE 16384
 #define WINDOW_WIDTH 608
@@ -15,7 +16,7 @@ namespace console
 {
 	namespace
 	{
-		HANDLE logo;
+		utils::image::object logo;
 		std::atomic_bool started{false};
 		std::atomic_bool terminate_runner{false};
 		utils::concurrency::container<std::queue<std::string>> message_queue{};
@@ -79,25 +80,8 @@ namespace console
 
 		INT_PTR get_gray_brush()
 		{
-			static struct brush
-			{
-				HBRUSH hbrush;
-
-				brush()
-					: hbrush(CreateSolidBrush(RGB(50, 50, 50)))
-				{
-				}
-
-				~brush()
-				{
-					if (hbrush)
-					{
-						DeleteObject(hbrush);
-					}
-				}
-			} b;
-
-			return reinterpret_cast<INT_PTR>(b.hbrush);
+			static utils::image::object b(CreateSolidBrush(RGB(50, 50, 50)));
+			return reinterpret_cast<INT_PTR>(b.get());
 		}
 
 		LRESULT con_wnd_proc(const HWND hwnd, const UINT msg, const WPARAM wparam, const LPARAM lparam)
@@ -185,7 +169,7 @@ namespace console
 				utils::hook::set<HWND>(game::s_wcd::codLogo, CreateWindowExA(
 					                       0, "Static", nullptr, 0x5000000Eu, 5, 5, 0, 0, *game::s_wcd::hWnd,
 					                       reinterpret_cast<HMENU>(1), h_instance, nullptr));
-				SendMessageA(*game::s_wcd::codLogo, 0x172u, 0, reinterpret_cast<LPARAM>(logo));
+				SendMessageA(*game::s_wcd::codLogo, STM_SETIMAGE, IMAGE_BITMAP, logo);
 			}
 
 			// create the input line
@@ -219,8 +203,12 @@ namespace console
 			utils::hook::jump(0x1423337F0_g, queue_message);
 			utils::hook::nop(0x14233380A_g, 2); // Print from every thread
 
-			const auto self = utils::nt::library::get_by_address(sys_create_console_stub);
-			logo = LoadImageA(self.get_handle(), MAKEINTRESOURCEA(IMAGE_LOGO), 0, 0, 0, LR_COPYFROMRESOURCE);
+			//const auto self = utils::nt::library::get_by_address(sys_create_console_stub);
+			//logo = LoadImageA(self.get_handle(), MAKEINTRESOURCEA(IMAGE_LOGO), 0, 0, 0, LR_COPYFROMRESOURCE);
+
+			const auto res = utils::nt::load_resource(IMAGE_LOGO);
+			const auto img = utils::image::load_image(res);
+			logo = utils::image::create_bitmap(img);
 
 			utils::hook::jump(printf, print_stub);
 

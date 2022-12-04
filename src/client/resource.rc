@@ -92,8 +92,8 @@ END
 //
 
 ID_ICON               ICON   "resources/icon.ico"
-IMAGE_SPLASH          BITMAP "resources/splash.bmp"
-IMAGE_LOGO            BITMAP "resources/logo.bmp"
+IMAGE_SPLASH          RCDATA "resources/splash.jpg"
+IMAGE_LOGO            RCDATA "resources/logo.jpg"
 
 DW_MOTD               RCDATA "resources/dw/experiments_tu32.gz"
 DW_CARDS              RCDATA "resources/dw/featured_cards-english_tu32.gz"

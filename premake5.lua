@@ -312,10 +312,14 @@ project "tlsdll"
 
 	symbols 'Off'
 	exceptionhandling "Off"
+
 	flags {"NoRuntimeChecks", "NoBufferSecurityCheck",  "OmitDefaultLibrary"}
+
 	buildoptions {"/Zc:threadSafeInit-"}
-	removebuildoptions {"/GL"}
 	linkoptions {"/NODEFAULTLIB", "/IGNORE:4210"}
+
+	removebuildoptions {"/GL"}
+	removelinkoptions {"/LTCG"}
 
 	files {"./src/tlsdll/**.rc", "./src/tlsdll/**.hpp", "./src/tlsdll/**.cpp", "./src/tlsdll/resources/**.*"}
 

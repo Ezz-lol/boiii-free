@@ -5,20 +5,24 @@
 #include "resource.hpp"
 
 #include <utils/nt.hpp>
+#include <utils/image.hpp>
 
 namespace splash
 {
 	namespace
 	{
 		HWND window{};
-		HANDLE image{};
+		utils::image::object image{};
 		std::thread window_thread{};
-		std::atomic_bool join_safe{false};
 
-		HANDLE load_splash_image()
+		utils::image::object load_splash_image()
 		{
-			const auto self = utils::nt::library::get_by_address(load_splash_image);
-			return LoadImageA(self, MAKEINTRESOURCE(IMAGE_SPLASH), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
+			//const auto self = utils::nt::library::get_by_address(load_splash_image);
+			//return LoadImageA(self, MAKEINTRESOURCE(IMAGE_SPLASH), IMAGE_BITMAP, 0, 0, LR_DEFAULTCOLOR);
+
+			const auto res = utils::nt::load_resource(IMAGE_SPLASH);
+			const auto img = utils::image::load_image(res);
+			return utils::image::create_bitmap(img);
 		}
 
 		void enable_dpi_awareness()
@@ -93,7 +97,7 @@ namespace splash
 						if (image_window)
 						{
 							RECT rect;
-							SendMessageA(image_window, 0x172u, 0, reinterpret_cast<LPARAM>(image));
+							SendMessageA(image_window, STM_SETIMAGE, IMAGE_BITMAP, image);
 							GetWindowRect(image_window, &rect);
 
 							const int width = rect.right - rect.left;
