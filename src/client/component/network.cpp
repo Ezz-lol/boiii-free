@@ -20,7 +20,7 @@ namespace network
 			return callbacks;
 		}
 
-		bool handle_command(const game::netadr_t* address, const char* command, const game::msg_t* message)
+		uint64_t handle_command(const game::netadr_t* address, const char* command, const game::msg_t* message)
 		{
 			const auto cmd_string = utils::string::to_lower(command);
 			auto& callbacks = get_callbacks();
@@ -28,13 +28,13 @@ namespace network
 			const auto offset = cmd_string.size() + 5;
 			if (message->cursize < 0 || static_cast<size_t>(message->cursize) < offset || handler == callbacks.end())
 			{
-				return false;
+				return 1;
 			}
 
 			const std::basic_string_view data(message->data + offset, message->cursize - offset);
 
 			handler->second(*address, data);
-			return true;
+			return 0;
 		}
 
 		void handle_command_stub(utils::hook::assembler& a)
@@ -47,7 +47,6 @@ namespace network
 
 			a.call_aligned(handle_command);
 
-			a.movzx(rax, al);
 			a.mov(qword_ptr(rsp, 0x78), rax);
 
 			a.popad64();
