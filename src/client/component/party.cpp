@@ -43,24 +43,12 @@ namespace party
 
 		void launch_mode(const game::eModes mode)
 		{
-			const auto* command = "";
-
-			switch (mode)
+			scheduler::once([=]
 			{
-			case game::MODE_CAMPAIGN:
-				command = "startCampaign;";
-				break;
-			case game::MODE_ZOMBIES:
-				command = "startZombies;";
-				break;
-			case game::MODE_MULTIPLAYER:
-				command = "startMultiplayer;";
-				break;
-			default:
-				return;
-			}
-
-			game::Cbuf_AddText(0, command);
+				const auto local_client = *reinterpret_cast<DWORD*>(0x14342355C_g);
+				const auto current_mode = game::Com_SessionMode_GetMode();
+				game::Com_SwitchMode(local_client, current_mode, mode, 6);
+			}, scheduler::main);
 		}
 
 		void connect_to_lobby_with_mode(const game::netadr_t& addr, const game::eModes mode, const std::string& mapname,
