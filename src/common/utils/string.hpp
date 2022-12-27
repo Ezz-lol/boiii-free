@@ -1,11 +1,8 @@
 #pragma once
 #include "memory.hpp"
-#include <cstdint>
 
-#ifndef ARRAYSIZE
 template <class Type, size_t n>
-size_t ARRAYSIZE(Type (&)[n]) { return n; }
-#endif
+constexpr auto ARRAY_COUNT(Type (&)[n]) { return n; }
 
 namespace utils::string
 {
@@ -21,7 +18,7 @@ namespace utils::string
 
 		char* get(const char* format, const va_list ap)
 		{
-			++this->current_buffer_ %= ARRAYSIZE(this->string_pool_);
+			++this->current_buffer_ %= ARRAY_COUNT(this->string_pool_);
 			auto entry = &this->string_pool_[this->current_buffer_];
 
 			if (!entry->size || !entry->buffer)
