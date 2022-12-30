@@ -439,6 +439,7 @@ namespace game
 		const char* autoCompleteDir;
 		const char* autoCompleteExt;
 		xcommand_t function;
+		int autoComplete;
 	};
 
 	struct CmdArgs

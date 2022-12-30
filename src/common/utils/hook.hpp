@@ -149,7 +149,8 @@ namespace utils::hook
 		void un_move();
 	};
 
-	std::optional<std::pair<void*, void*>> iat(const nt::library& library, const std::string& target_library, const std::string& process, void* stub);
+	std::optional<std::pair<void*, void*>> iat(const nt::library& library, const std::string& target_library,
+	                                           const std::string& process, void* stub);
 
 	void nop(void* place, size_t length);
 	void nop(size_t place, size_t length);

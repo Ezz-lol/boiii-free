@@ -16,12 +16,17 @@ namespace game
 	// Com
 	WEAK symbol<void(int channel, unsigned int label, const char* fmt, ...)> Com_Printf{0x1421499C0};
 	WEAK symbol<void(const char* file, int line, int code, const char* fmt, ...)> Com_Error_{0x1420F8BD0};
-	WEAK symbol<bool(eModes mode)> Com_SessionMode_IsMode{ 0x1420F7DD0 };
-	WEAK symbol<void(uint32_t localClientNum, eModes fromMode, eModes toMode, uint32_t flags)> Com_SwitchMode{0x14214AF30 };
+	WEAK symbol<bool(eModes mode)> Com_SessionMode_IsMode{0x1420F7DD0};
+	WEAK symbol<void(uint32_t localClientNum, eModes fromMode, eModes toMode, uint32_t flags)> Com_SwitchMode{
+		0x14214AF30
+	};
 
-	WEAK symbol<void(int localClientNum, const char* text)> Cbuf_AddText{0x1420EC8B0};
+	WEAK symbol<void(uint32_t localClientNum, const char* text)> Cbuf_AddText{0x1420EC8B0};
 	WEAK symbol<void(const char* cmdName, xcommand_t function, cmd_function_s* allocedCmd)> Cmd_AddCommandInternal{
 		0x1420ED530
+	};
+	WEAK symbol<void(uint32_t localClientNum, ControllerIndex_t controllerIndex, const char* text, bool fromRemoteConsol)> Cmd_ExecuteSingleCommand{
+		0x1420EDC20
 	};
 	WEAK symbol<void(char* text, int maxSize)> Con_GetTextCopy{0x14133A7D0};
 
@@ -57,7 +62,8 @@ namespace game
 	};
 
 	// Rendering
-	WEAK symbol<void(const char*, int, const void*, float, float, float, float, float, const float*, int)> R_AddCmdDrawText{
+	WEAK symbol<void(const char*, int, const void*, float, float, float, float, float, const float*, int)>
+	R_AddCmdDrawText{
 		0x141CD98D0
 	};
 
@@ -84,14 +90,6 @@ namespace game
 
 	// Global game definitions
 	constexpr auto CMD_MAX_NESTING = 8;
-
-	struct cmd_args_t
-	{
-		CmdArgs* operator->() const
-		{
-			return Sys_GetTLS()->cmdArgs;
-		}
-	};
 
 	// Re-implementations
 	eModes Com_SessionMode_GetMode();
