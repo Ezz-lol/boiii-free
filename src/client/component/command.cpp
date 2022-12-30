@@ -51,11 +51,6 @@ namespace command
 	public:
 		void post_unpack() override
 		{
-			command::add("bruuh", [](const params& p)
-			{
-				MessageBoxA(0, p.join(0).data(), 0, 0);
-			});
-
 			// Disable whitelist
 			utils::hook::jump(0x14133CF70_g, update_whitelist_stub);
 		}
