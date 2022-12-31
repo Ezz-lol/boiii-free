@@ -25,7 +25,8 @@ namespace game
 	WEAK symbol<void(const char* cmdName, xcommand_t function, cmd_function_s* allocedCmd)> Cmd_AddCommandInternal{
 		0x1420ED530
 	};
-	WEAK symbol<void(uint32_t localClientNum, ControllerIndex_t controllerIndex, const char* text, bool fromRemoteConsol)> Cmd_ExecuteSingleCommand{
+	WEAK symbol<void(uint32_t localClientNum, ControllerIndex_t controllerIndex, const char* text,
+	                 bool fromRemoteConsol)> Cmd_ExecuteSingleCommand{
 		0x1420EDC20
 	};
 	WEAK symbol<void(char* text, int maxSize)> Con_GetTextCopy{0x14133A7D0};
@@ -66,6 +67,9 @@ namespace game
 	R_AddCmdDrawText{
 		0x141CD98D0
 	};
+
+	// Rendering
+	WEAK symbol<void*()> SV_AddTestClient{0x1422499A0};
 
 	// Variables
 

@@ -1,6 +1,8 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 
+#include "command.hpp"
+
 #include <utils/nt.hpp>
 #include <utils/hook.hpp>
 
@@ -46,6 +48,30 @@ namespace bots
 		{
 			utils::hook::jump(0x141653B70_g, get_bot_name);
 			utils::hook::jump(0x141654280_g, get_bot_name);
+
+			command::add("spawnBot", [](const command::params& params)
+			{
+				size_t count = 1;
+				if (params.size() > 1)
+				{
+					if (params[1] == "all"s)
+					{
+						count = 18;
+					}
+					else
+					{
+						count = atoi(params[1]);
+					}
+				}
+
+				for (size_t i = 0; i < count; ++i)
+				{
+					if (!game::SV_AddTestClient())
+					{
+						break;
+					}
+				}
+			});
 		}
 	};
 }
