@@ -9,7 +9,7 @@ namespace game
 	{
 		const utils::nt::library& get_host_library()
 		{
-			static auto host = []
+			static auto host_library = []
 			{
 				utils::nt::library host{};
 				if (!host || host == utils::nt::library::get_by_address(get_base))
@@ -19,7 +19,8 @@ namespace game
 
 				return host;
 			}();
-			return host;
+
+			return host_library;
 		}
 	}
 

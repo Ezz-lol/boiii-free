@@ -217,7 +217,7 @@ namespace party
 		network::send(host, "getInfo", challenge);
 	}
 
-	struct component final : client_component_interface
+	struct component final : client_component
 	{
 		void post_unpack() override
 		{

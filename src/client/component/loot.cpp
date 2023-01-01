@@ -49,7 +49,7 @@ namespace loot
 		}
 	};
 
-	struct component final : client_component_interface
+	struct component final : client_component
 	{
 		void post_unpack() override
 		{

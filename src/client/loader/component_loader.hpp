@@ -3,7 +3,7 @@
 
 namespace component_loader
 {
-	using registration_functor = std::function<std::unique_ptr<component_interface>()>;
+	using registration_functor = std::function<std::unique_ptr<generic_component>()>;
 
 	void register_component(registration_functor functor, component_type type);
 
@@ -25,7 +25,7 @@ namespace component_loader
 	template <typename T>
 	class installer final
 	{
-		static_assert(std::is_base_of_v<component_interface, T>, "component has invalid base class");
+		static_assert(std::is_base_of_v<generic_component, T>, "component has invalid base class");
 
 	public:
 		installer()

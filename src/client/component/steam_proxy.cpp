@@ -205,7 +205,7 @@ namespace steam_proxy
 		}
 	}
 
-	struct component final : component_interface
+	struct component final : generic_component
 	{
 		void post_load() override
 		{

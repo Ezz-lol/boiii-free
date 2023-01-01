@@ -17,11 +17,11 @@ enum class component_type
 	any,
 };
 
-struct component_interface
+struct generic_component
 {
 	static constexpr component_type type = component_type::any;
 
-	virtual ~component_interface() = default;
+	virtual ~generic_component() = default;
 
 	virtual void post_load()
 	{
@@ -41,12 +41,12 @@ struct component_interface
 	}
 };
 
-struct client_component_interface : component_interface
+struct client_component : generic_component
 {
 	static constexpr component_type type = component_type::client;
 };
 
-struct server_component_interface : component_interface
+struct server_component : generic_component
 {
 	static constexpr component_type type = component_type::server;
 };

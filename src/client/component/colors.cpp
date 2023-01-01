@@ -30,7 +30,7 @@ namespace colors
 		utils::hook::copy(g_color_table + index * 4, color_float, sizeof(color_float));
 	}
 
-	struct component final : client_component_interface
+	struct component final : client_component
 	{
 		void post_unpack() override
 		{

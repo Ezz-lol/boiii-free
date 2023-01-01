@@ -127,7 +127,7 @@ namespace updater
 		}
 	}
 
-	class component final : public component_interface
+	class component final : public generic_component
 	{
 	public:
 		component()

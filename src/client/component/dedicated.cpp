@@ -9,7 +9,7 @@ namespace dedicated
 	{
 	}
 
-	struct component final : server_component_interface
+	struct component final : server_component
 	{
 		void post_unpack() override
 		{
