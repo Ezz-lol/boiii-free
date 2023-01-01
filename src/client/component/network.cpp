@@ -210,9 +210,8 @@ namespace network
 		return 2;
 	}
 
-	class component final : public component_interface
+	struct component final : client_component_interface
 	{
-	public:
 		void post_unpack() override
 		{
 			//utils::hook::jump(0x14143CAB0_g, ret2); // patch dwGetConnectionStatus

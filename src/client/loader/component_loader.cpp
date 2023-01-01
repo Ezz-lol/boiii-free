@@ -23,9 +23,9 @@ namespace component_loader
 			return *components;
 		}
 
-		std::vector<registration_functor>& get_registration_functors()
+		std::vector<std::pair<registration_functor, component_type>>& get_registration_functors()
 		{
-			static std::vector<registration_functor> functors;
+			static std::vector<std::pair<registration_functor, component_type>> functors;
 			return functors;
 		}
 
@@ -42,25 +42,28 @@ namespace component_loader
 		}
 	}
 
-	void register_component(registration_functor functor)
+	void register_component(registration_functor functor, component_type type)
 	{
 		if (!get_components().empty())
 		{
 			throw std::runtime_error("Registration is too late");
 		}
 
-		get_registration_functors().push_back(std::move(functor));
+		get_registration_functors().emplace_back(std::move(functor), type);
 	}
 
-	bool activate()
+	bool activate(bool server)
 	{
-		static auto res = []
+		static auto res = [server]
 		{
 			try
 			{
 				for (auto& functor : get_registration_functors())
 				{
-					activate_component(functor());
+					if (functor.second == component_type::any || server == (functor.second == component_type::server))
+					{
+						activate_component(functor.first());
+					}
 				}
 			}
 			catch (premature_shutdown_trigger&)

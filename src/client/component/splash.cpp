@@ -165,9 +165,8 @@ namespace splash
 		}
 	}
 
-	class component final : public component_interface
+	struct component final : client_component_interface
 	{
-	public:
 		component()
 		{
 			enable_dpi_awareness();

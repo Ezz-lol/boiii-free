@@ -441,9 +441,8 @@ namespace demonware
 		}
 	}
 
-	class component final : public component_interface
+	struct component final : component_interface
 	{
-	public:
 		component()
 		{
 			udp_servers.create<stun_server>("stun.us.demonware.net");
@@ -477,6 +476,11 @@ namespace demonware
 		{
 			server_thread = utils::thread::create_named_thread("Demonware", server_main);
 
+			if (game::is_server())
+			{
+				return;
+			}
+
 			utils::hook::set<uint8_t>(0x14293E829_g, 0x0); // CURLOPT_SSL_VERIFYPEER
 			utils::hook::set<uint8_t>(0x15F3CCFED_g, 0xAF); // CURLOPT_SSL_VERIFYHOST
 			utils::hook::set<uint8_t>(0x1430B9810_g, 0x0); // HTTPS -> HTTP
@@ -489,7 +493,7 @@ namespace demonware
 			utils::hook::call(0x141EC458C_g, get_ffotd_name); // Return unlocalized ffotd name
 			utils::hook::set<uint64_t>(0x141F04550_g, 0xC300000001B8); // Kill LPC_File_SafeWrite
 			utils::hook::set<uint64_t>(0x141F03180_g, 0xC300000001B8); // Kill LPC_DeleteStale
-			
+
 			utils::hook::set<uint8_t>(0x141E0AAAB_g, 0xEB); // Release un-handled reportReward spamming loop
 		}
 

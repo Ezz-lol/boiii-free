@@ -9,9 +9,8 @@ namespace dedicated
 	{
 	}
 
-	class component final : public component_interface
+	struct component final : server_component_interface
 	{
-	public:
 		void post_unpack() override
 		{
 		}

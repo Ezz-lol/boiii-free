@@ -696,9 +696,8 @@ namespace arxan
 		return zw_terminate_process_hook.invoke<NTSTATUS>(process_handle, exit_status);
 	}
 
-	class component final : public component_interface
+	struct component final : component_interface
 	{
-	public:
 		void post_load() override
 		{
 			auto* dll_characteristics = &utils::nt::library().get_optional_header()->DllCharacteristics;

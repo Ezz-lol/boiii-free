@@ -27,9 +27,8 @@ namespace branding
 		}
 	}
 
-	class component final : public component_interface
+	struct component final : client_component_interface
 	{
-	public:
 		void post_unpack() override
 		{
 			scheduler::loop(draw_branding, scheduler::renderer);

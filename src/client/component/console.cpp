@@ -193,9 +193,8 @@ namespace console
 		}
 	}
 
-	class component final : public component_interface
+	struct component final : client_component_interface
 	{
-	public:
 		void post_unpack() override
 		{
 			utils::hook::set<uint8_t>(0x14133D2FE_g, 0xEB); // Always enable ingame console

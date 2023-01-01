@@ -32,7 +32,7 @@ namespace discord
 		}
 	}
 
-	class component final : public component_interface
+	class component final : public client_component_interface
 	{
 	public:
 		void post_load() override

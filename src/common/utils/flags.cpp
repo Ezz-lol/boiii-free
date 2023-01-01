@@ -3,51 +3,42 @@
 #include "nt.hpp"
 
 #include <shellapi.h>
+#include <unordered_set>
+
+#include "finally.hpp"
 
 namespace utils::flags
 {
-	void parse_flags(std::vector<std::string>& flags)
+	std::unordered_set<std::string> parse_flags()
 	{
-		int num_args;
+		int num_args{};
 		auto* const argv = CommandLineToArgvW(GetCommandLineW(), &num_args);
-
-		flags.clear();
-
-		if (argv)
+		const auto _ = finally([&argv]
 		{
-			for (auto i = 0; i < num_args; ++i)
+			if (argv)
 			{
-				std::wstring wide_flag(argv[i]);
-				if (wide_flag[0] == L'-')
-				{
-					wide_flag.erase(wide_flag.begin());
-					flags.emplace_back(string::convert(wide_flag));
-				}
+				LocalFree(argv);
 			}
+		});
 
-			LocalFree(argv);
+		std::unordered_set<std::string> flags{};
+
+		for (auto i = 0; i < num_args && argv; ++i)
+		{
+			std::wstring wide_flag(argv[i]);
+			if (wide_flag[0] == L'-')
+			{
+				wide_flag.erase(wide_flag.begin());
+				flags.emplace(string::to_lower(string::convert(wide_flag)));
+			}
 		}
+
+		return flags;
 	}
 
 	bool has_flag(const std::string& flag)
 	{
-		static auto parsed = false;
-		static std::vector<std::string> enabled_flags;
-
-		if (!parsed)
-		{
-			parse_flags(enabled_flags);
-			parsed = true;
-		}
-
-		for (const auto& entry : enabled_flags)
-		{
-			if (string::to_lower(entry) == string::to_lower(flag))
-			{
-				return true;
-			}
-		}
-
-		return false;
+		static const auto enabled_flags = parse_flags();
+		return enabled_flags.contains(string::to_lower(flag));
 	}
 }

@@ -5,6 +5,7 @@
 namespace game
 {
 	size_t get_base();
+	bool is_server();
 
 	inline size_t relocate(const size_t val)
 	{

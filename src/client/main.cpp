@@ -28,7 +28,8 @@ namespace
 		const auto game_entry = game.get_iat_entry("steam_api64.dll", func);
 		if (!game_entry)
 		{
-			throw std::runtime_error("Import '" + func + "' not found!");
+			//throw std::runtime_error("Import '" + func + "' not found!");
+			return {nullptr, nullptr};
 		}
 
 		const auto original_import = game_entry;
@@ -183,12 +184,16 @@ namespace
 			{
 				remove_crash_file();
 
-				if (!component_loader::activate())
+				const auto client_binary = "BlackOps3.exe"s;
+				const auto server_binary = "BlackOps3_UnrankedDedicatedServer.exe"s;
+				const auto has_server = utils::io::file_exists(server_binary);
+
+				if (!component_loader::activate(has_server))
 				{
 					return 1;
 				}
 
-				entry_point = load_process("BlackOps3.exe");
+				entry_point = load_process(has_server ? server_binary : client_binary);
 				if (!entry_point)
 				{
 					throw std::runtime_error("Unable to load binary into memory");

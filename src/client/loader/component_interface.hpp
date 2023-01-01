@@ -10,9 +10,17 @@ enum class component_priority
 	arxan,
 };
 
-class component_interface
+enum class component_type
 {
-public:
+	client,
+	server,
+	any,
+};
+
+struct component_interface
+{
+	static constexpr component_type type = component_type::any;
+
 	virtual ~component_interface() = default;
 
 	virtual void post_load()
@@ -31,4 +39,14 @@ public:
 	{
 		return component_priority::min;
 	}
+};
+
+struct client_component_interface : component_interface
+{
+	static constexpr component_type type = component_type::client;
+};
+
+struct server_component_interface : component_interface
+{
+	static constexpr component_type type = component_type::server;
 };

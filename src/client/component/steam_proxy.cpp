@@ -53,7 +53,7 @@ namespace steam_proxy
 			{
 				std::string name = utils::string::va("CLIENTENGINE_INTERFACE_VERSION%03i", i);
 				auto* const temp_client_engine = steam_client_module
-						.invoke<void*>("CreateInterface", name.data(), nullptr);
+					.invoke<void*>("CreateInterface", name.data(), nullptr);
 				if (temp_client_engine) return temp_client_engine;
 			}
 
@@ -76,7 +76,7 @@ namespace steam_proxy
 
 			steam_pipe = steam_client_module.invoke<void*>("Steam_CreateSteamPipe");
 			global_user = steam_client_module.invoke<void*>(
-					"Steam_ConnectToGlobalUser", steam_pipe);
+				"Steam_ConnectToGlobalUser", steam_pipe);
 
 			client_user = client_engine.invoke<void*>(8, global_user, steam_pipe);
 			client_utils = client_engine.invoke<void*>(14, steam_pipe);
@@ -205,9 +205,8 @@ namespace steam_proxy
 		}
 	}
 
-	class component final : public component_interface
+	struct component final : component_interface
 	{
-	public:
 		void post_load() override
 		{
 			load_client();
@@ -312,7 +311,7 @@ namespace steam_proxy
 	}
 
 	void access_subscribed_items(
-			const std::function<void(const subscribed_item_map&)>& callback)
+		const std::function<void(const subscribed_item_map&)>& callback)
 	{
 		subscribed_items.access(callback);
 	}

@@ -5,9 +5,9 @@ namespace component_loader
 {
 	using registration_functor = std::function<std::unique_ptr<component_interface>()>;
 
-	void register_component(registration_functor functor);
+	void register_component(registration_functor functor, component_type type);
 
-	bool activate();
+	bool activate(bool server);
 	bool post_load();
 	void post_unpack();
 	void pre_destroy();
@@ -33,7 +33,7 @@ namespace component_loader
 			register_component([]
 			{
 				return std::make_unique<T>();
-			});
+			}, T::type);
 		}
 	};
 };

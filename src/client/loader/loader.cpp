@@ -100,7 +100,7 @@ namespace loader
 
 				auto* rel_info = offset_pointer<uint16_t*>(relocation, sizeof(IMAGE_BASE_RELOCATION));
 				const auto* rel_info_end = offset_pointer<uint16_t*>(
-						rel_info, relocation->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION));
+					rel_info, relocation->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION));
 
 				for (; rel_info < rel_info_end; ++rel_info)
 				{

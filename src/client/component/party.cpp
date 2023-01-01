@@ -217,9 +217,8 @@ namespace party
 		network::send(host, "getInfo", challenge);
 	}
 
-	class component final : public component_interface
+	struct component final : client_component_interface
 	{
-	public:
 		void post_unpack() override
 		{
 			utils::hook::jump(0x141E19B60_g, 0x141E19BB6_g); // patch steam id validity check

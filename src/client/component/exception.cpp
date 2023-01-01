@@ -193,9 +193,8 @@ namespace exception
 		}
 	}
 
-	class component final : public component_interface
+	struct component final : component_interface
 	{
-	public:
 		component()
 		{
 			main_thread_id = GetCurrentThreadId();

@@ -30,9 +30,8 @@ namespace colors
 		utils::hook::copy(g_color_table + index * 4, color_float, sizeof(color_float));
 	}
 
-	class component final : public component_interface
+	struct component final : client_component_interface
 	{
-	public:
 		void post_unpack() override
 		{
 			patch_color<1>(255, 49, 49);  // 1  - Red

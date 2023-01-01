@@ -107,9 +107,8 @@ namespace auth
 		return guid;
 	}
 
-	class component final : public component_interface
+	struct component final : client_component_interface
 	{
-	public:
 		void post_unpack() override
 		{
 			// Patch steam id bit check

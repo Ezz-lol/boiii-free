@@ -29,9 +29,8 @@ namespace icon
 		}
 	}
 
-	class component final : public component_interface
+	struct component final : component_interface
 	{
-	public:
 		void post_load() override
 		{
 			load_icon_a_hook.create(LoadIconA, load_icon_a_stub);
