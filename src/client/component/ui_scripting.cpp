@@ -253,13 +253,23 @@ namespace ui_scripting
 		{
 			game::XAssetHeader header{ .luaFile = nullptr };
 
-			if (!is_local_script(filename))
+			if (!is_loaded_script(globals.in_require_script) && !is_local_script(filename))
 			{
 				return lua_cod_getrawfile_hook.invoke<game::XAssetHeader>(filename);
 			}
 
-			std::string target_script = globals.local_scripts[filename];
-		
+			const std::string name_ = filename;
+			std::string target_script;
+			if (is_loaded_script(globals.in_require_script))
+			{
+				const auto folder = globals.in_require_script.substr(0, globals.in_require_script.find_last_of("/\\"));
+				target_script = folder + "/" + name_ + ".lua";
+			}
+			else
+			{
+				target_script = globals.local_scripts[name_];
+			}
+
 			if (utils::io::file_exists(target_script))
 			{
 				globals.load_raw_script = true;
