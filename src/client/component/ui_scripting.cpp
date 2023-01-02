@@ -18,6 +18,7 @@ namespace ui_scripting
 		std::unordered_map<game::hks::cclosure*, std::function<arguments(const function_arguments& args)>> converted_functions;
 
 		utils::hook::detour ui_cod_init_hook;
+		utils::hook::detour ui_cod_lobbyui_init_hook;
 		utils::hook::detour ui_shutdown_hook;
 		utils::hook::detour hks_package_require_hook;
 		utils::hook::detour lua_cod_getrawfile_hook;
@@ -216,9 +217,18 @@ namespace ui_scripting
 			}
 		}
 
-		void ui_cod_init_stub(void* a1, void* a2)
+		void ui_cod_init_stub(bool frontend)
 		{
-			ui_cod_init_hook.invoke(a1, a2);
+			ui_cod_init_hook.invoke(frontend);
+
+			if (game::Com_IsRunningUILevel())
+				return;
+			const auto _0 = utils::finally(&try_start);
+		}
+
+		void ui_cod_lobbyui_init_stub()
+		{
+			ui_cod_lobbyui_init_hook.invoke();
 			const auto _0 = utils::finally(&try_start);
 		}
 
@@ -361,6 +371,7 @@ namespace ui_scripting
 
 			hks_package_require_hook.create(0x141D28EF0_g, hks_package_require_stub);
 			ui_cod_init_hook.create(0x141F298B0_g, ui_cod_init_stub);
+			ui_cod_lobbyui_init_hook.create(0x141F2C620_g, ui_cod_lobbyui_init_stub);
 			ui_shutdown_hook.create(0x14270E9C0_g, ui_shutdown_stub);
 			lua_cod_getrawfile_hook.create(0x141F0F880_g, lua_cod_getrawfile_stub);
 
