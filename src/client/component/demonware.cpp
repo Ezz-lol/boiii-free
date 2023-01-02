@@ -476,17 +476,20 @@ namespace demonware
 		{
 			server_thread = utils::thread::create_named_thread("Demonware", server_main);
 
+
+			utils::hook::set<uint8_t>(game::select(0x14293E829, 0x1407D5879), 0x0); // CURLOPT_SSL_VERIFYPEER
+			utils::hook::set<uint8_t>(game::select(0x15F3CCFED, 0x1407D5865), 0xAF); // CURLOPT_SSL_VERIFYHOST
+
+			utils::hook::copy_string(game::select(0x1430B96E0, 0x140EE4C68), "http://prod.umbrella.demonware.net");
+
 			if (game::is_server())
 			{
 				return;
 			}
 
-			utils::hook::set<uint8_t>(0x14293E829_g, 0x0); // CURLOPT_SSL_VERIFYPEER
-			utils::hook::set<uint8_t>(0x15F3CCFED_g, 0xAF); // CURLOPT_SSL_VERIFYHOST
-			utils::hook::set<uint8_t>(0x1430B9810_g, 0x0); // HTTPS -> HTTP
-
-			utils::hook::copy_string(0x1430B96E0_g, "http://prod.umbrella.demonware.net");
 			utils::hook::copy_string(0x1430B9BE0_g, "http://prod.uno.demonware.net/v1.0");
+
+			utils::hook::set<uint8_t>(0x1430B9810_g, 0x0); // HTTPS -> HTTP
 			utils::hook::copy_string(0x1430B93C8_g, "http://%s:%d/auth/");
 
 			utils::hook::set<uint32_t>(0x141EC4B50_g, 0xC3D08948); // Skip publisher file signature stuff

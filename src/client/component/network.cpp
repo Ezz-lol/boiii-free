@@ -39,11 +39,13 @@ namespace network
 
 		void handle_command_stub(utils::hook::assembler& a)
 		{
+			const auto sv = game::is_server();
+
 			a.pushad64();
 
-			a.mov(r8, r12); // msg
-			a.mov(rdx, rcx); // command
-			a.mov(rcx, r15); // address
+			a.mov(rdx, rcx);            // command
+			a.mov(r8, sv ? r15 : r12);  // msg
+			a.mov(rcx, sv ? r14 : r15); // address
 
 			a.call_aligned(handle_command);
 
@@ -51,7 +53,7 @@ namespace network
 
 			a.popad64();
 
-			a.jmp(0x14134D14B_g);
+			a.ret();
 		}
 
 		bool socket_set_blocking(const SOCKET s, const bool blocking)
@@ -210,24 +212,21 @@ namespace network
 		return 2;
 	}
 
-	struct component final : client_component
+	struct component final : generic_component
 	{
 		void post_unpack() override
 		{
-			//utils::hook::jump(0x14143CAB0_g, ret2); // patch dwGetConnectionStatus
-			//utils::hook::jump(0x14233307E_g, 0x1423330C7_g);
+			utils::hook::nop(game::select(0x142332E76, 0x140596DF6), 4); // don't increment data pointer to optionally skip socket byte
+			utils::hook::call(game::select(0x142332E43, 0x140596DC3), read_socket_byte_stub); // optionally read socket byte
+			utils::hook::call(game::select(0x142332E81, 0x140596E01), verify_checksum_stub); // skip checksum verification
+			utils::hook::set<uint8_t>(game::select(0x14233305E, 0x140596F2E), 0); // don't add checksum to packet
 
-			utils::hook::nop(0x142332E76_g, 4); // don't increment data pointer to optionally skip socket byte
-			utils::hook::call(0x142332E43_g, read_socket_byte_stub); // optionally read socket byte
-			utils::hook::call(0x142332E81_g, verify_checksum_stub); // skip checksum verification
-			utils::hook::set<uint8_t>(0x14233305E_g, 0); // don't add checksum to packet
-
-			utils::hook::set<uint32_t>(0x14134C6E0_g, 5); // set initial connection state to challenging
+			utils::hook::set<uint32_t>(game::select(0x14134C6E0, 0x14018E574), 5); // set initial connection state to challenging
 
 			// intercept command handling
-			utils::hook::jump(0x14134D146_g, utils::hook::assemble(handle_command_stub));
+			utils::hook::call(game::select(0x14134D146, 0x14018EED0), utils::hook::assemble(handle_command_stub));
 
-			utils::hook::set<uint8_t>(0x14224E90D_g, 0xEB); // don't kick clients without dw handle
+			utils::hook::set<uint8_t>(game::select(0x14224E90D, 0x1405315F9), 0xEB); // don't kick clients without dw handle
 
 			// TODO: Fix that
 			scheduler::once(create_ip_socket, scheduler::main);

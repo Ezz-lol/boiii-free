@@ -40,12 +40,11 @@ namespace game
 	WEAK symbol<bool(uint64_t, int*, bool)> Live_GetConnectivityInformation{0x141E0C410};
 
 	// MSG
-	WEAK symbol<uint8_t(msg_t* msg)> MSG_ReadByte{0x142155EB0};
+	WEAK symbol<uint8_t(msg_t* msg)> MSG_ReadByte{0x142155EB0, 0x14050D1B0};
 
 	// NET
-	WEAK symbol<bool(netsrc_t sock, int length, const void* data, const netadr_t* to)> NET_SendPacket{0x142332F70};
-	WEAK symbol<bool(char const*, netadr_t*)> NET_StringToAdr{0x1421731E0};
-	WEAK symbol<bool(netadr_t*, char const*)> NetAdr_InitFromString{0x142332F70};
+	WEAK symbol<bool(netsrc_t sock, int length, const void* data, const netadr_t* to)> NET_SendPacket{0x142332F70, 0x140596E40};
+	WEAK symbol<bool(char const*, netadr_t*)> NET_StringToAdr{0x1421731E0, 0x140515110};
 
 	// Sys
 	WEAK symbol<int()> Sys_Milliseconds{0x142333430};
@@ -53,11 +52,11 @@ namespace game
 	WEAK symbol<TLSData*()> Sys_GetTLS{0x142184210};
 
 	// Dvar
-	WEAK symbol<const dvar_t*(const char* dvarName)> Dvar_FindVar{0x1422BD730};
+	WEAK symbol<const dvar_t*(const char* dvarName)> Dvar_FindVar{0x1422BD730, 0x140575540};
 	WEAK symbol<unsigned int(const char* str)> Dvar_GenerateHash{0x14133DBF0};
 	WEAK symbol<dvar_t*(unsigned int hash)> Dvar_FindMalleableVar{0x1422BD6A0};
 	WEAK symbol<const char*(const dvar_t* dvar)> Dvar_GetDebugName{0x1422BDCB0};
-	WEAK symbol<const char*(const dvar_t* dvar)> Dvar_GetString{0x1422BFFF0};
+	WEAK symbol<const char*(const dvar_t* dvar)> Dvar_GetString{0x1422BFFF0, 0x140575E30};
 	WEAK symbol<void(const char* dvarName, const char* string, bool createIfMissing)> Dvar_SetFromStringByName{
 		0x1422C7F60
 	};
@@ -76,7 +75,7 @@ namespace game
 	WEAK symbol<cmd_function_s> cmd_functions{0x15689FF58};
 	WEAK symbol<CmdArgs> sv_cmd_args{0x15689CE30};
 
-	WEAK symbol<SOCKET> ip_socket{0x157E77818};
+	WEAK symbol<SOCKET> ip_socket{0x157E77818, 0x14A640988};
 
 	WEAK symbol<Join> s_join{0x15574C640};
 

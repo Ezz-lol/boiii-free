@@ -828,7 +828,7 @@ namespace game
 		JOIN_RESPONSE_COUNT = 0x1E,
 	};
 
-	typedef void (*joinCompleteCallback)(const int, JoinResult);
+	typedef void (*joinCompleteCallback)(int, JoinResult);
 
 	struct AgreementStatus
 	{

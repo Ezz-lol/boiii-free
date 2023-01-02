@@ -7,8 +7,11 @@
 #include <utils/hook.hpp>
 #include <utils/nt.hpp>
 #include <utils/io.hpp>
+#include <utils/flags.hpp>
 
 #include <steam/steam.hpp>
+
+#include "game/game.hpp"
 
 namespace
 {
@@ -55,6 +58,12 @@ namespace
 		return steam::SteamAPI_RestartAppIfNecessary();
 	}
 
+	BOOL set_process_dpi_aware_stub()
+	{
+		component_loader::post_unpack();
+		return SetProcessDPIAware();
+	}
+
 	void patch_imports()
 	{
 		patch_steam_import("SteamAPI_RegisterCallback", steam::SteamAPI_RegisterCallback);
@@ -74,7 +83,9 @@ namespace
 		//patch_steam_import("SteamAPI_Shutdown", steam::SteamAPI_Shutdown);
 		g_original_import = patch_steam_import("SteamAPI_RestartAppIfNecessary", restart_app_if_necessary_stub);
 
-		utils::hook::set(utils::nt::library{}.get_iat_entry("kernel32.dll", "ExitProcess"), exit_hook);
+		const utils::nt::library game{};
+		utils::hook::set(game.get_iat_entry("kernel32.dll", "ExitProcess"), exit_hook);
+		utils::hook::set(game.get_iat_entry("user32.dll", "SetProcessDPIAware"), set_process_dpi_aware_stub);
 	}
 
 	void remove_crash_file()
@@ -163,7 +174,6 @@ namespace
 	{
 		if (handle_process_runner())
 		{
-			TerminateProcess(GetCurrentProcess(), 0);
 			return 0;
 		}
 
@@ -186,7 +196,7 @@ namespace
 
 				const auto client_binary = "BlackOps3.exe"s;
 				const auto server_binary = "BlackOps3_UnrankedDedicatedServer.exe"s;
-				const auto has_server = utils::io::file_exists(server_binary);
+				const auto has_server = !utils::io::file_exists(client_binary) || utils::flags::has_flag("dedicated");
 
 				if (!component_loader::activate(has_server))
 				{
@@ -197,6 +207,11 @@ namespace
 				if (!entry_point)
 				{
 					throw std::runtime_error("Unable to load binary into memory");
+				}
+
+				if (has_server != game::is_server())
+				{
+					throw std::runtime_error("Bad binary loaded into memory");
 				}
 
 				patch_imports();
