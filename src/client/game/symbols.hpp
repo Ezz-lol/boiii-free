@@ -23,7 +23,7 @@ namespace game
 
 	WEAK symbol<void(uint32_t localClientNum, const char* text)> Cbuf_AddText{0x1420EC8B0};
 	WEAK symbol<void(const char* cmdName, xcommand_t function, cmd_function_s* allocedCmd)> Cmd_AddCommandInternal{
-		0x1420ED530
+		0x1420ED530, 0x1404F8210
 	};
 	WEAK symbol<void(uint32_t localClientNum, ControllerIndex_t controllerIndex, const char* text,
 	                 bool fromRemoteConsol)> Cmd_ExecuteSingleCommand{
@@ -49,7 +49,7 @@ namespace game
 	// Sys
 	WEAK symbol<int()> Sys_Milliseconds{0x142333430};
 	WEAK symbol<void()> Sys_ShowConsole{0x142333F80};
-	WEAK symbol<TLSData*()> Sys_GetTLS{0x142184210};
+	WEAK symbol<TLSData*()> Sys_GetTLS{0x142184210, 0x140525EB0};
 
 	// Dvar
 	WEAK symbol<const dvar_t*(const char* dvarName)> Dvar_FindVar{0x1422BD730, 0x140575540};
@@ -68,11 +68,11 @@ namespace game
 	};
 
 	// Rendering
-	WEAK symbol<void*()> SV_AddTestClient{0x1422499A0};
+	WEAK symbol<void*()> SV_AddTestClient{0x1422499A0, 0x14052E3E0};
 
 	// Variables
 
-	WEAK symbol<cmd_function_s> cmd_functions{0x15689FF58};
+	WEAK symbol<cmd_function_s> cmd_functions{0x15689FF58, 0x14946F860};
 	WEAK symbol<CmdArgs> sv_cmd_args{0x15689CE30};
 
 	WEAK symbol<SOCKET> ip_socket{0x157E77818, 0x14A640988};

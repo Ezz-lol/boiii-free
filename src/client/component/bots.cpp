@@ -41,12 +41,16 @@ namespace bots
 		}
 	}
 
-	struct component final : client_component
+	struct component final : generic_component
 	{
 		void post_unpack() override
 		{
-			utils::hook::jump(0x141653B70_g, get_bot_name);
-			utils::hook::jump(0x141654280_g, get_bot_name);
+			utils::hook::jump(game::select(0x141653B70, 0x1402732E0), get_bot_name);
+
+			if (!game::is_server())
+			{
+				utils::hook::jump(0x141654280_g, get_bot_name);
+			}
 
 			command::add("spawnBot", [](const command::params& params)
 			{

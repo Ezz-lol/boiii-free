@@ -23,6 +23,6 @@ namespace command
 	using command_function = std::function<void()>;
 	using command_param_function = std::function<void(const params&)>;
 
-	void add(std::string command, command_function function);
-	void add(std::string command, command_param_function function);
+	void add(const std::string& command, command_function function);
+	void add(const std::string& command, command_param_function function);
 }

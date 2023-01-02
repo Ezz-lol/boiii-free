@@ -2,8 +2,8 @@
 #include "loader/component_loader.hpp"
 
 #include "command.hpp"
-#include "scheduler.hpp"
 #include <utils/hook.hpp>
+#include <utils/string.hpp>
 #include <utils/memory.hpp>
 
 #include <game/game.hpp>
@@ -21,9 +21,10 @@ namespace command
 		void execute_custom_command()
 		{
 			const params params{};
+			const auto command = utils::string::to_lower(params[0]);
 
 			auto& map = get_command_map();
-			const auto entry = map.find(params[0]);
+			const auto entry = map.find(command);
 			if (entry != map.end())
 			{
 				entry->second(params);
@@ -46,12 +47,12 @@ namespace command
 		}
 	}
 
-	struct component final : client_component
+	struct component final : generic_component
 	{
 		void post_unpack() override
 		{
 			// Disable whitelist
-			utils::hook::jump(0x14133CF70_g, update_whitelist_stub);
+			utils::hook::jump(game::select(0x1420EF190, 0x1404F9CD0), update_whitelist_stub);
 		}
 	};
 
@@ -88,30 +89,34 @@ namespace command
 		return result;
 	}
 
-	void add(std::string command, command_function function)
+	void add(const std::string& command, command_function function)
 	{
-		add(std::move(command), [f = std::move(function)](const params&)
+		add(command, [f = std::move(function)](const params&)
 		{
 			f();
 		});
 	}
 
-	void add(std::string command, command_param_function function)
+	void add(const std::string& command, command_param_function function)
 	{
+		auto lower_command = utils::string::to_lower(command);
+
 		auto& map = get_command_map();
-		const auto reregister = map.contains(command);
+		const auto is_registered = map.contains(lower_command);
 
-		if (!reregister)
+		map[std::move(lower_command)] = std::move(function);
+
+		if (is_registered)
 		{
-			auto& allocator = *utils::memory::get_allocator();
-			auto* cmd_function = allocator.allocate<game::cmd_function_s>();
-			const auto* cmd_string = allocator.duplicate_string(command);
-
-			game::Cmd_AddCommandInternal(cmd_string, execute_custom_command, cmd_function);
-			cmd_function->autoComplete = 1;
+			return;
 		}
 
-		map[std::move(command)] = std::move(function);
+		auto& allocator = *utils::memory::get_allocator();
+		auto* cmd_function = allocator.allocate<game::cmd_function_s>();
+		const auto* cmd_string = allocator.duplicate_string(command);
+
+		game::Cmd_AddCommandInternal(cmd_string, execute_custom_command, cmd_function);
+		cmd_function->autoComplete = 1;
 	}
 }
 
