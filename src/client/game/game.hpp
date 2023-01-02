@@ -1,9 +1,11 @@
 #pragma once
 
 #include "structs.hpp"
+#include <utils/nt.hpp>
 
 namespace game
 {
+	const utils::nt::library& get_host_library();
 	size_t get_base();
 	bool is_server();
 

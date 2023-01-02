@@ -35,6 +35,7 @@ namespace game
 	WEAK symbol<void(XZoneInfo* zoneInfo, uint32_t zoneCount, bool sync, bool suppressSync)> DB_LoadXAssets{
 		0x1414236A0
 	};
+	WEAK symbol<XAssetHeader(XAssetType type, const char* name, bool errorIfMissing, int waitTime)> DB_FindXAssetHeader{ 0x141420ED0 };
 
 	// Live
 	WEAK symbol<bool(uint64_t, int*, bool)> Live_GetConnectivityInformation{0x141E0C410};
@@ -53,7 +54,7 @@ namespace game
 	WEAK symbol<TLSData*()> Sys_GetTLS{0x142184210};
 
 	// Dvar
-	WEAK symbol<const dvar_t*(const char* dvarName)> Dvar_FindVar{0x1422BD730};
+	WEAK symbol<dvar_t*(const char* dvarName)> Dvar_FindVar{0x1422BD730};
 	WEAK symbol<unsigned int(const char* str)> Dvar_GenerateHash{0x14133DBF0};
 	WEAK symbol<dvar_t*(unsigned int hash)> Dvar_FindMalleableVar{0x1422BD6A0};
 	WEAK symbol<const char*(const dvar_t* dvar)> Dvar_GetDebugName{0x1422BDCB0};
@@ -97,4 +98,24 @@ namespace game
 
 	// Re-implementations
 	eModes Com_SessionMode_GetMode();
+
+	namespace hks
+	{
+		WEAK symbol<lua_State*> lua_state { 0x159C78D88 };
+		WEAK symbol<void(lua_State* s, const char* str, unsigned int l)> hksi_lua_pushlstring{ 0x140A18430 };
+
+		WEAK symbol<void(lua_State* s, const HksObject* tbl, const HksObject* key, const HksObject* val)> hks_obj_settable{ 0x141D4B660 };
+		WEAK symbol<HksObject* (HksObject* result, lua_State* s, const HksObject* table, const HksObject* key)> hks_obj_gettable{ 0x141D4ABF0 };
+		WEAK symbol<void(lua_State* s, int nargs, int nresults, const unsigned int* pc)> vm_call_internal{ 0x141D71070 };
+		WEAK symbol<HashTable* (lua_State* s, unsigned int arraySize, unsigned int hashSize)> Hashtable_Create{ 0x141D3B5F0 };
+		WEAK symbol<cclosure* (lua_State* s, lua_function function, int num_upvalues, int internal_, int profilerTreatClosureAsFunc)> cclosure_Create{ 0x141D3B7E0 };
+		WEAK symbol<int(lua_State* s, int t)> hksi_luaL_ref{ 0x141D4D1A0 };
+		WEAK symbol<void(lua_State* s, int t, int ref)> hksi_luaL_unref{ 0x141D4D320 };
+
+		WEAK symbol<int(lua_State* s, const HksCompilerSettings* options, const char* buff, unsigned __int64 sz, const char* name)> hksi_hksL_loadbuffer{ 0x141D4BD80 };
+		WEAK symbol<int(lua_State* s, const char* what, lua_Debug* ar)> hksi_lua_getinfo{ 0x141D4D960 };
+		WEAK symbol<int(lua_State* s, int level, lua_Debug* ar)> hksi_lua_getstack{ 0x141D4DC20 };
+		WEAK symbol<void(lua_State* s, const char* fmt, ...)> hksi_luaL_error{ 0x141D4D050 };
+		WEAK symbol<const char*> s_compilerTypeName{ 0x140A18430 };
+	}
 }
