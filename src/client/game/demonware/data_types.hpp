@@ -286,6 +286,24 @@ namespace demonware
 		}
 	};
 
+	class bdDDLChecksumResult final : public bdTaskResult
+	{
+	public:
+		std::string checksum{};
+		bool checksum_matched{};
+
+		void serialize(byte_buffer* buffer) override
+		{
+			buffer->write_string(this->checksum);
+			buffer->write_bool(this->checksum_matched);
+		}
+
+		void deserialize(byte_buffer* buffer) override
+		{
+			buffer->read_string(&this->checksum);
+		}
+	};
+
 	struct bdSockAddr final
 	{
 		bdSockAddr() : in_un(), m_family(AF_INET)
