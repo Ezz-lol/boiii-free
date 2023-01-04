@@ -5,10 +5,10 @@ namespace demonware
 {
 	bdDDL::bdDDL() : service(96, "bdDDL")
 	{
-		this->register_task(1, &bdDDL::idk);
+		this->register_task(1, &bdDDL::verifyDDLFiles);
 	}
 
-	void bdDDL::idk(service_server* server, byte_buffer* buffer) const
+	void bdDDL::verifyDDLFiles(service_server* server, byte_buffer* buffer) const
 	{
 		uint32_t count;
 		buffer->read_uint32(&count);

@@ -8,6 +8,6 @@ namespace demonware
 		bdDDL();
 
 	private:
-		void idk(service_server* server, byte_buffer* buffer) const;
+		void verifyDDLFiles(service_server* server, byte_buffer* buffer) const;
 	};
 }
