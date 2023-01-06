@@ -14,14 +14,14 @@ namespace game
 		{0x14134C570};
 
 	// Com
-	WEAK symbol<void(int channel, unsigned int label, const char* fmt, ...)> Com_Printf{0x1421499C0};
+	WEAK symbol<void(int channel, unsigned int label, const char* fmt, ...)> Com_Printf{0x1421499C0, 0x140505630};
 	WEAK symbol<void(const char* file, int line, int code, const char* fmt, ...)> Com_Error_{0x1420F8BD0};
 	WEAK symbol<bool(eModes mode)> Com_SessionMode_IsMode{0x1420F7DD0};
 	WEAK symbol<void(uint32_t localClientNum, eModes fromMode, eModes toMode, uint32_t flags)> Com_SwitchMode{
 		0x14214AF30
 	};
 
-	WEAK symbol<void(uint32_t localClientNum, const char* text)> Cbuf_AddText{0x1420EC8B0};
+	WEAK symbol<void(uint32_t localClientNum, const char* text)> Cbuf_AddText{0x1420EC8B0, 0x1404F75B0};
 	WEAK symbol<void(const char* cmdName, xcommand_t function, cmd_function_s* allocedCmd)> Cmd_AddCommandInternal{
 		0x1420ED530, 0x1404F8210
 	};
@@ -29,7 +29,7 @@ namespace game
 	                 bool fromRemoteConsol)> Cmd_ExecuteSingleCommand{
 		0x1420EDC20
 	};
-	WEAK symbol<void(char* text, int maxSize)> Con_GetTextCopy{0x14133A7D0};
+	WEAK symbol<void(char* text, int maxSize)> Con_GetTextCopy{0x14133A7D0, 0x140182C40};
 
 	// DB
 	WEAK symbol<void(XZoneInfo* zoneInfo, uint32_t zoneCount, bool sync, bool suppressSync)> DB_LoadXAssets{
@@ -48,7 +48,7 @@ namespace game
 
 	// Sys
 	WEAK symbol<int()> Sys_Milliseconds{0x142333430};
-	WEAK symbol<void()> Sys_ShowConsole{0x142333F80};
+	WEAK symbol<void()> Sys_ShowConsole{0x142333F80, 0x140597E40 };
 	WEAK symbol<TLSData*()> Sys_GetTLS{0x142184210, 0x140525EB0};
 
 	// Dvar
@@ -81,14 +81,14 @@ namespace game
 
 	namespace s_wcd
 	{
-		WEAK symbol<HWND> codLogo{0x157E77A50};
-		WEAK symbol<HFONT> hfBufferFont{0x157E77A58};
-		WEAK symbol<HWND> hWnd{0x157E77A40};
-		WEAK symbol<HWND> hwndBuffer{0x157E77A48};
-		WEAK symbol<HWND> hwndInputLine{0x157E77A60};
-		WEAK symbol<int> windowHeight{0x157E7806C};
-		WEAK symbol<int> windowWidth{0x157E78068};
-		WEAK symbol<WNDPROC> SysInputLineWndProc{0x157E78070};
+		WEAK symbol<HWND> codLogo{0x157E77A50, 0x14A640BC0};
+		WEAK symbol<HFONT> hfBufferFont{0x157E77A58, 0x14A640BC8};
+		WEAK symbol<HWND> hWnd{0x157E77A40, 0x14A640BB0};
+		WEAK symbol<HWND> hwndBuffer{0x157E77A48, 0x14A640BB8};
+		WEAK symbol<HWND> hwndInputLine{0x157E77A60, 0x14A640BD0};
+		WEAK symbol<int> windowHeight{0x157E7806C, 0x14A6411DC};
+		WEAK symbol<int> windowWidth{0x157E78068, 0x14A6411D8};
+		WEAK symbol<WNDPROC> SysInputLineWndProc{0x157E78070, 0x14A6411E0};
 	}
 
 	// Global game definitions

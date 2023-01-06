@@ -5,8 +5,6 @@
 
 #include "scheduler.hpp"
 
-#include <utils/hook.hpp>
-
 namespace branding
 {
 	namespace

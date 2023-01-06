@@ -6,9 +6,9 @@
 #include "steam/steam.hpp"
 #include <utils/hook.hpp>
 
-#include "utils/io.hpp"
-#include "utils/string.hpp"
-#include "utils/thread.hpp"
+#include <utils/io.hpp>
+#include <utils/string.hpp>
+#include <utils/thread.hpp>
 
 #define ProcessDebugPort 7
 #define ProcessDebugObjectHandle 30
