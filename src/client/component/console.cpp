@@ -282,8 +282,8 @@ namespace console
 		}
 
 	private:
-		std::thread console_runner_;
-		std::thread message_runner_;
+		std::thread console_runner_{};
+		std::thread message_runner_{};
 	};
 }
 
