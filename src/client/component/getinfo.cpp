@@ -6,6 +6,7 @@
 
 #include "network.hpp"
 
+#include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/info_string.hpp>
 
@@ -27,10 +28,17 @@ namespace getinfo
 		}
 	}
 
+	int get_assigned_team()
+	{
+		return (rand() % 2) + 1;
+	}
+
 	struct component final : generic_component
 	{
 		void post_unpack() override
 		{
+			//utils::hook::jump(game::select(0x142254EF0, 0x140537730), get_assigned_team);
+
 			network::on("getInfo", [](const game::netadr_t& target, const network::data_view& data)
 			{
 				utils::info_string info{};
