@@ -43,13 +43,16 @@ namespace game
 	WEAK symbol<uint8_t(msg_t* msg)> MSG_ReadByte{0x142155EB0, 0x14050D1B0};
 
 	// NET
-	WEAK symbol<bool(netsrc_t sock, int length, const void* data, const netadr_t* to)> NET_SendPacket{0x142332F70, 0x140596E40};
+	WEAK symbol<bool(netsrc_t sock, int length, const void* data, const netadr_t* to)> NET_SendPacket{
+		0x142332F70, 0x140596E40
+	};
 	WEAK symbol<bool(char const*, netadr_t*)> NET_StringToAdr{0x1421731E0, 0x140515110};
 
 	// Sys
 	WEAK symbol<int()> Sys_Milliseconds{0x142333430};
-	WEAK symbol<void()> Sys_ShowConsole{0x142333F80, 0x140597E40 };
+	WEAK symbol<void()> Sys_ShowConsole{0x142333F80, 0x140597E40};
 	WEAK symbol<TLSData*()> Sys_GetTLS{0x142184210, 0x140525EB0};
+	WEAK symbol<TLSData*()> Sys_IsDatabaseReady{0x1421844C0};
 
 	// Dvar
 	WEAK symbol<const dvar_t*(const char* dvarName)> Dvar_FindVar{0x1422BD730, 0x140575540};
@@ -60,6 +63,8 @@ namespace game
 	WEAK symbol<void(const char* dvarName, const char* string, bool createIfMissing)> Dvar_SetFromStringByName{
 		0x1422C7F60
 	};
+
+	WEAK symbol<void(uint64_t id, bool cancelAll)> Cinematic_StopPlayback{0x1412BEA70};
 
 	// Rendering
 	WEAK symbol<void(const char*, int, const void*, float, float, float, float, float, const float*, int)>
