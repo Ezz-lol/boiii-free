@@ -94,7 +94,7 @@ namespace game
 	// Variables
 
 	WEAK symbol<cmd_function_s> cmd_functions{0x15689FF58, 0x14946F860};
-	WEAK symbol<CmdArgs> sv_cmd_args{0x0, 0x15689CE30};
+	WEAK symbol<CmdArgs> sv_cmd_args{0x15689CE30, 0x14944C740};
 
 	WEAK symbol<gentity_s> g_entities{0x0, 0x1471031B0};
 
