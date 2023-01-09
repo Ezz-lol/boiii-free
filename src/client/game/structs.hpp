@@ -870,6 +870,48 @@ namespace game
 		JoinResult joinResult;
 	};
 
+	typedef uint32_t ScrVarCanonicalName_t;
+
+	enum svscmd_type
+	{
+		SV_CMD_CAN_IGNORE_0 = 0x0,
+		SV_CMD_RELIABLE_0 = 0x1,
+	};
+
+	struct client_s
+	{
+	};
+
+	enum scriptInstance_t
+	{
+		SCRIPTINSTANCE_SERVER = 0x0,
+		SCRIPTINSTANCE_CLIENT = 0x1,
+		SCRIPT_INSTANCE_MAX = 0x2,
+	};
+
+	struct gclient_s
+	{
+		char __pad0[0x8C];
+		float velocity[3];
+		char __pad1[59504];
+		char flags;
+	};
+
+	struct EntityState
+	{
+		int number;
+	};
+
+	struct gentity_s
+	{
+		EntityState s;
+		unsigned char __pad0[0x24C];
+		gclient_s* client;
+		unsigned char __pad1[0x2A0];
+	};
+
+	static_assert(sizeof(gentity_s) == 0x4F8);
+
 #ifdef __cplusplus
 }
 #endif
