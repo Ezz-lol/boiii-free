@@ -67,8 +67,8 @@ namespace colors
 			patch_color<5>(32, 197, 255); // 5  - Light Blue
 			patch_color<6>(151, 80, 221); // 6  - Pink
 
-			get_player_name_hook.create(0x1413E3140_g, get_player_name_stub);
-			get_gamer_tag_hook.create(0x141EC7370_g, get_gamer_tag_stub);
+			//get_player_name_hook.create(0x1413E3140_g, get_player_name_stub);
+			//get_gamer_tag_hook.create(0x141EC7370_g, get_gamer_tag_stub);
 		}
 	};
 }
