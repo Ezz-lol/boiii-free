@@ -18,12 +18,31 @@ namespace command
 			return command_map;
 		}
 
+		std::unordered_map<std::string, sv_command_param_function>& get_sv_command_map()
+		{
+			static std::unordered_map<std::string, sv_command_param_function> command_map{};
+			return command_map;
+		}
+
 		void execute_custom_command()
 		{
 			const params params{};
 			const auto command = utils::string::to_lower(params[0]);
 
 			auto& map = get_command_map();
+			const auto entry = map.find(command);
+			if (entry != map.end())
+			{
+				entry->second(params);
+			}
+		}
+
+		void execute_custom_sv_command()
+		{
+			const params_sv params{};
+			const auto command = utils::string::to_lower(params[0]);
+
+			auto& map = get_sv_command_map();
 			const auto entry = map.find(command);
 			if (entry != map.end())
 			{
@@ -65,6 +84,40 @@ namespace command
 	int params::size() const
 	{
 		return get_cmd_args()->argc[this->nesting_];
+	}
+
+	params_sv::params_sv()
+		: nesting_(game::sv_cmd_args->nesting)
+	{
+		assert(this->nesting_ < game::CMD_MAX_NESTING);
+	}
+
+	int params_sv::size() const
+	{
+		return game::sv_cmd_args->argc[this->nesting_];
+	}
+
+	const char* params_sv::get(const int index) const
+	{
+		if (index >= this->size())
+		{
+			return "";
+		}
+
+		return game::sv_cmd_args->argv[this->nesting_][index];
+	}
+
+	std::string params_sv::join(const int index) const
+	{
+		std::string result;
+
+		for (auto i = index; i < this->size(); ++i)
+		{
+			if (i > index) result.append(" ");
+			result.append(this->get(i));
+		}
+
+		return result;
 	}
 
 	const char* params::get(const int index) const
@@ -117,6 +170,27 @@ namespace command
 
 		game::Cmd_AddCommandInternal(cmd_string, execute_custom_command, cmd_function);
 		cmd_function->autoComplete = 1;
+	}
+
+	void add_sv(const std::string& command, sv_command_param_function function)
+	{
+		auto lower_command = utils::string::to_lower(command);
+
+		auto& map = get_sv_command_map();
+		const auto is_registered = map.contains(lower_command);
+
+		map[std::move(lower_command)] = std::move(function);
+
+		if (is_registered)
+		{
+			return;
+		}
+
+		auto& allocator = *utils::memory::get_allocator();
+		const auto* cmd_string = allocator.duplicate_string(command);
+
+		game::Cmd_AddCommandInternal(cmd_string, game::Cbuf_AddServerText_f, allocator.allocate<game::cmd_function_s>());
+		game::Cmd_AddServerCommandInternal(cmd_string, execute_custom_sv_command, allocator.allocate<game::cmd_function_s>());
 	}
 }
 

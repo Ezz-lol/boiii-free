@@ -13,6 +13,10 @@ namespace game
 	                 int numPrivateSlots, const char* mapname, const char* gametype)> CL_ConnectFromLobby
 		{0x14134C570};
 
+	// Game
+	WEAK symbol<void(gentity_s* ent, gentity_s* target, int mode, const char* chatText)> G_Say{0x0, 0x140299170};
+	WEAK symbol<void(const char* fmt, ...)> G_LogPrintf{0x0, 0x1402A7BB0};
+
 	// Com
 	WEAK symbol<void(int channel, unsigned int label, const char* fmt, ...)> Com_Printf{0x1421499C0, 0x140505630};
 	WEAK symbol<void(const char* file, int line, int code, const char* fmt, ...)> Com_Error_{0x1420F8BD0};
@@ -22,8 +26,13 @@ namespace game
 	};
 
 	WEAK symbol<void(uint32_t localClientNum, const char* text)> Cbuf_AddText{0x1420EC8B0, 0x1404F75B0};
+	WEAK symbol<void(int localClientNum, ControllerIndex_t controllerIndex, const char* buffer)> Cbuf_ExecuteBuffer{0x0, 0x1404F78D0};
 	WEAK symbol<void(const char* cmdName, xcommand_t function, cmd_function_s* allocedCmd)> Cmd_AddCommandInternal{
 		0x1420ED530, 0x1404F8210
+	};
+	WEAK symbol<void()> Cbuf_AddServerText_f{0x0, 0x1407DB4C0};
+	WEAK symbol<void(const char* cmdName, xcommand_t function, cmd_function_s* allocedCmd)> Cmd_AddServerCommandInternal{
+		0x0, 0x1404F8280
 	};
 	WEAK symbol<void(uint32_t localClientNum, ControllerIndex_t controllerIndex, const char* text,
 	                 bool fromRemoteConsol)> Cmd_ExecuteSingleCommand{
@@ -64,6 +73,12 @@ namespace game
 		0x1422C7F60
 	};
 
+	// Scr
+	WEAK symbol<void(scriptInstance_t inst, const char* value)> Scr_AddString{0x0, 0x14016F320};
+	WEAK symbol<const char* (scriptInstance_t inst, unsigned int index)> Scr_GetString{0x0, 0x140171490};
+	WEAK symbol<void(gentity_s* ent, ScrVarCanonicalName_t stringValue, unsigned int paramcount)> Scr_Notify_Canon{0x0, 0x1402F5FF0};
+	WEAK symbol<unsigned int(scriptInstance_t inst)> Scr_GetNumParam{0x0, 0x140171320};
+
 	WEAK symbol<void(uint64_t id, bool cancelAll)> Cinematic_StopPlayback{0x1412BEA70};
 
 	// Rendering
@@ -72,13 +87,18 @@ namespace game
 		0x141CD98D0
 	};
 
-	// Rendering
+	// SV
 	WEAK symbol<void*()> SV_AddTestClient{0x1422499A0, 0x14052E3E0};
+	WEAK symbol<void(client_s* cl_0, svscmd_type type, const char* fmt, ...)> SV_SendServerCommand{0x0, 0x140537F10};
 
 	// Variables
 
 	WEAK symbol<cmd_function_s> cmd_functions{0x15689FF58, 0x14946F860};
-	WEAK symbol<CmdArgs> sv_cmd_args{0x15689CE30};
+	WEAK symbol<CmdArgs> sv_cmd_args{0x0, 0x15689CE30};
+
+	WEAK symbol<gentity_s> g_entities{0x0, 0x1471031B0};
+
+	WEAK symbol<int> level_time{0x0, 0x1474FDC94};
 
 	WEAK symbol<SOCKET> ip_socket{0x157E77818, 0x14A640988};
 
@@ -101,4 +121,9 @@ namespace game
 
 	// Re-implementations
 	eModes Com_SessionMode_GetMode();
+
+	bool I_islower(int c);
+	bool I_isupper(int c);
+
+	unsigned int Scr_CanonHash(const char* str);
 }
