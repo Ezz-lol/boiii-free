@@ -40,7 +40,7 @@ namespace chat
 			game::Scr_AddString(game::SCRIPTINSTANCE_SERVER, p.data() + 2);
 			game::Scr_Notify_Canon(ent, game::Scr_CanonHash(params[0]), 1);
 
-			utils::hook::invoke<void>(0x140298E70, ent, p.data());
+			utils::hook::invoke<void>(0x140298E70_g, ent, p.data());
 		}
 	}
 
