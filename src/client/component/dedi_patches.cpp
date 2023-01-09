@@ -15,15 +15,12 @@ namespace patches
 		}
 	}
 
-	struct component final : generic_component
+	struct component final : server_component
 	{
 		void post_unpack() override
 		{
-			if (game::is_server())
-			{
-				// Fix infinite loop
-				utils::hook::jump(0x1402E86B0_g, scr_are_textures_loaded_stub);
-			}
+			// Fix infinite loop
+			utils::hook::jump(0x1402E86B0_g, scr_are_textures_loaded_stub);
 		}
 	};
 }
