@@ -123,9 +123,9 @@ namespace network
 			return length + (socket_byte_missing() ? 1 : 0);
 		}
 
-		void con_restricted_execute_buf_stub(int local_clientNum, game::ControllerIndex_t controller_index, const char* buffer)
+		void con_restricted_execute_buf_stub(int local_client_num, game::ControllerIndex_t controller_index, const char* buffer)
 		{
-			game::Cbuf_ExecuteBuffer(local_clientNum, controller_index, buffer);
+			game::Cbuf_ExecuteBuffer(local_client_num, controller_index, buffer);
 		}
 	}
 
@@ -233,8 +233,11 @@ namespace network
 
 			utils::hook::set<uint8_t>(game::select(0x14224E90D, 0x1405315F9), 0xEB); // don't kick clients without dw handle
 
-			// Remove restrictions for rcon commands
-			utils::hook::call(0x140538D5C_g, con_restricted_execute_buf_stub); // SVC_RemoteCommand
+			if (game::is_server())
+			{
+				// Remove restrictions for rcon commands
+				utils::hook::call(0x140538D5C_g, con_restricted_execute_buf_stub); // SVC_RemoteCommand
+			}
 
 			// TODO: Fix that
 			scheduler::once(create_ip_socket, scheduler::main);
