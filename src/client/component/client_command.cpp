@@ -34,7 +34,7 @@ namespace client_command
 				return;
 			}
 
-			utils::hook::invoke<void>(0x140295C40, client_num);
+			utils::hook::invoke<void>(0x140295C40_g, client_num);
 		}
 	}
 
