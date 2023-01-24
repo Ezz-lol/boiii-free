@@ -31,7 +31,7 @@ namespace party
 			return server_queries;
 		}
 
-		void stop_zombies_intro_when_needed()
+		void stop_zombies_intro_if_needed()
 		{
 			if (game::Com_SessionMode_GetMode() != game::MODE_ZOMBIES)
 			{
@@ -58,7 +58,7 @@ namespace party
 			game::XSESSION_INFO info{};
 			game::CL_ConnectFromLobby(0, &info, &addr, 1, 0, mapname.data(), gamemode.data());
 
-			stop_zombies_intro_when_needed();
+			stop_zombies_intro_if_needed();
 		}
 
 		void launch_mode(const game::eModes mode)
