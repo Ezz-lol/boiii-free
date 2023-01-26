@@ -264,6 +264,11 @@ namespace console
 					}
 				}
 			});
+
+			while (!started)
+			{
+				std::this_thread::sleep_for(10ms);
+			}
 		}
 
 		void pre_destroy() override
