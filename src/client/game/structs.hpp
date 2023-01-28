@@ -4,6 +4,11 @@
 namespace game
 {
 #endif
+	enum XAssetType
+	{
+		ASSET_TYPE_LEADERBOARD = 0x32,
+		ASSET_TYPE_DDL = 0x33,
+	};
 
 	enum ControllerIndex_t
 	{
@@ -911,6 +916,116 @@ namespace game
 	};
 
 	static_assert(sizeof(gentity_s) == 0x4F8);
+
+	union XAssetHeader
+	{
+		/*PhysPreset* physPreset;
+		PhysConstraints* physConstraints;
+		DestructibleDef* destructibleDef;
+		XAnimParts* parts;
+		XModel* model;
+		XModelMesh* modelMesh;
+		Material* material;
+		MaterialComputeShaderSet* computeShaderSet;
+		MaterialTechniqueSet* techniqueSet;
+		GfxImage* image;
+		SndBank* sound;
+		SndPatch* soundPatch;
+		clipMap_t* clipMap;
+		ComWorld* comWorld;
+		GameWorld* gameWorld;
+		MapEnts* mapEnts;
+		GfxWorld* gfxWorld;
+		GfxLightDef* lightDef;
+		GfxLensFlareDef* lensFlareDef;
+		Font* font;
+		FontIcon* fontIcon;
+		LocalizeEntry* localize;
+		WeaponVariantDef* weapon;
+		WeaponAttachment* attachment;
+		WeaponAttachmentUnique* attachmentUnique;
+		WeaponCamo* weaponCamo;
+		CustomizationTable* customizationTable;
+		CustomizationColorInfo* customizationColorInfo;
+		SndDriverGlobals* sndDriverGlobals;
+		FxEffectDefHandleRaw fx;
+		TagFxSet* tagFX;
+		FxLensFlareDefPtr newLensFlareDef;
+		FxImpactTable* impactFx;
+		SoundsImpactTable* impactSounds;
+		CgMediaTable* cgMedia;
+		PlayerSoundsTable* playerSounds;
+		PlayerFXTable* playerFX;
+		SharedWeaponSounds* sharedWeaponSounds;
+		RawFile* rawfile;
+		StringTable* stringTable;
+		StructuredTable* structuredTable;
+		LeaderboardDef* leaderboardDef;
+		DDLRoot* ddlRoot;
+		Glasses* glasses;
+		TextureList* textureList;
+		ScriptParseTree* scriptParseTree;
+		KeyValuePairs* keyValuePairs;
+		VehicleDef* vehicleDef;
+		AddonMapEnts* addonMapEnts;
+		TracerDef* tracerDef;
+		Qdb* qdb;
+		Slug* slug;
+		SurfaceFXTableDef* surfaceFXTableDef;
+		SurfaceSoundDef* surfaceSoundDef;
+		FootstepTableDef* footstepTableDef;
+		EntitySoundImpacts* entitySoundImpacts;
+		EntityFxImpacts* entityFxImpacts;
+		ZBarrierDef* zbarrierDef;
+		VehicleFxDef* vehicleFxDef;
+		VehicleSoundDef* vehicleSoundDef;
+		ArchiveTypeInfoArray* typeInfo;
+		ScriptBundle* scriptBundle;
+		ScriptBundleList* scriptBundleList;
+		RumbleInfo* rumble;
+		BulletPenetrationTable* bulletPenetration;
+		LocDmgTable* locDmgTable;
+		AimTable* aimTable;
+		XModelAlias* xModelAlias;
+		Character* character;
+		AIType* aiType;
+		PlayerCharacter* player_character;
+		AnimSelectorTableSet* animSelectorTableSet;
+		AnimMappingTable* animMappingTable;
+		AnimStateMachine* animStateMachine;
+		BehaviorTree* behaviorTree;
+		BehaviorStateMachine* behaviorStateMachine;
+		TTFDef* ttfDef;
+		GfxSiegeAnim* sanim;
+		GfxLightDescription* lightDescription;
+		ShellshockParams* shellshock;
+		XCam* xcam;
+		BGCacheInfo* bgCache;
+		TextureCombo* textureCombo;
+		FlameTable* flameTable;
+		Bitfield* bitfield;
+		AttachmentCosmeticVariant* attachmentCosmeticVariant;
+		MapTable* mapTable;
+		Medal* medal;
+		MedalTable* medalTable;
+		Objective* objective;
+		ObjectiveList* objectiveList;
+		NavMeshData* navMesh;
+		NavVolumeData* navVolume;
+		BinaryHTML* binaryHTML;
+		LaserDef* laserDef;
+		BeamDef* beamDef;
+		StreamerHint* streamerHint;*/
+		void* data;
+	};
+
+	struct XAsset
+	{
+		XAssetType type;
+		XAssetHeader header;
+	};
+
+	typedef void XAssetEnum(XAssetHeader, void*);
 
 #ifdef __cplusplus
 }

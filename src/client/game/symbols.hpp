@@ -26,12 +26,15 @@ namespace game
 	};
 
 	WEAK symbol<void(uint32_t localClientNum, const char* text)> Cbuf_AddText{0x1420EC8B0, 0x1404F75B0};
-	WEAK symbol<void(int localClientNum, ControllerIndex_t controllerIndex, const char* buffer)> Cbuf_ExecuteBuffer{0x0, 0x1404F78D0};
+	WEAK symbol<void(int localClientNum, ControllerIndex_t controllerIndex, const char* buffer)> Cbuf_ExecuteBuffer{
+		0x0, 0x1404F78D0
+	};
 	WEAK symbol<void(const char* cmdName, xcommand_t function, cmd_function_s* allocedCmd)> Cmd_AddCommandInternal{
 		0x1420ED530, 0x1404F8210
 	};
 	WEAK symbol<void()> Cbuf_AddServerText_f{0x0, 0x1407DB4C0};
-	WEAK symbol<void(const char* cmdName, xcommand_t function, cmd_function_s* allocedCmd)> Cmd_AddServerCommandInternal{
+	WEAK symbol<void(const char* cmdName, xcommand_t function, cmd_function_s* allocedCmd)> Cmd_AddServerCommandInternal
+	{
 		0x0, 0x1404F8280
 	};
 	WEAK symbol<void(uint32_t localClientNum, ControllerIndex_t controllerIndex, const char* text,
@@ -44,6 +47,13 @@ namespace game
 	WEAK symbol<void(XZoneInfo* zoneInfo, uint32_t zoneCount, bool sync, bool suppressSync)> DB_LoadXAssets{
 		0x1414236A0
 	};
+	WEAK symbol<void(XAssetType type, XAssetEnum* func, void* inData, bool includeOverride)> DB_EnumXAssets{
+		0x141420970, 0x1401D5A50
+	};
+	WEAK symbol<XAssetHeader(XAssetType type, const char* name, bool errorIfMissing, int waitTime)> DB_FindXAssetHeader{
+		0x141420ED0, 0x1401D5FB0
+	};
+	WEAK symbol<const char*(const XAsset* asset)> DB_GetXAssetName{0x1413E9DA0, 0x14019F080};
 
 	// Live
 	WEAK symbol<bool(uint64_t, int*, bool)> Live_GetConnectivityInformation{0x141E0C410};
@@ -76,8 +86,10 @@ namespace game
 	// Scr
 	WEAK symbol<void(scriptInstance_t inst, int value)> Scr_AddInt{0x0, 0x14016F160};
 	WEAK symbol<void(scriptInstance_t inst, const char* value)> Scr_AddString{0x0, 0x14016F320};
-	WEAK symbol<const char* (scriptInstance_t inst, unsigned int index)> Scr_GetString{0x0, 0x140171490};
-	WEAK symbol<void(gentity_s* ent, ScrVarCanonicalName_t stringValue, unsigned int paramcount)> Scr_Notify_Canon{0x0, 0x1402F5FF0};
+	WEAK symbol<const char*(scriptInstance_t inst, unsigned int index)> Scr_GetString{0x0, 0x140171490};
+	WEAK symbol<void(gentity_s* ent, ScrVarCanonicalName_t stringValue, unsigned int paramcount)> Scr_Notify_Canon{
+		0x0, 0x1402F5FF0
+	};
 	WEAK symbol<unsigned int(scriptInstance_t inst)> Scr_GetNumParam{0x0, 0x140171320};
 
 	WEAK symbol<void(uint64_t id, bool cancelAll)> Cinematic_StopPlayback{0x1412BEA70};
