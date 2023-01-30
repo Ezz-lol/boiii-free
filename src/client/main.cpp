@@ -170,6 +170,19 @@ namespace
 		return true;
 	}
 
+	void enable_dpi_awareness()
+	{
+		const utils::nt::library user32{ "user32.dll" };
+		const auto set_dpi = user32
+			? user32.get_proc<BOOL(WINAPI*)(DPI_AWARENESS_CONTEXT)>(
+				"SetProcessDpiAwarenessContext")
+			: nullptr;
+		if (set_dpi)
+		{
+			set_dpi(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
+		}
+	}
+
 	int main()
 	{
 		if (handle_process_runner())
@@ -179,6 +192,8 @@ namespace
 
 		FARPROC entry_point{};
 		srand(uint32_t(time(nullptr)) ^ ~(GetTickCount() * GetCurrentProcessId()));
+
+		enable_dpi_awareness();
 
 		{
 			auto premature_shutdown = true;

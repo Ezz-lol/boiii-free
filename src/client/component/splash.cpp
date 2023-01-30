@@ -25,19 +25,6 @@ namespace splash
 			return utils::image::create_bitmap(img);
 		}
 
-		void enable_dpi_awareness()
-		{
-			const utils::nt::library user32{"user32.dll"};
-			const auto set_dpi = user32
-				                     ? user32.get_proc<BOOL(WINAPI*)(DPI_AWARENESS_CONTEXT)>(
-					                     "SetProcessDpiAwarenessContext")
-				                     : nullptr;
-			if (set_dpi)
-			{
-				set_dpi(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
-			}
-		}
-
 		void destroy_window()
 		{
 			if (window && IsWindow(window))
@@ -169,8 +156,6 @@ namespace splash
 	{
 		component()
 		{
-			enable_dpi_awareness();
-
 			image = load_splash_image();
 			window_thread = std::thread([this]
 			{
