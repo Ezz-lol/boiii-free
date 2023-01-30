@@ -13,3 +13,4 @@
 #define DW_QOSCONFIG          307
 
 #define TLS_DLL               308
+#define MENU_MAIN             309

@@ -12,6 +12,7 @@
 #include <steam/steam.hpp>
 
 #include "game/game.hpp"
+#include "launcher/launcher.hpp"
 
 namespace
 {
@@ -172,11 +173,11 @@ namespace
 
 	void enable_dpi_awareness()
 	{
-		const utils::nt::library user32{ "user32.dll" };
+		const utils::nt::library user32{"user32.dll"};
 		const auto set_dpi = user32
-			? user32.get_proc<BOOL(WINAPI*)(DPI_AWARENESS_CONTEXT)>(
-				"SetProcessDpiAwarenessContext")
-			: nullptr;
+			                     ? user32.get_proc<BOOL(WINAPI*)(DPI_AWARENESS_CONTEXT)>(
+				                     "SetProcessDpiAwarenessContext")
+			                     : nullptr;
 		if (set_dpi)
 		{
 			set_dpi(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
@@ -208,6 +209,11 @@ namespace
 			try
 			{
 				remove_crash_file();
+
+				if (!launcher::run())
+				{
+					return 0;
+				}
 
 				const auto client_binary = "BlackOps3.exe"s;
 				const auto server_binary = "BlackOps3_UnrankedDedicatedServer.exe"s;

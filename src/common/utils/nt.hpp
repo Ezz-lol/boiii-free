@@ -54,10 +54,16 @@ namespace utils::nt
 		[[nodiscard]] HMODULE get_handle() const;
 
 		template <typename T>
-		[[nodiscard]] T get_proc(const std::string& process) const
+		[[nodiscard]] T get_proc(const char* process) const
 		{
 			if (!this->is_valid()) T{};
-			return reinterpret_cast<T>(GetProcAddress(this->module_, process.data()));
+			return reinterpret_cast<T>(GetProcAddress(this->module_, process));
+		}
+
+		template <typename T>
+		[[nodiscard]] T get_proc(const std::string& process) const
+		{
+			return get_proc<T>(process.data());
 		}
 
 		template <typename T>
@@ -97,7 +103,8 @@ namespace utils::nt
 		[[nodiscard]] PIMAGE_DOS_HEADER get_dos_header() const;
 		[[nodiscard]] PIMAGE_OPTIONAL_HEADER get_optional_header() const;
 
-		[[nodiscard]] void** get_iat_entry(const std::string& module_name, const std::string& proc_name) const;
+		[[nodiscard]] void** get_iat_entry(const std::string& module_name, std::string proc_name) const;
+		[[nodiscard]] void** get_iat_entry(const std::string& module_name, const char* proc_name) const;
 
 	private:
 		HMODULE module_;

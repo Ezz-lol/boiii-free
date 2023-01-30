@@ -72,6 +72,11 @@ namespace utils::nt
 		return &this->get_nt_headers()->OptionalHeader;
 	}
 
+	void** library::get_iat_entry(const std::string& module_name, std::string proc_name) const
+	{
+		return this->get_iat_entry(module_name, proc_name.data());
+	}
+
 	std::vector<PIMAGE_SECTION_HEADER> library::get_section_headers() const
 	{
 		std::vector<PIMAGE_SECTION_HEADER> headers;
@@ -162,7 +167,7 @@ namespace utils::nt
 		return this->module_;
 	}
 
-	void** library::get_iat_entry(const std::string& module_name, const std::string& proc_name) const
+	void** library::get_iat_entry(const std::string& module_name, const char* proc_name) const
 	{
 		if (!this->is_valid()) return nullptr;
 

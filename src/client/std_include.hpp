@@ -47,6 +47,7 @@
 #include <Psapi.h>
 #include <urlmon.h>
 #include <atlbase.h>
+#include <atlsafe.h>
 #include <iphlpapi.h>
 #include <wincrypt.h>
 
