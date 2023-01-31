@@ -36,6 +36,7 @@ window::window(const std::string& title, const int width, const int height,
 
 	SendMessageA(this->handle_, WM_DPICHANGED, 0, 0);
 	ShowWindow(this->handle_, SW_SHOW);
+	SetForegroundWindow(this->handle_);
 }
 
 window::~window()

@@ -130,6 +130,8 @@ namespace updater
 
 	void update()
 	{
+		cleanup_update();
+
 #if defined(NDEBUG) && defined(CI)
 		try
 		{
@@ -142,8 +144,6 @@ namespace updater
 		catch (...)
 		{
 		}
-#else
-		requires_update();
 #endif
 	}
 
@@ -152,8 +152,6 @@ namespace updater
 	public:
 		component()
 		{
-			cleanup_update();
-
 			this->update_thread_ = std::thread([this]
 			{
 				update();
