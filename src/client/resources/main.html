@@ -369,19 +369,11 @@
         <nav class="sticky">
           <ul>
             <li>
-              <a class="nav-link _home" onClick="showMenu('home')"> Home </a>
-            </li>
-            <li style="display: none">
-              <a class="nav-link _settings" onClick="showMenu('settings')">
-                Settings
-              </a>
+              <a class="nav-link _play" onClick="showMenu('play')">Play</a>
             </li>
             <li>
-              <a
-                onClick="window.external.openUrl('https://github.com/momo5502/boiii');"
-                class="nav-link"
-              >
-                GitHub
+              <a class="nav-link _sponsors" onClick="showMenu('sponsors')">
+                Sponsors
               </a>
             </li>
             <li>
@@ -396,7 +388,7 @@
         </nav>
 
         <div class="menus">
-          <div class="_home">
+          <div class="_play">
             <div class="container full full-row">
               <div class="card" onClick="window.external.runGame()">
                 <div class="card-container">
@@ -416,9 +408,9 @@
             </div>
           </div>
 
-          <div class="_settings">
+          <div class="_sponsors">
             <div class="container full full-row">
-              <h2>No settings yet!</h2>
+              <h2>Coming soon&trade;!</h2>
             </div>
           </div>
         </div>
@@ -456,7 +448,7 @@
       }
 
       window.onload = function () {
-        showMenu("home");
+        showMenu("play");
       };
     </script>
   </body>
