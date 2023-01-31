@@ -5,11 +5,14 @@
 #include "html/html_window.hpp"
 
 #include "resource.hpp"
+#include "component/updater.hpp"
 
 namespace launcher
 {
 	bool run()
 	{
+		updater::update();
+
 		bool run_game = false;
 		html_window window("BOIII", 750, 430);
 

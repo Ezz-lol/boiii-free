@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "splash.hpp"
+#include "updater.hpp"
 
 #include <version.hpp>
 
@@ -127,6 +128,25 @@ namespace updater
 		}
 	}
 
+	void update()
+	{
+#if defined(NDEBUG) && defined(CI)
+		try
+		{
+			if (requires_update())
+			{
+				perform_update(splash::get_window());
+				activate_update();
+			}
+		}
+		catch (...)
+		{
+		}
+#else
+		requires_update();
+#endif
+	}
+
 	class component final : public generic_component
 	{
 	public:
@@ -136,7 +156,7 @@ namespace updater
 
 			this->update_thread_ = std::thread([this]
 			{
-				this->update();
+				update();
 			});
 		}
 
@@ -163,21 +183,6 @@ namespace updater
 			if (this->update_thread_.joinable())
 			{
 				this->update_thread_.join();
-			}
-		}
-
-		void update()
-		{
-			try
-			{
-				if (requires_update())
-				{
-					perform_update(splash::get_window());
-					activate_update();
-				}
-			}
-			catch (...)
-			{
 			}
 		}
 	};
