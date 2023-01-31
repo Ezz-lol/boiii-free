@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 #include "html_frame.hpp"
 #include "utils/nt.hpp"
+#include "utils/io.hpp"
 #include "utils/hook.hpp"
 
 
@@ -22,7 +23,57 @@ namespace
 		return res;
 	}
 
-	void setup_ie_hook()
+	void patch_cached_browser_emulator(const utils::nt::library& urlmon)
+	{
+		std::string data{};
+		if(!utils::io::read_file(urlmon.get_path().generic_string(), &data))
+		{
+			return;
+		}
+
+		const utils::nt::library file_lib(reinterpret_cast<HMODULE>(data.data()));
+
+		auto translate_file_offset_to_rva = [&](const size_t file_offset) -> size_t
+		{
+			const auto sections = file_lib.get_section_headers();
+			for(const auto* section :  sections)
+			{
+				if(section->PointerToRawData <= file_offset && section->PointerToRawData + section->SizeOfRawData > file_offset)
+				{
+					const auto section_va = file_offset - section->PointerToRawData;
+					return section_va + section->VirtualAddress;
+				}
+			}
+
+			return 0;
+		};
+
+		const auto guid_pos = data.find(std::string(reinterpret_cast<const char*>(&browser_emulation_guid), sizeof(browser_emulation_guid)));
+		if(guid_pos == std::string::npos)
+		{
+			return;
+		}
+
+		const auto guid_rva = translate_file_offset_to_rva(guid_pos);
+		const auto guid_va = reinterpret_cast<GUID*>(urlmon.get_ptr() + guid_rva);
+
+		if (!IsEqualGUID(*guid_va, browser_emulation_guid))
+		{
+			return;
+		}
+
+		const size_t unrelocated_guid_va = file_lib.get_optional_header()->ImageBase + guid_rva;
+		const auto guid_ptr_pos = data.find(std::string(reinterpret_cast<const char*>(&unrelocated_guid_va), sizeof(unrelocated_guid_va)));
+		if (guid_ptr_pos == std::string::npos)
+		{
+			return;
+		}
+
+		const auto guid_ptr_rva = translate_file_offset_to_rva(guid_ptr_pos);
+		*reinterpret_cast<GUID**>(urlmon.get_ptr() + guid_ptr_rva) = guid_va;
+	}
+
+	void setup_ie_hooks()
 	{
 		static const auto _ = []
 		{
@@ -31,6 +82,8 @@ namespace
 
 			original_func = *target;
 			utils::hook::set(target, co_internet_feature_value_internal_stub);
+
+			patch_cached_browser_emulator(urlmon);
 
 			return 0;
 		}();
@@ -60,7 +113,7 @@ namespace
 
 html_frame::html_frame()
 {
-	setup_ie_hook();
+	setup_ie_hooks();
 	setup_ole();
 }
 
