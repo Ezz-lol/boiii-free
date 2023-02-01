@@ -238,21 +238,25 @@ namespace
 			{
 				remove_crash_file();
 
-				if (!launcher::run())
+				const auto client_binary = "BlackOps3.exe"s;
+				const auto server_binary = "BlackOps3_UnrankedDedicatedServer.exe"s;
+
+				const auto has_client = utils::io::file_exists(client_binary);
+				const auto has_server = utils::io::file_exists(server_binary);
+
+				const auto is_server = utils::flags::has_flag("dedicated") || (!has_client && has_server);
+
+				if (!is_server && !launcher::run())
 				{
 					return 0;
 				}
 
-				const auto client_binary = "BlackOps3.exe"s;
-				const auto server_binary = "BlackOps3_UnrankedDedicatedServer.exe"s;
-				const auto has_server = !utils::io::file_exists(client_binary) || utils::flags::has_flag("dedicated");
-
-				if (!component_loader::activate(has_server))
+				if (!component_loader::activate(is_server))
 				{
 					return 1;
 				}
 
-				entry_point = load_process(has_server ? server_binary : client_binary);
+				entry_point = load_process(is_server ? server_binary : client_binary);
 				if (!entry_point)
 				{
 					throw std::runtime_error("Unable to load binary into memory");
