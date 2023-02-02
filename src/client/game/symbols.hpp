@@ -28,7 +28,7 @@ namespace game
 
 	WEAK symbol<void(uint32_t localClientNum, const char* text)> Cbuf_AddText{0x1420EC8B0, 0x1404F75B0};
 	WEAK symbol<void(int localClientNum, ControllerIndex_t controllerIndex, const char* buffer)> Cbuf_ExecuteBuffer{
-		0x0, 0x1404F78D0
+		0x14133BE10, 0x1404F78D0
 	};
 	WEAK symbol<void(const char* cmdName, xcommand_t function, cmd_function_s* allocedCmd)> Cmd_AddCommandInternal{
 		0x1420ED530, 0x1404F8210
@@ -43,7 +43,6 @@ namespace game
 		0x1420EDC20
 	};
 	WEAK symbol<void(char* text, int maxSize)> Con_GetTextCopy{0x14133A7D0, 0x140182C40};
-	WEAK symbol<void(uint32_t localClientNum, ControllerIndex_t controllerIndex, const char* buffer)> Cbuf_ExecuteBuffer{0x14133BE10};
 
 	// DB
 	WEAK symbol<void(XZoneInfo* zoneInfo, uint32_t zoneCount, bool sync, bool suppressSync)> DB_LoadXAssets{
@@ -76,7 +75,7 @@ namespace game
 	WEAK symbol<TLSData*()> Sys_IsDatabaseReady{0x1421844C0};
 
 	// Dvar
-	WEAK symbol<const dvar_t*(const char* dvarName)> Dvar_FindVar{0x1422BD730, 0x140575540};
+	WEAK symbol<dvar_t*(const char* dvarName)> Dvar_FindVar{0x1422BD730, 0x140575540};
 	WEAK symbol<unsigned int(const char* str)> Dvar_GenerateHash{0x14133DBF0};
 	WEAK symbol<dvar_t*(unsigned int hash)> Dvar_FindMalleableVar{0x1422BD6A0};
 	WEAK symbol<const char*(const dvar_t* dvar)> Dvar_GetDebugName{0x1422BDCB0};

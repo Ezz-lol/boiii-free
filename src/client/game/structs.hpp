@@ -4,11 +4,6 @@
 namespace game
 {
 #endif
-	enum XAssetType
-	{
-		ASSET_TYPE_LEADERBOARD = 0x32,
-		ASSET_TYPE_DDL = 0x33,
-	};
 
 	enum ControllerIndex_t
 	{
@@ -537,12 +532,6 @@ namespace game
 		const char* name;
 		int len;
 		const char* buffer;
-	};
-
-	union XAssetHeader
-	{
-		void* data;
-		LuaFile* luaFile;
 	};
 
 	struct XZoneBuffer
@@ -1665,6 +1654,7 @@ namespace game
 		BeamDef* beamDef;
 		StreamerHint* streamerHint;*/
 		void* data;
+		LuaFile* luaFile;
 	};
 
 	struct XAsset
