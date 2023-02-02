@@ -31,6 +31,7 @@ namespace game
 		0x1420EDC20
 	};
 	WEAK symbol<void(char* text, int maxSize)> Con_GetTextCopy{0x14133A7D0};
+	WEAK symbol<void(uint32_t localClientNum, ControllerIndex_t controllerIndex, const char* buffer)> Cbuf_ExecuteBuffer{0x14133BE10};
 
 	// DB
 	WEAK symbol<void(XZoneInfo* zoneInfo, uint32_t zoneCount, bool sync, bool suppressSync)> DB_LoadXAssets{
@@ -59,10 +60,18 @@ namespace game
 	WEAK symbol<unsigned int(const char* str)> Dvar_GenerateHash{0x14133DBF0};
 	WEAK symbol<dvar_t*(unsigned int hash)> Dvar_FindMalleableVar{0x1422BD6A0};
 	WEAK symbol<const char*(const dvar_t* dvar)> Dvar_GetDebugName{0x1422BDCB0};
+	WEAK symbol<const char*(const dvar_t* dvar)> Dvar_DisplayableValue{0x1422BCAE0};
 	WEAK symbol<const char*(const dvar_t* dvar)> Dvar_GetString{0x1422BFFF0};
+	WEAK symbol<bool(const dvar_t* dvar)> Dvar_GetBool{ 0x1422BD930 };
+	WEAK symbol<dvar_t*(dvarStrHash_t hash, const char* dvarName, bool value, dvarFlags_e flags, const char* description)> Dvar_RegisterBool{
+		0x1422D1360
+	};
+	WEAK symbol<void (void (*callback)(const dvar_t*, void*), void* userData)> Dvar_ForEach{ 0x1422BD760 };
 	WEAK symbol<void(const char* dvarName, const char* string, bool createIfMissing)> Dvar_SetFromStringByName{
 		0x1422C7F60
 	};
+	WEAK symbol<char> s_dvarPool{ 0x157AC8220 };
+	WEAK symbol<int> g_dvarCount{ 0x157AC81CC };
 
 	// Rendering
 	WEAK symbol<void(const char*, int, const void*, float, float, float, float, float, const float*, int)>

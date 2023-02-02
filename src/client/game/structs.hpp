@@ -661,7 +661,6 @@ namespace game
 		vec4_t vector;
 		const char* string;
 		byte color[4];
-		const dvar_t* indirect[3];
 	};
 
 	struct $7034703ED3857507327AE195CCA24A71
