@@ -222,7 +222,14 @@ namespace ui_scripting
 			ui_cod_init_hook.invoke(frontend);
 
 			if (game::Com_IsRunningUILevel())
+			{
+				// Fetch the names of the local files so file overrides are already handled
+				globals = {};
+				load_local_script_files(game::get_host_library().get_folder().append("/data/ui_scripts/").string());
+				load_local_script_files("boiii/ui_scripts/");
+				load_local_script_files("data/ui_scripts/");
 				return;
+			}
 			const auto _0 = utils::finally(&try_start);
 		}
 
