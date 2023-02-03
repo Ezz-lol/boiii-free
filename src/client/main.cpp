@@ -262,7 +262,7 @@ namespace
 					throw std::runtime_error("Unable to load binary into memory");
 				}
 
-				if (has_server != game::is_server())
+				if (is_server != game::is_server())
 				{
 					throw std::runtime_error("Bad binary loaded into memory");
 				}
