@@ -15,6 +15,7 @@ namespace party
 {
 	namespace
 	{
+		std::atomic_bool is_connecting_to_dedi{ false };
 		game::netadr_t connect_host{{}, {}, game::NA_BAD, {}};
 
 		struct server_query
@@ -159,6 +160,8 @@ namespace party
 				return;
 			}
 
+			is_connecting_to_dedi = info.get("dedicated") == "1";
+
 			const auto gamename = info.get("gamename");
 			if (gamename != "T7"s)
 			{
@@ -226,11 +229,27 @@ namespace party
 		network::send(host, "getInfo", challenge);
 	}
 
+	int should_transfer_stub(uint8_t* storage_file_info)
+	{
+		auto should_transfer = game::ShouldTransfer(storage_file_info);
+
+		const auto offset = storage_file_info - reinterpret_cast<uint8_t*>(0x14343CDF0_g);
+		const auto index = offset / 120;
+
+		if (is_connecting_to_dedi && index >= 12 && index <= 15)
+		{
+			should_transfer = !should_transfer;
+		}
+
+		return should_transfer;
+	}
+
 	struct component final : client_component
 	{
 		void post_unpack() override
 		{
 			utils::hook::jump(0x141EE6030_g, connect_stub);
+			utils::hook::call(0x1422781E3_g, should_transfer_stub);
 
 			network::on("infoResponse", [](const game::netadr_t& target, const network::data_view& data)
 			{
