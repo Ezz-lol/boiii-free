@@ -94,6 +94,8 @@ namespace game
 
 	WEAK symbol<void(uint64_t id, bool cancelAll)> Cinematic_StopPlayback{0x1412BEA70};
 
+	WEAK symbol<bool(void* storageFileInfo)> ShouldTransfer{0x142276E10};
+
 	// Rendering
 	WEAK symbol<void(const char*, int, const void*, float, float, float, float, float, const float*, int)>
 	R_AddCmdDrawText{
