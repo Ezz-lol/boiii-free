@@ -15,7 +15,7 @@ namespace party
 {
 	namespace
 	{
-		std::atomic_bool is_connecting_to_dedi{ false };
+		std::atomic_bool is_connecting_to_dedi{false};
 		game::netadr_t connect_host{{}, {}, game::NA_BAD, {}};
 
 		struct server_query
