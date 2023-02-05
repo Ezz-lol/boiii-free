@@ -1,5 +1,7 @@
 #pragma once
 
+#define PROTOCOL 1
+
 #ifdef __cplusplus
 namespace game
 {

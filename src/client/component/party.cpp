@@ -20,10 +20,11 @@ namespace party
 
 		struct server_query
 		{
-			game::netadr_t host;
-			std::string challenge;
-			query_callback callback;
-			std::chrono::high_resolution_clock::time_point query_time;
+			bool sent{false};
+			game::netadr_t host{};
+			std::string challenge{};
+			query_callback callback{};
+			std::chrono::high_resolution_clock::time_point query_time{};
 		};
 
 		utils::concurrency::container<std::vector<server_query>>& get_server_queries()
@@ -153,7 +154,7 @@ namespace party
 		}
 
 		void handle_connect_query_response(const bool success, const game::netadr_t& target,
-		                                   const utils::info_string& info)
+		                                   const utils::info_string& info, uint32_t ping)
 		{
 			if (!success)
 			{
@@ -209,24 +210,28 @@ namespace party
 			connect_host = target;
 			query_server(target, handle_connect_query_response);
 		}
+
+		void send_server_query(server_query& query)
+		{
+			query.sent = true;
+			query.query_time = std::chrono::high_resolution_clock::now();
+			query.challenge = utils::cryptography::random::get_challenge();
+
+			network::send(query.host, "getInfo", query.challenge);
+		}
 	}
 
 	void query_server(const game::netadr_t& host, query_callback callback)
 	{
-		const auto challenge = utils::cryptography::random::get_challenge();
-
 		server_query query{};
+		query.sent = false;
 		query.host = host;
-		query.query_time = std::chrono::high_resolution_clock::now();
 		query.callback = std::move(callback);
-		query.challenge = challenge;
 
 		get_server_queries().access([&](std::vector<server_query>& server_queries)
 		{
 			server_queries.emplace_back(std::move(query));
 		});
-
-		network::send(host, "getInfo", challenge);
 	}
 
 	int should_transfer_stub(uint8_t* storage_file_info)
@@ -274,7 +279,10 @@ namespace party
 
 				if (found_query)
 				{
-					query.callback(true, query.host, info);
+					const auto ping = std::chrono::high_resolution_clock::now() - query.query_time;
+					const auto ping_ms = std::chrono::duration_cast<std::chrono::milliseconds>(ping).count();
+
+					query.callback(true, query.host, info, static_cast<uint32_t>(ping_ms));
 				}
 			});
 
@@ -284,10 +292,23 @@ namespace party
 
 				get_server_queries().access([&](std::vector<server_query>& server_queries)
 				{
+					size_t sent_queries = 0;
+
 					const auto now = std::chrono::high_resolution_clock::now();
 					for (auto i = server_queries.begin(); i != server_queries.end();)
 					{
-						if ((now - i->query_time) < 10s)
+						if (!i->sent)
+						{
+							if (++sent_queries < 10)
+							{
+								send_server_query(*i);
+							}
+
+							++i;
+							continue;
+						}
+
+						if ((now - i->query_time) < 2s)
 						{
 							++i;
 							continue;
@@ -301,9 +322,17 @@ namespace party
 				const utils::info_string empty{};
 				for (const auto& query : removed_queries)
 				{
-					query.callback(false, query.host, empty);
+					query.callback(false, query.host, empty, 0);
 				}
-			}, scheduler::async, 1s);
+			}, scheduler::async, 200ms);
+		}
+
+		void pre_destroy() override
+		{
+			get_server_queries().access([](std::vector<server_query>& s)
+			{
+				s = {};
+			});
 		}
 	};
 }

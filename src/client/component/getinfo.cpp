@@ -61,7 +61,7 @@ namespace getinfo
 				//info.set("clients", utils::string::va("%i", get_client_count()));
 				//info.set("bots", utils::string::va("%i", get_bot_count()));
 				//info.set("sv_maxclients", utils::string::va("%i", *game::mp::svs_numclients));
-				info.set("protocol", utils::string::va("%i", 1/*PROTOCOL*/));
+				info.set("protocol", utils::string::va("%i", PROTOCOL));
 				info.set("playmode", utils::string::va("%i", game::Com_SessionMode_GetMode()));
 				info.set("gamemode", utils::string::va("%i", Com_SessionMode_GetGameMode()));
 				//info.set("sv_running", utils::string::va("%i", get_dvar_bool("sv_running")));
