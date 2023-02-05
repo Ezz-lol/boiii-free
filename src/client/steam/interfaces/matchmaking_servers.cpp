@@ -32,7 +32,7 @@ namespace steam
 			gameserveritem_t server{};
 			server.m_NetAdr.m_usConnectionPort = address.port;
 			server.m_NetAdr.m_usQueryPort = address.port;
-			server.m_NetAdr.m_unIP = address.addr;
+			server.m_NetAdr.m_unIP = ntohl(address.addr);
 			server.m_nPing = static_cast<int>(ping);
 			server.m_bHadSuccessfulResponse = success;
 			server.m_bDoNotRefresh = false;
@@ -174,7 +174,6 @@ namespace steam
 			{
 				ping_server(srv);
 			}
-
 		});
 
 		return reinterpret_cast<void*>(1);
