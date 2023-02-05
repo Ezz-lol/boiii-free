@@ -20,8 +20,8 @@ namespace dedicated
 		void post_unpack() override
 		{
 			// Ignore "bad stats"
-			utils::hook::set<uint8_t>(0x14052D523_g, 0xEB);
-			utils::hook::nop(0x14052D4E4_g, 2);
+			//utils::hook::set<uint8_t>(0x14052D523_g, 0xEB);
+			//utils::hook::nop(0x14052D4E4_g, 2);
 
 			// Fix tell command for IW4M
 			utils::hook::call(0x14052A8CF_g, sv_con_tell_f_stub);
