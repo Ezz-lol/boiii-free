@@ -92,6 +92,7 @@ namespace game
 	};
 	WEAK symbol<unsigned int(scriptInstance_t inst)> Scr_GetNumParam{0x0, 0x140171320};
 
+	WEAK symbol<void(const char* name, const char* key, unsigned int playbackFlags, float volume, void* callbackInfo, int id)> Cinematic_StartPlayback{0x1412BE3A0};
 	WEAK symbol<void(uint64_t id, bool cancelAll)> Cinematic_StopPlayback{0x1412BEA70};
 
 	WEAK symbol<bool(void* storageFileInfo)> ShouldTransfer{0x142276E10};
