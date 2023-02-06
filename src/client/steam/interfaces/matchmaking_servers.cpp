@@ -21,6 +21,8 @@ namespace steam
 			gameserveritem_t server_item{};
 		};
 
+		auto* const internet_request = reinterpret_cast<void*>(1);
+
 		using servers = std::vector<server>;
 
 		::utils::concurrency::container<servers> queried_servers{};
@@ -32,7 +34,7 @@ namespace steam
 			gameserveritem_t server{};
 			server.m_NetAdr.m_usConnectionPort = address.port;
 			server.m_NetAdr.m_usQueryPort = address.port;
-			server.m_NetAdr.m_unIP = address.addr;
+			server.m_NetAdr.m_unIP = ntohl(address.addr);
 			server.m_nPing = static_cast<int>(ping);
 			server.m_bHadSuccessfulResponse = success;
 			server.m_bDoNotRefresh = false;
@@ -111,16 +113,16 @@ namespace steam
 
 			if (success)
 			{
-				res->ServerResponded(reinterpret_cast<void*>(1), *index);
+				res->ServerResponded(internet_request, *index);
 			}
 			else
 			{
-				res->ServerFailedToRespond(reinterpret_cast<void*>(1), *index);
+				res->ServerFailedToRespond(internet_request, *index);
 			}
 
 			if (all_handled)
 			{
-				res->RefreshComplete(reinterpret_cast<void*>(1), eServerResponded);
+				res->RefreshComplete(internet_request, eServerResponded);
 			}
 		}
 
@@ -145,13 +147,13 @@ namespace steam
 
 			if (!success)
 			{
-				res->RefreshComplete(reinterpret_cast<void*>(1), eServerFailedToRespond);
+				res->RefreshComplete(internet_request, eServerFailedToRespond);
 				return;
 			}
 
 			if (s.empty())
 			{
-				res->RefreshComplete(reinterpret_cast<void*>(1), eNoServersListedOnMasterServer);
+				res->RefreshComplete(internet_request, eNoServersListedOnMasterServer);
 				return;
 			}
 
@@ -177,7 +179,7 @@ namespace steam
 
 		});
 
-		return reinterpret_cast<void*>(1);
+		return internet_request;
 	}
 
 	void* matchmaking_servers::RequestLANServerList(unsigned int iApp,
@@ -212,12 +214,15 @@ namespace steam
 
 	void matchmaking_servers::ReleaseRequest(void* hServerListRequest)
 	{
-		current_response = nullptr;
+		if (internet_request == hServerListRequest)
+		{
+			current_response = nullptr;
+		}
 	}
 
 	gameserveritem_t* matchmaking_servers::GetServerDetails(void* hRequest, int iServer)
 	{
-		if (reinterpret_cast<void*>(1) != hRequest)
+		if (internet_request != hRequest)
 		{
 			return nullptr;
 		}
@@ -250,7 +255,7 @@ namespace steam
 
 	int matchmaking_servers::GetServerCount(void* hRequest)
 	{
-		if (reinterpret_cast<void*>(1) != hRequest)
+		if (internet_request != hRequest)
 		{
 			return 0;
 		}
@@ -261,11 +266,31 @@ namespace steam
 		});
 	}
 
-	void matchmaking_servers::RefreshServer(void* hRequest, int iServer)
+	void matchmaking_servers::RefreshServer(void* hRequest, const int iServer)
 	{
+		if (internet_request != hRequest)
+		{
+			return;
+		}
+
+		std::optional<game::netadr_t> address{};
+		queried_servers.access([&](const servers& s)
+		{
+			if (iServer < 0 || static_cast<size_t>(iServer) >= s.size())
+			{
+				return;
+			}
+
+			address = s[iServer].address;
+		});
+
+		if (address)
+		{
+			ping_server(*address);
+		}
 	}
 
-	void* matchmaking_servers::PingServer(unsigned int unIP, unsigned short usPort,
+	void* matchmaking_servers::PingServer(const unsigned int unIP, const unsigned short usPort,
 	                                      matchmaking_ping_response* pRequestServersResponse)
 	{
 		auto response = pRequestServersResponse;
