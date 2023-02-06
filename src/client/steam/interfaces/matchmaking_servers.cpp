@@ -176,7 +176,6 @@ namespace steam
 			{
 				ping_server(srv);
 			}
-
 		});
 
 		return internet_request;
