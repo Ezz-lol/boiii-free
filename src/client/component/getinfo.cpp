@@ -45,14 +45,14 @@ namespace getinfo
 
 		int get_client_count()
 		{
-			int count =1;
+			int count = 0;
 			const auto client_states = *reinterpret_cast<uint64_t*>(game::select(0x1576FB318, 0x14A178E98));
 			const auto object_length = game::is_server() ? 0xE5110 : 0xE5170;
 
-			for(int i = 0; i < get_max_client_count(); ++i)
+			for (int i = 0; i < get_max_client_count(); ++i)
 			{
 				const auto client_state = *reinterpret_cast<int*>(client_states + (i * object_length));
-				if(client_state > 0)
+				if (client_state > 0)
 				{
 					++count;
 				}
@@ -71,7 +71,7 @@ namespace getinfo
 	{
 		return (rand() % 2) + 1;
 	}
-	
+
 	struct component final : generic_component
 	{
 		void post_unpack() override
