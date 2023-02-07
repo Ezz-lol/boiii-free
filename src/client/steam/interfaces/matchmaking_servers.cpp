@@ -40,12 +40,12 @@ namespace steam
 			server.m_bDoNotRefresh = false;
 			strcpy_s(server.m_szGameDir, "");
 			strcpy_s(server.m_szMap, info.get("mapname").data());
-			strcpy_s(server.m_szGameDescription, "Example BO^3I^5I^6I ^7Server");
+			strcpy_s(server.m_szGameDescription, info.get("description").data());
 			server.m_nAppID = 311210;
 			server.m_nPlayers = atoi(info.get("clients").data());
 			server.m_nMaxPlayers = atoi(info.get("sv_maxclients").data());
 			server.m_nBotPlayers = atoi(info.get("bots").data());
-			server.m_bPassword = false;
+			server.m_bPassword = info.get("isPrivate") == "1";
 			server.m_bSecure = true;
 			server.m_ulTimeLastPlayed = 0;
 			server.m_nServerVersion = 1000;

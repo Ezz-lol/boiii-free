@@ -79,6 +79,7 @@ namespace game
 	WEAK symbol<dvar_t*(unsigned int hash)> Dvar_FindMalleableVar{0x1422BD6A0};
 	WEAK symbol<const char*(const dvar_t* dvar)> Dvar_GetDebugName{0x1422BDCB0};
 	WEAK symbol<const char*(const dvar_t* dvar)> Dvar_GetString{0x1422BFFF0, 0x140575E30};
+	WEAK symbol<int(const dvar_t* dvar)> Dvar_GetInt{0x1422BF2C0, 0x140575C20};
 	WEAK symbol<void(const char* dvarName, const char* string, bool createIfMissing)> Dvar_SetFromStringByName{
 		0x1422C7F60
 	};
