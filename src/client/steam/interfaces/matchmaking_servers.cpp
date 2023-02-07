@@ -55,10 +55,10 @@ namespace steam
 			const auto mode = game::eModes(std::atoi(playmode.data()));
 
 			const auto* tags = ::utils::string::va(
-				R"(\gametype\%s\dedicated\%s\ranked\false\hardcore\false\zombies\%s\modName\\playerCount\0)",
+				R"(\gametype\%s\dedicated\%s\ranked\false\hardcore\false\zombies\%s\modName\\playerCount\%d)",
 				info.get("gametype").data(),
 				info.get("dedicated") == "1" ? "true" : "false",
-				mode == game::MODE_ZOMBIES ? "true" : "false");
+				mode == game::MODE_ZOMBIES ? "true" : "false", server.m_nPlayers);
 
 			strcpy_s(server.m_szGameTags, tags);
 			server.m_steamID.bits = strtoull(info.get("xuid").data(), nullptr, 16);
