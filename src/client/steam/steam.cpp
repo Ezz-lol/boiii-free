@@ -104,8 +104,6 @@ namespace steam
 		results_.clear();
 	}
 
-	//extern "C" {
-
 	bool SteamAPI_RestartAppIfNecessary()
 	{
 		return false;
@@ -282,6 +280,4 @@ namespace steam
 		static user_stats user_stats;
 		return &user_stats;
 	}
-
-	//}
 }
