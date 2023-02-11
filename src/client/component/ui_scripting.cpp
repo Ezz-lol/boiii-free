@@ -24,7 +24,7 @@ namespace ui_scripting
 		utils::hook::detour lua_cod_getrawfile_hook;
 
 		game::dvar_t* dvar_cg_enable_unsafe_lua_functions;
-		static bool unsafe_function_called_message_show = false;
+		static bool unsafe_function_called_message_shown = false;
 
 		struct globals_t
 		{
@@ -309,12 +309,12 @@ namespace ui_scripting
 
 		int lua_unsafe_function_stub([[maybe_unused]] game::hks::lua_State* l)
 		{
-			if (!unsafe_function_called_message_show)
+			if (!unsafe_function_called_message_shown)
 			{
 				auto state = get_globals();
 				// TODO: Is it possible to do this with a confirm dialog? Doing this in LUI seems unsafe to me because mods will be able to change this aswell
 				state["LuaUtils"]["ShowMessageDialog"](0, 0, "The map/mod you are playing tried to run code that can be unsafe. This can include writing or reading files on your system, accessing environment variables, running system commands or loading a dll. These are usually used for storing data across games, integrating third party software like Discord or fetching data from a server to make the gameplay for dynamic.\nThis can also cause a lot of harm by the wrong people.\n\nIf you trust this map/mod and want to enable these features, open the following file in your Black Ops 3 installation: players/user/config.cfg.\nIn this file change 'set cg_enable_unsafe_lua_functions 0' to 'set cg_enable_unsafe_lua_functions 1' and restart Black Ops 3.", "Unsafe lua function called");
-				unsafe_function_called_message_show = true;
+				unsafe_function_called_message_shown = true;
 			}
 
 			return 0;
@@ -379,12 +379,26 @@ namespace ui_scripting
 			ui_shutdown_hook.create(0x14270E9C0_g, ui_shutdown_stub);
 			lua_cod_getrawfile_hook.create(0x141F0F880_g, lua_cod_getrawfile_stub);
 
-			dvar_cg_enable_unsafe_lua_functions = game::Dvar_RegisterBool(game::Dvar_GenerateHash("cg_enable_unsafe_lua_functions"), "cg_enable_unsafe_lua_functions", false, (game::dvarFlags_e)0x1040, "Enables the use of unsafe lua functions");
+			dvar_cg_enable_unsafe_lua_functions = game::Dvar_RegisterBool(game::Dvar_GenerateHash("cg_enable_unsafe_lua_functions"), "cg_enable_unsafe_lua_functions", false, (game::dvarFlags_e)0x1000, "Enables the use of unsafe lua functions");
 			dvar_cg_enable_unsafe_lua_functions->debugName = "cg_enable_unsafe_lua_functions";
 
 			scheduler::once([]() {
+
+				game::dvar_t* dvar_callstack_ship = game::Dvar_FindVar("ui_error_callstack_ship");
+				dvar_callstack_ship->flags = (game::dvarFlags_e)0;
+				game::dvar_t* dvar_report_delay= game::Dvar_FindVar("ui_error_report_delay");
+				dvar_report_delay->flags = (game::dvarFlags_e)0;
+
+				game::Dvar_SetFromStringByName("ui_error_callstack_ship", "1", true);
+				game::Dvar_SetFromStringByName("ui_error_report_delay", "0", true);
+			}, scheduler::pipeline::renderer);
+
+
+			scheduler::once([]() {
+				printf("dvar_cg_enable_unsafe_lua_functions scheduler %s", game::Dvar_DisplayableValue(dvar_cg_enable_unsafe_lua_functions));
 				if (!dvar_cg_enable_unsafe_lua_functions->current.enabled)
 				{
+					printf("dvar_cg_enable_unsafe_lua_functions add jumps");
 					// Do not allow the HKS vm to open LUA's libraries
 					// Disable unsafe functions
 					utils::hook::jump(0x141D34190_g, luaopen_stub); // debug
@@ -435,15 +449,7 @@ namespace ui_scripting
 
 					utils::hook::jump(0x141D299C0_g, lua_unsafe_function_stub); // package_loadlib
 				}
-
-				game::dvar_t* dvar_callstack_ship = game::Dvar_FindVar("ui_error_callstack_ship");
-				dvar_callstack_ship->flags = (game::dvarFlags_e)0;
-				game::dvar_t* dvar_report_delay= game::Dvar_FindVar("ui_error_report_delay");
-				dvar_report_delay->flags = (game::dvarFlags_e)0;
-
-				game::Dvar_SetFromStringByName("ui_error_callstack_ship", "1", true);
-				game::Dvar_SetFromStringByName("ui_error_report_delay", "0", true);
-			}, scheduler::pipeline::renderer);
+			}, scheduler::pipeline::dvars_loaded);
 		}
 	};
 }

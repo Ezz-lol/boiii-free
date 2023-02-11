@@ -25,6 +25,10 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup( "MPStatsSettings", fu
   return optionsTable
 end)
 
+if Dvar.cg_unlockall_loot:get() == true then
+	Engine.SetDvar( "ui_enableAllHeroes", 1 )
+end
+
 LUI.createMenu.MPStatsMenu = function ( controller )
 	local self = CoD.Menu.NewForUIEditor( "MPStatsMenu" )
 	if PreLoadFunc then

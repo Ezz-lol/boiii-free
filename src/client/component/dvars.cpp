@@ -35,7 +35,7 @@ namespace dvars
 			{
 				const auto* dvar = reinterpret_cast<const game::dvar_t*>(&game::s_dvarPool[160 * i]);
 
-				if (!dvar->debugName || (game::dvarFlags_e::DVAR_SAVED & dvar->flags) == 0)
+				if (!dvar->debugName)
 					continue;
 
 				auto name = dvar->debugName;
@@ -54,7 +54,7 @@ namespace dvars
 		{
 			dvar_set_variant_hook.invoke(dvar, value, source);
 
-			if (initial_config_read && (game::dvarFlags_e::DVAR_SAVED & dvar->flags) != 0 && dvar->debugName)
+			if (initial_config_read && dvar->debugName)
 			{
 				write_archive_dvars();
 			}
@@ -72,6 +72,7 @@ namespace dvars
 
 			game::Cbuf_ExecuteBuffer(0, game::ControllerIndex_t::CONTROLLER_INDEX_0, filedata.c_str());
 			initial_config_read = true;
+			scheduler::execute(scheduler::pipeline::dvars_loaded);
 		}
 
 		game::dvar_t* dvar_register_new_stub(game::dvarStrHash_t hash, const char* dvar_name, game::dvarType_t type, unsigned int flags,
@@ -90,7 +91,7 @@ namespace dvars
 	public:
 		void post_unpack() override
 		{
-			scheduler::once(read_archive_dvars, scheduler::pipeline::renderer);
+			scheduler::once(read_archive_dvars, scheduler::pipeline::main);
 
 			//dvar_register_new_hook.create(0x1422C5330_g, dvar_register_new_stub);
 			dvar_set_variant_hook.create(0x1422C9A90_g, dvar_set_variant_stub);
