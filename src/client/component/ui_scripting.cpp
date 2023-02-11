@@ -23,6 +23,9 @@ namespace ui_scripting
 		utils::hook::detour hks_package_require_hook;
 		utils::hook::detour lua_cod_getrawfile_hook;
 
+		game::dvar_t* dvar_cg_enable_unsafe_lua_functions;
+		static bool unsafe_function_called_message_show = false;
+
 		struct globals_t
 		{
 			std::string in_require_script;
@@ -304,8 +307,16 @@ namespace ui_scripting
 			return 0;
 		}
 
-		int hks_base_stub([[maybe_unused]] game::hks::lua_State* l)
+		int lua_unsafe_function_stub([[maybe_unused]] game::hks::lua_State* l)
 		{
+			if (!unsafe_function_called_message_show)
+			{
+				auto state = get_globals();
+				// TODO: Is it possible to do this with a confirm dialog? Doing this in LUI seems unsafe to me because mods will be able to change this aswell
+				state["LuaUtils"]["ShowMessageDialog"](0, 0, "The map/mod you are playing tried to run code that can be unsafe. This can include writing or reading files on your system, accessing environment variables, running system commands or loading a dll. These are usually used for storing data across games, integrating third party software like Discord or fetching data from a server to make the gameplay for dynamic.\nThis can also cause a lot of harm by the wrong people.\n\nIf you trust this map/mod and want to enable these features, open the following file in your Black Ops 3 installation: players/user/config.cfg.\nIn this file change 'set cg_enable_unsafe_lua_functions 0' to 'set cg_enable_unsafe_lua_functions 1' and restart Black Ops 3.", "Unsafe lua function called");
+				unsafe_function_called_message_show = true;
+			}
+
 			return 0;
 		}
 	};
@@ -360,20 +371,6 @@ namespace ui_scripting
 	public:
 		void post_unpack() override
 		{
-			// Do not allow the HKS vm to open LUA's libraries
-			utils::hook::jump(0x141D33510_g, luaopen_stub); // io
-			utils::hook::jump(0x141D33D20_g, luaopen_stub); // os
-			utils::hook::jump(0x141D34B40_g, luaopen_stub); // serialize
-			utils::hook::jump(0x141D34B10_g, luaopen_stub); // havokscript
-			utils::hook::jump(0x141D34190_g, luaopen_stub); // debug
-
-			// Disable unsafe functions
-			utils::hook::jump(0x141D300B0_g, hks_base_stub); // base_loadfile
-			utils::hook::jump(0x141D31EE0_g, hks_base_stub); // base_load
-
-			utils::hook::jump(0x141D2CF00_g, hks_base_stub); // string_dump
-			utils::hook::jump(0x141D2AF90_g, hks_base_stub); // os_execute
-
 			utils::hook::call(0x141D4979A_g, hks_load_stub);
 
 			hks_package_require_hook.create(0x141D28EF0_g, hks_package_require_stub);
@@ -382,7 +379,63 @@ namespace ui_scripting
 			ui_shutdown_hook.create(0x14270E9C0_g, ui_shutdown_stub);
 			lua_cod_getrawfile_hook.create(0x141F0F880_g, lua_cod_getrawfile_stub);
 
+			dvar_cg_enable_unsafe_lua_functions = game::Dvar_RegisterBool(game::Dvar_GenerateHash("cg_enable_unsafe_lua_functions"), "cg_enable_unsafe_lua_functions", false, (game::dvarFlags_e)0x1040, "Enables the use of unsafe lua functions");
+			dvar_cg_enable_unsafe_lua_functions->debugName = "cg_enable_unsafe_lua_functions";
+
 			scheduler::once([]() {
+				if (!dvar_cg_enable_unsafe_lua_functions->current.enabled)
+				{
+					// Do not allow the HKS vm to open LUA's libraries
+					// Disable unsafe functions
+					utils::hook::jump(0x141D34190_g, luaopen_stub); // debug
+
+					utils::hook::jump(0x141D300B0_g, lua_unsafe_function_stub); // base_loadfile
+					utils::hook::jump(0x141D31EE0_g, lua_unsafe_function_stub); // base_load
+					utils::hook::jump(0x141D2CF00_g, lua_unsafe_function_stub); // string_dump
+					utils::hook::jump(0x141FD3220_g, lua_unsafe_function_stub); // engine_openurl
+
+					utils::hook::jump(0x141D2AFF0_g, lua_unsafe_function_stub); // os_getenv
+					utils::hook::jump(0x141D2B790_g, lua_unsafe_function_stub); // os_exit
+					utils::hook::jump(0x141D2B7C0_g, lua_unsafe_function_stub); // os_remove
+					utils::hook::jump(0x141D2BB70_g, lua_unsafe_function_stub); // os_rename
+					utils::hook::jump(0x141D2B360_g, lua_unsafe_function_stub); // os_tmpname
+					utils::hook::jump(0x141D2B0F0_g, lua_unsafe_function_stub); // os_sleep
+					utils::hook::jump(0x141D2AF90_g, lua_unsafe_function_stub); // os_execute
+					utils::hook::jump(0x141D2AFF0_g, lua_unsafe_function_stub); // os_getenv
+
+					// io helpers
+					utils::hook::jump(0x141D32390_g, lua_unsafe_function_stub); // io_tostring
+					utils::hook::jump(0x141D2FDC0_g, lua_unsafe_function_stub); // io_close_file
+					utils::hook::jump(0x141D2FD50_g, lua_unsafe_function_stub); // io_flush
+					utils::hook::jump(0x141D31260_g, lua_unsafe_function_stub); // io_lines
+					utils::hook::jump(0x141D305C0_g, lua_unsafe_function_stub); // io_read_file
+					utils::hook::jump(0x141D305C0_g, lua_unsafe_function_stub); // io_read_file
+					utils::hook::jump(0x141D320A0_g, lua_unsafe_function_stub); // io_seek_file
+					utils::hook::jump(0x141D321E0_g, lua_unsafe_function_stub); // io_setvbuf
+					utils::hook::jump(0x141D2FCD0_g, lua_unsafe_function_stub); // io_write
+					// io functions
+					utils::hook::jump(0x141D2FD10_g, lua_unsafe_function_stub); // io_write
+					utils::hook::jump(0x141D30F40_g, lua_unsafe_function_stub); // io_read
+					utils::hook::jump(0x141D2FF00_g, lua_unsafe_function_stub); // io_close
+					utils::hook::jump(0x141D2FD90_g, lua_unsafe_function_stub); // io_flush
+					utils::hook::jump(0x141D313A0_g, lua_unsafe_function_stub); // io_lines
+					utils::hook::jump(0x141D31BA0_g, lua_unsafe_function_stub); // io_input
+					utils::hook::jump(0x141D31BC0_g, lua_unsafe_function_stub); // io_output
+					utils::hook::jump(0x141D31BE0_g, lua_unsafe_function_stub); // io_type
+					utils::hook::jump(0x141D31DD0_g, lua_unsafe_function_stub); // io_open
+					utils::hook::jump(0x141D31D70_g, lua_unsafe_function_stub); // io_tmpfile
+					utils::hook::jump(0x141D33C00_g, lua_unsafe_function_stub); // io_popen
+
+					utils::hook::jump(0x141D2D0C0_g, lua_unsafe_function_stub); // serialize_persist
+					utils::hook::jump(0x141D2D480_g, lua_unsafe_function_stub); // serialize_unpersist
+
+					utils::hook::jump(0x141D2F560_g, lua_unsafe_function_stub); // havokscript_compiler_settings
+					utils::hook::jump(0x141D2F660_g, lua_unsafe_function_stub); // havokscript_setgcweights
+					utils::hook::jump(0x141D2FB10_g, lua_unsafe_function_stub); // havokscript_getgcweights
+
+					utils::hook::jump(0x141D299C0_g, lua_unsafe_function_stub); // package_loadlib
+				}
+
 				game::dvar_t* dvar_callstack_ship = game::Dvar_FindVar("ui_error_callstack_ship");
 				dvar_callstack_ship->flags = (game::dvarFlags_e)0;
 				game::dvar_t* dvar_report_delay= game::Dvar_FindVar("ui_error_report_delay");
@@ -390,7 +443,7 @@ namespace ui_scripting
 
 				game::Dvar_SetFromStringByName("ui_error_callstack_ship", "1", true);
 				game::Dvar_SetFromStringByName("ui_error_report_delay", "0", true);
-			}, scheduler::pipeline::main);
+			}, scheduler::pipeline::renderer);
 		}
 	};
 }

@@ -90,7 +90,7 @@ namespace dvars
 	public:
 		void post_unpack() override
 		{
-			scheduler::once(read_archive_dvars, scheduler::pipeline::main);
+			scheduler::once(read_archive_dvars, scheduler::pipeline::renderer);
 
 			//dvar_register_new_hook.create(0x1422C5330_g, dvar_register_new_stub);
 			dvar_set_variant_hook.create(0x1422C9A90_g, dvar_set_variant_stub);
