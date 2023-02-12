@@ -7,6 +7,7 @@
 #include "scheduler.hpp"
 
 #include <utils/hook.hpp>
+#include <utils/string.hpp>
 #include <utils/info_string.hpp>
 #include <utils/cryptography.hpp>
 #include <utils/concurrency.hpp>
@@ -127,7 +128,7 @@ namespace party
 
 			host.info.netAdr = addr;
 			host.info.xuid = xuid;
-			strcpy_s(host.info.name, hostname.data());
+			utils::string::copy(host.info.name, hostname.data());
 
 			host.lobbyType = game::LOBBY_TYPE_PRIVATE;
 			host.lobbyParams.networkMode = game::LOBBY_NETWORKMODE_LIVE;

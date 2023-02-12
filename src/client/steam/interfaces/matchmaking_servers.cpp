@@ -38,9 +38,9 @@ namespace steam
 			server.m_nPing = static_cast<int>(ping);
 			server.m_bHadSuccessfulResponse = success;
 			server.m_bDoNotRefresh = false;
-			strcpy_s(server.m_szGameDir, "");
-			strcpy_s(server.m_szMap, info.get("mapname").data());
-			strcpy_s(server.m_szGameDescription, info.get("description").data());
+			::utils::string::copy(server.m_szGameDir, "");
+			::utils::string::copy(server.m_szMap, info.get("mapname").data());
+			::utils::string::copy(server.m_szGameDescription, info.get("description").data());
 			server.m_nAppID = 311210;
 			server.m_nPlayers = atoi(info.get("clients").data());
 			server.m_nMaxPlayers = atoi(info.get("sv_maxclients").data());
@@ -49,7 +49,7 @@ namespace steam
 			server.m_bSecure = true;
 			server.m_ulTimeLastPlayed = 0;
 			server.m_nServerVersion = 1000;
-			strcpy_s(server.m_szServerName, info.get("hostname").data());
+			::utils::string::copy(server.m_szServerName, info.get("hostname").data());
 
 			const auto playmode = info.get("playmode");
 			const auto mode = game::eModes(std::atoi(playmode.data()));
@@ -60,7 +60,7 @@ namespace steam
 				info.get("dedicated") == "1" ? "true" : "false",
 				mode == game::MODE_ZOMBIES ? "true" : "false", server.m_nPlayers);
 
-			strcpy_s(server.m_szGameTags, tags);
+			::utils::string::copy(server.m_szGameTags, tags);
 			server.m_steamID.bits = strtoull(info.get("xuid").data(), nullptr, 16);
 
 			return server;

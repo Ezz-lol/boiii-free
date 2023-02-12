@@ -174,4 +174,23 @@ namespace utils::string
 
 		return str;
 	}
+
+	void copy(char* dest, const size_t max_size, const char* src)
+	{
+		for (size_t i = 0;; ++i)
+		{
+			if (i + 1 == max_size)
+			{
+				dest[i] = 0;
+				break;
+			}
+
+			dest[i] = src[i];
+
+			if (!src[i])
+			{
+				break;
+			}
+		}
+	}
 }

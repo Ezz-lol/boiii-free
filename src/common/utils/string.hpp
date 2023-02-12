@@ -94,4 +94,12 @@ namespace utils::string
 	std::wstring convert(const std::string& str);
 
 	std::string replace(std::string str, const std::string& from, const std::string& to);
+
+	void copy(char* dest, size_t max_size, const char* src);
+
+	template <size_t Size>
+	void copy(char (&dest)[Size], const char* src)
+	{
+		copy(dest, Size, src);
+	}
 }

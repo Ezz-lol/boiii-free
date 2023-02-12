@@ -1,5 +1,6 @@
 #include <std_include.hpp>
 #include "byte_buffer.hpp"
+#include <utils/string.hpp>
 
 namespace demonware
 {
@@ -90,7 +91,7 @@ namespace demonware
 	{
 		if (!this->read_data_type(16)) return false;
 
-		strcpy_s(output, length, const_cast<char*>(this->buffer_.data()) + this->current_byte_);
+		utils::string::copy(output, static_cast<size_t>(length), const_cast<char*>(this->buffer_.data()) + this->current_byte_);
 		this->current_byte_ += strlen(output) + 1;
 
 		return true;
