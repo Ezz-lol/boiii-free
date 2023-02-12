@@ -3,6 +3,7 @@
 #include "loader/component_loader.hpp"
 
 #include "game/game.hpp"
+#include "game/utils.hpp"
 #include "command.hpp"
 #include "network.hpp"
 #include "scheduler.hpp"
@@ -35,6 +36,17 @@ namespace dedicated
 		}
 	}
 
+	void trigger_map_rotation()
+	{
+		scheduler::once([]
+		{
+			if (!game::get_dvar_string("sv_maprotation").empty())
+			{
+				game::Cbuf_AddText(0, "map_rotate\n");
+			}
+		}, scheduler::pipeline::main, 1s);
+	}
+
 	struct component final : server_component
 	{
 		void post_unpack() override
@@ -48,6 +60,9 @@ namespace dedicated
 
 			scheduler::loop(send_heartbeat, scheduler::pipeline::server, 10min);
 			command::add("heartbeat", send_heartbeat);
+
+			// Hook GScr_ExitLevel
+			utils::hook::jump(0x1402D1AA0_g, trigger_map_rotation);
 		}
 	};
 }

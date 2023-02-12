@@ -190,7 +190,7 @@ namespace party
 
 			//const auto hostname = info.get("sv_hostname");
 			const auto playmode = info.get("playmode");
-			const auto mode = game::eModes(std::atoi(playmode.data()));
+			const auto mode = static_cast<game::eModes>(std::atoi(playmode.data()));
 			//const auto xuid = strtoull(info.get("xuid").data(), nullptr, 16);
 
 			scheduler::once([=]
