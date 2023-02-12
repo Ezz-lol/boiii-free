@@ -1,5 +1,6 @@
 #include <std_include.hpp>
 #include "../steam.hpp"
+#include "../../component/dedicated.hpp"
 
 namespace steam
 {
@@ -182,6 +183,7 @@ namespace steam
 
 	void game_server::EnableHeartbeats(bool bActive)
 	{
+		dedicated::send_heartbeat();
 	}
 
 	void game_server::SetHeartbeatInterval(int iHeartbeatInterval)

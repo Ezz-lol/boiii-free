@@ -86,6 +86,7 @@ namespace game
 		0x1422D1360
 	};
 	WEAK symbol<void (void (*callback)(const dvar_t*, void*), void* userData)> Dvar_ForEach{ 0x1422BD760 };
+	WEAK symbol<int(const dvar_t* dvar)> Dvar_GetInt{0x1422BF2C0, 0x140575C20};
 	WEAK symbol<void(const char* dvarName, const char* string, bool createIfMissing)> Dvar_SetFromStringByName{
 		0x1422C7F60
 	};
@@ -111,7 +112,10 @@ namespace game
 	};
 	WEAK symbol<unsigned int(scriptInstance_t inst)> Scr_GetNumParam{0x0, 0x140171320};
 
+	WEAK symbol<void(const char* name, const char* key, unsigned int playbackFlags, float volume, void* callbackInfo, int id)> Cinematic_StartPlayback{0x1412BE3A0};
 	WEAK symbol<void(uint64_t id, bool cancelAll)> Cinematic_StopPlayback{0x1412BEA70};
+
+	WEAK symbol<bool(void* storageFileInfo)> ShouldTransfer{0x142276E10};
 
 	// Rendering
 	WEAK symbol<void(const char*, int, const void*, float, float, float, float, float, const float*, int)>

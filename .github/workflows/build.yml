@@ -25,7 +25,7 @@ jobs:
           - Release
     steps:
       - name: Check out files
-        uses: actions/checkout@v3
+        uses: actions/checkout@v3.3.0
         with:
           submodules: true
           fetch-depth: 0
@@ -33,10 +33,10 @@ jobs:
           lfs: false
 
       - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v1.1.3
+        uses: microsoft/setup-msbuild@v1.3.1
 
       - name: Generate project files
-        run: tools/premake5 vs2022
+        run: tools/premake5 vs2022 --dev-build
 
       - name: Set up problem matching
         uses: ammaraskar/msvc-problem-matcher@master
@@ -45,7 +45,7 @@ jobs:
         run: msbuild /m /v:minimal /p:Configuration=${{matrix.configuration}} /p:Platform=x64 build/boiii.sln
 
       - name: Upload ${{matrix.configuration}} bundle
-        uses: actions/upload-artifact@v3.1.0
+        uses: actions/upload-artifact@v3.1.2
         with:
           name: ${{matrix.configuration}} Bundle
           path: |
@@ -54,7 +54,7 @@ jobs:
 
       - name: Upload ${{matrix.configuration}} binary
         if: matrix.configuration == 'Release'
-        uses: actions/upload-artifact@v3.1.0
+        uses: actions/upload-artifact@v3.1.2
         with:
           name: ${{matrix.configuration}} Binary
           path: |
@@ -62,7 +62,7 @@ jobs:
 
       - name: Upload version
         if: matrix.configuration == 'Release'
-        uses: actions/upload-artifact@v3.1.0
+        uses: actions/upload-artifact@v3.1.2
         with:
           name: Version
           path: |

@@ -153,12 +153,12 @@ namespace network
 		return to;
 	}
 
-	void send_data(const game::netadr_t& address, const void* data, const size_t size)
+	void send_data(const game::netadr_t& address, const void* data, const size_t length)
 	{
 		//game::NET_SendPacket(game::NS_CLIENT1, static_cast<int>(size), data, &address);
 
 		const auto to = convert_to_sockaddr(address);
-		sendto(*game::ip_socket, static_cast<const char*>(data), static_cast<int>(size), 0,
+		sendto(*game::ip_socket, static_cast<const char*>(data), static_cast<int>(length), 0,
 		       reinterpret_cast<const sockaddr*>(&to), sizeof(to));
 	}
 
