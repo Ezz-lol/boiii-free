@@ -38,7 +38,7 @@ namespace dedicated
 			return;
 		}
 
-		scheduler::once(send_heartbeat_packet, scheduler::pipeline::main, 3s);
+		scheduler::once(send_heartbeat_packet, scheduler::pipeline::main, 5s);
 	}
 
 	void trigger_map_rotation()
@@ -48,6 +48,7 @@ namespace dedicated
 			if (!game::get_dvar_string("sv_maprotation").empty())
 			{
 				game::Cbuf_AddText(0, "map_rotate\n");
+				send_heartbeat();
 			}
 		}, scheduler::pipeline::main, 1s);
 	}
@@ -63,7 +64,7 @@ namespace dedicated
 			// Fix tell command for IW4M
 			utils::hook::call(0x14052A8CF_g, sv_con_tell_f_stub);
 
-			scheduler::loop(send_heartbeat, scheduler::pipeline::server, 10min);
+			scheduler::loop(send_heartbeat, scheduler::pipeline::main, 5min);
 			command::add("heartbeat", send_heartbeat);
 
 			// Hook GScr_ExitLevel
