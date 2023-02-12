@@ -4,6 +4,7 @@
 
 #include "game/ui_scripting/execution.hpp"
 
+#include "command.hpp"
 #include "ui_scripting.hpp"
 #include "scheduler.hpp"
 
@@ -393,12 +394,36 @@ namespace ui_scripting
 				game::Dvar_SetFromStringByName("ui_error_report_delay", "0", true);
 			}, scheduler::pipeline::renderer);
 
+			command::add("luiReload", [](auto& params)
+				{
+					auto frontend = game::Com_IsRunningUILevel();
+
+					if (frontend)
+					{
+						converted_functions.clear();
+
+						globals.loaded_scripts.clear();
+						globals.local_scripts.clear();
+
+						game::UI_CoD_Shutdown();
+						game::UI_CoD_Init(true);
+
+						// Com_LoadFrontEnd stripped
+						game::Lua_CoD_LoadLuaFile(*game::hks::lua_state, "ui_mp.T6.main");
+						game::UI_AddMenu(game::UI_CoD_GetRootNameForController(0), "main", -1, *game::hks::lua_state);
+
+						game::UI_CoD_LobbyUI_Init();
+					}
+					else
+					{
+						// TODO: Find a way to do a full shutdown & restart like in frontend, that opens up the loading screen that can't be easily closed
+						game::CG_LUIHUDRestart(0);
+					}
+				});
 
 			scheduler::once([]() {
-				printf("dvar_cg_enable_unsafe_lua_functions scheduler %s", game::Dvar_DisplayableValue(dvar_cg_enable_unsafe_lua_functions));
 				if (!dvar_cg_enable_unsafe_lua_functions->current.enabled)
 				{
-					printf("dvar_cg_enable_unsafe_lua_functions add jumps");
 					// Do not allow the HKS vm to open LUA's libraries
 					// Disable unsafe functions
 					utils::hook::jump(0x141D34190_g, luaopen_stub); // debug

@@ -92,6 +92,16 @@ namespace game
 	WEAK symbol<char> s_dvarPool{ 0x157AC8220 };
 	WEAK symbol<int> g_dvarCount{ 0x157AC81CC };
 
+	// UI
+	WEAK symbol<void(bool frontend)> UI_CoD_Init{ 0x141F298B0, 0x0 };
+	WEAK symbol<void()> UI_CoD_LobbyUI_Init{ 0x141F2C620, 0x0 };
+	WEAK symbol<void()> UI_CoD_Shutdown{ 0x141F336B0, 0x0 };
+	WEAK symbol<void(const char*, const char*, int, game::hks::lua_State*)> UI_AddMenu{ 0x1427024B0, 0x0 };
+	WEAK symbol<const char* (int)> UI_CoD_GetRootNameForController{ 0x141F291E0, 0x0 };
+	WEAK symbol<void(game::hks::lua_State*, const char*)> Lua_CoD_LoadLuaFile{ 0x141F122C0, 0x0 };
+	WEAK symbol<void(int localClientNum)> CG_LUIHUDRestart{ 0x140F7E970 };
+	WEAK symbol<void(int localClientNum)> CL_CheckKeepDrawingConnectScreen{ 0x1413CCAE0 };
+
 	// Scr
 	WEAK symbol<void(scriptInstance_t inst, int value)> Scr_AddInt{0x0, 0x14016F160};
 	WEAK symbol<void(scriptInstance_t inst, const char* value)> Scr_AddString{0x0, 0x14016F320};
