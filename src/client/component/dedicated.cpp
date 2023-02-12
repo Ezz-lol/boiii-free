@@ -20,6 +20,15 @@ namespace dedicated
 		{
 			game::SV_SendServerCommand(cl_0, type, "%c \"GAME_SERVER\x15: %s\"", 79, text);
 		}
+
+		void send_heartbeat_packet()
+		{
+			game::netadr_t target{};
+			if (server_list::get_master_server(target))
+			{
+				network::send(target, "heartbeat", "T7");
+			}
+		}
 	}
 
 	void send_heartbeat()
@@ -29,11 +38,7 @@ namespace dedicated
 			return;
 		}
 
-		game::netadr_t target{};
-		if (server_list::get_master_server(target))
-		{
-			network::send(target, "heartbeat", "T7");
-		}
+		scheduler::once(send_heartbeat_packet, scheduler::pipeline::main, 3s);
 	}
 
 	void trigger_map_rotation()
