@@ -28,3 +28,6 @@
 [submodule "deps/stb"]
 	path = deps/stb
 	url = https://github.com/nothings/stb.git
+[submodule "deps/curl"]
+	path = deps/curl
+	url = https://github.com/curl/curl.git
