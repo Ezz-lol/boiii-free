@@ -204,7 +204,8 @@ namespace ui_scripting
 			lua["table"]["unpack"] = lua["unpack"];
 			lua["luiglobals"] = lua;
 
-			load_scripts(game::get_host_library().get_folder().append("/data/ui_scripts/").string());
+			utils::nt::library host{};
+			load_scripts(host.get_folder().append("/data/ui_scripts/").string());
 			load_scripts("boiii/ui_scripts/");
 			load_scripts("data/ui_scripts/");
 		}
@@ -229,7 +230,8 @@ namespace ui_scripting
 			{
 				// Fetch the names of the local files so file overrides are already handled
 				globals = {};
-				load_local_script_files(game::get_host_library().get_folder().append("/data/ui_scripts/").string());
+				utils::nt::library host{};
+				load_local_script_files(host.get_folder().append("/data/ui_scripts/").string());
 				load_local_script_files("boiii/ui_scripts/");
 				load_local_script_files("data/ui_scripts/");
 				return;
@@ -384,7 +386,6 @@ namespace ui_scripting
 			dvar_cg_enable_unsafe_lua_functions->debugName = "cg_enable_unsafe_lua_functions";
 
 			scheduler::once([]() {
-
 				game::dvar_t* dvar_callstack_ship = game::Dvar_FindVar("ui_error_callstack_ship");
 				dvar_callstack_ship->flags = (game::dvarFlags_e)0;
 				game::dvar_t* dvar_report_delay= game::Dvar_FindVar("ui_error_report_delay");

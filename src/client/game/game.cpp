@@ -4,20 +4,23 @@
 
 namespace game
 {
-	const utils::nt::library& get_host_library()
+	namespace
 	{
-		static auto host_library = []
+		const utils::nt::library& get_host_library()
 		{
-			utils::nt::library host{};
-			if (!host || host == utils::nt::library::get_by_address(get_base))
+			static const auto host_library = []
 			{
-				throw std::runtime_error("Invalid host application");
-			}
+				utils::nt::library host{};
+				if (!host || host == utils::nt::library::get_by_address(get_base))
+				{
+					throw std::runtime_error("Invalid host application");
+				}
 
-			return host;
-		}();
+				return host;
+			}();
 
-		return host_library;
+			return host_library;
+		}
 	}
 
 	size_t get_base()

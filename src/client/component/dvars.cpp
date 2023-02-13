@@ -74,16 +74,6 @@ namespace dvars
 			initial_config_read = true;
 			scheduler::execute(scheduler::pipeline::dvars_loaded);
 		}
-
-		game::dvar_t* dvar_register_new_stub(game::dvarStrHash_t hash, const char* dvar_name, game::dvarType_t type, unsigned int flags,
-			game::DvarValue value, game::DvarLimits domain, const char* description)
-		{
-			auto dvar = dvar_register_new_hook.invoke<game::dvar_t*>(hash, dvar_name, type, flags, value, domain, description);
-
-			dvar->debugName = dvar_name; // TODO: gives access violation error
-
-			return dvar;
-		}
 	}
 
 	class component final : public client_component
@@ -93,7 +83,6 @@ namespace dvars
 		{
 			scheduler::once(read_archive_dvars, scheduler::pipeline::main);
 
-			//dvar_register_new_hook.create(0x1422C5330_g, dvar_register_new_stub);
 			dvar_set_variant_hook.create(0x1422C9A90_g, dvar_set_variant_stub);
 		}
 	};

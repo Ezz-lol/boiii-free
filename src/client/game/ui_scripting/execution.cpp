@@ -1,8 +1,6 @@
 #include <std_include.hpp>
 #include "execution.hpp"
 
-//#include "component/console.hpp"
-
 namespace ui_scripting
 {
 	namespace
