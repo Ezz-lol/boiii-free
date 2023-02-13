@@ -755,17 +755,6 @@ namespace arxan
 		{
 			search_and_patch_integrity_checks();
 			//restore_debug_functions();
-			
-			scheduler::once([]
-			{
-				SetProcessAffinityMask(GetCurrentProcess(), 2 << (std::min(std::thread::hardware_concurrency(), 4U)));
-						 
-				scheduler::once([] {
-				  DWORD_PTR affinity_proc, affinity_sys;
-				  GetProcessAffinityMask(GetCurrentProcess(), &affinity_proc, &affinity_sys);
-				  SetProcessAffinityMask(GetCurrentProcess(), affinity_sys);
-				}, scheduler::pipeline::main, 1s);
-			}, scheduler::pipeline::main);
 		}
 
 		component_priority priority() const override
