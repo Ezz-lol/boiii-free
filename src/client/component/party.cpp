@@ -59,7 +59,7 @@ namespace party
 		void connect_to_lobby(const game::netadr_t& addr, const std::string& mapname, const std::string& gamemode)
 		{
 			game::XSESSION_INFO info{};
-			game::CL_ConnectFromLobby(0, &info, &addr, 1, 0, mapname.data(), gamemode.data());
+			game::CL_ConnectFromLobby(0, &info, &addr, 1, 0, mapname.data(), gamemode.data(), nullptr);
 
 			stop_zombies_intro_if_needed();
 		}

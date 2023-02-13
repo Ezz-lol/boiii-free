@@ -10,7 +10,7 @@ namespace game
 
 	// CL
 	WEAK symbol<void(int controllerIndex, XSESSION_INFO* hostInfo, const netadr_t* addr, int numPublicSlots,
-	                 int numPrivateSlots, const char* mapname, const char* gametype)> CL_ConnectFromLobby
+	                 int numPrivateSlots, const char* mapname, const char* gametype, const char* somethingWithUserMaps)> CL_ConnectFromLobby
 		{0x14134C570};
 
 	// Game
