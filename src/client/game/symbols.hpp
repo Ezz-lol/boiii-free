@@ -86,7 +86,6 @@ namespace game
 		0x1422D1360
 	};
 	WEAK symbol<void (void (*callback)(const dvar_t*, void*), void* userData)> Dvar_ForEach{ 0x1422BD760 };
-	WEAK symbol<int(const dvar_t* dvar)> Dvar_GetInt{0x1422BF2C0, 0x140575C20};
 	WEAK symbol<void(const char* dvarName, const char* string, bool createIfMissing)> Dvar_SetFromStringByName{
 		0x1422C7F60
 	};
