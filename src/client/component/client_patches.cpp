@@ -3,6 +3,10 @@
 
 #include "scheduler.hpp"
 
+#include <utils/hook.hpp>
+
+#include <mmeapi.h>
+
 namespace client_patches
 {
 	namespace
@@ -28,6 +32,11 @@ namespace client_patches
 				scheduler::once(reset_process_affinity, scheduler::pipeline::main, 1s);
 			}, scheduler::pipeline::main);
 		}
+
+		MMRESULT mixer_open_stub()
+		{
+			return MMSYSERR_NODRIVER;
+		}
 	}
 
 	class component final : public client_component
@@ -36,6 +45,9 @@ namespace client_patches
 		void post_unpack() override
 		{
 			fix_amd_cpu_stuttering();
+
+			// Kill microphones for now
+			utils::hook::set(0x15AAEB254, mixer_open_stub);
 		}
 	};
 }
