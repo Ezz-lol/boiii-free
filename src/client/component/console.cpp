@@ -209,8 +209,11 @@ namespace console
 			{
 				scheduler::once([]()
 				{
-					const auto server_name = game::Dvar_FindVar("live_steam_server_name")->current.string;
-					SetWindowTextA(*game::s_wcd::hWnd, server_name);
+					const auto server_name_dvar = game::Dvar_FindVar("live_steam_server_name");
+					if (server_name_dvar)
+					{
+						SetWindowTextA(*game::s_wcd::hWnd, server_name_dvar->current.string);
+					}
 				}, scheduler::pipeline::main);
 			}
 
