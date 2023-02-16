@@ -90,11 +90,11 @@ namespace bots
 		int format_bot_string(char* buffer, [[maybe_unused]] const char* format, const char* name, const char* xuid,
 			const char* xnaddr, int protocol, int netfieldchk, const char* session_mode, int qport)
 		{
-			const auto find_name = [](const std::string& name) -> const char*
+			const auto find_name = [](const std::string& needle) -> const char*
 			{
 				for (const auto& entry : get_bot_names())
 				{
-					if (entry.first == name)
+					if (entry.first == needle)
 					{
 						return entry.second.data();
 					}
