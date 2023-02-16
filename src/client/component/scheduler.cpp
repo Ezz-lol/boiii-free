@@ -91,11 +91,6 @@ namespace scheduler
 		utils::hook::detour g_run_frame_hook;
 		utils::hook::detour main_frame_hook;
 
-		void execute(const pipeline type)
-		{
-			assert(type >= 0 && type < pipeline::count);
-			pipelines[type].execute();
-		}
 
 		void r_end_frame_stub()
 		{
@@ -114,6 +109,12 @@ namespace scheduler
 			main_frame_hook.invoke<void>();
 			execute(pipeline::main);
 		}
+	}
+
+	void execute(const pipeline type)
+	{
+		assert(type >= 0 && type < pipeline::count);
+		pipelines[type].execute();
 	}
 
 	void schedule(const std::function<bool()>& callback, const pipeline type,

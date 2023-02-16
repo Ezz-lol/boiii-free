@@ -16,11 +16,16 @@ namespace scheduler
 		// The game's main thread
 		main,
 
+		// Dvars are done loading from the config file
+		dvars_loaded,
+
 		count,
 	};
 
 	static const bool cond_continue = false;
 	static const bool cond_end = true;
+
+	void execute(const pipeline type);
 
 	void schedule(const std::function<bool()>& callback, pipeline type = pipeline::async,
 	              std::chrono::milliseconds delay = 0ms);

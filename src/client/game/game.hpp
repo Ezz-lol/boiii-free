@@ -1,5 +1,8 @@
 #pragma once
 
+#include "structs.hpp"
+#include <utils/nt.hpp>
+
 namespace game
 {
 	size_t get_base();
