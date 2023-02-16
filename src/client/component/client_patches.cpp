@@ -3,6 +3,7 @@
 
 #include "scheduler.hpp"
 
+#include <game/game.hpp>
 #include <utils/hook.hpp>
 
 #include <mmeapi.h>
@@ -47,7 +48,7 @@ namespace client_patches
 			fix_amd_cpu_stuttering();
 
 			// Kill microphones for now
-			utils::hook::set(0x15AAEB254, mixer_open_stub);
+			utils::hook::set(0x15AAEB254_g, mixer_open_stub);
 		}
 	};
 }
