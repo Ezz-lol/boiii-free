@@ -3,6 +3,7 @@
 #include "resource.hpp"
 
 #include "game/game.hpp"
+#include "scheduler.hpp"
 
 #include <utils/thread.hpp>
 #include <utils/hook.hpp>
@@ -203,6 +204,14 @@ namespace console
 			if (!game::is_server())
 			{
 				utils::hook::set<uint8_t>(0x14133D2FE_g, 0xEB); // Always enable ingame console
+			}
+			else
+			{
+				scheduler::once([]()
+				{
+					const auto server_name = game::Dvar_FindVar("live_steam_server_name")->current.string;
+					SetWindowTextA(*game::s_wcd::hWnd, server_name);
+				}, scheduler::pipeline::main);
 			}
 
 			utils::hook::jump(game::select(0x1423337F0, 0x1405976B0), queue_message);
