@@ -19,6 +19,7 @@ CoD.ServerBrowserRow.new = function ( menu, controller )
 	if CoD.isPC then
 		self:registerEventHandler( "leftmousedown", function ()
 			if self:isInFocus() then
+				ServerBrowserCancelRequest( self )
 				JoinServerBrowser( self, self, controller, menu )
 			end
 		end )
