@@ -25,6 +25,12 @@ namespace bots
 				{"momo5502", "IW5x"},
 				{"Maurice", "IW5x" },
 				{"Jasmin", "<3"},
+				{"Dss0", "IW3x"},
+				{"FutureRave", "FR"},
+				{"Diamante", "IW2x"},
+				{"St0rm", "NN"},
+				{"Joel", "NN"},
+				{"Louve", "IW5x"},
 			};
 
 			std::string buffer;
@@ -88,7 +94,7 @@ namespace bots
 		}
 
 		int format_bot_string(char* buffer, [[maybe_unused]] const char* format, const char* name, const char* xuid,
-			const char* xnaddr, int protocol, int netfieldchk, const char* session_mode, int qport)
+			const char* xnaddr, int protocol, int net_field_chk, const char* session_mode, int qport)
 		{
 			const auto find_name = [](const std::string& needle) -> const char*
 			{
@@ -103,7 +109,7 @@ namespace bots
 				return "3arc";
 			};
 
-			return sprintf_s(buffer, 1024, bot_format_string, name, find_name(name), xuid, xnaddr, protocol, netfieldchk, session_mode, qport);
+			return sprintf_s(buffer, 1024, bot_format_string, name, find_name(name), xuid, xnaddr, protocol, net_field_chk, session_mode, qport);
 		}
 	}
 
