@@ -16,31 +16,46 @@
 
 namespace getinfo
 {
+	int get_max_client_count()
+	{
+		return game::get_dvar_int("com_maxclients");
+	}
+
+	int get_client_count()
+	{
+		int count = 0;
+		const auto client_states = *reinterpret_cast<uint64_t*>(game::select(0x1576FB318, 0x14A178E98));
+		const auto object_length = game::is_server() ? 0xE5110 : 0xE5170;
+
+		for (int i = 0; i < get_max_client_count(); ++i)
+		{
+			const auto client_state = *reinterpret_cast<int*>(client_states + (i * object_length));
+			if (client_state > 0)
+			{
+				++count;
+			}
+		}
+
+		return count;
+	}
+
+	int get_bot_count()
+	{
+		int count = 0;
+
+		for (int i = 0; i < get_max_client_count(); ++i)
+		{
+			if (game::SV_IsTestClient(i))
+			{
+				++count;
+			}
+		}
+
+		return count;
+	}
+
 	namespace
 	{
-		int get_max_client_count()
-		{
-			return game::get_dvar_int("com_maxclients");
-		}
-
-		int get_client_count()
-		{
-			int count = 0;
-			const auto client_states = *reinterpret_cast<uint64_t*>(game::select(0x1576FB318, 0x14A178E98));
-			const auto object_length = game::is_server() ? 0xE5110 : 0xE5170;
-
-			for (int i = 0; i < get_max_client_count(); ++i)
-			{
-				const auto client_state = *reinterpret_cast<int*>(client_states + (i * object_length));
-				if (client_state > 0)
-				{
-					++count;
-				}
-			}
-
-			return count;
-		}
-
 		int Com_SessionMode_GetGameMode()
 		{
 			return *reinterpret_cast<int*>(game::select(0x1568EF7F4, 0x14948DB04)) << 14 >> 28;

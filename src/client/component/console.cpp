@@ -1,4 +1,5 @@
 #include <std_include.hpp>
+#include "console.hpp"
 #include "loader/component_loader.hpp"
 #include "resource.hpp"
 
@@ -15,6 +16,11 @@
 
 namespace console
 {
+	void set_title(const std::string& title)
+	{
+		SetWindowTextA(*game::s_wcd::hWnd, title.data());
+	}
+
 	namespace
 	{
 		utils::image::object logo;
@@ -204,17 +210,6 @@ namespace console
 			if (!game::is_server())
 			{
 				utils::hook::set<uint8_t>(0x14133D2FE_g, 0xEB); // Always enable ingame console
-			}
-			else
-			{
-				scheduler::once([]()
-				{
-					const auto server_name_dvar = game::Dvar_FindVar("live_steam_server_name");
-					if (server_name_dvar)
-					{
-						SetWindowTextA(*game::s_wcd::hWnd, server_name_dvar->current.string);
-					}
-				}, scheduler::pipeline::main);
 			}
 
 			utils::hook::jump(game::select(0x1423337F0, 0x1405976B0), queue_message);

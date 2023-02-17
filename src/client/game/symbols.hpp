@@ -27,7 +27,7 @@ namespace game
 	};
 
 	WEAK symbol<void(uint32_t localClientNum, const char* text)> Cbuf_AddText{0x1420EC8B0, 0x1404F75B0};
-	WEAK symbol<void(int localClientNum, ControllerIndex_t controllerIndex, const char* buffer)> Cbuf_ExecuteBuffer{
+	WEAK symbol<void(uint32_t localClientNum, ControllerIndex_t controllerIndex, const char* buffer)> Cbuf_ExecuteBuffer{
 		0x14133BE10, 0x1404F78D0
 	};
 	WEAK symbol<void(const char* cmdName, xcommand_t function, cmd_function_s* allocedCmd)> Cmd_AddCommandInternal{
@@ -99,8 +99,8 @@ namespace game
 	WEAK symbol<void(const char*, const char*, int, game::hks::lua_State*)> UI_AddMenu{ 0x1427024B0, 0x0 };
 	WEAK symbol<const char* (int)> UI_CoD_GetRootNameForController{ 0x141F291E0, 0x0 };
 	WEAK symbol<void(game::hks::lua_State*, const char*)> Lua_CoD_LoadLuaFile{ 0x141F122C0, 0x0 };
-	WEAK symbol<void(int localClientNum)> CG_LUIHUDRestart{ 0x140F7E970 };
-	WEAK symbol<void(int localClientNum)> CL_CheckKeepDrawingConnectScreen{ 0x1413CCAE0 };
+	WEAK symbol<void(uint32_t localClientNum)> CG_LUIHUDRestart{ 0x140F7E970 };
+	WEAK symbol<void(uint32_t localClientNum)> CL_CheckKeepDrawingConnectScreen{ 0x1413CCAE0 };
 
 	// Scr
 	WEAK symbol<void(scriptInstance_t inst, int value)> Scr_AddInt{0x0, 0x14016F160};
@@ -125,6 +125,7 @@ namespace game
 	// SV
 	WEAK symbol<void*()> SV_AddTestClient{0x1422499A0, 0x14052E3E0};
 	WEAK symbol<void(client_s* cl_0, svscmd_type type, const char* fmt, ...)> SV_SendServerCommand{0x0, 0x140537F10};
+	WEAK symbol<bool(uint32_t clientNum)> SV_IsTestClient{0x14224B5C0, 0x14052FF40};
 
 	// Variables
 
