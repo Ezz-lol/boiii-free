@@ -3,8 +3,9 @@
 
 #include "command.hpp"
 
-#include <utils/nt.hpp>
 #include <utils/hook.hpp>
+#include <utils/io.hpp>
+#include <utils/string.hpp>
 
 #include <game/game.hpp>
 
@@ -12,15 +13,61 @@ namespace bots
 {
 	namespace
 	{
-		const std::vector<std::string>& get_bot_names()
+		constexpr auto* bot_format_string = "connect \"\\invited\\1\\cg_predictItems\\1\\cl_anonymous\\0\\color\\4\\head\\default\\model\\multi\\snaps\\20\\rate\\"
+			"5000\\name\\%s\\clanAbbrev\\%s\\xuid\\%s\\xnaddr\\%s\\natType\\2\\protocol\\%d\\netfieldchk\\%d\\sessionmode\\%s\\qport\\%d\"";
+
+		using bot_name = std::pair<std::string, std::string>;
+
+		std::vector<bot_name> load_bots_names()
+		{
+			std::vector<bot_name> bot_names =
+			{
+				{"momo5502", "IW5x"},
+				{"Maurice", "IW5x" },
+				{"Jasmin", "<3"},
+			};
+
+			std::string buffer;
+			if (!utils::io::read_file("boiii_cfg/bots.txt", &buffer) || buffer.empty())
+			{
+				return bot_names;
+			}
+
+			auto data = utils::string::split(buffer, '\n');
+			for (auto& entry : data)
+			{
+				utils::string::replace(entry, "\r", "");
+				utils::string::trim(entry);
+
+				if (entry.empty())
+				{
+					continue;
+				}
+
+				std::string clan_abbrev;
+				// Check if there is a clan tag
+				if (const auto pos = entry.find(','); pos != std::string::npos)
+				{
+					// Only start copying over from non-null characters (otherwise it can be "<=")
+					if ((pos + 1) < entry.size())
+					{
+						clan_abbrev = entry.substr(pos + 1);
+					}
+
+					entry = entry.substr(0, pos);
+				}
+
+				bot_names.emplace_back(std::make_pair(entry, clan_abbrev));
+			}
+
+			return bot_names;
+		}
+
+		const std::vector<bot_name>& get_bot_names()
 		{
 			static const auto bot_names = []
 			{
-				std::vector<std::string> names{
-					"momo5502",
-					"Maurice",
-					"Jasmin",
-				};
+				auto names = load_bots_names();
 
 				std::random_device rd;
 				std::mt19937 gen(rd());
@@ -37,7 +84,26 @@ namespace bots
 			const auto& names = get_bot_names();
 
 			current = (current + 1) % names.size();
-			return names.at(current).data();
+			return names.at(current).first.data();
+		}
+
+		int format_bot_string(char* buffer, [[maybe_unused]] const char* format, const char* name, const char* xuid,
+			const char* xnaddr, int protocol, int netfieldchk, const char* session_mode, int qport)
+		{
+			const auto find_name = [](const std::string& needle) -> const char*
+			{
+				for (const auto& entry : get_bot_names())
+				{
+					if (entry.first == needle)
+					{
+						return entry.second.data();
+					}
+				}
+
+				return "3arc";
+			};
+
+			return sprintf_s(buffer, 1024, bot_format_string, name, find_name(name), xuid, xnaddr, protocol, netfieldchk, session_mode, qport);
 		}
 	}
 
@@ -46,10 +112,11 @@ namespace bots
 		void post_unpack() override
 		{
 			utils::hook::jump(game::select(0x141653B70, 0x1402732E0), get_bot_name);
+			utils::hook::call(game::select(0x142249AF7, 0x14052E53A), format_bot_string);
 
 			if (!game::is_server())
 			{
-				utils::hook::jump(0x141654280_g, get_bot_name);
+				utils::hook::jump(0x141654280_g, get_bot_name); // SV_ZombieNameRandom
 			}
 
 			command::add("spawnBot", [](const command::params& params)
