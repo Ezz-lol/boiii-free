@@ -175,6 +175,31 @@ namespace utils::string
 		return str;
 	}
 
+	std::string& ltrim(std::string& str)
+	{
+		str.erase(str.begin(), std::find_if(str.begin(), str.end(), [](const unsigned char input)
+		{
+			return !std::isspace(input);
+		}));
+
+		return str;
+	}
+
+	std::string& rtrim(std::string& str)
+	{
+		str.erase(std::find_if(str.rbegin(), str.rend(), [](const  unsigned char input)
+		{
+			return !std::isspace(input);
+		}).base(), str.end());
+
+		return str;
+	}
+
+	void trim(std::string& str)
+	{
+		ltrim(rtrim(str));
+	}
+
 	void copy(char* dest, const size_t max_size, const char* src)
 	{
 		if (!max_size)

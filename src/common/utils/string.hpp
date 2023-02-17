@@ -95,6 +95,8 @@ namespace utils::string
 
 	std::string replace(std::string str, const std::string& from, const std::string& to);
 
+	void trim(std::string& str);
+
 	void copy(char* dest, size_t max_size, const char* src);
 
 	template <size_t Size>
