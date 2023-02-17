@@ -23,7 +23,6 @@ namespace bots
 			std::vector<bot_name> bot_names =
 			{
 				{"momo5502", "IW5x"},
-				{"Maurice", "IW5x" },
 				{"Jasmin", "<3"},
 				{"Dss0", "IW3x"},
 				{"FutureRave", "FR"},
