@@ -14,7 +14,7 @@ namespace client_patches
 	{
 		void reduce_process_affinity()
 		{
-			const DWORD_PTR affinity = (2ULL << (std::min(std::thread::hardware_concurrency(), 4U))) - 1;
+			const DWORD_PTR affinity = (1ULL << (std::min(std::thread::hardware_concurrency(), 4U))) - 1;
 			SetProcessAffinityMask(GetCurrentProcess(), affinity);
 		}
 
