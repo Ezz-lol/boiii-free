@@ -238,6 +238,18 @@ namespace
 		               static_cast<DWORD>((data.size() + 1u) * 2));
 	}
 
+	void validate_non_network_share()
+	{
+		const auto self = utils::nt::library::get_by_address(&validate_non_network_share);
+		const auto path = self.get_path().make_preferred();
+		const auto wpath = path.wstring();
+		if (wpath.size() >= 2 && wpath[0] == L'\\' && wpath[1] == L'\\')
+		{
+			throw std::runtime_error(
+				"You seem to be using a network share:\n\n" + path.string() + "\n\nNetwork shares are not supported!");
+		}
+	}
+
 	int main()
 	{
 		if (handle_process_runner())
@@ -262,6 +274,7 @@ namespace
 
 			try
 			{
+				validate_non_network_share();
 				remove_crash_file();
 
 				const auto client_binary = "BlackOps3.exe"s;
