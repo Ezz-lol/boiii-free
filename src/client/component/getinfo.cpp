@@ -86,7 +86,7 @@ namespace getinfo
 				info.set("mapname", game::get_dvar_string("mapname"));
 				info.set("isPrivate", game::get_dvar_string("g_password").empty() ? "0" : "1");
 				info.set("clients", utils::string::va("%i", get_client_count()));
-				info.set("bots", utils::string::va("%i", /*get_bot_count()*/0));
+				info.set("bots", utils::string::va("%i", get_bot_count()));
 				info.set("sv_maxclients", utils::string::va("%i", get_max_client_count()));
 				info.set("protocol", utils::string::va("%i", PROTOCOL));
 				info.set("playmode", utils::string::va("%i", game::Com_SessionMode_GetMode()));
