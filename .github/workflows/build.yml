@@ -79,10 +79,10 @@ jobs:
     name: Deploy artifacts
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop')
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     steps:
       #- name: Setup main environment
-      # if: github.ref == 'refs/heads/master'
+      # if: github.ref == 'refs/heads/main'
       #  run: echo "BOIII_MASTER_PATH=${{ secrets.BOIII_MASTER_SSH_PATH }}" >> $GITHUB_ENV
 
       #- name: Setup develop environment
