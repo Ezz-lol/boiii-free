@@ -2,6 +2,8 @@
 
 #include "game.hpp"
 
+#include <utils/finally.hpp>
+
 namespace game
 {
 	namespace
@@ -33,5 +35,27 @@ namespace game
 	{
 		static const auto server = get_host_library().get_optional_header()->CheckSum == 0x14C28B4;
 		return server;
+	}
+
+	std::filesystem::path get_appdata_path()
+	{
+		static const auto appdata_path = []
+		{
+			PWSTR path;
+			if (FAILED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &path)))
+			{
+				throw std::runtime_error("Failed to read APPDATA path!");
+			}
+
+			auto _ = utils::finally([&path]
+			{
+				CoTaskMemFree(path);
+			});
+
+			static auto appdata = std::filesystem::path(path) / "boiii";
+			return appdata;
+		}();
+
+		return appdata_path;
 	}
 }

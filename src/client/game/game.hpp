@@ -73,6 +73,8 @@ namespace game
 		size_t address_{};
 		size_t server_address_{};
 	};
+
+	std::filesystem::path get_appdata_path();
 }
 
 inline size_t operator"" _g(const size_t val)
