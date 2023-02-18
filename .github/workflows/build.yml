@@ -92,7 +92,7 @@ jobs:
       - name: Download Release binaries
         uses: actions/download-artifact@v3
         with:
-          name: Release binaries
+          name: Release Binary
           
       - name: Download Release data artifacts
         uses: actions/download-artifact@v3
