@@ -11,6 +11,32 @@
 
 namespace dedicated_info
 {
+	namespace
+	{
+		void set_server_info_in_console_title()
+		{
+			const auto sv_running = game::Dvar_FindVar("sv_running");
+			const auto server_name = game::get_dvar_string("live_steam_server_name");
+
+			if (!sv_running || !sv_running->current.enabled)
+			{
+				std::string idle_text = server_name + " - not running";
+				console::set_title(idle_text);
+				return;
+			}
+
+			const auto mapname = game::get_dvar_string("mapname");
+
+			std::string window_text = utils::string::va("%s on %s [%d/%d] (%d)",
+				server_name.data(),
+				mapname.data(),
+				getinfo::get_client_count(),
+				getinfo::get_max_client_count(),
+				getinfo::get_bot_count());
+
+			console::set_title(window_text);
+		}
+	}
 	class component final : public server_component
 	{
 	public:
@@ -18,22 +44,7 @@ namespace dedicated_info
 		{
 			scheduler::loop([]()
 			{
-				const auto sv_running = game::Dvar_FindVar("sv_running");
-
-				if (sv_running && sv_running->current.enabled)
-				{
-					const auto server_name = game::get_dvar_string("live_steam_server_name");
-					const auto mapname = game::get_dvar_string("mapname");
-
-					std::string window_text = utils::string::va("%s on %s [%d/%d] (%d)",
-						server_name.data(),
-						mapname.data(),
-						getinfo::get_client_count(),
-						getinfo::get_max_client_count(),
-						getinfo::get_bot_count());
-
-					console::set_title(window_text);
-				}
+				set_server_info_in_console_title();
 			}, scheduler::pipeline::main, 1s);
 		}
 	};
