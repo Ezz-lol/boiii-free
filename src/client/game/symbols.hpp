@@ -22,11 +22,11 @@ namespace game
 	WEAK symbol<void(const char* file, int line, int code, const char* fmt, ...)> Com_Error_{0x1420F8BD0};
 	WEAK symbol<bool(eModes mode)> Com_SessionMode_IsMode{0x1420F7DD0};
 	WEAK symbol<bool()> Com_IsRunningUILevel{0x142148DB0};
-	WEAK symbol<void(uint32_t localClientNum, eModes fromMode, eModes toMode, uint32_t flags)> Com_SwitchMode{
+	WEAK symbol<void(int localClientNum, eModes fromMode, eModes toMode, uint32_t flags)> Com_SwitchMode{
 		0x14214AF30
 	};
 
-	WEAK symbol<void(uint32_t localClientNum, const char* text)> Cbuf_AddText{0x1420EC8B0, 0x1404F75B0};
+	WEAK symbol<void(int localClientNum, const char* text)> Cbuf_AddText{0x1420EC8B0, 0x1404F75B0};
 	WEAK symbol<void(int localClientNum, ControllerIndex_t controllerIndex, const char* buffer)> Cbuf_ExecuteBuffer{
 		0x14133BE10, 0x1404F78D0
 	};
@@ -38,8 +38,8 @@ namespace game
 	{
 		0x0, 0x1404F8280
 	};
-	WEAK symbol<void(uint32_t localClientNum, ControllerIndex_t controllerIndex, const char* text,
-	                 bool fromRemoteConsol)> Cmd_ExecuteSingleCommand{
+	WEAK symbol<void(int localClientNum, ControllerIndex_t controllerIndex, const char* text,
+	                 bool fromRemoteConsole)> Cmd_ExecuteSingleCommand{
 		0x1420EDC20
 	};
 	WEAK symbol<void(char* text, int maxSize)> Con_GetTextCopy{0x14133A7D0, 0x140182C40};
@@ -81,26 +81,26 @@ namespace game
 	WEAK symbol<const char*(const dvar_t* dvar)> Dvar_GetDebugName{0x1422BDCB0};
 	WEAK symbol<const char*(const dvar_t* dvar)> Dvar_GetString{0x1422BFFF0, 0x140575E30};
 	WEAK symbol<const char*(const dvar_t* dvar)> Dvar_DisplayableValue{0x1422BCAE0};
-	WEAK symbol<bool(const dvar_t* dvar)> Dvar_GetBool{ 0x1422BD930 };
+	WEAK symbol<bool(const dvar_t* dvar)> Dvar_GetBool{0x1422BD930};
 	WEAK symbol<dvar_t*(dvarStrHash_t hash, const char* dvarName, bool value, dvarFlags_e flags, const char* description)> Dvar_RegisterBool{
 		0x1422D1360
 	};
-	WEAK symbol<void (void (*callback)(const dvar_t*, void*), void* userData)> Dvar_ForEach{ 0x1422BD760 };
+	WEAK symbol<void (void (*callback)(const dvar_t*, void*), void* userData)> Dvar_ForEach{0x1422BD760};
 	WEAK symbol<void(const char* dvarName, const char* string, bool createIfMissing)> Dvar_SetFromStringByName{
 		0x1422C7F60
 	};
-	WEAK symbol<char> s_dvarPool{ 0x157AC8220 };
-	WEAK symbol<int> g_dvarCount{ 0x157AC81CC };
+	WEAK symbol<char> s_dvarPool{0x157AC8220};
+	WEAK symbol<int> g_dvarCount{0x157AC81CC};
 
 	// UI
-	WEAK symbol<void(bool frontend)> UI_CoD_Init{ 0x141F298B0, 0x0 };
-	WEAK symbol<void()> UI_CoD_LobbyUI_Init{ 0x141F2C620, 0x0 };
-	WEAK symbol<void()> UI_CoD_Shutdown{ 0x141F336B0, 0x0 };
-	WEAK symbol<void(const char*, const char*, int, game::hks::lua_State*)> UI_AddMenu{ 0x1427024B0, 0x0 };
-	WEAK symbol<const char* (int)> UI_CoD_GetRootNameForController{ 0x141F291E0, 0x0 };
-	WEAK symbol<void(game::hks::lua_State*, const char*)> Lua_CoD_LoadLuaFile{ 0x141F122C0, 0x0 };
-	WEAK symbol<void(int localClientNum)> CG_LUIHUDRestart{ 0x140F7E970 };
-	WEAK symbol<void(int localClientNum)> CL_CheckKeepDrawingConnectScreen{ 0x1413CCAE0 };
+	WEAK symbol<void(bool frontend)> UI_CoD_Init{0x141F298B0, 0x0};
+	WEAK symbol<void()> UI_CoD_LobbyUI_Init{0x141F2C620, 0x0};
+	WEAK symbol<void()> UI_CoD_Shutdown{0x141F336B0, 0x0};
+	WEAK symbol<void(const char*, const char*, int, game::hks::lua_State*)> UI_AddMenu{0x1427024B0, 0x0};
+	WEAK symbol<const char* (int)> UI_CoD_GetRootNameForController{0x141F291E0, 0x0};
+	WEAK symbol<void(game::hks::lua_State*, const char*)> Lua_CoD_LoadLuaFile{0x141F122C0, 0x0};
+	WEAK symbol<void(int localClientNum)> CG_LUIHUDRestart{0x140F7E970};
+	WEAK symbol<void(int localClientNum)> CL_CheckKeepDrawingConnectScreen{0x1413CCAE0};
 
 	// Scr
 	WEAK symbol<void(scriptInstance_t inst, int value)> Scr_AddInt{0x0, 0x14016F160};
@@ -125,6 +125,7 @@ namespace game
 	// SV
 	WEAK symbol<void*()> SV_AddTestClient{0x1422499A0, 0x14052E3E0};
 	WEAK symbol<void(client_s* cl_0, svscmd_type type, const char* fmt, ...)> SV_SendServerCommand{0x0, 0x140537F10};
+	WEAK symbol<bool(int clientNum)> SV_IsTestClient{0x14224B5C0, 0x14052FF40};
 
 	// Variables
 
@@ -164,21 +165,21 @@ namespace game
 
 	namespace hks
 	{
-		WEAK symbol<lua_State*> lua_state { 0x159C78D88 };
-		WEAK symbol<void(lua_State* s, const char* str, unsigned int l)> hksi_lua_pushlstring{ 0x140A18430 };
+		WEAK symbol<lua_State*> lua_state {0x159C78D88};
+		WEAK symbol<void(lua_State* s, const char* str, unsigned int l)> hksi_lua_pushlstring{0x140A18430};
 
-		WEAK symbol<void(lua_State* s, const HksObject* tbl, const HksObject* key, const HksObject* val)> hks_obj_settable{ 0x141D4B660 };
-		WEAK symbol<HksObject* (HksObject* result, lua_State* s, const HksObject* table, const HksObject* key)> hks_obj_gettable{ 0x141D4ABF0 };
-		WEAK symbol<void(lua_State* s, int nargs, int nresults, const unsigned int* pc)> vm_call_internal{ 0x141D71070 };
-		WEAK symbol<HashTable* (lua_State* s, unsigned int arraySize, unsigned int hashSize)> Hashtable_Create{ 0x141D3B5F0 };
-		WEAK symbol<cclosure* (lua_State* s, lua_function function, int num_upvalues, int internal_, int profilerTreatClosureAsFunc)> cclosure_Create{ 0x141D3B7E0 };
-		WEAK symbol<int(lua_State* s, int t)> hksi_luaL_ref{ 0x141D4D1A0 };
-		WEAK symbol<void(lua_State* s, int t, int ref)> hksi_luaL_unref{ 0x141D4D320 };
+		WEAK symbol<void(lua_State* s, const HksObject* tbl, const HksObject* key, const HksObject* val)> hks_obj_settable{0x141D4B660};
+		WEAK symbol<HksObject* (HksObject* result, lua_State* s, const HksObject* table, const HksObject* key)> hks_obj_gettable{0x141D4ABF0};
+		WEAK symbol<void(lua_State* s, int nargs, int nresults, const unsigned int* pc)> vm_call_internal{0x141D71070};
+		WEAK symbol<HashTable* (lua_State* s, unsigned int arraySize, unsigned int hashSize)> Hashtable_Create{0x141D3B5F0};
+		WEAK symbol<cclosure* (lua_State* s, lua_function function, int num_upvalues, int internal_, int profilerTreatClosureAsFunc)> cclosure_Create{0x141D3B7E0};
+		WEAK symbol<int(lua_State* s, int t)> hksi_luaL_ref{0x141D4D1A0};
+		WEAK symbol<void(lua_State* s, int t, int ref)> hksi_luaL_unref{0x141D4D320};
 
-		WEAK symbol<int(lua_State* s, const HksCompilerSettings* options, const char* buff, unsigned __int64 sz, const char* name)> hksi_hksL_loadbuffer{ 0x141D4BD80 };
-		WEAK symbol<int(lua_State* s, const char* what, lua_Debug* ar)> hksi_lua_getinfo{ 0x141D4D960 };
-		WEAK symbol<int(lua_State* s, int level, lua_Debug* ar)> hksi_lua_getstack{ 0x141D4DC20 };
-		WEAK symbol<void(lua_State* s, const char* fmt, ...)> hksi_luaL_error{ 0x141D4D050 };
-		WEAK symbol<const char*> s_compilerTypeName{ 0x140A18430 };
+		WEAK symbol<int(lua_State* s, const HksCompilerSettings* options, const char* buff, unsigned __int64 sz, const char* name)> hksi_hksL_loadbuffer{0x141D4BD80};
+		WEAK symbol<int(lua_State* s, const char* what, lua_Debug* ar)> hksi_lua_getinfo{0x141D4D960};
+		WEAK symbol<int(lua_State* s, int level, lua_Debug* ar)> hksi_lua_getstack{0x141D4DC20};
+		WEAK symbol<void(lua_State* s, const char* fmt, ...)> hksi_luaL_error{0x141D4D050};
+		WEAK symbol<const char*> s_compilerTypeName{0x140A18430};
 	}
 }

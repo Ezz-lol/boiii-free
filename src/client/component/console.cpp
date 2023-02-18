@@ -1,8 +1,10 @@
 #include <std_include.hpp>
+#include "console.hpp"
 #include "loader/component_loader.hpp"
 #include "resource.hpp"
 
 #include "game/game.hpp"
+#include "scheduler.hpp"
 
 #include <utils/thread.hpp>
 #include <utils/hook.hpp>
@@ -14,6 +16,11 @@
 
 namespace console
 {
+	void set_title(const std::string& title)
+	{
+		SetWindowTextA(*game::s_wcd::hWnd, title.data());
+	}
+
 	namespace
 	{
 		utils::image::object logo;
