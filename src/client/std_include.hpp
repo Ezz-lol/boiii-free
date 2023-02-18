@@ -52,6 +52,7 @@
 #include <wincrypt.h>
 #include <shellscalingapi.h>
 #include <d3d11.h>
+#include <dxgi1_6.h>
 
 // min and max is required by gdi, therefore NOMINMAX won't work
 #ifdef max
@@ -103,5 +104,6 @@
 #pragma comment(lib, "iphlpapi.lib")
 #pragma comment(lib, "Crypt32.lib")
 #pragma comment(lib, "d3d11.lib")
+#pragma comment(lib, "dxgi.lib")
 
 using namespace std::literals;

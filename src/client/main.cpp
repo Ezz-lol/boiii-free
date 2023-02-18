@@ -225,8 +225,28 @@ namespace
 		}
 
 		const auto self = utils::nt::library::get_by_address(&trigger_high_performance_gpu_switch);
+		const auto path = self.get_path().make_preferred().wstring();
 
-		const std::wstring data = L"GpuPreference=2;";
+		/*if (RegQueryValueExW(key, path.data(), nullptr, nullptr, nullptr, nullptr) != ERROR_FILE_NOT_FOUND)
+		{
+			return;
+		}*/
+
+		auto preference = DXGI_GPU_PREFERENCE_UNSPECIFIED;
+
+		CComPtr<IDXGIFactory6> factory{};
+		if (SUCCEEDED(CreateDXGIFactory1(__uuidof(IDXGIFactory6), reinterpret_cast<void**>(&factory))))
+		{
+			CComPtr<IDXGIAdapter> adapter{};
+			if (SUCCEEDED(
+				factory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, __uuidof(IDXGIAdapter),
+					reinterpret_cast<void**>(&adapter))) && adapter)
+			{
+				preference = DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE;
+			}
+		}
+
+		const std::wstring data = L"GpuPreference=" + std::to_wstring(preference) + L";";
 		RegSetValueExW(key, self.get_path().make_preferred().wstring().data(), 0, REG_SZ,
 		               reinterpret_cast<const BYTE*>(data.data()),
 		               static_cast<DWORD>((data.size() + 1u) * 2));
