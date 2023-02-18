@@ -16,7 +16,8 @@ namespace ui_scripting
 {
 	namespace
 	{
-		std::unordered_map<game::hks::cclosure*, std::function<arguments(const function_arguments& args)>> converted_functions;
+		std::unordered_map<game::hks::cclosure*, std::function<arguments(const function_arguments& args)>>
+		converted_functions;
 
 		utils::hook::detour ui_cod_init_hook;
 		utils::hook::detour ui_cod_lobbyui_init_hook;
@@ -87,9 +88,9 @@ namespace ui_scripting
 			state->m_global->m_bytecodeSharingMode = game::hks::HKS_BYTECODE_SHARING_ON;
 
 			const auto _0 = utils::finally([&]
-				{
-					state->m_global->m_bytecodeSharingMode = sharing_mode;
-				});
+			{
+				state->m_global->m_bytecodeSharingMode = sharing_mode;
+			});
 
 			game::hks::HksCompilerSettings compiler_settings{};
 			return game::hks::hksi_hksL_loadbuffer(state, &compiler_settings, data.data(), data.size(), name.data());
@@ -130,14 +131,16 @@ namespace ui_scripting
 
 			for (const auto& script : scripts)
 			{
+				const auto script_file = script.generic_string();
+
 				if (std::filesystem::is_regular_file(script))
 				{
-					const std::string file_path = script.substr(script.find("ui_scripts") + 11);
-					globals.local_scripts[file_path.c_str()] = script;
+					const std::string file_path = script_file.substr(script_file.find("ui_scripts") + 11);
+					globals.local_scripts[file_path] = script_file;
 				}
 				else if (std::filesystem::is_directory(script))
 				{
-					load_local_script_files(script);
+					load_local_script_files(script_file);
 				}
 			}
 		}
@@ -156,11 +159,11 @@ namespace ui_scripting
 			for (const auto& script : scripts)
 			{
 				std::string data;
-
-				if (std::filesystem::is_directory(script) && utils::io::read_file(script + "/__init__.lua", &data))
+				const auto script_file = script.generic_string();
+				if (std::filesystem::is_directory(script) && utils::io::read_file(script_file + "/__init__.lua", &data))
 				{
-					print_loading_script(script);
-					load_script(script + "/__init__.lua", data);
+					print_loading_script(script_file);
+					load_script(script_file + "/__init__.lua", data);
 				}
 			}
 		}
@@ -205,11 +208,10 @@ namespace ui_scripting
 			lua["luiglobals"] = lua;
 
 			utils::nt::library host{};
-			load_scripts(host.get_folder().append("/data/ui_scripts/").string());
-			load_scripts("boiii/ui_scripts/");
-			load_scripts("data/ui_scripts/");
+			load_scripts((game::get_appdata_path() / "data/ui_scripts/").string());
+			load_scripts((host.get_folder() / "boiii/ui_scripts/").string());
 		}
-		
+
 		void try_start()
 		{
 			try
@@ -231,9 +233,8 @@ namespace ui_scripting
 				// Fetch the names of the local files so file overrides are already handled
 				globals = {};
 				utils::nt::library host{};
-				load_local_script_files(host.get_folder().append("/data/ui_scripts/").string());
-				load_local_script_files("boiii/ui_scripts/");
-				load_local_script_files("data/ui_scripts/");
+				load_local_script_files((game::get_appdata_path() / "data/ui_scripts/").string());
+				load_local_script_files((host.get_folder() / "boiii/ui_scripts/").string());
 				return;
 			}
 			const auto _0 = utils::finally(&try_start);
@@ -260,7 +261,8 @@ namespace ui_scripting
 			return hks_package_require_hook.invoke<void*>(state);
 		}
 
-		int hks_load_stub(game::hks::lua_State* state, void* compiler_options, void* reader, void* reader_data, void* debug_reader, void* debug_reader_data, const char* chunk_name)
+		int hks_load_stub(game::hks::lua_State* state, void* compiler_options, void* reader, void* reader_data,
+		                  void* debug_reader, void* debug_reader_data, const char* chunk_name)
 		{
 			if (globals.load_raw_script)
 			{
@@ -269,12 +271,13 @@ namespace ui_scripting
 				return load_buffer(globals.raw_script_name, utils::io::read_file(globals.raw_script_name));
 			}
 
-			return utils::hook::invoke<int>(0x141D3AFB0_g, state, compiler_options, reader, reader_data, debug_reader, debug_reader_data, chunk_name);
+			return utils::hook::invoke<int>(0x141D3AFB0_g, state, compiler_options, reader, reader_data, debug_reader,
+			                                debug_reader_data, chunk_name);
 		}
 
 		game::XAssetHeader lua_cod_getrawfile_stub(char* filename)
 		{
-			game::XAssetHeader header{ .luaFile = nullptr };
+			game::XAssetHeader header{.luaFile = nullptr};
 
 			if (!is_loaded_script(globals.in_require_script) && !is_local_script(filename))
 			{
@@ -316,7 +319,10 @@ namespace ui_scripting
 			{
 				auto state = get_globals();
 				// TODO: Is it possible to do this with a confirm dialog? Doing this in LUI seems unsafe to me because mods will be able to change this aswell
-				state["LuaUtils"]["ShowMessageDialog"](0, 0, "The map/mod you are playing tried to run code that can be unsafe. This can include writing or reading files on your system, accessing environment variables, running system commands or loading a dll. These are usually used for storing data across games, integrating third party software like Discord or fetching data from a server to make the gameplay for dynamic.\nThis can also cause a lot of harm by the wrong people.\n\nIf you trust this map/mod and want to enable these features, open the following file in your Black Ops 3 installation: players/user/config.cfg.\nIn this file change 'set cg_enable_unsafe_lua_functions 0' to 'set cg_enable_unsafe_lua_functions 1' and restart Black Ops 3.", "Unsafe lua function called");
+				state["LuaUtils"]["ShowMessageDialog"](
+					0, 0,
+					"The map/mod you are playing tried to run code that can be unsafe. This can include writing or reading files on your system, accessing environment variables, running system commands or loading a dll. These are usually used for storing data across games, integrating third party software like Discord or fetching data from a server to make the gameplay for dynamic.\nThis can also cause a lot of harm by the wrong people.\n\nIf you trust this map/mod and want to enable these features, open the following file in your Black Ops 3 installation: players/user/config.cfg.\nIn this file change 'set cg_enable_unsafe_lua_functions 0' to 'set cg_enable_unsafe_lua_functions 1' and restart Black Ops 3.",
+					"Unsafe lua function called");
 				unsafe_function_called_message_shown = true;
 			}
 
@@ -382,13 +388,16 @@ namespace ui_scripting
 			ui_shutdown_hook.create(0x14270E9C0_g, ui_shutdown_stub);
 			lua_cod_getrawfile_hook.create(0x141F0F880_g, lua_cod_getrawfile_stub);
 
-			dvar_cg_enable_unsafe_lua_functions = game::Dvar_RegisterBool(game::Dvar_GenerateHash("cg_enable_unsafe_lua_functions"), "cg_enable_unsafe_lua_functions", false, (game::dvarFlags_e)0x1000, "Enables the use of unsafe lua functions");
+			dvar_cg_enable_unsafe_lua_functions = game::Dvar_RegisterBool(
+				game::Dvar_GenerateHash("cg_enable_unsafe_lua_functions"), "cg_enable_unsafe_lua_functions", false,
+				(game::dvarFlags_e)0x1000, "Enables the use of unsafe lua functions");
 			dvar_cg_enable_unsafe_lua_functions->debugName = "cg_enable_unsafe_lua_functions";
 
-			scheduler::once([]() {
+			scheduler::once([]()
+			{
 				game::dvar_t* dvar_callstack_ship = game::Dvar_FindVar("ui_error_callstack_ship");
 				dvar_callstack_ship->flags = (game::dvarFlags_e)0;
-				game::dvar_t* dvar_report_delay= game::Dvar_FindVar("ui_error_report_delay");
+				game::dvar_t* dvar_report_delay = game::Dvar_FindVar("ui_error_report_delay");
 				dvar_report_delay->flags = (game::dvarFlags_e)0;
 
 				game::Dvar_SetFromStringByName("ui_error_callstack_ship", "1", true);
@@ -396,33 +405,34 @@ namespace ui_scripting
 			}, scheduler::pipeline::renderer);
 
 			command::add("luiReload", [](auto& params)
+			{
+				auto frontend = game::Com_IsRunningUILevel();
+
+				if (frontend)
 				{
-					auto frontend = game::Com_IsRunningUILevel();
+					converted_functions.clear();
 
-					if (frontend)
-					{
-						converted_functions.clear();
+					globals.loaded_scripts.clear();
+					globals.local_scripts.clear();
 
-						globals.loaded_scripts.clear();
-						globals.local_scripts.clear();
+					game::UI_CoD_Shutdown();
+					game::UI_CoD_Init(true);
 
-						game::UI_CoD_Shutdown();
-						game::UI_CoD_Init(true);
+					// Com_LoadFrontEnd stripped
+					game::Lua_CoD_LoadLuaFile(*game::hks::lua_state, "ui_mp.T6.main");
+					game::UI_AddMenu(game::UI_CoD_GetRootNameForController(0), "main", -1, *game::hks::lua_state);
 
-						// Com_LoadFrontEnd stripped
-						game::Lua_CoD_LoadLuaFile(*game::hks::lua_state, "ui_mp.T6.main");
-						game::UI_AddMenu(game::UI_CoD_GetRootNameForController(0), "main", -1, *game::hks::lua_state);
+					game::UI_CoD_LobbyUI_Init();
+				}
+				else
+				{
+					// TODO: Find a way to do a full shutdown & restart like in frontend, that opens up the loading screen that can't be easily closed
+					game::CG_LUIHUDRestart(0);
+				}
+			});
 
-						game::UI_CoD_LobbyUI_Init();
-					}
-					else
-					{
-						// TODO: Find a way to do a full shutdown & restart like in frontend, that opens up the loading screen that can't be easily closed
-						game::CG_LUIHUDRestart(0);
-					}
-				});
-
-			scheduler::once([]() {
+			scheduler::once([]()
+			{
 				if (!dvar_cg_enable_unsafe_lua_functions->current.enabled)
 				{
 					// Do not allow the HKS vm to open LUA's libraries
