@@ -38,7 +38,7 @@ namespace updater
 		this->downloaded_files_.clear();
 		this->downloading_files_.clear();
 
-		std::this_thread::sleep_for(2s);
+		std::this_thread::sleep_for(1s);
 	}
 
 	void updater_ui::begin_file(const file_info& file)
