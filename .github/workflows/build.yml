@@ -60,6 +60,13 @@ jobs:
           path: |
             build/bin/x64/${{matrix.configuration}}/boiii.exe
 
+      - name: Upload ${{matrix.configuration}} data artifacts
+        uses: actions/upload-artifact@v3.1.2
+        with:
+          name: ${{matrix.configuration}} data artifacts
+          path: |
+            data/*
+
       - name: Upload version
         if: matrix.configuration == 'Release'
         uses: actions/upload-artifact@v3.1.2
@@ -67,3 +74,49 @@ jobs:
           name: Version
           path: |
             build/version.txt
+
+  deploy:
+    name: Deploy artifacts
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/develop')
+    steps:
+      #- name: Setup main environment
+      # if: github.ref == 'refs/heads/master'
+      #  run: echo "BOIII_MASTER_PATH=${{ secrets.BOIII_MASTER_SSH_PATH }}" >> $GITHUB_ENV
+
+      #- name: Setup develop environment
+      #  if: github.ref == 'refs/heads/develop'
+      #  run: echo "BOIII_MASTER_PATH=${{ secrets.BOIII_MASTER_SSH_PATH_DEV }}" >> $GITHUB_ENV
+
+      - name: Download Release binaries
+        uses: actions/download-artifact@v3
+        with:
+          name: Release binaries
+          
+      - name: Download Release data artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: Release data artifacts
+          path: data
+
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v2
+        with:
+          key: ${{ secrets.BOIII_MASTER_SSH_PRIVATE_KEY }}
+          known_hosts: 'just-a-placeholder-so-we-dont-get-errors'
+
+      - name: Add known hosts
+        run: ssh-keyscan -H ${{ secrets.BOIII_MASTER_SSH_ADDRESS }} >> ~/.ssh/known_hosts
+
+      - name: Remove old data files
+        run: ssh ${{ secrets.BOIII_MASTER_SSH_USER }}@${{ secrets.BOIII_MASTER_SSH_ADDRESS }} rm -rf ${{ env.BOIII_MASTER_PATH }}/boiii/data/*
+
+      - name: Upload BOIII binary
+        run: rsync -avz boiii.exe ${{ secrets.BOIII_MASTER_SSH_USER }}@${{ secrets.BOIII_MASTER_SSH_ADDRESS }}:${{ env.BOIII_MASTER_PATH }}/boiii/
+
+      - name: Upload data files
+        run: rsync -avz ./data/ ${{ secrets.BOIII_MASTER_SSH_USER }}@${{ secrets.BOIII_MASTER_SSH_ADDRESS }}:${{ env.BOIII_MASTER_PATH }}/boiii/data/
+
+      - name: Publish changes
+        run: ssh ${{ secrets.BOIII_MASTER_SSH_USER }}@${{ secrets.BOIII_MASTER_SSH_ADDRESS }} ${{ secrets.BOIII_MASTER_SSH_CHANGE_PUBLISH_COMMAND }}
