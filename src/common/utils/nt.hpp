@@ -173,6 +173,77 @@ namespace utils::nt
 		HANDLE handle_{InvalidHandle};
 	};
 
+
+	class registry_key
+	{
+	public:
+		registry_key() = default;
+
+		registry_key(HKEY key)
+			: key_(key)
+		{
+		}
+
+		registry_key(const registry_key&) = delete;
+		registry_key& operator=(const registry_key&) = delete;
+
+		registry_key(registry_key&& obj) noexcept
+			: registry_key()
+		{
+			this->operator=(std::move(obj));
+		}
+
+		registry_key& operator=(registry_key&& obj) noexcept
+		{
+			if (this != obj.GetRef())
+			{
+				this->~registry_key();
+				this->key_ = obj.key_;
+				obj.key_ = nullptr;
+			}
+
+			return *this;
+		}
+
+		~registry_key()
+		{
+			if (this->key_)
+			{
+				RegCloseKey(this->key_);
+			}
+		}
+
+		operator HKEY() const
+		{
+			return this->key_;
+		}
+
+		operator bool() const
+		{
+			return this->key_ != nullptr;
+		}
+
+		HKEY* operator&()
+		{
+			return &this->key_;
+		}
+
+		registry_key* GetRef()
+		{
+			return this;
+		}
+
+		const registry_key* GetRef() const
+		{
+			return this;
+		}
+
+	private:
+		HKEY key_{};
+	};
+
+	registry_key open_or_create_registry_key(const HKEY base, const std::string& input);
+
 	bool is_wine();
 	bool is_shutdown_in_progress();
 

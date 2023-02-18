@@ -1,4 +1,5 @@
 #include "nt.hpp"
+#include "string.hpp"
 
 namespace utils::nt
 {
@@ -221,6 +222,34 @@ namespace utils::nt
 		}
 
 		return nullptr;
+	}
+
+	registry_key open_or_create_registry_key(const HKEY base, const std::string& input)
+	{
+		const auto parts = string::split(input, '\\');
+
+		registry_key current_key = base;
+
+		for (const auto& part : parts)
+		{
+			registry_key new_key{};
+			if (RegOpenKeyExA(current_key, part.data(), 0,
+				KEY_ALL_ACCESS, &new_key) == ERROR_SUCCESS)
+			{
+				current_key = std::move(new_key);
+				continue;
+			}
+
+			if (RegCreateKeyExA(current_key, part.data(), 0, nullptr, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS,
+				nullptr, &new_key, nullptr) != ERROR_SUCCESS)
+			{
+				return {};
+			}
+
+			current_key = std::move(new_key);
+		}
+
+		return current_key;
 	}
 
 	bool is_wine()

@@ -212,6 +212,26 @@ namespace
 		}
 	}
 
+	void trigger_high_performance_gpu_switch()
+	{
+		// Make sure to link D3D11, as this might trigger high performance GPU
+		static volatile auto _ = &D3D11CreateDevice;
+
+		const auto key = utils::nt::open_or_create_registry_key(
+			HKEY_CURRENT_USER, R"(Software\Microsoft\DirectX\UserGpuPreferences)");
+		if (!key)
+		{
+			return;
+		}
+
+		const auto self = utils::nt::library::get_by_address(&trigger_high_performance_gpu_switch);
+
+		const std::wstring data = L"GpuPreference=2;";
+		RegSetValueExW(key, self.get_path().make_preferred().wstring().data(), 0, REG_SZ,
+		               reinterpret_cast<const BYTE*>(data.data()),
+		               static_cast<DWORD>((data.size() + 1u) * 2));
+	}
+
 	int main()
 	{
 		if (handle_process_runner())
@@ -246,9 +266,14 @@ namespace
 
 				const auto is_server = utils::flags::has_flag("dedicated") || (!has_client && has_server);
 
-				if (!is_server && !launcher::run())
+				if (!is_server)
 				{
-					return 0;
+					trigger_high_performance_gpu_switch();
+
+					if (!launcher::run())
+					{
+						return 0;
+					}
 				}
 
 				if (!component_loader::activate(is_server))
