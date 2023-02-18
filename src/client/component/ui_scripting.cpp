@@ -390,7 +390,7 @@ namespace ui_scripting
 
 			dvar_cg_enable_unsafe_lua_functions = game::Dvar_RegisterBool(
 				game::Dvar_GenerateHash("cg_enable_unsafe_lua_functions"), "cg_enable_unsafe_lua_functions", false,
-				(game::dvarFlags_e)0x1000, "Enables the use of unsafe lua functions");
+				static_cast<game::dvarFlags_e>(0x1000), "Enables the use of unsafe lua functions");
 			dvar_cg_enable_unsafe_lua_functions->debugName = "cg_enable_unsafe_lua_functions";
 
 			scheduler::once([]()
