@@ -4,9 +4,8 @@
 
 namespace updater
 {
-	class progress_listener
+	struct progress_listener
 	{
-	public:
 		virtual ~progress_listener() = default;
 
 		virtual void update_files(const std::vector<file_info>& files) = 0;

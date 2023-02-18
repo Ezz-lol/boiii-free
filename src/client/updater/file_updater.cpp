@@ -202,7 +202,7 @@ namespace updater
 		utils::nt::relaunch_self();
 		throw update_cancelled();
 	}
-	
+
 	void file_updater::update_files(const std::vector<file_info>& outdated_files) const
 	{
 		this->listener_.update_files(outdated_files);
