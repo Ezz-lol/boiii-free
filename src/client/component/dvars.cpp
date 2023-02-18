@@ -41,7 +41,7 @@ namespace dvars
 				auto name = dvar->debugName;
 				auto value = game::Dvar_DisplayableValue(dvar);
 
-				config_buffer.append(utils::string::va("set %s %s\n", name, value));
+				config_buffer.append(utils::string::va("set %s \"%s\"\n", name, value));
 			}
 
 			if (config_buffer.length() == 0)
@@ -65,7 +65,10 @@ namespace dvars
 			const std::string path = get_config_file_path();
 
 			if (!utils::io::file_exists(path))
+			{
+				initial_config_read = true;
 				return;
+			}
 
 			std::string filedata;
 			utils::io::read_file(path, &filedata);
