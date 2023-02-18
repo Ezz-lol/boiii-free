@@ -20,23 +20,23 @@ namespace dedicated_info
 
 			if (!sv_running || !sv_running->current.enabled)
 			{
-				std::string idle_text = server_name + " - not running";
-				console::set_title(idle_text);
+				console::set_title(server_name + " - not running");
 				return;
 			}
 
 			const auto mapname = game::get_dvar_string("mapname");
 
-			std::string window_text = utils::string::va("%s on %s [%d/%d] (%d)",
-				server_name.data(),
-				mapname.data(),
-				getinfo::get_client_count(),
-				getinfo::get_max_client_count(),
-				getinfo::get_bot_count());
+			const std::string window_text = utils::string::va("%s on %s [%d/%d] (%d)",
+			                                                  server_name.data(),
+			                                                  mapname.data(),
+			                                                  getinfo::get_client_count(),
+			                                                  getinfo::get_max_client_count(),
+			                                                  getinfo::get_bot_count());
 
 			console::set_title(window_text);
 		}
 	}
+
 	class component final : public server_component
 	{
 	public:
