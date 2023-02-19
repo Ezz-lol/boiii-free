@@ -220,6 +220,28 @@ namespace party
 
 			network::send(query.host, "getInfo", query.challenge);
 		}
+
+		game::netadr_t get_connected_server()
+		{
+			constexpr auto local_client_num = 0ull;
+			const auto address = *reinterpret_cast<uint64_t*>(0x1453DABB8_g) + (0x25780 * local_client_num) + 0x10;
+			return *reinterpret_cast<game::netadr_t*>(address);
+		}
+
+		int should_transfer_stub(uint8_t* storage_file_info)
+		{
+			auto should_transfer = game::ShouldTransfer(storage_file_info);
+
+			const auto offset = storage_file_info - reinterpret_cast<uint8_t*>(0x14343CDF0_g);
+			const auto index = offset / 120;
+
+			if (index >= 12 && index <= 15 && is_connecting_to_dedi && get_connected_server() == connect_host)
+			{
+				should_transfer = !should_transfer;
+			}
+
+			return should_transfer;
+		}
 	}
 
 	void query_server(const game::netadr_t& host, query_callback callback)
@@ -233,21 +255,6 @@ namespace party
 		{
 			server_queries.emplace_back(std::move(query));
 		});
-	}
-
-	int should_transfer_stub(uint8_t* storage_file_info)
-	{
-		auto should_transfer = game::ShouldTransfer(storage_file_info);
-
-		const auto offset = storage_file_info - reinterpret_cast<uint8_t*>(0x14343CDF0_g);
-		const auto index = offset / 120;
-
-		if (is_connecting_to_dedi && index >= 12 && index <= 15)
-		{
-			should_transfer = !should_transfer;
-		}
-
-		return should_transfer;
 	}
 
 	struct component final : client_component
