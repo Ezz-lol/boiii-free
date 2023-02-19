@@ -1,3 +1,7 @@
+if not CoD.isFrontend then
+	return
+end
+
 DataSources.MPStatsSettings = DataSourceHelpers.ListSetup( "MPStatsSettings", function ( controller )
   local optionsTable = {}
 

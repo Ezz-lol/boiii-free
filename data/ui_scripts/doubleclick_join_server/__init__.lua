@@ -1,3 +1,7 @@
+if not CoD.isFrontend then
+	return
+end
+
 require( "ui.uieditor.widgets.PC.ServerBrowser.ServerBrowserRowInternal" )
 require( "ui.uieditor.widgets.Lobby.Common.FE_FocusBarContainer" )
 
