@@ -13,6 +13,7 @@
 
 #include "game/game.hpp"
 #include "launcher/launcher.hpp"
+#include "component/updater.hpp"
 
 namespace
 {
@@ -288,8 +289,10 @@ namespace
 				if (!is_server)
 				{
 					trigger_high_performance_gpu_switch();
+					updater::update();
 
-					if (!launcher::run())
+					const auto launch = utils::flags::has_flag("launch");
+					if (!launch && !launcher::run())
 					{
 						return 0;
 					}
