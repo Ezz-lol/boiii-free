@@ -31,8 +31,15 @@ namespace updater
 	{
 		std::lock_guard<std::recursive_mutex> _{this->mutex_};
 
-		this->progress_ui_.set_progress(1, 1);
+		const auto total_size = this->get_total_size();
+
 		this->update_file_name();
+
+		// Updater UI seems to be delayed a bit, so this triggers proper progress
+		this->progress_ui_.set_progress(total_size > 1 ? total_size - 1 : 0, total_size);
+		std::this_thread::sleep_for(100ms);
+
+		this->progress_ui_.set_progress(total_size, total_size);
 
 		this->total_files_.clear();
 		this->downloaded_files_.clear();
