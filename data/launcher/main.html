@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+
+    <title>BOIII</title>
+
+    <style>
+      * {
+        user-select: none;
+        -ms-user-select: none;
+        cursor: default;
+        box-sizing: border-box;
+      }
+
+      html,
+      body {
+        -ms-overflow-style: none;
+
+        margin: 0;
+        padding: 0;
+
+        font-family: "Segoe UI Light", "Segoe UI", "Lucida Sans", Arial,
+          sans-serif;
+        font-style: normal;
+        font-weight: lighter;
+
+        display: flex;
+        min-height: 100vh;
+        flex-direction: column;
+        background: black;
+      }
+
+      body {
+        background: transparent;
+      }
+
+      .background-container {
+        inset: 0;
+        position: fixed;
+        z-index: -1;
+      }
+      .background-container:before {
+        background: #000;
+        background: url(./bigboiii.jpg);
+        background-position: 50%;
+        background-repeat: no-repeat;
+        background-size: cover;
+        content: "";
+        height: 100%;
+        opacity: 0.25;
+        position: fixed;
+        top: 0;
+        width: 100%;
+      }
+
+      .background-container:after {
+        background-image: url(./noise.jpg);
+        background-repeat: repeat;
+        content: "";
+        height: 100%;
+        mix-blend-mode: overlay;
+        opacity: 0.025;
+        position: fixed;
+        top: 0;
+        width: 100%;
+      }
+
+      body {
+        height: 100%;
+        width: 100%;
+      }
+
+      .content {
+        width: 100%;
+        text-align: center;
+        padding-top: 100px;
+      }
+
+      div.button {
+        margin: 5px;
+        display: inline-block;
+        border: 1px solid #44413f;
+        color: rgba(244, 240, 235, 0.776);
+        cursor: pointer;
+        background-color: rgb(42, 40, 39);
+        width: 120px;
+        text-align: center;
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        transition: all 0.1s linear;
+        font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
+          Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+      }
+
+      div.button:hover {
+        background-color: rgb(48, 45, 44);
+        border: 1px solid #4a4745;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div class="background-container"></div>
+
+    <div class="content">
+      <div class="button" onclick="window.external.runGame()">Play</div>
+      <div class="button" onclick="window.external.openUrl('https://boiii.re')">
+        About
+      </div>
+    </div>
+
+    <script>
+      window.onload = function () {};
+
+      document.onkeydown = fkey;
+      document.onkeypress = fkey;
+      document.onkeyup = fkey;
+
+      function fkey(e) {
+        e = e || window.event;
+
+        location.reload();
+      }
+    </script>
+  </body>
+</html>

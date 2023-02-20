@@ -4,7 +4,8 @@
 #include "launcher.hpp"
 #include "html/html_window.hpp"
 
-#include "resource.hpp"
+#include <game/game.hpp>
+#include <utils/string.hpp>
 
 namespace launcher
 {
@@ -35,7 +36,9 @@ namespace launcher
 				return {};
 			});
 
-		window.get_html_frame()->load_html(utils::nt::load_resource(MENU_MAIN));
+		//window.get_html_frame()->load_html(utils::nt::load_resource(MENU_MAIN));
+		window.get_html_frame()->load_url(
+			utils::string::va("file:///%s/data/launcher/main.html", game::get_appdata_path().generic_string().data()));
 
 		window::run();
 		return run_game;
