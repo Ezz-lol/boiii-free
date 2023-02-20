@@ -12,7 +12,7 @@ namespace launcher
 	bool run()
 	{
 		bool run_game = false;
-		html_window window("BOIII", 550, 380);
+		html_window window("BOIII", 550, 320);
 
 		window.get_html_frame()->register_callback(
 			"openUrl", [](const std::vector<html_argument>& params) -> CComVariant
