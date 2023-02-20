@@ -1,4 +1,4 @@
-if not CoD.isFrontend then
+if Engine.GetCurrentMap() ~= "core_frontend" then
 	return
 end
 
