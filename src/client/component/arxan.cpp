@@ -10,6 +10,8 @@
 #include <utils/string.hpp>
 #include <utils/thread.hpp>
 
+#include "integrity.hpp"
+
 #define ProcessDebugPort 7
 #define ProcessDebugObjectHandle 30
 #define ProcessDebugFlags 31
@@ -602,12 +604,41 @@ namespace arxan
 			utils::hook::call(game_address, stub);
 		}
 
+		void search_and_patch_integrity_checks_precomputed()
+		{
+			if (game::is_server())
+			{
+				for (const auto i : intact_integrity_check_blocks_server)
+				{
+					patch_intact_basic_block_integrity_check(reinterpret_cast<void*>(game::relocate(i)));
+				}
+
+				for (const auto i : split_integrity_check_blocks_server)
+				{
+					patch_split_basic_block_integrity_check(reinterpret_cast<void*>(game::relocate(i)));
+				}
+			}
+			else
+			{
+				for (const auto i : intact_integrity_check_blocks)
+				{
+					patch_intact_basic_block_integrity_check(reinterpret_cast<void*>(game::relocate(i)));
+				}
+
+				for (const auto i : split_integrity_check_blocks)
+				{
+					patch_split_basic_block_integrity_check(reinterpret_cast<void*>(game::relocate(i)));
+				}
+			}
+		}
+
 		void search_and_patch_integrity_checks()
 		{
 			// There seem to be 1219 results.
 			// Searching them is quite slow.
 			// Maybe precomputing that might be better?
-			const auto intact_results = "89 04 8A 83 45 ? FF"_sig;
+
+			/*const auto intact_results = "89 04 8A 83 45 ? FF"_sig;
 			const auto split_results = "89 04 8A E9"_sig;
 
 			for (auto* i : intact_results)
@@ -618,7 +649,9 @@ namespace arxan
 			for (auto* i : split_results)
 			{
 				patch_split_basic_block_integrity_check(i);
-			}
+			}*/
+
+			search_and_patch_integrity_checks_precomputed();
 		}
 
 		LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS info)
