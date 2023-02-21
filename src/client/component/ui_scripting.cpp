@@ -26,7 +26,7 @@ namespace ui_scripting
 		utils::hook::detour lua_cod_getrawfile_hook;
 
 		game::dvar_t* dvar_cg_enable_unsafe_lua_functions;
-		static bool unsafe_function_called_message_shown = false;
+		bool unsafe_function_called_message_shown = false;
 
 		struct globals_t
 		{
@@ -171,10 +171,7 @@ namespace ui_scripting
 		void setup_functions()
 		{
 			const auto lua = get_globals();
-
-			using game = table;
-			auto game_type = game();
-			lua["game"] = game_type;
+			lua["game"] = table();
 		}
 
 		void enable_globals()
@@ -207,10 +204,8 @@ namespace ui_scripting
 			lua["table"]["unpack"] = lua["unpack"];
 			lua["luiglobals"] = lua;
 
-			utils::nt::library host{};
-			std::string folder = "ui_scripts/";
-			if (game::is_server())
-				folder = "lobby_scripts/";
+			const utils::nt::library host{};
+			const auto folder = game::is_server() ? "lobby_scripts/" : "ui_scripts/";
 			load_scripts((game::get_appdata_path() / "data" / folder).string());
 			load_scripts((host.get_folder() / "boiii" / folder).string());
 		}
@@ -227,7 +222,7 @@ namespace ui_scripting
 			}
 		}
 
-		void ui_cod_init_stub(bool frontend)
+		void ui_cod_init_stub(const bool frontend)
 		{
 			ui_cod_init_hook.invoke(frontend);
 
@@ -235,7 +230,8 @@ namespace ui_scripting
 			{
 				// Fetch the names of the local files so file overrides are already handled
 				globals = {};
-				utils::nt::library host{};
+				const utils::nt::library host{};
+
 				load_local_script_files((game::get_appdata_path() / "data/ui_scripts/").string());
 				load_local_script_files((host.get_folder() / "boiii/ui_scripts/").string());
 				return;
@@ -274,14 +270,13 @@ namespace ui_scripting
 				return load_buffer(globals.raw_script_name, utils::io::read_file(globals.raw_script_name));
 			}
 
-			return utils::hook::invoke<int>(game::select(0x141D3AFB0, 0x1403E4090), state, compiler_options, reader, reader_data, debug_reader,
+			return utils::hook::invoke<int>(game::select(0x141D3AFB0, 0x1403E4090), state, compiler_options, reader,
+			                                reader_data, debug_reader,
 			                                debug_reader_data, chunk_name);
 		}
 
 		game::XAssetHeader lua_cod_getrawfile_stub(char* filename)
 		{
-			game::XAssetHeader header{.luaFile = nullptr};
-
 			if (!is_loaded_script(globals.in_require_script) && !is_local_script(filename))
 			{
 				return lua_cod_getrawfile_hook.invoke<game::XAssetHeader>(filename);
@@ -303,9 +298,10 @@ namespace ui_scripting
 			{
 				globals.load_raw_script = true;
 				globals.raw_script_name = target_script;
-				header.luaFile = reinterpret_cast<game::LuaFile*>(1);
 
-				return header;
+				return game::XAssetHeader{
+					.luaFile = reinterpret_cast<game::LuaFile*>(1) //
+				};
 			}
 
 			return lua_cod_getrawfile_hook.invoke<game::XAssetHeader>(filename);
@@ -392,7 +388,9 @@ namespace ui_scripting
 			lua_cod_getrawfile_hook.create(game::select(0x141F0F880, 0x1404BCB70), lua_cod_getrawfile_stub);
 
 			if (game::is_server())
+			{
 				return;
+			}
 
 			dvar_cg_enable_unsafe_lua_functions = game::Dvar_RegisterBool(
 				game::Dvar_GenerateHash("cg_enable_unsafe_lua_functions"), "cg_enable_unsafe_lua_functions", false,
@@ -402,19 +400,17 @@ namespace ui_scripting
 			scheduler::once([]()
 			{
 				game::dvar_t* dvar_callstack_ship = game::Dvar_FindVar("ui_error_callstack_ship");
-				dvar_callstack_ship->flags = (game::dvarFlags_e)0;
+				dvar_callstack_ship->flags = static_cast<game::dvarFlags_e>(0);
 				game::dvar_t* dvar_report_delay = game::Dvar_FindVar("ui_error_report_delay");
-				dvar_report_delay->flags = (game::dvarFlags_e)0;
+				dvar_report_delay->flags = static_cast<game::dvarFlags_e>(0);
 
 				game::Dvar_SetFromStringByName("ui_error_callstack_ship", "1", true);
 				game::Dvar_SetFromStringByName("ui_error_report_delay", "0", true);
 			}, scheduler::pipeline::renderer);
 
-			command::add("luiReload", [](auto& params)
+			command::add("luiReload", []
 			{
-				auto frontend = game::Com_IsRunningUILevel();
-
-				if (frontend)
+				if (game::Com_IsRunningUILevel())
 				{
 					converted_functions.clear();
 

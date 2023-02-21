@@ -78,7 +78,7 @@ namespace ui_scripting
 		void assign(const game::hks::HksObject& value);
 		void release();
 
-		game::hks::HksObject value_{ game::hks::TNONE, {} };
+		game::hks::HksObject value_{game::hks::TNONE, {}};
 		int ref_{};
 	};
 
@@ -133,25 +133,25 @@ namespace ui_scripting
 
 		bool operator==(const script_value& other) const;
 
-		arguments operator()() const;
-		arguments operator()(const arguments& arguments) const;
+		[[maybe_unused]] arguments operator()() const;
+		[[maybe_unused]] arguments operator()(const arguments& arguments) const;
 
-		template<class ...T>
-		arguments operator()(T... arguments) const
+		template <class ...T>
+		[[maybe_unused]] arguments operator()(T ... arguments) const
 		{
-			return this->as<function>().call({ arguments... });
+			return this->as<function>().call({arguments...});
 		}
 
 		template <size_t Size>
-		table_value operator[](const char(&key)[Size]) const
+		table_value operator[](const char (&key)[Size]) const
 		{
-			return { this->as<table>(), key };
+			return {this->as<table>(), key};
 		}
 
 		template <typename T = script_value>
 		table_value operator[](const T& key) const
 		{
-			return { this->as<table>(), key };
+			return {this->as<table>(), key};
 		}
 
 		template <typename T>
@@ -240,11 +240,12 @@ namespace ui_scripting
 		{
 			if (static_cast<std::size_t>(index) >= values_.size())
 			{
-				return { values_, {}, index };
+				return {values_, {}, index};
 			}
 
-			return { values_, values_[index], index };
+			return {values_, values_[index], index};
 		}
+
 	private:
 		arguments values_{};
 	};
