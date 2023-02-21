@@ -93,18 +93,18 @@ jobs:
       #  run: echo "BOIII_MASTER_PATH=${{ secrets.BOIII_MASTER_SSH_PATH_DEV }}" >> $GITHUB_ENV
 
       - name: Download Release binaries
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v3.0.2
         with:
           name: Release Binary
           
       - name: Download Release data artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v3.0.2
         with:
           name: Release data artifacts
           path: data
 
       - name: Install SSH key
-        uses: shimataro/ssh-key-action@v2
+        uses: shimataro/ssh-key-action@v2.5.0
         with:
           key: ${{ secrets.BOIII_MASTER_SSH_PRIVATE_KEY }}
           known_hosts: 'just-a-placeholder-so-we-dont-get-errors'

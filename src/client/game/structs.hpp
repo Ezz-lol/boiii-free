@@ -740,7 +740,7 @@ namespace game
 
 	enum netsrc_t
 	{
-		NS_NULL = 0xFFFFFFFF,
+		NS_NULL = -1,
 		NS_CLIENT1 = 0x0,
 		NS_CLIENT2 = 0x1,
 		NS_CLIENT3 = 0x2,

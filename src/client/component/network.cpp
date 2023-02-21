@@ -233,6 +233,11 @@ namespace network
 
 			utils::hook::set<uint8_t>(game::select(0x14224E90D, 0x1405315F9), 0xEB); // don't kick clients without dw handle
 
+			// Skip DW stuff in NetAdr_ToString
+			utils::hook::set<uint8_t>(game::select(0x142173952, 0x140515881), 0xEB);
+			// NA_IP -> NA_RAWIP in NetAdr_ToString
+			utils::hook::set<uint8_t>(game::select(0x142173934, 0x140515864), game::NA_RAWIP);
+
 			if (game::is_server())
 			{
 				// Remove restrictions for rcon commands

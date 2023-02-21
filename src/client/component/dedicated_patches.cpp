@@ -5,7 +5,7 @@
 
 #include <utils/hook.hpp>
 
-namespace patches
+namespace dedicated_patches
 {
 	namespace
 	{
@@ -25,4 +25,4 @@ namespace patches
 	};
 }
 
-REGISTER_COMPONENT(patches::component)
+REGISTER_COMPONENT(dedicated_patches::component)
