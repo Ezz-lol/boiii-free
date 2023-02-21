@@ -240,8 +240,8 @@ namespace party
 			const auto index = offset / 120;
 
 			// Choose between multiplayer or zombies indices
-			const auto stats_index = is_mp() ? 12 : 15;
-			const auto loadout_index = is_mp() ? 17 : 20;
+			const auto stats_index = is_mp() ? 12 : 17;
+			const auto loadout_index = is_mp() ? 15 : 20;
 
 			if (index >= stats_index && index <= loadout_index && is_connecting_to_dedi && get_connected_server() == connect_host)
 			{
