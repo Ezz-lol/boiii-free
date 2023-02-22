@@ -25,6 +25,11 @@ namespace getinfo
 	{
 		int count = 0;
 		const auto client_states = *reinterpret_cast<uint64_t*>(game::select(0x1576FB318, 0x14A178E98));
+		if (!client_states)
+		{
+			return 0;
+		}
+
 		const auto object_length = game::is_server() ? 0xE5110 : 0xE5170;
 
 		for (int i = 0; i < get_max_client_count(); ++i)
@@ -41,6 +46,12 @@ namespace getinfo
 
 	int get_bot_count()
 	{
+		const auto client_states = *reinterpret_cast<uint64_t*>(game::select(0x1576FB318, 0x14A178E98));
+		if (!client_states)
+		{
+			return 0;
+		}
+
 		int count = 0;
 
 		for (int i = 0; i < get_max_client_count(); ++i)
@@ -78,10 +89,12 @@ namespace getinfo
 				utils::info_string info{};
 				info.set("challenge", std::string(data.begin(), data.end()));
 				info.set("gamename", "T7");
-				info.set("hostname", game::get_dvar_string(game::is_server() ? "live_steam_server_name" : "sv_hostname"));
+				info.set("hostname",
+				         game::get_dvar_string(game::is_server() ? "live_steam_server_name" : "sv_hostname"));
 				info.set("gametype", game::get_dvar_string("g_gametype"));
 				//info.set("sv_motd", get_dvar_string("sv_motd"));
-				info.set("description", game::is_server() ? game::get_dvar_string("live_steam_server_description") : "");
+				info.set("description",
+				         game::is_server() ? game::get_dvar_string("live_steam_server_description") : "");
 				info.set("xuid", utils::string::va("%llX", steam::SteamUser()->GetSteamID().bits));
 				info.set("mapname", game::get_dvar_string("mapname"));
 				info.set("isPrivate", game::get_dvar_string("g_password").empty() ? "0" : "1");
