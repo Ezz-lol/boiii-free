@@ -292,7 +292,7 @@ namespace
 					updater::update();
 
 					const auto launch = utils::flags::has_flag("launch");
-					if (!launch && !launcher::run())
+					if (!launch && !utils::nt::is_wine() && !launcher::run())
 					{
 						return 0;
 					}
