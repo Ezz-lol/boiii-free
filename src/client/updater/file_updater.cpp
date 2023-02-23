@@ -335,11 +335,11 @@ namespace updater
 			return;
 		}
 
-		this->cleanup_root_directory();
+		this->cleanup_root_directory(files);
 		this->cleanup_data_directory(files);
 	}
 
-	void file_updater::cleanup_root_directory() const
+	void file_updater::cleanup_root_directory(const std::vector<file_info>& files) const
 	{
 		const auto existing_files = utils::io::list_files(this->base_);
 		for (const auto& file : existing_files)
@@ -350,8 +350,21 @@ namespace updater
 				continue;
 			}
 
-			std::error_code code{};
-			std::filesystem::remove_all(file, code);
+			bool found = false;
+			for (const auto& wantedFile : files)
+			{
+				if (wantedFile.name == entry)
+				{
+					found = true;
+					break;
+				}
+			}
+
+			if (!found)
+			{
+				std::error_code code{};
+				std::filesystem::remove_all(file, code);
+			}
 		}
 	}
 
