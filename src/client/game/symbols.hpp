@@ -21,6 +21,8 @@ namespace game
 	WEAK symbol<void(int channel, unsigned int label, const char* fmt, ...)> Com_Printf{0x1421499C0, 0x140505630};
 	WEAK symbol<void(const char* file, int line, int code, const char* fmt, ...)> Com_Error_{0x1420F8BD0};
 	WEAK symbol<bool(eModes mode)> Com_SessionMode_IsMode{0x1420F7DD0};
+	WEAK symbol<void(eNetworkModes networkMode)> Com_SessionMode_SetNetworkMode{0x1420F8010, 0x140500B80};
+	WEAK symbol<eGameModes(eGameModes gameMode)> Com_SessionMode_SetGameMode{0x0, 0x140500B40};
 	WEAK symbol<bool()> Com_IsRunningUILevel{0x142148DB0};
 	WEAK symbol<void(int localClientNum, eModes fromMode, eModes toMode, uint32_t flags)> Com_SwitchMode{
 		0x14214AF30

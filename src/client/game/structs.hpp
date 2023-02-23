@@ -18,6 +18,17 @@ namespace game
 		CONTROLLER_INDEX_COUNT = 0x4,
 	};
 
+	enum eGameModes
+	{
+		MODE_GAME_MATCHMAKING_PLAYLIST = 0x0,
+		MODE_GAME_MATCHMAKING_MANUAL = 0x1,
+		MODE_GAME_DEFAULT = 0x2,
+		MODE_GAME_LEAGUE = 0x3,
+		MODE_GAME_THEATER = 0x4,
+		MODE_GAME_COUNT = 0x5,
+		MODE_GAME_INVALID = 0x5,
+	};
+
 	enum eModes
 	{
 		MODE_ZOMBIES = 0x0,
@@ -26,6 +37,15 @@ namespace game
 		MODE_COUNT = 0x3,
 		MODE_INVALID = 0x3,
 		MODE_FIRST = 0x0,
+	};
+
+	enum eNetworkModes
+	{
+		MODE_NETWORK_OFFLINE = 0x0,
+		MODE_NETWORK_SYSTEMLINK = 0x1,
+		MODE_NETWORK_ONLINE = 0x2,
+		MODE_NETWORK_COUNT = 0x3,
+		MODE_NETWORK_INVALID = 0x3,
 	};
 
 	enum bdLobbyErrorCode

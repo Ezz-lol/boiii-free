@@ -227,29 +227,6 @@ namespace party
 			const auto address = *reinterpret_cast<uint64_t*>(0x1453DABB8_g) + (0x25780 * local_client_num) + 0x10;
 			return *reinterpret_cast<game::netadr_t*>(address);
 		}
-
-		bool is_mp()
-		{
-			return game::Com_SessionMode_GetMode() == game::MODE_MULTIPLAYER;
-		}
-
-		int should_transfer_stub(uint8_t* storage_file_info)
-		{
-			auto should_transfer = game::ShouldTransfer(storage_file_info);
-			const auto offset = storage_file_info - reinterpret_cast<uint8_t*>(0x14343CDF0_g);
-			const auto index = offset / 120;
-
-			// Choose between multiplayer or zombies indices
-			const auto stats_index = is_mp() ? 12 : 17;
-			const auto loadout_index = is_mp() ? 15 : 20;
-
-			if (index >= stats_index && index <= loadout_index && is_connecting_to_dedi && get_connected_server() == connect_host)
-			{
-				should_transfer = !should_transfer;
-			}
-
-			return should_transfer;
-		}
 	}
 
 	void query_server(const game::netadr_t& host, query_callback callback)
@@ -270,7 +247,6 @@ namespace party
 		void post_unpack() override
 		{
 			utils::hook::jump(0x141EE6030_g, connect_stub);
-			utils::hook::call(0x1422781E3_g, should_transfer_stub);
 
 			network::on("infoResponse", [](const game::netadr_t& target, const network::data_view& data)
 			{
