@@ -171,6 +171,12 @@ namespace party
 
 			scheduler::once([=]
 			{
+				if (is_connecting_to_dedi)
+				{
+					game::Com_SessionMode_SetGameMode(game::MODE_GAME_DEFAULT);
+					game::Com_GametypeSettings_SetGametype(gametype.data(), false, false);
+				}
+
 				//connect_to_session(target, hostname, xuid, mode);
 				connect_to_lobby_with_mode(target, mode, mapname, gametype);
 			}, scheduler::main);
