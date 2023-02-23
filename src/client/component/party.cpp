@@ -34,34 +34,10 @@ namespace party
 			return server_queries;
 		}
 
-		void stop_zombies_intro_if_needed()
-		{
-			if (game::Com_SessionMode_GetMode() != game::MODE_ZOMBIES)
-			{
-				return;
-			}
-
-			scheduler::once([]
-			{
-				scheduler::schedule([]
-				{
-					if (!game::Sys_IsDatabaseReady())
-					{
-						return scheduler::cond_continue;
-					}
-
-					game::Cinematic_StopPlayback(0, true);
-					return scheduler::cond_end;
-				}, scheduler::main);
-			}, scheduler::main, 15s);
-		}
-
 		void connect_to_lobby(const game::netadr_t& addr, const std::string& mapname, const std::string& gamemode)
 		{
 			game::XSESSION_INFO info{};
 			game::CL_ConnectFromLobby(0, &info, &addr, 1, 0, mapname.data(), gamemode.data(), nullptr);
-
-			stop_zombies_intro_if_needed();
 		}
 
 		void launch_mode(const game::eModes mode)
