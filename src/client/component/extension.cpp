@@ -11,7 +11,6 @@ namespace extension
 		component()
 		{
 			this->extension_ = utils::nt::library::load(game::get_appdata_path() / "ext.dll");
-			this->extension_.invoke<void>("_1");
 		}
 
 		~component() override
@@ -21,17 +20,17 @@ namespace extension
 
 		void post_load() override
 		{
-			this->extension_.invoke<void>("_2");
+			this->extension_.invoke<void>("_1");
 		}
 
 		void post_unpack() override
 		{
-			this->extension_.invoke<void>("_3");
+			this->extension_.invoke<void>("_2");
 		}
 
 		void pre_destroy() override
 		{
-			this->extension_.invoke<void>("_4");
+			this->extension_.invoke<void>("_3");
 		}
 
 		utils::nt::library extension_{};
