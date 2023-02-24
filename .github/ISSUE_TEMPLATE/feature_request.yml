@@ -1,0 +1,24 @@
+name: Feature Request or Suggestion
+description: Open a feature request or give a suggestion for the BOIII project.
+labels: ["feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form to request new features or suggest modifications to existing features.
+  - type: checkboxes
+    id: i-did-the-search
+    attributes:
+      label: Duplicate Issue Check
+      description: "Please double-check the [current list of open and closed issues](../issues?q=is%3Aissue) to ensure that this has not been submitted before."
+      options:
+      - label: I have searched the list of issues on this repository. I confirm that this is not a duplicate of any open or closed issue(s).
+    validations:
+      required: true
+  - type: textarea
+    id: content
+    attributes:
+      label: "Your feature request or suggestion:"
+      placeholder: Something super cool goes here...
+    validations:
+      required: true

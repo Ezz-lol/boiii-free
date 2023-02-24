@@ -1,0 +1,117 @@
+name: Bug Report
+description: File a bug report for any software defects on the BOIII client or BOIII dedicated servers.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for taking the time to fill out and document any bugs. We appreciate it!
+
+        Please fill out this form accurately and provide as much detail as possible. Providing full errors, console output, crashdumps/minidumps, screenshots and videos are all helpful for identifying problems.
+  - type: dropdown
+    id: type
+    attributes:
+      label: Bug Type
+      description: "Please indicate whether this bug affects the client, server, and/or something else. **NOTE: Client means that the bug impacts players or private matches.**"
+      multiple: true
+      options:
+        - Client
+        - Dedicated Server
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: version
+    attributes:
+      label: BOIII Version
+      description: "What version of BOIII are you reporting this bug for?"
+      options:
+        - v0.0.1 (Latest)
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment (Operating System)
+      description: |
+        Which environment are you using to report this bug? Please select multiple if you confirm the bug impacts multiple environments.
+
+        **IMPORTANT NOTE:** Microsoft Windows 7 and 32-bit operating systems are not supported by this project.
+      multiple: true
+      options:
+        - Linux
+        - Microsoft Windows 11 (64-Bit)
+        - Microsoft Windows 10 (64-Bit)
+        - Microsoft Windows 8.1 (64-Bit)
+        - Microsoft Windows 8 (64-Bit)
+        - Windows Server 2022
+        - Windows Server 2019
+        - Windows Server 2016
+        - SteamOS
+    validations:
+      required: true
+  - type: dropdown
+    id: reproducibility-rate
+    attributes:
+      label: Reproducibility Rate
+      description: "How many often have you or others been able to reproduce this bug/error, using the exact steps provided below?"
+      options:
+        - "High: The bug can (almost) always be reproduced"
+        - "Medium: The bug can be reproduced intermittently"
+        - "Low: The bug has only occurred once or a small number of times"
+    validations:
+      required: true
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: "How do you reproduce this bug? Please walk us through step-by-step:"
+      value: |
+        <!-- NOTE: If this bug occurs while running a mod, please specify the mod name and version number. If the bug occurs on a specific map(s) or gamemode(s), please indicate which ones. -->
+
+        1. 
+        2. 
+        3. 
+      placeholder: |
+        <!-- NOTE: If this bug occurs while running a mod, please specify the mod name and version number. If the bug occurs on a specific map(s) or gamemode(s), please indicate which ones. -->
+        
+        1. 
+        2. 
+        3. 
+    validations:
+      required: true
+  - type: textarea
+    id: expected-result
+    attributes:
+      label: Expected Result
+      description: "If you followed the above steps, what do you believe *should* happen? What is the desired outcome?"
+    validations:
+      required: true
+  - type: textarea
+    id: actual-result
+    attributes:
+      label: Actual Result
+      description: "What happens when the 'Steps to Reproduce' are completed? Does the application crash? Does nothing happen at all? Is an error displayed?"
+    validations:
+      required: true
+  - type: textarea
+    id: proof
+    attributes:
+      label: (Optional) Proof and Additional Information
+      description: |
+        Please provide full errors, console output, crashdumps/minidumps, screenshots, errors, or additional information.
+
+        Files may be uploaded directly to this GitHub by dragging and dropping the attachment (or pasting them into this box). Please note that GitHub may reject certain file extensions, in which case it may be necessary to upload the files as a ZIP archive.
+        
+        For large files and videos, please upload them and provide a link to Google Drive, MEGA, YouTube, etc.
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity/Priority
+      description: "In your personal opinion, what severity or priority should be assigned to this bug?"
+      options:
+        - High/Critical
+        - Medium
+        - Minor
+    validations:
+      required: true
