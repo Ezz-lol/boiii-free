@@ -16,8 +16,8 @@ namespace dedicated_info
 		void set_server_info_in_console_title()
 		{
 			const auto sv_running = game::Dvar_FindVar("sv_running");
-			const auto server_name = game::get_dvar_string("live_steam_server_name");
-			const auto clean_server_name = game::I_CleanStr(server_name.data());
+			auto server_name = game::get_dvar_string("live_steam_server_name");
+			auto clean_server_name = game::I_CleanStr(server_name.data());
 
 			if (!sv_running || !sv_running->current.enabled)
 			{
