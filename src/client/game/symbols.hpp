@@ -131,6 +131,9 @@ namespace game
 	WEAK symbol<void(client_s* cl_0, svscmd_type type, const char* fmt, ...)> SV_SendServerCommand{0x0, 0x140537F10};
 	WEAK symbol<bool(int clientNum)> SV_IsTestClient{0x14224B5C0, 0x14052FF40};
 
+	// Utils
+	WEAK symbol<const char* (const char* str)> I_CleanStr{ 0x1422E9C10, 0x140580E80 };
+
 	// Variables
 
 	WEAK symbol<cmd_function_s> cmd_functions{0x15689FF58, 0x14946F860};

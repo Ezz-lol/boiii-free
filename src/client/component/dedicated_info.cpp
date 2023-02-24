@@ -17,17 +17,18 @@ namespace dedicated_info
 		{
 			const auto sv_running = game::Dvar_FindVar("sv_running");
 			const auto server_name = game::get_dvar_string("live_steam_server_name");
+			const auto clean_server_name = game::I_CleanStr(server_name.data());
 
 			if (!sv_running || !sv_running->current.enabled)
 			{
-				console::set_title(server_name + " - not running");
+				console::set_title(utils::string::va("%s - not running", clean_server_name));
 				return;
 			}
 
 			const auto mapname = game::get_dvar_string("mapname");
 
 			const std::string window_text = utils::string::va("%s on %s [%d/%d] (%d)",
-			                                                  server_name.data(),
+															  clean_server_name,
 			                                                  mapname.data(),
 			                                                  getinfo::get_client_count(),
 			                                                  getinfo::get_max_client_count(),
