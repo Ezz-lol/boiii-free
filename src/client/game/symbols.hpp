@@ -132,7 +132,7 @@ namespace game
 	WEAK symbol<bool(int clientNum)> SV_IsTestClient{0x14224B5C0, 0x14052FF40};
 
 	// Utils
-	WEAK symbol<const char* (const char* str)> I_CleanStr{ 0x1422E9C10, 0x140580E80 };
+	WEAK symbol<const char* (const char* str)> I_CleanStr{0x1422E9C10, 0x140580E80};
 
 	// Variables
 
