@@ -33,14 +33,18 @@ namespace steam
 		return "english";
 	}
 
+	// This is used for checking DLC too.
 	bool apps::BIsSubscribedApp(unsigned int appID)
 	{
-		return true;
+		return appID == 366842 ? std::filesystem::exists("zone/zm_common.xpak")	//zombies
+			: appID == 366841 ? std::filesystem::exists("zone/mp_common.xpak")	//multiplayer
+			: appID == 366840 ? std::filesystem::exists("zone/cp_common.xpak")	//campaign
+			: true;
 	}
 
 	bool apps::BIsDlcInstalled(unsigned int appID)
 	{
-		return true;
+		return BIsSubscribedApp(appID);	//to not repeat the same code here
 	}
 
 	unsigned int apps::GetEarliestPurchaseUnixTime(unsigned int nAppID)
