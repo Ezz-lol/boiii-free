@@ -21,6 +21,7 @@ namespace ui_scripting
 
 		utils::hook::detour ui_cod_init_hook;
 		utils::hook::detour ui_cod_lobbyui_init_hook;
+		utils::hook::detour cl_first_snapshot_hook;
 		utils::hook::detour ui_shutdown_hook;
 		utils::hook::detour hks_package_require_hook;
 		utils::hook::detour lua_cod_getrawfile_hook;
@@ -245,6 +246,18 @@ namespace ui_scripting
 			const auto _0 = utils::finally(&try_start);
 		}
 
+		void cl_first_snapshot_stub(int a1)
+		{
+			cl_first_snapshot_hook.invoke(a1);
+
+			if (game::Com_IsRunningUILevel())
+			{
+				return;
+			}
+
+			const auto _0 = utils::finally(&try_start);
+		}
+
 		void ui_shutdown_stub()
 		{
 			converted_functions.clear();
@@ -391,6 +404,8 @@ namespace ui_scripting
 			{
 				return;
 			}
+
+			cl_first_snapshot_hook.create(0x141320E60_g, cl_first_snapshot_stub);
 
 			dvar_cg_enable_unsafe_lua_functions = game::Dvar_RegisterBool(
 				game::Dvar_GenerateHash("cg_enable_unsafe_lua_functions"), "cg_enable_unsafe_lua_functions", false,
