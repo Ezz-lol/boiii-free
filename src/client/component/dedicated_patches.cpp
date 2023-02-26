@@ -10,6 +10,8 @@ namespace dedicated_patches
 {
 	namespace
 	{
+		utils::hook::detour spawn_server_hook;
+
 		void scr_are_textures_loaded_stub([[maybe_unused]] game::scriptInstance_t inst)
 		{
 			game::Scr_AddInt(game::SCRIPTINSTANCE_SERVER, 1);
@@ -58,6 +60,14 @@ namespace dedicated_patches
 				utils::hook::call(address, is_mod_loaded_stub);
 			}
 		}
+
+		void spawn_server_stub(int controllerIndex, const char* server, game::MapPreload preload, bool savegame)
+		{
+			game::Com_SessionMode_SetNetworkMode(game::MODE_NETWORK_ONLINE);
+			game::Com_SessionMode_SetGameMode(game::MODE_GAME_MATCHMAKING_PLAYLIST);
+
+			spawn_server_hook.invoke(controllerIndex, server, preload, savegame);
+		}
 	}
 
 	struct component final : server_component
@@ -77,11 +87,7 @@ namespace dedicated_patches
 			utils::hook::jump(0x1402565D0_g, is_online_stub);
 			patch_is_mod_loaded_checks();
 
-			scheduler::once([]()
-			{
-				game::Com_SessionMode_SetNetworkMode(game::MODE_NETWORK_ONLINE);
-				game::Com_SessionMode_SetGameMode(game::MODE_GAME_MATCHMAKING_PLAYLIST);
-			}, scheduler::pipeline::main, 1s);
+			spawn_server_hook.create(game::SV_SpawnServer, spawn_server_stub);
 		}
 	};
 }
