@@ -38,9 +38,9 @@ namespace steam
 
 	bool apps::BIsSubscribedApp(unsigned int appID)
 	{
-		static const auto has_campaign = std::filesystem::exists(::utils::nt::library{}.get_path() / "zone/cp_common.xpak");
-		static const auto has_multiplayer = std::filesystem::exists(::utils::nt::library{}.get_path() / "zone/mp_common.xpak");
-		static const auto has_zombies = std::filesystem::exists(::utils::nt::library{}.get_path() / "zone/zm_common.xpak");
+		static const auto has_campaign = std::filesystem::exists(::utils::nt::library{}.get_folder() / "zone/cp_common.xpak");
+		static const auto has_multiplayer = std::filesystem::exists(::utils::nt::library{}.get_folder() / "zone/mp_common.xpak");
+		static const auto has_zombies = std::filesystem::exists(::utils::nt::library{}.get_folder() / "zone/zm_common.xpak");
 		return appID == 366840 ? has_campaign
 			: appID == 366841 ? has_multiplayer
 			: appID == 366842 ? has_zombies
