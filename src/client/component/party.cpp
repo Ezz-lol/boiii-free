@@ -208,6 +208,76 @@ namespace party
 			const auto address = *reinterpret_cast<uint64_t*>(0x1453DABB8_g) + (0x25780 * local_client_num) + 0x10;
 			return *reinterpret_cast<game::netadr_t*>(address);
 		}
+
+		void handle_info_response(const game::netadr_t& target, const network::data_view& data)
+		{
+			bool found_query = false;
+			server_query query{};
+
+			const utils::info_string info{data};
+
+			get_server_queries().access([&](std::vector<server_query>& server_queries)
+			{
+				for (auto i = server_queries.begin(); i != server_queries.end(); ++i)
+				{
+					if (i->host == target && i->challenge == info.get("challenge"))
+					{
+						found_query = true;
+						query = std::move(*i);
+						i = server_queries.erase(i);
+						break;
+					}
+				}
+			});
+
+			if (found_query)
+			{
+				const auto ping = std::chrono::high_resolution_clock::now() - query.query_time;
+				const auto ping_ms = std::chrono::duration_cast<std::chrono::milliseconds>(ping).count();
+
+				query.callback(true, query.host, info, static_cast<uint32_t>(ping_ms));
+			}
+		}
+
+		void cleanup_queried_servers()
+		{
+			std::vector<server_query> removed_queries{};
+
+			get_server_queries().access([&](std::vector<server_query>& server_queries)
+			{
+				size_t sent_queries = 0;
+
+				const auto now = std::chrono::high_resolution_clock::now();
+				for (auto i = server_queries.begin(); i != server_queries.end();)
+				{
+					if (!i->sent)
+					{
+						if (++sent_queries < 10)
+						{
+							send_server_query(*i);
+						}
+
+						++i;
+						continue;
+					}
+
+					if ((now - i->query_time) < 2s)
+					{
+						++i;
+						continue;
+					}
+
+					removed_queries.emplace_back(std::move(*i));
+					i = server_queries.erase(i);
+				}
+			});
+
+			const utils::info_string empty{};
+			for (const auto& query : removed_queries)
+			{
+				query.callback(false, query.host, empty, 0);
+			}
+		}
 	}
 
 	void query_server(const game::netadr_t& host, query_callback callback)
@@ -227,77 +297,10 @@ namespace party
 	{
 		void post_unpack() override
 		{
-			utils::hook::jump(0x141EE6030_g, connect_stub);
+			utils::hook::jump(0x141EE6030_g, &connect_stub);
 
-			network::on("infoResponse", [](const game::netadr_t& target, const network::data_view& data)
-			{
-				bool found_query = false;
-				server_query query{};
-
-				const utils::info_string info{data};
-
-				get_server_queries().access([&](std::vector<server_query>& server_queries)
-				{
-					for (auto i = server_queries.begin(); i != server_queries.end(); ++i)
-					{
-						if (i->host == target && i->challenge == info.get("challenge"))
-						{
-							found_query = true;
-							query = std::move(*i);
-							i = server_queries.erase(i);
-							break;
-						}
-					}
-				});
-
-				if (found_query)
-				{
-					const auto ping = std::chrono::high_resolution_clock::now() - query.query_time;
-					const auto ping_ms = std::chrono::duration_cast<std::chrono::milliseconds>(ping).count();
-
-					query.callback(true, query.host, info, static_cast<uint32_t>(ping_ms));
-				}
-			});
-
-			scheduler::loop([]
-			{
-				std::vector<server_query> removed_queries{};
-
-				get_server_queries().access([&](std::vector<server_query>& server_queries)
-				{
-					size_t sent_queries = 0;
-
-					const auto now = std::chrono::high_resolution_clock::now();
-					for (auto i = server_queries.begin(); i != server_queries.end();)
-					{
-						if (!i->sent)
-						{
-							if (++sent_queries < 10)
-							{
-								send_server_query(*i);
-							}
-
-							++i;
-							continue;
-						}
-
-						if ((now - i->query_time) < 2s)
-						{
-							++i;
-							continue;
-						}
-
-						removed_queries.emplace_back(std::move(*i));
-						i = server_queries.erase(i);
-					}
-				});
-
-				const utils::info_string empty{};
-				for (const auto& query : removed_queries)
-				{
-					query.callback(false, query.host, empty, 0);
-				}
-			}, scheduler::async, 200ms);
+			network::on("infoResponse", handle_info_response);
+			scheduler::loop(cleanup_queried_servers, scheduler::async, 200ms);
 		}
 
 		void pre_destroy() override
