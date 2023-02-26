@@ -26,7 +26,7 @@ Reverse engineering and analysis of Call of Duty: Black Ops 3. Very experimental
 
 ## Credits
 
-- Thanks to <a href="https://github.com/shiversoftdev">@shiversoftdev</a> for prividing the fixes from his <a href="https://github.com/shiversoftdev/t7patch">community patch</a>
+- Thanks to <a href="https://github.com/shiversoftdev">@shiversoftdev</a> for providing the fixes from his <a href="https://github.com/shiversoftdev/t7patch">community patch</a>
 
 ## Disclaimer
 
