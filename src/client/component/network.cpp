@@ -78,6 +78,9 @@ namespace network
 				throw std::runtime_error("Unable to create socket");
 			}
 
+			constexpr char broadcast = 1;
+			setsockopt(s, SOL_SOCKET, SO_BROADCAST, &broadcast, sizeof(broadcast));
+
 			socket_set_blocking(s, false);
 
 			const auto address = htonl(INADDR_ANY);
