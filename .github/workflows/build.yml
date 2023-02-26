@@ -36,7 +36,7 @@ jobs:
         uses: microsoft/setup-msbuild@v1.3.1
 
       - name: Generate project files
-        run: tools/premake5 vs2022 --dev-build
+        run: tools/premake5 vs2022 --no-check
 
       - name: Set up problem matching
         uses: ammaraskar/msvc-problem-matcher@master

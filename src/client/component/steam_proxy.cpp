@@ -187,7 +187,7 @@ namespace steam_proxy
 
 		void evaluate_ownership_state(const ownership_state state)
 		{
-#ifdef DEV_BUILD
+#if defined(DEV_BUILD) || defined(NO_CHECK)
 			(void)state;
 #else
 			switch (state)
