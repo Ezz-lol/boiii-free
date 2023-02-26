@@ -1,4 +1,7 @@
 #include <std_include.hpp>
+
+#include <utils/nt.hpp>
+
 #include "../steam.hpp"
 
 namespace steam
@@ -35,12 +38,18 @@ namespace steam
 
 	bool apps::BIsSubscribedApp(unsigned int appID)
 	{
-		return true;
+		static const auto has_campaign = std::filesystem::exists(::utils::nt::library{}.get_folder() / "zone/cp_common.xpak");
+		static const auto has_multiplayer = std::filesystem::exists(::utils::nt::library{}.get_folder() / "zone/mp_common.xpak");
+		static const auto has_zombies = std::filesystem::exists(::utils::nt::library{}.get_folder() / "zone/zm_common.xpak");
+		return appID == 366840 ? has_campaign
+			: appID == 366841 ? has_multiplayer
+			: appID == 366842 ? has_zombies
+			: true;
 	}
 
 	bool apps::BIsDlcInstalled(unsigned int appID)
 	{
-		return true;
+		return BIsSubscribedApp(appID);
 	}
 
 	unsigned int apps::GetEarliestPurchaseUnixTime(unsigned int nAppID)
