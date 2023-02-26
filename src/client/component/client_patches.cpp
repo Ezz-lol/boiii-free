@@ -38,8 +38,8 @@ namespace client_patches
 
 		void preload_map_stub(int localClientNum, const char* mapname, const char* gametype)
 		{
+			game::Com_GametypeSettings_SetGametype(gametype, false, false);
 			stop_zombies_intro_if_needed();
-
 			preload_map_hook.invoke(localClientNum, mapname, gametype);
 		}
 
