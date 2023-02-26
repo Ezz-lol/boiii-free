@@ -241,7 +241,7 @@ namespace network
 			if (game::is_server())
 			{
 				// Remove restrictions for rcon commands
-				utils::hook::call(0x140538D5C_g, con_restricted_execute_buf_stub); // SVC_RemoteCommand
+				utils::hook::call(0x140538D5C_g, &con_restricted_execute_buf_stub); // SVC_RemoteCommand
 			}
 
 			// TODO: Fix that
