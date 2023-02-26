@@ -130,6 +130,7 @@ namespace game
 	WEAK symbol<void*()> SV_AddTestClient{0x1422499A0, 0x14052E3E0};
 	WEAK symbol<void(client_s* cl_0, svscmd_type type, const char* fmt, ...)> SV_SendServerCommand{0x0, 0x140537F10};
 	WEAK symbol<bool(int clientNum)> SV_IsTestClient{0x14224B5C0, 0x14052FF40};
+	WEAK symbol<void(int controllerIndex, const char* server, MapPreload preload, bool savegame)> SV_SpawnServer{0x142253320, 0x140535B20};
 
 	// Utils
 	WEAK symbol<const char* (char* str)> I_CleanStr{0x1422E9C10, 0x140580E80};

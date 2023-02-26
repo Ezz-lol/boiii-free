@@ -48,6 +48,13 @@ namespace game
 		MODE_NETWORK_INVALID = 0x3,
 	};
 
+	enum MapPreload
+	{
+		MAP_PRELOAD_NONE = 0x0,
+		MAP_PRELOAD_FRONTEND = 0x1,
+		MAP_PRELOAD_IN_GAME = 0x2,
+	};
+
 	enum bdLobbyErrorCode
 	{
 		BD_NO_ERROR = 0x0,
