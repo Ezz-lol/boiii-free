@@ -14,13 +14,108 @@ namespace dvars
 	namespace
 	{
 		bool initial_config_read = false;
-		utils::hook::detour dvar_register_new_hook;
 		utils::hook::detour dvar_set_variant_hook;
 
-		utils::hook::detour set_config_dvar_hook;
-		utils::hook::detour for_each_name_match_hook;
-		utils::hook::detour get_debug_name_hook;
+		void dvar_for_each_name_stub(void (*callback)(const char*))
+		{
+			for (int i = 0; i < *game::g_dvarCount; ++i)
+			{
+				const auto offset = game::is_server() ? 136 : 160;
+				const auto* dvar = reinterpret_cast<game::dvar_t*>(&game::s_dvarPool[offset * i]);
 
+				if ((!game::Com_SessionMode_IsMode(game::MODE_COUNT) ||
+					!game::Dvar_IsSessionModeBaseDvar(dvar)) &&
+					(dvar->flags & 0x8000) == 0)
+				{
+					if (dvar->debugName)
+					{
+						callback(dvar->debugName);
+					}
+				}
+			}
+		}
+
+		void dvar_for_each_name_client_num_stub(int localClientNum, void (*callback)(int, const char*))
+		{
+			for (int i = 0; i < *game::g_dvarCount; ++i)
+			{
+				const auto offset = game::is_server() ? 136 : 160;
+				const auto* dvar = reinterpret_cast<game::dvar_t*>(&game::s_dvarPool[offset * i]);
+
+				if ((!game::Com_SessionMode_IsMode(game::MODE_COUNT) ||
+					!game::Dvar_IsSessionModeBaseDvar(dvar)) &&
+					(dvar->flags & 0x8000) == 0)
+				{
+					if (dvar->debugName)
+					{
+						callback(localClientNum, dvar->debugName);
+					}
+				}
+			}
+		}
+
+		void read_dvar_name_hashes_data(std::unordered_map<std::uint32_t, std::string>& map)
+		{
+			const auto path = game::get_appdata_path() / "data" / "lookup_tables" / "dvar_lookup_table.csv";
+			std::string data;
+
+			if (!utils::io::read_file(path, &data))
+			{
+				printf("Failed to read Dvar lookup table\n");
+				return;
+			}
+
+			std::istringstream stream(data);
+			std::string line;
+
+			while (std::getline(stream, line, '\n'))
+			{
+				if (utils::string::starts_with(line, "//"))
+				{
+					continue;
+				}
+
+				const auto separator = line.find(',');
+
+				if (separator == std::string::npos)
+				{
+					continue;
+				}
+
+				const auto debug_name = line.substr(separator + 1);
+
+				if (!debug_name.empty())
+				{
+					std::istringstream hash_string(line.substr(0, separator));
+					std::uint32_t hash_value;
+
+					hash_string >> hash_value;
+
+					map.emplace(hash_value, debug_name);
+				}
+			}
+		}
+
+		void copy_dvar_names_to_pool()
+		{
+			std::unordered_map<std::uint32_t, std::string> dvar_hash_name_map;
+			read_dvar_name_hashes_data(dvar_hash_name_map);
+
+			for (int i = 0; i < *game::g_dvarCount; ++i)
+			{
+				const auto offset = game::is_server() ? 136 : 160;
+				auto* dvar = reinterpret_cast<game::dvar_t*>(&game::s_dvarPool[offset * i]);
+
+				if (!dvar->debugName)
+				{
+					const auto it = dvar_hash_name_map.find(dvar->name);
+					if (it != dvar_hash_name_map.end())
+					{
+						dvar->debugName = game::CopyString(it->second.data());
+					}
+				}
+			}
+		}
 
 		const std::string get_config_file_path()
 		{
@@ -79,14 +174,29 @@ namespace dvars
 		}
 	}
 
-	class component final : public client_component
+	class component final : public generic_component
 	{
 	public:
 		void post_unpack() override
 		{
-			scheduler::once(read_archive_dvars, scheduler::pipeline::main);
+			if (!game::is_server())
+			{
+				scheduler::once(read_archive_dvars, scheduler::pipeline::main);
+				dvar_set_variant_hook.create(0x1422C9A90_g, dvar_set_variant_stub);
 
-			dvar_set_variant_hook.create(0x1422C9A90_g, dvar_set_variant_stub);
+				// Show all known dvars in console
+				utils::hook::jump(0x1422BD890_g, dvar_for_each_name_stub);
+				utils::hook::jump(0x1422BD7E0_g, dvar_for_each_name_client_num_stub);
+			}
+
+			scheduler::once(copy_dvar_names_to_pool, scheduler::pipeline::main);
+
+			// All dvars are recognized as command
+			utils::hook::nop(game::select(0x14215297A, 0x14050949A), 2);
+			// Show all dvars in dvarlist command
+			utils::hook::nop(game::select(0x142152C87, 0x140509797), 6);
+			// Show all dvars in dvardump command
+			utils::hook::nop(game::select(0x142152659, 0x140509179), 6);
 		}
 	};
 }

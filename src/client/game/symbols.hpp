@@ -78,7 +78,11 @@ namespace game
 	WEAK symbol<TLSData*()> Sys_GetTLS{0x142184210, 0x140525EB0};
 	WEAK symbol<TLSData*()> Sys_IsDatabaseReady{0x1421844C0};
 
+	// Unnamed
+	WEAK symbol<const char* (const char* name)> CopyString{0x1422ACC80, 0x14056BD70};
+
 	// Dvar
+	WEAK symbol<bool(const dvar_t* dvar)> Dvar_IsSessionModeBaseDvar{0x1422C2E00, 0x140576890};
 	WEAK symbol<dvar_t*(const char* dvarName)> Dvar_FindVar{0x1422BD730, 0x140575540};
 	WEAK symbol<unsigned int(const char* str)> Dvar_GenerateHash{0x14133DBF0};
 	WEAK symbol<dvar_t*(unsigned int hash)> Dvar_FindMalleableVar{0x1422BD6A0};
@@ -93,8 +97,6 @@ namespace game
 	WEAK symbol<void(const char* dvarName, const char* string, bool createIfMissing)> Dvar_SetFromStringByName{
 		0x1422C7F60
 	};
-	WEAK symbol<char> s_dvarPool{0x157AC8220};
-	WEAK symbol<int> g_dvarCount{0x157AC81CC};
 
 	// UI
 	WEAK symbol<void(bool frontend)> UI_CoD_Init{0x141F298B0, 0x0};
@@ -136,7 +138,6 @@ namespace game
 	WEAK symbol<const char* (char* str)> I_CleanStr{0x1422E9C10, 0x140580E80};
 
 	// Variables
-
 	WEAK symbol<cmd_function_s> cmd_functions{0x15689FF58, 0x14946F860};
 	WEAK symbol<CmdArgs> sv_cmd_args{0x15689CE30, 0x14944C740};
 
@@ -147,6 +148,9 @@ namespace game
 	WEAK symbol<SOCKET> ip_socket{0x157E77818, 0x14A640988};
 
 	WEAK symbol<Join> s_join{0x15574C640};
+
+	WEAK symbol<char> s_dvarPool{0x157AC8220, 0x14A3CB620};
+	WEAK symbol<int> g_dvarCount{0x157AC81CC, 0x14A3CB5FC};
 
 	namespace s_wcd
 	{

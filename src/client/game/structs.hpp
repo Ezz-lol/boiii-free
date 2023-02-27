@@ -736,6 +736,7 @@ namespace game
 	struct dvar_t
 	{
 		dvarStrHash_t name;
+		char _pad[0x4];
 		const char* debugName;
 		const char* description;
 		unsigned int flags;
