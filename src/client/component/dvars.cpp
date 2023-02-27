@@ -65,6 +65,9 @@ namespace dvars
 				return;
 			}
 
+			const auto [beg, end] = std::ranges::remove(data, '\r');
+			data.erase(beg, end);
+
 			std::istringstream stream(data);
 			std::string line;
 
