@@ -23,14 +23,12 @@ namespace dvars
 				const auto offset = game::is_server() ? 136 : 160;
 				const auto* dvar = reinterpret_cast<game::dvar_t*>(&game::s_dvarPool[offset * i]);
 
-				if ((!game::Com_SessionMode_IsMode(game::MODE_COUNT) ||
-					!game::Dvar_IsSessionModeBaseDvar(dvar)) &&
-					(dvar->flags & 0x8000) == 0)
+				if (dvar->debugName //
+					&& (dvar->flags & 0x8000) == 0 //
+					&& (!game::Com_SessionMode_IsMode(game::MODE_COUNT)
+						|| !game::Dvar_IsSessionModeBaseDvar(dvar)))
 				{
-					if (dvar->debugName)
-					{
-						callback(dvar->debugName);
-					}
+					callback(dvar->debugName);
 				}
 			}
 		}
@@ -42,21 +40,19 @@ namespace dvars
 				const auto offset = game::is_server() ? 136 : 160;
 				const auto* dvar = reinterpret_cast<game::dvar_t*>(&game::s_dvarPool[offset * i]);
 
-				if ((!game::Com_SessionMode_IsMode(game::MODE_COUNT) ||
-					!game::Dvar_IsSessionModeBaseDvar(dvar)) &&
-					(dvar->flags & 0x8000) == 0)
+				if (dvar->debugName //
+					&& (dvar->flags & 0x8000) == 0 //
+					&& (!game::Com_SessionMode_IsMode(game::MODE_COUNT)
+						|| !game::Dvar_IsSessionModeBaseDvar(dvar)))
 				{
-					if (dvar->debugName)
-					{
-						callback(localClientNum, dvar->debugName);
-					}
+					callback(localClientNum, dvar->debugName);
 				}
 			}
 		}
 
 		void read_dvar_name_hashes_data(std::unordered_map<std::uint32_t, std::string>& map)
 		{
-			const auto path = game::get_appdata_path() / "data" / "lookup_tables" / "dvar_lookup_table.csv";
+			const auto path = game::get_appdata_path() / "data/lookup_tables/dvar_lookup_table.csv";
 			std::string data;
 
 			if (!utils::io::read_file(path, &data))
@@ -120,7 +116,7 @@ namespace dvars
 			}
 		}
 
-		const std::string get_config_file_path()
+		std::string get_config_file_path()
 		{
 			return "players/user/config.cfg";
 		}
@@ -134,16 +130,20 @@ namespace dvars
 				const auto* dvar = reinterpret_cast<const game::dvar_t*>(&game::s_dvarPool[160 * i]);
 
 				if (!dvar->debugName)
+				{
 					continue;
+				}
 
-				auto name = dvar->debugName;
-				auto value = game::Dvar_DisplayableValue(dvar);
+				const auto name = dvar->debugName;
+				const auto value = game::Dvar_DisplayableValue(dvar);
 
 				config_buffer.append(utils::string::va("set %s \"%s\"\n", name, value));
 			}
 
 			if (config_buffer.length() == 0)
+			{
 				return;
+			}
 
 			utils::io::write_file(get_config_file_path(), config_buffer);
 		}
