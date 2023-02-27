@@ -13,6 +13,7 @@ namespace client_patches
 	namespace
 	{
 		utils::hook::detour preload_map_hook;
+		utils::hook::detour sv_addtestclient_hook;
 
 		void stop_zombies_intro_if_needed()
 		{
@@ -41,6 +42,18 @@ namespace client_patches
 			game::Com_GametypeSettings_SetGametype(gametype, false, false);
 			stop_zombies_intro_if_needed();
 			preload_map_hook.invoke(localClientNum, mapname, gametype);
+		}
+
+		int sv_addtestclient_stub()
+		{
+			const auto state = reinterpret_cast<int*>(0x1576FB318_g);
+
+			if (*state == 0)
+			{
+				return 0;
+			}
+
+			return sv_addtestclient_hook.invoke<int>();
 		}
 
 		void reduce_process_affinity()
@@ -82,6 +95,8 @@ namespace client_patches
 			utils::hook::set(0x15AAEB254_g, mixer_open_stub);
 
 			preload_map_hook.create(0x14135A1E0_g, preload_map_stub);
+
+			sv_addtestclient_hook.create(0x1422499A0_g, sv_addtestclient_stub);
 		}
 	};
 }
