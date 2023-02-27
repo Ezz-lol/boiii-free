@@ -24,6 +24,10 @@ Reverse engineering and analysis of Call of Duty: Black Ops 3. Very experimental
 - [x] P2P multiplayer
 - [x] Dedicated Servers
 
+## Technical Writeups
+
+- <a href="https://momo5502.com/posts/2022-11-17-reverse-engineering-integrity-checks-in-black-ops-3/">Reverse engineering integrity checks in Black Ops 3</a>
+
 ## Credits
 
 - Thanks to <a href="https://github.com/shiversoftdev">@shiversoftdev</a> for providing the fixes from his <a href="https://github.com/shiversoftdev/t7patch">community patch</a>
