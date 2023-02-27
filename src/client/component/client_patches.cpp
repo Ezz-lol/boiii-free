@@ -44,18 +44,6 @@ namespace client_patches
 			preload_map_hook.invoke(localClientNum, mapname, gametype);
 		}
 
-		int sv_addtestclient_stub()
-		{
-			const auto state = reinterpret_cast<int*>(0x1576FB318_g);
-
-			if (*state == 0)
-			{
-				return 0;
-			}
-
-			return sv_addtestclient_hook.invoke<int>();
-		}
-
 		void reduce_process_affinity()
 		{
 			const DWORD_PTR affinity = (1ULL << (std::min(std::thread::hardware_concurrency(), 4U))) - 1;
@@ -95,8 +83,6 @@ namespace client_patches
 			utils::hook::set(0x15AAEB254_g, mixer_open_stub);
 
 			preload_map_hook.create(0x14135A1E0_g, preload_map_stub);
-
-			sv_addtestclient_hook.create(0x1422499A0_g, sv_addtestclient_stub);
 		}
 	};
 }
