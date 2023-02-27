@@ -78,6 +78,22 @@ namespace getinfo
 		return (rand() % 2) + 1;
 	}
 
+	bool is_host()
+	{
+		if (game::is_server())
+		{
+			return true;
+		}
+
+		const auto client_states = *reinterpret_cast<uint64_t*>(0x1576FB318_g);
+		if (!client_states)
+		{
+			return false;
+		}
+
+		return true;
+	}
+
 	struct component final : generic_component
 	{
 		void post_unpack() override

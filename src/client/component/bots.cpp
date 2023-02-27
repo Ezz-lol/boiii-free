@@ -8,6 +8,7 @@
 #include <utils/string.hpp>
 
 #include <game/game.hpp>
+#include "getinfo.hpp"
 
 namespace bots
 {
@@ -126,13 +127,9 @@ namespace bots
 
 			command::add("spawnBot", [](const command::params& params)
 			{
-				if (!game::is_server())
+				if (!getinfo::is_host())
 				{
-					const auto client_states = *reinterpret_cast<uint64_t*>(0x1576FB318_g);
-					if (!client_states)
-					{
-						return;
-					}
+					return;
 				}
 
 				size_t count = 1;
