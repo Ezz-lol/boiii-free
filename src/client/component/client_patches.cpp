@@ -13,7 +13,6 @@ namespace client_patches
 	namespace
 	{
 		utils::hook::detour preload_map_hook;
-		utils::hook::detour sv_addtestclient_hook;
 
 		void stop_zombies_intro_if_needed()
 		{
