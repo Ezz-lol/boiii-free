@@ -13,6 +13,7 @@ namespace dvars
 {
 	namespace
 	{
+		std::atomic_bool dvar_write_scheduled{false};
 		bool initial_config_read = false;
 		utils::hook::detour dvar_set_variant_hook;
 
@@ -148,13 +149,27 @@ namespace dvars
 			utils::io::write_file(get_config_file_path(), config_buffer);
 		}
 
+		void schedule_dvar_write()
+		{
+			if (dvar_write_scheduled.exchange(true))
+			{
+				return;
+			}
+
+			scheduler::once([]
+			{
+				dvar_write_scheduled = false;
+				write_archive_dvars();
+			}, scheduler::main, 10s);
+		}
+
 		void dvar_set_variant_stub(game::dvar_t* dvar, game::DvarValue* value, unsigned int source)
 		{
 			dvar_set_variant_hook.invoke(dvar, value, source);
 
 			if (initial_config_read && dvar->debugName)
 			{
-				write_archive_dvars();
+				schedule_dvar_write();
 			}
 		}
 
