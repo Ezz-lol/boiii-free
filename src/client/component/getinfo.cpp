@@ -86,12 +86,7 @@ namespace getinfo
 		}
 
 		const auto client_states = *reinterpret_cast<uint64_t*>(0x1576FB318_g);
-		if (!client_states)
-		{
-			return false;
-		}
-
-		return true;
+		return client_states == 0;
 	}
 
 	struct component final : generic_component
