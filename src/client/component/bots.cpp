@@ -8,6 +8,7 @@
 #include <utils/string.hpp>
 
 #include <game/game.hpp>
+#include "getinfo.hpp"
 
 namespace bots
 {
@@ -126,6 +127,11 @@ namespace bots
 
 			command::add("spawnBot", [](const command::params& params)
 			{
+				if (!getinfo::is_host())
+				{
+					return;
+				}
+
 				size_t count = 1;
 				if (params.size() > 1)
 				{
