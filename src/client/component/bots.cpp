@@ -126,6 +126,15 @@ namespace bots
 
 			command::add("spawnBot", [](const command::params& params)
 			{
+				if (!game::is_server())
+				{
+					const auto client_states = *reinterpret_cast<uint64_t*>(0x1576FB318_g);
+					if (!client_states)
+					{
+						return;
+					}
+				}
+
 				size_t count = 1;
 				if (params.size() > 1)
 				{
