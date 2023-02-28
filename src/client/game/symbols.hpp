@@ -84,7 +84,7 @@ namespace game
 	// Dvar
 	WEAK symbol<bool(const dvar_t* dvar)> Dvar_IsSessionModeBaseDvar{0x1422C2E00, 0x140576890};
 	WEAK symbol<dvar_t*(const char* dvarName)> Dvar_FindVar{0x1422BD730, 0x140575540};
-	WEAK symbol<unsigned int(const char* str)> Dvar_GenerateHash{0x14133DBF0};
+	WEAK symbol<unsigned int(const char* str)> Dvar_GenerateHash{0x14133DBF0, 0x140185800};
 	WEAK symbol<dvar_t*(unsigned int hash)> Dvar_FindMalleableVar{0x1422BD6A0};
 	WEAK symbol<const char*(const dvar_t* dvar)> Dvar_GetDebugName{0x1422BDCB0};
 	WEAK symbol<const char*(const dvar_t* dvar)> Dvar_GetString{0x1422BFFF0, 0x140575E30};
