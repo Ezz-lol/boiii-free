@@ -51,7 +51,7 @@ namespace script
 			auto rawfile = static_cast<game::RawFile*>(allocator.allocate(24));
 			rawfile->name = name.c_str();
 			rawfile->buffer = file_string;
-			rawfile->len = data.length();
+			rawfile->len = static_cast<int>(data.length());
 
 			globals.loaded_scripts[name] = rawfile;
 		}
