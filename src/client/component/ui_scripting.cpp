@@ -313,7 +313,7 @@ namespace ui_scripting
 				globals.raw_script_name = target_script;
 
 				return game::XAssetHeader{
-					.luaFile = reinterpret_cast<game::LuaFile*>(1) //
+					.luaFile = reinterpret_cast<game::RawFile*>(1) //
 				};
 			}
 

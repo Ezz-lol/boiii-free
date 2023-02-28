@@ -556,7 +556,7 @@ namespace game
 		ASSET_TYPE_FULL_COUNT = 0x6C,
 	};
 
-	struct LuaFile
+	struct RawFile
 	{
 		const char* name;
 		int len;
@@ -1684,7 +1684,7 @@ namespace game
 		BeamDef* beamDef;
 		StreamerHint* streamerHint;*/
 		void* data;
-		LuaFile* luaFile;
+		RawFile* luaFile;
 	};
 
 	struct XAsset
