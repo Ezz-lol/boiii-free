@@ -80,13 +80,7 @@ namespace getinfo
 
 	bool is_host()
 	{
-		if (game::is_server())
-		{
-			return true;
-		}
-
-		const auto client_states = *reinterpret_cast<uint64_t*>(0x1576FB318_g);
-		return client_states == 0;
+		return game::SV_Loaded() && (game::is_server() || !game::Com_IsRunningUILevel());
 	}
 
 	struct component final : generic_component
