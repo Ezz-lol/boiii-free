@@ -53,7 +53,7 @@ namespace dvars
 
 		void read_dvar_name_hashes_data(std::unordered_map<std::uint32_t, std::string>& map)
 		{
-			const auto path = game::get_appdata_path() / "data/lookup_tables/dvar_lookup_table.csv";
+			const auto path = game::get_appdata_path() / "data/lookup_tables/dvar_list.txt";
 			std::string data;
 
 			if (!utils::io::read_file(path, &data))
@@ -66,32 +66,18 @@ namespace dvars
 			data.erase(beg, end);
 
 			std::istringstream stream(data);
-			std::string line;
+			std::string debug_name;
 
-			while (std::getline(stream, line, '\n'))
+			while (std::getline(stream, debug_name, '\n'))
 			{
-				if (utils::string::starts_with(line, "//"))
+				if (utils::string::starts_with(debug_name, "//"))
 				{
 					continue;
 				}
-
-				const auto separator = line.find(',');
-
-				if (separator == std::string::npos)
-				{
-					continue;
-				}
-
-				const auto debug_name = line.substr(separator + 1);
 
 				if (!debug_name.empty())
 				{
-					std::istringstream hash_string(line.substr(0, separator));
-					std::uint32_t hash_value;
-
-					hash_string >> hash_value;
-
-					map.emplace(hash_value, debug_name);
+					map.emplace(game::Dvar_GenerateHash(debug_name.data()), debug_name);
 				}
 			}
 		}
@@ -122,6 +108,23 @@ namespace dvars
 			return "players/user/config.cfg";
 		}
 
+		bool is_archive_dvar(const game::dvar_t* dvar)
+		{
+			if (!dvar->debugName)
+			{
+				return false;
+			}
+
+			//TODO: Fix archive dvars not stripping names from registered dvars
+			if (dvar->debugName == "cg_enable_unsafe_lua_functions"s ||
+			    dvar->debugName == "cg_unlockall_loot"s)
+			{
+				return true;
+			}
+			
+			return (dvar->flags & game::DVAR_ARCHIVE);
+		}
+
 		void write_archive_dvars()
 		{
 			std::string config_buffer;
@@ -130,7 +133,7 @@ namespace dvars
 			{
 				const auto* dvar = reinterpret_cast<const game::dvar_t*>(&game::s_dvarPool[160 * i]);
 
-				if (!dvar->debugName)
+				if (!is_archive_dvar(dvar))
 				{
 					continue;
 				}
