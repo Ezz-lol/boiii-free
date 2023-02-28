@@ -170,7 +170,7 @@ namespace dvars
 		{
 			dvar_set_variant_hook.invoke(dvar, value, source);
 
-			if (initial_config_read && dvar->debugName)
+			if (initial_config_read && is_archive_dvar(dvar))
 			{
 				schedule_dvar_write();
 			}
