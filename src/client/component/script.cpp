@@ -24,7 +24,7 @@ namespace script
 		game::RawFile* get_loaded_script(const std::string& name)
 		{
 			const auto itr = globals.loaded_scripts.find(name);
-			return (itr == globals.loaded_scripts.end()) ? NULL : itr->second;
+			return (itr == globals.loaded_scripts.end()) ? nullptr : itr->second;
 		}
 
 		void print_loading_script(const std::string& name)
@@ -35,20 +35,25 @@ namespace script
 		void load_script(std::string& name, const std::string& data)
 		{
 			auto& allocator = *utils::memory::get_allocator();
-			auto file_string = static_cast<char*>(allocator.allocate(data.length()));
-			std::memcpy(file_string, data.data(), data.length());
+			const auto* file_string = allocator.duplicate_string(data);
 
 			const utils::nt::library host{};
-			auto appdata_path = (game::get_appdata_path() / "data/").generic_string();
-			auto host_path = (host.get_folder() / "boiii/").generic_string();
-			std::string::size_type i = name.find(appdata_path);
+			const auto appdata_path = (game::get_appdata_path() / "data/").generic_string();
+			const auto host_path = (host.get_folder() / "boiii/").generic_string();
+
+			auto i = name.find(appdata_path);
 			if (i != std::string::npos)
+			{
 				name.erase(i, appdata_path.length());
+			}
+
 			i = name.find(host_path);
 			if (i != std::string::npos)
+			{
 				name.erase(i, host_path.length());
+			}
 
-			auto rawfile = static_cast<game::RawFile*>(allocator.allocate(24));
+			auto* rawfile = allocator.allocate<game::RawFile>();
 			rawfile->name = name.c_str();
 			rawfile->buffer = file_string;
 			rawfile->len = static_cast<int>(data.length());
@@ -89,19 +94,21 @@ namespace script
 			load_scripts_folder((host.get_folder() / "boiii/scripts").string());
 		}
 
-		game::RawFile* db_findxassetheader_stub(game::XAssetType type, const char* name, bool errorIfMissing, int waitTime)
+		game::RawFile* db_findxassetheader_stub(game::XAssetType type, const char* name, bool errorIfMissing,
+		                                        int waitTime)
 		{
 			if (type != game::ASSET_TYPE_SCRIPTPARSETREE)
 			{
 				return db_findxassetheader_hook.invoke<game::RawFile*>(type, name, errorIfMissing, waitTime);
 			}
 
-			auto asset_header = db_findxassetheader_hook.invoke<game::RawFile*>(type, name, errorIfMissing, waitTime);
+			auto* asset_header = db_findxassetheader_hook.invoke<game::RawFile*>(type, name, errorIfMissing, waitTime);
 			if (globals.loaded_scripts.contains(name))
 			{
-				auto script = get_loaded_script(name);
+				auto* script = get_loaded_script(name);
 
-				utils::hook::copy((void*)(script->buffer + 0x8), asset_header->buffer + 0x8, 4); // Copy over the checksum of the original script
+				// Copy over the checksum of the original script
+				utils::hook::copy(const_cast<char*>(script->buffer + 0x8), asset_header->buffer + 0x8, 4);
 
 				return script;
 			}
@@ -109,7 +116,7 @@ namespace script
 			return asset_header;
 		}
 	}
-		
+
 	struct component final : generic_component
 	{
 		void post_unpack() override
@@ -125,7 +132,6 @@ namespace script
 
 			db_findxassetheader_hook.create(game::select(0x141420ED0, 0x1401D5FB0), db_findxassetheader_stub);
 		}
-
 	};
 };
 
