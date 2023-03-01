@@ -19,23 +19,34 @@ namespace utils::hook
 {
 	namespace
 	{
-		uint8_t* allocate_somewhere_near(const void* base_address, const size_t size)
+		size_t get_allocation_granularity()
 		{
-			size_t offset = 0;
+			SYSTEM_INFO info{};
+			GetSystemInfo(&info);
+
+			return info.dwAllocationGranularity;
+		}
+
+		uint8_t* allocate_somewhere_near(const void* base_address, const size_t granularity, const size_t size)
+		{
+			size_t target_address = reinterpret_cast<size_t>(base_address) -  (1ull << 31);
+			target_address &= ~(granularity - 1);
+
 			while (true)
 			{
-				offset += size;
-				auto* target_address = static_cast<const uint8_t*>(base_address) - offset;
-				if (is_relatively_far(base_address, target_address))
+				target_address += granularity;
+
+				auto* target_ptr = reinterpret_cast<uint8_t*>(target_address);
+				if (is_relatively_far(base_address, target_ptr))
 				{
 					return nullptr;
 				}
 
-				const auto res = VirtualAlloc(const_cast<uint8_t*>(target_address), size, MEM_RESERVE | MEM_COMMIT,
+				const auto res = VirtualAlloc(target_ptr, size, MEM_RESERVE | MEM_COMMIT,
 				                              PAGE_EXECUTE_READWRITE);
 				if (res)
 				{
-					if (is_relatively_far(base_address, target_address))
+					if (is_relatively_far(base_address, target_ptr))
 					{
 						VirtualFree(res, 0, MEM_RELEASE);
 						return nullptr;
@@ -54,8 +65,10 @@ namespace utils::hook
 			memory(const void* ptr)
 				: memory()
 			{
-				this->length_ = 0x1000;
-				this->buffer_ = allocate_somewhere_near(ptr, this->length_);
+				static const auto allocation_granularity = get_allocation_granularity();
+				this->length_ = allocation_granularity;
+
+				this->buffer_ = allocate_somewhere_near(ptr, allocation_granularity, this->length_);
 				if (!this->buffer_)
 				{
 					throw std::runtime_error("Failed to allocate");
@@ -228,12 +241,12 @@ namespace utils::hook
 
 	asmjit::Error assembler::call(void* target)
 	{
-		return Assembler::call(size_t(target));
+		return Assembler::call(reinterpret_cast<size_t>(target));
 	}
 
 	asmjit::Error assembler::jmp(void* target)
 	{
-		return Assembler::jmp(size_t(target));
+		return Assembler::jmp(reinterpret_cast<size_t>(target));
 	}
 
 	detour::detour()
@@ -327,7 +340,8 @@ namespace utils::hook
 		}
 	}
 
-	std::optional<std::pair<void*, void*>> iat(const nt::library& library, const std::string& target_library, const std::string& process, void* stub)
+	std::optional<std::pair<void*, void*>> iat(const nt::library& library, const std::string& target_library,
+	                                           const std::string& process, void* stub)
 	{
 		if (!library.is_valid()) return {};
 
@@ -387,9 +401,9 @@ namespace utils::hook
 
 	bool is_relatively_far(const void* pointer, const void* data, const int offset)
 	{
-		const int64_t diff = size_t(data) - (size_t(pointer) + offset);
-		const auto small_diff = int32_t(diff);
-		return diff != int64_t(small_diff);
+		const int64_t diff = reinterpret_cast<size_t>(data) - (reinterpret_cast<size_t>(pointer) + offset);
+		const auto small_diff = static_cast<int32_t>(diff);
+		return diff != static_cast<int64_t>(small_diff);
 	}
 
 	void call(void* pointer, void* data)
@@ -409,9 +423,10 @@ namespace utils::hook
 
 		uint8_t copy_data[5];
 		copy_data[0] = 0xE8;
-		*reinterpret_cast<int32_t*>(&copy_data[1]) = int32_t(size_t(data) - (size_t(pointer) + 5));
+		*reinterpret_cast<int32_t*>(&copy_data[1]) = static_cast<int32_t>(reinterpret_cast<size_t>(data) - (
+			reinterpret_cast<size_t>(pointer) + 5));
 
-		auto* patch_pointer = PBYTE(pointer);
+		auto* patch_pointer = static_cast<PBYTE>(pointer);
 		copy(patch_pointer, copy_data, sizeof(copy_data));
 	}
 
