@@ -277,6 +277,7 @@ namespace
 			{
 				validate_non_network_share();
 				remove_crash_file();
+				updater::update();
 
 				const auto client_binary = "BlackOps3.exe"s;
 				const auto server_binary = "BlackOps3_UnrankedDedicatedServer.exe"s;
@@ -289,7 +290,6 @@ namespace
 				if (!is_server)
 				{
 					trigger_high_performance_gpu_switch();
-					updater::update();
 
 					const auto launch = utils::flags::has_flag("launch");
 					if (!launch && !utils::nt::is_wine() && !launcher::run())
