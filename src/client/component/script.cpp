@@ -17,9 +17,7 @@ namespace script
 		struct globals_t
 		{
 			std::unordered_map<std::string, game::RawFile*> loaded_scripts;
-		};
-
-		globals_t globals;
+		} globals;
 
 		game::RawFile* get_loaded_script(const std::string& name)
 		{
@@ -37,9 +35,8 @@ namespace script
 			auto& allocator = *utils::memory::get_allocator();
 			const auto* file_string = allocator.duplicate_string(data);
 
-			const utils::nt::library host{};
 			const auto appdata_path = (game::get_appdata_path() / "data/").generic_string();
-			const auto host_path = (host.get_folder() / "boiii/").generic_string();
+			const auto host_path = (utils::nt::library{}.get_folder() / "boiii/").generic_string();
 
 			auto i = name.find(appdata_path);
 			if (i != std::string::npos)
@@ -94,15 +91,17 @@ namespace script
 			load_scripts_folder((host.get_folder() / "boiii/scripts").string());
 		}
 
-		game::RawFile* db_findxassetheader_stub(game::XAssetType type, const char* name, bool errorIfMissing,
-		                                        int waitTime)
+		game::RawFile* db_findxassetheader_stub(const game::XAssetType type, const char* name,
+		                                        const bool error_if_missing,
+		                                        const int wait_time)
 		{
 			if (type != game::ASSET_TYPE_SCRIPTPARSETREE)
 			{
-				return db_findxassetheader_hook.invoke<game::RawFile*>(type, name, errorIfMissing, waitTime);
+				return db_findxassetheader_hook.invoke<game::RawFile*>(type, name, error_if_missing, wait_time);
 			}
 
-			auto* asset_header = db_findxassetheader_hook.invoke<game::RawFile*>(type, name, errorIfMissing, waitTime);
+			auto* asset_header = db_findxassetheader_hook.invoke<game::RawFile*>(
+				type, name, error_if_missing, wait_time);
 			if (globals.loaded_scripts.contains(name))
 			{
 				auto* script = get_loaded_script(name);
