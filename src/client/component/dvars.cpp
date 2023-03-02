@@ -116,8 +116,7 @@ namespace dvars
 			}
 
 			//TODO: Fix archive dvars not stripping names from registered dvars
-			if (dvar->debugName == "cg_enable_unsafe_lua_functions"s ||
-			    dvar->debugName == "cg_unlockall_loot"s)
+			if (dvar->debugName == "cg_unlockall_loot"s)
 			{
 				return true;
 			}
