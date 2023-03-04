@@ -172,7 +172,6 @@ namespace scheduler
 				// some func called before R_EndFrame, maybe SND_EndFrame?
 			}
 
-			//g_run_frame_hook.create(0x14065C360_g, server_frame_stub); // GlassSv_Update
 			main_frame_hook.create(game::select(0x1420F8E00, 0x1405020E0), main_frame_stub);
 			// Com_Frame_Try_Block_Function
 		}
