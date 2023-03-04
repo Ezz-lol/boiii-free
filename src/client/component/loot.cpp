@@ -62,9 +62,9 @@ namespace loot
 			dvar_cg_unlockall_loot = game::Dvar_RegisterBool(game::Dvar_GenerateHash("cg_unlockall_loot"), "cg_unlockall_loot", false, (game::dvarFlags_e)0x0, "Unlocks blackmarket loot");
 			dvar_cg_unlockall_loot->debugName = "cg_unlockall_loot";
 
-			loot_getitemquantity_hook.create(0x141E82C90_g, loot_getitemquantity_stub);
-			liveinventory_getitemquantity_hook.create(0x141E090C0_g, liveinventory_getitemquantity_stub);
-			liveinventory_areextraslotspurchased_hook.create(0x141E089E0_g, liveinventory_areextraslotspurchased_stub);
+			loot_getitemquantity_hook.create(0x141E82C00_g, loot_getitemquantity_stub);
+			liveinventory_getitemquantity_hook.create(0x141E09030_g, liveinventory_getitemquantity_stub);
+			liveinventory_areextraslotspurchased_hook.create(0x141E08950_g, liveinventory_areextraslotspurchased_stub);
 
 			scheduler::once([]() {
 				if (dvar_cg_unlockall_loot->current.enabled)
@@ -76,4 +76,4 @@ namespace loot
 	};
 };
 
-REGISTER_COMPONENT(loot::component)
+REGISTER_COMPONENT_WORKING(loot::component)
