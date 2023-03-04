@@ -37,6 +37,18 @@ namespace game
 		return server;
 	}
 
+	bool is_client()
+	{
+		static const auto server = get_host_library().get_optional_header()->CheckSum == 0x888C368;
+		return server;
+	}
+
+	bool is_legacy_client()
+	{
+		static const auto server = get_host_library().get_optional_header()->CheckSum == 0x8880704;
+		return server;
+	}
+
 	std::filesystem::path get_appdata_path()
 	{
 		static const auto appdata_path = []

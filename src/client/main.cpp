@@ -314,6 +314,16 @@ namespace
 					throw std::runtime_error("Bad binary loaded into memory");
 				}
 
+				if (!is_server && !game::is_legacy_client())
+				{
+					if(game::is_client())
+					{
+						throw std::runtime_error("You are running the latest Steam update. We're working on supporting it. For the time being, however, you have to revert to the old binary.");
+					}
+
+					throw std::runtime_error("Bad binary loaded into memory");
+				}
+
 				patch_imports();
 
 				if (!component_loader::post_load())
