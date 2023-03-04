@@ -638,7 +638,7 @@ namespace arxan
 			// Searching them is quite slow.
 			// Maybe precomputing that might be better?
 
-			/*const auto intact_results = "89 04 8A 83 45 ? FF"_sig;
+			const auto intact_results = "89 04 8A 83 45 ? FF"_sig;
 			const auto split_results = "89 04 8A E9"_sig;
 
 			for (auto* i : intact_results)
@@ -649,9 +649,9 @@ namespace arxan
 			for (auto* i : split_results)
 			{
 				patch_split_basic_block_integrity_check(i);
-			}*/
+			}
 
-			search_and_patch_integrity_checks_precomputed();
+			//search_and_patch_integrity_checks_precomputed();
 		}
 
 		LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS info)
@@ -800,4 +800,4 @@ namespace arxan
 	};
 }
 
-REGISTER_COMPONENT(arxan::component)
+REGISTER_COMPONENT_WORKING(arxan::component)

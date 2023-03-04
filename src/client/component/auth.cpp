@@ -101,7 +101,8 @@ namespace auth
 				return 0x110000100000000 | (::utils::cryptography::random::get_integer() & ~0x80000000);
 			}
 
-			return get_key().get_hash();
+			//return get_key().get_hash();
+			return 0x110000100000001;
 		}();
 
 		return guid;
