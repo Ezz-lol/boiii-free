@@ -44,7 +44,7 @@ namespace party
 		{
 			scheduler::once([=]
 			{
-				const auto local_client = *reinterpret_cast<DWORD*>(0x14342355C_g);
+				const auto local_client = *reinterpret_cast<DWORD*>(0x14342155C_g);
 				const auto current_mode = game::Com_SessionMode_GetMode();
 				game::Com_SwitchMode(local_client, current_mode, mode, 6);
 			}, scheduler::main);
