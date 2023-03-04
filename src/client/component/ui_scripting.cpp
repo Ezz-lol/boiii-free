@@ -456,7 +456,7 @@ namespace ui_scripting
 			hks_package_require_hook.create(game::select(0x141D28EF0, 0x1403D7FC0), hks_package_require_stub);
 			ui_cod_init_hook.create(game::UI_CoD_Init, ui_cod_init_stub);
 			ui_cod_lobbyui_init_hook.create(game::UI_CoD_LobbyUI_Init, ui_cod_lobbyui_init_stub);
-			ui_shutdown_hook.create(game::UI_CoD_Shutdown, ui_shutdown_stub);
+			ui_shutdown_hook.create(game::select(0x14270DE00, 0x1404A1280), ui_shutdown_stub);
 			lua_cod_getrawfile_hook.create(game::select(0x141F0EFE0, 0x1404BCB70), lua_cod_getrawfile_stub);
 
 			if (game::is_server())
