@@ -37,4 +37,4 @@ namespace extension
 	};
 }
 
-REGISTER_COMPONENT(extension::component)
+REGISTER_COMPONENT_WORKING(extension::component)
