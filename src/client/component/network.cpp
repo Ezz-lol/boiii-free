@@ -237,22 +237,22 @@ namespace network
 	{
 		void post_unpack() override
 		{
-			utils::hook::nop(game::select(0x142332E76, 0x140596DF6), 4); // don't increment data pointer to optionally skip socket byte
-			utils::hook::call(game::select(0x142332E43, 0x140596DC3), read_socket_byte_stub); // optionally read socket byte
-			utils::hook::call(game::select(0x142332E81, 0x140596E01), verify_checksum_stub); // skip checksum verification
-			utils::hook::set<uint8_t>(game::select(0x14233305E, 0x140596F2E), 0); // don't add checksum to packet
+			utils::hook::nop(game::select(0x1423322B6, 0x140596DF6), 4); // don't increment data pointer to optionally skip socket byte
+			utils::hook::call(game::select(0x142332283, 0x140596DC3), read_socket_byte_stub); // optionally read socket byte
+			utils::hook::call(game::select(0x1423322C1, 0x140596E01), verify_checksum_stub); // skip checksum verification
+			utils::hook::set<uint8_t>(game::select(0x14233249E, 0x140596F2E), 0); // don't add checksum to packet
 
 			utils::hook::set<uint32_t>(game::select(0x14134C6E0, 0x14018E574), 5); // set initial connection state to challenging
 
 			// intercept command handling
 			utils::hook::call(game::select(0x14134D146, 0x14018EED0), utils::hook::assemble(handle_command_stub));
 
-			utils::hook::set<uint8_t>(game::select(0x14224E90D, 0x1405315F9), 0xEB); // don't kick clients without dw handle
+			utils::hook::set<uint8_t>(game::select(0x14224DEAD, 0x1405315F9), 0xEB); // don't kick clients without dw handle
 
 			// Skip DW stuff in NetAdr_ToString
-			utils::hook::set<uint8_t>(game::select(0x142173952, 0x140515881), 0xEB);
+			utils::hook::set<uint8_t>(game::select(0x142172EF2, 0x140515881), 0xEB);
 			// NA_IP -> NA_RAWIP in NetAdr_ToString
-			utils::hook::set<uint8_t>(game::select(0x142173934, 0x140515864), game::NA_RAWIP);
+			utils::hook::set<uint8_t>(game::select(0x142172ED4, 0x140515864), game::NA_RAWIP);
 
 			if (game::is_server())
 			{
@@ -264,9 +264,9 @@ namespace network
 			scheduler::once(create_ip_socket, scheduler::main);
 
 			// Kill lobby system
-			handle_packet_internal_hook.create(game::select(0x141EF8030, 0x1404A5B90), &handle_packet_internal_stub);
+			handle_packet_internal_hook.create(game::select(0x141EF7FE0, 0x1404A5B90), &handle_packet_internal_stub);
 		}
 	};
 }
 
-REGISTER_COMPONENT(network::component)
+REGISTER_COMPONENT_WORKING(network::component)
