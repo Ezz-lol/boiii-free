@@ -44,7 +44,7 @@ namespace party
 		{
 			scheduler::once([=]
 			{
-				const auto local_client = *reinterpret_cast<DWORD*>(0x14342355C_g);
+				const auto local_client = *reinterpret_cast<DWORD*>(0x14342155C_g);
 				const auto current_mode = game::Com_SessionMode_GetMode();
 				game::Com_SwitchMode(local_client, current_mode, mode, 6);
 			}, scheduler::main);
@@ -90,7 +90,7 @@ namespace party
 		{
 			const auto LobbyJoin_Begin = reinterpret_cast<bool(*)(int actionId, game::ControllerIndex_t controllerIndex,
 			                                                      game::LobbyType sourceLobbyType,
-			                                                      game::LobbyType targetLobbyType)>(0x141ED9540_g);
+			                                                      game::LobbyType targetLobbyType)>(0x141ED94D0_g);
 
 			if (!LobbyJoin_Begin(0, game::CONTROLLER_INDEX_FIRST, game::LOBBY_TYPE_PRIVATE, game::LOBBY_TYPE_PRIVATE))
 			{
@@ -205,7 +205,7 @@ namespace party
 		game::netadr_t get_connected_server()
 		{
 			constexpr auto local_client_num = 0ull;
-			const auto address = *reinterpret_cast<uint64_t*>(0x1453DABB8_g) + (0x25780 * local_client_num) + 0x10;
+			const auto address = *reinterpret_cast<uint64_t*>(0x1453D8BB8_g) + (0x25780 * local_client_num) + 0x10;
 			return *reinterpret_cast<game::netadr_t*>(address);
 		}
 
@@ -297,7 +297,7 @@ namespace party
 	{
 		void post_unpack() override
 		{
-			utils::hook::jump(0x141EE6030_g, &connect_stub);
+			utils::hook::jump(0x141EE5FE0_g, &connect_stub);
 
 			network::on("infoResponse", handle_info_response);
 			scheduler::loop(cleanup_queried_servers, scheduler::async, 200ms);
@@ -313,4 +313,4 @@ namespace party
 	};
 }
 
-REGISTER_COMPONENT(party::component)
+REGISTER_COMPONENT_WORKING(party::component)

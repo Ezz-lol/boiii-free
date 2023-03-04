@@ -454,10 +454,10 @@ namespace ui_scripting
 			utils::hook::call(game::select(0x141D4979A, 0x1403F233A), hks_load_stub);
 
 			hks_package_require_hook.create(game::select(0x141D28EF0, 0x1403D7FC0), hks_package_require_stub);
-			ui_cod_init_hook.create(game::select(0x141F298B0, 0x1404A0A50), ui_cod_init_stub);
-			ui_cod_lobbyui_init_hook.create(game::select(0x141F2C620, 0x1404A1F50), ui_cod_lobbyui_init_stub);
-			ui_shutdown_hook.create(game::select(0x14270E9C0, 0x1404A1280), ui_shutdown_stub);
-			lua_cod_getrawfile_hook.create(game::select(0x141F0F880, 0x1404BCB70), lua_cod_getrawfile_stub);
+			ui_cod_init_hook.create(game::UI_CoD_Init, ui_cod_init_stub);
+			ui_cod_lobbyui_init_hook.create(game::UI_CoD_LobbyUI_Init, ui_cod_lobbyui_init_stub);
+			ui_shutdown_hook.create(game::UI_CoD_Shutdown, ui_shutdown_stub);
+			lua_cod_getrawfile_hook.create(game::select(0x141F0EFE0, 0x1404BCB70), lua_cod_getrawfile_stub);
 
 			if (game::is_server())
 			{
@@ -507,4 +507,4 @@ namespace ui_scripting
 	};
 }
 
-REGISTER_COMPONENT(ui_scripting::component)
+REGISTER_COMPONENT_WORKING(ui_scripting::component)

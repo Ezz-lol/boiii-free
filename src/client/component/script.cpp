@@ -134,4 +134,4 @@ namespace script
 	};
 };
 
-REGISTER_COMPONENT(script::component)
+REGISTER_COMPONENT_WORKING(script::component)

@@ -118,7 +118,7 @@ namespace bots
 		void post_unpack() override
 		{
 			utils::hook::jump(game::select(0x141653B70, 0x1402732E0), get_bot_name);
-			utils::hook::call(game::select(0x142249AF7, 0x14052E53A), format_bot_string);
+			utils::hook::call(game::select(0x142249097, 0x14052E53A), format_bot_string);
 
 			if (!game::is_server())
 			{
@@ -157,4 +157,4 @@ namespace bots
 	};
 }
 
-REGISTER_COMPONENT(bots::component)
+REGISTER_COMPONENT_WORKING(bots::component)

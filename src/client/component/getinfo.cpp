@@ -24,7 +24,7 @@ namespace getinfo
 	int get_client_count()
 	{
 		int count = 0;
-		const auto client_states = *reinterpret_cast<uint64_t*>(game::select(0x1576FB318, 0x14A178E98));
+		const auto client_states = *reinterpret_cast<uint64_t*>(game::select(0x1576F9318, 0x14A178E98));
 		if (!client_states)
 		{
 			return 0;
@@ -46,7 +46,7 @@ namespace getinfo
 
 	int get_bot_count()
 	{
-		const auto client_states = *reinterpret_cast<uint64_t*>(game::select(0x1576FB318, 0x14A178E98));
+		const auto client_states = *reinterpret_cast<uint64_t*>(game::select(0x1576F9318, 0x14A178E98));
 		if (!client_states)
 		{
 			return 0;
@@ -69,7 +69,7 @@ namespace getinfo
 	{
 		int Com_SessionMode_GetGameMode()
 		{
-			return *reinterpret_cast<int*>(game::select(0x1568EF7F4, 0x14948DB04)) << 14 >> 28;
+			return *reinterpret_cast<int*>(game::select(0x1568ED7F4, 0x14948DB04)) << 14 >> 28;
 		}
 	}
 
@@ -119,4 +119,4 @@ namespace getinfo
 	};
 }
 
-REGISTER_COMPONENT(getinfo::component)
+REGISTER_COMPONENT_WORKING(getinfo::component)

@@ -71,7 +71,7 @@ namespace command
 		void post_unpack() override
 		{
 			// Disable whitelist
-			utils::hook::jump(game::select(0x1420EF190, 0x1404F9CD0), update_whitelist_stub);
+			utils::hook::jump(game::select(0x1420EE860, 0x1404F9CD0), update_whitelist_stub);
 		}
 	};
 
@@ -194,4 +194,4 @@ namespace command
 	}
 }
 
-REGISTER_COMPONENT(command::component)
+REGISTER_COMPONENT_WORKING(command::component)
