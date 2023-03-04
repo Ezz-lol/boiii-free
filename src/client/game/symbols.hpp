@@ -18,7 +18,7 @@ namespace game
 	WEAK symbol<void(const char* fmt, ...)> G_LogPrintf{0x0, 0x1402A7BB0};
 
 	// Com
-	WEAK symbol<void(int channel, unsigned int label, const char* fmt, ...)> Com_Printf{0x1421499C0, 0x140505630};
+	WEAK symbol<void(int channel, unsigned int label, const char* fmt, ...)> Com_Printf{0x142148F60, 0x140505630};
 	WEAK symbol<void(const char* file, int line, int code, const char* fmt, ...)> Com_Error_{0x1420F8BD0, 0x140501470};
 	WEAK symbol<bool(eModes mode)> Com_SessionMode_IsMode{0x1420F7DD0};
 	WEAK symbol<void(eNetworkModes networkMode)> Com_SessionMode_SetNetworkMode{0x1420F8010, 0x140500B80};
@@ -30,7 +30,7 @@ namespace game
 		0x14214AF30
 	};
 
-	WEAK symbol<void(int localClientNum, const char* text)> Cbuf_AddText{0x1420EC8B0, 0x1404F75B0};
+	WEAK symbol<void(int localClientNum, const char* text)> Cbuf_AddText{0x1420EC010, 0x1404F75B0};
 	WEAK symbol<void(int localClientNum, ControllerIndex_t controllerIndex, const char* buffer)> Cbuf_ExecuteBuffer{
 		0x14133BE10, 0x1404F78D0
 	};
@@ -74,7 +74,7 @@ namespace game
 
 	// Sys
 	WEAK symbol<int()> Sys_Milliseconds{0x142333430};
-	WEAK symbol<void()> Sys_ShowConsole{0x142333F80, 0x140597E40};
+	WEAK symbol<void()> Sys_ShowConsole{0x1423333C0, 0x140597E40};
 	WEAK symbol<TLSData*()> Sys_GetTLS{0x142184210, 0x140525EB0};
 	WEAK symbol<TLSData*()> Sys_IsDatabaseReady{0x1421844C0};
 
@@ -155,14 +155,14 @@ namespace game
 
 	namespace s_wcd
 	{
-		WEAK symbol<HWND> codLogo{0x157E77A50, 0x14A640BC0};
-		WEAK symbol<HFONT> hfBufferFont{0x157E77A58, 0x14A640BC8};
-		WEAK symbol<HWND> hWnd{0x157E77A40, 0x14A640BB0};
-		WEAK symbol<HWND> hwndBuffer{0x157E77A48, 0x14A640BB8};
-		WEAK symbol<HWND> hwndInputLine{0x157E77A60, 0x14A640BD0};
-		WEAK symbol<int> windowHeight{0x157E7806C, 0x14A6411DC};
-		WEAK symbol<int> windowWidth{0x157E78068, 0x14A6411D8};
-		WEAK symbol<WNDPROC> SysInputLineWndProc{0x157E78070, 0x14A6411E0};
+		WEAK symbol<HWND> codLogo{0x157E75A50, 0x14A640BC0};
+		WEAK symbol<HFONT> hfBufferFont{0x157E75A58, 0x14A640BC8};
+		WEAK symbol<HWND> hWnd{0x157E75A40, 0x14A640BB0};
+		WEAK symbol<HWND> hwndBuffer{0x157E75A48, 0x14A640BB8};
+		WEAK symbol<HWND> hwndInputLine{0x157E75A60, 0x14A640BD0};
+		WEAK symbol<int> windowHeight{0x157E7606C, 0x14A6411DC};
+		WEAK symbol<int> windowWidth{0x157E76068, 0x14A6411D8};
+		WEAK symbol<WNDPROC> SysInputLineWndProc{0x157E76070, 0x14A6411E0};
 	}
 
 	// Global game definitions
