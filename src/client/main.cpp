@@ -314,11 +314,11 @@ namespace
 					throw std::runtime_error("Bad binary loaded into memory");
 				}
 
-				if (!is_server && !game::is_legacy_client())
+				if (!is_server && !game::is_client())
 				{
-					if(game::is_client())
+					if(game::is_legacy_client())
 					{
-						throw std::runtime_error("You are running the latest Steam update. We're working on supporting it. For the time being, however, you have to revert to the old binary.");
+						throw std::runtime_error("You are using the outdated BlackOps3.exe. This version is not supported anymore. Please use the latest binary from Steam.");
 					}
 
 					throw std::runtime_error("Bad binary loaded into memory");
