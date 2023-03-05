@@ -48,4 +48,4 @@ namespace console_command
 	};
 }
 
-REGISTER_COMPONENT(console_command::component)
+REGISTER_COMPONENT_WORKING(console_command::component)

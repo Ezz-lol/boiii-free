@@ -67,5 +67,5 @@ namespace discord
 }
 
 #ifndef DEV_BUILD
-REGISTER_COMPONENT(discord::component)
+REGISTER_COMPONENT_WORKING(discord::component)
 #endif

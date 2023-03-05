@@ -92,4 +92,4 @@ namespace dedicated_patches
 	};
 }
 
-REGISTER_COMPONENT(dedicated_patches::component)
+REGISTER_COMPONENT_WORKING(dedicated_patches::component)
