@@ -69,6 +69,43 @@ namespace client_patches
 		{
 			return MMSYSERR_NODRIVER;
 		}
+
+		bool is_mod_loaded_stub()
+		{
+			return false;
+		}
+
+		void patch_is_mod_loaded_checks()
+		{
+			const std::vector<uintptr_t> is_mod_loaded_addresses =
+			{
+				{ 0x1420F7484_g },
+				{ 0x1420F74A4_g },
+				{ 0x1420F73E4_g },
+				{ 0x1420F73B4_g },
+				{ 0x1420F6E57_g },
+				{ 0x1413E6A54_g },
+				{ 0x1415E7EBB_g },
+				{ 0x1415E87BB_g },
+				{ 0x1415EBAC9_g },
+				{ 0x1415F1F09_g },
+				{ 0x1415F1FB9_g },
+				{ 0x1415F2080_g },
+				{ 0x1415F7F40_g },
+				{ 0x141A8D0ED_g },
+				{ 0x141AA70F9_g },
+				{ 0x141EA06FB_g },
+				{ 0x141EA8C7E_g },
+				{ 0x141EB1A39_g },
+				{ 0x141ECBA9D_g },
+				{ 0x1420F6E1D_g },
+			};
+
+			for (const auto& address : is_mod_loaded_addresses)
+			{
+				utils::hook::call(address, is_mod_loaded_stub);
+			}
+		}
 	}
 
 	class component final : public client_component
@@ -82,6 +119,10 @@ namespace client_patches
 			utils::hook::set(0x15AAE9254_g, mixer_open_stub);
 
 			preload_map_hook.create(0x14135A1E0_g, preload_map_stub);
+
+			// Keep client ranked when mod loaded
+			utils::hook::jump(0x1420D5BA0_g, is_mod_loaded_stub);
+			patch_is_mod_loaded_checks();
 		}
 	};
 }
