@@ -134,27 +134,27 @@ namespace auth
 			}
 			else
 			{
-				p(0x141E19D7D_g, 0x141E19DCB_g);
-				p(0x141EB2D06_g, 0x141EB2D46_g);
-				p(0x141EB2E3D_g, 0x141EB2E82_g);
-				p(0x141EB3CC5_g, 0x141EB3D06_g);
-				p(0x141E19B60_g, 0x141E19BB6_g);
+				p(0x141E19CED_g, 0x141E19D3B_g);
+				p(0x141EB2C76_g, 0x141EB2CB6_g);
+				p(0x141EB2DAD_g, 0x141EB2DF2_g);
+				p(0x141EB3C35_g, 0x141EB3C76_g);
+				p(0x141E19AD0_g, 0x141E19B26_g);
 				//
-				p(0x141EB0F78_g, 0x141EB0FB9_g);
-				p(0x141EB1038_g, 0x141EB1079_g);
-				p(0x141EB25B5_g, 0x141EB2603_g);
-				p(0x141EB26DD_g, 0x141EB2733_g);
-				p(0x141EB280D_g, 0x141EB2857_g);
+				p(0x141EB0EE8_g, 0x141EB0F29_g);
+				p(0x141EB0FA8_g, 0x141EB0FE9_g);
+				p(0x141EB2525_g, 0x141EB2573_g);
+				p(0x141EB264D_g, 0x141EB26A3_g);
+				p(0x141EB277D_g, 0x141EB27C7_g);
 
-				p(0x141EB2B7A_g, 0x141EB2B8A_g);
-				p(0x141EB2B91_g, 0x141EB2BC3_g);
+				p(0x141EB2AEA_g, 0x141EB2AFA_g);
+				p(0x141EB2B01_g, 0x141EB2B33_g);
 
-				p(0x141EB31C7_g, 0x141EB31D7_g);
-				p(0x141EB31DE_g, 0x141EB320F_g);
+				p(0x141EB3137_g, 0x141EB3147_g);
+				p(0x141EB314E_g, 0x141EB317F_g);
 
-				p(0x141EB5407_g, 0x141EB544F_g); // ?
-				p(0x141EB5A22_g, 0x141EB5A65_g);
-				p(0x141EB7562_g, 0x141EB75A5_g); // ?
+				p(0x141EB5377_g, 0x141EB53BF_g); // ?
+				p(0x141EB5992_g, 0x141EB59D5_g);
+				p(0x141EB74D2_g, 0x141EB7515_g); // ?
 			}
 
 			for (const auto& patch : patches)

@@ -79,7 +79,7 @@ namespace client_patches
 			fix_amd_cpu_stuttering();
 
 			// Kill microphones for now
-			utils::hook::set(0x15AAEB254_g, mixer_open_stub);
+			utils::hook::set(0x15AAE9254_g, mixer_open_stub);
 
 			preload_map_hook.create(0x14135A1E0_g, preload_map_stub);
 		}

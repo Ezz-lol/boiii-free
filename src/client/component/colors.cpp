@@ -16,8 +16,8 @@ namespace colors
 		template <size_t index>
 		void patch_color(const uint8_t r, const uint8_t g, const uint8_t b, const uint8_t a = 255)
 		{
-			auto* color_table = reinterpret_cast<uint8_t*>(0x142FF0E20_g);
-			auto* g_color_table = reinterpret_cast<float*>(0x142FB6CF0_g);
+			auto* color_table = reinterpret_cast<uint8_t*>(0x142FEFE20_g);
+			auto* g_color_table = reinterpret_cast<float*>(0x142FB5CF0_g);
 
 			uint8_t color_int[4];
 			color_int[0] = r;
@@ -36,7 +36,7 @@ namespace colors
 			utils::hook::copy(g_color_table + index * 4, color_float, sizeof(color_float));
 		}
 
-		uint64_t get_player_name_stub(const uint64_t client, int client_num, char* buffer, const int size,
+		/*uint64_t get_player_name_stub(const uint64_t client, int client_num, char* buffer, const int size,
 		                              const bool has_clan_tag)
 		{
 			const auto res = get_player_name_hook.invoke<uint64_t>(client, client_num, buffer, size, has_clan_tag);
@@ -48,12 +48,12 @@ namespace colors
 			}
 
 			return res;
-		}
+		}*/
 
-		const char* get_gamer_tag_stub(const uint64_t num)
+		/*const char* get_gamer_tag_stub(const uint64_t num)
 		{
 			return utils::string::va("^3%s", get_gamer_tag_hook.invoke<const char*>(num));
-		}
+		}*/
 	}
 
 	struct component final : client_component
@@ -67,6 +67,7 @@ namespace colors
 			patch_color<5>(32, 197, 255); // 5  - Light Blue
 			patch_color<6>(151, 80, 221); // 6  - Pink
 
+			// Old addresses
 			//get_player_name_hook.create(0x1413E3140_g, get_player_name_stub);
 			//get_gamer_tag_hook.create(0x141EC7370_g, get_gamer_tag_stub);
 		}
