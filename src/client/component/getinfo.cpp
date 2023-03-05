@@ -119,4 +119,4 @@ namespace getinfo
 	};
 }
 
-REGISTER_COMPONENT_WORKING(getinfo::component)
+REGISTER_COMPONENT(getinfo::component)

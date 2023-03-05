@@ -187,4 +187,4 @@ namespace scheduler
 	};
 }
 
-REGISTER_COMPONENT_WORKING(scheduler::component)
+REGISTER_COMPONENT(scheduler::component)

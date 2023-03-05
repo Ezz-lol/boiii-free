@@ -73,4 +73,4 @@ namespace dedicated
 	};
 }
 
-REGISTER_COMPONENT_WORKING(dedicated::component)
+REGISTER_COMPONENT(dedicated::component)

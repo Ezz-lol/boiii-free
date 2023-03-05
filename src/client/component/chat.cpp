@@ -56,4 +56,4 @@ namespace chat
 	};
 }
 
-REGISTER_COMPONENT_WORKING(chat::component)
+REGISTER_COMPONENT(chat::component)

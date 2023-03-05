@@ -157,4 +157,4 @@ namespace bots
 	};
 }
 
-REGISTER_COMPONENT_WORKING(bots::component)
+REGISTER_COMPONENT(bots::component)

@@ -76,4 +76,4 @@ namespace loot
 	};
 };
 
-REGISTER_COMPONENT_WORKING(loot::component)
+REGISTER_COMPONENT(loot::component)

@@ -38,10 +38,8 @@ namespace component_loader
 	};
 };
 
-#define REGISTER_COMPONENT_WORKING(name)                   \
+#define REGISTER_COMPONENT(name)                   \
 namespace                                          \
 {                                                  \
 	component_loader::installer<name> __component; \
 }
-
-#define REGISTER_COMPONENT(name)

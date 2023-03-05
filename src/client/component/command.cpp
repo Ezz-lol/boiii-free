@@ -194,4 +194,4 @@ namespace command
 	}
 }
 
-REGISTER_COMPONENT_WORKING(command::component)
+REGISTER_COMPONENT(command::component)

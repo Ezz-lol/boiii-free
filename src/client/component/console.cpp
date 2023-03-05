@@ -299,4 +299,4 @@ namespace console
 	};
 }
 
-REGISTER_COMPONENT_WORKING(console::component)
+REGISTER_COMPONENT(console::component)

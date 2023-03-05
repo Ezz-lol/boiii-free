@@ -212,4 +212,4 @@ namespace exception
 	};
 }
 
-REGISTER_COMPONENT_WORKING(exception::component)
+REGISTER_COMPONENT(exception::component)

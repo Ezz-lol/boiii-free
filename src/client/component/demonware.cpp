@@ -515,4 +515,4 @@ namespace demonware
 	};
 }
 
-REGISTER_COMPONENT_WORKING(demonware::component)
+REGISTER_COMPONENT(demonware::component)

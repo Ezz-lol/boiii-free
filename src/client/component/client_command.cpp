@@ -54,4 +54,4 @@ namespace client_command
 	};
 }
 
-REGISTER_COMPONENT_WORKING(client_command::component)
+REGISTER_COMPONENT(client_command::component)

@@ -165,4 +165,4 @@ namespace auth
 	};
 }
 
-REGISTER_COMPONENT_WORKING(auth::component)
+REGISTER_COMPONENT(auth::component)

@@ -195,4 +195,4 @@ namespace splash
 	}
 }
 
-REGISTER_COMPONENT_WORKING(splash::component)
+REGISTER_COMPONENT(splash::component)

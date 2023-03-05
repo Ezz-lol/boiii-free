@@ -800,4 +800,4 @@ namespace arxan
 	};
 }
 
-REGISTER_COMPONENT_WORKING(arxan::component)
+REGISTER_COMPONENT(arxan::component)

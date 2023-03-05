@@ -34,4 +34,4 @@ namespace branding
 	};
 }
 
-REGISTER_COMPONENT_WORKING(branding::component)
+REGISTER_COMPONENT(branding::component)

@@ -68,4 +68,4 @@ namespace game_log
 	};
 }
 
-REGISTER_COMPONENT_WORKING(game_log::component)
+REGISTER_COMPONENT(game_log::component)

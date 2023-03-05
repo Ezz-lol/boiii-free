@@ -86,4 +86,4 @@ namespace client_patches
 	};
 }
 
-REGISTER_COMPONENT_WORKING(client_patches::component)
+REGISTER_COMPONENT(client_patches::component)

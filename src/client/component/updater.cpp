@@ -63,4 +63,4 @@ namespace updater
 	};
 }
 
-REGISTER_COMPONENT_WORKING(updater::component)
+REGISTER_COMPONENT(updater::component)

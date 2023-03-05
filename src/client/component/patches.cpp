@@ -33,4 +33,4 @@ namespace patches
 	};
 }
 
-REGISTER_COMPONENT_WORKING(patches::component)
+REGISTER_COMPONENT(patches::component)

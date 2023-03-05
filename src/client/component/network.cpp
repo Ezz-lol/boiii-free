@@ -269,4 +269,4 @@ namespace network
 	};
 }
 
-REGISTER_COMPONENT_WORKING(network::component)
+REGISTER_COMPONENT(network::component)

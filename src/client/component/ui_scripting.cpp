@@ -507,4 +507,4 @@ namespace ui_scripting
 	};
 }
 
-REGISTER_COMPONENT_WORKING(ui_scripting::component)
+REGISTER_COMPONENT(ui_scripting::component)

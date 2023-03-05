@@ -313,4 +313,4 @@ namespace party
 	};
 }
 
-REGISTER_COMPONENT_WORKING(party::component)
+REGISTER_COMPONENT(party::component)

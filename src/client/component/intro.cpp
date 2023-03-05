@@ -33,5 +33,5 @@ namespace intro
 }
 
 #ifdef DEV_BUILD
-REGISTER_COMPONENT_WORKING(intro::component)
+REGISTER_COMPONENT(intro::component)
 #endif
