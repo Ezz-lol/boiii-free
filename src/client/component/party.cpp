@@ -183,14 +183,18 @@ namespace party
 
 		void connect_stub(const char* address)
 		{
-			const auto target = network::address_from_string(address);
-			if (target.type == game::NA_BAD)
+			if (address)
 			{
-				return;
+				const auto target = network::address_from_string(address);
+				if (target.type == game::NA_BAD)
+				{
+					return;
+				}
+
+				connect_host = target;
 			}
 
-			connect_host = target;
-			query_server(target, handle_connect_query_response);
+			query_server(connect_host, handle_connect_query_response);
 		}
 
 		void send_server_query(server_query& query)
