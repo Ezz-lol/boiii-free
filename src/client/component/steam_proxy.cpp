@@ -7,6 +7,8 @@
 #include <utils/finally.hpp>
 #include <utils/concurrency.hpp>
 
+#include "game/utils.hpp"
+
 #include "steam/interface.hpp"
 #include "steam/steam.hpp"
 
@@ -252,7 +254,7 @@ namespace steam_proxy
 			return client_friends.invoke<const char*>("GetPersonaName");
 		}
 
-		return "boiii";
+		return "";
 	}
 
 	void update_subscribed_items()
