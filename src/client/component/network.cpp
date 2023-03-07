@@ -265,6 +265,9 @@ namespace network
 
 			// Kill lobby system
 			handle_packet_internal_hook.create(game::select(0x141EF7FE0, 0x1404A5B90), &handle_packet_internal_stub);
+
+			// Kill voice chat
+			utils::hook::nop(game::select(0x14134CDB3, 0x14018EB90), 9);
 		}
 	};
 }
