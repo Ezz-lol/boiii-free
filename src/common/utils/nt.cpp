@@ -1,4 +1,7 @@
 #include "nt.hpp"
+
+#include <lmcons.h>
+
 #include "string.hpp"
 
 namespace utils::nt
@@ -234,14 +237,14 @@ namespace utils::nt
 		{
 			registry_key new_key{};
 			if (RegOpenKeyExA(current_key, part.data(), 0,
-				KEY_ALL_ACCESS, &new_key) == ERROR_SUCCESS)
+			                  KEY_ALL_ACCESS, &new_key) == ERROR_SUCCESS)
 			{
 				current_key = std::move(new_key);
 				continue;
 			}
 
 			if (RegCreateKeyExA(current_key, part.data(), 0, nullptr, REG_OPTION_NON_VOLATILE, KEY_ALL_ACCESS,
-				nullptr, &new_key, nullptr) != ERROR_SUCCESS)
+			                    nullptr, &new_key, nullptr) != ERROR_SUCCESS)
 			{
 				return {};
 			}
@@ -310,7 +313,8 @@ namespace utils::nt
 		GetCurrentDirectoryA(sizeof(current_dir), current_dir);
 		auto* const command_line = GetCommandLineA();
 
-		CreateProcessA(self.get_path().generic_string().data(), command_line, nullptr, nullptr, false, NULL, nullptr, current_dir,
+		CreateProcessA(self.get_path().generic_string().data(), command_line, nullptr, nullptr, false, NULL, nullptr,
+		               current_dir,
 		               &startup_info, &process_info);
 
 		if (process_info.hThread && process_info.hThread != INVALID_HANDLE_VALUE) CloseHandle(process_info.hThread);
@@ -321,5 +325,17 @@ namespace utils::nt
 	{
 		TerminateProcess(GetCurrentProcess(), code);
 		_Exit(code);
+	}
+
+	std::string get_user_name()
+	{
+		char username[UNLEN + 1];
+		DWORD username_len = UNLEN + 1;
+		if (!GetUserNameA(username, &username_len))
+		{
+			return {};
+		}
+
+		return std::string(username, username_len - 1);
 	}
 }

@@ -380,13 +380,13 @@ namespace updater
 		legal_files.reserve(files.size());
 		for (const auto& file : files)
 		{
-			if (file.name != UPDATE_HOST_BINARY)
+			if (file.name.starts_with("data"))
 			{
 				legal_files.emplace_back(std::filesystem::absolute(base / file.name));
 			}
 		}
 
-		const auto existing_files = utils::io::list_files(base.string(), true);
+		const auto existing_files = utils::io::list_files(base / "data", true);
 		for (auto& file : existing_files)
 		{
 			const auto is_file = std::filesystem::is_regular_file(file);

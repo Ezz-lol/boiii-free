@@ -1,0 +1,17 @@
+name: Notify Discord
+
+on:
+  push:
+    branches:
+      - "*"
+  issues:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    if: github.repository_owner == 'momo5502'
+    steps:
+      - name: Send notification to Discord
+        uses: Ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_CI_BOT_WEBHOOK }}

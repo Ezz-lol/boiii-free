@@ -252,4 +252,6 @@ namespace utils::nt
 
 	void relaunch_self();
 	__declspec(noreturn) void terminate(uint32_t code = 0);
+
+	std::string get_user_name();
 }

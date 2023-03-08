@@ -3,13 +3,13 @@
 
 #include <utils/nt.hpp>
 
-#include "component/steam_proxy.hpp"
+#include "component/name.hpp"
 
 namespace steam
 {
 	const char* friends::GetPersonaName()
 	{
-		return steam_proxy::get_player_name();
+		return name::get_player_name();
 	}
 
 	unsigned long long friends::SetPersonaName(const char* pchPersonaName)
