@@ -8,6 +8,7 @@
 
 #include <utils/thread.hpp>
 #include <utils/hook.hpp>
+#include <utils/flags.hpp>
 #include <utils/concurrency.hpp>
 #include <utils/image.hpp>
 
@@ -205,12 +206,17 @@ namespace console
 	{
 		void post_unpack() override
 		{
-			utils::hook::jump(printf, print_stub);
-
 			if (!game::is_server())
 			{
 				utils::hook::set<uint8_t>(0x14133D2FE_g, 0xEB); // Always enable ingame console
+
+				if (utils::nt::is_wine() && !utils::flags::has_flag("console"))
+				{
+					return;
+				}
 			}
+
+			utils::hook::jump(printf, print_stub);
 
 			utils::hook::jump(game::select(0x142332C30, 0x1405976B0), queue_message);
 			utils::hook::nop(game::select(0x142332C4A, 0x1405976CA), 2); // Print from every thread
