@@ -62,6 +62,8 @@ namespace game
 		0x141420ED0, 0x1401D5FB0
 	};
 	WEAK symbol<const char*(const XAsset* asset)> DB_GetXAssetName{0x1413E9DA0, 0x14019F080};
+	WEAK symbol<bool(const char* zoneName, int source)> DB_FileExists{0x141420B40};
+	WEAK symbol<void()> DB_ReleaseXAssets{0x1414247C0};
 
 	// Live
 	WEAK symbol<bool(uint64_t, int*, bool)> Live_GetConnectivityInformation{0x141E0C380};
@@ -83,6 +85,9 @@ namespace game
 
 	// Unnamed
 	WEAK symbol<const char*(const char* name)> CopyString{0x1422AC220, 0x14056BD70};
+
+	WEAK symbol<bool()> isModLoaded{0x1420D5020};
+	WEAK symbol<void(int, const char*, int)> loadMod{0x1420D6930};
 
 	// Dvar
 	WEAK symbol<bool(const dvar_t* dvar)> Dvar_IsSessionModeBaseDvar{0x1422C23A0, 0x140576890};

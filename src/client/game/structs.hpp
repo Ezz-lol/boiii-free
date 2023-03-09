@@ -1584,6 +1584,31 @@ namespace game
 
 	static_assert(sizeof(gentity_s) == 0x4F8);
 
+	enum workshop_type
+	{
+		WORKSHOP_MOD = 0x1,
+		WORKSHOP_USERMAP = 0x2
+	};
+
+	struct workshop_data
+	{
+		char title[100];
+		char folderName[32];
+		char publisherId[32];
+		char description[256];
+		char contentPathToZoneFiles[260];
+		char absolutePathContentFolder[260];
+		char absolutePathZoneFiles[260];
+		int unk; // 1
+		int unk2; // 0
+		unsigned int publisherIdInteger;
+		int unk3;
+		unsigned int unk4;
+		workshop_type type;
+	};
+
+	static_assert(sizeof(workshop_data) == 0x4C8);
+
 	union XAssetHeader
 	{
 		/*PhysPreset* physPreset;
