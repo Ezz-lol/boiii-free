@@ -16,11 +16,8 @@ namespace utils::properties
 {
 	namespace
 	{
-		typedef rapidjson::GenericDocument<rapidjson::UTF16LE<>> WDocument;
-		typedef rapidjson::GenericValue<rapidjson::UTF16LE<>> WValue;
-
-		typedef rapidjson::EncodedOutputStream<rapidjson::UTF16LE<>, rapidjson::FileWriteStream> OutputStream;
-		typedef rapidjson::EncodedInputStream<rapidjson::UTF16LE<>, rapidjson::FileReadStream> InputStream;
+		typedef rapidjson::EncodedOutputStream<rapidjson::UTF8<>, rapidjson::FileWriteStream> OutputStream;
+		typedef rapidjson::EncodedInputStream<rapidjson::UTF8<>, rapidjson::FileReadStream> InputStream;
 
 		std::filesystem::path get_properties_folder()
 		{
@@ -34,12 +31,12 @@ namespace utils::properties
 			return props;
 		}
 
-		WDocument load_properties()
+		rapidjson::Document load_properties()
 		{
-			WDocument default_doc{};
+			rapidjson::Document default_doc{};
 			default_doc.SetObject();
 
-			char read_buffer[256]; // Raw buffer for reading
+			char read_buffer[256]{0}; // Raw buffer for reading
 
 			const std::wstring& props = get_properties_file();
 
@@ -50,14 +47,20 @@ namespace utils::properties
 				return default_doc;
 			}
 
+			const auto _ = finally([&]
+			{
+				if (fp)
+				{
+					fclose(fp);
+				}
+			});
+
 			// This will handle the BOM
 			rapidjson::FileReadStream bis(fp, read_buffer, sizeof(read_buffer));
 			InputStream eis(bis);
 
-			WDocument doc{};
-			const rapidjson::ParseResult result = doc.ParseStream<rapidjson::kParseNoFlags, rapidjson::UTF16LE<>>(eis);
-
-			fclose(fp);
+			rapidjson::Document doc{};
+			const rapidjson::ParseResult result = doc.ParseStream<rapidjson::kParseNoFlags, rapidjson::UTF8<>>(eis);
 
 			if (!result || !doc.IsObject())
 			{
@@ -67,9 +70,9 @@ namespace utils::properties
 			return doc;
 		}
 
-		void store_properties(const WDocument& doc)
+		void store_properties(const rapidjson::Document& doc)
 		{
-			char write_buffer[256]; // Raw buffer for writing
+			char write_buffer[256]{0}; // Raw buffer for writing
 
 			const std::wstring& props = get_properties_file();
 			io::create_directory(get_properties_folder());
@@ -81,13 +84,19 @@ namespace utils::properties
 				return;
 			}
 
+			const auto _ = finally([&]
+			{
+				if (fp)
+				{
+					fclose(fp);
+				}
+			});
+
 			rapidjson::FileWriteStream bos(fp, write_buffer, sizeof(write_buffer));
-			OutputStream eos(bos, true); // Write BOM
+			OutputStream eos(bos);
 
-			rapidjson::Writer<OutputStream, rapidjson::UTF16LE<>, rapidjson::UTF16LE<>> writer(eos);
+			rapidjson::Writer writer(eos);
 			doc.Accept(writer);
-
-			fclose(fp);
 		}
 	}
 
@@ -114,7 +123,7 @@ namespace utils::properties
 		return std::unique_lock{mutex};
 	}
 
-	std::optional<std::wstring> load(const std::wstring& name)
+	std::optional<std::string> load(const std::string& name)
 	{
 		const auto _ = lock();
 		const auto doc = load_properties();
@@ -130,21 +139,10 @@ namespace utils::properties
 			return {};
 		}
 
-		return {std::wstring{value.GetString()}};
+		return {std::string{value.GetString()}};
 	}
 
-	std::optional<std::string> load(const std::string& name)
-	{
-		const auto result = load(string::convert(name));
-		if (!result)
-		{
-			return {};
-		}
-
-		return {string::convert(*result)};
-	}
-
-	void store(const std::wstring& name, const std::wstring& value)
+	void store(const std::string& name, const std::string& value)
 	{
 		const auto _ = lock();
 		auto doc = load_properties();
@@ -154,19 +152,14 @@ namespace utils::properties
 			doc.RemoveMember(name);
 		}
 
-		WValue key{};
+		rapidjson::Value key{};
 		key.SetString(name, doc.GetAllocator());
 
-		WValue member{};
+		rapidjson::Value member{};
 		member.SetString(value, doc.GetAllocator());
 
 		doc.AddMember(key, member, doc.GetAllocator());
 
 		store_properties(doc);
-	}
-
-	void store(const std::string& name, const std::string& value)
-	{
-		store(string::convert(name), string::convert(value));
 	}
 }

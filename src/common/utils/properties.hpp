@@ -11,9 +11,7 @@ namespace utils::properties
 
 	std::unique_lock<named_mutex> lock();
 
-	std::optional<std::wstring> load(const std::wstring& name);
 	std::optional<std::string> load(const std::string& name);
 
-	void store(const std::wstring& name, const std::wstring& value);
 	void store(const std::string& name, const std::string& value);
 }
