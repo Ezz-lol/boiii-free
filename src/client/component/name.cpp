@@ -31,8 +31,8 @@ namespace name
 
 		void update_player_name(const std::string& new_name)
 		{
-			store_player_name(new_name);
 			activate_player_name(new_name);
+			store_player_name(new_name);
 		}
 
 		void setup_player_name()
