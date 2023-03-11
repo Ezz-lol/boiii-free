@@ -116,7 +116,7 @@ namespace dvars
 			}
 
 			//TODO: Fix archive dvars not stripping names from registered dvars
-			if (dvar->debugName == "cg_unlockall_loot"s)
+			if (dvar->debugName == "cg_unlockall_loot"s || dvar->debugName == "cg_unlockall_purchases"s || dvar->debugName == "cg_unlockall_attachments"s || dvar->debugName == "cg_unlockall_camos"s)
 			{
 				return true;
 			}
