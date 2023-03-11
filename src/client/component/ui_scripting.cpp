@@ -223,6 +223,8 @@ namespace ui_scripting
 			}
 		}
 
+		bool doneFirstSnapshot = false;
+
 		void ui_cod_init_stub(const bool frontend)
 		{
 			ui_cod_init_hook.invoke(frontend);
@@ -232,30 +234,31 @@ namespace ui_scripting
 				// Fetch the names of the local files so file overrides are already handled
 				globals = {};
 				const utils::nt::library host{};
+				doneFirstSnapshot = false;
 
 				load_local_script_files((game::get_appdata_path() / "data/ui_scripts/").string());
 				load_local_script_files((host.get_folder() / "boiii/ui_scripts/").string());
 				return;
 			}
-			const auto _0 = utils::finally(&try_start);
+			try_start();
 		}
 
 		void ui_cod_lobbyui_init_stub()
 		{
 			ui_cod_lobbyui_init_hook.invoke();
-			const auto _0 = utils::finally(&try_start);
+			try_start();
 		}
 
 		void cl_first_snapshot_stub(int a1)
 		{
 			cl_first_snapshot_hook.invoke(a1);
 
-			if (game::Com_IsRunningUILevel())
+			if (game::Com_IsRunningUILevel() || doneFirstSnapshot)
 			{
 				return;
 			}
-
-			const auto _0 = utils::finally(&try_start);
+			doneFirstSnapshot = true;
+			try_start();
 		}
 
 		void ui_shutdown_stub()
