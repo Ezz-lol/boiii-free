@@ -45,8 +45,8 @@ namespace network
 
 			a.pushad64();
 
-			a.mov(rdx, rcx);            // command
-			a.mov(r8, sv ? r15 : r12);  // msg
+			a.mov(rdx, rcx); // command
+			a.mov(r8, sv ? r15 : r12); // msg
 			a.mov(rcx, sv ? r14 : r15); // address
 
 			a.call_aligned(handle_command);
@@ -128,20 +128,33 @@ namespace network
 			return length + (socket_byte_missing() ? 1 : 0);
 		}
 
-		void con_restricted_execute_buf_stub(int local_client_num, game::ControllerIndex_t controller_index, const char* buffer)
+		void con_restricted_execute_buf_stub(int local_client_num, game::ControllerIndex_t controller_index,
+		                                     const char* buffer)
 		{
 			game::Cbuf_ExecuteBuffer(local_client_num, controller_index, buffer);
 		}
 
-		uint64_t handle_packet_internal_stub(const game::ControllerIndex_t controller_index, const game::netadr_t from_adr, const game::XUID from_xuid,
-		                                     const game::LobbyType lobby_type, const uint64_t dest_module, game::msg_t* msg)
+		uint64_t handle_packet_internal_stub(const game::ControllerIndex_t controller_index,
+		                                     const game::netadr_t from_adr, const game::XUID from_xuid,
+		                                     const game::LobbyType lobby_type, const uint64_t dest_module,
+		                                     game::msg_t* msg)
 		{
 			if (from_adr.type != game::NA_LOOPBACK)
 			{
 				return 0;
 			}
 
-			return handle_packet_internal_hook.invoke<bool>(controller_index, from_adr, from_xuid, lobby_type, dest_module, msg) ? 1 : 0;
+			return handle_packet_internal_hook.invoke<bool>(controller_index, from_adr, from_xuid, lobby_type,
+			                                                dest_module, msg)
+				       ? 1
+				       : 0;
+		}
+
+
+		uint64_t ret2()
+		{
+			return 2;
+		}
 		}
 	}
 
@@ -228,26 +241,26 @@ namespace network
 		return a.port == b.port && a.addr == b.addr;
 	}
 
-	uint64_t ret2()
-	{
-		return 2;
-	}
-
 	struct component final : generic_component
 	{
 		void post_unpack() override
 		{
-			utils::hook::nop(game::select(0x1423322B6, 0x140596DF6), 4); // don't increment data pointer to optionally skip socket byte
-			utils::hook::call(game::select(0x142332283, 0x140596DC3), read_socket_byte_stub); // optionally read socket byte
-			utils::hook::call(game::select(0x1423322C1, 0x140596E01), verify_checksum_stub); // skip checksum verification
+			utils::hook::nop(game::select(0x1423322B6, 0x140596DF6), 4);
+			// don't increment data pointer to optionally skip socket byte
+			utils::hook::call(game::select(0x142332283, 0x140596DC3), read_socket_byte_stub);
+			// optionally read socket byte
+			utils::hook::call(game::select(0x1423322C1, 0x140596E01), verify_checksum_stub);
+			// skip checksum verification
 			utils::hook::set<uint8_t>(game::select(0x14233249E, 0x140596F2E), 0); // don't add checksum to packet
 
-			utils::hook::set<uint32_t>(game::select(0x14134C6E0, 0x14018E574), 5); // set initial connection state to challenging
+			utils::hook::set<uint32_t>(game::select(0x14134C6E0, 0x14018E574), 5);
+			// set initial connection state to challenging
 
 			// intercept command handling
 			utils::hook::call(game::select(0x14134D146, 0x14018EED0), utils::hook::assemble(handle_command_stub));
 
-			utils::hook::set<uint8_t>(game::select(0x14224DEAD, 0x1405315F9), 0xEB); // don't kick clients without dw handle
+			utils::hook::set<uint8_t>(game::select(0x14224DEAD, 0x1405315F9), 0xEB);
+			// don't kick clients without dw handle
 
 			// Skip DW stuff in NetAdr_ToString
 			utils::hook::set<uint8_t>(game::select(0x142172EF2, 0x140515881), 0xEB);
