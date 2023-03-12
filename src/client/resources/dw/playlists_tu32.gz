@@ -267,7 +267,7 @@ rule scr_vialsAwardedScale 2.0
 
 event gungame_featured
 targetPlaylist 30
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule xpGroups everyone
 rule scr_xpscalemp 2
 rule lootxp_multiplier 2.0
@@ -277,7 +277,7 @@ rule playlist_show 30
 
 event hardpoint_featured
 targetPlaylist 90
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule lootxp_multiplier 2.0
 rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
@@ -288,7 +288,7 @@ rule playlist_show 90
 
 event safeguard_featured
 targetPlaylist 91
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule xpGroups everyone
 rule scr_xpscalemp 2
 rule gunxpgroups everyone
@@ -300,19 +300,19 @@ rule playlist_show 91
 
 event killconfirmed_featured
 targetPlaylist 92
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule xpGroups everyone
 rule scr_xpscalemp 2
 rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
 
 event killconfirmed_display
-rule playlist_show 92
-// rule playlist_hide 5
+rule playlist_show 5
+rule playlist_hide 92
 
 event uplink_featured
 targetPlaylist 93
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule lootxp_multiplier 2.0
 
 event uplink_display
@@ -321,7 +321,7 @@ rule playlist_show 93
 
 event fracture_featured
 targetPlaylist 94
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule xpGroups everyone
 rule scr_xpscalemp 2
 rule lootxp_multiplier 2.0
@@ -332,7 +332,7 @@ rule playlist_show 94
 
 event snd_featured
 targetPlaylist 95
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule xpGroups everyone
 rule scr_xpscalemp 2
 
@@ -344,7 +344,7 @@ rule playlist_hide 95
 
 event ctf_featured
 targetPlaylist 96
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule xpGroups everyone
 rule scr_xpscalemp 2
 rule lootxp_multiplier 2.0
@@ -355,7 +355,7 @@ rule playlist_show 96
 
 event demolition_featured
 targetPlaylist 97
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule lootxp_multiplier 2.0
 rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
@@ -366,7 +366,7 @@ rule playlist_show 97
 
 event ffa_featured
 targetPlaylist 98
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule lootxp_multiplier 2.0
 
 event ffa_display
@@ -375,7 +375,7 @@ rule playlist_show 98
 
 event domination_featured
 targetPlaylist 99
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
 
@@ -385,7 +385,7 @@ rule playlist_show 99
 
 event hctdm_featured
 targetPlaylist 100
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule lootxp_multiplier 2.0
 rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
@@ -396,7 +396,7 @@ rule playlist_show 100
 
 event chaos_featured
 targetPlaylist 101
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
 rule lootxp_multiplier 2.0
@@ -406,7 +406,7 @@ rule playlist_show 101
 
 event gwar_featured
 targetPlaylist 103
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule lootxp_multiplier 2.0
 rule xpGroups everyone
 rule scr_xpscalemp 2
@@ -416,7 +416,7 @@ rule playlist_show 103
 
 event infected_featured
 targetPlaylist 104
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule xpGroups everyone
 rule scr_xpscalemp 2
 rule gunxpgroups everyone
@@ -427,7 +427,7 @@ rule playlist_show 104
 
 event prophunt_featured
 targetPlaylist 106
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule xpGroups everyone
 rule scr_xpscalemp 2
 rule gunxpgroups everyone
@@ -438,7 +438,7 @@ rule playlist_show 106
 
 event sas_featured
 targetPlaylist 108
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule lootxp_multiplier 2.0
 rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
@@ -448,7 +448,7 @@ rule playlist_show 108
 
 event sniperonly_featured
 targetPlaylist 109
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
 
@@ -1776,7 +1776,7 @@ rule scr_xpscalemp 2
 rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
 sortOrder 0.5
-// rule ui_showBonusIcon 1
+// rule ui_showBonusIcon 0
 all,hs_clean,1
 dlc1,hs_clean,1
 dlc2,hs_clean,1
@@ -2294,7 +2294,7 @@ mp_nuketown_x,hs_tdm,1
 mp_nuketown_x,hs_ball,1
 mp_nuketown_x,hs_escort,1
 mp_nuketown_x,hs_clean,1
-hidden
+// hidden
 
 playlist 36
 name english "Nuk3Jacked"
