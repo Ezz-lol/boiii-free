@@ -123,6 +123,9 @@ namespace client_patches
 			// Keep client ranked when mod loaded
 			utils::hook::jump(0x1420D5BA0_g, is_mod_loaded_stub);
 			patch_is_mod_loaded_checks();
+
+			// Kill Client/Server Index Mismatch error
+			utils::hook::set<uint8_t>(0x1400A7588_g, 0xEB);
 		}
 	};
 }
