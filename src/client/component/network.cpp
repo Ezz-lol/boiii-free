@@ -84,20 +84,20 @@ namespace network
 			socket_set_blocking(s, false);
 
 			const auto address = htonl(INADDR_ANY);
-			const auto port = htons(28960);
+			auto port = static_cast<uint16_t>(game::Dvar_FindVar("net_port")->current.integer);
 
 			sockaddr_in server_addr{};
 			server_addr.sin_family = AF_INET;
 			server_addr.sin_addr.s_addr = address;
-			server_addr.sin_port = port;
 
 			int retries = 0;
-			while (bind(s, reinterpret_cast<sockaddr*>(&server_addr), sizeof(server_addr)) ==
-				SOCKET_ERROR)
+			do
 			{
+				server_addr.sin_port = htons(port++);
 				if (++retries > 10) return;
-				server_addr.sin_port = htons(ntohs(server_addr.sin_port) + 1);
 			}
+			while (bind(s, reinterpret_cast<sockaddr*>(&server_addr), sizeof(server_addr)) ==
+				SOCKET_ERROR);
 		}
 
 		bool& socket_byte_missing()
@@ -155,6 +155,10 @@ namespace network
 		{
 			return 2;
 		}
+
+		int bind_stub(SOCKET /*s*/, const sockaddr* /*addr*/, int /*namelen*/)
+		{
+			return 0;
 		}
 	}
 
@@ -281,6 +285,9 @@ namespace network
 
 			// Kill voice chat
 			utils::hook::set<uint32_t>(game::select(0x141359310, 0x14018FE40), 0xC3C03148);
+
+			// Don't let the game bind sockets anymore
+			utils::hook::set(game::select(0x15AAE9344, 0x14B4BD828), bind_stub);
 		}
 	};
 }
