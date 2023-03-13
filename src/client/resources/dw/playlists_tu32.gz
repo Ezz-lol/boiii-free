@@ -1507,7 +1507,7 @@ parkingplaylist 9001
 rule gts scoreLimit 75
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
 rule xpGroups everyone
 rule scr_xpscalemp 2
@@ -1577,7 +1577,7 @@ icon playlist_demolition
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule xpGroups everyone
 rule scr_xpscalemp 2
 rule gunxpgroups everyone
@@ -1601,7 +1601,7 @@ icon playlist_kill_confirm
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule xpGroups everyone
 rule scr_xpscalemp 2
 rule gunxpgroups everyone
@@ -1625,7 +1625,7 @@ icon playlist_koth
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule xpGroups everyone
 rule scr_xpscalemp 2
 rule gunxpgroups everyone
@@ -1649,7 +1649,7 @@ icon playlist_ctf
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule xpGroups everyone
 rule scr_xpscalemp 2
 rule gunxpgroups everyone
@@ -1672,7 +1672,7 @@ icon playlist_search_destroy
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule xpGroups everyone
 rule scr_xpscalemp 2
 rule gunxpgroups everyone
@@ -1697,7 +1697,7 @@ icon playlist_ball
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule xpGroups everyone
 rule scr_xpscalemp 2
 rule gunxpgroups everyone
@@ -1720,7 +1720,7 @@ icon playlist_escort
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule xpGroups everyone
 rule scr_xpscalemp 2
 rule gunxpgroups everyone
@@ -1770,7 +1770,7 @@ icon playlist_clean
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule xpGroups everyone
 rule scr_xpscalemp 2
 rule gunxpgroups everyone
@@ -1801,7 +1801,7 @@ icon playlist_tdm
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
 rule xpGroups everyone
 rule scr_xpscalemp 2
@@ -1824,7 +1824,7 @@ icon playlist_ffa
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 8
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
 rule xpGroups everyone
 rule scr_xpscalemp 2
@@ -1873,7 +1873,7 @@ icon playlist_domination
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
 rule xpGroups everyone
 rule scr_xpscalemp 2
@@ -1922,7 +1922,7 @@ icon playlist_kill_confirm
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
 rule xpGroups everyone
 rule scr_xpscalemp 2
@@ -1945,7 +1945,7 @@ icon playlist_search_destroy
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
 // rule partyChatDisallowed 1    // rule partyChatDisallowed 1 - this will kick any player who is currently in or joined a platform party chat
 rule xpGroups everyone
@@ -1969,7 +1969,7 @@ icon playlist_ctf
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
 rule xpGroups everyone
 rule scr_xpscalemp 2
@@ -2024,7 +2024,7 @@ icon playlist_arena_champions
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 8
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule gts pregamedraftenabled 1    // enable Specialist Selection
 rule gts pregameitemvoteenabled 1   // enable pick/ban
 rule gts pregamescorestreakmodifytime 20 // Scorestreak Selection Timer in seconds
@@ -2130,7 +2130,7 @@ icon playlist_arena_moshpit
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 8
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule gts pregamedraftenabled 0    // Disable Specialist Selection
 rule gts pregameitemvoteenabled 0   // disable pick/ban
 rule gts friendlyfiretype 1    // Friendly Fire: Enabled
@@ -2236,7 +2236,7 @@ maxlocalplayers 1
 categories featured
 rule party_minplayers 1
 rule party_maxplayers 8
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
 // smallmaps,hs_gun,1
 // mp_skyjacked,hs_gun,1
@@ -2286,7 +2286,7 @@ icon playlist_generic_02
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 mp_nuketown_x,hs_dom,1
 mp_nuketown_x,hs_koth,1
 mp_nuketown_x,hs_conf,1
@@ -2333,7 +2333,7 @@ icon playlist_generic_02
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 mp_nuketown_x,hs_dom,1
 mp_nuketown_x,hs_koth,1
 mp_nuketown_x,hs_conf,1
@@ -2387,7 +2387,7 @@ icon playlist_koth
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
 all,hs_koth,1
 dlc1,hs_koth,1
@@ -2433,7 +2433,7 @@ icon playlist_escort
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
 all,hs_escort,1
 dlc1,hs_escort,1
@@ -2479,7 +2479,7 @@ icon playlist_kill_confirm
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
 all,hs_conf,1
 dlc1,hs_conf,1
@@ -2525,7 +2525,7 @@ icon playlist_ball
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
 all,hs_ball,1
 dlc1,hs_ball,1
@@ -2571,7 +2571,7 @@ icon playlist_clean
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 all,hs_clean,1
 dlc1,hs_clean,1
 dlc2,hs_clean,1
@@ -2616,7 +2616,7 @@ icon playlist_search_destroy
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
 // rule partyChatDisallowed 1    // rule partyChatDisallowed 1 - this will kick any player who is currently in or joined a platform party chat
 all,hs_sd,1
@@ -2663,7 +2663,7 @@ icon playlist_ctf
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
 all,hs_ctf,1
 dlc1,hs_ctf,1
@@ -2709,7 +2709,7 @@ icon playlist_demolition
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
 all,hs_dem,1
 dlc1,hs_dem,1
@@ -2845,7 +2845,7 @@ icon playlist_tdm
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
 all,hc_tdm,1
 dlc1,hc_tdm,1
@@ -2891,7 +2891,7 @@ icon playlist_generic_02
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule scr_xpscalemp 1
 // rule xpGroups everyone
 // rule lobbySearchDatacenterType 2
@@ -2966,7 +2966,7 @@ maxlocalplayers 1
 categories featured
 rule party_minplayers 1
 rule party_maxplayers 8
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
 // smallmaps,hs_gun,1
 // mp_skyjacked,hs_gun,1
@@ -3016,7 +3016,7 @@ icon playlist_war
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 18
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
 // rule lobbySearchDatacenterType 2
 rule xpGroups everyone
@@ -3054,7 +3054,7 @@ icon playlist_infect
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule gts restricteditems 92 1 // Restrict Gambler Ability
 rule gts restricteditems 93 1 // Restrict Rogue Ability
 rule gts prematchrequirement 6
@@ -3078,7 +3078,7 @@ icon playlist_generic_02
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
 mp_redwood_ice,hs_dom,1
 mp_redwood_ice,hs_koth,1
@@ -3100,7 +3100,7 @@ icon playlist_prop_hunt
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule gts prematchrequirement 3
 rule gts prematchrequirementtime 30
 //rule liveDedicatedOnly 0
@@ -3127,7 +3127,7 @@ icon playlist_generic_02
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
 mp_veiled_heyday,hs_dom,1
 mp_veiled_heyday,hs_koth,1
@@ -3149,7 +3149,7 @@ icon playlist_sticksnstones
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
 sortOrder 0
 all,hs_sas,1
@@ -3170,7 +3170,7 @@ icon playlist_sniper_only
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
 rule gts restricteditems 93 1 // Restrict Rogue Ability
 sortOrder 0
@@ -3218,7 +3218,7 @@ icon playlist_flagsbombs
 parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 all,hs_ctf,1
 all,hs_dom,1
 all,hs_sd,1
@@ -3268,7 +3268,7 @@ categories zm_zod
 icon img_t7_menu_zm_preview_zod
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1.1
+//rule party_matchedplayercount 1
 rule lobby_readyUpPercentRequired 0.5
 zm_zod,zclassic,1
 
@@ -3309,7 +3309,7 @@ categories zm_factory
 icon img_mapvote_zm_factory
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1.1
+//rule party_matchedplayercount 1
 rule lobby_readyUpPercentRequired 0.5
 zm_factory,zclassic,1
 
@@ -3350,7 +3350,7 @@ categories zm_castle
 icon img_mapvote_zm_castle
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule lobby_readyUpPercentRequired 0.5
 zm_castle,zclassic,1
 
@@ -3391,7 +3391,7 @@ categories zm_island
 icon img_t7_menu_zm_preview_island
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule lobby_readyUpPercentRequired 0.5
 zm_island,zclassic,1
 
@@ -3432,7 +3432,7 @@ categories zm_stalingrad
 icon img_t7_menu_zm_preview_dlc3
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule lobby_readyUpPercentRequired 0.5
 zm_stalingrad,zclassic,1
 
@@ -3473,7 +3473,7 @@ categories zm_genesis
 icon img_t7_menu_zm_preview_genesis
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule lobby_readyUpPercentRequired 0.5
 zm_genesis,zclassic,1
 
@@ -3514,7 +3514,7 @@ categories zm_prototype
 icon img_t7_menu_zm_preview_prototype
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule lobby_readyUpPercentRequired 0.5
 zm_prototype,zclassic,1
 
@@ -3555,7 +3555,7 @@ categories zm_asylum
 icon img_t7_menu_zm_preview_asylum
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule lobby_readyUpPercentRequired 0.5
 zm_asylum,zclassic,1
 
@@ -3596,7 +3596,7 @@ categories zm_cosmodrome
 icon img_t7_menu_zm_preview_cosmodrome
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule lobby_readyUpPercentRequired 0.5
 zm_cosmodrome,zclassic,1
 
@@ -3637,7 +3637,7 @@ categories zm_moon
 icon img_t7_menu_zm_preview_moon
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule lobby_readyUpPercentRequired 0.5
 zm_moon,zclassic,1
 
@@ -3678,7 +3678,7 @@ categories zm_sumpf
 icon img_t7_menu_zm_preview_sumpf
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule lobby_readyUpPercentRequired 0.5
 zm_sumpf,zclassic,1
 
@@ -3719,7 +3719,7 @@ categories zm_temple
 icon img_t7_menu_zm_preview_temple
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule lobby_readyUpPercentRequired 0.5
 zm_temple,zclassic,1
 
@@ -3760,7 +3760,7 @@ categories zm_theater
 icon img_t7_menu_zm_preview_theater
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule lobby_readyUpPercentRequired 0.5
 zm_theater,zclassic,1
 
@@ -3801,7 +3801,7 @@ categories zm_tomb
 icon img_t7_menu_zm_preview_tomb
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule lobby_readyUpPercentRequired 0.5
 zm_tomb,zclassic,1
 
@@ -3836,7 +3836,7 @@ categories cp_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_eth_prologue,cp_coop,2
@@ -3866,7 +3866,7 @@ categories cp_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_zurich_newworld,cp_coop,2
@@ -3897,7 +3897,7 @@ categories cp_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_sing_blackstation,cp_coop,2
@@ -3925,7 +3925,7 @@ categories cp_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_sing_biodomes,cp_coop,2
@@ -3953,7 +3953,7 @@ categories cp_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_sing_sgen,cp_coop,2
@@ -3981,7 +3981,7 @@ categories cp_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_sing_vengeance,cp_coop,2
@@ -4009,7 +4009,7 @@ categories cp_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_cairo_ramses,cp_coop,2
@@ -4037,7 +4037,7 @@ categories cp_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_cairo_infection,cp_coop,2
@@ -4065,7 +4065,7 @@ categories cp_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_cairo_aquifer,cp_coop,2
@@ -4093,7 +4093,7 @@ categories cp_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_cairo_lotus,cp_coop,2
@@ -4121,7 +4121,7 @@ categories cp_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_zurich_coalescence,cp_coop,2
@@ -4149,7 +4149,7 @@ categories cp_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 0
 rule scr_gunxpscalecp 0
 rule lobby_readyUpPercentRequired 0.5
@@ -4182,7 +4182,7 @@ categories cp_nightmares_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_sing_sgen,cp_coop,2
@@ -4210,7 +4210,7 @@ categories cp_nightmares_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_zurich_newworld,cp_coop,2
@@ -4238,7 +4238,7 @@ categories cp_nightmares_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_sing_biodomes,cp_coop,2
@@ -4266,7 +4266,7 @@ categories cp_nightmares_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_cairo_aquifer,cp_coop,2
@@ -4294,7 +4294,7 @@ categories cp_nightmares_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_eth_prologue,cp_coop,2
@@ -4322,7 +4322,7 @@ categories cp_nightmares_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_sing_vengeance,cp_coop,2
@@ -4350,7 +4350,7 @@ categories cp_nightmares_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_sing_blackstation,cp_coop,2
@@ -4378,7 +4378,7 @@ categories cp_nightmares_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_cairo_ramses,cp_coop,2
@@ -4406,7 +4406,7 @@ categories cp_nightmares_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_cairo_infection,cp_coop,2
@@ -4434,7 +4434,7 @@ categories cp_nightmares_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_cairo_lotus,cp_coop,2
@@ -4462,7 +4462,7 @@ categories cp_nightmares_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 1
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_zurich_coalescence,cp_coop,2
