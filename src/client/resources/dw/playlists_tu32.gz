@@ -228,7 +228,7 @@ rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
 rule scr_gunxpscalezm 2
 rule cryptoKeyGroups everyone
-rule lootxp_multiplier 2.0
+rule lootxp_multiplier 1.0
 rule zmVialGroups everyone
 
 event double_xp_mp
@@ -283,8 +283,8 @@ rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
 
 event hardpoint_display
-rule playlist_show 90
-// rule playlist_hide 6
+rule playlist_show 6
+rule playlist_hide 90
 
 event safeguard_featured
 targetPlaylist 91
@@ -295,8 +295,8 @@ rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
 
 event safeguard_display
-rule playlist_show 91
-// rule playlist_hide 10
+rule playlist_show 10
+rule playlist_hide 91
 
 event killconfirmed_featured
 targetPlaylist 92
@@ -316,8 +316,8 @@ rule ui_showBonusIcon 0
 rule lootxp_multiplier 2.0
 
 event uplink_display
-rule playlist_show 93
-// rule playlist_hide 9
+rule playlist_show 9
+rule playlist_hide 93
 
 event fracture_featured
 targetPlaylist 94
@@ -327,8 +327,8 @@ rule scr_xpscalemp 2
 rule lootxp_multiplier 2.0
 
 event fracture_display
-rule playlist_show 94
-// rule playlist_hide 11
+rule playlist_show 11
+rule playlist_hide 94
 
 event snd_featured
 targetPlaylist 95
@@ -337,8 +337,6 @@ rule xpGroups everyone
 rule scr_xpscalemp 2
 
 event snd_display
-// rule playlist_show 95
-// rule playlist_hide 8
 rule playlist_show 8
 rule playlist_hide 95
 
@@ -350,8 +348,8 @@ rule scr_xpscalemp 2
 rule lootxp_multiplier 2.0
 
 event ctf_display
-rule playlist_show 96
-// rule playlist_hide 7
+rule playlist_show 7
+rule playlist_hide 96
 
 event demolition_featured
 targetPlaylist 97
@@ -361,8 +359,8 @@ rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
 
 event demolition_display
-rule playlist_show 97
-// rule playlist_hide 4
+rule playlist_show 4
+rule playlist_hide 97
 
 event ffa_featured
 targetPlaylist 98
@@ -370,8 +368,8 @@ rule ui_showBonusIcon 0
 rule lootxp_multiplier 2.0
 
 event ffa_display
-rule playlist_show 98
-// rule playlist_hide 2
+rule playlist_show 2
+rule playlist_hide 98
 
 event domination_featured
 targetPlaylist 99
@@ -380,8 +378,8 @@ rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
 
 event domination_display
-rule playlist_show 99
-// rule playlist_hide 3
+rule playlist_show 3
+rule playlist_hide 99
 
 event hctdm_featured
 targetPlaylist 100
@@ -391,8 +389,8 @@ rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
 
 event hctdm_display
-rule playlist_show 100
-// rule playlist_hide 20
+rule playlist_show 20
+rule playlist_hide 100
 
 event chaos_featured
 targetPlaylist 101
@@ -512,7 +510,7 @@ rule gts inactivityKick 60
 gametype big_tdm
 nameref PLAYLIST_GAMETYPE_BIG_TDM
 script tdm
-rule gts scorelimit 75
+rule gts scorelimit 100
 rule gts inactivityKick 60
 
 gametype hs_escort
@@ -2520,7 +2518,7 @@ description simplifiedchinese "将卫星无人机上传至敌人的上行传输�
 unlockxp 0
 maxparty 6
 maxlocalplayers 2
-categories core
+categories featured
 icon playlist_ball
 parkingplaylist 9001
 rule party_minplayers 1
@@ -2566,7 +2564,7 @@ description simplifiedchinese "击杀敌人后捡起他们掉落的核心文件�
 unlockxp 0
 maxparty 6
 maxlocalplayers 2
-categories core
+categories featured
 icon playlist_clean
 parkingplaylist 9001
 rule party_minplayers 1
