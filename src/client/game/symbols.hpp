@@ -13,6 +13,9 @@ namespace game
 	                 int numPrivateSlots, const char* mapname, const char* gametype,
 	                 const char* somethingWithUserMaps)> CL_ConnectFromLobby
 		{0x14134C570};
+	WEAK symbol<bool(int localClientNum, int index, char* buf, int size, bool addClanName)> CL_GetClientName{
+		0x1413E3140
+	};
 
 	// Game
 	WEAK symbol<void(gentity_s* ent, gentity_s* target, int mode, const char* chatText)> G_Say{0x0, 0x140299170};

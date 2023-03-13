@@ -4,6 +4,7 @@
 #include <utils/nt.hpp>
 
 #include "component/name.hpp"
+#include "component/chat.hpp"
 
 namespace steam
 {
@@ -44,7 +45,7 @@ namespace steam
 
 	const char* friends::GetFriendPersonaName(steam_id steamIDFriend)
 	{
-		return "";
+		return chat::GetClientName(steamIDFriend.bits);
 	}
 
 	bool friends::GetFriendGamePlayed(steam_id steamIDFriend, void* pFriendGameInfo)
