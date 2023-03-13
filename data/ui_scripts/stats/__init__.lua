@@ -16,9 +16,9 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup( "MPStatsSettings", fu
 		if dvarName == "cg_unlockall_loot" then
     	Engine.SetDvar( "ui_enableAllHeroes", f1_arg1.value )
 		end
-  end
+    end
 
-  table.insert( optionsTable, CoD.OptionsUtility.CreateDvarSettings( controller, "Unlock All Loot", "Whether loot should be locked based on the player's stats or always unlocked.", "MPStatsSettings_unlock_loot", "cg_unlockall_loot", {
+    table.insert( optionsTable, CoD.OptionsUtility.CreateDvarSettings( controller, "Unlock All Loot", "Whether loot should be locked based on the player's stats or always unlocked.", "MPStatsSettings_unlock_loot", "cg_unlockall_loot", {
 		{
 			option = "MENU_DISABLED",
 			value = 0,
@@ -42,7 +42,7 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup( "MPStatsSettings", fu
 			},
 		}, nil, updateDvar ))
 	end 
-  table.insert( optionsTable, CoD.OptionsUtility.CreateDvarSettings( controller, "Unlock All Attachments", "All attachments on weapons are unlocked.", "MPStatsSettings_unlockall_attachments", "cg_unlockall_attachments", {
+    table.insert( optionsTable, CoD.OptionsUtility.CreateDvarSettings( controller, "Unlock All Attachments", "All attachments on weapons are unlocked.", "MPStatsSettings_unlockall_attachments", "cg_unlockall_attachments", {
 		{
 			option = "MENU_DISABLED",
 			value = 0,
@@ -188,7 +188,7 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup( "MPStatsSettings", fu
 		}
 	})
   
-  return optionsTable
+    return optionsTable
 end)
 
 if Dvar.cg_unlockall_loot:get() == true then
@@ -208,7 +208,7 @@ LUI.createMenu.BoiiiStatsMenu = function ( controller )
 	self.buttonModel = Engine.CreateModel( Engine.GetModelForController( controller ), "BoiiiStatsMenu.buttonPrompts" )
 	self.anyChildUsesUpdateState = true
 
-  local GameSettingsBackground = CoD.GameSettings_Background.new( self, controller )
+    local GameSettingsBackground = CoD.GameSettings_Background.new( self, controller )
 	GameSettingsBackground:setLeftRight( true, true, 0, 0 )
 	GameSettingsBackground:setTopBottom( true, true, 0, 0 )
 	GameSettingsBackground.MenuFrame.titleLabel:setText( Engine.Localize( "STATS SETTINGS" )  )
@@ -218,7 +218,7 @@ LUI.createMenu.BoiiiStatsMenu = function ( controller )
 	self:addElement( GameSettingsBackground )
 	self.GameSettingsBackground = GameSettingsBackground
 
-  local Options = CoD.Competitive_SettingsList.new( self, controller )
+    local Options = CoD.Competitive_SettingsList.new( self, controller )
 	Options:setLeftRight( true, false, 26, 741 )
 	Options:setTopBottom( true, false, 135, 720 )
 	Options.Title.DescTitle:setText( Engine.Localize( "Stats" ) )
@@ -227,7 +227,7 @@ LUI.createMenu.BoiiiStatsMenu = function ( controller )
 	self:addElement( Options )
 	self.Options = Options
 
-  self:AddButtonCallbackFunction( self, controller, Enum.LUIButton.LUI_KEY_XBB_PSCIRCLE, nil, function ( element, menu, controller, model )
+    self:AddButtonCallbackFunction( self, controller, Enum.LUIButton.LUI_KEY_XBB_PSCIRCLE, nil, function ( element, menu, controller, model )
 		GoBack( self, controller )
     SetPerControllerTableProperty( controller, "disableGameSettingsOptions", nil )
 		return true
@@ -236,10 +236,10 @@ LUI.createMenu.BoiiiStatsMenu = function ( controller )
 		return true
 	end, false )
 
-  GameSettingsBackground.MenuFrame:setModel( self.buttonModel, controller )
-  Options.id = "Options"
+    GameSettingsBackground.MenuFrame:setModel( self.buttonModel, controller )
+    Options.id = "Options"
 
-  self:processEvent( {
+    self:processEvent( {
 		name = "menu_loaded",
 		controller = controller
 	} )
@@ -247,24 +247,24 @@ LUI.createMenu.BoiiiStatsMenu = function ( controller )
 		name = "update_state",
 		menu = self
 	} )
-  if not self:restoreState() then
+    if not self:restoreState() then
 		self.Options:processEvent( {
 			name = "gain_focus",
 			controller = controller
 		} )
 	end
 
-  LUI.OverrideFunction_CallOriginalSecond( self, "close", function ( element )
+    LUI.OverrideFunction_CallOriginalSecond( self, "close", function ( element )
 		element.GameSettingsBackground:close()
 		element.Options:close()
 		Engine.UnsubscribeAndFreeModel( Engine.GetModel( Engine.GetModelForController( controller ), "BoiiiStatsMenu.buttonPrompts" ) )
 	end )
 
-  if PostLoadFunc then
+    if PostLoadFunc then
 		PostLoadFunc( self, controller )
 	end
 
-  return self
+    return self
 end
 
 CoD.LobbyButtons.MP_STATS = {
@@ -272,10 +272,34 @@ CoD.LobbyButtons.MP_STATS = {
 	action = function ( self, element, controller, param, menu )
     SetPerControllerTableProperty( controller, "disableGameSettingsOptions", true )
     OpenPopup( menu, "BoiiiStatsMenu", controller )
-  end,
+    end,
 	customId = "btnMPStats"
 }
 
+CoD.LobbyButtons.MP_START_GAME = {
+	stringRef = "MENU_START_GAME_CAPS",
+	action = function ( self, element, controller, param, menu )
+  --Engine.SetDvar( "bot_difficulty", 3 )	
+	Engine.SetDvar( "party_minplayers", 1 )
+	Engine.Exec( nil, "launchgame" )
+    end,
+	customId = "btnStartGame"
+}
+
+CoD.LobbyButtons.SETTING_UP_BOTS = {
+	stringRef = "MENU_SETUP_BOTS_CAPS",
+	action = function ( self, element, controller, param, menu )
+    SetPerControllerTableProperty( controller, "disableGameSettingsOptions", true )
+    OpenPopup( menu, "GameSettings_Bots", controller )
+    end,
+	customId = "btnSettingUpBots"
+}
+
+CoD.LobbyButtons.MP_CUSTOM_SETUP_GAME = {
+	stringRef = "MPUI_SETUP_GAME_CAPS",
+	action = OpenSetupGameMP,
+	customId = "btnSetupGame",
+}
 
 local IsGamescomDemo = function ()
 	return Dvar.ui_execdemo_gamescom:get()
@@ -302,7 +326,7 @@ local AddButton = function ( controller, options, button, isLargeButton )
 	button.warning = false
 	if button.defaultState ~= nil then
 		if button.defaultState == CoD.LobbyButtons.DISABLED then
-			button.disabled = true
+		    button.disabled = true
 		elseif button.defaultState == CoD.LobbyButtons.HIDDEN then
 			button.hidden = true
 		end
@@ -376,6 +400,8 @@ local AddSpacer = function ( options )
 	end
 end
 
+local MapVote = 0
+
 CoD.LobbyMenus.MPButtonsOnline = function ( f26_arg0, f26_arg1, f26_arg2 )
 	if f26_arg2 == 1 then
 		AddLargeButton( f26_arg0, f26_arg1, CoD.LobbyButtons.MP_FIND_MATCH )
@@ -398,8 +424,52 @@ CoD.LobbyMenus.MPButtonsOnline = function ( f26_arg0, f26_arg1, f26_arg2 )
 	if not DisableBlackMarket() then
 		AddSmallButton( f26_arg0, f26_arg1, CoD.LobbyButtons.BLACK_MARKET )
 	end
-  AddSpacer( f26_arg1 )
-  AddSmallButton( f26_arg0, f26_arg1, CoD.LobbyButtons.MP_STATS )
+    AddSpacer( f26_arg1 )
+    AddSmallButton( f26_arg0, f26_arg1, CoD.LobbyButtons.MP_STATS )
+    MapVote = 1
+end
+
+CoD.LobbyMenus.MPButtonsOnlinePublic = function ( f27_arg0, f27_arg1, f27_arg2 )
+	if MapVote == 1 then
+	    Engine.Exec(nil, "LobbyStopDemo") -- Enable map vote at start lobby
+	    MapVote = 0
+    end
+	AddLargeButton( f27_arg0, f27_arg1, CoD.LobbyButtons.MP_START_GAME ) --Launch match button
+	AddSpacer( f27_arg1 )
+	AddLargeButton( f27_arg0, f27_arg1, CoD.LobbyButtons.MP_CAC )
+	AddLargeButton( f27_arg0, f27_arg1, CoD.LobbyButtons.MP_SPECIALISTS )
+	AddLargeButton( f27_arg0, f27_arg1, CoD.LobbyButtons.MP_SCORESTREAKS )
+	if Engine.DvarBool( nil, "inventory_test_button_visible" ) then
+		AddLargeButton( f27_arg0, f27_arg1, CoD.LobbyButtons.MP_INVENTORY_TEST )
+	end
+--[[local f27_local0 = Engine.GetPlaylistInfoByID( Engine.GetPlaylistID() )
+	if f27_local0 then
+		local f27_local1 = f27_local0.playlist.category
+		if f27_local1 == Engine.GetPlaylistCategoryIdByName( "core" ) or f27_local1 == Engine.GetPlaylistCategoryIdByName( "hardcore" ) then
+			AddSpacer( f27_arg1 )
+			AddSmallButton( f27_arg0, f27_arg1, CoD.LobbyButtons.MP_PUBLIC_LOBBY_LEADERBOARD )
+		end
+	end
+]]  if not DisableBlackMarket() then
+        AddSpacer( f27_arg1 )
+        AddLargeButton( f27_arg0, f27_arg1, CoD.LobbyButtons.BLACK_MARKET )
+	end
+    AddSpacer( f27_arg1 )
+	AddSmallButton( f27_arg0, f27_arg1, CoD.LobbyButtons.MP_CUSTOM_SETUP_GAME ) --Setup game in public lobby
+end
+
+CoD.LobbyMenus.MPButtonsArenaGame = function ( f31_arg0, f31_arg1, f31_arg2 )
+	AddLargeButton( f31_arg0, f31_arg1, CoD.LobbyButtons.MP_START_GAME ) --Launch match button
+	AddSpacer( f31_arg1 )
+	AddLargeButton( f31_arg0, f31_arg1, CoD.LobbyButtons.MP_CAC )
+	AddLargeButton( f31_arg0, f31_arg1, CoD.LobbyButtons.MP_SPECIALISTS )
+	AddLargeButton( f31_arg0, f31_arg1, CoD.LobbyButtons.MP_SCORESTREAKS )
+	if not DisableBlackMarket() then
+		AddSpacer( f31_arg1 )
+		AddLargeButton( f31_arg0, f31_arg1, CoD.LobbyButtons.BLACK_MARKET )
+	end
+	AddSpacer( f31_arg1 )
+	AddSmallButton( f31_arg0, f31_arg1, CoD.LobbyButtons.SETTING_UP_BOTS ) --Bot setting button in public lobby
 end
 
 CoD.LobbyMenus.ZMButtonsOnline = function ( f33_arg0, f33_arg1, f33_arg2 )
@@ -414,12 +484,11 @@ CoD.LobbyMenus.ZMButtonsOnline = function ( f33_arg0, f33_arg1, f33_arg2 )
 		AddSpacer( f33_arg1 )
 	end
 	AddLargeButton( f33_arg0, f33_arg1, CoD.LobbyButtons.ZM_BUBBLEGUM_BUFFS )
-	-- Disable these for now, demonware emulation still needs to be implemented
-	--AddLargeButton( f33_arg0, f33_arg1, CoD.LobbyButtons.ZM_MEGACHEW_FACTORY )
-	--AddLargeButton( f33_arg0, f33_arg1, CoD.LobbyButtons.ZM_GOBBLEGUM_RECIPES )
+	AddLargeButton( f33_arg0, f33_arg1, CoD.LobbyButtons.ZM_MEGACHEW_FACTORY )
+	AddLargeButton( f33_arg0, f33_arg1, CoD.LobbyButtons.ZM_GOBBLEGUM_RECIPES )
 	AddLargeButton( f33_arg0, f33_arg1, CoD.LobbyButtons.ZM_BUILD_KITS )
-  AddSpacer( f33_arg1 )
-  AddSmallButton( f33_arg0, f33_arg1, CoD.LobbyButtons.MP_STATS )
+    AddSpacer( f33_arg1 )
+    AddSmallButton( f33_arg0, f33_arg1, CoD.LobbyButtons.MP_STATS )
 end
 
 local targetButtons = {
@@ -455,6 +524,7 @@ local targetButtons = {
 	[LobbyData.UITargets.UI_MPLOBBYONLINETHEATER.id] = CoD.LobbyMenus.ButtonsTheaterGame,
 	[LobbyData.UITargets.UI_ZMLOBBYONLINETHEATER.id] = CoD.LobbyMenus.ButtonsTheaterGame
 }
+
 CoD.LobbyMenus.AddButtonsForTarget = function ( controller, id )
 	local buttonFunc = targetButtons[id]
 	local model = nil
