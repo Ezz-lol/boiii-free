@@ -505,4 +505,26 @@ namespace demonware
 			buffer->read_uint32(&this->m_maxPlayers);
 		}
 	};
+
+	class bdPublicProfileInfo final : public bdTaskResult
+	{
+	public:
+		uint64_t m_entityID;
+		int32_t m_VERSION;
+		std::string m_ddl;
+
+		void serialize(byte_buffer* buffer) override
+		{
+			buffer->write_uint64(this->m_entityID);
+			buffer->write_int32(this->m_VERSION);
+			buffer->write_blob(this->m_ddl);
+		}
+
+		void deserialize(byte_buffer* buffer) override
+		{
+			buffer->read_uint64(&this->m_entityID);
+			buffer->read_int32(&this->m_VERSION);
+			buffer->read_blob(&this->m_ddl);
+		}
+	};
 }
