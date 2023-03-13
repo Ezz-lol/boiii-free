@@ -44,10 +44,12 @@ namespace chat
 			utils::hook::invoke<void>(0x140298E70_g, ent, p.data());
 		}
 
-		void get_chat_client_name_stub(uint64_t xuid, char* buffer, const size_t max_length)
+		uint64_t* divert_xuid_to_client_num_stub(int, int client_num, int)
 		{
-			utils::string::copy(buffer, max_length, utils::string::va("%llX-something", xuid));
-			OutputDebugStringA(buffer);
+			static thread_local uint64_t value;
+			// zero xuid is invalid, so increase the clientnum to prevent 0 values
+			value = static_cast<uint64_t>(client_num) + 1;
+			return &value;
 		}
 	}
 
@@ -62,14 +64,6 @@ namespace chat
 		}
 
 		return "Unknown Soldier";
-	}
-
-	uint64_t* divert_xuid_to_client_num_stub(int, int client_num, int)
-	{
-		static thread_local uint64_t value;
-		// zero xuid is invalid, so increase the clientnum to prevent 0 values
-		value = static_cast<uint64_t>(client_num) + 1;
-		return &value;
 	}
 
 	class component final : public generic_component
