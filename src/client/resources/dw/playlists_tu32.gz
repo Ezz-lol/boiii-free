@@ -10,33 +10,33 @@ settings
 // setdvar cl_thunderhead_prefix t7_tu1_
 
 //Disable paintshop optimizations
-setdvar cg_paintshopEnableCompression 1								// Assists with Paintshop streaming
-setdvar cg_paintshopReadDiskCache 1									// Assists with Paintshop streaming
-setdvar cg_paintshopWriteDiskCache 1								// Assists with Paintshop streaming
+setdvar cg_paintshopEnableCompression 1    // Assists with Paintshop streaming
+setdvar cg_paintshopReadDiskCache 1    // Assists with Paintshop streaming
+setdvar cg_paintshopWriteDiskCache 1    // Assists with Paintshop streaming
 
-setdvar r_forcedModelLodsMP 4								// helps with offloading some memory from the streamer, per N. Nikaido.
-setdvar r_streamWeaponsCache 1                              // Frees up memory on the streamer by changing how weapon textures load. Per N. Nikaido.
+setdvar r_forcedModelLodsMP 4    // helps with offloading some memory from the streamer, per N. Nikaido.
+setdvar r_streamWeaponsCache 1    // Frees up memory on the streamer by changing how weapon textures load. Per N. Nikaido.
 
-setdvar marketing_enabled 1									 // enables CRM marketing coms
-setdvar arena_defaultPlaylist 40							 // sets the default Arena playlist
-setdvar tu2_disableChallengesForLockedItemsInArena 1	     // disables challenges for locked items in arenas
-setdvar groupCountsVisible 0 								 // replaced player count with percentages
-setdvar tu2_catchMissingRbEndFrame 1						 // Enables changes from N Silvagni see DT 14111
-setdvar fracture_enabled 1									 // Enables Fracture game mode for MP
+setdvar marketing_enabled 1    // enables CRM marketing coms
+setdvar arena_defaultPlaylist 40    // sets the default Arena playlist
+setdvar tu2_disableChallengesForLockedItemsInArena 1    // disables challenges for locked items in arenas
+setdvar groupCountsVisible 0    // replaced player count with percentages
+setdvar tu2_catchMissingRbEndFrame 1    // Enables changes from N Silvagni see DT 14111
+setdvar fracture_enabled 1    // Enables Fracture game mode for MP
 
 setdvar totalSampleRateBlackBox 0
 
-setdvar tu9_noClipsWarning 1                            // DT 163743
+setdvar tu9_noClipsWarning 1    // DT 163743
 
 // DLC search tuning
-setdvar lobbySearchSkipDLCProbability 0.5              // For users that are about to search for a session of ( DLC1 | OriginalMaps ), turn off the DLC1 bit 50% of the time and just search for original maps sessions instead. This should help skill discrepency between DLC1 sessions and original maps sessions
+setdvar lobbySearchSkipDLCProbability 0.5    // For users that are about to search for a session of ( DLC1 | OriginalMaps ), turn off the DLC1 bit 50% of the time and just search for original maps sessions instead. This should help skill discrepency between DLC1 sessions and original maps sessions
 
 //Parking Tuning
 setdvar lobbySearchForceUnparkLobbySize 1
 setdvar lobbySearchSkipUnparkProbability 0
 //setdvar lobbySearchBaseSkillRange 1.0
 //setdvar lobbySearchSkillRangeMultiplier 1.0
-setdvar tu16_lobbyMonitor 1                         // Prevents broken lobbies, per S.Eldredge and T. Keegan
+setdvar tu16_lobbyMonitor 1    // Prevents broken lobbies, per S.Eldredge and T. Keegan
 
 //Theater Optimizations
 setdvar demo_fileblockWriteRate 30
@@ -66,20 +66,20 @@ setdvar probation_version 0
 //Loot
 setdvar loot_enabled 1
 setdvar tu4_burnDuplicates 1
-setdvar loot_mpItemVersions "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18"                                          //Enables black market items for DEV
-setdvar loot_salePercentOff .5                                                    //Makes loot 50% off (UI Only - need FFOTD and Backend Update to actually get 50% off)
-setdvar lootxp_multiplier 2.0                                                     //Doubles Cryptokey earn rate - delete for playlists going LIVE, unless needed (requires backend update as well)
-setdvar scr_vialsAwardedScale 2.0                                                 //Double Liquid Divinium Earn Rate - delete for playlits giong LIVE, unless needed (requires backend update and FFOTD if before TU9)
+setdvar loot_mpItemVersions "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18"    //Enables black market items for DEV
+setdvar loot_salePercentOff .5    //Makes loot 50% off (UI Only - need FFOTD and Backend Update to actually get 50% off)
+setdvar lootxp_multiplier 2.0    //Doubles Cryptokey earn rate - delete for playlists going LIVE, unless needed (requires backend update as well)
+setdvar scr_vialsAwardedScale 2.0    //Double Liquid Divinium Earn Rate - delete for playlits giong LIVE, unless needed (requires backend update and FFOTD if before TU9)
 setdvar tu4_enableCodPoints 0
-setdvar loot_mpItemCurrentDropStringRef MENU_MONTHS_JUN                            //NEED TO UPDATE WITH EACH LOOT TU - sets a banner on the latest loot (as determined loot_mpItemVersions); banner's month is determined by this DVAR
-setdvar loot_bundle_final_count 10                                                  //Fixes post-event supply drops remaining number
-setdvar loot_trifecta_breadcrumb_index 2                                            //Increment this to allow for Breadrumbs on new Special Contracts.
+setdvar loot_mpItemCurrentDropStringRef MENU_MONTHS_JUN    //NEED TO UPDATE WITH EACH LOOT TU - sets a banner on the latest loot (as determined loot_mpItemVersions); banner's month is determined by this DVAR
+setdvar loot_bundle_final_count 10    //Fixes post-event supply drops remaining number
+setdvar loot_trifecta_breadcrumb_index 2    //Increment this to allow for Breadrumbs on new Special Contracts.
 
 setdvar black_market_gun_game 0
 setdvar rotatingPlaylistStartTime 1526058000
 
-setdvar rare_bundle_10for5_cpCost 500                                                   //Price for 10for5
-setdvar rare__bundle_10for5_dwid 51                                                     //DW ID for 10for5
+setdvar rare_bundle_10for5_cpCost 500    //Price for 10for5
+setdvar rare__bundle_10for5_dwid 51    //DW ID for 10for5
 
 //These dvars will prevent noDupes and 100 Bundles from disappearing after the event ends. per V. Sharma
 setdvar loot_noDupeRare20Bundle_dwid 15
@@ -92,9 +92,9 @@ setdvar trifecta_cod_points_drop_id 99071
 setdvar trifecta_cod_points_sku 99073
 
 // Loot Unlock
-setdvar loot_unlockUnreleasedLoot 1                                                 //When set to 1, this will display any loot we wish to hide from the public in mpUnreleasedLoot.csv; Setting to 0 will hide the Loot in the UI across the game
+setdvar loot_unlockUnreleasedLoot 1    //When set to 1, this will display any loot we wish to hide from the public in mpUnreleasedLoot.csv; Setting to 0 will hide the Loot in the UI across the game
 
-//Bribes                                                                        //Enables or Disables bribes
+//Bribes    //Enables or Disables bribes
 setdvar loot_bribeCrate_dwid 0
 setdvar loot_bribeCrate_cpCost 150
 setdvar loot_bribeCrate_cryptoCost 30
@@ -102,20 +102,20 @@ setdvar loot_bundleActive 1
 
 // Liquid Divinium (UI Only - needs a backend update)
 // setdvar loot_ld_salePercentOff .5  // This will set UI for original price (i.e., if a 50% off sale, then it will times the half-off CODPoint costs above by 2 and show that as the "original price") and controls whether or the promotional UI is visible or not
-// setdvar loot_ld_x3_cpCost 100              // Original price 200
-// setdvar loot_ld_x6_cpCost 200             // Original price 400
-// setdvar loot_ld_x9_cpCost 300            // Original price 600
-// setdvar loot_ld_saleEndDay 4        // int that represents which day of the week is displayed in the “sale ending” message in the popup; Sunday = 0; Thursday = 4, etc.
-// setdvar loot_ld_discount 50        // the discount that is displayed in the "--% off!" strings
-// setdvar zm_vials_20_id 99024         // Enables 20 pack of Liquid Divinium as a new purchasable
+// setdvar loot_ld_x3_cpCost 100    // Original price 200
+// setdvar loot_ld_x6_cpCost 200    // Original price 400
+// setdvar loot_ld_x9_cpCost 300    // Original price 600
+// setdvar loot_ld_saleEndDay 4    // int that represents which day of the week is displayed in the “sale ending” message in the popup; Sunday = 0; Thursday = 4, etc.
+// setdvar loot_ld_discount 50    // the discount that is displayed in the "--% off!" strings
+// setdvar zm_vials_20_id 99024    // Enables 20 pack of Liquid Divinium as a new purchasable
 
 //V.Sharma - No Ghost Lobby
-setdvar tu3_lobby_dropRejoiningClients 1                    // When a client leaves and re-joins the same game lobby, he will no longer be taken to a ghost lobby
+setdvar tu3_lobby_dropRejoiningClients 1    // When a client leaves and re-joins the same game lobby, he will no longer be taken to a ghost lobby
 
 //Dedicated Server
-setdvar lobbySearchMinDediSearchTime 30                         // Minimum time players will wait for dedicated server
-setdvar lobbySearchMinDediSearchClientAdd 5                     // Adds this amount of time per party member - i.e., 5 seconds per party member
-setdvar qos_echo_chance 50                                       // Ping survey for Orbis Dev only, per E.Oughton and B.Stragnell
+setdvar lobbySearchMinDediSearchTime 30    // Minimum time players will wait for dedicated server
+setdvar lobbySearchMinDediSearchClientAdd 5    // Adds this amount of time per party member - i.e., 5 seconds per party member
+setdvar qos_echo_chance 50    // Ping survey for Orbis Dev only, per E.Oughton and B.Stragnell
 
 //Enables Full Feature Theater
 setdvar demo_restrictedbasicmode 0
@@ -126,51 +126,51 @@ setdvar arena_enableArenaChallenges 1
 
 //DLC1 Free Weekend UI
 //setdvar ui_freeDLC1 1
-//setdvar ui_freeDLCPC 1											// Enables FREE DLC for all pc players.
+//setdvar ui_freeDLCPC 1    // Enables FREE DLC for all pc players.
 
-// Digital and Retail Incentive                                                         //This enables UI pop-up for when players purchase incentive
+// Digital and Retail Incentive    //This enables UI pop-up for when players purchase incentive
 setdvar enable_digital_incentive 1
 setdvar enable_retail_incentive 1
 
 //Season Pass Incentive
 setdvar enable_season_pass_incentive 1
 
-//Contracts                                                                                             // Turns on UI for Contracts
-setdvar show_contracts_button 1                                        // Turns on Contract Button
-setdvar enable_weapon_contract 1                                     // Enable weapon contract
-setdvar weapon_contract_target_value 75                         // Setting to 5 for QA, but will turn to 75 for when we ship
+//Contracts    // Turns on UI for Contracts
+setdvar show_contracts_button 1    // Turns on Contract Button
+setdvar enable_weapon_contract 1    // Enable weapon contract
+setdvar weapon_contract_target_value 75    // Setting to 5 for QA, but will turn to 75 for when we ship
 setdvar contracts_enabled_mp 1
 setdvar contracts_start_time 1460998800
-setdvar daily_contract_cryptokey_reward_count 10                            // Defines number of Cryptokeys to reward, default value for this dvar is 10
+setdvar daily_contract_cryptokey_reward_count 10    // Defines number of Cryptokeys to reward, default value for this dvar is 10
 
 //GobbleGum Features
-setdvar scr_firstGumFree 1											// Enables promotion where First GobbleGum in each round is Free
-setdvar tu18_enable_newtons_cookbook 1									// Enables Newton's Cookbook in the ZM main menu
-setdvar loot_forceEnableZCGumsInFactory 1							// enables the dlc5 gobblegums in dr monty's factory even if dlc5 is not enabled by tu9_highestAvailableDLC
+setdvar scr_firstGumFree 1    // Enables promotion where First GobbleGum in each round is Free
+setdvar tu18_enable_newtons_cookbook 1    // Enables Newton's Cookbook in the ZM main menu
+setdvar loot_forceEnableZCGumsInFactory 1    // enables the dlc5 gobblegums in dr monty's factory even if dlc5 is not enabled by tu9_highestAvailableDLC
 
 //ZM Tracking Dvars
 setdvar zm_dash_stats_enable_tracking 1
-//setdvar zm_dash_stats_use_aggregated_comscore 1                    // Leave this out unless the comscore event is causing problems.
+//setdvar zm_dash_stats_use_aggregated_comscore 1    // Leave this out unless the comscore event is causing problems.
 
 //Enable Music Tracks
-setdvar ui_enableMusicTracks 1                                                      // Enables thea ability to change music tracks in-game; must turn off before we go LIVE if not working correctly
+setdvar ui_enableMusicTracks 1    // Enables thea ability to change music tracks in-game; must turn off before we go LIVE if not working correctly
 
 //Promotional Menu
-setdvar ui_enablePromoMenu 0                                                            // Enables Promo Menu
-setdvar ui_promoThermometerPercent .25                                    // Sets percentage on "Thermometer"; .25 will make the themometer go up 25%
-ssetdvar ui_enablePromoTracking 1												// Enables Headshot tracking for ZMHD Thermometer.
-setdvar ui_enableZMHDFeaturedCard 1													// Enables Thermometer widget in ZM shell
+setdvar ui_enablePromoMenu 0    // Enables Promo Menu
+setdvar ui_promoThermometerPercent .25    // Sets percentage on "Thermometer"; .25 will make the themometer go up 25%
+ssetdvar ui_enablePromoTracking 1    // Enables Headshot tracking for ZMHD Thermometer.
+setdvar ui_enableZMHDFeaturedCard 1    // Enables Thermometer widget in ZM shell
 
 //Survey
 setdvar survey_count 0
 setdvar survey_chance .005
-setdvar live_enablePolls 0                                          // Disables the polling system, per Amit
+setdvar live_enablePolls 0    // Disables the polling system, per Amit
 
 //DW Live Experiments
-setdvar live_experimentsEnabled 0                                                       // Leave on for LIVE per Martin
+setdvar live_experimentsEnabled 0    // Leave on for LIVE per Martin
 
 // Analytics
-setdvar tu8_enableDurableProductsExchange 1                                 // Tracks Durable Products
+setdvar tu8_enableDurableProductsExchange 1    // Tracks Durable Products
 
 // setdvar skuOnlineOverride 1
 // setdvar skuOnlineSceaEnFr 1
@@ -183,13 +183,13 @@ setdvar tu8_enableDurableProductsExchange 1                                 // T
 // setdvar skuOnlineSceeArEa 1
 // setdvar skuOnlineScejFjJa 1
 
-//setdvar cpProcessingJoinCheck 1                               //Removed at T.Keegan's Request
-//setdvar zmProcessingJoinCheck 1                               //Removed at T.Keegan's Request
+//setdvar cpProcessingJoinCheck 1    //Removed at T.Keegan's Request
+//setdvar zmProcessingJoinCheck 1    //Removed at T.Keegan's Request
 
-setdvar sv_mapSwitchPreloadFrontend 0               //Turns on and off preloading for the frontend
+setdvar sv_mapSwitchPreloadFrontend 0    //Turns on and off preloading for the frontend
 
-setdvar lobbySearchSkipUnparkProbability 0          // Turn on for LIVE
-setdvar lobbySearchBaseSkillRange 0               // Turn on for LIVE - Disabled for PC
+setdvar lobbySearchSkipUnparkProbability 0    // Turn on for LIVE
+setdvar lobbySearchBaseSkillRange 0    // Turn on for LIVE - Disabled for PC
 
 setdvar com_script_recordeventprobability_client 0.0001
 setdvar com_script_recordeventprobability_server 0.0001
@@ -217,7 +217,7 @@ setdvar scr_prop_minigame 1
 setdvar live_useRegulation 1
 
 ///////////////////////////////////////////////////////////////////////////
-//     EVENTS
+//    EVENTS
 ///////////////////////////////////////////////////////////////////////////
 
 event default
@@ -456,11 +456,11 @@ event sniperonly_display
 rule playlist_show 109
 
 ///////////////////////////////////////////////////////////////////////////
-//     MP GAME MODES
+//    MP GAME MODES
 ///////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////
-//     NORMAL GAME MODES (MP)
+//    NORMAL GAME MODES (MP)
 ///////////////////////////////////////////////////////////////////////////
 
 gametype hs_ctf
@@ -560,7 +560,7 @@ script sniperonly
 rule gts inactivityKick 60
 
 ///////////////////////////////////////////////////////////////////////////
-//     HARDCORE RULES (MP)
+//    HARDCORE RULES (MP)
 ///////////////////////////////////////////////////////////////////////////
 
 gametype hc_tdm
@@ -639,7 +639,7 @@ rule gts teamKillPointLoss 1
 rule gts inactivityKick 60
 
 ///////////////////////////////////////////////////////////////////////////
-//     PARTY GAME MODES (MP)
+//    PARTY GAME MODES (MP)
 ///////////////////////////////////////////////////////////////////////////
 
 gametype hs_gun
@@ -649,28 +649,28 @@ rule gts allowbattlechatter 1
 rule gts inactivityKick 60
 
 ///////////////////////////////////////////////////////////////////////////
-//     ARENA PLAY RULES (MP)
+//    ARENA PLAY RULES (MP)
 ///////////////////////////////////////////////////////////////////////////
 
 gametype arena_ctf_pro
 nameref PLAYLIST_GAMETYPE_HS_CTF
 script ctf
-rule gts scorelimit 0										// Capture Limit: unlimited
-rule gts playerRespawnDelay 7.5					// Respawn Delay: 7.5 Seconds
-rule gts cumulativeRoundScores 1				// Win Condition
-rule gts teamKillPunishCount 5					// Number of teamkills before kicking: 3
-rule gts teamKillPointLoss 1			  		// Player will lose points for teamkills: true
+rule gts scorelimit 0    // Capture Limit: unlimited
+rule gts playerRespawnDelay 7.5    // Respawn Delay: 7.5 Seconds
+rule gts cumulativeRoundScores 1    // Win Condition
+rule gts teamKillPunishCount 5    // Number of teamkills before kicking: 3
+rule gts teamKillPointLoss 1    // Player will lose points for teamkills: true
 rule gts inactivityKick 60
 
 gametype arena_sd_pro
 nameref PLAYLIST_GAMETYPE_ARENA_SD
 script sd
-rule gts timelimit 1.5							// Time Limit: 1.5 Minutes
-rule gts defuseTime 7.5							// Defuse Time: 7.5 Seconds
-rule gts silentPlant 1							// Silent Plant: True
-rule gts scoreLimit 6							// Round Win Limit: 6 Rounds
-rule gts teamKillPunishCount 3					// Number of teamkills before kicking: 3
-rule gts teamKillPointLoss 1			  		// Player will lose points for teamkills: true
+rule gts timelimit 1.5    // Time Limit: 1.5 Minutes
+rule gts defuseTime 7.5    // Defuse Time: 7.5 Seconds
+rule gts silentPlant 1    // Silent Plant: True
+rule gts scoreLimit 6    // Round Win Limit: 6 Rounds
+rule gts teamKillPunishCount 3    // Number of teamkills before kicking: 3
+rule gts teamKillPointLoss 1    // Player will lose points for teamkills: true
 rule gts inactivityKick 60
 
 gametype arena_sd
@@ -686,18 +686,18 @@ rule gts inactivityKick 60
 gametype arena_koth_pro
 nameref PLAYLIST_GAMETYPE_ARENA_KOTH
 script koth
-rule gts spawnsuicidepenalty 3 					// Suicide Penalty in KOTH : 3 seconds
-rule gts teamKillPunishCount 5					// Number of teamkills before kicking: 3
-rule gts teamKillPointLoss 1			  		// Player will lose points for teamkills: true
+rule gts spawnsuicidepenalty 3    // Suicide Penalty in KOTH : 3 seconds
+rule gts teamKillPunishCount 5    // Number of teamkills before kicking: 3
+rule gts teamKillPointLoss 1    // Player will lose points for teamkills: true
 rule gts inactivityKick 60
 
 gametype arena_ball_pro
 nameref PLAYLIST_GAMETYPE_HS_BALL
 script ball
-rule gts playerRespawnDelay 5			  		// Respawn Delay: 5 Seconds
-rule gts roundScoreLimit 0							// Round Score Limit: 0
-rule gts teamKillPunishCount 5					// Number of teamkills before kicking: 3
-rule gts teamKillPointLoss 1			  		// Player will lose points for teamkills: true
+rule gts playerRespawnDelay 5    // Respawn Delay: 5 Seconds
+rule gts roundScoreLimit 0    // Round Score Limit: 0
+rule gts teamKillPunishCount 5    // Number of teamkills before kicking: 3
+rule gts teamKillPointLoss 1    // Player will lose points for teamkills: true
 rule gts inactivityKick 60
 
 gametype arena_dom
@@ -730,7 +730,7 @@ script conf
 rule gts inactivityKick 60
 
 ///////////////////////////////////////////////////////////////////////////
-//     ZOMBIE GAME MODES
+//    ZOMBIE GAME MODES
 ///////////////////////////////////////////////////////////////////////////
 gametype zclassic
 nameref PLAYLIST_GAMETYPE_ZCLASSIC
@@ -738,7 +738,7 @@ rule ui_zm_gamemodegroup zclassic
 script zclassic
 
 ///////////////////////////////////////////////////////////////////////////
-//     CAMPAIGN GAME MODES
+//    CAMPAIGN GAME MODES
 ///////////////////////////////////////////////////////////////////////////
 
 gametype cp_coop
@@ -1390,7 +1390,7 @@ filter playermatch
 unlockxp 0
 
 ///////////////////////////////////////////////////////////////////////////
-//     MAPLISTS
+//    MAPLISTS
 ///////////////////////////////////////////////////////////////////////////
 
 maplist all
@@ -1491,8 +1491,8 @@ mp_western
 ///////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////
-//      CORE (MP)
-//      1-19 is reserved for playlists in the Core category
+//    CORE (MP)
+//    1-19 is reserved for playlists in the Core category
 ///////////////////////////////////////////////////////////////////////////
 
 playlist 1
@@ -1678,7 +1678,7 @@ rule scr_xpscalemp 2
 rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
 //rule liveDedicatedOnly 0
-// rule partyChatDisallowed 1               // rule partyChatDisallowed 1 - this will kick any player who is currently in or joined a platform party chat
+// rule partyChatDisallowed 1    // rule partyChatDisallowed 1 - this will kick any player who is currently in or joined a platform party chat
 sortOrder 0.2
 all,hs_sd,1
 dlc1,hs_sd,1
@@ -1786,8 +1786,8 @@ dlc4,hs_clean,1
 // playlist 12
 
 ///////////////////////////////////////////////////////////////////////////
-//      HARDCORE (MP)
-//      20-29 is reserved for playlists in the Hardcore category
+//    HARDCORE (MP)
+//    20-29 is reserved for playlists in the Hardcore category
 ///////////////////////////////////////////////////////////////////////////
 
 playlist 20
@@ -1947,7 +1947,7 @@ rule party_minplayers 1
 rule party_maxplayers 12
 rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
-// rule partyChatDisallowed 1               // rule partyChatDisallowed 1 - this will kick any player who is currently in or joined a platform party chat
+// rule partyChatDisallowed 1    // rule partyChatDisallowed 1 - this will kick any player who is currently in or joined a platform party chat
 rule xpGroups everyone
 rule scr_xpscalemp 2
 rule gunxpgroups everyone
@@ -1982,8 +1982,8 @@ dlc3,hc_ctf,1
 dlc4,hc_ctf,1
 
 ///////////////////////////////////////////////////////////////////////////
-//      ARENAS
-//      40-49 is reserved for playlists in Arenas
+//    ARENAS
+//    40-49 is reserved for playlists in Arenas
 ///////////////////////////////////////////////////////////////////////////
 
 playlist 40
@@ -2025,19 +2025,19 @@ parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 8
 rule party_matchedplayercount 1
-rule gts pregamedraftenabled 1      // enable Specialist Selection
+rule gts pregamedraftenabled 1    // enable Specialist Selection
 rule gts pregameitemvoteenabled 1   // enable pick/ban
 rule gts pregamescorestreakmodifytime 20 // Scorestreak Selection Timer in seconds
 rule gts pregamedraftroundtime 20   // Draft round timer in seconds
 rule gts pregamecacmodifytime 90    // CAC Modify timer in seconds
-rule gts pregameprestagetime 3      // Pre-game Stage Timer in seconds
+rule gts pregameprestagetime 3    // Pre-game Stage Timer in seconds
 rule gts pregameItemVoteRoundTime 30    // Protect/Ban timer in seconds
-rule gts friendlyfiretype 1                         // Friendly Fire: Enabled
+rule gts friendlyfiretype 1    // Friendly Fire: Enabled
 rule gts disableThirdPersonSpectating 1 // No 3rd person spectating
-rule gts voipKillersHearVictim 0                // No VOIP to killer
-rule gts allowBattleChatter 0                     // No Battlechatter
-rule gts allowMapScripting 0                        // Map Interactivity set to No
-rule gts roundStartExplosiveDelay 0     // Time to use grenades: 0
+rule gts voipKillersHearVictim 0    // No VOIP to killer
+rule gts allowBattleChatter 0    // No Battlechatter
+rule gts allowMapScripting 0    // Map Interactivity set to No
+rule gts roundStartExplosiveDelay 0    // Time to use grenades: 0
 rule gts restricteditems 199 1  // Restrict UAV
 rule gts restricteditems 202 1  // Restrict Care Package
 rule gts restricteditems 213 1  // Restrict HATR
@@ -2086,7 +2086,7 @@ rule gts restricteditems 129 1 // Restrict ar_m14
 rule gts restrictedattachments 27 weaponindex 54 1  // Restrict LRx2
 rule gts restrictedattachments 36 weaponindex 54 1  // Restrict Tri-Bolt
 rule gts restrictedattachments 39 weaponindex 54 1  // Restrict Bayonet
-rule gts loadoutKillstreaksEnabled 1        // Enable Scorestreaks
+rule gts loadoutKillstreaksEnabled 1    // Enable Scorestreaks
 arena_koth,arena_koth_pro,1
 arena_ball,arena_ball_pro,1
 arena_sd,arena_sd_pro,1
@@ -2131,14 +2131,14 @@ parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 8
 rule party_matchedplayercount 1
-rule gts pregamedraftenabled 0      // Disable Specialist Selection
+rule gts pregamedraftenabled 0    // Disable Specialist Selection
 rule gts pregameitemvoteenabled 0   // disable pick/ban
-rule gts friendlyfiretype 1                         // Friendly Fire: Enabled
+rule gts friendlyfiretype 1    // Friendly Fire: Enabled
 rule gts disableThirdPersonSpectating 1 // No 3rd person spectating
-rule gts voipKillersHearVictim 0                // No VOIP to killer
-rule gts allowBattleChatter 0                     // No Battlechatter
-rule gts allowMapScripting 0                        // Map Interactivity set to No
-rule gts roundStartExplosiveDelay 0     // Time to use grenades: 0
+rule gts voipKillersHearVictim 0    // No VOIP to killer
+rule gts allowBattleChatter 0    // No Battlechatter
+rule gts allowMapScripting 0    // Map Interactivity set to No
+rule gts roundStartExplosiveDelay 0    // Time to use grenades: 0
 rule gts restricteditems 199 1  // Restrict UAV
 rule gts restricteditems 202 1  // Restrict Care Package
 rule gts restricteditems 213 1  // Restrict HATR
@@ -2187,15 +2187,15 @@ rule gts restricteditems 129 1 // Restrict ar_m14
 rule gts restrictedattachments 27 weaponindex 54 1  // Restrict LRx2
 rule gts restrictedattachments 36 weaponindex 54 1  // Restrict Tri-Bolt
 rule gts restrictedattachments 39 weaponindex 54 1  // Restrict Bayonet
-rule gts loadoutKillstreaksEnabled 1        // Enable Scorestreaks
+rule gts loadoutKillstreaksEnabled 1    // Enable Scorestreaks
 arena_koth,arena_koth_pro,1
 arena_ball,arena_ball_pro,1
 arena_sd,arena_sd_pro,1
 arena_ctf,arena_ctf_pro,1
 
 ///////////////////////////////////////////////////////////////////////////
-//      FEATURED
-//      90-119 is reserved for playlists in the Featured Category. Contains other playlists from the old BONUS category - Nuk3town, Nukejacked, Gun Game.
+//    FEATURED
+//    90-119 is reserved for playlists in the Featured Category. Contains other playlists from the old BONUS category - Nuk3town, Nukejacked, Gun Game.
 ///////////////////////////////////////////////////////////////////////////
 
 playlist 30
@@ -2618,7 +2618,7 @@ rule party_minplayers 1
 rule party_maxplayers 12
 rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
-// rule partyChatDisallowed 1 				// rule partyChatDisallowed 1 - this will kick any player who is currently in or joined a platform party chat
+// rule partyChatDisallowed 1    // rule partyChatDisallowed 1 - this will kick any player who is currently in or joined a platform party chat
 all,hs_sd,1
 dlc1,hs_sd,1
 dlc2,hs_sd,1
@@ -3225,7 +3225,7 @@ all,hs_sd,1
 //hidden
 
 ///////////////////////////////////////////////////////////////////////////
-//      ZOMBIES
+//    ZOMBIES
 ///////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////
