@@ -101,8 +101,11 @@ function init()
 	level endon( "game_ended" );
 	
 	level.botSoak = is_bot_soak();
-	
-	init_bot_gametype();
+
+	if( level.rankedmatch && level.botsoak || !init_bot_gametype() )
+	{
+		return;
+	}
 	
 	wait_for_host();
 	
@@ -819,11 +822,11 @@ function init_bot_gametype()
 			bot_escort::init();
 			return true;
 		}
-		case "infect":
+/*		case "infect":
 		{
 			return true;
 		}
-		case "gun":
+*/		case "gun":
 		{
 			return true;
 		}
