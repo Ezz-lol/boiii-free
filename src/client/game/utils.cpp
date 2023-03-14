@@ -24,6 +24,6 @@ namespace game
 			return {};
 		}
 
-		return dvar->current.integer;
+		return dvar->current.value.integer;
 	}
 }
