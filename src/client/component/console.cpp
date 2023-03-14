@@ -27,6 +27,7 @@ namespace console
 		utils::image::object logo;
 		std::atomic_bool started{false};
 		std::atomic_bool terminate_runner{false};
+		utils::concurrency::container<std::function<void(const std::string& message)>> interceptor{};
 		utils::concurrency::container<std::queue<std::string>> message_queue{};
 
 		void print_message(const char* message)
@@ -43,6 +44,14 @@ namespace console
 
 		void queue_message(const char* message)
 		{
+			interceptor.access([message](const std::function<void(const std::string&)>& callback)
+			{
+				if (callback)
+				{
+					callback(message);
+				}
+			});
+
 			message_queue.access([message](std::queue<std::string>& queue)
 			{
 				queue.push(message);
@@ -200,6 +209,19 @@ namespace console
 			game::Con_GetTextCopy(text, std::min(0x4000, static_cast<int>(sizeof(text))));
 			SetWindowTextA(*game::s_wcd::hwndBuffer, text);
 		}
+	}
+
+	void set_interceptor(std::function<void(const std::string& message)> callback)
+	{
+		interceptor.access([&callback](std::function<void(const std::string&)>& c)
+		{
+			c = std::move(callback);
+		});
+	}
+
+	void remove_interceptor()
+	{
+		set_interceptor({});
 	}
 
 	struct component final : generic_component

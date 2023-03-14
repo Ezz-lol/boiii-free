@@ -50,8 +50,11 @@ namespace game
 	};
 	WEAK symbol<void(int localClientNum, ControllerIndex_t controllerIndex, const char* text,
 	                 bool fromRemoteConsole)> Cmd_ExecuteSingleCommand{
-		0x1420ED380
+		0x1420ED380, 0x1404F8890
 	};
+	WEAK symbol<void(int localClientNum, ControllerIndex_t localControllerIndex, const char* text_in, int max_tokens,
+	                 bool evalExpressions, CmdArgs* args)> Cmd_TokenizeStringKernel{0x1420EED60, 0x1404FA300};
+	WEAK symbol<void()> Cmd_EndTokenizedString{0x1420ECED0, 0x1404F8420};
 	WEAK symbol<void(char* text, int maxSize)> Con_GetTextCopy{0x14133A7D0, 0x140182C40};
 
 	// DB

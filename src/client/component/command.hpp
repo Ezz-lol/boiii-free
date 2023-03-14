@@ -6,6 +6,14 @@ namespace command
 	{
 	public:
 		params();
+		params(const std::string& text);
+		~params();
+
+		params(params&&) = delete;
+		params(const params&) = delete;
+
+		params& operator=(params&&) = delete;
+		params& operator=(const params&) = delete;
 
 		[[nodiscard]] int size() const;
 		[[nodiscard]] const char* get(int index) const;
@@ -17,6 +25,7 @@ namespace command
 		}
 
 	private:
+		bool needs_end_{false};
 		int nesting_;
 	};
 

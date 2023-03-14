@@ -81,6 +81,24 @@ namespace command
 		assert(this->nesting_ < game::CMD_MAX_NESTING);
 	}
 
+	params::params(const std::string& text)
+		: needs_end_(true)
+	{
+		auto* cmd_args = get_cmd_args();
+		game::Cmd_TokenizeStringKernel(0, game::CONTROLLER_INDEX_FIRST, text.data(),
+		                               512 - cmd_args->totalUsedArgvPool, false, cmd_args);
+
+		this->nesting_ = cmd_args->nesting;
+	}
+
+	params::~params()
+	{
+		if (this->needs_end_)
+		{
+			game::Cmd_EndTokenizedString();
+		}
+	}
+
 	int params::size() const
 	{
 		return get_cmd_args()->argc[this->nesting_];
@@ -189,8 +207,10 @@ namespace command
 		auto& allocator = *utils::memory::get_allocator();
 		const auto* cmd_string = allocator.duplicate_string(command);
 
-		game::Cmd_AddCommandInternal(cmd_string, game::Cbuf_AddServerText_f, allocator.allocate<game::cmd_function_s>());
-		game::Cmd_AddServerCommandInternal(cmd_string, execute_custom_sv_command, allocator.allocate<game::cmd_function_s>());
+		game::Cmd_AddCommandInternal(cmd_string, game::Cbuf_AddServerText_f,
+		                             allocator.allocate<game::cmd_function_s>());
+		game::Cmd_AddServerCommandInternal(cmd_string, execute_custom_sv_command,
+		                                   allocator.allocate<game::cmd_function_s>());
 	}
 }
 
