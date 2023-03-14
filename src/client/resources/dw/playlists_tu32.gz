@@ -10,9 +10,9 @@ settings
 // setdvar cl_thunderhead_prefix t7_tu1_
 
 //Disable paintshop optimizations
-setdvar cg_paintshopEnableCompression 1    // Assists with Paintshop streaming
-setdvar cg_paintshopReadDiskCache 1    // Assists with Paintshop streaming
-setdvar cg_paintshopWriteDiskCache 1    // Assists with Paintshop streaming
+//setdvar cg_paintshopEnableCompression 1    // Assists with Paintshop streaming
+//setdvar cg_paintshopReadDiskCache 1    // Assists with Paintshop streaming
+//setdvar cg_paintshopWriteDiskCache 1    // Assists with Paintshop streaming
 
 setdvar r_forcedModelLodsMP 4    // helps with offloading some memory from the streamer, per N. Nikaido.
 setdvar r_streamWeaponsCache 1    // Frees up memory on the streamer by changing how weapon textures load. Per N. Nikaido.
@@ -32,8 +32,8 @@ setdvar tu9_noClipsWarning 1    // DT 163743
 setdvar lobbySearchSkipDLCProbability 0.5    // For users that are about to search for a session of ( DLC1 | OriginalMaps ), turn off the DLC1 bit 50% of the time and just search for original maps sessions instead. This should help skill discrepency between DLC1 sessions and original maps sessions
 
 //Parking Tuning
-setdvar lobbySearchForceUnparkLobbySize 1
-setdvar lobbySearchSkipUnparkProbability 0
+//setdvar lobbySearchForceUnparkLobbySize 3
+//setdvar lobbySearchSkipUnparkProbability 0.9
 //setdvar lobbySearchBaseSkillRange 1.0
 //setdvar lobbySearchSkillRangeMultiplier 1.0
 setdvar tu16_lobbyMonitor 1    // Prevents broken lobbies, per S.Eldredge and T. Keegan
@@ -60,8 +60,8 @@ setdvar tu11_maxQuadCacheAlloc 256
 setdvar ui_isDaylightSavingsTime 1
 
 //Probation DVARS
-setdvar probation_league_enabled 0
-setdvar probation_version 0
+setdvar probation_league_enabled 1
+setdvar probation_version 1
 
 //Loot
 setdvar loot_enabled 1
@@ -70,7 +70,7 @@ setdvar loot_mpItemVersions "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18"    //
 //setdvar loot_salePercentOff .5    //Makes loot 50% off (UI Only - need FFOTD and Backend Update to actually get 50% off)
 //setdvar lootxp_multiplier 2.0    //Doubles Cryptokey earn rate - delete for playlists going LIVE, unless needed (requires backend update as well)
 //setdvar scr_vialsAwardedScale 2.0    //Double Liquid Divinium Earn Rate - delete for playlits giong LIVE, unless needed (requires backend update and FFOTD if before TU9)
-setdvar tu4_enableCodPoints 0
+setdvar tu4_enableCodPoints 1
 setdvar loot_mpItemCurrentDropStringRef MENU_MONTHS_JUN    //NEED TO UPDATE WITH EACH LOOT TU - sets a banner on the latest loot (as determined loot_mpItemVersions); banner's month is determined by this DVAR
 setdvar loot_bundle_final_count 10    //Fixes post-event supply drops remaining number
 setdvar loot_trifecta_breadcrumb_index 2    //Increment this to allow for Breadrumbs on new Special Contracts.
@@ -98,7 +98,7 @@ setdvar loot_unlockUnreleasedLoot 1    //When set to 1, this will display any lo
 setdvar loot_bribeCrate_dwid 0
 setdvar loot_bribeCrate_cpCost 300
 setdvar loot_bribeCrate_cryptoCost 60
-setdvar loot_bundleActive 1
+setdvar loot_bundleActive 0
 
 // Liquid Divinium (UI Only - needs a backend update)
 // setdvar loot_ld_salePercentOff .5  // This will set UI for original price (i.e., if a 50% off sale, then it will times the half-off CODPoint costs above by 2 and show that as the "original price") and controls whether or the promotional UI is visible or not
@@ -158,8 +158,8 @@ setdvar ui_enableMusicTracks 1    // Enables thea ability to change music tracks
 //Promotional Menu
 setdvar ui_enablePromoMenu 0    // Enables Promo Menu
 //setdvar ui_promoThermometerPercent .25    // Sets percentage on "Thermometer"; .25 will make the themometer go up 25%
-ssetdvar ui_enablePromoTracking 1    // Enables Headshot tracking for ZMHD Thermometer.
-setdvar ui_enableZMHDFeaturedCard 1    // Enables Thermometer widget in ZM shell
+//setdvar ui_enablePromoTracking 1    // Enables Headshot tracking for ZMHD Thermometer.
+//setdvar ui_enableZMHDFeaturedCard 1    // Enables Thermometer widget in ZM shell
 
 //Survey
 setdvar survey_count 1
@@ -222,11 +222,11 @@ setdvar live_useRegulation 1
 
 event default
 rule xpGroups everyone
-rule scr_xpscalemp 2
-rule scr_xpscalezm 2
+rule scr_xpscalemp 1
+rule scr_xpscalezm 1
 rule gunxpgroups everyone
-rule scr_gunxpscalemp 2
-rule scr_gunxpscalezm 2
+rule scr_gunxpscalemp 1
+rule scr_gunxpscalezm 1
 rule cryptoKeyGroups everyone
 rule lootxp_multiplier 1.0
 rule zmVialGroups everyone
@@ -1507,10 +1507,6 @@ rule party_minplayers 1
 rule party_maxplayers 18
 //rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
-rule xpGroups everyone
-rule scr_xpscalemp 2
-rule gunxpgroups everyone
-rule scr_gunxpscalemp 2
 sortOrder 0
 all,hs_tdm,1
 dlc1,hs_tdm,1
@@ -1530,10 +1526,6 @@ parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 18
 //rule liveDedicatedOnly 0
-rule xpGroups everyone
-rule scr_xpscalemp 2
-rule gunxpgroups everyone
-rule scr_gunxpscalemp 2
 sortOrder 0.1
 all,hs_ffa,1
 dlc1,hs_ffa,1
@@ -1553,10 +1545,6 @@ parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 18
 //rule liveDedicatedOnly 0
-rule xpGroups everyone
-rule scr_xpscalemp 2
-rule gunxpgroups everyone
-rule scr_gunxpscalemp 2
 sortOrder 0.3
 all,hs_dom,1
 dlc1,hs_dom,1
@@ -1576,10 +1564,6 @@ parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 18
 //rule party_matchedplayercount 1
-rule xpGroups everyone
-rule scr_xpscalemp 2
-rule gunxpgroups everyone
-rule scr_gunxpscalemp 2
 //rule liveDedicatedOnly 0
 sortOrder 0.4
 all,hs_dem,1
@@ -1600,10 +1584,6 @@ parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 18
 //rule party_matchedplayercount 1
-rule xpGroups everyone
-rule scr_xpscalemp 2
-rule gunxpgroups everyone
-rule scr_gunxpscalemp 2
 //rule liveDedicatedOnly 0
 sortOrder 0.6
 all,hs_conf,1
@@ -1624,10 +1604,6 @@ parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 18
 //rule party_matchedplayercount 1
-rule xpGroups everyone
-rule scr_xpscalemp 2
-rule gunxpgroups everyone
-rule scr_gunxpscalemp 2
 //rule liveDedicatedOnly 0
 sortOrder 0.7
 all,hs_koth,1
@@ -1648,10 +1624,6 @@ parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 18
 //rule party_matchedplayercount 1
-rule xpGroups everyone
-rule scr_xpscalemp 2
-rule gunxpgroups everyone
-rule scr_gunxpscalemp 2
 //rule liveDedicatedOnly 0
 all,hs_ctf,1
 dlc1,hs_ctf,1
@@ -1671,10 +1643,6 @@ parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 18
 //rule party_matchedplayercount 1
-rule xpGroups everyone
-rule scr_xpscalemp 2
-rule gunxpgroups everyone
-rule scr_gunxpscalemp 2
 //rule liveDedicatedOnly 0
 // rule partyChatDisallowed 1    // rule partyChatDisallowed 1 - this will kick any player who is currently in or joined a platform party chat
 sortOrder 0.2
@@ -1696,10 +1664,6 @@ parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 18
 //rule party_matchedplayercount 1
-rule xpGroups everyone
-rule scr_xpscalemp 2
-rule gunxpgroups everyone
-rule scr_gunxpscalemp 2
 //rule liveDedicatedOnly 0
 all,hs_ball,1
 dlc1,hs_ball,1
@@ -1719,10 +1683,6 @@ parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 18
 //rule party_matchedplayercount 1
-rule xpGroups everyone
-rule scr_xpscalemp 2
-rule gunxpgroups everyone
-rule scr_gunxpscalemp 2
 //rule liveDedicatedOnly 0
 sortOrder 0.8
 all,hs_escort,1
@@ -1769,10 +1729,6 @@ parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 18
 //rule party_matchedplayercount 1
-rule xpGroups everyone
-rule scr_xpscalemp 2
-rule gunxpgroups everyone
-rule scr_gunxpscalemp 2
 sortOrder 0.5
 // rule ui_showBonusIcon 0
 all,hs_clean,1
@@ -1801,10 +1757,6 @@ rule party_minplayers 1
 rule party_maxplayers 18
 //rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
-rule xpGroups everyone
-rule scr_xpscalemp 2
-rule gunxpgroups everyone
-rule scr_gunxpscalemp 2
 all,hc_tdm,1
 dlc1,hc_tdm,1
 dlc2,hc_tdm,1
@@ -1824,10 +1776,6 @@ rule party_minplayers 1
 rule party_maxplayers 18
 //rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
-rule xpGroups everyone
-rule scr_xpscalemp 2
-rule gunxpgroups everyone
-rule scr_gunxpscalemp 2
 all,hc_ffa,1
 dlc1,hc_ffa,1
 dlc2,hc_ffa,1
@@ -1873,10 +1821,6 @@ rule party_minplayers 1
 rule party_maxplayers 18
 //rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
-rule xpGroups everyone
-rule scr_xpscalemp 2
-rule gunxpgroups everyone
-rule scr_gunxpscalemp 2
 all,hc_dom,1
 dlc1,hc_dom,1
 dlc2,hc_dom,1
@@ -1922,10 +1866,6 @@ rule party_minplayers 1
 rule party_maxplayers 18
 //rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
-rule xpGroups everyone
-rule scr_xpscalemp 2
-rule gunxpgroups everyone
-rule scr_gunxpscalemp 2
 all,hc_conf,1
 dlc1,hc_conf,1
 dlc2,hc_conf,1
@@ -1946,10 +1886,6 @@ rule party_maxplayers 18
 //rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
 // rule partyChatDisallowed 1    // rule partyChatDisallowed 1 - this will kick any player who is currently in or joined a platform party chat
-rule xpGroups everyone
-rule scr_xpscalemp 2
-rule gunxpgroups everyone
-rule scr_gunxpscalemp 2
 all,hc_sd,1
 dlc1,hc_sd,1
 dlc2,hc_sd,1
@@ -1969,10 +1905,6 @@ rule party_minplayers 1
 rule party_maxplayers 18
 //rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
-rule xpGroups everyone
-rule scr_xpscalemp 2
-rule gunxpgroups everyone
-rule scr_gunxpscalemp 2
 all,hc_ctf,1
 dlc1,hc_ctf,1
 dlc2,hc_ctf,1
@@ -3017,10 +2949,6 @@ rule party_maxplayers 18
 //rule party_matchedplayercount 1
 //rule liveDedicatedOnly 0
 // rule lobbySearchDatacenterType 2
-rule xpGroups everyone
-rule scr_xpscalemp 2
-rule gunxpgroups everyone
-rule scr_gunxpscalemp 2
 bigmaps,hs_dom,1
 bigmaps,big_tdm,1
 bigmaps,hs_escort,1
