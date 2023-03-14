@@ -67,9 +67,9 @@ setdvar probation_version 0
 setdvar loot_enabled 1
 setdvar tu4_burnDuplicates 1
 setdvar loot_mpItemVersions "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18"    //Enables black market items for DEV
-setdvar loot_salePercentOff .5    //Makes loot 50% off (UI Only - need FFOTD and Backend Update to actually get 50% off)
-setdvar lootxp_multiplier 2.0    //Doubles Cryptokey earn rate - delete for playlists going LIVE, unless needed (requires backend update as well)
-setdvar scr_vialsAwardedScale 2.0    //Double Liquid Divinium Earn Rate - delete for playlits giong LIVE, unless needed (requires backend update and FFOTD if before TU9)
+//setdvar loot_salePercentOff .5    //Makes loot 50% off (UI Only - need FFOTD and Backend Update to actually get 50% off)
+//setdvar lootxp_multiplier 2.0    //Doubles Cryptokey earn rate - delete for playlists going LIVE, unless needed (requires backend update as well)
+//setdvar scr_vialsAwardedScale 2.0    //Double Liquid Divinium Earn Rate - delete for playlits giong LIVE, unless needed (requires backend update and FFOTD if before TU9)
 setdvar tu4_enableCodPoints 0
 setdvar loot_mpItemCurrentDropStringRef MENU_MONTHS_JUN    //NEED TO UPDATE WITH EACH LOOT TU - sets a banner on the latest loot (as determined loot_mpItemVersions); banner's month is determined by this DVAR
 setdvar loot_bundle_final_count 10    //Fixes post-event supply drops remaining number
@@ -96,8 +96,8 @@ setdvar loot_unlockUnreleasedLoot 1    //When set to 1, this will display any lo
 
 //Bribes    //Enables or Disables bribes
 setdvar loot_bribeCrate_dwid 0
-setdvar loot_bribeCrate_cpCost 150
-setdvar loot_bribeCrate_cryptoCost 30
+setdvar loot_bribeCrate_cpCost 300
+setdvar loot_bribeCrate_cryptoCost 60
 setdvar loot_bundleActive 1
 
 // Liquid Divinium (UI Only - needs a backend update)
@@ -157,17 +157,17 @@ setdvar ui_enableMusicTracks 1    // Enables thea ability to change music tracks
 
 //Promotional Menu
 setdvar ui_enablePromoMenu 0    // Enables Promo Menu
-setdvar ui_promoThermometerPercent .25    // Sets percentage on "Thermometer"; .25 will make the themometer go up 25%
+//setdvar ui_promoThermometerPercent .25    // Sets percentage on "Thermometer"; .25 will make the themometer go up 25%
 ssetdvar ui_enablePromoTracking 1    // Enables Headshot tracking for ZMHD Thermometer.
 setdvar ui_enableZMHDFeaturedCard 1    // Enables Thermometer widget in ZM shell
 
 //Survey
-setdvar survey_count 0
+setdvar survey_count 1
 setdvar survey_chance .005
 setdvar live_enablePolls 0    // Disables the polling system, per Amit
 
 //DW Live Experiments
-setdvar live_experimentsEnabled 0    // Leave on for LIVE per Martin
+setdvar live_experimentsEnabled 1    // Leave on for LIVE per Martin
 
 // Analytics
 setdvar tu8_enableDurableProductsExchange 1    // Tracks Durable Products
