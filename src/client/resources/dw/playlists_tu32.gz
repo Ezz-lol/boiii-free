@@ -3055,8 +3055,8 @@ rule party_maxplayers 12
 //rule party_matchedplayercount 1
 rule gts restricteditems 92 1 // Restrict Gambler Ability
 rule gts restricteditems 93 1 // Restrict Rogue Ability
-rule gts prematchrequirement 6
-rule gts prematchrequirementtime 30
+// rule gts prematchrequirement 6
+// rule gts prematchrequirementtime 30
 //rule liveDedicatedOnly 0
 all,hs_infect,1
 dlc1,hs_infect,1
@@ -3099,8 +3099,8 @@ parkingplaylist 9001
 rule party_minplayers 1
 rule party_maxplayers 12
 //rule party_matchedplayercount 1
-rule gts prematchrequirement 3
-rule gts prematchrequirementtime 30
+// rule gts prematchrequirement 3
+// rule gts prematchrequirementtime 30
 //rule liveDedicatedOnly 0
 mp_biodome,hs_prop,1
 mp_spire,hs_prop,1
