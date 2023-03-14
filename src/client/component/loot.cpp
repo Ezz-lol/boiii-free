@@ -25,7 +25,7 @@ namespace loot
 		int loot_getitemquantity_stub(const game::ControllerIndex_t controller_index, const game::eModes mode,
 		                              const int item_id)
 		{
-			if (!dvar_cg_unlockall_loot->current.enabled)
+			if (!dvar_cg_unlockall_loot->current.value.enabled)
 			{
 				return loot_getitemquantity_hook.invoke<int>(controller_index, mode, item_id);
 			}
@@ -41,7 +41,7 @@ namespace loot
 		int liveinventory_getitemquantity_stub(const game::ControllerIndex_t controller_index, const int item_id)
 		{
 			// Item id's for extra CaC slots, CWL camo's and paid specialist outfits
-			if (dvar_cg_unlockall_loot->current.enabled && (item_id == 99003 || item_id >= 99018 && item_id <= 99021 || item_id == 99025||
+			if (dvar_cg_unlockall_loot->current.value.enabled && (item_id == 99003 || item_id >= 99018 && item_id <= 99021 || item_id == 99025||
 				item_id >= 90047 && item_id <= 90064))
 			{
 				return 1;
@@ -52,7 +52,7 @@ namespace loot
 
 		bool liveinventory_areextraslotspurchased_stub(const game::ControllerIndex_t controller_index)
 		{
-			if (dvar_cg_unlockall_loot->current.enabled)
+			if (dvar_cg_unlockall_loot->current.value.enabled)
 			{
 				return true;
 			}
@@ -62,7 +62,7 @@ namespace loot
 
 		bool bg_unlockablesisitempurchased_stub(game::eModes mode, const game::ControllerIndex_t controller_index, int item_index)
 		{
-			if (dvar_cg_unlockall_purchases->current.enabled)
+			if (dvar_cg_unlockall_purchases->current.value.enabled)
 			{
 				return true;
 			}
@@ -72,7 +72,7 @@ namespace loot
 
 		bool bg_unlockablesisitemattachmentlocked_stub(game::eModes mode, const game::ControllerIndex_t controller_index, int item_index, int attachment_num)
 		{
-			if (dvar_cg_unlockall_attachments->current.enabled)
+			if (dvar_cg_unlockall_attachments->current.value.enabled)
 			{
 				return false;
 			}
@@ -82,7 +82,7 @@ namespace loot
 
 		bool bg_unlockablesisattachmentslotlocked_stub(game::eModes mode, const game::ControllerIndex_t controller_index, int item_index, int attachment_slot_index)
 		{
-			if (dvar_cg_unlockall_attachments->current.enabled)
+			if (dvar_cg_unlockall_attachments->current.value.enabled)
 			{
 				return false;
 			}
@@ -112,7 +112,7 @@ namespace loot
 			bg_unlockablesisattachmentslotlocked_hook.create(0x1426A86D0_g, bg_unlockablesisattachmentslotlocked_stub);
 
 			scheduler::once([]() {
-				if (dvar_cg_unlockall_loot->current.enabled)
+				if (dvar_cg_unlockall_loot->current.value.enabled)
 				{
 					game::Dvar_SetFromStringByName("ui_enableAllHeroes", "1", true);
 				}

@@ -84,7 +84,7 @@ namespace network
 			socket_set_blocking(s, false);
 
 			const auto address = htonl(INADDR_ANY);
-			auto port = static_cast<uint16_t>(game::Dvar_FindVar("net_port")->current.integer);
+			auto port = static_cast<uint16_t>(game::Dvar_FindVar("net_port")->current.value.integer);
 
 			sockaddr_in server_addr{};
 			server_addr.sin_family = AF_INET;

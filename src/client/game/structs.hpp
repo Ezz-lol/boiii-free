@@ -673,70 +673,54 @@ namespace game
 
 	struct dvar_t;
 
-	union DvarValue
+	struct DvarValue
 	{
-		bool enabled;
-		int integer;
-		uint32_t unsignedInt;
-		int64_t integer64;
-		uint64_t unsignedInt64;
-		float value;
-		vec4_t vector;
-		const char* string;
-		byte color[4];
-	};
-
-	struct $7034703ED3857507327AE195CCA24A71
-	{
-		int stringCount;
-		const char** strings;
-	};
-
-	struct $5AC0CC375C7A91894540A0C75867866C
-	{
-		int min;
-		int max;
-	};
-
-	struct $FCEE86E78F1A35297637B00F6DD148A3
-	{
-		int64_t min;
-		int64_t max;
-	};
-
-	struct $28DE879AA85D5F4AA5DF9392CB197229
-	{
-		uint64_t min;
-		uint64_t max;
-	};
-
-	struct $D2B45DCE3C73414E1DE8E10A2D52B392
-	{
-		float min;
-		float max;
-	};
-
-	struct $97F25DA469865168FD08682F42882F2A
-	{
-		vec_t min;
-		vec_t max;
+		union {
+			bool enabled;
+			int integer;
+			uint32_t unsignedInt;
+			int64_t integer64;
+			uint64_t unsignedInt64;
+			float value;
+			vec4_t vector;
+			const char* string;
+			byte color[4];
+			const dvar_t* indirect[3];
+		} value;
+		uint64_t encryptedValue;
 	};
 
 	union DvarLimits
 	{
-		$7034703ED3857507327AE195CCA24A71 enumeration;
-		$5AC0CC375C7A91894540A0C75867866C integer;
-		$FCEE86E78F1A35297637B00F6DD148A3 integer64;
-		$28DE879AA85D5F4AA5DF9392CB197229 unsignedInt64;
-		$D2B45DCE3C73414E1DE8E10A2D52B392 value;
-		$97F25DA469865168FD08682F42882F2A vector;
+		struct {
+			int stringCount;
+			const char** strings;
+		} enumeration;
+		struct {
+			int min;
+			int max;
+		} integer;
+		struct {
+			int64_t min;
+			int64_t max;
+		} integer64;
+		struct {
+			uint64_t min;
+			uint64_t max;
+		} unsignedInt64;
+		struct {
+			float min;
+			float max;
+		} value;
+		struct {
+			vec_t min;
+			vec_t max;
+		} vector;
 	};
-
 
 	struct dvar_t
 	{
 		dvarStrHash_t name;
-		char _pad[0x4];
 		const char* debugName;
 		const char* description;
 		unsigned int flags;

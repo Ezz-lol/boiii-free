@@ -19,7 +19,7 @@ namespace dedicated_info
 			auto server_name = game::get_dvar_string("live_steam_server_name");
 			auto clean_server_name = game::I_CleanStr(server_name.data());
 
-			if (!sv_running || !sv_running->current.enabled)
+			if (!sv_running || !sv_running->current.value.enabled)
 			{
 				console::set_title(utils::string::va("%s - not running", clean_server_name));
 				return;
