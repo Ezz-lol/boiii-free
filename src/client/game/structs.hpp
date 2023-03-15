@@ -1593,6 +1593,93 @@ namespace game
 
 	static_assert(sizeof(workshop_data) == 0x4C8);
 
+	struct DDLMember
+	{
+		const char* name;
+		int index;
+		void* parent;
+		int bitSize;
+		int limitSize;
+		int offset;
+		int type;
+		int externalIndex;
+		unsigned int rangeLimit;
+		unsigned int serverDelta;
+		unsigned int clientDelta;
+		int arraySize;
+		int enumIndex;
+		int permission;
+	};
+
+	struct DDLHash
+	{
+		int hash;
+		int index;
+	};
+
+	struct DDLHashTable
+	{
+		DDLHash* list;
+		int count;
+		int max;
+	};
+
+	struct DDLStruct
+	{
+		const char* name;
+		int bitSize;
+		int memberCount;
+		DDLMember* members;
+		DDLHashTable hashTableUpper;
+		DDLHashTable hashTableLower;
+	};
+
+	struct DDLEnum
+	{
+		const char* name;
+		int memberCount;
+		const char** members;
+		DDLHashTable hashTable;
+	};
+
+	struct DDLDef
+	{
+		char* name;
+		uint16_t version;
+		unsigned int checksum;
+		byte flags;
+		int bitSize;
+		int byteSize;
+		DDLStruct* structList;
+		int structCount;
+		DDLEnum* enumList;
+		int enumCount;
+		DDLDef* next;
+		int headerBitSize;
+		int headerByteSize;
+		int reserveSize;
+		int userFlagsSize;
+		bool paddingUsed;
+	};
+
+	struct DDLContext;
+	typedef void(__stdcall* DDLWriteCB)(DDLContext*, void*);
+
+	struct DDLContext
+	{
+		void* buff;
+		int len;
+		const DDLDef* def;
+		DDLWriteCB writeCB;
+		void* userData;
+	};
+
+	struct emblemChallengeLookup_t
+	{
+		__int16 challengeIndex;
+		unsigned char itemIndex;
+	};
+
 	union XAssetHeader
 	{
 		/*PhysPreset* physPreset;
