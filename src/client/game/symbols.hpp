@@ -106,7 +106,7 @@ namespace game
 	WEAK symbol<bool(const dvar_t* dvar)> Dvar_GetBool{0x1422BCED0};
 	WEAK symbol<dvar_t*(dvarStrHash_t hash, const char* dvarName, bool value, dvarFlags_e flags,
 	                    const char* description)> Dvar_RegisterBool{
-		0x1422D0900
+		0x1422D0900, 0x14057B500
 	};
 	WEAK symbol<dvar_t*(dvarStrHash_t hash, const char* dvarName, const char* value, dvarFlags_e flags,
 	                    const char* description)> Dvar_RegisterString{
@@ -115,6 +115,9 @@ namespace game
 	WEAK symbol<void (void (*callback)(const dvar_t*, void*), void* userData)> Dvar_ForEach{0x1422BCD00};
 	WEAK symbol<void(const char* dvarName, const char* string, bool createIfMissing)> Dvar_SetFromStringByName{
 		0x1422C7500
+	};
+	WEAK symbol<dvar_t* (dvar_t* dvar, eModes mode)> Dvar_GetSessionModeSpecificDvar{
+		0x1422BF500, 0x140575D90
 	};
 
 	// UI

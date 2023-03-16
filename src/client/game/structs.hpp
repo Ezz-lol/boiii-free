@@ -646,10 +646,11 @@ namespace game
 
 	enum dvarFlags_e
 	{
+		DVAR_NONE = 0,
 		DVAR_ARCHIVE = 1 << 0,
 		DVAR_USERINFO = 1 << 1,
-		DVAR_SYSTEMINFO = 1 << 2,
-		DVAR_CODINFO = 1 << 3,
+		DVAR_SERVERINFO = 1 << 2,
+		DVAR_SYSTEMINFO = 1 << 3,
 		DVAR_LATCH = 1 << 4,
 		DVAR_ROM = 1 << 5,
 		DVAR_SAVED = 1 << 6,

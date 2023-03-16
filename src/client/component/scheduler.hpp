@@ -16,6 +16,9 @@ namespace scheduler
 		// The game's main thread
 		main,
 
+		// Dvars flags have been patched, ready to be set from config file
+		dvars_flags_patched,
+
 		// Dvars are done loading from the config file
 		dvars_loaded,
 
