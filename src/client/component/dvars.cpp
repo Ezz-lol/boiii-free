@@ -194,7 +194,7 @@ namespace dvars
 		{
 			if (!game::is_server())
 			{
-				scheduler::once(read_archive_dvars, scheduler::pipeline::main);
+				scheduler::once(read_archive_dvars, scheduler::pipeline::dvars_flags_patched);
 				dvar_set_variant_hook.create(0x1422C9030_g, dvar_set_variant_stub);
 
 				// Show all known dvars in console
