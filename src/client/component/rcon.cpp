@@ -17,7 +17,7 @@ namespace rcon
 	{
 		std::optional<std::string> get_and_validate_rcon_command(const std::string& data)
 		{
-			const command::params params{reinterpret_cast<const char*>(data.data())};
+			const command::params params{data.data()};
 
 			if (params.size() <= 1)
 			{
