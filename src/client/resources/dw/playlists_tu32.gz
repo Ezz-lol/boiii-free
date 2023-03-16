@@ -1422,6 +1422,9 @@ mp_spire
 mp_stronghold
 mp_waterpark
 mp_rise
+mp_aerospace
+mp_banzai
+mp_city
 
 maplist smallmaps
 mp_nuketown_x
@@ -1432,6 +1435,8 @@ mp_spire
 mp_stronghold
 mp_veiled
 mp_skyjacked
+mp_conduit
+mp_cryogen
 
 maplist arena_ctf
 mp_stronghold
@@ -1479,7 +1484,7 @@ mp_rome
 mp_shrine
 
 maplist dlc4
-mp_city
+// mp_city
 mp_miniature
 mp_ruins
 mp_western
@@ -2826,36 +2831,13 @@ rule scr_xpscalemp 1
 // rule xpGroups everyone
 // rule lobbySearchDatacenterType 2
 dlcname dlc0mp
-hideifmissingdlc
-mp_nuketown_x,hs_dom,1
-mp_nuketown_x,hs_koth,1
-mp_nuketown_x,hs_conf,1
-mp_nuketown_x,hs_tdm,1
-mp_nuketown_x,hs_ball,1
-mp_nuketown_x,hs_escort,1
+// hideifmissingdlc
 smallmaps,hs_dom,1
 smallmaps,hs_koth,1
 smallmaps,hs_conf,1
+smallmaps,hs_tdm,1
 smallmaps,hs_ball,1
 smallmaps,hs_escort,1
-mp_skyjacked,hs_dom,1
-mp_skyjacked,hs_koth,1
-mp_skyjacked,hs_conf,1
-mp_skyjacked,hs_tdm,1
-mp_skyjacked,hs_ball,1
-mp_skyjacked,hs_escort,1
-mp_conduit,hs_dom,1
-mp_conduit,hs_koth,1
-mp_conduit,hs_conf,1
-mp_conduit,hs_tdm,1
-mp_conduit,hs_ball,1
-mp_conduit,hs_escort,1
-mp_cryogen,hs_dom,1
-mp_cryogen,hs_koth,1
-mp_cryogen,hs_conf,1
-mp_cryogen,hs_tdm,1
-mp_cryogen,hs_ball,1
-mp_cryogen,hs_escort,1
 //hidden
 
 playlist 102
@@ -2952,21 +2934,6 @@ rule party_maxplayers 18
 bigmaps,hs_dom,1
 bigmaps,big_tdm,1
 bigmaps,hs_escort,1
-mp_waterpark,hs_dom,1
-mp_waterpark,big_tdm,1
-mp_waterpark,hs_escort,1
-mp_rise,hs_dom,1
-mp_rise,big_tdm,1
-mp_rise,hs_escort,1
-mp_aerospace,hs_dom,1
-mp_aerospace,big_tdm,1
-mp_aerospace,hs_escort,1
-mp_banzai,hs_dom,1
-mp_banzai,big_tdm,1
-mp_banzai,hs_escort,1
-mp_city,hs_dom,1
-mp_city,big_tdm,1
-mp_city,hs_escort,1
 //hidden
 
 playlist 104
@@ -3030,16 +2997,11 @@ rule party_maxplayers 18
 // rule gts prematchrequirement 3
 // rule gts prematchrequirementtime 30
 //rule liveDedicatedOnly 0
-mp_biodome,hs_prop,1
-mp_spire,hs_prop,1
-mp_sector,hs_prop,1
-mp_apartments,hs_prop,1
-mp_chinatown,hs_prop,1
-mp_veiled,hs_prop,1
-mp_ethiopia,hs_prop,1
-mp_infection,hs_prop,1
-mp_redwood,hs_prop,1
-mp_nuketown_x,hs_prop,1
+all,hs_prop,1
+dlc1,hs_prop,1
+dlc2,hs_prop,1
+dlc3,hs_prop,1
+dlc4,hs_prop,1
 //hidden
 
 playlist 107
@@ -3148,6 +3110,18 @@ rule party_maxplayers 18
 all,hs_ctf,1
 all,hs_dom,1
 all,hs_sd,1
+dlc1,hs_ctf,1
+dlc1,hs_dom,1
+dlc1,hs_sd,1
+dlc2,hs_ctf,1
+dlc2,hs_dom,1
+dlc2,hs_sd,1
+dlc3,hs_ctf,1
+dlc3,hs_dom,1
+dlc3,hs_sd,1
+dlc4,hs_ctf,1
+dlc4,hs_dom,1
+dlc4,hs_sd,1
 //hidden
 
 ///////////////////////////////////////////////////////////////////////////
