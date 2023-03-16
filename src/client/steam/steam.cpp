@@ -4,7 +4,7 @@
 #include <utils/nt.hpp>
 #include <utils/io.hpp>
 
-#include "loader/component_loader.hpp"
+#include "../component/steam_proxy.hpp"
 
 namespace steam
 {
@@ -118,6 +118,9 @@ namespace steam
 		::utils::nt::library::load(steam_path / "vstdlib_s64.dll");
 		::utils::nt::library::load(steam_path / "gameoverlayrenderer64.dll");
 		::utils::nt::library::load(steam_path / "steamclient64.dll");
+
+		steam_proxy::initialize();
+
 		return true;
 	}
 

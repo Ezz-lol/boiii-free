@@ -7,8 +7,6 @@
 #include <utils/finally.hpp>
 #include <utils/concurrency.hpp>
 
-#include "game/utils.hpp"
-
 #include "steam/interface.hpp"
 #include "steam/steam.hpp"
 
@@ -22,14 +20,17 @@ namespace steam_proxy
 		utils::nt::library steam_client_module{};
 		utils::nt::library steam_overlay_module{};
 
-		void* steam_pipe = nullptr;
-		void* global_user = nullptr;
+		steam::HSteamPipe steam_pipe = 0;
+		steam::HSteamUser global_user = 0;
 
 		steam::interface client_engine{};
 		steam::interface client_user{};
 		steam::interface client_utils{};
 		steam::interface client_friends{};
 		steam::interface client_ugc{};
+
+		steam::client* steam_client{};
+		steam::ugc* steam_ugc{};
 
 		utils::concurrency::container<subscribed_item_map> subscribed_items;
 
@@ -64,6 +65,8 @@ namespace steam_proxy
 
 		void load_client()
 		{
+			SetEnvironmentVariableA("SteamAppId", std::to_string(steam::SteamUtils()->GetAppID()).data());
+
 			const std::filesystem::path steam_path = steam::SteamAPI_GetSteamInstallPath();
 			if (steam_path.empty()) return;
 
@@ -76,8 +79,8 @@ namespace steam_proxy
 			client_engine = load_client_engine();
 			if (!client_engine) return;
 
-			steam_pipe = steam_client_module.invoke<void*>("Steam_CreateSteamPipe");
-			global_user = steam_client_module.invoke<void*>(
+			steam_pipe = steam_client_module.invoke<steam::HSteamPipe>("Steam_CreateSteamPipe");
+			global_user = steam_client_module.invoke<steam::HSteamUser>(
 				"Steam_ConnectToGlobalUser", steam_pipe);
 
 			client_user = client_engine.invoke<void*>(8, global_user, steam_pipe);
@@ -94,19 +97,21 @@ namespace steam_proxy
 			client_friends = nullptr;
 			client_ugc = nullptr;
 
-			steam_pipe = nullptr;
-			global_user = nullptr;
+			steam_pipe = 0;
+			global_user = 0;
 
-			steam_client_module = utils::nt::library{nullptr};
+			steam_client = nullptr;
+			steam_ugc = nullptr;
 		}
 
 		bool perform_cleanup_if_needed()
 		{
+			if (steam_client) return true;
+
 			if (steam_client_module
 				&& steam_pipe
 				&& global_user
-				&& steam_client_module.invoke<bool>("Steam_BConnected", global_user,
-				                                    steam_pipe)
+				&& steam_client_module.invoke<bool>("Steam_BConnected", global_user, steam_pipe)
 				&& steam_client_module.invoke<bool>("Steam_BLoggedOn", global_user, steam_pipe)
 			)
 			{
@@ -224,7 +229,16 @@ namespace steam_proxy
 
 		void pre_destroy() override
 		{
-			if (steam_client_module && steam_pipe)
+			if (steam_client)
+			{
+				if (global_user)
+				{
+					steam_client->ReleaseUser(steam_pipe, global_user);
+				}
+
+				steam_client->BReleaseSteamPipe(steam_pipe);
+			}
+			else if (steam_client_module && steam_pipe)
 			{
 				if (global_user)
 				{
@@ -232,7 +246,7 @@ namespace steam_proxy
 					                                 global_user);
 				}
 
-				steam_client_module.invoke<bool>("Steam_BReleaseSteamPipe", steam_pipe);
+				(void)steam_client_module.invoke<bool>("Steam_BReleaseSteamPipe", steam_pipe);
 			}
 		}
 
@@ -257,6 +271,87 @@ namespace steam_proxy
 		return "";
 	}
 
+	void initialize()
+	{
+		if (client_engine || !steam_client_module) return;
+
+		steam_client = steam_client_module.invoke<steam::client*>("CreateInterface", "SteamClient017", nullptr);
+		if (!steam_client) return;
+
+		steam_pipe = steam_client->CreateSteamPipe();
+		global_user = steam_client->ConnectToGlobalUser(steam_pipe);
+	}
+
+	void create_ugc()
+	{
+		if (!steam_client) return;
+
+		auto* ugc = steam_client->GetISteamUGC(global_user, steam_pipe, "STEAMUGC_INTERFACE_VERSION008");
+		steam_ugc = static_cast<steam::ugc*>(ugc);
+	}
+
+	void update_map_client(subscribed_item_map& map)
+	{
+		const auto app_id = steam::SteamUtils()->GetAppID();
+		const auto num_items = client_ugc.invoke<uint32_t>("GetNumSubscribedItems", app_id);
+
+		if (!num_items)
+		{
+			return;
+		}
+
+		std::vector<uint64_t> ids;
+		ids.resize(num_items);
+
+		auto result = client_ugc.invoke<uint32_t>("GetSubscribedItems", app_id, ids.data(),
+		                                          num_items);
+		result = std::min(num_items, result);
+
+		for (uint32_t i = 0; i < result; ++i)
+		{
+			char buffer[0x1000] = {0};
+			subscribed_item item{};
+
+			item.state = client_ugc.invoke<uint32_t>("GetItemState", app_id, ids[i]);
+			item.available = client_ugc.invoke<bool>("GetItemInstallInfo", app_id, ids[i],
+			                                         &item.size_on_disk,
+			                                         buffer,
+			                                         sizeof(buffer), &item.time_stamp);
+			item.path = buffer;
+
+			map[ids[i]] = std::move(item);
+		}
+	}
+
+	void update_map_steam(subscribed_item_map& map)
+	{
+		const auto num_items = steam_ugc->GetNumSubscribedItems();
+
+		if (!num_items)
+		{
+			return;
+		}
+
+		std::vector<uint64_t> ids;
+		ids.resize(num_items);
+
+		auto result = steam_ugc->GetSubscribedItems(ids.data(), num_items);
+		result = std::min(num_items, result);
+
+		for (uint32_t i = 0; i < result; ++i)
+		{
+			char buffer[0x1000] = {0};
+			subscribed_item item{};
+
+			item.state = steam_ugc->GetItemState(ids[i]);
+			item.available = steam_ugc->GetItemInstallInfo(ids[i], &item.size_on_disk, buffer, sizeof(buffer),
+			                                               &item.time_stamp);
+			item.path = buffer;
+
+			map[ids[i]] = std::move(item);
+		}
+	}
+
 	void update_subscribed_items()
 	{
 		subscribed_item_map map{};
@@ -269,41 +364,15 @@ namespace steam_proxy
 			});
 		});
 
-		if (!client_ugc)
-		{
-			return;
-		}
-
 		try
 		{
-			const auto app_id = steam::SteamUtils()->GetAppID();
-			const auto num_items = client_ugc.invoke<uint32_t>("GetNumSubscribedItems", app_id);
-
-			if (!num_items)
+			if (client_ugc)
 			{
-				return;
+				update_map_client(map);
 			}
-
-			std::vector<uint64_t> ids;
-			ids.resize(num_items);
-
-			auto result = client_ugc.invoke<uint32_t>("GetSubscribedItems", app_id, ids.data(),
-			                                          num_items);
-			result = std::min(num_items, result);
-
-			for (uint32_t i = 0; i < result; ++i)
+			else if (steam_ugc)
 			{
-				char buffer[0x1000] = {0};
-				subscribed_item item{};
-
-				item.state = client_ugc.invoke<uint32_t>("GetItemState", app_id, ids[i]);
-				item.available = client_ugc.invoke<bool>("GetItemInstallInfo", app_id, ids[i],
-				                                         &item.size_on_disk,
-				                                         buffer,
-				                                         sizeof(buffer), &item.time_stamp);
-				item.path = buffer;
-
-				map[ids[i]] = std::move(item);
+				update_map_steam(map);
 			}
 		}
 		catch (...)
