@@ -17,7 +17,7 @@ namespace rcon
 	{
 		std::optional<std::string> get_and_validate_rcon_command(const std::string& data)
 		{
-			const command::params params{reinterpret_cast<const char*>(data.data())};
+			const command::params params{data.data()};
 
 			if (params.size() <= 1)
 			{
@@ -55,10 +55,11 @@ namespace rcon
 		void rcon_handler(const game::netadr_t& target, const network::data_view& data)
 		{
 			auto str_data = std::string(reinterpret_cast<const char*>(data.data()), data.size());
-			scheduler::once([target, s = std::move(str_data)]
+			/*scheduler::once([target, s = std::move(str_data)]
 			{
 				rcon_executer(target, s);
-			}, scheduler::main);
+			}, scheduler::main);*/
+			rcon_executer(target, str_data);
 		}
 	}
 
