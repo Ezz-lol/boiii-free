@@ -2,12 +2,11 @@
 #include "loader/component_loader.hpp"
 
 #include "game/game.hpp"
+#include "scheduler.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/io.hpp>
 #include <utils/string.hpp>
-
-#include "scheduler.hpp"
 
 namespace dvars
 {
@@ -114,12 +113,6 @@ namespace dvars
 			{
 				return false;
 			}
-
-			//TODO: Fix archive dvars not stripping names from registered dvars
-			if (dvar->debugName == "cg_unlockall_loot"s || dvar->debugName == "cg_unlockall_purchases"s || dvar->debugName == "cg_unlockall_attachments"s || dvar->debugName == "cg_unlockall_camos"s)
-			{
-				return true;
-			}
 			
 			return (dvar->flags & game::DVAR_ARCHIVE);
 		}
@@ -201,7 +194,7 @@ namespace dvars
 		{
 			if (!game::is_server())
 			{
-				scheduler::once(read_archive_dvars, scheduler::pipeline::main);
+				scheduler::once(read_archive_dvars, scheduler::pipeline::dvars_flags_patched);
 				dvar_set_variant_hook.create(0x1422C9030_g, dvar_set_variant_stub);
 
 				// Show all known dvars in console
@@ -217,6 +210,8 @@ namespace dvars
 			utils::hook::nop(game::select(0x142152227, 0x140509797), 6);
 			// Show all dvars in dvardump command
 			utils::hook::nop(game::select(0x142151BF9, 0x140509179), 6);
+			// Stops game from deleting debug names from archive dvars
+			utils::hook::set<uint8_t>(game::select(0x1422C5DE0, 0x1405786D0), 0xC3);
 		}
 	};
 }

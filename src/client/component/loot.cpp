@@ -5,6 +5,7 @@
 
 #include "scheduler.hpp"
 #include "game/game.hpp"
+#include "game/utils.hpp"
 
 namespace loot
 {
@@ -118,16 +119,11 @@ namespace loot
 	{
 		void post_unpack() override
 		{
-			dvar_cg_unlockall_loot = game::Dvar_RegisterBool(game::Dvar_GenerateHash("cg_unlockall_loot"), "cg_unlockall_loot", false, (game::dvarFlags_e)0x0, "Unlocks blackmarket loot");
-			dvar_cg_unlockall_loot->debugName = "cg_unlockall_loot";
-			dvar_cg_unlockall_purchases = game::Dvar_RegisterBool(game::Dvar_GenerateHash("cg_unlockall_purchases"), "cg_unlockall_purchases", false, (game::dvarFlags_e)0x0, "Unlock all purchases with tokens");
-			dvar_cg_unlockall_purchases->debugName = "cg_unlockall_purchases";
-			dvar_cg_unlockall_attachments = game::Dvar_RegisterBool(game::Dvar_GenerateHash("cg_unlockall_attachments"), "cg_unlockall_attachments", false, (game::dvarFlags_e)0x0, "Unlocks all attachments");
-			dvar_cg_unlockall_attachments->debugName = "cg_unlockall_attachments";
-			dvar_cg_unlockall_camos_and_reticles = game::Dvar_RegisterBool(game::Dvar_GenerateHash("cg_unlockall_camos_and_reticles"), "cg_unlockall_camos_and_reticles", false, (game::dvarFlags_e)0x0, "Unlocks all camos and reticles");
-			dvar_cg_unlockall_camos_and_reticles->debugName = "cg_unlockall_camos_and_reticles";
-			dvar_cg_unlockall_emblems_and_backings = game::Dvar_RegisterBool(game::Dvar_GenerateHash("cg_unlockall_emblems_and_backings"), "cg_unlockall_emblems_and_backings", false, (game::dvarFlags_e)0x0, "Unlocks all emblems and backings");
-			dvar_cg_unlockall_emblems_and_backings->debugName = "cg_unlockall_emblems_and_backings";
+			dvar_cg_unlockall_loot = game::register_dvar_bool("cg_unlockall_loot", false, game::DVAR_ARCHIVE, "Unlocks blackmarket loot");
+			dvar_cg_unlockall_purchases = game::register_dvar_bool("cg_unlockall_purchases", false, game::DVAR_ARCHIVE, "Unlock all purchases with tokens");
+			dvar_cg_unlockall_attachments = game::register_dvar_bool("cg_unlockall_attachments", false, game::DVAR_ARCHIVE, "Unlocks all attachments");
+			dvar_cg_unlockall_camos_and_reticles = game::register_dvar_bool("cg_unlockall_camos_and_reticles", false, game::DVAR_ARCHIVE, "Unlocks all camos and reticles");
+			dvar_cg_unlockall_emblems_and_backings = game::register_dvar_bool("cg_unlockall_emblems_and_backings", false, game::DVAR_ARCHIVE, "Unlocks all emblems and backings");
 
 			loot_getitemquantity_hook.create(0x141E82C00_g, loot_getitemquantity_stub);
 			liveinventory_getitemquantity_hook.create(0x141E09030_g, liveinventory_getitemquantity_stub);
