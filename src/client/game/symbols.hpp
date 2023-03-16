@@ -108,6 +108,10 @@ namespace game
 	                    const char* description)> Dvar_RegisterBool{
 		0x1422D0900, 0x14057B500
 	};
+	WEAK symbol<dvar_t* (dvarStrHash_t hash, const char* dvarName, bool value, dvarFlags_e flags,
+		const char* description)> Dvar_SessionModeRegisterBool{
+			0x1422D0D40, 0x14057BAA0
+	};
 	WEAK symbol<dvar_t*(dvarStrHash_t hash, const char* dvarName, const char* value, dvarFlags_e flags,
 	                    const char* description)> Dvar_RegisterString{
 		0x1422D0B70

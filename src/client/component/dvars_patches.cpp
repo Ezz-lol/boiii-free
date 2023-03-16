@@ -13,16 +13,11 @@ namespace dvars_patches
 	{
 		void patch_dvars()
 		{
-			if (game::is_server())
-			{
-				game::register_dvar_bool("com_pauseSupported", false, game::DVAR_NONE, "Whether is pause is ever supported by the game mode");
-			}
+			game::register_sessionmode_dvar_bool("com_pauseSupported", !game::is_server(), game::DVAR_SERVERINFO, "Whether is pause is ever supported by the game mode");
 		}
 
 		void patch_flags()
 		{
-			game::dvar_set_flags("com_pauseSupported", game::DVAR_SERVERINFO);
-
 			if (game::is_client())
 			{
 				game::dvar_set_flags("r_dof_enable", game::DVAR_ARCHIVE);
@@ -65,8 +60,8 @@ namespace dvars_patches
 	public:
 		void post_unpack() override
 		{
-			patch_dvars();
-			scheduler::once(patch_flags, scheduler::pipeline::main, 10s);
+			scheduler::once(patch_dvars, scheduler::pipeline::main);
+			scheduler::once(patch_flags, scheduler::pipeline::main);
 
 			if (game::is_server())
 			{
