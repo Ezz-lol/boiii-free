@@ -53,7 +53,7 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup( "MPStatsSettings", fu
 			value = 1
 		},
 	}, nil, updateDvar ))
-  table.insert( optionsTable, CoD.OptionsUtility.CreateDvarSettings( controller, "Unlock all Camos and Reticles", "All camos and reticles on weapons are unlocked.", "MPStatsSettings_unlockall_camos_and_reticles", "cg_unlockall_camos_and_reticles", {
+	table.insert( optionsTable, CoD.OptionsUtility.CreateDvarSettings( controller, "Unlock all Camos and Reticles", "All camos and reticles on weapons are unlocked.", "MPStatsSettings_unlockall_camos_and_reticles", "cg_unlockall_camos_and_reticles", {
 		{
 			option = "MENU_DISABLED",
 			value = 0,
@@ -64,7 +64,18 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup( "MPStatsSettings", fu
 			value = 1
 		},
 	}, nil, updateDvar ))
-  table.insert( optionsTable, CoD.OptionsUtility.CreateDvarSettings( controller, "Unlock all Emblems and Backings", "All emblems and backings are unlocked.", "MPStatsSettings_unlockall_emblems_and_backings", "cg_unlockall_emblems_and_backings", {
+	table.insert( optionsTable, CoD.OptionsUtility.CreateDvarSettings( controller, "Unlock all Calling Cards", "All calling cards are unlocked.", "MPStatsSettings_unlockall_calling_cards", "cg_unlockall_calling_cards", {
+		{
+		  option = "MENU_DISABLED",
+		  value = 0,
+		  default = true
+		},
+		{
+		  option = "MENU_ENABLED",
+		  value = 1
+		},
+	}, nil, updateDvar ))
+	table.insert( optionsTable, CoD.OptionsUtility.CreateDvarSettings( controller, "Unlock all Specialists Outfits", "All specialists outfits are unlocked.", "MPStatsSettings_unlockall_specialists_outfits", "cg_unlockall_specialists_outfits", {
 		{
 			option = "MENU_DISABLED",
 			value = 0,

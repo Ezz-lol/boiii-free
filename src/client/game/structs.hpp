@@ -1664,7 +1664,7 @@ namespace game
 	};
 
 	struct DDLContext;
-	typedef void(__stdcall* DDLWriteCB)(DDLContext*, void*);
+	typedef void(* DDLWriteCB)(DDLContext*, void*);
 
 	struct DDLContext
 	{
@@ -1679,6 +1679,13 @@ namespace game
 	{
 		__int16 challengeIndex;
 		unsigned char itemIndex;
+	};
+
+	enum CharacterItemType : __int32
+	{
+		CHARACTER_ITEM_TYPE_BODY = 0x0,
+		CHARACTER_ITEM_TYPE_HELMET = 0x1,
+		CHARACTER_ITEM_TYPE_COUNT = 0x2,
 	};
 
 	union XAssetHeader
