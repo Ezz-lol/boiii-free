@@ -24,6 +24,7 @@ namespace dvars_patches
 				game::dvar_set_flags("r_lodbiasrigid", game::DVAR_ARCHIVE);
 				game::dvar_set_flags("gpad_stick_deadzone_max", game::DVAR_ARCHIVE);
 				game::dvar_set_flags("gpad_stick_deadzone_min", game::DVAR_ARCHIVE);
+				game::dvar_set_flags("cg_drawLagometer", game::DVAR_ARCHIVE);
 			}
 
 			scheduler::execute(scheduler::pipeline::dvars_flags_patched);
