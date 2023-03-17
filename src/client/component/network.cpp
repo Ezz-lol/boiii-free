@@ -288,6 +288,9 @@ namespace network
 
 			// Don't let the game bind sockets anymore
 			utils::hook::set(game::select(0x15AAE9344, 0x14B4BD828), bind_stub);
+
+			// Set cl_maxpackets to 100
+			utils::hook::set<uint8_t>(game::select(0x1412FF342, 0x140177A32), 100 - 15);
 		}
 	};
 }
