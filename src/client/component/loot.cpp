@@ -15,7 +15,8 @@ namespace loot
 		game::dvar_t* dvar_cg_unlockall_purchases;
 		game::dvar_t* dvar_cg_unlockall_attachments;
 		game::dvar_t* dvar_cg_unlockall_camos_and_reticles;
-		game::dvar_t* dvar_cg_unlockall_emblems_and_backings;
+		game::dvar_t* dvar_cg_unlockall_calling_cards;
+		game::dvar_t* dvar_cg_unlockall_specialists_outfits;
 
 		utils::hook::detour loot_getitemquantity_hook;
 		utils::hook::detour liveinventory_getitemquantity_hook;
@@ -25,6 +26,8 @@ namespace loot
 		utils::hook::detour bg_unlockablesisattachmentslotlocked_hook;
 		utils::hook::detour bg_unlockablesemblemorbackinglockedbychallenge_hook;
 		utils::hook::detour bg_unlockablesitemoptionlocked_hook;
+		utils::hook::detour bg_unlockedgetchallengeunlockedforindex_hook;
+		utils::hook::detour bg_unlockablescharactercustomizationitemlocked_hook;
 		
 		int loot_getitemquantity_stub(const game::ControllerIndex_t controller_index, const game::eModes mode, const int item_id)
 		{
@@ -95,7 +98,6 @@ namespace loot
 
 		bool bg_unlockablesitemoptionlocked_stub(game::eModes mode, const game::ControllerIndex_t controllerIndex, int itemIndex, int optionIndex)
 		{
-			// This does not unlock Dark Matter. Probably need to do something with group items
 			if (dvar_cg_unlockall_camos_and_reticles->current.value.enabled)
 			{
 				return false;
@@ -106,12 +108,32 @@ namespace loot
 
 		bool bg_unlockablesemblemorbackinglockedbychallenge_stub(game::eModes mode, const game::ControllerIndex_t controllerIndex, game::emblemChallengeLookup_t* challengeLookup, bool otherPlayer)
 		{
-			if (dvar_cg_unlockall_emblems_and_backings->current.value.enabled)
+			if (dvar_cg_unlockall_calling_cards->current.value.enabled)
 			{
 				return false;
 			}
 
 			return bg_unlockablesemblemorbackinglockedbychallenge_hook.invoke<bool>(mode, controllerIndex, challengeLookup, otherPlayer);
+		}
+
+		bool bg_unlockedgetchallengeunlockedforindex_stub(game::eModes mode, const game::ControllerIndex_t controllerIndex, unsigned __int16 index, int itemIndex)
+		{
+			if (dvar_cg_unlockall_camos_and_reticles->current.value.enabled)
+			{
+				return true;
+			}
+
+			return bg_unlockedgetchallengeunlockedforindex_hook.invoke<bool>(mode, controllerIndex, index, itemIndex);
+		}
+
+		bool bg_unlockablescharactercustomizationitemlocked_stub(game::eModes mode, const game::ControllerIndex_t controllerIndex, uint32_t characterIndex, game::CharacterItemType itemType, int itemIndex)
+		{
+			if (dvar_cg_unlockall_specialists_outfits->current.value.enabled)
+			{
+				return false;
+			}
+
+			return bg_unlockablescharactercustomizationitemlocked_hook.invoke<bool>(mode, controllerIndex, characterIndex, itemType, itemIndex);
 		}
 	};
 
@@ -123,7 +145,8 @@ namespace loot
 			dvar_cg_unlockall_purchases = game::register_dvar_bool("cg_unlockall_purchases", false, game::DVAR_ARCHIVE, "Unlock all purchases with tokens");
 			dvar_cg_unlockall_attachments = game::register_dvar_bool("cg_unlockall_attachments", false, game::DVAR_ARCHIVE, "Unlocks all attachments");
 			dvar_cg_unlockall_camos_and_reticles = game::register_dvar_bool("cg_unlockall_camos_and_reticles", false, game::DVAR_ARCHIVE, "Unlocks all camos and reticles");
-			dvar_cg_unlockall_emblems_and_backings = game::register_dvar_bool("cg_unlockall_emblems_and_backings", false, game::DVAR_ARCHIVE, "Unlocks all emblems and backings");
+			dvar_cg_unlockall_calling_cards = game::register_dvar_bool("cg_unlockall_calling_cards", false, game::DVAR_ARCHIVE, "Unlocks all calling cards");
+			dvar_cg_unlockall_specialists_outfits = game::register_dvar_bool("cg_unlockall_specialists_outfits", false, game::DVAR_ARCHIVE, "Unlocks all specialists outfits");
 
 			loot_getitemquantity_hook.create(0x141E82C00_g, loot_getitemquantity_stub);
 			liveinventory_getitemquantity_hook.create(0x141E09030_g, liveinventory_getitemquantity_stub);
@@ -133,6 +156,8 @@ namespace loot
 			bg_unlockablesisattachmentslotlocked_hook.create(0x1426A86D0_g, bg_unlockablesisattachmentslotlocked_stub);
 			bg_unlockablesitemoptionlocked_hook.create(0x1426AA6C0_g, bg_unlockablesitemoptionlocked_stub);
 			bg_unlockablesemblemorbackinglockedbychallenge_hook.create(0x1426A3AE0_g, bg_unlockablesemblemorbackinglockedbychallenge_stub);
+			bg_unlockedgetchallengeunlockedforindex_hook.create(0x1426AF5F0_g, bg_unlockedgetchallengeunlockedforindex_stub);
+			bg_unlockablescharactercustomizationitemlocked_hook.create(0x1426A2030_g, bg_unlockablescharactercustomizationitemlocked_stub);
 
 			scheduler::once([]() {
 				if (dvar_cg_unlockall_loot->current.value.enabled)
