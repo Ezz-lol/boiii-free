@@ -24,6 +24,7 @@ namespace dvars_patches
 				game::dvar_set_flags("r_lodbiasrigid", game::DVAR_ARCHIVE);
 				game::dvar_set_flags("gpad_stick_deadzone_max", game::DVAR_ARCHIVE);
 				game::dvar_set_flags("gpad_stick_deadzone_min", game::DVAR_ARCHIVE);
+				game::dvar_set_flags("cg_drawLagometer", game::DVAR_ARCHIVE);
 			}
 
 			scheduler::execute(scheduler::pipeline::dvars_flags_patched);
@@ -33,25 +34,20 @@ namespace dvars_patches
 		{
 			const auto update_ads_dof = a.newLabel();
 
-			a.pushad64();
-			a.push(rax);
-
 			a.mov(rax, qword_ptr(0x14AE95478_g));  // r_dof_enable
+
+			a.test(rax, rax);
+			a.jz(update_ads_dof);
+
 			a.cmp(byte_ptr(rax, 0x28), 1);
 
-			a.pop(rax);
 			a.je(update_ads_dof);
 
-			a.popad64();
 			a.jmp(0x141116ECB_g);
 
 			a.bind(update_ads_dof);
 			a.lea(rdx, ptr(rbx, 0x131EB4));
-			a.mov(ecx, esi);
-			a.call_aligned(0x141107EC0_g); // CG_UpdateAdsDof
-
-			a.popad64();
-			a.jmp(0x141116F49_g);
+			a.jmp(0x141116EC2_g); // CG_UpdateAdsDof
 		}
 	}
 
@@ -69,7 +65,7 @@ namespace dvars_patches
 			}
 
 			// toggle ADS dof based on r_dof_enable
-			utils::hook::jump(0x141116EBB_g, utils::hook::assemble(dof_enabled_stub), true);
+			utils::hook::jump(0x141116EBB_g, utils::hook::assemble(dof_enabled_stub));
 		}
 	};
 }
