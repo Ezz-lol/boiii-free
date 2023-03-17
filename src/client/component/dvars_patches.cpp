@@ -69,7 +69,7 @@ namespace dvars_patches
 			}
 
 			// toggle ADS dof based on r_dof_enable
-			utils::hook::jump(0x141116EBB_g, utils::hook::assemble(dof_enabled_stub), true);
+			//utils::hook::jump(0x141116EBB_g, utils::hook::assemble(dof_enabled_stub));
 		}
 	};
 }
