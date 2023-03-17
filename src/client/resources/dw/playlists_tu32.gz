@@ -10,9 +10,9 @@ settings
 // setdvar cl_thunderhead_prefix t7_tu1_
 
 //Disable paintshop optimizations
-//setdvar cg_paintshopEnableCompression 1    // Assists with Paintshop streaming
-//setdvar cg_paintshopReadDiskCache 1    // Assists with Paintshop streaming
-//setdvar cg_paintshopWriteDiskCache 1    // Assists with Paintshop streaming
+setdvar cg_paintshopEnableCompression 0    // Assists with Paintshop streaming
+setdvar cg_paintshopReadDiskCache 0    // Assists with Paintshop streaming
+setdvar cg_paintshopWriteDiskCache 0    // Assists with Paintshop streaming
 
 setdvar r_forcedModelLodsMP 4    // helps with offloading some memory from the streamer, per N. Nikaido.
 setdvar r_streamWeaponsCache 1    // Frees up memory on the streamer by changing how weapon textures load. Per N. Nikaido.
@@ -158,8 +158,8 @@ setdvar ui_enableMusicTracks 1    // Enables thea ability to change music tracks
 //Promotional Menu
 setdvar ui_enablePromoMenu 0    // Enables Promo Menu
 //setdvar ui_promoThermometerPercent .25    // Sets percentage on "Thermometer"; .25 will make the themometer go up 25%
-//setdvar ui_enablePromoTracking 1    // Enables Headshot tracking for ZMHD Thermometer.
-//setdvar ui_enableZMHDFeaturedCard 1    // Enables Thermometer widget in ZM shell
+setdvar ui_enablePromoTracking 0    // Enables Headshot tracking for ZMHD Thermometer.
+setdvar ui_enableZMHDFeaturedCard 0    // Enables Thermometer widget in ZM shell
 
 //Survey
 setdvar survey_count 1
@@ -205,7 +205,7 @@ setdvar lobbyMergeDedicatedEnabled 0
 setdvar lobbySearchDediUnparkPingLimit 500
 
 //PC Specific: Profanity Filter
-//setdvar ui_badWordSeverity 2
+setdvar ui_badWordSeverity 2
 
 //Infected Gametype
 setdvar scr_infect_finaluav 0
