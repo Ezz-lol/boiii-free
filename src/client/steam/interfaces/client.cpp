@@ -1,5 +1,6 @@
 #include <std_include.hpp>
 #include "../steam.hpp"
+#include "../../component/steam_proxy.hpp"
 
 namespace steam
 {
@@ -225,6 +226,13 @@ namespace steam
 
 	void* client::GetISteamUGC(HSteamUser hSteamUser, HSteamPipe hSteamPipe, const char* pchVersion)
 	{
+		static auto x = []
+		{
+			steam_proxy::create_ugc();
+			return 0;
+		}();
+		(void)x;
+
 		static ugc u;
 		return &u;
 	}

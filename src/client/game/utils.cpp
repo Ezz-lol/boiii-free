@@ -38,6 +38,19 @@ namespace game
 		return dvar->current.value.enabled;
 	}
 
+	dvar_t* register_sessionmode_dvar_bool(const char* dvar_name, const bool value, const dvarFlags_e flags, const char* description)
+	{
+		const auto hash = Dvar_GenerateHash(dvar_name);
+		auto registered_dvar = Dvar_SessionModeRegisterBool(hash, dvar_name, value, flags, description);
+
+		if (registered_dvar)
+		{
+			registered_dvar->debugName = dvar_name;
+		}
+
+		return registered_dvar;
+	}
+
 	dvar_t* register_dvar_bool(const char* dvar_name, const bool value, const dvarFlags_e flags, const char* description)
 	{
 		const auto hash = Dvar_GenerateHash(dvar_name);
