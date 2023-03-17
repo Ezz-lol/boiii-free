@@ -1681,12 +1681,14 @@ namespace game
 		unsigned char itemIndex;
 	};
 
-	enum CharacterItemType : __int32
+	enum CharacterItemType
 	{
 		CHARACTER_ITEM_TYPE_BODY = 0x0,
 		CHARACTER_ITEM_TYPE_HELMET = 0x1,
 		CHARACTER_ITEM_TYPE_COUNT = 0x2,
 	};
+
+	typedef __int16 BGEmblemBackgroundID;
 
 	union XAssetHeader
 	{
