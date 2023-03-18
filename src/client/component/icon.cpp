@@ -38,4 +38,4 @@ namespace icon
 	};
 }
 
-//REGISTER_COMPONENT(icon::component)
+REGISTER_COMPONENT(icon::component)

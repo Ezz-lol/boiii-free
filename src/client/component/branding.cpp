@@ -5,6 +5,8 @@
 
 #include "scheduler.hpp"
 
+#include <utils/hook.hpp>
+
 namespace branding
 {
 	namespace
@@ -23,6 +25,11 @@ namespace branding
 			                       y + static_cast<float>(font[2]) * scale,
 			                       scale, scale, 0.0f, color, game::ITEM_TEXTSTYLE_NORMAL);
 		}
+
+		const char* get_ingame_console_prefix_stub()
+		{
+			return "BOIII> ";
+		}
 	}
 
 	struct component final : client_component
@@ -30,6 +37,12 @@ namespace branding
 		void post_unpack() override
 		{
 			scheduler::loop(draw_branding, scheduler::renderer);
+
+			// Change window title prefix
+			utils::hook::copy_string(0x14303F3D8_g, "BOIII");
+
+			// Change ingame console prefix
+			utils::hook::call(0x141339970_g, get_ingame_console_prefix_stub);
 		}
 	};
 }
