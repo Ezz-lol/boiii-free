@@ -13,7 +13,7 @@ namespace dvars_patches
 	{
 		void patch_dvars()
 		{
-			game::register_sessionmode_dvar_bool("com_pauseSupported", !game::is_server(), game::DVAR_SERVERINFO, "Whether is pause is ever supported by the game mode");
+			game::register_sessionmode_dvar_bool("com_pauseSupported", !game::is_server(), game::DVAR_SERVERINFO, "Whether is pause is ever supported by the game mode", game::MODE_ZOMBIES);
 		}
 
 		void patch_flags()
@@ -66,6 +66,12 @@ namespace dvars_patches
 
 			// toggle ADS dof based on r_dof_enable
 			utils::hook::jump(0x141116EBB_g, utils::hook::assemble(dof_enabled_stub));
+
+			// De-Arxan Dvar_SessionModeSetDefaultBool
+			utils::hook::nop(0x1422D0EDB_g, 9);
+			utils::hook::jump(0x1422D0EE6_g, 0x1422D11BA_g);
+			utils::hook::jump(0x1422D11D1_g, 0x1422D11EC_g);
+			utils::hook::jump(0x1422D11F1_g, 0x1422D142C_g);
 		}
 	};
 }
