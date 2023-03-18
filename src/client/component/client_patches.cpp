@@ -14,9 +14,10 @@ namespace client_patches
 	{
 		utils::hook::detour preload_map_hook;
 
-		void stop_zombies_intro_if_needed()
+		void stop_intro_if_needed()
 		{
-			if (game::Com_SessionMode_GetMode() != game::MODE_ZOMBIES)
+			if (game::Com_SessionMode_GetMode() != game::MODE_ZOMBIES &&
+			    game::Com_SessionMode_GetMode() != game::MODE_CAMPAIGN)
 			{
 				return;
 			}
@@ -39,7 +40,7 @@ namespace client_patches
 		void preload_map_stub(int localClientNum, const char* mapname, const char* gametype)
 		{
 			game::Com_GametypeSettings_SetGametype(gametype, false, false);
-			stop_zombies_intro_if_needed();
+			stop_intro_if_needed();
 			preload_map_hook.invoke(localClientNum, mapname, gametype);
 		}
 
