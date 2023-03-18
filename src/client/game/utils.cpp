@@ -46,7 +46,18 @@ namespace game
 		if (registered_dvar)
 		{
 			registered_dvar->debugName = dvar_name;
-			game::Dvar_SessionModeSetDefaultBool(hash, value, mode);
+
+			if (mode == MODE_COUNT)
+			{
+				for (int i = MODE_FIRST; i < MODE_COUNT; ++i)
+				{
+					game::Dvar_SessionModeSetDefaultBool(hash, value, static_cast<eModes>(i));
+				}
+			}
+			else
+			{
+				game::Dvar_SessionModeSetDefaultBool(hash, value, mode);
+			}
 		}
 
 		return registered_dvar;
