@@ -28,6 +28,8 @@ namespace loot
 		utils::hook::detour bg_unlockablesitemoptionlocked_hook;
 		utils::hook::detour bg_unlockedgetchallengeunlockedforindex_hook;
 		utils::hook::detour bg_unlockablescharactercustomizationitemlocked_hook;
+		utils::hook::detour bg_emblemisentitlementbackgroundgranted_hook;
+		utils::hook::detour liveentitlements_isentitlementactiveforcontroller_hook;
 		
 		int loot_getitemquantity_stub(const game::ControllerIndex_t controller_index, const game::eModes mode, const int item_id)
 		{
@@ -135,6 +137,29 @@ namespace loot
 
 			return bg_unlockablescharactercustomizationitemlocked_hook.invoke<bool>(mode, controllerIndex, characterIndex, itemType, itemIndex);
 		}
+
+		bool bg_emblemisentitlementbackgroundgranted_stub(const game::ControllerIndex_t controllerIndex, game::BGEmblemBackgroundID backgroundId)
+		{
+			// backgroundId's for blank CWL calling cards
+			if (dvar_cg_unlockall_calling_cards->current.value.enabled && (backgroundId != 684 && backgroundId != 685 && backgroundId != 687 && backgroundId != 693 &&
+				backgroundId != 695 && backgroundId != 701 && backgroundId != 703 && backgroundId != 707 && backgroundId != 708))
+			{
+				return true;
+			}
+
+			return bg_emblemisentitlementbackgroundgranted_hook.invoke<bool>(controllerIndex, backgroundId);
+		}
+
+		bool liveentitlements_isentitlementactiveforcontroller_stub(const game::ControllerIndex_t controllerIndex, int incentiveId)
+		{
+			// incentiveId for unavailable incentive
+			if (dvar_cg_unlockall_calling_cards->current.value.enabled && incentiveId != 29)
+			{
+				return true;
+			}
+
+			return liveentitlements_isentitlementactiveforcontroller_hook.invoke<bool>(controllerIndex, incentiveId);
+		}
 	};
 
 	struct component final : client_component
@@ -158,6 +183,8 @@ namespace loot
 			bg_unlockablesemblemorbackinglockedbychallenge_hook.create(0x1426A3AE0_g, bg_unlockablesemblemorbackinglockedbychallenge_stub);
 			bg_unlockedgetchallengeunlockedforindex_hook.create(0x1426AF5F0_g, bg_unlockedgetchallengeunlockedforindex_stub);
 			bg_unlockablescharactercustomizationitemlocked_hook.create(0x1426A2030_g, bg_unlockablescharactercustomizationitemlocked_stub);
+			bg_emblemisentitlementbackgroundgranted_hook.create(0x142667520_g, bg_emblemisentitlementbackgroundgranted_stub);
+			liveentitlements_isentitlementactiveforcontroller_hook.create(0x141E124E0_g, liveentitlements_isentitlementactiveforcontroller_stub);
 
 			scheduler::once([]() {
 				if (dvar_cg_unlockall_loot->current.value.enabled)
