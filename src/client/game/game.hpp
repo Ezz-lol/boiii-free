@@ -83,20 +83,24 @@ namespace game
 	};
 
 	template <typename T>
-	struct callable_symbol : base_symbol<T>
+	struct symbol : base_symbol<T>
 	{
 		using base_symbol<T>::base_symbol;
-
-		template <typename... Args>
-		std::invoke_result_t<T> call_safe(Args... args)
-		{
-			arxan::detail::set_address_to_call(this->get());
-			return static_cast<T*>(arxan::detail::callstack_proxy_addr)(args...);
-		}
 	};
 
-	template <typename T>
-	using symbol = std::conditional_t<std::is_invocable_v<T>, callable_symbol<T>, base_symbol<T>>;
+	template <typename T, typename... Args>
+	struct symbol<T(Args...)> : base_symbol<T(Args...)>
+	{
+		using func_type = T(Args...);
+
+		using base_symbol<func_type>::base_symbol;
+
+		T call_safe(Args... args)
+		{
+			arxan::detail::set_address_to_call(this->get());
+			return static_cast<func_type*>(arxan::detail::callstack_proxy_addr)(args...);
+		}
+	};
 
 	std::filesystem::path get_appdata_path();
 }
