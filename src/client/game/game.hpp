@@ -3,6 +3,12 @@
 #include "structs.hpp"
 #include <utils/nt.hpp>
 
+namespace arxan::detail
+{
+	void set_address_to_call(const void* address);
+	extern void* callstack_proxy_addr;
+}
+
 namespace game
 {
 	size_t get_base();
@@ -42,15 +48,15 @@ namespace game
 	}
 
 	template <typename T>
-	class symbol
+	class base_symbol
 	{
 	public:
-		symbol(const size_t address)
+		base_symbol(const size_t address)
 			: address_(address)
 		{
 		}
 
-		symbol(const size_t address, const size_t server_address)
+		base_symbol(const size_t address, const size_t server_address)
 			: address_(address)
 			  , server_address_(server_address)
 		{
@@ -75,6 +81,22 @@ namespace game
 		size_t address_{};
 		size_t server_address_{};
 	};
+
+	template <typename T>
+	struct callable_symbol : base_symbol<T>
+	{
+		using base_symbol<T>::base_symbol;
+
+		template <typename... Args>
+		std::invoke_result_t<T> call_safe(Args... args)
+		{
+			arxan::detail::set_address_to_call(this->get());
+			return static_cast<T*>(arxan::detail::callstack_proxy_addr)(args...);
+		}
+	};
+
+	template <typename T>
+	using symbol = std::conditional_t<std::is_invocable_v<T>, callable_symbol<T>, base_symbol<T>>;
 
 	std::filesystem::path get_appdata_path();
 }

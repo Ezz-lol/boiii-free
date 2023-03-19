@@ -4,13 +4,15 @@
 
 #include "game/game.hpp"
 #include "steam/steam.hpp"
-#include <utils/hook.hpp>
 
 #include <utils/io.hpp>
+#include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/thread.hpp>
 
 #include "integrity.hpp"
+
+#include <stack>
 
 #define ProcessDebugPort 7
 #define ProcessDebugObjectHandle 30
@@ -19,8 +21,84 @@
 
 namespace arxan
 {
+	namespace detail
+	{
+		void* callstack_proxy_addr{nullptr};
+		static thread_local const void* address_to_call{};
+
+		void set_address_to_call(const void* address)
+		{
+			address_to_call = address;
+		}
+	}
+
 	namespace
 	{
+		thread_local std::stack<uint64_t> address_stack{};
+
+		const void* get_address_to_call()
+		{
+			return detail::address_to_call;
+		}
+
+		void store_address(const uint64_t address)
+		{
+			address_stack.push(address);
+		}
+
+		uint64_t get_stored_address()
+		{
+			const auto res = address_stack.top();
+			address_stack.pop();
+
+			return res;
+		}
+
+		void callstack_return_stub(utils::hook::assembler& a)
+		{
+			a.push(rax);
+			a.pushad64();
+
+			a.call_aligned(get_stored_address);
+			a.mov(qword_ptr(rsp, 0x80), rax);
+
+			a.popad64();
+
+			a.add(rsp, 8);
+
+			a.jmp(qword_ptr(rsp, -8));
+		}
+
+		uint64_t get_callstack_return_stub()
+		{
+			const auto placeholder = game::select(0x140001056, 0x140101167);
+			utils::hook::nop(placeholder, 1);
+			utils::hook::jump(placeholder + 1, utils::hook::assemble(callstack_return_stub));
+
+			return placeholder;
+		}
+
+		void callstack_stub(utils::hook::assembler& a)
+		{
+			a.push(rax);
+
+			a.pushad64();
+			a.call_aligned(get_address_to_call);
+			a.mov(qword_ptr(rsp, 0x80), rax);
+
+			a.mov(rcx, qword_ptr(rsp, 0x88));
+			a.call_aligned(store_address);
+
+			a.mov(rax, get_callstack_return_stub());
+			a.mov(qword_ptr(rsp, 0x88), rax);
+
+			a.popad64();
+
+			a.add(rsp, 8);
+
+			a.jmp(qword_ptr(rsp, -8));
+		}
+
 		constexpr auto pseudo_steam_id = 0x1337;
 		const auto pseudo_steam_handle = reinterpret_cast<HANDLE>(reinterpret_cast<uint64_t>(INVALID_HANDLE_VALUE) -
 			pseudo_steam_id);
@@ -788,6 +866,8 @@ namespace arxan
 		{
 			search_and_patch_integrity_checks();
 			//restore_debug_functions();
+
+			detail::callstack_proxy_addr = utils::hook::assemble(callstack_stub);
 		}
 
 		component_priority priority() const override
