@@ -190,12 +190,26 @@ namespace utils::hook
 		this->push(rsi);
 		this->push(rdi);
 
-		this->sub(rsp, 0x40);
+		this->push(r8);
+		this->push(r9);
+		this->push(r10);
+		this->push(r11);
+		this->push(r12);
+		this->push(r13);
+		this->push(r14);
+		this->push(r15);
 	}
 
 	void assembler::popad64()
 	{
-		this->add(rsp, 0x40);
+		this->pop(r15);
+		this->pop(r14);
+		this->pop(r13);
+		this->pop(r12);
+		this->pop(r11);
+		this->pop(r10);
+		this->pop(r9);
+		this->pop(r8);
 
 		this->pop(rdi);
 		this->pop(rsi);
