@@ -108,19 +108,22 @@ namespace game
 	                    const char* description)> Dvar_RegisterBool{
 		0x1422D0900, 0x14057B500
 	};
-	WEAK symbol<dvar_t* (dvarStrHash_t hash, const char* dvarName, bool value, dvarFlags_e flags,
+	WEAK symbol<dvar_t*(dvarStrHash_t hash, const char* dvarName, bool value, dvarFlags_e flags,
 		const char* description)> Dvar_SessionModeRegisterBool{
 			0x1422D0D40, 0x14057BAA0
+	};
+	WEAK symbol<void(dvarStrHash_t hash, bool value, eModes mode)> Dvar_SessionModeSetDefaultBool{
+		0x1422D0E90, 0x14057BCE0
 	};
 	WEAK symbol<dvar_t*(dvarStrHash_t hash, const char* dvarName, const char* value, dvarFlags_e flags,
 	                    const char* description)> Dvar_RegisterString{
 		0x1422D0B70
 	};
-	WEAK symbol<void (void (*callback)(const dvar_t*, void*), void* userData)> Dvar_ForEach{0x1422BCD00};
+	WEAK symbol<void(void (*callback)(const dvar_t*, void*), void* userData)> Dvar_ForEach{0x1422BCD00};
 	WEAK symbol<void(const char* dvarName, const char* string, bool createIfMissing)> Dvar_SetFromStringByName{
 		0x1422C7500
 	};
-	WEAK symbol<dvar_t* (dvar_t* dvar, eModes mode)> Dvar_GetSessionModeSpecificDvar{
+	WEAK symbol<dvar_t*(dvar_t* dvar, eModes mode)> Dvar_GetSessionModeSpecificDvar{
 		0x1422BF500, 0x140575D90
 	};
 

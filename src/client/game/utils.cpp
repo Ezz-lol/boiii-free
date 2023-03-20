@@ -38,7 +38,7 @@ namespace game
 		return dvar->current.value.enabled;
 	}
 
-	dvar_t* register_sessionmode_dvar_bool(const char* dvar_name, const bool value, const dvarFlags_e flags, const char* description)
+	dvar_t* register_sessionmode_dvar_bool(const char* dvar_name, const bool value, const dvarFlags_e flags, const char* description, const eModes mode)
 	{
 		const auto hash = Dvar_GenerateHash(dvar_name);
 		auto registered_dvar = Dvar_SessionModeRegisterBool(hash, dvar_name, value, flags, description);
@@ -46,6 +46,18 @@ namespace game
 		if (registered_dvar)
 		{
 			registered_dvar->debugName = dvar_name;
+
+			if (mode == MODE_COUNT)
+			{
+				for (int i = MODE_FIRST; i < MODE_COUNT; ++i)
+				{
+					game::Dvar_SessionModeSetDefaultBool.call_safe(hash, value, static_cast<eModes>(i));
+				}
+			}
+			else
+			{
+				game::Dvar_SessionModeSetDefaultBool.call_safe(hash, value, mode);
+			}
 		}
 
 		return registered_dvar;
