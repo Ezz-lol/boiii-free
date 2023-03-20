@@ -71,7 +71,8 @@ namespace arxan
 
 		uint64_t get_callstack_return_stub()
 		{
-			const auto placeholder = game::select(0x140001056, 0x140101167);
+			const auto placeholder = game::select(0x140001056, 0x140101168);
+			utils::hook::set<uint8_t>(placeholder - 2, 0xFF); // fakes a call
 			utils::hook::nop(placeholder, 1);
 			utils::hook::jump(placeholder + 1, utils::hook::assemble(callstack_return_stub));
 
