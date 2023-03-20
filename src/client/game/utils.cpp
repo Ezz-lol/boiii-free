@@ -51,12 +51,12 @@ namespace game
 			{
 				for (int i = MODE_FIRST; i < MODE_COUNT; ++i)
 				{
-					game::Dvar_SessionModeSetDefaultBool(hash, value, static_cast<eModes>(i));
+					game::Dvar_SessionModeSetDefaultBool.call_safe(hash, value, static_cast<eModes>(i));
 				}
 			}
 			else
 			{
-				game::Dvar_SessionModeSetDefaultBool(hash, value, mode);
+				game::Dvar_SessionModeSetDefaultBool.call_safe(hash, value, mode);
 			}
 		}
 
