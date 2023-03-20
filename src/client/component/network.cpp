@@ -291,9 +291,6 @@ namespace network
 
 			// Set cl_maxpackets to 100
 			utils::hook::set<uint8_t>(game::select(0x1412FF342, 0x140177A32), 100 - 15);
-
-			// Change 4 character name limit to 2 characters
-			utils::hook::set<uint8_t>(game::select(0x14224DBB4, 0x1405312A8), 0x02);
 		}
 	};
 }
