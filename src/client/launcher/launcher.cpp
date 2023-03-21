@@ -38,9 +38,14 @@ namespace launcher
 
 		//window.get_html_frame()->load_html(utils::nt::load_resource(MENU_MAIN));
 		window.get_html_frame()->load_url(
-			utils::string::va("file:///%s/data/launcher/main.html", game::get_appdata_path().generic_string().data()));
+			utils::string::va("file:///%s", get_launcher_ui_file().generic_string().data()));
 
 		window::run();
 		return run_game;
+	}
+
+	std::filesystem::path get_launcher_ui_file()
+	{
+		return game::get_appdata_path() / "data/launcher/main.html";
 	}
 }

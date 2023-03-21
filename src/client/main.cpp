@@ -279,6 +279,11 @@ namespace
 				remove_crash_file();
 				updater::update();
 
+				if(!utils::io::file_exists(launcher::get_launcher_ui_file().generic_wstring()))
+				{
+					throw std::runtime_error("BOIII needs an active internet connection for the first time you launch it.");
+				}
+
 				const auto client_binary = "BlackOps3.exe"s;
 				const auto server_binary = "BlackOps3_UnrankedDedicatedServer.exe"s;
 
@@ -335,7 +340,7 @@ namespace
 			}
 			catch (std::exception& e)
 			{
-				MessageBoxA(nullptr, e.what(), "ERROR", MB_ICONERROR | MB_SETFOREGROUND | MB_TOPMOST);
+				MessageBoxA(nullptr, e.what(), "Error", MB_ICONERROR | MB_SETFOREGROUND | MB_TOPMOST);
 				return 1;
 			}
 		}
