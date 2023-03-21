@@ -2,6 +2,7 @@
 #include "loader/component_loader.hpp"
 #include "chat.hpp"
 #include "game/game.hpp"
+#include "game/utils.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -79,6 +80,49 @@ namespace chat
 				client_command::add("say_team", cmd_say_f);
 
 				client_command::add("chat", cmd_chat_f);
+
+				command::add("say", [](const command::params& params)
+				{
+					if (!game::get_dvar_bool("sv_running"))
+					{
+						printf("Server is not running\n");
+						return;
+					}
+
+					const auto text = params.join(1);
+					const auto* format = reinterpret_cast<const char*>(0x140E25180_g);
+					const auto* message = utils::string::va(format, 'O', text.data());
+					reinterpret_cast<void(*)(int64_t, uint64_t, const char*)>(0x140532CA0_g)(-1, 0, message);
+				});
+
+				command::add("tell", [](const command::params& params)
+				{
+					if (!game::get_dvar_bool("sv_running"))
+					{
+						printf("Server is not running\n");
+						return;
+					}
+
+					if (params.size() < 2)
+					{
+						return;
+					}
+
+					const auto client = atoi(params[1]);
+
+					const auto text = params.join(2);
+					const auto* format = reinterpret_cast<const char*>(0x140E25180_g);
+					const auto* message = utils::string::va(format, 'O', text.data());
+					reinterpret_cast<void(*)(int64_t, uint64_t, const char*)>(0x140532CA0_g)(client, 0, message);
+				});
+
+				// Kill say and tell commands
+				utils::hook::nop(0x1405299FB_g, 5);
+				utils::hook::nop(0x140529A21_g, 5);
+				utils::hook::nop(0x140529A3B_g, 5);
+				utils::hook::nop(0x140529A07_g, 5);
+				utils::hook::nop(0x140529A55_g, 5);
+				utils::hook::nop(0x140529A6F_g, 5);
 			}
 			else
 			{
