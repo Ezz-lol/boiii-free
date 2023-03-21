@@ -45,7 +45,7 @@ namespace steam
 
 	const char* friends::GetFriendPersonaName(steam_id steamIDFriend)
 	{
-		return chat::GetClientName(steamIDFriend.bits);
+		return chat::get_client_name(steamIDFriend.bits);
 	}
 
 	bool friends::GetFriendGamePlayed(steam_id steamIDFriend, void* pFriendGameInfo)

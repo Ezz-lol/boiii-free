@@ -13,16 +13,12 @@ namespace script
 	namespace
 	{
 		utils::hook::detour db_findxassetheader_hook;
-
-		struct globals_t
-		{
-			std::unordered_map<std::string, game::RawFile*> loaded_scripts;
-		} globals;
+		std::unordered_map<std::string, game::RawFile*> loaded_scripts;
 
 		game::RawFile* get_loaded_script(const std::string& name)
 		{
-			const auto itr = globals.loaded_scripts.find(name);
-			return (itr == globals.loaded_scripts.end()) ? nullptr : itr->second;
+			const auto itr = loaded_scripts.find(name);
+			return (itr == loaded_scripts.end()) ? nullptr : itr->second;
 		}
 
 		void print_loading_script(const std::string& name)
@@ -55,7 +51,7 @@ namespace script
 			rawfile->buffer = file_string;
 			rawfile->len = static_cast<int>(data.length());
 
-			globals.loaded_scripts[name] = rawfile;
+			loaded_scripts[name] = rawfile;
 		}
 
 		void load_scripts_folder(const std::string& script_dir)
@@ -85,7 +81,7 @@ namespace script
 
 		void load_scripts()
 		{
-			globals = {};
+			loaded_scripts = {};
 			const utils::nt::library host{};
 			load_scripts_folder((game::get_appdata_path() / "data/scripts").string());
 			load_scripts_folder((host.get_folder() / "boiii/scripts").string());
@@ -95,17 +91,17 @@ namespace script
 		                                        const bool error_if_missing,
 		                                        const int wait_time)
 		{
-			if (type != game::ASSET_TYPE_SCRIPTPARSETREE)
-			{
-				return db_findxassetheader_hook.invoke<game::RawFile*>(type, name, error_if_missing, wait_time);
-			}
-
 			auto* asset_header = db_findxassetheader_hook.invoke<game::RawFile*>(
 				type, name, error_if_missing, wait_time);
-			if (globals.loaded_scripts.contains(name))
-			{
-				auto* script = get_loaded_script(name);
 
+			if (type != game::ASSET_TYPE_SCRIPTPARSETREE)
+			{
+				return asset_header;
+			}
+
+			auto* script = get_loaded_script(name);
+			if (script)
+			{
 				// Copy over the checksum of the original script
 				utils::hook::copy(const_cast<char*>(script->buffer + 0x8), asset_header->buffer + 0x8, 4);
 

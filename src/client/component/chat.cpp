@@ -53,7 +53,7 @@ namespace chat
 		}
 	}
 
-	const char* GetClientName(const uint64_t xuid)
+	const char* get_client_name(const uint64_t xuid)
 	{
 		if (xuid < 19 && !game::is_server())
 		{
