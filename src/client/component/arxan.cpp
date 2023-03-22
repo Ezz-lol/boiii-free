@@ -207,6 +207,9 @@ namespace arxan
 				L"x32dbg",
 				L"x64dbg",
 				L"Wireshark",
+				L"Debug",
+				L"DEBUG",
+				L"msvsmon",
 			};
 
 			if (!string.Buffer || !string.Length)
