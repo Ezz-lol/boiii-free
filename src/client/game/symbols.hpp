@@ -109,8 +109,8 @@ namespace game
 		0x1422D0900, 0x14057B500
 	};
 	WEAK symbol<dvar_t*(dvarStrHash_t hash, const char* dvarName, bool value, int flags,
-		const char* description)> Dvar_SessionModeRegisterBool{
-			0x1422D0D40, 0x14057BAA0
+	                    const char* description)> Dvar_SessionModeRegisterBool{
+		0x1422D0D40, 0x14057BAA0
 	};
 	WEAK symbol<void(dvarStrHash_t hash, bool value, eModes mode)> Dvar_SessionModeSetDefaultBool{
 		0x1422D0E90, 0x14057BCE0
@@ -133,7 +133,7 @@ namespace game
 	WEAK symbol<void()> UI_CoD_Shutdown{0x141F32E10, 0x0};
 	WEAK symbol<void(const char*, const char*, int, game::hks::lua_State*)> UI_AddMenu{0x1427018F0, 0x0};
 	WEAK symbol<const char*(int)> UI_CoD_GetRootNameForController{0x141F28940, 0x0};
-	WEAK symbol<void(game::hks::lua_State*, const char*)> Lua_CoD_LoadLuaFile{0x141F11A20, 0x0};
+	WEAK symbol<void(hks::lua_State*, const char*)> Lua_CoD_LoadLuaFile{0x141F11A20, 0x0};
 	WEAK symbol<void(int localClientNum)> CG_LUIHUDRestart{0x140F7E970};
 	WEAK symbol<void(int localClientNum)> CL_CheckKeepDrawingConnectScreen{0x1413CCAE0};
 
@@ -159,6 +159,7 @@ namespace game
 	// SV
 	WEAK symbol<bool()> SV_Loaded{0x142252250, 0x140535460};
 	WEAK symbol<void*()> SV_AddTestClient{0x142248F40, 0x14052E3E0};
+	WEAK symbol<void(int clientNum, svscmd_type type, const char* text)> SV_GameSendServerCommand{0x0, 0x140532CA0};
 	WEAK symbol<void(client_s* cl_0, svscmd_type type, const char* fmt, ...)> SV_SendServerCommand{0x0, 0x140537F10};
 	WEAK symbol<bool(int clientNum)> SV_IsTestClient{0x14224AB60, 0x14052FF40};
 	WEAK symbol<void(int controllerIndex, const char* server, MapPreload preload, bool savegame)> SV_SpawnServer{

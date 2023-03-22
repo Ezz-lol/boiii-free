@@ -81,7 +81,8 @@ namespace chat
 
 				client_command::add("chat", cmd_chat_f);
 
-				command::add("say", [](const command::params& params)
+				// Overwrite say command
+				utils::hook::jump(0x14052A6C0_g, +[]
 				{
 					if (!game::get_dvar_bool("sv_running"))
 					{
@@ -89,13 +90,17 @@ namespace chat
 						return;
 					}
 
+					const command::params params{};
 					const auto text = params.join(1);
+
 					const auto* format = reinterpret_cast<const char*>(0x140E25180_g);
 					const auto* message = utils::string::va(format, 'O', text.data());
-					reinterpret_cast<void(*)(int64_t, uint64_t, const char*)>(0x140532CA0_g)(-1, 0, message);
+
+					game::SV_GameSendServerCommand(-1, game::SV_CMD_CAN_IGNORE_0, message);
 				});
 
-				command::add("tell", [](const command::params& params)
+				// Overwrite tell command
+				utils::hook::jump(0x14052A7E0_g, +[]
 				{
 					if (!game::get_dvar_bool("sv_running"))
 					{
@@ -103,26 +108,23 @@ namespace chat
 						return;
 					}
 
+					const command::params params{};
 					if (params.size() < 2)
 					{
 						return;
 					}
 
 					const auto client = atoi(params[1]);
-
 					const auto text = params.join(2);
+
 					const auto* format = reinterpret_cast<const char*>(0x140E25180_g);
 					const auto* message = utils::string::va(format, 'O', text.data());
-					reinterpret_cast<void(*)(int64_t, uint64_t, const char*)>(0x140532CA0_g)(client, 0, message);
+
+					game::SV_GameSendServerCommand(client, game::SV_CMD_CAN_IGNORE_0, message);
 				});
 
-				// Kill say and tell commands
-				utils::hook::nop(0x1405299FB_g, 5);
-				utils::hook::nop(0x140529A21_g, 5);
-				utils::hook::nop(0x140529A3B_g, 5);
-				utils::hook::nop(0x140529A07_g, 5);
-				utils::hook::nop(0x140529A55_g, 5);
-				utils::hook::nop(0x140529A6F_g, 5);
+				// Kill say fallback
+				utils::hook::set<uint8_t>(0x1402FF987_g, 0xEB);
 			}
 			else
 			{
