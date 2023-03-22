@@ -117,7 +117,7 @@ namespace game
 	};
 	WEAK symbol<dvar_t*(dvarStrHash_t hash, const char* dvarName, const char* value, int flags,
 	                    const char* description)> Dvar_RegisterString{
-		0x1422D0B70
+		0x1422D0B70, 0x14057B890
 	};
 	WEAK symbol<void(void (*callback)(const dvar_t*, void*), void* userData)> Dvar_ForEach{0x1422BCD00};
 	WEAK symbol<void(const char* dvarName, const char* string, bool createIfMissing)> Dvar_SetFromStringByName{
