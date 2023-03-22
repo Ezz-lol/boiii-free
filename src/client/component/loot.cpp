@@ -11,12 +11,12 @@ namespace loot
 {
 	namespace
 	{
-		game::dvar_t* dvar_cg_unlockall_loot;
-		game::dvar_t* dvar_cg_unlockall_purchases;
-		game::dvar_t* dvar_cg_unlockall_attachments;
-		game::dvar_t* dvar_cg_unlockall_camos_and_reticles;
-		game::dvar_t* dvar_cg_unlockall_calling_cards;
-		game::dvar_t* dvar_cg_unlockall_specialists_outfits;
+		const game::dvar_t* dvar_cg_unlockall_loot;
+		const game::dvar_t* dvar_cg_unlockall_purchases;
+		const game::dvar_t* dvar_cg_unlockall_attachments;
+		const game::dvar_t* dvar_cg_unlockall_camos_and_reticles;
+		const game::dvar_t* dvar_cg_unlockall_calling_cards;
+		const game::dvar_t* dvar_cg_unlockall_specialists_outfits;
 
 		utils::hook::detour loot_getitemquantity_hook;
 		utils::hook::detour liveinventory_getitemquantity_hook;

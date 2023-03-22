@@ -2,6 +2,7 @@
 #include "loader/component_loader.hpp"
 
 #include "game/game.hpp"
+#include "game/utils.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -11,6 +12,8 @@ namespace game_log
 {
 	namespace
 	{
+		const game::dvar_t* g_log;
+
 		void g_scr_log_print()
 		{
 			char string[1024]{};
@@ -41,10 +44,10 @@ namespace game_log
 
 			va_list ap;
 			va_start(ap, fmt);
-			vsprintf_s(va_buffer, fmt, ap);
+			vsnprintf_s(va_buffer, _TRUNCATE, fmt, ap);
 			va_end(ap);
 
-			const auto* file = "games_mp.log";
+			const auto* file = g_log ? g_log->current.value.string : "games_mp.log";
 			const auto time = *game::level_time / 1000;
 
 			utils::io::write_file(file, utils::string::va("%3i:%i%i %s",
@@ -53,6 +56,12 @@ namespace game_log
 				time % 60 % 10,
 				va_buffer
 			), true);
+		}
+
+		const game::dvar_t* register_g_log_stub()
+		{
+			g_log = game::register_dvar_string("g_log", "games_mp.log", game::DVAR_NONE, "Log file path");
+			return g_log;
 		}
 	}
 
@@ -64,6 +73,11 @@ namespace game_log
 			// Fix format string vulnerability & make it work
 			utils::hook::jump(0x1402D9300_g, g_scr_log_print);
 			utils::hook::jump(0x1402A7BB0_g, g_log_printf_stub);
+
+			utils::hook::call(0x1402A82D6_g, register_g_log_stub);
+
+			// G_InitGame: because we changed the dvar g_log from a bool dvar to a string dvar we need to skip a bunch of related code to force it
+			utils::hook::jump(0x1402AC00E_g, 0x1402AC061_g, true);
 		}
 	};
 }
