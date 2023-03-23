@@ -102,7 +102,7 @@ namespace chat
 					const command::params params{};
 					const auto text = params.join(1);
 
-					send_chat_message(-1, text.data());
+					send_chat_message(-1, text);
 					printf("Server: %s\n", text.data());
 				});
 
@@ -124,7 +124,7 @@ namespace chat
 					const auto client = atoi(params[1]);
 					const auto text = params.join(2);
 
-					send_chat_message(client, text.data());
+					send_chat_message(client, text);
 					printf("Server -> %i: %s\n", client, text.data());
 				});
 
