@@ -28,7 +28,7 @@ namespace game
 	WEAK symbol<void(eNetworkModes networkMode)> Com_SessionMode_SetNetworkMode{0x1420F75B0, 0x140500B80};
 	WEAK symbol<eGameModes(eGameModes gameMode)> Com_SessionMode_SetGameMode{0x1420F7570, 0x140500B40};
 	WEAK symbol<eModes(eModes mode)> Com_SessionMode_SetMode{0x1420F7570};
-	WEAK symbol<void(const char* gametype, bool loadDefaultSettings, bool isModified)> Com_GametypeSettings_SetGametype{
+	WEAK symbol<void(const char* gametype, bool loadDefaultSettings)> Com_GametypeSettings_SetGametype{
 		0x1420F5980
 	};
 	WEAK symbol<bool()> Com_IsRunningUILevel{0x142148350};
