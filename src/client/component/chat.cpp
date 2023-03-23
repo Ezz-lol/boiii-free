@@ -97,6 +97,7 @@ namespace chat
 					const auto* message = utils::string::va(format, 'O', text.data());
 
 					game::SV_GameSendServerCommand(-1, game::SV_CMD_CAN_IGNORE_0, message);
+					printf("Server: %s\n", text.data());
 				});
 
 				// Overwrite tell command
@@ -121,6 +122,7 @@ namespace chat
 					const auto* message = utils::string::va(format, 'O', text.data());
 
 					game::SV_GameSendServerCommand(client, game::SV_CMD_CAN_IGNORE_0, message);
+					printf("Server -> %i: %s\n", client, text.data());
 				});
 
 				// Kill say fallback
