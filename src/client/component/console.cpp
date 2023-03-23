@@ -17,11 +17,6 @@
 
 namespace console
 {
-	void set_title(const std::string& title)
-	{
-		SetWindowTextA(*game::s_wcd::hWnd, title.data());
-	}
-
 	namespace
 	{
 		utils::image::object logo;
@@ -58,8 +53,20 @@ namespace console
 			});
 		}
 
+		bool is_headless()
+		{
+			static const auto headless = utils::flags::has_flag("headless");
+			return headless;
+		}
+
 		void print_message_to_console(const char* message)
 		{
+			if (is_headless())
+			{
+				fputs(message, stdout);
+				return;
+			}
+
 			static auto print_func = utils::hook::assemble([](utils::hook::assembler& a)
 			{
 				a.push(rbx);
@@ -126,6 +133,11 @@ namespace console
 
 		void sys_create_console_stub(const HINSTANCE h_instance)
 		{
+			if (is_headless())
+			{
+				return;
+			}
+
 			char text[CONSOLE_BUFFER_SIZE]{0};
 
 			const auto* class_name = "BOIII WinConsole";
@@ -224,8 +236,39 @@ namespace console
 		set_interceptor({});
 	}
 
+	void set_title(const std::string& title)
+	{
+		if (is_headless())
+		{
+			SetConsoleTitleA(title.data());
+		}
+		else
+		{
+			SetWindowTextA(*game::s_wcd::hWnd, title.data());
+		}
+	}
+
 	struct component final : generic_component
 	{
+		component()
+		{
+			if (is_headless())
+			{
+				if (!AttachConsole(ATTACH_PARENT_PROCESS))
+				{
+					AllocConsole();
+					AttachConsole(GetCurrentProcessId());
+				}
+
+				ShowWindow(GetConsoleWindow(), SW_SHOW);
+
+				FILE* fp;
+				freopen_s(&fp, "CONIN$", "r", stdin);
+				freopen_s(&fp, "CONOUT$", "w", stdout);
+				freopen_s(&fp, "CONOUT$", "w", stderr);
+			}
+		}
+
 		void post_unpack() override
 		{
 			if (!game::is_server())
