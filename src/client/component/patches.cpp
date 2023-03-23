@@ -31,7 +31,9 @@ namespace patches
 			utils::hook::call(game::select(0x1412CAC4D, 0x140158EB2), script_errors_stub);
 
 			// Change 4 character name limit to 3 characters
+			utils::hook::set<uint8_t>(game::select(0x14224DA53, 0x140531143), 3);
 			utils::hook::set<uint8_t>(game::select(0x14224DBB4, 0x1405312A8), 3);
+			utils::hook::set<uint8_t>(game::select(0x14224DF8C, 0x1405316DC), 3);
 		}
 	};
 }
