@@ -56,6 +56,11 @@ namespace chat
 
 	const char* get_client_name(const uint64_t xuid)
 	{
+		if (xuid == 0xFFFFFFFF)
+		{
+			return "Server";
+		}
+
 		if (xuid < 19 && !game::is_server())
 		{
 			char buffer[256];
