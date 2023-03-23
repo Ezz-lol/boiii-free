@@ -127,6 +127,9 @@ namespace client_patches
 
 			// Kill Client/Server Index Mismatch error
 			utils::hook::set<uint8_t>(0x1400A7588_g, 0xEB);
+
+			// Always get loadscreen gametype from s_gametype
+			utils::hook::set<uint8_t>(0x14228F5DC_g, 0xEB);
 		}
 	};
 }
