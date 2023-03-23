@@ -52,6 +52,11 @@ namespace chat
 			value = static_cast<uint64_t>(client_num) + 1;
 			return &value;
 		}
+
+		void send_chat_message(int client_num, const std::string& text)
+		{
+			game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE_0, utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, text.data()));
+		}
 	}
 
 	const char* get_client_name(const uint64_t xuid)
@@ -71,7 +76,6 @@ namespace chat
 
 		return "Unknown Soldier";
 	}
-
 	class component final : public generic_component
 	{
 	public:
@@ -98,10 +102,7 @@ namespace chat
 					const command::params params{};
 					const auto text = params.join(1);
 
-					const auto* format = reinterpret_cast<const char*>(0x140E25180_g);
-					const auto* message = utils::string::va(format, 'O', text.data());
-
-					game::SV_GameSendServerCommand(-1, game::SV_CMD_RELIABLE_0, message);
+					send_chat_message(-1, text.data());
 					printf("Server: %s\n", text.data());
 				});
 
@@ -123,10 +124,7 @@ namespace chat
 					const auto client = atoi(params[1]);
 					const auto text = params.join(2);
 
-					const auto* format = reinterpret_cast<const char*>(0x140E25180_g);
-					const auto* message = utils::string::va(format, 'O', text.data());
-
-					game::SV_GameSendServerCommand(client, game::SV_CMD_RELIABLE_0, message);
+					send_chat_message(client, text.data());
 					printf("Server -> %i: %s\n", client, text.data());
 				});
 
