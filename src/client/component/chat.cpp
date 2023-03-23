@@ -21,13 +21,13 @@ namespace chat
 				return;
 			}
 
-			auto mode = 0;
-			if (std::strcmp(params[0], "say_team") == 0)
+			int mode = 0;
+			if (params[0] == "say_team"s)
 			{
 				mode = 1;
 			}
 
-			auto p = params.join(1);
+			const auto p = params.join(1);
 			game::Scr_AddString(game::SCRIPTINSTANCE_SERVER, p.data() + 1); // Skip special char
 			game::Scr_Notify_Canon(ent, game::Scr_CanonHash(params[0]), 1);
 
@@ -45,7 +45,7 @@ namespace chat
 			utils::hook::invoke<void>(0x140298E70_g, ent, p.data());
 		}
 
-		uint64_t* divert_xuid_to_client_num_stub(int, int client_num, int)
+		uint64_t* divert_xuid_to_client_num_stub(int, const int client_num, int)
 		{
 			static thread_local uint64_t value;
 			// zero xuid is invalid, so increase the clientnum to prevent 0 values
