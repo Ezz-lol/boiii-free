@@ -10,33 +10,33 @@ settings
 // setdvar cl_thunderhead_prefix t7_tu1_
 
 //Disable paintshop optimizations
-setdvar cg_paintshopEnableCompression 0								// Assists with Paintshop streaming
-setdvar cg_paintshopReadDiskCache 0									// Assists with Paintshop streaming
-setdvar cg_paintshopWriteDiskCache 0								// Assists with Paintshop streaming
+setdvar cg_paintshopEnableCompression 0    // Assists with Paintshop streaming
+setdvar cg_paintshopReadDiskCache 0    // Assists with Paintshop streaming
+setdvar cg_paintshopWriteDiskCache 0    // Assists with Paintshop streaming
 
-setdvar r_forcedModelLodsMP 4								// helps with offloading some memory from the streamer, per N. Nikaido.
-setdvar r_streamWeaponsCache 1                              //Frees up memory on the streamer by changing how weapon textures load. Per N. Nikaido.
+setdvar r_forcedModelLodsMP 4    // helps with offloading some memory from the streamer, per N. Nikaido.
+setdvar r_streamWeaponsCache 1    // Frees up memory on the streamer by changing how weapon textures load. Per N. Nikaido.
 
-setdvar marketing_enabled 1									 // enables CRM marketing coms
-setdvar arena_defaultPlaylist 40							 // sets the default Arena playlist
-setdvar tu2_disableChallengesForLockedItemsInArena 1	     // disables challenges for locked items in arenas
-setdvar groupCountsVisible 0 								 // replaced player count with percentages
-setdvar tu2_catchMissingRbEndFrame 1						 // Enables changes from N Silvagni see DT 14111
-setdvar fracture_enabled 1									 // Enables Fracture game mode for MP
+setdvar marketing_enabled 1    // enables CRM marketing coms
+setdvar arena_defaultPlaylist 40    // sets the default Arena playlist
+setdvar tu2_disableChallengesForLockedItemsInArena 1    // disables challenges for locked items in arenas
+setdvar groupCountsVisible 0    // replaced player count with percentages
+setdvar tu2_catchMissingRbEndFrame 1    // Enables changes from N Silvagni see DT 14111
+setdvar fracture_enabled 1    // Enables Fracture game mode for MP
 
 setdvar totalSampleRateBlackBox 0
 
-setdvar tu9_noClipsWarning 1                            // DT 163743
+setdvar tu9_noClipsWarning 1    // DT 163743
 
 // DLC search tuning
-setdvar lobbySearchSkipDLCProbability 0.5              // For users that are about to search for a session of ( DLC1 | OriginalMaps ), turn off the DLC1 bit 50% of the time and just search for original maps sessions instead. This should help skill discrepency between DLC1 sessions and original maps sessions
+setdvar lobbySearchSkipDLCProbability 0.5    // For users that are about to search for a session of ( DLC1 | OriginalMaps ), turn off the DLC1 bit 50% of the time and just search for original maps sessions instead. This should help skill discrepency between DLC1 sessions and original maps sessions
 
 //Parking Tuning
 //setdvar lobbySearchForceUnparkLobbySize 3
 //setdvar lobbySearchSkipUnparkProbability 0.9
 //setdvar lobbySearchBaseSkillRange 1.0
 //setdvar lobbySearchSkillRangeMultiplier 1.0
-setdvar tu16_lobbyMonitor 1                         // Prevents broken lobbies, per S.Eldredge and T. Keegan
+setdvar tu16_lobbyMonitor 1    // Prevents broken lobbies, per S.Eldredge and T. Keegan
 
 //Theater Optimizations
 setdvar demo_fileblockWriteRate 30
@@ -46,7 +46,7 @@ setdvar demo_fileblockWriteRate 30
 setdvar tu9_highestAvailableDLC 11
 
 // Enables DLC5 pop-ups
-setdvar zmhd_purchase_reward_popup_enabled 1
+setdvar zmhd_purchase_reward_popup_enabled 0
 setdvar zmhd_gobblegum_popup_ps4_enabled 0
 setdvar zmhd_gobblegum_popup_xb1_enabled 0
 
@@ -66,20 +66,20 @@ setdvar probation_version 1
 //Loot
 setdvar loot_enabled 1
 setdvar tu4_burnDuplicates 1
-setdvar loot_mpItemVersions "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18"                                          //Enables black market items for DEV
-//setdvar loot_salePercentOff .5                                                    //Makes loot 50% off (UI Only - need FFOTD and Backend Update to actually get 50% off)
-//setdvar lootxp_multiplier 2.0                                                     //Doubles Cryptokey earn rate - delete for playlists going LIVE, unless needed (requires backend update as well)
-//setdvar scr_vialsAwardedScale 2.0                                                 //Double Liquid Divinium Earn Rate - delete for playlits giong LIVE, unless needed (requires backend update and FFOTD if before TU9)
+setdvar loot_mpItemVersions "1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18"    //Enables black market items for DEV
+//setdvar loot_salePercentOff .5    //Makes loot 50% off (UI Only - need FFOTD and Backend Update to actually get 50% off)
+//setdvar lootxp_multiplier 2.0    //Doubles Cryptokey earn rate - delete for playlists going LIVE, unless needed (requires backend update as well)
+//setdvar scr_vialsAwardedScale 2.0    //Double Liquid Divinium Earn Rate - delete for playlits giong LIVE, unless needed (requires backend update and FFOTD if before TU9)
 setdvar tu4_enableCodPoints 1
-setdvar loot_mpItemCurrentDropStringRef MENU_MONTHS_JUN                            //NEED TO UPDATE WITH EACH LOOT TU - sets a banner on the latest loot (as determined loot_mpItemVersions); banner's month is determined by this DVAR
-setdvar loot_bundle_final_count 10                                                  //Fixes post-event supply drops remaining number
-setdvar loot_trifecta_breadcrumb_index 2                                            //Increment this to allow for Breadrumbs on new Special Contracts.
+setdvar loot_mpItemCurrentDropStringRef MENU_MONTHS_JUN    //NEED TO UPDATE WITH EACH LOOT TU - sets a banner on the latest loot (as determined loot_mpItemVersions); banner's month is determined by this DVAR
+setdvar loot_bundle_final_count 10    //Fixes post-event supply drops remaining number
+setdvar loot_trifecta_breadcrumb_index 2    //Increment this to allow for Breadrumbs on new Special Contracts.
 
 setdvar black_market_gun_game 0
 setdvar rotatingPlaylistStartTime 1526058000
 
-setdvar rare_bundle_10for5_cpCost 500                                                   //Price for 10for5
-setdvar rare__bundle_10for5_dwid 51                                                     //DW ID for 10for5
+setdvar rare_bundle_10for5_cpCost 500    //Price for 10for5
+setdvar rare__bundle_10for5_dwid 51    //DW ID for 10for5
 
 //These dvars will prevent noDupes and 100 Bundles from disappearing after the event ends. per V. Sharma
 setdvar loot_noDupeRare20Bundle_dwid 15
@@ -92,9 +92,9 @@ setdvar trifecta_cod_points_drop_id 99071
 setdvar trifecta_cod_points_sku 99073
 
 // Loot Unlock
-setdvar loot_unlockUnreleasedLoot 1                                                 //When set to 1, this will display any loot we wish to hide from the public in mpUnreleasedLoot.csv; Setting to 0 will hide the Loot in the UI across the game
+setdvar loot_unlockUnreleasedLoot 1    //When set to 1, this will display any loot we wish to hide from the public in mpUnreleasedLoot.csv; Setting to 0 will hide the Loot in the UI across the game
 
-//Bribes                                                                        //Enables or Disables bribes
+//Bribes    //Enables or Disables bribes
 setdvar loot_bribeCrate_dwid 0
 setdvar loot_bribeCrate_cpCost 300
 setdvar loot_bribeCrate_cryptoCost 60
@@ -102,20 +102,20 @@ setdvar loot_bundleActive 0
 
 // Liquid Divinium (UI Only - needs a backend update)
 // setdvar loot_ld_salePercentOff .5  // This will set UI for original price (i.e., if a 50% off sale, then it will times the half-off CODPoint costs above by 2 and show that as the "original price") and controls whether or the promotional UI is visible or not
-// setdvar loot_ld_x3_cpCost 100              // Original price 200
-// setdvar loot_ld_x6_cpCost 200             // Original price 400
-// setdvar loot_ld_x9_cpCost 300            // Original price 600
-// setdvar loot_ld_saleEndDay 4        // int that represents which day of the week is displayed in the “sale ending” message in the popup; Sunday = 0; Thursday = 4, etc.
-// setdvar loot_ld_discount 50        // the discount that is displayed in the "--% off!" strings
-// setdvar zm_vials_20_id 99024         // Enables 20 pack of Liquid Divinium as a new purchasable
+// setdvar loot_ld_x3_cpCost 100    // Original price 200
+// setdvar loot_ld_x6_cpCost 200    // Original price 400
+// setdvar loot_ld_x9_cpCost 300    // Original price 600
+// setdvar loot_ld_saleEndDay 4    // int that represents which day of the week is displayed in the “sale ending” message in the popup; Sunday = 0; Thursday = 4, etc.
+// setdvar loot_ld_discount 50    // the discount that is displayed in the "--% off!" strings
+// setdvar zm_vials_20_id 99024    // Enables 20 pack of Liquid Divinium as a new purchasable
 
 //V.Sharma - No Ghost Lobby
-setdvar tu3_lobby_dropRejoiningClients 1                    // When a client leaves and re-joins the same game lobby, he will no longer be taken to a ghost lobby
+setdvar tu3_lobby_dropRejoiningClients 1    // When a client leaves and re-joins the same game lobby, he will no longer be taken to a ghost lobby
 
 //Dedicated Server
-setdvar lobbySearchMinDediSearchTime 30                         // Minimum time players will wait for dedicated server
-setdvar lobbySearchMinDediSearchClientAdd 5                     // Adds this amount of time per party member - i.e., 5 seconds per party member
-setdvar qos_echo_chance 50                                       // Ping survey for Orbis Dev only, per E.Oughton and B.Stragnell
+setdvar lobbySearchMinDediSearchTime 30    // Minimum time players will wait for dedicated server
+setdvar lobbySearchMinDediSearchClientAdd 5    // Adds this amount of time per party member - i.e., 5 seconds per party member
+setdvar qos_echo_chance 50    // Ping survey for Orbis Dev only, per E.Oughton and B.Stragnell
 
 //Enables Full Feature Theater
 setdvar demo_restrictedbasicmode 0
@@ -126,54 +126,53 @@ setdvar arena_enableArenaChallenges 1
 
 //DLC1 Free Weekend UI
 //setdvar ui_freeDLC1 1
-//setdvar ui_freeDLCPC 1											// Enables FREE DLC for all pc players.
+//setdvar ui_freeDLCPC 1    // Enables FREE DLC for all pc players.
 
-// Digital and Retail Incentive                                                         //This enables UI pop-up for when players purchase incentive
+// Digital and Retail Incentive    //This enables UI pop-up for when players purchase incentive
 setdvar enable_digital_incentive 1
 setdvar enable_retail_incentive 1
 
 //Season Pass Incentive
 setdvar enable_season_pass_incentive 1
 
-//Contracts                                                                                             // Turns on UI for Contracts
-setdvar show_contracts_button 1                                        // Turns on Contract Button
-setdvar enable_weapon_contract 1                                     // Enable weapon contract
-setdvar weapon_contract_target_value 75                         // Setting to 5 for QA, but will turn to 75 for when we ship
+//Contracts    // Turns on UI for Contracts
+setdvar show_contracts_button 1    // Turns on Contract Button
+setdvar enable_weapon_contract 1    // Enable weapon contract
+setdvar weapon_contract_target_value 75    // Setting to 5 for QA, but will turn to 75 for when we ship
 setdvar contracts_enabled_mp 1
 setdvar contracts_start_time 1460998800
-setdvar daily_contract_cryptokey_reward_count 10                            // Defines number of Cryptokeys to reward, default value for this dvar is 10
+setdvar daily_contract_cryptokey_reward_count 10    // Defines number of Cryptokeys to reward, default value for this dvar is 10
 
 //GobbleGum Features
-setdvar scr_firstGumFree 1											// Enables promotion where First GobbleGum in each round is Free
-setdvar tu18_enable_newtons_cookbook 1									// Enables Newton's Cookbook in the ZM main menu
-setdvar loot_forceEnableZCGumsInFactory 1							// enables the dlc5 gobblegums in dr monty's factory even if dlc5 is not enabled by tu9_highestAvailableDLC
+setdvar scr_firstGumFree 1    // Enables promotion where First GobbleGum in each round is Free
+setdvar tu18_enable_newtons_cookbook 1    // Enables Newton's Cookbook in the ZM main menu
+setdvar loot_forceEnableZCGumsInFactory 1    // enables the dlc5 gobblegums in dr monty's factory even if dlc5 is not enabled by tu9_highestAvailableDLC
 
 //ZM Tracking Dvars
 setdvar zm_dash_stats_enable_tracking 1
-//setdvar zm_dash_stats_use_aggregated_comscore 1                    // Leave this out unless the comscore event is causing problems.
+//setdvar zm_dash_stats_use_aggregated_comscore 1    // Leave this out unless the comscore event is causing problems.
 
 //Enable Music Tracks
-setdvar ui_enableMusicTracks 1                                                      // Enables thea ability to change music tracks in-game; must turn off before we go LIVE if not working correctly
+setdvar ui_enableMusicTracks 1    // Enables thea ability to change music tracks in-game; must turn off before we go LIVE if not working correctly
 
 //Promotional Menu
-setdvar ui_enablePromoMenu 0                                                            // Enables Promo Menu
-//setdvar ui_promoThermometerPercent .25                                    // Sets percentage on "Thermometer"; .25 will make the themometer go up 25%
-ssetdvar ui_enablePromoTracking 0													// Enables Headshot tracking for ZMHD Thermometer.
-setdvar ui_enableZMHDFeaturedCard 0													// Enables Thermometer widget in ZM shell
+setdvar ui_enablePromoMenu 0    // Enables Promo Menu
+//setdvar ui_promoThermometerPercent .25    // Sets percentage on "Thermometer"; .25 will make the themometer go up 25%
+setdvar ui_enablePromoTracking 0    // Enables Headshot tracking for ZMHD Thermometer.
+setdvar ui_enableZMHDFeaturedCard 0    // Enables Thermometer widget in ZM shell
 
 //Survey
 setdvar survey_count 1
 setdvar survey_chance .005
-setdvar live_enablePolls 0                                          // Disables the polling system, per Amit
+setdvar live_enablePolls 0    // Disables the polling system, per Amit
 
 //DW Live Experiments
-setdvar live_experimentsEnabled 1                                                       // Leave on for LIVE per Martin
+setdvar live_experimentsEnabled 1    // Leave on for LIVE per Martin
 
 // Analytics
-setdvar tu8_enableDurableProductsExchange 1                                 // Tracks Durable Products
+setdvar tu8_enableDurableProductsExchange 1    // Tracks Durable Products
 
 // setdvar skuOnlineOverride 1
-
 // setdvar skuOnlineSceaEnFr 1
 // setdvar skuOnlineSceaMsEn 1
 // setdvar skuOnlineSceaBpEn 1
@@ -184,13 +183,13 @@ setdvar tu8_enableDurableProductsExchange 1                                 // T
 // setdvar skuOnlineSceeArEa 1
 // setdvar skuOnlineScejFjJa 1
 
-//setdvar cpProcessingJoinCheck 1                               //Removed at T.Keegan's Request
-//setdvar zmProcessingJoinCheck 1                               //Removed at T.Keegan's Request
+//setdvar cpProcessingJoinCheck 1    //Removed at T.Keegan's Request
+//setdvar zmProcessingJoinCheck 1    //Removed at T.Keegan's Request
 
-setdvar sv_mapSwitchPreloadFrontend 0               //Turns on and off preloading for the frontend
+setdvar sv_mapSwitchPreloadFrontend 0    //Turns on and off preloading for the frontend
 
-setdvar lobbySearchSkipUnparkProbability 0          // Turn on for LIVE
-setdvar lobbySearchBaseSkillRange 0               // Turn on for LIVE - Disabled for PC
+setdvar lobbySearchSkipUnparkProbability 0    // Turn on for LIVE
+setdvar lobbySearchBaseSkillRange 0    // Turn on for LIVE - Disabled for PC
 
 setdvar com_script_recordeventprobability_client 0.0001
 setdvar com_script_recordeventprobability_server 0.0001
@@ -200,10 +199,10 @@ setdvar lobby_MatchmakingLoggingChance 1
 setdvar lobbySearchSkillRangeMultiplier 0
 
 // PC Specific: Dedicated Server Lobby Merging
-setdvar lobbyMergeDedicatedEnabled 1
+setdvar lobbyMergeDedicatedEnabled 0
 
 //PC Specific: Dedicated Server Ping Allowance
-setdvar lobbySearchDediUnparkPingLimit 250
+setdvar lobbySearchDediUnparkPingLimit 500
 
 //PC Specific: Profanity Filter
 setdvar ui_badWordSeverity 2
@@ -218,7 +217,7 @@ setdvar scr_prop_minigame 1
 setdvar live_useRegulation 1
 
 ///////////////////////////////////////////////////////////////////////////
-//     EVENTS
+//    EVENTS
 ///////////////////////////////////////////////////////////////////////////
 
 event default
@@ -268,7 +267,7 @@ rule scr_vialsAwardedScale 2.0
 
 event gungame_featured
 targetPlaylist 30
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule xpGroups everyone
 rule scr_xpscalemp 2
 rule lootxp_multiplier 2.0
@@ -278,124 +277,124 @@ rule playlist_show 30
 
 event hardpoint_featured
 targetPlaylist 90
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule lootxp_multiplier 2.0
 rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
 
 event hardpoint_display
-rule playlist_show 90
-rule playlist_hide 6
+rule playlist_show 6
+rule playlist_hide 90
 
 event safeguard_featured
 targetPlaylist 91
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule xpGroups everyone
 rule scr_xpscalemp 2
 rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
 
 event safeguard_display
-rule playlist_show 91
-rule playlist_hide 10
+rule playlist_show 10
+rule playlist_hide 91
 
 event killconfirmed_featured
 targetPlaylist 92
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule xpGroups everyone
 rule scr_xpscalemp 2
 rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
 
 event killconfirmed_display
-rule playlist_show 92
-rule playlist_hide 5
+rule playlist_show 5
+rule playlist_hide 92
 
 event uplink_featured
 targetPlaylist 93
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule lootxp_multiplier 2.0
 
 event uplink_display
-rule playlist_show 93
-rule playlist_hide 9
+rule playlist_show 9
+rule playlist_hide 93
 
 event fracture_featured
 targetPlaylist 94
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule xpGroups everyone
 rule scr_xpscalemp 2
 rule lootxp_multiplier 2.0
 
 event fracture_display
-rule playlist_show 94
-rule playlist_hide 11
+rule playlist_show 11
+rule playlist_hide 94
 
 event snd_featured
 targetPlaylist 95
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule xpGroups everyone
 rule scr_xpscalemp 2
 
 event snd_display
-rule playlist_show 95
-rule playlist_hide 8
+rule playlist_show 8
+rule playlist_hide 95
 
 event ctf_featured
 targetPlaylist 96
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule xpGroups everyone
 rule scr_xpscalemp 2
 rule lootxp_multiplier 2.0
 
 event ctf_display
-rule playlist_show 96
-rule playlist_hide 7
+rule playlist_show 7
+rule playlist_hide 96
 
 event demolition_featured
 targetPlaylist 97
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule lootxp_multiplier 2.0
 rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
 
 event demolition_display
-rule playlist_show 97
-rule playlist_hide 4
+rule playlist_show 4
+rule playlist_hide 97
 
 event ffa_featured
 targetPlaylist 98
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule lootxp_multiplier 2.0
 
 event ffa_display
-rule playlist_show 98
-rule playlist_hide 2
+rule playlist_show 2
+rule playlist_hide 98
 
 event domination_featured
 targetPlaylist 99
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
 
 event domination_display
-rule playlist_show 99
-rule playlist_hide 3
+rule playlist_show 3
+rule playlist_hide 99
 
 event hctdm_featured
 targetPlaylist 100
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule lootxp_multiplier 2.0
 rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
 
 event hctdm_display
-rule playlist_show 100
-rule playlist_hide 20
+rule playlist_show 20
+rule playlist_hide 100
 
 event chaos_featured
 targetPlaylist 101
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
 rule lootxp_multiplier 2.0
@@ -405,7 +404,7 @@ rule playlist_show 101
 
 event gwar_featured
 targetPlaylist 103
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule lootxp_multiplier 2.0
 rule xpGroups everyone
 rule scr_xpscalemp 2
@@ -415,7 +414,7 @@ rule playlist_show 103
 
 event infected_featured
 targetPlaylist 104
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule xpGroups everyone
 rule scr_xpscalemp 2
 rule gunxpgroups everyone
@@ -426,7 +425,7 @@ rule playlist_show 104
 
 event prophunt_featured
 targetPlaylist 106
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule xpGroups everyone
 rule scr_xpscalemp 2
 rule gunxpgroups everyone
@@ -437,7 +436,7 @@ rule playlist_show 106
 
 event sas_featured
 targetPlaylist 108
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule lootxp_multiplier 2.0
 rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
@@ -447,7 +446,7 @@ rule playlist_show 108
 
 event sniperonly_featured
 targetPlaylist 109
-rule ui_showBonusIcon 1
+rule ui_showBonusIcon 0
 rule gunxpgroups everyone
 rule scr_gunxpscalemp 2
 
@@ -455,11 +454,11 @@ event sniperonly_display
 rule playlist_show 109
 
 ///////////////////////////////////////////////////////////////////////////
-//     MP GAME MODES
+//    MP GAME MODES
 ///////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////
-//     NORMAL GAME MODES (MP)
+//    NORMAL GAME MODES (MP)
 ///////////////////////////////////////////////////////////////////////////
 
 gametype hs_ctf
@@ -490,6 +489,7 @@ rule gts inactivityKick 60
 gametype hs_conf
 nameref PLAYLIST_GAMETYPE_HS_CONF
 script conf
+rule gts scorelimit 50
 rule gts inactivityKick 60
 
 gametype hs_sd
@@ -500,7 +500,7 @@ rule gts inactivityKick 60
 gametype hs_tdm
 nameref PLAYLIST_GAMETYPE_HS_TDM
 script tdm
-rule gts inactivityKick 60
+rule gts scorelimit 75
 
 gametype hs_ball
 nameref PLAYLIST_GAMETYPE_HS_BALL
@@ -558,7 +558,7 @@ script sniperonly
 rule gts inactivityKick 60
 
 ///////////////////////////////////////////////////////////////////////////
-//     HARDCORE RULES (MP)
+//    HARDCORE RULES (MP)
 ///////////////////////////////////////////////////////////////////////////
 
 gametype hc_tdm
@@ -637,7 +637,7 @@ rule gts teamKillPointLoss 1
 rule gts inactivityKick 60
 
 ///////////////////////////////////////////////////////////////////////////
-//     PARTY GAME MODES (MP)
+//    PARTY GAME MODES (MP)
 ///////////////////////////////////////////////////////////////////////////
 
 gametype hs_gun
@@ -646,30 +646,29 @@ script gun
 rule gts allowbattlechatter 1
 rule gts inactivityKick 60
 
-
 ///////////////////////////////////////////////////////////////////////////
-//     ARENA PLAY RULES (MP)
+//    ARENA PLAY RULES (MP)
 ///////////////////////////////////////////////////////////////////////////
 
 gametype arena_ctf_pro
 nameref PLAYLIST_GAMETYPE_HS_CTF
 script ctf
-rule gts scorelimit 0										// Capture Limit: unlimited
-rule gts playerRespawnDelay 7.5					// Respawn Delay: 7.5 Seconds
-rule gts cumulativeRoundScores 1				// Win Condition
-rule gts teamKillPunishCount 5					// Number of teamkills before kicking: 3
-rule gts teamKillPointLoss 1			  		// Player will lose points for teamkills: true
+rule gts scorelimit 0    // Capture Limit: unlimited
+rule gts playerRespawnDelay 7.5    // Respawn Delay: 7.5 Seconds
+rule gts cumulativeRoundScores 1    // Win Condition
+rule gts teamKillPunishCount 5    // Number of teamkills before kicking: 3
+rule gts teamKillPointLoss 1    // Player will lose points for teamkills: true
 rule gts inactivityKick 60
 
 gametype arena_sd_pro
 nameref PLAYLIST_GAMETYPE_ARENA_SD
 script sd
-rule gts timelimit 1.5							// Time Limit: 1.5 Minutes
-rule gts defuseTime 7.5							// Defuse Time: 7.5 Seconds
-rule gts silentPlant 1							// Silent Plant: True
-rule gts scoreLimit 6							// Round Win Limit: 6 Rounds
-rule gts teamKillPunishCount 3					// Number of teamkills before kicking: 3
-rule gts teamKillPointLoss 1			  		// Player will lose points for teamkills: true
+rule gts timelimit 1.5    // Time Limit: 1.5 Minutes
+rule gts defuseTime 7.5    // Defuse Time: 7.5 Seconds
+rule gts silentPlant 1    // Silent Plant: True
+rule gts scoreLimit 6    // Round Win Limit: 6 Rounds
+rule gts teamKillPunishCount 3    // Number of teamkills before kicking: 3
+rule gts teamKillPointLoss 1    // Player will lose points for teamkills: true
 rule gts inactivityKick 60
 
 gametype arena_sd
@@ -685,18 +684,18 @@ rule gts inactivityKick 60
 gametype arena_koth_pro
 nameref PLAYLIST_GAMETYPE_ARENA_KOTH
 script koth
-rule gts spawnsuicidepenalty 3 					// Suicide Penalty in KOTH : 3 seconds
-rule gts teamKillPunishCount 5					// Number of teamkills before kicking: 3
-rule gts teamKillPointLoss 1			  		// Player will lose points for teamkills: true
+rule gts spawnsuicidepenalty 3    // Suicide Penalty in KOTH : 3 seconds
+rule gts teamKillPunishCount 5    // Number of teamkills before kicking: 3
+rule gts teamKillPointLoss 1    // Player will lose points for teamkills: true
 rule gts inactivityKick 60
 
 gametype arena_ball_pro
 nameref PLAYLIST_GAMETYPE_HS_BALL
 script ball
-rule gts playerRespawnDelay 5			  		// Respawn Delay: 5 Seconds
-rule gts roundScoreLimit 0							// Round Score Limit: 0
-rule gts teamKillPunishCount 5					// Number of teamkills before kicking: 3
-rule gts teamKillPointLoss 1			  		// Player will lose points for teamkills: true
+rule gts playerRespawnDelay 5    // Respawn Delay: 5 Seconds
+rule gts roundScoreLimit 0    // Round Score Limit: 0
+rule gts teamKillPunishCount 5    // Number of teamkills before kicking: 3
+rule gts teamKillPointLoss 1    // Player will lose points for teamkills: true
 rule gts inactivityKick 60
 
 gametype arena_dom
@@ -710,6 +709,7 @@ script escort
 rule gts inactivityKick 60
 
 gametype arena_conf
+name english "KILL CONFIRMED"
 name englisharabic "KILL CONFIRMED"
 name french "ÉLIMINATION CONFIRMÉE"
 name italian "UCCISIONE CONFERMATA"
@@ -728,7 +728,7 @@ script conf
 rule gts inactivityKick 60
 
 ///////////////////////////////////////////////////////////////////////////
-//     ZOMBIE GAME MODES
+//    ZOMBIE GAME MODES
 ///////////////////////////////////////////////////////////////////////////
 gametype zclassic
 nameref PLAYLIST_GAMETYPE_ZCLASSIC
@@ -736,7 +736,7 @@ rule ui_zm_gamemodegroup zclassic
 script zclassic
 
 ///////////////////////////////////////////////////////////////////////////
-//     CAMPAIGN GAME MODES
+//    CAMPAIGN GAME MODES
 ///////////////////////////////////////////////////////////////////////////
 
 gametype cp_coop
@@ -1388,7 +1388,7 @@ filter playermatch
 unlockxp 0
 
 ///////////////////////////////////////////////////////////////////////////
-//     MAPLISTS
+//    MAPLISTS
 ///////////////////////////////////////////////////////////////////////////
 
 maplist all
@@ -1407,10 +1407,10 @@ mp_veiled
 mp_nuketown_x
 mp_redwood_ice
 mp_veiled_heyday
-// mp_crucible
-// mp_skyjacked
-// mp_waterpark
-// mp_rise
+mp_crucible
+mp_skyjacked
+mp_waterpark
+mp_rise
 
 maplist bigmaps
 mp_apartments
@@ -1420,8 +1420,11 @@ mp_ethiopia
 mp_infection
 mp_spire
 mp_stronghold
-// mp_waterpark
-// mp_rise
+mp_waterpark
+mp_rise
+mp_aerospace
+mp_banzai
+mp_city
 
 maplist smallmaps
 mp_nuketown_x
@@ -1431,7 +1434,9 @@ mp_sector
 mp_spire
 mp_stronghold
 mp_veiled
-// mp_skyjacked
+mp_skyjacked
+mp_conduit
+mp_cryogen
 
 maplist arena_ctf
 mp_stronghold
@@ -1479,7 +1484,7 @@ mp_rome
 mp_shrine
 
 maplist dlc4
-mp_city
+// mp_city
 mp_miniature
 mp_ruins
 mp_western
@@ -1489,8 +1494,8 @@ mp_western
 ///////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////
-//      CORE (MP)
-//      1-19 is reserved for playlists in the Core category
+//    CORE (MP)
+//    1-19 is reserved for playlists in the Core category
 ///////////////////////////////////////////////////////////////////////////
 
 playlist 1
@@ -1502,16 +1507,17 @@ maxlocalplayers 2
 categories core
 icon playlist_tdm
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
+rule gts scoreLimit 75
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
 sortOrder 0
 all,hs_tdm,1
 dlc1,hs_tdm,1
 dlc2,hs_tdm,1
 dlc3,hs_tdm,1
-dlc4,hs_tdm,2
+dlc4,hs_tdm,1
 
 playlist 2
 nameref PLAYLIST_PLAYLIST_FFA
@@ -1522,15 +1528,15 @@ maxlocalplayers 1
 categories core
 icon playlist_ffa
 parkingplaylist 9001
-rule party_minplayers 4
-rule party_maxplayers 8
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule liveDedicatedOnly 0
 sortOrder 0.1
 all,hs_ffa,1
 dlc1,hs_ffa,1
 dlc2,hs_ffa,1
 dlc3,hs_ffa,1
-dlc4,hs_ffa,2
+dlc4,hs_ffa,1
 
 playlist 3
 nameref PLAYLIST_PLAYLIST_DOM
@@ -1541,15 +1547,15 @@ maxlocalplayers 2
 categories core
 icon playlist_domination
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule liveDedicatedOnly 0
 sortOrder 0.3
 all,hs_dom,1
 dlc1,hs_dom,1
 dlc2,hs_dom,1
 dlc3,hs_dom,1
-dlc4,hs_dom,2
+dlc4,hs_dom,1
 
 playlist 4
 nameref PLAYLIST_PLAYLIST_DEMO
@@ -1560,16 +1566,16 @@ maxlocalplayers 2
 categories core
 icon playlist_demolition
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
 sortOrder 0.4
 all,hs_dem,1
 dlc1,hs_dem,1
 dlc2,hs_dem,1
 dlc3,hs_dem,1
-dlc4,hs_dem,2
+dlc4,hs_dem,1
 
 playlist 5
 nameref PLAYLIST_PLAYLIST_KC
@@ -1580,16 +1586,16 @@ maxlocalplayers 2
 categories core
 icon playlist_kill_confirm
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
 sortOrder 0.6
 all,hs_conf,1
 dlc1,hs_conf,1
 dlc2,hs_conf,1
 dlc3,hs_conf,1
-dlc4,hs_conf,2
+dlc4,hs_conf,1
 
 playlist 6
 nameref PLAYLIST_PLAYLIST_KOTH
@@ -1600,16 +1606,16 @@ maxlocalplayers 2
 categories core
 icon playlist_koth
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
 sortOrder 0.7
 all,hs_koth,1
 dlc1,hs_koth,1
 dlc2,hs_koth,1
 dlc3,hs_koth,1
-dlc4,hs_koth,2
+dlc4,hs_koth,1
 
 playlist 7
 nameref PLAYLIST_PLAYLIST_CTF
@@ -1620,15 +1626,15 @@ maxlocalplayers 2
 categories core
 icon playlist_ctf
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
 all,hs_ctf,1
 dlc1,hs_ctf,1
 dlc2,hs_ctf,1
 dlc3,hs_ctf,1
-dlc4,hs_ctf,2
+dlc4,hs_ctf,1
 
 playlist 8
 nameref PLAYLIST_PLAYLIST_SD
@@ -1639,17 +1645,17 @@ maxlocalplayers 2
 categories core
 icon playlist_search_destroy
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
-// rule partyChatDisallowed 1               // rule partyChatDisallowed 1 - this will kick any player who is currently in or joined a platform party chat
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
+// rule partyChatDisallowed 1    // rule partyChatDisallowed 1 - this will kick any player who is currently in or joined a platform party chat
 sortOrder 0.2
 all,hs_sd,1
 dlc1,hs_sd,1
 dlc2,hs_sd,1
 dlc3,hs_sd,1
-dlc4,hs_sd,2
+dlc4,hs_sd,1
 
 playlist 9
 nameref PLAYLIST_PLAYLIST_BALL
@@ -1660,15 +1666,15 @@ maxlocalplayers 2
 categories core
 icon playlist_ball
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
 all,hs_ball,1
 dlc1,hs_ball,1
 dlc2,hs_ball,1
 dlc3,hs_ball,1
-dlc4,hs_ball,2
+dlc4,hs_ball,1
 
 playlist 10
 nameref PLAYLIST_PLAYLIST_ESCORT
@@ -1679,16 +1685,16 @@ maxlocalplayers 2
 categories core
 icon playlist_escort
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
 sortOrder 0.8
 all,hs_escort,1
 dlc1,hs_escort,1
 dlc2,hs_escort,1
 dlc3,hs_escort,1
-dlc4,hs_escort,2
+dlc4,hs_escort,1
 
 playlist 11
 name english "Fracture"
@@ -1725,20 +1731,22 @@ maxlocalplayers 2
 categories core
 icon playlist_clean
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
 sortOrder 0.5
-// rule ui_showBonusIcon 1
+// rule ui_showBonusIcon 0
 all,hs_clean,1
 dlc1,hs_clean,1
 dlc2,hs_clean,1
 dlc3,hs_clean,1
-dlc4,hs_clean,2
+dlc4,hs_clean,1
+
+// playlist 12
 
 ///////////////////////////////////////////////////////////////////////////
-//      HARDCORE (MP)
-//      20-29 is reserved for playlists in the Hardcore category
+//    HARDCORE (MP)
+//    20-29 is reserved for playlists in the Hardcore category
 ///////////////////////////////////////////////////////////////////////////
 
 playlist 20
@@ -1750,15 +1758,15 @@ maxlocalplayers 2
 categories hardcore
 icon playlist_tdm
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
 all,hc_tdm,1
 dlc1,hc_tdm,1
 dlc2,hc_tdm,1
 dlc3,hc_tdm,1
-dlc4,hc_tdm,2
+dlc4,hc_tdm,1
 
 playlist 21
 nameref PLAYLIST_PLAYLIST_HC_FFA
@@ -1769,15 +1777,15 @@ maxlocalplayers 1
 categories hardcore
 icon playlist_ffa
 parkingplaylist 9001
-rule party_minplayers 4
-rule party_maxplayers 8
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
 all,hc_ffa,1
 dlc1,hc_ffa,1
 dlc2,hc_ffa,1
 dlc3,hc_ffa,1
-dlc4,hc_ffa,2
+dlc4,hc_ffa,1
 
 playlist 22
 name english "Domination"
@@ -1814,15 +1822,15 @@ maxlocalplayers 2
 categories hardcore
 icon playlist_domination
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
 all,hc_dom,1
 dlc1,hc_dom,1
 dlc2,hc_dom,1
 dlc3,hc_dom,1
-dlc4,hc_dom,2
+dlc4,hc_dom,1
 
 playlist 23
 name english "Kill Confirmed"
@@ -1859,15 +1867,15 @@ maxlocalplayers 2
 categories hardcore
 icon playlist_kill_confirm
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
 all,hc_conf,1
 dlc1,hc_conf,1
 dlc2,hc_conf,1
 dlc3,hc_conf,1
-dlc4,hc_conf,2
+dlc4,hc_conf,1
 
 playlist 24
 nameref PLAYLIST_PLAYLIST_HC_SD
@@ -1878,16 +1886,16 @@ maxlocalplayers 2
 categories hardcore
 icon playlist_search_destroy
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
-// rule partyChatDisallowed 1               // rule partyChatDisallowed 1 - this will kick any player who is currently in or joined a platform party chat
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
+// rule partyChatDisallowed 1    // rule partyChatDisallowed 1 - this will kick any player who is currently in or joined a platform party chat
 all,hc_sd,1
 dlc1,hc_sd,1
 dlc2,hc_sd,1
 dlc3,hc_sd,1
-dlc4,hc_sd,2
+dlc4,hc_sd,1
 
 playlist 25
 nameref PLAYLIST_PLAYLIST_HC_CTF
@@ -1898,19 +1906,19 @@ maxlocalplayers 2
 categories hardcore
 icon playlist_ctf
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
 all,hc_ctf,1
 dlc1,hc_ctf,1
 dlc2,hc_ctf,1
 dlc3,hc_ctf,1
-dlc4,hc_ctf,2
+dlc4,hc_ctf,1
 
 ///////////////////////////////////////////////////////////////////////////
-//      ARENAS
-//      40-49 is reserved for playlists in Arenas
+//    ARENAS
+//    40-49 is reserved for playlists in Arenas
 ///////////////////////////////////////////////////////////////////////////
 
 playlist 40
@@ -1949,22 +1957,22 @@ categories arena
 arenaSlot 0
 icon playlist_arena_champions
 parkingplaylist 9001
-rule party_minplayers 8
-rule party_maxplayers 8
-rule party_matchedplayercount 0
-rule gts pregamedraftenabled 1      // enable Specialist Selection
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+rule gts pregamedraftenabled 1    // enable Specialist Selection
 rule gts pregameitemvoteenabled 1   // enable pick/ban
 rule gts pregamescorestreakmodifytime 20 // Scorestreak Selection Timer in seconds
 rule gts pregamedraftroundtime 20   // Draft round timer in seconds
 rule gts pregamecacmodifytime 90    // CAC Modify timer in seconds
-rule gts pregameprestagetime 3      // Pre-game Stage Timer in seconds
+rule gts pregameprestagetime 3    // Pre-game Stage Timer in seconds
 rule gts pregameItemVoteRoundTime 30    // Protect/Ban timer in seconds
-rule gts friendlyfiretype 1                         // Friendly Fire: Enabled
+rule gts friendlyfiretype 1    // Friendly Fire: Enabled
 rule gts disableThirdPersonSpectating 1 // No 3rd person spectating
-rule gts voipKillersHearVictim 0                // No VOIP to killer
-rule gts allowBattleChatter 0                     // No Battlechatter
-rule gts allowMapScripting 0                        // Map Interactivity set to No
-rule gts roundStartExplosiveDelay 0     // Time to use grenades: 0
+rule gts voipKillersHearVictim 0    // No VOIP to killer
+rule gts allowBattleChatter 0    // No Battlechatter
+rule gts allowMapScripting 0    // Map Interactivity set to No
+rule gts roundStartExplosiveDelay 0    // Time to use grenades: 0
 rule gts restricteditems 199 1  // Restrict UAV
 rule gts restricteditems 202 1  // Restrict Care Package
 rule gts restricteditems 213 1  // Restrict HATR
@@ -2013,10 +2021,10 @@ rule gts restricteditems 129 1 // Restrict ar_m14
 rule gts restrictedattachments 27 weaponindex 54 1  // Restrict LRx2
 rule gts restrictedattachments 36 weaponindex 54 1  // Restrict Tri-Bolt
 rule gts restrictedattachments 39 weaponindex 54 1  // Restrict Bayonet
-rule gts loadoutKillstreaksEnabled 1        // Enable Scorestreaks
-arena_koth,arena_koth_pro,2
-arena_ball,arena_ball_pro,2
-arena_sd,arena_sd_pro,2
+rule gts loadoutKillstreaksEnabled 1    // Enable Scorestreaks
+arena_koth,arena_koth_pro,1
+arena_ball,arena_ball_pro,1
+arena_sd,arena_sd_pro,1
 arena_ctf,arena_ctf_pro,1
 
 playlist 43
@@ -2055,17 +2063,17 @@ categories arena
 arenaSlot 3
 icon playlist_arena_moshpit
 parkingplaylist 9001
-rule party_minplayers 8
-rule party_maxplayers 8
-rule party_matchedplayercount 0
-rule gts pregamedraftenabled 0      // Disable Specialist Selection
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+rule gts pregamedraftenabled 0    // Disable Specialist Selection
 rule gts pregameitemvoteenabled 0   // disable pick/ban
-rule gts friendlyfiretype 1                         // Friendly Fire: Enabled
+rule gts friendlyfiretype 1    // Friendly Fire: Enabled
 rule gts disableThirdPersonSpectating 1 // No 3rd person spectating
-rule gts voipKillersHearVictim 0                // No VOIP to killer
-rule gts allowBattleChatter 0                     // No Battlechatter
-rule gts allowMapScripting 0                        // Map Interactivity set to No
-rule gts roundStartExplosiveDelay 0     // Time to use grenades: 0
+rule gts voipKillersHearVictim 0    // No VOIP to killer
+rule gts allowBattleChatter 0    // No Battlechatter
+rule gts allowMapScripting 0    // Map Interactivity set to No
+rule gts roundStartExplosiveDelay 0    // Time to use grenades: 0
 rule gts restricteditems 199 1  // Restrict UAV
 rule gts restricteditems 202 1  // Restrict Care Package
 rule gts restricteditems 213 1  // Restrict HATR
@@ -2114,15 +2122,15 @@ rule gts restricteditems 129 1 // Restrict ar_m14
 rule gts restrictedattachments 27 weaponindex 54 1  // Restrict LRx2
 rule gts restrictedattachments 36 weaponindex 54 1  // Restrict Tri-Bolt
 rule gts restrictedattachments 39 weaponindex 54 1  // Restrict Bayonet
-rule gts loadoutKillstreaksEnabled 1        // Enable Scorestreaks
-arena_koth,arena_koth_pro,2
-arena_ball,arena_ball_pro,2
-arena_sd,arena_sd_pro,2
+rule gts loadoutKillstreaksEnabled 1    // Enable Scorestreaks
+arena_koth,arena_koth_pro,1
+arena_ball,arena_ball_pro,1
+arena_sd,arena_sd_pro,1
 arena_ctf,arena_ctf_pro,1
 
 ///////////////////////////////////////////////////////////////////////////
-//      FEATURED
-//      90-119 is reserved for playlists in the Featured Category. Contains other playlists from the old BONUS category - Nuk3town, Nukejacked, Gun Game.
+//    FEATURED
+//    90-119 is reserved for playlists in the Featured Category. Contains other playlists from the old BONUS category - Nuk3town, Nukejacked, Gun Game.
 ///////////////////////////////////////////////////////////////////////////
 
 playlist 30
@@ -2157,18 +2165,24 @@ description simplifiedchinese "用武器击杀玩家可以升级至下一把武�
 unlockxp 0
 icon playlist_gungame
 parkingplaylist 9001
+rule black_market_gun_game 0
 maxparty 1
 maxlocalplayers 1
 categories featured
-rule party_minplayers 6
-rule party_maxplayers 8
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
-smallmaps,hs_gun,1
-mp_skyjacked,hs_gun,1
-mp_conduit,hs_gun,1
-mp_cryogen,hs_gun,2
-hidden
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
+// smallmaps,hs_gun,1
+// mp_skyjacked,hs_gun,1
+// mp_conduit,hs_gun,1
+// mp_cryogen,hs_gun,1
+all,hs_gun,1
+dlc1,hs_gun,1
+dlc2,hs_gun,1
+dlc3,hs_gun,1
+dlc4,hs_gun,1
+//hidden
 
 playlist 34
 name english "Nuk3town"
@@ -2205,17 +2219,17 @@ maxlocalplayers 2
 categories featured
 icon playlist_generic_02
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-mp_nuketown_x,hs_dom,2
-mp_nuketown_x,hs_koth,2
-mp_nuketown_x,hs_conf,2
-mp_nuketown_x,hs_tdm,2
-mp_nuketown_x,hs_ball,2
-mp_nuketown_x,hs_escort,2
-mp_nuketown_x,hs_clean,2
-hidden
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+mp_nuketown_x,hs_dom,1
+mp_nuketown_x,hs_koth,1
+mp_nuketown_x,hs_conf,1
+mp_nuketown_x,hs_tdm,1
+mp_nuketown_x,hs_ball,1
+mp_nuketown_x,hs_escort,1
+mp_nuketown_x,hs_clean,1
+// hidden
 
 playlist 36
 name english "Nuk3Jacked"
@@ -2252,9 +2266,9 @@ maxlocalplayers 2
 categories featured
 icon playlist_generic_02
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
 mp_nuketown_x,hs_dom,1
 mp_nuketown_x,hs_koth,1
 mp_nuketown_x,hs_conf,1
@@ -2269,7 +2283,7 @@ mp_skyjacked,hs_tdm,1
 mp_skyjacked,hs_ball,1
 mp_skyjacked,hs_escort,1
 mp_skyjacked,hs_clean,1
-hidden
+//hidden
 
 playlist 90
 name english "Hardpoint"
@@ -2306,15 +2320,15 @@ maxlocalplayers 2
 categories featured
 icon playlist_koth
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
 all,hs_koth,1
 dlc1,hs_koth,1
 dlc2,hs_koth,1
 dlc3,hs_koth,1
-dlc4,hs_koth,2
+dlc4,hs_koth,1
 hidden
 
 playlist 91
@@ -2352,15 +2366,15 @@ maxlocalplayers 2
 categories featured
 icon playlist_escort
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
 all,hs_escort,1
 dlc1,hs_escort,1
 dlc2,hs_escort,1
 dlc3,hs_escort,1
-dlc4,hs_escort,2
+dlc4,hs_escort,1
 hidden
 
 playlist 92
@@ -2398,15 +2412,15 @@ maxlocalplayers 2
 categories featured
 icon playlist_kill_confirm
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
 all,hs_conf,1
 dlc1,hs_conf,1
 dlc2,hs_conf,1
 dlc3,hs_conf,1
-dlc4,hs_conf,2
+dlc4,hs_conf,1
 hidden
 
 playlist 93
@@ -2444,15 +2458,15 @@ maxlocalplayers 2
 categories featured
 icon playlist_ball
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
 all,hs_ball,1
 dlc1,hs_ball,1
 dlc2,hs_ball,1
 dlc3,hs_ball,1
-dlc4,hs_ball,2
+dlc4,hs_ball,1
 hidden
 
 playlist 94
@@ -2490,14 +2504,14 @@ maxlocalplayers 2
 categories featured
 icon playlist_clean
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
 all,hs_clean,1
 dlc1,hs_clean,1
 dlc2,hs_clean,1
 dlc3,hs_clean,1
-dlc4,hs_clean,2
+dlc4,hs_clean,1
 hidden
 
 playlist 95
@@ -2535,16 +2549,16 @@ maxlocalplayers 2
 categories featured
 icon playlist_search_destroy
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
-// rule partyChatDisallowed 1 				// rule partyChatDisallowed 1 - this will kick any player who is currently in or joined a platform party chat
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
+// rule partyChatDisallowed 1    // rule partyChatDisallowed 1 - this will kick any player who is currently in or joined a platform party chat
 all,hs_sd,1
 dlc1,hs_sd,1
 dlc2,hs_sd,1
 dlc3,hs_sd,1
-dlc4,hs_sd,2
+dlc4,hs_sd,1
 hidden
 
 playlist 96
@@ -2582,15 +2596,15 @@ maxlocalplayers 2
 categories featured
 icon playlist_ctf
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
 all,hs_ctf,1
 dlc1,hs_ctf,1
 dlc2,hs_ctf,1
 dlc3,hs_ctf,1
-dlc4,hs_ctf,2
+dlc4,hs_ctf,1
 hidden
 
 playlist 97
@@ -2628,15 +2642,15 @@ maxlocalplayers 2
 categories featured
 icon playlist_demolition
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
 all,hs_dem,1
 dlc1,hs_dem,1
 dlc2,hs_dem,1
 dlc3,hs_dem,1
-dlc4,hs_dem,2
+dlc4,hs_dem,1
 hidden
 
 playlist 98
@@ -2674,14 +2688,14 @@ maxlocalplayers 1
 categories featured
 icon playlist_ffa
 parkingplaylist 9001
-rule party_minplayers 4
-rule party_maxplayers 8
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule liveDedicatedOnly 0
 all,hs_ffa,1
 dlc1,hs_ffa,1
 dlc2,hs_ffa,1
 dlc3,hs_ffa,1
-dlc4,hs_ffa,2
+dlc4,hs_ffa,1
 hidden
 
 playlist 99
@@ -2719,14 +2733,14 @@ maxlocalplayers 2
 categories featured
 icon playlist_domination
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule liveDedicatedOnly 0
 all,hs_dom,1
 dlc1,hs_dom,1
 dlc2,hs_dom,1
 dlc3,hs_dom,1
-dlc4,hs_dom,2
+dlc4,hs_dom,1
 hidden
 
 playlist 100
@@ -2764,15 +2778,15 @@ maxlocalplayers 2
 categories featured
 icon playlist_tdm
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
 all,hc_tdm,1
 dlc1,hc_tdm,1
 dlc2,hc_tdm,1
 dlc3,hc_tdm,1
-dlc4,hc_tdm,2
+dlc4,hc_tdm,1
 hidden
 
 playlist 101
@@ -2810,44 +2824,21 @@ maxlocalplayers 2
 categories featured
 icon playlist_generic_02
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
 rule scr_xpscalemp 1
 // rule xpGroups everyone
 // rule lobbySearchDatacenterType 2
 dlcname dlc0mp
-hideifmissingdlc
-mp_nuketown_x,hs_dom,2
-mp_nuketown_x,hs_koth,2
-mp_nuketown_x,hs_conf,2
-mp_nuketown_x,hs_tdm,2
-mp_nuketown_x,hs_ball,2
-mp_nuketown_x,hs_escort,2
+// hideifmissingdlc
 smallmaps,hs_dom,1
 smallmaps,hs_koth,1
 smallmaps,hs_conf,1
+smallmaps,hs_tdm,1
 smallmaps,hs_ball,1
 smallmaps,hs_escort,1
-mp_skyjacked,hs_dom,1
-mp_skyjacked,hs_koth,1
-mp_skyjacked,hs_conf,1
-mp_skyjacked,hs_tdm,1
-mp_skyjacked,hs_ball,1
-mp_skyjacked,hs_escort,1
-mp_conduit,hs_dom,1
-mp_conduit,hs_koth,1
-mp_conduit,hs_conf,1
-mp_conduit,hs_tdm,1
-mp_conduit,hs_ball,1
-mp_conduit,hs_escort,1
-mp_cryogen,hs_dom,1
-mp_cryogen,hs_koth,1
-mp_cryogen,hs_conf,1
-mp_cryogen,hs_tdm,1
-mp_cryogen,hs_ball,1
-mp_cryogen,hs_escort,1
-hidden
+//hidden
 
 playlist 102
 name english "Blackjack’s Gun Game"
@@ -2881,18 +2872,24 @@ description simplifiedchinese "Blackjack：“想不想来点刺激的……极�
 unlockxp 0
 icon playlist_gungame_promo
 parkingplaylist 9001
+rule black_market_gun_game 1
 maxparty 1
 maxlocalplayers 1
 categories featured
-rule party_minplayers 6
-rule party_maxplayers 8
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
-smallmaps,hs_gun,1
-mp_skyjacked,hs_gun,1
-mp_conduit,hs_gun,1
-mp_cryogen,hs_gun,1
-hidden
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
+// smallmaps,hs_gun,1
+// mp_skyjacked,hs_gun,1
+// mp_conduit,hs_gun,1
+// mp_cryogen,hs_gun,1
+all,hs_gun,1
+dlc1,hs_gun,1
+dlc2,hs_gun,1
+dlc3,hs_gun,1
+dlc4,hs_gun,1
+//hidden
 
 playlist 103
 name english "Ground War"
@@ -2926,33 +2923,18 @@ description simplifiedchinese "团队死斗、征服和护送相结合的大型�
 unlockxp 0
 maxparty 9
 maxlocalplayers 2
-categories featured
+categories core
 icon playlist_war
 parkingplaylist 9001
-rule party_minplayers 12
+rule party_minplayers 1
 rule party_maxplayers 18
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
 // rule lobbySearchDatacenterType 2
 bigmaps,hs_dom,1
 bigmaps,big_tdm,1
 bigmaps,hs_escort,1
-mp_waterpark,hs_dom,1
-mp_waterpark,big_tdm,1
-mp_waterpark,hs_escort,1
-mp_rise,hs_dom,1
-mp_rise,big_tdm,1
-mp_rise,hs_escort,1
-mp_aerospace,hs_dom,1
-mp_aerospace,big_tdm,1
-mp_aerospace,hs_escort,1
-mp_banzai,hs_dom,1
-mp_banzai,big_tdm,1
-mp_banzai,hs_escort,1
-mp_city,hs_dom,1
-mp_city,big_tdm,1
-mp_city,hs_escort,1
-hidden
+//hidden
 
 playlist 104
 nameref PLAYLIST_PLAYLIST_INFECT
@@ -2963,24 +2945,20 @@ maxlocalplayers 2
 categories featured
 icon playlist_infect
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
 rule gts restricteditems 92 1 // Restrict Gambler Ability
 rule gts restricteditems 93 1 // Restrict Rogue Ability
-rule gts prematchrequirement 6
-rule gts prematchrequirementtime 30
-// rule liveDedicatedOnly 1
+// rule gts prematchrequirement 6
+// rule gts prematchrequirementtime 30
+//rule liveDedicatedOnly 0
 all,hs_infect,1
 dlc1,hs_infect,1
 dlc2,hs_infect,1
-mp_arena,hs_infect,1
-mp_cryogen,hs_infect,1
-mp_rome,hs_infect,1
-mp_city,hs_infect,1
-mp_miniature,hs_infect,1
-mp_western,hs_infect,1
-hidden
+dlc3,hs_infect,1
+dlc4,hs_infect,1
+//hidden
 
 playlist 105
 nameref PLAYLIST_PLAYLIST_REDWOOD
@@ -2991,10 +2969,10 @@ maxlocalplayers 2
 categories featured
 icon playlist_generic_02
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
 mp_redwood_ice,hs_dom,1
 mp_redwood_ice,hs_koth,1
 mp_redwood_ice,hs_conf,1
@@ -3013,23 +2991,18 @@ maxlocalplayers 2
 categories featured
 icon playlist_prop_hunt
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-rule gts prematchrequirement 3
-rule gts prematchrequirementtime 30
-// rule liveDedicatedOnly 1
-mp_biodome,hs_prop,1
-mp_spire,hs_prop,1
-mp_sector,hs_prop,1
-mp_apartments,hs_prop,1
-mp_chinatown,hs_prop,1
-mp_veiled,hs_prop,1
-mp_ethiopia,hs_prop,1
-mp_infection,hs_prop,1
-mp_redwood,hs_prop,1
-mp_nuketown_x,hs_prop,1
-hidden
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+// rule gts prematchrequirement 3
+// rule gts prematchrequirementtime 30
+//rule liveDedicatedOnly 0
+all,hs_prop,1
+dlc1,hs_prop,1
+dlc2,hs_prop,1
+dlc3,hs_prop,1
+dlc4,hs_prop,1
+//hidden
 
 playlist 107
 nameref PLAYLIST_PLAYLIST_VEILED_HEYDAY
@@ -3040,10 +3013,10 @@ maxlocalplayers 2
 categories featured
 icon playlist_generic_02
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
 mp_veiled_heyday,hs_dom,1
 mp_veiled_heyday,hs_koth,1
 mp_veiled_heyday,hs_conf,1
@@ -3051,7 +3024,7 @@ mp_veiled_heyday,hs_tdm,1
 mp_veiled_heyday,hs_ball,1
 mp_veiled_heyday,hs_escort,1
 mp_veiled_heyday,hs_clean,1
-hidden
+//hidden
 
 playlist 108
 nameref PLAYLIST_PLAYLIST_SAS
@@ -3062,17 +3035,17 @@ maxlocalplayers 1
 categories featured
 icon playlist_sticksnstones
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
 sortOrder 0
 all,hs_sas,1
 dlc1,hs_sas,1
 dlc2,hs_sas,1
 dlc3,hs_sas,1
 dlc4,hs_sas,1
-hidden
+//hidden
 
 playlist 109
 nameref PLAYLIST_PLAYLIST_SNIPERONLY
@@ -3083,10 +3056,10 @@ maxlocalplayers 2
 categories featured
 icon playlist_sniper_only
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
-// rule liveDedicatedOnly 1
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
+//rule liveDedicatedOnly 0
 rule gts restricteditems 93 1 // Restrict Rogue Ability
 sortOrder 0
 all,hs_sniperonly,1
@@ -3094,7 +3067,7 @@ dlc1,hs_sniperonly,1
 dlc2,hs_sniperonly,1
 dlc3,hs_sniperonly,1
 dlc4,hs_sniperonly,1
-hidden
+//hidden
 
 playlist 112
 name english "Flags and Bombs"
@@ -3131,16 +3104,28 @@ maxlocalplayers 2
 categories featured
 icon playlist_flagsbombs
 parkingplaylist 9001
-rule party_minplayers 6
-rule party_maxplayers 12
-rule party_matchedplayercount 0
+rule party_minplayers 1
+rule party_maxplayers 18
+//rule party_matchedplayercount 1
 all,hs_ctf,1
 all,hs_dom,1
 all,hs_sd,1
-hidden
+dlc1,hs_ctf,1
+dlc1,hs_dom,1
+dlc1,hs_sd,1
+dlc2,hs_ctf,1
+dlc2,hs_dom,1
+dlc2,hs_sd,1
+dlc3,hs_ctf,1
+dlc3,hs_dom,1
+dlc3,hs_sd,1
+dlc4,hs_ctf,1
+dlc4,hs_dom,1
+dlc4,hs_sd,1
+//hidden
 
 ///////////////////////////////////////////////////////////////////////////
-//      ZOMBIES
+//    ZOMBIES
 ///////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////
@@ -3181,10 +3166,10 @@ maxparty 4
 maxlocalplayers 2
 categories zm_zod
 icon img_t7_menu_zm_preview_zod
-rule party_minplayers 2
+rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
-rule lobby_readyUpPercentRequired 0.7
+//rule party_matchedplayercount 1
+rule lobby_readyUpPercentRequired 0.5
 zm_zod,zclassic,1
 
 playlist 151 // t7
@@ -3222,10 +3207,10 @@ maxparty 4
 maxlocalplayers 2
 categories zm_factory
 icon img_mapvote_zm_factory
-rule party_minplayers 2
+rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
-rule lobby_readyUpPercentRequired 0.7
+//rule party_matchedplayercount 1
+rule lobby_readyUpPercentRequired 0.5
 zm_factory,zclassic,1
 
 playlist 152
@@ -3263,10 +3248,10 @@ maxparty 4
 maxlocalplayers 2
 categories zm_castle
 icon img_mapvote_zm_castle
-rule party_minplayers 2
+rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
-rule lobby_readyUpPercentRequired 0.7
+//rule party_matchedplayercount 1
+rule lobby_readyUpPercentRequired 0.5
 zm_castle,zclassic,1
 
 playlist 153
@@ -3304,10 +3289,10 @@ maxparty 4
 maxlocalplayers 2
 categories zm_island
 icon img_t7_menu_zm_preview_island
-rule party_minplayers 2
+rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
-rule lobby_readyUpPercentRequired 0.7
+//rule party_matchedplayercount 1
+rule lobby_readyUpPercentRequired 0.5
 zm_island,zclassic,1
 
 playlist 154
@@ -3345,10 +3330,10 @@ maxparty 4
 maxlocalplayers 2
 categories zm_stalingrad
 icon img_t7_menu_zm_preview_dlc3
-rule party_minplayers 2
+rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
-rule lobby_readyUpPercentRequired 0.7
+//rule party_matchedplayercount 1
+rule lobby_readyUpPercentRequired 0.5
 zm_stalingrad,zclassic,1
 
 playlist 155
@@ -3386,10 +3371,10 @@ maxparty 4
 maxlocalplayers 2
 categories zm_genesis
 icon img_t7_menu_zm_preview_genesis
-rule party_minplayers 2
+rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
-rule lobby_readyUpPercentRequired 0.7
+//rule party_matchedplayercount 1
+rule lobby_readyUpPercentRequired 0.5
 zm_genesis,zclassic,1
 
 playlist 156
@@ -3427,10 +3412,10 @@ maxparty 4
 maxlocalplayers 2
 categories zm_prototype
 icon img_t7_menu_zm_preview_prototype
-rule party_minplayers 2
+rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
-rule lobby_readyUpPercentRequired 0.7
+//rule party_matchedplayercount 1
+rule lobby_readyUpPercentRequired 0.5
 zm_prototype,zclassic,1
 
 playlist 157
@@ -3468,10 +3453,10 @@ maxparty 4
 maxlocalplayers 2
 categories zm_asylum
 icon img_t7_menu_zm_preview_asylum
-rule party_minplayers 2
+rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
-rule lobby_readyUpPercentRequired 0.7
+//rule party_matchedplayercount 1
+rule lobby_readyUpPercentRequired 0.5
 zm_asylum,zclassic,1
 
 playlist 158
@@ -3509,10 +3494,10 @@ maxparty 4
 maxlocalplayers 2
 categories zm_cosmodrome
 icon img_t7_menu_zm_preview_cosmodrome
-rule party_minplayers 2
+rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
-rule lobby_readyUpPercentRequired 0.7
+//rule party_matchedplayercount 1
+rule lobby_readyUpPercentRequired 0.5
 zm_cosmodrome,zclassic,1
 
 playlist 159
@@ -3550,10 +3535,10 @@ maxparty 4
 maxlocalplayers 2
 categories zm_moon
 icon img_t7_menu_zm_preview_moon
-rule party_minplayers 2
+rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
-rule lobby_readyUpPercentRequired 0.7
+//rule party_matchedplayercount 1
+rule lobby_readyUpPercentRequired 0.5
 zm_moon,zclassic,1
 
 playlist 160
@@ -3591,10 +3576,10 @@ maxparty 4
 maxlocalplayers 2
 categories zm_sumpf
 icon img_t7_menu_zm_preview_sumpf
-rule party_minplayers 2
+rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
-rule lobby_readyUpPercentRequired 0.7
+//rule party_matchedplayercount 1
+rule lobby_readyUpPercentRequired 0.5
 zm_sumpf,zclassic,1
 
 playlist 161
@@ -3632,10 +3617,10 @@ maxparty 4
 maxlocalplayers 2
 categories zm_temple
 icon img_t7_menu_zm_preview_temple
-rule party_minplayers 2
+rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
-rule lobby_readyUpPercentRequired 0.7
+//rule party_matchedplayercount 1
+rule lobby_readyUpPercentRequired 0.5
 zm_temple,zclassic,1
 
 playlist 162
@@ -3673,10 +3658,10 @@ maxparty 4
 maxlocalplayers 2
 categories zm_theater
 icon img_t7_menu_zm_preview_theater
-rule party_minplayers 2
+rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
-rule lobby_readyUpPercentRequired 0.7
+//rule party_matchedplayercount 1
+rule lobby_readyUpPercentRequired 0.5
 zm_theater,zclassic,1
 
 playlist 163
@@ -3714,10 +3699,10 @@ maxparty 4
 maxlocalplayers 2
 categories zm_tomb
 icon img_t7_menu_zm_preview_tomb
-rule party_minplayers 2
+rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
-rule lobby_readyUpPercentRequired 0.7
+//rule party_matchedplayercount 1
+rule lobby_readyUpPercentRequired 0.5
 zm_tomb,zclassic,1
 
 ///////////////////////////////////////////////////////////////////////////
@@ -3751,7 +3736,7 @@ categories cp_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_eth_prologue,cp_coop,2
@@ -3781,7 +3766,7 @@ categories cp_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_zurich_newworld,cp_coop,2
@@ -3812,7 +3797,7 @@ categories cp_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_sing_blackstation,cp_coop,2
@@ -3840,7 +3825,7 @@ categories cp_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_sing_biodomes,cp_coop,2
@@ -3868,7 +3853,7 @@ categories cp_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_sing_sgen,cp_coop,2
@@ -3896,7 +3881,7 @@ categories cp_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_sing_vengeance,cp_coop,2
@@ -3924,7 +3909,7 @@ categories cp_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_cairo_ramses,cp_coop,2
@@ -3952,7 +3937,7 @@ categories cp_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_cairo_infection,cp_coop,2
@@ -3980,7 +3965,7 @@ categories cp_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_cairo_aquifer,cp_coop,2
@@ -4008,7 +3993,7 @@ categories cp_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_cairo_lotus,cp_coop,2
@@ -4036,7 +4021,7 @@ categories cp_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_zurich_coalescence,cp_coop,2
@@ -4064,10 +4049,10 @@ categories cp_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 0
 rule scr_gunxpscalecp 0
-rule lobby_readyUpPercentRequired 0.7
+rule lobby_readyUpPercentRequired 0.5
 cp_doa_bo3,doa,2
 
 ///////////////////////////////////////////////////////////////////////////
@@ -4097,7 +4082,7 @@ categories cp_nightmares_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_sing_sgen,cp_coop,2
@@ -4125,7 +4110,7 @@ categories cp_nightmares_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_zurich_newworld,cp_coop,2
@@ -4153,7 +4138,7 @@ categories cp_nightmares_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_sing_biodomes,cp_coop,2
@@ -4181,7 +4166,7 @@ categories cp_nightmares_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_cairo_aquifer,cp_coop,2
@@ -4209,7 +4194,7 @@ categories cp_nightmares_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_eth_prologue,cp_coop,2
@@ -4237,7 +4222,7 @@ categories cp_nightmares_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_sing_vengeance,cp_coop,2
@@ -4265,7 +4250,7 @@ categories cp_nightmares_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_sing_blackstation,cp_coop,2
@@ -4293,7 +4278,7 @@ categories cp_nightmares_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_cairo_ramses,cp_coop,2
@@ -4321,7 +4306,7 @@ categories cp_nightmares_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_cairo_infection,cp_coop,2
@@ -4349,7 +4334,7 @@ categories cp_nightmares_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_cairo_lotus,cp_coop,2
@@ -4377,7 +4362,7 @@ categories cp_nightmares_public
 icon playlist_generic_02
 rule party_minplayers 1
 rule party_maxplayers 4
-rule party_matchedplayercount 0
+//rule party_matchedplayercount 1
 rule scr_xpscalecp 1
 rule scr_gunxpscalecp 1
 cp_mi_zurich_coalescence,cp_coop,2
