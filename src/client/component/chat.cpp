@@ -96,7 +96,7 @@ namespace chat
 					const auto* format = reinterpret_cast<const char*>(0x140E25180_g);
 					const auto* message = utils::string::va(format, 'O', text.data());
 
-					game::SV_GameSendServerCommand(-1, game::SV_CMD_CAN_IGNORE_0, message);
+					game::SV_GameSendServerCommand(-1, game::SV_CMD_RELIABLE_0, message);
 					printf("Server: %s\n", text.data());
 				});
 
@@ -121,7 +121,7 @@ namespace chat
 					const auto* format = reinterpret_cast<const char*>(0x140E25180_g);
 					const auto* message = utils::string::va(format, 'O', text.data());
 
-					game::SV_GameSendServerCommand(client, game::SV_CMD_CAN_IGNORE_0, message);
+					game::SV_GameSendServerCommand(client, game::SV_CMD_RELIABLE_0, message);
 					printf("Server -> %i: %s\n", client, text.data());
 				});
 
