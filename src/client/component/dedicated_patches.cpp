@@ -87,6 +87,9 @@ namespace dedicated_patches
 			patch_is_mod_loaded_checks();
 
 			spawn_server_hook.create(game::SV_SpawnServer, spawn_server_stub);
+
+			// Don't count server as client
+			utils::hook::jump(0x14052F0F5_g, 0x14052F139_g);
 		}
 	};
 }
