@@ -24,7 +24,7 @@ namespace demonware
 
 		auto* result = new bdPublicProfileInfo;
 		result->m_entityID = entity_id;
-		result->m_VERSION = 4;
+		result->m_VERSION = 3;
 
 		if (utils::io::read_file(std::format("players/user/profileInfo_{}", entity_id), &result->m_ddl))
 		{
