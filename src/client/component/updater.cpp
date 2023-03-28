@@ -3,14 +3,18 @@
 #include "updater.hpp"
 #include "game/game.hpp"
 
-#include <utils/io.hpp>
-
+#include <utils/flags.hpp>
 #include <updater/updater.hpp>
 
 namespace updater
 {
 	void update()
 	{
+		if (utils::flags::has_flag("noupdate"))
+		{
+			return;
+		}
+
 		try
 		{
 			run(game::get_appdata_path());
