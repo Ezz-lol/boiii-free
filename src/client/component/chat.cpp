@@ -1,5 +1,6 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
+#include "chat.hpp"
 
 #include "game/game.hpp"
 #include "game/utils.hpp"
@@ -7,7 +8,6 @@
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 
-#include "chat.hpp"
 #include "command.hpp"
 #include "client_command.hpp"
 
