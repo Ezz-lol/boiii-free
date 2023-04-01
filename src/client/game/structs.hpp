@@ -676,7 +676,8 @@ namespace game
 
 	struct DvarValue
 	{
-		union {
+		union
+		{
 			bool enabled;
 			int integer;
 			uint32_t unsignedInt;
@@ -693,27 +694,33 @@ namespace game
 
 	union DvarLimits
 	{
-		struct {
+		struct
+		{
 			int stringCount;
 			const char** strings;
 		} enumeration;
-		struct {
+		struct
+		{
 			int min;
 			int max;
 		} integer;
-		struct {
+		struct
+		{
 			int64_t min;
 			int64_t max;
 		} integer64;
-		struct {
+		struct
+		{
 			uint64_t min;
 			uint64_t max;
 		} unsignedInt64;
-		struct {
+		struct
+		{
 			float min;
 			float max;
 		} value;
-		struct {
+		struct
+		{
 			vec_t min;
 			vec_t max;
 		} vector;

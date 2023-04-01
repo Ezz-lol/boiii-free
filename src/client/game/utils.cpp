@@ -5,6 +5,13 @@
 
 namespace game
 {
+	static_assert(offsetof(dvar_t, debugName) == 8);
+	static_assert(offsetof(dvar_t, description) == 16);
+	static_assert(offsetof(dvar_t, flags) == 24);
+	static_assert(offsetof(dvar_t, type) == 28);
+	static_assert(offsetof(dvar_t, modified) == 32);
+	static_assert(offsetof(dvar_t, current) == 40);
+
 	std::string get_dvar_string(const char* dvar_name)
 	{
 		const auto* dvar = Dvar_FindVar(dvar_name);
