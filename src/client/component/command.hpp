@@ -33,6 +33,14 @@ namespace command
 	{
 	public:
 		params_sv();
+		params_sv(const std::string& text);
+		~params_sv();
+
+		params_sv(params_sv&&) = delete;
+		params_sv(const params_sv&) = delete;
+
+		params_sv& operator=(params_sv&&) = delete;
+		params_sv& operator=(const params_sv&) = delete;
 
 		[[nodiscard]] int size() const;
 		[[nodiscard]] const char* get(int index) const;
@@ -44,6 +52,7 @@ namespace command
 		}
 
 	private:
+		bool needs_end_{false};
 		int nesting_;
 	};
 

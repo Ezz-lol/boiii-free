@@ -110,6 +110,21 @@ namespace command
 		assert(this->nesting_ < game::CMD_MAX_NESTING);
 	}
 
+	params_sv::params_sv(const std::string& text)
+		: needs_end_(true)
+	{
+		game::SV_Cmd_TokenizeString(text.data());
+		this->nesting_ = game::sv_cmd_args->nesting;
+	}
+
+	params_sv::~params_sv()
+	{
+		if (this->needs_end_)
+		{
+			game::SV_Cmd_EndTokenizedString();
+		}
+	}
+
 	int params_sv::size() const
 	{
 		return game::sv_cmd_args->argc[this->nesting_];
