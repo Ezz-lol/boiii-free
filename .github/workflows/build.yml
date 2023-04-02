@@ -118,11 +118,11 @@ jobs:
         run: ssh ${{ secrets.BOIII_MASTER_SSH_USER }}@${{ secrets.BOIII_MASTER_SSH_ADDRESS }} ${{ secrets.BOIII_MASTER_SSH_CHANGE_PUBLISH_COMMAND }}
 
       - name: Prepare cleanup
-        run: echo "" > build/bin/x64/Release/boiii.exe
+        run: echo "" > boiii.exe
 
       - name: Cleanup
         uses: actions/upload-artifact@v3.1.2
         with:
           name: Release Binary
           path: |
-            build/bin/x64/Release/boiii.exe
+            boiii.exe
