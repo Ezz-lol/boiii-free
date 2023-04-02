@@ -215,13 +215,6 @@ namespace party
 			network::send(query.host, "getInfo", query.challenge);
 		}
 
-		game::netadr_t get_connected_server()
-		{
-			constexpr auto local_client_num = 0ull;
-			const auto address = *reinterpret_cast<uint64_t*>(0x1453D8BB8_g) + (0x25780 * local_client_num) + 0x10;
-			return *reinterpret_cast<game::netadr_t*>(address);
-		}
-
 		void handle_info_response(const game::netadr_t& target, const network::data_view& data)
 		{
 			bool found_query = false;
@@ -304,6 +297,13 @@ namespace party
 		{
 			server_queries.emplace_back(std::move(query));
 		});
+	}
+
+	game::netadr_t get_connected_server()
+	{
+		constexpr auto local_client_num = 0ull;
+		const auto address = *reinterpret_cast<uint64_t*>(0x1453D8BB8_g) + (0x25780 * local_client_num) + 0x10;
+		return *reinterpret_cast<game::netadr_t*>(address);
 	}
 
 	struct component final : client_component

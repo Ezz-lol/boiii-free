@@ -7,4 +7,6 @@ namespace party
 	using query_callback = std::function<query_callback_func>;
 
 	void query_server(const game::netadr_t& host, query_callback callback);
+
+	game::netadr_t get_connected_server();
 }

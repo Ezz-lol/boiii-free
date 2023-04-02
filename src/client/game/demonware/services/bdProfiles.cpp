@@ -1,7 +1,7 @@
 #include <std_include.hpp>
 #include "../services.hpp"
-#include "steam/steam.hpp"
-#include <utils/io.hpp>
+
+#include "../../../component/profile_infos.hpp"
 
 namespace demonware
 {
@@ -19,33 +19,41 @@ namespace demonware
 
 	void bdProfiles::getPublicInfos(service_server* server, byte_buffer* buffer) const
 	{
+		std::vector<std::pair<uint64_t, profile_infos::profile_info>> profile_infos{};
+
 		uint64_t entity_id;
-		buffer->read_uint64(&entity_id);
-
-		auto* result = new bdPublicProfileInfo;
-		result->m_entityID = entity_id;
-		result->m_VERSION = 3;
-
-		if (utils::io::read_file(std::format("players/user/profileInfo_{}", entity_id), &result->m_ddl))
+		while (buffer->read_uint64(&entity_id))
 		{
-			auto reply = server->create_reply(this->task_id());
+			auto profile = profile_infos::get_profile_info(entity_id);
+			if(profile)
+			{
+				profile_infos.emplace_back(entity_id, std::move(*profile));
+			}
+		}
+
+		auto reply = server->create_reply(this->task_id(), profile_infos.empty() ? game::BD_NO_PROFILE_INFO_EXISTS : game::BD_NO_ERROR);
+
+		for(auto& info : profile_infos)
+		{
+			auto* result = new bdPublicProfileInfo;
+			result->m_entityID = info.first;
+			result->m_VERSION = info.second.version;
+			result->m_ddl = std::move(info.second.ddl);
+
 			reply->add(result);
-			reply->send();
 		}
-		else
-		{
-			auto reply = server->create_reply(this->task_id(), game::BD_NO_PROFILE_INFO_EXISTS);
-			reply->send();
-		}
+
+		reply->send();
 	}
 
 	void bdProfiles::setPublicInfo(service_server* server, byte_buffer* buffer) const
 	{
-		int32_t version; std::string ddl;
-		buffer->read_int32(&version);
-		buffer->read_blob(&ddl);
+		profile_infos::profile_info info{};
 
-		utils::io::write_file(std::format("players/user/profileInfo_{}", steam::SteamUser()->GetSteamID().bits), ddl);
+		buffer->read_int32(&info.version);
+		buffer->read_blob(&info.ddl);
+
+		profile_infos::update_profile_info(info);
 
 		auto reply = server->create_reply(this->task_id());
 		reply->send();
