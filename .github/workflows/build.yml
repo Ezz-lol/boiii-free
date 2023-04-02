@@ -44,16 +44,16 @@ jobs:
       - name: Build ${{matrix.configuration}}
         run: msbuild /m /v:minimal /p:Configuration=${{matrix.configuration}} /p:Platform=x64 build/boiii.sln
 
-      - name: Upload ${{matrix.configuration}} bundle
+      - name: Upload ${{matrix.configuration}} symbols
+        if: matrix.configuration == 'Release' && github.repository_owner == 'momo5502' && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
         uses: actions/upload-artifact@v3.1.2
         with:
-          name: ${{matrix.configuration}} Bundle
+          name: ${{matrix.configuration}} Symbols
           path: |
-            build/bin/x64/${{matrix.configuration}}/boiii.exe
             build/bin/x64/${{matrix.configuration}}/boiii.pdb
 
       - name: Upload ${{matrix.configuration}} binary
-        if: matrix.configuration == 'Release'
+        if: matrix.configuration == 'Release' && github.repository_owner == 'momo5502' && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
         uses: actions/upload-artifact@v3.1.2
         with:
           name: ${{matrix.configuration}} Binary
@@ -61,19 +61,12 @@ jobs:
             build/bin/x64/${{matrix.configuration}}/boiii.exe
 
       - name: Upload ${{matrix.configuration}} data artifacts
+        if: matrix.configuration == 'Release' && github.repository_owner == 'momo5502' && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
         uses: actions/upload-artifact@v3.1.2
         with:
           name: ${{matrix.configuration}} data artifacts
           path: |
             data/*
-
-      - name: Upload version
-        if: matrix.configuration == 'Release'
-        uses: actions/upload-artifact@v3.1.2
-        with:
-          name: Version
-          path: |
-            build/version.txt
 
   deploy:
     name: Deploy artifacts
@@ -123,3 +116,13 @@ jobs:
 
       - name: Publish changes
         run: ssh ${{ secrets.BOIII_MASTER_SSH_USER }}@${{ secrets.BOIII_MASTER_SSH_ADDRESS }} ${{ secrets.BOIII_MASTER_SSH_CHANGE_PUBLISH_COMMAND }}
+
+      - name: Prepare cleanup
+        run: echo "" > build/bin/x64/Release/boiii.exe
+
+      - name: Cleanup
+        uses: actions/upload-artifact@v3.1.2
+        with:
+          name: Release Binary
+          path: |
+            build/bin/x64/Release/boiii.exe
