@@ -9,6 +9,7 @@
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/smbios.hpp>
+#include <utils/info_string.hpp>
 #include <utils/cryptography.hpp>
 
 namespace auth
@@ -90,6 +91,17 @@ namespace auth
 
 			return !is_first;
 		}
+
+		int send_connect_data_stub(const game::netsrc_t sock, game::netadr_t* adr, const char* data, const int len)
+		{
+			/*const auto is_connect_sequence = len >= 7 && strncmp("connect", data, 7) == 0;
+			if (is_connect_sequence)
+			{
+				MessageBoxA(0, "CONNECT", 0, 0);
+			}*/
+
+			return reinterpret_cast<decltype(&send_connect_data_stub)>(0x142173600_g)(sock, adr, data, len);
+		}
 	}
 
 	uint64_t get_guid()
@@ -111,6 +123,8 @@ namespace auth
 	{
 		void post_unpack() override
 		{
+			utils::hook::call(0x14134BF7D_g, send_connect_data_stub);
+
 			// Patch steam id bit check
 			std::vector<std::pair<size_t, size_t>> patches{};
 			const auto p = [&patches](const size_t a, const size_t b)
