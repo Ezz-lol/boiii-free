@@ -102,7 +102,7 @@ namespace demonware
 			info->filename = filename;
 			info->create_time = 0;
 			info->modified_time = info->create_time;
-			info->file_size = uint32_t(data.size());
+			info->file_size = static_cast<uint32_t>(data.size());
 			info->owner_id = 0;
 			info->priv = false;
 
