@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "chat.hpp"
+
 #include "game/game.hpp"
 #include "game/utils.hpp"
 
@@ -14,6 +15,8 @@ namespace chat
 {
 	namespace
 	{
+		const game::dvar_t* g_deadChat;
+
 		void cmd_say_f(game::gentity_s* ent, const command::params_sv& params)
 		{
 			if (params.size() < 2)
@@ -57,6 +60,31 @@ namespace chat
 		{
 			game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE_0, utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, text.data()));
 		}
+
+		// This function has probably a different name
+		void g_say_to_stub(utils::hook::assembler& a)
+		{
+			const auto no_dead_chat = a.newLabel();
+
+			// game's code
+			a.mov(rax, qword_ptr(rbx));
+
+			a.push(rax);
+
+			a.mov(rax, qword_ptr(reinterpret_cast<std::uintptr_t>(&g_deadChat)));
+			a.mov(al, byte_ptr(rax, 0x28)); // dvar_t.current.value.enabled
+			a.test(al, al);
+
+			a.pop(rax);
+
+			a.je(no_dead_chat);
+
+			a.jmp(0x140299061_g);
+
+			a.bind(no_dead_chat);
+			a.cmp(dword_ptr(rax, 0x16AE0), 0x0); // game's code
+			a.jmp(0x14029905B_g);
+		}
 	}
 
 	const char* get_client_name(const uint64_t xuid)
@@ -76,6 +104,7 @@ namespace chat
 
 		return "Unknown Soldier";
 	}
+
 	class component final : public generic_component
 	{
 	public:
@@ -130,6 +159,9 @@ namespace chat
 
 				// Kill say fallback
 				utils::hook::set<uint8_t>(0x1402FF987_g, 0xEB);
+
+				g_deadChat = game::register_dvar_bool("g_deadChat", false, game::DVAR_NONE, "Allow dead players to chat with living players");
+				utils::hook::jump(0x140299051_g, utils::hook::assemble(g_say_to_stub));
 			}
 			else
 			{
