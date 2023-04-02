@@ -119,12 +119,10 @@ namespace auth
 		return guid;
 	}
 
-	struct component final : client_component
+	struct component final : generic_component
 	{
 		void post_unpack() override
 		{
-			utils::hook::call(0x14134BF7D_g, send_connect_data_stub);
-
 			// Patch steam id bit check
 			std::vector<std::pair<size_t, size_t>> patches{};
 			const auto p = [&patches](const size_t a, const size_t b)
@@ -169,6 +167,8 @@ namespace auth
 				p(0x141EB5377_g, 0x141EB53BF_g); // ?
 				p(0x141EB5992_g, 0x141EB59D5_g);
 				p(0x141EB74D2_g, 0x141EB7515_g); // ?
+
+				utils::hook::call(0x14134BF7D_g, send_connect_data_stub);
 			}
 
 			for (const auto& patch : patches)
