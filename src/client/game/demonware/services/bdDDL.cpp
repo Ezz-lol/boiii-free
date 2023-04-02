@@ -13,17 +13,17 @@ namespace demonware
 		uint32_t count;
 		buffer->read_uint32(&count);
 
-		const auto reply = server->create_reply(this->task_id());
+		auto reply = server->create_reply(this->task_id());
 
 		for (uint32_t i = 0; i < count; i++)
 		{
-			auto* checksum = new bdDDLChecksumResult;
+			auto checksum = std::make_unique<bdDDLChecksumResult>();
 			checksum->deserialize(buffer);
 			checksum->checksum_matched = true;
 
-			reply->add(checksum);
+			reply.add(checksum);
 		}
 
-		reply->send();
+		reply.send();
 	}
 }

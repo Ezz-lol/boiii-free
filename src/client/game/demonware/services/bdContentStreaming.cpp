@@ -14,7 +14,7 @@ namespace demonware
 	{
 		// TODO:
 		auto reply = server->create_reply(this->task_id());
-		reply->send();
+		reply.send();
 	}
 
 	void bdContentStreaming::list_all_publisher_files(service_server* server, byte_buffer* buffer) const
@@ -36,11 +36,11 @@ namespace demonware
 
 		/*if(filename.empty())
 		{
-			server->create_reply(this->task_id(), game::BD_NO_FILE)->send();
+			server->create_reply(this->task_id(), game::BD_NO_FILE).send();
 			return;
 		}*/
 
 		auto reply = server->create_reply(this->task_id());
-		reply->send();
+		reply.send();
 	}
 }

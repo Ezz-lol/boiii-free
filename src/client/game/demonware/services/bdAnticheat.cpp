@@ -16,34 +16,34 @@ namespace demonware
 	{
 		// TODO: Read data as soon as needed
 		auto reply = server->create_reply(this->task_id());
-		reply->send();
+		reply.send();
 	}
 
 	void bdAnticheat::reportConsoleID(service_server* server, byte_buffer* /*buffer*/) const
 	{
 		// TODO: Read data as soon as needed
 		auto reply = server->create_reply(this->task_id());
-		reply->send();
+		reply.send();
 	}
 	
 	void bdAnticheat::reportConsoleDetails(service_server* server, byte_buffer* /*buffer*/) const
 	{
 		// TODO: Read data as soon as needed
 		auto reply = server->create_reply(this->task_id());
-		reply->send();
+		reply.send();
 	}
 
 	void bdAnticheat::answerTOTPChallenge(service_server* server, byte_buffer* /*buffer*/) const
 	{
 		// TODO: Read data as soon as needed
 		auto reply = server->create_reply(this->task_id());
-		reply->send();
+		reply.send();
 	}
 
 	void bdAnticheat::idk(service_server* server, byte_buffer* /*buffer*/) const
 	{
 		// TODO: Read data as soon as needed
 		auto reply = server->create_reply(this->task_id());
-		reply->send();
+		reply.send();
 	}
 }

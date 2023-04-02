@@ -96,7 +96,7 @@ namespace demonware
 
 		if (this->load_publisher_resource(filename, data))
 		{
-			auto* info = new bdFileInfo;
+			auto info = std::make_unique<bdFileInfo>();
 
 			info->file_id = *reinterpret_cast<const uint64_t*>(utils::cryptography::sha1::compute(filename).data());
 			info->filename = filename;
@@ -106,10 +106,10 @@ namespace demonware
 			info->owner_id = 0;
 			info->priv = false;
 
-			reply->add(info);
+			reply.add(info);
 		}
 
-		reply->send();
+		reply.send();
 	}
 
 	void bdStorage::get_publisher_file(service_server* server, byte_buffer* buffer)
@@ -131,12 +131,13 @@ namespace demonware
 #endif
 
 			auto reply = server->create_reply(this->task_id());
-			reply->add(new bdFileData(data));
-			reply->send();
+			auto result = std::make_unique<bdFileData>(data);
+			reply.add(result);
+			reply.send();
 		}
 		else
 		{
-			server->create_reply(this->task_id(), game::BD_NO_FILE)->send();
+			server->create_reply(this->task_id(), game::BD_NO_FILE).send();
 		}
 	}
 
@@ -155,7 +156,7 @@ namespace demonware
 		const auto path = get_user_file_path(filename);
 		utils::io::write_file(path, data);
 
-		auto* info = new bdFileInfo;
+		auto info = std::make_unique<bdFileInfo>();
 
 		info->file_id = *reinterpret_cast<const uint64_t*>(utils::cryptography::sha1::compute(filename).data());
 		info->filename = filename;
@@ -166,8 +167,8 @@ namespace demonware
 		info->priv = priv;
 
 		auto reply = server->create_reply(this->task_id());
-		reply->add(info);
-		reply->send();
+		reply.add(info);
+		reply.send();
 	}
 
 	std::string bdStorage::get_user_file_path(const std::string& name)
@@ -202,7 +203,7 @@ namespace demonware
 			const auto path = get_user_file_path(filename);
 			utils::io::write_file(path, data);
 
-			auto* info = new bdFile2;
+			auto info = std::make_unique<bdFile2>();
 
 			info->unk1 = 0;
 			info->unk2 = 0;
@@ -217,10 +218,10 @@ namespace demonware
 			printf("[DW]: [bdStorage]: set user file: %s\n", filename.data());
 #endif
 
-			reply->add(info);
+			reply.add(info);
 		}
 
-		reply->send();
+		reply.send();
 	}
 
 	void bdStorage::upload_files_new(service_server* server, byte_buffer* buffer) const
@@ -250,7 +251,7 @@ namespace demonware
 			const auto path = get_user_file_path(filename);
 			utils::io::write_file(path, data);
 
-			auto* info = new bdContextUserStorageFileInfo;
+			auto info = std::make_unique<bdContextUserStorageFileInfo>();
 
 			info->modifed_time = static_cast<uint32_t>(time(nullptr));
 			info->create_time = info->modifed_time;
@@ -263,10 +264,10 @@ namespace demonware
 			printf("[DW]: [bdStorage]: set user file: %s\n", filename.data());
 #endif
 
-			reply->add(info);
+			reply.add(info);
 		}
 
-		reply->send();
+		reply.send();
 	}
 
 	void bdStorage::get_files(service_server* server, byte_buffer* buffer) const
@@ -303,7 +304,7 @@ namespace demonware
 		auto reply = server->create_reply(this->task_id());
 		for (size_t i = 0u; i < filenames.size(); i++)
 		{
-			auto* entry = new bdFileQueryResult;
+			auto entry = std::make_unique<bdFileQueryResult>();
 			entry->user_id = user_ctxs.at(i).first;
 			entry->platform = user_ctxs.at(i).second;
 			entry->filename = filenames.at(i);
@@ -326,16 +327,16 @@ namespace demonware
 #endif
 			}
 
-			reply->add(entry);
+			reply.add(entry);
 		}
 
-		reply->send();
+		reply.send();
 	}
 
 	void bdStorage::unk12(service_server* server, byte_buffer* buffer) const
 	{
 		// TODO:
 		auto reply = server->create_reply(this->task_id());
-		reply->send();
+		reply.send();
 	}
 }

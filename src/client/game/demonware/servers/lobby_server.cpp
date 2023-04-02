@@ -180,7 +180,7 @@ namespace demonware
 			uint8_t task_id;
 			buffer.read_ubyte(&task_id);
 
-			this->create_reply(task_id)->send();
+			this->create_reply(task_id).send();
 		}
 	}
 }

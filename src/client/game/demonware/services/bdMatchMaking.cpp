@@ -15,12 +15,12 @@ namespace demonware
 
 	void bdMatchMaking::create_session(service_server* server, byte_buffer* /*buffer*/) const
 	{
-		auto* id = new bdSessionID;
+		auto id = std::make_unique<bdSessionID>();
 		id->session_id = steam::SteamUser()->GetSteamID().bits;
 
 		auto reply = server->create_reply(this->task_id());
-		reply->add(id);
-		reply->send();
+		reply.add(id);
+		reply.send();
 	}
 
 	void bdMatchMaking::update_session(service_server* server, byte_buffer* buffer) const
@@ -38,7 +38,7 @@ namespace demonware
 		addr.deserialize(&addr_buf);*/
 
 		auto reply = server->create_reply(this->task_id());
-		reply->send();
+		reply.send();
 	}
 
 	void bdMatchMaking::delete_session(service_server* server, byte_buffer* buffer) const
@@ -50,18 +50,18 @@ namespace demonware
 		id.serialize(&out_data);
 
 		auto reply = server->create_reply(this->task_id());
-		reply->send();
+		reply.send();
 	}
 
 	void bdMatchMaking::get_performance(service_server* server, byte_buffer* /*buffer*/) const
 	{
-		auto* result = new bdPerformanceValue;
+		auto result = std::make_unique<bdPerformanceValue>();
 		result->user_id = steam::SteamUser()->GetSteamID().bits;
 		result->performance = 10;
 
 		auto reply = server->create_reply(this->task_id());
-		reply->add(result);
-		reply->send();
+		reply.add(result);
+		reply.send();
 	}
 
 	void bdMatchMaking::find_sessions(service_server* server, byte_buffer* /*buffer*/) const
@@ -70,9 +70,9 @@ namespace demonware
 
 		//for (auto& session : sessions)
 		{
-			//reply->add(session.second);
+			//reply.add(session.second);
 		}
 
-		reply->send();
+		reply.send();
 	}
 }

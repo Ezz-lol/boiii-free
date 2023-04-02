@@ -123,10 +123,10 @@ namespace demonware
 
 			if (!this->error_)
 			{
-				buffer.write_uint32(uint32_t(this->objects_.size()));
+				buffer.write_uint32(static_cast<uint32_t>(this->objects_.size()));
 				if (!this->objects_.empty())
 				{
-					buffer.write_uint32(uint32_t(this->objects_.size()));
+					buffer.write_uint32(static_cast<uint32_t>(this->objects_.size()));
 
 					for (auto& object : this->objects_)
 					{
@@ -145,20 +145,17 @@ namespace demonware
 			return transaction_id;
 		}
 
-		void add(const std::shared_ptr<bdTaskResult>& object)
+		template<typename T>
+		void add(std::unique_ptr<T>& object)
 		{
-			this->objects_.push_back(object);
-		}
-
-		void add(bdTaskResult* object)
-		{
-			this->add(std::shared_ptr<bdTaskResult>(object));
+			static_assert(std::is_base_of_v<bdTaskResult, T>);
+			this->objects_.emplace_back(std::move(object));
 		}
 
 	private:
 		uint8_t type_;
 		uint32_t error_;
 		remote_reply reply_;
-		std::vector<std::shared_ptr<bdTaskResult>> objects_;
+		std::vector<std::unique_ptr<bdTaskResult>> objects_;
 	};
 }

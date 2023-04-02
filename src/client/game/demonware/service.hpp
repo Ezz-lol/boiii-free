@@ -62,7 +62,7 @@ namespace demonware
 				printf("[DW] %s: missing task '%d'\n", name_.data(), this->task_id_);
 
 				// return no error
-				server->create_reply(this->task_id_)->send();
+				server->create_reply(this->task_id_).send();
 			}
 		}
 

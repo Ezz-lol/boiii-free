@@ -15,12 +15,12 @@ namespace demonware
 	{
 		// TODO:
 		auto reply = server->create_reply(this->task_id());
-		reply->send();
+		reply.send();
 	}
 
 	void bdDML::getUserData(service_server* server, byte_buffer* /*buffer*/) const
 	{
-		auto result = new bdDMLRawData;
+		auto result = std::make_unique<bdDMLRawData>();
 		result->country_code = "US";
 		result->country_code = "'Murica";
 		result->region = "New York";
@@ -32,21 +32,21 @@ namespace demonware
 		result->timezone = "+01:00";
 
 		auto reply = server->create_reply(this->task_id());
-		reply->add(result);
-		reply->send();
+		reply.add(result);
+		reply.send();
 	}
 
 	void bdDML::getUserHierarchicalData(service_server* server, byte_buffer* /*buffer*/) const
 	{
 		// TODO:
 		auto reply = server->create_reply(this->task_id());
-		reply->send();
+		reply.send();
 	}
 
 	void bdDML::getUsersLastLogonData(service_server* server, byte_buffer* /*buffer*/) const
 	{
 		// TODO:
 		auto reply = server->create_reply(this->task_id());
-		reply->send();
+		reply.send();
 	}
 }
