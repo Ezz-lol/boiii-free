@@ -70,7 +70,7 @@ namespace dedicated_patches
 
 		uint64_t sv_get_player_xuid_stub(int client_num)
 		{
-			return game::svs_clients[client_num].xuid;
+			return static_cast<uint64_t>(game::svs_clients[client_num].xuid);
 		}
 
 		int sv_get_guid(int client_num)
