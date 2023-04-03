@@ -67,10 +67,27 @@ namespace dedicated_patches
 
 			spawn_server_hook.invoke(controllerIndex, server, preload, savegame);
 		}
+
+		uint64_t sv_get_player_xuid_stub(int client_num)
+		{
+			return static_cast<uint64_t>(game::svs_clients[client_num].xuid);
+		}
+
+		int sv_get_guid(int client_num)
+		{
+			if (client_num < 0 || client_num >= game::Dvar_GetInt(*game::com_maxclients))
+			{
+				return 0;
+			}
+
+			return game::svs_clients[client_num].xuid;
+		}
 	}
 
 	struct component final : server_component
 	{
+		static_assert(offsetof(game::client_s, xuid) == 0xBB354);
+
 		void post_unpack() override
 		{
 			// Fix infinite loop
@@ -90,6 +107,9 @@ namespace dedicated_patches
 
 			// Don't count server as client
 			utils::hook::jump(0x14052F0F5_g, 0x14052F139_g);
+
+			utils::hook::call(0x1402853D7_g, sv_get_player_xuid_stub); // PlayerCmd_GetXuid
+			utils::hook::call(0x140283303_g, sv_get_guid); // PlayerCmd_GetGuid
 		}
 	};
 }
