@@ -2,6 +2,8 @@
 #include "loader/component_loader.hpp"
 
 #include "auth.hpp"
+#include "command.hpp"
+#include "network.hpp"
 
 #include <game/game.hpp>
 
@@ -92,15 +94,31 @@ namespace auth
 			return !is_first;
 		}
 
-		int send_connect_data_stub(const game::netsrc_t sock, game::netadr_t* adr, const char* data, const int len)
+		int send_connect_data_stub(const game::netsrc_t sock, game::netadr_t* adr, const char* data, int len)
 		{
-			/*const auto is_connect_sequence = len >= 7 && strncmp("connect", data, 7) == 0;
+			std::string buffer{};
+
+			const auto is_connect_sequence = len >= 7 && strncmp("connect", data, 7) == 0;
 			if (is_connect_sequence)
 			{
-				MessageBoxA(0, "CONNECT", 0, 0);
-			}*/
+				buffer.append("connect ");
+				buffer.append(data, len);
+
+				data = buffer.data();
+				len = static_cast<int>(buffer.size());
+			}
 
 			return reinterpret_cast<decltype(&send_connect_data_stub)>(0x142173600_g)(sock, adr, data, len);
+		}
+
+		void handle_connect_packet(const game::netadr_t& target, const network::data_view& data)
+		{
+			const std::string text(data.begin(), data.end());
+			command::params_sv params(text);
+
+			MessageBoxA(0, "Connecting", 0, 0);
+
+			game::SV_DirectConnect(target);
 		}
 	}
 
@@ -123,6 +141,10 @@ namespace auth
 	{
 		void post_unpack() override
 		{
+			// Skip connect handler
+			utils::hook::set<uint8_t>(game::select(0x142253EFA, 0x14053714A), 0xEB);
+			network::on("connect", handle_connect_packet);
+
 			// Patch steam id bit check
 			std::vector<std::pair<size_t, size_t>> patches{};
 			const auto p = [&patches](const size_t a, const size_t b)
