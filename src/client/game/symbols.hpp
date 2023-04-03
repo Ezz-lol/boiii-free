@@ -190,7 +190,7 @@ namespace game
 	WEAK symbol<char> s_dvarPool{0x157AC6220, 0x14A3CB620};
 	WEAK symbol<int> g_dvarCount{0x157AC61CC, 0x14A3CB5FC};
 
-	WEAK symbol<client_s> svs_clients{0x0, 0x14A178E98};
+	WEAK symbol<client_s*> svs_clients{0x0, 0x14A178E98};
 
 	// Dvar variables
 	WEAK symbol<dvar_t*> com_maxclients{0x0, 0x14948EE70};
