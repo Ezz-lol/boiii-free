@@ -104,6 +104,7 @@ namespace game
 	WEAK symbol<const char*(const dvar_t* dvar)> Dvar_GetString{0x1422BF590, 0x140575E30};
 	WEAK symbol<const char*(const dvar_t* dvar)> Dvar_DisplayableValue{0x1422BC080};
 	WEAK symbol<bool(const dvar_t* dvar)> Dvar_GetBool{0x1422BCED0};
+	WEAK symbol<int(const dvar_t* dvar)> Dvar_GetInt{0x0, 0x140575C20};
 	WEAK symbol<dvar_t*(dvarStrHash_t hash, const char* dvarName, bool value, int flags,
 	                    const char* description)> Dvar_RegisterBool{
 		0x1422D0900, 0x14057B500
@@ -188,6 +189,11 @@ namespace game
 
 	WEAK symbol<char> s_dvarPool{0x157AC6220, 0x14A3CB620};
 	WEAK symbol<int> g_dvarCount{0x157AC61CC, 0x14A3CB5FC};
+
+	WEAK symbol<client_s> svs_clients{0x0, 0x14A178E98};
+
+	// Dvar variables
+	WEAK symbol<dvar_t*> com_maxclients{0x0, 0x14948EE70};
 
 	namespace s_wcd
 	{
