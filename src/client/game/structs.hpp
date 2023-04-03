@@ -1544,6 +1544,10 @@ namespace game
 
 	struct client_s
 	{
+		char __pad0[0xBB354];
+		int xuid;
+		char __pad1[0x8];
+		bool bIsTestClient;
 	};
 
 	enum scriptInstance_t
