@@ -1548,7 +1548,10 @@ namespace game
 		int xuid;
 		char __pad1[0x8];
 		bool bIsTestClient;
+		char __pad2[0x29DAC];
 	};
+
+	static_assert(sizeof(client_s) == 0xE5110);
 
 	enum scriptInstance_t
 	{
