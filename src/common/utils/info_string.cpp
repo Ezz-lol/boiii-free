@@ -58,12 +58,12 @@ namespace utils
 	std::string info_string::build() const
 	{
 		std::string info_string;
-		for (auto i = this->key_value_pairs_.begin(); i != this->key_value_pairs_.end(); ++i)
+		for (const auto& [key, val] : this->key_value_pairs_)
 		{
 			info_string.append("\\");
-			info_string.append(i->first); // Key
+			info_string.append(key);
 			info_string.append("\\");
-			info_string.append(i->second); // Value
+			info_string.append(val);
 		}
 
 		return info_string;
