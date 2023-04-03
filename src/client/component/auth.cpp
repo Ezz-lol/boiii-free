@@ -11,6 +11,7 @@
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/smbios.hpp>
+#include <utils/byte_buffer.hpp>
 #include <utils/info_string.hpp>
 #include <utils/cryptography.hpp>
 
@@ -94,6 +95,14 @@ namespace auth
 			return !is_first;
 		}
 
+		std::string serialize_connect_data(const std::vector<char>& data)
+		{
+			utils::byte_buffer buffer{};
+			buffer.write_vector(data);
+
+			return buffer.move_buffer();
+		}
+
 		int send_connect_data_stub(const game::netsrc_t sock, game::netadr_t* adr, const char* data, int len)
 		{
 			std::string buffer{};
@@ -101,8 +110,12 @@ namespace auth
 			const auto is_connect_sequence = len >= 7 && strncmp("connect", data, 7) == 0;
 			if (is_connect_sequence)
 			{
-				buffer.append("connect ");
-				buffer.append(data, len);
+				std::vector<char> connect_data{};
+				connect_data.assign(data, data + len);
+
+				buffer.append("connect");
+				buffer.push_back(' ');
+				buffer.append(serialize_connect_data(connect_data));
 
 				data = buffer.data();
 				len = static_cast<int>(buffer.size());
@@ -113,10 +126,10 @@ namespace auth
 
 		void handle_connect_packet(const game::netadr_t& target, const network::data_view& data)
 		{
-			const std::string text(data.begin(), data.end());
-			command::params_sv params(text);
+			utils::byte_buffer buffer(data);
 
-			MessageBoxA(0, "Connecting", 0, 0);
+			const auto text = buffer.read_vector<char>();
+			command::params_sv params(std::string(text.data(), text.size()));
 
 			game::SV_DirectConnect(target);
 		}

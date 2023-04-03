@@ -36,7 +36,7 @@ namespace party
 		}
 
 		void connect_to_lobby(const game::netadr_t& addr, const std::string& mapname, const std::string& gamemode,
-			                  const std::string& pub_id)
+		                      const std::string& pub_id)
 		{
 			workshop::load_usermap_mod_if_needed(pub_id);
 
@@ -55,7 +55,8 @@ namespace party
 		}
 
 		void connect_to_lobby_with_mode(const game::netadr_t& addr, const game::eModes mode, const std::string& mapname,
-		                                const std::string& gametype, const std::string& pub_id, const bool was_retried = false)
+		                                const std::string& gametype, const std::string& pub_id,
+		                                const bool was_retried = false)
 		{
 			if (game::Com_SessionMode_IsMode(mode))
 			{
@@ -143,6 +144,13 @@ namespace party
 			}
 
 			is_connecting_to_dedi = info.get("dedicated") == "1";
+
+			if (atoi(info.get("protocol").data()) != PROTOCOL)
+			{
+				const auto str = "Invalid protocol.";
+				printf("%s\n", str);
+				return;
+			}
 
 			const auto gamename = info.get("gamename");
 			if (gamename != "T7"s)

@@ -35,7 +35,18 @@ namespace network
 
 			const std::basic_string_view data(message->data + offset, message->cursize - offset);
 
-			handler->second(*address, data);
+			try
+			{
+				handler->second(*address, data);
+			}
+			catch (const std::exception& e)
+			{
+				printf("Error: %s\n", e.what());
+			}
+			catch (...)
+			{
+			}
+
 			return 0;
 		}
 
