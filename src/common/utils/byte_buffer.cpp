@@ -1,7 +1,6 @@
 #include "byte_buffer.hpp"
 
 #include <cstring>
-#include <stdexcept>
 
 namespace utils
 {

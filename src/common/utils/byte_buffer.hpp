@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <stdexcept>
 
 namespace utils
 {
@@ -73,8 +74,13 @@ namespace utils
 		std::vector<T> read_vector()
 		{
 			std::vector<T> result{};
-			result.resize(read<uint32_t>());
-			read(result.data(), result.size() * sizeof(T));
+			const auto size = read<uint32_t>();
+			if (offset_ + size > buffer_.size())
+			{
+				throw std::runtime_error("Out of bounds read from byte buffer");
+			}
+
+			read(result.data(), size);
 
 			return result;
 		}
