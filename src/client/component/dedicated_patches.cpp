@@ -36,22 +36,22 @@ namespace dedicated_patches
 		{
 			const std::vector<uintptr_t> is_mod_loaded_addresses =
 			{
-				{ 0x14019CFC4_g },
-				{ 0x14024D4A0_g },
-				{ 0x14024D669_g },
-				{ 0x14024D939_g },
-				{ 0x14024DC64_g },
-				{ 0x14024E13A_g },
-				{ 0x14024E5A3_g },
-				{ 0x14024FFB9_g },
-				{ 0x140251E9E_g },
-				{ 0x140253680_g },
-				{ 0x140257BF6_g },
-				{ 0x1402D296D_g },
-				{ 0x1402D58E9_g },
-				{ 0x140468374_g },
-				{ 0x14046B796_g },
-				{ 0x14048003D_g },
+				{0x14019CFC4_g},
+				{0x14024D4A0_g},
+				{0x14024D669_g},
+				{0x14024D939_g},
+				{0x14024DC64_g},
+				{0x14024E13A_g},
+				{0x14024E5A3_g},
+				{0x14024FFB9_g},
+				{0x140251E9E_g},
+				{0x140253680_g},
+				{0x140257BF6_g},
+				{0x1402D296D_g},
+				{0x1402D58E9_g},
+				{0x140468374_g},
+				{0x14046B796_g},
+				{0x14048003D_g},
 			};
 
 			for (const auto& address : is_mod_loaded_addresses)
@@ -68,15 +68,20 @@ namespace dedicated_patches
 			spawn_server_hook.invoke(controllerIndex, server, preload, savegame);
 		}
 
-		uint64_t sv_get_player_xuid_stub(int client_num)
+		uint64_t sv_get_player_xuid_stub(const int client_num)
 		{
-			return static_cast<uint64_t>((*game::svs_clients)[client_num].xuid);
+			const auto* clients = *game::svs_clients;
+			if (!clients)
+			{
+				return 0;
+			}
+
+			return static_cast<uint64_t>(clients[client_num].guid);
 		}
 	}
 
 	struct component final : server_component
 	{
-		static_assert(offsetof(game::client_s, xuid) == 0xBB354);
 
 		void post_unpack() override
 		{

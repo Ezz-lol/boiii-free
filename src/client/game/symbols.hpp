@@ -190,6 +190,8 @@ namespace game
 	WEAK symbol<char> s_dvarPool{0x157AC6220, 0x14A3CB620};
 	WEAK symbol<int> g_dvarCount{0x157AC61CC, 0x14A3CB5FC};
 
+	// Client and dedi struct size differs :(
+	WEAK symbol<client_s_cl*> svs_clients_cl{0x1576F9318, 0};
 	WEAK symbol<client_s*> svs_clients{0x0, 0x14A178E98};
 
 	// Dvar variables

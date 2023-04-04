@@ -7,6 +7,7 @@
 #include <utils/memory.hpp>
 
 #include <game/game.hpp>
+#include <steam/steam.hpp>
 
 namespace command
 {
@@ -65,15 +66,6 @@ namespace command
 			}
 		}
 	}
-
-	struct component final : generic_component
-	{
-		void post_unpack() override
-		{
-			// Disable whitelist
-			utils::hook::jump(game::select(0x1420EE860, 0x1404F9CD0), update_whitelist_stub);
-		}
-	};
 
 	params::params()
 		: nesting_(get_cmd_args()->nesting)
@@ -227,6 +219,15 @@ namespace command
 		game::Cmd_AddServerCommandInternal(cmd_string, execute_custom_sv_command,
 		                                   allocator.allocate<game::cmd_function_s>());
 	}
+
+	struct component final : generic_component
+	{
+		void post_unpack() override
+		{
+			// Disable whitelist
+			utils::hook::jump(game::select(0x1420EE860, 0x1404F9CD0), update_whitelist_stub);
+		}
+	};
 }
 
 REGISTER_COMPONENT(command::component)

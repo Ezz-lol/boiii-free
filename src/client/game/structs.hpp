@@ -1544,14 +1544,31 @@ namespace game
 
 	struct client_s
 	{
-		char __pad0[0xBB354];
-		int xuid;
-		char __pad1[0x8];
+		int client_state;
+		char __pad0[0x28];
+		netadr_t address;
+		char __pad1[0xBB318];
+		int guid;
+		char __pad2[0x8];
 		bool bIsTestClient;
-		char __pad2[0x29DAC];
+		char __pad3[0x25818];
+		uint64_t xuid;
+		char __pad4[0x4588];
 	};
 
 	static_assert(sizeof(client_s) == 0xE5110);
+
+	static_assert(offsetof(game::client_s, address) == 0x2C);
+	static_assert(offsetof(game::client_s, guid) == 0xBB354);
+	static_assert(offsetof(game::client_s, bIsTestClient) == 0xBB360);
+	static_assert(offsetof(game::client_s, xuid) == 0xE0B80);
+
+	struct client_s_cl : client_s
+	{
+		char __pad1_0[0x60];
+	};
+
+	static_assert(sizeof(client_s_cl) == 0xE5170);
 
 	enum scriptInstance_t
 	{

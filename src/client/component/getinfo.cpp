@@ -21,21 +21,18 @@ namespace getinfo
 		return game::get_dvar_int("com_maxclients");
 	}
 
-	int get_client_count()
+	template <typename T>
+	int get_client_count(T* client_states)
 	{
-		int count = 0;
-		const auto client_states = *reinterpret_cast<uint64_t*>(game::select(0x1576F9318, 0x14A178E98));
 		if (!client_states)
 		{
 			return 0;
 		}
 
-		const auto object_length = game::is_server() ? 0xE5110 : 0xE5170;
-
+		int count = 0;
 		for (int i = 0; i < get_max_client_count(); ++i)
 		{
-			const auto client_state = *reinterpret_cast<int*>(client_states + (i * object_length));
-			if (client_state > 0)
+			if (client_states[i].client_state > 0)
 			{
 				++count;
 			}
@@ -44,9 +41,19 @@ namespace getinfo
 		return count;
 	}
 
+	int get_client_count()
+	{
+		if (game::is_server())
+		{
+			return get_client_count(*game::svs_clients);
+		}
+
+		return get_client_count(*game::svs_clients_cl);
+	}
+
 	int get_bot_count()
 	{
-		const auto client_states = *reinterpret_cast<uint64_t*>(game::select(0x1576F9318, 0x14A178E98));
+		const auto client_states = game::is_server() ? *game::svs_clients : *game::svs_clients_cl;
 		if (!client_states)
 		{
 			return 0;
