@@ -423,6 +423,43 @@ end
 
 local MapVote = 0
 
+CoD.LobbyMenus.MPButtonsLAN = function( arg0, arg1, arg2 )
+	if IsStarterPack() then
+		AddSmallButton( arg0, arg1, CoD.LobbyButtons.QUIT )
+		return 
+	end
+	if arg2 == 1 then
+		AddSmallButton( arg0, arg1, CoD.LobbyButtons.MP_CUSTOM_START_GAME )
+		AddSmallButton( arg0, arg1, CoD.LobbyButtons.MP_CUSTOM_SETUP_GAME )
+		AddSpacer( arg1 )
+	end
+	AddLargeButton( arg0, arg1, CoD.LobbyButtons.MP_CAC )
+	AddLargeButton( arg0, arg1, CoD.LobbyButtons.MP_SPECIALISTS )
+	AddLargeButton( arg0, arg1, CoD.LobbyButtons.MP_SCORESTREAKS )
+	AddSpacer( arg1 )
+	AddLargeButton( arg0, arg1, CoD.LobbyButtons.MP_CODCASTER_SETTINGS )
+	if Engine.DvarBool( nil, "inventory_test_button_visible" ) then
+		AddLargeButton( arg0, arg1, CoD.LobbyButtons.MP_INVENTORY_TEST )
+	end
+	Engine.Mods_Lists_UpdateUsermaps()
+end
+
+CoD.LobbyMenus.MPButtonsMain = function ( arg0, arg1, arg2 )
+	if arg2 == 1 then
+		AddLargeButton( arg0, arg1, CoD.LobbyButtons.MP_PUBLIC_MATCH )
+		AddLargeButton( arg0, arg1, CoD.LobbyButtons.MP_ARENA )
+		AddLargeButton( arg0, arg1, CoD.LobbyButtons.MP_CUSTOM_GAMES )
+		AddLargeButton( arg0, arg1, CoD.LobbyButtons.THEATER_MP )
+	end
+	AddSpacer( arg1 )
+	if CoD.isPC then
+		AddLargeButton( arg0, arg1, CoD.LobbyButtons.STEAM_STORE )
+	else
+		AddLargeButton( arg0, arg1, CoD.LobbyButtons.STORE )
+	end
+	Engine.Mods_Lists_UpdateUsermaps()
+end
+
 CoD.LobbyMenus.MPButtonsOnline = function ( f26_arg0, f26_arg1, f26_arg2 )
 	if f26_arg2 == 1 then
 		AddLargeButton( f26_arg0, f26_arg1, CoD.LobbyButtons.MP_FIND_MATCH )
@@ -510,6 +547,7 @@ CoD.LobbyMenus.ZMButtonsOnline = function ( f33_arg0, f33_arg1, f33_arg2 )
 	AddLargeButton( f33_arg0, f33_arg1, CoD.LobbyButtons.ZM_BUILD_KITS )
     AddSpacer( f33_arg1 )
     AddSmallButton( f33_arg0, f33_arg1, CoD.LobbyButtons.MP_STATS )
+	Engine.Mods_Lists_UpdateUsermaps()
 end
 
 local targetButtons = {
