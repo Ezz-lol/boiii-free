@@ -4,6 +4,7 @@
 #include "auth.hpp"
 #include "command.hpp"
 #include "network.hpp"
+#include "profile_infos.hpp"
 
 #include <game/game.hpp>
 
@@ -14,6 +15,7 @@
 #include <utils/byte_buffer.hpp>
 #include <utils/info_string.hpp>
 #include <utils/cryptography.hpp>
+
 
 namespace auth
 {
@@ -95,10 +97,10 @@ namespace auth
 			return !is_first;
 		}
 
-		std::string serialize_connect_data(const std::vector<char>& data)
+		std::string serialize_connect_data(const char* data, const int length)
 		{
 			utils::byte_buffer buffer{};
-			buffer.write_vector(data);
+			buffer.write_string(data, static_cast<size_t>(length));
 
 			return buffer.move_buffer();
 		}
@@ -110,12 +112,9 @@ namespace auth
 			const auto is_connect_sequence = len >= 7 && strncmp("connect", data, 7) == 0;
 			if (is_connect_sequence)
 			{
-				std::vector<char> connect_data{};
-				connect_data.assign(data, data + len);
-
 				buffer.append("connect");
 				buffer.push_back(' ');
-				buffer.append(serialize_connect_data(connect_data));
+				buffer.append(serialize_connect_data(data, len));
 
 				data = buffer.data();
 				len = static_cast<int>(buffer.size());
@@ -126,10 +125,24 @@ namespace auth
 
 		void handle_connect_packet(const game::netadr_t& target, const network::data_view& data)
 		{
-			utils::byte_buffer buffer(data);
+			// TODO: SV running?
 
-			const auto text = buffer.read_vector<char>();
-			command::params_sv params(std::string(text.data(), text.size()));
+			utils::byte_buffer buffer(data);
+			profile_infos::profile_info info(buffer);
+
+			const auto connect_data = buffer.read_string();
+			const command::params_sv params(connect_data);
+
+			if (params.size() != 2)
+			{
+				return;
+			}
+
+			const utils::info_string info_string(params[1]);
+			const auto xuid = strtoull(info_string.get("xuid").data(), nullptr, 10);
+
+			profile_infos::add_profile_info(xuid, std::move(info));
+			profile_infos::distribute_profile_infos();
 
 			game::SV_DirectConnect(target);
 		}

@@ -3,6 +3,7 @@
 
 #include "profile_infos.hpp"
 #include "network.hpp"
+#include "party.hpp"
 
 #include <utils/nt.hpp>
 #include <utils/properties.hpp>
@@ -29,7 +30,7 @@ namespace profile_infos
 			profile_info info{};
 			constexpr auto version_size = sizeof(info.version);
 
-			if(data.size() < sizeof(version_size))
+			if (data.size() < sizeof(version_size))
 			{
 				return {};
 			}
@@ -37,8 +38,38 @@ namespace profile_infos
 			memcpy(&info.version, data.data(), version_size);
 			info.ddl.assign(data.begin() + version_size, data.end());
 
-			return { std::move(info) };
+			return {std::move(info)};
 		}
+	}
+
+	profile_info::profile_info(utils::byte_buffer& buffer)
+	{
+		this->version = buffer.read<int32_t>();
+		this->ddl = buffer.read_string();
+	}
+
+	void profile_info::serialize(utils::byte_buffer& buffer) const
+	{
+		buffer.write(this->version);
+		buffer.write_string(this->ddl);
+	}
+
+	void add_profile_info(const uint64_t user_id, profile_info info)
+	{
+		if (user_id == steam::SteamUser()->GetSteamID().bits)
+		{
+			return;
+		}
+
+		profile_mapping.access([&](profile_map& profiles)
+		{
+			profiles[user_id] = std::move(info);
+		});
+	}
+
+	void distribute_profile_infos()
+	{
+		// TODO
 	}
 
 	std::optional<profile_info> get_profile_info(uint64_t user_id)
@@ -73,17 +104,23 @@ namespace profile_infos
 		utils::io::write_file("players/user/profile_info", data);
 	}
 
-	struct component final : generic_component
+	struct component final : client_component
 	{
-		void post_load() override
-		{
-		}
-
 		void post_unpack() override
 		{
-			/*network::on("profileInfo", [](const game::netadr_t& server, const network::data_view& data)
+			network::on("profileInfo", [](const game::netadr_t& server, const network::data_view& data)
 			{
-			});*/
+				if (party::get_connected_server() != server)
+				{
+					return;
+				}
+
+				utils::byte_buffer buffer(data);
+				const auto user_id = buffer.read<uint64_t>();
+				const profile_info info(buffer);
+
+				add_profile_info(user_id, info);
+			});
 		}
 	};
 }

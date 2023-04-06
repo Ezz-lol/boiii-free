@@ -8,6 +8,11 @@ namespace utils
 		this->parse(buffer);
 	}
 
+	info_string::info_string(const char* buffer)
+		: info_string(std::string{buffer})
+	{
+	}
+
 	info_string::info_string(const std::string_view& buffer)
 		: info_string(std::string{buffer})
 	{
