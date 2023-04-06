@@ -23,41 +23,41 @@ namespace utils
 		void write(const std::string& string, const bool null_terminate = false)
 		{
 			const size_t addend = null_terminate ? 1 : 0;
-			write(string.data(), string.size() + addend);
+			this->write(string.data(), string.size() + addend);
 		}
 
 		void write_string(const std::string& string)
 		{
-			write(string, true);
+			this->write(string, true);
 		}
 
 		template <typename T>
 		void write(const T& object)
 		{
-			write(&object, sizeof(object));
+			this->write(&object, sizeof(object));
 		}
 
 		template <typename T>
 		void write(const std::vector<T>& vec)
 		{
-			write(vec.data(), vec.size() * sizeof(T));
+			this->write(vec.data(), vec.size() * sizeof(T));
 		}
 
 		template <typename T>
 		void write_vector(const std::vector<T>& vec)
 		{
-			write<uint32_t>(static_cast<uint32_t>(vec.size()));
-			write(vec);
+			this->write<uint32_t>(static_cast<uint32_t>(vec.size()));
+			this->write(vec);
 		}
 
 		const std::string& get_buffer() const
 		{
-			return buffer_;
+			return this->buffer_;
 		}
 
 		std::string move_buffer()
 		{
-			return std::move(buffer_);
+			return std::move(this->buffer_);
 		}
 
 		void read(void* data, size_t length);
@@ -66,7 +66,7 @@ namespace utils
 		T read()
 		{
 			T object{};
-			read(&object, sizeof(object));
+			this->read(&object, sizeof(object));
 			return object;
 		}
 
@@ -75,12 +75,15 @@ namespace utils
 		{
 			std::vector<T> result{};
 			const auto size = read<uint32_t>();
-			if (offset_ + size > buffer_.size())
+			const auto totalSize = size * sizeof(T);
+
+			if (this->offset_ + totalSize > this->buffer_.size())
 			{
 				throw std::runtime_error("Out of bounds read from byte buffer");
 			}
 
-			read(result.data(), size);
+			result.resize(size);
+			this->read(result.data(), totalSize);
 
 			return result;
 		}

@@ -17,28 +17,28 @@ namespace utils
 
 	void byte_buffer::write(const void* buffer, const size_t length)
 	{
-		if (!writing_)
+		if (!this->writing_)
 		{
 			throw std::runtime_error("Writing to readable byte buffer");
 		}
 
-		buffer_.append(static_cast<const char*>(buffer), length);
+		this->buffer_.append(static_cast<const char*>(buffer), length);
 	}
 
 	void byte_buffer::read(void* data, const size_t length)
 	{
-		if (writing_)
+		if (this->writing_)
 		{
 			throw std::runtime_error("Reading from writable byte buffer");
 		}
 
-		if (offset_ + length > buffer_.size())
+		if (this->offset_ + length > this->buffer_.size())
 		{
 			throw std::runtime_error("Out of bounds read from byte buffer");
 		}
 
-		memcpy(data, buffer_.data() + offset_, length);
-		offset_ += length;
+		memcpy(data, this->buffer_.data() + this->offset_, length);
+		this->offset_ += length;
 	}
 
 	std::string byte_buffer::read_string()
@@ -47,7 +47,7 @@ namespace utils
 
 		while (true)
 		{
-			const auto b = read<char>();
+			const auto b = this->read<char>();
 			if (!b)
 			{
 				break;
@@ -66,7 +66,7 @@ namespace utils
 
 		for (size_t i = 0; i < length; ++i)
 		{
-			result.push_back(read<char>());
+			result.push_back(this->read<char>());
 		}
 
 		return result;
@@ -77,7 +77,7 @@ namespace utils
 		std::vector<uint8_t> result{};
 		result.resize(length);
 
-		read(result.data(), result.size());
+		this->read(result.data(), result.size());
 
 		return result;
 	}
