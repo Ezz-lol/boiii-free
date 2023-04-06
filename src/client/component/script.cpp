@@ -13,6 +13,8 @@ namespace script
 	namespace
 	{
 		utils::hook::detour db_findxassetheader_hook;
+		utils::hook::detour gscr_get_bgb_remaining_hook;
+
 		std::unordered_map<std::string, game::RawFile*> loaded_scripts;
 
 		game::RawFile* get_loaded_script(const std::string& name)
@@ -110,6 +112,11 @@ namespace script
 
 			return asset_header;
 		}
+
+		void gscr_get_bgb_remaining_stub(game::scriptInstance_t inst, void* entref)
+		{
+			game::Scr_AddInt(game::SCRIPTINSTANCE_SERVER, 255);
+		}
 	}
 
 	struct component final : generic_component
@@ -126,6 +133,7 @@ namespace script
 			}
 
 			db_findxassetheader_hook.create(game::select(0x141420ED0, 0x1401D5FB0), db_findxassetheader_stub);
+			gscr_get_bgb_remaining_hook.create(game::select(0x141A8CAB0, 0x1402D2310), gscr_get_bgb_remaining_stub);
 		}
 	};
 };

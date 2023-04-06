@@ -139,7 +139,7 @@ namespace game
 	WEAK symbol<void(int localClientNum)> CL_CheckKeepDrawingConnectScreen{0x1413CCAE0};
 
 	// Scr
-	WEAK symbol<void(scriptInstance_t inst, int value)> Scr_AddInt{0x0, 0x14016F160};
+	WEAK symbol<void(scriptInstance_t inst, int value)> Scr_AddInt{0x1412E9870, 0x14016F160};
 	WEAK symbol<void(scriptInstance_t inst, const char* value)> Scr_AddString{0x0, 0x14016F320};
 	WEAK symbol<const char*(scriptInstance_t inst, unsigned int index)> Scr_GetString{0x0, 0x140171490};
 	WEAK symbol<void(gentity_s* ent, ScrVarCanonicalName_t stringValue, unsigned int paramcount)> Scr_Notify_Canon{
