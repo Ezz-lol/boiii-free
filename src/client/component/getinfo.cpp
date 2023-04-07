@@ -21,21 +21,18 @@ namespace getinfo
 		return game::get_dvar_int("com_maxclients");
 	}
 
-	int get_client_count()
+	template <typename T>
+	int get_client_count(T* client_states)
 	{
-		int count = 0;
-		const auto client_states = *reinterpret_cast<uint64_t*>(game::select(0x1576F9318, 0x14A178E98));
 		if (!client_states)
 		{
 			return 0;
 		}
 
-		const auto object_length = game::is_server() ? 0xE5110 : 0xE5170;
-
+		int count = 0;
 		for (int i = 0; i < get_max_client_count(); ++i)
 		{
-			const auto client_state = *reinterpret_cast<int*>(client_states + (i * object_length));
-			if (client_state > 0)
+			if (client_states[i].client_state > 0)
 			{
 				++count;
 			}
@@ -44,23 +41,28 @@ namespace getinfo
 		return count;
 	}
 
-	int get_bot_count()
+	size_t get_client_count()
 	{
-		const auto client_states = *reinterpret_cast<uint64_t*>(game::select(0x1576F9318, 0x14A178E98));
-		if (!client_states)
+		size_t count = 0;
+		game::foreach_connected_client([&count](const game::client_s&)
 		{
-			return 0;
-		}
+			++count;
+		});
 
-		int count = 0;
+		return count;
+	}
 
-		for (int i = 0; i < get_max_client_count(); ++i)
+	size_t get_bot_count()
+	{
+		size_t count = 0;
+
+		game::foreach_connected_client([&count](const game::client_s&, const size_t index)
 		{
-			if (game::SV_IsTestClient(i))
+			if (game::SV_IsTestClient(static_cast<int>(index)))
 			{
 				++count;
 			}
-		}
+		});
 
 		return count;
 	}
@@ -103,13 +105,13 @@ namespace getinfo
 				info.set("xuid", utils::string::va("%llX", steam::SteamUser()->GetSteamID().bits));
 				info.set("mapname", game::get_dvar_string("mapname"));
 				info.set("isPrivate", game::get_dvar_string("g_password").empty() ? "0" : "1");
-				info.set("clients", utils::string::va("%i", get_client_count()));
-				info.set("bots", utils::string::va("%i", get_bot_count()));
-				info.set("sv_maxclients", utils::string::va("%i", get_max_client_count()));
+				info.set("clients", utils::string::va("%zu", get_client_count()));
+				info.set("bots", utils::string::va("%zu", get_bot_count()));
+				info.set("sv_maxclients", utils::string::va("%zu", get_max_client_count()));
 				info.set("protocol", utils::string::va("%i", PROTOCOL));
 				info.set("playmode", utils::string::va("%i", game::Com_SessionMode_GetMode()));
 				info.set("gamemode", utils::string::va("%i", Com_SessionMode_GetGameMode()));
-				info.set("sv_running", utils::string::va("%i", game::get_dvar_bool("sv_running")));
+				info.set("sv_running", utils::string::va("%i", game::is_server_running()));
 				info.set("dedicated", utils::string::va("%i", game::is_server() ? 1 : 0));
 				info.set("shortversion", SHORTVERSION);
 

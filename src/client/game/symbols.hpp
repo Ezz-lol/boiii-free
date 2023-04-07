@@ -144,7 +144,7 @@ namespace game
 	WEAK symbol<void(int localClientNum)> CL_CheckKeepDrawingConnectScreen{0x1413CCAE0};
 
 	// Scr
-	WEAK symbol<void(scriptInstance_t inst, int value)> Scr_AddInt{0x1412E9870, 0x14016F160};
+	WEAK symbol<void(scriptInstance_t inst, int value)> Scr_AddInt{0x0, 0x14016F160};
 	WEAK symbol<void(scriptInstance_t inst, const char* value)> Scr_AddString{0x0, 0x14016F320};
 	WEAK symbol<const char*(scriptInstance_t inst, unsigned int index)> Scr_GetString{0x0, 0x140171490};
 	WEAK symbol<void(gentity_s* ent, ScrVarCanonicalName_t stringValue, unsigned int paramcount)> Scr_Notify_Canon{
@@ -161,6 +161,9 @@ namespace game
 	R_AddCmdDrawText{
 		0x141CD98D0
 	};
+
+	// PCache
+	WEAK symbol<void(ControllerIndex_t controllerIndex)> PCache_DeleteEntries{0x141E8D710};
 
 	// SV
 	WEAK symbol<bool()> SV_Loaded{0x142252250, 0x140535460};
@@ -195,6 +198,8 @@ namespace game
 	WEAK symbol<char> s_dvarPool{0x157AC6220, 0x14A3CB620};
 	WEAK symbol<int> g_dvarCount{0x157AC61CC, 0x14A3CB5FC};
 
+	// Client and dedi struct size differs :(
+	WEAK symbol<client_s_cl*> svs_clients_cl{0x1576F9318, 0};
 	WEAK symbol<client_s*> svs_clients{0x0, 0x14A178E98};
 
 	// Dvar variables

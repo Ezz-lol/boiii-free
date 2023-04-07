@@ -6,6 +6,7 @@
 #include "network.hpp"
 #include "scheduler.hpp"
 #include "workshop.hpp"
+#include "profile_infos.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -36,7 +37,7 @@ namespace party
 		}
 
 		void connect_to_lobby(const game::netadr_t& addr, const std::string& mapname, const std::string& gamemode,
-			                  const std::string& pub_id)
+		                      const std::string& pub_id)
 		{
 			workshop::load_usermap_mod_if_needed(pub_id);
 
@@ -55,7 +56,8 @@ namespace party
 		}
 
 		void connect_to_lobby_with_mode(const game::netadr_t& addr, const game::eModes mode, const std::string& mapname,
-		                                const std::string& gametype, const std::string& pub_id, const bool was_retried = false)
+		                                const std::string& gametype, const std::string& pub_id,
+		                                const bool was_retried = false)
 		{
 			if (game::Com_SessionMode_IsMode(mode))
 			{
@@ -144,6 +146,13 @@ namespace party
 
 			is_connecting_to_dedi = info.get("dedicated") == "1";
 
+			if (atoi(info.get("protocol").data()) != PROTOCOL)
+			{
+				const auto str = "Invalid protocol.";
+				printf("%s\n", str);
+				return;
+			}
+
 			const auto gamename = info.get("gamename");
 			if (gamename != "T7"s)
 			{
@@ -203,6 +212,7 @@ namespace party
 				connect_host = target;
 			}
 
+			profile_infos::clear_profile_infos();
 			query_server(connect_host, handle_connect_query_response);
 		}
 
@@ -304,6 +314,11 @@ namespace party
 		constexpr auto local_client_num = 0ull;
 		const auto address = *reinterpret_cast<uint64_t*>(0x1453D8BB8_g) + (0x25780 * local_client_num) + 0x10;
 		return *reinterpret_cast<game::netadr_t*>(address);
+	}
+
+	bool is_host(const game::netadr_t& addr)
+	{
+		return get_connected_server() == addr || connect_host == addr;
 	}
 
 	struct component final : client_component
