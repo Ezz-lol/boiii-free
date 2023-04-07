@@ -76,7 +76,7 @@ namespace dedicated_patches
 				return 0;
 			}
 
-			return static_cast<uint64_t>(clients[client_num].guid);
+			return clients[client_num].xuid;
 		}
 	}
 
