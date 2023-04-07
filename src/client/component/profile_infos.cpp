@@ -72,6 +72,11 @@ namespace profile_infos
 
 		void distribute_profile_info(const uint64_t user_id, const profile_info& info)
 		{
+			if (user_id == steam::SteamUser()->GetSteamID().bits)
+			{
+				return;
+			}
+
 			utils::byte_buffer buffer{};
 			buffer.write(user_id);
 			info.serialize(buffer);
@@ -132,6 +137,15 @@ namespace profile_infos
 				distribute_profile_info_to_user(addr, entry.first, entry.second);
 			}
 		});
+
+		if (!game::is_server())
+		{
+			const auto info = get_profile_info();
+			if (info)
+			{
+				distribute_profile_info_to_user(addr, steam::SteamUser()->GetSteamID().bits, *info);
+			}
+		}
 	}
 
 	void add_and_distribute_profile_info(const game::netadr_t& addr, const uint64_t user_id, const profile_info& info)
@@ -150,13 +164,18 @@ namespace profile_infos
 		});
 	}
 
+	std::optional<profile_info> get_profile_info()
+	{
+		return load_profile_info();
+	}
+
 	std::optional<profile_info> get_profile_info(const uint64_t user_id)
 	{
 		printf("Requesting profile info: %llX\n", user_id);
 
 		if (user_id == steam::SteamUser()->GetSteamID().bits)
 		{
-			return load_profile_info();
+			return get_profile_info();
 		}
 
 		return profile_mapping.access<std::optional<profile_info>>([user_id](const profile_map& profiles)

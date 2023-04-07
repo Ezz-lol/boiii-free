@@ -100,6 +100,8 @@ namespace auth
 		std::string serialize_connect_data(const char* data, const int length)
 		{
 			utils::byte_buffer buffer{};
+			profile_infos::get_profile_info().value_or(profile_infos::profile_info{}).serialize(buffer);
+
 			buffer.write_string(data, static_cast<size_t>(length));
 
 			return buffer.move_buffer();
@@ -128,18 +130,18 @@ namespace auth
 			// TODO: SV running?
 
 			utils::byte_buffer buffer(data);
-			profile_infos::profile_info info(buffer);
+			const profile_infos::profile_info info(buffer);
 
 			const auto connect_data = buffer.read_string();
 			const command::params_sv params(connect_data);
 
-			if (params.size() != 2)
+			if (params.size() < 2)
 			{
 				return;
 			}
 
 			const utils::info_string info_string(params[1]);
-			const auto xuid = strtoull(info_string.get("xuid").data(), nullptr, 10);
+			const auto xuid = strtoull(info_string.get("xuid").data(), nullptr, 16);
 
 			profile_infos::add_and_distribute_profile_info(target, xuid, info);
 
