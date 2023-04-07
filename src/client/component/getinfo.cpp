@@ -109,7 +109,7 @@ namespace getinfo
 				info.set("protocol", utils::string::va("%i", PROTOCOL));
 				info.set("playmode", utils::string::va("%i", game::Com_SessionMode_GetMode()));
 				info.set("gamemode", utils::string::va("%i", Com_SessionMode_GetGameMode()));
-				//info.set("sv_running", utils::string::va("%i", get_dvar_bool("sv_running")));
+				info.set("sv_running", utils::string::va("%i", game::get_dvar_bool("sv_running")));
 				info.set("dedicated", utils::string::va("%i", game::is_server() ? 1 : 0));
 				info.set("shortversion", SHORTVERSION);
 
