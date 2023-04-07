@@ -12,12 +12,14 @@
 #include "../steam/steam.hpp"
 #include <utils/io.hpp>
 
+#include "game/utils.hpp"
+
 namespace profile_infos
 {
 	namespace
 	{
 		using profile_map = std::unordered_map<uint64_t, profile_info>;
-		utils::concurrency::container<profile_map> profile_mapping;
+		utils::concurrency::container<profile_map> profile_mapping{};
 
 		std::optional<profile_info> load_profile_info()
 		{
@@ -40,6 +42,49 @@ namespace profile_infos
 
 			return {std::move(info)};
 		}
+
+		int get_max_client_count()
+		{
+			return game::get_dvar_int("com_maxclients");
+		}
+
+		void send_profile_info(const game::netadr_t& address, const std::string& buffer)
+		{
+			network::send(address, "profileInfo", buffer);
+		}
+
+		template <typename T>
+		void distribute_profile_info(T* client_states, const std::string& buffer)
+		{
+			if (!client_states)
+			{
+				return;
+			}
+
+			for (int i = 0; i < get_max_client_count(); ++i)
+			{
+				if (client_states[i].client_state > 0)
+				{
+					send_profile_info(client_states[i].address, buffer);
+				}
+			}
+		}
+
+		void distribute_profile_info(const uint64_t user_id, const profile_info& info)
+		{
+			utils::byte_buffer buffer{};
+			buffer.write(user_id);
+			info.serialize(buffer);
+
+			if (game::is_server())
+			{
+				distribute_profile_info(*game::svs_clients, buffer.get_buffer());
+			}
+			else
+			{
+				distribute_profile_info(*game::svs_clients_cl, buffer.get_buffer());
+			}
+		}
 	}
 
 	profile_info::profile_info(utils::byte_buffer& buffer)
@@ -54,26 +99,61 @@ namespace profile_infos
 		buffer.write_string(this->ddl);
 	}
 
-	void add_profile_info(const uint64_t user_id, profile_info info)
+	void add_profile_info(const uint64_t user_id, const profile_info& info)
 	{
 		if (user_id == steam::SteamUser()->GetSteamID().bits)
 		{
 			return;
 		}
 
+		printf("Adding profile info: %llX\n", user_id);
+
 		profile_mapping.access([&](profile_map& profiles)
 		{
-			profiles[user_id] = std::move(info);
+			profiles[user_id] = info;
 		});
 	}
 
-	void distribute_profile_infos()
+	void distribute_profile_info_to_user(const game::netadr_t& addr, const uint64_t user_id, const profile_info& info)
 	{
-		// TODO
+		utils::byte_buffer buffer{};
+		buffer.write(user_id);
+		info.serialize(buffer);
+
+		send_profile_info(addr, buffer.get_buffer());
 	}
 
-	std::optional<profile_info> get_profile_info(uint64_t user_id)
+	void distribute_profile_infos_to_user(const game::netadr_t& addr)
 	{
+		profile_mapping.access([&](const profile_map& profiles)
+		{
+			for (const auto& entry : profiles)
+			{
+				distribute_profile_info_to_user(addr, entry.first, entry.second);
+			}
+		});
+	}
+
+	void add_and_distribute_profile_info(const game::netadr_t& addr, const uint64_t user_id, const profile_info& info)
+	{
+		distribute_profile_infos_to_user(addr);
+
+		add_profile_info(user_id, info);
+		distribute_profile_info(user_id, info);
+	}
+
+	void clear_profile_infos()
+	{
+		profile_mapping.access([&](profile_map& profiles)
+		{
+			profiles = {};
+		});
+	}
+
+	std::optional<profile_info> get_profile_info(const uint64_t user_id)
+	{
+		printf("Requesting profile info: %llX\n", user_id);
+
 		if (user_id == steam::SteamUser()->GetSteamID().bits)
 		{
 			return load_profile_info();
@@ -110,7 +190,7 @@ namespace profile_infos
 		{
 			network::on("profileInfo", [](const game::netadr_t& server, const network::data_view& data)
 			{
-				if (party::get_connected_server() != server)
+				if (!party::is_host(server))
 				{
 					return;
 				}

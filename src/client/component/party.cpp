@@ -6,6 +6,7 @@
 #include "network.hpp"
 #include "scheduler.hpp"
 #include "workshop.hpp"
+#include "profile_infos.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -211,6 +212,7 @@ namespace party
 				connect_host = target;
 			}
 
+			profile_infos::clear_profile_infos();
 			query_server(connect_host, handle_connect_query_response);
 		}
 
@@ -312,6 +314,11 @@ namespace party
 		constexpr auto local_client_num = 0ull;
 		const auto address = *reinterpret_cast<uint64_t*>(0x1453D8BB8_g) + (0x25780 * local_client_num) + 0x10;
 		return *reinterpret_cast<game::netadr_t*>(address);
+	}
+
+	bool is_host(const game::netadr_t& addr)
+	{
+		return get_connected_server() == addr || connect_host == addr;
 	}
 
 	struct component final : client_component

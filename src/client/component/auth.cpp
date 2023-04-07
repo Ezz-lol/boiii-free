@@ -141,8 +141,7 @@ namespace auth
 			const utils::info_string info_string(params[1]);
 			const auto xuid = strtoull(info_string.get("xuid").data(), nullptr, 10);
 
-			profile_infos::add_profile_info(xuid, std::move(info));
-			profile_infos::distribute_profile_infos();
+			profile_infos::add_and_distribute_profile_info(target, xuid, info);
 
 			game::SV_DirectConnect(target);
 		}

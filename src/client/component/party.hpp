@@ -9,4 +9,6 @@ namespace party
 	void query_server(const game::netadr_t& host, query_callback callback);
 
 	game::netadr_t get_connected_server();
+
+	bool is_host(const game::netadr_t& addr);
 }

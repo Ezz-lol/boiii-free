@@ -1,5 +1,6 @@
 #pragma once
 
+#include <game/game.hpp>
 #include <utils/byte_buffer.hpp>
 
 namespace profile_infos
@@ -14,9 +15,9 @@ namespace profile_infos
 		void serialize(utils::byte_buffer& buffer) const;
 	};
 
-	void add_profile_info(uint64_t user_id, profile_info info);
-
-	void distribute_profile_infos();
+	void add_profile_info(uint64_t user_id, const profile_info& info);
+	void add_and_distribute_profile_info(const game::netadr_t& addr, uint64_t user_id, const profile_info& info);
+	void clear_profile_infos();
 
 	std::optional<profile_info> get_profile_info(uint64_t user_id);
 	void update_profile_info(const profile_info& info);
