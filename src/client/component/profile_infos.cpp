@@ -201,8 +201,6 @@ namespace profile_infos
 
 	std::optional<profile_info> get_profile_info(const uint64_t user_id)
 	{
-		printf("Requesting profile info: %llX\n", user_id);
-
 		if (user_id == steam::SteamUser()->GetSteamID().bits)
 		{
 			return get_profile_info();
