@@ -84,6 +84,20 @@ namespace game
 		return registered_dvar;
 	}
 
+	const dvar_t* register_dvar_float(const char* dvar_name, float value, float min, float max, const int flags,
+	                                  const char* description)
+	{
+		const auto hash = Dvar_GenerateHash(dvar_name);
+		auto* registered_dvar = Dvar_RegisterFloat(hash, dvar_name, value, min, max, flags, description);
+
+		if (registered_dvar)
+		{
+			registered_dvar->debugName = dvar_name;
+		}
+
+		return registered_dvar;
+	}
+
 	const dvar_t* register_dvar_string(const char* dvar_name, const char* value, const int flags,
 	                                   const char* description)
 	{

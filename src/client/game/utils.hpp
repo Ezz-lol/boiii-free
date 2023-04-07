@@ -9,6 +9,7 @@ namespace game
 	bool get_dvar_bool(const char* dvar_name);
 
 	const dvar_t* register_dvar_bool(const char* dvar_name, bool value, int flags, const char* description);
+	const dvar_t* register_dvar_float(const char* dvar_name, float value, float min, float max, const int flags, const char* description);
 	const dvar_t* register_sessionmode_dvar_bool(const char* dvar_name, bool value, int flags, const char* description, eModes mode = MODE_COUNT);
 	const dvar_t* register_dvar_string(const char* dvar_name, const char* value, int flags, const char* description);
 
