@@ -143,12 +143,22 @@ namespace auth
 				return;
 			}
 
+			const auto _ = profile_infos::acquire_profile_lock();
+
 			const utils::info_string info_string(params[1]);
 			const auto xuid = strtoull(info_string.get("xuid").data(), nullptr, 16);
 
 			profile_infos::add_and_distribute_profile_info(target, xuid, info);
 
 			game::SV_DirectConnect(target);
+
+			game::foreach_connected_client([&](game::client_s& client)
+			{
+				if (client.address == target)
+				{
+					client.xuid = xuid;
+				}
+			});
 		}
 	}
 
