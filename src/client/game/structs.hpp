@@ -1,6 +1,6 @@
 #pragma once
 
-#define PROTOCOL 2
+#define PROTOCOL 1
 
 #ifdef __cplusplus
 namespace game
