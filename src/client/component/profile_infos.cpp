@@ -4,6 +4,7 @@
 #include "profile_infos.hpp"
 #include "network.hpp"
 #include "party.hpp"
+#include "scheduler.hpp"
 
 #include <utils/nt.hpp>
 #include <utils/properties.hpp>
@@ -90,6 +91,31 @@ namespace profile_infos
 				distribute_profile_info(*game::svs_clients_cl, buffer.get_buffer());
 			}
 		}
+
+		void schedule_pcache_update()
+		{
+			static std::atomic_bool update_triggered{false};
+			if (game::is_server() || update_triggered.exchange(true))
+			{
+				return;
+			}
+
+			scheduler::once([]
+			{
+				game::PCache_DeleteEntries(game::CONTROLLER_INDEX_FIRST);
+				update_triggered = false;
+			}, scheduler::main, 5s);
+		}
+
+		void clean_cached_profile_infos()
+		{
+			if (!game::get_dvar_bool("sv_running"))
+			{
+				return;
+			}
+
+			// TODO
+		}
 	}
 
 	profile_info::profile_info(utils::byte_buffer& buffer)
@@ -111,12 +137,12 @@ namespace profile_infos
 			return;
 		}
 
-		printf("Adding profile info: %llX\n", user_id);
-
 		profile_mapping.access([&](profile_map& profiles)
 		{
 			profiles[user_id] = info;
 		});
+
+		schedule_pcache_update();
 	}
 
 	void distribute_profile_info_to_user(const game::netadr_t& addr, const uint64_t user_id, const profile_info& info)
@@ -203,23 +229,28 @@ namespace profile_infos
 		utils::io::write_file("players/user/profile_info", data);
 	}
 
-	struct component final : client_component
+	struct component final : generic_component
 	{
 		void post_unpack() override
 		{
-			network::on("profileInfo", [](const game::netadr_t& server, const network::data_view& data)
+			scheduler::loop(clean_cached_profile_infos, scheduler::main, 5s);
+
+			if (game::is_client())
 			{
-				if (!party::is_host(server))
+				network::on("profileInfo", [](const game::netadr_t& server, const network::data_view& data)
 				{
-					return;
-				}
+					if (!party::is_host(server))
+					{
+						return;
+					}
 
-				utils::byte_buffer buffer(data);
-				const auto user_id = buffer.read<uint64_t>();
-				const profile_info info(buffer);
+					utils::byte_buffer buffer(data);
+					const auto user_id = buffer.read<uint64_t>();
+					const profile_info info(buffer);
 
-				add_profile_info(user_id, info);
-			});
+					add_profile_info(user_id, info);
+				});
+			}
 		}
 	};
 }

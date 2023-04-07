@@ -7,6 +7,7 @@
 #include "profile_infos.hpp"
 
 #include <game/game.hpp>
+#include <game/utils.hpp>
 
 #include <utils/nt.hpp>
 #include <utils/hook.hpp>
@@ -15,7 +16,6 @@
 #include <utils/byte_buffer.hpp>
 #include <utils/info_string.hpp>
 #include <utils/cryptography.hpp>
-
 
 namespace auth
 {
@@ -127,7 +127,10 @@ namespace auth
 
 		void handle_connect_packet(const game::netadr_t& target, const network::data_view& data)
 		{
-			// TODO: SV running?
+			if (!game::get_dvar_bool("sv_running"))
+			{
+				return;
+			}
 
 			utils::byte_buffer buffer(data);
 			const profile_infos::profile_info info(buffer);

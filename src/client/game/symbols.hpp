@@ -157,6 +157,9 @@ namespace game
 		0x141CD98D0
 	};
 
+	// PCache
+	WEAK symbol<void(ControllerIndex_t controllerIndex)> PCache_DeleteEntries{0x141E8D710};
+
 	// SV
 	WEAK symbol<bool()> SV_Loaded{0x142252250, 0x140535460};
 	WEAK symbol<void*()> SV_AddTestClient{0x142248F40, 0x14052E3E0};
