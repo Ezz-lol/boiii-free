@@ -122,7 +122,7 @@ namespace chat
 				// Overwrite say command
 				utils::hook::jump(0x14052A6C0_g, +[]
 				{
-					if (!game::get_dvar_bool("sv_running"))
+					if (!game::is_server_running())
 					{
 						printf("Server is not running\n");
 						return;
@@ -138,7 +138,7 @@ namespace chat
 				// Overwrite tell command
 				utils::hook::jump(0x14052A7E0_g, +[]
 				{
-					if (!game::get_dvar_bool("sv_running"))
+					if (!game::is_server_running())
 					{
 						printf("Server is not running\n");
 						return;

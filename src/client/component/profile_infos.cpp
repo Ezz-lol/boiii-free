@@ -44,31 +44,9 @@ namespace profile_infos
 			return {std::move(info)};
 		}
 
-		int get_max_client_count()
-		{
-			return game::get_dvar_int("com_maxclients");
-		}
-
 		void send_profile_info(const game::netadr_t& address, const std::string& buffer)
 		{
 			network::send(address, "profileInfo", buffer);
-		}
-
-		template <typename T>
-		void distribute_profile_info(T* client_states, const std::string& buffer)
-		{
-			if (!client_states)
-			{
-				return;
-			}
-
-			for (int i = 0; i < get_max_client_count(); ++i)
-			{
-				if (client_states[i].client_state > 0)
-				{
-					send_profile_info(client_states[i].address, buffer);
-				}
-			}
 		}
 
 		void distribute_profile_info(const uint64_t user_id, const profile_info& info)
@@ -82,14 +60,12 @@ namespace profile_infos
 			buffer.write(user_id);
 			info.serialize(buffer);
 
-			if (game::is_server())
+			const std::string data = buffer.move_buffer();
+
+			game::foreach_connected_client([&](const game::client_s& client)
 			{
-				distribute_profile_info(*game::svs_clients, buffer.get_buffer());
-			}
-			else
-			{
-				distribute_profile_info(*game::svs_clients_cl, buffer.get_buffer());
-			}
+				send_profile_info(client.address, data);
+			});
 		}
 
 		void schedule_pcache_update()
@@ -107,14 +83,42 @@ namespace profile_infos
 			}, scheduler::main, 5s);
 		}
 
+		std::unordered_set<uint64_t> get_connected_client_xuids()
+		{
+			std::unordered_set<uint64_t> connected_clients{};
+			connected_clients.reserve(game::get_max_client_count());
+
+			game::foreach_connected_client([&](const game::client_s& client)
+			{
+				connected_clients.emplace(client.xuid);
+			});
+
+			return connected_clients;
+		}
+
 		void clean_cached_profile_infos()
 		{
-			if (!game::get_dvar_bool("sv_running"))
+			if (!game::is_server_running())
 			{
 				return;
 			}
 
-			// TODO
+			const auto xuids = get_connected_client_xuids();
+
+			profile_mapping.access([&](profile_map& profiles)
+			{
+				for (auto i = profiles.begin(); i != profiles.end();)
+				{
+					if (xuids.contains(i->first))
+					{
+						++i;
+					}
+					else
+					{
+						i = profiles.erase(i);
+					}
+				}
+			});
 		}
 	}
 

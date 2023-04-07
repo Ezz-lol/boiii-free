@@ -127,7 +127,7 @@ namespace auth
 
 		void handle_connect_packet(const game::netadr_t& target, const network::data_view& data)
 		{
-			if (!game::get_dvar_bool("sv_running"))
+			if (!game::is_server_running())
 			{
 				return;
 			}

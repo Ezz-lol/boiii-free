@@ -41,33 +41,28 @@ namespace getinfo
 		return count;
 	}
 
-	int get_client_count()
+	size_t get_client_count()
 	{
-		if (game::is_server())
+		size_t count = 0;
+		game::foreach_connected_client([&count](const game::client_s&)
 		{
-			return get_client_count(*game::svs_clients);
-		}
+			++count;
+		});
 
-		return get_client_count(*game::svs_clients_cl);
+		return count;
 	}
 
-	int get_bot_count()
+	size_t get_bot_count()
 	{
-		const auto client_states = game::is_server() ? *game::svs_clients : *game::svs_clients_cl;
-		if (!client_states)
-		{
-			return 0;
-		}
+		size_t count = 0;
 
-		int count = 0;
-
-		for (int i = 0; i < get_max_client_count(); ++i)
+		game::foreach_connected_client([&count](const game::client_s&, const size_t index)
 		{
-			if (game::SV_IsTestClient(i))
+			if (game::SV_IsTestClient(static_cast<int>(index)))
 			{
 				++count;
 			}
-		}
+		});
 
 		return count;
 	}
@@ -110,9 +105,9 @@ namespace getinfo
 				info.set("xuid", utils::string::va("%llX", steam::SteamUser()->GetSteamID().bits));
 				info.set("mapname", game::get_dvar_string("mapname"));
 				info.set("isPrivate", game::get_dvar_string("g_password").empty() ? "0" : "1");
-				info.set("clients", utils::string::va("%i", get_client_count()));
-				info.set("bots", utils::string::va("%i", get_bot_count()));
-				info.set("sv_maxclients", utils::string::va("%i", get_max_client_count()));
+				info.set("clients", utils::string::va("%zu", get_client_count()));
+				info.set("bots", utils::string::va("%zu", get_bot_count()));
+				info.set("sv_maxclients", utils::string::va("%zu", get_max_client_count()));
 				info.set("protocol", utils::string::va("%i", PROTOCOL));
 				info.set("playmode", utils::string::va("%i", game::Com_SessionMode_GetMode()));
 				info.set("gamemode", utils::string::va("%i", Com_SessionMode_GetGameMode()));
