@@ -1,4 +1,5 @@
 #pragma once
+#pragma comment (lib, "dwmapi.lib")
 
 class window
 {
