@@ -1,5 +1,5 @@
 if Engine.GetCurrentMap() ~= "core_frontend" then
-	return
+  return
 end
 
 local utils = require("utils")
@@ -53,9 +53,10 @@ local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
   elseif menuId == LobbyData.UITargets.UI_MPLOBBYONLINEPUBLICGAME.id then
     if shouldShowMapVote == true then
       shouldShowMapVote = false
-      Engine.Exec(nil, "LobbyStopDemo")                                                -- Enable map vote at start lobby
+      --Enable map vote at start lobby
+      Engine.Exec(nil, "LobbyStopDemo")
     end
-    utils.AddLargeButton(controller, buttonTable, CoD.LobbyButtons.MP_START_GAME, 1)   --Launch match button
+    utils.AddLargeButton(controller, buttonTable, CoD.LobbyButtons.MP_START_GAME, 1) --Launch match button
     utils.AddSpacer(buttonTable, 1)
 
     utils.AddSpacer(buttonTable)
@@ -66,42 +67,8 @@ local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
   end
 end
 
-local targetButtons = {
-  [LobbyData.UITargets.UI_MAIN.id] = CoD.LobbyMenus.ModeSelect,
-  [LobbyData.UITargets.UI_MODESELECT.id] = CoD.LobbyMenus.ModeSelect,
-  [LobbyData.UITargets.UI_CPLOBBYLANGAME.id] = CoD.LobbyMenus.CPButtonsLAN,
-  [LobbyData.UITargets.UI_CPLOBBYLANCUSTOMGAME.id] = CoD.LobbyMenus.CPButtonsLANCUSTOM,
-  [LobbyData.UITargets.UI_CPLOBBYONLINE.id] = CoD.LobbyMenus.CPButtonsOnline,
-  [LobbyData.UITargets.UI_CPLOBBYONLINEPUBLICGAME.id] = CoD.LobbyMenus.CPButtonsPublicGame,
-  [LobbyData.UITargets.UI_CPLOBBYONLINECUSTOMGAME.id] = CoD.LobbyMenus.CPButtonsCustomGame,
-  [LobbyData.UITargets.UI_CP2LOBBYLANGAME.id] = CoD.LobbyMenus.CPZMButtonsLAN,
-  [LobbyData.UITargets.UI_CP2LOBBYLANCUSTOMGAME.id] = CoD.LobbyMenus.CPButtonsLANCUSTOM,
-  [LobbyData.UITargets.UI_CP2LOBBYONLINE.id] = CoD.LobbyMenus.CPZMButtonsOnline,
-  [LobbyData.UITargets.UI_CP2LOBBYONLINEPUBLICGAME.id] = CoD.LobbyMenus.CPZMButtonsPublicGame,
-  [LobbyData.UITargets.UI_CP2LOBBYONLINECUSTOMGAME.id] = CoD.LobbyMenus.CPButtonsCustomGame,
-  [LobbyData.UITargets.UI_DOALOBBYLANGAME.id] = CoD.LobbyMenus.DOAButtonsLAN,
-  [LobbyData.UITargets.UI_DOALOBBYONLINE.id] = CoD.LobbyMenus.DOAButtonsOnline,
-  [LobbyData.UITargets.UI_DOALOBBYONLINEPUBLICGAME.id] = CoD.LobbyMenus.DOAButtonsPublicGame,
-  [LobbyData.UITargets.UI_MPLOBBYLANGAME.id] = CoD.LobbyMenus.MPButtonsLAN,
-  [LobbyData.UITargets.UI_MPLOBBYMAIN.id] = CoD.LobbyMenus.MPButtonsMain,
-  [LobbyData.UITargets.UI_MPLOBBYONLINE.id] = CoD.LobbyMenus.MPButtonsOnline,
-  [LobbyData.UITargets.UI_MPLOBBYONLINEPUBLICGAME.id] = CoD.LobbyMenus.MPButtonsOnlinePublic,
-  [LobbyData.UITargets.UI_MPLOBBYONLINEMODGAME.id] = CoD.LobbyMenus.MPButtonsModGame,
-  [LobbyData.UITargets.UI_MPLOBBYONLINECUSTOMGAME.id] = CoD.LobbyMenus.MPButtonsCustomGame,
-  [LobbyData.UITargets.UI_MPLOBBYONLINEARENA.id] = CoD.LobbyMenus.MPButtonsArena,
-  [LobbyData.UITargets.UI_MPLOBBYONLINEARENAGAME.id] = CoD.LobbyMenus.MPButtonsArenaGame,
-  [LobbyData.UITargets.UI_FRLOBBYONLINEGAME.id] = CoD.LobbyMenus.FRButtonsOnlineGame,
-  [LobbyData.UITargets.UI_FRLOBBYLANGAME.id] = CoD.LobbyMenus.FRButtonsLANGame,
-  [LobbyData.UITargets.UI_ZMLOBBYLANGAME.id] = CoD.LobbyMenus.ZMButtonsLAN,
-  [LobbyData.UITargets.UI_ZMLOBBYONLINE.id] = CoD.LobbyMenus.ZMButtonsOnline,
-  [LobbyData.UITargets.UI_ZMLOBBYONLINEPUBLICGAME.id] = CoD.LobbyMenus.ZMButtonsPublicGame,
-  [LobbyData.UITargets.UI_ZMLOBBYONLINECUSTOMGAME.id] = CoD.LobbyMenus.ZMButtonsCustomGame,
-  [LobbyData.UITargets.UI_MPLOBBYONLINETHEATER.id] = CoD.LobbyMenus.ButtonsTheaterGame,
-  [LobbyData.UITargets.UI_ZMLOBBYONLINETHEATER.id] = CoD.LobbyMenus.ButtonsTheaterGame
-}
-
+local oldAddButtonsForTarget = CoD.LobbyMenus.AddButtonsForTarget
 CoD.LobbyMenus.AddButtonsForTarget = function(controller, id)
-  local buttonFunc = targetButtons[id]
   local model = nil
   if Engine.IsLobbyActive(Enum.LobbyType.LOBBY_TYPE_GAME) then
     model = Engine.GetModel(DataSources.LobbyRoot.getModel(controller), "gameClient.isHost")
@@ -114,8 +81,7 @@ CoD.LobbyMenus.AddButtonsForTarget = function(controller, id)
   else
     isLeader = 1
   end
-  local result = {}
-  buttonFunc(controller, result, isLeader)
+  local result = oldAddButtonsForTarget(controller, id)
   addCustomButtons(controller, id, result, isLeader)
   return result
 end
