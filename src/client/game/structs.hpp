@@ -1,6 +1,6 @@
 #pragma once
 
-#define PROTOCOL 1
+#define PROTOCOL 2
 
 #ifdef __cplusplus
 namespace game
@@ -1556,7 +1556,7 @@ namespace game
 		char __pad4[0x29DAC];
 	};
 
-	static_assert(sizeof(client_s) <= 0xE5110);
+	static_assert(sizeof(client_s) == 0xE5110);
 
 	static_assert(offsetof(game::client_s, address) == 0x2C);
 	static_assert(offsetof(game::client_s, xuid) == 0x55C8);

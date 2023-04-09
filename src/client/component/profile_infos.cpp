@@ -20,7 +20,7 @@ namespace profile_infos
 	namespace
 	{
 		using profile_map = std::unordered_map<uint64_t, profile_info>;
-		utils::concurrency::container<profile_map> profile_mapping{};
+		utils::concurrency::container<profile_map, std::recursive_mutex> profile_mapping{};
 
 		std::optional<profile_info> load_profile_info()
 		{
@@ -68,21 +68,6 @@ namespace profile_infos
 			});
 		}
 
-		void schedule_pcache_update()
-		{
-			static std::atomic_bool update_triggered{false};
-			if (game::is_server() || update_triggered.exchange(true))
-			{
-				return;
-			}
-
-			scheduler::once([]
-			{
-				game::PCache_DeleteEntries(game::CONTROLLER_INDEX_FIRST);
-				update_triggered = false;
-			}, scheduler::main, 5s);
-		}
-
 		std::unordered_set<uint64_t> get_connected_client_xuids()
 		{
 			std::unordered_set<uint64_t> connected_clients{};
@@ -103,10 +88,10 @@ namespace profile_infos
 				return;
 			}
 
-			const auto xuids = get_connected_client_xuids();
-
-			profile_mapping.access([&](profile_map& profiles)
+			profile_mapping.access([](profile_map& profiles)
 			{
+				const auto xuids = get_connected_client_xuids();
+
 				for (auto i = profiles.begin(); i != profiles.end();)
 				{
 					if (xuids.contains(i->first))
@@ -145,8 +130,6 @@ namespace profile_infos
 		{
 			profiles[user_id] = info;
 		});
-
-		schedule_pcache_update();
 	}
 
 	void distribute_profile_info_to_user(const game::netadr_t& addr, const uint64_t user_id, const profile_info& info)
@@ -194,6 +177,11 @@ namespace profile_infos
 		});
 	}
 
+	std::unique_lock<std::recursive_mutex> acquire_profile_lock()
+	{
+		return profile_mapping.acquire_lock();
+	}
+
 	std::optional<profile_info> get_profile_info()
 	{
 		return load_profile_info();
@@ -201,8 +189,6 @@ namespace profile_infos
 
 	std::optional<profile_info> get_profile_info(const uint64_t user_id)
 	{
-		printf("Requesting profile info: %llX\n", user_id);
-
 		if (user_id == steam::SteamUser()->GetSteamID().bits)
 		{
 			return get_profile_info();

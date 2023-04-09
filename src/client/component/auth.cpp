@@ -143,12 +143,22 @@ namespace auth
 				return;
 			}
 
+			const auto _ = profile_infos::acquire_profile_lock();
+
 			const utils::info_string info_string(params[1]);
 			const auto xuid = strtoull(info_string.get("xuid").data(), nullptr, 16);
 
 			profile_infos::add_and_distribute_profile_info(target, xuid, info);
 
 			game::SV_DirectConnect(target);
+
+			game::foreach_connected_client([&](game::client_s& client)
+			{
+				if (client.address == target)
+				{
+					client.xuid = xuid;
+				}
+			});
 		}
 	}
 
@@ -172,9 +182,8 @@ namespace auth
 		void post_unpack() override
 		{
 			// Skip connect handler
-			//utils::hook::set<uint8_t>(game::select(0x142253EFA, 0x14053714A), 0xEB);
-			//network::on("connect", handle_connect_packet);
-			(void)&handle_connect_packet;
+			utils::hook::set<uint8_t>(game::select(0x142253EFA, 0x14053714A), 0xEB);
+			network::on("connect", handle_connect_packet);
 
 			// Patch steam id bit check
 			std::vector<std::pair<size_t, size_t>> patches{};
@@ -221,8 +230,7 @@ namespace auth
 				p(0x141EB5992_g, 0x141EB59D5_g);
 				p(0x141EB74D2_g, 0x141EB7515_g); // ?
 
-				//utils::hook::call(0x14134BF7D_g, send_connect_data_stub);
-				(void)&send_connect_data_stub;
+				utils::hook::call(0x14134BF7D_g, send_connect_data_stub);
 			}
 
 			for (const auto& patch : patches)
