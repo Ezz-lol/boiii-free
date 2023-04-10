@@ -258,7 +258,7 @@ namespace network
 
 	int net_sendpacket_stub(const game::netsrc_t sock, const int length, const char* data, const game::netadr_t* to)
 	{
-		printf("Sending packet of size: %X\n", length);
+		//printf("Sending packet of size: %X\n", length);
 
 		if (to->type != game::NA_RAWIP)
 		{
