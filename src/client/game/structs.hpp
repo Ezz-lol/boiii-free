@@ -1034,6 +1034,32 @@ namespace game
 		JoinResult joinResult;
 	};
 
+	struct ServerInfo
+	{
+		uint16_t m_usConnectionPort;
+		uint16_t m_usQueryPort;
+		uint32_t m_unIP;
+		int m_nPing;
+		byte unk[0x22];
+		char mapname[32];
+		char description[64];
+		char gamemode[16];
+		char modname[32];
+		int playerCount;
+		int maxPlayers;
+		int unk2;
+		int unk3;
+		int unk4;
+		bool dedicated;
+		bool ranked;
+		bool hardcore;
+		bool zombies;
+		char servername[64];
+		char tags[128];
+		int unk5;
+		int unk6;
+	};
+
 #ifdef __cplusplus
 	namespace hks
 	{

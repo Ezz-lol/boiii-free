@@ -75,6 +75,9 @@ namespace game
 	// Live
 	WEAK symbol<bool(uint64_t, int*, bool)> Live_GetConnectivityInformation{0x141E0C380};
 
+	// Info
+	WEAK symbol<const char* (const char*, const char* key)> Info_ValueForKey{ 0x1422E87B0 };
+
 	// MSG
 	WEAK symbol<uint8_t(msg_t* msg)> MSG_ReadByte{0x142155450, 0x14050D1B0};
 
@@ -143,6 +146,7 @@ namespace game
 	WEAK symbol<void(hks::lua_State*, const char*)> Lua_CoD_LoadLuaFile{0x141F11A20, 0x0};
 	WEAK symbol<void(int localClientNum)> CG_LUIHUDRestart{0x140F7E970};
 	WEAK symbol<void(int localClientNum)> CL_CheckKeepDrawingConnectScreen{0x1413CCAE0};
+	WEAK symbol<void(const char* key, int value, hks::lua_State* luaVM)> Lua_SetTableInt{ 0x141F066E0 };
 
 	// Scr
 	WEAK symbol<void(scriptInstance_t inst, int value)> Scr_AddInt{0x1412E9870, 0x14016F160};
