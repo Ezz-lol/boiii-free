@@ -7,7 +7,7 @@
 
 # BOIII ☄️
 
-An attempt at reverse engineering and analyzing of Call of Duty: Black Ops 3.
+An attempt at reverse engineering and analyzing Call of Duty: Black Ops 3.
 
 <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQeSXYzQITJrcjiifN1nqX1fsVE7VwLZ3vl2g&usqp=CAU">
 
