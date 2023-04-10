@@ -53,6 +53,7 @@ DataSources.LobbyServer = {
 				SetModelValue(serverModel, "dedicated", serverInfo.dedicated)
 				SetModelValue(serverModel, "ranked", serverInfo.ranked)
 				SetModelValue(serverModel, "hardcore", serverInfo.hardcore)
+				SetModelValue(serverModel, "zombies", serverInfo.zombies)
 				-- Added the bot count
 				SetModelValue(serverModel, "botCount", serverInfo.botCount)
 				return serverModel
@@ -323,6 +324,12 @@ CoD.ServerBrowserRowInternal.new = function(menu, controller)
 			botCount:setText("[" .. Engine.Localize(_botCount) .. "]")
 		end
 	end)
+	botCount:linkToElementModel(self, "zombies", true, function(model)
+		local zombies = Engine.GetModelValue(model)
+		if zombies ~= nil then
+			botCount:setAlpha(zombies and 0 or 1)
+		end
+	end)
 	self:addElement(botCount)
 	self.botCount = botCount
 
@@ -359,6 +366,7 @@ CoD.ServerBrowserRowInternal.new = function(menu, controller)
 		element.gametype:close()
 		element.playerCount:close()
 		element.maxPlayers:close()
+		element.botCount:close()
 		element.ping:close()
 	end)
 
