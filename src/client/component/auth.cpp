@@ -100,7 +100,10 @@ namespace auth
 		std::string serialize_connect_data(const char* data, const int length)
 		{
 			utils::byte_buffer buffer{};
-			profile_infos::get_profile_info().value_or(profile_infos::profile_info{}).serialize(buffer);
+			profile_infos::profile_info info{};
+			info.version = 4; // invalid
+			info.serialize(buffer);
+			//profile_infos::get_profile_info().value_or(profile_infos::profile_info{}).serialize(buffer);
 
 			buffer.write_string(data, static_cast<size_t>(length));
 

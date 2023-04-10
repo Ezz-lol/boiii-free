@@ -301,7 +301,7 @@ namespace network
 			utils::hook::set<uint8_t>(game::select(0x14233249E, 0x140596F2E), 0); // don't add checksum to packet
 
 			// Recreate NET_SendPacket to increase max packet size
-			utils::hook::jump(game::select(0x1423323B0, 0x140596E40), net_sendpacket_stub);
+			//utils::hook::jump(game::select(0x1423323B0, 0x140596E40), net_sendpacket_stub);
 
 			utils::hook::set<uint32_t>(game::select(0x14134C6E0, 0x14018E574), 5);
 			// set initial connection state to challenging
