@@ -20,7 +20,7 @@ namespace gamesettings
 				return sub_strings[sub_strings.size() - 2] + '/' + sub_strings[sub_strings.size() - 1];
 			}
 
-			return std::string();
+			return {};
 		}
 
 		std::string get_game_settings_path(const std::string& name)
