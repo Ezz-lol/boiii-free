@@ -11,54 +11,54 @@ namespace gamesettings
 	namespace
 	{
 		// <name, path>
-		std::unordered_map<std::string, std::string> gamesettings_files;
+		std::unordered_map<std::string, std::string> game_settings_files;
 
-		const std::string get_gamesettings_name(const std::vector<std::string>& sub_strings)
+		std::string get_game_settings_name(const std::vector<std::string>& sub_strings)
 		{
 			if (sub_strings.size() > 2)
 			{
 				return sub_strings[sub_strings.size() - 2] + '/' + sub_strings[sub_strings.size() - 1];
 			}
 
-			return "";
+			return {};
 		}
 
-		const std::string get_gamesettings_path(const std::string& name)
+		std::string get_game_settings_path(const std::string& name)
 		{
-			const auto itr = gamesettings_files.find(name);
-			return (itr == gamesettings_files.end()) ? "" : itr->second;
+			const auto itr = game_settings_files.find(name);
+			return (itr == game_settings_files.end()) ? std::string() : itr->second;
 		}
 
-		void search_gamesettings_folder(const std::string& gamesettings_dir)
+		void search_game_settings_folder(const std::string& game_settings_dir)
 		{
-			if (!utils::io::directory_exists(gamesettings_dir))
+			if (!utils::io::directory_exists(game_settings_dir))
 			{
 				return;
 			}
 
-			const auto files = utils::io::list_files(gamesettings_dir, true);
+			const auto files = utils::io::list_files(game_settings_dir, true);
 
 			for (const auto& path : files)
 			{
 				if (!std::filesystem::is_directory(path))
 				{
 					auto sub_strings = utils::string::split(path.generic_string(), '/');
-					gamesettings_files.insert_or_assign(get_gamesettings_name(sub_strings), path.generic_string());
+					game_settings_files.insert_or_assign(get_game_settings_name(sub_strings), path.generic_string());
 				}
 			}
 		}
 
-		bool has_gamesettings_file_on_disk(const char* path)
+		bool has_game_settings_file_on_disk(const char* path)
 		{
 			if (!path)
 			{
 				return false;
 			}
 
-			auto sub_strings = utils::string::split(path, '/');
-			auto gamesettings_name = get_gamesettings_name(sub_strings);
+			const auto sub_strings = utils::string::split(path, '/');
+			const auto game_settings_name = get_game_settings_name(sub_strings);
 
-			return get_gamesettings_path(gamesettings_name) != "";
+			return !get_game_settings_path(game_settings_name).empty();
 		}
 
 		void cmd_exec_stub(utils::hook::assembler& a)
@@ -69,7 +69,7 @@ namespace gamesettings
 			a.pushad64();
 
 			a.mov(rcx, r10);
-			a.call_aligned(has_gamesettings_file_on_disk);
+			a.call_aligned(has_game_settings_file_on_disk);
 			a.cmp(rax, 1);
 ;
 			a.popad64();
@@ -86,11 +86,11 @@ namespace gamesettings
 
 		int read_file_stub(const char* qpath, void** buffer)
 		{
-			auto sub_strings = utils::string::split(qpath, '/');
-			auto game_settings_name = get_gamesettings_name(sub_strings);
+			const auto sub_strings = utils::string::split(qpath, '/');
+			const auto game_settings_name = get_game_settings_name(sub_strings);
 
 			std::string gamesettings_data;
-			utils::io::read_file(get_gamesettings_path(game_settings_name), &gamesettings_data);
+			utils::io::read_file(get_game_settings_path(game_settings_name), &gamesettings_data);
 
 			if (!gamesettings_data.empty())
 			{
@@ -113,8 +113,8 @@ namespace gamesettings
 		{
 			const utils::nt::library host{};
 
-			search_gamesettings_folder((game::get_appdata_path() / "data/gamesettings").string());
-			search_gamesettings_folder((host.get_folder() / "boiii/gamesettings").string());
+			search_game_settings_folder((game::get_appdata_path() / "data/gamesettings").string());
+			search_game_settings_folder((host.get_folder() / "boiii/gamesettings").string());
 		}
 	}
 
