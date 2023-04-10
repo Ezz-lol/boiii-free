@@ -104,6 +104,9 @@ namespace dedicated_patches
 			utils::hook::jump(0x14052F0F5_g, 0x14052F139_g);
 
 			utils::hook::call(0x1402853D7_g, sv_get_player_xuid_stub); // PlayerCmd_GetXuid
+
+			// Stop executing default_dedicated.cfg & language_settings.cfg
+			utils::hook::set<uint8_t>(0x1405063C0_g, 0xC3);
 		}
 	};
 }

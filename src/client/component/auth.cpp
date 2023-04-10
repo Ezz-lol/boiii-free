@@ -109,20 +109,29 @@ namespace auth
 
 		int send_connect_data_stub(const game::netsrc_t sock, game::netadr_t* adr, const char* data, int len)
 		{
-			std::string buffer{};
-
-			const auto is_connect_sequence = len >= 7 && strncmp("connect", data, 7) == 0;
-			if (is_connect_sequence)
+			try
 			{
-				buffer.append("connect");
-				buffer.push_back(' ');
-				buffer.append(serialize_connect_data(data, len));
+				std::string buffer{};
 
-				data = buffer.data();
-				len = static_cast<int>(buffer.size());
+				const auto is_connect_sequence = len >= 7 && strncmp("connect", data, 7) == 0;
+				if (is_connect_sequence)
+				{
+					buffer.append("connect");
+					buffer.push_back(' ');
+					buffer.append(serialize_connect_data(data, len));
+
+					data = buffer.data();
+					len = static_cast<int>(buffer.size());
+				}
+
+				return reinterpret_cast<decltype(&send_connect_data_stub)>(0x142173600_g)(sock, adr, data, len);
+			}
+			catch (std::exception& e)
+			{
+				printf("Error: %s\n", e.what());
 			}
 
-			return reinterpret_cast<decltype(&send_connect_data_stub)>(0x142173600_g)(sock, adr, data, len);
+			return 0;
 		}
 
 		void handle_connect_packet(const game::netadr_t& target, const network::data_view& data)

@@ -100,6 +100,10 @@ namespace profile_infos
 					}
 					else
 					{
+#ifdef DEV_BUILD
+						printf("Erasing profile info: %llX\n", i->first);
+#endif
+
 						i = profiles.erase(i);
 					}
 				}
@@ -125,6 +129,10 @@ namespace profile_infos
 		{
 			return;
 		}
+
+#ifdef DEV_BUILD
+		printf("Adding profile info: %llX\n", user_id);
+#endif
 
 		profile_mapping.access([&](profile_map& profiles)
 		{
@@ -202,7 +210,17 @@ namespace profile_infos
 			if (profile_entry != profiles.end())
 			{
 				result = profile_entry->second;
+
+#ifdef DEV_BUILD
+				printf("Requesting profile info: %llX - good\n", user_id);
+#endif
 			}
+#ifdef DEV_BUILD
+			else
+			{
+				printf("Requesting profile info: %llX - bad\n", user_id);
+			}
+#endif
 
 			return result;
 		});

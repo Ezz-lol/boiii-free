@@ -35,6 +35,7 @@ namespace game
 	WEAK symbol<void(int localClientNum, eModes fromMode, eModes toMode, uint32_t flags)> Com_SwitchMode{
 		0x14214A4D0
 	};
+	WEAK symbol<const char*(const char* fullpath)> Com_LoadRawTextFile{0x1420F61B0};
 
 	WEAK symbol<void(int localClientNum, const char* text)> Cbuf_AddText{0x1420EC010, 0x1404F75B0};
 	WEAK symbol<void(int localClientNum, ControllerIndex_t controllerIndex, const char* buffer)> Cbuf_ExecuteBuffer{
@@ -184,6 +185,9 @@ namespace game
 	WEAK symbol<void(const char* text_in)> SV_Cmd_TokenizeString{0x1420EF130, 0x1404FA6C0};
 	WEAK symbol<void()> SV_Cmd_EndTokenizedString{0x1420EF0E0, 0x1404FA670};
 
+	// FS
+	WEAK symbol<char*(int bytes)> FS_AllocMem{0x1422AC9F0, 0x14056C340};
+
 	// Utils
 	WEAK symbol<const char*(char* str)> I_CleanStr{0x1422E9050, 0x140580E80};
 
@@ -201,6 +205,8 @@ namespace game
 
 	WEAK symbol<char> s_dvarPool{0x157AC6220, 0x14A3CB620};
 	WEAK symbol<int> g_dvarCount{0x157AC61CC, 0x14A3CB5FC};
+
+	WEAK symbol<int> fs_loadStack{0x157A65310, 0x14A39C650};
 
 	// Client and dedi struct size differs :(
 	WEAK symbol<client_s_cl*> svs_clients_cl{0x1576F9318, 0};
