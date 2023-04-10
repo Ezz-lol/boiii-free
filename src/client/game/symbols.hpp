@@ -76,7 +76,7 @@ namespace game
 	WEAK symbol<bool(uint64_t, int*, bool)> Live_GetConnectivityInformation{0x141E0C380};
 
 	// Info
-	WEAK symbol<const char* (__int64, const char* key)> Info_ValueForKey{ 0x1422E87B0 };
+	WEAK symbol<const char* (const char*, const char* key)> Info_ValueForKey{ 0x1422E87B0 };
 
 	// MSG
 	WEAK symbol<uint8_t(msg_t* msg)> MSG_ReadByte{0x142155450, 0x14050D1B0};

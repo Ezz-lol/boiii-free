@@ -15,7 +15,7 @@ namespace server_list
 {
 	namespace
 	{
-		utils::hook::detour lua_gameitem_to_table_hook;
+		utils::hook::detour lua_serverinfo_to_table_hook;
 
 		struct state
 		{
@@ -77,13 +77,13 @@ namespace server_list
 			callback(true, result);
 		}
 
-		void lua_gameitem_to_table_stub(game::hks::lua_State* state, __int64 gameItem, int index)
+		void lua_serverinfo_to_table_stub(game::hks::lua_State* state, game::ServerInfo serverInfo, int index)
 		{
-			lua_gameitem_to_table_hook.invoke(state, gameItem, index);
+			lua_serverinfo_to_table_hook.invoke(state, serverInfo, index);
 
 			if (state)
 			{
-				auto botCount = atoi(game::Info_ValueForKey(gameItem + 276, "bots"));
+				auto botCount = atoi(game::Info_ValueForKey(serverInfo.tags, "bots"));
 				game::Lua_SetTableInt("botCount", botCount, state);
 			}
 		}
@@ -147,7 +147,7 @@ namespace server_list
 				});
 			}, scheduler::async, 200ms);
 
-			lua_gameitem_to_table_hook.create(0x141F1FD10_g, lua_gameitem_to_table_stub);
+			lua_serverinfo_to_table_hook.create(0x141F1FD10_g, lua_serverinfo_to_table_stub);
 		}
 
 		void pre_destroy() override
