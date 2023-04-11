@@ -94,7 +94,7 @@ namespace getinfo
 			network::on("getInfo", [](const game::netadr_t& target, const network::data_view& data)
 			{
 				utils::info_string info{};
-				info.set("challenge", std::string(data.begin(), data.end()));
+				info.set("challenge", std::string{ data.begin(), data.end() });
 				info.set("gamename", "T7");
 				info.set("hostname",
 				         game::get_dvar_string(game::is_server() ? "live_steam_server_name" : "sv_hostname"));
@@ -105,15 +105,15 @@ namespace getinfo
 				info.set("xuid", utils::string::va("%llX", steam::SteamUser()->GetSteamID().bits));
 				info.set("mapname", game::get_dvar_string("mapname"));
 				info.set("isPrivate", game::get_dvar_string("g_password").empty() ? "0" : "1");
-				info.set("clients", utils::string::va("%zu", get_client_count()));
-				info.set("bots", utils::string::va("%zu", get_bot_count()));
-				info.set("sv_maxclients", utils::string::va("%zu", get_max_client_count()));
-				info.set("protocol", utils::string::va("%i", PROTOCOL));
-				info.set("playmode", utils::string::va("%i", game::Com_SessionMode_GetMode()));
-				info.set("gamemode", utils::string::va("%i", Com_SessionMode_GetGameMode()));
-				info.set("sv_running", utils::string::va("%i", game::is_server_running()));
-				info.set("dedicated", utils::string::va("%i", game::is_server() ? 1 : 0));
-				info.set("hc", utils::string::va("%u", game::Com_GametypeSettings_GetUInt("hardcoremode", false)));
+				info.set("clients", std::to_string(get_client_count()));
+				info.set("bots", std::to_string(get_bot_count()));
+				info.set("sv_maxclients", std::to_string(get_max_client_count()));
+				info.set("protocol", std::to_string(PROTOCOL));
+				info.set("playmode", std::to_string(game::Com_SessionMode_GetMode()));
+				info.set("gamemode", std::to_string(Com_SessionMode_GetGameMode()));
+				info.set("sv_running", std::to_string(game::is_server_running()));
+				info.set("dedicated", game::is_server() ? "1" : "0");
+				info.set("hc", std::to_string(game::Com_GametypeSettings_GetUInt("hardcoremode", false)));
 				info.set("shortversion", SHORTVERSION);
 
 				network::send(target, "infoResponse", info.build(), '\n');
