@@ -4,6 +4,19 @@ end
 
 local utils = require("utils")
 
+CoD.LobbyButtons.MP_PUBLIC_MATCH = {
+  stringRef = "MENU_PLAY_CAPS",
+  action = NavigateToLobby_SelectionList,
+  param = "MPLobbyOnline",
+  customId = "btnPublicMatch",
+}
+
+CoD.LobbyButtons.MP_FIND_MATCH = {
+  stringRef = "MPUI_BASICTRAINING_CAPS",
+  action = OpenFindMatch,
+  customId = "btnFindMatch",
+}
+
 CoD.LobbyButtons.MP_STATS = {
   stringRef = "STATS",
   action = function(self, element, controller, param, menu)
