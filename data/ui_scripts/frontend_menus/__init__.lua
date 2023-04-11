@@ -3,6 +3,7 @@ if Engine.GetCurrentMap() ~= "core_frontend" then
 end
 
 local EnableLobbyMapVote = true -- toggle map vote in public lobby
+local EnableLargeServerBrowserButton = true -- toggle large server browser button
 
 local utils = require("utils")
 require("DataSources_StartMenuTabs")
@@ -67,6 +68,14 @@ CoD.LobbyButtons.GameSettingsFlyoutMP = {
   customId = "btnGameSettingsFlyoutMPCustom"
 }
 
+CoD.LobbyButtons.SERVER_BROWSER = {
+  stringRef = "MENU_SERVER_BROWSER_CAPS",
+  action = function( self, element, controller, param, menu )
+      SetPerControllerTableProperty( controller, "disableGameSettingsOptions", true )
+      OpenPopup( menu, "LobbyServerBrowserOnline", controller )
+  end,
+  customId = "btnDedicated"
+}
 CoD.LobbyButtons.MP_CUSTOM_SETUP_GAME = {
   stringRef = "MPUI_SETUP_GAME_CAPS",
   action = OpenSetupGameMP,
@@ -92,6 +101,10 @@ local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
 
   if menuId == LobbyData.UITargets.UI_MPLOBBYONLINE.id then
     LobbyMapVoteIsEnabled = EnableLobbyMapVote
+    if EnableLargeServerBrowserButton then
+      utils.AddLargeButton(controller, buttonTable, CoD.LobbyButtons.SERVER_BROWSER, 1)
+    end
+
   elseif menuId == LobbyData.UITargets.UI_MPLOBBYONLINEPUBLICGAME.id then
     LobbyMapVote( LobbyMapVoteIsEnabled )
     LobbyMapVoteIsEnabled = false
