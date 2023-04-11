@@ -6,6 +6,7 @@ local EnableLobbyMapVote = true -- toggle map vote in public lobby
 
 local utils = require("utils")
 require("DataSources_StartMenuTabs")
+require("DataSources_ChangeMapCategories")
 require("DataSources_GameSettingsFlyoutButtons")
 
 CoD.LobbyButtons.MP_PUBLIC_MATCH = {
