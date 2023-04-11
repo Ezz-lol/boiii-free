@@ -2,6 +2,8 @@ if Engine.GetCurrentMap() ~= "core_frontend" then
   return
 end
 
+local EnableLobbyMapVote = true -- toggle map vote in public lobby
+
 local utils = require("utils")
 require("DataSources_StartMenuTabs")
 
@@ -51,7 +53,13 @@ CoD.LobbyButtons.MP_CUSTOM_SETUP_GAME = {
   customId = "btnSetupGame",
 }
 
-local shouldShowMapVote = false
+local LobbyMapVoteIsEnabled = EnableLobbyMapVote
+local LobbyMapVote = function( LobbyMapVoteIsEnabled )
+  if LobbyMapVoteIsEnabled == true then
+    Engine.Exec( nil, "LobbyStopDemo" )
+  end
+end
+
 local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
   if menuId == LobbyData.UITargets.UI_MPLOBBYONLINE.id or menuId == LobbyData.UITargets.UI_ZMLOBBYONLINE.id then
     utils.AddSpacer(buttonTable)
@@ -63,13 +71,10 @@ local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
   end
 
   if menuId == LobbyData.UITargets.UI_MPLOBBYONLINE.id then
-    shouldShowMapVote = true
+    LobbyMapVoteIsEnabled = EnableLobbyMapVote
   elseif menuId == LobbyData.UITargets.UI_MPLOBBYONLINEPUBLICGAME.id then
-    if shouldShowMapVote == true then
-      shouldShowMapVote = false
-      --Enable map vote at start lobby
-      Engine.Exec(nil, "LobbyStopDemo")
-    end
+    LobbyMapVote( LobbyMapVoteIsEnabled )
+    LobbyMapVoteIsEnabled = false
     utils.AddLargeButton(controller, buttonTable, CoD.LobbyButtons.MP_START_GAME, 1) --Launch match button
     utils.AddSpacer(buttonTable, 1)
 
