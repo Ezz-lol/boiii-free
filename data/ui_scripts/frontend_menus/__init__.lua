@@ -23,7 +23,7 @@ CoD.LobbyButtons.MP_FIND_MATCH = {
   customId = "btnFindMatch",
 }
 
-CoD.LobbyButtons.MP_STATS = {
+CoD.LobbyButtons.STATS = {
   stringRef = "STATS",
   action = function(self, element, controller, param, menu)
     SetPerControllerTableProperty(controller, "disableGameSettingsOptions", true)
@@ -76,11 +76,6 @@ CoD.LobbyButtons.SERVER_BROWSER = {
   end,
   customId = "btnDedicated"
 }
-CoD.LobbyButtons.MP_CUSTOM_SETUP_GAME = {
-  stringRef = "MPUI_SETUP_GAME_CAPS",
-  action = OpenSetupGameMP,
-  customId = "btnSetupGame",
-}
 
 local LobbyMapVoteIsEnabled = EnableLobbyMapVote
 local LobbyMapVote = function( LobbyMapVoteIsEnabled )
@@ -90,9 +85,14 @@ local LobbyMapVote = function( LobbyMapVoteIsEnabled )
 end
 
 local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
+
+  if menuId == LobbyData.UITargets.UI_MPLOBBYMAIN.id then
+    utils.RemoveSpaces(buttonTable)
+    utils.AddSpacer(buttonTable, utils.GetButtonIndex(buttonTable, CoD.LobbyButtons.THEATER_MP)-1)
+  end
+
   if menuId == LobbyData.UITargets.UI_MPLOBBYONLINE.id or menuId == LobbyData.UITargets.UI_ZMLOBBYONLINE.id then
-    utils.AddSpacer(buttonTable)
-    utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.MP_STATS)
+    utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.STATS)
   end
 
   if menuId == LobbyData.UITargets.UI_MPLOBBYONLINE.id or menuId == LobbyData.UITargets.UI_ZMLOBBYONLINE.id or menuId == LobbyData.UITargets.UI_MPLOBBYMAIN.id or menuId == LobbyData.UITargets.UI_MPLOBBYLANGAME.id then
@@ -106,16 +106,31 @@ local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
     end
 
   elseif menuId == LobbyData.UITargets.UI_MPLOBBYONLINEPUBLICGAME.id then
+    utils.RemoveButton(buttonTable, CoD.LobbyButtons.MP_PUBLIC_LOBBY_LEADERBOARD)
+
+    utils.AddLargeButton(controller, buttonTable, CoD.LobbyButtons.MP_START_GAME, 1)
+    utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.GameSettingsFlyoutMP, 2)
+    utils.AddSpacer(buttonTable, utils.GetButtonIndex(buttonTable, CoD.LobbyButtons.GameSettingsFlyoutMP))
+
     LobbyMapVote( LobbyMapVoteIsEnabled )
     LobbyMapVoteIsEnabled = false
-    utils.AddLargeButton(controller, buttonTable, CoD.LobbyButtons.MP_START_GAME, 1) --Launch match button
-    utils.AddSpacer(buttonTable, 1)
 
-    utils.AddSpacer(buttonTable)
-    utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.MP_CUSTOM_SETUP_GAME) --Setup game in public lobby
   elseif menuId == LobbyData.UITargets.UI_MPLOBBYONLINEARENAGAME.id then
-    utils.AddSpacer(buttonTable)
-    utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.SETTING_UP_BOTS) --Bot setting button in public lobby
+    utils.AddLargeButton(controller, buttonTable, CoD.LobbyButtons.MP_START_GAME, 1)
+    utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.GameSettingsFlyoutArenas, 2)
+
+    utils.AddSpacer(buttonTable, utils.GetButtonIndex(buttonTable, CoD.LobbyButtons.GameSettingsFlyoutArenas))
+  end
+
+  if menuId == LobbyData.UITargets.UI_ZMLOBBYONLINE.id then
+    -- utils.RemoveButton(buttonTable,CoD.LobbyButtons.ZM_FIND_MATCH)
+    utils.RemoveButton(buttonTable, CoD.LobbyButtons.THEATER_ZM)
+    utils.AddLargeButton(controller, buttonTable, CoD.LobbyButtons.THEATER_ZM, #buttonTable+1)
+
+    utils.RemoveSpaces(buttonTable)
+    utils.AddSpacer(buttonTable, utils.GetButtonIndex(buttonTable, CoD.LobbyButtons.SERVER_BROWSER))
+    utils.AddSpacer(buttonTable, utils.GetButtonIndex(buttonTable, CoD.LobbyButtons.ZM_BUBBLEGUM_BUFFS)-1)
+    utils.AddSpacer(buttonTable, utils.GetButtonIndex(buttonTable, CoD.LobbyButtons.STATS))
   end
 end
 
