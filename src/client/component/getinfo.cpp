@@ -113,6 +113,7 @@ namespace getinfo
 				info.set("gamemode", utils::string::va("%i", Com_SessionMode_GetGameMode()));
 				info.set("sv_running", utils::string::va("%i", game::is_server_running()));
 				info.set("dedicated", utils::string::va("%i", game::is_server() ? 1 : 0));
+				info.set("hc", utils::string::va("%u", game::Com_GametypeSettings_GetUInt("hardcoremode", false)));
 				info.set("shortversion", SHORTVERSION);
 
 				network::send(target, "infoResponse", info.build(), '\n');
