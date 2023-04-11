@@ -10,6 +10,8 @@
 
 #include "network.hpp"
 
+#include "game/fragment_handler.hpp"
+
 namespace network
 {
 	namespace
@@ -292,6 +294,8 @@ namespace network
 	{
 		void post_unpack() override
 		{
+			scheduler::loop(game::fragment_handler::clean, scheduler::async, 5s);
+
 			utils::hook::nop(game::select(0x1423322B6, 0x140596DF6), 4);
 			// don't increment data pointer to optionally skip socket byte
 			utils::hook::call(game::select(0x142332283, 0x140596DC3), read_socket_byte_stub);

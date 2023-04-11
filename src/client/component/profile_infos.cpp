@@ -6,7 +6,6 @@
 #include "party.hpp"
 #include "scheduler.hpp"
 
-#include <utils/nt.hpp>
 #include <utils/properties.hpp>
 #include <utils/concurrency.hpp>
 
@@ -14,6 +13,7 @@
 #include <utils/io.hpp>
 
 #include "game/utils.hpp"
+#include "game/fragment_handler.hpp"
 
 namespace profile_infos
 {
@@ -44,9 +44,12 @@ namespace profile_infos
 			return {std::move(info)};
 		}
 
-		void send_profile_info(const game::netadr_t& address, const std::string& buffer)
+		void send_profile_info(const game::netadr_t& address, const std::string& data)
 		{
-			network::send(address, "profileInfo", buffer);
+			game::fragment_handler::fragment_data(data.data(), data.size(), [&address](const utils::byte_buffer& buffer)
+			{
+				network::send(address, "profileInfo", buffer.get_buffer());
+			});
 		}
 
 		void distribute_profile_info(const uint64_t user_id, const profile_info& info)
@@ -253,10 +256,16 @@ namespace profile_infos
 					}
 
 					utils::byte_buffer buffer(data);
-					const auto user_id = buffer.read<uint64_t>();
-					const profile_info info(buffer);
 
-					add_profile_info(user_id, info);
+					std::string final_packet{};
+					if (game::fragment_handler::handle(server, buffer, final_packet))
+					{
+						buffer = utils::byte_buffer(final_packet);
+						const auto user_id = buffer.read<uint64_t>();
+						const profile_info info(buffer);
+
+						add_profile_info(user_id, info);
+					}
 				});
 			}
 		}

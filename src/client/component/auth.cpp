@@ -4,6 +4,7 @@
 #include "auth.hpp"
 #include "command.hpp"
 #include "network.hpp"
+#include "scheduler.hpp"
 #include "profile_infos.hpp"
 
 #include <game/game.hpp>
@@ -16,6 +17,8 @@
 #include <utils/byte_buffer.hpp>
 #include <utils/info_string.hpp>
 #include <utils/cryptography.hpp>
+
+#include <game/fragment_handler.hpp>
 
 namespace auth
 {
@@ -100,10 +103,7 @@ namespace auth
 		std::string serialize_connect_data(const char* data, const int length)
 		{
 			utils::byte_buffer buffer{};
-			profile_infos::profile_info info{};
-			info.version = 4; // invalid
-			info.serialize(buffer);
-			//profile_infos::get_profile_info().value_or(profile_infos::profile_info{}).serialize(buffer);
+			profile_infos::get_profile_info().value_or(profile_infos::profile_info{}).serialize(buffer);
 
 			buffer.write_string(data, static_cast<size_t>(length));
 
@@ -112,24 +112,38 @@ namespace auth
 			return buffer.move_buffer();
 		}
 
-		int send_connect_data_stub(const game::netsrc_t sock, game::netadr_t* adr, const char* data, int len)
+		void send_fragmented_connect_packet(const game::netsrc_t sock, game::netadr_t* adr, const char* data,
+		                                    const int length)
+		{
+			const auto connect_data = serialize_connect_data(data, length);
+			game::fragment_handler::fragment_data //
+			(connect_data.data(), connect_data.size(), [&](const utils::byte_buffer& buffer)
+			{
+				utils::byte_buffer packet_buffer{};
+				packet_buffer.write("connect");
+				packet_buffer.write(" ");
+				packet_buffer.write(buffer);
+
+				const auto& fragment_packet = packet_buffer.get_buffer();
+
+				game::NET_OutOfBandData(
+					sock, adr, fragment_packet.data(),
+					static_cast<int>(fragment_packet.size()));
+			});
+		}
+
+		int send_connect_data_stub(const game::netsrc_t sock, game::netadr_t* adr, const char* data, const int len)
 		{
 			try
 			{
-				std::string buffer{};
-
 				const auto is_connect_sequence = len >= 7 && strncmp("connect", data, 7) == 0;
-				if (is_connect_sequence)
+				if (!is_connect_sequence)
 				{
-					buffer.append("connect");
-					buffer.push_back(' ');
-					buffer.append(serialize_connect_data(data, len));
-
-					data = buffer.data();
-					len = static_cast<int>(buffer.size());
+					return game::NET_OutOfBandData(sock, adr, data, len);
 				}
 
-				return reinterpret_cast<decltype(&send_connect_data_stub)>(0x142173600_g)(sock, adr, data, len);
+				send_fragmented_connect_packet(sock, adr, data, len);
+				return true;
 			}
 			catch (std::exception& e)
 			{
@@ -139,16 +153,8 @@ namespace auth
 			return 0;
 		}
 
-		void handle_connect_packet(const game::netadr_t& target, const network::data_view& data)
+		void dispatch_connect_packet(const game::netadr_t& target, const std::string& data)
 		{
-			if (!game::is_server_running())
-			{
-				return;
-			}
-
-
-			printf("Deserialized with size: %llX\n", data.size());
-
 			utils::byte_buffer buffer(data);
 			const profile_infos::profile_info info(buffer);
 
@@ -177,6 +183,22 @@ namespace auth
 				}
 			});
 		}
+
+		void handle_connect_packet_fragment(const game::netadr_t& target, const network::data_view& data)
+		{
+			if (!game::is_server_running())
+			{
+				return;
+			}
+
+			utils::byte_buffer buffer(data);
+
+			std::string final_packet{};
+			if (game::fragment_handler::handle(target, buffer, final_packet))
+			{
+				dispatch_connect_packet(target, final_packet);
+			}
+		}
 	}
 
 	uint64_t get_guid()
@@ -200,7 +222,7 @@ namespace auth
 		{
 			// Skip connect handler
 			utils::hook::set<uint8_t>(game::select(0x142253EFA, 0x14053714A), 0xEB);
-			network::on("connect", handle_connect_packet);
+			network::on("connect", handle_connect_packet_fragment);
 
 			// Patch steam id bit check
 			std::vector<std::pair<size_t, size_t>> patches{};

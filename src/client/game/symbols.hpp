@@ -31,7 +31,9 @@ namespace game
 	WEAK symbol<void(const char* gametype, bool loadDefaultSettings)> Com_GametypeSettings_SetGametype{
 		0x1420F5980
 	};
-	WEAK symbol<unsigned int(const char* settingName, bool getDefault)> Com_GametypeSettings_GetUInt{0x1420F4E00, 0x1404FE5C0};
+	WEAK symbol<unsigned int(const char* settingName, bool getDefault)> Com_GametypeSettings_GetUInt{
+		0x1420F4E00, 0x1404FE5C0
+	};
 	WEAK symbol<bool()> Com_IsRunningUILevel{0x142148350};
 	WEAK symbol<void(int localClientNum, eModes fromMode, eModes toMode, uint32_t flags)> Com_SwitchMode{
 		0x14214A4D0
@@ -77,12 +79,13 @@ namespace game
 	WEAK symbol<bool(uint64_t, int*, bool)> Live_GetConnectivityInformation{0x141E0C380};
 
 	// Info
-	WEAK symbol<const char* (const char*, const char* key)> Info_ValueForKey{ 0x1422E87B0 };
+	WEAK symbol<const char*(const char*, const char* key)> Info_ValueForKey{0x1422E87B0};
 
 	// MSG
 	WEAK symbol<uint8_t(msg_t* msg)> MSG_ReadByte{0x142155450, 0x14050D1B0};
 
 	// NET
+	WEAK symbol<bool(netsrc_t sock, netadr_t* adr, const void* data, int len)> NET_OutOfBandData{0x142173600};
 	WEAK symbol<bool(netsrc_t sock, int length, const void* data, const netadr_t* to)> NET_SendPacket{
 		0x1423323B0, 0x140596E40
 	};
@@ -147,7 +150,7 @@ namespace game
 	WEAK symbol<void(hks::lua_State*, const char*)> Lua_CoD_LoadLuaFile{0x141F11A20, 0x0};
 	WEAK symbol<void(int localClientNum)> CG_LUIHUDRestart{0x140F7E970};
 	WEAK symbol<void(int localClientNum)> CL_CheckKeepDrawingConnectScreen{0x1413CCAE0};
-	WEAK symbol<void(const char* key, int value, hks::lua_State* luaVM)> Lua_SetTableInt{ 0x141F066E0 };
+	WEAK symbol<void(const char* key, int value, hks::lua_State* luaVM)> Lua_SetTableInt{0x141F066E0};
 
 	// Scr
 	WEAK symbol<void(scriptInstance_t inst, int value)> Scr_AddInt{0x1412E9870, 0x14016F160};
