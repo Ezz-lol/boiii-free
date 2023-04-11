@@ -6,6 +6,7 @@ local EnableLobbyMapVote = true -- toggle map vote in public lobby
 
 local utils = require("utils")
 require("DataSources_StartMenuTabs")
+require("DataSources_GameSettingsFlyoutButtons")
 
 CoD.LobbyButtons.MP_PUBLIC_MATCH = {
   stringRef = "MENU_PLAY_CAPS",
@@ -45,6 +46,24 @@ CoD.LobbyButtons.SETTING_UP_BOTS = {
     OpenPopup(menu, "GameSettings_Bots", controller)
   end,
   customId = "btnSettingUpBots"
+}
+
+CoD.LobbyButtons.GameSettingsFlyoutArenas = {
+  stringRef = "MPUI_SETUP_GAME_CAPS",
+  action = function( self, element, controller, param, menu )
+    SetPerControllerTableProperty( controller, "disableGameSettingsOptions", true )
+    OpenPopup( menu, "GameSettingsFlyoutMP", controller )
+  end,
+  customId = "btnGameSettingsFlyoutMP"
+}
+
+CoD.LobbyButtons.GameSettingsFlyoutMP = {
+  stringRef = "MPUI_SETUP_GAME_CAPS",
+  action = function( self, element, controller, param, menu )
+    SetPerControllerTableProperty( controller, "disableGameSettingsOptions", true )
+    OpenPopup( menu, "GameSettingsFlyoutMPCustom", controller )
+  end,
+  customId = "btnGameSettingsFlyoutMPCustom"
 }
 
 CoD.LobbyButtons.MP_CUSTOM_SETUP_GAME = {
