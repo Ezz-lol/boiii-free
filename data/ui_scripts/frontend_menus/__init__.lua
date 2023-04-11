@@ -3,6 +3,7 @@ if Engine.GetCurrentMap() ~= "core_frontend" then
 end
 
 local utils = require("utils")
+require("DataSources_StartMenuTabs")
 
 CoD.LobbyButtons.MP_PUBLIC_MATCH = {
   stringRef = "MENU_PLAY_CAPS",
