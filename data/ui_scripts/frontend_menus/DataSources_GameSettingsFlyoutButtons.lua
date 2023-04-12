@@ -1,3 +1,58 @@
+local f0_local0 = function ( f1_arg0, f1_arg1 )
+	if not CoD.useMouse then
+		return 
+	else
+		f1_arg0.Options:setHandleMouse( true )
+		f1_arg0.Options:registerEventHandler( "leftclick_outside", function ( element, event )
+			CoD.PCUtil.SimulateButtonPress( event.controller, Enum.LUIButton.LUI_KEY_XBB_PSCIRCLE )
+			return true
+		end )
+	end
+end
+
+local PostLoadFunc = function ( f3_arg0, f3_arg1 )
+	f0_local0( f3_arg0, f3_arg1 )
+	f3_arg0.disableBlur = true
+	f3_arg0.disablePopupOpenCloseAnim = true
+	Engine.SetModelValue( Engine.CreateModel( Engine.GetGlobalModel(), "GameSettingsFlyoutOpen" ), true )
+	LUI.OverrideFunction_CallOriginalSecond( f3_arg0, "close", function ( element )
+		Engine.SetModelValue( Engine.CreateModel( Engine.GetGlobalModel(), "GameSettingsFlyoutOpen" ), false )
+	end )
+	f3_arg0:registerEventHandler( "occlusion_change", function ( element, event )
+		local f5_local0 = element:getParent()
+		if f5_local0 then
+			local f5_local1 = f5_local0:getFirstChild()
+			while f5_local1 ~= nil do
+				if f5_local1.menuName == "Lobby" then
+					break
+				end
+				f5_local1 = f5_local1:getNextSibling()
+			end
+			if f5_local1 then
+				if event.occluded == true then
+					f5_local1:setAlpha( 0 )
+				end
+				f5_local1:setAlpha( 1 )
+			end
+		end
+		element:OcclusionChange( event )
+	end )
+	f3_arg0:subscribeToModel( Engine.CreateModel( Engine.GetGlobalModel(), "lobbyRoot.lobbyNav", true ), function ( model )
+		local f6_local0 = f3_arg0.occludedBy
+		while f6_local0 do
+			if f6_local0.occludedBy ~= nil then
+				f6_local0 = f6_local0.occludedBy
+			end
+			while f6_local0 and f6_local0.menuName ~= "Lobby" do
+				f6_local0 = GoBack( f6_local0, f3_arg1 )
+			end
+			Engine.SendClientScriptNotify( f3_arg1, "menu_change" .. Engine.GetLocalClientNum( f3_arg1 ), "Main", "closeToMenu" )
+			return 
+		end
+		GoBack( f3_arg0, f3_arg1 )
+	end, false )
+end
+
 DataSources.GameSettingsFlyoutButtonsCustom = DataSourceHelpers.ListSetup( "GameSettingsFlyoutButtonsCustom", function ( f7_arg0 )
 	local f7_local0 = {
 		{
@@ -66,7 +121,7 @@ LUI.createMenu.GameSettingsFlyoutMPCustom = function ( controller )
 	Options:setTopBottom( true, false, 177.56, 329.56 )
 	Options:setYRot( 25 )
 	Options:setWidgetType( CoD.FE_List1ButtonLarge_PH )
-	Options:setVerticalCount( 5 )
+	Options:setVerticalCount( 3 )
 	Options:setSpacing( -2 )
 	Options:setDataSource( "GameSettingsFlyoutButtonsCustom" )
 	Options:registerEventHandler( "gain_focus", function ( element, event )
@@ -189,6 +244,8 @@ LUI.createMenu.GameSettingsFlyoutMPCustom = function ( controller )
 		element.Options:close()
 		Engine.UnsubscribeAndFreeModel( Engine.GetModel( Engine.GetModelForController( controller ), "GameSettingsFlyoutMP.buttonPrompts" ) )
 	end )
+	if PostLoadFunc then
+		PostLoadFunc( self, controller )
+	end
 	return self
 end
-
