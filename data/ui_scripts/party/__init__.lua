@@ -7,15 +7,17 @@ CoD.IsTeamChangeAllowed = function()
 	end
 end
 
--- Set com_maxclients InGame so players can join via direct connect
-local maxclients = function()
-	if Engine.IsZombiesGame() then
-		return 4
-	else
-		return 18
-	end
+local GetModeInfo = function()
+	local id = Engine.GetLobbyUIScreen()
+	return  LobbyData:UITargetFromId(id)
 end
 
-Engine.SetDvar( "com_maxclients", maxclients() )
+local GetMaxClients = function()
+	local ModeInfo = GetModeInfo()
+	return ModeInfo.maxClients
+end
+
+-- Set com_maxclients InGame so players can join via direct connect (default from lobbydata)
+Engine.SetDvar( "com_maxclients", GetMaxClients() )
 
 require("DataSources_StartMenuGameOptions")
