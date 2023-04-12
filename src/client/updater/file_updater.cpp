@@ -5,6 +5,7 @@
 #include "file_updater.hpp"
 
 #include <utils/cryptography.hpp>
+#include <utils/flags.hpp>
 #include <utils/http.hpp>
 #include <utils/io.hpp>
 #include <utils/compression.hpp>
@@ -271,7 +272,7 @@ namespace updater
 	bool file_updater::is_outdated_file(const file_info& file) const
 	{
 #if !defined(NDEBUG) || !defined(CI)
-		if (file.name == UPDATE_HOST_BINARY)
+		if (file.name == UPDATE_HOST_BINARY && !utils::flags::has_flag("update"))
 		{
 			return false;
 		}
