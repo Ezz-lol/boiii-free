@@ -7,4 +7,8 @@ namespace server_list
 
 	using callback = std::function<void(bool, const std::unordered_set<game::netadr_t>&)>;
 	void request_servers(callback callback);
+
+	void add_favorite_server(game::netadr_t addr);
+	void remove_favorite_server(game::netadr_t addr);
+	bool has_favorited_server(game::netadr_t addr);
 }

@@ -7,6 +7,7 @@
 #include <utils/string.hpp>
 #include <utils/concurrency.hpp>
 #include <utils/hook.hpp>
+#include <utils/io.hpp>
 
 #include "network.hpp"
 #include "scheduler.hpp"
@@ -26,6 +27,8 @@ namespace server_list
 		};
 
 		utils::concurrency::container<state> master_state;
+
+		std::vector<game::netadr_t> favorite_servers{};
 
 		void handle_server_list_response(const game::netadr_t& target,
 		                                 const network::data_view& data, state& s)
@@ -87,6 +90,52 @@ namespace server_list
 				game::Lua_SetTableInt("botCount", botCount, state);
 			}
 		}
+
+		std::string get_favorite_servers_file_path()
+		{
+			return "players/user/favorite_servers.csv";
+		}
+
+		void write_favorite_servers()
+		{
+			std::string servers_buffer = "";
+			for (auto itr : favorite_servers)
+			{
+				servers_buffer.append(utils::string::va("%u,%u\n", itr.addr, itr.port));
+			}
+
+			if (servers_buffer.empty())
+			{
+				return;
+			}
+
+			utils::io::write_file(get_favorite_servers_file_path(), servers_buffer);
+		}
+
+		void read_favorite_servers()
+		{
+			const std::string path = get_favorite_servers_file_path();
+			if (!utils::io::file_exists(path))
+			{
+				return;
+			}
+
+			favorite_servers.clear();
+
+			std::string filedata;
+			if (utils::io::read_file(path, &filedata))
+			{
+				auto servers = utils::string::split(filedata, '\n');
+				for (auto server_data : servers)
+				{
+					auto data = utils::string::split(server_data, ',');
+					auto addr = std::stoul(data[0].c_str());
+					auto port = (uint16_t)atoi(data[1].c_str());
+					auto server = network::address_from_ip(addr, port);
+					favorite_servers.push_back(server);
+				}
+			}
+		}
 	}
 
 	bool get_master_server(game::netadr_t& address)
@@ -112,6 +161,37 @@ namespace server_list
 
 			network::send(s.address, "getservers", utils::string::va("T7 %i full empty", PROTOCOL));
 		});
+	}
+
+	void add_favorite_server(game::netadr_t addr)
+	{
+		if (has_favorited_server(addr))
+		{
+			return;
+		}
+
+		favorite_servers.push_back(addr);
+		write_favorite_servers();
+	}
+
+	void remove_favorite_server(game::netadr_t addr)
+	{
+		for (auto it = favorite_servers.begin(); it != favorite_servers.end(); ++it)
+		{
+			if (network::are_addresses_equal(*it, addr))
+			{
+				favorite_servers.erase(it);
+				break;
+			}
+		}
+
+		write_favorite_servers();
+	}
+
+	bool has_favorited_server(game::netadr_t addr)
+	{
+		auto it = std::find_if(favorite_servers.begin(), favorite_servers.end(), [&addr](const game::netadr_t& obj) { return network::are_addresses_equal(addr, obj); });
+		return it != favorite_servers.end();
 	}
 
 	struct component final : client_component
@@ -148,6 +228,8 @@ namespace server_list
 			}, scheduler::async, 200ms);
 
 			lua_serverinfo_to_table_hook.create(0x141F1FD10_g, lua_serverinfo_to_table_stub);
+
+			read_favorite_servers();
 		}
 
 		void pre_destroy() override

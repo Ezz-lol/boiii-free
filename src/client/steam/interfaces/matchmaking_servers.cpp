@@ -22,6 +22,7 @@ namespace steam
 		};
 
 		auto* const internet_request = reinterpret_cast<void*>(1);
+		auto* const favorites_request = reinterpret_cast<void*>(4);
 
 		using servers = std::vector<server>;
 
@@ -198,7 +199,54 @@ namespace steam
 	void* matchmaking_servers::RequestFavoritesServerList(unsigned int iApp, void** ppchFilters, unsigned int nFilters,
 	                                                      matchmaking_server_list_response* pRequestServersResponse)
 	{
-		return reinterpret_cast<void*>(4);
+		current_response = pRequestServersResponse;
+
+		server_list::request_servers([](const bool success, const std::unordered_set<game::netadr_t>& s)
+			{
+				const auto res = current_response.load();
+				if (!res)
+				{
+					return;
+				}
+
+				if (!success)
+				{
+					res->RefreshComplete(favorites_request, eServerFailedToRespond);
+					return;
+				}
+
+				if (s.empty())
+				{
+					res->RefreshComplete(favorites_request, eNoServersListedOnMasterServer);
+					return;
+				}
+
+				queried_servers.access([&s](servers& srvs)
+					{
+						srvs = {};
+						srvs.reserve(s.size());
+
+						for (auto& address : s)
+						{
+							if (!server_list::has_favorited_server(address))
+							{
+								continue;
+							}
+							server new_server{};
+							new_server.address = address;
+							new_server.server_item = create_server_item(address, {}, 0, false);
+
+							srvs.push_back(new_server);
+						}
+					});
+
+				for (auto& srv : s)
+				{
+					ping_server(srv);
+				}
+			});
+
+		return favorites_request;
 	}
 
 	void* matchmaking_servers::RequestHistoryServerList(unsigned int iApp, void** ppchFilters, unsigned int nFilters,
