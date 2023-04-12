@@ -2,8 +2,8 @@ if Engine.GetCurrentMap() ~= "core_frontend" then
   return
 end
 
-local EnableLobbyMapVote = true -- toggle map vote in public lobby
-local EnableLargeServerBrowserButton = true -- toggle large server browser button
+local enableLobbyMapVote = true             -- toggle map vote in public lobby
+local enableLargeServerBrowserButton = true -- toggle large server browser button
 
 local utils = require("utils")
 require("DataSources_StartMenuTabs")
@@ -52,43 +52,42 @@ CoD.LobbyButtons.SETTING_UP_BOTS = {
 
 CoD.LobbyButtons.GameSettingsFlyoutArenas = {
   stringRef = "MPUI_SETUP_GAME_CAPS",
-  action = function( self, element, controller, param, menu )
-    SetPerControllerTableProperty( controller, "disableGameSettingsOptions", true )
-    OpenPopup( menu, "GameSettingsFlyoutMP", controller )
+  action = function(self, element, controller, param, menu)
+    SetPerControllerTableProperty(controller, "disableGameSettingsOptions", true)
+    OpenPopup(menu, "GameSettingsFlyoutMP", controller)
   end,
   customId = "btnGameSettingsFlyoutMP"
 }
 
 CoD.LobbyButtons.GameSettingsFlyoutMP = {
   stringRef = "MPUI_SETUP_GAME_CAPS",
-  action = function( self, element, controller, param, menu )
-    SetPerControllerTableProperty( controller, "disableGameSettingsOptions", true )
-    OpenPopup( menu, "GameSettingsFlyoutMPCustom", controller )
+  action = function(self, element, controller, param, menu)
+    SetPerControllerTableProperty(controller, "disableGameSettingsOptions", true)
+    OpenPopup(menu, "GameSettingsFlyoutMPCustom", controller)
   end,
   customId = "btnGameSettingsFlyoutMPCustom"
 }
 
 CoD.LobbyButtons.SERVER_BROWSER = {
   stringRef = "MENU_SERVER_BROWSER_CAPS",
-  action = function( self, element, controller, param, menu )
-      SetPerControllerTableProperty( controller, "disableGameSettingsOptions", true )
-      OpenPopup( menu, "LobbyServerBrowserOnline", controller )
+  action = function(self, element, controller, param, menu)
+    SetPerControllerTableProperty(controller, "disableGameSettingsOptions", true)
+    OpenPopup(menu, "LobbyServerBrowserOnline", controller)
   end,
   customId = "btnDedicated"
 }
 
-local LobbyMapVoteIsEnabled = EnableLobbyMapVote
-local LobbyMapVote = function( LobbyMapVoteIsEnabled )
-  if LobbyMapVoteIsEnabled == true then
-    Engine.Exec( nil, "LobbyStopDemo" )
+local lobbyMapVoteIsEnabled = enableLobbyMapVote
+local lobbyMapVote = function(lobbyMapVoteIsEnabled)
+  if lobbyMapVoteIsEnabled == true then
+    Engine.Exec(nil, "LobbyStopDemo")
   end
 end
 
 local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
-
   if menuId == LobbyData.UITargets.UI_MPLOBBYMAIN.id then
     utils.RemoveSpaces(buttonTable)
-    utils.AddSpacer(buttonTable, utils.GetButtonIndex(buttonTable, CoD.LobbyButtons.THEATER_MP)-1)
+    utils.AddSpacer(buttonTable, utils.GetButtonIndex(buttonTable, CoD.LobbyButtons.THEATER_MP) - 1)
   end
 
   if menuId == LobbyData.UITargets.UI_MPLOBBYONLINE.id or menuId == LobbyData.UITargets.UI_ZMLOBBYONLINE.id then
@@ -100,11 +99,10 @@ local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
   end
 
   if menuId == LobbyData.UITargets.UI_MPLOBBYONLINE.id then
-    LobbyMapVoteIsEnabled = EnableLobbyMapVote
-    if EnableLargeServerBrowserButton then
+    lobbyMapVoteIsEnabled = enableLobbyMapVote
+    if enableLargeServerBrowserButton then
       utils.AddLargeButton(controller, buttonTable, CoD.LobbyButtons.SERVER_BROWSER, 1)
     end
-
   elseif menuId == LobbyData.UITargets.UI_MPLOBBYONLINEPUBLICGAME.id then
     utils.RemoveButton(buttonTable, CoD.LobbyButtons.MP_PUBLIC_LOBBY_LEADERBOARD)
 
@@ -112,9 +110,8 @@ local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
     utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.GameSettingsFlyoutMP, 2)
     utils.AddSpacer(buttonTable, utils.GetButtonIndex(buttonTable, CoD.LobbyButtons.GameSettingsFlyoutMP))
 
-    LobbyMapVote( LobbyMapVoteIsEnabled )
-    LobbyMapVoteIsEnabled = false
-
+    lobbyMapVote(lobbyMapVoteIsEnabled)
+    lobbyMapVoteIsEnabled = false
   elseif menuId == LobbyData.UITargets.UI_MPLOBBYONLINEARENAGAME.id then
     utils.AddLargeButton(controller, buttonTable, CoD.LobbyButtons.MP_START_GAME, 1)
     utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.GameSettingsFlyoutArenas, 2)
@@ -125,11 +122,11 @@ local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
   if menuId == LobbyData.UITargets.UI_ZMLOBBYONLINE.id then
     -- utils.RemoveButton(buttonTable,CoD.LobbyButtons.ZM_FIND_MATCH)
     utils.RemoveButton(buttonTable, CoD.LobbyButtons.THEATER_ZM)
-    utils.AddLargeButton(controller, buttonTable, CoD.LobbyButtons.THEATER_ZM, #buttonTable+1)
+    utils.AddLargeButton(controller, buttonTable, CoD.LobbyButtons.THEATER_ZM, #buttonTable + 1)
 
     utils.RemoveSpaces(buttonTable)
     utils.AddSpacer(buttonTable, utils.GetButtonIndex(buttonTable, CoD.LobbyButtons.SERVER_BROWSER))
-    utils.AddSpacer(buttonTable, utils.GetButtonIndex(buttonTable, CoD.LobbyButtons.ZM_BUBBLEGUM_BUFFS)-1)
+    utils.AddSpacer(buttonTable, utils.GetButtonIndex(buttonTable, CoD.LobbyButtons.ZM_BUBBLEGUM_BUFFS) - 1)
     utils.AddSpacer(buttonTable, utils.GetButtonIndex(buttonTable, CoD.LobbyButtons.STATS))
   end
 end

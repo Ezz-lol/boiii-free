@@ -18,9 +18,9 @@ end
 
 local RemoveButton = function(buttonTable, button)
   for id, v in pairs(buttonTable) do
-	if buttonTable[id].optionDisplay == button.stringRef then
-	   table.remove(buttonTable,id)
-	end
+    if buttonTable[id].optionDisplay == button.stringRef then
+      table.remove(buttonTable, id)
+    end
   end
 end
 
@@ -33,8 +33,8 @@ end
 local GetButtonIndex = function(buttonTable, button)
   for id, v in pairs(buttonTable) do
     if buttonTable[id].optionDisplay == button.stringRef then
-	  return id
-	end
+      return id
+    end
   end
 end
 
