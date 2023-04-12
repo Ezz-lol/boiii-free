@@ -98,7 +98,7 @@ namespace game
 	WEAK symbol<const char*(const char* name)> CopyString{0x1422AC220, 0x14056BD70};
 
 	WEAK symbol<bool()> isModLoaded{0x1420D5020};
-	WEAK symbol<void(int, const char*, int)> loadMod{0x1420D6930};
+	WEAK symbol<void(int, const char*, bool)> loadMod{0x1420D6930};
 
 	// Dvar
 	WEAK symbol<bool(const dvar_t* dvar)> Dvar_IsSessionModeBaseDvar{0x1422C23A0, 0x140576890};
