@@ -41,9 +41,9 @@ namespace utils
 		this->offset_ += length;
 	}
 
-	std::vector<uint8_t> byte_buffer::read_data(const size_t length)
+	std::string byte_buffer::read_data(const size_t length)
 	{
-		std::vector<uint8_t> result{};
+		std::string result{};
 		result.resize(length);
 
 		this->read(result.data(), result.size());

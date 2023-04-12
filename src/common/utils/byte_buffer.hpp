@@ -20,6 +20,11 @@ namespace utils
 
 		void write(const void* buffer, size_t length);
 
+		void write(const char* text)
+		{
+			this->write(text, strlen(text));
+		}
+
 		void write_string(const char* str, const size_t length)
 		{
 			this->write<uint32_t>(static_cast<uint32_t>(length));
@@ -40,6 +45,13 @@ namespace utils
 		void write(const T& object)
 		{
 			this->write(&object, sizeof(object));
+		}
+
+		template<>
+		void write<byte_buffer>(const byte_buffer& object)
+		{
+			const auto& buffer = object.get_buffer();
+			this->write(buffer.data(), buffer.size());
 		}
 
 		template <typename T>
@@ -109,7 +121,17 @@ namespace utils
 			return result;
 		}
 
-		std::vector<uint8_t> read_data(size_t length);
+		size_t get_remaining_size() const
+		{
+			return this->buffer_.size() - offset_;
+		}
+
+		std::string get_remaining_data()
+		{
+			return this->read_data(this->get_remaining_size());
+		}
+
+		std::string read_data(size_t length);
 
 	private:
 		bool writing_{false};
