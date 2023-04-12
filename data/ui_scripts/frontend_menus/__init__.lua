@@ -6,9 +6,9 @@ local enableLobbyMapVote = true             -- toggle map vote in public lobby
 local enableLargeServerBrowserButton = true -- toggle large server browser button
 
 local utils = require("utils")
-require("DataSources_StartMenuTabs")
-require("DataSources_ChangeMapCategories")
-require("DataSources_GameSettingsFlyoutButtons")
+require("datasources_start_menu_tabs")
+require("datasources_change_map_categories")
+require("datasources_gamesettingslyout_buttons")
 
 CoD.LobbyButtons.MP_PUBLIC_MATCH = {
   stringRef = "MENU_PLAY_CAPS",
