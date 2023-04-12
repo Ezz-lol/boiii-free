@@ -199,7 +199,7 @@ namespace auth
 				scheduler::once([t = target, p = std::move(final_packet)]
 				{
 					dispatch_connect_packet(t, p);
-				});
+				}, scheduler::server);
 			}
 		}
 	}
