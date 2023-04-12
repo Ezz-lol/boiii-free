@@ -63,7 +63,7 @@ namespace bots
 					entry = entry.substr(0, pos);
 				}
 
-				bot_names.emplace_back(std::make_pair(entry, clan_abbrev));
+				bot_names.emplace_back(entry, clan_abbrev);
 			}
 
 			return bot_names;
