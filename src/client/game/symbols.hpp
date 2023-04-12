@@ -75,6 +75,9 @@ namespace game
 	WEAK symbol<bool(const char* zoneName, int source)> DB_FileExists{0x141420B40};
 	WEAK symbol<void()> DB_ReleaseXAssets{0x1414247C0};
 
+	// G
+	WEAK symbol<void()> G_ClearVehicleInputs{0x1423812E0, 0x1405C1200};
+
 	// Live
 	WEAK symbol<bool(uint64_t, int*, bool)> Live_GetConnectivityInformation{0x141E0C380};
 

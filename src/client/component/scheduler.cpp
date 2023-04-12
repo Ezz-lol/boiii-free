@@ -88,7 +88,6 @@ namespace scheduler
 		task_pipeline pipelines[pipeline::count];
 
 		utils::hook::detour r_end_frame_hook;
-		utils::hook::detour g_run_frame_hook;
 		utils::hook::detour main_frame_hook;
 
 
@@ -98,9 +97,9 @@ namespace scheduler
 			r_end_frame_hook.invoke<void>();
 		}
 
-		void server_frame_stub()
+		void g_clear_vehicle_inputs_stub()
 		{
-			g_run_frame_hook.invoke<void>();
+			game::G_ClearVehicleInputs();
 			execute(pipeline::server);
 		}
 
@@ -168,12 +167,14 @@ namespace scheduler
 		{
 			if (!game::is_server())
 			{
-				r_end_frame_hook.create(0x142272B00_g, r_end_frame_stub);
 				// some func called before R_EndFrame, maybe SND_EndFrame?
+				r_end_frame_hook.create(0x142272B00_g, r_end_frame_stub);
 			}
 
-			main_frame_hook.create(game::select(0x1420F8E00, 0x1405020E0), main_frame_stub);
 			// Com_Frame_Try_Block_Function
+			main_frame_hook.create(game::select(0x1420F8E00, 0x1405020E0), main_frame_stub);
+
+			utils::hook::call(game::select(0x14225522E, 0x140538427), g_clear_vehicle_inputs_stub);
 		}
 
 		void pre_destroy() override

@@ -196,7 +196,10 @@ namespace auth
 			std::string final_packet{};
 			if (game::fragment_handler::handle(target, buffer, final_packet))
 			{
-				dispatch_connect_packet(target, final_packet);
+				scheduler::once([t = target, p = std::move(final_packet)]
+				{
+					dispatch_connect_packet(t, p);
+				});
 			}
 		}
 	}
