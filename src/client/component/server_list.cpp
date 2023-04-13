@@ -93,7 +93,7 @@ namespace server_list
 
 		std::string get_favorite_servers_file_path()
 		{
-			return "players/user/favorite_servers.csv";
+			return "players/user/favorite_servers.txt";
 		}
 
 		void write_favorite_servers()
@@ -101,12 +101,7 @@ namespace server_list
 			std::string servers_buffer = "";
 			for (auto itr : favorite_servers)
 			{
-				servers_buffer.append(utils::string::va("%u,%u\n", itr.addr, itr.port));
-			}
-
-			if (servers_buffer.empty())
-			{
-				return;
+				servers_buffer.append(utils::string::va("%i.%i.%i.%i:%u\n", itr.ipv4.a, itr.ipv4.b, itr.ipv4.c, itr.ipv4.d, itr.port));
 			}
 
 			utils::io::write_file(get_favorite_servers_file_path(), servers_buffer);
@@ -126,12 +121,9 @@ namespace server_list
 			if (utils::io::read_file(path, &filedata))
 			{
 				auto servers = utils::string::split(filedata, '\n');
-				for (auto server_data : servers)
+				for (auto server_address : servers)
 				{
-					auto data = utils::string::split(server_data, ',');
-					auto addr = std::stoul(data[0].c_str());
-					auto port = (uint16_t)atoi(data[1].c_str());
-					auto server = network::address_from_ip(addr, port);
+					auto server = network::address_from_string(server_address);
 					favorite_servers.push_back(server);
 				}
 			}
@@ -229,7 +221,10 @@ namespace server_list
 
 			lua_serverinfo_to_table_hook.create(0x141F1FD10_g, lua_serverinfo_to_table_stub);
 
-			read_favorite_servers();
+			scheduler::loop([]
+			{
+				read_favorite_servers();
+			}, scheduler::main);
 		}
 
 		void pre_destroy() override
