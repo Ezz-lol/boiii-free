@@ -2,6 +2,10 @@
 #include "loader/component_loader.hpp"
 
 #include <game/game.hpp>
+#include <game/utils.hpp>
+
+#include "scheduler.hpp"
+
 #include <utils/hook.hpp>
 
 namespace patches
@@ -34,6 +38,11 @@ namespace patches
 			utils::hook::set<uint8_t>(game::select(0x14224DA53, 0x140531143), 3);
 			utils::hook::set<uint8_t>(game::select(0x14224DBB4, 0x1405312A8), 3);
 			utils::hook::set<uint8_t>(game::select(0x14224DF8C, 0x1405316DC), 3);
+
+			scheduler::once([]
+			{
+				game::register_dvar_string("password", "", game::DVAR_USERINFO, "password");
+			}, scheduler::pipeline::main);
 		}
 	};
 }
