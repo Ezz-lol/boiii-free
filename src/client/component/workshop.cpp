@@ -65,26 +65,15 @@ namespace workshop
 
 	std::string get_mod_name(const std::string& mod_id)
 	{
-		if (mod_id == "usermaps")
+		if (mod_id == "usermaps" || !game::is_server())
 		{
 			return mod_id;
 		}
 
 		const utils::nt::library host{};
-		std::string path;
-
-		if (game::is_server())
-		{
-			const auto base_path = host.get_folder().generic_string();
-			path = utils::string::va("%s/mods/%s/zone/workshop.json", base_path.data(), mod_id.data());
-		}
-		else
-		{
-			return mod_id;
-		}
-
-		std::string json_str;
-		utils::io::read_file(path, &json_str);
+		const auto base_path = host.get_folder().generic_string();
+		const auto path = utils::string::va("%s/mods/%s/zone/workshop.json", base_path.data(), mod_id.data());
+		const auto json_str = utils::io::read_file(path);
 
 		if (json_str.empty())
 		{
@@ -112,11 +101,9 @@ namespace workshop
 
 			return title;
 		}
-		else
-		{
-			printf("[ Workshop ] workshop.json has no \"Title\" member.\n");
-			return mod_id;
-		}
+
+		printf("[ Workshop ] workshop.json has no \"Title\" member.\n");
+		return mod_id;
 	}
 
 	std::string get_usermap_publisher_id(const std::string& mapname)
@@ -139,7 +126,8 @@ namespace workshop
 	{
 		if (!game::DB_FileExists(mapname.data(), 0) && pub_id.empty())
 		{
-			game::Com_Error(0, "Can't find usermap: %s!\nMake sure you're subscribed to the workshop item.", mapname.data());
+			game::UI_OpenErrorPopupWithMessage(0, 0x100,
+				utils::string::va("Can't find usermap: %s!\nMake sure you're subscribed to the workshop item.", mapname.data()));
 			return false;
 		}
 
@@ -155,7 +143,8 @@ namespace workshop
 
 		if (!has_mod(mod))
 		{
-			game::Com_Error(0, "Can't find mod with publisher id: %s!\nMake sure you're subscribed to the workshop item.", mod.data());
+			game::UI_OpenErrorPopupWithMessage(0, 0x100,
+				utils::string::va("Can't find mod with publisher id: %s!\nMake sure you're subscribed to the workshop item.", mod.data()));
 			return false;
 		}
 
