@@ -88,12 +88,18 @@ namespace workshop
 
 		if (json_str.empty())
 		{
-			printf("[ Workshop ] Workshop.json has not been found in mod folder: %s", mod_id.data());
+			printf("[ Workshop ] workshop.json has not been found in mod folder: %s\n", mod_id.data());
 			return mod_id;
 		}
 
 		rapidjson::Document doc;
-		doc.Parse(json_str);
+		const rapidjson::ParseResult parse_result = doc.Parse(json_str);
+
+		if (parse_result.IsError() || !doc.IsObject())
+		{
+			printf("[ Workshop ] Unable to parse workshop.json\n");
+			return mod_id;
+		}
 
 		if (doc.HasMember("Title"))
 		{
@@ -108,7 +114,7 @@ namespace workshop
 		}
 		else
 		{
-			printf("[ Workshop ] Workshop.json has no \"Title\" member.");
+			printf("[ Workshop ] workshop.json has no \"Title\" member.\n");
 			return mod_id;
 		}
 	}
