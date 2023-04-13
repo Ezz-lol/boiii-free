@@ -17,26 +17,32 @@ function __init__()
 function init()
 {
 	level.hostname = GetDvarString( "sv_hostname");
-	if(level.hostname == "")
+	if (level.hostname == "")
+	{
 		level.hostname = "CoDHost";
+	}
+
 	SetDvar("sv_hostname", level.hostname);
 	SetDvar("ui_hostname", level.hostname);
 
 	level.motd = GetDvarString( "scr_motd" );
 	if(level.motd == "")
+	{
 		level.motd = "";
+	}
 	SetDvar("scr_motd", level.motd);
 	SetDvar("ui_motd", level.motd);
 
-	level.allowvote = GetDvarString( "g_allowvote");
+	level.allowvote = GetDvarString( "g_allowvote" );
 	if(level.allowvote == "")
+	{
 		level.allowvote = "1";
+	}
 	SetDvar("g_allowvote", level.allowvote);
 	SetDvar("ui_allowvote", level.allowvote);
-	
+
 	level.allow_teamchange = "1";
 	SetDvar("ui_allow_teamchange", level.allow_teamchange);
-
 
 	level.friendlyfire = GetGametypeSetting( "friendlyfiretype" );
 
@@ -56,6 +62,8 @@ function init()
 
 	constrain_gametype(GetDvarString( "g_gametype"));
 	constrain_map_size(level.mapsize);
+
+	thread setup_callbacks();
 
 	for(;;)
 	{
@@ -193,4 +201,14 @@ function constrain_map_size(mapsize)
 			}
 		}
 	}
+}
+
+function setup_callbacks()
+{
+	level.onForfeit = &default_onForfeit;
+}
+
+function default_onForfeit()
+{
+	level.gameForfeited = false;
 }
