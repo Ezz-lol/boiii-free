@@ -63,7 +63,7 @@ namespace workshop
 		}
 	}
 
-	const std::string get_mod_name(const std::string& mod_id)
+	std::string get_mod_name(const std::string& mod_id)
 	{
 		if (mod_id == "usermaps")
 		{
@@ -113,7 +113,7 @@ namespace workshop
 		}
 	}
 
-	const std::string get_usermap_publisher_id(const std::string& mapname)
+	std::string get_usermap_publisher_id(const std::string& mapname)
 	{
 		const auto total_usermaps = *reinterpret_cast<unsigned int*>(0x1567B3580_g);
 
