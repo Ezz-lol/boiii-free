@@ -116,6 +116,9 @@ namespace client_patches
 		{
 			fix_amd_cpu_stuttering();
 
+			// Don't modify process priority
+			utils::hook::nop(0x142334C98_g, 6);
+
 			// Kill microphones for now
 			utils::hook::set(0x15AAE9254_g, mixer_open_stub);
 
