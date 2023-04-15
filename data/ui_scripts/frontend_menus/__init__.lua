@@ -120,7 +120,6 @@ local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
   end
 
   if menuId == LobbyData.UITargets.UI_ZMLOBBYONLINE.id then
-    -- utils.RemoveButton(buttonTable,CoD.LobbyButtons.ZM_FIND_MATCH)
     utils.RemoveButton(buttonTable, CoD.LobbyButtons.THEATER_ZM)
     utils.AddLargeButton(controller, buttonTable, CoD.LobbyButtons.THEATER_ZM, #buttonTable + 1)
 
