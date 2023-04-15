@@ -37,12 +37,12 @@ namespace party
 		}
 
 		void connect_to_lobby(const game::netadr_t& addr, const std::string& mapname, const std::string& gamemode,
-		                      const std::string& pub_id)
+		                      const std::string& usermap_id, const std::string& mod_id)
 		{
-			workshop::load_usermap_mod_if_needed(pub_id);
+			workshop::load_mod_if_needed(usermap_id, mod_id);
 
 			game::XSESSION_INFO info{};
-			game::CL_ConnectFromLobby(0, &info, &addr, 1, 0, mapname.data(), gamemode.data(), pub_id.data());
+			game::CL_ConnectFromLobby(0, &info, &addr, 1, 0, mapname.data(), gamemode.data(), usermap_id.data());
 		}
 
 		void launch_mode(const game::eModes mode)
@@ -56,12 +56,12 @@ namespace party
 		}
 
 		void connect_to_lobby_with_mode(const game::netadr_t& addr, const game::eModes mode, const std::string& mapname,
-		                                const std::string& gametype, const std::string& pub_id,
+		                                const std::string& gametype, const std::string& usermap_id, const std::string& mod_id,
 		                                const bool was_retried = false)
 		{
 			if (game::Com_SessionMode_IsMode(mode))
 			{
-				connect_to_lobby(addr, mapname, gametype, pub_id);
+				connect_to_lobby(addr, mapname, gametype, usermap_id, mod_id);
 				return;
 			}
 
@@ -69,7 +69,7 @@ namespace party
 			{
 				scheduler::once([=]
 				{
-					connect_to_lobby_with_mode(addr, mode, mapname, gametype, pub_id, true);
+					connect_to_lobby_with_mode(addr, mode, mapname, gametype, usermap_id, mod_id, true);
 				}, scheduler::main, 5s);
 
 				launch_mode(mode);
@@ -177,6 +177,8 @@ namespace party
 				return;
 			}
 
+			const auto mod_id = info.get("fs_game");
+
 			//const auto hostname = info.get("sv_hostname");
 			const auto playmode = info.get("playmode");
 			const auto mode = static_cast<game::eModes>(std::atoi(playmode.data()));
@@ -184,9 +186,10 @@ namespace party
 
 			scheduler::once([=]
 			{
-				const auto publisher_id = workshop::get_usermap_publisher_id(mapname);
+				const auto usermap_id = workshop::get_usermap_publisher_id(mapname);
 
-				if (workshop::check_valid_publisher_id(mapname, publisher_id))
+				if (workshop::check_valid_usermap_id(mapname, usermap_id) &&
+				    workshop::check_valid_mod_id(mod_id))
 				{
 					if (is_connecting_to_dedi)
 					{
@@ -194,7 +197,7 @@ namespace party
 					}
 
 					//connect_to_session(target, hostname, xuid, mode);
-					connect_to_lobby_with_mode(target, mode, mapname, gametype, publisher_id);
+					connect_to_lobby_with_mode(target, mode, mapname, gametype, usermap_id, mod_id);
 				}
 			}, scheduler::main);
 		}

@@ -107,8 +107,6 @@ namespace auth
 
 			buffer.write_string(data, static_cast<size_t>(length));
 
-			printf("Serialized with size: %llX\n", buffer.get_buffer().size());
-
 			return buffer.move_buffer();
 		}
 

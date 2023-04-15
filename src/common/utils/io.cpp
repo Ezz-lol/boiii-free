@@ -194,18 +194,19 @@ namespace utils::io
 
 	std::vector<std::filesystem::path> list_files(const std::filesystem::path& directory, const bool recursive)
 	{
+		std::error_code code{};
 		std::vector<std::filesystem::path> files;
 
 		if (recursive)
 		{
-			for (auto& file : std::filesystem::recursive_directory_iterator(directory))
+			for (auto& file : std::filesystem::recursive_directory_iterator(directory, code))
 			{
 				files.push_back(file.path());
 			}
 		}
 		else
 		{
-			for (auto& file : std::filesystem::directory_iterator(directory))
+			for (auto& file : std::filesystem::directory_iterator(directory, code))
 			{
 				files.push_back(file.path());
 			}

@@ -104,7 +104,7 @@ namespace game
 	WEAK symbol<const char*(const char* name)> CopyString{0x1422AC220, 0x14056BD70};
 
 	WEAK symbol<bool()> isModLoaded{0x1420D5020};
-	WEAK symbol<void(int, const char*, int)> loadMod{0x1420D6930};
+	WEAK symbol<void(int, const char*, bool)> loadMod{0x1420D6930};
 
 	// Dvar
 	WEAK symbol<bool(const dvar_t* dvar)> Dvar_IsSessionModeBaseDvar{0x1422C23A0, 0x140576890};
@@ -145,6 +145,7 @@ namespace game
 	};
 
 	// UI
+	WEAK symbol<void(int localClientNumber, int errorcode, const char* errorMessage)> UI_OpenErrorPopupWithMessage{0x14228DEE0};
 	WEAK symbol<void(bool frontend)> UI_CoD_Init{0x141F29010, 0x1404A0A50};
 	WEAK symbol<void()> UI_CoD_LobbyUI_Init{0x141F2BD80, 0x1404A1F50};
 	WEAK symbol<void()> UI_CoD_Shutdown{0x141F32E10, 0x0};
