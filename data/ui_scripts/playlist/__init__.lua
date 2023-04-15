@@ -17,5 +17,5 @@ Engine.SetDvar( "lobbyTimerStatusStartInterval", 10 )
 Engine.SetDvar( "lobbyTimerStatusPostGameInterval", 10 )
 Engine.SetDvar( "lobbyTimerStatusVotingInterval_Arena", 11000 )
 
-require("DataSources_playlistMatchSettingsInfo")
-require("DataSources_playlistCategoryMatchSettingsInfo")
+require("widget_playlist_match_settings_info")
+require("widget_playlist_category_match_settings_info")
