@@ -7,19 +7,17 @@ function ShouldUnloadMod(arg0)
 end
 
 -- Load usermaps mod if custom map selected
-local mustLoadUsermaps = function(arg0, arg1)
-	if CoD.perController[arg1].mapCategory == CoD.CONTENT_MODS_INDEX then
+local mustLoadUsermaps = function(element, controller)
+	if CoD.perController[controller].mapCategory == CoD.CONTENT_MODS_INDEX then
 		if not Engine.IsUsingMods() then
-			LuaUtils.Mods_LoadMod("usermaps") -- LuaUtils.Mods_LoadMod(arg0.loadModName)
+			LuaUtils.Mods_LoadMod("usermaps") -- LuaUtils.Mods_LoadMod(element.loadModName)
 
-			local MENU_MODS_CAPS = Engine.Localize("MENU_MODS_CAPS")
-			local PLATFORM_MODS_LOADED = Engine.Localize("PLATFORM_MODS_LOADED")
-			CoD.OverlayUtility.ShowToast("DefaultState", MENU_MODS_CAPS, PLATFORM_MODS_LOADED .. " " .. arg0.mapName)
+			CoD.OverlayUtility.ShowToast("DefaultState", Engine.Localize("MENU_MODS_CAPS"), Engine.Localize("PLATFORM_MODS_LOADED") .. " " .. element.mapName)
 		end
 	end
 end
 
-function MapSelected(arg0, arg1)
-	SetMap(arg1, arg0.mapName, false)
-	mustLoadUsermaps(arg0, arg1)
+function MapSelected(element, controller)
+	SetMap(controller, element.mapName, false)
+	mustLoadUsermaps(element, controller)
 end
