@@ -28,7 +28,7 @@ namespace server_list
 
 		utils::concurrency::container<state> master_state;
 
-		std::vector<game::netadr_t> favorite_servers{};
+		std::unordered_set<game::netadr_t> favorite_servers{};
 
 		void handle_server_list_response(const game::netadr_t& target,
 		                                 const network::data_view& data, state& s)
@@ -124,7 +124,7 @@ namespace server_list
 				for (auto server_address : servers)
 				{
 					auto server = network::address_from_string(server_address);
-					favorite_servers.push_back(server);
+					favorite_servers.insert(server);
 				}
 			}
 		}
@@ -157,12 +157,7 @@ namespace server_list
 
 	void add_favorite_server(game::netadr_t addr)
 	{
-		if (has_favorited_server(addr))
-		{
-			return;
-		}
-
-		favorite_servers.push_back(addr);
+		favorite_servers.insert(addr);
 		write_favorite_servers();
 	}
 
@@ -180,10 +175,9 @@ namespace server_list
 		write_favorite_servers();
 	}
 
-	bool has_favorited_server(game::netadr_t addr)
+	std::unordered_set<game::netadr_t>* get_favorite_servers()
 	{
-		auto it = std::find_if(favorite_servers.begin(), favorite_servers.end(), [&addr](const game::netadr_t& obj) { return network::are_addresses_equal(addr, obj); });
-		return it != favorite_servers.end();
+		return &favorite_servers;
 	}
 
 	struct component final : client_component
@@ -221,7 +215,7 @@ namespace server_list
 
 			lua_serverinfo_to_table_hook.create(0x141F1FD10_g, lua_serverinfo_to_table_stub);
 
-			scheduler::loop([]
+			scheduler::once([]
 			{
 				read_favorite_servers();
 			}, scheduler::main);

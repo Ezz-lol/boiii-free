@@ -10,5 +10,5 @@ namespace server_list
 
 	void add_favorite_server(game::netadr_t addr);
 	void remove_favorite_server(game::netadr_t addr);
-	bool has_favorited_server(game::netadr_t addr);
+	std::unordered_set<game::netadr_t>* get_favorite_servers();
 }

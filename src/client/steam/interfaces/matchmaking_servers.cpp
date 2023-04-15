@@ -26,8 +26,10 @@ namespace steam
 
 		using servers = std::vector<server>;
 
-		::utils::concurrency::container<servers> queried_servers{};
-		std::atomic<matchmaking_server_list_response*> current_response{};
+		::utils::concurrency::container<servers> internet_servers{};
+		::utils::concurrency::container<servers> favorites_servers{};
+		std::atomic<matchmaking_server_list_response*> internet_response{};
+		std::atomic<matchmaking_server_list_response*> favorites_response{};
 
 		gameserveritem_t create_server_item(const game::netadr_t& address, const ::utils::info_string& info,
 		                                    const uint32_t ping, const bool success)
@@ -70,11 +72,12 @@ namespace steam
 		}
 
 		void handle_server_respone(const bool success, const game::netadr_t& host, const ::utils::info_string& info,
-		                           const uint32_t ping)
+		                           const uint32_t ping, ::utils::concurrency::container<servers>* server_list,
+								   std::atomic<matchmaking_server_list_response*>* response, void* request)
 		{
 			bool all_handled = false;
 			std::optional<int> index{};
-			queried_servers.access([&](servers& srvs)
+			server_list->access([&](servers& srvs)
 			{
 				size_t i = 0;
 				for (; i < srvs.size(); ++i)
@@ -108,7 +111,7 @@ namespace steam
 				all_handled = true;
 			});
 
-			const auto res = current_response.load();
+			const auto res = response->load();
 			if (!index || !res)
 			{
 				return;
@@ -116,33 +119,46 @@ namespace steam
 
 			if (success)
 			{
-				res->ServerResponded(internet_request, *index);
+				res->ServerResponded(request, *index);
 			}
 			else
 			{
-				res->ServerFailedToRespond(internet_request, *index);
+				res->ServerFailedToRespond(request, *index);
 			}
 
 			if (all_handled)
 			{
-				res->RefreshComplete(internet_request, eServerResponded);
+				res->RefreshComplete(request, eServerResponded);
 			}
 		}
 
-		void ping_server(const game::netadr_t& server)
+		void handle_internet_server_response(const bool success, const game::netadr_t& host, const ::utils::info_string& info,
+			const uint32_t ping)
 		{
-			party::query_server(server, handle_server_respone);
+			handle_server_respone(success, host, info, ping, &internet_servers, &internet_response, internet_request);
+		}
+
+
+		void handle_favorites_server_response(const bool success, const game::netadr_t& host, const ::utils::info_string& info,
+			const uint32_t ping)
+		{
+			handle_server_respone(success, host, info, ping, &favorites_servers, &favorites_response, favorites_request);
+		}
+
+		void ping_server(const game::netadr_t& server, party::query_callback callback)
+		{
+			party::query_server(server, callback);
 		}
 	}
 
 	void* matchmaking_servers::RequestInternetServerList(unsigned int iApp, void** ppchFilters, unsigned int nFilters,
 	                                                     matchmaking_server_list_response* pRequestServersResponse)
 	{
-		current_response = pRequestServersResponse;
+		internet_response = pRequestServersResponse;
 
 		server_list::request_servers([](const bool success, const std::unordered_set<game::netadr_t>& s)
 		{
-			const auto res = current_response.load();
+			const auto res = internet_response.load();
 			if (!res)
 			{
 				return;
@@ -160,7 +176,7 @@ namespace steam
 				return;
 			}
 
-			queried_servers.access([&s](servers& srvs)
+			internet_servers.access([&s](servers& srvs)
 			{
 				srvs = {};
 				srvs.reserve(s.size());
@@ -177,7 +193,7 @@ namespace steam
 
 			for (auto& srv : s)
 			{
-				ping_server(srv);
+				ping_server(srv, handle_internet_server_response);
 			}
 		});
 
@@ -199,52 +215,41 @@ namespace steam
 	void* matchmaking_servers::RequestFavoritesServerList(unsigned int iApp, void** ppchFilters, unsigned int nFilters,
 	                                                      matchmaking_server_list_response* pRequestServersResponse)
 	{
-		current_response = pRequestServersResponse;
+		favorites_response = pRequestServersResponse;
 
-		server_list::request_servers([](const bool success, const std::unordered_set<game::netadr_t>& s)
+		const auto res = favorites_response.load();
+		if (!res)
+		{
+			return favorites_request;
+		}
+
+		auto s = server_list::get_favorite_servers();
+
+		if (s->empty())
+		{
+			res->RefreshComplete(favorites_request, eNoServersListedOnMasterServer);
+			return favorites_request;
+		}
+
+		favorites_servers.access([s](servers& srvs)
+		{
+			srvs = {};
+			srvs.reserve(s->size());
+
+			for (auto& address : *s)
 			{
-				const auto res = current_response.load();
-				if (!res)
-				{
-					return;
-				}
+				server new_server{};
+				new_server.address = address;
+				new_server.server_item = create_server_item(address, {}, 0, false);
 
-				if (!success)
-				{
-					res->RefreshComplete(favorites_request, eServerFailedToRespond);
-					return;
-				}
+				srvs.push_back(new_server);
+			}
+		});
 
-				if (s.empty())
-				{
-					res->RefreshComplete(favorites_request, eNoServersListedOnMasterServer);
-					return;
-				}
-
-				queried_servers.access([&s](servers& srvs)
-					{
-						srvs = {};
-						srvs.reserve(s.size());
-
-						for (auto& address : s)
-						{
-							if (!server_list::has_favorited_server(address))
-							{
-								continue;
-							}
-							server new_server{};
-							new_server.address = address;
-							new_server.server_item = create_server_item(address, {}, 0, false);
-
-							srvs.push_back(new_server);
-						}
-					});
-
-				for (auto& srv : s)
-				{
-					ping_server(srv);
-				}
-			});
+		for (auto& srv : *s)
+		{
+			ping_server(srv, handle_favorites_server_response);
+		}
 
 		return favorites_request;
 	}
@@ -265,19 +270,25 @@ namespace steam
 	{
 		if (internet_request == hServerListRequest)
 		{
-			current_response = nullptr;
+			internet_response = nullptr;
+		}
+		if (favorites_request == hServerListRequest)
+		{
+			favorites_response = nullptr;
 		}
 	}
 
 	gameserveritem_t* matchmaking_servers::GetServerDetails(void* hRequest, int iServer)
 	{
-		if (internet_request != hRequest)
+		if (internet_request != hRequest && favorites_request != hRequest)
 		{
 			return nullptr;
 		}
 
+		auto servers_list = hRequest == favorites_request ? &favorites_servers : &internet_servers;
+
 		static thread_local gameserveritem_t server_item{};
-		return queried_servers.access<gameserveritem_t*>([iServer](const servers& s) -> gameserveritem_t*
+		return servers_list->access<gameserveritem_t*>([iServer](const servers& s) -> gameserveritem_t*
 		{
 			if (iServer < 0 || static_cast<size_t>(iServer) >= s.size())
 			{
@@ -304,12 +315,13 @@ namespace steam
 
 	int matchmaking_servers::GetServerCount(void* hRequest)
 	{
-		if (internet_request != hRequest)
+		if (internet_request != hRequest && favorites_request != hRequest)
 		{
 			return 0;
 		}
 
-		return queried_servers.access<int>([](const servers& s)
+		auto servers_list = hRequest == favorites_request ? &favorites_servers : &internet_servers;
+		return servers_list->access<int>([](const servers& s)
 		{
 			return static_cast<int>(s.size());
 		});
@@ -317,13 +329,14 @@ namespace steam
 
 	void matchmaking_servers::RefreshServer(void* hRequest, const int iServer)
 	{
-		if (internet_request != hRequest)
+		if (internet_request != hRequest && favorites_request != hRequest)
 		{
 			return;
 		}
 
 		std::optional<game::netadr_t> address{};
-		queried_servers.access([&](const servers& s)
+		auto servers_list = hRequest == favorites_request ? &favorites_servers : &internet_servers;
+		servers_list->access([&](const servers& s)
 		{
 			if (iServer < 0 || static_cast<size_t>(iServer) >= s.size())
 			{
@@ -335,7 +348,8 @@ namespace steam
 
 		if (address)
 		{
-			ping_server(*address);
+			auto callback = hRequest == favorites_request ? handle_favorites_server_response : handle_internet_server_response;
+			ping_server(*address, callback);
 		}
 	}
 
