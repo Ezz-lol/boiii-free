@@ -3,11 +3,9 @@
 #using scripts\shared\callbacks_shared;
 #using scripts\shared\system_shared;
 
-#insert scripts\shared\shared.gsh;
-
 #namespace serversettings;
 
-REGISTER_SYSTEM( "serversettings", &__init__, undefined )
+function autoexec __init__sytem__() {     system::register("serversettings",&__init__,undefined,undefined);    }
 	
 function __init__()
 {
@@ -17,36 +15,33 @@ function __init__()
 function init()
 {
 	level.hostname = GetDvarString( "sv_hostname");
-	if (level.hostname == "")
-	{
+	if(level.hostname == "")
 		level.hostname = "CoDHost";
-	}
-
 	SetDvar("sv_hostname", level.hostname);
 	SetDvar("ui_hostname", level.hostname);
+	//makeDvarServerInfo("ui_hostname", "CoDHost");
 
 	level.motd = GetDvarString( "scr_motd" );
 	if(level.motd == "")
-	{
 		level.motd = "";
-	}
 	SetDvar("scr_motd", level.motd);
 	SetDvar("ui_motd", level.motd);
+	//makeDvarServerInfo("ui_motd", "");
 
 	level.allowvote = GetDvarString( "g_allowvote" );
 	if(level.allowvote == "")
-	{
 		level.allowvote = "1";
-	}
 	SetDvar("g_allowvote", level.allowvote);
 	SetDvar("ui_allowvote", level.allowvote);
-
+	//makeDvarServerInfo("ui_allowvote", "1");
+	
 	level.allow_teamchange = "1";
 	SetDvar("ui_allow_teamchange", level.allow_teamchange);
 
 	level.friendlyfire = GetGametypeSetting( "friendlyfiretype" );
 
 	SetDvar("ui_friendlyfire", level.friendlyfire);
+	//makeDvarServerInfo("ui_friendlyfire", "0");
 
 	if(GetDvarString( "scr_mapsize") == "")
 		SetDvar("scr_mapsize", "64");
@@ -62,7 +57,7 @@ function init()
 
 	constrain_gametype(GetDvarString( "g_gametype"));
 	constrain_map_size(level.mapsize);
-
+	
 	thread setup_callbacks();
 
 	for(;;)
@@ -88,7 +83,7 @@ function update()
 		SetDvar("ui_motd", level.motd);
 	}
 
-	g_allowvote = GetDvarString( "g_allowvote");
+	g_allowvote = GetDvarString( "g_allowvote" );
 	if(level.allowvote != g_allowvote)
 	{
 		level.allowvote = g_allowvote;
