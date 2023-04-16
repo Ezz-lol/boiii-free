@@ -42,7 +42,18 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup( "MPStatsSettings", fu
 			},
 		}, nil, updateDvar ))
 	end 
-    table.insert( optionsTable, CoD.OptionsUtility.CreateDvarSettings( controller, "Unlock All Attachments", "All attachments on weapons are unlocked.", "MPStatsSettings_unlockall_attachments", "cg_unlockall_attachments", {
+	table.insert( optionsTable, CoD.OptionsUtility.CreateDvarSettings( controller, "Unlock All Class Slots", "Unlock all create-a-class slots and sets.", "MPStatsSettings_unlockall_cac_slots", "cg_unlockall_cac_slots", {
+		{
+			option = "MENU_DISABLED",
+			value = 0,
+			default = true
+		},
+		{
+			option = "MENU_ENABLED",
+			value = 1
+		},
+	}, nil, updateDvar ))
+	table.insert( optionsTable, CoD.OptionsUtility.CreateDvarSettings( controller, "Unlock All Attachments", "All attachments on weapons are unlocked.", "MPStatsSettings_unlockall_attachments", "cg_unlockall_attachments", {
 		{
 			option = "MENU_DISABLED",
 			value = 0,
