@@ -74,12 +74,12 @@ namespace steam
 		}
 
 		void handle_server_respone(const bool success, const game::netadr_t& host, const ::utils::info_string& info,
-		                           const uint32_t ping, ::utils::concurrency::container<servers>* server_list,
-								   std::atomic<matchmaking_server_list_response*>* response, void* request)
+		                           const uint32_t ping, ::utils::concurrency::container<servers>& server_list,
+								   std::atomic<matchmaking_server_list_response*>& response, void* request)
 		{
 			bool all_handled = false;
 			std::optional<int> index{};
-			server_list->access([&](servers& srvs)
+			server_list.access([&](servers& srvs)
 			{
 				size_t i = 0;
 				for (; i < srvs.size(); ++i)
@@ -113,7 +113,7 @@ namespace steam
 				all_handled = true;
 			});
 
-			const auto res = response->load();
+			const auto res = response.load();
 			if (!index || !res)
 			{
 				return;
@@ -137,14 +137,14 @@ namespace steam
 		void handle_internet_server_response(const bool success, const game::netadr_t& host, const ::utils::info_string& info,
 			const uint32_t ping)
 		{
-			handle_server_respone(success, host, info, ping, &internet_servers, &internet_response, internet_request);
+			handle_server_respone(success, host, info, ping, internet_servers, internet_response, internet_request);
 		}
 
 
 		void handle_favorites_server_response(const bool success, const game::netadr_t& host, const ::utils::info_string& info,
 			const uint32_t ping)
 		{
-			handle_server_respone(success, host, info, ping, &favorites_servers, &favorites_response, favorites_request);
+			handle_server_respone(success, host, info, ping, favorites_servers, favorites_response, favorites_request);
 		}
 
 		void ping_server(const game::netadr_t& server, party::query_callback callback)
@@ -227,7 +227,7 @@ namespace steam
 
 		auto s = server_list::get_favorite_servers();
 
-		if (s->empty())
+		if (s.empty())
 		{
 			res->RefreshComplete(favorites_request, eNoServersListedOnMasterServer);
 			return favorites_request;
@@ -236,9 +236,9 @@ namespace steam
 		favorites_servers.access([s](servers& srvs)
 		{
 			srvs = {};
-			srvs.reserve(s->size());
+			srvs.reserve(s.size());
 
-			for (auto& address : *s)
+			for (auto& address : s)
 			{
 				server new_server{};
 				new_server.address = address;
@@ -248,7 +248,7 @@ namespace steam
 			}
 		});
 
-		for (auto& srv : *s)
+		for (auto& srv : s)
 		{
 			ping_server(srv, handle_favorites_server_response);
 		}

@@ -175,9 +175,9 @@ namespace server_list
 		write_favorite_servers();
 	}
 
-	std::unordered_set<game::netadr_t>* get_favorite_servers()
+	std::unordered_set<game::netadr_t>& get_favorite_servers()
 	{
-		return &favorite_servers;
+		return favorite_servers;
 	}
 
 	struct component final : client_component
