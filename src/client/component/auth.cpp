@@ -172,9 +172,12 @@ namespace auth
 
 			game::foreach_connected_client([&](const game::client_s& client, size_t index)
 			{
-				network::send(client.address, "playerXuid", buffer.get_buffer());
+				if (client.address.type != game::NA_BOT)
+				{
+					network::send(client.address, "playerXuid", buffer.get_buffer());
+				}
 
-				if (index != player_index)
+				if (index != player_index && target.type != game::NA_BOT)
 				{
 					utils::byte_buffer current_buffer{};
 					current_buffer.write(static_cast<uint32_t>(index));
@@ -183,6 +186,30 @@ namespace auth
 					network::send(target, "playerXuid", current_buffer.get_buffer());
 				}
 			});
+		}
+
+		void handle_new_player(const game::netadr_t& target)
+		{
+			const command::params_sv params{};
+			if (params.size() < 2)
+			{
+				return;
+			}
+
+			const utils::info_string info_string(params[1]);
+			const auto xuid = strtoull(info_string.get("xuid").data(), nullptr, 16);
+
+			size_t player_index = 18;
+			game::foreach_connected_client([&](game::client_s& client, size_t index)
+			{
+				if (client.address == target)
+				{
+					client.xuid = xuid;
+					player_index = index;
+				}
+			});
+
+			distribute_player_xuid(target, player_index, xuid);
 		}
 
 		void dispatch_connect_packet(const game::netadr_t& target, const std::string& data)
@@ -206,18 +233,7 @@ namespace auth
 			profile_infos::add_and_distribute_profile_info(target, xuid, info);
 
 			game::SV_DirectConnect(target);
-
-			size_t player_index = 18;
-			game::foreach_connected_client([&](game::client_s& client, size_t index)
-			{
-				if (client.address == target)
-				{
-					client.xuid = xuid;
-					player_index = index;
-				}
-			});
-
-			distribute_player_xuid(target, player_index, xuid);
+			handle_new_player(target);
 		}
 
 		void handle_connect_packet_fragment(const game::netadr_t& target, const network::data_view& data)
@@ -255,6 +271,12 @@ namespace auth
 			{
 				client_xuids[player_id] = xuid;
 			}
+		}
+
+		void direct_connect_bots_stub(const game::netadr_t address)
+		{
+			game::SV_DirectConnect(address);
+			handle_new_player(address);
 		}
 	}
 
@@ -307,6 +329,9 @@ namespace auth
 			utils::hook::set<uint8_t>(game::select(0x142253EFA, 0x14053714A), 0xEB);
 			network::on("connect", handle_connect_packet_fragment);
 			network::on("playerXuid", handle_player_xuid_packet);
+
+			// Intercept SV_DirectConnect in SV_AddTestClient
+			utils::hook::call(game::select(0x1422490DC, 0x14052E582), direct_connect_bots_stub);
 
 			// Patch steam id bit check
 			std::vector<std::pair<size_t, size_t>> patches{};
