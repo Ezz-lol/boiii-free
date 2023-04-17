@@ -165,7 +165,7 @@ namespace auth
 			buffer.write(static_cast<uint32_t>(player_index));
 			buffer.write(xuid);
 
-			game::foreach_connected_client([&](const game::client_s& client, size_t index)
+			game::foreach_connected_client([&](const game::client_s& client, const size_t index)
 			{
 				if (client.address.type != game::NA_BOT)
 				{
@@ -195,7 +195,7 @@ namespace auth
 			const auto xuid = strtoull(info_string.get("xuid").data(), nullptr, 16);
 
 			size_t player_index = 18;
-			game::foreach_connected_client([&](game::client_s& client, size_t index)
+			game::foreach_connected_client([&](game::client_s& client, const size_t index)
 			{
 				if (client.address == target)
 				{
