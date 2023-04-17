@@ -135,6 +135,11 @@ namespace auth
 
 		int send_connect_data_stub(const game::netsrc_t sock, game::netadr_t* adr, const char* data, const int len)
 		{
+			for (auto& xuid : client_xuids)
+			{
+				xuid = 0;
+			}
+
 			try
 			{
 				const auto is_connect_sequence = len >= 7 && strncmp("connect", data, 7) == 0;
