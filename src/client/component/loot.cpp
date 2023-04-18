@@ -58,7 +58,7 @@ namespace loot
 			}
 
 			// Item id for extra CaC slots
-			if (dvar_cg_unlockall_cac_slots->current.value.enabled && (item_id == 99003))
+			if (dvar_cg_unlockall_cac_slots->current.value.enabled && item_id == 99003)
 			{
 				return 1;
 			}
@@ -211,7 +211,7 @@ namespace loot
 				{
 					game::Dvar_SetFromStringByName("ui_enableAllHeroes", "1", true);
 				}
-				}, scheduler::pipeline::dvars_loaded);
+			}, scheduler::pipeline::dvars_loaded);
 		}
 	};
 };
