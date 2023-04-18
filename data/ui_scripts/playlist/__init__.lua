@@ -2,23 +2,21 @@ if Engine.GetCurrentMap() ~= "core_frontend" then
 	return
 end
 
-if not CoD.LobbyMember then
-	return
-end
-
-local oldLobbyMember = CoD.LobbyMember.new
-function CoD.LobbyMember.new(menu, controller)
-	local self = oldLobbyMember(menu, controller)
-
-	-- Hide the playlist count text
-	if self.SearchingForPlayer then
-		self.SearchingForPlayer:setAlpha(0)
+if CoD.LobbyMember then
+	local oldLobbyMember = CoD.LobbyMember.new
+	function CoD.LobbyMember.new(menu, controller)
+		local self = oldLobbyMember(menu, controller)
+	
+		-- Hide the playlist count text
+		if self.SearchingForPlayer then
+			self.SearchingForPlayer:setAlpha(0)
+		end
+		if self.FEMemberBlurPanelContainer0 then
+			self.FEMemberBlurPanelContainer0:setAlpha(0)
+		end
+	
+		return self
 	end
-	if self.FEMemberBlurPanelContainer0 then
-		self.FEMemberBlurPanelContainer0:setAlpha(0)
-	end
-
-	return self
 end
 
 function IsLobbyStatusVisible()
