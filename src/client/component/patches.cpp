@@ -12,6 +12,19 @@ namespace patches
 {
 	namespace
 	{
+		utils::hook::detour sv_executeclientmessages_hook;
+
+		void sv_executeclientmessages_stub(game::client_s* client, game::msg_t* msg)
+		{
+			if (client->reliableAcknowledge < 0)
+			{
+				client->reliableAcknowledge = client->reliableSequence;
+				return;
+			}
+
+			sv_executeclientmessages_hook.invoke<void>(client, msg);
+		}
+
 		void script_errors_stub(const char* file, int line, unsigned int code, const char* fmt, ...)
 		{
 			char buffer[0x1000];
@@ -38,6 +51,9 @@ namespace patches
 			utils::hook::set<uint8_t>(game::select(0x14224DA53, 0x140531143), 3);
 			utils::hook::set<uint8_t>(game::select(0x14224DBB4, 0x1405312A8), 3);
 			utils::hook::set<uint8_t>(game::select(0x14224DF8C, 0x1405316DC), 3);
+
+			// make sure client's reliableAck are not negative
+			sv_executeclientmessages_hook.create(game::select(0x14224A460, 0x14052F840), sv_executeclientmessages_stub);
 
 			scheduler::once([]
 			{

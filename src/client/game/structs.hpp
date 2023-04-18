@@ -1583,14 +1583,22 @@ namespace game
 		int client_state;
 		char __pad0[0x28];
 		netadr_t address;
-		char __pad1[0x5588];
+		char gap_3C[20468];
+		int reliableSequence;
+		int reliableAcknowledge;
+		char gap_5038[4];
+		int messageAcknowledge;
+		char gap_5040[1416];
 		uint64_t xuid;
 		char __pad2[0xB5D84];
 		int guid;
 		char __pad3[0x8];
 		bool bIsTestClient;
-		char __pad4[0x29DAC];
+		char gap_BB361[3];
+		int serverId;
+		char gap_BB368[171432];
 	};
+
 
 #ifdef __cplusplus
 	static_assert(sizeof(client_s) == 0xE5110);
