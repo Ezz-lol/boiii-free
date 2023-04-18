@@ -78,6 +78,8 @@ namespace game
 	// G
 	WEAK symbol<void()> G_ClearVehicleInputs{0x1423812E0, 0x1405C1200};
 
+	WEAK symbol<qboolean(void* ent)> StuckInClient{0x1415A8360, 0x14023BFE0};
+
 	// Live
 	WEAK symbol<bool(uint64_t, int*, bool)> Live_GetConnectivityInformation{0x141E0C380};
 
