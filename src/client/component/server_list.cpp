@@ -6,6 +6,7 @@
 
 #include <utils/string.hpp>
 #include <utils/concurrency.hpp>
+#include <utils/hook.hpp>
 
 #include "network.hpp"
 #include "scheduler.hpp"
@@ -14,6 +15,8 @@ namespace server_list
 {
 	namespace
 	{
+		utils::hook::detour lua_serverinfo_to_table_hook;
+
 		struct state
 		{
 			game::netadr_t address{};
@@ -72,6 +75,17 @@ namespace server_list
 			}
 
 			callback(true, result);
+		}
+
+		void lua_serverinfo_to_table_stub(game::hks::lua_State* state, game::ServerInfo serverInfo, int index)
+		{
+			lua_serverinfo_to_table_hook.invoke(state, serverInfo, index);
+
+			if (state)
+			{
+				auto botCount = atoi(game::Info_ValueForKey(serverInfo.tags, "bots"));
+				game::Lua_SetTableInt("botCount", botCount, state);
+			}
 		}
 	}
 
@@ -132,6 +146,8 @@ namespace server_list
 					s.callback = {};
 				});
 			}, scheduler::async, 200ms);
+
+			lua_serverinfo_to_table_hook.create(0x141F1FD10_g, lua_serverinfo_to_table_stub);
 		}
 
 		void pre_destroy() override

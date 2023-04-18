@@ -10,6 +10,8 @@
 
 #include "network.hpp"
 
+#include "game/fragment_handler.hpp"
+
 namespace network
 {
 	namespace
@@ -35,7 +37,18 @@ namespace network
 
 			const std::basic_string_view data(message->data + offset, message->cursize - offset);
 
-			handler->second(*address, data);
+			try
+			{
+				handler->second(*address, data);
+			}
+			catch (const std::exception& e)
+			{
+				printf("Error: %s\n", e.what());
+			}
+			catch (...)
+			{
+			}
+
 			return 0;
 		}
 
@@ -150,7 +163,6 @@ namespace network
 				       : 0;
 		}
 
-
 		uint64_t ret2()
 		{
 			return 2;
@@ -159,6 +171,15 @@ namespace network
 		int bind_stub(SOCKET /*s*/, const sockaddr* /*addr*/, int /*namelen*/)
 		{
 			return 0;
+		}
+
+		void com_error_oob_stub(const char* file, int line, int code, [[maybe_unused]] const char* fmt, const char* error)
+		{
+			char buffer[1024]{};
+
+			strncpy_s(buffer, error, _TRUNCATE);
+
+			game::Com_Error_(file, line, code, "%s", buffer);
 		}
 	}
 
@@ -245,10 +266,44 @@ namespace network
 		return a.port == b.port && a.addr == b.addr;
 	}
 
+	int net_sendpacket_stub(const game::netsrc_t sock, const int length, const char* data, const game::netadr_t* to)
+	{
+		//printf("Sending packet of size: %X\n", length);
+
+		if (to->type != game::NA_RAWIP)
+		{
+			printf("NET_SendPacket: bad address type\n");
+			return 0;
+		}
+
+		const auto s = *game::ip_socket;
+		if (!s || sock > game::NS_MAXCLIENTS)
+		{
+			return 0;
+		}
+
+		sockaddr_in address{};
+		address.sin_family = AF_INET;
+		address.sin_port = htons(to->port);
+		address.sin_addr.s_addr = htonl(((to->ipv4.c | ((to->ipv4.b | (to->ipv4.a << 8)) << 8)) << 8) | to->ipv4.d);
+
+		const auto size = static_cast<size_t>(length);
+
+		std::vector<char> buffer{};
+		buffer.resize(size + 1);
+		buffer[0] = static_cast<char>((static_cast<uint32_t>(sock) & 0xF) | ((to->localNetID & 0xF) << 4));
+		memcpy(buffer.data() + 1, data, size);
+
+		return sendto(s, buffer.data(), static_cast<int>(buffer.size()), 0, reinterpret_cast<sockaddr*>(&address),
+		              sizeof(address));
+	}
+
 	struct component final : generic_component
 	{
 		void post_unpack() override
 		{
+			scheduler::loop(game::fragment_handler::clean, scheduler::async, 5s);
+
 			utils::hook::nop(game::select(0x1423322B6, 0x140596DF6), 4);
 			// don't increment data pointer to optionally skip socket byte
 			utils::hook::call(game::select(0x142332283, 0x140596DC3), read_socket_byte_stub);
@@ -256,6 +311,9 @@ namespace network
 			utils::hook::call(game::select(0x1423322C1, 0x140596E01), verify_checksum_stub);
 			// skip checksum verification
 			utils::hook::set<uint8_t>(game::select(0x14233249E, 0x140596F2E), 0); // don't add checksum to packet
+
+			// Recreate NET_SendPacket to increase max packet size
+			//utils::hook::jump(game::select(0x1423323B0, 0x140596E40), net_sendpacket_stub);
 
 			utils::hook::set<uint32_t>(game::select(0x14134C6E0, 0x14018E574), 5);
 			// set initial connection state to challenging
@@ -271,10 +329,21 @@ namespace network
 			// NA_IP -> NA_RAWIP in NetAdr_ToString
 			utils::hook::set<uint8_t>(game::select(0x142172ED4, 0x140515864), game::NA_RAWIP);
 
+			// Kill 'echo' OOB handler
+			utils::hook::set<uint8_t>(game::select(0x14134D0FB, 0x14018EE82), 0xEB);
+
 			if (game::is_server())
 			{
 				// Remove restrictions for rcon commands
-				utils::hook::call(0x140538D5C_g, &con_restricted_execute_buf_stub); // SVC_RemoteCommand
+				utils::hook::call(0x140538D5C_g, con_restricted_execute_buf_stub); // SVC_RemoteCommand
+
+				// Kill 'error' OOB handler on the dedi
+				utils::hook::nop(0x14018EF8B_g, 5);
+			}
+			else
+			{
+				// Truncate error string to make sure there are no buffer overruns later
+				utils::hook::call(0x14134D206_g, com_error_oob_stub);
 			}
 
 			// TODO: Fix that

@@ -50,6 +50,7 @@
 #include <atlsafe.h>
 #include <iphlpapi.h>
 #include <wincrypt.h>
+#include <dwmapi.h>
 #include <shellscalingapi.h>
 #include <d3d11.h>
 #include <dxgi1_6.h>
@@ -64,6 +65,7 @@
 #endif
 
 #include <map>
+#include <array>
 #include <atomic>
 #include <vector>
 #include <mutex>

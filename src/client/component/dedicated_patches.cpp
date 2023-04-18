@@ -36,22 +36,22 @@ namespace dedicated_patches
 		{
 			const std::vector<uintptr_t> is_mod_loaded_addresses =
 			{
-				{ 0x14019CFC4_g },
-				{ 0x14024D4A0_g },
-				{ 0x14024D669_g },
-				{ 0x14024D939_g },
-				{ 0x14024DC64_g },
-				{ 0x14024E13A_g },
-				{ 0x14024E5A3_g },
-				{ 0x14024FFB9_g },
-				{ 0x140251E9E_g },
-				{ 0x140253680_g },
-				{ 0x140257BF6_g },
-				{ 0x1402D296D_g },
-				{ 0x1402D58E9_g },
-				{ 0x140468374_g },
-				{ 0x14046B796_g },
-				{ 0x14048003D_g },
+				{0x14019CFC4_g},
+				{0x14024D4A0_g},
+				{0x14024D669_g},
+				{0x14024D939_g},
+				{0x14024DC64_g},
+				{0x14024E13A_g},
+				{0x14024E5A3_g},
+				{0x14024FFB9_g},
+				{0x140251E9E_g},
+				{0x140253680_g},
+				{0x140257BF6_g},
+				{0x1402D296D_g},
+				{0x1402D58E9_g},
+				{0x140468374_g},
+				{0x14046B796_g},
+				{0x14048003D_g},
 			};
 
 			for (const auto& address : is_mod_loaded_addresses)
@@ -68,25 +68,20 @@ namespace dedicated_patches
 			spawn_server_hook.invoke(controllerIndex, server, preload, savegame);
 		}
 
-		uint64_t sv_get_player_xuid_stub(int client_num)
+		uint64_t sv_get_player_xuid_stub(const int client_num)
 		{
-			return static_cast<uint64_t>(game::svs_clients[client_num].xuid);
-		}
-
-		int sv_get_guid(int client_num)
-		{
-			if (client_num < 0 || client_num >= game::Dvar_GetInt(*game::com_maxclients))
+			const auto* clients = *game::svs_clients;
+			if (!clients)
 			{
 				return 0;
 			}
 
-			return game::svs_clients[client_num].xuid;
+			return clients[client_num].xuid;
 		}
 	}
 
 	struct component final : server_component
 	{
-		static_assert(offsetof(game::client_s, xuid) == 0xBB354);
 
 		void post_unpack() override
 		{
@@ -109,7 +104,9 @@ namespace dedicated_patches
 			utils::hook::jump(0x14052F0F5_g, 0x14052F139_g);
 
 			utils::hook::call(0x1402853D7_g, sv_get_player_xuid_stub); // PlayerCmd_GetXuid
-			utils::hook::call(0x140283303_g, sv_get_guid); // PlayerCmd_GetGuid
+
+			// Stop executing default_dedicated.cfg & language_settings.cfg
+			utils::hook::set<uint8_t>(0x1405063C0_g, 0xC3);
 		}
 	};
 }

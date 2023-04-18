@@ -15,6 +15,8 @@ namespace dedicated
 {
 	namespace
 	{
+		const game::dvar_t* sv_lan_only;
+
 		void sv_con_tell_f_stub(game::client_s* cl_0, game::svscmd_type type, [[maybe_unused]] const char* fmt,
 		                        [[maybe_unused]] int c, char* text)
 		{
@@ -23,6 +25,11 @@ namespace dedicated
 
 		void send_heartbeat_packet()
 		{
+			if (sv_lan_only->current.value.enabled)
+			{
+				return;
+			}
+
 			game::netadr_t target{};
 			if (server_list::get_master_server(target))
 			{
@@ -64,11 +71,14 @@ namespace dedicated
 			// Fix tell command for IW4M
 			utils::hook::call(0x14052A8CF_g, sv_con_tell_f_stub);
 
+			scheduler::once(send_heartbeat, scheduler::pipeline::main);
 			scheduler::loop(send_heartbeat, scheduler::pipeline::main, 5min);
 			command::add("heartbeat", send_heartbeat);
 
 			// Hook GScr_ExitLevel
 			utils::hook::jump(0x1402D1AA0_g, trigger_map_rotation);
+
+			sv_lan_only = game::register_dvar_bool("sv_lanOnly", false, game::DVAR_NONE, "Don't send heartbeats");
 		}
 	};
 }

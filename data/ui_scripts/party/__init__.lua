@@ -71,7 +71,7 @@ DataSources.StartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOpti
 		end
 	elseif CoD.isZombie then
 		table.insert(options, {models = {displayText = "MENU_RESUMEGAME_CAPS", action = StartMenuGoBack_ListElement}})
-		if Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_GAME) and (not not (Engine.SessionModeIsMode(CoD.SESSIONMODE_SYSTEMLINK) == true) or Engine.SessionModeIsMode(CoD.SESSIONMODE_OFFLINE) == true) then
+		if Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_GAME) and (not Engine.SessionModeIsMode(CoD.SESSIONMODE_SYSTEMLINK) or Engine.SessionModeIsMode(CoD.SESSIONMODE_OFFLINE)) then
 			table.insert(options, {models = {displayText = "MENU_RESTART_LEVEL_CAPS", action = RestartGame}})
 		end
 		if Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_GAME) == true then

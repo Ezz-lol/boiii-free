@@ -3,9 +3,11 @@
 #include "game/game.hpp"
 
 #include "party.hpp"
+#include "auth.hpp"
 #include "network.hpp"
 #include "scheduler.hpp"
 #include "workshop.hpp"
+#include "profile_infos.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -36,12 +38,14 @@ namespace party
 		}
 
 		void connect_to_lobby(const game::netadr_t& addr, const std::string& mapname, const std::string& gamemode,
-			                  const std::string& pub_id)
+		                      const std::string& usermap_id, const std::string& mod_id)
 		{
-			workshop::load_usermap_mod_if_needed(pub_id);
+			auth::clear_stored_guids();
+
+			workshop::load_mod_if_needed(usermap_id, mod_id);
 
 			game::XSESSION_INFO info{};
-			game::CL_ConnectFromLobby(0, &info, &addr, 1, 0, mapname.data(), gamemode.data(), pub_id.data());
+			game::CL_ConnectFromLobby(0, &info, &addr, 1, 0, mapname.data(), gamemode.data(), usermap_id.data());
 		}
 
 		void launch_mode(const game::eModes mode)
@@ -55,11 +59,13 @@ namespace party
 		}
 
 		void connect_to_lobby_with_mode(const game::netadr_t& addr, const game::eModes mode, const std::string& mapname,
-		                                const std::string& gametype, const std::string& pub_id, const bool was_retried = false)
+		                                const std::string& gametype, const std::string& usermap_id,
+		                                const std::string& mod_id,
+		                                const bool was_retried = false)
 		{
 			if (game::Com_SessionMode_IsMode(mode))
 			{
-				connect_to_lobby(addr, mapname, gametype, pub_id);
+				connect_to_lobby(addr, mapname, gametype, usermap_id, mod_id);
 				return;
 			}
 
@@ -67,7 +73,7 @@ namespace party
 			{
 				scheduler::once([=]
 				{
-					connect_to_lobby_with_mode(addr, mode, mapname, gametype, pub_id, true);
+					connect_to_lobby_with_mode(addr, mode, mapname, gametype, usermap_id, mod_id, true);
 				}, scheduler::main, 5s);
 
 				launch_mode(mode);
@@ -144,6 +150,13 @@ namespace party
 
 			is_connecting_to_dedi = info.get("dedicated") == "1";
 
+			if (atoi(info.get("protocol").data()) != PROTOCOL)
+			{
+				const auto str = "Invalid protocol.";
+				printf("%s\n", str);
+				return;
+			}
+
 			const auto gamename = info.get("gamename");
 			if (gamename != "T7"s)
 			{
@@ -168,6 +181,8 @@ namespace party
 				return;
 			}
 
+			const auto mod_id = info.get("fs_game");
+
 			//const auto hostname = info.get("sv_hostname");
 			const auto playmode = info.get("playmode");
 			const auto mode = static_cast<game::eModes>(std::atoi(playmode.data()));
@@ -175,9 +190,10 @@ namespace party
 
 			scheduler::once([=]
 			{
-				const auto publisher_id = workshop::get_usermap_publisher_id(mapname);
+				const auto usermap_id = workshop::get_usermap_publisher_id(mapname);
 
-				if (workshop::check_valid_publisher_id(mapname, publisher_id))
+				if (workshop::check_valid_usermap_id(mapname, usermap_id) &&
+					workshop::check_valid_mod_id(mod_id))
 				{
 					if (is_connecting_to_dedi)
 					{
@@ -185,7 +201,7 @@ namespace party
 					}
 
 					//connect_to_session(target, hostname, xuid, mode);
-					connect_to_lobby_with_mode(target, mode, mapname, gametype, publisher_id);
+					connect_to_lobby_with_mode(target, mode, mapname, gametype, usermap_id, mod_id);
 				}
 			}, scheduler::main);
 		}
@@ -203,6 +219,7 @@ namespace party
 				connect_host = target;
 			}
 
+			profile_infos::clear_profile_infos();
 			query_server(connect_host, handle_connect_query_response);
 		}
 
@@ -304,6 +321,11 @@ namespace party
 		constexpr auto local_client_num = 0ull;
 		const auto address = *reinterpret_cast<uint64_t*>(0x1453D8BB8_g) + (0x25780 * local_client_num) + 0x10;
 		return *reinterpret_cast<game::netadr_t*>(address);
+	}
+
+	bool is_host(const game::netadr_t& addr)
+	{
+		return get_connected_server() == addr || connect_host == addr;
 	}
 
 	struct component final : client_component

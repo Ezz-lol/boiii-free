@@ -45,6 +45,11 @@ namespace utils::concurrency
 			return object_;
 		}
 
+		std::unique_lock<MutexType> acquire_lock()
+		{
+			return std::unique_lock<MutexType>{mutex_};
+		}
+
 	private:
 		mutable MutexType mutex_{};
 		T object_{};

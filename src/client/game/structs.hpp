@@ -1,6 +1,6 @@
 #pragma once
 
-#define PROTOCOL 1
+#define PROTOCOL 3
 
 #ifdef __cplusplus
 namespace game
@@ -689,6 +689,7 @@ namespace game
 			byte color[4];
 			const dvar_t* indirect[3];
 		} value;
+
 		uint64_t encryptedValue;
 	};
 
@@ -699,26 +700,31 @@ namespace game
 			int stringCount;
 			const char** strings;
 		} enumeration;
+
 		struct
 		{
 			int min;
 			int max;
 		} integer;
+
 		struct
 		{
 			int64_t min;
 			int64_t max;
 		} integer64;
+
 		struct
 		{
 			uint64_t min;
 			uint64_t max;
 		} unsignedInt64;
+
 		struct
 		{
 			float min;
 			float max;
 		} value;
+
 		struct
 		{
 			vec_t min;
@@ -1028,7 +1034,33 @@ namespace game
 		JoinResult joinResult;
 	};
 
+	struct ServerInfo
+	{
+		uint16_t m_usConnectionPort;
+		uint16_t m_usQueryPort;
+		uint32_t m_unIP;
+		int m_nPing;
+		byte unk[0x22];
+		char mapname[32];
+		char description[64];
+		char gamemode[16];
+		char modname[32];
+		int playerCount;
+		int maxPlayers;
+		int unk2;
+		int unk3;
+		int unk4;
+		bool dedicated;
+		bool ranked;
+		bool hardcore;
+		bool zombies;
+		char servername[64];
+		char tags[128];
+		int unk5;
+		int unk6;
+	};
 
+#ifdef __cplusplus
 	namespace hks
 	{
 		struct lua_State;
@@ -1051,7 +1083,7 @@ namespace game
 
 		typedef size_t hksSize;
 		typedef void* (*lua_Alloc)(void*, void*, size_t, size_t);
-		typedef hksInt32(*lua_CFunction)(lua_State*);
+		typedef hksInt32 (*lua_CFunction)(lua_State*);
 
 		struct GenericChunkHeader
 		{
@@ -1108,11 +1140,14 @@ namespace game
 			TNUMBER = 0x3,
 			TSTRING = 0x4,
 			TTABLE = 0x5,
-			TFUNCTION = 0x6,  // idk
+			TFUNCTION = 0x6,
+			// idk
 			TUSERDATA = 0x7,
 			TTHREAD = 0x8,
-			TIFUNCTION = 0x9, // Lua function
-			TCFUNCTION = 0xA, // C function
+			TIFUNCTION = 0x9,
+			// Lua function
+			TCFUNCTION = 0xA,
+			// C function
 			TUI64 = 0xB,
 			TSTRUCT = 0xC,
 			NUM_TYPE_OBJECTS = 0xE,
@@ -1294,7 +1329,7 @@ namespace game
 			int _m_isHksGlobalMemoTestingMode;
 			HksCompilerSettings_BytecodeSharingFormat m_bytecodeSharingFormat;
 			HksCompilerSettings_IntLiteralOptions m_enableIntLiterals;
-			int(*m_debugMap)(const char*, int);
+			int (*m_debugMap)(const char*, int);
 		};
 
 		enum HksBytecodeSharingMode : __int64
@@ -1504,7 +1539,7 @@ namespace game
 			void* m_profiler;
 			RuntimeProfileData m_runProfilerData;
 			HksCompilerSettings m_compilerSettings;
-			int(*m_panicFunction)(lua_State*);
+			int (*m_panicFunction)(lua_State*);
 			void* m_luaplusObjectList;
 			int m_heapAssertionFrequency;
 			int m_heapAssertionCount;
@@ -1533,6 +1568,7 @@ namespace game
 			HksError m_error;
 		};
 	}
+#endif
 
 	typedef uint32_t ScrVarCanonicalName_t;
 
@@ -1544,14 +1580,43 @@ namespace game
 
 	struct client_s
 	{
-		char __pad0[0xBB354];
-		int xuid;
-		char __pad1[0x8];
+		int client_state;
+		char __pad0[0x28];
+		netadr_t address;
+		char __pad1[20468];
+		int reliableSequence;
+		int reliableAcknowledge;
+		char __pad2[4];
+		int messageAcknowledge;
+		char gap_5040[1416];
+		uint64_t xuid;
+		char __pad3[0xB5D84];
+		int guid;
+		char __pad4[0x8];
 		bool bIsTestClient;
-		char __pad2[0x29DAC];
+		char __pad5[3];
+		int serverId;
+		char __pad6[171432];
 	};
 
+
+#ifdef __cplusplus
 	static_assert(sizeof(client_s) == 0xE5110);
+
+	static_assert(offsetof(game::client_s, address) == 0x2C);
+	static_assert(offsetof(game::client_s, xuid) == 0x55C8);
+	static_assert(offsetof(game::client_s, guid) == 0xBB354);
+	static_assert(offsetof(game::client_s, bIsTestClient) == 0xBB360);
+#endif
+
+	struct client_s_cl : client_s
+	{
+		char __pad1_0[0x60];
+	};
+
+#ifdef __cplusplus
+	static_assert(sizeof(client_s_cl) == 0xE5170);
+#endif
 
 	enum scriptInstance_t
 	{
@@ -1581,7 +1646,9 @@ namespace game
 		unsigned char __pad1[0x2A0];
 	};
 
+#ifdef __cplusplus
 	static_assert(sizeof(gentity_s) == 0x4F8);
+#endif
 
 	enum workshop_type
 	{
@@ -1606,7 +1673,9 @@ namespace game
 		workshop_type type;
 	};
 
+#ifdef __cplusplus
 	static_assert(sizeof(workshop_data) == 0x4C8);
+#endif
 
 	struct DDLMember
 	{
@@ -1678,7 +1747,7 @@ namespace game
 	};
 
 	struct DDLContext;
-	typedef void(* DDLWriteCB)(DDLContext*, void*);
+	typedef void (* DDLWriteCB)(DDLContext*, void*);
 
 	struct DDLContext
 	{

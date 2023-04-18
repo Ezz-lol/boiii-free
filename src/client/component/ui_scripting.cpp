@@ -20,6 +20,7 @@ namespace ui_scripting
 		std::unordered_map<game::hks::cclosure*, std::function<arguments(const function_arguments& args)>>
 		converted_functions;
 
+		utils::hook::detour ui_init_hook;
 		utils::hook::detour ui_cod_init_hook;
 		utils::hook::detour ui_cod_lobbyui_init_hook;
 		utils::hook::detour cl_first_snapshot_hook;
@@ -192,7 +193,7 @@ namespace ui_scripting
 			state->m_global->m_bytecodeSharingMode = game::hks::HKS_BYTECODE_SHARING_SECURE;
 		}
 
-		void start()
+		void setup_lua_globals()
 		{
 			globals = {};
 
@@ -204,6 +205,12 @@ namespace ui_scripting
 			lua["print"] = function(reinterpret_cast<game::hks::lua_function>(0x141D30290_g)); // hks::base_print
 			lua["table"]["unpack"] = lua["unpack"];
 			lua["luiglobals"] = lua;
+			lua["Engine"]["IsBOIII"] = true;
+		}
+
+		void start()
+		{
+			setup_lua_globals();
 
 			const utils::nt::library host{};
 			const auto folder = game::is_server() ? "lobby_scripts/" : "ui_scripts/";
@@ -221,6 +228,13 @@ namespace ui_scripting
 			{
 				printf("Failed to load LUI scripts: %s\n", ex.what());
 			}
+		}
+
+		void ui_init_stub(void* allocFunction, void* outOfMemoryFunction)
+		{
+			ui_init_hook.invoke(allocFunction, outOfMemoryFunction);
+
+			setup_lua_globals();
 		}
 
 		bool doneFirstSnapshot = false;
@@ -467,6 +481,7 @@ namespace ui_scripting
 				return;
 			}
 
+			ui_init_hook.create(0x142704FF0_g, ui_init_stub);
 			cl_first_snapshot_hook.create(0x141320E60_g, cl_first_snapshot_stub);
 
 			scheduler::once([]()
