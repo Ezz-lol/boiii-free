@@ -177,7 +177,7 @@ namespace party
 				return;
 			}
 
-			const auto mod_id = info.get("fs_game");
+			const auto mod_id = info.get("modId");
 
 			//const auto hostname = info.get("sv_hostname");
 			const auto playmode = info.get("playmode");
@@ -185,7 +185,7 @@ namespace party
 			//const auto xuid = strtoull(info.get("xuid").data(), nullptr, 16);
 
 			scheduler::once([=]
-			{
+			{	
 				const auto usermap_id = workshop::get_usermap_publisher_id(mapname);
 
 				if (workshop::check_valid_usermap_id(mapname, usermap_id) &&

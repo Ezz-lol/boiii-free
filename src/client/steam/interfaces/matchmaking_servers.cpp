@@ -62,7 +62,7 @@ namespace steam
 				mode == game::MODE_ZOMBIES ? "true" : "false",
 				server.m_nPlayers,
 				atoi(info.get("bots").data()),
-				info.get("modname").data());
+				info.get("modName").data());
 
 			::utils::string::copy(server.m_szGameTags, tags);
 			server.m_steamID.bits = strtoull(info.get("xuid").data(), nullptr, 16);
