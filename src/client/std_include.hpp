@@ -65,6 +65,7 @@
 #endif
 
 #include <map>
+#include <array>
 #include <atomic>
 #include <vector>
 #include <mutex>

@@ -163,7 +163,6 @@ namespace network
 				       : 0;
 		}
 
-
 		uint64_t ret2()
 		{
 			return 2;
@@ -172,6 +171,15 @@ namespace network
 		int bind_stub(SOCKET /*s*/, const sockaddr* /*addr*/, int /*namelen*/)
 		{
 			return 0;
+		}
+
+		void com_error_oob_stub(const char* file, int line, int code, [[maybe_unused]] const char* fmt, const char* error)
+		{
+			char buffer[1024]{};
+
+			strncpy_s(buffer, error, _TRUNCATE);
+
+			game::Com_Error_(file, line, code, "%s", buffer);
 		}
 	}
 
@@ -321,10 +329,21 @@ namespace network
 			// NA_IP -> NA_RAWIP in NetAdr_ToString
 			utils::hook::set<uint8_t>(game::select(0x142172ED4, 0x140515864), game::NA_RAWIP);
 
+			// Kill 'echo' OOB handler
+			utils::hook::set<uint8_t>(game::select(0x14134D0FB, 0x14018EE82), 0xEB);
+
 			if (game::is_server())
 			{
 				// Remove restrictions for rcon commands
-				utils::hook::call(0x140538D5C_g, &con_restricted_execute_buf_stub); // SVC_RemoteCommand
+				utils::hook::call(0x140538D5C_g, con_restricted_execute_buf_stub); // SVC_RemoteCommand
+
+				// Kill 'error' OOB handler on the dedi
+				utils::hook::nop(0x14018EF8B_g, 5);
+			}
+			else
+			{
+				// Truncate error string to make sure there are no buffer overruns later
+				utils::hook::call(0x14134D206_g, com_error_oob_stub);
 			}
 
 			// TODO: Fix that

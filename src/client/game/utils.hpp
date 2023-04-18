@@ -24,4 +24,6 @@ namespace game
 
 	void foreach_connected_client(const std::function<void(client_s&, size_t index)>& callback);
 	void foreach_connected_client(const std::function<void(client_s&)>& callback);
+
+	bool access_connected_client(size_t index, const std::function<void(client_s&)>& callback);
 }
