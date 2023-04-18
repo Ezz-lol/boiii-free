@@ -14,15 +14,15 @@ namespace patches
 	{
 		utils::hook::detour sv_executeclientmessages_hook;
 
-		void sv_executeclientmessages_stub(game::client_s* cl, game::msg_t* msg)
+		void sv_executeclientmessages_stub(game::client_s* client, game::msg_t* msg)
 		{
-			if (cl->reliableAcknowledge < 0)
+			if (client->reliableAcknowledge < 0)
 			{
-				cl->reliableAcknowledge = cl->reliableSequence;
+				client->reliableAcknowledge = client->reliableSequence;
 				return;
 			}
 
-			sv_executeclientmessages_hook.invoke<void>(cl, msg);
+			sv_executeclientmessages_hook.invoke<void>(client, msg);
 		}
 
 		void script_errors_stub(const char* file, int line, unsigned int code, const char* fmt, ...)
