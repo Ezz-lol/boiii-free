@@ -20,7 +20,7 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
 
 	table.insert(optionsTable,
 		CoD.OptionsUtility.CreateDvarSettings(controller, "Unlock All Loot",
-			"Whether loot should be locked based on the player's stats or always unlocked.", "MPStatsSettings_unlock_loot",
+			"Unlocks all Black Market loot.", "MPStatsSettings_unlock_loot",
 			"cg_unlockall_loot", {
 				{
 					option = "MENU_DISABLED",
@@ -37,6 +37,20 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
 			CoD.OptionsUtility.CreateDvarSettings(controller, "Unlock All Purchases",
 				"All items that need to be purchased with unlock tokens are unlocked.", "MPStatsSettings_purchase_all",
 				"cg_unlockall_purchases", {
+					{
+						option = "MENU_DISABLED",
+						value = 0,
+						default = true
+					},
+					{
+						option = "MENU_ENABLED",
+						value = 1
+					},
+				}, nil, updateDvar))
+		table.insert(optionsTable,
+			CoD.OptionsUtility.CreateDvarSettings(controller, "Unlock All Class Slots",
+				"Unlocks all create-a-class slots and sets.", "MPStatsSettings_unlockall_cac_slots",
+				"cg_unlockall_cac_slots", {
 					{
 						option = "MENU_DISABLED",
 						value = 0,

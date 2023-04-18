@@ -17,6 +17,7 @@ namespace loot
 		const game::dvar_t* dvar_cg_unlockall_camos_and_reticles;
 		const game::dvar_t* dvar_cg_unlockall_calling_cards;
 		const game::dvar_t* dvar_cg_unlockall_specialists_outfits;
+		const game::dvar_t* dvar_cg_unlockall_cac_slots;
 
 		utils::hook::detour loot_getitemquantity_hook;
 		utils::hook::detour liveinventory_getitemquantity_hook;
@@ -30,7 +31,8 @@ namespace loot
 		utils::hook::detour bg_unlockablescharactercustomizationitemlocked_hook;
 		utils::hook::detour bg_emblemisentitlementbackgroundgranted_hook;
 		utils::hook::detour liveentitlements_isentitlementactiveforcontroller_hook;
-		
+		utils::hook::detour bg_unlockablesgetcustomclasscount_hook;
+
 		int loot_getitemquantity_stub(const game::ControllerIndex_t controller_index, const game::eModes mode, const int item_id)
 		{
 			if (!dvar_cg_unlockall_loot->current.value.enabled)
@@ -48,9 +50,15 @@ namespace loot
 
 		int liveinventory_getitemquantity_stub(const game::ControllerIndex_t controller_index, const int item_id)
 		{
-			// Item id's for extra CaC slots, CWL camo's and paid specialist outfits
+			// Item id's for CWL camo's and paid specialist outfits
 			if (dvar_cg_unlockall_loot->current.value.enabled && (item_id == 99003 || item_id >= 99018 && item_id <= 99021 || item_id == 99025 ||
 				item_id >= 90047 && item_id <= 90064))
+			{
+				return 1;
+			}
+
+			// Item id for extra CaC slots
+			if (dvar_cg_unlockall_cac_slots->current.value.enabled && item_id == 99003)
 			{
 				return 1;
 			}
@@ -60,7 +68,7 @@ namespace loot
 
 		bool liveinventory_areextraslotspurchased_stub(const game::ControllerIndex_t controller_index)
 		{
-			if (dvar_cg_unlockall_loot->current.value.enabled)
+			if (dvar_cg_unlockall_cac_slots->current.value.enabled)
 			{
 				return true;
 			}
@@ -160,9 +168,19 @@ namespace loot
 
 			return liveentitlements_isentitlementactiveforcontroller_hook.invoke<bool>(controllerIndex, incentiveId);
 		}
+
+		int bg_unlockablesgetcustomclasscount_stub(game::eModes mode, const game::ControllerIndex_t controllerIndex)
+		{
+			if (dvar_cg_unlockall_cac_slots->current.value.enabled)
+			{
+				return 10;
+			}
+
+			return bg_unlockablesgetcustomclasscount_hook.invoke<int>(mode, controllerIndex);
+		}
 	};
 
-	struct component final : client_component
+	struct component final: client_component
 	{
 		void post_unpack() override
 		{
@@ -172,6 +190,7 @@ namespace loot
 			dvar_cg_unlockall_camos_and_reticles = game::register_dvar_bool("cg_unlockall_camos_and_reticles", false, game::DVAR_ARCHIVE, "Unlocks all camos and reticles");
 			dvar_cg_unlockall_calling_cards = game::register_dvar_bool("cg_unlockall_calling_cards", false, game::DVAR_ARCHIVE, "Unlocks all calling cards");
 			dvar_cg_unlockall_specialists_outfits = game::register_dvar_bool("cg_unlockall_specialists_outfits", false, game::DVAR_ARCHIVE, "Unlocks all specialists outfits");
+			dvar_cg_unlockall_cac_slots = game::register_dvar_bool("cg_unlockall_cac_slots", false, game::DVAR_ARCHIVE, "Unlocks all Create a Class Slots");
 
 			loot_getitemquantity_hook.create(0x141E82C00_g, loot_getitemquantity_stub);
 			liveinventory_getitemquantity_hook.create(0x141E09030_g, liveinventory_getitemquantity_stub);
@@ -185,6 +204,7 @@ namespace loot
 			bg_unlockablescharactercustomizationitemlocked_hook.create(0x1426A2030_g, bg_unlockablescharactercustomizationitemlocked_stub);
 			bg_emblemisentitlementbackgroundgranted_hook.create(0x142667520_g, bg_emblemisentitlementbackgroundgranted_stub);
 			liveentitlements_isentitlementactiveforcontroller_hook.create(0x141E124E0_g, liveentitlements_isentitlementactiveforcontroller_stub);
+			bg_unlockablesgetcustomclasscount_hook.create(0x1426A5900_g, bg_unlockablesgetcustomclasscount_stub);
 
 			scheduler::once([]() {
 				if (dvar_cg_unlockall_loot->current.value.enabled)
