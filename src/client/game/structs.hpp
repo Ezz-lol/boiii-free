@@ -1583,20 +1583,20 @@ namespace game
 		int client_state;
 		char __pad0[0x28];
 		netadr_t address;
-		char gap_3C[20468];
+		char __pad1[20468];
 		int reliableSequence;
 		int reliableAcknowledge;
-		char gap_5038[4];
+		char __pad2[4];
 		int messageAcknowledge;
 		char gap_5040[1416];
 		uint64_t xuid;
-		char __pad2[0xB5D84];
+		char __pad3[0xB5D84];
 		int guid;
-		char __pad3[0x8];
+		char __pad4[0x8];
 		bool bIsTestClient;
-		char gap_BB361[3];
+		char __pad5[3];
 		int serverId;
-		char gap_BB368[171432];
+		char __pad6[171432];
 	};
 
 
