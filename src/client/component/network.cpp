@@ -342,6 +342,7 @@ namespace network
 			}
 			else
 			{
+				// Truncate error string to make sure there are no buffer overruns later
 				utils::hook::call(0x14134D206_g, com_error_oob_stub);
 			}
 
