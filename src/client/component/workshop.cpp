@@ -82,7 +82,7 @@ namespace workshop
 			utils::string::copy(item.description, doc["Description"].GetString());
 			utils::string::copy(item.folderName, doc["FolderName"].GetString());
 			utils::string::copy(item.publisherId, doc["PublisherID"].GetString());
-			item.publisherIdInteger = atoi(item.publisherId);
+			item.publisherIdInteger = std::stoul(item.publisherId);
 		}
 
 		void load_usermap_content_stub(void* usermapsCount, int type)
