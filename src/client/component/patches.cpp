@@ -17,7 +17,7 @@ namespace patches
 
 		void sv_execute_client_messages_stub(game::client_s* client, game::msg_t* msg)
 		{
-			if (client->reliableAcknowledge < 0)
+			if ((client->reliableSequence - client->reliableAcknowledge) < 0)
 			{
 				client->reliableAcknowledge = client->reliableSequence;
 				network::send(client->address, "error", "EXE_LOSTRELIABLECOMMANDS");
