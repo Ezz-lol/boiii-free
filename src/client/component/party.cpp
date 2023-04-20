@@ -189,7 +189,7 @@ namespace party
 			//const auto xuid = strtoull(info.get("xuid").data(), nullptr, 16);
 
 			scheduler::once([=]
-			{	
+			{
 				const auto usermap_id = workshop::get_usermap_publisher_id(mapname);
 
 				if (workshop::check_valid_usermap_id(mapname, usermap_id) &&

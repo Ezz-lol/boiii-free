@@ -85,9 +85,9 @@ namespace workshop
 			item.publisherIdInteger = std::stoul(item.publisherId);
 		}
 
-		void load_usermap_content_stub(void* usermapsCount, int type)
+		void load_usermap_content_stub(void* usermaps_count, int type)
 		{
-			utils::hook::invoke<void>(game::select(0x1420D6430, 0x1404E2360), usermapsCount, type);
+			utils::hook::invoke<void>(game::select(0x1420D6430, 0x1404E2360), usermaps_count, type);
 
 			for (unsigned int i = 0; i < *game::usermapsCount; ++i)
 			{
@@ -103,9 +103,9 @@ namespace workshop
 			}
 		}
 
-		void load_mod_content_stub(void* modsCount, int type)
+		void load_mod_content_stub(void* mods_count, int type)
 		{
-			utils::hook::invoke<void>(game::select(0x1420D6430, 0x1404E2360), modsCount, type);
+			utils::hook::invoke<void>(game::select(0x1420D6430, 0x1404E2360), mods_count, type);
 
 			for (unsigned int i = 0; i < *game::modsCount; ++i)
 			{
