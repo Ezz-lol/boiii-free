@@ -8,7 +8,7 @@ local enableLargeServerBrowserButton = true -- toggle large server browser butto
 local utils = require("utils")
 require("datasources_start_menu_tabs")
 require("datasources_change_map_categories")
-require("datasources_gamesettingslyout_buttons")
+require("datasources_gamesettingsflyout_buttons")
 
 CoD.LobbyButtons.MP_PUBLIC_MATCH = {
   stringRef = "MENU_PLAY_CAPS",
@@ -77,7 +77,7 @@ CoD.LobbyButtons.SERVER_BROWSER = {
   customId = "btnDedicated"
 }
 
-local lobbyMapVoteIsEnabled = enableLobbyMapVote
+local shouldShowMapVote = enableLobbyMapVote
 local lobbyMapVote = function(lobbyMapVoteIsEnabled)
   if lobbyMapVoteIsEnabled == true then
     Engine.Exec(nil, "LobbyStopDemo")
@@ -99,7 +99,7 @@ local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
   end
 
   if menuId == LobbyData.UITargets.UI_MPLOBBYONLINE.id then
-    lobbyMapVoteIsEnabled = enableLobbyMapVote
+    shouldShowMapVote = enableLobbyMapVote
     if enableLargeServerBrowserButton then
       utils.AddLargeButton(controller, buttonTable, CoD.LobbyButtons.SERVER_BROWSER, 1)
     end
@@ -110,8 +110,8 @@ local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
     utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.GameSettingsFlyoutMP, 2)
     utils.AddSpacer(buttonTable, utils.GetButtonIndex(buttonTable, CoD.LobbyButtons.GameSettingsFlyoutMP))
 
-    lobbyMapVote(lobbyMapVoteIsEnabled)
-    lobbyMapVoteIsEnabled = false
+    lobbyMapVote(shouldShowMapVote)
+    shouldShowMapVote = false
   elseif menuId == LobbyData.UITargets.UI_MPLOBBYONLINEARENAGAME.id then
     utils.AddLargeButton(controller, buttonTable, CoD.LobbyButtons.MP_START_GAME, 1)
     utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.GameSettingsFlyoutArenas, 2)
