@@ -108,8 +108,8 @@ function init()
 	level endon( "game_ended" );
 	
 	level.botSoak = is_bot_soak();
-	
-	if ( ( level.rankedMatch && !level.botSoak ) || !init_bot_gametype() )
+
+	if( !init_bot_gametype() )
 	{
 		return;
 	}
@@ -124,20 +124,12 @@ function init()
 
 function is_bot_soak()
 {
-/*
-    return GetDvarInt( "sv_botsoak", 0 );
-*/
-	return IsDedicated() && GetDvarInt( "sv_botsoak", 0 );
+	return GetDvarInt( "sv_botsoak", 0 );
 }
 
 function wait_for_host()
 {
 	level endon( "game_ended" );
-	
-	if ( level.botSoak )
-	{
-		return;
-	}
 	
 	host = util::getHostPlayerForBots();
 		
