@@ -382,6 +382,9 @@ namespace auth
 				p(0x141EB74D2_g, 0x141EB7515_g); // ?
 
 				utils::hook::call(0x14134BF7D_g, send_connect_data_stub);
+
+				// Fix crash
+				utils::hook::nop(0x142249097_g, 5);
 			}
 
 			for (const auto& patch : patches)
