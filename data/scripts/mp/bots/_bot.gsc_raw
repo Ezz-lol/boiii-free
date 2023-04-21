@@ -1,4 +1,5 @@
 #using scripts\codescripts\struct;
+
 #using scripts\shared\array_shared;
 #using scripts\shared\callbacks_shared;
 #using scripts\shared\killstreaks_shared;
@@ -7,12 +8,14 @@
 #using scripts\shared\system_shared;
 #using scripts\shared\util_shared;
 #using scripts\shared\weapons_shared;
-#using scripts\shared\weapons\_weapons;                                        	               	               	                	                                                               
+
+#using scripts\shared\weapons\_weapons;
 
 #using scripts\shared\bots\_bot;
 #using scripts\shared\bots\_bot_combat;
-#using scripts\shared\bots\bot_traversals;
 #using scripts\shared\bots\bot_buttons;
+#using scripts\shared\bots\bot_traversals;
+
 #using scripts\mp\bots\_bot_ball;
 #using scripts\mp\bots\_bot_clean;
 #using scripts\mp\bots\_bot_combat;
@@ -26,11 +29,35 @@
 #using scripts\mp\bots\_bot_loadout;
 #using scripts\mp\bots\_bot_sd;
 
+#using scripts\mp\killstreaks\_ai_tank;
+#using scripts\mp\killstreaks\_airsupport;
+#using scripts\mp\killstreaks\_combat_robot;
+#using scripts\mp\killstreaks\_counteruav;
+#using scripts\mp\killstreaks\_dart;
+#using scripts\mp\killstreaks\_dogs;
+#using scripts\mp\killstreaks\_drone_strike;
+#using scripts\mp\killstreaks\_emp;
+#using scripts\mp\killstreaks\_flak_drone;
+#using scripts\mp\killstreaks\_helicopter;
+#using scripts\mp\killstreaks\_helicopter_gunner;
+#using scripts\mp\killstreaks\_killstreak_bundles;
+#using scripts\mp\killstreaks\_killstreak_detect;
+#using scripts\mp\killstreaks\_killstreak_hacking;
 #using scripts\mp\killstreaks\_killstreakrules;
 #using scripts\mp\killstreaks\_killstreaks;
-#using scripts\mp\killstreaks\_uav;
+#using scripts\mp\killstreaks\_microwave_turret;
+#using scripts\mp\killstreaks\_planemortar;
+#using scripts\mp\killstreaks\_qrdrone;
+#using scripts\mp\killstreaks\_raps;
+#using scripts\mp\killstreaks\_rcbomb;
+#using scripts\mp\killstreaks\_remote_weapons;
+#using scripts\mp\killstreaks\_remotemissile;
 #using scripts\mp\killstreaks\_satellite;
-#using scripts\mp\killstreaks\_emp;
+#using scripts\mp\killstreaks\_sentinel;
+#using scripts\mp\killstreaks\_supplydrop;
+#using scripts\mp\killstreaks\_turret;
+#using scripts\mp\killstreaks\_uav;
+
 #using scripts\mp\teams\_teams;
 #using scripts\mp\_util;
 
