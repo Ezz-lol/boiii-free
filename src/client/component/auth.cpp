@@ -2,8 +2,10 @@
 #include "loader/component_loader.hpp"
 
 #include "auth.hpp"
+#include "party.hpp"
 #include "command.hpp"
 #include "network.hpp"
+#include "scheduler.hpp"
 #include "profile_infos.hpp"
 
 #include <game/game.hpp>
@@ -17,10 +19,14 @@
 #include <utils/info_string.hpp>
 #include <utils/cryptography.hpp>
 
+#include <game/fragment_handler.hpp>
+
 namespace auth
 {
 	namespace
 	{
+		std::array<uint64_t, 18> client_xuids{};
+
 		std::string get_hdd_serial()
 		{
 			DWORD serial{};
@@ -100,36 +106,45 @@ namespace auth
 		std::string serialize_connect_data(const char* data, const int length)
 		{
 			utils::byte_buffer buffer{};
-			profile_infos::profile_info info{};
-			info.version = 4; // invalid
-			info.serialize(buffer);
-			//profile_infos::get_profile_info().value_or(profile_infos::profile_info{}).serialize(buffer);
+			profile_infos::get_profile_info().value_or(profile_infos::profile_info{}).serialize(buffer);
 
 			buffer.write_string(data, static_cast<size_t>(length));
-
-			printf("Serialized with size: %llX\n", buffer.get_buffer().size());
 
 			return buffer.move_buffer();
 		}
 
-		int send_connect_data_stub(const game::netsrc_t sock, game::netadr_t* adr, const char* data, int len)
+		void send_fragmented_connect_packet(const game::netsrc_t sock, game::netadr_t* adr, const char* data,
+		                                    const int length)
+		{
+			const auto connect_data = serialize_connect_data(data, length);
+			game::fragment_handler::fragment_data //
+			(connect_data.data(), connect_data.size(), [&](const utils::byte_buffer& buffer)
+			{
+				utils::byte_buffer packet_buffer{};
+				packet_buffer.write("connect");
+				packet_buffer.write(" ");
+				packet_buffer.write(buffer);
+
+				const auto& fragment_packet = packet_buffer.get_buffer();
+
+				game::NET_OutOfBandData(
+					sock, adr, fragment_packet.data(),
+					static_cast<int>(fragment_packet.size()));
+			});
+		}
+
+		int send_connect_data_stub(const game::netsrc_t sock, game::netadr_t* adr, const char* data, const int len)
 		{
 			try
 			{
-				std::string buffer{};
-
 				const auto is_connect_sequence = len >= 7 && strncmp("connect", data, 7) == 0;
-				if (is_connect_sequence)
+				if (!is_connect_sequence)
 				{
-					buffer.append("connect");
-					buffer.push_back(' ');
-					buffer.append(serialize_connect_data(data, len));
-
-					data = buffer.data();
-					len = static_cast<int>(buffer.size());
+					return game::NET_OutOfBandData(sock, adr, data, len);
 				}
 
-				return reinterpret_cast<decltype(&send_connect_data_stub)>(0x142173600_g)(sock, adr, data, len);
+				send_fragmented_connect_packet(sock, adr, data, len);
+				return true;
 			}
 			catch (std::exception& e)
 			{
@@ -139,16 +154,61 @@ namespace auth
 			return 0;
 		}
 
-		void handle_connect_packet(const game::netadr_t& target, const network::data_view& data)
+		void distribute_player_xuid(const game::netadr_t& target, const size_t player_index, const uint64_t xuid)
 		{
-			if (!game::is_server_running())
+			if (player_index >= 18)
 			{
 				return;
 			}
 
+			utils::byte_buffer buffer{};
+			buffer.write(static_cast<uint32_t>(player_index));
+			buffer.write(xuid);
 
-			printf("Deserialized with size: %llX\n", data.size());
+			game::foreach_connected_client([&](const game::client_s& client, const size_t index)
+			{
+				if (client.address.type != game::NA_BOT)
+				{
+					network::send(client.address, "playerXuid", buffer.get_buffer());
+				}
 
+				if (index != player_index && target.type != game::NA_BOT)
+				{
+					utils::byte_buffer current_buffer{};
+					current_buffer.write(static_cast<uint32_t>(index));
+					current_buffer.write(client.xuid);
+
+					network::send(target, "playerXuid", current_buffer.get_buffer());
+				}
+			});
+		}
+
+		void handle_new_player(const game::netadr_t& target)
+		{
+			const command::params_sv params{};
+			if (params.size() < 2)
+			{
+				return;
+			}
+
+			const utils::info_string info_string(params[1]);
+			const auto xuid = strtoull(info_string.get("xuid").data(), nullptr, 16);
+
+			size_t player_index = 18;
+			game::foreach_connected_client([&](game::client_s& client, const size_t index)
+			{
+				if (client.address == target)
+				{
+					client.xuid = xuid;
+					player_index = index;
+				}
+			});
+
+			distribute_player_xuid(target, player_index, xuid);
+		}
+
+		void dispatch_connect_packet(const game::netadr_t& target, const std::string& data)
+		{
 			utils::byte_buffer buffer(data);
 			const profile_infos::profile_info info(buffer);
 
@@ -168,14 +228,50 @@ namespace auth
 			profile_infos::add_and_distribute_profile_info(target, xuid, info);
 
 			game::SV_DirectConnect(target);
+			handle_new_player(target);
+		}
 
-			game::foreach_connected_client([&](game::client_s& client)
+		void handle_connect_packet_fragment(const game::netadr_t& target, const network::data_view& data)
+		{
+			if (!game::is_server_running())
 			{
-				if (client.address == target)
+				return;
+			}
+
+			utils::byte_buffer buffer(data);
+
+			std::string final_packet{};
+			if (game::fragment_handler::handle(target, buffer, final_packet))
+			{
+				scheduler::once([t = target, p = std::move(final_packet)]
 				{
-					client.xuid = xuid;
-				}
-			});
+					dispatch_connect_packet(t, p);
+				}, scheduler::server);
+			}
+		}
+
+		void handle_player_xuid_packet(const game::netadr_t& target, const network::data_view& data)
+		{
+			if (game::is_server_running() || !party::is_host(target))
+			{
+				return;
+			}
+
+			utils::byte_buffer buffer(data);
+
+			const auto player_id = buffer.read<uint32_t>();
+			const auto xuid = buffer.read<uint64_t>();
+
+			if (player_id < client_xuids.size())
+			{
+				client_xuids[player_id] = xuid;
+			}
+		}
+
+		void direct_connect_bots_stub(const game::netadr_t address)
+		{
+			game::SV_DirectConnect(address);
+			handle_new_player(address);
 		}
 	}
 
@@ -194,13 +290,51 @@ namespace auth
 		return guid;
 	}
 
+	uint64_t get_guid(const size_t client_num)
+	{
+		if (client_num >= 18)
+		{
+			return 0;
+		}
+
+		if (!game::is_server_running())
+		{
+			return client_xuids[client_num];
+		}
+
+		uint64_t xuid = 0;
+		const auto callback = [&xuid](const game::client_s& client)
+		{
+			xuid = client.xuid;
+		};
+
+		if (!game::access_connected_client(client_num, callback))
+		{
+			return 0;
+		}
+
+		return xuid;
+	}
+
+	void clear_stored_guids()
+	{
+		for (auto& xuid : client_xuids)
+		{
+			xuid = 0;
+		}
+	}
+
 	struct component final : generic_component
 	{
 		void post_unpack() override
 		{
 			// Skip connect handler
 			utils::hook::set<uint8_t>(game::select(0x142253EFA, 0x14053714A), 0xEB);
-			network::on("connect", handle_connect_packet);
+			network::on("connect", handle_connect_packet_fragment);
+			network::on("playerXuid", handle_player_xuid_packet);
+
+			// Intercept SV_DirectConnect in SV_AddTestClient
+			utils::hook::call(game::select(0x1422490DC, 0x14052E582), direct_connect_bots_stub);
 
 			// Patch steam id bit check
 			std::vector<std::pair<size_t, size_t>> patches{};

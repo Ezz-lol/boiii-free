@@ -3,6 +3,10 @@
 
 #include "game/game.hpp"
 
+#include "auth.hpp"
+
+#include "steam/steam.hpp"
+
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 
@@ -10,8 +14,25 @@ namespace colors
 {
 	namespace
 	{
-		utils::hook::detour get_player_name_hook;
-		utils::hook::detour get_gamer_tag_hook;
+		utils::hook::detour cl_get_client_name_hook;
+
+		std::optional<int> get_color_for_xuid(const uint64_t xuid)
+		{
+			if (xuid == 0xCD02AF6448291209
+				|| xuid == 0x10F0C433E08E1357
+				|| xuid == 0x60E0FEFE42341715)
+			{
+				return 2;
+			}
+
+			return {};
+		}
+
+		std::optional<int> get_color_for_client(const int client_num)
+		{
+			const auto xuid = auth::get_guid(static_cast<size_t>(client_num));
+			return get_color_for_xuid(xuid);
+		}
 
 		template <size_t index>
 		void patch_color(const uint8_t r, const uint8_t g, const uint8_t b, const uint8_t a = 255)
@@ -36,23 +57,39 @@ namespace colors
 			utils::hook::copy(g_color_table + index * 4, color_float, sizeof(color_float));
 		}
 
-		/*uint64_t get_player_name_stub(const uint64_t client, int client_num, char* buffer, const int size,
-		                              const bool has_clan_tag)
+		bool cl_get_client_name_stub(const int local_client_num, const int index, char* buf, const int size,
+		                             const bool add_clan_name)
 		{
-			const auto res = get_player_name_hook.invoke<uint64_t>(client, client_num, buffer, size, has_clan_tag);
+			const auto res = cl_get_client_name_hook.invoke<bool>(local_client_num, index, buf, size, add_clan_name);
 
-			if (_ReturnAddress() != reinterpret_cast<void*>(0x1406A7B56_g))
+			if (_ReturnAddress() == reinterpret_cast<void*>(0x1406A7B56_g))
 			{
-				const auto val = utils::string::va("^%d%s", rand() % 7, buffer);
-				strncpy_s(buffer, size, val, size);
+				return res;
 			}
 
-			return res;
-		}*/
+			const auto color = get_color_for_client(index);
+			if (!color)
+			{
+				return res;
+			}
 
-		/*const char* get_gamer_tag_stub(const uint64_t num)
+			const auto val = utils::string::va("^%d%s", *color, buf);
+			utils::string::copy(buf, size, val);
+
+			return res;
+		}
+
+		/*const char* get_gamer_tag_stub(const uint32_t num)
 		{
-			return utils::string::va("^3%s", get_gamer_tag_hook.invoke<const char*>(num));
+			const auto color = get_color_for_xuid(steam::SteamUser()->GetSteamID().bits);
+			const auto name = reinterpret_cast<const char* (*)(uint32_t)>(0x141EC6E80)(num) + 8;
+
+			if (!color || num)
+			{
+				return name;
+			}
+
+			return utils::string::va("^1%s", *color, name);
 		}*/
 	}
 
@@ -68,8 +105,8 @@ namespace colors
 			patch_color<6>(151, 80, 221); // 6  - Pink
 
 			// Old addresses
-			//get_player_name_hook.create(0x1413E3140_g, get_player_name_stub);
-			//get_gamer_tag_hook.create(0x141EC7370_g, get_gamer_tag_stub);
+			cl_get_client_name_hook.create(game::CL_GetClientName, cl_get_client_name_stub);
+			//utils::hook::jump(0x141EC72E0_g, get_gamer_tag_stub);
 		}
 	};
 }

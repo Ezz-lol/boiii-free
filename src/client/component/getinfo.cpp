@@ -5,6 +5,7 @@
 #include "steam/steam.hpp"
 
 #include "network.hpp"
+#include "workshop.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -114,6 +115,8 @@ namespace getinfo
 				info.set("sv_running", std::to_string(game::is_server_running()));
 				info.set("dedicated", game::is_server() ? "1" : "0");
 				info.set("hc", std::to_string(game::Com_GametypeSettings_GetUInt("hardcoremode", false)));
+				info.set("modname", workshop::get_mod_name(game::get_dvar_string("fs_game")));
+				info.set("fs_game", game::get_dvar_string("fs_game"));
 				info.set("shortversion", SHORTVERSION);
 
 				network::send(target, "infoResponse", info.build(), '\n');

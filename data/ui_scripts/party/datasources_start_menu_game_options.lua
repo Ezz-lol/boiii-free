@@ -70,5 +70,6 @@ DataSources.StartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOpti
 			table.insert(options, {models = {displayText = "MENU_QUIT_GAME_CAPS", action = QuitGame_MP}})
 		end
 	end
+	table.insert(options, {models = {displayText = "QUIT TO DESKTOP", action = OpenPCQuit}})
 	return options
 end, true)
