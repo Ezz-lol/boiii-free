@@ -108,7 +108,6 @@ function init()
 	level endon( "game_ended" );
 	
 	level.botSoak = is_bot_soak();
-
 	if( !init_bot_gametype() )
 	{
 		return;
@@ -878,8 +877,8 @@ function init_bot_gametype()
 		case "escort":
 			bot_escort::init();
 			return true;
-		case "infect":
-			return true;
+		// case "infect":
+		//	return true;
 		case "gun":
 			return true;
 		case "koth":
@@ -892,6 +891,12 @@ function init_bot_gametype()
 			bot_clean::init();
 			return true;
 		case "tdm":
+			return true;
+		case "sas":
+			return true;
+		case "prop":
+			return true;
+		case "sniperonly":
 			return true;
 	}
 
