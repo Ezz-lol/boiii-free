@@ -609,6 +609,135 @@ function use_killstreak()
 	}
 }
 
+function get_closest_enemy( origin, on_radar )
+{
+    enemies = self get_enemies( on_radar );
+    enemies = arraysort( enemies, origin );
+
+    if ( enemies.size )
+        return enemies[0];
+
+    return undefined;
+}
+
+function use_supply_drop( weapon )
+{
+    if ( weapon == "inventory_supplydrop_mp" || weapon == "supplydrop_mp" )
+    {
+        if ( gettime() - self.spawntime > 5000 )
+            return;
+    }
+
+    yaw = ( 0, self.angles[1], 0 );
+    dir = anglestoforward( yaw );
+    dir = vectornormalize( dir );
+    drop_point = self.origin + vectorscale( dir, 384 );
+    end = drop_point + vectorscale( ( 0, 0, 1 ), 2048.0 );
+
+    if ( !sighttracepassed( drop_point, end, 0, undefined ) )
+        return;
+
+    if ( !sighttracepassed( self.origin, end, 0, undefined ) )
+        return;
+
+    end = drop_point - vectorscale( ( 0, 0, 1 ), 32.0 );
+
+    if ( bullettracepassed( drop_point, end, 0, undefined ) )
+        return;
+
+    self addgoal( self.origin, 24, 4, "killstreak" );
+
+    if ( weapon == "missile_drone_mp" || weapon == "inventory_missile_drone_mp" )
+        self lookat( drop_point + vectorscale( ( 0, 0, 1 ), 384.0 ) );
+    else
+        self lookat( drop_point );
+
+    wait 0.5;
+
+    if ( self getcurrentweapon() != weapon )
+    {
+        self thread weapon_switch_failsafe();
+        self switchtoweapon( weapon );
+
+        self waittill( "weapon_change_complete" );
+    }
+
+    use_item( weapon );
+    self switchtoweapon( self.lastnonkillstreakweapon );
+    self clearlookat();
+    self cancelgoal( "killstreak" );
+}
+
+function use_item( weapon )
+{
+    self bot::press_attack_button();
+    wait 0.5;
+
+    for ( i = 0; i < 10; i++ )
+    {
+        if ( self getcurrentweapon() == weapon || self getcurrentweapon() == "none" )
+            self bot::press_attack_button();
+        else
+            return;
+
+        wait 0.5;
+    }
+}
+
+function killstreak_location( num, weapon )
+{
+    enemies = get_enemies();
+
+    if ( !enemies.size )
+        return;
+
+    if ( !self switchtoweapon( weapon ) )
+        return;
+
+    self waittill( "weapon_change" );
+
+    self util::freeze_player_controls( true );
+    wait_time = 1;
+
+    while ( !isdefined( self.selectinglocation ) || self.selectinglocation == 0 )
+    {
+        wait 0.05;
+        wait_time -= 0.05;
+
+        if ( wait_time <= 0 )
+        {
+            self util::freeze_player_controls( false );
+            self switchtoweapon( self.lastnonkillstreakweapon );
+            return;
+        }
+    }
+
+    wait 2;
+
+    for ( i = 0; i < num; i++ )
+    {
+        enemies = get_enemies();
+
+        if ( enemies.size )
+        {
+            enemy = randomInt( enemies );
+            self notify( "confirm_location", enemy.origin, 0 );
+        }
+
+        wait 0.25;
+    }
+
+    self util::freeze_player_controls( false );
+}
+
+function weapon_switch_failsafe()
+{
+    self endon( "death" );
+    self endon( "disconnect" );
+    self endon( "weapon_change_complete" );
+    wait 10;
+    self notify( "weapon_change_complete" );
+}
 
 function has_radar()
 {
@@ -813,11 +942,6 @@ function friend_in_radius( goal_name, origin, radius )
 function get_friends()
 {
 	return [];
-}
-
-function get_closest_enemy( origin, someFlag )
-{
-	return undefined;
 }
 
 function bot_vehicle_weapon_ammo( weaponName )
