@@ -7,7 +7,7 @@
 #using scripts\shared\system_shared;
 #using scripts\shared\util_shared;
 #using scripts\shared\weapons_shared;
-#using scripts\shared\weapons\_weapons;
+#using scripts\shared\weapons\_weapons;                                        	               	               	                	                                                               
 
 #using scripts\shared\bots\_bot;
 #using scripts\shared\bots\_bot_combat;
@@ -25,37 +25,12 @@
 #using scripts\mp\bots\_bot_koth;
 #using scripts\mp\bots\_bot_loadout;
 #using scripts\mp\bots\_bot_sd;
-#using scripts\mp\killstreaks\_killstreakrules;
-#using scripts\mp\killstreaks\_killstreaks;
-#using scripts\mp\killstreaks\_ai_tank;
-#using scripts\mp\killstreaks\_airsupport;
-#using scripts\mp\killstreaks\_combat_robot;
-#using scripts\mp\killstreaks\_counteruav;
-#using scripts\mp\killstreaks\_dart;
-#using scripts\mp\killstreaks\_dogs;
-#using scripts\mp\killstreaks\_drone_strike;
-#using scripts\mp\killstreaks\_emp;
-#using scripts\mp\killstreaks\_flak_drone;
-#using scripts\mp\killstreaks\_helicopter;
-#using scripts\mp\killstreaks\_helicopter_gunner;
-#using scripts\mp\killstreaks\_killstreak_bundles;
-#using scripts\mp\killstreaks\_killstreak_detect;
-#using scripts\mp\killstreaks\_killstreak_hacking;
-#using scripts\mp\killstreaks\_killstreakrules;
-#using scripts\mp\killstreaks\_killstreaks;
-#using scripts\mp\killstreaks\_microwave_turret;
-#using scripts\mp\killstreaks\_planemortar;
-#using scripts\mp\killstreaks\_qrdrone;
-#using scripts\mp\killstreaks\_raps;
-#using scripts\mp\killstreaks\_rcbomb;
-#using scripts\mp\killstreaks\_remote_weapons;
-#using scripts\mp\killstreaks\_remotemissile;
-#using scripts\mp\killstreaks\_satellite;
-#using scripts\mp\killstreaks\_sentinel;
-#using scripts\mp\killstreaks\_supplydrop;
-#using scripts\mp\killstreaks\_turret;
-#using scripts\mp\killstreaks\_uav;
 
+#using scripts\mp\killstreaks\_killstreakrules;
+#using scripts\mp\killstreaks\_killstreaks;
+#using scripts\mp\killstreaks\_uav;
+#using scripts\mp\killstreaks\_satellite;
+#using scripts\mp\killstreaks\_emp;
 #using scripts\mp\teams\_teams;
 #using scripts\mp\_util;
 
@@ -66,13 +41,13 @@
 #define MAX_ONLINE_PLAYERS	18
 #define MAX_ONLINE_PLAYERS_PER_TEAM	6
 
-#define RESPAWN_DELAY	0
-#define RESPAWN_INTERVAL 0.2
-	
+#define RESPAWN_DELAY	0.1
+#define RESPAWN_INTERVAL 0.1
+
 #namespace bot;
 
 REGISTER_SYSTEM( "bot_mp", &__init__, undefined )
-	
+
 function __init__()
 {
 	callback::on_start_gametype( &init );
@@ -94,6 +69,11 @@ function __init__()
 	level.botIgnoreThreat = &bot_combat::bot_ignore_threat;
 	
 	level.enemyEmpActive = &emp::EnemyEmpActive;
+	
+/#
+	level.botDevguiCmd = &bot_devgui_cmd;
+	level thread system_devgui_gadget_think();
+#/
 }
 
 function init()
@@ -101,12 +81,12 @@ function init()
 	level endon( "game_ended" );
 	
 	level.botSoak = is_bot_soak();
-
-	if( level.rankedmatch && level.botsoak || !init_bot_gametype() )
+	
+	if ( ( level.rankedMatch && !level.botSoak ) || !init_bot_gametype() )
 	{
 		return;
 	}
-	
+
 	wait_for_host();
 	
 	level thread populate_bots();
@@ -117,6 +97,9 @@ function init()
 
 function is_bot_soak()
 {
+/*
+    return GetDvarInt( "sv_botsoak", 0 );
+*/
 	return IsDedicated() && GetDvarInt( "sv_botsoak", 0 );
 }
 
@@ -194,6 +177,31 @@ function on_bot_connect()
 function on_bot_spawned()
 {
 	self.bot.goalTag = undefined;
+/#
+	weapon = undefined;
+
+	if ( GetDvarInt( "scr_botsHasPlayerWeapon" ) != 0 )
+	{
+		player = util::getHostPlayer();
+		weapon = player GetCurrentWeapon();
+	}
+
+	if ( GetDvarString( "devgui_bot_weapon", "" ) != "" )
+	{
+		weapon = GetWeapon( GetDvarString( "devgui_bot_weapon" ) );
+	}
+
+	if ( isdefined( weapon ) && level.weaponNone != weapon )
+	{
+		self weapons::detach_all_weapons();
+		self TakeAllWeapons();
+		self GiveWeapon( weapon );
+		self SwitchToWeapon( weapon );
+		self SetSpawnWeapon( weapon );
+
+		self teams::set_player_model( self.team, weapon );
+	}
+#/
 }
 
 function on_bot_killed()
@@ -233,7 +241,7 @@ function bot_idle()
 	{
 		return;
 	}
-    
+
 	// TODO: Look for an enemy radar blip
 	// TODO: Get points on navmesh and feed into the spawn system to see if an enemy is likely to spawn there
 	self bot::navmesh_wander();
@@ -565,110 +573,13 @@ function use_killstreak()
 	{
 		case "killstreak_uav":
 		case "killstreak_counteruav":
-		case "killstreak_remote_missile":
-		    {
-                self switchtoweapon( weapon );
-                self waittill( "weapon_change_complete" );
-                wait 1.5;
-                self bot::press_attack_button();
-            }
-            return;
 		case "killstreak_satellite":
 		case "killstreak_helicopter_player_gunner":
-		case "killstreak_ai_tank_drop":
-            self use_supply_drop( weapon );
-            break;  
 		case "killstreak_raps":
 		case "killstreak_sentinel":
-		{
-			self switchtoweapon(useweapon);
-			break;
-		}
+			self SwitchToWeapon( useWeapon );
+		break;
 	}
-}
-
-function get_closest_enemy( origin, on_radar )
-{
-    enemies = self get_enemies( on_radar );
-    enemies = arraysort( enemies, origin );
-
-    if ( enemies.size )
-        return enemies[0];
-
-    return undefined;
-}
-
-function use_supply_drop( weapon )
-{
-    if ( weapon == "inventory_supplydrop_mp" || weapon == "supplydrop_mp" )
-    {
-        if ( gettime() - self.spawntime > 5000 )
-            return;
-    }
-
-    yaw = ( 0, self.angles[1], 0 );
-    dir = anglestoforward( yaw );
-    dir = vectornormalize( dir );
-    drop_point = self.origin + vectorscale( dir, 384 );
-    end = drop_point + vectorscale( ( 0, 0, 1 ), 2048.0 );
-
-    if ( !sighttracepassed( drop_point, end, 0, undefined ) )
-        return;
-
-    if ( !sighttracepassed( self.origin, end, 0, undefined ) )
-        return;
-
-    end = drop_point - vectorscale( ( 0, 0, 1 ), 32.0 );
-
-    if ( bullettracepassed( drop_point, end, 0, undefined ) )
-        return;
-
-    self addgoal( self.origin, 24, 4, "killstreak" );
-
-    if ( weapon == "missile_drone_mp" || weapon == "inventory_missile_drone_mp" )
-        self lookat( drop_point + vectorscale( ( 0, 0, 1 ), 384.0 ) );
-    else
-        self lookat( drop_point );
-
-    wait 0.5;
-
-    if ( self getcurrentweapon() != weapon )
-    {
-        self thread weapon_switch_failsafe();
-        self switchtoweapon( weapon );
-
-        self waittill( "weapon_change_complete" );
-    }
-
-    use_item( weapon );
-    self switchtoweapon( self.lastnonkillstreakweapon );
-    self clearlookat();
-    self cancelgoal( "killstreak" );
-}
-
-function use_item( weapon )
-{
-    self bot::press_attack_button();
-    wait 0.5;
-
-    for ( i = 0; i < 10; i++ )
-    {
-        if ( self getcurrentweapon() == weapon || self getcurrentweapon() == "none" )
-            self bot::press_attack_button();
-        else
-            return;
-
-        wait 0.5;
-    }
-}
-
-function weapon_switch_failsafe()
-{
-    self endon( "death" );
-    self endon( "disconnect" );
-    self endon( "weapon_change_complete" );
-    wait 10;
-    self notify( "weapon_change_complete" );
 }
 
 
@@ -705,6 +616,17 @@ function get_enemies( on_radar )
 	}
 
 	enemies = self GetEnemies();
+
+/#
+	for ( i = 0; i < enemies.size; i++ )
+	{
+		if ( isplayer( enemies[i] ) && enemies[i] IsInMoveMode( "ufo", "noclip" ) )
+		{
+			ArrayRemoveIndex( enemies, i );
+			i--;
+		}
+	}
+#/
 
 	if ( on_radar && !self has_radar() )
 	{
@@ -786,69 +708,43 @@ function set_rank()
 
 function init_bot_gametype()
 {
-	switch(level.gametype)
+	switch( level.gameType )
 	{
 		case "ball":
-		{
 			bot_ball::init();
 			return true;
-		}
 		case "conf":
-		{
 			bot_conf::init();
 			return true;
-		}
 		case "ctf":
-		{
 			bot_ctf::init();
 			return true;
-		}
 		case "dem":
-		{
 			bot_dem::init();
 			return true;
-		}
 		case "dm":
-		{
 			return true;
-		}
 		case "dom":
-		{
 			bot_dom::init();
 			return true;
-		}
 		case "escort":
-		{
 			bot_escort::init();
 			return true;
-		}
-/*		case "infect":
-		{
+		case "infect":
 			return true;
-		}
-*/		case "gun":
-		{
+		case "gun":
 			return true;
-		}
 		case "koth":
-		{
 			bot_koth::init();
 			return true;
-		}
 		case "sd":
-		{
 			bot_sd::init();
 			return true;
-		}
 		case "clean":
-		{
 			bot_clean::init();
 			return true;
-		}
 		case "tdm":
-		{
 			return true;
-		}
 	}
 
 	return false;
@@ -892,6 +788,11 @@ function get_friends()
 	return [];
 }
 
+function get_closest_enemy( origin, someFlag )
+{
+	return undefined;
+}
+
 function bot_vehicle_weapon_ammo( weaponName )
 {
 	return false;
@@ -907,3 +808,146 @@ function dive_to_prone( exit_stance )
 	
 }
 
+/#
+
+// Devgui
+//========================================
+
+function bot_devgui_cmd( cmd )
+{
+	cmdTokens = strtok( cmd," ");
+	
+	if ( cmdTokens.size == 0 )
+	{
+		return false;
+	}
+	
+	host = util::getHostPlayerForBots();
+	team = get_host_team();
+	
+	switch( cmdTokens[0] )
+	{
+	case "spawn_enemy":
+			team = util::getotherteam(team);
+	case "spawn_friendly":	
+		count = 1;
+		if ( cmdTokens.size > 1 )
+		{
+			count = int( cmdTokens[1] );
+		}
+		for( i = 0; i < count; i++ )
+		{
+			add_bot( team );
+		}
+		return true;
+	case "remove_enemy":
+		team = util::getotherteam(team);
+	case "remove_friendly":
+		remove_bots( undefined, team );
+		return true;
+	case "fixed_spawn_enemy":
+			team = util::getotherteam(team);
+	case "fixed_spawn_friendly":	
+		bot = add_bot_at_eye_trace( team );
+		if ( isdefined( bot ) )
+		{
+			bot thread fixed_spawn_override();
+		}
+		return true;
+
+	case "player_weapon":
+		players = GetPlayers();
+		foreach( player in players )
+		{
+			if ( !player util::is_bot() )
+			{
+				continue;
+			}
+
+			weapon = host GetCurrentWeapon();
+
+			player weapons::detach_all_weapons();
+			player TakeAllWeapons();
+			player GiveWeapon( weapon );
+			player SwitchToWeapon( weapon );
+			player SetSpawnWeapon( weapon );
+
+			player teams::set_player_model( player.team, weapon );
+		}
+		return true;
+	}
+
+	return false;
+}
+
+function system_devgui_gadget_think()
+{
+	SetDvar( "devgui_bot_gadget", "" );
+
+	for ( ;; )
+	{
+		wait( 1 );
+
+		gadget = GetDvarString( "devgui_bot_gadget" );
+		
+		if ( gadget != "" )
+		{
+			bot_turn_on_gadget( GetWeapon(gadget) );
+			SetDvar( "devgui_bot_gadget", "" );
+		}	
+	}
+}
+
+function bot_turn_on_gadget( gadget )
+{
+	players = GetPlayers();
+	
+	foreach( player in players )
+	{
+		if ( !player util::is_bot() )
+		{
+			continue;
+		}
+		
+		host = util::getHostPlayer();
+		weapon = host GetCurrentWeapon();
+		
+		if ( !isdefined( weapon ) || weapon == level.weaponNone || weapon == level.weaponNull )
+		{
+			weapon = GetWeapon( "smg_standard" );
+		}
+
+		player weapons::detach_all_weapons();
+		player TakeAllWeapons();
+		player GiveWeapon( weapon );
+		player SwitchToWeapon( weapon );
+		player SetSpawnWeapon( weapon );
+
+		player teams::set_player_model( player.team, weapon );
+		
+		player GiveWeapon( gadget );
+		slot = player GadgetGetSlot( gadget );
+		player GadgetPowerSet( slot, 100.0 );
+		player BotPressButtonForGadget( gadget );
+	}	
+}
+
+
+
+function fixed_spawn_override()
+{
+	self endon( "disconnect" );
+	
+	spawnOrigin = self.origin;
+	spawnAngles = self.angles;
+	
+	while( 1 )
+	{
+		self waittill( "spawned_player" );
+		
+		self SetOrigin( spawnOrigin );
+		self SetPlayerAngles( spawnAngles );
+	}
+}
+
+#/
