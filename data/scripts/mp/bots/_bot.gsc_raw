@@ -73,6 +73,9 @@
 
 #namespace bot;
 
+#precache( "eventstring", "mpl_killstreak_cruisemissile" );
+#precache( "eventstring", "mpl_killstreak_raps" );
+
 REGISTER_SYSTEM( "bot_mp", &__init__, undefined )
 
 function __init__()
@@ -595,8 +598,23 @@ function use_killstreak()
 		case "killstreak_helicopter_player_gunner":
 		case "killstreak_raps":
 		case "killstreak_sentinel":
+		{
 			self SwitchToWeapon( useWeapon );
-		break;
+			break;
+		}
+		case "killstreak_ai_tank_drop":
+		{
+			self use_supply_drop( weapon );
+			break;
+		}	
+		case "killstreak_remote_missile":
+		{
+			self SwitchToWeapon( weapon );
+			self waittill( "weapon_change_complete" );
+			wait 1.5;
+			self bot::press_attack_button();
+			return;
+		}
 	}
 }
 
