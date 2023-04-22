@@ -219,39 +219,41 @@ namespace steam
 	{
 		favorites_response = pRequestServersResponse;
 
-		const auto res = favorites_response.load();
-		if (!res)
+		auto& srvs = server_list::get_favorite_servers();
+		srvs.access([&](std::unordered_set<game::netadr_t> s)
 		{
-			return favorites_request;
-		}
-
-		auto s = server_list::get_favorite_servers();
-
-		if (s.empty())
-		{
-			res->RefreshComplete(favorites_request, eNoServersListedOnMasterServer);
-			return favorites_request;
-		}
-
-		favorites_servers.access([s](servers& srvs)
-		{
-			srvs = {};
-			srvs.reserve(s.size());
-
-			for (auto& address : s)
+			const auto res = favorites_response.load();
+			if (!res)
 			{
-				server new_server{};
-				new_server.address = address;
-				new_server.server_item = create_server_item(address, {}, 0, false);
+				return;
+			}
 
-				srvs.push_back(new_server);
+			if (s.empty())
+			{
+				res->RefreshComplete(favorites_request, eNoServersListedOnMasterServer);
+				return;
+			}
+
+			favorites_servers.access([s](servers& srvs)
+			{
+				srvs = {};
+				srvs.reserve(s.size());
+
+				for (auto& address : s)
+				{
+					server new_server{};
+					new_server.address = address;
+					new_server.server_item = create_server_item(address, {}, 0, false);
+
+					srvs.push_back(new_server);
+				}
+			});
+
+			for (auto& srv : s)
+			{
+				ping_server(srv, handle_favorites_server_response);
 			}
 		});
-
-		for (auto& srv : s)
-		{
-			ping_server(srv, handle_favorites_server_response);
-		}
 
 		return favorites_request;
 	}

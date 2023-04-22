@@ -5,7 +5,6 @@
 #include "game/game.hpp"
 
 #include <utils/string.hpp>
-#include <utils/concurrency.hpp>
 #include <utils/hook.hpp>
 #include <utils/io.hpp>
 
@@ -28,7 +27,7 @@ namespace server_list
 
 		utils::concurrency::container<state> master_state;
 
-		std::unordered_set<game::netadr_t> favorite_servers{};
+		utils::concurrency::container<server_list> favorite_servers{};
 
 		void handle_server_list_response(const game::netadr_t& target,
 		                                 const network::data_view& data, state& s)
@@ -98,13 +97,15 @@ namespace server_list
 
 		void write_favorite_servers()
 		{
-			std::string servers_buffer = "";
-			for (auto itr : favorite_servers)
+			favorite_servers.access([&](std::unordered_set<game::netadr_t>& servers)
 			{
-				servers_buffer.append(utils::string::va("%i.%i.%i.%i:%u\n", itr.ipv4.a, itr.ipv4.b, itr.ipv4.c, itr.ipv4.d, itr.port));
-			}
-
-			utils::io::write_file(get_favorite_servers_file_path(), servers_buffer);
+				std::string servers_buffer = "";
+				for (auto itr : servers)
+				{
+					servers_buffer.append(utils::string::va("%i.%i.%i.%i:%u\n", itr.ipv4.a, itr.ipv4.b, itr.ipv4.c, itr.ipv4.d, itr.port));
+				}
+				utils::io::write_file(get_favorite_servers_file_path(), servers_buffer);
+			});
 		}
 
 		void read_favorite_servers()
@@ -115,18 +116,20 @@ namespace server_list
 				return;
 			}
 
-			favorite_servers.clear();
-
-			std::string filedata;
-			if (utils::io::read_file(path, &filedata))
+			favorite_servers.access([&path](std::unordered_set<game::netadr_t>& servers)
 			{
-				auto servers = utils::string::split(filedata, '\n');
-				for (auto server_address : servers)
+				servers.clear();
+				std::string filedata;
+				if (utils::io::read_file(path, &filedata))
 				{
-					auto server = network::address_from_string(server_address);
-					favorite_servers.insert(server);
+					auto srv = utils::string::split(filedata, '\n');
+					for (auto server_address : srv)
+					{
+						auto server = network::address_from_string(server_address);
+						servers.insert(server);
+					}
 				}
-			}
+			});
 		}
 	}
 
@@ -157,25 +160,30 @@ namespace server_list
 
 	void add_favorite_server(game::netadr_t addr)
 	{
-		favorite_servers.insert(addr);
+		favorite_servers.access([&addr](std::unordered_set<game::netadr_t>& servers)
+		{
+			servers.insert(addr);
+		});
 		write_favorite_servers();
 	}
 
 	void remove_favorite_server(game::netadr_t addr)
 	{
-		for (auto it = favorite_servers.begin(); it != favorite_servers.end(); ++it)
+		favorite_servers.access([&addr](std::unordered_set<game::netadr_t>& servers)
 		{
-			if (network::are_addresses_equal(*it, addr))
+			for (auto it = servers.begin(); it != servers.end(); ++it)
 			{
-				favorite_servers.erase(it);
-				break;
+				if (network::are_addresses_equal(*it, addr))
+				{
+					servers.erase(it);
+					break;
+				}
 			}
-		}
-
+		});
 		write_favorite_servers();
 	}
 
-	std::unordered_set<game::netadr_t>& get_favorite_servers()
+	utils::concurrency::container<server_list>& get_favorite_servers()
 	{
 		return favorite_servers;
 	}

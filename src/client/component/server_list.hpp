@@ -1,6 +1,8 @@
 #pragma once
 #include <game/game.hpp>
 
+#include <utils/concurrency.hpp>
+
 namespace server_list
 {
 	bool get_master_server(game::netadr_t& address);
@@ -10,5 +12,6 @@ namespace server_list
 
 	void add_favorite_server(game::netadr_t addr);
 	void remove_favorite_server(game::netadr_t addr);
-	std::unordered_set<game::netadr_t>& get_favorite_servers();
+	using server_list = std::unordered_set<game::netadr_t>;
+	utils::concurrency::container<server_list>& get_favorite_servers();
 }
