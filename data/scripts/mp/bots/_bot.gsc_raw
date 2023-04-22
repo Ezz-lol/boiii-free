@@ -104,6 +104,7 @@ function __init__()
 	level.botDevguiCmd = &bot_devgui_cmd;
 	level thread system_devgui_gadget_think();
 #/
+	SetDvar( "bot_enableWallrun", 1 );
 }
 
 function init()
