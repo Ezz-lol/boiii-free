@@ -7,6 +7,7 @@
 #include <utils/string.hpp>
 #include <utils/concurrency.hpp>
 #include <utils/hook.hpp>
+#include <utils/io.hpp>
 
 #include "network.hpp"
 #include "scheduler.hpp"
@@ -20,7 +21,7 @@ namespace server_list
 		struct state
 		{
 			game::netadr_t address{};
-			bool requesting{false};
+			bool requesting{ false };
 			std::chrono::high_resolution_clock::time_point query_start{};
 			callback callback{};
 		};
@@ -30,7 +31,7 @@ namespace server_list
 		utils::concurrency::container<server_list> favorite_servers{};
 
 		void handle_server_list_response(const game::netadr_t& target,
-		                                 const network::data_view& data, state& s)
+			const network::data_view& data, state& s)
 		{
 			if (!s.requesting || s.address != target)
 			{
@@ -142,20 +143,20 @@ namespace server_list
 	void request_servers(callback callback)
 	{
 		master_state.access([&callback](state& s)
-		{
-			game::netadr_t addr{};
-			if (!get_master_server(addr))
 			{
-				return;
-			}
+				game::netadr_t addr{};
+				if (!get_master_server(addr))
+				{
+					return;
+				}
 
-			s.requesting = true;
-			s.address = addr;
-			s.callback = std::move(callback);
-			s.query_start = std::chrono::high_resolution_clock::now();
+				s.requesting = true;
+				s.address = addr;
+				s.callback = std::move(callback);
+				s.query_start = std::chrono::high_resolution_clock::now();
 
-			network::send(s.address, "getservers", utils::string::va("T7 %i full empty", PROTOCOL));
-		});
+				network::send(s.address, "getservers", utils::string::va("T7 %i full empty", PROTOCOL));
+			});
 	}
 
 	void add_favorite_server(game::netadr_t addr)
@@ -193,44 +194,49 @@ namespace server_list
 		void post_unpack() override
 		{
 			network::on("getServersResponse", [](const game::netadr_t& target, const network::data_view& data)
-			{
-				master_state.access([&](state& s)
 				{
-					handle_server_list_response(target, data, s);
+					master_state.access([&](state& s)
+						{
+							handle_server_list_response(target, data, s);
+						});
 				});
-			});
 
 			scheduler::loop([]
-			{
-				master_state.access([](state& s)
 				{
-					if (!s.requesting)
-					{
-						return;
-					}
+					master_state.access([](state& s)
+						{
+							if (!s.requesting)
+							{
+								return;
+							}
 
-					const auto now = std::chrono::high_resolution_clock::now();
-					if ((now - s.query_start) < 2s)
-					{
-						return;
-					}
+							const auto now = std::chrono::high_resolution_clock::now();
+							if ((now - s.query_start) < 2s)
+							{
+								return;
+							}
 
-					s.requesting = false;
-					s.callback(false, {});
-					s.callback = {};
-				});
-			}, scheduler::async, 200ms);
+							s.requesting = false;
+							s.callback(false, {});
+							s.callback = {};
+						});
+				}, scheduler::async, 200ms);
 
 			lua_serverinfo_to_table_hook.create(0x141F1FD10_g, lua_serverinfo_to_table_stub);
+
+			scheduler::once([]
+			{
+				read_favorite_servers();
+			}, scheduler::main);
 		}
 
 		void pre_destroy() override
 		{
 			master_state.access([](state& s)
-			{
-				s.requesting = false;
-				s.callback = {};
-			});
+				{
+					s.requesting = false;
+					s.callback = {};
+				});
 		}
 	};
 }
