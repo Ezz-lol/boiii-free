@@ -1,6 +1,7 @@
 #pragma once
 
 #define PROTOCOL 4
+#define SUB_PROTOCOL 1
 
 #ifdef __cplusplus
 namespace game

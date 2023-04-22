@@ -31,6 +31,8 @@ namespace steam
 		gameserveritem_t create_server_item(const game::netadr_t& address, const ::utils::info_string& info,
 		                                    const uint32_t ping, const bool success)
 		{
+			const auto sub_protocol = atoi(info.get("sub_protocol").data());
+
 			gameserveritem_t server{};
 			server.m_NetAdr.m_usConnectionPort = address.port;
 			server.m_NetAdr.m_usQueryPort = address.port;
@@ -41,7 +43,7 @@ namespace steam
 			::utils::string::copy(server.m_szGameDir, "");
 			::utils::string::copy(server.m_szMap, info.get("mapname").data());
 			::utils::string::copy(server.m_szGameDescription, info.get("description").data());
-			server.m_nAppID = 311210;
+			server.m_nAppID = (sub_protocol == SUB_PROTOCOL || sub_protocol == (SUB_PROTOCOL - 1)) ? 311210 : 0;
 			server.m_nPlayers = atoi(info.get("clients").data());
 			server.m_nMaxPlayers = atoi(info.get("sv_maxclients").data());
 			server.m_nBotPlayers = atoi(info.get("bots").data());
@@ -231,8 +233,7 @@ namespace steam
 		}
 
 		static thread_local gameserveritem_t server_item{};
-		return queried_servers.access<gameserveritem_t*>([iServer](const servers& s) -> gameserveritem_t*
-		{
+		return queried_servers.access<gameserveritem_t*>([iServer](const servers& s) -> gameserveritem_t* {
 			if (iServer < 0 || static_cast<size_t>(iServer) >= s.size())
 			{
 				return nullptr;
