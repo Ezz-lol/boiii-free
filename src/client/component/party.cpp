@@ -3,6 +3,7 @@
 #include "game/game.hpp"
 
 #include "party.hpp"
+#include "auth.hpp"
 #include "network.hpp"
 #include "scheduler.hpp"
 #include "workshop.hpp"
@@ -39,6 +40,8 @@ namespace party
 		void connect_to_lobby(const game::netadr_t& addr, const std::string& mapname, const std::string& gamemode,
 		                      const std::string& usermap_id, const std::string& mod_id)
 		{
+			auth::clear_stored_guids();
+
 			workshop::load_mod_if_needed(usermap_id, mod_id);
 
 			game::XSESSION_INFO info{};
@@ -56,7 +59,8 @@ namespace party
 		}
 
 		void connect_to_lobby_with_mode(const game::netadr_t& addr, const game::eModes mode, const std::string& mapname,
-		                                const std::string& gametype, const std::string& usermap_id, const std::string& mod_id,
+		                                const std::string& gametype, const std::string& usermap_id,
+		                                const std::string& mod_id,
 		                                const bool was_retried = false)
 		{
 			if (game::Com_SessionMode_IsMode(mode))
@@ -153,6 +157,14 @@ namespace party
 				return;
 			}
 
+			const auto sub_protocol = atoi(info.get("sub_protocol").data());
+			if (sub_protocol != SUB_PROTOCOL && sub_protocol != (SUB_PROTOCOL - 1))
+			{
+				const auto str = "Invalid sub-protocol.";
+				printf("%s\n", str);
+				return;
+			}
+
 			const auto gamename = info.get("gamename");
 			if (gamename != "T7"s)
 			{
@@ -189,7 +201,7 @@ namespace party
 				const auto usermap_id = workshop::get_usermap_publisher_id(mapname);
 
 				if (workshop::check_valid_usermap_id(mapname, usermap_id) &&
-				    workshop::check_valid_mod_id(mod_id))
+					workshop::check_valid_mod_id(mod_id))
 				{
 					if (is_connecting_to_dedi)
 					{

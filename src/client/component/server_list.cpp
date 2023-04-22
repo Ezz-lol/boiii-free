@@ -5,8 +5,8 @@
 #include "game/game.hpp"
 
 #include <utils/string.hpp>
+#include <utils/concurrency.hpp>
 #include <utils/hook.hpp>
-#include <utils/io.hpp>
 
 #include "network.hpp"
 #include "scheduler.hpp"
@@ -222,11 +222,6 @@ namespace server_list
 			}, scheduler::async, 200ms);
 
 			lua_serverinfo_to_table_hook.create(0x141F1FD10_g, lua_serverinfo_to_table_stub);
-
-			scheduler::once([]
-			{
-				read_favorite_servers();
-			}, scheduler::main);
 		}
 
 		void pre_destroy() override

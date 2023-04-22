@@ -1,6 +1,7 @@
 #pragma once
 
-#define PROTOCOL 3
+#define PROTOCOL 4
+#define SUB_PROTOCOL 1
 
 #ifdef __cplusplus
 namespace game
@@ -1583,14 +1584,22 @@ namespace game
 		int client_state;
 		char __pad0[0x28];
 		netadr_t address;
-		char __pad1[0x5588];
+		char __pad1[20468];
+		int reliableSequence;
+		int reliableAcknowledge;
+		char __pad2[4];
+		int messageAcknowledge;
+		char gap_5040[1416];
 		uint64_t xuid;
-		char __pad2[0xB5D84];
+		char __pad3[0xB5D84];
 		int guid;
-		char __pad3[0x8];
+		char __pad4[0x8];
 		bool bIsTestClient;
-		char __pad4[0x29DAC];
+		char __pad5[3];
+		int serverId;
+		char __pad6[171432];
 	};
+
 
 #ifdef __cplusplus
 	static_assert(sizeof(client_s) == 0xE5110);

@@ -176,6 +176,30 @@ namespace game
 		}
 	}
 
+
+	template <typename T>
+	static bool access_client(T* client_states, const size_t index, const std::function<void(client_s&)>& callback)
+	{
+		if (!client_states || !callback)
+		{
+			return false;
+		}
+
+		if (index >= get_max_client_count())
+		{
+			return false;
+		}
+
+		auto& client = client_states[index];
+		if (client.client_state <= 0)
+		{
+			return false;
+		}
+
+		callback(client);
+		return true;
+	}
+
 	void foreach_client(const std::function<void(client_s&, size_t index)>& callback)
 	{
 		if (is_server())
@@ -213,5 +237,15 @@ namespace game
 		{
 			callback(client);
 		});
+	}
+
+	bool access_connected_client(const size_t index, const std::function<void(client_s&)>& callback)
+	{
+		if (is_server())
+		{
+			return access_client(*svs_clients, index, callback);
+		}
+
+		return access_client(*svs_clients_cl, index, callback);
 	}
 }

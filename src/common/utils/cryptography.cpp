@@ -229,7 +229,20 @@ namespace utils::cryptography
 
 		if (ecc_export(buffer, &length, type, &this->key_storage_) == CRYPT_OK)
 		{
-			return std::string(cs(buffer), length);
+			return {cs(buffer), length};
+		}
+
+		return "";
+	}
+
+	std::string ecc::key::get_openssl() const
+	{
+		uint8_t buffer[4096] = {0};
+		unsigned long length = sizeof(buffer);
+
+		if (ecc_export_openssl(buffer, &length, PK_PUBLIC, &this->key_storage_) == CRYPT_OK)
+		{
+			return {cs(buffer), length};
 		}
 
 		return "";

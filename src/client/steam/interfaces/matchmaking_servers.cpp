@@ -34,6 +34,8 @@ namespace steam
 		gameserveritem_t create_server_item(const game::netadr_t& address, const ::utils::info_string& info,
 		                                    const uint32_t ping, const bool success)
 		{
+			const auto sub_protocol = atoi(info.get("sub_protocol").data());
+
 			gameserveritem_t server{};
 			server.m_NetAdr.m_usConnectionPort = address.port;
 			server.m_NetAdr.m_usQueryPort = address.port;
@@ -44,7 +46,7 @@ namespace steam
 			::utils::string::copy(server.m_szGameDir, "");
 			::utils::string::copy(server.m_szMap, info.get("mapname").data());
 			::utils::string::copy(server.m_szGameDescription, info.get("description").data());
-			server.m_nAppID = 311210;
+			server.m_nAppID = (sub_protocol == SUB_PROTOCOL || sub_protocol == (SUB_PROTOCOL - 1)) ? 311210 : 0;
 			server.m_nPlayers = atoi(info.get("clients").data());
 			server.m_nMaxPlayers = atoi(info.get("sv_maxclients").data());
 			server.m_nBotPlayers = atoi(info.get("bots").data());
@@ -75,7 +77,7 @@ namespace steam
 
 		void handle_server_respone(const bool success, const game::netadr_t& host, const ::utils::info_string& info,
 		                           const uint32_t ping, ::utils::concurrency::container<servers>& server_list,
-								   std::atomic<matchmaking_server_list_response*>& response, void* request)
+									std::atomic<matchmaking_server_list_response*>& response, void* request)
 		{
 			bool all_handled = false;
 			std::optional<int> index{};
@@ -289,11 +291,10 @@ namespace steam
 			return nullptr;
 		}
 
-		auto servers_list = hRequest == favorites_request ? &favorites_servers : &internet_servers;
+		auto& servers_list = hRequest == favorites_request ? favorites_servers : internet_servers;
 
 		static thread_local gameserveritem_t server_item{};
-		return servers_list->access<gameserveritem_t*>([iServer](const servers& s) -> gameserveritem_t*
-		{
+		return servers_list.access<gameserveritem_t*>([iServer](const servers& s) -> gameserveritem_t* {
 			if (iServer < 0 || static_cast<size_t>(iServer) >= s.size())
 			{
 				return nullptr;
@@ -324,8 +325,8 @@ namespace steam
 			return 0;
 		}
 
-		auto servers_list = hRequest == favorites_request ? &favorites_servers : &internet_servers;
-		return servers_list->access<int>([](const servers& s)
+		auto& servers_list = hRequest == favorites_request ? favorites_servers : internet_servers;
+		return servers_list.access<int>([](const servers& s)
 		{
 			return static_cast<int>(s.size());
 		});
@@ -339,8 +340,8 @@ namespace steam
 		}
 
 		std::optional<game::netadr_t> address{};
-		auto servers_list = hRequest == favorites_request ? &favorites_servers : &internet_servers;
-		servers_list->access([&](const servers& s)
+		auto& servers_list = hRequest == favorites_request ? favorites_servers : internet_servers;
+		servers_list.access([&](const servers& s)
 		{
 			if (iServer < 0 || static_cast<size_t>(iServer) >= s.size())
 			{

@@ -16,6 +16,28 @@ local SetButtonState = function(button, state)
   end
 end
 
+local RemoveButton = function(buttonTable, button)
+  for id, v in pairs(buttonTable) do
+    if buttonTable[id].optionDisplay == button.stringRef then
+      table.remove(buttonTable, id)
+    end
+  end
+end
+
+local RemoveSpaces = function(buttonTable)
+  for id, v in pairs(buttonTable) do
+    buttonTable[id].isLastButtonInGroup = false
+  end
+end
+
+local GetButtonIndex = function(buttonTable, button)
+  for id, v in pairs(buttonTable) do
+    if buttonTable[id].optionDisplay == button.stringRef then
+      return id
+    end
+  end
+end
+
 local AddButton = function(controller, options, button, isLargeButton, index)
   if button == nil then
     return
@@ -125,5 +147,8 @@ return {
   AddButton = AddButton,
   AddLargeButton = AddLargeButton,
   AddSmallButton = AddSmallButton,
-  AddSpacer = AddSpacer
+  AddSpacer = AddSpacer,
+  RemoveButton = RemoveButton,
+  RemoveSpaces = RemoveSpaces,
+  GetButtonIndex = GetButtonIndex
 }

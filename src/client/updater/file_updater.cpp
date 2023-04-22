@@ -200,7 +200,11 @@ namespace updater
 			throw;
 		}
 
-		utils::nt::relaunch_self();
+		if (!utils::flags::has_flag("norelaunch"))
+		{
+			utils::nt::relaunch_self();
+		}
+
 		throw update_cancelled();
 	}
 
