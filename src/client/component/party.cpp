@@ -157,6 +157,14 @@ namespace party
 				return;
 			}
 
+			const auto sub_protocol = atoi(info.get("sub_protocol").data());
+			if (sub_protocol != SUB_PROTOCOL && sub_protocol != (SUB_PROTOCOL - 1))
+			{
+				const auto str = "Invalid sub-protocol.";
+				printf("%s\n", str);
+				return;
+			}
+
 			const auto gamename = info.get("gamename");
 			if (gamename != "T7"s)
 			{

@@ -1,7 +1,8 @@
 #include "string.hpp"
-#include <sstream>
-#include <cstdarg>
 #include <algorithm>
+#include <cassert>
+#include <cstdarg>
+#include <sstream>
 
 #include "nt.hpp"
 
@@ -116,11 +117,12 @@ namespace utils::string
 
 	void strip(const char* in, char* out, size_t max)
 	{
+		assert(max);
 		if (!in || !out) return;
 
 		max--;
 		size_t current = 0;
-		while (*in != 0 && current < max)
+		while (*in != '\0' && current < max)
 		{
 			const auto color_index = (*(in + 1) - 48) >= 0xC ? 7 : (*(in + 1) - 48);
 
@@ -136,6 +138,25 @@ namespace utils::string
 			}
 
 			++in;
+		}
+
+		*out = '\0';
+	}
+
+	void strip_material(const char* in, char* out, size_t max)
+	{
+		assert(max);
+		if (!in || !out) return;
+
+		size_t i = 0;
+		while (*in != '\0' && i < max - 1)
+		{
+			if (*in != '$' && *in != '{' && *in != '}')
+			{
+				*out++ = *in;
+				i++;
+			}
+			in++;
 		}
 
 		*out = '\0';

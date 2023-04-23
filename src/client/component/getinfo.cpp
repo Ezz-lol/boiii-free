@@ -110,6 +110,7 @@ namespace getinfo
 				info.set("bots", std::to_string(get_bot_count()));
 				info.set("sv_maxclients", std::to_string(get_max_client_count()));
 				info.set("protocol", std::to_string(PROTOCOL));
+				info.set("sub_protocol", std::to_string(SUB_PROTOCOL));
 				info.set("playmode", std::to_string(game::Com_SessionMode_GetMode()));
 				info.set("gamemode", std::to_string(Com_SessionMode_GetGameMode()));
 				info.set("sv_running", std::to_string(game::is_server_running()));

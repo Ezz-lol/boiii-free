@@ -9,9 +9,11 @@ namespace discord
 {
 	namespace
 	{
-		void ready(const DiscordUser* /*request*/)
+		void ready(const DiscordUser* request)
 		{
-			printf("Discord: Ready\n");
+			SetEnvironmentVariableA("discord_user", request->userId);
+
+			printf("Discord: Ready: %s - %s\n", request->userId, request->username);
 
 			DiscordRichPresence discord_presence{};
 			ZeroMemory(&discord_presence, sizeof(discord_presence));

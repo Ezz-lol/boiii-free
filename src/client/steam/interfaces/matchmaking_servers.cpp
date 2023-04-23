@@ -28,9 +28,18 @@ namespace steam
 		::utils::concurrency::container<servers> queried_servers{};
 		std::atomic<matchmaking_server_list_response*> current_response{};
 
+		template <typename T>
+		void copy_safe(T& dest, const char* in)
+		{
+			::utils::string::copy(dest, in);
+			::utils::string::strip_material(dest, dest, std::extent<T>::value);
+		}
+
 		gameserveritem_t create_server_item(const game::netadr_t& address, const ::utils::info_string& info,
 		                                    const uint32_t ping, const bool success)
 		{
+			const auto sub_protocol = atoi(info.get("sub_protocol").data());
+
 			gameserveritem_t server{};
 			server.m_NetAdr.m_usConnectionPort = address.port;
 			server.m_NetAdr.m_usQueryPort = address.port;
@@ -38,10 +47,12 @@ namespace steam
 			server.m_nPing = static_cast<int>(ping);
 			server.m_bHadSuccessfulResponse = success;
 			server.m_bDoNotRefresh = false;
-			::utils::string::copy(server.m_szGameDir, "");
-			::utils::string::copy(server.m_szMap, info.get("mapname").data());
-			::utils::string::copy(server.m_szGameDescription, info.get("description").data());
-			server.m_nAppID = 311210;
+
+			copy_safe(server.m_szGameDir, "");
+			copy_safe(server.m_szMap, info.get("mapname").data());
+			copy_safe(server.m_szGameDescription, info.get("description").data());
+
+			server.m_nAppID = (sub_protocol == SUB_PROTOCOL || sub_protocol == (SUB_PROTOCOL - 1)) ? 311210 : 0;
 			server.m_nPlayers = atoi(info.get("clients").data());
 			server.m_nMaxPlayers = atoi(info.get("sv_maxclients").data());
 			server.m_nBotPlayers = atoi(info.get("bots").data());
@@ -49,7 +60,8 @@ namespace steam
 			server.m_bSecure = true;
 			server.m_ulTimeLastPlayed = 0;
 			server.m_nServerVersion = 1000;
-			::utils::string::copy(server.m_szServerName, info.get("hostname").data());
+
+			copy_safe(server.m_szServerName, info.get("hostname").data());
 
 			const auto playmode = info.get("playmode");
 			const auto mode = game::eModes(std::atoi(playmode.data()));
@@ -64,7 +76,8 @@ namespace steam
 				atoi(info.get("bots").data()),
 				info.get("modName").data());
 
-			::utils::string::copy(server.m_szGameTags, tags);
+			copy_safe(server.m_szGameTags, tags);
+
 			server.m_steamID.bits = strtoull(info.get("xuid").data(), nullptr, 16);
 
 			return server;
@@ -231,8 +244,7 @@ namespace steam
 		}
 
 		static thread_local gameserveritem_t server_item{};
-		return queried_servers.access<gameserveritem_t*>([iServer](const servers& s) -> gameserveritem_t*
-		{
+		return queried_servers.access<gameserveritem_t*>([iServer](const servers& s) -> gameserveritem_t* {
 			if (iServer < 0 || static_cast<size_t>(iServer) >= s.size())
 			{
 				return nullptr;
