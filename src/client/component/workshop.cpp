@@ -240,11 +240,17 @@ namespace workshop
 		return true;
 	}
 
-	void load_mod_if_needed(const std::string& usermap, const std::string& mod)
+	void setup_same_mod_as_host(const std::string& usermap, const std::string& mod)
 	{
 		if (!usermap.empty() || mod != "usermaps")
 		{
 			game::loadMod(0, mod.data(), true);
+			return;
+		}
+
+		if (game::isModLoaded())
+		{
+			game::loadMod(0, "", true);
 		}
 	}
 
