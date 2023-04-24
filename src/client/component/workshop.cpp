@@ -82,7 +82,7 @@ namespace workshop
 			utils::string::copy(item.description, doc["Description"].GetString());
 			utils::string::copy(item.folderName, doc["FolderName"].GetString());
 			utils::string::copy(item.publisherId, doc["PublisherID"].GetString());
-			item.publisherIdInteger = std::stoul(item.publisherId);
+			item.publisherIdInteger = std::strtoul(item.publisherId, nullptr, 10);
 		}
 
 		void load_usermap_content_stub(void* usermaps_count, int type)
@@ -94,7 +94,7 @@ namespace workshop
 				auto& usermap_data = game::usermapsPool[i];
 
 				// foldername == title -> non-steam workshop usercontent
-				if (std::strcmp(usermap_data.folderName, usermap_data.title))
+				if (std::strcmp(usermap_data.folderName, usermap_data.title) != 0)
 				{
 					continue;
 				}
@@ -111,7 +111,7 @@ namespace workshop
 			{
 				auto& mod_data = game::modsPool[i];
 
-				if (std::strcmp(mod_data.folderName, mod_data.title))
+				if (std::strcmp(mod_data.folderName, mod_data.title) != 0)
 				{
 					continue;
 				}
