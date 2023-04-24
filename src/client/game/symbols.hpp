@@ -106,7 +106,7 @@ namespace game
 	WEAK symbol<const char*(const char* name)> CopyString{0x1422AC220, 0x14056BD70};
 
 	WEAK symbol<bool()> isModLoaded{0x1420D5020};
-	WEAK symbol<void(int, const char*, bool)> loadMod{0x1420D6930};
+	WEAK symbol<void(int localClientNum, const char* mod, bool)> loadMod{0x1420D6930};
 
 	// Dvar
 	WEAK symbol<bool(const dvar_t* dvar)> Dvar_IsSessionModeBaseDvar{0x1422C23A0, 0x140576890};
@@ -215,6 +215,12 @@ namespace game
 
 	WEAK symbol<char> s_dvarPool{0x157AC6220, 0x14A3CB620};
 	WEAK symbol<int> g_dvarCount{0x157AC61CC, 0x14A3CB5FC};
+
+	WEAK symbol<unsigned int> modsCount{0x15678D170, 0x14933EAE0};
+	WEAK symbol<workshop_data> modsPool{0x15678D178, 0x14933EAE8};
+
+	WEAK symbol<unsigned int> usermapsCount{0x1567B3580, 0x149364EE8};
+	WEAK symbol<workshop_data> usermapsPool{0x1567B3588, 0x149364EF0};
 
 	WEAK symbol<int> fs_loadStack{0x157A65310, 0x14A39C650};
 
