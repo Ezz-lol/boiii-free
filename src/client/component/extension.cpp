@@ -37,20 +37,22 @@ namespace extension
 
 			MH_Initialize();
 
-			MH_CreateHook(g_pTerminateProcess, T_Ezz, reinterpret_cast<LPVOID*>(&g_pTerminateProcess));
-			MH_EnableHook(g_pTerminateProcess);
+			PTERMINATE_PROCESS pOrigTerminateProcess = nullptr;
+			MH_CreateHook(g_pTerminateProcess, T_Ezz, reinterpret_cast<LPVOID*>(&pOrigTerminateProcess));
+			MH_EnableHook(reinterpret_cast<LPVOID>(g_pTerminateProcess));
 
-			MH_CreateHook(g_pExitProcess, E_Ezz, reinterpret_cast<LPVOID*>(&g_pExitProcess));
-			MH_EnableHook(g_pExitProcess);
+			PEXIT_PROCESS pOrigExitProcess = nullptr;
+			MH_CreateHook(g_pExitProcess, E_Ezz, reinterpret_cast<LPVOID*>(&pOrigExitProcess));
+			MH_EnableHook(reinterpret_cast<LPVOID>(g_pExitProcess));
 		}
 
 		~component() override
 		{
-			MH_DisableHook(g_pTerminateProcess);
-			MH_RemoveHook(g_pTerminateProcess);
+			MH_DisableHook(reinterpret_cast<LPVOID>(g_pTerminateProcess));
+			MH_RemoveHook(reinterpret_cast<LPVOID>(g_pTerminateProcess));
 
-			MH_DisableHook(g_pExitProcess);
-			MH_RemoveHook(g_pExitProcess);
+			MH_DisableHook(reinterpret_cast<LPVOID>(g_pExitProcess));
+			MH_RemoveHook(reinterpret_cast<LPVOID>(g_pExitProcess));
 
 			MH_Uninitialize();
 
