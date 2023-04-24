@@ -42,7 +42,7 @@ namespace party
 		{
 			auth::clear_stored_guids();
 
-			workshop::load_mod_if_needed(usermap_id, mod_id);
+			workshop::setup_same_mod_as_host(usermap_id, mod_id);
 
 			game::XSESSION_INFO info{};
 			game::CL_ConnectFromLobby(0, &info, &addr, 1, 0, mapname.data(), gamemode.data(), usermap_id.data());
@@ -189,7 +189,7 @@ namespace party
 				return;
 			}
 
-			const auto mod_id = info.get("fs_game");
+			const auto mod_id = info.get("modId");
 
 			//const auto hostname = info.get("sv_hostname");
 			const auto playmode = info.get("playmode");

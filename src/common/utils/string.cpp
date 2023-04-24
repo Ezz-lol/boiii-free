@@ -66,6 +66,17 @@ namespace utils::string
 		return std::equal(substring.rbegin(), substring.rend(), text.rbegin());
 	}
 
+	bool is_numeric(const std::string& text)
+	{
+		auto it = text.begin();
+		while (it != text.end() && std::isdigit(static_cast<unsigned char>(*it)))
+		{
+			++it;
+		}
+
+		return !text.empty() && it == text.end();
+	}
+
 	std::string dump_hex(const std::string& data, const std::string& separator)
 	{
 		std::string result;
@@ -145,9 +156,9 @@ namespace utils::string
 			if (*in != '$' && *in != '{' && *in != '}')
 			{
 				*out++ = *in;
-				i++;
+				++i;
 			}
-			in++;
+			++in;
 		}
 
 		*out = '\0';

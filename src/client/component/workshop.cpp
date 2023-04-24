@@ -13,15 +13,14 @@ namespace workshop
 	namespace
 	{
 		utils::hook::detour setup_server_map_hook;
+		utils::hook::detour load_usermap_hook;
 
 		bool has_mod(const std::string& pub_id)
 		{
-			const auto total_mods = *reinterpret_cast<unsigned int*>(0x15678D170_g);
-
-			for (unsigned int i = 0; i < total_mods; ++i)
+			for (unsigned int i = 0; i < *game::modsCount; ++i)
 			{
-				const auto mod_data = reinterpret_cast<game::workshop_data*>(0x15678D178_g + (sizeof(game::workshop_data) * i));
-				if (mod_data->publisherId == pub_id)
+				const auto& mod_data = game::modsPool[i];
+				if (mod_data.publisherId == pub_id)
 				{
 					return true;
 				}
@@ -30,92 +29,182 @@ namespace workshop
 			return false;
 		}
 
-		void load_usermap_mod_if_needed(const std::string& publisher_id)
+		void load_usermap_mod_if_needed()
 		{
-			if (!game::isModLoaded() && !publisher_id.empty())
+			if (!game::isModLoaded())
 			{
-				game::loadMod(0, "usermaps", true);
+				game::loadMod(0, "usermaps", false);
 			}
 		}
 
-		void setup_server_map_stub(int localClientNum, const char* mapname, const char* gametype)
+		void setup_server_map_stub(int localClientNum, const char* map, const char* gametype)
 		{
-			const auto publisher_id = get_usermap_publisher_id(mapname);
-			load_usermap_mod_if_needed(publisher_id);
-
-			setup_server_map_hook.invoke(localClientNum, mapname, gametype);
-		}
-
-		bool has_workshop_item_stub(int type, const char* mapname, int a3)
-		{
-			const auto publisher_id = get_usermap_publisher_id(mapname);
-			const auto name = publisher_id.empty() ? mapname : publisher_id.data();
-
-			return utils::hook::invoke<bool>(0x1420D6380_g, type, name, a3);
-		}
-
-		game::workshop_data* load_usermap_stub(const char* mapname)
-		{
-			const auto publisher_id = get_usermap_publisher_id(mapname);
-			const auto name = publisher_id.empty() ? mapname : publisher_id.data();
-
-			return utils::hook::invoke<game::workshop_data*>(0x1420D5700_g, name);
-		}
-	}
-
-	std::string get_mod_name(const std::string& mod_id)
-	{
-		if (mod_id == "usermaps" || !game::is_server())
-		{
-			return mod_id;
-		}
-
-		const utils::nt::library host{};
-		const auto base_path = host.get_folder().generic_string();
-		const auto path = utils::string::va("%s/mods/%s/zone/workshop.json", base_path.data(), mod_id.data());
-		const auto json_str = utils::io::read_file(path);
-
-		if (json_str.empty())
-		{
-			printf("[ Workshop ] workshop.json has not been found in mod folder: %s\n", mod_id.data());
-			return mod_id;
-		}
-
-		rapidjson::Document doc;
-		const rapidjson::ParseResult parse_result = doc.Parse(json_str);
-
-		if (parse_result.IsError() || !doc.IsObject())
-		{
-			printf("[ Workshop ] Unable to parse workshop.json\n");
-			return mod_id;
-		}
-
-		if (doc.HasMember("Title"))
-		{
-			std::string title = doc["Title"].GetString();
-
-			if (title.size() > 31)
+			if (utils::string::is_numeric(map) ||
+				!get_usermap_publisher_id(map).empty())
 			{
-				title.resize(31);
+				load_usermap_mod_if_needed();
 			}
 
-			return title;
+			setup_server_map_hook.invoke(localClientNum, map, gametype);
 		}
 
-		printf("[ Workshop ] workshop.json has no \"Title\" member.\n");
-		return mod_id;
+		void load_workshop_data(game::workshop_data& item)
+		{
+			const auto base_path = item.absolutePathZoneFiles;
+			const auto path = utils::string::va("%s/workshop.json", base_path);
+			const auto json_str = utils::io::read_file(path);
+
+			if (json_str.empty())
+			{
+				printf("[ Workshop ] workshop.json has not been found in folder:\n%s\n", path);
+				return;
+			}
+
+			rapidjson::Document doc;
+			const rapidjson::ParseResult parse_result = doc.Parse(json_str);
+
+			if (parse_result.IsError() || !doc.IsObject())
+			{
+				printf("[ Workshop ] Unable to parse workshop.json from folder:\n%s\n", path);
+				return;
+			}
+
+			if (!doc.HasMember("Title") ||
+				!doc.HasMember("Description") ||
+				!doc.HasMember("FolderName") ||
+				!doc.HasMember("PublisherID"))
+			{
+				printf("[ Workshop ] workshop.json is invalid:\n%s\n", path);
+				return;
+			}
+
+			utils::string::copy(item.title, doc["Title"].GetString());
+			utils::string::copy(item.description, doc["Description"].GetString());
+			utils::string::copy(item.folderName, doc["FolderName"].GetString());
+			utils::string::copy(item.publisherId, doc["PublisherID"].GetString());
+			item.publisherIdInteger = std::strtoul(item.publisherId, nullptr, 10);
+		}
+
+		void load_usermap_content_stub(void* usermaps_count, int type)
+		{
+			utils::hook::invoke<void>(game::select(0x1420D6430, 0x1404E2360), usermaps_count, type);
+
+			for (unsigned int i = 0; i < *game::usermapsCount; ++i)
+			{
+				auto& usermap_data = game::usermapsPool[i];
+
+				// foldername == title -> non-steam workshop usercontent
+				if (std::strcmp(usermap_data.folderName, usermap_data.title) != 0)
+				{
+					continue;
+				}
+
+				load_workshop_data(usermap_data);
+			}
+		}
+
+		void load_mod_content_stub(void* mods_count, int type)
+		{
+			utils::hook::invoke<void>(game::select(0x1420D6430, 0x1404E2360), mods_count, type);
+
+			for (unsigned int i = 0; i < *game::modsCount; ++i)
+			{
+				auto& mod_data = game::modsPool[i];
+
+				if (std::strcmp(mod_data.folderName, mod_data.title) != 0)
+				{
+					continue;
+				}
+
+				load_workshop_data(mod_data);
+			}
+		}
+
+		game::workshop_data* load_usermap_stub(const char* map_arg)
+		{
+			std::string pub_id = map_arg;
+			if (!utils::string::is_numeric(map_arg))
+			{
+				pub_id = get_usermap_publisher_id(map_arg);
+			}
+
+			return load_usermap_hook.invoke<game::workshop_data*>(pub_id.data());
+		}
+
+		bool has_workshop_item_stub(int type, const char* map, int a3)
+		{
+			std::string pub_id = map;
+			if (!utils::string::is_numeric(map))
+			{
+				pub_id = get_usermap_publisher_id(map);
+			}
+
+			return utils::hook::invoke<bool>(0x1420D6380_g, type, pub_id.data(), a3);
+		}
 	}
 
-	std::string get_usermap_publisher_id(const std::string& mapname)
+	std::string get_mod_resized_name(const std::string& dir_name)
 	{
-		const auto total_usermaps = *reinterpret_cast<unsigned int*>(0x1567B3580_g);
+		std::string result = dir_name;
 
-		for (unsigned int i = 0; i < total_usermaps; ++i)
+		for (unsigned int i = 0; i < *game::modsCount; ++i)
 		{
-			const auto usermap_data = reinterpret_cast<game::workshop_data*>(0x1567B3588_g + (sizeof(game::workshop_data) * i));
-			if (usermap_data->folderName == mapname)
+			const auto& mod_data = game::modsPool[i];
+
+			if (utils::string::ends_with(mod_data.contentPathToZoneFiles, dir_name))
 			{
-				return usermap_data->publisherId;
+				result = mod_data.title;
+				break;
+			}
+		}
+
+		if (result.size() > 31)
+		{
+			result.resize(31);
+		}
+
+		return result;
+	}
+
+	std::string get_usermap_publisher_id(const std::string& zone_name)
+	{
+		for (unsigned int i = 0; i < *game::usermapsCount; ++i)
+		{
+			const auto& usermap_data = game::usermapsPool[i];
+			if (usermap_data.folderName == zone_name)
+			{
+				if (!utils::string::is_numeric(usermap_data.publisherId))
+				{
+					printf("[ Workshop ] WARNING: The publisherId is not numerical you might have set your usermap folder incorrectly!\n%s\n",
+						usermap_data.absolutePathZoneFiles);
+				}
+
+				return usermap_data.publisherId;
+			}
+		}
+
+		return {};
+	}
+
+	std::string get_mod_publisher_id(const std::string& dir_name)
+	{
+		if (dir_name == "usermaps")
+		{
+			return dir_name;
+		}
+
+		for (unsigned int i = 0; i < *game::modsCount; ++i)
+		{
+			const auto& mod_data = game::modsPool[i];
+			if (utils::string::ends_with(mod_data.contentPathToZoneFiles, dir_name))
+			{
+				if (!utils::string::is_numeric(mod_data.publisherId))
+				{
+					printf("[ Workshop ] WARNING: The publisherId is not numerical you might have set your mod folder incorrectly!\n%s\n",
+						mod_data.absolutePathZoneFiles);
+				}
+
+				return mod_data.publisherId;
 			}
 		}
 
@@ -151,24 +240,42 @@ namespace workshop
 		return true;
 	}
 
-	void load_mod_if_needed(const std::string& usermap, const std::string& mod)
+	void setup_same_mod_as_host(const std::string& usermap, const std::string& mod)
 	{
 		if (!usermap.empty() || mod != "usermaps")
 		{
 			game::loadMod(0, mod.data(), true);
+			return;
+		}
+
+		if (game::isModLoaded())
+		{
+			game::loadMod(0, "", true);
 		}
 	}
 
-	class component final : public client_component
+	class component final : public generic_component
 	{
 	public:
 		void post_unpack() override
 		{
-			setup_server_map_hook.create(0x14135CD20_g, setup_server_map_stub);
+			// %s/%s/%s/zone -> %s/%s/%s
+			utils::hook::set<uint8_t>(game::select(0x14303E8D8, 0x140E73BB8), 0);
+			// %s/%s/zone -> %s/%s
+			utils::hook::set<uint8_t>(game::select(0x14303E7AD, 0x140E73AD5), 0);
 
-			// Allow client to switch maps if server sends zone name instead of publisher id
+			load_usermap_hook.create(game::select(0x1420D5700, 0x1404E18B0), load_usermap_stub);
+			utils::hook::call(game::select(0x1420D67F5, 0x1404E25F2), load_usermap_content_stub);
+
+			if (game::is_server())
+			{
+				utils::hook::jump(0x1404E2635_g, load_mod_content_stub);
+				return;
+			}
+
+			utils::hook::call(0x1420D6745_g, load_mod_content_stub);
 			utils::hook::call(0x14135CD84_g, has_workshop_item_stub);
-			utils::hook::call(0x14135CE48_g, load_usermap_stub);
+			setup_server_map_hook.create(0x14135CD20_g, setup_server_map_stub);
 		}
 	};
 }
