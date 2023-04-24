@@ -19,7 +19,7 @@
 
 namespace updater
 {
-	bool disable_update = true;
+	bool disable_update = false;
 	namespace
 	{
 		std::string get_update_file()
@@ -287,6 +287,10 @@ namespace updater
 			return false;
 		}
 #endif
+
+		if (file.name == UPDATE_HOST_BINARY) {
+			return false; //❗👽
+		}
 
 		std::string data{};
 		const auto drive_name = this->get_drive_filename(file);
