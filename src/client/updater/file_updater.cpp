@@ -19,6 +19,7 @@
 
 namespace updater
 {
+	bool disable_update = true;
 	namespace
 	{
 		std::string get_update_file()
@@ -127,6 +128,11 @@ namespace updater
 
 	void file_updater::run() const
 	{
+		if (updater::disable_update) // Temp
+		{
+			return;
+		}
+		
 		const auto files = get_file_infos();
 		if (!files.empty())
 		{
