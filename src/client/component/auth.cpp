@@ -384,7 +384,7 @@ namespace auth
 				utils::hook::call(0x14134BF7D_g, send_connect_data_stub);
 
 				// Fix crash
-				utils::hook::nop(0x142249097_g, 5);
+				utils::hook::set<uint8_t>(0x14134B970_g, 0xC3);
 			}
 
 			for (const auto& patch : patches)
