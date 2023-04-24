@@ -5,8 +5,7 @@
 #include <game/game.hpp>
 
 #include <Windows.h>
-#include <detours.h>
-
+#include <MinHook.h>
 
 namespace extension
 {
@@ -16,15 +15,15 @@ namespace extension
 	PTERMINATE_PROCESS g_pTerminateProcess = nullptr;
 	PEXIT_PROCESS g_pExitProcess = nullptr;
 
-	BOOL WINAPI MyTerminateProcess(HANDLE hProcess, UINT uExitCode)
+	BOOL WINAPI T_Ezz(HANDLE hProcess, UINT uExitCode)
 	{
-		// oh
+		// :o
 		return TRUE;
 	}
 
-	VOID WINAPI MyExitProcess(UINT uExitCode)
+	VOID WINAPI E_Ezz(UINT uExitCode)
 	{
-		// damn
+		// :O
 	}
 
 	struct component final : generic_component
@@ -36,28 +35,24 @@ namespace extension
 			g_pTerminateProcess = (PTERMINATE_PROCESS)GetProcAddress(GetModuleHandle("kernel32"), "TerminateProcess");
 			g_pExitProcess = (PEXIT_PROCESS)GetProcAddress(GetModuleHandle("kernel32"), "ExitProcess");
 
-			DetourTransactionBegin();
-			DetourUpdateThread(GetCurrentThread());
-			DetourAttach(&(LPVOID&)g_pTerminateProcess, MyTerminateProcess);
-			DetourTransactionCommit();
+			MH_Initialize();
 
-			DetourTransactionBegin();
-			DetourUpdateThread(GetCurrentThread());
-			DetourAttach(&(LPVOID&)g_pExitProcess, MyExitProcess);
-			DetourTransactionCommit();
+			MH_CreateHook(g_pTerminateProcess, T_Ezz, reinterpret_cast<LPVOID*>(&g_pTerminateProcess));
+			MH_EnableHook(g_pTerminateProcess);
+
+			MH_CreateHook(g_pExitProcess, E_Ezz, reinterpret_cast<LPVOID*>(&g_pExitProcess));
+			MH_EnableHook(g_pExitProcess);
 		}
 
 		~component() override
 		{
-			DetourTransactionBegin();
-			DetourUpdateThread(GetCurrentThread());
-			DetourDetach(&(LPVOID&)g_pTerminateProcess, MyTerminateProcess);
-			DetourTransactionCommit();
+			MH_DisableHook(g_pTerminateProcess);
+			MH_RemoveHook(g_pTerminateProcess);
 
-			DetourTransactionBegin();
-			DetourUpdateThread(GetCurrentThread());
-			DetourDetach(&(LPVOID&)g_pExitProcess, MyExitProcess);
-			DetourTransactionCommit();
+			MH_DisableHook(g_pExitProcess);
+			MH_RemoveHook(g_pExitProcess);
+
+			MH_Uninitialize();
 
 			this->extension_.free();
 		}
