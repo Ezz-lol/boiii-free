@@ -4,6 +4,7 @@
 
 #include "game/game.hpp"
 #include "game/utils.hpp"
+#include "command.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -316,6 +317,11 @@ namespace workshop
 	public:
 		void post_unpack() override
 		{
+			command::add("userContentReload", [](const command::params& params)
+			{
+				game::reloadUserContent();
+			});
+
 			enable_zone_folder = game::register_dvar_bool("enable_zone_folder", false, game::DVAR_ARCHIVE, "Load custom zones from the zone folder within the usermaps/mods folder");
 
 			utils::hook::jump(game::select(0x1420D6A99, 0x1404E2929), utils::hook::assemble(override_path_mods_stub));
