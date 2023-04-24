@@ -1,6 +1,9 @@
 #include <std_include.hpp>
 #include "../steam.hpp"
 
+#include "component/network.hpp"
+#include "component/server_list.hpp"
+
 namespace steam
 {
 	int matchmaking::GetFavoriteGameCount()
@@ -19,12 +22,16 @@ namespace steam
 	                                 unsigned short nQueryPort, unsigned int unFlags,
 	                                 unsigned int rTime32LastPlayedOnServer)
 	{
+		auto addr = network::address_from_ip(htonl(nIP), nConnPort);
+		server_list::add_favorite_server(addr);
 		return 0;
 	}
 
 	bool matchmaking::RemoveFavoriteGame(unsigned int nAppID, unsigned int nIP, unsigned short nConnPort,
 	                                     unsigned short nQueryPort, unsigned int unFlags)
 	{
+		auto addr = network::address_from_ip(htonl(nIP), nConnPort);
+		server_list::remove_favorite_server(addr);
 		return false;
 	}
 
