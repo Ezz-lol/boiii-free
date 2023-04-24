@@ -31,3 +31,6 @@
 [submodule "deps/curl"]
 	path = deps/curl
 	url = https://github.com/curl/curl.git
+[submodule "deps/detours"]
+	path = deps/detours
+	url = https://github.com/microsoft/Detours
