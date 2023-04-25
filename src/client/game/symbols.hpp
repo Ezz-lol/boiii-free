@@ -85,6 +85,7 @@ namespace game
 
 	// Info
 	WEAK symbol<const char*(const char*, const char* key)> Info_ValueForKey{0x1422E87B0};
+	WEAK symbol<void(char* s, const char* key, const char* value)> Info_SetValueForKey{0x1422E8410};
 
 	// MSG
 	WEAK symbol<uint8_t(msg_t* msg)> MSG_ReadByte{0x142155450, 0x14050D1B0};
