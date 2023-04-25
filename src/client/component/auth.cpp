@@ -25,6 +25,8 @@ namespace auth
 {
 	namespace
 	{
+		const game::dvar_t* password;
+
 		std::array<uint64_t, 18> client_xuids{};
 
 		std::string get_hdd_serial()
@@ -335,6 +337,11 @@ namespace auth
 
 			// Intercept SV_DirectConnect in SV_AddTestClient
 			utils::hook::call(game::select(0x1422490DC, 0x14052E582), direct_connect_bots_stub);
+
+			scheduler::once([]
+			{
+				password = game::register_dvar_string("password", "", game::DVAR_USERINFO, "password");
+			}, scheduler::pipeline::main);
 
 			// Patch steam id bit check
 			std::vector<std::pair<size_t, size_t>> patches{};

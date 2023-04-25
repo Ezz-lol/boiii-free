@@ -13,7 +13,7 @@ namespace dvars_patches
 	{
 		void patch_dvars()
 		{
-			game::register_sessionmode_dvar_bool("com_pauseSupported", !game::is_server(), game::DVAR_SERVERINFO, "Whether is pause is ever supported by the game mode");
+			(void)game::register_sessionmode_dvar_bool("com_pauseSupported", !game::is_server(), game::DVAR_SERVERINFO, "Whether is pause is ever supported by the game mode");
 		}
 
 		void patch_flags()
