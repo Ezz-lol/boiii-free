@@ -107,6 +107,7 @@ namespace game
 
 	WEAK symbol<bool()> isModLoaded{0x1420D5020};
 	WEAK symbol<void(int localClientNum, const char* mod, bool)> loadMod{0x1420D6930};
+	WEAK symbol<void()> reloadUserContent{0x1420D66C0, 0x1404E25C0};
 
 	// Dvar
 	WEAK symbol<bool(const dvar_t* dvar)> Dvar_IsSessionModeBaseDvar{0x1422C23A0, 0x140576890};
