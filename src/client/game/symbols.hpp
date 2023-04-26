@@ -157,7 +157,7 @@ namespace game
 	WEAK symbol<void(bool frontend)> UI_CoD_Init{0x141F29010, 0x1404A0A50};
 	WEAK symbol<void()> UI_CoD_LobbyUI_Init{0x141F2BD80, 0x1404A1F50};
 	WEAK symbol<void()> UI_CoD_Shutdown{0x141F32E10, 0x0};
-	WEAK symbol<void(const char*, const char*, int, game::hks::lua_State*)> UI_AddMenu{0x1427018F0, 0x0};
+	WEAK symbol<void(const char*, const char*, int, hks::lua_State*)> UI_AddMenu{0x1427018F0, 0x0};
 	WEAK symbol<const char*(int)> UI_CoD_GetRootNameForController{0x141F28940, 0x0};
 	WEAK symbol<void(hks::lua_State*, const char*)> Lua_CoD_LoadLuaFile{0x141F11A20, 0x0};
 	WEAK symbol<void(int localClientNum)> CG_LUIHUDRestart{0x140F7E970};
