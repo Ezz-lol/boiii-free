@@ -16,7 +16,7 @@ namespace rcon
 	{
 		const game::dvar_t* rcon_timeout;
 
-		std::unordered_map<std::size_t, int> rate_limit_map;
+		std::unordered_map<game::netadr_t, int> rate_limit_map;
 
 		std::optional<std::string> get_and_validate_rcon_command(const std::string& data)
 		{
@@ -57,20 +57,19 @@ namespace rcon
 
 		bool rate_limit_check(const game::netadr_t& address, const int time)
 		{
-			const auto hash = std::hash<game::netadr_t>()(address);
-			if (!rate_limit_map.contains(hash))
+			if (!rate_limit_map.contains(address))
 			{
-				rate_limit_map[hash] = 0;
+				rate_limit_map[address] = 0;
 			}
 
-			const auto last_time = rate_limit_map[hash];
+			const auto last_time = rate_limit_map[address];
 
 			if (last_time && (time - last_time) < rcon_timeout->current.value.integer)
 			{
 				return false; // Flooding
 			}
 
-			rate_limit_map[hash] = time;
+			rate_limit_map[address] = time;
 			return true;
 		}
 
