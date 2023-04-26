@@ -57,11 +57,6 @@ namespace rcon
 
 		bool rate_limit_check(const game::netadr_t& address, const int time)
 		{
-			if (!rate_limit_map.contains(address))
-			{
-				rate_limit_map[address] = 0;
-			}
-
 			const auto last_time = rate_limit_map[address];
 
 			if (last_time && (time - last_time) < rcon_timeout->current.value.integer)
