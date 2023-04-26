@@ -328,8 +328,10 @@ namespace auth
 
 	void info_set_value_for_key_stub(char* s, const char* key, const char* value)
 	{
-		game::Info_SetValueForKey.call_safe(s, key, value);
-		game::Info_SetValueForKey.call_safe(s, "password", password->current.value.string);
+		game::Info_SetValueForKey(s, key, value);
+
+		const auto password_text = (password && password->current.value.string) ? password->current.value.string : "";
+		game::Info_SetValueForKey(s, "password", password_text);
 	}
 
 	struct component final : generic_component
