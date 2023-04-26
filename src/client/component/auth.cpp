@@ -106,6 +106,9 @@ namespace auth
 		std::string serialize_connect_data(const char* data, const int length)
 		{
 			utils::byte_buffer buffer{};
+			buffer.write_string(get_key().serialize(PK_PUBLIC));
+			buffer.write_string(utils::cryptography::ecc::sign_message(get_key(), "hello"));
+
 			profile_infos::get_profile_info().value_or(profile_infos::profile_info{}).serialize(buffer);
 
 			buffer.write_string(data, static_cast<size_t>(length));
@@ -210,6 +213,16 @@ namespace auth
 		void dispatch_connect_packet(const game::netadr_t& target, const std::string& data)
 		{
 			utils::byte_buffer buffer(data);
+
+			utils::cryptography::ecc::key key{};
+			key.deserialize(buffer.read_string());
+
+			if (!utils::cryptography::ecc::verify_message(key, "hello", buffer.read_string()))
+			{
+				network::send(target, "error", "Bad signature");
+				return;
+			}
+
 			const profile_infos::profile_info info(buffer);
 
 			const auto connect_data = buffer.read_string();
@@ -224,6 +237,11 @@ namespace auth
 
 			const utils::info_string info_string(params[1]);
 			const auto xuid = strtoull(info_string.get("xuid").data(), nullptr, 16);
+			if (xuid != key.get_hash())
+			{
+				network::send(target, "error", "Bad XUID");
+				return;
+			}
 
 			profile_infos::add_and_distribute_profile_info(target, xuid, info);
 
