@@ -25,6 +25,8 @@ namespace auth
 {
 	namespace
 	{
+		const game::dvar_t* password;
+
 		std::array<uint64_t, 18> client_xuids{};
 
 		std::string get_hdd_serial()
@@ -324,6 +326,12 @@ namespace auth
 		}
 	}
 
+	void info_set_value_for_key_stub(char* s, const char* key, const char* value)
+	{
+		game::Info_SetValueForKey.call_safe(s, key, value);
+		game::Info_SetValueForKey.call_safe(s, "password", password->current.value.string);
+	}
+
 	struct component final : generic_component
 	{
 		void post_unpack() override
@@ -335,6 +343,11 @@ namespace auth
 
 			// Intercept SV_DirectConnect in SV_AddTestClient
 			utils::hook::call(game::select(0x1422490DC, 0x14052E582), direct_connect_bots_stub);
+
+			scheduler::once([]
+			{
+				password = game::register_dvar_string("password", "", game::DVAR_USERINFO, "password");
+			}, scheduler::pipeline::main);
 
 			// Patch steam id bit check
 			std::vector<std::pair<size_t, size_t>> patches{};
@@ -382,6 +395,8 @@ namespace auth
 				p(0x141EB74D2_g, 0x141EB7515_g); // ?
 
 				utils::hook::call(0x14134BF7D_g, send_connect_data_stub);
+
+				utils::hook::call(0x14134BEFE_g, info_set_value_for_key_stub);
 
 				// Fix crash
 				utils::hook::set<uint8_t>(0x14134B970_g, 0xC3);
