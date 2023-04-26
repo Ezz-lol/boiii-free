@@ -2,10 +2,8 @@
 #include "loader/component_loader.hpp"
 
 #include <game/game.hpp>
-#include <game/utils.hpp>
 
 #include "network.hpp"
-#include "scheduler.hpp"
 
 #include <utils/hook.hpp>
 
@@ -56,11 +54,6 @@ namespace patches
 
 			// make sure client's reliableAck are not negative
 			sv_execute_client_messages_hook.create(game::select(0x14224A460, 0x14052F840), sv_execute_client_messages_stub);
-
-			scheduler::once([]
-			{
-				game::register_dvar_string("password", "", game::DVAR_USERINFO, "password");
-			}, scheduler::pipeline::main);
 		}
 	};
 }

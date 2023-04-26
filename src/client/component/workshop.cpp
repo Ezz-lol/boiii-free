@@ -203,6 +203,11 @@ namespace workshop
 
 	std::string get_mod_resized_name(const std::string& dir_name)
 	{
+		if (dir_name == "usermaps" || dir_name.empty())
+		{
+			return dir_name;
+		}
+
 		std::string result = dir_name;
 
 		for (unsigned int i = 0; i < *game::modsCount; ++i)
@@ -246,7 +251,7 @@ namespace workshop
 
 	std::string get_mod_publisher_id(const std::string& dir_name)
 	{
-		if (dir_name == "usermaps")
+		if (dir_name == "usermaps" || dir_name.empty())
 		{
 			return dir_name;
 		}
