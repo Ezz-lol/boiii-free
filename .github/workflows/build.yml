@@ -25,7 +25,7 @@ jobs:
           - Release
     steps:
       - name: Check out files
-        uses: actions/checkout@v3.3.0
+        uses: actions/checkout@v3.5.2
         with:
           submodules: true
           fetch-depth: 0
@@ -97,7 +97,7 @@ jobs:
           path: data
 
       - name: Install SSH key
-        uses: shimataro/ssh-key-action@v2.5.0
+        uses: shimataro/ssh-key-action@v2.5.1
         with:
           key: ${{ secrets.BOIII_MASTER_SSH_PRIVATE_KEY }}
           known_hosts: "just-a-placeholder-so-we-dont-get-errors"
