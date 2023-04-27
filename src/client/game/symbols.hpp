@@ -83,6 +83,9 @@ namespace game
 	// Live
 	WEAK symbol<bool(uint64_t, int*, bool)> Live_GetConnectivityInformation{0x141E0C380};
 
+	// LiveStats
+	WEAK symbol<const char*(const int controllerIndex)> LiveStats_GetClanTagText{0x141E9CE20};
+
 	// Info
 	WEAK symbol<const char*(const char*, const char* key)> Info_ValueForKey{0x1422E87B0};
 	WEAK symbol<void(char* s, const char* key, const char* value)> Info_SetValueForKey{0x1422E8410};
