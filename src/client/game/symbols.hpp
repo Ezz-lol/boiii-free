@@ -83,8 +83,12 @@ namespace game
 	// Live
 	WEAK symbol<bool(uint64_t, int*, bool)> Live_GetConnectivityInformation{0x141E0C380};
 
+	// LiveStats
+	WEAK symbol<const char*(const int controllerIndex)> LiveStats_GetClanTagText{0x141E9CE20};
+
 	// Info
 	WEAK symbol<const char*(const char*, const char* key)> Info_ValueForKey{0x1422E87B0};
+	WEAK symbol<void(char* s, const char* key, const char* value)> Info_SetValueForKey{0x1422E8410};
 
 	// MSG
 	WEAK symbol<uint8_t(msg_t* msg)> MSG_ReadByte{0x142155450, 0x14050D1B0};
@@ -97,7 +101,7 @@ namespace game
 	WEAK symbol<bool(char const*, netadr_t*)> NET_StringToAdr{0x142172780, 0x140515110};
 
 	// Sys
-	WEAK symbol<int()> Sys_Milliseconds{0x142332870};
+	WEAK symbol<int()> Sys_Milliseconds{0x142332870, 0x1405972F0};
 	WEAK symbol<void()> Sys_ShowConsole{0x1423333C0, 0x140597E40};
 	WEAK symbol<TLSData*()> Sys_GetTLS{0x1421837B0, 0x140525EB0};
 	WEAK symbol<TLSData*()> Sys_IsDatabaseReady{0x142183A60};
@@ -123,6 +127,10 @@ namespace game
 	WEAK symbol<dvar_t*(dvarStrHash_t hash, const char* dvarName, bool value, int flags,
 	                    const char* description)> Dvar_RegisterBool{
 		0x1422D0900, 0x14057B500
+	};
+	WEAK symbol<dvar_t*(dvarStrHash_t hash, const char* dvarName, int value, int min, int max, unsigned int flags,
+	                    const char* description)> Dvar_RegisterInt{
+		0x0, 0x14057B7B0
 	};
 	WEAK symbol<dvar_t*(dvarStrHash_t hash, const char* dvarName, float value, float min, float max, unsigned int flags,
 	                    const char* description)> Dvar_RegisterFloat{

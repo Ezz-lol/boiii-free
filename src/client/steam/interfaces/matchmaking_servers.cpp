@@ -305,7 +305,8 @@ namespace steam
 		auto& servers_list = hRequest == favorites_request ? favorites_servers : internet_servers;
 
 		static thread_local gameserveritem_t server_item{};
-		return servers_list.access<gameserveritem_t*>([iServer](const servers& s) -> gameserveritem_t* {
+		return servers_list.access<gameserveritem_t*>([iServer](const servers& s) -> gameserveritem_t*
+		{
 			if (iServer < 0 || static_cast<size_t>(iServer) >= s.size())
 			{
 				return nullptr;
@@ -378,17 +379,17 @@ namespace steam
 		party::query_server(
 			addr, [response](const bool success, const game::netadr_t& host, const ::utils::info_string& info,
 			                 const uint32_t ping)
+		{
+			if (success)
 			{
-				if (success)
-				{
-					auto server_item = create_server_item(host, info, ping, success);
-					response->ServerResponded(server_item);
-				}
-				else
-				{
-					response->ServerFailedToRespond();
-				}
-			});
+				auto server_item = create_server_item(host, info, ping, success);
+				response->ServerResponded(server_item);
+			}
+			else
+			{
+				response->ServerFailedToRespond();
+			}
+		});
 
 		return reinterpret_cast<void*>(static_cast<uint64_t>(7 + rand()));
 	}
