@@ -332,6 +332,8 @@ namespace auth
 
 		const auto password_text = (password && password->current.value.string) ? password->current.value.string : "";
 		game::Info_SetValueForKey(s, "password", password_text);
+
+		game::Info_SetValueForKey(s, "clanAbbrev", game::LiveStats_GetClanTagText(0));
 	}
 
 	struct component final : generic_component
