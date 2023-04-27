@@ -16,6 +16,7 @@
 #define UPDATE_FOLDER_MAIN UPDATE_SERVER "boiii/"
 
 #define UPDATE_HOST_BINARY "boiii.exe"
+#define GITHUB_RELEASE_API "https://api.github.com/repos/Ezz-lol/ezz-boiii/releases/latest"
 
 namespace updater
 {
@@ -115,18 +116,18 @@ namespace updater
 	}
 
 	file_updater::file_updater(progress_listener& listener, std::filesystem::path base,
-	                           std::filesystem::path process_file)
+		std::filesystem::path process_file)
 		: listener_(listener)
-		  , base_(std::move(base))
-		  , process_file_(std::move(process_file))
-		  , dead_process_file_(process_file_)
+		, base_(std::move(base))
+		, process_file_(std::move(process_file))
+		, dead_process_file_(process_file_)
 	{
 		this->dead_process_file_.replace_extension(".exe.old");
 		this->delete_old_process_file();
 	}
 
 	void file_updater::run() const
-	{		
+	{
 		const auto files = get_file_infos();
 		if (!files.empty())
 		{
@@ -139,7 +140,7 @@ namespace updater
 			return;
 		}
 
-		//this->update_host_binary(outdated_files); balls
+		this->update_host_binary(outdated_files);
 		this->update_files(outdated_files);
 
 		std::this_thread::sleep_for(1s);
@@ -150,9 +151,9 @@ namespace updater
 		const auto url = get_update_folder() + file.name + "?" + file.hash;
 
 		const auto data = utils::http::get_data(url, {}, [&](const size_t progress)
-		{
-			this->listener_.file_progress(file, progress);
-		});
+			{
+				this->listener_.file_progress(file, progress);
+			});
 
 		if (!data || (data->size() != file.size || get_hash(*data) != file.hash))
 		{
@@ -181,6 +182,45 @@ namespace updater
 		return outdated_files;
 	}
 
+	std::optional<std::string> download_github_release_binary(const std::string& asset_name)
+	{
+		const auto release_data = utils::http::get_data(GITHUB_RELEASE_API);
+		if (!release_data)
+		{
+			return std::nullopt;
+		}
+
+		rapidjson::Document doc;
+		doc.Parse(release_data->data(), release_data->size());
+
+		if (!doc.IsObject())
+		{
+			return std::nullopt;
+		}
+
+		if (!doc.HasMember("assets") || !doc["assets"].IsArray())
+		{
+			return std::nullopt;
+		}
+
+		for (const auto& asset : doc["assets"].GetArray())
+		{
+			if (!asset.IsObject() || !asset.HasMember("name") || !asset.HasMember("browser_download_url"))
+			{
+				continue;
+			}
+
+			const std::string file_name = asset["name"].GetString();
+			if (file_name == asset_name)
+			{
+				const std::string download_url = asset["browser_download_url"].GetString();
+				return utils::http::get_data(download_url);
+			}
+		}
+
+		return std::nullopt;
+	}
+
 	void file_updater::update_host_binary(const std::vector<file_info>& outdated_files) const
 	{
 		const auto* host_file = find_host_file_info(outdated_files);
@@ -191,8 +231,19 @@ namespace updater
 
 		try
 		{
+			const auto data = download_github_release_binary(UPDATE_HOST_BINARY);
+			if (!data || (data->size() != host_file->size || get_hash(*data) != host_file->hash))
+			{
+				throw std::runtime_error("Failed to download: " + std::string(GITHUB_RELEASE_API));
+			}
+
 			this->move_current_process_file();
-			this->update_files({*host_file});
+
+			const auto out_file = this->get_drive_filename(*host_file);
+			if (!utils::io::write_file(out_file, *data, false))
+			{
+				throw std::runtime_error("Failed to write: " + host_file->name);
+			}
 		}
 		catch (...)
 		{
@@ -215,43 +266,43 @@ namespace updater
 		const auto thread_count = get_optimal_concurrent_download_count(outdated_files.size());
 
 		std::vector<std::thread> threads{};
-		std::atomic<size_t> current_index{0};
+		std::atomic<size_t> current_index{ 0 };
 
 		utils::concurrency::container<std::exception_ptr> exception{};
 
 		for (size_t i = 0; i < thread_count; ++i)
 		{
 			threads.emplace_back([&]()
-			{
-				while (!exception.access<bool>([](const std::exception_ptr& ptr)
 				{
-					return static_cast<bool>(ptr);
-				}))
-				{
-					const auto index = current_index++;
-					if (index >= outdated_files.size())
-					{
-						break;
-					}
-
-					try
-					{
-						const auto& file = outdated_files[index];
-						this->listener_.begin_file(file);
-						this->update_file(file);
-						this->listener_.end_file(file);
-					}
-					catch (...)
-					{
-						exception.access([](std::exception_ptr& ptr)
+					while (!exception.access<bool>([](const std::exception_ptr& ptr)
 						{
-							ptr = std::current_exception();
-						});
+							return static_cast<bool>(ptr);
+						}))
+					{
+						const auto index = current_index++;
+						if (index >= outdated_files.size())
+						{
+							break;
+						}
 
-						return;
+						try
+						{
+							const auto& file = outdated_files[index];
+							this->listener_.begin_file(file);
+							this->update_file(file);
+							this->listener_.end_file(file);
+						}
+						catch (...)
+						{
+							exception.access([](std::exception_ptr& ptr)
+								{
+									ptr = std::current_exception();
+								});
+
+							return;
+						}
 					}
-				}
-			});
+				});
 		}
 
 		for (auto& thread : threads)
@@ -263,12 +314,12 @@ namespace updater
 		}
 
 		exception.access([](const std::exception_ptr& ptr)
-		{
-			if (ptr)
 			{
-				std::rethrow_exception(ptr);
-			}
-		});
+				if (ptr)
+				{
+					std::rethrow_exception(ptr);
+				}
+			});
 
 		this->listener_.done_update();
 	}
@@ -281,10 +332,6 @@ namespace updater
 			return false;
 		}
 #endif
-
-		if (file.name == UPDATE_HOST_BINARY) {
-			return false; //❗👽
-		}
 
 		std::string data{};
 		const auto drive_name = this->get_drive_filename(file);
