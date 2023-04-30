@@ -304,28 +304,33 @@ namespace network
 		{
 			scheduler::loop(game::fragment_handler::clean, scheduler::async, 5s);
 
-			utils::hook::nop(game::select(0x1423322B6, 0x140596DF6), 4);
 			// don't increment data pointer to optionally skip socket byte
-			utils::hook::call(game::select(0x142332283, 0x140596DC3), read_socket_byte_stub);
+			utils::hook::nop(game::select(0x1423322B6, 0x140596DF6), 4);
+
 			// optionally read socket byte
-			utils::hook::call(game::select(0x1423322C1, 0x140596E01), verify_checksum_stub);
+			utils::hook::call(game::select(0x142332283, 0x140596DC3), read_socket_byte_stub);
+
 			// skip checksum verification
-			utils::hook::set<uint8_t>(game::select(0x14233249E, 0x140596F2E), 0); // don't add checksum to packet
+			utils::hook::call(game::select(0x1423322C1, 0x140596E01), verify_checksum_stub);
+
+			// don't add checksum to packet
+			utils::hook::set<uint8_t>(game::select(0x14233249E, 0x140596F2E), 0);
 
 			// Recreate NET_SendPacket to increase max packet size
 			//utils::hook::jump(game::select(0x1423323B0, 0x140596E40), net_sendpacket_stub);
 
-			utils::hook::set<uint32_t>(game::select(0x14134C6E0, 0x14018E574), 5);
 			// set initial connection state to challenging
+			utils::hook::set<uint32_t>(game::select(0x14134C6E0, 0x14018E574), 4);
 
 			// intercept command handling
 			utils::hook::call(game::select(0x14134D146, 0x14018EED0), utils::hook::assemble(handle_command_stub));
 
-			utils::hook::set<uint8_t>(game::select(0x14224DEAD, 0x1405315F9), 0xEB);
 			// don't kick clients without dw handle
+			utils::hook::set<uint8_t>(game::select(0x14224DEAD, 0x1405315F9), 0xEB);
 
 			// Skip DW stuff in NetAdr_ToString
 			utils::hook::set<uint8_t>(game::select(0x142172EF2, 0x140515881), 0xEB);
+
 			// NA_IP -> NA_RAWIP in NetAdr_ToString
 			utils::hook::set<uint8_t>(game::select(0x142172ED4, 0x140515864), game::NA_RAWIP);
 

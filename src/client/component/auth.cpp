@@ -109,7 +109,9 @@ namespace auth
 		{
 			utils::byte_buffer buffer{};
 			buffer.write_string(get_key().serialize(PK_PUBLIC));
-			buffer.write_string(utils::cryptography::ecc::sign_message(get_key(), "hello"));
+
+			const std::string challenge(reinterpret_cast<const char*>(0x15A8A7F10_g), 32);
+			buffer.write_string(utils::cryptography::ecc::sign_message(get_key(), challenge));
 
 			profile_infos::get_profile_info().value_or(profile_infos::profile_info{}).serialize(buffer);
 
@@ -219,7 +221,14 @@ namespace auth
 			utils::cryptography::ecc::key key{};
 			key.deserialize(buffer.read_string());
 
-			if (!utils::cryptography::ecc::verify_message(key, "hello", buffer.read_string()))
+			std::string challenge{};
+			challenge.resize(32);
+
+			const auto get_challenge = reinterpret_cast<void(*)(const game::netadr_t*, void*, size_t)>(game::select(
+				0x1412E15E0, 0x14016DDC0));
+			get_challenge(&target, challenge.data(), challenge.size());
+
+			if (!utils::cryptography::ecc::verify_message(key, challenge, buffer.read_string()))
 			{
 				network::send(target, "error", "Bad signature");
 				return;
