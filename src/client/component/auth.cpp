@@ -357,10 +357,16 @@ namespace auth
 	{
 		game::Info_SetValueForKey(s, key, value);
 
-		const auto password_text = (password && password->current.value.string) ? password->current.value.string : "";
-		game::Info_SetValueForKey(s, "password", password_text);
+		if (password && *password->current.value.string)
+		{
+			game::Info_SetValueForKey(s, "password", password->current.value.string);
+		}
 
-		game::Info_SetValueForKey(s, "clanAbbrev", game::LiveStats_GetClanTagText(0));
+		const auto* clan_abbrev = game::LiveStats_GetClanTagText(0);
+		if (*clan_abbrev)
+		{
+			game::Info_SetValueForKey(s, "clanAbbrev", clan_abbrev);
+		}
 	}
 
 	struct component final : generic_component
