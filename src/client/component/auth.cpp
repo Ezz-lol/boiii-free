@@ -228,7 +228,8 @@ namespace auth
 				0x1412E15E0, 0x14016DDC0));
 			get_challenge(&target, challenge.data(), challenge.size());
 
-			if (!utils::cryptography::ecc::verify_message(key, challenge, buffer.read_string()))
+			if (!utils::cryptography::ecc::verify_message(key, challenge, buffer.read_string()) && target.type !=
+				game::NA_LOOPBACK)
 			{
 				network::send(target, "error", "Bad signature");
 				return;
