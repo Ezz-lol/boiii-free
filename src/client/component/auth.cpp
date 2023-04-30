@@ -108,6 +108,11 @@ namespace auth
 		std::string serialize_connect_data(const char* data, const int length)
 		{
 			utils::byte_buffer buffer{};
+			buffer.write_string(get_key().serialize(PK_PUBLIC));
+
+			const std::string challenge(reinterpret_cast<const char*>(0x15A8A7F10_g), 32);
+			buffer.write_string(utils::cryptography::ecc::sign_message(get_key(), challenge));
+
 			profile_infos::get_profile_info().value_or(profile_infos::profile_info{}).serialize(buffer);
 
 			buffer.write_string(data, static_cast<size_t>(length));
@@ -212,6 +217,23 @@ namespace auth
 		void dispatch_connect_packet(const game::netadr_t& target, const std::string& data)
 		{
 			utils::byte_buffer buffer(data);
+
+			utils::cryptography::ecc::key key{};
+			key.deserialize(buffer.read_string());
+
+			std::string challenge{};
+			challenge.resize(32);
+
+			const auto get_challenge = reinterpret_cast<void(*)(const game::netadr_t*, void*, size_t)>(game::select(
+				0x1412E15E0, 0x14016DDC0));
+			get_challenge(&target, challenge.data(), challenge.size());
+
+			if (!utils::cryptography::ecc::verify_message(key, challenge, buffer.read_string()))
+			{
+				network::send(target, "error", "Bad signature");
+				return;
+			}
+
 			const profile_infos::profile_info info(buffer);
 
 			const auto connect_data = buffer.read_string();
@@ -226,6 +248,11 @@ namespace auth
 
 			const utils::info_string info_string(params[1]);
 			const auto xuid = strtoull(info_string.get("xuid").data(), nullptr, 16);
+			if (xuid != key.get_hash())
+			{
+				network::send(target, "error", "Bad XUID");
+				return;
+			}
 
 			profile_infos::add_and_distribute_profile_info(target, xuid, info);
 
