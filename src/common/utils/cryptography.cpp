@@ -126,7 +126,8 @@ namespace utils::cryptography
 				this->add_entropy(&t, sizeof(t));
 
 				std::random_device rd{};
-				for (auto j = 0; j < 4; ++j) {
+				for (auto j = 0; j < 4; ++j)
+				{
 					const auto x = rd();
 					this->add_entropy(&x, sizeof(x));
 				}
