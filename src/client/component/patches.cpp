@@ -44,6 +44,9 @@ namespace patches
 	{
 		void post_unpack() override
 		{
+			// print hexadecimal xuids in status command
+			utils::hook::copy_string(game::select(0x143050560, 0x140E85B00), "%12llx ");
+
 			// don't make script errors fatal error
 			utils::hook::call(game::select(0x1412CAC4D, 0x140158EB2), script_errors_stub);
 
