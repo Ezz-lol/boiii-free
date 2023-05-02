@@ -35,6 +35,7 @@ namespace game
 		0x1420F4E00, 0x1404FE5C0
 	};
 	WEAK symbol<bool()> Com_IsRunningUILevel{0x142148350};
+	WEAK symbol<bool()> Com_IsInGame{0x1421482C0};
 	WEAK symbol<void(int localClientNum, eModes fromMode, eModes toMode, uint32_t flags)> Com_SwitchMode{
 		0x14214A4D0
 	};
@@ -79,6 +80,9 @@ namespace game
 	WEAK symbol<void()> G_ClearVehicleInputs{0x1423812E0, 0x1405C1200};
 
 	WEAK symbol<qboolean(void* ent)> StuckInClient{0x1415A8360, 0x14023BFE0};
+
+	// GScr
+	WEAK symbol<void()> GScr_LoadGametypeScript{0x14092F680, 0x0};
 
 	// Live
 	WEAK symbol<bool(uint64_t, int*, bool)> Live_GetConnectivityInformation{0x141E0C380};
@@ -175,6 +179,7 @@ namespace game
 		0x0, 0x1402F5FF0
 	};
 	WEAK symbol<unsigned int(scriptInstance_t inst)> Scr_GetNumParam{0x0, 0x140171320};
+	WEAK symbol<unsigned int(scriptInstance_t inst, const char* filename)> Scr_LoadScript{0x1412C83F0};
 
 	WEAK symbol<void(const char* name, const char* key, unsigned int playbackFlags, float volume, void* callbackInfo,
 	                 int id)> Cinematic_StartPlayback{0x1412BE3A0};

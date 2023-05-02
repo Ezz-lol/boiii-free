@@ -1814,7 +1814,9 @@ namespace game
 		PlayerSoundsTable* playerSounds;
 		PlayerFXTable* playerFX;
 		SharedWeaponSounds* sharedWeaponSounds;
+		*/
 		RawFile* rawfile;
+		/*
 		StringTable* stringTable;
 		StructuredTable* structuredTable;
 		LeaderboardDef* leaderboardDef;
