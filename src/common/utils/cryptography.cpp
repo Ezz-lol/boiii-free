@@ -224,9 +224,7 @@ namespace utils::cryptography
 	{
 		this->free();
 
-		if (ecc_import(cs(key.data()), ul(key.size()),
-		               &this->key_storage_) != CRYPT_OK
-		)
+		if (ecc_import(cs(key.data()), ul(key.size()), &this->key_storage_) != CRYPT_OK)
 		{
 			ZeroMemory(&this->key_storage_, sizeof(this->key_storage_));
 		}
@@ -256,6 +254,16 @@ namespace utils::cryptography
 		}
 
 		return "";
+	}
+
+	void ecc::key::set_openssl(const std::string& key)
+	{
+		this->free();
+
+		if (ecc_import_openssl(cs(key.data()), ul(key.size()), &this->key_storage_) != CRYPT_OK)
+		{
+			ZeroMemory(&this->key_storage_, sizeof(this->key_storage_));
+		}
 	}
 
 	void ecc::key::free()
@@ -310,7 +318,9 @@ namespace utils::cryptography
 		uint8_t buffer[512];
 		unsigned long length = sizeof(buffer);
 
-		ecc_sign_hash(cs(message.data()), ul(message.size()), buffer, &length, prng_.get_state(), prng_.get_id(),
+		const auto hash = sha512::compute(message);
+
+		ecc_sign_hash(cs(hash.data()), ul(hash.size()), buffer, &length, prng_.get_state(), prng_.get_id(),
 		              &key.get());
 
 		return std::string(cs(buffer), length);
@@ -320,11 +330,13 @@ namespace utils::cryptography
 	{
 		if (!key.is_valid()) return false;
 
+		const auto hash = sha512::compute(message);
+
 		auto result = 0;
 		return (ecc_verify_hash(cs(signature.data()),
 		                        ul(signature.size()),
-		                        cs(message.data()),
-		                        ul(message.size()), &result,
+		                        cs(hash.data()),
+		                        ul(hash.size()), &result,
 		                        &key.get()) == CRYPT_OK && result != 0);
 	}
 
