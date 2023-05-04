@@ -69,7 +69,7 @@ namespace script
 			{
 				std::string data;
 				auto script_file = script.generic_string();
-				if (!std::filesystem::is_directory(script) && utils::io::read_file(script_file, &data))
+				if (!std::filesystem::is_directory(script) && utils::io::read_file(script_file, &data) && *(int*)data.c_str() == 0x43534780)
 				{
 					print_loading_script(script_file);
 					load_script(script_file, data);
