@@ -14,8 +14,6 @@ namespace workshop
 {
 	namespace
 	{
-		const game::dvar_t* enable_zone_folder;
-
 		utils::hook::detour setup_server_map_hook;
 		utils::hook::detour load_usermap_hook;
 
@@ -146,87 +144,60 @@ namespace workshop
 			return utils::hook::invoke<bool>(0x1420D6380_g, type, pub_id.data(), a3);
 		}
 
-		void override_path_mods_stub(utils::hook::assembler& a)
+		const char* va_mods_path_stub(const char* fmt, const char* root_dir, const char* mods_dir, const char* dir_name)
 		{
-			const auto new_path = a.newLabel();
-			const auto default_path = a.newLabel();
-			const auto original_func = a.newLabel();
+			const auto original_path = utils::string::va(fmt, root_dir, mods_dir, dir_name);
 
-			a.pushad64();
-			a.mov(rax, qword_ptr(reinterpret_cast<std::uintptr_t>(&enable_zone_folder)));
-			a.test(rax, rax);
-			a.jz(new_path);
+			// check if the zone folder exists
+			if (utils::io::directory_exists(original_path))
+			{
+				return original_path;
+			}
 
-			a.cmp(byte_ptr(rax, 0x28), 0);
-			a.je(new_path);
-
-			a.bind(default_path);
-			a.popad64();
-			a.mov(rcx, "%s/%s/%s/zone");
-			a.jmp(original_func);
-
-			a.bind(new_path);
-			a.popad64();
-			a.mov(rcx, "%s/%s/%s");
-
-			a.bind(original_func);
-			a.jmp(game::select(0x1420D6AA0, 0x1404E2930));
+			return utils::string::va("%s/%s/%s", root_dir, mods_dir, dir_name);
 		}
 
-		void override_path_usercontent_stub(utils::hook::assembler& a)
+		const char* va_user_content_path_stub(const char* fmt, const char* root_dir, const char* user_content_dir)
 		{
-			const auto new_path = a.newLabel();
-			const auto default_path = a.newLabel();
-			const auto original_func = a.newLabel();
+			const auto original_path = utils::string::va(fmt, root_dir, user_content_dir);
 
-			a.pushad64();
-			a.mov(rax, qword_ptr(reinterpret_cast<std::uintptr_t>(&enable_zone_folder)));
-			a.test(rax, rax);
-			a.jz(new_path);
+			if (utils::io::directory_exists(original_path))
+			{
+				return original_path;
+			}
 
-			a.cmp(byte_ptr(rax, 0x28), 0);
-			a.je(new_path);
-
-			a.bind(default_path);
-			a.popad64();
-			a.mov(rcx, "%s/%s/zone");
-			a.jmp(original_func);
-
-			a.bind(new_path);
-			a.popad64();
-			a.mov(rcx, "%s/%s");
-
-			a.bind(original_func);
-			a.jmp(game::select(0x1420D6574, 0x1404E24A4));
+			return utils::string::va("%s/%s", root_dir, user_content_dir);
 		}
 	}
 
-	std::string get_mod_resized_name(const std::string& dir_name)
+	std::string get_mod_resized_name()
 	{
-		if (dir_name == "usermaps" || dir_name.empty())
+		const std::string loaded_mod_id = game::getPublisherIdFromLoadedMod();
+
+		if (loaded_mod_id == "usermaps" || loaded_mod_id.empty())
 		{
-			return dir_name;
+			return loaded_mod_id;
 		}
 
-		std::string result = dir_name;
+		std::string mod_name = loaded_mod_id;
 
 		for (unsigned int i = 0; i < *game::modsCount; ++i)
 		{
 			const auto& mod_data = game::modsPool[i];
 
-			if (utils::string::ends_with(mod_data.contentPathToZoneFiles, dir_name))
+			if (mod_data.publisherId == loaded_mod_id)
 			{
-				result = mod_data.title;
+				mod_name = mod_data.title;
 				break;
 			}
 		}
 
-		if (result.size() > 31)
+		if (mod_name.size() > 31)
 		{
-			result.resize(31);
+			mod_name.resize(31);
 		}
 
-		return result;
+		return mod_name;
 	}
 
 	std::string get_usermap_publisher_id(const std::string& zone_name)
@@ -249,29 +220,22 @@ namespace workshop
 		return {};
 	}
 
-	std::string get_mod_publisher_id(const std::string& dir_name)
+	std::string get_mod_publisher_id()
 	{
-		if (dir_name == "usermaps" || dir_name.empty())
+		const std::string loaded_mod_id = game::getPublisherIdFromLoadedMod();
+
+		if (loaded_mod_id == "usermaps" || loaded_mod_id.empty())
 		{
-			return dir_name;
+			return loaded_mod_id;
 		}
 
-		for (unsigned int i = 0; i < *game::modsCount; ++i)
+		if (!utils::string::is_numeric(loaded_mod_id))
 		{
-			const auto& mod_data = game::modsPool[i];
-			if (utils::string::ends_with(mod_data.contentPathToZoneFiles, dir_name))
-			{
-				if (!utils::string::is_numeric(mod_data.publisherId))
-				{
-					printf("[ Workshop ] WARNING: The publisherId is not numerical you might have set your mod folder incorrectly!\n%s\n",
-						mod_data.absolutePathZoneFiles);
-				}
-
-				return mod_data.publisherId;
-			}
+			printf("[ Workshop ] WARNING: The publisherId: %s, is not numerical you might have set your mod folder incorrectly!\n",
+				loaded_mod_id.data());
 		}
 
-		return {};
+		return loaded_mod_id;
 	}
 
 	bool check_valid_usermap_id(const std::string& mapname, const std::string& pub_id)
@@ -305,6 +269,11 @@ namespace workshop
 
 	void setup_same_mod_as_host(const std::string& usermap, const std::string& mod)
 	{
+		if (game::getPublisherIdFromLoadedMod() == mod)
+		{
+			return;
+		}
+
 		if (!usermap.empty() || mod != "usermaps")
 		{
 			game::loadMod(0, mod.data(), true);
@@ -327,10 +296,8 @@ namespace workshop
 				game::reloadUserContent();
 			});
 
-			enable_zone_folder = game::register_dvar_bool("enable_zone_folder", false, game::DVAR_ARCHIVE, "Load custom zones from the zone folder within the usermaps/mods folder");
-
-			utils::hook::jump(game::select(0x1420D6A99, 0x1404E2929), utils::hook::assemble(override_path_mods_stub));
-			utils::hook::jump(game::select(0x1420D656D, 0x1404E249D), utils::hook::assemble(override_path_usercontent_stub));
+			utils::hook::call(game::select(0x1420D6AA6, 0x1404E2936), va_mods_path_stub);
+			utils::hook::call(game::select(0x1420D6577, 0x1404E24A7), va_user_content_path_stub);
 
 			load_usermap_hook.create(game::select(0x1420D5700, 0x1404E18B0), load_usermap_stub);
 			utils::hook::call(game::select(0x1420D67F5, 0x1404E25F2), load_usermap_content_stub);
