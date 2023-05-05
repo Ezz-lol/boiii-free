@@ -16,7 +16,7 @@ namespace server_list
 {
 	namespace
 	{
-		utils::hook::detour lua_serverinfo_to_table_hook;
+		utils::hook::detour lua_server_info_to_table_hook;
 
 		struct state
 		{
@@ -80,14 +80,14 @@ namespace server_list
 			callback(true, result);
 		}
 
-		void lua_serverinfo_to_table_stub(game::hks::lua_State* state, game::ServerInfo serverInfo, int index)
+		void lua_server_info_to_table_stub(game::hks::lua_State* state, game::ServerInfo server_info, int index)
 		{
-			lua_serverinfo_to_table_hook.invoke(state, serverInfo, index);
+			lua_server_info_to_table_hook.invoke(state, server_info, index);
 
 			if (state)
 			{
-				auto botCount = atoi(game::Info_ValueForKey(serverInfo.tags, "bots"));
-				game::Lua_SetTableInt("botCount", botCount, state);
+				const auto bot_count = atoi(game::Info_ValueForKey(server_info.tags, "bots"));
+				game::Lua_SetTableInt("botCount", bot_count, state);
 			}
 		}
 
@@ -98,13 +98,14 @@ namespace server_list
 
 		void write_favorite_servers()
 		{
-			favorite_servers.access([&](std::unordered_set<game::netadr_t>& servers)
+			favorite_servers.access([](const std::unordered_set<game::netadr_t>& servers)
 			{
-				std::string servers_buffer = "";
-				for (auto itr : servers)
+				std::string servers_buffer{};
+				for (const auto& itr : servers)
 				{
-					servers_buffer.append(utils::string::va("%i.%i.%i.%i:%u\n", itr.ipv4.a, itr.ipv4.b, itr.ipv4.c, itr.ipv4.d, itr.port));
+					servers_buffer.append(utils::string::va("%i.%i.%i.%i:%hu\n", itr.ipv4.a, itr.ipv4.b, itr.ipv4.c, itr.ipv4.d, itr.port));
 				}
+
 				utils::io::write_file(get_favorite_servers_file_path(), servers_buffer);
 			});
 		}
@@ -120,11 +121,12 @@ namespace server_list
 			favorite_servers.access([&path](std::unordered_set<game::netadr_t>& servers)
 			{
 				servers.clear();
-				std::string filedata;
-				if (utils::io::read_file(path, &filedata))
+
+				std::string data;
+				if (utils::io::read_file(path, &data))
 				{
-					auto srv = utils::string::split(filedata, '\n');
-					for (auto server_address : srv)
+					const auto srv = utils::string::split(data, '\n');
+					for (const auto& server_address : srv)
 					{
 						auto server = network::address_from_string(server_address);
 						servers.insert(server);
@@ -197,7 +199,7 @@ namespace server_list
 			{
 				master_state.access([&](state& s)
 				{
-						handle_server_list_response(target, data, s);
+					handle_server_list_response(target, data, s);
 				});
 			});
 
@@ -222,7 +224,7 @@ namespace server_list
 				});
 			}, scheduler::async, 200ms);
 
-			lua_serverinfo_to_table_hook.create(0x141F1FD10_g, lua_serverinfo_to_table_stub);
+			lua_server_info_to_table_hook.create(0x141F1FD10_g, lua_server_info_to_table_stub);
 
 			scheduler::once([]
 			{
