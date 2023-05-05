@@ -42,7 +42,7 @@ DataSources.LobbyServer = {
 				SetModelValue(serverModel, "modName", serverInfo.modName)
 				SetModelValue(serverModel, "mapName", serverInfo.map)
 				SetModelValue(serverModel, "desc", serverInfo.desc)
-				-- Changed the client count to be the actual player count
+				-- Change the client count to be the actual player count
 				local clientCount = serverInfo.playerCount - serverInfo.botCount
 				SetModelValue(serverModel, "clientCount", clientCount)
 				SetModelValue(serverModel, "maxClients", serverInfo.maxPlayers)
@@ -54,7 +54,7 @@ DataSources.LobbyServer = {
 				SetModelValue(serverModel, "ranked", serverInfo.ranked)
 				SetModelValue(serverModel, "hardcore", serverInfo.hardcore)
 				SetModelValue(serverModel, "zombies", serverInfo.zombies)
-				-- Added the bot count
+				-- Add the bot count
 				SetModelValue(serverModel, "botCount", serverInfo.botCount)
 				return serverModel
 			else
