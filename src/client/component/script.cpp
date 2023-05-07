@@ -12,6 +12,8 @@ namespace script
 {
 	namespace
 	{
+		constexpr size_t GSC_MAGIC = 0x1C000A0D43534780;
+
 		utils::hook::detour db_findxassetheader_hook;
 		utils::hook::detour gscr_get_bgb_remaining_hook;
 
@@ -71,8 +73,11 @@ namespace script
 				auto script_file = script.generic_string();
 				if (!std::filesystem::is_directory(script) && utils::io::read_file(script_file, &data))
 				{
-					print_loading_script(script_file);
-					load_script(script_file, data);
+					if (data.size() >= sizeof(GSC_MAGIC) && !std::memcmp(data.data(), &GSC_MAGIC, sizeof(GSC_MAGIC)))
+					{
+						print_loading_script(script_file);
+						load_script(script_file, data);
+					}
 				}
 				else if (std::filesystem::is_directory(script))
 				{
