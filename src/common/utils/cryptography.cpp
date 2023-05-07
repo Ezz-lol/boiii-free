@@ -240,7 +240,7 @@ namespace utils::cryptography
 			return {cs(buffer), length};
 		}
 
-		return "";
+		return {};
 	}
 
 	std::string ecc::key::get_openssl() const
@@ -253,7 +253,7 @@ namespace utils::cryptography
 			return {cs(buffer), length};
 		}
 
-		return "";
+		return {};
 	}
 
 	void ecc::key::set_openssl(const std::string& key)
@@ -313,7 +313,7 @@ namespace utils::cryptography
 
 	std::string ecc::sign_message(const key& key, const std::string& message)
 	{
-		if (!key.is_valid()) return "";
+		if (!key.is_valid()) return {};
 
 		uint8_t buffer[512];
 		unsigned long length = sizeof(buffer);
@@ -407,7 +407,6 @@ namespace utils::cryptography
 		{
 			rsa_free(&new_key);
 		});
-
 
 		std::string out_data{};
 		out_data.resize(std::max(ul(data.size() * 3), ul(0x100)));

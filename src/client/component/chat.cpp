@@ -85,6 +85,12 @@ namespace chat
 			a.cmp(dword_ptr(rax, 0x16AE0), 0x0); // game's code
 			a.jmp(0x14029905B_g);
 		}
+
+		void cl_handle_chat(char* dest, size_t dest_size, const char* src)
+		{
+			game::I_strcpy(dest, dest_size, src);
+			printf("%s\n", dest);
+		}
 	}
 
 	const char* get_client_name(const uint64_t xuid)
@@ -96,7 +102,7 @@ namespace chat
 
 		if (xuid < 19 && !game::is_server())
 		{
-			char buffer[256];
+			char buffer[256]{};
 			game::CL_GetClientName(0, static_cast<int>(xuid - 1), buffer, sizeof(buffer), true);
 
 			return utils::string::va("%s\n", buffer);
@@ -167,6 +173,9 @@ namespace chat
 			{
 				// Ignore some check that suppresses the chat
 				utils::hook::nop(0x141DEA9BD_g, 2);
+
+				// Add chat history to the in-game console
+				utils::hook::call(0x141DEAA0F_g, cl_handle_chat); // I_strcpy
 			}
 		}
 	};
