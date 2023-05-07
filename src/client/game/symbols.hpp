@@ -218,6 +218,7 @@ namespace game
 	WEAK symbol<gentity_s> g_entities{0x0, 0x1471031B0};
 
 	WEAK symbol<int> level_time{0x0, 0x1474FDC94};
+	WEAK symbol<int> level_rounds_played{0x14A55BDEC, 0x1475097BC};
 
 	WEAK symbol<SOCKET> ip_socket{0x157E75818, 0x14A640988};
 
