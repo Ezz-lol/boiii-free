@@ -210,6 +210,9 @@ namespace game
 
 	// Utils
 	WEAK symbol<const char*(char* str)> I_CleanStr{0x1422E9050, 0x140580E80};
+	WEAK symbol<void(char* dest, size_t destsize, const char* src)> I_strcpy{
+		0x1422E9410, 0x1405811E0
+	};
 
 	// Variables
 	WEAK symbol<cmd_function_s> cmd_functions{0x15689DF58, 0x14946F860};
