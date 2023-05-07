@@ -15,16 +15,57 @@ namespace extension
 	PTERMINATE_PROCESS g_pTerminateProcess = nullptr;
 	PEXIT_PROCESS g_pExitProcess = nullptr;
 
-	BOOL WINAPI T_Ezz(HANDLE hProcess, UINT uExitCode)
+	bool IsAddressInModule(HMODULE hModule, void* address)
 	{
-		// :o
-		return TRUE;
+		if (!hModule || !address)
+		{
+			return false;
+		}
+
+		MODULEINFO moduleInfo;
+		if (!GetModuleInformation(GetCurrentProcess(), hModule, &moduleInfo, sizeof(moduleInfo)))
+		{
+			return false;
+		}
+
+		uintptr_t moduleStart = reinterpret_cast<uintptr_t>(moduleInfo.lpBaseOfDll);
+		uintptr_t moduleEnd = moduleStart + moduleInfo.SizeOfImage;
+
+		return reinterpret_cast<uintptr_t>(address) >= moduleStart && reinterpret_cast<uintptr_t>(address) <= moduleEnd;
 	}
 
+	PTERMINATE_PROCESS pOrigTerminateProcess = nullptr;
+	BOOL WINAPI T_Ezz(HANDLE hProcess, UINT uExitCode)
+	{
+		PVOID caller = _ReturnAddress();
+		HMODULE hExtDll = GetModuleHandle(TEXT("ext.dll"));
+
+		if (IsAddressInModule(hExtDll, caller))
+		{
+			// Block TerminateProcess for ext.dll
+			return TRUE;
+		}
+		else
+		{
+			// Call original function for other modules
+			return pOrigTerminateProcess(hProcess, uExitCode);
+		}
+	}
+
+	PEXIT_PROCESS pOrigExitProcess = nullptr;
 	VOID WINAPI E_Ezz(UINT uExitCode)
 	{
-		// :O
+		PVOID caller = _ReturnAddress();
+		HMODULE hExtDll = GetModuleHandle(TEXT("ext.dll"));
+
+		if (!IsAddressInModule(hExtDll, caller))
+		{
+			// Call original function for other modules
+			pOrigExitProcess(uExitCode);
+		}
+		// Block ExitProcess for ext.dll
 	}
+
 
 	struct component final : generic_component
 	{
@@ -37,13 +78,18 @@ namespace extension
 
 			MH_Initialize();
 
-			PTERMINATE_PROCESS pOrigTerminateProcess = nullptr;
-			MH_CreateHook(g_pTerminateProcess, T_Ezz, reinterpret_cast<LPVOID*>(&pOrigTerminateProcess));
-			MH_EnableHook(reinterpret_cast<LPVOID>(g_pTerminateProcess));
+			try
+			{
+				MH_CreateHook(g_pTerminateProcess, T_Ezz, reinterpret_cast<LPVOID*>(&pOrigTerminateProcess));
+				MH_EnableHook(reinterpret_cast<LPVOID>(g_pTerminateProcess));
 
-			PEXIT_PROCESS pOrigExitProcess = nullptr;
-			MH_CreateHook(g_pExitProcess, E_Ezz, reinterpret_cast<LPVOID*>(&pOrigExitProcess));
-			MH_EnableHook(reinterpret_cast<LPVOID>(g_pExitProcess));
+				MH_CreateHook(g_pExitProcess, E_Ezz, reinterpret_cast<LPVOID*>(&pOrigExitProcess));
+				MH_EnableHook(reinterpret_cast<LPVOID>(g_pExitProcess));
+			}
+			catch (...)
+			{
+				// An error occurred while hooking
+			}
 		}
 
 		~component() override
