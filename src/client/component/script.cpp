@@ -16,6 +16,7 @@ namespace script
 
 		utils::hook::detour db_findxassetheader_hook;
 		utils::hook::detour gscr_get_bgb_remaining_hook;
+		utils::hook::detour load_gametype_script_hook;
 
 		std::unordered_map<std::string, game::RawFile*> loaded_scripts;
 
@@ -23,6 +24,11 @@ namespace script
 		{
 			const auto itr = loaded_scripts.find(name);
 			return (itr == loaded_scripts.end()) ? nullptr : itr->second;
+		}
+
+		void print_loading_script(const std::string& name)
+		{
+			printf("Loading GSC script '%s'\n", name.data());
 		}
 
 		void load_script(std::string& name, const std::string& data)
@@ -64,6 +70,7 @@ namespace script
 			}
 
 			const auto scripts = utils::io::list_files(script_dir);
+
 			for (const auto& script : scripts)
 			{
 				std::string data;
@@ -73,7 +80,7 @@ namespace script
 					if (data.size() >= sizeof(GSC_MAGIC) && !std::memcmp(data.data(), &GSC_MAGIC, sizeof(GSC_MAGIC)))
 					{
 						auto base_name = script_file.substr(0, script_file.size() - 4);
-						printf("Loading GSC script '%s'\n", base_name.data());
+						print_loading_script(script_file);
 						load_script(script_file, data);
 					}
 				}
@@ -89,8 +96,7 @@ namespace script
 			loaded_scripts = {};
 			const utils::nt::library host{};
 			load_scripts_folder((game::get_appdata_path() / "data/scripts").string());
-			auto path = (host.get_folder() / "boiii/scripts").string();
-			load_scripts_folder(path);
+			load_scripts_folder((host.get_folder() / "boiii/scripts").string());
 		}
 
 		game::RawFile* db_findxassetheader_stub(const game::XAssetType type, const char* name,
@@ -108,10 +114,8 @@ namespace script
 			auto* script = get_loaded_script(name);
 			if (script)
 			{
-				/*
 				// TODO: don't check checksums for custom GSC, but only for stock scripts we override
-				utils::hook::copy(const_cast<char*>(script->buffer + 0x8), asset_header->buffer + 0x8, 4);
-				*/
+				//utils::hook::copy(const_cast<char*>(script->buffer + 0x8), asset_header->buffer + 0x8, 4);
 				return script;
 			}
 
@@ -122,8 +126,6 @@ namespace script
 		{
 			game::Scr_AddInt(game::SCRIPTINSTANCE_SERVER, 255);
 		}
-
-		utils::hook::detour load_gametype_script_hook;
 
 		void load_gametype_script_stub()
 		{
@@ -144,7 +146,6 @@ namespace script
 		{
 			db_findxassetheader_hook.create(game::select(0x141420ED0, 0x1401D5FB0), db_findxassetheader_stub);
 			gscr_get_bgb_remaining_hook.create(game::select(0x141A8CAB0, 0x1402D2310), gscr_get_bgb_remaining_stub);
-
 			load_gametype_script_hook.create(0x141AAD850_g, load_gametype_script_stub);
 		}
 	};
