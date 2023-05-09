@@ -79,7 +79,6 @@ namespace script
 				{
 					if (data.size() >= sizeof(GSC_MAGIC) && !std::memcmp(data.data(), &GSC_MAGIC, sizeof(GSC_MAGIC)))
 					{
-						auto base_name = script_file.substr(0, script_file.size() - 4);
 						print_loading_script(script_file);
 						load_script(script_file, data);
 					}

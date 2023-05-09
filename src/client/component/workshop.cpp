@@ -170,32 +170,34 @@ namespace workshop
 		}
 	}
 
-	std::string get_mod_resized_name(const std::string& dir_name)
+	std::string get_mod_resized_name()
 	{
-		if (dir_name == "usermaps" || dir_name.empty())
+		const std::string loaded_mod_id = game::getPublisherIdFromLoadedMod();
+
+		if (loaded_mod_id == "usermaps" || loaded_mod_id.empty())
 		{
-			return dir_name;
+			return loaded_mod_id;
 		}
 
-		std::string result = dir_name;
+		std::string mod_name = loaded_mod_id;
 
 		for (unsigned int i = 0; i < *game::modsCount; ++i)
 		{
 			const auto& mod_data = game::modsPool[i];
 
-			if (utils::string::ends_with(mod_data.contentPathToZoneFiles, dir_name))
+			if (mod_data.publisherId == loaded_mod_id)
 			{
-				result = mod_data.title;
+				mod_name = mod_data.title;
 				break;
 			}
 		}
 
-		if (result.size() > 31)
+		if (mod_name.size() > 31)
 		{
-			result.resize(31);
+			mod_name.resize(31);
 		}
 
-		return result;
+		return mod_name;
 	}
 
 	std::string get_usermap_publisher_id(const std::string& zone_name)
@@ -218,29 +220,22 @@ namespace workshop
 		return {};
 	}
 
-	std::string get_mod_publisher_id(const std::string& dir_name)
+	std::string get_mod_publisher_id()
 	{
-		if (dir_name == "usermaps" || dir_name.empty())
+		const std::string loaded_mod_id = game::getPublisherIdFromLoadedMod();
+
+		if (loaded_mod_id == "usermaps" || loaded_mod_id.empty())
 		{
-			return dir_name;
+			return loaded_mod_id;
 		}
 
-		for (unsigned int i = 0; i < *game::modsCount; ++i)
+		if (!utils::string::is_numeric(loaded_mod_id))
 		{
-			const auto& mod_data = game::modsPool[i];
-			if (utils::string::ends_with(mod_data.contentPathToZoneFiles, dir_name))
-			{
-				if (!utils::string::is_numeric(mod_data.publisherId))
-				{
-					printf("[ Workshop ] WARNING: The publisherId is not numerical you might have set your mod folder incorrectly!\n%s\n",
-						mod_data.absolutePathZoneFiles);
-				}
-
-				return mod_data.publisherId;
-			}
+			printf("[ Workshop ] WARNING: The publisherId: %s, is not numerical you might have set your mod folder incorrectly!\n",
+				loaded_mod_id.data());
 		}
 
-		return {};
+		return loaded_mod_id;
 	}
 
 	bool check_valid_usermap_id(const std::string& mapname, const std::string& pub_id)
@@ -274,6 +269,11 @@ namespace workshop
 
 	void setup_same_mod_as_host(const std::string& usermap, const std::string& mod)
 	{
+		if (game::getPublisherIdFromLoadedMod() == mod)
+		{
+			return;
+		}
+
 		if (!usermap.empty() || mod != "usermaps")
 		{
 			game::loadMod(0, mod.data(), true);

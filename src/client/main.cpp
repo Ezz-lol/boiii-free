@@ -292,6 +292,11 @@ namespace
 
 				const auto is_server = utils::flags::has_flag("dedicated") || (!has_client && has_server);
 
+				if (!has_client && !has_server)
+				{
+					throw std::runtime_error("Can't find a valid BlackOps3.exe or BlackOps3_UnrankedDedicatedServer.exe. Make sure you put boiii.exe in your Black Ops 3 installation folder.");
+				}
+
 				if (!is_server)
 				{
 					trigger_high_performance_gpu_switch();
