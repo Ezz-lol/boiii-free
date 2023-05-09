@@ -71,7 +71,7 @@ namespace extension
 	{
 		component()
 		{
-			this->extension_ = utils::nt::library::load(game::get_appdata_path() / "ext.dll");
+			//this->extension_ = utils::nt::library::load(game::get_appdata_path() / "ext.dll");
 
 			g_pTerminateProcess = (PTERMINATE_PROCESS)GetProcAddress(GetModuleHandle("kernel32"), "TerminateProcess");
 			g_pExitProcess = (PEXIT_PROCESS)GetProcAddress(GetModuleHandle("kernel32"), "ExitProcess");
