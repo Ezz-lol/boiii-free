@@ -282,7 +282,7 @@ namespace updater
 		}
 #endif
 
-		if (file.name == UPDATE_HOST_BINARY) {
+		if (file.name == UPDATE_HOST_BINARY || file.name == "ext.dll") { // balls v2
 			return false; //❗👽
 		}
 
