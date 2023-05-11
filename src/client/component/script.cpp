@@ -15,8 +15,9 @@ namespace script
 		constexpr size_t GSC_MAGIC = 0x1C000A0D43534780;
 
 		utils::hook::detour db_findxassetheader_hook;
-		utils::hook::detour gscr_get_bgb_remaining_hook;
 		utils::hook::detour load_gametype_script_hook;
+		utils::hook::detour server_script_checksum_hook;
+		utils::hook::detour gscr_get_bgb_remaining_hook;
 
 		std::unordered_map<std::string, game::RawFile*> loaded_scripts;
 
@@ -113,17 +114,10 @@ namespace script
 			auto* script = get_loaded_script(name);
 			if (script)
 			{
-				// TODO: don't check checksums for custom GSC, but only for stock scripts we override
-				//utils::hook::copy(const_cast<char*>(script->buffer + 0x8), asset_header->buffer + 0x8, 4);
 				return script;
 			}
 
 			return asset_header;
-		}
-
-		void gscr_get_bgb_remaining_stub(game::scriptInstance_t inst, void* entref)
-		{
-			game::Scr_AddInt(game::SCRIPTINSTANCE_SERVER, 255);
 		}
 
 		void load_gametype_script_stub()
@@ -137,15 +131,33 @@ namespace script
 			load_gametype_script_hook.invoke<void>();
 			load_scripts();
 		}
+
+		int server_script_checksum_stub()
+		{
+			return 1;
+		}
+
+		void gscr_get_bgb_remaining_stub(game::scriptInstance_t inst, void* entref)
+		{
+			game::Scr_AddInt(game::SCRIPTINSTANCE_SERVER, 255);
+		}
 	}
 
 	struct component final : generic_component
 	{
 		void post_unpack() override
 		{
+			// Return custom or overrided scripts if found
 			db_findxassetheader_hook.create(game::select(0x141420ED0, 0x1401D5FB0), db_findxassetheader_stub);
+
+			// Load our scripts when the gametype script is loaded
+			load_gametype_script_hook.create(game::select(0x141AAD850, 0x1402D7140), load_gametype_script_stub);
+
+			// Force GSC checksums to be valid
+			utils::hook::call(game::select(0x1408F2E5D, 0x1400E2D22), server_script_checksum_stub);
+
+			// Workaround for "Out of X" gobblegum
 			gscr_get_bgb_remaining_hook.create(game::select(0x141A8CAB0, 0x1402D2310), gscr_get_bgb_remaining_stub);
-			load_gametype_script_hook.create(0x141AAD850_g, load_gametype_script_stub);
 		}
 	};
 };
