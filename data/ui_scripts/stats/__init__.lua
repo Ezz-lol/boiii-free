@@ -16,6 +16,20 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
 		if dvarName == "cg_unlockall_loot" then
 			Engine.SetDvar("ui_enableAllHeroes", f1_arg1.value)
 		end
+		if dvarName == "all_ee_completed" then
+			Engine.ExecNow(f1_arg0, "statsetbyname darkops_zod_ee " .. f1_arg1.value)
+			Engine.ExecNow(f1_arg0, "statsetbyname darkops_zod_super_ee " .. f1_arg1.value)
+			Engine.ExecNow(f1_arg0, "statsetbyname darkops_factory_ee " .. f1_arg1.value)
+			Engine.ExecNow(f1_arg0, "statsetbyname darkops_factory_super_ee " .. f1_arg1.value)
+			Engine.ExecNow(f1_arg0, "statsetbyname darkops_castle_ee " .. f1_arg1.value)
+			Engine.ExecNow(f1_arg0, "statsetbyname darkops_castle_super_ee " .. f1_arg1.value)
+			Engine.ExecNow(f1_arg0, "statsetbyname darkops_island_ee " .. f1_arg1.value)
+			Engine.ExecNow(f1_arg0, "statsetbyname darkops_island_super_ee " .. f1_arg1.value)
+			Engine.ExecNow(f1_arg0, "statsetbyname darkops_stalingrad_ee " .. f1_arg1.value)
+			Engine.ExecNow(f1_arg0, "statsetbyname darkops_stalingrad_super_ee " .. f1_arg1.value)
+			Engine.ExecNow(f1_arg0, "statsetbyname darkops_genesis_ee " .. f1_arg1.value)
+			Engine.ExecNow(f1_arg0, "statsetbyname DARKOPS_GENESIS_SUPER_EE " .. f1_arg1.value)
+		end
 	end
 
 	table.insert(optionsTable,
@@ -103,20 +117,38 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
 					value = 1
 				},
 			}, nil, updateDvar))
-	table.insert(optionsTable,
-		CoD.OptionsUtility.CreateDvarSettings(controller, "Unlock all Specialists Outfits",
-			"All specialists outfits are unlocked.", "MPStatsSettings_unlockall_specialists_outfits",
-			"cg_unlockall_specialists_outfits", {
-				{
-					option = "MENU_DISABLED",
-					value = 0,
-					default = true
-				},
-				{
-					option = "MENU_ENABLED",
-					value = 1
-				},
-			}, nil, updateDvar))
+	if Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER then
+		table.insert(optionsTable,
+			CoD.OptionsUtility.CreateDvarSettings(controller, "Unlock all Specialists Outfits",
+				"All specialists outfits are unlocked.", "MPStatsSettings_unlockall_specialists_outfits",
+				"cg_unlockall_specialists_outfits", {
+					{
+						option = "MENU_DISABLED",
+						value = 0,
+						default = true
+					},
+					{
+						option = "MENU_ENABLED",
+						value = 1
+					},
+				}, nil, updateDvar))
+	end			
+	if Engine.CurrentSessionMode() == Enum.eModes.MODE_ZOMBIES then
+		table.insert(optionsTable,
+			CoD.OptionsUtility.CreateDvarSettings(controller, "Unlock Easter Eggs",
+				"Complete all Easter Egg Achievements.", "MPStatsSettings_complete_ee",
+				"all_ee_completed", {
+					{
+						option = "MENU_DISABLED",
+						value = 0,
+						default = true
+					},
+					{
+						option = "MENU_ENABLED",
+						value = 1
+					},
+				}, nil, updateDvar))
+	end
 
 	local rankLevels = {}
 	if Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER then
