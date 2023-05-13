@@ -30,7 +30,7 @@ namespace patches
 		void scr_get_num_expected_players()
 		{
 			const auto mode = game::Com_SessionMode_GetMode();
-			if (mode == game::MODE_ZOMBIES || mode == game::MODE_CAMPAIGN)
+			if (game::is_server() && (mode == game::MODE_ZOMBIES || mode == game::MODE_CAMPAIGN))
 			{
 				game::Scr_AddInt(game::SCRIPTINSTANCE_SERVER, lobby_min_players->current.value.integer);
 			}
