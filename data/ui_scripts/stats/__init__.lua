@@ -132,7 +132,7 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
 						value = 1
 					},
 				}, nil, updateDvar))
-	end			
+	end
 	if Engine.CurrentSessionMode() == Enum.eModes.MODE_ZOMBIES then
 		table.insert(optionsTable,
 			CoD.OptionsUtility.CreateDvarSettings(controller, "Unlock Easter Eggs",
@@ -155,7 +155,7 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
 	local hasDefault = true
 	local currentPrestige = CoD.PrestigeUtility.GetCurrentPLevel(controller, Engine.CurrentSessionMode())
 	local currentRank = CoD.BlackMarketUtility.GetCurrentRank(controller) + 1
-	
+
 	local isMasterPrestige = currentPrestige == 11
 
 	if Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER then
@@ -164,7 +164,6 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
 		else
 			rankLevels = { 56, 100, 200, 300, 400, 500, 600, 700, 800, 900, 1000 }
 		end
-			
 	elseif Engine.CurrentSessionMode() == Enum.eModes.MODE_ZOMBIES then
 		if not isMasterPrestige then
 			rankLevels = { 1, 5, 10, 15, 20, 25, 30, 35 }
@@ -182,13 +181,14 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
 			value = value - 1,
 			default = value == currentRank,
 			title = "Rank Level",
-			desc = value~=currentRank and "" or "Current Rank"
+			desc = value ~= currentRank and "" or "Current Rank"
 		})
 	end
 
 	if hasDefault and currentRank ~= minlevel and currentRank < maxlevel and not isMasterPrestige then
 		table.insert(rankObjs, {
-			name = "Current: " .. tostring(currentRank <= minlevel and "Min" or currentRank >= maxlevel and "Max" or currentRank),
+			name = "Current: " ..
+			tostring(currentRank <= minlevel and "Min" or currentRank >= maxlevel and "Max" or currentRank),
 			value = currentRank - 1,
 			default = true,
 			title = "Rank Level",
@@ -199,7 +199,7 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
 	local prestigeTable = {}
 	for i = 0, 11 do
 		table.insert(prestigeTable, {
-			name = i == 0 and "None" or i==11 and "Master" or i,
+			name = i == 0 and "None" or i == 11 and "Master" or i,
 			value = i,
 			default = i == currentPrestige,
 			title = "Prestige",
@@ -246,11 +246,12 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
 			desc = "",
 			image = nil,
 			optionsDatasource = createSettingsDatasource(controller, "MPStatsSettings_rank_prestige", prestigeTable,
-				CoD.PrestigeUtility.GetCurrentPLevel(controller, Engine.CurrentSessionMode()), false, function(f1_arg0, f1_arg1, f1_arg2, dvarName, f1_arg4)
+				CoD.PrestigeUtility.GetCurrentPLevel(controller, Engine.CurrentSessionMode()), false,
+				function(f1_arg0, f1_arg1, f1_arg2, dvarName, f1_arg4)
 					UpdateInfoModels(f1_arg1)
 					local newPrestige = f1_arg1.value
-					if newPrestige == 11 then 
-						Engine.Exec( f1_arg0, "PrestigeStatsMaster " .. tostring( Engine.CurrentSessionMode() ) )
+					if newPrestige == 11 then
+						Engine.Exec(f1_arg0, "PrestigeStatsMaster " .. tostring(Engine.CurrentSessionMode()))
 					end
 					Engine.ExecNow(f1_arg0, "statsetbyname plevel " .. newPrestige)
 					Engine.ExecNow(f1_arg0, "statsetbyname hasprestiged " .. (newPrestige > 0 and 1 or 0))
@@ -269,7 +270,8 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
 			desc = "",
 			image = nil,
 			optionsDatasource = createSettingsDatasource(controller, "MPStatsSettings_rank_level", rankObjs,
-				CoD.BlackMarketUtility.GetCurrentRank(controller), false, function(f1_arg0, f1_arg1, f1_arg2, dvarName, f1_arg4)
+				CoD.BlackMarketUtility.GetCurrentRank(controller), false,
+				function(f1_arg0, f1_arg1, f1_arg2, dvarName, f1_arg4)
 					UpdateInfoModels(f1_arg1)
 					local rankTable = nil
 					local rank = f1_arg1.value + 1
@@ -294,9 +296,9 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
 						if maxXp == nil then
 							maxXp = 0
 						end
-						Engine.ExecNow(f1_arg0, "statsetbyname rank " .. rank - 1 )
-						Engine.ExecNow(f1_arg0, "statsetbyname rankxp " .. maxXp )
-						Engine.ExecNow(f1_arg0, "statsetbyname paragon_rankxp " .. 0 )
+						Engine.ExecNow(f1_arg0, "statsetbyname rank " .. rank - 1)
+						Engine.ExecNow(f1_arg0, "statsetbyname rankxp " .. maxXp)
+						Engine.ExecNow(f1_arg0, "statsetbyname paragon_rankxp " .. 0)
 					else
 						if Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER then
 							rankTable = "gamedata/tables/mp/mp_paragonranktable.csv"
@@ -322,13 +324,12 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
 						if maxXp == nil then
 							maxXp = 0
 						end
-						Engine.ExecNow(f1_arg0, "statsetbyname paragon_rank  " .. rank - 1 )
-						Engine.ExecNow(f1_arg0, "statsetbyname paragon_rankxp " .. maxXp )
+						Engine.ExecNow(f1_arg0, "statsetbyname paragon_rank  " .. rank - 1)
+						Engine.ExecNow(f1_arg0, "statsetbyname paragon_rankxp " .. maxXp)
 					end
-						Engine.Exec(f1_arg0, "uploadstats " .. tostring(Engine.CurrentSessionMode()))
-						Engine.Exec(f1_arg0, "savegamerprofilestats")
-						
-						currentRank = rank
+					Engine.Exec(f1_arg0, "uploadstats " .. tostring(Engine.CurrentSessionMode()))
+
+					currentRank = rank
 				end)
 		},
 		properties = {
@@ -361,7 +362,8 @@ LUI.createMenu.BoiiiStatsMenu = function(controller)
 	GameSettingsBackground:setLeftRight(true, true, 0, 0)
 	GameSettingsBackground:setTopBottom(true, true, 0, 0)
 	GameSettingsBackground.MenuFrame.titleLabel:setText(Engine.Localize("STATS SETTINGS"))
-	GameSettingsBackground.MenuFrame.cac3dTitleIntermediary0.FE3dTitleContainer0.MenuTitle.TextBox1.Label0:setText(Engine.Localize("STATS SETTINGS"))
+	GameSettingsBackground.MenuFrame.cac3dTitleIntermediary0.FE3dTitleContainer0.MenuTitle.TextBox1.Label0:setText(
+	Engine.Localize("STATS SETTINGS"))
 	GameSettingsBackground.GameSettingsSelectedItemInfo.GameModeInfo:setAlpha(0)
 	GameSettingsBackground.GameSettingsSelectedItemInfo.GameModeName:setAlpha(0)
 	self:addElement(GameSettingsBackground)
