@@ -8,6 +8,10 @@ namespace game
 {
 #define Com_Error(code, fmt, ...) Com_Error_(__FILE__, __LINE__, code, fmt, ##__VA_ARGS__)
 
+	// CG
+	WEAK symbol<void(int localClientNum, float* fov_x, float* dxDzAtDefaultAspectRatio, float* dxDz, float* dyDz)>
+	CG_CalcFOVfromLens{0x1404D6230};
+
 	// CL
 	WEAK symbol<void(int controllerIndex, XSESSION_INFO* hostInfo, const netadr_t* addr, int numPublicSlots,
 	                 int numPrivateSlots, const char* mapname, const char* gametype,
@@ -157,7 +161,9 @@ namespace game
 	};
 
 	// UI
-	WEAK symbol<void(int localClientNumber, int errorcode, const char* errorMessage)> UI_OpenErrorPopupWithMessage{0x14228DEE0};
+	WEAK symbol<void(int localClientNumber, int errorcode, const char* errorMessage)> UI_OpenErrorPopupWithMessage{
+		0x14228DEE0
+	};
 	WEAK symbol<void(bool frontend)> UI_CoD_Init{0x141F29010, 0x1404A0A50};
 	WEAK symbol<void()> UI_CoD_LobbyUI_Init{0x141F2BD80, 0x1404A1F50};
 	WEAK symbol<void()> UI_CoD_Shutdown{0x141F32E10, 0x0};
