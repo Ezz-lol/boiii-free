@@ -136,11 +136,10 @@ namespace game
 		}
 
 		auto* dvar_to_change = dvar;
-
 		if (dvar_to_change->type == DVAR_TYPE_SESSIONMODE_BASE_DVAR)
 		{
 			const auto mode = Com_SessionMode_GetMode();
-			dvar_to_change = Dvar_GetSessionModeSpecificDvar(dvar_to_change, mode);
+			dvar_to_change = Dvar_GetSessionModeSpecificDvar(dvar_to_change, static_cast<eModes>(mode));
 		}
 
 		dvar_to_change->flags |= flags;
@@ -156,11 +155,10 @@ namespace game
 		}
 
 		auto* dvar_to_change = dvar;
-
 		if (dvar_to_change->type == DVAR_TYPE_SESSIONMODE_BASE_DVAR)
 		{
 			const auto mode = Com_SessionMode_GetMode();
-			dvar_to_change = Dvar_GetSessionModeSpecificDvar(dvar_to_change, mode);
+			dvar_to_change = Dvar_GetSessionModeSpecificDvar(dvar_to_change, static_cast<eModes>(mode));
 		}
 
 		dvar_to_change->flags = flags;
