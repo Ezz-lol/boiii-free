@@ -15,7 +15,6 @@ namespace script
 		constexpr size_t GSC_MAGIC = 0x1C000A0D43534780;
 
 		utils::hook::detour db_findxassetheader_hook;
-		utils::hook::detour load_gametype_script_hook;
 		utils::hook::detour gscr_get_bgb_remaining_hook;
 
 		std::unordered_map<std::string, game::RawFile*> loaded_scripts;
@@ -51,14 +50,26 @@ namespace script
 				name.erase(i, host_path.length());
 			}
 
+			auto base_name = name;
+			if (utils::string::ends_with(name, ".gsc"))
+			{
+				base_name = name.substr(0, name.size() - 4); // .gsc suffix will be readded by Scr_LoadScript
+			}
+
+			if (base_name.size() < 1)
+			{
+				printf("Not loading GSC script '%s' due to invalid name.\n", name.data());
+				return;
+			}
+
 			auto* rawfile = allocator.allocate<game::RawFile>();
-			rawfile->name = name.data();
+			rawfile->name = name.data(); // use script name with .gsc suffix for FindXAssetHeader hook
 			rawfile->buffer = file_string;
 			rawfile->len = static_cast<int>(data.length());
 
 			loaded_scripts[name] = rawfile;
 
-			game::Scr_LoadScript(game::SCRIPTINSTANCE_SERVER, name.substr(0, name.size() - 4).data()); // .gsc suffix will be readded by Scr_LoadScript
+			game::Scr_LoadScript(game::SCRIPTINSTANCE_SERVER, base_name.data());
 		}
 
 		void load_scripts_folder(const std::string& script_dir)
@@ -122,11 +133,11 @@ namespace script
 		{
 			if (!game::Com_IsInGame() || game::Com_IsRunningUILevel())
 			{
-				load_gametype_script_hook.invoke<void>();
+				game::GScr_LoadGametypeScript();
 				return;
 			}
 
-			load_gametype_script_hook.invoke<void>();
+			game::GScr_LoadGametypeScript();
 			load_scripts();
 		}
 
@@ -149,7 +160,7 @@ namespace script
 			db_findxassetheader_hook.create(game::select(0x141420ED0, 0x1401D5FB0), db_findxassetheader_stub);
 
 			// Load our scripts when the gametype script is loaded
-			load_gametype_script_hook.create(game::select(0x141AAD850, 0x1402D7140), load_gametype_script_stub);
+			utils::hook::call(game::select(0x141AAF37C, 0x1402D8C7F), load_gametype_script_stub);
 
 			// Force GSC checksums to be valid
 			utils::hook::call(game::select(0x1408F2E5D, 0x1400E2D22), server_script_checksum_stub);

@@ -216,6 +216,8 @@ namespace game
 		0x1422E9410, 0x1405811E0
 	};
 
+	WEAK symbol<void()> GScr_LoadGametypeScript{0x141AAD850, 0x1402D7140};
+
 	// Variables
 	WEAK symbol<cmd_function_s> cmd_functions{0x15689DF58, 0x14946F860};
 	WEAK symbol<CmdArgs> sv_cmd_args{0x15689AE30, 0x14944C740};
