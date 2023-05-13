@@ -35,6 +35,9 @@ namespace fov
 
 			// Patch cg_fovScale flags
 			utils::hook::set<uint32_t>(0x14090E735_g, game::DVAR_ARCHIVE);
+
+			// Don't reset cg_fovScale
+			utils::hook::set<uint8_t>(0x140926D2A_g, 0xC3);
 		}
 	};
 }
