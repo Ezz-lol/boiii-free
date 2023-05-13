@@ -44,9 +44,6 @@ namespace patches
 	{
 		void post_unpack() override
 		{
-			// print hexadecimal xuids in status command
-			utils::hook::copy_string(game::select(0x143050560, 0x140E85B00), "%12llx ");
-
 			// print hexadecimal xuids in chat game log command
 			utils::hook::set<char>(game::select(0x142FD9362, 0x140E16FA2), 'x');
 
