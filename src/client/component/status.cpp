@@ -8,7 +8,7 @@ namespace status
 {
 	namespace
 	{
-		int client_num_;
+		thread_local int client_num_;
 
 		void print_client_num(int channel, int label, const char* fmt, const int client_num)
 		{
