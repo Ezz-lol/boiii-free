@@ -14,7 +14,7 @@ namespace script
 	{
 		constexpr size_t GSC_MAGIC = 0x1C000A0D43534780;
 
-		utils::hook::detour db_findxassetheader_hook;
+		utils::hook::detour db_find_x_asset_header_hook;
 		utils::hook::detour gscr_get_bgb_remaining_hook;
 
 		std::unordered_map<std::string, game::RawFile*> loaded_scripts;
@@ -33,7 +33,6 @@ namespace script
 		void load_script(std::string& name, const std::string& data)
 		{
 			auto& allocator = *utils::memory::get_allocator();
-			const auto* file_string = allocator.duplicate_string(data);
 
 			const auto appdata_path = (game::get_appdata_path() / "data/").generic_string();
 			const auto host_path = (utils::nt::library{}.get_folder() / "boiii/").generic_string();
@@ -50,12 +49,12 @@ namespace script
 				name.erase(i, host_path.length());
 			}
 
-			auto* rawfile = allocator.allocate<game::RawFile>();
-			rawfile->name = name.c_str();
-			rawfile->buffer = file_string;
-			rawfile->len = static_cast<int>(data.length());
+			auto* raw_file = allocator.allocate<game::RawFile>();
+			raw_file->name = allocator.duplicate_string(name);
+			raw_file->buffer = allocator.duplicate_string(data);
+			raw_file->len = static_cast<int>(data.length());
 
-			loaded_scripts[name] = rawfile;
+			loaded_scripts[name] = raw_file;
 		}
 
 		void load_scripts_folder(const std::string& script_dir)
@@ -94,11 +93,11 @@ namespace script
 			load_scripts_folder((host.get_folder() / "boiii/scripts").string());
 		}
 
-		game::RawFile* db_findxassetheader_stub(const game::XAssetType type, const char* name,
+		game::RawFile* db_find_x_asset_header_stub(const game::XAssetType type, const char* name,
 		                                        const bool error_if_missing,
 		                                        const int wait_time)
 		{
-			auto* asset_header = db_findxassetheader_hook.invoke<game::RawFile*>(
+			auto* asset_header = db_find_x_asset_header_hook.invoke<game::RawFile*>(
 				type, name, error_if_missing, wait_time);
 
 			if (type != game::ASSET_TYPE_SCRIPTPARSETREE)
@@ -134,10 +133,10 @@ namespace script
 			}
 			else
 			{
-				scheduler::once(load_scripts, scheduler::pipeline::renderer);
+				scheduler::once(load_scripts, scheduler::pipeline::main);
 			}
 
-			db_findxassetheader_hook.create(game::select(0x141420ED0, 0x1401D5FB0), db_findxassetheader_stub);
+			db_find_x_asset_header_hook.create(game::select(0x141420ED0, 0x1401D5FB0), db_find_x_asset_header_stub);
 			gscr_get_bgb_remaining_hook.create(game::select(0x141A8CAB0, 0x1402D2310), gscr_get_bgb_remaining_stub);
 		}
 	};

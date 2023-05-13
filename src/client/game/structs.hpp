@@ -890,7 +890,7 @@ namespace game
 
 	enum LobbyType
 	{
-		LOBBY_TYPE_INVALID = 0xFFFFFFFF,
+		LOBBY_TYPE_INVALID = -1,
 		LOBBY_TYPE_PRIVATE = 0x0,
 		LOBBY_TYPE_GAME = 0x1,
 		LOBBY_TYPE_TRANSITION = 0x2,
@@ -898,6 +898,14 @@ namespace game
 		LOBBY_TYPE_FIRST = 0x0,
 		LOBBY_TYPE_LAST = 0x2,
 		LOBBY_TYPE_AUTO = 0x3,
+	};
+
+	enum LobbyClientType
+	{
+		LOBBY_CLIENT_TYPE_INVALID = -1,
+		LOBBY_CLIENT_TYPE_ALL = 0x0,
+		LOBBY_CLIENT_TYPE_LOCAL = 0x1,
+		LOBBY_CLIENT_TYPE_REMOTE = 0x2,
 	};
 
 	enum LobbyNetworkMode
@@ -1610,7 +1618,6 @@ namespace game
 		char __pad6[171432];
 	};
 
-
 #ifdef __cplusplus
 	static_assert(sizeof(client_s) == 0xE5110);
 
@@ -1647,14 +1654,23 @@ namespace game
 	struct EntityState
 	{
 		int number;
-	};
+	}; // Incomplete
 
 	struct gentity_s
 	{
 		EntityState s;
 		unsigned char __pad0[0x24C];
 		gclient_s* client;
-		unsigned char __pad1[0x2A0];
+		unsigned char __pad1[0x17C];
+		struct
+		{
+			unsigned int notifyString;
+			unsigned int index;
+			unsigned char stoppable;
+			int basetime;
+			int duration;
+		} snd_wait;
+		unsigned char __pad2[0x110];
 	};
 
 #ifdef __cplusplus
