@@ -98,13 +98,13 @@ function __init__()
 	
 	level.botIgnoreThreat = &bot_combat::bot_ignore_threat;
 	
-	level.enemyEmpActive = &emp::EnemyEmpActive;
+	level.enemyEmpActive = &emp::enemyEmpActive;
 	
 /#
 	level.botDevguiCmd = &bot_devgui_cmd;
 	level thread system_devgui_gadget_think();
 #/
-	SetDvar( "bot_enableWallrun", 1 );
+	setDvar( "bot_enableWallrun", 1 );
 }
 
 function init()
@@ -127,7 +127,7 @@ function init()
 
 function is_bot_soak()
 {
-	return GetDvarInt( "sv_botsoak", 0 );
+	return getDvarInt( "sv_botsoak", 0 );
 }
 
 function wait_for_host()
@@ -202,24 +202,24 @@ function on_bot_spawned()
 /#
 	weapon = undefined;
 
-	if ( GetDvarInt( "scr_botsHasPlayerWeapon" ) != 0 )
+	if ( getDvarInt( "scr_botsHasPlayerWeapon" ) != 0 )
 	{
 		player = util::getHostPlayer();
-		weapon = player GetCurrentWeapon();
+		weapon = player getCurrentWeapon();
 	}
 
-	if ( GetDvarString( "devgui_bot_weapon", "" ) != "" )
+	if ( getDvarString( "devgui_bot_weapon", "" ) != "" )
 	{
-		weapon = GetWeapon( GetDvarString( "devgui_bot_weapon" ) );
+		weapon = getWeapon( getDvarString( "devgui_bot_weapon" ) );
 	}
 
 	if ( isdefined( weapon ) && level.weaponNone != weapon )
 	{
 		self weapons::detach_all_weapons();
-		self TakeAllWeapons();
-		self GiveWeapon( weapon );
-		self SwitchToWeapon( weapon );
-		self SetSpawnWeapon( weapon );
+		self takeAllWeapons();
+		self giveWeapon( weapon );
+		self switchToWeapon( weapon );
+		self setSpawnWeapon( weapon );
 
 		self teams::set_player_model( self.team, weapon );
 	}
@@ -276,7 +276,7 @@ function bot_idle()
 
 function do_supplydrop( maxRange = 1400 ) // A little under minimap width
 {
-	crates = GetEntArray( "care_package", "script_noteworthy" );
+	crates = getEntArray( "care_package", "script_noteworthy" );
 	
 	maxRangeSq = maxRange * maxRange;
 	
@@ -287,12 +287,12 @@ function do_supplydrop( maxRange = 1400 ) // A little under minimap width
 
 	foreach( crate in crates )
 	{
-		if ( !crate IsOnGround() )
+		if ( !crate isOnGround() )
 		{
 			continue;
 		}
 		
-		crateDistSq = Distance2DSquared( self.origin, crate.origin );
+		crateDistSq = distance2DSquared( self.origin, crate.origin );
 		
 		if ( crateDistSq > maxRangeSq )
 		{
@@ -312,7 +312,7 @@ function do_supplydrop( maxRange = 1400 ) // A little under minimap width
 			return true;
 		}
 
-		if ( !self has_minimap() && !self BotSightTracePassed( crate ) )
+		if ( !self has_minimap() && !self botSightTracePassed( crate ) )
 		{
 			continue;
 		}
@@ -326,12 +326,12 @@ function do_supplydrop( maxRange = 1400 ) // A little under minimap width
 	
 	if ( isdefined( closestCrate ) )
 	{	
-		randomAngle = ( 0, RandomInt( 360 ), 0 );
+		randomAngle = ( 0, randomInt( 360 ), 0 );
 		randomVec = AnglesToForward( randomAngle );
 		
 		point = closestCrate.origin + randomVec * CRATE_GOAL_RADIUS;
 		
-		if ( self BotSetGoal( point ) )
+		if ( self botSetGoal( point ) )
 		{
 			self thread watch_crate( closestCrate );
 			return true;
@@ -352,7 +352,7 @@ function watch_crate( crate )
 		wait level.botSettings.thinkInterval;
 	}
 	
-	self BotSetGoal( self.origin );
+	self botSetGoal( self.origin );
 }
 
 // Bot Team Population
@@ -364,14 +364,14 @@ function populate_bots()
 	
 	if ( level.teambased )
 	{
-		maxAllies = GetDvarInt( "bot_maxAllies", 0 );
-		maxAxis = GetDvarInt( "bot_maxAxis", 0 );
+		maxAllies = getDvarInt( "bot_maxAllies", 0 );
+		maxAxis = getDvarInt( "bot_maxAxis", 0 );
 		
 		level thread monitor_bot_team_population( maxAllies, maxAxis );
 	}
 	else
 	{
-		maxFree = GetDvarInt( "bot_maxFree", 0 );
+		maxFree = getDvarInt( "bot_maxFree", 0 );
 		
 		level thread monitor_bot_population( maxFree );
 	}
@@ -393,8 +393,8 @@ function monitor_bot_team_population( maxAllies, maxAxis )
 		wait 3;
 		
 		// TODO: Get a player count that includes 'CON_CONNECTING' players
-		allies = GetPlayers( "allies" );
-		axis = GetPlayers( "axis" );
+		allies = getPlayers( "allies" );
+		axis = getPlayers( "axis" );
 		
 		if ( allies.size > maxAllies &&
 		     remove_best_bot( allies ) )
@@ -417,16 +417,16 @@ function monitor_bot_team_population( maxAllies, maxAxis )
 
 function fill_balanced_teams( maxAllies, maxAxis )
 {
-	allies = GetPlayers( "allies" );
-	axis = GetPlayers( "axis" );
+	allies = getPlayers( "allies" );
+	axis = getPlayers( "axis" );
 	
 	while ( ( allies.size < maxAllies || axis.size < maxAxis ) &&
 	        add_balanced_bot( allies, maxAllies, axis, maxAxis ) )
 	{		
 		WAIT_SERVER_FRAME;
 		
-		allies = GetPlayers( "allies" );
-		axis = GetPlayers( "axis" );
+		allies = getPlayers( "allies" );
+		axis = getPlayers( "axis" );
 	}
 }
 
@@ -457,12 +457,12 @@ function monitor_bot_population( maxFree )
 	}
 	
 	// Initial Fill
-	players = GetPlayers( );
+	players = getPlayers( );
 	while ( players.size < maxFree )
 	{
 		add_bot();
 		WAIT_SERVER_FRAME;
-		players = GetPlayers( );
+		players = getPlayers( );
 	}
 	
 	while ( 1 )
@@ -470,7 +470,7 @@ function monitor_bot_population( maxFree )
 		wait 3;
 		
 		// TODO: Get a player count that includes 'CON_CONNECTING' players
-		players = GetPlayers( );
+		players = getPlayers( );
 				
 		if ( players.size < maxFree )
 		{
@@ -511,11 +511,11 @@ function remove_best_bot( players )
 	
 	if ( bestBots.size )
 	{
-		remove_bot( bestBots[RandomInt( bestBots.size )] );
+		remove_bot( bestBots[randomInt( bestBots.size )] );
 	}
 	else
 	{
-		remove_bot( bots[RandomInt( bots.size )] );
+		remove_bot( bots[randomInt( bots.size )] );
 	}
 	
 	return true;
@@ -533,9 +533,9 @@ function choose_class()
 	
 	currClass = self bot_loadout::get_current_class();
 
-	if ( !isdefined( currClass ) || RandomInt( 100 ) < VAL( level.botSettings.changeClassWeight, 0 ) )
+	if ( !isdefined( currClass ) || randomInt( 100 ) < VAL( level.botSettings.changeClassWeight, 0 ) )
 	{
-		classIndex = RandomInt( self.loadoutClasses.size );
+		classIndex = randomInt( self.loadoutClasses.size );
 		className = self.loadoutClasses[classIndex].name;
 	}
 	
@@ -555,13 +555,13 @@ function choose_class()
 function use_killstreak()
 {
 	if ( !level.loadoutKillstreaksEnabled ||
-	    self emp::EnemyEMPActive() )
+	    self emp::enemyEmpActive() )
 	{
 		return;
 	}
 	
-	weapons = self GetWeaponsList();
-	inventoryWeapon = self GetInventoryWeapon();
+	weapons = self getWeaponsList();
+	inventoryWeapon = self getInventoryWeapon();
 		
 	foreach( weapon in weapons )
 	{	
@@ -572,7 +572,7 @@ function use_killstreak()
 			continue;
 		}
 		
-		if ( weapon != inventoryWeapon && !self GetWeaponAmmoClip( weapon )  )
+		if ( weapon != inventoryWeapon && !self getWeaponAmmoClip( weapon )  )
 		{
 			continue;
 		}
@@ -600,7 +600,7 @@ function use_killstreak()
 		case "killstreak_raps":
 		case "killstreak_sentinel":
 		{
-			self SwitchToWeapon( useWeapon );
+			self switchToWeapon( useWeapon );
 			break;
 		}
 		case "killstreak_ai_tank_drop":
@@ -610,7 +610,7 @@ function use_killstreak()
 		}	
 		case "killstreak_remote_missile":
 		{
-			self SwitchToWeapon( weapon );
+			self switchToWeapon( weapon );
 			self waittill( "weapon_change_complete" );
 			wait 1.5;
 			self bot::press_attack_button();
@@ -664,16 +664,16 @@ function use_supply_drop( weapon )
 
     wait 0.5;
 
-    if ( self getcurrentweapon() != weapon )
+    if ( self getCurrentWeapon() != weapon )
     {
         self thread weapon_switch_failsafe();
-        self switchtoweapon( weapon );
+        self switchToWeapon( weapon );
 
         self waittill( "weapon_change_complete" );
     }
 
     use_item( weapon );
-    self switchtoweapon( self.lastnonkillstreakweapon );
+    self switchToWeapon( self.lastnonkillstreakweapon );
     self clearlookat();
     self cancelgoal( "killstreak" );
 }
@@ -685,7 +685,7 @@ function use_item( weapon )
 
     for ( i = 0; i < 10; i++ )
     {
-        if ( self getcurrentweapon() == weapon || self getcurrentweapon() == "none" )
+        if ( self getCurrentWeapon() == weapon || self getCurrentWeapon() == "none" )
             self bot::press_attack_button();
         else
             return;
@@ -701,7 +701,7 @@ function killstreak_location( num, weapon )
     if ( !enemies.size )
         return;
 
-    if ( !self switchtoweapon( weapon ) )
+    if ( !self switchToWeapon( weapon ) )
         return;
 
     self waittill( "weapon_change" );
@@ -717,7 +717,7 @@ function killstreak_location( num, weapon )
         if ( wait_time <= 0 )
         {
             self util::freeze_player_controls( false );
-            self switchtoweapon( self.lastnonkillstreakweapon );
+            self switchToWeapon( self.lastnonkillstreakweapon );
             return;
         }
     }
@@ -786,9 +786,9 @@ function get_enemies( on_radar )
 /#
 	for ( i = 0; i < enemies.size; i++ )
 	{
-		if ( isplayer( enemies[i] ) && enemies[i] IsInMoveMode( "ufo", "noclip" ) )
+		if ( isplayer( enemies[i] ) && enemies[i] isInMoveMode( "ufo", "noclip" ) )
 		{
-			ArrayRemoveIndex( enemies, i );
+			arrayRemoveIndex( enemies, i );
 			i--;
 		}
 	}
@@ -800,12 +800,12 @@ function get_enemies( on_radar )
 		{
 			if ( !isdefined( enemies[i].lastFireTime ) )
 			{
-				ArrayRemoveIndex( enemies, i );
+				arrayRemoveIndex( enemies, i );
 				i--;
 			}
 			else if ( GetTime() - enemies[i].lastFireTime > 2000 ) 
 			{
-				ArrayRemoveIndex( enemies, i );
+				arrayRemoveIndex( enemies, i );
 				i--;
 			}
 		}
@@ -816,7 +816,7 @@ function get_enemies( on_radar )
 
 function set_rank()
 {
-	players = GetPlayers();
+	players = getPlayers();
 
 	ranks = [];
 	bot_ranks = [];
@@ -848,12 +848,12 @@ function set_rank()
 	while ( bot_ranks.size + human_ranks.size < 5 )
 	{
 		// add some random ranks for better random number distribution
-		r = human_avg + RandomIntRange( -5, 5 );
+		r = human_avg + randomIntRange( -5, 5 );
 		rank = math::clamp( r, 0, level.maxRank );
 		human_ranks[ human_ranks.size ] = rank;
 	}
 
-	ranks = ArrayCombine( human_ranks, bot_ranks, true, false );
+	ranks = arrayCombine( human_ranks, bot_ranks, true, false );
 
 	avg = math::array_average( ranks );
 	s = math::array_std_deviation( ranks, avg );
@@ -924,7 +924,7 @@ function init_bot_gametype()
 
 function get_bot_settings()
 {
-	switch ( GetDvarInt( "bot_difficulty", 1 ) )
+	switch ( getDvarInt( "bot_difficulty", 1 ) )
 	{
 		case 0:
 			bundleName = "bot_mp_easy";
@@ -1023,7 +1023,7 @@ function bot_devgui_cmd( cmd )
 		return true;
 
 	case "player_weapon":
-		players = GetPlayers();
+		players = getPlayers();
 		foreach( player in players )
 		{
 			if ( !player util::is_bot() )
@@ -1031,13 +1031,13 @@ function bot_devgui_cmd( cmd )
 				continue;
 			}
 
-			weapon = host GetCurrentWeapon();
+			weapon = host getCurrentWeapon();
 
 			player weapons::detach_all_weapons();
-			player TakeAllWeapons();
-			player GiveWeapon( weapon );
-			player SwitchToWeapon( weapon );
-			player SetSpawnWeapon( weapon );
+			player takeAllWeapons();
+			player giveWeapon( weapon );
+			player switchToWeapon( weapon );
+			player setSpawnWeapon( weapon );
 
 			player teams::set_player_model( player.team, weapon );
 		}
@@ -1049,25 +1049,25 @@ function bot_devgui_cmd( cmd )
 
 function system_devgui_gadget_think()
 {
-	SetDvar( "devgui_bot_gadget", "" );
+	setDvar( "devgui_bot_gadget", "" );
 
 	for ( ;; )
 	{
 		wait( 1 );
 
-		gadget = GetDvarString( "devgui_bot_gadget" );
+		gadget = getDvarString( "devgui_bot_gadget" );
 		
 		if ( gadget != "" )
 		{
-			bot_turn_on_gadget( GetWeapon(gadget) );
-			SetDvar( "devgui_bot_gadget", "" );
+			bot_turn_on_gadget( getWeapon(gadget) );
+			setDvar( "devgui_bot_gadget", "" );
 		}	
 	}
 }
 
 function bot_turn_on_gadget( gadget )
 {
-	players = GetPlayers();
+	players = getPlayers();
 	
 	foreach( player in players )
 	{
@@ -1077,25 +1077,25 @@ function bot_turn_on_gadget( gadget )
 		}
 		
 		host = util::getHostPlayer();
-		weapon = host GetCurrentWeapon();
+		weapon = host getCurrentWeapon();
 		
 		if ( !isdefined( weapon ) || weapon == level.weaponNone || weapon == level.weaponNull )
 		{
-			weapon = GetWeapon( "smg_standard" );
+			weapon = getWeapon( "smg_standard" );
 		}
 
 		player weapons::detach_all_weapons();
-		player TakeAllWeapons();
-		player GiveWeapon( weapon );
-		player SwitchToWeapon( weapon );
-		player SetSpawnWeapon( weapon );
+		player takeAllWeapons();
+		player giveWeapon( weapon );
+		player switchToWeapon( weapon );
+		player setSpawnWeapon( weapon );
 
 		player teams::set_player_model( player.team, weapon );
 		
-		player GiveWeapon( gadget );
-		slot = player GadgetGetSlot( gadget );
-		player GadgetPowerSet( slot, 100.0 );
-		player BotPressButtonForGadget( gadget );
+		player giveWeapon( gadget );
+		slot = player gadgetGetSlot( gadget );
+		player gadgetPowerSet( slot, 100.0 );
+		player botPressButtonForGadget( gadget );
 	}	
 }
 
@@ -1112,8 +1112,8 @@ function fixed_spawn_override()
 	{
 		self waittill( "spawned_player" );
 		
-		self SetOrigin( spawnOrigin );
-		self SetPlayerAngles( spawnAngles );
+		self setOrigin( spawnOrigin );
+		self setPlayerAngles( spawnAngles );
 	}
 }
 
