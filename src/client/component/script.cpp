@@ -16,7 +16,6 @@ namespace script
 
 		utils::hook::detour db_findxassetheader_hook;
 		utils::hook::detour load_gametype_script_hook;
-		utils::hook::detour server_script_checksum_hook;
 		utils::hook::detour gscr_get_bgb_remaining_hook;
 
 		std::unordered_map<std::string, game::RawFile*> loaded_scripts;
@@ -59,8 +58,7 @@ namespace script
 
 			loaded_scripts[name] = rawfile;
 
-			const auto base_name = name.substr(0, name.size() - 4); // .gsc suffix will be readded by Scr_LoadScript
-			game::Scr_LoadScript(game::SCRIPTINSTANCE_SERVER, base_name.data());
+			game::Scr_LoadScript(game::SCRIPTINSTANCE_SERVER, name.substr(0, name.size() - 4).data()); // .gsc suffix will be readded by Scr_LoadScript
 		}
 
 		void load_scripts_folder(const std::string& script_dir)
