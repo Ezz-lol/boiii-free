@@ -205,7 +205,7 @@ namespace game
 		}
 
 		auto& client = client_states[index];
-		if (client.client_state <= 0)
+		if (client.state == CS_FREE)
 		{
 			return false;
 		}
@@ -238,7 +238,7 @@ namespace game
 	{
 		foreach_client([&](client_s& client, const size_t index)
 		{
-			if (client.client_state > 0)
+			if (client.state != CS_FREE)
 			{
 				callback(client, index);
 			}
