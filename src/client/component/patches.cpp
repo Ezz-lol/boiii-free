@@ -29,13 +29,19 @@ namespace patches
 
 		void scr_get_num_expected_players()
 		{
+			auto expected_players = game::LobbyHost_GetClientCount(game::LOBBY_TYPE_GAME,
+			                                                       game::LOBBY_CLIENT_TYPE_ALL);
+
 			const auto mode = game::Com_SessionMode_GetMode();
-			if (game::is_server() && (mode == game::MODE_ZOMBIES || mode == game::MODE_CAMPAIGN))
+			if ((mode == game::MODE_ZOMBIES || mode == game::MODE_CAMPAIGN))
 			{
-				game::Scr_AddInt(game::SCRIPTINSTANCE_SERVER, lobby_min_players->current.value.integer);
+				if (const auto min_players = lobby_min_players->current.value.integer)
+				{
+					expected_players = min_players;
+				}
 			}
 
-			const auto num_expected_players = std::max(1, game::LobbyHost_GetClientCount(game::LOBBY_TYPE_GAME, game::LOBBY_CLIENT_TYPE_ALL));
+			const auto num_expected_players = std::max(1, expected_players);
 			game::Scr_AddInt(game::SCRIPTINSTANCE_SERVER, num_expected_players);
 		}
 
@@ -73,7 +79,7 @@ namespace patches
 			// make sure reliableAck is not negative or too big
 			utils::hook::call(game::select(0x14225489C, 0x140537C4C), sv_execute_client_messages_stub);
 
-			lobby_min_players = game::register_dvar_int("lobby_min_players", 1, 1, 8, game::DVAR_NONE, "");
+			lobby_min_players = game::register_dvar_int("lobby_min_players", 0, 0, 8, game::DVAR_NONE, "");
 			utils::hook::jump(game::select(0x141A7BCF0, 0x1402CB900), scr_get_num_expected_players, true);
 		}
 	};
