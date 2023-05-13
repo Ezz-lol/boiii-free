@@ -1056,7 +1056,7 @@ function system_devgui_gadget_think()
 
 		gadget = getDvarString("devgui_bot_gadget");
 
-		if (gadget != "")
+		if (gadget.size == 0)
 		{
 			bot_turn_on_gadget(getWeapon(gadget));
 			setDvar("devgui_bot_gadget", "");
