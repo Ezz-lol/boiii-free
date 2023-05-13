@@ -1579,9 +1579,19 @@ namespace game
 		SV_CMD_RELIABLE_0 = 0x1,
 	};
 
+	enum
+	{
+		CS_FREE = 0x0,
+		CS_ZOMBIE = 0x1,
+		CS_RECONNECTING = 0x2,
+		CS_CONNECTED = 0x3,
+		CS_CLIENTLOADING = 0x4,
+		CS_ACTIVE = 0x5,
+	};
+
 	struct client_s
 	{
-		int client_state;
+		int state;
 		char __pad0[0x28];
 		netadr_t address;
 		char __pad1[20468];
