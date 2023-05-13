@@ -2,6 +2,7 @@
 #include "loader/component_loader.hpp"
 
 #include "command.hpp"
+#include "scheduler.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/io.hpp>
@@ -147,13 +148,16 @@ namespace bots
 					}
 				}
 
-				for (size_t i = 0; i < count; ++i)
+				scheduler::once([count]
 				{
-					if (!game::SV_AddTestClient())
+					for (size_t i = 0; i < count; ++i)
 					{
-						break;
+						if (!game::SV_AddTestClient())
+						{
+							break;
+						}
 					}
-				}
+				}, scheduler::server);
 			});
 		}
 	};
