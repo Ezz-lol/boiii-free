@@ -34,7 +34,7 @@ namespace game
 	WEAK symbol<unsigned int(const char* settingName, bool getDefault)> Com_GametypeSettings_GetUInt{
 		0x1420F4E00, 0x1404FE5C0
 	};
-	WEAK symbol<bool()> Com_IsRunningUILevel{0x142148350, 0x14045C070};
+	WEAK symbol<bool()> Com_IsRunningUILevel{0x142148350, 0x140504BD0};
 	WEAK symbol<bool()> Com_IsInGame{0x1421482C0, 0x140504B90};
 	WEAK symbol<void(int localClientNum, eModes fromMode, eModes toMode, uint32_t flags)> Com_SwitchMode{
 		0x14214A4D0
