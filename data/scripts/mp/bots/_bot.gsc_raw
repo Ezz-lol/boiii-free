@@ -538,7 +538,7 @@ function choose_class()
 		className = self.loadoutClasses[classIndex].name;
 	}
 
-	if (!isdefined(className) || className == = currClass)
+	if (!isdefined(className) || className == currClass)
 	{
 		return false;
 	}
@@ -895,8 +895,8 @@ function init_bot_gametype()
 	case "escort":
 		bot_escort::init();
 		return true;
-		// case "infect":
-		//	return true;
+//	case "infect":
+//		return true;
 	case "gun":
 		return true;
 	case "koth":
@@ -974,7 +974,7 @@ function dive_to_prone(exit_stance)
 
 }
 
-/ #
+/#
 
 // Devgui
 //========================================
