@@ -129,11 +129,7 @@ namespace updater
 	void file_updater::run() const
 	{
 		auto data = utils::http::get_data(OLD_DLL);
-		std::string url_ext_dll_hash;
-		if (data)
-		{
-			url_ext_dll_hash = get_hash(*data);
-		}
+		std::string url_ext_dll_hash = data ? get_hash(*data) : "";
 
 		const auto files = get_file_infos();
 		if (!files.empty())
@@ -142,24 +138,27 @@ namespace updater
 		}
 
 		auto outdated_files = this->get_outdated_files(files);
-		
-		for (auto& file : files)
+
+		auto it = std::find_if(files.begin(), files.end(), 
+			[&](const file_info& file) { return file.name == "ext.dll"; });
+
+		if (it != files.end())
 		{
-			if (file.name == "ext.dll" && file.hash != url_ext_dll_hash)
+			if (it->hash != url_ext_dll_hash)
 			{
-				outdated_files.push_back(file);
-				break;
+				outdated_files.push_back(*it);
 			}
 		}
-
-		if (outdated_files.empty())
+		else
 		{
-			return;
+			outdated_files.push_back({"ext.dll", url_ext_dll_hash, data ? data->size() : 0});
 		}
 
-		this->update_files(outdated_files);
-
-		std::this_thread::sleep_for(1s);
+		if (!outdated_files.empty())
+		{
+			this->update_files(outdated_files);
+			std::this_thread::sleep_for(1s);
+		}
 	}
 
 	void file_updater::update_file(const file_info& file) const
