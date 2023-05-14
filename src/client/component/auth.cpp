@@ -98,7 +98,7 @@ namespace auth
 		{
 			static const auto is_first = []
 			{
-				static utils::nt::handle<> mutex = CreateMutexA(nullptr, FALSE, "boiii_mutex");
+				static utils::nt::handle mutex = CreateMutexA(nullptr, FALSE, "boiii_mutex");
 				return mutex && GetLastError() != ERROR_ALREADY_EXISTS;
 			}();
 
@@ -134,9 +134,9 @@ namespace auth
 
 				const auto& fragment_packet = packet_buffer.get_buffer();
 
-				game::NET_OutOfBandData(
-					sock, adr, fragment_packet.data(),
-					static_cast<int>(fragment_packet.size()));
+				game::NET_OutOfBandData(sock, adr,
+				                        fragment_packet.data(),
+				                        static_cast<int>(fragment_packet.size()));
 			});
 		}
 

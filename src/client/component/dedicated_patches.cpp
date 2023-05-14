@@ -2,7 +2,6 @@
 #include "loader/component_loader.hpp"
 
 #include "game/game.hpp"
-#include "scheduler.hpp"
 
 #include <utils/hook.hpp>
 
@@ -12,7 +11,7 @@ namespace dedicated_patches
 	{
 		utils::hook::detour spawn_server_hook;
 
-		void scr_are_textures_loaded_stub([[maybe_unused]] game::scriptInstance_t inst)
+		void scr_are_textures_loaded_stub()
 		{
 			game::Scr_AddInt(game::SCRIPTINSTANCE_SERVER, 1);
 		}

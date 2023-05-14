@@ -68,14 +68,6 @@ namespace getinfo
 		return count;
 	}
 
-	namespace
-	{
-		int Com_SessionMode_GetGameMode()
-		{
-			return *reinterpret_cast<int*>(game::select(0x1568ED7F4, 0x14948DB04)) << 14 >> 28;
-		}
-	}
-
 	int get_assigned_team()
 	{
 		return (rand() % 2) + 1;
@@ -112,7 +104,7 @@ namespace getinfo
 				info.set("protocol", std::to_string(PROTOCOL));
 				info.set("sub_protocol", std::to_string(SUB_PROTOCOL));
 				info.set("playmode", std::to_string(game::Com_SessionMode_GetMode()));
-				info.set("gamemode", std::to_string(Com_SessionMode_GetGameMode()));
+				info.set("gamemode", std::to_string(game::Com_SessionMode_GetGameMode()));
 				info.set("sv_running", std::to_string(game::is_server_running()));
 				info.set("dedicated", game::is_server() ? "1" : "0");
 				info.set("hc", std::to_string(game::Com_GametypeSettings_GetUInt("hardcoremode", false)));

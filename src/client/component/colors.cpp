@@ -5,8 +5,6 @@
 
 #include "auth.hpp"
 
-#include "steam/steam.hpp"
-
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 

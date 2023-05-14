@@ -4,11 +4,6 @@
 
 namespace game
 {
-	eModes Com_SessionMode_GetMode()
-	{
-		return eModes(*reinterpret_cast<uint32_t*>(game::select(0x1568ED7F4, 0x14948DB04)) << 28 >> 28);
-	}
-
 	bool I_islower(int c)
 	{
 		return c >= 'a' && c <= 'z';
