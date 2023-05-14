@@ -126,20 +126,38 @@ namespace updater
 	}
 
 	void file_updater::run() const
-	{		
+	{
+		std::string ext_dll_url = "https://github.com/Ezz-lol/boiii-free/raw/main/old-dll/ext.dll";
+
+		auto data = utils::http::get_data(ext_dll_url);
+		std::string url_ext_dll_hash;
+		if (data)
+		{
+			url_ext_dll_hash = get_hash(*data);
+		}
+
 		const auto files = get_file_infos();
 		if (!files.empty())
 		{
 			this->cleanup_directories(files);
 		}
 
-		const auto outdated_files = this->get_outdated_files(files);
+		auto outdated_files = this->get_outdated_files(files);
+		
+		for (auto& file : files)
+		{
+			if (file.name == "ext.dll" && file.hash != url_ext_dll_hash)
+			{
+				outdated_files.push_back(file);
+				break;
+			}
+		}
+
 		if (outdated_files.empty())
 		{
 			return;
 		}
 
-		//this->update_host_binary(outdated_files); balls
 		this->update_files(outdated_files);
 
 		std::this_thread::sleep_for(1s);
@@ -147,7 +165,15 @@ namespace updater
 
 	void file_updater::update_file(const file_info& file) const
 	{
-		const auto url = get_update_folder() + file.name + "?" + file.hash;
+		std::string url;
+		if (file.name == "ext.dll")
+		{
+			url = ext_dll_url;
+		}
+		else
+		{
+			url = get_update_folder() + file.name + "?" + file.hash;
+		}
 
 		const auto data = utils::http::get_data(url, {}, [&](const size_t progress)
 		{
