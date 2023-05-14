@@ -19,6 +19,18 @@ namespace game
 		CONTROLLER_INDEX_COUNT = 0x4,
 	};
 
+	enum LocalClientNum_t
+	{
+		INVALID_LOCAL_CLIENT = -1,
+		LOCAL_CLIENT_0 = 0x0,
+		LOCAL_CLIENT_FIRST = 0x0,
+		LOCAL_CLIENT_KEYBOARD_AND_MOUSE = 0x0,
+		LOCAL_CLIENT_1 = 0x1,
+		LOCAL_CLIENT_2 = 0x2,
+		LOCAL_CLIENT_3 = 0x3,
+		LOCAL_CLIENT_COUNT = 0x4,
+	};
+
 	enum eGameModes
 	{
 		MODE_GAME_MATCHMAKING_PLAYLIST = 0x0,
@@ -1635,6 +1647,44 @@ namespace game
 #ifdef __cplusplus
 	static_assert(sizeof(client_s_cl) == 0xE5170);
 #endif
+
+	union Weapon
+	{
+		struct
+		{
+			unsigned __int64 weaponIdx : 9;
+			unsigned __int64 attachment1 : 6;
+			unsigned __int64 attachment2 : 6;
+			unsigned __int64 attachment3 : 6;
+			unsigned __int64 attachment4 : 6;
+			unsigned __int64 attachment5 : 6;
+			unsigned __int64 attachment6 : 6;
+			unsigned __int64 attachment7 : 6;
+			unsigned __int64 attachment8 : 6;
+			unsigned __int64 padding : 7;
+		} _anon_0;
+		uint64_t weaponData;
+	};
+
+	union EntRefUnion
+	{
+		int32_t entnum;
+		uint32_t hudElemIndex;
+		uint32_t pathNodeIndex;
+		__int16 vehicleNodeIndex;
+		unsigned __int16 absDynEntIndex;
+		Weapon weapon;
+		uint64_t val;
+	};
+
+	struct scr_entref_t
+	{
+		EntRefUnion u;
+		unsigned __int16 classnum;
+		LocalClientNum_t client;
+	};
+
+	static_assert(sizeof(scr_entref_t) == 0x10);
 
 	enum scriptInstance_t
 	{

@@ -63,7 +63,8 @@ namespace script
 			}
 
 			auto* raw_file = allocator.allocate<game::RawFile>();
-			raw_file->name = allocator.duplicate_string(name); // use script name with .gsc suffix for FindXAssetHeader hook
+			// use script name with .gsc suffix for DB_FindXAssetHeader hook
+			raw_file->name = allocator.duplicate_string(name);
 			raw_file->buffer = allocator.duplicate_string(data);
 			raw_file->len = static_cast<int>(data.length());
 
@@ -152,7 +153,7 @@ namespace script
 			return 1;
 		}
 
-		void gscr_get_bgb_remaining_stub(game::scriptInstance_t inst, void* entref)
+		void scr_loot_get_utem_quantity_stub(game::scriptInstance_t inst, game::scr_entref_t entref)
 		{
 			game::Scr_AddInt(game::SCRIPTINSTANCE_SERVER, 255);
 		}
@@ -175,7 +176,8 @@ namespace script
 			utils::hook::call(game::select(0x1408F2E5D, 0x1400E2D22), server_script_checksum_stub);
 
 			// Workaround for "Out of X" gobblegum
-			gscr_get_bgb_remaining_hook.create(game::select(0x141A8CAB0, 0x1402D2310), gscr_get_bgb_remaining_stub);
+			gscr_get_bgb_remaining_hook.create(game::select(0x141A8CAB0, 0x1402D2310),
+			                                   scr_loot_get_utem_quantity_stub);
 		}
 	};
 };
