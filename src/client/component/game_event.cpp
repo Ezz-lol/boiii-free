@@ -15,7 +15,7 @@ namespace game_event
 
 		void rope_init_ropes_stub()
 		{
-			for (const auto& func : g_init_game_tasks_)
+			for (const auto& func : g_init_game_tasks)
 			{
 				func();
 			}
@@ -25,7 +25,7 @@ namespace game_event
 
 		void mantle_shutdown_anims_stub()
 		{
-			for (const auto& func : g_shutdown_game_tasks_)
+			for (const auto& func : g_shutdown_game_tasks)
 			{
 				func();
 			}
@@ -36,12 +36,12 @@ namespace game_event
 
 	void on_g_init_game(const std::function<void()>& callback)
 	{
-		g_init_game_tasks_.emplace_back(callback);
+		g_init_game_tasks.emplace_back(callback);
 	}
 
 	void on_g_shutdown_game(const std::function<void()>& callback)
 	{
-		g_shutdown_game_tasks_.emplace_back(callback);
+		g_shutdown_game_tasks.emplace_back(callback);
 	}
 
 	class component final : public generic_component
