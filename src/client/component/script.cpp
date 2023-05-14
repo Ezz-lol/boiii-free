@@ -124,8 +124,8 @@ namespace script
 		void load_custom_scripts()
 		{
 			const utils::nt::library host{};
-			load_scripts_folder((game::get_appdata_path() / "data" / "custom-scripts").string(), true);
-			load_scripts_folder((host.get_folder() / "boiii" / "custom-scripts").string(), true);
+			load_scripts_folder((game::get_appdata_path() / "data" / "custom_scripts").string(), true);
+			load_scripts_folder((host.get_folder() / "boiii" / "custom_scripts").string(), true);
 		}
 
 		game::RawFile* db_find_x_asset_header_stub(const game::XAssetType type, const char* name,
