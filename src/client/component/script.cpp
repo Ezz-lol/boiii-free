@@ -31,7 +31,7 @@ namespace script
 			printf("Loading GSC script '%s'\n", name.data());
 		}
 
-		void load_script(std::string& name, const std::string& data)
+		void load_script(std::string& name, const std::string& data, const bool is_custom)
 		{
 			const auto appdata_path = (game::get_appdata_path() / "data/").generic_string();
 			const auto host_path = (utils::nt::library{}.get_folder() / "boiii/").generic_string();
@@ -55,11 +55,15 @@ namespace script
 				return;
 			}
 
-			base_name = name.substr(0, name.size() - 4); // .gsc suffix will be readded by Scr_LoadScript
-			if (base_name.empty())
+			if (is_custom)
 			{
-				printf("GSC script '%s' failed to load due to invalid name.\n", name.data());
-				return;
+				// .gsc suffix will be added back by Scr_LoadScript
+				base_name = name.substr(0, name.size() - 4);
+				if (base_name.empty())
+				{
+					printf("GSC script '%s' failed to load due to invalid name.\n", name.data());
+					return;
+				}
 			}
 
 			auto* raw_file = allocator.allocate<game::RawFile>();
@@ -70,10 +74,13 @@ namespace script
 
 			loaded_scripts[name] = raw_file;
 
-			game::Scr_LoadScript(game::SCRIPTINSTANCE_SERVER, base_name.data());
+			if (is_custom)
+			{
+				game::Scr_LoadScript(game::SCRIPTINSTANCE_SERVER, base_name.data());
+			}
 		}
 
-		void load_scripts_folder(const std::string& script_dir)
+		void load_scripts_folder(const std::string& script_dir, const bool is_custom)
 		{
 			if (!utils::io::directory_exists(script_dir))
 			{
@@ -92,22 +99,33 @@ namespace script
 					if (data.size() >= sizeof(GSC_MAGIC) && !std::memcmp(data.data(), &GSC_MAGIC, sizeof(GSC_MAGIC)))
 					{
 						print_loading_script(script_file);
-						load_script(script_file, data);
+						load_script(script_file, data, is_custom);
 					}
+
+					continue;
 				}
-				else if (std::filesystem::is_directory(script, e))
+
+				// Do not traverse directories for custom scripts.
+				// TODO: Add game type specific scripts. custom-scripts/cp, custom-scripts/mp and /custom-scripts/zm
+				if (std::filesystem::is_directory(script, e) && !is_custom)
 				{
-					load_scripts_folder(script_file);
+					load_scripts_folder(script_file, is_custom);
 				}
 			}
 		}
 
 		void load_scripts()
 		{
-			loaded_scripts = {};
 			const utils::nt::library host{};
-			load_scripts_folder((game::get_appdata_path() / "data"/ "scripts").string());
-			load_scripts_folder((host.get_folder() / "boiii" / "scripts").string());
+			load_scripts_folder((game::get_appdata_path() / "data"/ "scripts").string(), false);
+			load_scripts_folder((host.get_folder() / "boiii" / "scripts").string(), false);
+		}
+
+		void load_custom_scripts()
+		{
+			const utils::nt::library host{};
+			load_scripts_folder((game::get_appdata_path() / "data" / "custom-scripts").string(), true);
+			load_scripts_folder((host.get_folder() / "boiii" / "custom-scripts").string(), true);
 		}
 
 		game::RawFile* db_find_x_asset_header_stub(const game::XAssetType type, const char* name,
@@ -147,6 +165,7 @@ namespace script
 
 			game::GScr_LoadGametypeScript();
 			load_scripts();
+			load_custom_scripts();
 		}
 
 		int server_script_checksum_stub()
@@ -154,7 +173,7 @@ namespace script
 			return 1;
 		}
 
-		void scr_loot_get_utem_quantity_stub([[maybe_unused]] game::scriptInstance_t inst,
+		void scr_loot_get_item_quantity_stub([[maybe_unused]] game::scriptInstance_t inst,
 		                                     [[maybe_unused]] game::scr_entref_t entref)
 		{
 			game::Scr_AddInt(game::SCRIPTINSTANCE_SERVER, 255);
@@ -179,7 +198,7 @@ namespace script
 
 			// Workaround for "Out of X" gobblegum
 			gscr_get_bgb_remaining_hook.create(game::select(0x141A8CAB0, 0x1402D2310),
-			                                   scr_loot_get_utem_quantity_stub);
+			                                   scr_loot_get_item_quantity_stub);
 		}
 	};
 };
