@@ -50,14 +50,16 @@ namespace script
 			}
 
 			auto base_name = name;
-			if (utils::string::ends_with(name, ".gsc"))
+			if (!utils::string::ends_with(name, ".gsc"))
 			{
-				base_name = name.substr(0, name.size() - 4); // .gsc suffix will be readded by Scr_LoadScript
+				printf("GSC script '%s' failed to load due to invalid suffix.\n", name.data());
+				return;
 			}
 
+			base_name = name.substr(0, name.size() - 4); // .gsc suffix will be readded by Scr_LoadScript
 			if (base_name.empty())
 			{
-				printf("Not loading GSC script '%s' due to invalid name.\n", name.data());
+				printf("GSC script '%s' failed to load due to invalid name.\n", name.data());
 				return;
 			}
 
