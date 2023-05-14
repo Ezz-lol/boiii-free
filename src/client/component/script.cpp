@@ -15,8 +15,10 @@ namespace script
 		constexpr size_t GSC_MAGIC = 0x1C000A0D43534780;
 
 		utils::hook::detour db_find_x_asset_header_hook;
+		utils::hook::detour g_shutdown_game_hook;
 		utils::hook::detour gscr_get_bgb_remaining_hook;
 
+		utils::memory::allocator allocator;
 		std::unordered_map<std::string, game::RawFile*> loaded_scripts;
 
 		game::RawFile* get_loaded_script(const std::string& name)
@@ -32,8 +34,6 @@ namespace script
 
 		void load_script(std::string& name, const std::string& data)
 		{
-			auto& allocator = *utils::memory::get_allocator();
-
 			const auto appdata_path = (game::get_appdata_path() / "data/").generic_string();
 			const auto host_path = (utils::nt::library{}.get_folder() / "boiii/").generic_string();
 
@@ -130,6 +130,13 @@ namespace script
 			return asset_header;
 		}
 
+		void g_shutdown_game_stub(bool free_scripts)
+		{
+			loaded_scripts.clear();
+			allocator.clear();
+			g_shutdown_game_hook.invoke<void>(free_scripts);
+		}
+
 		void load_gametype_script_stub()
 		{
 			if (!game::Com_IsInGame() || game::Com_IsRunningUILevel())
@@ -159,6 +166,9 @@ namespace script
 		{
 			// Return custom or overrided scripts if found
 			db_find_x_asset_header_hook.create(game::select(0x141420ED0, 0x1401D5FB0), db_find_x_asset_header_stub);
+
+			// Free our scripts when the game ends
+			g_shutdown_game_hook.create(game::select(0x141A02900, 0x1402ADD70), g_shutdown_game_stub);
 
 			// Load our scripts when the gametype script is loaded
 			utils::hook::call(game::select(0x141AAF37C, 0x1402D8C7F), load_gametype_script_stub);
