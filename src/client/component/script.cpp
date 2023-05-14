@@ -60,8 +60,8 @@ namespace script
 				printf("Not loading GSC script '%s' due to invalid name.\n", name.data());
 				return;
 			}
-      
-      auto* raw_file = allocator.allocate<game::RawFile>();
+
+			auto* raw_file = allocator.allocate<game::RawFile>();
 			raw_file->name = allocator.duplicate_string(name); // use script name with .gsc suffix for FindXAssetHeader hook
 			raw_file->buffer = allocator.duplicate_string(data);
 			raw_file->len = static_cast<int>(data.length());
