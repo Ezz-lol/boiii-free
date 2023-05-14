@@ -35,7 +35,7 @@ namespace bots
 			};
 
 			std::string buffer;
-			if (!utils::io::read_file("boiii_cfg/bots.txt", &buffer) || buffer.empty())
+			if (!utils::io::read_file("boiii/bots.txt", &buffer) || buffer.empty())
 			{
 				return bot_names;
 			}
