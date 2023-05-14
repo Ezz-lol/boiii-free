@@ -2,7 +2,7 @@
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
 
-#include "scheduler.hpp"
+#include "game_event.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -15,7 +15,6 @@ namespace script
 		constexpr size_t GSC_MAGIC = 0x1C000A0D43534780;
 
 		utils::hook::detour db_find_x_asset_header_hook;
-		utils::hook::detour g_shutdown_game_hook;
 		utils::hook::detour gscr_get_bgb_remaining_hook;
 
 		utils::memory::allocator allocator;
@@ -130,11 +129,10 @@ namespace script
 			return asset_header;
 		}
 
-		void g_shutdown_game_stub(bool free_scripts)
+		void clear_script_memory()
 		{
 			loaded_scripts.clear();
 			allocator.clear();
-			g_shutdown_game_hook.invoke<void>(free_scripts);
 		}
 
 		void load_gametype_script_stub()
@@ -168,7 +166,7 @@ namespace script
 			db_find_x_asset_header_hook.create(game::select(0x141420ED0, 0x1401D5FB0), db_find_x_asset_header_stub);
 
 			// Free our scripts when the game ends
-			g_shutdown_game_hook.create(game::select(0x141A02900, 0x1402ADD70), g_shutdown_game_stub);
+			game_event::on_g_shutdown_game(clear_script_memory);
 
 			// Load our scripts when the gametype script is loaded
 			utils::hook::call(game::select(0x141AAF37C, 0x1402D8C7F), load_gametype_script_stub);

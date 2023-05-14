@@ -113,6 +113,15 @@ namespace game
 	WEAK symbol<TLSData*()> Sys_GetTLS{0x1421837B0, 0x140525EB0};
 	WEAK symbol<TLSData*()> Sys_IsDatabaseReady{0x142183A60};
 
+	// Rope
+	WEAK symbol<void()> Rope_InitRopes{0x1420D8D00, 0x1404E4300};
+
+	// Glass
+	WEAK symbol<void()> GlassSv_Shutdown{0x1425AA7A0, 0x14065BCC0};
+
+	// Mantle
+	WEAK symbol<void()> Mantle_ShutdownAnims{0x142678C80, 0x1406A1B50};
+
 	// Unnamed
 	WEAK symbol<const char*(const char* name)> CopyString{0x1422AC220, 0x14056BD70};
 
