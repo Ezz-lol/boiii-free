@@ -29,7 +29,7 @@ namespace utils::hook
 
 		uint8_t* allocate_somewhere_near(const void* base_address, const size_t granularity, const size_t size)
 		{
-			size_t target_address = reinterpret_cast<size_t>(base_address) -  (1ull << 31);
+			size_t target_address = reinterpret_cast<size_t>(base_address) - (1ull << 31);
 			target_address &= ~(granularity - 1);
 
 			while (true)
@@ -415,7 +415,12 @@ namespace utils::hook
 
 	bool is_relatively_far(const void* pointer, const void* data, const int offset)
 	{
-		const int64_t diff = reinterpret_cast<size_t>(data) - (reinterpret_cast<size_t>(pointer) + offset);
+		return is_relatively_far(reinterpret_cast<size_t>(pointer), reinterpret_cast<size_t>(data), offset);
+	}
+
+	bool is_relatively_far(const size_t pointer, const size_t data, const int offset)
+	{
+		const auto diff = static_cast<int64_t>(data - (pointer + offset));
 		const auto small_diff = static_cast<int32_t>(diff);
 		return diff != static_cast<int64_t>(small_diff);
 	}
@@ -534,19 +539,25 @@ namespace utils::hook
 		return result;
 	}
 
-	void inject(void* pointer, const void* data)
+	void inject(size_t pointer, size_t data)
 	{
 		if (is_relatively_far(pointer, data, 4))
 		{
 			throw std::runtime_error("Too far away to create 32bit relative branch");
 		}
 
-		set<int32_t>(pointer, int32_t(size_t(data) - (size_t(pointer) + 4)));
+		set<int32_t>(
+			pointer, static_cast<int32_t>(data - (pointer + 4)));
+	}
+
+	void inject(void* pointer, const void* data)
+	{
+		return inject(reinterpret_cast<size_t>(pointer), reinterpret_cast<size_t>(data));
 	}
 
 	void inject(const size_t pointer, const void* data)
 	{
-		return inject(reinterpret_cast<void*>(pointer), data);
+		return inject(pointer, reinterpret_cast<size_t>(data));
 	}
 
 	std::vector<uint8_t> move_hook(void* pointer)

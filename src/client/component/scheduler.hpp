@@ -30,12 +30,12 @@ namespace scheduler
 
 	void execute(const pipeline type);
 
-	void schedule(const std::function<bool()>& callback, pipeline type = pipeline::async,
+	void schedule(const std::function<bool()>& callback, pipeline type,
 	              std::chrono::milliseconds delay = 0ms);
-	void loop(const std::function<void()>& callback, pipeline type = pipeline::async,
+	void loop(const std::function<void()>& callback, pipeline type,
 	          std::chrono::milliseconds delay = 0ms);
-	void once(const std::function<void()>& callback, pipeline type = pipeline::async,
+	void once(const std::function<void()>& callback, pipeline type,
 	          std::chrono::milliseconds delay = 0ms);
-	void on_game_initialized(const std::function<void()>& callback, pipeline type = pipeline::async,
+	void on_game_initialized(const std::function<void()>& callback, pipeline type,
 	                         std::chrono::milliseconds delay = 0ms);
 }
