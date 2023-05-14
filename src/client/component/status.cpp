@@ -8,17 +8,17 @@ namespace status
 {
 	namespace
 	{
-		thread_local int client_num_;
+		thread_local int g_client_num{0};
 
-		void print_client_num(int channel, int label, const char* fmt, const int client_num)
+		void print_client_num(const int channel, const int label, const char* fmt, const int client_num)
 		{
-			client_num_ = client_num;
+			g_client_num = client_num;
 			game::Com_Printf(channel, label, fmt, client_num);
 		}
 
-		void print_client_xuid(int channel, int label, [[maybe_unused]] const char* fmt, const uint64_t xuid)
+		void print_client_xuid(const int channel, const int label, [[maybe_unused]] const char* fmt, const uint64_t xuid)
 		{
-			if (game::SV_IsTestClient(client_num_))
+			if (game::SV_IsTestClient(g_client_num))
 			{
 				game::Com_Printf(channel, label, "%16s ", "bot0");
 				return;
