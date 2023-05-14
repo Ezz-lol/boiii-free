@@ -156,7 +156,7 @@ namespace script
 		void post_unpack() override
 		{
 			// Return custom or overrided scripts if found
-			db_findxassetheader_hook.create(game::select(0x141420ED0, 0x1401D5FB0), db_findxassetheader_stub);
+			db_find_x_asset_header_hook.create(game::select(0x141420ED0, 0x1401D5FB0), db_find_x_asset_header_stub);
 
 			// Load our scripts when the gametype script is loaded
 			utils::hook::call(game::select(0x141AAF37C, 0x1402D8C7F), load_gametype_script_stub);
