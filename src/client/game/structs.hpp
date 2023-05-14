@@ -1652,16 +1652,16 @@ namespace game
 	{
 		struct
 		{
-			unsigned __int64 weaponIdx : 9;
-			unsigned __int64 attachment1 : 6;
-			unsigned __int64 attachment2 : 6;
-			unsigned __int64 attachment3 : 6;
-			unsigned __int64 attachment4 : 6;
-			unsigned __int64 attachment5 : 6;
-			unsigned __int64 attachment6 : 6;
-			unsigned __int64 attachment7 : 6;
-			unsigned __int64 attachment8 : 6;
-			unsigned __int64 padding : 7;
+			uint64_t weaponIdx : 9;
+			uint64_t attachment1 : 6;
+			uint64_t attachment2 : 6;
+			uint64_t attachment3 : 6;
+			uint64_t attachment4 : 6;
+			uint64_t attachment5 : 6;
+			uint64_t attachment6 : 6;
+			uint64_t attachment7 : 6;
+			uint64_t attachment8 : 6;
+			uint64_t padding : 7;
 		} _anon_0;
 		uint64_t weaponData;
 	};
@@ -1671,8 +1671,8 @@ namespace game
 		int32_t entnum;
 		uint32_t hudElemIndex;
 		uint32_t pathNodeIndex;
-		__int16 vehicleNodeIndex;
-		unsigned __int16 absDynEntIndex;
+		short vehicleNodeIndex;
+		unsigned short absDynEntIndex;
 		Weapon weapon;
 		uint64_t val;
 	};
@@ -1680,7 +1680,7 @@ namespace game
 	struct scr_entref_t
 	{
 		EntRefUnion u;
-		unsigned __int16 classnum;
+		unsigned short classnum;
 		LocalClientNum_t client;
 	};
 
