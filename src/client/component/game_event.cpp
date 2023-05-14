@@ -25,7 +25,7 @@ namespace game_event
 
 		void mantle_shutdown_anims_stub()
 		{
-			for (const auto& func : g_init_game_tasks_)
+			for (const auto& func : g_shutdown_game_tasks_)
 			{
 				func();
 			}
@@ -50,7 +50,7 @@ namespace game_event
 		void post_unpack() override
 		{
 			utils::hook::call(game::select(0x1419DD6EC, 0x1402ABC1B), rope_init_ropes_stub);
-			utils::hook::call(game::select(0x141A02AAD, 0x1402ADF1D), rope_init_ropes_stub);
+			utils::hook::call(game::select(0x141A02AAD, 0x1402ADF1D), mantle_shutdown_anims_stub);
 		}
 	};
 }
