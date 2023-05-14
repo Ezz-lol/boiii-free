@@ -105,8 +105,8 @@ namespace script
 		{
 			loaded_scripts = {};
 			const utils::nt::library host{};
-			load_scripts_folder((game::get_appdata_path() / "data/scripts").string());
-			load_scripts_folder((host.get_folder() / "boiii/scripts").string());
+			load_scripts_folder((game::get_appdata_path() / "data"/ "scripts").string());
+			load_scripts_folder((host.get_folder() / "boiii" / "scripts").string());
 		}
 
 		game::RawFile* db_find_x_asset_header_stub(const game::XAssetType type, const char* name,

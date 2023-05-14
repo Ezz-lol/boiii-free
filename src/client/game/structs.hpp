@@ -10,7 +10,7 @@ namespace game
 
 	enum ControllerIndex_t
 	{
-		INVALID_CONTROLLER_PORT = 0xFFFFFFFF,
+		INVALID_CONTROLLER_PORT = -1,
 		CONTROLLER_INDEX_FIRST = 0x0,
 		CONTROLLER_INDEX_0 = 0x0,
 		CONTROLLER_INDEX_1 = 0x1,
@@ -922,7 +922,7 @@ namespace game
 
 	enum LobbyNetworkMode
 	{
-		LOBBY_NETWORKMODE_INVALID = 0xFFFFFFFF,
+		LOBBY_NETWORKMODE_INVALID = -1,
 		LOBBY_NETWORKMODE_LOCAL = 0x0,
 		LOBBY_NETWORKMODE_LAN = 0x1,
 		LOBBY_NETWORKMODE_LIVE = 0x2,
@@ -931,7 +931,7 @@ namespace game
 
 	enum LobbyMainMode
 	{
-		LOBBY_MAINMODE_INVALID = 0xFFFFFFFF,
+		LOBBY_MAINMODE_INVALID = -1,
 		LOBBY_MAINMODE_CP = 0x0,
 		LOBBY_MAINMODE_MP = 0x1,
 		LOBBY_MAINMODE_ZM = 0x2,
@@ -1153,8 +1153,8 @@ namespace game
 
 		enum HksObjectType
 		{
-			TANY = 0xFFFFFFFE,
-			TNONE = 0xFFFFFFFF,
+			TANY = -1,
+			TNONE = -1,
 			TNIL = 0x0,
 			TBOOLEAN = 0x1,
 			TLIGHTUSERDATA = 0x2,
