@@ -56,7 +56,7 @@ namespace script
 				base_name = name.substr(0, name.size() - 4); // .gsc suffix will be readded by Scr_LoadScript
 			}
 
-			if (base_name.size() < 1)
+			if (base_name.empty())
 			{
 				printf("Not loading GSC script '%s' due to invalid name.\n", name.data());
 				return;
