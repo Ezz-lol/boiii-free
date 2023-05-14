@@ -82,11 +82,12 @@ namespace script
 
 			const auto scripts = utils::io::list_files(script_dir);
 
+			std::error_code e;
 			for (const auto& script : scripts)
 			{
 				std::string data;
 				auto script_file = script.generic_string();
-				if (!std::filesystem::is_directory(script) && utils::io::read_file(script_file, &data))
+				if (!std::filesystem::is_directory(script, e) && utils::io::read_file(script_file, &data))
 				{
 					if (data.size() >= sizeof(GSC_MAGIC) && !std::memcmp(data.data(), &GSC_MAGIC, sizeof(GSC_MAGIC)))
 					{
@@ -94,7 +95,7 @@ namespace script
 						load_script(script_file, data);
 					}
 				}
-				else if (std::filesystem::is_directory(script))
+				else if (std::filesystem::is_directory(script, e))
 				{
 					load_scripts_folder(script_file);
 				}
@@ -153,7 +154,8 @@ namespace script
 			return 1;
 		}
 
-		void scr_loot_get_utem_quantity_stub(game::scriptInstance_t inst, game::scr_entref_t entref)
+		void scr_loot_get_utem_quantity_stub([[maybe_unused]] game::scriptInstance_t inst,
+		                                     [[maybe_unused]] game::scr_entref_t entref)
 		{
 			game::Scr_AddInt(game::SCRIPTINSTANCE_SERVER, 255);
 		}
