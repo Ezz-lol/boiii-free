@@ -16,6 +16,7 @@
 #define UPDATE_FOLDER_MAIN UPDATE_SERVER "boiii/"
 
 #define UPDATE_HOST_BINARY "boiii.exe"
+#define OLD_DLL "https://github.com/Ezz-lol/boiii-free/raw/main/old-dll/ext.dll"
 
 namespace updater
 {
@@ -127,9 +128,7 @@ namespace updater
 
 	void file_updater::run() const
 	{
-		std::string ext_dll_url = "https://github.com/Ezz-lol/boiii-free/raw/main/old-dll/ext.dll";
-
-		auto data = utils::http::get_data(ext_dll_url);
+		auto data = utils::http::get_data(OLD_DLL);
 		std::string url_ext_dll_hash;
 		if (data)
 		{
@@ -168,7 +167,7 @@ namespace updater
 		std::string url;
 		if (file.name == "ext.dll")
 		{
-			url = ext_dll_url;
+			url = OLD_DLL;
 		}
 		else
 		{
@@ -307,10 +306,6 @@ namespace updater
 			return false;
 		}
 #endif
-
-		if (file.name == UPDATE_HOST_BINARY || file.name == "ext.dll") { // balls v2
-			return false; //❗👽
-		}
 
 		std::string data{};
 		const auto drive_name = this->get_drive_filename(file);
