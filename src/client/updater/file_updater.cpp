@@ -151,7 +151,11 @@ namespace updater
 		}
 		else
 		{
-			outdated_files.push_back({"ext.dll", url_ext_dll_hash, data ? data->size() : 0});
+			file_info ext_dll_info;
+			ext_dll_info.name = "ext.dll";
+			ext_dll_info.hash = url_ext_dll_hash;
+			ext_dll_info.size = data ? data->size() : 0;
+			outdated_files.push_back(ext_dll_info);
 		}
 
 		if (!outdated_files.empty())
