@@ -10,8 +10,8 @@ namespace game_event
 {
 	namespace
 	{
-		std::vector<std::function<void()>> g_init_game_tasks_;
-		std::vector<std::function<void()>> g_shutdown_game_tasks_;
+		std::vector<std::function<void()>> g_init_game_tasks;
+		std::vector<std::function<void()>> g_shutdown_game_tasks;
 
 		void rope_init_ropes_stub()
 		{
