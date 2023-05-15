@@ -100,10 +100,12 @@ function __init__()
 
 	level.enemyEmpActive = &emp::enemyEmpActive;
 
+/*
 /#
 	level.botDevguiCmd = &bot_devgui_cmd;
 	level thread system_devgui_gadget_think();
 #/
+*/
 	setDvar("bot_enableWallrun", 1);
 }
 
@@ -198,6 +200,7 @@ function on_bot_connect()
 function on_bot_spawned()
 {
 	self.bot.goalTag = undefined;
+/*
 /#
 	weapon = undefined;
 
@@ -223,6 +226,7 @@ function on_bot_spawned()
 		self teams::set_player_model(self.team, weapon);
 	}
 #/
+*/
 }
 
 function on_bot_killed()
@@ -782,6 +786,7 @@ function get_enemies(on_radar)
 
 	enemies = self GetEnemies();
 
+/*
 /#
 	for (i = 0; i < enemies.size; i++)
 	{
@@ -792,6 +797,7 @@ function get_enemies(on_radar)
 		}
 	}
 #/
+*/
 
 	if (on_radar && !self has_radar())
 	{
@@ -974,6 +980,7 @@ function dive_to_prone(exit_stance)
 
 }
 
+/*
 /#
 
 // Devgui
@@ -1115,3 +1122,4 @@ function fixed_spawn_override()
 }
 
 #/
+*/
