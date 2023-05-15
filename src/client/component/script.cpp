@@ -117,15 +117,17 @@ namespace script
 		void load_scripts()
 		{
 			const utils::nt::library host{};
-			load_scripts_folder((game::get_appdata_path() / "data"/ "scripts").string(), false);
-			load_scripts_folder((host.get_folder() / "boiii" / "scripts").string(), false);
-		}
 
-		void load_custom_scripts()
-		{
-			const utils::nt::library host{};
-			load_scripts_folder((game::get_appdata_path() / "data" / "custom_scripts").string(), true);
-			load_scripts_folder((host.get_folder() / "boiii" / "custom_scripts").string(), true);
+			const auto data_folder = game::get_appdata_path() / "data";
+			const auto boiii_folder = host.get_folder() / "boiii";
+
+			// scripts folder is for overriding stock scripts the game uses
+			load_scripts_folder((data_folder / "scripts").string(), false);
+			load_scripts_folder((boiii_folder / "scripts").string(), false);
+
+			// custom_scripts is for loading completely custom scripts the game doesn't use
+			load_scripts_folder((data_folder / "custom_scripts").string(), true);
+			load_scripts_folder((boiii_folder / "custom_scripts").string(), true);
 		}
 
 		game::RawFile* db_find_x_asset_header_stub(const game::XAssetType type, const char* name,
@@ -165,7 +167,6 @@ namespace script
 
 			game::GScr_LoadGametypeScript();
 			load_scripts();
-			load_custom_scripts();
 		}
 
 		int server_script_checksum_stub()
