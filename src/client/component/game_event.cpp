@@ -4,31 +4,39 @@
 
 #include "game_event.hpp"
 
+#include <utils/concurrency.hpp>
 #include <utils/hook.hpp>
 
 namespace game_event
 {
 	namespace
 	{
-		std::vector<std::function<void()>> g_init_game_tasks;
-		std::vector<std::function<void()>> g_shutdown_game_tasks;
+		using event_task = std::vector<std::function<void()>>;
+		utils::concurrency::container<event_task> g_init_game_tasks;
+		utils::concurrency::container<event_task> g_shutdown_game_tasks;
 
 		void rope_init_ropes_stub()
 		{
-			for (const auto& func : g_init_game_tasks)
+			g_init_game_tasks.access([](event_task& tasks)
 			{
-				func();
-			}
+				for (const auto& func : tasks)
+				{
+					func();
+				}
+			});
 
 			game::Rope_InitRopes();
 		}
 
 		void mantle_shutdown_anims_stub()
 		{
-			for (const auto& func : g_shutdown_game_tasks)
+			g_shutdown_game_tasks.access([](event_task& tasks)
 			{
-				func();
-			}
+				for (const auto& func : tasks)
+				{
+					func();
+				}
+			});
 
 			game::Mantle_ShutdownAnims();
 		}
@@ -36,12 +44,18 @@ namespace game_event
 
 	void on_g_init_game(const std::function<void()>& callback)
 	{
-		g_init_game_tasks.emplace_back(callback);
+		g_init_game_tasks.access([&callback](event_task& tasks)
+		{
+			tasks.emplace_back(callback);
+		});
 	}
 
 	void on_g_shutdown_game(const std::function<void()>& callback)
 	{
-		g_shutdown_game_tasks.emplace_back(callback);
+		g_shutdown_game_tasks.access([&callback](event_task& tasks)
+		{
+			tasks.emplace_back(callback);
+		});
 	}
 
 	class component final : public generic_component
