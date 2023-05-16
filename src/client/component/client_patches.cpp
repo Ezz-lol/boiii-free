@@ -137,13 +137,13 @@ namespace client_patches
 		{
 			std::error_code e;
 
-			// Folder does not exists. Nothing to migrate
+			// Folder does not exist. Nothing to migrate
 			if (!std::filesystem::is_directory("players", e))
 			{
 				return;
 			}
 
-			// Folder does exists. Already migrated
+			// Folder does exist. Already migrated
 			if (std::filesystem::is_directory("boiii_players", e))
 			{
 				return;
