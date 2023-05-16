@@ -81,7 +81,6 @@ namespace dedicated_patches
 
 	struct component final : server_component
 	{
-
 		void post_unpack() override
 		{
 			// Fix infinite loop
@@ -106,6 +105,9 @@ namespace dedicated_patches
 
 			// Stop executing default_dedicated.cfg & language_settings.cfg
 			utils::hook::set<uint8_t>(0x1405063C0_g, 0xC3);
+
+			// Don't fetch playlists?
+			utils::hook::jump(0x1407D5F76_g, 0x1407D5FA5_g);
 		}
 	};
 }
