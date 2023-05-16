@@ -10,13 +10,25 @@ namespace game
 
 	enum ControllerIndex_t
 	{
-		INVALID_CONTROLLER_PORT = 0xFFFFFFFF,
+		INVALID_CONTROLLER_PORT = -1,
 		CONTROLLER_INDEX_FIRST = 0x0,
 		CONTROLLER_INDEX_0 = 0x0,
 		CONTROLLER_INDEX_1 = 0x1,
 		CONTROLLER_INDEX_2 = 0x2,
 		CONTROLLER_INDEX_3 = 0x3,
 		CONTROLLER_INDEX_COUNT = 0x4,
+	};
+
+	enum LocalClientNum_t
+	{
+		INVALID_LOCAL_CLIENT = -1,
+		LOCAL_CLIENT_0 = 0x0,
+		LOCAL_CLIENT_FIRST = 0x0,
+		LOCAL_CLIENT_KEYBOARD_AND_MOUSE = 0x0,
+		LOCAL_CLIENT_1 = 0x1,
+		LOCAL_CLIENT_2 = 0x2,
+		LOCAL_CLIENT_3 = 0x3,
+		LOCAL_CLIENT_COUNT = 0x4,
 	};
 
 	enum eGameModes
@@ -910,7 +922,7 @@ namespace game
 
 	enum LobbyNetworkMode
 	{
-		LOBBY_NETWORKMODE_INVALID = 0xFFFFFFFF,
+		LOBBY_NETWORKMODE_INVALID = -1,
 		LOBBY_NETWORKMODE_LOCAL = 0x0,
 		LOBBY_NETWORKMODE_LAN = 0x1,
 		LOBBY_NETWORKMODE_LIVE = 0x2,
@@ -919,7 +931,7 @@ namespace game
 
 	enum LobbyMainMode
 	{
-		LOBBY_MAINMODE_INVALID = 0xFFFFFFFF,
+		LOBBY_MAINMODE_INVALID = -1,
 		LOBBY_MAINMODE_CP = 0x0,
 		LOBBY_MAINMODE_MP = 0x1,
 		LOBBY_MAINMODE_ZM = 0x2,
@@ -1141,8 +1153,8 @@ namespace game
 
 		enum HksObjectType
 		{
-			TANY = 0xFFFFFFFE,
-			TNONE = 0xFFFFFFFF,
+			TANY = -1,
+			TNONE = -1,
 			TNIL = 0x0,
 			TBOOLEAN = 0x1,
 			TLIGHTUSERDATA = 0x2,
@@ -1635,6 +1647,44 @@ namespace game
 #ifdef __cplusplus
 	static_assert(sizeof(client_s_cl) == 0xE5170);
 #endif
+
+	union Weapon
+	{
+		struct
+		{
+			uint64_t weaponIdx : 9;
+			uint64_t attachment1 : 6;
+			uint64_t attachment2 : 6;
+			uint64_t attachment3 : 6;
+			uint64_t attachment4 : 6;
+			uint64_t attachment5 : 6;
+			uint64_t attachment6 : 6;
+			uint64_t attachment7 : 6;
+			uint64_t attachment8 : 6;
+			uint64_t padding : 7;
+		} _anon_0;
+		uint64_t weaponData;
+	};
+
+	union EntRefUnion
+	{
+		int32_t entnum;
+		uint32_t hudElemIndex;
+		uint32_t pathNodeIndex;
+		short vehicleNodeIndex;
+		unsigned short absDynEntIndex;
+		Weapon weapon;
+		uint64_t val;
+	};
+
+	struct scr_entref_t
+	{
+		EntRefUnion u;
+		unsigned short classnum;
+		LocalClientNum_t client;
+	};
+
+	static_assert(sizeof(scr_entref_t) == 0x10);
 
 	enum scriptInstance_t
 	{

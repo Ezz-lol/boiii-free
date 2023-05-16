@@ -7,7 +7,7 @@ namespace updater
 	class progress_ui
 	{
 	public:
-		progress_ui();
+		progress_ui(bool allow_failure = true);
 		~progress_ui();
 
 		void show() const;
@@ -17,6 +17,11 @@ namespace updater
 		void set_title(const std::string& title) const;
 
 		bool is_cancelled() const;
+
+		operator bool() const
+		{
+			return this->dialog_;
+		}
 
 	private:
 		CComPtr<IProgressDialog> dialog_{};

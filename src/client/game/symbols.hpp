@@ -40,7 +40,8 @@ namespace game
 	WEAK symbol<unsigned int(const char* settingName, bool getDefault)> Com_GametypeSettings_GetUInt{
 		0x1420F4E00, 0x1404FE5C0
 	};
-	WEAK symbol<bool()> Com_IsRunningUILevel{0x142148350};
+	WEAK symbol<bool()> Com_IsRunningUILevel{0x142148350, 0x140504BD0};
+	WEAK symbol<bool()> Com_IsInGame{0x1421482C0, 0x140504B90};
 	WEAK symbol<void(int localClientNum, eModes fromMode, eModes toMode, uint32_t flags)> Com_SwitchMode{
 		0x14214A4D0
 	};
@@ -111,6 +112,15 @@ namespace game
 	WEAK symbol<void()> Sys_ShowConsole{0x1423333C0, 0x140597E40};
 	WEAK symbol<TLSData*()> Sys_GetTLS{0x1421837B0, 0x140525EB0};
 	WEAK symbol<TLSData*()> Sys_IsDatabaseReady{0x142183A60};
+
+	// Rope
+	WEAK symbol<void()> Rope_InitRopes{0x1420D8D00, 0x1404E4300};
+
+	// Glass
+	WEAK symbol<void()> GlassSv_Shutdown{0x1425AA7A0, 0x14065BCC0};
+
+	// Mantle
+	WEAK symbol<void()> Mantle_ShutdownAnims{0x142678C80, 0x1406A1B50};
 
 	// Unnamed
 	WEAK symbol<const char*(const char* name)> CopyString{0x1422AC220, 0x14056BD70};
@@ -184,6 +194,7 @@ namespace game
 		0x0, 0x1402F5FF0
 	};
 	WEAK symbol<unsigned int(scriptInstance_t inst)> Scr_GetNumParam{0x0, 0x140171320};
+	WEAK symbol<unsigned int(scriptInstance_t inst, const char* filename)> Scr_LoadScript{0x1412C83F0, 0x140156610};
 
 	WEAK symbol<void(const char* name, const char* key, unsigned int playbackFlags, float volume, void* callbackInfo,
 	                 int id)> Cinematic_StartPlayback{0x1412BE3A0};
@@ -231,6 +242,8 @@ namespace game
 	WEAK symbol<void(char* dest, size_t destsize, const char* src)> I_strcpy{
 		0x1422E9410, 0x1405811E0
 	};
+
+	WEAK symbol<void()> GScr_LoadGametypeScript{0x141AAD850, 0x1402D7140};
 
 	// Variables
 	WEAK symbol<cmd_function_s> cmd_functions{0x15689DF58, 0x14946F860};
