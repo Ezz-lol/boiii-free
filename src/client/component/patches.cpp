@@ -20,7 +20,7 @@ namespace patches
 			{
 				va_list ap;
 				va_start(ap, fmt);
-				vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, fmt, ap);
+				vsnprintf_s(buffer, _TRUNCATE, fmt, ap);
 				va_end(ap);
 			}
 

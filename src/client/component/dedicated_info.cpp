@@ -1,8 +1,8 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
+#include <game/game.hpp>
+#include <game/utils.hpp>
 
-#include "game/game.hpp"
-#include "game/utils.hpp"
 #include "scheduler.hpp"
 #include "getinfo.hpp"
 #include "console.hpp"
