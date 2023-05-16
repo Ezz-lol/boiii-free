@@ -7,7 +7,7 @@ namespace utils
 	class progress_ui
 	{
 	public:
-		progress_ui();
+		progress_ui(bool headless);
 		~progress_ui();
 
 		void show(bool marquee, HWND parent = nullptr) const;
@@ -17,6 +17,11 @@ namespace utils
 		void set_title(const std::string& title) const;
 
 		bool is_cancelled() const;
+
+		operator bool() const
+		{
+			return this->dialog_;
+		}
 
 	private:
 		CComPtr<IProgressDialog> dialog_{};

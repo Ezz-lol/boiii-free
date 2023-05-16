@@ -16,6 +16,10 @@ namespace game
 	bool is_client();
 	bool is_legacy_client();
 
+	bool is_headless();
+
+	void show_error(const std::string& text, const std::string& title = "Error");
+
 	inline size_t relocate(const size_t val)
 	{
 		if (!val) return 0;

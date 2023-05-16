@@ -47,8 +47,7 @@ namespace
 		const std::string steam_path = steam::SteamAPI_GetSteamInstallPath();
 		if (steam_path.empty() || !::utils::io::file_exists(steam_path + "/steam.exe"))
 		{
-			MessageBoxA(nullptr, "Steam must be installed for the game to run. Please install Steam!", "Error",
-			            MB_ICONERROR);
+			game::show_error("Steam must be installed for the game to run. Please install Steam!");
 			ShellExecuteA(nullptr, "open", "https://store.steampowered.com/about/", nullptr, nullptr, SW_SHOWNORMAL);
 			TerminateProcess(GetCurrentProcess(), 1);
 		}
@@ -348,7 +347,7 @@ int main()
 		}
 		catch (std::exception& e)
 		{
-			MessageBoxA(nullptr, e.what(), "Error", MB_ICONERROR | MB_SETFOREGROUND | MB_TOPMOST);
+			game::show_error(e.what());
 			return 1;
 		}
 	}

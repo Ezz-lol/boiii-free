@@ -206,8 +206,6 @@ namespace steam
 			return &c;
 		}
 
-
-		MessageBoxA(0, interfacename, __FUNCTION__, 0);
 		return nullptr;
 	}
 

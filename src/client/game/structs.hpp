@@ -634,6 +634,8 @@ namespace game
 		void* errorData;
 	};
 
+	typedef void* fileHandle_t;
+
 	typedef uint32_t dvarStrHash_t;
 
 	enum dvarType_t

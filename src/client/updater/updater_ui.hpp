@@ -1,9 +1,10 @@
 #pragma once
 
-#include "progress_ui.hpp"
 #include "progress_listener.hpp"
 
 #include <utils/concurrency.hpp>
+#include <utils/progress_ui.hpp>
+#include <game/game.hpp>
 
 namespace updater
 {
@@ -19,7 +20,7 @@ namespace updater
 		std::vector<file_info> downloaded_files_{};
 		std::unordered_map<std::string, std::pair<size_t, size_t>> downloading_files_{};
 
-		progress_ui progress_ui_{};
+		utils::progress_ui progress_ui_{game::is_headless()};
 
 		void update_files(const std::vector<file_info>& files) override;
 		void done_update() override;

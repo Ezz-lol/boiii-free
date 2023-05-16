@@ -4,7 +4,6 @@
 #include "resource.hpp"
 
 #include "game/game.hpp"
-#include "scheduler.hpp"
 
 #include <utils/thread.hpp>
 #include <utils/hook.hpp>
@@ -53,15 +52,9 @@ namespace console
 			});
 		}
 
-		bool is_headless()
-		{
-			static const auto headless = utils::flags::has_flag("headless");
-			return headless;
-		}
-
 		void print_message_to_console(const char* message)
 		{
-			if (is_headless())
+			if (game::is_headless())
 			{
 				fputs(message, stdout);
 				return;
@@ -133,7 +126,7 @@ namespace console
 
 		void sys_create_console_stub(const HINSTANCE h_instance)
 		{
-			if (is_headless())
+			if (game::is_headless())
 			{
 				return;
 			}
@@ -238,7 +231,7 @@ namespace console
 
 	void set_title(const std::string& title)
 	{
-		if (is_headless())
+		if (game::is_headless())
 		{
 			SetConsoleTitleA(title.data());
 		}
@@ -252,7 +245,7 @@ namespace console
 	{
 		component()
 		{
-			if (is_headless())
+			if (game::is_headless())
 			{
 				if (!AttachConsole(ATTACH_PARENT_PROCESS))
 				{
