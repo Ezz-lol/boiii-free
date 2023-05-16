@@ -25,7 +25,7 @@ namespace profile_infos
 		std::optional<profile_info> load_profile_info()
 		{
 			std::string data{};
-			if (!utils::io::read_file("players/user/profile_info", &data))
+			if (!utils::io::read_file("boiii_players/user/profile_info", &data))
 			{
 				return {};
 			}
@@ -237,7 +237,7 @@ namespace profile_infos
 		data.append(reinterpret_cast<const char*>(&info.version), sizeof(info.version));
 		data.append(info.ddl);
 
-		utils::io::write_file("players/user/profile_info", data);
+		utils::io::write_file("boiii_players/user/profile_info", data);
 	}
 
 	struct component final : generic_component

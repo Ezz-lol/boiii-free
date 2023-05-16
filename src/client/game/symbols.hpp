@@ -232,6 +232,12 @@ namespace game
 
 	// FS
 	WEAK symbol<char*(int bytes)> FS_AllocMem{0x1422AC9F0, 0x14056C340};
+	WEAK symbol<fileHandle_t(const char* filename, const char* dir, const char* osbasepath)> FS_FOpenFileWriteToDir{
+		0x1422A35D0
+	};
+	WEAK symbol<fileHandle_t(const char* filename, const char* dir, const char* osbasepath)> FS_FOpenFileReadFromDir{
+		0x1422A3510
+	};
 
 	// Lobby
 	WEAK symbol<int(LobbyType lobbyType, LobbyClientType clientType)> LobbyHost_GetClientCount{
@@ -240,6 +246,7 @@ namespace game
 
 	// Utils
 	WEAK symbol<const char*(char* str)> I_CleanStr{0x1422E9050, 0x140580E80};
+	WEAK symbol<int(const char* s0, const char* s1)> I_stricmp{0x1422E9530};
 	WEAK symbol<void(char* dest, size_t destsize, const char* src)> I_strcpy{
 		0x1422E9410, 0x1405811E0
 	};
