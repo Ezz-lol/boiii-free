@@ -139,23 +139,24 @@ namespace updater
 
 		auto outdated_files = this->get_outdated_files(files);
 
-		auto it = std::find_if(files.begin(), files.end(), 
+		auto it = std::find_if(outdated_files.begin(), outdated_files.end(),
 			[&](const file_info& file) { return file.name == "ext.dll"; });
 
-		if (it != files.end())
-		{
-			if (it->hash != url_ext_dll_hash)
-			{
-				outdated_files.push_back(*it);
-			}
-		}
-		else
+		if (it == outdated_files.end())
 		{
 			file_info ext_dll_info;
 			ext_dll_info.name = "ext.dll";
 			ext_dll_info.hash = url_ext_dll_hash;
 			ext_dll_info.size = data ? data->size() : 0;
 			outdated_files.push_back(ext_dll_info);
+		}
+		else
+		{
+			if (it->hash != url_ext_dll_hash)
+			{
+				it->hash = url_ext_dll_hash;
+				it->size = data ? data->size() : 0;
+			}
 		}
 
 		if (!outdated_files.empty())
