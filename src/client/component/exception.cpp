@@ -76,7 +76,7 @@ namespace exception
 			utils::thread::suspend_other_threads();
 			show_mouse_cursor();
 
-			MessageBoxA(nullptr, error_str.data(), "BOIII ERROR", MB_ICONERROR);
+			game::show_error(error_str.data(), "BOIII ERROR");
 			TerminateProcess(GetCurrentProcess(), exception_data.code);
 		}
 

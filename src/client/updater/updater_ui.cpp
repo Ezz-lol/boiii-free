@@ -18,7 +18,7 @@ namespace updater
 		this->downloaded_files_.clear();
 		this->downloading_files_.clear();
 
-		this->progress_ui_ = {true};
+		this->progress_ui_ = {game::is_headless()};
 		this->progress_ui_.set_title("BOIII Updater");
 		this->progress_ui_.show(false);
 

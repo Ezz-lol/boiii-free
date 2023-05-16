@@ -7,7 +7,7 @@ namespace utils
 	class progress_ui
 	{
 	public:
-		progress_ui(bool allow_failure);
+		progress_ui(bool headless);
 		~progress_ui();
 
 		void show(bool marquee, HWND parent = nullptr) const;

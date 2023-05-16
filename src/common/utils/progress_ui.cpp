@@ -4,27 +4,17 @@
 
 namespace utils
 {
-	progress_ui::progress_ui(const bool allow_failure)
+	progress_ui::progress_ui(const bool headless)
 	{
-		try
+		if (headless)
 		{
-			if(utils::nt::is_wine())
-			{
-				throw std::runtime_error{ "Disabled on wine" };
-			}
-
-			this->dialog_ = utils::com::create_progress_dialog();
-			if (!this->dialog_)
-			{
-				throw std::runtime_error{"Failed to create dialog"};
-			}
+			return;
 		}
-		catch (...)
+
+		this->dialog_ = com::create_progress_dialog();
+		if (!this->dialog_)
 		{
-			if (!allow_failure)
-			{
-				throw;
-			}
+			throw std::runtime_error{"Failed to create dialog"};
 		}
 	}
 
