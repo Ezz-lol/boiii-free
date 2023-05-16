@@ -159,14 +159,12 @@ namespace script
 
 		void begin_load_scripts_stub(game::scriptInstance_t inst, int user)
 		{
-			if (!game::Com_IsInGame() || game::Com_IsRunningUILevel())
-			{
-				game::Scr_BeginLoadScripts(inst, user);
-				return;
-			}
-
 			game::Scr_BeginLoadScripts(inst, user);
-			load_scripts();
+
+			if (game::Com_IsInGame() && !game::Com_IsRunningUILevel())
+			{
+				load_scripts();
+			}
 		}
 
 		int server_script_checksum_stub()
