@@ -15,7 +15,7 @@ namespace utils::http
 		};
 
 		int progress_callback(void* clientp, const curl_off_t /*dltotal*/, const curl_off_t dlnow,
-			const curl_off_t /*ultotal*/, const curl_off_t /*ulnow*/)
+		                      const curl_off_t /*ultotal*/, const curl_off_t /*ulnow*/)
 		{
 			auto* helper = static_cast<progress_helper*>(clientp);
 
@@ -46,7 +46,7 @@ namespace utils::http
 	}
 
 	std::optional<std::string> get_data(const std::string& url, const headers& headers,
-		const std::function<void(size_t)>& callback, const uint32_t retries)
+	                                    const std::function<void(size_t)>& callback, const uint32_t retries)
 	{
 		curl_slist* header_list = nullptr;
 		auto* curl = curl_easy_init();
@@ -56,10 +56,10 @@ namespace utils::http
 		}
 
 		auto _ = utils::finally([&]()
-			{
-				curl_slist_free_all(header_list);
-		curl_easy_cleanup(curl);
-			});
+		{
+			curl_slist_free_all(header_list);
+			curl_easy_cleanup(curl);
+		});
 
 		for (const auto& header : headers)
 		{
@@ -94,7 +94,7 @@ namespace utils::http
 
 				if (http_code >= 200)
 				{
-					return { std::move(buffer) };
+					return {std::move(buffer)};
 				}
 
 				throw std::runtime_error(
@@ -121,8 +121,8 @@ namespace utils::http
 	std::future<std::optional<std::string>> get_data_async(const std::string& url, const headers& headers)
 	{
 		return std::async(std::launch::async, [url, headers]()
-			{
-				return get_data(url, headers);
-			});
+		{
+			return get_data(url, headers);
+		});
 	}
 }
