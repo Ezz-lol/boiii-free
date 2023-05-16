@@ -157,16 +157,14 @@ namespace script
 			allocator.clear();
 		}
 
-		void load_gametype_script_stub()
+		void begin_load_scripts_stub(game::scriptInstance_t inst, int user)
 		{
-			if (!game::Com_IsInGame() || game::Com_IsRunningUILevel())
-			{
-				game::GScr_LoadGametypeScript();
-				return;
-			}
+			game::Scr_BeginLoadScripts(inst, user);
 
-			game::GScr_LoadGametypeScript();
-			load_scripts();
+			if (game::Com_IsInGame() && !game::Com_IsRunningUILevel())
+			{
+				load_scripts();
+			}
 		}
 
 		int server_script_checksum_stub()
@@ -191,8 +189,8 @@ namespace script
 			// Free our scripts when the game ends
 			game_event::on_g_shutdown_game(clear_script_memory);
 
-			// Load our scripts when the gametype script is loaded
-			utils::hook::call(game::select(0x141AAF37C, 0x1402D8C7F), load_gametype_script_stub);
+			// Load our custom/overriding scripts
+			utils::hook::call(game::select(0x141AAE92F, 0x1402D81FF), begin_load_scripts_stub);
 
 			// Force GSC checksums to be valid
 			utils::hook::call(game::select(0x1408F2E5D, 0x1400E2D22), server_script_checksum_stub);

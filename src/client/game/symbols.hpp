@@ -195,6 +195,7 @@ namespace game
 	};
 	WEAK symbol<unsigned int(scriptInstance_t inst)> Scr_GetNumParam{0x0, 0x140171320};
 	WEAK symbol<unsigned int(scriptInstance_t inst, const char* filename)> Scr_LoadScript{0x1412C83F0, 0x140156610};
+	WEAK symbol<void(scriptInstance_t inst, int user)> Scr_BeginLoadScripts{0x1412C7DF0, 0x140156010};
 
 	WEAK symbol<void(const char* name, const char* key, unsigned int playbackFlags, float volume, void* callbackInfo,
 	                 int id)> Cinematic_StartPlayback{0x1412BE3A0};
@@ -242,8 +243,6 @@ namespace game
 	WEAK symbol<void(char* dest, size_t destsize, const char* src)> I_strcpy{
 		0x1422E9410, 0x1405811E0
 	};
-
-	WEAK symbol<void()> GScr_LoadGametypeScript{0x141AAD850, 0x1402D7140};
 
 	// Variables
 	WEAK symbol<cmd_function_s> cmd_functions{0x15689DF58, 0x14946F860};
