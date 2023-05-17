@@ -225,7 +225,7 @@ namespace loot
 				{
 					game::Dvar_SetFromStringByName("ui_enableAllHeroes", "1", true);
 				}
-				}, scheduler::pipeline::dvars_loaded);
+			}, scheduler::pipeline::dvars_loaded);
 		}
 	};
 };
