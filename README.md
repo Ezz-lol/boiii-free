@@ -10,21 +10,6 @@ An attempt at reverse engineering and analyzing Call of Duty: Black Ops 3.
 
 <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQeSXYzQITJrcjiifN1nqX1fsVE7VwLZ3vl2g&usqp=CAU">
 
-## Technical Features
-
-- [x] Steam API Emulation
-- [x] Steam Integrity Bypass
-- [x] Offline Multiplayer/Zombies/Campaign Support
-- [x] RE Tool Detection Bypass (only the ones I use: IDA Pro, HxD, Wireshark)
-- [x] Disable Hardware Breakpoint Detection
-- [x] Disable Integrity Checks
-- [x] Demonware Emulation
-- [x] Process wrapper
-- [x] P2P multiplayer
-- [x] Dedicated Servers
-
-Check out the <a href="https://github.com/momo5502/boiii/issues?q=is%3Aissue+is%3Aclosed+reason%3Acompleted">closed issues</a> for more gameplay related features and fixes that have been added!
-
 ## Writeups & Articles
 
 - <a href="https://momo5502.com/posts/2022-11-17-reverse-engineering-integrity-checks-in-black-ops-3/">Reverse engineering integrity checks in Black Ops 3</a>
