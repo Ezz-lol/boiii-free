@@ -7,7 +7,7 @@
 # What is BOIII ☄️
 
 BOIII is a game modification for Call of Duty: Black Ops 3.  
-The Steam version of Black Ops 3 is required to be owned and installed for BOIII to work.
+The Steam version of Black Ops 3 is required to be owned and installed for BOIII to work. You can get it from <a href="https://store.steampowered.com/app/311210/Call_of_Duty_Black_Ops_III/">here</a>, if you don't already own it.
 
 <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQeSXYzQITJrcjiifN1nqX1fsVE7VwLZ3vl2g&usqp=CAU">
 
