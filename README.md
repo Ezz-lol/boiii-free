@@ -6,7 +6,8 @@
 
 # BOIII ☄️
 
-An attempt at reverse engineering and analyzing Call of Duty: Black Ops 3.
+A game modification for Call of Duty: Black Ops 3.
+A valid Steam copy of the original game is required to install the modifications boiii provides.
 
 <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQeSXYzQITJrcjiifN1nqX1fsVE7VwLZ3vl2g&usqp=CAU">
 
