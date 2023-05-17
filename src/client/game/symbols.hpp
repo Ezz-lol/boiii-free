@@ -20,6 +20,8 @@ namespace game
 	WEAK symbol<bool(int localClientNum, int index, char* buf, int size, bool addClanName)> CL_GetClientName{
 		0x1413E3140
 	};
+	WEAK symbol<bool(int localClientNum)> CL_LocalClient_IsActive{0x14283AA50};
+	WEAK symbol<float(void* key)> CL_KeyState{0x1412FF860};
 
 	// Game
 	WEAK symbol<void(gentity_s* ent, gentity_s* target, int mode, const char* chatText)> G_Say{0x0, 0x140299170};
@@ -281,6 +283,8 @@ namespace game
 
 	// Dvar variables
 	WEAK symbol<dvar_t*> com_maxclients{0x0, 0x14948EE70};
+
+	WEAK symbol<clientUIActive_t> clientUIActives{0x1453D8BC0};
 
 	namespace s_wcd
 	{
