@@ -4,10 +4,10 @@
 [![patreon](https://img.shields.io/badge/Patreon-support-red.svg?logo=patreon)](https://www.patreon.com/xlabsproject)
 
 
-# BOIII ☄️
+# What is BOIII ☄️
 
-A game modification for Call of Duty: Black Ops 3.
-A valid Steam copy of the original game is required to install the modifications boiii provides.
+BOIII is a game modification for Call of Duty: Black Ops 3.  
+The Steam version of Black Ops 3 is required to be owned and installed for BOIII to work.
 
 <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQeSXYzQITJrcjiifN1nqX1fsVE7VwLZ3vl2g&usqp=CAU">
 
