@@ -64,26 +64,30 @@
 #undef min
 #endif
 
-#include <map>
+#include <cassert>
+#include <cstring>
+#include <cctype>
+
 #include <array>
 #include <atomic>
-#include <vector>
-#include <mutex>
-#include <queue>
-#include <regex>
 #include <chrono>
-#include <thread>
-#include <fstream>
-#include <iostream>
-#include <utility>
 #include <filesystem>
+#include <fstream>
 #include <functional>
-#include <random>
-#include <sstream>
+#include <iostream>
+#include <limits>
+#include <map>
+#include <mutex>
 #include <optional>
+#include <queue>
+#include <random>
+#include <regex>
+#include <sstream>
+#include <thread>
 #include <unordered_set>
+#include <utility>
 #include <variant>
-#include <cassert>
+#include <vector>
 
 #include <udis86.h>
 #include <MinHook.h>

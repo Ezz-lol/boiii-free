@@ -151,7 +151,7 @@ namespace game
 	};
 	WEAK symbol<dvar_t*(dvarStrHash_t hash, const char* dvarName, float value, float min, float max, unsigned int flags,
 	                    const char* description)> Dvar_RegisterFloat{
-		0x0, 0x14057B6B0
+		0x1422D0A60, 0x14057B6B0
 	};
 	WEAK symbol<dvar_t*(dvarStrHash_t hash, const char* dvarName, bool value, int flags,
 	                    const char* description)> Dvar_SessionModeRegisterBool{
