@@ -11,7 +11,6 @@ namespace patches
 	namespace
 	{
 		const game::dvar_t* lobby_min_players;
-		const game::dvar_t* cl_yaw_speed;
 
 		void script_errors_stub([[maybe_unused]] const char* file, [[maybe_unused]] int line,
 		                        [[maybe_unused]] unsigned int code, const char* fmt, ...)
@@ -79,9 +78,6 @@ namespace patches
 
 			lobby_min_players = game::register_dvar_int("lobby_min_players", 0, 0, 8, game::DVAR_NONE, "");
 			utils::hook::jump(game::select(0x141A7BCF0, 0x1402CB900), scr_get_num_expected_players, true);
-
-			cl_yaw_speed = game::register_dvar_float("cl_yawspeed", 140.0f, std::numeric_limits<float>::min(), std::numeric_limits<float>::max(),
-			                                         game::DVAR_NONE, "Max yaw speed in degrees for game pad and keyboard");
 		}
 	};
 }

@@ -634,6 +634,41 @@ namespace game
 		void* errorData;
 	};
 
+	enum connstate_t
+	{
+		CA_DISCONNECTED = 0x0,
+		CA_CINEMATIC = 0x1,
+		CA_UICINEMATIC = 0x2,
+		CA_LOGO = 0x3,
+		CA_CONNECTING = 0x4,
+		CA_CHALLENGING = 0x5,
+		CA_CONFIRMLOADING = 0x6,
+		CA_CONNECTED = 0x7,
+		CA_SENDINGDATA = 0x8,
+		CA_LOADING = 0x9,
+		CA_PRIMED = 0xA,
+		CA_ACTIVE = 0xB,
+	};
+
+	struct clientUIActive_t
+	{
+		int flags;
+		int keyCatchers;
+		connstate_t connectionState;
+		unsigned char __pad0[0x106C];
+	};
+
+	static_assert(sizeof(clientUIActive_t) == 0x1078);
+
+	struct clientActive_t
+	{
+		char __pad0[0xB8C8];
+		float viewangles[3];
+		char __pad1[0x18C15C];
+	};
+
+	static_assert(sizeof(clientActive_t) == 0x197A30);
+
 	typedef void* fileHandle_t;
 
 	typedef uint32_t dvarStrHash_t;
