@@ -147,7 +147,7 @@ namespace client_patches
 		}
 
 		// TODO: Remove me after some time
-		void migrate_if_needed()
+		extern "C" void migrate_if_needed()
 		{
 			std::error_code e;
 
