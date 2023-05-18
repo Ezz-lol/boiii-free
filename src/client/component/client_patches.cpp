@@ -4,6 +4,7 @@
 #include "scheduler.hpp"
 
 #include <game/game.hpp>
+#include <game/utils.hpp>
 
 #include <utils/hook.hpp>
 #include <utils/io.hpp>
@@ -15,6 +16,9 @@ namespace client_patches
 	namespace
 	{
 		utils::hook::detour preload_map_hook;
+
+		const game::dvar_t* cl_yaw_speed;
+		const game::dvar_t* cl_pitch_speed;
 
 		void stop_intro_if_needed()
 		{
@@ -110,6 +114,16 @@ namespace client_patches
 			}
 		}
 
+		float cl_key_state_yaw_speed_stub(void* key)
+		{
+			return game::CL_KeyState(key) * cl_yaw_speed->current.value.value;
+		}
+
+		float cl_key_state_pitch_speed_stub(void* key)
+		{
+			return game::CL_KeyState(key) * cl_pitch_speed->current.value.value;
+		}
+
 		game::fileHandle_t fs_f_open_file_write_to_dir_stub(const char* filename, [[maybe_unused]] const char* dir,
 		                                                    const char* os_base_path)
 		{
@@ -183,6 +197,8 @@ namespace client_patches
 	class component final : public client_component
 	{
 	public:
+		static_assert(offsetof(game::clientActive_t, viewangles) == 0xB8C8);
+
 		component()
 		{
 			migrate_if_needed(); // TODO: Remove me after some time
@@ -209,6 +225,17 @@ namespace client_patches
 
 			// Always get loadscreen gametype from s_gametype
 			utils::hook::set<uint8_t>(0x14228F5DC_g, 0xEB);
+
+			cl_yaw_speed = game::register_dvar_float("cl_yawspeed", 140.0f, std::numeric_limits<float>::min(), std::numeric_limits<float>::max(),
+			                                         game::DVAR_NONE, "Max yaw speed in degrees for game pad and keyboard");
+			cl_pitch_speed = game::register_dvar_float("cl_pitchspeed", 140.0f, std::numeric_limits<float>::min(), std::numeric_limits<float>::max(),
+			                                           game::DVAR_NONE, "Max pitch speed in degrees for game pad");
+			// CL_AdjustAngles
+			utils::hook::call(0x1412F3324_g, cl_key_state_yaw_speed_stub); // cl_yawspeed
+			utils::hook::call(0x1412F3344_g, cl_key_state_yaw_speed_stub); // ^^
+
+			utils::hook::call(0x1412F3380_g, cl_key_state_pitch_speed_stub); // cl_pitchspeed
+			utils::hook::call(0x1412F33A1_g, cl_key_state_pitch_speed_stub); // ^^
 
 			patch_players_folder_name();
 		}
