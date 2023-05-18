@@ -32,6 +32,7 @@ namespace loot
 		utils::hook::detour bg_emblemisentitlementbackgroundgranted_hook;
 		utils::hook::detour liveentitlements_isentitlementactiveforcontroller_hook;
 		utils::hook::detour bg_unlockablesgetcustomclasscount_hook;
+		utils::hook::detour gscr_isitempurchasedforclientnum_hook;
 
 		int loot_getitemquantity_stub(const game::ControllerIndex_t controller_index, const game::eModes mode, const int item_id)
 		{
@@ -178,12 +179,25 @@ namespace loot
 
 			return bg_unlockablesgetcustomclasscount_hook.invoke<int>(mode, controllerIndex);
 		}
+
+		bool gscr_isitempurchasedforclientnum_stub([[maybe_unused]] unsigned int clientNum,
+												   [[maybe_unused]] int itemIndex)
+		{
+			return true;
+		}
 	};
 
-	struct component final: client_component
+	struct component final : generic_component
 	{
 		void post_unpack() override
 		{
+			gscr_isitempurchasedforclientnum_hook.create(game::select(0x1415F1490, 0x140252A20), gscr_isitempurchasedforclientnum_stub);
+
+			if (game::is_server())
+			{
+				return;
+			}
+
 			dvar_cg_unlockall_loot = game::register_dvar_bool("cg_unlockall_loot", false, game::DVAR_ARCHIVE, "Unlocks blackmarket loot");
 			dvar_cg_unlockall_purchases = game::register_dvar_bool("cg_unlockall_purchases", false, game::DVAR_ARCHIVE, "Unlock all purchases with tokens");
 			dvar_cg_unlockall_attachments = game::register_dvar_bool("cg_unlockall_attachments", false, game::DVAR_ARCHIVE, "Unlocks all attachments");
