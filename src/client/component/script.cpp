@@ -106,11 +106,25 @@ namespace script
 				}
 
 				// Do not traverse directories for custom scripts.
-				// TODO: Add game type specific scripts. custom-scripts/cp, custom-scripts/mp and /custom-scripts/zm
 				if (std::filesystem::is_directory(script, e) && !is_custom)
 				{
 					load_scripts_folder(script_file, is_custom);
 				}
+			}
+		}
+
+		std::optional<std::string> get_game_type_specific_folder()
+		{
+			switch (game::Com_SessionMode_GetMode())
+			{
+			case game::MODE_MULTIPLAYER:
+				return "mp";
+			case game::MODE_ZOMBIES:
+				return "zm";
+			case game::MODE_CAMPAIGN:
+				return "cp";
+			default:
+				return {};
 			}
 		}
 
@@ -121,13 +135,22 @@ namespace script
 			const auto data_folder = game::get_appdata_path() / "data";
 			const auto boiii_folder = host.get_folder() / "boiii";
 
+			const auto load = [&data_folder, &boiii_folder](const std::string& folder, const bool is_custom)
+			{
+				load_scripts_folder((data_folder / folder).string(), is_custom);
+				load_scripts_folder((boiii_folder / folder).string(), is_custom);
+			};
+
 			// scripts folder is for overriding stock scripts the game uses
-			load_scripts_folder((data_folder / "scripts").string(), false);
-			load_scripts_folder((boiii_folder / "scripts").string(), false);
+			load("scripts", false);
 
 			// custom_scripts is for loading completely custom scripts the game doesn't use
-			load_scripts_folder((data_folder / "custom_scripts").string(), true);
-			load_scripts_folder((boiii_folder / "custom_scripts").string(), true);
+			load("custom_scripts", true);
+
+			if (const auto game_type = get_game_type_specific_folder(); game_type.has_value())
+			{
+				load(game_type.value(), true);
+			}
 		}
 
 		game::RawFile* db_find_x_asset_header_stub(const game::XAssetType type, const char* name,
