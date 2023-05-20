@@ -113,7 +113,7 @@ namespace script
 			}
 		}
 
-		std::optional<std::string> get_game_type_specific_folder()
+		std::optional<std::filesystem::path> get_game_type_specific_folder()
 		{
 			switch (game::Com_SessionMode_GetMode())
 			{
@@ -135,7 +135,7 @@ namespace script
 			const auto data_folder = game::get_appdata_path() / "data";
 			const auto boiii_folder = host.get_folder() / "boiii";
 
-			const auto load = [&data_folder, &boiii_folder](const std::string& folder, const bool is_custom)
+			const auto load = [&data_folder, &boiii_folder](const std::filesystem::path& folder, const bool is_custom)
 			{
 				load_scripts_folder((data_folder / folder).string(), is_custom);
 				load_scripts_folder((boiii_folder / folder).string(), is_custom);
@@ -149,7 +149,7 @@ namespace script
 
 			if (const auto game_type = get_game_type_specific_folder(); game_type.has_value())
 			{
-				load(game_type.value(), true);
+				load("custom_scripts" / game_type.value(), true);
 			}
 		}
 
