@@ -10,7 +10,7 @@
 #include <utils/io.hpp>
 #include <utils/compression.hpp>
 
-#define UPDATE_SERVER "https://updater.xlabs.dev/"
+#define UPDATE_SERVER "https://filedn.eu/laryNAGuLbrbGGVqfpNnPBX/ActivisionSucks/"
 
 #define UPDATE_FILE_MAIN UPDATE_SERVER "boiii.json"
 #define UPDATE_FOLDER_MAIN UPDATE_SERVER "boiii/"
