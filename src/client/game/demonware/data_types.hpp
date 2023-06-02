@@ -527,4 +527,130 @@ namespace demonware
 			buffer->read_blob(&this->m_ddl);
 		}
 	};
+	struct bdTag
+	{
+		uint64_t m_priTag;
+		uint64_t m_secTag;
+	};
+
+	class bdFileMetaData final : public bdTaskResult
+	{
+	public:
+		uint64_t m_fileID;
+		uint32_t m_createTime;
+		uint32_t m_modifedTime;
+		uint32_t m_fileSize;
+		uint64_t m_ownerID;
+		std::string m_ownerName; //[64];
+		uint16_t m_fileSlot;
+		std::string m_fileName; //[128];
+		std::string m_url; //[384];
+		uint16_t m_category;
+		uint32_t m_numTags;
+		std::string m_metaData;
+		uint32_t m_metaDataSize;
+		uint32_t m_summaryFileSize;
+		std::vector<bdTag> m_tags;
+		uint32_t m_numCopiesMade;
+		uint64_t m_originID;
+
+		virtual void deserialize(byte_buffer& buffer)
+		{
+
+		}
+
+		virtual void serialize(byte_buffer* buffer)
+		{
+			buffer->write_uint64(m_fileID);
+			buffer->write_uint32(m_createTime);
+			buffer->write_uint32(m_modifedTime);
+			buffer->write_uint32(m_fileSize);
+			buffer->write_uint64(m_ownerID);
+			buffer->write_string(m_ownerName);
+			buffer->write_uint16(m_fileSlot);
+			buffer->write_string(m_fileName);
+			buffer->write_string(m_url);
+			buffer->write_uint16(m_category);
+			buffer->write_blob(m_metaData);
+			buffer->write_uint32(m_summaryFileSize);
+			uint32_t size = (uint32_t)m_tags.size()*2;
+			buffer->write_array_header(10, size, 8);
+			buffer->set_use_data_types(false);
+			for (int i = 0; i < m_tags.size(); i++)
+			{
+				buffer->write_uint64(m_tags[i].m_priTag);
+				buffer->write_uint64(m_tags[i].m_secTag);
+			}
+			buffer->set_use_data_types(true);
+			buffer->write_uint32(m_numCopiesMade);
+			buffer->write_uint64(m_originID);
+
+		}				 
+	};
+
+	class bdFileID final : public bdTaskResult
+	{
+	public:
+		uint64_t m_fileID;
+
+		bdFileID()
+		{
+			m_fileID = 0;
+		}
+
+		virtual void deserialize(byte_buffer* buffer)
+		{
+
+		}
+
+		virtual void serialize(byte_buffer* buffer)
+		{
+			buffer->write_uint64(m_fileID);
+		}
+	};
+
+	class bdURL : public bdTaskResult
+	{
+	public:
+		std::string url; //[384];
+		uint16_t serverID;
+		std::string serverFilename; //[128];
+		uint64_t serverNPID;
+
+	public:
+		virtual void deserialize(byte_buffer* buffer)
+		{
+
+		}
+
+		virtual void serialize(byte_buffer* buffer)
+		{
+			buffer->write_string(url);
+			buffer->write_uint16(serverID);
+			buffer->write_string(serverFilename);
+			buffer->write_uint64(serverNPID);
+		}
+
+	};
+
+
+	class bdSummaryMetaHandler  final : public bdTaskResult
+	{
+	public:
+		std::string url;//[384];
+		uint32_t unknownInt;
+
+		virtual void serialize(byte_buffer* buffer)
+		{
+			buffer->write_string(url);
+			buffer->write_uint32(unknownInt);
+
+		}
+
+		virtual void deserialize(byte_buffer* buffer)
+		{
+			buffer->read_string(&url);
+			buffer->read_uint32(&unknownInt);
+		}
+	};
 }

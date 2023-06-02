@@ -10,6 +10,8 @@
 #include <utils/flags.hpp>
 #include <utils/concurrency.hpp>
 #include <utils/image.hpp>
+#include <utils/io.hpp>
+#include <utils/string.hpp>
 
 #define CONSOLE_BUFFER_SIZE 16384
 #define WINDOW_WIDTH 608
@@ -59,7 +61,9 @@ namespace console
 				fputs(message, stdout);
 				return;
 			}
-
+#ifndef NDEBUG
+			utils::io::write_file("console.log", utils::string::va("%s",message), true);
+#endif
 			static auto print_func = utils::hook::assemble([](utils::hook::assembler& a)
 			{
 				a.push(rbx);
@@ -92,6 +96,8 @@ namespace console
 			const int res = vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, fmt, ap);
 			(void)res;
 			print_message(buffer);
+
+			utils::io::write_file("console.log", utils::string::va("%s", buffer), true);
 
 			va_end(ap);
 		}

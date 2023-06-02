@@ -37,6 +37,10 @@ namespace demonware
 		this->register_service<bdMarketingComms>();
 		this->register_service<bdMatchMaking>();
 		this->register_service<bdReward>();
+		this->register_service<bdTags>();
+		this->register_service<bdKeyArchive>();
+		this->register_service<bdPooledStorage>();
+		this->register_service<bdService55>();
 	};
 
 	void lobby_server::send_reply(reply* data)
