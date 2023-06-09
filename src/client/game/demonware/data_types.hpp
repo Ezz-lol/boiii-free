@@ -532,7 +532,7 @@ namespace demonware
 		uint64_t m_priTag;
 		uint64_t m_secTag;
 
-		void serialize(byte_buffer* buffer) override
+		virtual void serialize(byte_buffer* buffer) override
 		{
 			buffer->write_uint64(this->m_priTag);
 			buffer->write_uint64(this->m_secTag);
