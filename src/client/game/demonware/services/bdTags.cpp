@@ -63,7 +63,7 @@ namespace demonware
 
 	void bdTags::searchByTagsBase(service_server* server, byte_buffer* /*buffer*/) const
 	{
-		__int64 count = std::count_if(std::filesystem::directory_iterator("data\\demos"), std::filesystem::directory_iterator(),
+		__int64 count = std::count_if(std::filesystem::directory_iterator(demo_folder), std::filesystem::directory_iterator(),
 			[](const auto& file) {
 				return file.path().extension() == ".summary";
 			});

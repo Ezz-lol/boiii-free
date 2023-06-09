@@ -9,6 +9,7 @@
 #include "game/demonware/servers/auth3_server.hpp"
 #include "game/demonware/servers/stun_server.hpp"
 #include "game/demonware/servers/umbrella_server.hpp"
+#include "game/demonware/servers/theater_server.hpp"
 #include "game/demonware/server_registry.hpp"
 
 #include "localized_strings.hpp"
@@ -455,6 +456,7 @@ namespace demonware
 			tcp_servers.create<auth3_server>("ops3-pc-auth3.prod.demonware.net");
 			tcp_servers.create<lobby_server>("ops3-pc-lobby.prod.demonware.net");
 			tcp_servers.create<umbrella_server>("prod.umbrella.demonware.net");
+			tcp_servers.create<theater_server>("localhost");
 		}
 
 		void post_load() override

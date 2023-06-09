@@ -5,6 +5,7 @@
 namespace demonware
 {
 	static std::string mem;
+	static std::string url_server = "http://localhost";
 	bdPooledStorage::bdPooledStorage() : service(58, "bdPooledStorage")
 	{
 		this->register_task(1, &bdPooledStorage::getPooledMetaDataByID);
@@ -54,7 +55,7 @@ namespace demonware
 			result->m_modifedTime = static_cast<uint32_t>(modifedTime.time_since_epoch().count());
 
 			// Запись в url
-			result->m_url = std::format("{}/ex/demos/{}", "http://127.0.0.1:8132", demoFileName).c_str();
+			result->m_url = std::format("{}/cloud/demos/{}", url_server, demoFileName).c_str();
 		}
 		std::ifstream demoFileSummary(demoFilePath + ".summary");
 		if (demoFileSummary.is_open()) {
@@ -143,7 +144,7 @@ namespace demonware
 
 		auto result = std::make_unique<bdURL>();
 		mem = filename;
-		result->url = std::format("{}/ex/demos/{}", "http://127.0.0.1:8132", filename);
+		result->url = std::format("{}/cloud/demos/{}", url_server, filename);
 		auto demos = scan_folder_demo();
 
 		result->serverID = 0;
@@ -227,7 +228,7 @@ namespace demonware
 		metadataFile.close();
 
 		auto result = std::make_unique<bdURL>();
-		result->url = std::format("{}/ex/demos/{}.summary", "http://127.0.0.1:8132", mem);
+		result->url = std::format("{}/cloud/demos/{}.summary", url_server, mem);
 		result->serverID = 0;
 		result->serverNPID = fileID;
 		result->serverFilename = mem;
@@ -251,7 +252,7 @@ namespace demonware
 		auto demos = scan_folder_demo();
 
 		auto result = std::make_unique<bdSummaryMetaHandler>();
-		result->url = std::format("{}/ex/demos/{}.summary", "http://127.0.0.1:8132", demos[id]);
+		result->url = std::format("{}/cloud/demos/{}.summary", url_server, demos[id]);
 
 		std::string folderPath = demo_folder;
 		std::string demoFileName = demos[id];
