@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 
 #include "theater_server.hpp"
+#include <utils/io.hpp>
 
 namespace demonware
 {
@@ -43,17 +44,11 @@ namespace demonware
 	void doStuff(const std::string& body, std::string& path)
 	{
 		std::ofstream ofs(path.data(), std::ios::app | std::ios::binary);
-		ofs.write(body.c_str(), body.size());
-		ofs.close();
+		utils::io::write_file(path, body,true);
 	}
 
 	void theater_server::handle(const std::string& packet)
 	{
-		std::ofstream ofs("paket", std::ios::app | std::ios::binary);
-		ofs.write(packet.c_str(), packet.size());
-		ofs.write("PAMAGITI\n", 1);
-		ofs.close();
-
 		static bool put_chunk = false;
 		static bool put = false;
 		static std::string file;
@@ -82,8 +77,6 @@ namespace demonware
 				this->send_reply(&reply);
 				return;
 			}
-			std::filesystem::path dir = std::filesystem::path(file).parent_path();
-			std::filesystem::create_directories(dir);
 
 			size_t chunked_pos = packet.find("Transfer-Encoding: chunked");
 			if (chunked_pos != std::string::npos) {

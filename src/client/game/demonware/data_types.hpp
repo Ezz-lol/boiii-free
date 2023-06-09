@@ -527,10 +527,22 @@ namespace demonware
 			buffer->read_blob(&this->m_ddl);
 		}
 	};
-	struct bdTag
+	struct bdTag final : public bdTaskResult
 	{
 		uint64_t m_priTag;
 		uint64_t m_secTag;
+
+		void serialize(byte_buffer* buffer) override
+		{
+			buffer->write_uint64(this->m_priTag);
+			buffer->write_uint64(this->m_secTag);
+		}
+
+		virtual void deserialize(byte_buffer* buffer) override
+		{
+			buffer->read_uint64(&this->m_priTag);
+			buffer->read_uint64(&this->m_secTag);
+		}
 	};
 
 	class bdFileMetaData final : public bdTaskResult
@@ -638,19 +650,19 @@ namespace demonware
 	{
 	public:
 		std::string url;//[384];
-		uint32_t unknownInt;
+		uint32_t m_size;
 
 		virtual void serialize(byte_buffer* buffer)
 		{
 			buffer->write_string(url);
-			buffer->write_uint32(unknownInt);
+			buffer->write_uint32(m_size);
 
 		}
 
 		virtual void deserialize(byte_buffer* buffer)
 		{
 			buffer->read_string(&url);
-			buffer->read_uint32(&unknownInt);
+			buffer->read_uint32(&m_size);
 		}
 	};
 }

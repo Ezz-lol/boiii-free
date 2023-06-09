@@ -20,7 +20,7 @@ namespace demonware
 		void _postUploadMultiPart(service_server* server, byte_buffer* buffer) const;
 		void _preDownloadMultiPart(service_server* server, byte_buffer* buffer) const;
 	};
-	const static std::string demo_folder = "demos\\";
+	const static std::string demo_folder = "boiii_players/user/demos";
 
 	std::vector<std::string> scan_folder_demo();
 }

@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 #include "../services.hpp"
 #include <codecvt>
+#include <utils/io.hpp>
 
 namespace demonware
 {
@@ -39,12 +40,12 @@ namespace demonware
 
 		auto result = std::make_unique<bdFileMetaData>();
 		result->m_fileID = id;
-		std::string folderPath = demo_folder;
+		std::filesystem::path folderPath = demo_folder;
 		std::string demoFileName = demos[id];
-		std::string demoFilePath = folderPath + demoFileName;
+		std::string demoFilePath = (folderPath / demoFileName).string();
 		if (std::filesystem::exists(demoFilePath)) {
 			// Получение размера файла .demo
-			result->m_fileSize = (uint32_t)std::filesystem::file_size(demoFilePath);
+			result->m_fileSize = (uint32_t)utils::io::file_size(demoFilePath);
 
 			auto lastWriteTime = std::filesystem::last_write_time(demoFilePath);
 			auto modifedTime = std::chrono::time_point_cast<std::chrono::seconds>(lastWriteTime);
@@ -53,56 +54,33 @@ namespace demonware
 
 			result->m_createTime = static_cast<uint32_t>(createdTime.time_since_epoch().count());
 			result->m_modifedTime = static_cast<uint32_t>(modifedTime.time_since_epoch().count());
+			result->m_url = std::format("{}/cloud/{}/{}", url_server, demo_folder, demoFileName).c_str();
+		}
 
-			// Запись в url
-			result->m_url = std::format("{}/cloud/demos/{}", url_server, demoFileName).c_str();
-		}
-		std::ifstream demoFileSummary(demoFilePath + ".summary");
-		if (demoFileSummary.is_open()) {
-			result->m_summaryFileSize = (uint32_t)std::filesystem::file_size(demoFilePath + ".summary");
-			demoFileSummary.close();
-		}
+		result->m_summaryFileSize = (uint32_t)utils::io::file_size(demoFilePath + ".summary");
 		result->m_fileSlot = 0;
 		result->m_numCopiesMade = 0;
 		result->m_originID = 0;
 		result->m_ownerID = 1;
-		//	result->m_ownerName[0] = '\0';
-
-		std::ifstream demoFileThumbnail(demoFilePath + ".thumbnail");
-		if (demoFileThumbnail.is_open()) {
-			// Запись в m_metaData
-			std::string metaData((std::istreambuf_iterator<char>(demoFileThumbnail)), std::istreambuf_iterator<char>());
-			result->m_metaData = metaData;
-			demoFileThumbnail.close();
-		}
-
+		result->m_metaData = utils::io::read_file(demoFilePath + ".thumbnail");
 		result->m_ownerName = "redacted";
 		result->m_fileName = demoFileName;
 
-
 		std::ifstream demoFileTags(demoFilePath + ".tags");
 		if (demoFileTags.is_open()) {
-			// Чтение типа
-			char type = 8;
-			demoFileTags.read(&type, sizeof(type));
-			// Чтение первых 4 байт
 			uint32_t numTags = 0;
 			demoFileTags.read(reinterpret_cast<char*>(&numTags), sizeof(numTags));
-			char newline = '\n';
-			demoFileTags.read(&newline, sizeof(newline));
 			// bdtag
 			for (uint32_t k = 0; k < numTags; k++) {
 				bdTag tag;
 				demoFileTags.read(reinterpret_cast<char*>(&tag.m_priTag), sizeof(tag.m_priTag));
-				demoFileTags.read(&newline, sizeof(newline));
 				demoFileTags.read(reinterpret_cast<char*>(&tag.m_secTag), sizeof(tag.m_secTag));
 				result->m_tags.push_back(tag);
-				demoFileTags.read(&newline, sizeof(newline));
 			}	
 			demoFileTags.close();
 
 		}
-		result->m_category = 10; // 0A zombie / 1 mp
+		result->m_category = 10;
 		return result;
 	}
 
@@ -120,16 +98,13 @@ namespace demonware
 			buffer->set_use_data_types(false);
 			buffer->read_uint64(&id);
 			buffer->set_use_data_types(true);
-			printf("id: %llu \n", id);
 			auto result = getMetaDataByID(id);
 			reply.add(result);
 		}
 
 		reply.send();
-
-
-
 	}
+
 
 	void bdPooledStorage::_preUpload(service_server* server, byte_buffer* buffer) const
 	{
@@ -144,8 +119,7 @@ namespace demonware
 
 		auto result = std::make_unique<bdURL>();
 		mem = filename;
-		result->url = std::format("{}/cloud/demos/{}", url_server, filename);
-		auto demos = scan_folder_demo();
+		result->url = std::format("{}/cloud/{}/{}", url_server, demo_folder, filename);
 
 		result->serverID = 0;
 		result->serverNPID = 1;
@@ -200,35 +174,25 @@ namespace demonware
 
 		buffer->read_array_header(10, &tagCount, 0);
 		buffer->set_use_data_types(false);
-		std::ofstream tagFile(demo_folder +mem + ".tags", std::ios::binary);
-		byte type = 8;
-		tagFile.write(reinterpret_cast<const char*>(&type), 1);
-		tagCount /= 2;
-		std::ofstream qqqq(demo_folder +mem + "." + std::to_string(fileID), std::ios::binary);
-		qqqq.close();
-		tagFile.write(reinterpret_cast<const char*>(&tagCount), sizeof(tagCount));
-		tagFile.write("\n", 1);
+		std::filesystem::path demo_f = demo_folder;
 
+		tagCount /= 2;
+		std::ofstream tagFile(demo_f / (mem + ".tags"), std::ios::binary);
+		tagFile.write(reinterpret_cast<const char*>(&tagCount), sizeof(tagCount));
 		for (uint32_t i = 0; i < tagCount; i++)
 		{
 			bdTag tag;
+			tag.deserialize(buffer);
 
-			buffer->read_uint64(&tag.m_priTag);
-			buffer->read_uint64(&tag.m_secTag);
 			tagFile.write(reinterpret_cast<const char*>(&tag.m_priTag), 8);
-			tagFile.write("\n", 1);
 			tagFile.write(reinterpret_cast<const char*>(&tag.m_secTag), 8);
-			tagFile.write("\n", 1);
 		}
 		tagFile.close();
 		buffer->set_use_data_types(true);
-
-		std::ofstream metadataFile(demo_folder + mem + ".thumbnail", std::ios::binary);
-		metadataFile << metaData;
-		metadataFile.close();
+		utils::io::write_file(demo_f / (mem + ".thumbnail"), metaData);
 
 		auto result = std::make_unique<bdURL>();
-		result->url = std::format("{}/cloud/demos/{}.summary", url_server, mem);
+		result->url = std::format("{}/cloud/{}/{}.summary", url_server,demo_folder, mem);
 		result->serverID = 0;
 		result->serverNPID = fileID;
 		result->serverFilename = mem;
@@ -252,21 +216,13 @@ namespace demonware
 		auto demos = scan_folder_demo();
 
 		auto result = std::make_unique<bdSummaryMetaHandler>();
-		result->url = std::format("{}/cloud/demos/{}.summary", url_server, demos[id]);
+		result->url = std::format("{}/cloud/{}/{}.summary", url_server, demo_folder, demos[id]);
 
-		std::string folderPath = demo_folder;
-		std::string demoFileName = demos[id];
-		std::string demoFilePath = folderPath + demoFileName;
+		std::filesystem::path folderPath = demo_folder;
 
-		std::ifstream demoFileSummary(demoFilePath + ".summary");
-		if (demoFileSummary.is_open()) {
-			result->unknownInt = (uint32_t)std::filesystem::file_size(demoFilePath + ".summary");
-			demoFileSummary.close();
-		}
+		result->m_size = (uint32_t)utils::io::file_size((folderPath / (demos[id] + ".summary")));
 		reply.add(result);
 		reply.send();
-
-
 
 	}
 

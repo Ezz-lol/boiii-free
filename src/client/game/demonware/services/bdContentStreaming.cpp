@@ -2,6 +2,7 @@
 #include "../services.hpp"
 #include "game/game.hpp"
 #include "bdPooledStorage.hpp"
+#include <utils/io.hpp>
 
 namespace demonware
 {
@@ -28,17 +29,11 @@ namespace demonware
 		auto demos = scan_folder_demo();
 
 		auto result = std::make_unique<bdSummaryMetaHandler>();
-		result->url = std::format("{}/cloud/demos/{}.summary", "http://127.0.0.1:8132", demos[id]);
+		result->url = std::format("{}/cloud/{}/{}.summary", "http://localhost",demo_folder, demos[id]);
 
-		std::string folderPath = demo_folder;
-		std::string demoFileName = demos[id];
-		std::string demoFilePath = folderPath + demoFileName;
+		std::string demoFilePath = demo_folder + "/" + demos[id];
+		result->m_size = (uint32_t)utils::io::file_size((demoFilePath + ".summary"));
 
-		std::ifstream demoFileSummary(demoFilePath + ".summary");
-		if (demoFileSummary.is_open()) {
-			result->unknownInt = (uint32_t)std::filesystem::file_size(demoFilePath + ".summary");
-			demoFileSummary.close();
-		}
 		reply.add(result);
 		reply.send();
 
