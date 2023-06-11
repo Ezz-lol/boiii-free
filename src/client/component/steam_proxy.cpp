@@ -200,11 +200,11 @@ namespace steam_proxy
 			switch (state)
 			{
 			case ownership_state::nosteam:
-				//throw std::runtime_error("Steam must be running to play this game!");
+				throw std::runtime_error("Steam must be running to play this game!");
 			case ownership_state::unowned:
-				//throw std::runtime_error("You must own the game on steam to play this mod!");
+				throw std::runtime_error("You must own the game on steam to play this mod!");
 			case ownership_state::error:
-				//throw std::runtime_error("Failed to verify ownership of the game!");
+				throw std::runtime_error("Failed to verify ownership of the game!");
 			case ownership_state::success:
 				break;
 			}
