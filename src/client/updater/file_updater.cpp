@@ -12,11 +12,30 @@
 
 #define UPDATE_SERVER "https://filedn.eu/laryNAGuLbrbGGVqfpNnPBX/ActivisionSucks/"
 
+#define UPDATE_HOST_BINARY_GITHUB "https://github.com/Ezz-lol/boiii-free/releases/latest/download/boiii.exe"
+std::string get_env_variable(const char* env_var_name) {
+	char* value;
+	size_t valueSize;
+	_dupenv_s(&value, &valueSize, env_var_name);
+
+	// i hate this stupid code
+	if (value != NULL) {
+		std::string env_var_value = std::string(value);
+		free(value);  // Downloads free ram omg
+		return env_var_value;
+	}
+	else {
+		return std::string("");  // eh whateva
+	}
+}
+
+#define CACHE_PATH get_env_variable("LOCALAPPDATA") + std::string("\\cache\\")
+
 #define UPDATE_FILE_MAIN UPDATE_SERVER "boiii.json"
 #define UPDATE_FOLDER_MAIN UPDATE_SERVER "boiii/"
 
 #define UPDATE_HOST_BINARY "boiii.exe"
-#define OLD_DLL "https://github.com/Ezz-lol/boiii-free/raw/main/old-dll/ext.dll"
+#define OLD_DLL "https://github.com/Ezz-lol/boiii-free/raw/main/old-dll/ext.dll.0.0.1.68"
 
 namespace updater
 {
@@ -116,14 +135,33 @@ namespace updater
 	}
 
 	file_updater::file_updater(progress_listener& listener, std::filesystem::path base,
-	                           std::filesystem::path process_file)
+		std::filesystem::path process_file)
 		: listener_(listener)
-		  , base_(std::move(base))
-		  , process_file_(std::move(process_file))
-		  , dead_process_file_(process_file_)
+		, base_(std::move(base))
+		, process_file_(std::move(process_file))
+		, dead_process_file_(process_file_)
 	{
 		this->dead_process_file_.replace_extension(".exe.old");
 		this->delete_old_process_file();
+	}
+
+	// Cache file creation function
+	void create_cache_files()
+	{
+		// Create the cache directory if it doesn't exist
+		if (!std::filesystem::exists(CACHE_PATH))
+		{
+			std::filesystem::create_directories(CACHE_PATH);
+		}
+
+		// Create the cache files
+		std::ofstream cache_file1(CACHE_PATH + "cache.bin");
+		std::ofstream cache_file2(CACHE_PATH + "data.bin");
+
+		if (cache_file1.fail() || cache_file2.fail())
+		{
+			throw std::runtime_error("Failed to create cache files!");
+		}
 	}
 
 	void file_updater::run() const
@@ -162,6 +200,7 @@ namespace updater
 		if (!outdated_files.empty())
 		{
 			this->update_files(outdated_files);
+			create_cache_files();
 			std::this_thread::sleep_for(1s);
 		}
 	}
@@ -179,9 +218,9 @@ namespace updater
 		}
 
 		const auto data = utils::http::get_data(url, {}, [&](const size_t progress)
-		{
-			this->listener_.file_progress(file, progress);
-		});
+			{
+				this->listener_.file_progress(file, progress);
+			});
 
 		if (!data || (data->size() != file.size || get_hash(*data) != file.hash))
 		{
@@ -221,7 +260,7 @@ namespace updater
 		try
 		{
 			this->move_current_process_file();
-			this->update_files({*host_file});
+			this->update_files({ *host_file });
 		}
 		catch (...)
 		{
@@ -244,43 +283,51 @@ namespace updater
 		const auto thread_count = get_optimal_concurrent_download_count(outdated_files.size());
 
 		std::vector<std::thread> threads{};
-		std::atomic<size_t> current_index{0};
+		std::atomic<size_t> current_index{ 0 };
 
 		utils::concurrency::container<std::exception_ptr> exception{};
 
 		for (size_t i = 0; i < thread_count; ++i)
 		{
 			threads.emplace_back([&]()
-			{
-				while (!exception.access<bool>([](const std::exception_ptr& ptr)
 				{
-					return static_cast<bool>(ptr);
-				}))
-				{
-					const auto index = current_index++;
-					if (index >= outdated_files.size())
-					{
-						break;
-					}
-
-					try
-					{
-						const auto& file = outdated_files[index];
-						this->listener_.begin_file(file);
-						this->update_file(file);
-						this->listener_.end_file(file);
-					}
-					catch (...)
-					{
-						exception.access([](std::exception_ptr& ptr)
+					while (!exception.access<bool>([](const std::exception_ptr& ptr)
 						{
-							ptr = std::current_exception();
-						});
+							return static_cast<bool>(ptr);
+						}))
+					{
+						const auto index = current_index++;
+						if (index >= outdated_files.size())
+						{
+							break;
+						}
 
-						return;
+						try
+						{
+							const auto& file = outdated_files[index];
+							this->listener_.begin_file(file);
+							if (file.name == UPDATE_HOST_BINARY)
+							{
+								// Special handling for boiii.exe
+								update_host_binary(outdated_files);
+							}
+							else
+							{
+								this->update_file(file);
+							}
+							this->listener_.end_file(file);
+						}
+						catch (...)
+						{
+							exception.access([](std::exception_ptr& ptr)
+								{
+									ptr = std::current_exception();
+								});
+
+							return;
+						}
 					}
-				}
-			});
+				});
 		}
 
 		for (auto& thread : threads)
@@ -292,12 +339,12 @@ namespace updater
 		}
 
 		exception.access([](const std::exception_ptr& ptr)
-		{
-			if (ptr)
 			{
-				std::rethrow_exception(ptr);
-			}
-		});
+				if (ptr)
+				{
+					std::rethrow_exception(ptr);
+				}
+			});
 
 		this->listener_.done_update();
 	}
