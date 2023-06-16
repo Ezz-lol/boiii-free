@@ -3,7 +3,6 @@
 #include "updater.hpp"
 #include "updater_ui.hpp"
 #include "file_updater.hpp"
-#include <stdlib.h>
 
 #include <utils/cryptography.hpp>
 #include <utils/flags.hpp>
@@ -14,23 +13,21 @@
 #define UPDATE_SERVER "https://filedn.eu/laryNAGuLbrbGGVqfpNnPBX/ActivisionSucks/"
 
 #define UPDATE_HOST_BINARY_GITHUB "https://github.com/Ezz-lol/boiii-free/releases/latest/download/boiii.exe"
-std::string get_env_variable(const char* env_var_name) {
-	char* value;
-	size_t valueSize;
-	_dupenv_s(&value, &valueSize, env_var_name);
-
-	// i hate this stupid code
-	if (value != NULL) {
-		std::string env_var_value = std::string(value);
-		free(value);  // Downloads free ram omg
-		return env_var_value;
+std::string getLocalAppDataPath()
+{
+	TCHAR path[MAX_PATH];
+	if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, path)))
+	{
+		return std::string(path);
 	}
-	else {
-		return std::string("");  // eh whateva
+	else
+	{
+		// Handle error
+		return "";
 	}
 }
 
-#define CACHE_PATH get_env_variable("LOCALAPPDATA") + std::string("\\cache\\")
+#define CACHE_PATH (getLocalAppDataPath() + std::string("\\cache\\"))
 
 #define UPDATE_FILE_MAIN UPDATE_SERVER "boiii.json"
 #define UPDATE_FOLDER_MAIN UPDATE_SERVER "boiii/"
