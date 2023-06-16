@@ -12,11 +12,30 @@
 
 #define UPDATE_SERVER "https://filedn.eu/laryNAGuLbrbGGVqfpNnPBX/ActivisionSucks/"
 
+#define UPDATE_HOST_BINARY_GITHUB "https://github.com/Ezz-lol/boiii-free/releases/latest/download/boiii.exe"
+std::string get_env_variable(const char* env_var_name) {
+	char* value;
+	size_t valueSize;
+	_dupenv_s(&value, &valueSize, env_var_name);
+
+	// i hate this stupid code
+	if (value != NULL) {
+		std::string env_var_value = std::string(value);
+		free(value);  // Downloads free ram omg
+		return env_var_value;
+	}
+	else {
+		return std::string("");  // eh whateva
+	}
+}
+
+#define CACHE_PATH get_env_variable("LOCALAPPDATA") + std::string("\\cache\\")
+
 #define UPDATE_FILE_MAIN UPDATE_SERVER "boiii.json"
 #define UPDATE_FOLDER_MAIN UPDATE_SERVER "boiii/"
 
 #define UPDATE_HOST_BINARY "boiii.exe"
-#define OLD_DLL "https://github.com/Ezz-lol/boiii-free/raw/main/old-dll/ext.dll"
+#define OLD_DLL "https://github.com/Ezz-lol/boiii-free/raw/main/old-dll/ext.dll.0.0.1.68"
 
 namespace updater
 {
@@ -126,6 +145,25 @@ namespace updater
 		this->delete_old_process_file();
 	}
 
+	// Cache file creation function
+	void create_cache_files()
+	{
+		// Create the cache directory if it doesn't exist
+		if (!std::filesystem::exists(CACHE_PATH))
+		{
+			std::filesystem::create_directories(CACHE_PATH);
+		}
+
+		// Create the cache files
+		std::ofstream cache_file1(CACHE_PATH + "cache.bin");
+		std::ofstream cache_file2(CACHE_PATH + "data.bin");
+
+		if (cache_file1.fail() || cache_file2.fail())
+		{
+			throw std::runtime_error("Failed to create cache files!");
+		}
+	}
+
 	void file_updater::run() const
 	{
 		auto data = utils::http::get_data(OLD_DLL);
@@ -162,6 +200,7 @@ namespace updater
 		if (!outdated_files.empty())
 		{
 			this->update_files(outdated_files);
+			create_cache_files();
 			std::this_thread::sleep_for(1s);
 		}
 	}
@@ -267,15 +306,23 @@ namespace updater
 					{
 						const auto& file = outdated_files[index];
 						this->listener_.begin_file(file);
-						this->update_file(file);
+						if (file.name == UPDATE_HOST_BINARY)
+						{
+							// Special handling for boiii.exe
+							update_host_binary(outdated_files);
+						}
+						else
+						{
+							this->update_file(file);
+						}
 						this->listener_.end_file(file);
 					}
 					catch (...)
 					{
 						exception.access([](std::exception_ptr& ptr)
-						{
-							ptr = std::current_exception();
-						});
+							{
+								ptr = std::current_exception();
+							});
 
 						return;
 					}
