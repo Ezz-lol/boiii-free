@@ -66,6 +66,5 @@ namespace updater
 		}
 	};
 }
-#ifndef DEV_BUILD
+
 REGISTER_COMPONENT(updater::component)
-#endif

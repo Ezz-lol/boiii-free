@@ -277,9 +277,8 @@ int main()
 		{
 			validate_non_network_share();
 			remove_crash_file();
-#ifndef DEV_BUILD
 			updater::update();
-#endif
+
 			if (!utils::io::file_exists(launcher::get_launcher_ui_file().generic_wstring()))
 			{
 				throw std::runtime_error("BOIII needs an active internet connection for the first time you launch it.");
