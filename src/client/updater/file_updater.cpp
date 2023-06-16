@@ -3,6 +3,7 @@
 #include "updater.hpp"
 #include "updater_ui.hpp"
 #include "file_updater.hpp"
+#include <stdlib.h>
 
 #include <utils/cryptography.hpp>
 #include <utils/flags.hpp>
