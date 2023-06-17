@@ -10,7 +10,7 @@ concurrency:
 jobs:
   build:
     name: Build
-    runs-on: windows-2022
+    runs-on: self-hosted
     strategy:
       fail-fast: false
       matrix:
