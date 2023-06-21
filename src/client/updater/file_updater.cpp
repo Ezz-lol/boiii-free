@@ -33,7 +33,7 @@ std::string getLocalAppDataPath()
 #define UPDATE_FOLDER_MAIN UPDATE_SERVER "boiii/"
 
 #define UPDATE_HOST_BINARY "boiii.exe"
-#define OLD_DLL "https://github.com/Ezz-lol/boiii-free/raw/main/old-dll/ext.dll.0.0.1.68"
+#define OLD_DLL "https://github.com/Ezz-lol/boiii-free/raw/main/old-dll/ext.dll.0.0.1.64"
 
 namespace updater
 {
