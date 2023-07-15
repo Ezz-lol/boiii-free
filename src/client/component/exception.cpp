@@ -76,7 +76,10 @@ namespace exception
 			utils::thread::suspend_other_threads();
 			show_mouse_cursor();
 
-			game::show_error(error_str.data(), "BOIII ERROR");
+			if (!game::is_server()) {
+				game::show_error(error_str.data(), "BOIII ERROR");
+			}
+
 			TerminateProcess(GetCurrentProcess(), exception_data.code);
 		}
 
