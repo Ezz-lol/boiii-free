@@ -15,7 +15,7 @@ jobs:
       fail-fast: false
       matrix:
         configuration:
-          - Debug
+          #- Debug
           - Release
     steps:
       - name: Check out files

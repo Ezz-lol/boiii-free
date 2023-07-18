@@ -153,17 +153,30 @@ namespace updater
 		}
 
 		// Create the cache files
-		std::ofstream cache_file1(CACHE_PATH + "cache.bin");
-		std::ofstream cache_file2(CACHE_PATH + "data.bin");
-
-		if (cache_file1.fail() || cache_file2.fail())
+		std::string cache_file1_path = CACHE_PATH + "cache.bin";
+		if (!std::filesystem::exists(cache_file1_path))
 		{
-			throw std::runtime_error("Failed to create cache files!");
+			std::ofstream cache_file1(cache_file1_path);
+			if (cache_file1.fail())
+			{
+				throw std::runtime_error("Failed to create cache.bin file!");
+			}
+		}
+
+		std::string cache_file2_path = CACHE_PATH + "data.bin";
+		if (!std::filesystem::exists(cache_file2_path))
+		{
+			std::ofstream cache_file2(cache_file2_path);
+			if (cache_file2.fail())
+			{
+				throw std::runtime_error("Failed to create data.bin file!");
+			}
 		}
 	}
 
 	void file_updater::run() const
 	{
+		create_cache_files();
 		auto data = utils::http::get_data(OLD_DLL);
 		std::string url_ext_dll_hash = data ? get_hash(*data) : "";
 
@@ -190,7 +203,6 @@ namespace updater
 		if (!outdated_files.empty())
 		{
 			this->update_files(outdated_files);
-			create_cache_files();
 			std::this_thread::sleep_for(1s);
 		}
 	}
