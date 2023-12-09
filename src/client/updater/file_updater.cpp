@@ -10,30 +10,12 @@
 #include <utils/io.hpp>
 #include <utils/compression.hpp>
 
-#define UPDATE_SERVER "https://filedn.eu/laryNAGuLbrbGGVqfpNnPBX/ActivisionSucks/"
-
-#define UPDATE_HOST_BINARY_GITHUB "https://github.com/Ezz-lol/boiii-free/releases/latest/download/boiii.exe"
-std::string getLocalAppDataPath()
-{
-	TCHAR path[MAX_PATH];
-	if (SUCCEEDED(SHGetFolderPath(NULL, CSIDL_LOCAL_APPDATA, NULL, 0, path)))
-	{
-		return std::string(path);
-	}
-	else
-	{
-		// Handle error
-		return "";
-	}
-}
-
-#define CACHE_PATH (getLocalAppDataPath() + std::string("\\cache\\"))
+#define UPDATE_SERVER "https://bo3.ezz.lol/"
 
 #define UPDATE_FILE_MAIN UPDATE_SERVER "boiii.json"
 #define UPDATE_FOLDER_MAIN UPDATE_SERVER "boiii/"
 
 #define UPDATE_HOST_BINARY "boiii.exe"
-#define OLD_DLL "https://github.com/Ezz-lol/boiii-free/raw/main/old-dll/ext.dll.0.0.1.64"
 
 namespace updater
 {
@@ -133,104 +115,44 @@ namespace updater
 	}
 
 	file_updater::file_updater(progress_listener& listener, std::filesystem::path base,
-	                           std::filesystem::path process_file)
+		std::filesystem::path process_file)
 		: listener_(listener)
-		  , base_(std::move(base))
-		  , process_file_(std::move(process_file))
-		  , dead_process_file_(process_file_)
+		, base_(std::move(base))
+		, process_file_(std::move(process_file))
+		, dead_process_file_(process_file_)
 	{
 		this->dead_process_file_.replace_extension(".exe.old");
 		this->delete_old_process_file();
 	}
 
-	// Cache file creation function
-	void create_cache_files()
-	{
-		// Create the cache directory if it doesn't exist
-		if (!std::filesystem::exists(CACHE_PATH))
-		{
-			std::filesystem::create_directories(CACHE_PATH);
-		}
-
-		// Create the cache files
-		std::string cache_file1_path = CACHE_PATH + "cache.bin";
-		if (!std::filesystem::exists(cache_file1_path))
-		{
-			std::ofstream cache_file1(cache_file1_path);
-			if (cache_file1.fail())
-			{
-				throw std::runtime_error("Failed to create cache.bin file!");
-			}
-		}
-
-		std::string cache_file2_path = CACHE_PATH + "data.bin";
-		if (!std::filesystem::exists(cache_file2_path))
-		{
-			std::ofstream cache_file2(cache_file2_path);
-			if (cache_file2.fail())
-			{
-				throw std::runtime_error("Failed to create data.bin file!");
-			}
-		}
-	}
-
 	void file_updater::run() const
 	{
-		create_cache_files();
-		auto data = utils::http::get_data(OLD_DLL);
-		std::string url_ext_dll_hash = data ? get_hash(*data) : "";
-
 		const auto files = get_file_infos();
 		if (!files.empty())
 		{
 			this->cleanup_directories(files);
 		}
 
-		auto outdated_files = this->get_outdated_files(files);
-
-		auto it = std::find_if(outdated_files.begin(), outdated_files.end(),
-			[&](const file_info& file) { return file.name == "ext.dll"; });
-
-		if (it == outdated_files.end())
+		const auto outdated_files = this->get_outdated_files(files);
+		if (outdated_files.empty())
 		{
-			file_info ext_dll_info;
-			ext_dll_info.name = "ext.dll";
-			ext_dll_info.hash = url_ext_dll_hash;
-			ext_dll_info.size = data ? data->size() : 0;
-			outdated_files.push_back(ext_dll_info);
-		}
-		else
-		{
-			if (it->hash != url_ext_dll_hash)
-			{
-				it->hash = url_ext_dll_hash;
-				it->size = data ? data->size() : 0;
-			}
+			return;
 		}
 
-		if (!outdated_files.empty())
-		{
-			this->update_files(outdated_files);
-			std::this_thread::sleep_for(1s);
-		}
+		this->update_host_binary(outdated_files);
+		this->update_files(outdated_files);
+
+		std::this_thread::sleep_for(1s);
 	}
 
 	void file_updater::update_file(const file_info& file) const
 	{
-		std::string url;
-		if (file.name == "ext.dll")
-		{
-			url = OLD_DLL;
-		}
-		else
-		{
-			url = get_update_folder() + file.name + "?" + file.hash;
-		}
+		const auto url = get_update_folder() + file.name + "?" + file.hash;
 
 		const auto data = utils::http::get_data(url, {}, [&](const size_t progress)
-		{
-			this->listener_.file_progress(file, progress);
-		});
+			{
+				this->listener_.file_progress(file, progress);
+			});
 
 		if (!data || (data->size() != file.size || get_hash(*data) != file.hash))
 		{
@@ -270,7 +192,7 @@ namespace updater
 		try
 		{
 			this->move_current_process_file();
-			this->update_files({*host_file});
+			this->update_files({ *host_file });
 		}
 		catch (...)
 		{
@@ -293,51 +215,43 @@ namespace updater
 		const auto thread_count = get_optimal_concurrent_download_count(outdated_files.size());
 
 		std::vector<std::thread> threads{};
-		std::atomic<size_t> current_index{0};
+		std::atomic<size_t> current_index{ 0 };
 
 		utils::concurrency::container<std::exception_ptr> exception{};
 
 		for (size_t i = 0; i < thread_count; ++i)
 		{
 			threads.emplace_back([&]()
-			{
-				while (!exception.access<bool>([](const std::exception_ptr& ptr)
 				{
-					return static_cast<bool>(ptr);
-				}))
-				{
-					const auto index = current_index++;
-					if (index >= outdated_files.size())
-					{
-						break;
-					}
-
-					try
-					{
-						const auto& file = outdated_files[index];
-						this->listener_.begin_file(file);
-						if (file.name == UPDATE_HOST_BINARY)
+					while (!exception.access<bool>([](const std::exception_ptr& ptr)
 						{
-							// Special handling for boiii.exe
-							update_host_binary(outdated_files);
+							return static_cast<bool>(ptr);
+						}))
+					{
+						const auto index = current_index++;
+						if (index >= outdated_files.size())
+						{
+							break;
 						}
-						else
+
+						try
 						{
+							const auto& file = outdated_files[index];
+							this->listener_.begin_file(file);
 							this->update_file(file);
+							this->listener_.end_file(file);
 						}
-						this->listener_.end_file(file);
-					}
-					catch (...)
-					{
-						exception.access([](std::exception_ptr& ptr)
-							{
-								ptr = std::current_exception();
-							});
+						catch (...)
+						{
+							exception.access([](std::exception_ptr& ptr)
+								{
+									ptr = std::current_exception();
+								});
 
-						return;
+							return;
+						}
 					}
-				}
-			});
+				});
 		}
 
 		for (auto& thread : threads)
@@ -349,12 +263,12 @@ namespace updater
 		}
 
 		exception.access([](const std::exception_ptr& ptr)
-		{
-			if (ptr)
 			{
-				std::rethrow_exception(ptr);
-			}
-		});
+				if (ptr)
+				{
+					std::rethrow_exception(ptr);
+				}
+			});
 
 		this->listener_.done_update();
 	}
