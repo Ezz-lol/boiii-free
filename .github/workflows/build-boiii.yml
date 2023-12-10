@@ -35,6 +35,9 @@ jobs:
       - name: Set up problem matching
         uses: ammaraskar/msvc-problem-matcher@master
 
+      - name: Build tlsdll #idk why
+        run: msbuild /m /v:minimal /p:Configuration=${{matrix.configuration}} /p:Platform=x64 build/tlsdll.vcxproj
+
       - name: Build ${{matrix.configuration}}
         run: msbuild /m /v:minimal /p:Configuration=${{matrix.configuration}} /p:Platform=x64 build/boiii.sln
 
