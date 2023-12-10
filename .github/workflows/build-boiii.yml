@@ -10,7 +10,7 @@ concurrency:
 jobs:
   build:
     name: BuildBoiii
-    runs-on: self-hosted
+    runs-on: windows-2022
     strategy:
       fail-fast: false
       matrix:
@@ -34,9 +34,6 @@ jobs:
 
       - name: Set up problem matching
         uses: ammaraskar/msvc-problem-matcher@master
-
-      - name: Build tlsdll #idk why
-        run: msbuild /m /v:minimal /p:Configuration=${{matrix.configuration}} /p:Platform=x64 build/tlsdll.vcxproj
 
       - name: Build ${{matrix.configuration}}
         run: msbuild /m /v:minimal /p:Configuration=${{matrix.configuration}} /p:Platform=x64 build/boiii.sln
