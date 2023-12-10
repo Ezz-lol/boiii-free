@@ -1,16 +1,16 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
-
-#include "scheduler.hpp"
 #include "game/game.hpp"
+#include "game/fragment_handler.hpp"
+
+#include "command.hpp"
+#include "network.hpp"
+#include "party.hpp"
+#include "scheduler.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/finally.hpp>
-
-#include "network.hpp"
-
-#include "game/fragment_handler.hpp"
 
 namespace network
 {
@@ -24,7 +24,7 @@ namespace network
 			return callbacks;
 		}
 
-		uint64_t handle_command(const game::netadr_t* address, const char* command, const game::msg_t* message)
+		int64_t handle_command(const game::netadr_t* address, const char* command, const game::msg_t* message)
 		{
 			const auto cmd_string = utils::string::to_lower(command);
 			auto& callbacks = get_callbacks();
@@ -32,7 +32,7 @@ namespace network
 			const auto offset = cmd_string.size() + 5;
 			if (message->cursize < 0 || static_cast<size_t>(message->cursize) < offset || handler == callbacks.end())
 			{
-				return 1;
+				return TRUE;
 			}
 
 			const std::basic_string_view data(message->data + offset, message->cursize - offset);
@@ -49,18 +49,24 @@ namespace network
 			{
 			}
 
-			return 0;
+			return FALSE;
+		}
+
+		bool cl_dispatch_connectionless_packet_stub([[maybe_unused]] int local_client_num, game::netadr_t from, game::msg_t* msg, [[maybe_unused]] int time)
+		{
+			const command::params params;
+			const auto* c = params.get(0);
+
+			return handle_command(&from, c, msg) == TRUE;
 		}
 
 		void handle_command_stub(utils::hook::assembler& a)
 		{
-			const auto sv = game::is_server();
-
 			a.pushad64();
 
 			a.mov(rdx, rcx); // command
-			a.mov(r8, sv ? r15 : r12); // msg
-			a.mov(rcx, sv ? r14 : r15); // address
+			a.mov(r8, r12); // msg
+			a.mov(rcx, r15); // address
 
 			a.call_aligned(handle_command);
 
@@ -108,14 +114,12 @@ namespace network
 			{
 				server_addr.sin_port = htons(port++);
 				if (++retries > 10) return;
-			}
-			while (bind(s, reinterpret_cast<sockaddr*>(&server_addr), sizeof(server_addr)) ==
-				SOCKET_ERROR);
+			} while (bind(s, reinterpret_cast<sockaddr*>(&server_addr), sizeof(server_addr)) == SOCKET_ERROR);
 		}
 
 		bool& socket_byte_missing()
 		{
-			static thread_local bool was_missing{false};
+			static thread_local bool was_missing{ false };
 			return was_missing;
 		}
 
@@ -129,9 +133,9 @@ namespace network
 			}
 
 			const auto _ = utils::finally([msg]
-			{
-				++msg->data;
-			});
+				{
+					++msg->data;
+				});
 
 			return game::MSG_ReadByte(msg);
 		}
@@ -142,15 +146,15 @@ namespace network
 		}
 
 		void con_restricted_execute_buf_stub(int local_client_num, game::ControllerIndex_t controller_index,
-		                                     const char* buffer)
+			const char* buffer)
 		{
 			game::Cbuf_ExecuteBuffer(local_client_num, controller_index, buffer);
 		}
 
 		uint64_t handle_packet_internal_stub(const game::ControllerIndex_t controller_index,
-		                                     const game::netadr_t from_adr, const game::XUID from_xuid,
-		                                     const game::LobbyType lobby_type, const uint64_t dest_module,
-		                                     game::msg_t* msg)
+			const game::netadr_t from_adr, const game::XUID from_xuid,
+			const game::LobbyType lobby_type, const uint64_t dest_module,
+			game::msg_t* msg)
 		{
 			if (from_adr.type != game::NA_LOOPBACK)
 			{
@@ -158,9 +162,9 @@ namespace network
 			}
 
 			return handle_packet_internal_hook.invoke<bool>(controller_index, from_adr, from_xuid, lobby_type,
-			                                                dest_module, msg)
-				       ? 1
-				       : 0;
+				dest_module, msg)
+				? 1
+				: 0;
 		}
 
 		uint64_t ret2()
@@ -213,7 +217,7 @@ namespace network
 
 		const auto to = convert_to_sockaddr(address);
 		sendto(*game::ip_socket, static_cast<const char*>(data), static_cast<int>(length), 0,
-		       reinterpret_cast<const sockaddr*>(&to), sizeof(to));
+			reinterpret_cast<const sockaddr*>(&to), sizeof(to));
 	}
 
 	void send_data(const game::netadr_t& address, const std::string& data)
@@ -295,7 +299,7 @@ namespace network
 		memcpy(buffer.data() + 1, data, size);
 
 		return sendto(s, buffer.data(), static_cast<int>(buffer.size()), 0, reinterpret_cast<sockaddr*>(&address),
-		              sizeof(address));
+			sizeof(address));
 	}
 
 	struct component final : generic_component
@@ -322,9 +326,6 @@ namespace network
 			// set initial connection state to challenging
 			utils::hook::set<uint32_t>(game::select(0x14134C6E0, 0x14018E574), 4);
 
-			// intercept command handling
-			utils::hook::call(game::select(0x14134D146, 0x14018EED0), utils::hook::assemble(handle_command_stub));
-
 			// don't kick clients without dw handle
 			utils::hook::set<uint8_t>(game::select(0x14224DEAD, 0x1405315F9), 0xEB);
 
@@ -334,21 +335,23 @@ namespace network
 			// NA_IP -> NA_RAWIP in NetAdr_ToString
 			utils::hook::set<uint8_t>(game::select(0x142172ED4, 0x140515864), game::NA_RAWIP);
 
-			// Kill 'echo' OOB handler
-			utils::hook::set<uint8_t>(game::select(0x14134D0FB, 0x14018EE82), 0xEB);
-
 			if (game::is_server())
 			{
 				// Remove restrictions for rcon commands
 				utils::hook::call(0x140538D5C_g, con_restricted_execute_buf_stub); // SVC_RemoteCommand
 
-				// Kill 'error' OOB handler on the dedi
-				utils::hook::nop(0x14018EF8B_g, 5);
+				// intercept command handling
+				utils::hook::call(0x14018E698_g, cl_dispatch_connectionless_packet_stub);
 			}
 			else
 			{
 				// Truncate error string to make sure there are no buffer overruns later
 				utils::hook::call(0x14134D206_g, com_error_oob_stub);
+
+				// intercept command handling
+				utils::hook::call(0x14134D146_g, utils::hook::assemble(handle_command_stub));
+
+				utils::hook::set<uint8_t>(0x14134D0FB_g, 0xEB);
 			}
 
 			// TODO: Fix that

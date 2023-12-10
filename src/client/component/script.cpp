@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
+#include "game/utils.hpp"
 
 #include "game_event.hpp"
 
@@ -136,10 +137,10 @@ namespace script
 			const auto boiii_folder = host.get_folder() / "boiii";
 
 			const auto load = [&data_folder, &boiii_folder](const std::filesystem::path& folder, const bool is_custom)
-			{
-				load_scripts_folder((data_folder / folder).string(), is_custom);
-				load_scripts_folder((boiii_folder / folder).string(), is_custom);
-			};
+				{
+					load_scripts_folder((data_folder / folder).string(), is_custom);
+					load_scripts_folder((boiii_folder / folder).string(), is_custom);
+				};
 
 			// scripts folder is for overriding stock scripts the game uses
 			load("scripts", false);
@@ -151,14 +152,19 @@ namespace script
 			{
 				load("custom_scripts" / game_type.value(), true);
 			}
+
+			const std::filesystem::path mapname = game::get_dvar_string("mapname");
+			if (!mapname.empty())
+			{
+				load("custom_scripts" / mapname, true);
+			}
 		}
 
 		game::RawFile* db_find_x_asset_header_stub(const game::XAssetType type, const char* name,
-		                                        const bool error_if_missing,
-		                                        const int wait_time)
+			const bool error_if_missing,
+			const int wait_time)
 		{
-			auto* asset_header = db_find_x_asset_header_hook.invoke<game::RawFile*>(
-				type, name, error_if_missing, wait_time);
+			auto* asset_header = db_find_x_asset_header_hook.invoke<game::RawFile*>(type, name, error_if_missing, wait_time);
 
 			if (type != game::ASSET_TYPE_SCRIPTPARSETREE)
 			{
@@ -196,7 +202,7 @@ namespace script
 		}
 
 		void scr_loot_get_item_quantity_stub([[maybe_unused]] game::scriptInstance_t inst,
-		                                     [[maybe_unused]] game::scr_entref_t entref)
+			[[maybe_unused]] game::scr_entref_t entref)
 		{
 			game::Scr_AddInt(game::SCRIPTINSTANCE_SERVER, 255);
 		}
@@ -220,7 +226,7 @@ namespace script
 
 			// Workaround for "Out of X" gobblegum
 			gscr_get_bgb_remaining_hook.create(game::select(0x141A8CAB0, 0x1402D2310),
-			                                   scr_loot_get_item_quantity_stub);
+				scr_loot_get_item_quantity_stub);
 		}
 	};
 };

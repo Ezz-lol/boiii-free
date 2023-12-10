@@ -1,9 +1,9 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
-
 #include "game/game.hpp"
 
 #include <utils/hook.hpp>
+#include <utils/string.hpp>
 
 namespace dedicated_patches
 {
@@ -77,6 +77,16 @@ namespace dedicated_patches
 
 			return clients[client_num].xuid;
 		}
+
+		void info_set_value_for_key_stub(char* s, const char* key, [[maybe_unused]] const char* value)
+		{
+			game::Info_SetValueForKey(s, key, "Unknown Soldier");
+		}
+
+		const char* va_stub([[maybe_unused]] const char* fmt, const char* name, [[maybe_unused]] const int client_num)
+		{
+			return utils::string::va("%s", name);
+		}
 	}
 
 	struct component final : server_component
@@ -106,6 +116,20 @@ namespace dedicated_patches
 
 			// Stop executing default_dedicated.cfg & language_settings.cfg
 			utils::hook::set<uint8_t>(0x1405063C0_g, 0xC3);
+
+			// change 32 character max name limit to 15
+			// SV_UserinfoChanged
+			utils::hook::set<uint8_t>(0x14053136A_g, 15);
+			// G_ClientSessionInfoChanged
+			utils::hook::set<uint8_t>(0x1402799E9_g, 15);
+			utils::hook::set<uint8_t>(0x140279A04_g, 15);
+			utils::hook::set<uint8_t>(0x140279A21_g, 15);
+			utils::hook::set<uint8_t>(0x140279A85_g, 15);
+
+			// Disable Unknown Soldier with a number
+			utils::hook::call(0x140531311_g, info_set_value_for_key_stub);
+			utils::hook::call(0x1405311E0_g, va_stub);
+			utils::hook::call(0x140531227_g, va_stub);
 		}
 	};
 }

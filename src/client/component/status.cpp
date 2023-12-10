@@ -8,7 +8,7 @@ namespace status
 {
 	namespace
 	{
-		thread_local int g_client_num{0};
+		thread_local int g_client_num{ 0 };
 
 		void print_client_num(const int channel, const int label, const char* fmt, const int client_num)
 		{
@@ -37,9 +37,12 @@ namespace status
 			utils::hook::call(game::select(0x142246EDE, 0x14052C5CE), print_client_xuid);
 
 			utils::hook::copy_string(game::select(0x143050480, 0x140E85A20),
-			                         "num score ping xuid             name             address                  qport  \n");
+				"num score ping xuid             name             address                  qport  \n");
 			utils::hook::copy_string(game::select(0x1430504E0, 0x140E85A80),
-			                         "--- ----- ---- ---------------- ---------------- ------------------------ ------ \n");
+				"--- ----- ---- ---------------- ---------------- ------------------------ ------ \n");
+
+			utils::hook::copy_string(game::select(0x1430417C0, 0x140E76D50),
+				"%i.%i.%i.%i:%i");
 		}
 	};
 }

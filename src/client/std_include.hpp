@@ -64,9 +64,12 @@
 #undef min
 #endif
 
+#undef GetObject
+
 #include <cassert>
-#include <cstring>
 #include <cctype>
+#include <climits>
+#include <cstring>
 
 #include <array>
 #include <atomic>
@@ -89,10 +92,10 @@
 #include <variant>
 #include <vector>
 
-#include <udis86.h>
-#include <MinHook.h>
 #include <asmjit/core/jitruntime.h>
 #include <asmjit/x86/x86assembler.h>
+#include <MinHook.h>
+#include <udis86.h>
 
 #define RAPIDJSON_NOEXCEPT
 #define RAPIDJSON_ASSERT(cond) if (cond); else throw std::runtime_error("rapidjson assert fail");

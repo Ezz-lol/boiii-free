@@ -58,7 +58,7 @@ namespace chat
 
 		void send_chat_message(int client_num, const std::string& text)
 		{
-			game::SV_GameSendServerCommand(client_num, game::SV_CMD_RELIABLE_0, utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, text.data()));
+			game::SV_GameSendServerCommand(client_num, game::SV_CMD_CAN_IGNORE_0, utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, text.data()));
 		}
 
 		// This function has probably a different name
@@ -127,41 +127,41 @@ namespace chat
 
 				// Overwrite say command
 				utils::hook::jump(0x14052A6C0_g, +[]
-				{
-					if (!game::is_server_running())
 					{
-						printf("Server is not running\n");
-						return;
-					}
+						if (!game::is_server_running())
+						{
+							printf("Server is not running\n");
+							return;
+						}
 
-					const command::params params{};
-					const auto text = params.join(1);
+						const command::params params{};
+						const auto text = params.join(1);
 
-					send_chat_message(-1, text);
-					printf("Server: %s\n", text.data());
-				});
+						send_chat_message(-1, text);
+						printf("Server: %s\n", text.data());
+					});
 
 				// Overwrite tell command
 				utils::hook::jump(0x14052A7E0_g, +[]
-				{
-					if (!game::is_server_running())
 					{
-						printf("Server is not running\n");
-						return;
-					}
+						if (!game::is_server_running())
+						{
+							printf("Server is not running\n");
+							return;
+						}
 
-					const command::params params{};
-					if (params.size() < 2)
-					{
-						return;
-					}
+						const command::params params{};
+						if (params.size() < 2)
+						{
+							return;
+						}
 
-					const auto client = atoi(params[1]);
-					const auto text = params.join(2);
+						const auto client = atoi(params[1]);
+						const auto text = params.join(2);
 
-					send_chat_message(client, text);
-					printf("Server -> %i: %s\n", client, text.data());
-				});
+						send_chat_message(client, text);
+						printf("Server -> %i: %s\n", client, text.data());
+					});
 
 				// Kill say fallback
 				utils::hook::set<uint8_t>(0x1402FF987_g, 0xEB);
