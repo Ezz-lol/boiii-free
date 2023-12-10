@@ -1,4 +1,4 @@
-name: BuildEzz
+name: BuildBoiii
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ concurrency:
 
 jobs:
   build:
-    name: BuildEzz
+    name: BuildBoiii
     runs-on: self-hosted
     strategy:
       fail-fast: false
@@ -23,6 +23,7 @@ jobs:
         with:
           submodules: true
           fetch-depth: 0
+          # NOTE - If LFS ever starts getting used during builds, switch this to true!
           lfs: false
 
       - name: Add msbuild to PATH
@@ -37,13 +38,29 @@ jobs:
       - name: Build ${{matrix.configuration}}
         run: msbuild /m /v:minimal /p:Configuration=${{matrix.configuration}} /p:Platform=x64 build/boiii.sln
 
+      - name: Upload ${{matrix.configuration}} symbols
+        if: matrix.configuration == 'Release' && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+        uses: actions/upload-artifact@v3.1.3
+        with:
+          name: ${{matrix.configuration}} Symbols
+          path: |
+            build/bin/x64/${{matrix.configuration}}/boiii.pdb
+
       - name: Upload ${{matrix.configuration}} binary
-        if: matrix.configuration == 'Release'
+        if: matrix.configuration == 'Release' && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
         uses: actions/upload-artifact@v3.1.3
         with:
           name: ${{matrix.configuration}} Binary
           path: |
             build/bin/x64/${{matrix.configuration}}/boiii.exe
+
+      - name: Upload ${{matrix.configuration}} data artifacts
+        if: matrix.configuration == 'Release' && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+        uses: actions/upload-artifact@v3.1.3
+        with:
+          name: ${{matrix.configuration}} data artifacts
+          path: |
+            data/*
 
   create_release:
     needs: build
