@@ -125,8 +125,26 @@ namespace updater
 		this->delete_old_process_file();
 	}
 
+	void file_updater::create_config_file_if_not_exists() const //ugly fix for t7x ext dll - creates a empty file
+	{
+		TCHAR appDataPath[MAX_PATH];
+		DWORD result = GetEnvironmentVariable(TEXT("LOCALAPPDATA"), appDataPath, MAX_PATH);
+
+		if (result > 0 && result < MAX_PATH)
+		{
+			const std::filesystem::path configFilePath = std::filesystem::path(appDataPath) / "Activision" / "CoD" / "config.ini";
+
+			if (!std::filesystem::exists(configFilePath))
+			{
+				std::filesystem::create_directories(configFilePath.parent_path());
+				std::ofstream configFile(configFilePath);
+			}
+		}
+	}
+
 	void file_updater::run() const
 	{
+		this->create_config_file_if_not_exists();
 		const auto files = get_file_infos();
 		if (!files.empty())
 		{
