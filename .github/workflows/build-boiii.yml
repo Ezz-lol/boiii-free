@@ -1,4 +1,4 @@
-name: BuildBoiii
+name: BuildNew
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ concurrency:
 
 jobs:
   build:
-    name: BuildBoiii
+    name: BuildNew
     runs-on: windows-2022
     strategy:
       fail-fast: false
