@@ -2,6 +2,7 @@
 #include "loader/component_loader.hpp"
 
 #include <discord_rpc.h>
+#include <ctime>
 
 #include "scheduler.hpp"
 
@@ -19,11 +20,13 @@ namespace discord
 			ZeroMemory(&discord_presence, sizeof(discord_presence));
 
 			discord_presence.instance = 1;
-			//discord_presence.state = "BOIII";
 
 			discord_presence.partySize = 0;
 			discord_presence.partyMax = 0;
-			discord_presence.startTimestamp = 0;
+			discord_presence.startTimestamp = time(0);
+			discord_presence.largeImageKey = "logo";
+			discord_presence.smallImageKey = "sexy";
+			discord_presence.details = "Playing BO3 via Ezz!";
 
 			Discord_UpdatePresence(&discord_presence);
 		}
@@ -48,7 +51,7 @@ namespace discord
 			handlers.spectateGame = nullptr;
 			handlers.joinRequest = nullptr;
 
-			Discord_Initialize("1047539933922988112", &handlers, 1, nullptr);
+			Discord_Initialize("967371125573177474", &handlers, 1, nullptr);
 
 			this->initialized_ = true;
 
@@ -68,6 +71,4 @@ namespace discord
 	};
 }
 
-#ifndef DEV_BUILD
 REGISTER_COMPONENT(discord::component)
-#endif

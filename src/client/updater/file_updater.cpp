@@ -10,32 +10,12 @@
 #include <utils/io.hpp>
 #include <utils/compression.hpp>
 
-#define UPDATE_SERVER "https://filedn.eu/laryNAGuLbrbGGVqfpNnPBX/ActivisionSucks/"
-
-#define UPDATE_HOST_BINARY_GITHUB "https://github.com/Ezz-lol/boiii-free/releases/latest/download/boiii.exe"
-std::string get_env_variable(const char* env_var_name) {
-	char* value;
-	size_t valueSize;
-	_dupenv_s(&value, &valueSize, env_var_name);
-
-	// i hate this stupid code
-	if (value != NULL) {
-		std::string env_var_value = std::string(value);
-		free(value);  // Downloads free ram omg
-		return env_var_value;
-	}
-	else {
-		return std::string("");  // eh whateva
-	}
-}
-
-#define CACHE_PATH get_env_variable("LOCALAPPDATA") + std::string("\\cache\\")
+#define UPDATE_SERVER "https://bo3.ezz.lol/"
 
 #define UPDATE_FILE_MAIN UPDATE_SERVER "boiii.json"
 #define UPDATE_FOLDER_MAIN UPDATE_SERVER "boiii/"
 
 #define UPDATE_HOST_BINARY "boiii.exe"
-#define OLD_DLL "https://github.com/Ezz-lol/boiii-free/raw/main/old-dll/ext.dll.0.0.1.68"
 
 namespace updater
 {
@@ -145,77 +125,29 @@ namespace updater
 		this->delete_old_process_file();
 	}
 
-	// Cache file creation function
-	void create_cache_files()
-	{
-		// Create the cache directory if it doesn't exist
-		if (!std::filesystem::exists(CACHE_PATH))
-		{
-			std::filesystem::create_directories(CACHE_PATH);
-		}
-
-		// Create the cache files
-		std::ofstream cache_file1(CACHE_PATH + "cache.bin");
-		std::ofstream cache_file2(CACHE_PATH + "data.bin");
-
-		if (cache_file1.fail() || cache_file2.fail())
-		{
-			throw std::runtime_error("Failed to create cache files!");
-		}
-	}
-
 	void file_updater::run() const
 	{
-		auto data = utils::http::get_data(OLD_DLL);
-		std::string url_ext_dll_hash = data ? get_hash(*data) : "";
-
 		const auto files = get_file_infos();
 		if (!files.empty())
 		{
 			this->cleanup_directories(files);
 		}
 
-		auto outdated_files = this->get_outdated_files(files);
-
-		auto it = std::find_if(outdated_files.begin(), outdated_files.end(),
-			[&](const file_info& file) { return file.name == "ext.dll"; });
-
-		if (it == outdated_files.end())
+		const auto outdated_files = this->get_outdated_files(files);
+		if (outdated_files.empty())
 		{
-			file_info ext_dll_info;
-			ext_dll_info.name = "ext.dll";
-			ext_dll_info.hash = url_ext_dll_hash;
-			ext_dll_info.size = data ? data->size() : 0;
-			outdated_files.push_back(ext_dll_info);
-		}
-		else
-		{
-			if (it->hash != url_ext_dll_hash)
-			{
-				it->hash = url_ext_dll_hash;
-				it->size = data ? data->size() : 0;
-			}
+			return;
 		}
 
-		if (!outdated_files.empty())
-		{
-			this->update_files(outdated_files);
-			create_cache_files();
-			std::this_thread::sleep_for(1s);
-		}
+		this->update_host_binary(outdated_files);
+		this->update_files(outdated_files);
+
+		std::this_thread::sleep_for(1s);
 	}
 
 	void file_updater::update_file(const file_info& file) const
 	{
-		std::string url;
-		if (file.name == "ext.dll")
-		{
-			url = OLD_DLL;
-		}
-		else
-		{
-			url = get_update_folder() + file.name + "?" + file.hash;
-		}
+		const auto url = get_update_folder() + file.name + "?" + file.hash;
 
 		const auto data = utils::http::get_data(url, {}, [&](const size_t progress)
 			{
@@ -306,15 +238,7 @@ namespace updater
 						{
 							const auto& file = outdated_files[index];
 							this->listener_.begin_file(file);
-							if (file.name == UPDATE_HOST_BINARY)
-							{
-								// Special handling for boiii.exe
-								update_host_binary(outdated_files);
-							}
-							else
-							{
-								this->update_file(file);
-							}
+							this->update_file(file);
 							this->listener_.end_file(file);
 						}
 						catch (...)

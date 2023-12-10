@@ -13,7 +13,7 @@ namespace patches
 		const game::dvar_t* lobby_min_players;
 
 		void script_errors_stub([[maybe_unused]] const char* file, [[maybe_unused]] int line,
-		                        [[maybe_unused]] unsigned int code, const char* fmt, ...)
+			[[maybe_unused]] unsigned int code, const char* fmt, ...)
 		{
 			char buffer[0x1000];
 
@@ -30,7 +30,7 @@ namespace patches
 		void scr_get_num_expected_players()
 		{
 			auto expected_players = game::LobbyHost_GetClientCount(game::LOBBY_TYPE_GAME,
-			                                                       game::LOBBY_CLIENT_TYPE_ALL);
+				game::LOBBY_CLIENT_TYPE_ALL);
 
 			const auto mode = game::Com_SessionMode_GetMode();
 			if ((mode == game::MODE_ZOMBIES || mode == game::MODE_CAMPAIGN))
@@ -68,7 +68,7 @@ namespace patches
 			// don't make script errors fatal error
 			utils::hook::call(game::select(0x1412CAC4D, 0x140158EB2), script_errors_stub);
 
-			// change 4 character name limit to 3 characters
+			// change 4 character min name limit to 3 characters
 			utils::hook::set<uint8_t>(game::select(0x14224DA53, 0x140531143), 3);
 			utils::hook::set<uint8_t>(game::select(0x14224DBB4, 0x1405312A8), 3);
 			utils::hook::set<uint8_t>(game::select(0x14224DF8C, 0x1405316DC), 3);
