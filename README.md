@@ -1,5 +1,5 @@
 # BOIII ☄️
 
-Join https://discord.gg/ezz 😎
+Join https://dc.ezz.lol 😎
 
 Feel free to open up Pull requests 😑
