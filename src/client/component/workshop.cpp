@@ -9,11 +9,16 @@
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/io.hpp>
+#include <utils/thread.hpp>
+#include "steamcmd.hpp"
 
 namespace workshop
 {
 	namespace
 	{
+		std::thread download_thread{};
+		std::atomic_bool downloading{false};
+
 		utils::hook::detour setup_server_map_hook;
 		utils::hook::detour load_usermap_hook;
 
@@ -238,19 +243,49 @@ namespace workshop
 		return loaded_mod_id;
 	}
 
-	bool check_valid_usermap_id(const std::string& mapname, const std::string& pub_id)
+	extern bool downloading_workshop_item = false;
+
+	bool check_valid_usermap_id(const std::string& mapname, const std::string& pub_id, const std::string& workshop_id)
 	{
 		if (!game::DB_FileExists(mapname.data(), 0) && pub_id.empty())
 		{
-			game::UI_OpenErrorPopupWithMessage(0, 0x100,
-				utils::string::va("Can't find usermap: %s!\nMake sure you're subscribed to the workshop item.", mapname.data()));
+			if (workshop::downloading_workshop_item)
+			{
+				MessageBox(NULL, "You are already downloading map in background \nYou can download only one map at a time.", "Warning!", MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL);
+				return false;
+			}
+
+			if (utils::string::is_numeric(mapname.data()))
+			{
+				int result = MessageBox(NULL, utils::string::va("Can't find usermap id: %s!\nDo you want to download it now?.", mapname.data()), "Info", MB_YESNO | MB_ICONQUESTION | MB_SYSTEMMODAL);
+				if (result == IDYES)
+				{
+					printf("workshop id as mapname starting the download \n");
+					download_thread = utils::thread::create_named_thread("workshop_download", steamcmd::initialize_download, mapname, "Map");
+					download_thread.detach();
+				}
+			}
+			else if (!workshop_id.empty() && utils::string::is_numeric(workshop_id.data()))
+			{
+				int result = MessageBox(NULL, utils::string::va("Can't find usermap id: %s!\nDo you want to download it now?.", mapname.data()), "Info", MB_YESNO | MB_ICONQUESTION | MB_SYSTEMMODAL);
+				if (result == IDYES)
+				{
+					printf("'workshop_id' dvar found.\nDownloading the map now \n");
+					download_thread = utils::thread::create_named_thread("workshop_download", steamcmd::initialize_download, workshop_id, "Map");
+					download_thread.detach();
+				}
+			}
+			else
+			{
+				game::UI_OpenErrorPopupWithMessage(0, 0x100,
+					utils::string::va("Could not download this mod folder name is not numeric and  'workshop_id' dvar is empty! \nCan't find usermap id: %s!\nMake sure you're subscribed to the workshop item.", mapname.data()));
+			}
 			return false;
 		}
-
 		return true;
 	}
 
-	bool check_valid_mod_id(const std::string& mod)
+	bool check_valid_mod_id(const std::string& mod, const std::string& workshop_id)
 	{
 		if (mod.empty() || mod == "usermaps")
 		{
@@ -259,8 +294,37 @@ namespace workshop
 
 		if (!has_mod(mod))
 		{
-			game::UI_OpenErrorPopupWithMessage(0, 0x100,
-				utils::string::va("Can't find mod with publisher id: %s!\nMake sure you're subscribed to the workshop item.", mod.data()));
+			if (workshop::downloading_workshop_item)
+			{
+				MessageBox(NULL, "You are already downloading mod in background \nYou can download only one mod at a time.", "Warning!", MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL);
+				return false;
+			}
+
+			if (utils::string::is_numeric(mod.data()))
+			{
+				int result = MessageBox(NULL, utils::string::va("Can't find mod id: %s!\nDo you want to download it now?.", mod.data()), "Info", MB_YESNO | MB_ICONQUESTION | MB_SYSTEMMODAL);
+				if (result == IDYES)
+				{
+					printf("mod name is numeric downloading the mod \n");
+					download_thread = utils::thread::create_named_thread("workshop_download", steamcmd::initialize_download, mod, "Mod");
+					download_thread.detach();
+				}
+			}
+			else if (!workshop_id.empty() && utils::string::is_numeric(workshop_id.data()))
+			{
+				int result = MessageBox(NULL, utils::string::va("Can't find mod id: %s!\nDo you want to download it now?.", mod.data()), "Info", MB_YESNO | MB_ICONQUESTION | MB_SYSTEMMODAL);
+				if (result == IDYES)
+				{
+					printf("'workshop_id' dvar found downloading the mod \n");
+					download_thread = utils::thread::create_named_thread("workshop_download", steamcmd::initialize_download, workshop_id, "Mod");
+					download_thread.detach();
+				}
+			}
+			else
+			{
+				game::UI_OpenErrorPopupWithMessage(0, 0x100,
+					utils::string::va("Could not download this mod folder name is not numeric and 'workshop_id' dvar is empty! \nCan't find mod id: %s!\nMake sure you're subscribed to the workshop item.", mod.data()));
+			}
 			return false;
 		}
 
@@ -291,6 +355,7 @@ namespace workshop
 	public:
 		void post_unpack() override
 		{
+
 			command::add("userContentReload", [](const command::params& params)
 			{
 				game::reloadUserContent();
@@ -312,6 +377,17 @@ namespace workshop
 			utils::hook::call(0x14135CD84_g, has_workshop_item_stub);
 			setup_server_map_hook.create(0x14135CD20_g, setup_server_map_stub);
 		}
+
+
+		void pre_destroy() override
+		{
+			workshop::downloading_workshop_item = false;
+			if (download_thread.joinable())
+			{
+				download_thread.join();
+			}
+		}
+
 	};
 }
 
