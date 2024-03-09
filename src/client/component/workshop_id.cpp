@@ -25,17 +25,16 @@ namespace workshop_id
 			std::string line_to_find = "set workshop_id";
 			std::string new_string = "set workshop_id \"" + pubID + "\"";
 
-			FILE* inputFile;
-			if (fopen_s(&inputFile, config_path.c_str(), "r") != 0)
+			std::ifstream inputFile(config_path);
+			if (!inputFile.is_open())
 			{
 				printf("Error opening server_zm.cfg file.\n");
 				return 1;
 			}
 
-			char buffer[1024];
-			while (fgets(buffer, sizeof(buffer), inputFile))
+			std::string line;
+			while (std::getline(inputFile, line))
 			{
-				std::string line(buffer);
 				if (line == new_string)
 				{
 					printf("Correct dvar already exists.\n");
@@ -54,7 +53,7 @@ namespace workshop_id
 				}
 			}
 
-			fclose(inputFile);
+			inputFile.close();
 
 			if (!line_exists)
 			{
@@ -62,8 +61,8 @@ namespace workshop_id
 				printf("The 'workshop_id' dvar added in /zone/server_zm.cfg successfully.\n");
 			}
 
-			FILE* outputFile;
-			if (fopen_s(&outputFile, config_path.c_str(), "w") != 0)
+			std::ofstream outputFile(config_path);
+			if (!outputFile.is_open())
 			{
 				printf("Error opening or adding the workshop_id dvar to server_zm.cfg file.\n");
 				return 1;
@@ -71,10 +70,10 @@ namespace workshop_id
 
 			for (const std::string& updated_line : lines)
 			{
-				fprintf(outputFile, "%s", updated_line.c_str());
+				outputFile << updated_line << std::endl;
 			}
 
-			fclose(outputFile);
+			outputFile.close();
 			MessageBox(NULL, "Loaded workshop item id found! \n\nWriting ID to zone/server_zm.cfg as workshop_id dvar. \n\nPlease restart the server to enable it.", "Info!", MB_OK | MB_ICONEXCLAMATION | MB_SYSTEMMODAL);
 
 			return 0;
