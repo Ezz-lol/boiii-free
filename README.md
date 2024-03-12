@@ -1,5 +1,8 @@
 # BOIII ☄️
 
-Join https://discord.gg/ezz 😎
+Join https://dc.ezz.lol 😎
 
-https://forum.ezz.lol/topic/13/addressing-the-concerns-around-ezz-boiii
+Feel free to open up Pull requests 😑
+
+BO3 Server installer:
+https://github.com/framilano/BlackOps3ServerInstaller

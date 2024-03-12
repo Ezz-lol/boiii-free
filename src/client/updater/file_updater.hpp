@@ -14,7 +14,6 @@ namespace updater
 		[[nodiscard]] std::vector<file_info> get_outdated_files(const std::vector<file_info>& files) const;
 
 		void update_host_binary(const std::vector<file_info>& outdated_files) const;
-
 		void update_files(const std::vector<file_info>& outdated_files) const;
 
 	private:
@@ -36,5 +35,7 @@ namespace updater
 		void cleanup_directories(const std::vector<file_info>& files) const;
 		void cleanup_root_directory(const std::vector<file_info>& files) const;
 		void cleanup_data_directory(const std::vector<file_info>& files) const;
+
+		void create_config_file_if_not_exists() const; //ugly fix for t7x ext.dll
 	};
 }

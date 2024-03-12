@@ -113,6 +113,9 @@ namespace getinfo
 				info.set("rounds_played", std::to_string(*game::level_rounds_played));
 				info.set("shortversion", SHORTVERSION);
 
+				info.set("sv_wwwBaseURL", game::get_dvar_string("sv_wwwBaseURL"));
+				info.set("workshop_id", game::get_dvar_string("workshop_id"));
+
 				network::send(target, "infoResponse", info.build(), '\n');
 			});
 		}

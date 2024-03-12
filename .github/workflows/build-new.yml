@@ -1,4 +1,4 @@
-name: BuildBoiii
+name: BuildNew
 
 on:
   workflow_dispatch:
@@ -9,8 +9,8 @@ concurrency:
 
 jobs:
   build:
-    name: BuildBoiii
-    runs-on: self-hosted
+    name: BuildNew
+    runs-on: windows-2022
     strategy:
       fail-fast: false
       matrix:
@@ -39,7 +39,7 @@ jobs:
         run: msbuild /m /v:minimal /p:Configuration=${{matrix.configuration}} /p:Platform=x64 build/boiii.sln
 
       - name: Upload ${{matrix.configuration}} symbols
-        if: matrix.configuration == 'Release' && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+        if: matrix.configuration == 'Release'
         uses: actions/upload-artifact@v3.1.3
         with:
           name: ${{matrix.configuration}} Symbols
@@ -47,7 +47,7 @@ jobs:
             build/bin/x64/${{matrix.configuration}}/boiii.pdb
 
       - name: Upload ${{matrix.configuration}} binary
-        if: matrix.configuration == 'Release' && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+        if: matrix.configuration == 'Release'
         uses: actions/upload-artifact@v3.1.3
         with:
           name: ${{matrix.configuration}} Binary
@@ -55,7 +55,7 @@ jobs:
             build/bin/x64/${{matrix.configuration}}/boiii.exe
 
       - name: Upload ${{matrix.configuration}} data artifacts
-        if: matrix.configuration == 'Release' && github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+        if: matrix.configuration == 'Release'
         uses: actions/upload-artifact@v3.1.3
         with:
           name: ${{matrix.configuration}} data artifacts
