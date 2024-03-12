@@ -9,5 +9,5 @@ https://github.com/framilano/BlackOps3ServerInstaller
 
 ---
 
-Credits:
-Steam workshop downloader by @Likeicareaboutit
+Credits: \
+Steam workshop downloader by [Likeicareaboutit](https://www.github.com/Likeicareaboutit)
