@@ -28,8 +28,6 @@ namespace ui_scripting
 		utils::hook::detour hks_package_require_hook;
 		utils::hook::detour lua_cod_getrawfile_hook;
 
-		bool unsafe_function_called_message_shown = false;
-
 		struct globals_t
 		{
 			std::string in_require_script;
@@ -291,7 +289,7 @@ namespace ui_scripting
 		}
 
 		int hks_load_stub(game::hks::lua_State* state, void* compiler_options, void* reader, void* reader_data,
-		                  void* debug_reader, void* debug_reader_data, const char* chunk_name)
+			void* debug_reader, void* debug_reader_data, const char* chunk_name)
 		{
 			if (globals.load_raw_script)
 			{
@@ -301,8 +299,8 @@ namespace ui_scripting
 			}
 
 			return utils::hook::invoke<int>(game::select(0x141D3AFB0, 0x1403E4090), state, compiler_options, reader,
-			                                reader_data, debug_reader,
-			                                debug_reader_data, chunk_name);
+				reader_data, debug_reader,
+				debug_reader_data, chunk_name);
 		}
 
 		game::XAssetHeader lua_cod_getrawfile_stub(char* filename)
@@ -340,81 +338,6 @@ namespace ui_scripting
 		int luaopen_stub([[maybe_unused]] game::hks::lua_State* l)
 		{
 			return 0;
-		}
-
-		int lua_unsafe_function_stub([[maybe_unused]] game::hks::lua_State* l)
-		{
-			if (!unsafe_function_called_message_shown)
-			{
-				auto state = get_globals();
-				// TODO: Is it possible to do this with a confirm dialog? Doing this in LUI seems unsafe to me because mods will be able to change this aswell
-				state["LuaUtils"]["ShowMessageDialog"](
-					0, 0,
-					"The map/mod you are playing tried to run code that can be unsafe. This can include writing or reading files on your system, accessing environment variables, running system commands or loading a dll. These are usually used for storing data across games, integrating third party software like Discord or fetching data from a server to make the gameplay for dynamic.\nThis can also cause a lot of harm by the wrong people.\n\nIf you trust this map/mod and want to enable these features, restart Black Ops 3 with the -unsafe-lua commandline argument.",
-					"Unsafe lua function called");
-				unsafe_function_called_message_shown = true;
-			}
-
-			return 0;
-		}
-
-		void patch_unsafe_lua_functions()
-		{
-			if (utils::flags::has_flag("unsafe-lua"))
-			{
-				return;
-			}
-
-			// Do not allow the HKS vm to open LUA's libraries
-			// Disable unsafe functions
-			utils::hook::jump(0x141D34190_g, luaopen_stub); // debug
-
-			utils::hook::jump(0x141D300B0_g, lua_unsafe_function_stub); // base_loadfile
-			utils::hook::jump(0x141D31EE0_g, lua_unsafe_function_stub); // base_load
-			utils::hook::jump(0x141D2CF00_g, lua_unsafe_function_stub); // string_dump
-			utils::hook::jump(0x141FD3220_g, lua_unsafe_function_stub); // engine_openurl
-
-			utils::hook::jump(0x141D2AFF0_g, lua_unsafe_function_stub); // os_getenv
-			utils::hook::jump(0x141D2B790_g, lua_unsafe_function_stub); // os_exit
-			utils::hook::jump(0x141D2B7C0_g, lua_unsafe_function_stub); // os_remove
-			utils::hook::jump(0x141D2BB70_g, lua_unsafe_function_stub); // os_rename
-			utils::hook::jump(0x141D2B360_g, lua_unsafe_function_stub); // os_tmpname
-			utils::hook::jump(0x141D2B0F0_g, lua_unsafe_function_stub); // os_sleep
-			utils::hook::jump(0x141D2AF90_g, lua_unsafe_function_stub); // os_execute
-			utils::hook::jump(0x141D2AFF0_g, lua_unsafe_function_stub); // os_getenv
-
-			// io helpers
-			utils::hook::jump(0x141D32390_g, lua_unsafe_function_stub); // io_tostring
-			utils::hook::jump(0x141D2FDC0_g, lua_unsafe_function_stub); // io_close_file
-			utils::hook::jump(0x141D2FD50_g, lua_unsafe_function_stub); // io_flush
-			utils::hook::jump(0x141D31260_g, lua_unsafe_function_stub); // io_lines
-			utils::hook::jump(0x141D305C0_g, lua_unsafe_function_stub); // io_read_file
-			utils::hook::jump(0x141D305C0_g, lua_unsafe_function_stub); // io_read_file
-			utils::hook::jump(0x141D320A0_g, lua_unsafe_function_stub); // io_seek_file
-			utils::hook::jump(0x141D321E0_g, lua_unsafe_function_stub); // io_setvbuf
-			utils::hook::jump(0x141D2FCD0_g, lua_unsafe_function_stub); // io_write
-
-			// io functions
-			utils::hook::jump(0x141D2FD10_g, lua_unsafe_function_stub); // io_write
-			utils::hook::jump(0x141D30F40_g, lua_unsafe_function_stub); // io_read
-			utils::hook::jump(0x141D2FF00_g, lua_unsafe_function_stub); // io_close
-			utils::hook::jump(0x141D2FD90_g, lua_unsafe_function_stub); // io_flush
-			utils::hook::jump(0x141D313A0_g, lua_unsafe_function_stub); // io_lines
-			utils::hook::jump(0x141D31BA0_g, lua_unsafe_function_stub); // io_input
-			utils::hook::jump(0x141D31BC0_g, lua_unsafe_function_stub); // io_output
-			utils::hook::jump(0x141D31BE0_g, lua_unsafe_function_stub); // io_type
-			utils::hook::jump(0x141D31DD0_g, lua_unsafe_function_stub); // io_open
-			utils::hook::jump(0x141D31D70_g, lua_unsafe_function_stub); // io_tmpfile
-			utils::hook::jump(0x141D33C00_g, lua_unsafe_function_stub); // io_popen
-
-			utils::hook::jump(0x141D2D0C0_g, lua_unsafe_function_stub); // serialize_persist
-			utils::hook::jump(0x141D2D480_g, lua_unsafe_function_stub); // serialize_unpersist
-
-			utils::hook::jump(0x141D2F560_g, lua_unsafe_function_stub); // havokscript_compiler_settings
-			utils::hook::jump(0x141D2F660_g, lua_unsafe_function_stub); // havokscript_setgcweights
-			utils::hook::jump(0x141D2FB10_g, lua_unsafe_function_stub); // havokscript_getgcweights
-
-			utils::hook::jump(0x141D299C0_g, lua_unsafe_function_stub); // package_loadlib
 		}
 	}
 
@@ -485,42 +408,40 @@ namespace ui_scripting
 			cl_first_snapshot_hook.create(0x141320E60_g, cl_first_snapshot_stub);
 
 			scheduler::once([]()
-			{
-				game::dvar_t* dvar_callstack_ship = game::Dvar_FindVar("ui_error_callstack_ship");
-				dvar_callstack_ship->flags = static_cast<game::dvarFlags_e>(0);
-				game::dvar_t* dvar_report_delay = game::Dvar_FindVar("ui_error_report_delay");
-				dvar_report_delay->flags = static_cast<game::dvarFlags_e>(0);
+				{
+					game::dvar_t* dvar_callstack_ship = game::Dvar_FindVar("ui_error_callstack_ship");
+					dvar_callstack_ship->flags = static_cast<game::dvarFlags_e>(0);
+					game::dvar_t* dvar_report_delay = game::Dvar_FindVar("ui_error_report_delay");
+					dvar_report_delay->flags = static_cast<game::dvarFlags_e>(0);
 
-				game::Dvar_SetFromStringByName("ui_error_callstack_ship", "1", true);
-				game::Dvar_SetFromStringByName("ui_error_report_delay", "0", true);
-			}, scheduler::pipeline::renderer);
+					game::Dvar_SetFromStringByName("ui_error_callstack_ship", "1", true);
+					game::Dvar_SetFromStringByName("ui_error_report_delay", "0", true);
+				}, scheduler::pipeline::renderer);
 
 			command::add("luiReload", []
-			{
-				if (game::Com_IsRunningUILevel())
 				{
-					converted_functions.clear();
+					if (game::Com_IsRunningUILevel())
+					{
+						converted_functions.clear();
 
-					globals.loaded_scripts.clear();
-					globals.local_scripts.clear();
+						globals.loaded_scripts.clear();
+						globals.local_scripts.clear();
 
-					game::UI_CoD_Shutdown();
-					game::UI_CoD_Init(true);
+						game::UI_CoD_Shutdown();
+						game::UI_CoD_Init(true);
 
-					// Com_LoadFrontEnd stripped
-					game::Lua_CoD_LoadLuaFile(*game::hks::lua_state, "ui_mp.T6.main");
-					game::UI_AddMenu(game::UI_CoD_GetRootNameForController(0), "main", -1, *game::hks::lua_state);
+						// Com_LoadFrontEnd stripped
+						game::Lua_CoD_LoadLuaFile(*game::hks::lua_state, "ui_mp.T6.main");
+						game::UI_AddMenu(game::UI_CoD_GetRootNameForController(0), "main", -1, *game::hks::lua_state);
 
-					game::UI_CoD_LobbyUI_Init();
-				}
-				else
-				{
-					// TODO: Find a way to do a full shutdown & restart like in frontend, that opens up the loading screen that can't be easily closed
-					game::CG_LUIHUDRestart(0);
-				}
-			});
-
-			patch_unsafe_lua_functions();
+						game::UI_CoD_LobbyUI_Init();
+					}
+					else
+					{
+						// TODO: Find a way to do a full shutdown & restart like in frontend, that opens up the loading screen that can't be easily closed
+						game::CG_LUIHUDRestart(0);
+					}
+				});
 		}
 	};
 }
