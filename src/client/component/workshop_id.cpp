@@ -17,7 +17,17 @@ namespace workshop_id
 
 		int write_pubid_to_file(std::string pubID)
 		{
-			const std::string& config_path = std::filesystem::current_path().string() + "/zone/server_zm.cfg";
+			std::string config_path = std::filesystem::current_path().string() + "/zone/";
+			std::string cmd_line = GetCommandLineA();
+			if (const char* exec_param = strstr(cmd_line.data(), "+exec"))
+			{
+				const char* exec_value = exec_param + strlen("+exec ");
+				config_path += exec_value;
+			}
+			else
+			{
+				config_path += "server_zm.cfg";
+			}
 
 			std::vector<std::string> lines;
 			bool line_exists = false;
@@ -43,7 +53,7 @@ namespace workshop_id
 
 				if (line.find(line_to_find) != std::string::npos)
 				{
-					printf("Line replaced with new workshop id in /zone/server_zm.cfg.\n");
+					printf("Line replaced with new workshop id in %s.\n", config_path.c_str());
 					lines.push_back(new_string);
 					line_exists = true;
 				}
@@ -58,13 +68,13 @@ namespace workshop_id
 			if (!line_exists)
 			{
 				lines.push_back(new_string);
-				printf("The 'workshop_id' dvar added in /zone/server_zm.cfg successfully.\n");
+				printf("The 'workshop_id' dvar added in %s successfully.\n", config_path.c_str());
 			}
 
 			std::ofstream outputFile(config_path);
 			if (!outputFile.is_open())
 			{
-				printf("Error opening or adding the workshop_id dvar to server_zm.cfg file.\n");
+				printf("Error opening or adding the workshop_id dvar to %s file.\n", config_path.c_str());
 				return 1;
 			}
 
@@ -74,7 +84,8 @@ namespace workshop_id
 			}
 
 			outputFile.close();
-			MessageBox(NULL, "Loaded workshop item id found! \n\nWriting ID to zone/server_zm.cfg as workshop_id dvar. \n\nPlease restart the server to enable it.", "Info!", MB_OK | MB_ICONEXCLAMATION | MB_SYSTEMMODAL);
+			std::string message = "Loaded workshop item id found! \n\nWriting ID to " + config_path + " as workshop_id dvar. \n\nPlease restart the server to enable it.";
+			MessageBox(NULL, message.c_str(), "Info!", MB_OK | MB_ICONEXCLAMATION | MB_SYSTEMMODAL);
 
 			return 0;
 		}
