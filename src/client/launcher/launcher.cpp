@@ -38,7 +38,7 @@ namespace launcher
 
 		//window.get_html_frame()->load_html(utils::nt::load_resource(MENU_MAIN));
 		window.get_html_frame()->load_url(
-			utils::string::va("file:///%s", get_launcher_ui_file().generic_string().data()));
+			utils::string::va("file:///%ls", get_launcher_ui_file().wstring().c_str()));
 
 		window::run();
 		return run_game;

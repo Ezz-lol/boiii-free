@@ -70,22 +70,22 @@ namespace game
 
 	std::filesystem::path get_appdata_path()
 	{
-		static const auto appdata_path = []
-		{
-			PWSTR path;
-			if (FAILED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &path)))
+		static const auto appdata_path = []() -> std::filesystem::path
 			{
-				throw std::runtime_error("Failed to read APPDATA path!");
-			}
+				PWSTR path = nullptr;
+				if (FAILED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &path)))
+				{
+					throw std::runtime_error("Failed to read APPDATA path!");
+				}
 
-			auto _ = utils::finally([&path]
-			{
-				CoTaskMemFree(path);
-			});
+				auto _ = utils::finally([&path]
+					{
+						CoTaskMemFree(path);
+					});
 
-			static auto appdata = std::filesystem::path(path) / "boiii";
-			return appdata;
-		}();
+				// Ensure proper handling of wide character paths
+				return std::filesystem::path(path) / L"boiii";
+			}();
 
 		return appdata_path;
 	}

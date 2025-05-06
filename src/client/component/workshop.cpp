@@ -17,7 +17,7 @@ namespace workshop
 	namespace
 	{
 		std::thread download_thread{};
-		std::atomic_bool downloading{false};
+		std::atomic_bool downloading{ false };
 
 		utils::hook::detour setup_server_map_hook;
 		utils::hook::detour load_usermap_hook;
@@ -243,12 +243,38 @@ namespace workshop
 		return loaded_mod_id;
 	}
 
+	bool is_dlc_map(const std::string& mapname)
+	{
+		return mapname == "zm_zod" ||
+			mapname == "zm_castle" ||
+			mapname == "zm_island" ||
+			mapname == "zm_stalingrad" ||
+			mapname == "zm_genesis" ||
+			mapname == "zm_cosmodrome" ||
+			mapname == "zm_theater" ||
+			mapname == "zm_moon" ||
+			mapname == "zm_prototype" ||
+			mapname == "zm_tomb" ||
+			mapname == "zm_temple" ||
+			mapname == "zm_sumpf" ||
+			mapname == "zm_factory" ||
+			mapname == "zm_asylum";
+	}
+
 	extern bool downloading_workshop_item = false;
 
 	bool check_valid_usermap_id(const std::string& mapname, const std::string& pub_id, const std::string& workshop_id)
 	{
 		if (!game::DB_FileExists(mapname.data(), 0) && pub_id.empty())
 		{
+			if (is_dlc_map(mapname.data()))
+			{
+				game::UI_OpenErrorPopupWithMessage(0, 0x100,
+					utils::string::va("Could not find DLC map: %s. \nYou can download the map from steam or use following link: https://forum.ezz.lol/topic/6/bo3-dlc", mapname.data()));
+
+				return false;
+			}
+
 			if (workshop::downloading_workshop_item)
 			{
 				MessageBox(NULL, "You are already downloading map in background \nYou can download only one map at a time.", "Warning!", MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL);
@@ -278,7 +304,7 @@ namespace workshop
 			else
 			{
 				game::UI_OpenErrorPopupWithMessage(0, 0x100,
-					utils::string::va("Could not download this mod folder name is not numeric and  'workshop_id' dvar is empty! \nCan't find usermap id: %s!\nMake sure you're subscribed to the workshop item.", mapname.data()));
+					utils::string::va("Could not download this mod folder name is not numeric and 'workshop_id' dvar is empty! \nCan't find usermap id: %s!\nMake sure you're subscribed to the workshop item.", mapname.data()));
 			}
 			return false;
 		}
@@ -357,9 +383,9 @@ namespace workshop
 		{
 
 			command::add("userContentReload", [](const command::params& params)
-			{
-				game::reloadUserContent();
-			});
+				{
+					game::reloadUserContent();
+				});
 
 			utils::hook::call(game::select(0x1420D6AA6, 0x1404E2936), va_mods_path_stub);
 			utils::hook::call(game::select(0x1420D6577, 0x1404E24A7), va_user_content_path_stub);
