@@ -1,4 +1,7 @@
 #include <std_include.hpp>
+
+#define NO_CHECK
+
 #include "loader/component_loader.hpp"
 
 #include <utils/nt.hpp>

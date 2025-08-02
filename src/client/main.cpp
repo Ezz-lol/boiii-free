@@ -44,14 +44,6 @@ namespace
 
 	bool restart_app_if_necessary_stub()
 	{
-		const std::string steam_path = steam::SteamAPI_GetSteamInstallPath();
-		if (steam_path.empty() || !::utils::io::file_exists(steam_path + "/steam.exe"))
-		{
-			game::show_error("Steam must be installed for the game to run. Please install Steam!");
-			ShellExecuteA(nullptr, "open", "https://store.steampowered.com/about/", nullptr, nullptr, SW_SHOWNORMAL);
-			TerminateProcess(GetCurrentProcess(), 1);
-		}
-
 		utils::hook::set(g_original_import.first, g_original_import.second);
 		patch_steam_import("SteamAPI_Shutdown", steam::SteamAPI_Shutdown);
 
