@@ -10,7 +10,7 @@
 #include <utils/io.hpp>
 #include <utils/compression.hpp>
 
-#define UPDATE_SERVER "https://bo3.ezz.lol/"
+#define UPDATE_SERVER "https://r2.ezz.lol/"
 
 #define UPDATE_FILE_MAIN UPDATE_SERVER "boiii.json"
 #define UPDATE_FOLDER_MAIN UPDATE_SERVER "boiii/"
