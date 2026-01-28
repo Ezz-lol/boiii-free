@@ -12,8 +12,8 @@
 
 #define UPDATE_SERVER "https://r2.ezz.lol/"
 
-#define UPDATE_FILE_MAIN UPDATE_SERVER "b.json" //TODO: Remove on release
-#define UPDATE_FOLDER_MAIN UPDATE_SERVER "b/"
+#define UPDATE_FILE_MAIN UPDATE_SERVER "boiii.json"
+#define UPDATE_FOLDER_MAIN UPDATE_SERVER "boiii/"
 
 #define UPDATE_HOST_BINARY "boiii.exe"
 
