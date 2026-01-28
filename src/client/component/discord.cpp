@@ -27,6 +27,10 @@ namespace discord
 			discord_presence.largeImageKey = "logo";
 			discord_presence.smallImageKey = "sexy";
 			discord_presence.details = "Playing BO3 via Ezz!";
+			discord_presence.button1_label = "Join our Discord 👍";
+			discord_presence.button1_url = "https://discord.gg/ezz";
+			discord_presence.button2_label = "Ezz Forum 🤖";
+			discord_presence.button2_url = "https://forum.ezz.lol";
 
 			Discord_UpdatePresence(&discord_presence);
 		}

@@ -29,6 +29,10 @@ namespace ui_scripting
 		utils::hook::detour lua_cod_getrawfile_hook;
 
 		bool unsafe_function_called_message_shown = false;
+		bool unsafe_lua_approved_for_session = false;
+
+		using lua_function_t = int(*)(game::hks::lua_State*);
+		std::unordered_map<size_t, utils::hook::detour> unsafe_function_detours;
 
 		struct globals_t
 		{
@@ -279,6 +283,8 @@ namespace ui_scripting
 		{
 			converted_functions.clear();
 			globals = {};
+			unsafe_function_called_message_shown = false;
+			unsafe_lua_approved_for_session = false;
 			return ui_shutdown_hook.invoke<void>();
 		}
 
@@ -342,21 +348,61 @@ namespace ui_scripting
 			return 0;
 		}
 
-		int lua_unsafe_function_stub([[maybe_unused]] game::hks::lua_State* l)
+		void show_unsafe_lua_dialog()
 		{
-			if (!unsafe_function_called_message_shown)
+			if (unsafe_function_called_message_shown)
 			{
-				auto state = get_globals();
-				// TODO: Is it possible to do this with a confirm dialog? Doing this in LUI seems unsafe to me because mods will be able to change this aswell
-				state["LuaUtils"]["ShowMessageDialog"](
-					0, 0,
-					"The map/mod you are playing tried to run code that can be unsafe. This can include writing or reading files on your system, accessing environment variables, running system commands or loading a dll. These are usually used for storing data across games, integrating third party software like Discord or fetching data from a server to make the gameplay for dynamic.\nThis can also cause a lot of harm by the wrong people.\n\nIf you trust this map/mod and want to enable these features, restart Black Ops 3 with the -unsafe-lua commandline argument.",
-					"Unsafe lua function called");
-				unsafe_function_called_message_shown = true;
+				return;
 			}
 
+			unsafe_function_called_message_shown = true;
+
+			scheduler::once([]
+			{
+				const int result = MessageBoxA(
+					nullptr,
+					"The map/mod you are playing tried to run code that can be unsafe.\n\n"
+					"This can include:\n"
+					"  - Writing or reading files on your system\n"
+					"  - Accessing environment variables\n"
+					"  - Running system commands\n"
+					"  - Loading DLLs\n\n"
+					"These features are usually used for storing data across games, "
+					"integrating third party software like Discord, or fetching data from a server.\n\n"
+					"However, malicious mods could use these to harm your system.\n\n"
+					"Do you want to enable unsafe lua functions for this session?\n\n"
+					"Click 'Yes' to enable for this session only.\n"
+					"Click 'No' to keep them blocked (recommended if you don't trust this mod).",
+					"Unsafe Lua Function Called",
+					MB_YESNO | MB_ICONWARNING | MB_TOPMOST | MB_SETFOREGROUND
+				);
+
+				if (result == IDYES)
+				{
+					unsafe_lua_approved_for_session = true;
+				}
+			}, scheduler::pipeline::main);
+		}
+
+		template <size_t Key>
+		int lua_unsafe_function_stub(game::hks::lua_State* l)
+		{
+			if (unsafe_lua_approved_for_session)
+			{
+				return unsafe_function_detours[Key].invoke<int>(l);
+			}
+
+			show_unsafe_lua_dialog();
 			return 0;
 		}
+
+		template <size_t Key>
+		void hook_unsafe_function(size_t address)
+		{
+			unsafe_function_detours[Key].create(address, lua_unsafe_function_stub<Key>);
+		}
+
+#define HOOK_UNSAFE_FUNCTION(addr) hook_unsafe_function<addr>(addr##_g)
 
 		void patch_unsafe_lua_functions()
 		{
@@ -366,55 +412,53 @@ namespace ui_scripting
 			}
 
 			// Do not allow the HKS vm to open LUA's libraries
-			// Disable unsafe functions
+			// Disable unsafe functions (debug library stays completely blocked)
 			utils::hook::jump(0x141D34190_g, luaopen_stub); // debug
 
-			utils::hook::jump(0x141D300B0_g, lua_unsafe_function_stub); // base_loadfile
-			utils::hook::jump(0x141D31EE0_g, lua_unsafe_function_stub); // base_load
-			utils::hook::jump(0x141D2CF00_g, lua_unsafe_function_stub); // string_dump
-			utils::hook::jump(0x141FD3220_g, lua_unsafe_function_stub); // engine_openurl
+			HOOK_UNSAFE_FUNCTION(0x141D300B0); // base_loadfile
+			HOOK_UNSAFE_FUNCTION(0x141D31EE0); // base_load
+			HOOK_UNSAFE_FUNCTION(0x141D2CF00); // string_dump
+			HOOK_UNSAFE_FUNCTION(0x141FD3220); // engine_openurl
 
-			utils::hook::jump(0x141D2AFF0_g, lua_unsafe_function_stub); // os_getenv
-			utils::hook::jump(0x141D2B790_g, lua_unsafe_function_stub); // os_exit
-			utils::hook::jump(0x141D2B7C0_g, lua_unsafe_function_stub); // os_remove
-			utils::hook::jump(0x141D2BB70_g, lua_unsafe_function_stub); // os_rename
-			utils::hook::jump(0x141D2B360_g, lua_unsafe_function_stub); // os_tmpname
-			utils::hook::jump(0x141D2B0F0_g, lua_unsafe_function_stub); // os_sleep
-			utils::hook::jump(0x141D2AF90_g, lua_unsafe_function_stub); // os_execute
-			utils::hook::jump(0x141D2AFF0_g, lua_unsafe_function_stub); // os_getenv
+			HOOK_UNSAFE_FUNCTION(0x141D2AFF0); // os_getenv
+			HOOK_UNSAFE_FUNCTION(0x141D2B790); // os_exit
+			HOOK_UNSAFE_FUNCTION(0x141D2B7C0); // os_remove
+			HOOK_UNSAFE_FUNCTION(0x141D2BB70); // os_rename
+			HOOK_UNSAFE_FUNCTION(0x141D2B360); // os_tmpname
+			HOOK_UNSAFE_FUNCTION(0x141D2B0F0); // os_sleep
+			HOOK_UNSAFE_FUNCTION(0x141D2AF90); // os_execute
 
 			// io helpers
-			utils::hook::jump(0x141D32390_g, lua_unsafe_function_stub); // io_tostring
-			utils::hook::jump(0x141D2FDC0_g, lua_unsafe_function_stub); // io_close_file
-			utils::hook::jump(0x141D2FD50_g, lua_unsafe_function_stub); // io_flush
-			utils::hook::jump(0x141D31260_g, lua_unsafe_function_stub); // io_lines
-			utils::hook::jump(0x141D305C0_g, lua_unsafe_function_stub); // io_read_file
-			utils::hook::jump(0x141D305C0_g, lua_unsafe_function_stub); // io_read_file
-			utils::hook::jump(0x141D320A0_g, lua_unsafe_function_stub); // io_seek_file
-			utils::hook::jump(0x141D321E0_g, lua_unsafe_function_stub); // io_setvbuf
-			utils::hook::jump(0x141D2FCD0_g, lua_unsafe_function_stub); // io_write
+			HOOK_UNSAFE_FUNCTION(0x141D32390); // io_tostring
+			HOOK_UNSAFE_FUNCTION(0x141D2FDC0); // io_close_file
+			HOOK_UNSAFE_FUNCTION(0x141D2FD50); // io_flush
+			HOOK_UNSAFE_FUNCTION(0x141D31260); // io_lines
+			HOOK_UNSAFE_FUNCTION(0x141D305C0); // io_read_file
+			HOOK_UNSAFE_FUNCTION(0x141D320A0); // io_seek_file
+			HOOK_UNSAFE_FUNCTION(0x141D321E0); // io_setvbuf
+			HOOK_UNSAFE_FUNCTION(0x141D2FCD0); // io_write
 
 			// io functions
-			utils::hook::jump(0x141D2FD10_g, lua_unsafe_function_stub); // io_write
-			utils::hook::jump(0x141D30F40_g, lua_unsafe_function_stub); // io_read
-			utils::hook::jump(0x141D2FF00_g, lua_unsafe_function_stub); // io_close
-			utils::hook::jump(0x141D2FD90_g, lua_unsafe_function_stub); // io_flush
-			utils::hook::jump(0x141D313A0_g, lua_unsafe_function_stub); // io_lines
-			utils::hook::jump(0x141D31BA0_g, lua_unsafe_function_stub); // io_input
-			utils::hook::jump(0x141D31BC0_g, lua_unsafe_function_stub); // io_output
-			utils::hook::jump(0x141D31BE0_g, lua_unsafe_function_stub); // io_type
-			utils::hook::jump(0x141D31DD0_g, lua_unsafe_function_stub); // io_open
-			utils::hook::jump(0x141D31D70_g, lua_unsafe_function_stub); // io_tmpfile
-			utils::hook::jump(0x141D33C00_g, lua_unsafe_function_stub); // io_popen
+			HOOK_UNSAFE_FUNCTION(0x141D2FD10); // io_write
+			HOOK_UNSAFE_FUNCTION(0x141D30F40); // io_read
+			HOOK_UNSAFE_FUNCTION(0x141D2FF00); // io_close
+			HOOK_UNSAFE_FUNCTION(0x141D2FD90); // io_flush
+			HOOK_UNSAFE_FUNCTION(0x141D313A0); // io_lines
+			HOOK_UNSAFE_FUNCTION(0x141D31BA0); // io_input
+			HOOK_UNSAFE_FUNCTION(0x141D31BC0); // io_output
+			HOOK_UNSAFE_FUNCTION(0x141D31BE0); // io_type
+			HOOK_UNSAFE_FUNCTION(0x141D31DD0); // io_open
+			HOOK_UNSAFE_FUNCTION(0x141D31D70); // io_tmpfile
+			HOOK_UNSAFE_FUNCTION(0x141D33C00); // io_popen
 
-			utils::hook::jump(0x141D2D0C0_g, lua_unsafe_function_stub); // serialize_persist
-			utils::hook::jump(0x141D2D480_g, lua_unsafe_function_stub); // serialize_unpersist
+			HOOK_UNSAFE_FUNCTION(0x141D2D0C0); // serialize_persist
+			HOOK_UNSAFE_FUNCTION(0x141D2D480); // serialize_unpersist
 
-			utils::hook::jump(0x141D2F560_g, lua_unsafe_function_stub); // havokscript_compiler_settings
-			utils::hook::jump(0x141D2F660_g, lua_unsafe_function_stub); // havokscript_setgcweights
-			utils::hook::jump(0x141D2FB10_g, lua_unsafe_function_stub); // havokscript_getgcweights
+			HOOK_UNSAFE_FUNCTION(0x141D2F560); // havokscript_compiler_settings
+			HOOK_UNSAFE_FUNCTION(0x141D2F660); // havokscript_setgcweights
+			HOOK_UNSAFE_FUNCTION(0x141D2FB10); // havokscript_getgcweights
 
-			utils::hook::jump(0x141D299C0_g, lua_unsafe_function_stub); // package_loadlib
+			HOOK_UNSAFE_FUNCTION(0x141D299C0); // package_loadlib
 		}
 	}
 

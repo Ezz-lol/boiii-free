@@ -1,10 +1,8 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="UTF-8" />
-
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <title>BOIII</title>
-
     <style>
       * {
         user-select: none;
@@ -12,23 +10,22 @@
         cursor: default;
         box-sizing: border-box;
       }
-
+      /* Special styling for Play button */
+      /* Catsby will be diddled */
       html,
       body {
         -ms-overflow-style: none;
-
         margin: 0;
         padding: 0;
-
-        font-family: "Segoe UI Light", "Segoe UI", "Lucida Sans", Arial,
-          sans-serif;
+        font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Oxygen,
+          Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
         font-style: normal;
-        font-weight: lighter;
-
+        font-weight: 400;
         display: flex;
         min-height: 100vh;
         flex-direction: column;
-        background: black;
+        background: #000;
+        overflow: hidden;
       }
 
       body {
@@ -40,18 +37,19 @@
         position: fixed;
         z-index: -1;
       }
+      
       .background-container:before {
-        background: #000;
-        background: url(./bigboiii.jpg);
+        background: #000 url(./bigboiii.jpg);
         background-position: 50%;
         background-repeat: no-repeat;
         background-size: cover;
         content: "";
         height: 100%;
-        opacity: 0.25;
+        opacity: 0.3;
         position: fixed;
         top: 0;
         width: 100%;
+        filter: brightness(0.9) contrast(1.1);
       }
 
       .background-container:after {
@@ -60,10 +58,15 @@
         content: "";
         height: 100%;
         mix-blend-mode: overlay;
-        opacity: 0.025;
+        opacity: 0.035;
         position: fixed;
         top: 0;
         width: 100%;
+      }
+
+      /* Subtle vignette effect */
+      .background-container::before {
+        box-shadow: inset 0 0 200px rgba(0, 0, 0, 0.5);
       }
 
       body {
@@ -74,60 +77,143 @@
       .content {
         width: 100%;
         text-align: center;
-        padding-top: 30px;
+        padding-top: 50px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 30px;
+      }
+
+      h1 {
+        font-size: 3rem;
+        font-weight: 700;
+        margin: 0;
+        padding: 0;
+        letter-spacing: 0.05em;
+        text-shadow: 
+          0 0 20px rgba(249, 115, 22, 0.5),
+          0 0 40px rgba(249, 115, 22, 0.3),
+          0 4px 8px rgba(0, 0, 0, 0.8);
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+      }
+
+      h1 span {
+        font-size: inherit;
+        font-weight: inherit;
+        display: inline-block;
+        animation: glow 2s ease-in-out infinite alternate;
+      }
+
+      @keyframes glow {
+        from {
+          filter: brightness(1);
+        }
+        to {
+          filter: brightness(1.1);
+        }
+      }
+
+      .button-container {
+        display: flex;
+        gap: 0;
+        margin-top: 10px;
       }
 
       div.button {
         margin: 5px 10px;
-        display: inline-block;
-        border: 1px solid #44413f;
-        color: rgba(244, 240, 235, 0.776);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(68, 65, 63, 0.6);
+        color: rgba(244, 240, 235, 0.9);
         cursor: pointer;
-        background-color: rgb(42, 40, 39);
+        background: linear-gradient(145deg, rgba(48, 45, 44, 0.8), rgba(38, 36, 35, 0.8));
+        backdrop-filter: blur(10px);
         width: 120px;
         text-align: center;
         padding: 0.5rem;
         border-radius: 0.5rem;
-        transition: all 0.1s linear;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         font-size: 1rem;
-        font-weight: normal;
-        font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
-          Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+        font-weight: 500;
+        font-family: inherit;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 
+          0 4px 6px rgba(0, 0, 0, 0.3),
+          0 1px 3px rgba(0, 0, 0, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      }
+
+      div.button::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.1),
+          transparent
+        );
+        transition: left 0.5s;
+      }
+
+      div.button:hover::before {
+        left: 100%;
       }
 
       div.button:hover {
-        background-color: rgb(48, 45, 44);
-        border: 1px solid #4a4745;
+        background: linear-gradient(145deg, rgba(58, 55, 54, 0.9), rgba(48, 45, 44, 0.9));
+        border: 1px solid rgba(74, 71, 69, 0.8);
+        transform: translateY(-2px);
+        box-shadow: 
+          0 6px 12px rgba(0, 0, 0, 0.4),
+          0 2px 4px rgba(0, 0, 0, 0.3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.15);
       }
 
-      h1,
-      h1 * {
-        font-size: 3rem;
-        font-weight: bold;
-        color: white;
+      div.button:active {
+        transform: translateY(0);
+        box-shadow: 
+          0 2px 4px rgba(0, 0, 0, 0.3),
+          0 1px 2px rgba(0, 0, 0, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      }
 
-        font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
-          Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+      /* Special styling for Play button */
+      div.button:first-child {
+        background: linear-gradient(145deg, rgba(249, 115, 22, 0.15), rgba(220, 38, 38, 0.15));
+        border: 1px solid rgba(249, 115, 22, 0.4);
+        color: rgba(255, 255, 255, 0.95);
+        font-weight: 600;
+      }
+
+      div.button:first-child:hover {
+        background: linear-gradient(145deg, rgba(249, 115, 22, 0.25), rgba(220, 38, 38, 0.25));
+        border: 1px solid rgba(249, 115, 22, 0.6);
+        box-shadow: 
+          0 6px 12px rgba(249, 115, 22, 0.3),
+          0 2px 4px rgba(0, 0, 0, 0.3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2);
       }
     </style>
-  </head>
+</head>
 
-  <body>
+<body>
     <div class="background-container"></div>
 
     <div class="content">
       <h1>
-        <span style="color: #ffffff">EZZ</span
-        ><span style="color: #f97316"> </span
-        ><span style="color: #f97316">B</span
-        ><span style="color: #ec511c">O</span
-        ><span style="color: #e53f21">I</span
-        ><span style="color: #e23623">I</span
-        ><span style="color: #dc2626">I</span>
+        <span style="color: #ffffff">EZZ</span><span style="color: #f97316"> </span><span style="color: #f97316">B</span><span style="color: #ec511c">O</span><span style="color: #e53f21">I</span><span style="color: #e23623">I</span><span style="color: #dc2626">I</span>
       </h1>
-      <div class="button" onclick="window.external.runGame()">Play</div>
-      <div class="button" onclick="window.external.openUrl('https://dc.ezz.lol')">
-        Discord
+      <div class="button-container">
+        <div class="button" onclick="window.external.runGame()">Play</div>
+        <div class="button" onclick="window.external.openUrl('https://discord.gg/ezz')">
+          Discord
+        </div>
       </div>
     </div>
 
@@ -140,9 +226,8 @@
 
       function fkey(e) {
         e = e || window.event;
-
         location.reload();
       }
     </script>
-  </body>
+</body>
 </html>

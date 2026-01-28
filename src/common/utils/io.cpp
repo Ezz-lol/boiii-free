@@ -1,6 +1,7 @@
 #include "io.hpp"
 #include "nt.hpp"
 #include <fstream>
+#include <Windows.h>
 
 namespace utils::io
 {
@@ -213,5 +214,44 @@ namespace utils::io
 		}
 
 		return files;
+	}
+
+	bool write_file_executable(const std::filesystem::path& file, const std::string& data)
+	{
+		return write_file_executable(file.wstring(), data);
+	}
+
+	bool write_file_executable(const std::wstring& file, const std::string& data)
+	{
+		HANDLE hFile = CreateFileW(
+			file.c_str(),
+			GENERIC_WRITE,
+			0,
+			nullptr,
+			CREATE_ALWAYS,
+			FILE_ATTRIBUTE_NORMAL,
+			nullptr);
+
+		if (hFile == INVALID_HANDLE_VALUE)
+		{
+			const DWORD error = GetLastError();
+			OutputDebugStringW((L"Failed to open file for writing: " + file + L", error: " + std::to_wstring(error) + L"\n").c_str());
+			return false;
+		}
+
+		DWORD bytesWritten = 0;
+		BOOL success = WriteFile(hFile, data.data(), static_cast<DWORD>(data.size()), &bytesWritten, nullptr);
+
+		if (!success || bytesWritten != data.size())
+		{
+			const DWORD error = GetLastError();
+			OutputDebugStringW((L"Failed to write file: " + file + L", error: " + std::to_wstring(error) + 
+				L", written: " + std::to_wstring(bytesWritten) + L"/" + std::to_wstring(data.size()) + L"\n").c_str());
+			CloseHandle(hFile);
+			return false;
+		}
+
+		CloseHandle(hFile);
+		return true;
 	}
 }

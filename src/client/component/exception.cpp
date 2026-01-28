@@ -68,15 +68,20 @@ namespace exception
 
 		void display_error_dialog()
 		{
-			const std::string error_str = utils::string::va("Fatal error (0x%08X) at 0x%p (0x%p).\n"
-			                                                "A minidump has been written.\n",
-			                                                exception_data.code, exception_data.address,
-				                                            game::derelocate(reinterpret_cast<uint64_t>(exception_data.address)));
+			const std::string error_str = utils::string::va(
+				"Fatal error (0x%08X) at 0x%p (0x%p).\n\n"
+				"A crash dump has been saved to the 'minidumps' folder.\n\n"
+				"Please report this crash and upload the dump file on our Discord:\n"
+				"https://dc.ezz.lol\n",
+				exception_data.code, exception_data.address,
+				game::derelocate(reinterpret_cast<uint64_t>(exception_data.address)));
 
 			utils::thread::suspend_other_threads();
 			show_mouse_cursor();
 
 			game::show_error(error_str.data(), "Ezz ERROR");
+
+			ShellExecuteA(nullptr, "open", "minidumps", nullptr, nullptr, SW_SHOWNORMAL);
 
 			TerminateProcess(GetCurrentProcess(), exception_data.code);
 		}
@@ -88,10 +93,11 @@ namespace exception
 				recovery_data.last_recovery = std::chrono::high_resolution_clock::now();
 				++recovery_data.recovery_counts;
 
-				game::Com_Error(game::ERR_DROP, "Fatal error (0x%08X) at 0x%p (0x%p).\nA minidump has been written.\n\n"
+				game::Com_Error(game::ERR_DROP, "Fatal error (0x%08X) at 0x%p (0x%p).\nA crash dump has been saved to the 'minidumps' folder.\n\n"
 				                "Ezz has tried to recover your game, but it might not run stable anymore.\n\n"
 				                "Make sure to update your graphics card drivers and install operating system updates!\n"
-				                "Closing or restarting Steam might also help.",
+				                "Closing or restarting Steam might also help.\n\n"
+				                "If this keeps happening, please report it on our Discord: https://dc.ezz.lol",
 				                exception_data.code, exception_data.address,
 					            game::derelocate(reinterpret_cast<uint64_t>(exception_data.address)));
 			}

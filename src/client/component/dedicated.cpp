@@ -30,8 +30,7 @@ namespace dedicated
 				return;
 			}
 
-			game::netadr_t target{};
-			if (server_list::get_master_server(target))
+			for (const auto& target : server_list::get_master_servers())
 			{
 				network::send(target, "heartbeat", "T7");
 			}

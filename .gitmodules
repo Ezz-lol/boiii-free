@@ -24,7 +24,8 @@
 	url = https://github.com/vmt/udis86.git
 [submodule "deps/discord-rpc"]
 	path = deps/discord-rpc
-	url = https://github.com/discord/discord-rpc.git
+	url = https://github.com/ariloc/discord-rpc-buttons.git
+	branch = master
 [submodule "deps/stb"]
 	path = deps/stb
 	url = https://github.com/nothings/stb.git

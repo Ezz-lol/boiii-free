@@ -71,6 +71,9 @@ namespace utils::http
 		progress_helper helper{};
 		helper.callback = &callback;
 
+		// Add Accept header for binary data to prevent CDN content modification
+		header_list = curl_slist_append(header_list, "Accept: application/octet-stream");
+
 		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
 		curl_easy_setopt(curl, CURLOPT_URL, url.data());
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
@@ -83,6 +86,8 @@ namespace utils::http
 		curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
 		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
 		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+		// Request raw data without encoding modifications
+		curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "identity");
 
 		for (auto i = 0u; i < retries + 1; ++i)
 		{

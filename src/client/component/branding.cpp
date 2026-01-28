@@ -13,6 +13,11 @@ namespace branding
 	{
 		void draw_branding()
 		{
+			if (game::Com_IsInGame())
+			{
+				return;
+			}
+
 			constexpr auto x = 4;
 			constexpr auto y = 0;
 			constexpr auto scale = 0.45f;

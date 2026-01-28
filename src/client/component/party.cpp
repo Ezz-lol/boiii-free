@@ -284,18 +284,18 @@ namespace party
 				const auto now = std::chrono::high_resolution_clock::now();
 				for (auto i = server_queries.begin(); i != server_queries.end();)
 				{
-					if (!i->sent)
+				if (!i->sent)
+				{
+					if (++sent_queries < 40)
 					{
-						if (++sent_queries < 10)
-						{
-							send_server_query(*i);
-						}
-
-						++i;
-						continue;
+						send_server_query(*i);
 					}
 
-					if ((now - i->query_time) < 2s)
+					++i;
+					continue;
+				}
+
+					if ((now - i->query_time) < 1s)
 					{
 						++i;
 						continue;
@@ -346,7 +346,7 @@ namespace party
 			utils::hook::jump(0x141EE5FE0_g, &connect_stub);
 
 			network::on("infoResponse", handle_info_response);
-			scheduler::loop(cleanup_queried_servers, scheduler::async, 200ms);
+			scheduler::loop(cleanup_queried_servers, scheduler::async, 100ms);
 		}
 
 		void pre_destroy() override

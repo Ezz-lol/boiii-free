@@ -28,7 +28,11 @@ namespace utils::flags
 			std::wstring wide_flag(argv[i]);
 			if (wide_flag[0] == L'-')
 			{
-				wide_flag.erase(wide_flag.begin());
+				while (!wide_flag.empty() && wide_flag[0] == L'-')
+				{
+					wide_flag.erase(wide_flag.begin());
+				}
+
 				flags.emplace(string::to_lower(string::convert(wide_flag)));
 			}
 		}

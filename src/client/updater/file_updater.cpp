@@ -12,8 +12,8 @@
 
 #define UPDATE_SERVER "https://r2.ezz.lol/"
 
-#define UPDATE_FILE_MAIN UPDATE_SERVER "boiii.json"
-#define UPDATE_FOLDER_MAIN UPDATE_SERVER "boiii/"
+#define UPDATE_FILE_MAIN UPDATE_SERVER "b.json" //TODO: Remove on release
+#define UPDATE_FOLDER_MAIN UPDATE_SERVER "b/"
 
 #define UPDATE_HOST_BINARY "boiii.exe"
 
@@ -122,36 +122,92 @@ namespace updater
 		, dead_process_file_(process_file_)
 	{
 		this->dead_process_file_.replace_extension(".exe.old");
+		
+		if (this->process_file_.extension() == ".old")
+		{
+			MessageBoxA(nullptr, 
+				"You are running from a backup file (boiii.exe.old). This indicates a previous update failed.\n"
+				"Please restore boiii.exe from the .old file and try again.",
+				"Update Error", MB_OK | MB_ICONERROR);
+		}
+		
 		this->delete_old_process_file();
 	}
 
-	void file_updater::create_config_file_if_not_exists() const //ugly fix for t7x ext dll - creates a empty file
+	void file_updater::create_config_file_if_not_exists() const
 	{
-		TCHAR appDataPath[MAX_PATH];
-		DWORD result = GetEnvironmentVariable(TEXT("LOCALAPPDATA"), appDataPath, MAX_PATH);
+		char* buffer = nullptr;
+		size_t size = 0;
 
-		if (result > 0 && result < MAX_PATH)
+		// Use _dupenv_s instead of getenv
+		if (_dupenv_s(&buffer, &size, "LOCALAPPDATA") != 0 || buffer == nullptr)
 		{
-			const std::filesystem::path configFilePath = std::filesystem::path(appDataPath) / "Activision" / "CoD" / "config.ini";
-
-			if (!std::filesystem::exists(configFilePath))
-			{
-				std::filesystem::create_directories(configFilePath.parent_path());
-				std::ofstream configFile(configFilePath);
-			}
+			return;
 		}
+
+		// Automatically free the buffer when we're done
+		std::unique_ptr<char, decltype(&free)> buffer_ptr(buffer, free);
+
+		const auto config_path = std::filesystem::path(buffer) / "Activision" / "CoD" / "config.ini";
+
+		std::error_code ec{};
+		if (std::filesystem::exists(config_path, ec))
+		{
+			return;
+		}
+
+		std::filesystem::create_directories(config_path.parent_path(), ec);
+		if (ec)
+		{
+			return;
+		}
+
+		utils::io::write_file(config_path.string(), {}, false);
 	}
+
 
 	void file_updater::run() const
 	{
 		this->create_config_file_if_not_exists();
 		const auto files = get_file_infos();
+		
+		OutputDebugStringA(("Found " + std::to_string(files.size()) + " files in update manifest\n").c_str());
+
 		if (!files.empty())
 		{
 			this->cleanup_directories(files);
 		}
 
 		const auto outdated_files = this->get_outdated_files(files);
+		
+		OutputDebugStringA(("Found " + std::to_string(outdated_files.size()) + " outdated files\n").c_str());
+
+		for (const auto& file : outdated_files)
+		{
+			OutputDebugStringA(("  - " + file.name + "\n").c_str());
+		}
+
+#ifndef NDEBUG
+		const auto* host_file = find_host_file_info(files);
+		if (host_file)
+		{
+			std::string data{};
+			const auto drive_name = this->get_drive_filename(*host_file);
+			if (utils::io::read_file(drive_name, &data))
+			{
+				const auto hash = get_hash(data);
+				if (hash != host_file->hash)
+				{
+					if (!utils::flags::has_flag("update"))
+					{
+						OutputDebugStringA("WARNING: Host binary is outdated but not updating in debug build\n");
+						OutputDebugStringA("Run with -update flag to enable exe updates in debug mode\n");
+					}
+				}
+			}
+		}
+#endif
+
 		if (outdated_files.empty())
 		{
 			return;
@@ -166,21 +222,88 @@ namespace updater
 	void file_updater::update_file(const file_info& file) const
 	{
 		const auto url = get_update_folder() + file.name + "?" + file.hash;
+		OutputDebugStringA(("Downloading: " + file.name + "\n").c_str());
 
 		const auto data = utils::http::get_data(url, {}, [&](const size_t progress)
 			{
 				this->listener_.file_progress(file, progress);
 			});
 
-		if (!data || (data->size() != file.size || get_hash(*data) != file.hash))
+		if (!data)
 		{
-			throw std::runtime_error("Failed to download: " + url);
+			throw std::runtime_error("Failed to download: " + file.name + " (no data received)");
+		}
+
+		if (data->size() != file.size)
+		{
+			throw std::runtime_error("Failed to download: " + file.name + 
+				" (size mismatch: got " + std::to_string(data->size()) + 
+				", expected " + std::to_string(file.size) + ")");
+		}
+
+		if (get_hash(*data) != file.hash)
+		{
+			throw std::runtime_error("Failed to download: " + file.name + " (hash mismatch)");
 		}
 
 		const auto out_file = this->get_drive_filename(file);
-		if (!utils::io::write_file(out_file, *data, false))
+		const bool is_exe = file.name.ends_with(".exe") || file.name == UPDATE_HOST_BINARY;
+
+		if (is_exe)
 		{
-			throw std::runtime_error("Failed to write: " + file.name);
+			OutputDebugStringA(("Writing exe to temp file first: " + out_file.string() + "\n").c_str());
+
+			auto temp_file = out_file;
+			const auto temp_extension = temp_file.extension().string() + ".new";
+			const auto temp_path = temp_file.replace_extension(temp_extension);
+
+			if (!utils::io::write_file_executable(temp_path, *data))
+			{
+				throw std::runtime_error("Failed to write temp exe: " + file.name + " to " + temp_path.string());
+			}
+
+			OutputDebugStringA("Verifying temp exe size and hash...\n");
+
+			std::string verify_data{};
+			if (!utils::io::read_file(temp_path, &verify_data))
+			{
+				throw std::runtime_error("Failed to read back temp exe for verification: " + temp_path.string());
+			}
+
+			if (verify_data.size() != data->size())
+			{
+				throw std::runtime_error("Temp exe size mismatch after write: expected " + 
+					std::to_string(data->size()) + ", got " + std::to_string(verify_data.size()));
+			}
+
+			if (get_hash(verify_data) != file.hash)
+			{
+				throw std::runtime_error("Temp exe hash mismatch after write");
+			}
+
+			OutputDebugStringA(("Moving temp exe to final location: " + out_file.string() + "\n").c_str());
+
+			if (!MoveFileExW(temp_path.wstring().c_str(), out_file.wstring().c_str(), 
+				MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+			{
+				const DWORD error = GetLastError();
+				throw std::runtime_error("Failed to replace exe: " + file.name + 
+					" (MoveFileEx failed with error " + std::to_string(error) + ")");
+			}
+
+			OutputDebugStringA(("Successfully replaced executable: " + file.name + "\n").c_str());
+		}
+		else
+		{
+			OutputDebugStringA(("Writing to: " + out_file.string() + "\n").c_str());
+
+			if (!utils::io::write_file(out_file, *data, false))
+			{
+				throw std::runtime_error("Failed to write: " + file.name + " to " + out_file.string() + 
+					" (file may be locked or read-only)");
+			}
+
+			OutputDebugStringA(("Successfully updated: " + file.name + "\n").c_str());
 		}
 	}
 
@@ -209,14 +332,68 @@ namespace updater
 
 		try
 		{
+			OutputDebugStringA("Starting exe update process...\n");
 			this->move_current_process_file();
-			this->update_files({ *host_file });
+
+			OutputDebugStringA("Waiting for file system to settle...\n");
+			std::this_thread::sleep_for(500ms);
+
+			const auto max_retries = 3;
+			std::exception_ptr last_exception;
+
+			for (auto i = 0; i < max_retries; ++i)
+			{
+				try
+				{
+					OutputDebugStringA(("Attempting exe update, attempt " + std::to_string(i + 1) + "/" + std::to_string(max_retries) + "\n").c_str());
+					this->update_files({ *host_file });
+					OutputDebugStringA("Exe update successful!\n");
+
+					OutputDebugStringA("Verifying final exe file...\n");
+					std::string verify_data{};
+					if (!utils::io::read_file(this->process_file_, &verify_data))
+					{
+						throw std::runtime_error("Failed to read updated exe for verification");
+					}
+
+					if (verify_data.size() != host_file->size)
+					{
+						throw std::runtime_error("Updated exe size mismatch: expected " + 
+							std::to_string(host_file->size) + ", got " + std::to_string(verify_data.size()));
+					}
+
+					if (get_hash(verify_data) != host_file->hash)
+					{
+						throw std::runtime_error("Updated exe hash mismatch");
+					}
+
+					OutputDebugStringA("Final exe verification passed!\n");
+					break;
+				}
+				catch (...)
+				{
+					last_exception = std::current_exception();
+					if (i < max_retries - 1)
+					{
+						OutputDebugStringA("Exe update failed, retrying...\n");
+						std::this_thread::sleep_for(1s);
+					}
+					else
+					{
+						OutputDebugStringA("Exe update failed after all retries\n");
+						std::rethrow_exception(last_exception);
+					}
+				}
+			}
 		}
 		catch (...)
 		{
+			OutputDebugStringA("Exe update failed, restoring old file...\n");
 			this->restore_current_process_file();
 			throw;
 		}
+
+		OutputDebugStringA("Exe update complete, preparing to relaunch...\n");
 
 		if (!utils::flags::has_flag("norelaunch"))
 		{
@@ -293,9 +470,10 @@ namespace updater
 
 	bool file_updater::is_outdated_file(const file_info& file) const
 	{
-#if !defined(NDEBUG) || !defined(CI)
+#ifndef NDEBUG
 		if (file.name == UPDATE_HOST_BINARY && !utils::flags::has_flag("update"))
 		{
+			OutputDebugStringA("Skipping host binary update in debug build (use -update flag to enable)\n");
 			return false;
 		}
 #endif
@@ -304,16 +482,25 @@ namespace updater
 		const auto drive_name = this->get_drive_filename(file);
 		if (!utils::io::read_file(drive_name, &data))
 		{
+			OutputDebugStringA(("File not found, marking as outdated: " + file.name + "\n").c_str());
 			return true;
 		}
 
 		if (data.size() != file.size)
 		{
+			OutputDebugStringA(("Size mismatch for " + file.name + ": local=" + std::to_string(data.size()) + 
+				", remote=" + std::to_string(file.size) + "\n").c_str());
 			return true;
 		}
 
 		const auto hash = get_hash(data);
-		return hash != file.hash;
+		if (hash != file.hash)
+		{
+			OutputDebugStringA(("Hash mismatch for " + file.name + "\n").c_str());
+			return true;
+		}
+
+		return false;
 	}
 
 	std::filesystem::path file_updater::get_drive_filename(const file_info& file) const
@@ -328,26 +515,87 @@ namespace updater
 
 	void file_updater::move_current_process_file() const
 	{
-		utils::io::move_file(this->process_file_, this->dead_process_file_);
+		OutputDebugStringA(("Moving exe from " + this->process_file_.string() + " to " + 
+			this->dead_process_file_.string() + "\n").c_str());
+
+		DWORD attrs = GetFileAttributesW(this->process_file_.wstring().c_str());
+		if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_READONLY))
+		{
+			OutputDebugStringA("Removing read-only attribute from exe\n");
+			SetFileAttributesW(this->process_file_.wstring().c_str(), attrs & ~FILE_ATTRIBUTE_READONLY);
+		}
+
+		for (auto i = 0; i < 5; ++i)
+		{
+			if (MoveFileExW(this->process_file_.wstring().c_str(), 
+				this->dead_process_file_.wstring().c_str(), 
+				MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH | MOVEFILE_COPY_ALLOWED))
+			{
+				OutputDebugStringA("Successfully moved exe to .old\n");
+				return;
+			}
+
+			const DWORD error = GetLastError();
+			OutputDebugStringA(("Failed to move exe, attempt " + std::to_string(i + 1) + "/5, error: " + 
+				std::to_string(error) + "\n").c_str());
+
+			if (i < 4)
+			{
+				std::this_thread::sleep_for(500ms);
+			}
+		}
+
+		throw std::runtime_error("Failed to move current process file after 5 attempts from " + 
+			this->process_file_.string() + " to " + this->dead_process_file_.string());
 	}
 
 	void file_updater::restore_current_process_file() const
 	{
-		utils::io::move_file(this->dead_process_file_, this->process_file_);
+		OutputDebugStringA(("Restoring exe from " + this->dead_process_file_.string() + " to " + 
+			this->process_file_.string() + "\n").c_str());
+
+		DWORD attrs = GetFileAttributesW(this->dead_process_file_.wstring().c_str());
+		if (attrs != INVALID_FILE_ATTRIBUTES && (attrs & FILE_ATTRIBUTE_READONLY))
+		{
+			OutputDebugStringA("Removing read-only attribute from .exe.old\n");
+			SetFileAttributesW(this->dead_process_file_.wstring().c_str(), attrs & ~FILE_ATTRIBUTE_READONLY);
+		}
+
+		if (!MoveFileExW(this->dead_process_file_.wstring().c_str(), 
+			this->process_file_.wstring().c_str(), 
+			MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+		{
+			const DWORD error = GetLastError();
+			throw std::runtime_error("Failed to restore process file from " + 
+				this->dead_process_file_.string() + " to " + this->process_file_.string() + 
+				" (error: " + std::to_string(error) + ")");
+		}
+
+		OutputDebugStringA("Successfully restored exe from .old\n");
 	}
 
 	void file_updater::delete_old_process_file() const
 	{
-		// Wait for other process to die
+		OutputDebugStringA(("Attempting to delete old process file: " + 
+			this->dead_process_file_.string() + "\n").c_str());
+
 		for (auto i = 0; i < 4; ++i)
 		{
 			utils::io::remove_file(this->dead_process_file_);
 			if (!utils::io::file_exists(this->dead_process_file_))
 			{
+				OutputDebugStringA("Successfully deleted old process file\n");
 				break;
 			}
 
+			OutputDebugStringA(("Failed to delete old process file, retrying (attempt " + 
+				std::to_string(i + 1) + "/4)...\n").c_str());
 			std::this_thread::sleep_for(2s);
+		}
+
+		if (utils::io::file_exists(this->dead_process_file_))
+		{
+			OutputDebugStringA("Warning: Could not delete old process file after 4 attempts\n");
 		}
 	}
 

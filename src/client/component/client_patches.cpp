@@ -146,28 +146,6 @@ namespace client_patches
 			utils::hook::invoke<void>(0x1422A2AF0_g, path, "boiii_players");
 		}
 
-		// TODO: Remove me after some time
-		extern "C" void migrate_if_needed()
-		{
-			std::error_code e;
-
-			// Folder does not exist. Nothing to migrate
-			if (!std::filesystem::is_directory("players", e))
-			{
-				return;
-			}
-
-			// Folder does exist. Already migrated
-			if (std::filesystem::is_directory("boiii_players", e))
-			{
-				return;
-			}
-
-			utils::io::create_directory("boiii_players");
-
-			std::filesystem::copy("players", "boiii_players", std::filesystem::copy_options::recursive, e);
-		}
-
 		void patch_players_folder_name()
 		{
 			// Override 'players' folder
@@ -198,11 +176,6 @@ namespace client_patches
 	{
 	public:
 		static_assert(offsetof(game::clientActive_t, viewangles) == 0xB8C8);
-
-		component()
-		{
-			migrate_if_needed(); // TODO: Remove me after some time
-		}
 
 		void post_unpack() override
 		{

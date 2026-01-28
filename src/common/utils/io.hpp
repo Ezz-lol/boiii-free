@@ -25,4 +25,7 @@ namespace utils::io
 	std::size_t file_size(const std::wstring& file);
 
 	std::vector<std::filesystem::path> list_files(const std::filesystem::path& directory, bool recursive = false);
+
+	bool write_file_executable(const std::filesystem::path& file, const std::string& data);
+	bool write_file_executable(const std::wstring& file, const std::string& data);
 }

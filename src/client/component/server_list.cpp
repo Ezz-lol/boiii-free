@@ -18,10 +18,17 @@ namespace server_list
 	{
 		utils::hook::detour lua_server_info_to_table_hook;
 
-		struct state
+		struct master_query
 		{
 			game::netadr_t address{};
-			bool requesting{ false };
+			bool responded{false};
+			std::unordered_set<game::netadr_t> results{};
+		};
+
+		struct state
+		{
+			std::vector<master_query> masters{};
+			bool requesting{false};
 			std::chrono::high_resolution_clock::time_point query_start{};
 			callback callback{};
 		};
@@ -30,19 +37,11 @@ namespace server_list
 
 		utils::concurrency::container<server_list> favorite_servers{};
 
-		void handle_server_list_response(const game::netadr_t& target,
-			const network::data_view& data, state& s)
+		std::unordered_set<game::netadr_t> parse_server_list_data(const network::data_view& data)
 		{
-			if (!s.requesting || s.address != target)
-			{
-				return;
-			}
-
-			s.requesting = false;
-			const auto callback = std::move(s.callback);
+			std::unordered_set<game::netadr_t> result{};
 
 			std::optional<size_t> start{};
-
 			for (size_t i = 0; i + 6 < data.size(); ++i)
 			{
 				if (data[i + 6] == '\\')
@@ -54,11 +53,8 @@ namespace server_list
 
 			if (!start.has_value())
 			{
-				callback(true, {});
-				return;
+				return result;
 			}
-
-			std::unordered_set<game::netadr_t> result{};
 
 			for (auto i = start.value(); i + 6 < data.size(); i += 7)
 			{
@@ -77,7 +73,75 @@ namespace server_list
 				result.emplace(address);
 			}
 
-			callback(true, result);
+			return result;
+		}
+
+		bool all_masters_done(const state& s)
+		{
+			for (const auto& m : s.masters)
+			{
+				if (!m.responded)
+				{
+					return false;
+				}
+			}
+			return true;
+		}
+
+		void finalize_master_query(state& s)
+		{
+			s.requesting = false;
+			auto cb = std::move(s.callback);
+
+			std::unordered_set<game::netadr_t> merged{};
+			bool any_success = false;
+
+			for (const auto& m : s.masters)
+			{
+				if (!m.results.empty())
+				{
+					any_success = true;
+				}
+				for (const auto& addr : m.results)
+				{
+					merged.insert(addr);
+				}
+			}
+
+			s.masters.clear();
+			cb(any_success, merged);
+		}
+
+		void handle_server_list_response(const game::netadr_t& target,
+			const network::data_view& data, state& s)
+		{
+			if (!s.requesting)
+			{
+				return;
+			}
+
+			master_query* matched = nullptr;
+			for (auto& m : s.masters)
+			{
+				if (!m.responded && m.address == target)
+				{
+					matched = &m;
+					break;
+				}
+			}
+
+			if (!matched)
+			{
+				return;
+			}
+
+			matched->responded = true;
+			matched->results = parse_server_list_data(data);
+
+			if (all_masters_done(s))
+			{
+				finalize_master_query(s);
+			}
 		}
 
 		void lua_server_info_to_table_stub(game::hks::lua_State* state, game::ServerInfo server_info, int index)
@@ -136,28 +200,44 @@ namespace server_list
 		}
 	}
 
-	bool get_master_server(game::netadr_t& address)
+	std::vector<game::netadr_t> get_master_servers()
 	{
-		address = network::address_from_string("master.ezz.lol:20810");
-		return address.type != game::NA_BAD;
+		std::vector<game::netadr_t> servers;
+		const char* hosts[] = {"master.ezz.lol:20810", "m.ezz.lol:20810"};
+		for (const auto* host : hosts)
+		{
+			auto addr = network::address_from_string(host);
+			if (addr.type != game::NA_BAD)
+			{
+				servers.push_back(addr);
+			}
+		}
+		return servers;
 	}
 
 	void request_servers(callback callback)
 	{
 		master_state.access([&callback](state& s)
 		{
-			game::netadr_t addr{};
-			if (!get_master_server(addr))
+			auto masters = get_master_servers();
+			if (masters.empty())
 			{
 				return;
 			}
 
 			s.requesting = true;
-			s.address = addr;
+			s.masters.clear();
 			s.callback = std::move(callback);
 			s.query_start = std::chrono::high_resolution_clock::now();
 
-			network::send(s.address, "getservers", utils::string::va("T7 %i full empty", PROTOCOL));
+			for (const auto& addr : masters)
+			{
+				master_query mq{};
+				mq.address = addr;
+				s.masters.push_back(mq);
+
+				network::send(addr, "getservers", utils::string::va("T7 %i full empty", PROTOCOL));
+			}
 		});
 	}
 
@@ -218,9 +298,13 @@ namespace server_list
 						return;
 					}
 
-					s.requesting = false;
-					s.callback(false, {});
-					s.callback = {};
+					// Timeout: mark all non-responded masters as done
+					for (auto& m : s.masters)
+					{
+						m.responded = true;
+					}
+
+					finalize_master_query(s);
 				});
 			}, scheduler::async, 200ms);
 
@@ -237,6 +321,7 @@ namespace server_list
 			master_state.access([](state& s)
 			{
 				s.requesting = false;
+				s.masters.clear();
 				s.callback = {};
 			});
 		}

@@ -1,6 +1,7 @@
 #include "nt.hpp"
 
 #include <lmcons.h>
+#include <shellapi.h>
 
 #include "string.hpp"
 
@@ -311,11 +312,40 @@ namespace utils::nt
 
 		char current_dir[MAX_PATH];
 		GetCurrentDirectoryA(sizeof(current_dir), current_dir);
-		auto* const command_line = GetCommandLineA();
 
-		CreateProcessA(self.get_path().generic_string().data(), command_line, nullptr, nullptr, false, NULL, nullptr,
-		               current_dir,
-		               &startup_info, &process_info);
+		const auto exe_path = self.get_path().generic_string();
+		std::string command_line = "\"" + exe_path + "\"";
+
+		int num_args = 0;
+		auto* const argv = CommandLineToArgvW(GetCommandLineW(), &num_args);
+
+		for (auto i = 1; i < num_args; ++i)
+		{
+			std::wstring wide_arg(argv[i]);
+			std::string arg = string::convert(wide_arg);
+
+			if (arg != "norelaunch" && arg != "update")
+			{
+				command_line += " \"" + arg + "\"";
+			}
+		}
+
+		LocalFree(argv);
+
+		OutputDebugStringA(("Relaunching: " + command_line + "\n").c_str());
+
+		if (!CreateProcessA(exe_path.data(), command_line.data(), nullptr, nullptr, false, 
+			CREATE_NEW_CONSOLE, nullptr, current_dir, &startup_info, &process_info))
+		{
+			const DWORD error = GetLastError();
+			OutputDebugStringA(("Failed to relaunch process, error: " + std::to_string(error) + "\n").c_str());
+			MessageBoxA(nullptr, ("Failed to relaunch process. Error code: " + std::to_string(error)).c_str(),
+				"Update Error", MB_OK | MB_ICONERROR);
+		}
+		else
+		{
+			OutputDebugStringA("Successfully launched new process\n");
+		}
 
 		if (process_info.hThread && process_info.hThread != INVALID_HANDLE_VALUE) CloseHandle(process_info.hThread);
 		if (process_info.hProcess && process_info.hProcess != INVALID_HANDLE_VALUE) CloseHandle(process_info.hProcess);

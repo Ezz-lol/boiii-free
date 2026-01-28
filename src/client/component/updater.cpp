@@ -23,8 +23,13 @@ namespace updater
 		{
 			TerminateProcess(GetCurrentProcess(), 0);
 		}
+		catch (const std::exception& e)
+		{
+			MessageBoxA(nullptr, e.what(), "Updater Error", MB_OK | MB_ICONERROR);
+		}
 		catch (...)
 		{
+			MessageBoxA(nullptr, "Unknown error occurred during update.", "Updater Error", MB_OK | MB_ICONERROR);
 		}
 	}
 
