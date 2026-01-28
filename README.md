@@ -1,6 +1,5 @@
 # Ezz BOIII ☄️: Call of Duty® Black Ops III Client
 
-[![discord](https://img.shields.io/endpoint?url=https://dc.ezz.lol/badge)](https://dc.ezz.lol)
 [![github](https://img.shields.io/badge/GitHub-Repository-blue)](https://github.com/Ezz-lol/boiii-free)
 
 ---
@@ -434,4 +433,5 @@ This is a non-profit, community-driven project. We do not condone piracy. If you
 <p align="center">
   Made with ❤️ by the BOIII community ☄️
 </p>
+
 
