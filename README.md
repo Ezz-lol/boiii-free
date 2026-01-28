@@ -4,7 +4,7 @@
 
 ---
 
-> [!IMPORTANT]
+> [!NOTE]
 > Feel free to open up Pull requests 😑
 
 ---
@@ -205,7 +205,7 @@ You can download Steam Workshop content directly through the BOIII client withou
 4. Download directly to your game folder
 
 **External Tool (Alternative):**
-If you prefer a standalone tool, check out [Steam Workshop Downloader by Likeicareaboutit](https://github.com/Likeicareaboutit/steam-workshop-downloader)
+If you prefer a standalone tool, check out [BOIIIWD by faroukbmiled](https://github.com/faroukbmiled/BOIIIWD)
 
 **Finding Workshop IDs:**
 - Go to any Steam Workshop item page
@@ -433,5 +433,6 @@ This is a non-profit, community-driven project. We do not condone piracy. If you
 <p align="center">
   Made with ❤️ by the BOIII community ☄️
 </p>
+
 
 
