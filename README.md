@@ -367,6 +367,8 @@ Want to build Ezz BOIII yourself? Here's how! 🔨
 - [Visual Studio 2022](https://visualstudio.microsoft.com/downloads/) (Community Edition is free)
 - [Git](https://git-scm.com/downloads)
 - Windows 10/11 SDK
+- VS Build Tools ([vs config you can import to quickly get the right ones](https://app.filen.io/#/d/52faaefc-2331-4904-897f-97bc2b36e4f1%23373366412d6a5456715853426253475063347531343161793171796d726d7445))<img width="1128" height="399" alt="image" src="https://github.com/user-attachments/assets/8f3a7a4d-b933-4d47-a193-c67260b96f16" />
+
 
 ### Build Steps
 
@@ -433,6 +435,7 @@ This is a non-profit, community-driven project. We do not condone piracy. If you
 <p align="center">
   Made with ❤️ by the BOIII community ☄️
 </p>
+
 
 
 
