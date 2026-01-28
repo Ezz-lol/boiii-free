@@ -3,10 +3,6 @@
 [![discord](https://img.shields.io/endpoint?url=https://dc.ezz.lol/badge)](https://dc.ezz.lol)
 [![github](https://img.shields.io/badge/GitHub-Repository-blue)](https://github.com/Ezz-lol/boiii-free)
 
-<p align="center">
-  <img src="assets/boiii-banner.png?raw=true" alt="BOIII Banner" />
-</p>
-
 ---
 
 > [!IMPORTANT]
@@ -438,3 +434,4 @@ This is a non-profit, community-driven project. We do not condone piracy. If you
 <p align="center">
   Made with ❤️ by the BOIII community ☄️
 </p>
+
