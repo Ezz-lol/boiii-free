@@ -14,7 +14,7 @@ namespace utils::com
 	{
 		void initialize_com()
 		{
-			static struct x
+			thread_local struct x
 			{
 				x()
 				{

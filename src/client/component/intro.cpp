@@ -3,6 +3,7 @@
 #include "game/game.hpp"
 
 #include <utils/hook.hpp>
+#include <utils/flags.hpp>
 
 namespace intro
 {
@@ -10,7 +11,7 @@ namespace intro
 	{
 		utils::hook::detour cinematic_start_playback_hook;
 
-		void ccc(const char* name, const char* key, const unsigned int playback_flags, const float volume,
+		void cinematic_start_playback_stub(const char* name, const char* key, const unsigned int playback_flags, const float volume,
 		         void* callback_info, const int id)
 		{
 			if (name == "BO3_Global_Logo_LogoSequence"s)
@@ -27,11 +28,12 @@ namespace intro
 	public:
 		void post_unpack() override
 		{
-			cinematic_start_playback_hook.create(game::Cinematic_StartPlayback, ccc);
+			if (utils::flags::has_flag("nointro"))
+			{
+				cinematic_start_playback_hook.create(game::Cinematic_StartPlayback, cinematic_start_playback_stub);
+			}
 		}
 	};
 }
 
-#ifdef DEV_BUILD
 REGISTER_COMPONENT(intro::component)
-#endif
