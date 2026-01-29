@@ -2,166 +2,8 @@ if Engine.GetCurrentMap() ~= "core_frontend" then
 	return
 end
 
-require("ui.uieditor.widgets.PC.ServerBrowser.ServerBrowserRowInternal")
-
 function IsServerBrowserEnabled()
 	return true
-end
-
-local filters = {
-	map = "",
-	modName = "",
-	gameType = "",
-	minPing = 0,
-	maxPing = 999,
-	notFull = false,
-	notEmpty = false,
-	hasPassword = "any",
-	dedicated = "any",
-	hardcore = "any"
-}
-
-local currentSort = {field = "ping", desc = false}
-
--- Server info cache: offset -> serverInfo from engine
-local serverCache = {}
--- Filtered + sorted list of offsets into serverCache
-local filteredIndices = {}
--- Total server count from engine
-local totalServerCount = 0
-
--- Map native serverListSortType values to sort fields
-local nativeSortMapping = {
-	[0] = {field = "ping", desc = false},
-	[1] = {field = "name", desc = false},
-	[2] = {field = "mapName", desc = false},
-	[3] = {field = "gameType", desc = false},
-	[4] = {field = "playerCount", desc = true},
-}
-
-local function applyFilters(serverInfo)
-	if not serverInfo then
-		return false
-	end
-
-	if filters.minPing > 0 and serverInfo.ping < filters.minPing then
-		return false
-	end
-
-	if filters.maxPing < 999 and serverInfo.ping > filters.maxPing then
-		return false
-	end
-
-	if filters.modName ~= "" and not string.find(string.lower(serverInfo.modName or ""), string.lower(filters.modName)) then
-		return false
-	end
-
-	if filters.gameType ~= "" and (serverInfo.gametype or "") ~= filters.gameType then
-		return false
-	end
-
-	if filters.map ~= "" and not string.find(string.lower(serverInfo.map or ""), string.lower(filters.map)) then
-		return false
-	end
-
-	if filters.notFull and serverInfo.playerCount >= (serverInfo.maxPlayers or 0) then
-		return false
-	end
-
-	if filters.notEmpty and serverInfo.playerCount <= 0 then
-		return false
-	end
-
-	if filters.hasPassword ~= "any" then
-		local hasPassword = serverInfo.password
-		if (filters.hasPassword == "yes" and not hasPassword) or (filters.hasPassword == "no" and hasPassword) then
-			return false
-		end
-	end
-
-	if filters.dedicated ~= "any" then
-		local isDedicated = serverInfo.dedicated
-		if (filters.dedicated == "yes" and not isDedicated) or (filters.dedicated == "no" and isDedicated) then
-			return false
-		end
-	end
-
-	if filters.hardcore ~= "any" then
-		local isHardcore = serverInfo.hardcore
-		if (filters.hardcore == "yes" and not isHardcore) or (filters.hardcore == "no" and isHardcore) then
-			return false
-		end
-	end
-
-	return true
-end
-
-local function rebuildFilteredAndSortedList()
-	filteredIndices = {}
-	for offset, info in pairs(serverCache) do
-		if applyFilters(info) then
-			filteredIndices[#filteredIndices + 1] = offset
-		end
-	end
-
-	table.sort(filteredIndices, function(a, b)
-		local infoA = serverCache[a]
-		local infoB = serverCache[b]
-		if not infoA and not infoB then return a < b end
-		if not infoA then return false end
-		if not infoB then return true end
-
-		local field = currentSort.field
-		local valA, valB
-
-		if field == "ping" then
-			valA = infoA.ping or 999
-			valB = infoB.ping or 999
-		elseif field == "name" then
-			valA = string.lower(infoA.name or "")
-			valB = string.lower(infoB.name or "")
-		elseif field == "playerCount" then
-			valA = (infoA.playerCount or 0) - (infoA.botCount or 0)
-			valB = (infoB.playerCount or 0) - (infoB.botCount or 0)
-		elseif field == "mapName" then
-			valA = string.lower(infoA.map or "")
-			valB = string.lower(infoB.map or "")
-		elseif field == "gameType" then
-			valA = string.lower(infoA.gametype or "")
-			valB = string.lower(infoB.gametype or "")
-		else
-			valA = infoA.ping or 999
-			valB = infoB.ping or 999
-		end
-
-		if valA == valB then
-			return a < b
-		end
-
-		if currentSort.desc then
-			return valA > valB
-		else
-			return valA < valB
-		end
-	end)
-end
-
-local function refreshServerCache(count)
-	serverCache = {}
-	totalServerCount = count or 0
-	for i = 0, totalServerCount - 1 do
-		local info = Engine.SteamServerBrowser_GetServerInfo(i)
-		if info then
-			serverCache[i] = info
-		end
-	end
-	rebuildFilteredAndSortedList()
-end
-
-local function clearServerCache()
-	serverCache = {}
-	filteredIndices = {}
-	totalServerCount = 0
 end
 
 DataSources.LobbyServer = {
@@ -176,16 +18,6 @@ DataSources.LobbyServer = {
 			list.serverCount = 0
 		end
 		list.servers = {}
-
-		local filterModel = Engine.CreateModel(list.serverBrowserRootModel, "filters")
-		for key, _ in pairs(filters) do
-			Engine.CreateModel(filterModel, key)
-		end
-
-		local sortModel = Engine.CreateModel(list.serverBrowserRootModel, "sort")
-		Engine.SetModelValue(Engine.CreateModel(sortModel, "field"), currentSort.field)
-		Engine.SetModelValue(Engine.CreateModel(sortModel, "desc"), currentSort.desc)
-
 		local serversModel = Engine.CreateModel(list.serverBrowserRootModel, "servers")
 		for i = 1, list.numElementsInList, 1 do
 			list.servers[i] = {}
@@ -210,6 +42,7 @@ DataSources.LobbyServer = {
 				SetModelValue(serverModel, "modName", serverInfo.modName)
 				SetModelValue(serverModel, "mapName", serverInfo.map)
 				SetModelValue(serverModel, "desc", serverInfo.desc)
+				-- Change the client count to be the actual player count
 				local clientCount = serverInfo.playerCount - serverInfo.botCount
 				SetModelValue(serverModel, "clientCount", clientCount)
 				SetModelValue(serverModel, "maxClients", serverInfo.maxPlayers)
@@ -221,6 +54,7 @@ DataSources.LobbyServer = {
 				SetModelValue(serverModel, "ranked", serverInfo.ranked)
 				SetModelValue(serverModel, "hardcore", serverInfo.hardcore)
 				SetModelValue(serverModel, "zombies", serverInfo.zombies)
+				-- Add the bot count
 				SetModelValue(serverModel, "botCount", serverInfo.botCount)
 				return serverModel
 			else
@@ -228,84 +62,29 @@ DataSources.LobbyServer = {
 			end
 		end
 
-		-- Build initial cache
-		refreshServerCache(list.serverCount or 0)
-
-		-- Server count changes: new servers discovered or refresh completed
-		-- Re-read all server info from engine and rebuild filtered list
 		if list.serverListUpdateSubscription then
 			list:removeSubscription(list.serverListUpdateSubscription)
 		end
 		local serverListUpdateModel = Engine.CreateModel(list.serverBrowserRootModel, "serverListCount")
 		list.serverListUpdateSubscription = list:subscribeToModel(serverListUpdateModel, function(model)
-			local count = Engine.GetModelValue(model)
-			if count then
-				list.serverCount = count
-			end
-			refreshServerCache(list.serverCount or 0)
 			list:updateDataSource(false, false)
 		end, false)
-
-		-- Sort type changes (column header clicks): re-sort from cache
 		if list.serverListSortTypeSubscription then
 			list:removeSubscription(list.serverListSortTypeSubscription)
 		end
 		local serverListSortTypeModel = Engine.CreateModel(list.serverBrowserRootModel, "serverListSortType")
 		list.serverListSortTypeSubscription = list:subscribeToModel(serverListSortTypeModel, function(model)
-			local sortType = Engine.GetModelValue(model)
-			if sortType ~= nil then
-				local mapping = nativeSortMapping[sortType]
-				if mapping then
-					if currentSort.field == mapping.field then
-						currentSort.desc = not currentSort.desc
-					else
-						currentSort.field = mapping.field
-						currentSort.desc = mapping.desc
-					end
-				end
-			end
-			rebuildFilteredAndSortedList()
-			list:updateDataSource(false, false)
-		end, false)
-
-		-- Filter changes: re-filter from cache
-		if list.filterSubscription then
-			list:removeSubscription(list.filterSubscription)
-		end
-		list.filterSubscription = list:subscribeToModel(filterModel, function(model)
-			rebuildFilteredAndSortedList()
-			list:updateDataSource(false, false)
-		end, false)
-
-		-- Sort model changes: re-sort from cache
-		if list.sortSubscription then
-			list:removeSubscription(list.sortSubscription)
-		end
-		list.sortSubscription = list:subscribeToModel(sortModel, function(model)
-			local fieldModel = Engine.GetModel(sortModel, "field")
-			local descModel = Engine.GetModel(sortModel, "desc")
-			if fieldModel then
-				local field = Engine.GetModelValue(fieldModel)
-				if field then currentSort.field = field end
-			end
-			if descModel then
-				local desc = Engine.GetModelValue(descModel)
-				if desc ~= nil then currentSort.desc = desc end
-			end
-			rebuildFilteredAndSortedList()
 			list:updateDataSource(false, false)
 		end, false)
 	end,
 	getCount = function(list)
-		return #filteredIndices
+		return list.serverCount
 	end,
 	getItem = function(controller, list, index)
-		local realOffset = filteredIndices[index]
-		if not realOffset then return nil end
-		return list.updateModels(controller, list, realOffset)
+		local offset = index - 1
+		return list.updateModels(controller, list, offset)
 	end,
 	cleanup = function(list)
-		clearServerCache()
 		if list.serverBrowserRootModel then
 			Engine.UnsubscribeAndFreeModel(list.serverBrowserRootModel)
 			list.serverBrowserRootModel = nil
