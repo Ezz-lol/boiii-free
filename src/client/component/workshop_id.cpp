@@ -1,4 +1,3 @@
-
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "game/utils.hpp"
@@ -84,8 +83,9 @@ namespace workshop_id
 			}
 
 			outputFile.close();
-			std::string message = "Loaded workshop item id found! \n\nWriting ID to " + config_path + " as workshop_id dvar. \n\nPlease restart the server to enable it.";
-			MessageBox(NULL, message.c_str(), "Info!", MB_OK | MB_ICONEXCLAMATION | MB_SYSTEMMODAL);
+			std::string message = "Loaded workshop item id found! \n\nWriting ID to " + config_path +
+				" as workshop_id dvar. \n\nPlease restart the server to enable it.";
+			MessageBox(nullptr, message.c_str(), "Info!", MB_OK | MB_ICONEXCLAMATION | MB_SYSTEMMODAL);
 
 			return 0;
 		}
@@ -155,7 +155,7 @@ namespace workshop_id
 
 		void get_map_id_from_json()
 		{
-			Sleep(20000);//let the custom map load in server
+			Sleep(20000); //let the custom map load in server
 			if (!running)
 			{
 				return;
@@ -185,7 +185,8 @@ namespace workshop_id
 							break;
 						}
 
-						if (std::filesystem::exists(workshop_json_zone) && !std::filesystem::is_directory(workshop_json_zone))
+						if (std::filesystem::exists(workshop_json_zone) && !std::filesystem::is_directory(
+							workshop_json_zone))
 						{
 							read_json_for_id(workshop_json_zone);
 							break;
@@ -201,7 +202,8 @@ namespace workshop_id
 								break;
 							}
 						}
-						else if (std::filesystem::exists(workshop_json_zone) && !std::filesystem::is_directory(workshop_json_zone))
+						else if (std::filesystem::exists(workshop_json_zone) && !std::filesystem::is_directory(
+							workshop_json_zone))
 						{
 							if (read_json_for_folder_name(workshop_json_zone, mapname))
 							{
@@ -218,7 +220,6 @@ namespace workshop_id
 	class component final : public generic_component
 	{
 	public:
-
 		void pre_destroy() override
 		{
 			running = false;

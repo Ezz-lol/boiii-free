@@ -2,12 +2,12 @@
 
 namespace steam
 {
-	typedef enum EMatchMakingServerResponse
+	using matchmaking_server_response = enum EMatchMakingServerResponse
 	{
 		eServerResponded = 0,
 		eServerFailedToRespond,
 		eNoServersListedOnMasterServer
-	} matchmaking_server_response;
+	};
 
 	class servernetadr_t
 	{
@@ -79,7 +79,8 @@ namespace steam
 		virtual bool IsRefreshing(void* hRequest);
 		virtual int GetServerCount(void* hRequest);
 		virtual void RefreshServer(void* hRequest, int iServer);
-		virtual void* PingServer(unsigned int unIP, unsigned short usPort, matchmaking_ping_response* pRequestServersResponse);
+		virtual void* PingServer(unsigned int unIP, unsigned short usPort,
+		                         matchmaking_ping_response* pRequestServersResponse);
 		virtual int PlayerDetails(unsigned int unIP, unsigned short usPort, void* pRequestServersResponse);
 		virtual int ServerRules(unsigned int unIP, unsigned short usPort, void* pRequestServersResponse);
 		virtual void CancelServerQuery(int hServerQuery);

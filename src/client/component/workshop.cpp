@@ -17,7 +17,7 @@ namespace workshop
 	namespace
 	{
 		std::thread download_thread{};
-		std::atomic_bool downloading{ false };
+		std::atomic_bool downloading{false};
 
 		utils::hook::detour setup_server_map_hook;
 		utils::hook::detour load_usermap_hook;
@@ -214,7 +214,8 @@ namespace workshop
 			{
 				if (!utils::string::is_numeric(usermap_data.publisherId))
 				{
-					printf("[ Workshop ] WARNING: The publisherId is not numerical you might have set your usermap folder incorrectly!\n%s\n",
+					printf(
+						"[ Workshop ] WARNING: The publisherId is not numerical you might have set your usermap folder incorrectly!\n%s\n",
 						usermap_data.absolutePathZoneFiles);
 				}
 
@@ -236,7 +237,8 @@ namespace workshop
 
 		if (!utils::string::is_numeric(loaded_mod_id))
 		{
-			printf("[ Workshop ] WARNING: The publisherId: %s, is not numerical you might have set your mod folder incorrectly!\n",
+			printf(
+				"[ Workshop ] WARNING: The publisherId: %s, is not numerical you might have set your mod folder incorrectly!\n",
 				loaded_mod_id.data());
 		}
 
@@ -270,41 +272,53 @@ namespace workshop
 			if (is_dlc_map(mapname.data()))
 			{
 				game::UI_OpenErrorPopupWithMessage(0, 0x100,
-					utils::string::va("Could not find DLC map: %s. \nYou can download the map from steam or use following link: https://forum.ezz.lol/topic/6/bo3-dlc", mapname.data()));
+				                                   utils::string::va(
+					                                   "Could not find DLC map: %s. \nYou can download the map from steam or use following link: https://forum.ezz.lol/topic/6/bo3-dlc",
+					                                   mapname.data()));
 
 				return false;
 			}
 
-			if (workshop::downloading_workshop_item)
+			if (downloading_workshop_item)
 			{
-				MessageBox(NULL, "You are already downloading map in background \nYou can download only one map at a time.", "Warning!", MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL);
+				MessageBox(nullptr,
+				           "You are already downloading map in background \nYou can download only one map at a time.",
+				           "Warning!", MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL);
 				return false;
 			}
 
 			if (utils::string::is_numeric(mapname.data()))
 			{
-				int result = MessageBox(NULL, utils::string::va("Can't find usermap id: %s!\nDo you want to download it now?.", mapname.data()), "Info", MB_YESNO | MB_ICONQUESTION | MB_SYSTEMMODAL);
+				int result = MessageBox(
+					nullptr, utils::string::va("Can't find usermap id: %s!\nDo you want to download it now?.",
+					                           mapname.data()), "Info", MB_YESNO | MB_ICONQUESTION | MB_SYSTEMMODAL);
 				if (result == IDYES)
 				{
 					printf("workshop id as mapname starting the download \n");
-					download_thread = utils::thread::create_named_thread("workshop_download", steamcmd::initialize_download, mapname, "Map");
+					download_thread = utils::thread::create_named_thread(
+						"workshop_download", steamcmd::initialize_download, mapname, "Map");
 					download_thread.detach();
 				}
 			}
 			else if (!workshop_id.empty() && utils::string::is_numeric(workshop_id.data()))
 			{
-				int result = MessageBox(NULL, utils::string::va("Can't find usermap id: %s!\nDo you want to download it now?.", mapname.data()), "Info", MB_YESNO | MB_ICONQUESTION | MB_SYSTEMMODAL);
+				int result = MessageBox(
+					nullptr, utils::string::va("Can't find usermap id: %s!\nDo you want to download it now?.",
+					                           mapname.data()), "Info", MB_YESNO | MB_ICONQUESTION | MB_SYSTEMMODAL);
 				if (result == IDYES)
 				{
 					printf("'workshop_id' dvar found.\nDownloading the map now \n");
-					download_thread = utils::thread::create_named_thread("workshop_download", steamcmd::initialize_download, workshop_id, "Map");
+					download_thread = utils::thread::create_named_thread(
+						"workshop_download", steamcmd::initialize_download, workshop_id, "Map");
 					download_thread.detach();
 				}
 			}
 			else
 			{
 				game::UI_OpenErrorPopupWithMessage(0, 0x100,
-					utils::string::va("Could not download this mod folder name is not numeric and 'workshop_id' dvar is empty! \nCan't find usermap id: %s!\nMake sure you're subscribed to the workshop item.", mapname.data()));
+				                                   utils::string::va(
+					                                   "Could not download this mod folder name is not numeric and 'workshop_id' dvar is empty! \nCan't find usermap id: %s!\nMake sure you're subscribed to the workshop item.",
+					                                   mapname.data()));
 			}
 			return false;
 		}
@@ -320,36 +334,46 @@ namespace workshop
 
 		if (!has_mod(mod))
 		{
-			if (workshop::downloading_workshop_item)
+			if (downloading_workshop_item)
 			{
-				MessageBox(NULL, "You are already downloading mod in background \nYou can download only one mod at a time.", "Warning!", MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL);
+				MessageBox(nullptr,
+				           "You are already downloading mod in background \nYou can download only one mod at a time.",
+				           "Warning!", MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL);
 				return false;
 			}
 
 			if (utils::string::is_numeric(mod.data()))
 			{
-				int result = MessageBox(NULL, utils::string::va("Can't find mod id: %s!\nDo you want to download it now?.", mod.data()), "Info", MB_YESNO | MB_ICONQUESTION | MB_SYSTEMMODAL);
+				int result = MessageBox(
+					nullptr, utils::string::va("Can't find mod id: %s!\nDo you want to download it now?.", mod.data()),
+					"Info", MB_YESNO | MB_ICONQUESTION | MB_SYSTEMMODAL);
 				if (result == IDYES)
 				{
 					printf("mod name is numeric downloading the mod \n");
-					download_thread = utils::thread::create_named_thread("workshop_download", steamcmd::initialize_download, mod, "Mod");
+					download_thread = utils::thread::create_named_thread(
+						"workshop_download", steamcmd::initialize_download, mod, "Mod");
 					download_thread.detach();
 				}
 			}
 			else if (!workshop_id.empty() && utils::string::is_numeric(workshop_id.data()))
 			{
-				int result = MessageBox(NULL, utils::string::va("Can't find mod id: %s!\nDo you want to download it now?.", mod.data()), "Info", MB_YESNO | MB_ICONQUESTION | MB_SYSTEMMODAL);
+				int result = MessageBox(
+					nullptr, utils::string::va("Can't find mod id: %s!\nDo you want to download it now?.", mod.data()),
+					"Info", MB_YESNO | MB_ICONQUESTION | MB_SYSTEMMODAL);
 				if (result == IDYES)
 				{
 					printf("'workshop_id' dvar found downloading the mod \n");
-					download_thread = utils::thread::create_named_thread("workshop_download", steamcmd::initialize_download, workshop_id, "Mod");
+					download_thread = utils::thread::create_named_thread(
+						"workshop_download", steamcmd::initialize_download, workshop_id, "Mod");
 					download_thread.detach();
 				}
 			}
 			else
 			{
 				game::UI_OpenErrorPopupWithMessage(0, 0x100,
-					utils::string::va("Could not download this mod folder name is not numeric and 'workshop_id' dvar is empty! \nCan't find mod id: %s!\nMake sure you're subscribed to the workshop item.", mod.data()));
+				                                   utils::string::va(
+					                                   "Could not download this mod folder name is not numeric and 'workshop_id' dvar is empty! \nCan't find mod id: %s!\nMake sure you're subscribed to the workshop item.",
+					                                   mod.data()));
 			}
 			return false;
 		}
@@ -381,11 +405,10 @@ namespace workshop
 	public:
 		void post_unpack() override
 		{
-
 			command::add("userContentReload", [](const command::params& params)
-				{
-					game::reloadUserContent();
-				});
+			{
+				game::reloadUserContent();
+			});
 
 			utils::hook::call(game::select(0x1420D6AA6, 0x1404E2936), va_mods_path_stub);
 			utils::hook::call(game::select(0x1420D6577, 0x1404E24A7), va_user_content_path_stub);
@@ -407,13 +430,12 @@ namespace workshop
 
 		void pre_destroy() override
 		{
-			workshop::downloading_workshop_item = false;
+			downloading_workshop_item = false;
 			if (download_thread.joinable())
 			{
 				download_thread.join();
 			}
 		}
-
 	};
 }
 

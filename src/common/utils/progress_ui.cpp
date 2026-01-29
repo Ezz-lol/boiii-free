@@ -47,7 +47,7 @@ namespace utils
 	{
 		if (this->dialog_)
 		{
-			this->dialog_->SetLine(line, utils::string::convert(text).data(), false, nullptr);
+			this->dialog_->SetLine(line, string::convert(text).data(), false, nullptr);
 		}
 	}
 
@@ -55,7 +55,7 @@ namespace utils
 	{
 		if (this->dialog_)
 		{
-			this->dialog_->SetTitle(utils::string::convert(title).data());
+			this->dialog_->SetTitle(string::convert(title).data());
 		}
 	}
 

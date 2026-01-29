@@ -9,7 +9,7 @@ namespace utils::thread
 	bool set_name(std::thread& t, const std::string& name);
 	bool set_name(const std::string& name);
 
-	template <typename ...Args>
+	template <typename... Args>
 	std::thread create_named_thread(const std::string& name, Args&&... args)
 	{
 		auto t = std::thread(std::forward<Args>(args)...);

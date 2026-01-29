@@ -136,8 +136,8 @@ namespace ui_scripting
 		[[maybe_unused]] arguments operator()() const;
 		[[maybe_unused]] arguments operator()(const arguments& arguments) const;
 
-		template <class ...T>
-		[[maybe_unused]] arguments operator()(T ... arguments) const
+		template <class... T>
+		[[maybe_unused]] arguments operator()(T... arguments) const
 		{
 			return this->as<function>().call({arguments...});
 		}
@@ -193,7 +193,7 @@ namespace ui_scripting
 	class function_argument
 	{
 	public:
-		function_argument(const arguments& args, const script_value& value, const int index);
+		function_argument(const arguments& args, const script_value& value, int index);
 
 		template <typename T>
 		T as() const

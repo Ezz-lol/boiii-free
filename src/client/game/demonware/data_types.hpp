@@ -73,7 +73,7 @@ namespace demonware
 		}
 	};
 
-	struct bdFileQueryResult final : public bdTaskResult
+	struct bdFileQueryResult final : bdTaskResult
 	{
 		std::uint64_t user_id;
 		std::string platform;
@@ -474,7 +474,7 @@ namespace demonware
 			char* data{};
 			buffer->read_blob(&data, &size);
 
-			if (data && uint32_t(size) >= sizeof(this->session_id))
+			if (data && static_cast<uint32_t>(size) >= sizeof(this->session_id))
 			{
 				this->session_id = *reinterpret_cast<uint64_t*>(data);
 			}

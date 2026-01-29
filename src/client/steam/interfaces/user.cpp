@@ -158,7 +158,7 @@ namespace steam
 		if (cbMaxTicket < 0 || auth_ticket.empty()) return false;
 
 		const auto size = auth_ticket.size();
-		if (size_t(cbMaxTicket) < size)
+		if (static_cast<size_t>(cbMaxTicket) < size)
 		{
 			*pcbTicket = static_cast<unsigned>(size);
 			return false;

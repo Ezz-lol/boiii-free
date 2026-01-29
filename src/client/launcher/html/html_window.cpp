@@ -3,9 +3,10 @@
 
 html_window::html_window(const std::string& title, int width, int height, long flags)
 	: window_(title, width, height,
-		[this](window*, const UINT message, const WPARAM w_param, const LPARAM l_param) -> std::optional<LRESULT> {
-			return this->processor(message, w_param, l_param);
-		}, flags)
+	          [this](window*, const UINT message, const WPARAM w_param, const LPARAM l_param) -> std::optional<LRESULT>
+	          {
+		          return this->processor(message, w_param, l_param);
+	          }, flags)
 {
 }
 

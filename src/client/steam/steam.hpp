@@ -11,11 +11,11 @@ struct raw_steam_id final
 	int universe : 8;
 };
 
-typedef union
+using steam_id = union
 {
 	raw_steam_id raw;
 	unsigned long long bits;
-} steam_id;
+};
 
 #pragma pack( push, 1 )
 struct raw_game_id final
@@ -25,11 +25,11 @@ struct raw_game_id final
 	unsigned int mod_id : 32;
 };
 
-typedef union
+using game_id = union
 {
 	raw_game_id raw;
 	unsigned long long bits;
-} game_id;
+};
 #pragma pack( pop )
 
 #include "interfaces/apps.hpp"
@@ -110,7 +110,7 @@ namespace steam
 	STEAM_EXPORT void SteamAPI_RegisterCallback(callbacks::base* handler, int callback);
 	STEAM_EXPORT void SteamAPI_RunCallbacks();
 	STEAM_EXPORT void SteamAPI_Shutdown();
-	STEAM_EXPORT void SteamAPI_UnregisterCallResult(callbacks::base* result, const uint64_t call);
+	STEAM_EXPORT void SteamAPI_UnregisterCallResult(callbacks::base* result, uint64_t call);
 	STEAM_EXPORT void SteamAPI_UnregisterCallback(callbacks::base* handler);
 	STEAM_EXPORT const char* SteamAPI_GetSteamInstallPath();
 

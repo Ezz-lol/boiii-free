@@ -21,12 +21,12 @@ namespace utils::smbios
 			BYTE SMBIOSTableData[];
 		};
 
-		typedef struct
+		using dmi_header = struct
 		{
 			BYTE type;
 			BYTE length;
 			WORD handle;
-		} dmi_header;
+		};
 #pragma warning(pop)
 
 		std::vector<uint8_t> get_smbios_data()
@@ -43,7 +43,7 @@ namespace utils::smbios
 
 		std::string parse_uuid(const uint8_t* data)
 		{
-			if (utils::memory::is_set(data, 0, 16) || utils::memory::is_set(data, -1, 16))
+			if (memory::is_set(data, 0, 16) || memory::is_set(data, -1, 16))
 			{
 				return {};
 			}

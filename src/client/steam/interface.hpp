@@ -14,11 +14,11 @@ namespace steam
 		int universe : 8;
 	};
 
-	typedef union
+	using steam_id = union
 	{
 		raw_steam_id raw;
 		unsigned long long bits;
-	} steam_id;
+	};
 
 #pragma pack( push, 1 )
 	struct raw_game_id final
@@ -28,24 +28,23 @@ namespace steam
 		unsigned int mod_id : 32;
 	};
 
-	typedef union
+	using game_id = union
 	{
 		raw_game_id raw;
 		unsigned long long bits;
-	} game_id;
+	};
 #pragma pack( pop )
 
 	class interface final
 	{
 	public:
-
 		interface();
 		interface(void* interface_ptr);
 
 		operator bool() const;
 
 		template <typename T, typename... Args>
-		T invoke(const std::string& method_name, Args ... args)
+		T invoke(const std::string& method_name, Args... args)
 		{
 			if (!this->interface_ptr_)
 			{
@@ -58,18 +57,18 @@ namespace steam
 				throw std::runtime_error("Unable to find method: " + method_name);
 			}
 
-			return static_cast<T(__thiscall*)(void*, Args ...)>(method)(this->interface_ptr_, args...);
+			return static_cast<T(__thiscall*)(void*, Args...)>(method)(this->interface_ptr_, args...);
 		}
 
 		template <typename T, typename... Args>
-		T invoke(const size_t table_entry, Args ... args)
+		T invoke(const size_t table_entry, Args... args)
 		{
 			if (!this->interface_ptr_)
 			{
 				throw std::runtime_error("Invalid interface pointer");
 			}
 
-			return static_cast<T(__thiscall*)(void*, Args ...)>((*this->interface_ptr_)[table_entry])(
+			return static_cast<T(__thiscall*)(void*, Args...)>((*this->interface_ptr_)[table_entry])(
 				this->interface_ptr_, args...);
 		}
 

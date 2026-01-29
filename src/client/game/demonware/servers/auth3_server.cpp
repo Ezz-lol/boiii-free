@@ -85,7 +85,7 @@ namespace demonware
 		printf("[DW]: [auth]: authenticating user %s\n", token.data() + 64);
 #endif
 
-		std::string auth_key(reinterpret_cast<char*>(token.data() + 32), 24);
+		std::string auth_key(token.data() + 32, 24);
 		std::string session_key(
 			"\x13\x37\x13\x37\x13\x37\x13\x37\x13\x37\x13\x37\x13\x37\x13\x37\x13\x37\x13\x37\x13\x37\x13\x37", 24);
 
@@ -99,7 +99,7 @@ namespace demonware
 		ticket.m_timeExpires = ticket.m_timeIssued + 30000;
 		ticket.m_licenseID = 0;
 		ticket.m_userID = reinterpret_cast<uint64_t>(token.data() + 56);
-		strncpy_s(ticket.m_username, sizeof(ticket.m_username), reinterpret_cast<char*>(token.data() + 64), 64);
+		strncpy_s(ticket.m_username, sizeof(ticket.m_username), token.data() + 64, 64);
 		std::memcpy(ticket.m_sessionKey, session_key.data(), 24);
 
 		const auto iv = utils::cryptography::tiger::compute(std::string(reinterpret_cast<char*>(&iv_seed), 4));
@@ -114,7 +114,7 @@ namespace demonware
 		std::memcpy(auth_data, session_key.data(), 24);
 		const auto auth_data_b64 = utils::cryptography::base64::encode(auth_data, 128);
 
-		demonware::set_session_key(session_key);
+		set_session_key(session_key);
 
 		// header time
 		char date[64];

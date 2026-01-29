@@ -67,20 +67,19 @@ namespace demonware
 		}
 
 	protected:
-
 		template <typename Class, typename T, typename... Args>
-		void register_task(const uint8_t id, T (Class::* callback)(Args ...) const)
+		void register_task(const uint8_t id, T (Class::*callback)(Args...) const)
 		{
-			this->tasks_[id] = [this, callback](Args ... args) -> T
+			this->tasks_[id] = [this, callback](Args... args) -> T
 			{
 				return (reinterpret_cast<Class*>(this)->*callback)(args...);
 			};
 		}
 
 		template <typename Class, typename T, typename... Args>
-		void register_task(const uint8_t id, T (Class::* callback)(Args ...))
+		void register_task(const uint8_t id, T (Class::*callback)(Args...))
 		{
-			this->tasks_[id] = [this, callback](Args ... args) -> T
+			this->tasks_[id] = [this, callback](Args... args) -> T
 			{
 				return (reinterpret_cast<Class*>(this)->*callback)(args...);
 			};

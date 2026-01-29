@@ -12,6 +12,6 @@ namespace game::fragment_handler
 
 	void clean();
 
-	void fragment_data(const void* data, const size_t size,
+	void fragment_data(const void* data, size_t size,
 	                   const std::function<void(const utils::byte_buffer& buffer)>& callback);
 }

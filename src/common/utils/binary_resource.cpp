@@ -20,7 +20,7 @@ namespace utils
 		}
 
 		std::string write_existing_temp_file(const std::string& file, const std::string& data,
-		                                       const bool fatal_if_overwrite_fails)
+		                                     const bool fatal_if_overwrite_fails)
 		{
 			const auto temp = get_temp_folder();
 			auto file_path = temp + file;

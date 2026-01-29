@@ -299,10 +299,10 @@ namespace steam
 
 	uint32_t ugc::GetNumSubscribedItems()
 	{
-		::steam_proxy::update_subscribed_items();
+		steam_proxy::update_subscribed_items();
 
 		uint32_t count = 0;
-		::steam_proxy::access_subscribed_items([&](const steam_proxy::subscribed_item_map& items)
+		steam_proxy::access_subscribed_items([&](const steam_proxy::subscribed_item_map& items)
 		{
 			count = static_cast<uint32_t>(items.size());
 		});
@@ -313,7 +313,7 @@ namespace steam
 	uint32_t ugc::GetSubscribedItems(uint64_t* pvecPublishedFileID, uint32_t cMaxEntries)
 	{
 		uint32_t count = 0;
-		::steam_proxy::access_subscribed_items([&](const steam_proxy::subscribed_item_map& items)
+		steam_proxy::access_subscribed_items([&](const steam_proxy::subscribed_item_map& items)
 		{
 			for (const auto& item : items)
 			{
@@ -331,7 +331,7 @@ namespace steam
 	uint32_t ugc::GetItemState(uint64_t nPublishedFileID)
 	{
 		uint32_t state = 0;
-		::steam_proxy::access_subscribed_items([&](const steam_proxy::subscribed_item_map& items)
+		steam_proxy::access_subscribed_items([&](const steam_proxy::subscribed_item_map& items)
 		{
 			const auto entry = items.find(nPublishedFileID);
 			if (entry != items.end())
@@ -347,7 +347,7 @@ namespace steam
 	                             uint32_t cchFolderSize, uint32_t* punTimeStamp)
 	{
 		bool found = false;
-		::steam_proxy::access_subscribed_items([&](const steam_proxy::subscribed_item_map& items)
+		steam_proxy::access_subscribed_items([&](const steam_proxy::subscribed_item_map& items)
 		{
 			const auto entry = items.find(nPublishedFileID);
 			if (entry != items.end())

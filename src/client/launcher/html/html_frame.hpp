@@ -10,12 +10,12 @@
 
 class html_frame
 	: doc_host_ui_handler
-	, service_provider
-	, internet_security_manager
-	, ole_client_site
-	, ole_in_place_frame
-	, ole_in_place_site
-	, dispatch
+	  , service_provider
+	  , internet_security_manager
+	  , ole_client_site
+	  , ole_in_place_frame
+	  , ole_in_place_site
+	  , dispatch
 {
 public:
 	html_frame();
@@ -44,7 +44,8 @@ public:
 	int get_callback_id(const std::string& name) const;
 	html_argument invoke_callback(int id, const std::vector<html_argument>& params) const;
 
-	void register_callback(const std::string& name, const std::function<CComVariant(const std::vector<html_argument>&)>& callback);
+	void register_callback(const std::string& name,
+	                       const std::function<CComVariant(const std::vector<html_argument>&)>& callback);
 
 	HRESULT STDMETHODCALLTYPE QueryInterface(
 		REFIID riid,

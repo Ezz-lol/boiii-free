@@ -14,12 +14,12 @@ namespace utils::nt
 
 	library library::load(const std::string& name)
 	{
-		return library::load(name.data());
+		return load(name.data());
 	}
 
 	library library::load(const std::filesystem::path& path)
 	{
-		return library::load(path.generic_string());
+		return load(path.generic_string());
 	}
 
 	library library::get_by_address(const void* address)
@@ -296,12 +296,12 @@ namespace utils::nt
 		auto* const handle = LoadResource(lib, res);
 		if (!handle) return {};
 
-		return std::string(LPSTR(LockResource(handle)), SizeofResource(lib, res));
+		return std::string(static_cast<LPSTR>(LockResource(handle)), SizeofResource(lib, res));
 	}
 
 	void relaunch_self()
 	{
-		const auto self = utils::nt::library::get_by_address(relaunch_self);
+		const auto self = library::get_by_address(relaunch_self);
 
 		STARTUPINFOA startup_info;
 		PROCESS_INFORMATION process_info;
@@ -334,13 +334,13 @@ namespace utils::nt
 
 		OutputDebugStringA(("Relaunching: " + command_line + "\n").c_str());
 
-		if (!CreateProcessA(exe_path.data(), command_line.data(), nullptr, nullptr, false, 
-			CREATE_NEW_CONSOLE, nullptr, current_dir, &startup_info, &process_info))
+		if (!CreateProcessA(exe_path.data(), command_line.data(), nullptr, nullptr, false,
+		                    CREATE_NEW_CONSOLE, nullptr, current_dir, &startup_info, &process_info))
 		{
 			const DWORD error = GetLastError();
 			OutputDebugStringA(("Failed to relaunch process, error: " + std::to_string(error) + "\n").c_str());
 			MessageBoxA(nullptr, ("Failed to relaunch process. Error code: " + std::to_string(error)).c_str(),
-				"Update Error", MB_OK | MB_ICONERROR);
+			            "Update Error", MB_OK | MB_ICONERROR);
 		}
 		else
 		{

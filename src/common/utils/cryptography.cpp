@@ -614,7 +614,7 @@ namespace utils::cryptography
 
 	std::string base64::encode(const std::string& data)
 	{
-		return base64::encode(cs(data.data()), static_cast<unsigned>(data.size()));
+		return encode(cs(data.data()), static_cast<unsigned>(data.size()));
 	}
 
 	std::string base64::decode(const std::string& data)
@@ -655,7 +655,7 @@ namespace utils::cryptography
 	uint32_t random::get_integer()
 	{
 		uint32_t result;
-		random::get_data(&result, sizeof(result));
+		get_data(&result, sizeof(result));
 		return result;
 	}
 
@@ -663,7 +663,7 @@ namespace utils::cryptography
 	{
 		std::string result;
 		result.resize(sizeof(uint64_t));
-		random::get_data(result.data(), result.size());
+		get_data(result.data(), result.size());
 		return string::dump_hex(result, "");
 	}
 

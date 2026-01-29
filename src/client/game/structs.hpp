@@ -592,7 +592,7 @@ namespace game
 		XZoneBuffer fileBuffer;
 	};
 
-	typedef void (*xcommand_t)();
+	using xcommand_t = void(*)();
 
 	struct cmd_function_s
 	{
@@ -669,9 +669,9 @@ namespace game
 
 	static_assert(sizeof(clientActive_t) == 0x197A30);
 
-	typedef void* fileHandle_t;
+	using fileHandle_t = void*;
 
-	typedef uint32_t dvarStrHash_t;
+	using dvarStrHash_t = uint32_t;
 
 	enum dvarType_t
 	{
@@ -712,7 +712,7 @@ namespace game
 		DVAR_SESSIONMODE = 1 << 15
 	};
 
-	typedef float vec_t;
+	using vec_t = float;
 
 	union vec4_t
 	{
@@ -849,16 +849,16 @@ namespace game
 		byte ab[8];
 	};
 
-	typedef bdSecurityID XNKID;
+	using XNKID = bdSecurityID;
 
 	struct bdSecurityKey
 	{
 		byte ab[16];
 	};
 
-	typedef bdSecurityKey XNKEY;
+	using XNKEY = bdSecurityKey;
 
-	typedef uint64_t XUID;
+	using XUID = uint64_t;
 
 	struct SerializedAdr
 	{
@@ -873,7 +873,7 @@ namespace game
 		XNKEY keyExchangeKey;
 	};
 
-	typedef int qboolean;
+	using qboolean = int;
 
 	enum PacketModeList
 	{
@@ -924,7 +924,7 @@ namespace game
 		//PacketMode analysis;
 	};
 
-	typedef void* bdCommonAddrRef;
+	using bdCommonAddrRef = void*;
 
 	struct HostInfo
 	{
@@ -1050,7 +1050,7 @@ namespace game
 		JOIN_RESPONSE_COUNT = 0x1E,
 	};
 
-	typedef void (*joinCompleteCallback)(int, JoinResult);
+	using joinCompleteCallback = void(*)(int, JoinResult);
 
 	struct AgreementStatus
 	{
@@ -1125,23 +1125,23 @@ namespace game
 		struct HashTable;
 		struct StringTable;
 		struct cclosure;
-		typedef int hksBool;
-		typedef char hksChar;
-		typedef unsigned __int8 hksByte;
-		typedef __int16 hksShort16;
-		typedef unsigned __int16 hksUshort16;
-		typedef float HksNumber;
-		typedef int hksInt32;
-		typedef unsigned int hksUint32;
-		typedef __int64 hksInt64;
-		typedef unsigned __int64 hksUint64;
+		using hksBool = int;
+		using hksChar = char;
+		using hksByte = unsigned __int8;
+		using hksShort16 = __int16;
+		using hksUshort16 = unsigned __int16;
+		using HksNumber = float;
+		using hksInt32 = int;
+		using hksUint32 = unsigned int;
+		using hksInt64 = __int64;
+		using hksUint64 = unsigned __int64;
 
-		typedef int HksGcCost;
+		using HksGcCost = int;
 
 
-		typedef size_t hksSize;
-		typedef void* (*lua_Alloc)(void*, void*, size_t, size_t);
-		typedef hksInt32 (*lua_CFunction)(lua_State*);
+		using hksSize = size_t;
+		using lua_Alloc = void* (*)(void*, void*, size_t, size_t);
+		using lua_CFunction = hksInt32(*)(lua_State*);
 
 		struct GenericChunkHeader
 		{
@@ -1628,7 +1628,7 @@ namespace game
 	}
 #endif
 
-	typedef uint32_t ScrVarCanonicalName_t;
+	using ScrVarCanonicalName_t = uint32_t;
 
 	enum svscmd_type
 	{
@@ -1700,6 +1700,7 @@ namespace game
 			uint64_t attachment8 : 6;
 			uint64_t padding : 7;
 		} _anon_0;
+
 		uint64_t weaponData;
 	};
 
@@ -1749,6 +1750,7 @@ namespace game
 		unsigned char __pad0[0x24C];
 		gclient_s* client;
 		unsigned char __pad1[0x17C];
+
 		struct
 		{
 			unsigned int notifyString;
@@ -1757,6 +1759,7 @@ namespace game
 			int basetime;
 			int duration;
 		} snd_wait;
+
 		unsigned char __pad2[0x110];
 	};
 
@@ -1861,7 +1864,7 @@ namespace game
 	};
 
 	struct DDLContext;
-	typedef void (* DDLWriteCB)(DDLContext*, void*);
+	using DDLWriteCB = void(*)(DDLContext*, void*);
 
 	struct DDLContext
 	{
@@ -1885,7 +1888,7 @@ namespace game
 		CHARACTER_ITEM_TYPE_COUNT = 0x2,
 	};
 
-	typedef __int16 BGEmblemBackgroundID;
+	using BGEmblemBackgroundID = __int16;
 
 	union XAssetHeader
 	{
@@ -1996,7 +1999,7 @@ namespace game
 		XAssetHeader header;
 	};
 
-	typedef void XAssetEnum(XAssetHeader, void*);
+	using XAssetEnum = void(XAssetHeader, void*);
 
 #ifdef __cplusplus
 }

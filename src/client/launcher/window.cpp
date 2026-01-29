@@ -10,7 +10,7 @@
 namespace
 {
 	thread_local uint32_t window_count = 0;
-	
+
 	uint32_t get_dpi_for_window(const HWND window)
 	{
 		const utils::nt::library user32{"user32.dll"};
@@ -26,8 +26,8 @@ namespace
 }
 
 window::window(const std::string& title, const int width, const int height,
-	std::function<std::optional<LRESULT>(window*, UINT, WPARAM, LPARAM)> callback,
-	const long flags)
+               std::function<std::optional<LRESULT>(window*, UINT, WPARAM, LPARAM)> callback,
+               const long flags)
 	: callback_(std::move(callback))
 {
 	ZeroMemory(&this->wc_, sizeof(this->wc_));
@@ -51,11 +51,11 @@ window::window(const std::string& title, const int width, const int height,
 	++window_count;
 
 	this->handle_ = CreateWindowExA(NULL, this->wc_.lpszClassName, title.data(), flags, x, y, width, height, nullptr,
-		nullptr, this->wc_.hInstance, this);
+	                                nullptr, this->wc_.hInstance, this);
 
 	BOOL value = TRUE;
 	DwmSetWindowAttribute(this->handle_,
-		DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
+	                      DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
 
 	SendMessageA(this->handle_, WM_DPICHANGED, 0, 0);
 	ShowWindow(this->handle_, SW_SHOW);
@@ -102,7 +102,8 @@ LRESULT window::processor(const UINT message, const WPARAM w_param, const LPARAM
 			const auto width = rect.right - rect.left;
 			const auto height = rect.bottom - rect.top;
 
-			MoveWindow(*this, rect.left, rect.top, int(width * scale), int(height * scale), TRUE);
+			MoveWindow(*this, rect.left, rect.top, static_cast<int>(width * scale), static_cast<int>(height * scale),
+			           TRUE);
 		}
 	}
 

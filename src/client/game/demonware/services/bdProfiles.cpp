@@ -25,15 +25,16 @@ namespace demonware
 		while (buffer->read_uint64(&entity_id))
 		{
 			auto profile = profile_infos::get_profile_info(entity_id);
-			if(profile)
+			if (profile)
 			{
 				profile_infos.emplace_back(entity_id, std::move(*profile));
 			}
 		}
 
-		auto reply = server->create_reply(this->task_id(), profile_infos.empty() ? game::BD_NO_PROFILE_INFO_EXISTS : game::BD_NO_ERROR);
+		auto reply = server->create_reply(this->task_id(),
+		                                  profile_infos.empty() ? game::BD_NO_PROFILE_INFO_EXISTS : game::BD_NO_ERROR);
 
-		for(auto& info : profile_infos)
+		for (auto& info : profile_infos)
 		{
 			auto result = std::make_unique<bdPublicProfileInfo>();
 			result->m_entityID = info.first;

@@ -48,6 +48,7 @@ namespace ui_scripting
 		userdata_value(const userdata& table, const script_value& key);
 		void operator=(const script_value& value);
 		bool operator==(const script_value& value);
+
 	private:
 		userdata userdata_;
 		script_value key_;
@@ -91,6 +92,7 @@ namespace ui_scripting
 		void operator=(const table_value& value);
 		bool operator==(const script_value& value);
 		bool operator==(const table_value& value);
+
 	private:
 		table table_;
 		script_value key_;
@@ -122,10 +124,10 @@ namespace ui_scripting
 
 		arguments operator()(const arguments& arguments) const;
 
-		template<class ...T>
+		template <class... T>
 		arguments operator()(T... arguments) const
 		{
-			return this->call({ arguments... });
+			return this->call({arguments...});
 		}
 
 		arguments operator()() const;

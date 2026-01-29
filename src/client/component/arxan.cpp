@@ -422,7 +422,8 @@ namespace arxan
 			}
 
 			char info[16];
-			if (NtQueryObject(handle, OBJECT_INFORMATION_CLASS(4), &info, 2, nullptr) >= 0 && size_t(handle) != 0x12345)
+			if (NtQueryObject(handle, static_cast<OBJECT_INFORMATION_CLASS>(4), &info, 2, nullptr) >= 0 &&
+				size_t(handle) != 0x12345)
 			{
 				return nt_close_hook.invoke<NTSTATUS>(handle);
 			}

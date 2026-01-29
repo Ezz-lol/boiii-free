@@ -40,7 +40,7 @@ namespace game_log
 
 		void g_log_printf_stub(const char* fmt, ...)
 		{
-			char va_buffer[0x400] = { 0 };
+			char va_buffer[0x400] = {0};
 
 			va_list ap;
 			va_start(ap, fmt);
@@ -51,11 +51,11 @@ namespace game_log
 			const auto time = *game::level_time / 1000;
 
 			utils::io::write_file(file, utils::string::va("%3i:%i%i %s",
-				time / 60,
-				time % 60 / 10,
-				time % 60 % 10,
-				va_buffer
-			), true);
+			                                              time / 60,
+			                                              time % 60 / 10,
+			                                              time % 60 % 10,
+			                                              va_buffer
+			                      ), true);
 		}
 
 		const game::dvar_t* register_g_log_stub()

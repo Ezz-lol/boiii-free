@@ -23,7 +23,7 @@ namespace client_patches
 		void stop_intro_if_needed()
 		{
 			if (game::Com_SessionMode_GetMode() != game::MODE_ZOMBIES &&
-			    game::Com_SessionMode_GetMode() != game::MODE_CAMPAIGN)
+				game::Com_SessionMode_GetMode() != game::MODE_CAMPAIGN)
 			{
 				return;
 			}
@@ -86,26 +86,26 @@ namespace client_patches
 		{
 			const std::vector<uintptr_t> is_mod_loaded_addresses =
 			{
-				{ 0x1420F7484_g },
-				{ 0x1420F74A4_g },
-				{ 0x1420F73E4_g },
-				{ 0x1420F73B4_g },
-				{ 0x1420F6E57_g },
-				{ 0x1413E6A54_g },
-				{ 0x1415E7EBB_g },
-				{ 0x1415E87BB_g },
-				{ 0x1415EBAC9_g },
-				{ 0x1415F1F09_g },
-				{ 0x1415F1FB9_g },
-				{ 0x1415F2080_g },
-				{ 0x1415F7F40_g },
-				{ 0x141A8D0ED_g },
-				{ 0x141AA70F9_g },
-				{ 0x141EA06FB_g },
-				{ 0x141EA8C7E_g },
-				{ 0x141EB1A39_g },
-				{ 0x141ECBA9D_g },
-				{ 0x1420F6E1D_g },
+				{0x1420F7484_g},
+				{0x1420F74A4_g},
+				{0x1420F73E4_g},
+				{0x1420F73B4_g},
+				{0x1420F6E57_g},
+				{0x1413E6A54_g},
+				{0x1415E7EBB_g},
+				{0x1415E87BB_g},
+				{0x1415EBAC9_g},
+				{0x1415F1F09_g},
+				{0x1415F1FB9_g},
+				{0x1415F2080_g},
+				{0x1415F7F40_g},
+				{0x141A8D0ED_g},
+				{0x141AA70F9_g},
+				{0x141EA06FB_g},
+				{0x141EA8C7E_g},
+				{0x141EB1A39_g},
+				{0x141ECBA9D_g},
+				{0x1420F6E1D_g},
 			};
 
 			for (const auto& address : is_mod_loaded_addresses)
@@ -199,9 +199,12 @@ namespace client_patches
 			// Always get loadscreen gametype from s_gametype
 			utils::hook::set<uint8_t>(0x14228F5DC_g, 0xEB);
 
-			cl_yaw_speed = game::register_dvar_float("cl_yawspeed", 140.0f, std::numeric_limits<float>::min(), std::numeric_limits<float>::max(),
-			                                         game::DVAR_NONE, "Max yaw speed in degrees for game pad and keyboard");
-			cl_pitch_speed = game::register_dvar_float("cl_pitchspeed", 140.0f, std::numeric_limits<float>::min(), std::numeric_limits<float>::max(),
+			cl_yaw_speed = game::register_dvar_float("cl_yawspeed", 140.0f, std::numeric_limits<float>::min(),
+			                                         std::numeric_limits<float>::max(),
+			                                         game::DVAR_NONE,
+			                                         "Max yaw speed in degrees for game pad and keyboard");
+			cl_pitch_speed = game::register_dvar_float("cl_pitchspeed", 140.0f, std::numeric_limits<float>::min(),
+			                                           std::numeric_limits<float>::max(),
 			                                           game::DVAR_NONE, "Max pitch speed in degrees for game pad");
 			// CL_AdjustAngles
 			utils::hook::call(0x1412F3324_g, cl_key_state_yaw_speed_stub); // cl_yawspeed

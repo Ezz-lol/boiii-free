@@ -160,9 +160,9 @@ namespace demonware
 
 		info->file_id = *reinterpret_cast<const uint64_t*>(utils::cryptography::sha1::compute(filename).data());
 		info->filename = filename;
-		info->create_time = uint32_t(time(nullptr));
+		info->create_time = static_cast<uint32_t>(time(nullptr));
 		info->modified_time = info->create_time;
-		info->file_size = uint32_t(data.size());
+		info->file_size = static_cast<uint32_t>(data.size());
 		info->owner_id = owner;
 		info->priv = priv;
 

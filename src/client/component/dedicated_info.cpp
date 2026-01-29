@@ -28,7 +28,7 @@ namespace dedicated_info
 			const auto mapname = game::get_dvar_string("mapname");
 
 			const std::string window_text = utils::string::va("%s on %s [%zu/%zu] (%zu)",
-															  clean_server_name,
+			                                                  clean_server_name,
 			                                                  mapname.data(),
 			                                                  getinfo::get_client_count(),
 			                                                  game::get_max_client_count(),

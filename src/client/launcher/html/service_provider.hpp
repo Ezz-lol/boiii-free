@@ -19,4 +19,3 @@ public:
 		return E_NOINTERFACE;
 	}
 };
-

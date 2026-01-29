@@ -8,13 +8,13 @@ namespace demonware
 	template <typename T>
 	class server_registry
 	{
-		static_assert(std::is_base_of<base_server, T>::value, "Invalid server registry type");
+		static_assert(std::is_base_of_v<base_server, T>, "Invalid server registry type");
 
 	public:
-		template <typename S, typename ...Args>
+		template <typename S, typename... Args>
 		void create(Args&&... args)
 		{
-			static_assert(std::is_base_of<T, S>::value, "Invalid server type");
+			static_assert(std::is_base_of_v<T, S>, "Invalid server type");
 
 			auto server = std::make_unique<S>(std::forward<Args>(args)...);
 			const auto address = server->get_address();

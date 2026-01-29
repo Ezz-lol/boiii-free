@@ -13,7 +13,7 @@ namespace patches
 		const game::dvar_t* lobby_min_players;
 
 		void script_errors_stub([[maybe_unused]] const char* file, [[maybe_unused]] int line,
-			[[maybe_unused]] unsigned int code, const char* fmt, ...)
+		                        [[maybe_unused]] unsigned int code, const char* fmt, ...)
 		{
 			char buffer[0x1000];
 
@@ -30,7 +30,7 @@ namespace patches
 		void scr_get_num_expected_players()
 		{
 			auto expected_players = game::LobbyHost_GetClientCount(game::LOBBY_TYPE_GAME,
-				game::LOBBY_CLIENT_TYPE_ALL);
+			                                                       game::LOBBY_CLIENT_TYPE_ALL);
 
 			const auto mode = game::Com_SessionMode_GetMode();
 			if ((mode == game::MODE_ZOMBIES || mode == game::MODE_CAMPAIGN))

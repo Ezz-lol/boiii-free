@@ -3,7 +3,7 @@
 
 namespace steam
 {
-	HTTPRequestHandle http::http::CreateHTTPRequest(uint32_t eHTTPRequestMethod, const char* pchAbsoluteURL)
+	HTTPRequestHandle http::CreateHTTPRequest(uint32_t eHTTPRequestMethod, const char* pchAbsoluteURL)
 	{
 		return 0;
 	}

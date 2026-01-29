@@ -13,7 +13,8 @@ namespace dvars_patches
 	{
 		void patch_dvars()
 		{
-			(void)game::register_sessionmode_dvar_bool("com_pauseSupported", !game::is_server(), game::DVAR_SERVERINFO, "Whether pause is supported by the game mode");
+			(void)game::register_sessionmode_dvar_bool("com_pauseSupported", !game::is_server(), game::DVAR_SERVERINFO,
+			                                           "Whether pause is supported by the game mode");
 		}
 
 		void patch_flags()
@@ -34,7 +35,7 @@ namespace dvars_patches
 		{
 			const auto update_ads_dof = a.newLabel();
 
-			a.mov(rax, qword_ptr(0x14AE95478_g));  // r_dof_enable
+			a.mov(rax, qword_ptr(0x14AE95478_g)); // r_dof_enable
 
 			a.test(rax, rax);
 			a.jz(update_ads_dof);

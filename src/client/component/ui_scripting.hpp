@@ -8,7 +8,7 @@ namespace ui_scripting
 		return [f](const function_arguments& args)
 		{
 			f(args[I]...);
-			return arguments{ {} };
+			return arguments{{}};
 		};
 	}
 
@@ -26,7 +26,7 @@ namespace ui_scripting
 	{
 		return [f](const function_arguments& args)
 		{
-			return arguments{ f(args[I]...) };
+			return arguments{f(args[I]...)};
 		};
 	}
 

@@ -21,7 +21,7 @@ enum class component_type
 
 struct generic_component
 {
-	static constexpr component_type type = component_type::any;
+	static constexpr auto type = component_type::any;
 
 	virtual ~generic_component() = default;
 
@@ -45,10 +45,10 @@ struct generic_component
 
 struct client_component : generic_component
 {
-	static constexpr component_type type = component_type::client;
+	static constexpr auto type = component_type::client;
 };
 
 struct server_component : generic_component
 {
-	static constexpr component_type type = component_type::server;
+	static constexpr auto type = component_type::server;
 };

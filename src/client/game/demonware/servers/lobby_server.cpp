@@ -64,7 +64,7 @@ namespace demonware
 					this->send_reply(&reply);
 					return;
 				}
-				else if (size == 0xC8)
+				if (size == 0xC8)
 				{
 #ifndef NDEBUG
 					printf("[DW]: [lobby]: received client_header_ack.\n");
@@ -73,12 +73,12 @@ namespace demonware
 					int c8;
 					buffer.read_int32(&c8);
 					std::string packet_1 = buffer.get_remaining();
-					demonware::queue_packet_to_hash(packet_1);
+					queue_packet_to_hash(packet_1);
 
 					const std::string packet_2(
 						"\x16\x00\x00\x00\xab\x81\xd2\x00\x00\x00\x13\x37\x13\x37\x13\x37\x13\x37\x13\x37\x13\x37\x13\x37\x13\x37",
 						26);
-					demonware::queue_packet_to_hash(packet_2);
+					queue_packet_to_hash(packet_2);
 
 					raw_reply reply(packet_2);
 					this->send_reply(&reply);
@@ -88,7 +88,7 @@ namespace demonware
 					return;
 				}
 
-				if (buffer.size() < size_t(size)) return;
+				if (buffer.size() < static_cast<size_t>(size)) return;
 
 				uint8_t check_ab;
 				buffer.read_ubyte(&check_ab);
@@ -104,11 +104,11 @@ namespace demonware
 #endif
 						std::string packet_3(packet.data(), packet.size() - 8); // this 8 are client hash check?
 
-						demonware::queue_packet_to_hash(packet_3);
-						demonware::derive_keys_s1();
+						queue_packet_to_hash(packet_3);
+						derive_keys_s1();
 
 						char buff[14] = "\x0A\x00\x00\x00\xAB\x83";
-						std::memcpy(&buff[6], demonware::get_response_id().data(), 8);
+						std::memcpy(&buff[6], get_response_id().data(), 8);
 						std::string response(buff, 14);
 
 						raw_reply reply(response);
@@ -119,7 +119,7 @@ namespace demonware
 #endif
 						return;
 					}
-					else if (type == 0x85)
+					if (type == 0x85)
 					{
 						uint32_t msg_count;
 						buffer.read_uint32(&msg_count);
@@ -134,7 +134,7 @@ namespace demonware
 
 						std::string dec = utils::cryptography::aes::decrypt(
 							std::string(enc.data(), enc.size() - 8), std::string(seed, 16),
-							demonware::get_decrypt_key());
+							get_decrypt_key());
 
 						byte_buffer serv(dec);
 						serv.set_use_data_types(false);

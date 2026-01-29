@@ -55,7 +55,7 @@ namespace utils::http
 			return {};
 		}
 
-		auto _ = utils::finally([&]()
+		auto _ = finally([&]()
 		{
 			curl_slist_free_all(header_list);
 			curl_easy_cleanup(curl);

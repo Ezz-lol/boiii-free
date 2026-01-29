@@ -85,7 +85,7 @@ namespace scheduler
 
 		volatile bool kill = false;
 		std::thread async_thread;
-		task_pipeline pipelines[pipeline::count];
+		task_pipeline pipelines[count];
 
 		utils::hook::detour r_end_frame_hook;
 		utils::hook::detour main_frame_hook;
@@ -93,20 +93,20 @@ namespace scheduler
 
 		void r_end_frame_stub()
 		{
-			execute(pipeline::renderer);
+			execute(renderer);
 			r_end_frame_hook.invoke<void>();
 		}
 
 		void g_clear_vehicle_inputs_stub()
 		{
 			game::G_ClearVehicleInputs();
-			execute(pipeline::server);
+			execute(server);
 		}
 
 		void main_frame_stub()
 		{
 			main_frame_hook.invoke<void>();
-			execute(pipeline::main);
+			execute(main);
 		}
 	}
 
@@ -157,7 +157,7 @@ namespace scheduler
 			{
 				while (!kill)
 				{
-					execute(pipeline::async);
+					execute(async);
 					std::this_thread::sleep_for(10ms);
 				}
 			});

@@ -101,7 +101,7 @@ namespace ui_scripting
 
 	userdata_value userdata::operator[](const script_value& key) const
 	{
-		return { *this, key };
+		return {*this, key};
 	}
 
 	userdata_value::userdata_value(const userdata& table, const script_value& key)
@@ -211,7 +211,7 @@ namespace ui_scripting
 
 	table_value table::operator[](const script_value& key) const
 	{
-		return { *this, key };
+		return {*this, key};
 	}
 
 	script_value table::get(const script_value& key) const

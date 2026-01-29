@@ -91,7 +91,6 @@ namespace dedicated_patches
 
 	struct component final : server_component
 	{
-
 		void post_unpack() override
 		{
 			// Fix infinite loop

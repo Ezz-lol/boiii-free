@@ -63,7 +63,7 @@ namespace utils::compression
 
 			int ret{};
 			size_t offset = 0;
-			static thread_local uint8_t dest[CHUNK] = {0};
+			thread_local uint8_t dest[CHUNK] = {0};
 			auto& stream = stream_container.get();
 
 			do
@@ -190,7 +190,7 @@ namespace utils::compression
 
 				int error = UNZ_OK;
 				std::string out_buffer{};
-				static thread_local char buffer[0x2000];
+				thread_local char buffer[0x2000];
 
 				do
 				{

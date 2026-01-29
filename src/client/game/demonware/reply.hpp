@@ -145,7 +145,7 @@ namespace demonware
 			return transaction_id;
 		}
 
-		template<typename T>
+		template <typename T>
 		void add(std::unique_ptr<T>& object)
 		{
 			static_assert(std::is_base_of_v<bdTaskResult, T>);

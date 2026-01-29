@@ -20,14 +20,16 @@ namespace game
 #define FNV_PRIME 16777619
 
 		const auto* s = str;
-		const int first_char = I_islower(*s) ? static_cast<unsigned char>(*s) : tolower(static_cast<unsigned char>(*str));
+		const int first_char = I_islower(*s)
+			                       ? static_cast<unsigned char>(*s)
+			                       : tolower(static_cast<unsigned char>(*str));
 
 		unsigned int hash = FNV_PRIME * (first_char ^ FNV_OFFSET);
 		while (*s)
 		{
 			int acc = I_islower(*++s)
-				? static_cast<unsigned char>(*s)
-				: std::tolower(static_cast<unsigned char>(*s));
+				          ? static_cast<unsigned char>(*s)
+				          : std::tolower(static_cast<unsigned char>(*s));
 
 			hash = FNV_PRIME * (acc ^ hash);
 		}

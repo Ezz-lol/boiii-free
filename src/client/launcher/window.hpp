@@ -5,8 +5,8 @@ class window
 {
 public:
 	window(const std::string& title, int width, int height,
-		std::function<std::optional<LRESULT>(window*, UINT, WPARAM, LPARAM)> callback,
-		long flags = (WS_OVERLAPPEDWINDOW & ~(WS_THICKFRAME | WS_MAXIMIZEBOX)));
+	       std::function<std::optional<LRESULT>(window*, UINT, WPARAM, LPARAM)> callback,
+	       long flags = (WS_OVERLAPPEDWINDOW & ~(WS_THICKFRAME | WS_MAXIMIZEBOX)));
 
 	virtual ~window();
 

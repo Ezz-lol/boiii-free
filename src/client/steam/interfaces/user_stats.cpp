@@ -17,7 +17,6 @@ namespace steam
 
 	bool user_stats::RequestCurrentStats()
 	{
-
 		static uint32_t ticket = 0;
 
 		game_id game{};

@@ -30,7 +30,7 @@ namespace demonware
 
 	void stun_server::ip_discovery(const endpoint_data& endpoint)
 	{
-		const uint32_t ip = 0x0100007f;
+		constexpr uint32_t ip = 0x0100007f;
 
 		byte_buffer buffer;
 		buffer.set_use_data_types(false);
@@ -45,7 +45,7 @@ namespace demonware
 
 	void stun_server::nat_discovery(const endpoint_data& endpoint)
 	{
-		const uint32_t ip = 0x0100007f;
+		constexpr uint32_t ip = 0x0100007f;
 
 		byte_buffer buffer;
 		buffer.set_use_data_types(false);

@@ -213,7 +213,6 @@ namespace party
 					//connect_to_session(target, hostname, xuid, mode);
 					connect_to_lobby_with_mode(target, mode, mapname, gametype, usermap_id, mod_id);
 				}
-
 			}, scheduler::main);
 		}
 
@@ -284,16 +283,16 @@ namespace party
 				const auto now = std::chrono::high_resolution_clock::now();
 				for (auto i = server_queries.begin(); i != server_queries.end();)
 				{
-				if (!i->sent)
-				{
-					if (++sent_queries < 40)
+					if (!i->sent)
 					{
-						send_server_query(*i);
-					}
+						if (++sent_queries < 40)
+						{
+							send_server_query(*i);
+						}
 
-					++i;
-					continue;
-				}
+						++i;
+						continue;
+					}
 
 					if ((now - i->query_time) < 1s)
 					{

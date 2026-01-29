@@ -110,12 +110,12 @@ namespace demonware
 
 			if ((min_bit + remain) <= 8)
 			{
-				output_bytes[cur_out] = BYTE((0xFF >> (8 - min_bit)) & (this_byte >> remain));
+				output_bytes[cur_out] = static_cast<BYTE>((0xFF >> (8 - min_bit)) & (this_byte >> remain));
 			}
 			else
 			{
-				output_bytes[cur_out] = BYTE(
-					(0xFF >> (8 - min_bit)) & (bytes[cur_byte] << (8 - remain)) | (this_byte >> remain));
+				output_bytes[cur_out] = static_cast<BYTE>((0xFF >> (8 - min_bit)) & (bytes[cur_byte] << (8 - remain)) |
+					(this_byte >> remain));
 			}
 
 			cur_out++;
@@ -132,7 +132,7 @@ namespace demonware
 		this->buffer_.resize(this->buffer_.size() + (bits >> 3) + 1);
 
 		int bit = bits;
-		const auto bytes = const_cast<char*>(this->buffer_.data());
+		const auto bytes = this->buffer_.data();
 		const auto* input_bytes = static_cast<const unsigned char*>(data);
 
 		while (bit > 0)
@@ -152,7 +152,7 @@ namespace demonware
 
 			const auto next_byte = (((bits - 1) >> 3) > this_byte) ? input_bytes[this_byte + 1] : 0;
 
-			this_data = BYTE((next_byte << (8 - this_bit)) | (this_data >> this_bit));
+			this_data = static_cast<BYTE>((next_byte << (8 - this_bit)) | (this_data >> this_bit));
 
 			const BYTE out_byte = (~mask & (this_data << bit_pos) | temp_byte);
 			bytes[byte_pos] = out_byte;

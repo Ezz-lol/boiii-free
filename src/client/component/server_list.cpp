@@ -113,7 +113,7 @@ namespace server_list
 		}
 
 		void handle_server_list_response(const game::netadr_t& target,
-			const network::data_view& data, state& s)
+		                                 const network::data_view& data, state& s)
 		{
 			if (!s.requesting)
 			{
@@ -167,7 +167,8 @@ namespace server_list
 				std::string servers_buffer{};
 				for (const auto& itr : servers)
 				{
-					servers_buffer.append(utils::string::va("%i.%i.%i.%i:%hu\n", itr.ipv4.a, itr.ipv4.b, itr.ipv4.c, itr.ipv4.d, itr.port));
+					servers_buffer.append(utils::string::va("%i.%i.%i.%i:%hu\n", itr.ipv4.a, itr.ipv4.b, itr.ipv4.c,
+					                                        itr.ipv4.d, itr.port));
 				}
 
 				utils::io::write_file(get_favorite_servers_file_path(), servers_buffer);

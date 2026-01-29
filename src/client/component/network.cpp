@@ -52,7 +52,8 @@ namespace network
 			return FALSE;
 		}
 
-		bool cl_dispatch_connectionless_packet_stub([[maybe_unused]] int local_client_num, game::netadr_t from, game::msg_t* msg, [[maybe_unused]] int time)
+		bool cl_dispatch_connectionless_packet_stub([[maybe_unused]] int local_client_num, game::netadr_t from,
+		                                            game::msg_t* msg, [[maybe_unused]] int time)
 		{
 			const command::params params;
 			const auto* c = params.get(0);
@@ -114,12 +115,13 @@ namespace network
 			{
 				server_addr.sin_port = htons(port++);
 				if (++retries > 10) return;
-			} while (bind(s, reinterpret_cast<sockaddr*>(&server_addr), sizeof(server_addr)) == SOCKET_ERROR);
+			}
+			while (bind(s, reinterpret_cast<sockaddr*>(&server_addr), sizeof(server_addr)) == SOCKET_ERROR);
 		}
 
 		bool& socket_byte_missing()
 		{
-			static thread_local bool was_missing{ false };
+			thread_local bool was_missing{false};
 			return was_missing;
 		}
 
@@ -133,9 +135,9 @@ namespace network
 			}
 
 			const auto _ = utils::finally([msg]
-				{
-					++msg->data;
-				});
+			{
+				++msg->data;
+			});
 
 			return game::MSG_ReadByte(msg);
 		}
@@ -146,15 +148,15 @@ namespace network
 		}
 
 		void con_restricted_execute_buf_stub(int local_client_num, game::ControllerIndex_t controller_index,
-			const char* buffer)
+		                                     const char* buffer)
 		{
 			game::Cbuf_ExecuteBuffer(local_client_num, controller_index, buffer);
 		}
 
 		uint64_t handle_packet_internal_stub(const game::ControllerIndex_t controller_index,
-			const game::netadr_t from_adr, const game::XUID from_xuid,
-			const game::LobbyType lobby_type, const uint64_t dest_module,
-			game::msg_t* msg)
+		                                     const game::netadr_t from_adr, const game::XUID from_xuid,
+		                                     const game::LobbyType lobby_type, const uint64_t dest_module,
+		                                     game::msg_t* msg)
 		{
 			if (from_adr.type != game::NA_LOOPBACK)
 			{
@@ -162,9 +164,9 @@ namespace network
 			}
 
 			return handle_packet_internal_hook.invoke<bool>(controller_index, from_adr, from_xuid, lobby_type,
-				dest_module, msg)
-				? 1
-				: 0;
+			                                                dest_module, msg)
+				       ? 1
+				       : 0;
 		}
 
 		uint64_t ret2()
@@ -177,7 +179,8 @@ namespace network
 			return 0;
 		}
 
-		void com_error_oob_stub(const char* file, int line, int code, [[maybe_unused]] const char* fmt, const char* error)
+		void com_error_oob_stub(const char* file, int line, int code, [[maybe_unused]] const char* fmt,
+		                        const char* error)
 		{
 			char buffer[1024]{};
 
@@ -217,7 +220,7 @@ namespace network
 
 		const auto to = convert_to_sockaddr(address);
 		sendto(*game::ip_socket, static_cast<const char*>(data), static_cast<int>(length), 0,
-			reinterpret_cast<const sockaddr*>(&to), sizeof(to));
+		       reinterpret_cast<const sockaddr*>(&to), sizeof(to));
 	}
 
 	void send_data(const game::netadr_t& address, const std::string& data)
@@ -299,7 +302,7 @@ namespace network
 		memcpy(buffer.data() + 1, data, size);
 
 		return sendto(s, buffer.data(), static_cast<int>(buffer.size()), 0, reinterpret_cast<sockaddr*>(&address),
-			sizeof(address));
+		              sizeof(address));
 	}
 
 	struct component final : generic_component

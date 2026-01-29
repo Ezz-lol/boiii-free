@@ -15,7 +15,8 @@ namespace bots
 {
 	namespace
 	{
-		constexpr auto* bot_format_string = "connect \"\\invited\\1\\cg_predictItems\\1\\cl_anonymous\\0\\color\\4\\head\\default\\model\\multi\\snaps\\20\\rate\\"
+		constexpr auto* bot_format_string =
+			"connect \"\\invited\\1\\cg_predictItems\\1\\cl_anonymous\\0\\color\\4\\head\\default\\model\\multi\\snaps\\20\\rate\\"
 			"5000\\name\\%s\\clanAbbrev\\%s\\xuid\\%s\\xnaddr\\%s\\natType\\2\\protocol\\%d\\netfieldchk\\%d\\sessionmode\\%s\\qport\\%d\"";
 
 		using bot_name = std::pair<std::string, std::string>;

@@ -10,7 +10,7 @@ namespace utils::string
 {
 	const char* va(const char* fmt, ...)
 	{
-		static thread_local va_provider<8, 256> provider;
+		thread_local va_provider<8, 256> provider;
 
 		va_list ap;
 		va_start(ap, fmt);
@@ -219,7 +219,7 @@ namespace utils::string
 
 	std::string& rtrim(std::string& str)
 	{
-		str.erase(std::find_if(str.rbegin(), str.rend(), [](const  unsigned char input)
+		str.erase(std::find_if(str.rbegin(), str.rend(), [](const unsigned char input)
 		{
 			return !std::isspace(input);
 		}).base(), str.end());

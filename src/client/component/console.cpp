@@ -267,7 +267,8 @@ namespace console
 			if (!game::is_server())
 			{
 				utils::hook::set<uint8_t>(0x14133D2FE_g, 0xEB); // Always enable ingame console
-				utils::hook::jump(0x141344E44_g, 0x141344E2E_g); // Remove the need to type '\' or '/' to send a console command
+				utils::hook::jump(0x141344E44_g, 0x141344E2E_g);
+				// Remove the need to type '\' or '/' to send a console command
 
 				if (utils::nt::is_wine() && !utils::flags::has_flag("console"))
 				{

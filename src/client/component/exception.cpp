@@ -93,13 +93,14 @@ namespace exception
 				recovery_data.last_recovery = std::chrono::high_resolution_clock::now();
 				++recovery_data.recovery_counts;
 
-				game::Com_Error(game::ERR_DROP, "Fatal error (0x%08X) at 0x%p (0x%p).\nA crash dump has been saved to the 'minidumps' folder.\n\n"
+				game::Com_Error(game::ERR_DROP,
+				                "Fatal error (0x%08X) at 0x%p (0x%p).\nA crash dump has been saved to the 'minidumps' folder.\n\n"
 				                "Ezz has tried to recover your game, but it might not run stable anymore.\n\n"
 				                "Make sure to update your graphics card drivers and install operating system updates!\n"
 				                "Closing or restarting Steam might also help.\n\n"
 				                "If this keeps happening, please report it on our Discord: https://dc.ezz.lol",
 				                exception_data.code, exception_data.address,
-					            game::derelocate(reinterpret_cast<uint64_t>(exception_data.address)));
+				                game::derelocate(reinterpret_cast<uint64_t>(exception_data.address)))				;
 			}
 			else
 			{

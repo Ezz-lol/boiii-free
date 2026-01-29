@@ -12,7 +12,7 @@ namespace updater
 	{
 	public:
 		updater_ui();
-		~updater_ui();
+		~updater_ui() override;
 
 	private:
 		mutable std::recursive_mutex mutex_;

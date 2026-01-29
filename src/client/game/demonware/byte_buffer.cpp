@@ -81,7 +81,7 @@ namespace demonware
 	{
 		if (!this->read_data_type(16)) return false;
 
-		*output = const_cast<char*>(this->buffer_.data()) + this->current_byte_;
+		*output = this->buffer_.data() + this->current_byte_;
 		this->current_byte_ += strlen(*output) + 1;
 
 		return true;
@@ -91,7 +91,7 @@ namespace demonware
 	{
 		if (!this->read_data_type(16)) return false;
 
-		utils::string::copy(output, static_cast<size_t>(length), const_cast<char*>(this->buffer_.data()) + this->current_byte_);
+		utils::string::copy(output, static_cast<size_t>(length), this->buffer_.data() + this->current_byte_);
 		this->current_byte_ += strlen(output) + 1;
 
 		return true;
@@ -121,7 +121,7 @@ namespace demonware
 		unsigned int size;
 		this->read_uint32(&size);
 
-		*output = const_cast<char*>(this->buffer_.data()) + this->current_byte_;
+		*output = this->buffer_.data() + this->current_byte_;
 		*length = static_cast<int>(size);
 
 		this->current_byte_ += size;
@@ -238,7 +238,7 @@ namespace demonware
 
 	bool byte_buffer::write_blob(const std::string& data)
 	{
-		return this->write_blob(data.data(), INT(data.size()));
+		return this->write_blob(data.data(), static_cast<INT>(data.size()));
 	}
 
 	bool byte_buffer::write_blob(const char* data, const int length)

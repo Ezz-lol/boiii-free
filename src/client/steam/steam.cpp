@@ -82,7 +82,7 @@ namespace steam
 
 		for (const auto& result : results_)
 		{
-			if (result_handlers_.find(result.call) != result_handlers_.end())
+			if (result_handlers_.contains(result.call))
 			{
 				result_handlers_[result.call]->run(result.data, false, result.call);
 			}

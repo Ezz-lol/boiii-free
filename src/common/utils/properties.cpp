@@ -16,9 +16,8 @@ namespace utils::properties
 {
 	namespace
 	{
-
-		typedef rapidjson::EncodedOutputStream<rapidjson::UTF8<>, rapidjson::FileWriteStream> OutputStream;
-		typedef rapidjson::EncodedInputStream<rapidjson::UTF8<>, rapidjson::FileReadStream> InputStream;
+		using OutputStream = rapidjson::EncodedOutputStream<rapidjson::UTF8<>, rapidjson::FileWriteStream>;
+		using InputStream = rapidjson::EncodedInputStream<rapidjson::UTF8<>, rapidjson::FileReadStream>;
 
 		std::filesystem::path get_properties_folder()
 		{
@@ -121,7 +120,7 @@ namespace utils::properties
 			throw std::runtime_error("Failed to read APPDATA path!");
 		}
 
-		auto _ = utils::finally([&path]
+		auto _ = finally([&path]
 		{
 			CoTaskMemFree(path);
 		});

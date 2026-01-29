@@ -26,7 +26,7 @@ namespace
 	void patch_cached_browser_emulator(const utils::nt::library& urlmon)
 	{
 		std::string data{};
-		if(!utils::io::read_file(urlmon.get_path().generic_string(), &data))
+		if (!utils::io::read_file(urlmon.get_path().generic_string(), &data))
 		{
 			return;
 		}
@@ -36,9 +36,10 @@ namespace
 		auto translate_file_offset_to_rva = [&](const size_t file_offset) -> size_t
 		{
 			const auto sections = file_lib.get_section_headers();
-			for(const auto* section :  sections)
+			for (const auto* section : sections)
 			{
-				if(section->PointerToRawData <= file_offset && section->PointerToRawData + section->SizeOfRawData > file_offset)
+				if (section->PointerToRawData <= file_offset && section->PointerToRawData + section->SizeOfRawData >
+					file_offset)
 				{
 					const auto section_va = file_offset - section->PointerToRawData;
 					return section_va + section->VirtualAddress;
@@ -48,8 +49,9 @@ namespace
 			return 0;
 		};
 
-		const auto guid_pos = data.find(std::string(reinterpret_cast<const char*>(&browser_emulation_guid), sizeof(browser_emulation_guid)));
-		if(guid_pos == std::string::npos)
+		const auto guid_pos = data.find(std::string(reinterpret_cast<const char*>(&browser_emulation_guid),
+		                                            sizeof(browser_emulation_guid)));
+		if (guid_pos == std::string::npos)
 		{
 			return;
 		}
@@ -63,7 +65,8 @@ namespace
 		}
 
 		const size_t unrelocated_guid_va = file_lib.get_optional_header()->ImageBase + guid_rva;
-		const auto guid_ptr_pos = data.find(std::string(reinterpret_cast<const char*>(&unrelocated_guid_va), sizeof(unrelocated_guid_va)));
+		const auto guid_ptr_pos = data.find(std::string(reinterpret_cast<const char*>(&unrelocated_guid_va),
+		                                                sizeof(unrelocated_guid_va)));
 		if (guid_ptr_pos == std::string::npos)
 		{
 			return;
@@ -162,7 +165,7 @@ HRESULT html_frame::QueryInterface(REFIID riid, void** ppvObject)
 	if (IsEqualGUID(riid, IID_IInternetSecurityManager))
 	{
 		*ppvObject = static_cast<IInternetSecurityManager*>(this);
-		 return S_OK;
+		return S_OK;
 	}
 
 	if (IsEqualGUID(riid, IID_IUnknown))
@@ -335,7 +338,7 @@ bool html_frame::load_html(const std::string& html) const
 html_argument html_frame::evaluate(const std::string& javascript) const
 {
 	auto dispDoc = this->get_dispatch();
-	
+
 	CComPtr<IHTMLDocument2> htmlDoc;
 	dispDoc->QueryInterface(&htmlDoc);
 
@@ -381,7 +384,8 @@ html_argument html_frame::invoke_callback(const int id, const std::vector<html_a
 	return {};
 }
 
-void html_frame::register_callback(const std::string& name, const std::function<CComVariant(const std::vector<html_argument>&)>& callback)
+void html_frame::register_callback(const std::string& name,
+                                   const std::function<CComVariant(const std::vector<html_argument>&)>& callback)
 {
 	this->callbacks_.emplace_back(name, callback);
 }

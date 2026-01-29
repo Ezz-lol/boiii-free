@@ -10,7 +10,7 @@
 
 namespace steamcmd
 {
-    int start_new_process(const char* exePath, bool Hide_Window, bool waittill_done, const char* arguments)
+	int start_new_process(const char* exePath, bool Hide_Window, bool waittill_done, const char* arguments)
 	{
 		std::string commandLine = std::string(exePath) + " " + std::string(arguments);
 
@@ -26,14 +26,14 @@ namespace steamcmd
 		}
 
 		if (CreateProcess(
-			NULL,
+			nullptr,
 			(LPSTR)commandLine.c_str(),
-			NULL,
-			NULL,
+			nullptr,
+			nullptr,
 			FALSE,
 			0,
-			NULL,
-			NULL,
+			nullptr,
+			nullptr,
 			&startupInfo,
 			&pi
 		))
@@ -75,11 +75,11 @@ namespace steamcmd
 
 		return 0;
 	}
-	
+
 	int extract_steamcmd()
 	{
-		const char* zipFileName = "steamcmd.zip"; 
-		const char* extractDir = "";
+		auto zipFileName = "steamcmd.zip";
+		auto extractDir = "";
 
 		unzFile zipFile = unzOpen(zipFileName);
 		if (zipFile == nullptr)
@@ -149,11 +149,13 @@ namespace steamcmd
 				{
 					fwrite(buffer, 1, bytesRead, outFile);
 				}
-			} while (bytesRead > 0);
+			}
+			while (bytesRead > 0);
 
 			fclose(outFile);
 			unzCloseCurrentFile(zipFile);
-		} while (unzGoToNextFile(zipFile) == UNZ_OK);
+		}
+		while (unzGoToNextFile(zipFile) == UNZ_OK);
 
 		unzClose(zipFile);
 		return 0;
@@ -182,8 +184,9 @@ namespace steamcmd
 				return 1;
 			}
 
-			const char url[] = "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip"; //official steamcmd download link
-			const char outfilename[] = "./steamcmd.zip";
+			constexpr char url[] = "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip";
+			//official steamcmd download link
+			constexpr char outfilename[] = "./steamcmd.zip";
 
 			curl_version_info_data* vinfo = curl_version_info(CURLVERSION_NOW);
 
@@ -196,9 +199,9 @@ namespace steamcmd
 				printf("CURL: SSL not enabled\n");
 			}
 
-			FILE* outFile = NULL;
+			FILE* outFile = nullptr;
 			errno_t err = fopen_s(&outFile, outfilename, "wb");
-			if (err != 0 || outFile == NULL)
+			if (err != 0 || outFile == nullptr)
 			{
 				printf("Error opening file for writing.\n");
 				return 1;
@@ -221,7 +224,7 @@ namespace steamcmd
 				Sleep(2000);
 				return setup_steamcmd();
 			}
-			else if (res != CURLE_OK && tries >= max_tries)
+			if (res != CURLE_OK && tries >= max_tries)
 			{
 				printf("[ERROR] Could not download steamcmd! \nMax tries used.");
 				return 1;
@@ -235,7 +238,6 @@ namespace steamcmd
 				printf("[ERROR] Could not extract steamcmd! \n");
 				return 1;
 			}
-
 		}
 		else if (!utils::io::file_exists("steamcmd/steamcmd.exe") && utils::io::file_exists("steamcmd.zip"))
 		{
@@ -252,7 +254,8 @@ namespace steamcmd
 
 		try
 		{
-			if (utils::io::file_exists("steamcmd/steamcmd.exe") && std::filesystem::is_regular_file("steamcmd/steamcmd.exe"))
+			if (utils::io::file_exists("steamcmd/steamcmd.exe") && std::filesystem::is_regular_file(
+				"steamcmd/steamcmd.exe"))
 			{
 				std::uintmax_t file_size = std::filesystem::file_size("steamcmd/steamcmd.exe");
 				if (file_size < 3 * 1024 * 1024)
@@ -264,7 +267,7 @@ namespace steamcmd
 		}
 		catch (std::filesystem::filesystem_error& e)
 		{
-			printf( e.what() + '\n');
+			printf(e.what() + '\n');
 		}
 
 		return 0;
@@ -312,24 +315,30 @@ namespace steamcmd
 
 		if (result == 4)
 		{
-			MessageBox(NULL, "Problem downloading the workshop item. Max tries used exiting..", "Error!", MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL);
+			MessageBox(nullptr, "Problem downloading the workshop item. Max tries used exiting..", "Error!",
+			           MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		}
 		else if (result == 3)
 		{
-			MessageBox(NULL, "Cannot install steamcmd. Please try again.", "Error!", MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL);
+			MessageBox(nullptr, "Cannot install steamcmd. Please try again.", "Error!",
+			           MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		}
 		else if (result == 2)
 		{
-			std::string hint_message = "There was problem moving the workshop item to correct folder! \nYou can try moving it manually and joining the server again. \nDownload path: \n" + std::filesystem::current_path().string() + "/steamcmd/steamapps/workshop/downloads/311210/" + workshop_id;
-			MessageBox(NULL, hint_message.c_str(), "Error!", MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL);
+			std::string hint_message =
+				"There was problem moving the workshop item to correct folder! \nYou can try moving it manually and joining the server again. \nDownload path: \n"
+				+ std::filesystem::current_path().string() + "/steamcmd/steamapps/workshop/downloads/311210/" +
+				workshop_id;
+			MessageBox(nullptr, hint_message.c_str(), "Error!", MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		}
 		else if (result == 1)
 		{
-			MessageBox(NULL, "Download cancelled!", "Error!", MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL);
+			MessageBox(nullptr, "Download cancelled!", "Error!", MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		}
 		else if (result == 0)
 		{
-			MessageBox(NULL, "Workshop item download Success! \nYou can now join the server again.", "Done!", MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL);
+			MessageBox(nullptr, "Workshop item download Success! \nYou can now join the server again.", "Done!",
+			           MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		}
 
 		//Refresh steam workshop items with command
@@ -337,7 +346,7 @@ namespace steamcmd
 		printf("Workshop items refreshed\n");
 		workshop::downloading_workshop_item = false;
 	}
-	
+
 	int download_workshop_item(std::string workshop_id, std::string modtype)
 	{
 		if (setup_steamcmd() == 1)
@@ -385,7 +394,9 @@ namespace steamcmd
 			}
 
 			//create new steamcmd download process which will continue from were it was left if the download was interrupted by connection issues
-			int result = start_new_process("./steamcmd/steamcmd.exe", false, true, ("+login anonymous app_update 311210 +workshop_download_item 311210 " + std::string(workshop_id_char) + " validate +quit").c_str());
+			int result = start_new_process("./steamcmd/steamcmd.exe", false, true,
+			                               ("+login anonymous app_update 311210 +workshop_download_item 311210 " +
+				                               std::string(workshop_id_char) + " validate +quit").c_str());
 
 			if (result == 1)
 			{
@@ -412,7 +423,7 @@ namespace steamcmd
 			printf(ex.what() + '\n');
 			return 2;
 		}
-		
+
 		return 0;
 	}
 }

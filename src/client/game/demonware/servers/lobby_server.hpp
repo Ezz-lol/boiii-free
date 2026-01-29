@@ -14,7 +14,7 @@ namespace demonware
 		template <typename T>
 		void register_service()
 		{
-			static_assert(std::is_base_of<service, T>::value, "service must inherit from service");
+			static_assert(std::is_base_of_v<service, T>, "service must inherit from service");
 
 			auto service = std::make_unique<T>();
 			const uint8_t id = service->id();

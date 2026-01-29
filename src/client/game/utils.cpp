@@ -59,19 +59,20 @@ namespace game
 			{
 				for (int i = MODE_FIRST; i < MODE_COUNT; ++i)
 				{
-					game::Dvar_SessionModeSetDefaultBool.call_safe(hash, value, static_cast<eModes>(i));
+					Dvar_SessionModeSetDefaultBool.call_safe(hash, value, static_cast<eModes>(i));
 				}
 			}
 			else
 			{
-				game::Dvar_SessionModeSetDefaultBool.call_safe(hash, value, mode);
+				Dvar_SessionModeSetDefaultBool.call_safe(hash, value, mode);
 			}
 		}
 
 		return registered_dvar;
 	}
 
-	const dvar_t* register_dvar_bool(const char* dvar_name, const bool value, const unsigned int flags, const char* description)
+	const dvar_t* register_dvar_bool(const char* dvar_name, const bool value, const unsigned int flags,
+	                                 const char* description)
 	{
 		const auto hash = Dvar_GenerateHash(dvar_name);
 		auto* registered_dvar = Dvar_RegisterBool(hash, dvar_name, value, flags, description);
@@ -85,7 +86,7 @@ namespace game
 	}
 
 	const dvar_t* register_dvar_int(const char* dvar_name, int value, int min, int max, const unsigned int flags,
-		const char* description)
+	                                const char* description)
 	{
 		const auto hash = Dvar_GenerateHash(dvar_name);
 		auto* registered_dvar = Dvar_RegisterInt(hash, dvar_name, value, min, max, flags, description);
@@ -98,7 +99,8 @@ namespace game
 		return registered_dvar;
 	}
 
-	const dvar_t* register_dvar_float(const char* dvar_name, float value, float min, float max, const unsigned int flags,
+	const dvar_t* register_dvar_float(const char* dvar_name, float value, float min, float max,
+	                                  const unsigned int flags,
 	                                  const char* description)
 	{
 		const auto hash = Dvar_GenerateHash(dvar_name);

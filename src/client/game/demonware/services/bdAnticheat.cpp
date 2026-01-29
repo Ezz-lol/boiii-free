@@ -25,7 +25,7 @@ namespace demonware
 		auto reply = server->create_reply(this->task_id());
 		reply.send();
 	}
-	
+
 	void bdAnticheat::reportConsoleDetails(service_server* server, byte_buffer* /*buffer*/) const
 	{
 		// TODO: Read data as soon as needed

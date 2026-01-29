@@ -222,14 +222,14 @@ namespace demonware
 #pragma warning(pop)
 				}
 
-				static thread_local in_addr address{};
+				thread_local in_addr address{};
 				address.s_addr = server->get_address();
 
-				static thread_local in_addr* addr_list[2]{};
+				thread_local in_addr* addr_list[2]{};
 				addr_list[0] = &address;
 				addr_list[1] = nullptr;
 
-				static thread_local hostent host{};
+				thread_local hostent host{};
 				host.h_name = const_cast<char*>(name);
 				host.h_aliases = nullptr;
 				host.h_addrtype = AF_INET;
@@ -281,11 +281,8 @@ namespace demonware
 					{
 						return static_cast<int>(server->handle_output(buf, len));
 					}
-					else
-					{
-						WSASetLastError(WSAEWOULDBLOCK);
-						return -1;
-					}
+					WSASetLastError(WSAEWOULDBLOCK);
+					return -1;
 				}
 
 				return recv(s, buf, len, flags);

@@ -9,13 +9,13 @@ public:
 		return INET_E_DEFAULT_ACTION;
 	}
 
-	virtual HRESULT STDMETHODCALLTYPE GetSecuritySite(
+	HRESULT STDMETHODCALLTYPE GetSecuritySite(
 		IInternetSecurityMgrSite**) override
 	{
 		return INET_E_DEFAULT_ACTION;
 	}
 
-	virtual HRESULT STDMETHODCALLTYPE MapUrlToZone(
+	HRESULT STDMETHODCALLTYPE MapUrlToZone(
 		LPCWSTR,
 		DWORD* pdwZone,
 		DWORD) override
@@ -24,7 +24,7 @@ public:
 		return S_OK;
 	}
 
-	virtual HRESULT STDMETHODCALLTYPE GetSecurityId(
+	HRESULT STDMETHODCALLTYPE GetSecurityId(
 		LPCWSTR,
 		BYTE*,
 		DWORD*,
@@ -33,8 +33,8 @@ public:
 		return INET_E_DEFAULT_ACTION;
 	}
 
-	virtual HRESULT STDMETHODCALLTYPE ProcessUrlAction(
-		LPCWSTR, 
+	HRESULT STDMETHODCALLTYPE ProcessUrlAction(
+		LPCWSTR,
 		DWORD,
 		BYTE*,
 		DWORD,
@@ -46,7 +46,7 @@ public:
 		return INET_E_DEFAULT_ACTION;
 	}
 
-	virtual HRESULT STDMETHODCALLTYPE QueryCustomPolicy(
+	HRESULT STDMETHODCALLTYPE QueryCustomPolicy(
 		LPCWSTR,
 		REFGUID,
 		BYTE**,

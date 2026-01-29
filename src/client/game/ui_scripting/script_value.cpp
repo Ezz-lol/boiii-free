@@ -351,7 +351,7 @@ namespace ui_scripting
 	template <>
 	function script_value::get() const
 	{
-		return { this->get_raw().v.cClosure, this->get_raw().t };
+		return {this->get_raw().v.cClosure, this->get_raw().t};
 	}
 
 	/***************************************************************

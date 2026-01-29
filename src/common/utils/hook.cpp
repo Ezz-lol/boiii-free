@@ -255,12 +255,12 @@ namespace utils::hook
 
 	asmjit::Error assembler::call(void* target)
 	{
-		return Assembler::call(reinterpret_cast<size_t>(target));
+		return Assembler::call(target);
 	}
 
 	asmjit::Error assembler::jmp(void* target)
 	{
-		return Assembler::jmp(reinterpret_cast<size_t>(target));
+		return Assembler::jmp(target);
 	}
 
 	detour::detour()
@@ -405,7 +405,7 @@ namespace utils::hook
 
 	void copy_string(void* place, const char* str)
 	{
-		copy(reinterpret_cast<void*>(place), str, strlen(str) + 1);
+		copy(place, str, strlen(str) + 1);
 	}
 
 	void copy_string(const size_t place, const char* str)
@@ -481,7 +481,7 @@ namespace utils::hook
 			return;
 		}
 
-		auto* patch_pointer = PBYTE(pointer);
+		auto* patch_pointer = static_cast<PBYTE>(pointer);
 
 		if (use_far)
 		{
@@ -506,7 +506,7 @@ namespace utils::hook
 		{
 			uint8_t copy_data[5];
 			copy_data[0] = 0xE9;
-			*reinterpret_cast<int32_t*>(&copy_data[1]) = int32_t(size_t(data) - (size_t(pointer) + 5));
+			*reinterpret_cast<int32_t*>(&copy_data[1]) = static_cast<int32_t>(size_t(data) - (size_t(pointer) + 5));
 
 			copy(patch_pointer, copy_data, sizeof(copy_data));
 		}

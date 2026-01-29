@@ -23,7 +23,7 @@ public:
 	{
 		return S_OK;
 	}
-	
+
 	HRESULT STDMETHODCALLTYPE HideUI() override
 	{
 		return S_OK;

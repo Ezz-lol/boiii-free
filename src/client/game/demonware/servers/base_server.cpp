@@ -5,7 +5,7 @@
 
 namespace demonware
 {
-	base_server::base_server(std::string name): name_(std::move(name))
+	base_server::base_server(std::string name) : name_(std::move(name))
 	{
 		this->address_ = utils::cryptography::jenkins_one_at_a_time::compute(this->name_);
 	}

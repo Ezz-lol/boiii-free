@@ -35,7 +35,7 @@ namespace steam
 		void copy_safe(T& dest, const char* in)
 		{
 			::utils::string::copy(dest, in);
-			::utils::string::strip_material(dest, dest, std::extent<T>::value);
+			::utils::string::strip_material(dest, dest, std::extent_v<T>);
 		}
 
 		gameserveritem_t create_server_item(const game::netadr_t& address, const ::utils::info_string& info,
@@ -67,7 +67,7 @@ namespace steam
 			copy_safe(server.m_szServerName, info.get("hostname").data());
 
 			const auto playmode = info.get("playmode");
-			const auto mode = game::eModes(std::atoi(playmode.data()));
+			const auto mode = static_cast<game::eModes>(std::atoi(playmode.data()));
 
 			const auto* tags = ::utils::string::va(
 				R"(\gametype\%s\dedicated\%s\ranked\false\hardcore\%s\zombies\%s\playerCount\%d\bots\%d\modName\%s\)",
@@ -88,7 +88,7 @@ namespace steam
 
 		void handle_server_respone(const bool success, const game::netadr_t& host, const ::utils::info_string& info,
 		                           const uint32_t ping, ::utils::concurrency::container<servers>& server_list,
-									std::atomic<matchmaking_server_list_response*>& response, void* request)
+		                           std::atomic<matchmaking_server_list_response*>& response, void* request)
 		{
 			bool all_handled = false;
 			std::optional<int> index{};
@@ -147,15 +147,17 @@ namespace steam
 			}
 		}
 
-		void handle_internet_server_response(const bool success, const game::netadr_t& host, const ::utils::info_string& info,
-			const uint32_t ping)
+		void handle_internet_server_response(const bool success, const game::netadr_t& host,
+		                                     const ::utils::info_string& info,
+		                                     const uint32_t ping)
 		{
 			handle_server_respone(success, host, info, ping, internet_servers, internet_response, internet_request);
 		}
 
 
-		void handle_favorites_server_response(const bool success, const game::netadr_t& host, const ::utils::info_string& info,
-			const uint32_t ping)
+		void handle_favorites_server_response(const bool success, const game::netadr_t& host,
+		                                      const ::utils::info_string& info,
+		                                      const uint32_t ping)
 		{
 			handle_server_respone(success, host, info, ping, favorites_servers, favorites_response, favorites_request);
 		}
@@ -304,7 +306,7 @@ namespace steam
 
 		auto& servers_list = hRequest == favorites_request ? favorites_servers : internet_servers;
 
-		static thread_local gameserveritem_t server_item{};
+		thread_local gameserveritem_t server_item{};
 		return servers_list.access<gameserveritem_t*>([iServer](const servers& s) -> gameserveritem_t*
 		{
 			if (iServer < 0 || static_cast<size_t>(iServer) >= s.size())
@@ -365,7 +367,9 @@ namespace steam
 
 		if (address)
 		{
-			auto callback = hRequest == favorites_request ? handle_favorites_server_response : handle_internet_server_response;
+			auto callback = hRequest == favorites_request
+				                ? handle_favorites_server_response
+				                : handle_internet_server_response;
 			ping_server(*address, callback);
 		}
 	}
@@ -379,17 +383,17 @@ namespace steam
 		party::query_server(
 			addr, [response](const bool success, const game::netadr_t& host, const ::utils::info_string& info,
 			                 const uint32_t ping)
-		{
-			if (success)
 			{
-				auto server_item = create_server_item(host, info, ping, success);
-				response->ServerResponded(server_item);
-			}
-			else
-			{
-				response->ServerFailedToRespond();
-			}
-		});
+				if (success)
+				{
+					auto server_item = create_server_item(host, info, ping, success);
+					response->ServerResponded(server_item);
+				}
+				else
+				{
+					response->ServerFailedToRespond();
+				}
+			});
 
 		return reinterpret_cast<void*>(static_cast<uint64_t>(7 + rand()));
 	}

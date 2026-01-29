@@ -105,7 +105,7 @@ namespace ui_scripting
 
 		try
 		{
-			const auto globals = table((*::game::hks::lua_state)->globals.v.table);
+			const auto globals = table((*game::hks::lua_state)->globals.v.table);
 			const auto engine = globals.get("Engine").as<table>();
 			const auto root = engine.get("GetLuiRoot")()[0].as<userdata>();
 			const auto process_event = root.get("processEvent");

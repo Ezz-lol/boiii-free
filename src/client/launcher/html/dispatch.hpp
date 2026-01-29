@@ -15,5 +15,4 @@ public:
 	{
 		return S_FALSE;
 	}
-
 };

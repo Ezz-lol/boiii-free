@@ -28,7 +28,7 @@ namespace utils::thread
 		auto* const t = OpenThread(THREAD_SET_LIMITED_INFORMATION, FALSE, id);
 		if (!t) return false;
 
-		const auto _ = utils::finally([t]()
+		const auto _ = finally([t]()
 		{
 			CloseHandle(t);
 		});

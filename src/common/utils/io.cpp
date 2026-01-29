@@ -88,7 +88,7 @@ namespace utils::io
 			if (stream.good())
 			{
 				stream.seekg(0, std::ios::end);
-				return static_cast<std::size_t>(stream.tellg());
+				return stream.tellg();
 			}
 		}
 
@@ -186,7 +186,7 @@ namespace utils::io
 			if (stream.good())
 			{
 				stream.seekg(0, std::ios::end);
-				return static_cast<std::size_t>(stream.tellg());
+				return stream.tellg();
 			}
 		}
 
@@ -235,7 +235,8 @@ namespace utils::io
 		if (hFile == INVALID_HANDLE_VALUE)
 		{
 			const DWORD error = GetLastError();
-			OutputDebugStringW((L"Failed to open file for writing: " + file + L", error: " + std::to_wstring(error) + L"\n").c_str());
+			OutputDebugStringW(
+				(L"Failed to open file for writing: " + file + L", error: " + std::to_wstring(error) + L"\n").c_str());
 			return false;
 		}
 
@@ -245,7 +246,7 @@ namespace utils::io
 		if (!success || bytesWritten != data.size())
 		{
 			const DWORD error = GetLastError();
-			OutputDebugStringW((L"Failed to write file: " + file + L", error: " + std::to_wstring(error) + 
+			OutputDebugStringW((L"Failed to write file: " + file + L", error: " + std::to_wstring(error) +
 				L", written: " + std::to_wstring(bytesWritten) + L"/" + std::to_wstring(data.size()) + L"\n").c_str());
 			CloseHandle(hFile);
 			return false;

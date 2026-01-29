@@ -25,10 +25,10 @@ namespace scheduler
 		count,
 	};
 
-	static const bool cond_continue = false;
-	static const bool cond_end = true;
+	static constexpr bool cond_continue = false;
+	static constexpr bool cond_end = true;
 
-	void execute(const pipeline type);
+	void execute(pipeline type);
 
 	void schedule(const std::function<bool()>& callback, pipeline type,
 	              std::chrono::milliseconds delay = 0ms);

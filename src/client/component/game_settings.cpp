@@ -71,7 +71,6 @@ namespace gamesettings
 			a.mov(rcx, r10);
 			a.call_aligned(has_game_settings_file_on_disk);
 			a.cmp(rax, 1);
-;
 			a.popad64();
 
 			a.jnz(exec_from_fastfile);

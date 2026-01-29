@@ -37,7 +37,7 @@ namespace utils::hook
 	//   ID3D11Device* device = ...
 	//   auto entry = get_vtable_entry(device, &ID3D11Device::CreateTexture2D);
 	template <size_t Entries = 100, typename Class, typename T, typename... Args>
-	void** get_vtable_entry(Class* obj, T (Class::* entry)(Args ...))
+	void** get_vtable_entry(Class* obj, T (Class::*entry)(Args...))
 	{
 		union
 		{
@@ -134,9 +134,9 @@ namespace utils::hook
 		}
 
 		template <typename T = void, typename... Args>
-		T invoke(Args ... args)
+		T invoke(Args... args)
 		{
-			return static_cast<T(*)(Args ...)>(this->get_original())(args...);
+			return static_cast<T(*)(Args...)>(this->get_original())(args...);
 		}
 
 		[[nodiscard]] void* get_original() const;
@@ -204,14 +204,14 @@ namespace utils::hook
 	}
 
 	template <typename T, typename... Args>
-	static T invoke(size_t func, Args ... args)
+	static T invoke(size_t func, Args... args)
 	{
-		return reinterpret_cast<T(*)(Args ...)>(func)(args...);
+		return reinterpret_cast<T(*)(Args...)>(func)(args...);
 	}
 
 	template <typename T, typename... Args>
-	static T invoke(void* func, Args ... args)
+	static T invoke(void* func, Args... args)
 	{
-		return static_cast<T(*)(Args ...)>(func)(args...);
+		return static_cast<T(*)(Args...)>(func)(args...);
 	}
 }

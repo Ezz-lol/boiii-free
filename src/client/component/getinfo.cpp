@@ -87,7 +87,7 @@ namespace getinfo
 			network::on("getInfo", [](const game::netadr_t& target, const network::data_view& data)
 			{
 				utils::info_string info{};
-				info.set("challenge", std::string{ data.begin(), data.end() });
+				info.set("challenge", std::string{data.begin(), data.end()});
 				info.set("gamename", "T7");
 				info.set("hostname",
 				         game::get_dvar_string(game::is_server() ? "live_steam_server_name" : "sv_hostname"));

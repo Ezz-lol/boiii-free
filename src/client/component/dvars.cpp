@@ -113,7 +113,7 @@ namespace dvars
 			{
 				return false;
 			}
-			
+
 			return (dvar->flags & game::DVAR_ARCHIVE);
 		}
 

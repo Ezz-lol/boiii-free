@@ -58,7 +58,7 @@ namespace game
 
 	void show_error(const std::string& text, const std::string& title)
 	{
-		if(is_headless())
+		if (is_headless())
 		{
 			puts(text.data());
 		}
@@ -71,21 +71,21 @@ namespace game
 	std::filesystem::path get_appdata_path()
 	{
 		static const auto appdata_path = []() -> std::filesystem::path
+		{
+			PWSTR path = nullptr;
+			if (FAILED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &path)))
 			{
-				PWSTR path = nullptr;
-				if (FAILED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &path)))
-				{
-					throw std::runtime_error("Failed to read APPDATA path!");
-				}
+				throw std::runtime_error("Failed to read APPDATA path!");
+			}
 
-				auto _ = utils::finally([&path]
-					{
-						CoTaskMemFree(path);
-					});
+			auto _ = utils::finally([&path]
+			{
+				CoTaskMemFree(path);
+			});
 
-				// Ensure proper handling of wide character paths
-				return std::filesystem::path(path) / L"boiii";
-			}();
+			// Ensure proper handling of wide character paths
+			return std::filesystem::path(path) / L"boiii";
+		}();
 
 		return appdata_path;
 	}

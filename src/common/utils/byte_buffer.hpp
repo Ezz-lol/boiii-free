@@ -47,7 +47,7 @@ namespace utils
 			this->write(&object, sizeof(object));
 		}
 
-		template<>
+		template <>
 		void write<byte_buffer>(const byte_buffer& object)
 		{
 			const auto& buffer = object.get_buffer();

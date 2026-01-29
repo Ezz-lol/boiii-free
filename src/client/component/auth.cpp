@@ -48,7 +48,7 @@ namespace auth
 				return {};
 			}
 
-			return std::string{ info.szHwProfileGuid, sizeof(info.szHwProfileGuid) };
+			return std::string{info.szHwProfileGuid, sizeof(info.szHwProfileGuid)};
 		}
 
 		std::string get_protected_data()
@@ -59,13 +59,13 @@ namespace auth
 			data_in.pbData = reinterpret_cast<uint8_t*>(input.data());
 			data_in.cbData = static_cast<DWORD>(input.size());
 			if (CryptProtectData(&data_in, nullptr, nullptr, nullptr, nullptr, CRYPTPROTECT_LOCAL_MACHINE,
-				&data_out) != TRUE)
+			                     &data_out) != TRUE)
 			{
 				return {};
 			}
 
 			const auto size = std::min(data_out.cbData, 52ul);
-			std::string result{ reinterpret_cast<char*>(data_out.pbData), size };
+			std::string result{reinterpret_cast<char*>(data_out.pbData), size};
 			LocalFree(data_out.pbData);
 
 			return result;
@@ -97,12 +97,12 @@ namespace auth
 		bool is_second_instance()
 		{
 			static const auto is_first = []
-				{
-					static utils::nt::handle mutex = CreateMutexA(nullptr, FALSE, "boiii_mutex");
-					return mutex && GetLastError() != ERROR_ALREADY_EXISTS;
-				}();
+			{
+				static utils::nt::handle mutex = CreateMutexA(nullptr, FALSE, "boiii_mutex");
+				return mutex && GetLastError() != ERROR_ALREADY_EXISTS;
+			}();
 
-				return !is_first;
+			return !is_first;
 		}
 
 		std::string serialize_connect_data(const char* data, const int length)
@@ -121,23 +121,23 @@ namespace auth
 		}
 
 		void send_fragmented_connect_packet(const game::netsrc_t sock, game::netadr_t* adr, const char* data,
-			const int length)
+		                                    const int length)
 		{
 			const auto connect_data = serialize_connect_data(data, length);
 			game::fragment_handler::fragment_data //
 			(connect_data.data(), connect_data.size(), [&](const utils::byte_buffer& buffer)
-				{
-					utils::byte_buffer packet_buffer{};
-					packet_buffer.write("connect");
-					packet_buffer.write(" ");
-					packet_buffer.write(buffer);
+			{
+				utils::byte_buffer packet_buffer{};
+				packet_buffer.write("connect");
+				packet_buffer.write(" ");
+				packet_buffer.write(buffer);
 
-					const auto& fragment_packet = packet_buffer.get_buffer();
+				const auto& fragment_packet = packet_buffer.get_buffer();
 
-					game::NET_OutOfBandData(sock, adr,
-						fragment_packet.data(),
-						static_cast<int>(fragment_packet.size()));
-				});
+				game::NET_OutOfBandData(sock, adr,
+				                        fragment_packet.data(),
+				                        static_cast<int>(fragment_packet.size()));
+			});
 		}
 
 		int send_connect_data_stub(const game::netsrc_t sock, game::netadr_t* adr, const char* data, const int len)
@@ -173,21 +173,21 @@ namespace auth
 			buffer.write(xuid);
 
 			game::foreach_connected_client([&](const game::client_s& client, const size_t index)
+			{
+				if (client.address.type != game::NA_BOT)
 				{
-					if (client.address.type != game::NA_BOT)
-					{
-						network::send(client.address, "playerXuid", buffer.get_buffer());
-					}
+					network::send(client.address, "playerXuid", buffer.get_buffer());
+				}
 
-					if (index != player_index && target.type != game::NA_BOT)
-					{
-						utils::byte_buffer current_buffer{};
-						current_buffer.write(static_cast<uint32_t>(index));
-						current_buffer.write(client.xuid);
+				if (index != player_index && target.type != game::NA_BOT)
+				{
+					utils::byte_buffer current_buffer{};
+					current_buffer.write(static_cast<uint32_t>(index));
+					current_buffer.write(client.xuid);
 
-						network::send(target, "playerXuid", current_buffer.get_buffer());
-					}
-				});
+					network::send(target, "playerXuid", current_buffer.get_buffer());
+				}
+			});
 		}
 
 		void handle_new_player(const game::netadr_t& target)
@@ -203,13 +203,13 @@ namespace auth
 
 			size_t player_index = 18;
 			game::foreach_connected_client([&](game::client_s& client, const size_t index)
+			{
+				if (client.address == target)
 				{
-					if (client.address == target)
-					{
-						client.xuid = xuid;
-						player_index = index;
-					}
-				});
+					client.xuid = xuid;
+					player_index = index;
+				}
+			});
 
 			distribute_player_xuid(target, player_index, xuid);
 		}
@@ -278,12 +278,12 @@ namespace auth
 			const auto name = info_string.get("name");
 
 			const auto is_name_invalid = [&name]() -> bool
+			{
+				return std::ranges::any_of(name, [](const auto c)
 				{
-					return std::ranges::any_of(name, [](const auto c)
-						{
-							return is_invalid_char(c);
-						});
-				};
+					return is_invalid_char(c);
+				});
+			};
 
 			if (name.empty() || is_name_invalid())
 			{
@@ -310,9 +310,9 @@ namespace auth
 			if (game::fragment_handler::handle(target, buffer, final_packet))
 			{
 				scheduler::once([t = target, p = std::move(final_packet)]
-					{
-						dispatch_connect_packet(t, p);
-					}, scheduler::server);
+				{
+					dispatch_connect_packet(t, p);
+				}, scheduler::server);
 			}
 		}
 
@@ -344,16 +344,16 @@ namespace auth
 	uint64_t get_guid()
 	{
 		static const auto guid = []() -> uint64_t
+		{
+			if (game::is_server() || is_second_instance())
 			{
-				if (game::is_server() || is_second_instance())
-				{
-					return 0x110000100000000 | (::utils::cryptography::random::get_integer() & ~0x80000000);
-				}
+				return 0x110000100000000 | (utils::cryptography::random::get_integer() & ~0x80000000);
+			}
 
-				return get_key().get_hash();
-			}();
+			return get_key().get_hash();
+		}();
 
-			return guid;
+		return guid;
 	}
 
 	uint64_t get_guid(const size_t client_num)
@@ -370,9 +370,9 @@ namespace auth
 
 		uint64_t xuid = 0;
 		const auto callback = [&xuid](const game::client_s& client)
-			{
-				xuid = client.xuid;
-			};
+		{
+			xuid = client.xuid;
+		};
 
 		if (!game::access_connected_client(client_num, callback))
 		{
@@ -419,16 +419,16 @@ namespace auth
 			utils::hook::call(game::select(0x1422490DC, 0x14052E582), direct_connect_bots_stub);
 
 			scheduler::once([]
-				{
-					password = game::register_dvar_string("password", "", game::DVAR_USERINFO, "password");
-				}, scheduler::pipeline::main);
+			{
+				password = game::register_dvar_string("password", "", game::DVAR_USERINFO, "password");
+			}, scheduler::pipeline::main);
 
 			// Patch steam id bit check
 			std::vector<std::pair<size_t, size_t>> patches{};
 			const auto p = [&patches](const size_t a, const size_t b)
-				{
-					patches.emplace_back(a, b);
-				};
+			{
+				patches.emplace_back(a, b);
+			};
 
 			if (game::is_server())
 			{

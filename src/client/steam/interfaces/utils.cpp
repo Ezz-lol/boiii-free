@@ -10,7 +10,7 @@ namespace steam
 
 	unsigned int utils::GetSecondsSinceComputerActive()
 	{
-		return (uint32_t)GetTickCount64() / 1000;
+		return static_cast<uint32_t>(GetTickCount64()) / 1000;
 	}
 
 	int utils::GetConnectedUniverse()
@@ -20,7 +20,7 @@ namespace steam
 
 	unsigned int utils::GetServerRealTime()
 	{
-		return (uint32_t)time(NULL);
+		return static_cast<uint32_t>(time(NULL));
 	}
 
 	const char* utils::GetIPCountry()
@@ -121,26 +121,26 @@ namespace steam
 		return false;
 	}
 
-	 const char* utils::GetSteamUILanguage()
+	const char* utils::GetSteamUILanguage()
 	{
-	   return "english";
+		return "english";
 	}
-	 bool utils::IsSteamRunningInVR()
-	 {
-	   return false;
-	 }
 
-	 void utils::SetOverlayNotificationInset(int nHorizontalInset, int nVerticalInset)
-	 {
-	   
-	 }
-	 bool utils::IsSteamInBigPictureMode()
-	 {
-	   return false;
-	 }
+	bool utils::IsSteamRunningInVR()
+	{
+		return false;
+	}
 
-	 void utils::StartVRDashboard()
-	 {
-	   
-	 }
+	void utils::SetOverlayNotificationInset(int nHorizontalInset, int nVerticalInset)
+	{
+	}
+
+	bool utils::IsSteamInBigPictureMode()
+	{
+		return false;
+	}
+
+	void utils::StartVRDashboard()
+	{
+	}
 }

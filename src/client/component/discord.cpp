@@ -23,7 +23,7 @@ namespace discord
 
 			discord_presence.partySize = 0;
 			discord_presence.partyMax = 0;
-			discord_presence.startTimestamp = time(0);
+			discord_presence.startTimestamp = time(nullptr);
 			discord_presence.largeImageKey = "logo";
 			discord_presence.smallImageKey = "sexy";
 			discord_presence.details = "Playing BO3 via Ezz!";

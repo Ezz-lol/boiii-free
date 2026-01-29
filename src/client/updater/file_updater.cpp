@@ -115,22 +115,22 @@ namespace updater
 	}
 
 	file_updater::file_updater(progress_listener& listener, std::filesystem::path base,
-		std::filesystem::path process_file)
+	                           std::filesystem::path process_file)
 		: listener_(listener)
-		, base_(std::move(base))
-		, process_file_(std::move(process_file))
-		, dead_process_file_(process_file_)
+		  , base_(std::move(base))
+		  , process_file_(std::move(process_file))
+		  , dead_process_file_(process_file_)
 	{
 		this->dead_process_file_.replace_extension(".exe.old");
-		
+
 		if (this->process_file_.extension() == ".old")
 		{
-			MessageBoxA(nullptr, 
-				"You are running from a backup file (boiii.exe.old). This indicates a previous update failed.\n"
-				"Please restore boiii.exe from the .old file and try again.",
-				"Update Error", MB_OK | MB_ICONERROR);
+			MessageBoxA(nullptr,
+			            "You are running from a backup file (boiii.exe.old). This indicates a previous update failed.\n"
+			            "Please restore boiii.exe from the .old file and try again.",
+			            "Update Error", MB_OK | MB_ICONERROR);
 		}
-		
+
 		this->delete_old_process_file();
 	}
 
@@ -170,7 +170,7 @@ namespace updater
 	{
 		this->create_config_file_if_not_exists();
 		const auto files = get_file_infos();
-		
+
 		OutputDebugStringA(("Found " + std::to_string(files.size()) + " files in update manifest\n").c_str());
 
 		if (!files.empty())
@@ -179,7 +179,7 @@ namespace updater
 		}
 
 		const auto outdated_files = this->get_outdated_files(files);
-		
+
 		OutputDebugStringA(("Found " + std::to_string(outdated_files.size()) + " outdated files\n").c_str());
 
 		for (const auto& file : outdated_files)
@@ -225,9 +225,9 @@ namespace updater
 		OutputDebugStringA(("Downloading: " + file.name + "\n").c_str());
 
 		const auto data = utils::http::get_data(url, {}, [&](const size_t progress)
-			{
-				this->listener_.file_progress(file, progress);
-			});
+		{
+			this->listener_.file_progress(file, progress);
+		});
 
 		if (!data)
 		{
@@ -236,8 +236,8 @@ namespace updater
 
 		if (data->size() != file.size)
 		{
-			throw std::runtime_error("Failed to download: " + file.name + 
-				" (size mismatch: got " + std::to_string(data->size()) + 
+			throw std::runtime_error("Failed to download: " + file.name +
+				" (size mismatch: got " + std::to_string(data->size()) +
 				", expected " + std::to_string(file.size) + ")");
 		}
 
@@ -272,7 +272,7 @@ namespace updater
 
 			if (verify_data.size() != data->size())
 			{
-				throw std::runtime_error("Temp exe size mismatch after write: expected " + 
+				throw std::runtime_error("Temp exe size mismatch after write: expected " +
 					std::to_string(data->size()) + ", got " + std::to_string(verify_data.size()));
 			}
 
@@ -283,11 +283,11 @@ namespace updater
 
 			OutputDebugStringA(("Moving temp exe to final location: " + out_file.string() + "\n").c_str());
 
-			if (!MoveFileExW(temp_path.wstring().c_str(), out_file.wstring().c_str(), 
-				MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+			if (!MoveFileExW(temp_path.wstring().c_str(), out_file.wstring().c_str(),
+			                 MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
 			{
 				const DWORD error = GetLastError();
-				throw std::runtime_error("Failed to replace exe: " + file.name + 
+				throw std::runtime_error("Failed to replace exe: " + file.name +
 					" (MoveFileEx failed with error " + std::to_string(error) + ")");
 			}
 
@@ -299,7 +299,7 @@ namespace updater
 
 			if (!utils::io::write_file(out_file, *data, false))
 			{
-				throw std::runtime_error("Failed to write: " + file.name + " to " + out_file.string() + 
+				throw std::runtime_error("Failed to write: " + file.name + " to " + out_file.string() +
 					" (file may be locked or read-only)");
 			}
 
@@ -338,15 +338,17 @@ namespace updater
 			OutputDebugStringA("Waiting for file system to settle...\n");
 			std::this_thread::sleep_for(500ms);
 
-			const auto max_retries = 3;
+			constexpr auto max_retries = 3;
 			std::exception_ptr last_exception;
 
 			for (auto i = 0; i < max_retries; ++i)
 			{
 				try
 				{
-					OutputDebugStringA(("Attempting exe update, attempt " + std::to_string(i + 1) + "/" + std::to_string(max_retries) + "\n").c_str());
-					this->update_files({ *host_file });
+					OutputDebugStringA(
+						("Attempting exe update, attempt " + std::to_string(i + 1) + "/" + std::to_string(max_retries) +
+							"\n").c_str());
+					this->update_files({*host_file});
 					OutputDebugStringA("Exe update successful!\n");
 
 					OutputDebugStringA("Verifying final exe file...\n");
@@ -358,7 +360,7 @@ namespace updater
 
 					if (verify_data.size() != host_file->size)
 					{
-						throw std::runtime_error("Updated exe size mismatch: expected " + 
+						throw std::runtime_error("Updated exe size mismatch: expected " +
 							std::to_string(host_file->size) + ", got " + std::to_string(verify_data.size()));
 					}
 
@@ -410,43 +412,43 @@ namespace updater
 		const auto thread_count = get_optimal_concurrent_download_count(outdated_files.size());
 
 		std::vector<std::thread> threads{};
-		std::atomic<size_t> current_index{ 0 };
+		std::atomic<size_t> current_index{0};
 
 		utils::concurrency::container<std::exception_ptr> exception{};
 
 		for (size_t i = 0; i < thread_count; ++i)
 		{
 			threads.emplace_back([&]()
+			{
+				while (!exception.access<bool>([](const std::exception_ptr& ptr)
 				{
-					while (!exception.access<bool>([](const std::exception_ptr& ptr)
-						{
-							return static_cast<bool>(ptr);
-						}))
+					return static_cast<bool>(ptr);
+				}))
+				{
+					const auto index = current_index++;
+					if (index >= outdated_files.size())
 					{
-						const auto index = current_index++;
-						if (index >= outdated_files.size())
-						{
-							break;
-						}
-
-						try
-						{
-							const auto& file = outdated_files[index];
-							this->listener_.begin_file(file);
-							this->update_file(file);
-							this->listener_.end_file(file);
-						}
-						catch (...)
-						{
-							exception.access([](std::exception_ptr& ptr)
-								{
-									ptr = std::current_exception();
-								});
-
-							return;
-						}
+						break;
 					}
-				});
+
+					try
+					{
+						const auto& file = outdated_files[index];
+						this->listener_.begin_file(file);
+						this->update_file(file);
+						this->listener_.end_file(file);
+					}
+					catch (...)
+					{
+						exception.access([](std::exception_ptr& ptr)
+						{
+							ptr = std::current_exception();
+						});
+
+						return;
+					}
+				}
+			});
 		}
 
 		for (auto& thread : threads)
@@ -458,12 +460,12 @@ namespace updater
 		}
 
 		exception.access([](const std::exception_ptr& ptr)
+		{
+			if (ptr)
 			{
-				if (ptr)
-				{
-					std::rethrow_exception(ptr);
-				}
-			});
+				std::rethrow_exception(ptr);
+			}
+		});
 
 		this->listener_.done_update();
 	}
@@ -488,7 +490,7 @@ namespace updater
 
 		if (data.size() != file.size)
 		{
-			OutputDebugStringA(("Size mismatch for " + file.name + ": local=" + std::to_string(data.size()) + 
+			OutputDebugStringA(("Size mismatch for " + file.name + ": local=" + std::to_string(data.size()) +
 				", remote=" + std::to_string(file.size) + "\n").c_str());
 			return true;
 		}
@@ -515,7 +517,7 @@ namespace updater
 
 	void file_updater::move_current_process_file() const
 	{
-		OutputDebugStringA(("Moving exe from " + this->process_file_.string() + " to " + 
+		OutputDebugStringA(("Moving exe from " + this->process_file_.string() + " to " +
 			this->dead_process_file_.string() + "\n").c_str());
 
 		DWORD attrs = GetFileAttributesW(this->process_file_.wstring().c_str());
@@ -527,16 +529,16 @@ namespace updater
 
 		for (auto i = 0; i < 5; ++i)
 		{
-			if (MoveFileExW(this->process_file_.wstring().c_str(), 
-				this->dead_process_file_.wstring().c_str(), 
-				MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH | MOVEFILE_COPY_ALLOWED))
+			if (MoveFileExW(this->process_file_.wstring().c_str(),
+			                this->dead_process_file_.wstring().c_str(),
+			                MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH | MOVEFILE_COPY_ALLOWED))
 			{
 				OutputDebugStringA("Successfully moved exe to .old\n");
 				return;
 			}
 
 			const DWORD error = GetLastError();
-			OutputDebugStringA(("Failed to move exe, attempt " + std::to_string(i + 1) + "/5, error: " + 
+			OutputDebugStringA(("Failed to move exe, attempt " + std::to_string(i + 1) + "/5, error: " +
 				std::to_string(error) + "\n").c_str());
 
 			if (i < 4)
@@ -545,13 +547,13 @@ namespace updater
 			}
 		}
 
-		throw std::runtime_error("Failed to move current process file after 5 attempts from " + 
+		throw std::runtime_error("Failed to move current process file after 5 attempts from " +
 			this->process_file_.string() + " to " + this->dead_process_file_.string());
 	}
 
 	void file_updater::restore_current_process_file() const
 	{
-		OutputDebugStringA(("Restoring exe from " + this->dead_process_file_.string() + " to " + 
+		OutputDebugStringA(("Restoring exe from " + this->dead_process_file_.string() + " to " +
 			this->process_file_.string() + "\n").c_str());
 
 		DWORD attrs = GetFileAttributesW(this->dead_process_file_.wstring().c_str());
@@ -561,13 +563,13 @@ namespace updater
 			SetFileAttributesW(this->dead_process_file_.wstring().c_str(), attrs & ~FILE_ATTRIBUTE_READONLY);
 		}
 
-		if (!MoveFileExW(this->dead_process_file_.wstring().c_str(), 
-			this->process_file_.wstring().c_str(), 
-			MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
+		if (!MoveFileExW(this->dead_process_file_.wstring().c_str(),
+		                 this->process_file_.wstring().c_str(),
+		                 MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
 		{
 			const DWORD error = GetLastError();
-			throw std::runtime_error("Failed to restore process file from " + 
-				this->dead_process_file_.string() + " to " + this->process_file_.string() + 
+			throw std::runtime_error("Failed to restore process file from " +
+				this->dead_process_file_.string() + " to " + this->process_file_.string() +
 				" (error: " + std::to_string(error) + ")");
 		}
 
@@ -576,7 +578,7 @@ namespace updater
 
 	void file_updater::delete_old_process_file() const
 	{
-		OutputDebugStringA(("Attempting to delete old process file: " + 
+		OutputDebugStringA(("Attempting to delete old process file: " +
 			this->dead_process_file_.string() + "\n").c_str());
 
 		for (auto i = 0; i < 4; ++i)
@@ -588,7 +590,7 @@ namespace updater
 				break;
 			}
 
-			OutputDebugStringA(("Failed to delete old process file, retrying (attempt " + 
+			OutputDebugStringA(("Failed to delete old process file, retrying (attempt " +
 				std::to_string(i + 1) + "/4)...\n").c_str());
 			std::this_thread::sleep_for(2s);
 		}
