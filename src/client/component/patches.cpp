@@ -11,9 +11,9 @@ namespace patches
 	namespace
 	{
 		const game::dvar_t* lobby_min_players;
+		utils::hook::detour com_error_hook;
 
-		void script_errors_stub([[maybe_unused]] const char* file, [[maybe_unused]] int line,
-		                        [[maybe_unused]] unsigned int code, const char* fmt, ...)
+		void com_error_stub(const char* file, int line, int code, const char* fmt, ...)
 		{
 			char buffer[0x1000];
 
@@ -24,7 +24,20 @@ namespace patches
 				va_end(ap);
 			}
 
-			game::Com_Error(game::ERROR_SCRIPT_DROP, "%s", buffer);
+			printf("[Com_Error] Code=%d, File=%s, Line=%d: %s\n", code, file ? file : "unknown", line, buffer);
+
+			// Suppress Clientfield Mismatch errors - convert to a recoverable ERR_DROP
+			if (strstr(buffer, "Clientfield Mismatch"))
+			{
+				printf("[Com_Error] Suppressing Clientfield Mismatch error, converting to ERR_DROP\n");
+				// Convert to ERR_DROP (code 1) which is recoverable and returns to menu
+				com_error_hook.invoke<void>(file, line, game::ERR_DROP,
+					"Mod compatibility issue: %s\nThis mod may require additional patches for boiii.", buffer);
+				return;
+			}
+
+			// Call original Com_Error for other errors
+			com_error_hook.invoke<void>(file, line, code, "%s", buffer);
 		}
 
 		void scr_get_num_expected_players()
@@ -62,11 +75,11 @@ namespace patches
 	{
 		void post_unpack() override
 		{
+			// Hook Com_Error to handle mod compatibility issues (e.g., Clientfield Mismatch)
+			com_error_hook.create(game::Com_Error_, com_error_stub);
+
 			// print hexadecimal xuids in chat game log command
 			utils::hook::set<char>(game::select(0x142FD9362, 0x140E16FA2), 'x');
-
-			// don't make script errors fatal error
-			utils::hook::call(game::select(0x1412CAC4D, 0x140158EB2), script_errors_stub);
 
 			// change 4 character min name limit to 3 characters
 			utils::hook::set<uint8_t>(game::select(0x14224DA53, 0x140531143), 3);

@@ -16,7 +16,7 @@ namespace game
 				utils::nt::library host{};
 				if (!host || host == utils::nt::library::get_by_address(get_base))
 				{
-					throw std::runtime_error("Invalid host application");
+					throw std::runtime_error("Invalid host application - Make sure you place Boiii.exe next to BlackOps3.exe!");
 				}
 
 				return host;
