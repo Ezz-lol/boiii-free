@@ -1,4 +1,4 @@
-gitVersioningCommand = "git describe --tags --dirty --always"
+gitVersioningCommand = "git describe --tags --always"
 gitCurrentBranchCommand = "git symbolic-ref -q --short HEAD"
 
 -- Quote the given string input as a C string

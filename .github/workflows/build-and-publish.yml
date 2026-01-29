@@ -85,7 +85,7 @@ jobs:
 
           # Process boiii.exe
           size=$(stat -c%s "boiii.exe")
-          hash=$(sha1sum "boiii.exe" | awk '{print $1}')
+          hash=$(sha1sum "boiii.exe" | awk '{print toupper($1)}')
           echo "  [\"boiii.exe\", $size, \"$hash\"]" >> ../${{ env.MANIFEST_FILE }}
           first=false
 
@@ -98,7 +98,7 @@ jobs:
           # Process all files in data directory
           find data -type f | sort | while read file; do
             size=$(stat -c%s "$file")
-            hash=$(sha1sum "$file" | awk '{print $1}')
+            hash=$(sha1sum "$file" | awk '{print toupper($1)}')
             echo "  ,[\"$file\", $size, \"$hash\"]" >> ../${{ env.MANIFEST_FILE }}
           done
 
@@ -139,3 +139,24 @@ jobs:
         run: |
           echo "Listing R2 bucket contents:"
           rclone ls r2:${{ env.R2_BUCKET }}/ | head -50
+
+  create_release:
+    name: Create GitHub Release
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: artifacts
+
+      - name: Create a Release
+        uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: ${{ secrets.TOKEN }}
+          automatic_release_tag: v1.1.${{ github.run_number }}
+          title: Release v1.1.${{ github.run_number }}
+          prerelease: false
+          files: |
+            artifacts/build/bin/x64/Release/boiii.exe
