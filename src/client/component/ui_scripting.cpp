@@ -52,7 +52,9 @@ namespace ui_scripting
 
 		bool is_local_script(const std::string& name)
 		{
-			return globals.local_scripts.contains(name);
+			if (globals.local_scripts.contains(name)) return true;
+			if (!name.ends_with(".lua") && globals.local_scripts.contains(name + ".lua")) return true;
+			return false;
 		}
 
 		std::string get_root_script(const std::string& name)
@@ -72,6 +74,7 @@ namespace ui_scripting
 			printf("************** LUI script execution error **************\n");
 			printf("%s\n", error.data());
 			printf("********************************************************\n");
+			MessageBoxA(nullptr, error.c_str(), "LUI Script Error", MB_OK | MB_ICONERROR | MB_TOPMOST | MB_SETFOREGROUND);
 		}
 
 		void print_loading_script(const std::string& name)
@@ -209,7 +212,10 @@ namespace ui_scripting
 			lua["print"] = function(reinterpret_cast<game::hks::lua_function>(0x141D30290_g)); // hks::base_print
 			lua["table"]["unpack"] = lua["unpack"];
 			lua["luiglobals"] = lua;
-			lua["Engine"]["IsBOIII"] = true;
+
+			// Expose IsBOIII for mod compatibility - both as a value and function
+			lua["Engine"]["IsBOIII"] = false;
+			//lua["IsBOIII"] = function([]() { return false; });
 		}
 
 		void start()
@@ -323,11 +329,25 @@ namespace ui_scripting
 			if (is_loaded_script(globals.in_require_script))
 			{
 				const auto folder = globals.in_require_script.substr(0, globals.in_require_script.find_last_of("/\\"));
-				target_script = folder + "/" + name_ + ".lua";
+				if (name_.ends_with(".lua"))
+				{
+					target_script = folder + "/" + name_;
+				}
+				else
+				{
+					target_script = folder + "/" + name_ + ".lua";
+				}
 			}
 			else
 			{
-				target_script = globals.local_scripts[name_];
+				if (globals.local_scripts.contains(name_))
+				{
+					target_script = globals.local_scripts[name_];
+				}
+				else if (!name_.ends_with(".lua") && globals.local_scripts.contains(name_ + ".lua"))
+				{
+					target_script = globals.local_scripts[name_ + ".lua"];
+				}
 			}
 
 			if (utils::io::file_exists(target_script))
