@@ -1,0 +1,141 @@
+name: Build and Publish to R2
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: ${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  R2_BUCKET: ${{ secrets.R2_BUCKET }}
+  R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+  R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+  R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+  # The folder prefix in R2 (e.g., "boiii" for boiii/boiii.exe, boiii/data/...)
+  # Must match UPDATE_FOLDER_MAIN in file_updater.cpp
+  R2_FOLDER: boiii
+  # Manifest filename (must match UPDATE_FILE_MAIN in file_updater.cpp)
+  MANIFEST_FILE: boiii.json
+
+jobs:
+  build:
+    name: Build Release
+    runs-on: windows-2022
+    steps:
+      - name: Check out files
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
+          lfs: false
+
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.3.1
+
+      - name: Generate project files
+        run: tools/premake5 vs2022
+
+      - name: Set up problem matching
+        uses: ammaraskar/msvc-problem-matcher@master
+
+      - name: Build Release
+        run: msbuild /m /v:minimal /p:Configuration=Release /p:Platform=x64 build/boiii.sln
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifacts
+          path: |
+            build/bin/x64/Release/boiii.exe
+            data/
+
+  publish:
+    name: Publish to R2
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts
+          path: artifacts
+
+      - name: Setup directory structure
+        run: |
+          mkdir -p upload/${{ env.R2_FOLDER }}
+
+          # Copy boiii.exe to upload folder
+          cp artifacts/build/bin/x64/Release/boiii.exe upload/${{ env.R2_FOLDER }}/
+
+          # Copy data directory
+          cp -r artifacts/data upload/${{ env.R2_FOLDER }}/
+
+      - name: Generate manifest JSON
+        run: |
+          cd upload/${{ env.R2_FOLDER }}
+
+          # Create JSON array
+          echo "[" > ../${{ env.MANIFEST_FILE }}
+
+          first=true
+
+          # Process boiii.exe
+          size=$(stat -c%s "boiii.exe")
+          hash=$(sha1sum "boiii.exe" | awk '{print $1}')
+          echo "  [\"boiii.exe\", $size, \"$hash\"]" >> ../${{ env.MANIFEST_FILE }}
+          first=false
+
+          # Add ext.dll entry (static, fetched from existing R2 or provided via secret)
+          # You can update EXT_DLL_SIZE and EXT_DLL_HASH secrets if needed
+          if [ -n "${{ secrets.EXT_DLL_SIZE }}" ] && [ -n "${{ secrets.EXT_DLL_HASH }}" ]; then
+            echo "  ,[\"ext.dll\", ${{ secrets.EXT_DLL_SIZE }}, \"${{ secrets.EXT_DLL_HASH }}\"]" >> ../${{ env.MANIFEST_FILE }}
+          fi
+
+          # Process all files in data directory
+          find data -type f | sort | while read file; do
+            size=$(stat -c%s "$file")
+            hash=$(sha1sum "$file" | awk '{print $1}')
+            echo "  ,[\"$file\", $size, \"$hash\"]" >> ../${{ env.MANIFEST_FILE }}
+          done
+
+          echo "]" >> ../${{ env.MANIFEST_FILE }}
+
+          # Show the generated manifest
+          echo "Generated manifest:"
+          cat ../${{ env.MANIFEST_FILE }}
+
+      - name: Install rclone
+        run: |
+          curl -O https://downloads.rclone.org/rclone-current-linux-amd64.deb
+          sudo dpkg -i rclone-current-linux-amd64.deb
+
+      - name: Configure rclone for R2
+        run: |
+          mkdir -p ~/.config/rclone
+          cat > ~/.config/rclone/rclone.conf << EOF
+          [r2]
+          type = s3
+          provider = Cloudflare
+          access_key_id = ${{ secrets.R2_ACCESS_KEY_ID }}
+          secret_access_key = ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          endpoint = https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          acl = private
+          no_check_bucket = true
+          EOF
+
+      - name: Upload to R2
+        run: |
+          # Upload the folder contents (boiii.exe and data/)
+          rclone copy upload/${{ env.R2_FOLDER }}/ r2:${{ env.R2_BUCKET }}/${{ env.R2_FOLDER }}/ --progress
+
+          # Upload the manifest JSON to root
+          rclone copy upload/${{ env.MANIFEST_FILE }} r2:${{ env.R2_BUCKET }}/ --progress
+
+      - name: Verify upload
+        run: |
+          echo "Listing R2 bucket contents:"
+          rclone ls r2:${{ env.R2_BUCKET }}/ | head -50
