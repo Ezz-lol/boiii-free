@@ -228,6 +228,7 @@ Launch BOIII with these arguments for extra features:
 | `-safe` | Launch in safe mode (disable mods) |
 | `-console` | Enable developer console |
 | `-port XXXX` | Set server port (default: 27017) |
+| `-launch` | Force BOIII to start directly (used by launchers/shortcuts; skips some pre-checks) |
 
 **Example:**
 ```bash
@@ -435,6 +436,7 @@ This is a non-profit, community-driven project. We do not condone piracy. If you
 <p align="center">
   Made with ❤️ by the BOIII community ☄️
 </p>
+
 
 
 
