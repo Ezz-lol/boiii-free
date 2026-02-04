@@ -229,6 +229,10 @@ Launch BOIII with these arguments for extra features:
 | `-console` | Enable developer console |
 | `-port XXXX` | Set server port (default: 27017) |
 | `-launch` | Force BOIII to start directly (used by launchers/shortcuts; skips some pre-checks) |
+| `-noupdate` | Disable automatic updates (not recommanded) |
+| `-update` | Force enable updates (including host binary in debug builds) |
+| `-norelaunch` | Skip automatic relaunch after updates |
+| `-headless` | Run in headless mode (no GUI for the console) |
 
 **Example:**
 ```bash
@@ -436,6 +440,7 @@ This is a non-profit, community-driven project. We do not condone piracy. If you
 <p align="center">
   Made with ❤️ by the BOIII community ☄️
 </p>
+
 
 
 
