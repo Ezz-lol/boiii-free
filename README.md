@@ -241,6 +241,7 @@ boiii.exe -nointro -console -unsafe-lua
 
 > [!WARNING]
 > The `-unsafe-lua` argument is **required** for certain mods that need to modify the UI, menus, or game scripts (like All-Around Enhancement Mod). Only use this with trusted mods!
+> The `-headless` may not behave incorrectly on non-servers!
 
 ---
 
@@ -440,6 +441,7 @@ This is a non-profit, community-driven project. We do not condone piracy. If you
 <p align="center">
   Made with ❤️ by the BOIII community ☄️
 </p>
+
 
 
 
