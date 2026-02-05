@@ -233,6 +233,8 @@ Launch BOIII with these arguments for extra features:
 | `-update` | Force enable updates (including host binary in debug builds) |
 | `-norelaunch` | Skip automatic relaunch after updates |
 | `-headless` | Run in headless mode (no GUI for the console) |
+| `-nopatch` | Disable some of the server's patches |
+
 
 **Example:**
 ```bash
@@ -241,7 +243,8 @@ boiii.exe -nointro -console -unsafe-lua
 
 > [!WARNING]
 > The `-unsafe-lua` argument is **required** for certain mods that need to modify the UI, menus, or game scripts (like All-Around Enhancement Mod). Only use this with trusted mods!
-> The `-headless` may not behave incorrectly on non-servers!
+> 
+> The `-headless` may not behave correctly on non-servers!
 
 ---
 
@@ -441,10 +444,5 @@ This is a non-profit, community-driven project. We do not condone piracy. If you
 <p align="center">
   Made with ❤️ by the BOIII community ☄️
 </p>
-
-
-
-
-
 
 
