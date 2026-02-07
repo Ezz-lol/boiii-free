@@ -45,12 +45,13 @@
         background-size: cover;
         content: "";
         height: 100%;
-        opacity: 0.3;
+        opacity: 0;
         position: fixed;
         top: 0;
         width: 100%;
         filter: brightness(0.9) contrast(1.1);
         box-shadow: inset 0 0 200px rgba(0, 0, 0, 0.5);
+        animation: fadeIn 0.8s ease-out 0.1s forwards;
       }
 
       .background-container::after {
@@ -65,6 +66,22 @@
         width: 100%;
       }
 
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(24px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 0.3; }
+      }
+
       .content {
         position: relative;
         z-index: 1;
@@ -75,6 +92,7 @@
         flex-direction: column;
         align-items: center;
         gap: 20px;
+        animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
       }
 
       h1 {
@@ -325,6 +343,8 @@
 
       .settings-btn:hover svg {
         fill: rgba(249, 115, 22, 0.85);
+        transform: rotate(45deg);
+        transition: transform 0.3s ease, fill 0.2s;
       }
 
       .settings-dropdown {
@@ -433,7 +453,7 @@
           </div>
         </div>
 
-        <div class="version-display">v1.0.5</div>
+        <div class="version-display" id="versionDisplay">v1.0.5</div>
 
         <script>
           (function(){
@@ -442,6 +462,13 @@
             var options = dropdown.querySelectorAll('.option-btn');
 
             var nameInput = document.getElementById('playerName');
+            try {
+              var ver = window.external.getVersion();
+              if (ver) {
+                document.getElementById('versionDisplay').textContent = 'v' + ver;
+              }
+            } catch (e) {}
+
             try {
               var stored = window.external.readPlayerName();
               if (stored && nameInput) {

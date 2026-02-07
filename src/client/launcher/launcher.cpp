@@ -7,6 +7,7 @@
 
 #include <game/game.hpp>
 #include <utils/string.hpp>
+#include <version.hpp>
 
 namespace launcher
 {
@@ -105,6 +106,12 @@ namespace launcher
 		bool run_game = false;
 		std::vector<std::string> launch_options{};
 		html_window window("BOIII", 590, 360);
+
+		window.get_html_frame()->register_callback(
+			"getVersion", [](const std::vector<html_argument>& /*params*/) -> CComVariant
+			{
+				return CComVariant(SHORTVERSION);
+			});
 
 		window.get_html_frame()->register_callback(
 			"openUrl", [](const std::vector<html_argument>& params) -> CComVariant
