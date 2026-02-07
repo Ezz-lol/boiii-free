@@ -56,7 +56,7 @@ namespace utils::nt
 		template <typename T>
 		[[nodiscard]] T get_proc(const char* process) const
 		{
-			if (!this->is_valid()) T{};
+			if (!this->is_valid()) return T{};
 			return reinterpret_cast<T>(GetProcAddress(this->module_, process));
 		}
 

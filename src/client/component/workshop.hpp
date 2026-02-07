@@ -1,8 +1,13 @@
 #pragma once
 
+#include <string>
+
 namespace workshop
 {
 	extern bool downloading_workshop_item;
+
+	// Configurable via dvars (workshop_retry_attempts, workshop_timeout)
+	int get_workshop_retry_attempts();
 
 	std::string get_usermap_publisher_id(const std::string& folder_name);
 	std::string get_mod_publisher_id();

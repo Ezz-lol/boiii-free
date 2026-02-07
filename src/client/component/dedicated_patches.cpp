@@ -2,6 +2,7 @@
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
 
+#include <utils/flags.hpp>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 
@@ -99,6 +100,11 @@ namespace dedicated_patches
 			// Online classes
 			utils::hook::jump(0x1405003E0_g, get_online_mode_stub);
 			utils::hook::jump(0x1405003B0_g, get_online_mode_stub);
+
+			if (utils::flags::has_flag("nopatch"))
+			{
+				return;
+			}
 
 			// Progression / Ranked
 			utils::hook::jump(0x140500A50_g, is_online_stub);
