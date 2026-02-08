@@ -25,6 +25,8 @@ jobs:
   build:
     name: Build Release
     runs-on: windows-2022
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
     steps:
       - name: Check out files
         uses: actions/checkout@v4
@@ -38,6 +40,13 @@ jobs:
 
       - name: Generate project files
         run: tools/premake5 vs2022
+
+      - name: Get version from git tag
+        id: get-version
+        run: |
+          version=$(git describe --tags --abbrev=0)
+          echo "version=$version" >> $GITHUB_OUTPUT
+        shell: bash
 
       - name: Set up problem matching
         uses: ammaraskar/msvc-problem-matcher@master
@@ -142,7 +151,7 @@ jobs:
 
   create_release:
     name: Create GitHub Release
-    needs: publish
+    needs: [publish, build]
     runs-on: ubuntu-latest
     steps:
       - name: Download build artifacts
@@ -155,8 +164,8 @@ jobs:
         uses: marvinpinto/action-automatic-releases@latest
         with:
           repo_token: ${{ secrets.TOKEN }}
-          automatic_release_tag: v1.0.${{ github.run_number }}
-          title: Release v1.0.${{ github.run_number }}
+          automatic_release_tag: ${{ needs.build.outputs.version }}
+          title: Release ${{ needs.build.outputs.version }}
           prerelease: false
           files: |
             artifacts/build/bin/x64/Release/boiii.exe

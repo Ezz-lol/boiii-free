@@ -11,6 +11,8 @@ jobs:
   build:
     name: BuildNew
     runs-on: windows-2022
+    outputs:
+      version: ${{ steps.get-version.outputs.version }}
     strategy:
       fail-fast: false
       matrix:
@@ -31,6 +33,13 @@ jobs:
 
       - name: Generate project files
         run: tools/premake5 vs2022
+
+      - name: Get version from git tag
+        id: get-version
+        run: |
+          version=$(git describe --tags --abbrev=0)
+          echo "version=$version" >> $GITHUB_OUTPUT
+        shell: bash
 
       - name: Set up problem matching
         uses: ammaraskar/msvc-problem-matcher@master
@@ -77,8 +86,8 @@ jobs:
         uses: marvinpinto/action-automatic-releases@latest
         with:
           repo_token: ${{ secrets.TOKEN }}
-          automatic_release_tag: v1.0.${{ github.run_number }}
-          title: Release v1.0.${{ github.run_number }}
+          automatic_release_tag: ${{ needs.build.outputs.version }}
+          title: Release ${{ needs.build.outputs.version }}
           prerelease: false
           files: |
             artifacts/boiii.exe
