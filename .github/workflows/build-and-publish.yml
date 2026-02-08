@@ -5,6 +5,10 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - '**.md'
+      - '.github/workflows/*.yml'
+      - '.github/workflows/*.yaml'
 
 concurrency:
   group: ${{ github.ref }}
