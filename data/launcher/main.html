@@ -10,10 +10,8 @@
         cursor: default;
         box-sizing: border-box;
       }
-      /* Special styling for Play button */
-      /* Catsby will be diddled */
-      html,
-      body {
+
+      html, body {
         -ms-overflow-style: none;
         margin: 0;
         padding: 0;
@@ -30,6 +28,8 @@
 
       body {
         background: transparent;
+        height: 100%;
+        width: 100%;
       }
 
       .background-container {
@@ -37,22 +37,24 @@
         position: fixed;
         z-index: -1;
       }
-      
-      .background-container:before {
+
+      .background-container::before {
         background: #000 url(./bigboiii.jpg);
         background-position: 50%;
         background-repeat: no-repeat;
         background-size: cover;
         content: "";
         height: 100%;
-        opacity: 0.3;
+        opacity: 0;
         position: fixed;
         top: 0;
         width: 100%;
         filter: brightness(0.9) contrast(1.1);
+        box-shadow: inset 0 0 200px rgba(0, 0, 0, 0.5);
+        animation: fadeIn 0.8s ease-out 0.1s forwards;
       }
 
-      .background-container:after {
+      .background-container::after {
         background-image: url(./noise.jpg);
         background-repeat: repeat;
         content: "";
@@ -64,33 +66,42 @@
         width: 100%;
       }
 
-      /* Subtle vignette effect */
-      .background-container::before {
-        box-shadow: inset 0 0 200px rgba(0, 0, 0, 0.5);
+      @keyframes slideUp {
+        from {
+          opacity: 0;
+          transform: translateY(24px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
       }
 
-      body {
-        height: 100%;
-        width: 100%;
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 0.3; }
       }
 
       .content {
+        position: relative;
+        z-index: 1;
         width: 100%;
         text-align: center;
-        padding-top: 50px;
+        padding-top: 38px;
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 30px;
+        gap: 20px;
+        animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
       }
 
       h1 {
-        font-size: 3rem;
+        font-size: 3.4rem;
         font-weight: 700;
         margin: 0;
         padding: 0;
         letter-spacing: 0.05em;
-        text-shadow: 
+        text-shadow:
           0 0 20px rgba(249, 115, 22, 0.5),
           0 0 40px rgba(249, 115, 22, 0.3),
           0 4px 8px rgba(0, 0, 0, 0.8);
@@ -104,23 +115,23 @@
         animation: glow 2s ease-in-out infinite alternate;
       }
 
+      h1 .big-e {
+        font-size: 1.25em;
+      }
+
       @keyframes glow {
-        from {
-          filter: brightness(1);
-        }
-        to {
-          filter: brightness(1.1);
-        }
+        from { filter: brightness(1); }
+        to { filter: brightness(1.1); }
       }
 
       .button-container {
         display: flex;
         gap: 0;
-        margin-top: 10px;
+        margin-top: 4px;
       }
 
       div.button {
-        margin: 5px 10px;
+        margin: 5px 14px;
         display: inline-flex;
         align-items: center;
         justify-content: center;
@@ -128,7 +139,6 @@
         color: rgba(244, 240, 235, 0.9);
         cursor: pointer;
         background: linear-gradient(145deg, rgba(48, 45, 44, 0.8), rgba(38, 36, 35, 0.8));
-        backdrop-filter: blur(10px);
         width: 120px;
         text-align: center;
         padding: 0.5rem;
@@ -139,7 +149,7 @@
         font-family: inherit;
         position: relative;
         overflow: hidden;
-        box-shadow: 
+        box-shadow:
           0 4px 6px rgba(0, 0, 0, 0.3),
           0 1px 3px rgba(0, 0, 0, 0.2),
           inset 0 1px 0 rgba(255, 255, 255, 0.1);
@@ -152,12 +162,7 @@
         left: -100%;
         width: 100%;
         height: 100%;
-        background: linear-gradient(
-          90deg,
-          transparent,
-          rgba(255, 255, 255, 0.1),
-          transparent
-        );
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
         transition: left 0.5s;
       }
 
@@ -169,7 +174,7 @@
         background: linear-gradient(145deg, rgba(58, 55, 54, 0.9), rgba(48, 45, 44, 0.9));
         border: 1px solid rgba(74, 71, 69, 0.8);
         transform: translateY(-2px);
-        box-shadow: 
+        box-shadow:
           0 6px 12px rgba(0, 0, 0, 0.4),
           0 2px 4px rgba(0, 0, 0, 0.3),
           inset 0 1px 0 rgba(255, 255, 255, 0.15);
@@ -177,13 +182,12 @@
 
       div.button:active {
         transform: translateY(0);
-        box-shadow: 
+        box-shadow:
           0 2px 4px rgba(0, 0, 0, 0.3),
           0 1px 2px rgba(0, 0, 0, 0.2),
           inset 0 1px 0 rgba(255, 255, 255, 0.1);
       }
 
-      /* Special styling for Play button */
       div.button:first-child {
         background: linear-gradient(145deg, rgba(249, 115, 22, 0.15), rgba(220, 38, 38, 0.15));
         border: 1px solid rgba(249, 115, 22, 0.4);
@@ -194,40 +198,348 @@
       div.button:first-child:hover {
         background: linear-gradient(145deg, rgba(249, 115, 22, 0.25), rgba(220, 38, 38, 0.25));
         border: 1px solid rgba(249, 115, 22, 0.6);
-        box-shadow: 
+        box-shadow:
           0 6px 12px rgba(249, 115, 22, 0.3),
           0 2px 4px rgba(0, 0, 0, 0.3),
           inset 0 1px 0 rgba(255, 255, 255, 0.2);
       }
+
+      .player-section {
+        margin-top: 18px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+      }
+
+      .player-label {
+        font-size: 0.68rem;
+        font-weight: 600;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: rgba(249, 115, 22, 0.7);
+        text-shadow: 0 0 8px rgba(249, 115, 22, 0.25);
+      }
+
+      .input-wrap {
+        position: relative;
+        width: 195px;
+      }
+
+      .player-input {
+        width: 100%;
+        background: linear-gradient(145deg, rgba(30, 28, 27, 0.85), rgba(22, 21, 20, 0.85));
+        border: 1px solid rgba(249, 115, 22, 0.28);
+        border-radius: 0.45rem;
+        color: rgba(244, 240, 235, 0.92);
+        font-family: inherit;
+        font-size: 0.85rem;
+        font-weight: 500;
+        padding: 0.4rem 0.65rem;
+        outline: none;
+        text-align: center;
+        letter-spacing: 0.06em;
+        transition: border-color 0.25s, box-shadow 0.25s;
+        cursor: text;
+        box-shadow:
+          0 2px 6px rgba(0, 0, 0, 0.35),
+          inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      }
+
+      .player-input::placeholder {
+        color: rgba(200, 195, 190, 0.32);
+        font-weight: 400;
+      }
+
+      .player-input:focus {
+        border-color: rgba(249, 115, 22, 0.55);
+        box-shadow:
+          0 0 10px rgba(249, 115, 22, 0.22),
+          0 2px 6px rgba(0, 0, 0, 0.35),
+          inset 0 1px 0 rgba(255, 255, 255, 0.06);
+      }
+
+      .input-wrap::before,
+      .input-wrap::after {
+        content: "";
+        position: absolute;
+        width: 9px;
+        height: 9px;
+        border-color: rgba(249, 115, 22, 0.4);
+        border-style: solid;
+        pointer-events: none;
+        z-index: 1;
+      }
+      .input-wrap::before {
+        top: -1px; left: -1px;
+        border-width: 1.5px 0 0 1.5px;
+        border-radius: 3px 0 0 0;
+      }
+      .input-wrap::after {
+        top: -1px; right: -1px;
+        border-width: 1.5px 1.5px 0 0;
+        border-radius: 0 3px 0 0;
+      }
+      .corner-bl, .corner-br {
+        position: absolute;
+        width: 9px;
+        height: 9px;
+        border-color: rgba(249, 115, 22, 0.4);
+        border-style: solid;
+        pointer-events: none;
+        z-index: 1;
+      }
+      .corner-bl {
+        bottom: -1px; left: -1px;
+        border-width: 0 0 1.5px 1.5px;
+        border-radius: 0 0 0 3px;
+      }
+      .corner-br {
+        bottom: -1px; right: -1px;
+        border-width: 0 1.5px 1.5px 0;
+        border-radius: 0 0 3px 0;
+      }
+
+      .version-display {
+        position: fixed;
+        bottom: 12px;
+        right: 14px;
+        font-size: 0.7rem;
+        font-weight: 500;
+        letter-spacing: 0.05em;
+        color: rgba(200, 196, 192, 0.5);
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+        font-family: 'Consolas', 'Courier New', monospace;
+      }
+
+      .settings-btn {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        z-index: 5;
+        width: 28px;
+        height: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border: 1px solid rgba(68, 65, 63, 0.5);
+        border-radius: 6px;
+        background: linear-gradient(145deg, rgba(42, 40, 39, 0.75), rgba(32, 30, 29, 0.75));
+        transition: border-color 0.2s, background 0.2s;
+      }
+
+      .settings-btn:hover {
+        border-color: rgba(249, 115, 22, 0.4);
+        background: linear-gradient(145deg, rgba(52, 49, 48, 0.85), rgba(42, 40, 39, 0.85));
+      }
+
+      .settings-btn svg {
+        width: 14px;
+        height: 14px;
+        fill: rgba(200, 196, 192, 0.7);
+        transition: fill 0.2s;
+      }
+
+      .settings-btn:hover svg {
+        fill: rgba(249, 115, 22, 0.85);
+        transform: rotate(45deg);
+        transition: transform 0.3s ease, fill 0.2s;
+      }
+
+      .settings-dropdown {
+        position: fixed;
+        top: 42px;
+        left: 10px;
+        z-index: 4;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        opacity: 0;
+        pointer-events: none;
+        transform: translateY(-6px);
+        transition: opacity 0.18s ease, transform 0.18s ease;
+      }
+
+      .settings-dropdown.open {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateY(0);
+      }
+
+      .option-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 4px 10px;
+        margin-bottom: 4px;
+        border-radius: 5px;
+        border: 1px solid rgba(68, 65, 63, 0.45);
+        background: linear-gradient(145deg, rgba(38, 36, 35, 0.82), rgba(28, 27, 26, 0.82));
+        cursor: pointer;
+        transition: border-color 0.15s, background 0.15s;
+        white-space: nowrap;
+      }
+
+      .option-btn:hover {
+        background: linear-gradient(145deg, rgba(48, 46, 45, 0.88), rgba(38, 36, 35, 0.88));
+      }
+
+      .option-btn.active {
+        border-color: rgba(249, 115, 22, 0.45);
+        background: linear-gradient(145deg, rgba(249, 115, 22, 0.12), rgba(180, 40, 10, 0.1));
+      }
+
+      .option-btn .dot {
+        width: 5px;
+        height: 5px;
+        border-radius: 50%;
+        background: rgba(100, 97, 95, 0.5);
+        transition: background 0.15s;
+        flex-shrink: 0;
+        margin-right: 4px;
+      }
+
+      .option-btn.active .dot {
+        background: rgba(249, 115, 22, 0.85);
+        box-shadow: 0 0 5px rgba(249, 115, 22, 0.4);
+      }
+
+      .option-btn .label {
+        font-size: 0.75rem;
+        font-weight: 500;
+        color: rgba(200, 196, 192, 0.75);
+        font-family: inherit;
+        transition: color 0.15s;
+      }
+
+      .option-btn.active .label {
+        color: rgba(240, 230, 220, 0.92);
+      }
     </style>
 </head>
-
 <body>
     <div class="background-container"></div>
 
-    <div class="content">
-      <h1>
-        <span style="color: #ffffff">EZZ</span><span style="color: #f97316"> </span><span style="color: #f97316">B</span><span style="color: #ec511c">O</span><span style="color: #e53f21">I</span><span style="color: #e23623">I</span><span style="color: #dc2626">I</span>
-      </h1>
-      <div class="button-container">
-        <div class="button" onclick="window.external.runGame()">Play</div>
-        <div class="button" onclick="window.external.openUrl('https://discord.gg/ezz')">
-          Discord
+        <div class="settings-btn" id="settingsBtn">
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12 15.5A3.5 3.5 0 0 1 8.5 12 3.5 3.5 0 0 1 12 8.5a3.5 3.5 0 0 1 3.5 3.5 3.5 3.5 0 0 1-3.5 3.5m7.43-2.53c.03-.3.07-.64.07-1s-.04-.7-.07-1l2.11-1.63c.19-.15.24-.42.12-.64l-2-3.46c-.12-.22-.39-.3-.61-.22l-2.49 1c-.52-.4-1.08-.73-1.69-.98l-.38-2.65C14.46 2.18 14.25 2 14 2h-4c-.25 0-.46.18-.49.42l-.38 2.65c-.61.25-1.17.59-1.69.98l-2.49-1c-.23-.09-.49 0-.61.22l-2 3.46c-.13.22-.07.49.12.64L4.57 11c-.03.3-.07.67-.07 1s.02.7.07 1l-2.11 1.66c-.19.15-.25.42-.12.64l2 3.46c.12.22.39.3.61.22l2.49-1.01c.52.4 1.08.73 1.69.98l.38 2.65c.03.24.24.42.49.42h4c.25 0 .46-.18.49-.42l.38-2.65c.61-.25 1.17-.58 1.69-.98l2.49 1.01c.22.08.49 0 .61-.22l2-3.46c.12-.22.07-.49-.12-.64l-2.11-1.66z"/></svg>
         </div>
-      </div>
-    </div>
 
-    <script>
-      window.onload = function () {};
+        <div class="settings-dropdown" id="settingsDropdown">
+          <div class="option-btn" data-option="unsafe-lua"><span class="dot"></span><span class="label">Load Lua</span></div>
+          <div class="option-btn" data-option="nosteam"><span class="dot"></span><span class="label">No Steam</span></div>
+          <div class="option-btn" data-option="nointro"><span class="dot"></span><span class="label">Skip Intro</span></div>
+          <div class="option-btn" data-option="windowed"><span class="dot"></span><span class="label">Windowed</span></div>
+          <div class="option-btn" data-option="borderless"><span class="dot"></span><span class="label">Borderless</span></div>
+          <div class="option-btn" data-option="safe-mode"><span class="dot"></span><span class="label">Safe Mode</span></div>
+          <div class="option-btn" data-option="console"><span class="dot"></span><span class="label">Dev</span></div>
+          <div class="option-btn" data-option="headless"><span class="dot"></span><span class="label">Headless</span></div>
+        </div>
 
-      document.onkeydown = fkey;
-      document.onkeypress = fkey;
-      document.onkeyup = fkey;
+        <div class="content">
+          <h1>
+            <span class="big-e" style="color: #ffffff">E</span><span style="color: #ffffff">ZZ</span><span style="color: #f97316"> </span><span style="color: #f97316">B</span><span style="color: #ec511c">O</span><span style="color: #e53f21">I</span><span style="color: #e23623">I</span><span style="color: #dc2626">I</span>
+          </h1>
+          <div class="button-container">
+            <div class="button" onclick="window.external.runGame(getPlayerName(), getSelectedLaunchOption())">Play</div>
+            <div class="button" onclick="window.external.openUrl('https://discord.gg/ezz')">Discord</div>
+          </div>
+          <div class="player-section">
+            <div class="player-label">Player Name</div>
+            <div class="input-wrap">
+              <div class="corner-bl"></div>
+              <div class="corner-br"></div>
+              <input class="player-input" id="playerName" type="text" placeholder="Enter your name…" maxlength="16" autocomplete="off" spellcheck="false">
+            </div>
+          </div>
+        </div>
 
-      function fkey(e) {
-        e = e || window.event;
-        location.reload();
-      }
-    </script>
+        <div class="version-display" id="versionDisplay">v1.0.5</div>
+
+        <script>
+          (function(){
+            var btn = document.getElementById('settingsBtn');
+            var dropdown = document.getElementById('settingsDropdown');
+            var options = dropdown.querySelectorAll('.option-btn');
+
+            var nameInput = document.getElementById('playerName');
+            try {
+              var ver = window.external.getVersion();
+              if (ver) {
+                document.getElementById('versionDisplay').textContent = 'v' + ver;
+              }
+            } catch (e) {}
+
+            try {
+              var stored = window.external.readPlayerName();
+              if (stored && nameInput) {
+                nameInput.value = stored;
+              }
+            } catch (e) {}
+
+            try {
+              var storedOpts = window.external.readLaunchOptions();
+              if (storedOpts) {
+                var parts = (storedOpts || '').split(' ').map(function(s){ return (s||'').trim().toLowerCase(); }).filter(Boolean);
+                for (var i = 0; i < options.length; i++) {
+                  var opt = (options[i].getAttribute('data-option') || '').toLowerCase();
+                  if (opt && parts.indexOf(opt) !== -1) {
+                    options[i].classList.add('active');
+                  }
+                }
+              }
+            } catch (e) {}
+
+            btn.addEventListener('click', function(e){
+              e.stopPropagation();
+              dropdown.classList.toggle('open');
+            });
+
+            for(var i = 0; i < options.length; i++){
+              (function(opt){
+                opt.addEventListener('click', function(e){
+                  e.stopPropagation();
+
+                  if (opt.classList.contains('active')) {
+                    opt.classList.remove('active');
+                  } else {
+                    opt.classList.add('active');
+                  }
+                });
+              })(options[i]);
+            }
+
+            document.addEventListener('click', function(){
+              dropdown.classList.remove('open');
+            });
+
+            window.getSelectedLaunchOption = function(){
+              var selected = [];
+              for (var i = 0; i < options.length; i++) {
+                if (options[i].classList.contains('active')) {
+                  var opt = options[i].getAttribute('data-option') || '';
+                  if (opt) selected.push(opt);
+                }
+              }
+
+              return selected.join(' ');
+            };
+
+            window.getPlayerName = function(){
+              if (!nameInput) return '';
+              return (nameInput.value || '').trim();
+            };
+          })();
+
+          document.onkeydown = fkey;
+          document.onkeypress = fkey;
+          document.onkeyup = fkey;
+
+          function fkey(e) {
+            if(document.activeElement && document.activeElement.tagName === 'INPUT') return;
+            e = e || window.event;
+            location.reload();
+          }
+        </script>
 </body>
 </html>

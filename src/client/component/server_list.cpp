@@ -4,6 +4,8 @@
 
 #include "game/game.hpp"
 
+#include "command.hpp"
+
 #include <utils/string.hpp>
 #include <utils/concurrency.hpp>
 #include <utils/hook.hpp>
@@ -36,6 +38,7 @@ namespace server_list
 		utils::concurrency::container<state> master_state;
 
 		utils::concurrency::container<server_list> favorite_servers{};
+		utils::concurrency::container<std::vector<game::netadr_t>> recent_servers{};
 
 		std::unordered_set<game::netadr_t> parse_server_list_data(const network::data_view& data)
 		{
@@ -160,6 +163,11 @@ namespace server_list
 			return "boiii_players/user/favorite_servers.txt";
 		}
 
+		std::string get_recent_servers_file_path()
+		{
+			return "boiii_players/user/recent_servers.txt";
+		}
+
 		void write_favorite_servers()
 		{
 			favorite_servers.access([](const std::unordered_set<game::netadr_t>& servers)
@@ -198,6 +206,132 @@ namespace server_list
 					}
 				}
 			});
+		}
+
+		void write_recent_servers()
+		{
+			recent_servers.access([](const std::vector<game::netadr_t>& servers)
+			{
+				std::string servers_buffer{};
+				for (const auto& itr : servers)
+				{
+					servers_buffer.append(utils::string::va(
+						"%i.%i.%i.%i:%hu\n", itr.ipv4.a, itr.ipv4.b, itr.ipv4.c, itr.ipv4.d, itr.port));
+				}
+				utils::io::write_file(get_recent_servers_file_path(), servers_buffer);
+			});
+		}
+
+		void read_recent_servers()
+		{
+			const std::string path = get_recent_servers_file_path();
+			if (!utils::io::file_exists(path))
+			{
+				return;
+			}
+
+			recent_servers.access([&path](std::vector<game::netadr_t>& servers)
+			{
+				servers.clear();
+				servers.reserve(64);
+
+				std::string data;
+				if (utils::io::read_file(path, &data))
+				{
+					const auto srv = utils::string::split(data, '\n');
+					for (const auto& server_address : srv)
+					{
+						if (server_address.empty())
+						{
+							continue;
+						}
+
+						auto server = network::address_from_string(server_address);
+						if (server.type == game::NA_BAD)
+						{
+							continue;
+						}
+
+						servers.emplace_back(server);
+						if (servers.size() >= 50)
+						{
+							break;
+						}
+					}
+				}
+			});
+		}
+
+		std::string get_lan_servers_file_path()
+		{
+			return "boiii_players/user/lan_servers.txt";
+		}
+
+		std::string normalize_lan_input(std::string in)
+		{
+			in.erase(std::remove(in.begin(), in.end(), '\r'), in.end());
+			in.erase(std::remove(in.begin(), in.end(), '\n'), in.end());
+			if (in.empty())
+			{
+				return {};
+			}
+
+			if (in.find(':') == std::string::npos)
+			{
+				in.append(":27017");
+			}
+
+			return in;
+		}
+
+		void add_lan_server_from_string(const std::string& in)
+		{
+			const auto normalized = normalize_lan_input(in);
+			if (normalized.empty())
+			{
+				return;
+			}
+
+			const auto addr = network::address_from_string(normalized);
+			if (addr.type == game::NA_BAD)
+			{
+				return;
+			}
+
+			std::string data;
+			utils::io::read_file(get_lan_servers_file_path(), &data);
+			const auto lines = utils::string::split(data, '\n');
+
+			std::vector<std::string> out{};
+			out.reserve(lines.size() + 1);
+
+			bool already_present = false;
+			for (const auto& line : lines)
+			{
+				const auto l = normalize_lan_input(line);
+				if (l.empty())
+				{
+					continue;
+				}
+				if (l == normalized)
+				{
+					already_present = true;
+				}
+				out.emplace_back(l);
+			}
+
+			if (!already_present)
+			{
+				out.emplace_back(normalized);
+			}
+
+			std::string write;
+			for (const auto& l : out)
+			{
+				write.append(l);
+				write.push_back('\n');
+			}
+			utils::io::write_file(get_lan_servers_file_path(), write);
 		}
 	}
 
@@ -272,6 +406,51 @@ namespace server_list
 		return favorite_servers;
 	}
 
+	void add_recent_server(game::netadr_t addr)
+	{
+		recent_servers.access([&addr](std::vector<game::netadr_t>& servers)
+		{
+			for (auto it = servers.begin(); it != servers.end(); ++it)
+			{
+				if (network::are_addresses_equal(*it, addr))
+				{
+					servers.erase(it);
+					break;
+				}
+			}
+
+			servers.insert(servers.begin(), addr);
+			if (servers.size() > 50)
+			{
+				servers.resize(50);
+			}
+		});
+
+		write_recent_servers();
+	}
+
+	void remove_recent_server(game::netadr_t addr)
+	{
+		recent_servers.access([&addr](std::vector<game::netadr_t>& servers)
+		{
+			for (auto it = servers.begin(); it != servers.end(); ++it)
+			{
+				if (network::are_addresses_equal(*it, addr))
+				{
+					servers.erase(it);
+					break;
+				}
+			}
+		});
+
+		write_recent_servers();
+	}
+
+	utils::concurrency::container<recent_list>& get_recent_servers()
+	{
+		return recent_servers;
+	}
+
 	struct component final : client_component
 	{
 		void post_unpack() override
@@ -314,7 +493,18 @@ namespace server_list
 			scheduler::once([]
 			{
 				read_favorite_servers();
+				read_recent_servers();
 			}, scheduler::main);
+
+			command::add("lan_add", [](const command::params& params)
+			{
+				if (params.size() < 2)
+				{
+					return;
+				}
+
+				add_lan_server_from_string(params.get(1));
+			});
 		}
 
 		void pre_destroy() override

@@ -379,7 +379,7 @@ namespace steamcmd
 		bool continue_download = false;
 		printf("Mod download started.\n");
 		int tries = 0;
-		int max_tries = 15;
+		const int max_tries = workshop::get_workshop_retry_attempts();
 		while (workshop::downloading_workshop_item && tries < max_tries)
 		{
 			tries++;

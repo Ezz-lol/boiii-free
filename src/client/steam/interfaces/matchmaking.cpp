@@ -6,6 +6,12 @@
 
 namespace steam
 {
+	namespace
+	{
+		constexpr unsigned int k_unFavoriteFlag = 1u;
+		constexpr unsigned int k_unHistoryFlag = 2u;
+	}
+
 	int matchmaking::GetFavoriteGameCount()
 	{
 		return 0;
@@ -23,7 +29,14 @@ namespace steam
 	                                 unsigned int rTime32LastPlayedOnServer)
 	{
 		auto addr = network::address_from_ip(htonl(nIP), nConnPort);
-		server_list::add_favorite_server(addr);
+		if ((unFlags & k_unFavoriteFlag) != 0u)
+		{
+			server_list::add_favorite_server(addr);
+		}
+		else if ((unFlags & k_unHistoryFlag) != 0u || unFlags == 0u)
+		{
+			server_list::add_recent_server(addr);
+		}
 		return 0;
 	}
 
@@ -31,7 +44,14 @@ namespace steam
 	                                     unsigned short nQueryPort, unsigned int unFlags)
 	{
 		auto addr = network::address_from_ip(htonl(nIP), nConnPort);
-		server_list::remove_favorite_server(addr);
+		if ((unFlags & k_unFavoriteFlag) != 0u)
+		{
+			server_list::remove_favorite_server(addr);
+		}
+		else if ((unFlags & k_unHistoryFlag) != 0u || unFlags == 0u)
+		{
+			server_list::remove_recent_server(addr);
+		}
 		return false;
 	}
 
