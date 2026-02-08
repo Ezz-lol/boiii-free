@@ -124,9 +124,6 @@ namespace chat
 		{
 			utils::hook::call(game::select(0x141974B04, 0x14029908A), divert_xuid_to_client_num_stub);
 
-		[[maybe_unused]] const auto* sv_sayname = game::register_dvar_string("sv_sayname", "", game::DVAR_SERVERINFO,
-			                           "Custom name displayed for server chat messages instead of \"Server\"");
-
 			if (game::is_server())
 			{
 				client_command::add("say", cmd_say_f);
@@ -181,6 +178,8 @@ namespace chat
 
 				g_deadChat = game::register_dvar_bool("g_deadChat", false, game::DVAR_NONE,
 				                                      "Allow dead players to chat with living players");
+				[[maybe_unused]] const auto* sv_sayname = game::register_dvar_string("sv_sayname", "",
+					game::DVAR_SERVERINFO, "Custom name displayed for server chat messages instead of \"Server\"");
 				utils::hook::jump(0x140299051_g, utils::hook::assemble(g_say_to_stub));
 			}
 			else
