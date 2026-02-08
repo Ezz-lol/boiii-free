@@ -98,6 +98,11 @@ namespace chat
 	{
 		if (xuid == 0xFFFFFFFF)
 		{
+			const auto* sayname = game::Dvar_FindVar("sv_sayname");
+			if (sayname && sayname->current.value.string && sayname->current.value.string[0] != '\0')
+			{
+				return sayname->current.value.string;
+			}
 			return "Server";
 		}
 
@@ -119,6 +124,9 @@ namespace chat
 		{
 			utils::hook::call(game::select(0x141974B04, 0x14029908A), divert_xuid_to_client_num_stub);
 
+		[[maybe_unused]] const auto* sv_sayname = game::register_dvar_string("sv_sayname", "", game::DVAR_SERVERINFO,
+			                           "Custom name displayed for server chat messages instead of \"Server\"");
+
 			if (game::is_server())
 			{
 				client_command::add("say", cmd_say_f);
@@ -139,7 +147,11 @@ namespace chat
 					const auto text = params.join(1);
 
 					send_chat_message(-1, text);
-					printf("Server: %s\n", text.data());
+					const auto* sayname = game::Dvar_FindVar("sv_sayname");
+					const auto* label = (sayname && sayname->current.value.string && sayname->current.value.string[0])
+						? sayname->current.value.string
+						: "Server";
+					printf("%s: %s\n", label, text.data());
 				});
 
 				// Overwrite tell command
