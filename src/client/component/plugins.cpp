@@ -4,6 +4,7 @@
 #include <utils/nt.hpp>
 #include <game/game.hpp>
 #include <utils/io.hpp>
+#include <utils/flags.hpp>
 #include <filesystem>
 #include <vector>
 
@@ -16,6 +17,16 @@ namespace plugins
             namespace fs = std::filesystem;
 
             clear_log();
+
+
+            const auto is_server = utils::flags::has_flag("dedicated");
+
+            if (!is_server && !utils::flags::has_flag("plugins"))
+            {
+                log("Plugin loading is disabled. Enable the Plugins option in the launcher to load plugins.");
+                return;
+            }
+
             fs::path user_plugins = game::get_appdata_path() / "plugins";
             load_plugins_from(user_plugins);
 

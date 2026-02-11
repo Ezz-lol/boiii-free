@@ -201,6 +201,11 @@ namespace console
 
 		void trim_console_scrollback(const HWND hwnd)
 		{
+			if (!utils::flags::has_flag("trimlogs"))
+			{
+				return;
+			}
+
 			const auto length = static_cast<size_t>(SendMessageA(hwnd, WM_GETTEXTLENGTH, 0, 0));
 			if (length <= MAX_CONSOLE_CHARS)
 			{
@@ -809,6 +814,12 @@ namespace console
 
 		void post_unpack() override
 		{
+			// nologs flag: skip console window entirely
+			if (utils::flags::has_flag("nologs"))
+			{
+				return;
+			}
+
 			if (!game::is_server())
 			{
 				utils::hook::set<uint8_t>(0x14133D2FE_g, 0xEB); // Always enable ingame console

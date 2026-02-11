@@ -11,6 +11,9 @@
 #include <utils/io.hpp>
 #include <utils/thread.hpp>
 #include "steamcmd.hpp"
+#include "fastdl.hpp"
+#include "party.hpp"
+#include "scheduler.hpp"
 
 #include <condition_variable>
 #include <mutex>
@@ -166,7 +169,6 @@ namespace workshop
 			{
 				auto& usermap_data = game::usermapsPool[i];
 
-				// foldername == title -> non-steam workshop usercontent
 				if (std::strcmp(usermap_data.folderName, usermap_data.title) != 0)
 				{
 					continue;
@@ -219,7 +221,6 @@ namespace workshop
 		{
 			const auto original_path = utils::string::va(fmt, root_dir, mods_dir, dir_name);
 
-			// check if the zone folder exists
 			if (utils::io::directory_exists(original_path))
 			{
 				return original_path;
@@ -296,7 +297,7 @@ namespace workshop
 	{
 		const int val = game::get_dvar_int("workshop_retry_attempts");
 		if (val < 1) return 1;
-		if (val > 100) return 100;
+		if (val > 1000) return 1000;
 		return val;
 	}
 
@@ -339,7 +340,7 @@ namespace workshop
 
 	extern bool downloading_workshop_item = false;
 
-	bool check_valid_usermap_id(const std::string& mapname, const std::string& pub_id, const std::string& workshop_id)
+	bool check_valid_usermap_id(const std::string& mapname, const std::string& pub_id, const std::string& workshop_id, const std::string& base_url)
 	{
 		if (!game::DB_FileExists(mapname.data(), 0) && pub_id.empty())
 		{
@@ -349,10 +350,29 @@ namespace workshop
 				return false;
 			}
 
-			if (downloading_workshop_item)
+			if (downloading_workshop_item || fastdl::is_downloading())
 			{
 				game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI,
 					"You are already downloading a map in the background. You can download only one item at a time.");
+				return false;
+			}
+
+			if (!base_url.empty())
+			{
+				fastdl::download_context context{};
+				context.mapname = mapname;
+				context.pub_id = workshop_id.empty() ? mapname : workshop_id;
+				context.map_path = "./usermaps/" + mapname;
+				context.base_url = base_url;
+				context.success_callback = []()
+				{
+					scheduler::once([]
+					{
+						game::reloadUserContent();
+					}, scheduler::main);
+				};
+				printf("[ Workshop ] Server has FastDL, attempting download for %s from %s\n", mapname.data(), base_url.data());
+				fastdl::start_map_download(context);
 				return false;
 			}
 
@@ -384,7 +404,7 @@ namespace workshop
 			{
 				game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI,
 					utils::string::va(
-						"Could not download: folder name is not numeric and 'workshop_id' dvar is empty.\nUsermap: %s\nSet workshop_id or subscribe on Steam Workshop.",
+						"Missing usermap: %s\n\nThis server did not provide FastDL (sv_wwwBaseURL/sv_wwwBaseUrl) and did not set workshop_id.\n\nSubscribe to the map on Steam Workshop, or ask the server to set sv_wwwBaseURL for FastDL or workshop_id in their config.",
 						mapname.data()));
 			}
 			return false;
@@ -463,14 +483,18 @@ namespace workshop
 			game::loadMod(0, "", true);
 		}
 	}
+	void com_error_missing_map_stub(const char* file, int line, int code, const char* fmt, ...)
+	{
+		game::Com_Error_(file, line, code, "%s", "Missing map! Trying to reconnect to server...");
+	}
 
 	class component final : public generic_component
 	{
 	public:
 		void post_unpack() override
 		{
-			[[maybe_unused]] const auto* dvar_retry = game::register_dvar_int("workshop_retry_attempts", 15, 1, 100, game::DVAR_ARCHIVE,
-				"Number of connection retry attempts for workshop downloads");
+			[[maybe_unused]] const auto* dvar_retry = game::register_dvar_int("workshop_retry_attempts", 15, 1, 1000, game::DVAR_ARCHIVE,
+				"Number of connection retry attempts for workshop downloads (default 15, increase for slow connections)");
 			[[maybe_unused]] const auto* dvar_timeout = game::register_dvar_int("workshop_timeout", 300, 60, 3600, game::DVAR_ARCHIVE,
 				"Download timeout in seconds for workshop items (reserved for future use)");
 
@@ -526,6 +550,11 @@ namespace workshop
 			utils::hook::call(0x1420D6745_g, load_mod_content_stub);
 			utils::hook::call(0x14135CD84_g, has_workshop_item_stub);
 			setup_server_map_hook.create(0x14135CD20_g, setup_server_map_stub);
+
+			if (game::is_client())
+			{
+				utils::hook::call(0x14135CDA1_g, com_error_missing_map_stub);
+			}
 		}
 
 

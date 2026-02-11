@@ -275,7 +275,7 @@ namespace steam_proxy
 
 	void initialize()
 	{
-		if (client_engine || !steam_client_module) return;
+		if (!steam_client_module) return;
 
 		steam_client = steam_client_module.invoke<steam::client*>("CreateInterface", "SteamClient017", nullptr);
 		if (!steam_client) return;

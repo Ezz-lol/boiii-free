@@ -35,22 +35,19 @@ window::window(const std::string& title, const int width, const int height,
 	this->classname_ = "window-base-" + std::to_string(time(nullptr));
 
 	this->wc_.cbSize = sizeof(this->wc_);
-	this->wc_.style = CS_HREDRAW | CS_VREDRAW;
+	this->wc_.style = 0;
 	this->wc_.lpfnWndProc = static_processor;
 	this->wc_.hInstance = GetModuleHandle(nullptr);
 	this->wc_.hCursor = LoadCursor(nullptr, IDC_ARROW);
 	this->wc_.hIcon = LoadIcon(this->wc_.hInstance, MAKEINTRESOURCE(102));
 	this->wc_.hIconSm = this->wc_.hIcon;
-	this->wc_.hbrBackground = HBRUSH(COLOR_WINDOW);
+	this->wc_.hbrBackground = CreateSolidBrush(RGB(10, 10, 10));
 	this->wc_.lpszClassName = this->classname_.data();
 	RegisterClassEx(&this->wc_);
 
-	const auto x = (GetSystemMetrics(SM_CXSCREEN) - width) / 2;
-	const auto y = (GetSystemMetrics(SM_CYSCREEN) - height) / 2;
-
 	++window_count;
 
-	this->handle_ = CreateWindowExA(NULL, this->wc_.lpszClassName, title.data(), flags, x, y, width, height, nullptr,
+	this->handle_ = CreateWindowExA(NULL, this->wc_.lpszClassName, title.data(), flags, CW_USEDEFAULT, CW_USEDEFAULT, width, height, nullptr,
 	                                nullptr, this->wc_.hInstance, this);
 
 	BOOL value = TRUE;
@@ -59,6 +56,26 @@ window::window(const std::string& title, const int width, const int height,
 
 	SendMessageA(this->handle_, WM_DPICHANGED, 0, 0);
 	ShowWindow(this->handle_, SW_SHOW);
+
+	RECT rect{};
+	if (GetWindowRect(this->handle_, &rect))
+	{
+		const int win_w = rect.right - rect.left;
+		const int win_h = rect.bottom - rect.top;
+
+		const HMONITOR monitor = MonitorFromWindow(this->handle_, MONITOR_DEFAULTTONEAREST);
+		MONITORINFO mi{};
+		mi.cbSize = sizeof(mi);
+		if (GetMonitorInfoA(monitor, &mi))
+		{
+			const int work_w = mi.rcWork.right - mi.rcWork.left;
+			const int work_h = mi.rcWork.bottom - mi.rcWork.top;
+			const int x = mi.rcWork.left + (work_w - win_w) / 2;
+			const int y = mi.rcWork.top + (work_h - win_h) / 2;
+			MoveWindow(this->handle_, x, y, win_w, win_h, TRUE);
+		}
+	}
+
 	SetForegroundWindow(this->handle_);
 }
 
@@ -76,11 +93,22 @@ void window::close()
 	this->handle_ = nullptr;
 }
 
+std::function<bool(MSG*)> window::msg_filter_;
+
+void window::set_message_filter(std::function<bool(MSG*)> filter)
+{
+	msg_filter_ = std::move(filter);
+}
+
 void window::run()
 {
 	MSG msg{};
 	while (GetMessage(&msg, nullptr, 0, 0))
 	{
+		if (msg_filter_ && msg_filter_(&msg))
+		{
+			continue;
+		}
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}

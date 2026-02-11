@@ -377,23 +377,27 @@ namespace steamcmd
 		}
 
 		bool continue_download = false;
-		printf("Mod download started.\n");
-		int tries = 0;
 		const int max_tries = workshop::get_workshop_retry_attempts();
+		printf("[ Workshop ] Download started (max retries: %d, set via workshop_retry_attempts dvar).\n", max_tries);
+		int tries = 0;
 		while (workshop::downloading_workshop_item && tries < max_tries)
 		{
 			tries++;
 			if (std::filesystem::exists(content_folder))
 			{
-				printf("Download completed \n");
+				printf("[ Workshop ] Download completed.\n");
 				break;
 			}
 			if (continue_download)
 			{
-				printf("Download interrupted... \nResuming download! \n");
+				printf("[ Workshop ] Resuming download (attempt %d/%d)...\n", tries, max_tries);
+			}
+			else
+			{
+				printf("[ Workshop ] Downloading (attempt %d/%d)...\n", tries, max_tries);
 			}
 
-			//create new steamcmd download process which will continue from were it was left if the download was interrupted by connection issues
+			// SteamCMD will resume from where it left off if the download was interrupted
 			int result = start_new_process("./steamcmd/steamcmd.exe", false, true,
 			                               ("+login anonymous app_update 311210 +workshop_download_item 311210 " +
 				                               std::string(workshop_id_char) + " validate +quit").c_str());

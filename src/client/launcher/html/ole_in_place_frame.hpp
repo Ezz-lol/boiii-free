@@ -27,6 +27,8 @@ public:
 
 	HRESULT STDMETHODCALLTYPE SetActiveObject(IOleInPlaceActiveObject* pActiveObject, LPCOLESTR pszObjName) override
 	{
+		(void)pszObjName;
+		this->active_object_ = pActiveObject;
 		return S_OK;
 	}
 
@@ -57,6 +59,19 @@ public:
 
 	HRESULT STDMETHODCALLTYPE TranslateAccelerator(LPMSG lpmsg, WORD wID) override
 	{
+		(void)wID;
+		if (this->active_object_)
+		{
+			return this->active_object_->TranslateAccelerator(lpmsg);
+		}
 		return E_NOTIMPL;
 	}
+
+	IOleInPlaceActiveObject* get_active_object() const
+	{
+		return this->active_object_;
+	}
+
+private:
+	CComPtr<IOleInPlaceActiveObject> active_object_;
 };

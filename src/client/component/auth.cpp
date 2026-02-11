@@ -18,6 +18,8 @@
 #include <utils/byte_buffer.hpp>
 #include <utils/info_string.hpp>
 #include <utils/cryptography.hpp>
+#include <utils/io.hpp>
+#include <utils/properties.hpp>
 
 #include <game/fragment_handler.hpp>
 
@@ -88,9 +90,72 @@ namespace auth
 			return entropy;
 		}
 
+		bool load_key(utils::cryptography::ecc::key& key)
+		{
+			std::string data{};
+
+			auto key_path = (utils::properties::get_key_path() / "cb-private.key").generic_string();
+			if (!utils::io::read_file(key_path, &data))
+			{
+				return false;
+			}
+
+			key.deserialize(data);
+			if (!key.is_valid())
+			{
+				printf("Loaded key is invalid!\n");
+				return false;
+			}
+
+			return true;
+		}
+
+		utils::cryptography::ecc::key generate_key()
+		{
+			auto key = utils::cryptography::ecc::generate_key(512, get_key_entropy());
+			if (!key.is_valid())
+			{
+				throw std::runtime_error("Failed to generate cryptographic key!");
+			}
+
+			auto key_path = (utils::properties::get_key_path() / "cb-private.key").generic_string();
+			if (!utils::io::write_file(key_path, key.serialize()))
+			{
+				printf("Failed to write cryptographic key!\n");
+			}
+
+			printf("Generated cryptographic key: %llX\n", key.get_hash());
+			return key;
+		}
+
+		utils::cryptography::ecc::key load_or_generate_key()
+		{
+			utils::cryptography::ecc::key key{};
+			if (load_key(key))
+			{
+				printf("Loaded cryptographic key: %llX\n", key.get_hash());
+				return key;
+			}
+
+			return generate_key();
+		}
+
+		utils::cryptography::ecc::key get_key_internal()
+		{
+			auto key = load_or_generate_key();
+
+			auto key_path = (utils::properties::get_key_path() / "cb-public.key").generic_string();
+			if (!utils::io::write_file(key_path, key.get_public_key()))
+			{
+				printf("Failed to write public key!\n");
+			}
+
+			return key;
+		}
+
 		utils::cryptography::ecc::key& get_key()
 		{
-			static auto key = utils::cryptography::ecc::generate_key(512, get_key_entropy());
+			static auto key = get_key_internal();
 			return key;
 		}
 
@@ -347,7 +412,7 @@ namespace auth
 		{
 			if (game::is_server() || is_second_instance())
 			{
-				return 0x110000100000000 | (utils::cryptography::random::get_integer() & ~0x80000000);
+				return 0x110000100000000 | (::utils::cryptography::random::get_integer() & ~0x80000000);
 			}
 
 			return get_key().get_hash();
