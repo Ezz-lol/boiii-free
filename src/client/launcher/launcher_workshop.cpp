@@ -1027,6 +1027,46 @@ namespace {
         }
     }
 
+    std::string find_installed_workshop_item(const std::filesystem::path& game_path, const std::string& workshop_id)
+    {
+        std::error_code ec;
+        const char* parent_dirs[] = {"mods", "usermaps"};
+        for (const auto& parent_name : parent_dirs)
+        {
+            std::filesystem::path parent = game_path / parent_name;
+            if (!std::filesystem::exists(parent, ec)) continue;
+            for (const auto& entry : std::filesystem::directory_iterator(parent, ec))
+            {
+                if (!entry.is_directory(ec)) continue;
+                std::filesystem::path zone_dir = entry.path() / "zone";
+                if (!std::filesystem::exists(zone_dir, ec)) continue;
+
+                if (entry.path().filename().string() == workshop_id)
+                {
+                    if (compute_folder_size_bytes(zone_dir) > 1024)
+                        return entry.path().string();
+                }
+
+                std::filesystem::path wsjson = zone_dir / "workshop.json";
+                if (!std::filesystem::exists(wsjson, ec)) continue;
+                std::string json_str;
+                if (!utils::io::read_file(wsjson.string(), &json_str) || json_str.empty()) continue;
+                rapidjson::Document doc;
+                if (doc.Parse(json_str.c_str()).HasParseError() || !doc.IsObject()) continue;
+                auto pfid = doc.FindMember("PublishedFileId");
+                if (pfid != doc.MemberEnd() && pfid->value.IsString())
+                {
+                    if (std::string(pfid->value.GetString()) == workshop_id)
+                    {
+                        if (compute_folder_size_bytes(zone_dir) > 1024)
+                            return entry.path().string();
+                    }
+                }
+            }
+        }
+        return "";
+    }
+
     void workshop_download_thread(std::string workshop_id)
     {
         try {
@@ -1037,6 +1077,17 @@ namespace {
             char cwd[MAX_PATH];
             GetCurrentDirectoryA(sizeof(cwd), cwd);
             std::filesystem::path game_path(cwd);
+
+            {
+                auto existing = find_installed_workshop_item(game_path, workshop_id);
+                if (!existing.empty())
+                {
+                    set_workshop_status("Already installed.", 100.0,
+                        "This workshop item is already installed at:\n" + existing +
+                        "\nRemove it first if you want to reinstall.");
+                    return;
+                }
+            }
 
             std::filesystem::path steamcmd_dir = game_path / "steamcmd";
             std::filesystem::path steamcmd_exe = steamcmd_dir / "steamcmd.exe";
@@ -1181,17 +1232,32 @@ namespace {
 
                 std::string full_cmd = "\"" + steamcmd_exe.string() + "\" " + cmd_args;
 
+                HANDLE h_pipe_read = nullptr, h_pipe_write = nullptr;
+                {
+                    SECURITY_ATTRIBUTES sa_pipe{};
+                    sa_pipe.nLength = sizeof(SECURITY_ATTRIBUTES);
+                    sa_pipe.bInheritHandle = TRUE;
+                    sa_pipe.lpSecurityDescriptor = nullptr;
+                    CreatePipe(&h_pipe_read, &h_pipe_write, &sa_pipe, 0);
+                    SetHandleInformation(h_pipe_read, HANDLE_FLAG_INHERIT, 0);
+                }
+
                 STARTUPINFOA si {};
                 PROCESS_INFORMATION pi {};
                 si.cb = sizeof(si);
-                si.dwFlags = STARTF_USESHOWWINDOW;
+                si.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
                 si.wShowWindow = SW_HIDE;
+                si.hStdOutput = h_pipe_write;
+                si.hStdError = h_pipe_write;
 
-                if (!CreateProcessA(nullptr, const_cast<char*>(full_cmd.c_str()), nullptr, nullptr, FALSE, 0, nullptr, steamcmd_dir_str.c_str(), &si, &pi)) {
+                if (!CreateProcessA(nullptr, const_cast<char*>(full_cmd.c_str()), nullptr, nullptr, TRUE, 0, nullptr, steamcmd_dir_str.c_str(), &si, &pi)) {
+                    if (h_pipe_read) CloseHandle(h_pipe_read);
+                    if (h_pipe_write) CloseHandle(h_pipe_write);
                     set_workshop_status("Error: Failed to start SteamCMD.", 0.0, "Attempt " + std::to_string(attempt));
                     std::this_thread::sleep_for(std::chrono::seconds(2));
                     continue;
                 }
+                if (h_pipe_write) { CloseHandle(h_pipe_write); h_pipe_write = nullptr; }
                 {
                     std::lock_guard plock(workshop_download_mutex);
                     workshop_download_process = pi;
@@ -1200,10 +1266,13 @@ namespace {
                 auto attempt_start = std::chrono::steady_clock::now();
                 bool is_downloading = false;
                 bool is_steamcmd_updating = false;
-                std::uint64_t last_bytes = 0;
-                std::uint64_t adjusted_expected_size = expected_size > 0 ? expected_size * 3 : 0;
                 auto last_tick = std::chrono::steady_clock::now();
                 std::string last_speed_str;
+
+                std::uint64_t net_bytes_prev = 0;
+                bool net_baseline_set = false;
+                auto download_phase_start = std::chrono::steady_clock::time_point{};
+                bool warmup_phase = true;
 
                 std::filesystem::path log_path = steamcmd_dir / "logs" / "workshop_log.txt";
                 {
@@ -1262,7 +1331,6 @@ namespace {
                                         if (lower.find("download item " + workshop_id) != std::string::npos) {
                                             is_downloading = true;
                                             last_tick = std::chrono::steady_clock::now();
-                                            last_bytes = 0;
                                             break;
                                         }
                                     }
@@ -1272,40 +1340,61 @@ namespace {
                         }
 
                         if (!is_downloading) {
-                            auto elapsed = std::chrono::steady_clock::now() - download_start_time;
-                            auto elapsed_sec = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
-                            int h = static_cast<int>(elapsed_sec / 3600);
-                            int m = static_cast<int>((elapsed_sec % 3600) / 60);
-                            int s = static_cast<int>(elapsed_sec % 60);
-                            char time_str[32];
-                            snprintf(time_str, sizeof(time_str), "%02d:%02d:%02d", h, m, s);
+                            std::uint64_t early_bytes = 0;
+                            try {
+                                std::error_code fec;
+                                if (std::filesystem::exists(download_path, fec))
+                                    early_bytes = compute_folder_size_bytes(download_path);
+                                if (early_bytes == 0 && std::filesystem::exists(alt_download_path, fec))
+                                    early_bytes = compute_folder_size_bytes(alt_download_path);
+                            } catch (...) {}
 
-                            set_workshop_status(
-                                is_steamcmd_updating ? ("Updating SteamCMD..." + attempt_str) : ("Waiting for SteamCMD..." + attempt_str),
-                                0.0,
-                                std::string("Elapsed: ") + time_str);
+                            if (early_bytes > 4096) {
+                                is_downloading = true;
+                                last_tick = std::chrono::steady_clock::now();
+                            } else {
+                                auto elapsed = std::chrono::steady_clock::now() - download_start_time;
+                                auto elapsed_sec = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
+                                int h = static_cast<int>(elapsed_sec / 3600);
+                                int m = static_cast<int>((elapsed_sec % 3600) / 60);
+                                int s = static_cast<int>(elapsed_sec % 60);
+                                char time_str[32];
+                                snprintf(time_str, sizeof(time_str), "%02d:%02d:%02d", h, m, s);
+
+                                set_workshop_status(
+                                    is_steamcmd_updating ? ("Updating SteamCMD..." + attempt_str) : ("Waiting for SteamCMD..." + attempt_str),
+                                    0.0,
+                                    std::string("Elapsed: ") + time_str);
+                            }
                         }
                     }
 
                     if (is_downloading) {
+
+                        if (warmup_phase && download_phase_start == std::chrono::steady_clock::time_point{}) {
+                            download_phase_start = std::chrono::steady_clock::now();
+                        }
+
                         std::uint64_t current_size = 0;
-                        std::string size_source = "none";
                         std::string active_folder;
-                        if (std::filesystem::exists(download_path)) {
-                            current_size = compute_folder_size_bytes(download_path);
-                            if (current_size > 0) { size_source = "steamcmd/downloads"; active_folder = download_path.string(); }
-                        }
-                        if (current_size == 0 && std::filesystem::exists(content_path)) {
-                            current_size = compute_folder_size_bytes(content_path);
-                            if (current_size > 0) { size_source = "steamcmd/content"; active_folder = content_path.string(); }
-                        }
-                        if (current_size == 0 && std::filesystem::exists(alt_download_path)) {
-                            current_size = compute_folder_size_bytes(alt_download_path);
-                            if (current_size > 0) { size_source = "game/downloads"; active_folder = alt_download_path.string(); }
-                        }
-                        if (current_size == 0 && std::filesystem::exists(alt_content_path)) {
-                            current_size = compute_folder_size_bytes(alt_content_path);
-                            if (current_size > 0) { size_source = "game/content"; active_folder = alt_content_path.string(); }
+                        {
+                            std::error_code fec;
+                            if (std::filesystem::exists(download_path, fec)) {
+                                current_size = compute_folder_size_bytes(download_path);
+                                if (current_size > 0) active_folder = download_path.string();
+                            }
+                            if (current_size == 0 && std::filesystem::exists(content_path, fec)) {
+                                current_size = compute_folder_size_bytes(content_path);
+                                if (current_size > 0) active_folder = content_path.string();
+                            }
+                            if (current_size == 0 && std::filesystem::exists(alt_download_path, fec)) {
+                                current_size = compute_folder_size_bytes(alt_download_path);
+                                if (current_size > 0) active_folder = alt_download_path.string();
+                            }
+                            if (current_size == 0 && std::filesystem::exists(alt_content_path, fec)) {
+                                current_size = compute_folder_size_bytes(alt_content_path);
+                                if (current_size > 0) active_folder = alt_content_path.string();
+                            }
                         }
 
                         {
@@ -1323,27 +1412,62 @@ namespace {
                             }
                         }
 
-                        double percent = 0.0;
-                        if (adjusted_expected_size > 0 && current_size > 0 && current_size <= adjusted_expected_size) {
-                            percent = (static_cast<double>(current_size) / static_cast<double>(adjusted_expected_size)) * 100.0;
-                            if (percent > 99.0) percent = 99.0;
-                            if (percent < 0.1) percent = 0.1;
-                        } else if (current_size > 0) {
-                            double mb = static_cast<double>(current_size) / (1024.0 * 1024.0);
-                            percent = (mb / (mb + 2000.0)) * 95.0;
-                            if (percent < 0.5) percent = 0.5;
+
+                        std::uint64_t net_bytes_now = 0;
+                        {
+                            MIB_IF_TABLE2* if_table = nullptr;
+                            if (GetIfTable2(&if_table) == NO_ERROR && if_table) {
+                                for (ULONG i = 0; i < if_table->NumEntries; i++) {
+                                    net_bytes_now += if_table->Table[i].InOctets;
+                                }
+                                FreeMibTable(if_table);
+                            }
                         }
+
+                        if (!net_baseline_set) {
+                            net_bytes_prev = net_bytes_now;
+                            net_baseline_set = true;
+                        }
+
+                        std::uint64_t net_delta = 0;
+                        if (net_bytes_now >= net_bytes_prev) {
+                            net_delta = net_bytes_now - net_bytes_prev;
+                        }
+                        net_bytes_prev = net_bytes_now;
+
+                        auto dl_elapsed = std::chrono::steady_clock::now() - download_phase_start;
+                        auto dl_elapsed_sec = std::chrono::duration_cast<std::chrono::seconds>(dl_elapsed).count();
+                        if (warmup_phase && dl_elapsed_sec >= 10) warmup_phase = false;
+
+                        double percent = -1.0;
+                        std::uint64_t display_size = current_size;
+                        const std::uint64_t effective_expected = expected_size > 0 ? expected_size : 0;
+
+                        if (effective_expected > 0 && display_size > effective_expected)
+                            display_size = effective_expected;
+
+                        if (!warmup_phase) {
+                            if (effective_expected > 0 && current_size > 0) {
+                                percent = (static_cast<double>(display_size) / static_cast<double>(effective_expected)) * 100.0;
+                            } else if (current_size > 0) {
+                                const double mb = static_cast<double>(current_size) / (1024.0 * 1024.0);
+                                percent = (mb / (mb + 2000.0)) * 95.0;
+                            } else {
+                                percent = 0.1;
+                            }
+                            if (percent > 99.0) percent = 99.0;
+                            if (percent < 0.1 && current_size > 0) percent = 0.1;
+                        }
+
 
                         const auto now = std::chrono::steady_clock::now();
                         const auto dt_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_tick).count();
-                        if (dt_ms > 0 && current_size >= last_bytes) {
-                            const auto diff = current_size - last_bytes;
-                            const double bytes_per_sec = (static_cast<double>(diff) * 1000.0) / static_cast<double>(dt_ms);
+                        if (dt_ms > 0 && net_delta > 0) {
+                            const double bytes_per_sec = (static_cast<double>(net_delta) * 1000.0) / static_cast<double>(dt_ms);
                             if (bytes_per_sec > 0.0) {
                                 last_speed_str = human_readable_size(static_cast<std::uint64_t>(bytes_per_sec)) + "/s";
                             }
                         }
-                        last_bytes = current_size;
                         last_tick = now;
 
                         auto elapsed = std::chrono::steady_clock::now() - download_start_time;
@@ -1355,8 +1479,8 @@ namespace {
                         snprintf(time_str, sizeof(time_str), "%02d:%02d:%02d", eh, em, es);
 
                         std::string details;
-                        if (current_size > 0) {
-                            details = human_readable_size(current_size);
+                        if (display_size > 0) {
+                            details = human_readable_size(display_size);
                             if (expected_size > 0)
                                 details += " / " + human_readable_size(expected_size);
                         } else if (expected_size > 0) {
