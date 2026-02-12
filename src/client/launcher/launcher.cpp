@@ -97,12 +97,21 @@ namespace launcher
 			std::string p = path_str;
 			utils::string::trim(p);
 			if (p.empty()) return;
-			std::filesystem::path target(p);
+
 			std::error_code ec;
-			if (std::filesystem::exists(target) && std::filesystem::is_directory(target))
-			{
-				std::filesystem::remove_all(target, ec);
-			}
+			const auto target = std::filesystem::canonical(p, ec);
+			if (ec || !std::filesystem::is_directory(target)) return;
+
+			const auto steam_ws = get_steam_workshop_path();
+			if (steam_ws.empty()) return;
+
+			const auto allowed = std::filesystem::canonical(steam_ws, ec);
+			if (ec) return;
+
+			const auto rel = std::filesystem::relative(target, allowed, ec);
+			if (ec || rel.empty() || rel.native().find(L"..") != std::wstring::npos) return;
+
+			std::filesystem::remove_all(target, ec);
 		}
 
 		void workshop_remove_all_folders()
