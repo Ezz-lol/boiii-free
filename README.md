@@ -15,21 +15,19 @@
 - [Client Download](#client-download)
 - [Prerequisites](#prerequisites)
 - [Install Instructions](#install-instructions)
-    - [Quick Install](#quick-install)
-    - [Manual Installation](#manual-installation)
+  - [Quick Install](#quick-install)
+  - [Manual Installation](#manual-installation)
 - [Where Can I Get the Game?](#where-can-i-get-the-game)
-    - [Downloading via Torrent](#downloading-via-torrent)
-    - [What If I Have a Pirated Version?](#what-if-i-have-a-pirated-version)
+  - [Downloading via Torrent](#downloading-via-torrent)
+  - [What If I Have a Pirated Version?](#what-if-i-have-a-pirated-version)
 - [Loading Mods & Custom Maps](#loading-mods--custom-maps)
 - [Workshop Downloader](#workshop-downloader)
-- [Plugin System](#plugin-system)
 - [Command Line Arguments](#command-line-arguments)
 - [Hosting a Dedicated Server](#hosting-a-dedicated-server)
-    - [Requirements](#requirements)
-    - [Server Setup](#server-setup)
-    - [Connecting](#connecting)
-    - [LAN & VPN Play](#lan--vpn-play)
-    - [Port Forwarding Alternatives](#port-forwarding-alternatives)
+  - [Requirements](#requirements)
+  - [Server Setup](#server-setup)
+  - [Connecting](#connecting)
+  - [Port Forwarding Alternatives](#port-forwarding-alternatives)
 - [Zombies Server Setup](#zombies-server-setup)
 - [Compile from Source](#compile-from-source)
 - [Credits](#credits)
@@ -48,7 +46,6 @@ BOIII is a free, community-driven modification for Call of Duty: Black Ops III t
 - 🗺️ Custom maps and mods support
 - 🔧 Dedicated server hosting
 - 🎨 Steam Workshop integration
-- 🔌 Plugin system for extensibility
 
 ---
 
@@ -124,13 +121,13 @@ If you can't afford the game, you can download the game files here:
 **Steps:**
 
 1. **Download qBittorrent**
-    - Get it from [qBittorrent.org](https://www.qbittorrent.org/download)
-    - ✅ Free, open-source, and ad-free!
+   - Get it from [qBittorrent.org](https://www.qbittorrent.org/download)
+   - ✅ Free, open-source, and ad-free!
 
 2. **Open the `.torrent` file** in qBittorrent
 
 3. **Set download location** to your games folder
-    - Example: `D:/Games/Call of Duty Black Ops III`
+   - Example: `D:/Games/Call of Duty Black Ops III`
 
 4. **Important:** Set "Content layout" to **"Don't create subfolder"**
 
@@ -154,15 +151,15 @@ The client will verify your game files on launch.
 > [!TIP]
 > **Default Workshop Location (Steam):**
 > `C:/Program Files (x86)/Steam/steamapps/workshop/content/311210/`
->
+> 
 > **BOIII comes with a built-in Workshop Downloader** - see the [Workshop Downloader](#workshop-downloader) section!
 
 **Installation Steps:**
 
 1. **Download Mods/Maps**
-    - Use the built-in BOIII Workshop Downloader
-    - Or copy from your Steam workshop folder (if you own the game)
-    - Or use external workshop downloaders
+   - Use the built-in BOIII Workshop Downloader
+   - Or copy from your Steam workshop folder (if you own the game)
+   - Or use external workshop downloaders
 
 2. **Create Folders** (if they don't exist):
    ```
@@ -172,12 +169,12 @@ The client will verify your game files on launch.
    ```
 
 3. **Place Files:**
-    - **Mods:** Extract to `mods/` folder
-        - Example: `mods/zombie_mod_v2/zone/`
-        - The folder structure should be: `mods/[MOD_NAME]/zone/`
-    - **Custom Maps:** Extract to `usermaps/` folder
-        - Example: `usermaps/zm_castle/zone/`
-        - The folder structure should be: `usermaps/[MAP_NAME]/zone/`
+   - **Mods:** Extract to `mods/` folder
+     - Example: `mods/zombie_mod_v2/zone/`
+     - The folder structure should be: `mods/[MOD_NAME]/zone/`
+   - **Custom Maps:** Extract to `usermaps/` folder
+     - Example: `usermaps/zm_castle/zone/`
+     - The folder structure should be: `usermaps/[MAP_NAME]/zone/`
 
 4. **Launch Ezz BOIII** and select your mod/map from the menu! 🎮
 
@@ -217,48 +214,6 @@ If you prefer a standalone tool, check out [BOIIIWD by faroukbmiled](https://git
 
 ---
 
-## Plugin System
-
-**plugins** 🔌
-
-Extend Ezz BOIII's functionality with custom plugins. Plugins are DLL files that can hook into BOIII's component system.
-
-### Installing Plugins
-
-**Plugin Locations:**
-
-Plugins can be placed in either of these folders:
-- `%localappdata%/boiii/plugins/`
-- `Call of Duty Black Ops III/boiii/plugins/`
-
-All plugin activity is logged to `Call of Duty Black Ops III/boiii_players/plugins.log`
-
-### Creating Plugins
-
-Plugins must export these optional functions:
-
-```cpp
-// Plugin name (recommended)
-extern "C" __declspec(dllexport) const char* p_name()
-{
-    return "My Plugin Name";
-}
-
-// Called after all components load
-extern "C" __declspec(dllexport) void post_load() { }
-
-// Called after game unpacking
-extern "C" __declspec(dllexport) void post_unpack() { }
-
-// Called before shutdown
-extern "C" __declspec(dllexport) void pre_destroy() { }
-```
-
-> [!NOTE]
-> All plugin functions are optional. Plugins only need to export the functions they use.
-
----
-
 ## Command Line Arguments
 
 Launch BOIII with these arguments for extra features:
@@ -279,7 +234,11 @@ Launch BOIII with these arguments for extra features:
 | `-norelaunch` | Skip automatic relaunch after updates |
 | `-headless` | Run in headless mode (no GUI for the console) |
 | `-nopatch` | Disable some of the server's patches |
-
+| `-plugins` | TO DO |
+| `-trimlogs` | TO DO |
+| `-keep-launcher` | TO DO |
+| `-noconsole` | TO DO |
+//probably wrong names i forgor , we can add em later
 
 **Example:**
 ```bash
@@ -288,7 +247,7 @@ boiii.exe -nointro -console -unsafe-lua
 
 > [!WARNING]
 > The `-unsafe-lua` argument is **required** for certain mods that need to modify the UI, menus, or game scripts (like All-Around Enhancement Mod). Only use this with trusted mods!
->
+> 
 > The `-headless` may not behave correctly on non-servers!
 
 ---
@@ -316,13 +275,13 @@ boiii.exe -nointro -console -unsafe-lua
 2. **Add BOIII files** to your server directory
 
 3. **Configure server settings:**
-    - Edit `zone/dedicated.cfg`
-    - Set server name, map rotation, game mode
-    - Configure player count and rules
+   - Edit `zone/dedicated.cfg`
+   - Set server name, map rotation, game mode
+   - Configure player count and rules
 
 4. **Setup firewall rules:**
-    - Allow UDP port 27017 (or your custom port)
-    - Allow TCP port 27017 (optional but recommended)
+   - Allow UDP port 27017 (or your custom port)
+   - Allow TCP port 27017 (optional but recommended)
 
 5. **Launch server:**
    ```bash
@@ -330,6 +289,42 @@ boiii.exe -nointro -console -unsafe-lua
    ```
 
 6. **Monitor** the console for any errors
+
+### Connecting
+
+**Option 1: Server Browser**
+- Open Ezz BOIII client
+- Navigate to "Server Browser"
+- Find your server and join!
+
+**Option 2: Direct Connect**
+- Open console (press `~`)
+- Type: `/connect IP:PORT`
+
+**Examples:**
+- Local: `/connect 192.168.1.100:27017`
+- WAN: `/connect 45.123.67.89:27017`
+
+> [!TIP]
+> Find your local IP: Press `Win + R`, type `cmd`, then type `ipconfig`
+> Find your WAN IP: Visit [WhatIsMyIP.com](https://www.whatismyip.com/)
+
+### Port Forwarding Alternatives
+
+Don't want to mess with port forwarding? Use these VPN tools to play with friends! 😎
+
+**Recommended Options:**
+- **ZeroTier** (Best for gaming)
+- **Radmin VPN** (Easy setup)
+- **Hamachi** (Classic choice)
+
+**Setup:**
+1. Download and install your chosen VPN tool
+2. Create/join a network
+3. Start your BOIII server
+4. Friends connect using your VPN IP: `/connect VPN_IP:27017`
+
+---
 
 ## Zombies Server Setup
 
@@ -374,67 +369,6 @@ zone/zm_zod_patch.ff
 - `zm_stalingrad` - Gorod Krovi
 - `zm_genesis` - Revelations
 
-### Connecting
-
-**Option 1: Server Browser**
-- Open Ezz BOIII client
-- Navigate to "Server Browser"
-- Find your server and join!
-
-**Option 2: Direct Connect**
-- Open console (press `~`)
-- Type: `/connect IP:PORT`
-
-**Examples:**
-- Local: `/connect 192.168.1.100:27017`
-- WAN: `/connect 45.123.67.89:27017`
-
-> [!TIP]
-> Find your local IP: Press `Win + R`, type `cmd`, then type `ipconfig`
-> Find your WAN IP: Visit [WhatIsMyIP.com](https://www.whatismyip.com/)
-
-### LAN & VPN Play
-
-Don't want to mess with port forwarding? Use these VPN tools to play with friends! 😎
-
-#### How It Works
-- Players on the **same local network** are automatically discovered and shown in the **LAN** tab.
-- VPN users (ZeroTier, Radmin VPN, Hamachi, etc.) need to manually add the host's IP to see the server in the LAN list.
-
-#### Setup Steps
-
-**For the Host (Person hosting the game):**
-
-1. Make sure you're connected to the **same LAN or VPN network** as your friends
-2. Launch `boiii.exe`
-3. Start a game:
-4. Share your IP address with your friends:
-    - **VPN IP:** Check your VPN client for your virtual IP address
-
-**For Clients (People joining the game):**
-
-1. Make sure you're connected to the **same LAN or VPN network** as the host
-2. Launch `boiii.exe`
-3. **Option A: Join via LAN Tab (Recommended)**
-    - Open the console (press `~` key)
-    - Add the host's IP address:
-      ```
-      /lan_add <VPN_IP>
-      ```
-    - Go to **Server Browser → LAN tab**
-    - The server should appear in the list
-    - Click to join!
-    - Or you can use `/connect <VPN_IP>`
-
-> [!TIP]
-> If you're on the same local network, the server should automatically appear in the LAN tab without needing `/lan_add`
-
-#### Recommended VPN Tools
-
-- **[ZeroTier](https://www.zerotier.com/)** - Best overall, easy to set up, works great for gaming
-- **[Radmin VPN](https://www.radmin-vpn.com/)** - Simple interface, fast, no configuration needed
-- **[Hamachi](https://vpn.net/)** - Legacy option, widely known
-
 ---
 
 ## Compile from Source
@@ -468,12 +402,12 @@ Want to build Ezz BOIII yourself? Here's how! 🔨
    ```
 
 4. **Open in Visual Studio:**
-    - Open `boiii.sln`
-    - Set configuration to `Release` and platform to `x64`
-    - Build the solution (Ctrl+Shift+B)
+   - Open `boiii.sln`
+   - Set configuration to `Release` and platform to `x64`
+   - Build the solution (Ctrl+Shift+B)
 
 5. **Find your build:**
-    - Output will be in `build/bin/x64/Release/`
+   - Output will be in `build/bin/x64/Release/`
 
 > [!TIP]
 > You can also use `build.bat` to compile directly from the command line!
@@ -514,3 +448,5 @@ This is a non-profit, community-driven project. We do not condone piracy. If you
 <p align="center">
   Made with ❤️ by the BOIII community ☄️
 </p>
+
+

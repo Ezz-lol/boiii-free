@@ -1497,7 +1497,7 @@
                 <div class="workshop-filter-wrap">
                 <select id="workshopFilterSelect" class="workshop-filter-select">
                   <option value="mostrecent">Most Recent</option>
-                  <option value="trend">Trending</option>
+                  <option value="trend">Top Rated</option>
                   <option value="oldest">Oldest</option>
                   <option value="alphabetical">Alphabetical</option>
                 </select>
@@ -1783,17 +1783,25 @@
         }
         
         var modalRatingHtml = '<span style="color:rgba(200,196,192,0.6);">N/A</span>';
-        if (item.votesUp !== undefined || item.votesDown !== undefined) {
-          var mUp = parseInt(item.votesUp, 10) || 0;
-          var mDown = parseInt(item.votesDown, 10) || 0;
-          var mTotal = mUp + mDown;
-          if (mTotal > 0) {
-            var mPct = Math.round((mUp / mTotal) * 100);
-            var mColor = mPct >= 70 ? 'rgba(34,197,94,0.9)' : (mPct >= 40 ? 'rgba(250,204,21,0.9)' : 'rgba(239,68,68,0.9)');
-            modalRatingHtml = '<span style="color:' + mColor + ';">&#9733; ' + mPct + '% (' + mUp + '/' + mTotal + ')</span>';
-          } else {
-            modalRatingHtml = '<span style="color:rgba(200,196,192,0.6);">No ratings yet</span>';
-          }
+        var mSr = parseInt(item.starRating, 10) || 0;
+        if (mSr > 0) {
+          var mStarStr = '';
+          for (var ms = 0; ms < mSr; ms++) mStarStr += '\u2605';
+          for (var ms = mSr; ms < 5; ms++) mStarStr += '\u2606';
+          var mColor = mSr >= 4 ? 'rgba(34,197,94,0.9)' : (mSr >= 3 ? 'rgba(250,204,21,0.9)' : 'rgba(239,68,68,0.9)');
+          modalRatingHtml = '<span style="color:' + mColor + ';">' + mStarStr + ' (' + mSr + '/5)</span>';
+        } else {
+          modalRatingHtml = '<span style="color:rgba(200,196,192,0.6);">Not enough ratings</span>';
+        }
+
+        var modalSubsHtml = '';
+        var mSubs = parseInt(item.subs, 10) || 0;
+        var mFavs = parseInt(item.favorites, 10) || 0;
+        if (mSubs > 0 || mFavs > 0) {
+          modalSubsHtml = '<div class="workshop-modal-info-item">' +
+            '<div class="workshop-modal-info-label">Popularity</div>' +
+            '<div class="workshop-modal-info-value">' + (mSubs > 0 ? mSubs.toLocaleString() + ' subs' : '') + (mSubs > 0 && mFavs > 0 ? ' &middot; ' : '') + (mFavs > 0 ? mFavs.toLocaleString() + ' favs' : '') + '</div>' +
+          '</div>';
         }
 
         workshopModalInfo.innerHTML = 
@@ -1804,7 +1812,8 @@
           '<div class="workshop-modal-info-item">' +
             '<div class="workshop-modal-info-label">Rating</div>' +
             '<div class="workshop-modal-info-value">' + modalRatingHtml + '</div>' +
-          '</div>';
+          '</div>' +
+          modalSubsHtml;
         
         workshopModalDescription.textContent = item.description || 'No description available';
         
@@ -2016,9 +2025,10 @@
         var sortMode = workshopFilterSelect ? workshopFilterSelect.value : 'mostrecent';
         if (sortMode === 'trend') {
           filteredItems = filteredItems.slice(0).sort(function(a, b) {
-            var rA = (parseInt(a.votesUp, 10) || 0) - (parseInt(a.votesDown, 10) || 0);
-            var rB = (parseInt(b.votesUp, 10) || 0) - (parseInt(b.votesDown, 10) || 0);
-            return rB - rA;
+            var rA = parseInt(a.starRating, 10) || 0;
+            var rB = parseInt(b.starRating, 10) || 0;
+            if (rB !== rA) return rB - rA;
+            return (parseInt(b.subs, 10) || 0) - (parseInt(a.subs, 10) || 0);
           });
         } else if (sortMode === 'oldest') {
           filteredItems = filteredItems.slice(0).reverse();
@@ -2059,15 +2069,13 @@
           if (rawDesc.length > 80) desc += '...';
 
           var ratingHtml = '';
-          if (item.votesUp !== undefined || item.votesDown !== undefined) {
-            var up = parseInt(item.votesUp, 10) || 0;
-            var down = parseInt(item.votesDown, 10) || 0;
-            var total = up + down;
-            if (total > 0) {
-              var pct = Math.round((up / total) * 100);
-              var rColor = pct >= 70 ? 'rgba(34,197,94,0.8)' : (pct >= 40 ? 'rgba(250,204,21,0.8)' : 'rgba(239,68,68,0.8)');
-              ratingHtml = '<span style="font-size:0.75rem;color:' + rColor + ';margin-left:8px;" title="' + up + ' up / ' + down + ' down">&#9733; ' + pct + '%</span>';
-            }
+          var sr = parseInt(item.starRating, 10) || 0;
+          if (sr > 0) {
+            var starStr = '';
+            for (var s = 0; s < sr; s++) starStr += '\u2605';
+            for (var s = sr; s < 5; s++) starStr += '\u2606';
+            var rColor = sr >= 4 ? 'rgba(34,197,94,0.8)' : (sr >= 3 ? 'rgba(250,204,21,0.8)' : 'rgba(239,68,68,0.8)');
+            ratingHtml = '<span style="font-size:0.75rem;color:' + rColor + ';margin-left:8px;" title="' + sr + '/5 stars">' + starStr + '</span>';
           }
 
           var contentHtml = '<div class="workshop-item-content">' +
@@ -2670,36 +2678,67 @@
         }
       }
 
+      var _modsListPollInterval = null;
+
       function refreshModsGrid() {
+        // Show cached data immediately if available
         try {
           var ex = getExternal();
-          if (!ex || !ex.workshopList) {
-            modsItemsCache = [];
-            modsGrid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128230;</div><div class="empty-state-text">No workshop items installed yet</div></div>';
-            if (modsPagination) modsPagination.style.display = 'none';
-            return;
-          }
-          var list = ex.workshopList();
-
-          if (!list || list.length === 0 || list === '[]') {
+          if (!ex) {
             modsItemsCache = [];
             modsGrid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128230;</div><div class="empty-state-text">No workshop items installed yet</div></div>';
             if (modsPagination) modsPagination.style.display = 'none';
             return;
           }
 
-          var items = typeof list === 'string' ? JSON.parse(list) : list;
-
-          if (!items || items.length === 0) {
-            modsItemsCache = [];
-            modsGrid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128230;</div><div class="empty-state-text">No workshop items installed yet</div></div>';
-            if (modsPagination) modsPagination.style.display = 'none';
-            return;
+          // Show cached data right away (non-blocking)
+          if (ex.workshopList) {
+            var cached = ex.workshopList();
+            if (cached && cached !== '[]') {
+              var cachedItems = typeof cached === 'string' ? JSON.parse(cached) : cached;
+              if (cachedItems && cachedItems.length > 0) {
+                modsItemsCache = cachedItems;
+                modsPage = 1;
+                renderModsPage();
+              }
+            }
           }
 
-          modsItemsCache = items;
-          modsPage = 1;
-          renderModsPage();
+          // Start async refresh in background, then poll for result
+          if (ex.workshopListAsync) {
+            ex.workshopListAsync();
+            if (_modsListPollInterval) clearInterval(_modsListPollInterval);
+            var pollCount = 0;
+            _modsListPollInterval = setInterval(function() {
+              pollCount++;
+              if (pollCount > 300) { // 30 seconds max
+                clearInterval(_modsListPollInterval);
+                _modsListPollInterval = null;
+                return;
+              }
+              try {
+                var ex2 = getExternal();
+                if (!ex2) return;
+                var isLoading = ex2.workshopListIsLoading && ex2.workshopListIsLoading() === 'true';
+                if (!isLoading) {
+                  clearInterval(_modsListPollInterval);
+                  _modsListPollInterval = null;
+                  var list = ex2.workshopList();
+                  if (list && list !== '[]') {
+                    var items = typeof list === 'string' ? JSON.parse(list) : list;
+                    if (items && items.length > 0) {
+                      modsItemsCache = items;
+                      modsPage = 1;
+                      renderModsPage();
+                    }
+                  } else if (modsItemsCache.length === 0) {
+                    modsGrid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128230;</div><div class="empty-state-text">No workshop items installed yet</div></div>';
+                    if (modsPagination) modsPagination.style.display = 'none';
+                  }
+                }
+              } catch (e) {}
+            }, 100);
+          }
         } catch (e) {
           modsItemsCache = [];
           modsGrid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#9888;</div><div class="empty-state-text">Error loading workshop items</div></div>';
@@ -2738,7 +2777,12 @@
 
           var typeDiv = document.createElement('div');
           typeDiv.className = 'mod-card-type';
-          typeDiv.textContent = (item.type || 'mod') + (item.source === 'steam' ? ' (Steam)' : '');
+          var typeText = (item.type || 'mod') + (item.source === 'steam' ? ' (Steam)' : '');
+          if (item.needsUpdate) {
+            typeDiv.innerHTML = typeText + ' <span style="color:#ff6600;font-weight:bold;margin-left:6px;">&#x21bb; Update available</span>';
+          } else {
+            typeDiv.textContent = typeText;
+          }
 
           header.appendChild(nameDiv);
           header.appendChild(typeDiv);
@@ -2759,9 +2803,14 @@
           if (item.id && String(item.id).length > 0) {
             var updateBtn = document.createElement('button');
             updateBtn.className = 'btn';
+            if (item.needsUpdate) {
+              updateBtn.style.background = '#ff6600';
+              updateBtn.style.color = '#fff';
+              updateBtn.style.fontWeight = 'bold';
+            }
             updateBtn.type = 'button';
-            updateBtn.textContent = 'Update';
-            updateBtn.title = 'Re-download from Steam Workshop';
+            updateBtn.textContent = item.needsUpdate ? 'Update Now' : 'Update';
+            updateBtn.title = item.needsUpdate ? 'A newer version is available on Steam Workshop' : 'Re-download from Steam Workshop';
             (function(itemId, itemName) {
               updateBtn.onclick = function(e) {
                 e.stopPropagation();
@@ -2998,47 +3047,85 @@
         try {
           var ex = getExternal();
           if (!ex || !ex.workshopList) { workshopStatus.textContent = 'Cannot check updates.'; return; }
-          var list = ex.workshopList();
-          if (!list || list.length === 0) { workshopStatus.textContent = 'No items to update.'; return; }
-          var items = typeof list === 'string' ? JSON.parse(list) : list;
-          var toUpdate = [];
-          for (var i = 0; i < items.length; i++) {
-            if (items[i].id && String(items[i].id).length > 0) toUpdate.push(items[i]);
-          }
-          if (toUpdate.length === 0) { workshopStatus.textContent = 'No items with Steam ID (cannot update).'; return; }
-          workshopStatus.textContent = 'Updating ' + toUpdate.length + ' item(s)...';
-          workshopProgress.style.display = 'block';
-          workshopDownloadBtn.disabled = true;
+
+          // First trigger a fresh async library scan to get latest update info
+          workshopStatus.textContent = 'Checking for updates...';
           document.getElementById('checkUpdatesBtn').disabled = true;
-          var idx = 0;
-          function updateNext() {
-            if (idx >= toUpdate.length) {
-              workshopStatus.textContent = 'All updates complete.';
-              workshopDownloadBtn.disabled = false;
+
+          if (ex.workshopListAsync) {
+            ex.workshopListAsync();
+          }
+
+          // Poll until the library scan finishes, then find items needing updates
+          var checkPollCount = 0;
+          var checkPoll = setInterval(function() {
+            checkPollCount++;
+            if (checkPollCount > 300) {
+              clearInterval(checkPoll);
+              workshopStatus.textContent = 'Update check timed out.';
               document.getElementById('checkUpdatesBtn').disabled = false;
-              setTimeout(refreshModsGrid, 500);
               return;
             }
-            var it = toUpdate[idx];
-            workshopStatus.textContent = 'Updating ' + (it.name || it.folder) + ' (' + (idx + 1) + '/' + toUpdate.length + ')...';
-            ex.workshopDownload(String(it.id));
-            var pollInterval = setInterval(function() {
-              pollWorkshopStatus();
+            try {
               var ex2 = getExternal();
-              if (ex2 && ex2.workshopGetStatus) {
-                var sj = ex2.workshopGetStatus();
-                if (sj) {
-                  var st = typeof sj === 'string' ? JSON.parse(sj) : sj;
-                  if (st.message && (st.message.indexOf('Done') !== -1 || st.message.indexOf('Error') !== -1)) {
-                    clearInterval(pollInterval);
-                    idx++;
-                    setTimeout(updateNext, 300);
-                  }
+              if (!ex2) return;
+              var isLoading = ex2.workshopListIsLoading && ex2.workshopListIsLoading() === 'true';
+              if (!isLoading) {
+                clearInterval(checkPoll);
+                var list = ex2.workshopList();
+                if (!list || list.length === 0) { workshopStatus.textContent = 'No items installed.'; document.getElementById('checkUpdatesBtn').disabled = false; return; }
+                var items = typeof list === 'string' ? JSON.parse(list) : list;
+
+                // Update the local cache and re-render to show badges
+                modsItemsCache = items;
+                modsPage = 1;
+                renderModsPage();
+
+                // Filter only items that need updating
+                var toUpdate = [];
+                for (var i = 0; i < items.length; i++) {
+                  if (items[i].needsUpdate && items[i].id && String(items[i].id).length > 0) toUpdate.push(items[i]);
                 }
+                if (toUpdate.length === 0) {
+                  workshopStatus.textContent = 'All items are up to date!';
+                  document.getElementById('checkUpdatesBtn').disabled = false;
+                  return;
+                }
+                workshopStatus.textContent = toUpdate.length + ' update(s) available. Downloading...';
+                workshopProgress.style.display = 'block';
+                workshopDownloadBtn.disabled = true;
+                var idx = 0;
+                function updateNext() {
+                  if (idx >= toUpdate.length) {
+                    workshopStatus.textContent = 'All updates complete.';
+                    workshopDownloadBtn.disabled = false;
+                    document.getElementById('checkUpdatesBtn').disabled = false;
+                    setTimeout(refreshModsGrid, 500);
+                    return;
+                  }
+                  var it = toUpdate[idx];
+                  workshopStatus.textContent = 'Updating ' + (it.name || it.folder) + ' (' + (idx + 1) + '/' + toUpdate.length + ')...';
+                  ex2.workshopDownload(String(it.id));
+                  var pollInterval = setInterval(function() {
+                    pollWorkshopStatus();
+                    var ex3 = getExternal();
+                    if (ex3 && ex3.workshopGetStatus) {
+                      var sj = ex3.workshopGetStatus();
+                      if (sj) {
+                        var st = typeof sj === 'string' ? JSON.parse(sj) : sj;
+                        if (st.message && (st.message.indexOf('Done') !== -1 || st.message.indexOf('Error') !== -1)) {
+                          clearInterval(pollInterval);
+                          idx++;
+                          setTimeout(updateNext, 300);
+                        }
+                      }
+                    }
+                  }, 500);
+                }
+                updateNext();
               }
-            }, 500);
-          }
-          updateNext();
+            } catch (e) {}
+          }, 100);
         } catch (e) {
           workshopStatus.textContent = 'Error: ' + (e.message || 'failed');
           workshopDownloadBtn.disabled = false;

@@ -666,6 +666,18 @@ namespace console
 			return utils::hook::invoke<LRESULT>(game::select(0x142332C60, 0x1405976E0), hwnd, msg, wparam, lparam);
 		}
 
+		void sys_show_console_stub()
+		{
+			if (!*game::s_wcd::hWnd)
+			{
+				return;
+			}
+
+			ShowWindow(*game::s_wcd::hWnd, SW_SHOW);
+			SetForegroundWindow(*game::s_wcd::hWnd);
+			SetFocus(*game::s_wcd::hwndInputLine);
+		}
+
 		void sys_create_console_stub(const HINSTANCE h_instance)
 		{
 			if (game::is_headless())
@@ -883,6 +895,9 @@ namespace console
 				{
 					static utils::hook::detour sys_create_console_hook;
 					sys_create_console_hook.create(game::select(0x142332E00, 0x140597880), sys_create_console_stub);
+
+					static utils::hook::detour sys_show_console_hook;
+					sys_show_console_hook.create(game::Sys_ShowConsole, sys_show_console_stub);
 
 					game::Sys_ShowConsole();
 					started = true;

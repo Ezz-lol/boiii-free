@@ -5,6 +5,7 @@
 #include <chrono>
 #include <fstream>
 #include <functional>
+#include <map>
 #include <mutex>
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
@@ -239,6 +240,18 @@ namespace {
                 info.file_size = scraped;
             return info;
         }
+    }
+
+    std::uint64_t get_folder_mtime_epoch(const std::filesystem::path& folder)
+    {
+        try {
+            std::error_code ec;
+            auto lwt = std::filesystem::last_write_time(folder, ec);
+            if (ec) return 0;
+            auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+                lwt - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now());
+            return static_cast<std::uint64_t>(std::chrono::system_clock::to_time_t(sctp));
+        } catch (...) { return 0; }
     }
 
     std::uint64_t compute_folder_size_bytes(const std::filesystem::path& folder)
@@ -586,6 +599,51 @@ namespace {
         return result;
     }
 
+    std::vector<std::pair<std::string, int>> scrape_ids_and_ratings(const std::string& html)
+    {
+        std::vector<std::pair<std::string, int>> items;
+        std::regex id_re(R"(sharedfile_(\d+))");
+        std::regex star_re(R"((\d)-star)");
+
+        struct id_pos { std::string id; size_t pos; };
+        std::vector<id_pos> matches;
+        std::set<std::string> page_seen;
+
+        auto begin = std::sregex_iterator(html.begin(), html.end(), id_re);
+        auto end = std::sregex_iterator();
+        for (auto it = begin; it != end; ++it) {
+            std::string id = (*it)[1].str();
+            if (!id.empty() && !page_seen.count(id)) {
+                page_seen.insert(id);
+                matches.push_back({id, static_cast<size_t>(it->position())});
+            }
+        }
+
+        for (size_t i = 0; i < matches.size(); ++i) {
+            size_t start = matches[i].pos;
+            size_t block_end = (i + 1 < matches.size()) ? matches[i + 1].pos : std::min(start + 5000, html.size());
+            std::string block = html.substr(start, block_end - start);
+            std::smatch star_match;
+            int stars = 0;
+            if (std::regex_search(block, star_match, star_re)) {
+                stars = std::stoi(star_match[1].str());
+            }
+            items.push_back({matches[i].id, stars});
+        }
+
+        return items;
+    }
+
+    std::int64_t parse_json_int64(const rapidjson::Value& v)
+    {
+        if (v.IsInt64()) return v.GetInt64();
+        if (v.IsInt()) return v.GetInt();
+        if (v.IsUint64()) return static_cast<std::int64_t>(v.GetUint64());
+        if (v.IsUint()) return v.GetUint();
+        if (v.IsString()) return static_cast<std::int64_t>(std::atoll(v.GetString()));
+        return 0;
+    }
+
     std::string search_workshop_by_name(const std::string& search_text)
     {
         std::string backup_json = load_workshop_backup();
@@ -596,9 +654,9 @@ namespace {
             h["Accept-Language"] = "en-US,en;q=0.9";
             h["Referer"] = "https://steamcommunity.com/app/311210/workshop/";
 
-            std::regex id_re(R"(sharedfile_(\d+))");
             std::vector<std::string> all_ids;
             std::set<std::string> seen_ids;
+            std::map<std::string, int> item_ratings;
             const int max_pages = 5;
             const std::string encoded_query = url_encode(search_text);
 
@@ -610,17 +668,14 @@ namespace {
                     if (!resp || resp->empty())
                         break;
 
-                    const std::string& html = *resp;
-                    auto begin = std::sregex_iterator(html.begin(), html.end(), id_re);
-                    auto end = std::sregex_iterator();
-
+                    auto page_results = scrape_ids_and_ratings(*resp);
                     int page_items = 0;
-                    for (auto it = begin; it != end; ++it) {
-                        std::string id = (*it)[1].str();
-                        if (id.empty() || seen_ids.count(id))
+                    for (const auto& pr : page_results) {
+                        if (pr.first.empty() || seen_ids.count(pr.first))
                             continue;
-                        seen_ids.insert(id);
-                        all_ids.push_back(id);
+                        seen_ids.insert(pr.first);
+                        all_ids.push_back(pr.first);
+                        item_ratings[pr.first] = pr.second;
                         page_items++;
                     }
                     if (page_items == 0)
@@ -703,24 +758,15 @@ namespace {
                         if (imageUrl.empty())
                             imageUrl = extract_image_url_from_description(description);
 
-                        int votesUp = 0, votesDown = 0;
-                        auto vd_it = item.FindMember("vote_data");
-                        if (vd_it != item.MemberEnd() && vd_it->value.IsObject()) {
-                            auto vup_it = vd_it->value.FindMember("votes_up");
-                            if (vup_it != vd_it->value.MemberEnd()) {
-                                if (vup_it->value.IsInt())
-                                    votesUp = vup_it->value.GetInt();
-                                else if (vup_it->value.IsString())
-                                    votesUp = std::atoi(vup_it->value.GetString());
-                            }
-                            auto vdn_it = vd_it->value.FindMember("votes_down");
-                            if (vdn_it != vd_it->value.MemberEnd()) {
-                                if (vdn_it->value.IsInt())
-                                    votesDown = vdn_it->value.GetInt();
-                                else if (vdn_it->value.IsString())
-                                    votesDown = std::atoi(vdn_it->value.GetString());
-                            }
-                        }
+                        std::int64_t subs = 0, favorites = 0;
+                        auto subs_it = item.FindMember("lifetime_subscriptions");
+                        if (subs_it != item.MemberEnd())
+                            subs = parse_json_int64(subs_it->value);
+                        auto fav_it = item.FindMember("lifetime_favorited");
+                        if (fav_it != item.MemberEnd())
+                            favorites = parse_json_int64(fav_it->value);
+
+                        int star_rating = item_ratings.count(id) ? item_ratings[id] : 0;
 
                         w.StartObject();
                         w.Key("id");
@@ -731,10 +777,12 @@ namespace {
                         w.String(description.c_str());
                         w.Key("imageUrl");
                         w.String(imageUrl.c_str());
-                        w.Key("votesUp");
-                        w.Int(votesUp);
-                        w.Key("votesDown");
-                        w.Int(votesDown);
+                        w.Key("starRating");
+                        w.Int(star_rating);
+                        w.Key("subs");
+                        w.Int64(subs);
+                        w.Key("favorites");
+                        w.Int64(favorites);
                         w.EndObject();
                     }
                     if (i + batch_size < all_ids.size())
@@ -793,9 +841,9 @@ namespace {
             h["Accept-Language"] = "en-US,en;q=0.9";
             h["Referer"] = "https://steamcommunity.com/app/311210/workshop/";
 
-            std::regex id_re(R"(sharedfile_(\d+))");
             std::vector<std::string> all_ids;
             std::set<std::string> seen_ids;
+            std::map<std::string, int> item_ratings;
             const int max_pages = 20;
 
             for (int page = 1; page <= max_pages && workshop_browse_loading; ++page) {
@@ -805,17 +853,14 @@ namespace {
                     if (!resp || resp->empty())
                         break;
 
-                    const std::string& html = *resp;
-                    auto begin = std::sregex_iterator(html.begin(), html.end(), id_re);
-                    auto end = std::sregex_iterator();
-
+                    auto page_results = scrape_ids_and_ratings(*resp);
                     int page_items = 0;
-                    for (auto it = begin; it != end; ++it) {
-                        std::string id = (*it)[1].str();
-                        if (id.empty() || seen_ids.count(id))
+                    for (const auto& pr : page_results) {
+                        if (pr.first.empty() || seen_ids.count(pr.first))
                             continue;
-                        seen_ids.insert(id);
-                        all_ids.push_back(id);
+                        seen_ids.insert(pr.first);
+                        all_ids.push_back(pr.first);
+                        item_ratings[pr.first] = pr.second;
                         page_items++;
                     }
                     if (page_items == 0)
@@ -906,24 +951,15 @@ namespace {
                         if (imageUrl.empty())
                             imageUrl = extract_image_url_from_description(description);
 
-                        int votesUp = 0, votesDown = 0;
-                        auto vd_it = item.FindMember("vote_data");
-                        if (vd_it != item.MemberEnd() && vd_it->value.IsObject()) {
-                            auto vup_it = vd_it->value.FindMember("votes_up");
-                            if (vup_it != vd_it->value.MemberEnd()) {
-                                if (vup_it->value.IsInt())
-                                    votesUp = vup_it->value.GetInt();
-                                else if (vup_it->value.IsString())
-                                    votesUp = std::atoi(vup_it->value.GetString());
-                            }
-                            auto vdn_it = vd_it->value.FindMember("votes_down");
-                            if (vdn_it != vd_it->value.MemberEnd()) {
-                                if (vdn_it->value.IsInt())
-                                    votesDown = vdn_it->value.GetInt();
-                                else if (vdn_it->value.IsString())
-                                    votesDown = std::atoi(vdn_it->value.GetString());
-                            }
-                        }
+                        std::int64_t subs = 0, favorites = 0;
+                        auto subs_it = item.FindMember("lifetime_subscriptions");
+                        if (subs_it != item.MemberEnd())
+                            subs = parse_json_int64(subs_it->value);
+                        auto fav_it = item.FindMember("lifetime_favorited");
+                        if (fav_it != item.MemberEnd())
+                            favorites = parse_json_int64(fav_it->value);
+
+                        int star_rating = item_ratings.count(id) ? item_ratings[id] : 0;
 
                         w.StartObject();
                         w.Key("id");
@@ -934,10 +970,12 @@ namespace {
                         w.String(description.c_str());
                         w.Key("imageUrl");
                         w.String(imageUrl.c_str());
-                        w.Key("votesUp");
-                        w.Int(votesUp);
-                        w.Key("votesDown");
-                        w.Int(votesDown);
+                        w.Key("starRating");
+                        w.Int(star_rating);
+                        w.Key("subs");
+                        w.Int64(subs);
+                        w.Key("favorites");
+                        w.Int64(favorites);
                         w.EndObject();
                     }
 
@@ -1103,13 +1141,6 @@ namespace {
             std::filesystem::path alt_content_path = game_path / "steamapps" / "workshop" / "content" / "311210" / workshop_id;
             std::filesystem::path alt_download_path = game_path / "steamapps" / "workshop" / "downloads" / "311210" / workshop_id;
 
-            {
-                std::error_code ec;
-                if (std::filesystem::exists(content_path, ec))  std::filesystem::remove_all(content_path, ec);
-                if (std::filesystem::exists(download_path, ec))  std::filesystem::remove_all(download_path, ec);
-                if (std::filesystem::exists(alt_content_path, ec)) std::filesystem::remove_all(alt_content_path, ec);
-                if (std::filesystem::exists(alt_download_path, ec)) std::filesystem::remove_all(alt_download_path, ec);
-            }
 
             std::string cmd_args = "+login anonymous +workshop_download_item 311210 " + workshop_id + " validate +quit";
 
@@ -1128,12 +1159,6 @@ namespace {
                         "    and: " + alt_content_path.string() + "\n"
                         "Try again or check your connection.");
                     return;
-                }
-
-                {
-                    std::error_code ec;
-                    if (std::filesystem::exists(download_path, ec))     std::filesystem::remove_all(download_path, ec);
-                    if (std::filesystem::exists(alt_download_path, ec)) std::filesystem::remove_all(alt_download_path, ec);
                 }
 
                 if (fast_fail_count >= FAIL_THRESHOLD) {
@@ -1629,6 +1654,49 @@ namespace {
             set_workshop_status("Error: Workshop download crashed.", 0.0, "");
         }
     }
+}
+
+std::map<std::string, std::uint64_t> batch_get_time_updated(const std::vector<std::string>& ids)
+{
+    std::map<std::string, std::uint64_t> result;
+    if (ids.empty()) return result;
+    try {
+        std::string body = "itemcount=" + std::to_string(ids.size());
+        for (size_t i = 0; i < ids.size(); i++)
+            body += "&publishedfileids[" + std::to_string(i) + "]=" + ids[i];
+
+        auto resp = utils::http::post_data(
+            "https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/", body, 15);
+        if (!resp || resp->empty()) return result;
+
+        rapidjson::Document doc;
+        if (doc.Parse(resp->c_str()).HasParseError() || !doc.IsObject()) return result;
+        auto resp_it = doc.FindMember("response");
+        if (resp_it == doc.MemberEnd() || !resp_it->value.IsObject()) return result;
+        auto details_it = resp_it->value.FindMember("publishedfiledetails");
+        if (details_it == resp_it->value.MemberEnd() || !details_it->value.IsArray()) return result;
+
+        for (rapidjson::SizeType i = 0; i < details_it->value.Size(); i++) {
+            const auto& item = details_it->value[i];
+            if (!item.IsObject()) continue;
+            std::string item_id;
+            auto id_it = item.FindMember("publishedfileid");
+            if (id_it != item.MemberEnd() && id_it->value.IsString())
+                item_id = id_it->value.GetString();
+            if (item_id.empty()) continue;
+
+            auto tu_it = item.FindMember("time_updated");
+            if (tu_it != item.MemberEnd()) {
+                std::uint64_t ts = 0;
+                if (tu_it->value.IsUint64()) ts = tu_it->value.GetUint64();
+                else if (tu_it->value.IsInt64()) ts = static_cast<std::uint64_t>(tu_it->value.GetInt64());
+                else if (tu_it->value.IsUint()) ts = tu_it->value.GetUint();
+                else if (tu_it->value.IsInt()) ts = static_cast<std::uint64_t>(tu_it->value.GetInt());
+                if (ts > 0) result[item_id] = ts;
+            }
+        }
+    } catch (...) {}
+    return result;
 }
 
 void register_callbacks(html_frame* frame)

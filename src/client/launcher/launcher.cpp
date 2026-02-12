@@ -34,6 +34,10 @@ namespace launcher
 		std::string human_readable_size(std::uint64_t bytes);
 		std::filesystem::path get_steam_workshop_path();
 
+		std::mutex library_list_mutex;
+		std::string library_list_cache;
+		std::atomic<bool> library_list_loading{false};
+
 		bool is_game_process_running()
 		{
 			const auto self_pid = GetCurrentProcessId();
@@ -262,15 +266,7 @@ namespace launcher
 			std::filesystem::path base(cwd);
 
 			auto prefixes = utils::string::split(prefixes_csv, ',');
-			for (auto& p : prefixes) utils::string::trim(p);
-
-			// Collect files first to avoid modifying directory while iterating
-			std::vector<std::filesystem::path> to_delete;
-			const char* dirs_to_scan[] = { "zone", "video" };
-
-			for (const auto& dir_name : dirs_to_scan)
-			{
-				std::filesystem::path dir = base / dir_name;
+for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::path> to_delete; const char* dirs_to_scan[] = { "zone", "video" }; for (const auto& dir_name : dirs_to_scan) { std::filesystem::path dir = base / dir_name;
 				if (!std::filesystem::exists(dir)) continue;
 
 				std::error_code ec;
@@ -381,9 +377,7 @@ namespace launcher
 			GetCurrentDirectoryA(sizeof(cwd), cwd);
 			std::filesystem::path base(cwd);
 
-			// Game is typically at: X:\Steam\steamapps\common\Call of Duty Black Ops III
-			// Workshop content is at: X:\Steam\steamapps\workshop\content\311210
-			auto steamapps = base.parent_path().parent_path(); // up from common/<game>
+			auto steamapps = base.parent_path().parent_path();
 			auto workshop_path = steamapps / "workshop" / "content" / "311210";
 			if (std::filesystem::exists(workshop_path))
 			{
@@ -392,15 +386,37 @@ namespace launcher
 			return {};
 		}
 
+		std::uint64_t get_folder_mtime_epoch(const std::filesystem::path& folder)
+		{
+			try {
+				std::error_code ec;
+				auto lwt = std::filesystem::last_write_time(folder, ec);
+				if (ec) return 0;
+				auto sctp = std::chrono::time_point_cast<std::chrono::system_clock::duration>(
+					lwt - std::filesystem::file_time_type::clock::now() + std::chrono::system_clock::now());
+				return static_cast<std::uint64_t>(std::chrono::system_clock::to_time_t(sctp));
+			} catch (...) { return 0; }
+		}
+
+		struct mod_item_info {
+			std::string name;
+			std::string folder;
+			std::string type;
+			std::string id;
+			std::string image;
+			std::string source;
+			std::string path;
+			std::filesystem::path dir_path; // for mtime comparison
+		};
+
 		std::string workshop_list_json()
 		{
 			char cwd[MAX_PATH];
 			GetCurrentDirectoryA(sizeof(cwd), cwd);
 			std::filesystem::path base(cwd);
 
-			rapidjson::StringBuffer buf;
-			rapidjson::Writer<rapidjson::StringBuffer> w(buf);
-			w.StartArray();
+			std::vector<mod_item_info> items;
+
 			auto scan = [&](const std::filesystem::path& parent, const char* type_label) {
 				if (!std::filesystem::exists(parent)) return;
 				for (const auto& entry : std::filesystem::directory_iterator(parent))
@@ -412,35 +428,29 @@ namespace launcher
 					if (!utils::io::read_file(zone_json.string(), &data)) continue;
 					rapidjson::Document doc;
 					if (doc.Parse(data).HasParseError() || !doc.IsObject() || !doc.HasMember("Title") || !doc.HasMember("FolderName")) continue;
-					const char* name = doc["Title"].GetString();
-					std::string id_str;
+					mod_item_info item;
+					item.name = doc["Title"].GetString();
+					item.folder = entry.path().filename().string();
+					item.type = type_label;
+					item.dir_path = entry.path();
 					if (doc.HasMember("PublisherID"))
 					{
 						const auto& pid = doc["PublisherID"];
-						if (pid.IsString()) id_str = pid.GetString();
-						else if (pid.IsInt64()) id_str = std::to_string(pid.GetInt64());
-						else if (pid.IsUint64()) id_str = std::to_string(pid.GetUint64());
+						if (pid.IsString()) item.id = pid.GetString();
+						else if (pid.IsInt64()) item.id = std::to_string(pid.GetInt64());
+						else if (pid.IsUint64()) item.id = std::to_string(pid.GetUint64());
 					}
-					std::string image_url;
 					std::string image_path = find_mod_image_path(entry.path());
 					if (!image_path.empty())
-						image_url = path_to_file_url(image_path);
-					else if (!id_str.empty())
-						image_url = get_steam_workshop_preview_url(id_str);
-
-					w.StartObject();
-					w.Key("name"); w.String(name);
-					w.Key("folder"); w.String(entry.path().filename().string());
-					w.Key("type"); w.String(type_label);
-					w.Key("id"); w.String(id_str.c_str());
-					if (!image_url.empty()) { w.Key("image"); w.String(image_url.c_str()); }
-					w.EndObject();
+						item.image = path_to_file_url(image_path);
+					else if (!item.id.empty())
+						item.image = get_steam_workshop_preview_url(item.id);
+					items.push_back(std::move(item));
 				}
 			};
 			scan(base / "usermaps", "map");
 			scan(base / "mods", "mod");
 
-			// Also scan Steam's native workshop download path
 			std::filesystem::path steam_ws = get_steam_workshop_path();
 			if (!steam_ws.empty())
 			{
@@ -451,8 +461,6 @@ namespace launcher
 				for (const auto& ws_entry : std::filesystem::directory_iterator(steam_ws, ec))
 				{
 					if (!ws_entry.is_directory()) continue;
-					// Each workshop ID folder may contain the mod directly or have subfolders
-					// Check for zone/workshop.json directly
 					std::filesystem::path zone_json = ws_entry.path() / "zone" / "workshop.json";
 					if (utils::io::file_exists(zone_json.string()))
 					{
@@ -460,34 +468,28 @@ namespace launcher
 						if (!utils::io::read_file(zone_json.string(), &data)) continue;
 						rapidjson::Document doc;
 						if (doc.Parse(data).HasParseError() || !doc.IsObject() || !doc.HasMember("Title") || !doc.HasMember("FolderName")) continue;
-						const char* name = doc["Title"].GetString();
-						std::string id_str;
+						mod_item_info item;
+						item.name = doc["Title"].GetString();
+						item.folder = ws_entry.path().filename().string();
+						item.type = "map";
+						item.source = "steam";
+						item.path = ws_entry.path().string();
+						item.dir_path = ws_entry.path();
 						if (doc.HasMember("PublisherID"))
 						{
 							const auto& pid = doc["PublisherID"];
-							if (pid.IsString()) id_str = pid.GetString();
-							else if (pid.IsInt64()) id_str = std::to_string(pid.GetInt64());
-							else if (pid.IsUint64()) id_str = std::to_string(pid.GetUint64());
+							if (pid.IsString()) item.id = pid.GetString();
+							else if (pid.IsInt64()) item.id = std::to_string(pid.GetInt64());
+							else if (pid.IsUint64()) item.id = std::to_string(pid.GetUint64());
 						}
-						std::string image_url;
 						std::string image_path = find_mod_image_path(ws_entry.path());
 						if (!image_path.empty())
-							image_url = path_to_file_url(image_path);
-						else if (!id_str.empty())
-							image_url = get_steam_workshop_preview_url(id_str);
-
-						w.StartObject();
-						w.Key("name"); w.String(name);
-						w.Key("folder"); w.String(ws_entry.path().filename().string());
-						w.Key("type"); w.String("map");
-						w.Key("id"); w.String(id_str.c_str());
-						w.Key("source"); w.String("steam");
-						w.Key("path"); w.String(ws_entry.path().string().c_str());
-						if (!image_url.empty()) { w.Key("image"); w.String(image_url.c_str()); }
-						w.EndObject();
+							item.image = path_to_file_url(image_path);
+						else if (!item.id.empty())
+							item.image = get_steam_workshop_preview_url(item.id);
+						items.push_back(std::move(item));
 						continue;
 					}
-					// Also check one level deeper (subfolder inside the workshop ID folder)
 					for (const auto& sub : std::filesystem::directory_iterator(ws_entry.path(), ec))
 					{
 						if (!sub.is_directory()) continue;
@@ -497,36 +499,61 @@ namespace launcher
 						if (!utils::io::read_file(zone_json.string(), &data)) continue;
 						rapidjson::Document doc;
 						if (doc.Parse(data).HasParseError() || !doc.IsObject() || !doc.HasMember("Title") || !doc.HasMember("FolderName")) continue;
-						const char* name = doc["Title"].GetString();
-						std::string id_str;
+						mod_item_info item;
+						item.name = doc["Title"].GetString();
+						item.folder = sub.path().filename().string();
+						item.type = "map";
+						item.source = "steam";
+						item.path = sub.path().string();
+						item.dir_path = sub.path();
 						if (doc.HasMember("PublisherID"))
 						{
 							const auto& pid = doc["PublisherID"];
-							if (pid.IsString()) id_str = pid.GetString();
-							else if (pid.IsInt64()) id_str = std::to_string(pid.GetInt64());
-							else if (pid.IsUint64()) id_str = std::to_string(pid.GetUint64());
+							if (pid.IsString()) item.id = pid.GetString();
+							else if (pid.IsInt64()) item.id = std::to_string(pid.GetInt64());
+							else if (pid.IsUint64()) item.id = std::to_string(pid.GetUint64());
 						}
-						std::string image_url;
 						std::string image_path = find_mod_image_path(sub.path());
 						if (!image_path.empty())
-							image_url = path_to_file_url(image_path);
-						else if (!id_str.empty())
-							image_url = get_steam_workshop_preview_url(id_str);
-
-						w.StartObject();
-						w.Key("name"); w.String(name);
-						w.Key("folder"); w.String(sub.path().filename().string());
-						w.Key("type"); w.String("map");
-						w.Key("id"); w.String(id_str.c_str());
-						w.Key("source"); w.String("steam");
-						w.Key("path"); w.String(sub.path().string().c_str());
-						if (!image_url.empty()) { w.Key("image"); w.String(image_url.c_str()); }
-						w.EndObject();
+							item.image = path_to_file_url(image_path);
+						else if (!item.id.empty())
+							item.image = get_steam_workshop_preview_url(item.id);
+						items.push_back(std::move(item));
 					}
 				}
 				}
 			}
 
+			std::vector<std::string> all_ids;
+			for (const auto& it : items) {
+				if (!it.id.empty()) all_ids.push_back(it.id);
+			}
+			auto update_times = workshop::batch_get_time_updated(all_ids);
+
+			rapidjson::StringBuffer buf;
+			rapidjson::Writer<rapidjson::StringBuffer> w(buf);
+			w.StartArray();
+			for (const auto& it : items) {
+				w.StartObject();
+				w.Key("name"); w.String(it.name.c_str());
+				w.Key("folder"); w.String(it.folder.c_str());
+				w.Key("type"); w.String(it.type.c_str());
+				w.Key("id"); w.String(it.id.c_str());
+				if (!it.image.empty()) { w.Key("image"); w.String(it.image.c_str()); }
+				if (!it.source.empty()) { w.Key("source"); w.String(it.source.c_str()); }
+				if (!it.path.empty()) { w.Key("path"); w.String(it.path.c_str()); }
+
+				if (!it.id.empty()) {
+					auto tu = update_times.find(it.id);
+					if (tu != update_times.end() && tu->second > 0) {
+						auto local_mtime = get_folder_mtime_epoch(it.dir_path);
+						if (local_mtime > 0 && tu->second > local_mtime) {
+							w.Key("needsUpdate"); w.Bool(true);
+						}
+					}
+				}
+				w.EndObject();
+			}
 			w.EndArray();
 			return std::string(buf.GetString(), buf.GetSize());
 		}
@@ -671,8 +698,35 @@ namespace launcher
 		window.get_html_frame()->register_callback(
 			"workshopList", [](const std::vector<html_argument>& /*params*/) -> CComVariant
 			{
-				auto json = workshop_list_json();
-				return CComVariant(json.c_str());
+				std::lock_guard lock(library_list_mutex);
+				if (!library_list_cache.empty())
+					return CComVariant(library_list_cache.c_str());
+				return CComVariant("[]");
+			});
+
+		window.get_html_frame()->register_callback(
+			"workshopListAsync", [](const std::vector<html_argument>& /*params*/) -> CComVariant
+			{
+				if (library_list_loading.load())
+					return CComVariant("already_loading");
+				library_list_loading = true;
+				std::thread([]() {
+					try {
+						auto json = workshop_list_json();
+						{
+							std::lock_guard lock(library_list_mutex);
+							library_list_cache = std::move(json);
+						}
+					} catch (...) {}
+					library_list_loading = false;
+				}).detach();
+				return CComVariant("started");
+			});
+
+		window.get_html_frame()->register_callback(
+			"workshopListIsLoading", [](const std::vector<html_argument>& /*params*/) -> CComVariant
+			{
+				return CComVariant(library_list_loading.load() ? "true" : "false");
 			});
 
 		window.get_html_frame()->register_callback(

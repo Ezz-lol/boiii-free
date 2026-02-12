@@ -214,7 +214,9 @@ namespace ui_scripting
 			lua["luiglobals"] = lua;
 
 			// Expose IsBOIII for mod compatibility - both as a value and function
-			lua["Engine"]["IsBOIII"] = false;
+			lua["Engine"]["IsBOIII"] = true;
+			lua["Engine"]["IsEZZBOIII"] = true;
+
 			//lua["IsBOIII"] = function([]() { return false; });
 		}
 
