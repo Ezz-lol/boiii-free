@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 #include "html/html_frame.hpp"
 #include "launcher_workshop.hpp"
+#include "../game/game.hpp"
 #include <atomic>
 #include <chrono>
 #include <fstream>
@@ -20,6 +21,16 @@
 #include <utils/string.hpp>
 
 namespace launcher::workshop {
+void try_refresh_workshop_content()
+{
+    try {
+        game::Cbuf_AddText(0, "userContentReload\n");
+        printf("Workshop items refreshed in-game.\n");
+    } catch (...) {
+        // Game not running yet, nothing to refresh
+    }
+}
+
 namespace {
     constexpr const char* WORKSHOP_STATUS_IDLE = "";
 
@@ -1027,10 +1038,53 @@ namespace {
         }
     }
 
+    bool has_zone_content(const std::filesystem::path& dir)
+    {
+        std::error_code ec;
+        if (!std::filesystem::exists(dir, ec)) return false;
+        return compute_folder_size_bytes(dir) > 1024;
+    }
+
+    std::filesystem::path get_steam_workshop_content_path(const std::filesystem::path& game_path)
+    {
+        auto steamapps = game_path.parent_path().parent_path();
+        auto ws_path = steamapps / "workshop" / "content" / "311210";
+        std::error_code ec;
+        if (std::filesystem::exists(ws_path, ec)) return ws_path;
+        return {};
+    }
+
+    bool check_steam_ws_folder(const std::filesystem::path& steam_ws, const std::string& workshop_id)
+    {
+        if (steam_ws.empty()) return false;
+        std::error_code ec;
+        auto item_dir = steam_ws / workshop_id;
+        if (!std::filesystem::exists(item_dir, ec)) return false;
+        if (has_zone_content(item_dir / "zone")) return true;
+        for (const auto& sub : std::filesystem::directory_iterator(item_dir, ec))
+        {
+            if (sub.is_directory(ec) && has_zone_content(sub.path() / "zone"))
+                return true;
+        }
+        return false;
+    }
+
     std::string find_installed_workshop_item(const std::filesystem::path& game_path, const std::string& workshop_id)
     {
         std::error_code ec;
         const char* parent_dirs[] = {"mods", "usermaps"};
+
+        for (const auto& parent_name : parent_dirs)
+        {
+            std::filesystem::path candidate = game_path / parent_name / workshop_id / "zone";
+            if (has_zone_content(candidate))
+                return candidate.parent_path().string();
+        }
+
+        auto steam_ws = get_steam_workshop_content_path(game_path);
+        if (check_steam_ws_folder(steam_ws, workshop_id))
+            return (steam_ws / workshop_id).string();
+
         for (const auto& parent_name : parent_dirs)
         {
             std::filesystem::path parent = game_path / parent_name;
@@ -1041,29 +1095,100 @@ namespace {
                 std::filesystem::path zone_dir = entry.path() / "zone";
                 if (!std::filesystem::exists(zone_dir, ec)) continue;
 
-                if (entry.path().filename().string() == workshop_id)
-                {
-                    if (compute_folder_size_bytes(zone_dir) > 1024)
-                        return entry.path().string();
-                }
-
                 std::filesystem::path wsjson = zone_dir / "workshop.json";
                 if (!std::filesystem::exists(wsjson, ec)) continue;
                 std::string json_str;
                 if (!utils::io::read_file(wsjson.string(), &json_str) || json_str.empty()) continue;
                 rapidjson::Document doc;
                 if (doc.Parse(json_str.c_str()).HasParseError() || !doc.IsObject()) continue;
+
                 auto pfid = doc.FindMember("PublishedFileId");
                 if (pfid != doc.MemberEnd() && pfid->value.IsString())
                 {
                     if (std::string(pfid->value.GetString()) == workshop_id)
                     {
-                        if (compute_folder_size_bytes(zone_dir) > 1024)
+                        if (has_zone_content(zone_dir))
+                            return entry.path().string();
+                    }
+                }
+                auto pubid = doc.FindMember("PublisherID");
+                if (pubid != doc.MemberEnd() && pubid->value.IsString())
+                {
+                    if (std::string(pubid->value.GetString()) == workshop_id)
+                    {
+                        if (has_zone_content(zone_dir))
                             return entry.path().string();
                     }
                 }
             }
         }
+
+
+        try {
+            std::string body = "itemcount=1&publishedfileids[0]=" + workshop_id;
+            auto api_resp = utils::http::post_data(STEAM_WORKSHOP_API, body, 8);
+            if (api_resp && !api_resp->empty()) {
+                rapidjson::Document api_doc;
+                if (!api_doc.Parse(api_resp->c_str()).HasParseError() && api_doc.IsObject()) {
+                    auto ri = api_doc.FindMember("response");
+                    if (ri != api_doc.MemberEnd() && ri->value.IsObject()) {
+                        auto di = ri->value.FindMember("publishedfiledetails");
+                        if (di != ri->value.MemberEnd() && di->value.IsArray() && !di->value.Empty()) {
+                            const auto& item = di->value[0];
+
+                            std::string mod_type = "mod";
+                            auto ti = item.FindMember("tags");
+                            if (ti != item.MemberEnd() && ti->value.IsArray()) {
+                                for (auto it = ti->value.Begin(); it != ti->value.End(); ++it) {
+                                    if (it->IsObject()) {
+                                        auto tag_it = it->FindMember("tag");
+                                        if (tag_it != it->MemberEnd() && tag_it->value.IsString()) {
+                                            std::string t = tag_it->value.GetString();
+                                            for (auto& c : t) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+                                            if (t == "map" || t == "maps" || t.find("map") != std::string::npos) {
+                                                mod_type = "map";
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            std::string folder_name = workshop_id;
+
+                            auto title_it = item.FindMember("title");
+                            if (title_it != item.MemberEnd() && title_it->value.IsString()) {
+                                std::string title = title_it->value.GetString();
+                                std::string safe_name;
+                                for (char c : title) {
+                                    if (std::isalnum(static_cast<unsigned char>(c)) || c == ' ' || c == '-' || c == '_')
+                                        safe_name += c;
+                                }
+                                while (!safe_name.empty() && safe_name.back() == ' ') safe_name.pop_back();
+                                while (!safe_name.empty() && safe_name.front() == ' ') safe_name.erase(safe_name.begin());
+                                for (auto& c : safe_name) { if (c == ' ') c = '_'; }
+                                if (safe_name.length() > 60) safe_name = safe_name.substr(0, 60);
+                                if (!safe_name.empty()) {
+                                    folder_name = safe_name;
+                                }
+                            }
+
+                            std::vector<std::string> names_to_check = { folder_name };
+                            if (folder_name != workshop_id) names_to_check.push_back(workshop_id);
+
+                            for (const auto& name : names_to_check) {
+                                for (const auto& parent_name : parent_dirs) {
+                                    std::filesystem::path candidate = game_path / parent_name / name / "zone";
+                                    if (has_zone_content(candidate))
+                                        return candidate.parent_path().string();
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (...) {}
+
         return "";
     }
 
@@ -1072,7 +1197,7 @@ namespace {
         try {
             reset_workshop_status();
             workshop_cancel_requested = false;
-            set_workshop_status("Initializing...", 0.0, "Workshop ID: " + workshop_id);
+            set_workshop_status("Initializing...", -1.0, "Workshop ID: " + workshop_id);
 
             char cwd[MAX_PATH];
             GetCurrentDirectoryA(sizeof(cwd), cwd);
@@ -1094,7 +1219,7 @@ namespace {
             std::string steamcmd_dir_str = steamcmd_dir.string();
 
             if (!std::filesystem::exists(steamcmd_exe)) {
-                set_workshop_status("Downloading SteamCMD...", 0.0, "First-time setup - downloading from Steam CDN");
+                set_workshop_status("Downloading SteamCMD...", -1.0, "First-time setup - downloading from Steam CDN");
 
                 std::error_code ec;
                 std::filesystem::create_directories(steamcmd_dir, ec);
@@ -1111,7 +1236,7 @@ namespace {
                     return;
                 }
 
-                set_workshop_status("Extracting SteamCMD...", 0.0, "");
+                set_workshop_status("Extracting SteamCMD...", -1.0, "");
                 try {
                     auto files = utils::compression::zip::extract(*zip_data);
                     if (files.empty()) {
@@ -1138,7 +1263,7 @@ namespace {
                 std::error_code ec;
                 const auto exe_size = std::filesystem::file_size(steamcmd_exe, ec);
                 if (!ec && exe_size < 3 * 1024 * 1024) {
-                    set_workshop_status("Initializing SteamCMD (first run)...", 0.0,
+                    set_workshop_status("Initializing SteamCMD (first run)...", -1.0,
                         "SteamCMD is updating itself, this may take a minute");
                     std::string init_cmd = "\"" + steamcmd_exe.string() + "\" +quit";
                     STARTUPINFOA si {};
@@ -1163,7 +1288,7 @@ namespace {
                 }
             }
 
-            set_workshop_status("Fetching file info...", 0.0, "Workshop ID: " + workshop_id);
+            set_workshop_status("Fetching file info...", -1.0, "Workshop ID: " + workshop_id);
             const auto ws_info = get_steam_workshop_info(workshop_id);
             const std::uint64_t expected_size = ws_info.file_size;
             const std::string workshop_title = ws_info.title.empty() ? ("Workshop #" + workshop_id) : ws_info.title;
@@ -1213,7 +1338,7 @@ namespace {
                 }
 
                 if (fast_fail_count >= FAIL_THRESHOLD) {
-                    set_workshop_status("Resetting SteamCMD...", 0.0,
+                    set_workshop_status("Resetting SteamCMD...", -1.0,
                         "Too many quick failures (" + std::to_string(fast_fail_count) + "), resetting and retrying");
                     std::error_code ec;
                     for (const auto& dir_name : {"steamapps", "dumps", "logs", "depotcache", "appcache", "userdata"}) {
@@ -1227,7 +1352,7 @@ namespace {
                 }
 
                 std::string attempt_str = (attempt > 1) ? (" (attempt " + std::to_string(attempt) + ")") : "";
-                set_workshop_status("Starting download: " + workshop_title + attempt_str, 0.0,
+                set_workshop_status("Starting download: " + workshop_title + attempt_str, -1.0,
                     expected_size > 0 ? ("File size: " + human_readable_size(expected_size)) : "Workshop ID: " + workshop_id);
 
                 std::string full_cmd = "\"" + steamcmd_exe.string() + "\" " + cmd_args;
@@ -1729,6 +1854,57 @@ namespace {
                     std::filesystem::remove_all(alt_download_path, cleanup_ec);
             }
 
+            try {
+                std::filesystem::path ws_json_path = dest / "workshop.json";
+                std::string ws_json_str;
+                rapidjson::Document ws_doc;
+                bool need_write = false;
+
+                if (utils::io::read_file(ws_json_path.string(), &ws_json_str) && !ws_json_str.empty()) {
+                    if (!ws_doc.Parse(ws_json_str.c_str()).HasParseError() && ws_doc.IsObject()) {
+                        auto pfid = ws_doc.FindMember("PublishedFileId");
+                        if (pfid == ws_doc.MemberEnd() || !pfid->value.IsString()
+                            || std::string(pfid->value.GetString()) != workshop_id) {
+                            if (pfid != ws_doc.MemberEnd()) {
+                                pfid->value.SetString(workshop_id.c_str(),
+                                    static_cast<rapidjson::SizeType>(workshop_id.size()), ws_doc.GetAllocator());
+                            } else {
+                                ws_doc.AddMember(
+                                    rapidjson::Value("PublishedFileId", ws_doc.GetAllocator()),
+                                    rapidjson::Value(workshop_id.c_str(),
+                                        static_cast<rapidjson::SizeType>(workshop_id.size()), ws_doc.GetAllocator()),
+                                    ws_doc.GetAllocator());
+                            }
+                            need_write = true;
+                        }
+                    } else {
+                        ws_doc.SetObject();
+                        ws_doc.AddMember(
+                            rapidjson::Value("PublishedFileId", ws_doc.GetAllocator()),
+                            rapidjson::Value(workshop_id.c_str(),
+                                static_cast<rapidjson::SizeType>(workshop_id.size()), ws_doc.GetAllocator()),
+                            ws_doc.GetAllocator());
+                        need_write = true;
+                    }
+                } else {
+                    ws_doc.SetObject();
+                    ws_doc.AddMember(
+                        rapidjson::Value("PublishedFileId", ws_doc.GetAllocator()),
+                        rapidjson::Value(workshop_id.c_str(),
+                            static_cast<rapidjson::SizeType>(workshop_id.size()), ws_doc.GetAllocator()),
+                        ws_doc.GetAllocator());
+                    need_write = true;
+                }
+
+                if (need_write) {
+                    rapidjson::StringBuffer sb;
+                    rapidjson::Writer<rapidjson::StringBuffer> writer(sb);
+                    ws_doc.Accept(writer);
+                    utils::io::write_file(ws_json_path.string(), std::string(sb.GetString(), sb.GetSize()), false);
+                }
+            } catch (...) {
+            }
+
             {
                 bool has_zone_files = false;
                 std::error_code verify_ec;
@@ -1753,6 +1929,7 @@ namespace {
                     set_workshop_status("Done! Workshop item installed.", 100.0,
                         mod_type + " \"" + folder_name + "\" installed (" + human_readable_size(dest_size) + ") - no .ff files found, may need manual setup.\n"
                         "Installed to: " + dest.string());
+                    try_refresh_workshop_content();
                     return;
                 }
             }
@@ -1762,6 +1939,7 @@ namespace {
                 set_workshop_status("Done! Workshop item installed successfully.", 100.0,
                     mod_type + " \"" + folder_name + "\" is ready to use (" + human_readable_size(final_size) + ").\n"
                     "Installed to: " + dest.string());
+                try_refresh_workshop_content();
             }
         } catch (const std::filesystem::filesystem_error& fse) {
             std::string detail = fse.what();
@@ -1841,6 +2019,19 @@ void register_callbacks(html_frame* frame)
             w.String(workshop_download_folder.c_str());
             w.EndObject();
             return CComVariant(std::string(buf.GetString(), buf.GetSize()).c_str());
+        });
+
+    frame->register_callback(
+        "workshopCheckInstalled", [](const std::vector<html_argument>& params) -> CComVariant {
+            if (params.empty() || !params[0].is_string())
+                return CComVariant("");
+            auto id = extract_workshop_id(params[0].get_string());
+            if (id.empty()) return CComVariant("");
+            char cwd[MAX_PATH];
+            GetCurrentDirectoryA(sizeof(cwd), cwd);
+            std::filesystem::path game_path(cwd);
+            auto existing = find_installed_workshop_item(game_path, id);
+            return CComVariant(existing.c_str());
         });
 
     frame->register_callback(

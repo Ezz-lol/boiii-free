@@ -517,6 +517,7 @@ namespace launcher
 			{
 				std::filesystem::remove_all(usermaps_dir, ec);
 			}
+			launcher::workshop::try_refresh_workshop_content();
 		}
 
 		void workshop_remove_by_path(const std::string& path_str)
@@ -530,6 +531,7 @@ namespace launcher
 			{
 				std::filesystem::remove_all(target, ec);
 			}
+			launcher::workshop::try_refresh_workshop_content();
 		}
 
 		void workshop_remove_all_folders()
@@ -557,6 +559,7 @@ namespace launcher
 					clear_subdirs(steam_ws);
 				}
 			}
+			launcher::workshop::try_refresh_workshop_content();
 		}
 
 		static const std::vector<std::string> IMAGE_EXTENSIONS = { ".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp" };

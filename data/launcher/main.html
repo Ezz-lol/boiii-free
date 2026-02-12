@@ -2331,6 +2331,13 @@
         try {
           var ex = getExternal();
           if (ex && ex.workshopDownload) {
+            if (ex.workshopCheckInstalled) {
+              var installed = ex.workshopCheckInstalled(String(id));
+              if (installed && installed.length > 0) {
+                showMessage('Already Installed', 'This workshop item is already installed at:\n' + installed + '\n\nRemove it first if you want to reinstall.');
+                return;
+              }
+            }
             ex.workshopDownload(String(id));
 
             var msgEl = document.getElementById('workshopStatusMessage');
@@ -2361,7 +2368,7 @@
                   var statusJson = ex2.workshopGetStatus();
                   if (statusJson) {
                     var status = typeof statusJson === 'string' ? JSON.parse(statusJson) : statusJson;
-                    if (status.message && (status.message.indexOf('Done') !== -1 || status.message.indexOf('Error') !== -1 || status.message.indexOf('Canceled') !== -1)) {
+                    if (status.message && (status.message.indexOf('Done') !== -1 || status.message.indexOf('Error') !== -1 || status.message.indexOf('Canceled') !== -1 || status.message.indexOf('Already installed') !== -1)) {
                       clearInterval(window._workshopPollInterval);
                       window._workshopPollInterval = null;
                       workshopDownloadBtn.disabled = false;
@@ -3182,7 +3189,7 @@
                         var sj = ex2.workshopGetStatus();
                         if (sj) {
                           var st = typeof sj === 'string' ? JSON.parse(sj) : sj;
-                          if (st.message && (st.message.indexOf('Done') !== -1 || st.message.indexOf('Error') !== -1)) {
+                          if (st.message && (st.message.indexOf('Done') !== -1 || st.message.indexOf('Error') !== -1 || st.message.indexOf('Already installed') !== -1)) {
                             clearInterval(pollInterval);
                             workshopDownloadBtn.disabled = false;
                             setTimeout(refreshModsGrid, 500);
@@ -3314,7 +3321,8 @@
             var isDone = status.message.indexOf('Done') !== -1;
             var isError = status.message.indexOf('Error') !== -1;
             var isCanceled = status.message.indexOf('Canceled') !== -1;
-            if (isDone || isError || isCanceled) {
+            var isAlreadyInstalled = status.message.indexOf('Already installed') !== -1;
+            if (isDone || isError || isCanceled || isAlreadyInstalled) {
               if (window._workshopPollInterval) {
                 clearInterval(window._workshopPollInterval);
                 window._workshopPollInterval = null;
@@ -3338,6 +3346,14 @@
                 workshopProgress.style.display = 'none';
                 if (msgEl) msgEl.style.color = 'rgba(249,115,22,0.9)';
                 hideProgress();
+              } else if (isAlreadyInstalled) {
+                workshopProgress.style.display = 'none';
+                if (msgEl) msgEl.style.color = 'rgba(249,115,22,0.9)';
+                hideProgress();
+                if (window._lastWorkshopTerminalState !== status.message) {
+                  window._lastWorkshopTerminalState = status.message;
+                  showMessage('Already Installed', status.details || 'This workshop item is already installed.\nRemove it first if you want to reinstall.');
+                }
               } else if (isDone) {
                 workshopId.value = '';
                 setTimeout(function() {
@@ -3478,7 +3494,7 @@
                       var sj = ex3.workshopGetStatus();
                       if (sj) {
                         var st = typeof sj === 'string' ? JSON.parse(sj) : sj;
-                        if (st.message && (st.message.indexOf('Done') !== -1 || st.message.indexOf('Error') !== -1)) {
+                        if (st.message && (st.message.indexOf('Done') !== -1 || st.message.indexOf('Error') !== -1 || st.message.indexOf('Already installed') !== -1)) {
                           clearInterval(pollInterval);
                           idx++;
                           setTimeout(updateNext, 300);
