@@ -56,7 +56,8 @@ namespace launcher
 						CloseHandle(snap);
 						return true;
 					}
-				} while (Process32NextW(snap, &pe));
+				}
+				while (Process32NextW(snap, &pe));
 			}
 
 			CloseHandle(snap);
@@ -108,7 +109,8 @@ namespace launcher
 			std::filesystem::path base(cwd);
 
 			std::error_code ec;
-			auto clear_subdirs = [&ec](const std::filesystem::path& dir) {
+			auto clear_subdirs = [&ec](const std::filesystem::path& dir)
+			{
 				if (!std::filesystem::exists(dir)) return;
 				for (const auto& entry : std::filesystem::directory_iterator(dir, ec))
 					if (entry.is_directory())
@@ -128,14 +130,15 @@ namespace launcher
 			}
 		}
 
-		static const std::vector<std::string> IMAGE_EXTENSIONS = { ".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp" };
+		const std::vector<std::string> IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp"};
 
 		bool path_starts_with_ignore_case(const std::string& stem, const std::string& prefix)
 		{
 			if (prefix.size() > stem.size()) return false;
 			for (size_t i = 0; i < prefix.size(); ++i)
 			{
-				if (std::tolower(static_cast<unsigned char>(stem[i])) != std::tolower(static_cast<unsigned char>(prefix[i])))
+				if (std::tolower(static_cast<unsigned char>(stem[i])) != std::tolower(
+					static_cast<unsigned char>(prefix[i])))
 					return false;
 			}
 			return true;
@@ -153,7 +156,7 @@ namespace launcher
 		std::string find_mod_image_path(const std::filesystem::path& mod_root)
 		{
 			std::filesystem::path zone_dir = mod_root / "zone";
-			std::vector<std::filesystem::path> dirs_to_scan = { mod_root };
+			std::vector<std::filesystem::path> dirs_to_scan = {mod_root};
 			if (std::filesystem::exists(zone_dir)) dirs_to_scan.push_back(zone_dir);
 
 			std::string found_preview, found_loading, found_any;
@@ -201,7 +204,8 @@ namespace launcher
 			GetCurrentDirectoryA(sizeof(cwd), cwd);
 			std::filesystem::path base(cwd);
 
-			struct mode_info {
+			struct mode_info
+			{
 				const char* prefix;
 				const char* key;
 				std::uint64_t total_size = 0;
@@ -214,7 +218,7 @@ namespace launcher
 				{"zm_", "zombies", 0, 0}
 			};
 
-			const char* dirs_to_scan[] = { "zone", "video" };
+			const char* dirs_to_scan[] = {"zone", "video"};
 
 			for (const auto& dir_name : dirs_to_scan)
 			{
@@ -246,9 +250,12 @@ namespace launcher
 			{
 				w.Key(m.key);
 				w.StartObject();
-				w.Key("count"); w.Uint(m.file_count);
-				w.Key("size"); w.Uint64(m.total_size);
-				w.Key("sizeHuman"); w.String(human_readable_size(m.total_size).c_str());
+				w.Key("count");
+				w.Uint(m.file_count);
+				w.Key("size");
+				w.Uint64(m.total_size);
+				w.Key("sizeHuman");
+				w.String(human_readable_size(m.total_size).c_str());
 				w.EndObject();
 			}
 			w.EndObject();
@@ -266,7 +273,7 @@ namespace launcher
 
 			// Collect files first to avoid modifying directory while iterating
 			std::vector<std::filesystem::path> to_delete;
-			const char* dirs_to_scan[] = { "zone", "video" };
+			const char* dirs_to_scan[] = {"zone", "video"};
 
 			for (const auto& dir_name : dirs_to_scan)
 			{
@@ -312,14 +319,18 @@ namespace launcher
 			rapidjson::StringBuffer buf;
 			rapidjson::Writer<rapidjson::StringBuffer> w(buf);
 			w.StartObject();
-			w.Key("removedCount"); w.Uint(removed_count);
-			w.Key("removedSize"); w.String(human_readable_size(removed_size).c_str());
-			w.Key("failedCount"); w.Uint(failed_count);
+			w.Key("removedCount");
+			w.Uint(removed_count);
+			w.Key("removedSize");
+			w.String(human_readable_size(removed_size).c_str());
+			w.Key("failedCount");
+			w.Uint(failed_count);
 			w.EndObject();
 			return std::string(buf.GetString(), buf.GetSize());
 		}
 
-		constexpr const char* STEAM_WORKSHOP_API = "https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/";
+		constexpr auto STEAM_WORKSHOP_API =
+			"https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/";
 		constexpr int BO3_APP_ID = 311210;
 
 		std::string get_steam_workshop_preview_url(const std::string& workshop_id)
@@ -336,7 +347,8 @@ namespace launcher
 				auto resp_it = doc.FindMember("response");
 				if (resp_it == doc.MemberEnd() || !resp_it->value.IsObject()) return {};
 				auto details_it = resp_it->value.FindMember("publishedfiledetails");
-				if (details_it == resp_it->value.MemberEnd() || !details_it->value.IsArray() || details_it->value.Empty()) return {};
+				if (details_it == resp_it->value.MemberEnd() || !details_it->value.IsArray() || details_it->value.
+					Empty()) return {};
 
 				const rapidjson::Value& first = details_it->value[0];
 				if (!first.IsObject()) return {};
@@ -360,7 +372,7 @@ namespace launcher
 
 		std::string human_readable_size(std::uint64_t bytes)
 		{
-			const char* suffixes[] = { "B", "KB", "MB", "GB", "TB" };
+			const char* suffixes[] = {"B", "KB", "MB", "GB", "TB"};
 			double value = static_cast<double>(bytes);
 			int idx = 0;
 
@@ -401,7 +413,8 @@ namespace launcher
 			rapidjson::StringBuffer buf;
 			rapidjson::Writer<rapidjson::StringBuffer> w(buf);
 			w.StartArray();
-			auto scan = [&](const std::filesystem::path& parent, const char* type_label) {
+			auto scan = [&](const std::filesystem::path& parent, const char* type_label)
+			{
 				if (!std::filesystem::exists(parent)) return;
 				for (const auto& entry : std::filesystem::directory_iterator(parent))
 				{
@@ -411,7 +424,8 @@ namespace launcher
 					std::string data;
 					if (!utils::io::read_file(zone_json.string(), &data)) continue;
 					rapidjson::Document doc;
-					if (doc.Parse(data).HasParseError() || !doc.IsObject() || !doc.HasMember("Title") || !doc.HasMember("FolderName")) continue;
+					if (doc.Parse(data).HasParseError() || !doc.IsObject() || !doc.HasMember("Title") || !doc.
+						HasMember("FolderName")) continue;
 					const char* name = doc["Title"].GetString();
 					std::string id_str;
 					if (doc.HasMember("PublisherID"))
@@ -429,11 +443,19 @@ namespace launcher
 						image_url = get_steam_workshop_preview_url(id_str);
 
 					w.StartObject();
-					w.Key("name"); w.String(name);
-					w.Key("folder"); w.String(entry.path().filename().string());
-					w.Key("type"); w.String(type_label);
-					w.Key("id"); w.String(id_str.c_str());
-					if (!image_url.empty()) { w.Key("image"); w.String(image_url.c_str()); }
+					w.Key("name");
+					w.String(name);
+					w.Key("folder");
+					w.String(entry.path().filename().string());
+					w.Key("type");
+					w.String(type_label);
+					w.Key("id");
+					w.String(id_str.c_str());
+					if (!image_url.empty())
+					{
+						w.Key("image");
+						w.String(image_url.c_str());
+					}
 					w.EndObject();
 				}
 			};
@@ -447,83 +469,105 @@ namespace launcher
 				std::error_code ws_ec;
 				if (std::filesystem::exists(steam_ws, ws_ec))
 				{
-				std::error_code ec;
-				for (const auto& ws_entry : std::filesystem::directory_iterator(steam_ws, ec))
-				{
-					if (!ws_entry.is_directory()) continue;
-					// Each workshop ID folder may contain the mod directly or have subfolders
-					// Check for zone/workshop.json directly
-					std::filesystem::path zone_json = ws_entry.path() / "zone" / "workshop.json";
-					if (utils::io::file_exists(zone_json.string()))
+					std::error_code ec;
+					for (const auto& ws_entry : std::filesystem::directory_iterator(steam_ws, ec))
 					{
-						std::string data;
-						if (!utils::io::read_file(zone_json.string(), &data)) continue;
-						rapidjson::Document doc;
-						if (doc.Parse(data).HasParseError() || !doc.IsObject() || !doc.HasMember("Title") || !doc.HasMember("FolderName")) continue;
-						const char* name = doc["Title"].GetString();
-						std::string id_str;
-						if (doc.HasMember("PublisherID"))
+						if (!ws_entry.is_directory()) continue;
+						// Each workshop ID folder may contain the mod directly or have subfolders
+						// Check for zone/workshop.json directly
+						std::filesystem::path zone_json = ws_entry.path() / "zone" / "workshop.json";
+						if (utils::io::file_exists(zone_json.string()))
 						{
-							const auto& pid = doc["PublisherID"];
-							if (pid.IsString()) id_str = pid.GetString();
-							else if (pid.IsInt64()) id_str = std::to_string(pid.GetInt64());
-							else if (pid.IsUint64()) id_str = std::to_string(pid.GetUint64());
-						}
-						std::string image_url;
-						std::string image_path = find_mod_image_path(ws_entry.path());
-						if (!image_path.empty())
-							image_url = path_to_file_url(image_path);
-						else if (!id_str.empty())
-							image_url = get_steam_workshop_preview_url(id_str);
+							std::string data;
+							if (!utils::io::read_file(zone_json.string(), &data)) continue;
+							rapidjson::Document doc;
+							if (doc.Parse(data).HasParseError() || !doc.IsObject() || !doc.HasMember("Title") || !doc.
+								HasMember("FolderName")) continue;
+							const char* name = doc["Title"].GetString();
+							std::string id_str;
+							if (doc.HasMember("PublisherID"))
+							{
+								const auto& pid = doc["PublisherID"];
+								if (pid.IsString()) id_str = pid.GetString();
+								else if (pid.IsInt64()) id_str = std::to_string(pid.GetInt64());
+								else if (pid.IsUint64()) id_str = std::to_string(pid.GetUint64());
+							}
+							std::string image_url;
+							std::string image_path = find_mod_image_path(ws_entry.path());
+							if (!image_path.empty())
+								image_url = path_to_file_url(image_path);
+							else if (!id_str.empty())
+								image_url = get_steam_workshop_preview_url(id_str);
 
-						w.StartObject();
-						w.Key("name"); w.String(name);
-						w.Key("folder"); w.String(ws_entry.path().filename().string());
-						w.Key("type"); w.String("map");
-						w.Key("id"); w.String(id_str.c_str());
-						w.Key("source"); w.String("steam");
-						w.Key("path"); w.String(ws_entry.path().string().c_str());
-						if (!image_url.empty()) { w.Key("image"); w.String(image_url.c_str()); }
-						w.EndObject();
-						continue;
-					}
-					// Also check one level deeper (subfolder inside the workshop ID folder)
-					for (const auto& sub : std::filesystem::directory_iterator(ws_entry.path(), ec))
-					{
-						if (!sub.is_directory()) continue;
-						zone_json = sub.path() / "zone" / "workshop.json";
-						if (!utils::io::file_exists(zone_json.string())) continue;
-						std::string data;
-						if (!utils::io::read_file(zone_json.string(), &data)) continue;
-						rapidjson::Document doc;
-						if (doc.Parse(data).HasParseError() || !doc.IsObject() || !doc.HasMember("Title") || !doc.HasMember("FolderName")) continue;
-						const char* name = doc["Title"].GetString();
-						std::string id_str;
-						if (doc.HasMember("PublisherID"))
+							w.StartObject();
+							w.Key("name");
+							w.String(name);
+							w.Key("folder");
+							w.String(ws_entry.path().filename().string());
+							w.Key("type");
+							w.String("map");
+							w.Key("id");
+							w.String(id_str.c_str());
+							w.Key("source");
+							w.String("steam");
+							w.Key("path");
+							w.String(ws_entry.path().string().c_str());
+							if (!image_url.empty())
+							{
+								w.Key("image");
+								w.String(image_url.c_str());
+							}
+							w.EndObject();
+							continue;
+						}
+						// Also check one level deeper (subfolder inside the workshop ID folder)
+						for (const auto& sub : std::filesystem::directory_iterator(ws_entry.path(), ec))
 						{
-							const auto& pid = doc["PublisherID"];
-							if (pid.IsString()) id_str = pid.GetString();
-							else if (pid.IsInt64()) id_str = std::to_string(pid.GetInt64());
-							else if (pid.IsUint64()) id_str = std::to_string(pid.GetUint64());
-						}
-						std::string image_url;
-						std::string image_path = find_mod_image_path(sub.path());
-						if (!image_path.empty())
-							image_url = path_to_file_url(image_path);
-						else if (!id_str.empty())
-							image_url = get_steam_workshop_preview_url(id_str);
+							if (!sub.is_directory()) continue;
+							zone_json = sub.path() / "zone" / "workshop.json";
+							if (!utils::io::file_exists(zone_json.string())) continue;
+							std::string data;
+							if (!utils::io::read_file(zone_json.string(), &data)) continue;
+							rapidjson::Document doc;
+							if (doc.Parse(data).HasParseError() || !doc.IsObject() || !doc.HasMember("Title") || !doc.
+								HasMember("FolderName")) continue;
+							const char* name = doc["Title"].GetString();
+							std::string id_str;
+							if (doc.HasMember("PublisherID"))
+							{
+								const auto& pid = doc["PublisherID"];
+								if (pid.IsString()) id_str = pid.GetString();
+								else if (pid.IsInt64()) id_str = std::to_string(pid.GetInt64());
+								else if (pid.IsUint64()) id_str = std::to_string(pid.GetUint64());
+							}
+							std::string image_url;
+							std::string image_path = find_mod_image_path(sub.path());
+							if (!image_path.empty())
+								image_url = path_to_file_url(image_path);
+							else if (!id_str.empty())
+								image_url = get_steam_workshop_preview_url(id_str);
 
-						w.StartObject();
-						w.Key("name"); w.String(name);
-						w.Key("folder"); w.String(sub.path().filename().string());
-						w.Key("type"); w.String("map");
-						w.Key("id"); w.String(id_str.c_str());
-						w.Key("source"); w.String("steam");
-						w.Key("path"); w.String(sub.path().string().c_str());
-						if (!image_url.empty()) { w.Key("image"); w.String(image_url.c_str()); }
-						w.EndObject();
+							w.StartObject();
+							w.Key("name");
+							w.String(name);
+							w.Key("folder");
+							w.String(sub.path().filename().string());
+							w.Key("type");
+							w.String("map");
+							w.Key("id");
+							w.String(id_str.c_str());
+							w.Key("source");
+							w.String("steam");
+							w.Key("path");
+							w.String(sub.path().string().c_str());
+							if (!image_url.empty())
+							{
+								w.Key("image");
+								w.String(image_url.c_str());
+							}
+							w.EndObject();
+						}
 					}
-				}
 				}
 			}
 
@@ -604,7 +648,7 @@ namespace launcher
 			}
 
 			if (CreateProcessA(exe_path.data(), command_line.data(), nullptr, nullptr, false,
-				CREATE_NEW_CONSOLE, nullptr, current_dir, &startup_info, &process_info))
+			                   CREATE_NEW_CONSOLE, nullptr, current_dir, &startup_info, &process_info))
 			{
 				if (process_info.hThread && process_info.hThread != INVALID_HANDLE_VALUE)
 				{
@@ -689,7 +733,7 @@ namespace launcher
 				return CComVariant(result.c_str());
 			});
 
-		launcher::workshop::register_callbacks(window.get_html_frame());
+		workshop::register_callbacks(window.get_html_frame());
 
 		window.get_html_frame()->register_callback(
 			"invoke", [](const std::vector<html_argument>& params) -> CComVariant

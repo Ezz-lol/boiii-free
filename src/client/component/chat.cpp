@@ -146,8 +146,8 @@ namespace chat
 					send_chat_message(-1, text);
 					const auto* sayname = game::Dvar_FindVar("sv_sayname");
 					const auto* label = (sayname && sayname->current.value.string && sayname->current.value.string[0])
-						? sayname->current.value.string
-						: "Server";
+						                    ? sayname->current.value.string
+						                    : "Server";
 					printf("%s: %s\n", label, text.data());
 				});
 

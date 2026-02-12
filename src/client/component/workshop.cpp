@@ -31,7 +31,7 @@ namespace workshop
 		utils::hook::detour setup_server_map_hook;
 		utils::hook::detour load_usermap_hook;
 
-		static const std::unordered_map<std::string, std::string> dlc_links = {
+		const std::unordered_map<std::string, std::string> dlc_links = {
 			{"zm_zod", "https://forum.ezz.lol/topic/6/bo3-dlc"},
 			{"zm_castle", "https://forum.ezz.lol/topic/6/bo3-dlc"},
 			{"zm_island", "https://forum.ezz.lol/topic/6/bo3-dlc"},
@@ -77,7 +77,7 @@ namespace workshop
 						"Missing DLC map: %s\n\nYou can download it from:\n%s\n\nWould you like to open the download page?",
 						map.c_str(), it->second.c_str());
 					const int result = MessageBoxA(nullptr, msg, "DLC Required",
-						MB_YESNO | MB_ICONQUESTION | MB_SYSTEMMODAL);
+					                               MB_YESNO | MB_ICONQUESTION | MB_SYSTEMMODAL);
 					if (result == IDYES)
 						ShellExecuteA(nullptr, "open", it->second.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 				}
@@ -340,7 +340,8 @@ namespace workshop
 
 	extern bool downloading_workshop_item = false;
 
-	bool check_valid_usermap_id(const std::string& mapname, const std::string& pub_id, const std::string& workshop_id, const std::string& base_url)
+	bool check_valid_usermap_id(const std::string& mapname, const std::string& pub_id, const std::string& workshop_id,
+	                            const std::string& base_url)
 	{
 		if (!game::DB_FileExists(mapname.data(), 0) && pub_id.empty())
 		{
@@ -353,7 +354,7 @@ namespace workshop
 			if (downloading_workshop_item || fastdl::is_downloading())
 			{
 				game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI,
-					"You are already downloading a map in the background. You can download only one item at a time.");
+				                                   "You are already downloading a map in the background. You can download only one item at a time.");
 				return false;
 			}
 
@@ -371,7 +372,8 @@ namespace workshop
 						game::reloadUserContent();
 					}, scheduler::main);
 				};
-				printf("[ Workshop ] Server has FastDL, attempting download for %s from %s\n", mapname.data(), base_url.data());
+				printf("[ Workshop ] Server has FastDL, attempting download for %s from %s\n", mapname.data(),
+				       base_url.data());
 				fastdl::start_map_download(context);
 				return false;
 			}
@@ -379,8 +381,10 @@ namespace workshop
 			if (utils::string::is_numeric(mapname.data()))
 			{
 				const int result = MessageBoxA(nullptr,
-					utils::string::va("Usermap '%s' not found.\n\nDo you want to download it from the Workshop now?", mapname.data()),
-					"Missing Usermap", MB_OKCANCEL | MB_ICONQUESTION | MB_SYSTEMMODAL);
+				                               utils::string::va(
+					                               "Usermap '%s' not found.\n\nDo you want to download it from the Workshop now?",
+					                               mapname.data()),
+				                               "Missing Usermap", MB_OKCANCEL | MB_ICONQUESTION | MB_SYSTEMMODAL);
 				if (result == IDOK)
 				{
 					download_thread = utils::thread::create_named_thread(
@@ -391,8 +395,10 @@ namespace workshop
 			else if (!workshop_id.empty() && utils::string::is_numeric(workshop_id.data()))
 			{
 				const int result = MessageBoxA(nullptr,
-					utils::string::va("Usermap '%s' not found.\n\nDo you want to download it from the Workshop now?", mapname.data()),
-					"Missing Usermap", MB_OKCANCEL | MB_ICONQUESTION | MB_SYSTEMMODAL);
+				                               utils::string::va(
+					                               "Usermap '%s' not found.\n\nDo you want to download it from the Workshop now?",
+					                               mapname.data()),
+				                               "Missing Usermap", MB_OKCANCEL | MB_ICONQUESTION | MB_SYSTEMMODAL);
 				if (result == IDOK)
 				{
 					download_thread = utils::thread::create_named_thread(
@@ -403,9 +409,9 @@ namespace workshop
 			else
 			{
 				game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI,
-					utils::string::va(
-						"Missing usermap: %s\n\nThis server did not provide FastDL (sv_wwwBaseURL/sv_wwwBaseUrl) and did not set workshop_id.\n\nSubscribe to the map on Steam Workshop, or ask the server to set sv_wwwBaseURL for FastDL or workshop_id in their config.",
-						mapname.data()));
+				                                   utils::string::va(
+					                                   "Missing usermap: %s\n\nThis server did not provide FastDL (sv_wwwBaseURL/sv_wwwBaseUrl) and did not set workshop_id.\n\nSubscribe to the map on Steam Workshop, or ask the server to set sv_wwwBaseURL for FastDL or workshop_id in their config.",
+					                                   mapname.data()));
 			}
 			return false;
 		}
@@ -424,15 +430,17 @@ namespace workshop
 			if (downloading_workshop_item)
 			{
 				game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI,
-					"You are already downloading a mod in the background. You can download only one item at a time.");
+				                                   "You are already downloading a mod in the background. You can download only one item at a time.");
 				return false;
 			}
 
 			if (utils::string::is_numeric(mod.data()))
 			{
 				const int result = MessageBoxA(nullptr,
-					utils::string::va("Mod '%s' not found.\n\nDo you want to download it from the Workshop now?", mod.data()),
-					"Missing Mod", MB_OKCANCEL | MB_ICONQUESTION | MB_SYSTEMMODAL);
+				                               utils::string::va(
+					                               "Mod '%s' not found.\n\nDo you want to download it from the Workshop now?",
+					                               mod.data()),
+				                               "Missing Mod", MB_OKCANCEL | MB_ICONQUESTION | MB_SYSTEMMODAL);
 				if (result == IDOK)
 				{
 					download_thread = utils::thread::create_named_thread(
@@ -443,8 +451,10 @@ namespace workshop
 			else if (!workshop_id.empty() && utils::string::is_numeric(workshop_id.data()))
 			{
 				const int result = MessageBoxA(nullptr,
-					utils::string::va("Mod '%s' not found.\n\nDo you want to download it from the Workshop now?", mod.data()),
-					"Missing Mod", MB_OKCANCEL | MB_ICONQUESTION | MB_SYSTEMMODAL);
+				                               utils::string::va(
+					                               "Mod '%s' not found.\n\nDo you want to download it from the Workshop now?",
+					                               mod.data()),
+				                               "Missing Mod", MB_OKCANCEL | MB_ICONQUESTION | MB_SYSTEMMODAL);
 				if (result == IDOK)
 				{
 					download_thread = utils::thread::create_named_thread(
@@ -455,9 +465,9 @@ namespace workshop
 			else
 			{
 				game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI,
-					utils::string::va(
-						"Could not download: folder name is not numeric and 'workshop_id' dvar is empty.\nMod: %s\nSet workshop_id or subscribe on Steam Workshop.",
-						mod.data()));
+				                                   utils::string::va(
+					                                   "Could not download: folder name is not numeric and 'workshop_id' dvar is empty.\nMod: %s\nSet workshop_id or subscribe on Steam Workshop.",
+					                                   mod.data()));
 			}
 			return false;
 		}
@@ -483,6 +493,7 @@ namespace workshop
 			game::loadMod(0, "", true);
 		}
 	}
+
 	void com_error_missing_map_stub(const char* file, int line, int code, const char* fmt, ...)
 	{
 		game::Com_Error_(file, line, code, "%s", "Missing map! Trying to reconnect to server...");
@@ -493,9 +504,11 @@ namespace workshop
 	public:
 		void post_unpack() override
 		{
-			[[maybe_unused]] const auto* dvar_retry = game::register_dvar_int("workshop_retry_attempts", 15, 1, 1000, game::DVAR_ARCHIVE,
+			[[maybe_unused]] const auto* dvar_retry = game::register_dvar_int(
+				"workshop_retry_attempts", 15, 1, 1000, game::DVAR_ARCHIVE,
 				"Number of connection retry attempts for workshop downloads (default 15, increase for slow connections)");
-			[[maybe_unused]] const auto* dvar_timeout = game::register_dvar_int("workshop_timeout", 300, 60, 3600, game::DVAR_ARCHIVE,
+			[[maybe_unused]] const auto* dvar_timeout = game::register_dvar_int(
+				"workshop_timeout", 300, 60, 3600, game::DVAR_ARCHIVE,
 				"Download timeout in seconds for workshop items (reserved for future use)");
 
 			dlc_popup_thread_obj = std::thread(dlc_popup_thread_func);
@@ -507,7 +520,7 @@ namespace workshop
 			command::add("workshop_config", [](const command::params& params)
 			{
 				printf("[ Workshop ] workshop_retry_attempts: %d (set in game or config)\n",
-					get_workshop_retry_attempts());
+				       get_workshop_retry_attempts());
 				printf("[ Workshop ] workshop_timeout: %d\n", game::get_dvar_int("workshop_timeout"));
 			});
 			command::add("workshop_download", [](const command::params& params)
@@ -524,7 +537,7 @@ namespace workshop
 				if (downloading_workshop_item)
 				{
 					game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI,
-						"A workshop download is already in progress. Wait for it to finish.");
+					                                   "A workshop download is already in progress. Wait for it to finish.");
 					return;
 				}
 				if (type_str != "Map" && type_str != "Mod")

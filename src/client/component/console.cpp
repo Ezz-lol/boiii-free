@@ -51,7 +51,7 @@ namespace console
 			case '7': return RGB(255, 255, 255);
 			case '8': return RGB(255, 165, 0);
 			case '9': return RGB(128, 128, 128);
-			default:  return RGB(232, 230, 227);
+			default: return RGB(232, 230, 227);
 			}
 		}
 
@@ -123,28 +123,33 @@ namespace console
 				return RGB(245, 242, 240);
 			}
 
-			if (contains_case_insensitive(line, "com_error:") || contains_case_insensitive(line, "unrecoverable error") ||
+			if (contains_case_insensitive(line, "com_error:") || contains_case_insensitive(line, "unrecoverable error")
+				||
 				contains_case_insensitive(line, "script error"))
 			{
 				return get_error_color();
 			}
 
-			if (contains_case_insensitive(line, "ui error") || contains_case_insensitive(line, "unable to load module") ||
-				contains_case_insensitive(line, "stack traceback") || contains_case_insensitive(line, "attempt to index a nil value") ||
+			if (contains_case_insensitive(line, "ui error") || contains_case_insensitive(line, "unable to load module")
+				||
+				contains_case_insensitive(line, "stack traceback") || contains_case_insensitive(
+					line, "attempt to index a nil value") ||
 				contains_case_insensitive(line, "function expected instead of nil"))
 			{
 				return get_error_color();
 			}
 
 			if (contains_case_insensitive(line, "error") || contains_case_insensitive(line, "could not find") ||
-				contains_case_insensitive(line, "exec from disk failed") || contains_case_insensitive(line, "invalid line") ||
+				contains_case_insensitive(line, "exec from disk failed") || contains_case_insensitive(
+					line, "invalid line") ||
 				contains_case_insensitive(line, "missing asset") || contains_case_insensitive(line, "failed"))
 			{
 				return get_error_color();
 			}
 
 			if (contains_case_insensitive(line, "couldn't exec") || contains_case_insensitive(line, "failed to open") ||
-				contains_case_insensitive(line, "tried to load asset") || contains_case_insensitive(line, "could not load default asset"))
+				contains_case_insensitive(line, "tried to load asset") || contains_case_insensitive(
+					line, "could not load default asset"))
 			{
 				return get_error_color();
 			}
@@ -156,16 +161,20 @@ namespace console
 			}
 
 			if (contains_case_insensitive(line, "unknown command") || contains_case_insensitive(line, "shutdowngame") ||
-				contains_case_insensitive(line, "redundant ") || contains_case_insensitive(line, "invalid line in playlist"))
+				contains_case_insensitive(line, "redundant ") || contains_case_insensitive(
+					line, "invalid line in playlist"))
 			{
 				return get_warning_color();
 			}
 
-			if (contains_case_insensitive(line, "fastfileload") || contains_case_insensitive(line, "loading fastfile") ||
+			if (contains_case_insensitive(line, "fastfileload") || contains_case_insensitive(line, "loading fastfile")
+				||
 				contains_case_insensitive(line, "added xpaks") || contains_case_insensitive(line, "loaded sounds") ||
-				contains_case_insensitive(line, "loading sounds") || contains_case_insensitive(line, "sound adding bank") ||
+				contains_case_insensitive(line, "loading sounds") || contains_case_insensitive(
+					line, "sound adding bank") ||
 				contains_case_insensitive(line, "sound load state") || contains_case_insensitive(line, "execing ") ||
-				contains_case_insensitive(line, "unloading assets") || contains_case_insensitive(line, "unloaded fastfile"))
+				contains_case_insensitive(line, "unloading assets") || contains_case_insensitive(
+					line, "unloaded fastfile"))
 			{
 				return get_info_color();
 			}
@@ -183,7 +192,8 @@ namespace console
 			const int required = MultiByteToWideChar(CP_UTF8, 0, str.data(), static_cast<int>(str.size()), nullptr, 0);
 			if (required <= 0)
 			{
-				const int required_ansi = MultiByteToWideChar(CP_ACP, 0, str.data(), static_cast<int>(str.size()), nullptr, 0);
+				const int required_ansi = MultiByteToWideChar(CP_ACP, 0, str.data(), static_cast<int>(str.size()),
+				                                              nullptr, 0);
 				if (required_ansi <= 0)
 				{
 					return {};
@@ -228,7 +238,7 @@ namespace console
 				return true;
 			}
 
-			const auto max_pos = static_cast<int>(scroll_info.nMax) - static_cast<int>(scroll_info.nPage);
+			const auto max_pos = scroll_info.nMax - static_cast<int>(scroll_info.nPage);
 			return scroll_info.nPos >= (max_pos - 2);
 		}
 
@@ -322,7 +332,7 @@ namespace console
 				return;
 			}
 
-			data.erase(std::remove(data.begin(), data.end(), '\r'), data.end());
+			std::erase(data, '\r');
 
 			std::unordered_set<std::string> unique{};
 			std::istringstream stream(data);
@@ -387,8 +397,9 @@ namespace console
 
 			DWORD sel_start = 0;
 			DWORD sel_end = 0;
-			SendMessageA(input_hwnd, EM_GETSEL, reinterpret_cast<WPARAM>(&sel_start), reinterpret_cast<LPARAM>(&sel_end));
-			const size_t caret = static_cast<size_t>(sel_end);
+			SendMessageA(input_hwnd, EM_GETSEL, reinterpret_cast<WPARAM>(&sel_start),
+			             reinterpret_cast<LPARAM>(&sel_end));
+			const size_t caret = sel_end;
 			if (caret > text.size())
 			{
 				return false;
@@ -454,7 +465,7 @@ namespace console
 			new_text.append(text.begin() + static_cast<std::ptrdiff_t>(caret), text.end());
 
 			SetWindowTextA(input_hwnd, new_text.c_str());
-			const auto new_caret = static_cast<WPARAM>(token_start + match.size());
+			const auto new_caret = token_start + match.size();
 			SendMessageA(input_hwnd, EM_SETSEL, new_caret, new_caret);
 			return true;
 		}
@@ -485,15 +496,19 @@ namespace console
 				const bool is_star_sep = is_separator_line(line_view, '*');
 				const bool is_any_sep = (is_eq_sep || is_star_sep);
 
-				if (contains_case_insensitive(line_view, "com_error:") || contains_case_insensitive(line_view, "unrecoverable error") ||
-					contains_case_insensitive(line_view, "script error") || contains_case_insensitive(line_view, "script execution error") ||
+				if (contains_case_insensitive(line_view, "com_error:") || contains_case_insensitive(
+						line_view, "unrecoverable error") ||
+					contains_case_insensitive(line_view, "script error") || contains_case_insensitive(
+						line_view, "script execution error") ||
 					contains_case_insensitive(line_view, "lui script execution error"))
 				{
 					in_fatal_block = true;
 					fatal_sep_count = 0;
 				}
 
-				const COLORREF base_color = (in_fatal_block || is_any_sep) ? get_error_color() : get_line_base_color(line_view);
+				const COLORREF base_color = (in_fatal_block || is_any_sep)
+					                            ? get_error_color()
+					                            : get_line_base_color(line_view);
 				append_colored_text(hwnd, line, base_color);
 
 				if (in_fatal_block && is_any_sep)
@@ -605,19 +620,20 @@ namespace console
 			const int input_y = (std::max)(top_offset, client_height - input_height - margin);
 
 			MoveWindow(*game::s_wcd::hwndBuffer, margin, top_offset, client_width,
-				(std::max)(0, input_y - top_offset - margin), TRUE);
+			           (std::max)(0, input_y - top_offset - margin), TRUE);
 			MoveWindow(*game::s_wcd::hwndInputLine, margin, input_y, client_width, input_height, TRUE);
 
 			if (*game::s_wcd::codLogo)
 			{
-				HBITMAP bmp = reinterpret_cast<HBITMAP>(SendMessageA(*game::s_wcd::codLogo, STM_GETIMAGE, IMAGE_BITMAP, 0));
+				auto bmp = reinterpret_cast<HBITMAP>(
+					SendMessageA(*game::s_wcd::codLogo, STM_GETIMAGE, IMAGE_BITMAP, 0));
 				BITMAP bm{};
 				if (bmp && GetObjectA(bmp, sizeof(bm), &bm) == sizeof(bm))
 				{
 					const int desired_w = bm.bmWidth;
 					const int desired_h = bm.bmHeight;
 					const int x = (std::max)(margin, margin + (client_width - desired_w) / 2);
-					const int y = 6;
+					constexpr int y = 6;
 					MoveWindow(*game::s_wcd::codLogo, x, y, desired_w, desired_h, TRUE);
 				}
 			}
@@ -714,10 +730,11 @@ namespace console
 			utils::hook::set<int>(game::s_wcd::windowHeight, (rect.bottom - rect.top + 1));
 
 			utils::hook::set<HWND>(game::s_wcd::hWnd, CreateWindowExA(
-				0, class_name, window_name, window_style,
-				(swidth - (rect.right - rect.left + 1)) / 2, (sheight - (rect.bottom - rect.top + 1)) / 2,
-				rect.right - rect.left + 1, rect.bottom - rect.top + 1, nullptr, nullptr,
-				h_instance, nullptr));
+				                       0, class_name, window_name, window_style,
+				                       (swidth - (rect.right - rect.left + 1)) / 2,
+				                       (sheight - (rect.bottom - rect.top + 1)) / 2,
+				                       rect.right - rect.left + 1, rect.bottom - rect.top + 1, nullptr, nullptr,
+				                       h_instance, nullptr));
 
 			if (!*game::s_wcd::hWnd)
 			{
@@ -729,35 +746,36 @@ namespace console
 			const auto n_height = MulDiv(8, GetDeviceCaps(dc, 90), 72);
 
 			utils::hook::set<HFONT>(game::s_wcd::hfBufferFont, CreateFontA(
-				-n_height, 0, 0, 0, 300, 0, 0, 0, 1u, 0, 0, 0, 0x31u, "Courier New"));
+				                        -n_height, 0, 0, 0, 300, 0, 0, 0, 1u, 0, 0, 0, 0x31u, "Courier New"));
 
 			ReleaseDC(*game::s_wcd::hWnd, dc);
 
 			if (logo)
 			{
 				utils::hook::set<HWND>(game::s_wcd::codLogo, CreateWindowExA(
-					0, "Static", nullptr, 0x5000000Eu, 5, 5, 0, 0, *game::s_wcd::hWnd,
-					reinterpret_cast<HMENU>(1), h_instance, nullptr));
+					                       0, "Static", nullptr, 0x5000000Eu, 5, 5, 0, 0, *game::s_wcd::hWnd,
+					                       reinterpret_cast<HMENU>(1), h_instance, nullptr));
 				SendMessageA(*game::s_wcd::codLogo, STM_SETIMAGE, IMAGE_BITMAP, logo);
 			}
 
 			utils::hook::set<HWND>(game::s_wcd::hwndInputLine, CreateWindowExA(
-				0, "edit", nullptr, 0x50800080u, 6, 500, WINDOW_WIDTH, 24, *game::s_wcd::hWnd,
-				reinterpret_cast<HMENU>(0x65), h_instance, nullptr));
+				                       0, "edit", nullptr, 0x50800080u, 6, 500, WINDOW_WIDTH, 24, *game::s_wcd::hWnd,
+				                       reinterpret_cast<HMENU>(0x65), h_instance, nullptr));
 			utils::hook::set<HWND>(game::s_wcd::hwndBuffer, CreateWindowExW(
-				0, L"RICHEDIT50W", nullptr,
-				WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | ES_NOHIDESEL,
-				6, 70, WINDOW_WIDTH, 420, *game::s_wcd::hWnd,
-				reinterpret_cast<HMENU>(0x64), h_instance, nullptr));
+				                       0, L"RICHEDIT50W", nullptr,
+				                       WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY
+				                       | ES_NOHIDESEL,
+				                       6, 70, WINDOW_WIDTH, 420, *game::s_wcd::hWnd,
+				                       reinterpret_cast<HMENU>(0x64), h_instance, nullptr));
 			SendMessageA(*game::s_wcd::hwndBuffer, WM_SETFONT, reinterpret_cast<WPARAM>(*game::s_wcd::hfBufferFont), 0);
 			SendMessageA(*game::s_wcd::hwndBuffer, EM_SETBKGNDCOLOR, 0, RGB(50, 50, 50));
 			SendMessageA(*game::s_wcd::hwndBuffer, EM_SETLIMITTEXT, 0, 0);
 
 			utils::hook::set<WNDPROC>(game::s_wcd::SysInputLineWndProc, reinterpret_cast<WNDPROC>(SetWindowLongPtrA(
-				*game::s_wcd::hwndInputLine, -4,
-				reinterpret_cast<LONG_PTR>(input_line_wnd_proc))));
+				                          *game::s_wcd::hwndInputLine, -4,
+				                          reinterpret_cast<LONG_PTR>(input_line_wnd_proc))));
 			SendMessageA(*game::s_wcd::hwndInputLine, WM_SETFONT, reinterpret_cast<WPARAM>(*game::s_wcd::hfBufferFont),
-				0);
+			             0);
 
 			SetFocus(*game::s_wcd::hwndInputLine);
 			game::Con_GetTextCopy(text, std::min(0x4000, static_cast<int>(sizeof(text))));
@@ -870,7 +888,7 @@ namespace console
 						else if (*game::s_wcd::hWnd)
 						{
 							PostMessageA(*game::s_wcd::hWnd, WM_APPEND_CONSOLE_TEXT, 0,
-								reinterpret_cast<LPARAM>(new std::string(std::move(message_buffer))));
+							             reinterpret_cast<LPARAM>(new std::string(std::move(message_buffer))));
 						}
 					}
 

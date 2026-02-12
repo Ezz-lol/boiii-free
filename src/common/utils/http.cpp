@@ -150,7 +150,7 @@ namespace utils::http
 	}
 
 	std::optional<std::string> post_data(const std::string& url, const std::string& post_body,
-	                                      const uint32_t timeout_sec)
+	                                     const uint32_t timeout_sec)
 	{
 		auto* curl = curl_easy_init();
 		if (!curl)
@@ -194,8 +194,8 @@ namespace utils::http
 	}
 
 	int get_data_stream(const std::string& url, const headers& headers,
-		const std::function<void(size_t)>& progress_cb,
-		const std::function<void(const char*, size_t)>& write_cb, const uint32_t retries)
+	                    const std::function<void(size_t)>& progress_cb,
+	                    const std::function<void(const char*, size_t)>& write_cb, const uint32_t retries)
 	{
 		auto* curl = curl_easy_init();
 		if (!curl)

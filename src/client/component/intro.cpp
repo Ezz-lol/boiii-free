@@ -11,8 +11,9 @@ namespace intro
 	{
 		utils::hook::detour cinematic_start_playback_hook;
 
-		void cinematic_start_playback_stub(const char* name, const char* key, const unsigned int playback_flags, const float volume,
-		         void* callback_info, const int id)
+		void cinematic_start_playback_stub(const char* name, const char* key, const unsigned int playback_flags,
+		                                   const float volume,
+		                                   void* callback_info, const int id)
 		{
 			if (name == "BO3_Global_Logo_LogoSequence"s)
 			{

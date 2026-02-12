@@ -47,7 +47,8 @@ window::window(const std::string& title, const int width, const int height,
 
 	++window_count;
 
-	this->handle_ = CreateWindowExA(NULL, this->wc_.lpszClassName, title.data(), flags, CW_USEDEFAULT, CW_USEDEFAULT, width, height, nullptr,
+	this->handle_ = CreateWindowExA(NULL, this->wc_.lpszClassName, title.data(), flags, CW_USEDEFAULT, CW_USEDEFAULT,
+	                                width, height, nullptr,
 	                                nullptr, this->wc_.hInstance, this);
 
 	BOOL value = TRUE;

@@ -74,7 +74,8 @@ namespace ui_scripting
 			printf("************** LUI script execution error **************\n");
 			printf("%s\n", error.data());
 			printf("********************************************************\n");
-			MessageBoxA(nullptr, error.c_str(), "LUI Script Error", MB_OK | MB_ICONERROR | MB_TOPMOST | MB_SETFOREGROUND);
+			MessageBoxA(nullptr, error.c_str(), "LUI Script Error",
+			            MB_OK | MB_ICONERROR | MB_TOPMOST | MB_SETFOREGROUND);
 		}
 
 		void print_loading_script(const std::string& name)

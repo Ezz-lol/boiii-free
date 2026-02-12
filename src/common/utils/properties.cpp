@@ -129,11 +129,6 @@ namespace utils::properties
 		return appdata;
 	}
 
-	std::filesystem::path get_key_path()
-	{
-		return std::filesystem::path("boiii_players");
-	}
-
 	std::unique_lock<named_mutex> lock()
 	{
 		static named_mutex mutex{"boiii-properties-lock"};

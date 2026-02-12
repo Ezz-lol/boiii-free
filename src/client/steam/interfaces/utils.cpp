@@ -20,7 +20,7 @@ namespace steam
 
 	unsigned int utils::GetServerRealTime()
 	{
-		return static_cast<uint32_t>(time(NULL));
+		return static_cast<uint32_t>(time(nullptr));
 	}
 
 	const char* utils::GetIPCountry()

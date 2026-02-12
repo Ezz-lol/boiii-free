@@ -32,7 +32,8 @@ namespace patches
 				printf("[Com_Error] Suppressing Clientfield Mismatch error, converting to ERR_DROP\n");
 				// Convert to ERR_DROP (code 1) which is recoverable and returns to menu
 				com_error_hook.invoke<void>(file, line, game::ERR_DROP,
-					"Mod compatibility issue: %s\nThis mod may require additional patches for boiii.", buffer);
+				                            "Mod compatibility issue: %s\nThis mod may require additional patches for boiii.",
+				                            buffer);
 				return;
 			}
 

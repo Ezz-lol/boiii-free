@@ -269,8 +269,8 @@ namespace server_list
 
 		std::string normalize_lan_input(std::string in)
 		{
-			in.erase(std::remove(in.begin(), in.end(), '\r'), in.end());
-			in.erase(std::remove(in.begin(), in.end(), '\n'), in.end());
+			std::erase(in, '\r');
+			std::erase(in, '\n');
 			if (in.empty())
 			{
 				return {};
