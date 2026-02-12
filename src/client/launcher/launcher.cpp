@@ -20,6 +20,8 @@
 #include <thread>
 #include <atomic>
 #include <mutex>
+#include <set>
+#include <map>
 #include <ShlObj.h>
 #include <Shlwapi.h>
 #include <TlHelp32.h>
@@ -37,6 +39,431 @@ namespace launcher
 		std::mutex library_list_mutex;
 		std::string library_list_cache;
 		std::atomic<bool> library_list_loading{false};
+
+		std::mutex verify_mutex;
+		std::string verify_status_message;
+		double verify_progress_percent = 0.0;
+		std::string verify_progress_details;
+		std::vector<std::string> verify_changed_files;
+		std::atomic<bool> verify_running{false};
+		std::atomic<bool> verify_cancel_requested{false};
+
+		void set_verify_status(const std::string& msg, double pct, const std::string& details)
+		{
+			std::lock_guard lock(verify_mutex);
+			verify_status_message = msg;
+			verify_progress_percent = pct;
+			verify_progress_details = details;
+		}
+
+		void reset_verify_status()
+		{
+			std::lock_guard lock(verify_mutex);
+			verify_status_message.clear();
+			verify_progress_percent = 0.0;
+			verify_progress_details.clear();
+			verify_changed_files.clear();
+		}
+
+		std::string compute_file_md5(const std::filesystem::path& file_path)
+		{
+			HANDLE hFile = CreateFileW(file_path.wstring().c_str(), GENERIC_READ, FILE_SHARE_READ,
+				nullptr, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, nullptr);
+			if (hFile == INVALID_HANDLE_VALUE) return {};
+
+			HCRYPTPROV hProv = 0;
+			HCRYPTHASH hHash = 0;
+			std::string result;
+
+			if (CryptAcquireContextA(&hProv, nullptr, nullptr, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
+			{
+				if (CryptCreateHash(hProv, CALG_MD5, 0, 0, &hHash))
+				{
+					BYTE buffer[65536];
+					DWORD bytesRead = 0;
+					bool ok = true;
+
+					while (ReadFile(hFile, buffer, sizeof(buffer), &bytesRead, nullptr) && bytesRead > 0)
+					{
+						if (!CryptHashData(hHash, buffer, bytesRead, 0))
+						{
+							ok = false;
+							break;
+						}
+					}
+
+					if (ok)
+					{
+						BYTE hash[16];
+						DWORD hashLen = sizeof(hash);
+						if (CryptGetHashParam(hHash, HP_HASHVAL, hash, &hashLen, 0))
+						{
+							static const char hex[] = "0123456789abcdef";
+							result.reserve(32);
+							for (DWORD i = 0; i < hashLen; i++)
+							{
+								result += hex[hash[i] >> 4];
+								result += hex[hash[i] & 0x0F];
+							}
+						}
+					}
+					CryptDestroyHash(hHash);
+				}
+				CryptReleaseContext(hProv, 0);
+			}
+			CloseHandle(hFile);
+			return result;
+		}
+
+		std::filesystem::path get_verification_json_path()
+		{
+			return game::get_appdata_path() / "verification.json";
+		}
+
+		std::string load_verification_json()
+		{
+			auto path = get_verification_json_path();
+			std::error_code ec;
+			if (!std::filesystem::exists(path, ec)) return "{}";
+			std::ifstream f(path, std::ios::binary);
+			if (!f) return "{}";
+			return std::string((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+		}
+
+		void save_verification_json(const std::string& json_str)
+		{
+			auto path = get_verification_json_path();
+			std::error_code ec;
+			std::filesystem::create_directories(path.parent_path(), ec);
+			std::ofstream f(path, std::ios::binary | std::ios::trunc);
+			if (f) f << json_str;
+		}
+
+		void verify_game_thread(const std::string& modes_csv)
+		{
+			verify_running = true;
+			verify_cancel_requested = false;
+			set_verify_status("Preparing verification...", 0.0, "");
+
+			try {
+
+			auto prefixes = utils::string::split(modes_csv, ',');
+			for (auto& p : prefixes) utils::string::trim(p);
+
+			if (prefixes.size() == 1 && prefixes[0] == "all")
+			{
+				prefixes = {"cp_", "mp_", "zm_"};
+			}
+
+			char cwd[MAX_PATH];
+			GetCurrentDirectoryA(sizeof(cwd), cwd);
+			std::filesystem::path base(cwd);
+
+			set_verify_status("Scanning game files...", 0.0, "");
+			struct file_entry {
+				std::filesystem::path full_path;
+				std::string relative_path;
+				std::uint64_t size;
+			};
+			std::vector<file_entry> files_to_verify;
+			bool include_base_files = (prefixes.size() == 3); // only when verifying all modes
+			std::map<std::string, std::uint32_t> prefix_file_counts;
+			if (include_base_files) prefix_file_counts["base"] = 0;
+			for (const auto& p : prefixes) prefix_file_counts[p] = 0;
+
+			std::vector<std::string> active_prefixes;
+			for (const auto& p : prefixes) {
+				active_prefixes.push_back(p);
+				active_prefixes.push_back("en_" + p);
+			}
+
+			static const std::vector<std::string> all_mode_markers = {
+				"cp_", "mp_", "zm_", "en_cp_", "en_mp_", "en_zm_"
+			};
+			auto is_base_file = [&](const std::string& fname) -> bool {
+				for (const auto& m : all_mode_markers) {
+					if (fname.rfind(m, 0) == 0) return false;
+				}
+				return true;
+			};
+
+			const char* dirs_to_scan[] = {"zone", "video"};
+			for (const auto& dir_name : dirs_to_scan)
+			{
+				if (verify_cancel_requested) break;
+				std::filesystem::path dir = base / dir_name;
+				if (!std::filesystem::exists(dir)) continue;
+				std::error_code ec;
+				for (const auto& entry : std::filesystem::recursive_directory_iterator(dir, ec))
+				{
+					if (verify_cancel_requested) break;
+					if (!entry.is_regular_file(ec)) continue;
+					auto filename = utils::string::to_lower(entry.path().filename().string());
+					if (is_base_file(filename))
+					{
+						if (!include_base_files) continue;
+						auto rel = std::filesystem::relative(entry.path(), base, ec).generic_string();
+						files_to_verify.push_back({entry.path(), rel, entry.file_size(ec)});
+						prefix_file_counts["base"]++;
+					}
+					else
+					{
+						for (const auto& prefix : active_prefixes)
+						{
+							if (!prefix.empty() && filename.rfind(prefix, 0) == 0)
+							{
+								auto rel = std::filesystem::relative(entry.path(), base, ec).generic_string();
+								files_to_verify.push_back({entry.path(), rel, entry.file_size(ec)});
+								for (const auto& p : prefixes)
+								{
+									if (prefix == p || prefix == "en_" + p)
+									{
+										prefix_file_counts[p]++;
+										break;
+									}
+								}
+								break;
+							}
+						}
+					}
+				}
+			}
+
+			if (verify_cancel_requested)
+			{
+				set_verify_status("Cancelled", 0.0, "");
+				verify_running = false;
+				return;
+			}
+
+			std::string existing_json = load_verification_json();
+			rapidjson::Document existing_doc;
+			if (existing_doc.Parse(existing_json.c_str()).HasParseError() || !existing_doc.IsObject())
+			{
+				existing_doc.SetObject();
+			}
+
+			std::uint32_t total_files = static_cast<std::uint32_t>(files_to_verify.size());
+			std::uint32_t verified_ok = 0;
+			std::uint32_t changed_files = 0;
+			std::uint32_t new_files = 0;
+			std::uint32_t failed_files = 0;
+			std::vector<std::string> problematic_files;
+
+			rapidjson::Document new_doc;
+			new_doc.SetObject();
+			auto& alloc = new_doc.GetAllocator();
+
+			if (existing_doc.IsObject())
+			{
+				for (auto it = existing_doc.MemberBegin(); it != existing_doc.MemberEnd(); ++it)
+				{
+					std::string key(it->name.GetString(), it->name.GetStringLength());
+					bool belongs_to_current = false;
+					std::string key_lower = utils::string::to_lower(key);
+					std::string fname = key_lower;
+					auto slash = fname.rfind('/');
+					if (slash != std::string::npos) fname = fname.substr(slash + 1);
+					if (include_base_files && is_base_file(fname))
+					{
+						belongs_to_current = true;
+					}
+					else
+					{
+						for (const auto& prefix : active_prefixes)
+						{
+							if (fname.rfind(prefix, 0) == 0)
+							{
+								belongs_to_current = true;
+								break;
+							}
+						}
+					}
+					if (!belongs_to_current)
+					{
+						rapidjson::Value k(key.c_str(), alloc);
+						rapidjson::Value v(it->value, alloc);
+						new_doc.AddMember(k, v, alloc);
+					}
+				}
+			}
+
+			for (std::uint32_t i = 0; i < total_files; i++)
+			{
+				if (verify_cancel_requested)
+				{
+					set_verify_status("Cancelled", 0.0, "");
+					verify_running = false;
+					return;
+				}
+
+				const auto& fe = files_to_verify[i];
+				double pct = static_cast<double>(i) / static_cast<double>(total_files) * 100.0;
+				auto fname = fe.full_path.filename().string();
+				set_verify_status("Verifying...", pct,
+					fname + " (" + std::to_string(i + 1) + "/" + std::to_string(total_files) + ")");
+
+				std::string hash = compute_file_md5(fe.full_path);
+				if (hash.empty())
+				{
+					failed_files++;
+					problematic_files.push_back(fe.relative_path + " (read error)");
+					continue;
+				}
+
+				auto existing_it = existing_doc.FindMember(fe.relative_path.c_str());
+				if (existing_it != existing_doc.MemberEnd() && existing_it->value.IsObject())
+				{
+					auto hash_it = existing_it->value.FindMember("hash");
+					if (hash_it != existing_it->value.MemberEnd() && hash_it->value.IsString())
+					{
+						std::string old_hash(hash_it->value.GetString(), hash_it->value.GetStringLength());
+						if (old_hash == hash)
+						{
+							verified_ok++;
+						}
+						else
+						{
+							changed_files++;
+							problematic_files.push_back(fe.relative_path + " (changed)");
+						}
+					}
+					else
+					{
+						new_files++;
+					}
+				}
+				else
+				{
+					new_files++;
+				}
+
+				rapidjson::Value entry_obj(rapidjson::kObjectType);
+				rapidjson::Value hash_val(hash.c_str(), alloc);
+				entry_obj.AddMember("hash", hash_val, alloc);
+				entry_obj.AddMember("size", fe.size, alloc);
+				rapidjson::Value path_key(fe.relative_path.c_str(), alloc);
+				new_doc.AddMember(path_key, entry_obj, alloc);
+			}
+
+			rapidjson::StringBuffer buf;
+			rapidjson::PrettyWriter<rapidjson::StringBuffer> w(buf);
+			new_doc.Accept(w);
+			save_verification_json(std::string(buf.GetString(), buf.GetSize()));
+
+			std::uint32_t missing_files = 0;
+			if (existing_doc.IsObject() && existing_doc.MemberCount() > 0)
+			{
+				std::set<std::string> found_paths;
+				for (const auto& fe : files_to_verify)
+					found_paths.insert(fe.relative_path);
+
+				for (auto it = existing_doc.MemberBegin(); it != existing_doc.MemberEnd(); ++it)
+				{
+					std::string key(it->name.GetString(), it->name.GetStringLength());
+					std::string key_lower = utils::string::to_lower(key);
+					std::string fname = key_lower;
+					auto slash = fname.rfind('/');
+					if (slash != std::string::npos) fname = fname.substr(slash + 1);
+
+					bool belongs = false;
+					if (include_base_files && is_base_file(fname))
+					{
+						belongs = true;
+					}
+					else
+					{
+						for (const auto& prefix : active_prefixes)
+						{
+							if (!prefix.empty() && fname.rfind(prefix, 0) == 0)
+							{
+								belongs = true;
+								break;
+							}
+						}
+					}
+					if (belongs && found_paths.find(key) == found_paths.end())
+					{
+						missing_files++;
+						problematic_files.push_back(key + " (missing)");
+					}
+				}
+			}
+
+			std::vector<std::string> missing_modes;
+			for (const auto& [prefix, count] : prefix_file_counts)
+			{
+				if (count == 0)
+				{
+					std::string mode_name;
+					if (prefix == "cp_") mode_name = "Campaign";
+					else if (prefix == "mp_") mode_name = "Multiplayer";
+					else if (prefix == "zm_") mode_name = "Zombies";
+					else if (prefix == "base") mode_name = "Core/Common";
+					else mode_name = prefix;
+					missing_modes.push_back(mode_name);
+					problematic_files.push_back(mode_name + " (not installed - 0 files found)");
+				}
+			}
+
+			std::string result_msg;
+			bool first_run = !existing_doc.IsObject() || existing_doc.MemberCount() == 0;
+
+			bool all_new = (new_files == total_files - failed_files) && changed_files == 0 && verified_ok == 0;
+
+			if (total_files == 0)
+			{
+				if (!missing_modes.empty())
+				{
+					result_msg = "No files found on disk.";
+				}
+				else if (missing_files > 0)
+				{
+					result_msg = std::to_string(missing_files) + " files missing from disk.";
+				}
+				else
+				{
+					result_msg = "No game files found for selected modes.";
+				}
+			}
+			else if (first_run || all_new)
+			{
+				result_msg = "Baseline created: " + std::to_string(total_files) + " files indexed.";
+			}
+			else
+			{
+				result_msg = "Verified " + std::to_string(total_files) + " files: " +
+					std::to_string(verified_ok) + " OK";
+				if (changed_files > 0)
+					result_msg += ", " + std::to_string(changed_files) + " changed";
+				if (new_files > 0)
+					result_msg += ", " + std::to_string(new_files) + " new";
+				if (missing_files > 0)
+					result_msg += ", " + std::to_string(missing_files) + " missing";
+				if (failed_files > 0)
+					result_msg += ", " + std::to_string(failed_files) + " failed";
+			}
+			if (!missing_modes.empty())
+			{
+				result_msg += " | Not installed: ";
+				for (size_t i = 0; i < missing_modes.size(); i++)
+				{
+					if (i > 0) result_msg += ", ";
+					result_msg += missing_modes[i];
+				}
+			}
+
+			{
+				std::lock_guard lock(verify_mutex);
+				verify_changed_files = std::move(problematic_files);
+			}
+			set_verify_status(result_msg, 100.0, "Done");
+
+			} catch (...) {
+				set_verify_status("Verification failed (try again)", 0.0, "");
+			}
+			verify_running = false;
+		}
 
 		bool is_game_process_running()
 		{
@@ -90,6 +517,7 @@ namespace launcher
 			{
 				std::filesystem::remove_all(usermaps_dir, ec);
 			}
+			launcher::workshop::try_refresh_workshop_content();
 		}
 
 		void workshop_remove_by_path(const std::string& path_str)
@@ -97,21 +525,13 @@ namespace launcher
 			std::string p = path_str;
 			utils::string::trim(p);
 			if (p.empty()) return;
-
+			std::filesystem::path target(p);
 			std::error_code ec;
-			const auto target = std::filesystem::canonical(p, ec);
-			if (ec || !std::filesystem::is_directory(target)) return;
-
-			const auto steam_ws = get_steam_workshop_path();
-			if (steam_ws.empty()) return;
-
-			const auto allowed = std::filesystem::canonical(steam_ws, ec);
-			if (ec) return;
-
-			const auto rel = std::filesystem::relative(target, allowed, ec);
-			if (ec || rel.empty() || rel.native().find(L"..") != std::wstring::npos) return;
-
-			std::filesystem::remove_all(target, ec);
+			if (std::filesystem::exists(target) && std::filesystem::is_directory(target))
+			{
+				std::filesystem::remove_all(target, ec);
+			}
+			launcher::workshop::try_refresh_workshop_content();
 		}
 
 		void workshop_remove_all_folders()
@@ -139,6 +559,7 @@ namespace launcher
 					clear_subdirs(steam_ws);
 				}
 			}
+			launcher::workshop::try_refresh_workshop_content();
 		}
 
 		static const std::vector<std::string> IMAGE_EXTENSIONS = { ".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp" };
@@ -242,7 +663,7 @@ namespace launcher
 
 					for (auto& m : modes)
 					{
-						if (filename.find(m.prefix) != std::string::npos)
+						if (filename.rfind(m.prefix, 0) == 0)
 						{
 							m.total_size += entry.file_size(ec);
 							m.file_count++;
@@ -286,7 +707,7 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 
 					for (const auto& prefix : prefixes)
 					{
-						if (!prefix.empty() && filename.find(prefix) != std::string::npos)
+						if (!prefix.empty() && filename.rfind(prefix, 0) == 0)
 						{
 							to_delete.push_back(entry.path());
 							break;
@@ -753,6 +1174,49 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 			});
 
 		launcher::workshop::register_callbacks(window.get_html_frame());
+
+		window.get_html_frame()->register_callback(
+			"verifyGameFiles", [](const std::vector<html_argument>& params) -> CComVariant
+			{
+				if (verify_running.load()) return CComVariant("already_running");
+				std::string modes = "all";
+				if (!params.empty() && params[0].is_string())
+				{
+					modes = params[0].get_string();
+					utils::string::trim(modes);
+					if (modes.empty()) modes = "all";
+				}
+				reset_verify_status();
+				std::thread(verify_game_thread, modes).detach();
+				return CComVariant("started");
+			});
+
+		window.get_html_frame()->register_callback(
+			"getVerifyStatus", [](const std::vector<html_argument>& /*params*/) -> CComVariant
+			{
+				std::lock_guard lock(verify_mutex);
+				rapidjson::StringBuffer buf;
+				rapidjson::Writer<rapidjson::StringBuffer> w(buf);
+				w.StartObject();
+				w.Key("message"); w.String(verify_status_message.c_str());
+				w.Key("progress"); w.Double(verify_progress_percent);
+				w.Key("details"); w.String(verify_progress_details.c_str());
+				w.Key("running"); w.Bool(verify_running.load());
+				w.Key("changedFiles");
+				w.StartArray();
+				for (const auto& f : verify_changed_files)
+					w.String(f.c_str());
+				w.EndArray();
+				w.EndObject();
+				return CComVariant(std::string(buf.GetString(), buf.GetSize()).c_str());
+			});
+
+		window.get_html_frame()->register_callback(
+			"cancelVerify", [](const std::vector<html_argument>& /*params*/) -> CComVariant
+			{
+				verify_cancel_requested = true;
+				return CComVariant("cancel_requested");
+			});
 
 		window.get_html_frame()->register_callback(
 			"invoke", [](const std::vector<html_argument>& params) -> CComVariant

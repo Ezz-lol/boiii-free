@@ -149,23 +149,13 @@ namespace console
 				return get_error_color();
 			}
 
-			if (contains_case_insensitive(line, "warning") || contains_case_insensitive(line, "hitch") ||
-				contains_case_insensitive(line, "waited "))
+			if (contains_case_insensitive(line, "warn"))
 			{
 				return get_warning_color();
 			}
 
-			if (contains_case_insensitive(line, "unknown command") || contains_case_insensitive(line, "shutdowngame") ||
-				contains_case_insensitive(line, "redundant ") || contains_case_insensitive(line, "invalid line in playlist"))
-			{
-				return get_warning_color();
-			}
-
-			if (contains_case_insensitive(line, "fastfileload") || contains_case_insensitive(line, "loading fastfile") ||
-				contains_case_insensitive(line, "added xpaks") || contains_case_insensitive(line, "loaded sounds") ||
-				contains_case_insensitive(line, "loading sounds") || contains_case_insensitive(line, "sound adding bank") ||
-				contains_case_insensitive(line, "sound load state") || contains_case_insensitive(line, "execing ") ||
-				contains_case_insensitive(line, "unloading assets") || contains_case_insensitive(line, "unloaded fastfile"))
+			if (contains_case_insensitive(line, "loading") || contains_case_insensitive(line, "loaded") ||
+				contains_case_insensitive(line, "connecting") || contains_case_insensitive(line, "connected"))
 			{
 				return get_info_color();
 			}
@@ -173,340 +163,267 @@ namespace console
 			return get_default_console_color();
 		}
 
-		std::wstring to_wstring(const std::string& str)
+		void append_colored_text(const HWND richedit, const char* text, size_t len, COLORREF color)
 		{
-			if (str.empty())
-			{
-				return {};
-			}
-
-			const int required = MultiByteToWideChar(CP_UTF8, 0, str.data(), static_cast<int>(str.size()), nullptr, 0);
-			if (required <= 0)
-			{
-				const int required_ansi = MultiByteToWideChar(CP_ACP, 0, str.data(), static_cast<int>(str.size()), nullptr, 0);
-				if (required_ansi <= 0)
-				{
-					return {};
-				}
-
-				std::wstring wstr(required_ansi, L'\0');
-				MultiByteToWideChar(CP_ACP, 0, str.data(), static_cast<int>(str.size()), wstr.data(), required_ansi);
-				return wstr;
-			}
-
-			std::wstring wstr(required, L'\0');
-			MultiByteToWideChar(CP_UTF8, 0, str.data(), static_cast<int>(str.size()), wstr.data(), required);
-			return wstr;
-		}
-
-		void trim_console_scrollback(const HWND hwnd)
-		{
-			if (!utils::flags::has_flag("trimlogs"))
+			if (!richedit || !text || len == 0)
 			{
 				return;
 			}
 
-			const auto length = static_cast<size_t>(SendMessageA(hwnd, WM_GETTEXTLENGTH, 0, 0));
-			if (length <= MAX_CONSOLE_CHARS)
+			const int wlen = MultiByteToWideChar(CP_UTF8, 0, text, static_cast<int>(len), nullptr, 0);
+			if (wlen <= 0)
 			{
 				return;
 			}
 
-			const LONG excess = static_cast<LONG>(length - MAX_CONSOLE_CHARS);
-			CHARRANGE range{0, excess};
-			SendMessageA(hwnd, EM_EXSETSEL, 0, reinterpret_cast<LPARAM>(&range));
-			SendMessageW(hwnd, EM_REPLACESEL, FALSE, reinterpret_cast<LPARAM>(L""));
+			std::vector<wchar_t> wbuf(static_cast<size_t>(wlen) + 1);
+			MultiByteToWideChar(CP_UTF8, 0, text, static_cast<int>(len), wbuf.data(), wlen);
+			wbuf[static_cast<size_t>(wlen)] = L'\0';
+
+			CHARRANGE cr_end;
+			cr_end.cpMin = -1;
+			cr_end.cpMax = -1;
+			SendMessageW(richedit, EM_EXSETSEL, 0, reinterpret_cast<LPARAM>(&cr_end));
+
+			CHARFORMAT2W cf{};
+			cf.cbSize = sizeof(cf);
+			cf.dwMask = CFM_COLOR;
+			cf.crTextColor = color;
+			cf.dwEffects = 0;
+			SendMessageW(richedit, EM_SETCHARFORMAT, SCF_SELECTION, reinterpret_cast<LPARAM>(&cf));
+			SendMessageW(richedit, EM_REPLACESEL, FALSE, reinterpret_cast<LPARAM>(wbuf.data()));
 		}
 
-		bool is_scrolled_to_bottom(const HWND hwnd)
+		void trim_console_buffer(const HWND richedit)
 		{
-			SCROLLINFO scroll_info{};
-			scroll_info.cbSize = sizeof(scroll_info);
-			scroll_info.fMask = SIF_POS | SIF_RANGE | SIF_PAGE;
-			if (!GetScrollInfo(hwnd, SB_VERT, &scroll_info))
+			const auto text_len = static_cast<size_t>(GetWindowTextLengthW(richedit));
+			if (text_len > MAX_CONSOLE_CHARS)
 			{
-				return true;
+				const auto to_remove = static_cast<LONG>(text_len - MAX_CONSOLE_CHARS / 2);
+				CHARRANGE cr;
+				cr.cpMin = 0;
+				cr.cpMax = to_remove;
+				SendMessageW(richedit, EM_EXSETSEL, 0, reinterpret_cast<LPARAM>(&cr));
+				SendMessageW(richedit, EM_REPLACESEL, FALSE, reinterpret_cast<LPARAM>(L""));
 			}
-
-			const auto max_pos = static_cast<int>(scroll_info.nMax) - static_cast<int>(scroll_info.nPage);
-			return scroll_info.nPos >= (max_pos - 2);
 		}
 
-		void append_colored_text(const HWND hwnd, const std::string& message, const COLORREF base_color)
+		void append_line_colored(const HWND richedit, const std::string_view line, COLORREF base_color)
 		{
-			if (!hwnd)
+			size_t i = 0;
+			while (i < line.size())
 			{
-				return;
-			}
-
-			const bool should_autoscroll = is_scrolled_to_bottom(hwnd);
-
-			CHARRANGE end_range{-1, -1};
-			SendMessageA(hwnd, EM_EXSETSEL, 0, reinterpret_cast<LPARAM>(&end_range));
-
-			COLORREF current_color = base_color;
-			std::string current_segment{};
-
-			auto flush_segment = [&]()
-			{
-				if (current_segment.empty())
+				if (i + 1 < line.size() && line[i] == '^' && line[i + 1] >= '0' && line[i + 1] <= '9')
 				{
-					return;
-				}
-
-				CHARFORMAT2A fmt{};
-				fmt.cbSize = sizeof(fmt);
-				fmt.dwMask = CFM_COLOR;
-				fmt.crTextColor = current_color;
-				SendMessageA(hwnd, EM_SETCHARFORMAT, SCF_SELECTION, reinterpret_cast<LPARAM>(&fmt));
-
-				const auto wseg = to_wstring(current_segment);
-				SendMessageW(hwnd, EM_REPLACESEL, FALSE, reinterpret_cast<LPARAM>(wseg.c_str()));
-				current_segment.clear();
-			};
-
-			for (size_t i = 0; i < message.size(); ++i)
-			{
-				const char c = message[i];
-				if (c == '^' && (i + 1) < message.size())
-				{
-					const char code = message[i + 1];
-					if ((code >= '0' && code <= '9') || code == ':')
+					const COLORREF cod_color = get_cod_color(line[i + 1]);
+					i += 2;
+					const size_t start = i;
+					while (i < line.size())
 					{
-						flush_segment();
-						current_color = get_cod_color(code);
-						++i;
-						continue;
+						if (i + 1 < line.size() && line[i] == '^' && line[i + 1] >= '0' && line[i + 1] <= '9')
+						{
+							break;
+						}
+						if (line[i] == '\n')
+						{
+							break;
+						}
+						i++;
+					}
+					if (i > start)
+					{
+						append_colored_text(richedit, line.data() + start, i - start, cod_color);
 					}
 				}
-
-				current_segment.push_back(c);
-			}
-
-			flush_segment();
-			trim_console_scrollback(hwnd);
-			if (should_autoscroll)
-			{
-				SendMessageA(hwnd, EM_SCROLLCARET, 0, 0);
+				else
+				{
+					const size_t start = i;
+					while (i < line.size())
+					{
+						if (i + 1 < line.size() && line[i] == '^' && line[i + 1] >= '0' && line[i + 1] <= '9')
+						{
+							break;
+						}
+						if (line[i] == '\n')
+						{
+							i++;
+							break;
+						}
+						i++;
+					}
+					append_colored_text(richedit, line.data() + start, i - start, base_color);
+				}
 			}
 		}
 
-		bool is_separator_line(std::string_view line, const char sep_char)
+		void append_text_with_severity(const HWND richedit, const std::string& text)
 		{
-			size_t count = 0;
-			for (const char c : line)
+			if (!richedit || text.empty())
 			{
-				if (c == sep_char)
-				{
-					++count;
-				}
-				else if (c != '\r' && c != '\n' && c != ' ' && c != '\t')
-				{
-					return false;
-				}
+				return;
 			}
-			return count >= 10;
+
+			SendMessageW(richedit, WM_SETREDRAW, FALSE, 0);
+
+			CHARRANGE old_sel;
+			SendMessageW(richedit, EM_EXGETSEL, 0, reinterpret_cast<LPARAM>(&old_sel));
+
+			SCROLLINFO scroll_info{};
+			scroll_info.cbSize = sizeof(scroll_info);
+			scroll_info.fMask = SIF_ALL;
+			GetScrollInfo(richedit, SB_VERT, &scroll_info);
+			const bool was_at_bottom = (scroll_info.nPos + static_cast<int>(scroll_info.nPage) >= scroll_info.nMax - 1) || scroll_info.nMax == 0;
+
+			std::string_view remaining(text);
+			while (!remaining.empty())
+			{
+				const auto nl = remaining.find('\n');
+				std::string_view line_view;
+				if (nl != std::string_view::npos)
+				{
+					line_view = remaining.substr(0, nl + 1);
+					remaining.remove_prefix(nl + 1);
+				}
+				else
+				{
+					line_view = remaining;
+					remaining = {};
+				}
+
+				const COLORREF base_color = get_line_base_color(line_view);
+				append_line_colored(richedit, line_view, base_color);
+			}
+
+			trim_console_buffer(richedit);
+
+			if (was_at_bottom)
+			{
+				SendMessageW(richedit, WM_VSCROLL, SB_BOTTOM, 0);
+			}
+
+			SendMessageW(richedit, WM_SETREDRAW, TRUE, 0);
+			InvalidateRect(richedit, nullptr, FALSE);
 		}
 
 		void load_dvar_list()
 		{
-			if (dvar_list_loaded.exchange(true))
+			std::thread([]()
 			{
-				return;
-			}
-
-			const auto path = game::get_appdata_path() / "data/lookup_tables/dvar_list.txt";
-			std::string data;
-			if (!utils::io::read_file(path, &data))
-			{
-				return;
-			}
-
-			data.erase(std::remove(data.begin(), data.end(), '\r'), data.end());
-
-			std::unordered_set<std::string> unique{};
-			std::istringstream stream(data);
-			std::string name;
-			while (std::getline(stream, name, '\n'))
-			{
-				if (name.empty())
+				try
 				{
-					continue;
+					std::string data;
+					if (utils::io::read_file("data/lookup_tables/dvar_list.txt", &data))
+					{
+						std::istringstream iss(data);
+						std::string line;
+						std::unordered_set<std::string> seen;
+						while (std::getline(iss, line))
+						{
+							while (!line.empty() && (line.back() == '\r' || line.back() == '\n'))
+								line.pop_back();
+							if (!line.empty() && seen.insert(line).second)
+								dvar_name_list.push_back(line);
+						}
+						std::sort(dvar_name_list.begin(), dvar_name_list.end(),
+							[](const std::string& a, const std::string& b)
+							{
+								return _stricmp(a.c_str(), b.c_str()) < 0;
+							});
+						dvar_list_loaded = true;
+					}
 				}
-
-				if (name.rfind("//", 0) == 0)
+				catch (...)
 				{
-					continue;
 				}
-
-				if (unique.emplace(name).second)
-				{
-					dvar_name_list.emplace_back(std::move(name));
-				}
-			}
-
-			std::sort(dvar_name_list.begin(), dvar_name_list.end());
-		}
-
-		bool starts_with_case_insensitive(std::string_view str, std::string_view prefix)
-		{
-			if (prefix.empty() || str.size() < prefix.size())
-			{
-				return false;
-			}
-
-			for (size_t i = 0; i < prefix.size(); ++i)
-			{
-				const auto a = static_cast<unsigned char>(str[i]);
-				const auto b = static_cast<unsigned char>(prefix[i]);
-				const char ca = (a >= 'A' && a <= 'Z') ? static_cast<char>(a + 32) : static_cast<char>(a);
-				const char cb = (b >= 'A' && b <= 'Z') ? static_cast<char>(b + 32) : static_cast<char>(b);
-				if (ca != cb)
-				{
-					return false;
-				}
-			}
-
-			return true;
+			}).detach();
 		}
 
 		bool try_autocomplete_dvar(const HWND input_hwnd)
 		{
-			load_dvar_list();
-			if (dvar_name_list.empty())
+			if (!dvar_list_loaded || dvar_name_list.empty())
 			{
 				return false;
 			}
 
-			const int text_len = GetWindowTextLengthA(input_hwnd);
-			std::string text(static_cast<size_t>(text_len), '\0');
-			if (text_len > 0)
-			{
-				GetWindowTextA(input_hwnd, text.data(), text_len + 1);
-			}
-
-			DWORD sel_start = 0;
-			DWORD sel_end = 0;
-			SendMessageA(input_hwnd, EM_GETSEL, reinterpret_cast<WPARAM>(&sel_start), reinterpret_cast<LPARAM>(&sel_end));
-			const size_t caret = static_cast<size_t>(sel_end);
-			if (caret > text.size())
+			char buf[512]{};
+			GetWindowTextA(input_hwnd, buf, sizeof(buf));
+			std::string partial(buf);
+			while (!partial.empty() && (partial.back() == ' ' || partial.back() == '\t'))
+				partial.pop_back();
+			if (partial.empty())
 			{
 				return false;
 			}
 
-			size_t token_start = caret;
-			while (token_start > 0)
+			std::vector<std::string*> matches;
+			for (auto& dvar : dvar_name_list)
 			{
-				const char c = text[token_start - 1];
-				if (c == ' ' || c == '\t')
+				if (_strnicmp(dvar.c_str(), partial.c_str(), partial.size()) == 0)
+				{
+					matches.push_back(&dvar);
+					if (matches.size() > 50)
+					{
+						break;
+					}
+				}
+			}
+
+			if (matches.empty())
+			{
+				return false;
+			}
+
+			if (matches.size() == 1)
+			{
+				SetWindowTextA(input_hwnd, matches[0]->c_str());
+				SendMessageA(input_hwnd, EM_SETSEL, static_cast<WPARAM>(matches[0]->size()), static_cast<LPARAM>(matches[0]->size()));
+				return true;
+			}
+
+			size_t common_len = partial.size();
+			for (; common_len < matches[0]->size(); ++common_len)
+			{
+				const char c = (*matches[0])[common_len];
+				bool all_match = true;
+				for (size_t i = 1; i < matches.size(); ++i)
+				{
+					if (common_len >= matches[i]->size() ||
+						static_cast<char>(std::tolower(static_cast<unsigned char>((*matches[i])[common_len]))) !=
+						static_cast<char>(std::tolower(static_cast<unsigned char>(c))))
+					{
+						all_match = false;
+						break;
+					}
+				}
+				if (!all_match)
 				{
 					break;
 				}
-				--token_start;
 			}
 
-			const std::string_view prefix(text.data() + token_start, caret - token_start);
-			if (prefix.empty())
+			if (common_len > partial.size())
 			{
-				return false;
+				std::string completed = matches[0]->substr(0, common_len);
+				SetWindowTextA(input_hwnd, completed.c_str());
+				SendMessageA(input_hwnd, EM_SETSEL, static_cast<WPARAM>(completed.size()), static_cast<LPARAM>(completed.size()));
 			}
 
-			static std::string last_prefix{};
-			static std::vector<std::string_view> last_matches{};
-			static size_t last_index = 0;
-
-			if (last_prefix != prefix)
+			std::string hint = "\n";
+			for (size_t i = 0; i < matches.size() && i < 20; ++i)
 			{
-				last_prefix.assign(prefix);
-				last_matches.clear();
-				last_index = 0;
-
-				for (const auto& n : dvar_name_list)
-				{
-					if (starts_with_case_insensitive(n, prefix))
-					{
-						last_matches.emplace_back(n);
-						if (last_matches.size() >= 64)
-						{
-							break;
-						}
-					}
-				}
+				hint += "  " + *matches[i] + "\n";
 			}
-			else
+			if (matches.size() > 20)
 			{
-				if (!last_matches.empty())
-				{
-					last_index = (last_index + 1) % last_matches.size();
-				}
+				hint += "  ... (" + std::to_string(matches.size() - 20) + " more)\n";
 			}
 
-			if (last_matches.empty())
+			if (*game::s_wcd::hwndBuffer)
 			{
-				return false;
+				append_text_with_severity(*game::s_wcd::hwndBuffer, hint);
 			}
 
-			const std::string_view match = last_matches[last_index];
-			std::string new_text;
-			new_text.reserve(text.size() - prefix.size() + match.size());
-			new_text.append(text.begin(), text.begin() + static_cast<std::ptrdiff_t>(token_start));
-			new_text.append(match.begin(), match.end());
-			new_text.append(text.begin() + static_cast<std::ptrdiff_t>(caret), text.end());
-
-			SetWindowTextA(input_hwnd, new_text.c_str());
-			const auto new_caret = static_cast<WPARAM>(token_start + match.size());
-			SendMessageA(input_hwnd, EM_SETSEL, new_caret, new_caret);
 			return true;
-		}
-
-		void append_text_with_severity(const HWND hwnd, const std::string& message)
-		{
-			static bool in_fatal_block = false;
-			static int fatal_sep_count = 0;
-
-			size_t start = 0;
-			while (start < message.size())
-			{
-				size_t end = message.find('\n', start);
-				const bool has_newline = (end != std::string::npos);
-				if (!has_newline)
-				{
-					end = message.size();
-				}
-
-				std::string_view line_view(message.data() + start, end - start);
-				std::string line(line_view);
-				if (has_newline)
-				{
-					line.push_back('\n');
-				}
-
-				const bool is_eq_sep = is_separator_line(line_view, '=');
-				const bool is_star_sep = is_separator_line(line_view, '*');
-				const bool is_any_sep = (is_eq_sep || is_star_sep);
-
-				if (contains_case_insensitive(line_view, "com_error:") || contains_case_insensitive(line_view, "unrecoverable error") ||
-					contains_case_insensitive(line_view, "script error") || contains_case_insensitive(line_view, "script execution error") ||
-					contains_case_insensitive(line_view, "lui script execution error"))
-				{
-					in_fatal_block = true;
-					fatal_sep_count = 0;
-				}
-
-				const COLORREF base_color = (in_fatal_block || is_any_sep) ? get_error_color() : get_line_base_color(line_view);
-				append_colored_text(hwnd, line, base_color);
-
-				if (in_fatal_block && is_any_sep)
-				{
-					++fatal_sep_count;
-					if (fatal_sep_count >= 2)
-					{
-						in_fatal_block = false;
-						fatal_sep_count = 0;
-					}
-				}
-				start = has_newline ? (end + 1) : end;
-			}
 		}
 
 		void print_message(const char* message)
@@ -535,24 +452,6 @@ namespace console
 			{
 				queue.push(message);
 			});
-		}
-
-		void print_message_to_console(const char* message)
-		{
-			if (game::is_headless())
-			{
-				fputs(message, stdout);
-				return;
-			}
-
-			static auto print_func = utils::hook::assemble([](utils::hook::assembler& a)
-			{
-				a.push(rbx);
-				a.mov(eax, 0x8030);
-				a.jmp(game::select(0x142332AA7, 0x140597527));
-			});
-
-			static_cast<void(*)(const char*)>(print_func)(message);
 		}
 
 		std::queue<std::string> empty_message_queue()
@@ -666,16 +565,26 @@ namespace console
 			return utils::hook::invoke<LRESULT>(game::select(0x142332C60, 0x1405976E0), hwnd, msg, wparam, lparam);
 		}
 
+		static utils::hook::detour sys_show_console_hook;
+		static std::atomic_bool console_shown_once{false};
+
 		void sys_show_console_stub()
 		{
-			if (!*game::s_wcd::hWnd)
+			// First call: let the original run to properly initialize the window
+			if (!console_shown_once.exchange(true))
 			{
+				sys_show_console_hook.invoke<void>();
 				return;
 			}
 
-			ShowWindow(*game::s_wcd::hWnd, SW_SHOW);
-			SetForegroundWindow(*game::s_wcd::hWnd);
-			SetFocus(*game::s_wcd::hwndInputLine);
+			// Subsequent calls (e.g. on error): just show without resizing
+			if (*game::s_wcd::hWnd)
+			{
+				ShowWindow(*game::s_wcd::hWnd, SW_SHOW);
+				SetForegroundWindow(*game::s_wcd::hWnd);
+				if (*game::s_wcd::hwndInputLine)
+					SetFocus(*game::s_wcd::hwndInputLine);
+			}
 		}
 
 		void sys_create_console_stub(const HINSTANCE h_instance)
@@ -896,7 +805,6 @@ namespace console
 					static utils::hook::detour sys_create_console_hook;
 					sys_create_console_hook.create(game::select(0x142332E00, 0x140597880), sys_create_console_stub);
 
-					static utils::hook::detour sys_show_console_hook;
 					sys_show_console_hook.create(game::Sys_ShowConsole, sys_show_console_stub);
 
 					game::Sys_ShowConsole();

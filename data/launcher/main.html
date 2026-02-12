@@ -466,6 +466,10 @@
       height: 100%; background: rgba(249,115,22,0.8);
       width: 0%; transition: width 0.3s;
     }
+    .progress-fill.indeterminate {
+      width: 30% !important;
+      animation: ws-marquee 1.4s ease-in-out infinite;
+    }
 
     .progress-percent {
       font-size: 0.85rem; color: rgba(249,115,22,0.9);
@@ -688,6 +692,65 @@
     .popup-actions .btn { margin-left: 8px; }
     .popup-actions .btn:first-child { margin-left: 0; }
 
+    .verify-popup .popup-content { padding: 20px; }
+    .verify-group-label {
+      display: block; font-size: 0.8rem; color: rgba(200,196,192,0.8);
+      text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 10px;
+    }
+    .verify-mode-list { display: flex; gap: 8px; margin-bottom: 18px; }
+    .verify-mode-btn {
+      flex: 1; padding: 10px 6px; border: 1px solid rgba(68,65,63,0.6);
+      border-radius: 6px; background: rgba(30,28,27,0.8); color: rgba(200,196,192,0.8);
+      font-size: 0.82rem; font-weight: 500; cursor: pointer; text-align: center;
+      transition: all 0.2s; font-family: inherit;
+    }
+    .verify-mode-btn:hover { border-color: rgba(249,115,22,0.5); color: #fff; }
+    .verify-mode-btn.selected {
+      background: rgba(249,115,22,0.2); border-color: rgba(249,115,22,0.7);
+      color: #fff;
+    }
+    .verify-progress-section { display: none; margin-bottom: 16px; }
+    .verify-progress-section.active { display: block; }
+    .verify-status-msg {
+      font-size: 0.88rem; color: rgba(249,115,22,0.9); font-weight: 600; margin-bottom: 8px;
+    }
+    .verify-progress-bar {
+      position: relative; height: 22px; background: rgba(68,65,63,0.5);
+      border-radius: 4px; overflow: hidden; margin-bottom: 6px;
+    }
+    .verify-progress-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, rgba(249,115,22,0.7), rgba(249,115,22,0.95));
+      transition: width 0.3s; border-radius: 4px;
+    }
+    .verify-progress-pct {
+      position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+      font-size: 0.75rem; color: #fff; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    }
+    .verify-status-details {
+      font-size: 0.78rem; color: rgba(200,196,192,0.65);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .verify-actions { display: flex; justify-content: flex-end; gap: 8px; }
+    .verify-results { display: none; margin-bottom: 14px; }
+    .verify-results.active { display: block; }
+    .verify-results-ok {
+      padding: 14px; text-align: center; color: rgba(34,197,94,0.95);
+      font-size: 0.92rem; font-weight: 600;
+      background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25);
+      border-radius: 6px;
+    }
+    .verify-results-bad {
+      max-height: 180px; overflow-y: auto;
+      background: rgba(0,0,0,0.35); border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 6px; padding: 8px;
+    }
+    .verify-results-bad .verify-file-item {
+      padding: 5px 8px; font-size: 0.78rem; color: rgba(239,68,68,0.9);
+      border-bottom: 1px solid rgba(68,65,63,0.3); word-break: break-all;
+    }
+    .verify-results-bad .verify-file-item:last-child { border-bottom: none; }
+
     .workshop-input-row {
       display: flex; margin-bottom: 20px;
       max-width: 600px;
@@ -726,6 +789,15 @@
       height: 100%; background: linear-gradient(90deg, rgba(249,115,22,0.7), rgba(249,115,22,0.9));
       width: 0%; transition: width 0.3s;
       border-radius: 4px;
+    }
+    .workshop-progress-fill.indeterminate {
+      width: 30% !important;
+      animation: ws-marquee 1.4s ease-in-out infinite;
+    }
+    @keyframes ws-marquee {
+      0%   { margin-left: 0%;   }
+      50%  { margin-left: 70%;  }
+      100% { margin-left: 0%;   }
     }
 
     .workshop-status {
@@ -987,8 +1059,9 @@
       border: 1px solid rgba(249,115,22,0.35);
       border-radius: 12px;
       z-index: 1000;
-      max-width: 750px;
-      width: 90%;
+      max-width: 900px;
+      width: 92%;
+      max-height: 85vh;
       overflow: hidden;
       box-shadow: 0 12px 48px rgba(0,0,0,0.8), 0 0 0 1px rgba(68,65,63,0.3);
     }
@@ -1046,8 +1119,8 @@
     }
 
     .workshop-modal-image {
-      width: 280px;
-      min-height: 280px;
+      width: 320px;
+      min-height: 300px;
       flex-shrink: 0;
       overflow: hidden;
       background: rgba(20,18,17,0.9);
@@ -1072,29 +1145,36 @@
 
     .workshop-modal-info {
       display: flex;
-      flex-direction: column;
-      gap: 10px;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
     .workshop-modal-info-item {
-      padding: 10px 12px;
+      padding: 8px 12px;
       background: rgba(20,18,17,0.7);
       border-radius: 6px;
       border: 1px solid rgba(68,65,63,0.3);
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .workshop-modal-info-item.full-width {
+      flex-basis: 100%;
     }
 
     .workshop-modal-info-label {
-      font-size: 0.75rem;
+      font-size: 0.7rem;
       color: rgba(249,115,22,0.7);
       text-transform: uppercase;
       letter-spacing: 0.08em;
-      margin-bottom: 6px;
+      margin-bottom: 3px;
     }
 
     .workshop-modal-info-value {
       color: #fff;
       font-weight: 500;
       word-break: break-all;
+      font-size: 0.85rem;
     }
 
     .workshop-modal-description {
@@ -1103,11 +1183,12 @@
       border-radius: 6px;
       border: 1px solid rgba(68,65,63,0.3);
       color: rgba(200,196,192,0.85);
-      line-height: 1.5;
+      line-height: 1.6;
       font-size: 0.85rem;
-      max-height: 100px;
+      max-height: 220px;
       overflow-y: auto;
       flex: 1;
+      white-space: pre-wrap;
     }
 
     .workshop-modal-footer {
@@ -1284,13 +1365,34 @@
       align-items: center;
       margin-top: 12px;
       padding-bottom: 8px;
+      gap: 4px;
+      flex-wrap: wrap;
     }
-    .workshop-browse-pagination > * { margin-left: 10px; }
-    .workshop-browse-pagination > *:first-child { margin-left: 0; }
 
-    .workshop-browse-pagination span {
-      color: rgba(200,196,192,0.7);
+    .workshop-browse-pagination .btn {
+      min-width: 32px;
+      padding: 6px 10px;
+      font-size: 0.82rem;
+    }
+
+    .workshop-browse-pagination .btn.page-active {
+      background: rgba(249,115,22,0.85);
+      color: #fff;
+      border-color: rgba(249,115,22,0.9);
+      font-weight: 700;
+    }
+
+    .workshop-browse-pagination .page-ellipsis {
+      color: rgba(200,196,192,0.5);
       font-size: 0.9rem;
+      padding: 4px 2px;
+      user-select: none;
+    }
+
+    .workshop-browse-pagination span.page-info {
+      color: rgba(200,196,192,0.5);
+      font-size: 0.78rem;
+      margin-left: 8px;
     }
 
     .loading-spinner {
@@ -1457,6 +1559,8 @@
             <button type="button" class="btn forum" onclick="window.external.openUrl('https://ezz.lol')">Forum</button>
             <button type="button" class="btn" id="manageInstallBtn">Manage</button>
           </div>
+
+          <button type="button" class="btn" id="verifyBtn" style="width:100%;max-width:440px;padding:10px 8px;font-size:0.82rem;margin-top:10px;">Verify Game Files</button>
         </div>
       </div>
 
@@ -1519,11 +1623,7 @@
             </div>
           </div>
 
-          <div class="workshop-browse-pagination" id="workshopBrowsePagination" style="display: none;">
-            <button type="button" class="btn" id="workshopBrowsePrevBtn">← Previous</button>
-            <span id="workshopBrowsePageLabel">Page 1 / 1</span>
-            <button type="button" class="btn" id="workshopBrowseNextBtn">Next →</button>
-          </div>
+          <div class="workshop-browse-pagination" id="workshopBrowsePagination" style="display: none;"></div>
         </div>
 
         <div id="workshopOverlay" class="workshop-overlay"></div>
@@ -1606,6 +1706,39 @@
     </div>
   </div>
 
+  <div class="popup-backdrop" id="verifyPopup">
+    <div class="popup verify-popup" style="width:420px;">
+      <div class="popup-header">
+        <h3>Verify Game Files</h3>
+        <button type="button" class="popup-close" id="verifyPopupClose">&times;</button>
+      </div>
+      <div class="popup-content">
+        <div class="verify-mode-group">
+          <label class="verify-group-label">Select Game Mode</label>
+          <div class="verify-mode-list">
+            <button type="button" class="verify-mode-btn selected" data-mode="all">All</button>
+            <button type="button" class="verify-mode-btn" data-mode="zm_">Zombies</button>
+            <button type="button" class="verify-mode-btn" data-mode="mp_">Multiplayer</button>
+            <button type="button" class="verify-mode-btn" data-mode="cp_">Campaign</button>
+          </div>
+        </div>
+        <div class="verify-progress-section" id="verifyProgressSection">
+          <div class="verify-status-msg" id="verifyStatusMsg"></div>
+          <div class="verify-progress-bar">
+            <div class="verify-progress-fill" id="verifyProgressFill"></div>
+            <span class="verify-progress-pct" id="verifyProgressPct">0%</span>
+          </div>
+          <div class="verify-status-details" id="verifyStatusDetails"></div>
+        </div>
+        <div class="verify-results" id="verifyResults"></div>
+        <div class="verify-actions">
+          <button type="button" class="btn" id="verifyCancelBtn" style="display:none;">Cancel</button>
+          <button type="button" class="btn primary" id="verifyStartBtn">Start Verification</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div class="popup-backdrop" id="messagePopup">
     <div class="popup msg-popup">
       <div class="popup-header">
@@ -1671,9 +1804,6 @@
       var workshopBrowseRefreshBtn = document.getElementById('workshopBrowseRefreshBtn');
       var workshopBrowseClearBtn = document.getElementById('workshopBrowseClearBtn');
       var workshopBrowsePagination = document.getElementById('workshopBrowsePagination');
-      var workshopBrowsePrevBtn = document.getElementById('workshopBrowsePrevBtn');
-      var workshopBrowseNextBtn = document.getElementById('workshopBrowseNextBtn');
-      var workshopBrowsePageLabel = document.getElementById('workshopBrowsePageLabel');
       var workshopBrowseItems = [];
       var workshopBrowseCurrentPage = 1;
       var workshopBrowseItemsPerPage = 8;
@@ -1804,16 +1934,29 @@
           '</div>';
         }
 
+        var modalSizeHtml = '';
+        var mSize = parseInt(item.file_size, 10) || 0;
+        if (mSize > 0) {
+          var sizeStr = mSize > 1073741824 ? (mSize / 1073741824).toFixed(2) + ' GB' :
+            mSize > 1048576 ? (mSize / 1048576).toFixed(1) + ' MB' :
+            mSize > 1024 ? (mSize / 1024).toFixed(0) + ' KB' : mSize + ' B';
+          modalSizeHtml = '<div class="workshop-modal-info-item">' +
+            '<div class="workshop-modal-info-label">Size</div>' +
+            '<div class="workshop-modal-info-value">' + sizeStr + '</div>' +
+          '</div>';
+        }
+
         workshopModalInfo.innerHTML = 
           '<div class="workshop-modal-info-item">' +
             '<div class="workshop-modal-info-label">Workshop ID</div>' +
-            '<div class="workshop-modal-info-value" style="font-family:monospace;font-size:0.9rem;">' + escapeHtml(item.id || 'N/A') + '</div>' +
+            '<div class="workshop-modal-info-value" style="font-family:monospace;font-size:0.85rem;">' + escapeHtml(item.id || 'N/A') + '</div>' +
           '</div>' +
           '<div class="workshop-modal-info-item">' +
             '<div class="workshop-modal-info-label">Rating</div>' +
             '<div class="workshop-modal-info-value">' + modalRatingHtml + '</div>' +
           '</div>' +
-          modalSubsHtml;
+          modalSubsHtml +
+          modalSizeHtml;
         
         workshopModalDescription.textContent = item.description || 'No description available';
         
@@ -2105,9 +2248,79 @@
         if (workshopBrowsePagination) {
           if (totalPages > 1) {
             workshopBrowsePagination.style.display = 'flex';
-            if (workshopBrowsePageLabel) workshopBrowsePageLabel.textContent = 'Page ' + workshopBrowseCurrentPage + ' / ' + totalPages;
-            if (workshopBrowsePrevBtn) workshopBrowsePrevBtn.disabled = workshopBrowseCurrentPage <= 1;
-            if (workshopBrowseNextBtn) workshopBrowseNextBtn.disabled = workshopBrowseCurrentPage >= totalPages;
+            workshopBrowsePagination.innerHTML = '';
+
+            var prevBtn = document.createElement('button');
+            prevBtn.type = 'button';
+            prevBtn.className = 'btn';
+            prevBtn.textContent = '\u2190 Prev';
+            prevBtn.disabled = workshopBrowseCurrentPage <= 1;
+            prevBtn.onclick = function() {
+              if (workshopBrowseCurrentPage > 1) {
+                workshopBrowseCurrentPage--;
+                renderWorkshopBrowse();
+                workshopBrowseGrid.scrollTop = 0;
+              }
+            };
+            workshopBrowsePagination.appendChild(prevBtn);
+
+            var pages = [];
+            if (totalPages <= 7) {
+              for (var p = 1; p <= totalPages; p++) pages.push(p);
+            } else {
+              pages.push(1);
+              if (workshopBrowseCurrentPage > 4) pages.push('...');
+              var rangeStart = Math.max(2, workshopBrowseCurrentPage - 2);
+              var rangeEnd = Math.min(totalPages - 1, workshopBrowseCurrentPage + 2);
+              if (workshopBrowseCurrentPage <= 4) rangeEnd = Math.min(totalPages - 1, 5);
+              if (workshopBrowseCurrentPage >= totalPages - 3) rangeStart = Math.max(2, totalPages - 4);
+              for (var p = rangeStart; p <= rangeEnd; p++) pages.push(p);
+              if (workshopBrowseCurrentPage < totalPages - 3) pages.push('...');
+              pages.push(totalPages);
+            }
+
+            for (var pi = 0; pi < pages.length; pi++) {
+              if (pages[pi] === '...') {
+                var dots = document.createElement('span');
+                dots.className = 'page-ellipsis';
+                dots.textContent = '...';
+                workshopBrowsePagination.appendChild(dots);
+              } else {
+                var pageBtn = document.createElement('button');
+                pageBtn.type = 'button';
+                pageBtn.className = 'btn' + (pages[pi] === workshopBrowseCurrentPage ? ' page-active' : '');
+                pageBtn.textContent = String(pages[pi]);
+                pageBtn.setAttribute('data-page', pages[pi]);
+                pageBtn.onclick = function() {
+                  var pg = parseInt(this.getAttribute('data-page'), 10);
+                  if (pg !== workshopBrowseCurrentPage) {
+                    workshopBrowseCurrentPage = pg;
+                    renderWorkshopBrowse();
+                    workshopBrowseGrid.scrollTop = 0;
+                  }
+                };
+                workshopBrowsePagination.appendChild(pageBtn);
+              }
+            }
+
+            var nextBtn = document.createElement('button');
+            nextBtn.type = 'button';
+            nextBtn.className = 'btn';
+            nextBtn.textContent = 'Next \u2192';
+            nextBtn.disabled = workshopBrowseCurrentPage >= totalPages;
+            nextBtn.onclick = function() {
+              if (workshopBrowseCurrentPage < totalPages) {
+                workshopBrowseCurrentPage++;
+                renderWorkshopBrowse();
+                workshopBrowseGrid.scrollTop = 0;
+              }
+            };
+            workshopBrowsePagination.appendChild(nextBtn);
+
+            var info = document.createElement('span');
+            info.className = 'page-info';
+            info.textContent = filteredItems.length + ' items';
+            workshopBrowsePagination.appendChild(info);
           } else {
             workshopBrowsePagination.style.display = 'none';
           }
@@ -2118,6 +2331,13 @@
         try {
           var ex = getExternal();
           if (ex && ex.workshopDownload) {
+            if (ex.workshopCheckInstalled) {
+              var installed = ex.workshopCheckInstalled(String(id));
+              if (installed && installed.length > 0) {
+                showMessage('Already Installed', 'This workshop item is already installed at:\n' + installed + '\n\nRemove it first if you want to reinstall.');
+                return;
+              }
+            }
             ex.workshopDownload(String(id));
 
             var msgEl = document.getElementById('workshopStatusMessage');
@@ -2128,10 +2348,13 @@
             if (pctEl) pctEl.textContent = '';
             window._lastWorkshopTerminalState = '';
 
+            window._wsMaxProgress = 0;
+            window._wsIndeterminate = true;
             workshopProgress.style.display = 'block';
             workshopProgressFill.style.width = '0%';
+            workshopProgressFill.classList.add('indeterminate');
             workshopDownloadBtn.disabled = true;
-            showProgress('Starting download for ' + (displayName || id) + '...', 0);
+            showProgress('Starting download for ' + (displayName || id) + '...', -1);
 
             if (window._workshopPollInterval) {
               clearInterval(window._workshopPollInterval);
@@ -2145,7 +2368,7 @@
                   var statusJson = ex2.workshopGetStatus();
                   if (statusJson) {
                     var status = typeof statusJson === 'string' ? JSON.parse(statusJson) : statusJson;
-                    if (status.message && (status.message.indexOf('Done') !== -1 || status.message.indexOf('Error') !== -1 || status.message.indexOf('Canceled') !== -1)) {
+                    if (status.message && (status.message.indexOf('Done') !== -1 || status.message.indexOf('Error') !== -1 || status.message.indexOf('Canceled') !== -1 || status.message.indexOf('Already installed') !== -1)) {
                       clearInterval(window._workshopPollInterval);
                       window._workshopPollInterval = null;
                       workshopDownloadBtn.disabled = false;
@@ -2255,36 +2478,6 @@
           if (workshopSearchInput) workshopSearchInput.value = '';
           try { localStorage.removeItem(workshopBrowseCacheKey); } catch(e) {}
           loadWorkshopBrowse(1);
-        };
-      }
-
-      if (workshopBrowsePrevBtn) {
-        workshopBrowsePrevBtn.onclick = function() {
-          if (workshopBrowseCurrentPage > 1) {
-            workshopBrowseCurrentPage--;
-            renderWorkshopBrowse();
-            workshopBrowseGrid.scrollTop = 0;
-          }
-        };
-      }
-
-      if (workshopBrowseNextBtn) {
-        workshopBrowseNextBtn.onclick = function() {
-          var filteredItems = workshopBrowseItems;
-          if (workshopBrowseSearchTerm.length > 0) {
-            var term = workshopBrowseSearchTerm.toLowerCase();
-            filteredItems = workshopBrowseItems.filter(function(item) {
-              return (item.title && item.title.toLowerCase().indexOf(term) !== -1) ||
-                     (item.description && item.description.toLowerCase().indexOf(term) !== -1) ||
-                     (item.id && item.id.indexOf(term) !== -1);
-            });
-          }
-          var totalPages = Math.ceil(filteredItems.length / workshopBrowseItemsPerPage) || 1;
-          if (workshopBrowseCurrentPage < totalPages) {
-            workshopBrowseCurrentPage++;
-            renderWorkshopBrowse();
-            workshopBrowseGrid.scrollTop = 0;
-          }
         };
       }
 
@@ -2540,8 +2733,15 @@
         var text = message || '';
         if (details) text += ' - ' + details;
         progressInfo.textContent = text;
-        progressFill.style.width = percent + '%';
-        progressPercent.textContent = percent.toFixed(2) + '%';
+        var pf = document.getElementById('progressFill');
+        if (percent < 0) {
+          if (pf && !pf.classList.contains('indeterminate')) pf.classList.add('indeterminate');
+          progressPercent.textContent = '';
+        } else {
+          if (pf && pf.classList.contains('indeterminate')) pf.classList.remove('indeterminate');
+          progressFill.style.width = percent + '%';
+          progressPercent.textContent = percent > 0 ? (percent.toFixed(1) + '%') : '0%';
+        }
         progressFooter.classList.add('active');
       }
 
@@ -2569,6 +2769,8 @@
         var pctEl = document.getElementById('workshopProgressPercent');
         if (pctEl) pctEl.textContent = '';
         workshopProgressFill.style.width = '0%';
+        workshopProgressFill.classList.remove('indeterminate');
+        window._wsIndeterminate = false;
         hideProgress();
         setTimeout(refreshModsGrid, 300);
       }
@@ -2624,6 +2826,167 @@
       manageInstallPopup.onclick = function(e) {
         if (e.target === manageInstallPopup) hideManagePopup();
       };
+
+      (function() {
+        var verifyPopup = document.getElementById('verifyPopup');
+        var verifyStartBtn = document.getElementById('verifyStartBtn');
+        var verifyCancelBtn = document.getElementById('verifyCancelBtn');
+        var verifyProgressSection = document.getElementById('verifyProgressSection');
+        var verifyStatusMsg = document.getElementById('verifyStatusMsg');
+        var verifyProgressFill = document.getElementById('verifyProgressFill');
+        var verifyProgressPct = document.getElementById('verifyProgressPct');
+        var verifyStatusDetails = document.getElementById('verifyStatusDetails');
+        var verifyResults = document.getElementById('verifyResults');
+        var verifyCloseBtn = document.getElementById('verifyPopupClose');
+        var verifyModeBtns = document.querySelectorAll('.verify-mode-btn');
+        var selectedVerifyMode = 'all';
+        var verifyPollInterval = null;
+        var verifySeenRunning = false;
+
+        function resetVerifyUI() {
+          verifyProgressSection.classList.remove('active');
+          verifyResults.classList.remove('active');
+          verifyResults.innerHTML = '';
+          verifyStartBtn.style.display = '';
+          verifyStartBtn.textContent = 'Start Verification';
+          verifyCancelBtn.style.display = 'none';
+          verifyProgressFill.style.width = '0%';
+          verifyProgressPct.textContent = '0%';
+          verifyStatusMsg.textContent = '';
+          verifyStatusMsg.style.color = '';
+          verifyStatusDetails.textContent = '';
+          verifySeenRunning = false;
+          for (var i = 0; i < verifyModeBtns.length; i++) verifyModeBtns[i].disabled = false;
+        }
+
+        function showVerifyPopup() {
+          resetVerifyUI();
+          verifyPopup.classList.add('active');
+        }
+        function hideVerifyPopup() {
+          if (verifyPollInterval) { clearInterval(verifyPollInterval); verifyPollInterval = null; }
+          verifyPopup.classList.remove('active');
+          resetVerifyUI();
+        }
+
+        function showVerifyResults(changedFiles, message) {
+          verifyResults.innerHTML = '';
+          verifyResults.classList.add('active');
+          if (!changedFiles || changedFiles.length === 0) {
+            verifyResults.innerHTML = '<div class="verify-results-ok">' +
+              '&#10004; All files verified — no changes detected.' +
+              '</div>';
+          } else {
+            var html = '<div style="color:rgba(249,115,22,0.9);font-size:0.82rem;font-weight:600;margin-bottom:8px;">' +
+              changedFiles.length + ' file' + (changedFiles.length > 1 ? 's' : '') + ' with issues:</div>';
+            html += '<div class="verify-results-bad">';
+            for (var i = 0; i < changedFiles.length; i++) {
+              html += '<div class="verify-file-item">' + escapeHtml(changedFiles[i]) + '</div>';
+            }
+            html += '</div>';
+            verifyResults.innerHTML = html;
+          }
+        }
+
+        document.getElementById('verifyBtn').onclick = function() { showVerifyPopup(); };
+        verifyCloseBtn.onclick = function() {
+          try { var ex = getExternal(); if (ex && ex.cancelVerify) ex.cancelVerify(); } catch(e) {}
+          hideVerifyPopup();
+        };
+        verifyPopup.onclick = function(e) {
+          if (e.target === verifyPopup) {
+            try { var ex = getExternal(); if (ex && ex.cancelVerify) ex.cancelVerify(); } catch(e2) {}
+            hideVerifyPopup();
+          }
+        };
+
+        for (var i = 0; i < verifyModeBtns.length; i++) {
+          (function(btn) {
+            btn.onclick = function() {
+              for (var j = 0; j < verifyModeBtns.length; j++) verifyModeBtns[j].classList.remove('selected');
+              btn.classList.add('selected');
+              selectedVerifyMode = btn.getAttribute('data-mode');
+            };
+          })(verifyModeBtns[i]);
+        }
+
+        verifyCancelBtn.onclick = function() {
+          try { var ex = getExternal(); if (ex && ex.cancelVerify) ex.cancelVerify(); } catch(e) {}
+          verifyCancelBtn.disabled = true;
+        };
+
+        function startVerify() {
+          try {
+            var ex = getExternal();
+            if (!ex || !ex.verifyGameFiles) { showMessage('Error', 'Verification not available.'); return; }
+            var result = ex.verifyGameFiles(selectedVerifyMode);
+            if (result === 'already_running') { showMessage('Verify', 'Verification is already running.'); return; }
+
+            verifySeenRunning = false;
+            verifyResults.classList.remove('active');
+            verifyResults.innerHTML = '';
+            verifyStartBtn.style.display = 'none';
+            verifyCancelBtn.style.display = '';
+            verifyCancelBtn.disabled = false;
+            verifyProgressSection.classList.add('active');
+            for (var k = 0; k < verifyModeBtns.length; k++) verifyModeBtns[k].disabled = true;
+
+            verifyPollInterval = setInterval(function() {
+              try {
+                var ex2 = getExternal();
+                if (!ex2 || !ex2.getVerifyStatus) return;
+                var raw = ex2.getVerifyStatus();
+                var st = typeof raw === 'string' ? JSON.parse(raw) : raw;
+
+                if (st.running) verifySeenRunning = true;
+                if (!verifySeenRunning) return;
+
+                var pct = Math.min(st.progress || 0, 100);
+                verifyStatusMsg.textContent = st.message || '';
+                if (st.message && (st.message.indexOf('Not installed') !== -1 || st.message.indexOf('No files found') !== -1 || st.message.indexOf('missing from disk') !== -1)) {
+                  verifyStatusMsg.style.color = '#ef4444';
+                } else {
+                  verifyStatusMsg.style.color = '';
+                }
+                verifyProgressFill.style.width = pct.toFixed(1) + '%';
+                verifyProgressPct.textContent = pct.toFixed(1) + '%';
+                verifyStatusDetails.textContent = st.details || '';
+
+                if (!st.running && st.progress >= 100) {
+                  clearInterval(verifyPollInterval);
+                  verifyPollInterval = null;
+                  verifyCancelBtn.style.display = 'none';
+                  verifyProgressFill.style.width = '100%';
+                  verifyProgressPct.textContent = '100%';
+
+                  var isBaseline = st.message && st.message.indexOf('Baseline') !== -1;
+                  if (isBaseline) {
+                    verifyResults.classList.add('active');
+                    verifyResults.innerHTML = '<div class="verify-results-ok">' +
+                      '&#10004; ' + escapeHtml(st.message) + '</div>';
+                  } else {
+                    showVerifyResults(st.changedFiles || [], st.message);
+                  }
+
+                  verifyStartBtn.textContent = 'Close';
+                  verifyStartBtn.style.display = '';
+                  verifyStartBtn.onclick = function() { hideVerifyPopup(); verifyStartBtn.onclick = startVerify; verifyStartBtn.textContent = 'Start Verification'; };
+                } else if (!st.running && st.message && (st.message.indexOf('Cancelled') !== -1 || st.message.indexOf('No game files') !== -1)) {
+                  clearInterval(verifyPollInterval);
+                  verifyPollInterval = null;
+                  verifyCancelBtn.style.display = 'none';
+                  verifyStartBtn.style.display = '';
+                  for (var k = 0; k < verifyModeBtns.length; k++) verifyModeBtns[k].disabled = false;
+                }
+              } catch (e) {}
+            }, 200);
+          } catch (e) {
+            showMessage('Error', 'Failed to start verification: ' + (e.message || ''));
+          }
+        }
+
+        verifyStartBtn.onclick = startVerify;
+      })();
 
       var componentSelection = { campaign: false, multiplayer: false, zombies: false };
       var modeFilesInfo = {};
@@ -2681,7 +3044,6 @@
       var _modsListPollInterval = null;
 
       function refreshModsGrid() {
-        // Show cached data immediately if available
         try {
           var ex = getExternal();
           if (!ex) {
@@ -2691,7 +3053,6 @@
             return;
           }
 
-          // Show cached data right away (non-blocking)
           if (ex.workshopList) {
             var cached = ex.workshopList();
             if (cached && cached !== '[]') {
@@ -2704,14 +3065,13 @@
             }
           }
 
-          // Start async refresh in background, then poll for result
           if (ex.workshopListAsync) {
             ex.workshopListAsync();
             if (_modsListPollInterval) clearInterval(_modsListPollInterval);
             var pollCount = 0;
             _modsListPollInterval = setInterval(function() {
               pollCount++;
-              if (pollCount > 300) { // 30 seconds max
+              if (pollCount > 300) { 
                 clearInterval(_modsListPollInterval);
                 _modsListPollInterval = null;
                 return;
@@ -2829,7 +3189,7 @@
                         var sj = ex2.workshopGetStatus();
                         if (sj) {
                           var st = typeof sj === 'string' ? JSON.parse(sj) : sj;
-                          if (st.message && (st.message.indexOf('Done') !== -1 || st.message.indexOf('Error') !== -1)) {
+                          if (st.message && (st.message.indexOf('Done') !== -1 || st.message.indexOf('Error') !== -1 || st.message.indexOf('Already installed') !== -1)) {
                             clearInterval(pollInterval);
                             workshopDownloadBtn.disabled = false;
                             setTimeout(refreshModsGrid, 500);
@@ -2933,9 +3293,25 @@
             if (detEl) detEl.textContent = status.details || '';
 
             if (status.progress !== undefined && status.progress >= 0) {
-              workshopProgressFill.style.width = status.progress + '%';
-              if (pctEl) pctEl.textContent = status.progress > 0 ? (status.progress.toFixed(1) + '%') : '';
-              showProgress(status.message, status.progress, status.details);
+              if (window._wsIndeterminate) {
+                window._wsIndeterminate = false;
+                workshopProgressFill.classList.remove('indeterminate');
+                var pf2 = document.getElementById('progressFill');
+                if (pf2) pf2.classList.remove('indeterminate');
+              }
+              var p = Math.min(status.progress, 99);
+              workshopProgressFill.style.width = p + '%';
+              if (pctEl) pctEl.textContent = p > 0 ? (p.toFixed(1) + '%') : '';
+              showProgress(status.message, p, status.details);
+            } else if (status.progress !== undefined && status.progress < 0) {
+              if (!window._wsIndeterminate) {
+                window._wsIndeterminate = true;
+                workshopProgressFill.classList.add('indeterminate');
+                var pf3 = document.getElementById('progressFill');
+                if (pf3) pf3.classList.add('indeterminate');
+              }
+              if (pctEl) pctEl.textContent = '';
+              showProgress(status.message, -1, status.details);
             } else {
               workshopProgressFill.style.width = '0%';
               if (pctEl) pctEl.textContent = '';
@@ -2945,7 +3321,8 @@
             var isDone = status.message.indexOf('Done') !== -1;
             var isError = status.message.indexOf('Error') !== -1;
             var isCanceled = status.message.indexOf('Canceled') !== -1;
-            if (isDone || isError || isCanceled) {
+            var isAlreadyInstalled = status.message.indexOf('Already installed') !== -1;
+            if (isDone || isError || isCanceled || isAlreadyInstalled) {
               if (window._workshopPollInterval) {
                 clearInterval(window._workshopPollInterval);
                 window._workshopPollInterval = null;
@@ -2969,6 +3346,14 @@
                 workshopProgress.style.display = 'none';
                 if (msgEl) msgEl.style.color = 'rgba(249,115,22,0.9)';
                 hideProgress();
+              } else if (isAlreadyInstalled) {
+                workshopProgress.style.display = 'none';
+                if (msgEl) msgEl.style.color = 'rgba(249,115,22,0.9)';
+                hideProgress();
+                if (window._lastWorkshopTerminalState !== status.message) {
+                  window._lastWorkshopTerminalState = status.message;
+                  showMessage('Already Installed', status.details || 'This workshop item is already installed.\nRemove it first if you want to reinstall.');
+                }
               } else if (isDone) {
                 workshopId.value = '';
                 setTimeout(function() {
@@ -3048,7 +3433,6 @@
           var ex = getExternal();
           if (!ex || !ex.workshopList) { workshopStatus.textContent = 'Cannot check updates.'; return; }
 
-          // First trigger a fresh async library scan to get latest update info
           workshopStatus.textContent = 'Checking for updates...';
           document.getElementById('checkUpdatesBtn').disabled = true;
 
@@ -3056,7 +3440,6 @@
             ex.workshopListAsync();
           }
 
-          // Poll until the library scan finishes, then find items needing updates
           var checkPollCount = 0;
           var checkPoll = setInterval(function() {
             checkPollCount++;
@@ -3076,12 +3459,10 @@
                 if (!list || list.length === 0) { workshopStatus.textContent = 'No items installed.'; document.getElementById('checkUpdatesBtn').disabled = false; return; }
                 var items = typeof list === 'string' ? JSON.parse(list) : list;
 
-                // Update the local cache and re-render to show badges
                 modsItemsCache = items;
                 modsPage = 1;
                 renderModsPage();
 
-                // Filter only items that need updating
                 var toUpdate = [];
                 for (var i = 0; i < items.length; i++) {
                   if (items[i].needsUpdate && items[i].id && String(items[i].id).length > 0) toUpdate.push(items[i]);
@@ -3113,7 +3494,7 @@
                       var sj = ex3.workshopGetStatus();
                       if (sj) {
                         var st = typeof sj === 'string' ? JSON.parse(sj) : sj;
-                        if (st.message && (st.message.indexOf('Done') !== -1 || st.message.indexOf('Error') !== -1)) {
+                        if (st.message && (st.message.indexOf('Done') !== -1 || st.message.indexOf('Error') !== -1 || st.message.indexOf('Already installed') !== -1)) {
                           clearInterval(pollInterval);
                           idx++;
                           setTimeout(updateNext, 300);

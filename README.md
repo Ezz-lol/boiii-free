@@ -221,24 +221,23 @@ Launch BOIII with these arguments for extra features:
 | Argument | Description |
 |:---------|:------------|
 | `-unsafe-lua` | Allow mods to use unsafe Lua functions (required for some mods like All-Around Enhancement) |
-| `-dedicated` | Launch as dedicated server |
+| `-dedicated` | Launch as a dedicated server |
 | `-nosteam` | Bypass Steam entirely |
 | `-nointro` | Skip intro videos |
 | `-windowed` | Launch in windowed mode |
 | `-safe` | Launch in safe mode (disable mods) |
 | `-console` | Enable developer console |
 | `-port XXXX` | Set server port (default: 27017) |
-| `-launch` | Force BOIII to start directly (used by launchers/shortcuts; skips some pre-checks) |
-| `-noupdate` | Disable automatic updates (not recommanded) |
+| `-launch` | Start the game immediately, skipping some launcher UI and pre-checks |
+| `-noupdate` | Disable automatic updates (not recommended) |
 | `-update` | Force enable updates (including host binary in debug builds) |
 | `-norelaunch` | Skip automatic relaunch after updates |
-| `-headless` | Run in headless mode (no GUI for the console) |
-| `-nopatch` | Disable some of the server's patches |
-| `-plugins` | TO DO |
-| `-trimlogs` | TO DO |
-| `-keep-launcher` | TO DO |
-| `-noconsole` | TO DO |
-//probably wrong names i forgor , we can add em later
+| `-headless` | Run in headless mode (no GUI) |
+| `-nopatch` | Disable selected runtime patches |
+| `-plugins` | Load additional plugins from the `plugins/` directory |
+| `-trimlogs` | Trim or rotate old log files on startup |
+| `-keep-launcher` | Keep the launcher process running after starting the game |
+| `-noconsole` | Suppress the external launcher console window |
 
 **Example:**
 ```bash
@@ -247,8 +246,8 @@ boiii.exe -nointro -console -unsafe-lua
 
 > [!WARNING]
 > The `-unsafe-lua` argument is **required** for certain mods that need to modify the UI, menus, or game scripts (like All-Around Enhancement Mod). Only use this with trusted mods!
-> 
-> The `-headless` may not behave correctly on non-servers!
+>
+> The `-headless` option may not behave correctly on non-server systems.
 
 ---
 
