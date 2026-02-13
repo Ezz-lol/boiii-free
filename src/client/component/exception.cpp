@@ -13,59 +13,11 @@
 
 #include <version.hpp>
 
-#include <DbgHelp.h>
-
 namespace exception
 {
 	namespace
 	{
 		DWORD main_thread_id{};
-
-		utils::hook::detour mini_dump_write_dump_hook;
-
-		BOOL WINAPI mini_dump_write_dump_stub(const HANDLE h_process, const DWORD process_id, const HANDLE h_file,
-		                                      const MINIDUMP_TYPE dump_type,
-		                                      const PMINIDUMP_EXCEPTION_INFORMATION exception_param,
-		                                      const PMINIDUMP_USER_STREAM_INFORMATION user_stream_param,
-		                                      const PMINIDUMP_CALLBACK_INFORMATION callback_param)
-		{
-			wchar_t filename[MAX_PATH];
-			if (GetFinalPathNameByHandleW(h_file, filename, ARRAYSIZE(filename), VOLUME_NAME_DOS))
-			{
-				std::wstring path = filename;
-				if (path.find(L"\\\\?\\") == 0)
-				{
-					path = path.substr(4);
-				}
-
-				const std::filesystem::path p(path);
-				if (p.extension() == L".dmp")
-				{
-					const auto root_path = utils::nt::library{}.get_path().parent_path();
-					const auto minidumps_path = root_path / "minidumps";
-					std::filesystem::create_directories(minidumps_path);
-
-					if (p.parent_path() == root_path)
-					{
-						const auto new_path = minidumps_path / p.filename();
-						const auto new_handle = CreateFileW(new_path.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr,
-						                                    CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-
-						if (new_handle != INVALID_HANDLE_VALUE)
-						{
-							const auto result = mini_dump_write_dump_hook.invoke<BOOL>(
-								h_process, process_id, new_handle, dump_type, exception_param, user_stream_param,
-								callback_param);
-							CloseHandle(new_handle);
-							return result;
-						}
-					}
-				}
-			}
-
-			return mini_dump_write_dump_hook.invoke<BOOL>(h_process, process_id, h_file, dump_type, exception_param,
-			                                              user_stream_param, callback_param);
-		}
 
 		thread_local struct
 		{
@@ -255,9 +207,6 @@ namespace exception
 		{
 			main_thread_id = GetCurrentThreadId();
 			SetUnhandledExceptionFilter(exception_filter);
-
-			const auto root_path = utils::nt::library{}.get_path().parent_path();
-			std::filesystem::create_directories(root_path / "minidumps");
 		}
 
 		void post_load() override
@@ -267,12 +216,6 @@ namespace exception
 
 			set_filter(exception_filter);
 			utils::hook::jump(set_filter, set_unhandled_exception_filter_stub);
-
-			const auto dbghelp = utils::nt::library::load("dbghelp.dll");
-			if (dbghelp)
-			{
-				mini_dump_write_dump_hook.create(dbghelp.get_proc<void*>("MiniDumpWriteDump"), mini_dump_write_dump_stub);
-			}
 		}
 	};
 }
