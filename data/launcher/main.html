@@ -1579,18 +1579,18 @@
 
         <div class="settings-dropdown" id="settingsDropdown">
     <h4>Launch Options</h4>
-          <div class="option-btn" data-option="nointro"><span class="dot"></span><span class="label">Skip Intro</span></div>
-          <div class="option-btn" data-option="unsafe-lua"><span class="dot"></span><span class="label">Load Lua</span></div>
-          <div class="option-btn" data-option="nosteam"><span class="dot"></span><span class="label">No Steam</span></div>
-          <div class="option-btn" data-option="windowed"><span class="dot"></span><span class="label">Windowed</span></div>
-          <div class="option-btn" data-option="borderless"><span class="dot"></span><span class="label">Borderless</span></div>
-          <div class="option-btn" data-option="safe-mode"><span class="dot"></span><span class="label">Safe Mode</span></div>
-          <div class="option-btn" data-option="console"><span class="dot"></span><span class="label">Dev</span></div>
-          <div class="option-btn" data-option="headless"><span class="dot"></span><span class="label">Headless</span></div>
-          <div class="option-btn" data-option="trimlogs"><span class="dot"></span><span class="label">Trim Logs</span></div>
-          <div class="option-btn" data-option="nologs"><span class="dot"></span><span class="label">No Console</span></div>
-          <div class="option-btn" data-option="keeplauncher"><span class="dot"></span><span class="label">Keep Launcher</span></div>
-          <div class="option-btn" data-option="plugins"><span class="dot"></span><span class="label">Plugins</span></div>
+          <div class="option-btn" data-option="nointro" title="Skip the intro cinematic on startup"><span class="dot"></span><span class="label">Skip Intro</span></div>
+          <div class="option-btn" data-option="unsafe-lua" title="Allow loading of unsigned Lua scripts"><span class="dot"></span><span class="label">Load Lua</span></div>
+          <div class="option-btn" data-option="nosteam" title="Launch without connecting to Steam"><span class="dot"></span><span class="label">No Steam</span></div>
+          <div class="option-btn" data-option="windowed" title="Run the game in a windowed window"><span class="dot"></span><span class="label">Windowed</span></div>
+          <div class="option-btn" data-option="borderless" title="Run in borderless fullscreen mode"><span class="dot"></span><span class="label">Borderless</span></div>
+          <div class="option-btn" data-option="safe-mode" title="Launch with minimal settings for troubleshooting (no mods loading)"><span class="dot"></span><span class="label">Safe Mode</span></div>
+          <div class="option-btn" data-option="console" title="Enable the developer console in-game"><span class="dot"></span><span class="label">Dev</span></div>
+          <div class="option-btn" data-option="headless" title="Run the server without a visible window"><span class="dot"></span><span class="label">Headless</span></div>
+          <div class="option-btn" data-option="trimlogs" title="Reduce log file size by trimming old entries"><span class="dot"></span><span class="label">Trim Logs</span></div>
+          <div class="option-btn" data-option="nologs" title="Disable the external console window"><span class="dot"></span><span class="label">No Console</span></div>
+          <div class="option-btn" data-option="keeplauncher" title="Keep the launcher open after starting the game"><span class="dot"></span><span class="label">Keep Launcher</span></div>
+          <div class="option-btn" data-option="plugins" title="Enable loading of custom plugins"><span class="dot"></span><span class="label">Plugins</span></div>
         </div>
 
   <div class="main-container">
@@ -1640,7 +1640,7 @@
           </div>
 
           <button type="button" class="btn" id="verifyBtn" style="width:100%;max-width:440px;padding:10px 8px;font-size:0.82rem;margin-top:10px;">Verify Game Files</button>
-          <button type="button" class="btn" id="setPathBtn" style="width:100%;max-width:440px;padding:10px 8px;font-size:0.82rem;margin-top:6px;">Set Game Path</button>
+          <button type="button" class="btn" id="setPathBtn" style="width:100%;max-width:440px;padding:10px 8px;font-size:0.82rem;margin-top:6px;">Change Game Path</button>
           <div id="currentPathDisplay" style="text-align:center;font-size:0.72rem;color:rgba(255,255,255,0.35);margin-top:4px;max-width:440px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
         </div>
       </div>
@@ -2994,7 +2994,6 @@
 
         document.getElementById('verifyBtn').onclick = function() { showVerifyPopup(); };
 
-        // ---- Set Game Path ----
         (function() {
           var pathDisplay = document.getElementById('currentPathDisplay');
           try {

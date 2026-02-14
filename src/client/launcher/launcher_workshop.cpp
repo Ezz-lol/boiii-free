@@ -1354,6 +1354,7 @@ namespace {
             const auto ws_info = get_steam_workshop_info(workshop_id);
             const std::uint64_t expected_size = ws_info.file_size;
             const std::string workshop_title = ws_info.title.empty() ? ("Workshop #" + workshop_id) : ws_info.title;
+            const std::string expected_size_str = expected_size > 0 ? human_readable_size(expected_size) : "";
 
             if (expected_size > 0) {
                 ULARGE_INTEGER free_bytes_available{};
@@ -1382,41 +1383,37 @@ namespace {
 
             std::string cmd_args = "+login anonymous +workshop_download_item 311210 " + workshop_id + " validate +quit";
 
-            constexpr int MAX_ATTEMPTS = 30;
-            constexpr int FAIL_THRESHOLD = 5;
-            int attempt = 0;
-            int fast_fail_count = 0;
+            constexpr int MAX_RETRIES = 20;
+            int internal_retry = 0;
+            int visible_retry = 0;
             bool real_download_started = false;
             auto download_start_time = std::chrono::steady_clock::now();
 
-            while (!std::filesystem::exists(content_path) && !std::filesystem::exists(alt_content_path) && !workshop_cancel_requested.load()) {
-                attempt++;
-                if (attempt > MAX_ATTEMPTS) {
-                    set_workshop_status("Error: Download failed after " + std::to_string(MAX_ATTEMPTS) + " attempts.", 0.0,
-                        "SteamCMD could not complete the download.\n"
-                        "Checked: " + content_path.string() + "\n"
-                        "    and: " + alt_content_path.string() + "\n"
+            {
+                std::error_code ec;
+                if (std::filesystem::exists(content_path, ec)) std::filesystem::remove_all(content_path, ec);
+                if (std::filesystem::exists(download_path, ec)) std::filesystem::remove_all(download_path, ec);
+                if (std::filesystem::exists(alt_content_path, ec)) std::filesystem::remove_all(alt_content_path, ec);
+                if (std::filesystem::exists(alt_download_path, ec)) std::filesystem::remove_all(alt_download_path, ec);
+            }
+
+            while (!workshop_cancel_requested.load()) {
+                internal_retry++;
+                if (internal_retry > MAX_RETRIES) {
+                    set_workshop_status("Error: Download failed.", 0.0,
+                        "SteamCMD could not complete the download after multiple attempts.\n"
                         "Try again or check your connection.");
                     return;
                 }
 
-                if (fast_fail_count >= FAIL_THRESHOLD) {
-                    set_workshop_status("Resetting SteamCMD...", -1.0,
-                        "Too many quick failures, resetting");
-                    std::error_code ec;
-                    for (const auto& dir_name : {"steamapps", "dumps", "logs", "depotcache", "appcache", "userdata"}) {
-                        auto dir = steamcmd_dir / dir_name;
-                        if (std::filesystem::exists(dir, ec)) {
-                            std::filesystem::remove_all(dir, ec);
-                        }
-                    }
-                    fast_fail_count = 0;
-                    std::this_thread::sleep_for(std::chrono::seconds(2));
+                if (visible_retry > 0) {
+                    set_workshop_status("Restarting download: " + workshop_title, -1.0,
+                        expected_size_str.empty() ? ("Workshop ID: " + workshop_id) : ("File size: " + expected_size_str));
+                } else {
+                    set_workshop_status("Downloading " + workshop_title + "...",
+                        expected_size > 0 ? 0.1 : -1.0,
+                        expected_size_str.empty() ? ("Workshop ID: " + workshop_id) : ("File size: " + expected_size_str));
                 }
-
-                std::string attempt_str = (attempt > 1) ? (" (attempt " + std::to_string(attempt) + ")") : "";
-                set_workshop_status("Starting download: " + workshop_title + attempt_str, -1.0,
-                    expected_size > 0 ? ("File size: " + human_readable_size(expected_size)) : "Workshop ID: " + workshop_id);
 
                 std::string full_cmd = "\"" + steamcmd_exe.string() + "\" " + cmd_args;
 
@@ -1440,7 +1437,7 @@ namespace {
 
                 if (!CreateProcessA(nullptr, const_cast<char*>(full_cmd.c_str()), nullptr, nullptr, TRUE, CREATE_NO_WINDOW, nullptr, steamcmd_dir_str.c_str(), &si, &pi)) {
                     if (h_nul != INVALID_HANDLE_VALUE) CloseHandle(h_nul);
-                    set_workshop_status("Error: Failed to start SteamCMD.", 0.0, "Attempt " + std::to_string(attempt));
+                    set_workshop_status("Error: Failed to start SteamCMD.", 0.0, "");
                     std::this_thread::sleep_for(std::chrono::seconds(2));
                     continue;
                 }
@@ -1450,26 +1447,9 @@ namespace {
                     workshop_download_process = pi;
                 }
 
-                auto attempt_start = std::chrono::steady_clock::now();
-                bool is_downloading = false;
-                bool is_steamcmd_updating = false;
-                auto last_tick = std::chrono::steady_clock::now();
+                std::uint64_t prev_folder_size = 0;
                 std::string last_speed_str;
-
-                std::uint64_t net_bytes_prev = 0;
-                bool net_baseline_set = false;
-                auto download_phase_start = std::chrono::steady_clock::time_point{};
-                bool warmup_phase = true;
-
-                std::filesystem::path log_path = steamcmd_dir / "logs" / "workshop_log.txt";
-                {
-                    std::error_code ec;
-                    std::filesystem::create_directories(log_path.parent_path(), ec);
-                    try {
-                        std::ofstream ofs(log_path.string(), std::ios::trunc);
-                    } catch (...) {
-                    }
-                }
+                auto last_tick = std::chrono::steady_clock::now();
 
                 for (;;) {
                     if (workshop_cancel_requested.load()) {
@@ -1479,207 +1459,100 @@ namespace {
 
                     const DWORD wait = WaitForSingleObject(pi.hProcess, 1000);
 
-                    if (!is_downloading) {
-                        std::filesystem::path bootstrap_log = steamcmd_dir / "logs" / "bootstrap_log.txt";
-                        try {
-                            std::error_code ec;
-                            if (std::filesystem::exists(bootstrap_log, ec)) {
-                                std::ifstream bsf(bootstrap_log.string());
-                                if (bsf.is_open()) {
-                                    std::string last_line;
-                                    std::string line;
-                                    while (std::getline(bsf, line)) {
-                                        if (!line.empty()) last_line = line;
-                                    }
-                                    if (last_line.find("Downloading update") != std::string::npos
-                                        || last_line.find("downloading") != std::string::npos) {
-                                        is_steamcmd_updating = true;
-                                        set_workshop_status("Waiting for SteamCMD...", -1.0, "Updating SteamCMD");
-                                    } else if (is_steamcmd_updating) {
-                                        is_steamcmd_updating = false;
-                                    }
-                                }
+                    std::uint64_t current_size = 0;
+                    std::string active_folder;
+                    {
+                        std::error_code fec;
+                        if (std::filesystem::exists(content_path, fec)) {
+                            current_size = compute_folder_size_bytes(content_path);
+                            active_folder = content_path.string();
+                        }
+                        if (std::filesystem::exists(download_path, fec)) {
+                            current_size += compute_folder_size_bytes(download_path);
+                            if (active_folder.empty()) active_folder = download_path.string();
+                        }
+                        if (std::filesystem::exists(alt_content_path, fec)) {
+                            const auto alt_sz = compute_folder_size_bytes(alt_content_path);
+                            if (alt_sz > current_size) {
+                                current_size = alt_sz;
+                                active_folder = alt_content_path.string();
                             }
-                        } catch (...) {
+                        }
+                        if (std::filesystem::exists(alt_download_path, fec)) {
+                            current_size += compute_folder_size_bytes(alt_download_path);
+                            if (active_folder.empty()) active_folder = alt_download_path.string();
                         }
                     }
 
-                    if (!is_downloading && !is_steamcmd_updating) {
-                        try {
-                            std::error_code ec;
-                            if (std::filesystem::exists(log_path, ec)) {
-                                std::ifstream lf(log_path.string());
-                                if (lf.is_open()) {
-                                    std::string line;
-                                    while (std::getline(lf, line)) {
-                                        std::string lower = line;
-                                        for (auto& c : lower)
-                                            c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-                                        if (lower.find("download item " + workshop_id) != std::string::npos) {
-                                            is_downloading = true;
-                                            last_tick = std::chrono::steady_clock::now();
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        } catch (...) {
-                        }
-
-                        if (!is_downloading) {
-                            std::uint64_t early_bytes = 0;
-                            try {
-                                std::error_code fec;
-                                if (std::filesystem::exists(download_path, fec))
-                                    early_bytes = compute_folder_size_bytes(download_path);
-                                if (early_bytes == 0 && std::filesystem::exists(alt_download_path, fec))
-                                    early_bytes = compute_folder_size_bytes(alt_download_path);
-                            } catch (...) {}
-
-                            if (early_bytes > 4096) {
-                                is_downloading = true;
-                                last_tick = std::chrono::steady_clock::now();
-                            } else {
-                                set_workshop_status("Waiting for SteamCMD...", -1.0, "");
-                            }
-                        }
-                    }
-
-                    if (is_downloading) {
-
-                        if (warmup_phase && download_phase_start == std::chrono::steady_clock::time_point{}) {
-                            download_phase_start = std::chrono::steady_clock::now();
-                        }
-
-                        std::uint64_t current_size = 0;
-                        std::string active_folder;
-                        {
-                            std::error_code fec;
-                            if (std::filesystem::exists(download_path, fec)) {
-                                current_size = compute_folder_size_bytes(download_path);
-                                if (current_size > 0) active_folder = download_path.string();
-                            }
-                            if (current_size == 0 && std::filesystem::exists(content_path, fec)) {
-                                current_size = compute_folder_size_bytes(content_path);
-                                if (current_size > 0) active_folder = content_path.string();
-                            }
-                            if (current_size == 0 && std::filesystem::exists(alt_download_path, fec)) {
-                                current_size = compute_folder_size_bytes(alt_download_path);
-                                if (current_size > 0) active_folder = alt_download_path.string();
-                            }
-                            if (current_size == 0 && std::filesystem::exists(alt_content_path, fec)) {
-                                current_size = compute_folder_size_bytes(alt_content_path);
-                                if (current_size > 0) active_folder = alt_content_path.string();
-                            }
-                        }
-
-                        {
-                            ULARGE_INTEGER free_avail{};
-                            if (GetDiskFreeSpaceExA(cwd, &free_avail, nullptr, nullptr)) {
-                                if (free_avail.QuadPart < 100ULL * 1024 * 1024) {
-                                    TerminateProcess(pi.hProcess, 1);
-                                    set_workshop_status("Error: Disk nearly full during download.", 0.0,
-                                        "Only " + human_readable_size(free_avail.QuadPart)
-                                            + " remaining. Free up disk space and try again.");
-                                    CloseHandle(pi.hProcess);
-                                    CloseHandle(pi.hThread);
-                                    return;
-                                }
-                            }
-                        }
-
-
-
-
-                        std::uint64_t net_bytes_now = 0;
-                        {
-                            MIB_IF_TABLE2* if_table = nullptr;
-                            if (GetIfTable2(&if_table) == NO_ERROR && if_table) {
-                                for (ULONG i = 0; i < if_table->NumEntries; i++) {
-                                    net_bytes_now += if_table->Table[i].InOctets;
-                                }
-                                FreeMibTable(if_table);
-                            }
-                        }
-
-                        if (!net_baseline_set) {
-                            net_bytes_prev = net_bytes_now;
-                            net_baseline_set = true;
-                        }
-
-                        std::uint64_t net_delta = 0;
-                        if (net_bytes_now >= net_bytes_prev) {
-                            net_delta = net_bytes_now - net_bytes_prev;
-                        }
-                        net_bytes_prev = net_bytes_now;
-
-                        auto dl_elapsed = std::chrono::steady_clock::now() - download_phase_start;
-                        auto dl_elapsed_sec = std::chrono::duration_cast<std::chrono::seconds>(dl_elapsed).count();
-                        if (warmup_phase && dl_elapsed_sec >= 10) warmup_phase = false;
-
-                        double percent = -1.0;
-                        std::uint64_t display_size = current_size;
-                        const std::uint64_t effective_expected = expected_size > 0 ? expected_size : 0;
-
-                        if (effective_expected > 0 && display_size > effective_expected)
-                            display_size = effective_expected;
-
-                        if (!warmup_phase) {
-                            if (effective_expected > 0 && current_size > 0) {
-                                percent = (static_cast<double>(display_size) / static_cast<double>(effective_expected)) * 100.0;
-                            } else if (current_size > 0) {
-                                const double mb = static_cast<double>(current_size) / (1024.0 * 1024.0);
-                                percent = (mb / (mb + 2000.0)) * 95.0;
-                            } else {
-                                percent = 0.1;
-                            }
-                            if (percent > 99.0) percent = 99.0;
-                            if (percent < 0.1 && current_size > 0) percent = 0.1;
-                            real_download_started = true;
-                        }
-
-
+                    {
                         const auto now = std::chrono::steady_clock::now();
                         const auto dt_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now - last_tick).count();
-                        if (dt_ms > 0 && net_delta > 0) {
-                            const double bytes_per_sec = (static_cast<double>(net_delta) * 1000.0) / static_cast<double>(dt_ms);
+                        if (dt_ms > 0 && current_size > prev_folder_size) {
+                            const std::uint64_t size_delta = current_size - prev_folder_size;
+                            const double bytes_per_sec = (static_cast<double>(size_delta) * 1000.0) / static_cast<double>(dt_ms);
                             if (bytes_per_sec > 0.0) {
                                 last_speed_str = human_readable_size(static_cast<std::uint64_t>(bytes_per_sec)) + "/s";
                             }
                         }
                         last_tick = now;
+                        prev_folder_size = current_size;
+                    }
 
-                        std::string details;
-                        if (percent > 0) {
-                            auto elapsed = std::chrono::steady_clock::now() - download_start_time;
-                            auto elapsed_sec = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
-                            int eh = static_cast<int>(elapsed_sec / 3600);
-                            int em = static_cast<int>((elapsed_sec % 3600) / 60);
-                            int es = static_cast<int>(elapsed_sec % 60);
-                            char time_str[32];
-                            snprintf(time_str, sizeof(time_str), "%02d:%02d:%02d", eh, em, es);
-
-                            if (display_size > 0) {
-                                details = human_readable_size(display_size);
-                                if (expected_size > 0)
-                                    details += " / " + human_readable_size(expected_size);
-                            }
-                            if (!last_speed_str.empty()) {
-                                if (!details.empty()) details += " | ";
-                                details += last_speed_str;
-                            }
-                            details += " | " + std::string(time_str);
-                            if (attempt > 1) {
-                                details += " | Attempt " + std::to_string(attempt);
+                    {
+                        ULARGE_INTEGER free_avail{};
+                        if (GetDiskFreeSpaceExA(cwd, &free_avail, nullptr, nullptr)) {
+                            if (free_avail.QuadPart < 100ULL * 1024 * 1024) {
+                                TerminateProcess(pi.hProcess, 1);
+                                set_workshop_status("Error: Disk nearly full during download.", 0.0,
+                                    "Only " + human_readable_size(free_avail.QuadPart)
+                                        + " remaining. Free up disk space and try again.");
+                                CloseHandle(pi.hProcess);
+                                CloseHandle(pi.hThread);
+                                return;
                             }
                         }
+                    }
 
-                        set_workshop_status("Downloading " + workshop_title + "...", percent, details);
+                    double percent = -1.0;
+                    if (expected_size > 0 && current_size > 0) {
+                        percent = (static_cast<double>(current_size) / static_cast<double>(expected_size)) * 100.0;
+                        if (percent > 99.0) percent = 99.0;
+                        if (percent < 0.1) percent = 0.1;
+                        real_download_started = true;
+                    } else if (current_size > 0) {
+                        real_download_started = true;
+                    }
 
-                        if (!active_folder.empty()) {
-                            std::lock_guard lock(workshop_status_mutex);
-                            workshop_download_folder = active_folder;
+                    std::string details;
+                    {
+                        auto elapsed = std::chrono::steady_clock::now() - download_start_time;
+                        auto elapsed_sec = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
+                        int eh = static_cast<int>(elapsed_sec / 3600);
+                        int em = static_cast<int>((elapsed_sec % 3600) / 60);
+                        int es = static_cast<int>(elapsed_sec % 60);
+                        char time_str[32];
+                        snprintf(time_str, sizeof(time_str), "%02d:%02d:%02d", eh, em, es);
+
+                        if (current_size > 0 && expected_size > 0) {
+                            details = human_readable_size(current_size) + " / " + expected_size_str;
+                        } else if (current_size > 0) {
+                            details = human_readable_size(current_size);
                         }
+                        if (!last_speed_str.empty()) {
+                            if (!details.empty()) details += " | ";
+                            details += last_speed_str;
+                        }
+                        details += " | " + std::string(time_str);
+                        if (visible_retry > 0) {
+                            details += " | Retry " + std::to_string(visible_retry);
+                        }
+                    }
+
+                    set_workshop_status("Downloading " + workshop_title + "...", percent, details);
+
+                    if (!active_folder.empty()) {
+                        std::lock_guard lock(workshop_status_mutex);
+                        workshop_download_folder = active_folder;
                     }
 
                     if (wait == WAIT_OBJECT_0 || wait == WAIT_FAILED) {
@@ -1687,8 +1560,6 @@ namespace {
                     }
                 }
 
-                DWORD exit_code = 0;
-                GetExitCodeProcess(pi.hProcess, &exit_code);
                 {
                     std::lock_guard plock(workshop_download_mutex);
                     if (workshop_download_process.hProcess == pi.hProcess) {
@@ -1703,35 +1574,27 @@ namespace {
                     return;
                 }
 
-                if (std::filesystem::exists(content_path)) {
-                    const auto content_size = compute_folder_size_bytes(content_path);
-                    if (content_size > 1024) { 
-                        break;
-                    }
-
-                    std::error_code rm_ec;
-                    std::filesystem::remove_all(content_path, rm_ec);
-                }
-
                 {
                     std::error_code ec;
-                    if (std::filesystem::exists(alt_content_path, ec) && compute_folder_size_bytes(alt_content_path) > 1024) {
-                        content_path = alt_content_path;
+                    auto final_size = compute_folder_size_bytes(content_path);
+                    if (final_size > 1024) {
                         break;
+                    }
+                    if (std::filesystem::exists(alt_content_path, ec)) {
+                        const auto alt_size = compute_folder_size_bytes(alt_content_path);
+                        if (alt_size > 1024) {
+                            content_path = alt_content_path;
+                            break;
+                        }
                     }
                 }
 
-                auto attempt_elapsed = std::chrono::steady_clock::now() - attempt_start;
-                auto attempt_sec = std::chrono::duration_cast<std::chrono::seconds>(attempt_elapsed).count();
-                if (attempt_sec < 15) {
-                    fast_fail_count++;
+                if (real_download_started) {
+                    visible_retry++;
                 }
 
-                set_workshop_status("SteamCMD exited without completing" + std::string(attempt < MAX_ATTEMPTS ? ", retrying..." : ""),
-                    0.0,
-                    "Exit code: " + std::to_string(exit_code) + " | Attempt " + std::to_string(attempt) + "/" + std::to_string(MAX_ATTEMPTS)
-                        + " | Quick fails: " + std::to_string(fast_fail_count));
-
+                set_workshop_status("SteamCMD exited, retrying...", -1.0,
+                    "Retry " + std::to_string(visible_retry));
                 std::this_thread::sleep_for(std::chrono::seconds(2));
             }
 

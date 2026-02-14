@@ -357,8 +357,7 @@ namespace workshop
 				return false;
 			}
 
-			if (!base_url.empty()
-				&& (base_url.starts_with("http://") || base_url.starts_with("https://")))
+			if (!base_url.empty())
 			{
 				fastdl::download_context context{};
 				context.mapname = mapname;
