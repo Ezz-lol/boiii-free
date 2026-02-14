@@ -4,11 +4,11 @@
 #include <utils/io.hpp>
 #include <utils/string.hpp>
 #include <utils/http.hpp>
+#include <utils/com.hpp>
 
 #include "launcher.hpp"
 #include "launcher_workshop.hpp"
 #include "html/html_window.hpp"
-#include "../component/steamcmd.hpp"
 
 #include <game/game.hpp>
 #include <version.hpp>
@@ -20,11 +20,14 @@
 #include <thread>
 #include <atomic>
 #include <mutex>
-#include <set>
 #include <map>
 #include <ShlObj.h>
 #include <Shlwapi.h>
 #include <TlHelp32.h>
+
+// XXH3 via single-header xxhash library (must be at file scope)
+#define XXH_INLINE_ALL
+#include "xxhash.h"
 
 #pragma comment(lib, "Shell32.lib")
 #pragma comment(lib, "Shlwapi.lib")
@@ -39,6 +42,41 @@ namespace launcher
 		std::mutex library_list_mutex;
 		std::string library_list_cache;
 		std::atomic<bool> library_list_loading{false};
+
+		std::mutex remove_status_mutex;
+		std::string remove_status_message;
+		double remove_progress_percent = 0.0;
+		std::string remove_progress_details;
+		std::atomic<bool> remove_running{false};
+
+		void set_remove_status(const std::string& msg, double pct, const std::string& details = "")
+		{
+			std::lock_guard lock(remove_status_mutex);
+			remove_status_message = msg;
+			remove_progress_percent = pct;
+			remove_progress_details = details;
+		}
+
+		void reset_remove_status()
+		{
+			std::lock_guard lock(remove_status_mutex);
+			remove_status_message.clear();
+			remove_progress_percent = 0.0;
+			remove_progress_details.clear();
+		}
+
+		std::uint64_t compute_folder_size(const std::filesystem::path& folder)
+		{
+			std::uint64_t total = 0;
+			std::error_code ec;
+			if (!std::filesystem::exists(folder, ec)) return 0;
+			for (const auto& entry : std::filesystem::recursive_directory_iterator(folder, ec)) {
+				if (ec) break;
+				if (entry.is_regular_file(ec))
+					total += static_cast<std::uint64_t>(entry.file_size(ec));
+			}
+			return total;
+		}
 
 		std::mutex verify_mutex;
 		std::string verify_status_message;
@@ -65,83 +103,53 @@ namespace launcher
 			verify_changed_files.clear();
 		}
 
-		std::string compute_file_md5(const std::filesystem::path& file_path)
+		std::string compute_file_xxh3(const std::filesystem::path& file_path)
 		{
-			HANDLE hFile = CreateFileW(file_path.wstring().c_str(), GENERIC_READ, FILE_SHARE_READ,
-				nullptr, OPEN_EXISTING, FILE_FLAG_SEQUENTIAL_SCAN, nullptr);
-			if (hFile == INVALID_HANDLE_VALUE) return {};
+			std::ifstream file_stream(file_path, std::ios::binary);
+			if (!file_stream.is_open()) return {};
 
-			HCRYPTPROV hProv = 0;
-			HCRYPTHASH hHash = 0;
-			std::string result;
+			file_stream.seekg(0, std::ios::end);
+			const auto file_size = static_cast<std::size_t>(file_stream.tellg());
+			file_stream.seekg(0, std::ios::beg);
 
-			if (CryptAcquireContextA(&hProv, nullptr, nullptr, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT))
+			if (file_size == 0) return {};
+
+			XXH3_state_t* state = XXH3_createState();
+			if (!state) return {};
+
+			XXH3_64bits_reset(state);
+
+			constexpr std::size_t read_buffer_size = 16ull * 1024ull * 1024ull; // 16MB
+			std::string buffer;
+			buffer.resize(read_buffer_size);
+
+			auto bytes_to_read = file_size;
+			while (bytes_to_read > 0)
 			{
-				if (CryptCreateHash(hProv, CALG_MD5, 0, 0, &hHash))
-				{
-					BYTE buffer[65536];
-					DWORD bytesRead = 0;
-					bool ok = true;
-
-					while (ReadFile(hFile, buffer, sizeof(buffer), &bytesRead, nullptr) && bytesRead > 0)
-					{
-						if (!CryptHashData(hHash, buffer, bytesRead, 0))
-						{
-							ok = false;
-							break;
-						}
-					}
-
-					if (ok)
-					{
-						BYTE hash[16];
-						DWORD hashLen = sizeof(hash);
-						if (CryptGetHashParam(hHash, HP_HASHVAL, hash, &hashLen, 0))
-						{
-							static const char hex[] = "0123456789abcdef";
-							result.reserve(32);
-							for (DWORD i = 0; i < hashLen; i++)
-							{
-								result += hex[hash[i] >> 4];
-								result += hex[hash[i] & 0x0F];
-							}
-						}
-					}
-					CryptDestroyHash(hHash);
-				}
-				CryptReleaseContext(hProv, 0);
+				const auto read_size = std::min(bytes_to_read, read_buffer_size);
+				file_stream.read(buffer.data(), read_size);
+				XXH3_64bits_update(state, buffer.data(), read_size);
+				bytes_to_read -= read_size;
 			}
-			CloseHandle(hFile);
+
+			const auto hash_value = XXH3_64bits_digest(state);
+			XXH3_freeState(state);
+
+			// Output as uppercase hex in native (little-endian) byte order
+			static const char hex[] = "0123456789ABCDEF";
+			std::string result;
+			result.reserve(16);
+			const auto* bytes = reinterpret_cast<const std::uint8_t*>(&hash_value);
+			for (int i = 0; i < 8; i++)
+			{
+				result += hex[bytes[i] >> 4];
+				result += hex[bytes[i] & 0x0F];
+			}
 			return result;
-		}
-
-		std::filesystem::path get_verification_json_path()
-		{
-			return game::get_appdata_path() / "verification.json";
-		}
-
-		std::string load_verification_json()
-		{
-			auto path = get_verification_json_path();
-			std::error_code ec;
-			if (!std::filesystem::exists(path, ec)) return "{}";
-			std::ifstream f(path, std::ios::binary);
-			if (!f) return "{}";
-			return std::string((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
-		}
-
-		void save_verification_json(const std::string& json_str)
-		{
-			auto path = get_verification_json_path();
-			std::error_code ec;
-			std::filesystem::create_directories(path.parent_path(), ec);
-			std::ofstream f(path, std::ios::binary | std::ios::trunc);
-			if (f) f << json_str;
 		}
 
 		void verify_game_thread(const std::string& modes_csv)
 		{
-			verify_running = true;
 			verify_cancel_requested = false;
 			set_verify_status("Preparing verification...", 0.0, "");
 
@@ -155,140 +163,161 @@ namespace launcher
 				prefixes = {"cp_", "mp_", "zm_"};
 			}
 
+			bool want_cp = false, want_mp = false, want_zm = false;
+			for (const auto& p : prefixes)
+			{
+				if (p == "cp_") want_cp = true;
+				else if (p == "mp_") want_mp = true;
+				else if (p == "zm_") want_zm = true;
+			}
+			bool want_all = want_cp && want_mp && want_zm;
+
+			std::string mode_label;
+			if (want_all) mode_label = "All";
+			else
+			{
+				if (want_zm) mode_label += "Zombies ";
+				if (want_mp) mode_label += "Multiplayer ";
+				if (want_cp) mode_label += "Campaign ";
+				utils::string::trim(mode_label);
+			}
+
 			char cwd[MAX_PATH];
 			GetCurrentDirectoryA(sizeof(cwd), cwd);
 			std::filesystem::path base(cwd);
 
-			set_verify_status("Scanning game files...", 0.0, "");
-			struct file_entry {
-				std::filesystem::path full_path;
-				std::string relative_path;
-				std::uint64_t size;
-			};
-			std::vector<file_entry> files_to_verify;
-			bool include_base_files = (prefixes.size() == 3); // only when verifying all modes
-			std::map<std::string, std::uint32_t> prefix_file_counts;
-			if (include_base_files) prefix_file_counts["base"] = 0;
-			for (const auto& p : prefixes) prefix_file_counts[p] = 0;
-
-			std::vector<std::string> active_prefixes;
-			for (const auto& p : prefixes) {
-				active_prefixes.push_back(p);
-				active_prefixes.push_back("en_" + p);
-			}
-
-			static const std::vector<std::string> all_mode_markers = {
-				"cp_", "mp_", "zm_", "en_cp_", "en_mp_", "en_zm_"
-			};
-			auto is_base_file = [&](const std::string& fname) -> bool {
-				for (const auto& m : all_mode_markers) {
-					if (fname.rfind(m, 0) == 0) return false;
-				}
-				return true;
-			};
-
-			const char* dirs_to_scan[] = {"zone", "video"};
-			for (const auto& dir_name : dirs_to_scan)
+			auto manifest_path = game::get_appdata_path() / "data" / "launcher" / "verification.json";
+			if (!std::filesystem::exists(manifest_path))
 			{
-				if (verify_cancel_requested) break;
-				std::filesystem::path dir = base / dir_name;
-				if (!std::filesystem::exists(dir)) continue;
-				std::error_code ec;
-				for (const auto& entry : std::filesystem::recursive_directory_iterator(dir, ec))
-				{
-					if (verify_cancel_requested) break;
-					if (!entry.is_regular_file(ec)) continue;
-					auto filename = utils::string::to_lower(entry.path().filename().string());
-					if (is_base_file(filename))
-					{
-						if (!include_base_files) continue;
-						auto rel = std::filesystem::relative(entry.path(), base, ec).generic_string();
-						files_to_verify.push_back({entry.path(), rel, entry.file_size(ec)});
-						prefix_file_counts["base"]++;
-					}
-					else
-					{
-						for (const auto& prefix : active_prefixes)
-						{
-							if (!prefix.empty() && filename.rfind(prefix, 0) == 0)
-							{
-								auto rel = std::filesystem::relative(entry.path(), base, ec).generic_string();
-								files_to_verify.push_back({entry.path(), rel, entry.file_size(ec)});
-								for (const auto& p : prefixes)
-								{
-									if (prefix == p || prefix == "en_" + p)
-									{
-										prefix_file_counts[p]++;
-										break;
-									}
-								}
-								break;
-							}
-						}
-					}
-				}
-			}
-
-			if (verify_cancel_requested)
-			{
-				set_verify_status("Cancelled", 0.0, "");
+				set_verify_status("verification.json not found in " + manifest_path.string(), 0.0, "");
 				verify_running = false;
 				return;
 			}
 
-			std::string existing_json = load_verification_json();
-			rapidjson::Document existing_doc;
-			if (existing_doc.Parse(existing_json.c_str()).HasParseError() || !existing_doc.IsObject())
+			set_verify_status("Loading manifest...", 0.0, "Mode: " + mode_label);
+			std::ifstream mf(manifest_path, std::ios::binary);
+			std::string manifest_str((std::istreambuf_iterator<char>(mf)), std::istreambuf_iterator<char>());
+			mf.close();
+
+			rapidjson::Document manifest;
+			if (manifest.Parse(manifest_str.c_str()).HasParseError() || !manifest.IsObject())
 			{
-				existing_doc.SetObject();
+				set_verify_status("Failed to parse verification.json manifest", 0.0, "");
+				verify_running = false;
+				return;
 			}
 
-			std::uint32_t total_files = static_cast<std::uint32_t>(files_to_verify.size());
-			std::uint32_t verified_ok = 0;
-			std::uint32_t changed_files = 0;
-			std::uint32_t new_files = 0;
-			std::uint32_t failed_files = 0;
-			std::vector<std::string> problematic_files;
-
-			rapidjson::Document new_doc;
-			new_doc.SetObject();
-			auto& alloc = new_doc.GetAllocator();
-
-			if (existing_doc.IsObject())
+			auto files_it = manifest.FindMember("files");
+			if (files_it == manifest.MemberEnd() || !files_it->value.IsArray())
 			{
-				for (auto it = existing_doc.MemberBegin(); it != existing_doc.MemberEnd(); ++it)
+				set_verify_status("Invalid manifest: no files array", 0.0, "");
+				verify_running = false;
+				return;
+			}
+
+
+			auto should_include_component = [&](const std::string& comp) -> bool {
+				if (comp == "redist") return false; // skip redistributables
+				if (comp == "base") return true;
+				if (comp == "sp") return want_cp;
+				if (comp == "zc") return want_zm;
+				if (comp == "dlc") return want_mp || want_zm;
+				return want_all;
+			};
+
+			std::vector<std::string> exclude_prefixes;
+			if (!want_cp) { exclude_prefixes.push_back("cp_"); exclude_prefixes.push_back("en_cp_"); }
+			if (!want_mp) { exclude_prefixes.push_back("mp_"); exclude_prefixes.push_back("en_mp_"); }
+			if (!want_zm) { exclude_prefixes.push_back("zm_"); exclude_prefixes.push_back("en_zm_"); }
+
+			auto should_exclude_file = [&](const std::string& filepath) -> bool {
+				if (want_all) return false;
+				std::string fname = filepath;
+				auto slash = fname.rfind('/');
+				if (slash != std::string::npos) fname = fname.substr(slash + 1);
+				fname = utils::string::to_lower(fname);
+				for (const auto& ex : exclude_prefixes)
+				{
+					if (fname.rfind(ex, 0) == 0) return true;
+				}
+				return false;
+			};
+
+			struct manifest_entry {
+				std::string path;
+				std::uint64_t expected_size;
+				std::string expected_hash;
+				std::string component;
+			};
+			std::vector<manifest_entry> files_to_check;
+
+			set_verify_status("Filtering manifest files...", 0.0, "Mode: " + mode_label);
+
+			const auto& files_array = files_it->value;
+			for (rapidjson::SizeType i = 0; i < files_array.Size(); i++)
+			{
+				const auto& entry = files_array[i];
+				if (!entry.IsArray() || entry.Size() < 4) continue;
+				if (!entry[0].IsString() || !entry[3].IsString()) continue;
+
+				std::string path = entry[0].GetString();
+				std::uint64_t size = 0;
+				if (entry[1].IsUint64()) size = entry[1].GetUint64();
+				else if (entry[1].IsInt64()) size = static_cast<std::uint64_t>(entry[1].GetInt64());
+				else if (entry[1].IsUint()) size = entry[1].GetUint();
+				std::string hash_str;
+				if (entry.Size() >= 3 && entry[2].IsString())
+					hash_str = entry[2].GetString();
+				std::string comp = entry[3].GetString();
+
+				if (!should_include_component(comp)) continue;
+				if (should_exclude_file(path)) continue;
+
+				files_to_check.push_back({path, size, hash_str, comp});
+			}
+
+			struct component_stats {
+				std::string display_name;
+				std::uint32_t total = 0;
+				std::uint32_t ok = 0;
+				std::uint32_t missing = 0;
+				std::uint32_t size_mismatch = 0;
+				std::uint32_t hash_mismatch = 0;
+				std::vector<std::string> missing_files;
+			};
+			std::map<std::string, component_stats> comp_stats;
+
+			auto friendly_comp_name = [&](const std::string& key) -> std::string {
+				if (key == "base") return "Base Game";
+				if (key == "sp") return "Campaign";
+				if (key == "zc") return "Zombie Chronicles";
+				if (key == "dlc")
+				{
+					if (want_mp && !want_zm) return "MP DLC";
+					if (want_zm && !want_mp) return "ZM DLC";
+					return "DLC";
+				}
+				return key;
+			};
+			auto comps_it = manifest.FindMember("components");
+			if (comps_it != manifest.MemberEnd() && comps_it->value.IsObject())
+			{
+				for (auto it = comps_it->value.MemberBegin(); it != comps_it->value.MemberEnd(); ++it)
 				{
 					std::string key(it->name.GetString(), it->name.GetStringLength());
-					bool belongs_to_current = false;
-					std::string key_lower = utils::string::to_lower(key);
-					std::string fname = key_lower;
-					auto slash = fname.rfind('/');
-					if (slash != std::string::npos) fname = fname.substr(slash + 1);
-					if (include_base_files && is_base_file(fname))
-					{
-						belongs_to_current = true;
-					}
-					else
-					{
-						for (const auto& prefix : active_prefixes)
-						{
-							if (fname.rfind(prefix, 0) == 0)
-							{
-								belongs_to_current = true;
-								break;
-							}
-						}
-					}
-					if (!belongs_to_current)
-					{
-						rapidjson::Value k(key.c_str(), alloc);
-						rapidjson::Value v(it->value, alloc);
-						new_doc.AddMember(k, v, alloc);
-					}
+					comp_stats[key].display_name = friendly_comp_name(key);
 				}
 			}
 
-			for (std::uint32_t i = 0; i < total_files; i++)
+			// Verify each file against disk
+			std::uint32_t total = static_cast<std::uint32_t>(files_to_check.size());
+			std::uint32_t ok_count = 0;
+			std::uint32_t missing_count = 0;
+			std::uint32_t size_mismatch_count = 0;
+			std::uint32_t hash_mismatch_count = 0;
+			std::vector<std::string> problematic_files;
+
+			for (std::uint32_t i = 0; i < total; i++)
 			{
 				if (verify_cancel_requested)
 				{
@@ -297,159 +326,101 @@ namespace launcher
 					return;
 				}
 
-				const auto& fe = files_to_verify[i];
-				double pct = static_cast<double>(i) / static_cast<double>(total_files) * 100.0;
-				auto fname = fe.full_path.filename().string();
-				set_verify_status("Verifying...", pct,
-					fname + " (" + std::to_string(i + 1) + "/" + std::to_string(total_files) + ")");
+				const auto& fe = files_to_check[i];
+				double pct = static_cast<double>(i) / static_cast<double>(total) * 100.0;
 
-				std::string hash = compute_file_md5(fe.full_path);
-				if (hash.empty())
+				std::string fname = fe.path;
+				auto slash = fname.rfind('/');
+				if (slash != std::string::npos) fname = fname.substr(slash + 1);
+				set_verify_status("Verifying (" + mode_label + ")...", pct,
+					fname + " (" + std::to_string(i + 1) + "/" + std::to_string(total) + ")");
+
+				auto& cs = comp_stats[fe.component];
+				if (cs.display_name.empty()) cs.display_name = fe.component;
+				cs.total++;
+
+				std::filesystem::path full_path = base / fe.path;
+				std::error_code ec;
+
+				bool is_optional = (fe.component == "dlc" || fe.component == "zc");
+				std::string severity = is_optional ? "warning" : "error";
+
+				if (!std::filesystem::exists(full_path, ec))
 				{
-					failed_files++;
-					problematic_files.push_back(fe.relative_path + " (read error)");
-					continue;
+					missing_count++;
+					cs.missing++;
+					cs.missing_files.push_back(fe.path);
+					problematic_files.push_back(std::string("[") + severity + "] " + fe.path + " (missing - " + cs.display_name + ")");
 				}
-
-				auto existing_it = existing_doc.FindMember(fe.relative_path.c_str());
-				if (existing_it != existing_doc.MemberEnd() && existing_it->value.IsObject())
+				else
 				{
-					auto hash_it = existing_it->value.FindMember("hash");
-					if (hash_it != existing_it->value.MemberEnd() && hash_it->value.IsString())
+					auto actual_size = std::filesystem::file_size(full_path, ec);
+					if (actual_size != fe.expected_size)
 					{
-						std::string old_hash(hash_it->value.GetString(), hash_it->value.GetStringLength());
-						if (old_hash == hash)
+						size_mismatch_count++;
+						cs.size_mismatch++;
+						problematic_files.push_back(std::string("[") + severity + "] " + fe.path + " (wrong size - " + cs.display_name + ")");
+					}
+					else if (!fe.expected_hash.empty())
+					{
+						auto actual_hash = compute_file_xxh3(full_path);
+						if (!actual_hash.empty() && actual_hash != fe.expected_hash)
 						{
-							verified_ok++;
+							hash_mismatch_count++;
+							cs.hash_mismatch++;
+							problematic_files.push_back(std::string("[") + severity + "] " + fe.path + " (corrupt - " + cs.display_name + ")");
 						}
 						else
 						{
-							changed_files++;
-							problematic_files.push_back(fe.relative_path + " (changed)");
+							ok_count++;
+							cs.ok++;
 						}
 					}
 					else
 					{
-						new_files++;
+						ok_count++;
+						cs.ok++;
 					}
 				}
-				else
-				{
-					new_files++;
-				}
-
-				rapidjson::Value entry_obj(rapidjson::kObjectType);
-				rapidjson::Value hash_val(hash.c_str(), alloc);
-				entry_obj.AddMember("hash", hash_val, alloc);
-				entry_obj.AddMember("size", fe.size, alloc);
-				rapidjson::Value path_key(fe.relative_path.c_str(), alloc);
-				new_doc.AddMember(path_key, entry_obj, alloc);
 			}
 
-			rapidjson::StringBuffer buf;
-			rapidjson::PrettyWriter<rapidjson::StringBuffer> w(buf);
-			new_doc.Accept(w);
-			save_verification_json(std::string(buf.GetString(), buf.GetSize()));
+			std::string result_msg = mode_label + ": Verified " + std::to_string(total) + " files: " +
+				std::to_string(ok_count) + " OK";
+			if (missing_count > 0)
+				result_msg += ", " + std::to_string(missing_count) + " missing";
+			if (size_mismatch_count > 0)
+				result_msg += ", " + std::to_string(size_mismatch_count) + " wrong size";
+			if (hash_mismatch_count > 0)
+				result_msg += ", " + std::to_string(hash_mismatch_count) + " corrupt";
 
-			std::uint32_t missing_files = 0;
-			if (existing_doc.IsObject() && existing_doc.MemberCount() > 0)
+			std::vector<std::string> comp_issues;
+			for (const auto& [comp_key, cs] : comp_stats)
 			{
-				std::set<std::string> found_paths;
-				for (const auto& fe : files_to_verify)
-					found_paths.insert(fe.relative_path);
-
-				for (auto it = existing_doc.MemberBegin(); it != existing_doc.MemberEnd(); ++it)
+				if (cs.missing > 0 || cs.size_mismatch > 0 || cs.hash_mismatch > 0)
 				{
-					std::string key(it->name.GetString(), it->name.GetStringLength());
-					std::string key_lower = utils::string::to_lower(key);
-					std::string fname = key_lower;
-					auto slash = fname.rfind('/');
-					if (slash != std::string::npos) fname = fname.substr(slash + 1);
-
-					bool belongs = false;
-					if (include_base_files && is_base_file(fname))
+					std::string issue = cs.display_name + ": ";
+					std::vector<std::string> parts;
+					if (cs.missing > 0)
+						parts.push_back(std::to_string(cs.missing) + " missing");
+					if (cs.size_mismatch > 0)
+						parts.push_back(std::to_string(cs.size_mismatch) + " wrong size");
+					if (cs.hash_mismatch > 0)
+						parts.push_back(std::to_string(cs.hash_mismatch) + " corrupt");
+					for (size_t j = 0; j < parts.size(); j++)
 					{
-						belongs = true;
+						if (j > 0) issue += ", ";
+						issue += parts[j];
 					}
-					else
-					{
-						for (const auto& prefix : active_prefixes)
-						{
-							if (!prefix.empty() && fname.rfind(prefix, 0) == 0)
-							{
-								belongs = true;
-								break;
-							}
-						}
-					}
-					if (belongs && found_paths.find(key) == found_paths.end())
-					{
-						missing_files++;
-						problematic_files.push_back(key + " (missing)");
-					}
+					comp_issues.push_back(issue);
 				}
 			}
-
-			std::vector<std::string> missing_modes;
-			for (const auto& [prefix, count] : prefix_file_counts)
+			if (!comp_issues.empty())
 			{
-				if (count == 0)
+				result_msg += " | ";
+				for (size_t i = 0; i < comp_issues.size(); i++)
 				{
-					std::string mode_name;
-					if (prefix == "cp_") mode_name = "Campaign";
-					else if (prefix == "mp_") mode_name = "Multiplayer";
-					else if (prefix == "zm_") mode_name = "Zombies";
-					else if (prefix == "base") mode_name = "Core/Common";
-					else mode_name = prefix;
-					missing_modes.push_back(mode_name);
-					problematic_files.push_back(mode_name + " (not installed - 0 files found)");
-				}
-			}
-
-			std::string result_msg;
-			bool first_run = !existing_doc.IsObject() || existing_doc.MemberCount() == 0;
-
-			bool all_new = (new_files == total_files - failed_files) && changed_files == 0 && verified_ok == 0;
-
-			if (total_files == 0)
-			{
-				if (!missing_modes.empty())
-				{
-					result_msg = "No files found on disk.";
-				}
-				else if (missing_files > 0)
-				{
-					result_msg = std::to_string(missing_files) + " files missing from disk.";
-				}
-				else
-				{
-					result_msg = "No game files found for selected modes.";
-				}
-			}
-			else if (first_run || all_new)
-			{
-				result_msg = "Baseline created: " + std::to_string(total_files) + " files indexed.";
-			}
-			else
-			{
-				result_msg = "Verified " + std::to_string(total_files) + " files: " +
-					std::to_string(verified_ok) + " OK";
-				if (changed_files > 0)
-					result_msg += ", " + std::to_string(changed_files) + " changed";
-				if (new_files > 0)
-					result_msg += ", " + std::to_string(new_files) + " new";
-				if (missing_files > 0)
-					result_msg += ", " + std::to_string(missing_files) + " missing";
-				if (failed_files > 0)
-					result_msg += ", " + std::to_string(failed_files) + " failed";
-			}
-			if (!missing_modes.empty())
-			{
-				result_msg += " | Not installed: ";
-				for (size_t i = 0; i < missing_modes.size(); i++)
-				{
-					if (i > 0) result_msg += ", ";
-					result_msg += missing_modes[i];
+					if (i > 0) result_msg += " ; ";
+					result_msg += comp_issues[i];
 				}
 			}
 
@@ -836,7 +807,9 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 			std::string image;
 			std::string source;
 			std::string path;
-			std::filesystem::path dir_path; // for mtime comparison
+			std::string description;
+			std::filesystem::path dir_path;
+			std::uint64_t local_size = 0;
 		};
 
 		std::string workshop_list_json()
@@ -863,6 +836,12 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 					item.folder = entry.path().filename().string();
 					item.type = type_label;
 					item.dir_path = entry.path();
+					item.local_size = compute_folder_size(entry.path());
+					if (doc.HasMember("Description") && doc["Description"].IsString()) {
+						item.description = doc["Description"].GetString();
+						if (item.description.size() > 300)
+							item.description = item.description.substr(0, 300) + "...";
+					}
 					if (doc.HasMember("PublisherID"))
 					{
 						const auto& pid = doc["PublisherID"];
@@ -898,13 +877,19 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 						if (!utils::io::read_file(zone_json.string(), &data)) continue;
 						rapidjson::Document doc;
 						if (doc.Parse(data).HasParseError() || !doc.IsObject() || !doc.HasMember("Title") || !doc.HasMember("FolderName")) continue;
-						mod_item_info item;
+                        mod_item_info item;
 						item.name = doc["Title"].GetString();
 						item.folder = ws_entry.path().filename().string();
 						item.type = "map";
 						item.source = "steam";
 						item.path = ws_entry.path().string();
 						item.dir_path = ws_entry.path();
+						item.local_size = compute_folder_size(ws_entry.path());
+						if (doc.HasMember("Description") && doc["Description"].IsString()) {
+							item.description = doc["Description"].GetString();
+							if (item.description.size() > 300)
+								item.description = item.description.substr(0, 300) + "...";
+						}
 						if (doc.HasMember("PublisherID"))
 						{
 							const auto& pid = doc["PublisherID"];
@@ -936,6 +921,12 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 						item.source = "steam";
 						item.path = sub.path().string();
 						item.dir_path = sub.path();
+						item.local_size = compute_folder_size(sub.path());
+						if (doc.HasMember("Description") && doc["Description"].IsString()) {
+							item.description = doc["Description"].GetString();
+							if (item.description.size() > 300)
+								item.description = item.description.substr(0, 300) + "...";
+						}
 						if (doc.HasMember("PublisherID"))
 						{
 							const auto& pid = doc["PublisherID"];
@@ -958,7 +949,7 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 			for (const auto& it : items) {
 				if (!it.id.empty()) all_ids.push_back(it.id);
 			}
-			auto update_times = workshop::batch_get_time_updated(all_ids);
+			auto meta_map = workshop::batch_get_workshop_meta(all_ids);
 
 			rapidjson::StringBuffer buf;
 			rapidjson::Writer<rapidjson::StringBuffer> w(buf);
@@ -971,14 +962,36 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 				w.Key("id"); w.String(it.id.c_str());
 				if (!it.image.empty()) { w.Key("image"); w.String(it.image.c_str()); }
 				if (!it.source.empty()) { w.Key("source"); w.String(it.source.c_str()); }
-				if (!it.path.empty()) { w.Key("path"); w.String(it.path.c_str()); }
+				{
+					w.Key("path");
+					if (!it.path.empty()) w.String(it.path.c_str());
+					else w.String(it.dir_path.string().c_str());
+				}
+
+				w.Key("localSize"); w.Uint64(it.local_size);
+				if (!it.description.empty()) {
+					w.Key("description"); w.String(it.description.c_str());
+				}
 
 				if (!it.id.empty()) {
-					auto tu = update_times.find(it.id);
-					if (tu != update_times.end() && tu->second > 0) {
-						auto local_mtime = get_folder_mtime_epoch(it.dir_path);
-						if (local_mtime > 0 && tu->second > local_mtime) {
-							w.Key("needsUpdate"); w.Bool(true);
+					auto mi = meta_map.find(it.id);
+					if (mi != meta_map.end()) {
+						const auto& m = mi->second;
+						if (m.time_updated > 0) {
+							auto local_mtime = get_folder_mtime_epoch(it.dir_path);
+							if (local_mtime > 0 && m.time_updated > local_mtime) {
+								w.Key("needsUpdate"); w.Bool(true);
+							}
+						}
+						if (m.file_size > 0) { w.Key("file_size"); w.Uint64(m.file_size); }
+						if (m.subs > 0) { w.Key("subs"); w.Int64(m.subs); }
+						if (m.favorites > 0) { w.Key("favorites"); w.Int64(m.favorites); }
+						if (m.star_rating > 0) { w.Key("starRating"); w.Int(m.star_rating); }
+						if (!m.description.empty() && it.description.empty()) {
+							w.Key("description"); w.String(m.description.c_str());
+						}
+						if (it.image.empty() && !m.preview_url.empty()) {
+							w.Key("image"); w.String(m.preview_url.c_str());
 						}
 					}
 				}
@@ -1103,26 +1116,150 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 			});
 
 		window.get_html_frame()->register_callback(
+			"getGamePath", [](const std::vector<html_argument>& /*params*/) -> CComVariant
+			{
+				char cwd[MAX_PATH];
+				GetCurrentDirectoryA(sizeof(cwd), cwd);
+				return CComVariant(cwd);
+			});
+
+		window.get_html_frame()->register_callback(
+			"selectGameFolder", [](const std::vector<html_argument>& /*params*/) -> CComVariant
+			{
+				std::string selected_str;
+				try
+				{
+					if (!utils::com::select_folder(selected_str, "Select your Black Ops 3 installation folder"))
+					{
+						return CComVariant("cancelled");
+					}
+				}
+				catch (...)
+				{
+					return CComVariant("error");
+				}
+
+				const std::filesystem::path selected(selected_str);
+				const bool has_client = std::filesystem::exists(selected / "BlackOps3.exe");
+				const bool has_server = std::filesystem::exists(selected / "BlackOps3_UnrankedDedicatedServer.exe");
+				if (!has_client && !has_server)
+				{
+					return CComVariant("invalid");
+				}
+
+				const auto path_file = game::get_appdata_path() / "user" / "game_path.txt";
+				std::error_code ec;
+				std::filesystem::create_directories(path_file.parent_path(), ec);
+				utils::io::write_file(path_file.string(), selected_str);
+
+				SetCurrentDirectoryA(selected_str.c_str());
+
+				return CComVariant(selected_str.c_str());
+			});
+
+		window.get_html_frame()->register_callback(
 			"workshopRemove", [](const std::vector<html_argument>& params) -> CComVariant
 			{
 				if (params.empty() || !params[0].is_string()) return {};
-				workshop_remove_one(params[0].get_string());
-				return {};
+				if (remove_running.load()) return CComVariant("already_running");
+				remove_running = true;
+				std::string folder = params[0].get_string();
+				std::thread([folder]() {
+					set_remove_status("Removing mod...", -1.0, folder);
+					workshop_remove_one(folder);
+					{
+						std::lock_guard lock(library_list_mutex);
+						library_list_cache.clear();
+					}
+					set_remove_status("Removal complete", 100.0);
+					std::this_thread::sleep_for(std::chrono::milliseconds(500));
+					reset_remove_status();
+					remove_running = false;
+				}).detach();
+				return CComVariant("started");
 			});
 
 		window.get_html_frame()->register_callback(
 			"workshopRemoveAll", [](const std::vector<html_argument>& /*params*/) -> CComVariant
 			{
-				workshop_remove_all_folders();
-				return {};
+				if (remove_running.load()) return CComVariant("already_running");
+				remove_running = true;
+				std::thread([]() {
+					set_remove_status("Preparing removal...", -1.0);
+
+					char cwd[MAX_PATH];
+					GetCurrentDirectoryA(sizeof(cwd), cwd);
+					std::filesystem::path base(cwd);
+
+					// Collect all directories to remove
+					std::vector<std::filesystem::path> dirs_to_remove;
+					std::error_code ec;
+					auto collect = [&](const std::filesystem::path& dir) {
+						if (!std::filesystem::exists(dir, ec)) return;
+						for (const auto& entry : std::filesystem::directory_iterator(dir, ec))
+							if (entry.is_directory())
+								dirs_to_remove.push_back(entry.path());
+					};
+					collect(base / "mods");
+					collect(base / "usermaps");
+					std::filesystem::path steam_ws = get_steam_workshop_path();
+					if (!steam_ws.empty() && std::filesystem::exists(steam_ws, ec))
+						collect(steam_ws);
+
+					const int total = static_cast<int>(dirs_to_remove.size());
+					if (total == 0)
+					{
+						set_remove_status("Nothing to remove", 100.0);
+						std::this_thread::sleep_for(std::chrono::milliseconds(500));
+						reset_remove_status();
+						remove_running = false;
+						return;
+					}
+
+					for (int i = 0; i < total; ++i)
+					{
+						const double pct = (static_cast<double>(i) / total) * 100.0;
+						const auto name = dirs_to_remove[i].filename().string();
+						set_remove_status("Removing mods...", pct,
+							name + "  (" + std::to_string(i + 1) + "/" + std::to_string(total) + ")");
+						std::error_code ec2;
+						std::filesystem::remove_all(dirs_to_remove[i], ec2);
+					}
+
+					{
+						std::lock_guard lock(library_list_mutex);
+						library_list_cache.clear();
+					}
+					set_remove_status("Removal complete", 100.0,
+						std::to_string(total) + " item" + (total != 1 ? "s" : "") + " removed");
+					launcher::workshop::try_refresh_workshop_content();
+					std::this_thread::sleep_for(std::chrono::milliseconds(800));
+					reset_remove_status();
+					remove_running = false;
+				}).detach();
+				return CComVariant("started");
 			});
 
 		window.get_html_frame()->register_callback(
 			"workshopRemoveByPath", [](const std::vector<html_argument>& params) -> CComVariant
 			{
 				if (params.empty() || !params[0].is_string()) return {};
-				workshop_remove_by_path(params[0].get_string());
-				return {};
+				if (remove_running.load()) return CComVariant("already_running");
+				remove_running = true;
+				std::string path = params[0].get_string();
+				std::thread([path]() {
+					set_remove_status("Removing mod...", -1.0, path);
+					workshop_remove_by_path(path);
+					{
+						std::lock_guard lock(library_list_mutex);
+						library_list_cache.clear();
+					}
+					set_remove_status("Removal complete", 100.0);
+					std::this_thread::sleep_for(std::chrono::milliseconds(500));
+					reset_remove_status();
+					remove_running = false;
+				}).detach();
+				return CComVariant("started");
 			});
 
 		window.get_html_frame()->register_callback(
@@ -1178,14 +1315,11 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 		window.get_html_frame()->register_callback(
 			"verifyGameFiles", [](const std::vector<html_argument>& params) -> CComVariant
 			{
-				if (verify_running.load()) return CComVariant("already_running");
-				std::string modes = "all";
-				if (!params.empty() && params[0].is_string())
-				{
-					modes = params[0].get_string();
-					utils::string::trim(modes);
-					if (modes.empty()) modes = "all";
-				}
+				if (params.empty() || !params[0].is_string()) return CComVariant("");
+				std::string modes = params[0].get_string();
+				utils::string::trim(modes);
+				if (modes.empty()) return CComVariant("");
+				if (verify_running.exchange(true)) return CComVariant("already_running");
 				reset_verify_status();
 				std::thread(verify_game_thread, modes).detach();
 				return CComVariant("started");
@@ -1219,6 +1353,21 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 			});
 
 		window.get_html_frame()->register_callback(
+			"getRemoveStatus", [](const std::vector<html_argument>& /*params*/) -> CComVariant
+			{
+				std::lock_guard lock(remove_status_mutex);
+				rapidjson::StringBuffer buf;
+				rapidjson::Writer<rapidjson::StringBuffer> w(buf);
+				w.StartObject();
+				w.Key("message"); w.String(remove_status_message.c_str());
+				w.Key("progress"); w.Double(remove_progress_percent);
+				w.Key("details"); w.String(remove_progress_details.c_str());
+				w.Key("running"); w.Bool(remove_running.load());
+				w.EndObject();
+				return CComVariant(std::string(buf.GetString(), buf.GetSize()).c_str());
+			});
+
+		window.get_html_frame()->register_callback(
 			"invoke", [](const std::vector<html_argument>& params) -> CComVariant
 			{
 				if (params.size() < 1 || !params[0].is_string()) return {};
@@ -1226,18 +1375,45 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 				const std::string arg = (params.size() >= 2 && params[1].is_string()) ? params[1].get_string() : "";
 				if (method == "workshopRemove")
 				{
-					workshop_remove_one(arg);
-					return CComVariant("ok");
+					if (remove_running.load()) return CComVariant("already_running");
+					remove_running = true;
+					std::thread([a = arg]() {
+						set_remove_status("Removing mod...", -1.0, a);
+						workshop_remove_one(a);
+						{
+							std::lock_guard lock(library_list_mutex);
+							library_list_cache.clear();
+						}
+						set_remove_status("Removal complete", 100.0);
+						std::this_thread::sleep_for(std::chrono::milliseconds(500));
+						reset_remove_status();
+						remove_running = false;
+					}).detach();
+					return CComVariant("started");
 				}
 				if (method == "workshopRemoveAll")
 				{
-					workshop_remove_all_folders();
-					return CComVariant("ok");
+					// Delegate to the workshopRemoveAll callback logic
+					// (handled by the dedicated callback now)
+					return CComVariant("use_callback");
 				}
 				if (method == "workshopRemoveByPath")
 				{
-					workshop_remove_by_path(arg);
-					return CComVariant("ok");
+					if (remove_running.load()) return CComVariant("already_running");
+					remove_running = true;
+					std::thread([a = arg]() {
+						set_remove_status("Removing mod...", -1.0, a);
+						workshop_remove_by_path(a);
+						{
+							std::lock_guard lock(library_list_mutex);
+							library_list_cache.clear();
+						}
+						set_remove_status("Removal complete", 100.0);
+						std::this_thread::sleep_for(std::chrono::milliseconds(500));
+						reset_remove_status();
+						remove_running = false;
+					}).detach();
+					return CComVariant("started");
 				}
 				return {};
 			});

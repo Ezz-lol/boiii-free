@@ -55,7 +55,7 @@ namespace auth
 
 		std::string get_protected_data()
 		{
-			std::string input = "momo5502-boiii-auth";
+			std::string input = "ezz-boiii-auth";
 
 			DATA_BLOB data_in{}, data_out{};
 			data_in.pbData = reinterpret_cast<uint8_t*>(input.data());
@@ -94,7 +94,7 @@ namespace auth
 		{
 			std::string data{};
 
-			auto key_path = (utils::properties::get_key_path() / "cb-private.key").generic_string();
+			auto key_path = (utils::properties::get_key_path() / "ezz-private.key").generic_string();
 			if (!utils::io::read_file(key_path, &data))
 			{
 				return false;
@@ -118,7 +118,7 @@ namespace auth
 				throw std::runtime_error("Failed to generate cryptographic key!");
 			}
 
-			auto key_path = (utils::properties::get_key_path() / "cb-private.key").generic_string();
+			auto key_path = (utils::properties::get_key_path() / "ezz-private.key").generic_string();
 			if (!utils::io::write_file(key_path, key.serialize()))
 			{
 				printf("Failed to write cryptographic key!\n");
@@ -144,7 +144,7 @@ namespace auth
 		{
 			auto key = load_or_generate_key();
 
-			auto key_path = (utils::properties::get_key_path() / "cb-public.key").generic_string();
+			auto key_path = (utils::properties::get_key_path() / "ezz-public.key").generic_string();
 			if (!utils::io::write_file(key_path, key.get_public_key()))
 			{
 				printf("Failed to write public key!\n");
@@ -163,7 +163,7 @@ namespace auth
 		{
 			static const auto is_first = []
 			{
-				static utils::nt::handle mutex = CreateMutexA(nullptr, FALSE, "boiii_mutex");
+				static utils::nt::handle mutex = CreateMutexA(nullptr, FALSE, "ezz_mutex");
 				return mutex && GetLastError() != ERROR_ALREADY_EXISTS;
 			}();
 

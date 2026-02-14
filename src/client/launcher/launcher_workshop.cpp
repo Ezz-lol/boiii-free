@@ -17,7 +17,6 @@
 #include <utils/compression.hpp>
 #include <utils/http.hpp>
 #include <utils/io.hpp>
-#include <utils/nt.hpp>
 #include <utils/string.hpp>
 
 namespace launcher::workshop {
@@ -49,6 +48,7 @@ namespace {
     std::atomic<bool> workshop_browse_loading { false };
 
     std::string human_readable_size(std::uint64_t bytes);
+    std::int64_t parse_json_int64(const rapidjson::Value& v);
     void save_workshop_backup(const std::string& json_data);
 
     std::string extract_workshop_id(const std::string& input)
@@ -93,8 +93,7 @@ namespace {
     {
         std::lock_guard lock(workshop_status_mutex);
         workshop_status_message = msg;
-        if (progress >= 0.0)
-            workshop_progress_percent = progress;
+        workshop_progress_percent = progress;
         workshop_progress_details = details;
     }
 
@@ -147,7 +146,7 @@ namespace {
             h["Referer"] = "https://steamcommunity.com/app/311210/workshop/";
 
             const auto url = "https://steamcommunity.com/sharedfiles/filedetails/?id=" + workshop_id + "&searchtext=";
-            const auto resp = utils::http::get_data(url, h, {}, 2);
+            const auto resp = utils::http::get_data(url, h, {}, 4);
             if (!resp || resp->empty())
                 return 0;
 
@@ -452,29 +451,29 @@ namespace {
     std::string get_default_workshop_cache()
     {
         return R"DEFCACHE([
-{"id":"3662223649","title":"ZM_FATAL_ERROR:TOWER","imageUrl":"https://images.steamusercontent.com/ugc/14179339278271119524/2DF5D01901B5D9BEF6DDD1E647C22608939B5169/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"ZM_FATAL_ERROR:TOWER Difficulty: High. Panzer first appearance: Round 12."},
-{"id":"3661484631","title":"Quadinfin 2 - Perkaholic Boogaloo","imageUrl":"https://images.steamusercontent.com/ugc/10776649294626077998/16BDBF8F64ACF11FA468563E948E11AE2C8493E9/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"An updated version of my original Quadinfin, a classic 4-window survival experience. Featuring: 4 windows, 60 Perks, Ultimis Crew, Timed Gameplay."},
-{"id":"3660826489","title":"TORRENTE TOWER V1","imageUrl":"https://images.steamusercontent.com/ugc/17418759426979053188/54D8BAC3FC2D4C00DD6E154D4C7D24C8626600D3/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"TORRENTE TOWER - xkrauser7. Bienvenido a Torrente Tower, un mapa estilo torre de alta dificultad."},
-{"id":"3660476314","title":"THE LAST CHIME","imageUrl":"https://images.steamusercontent.com/ugc/11594178117164307986/DCA415507CBF347F7FBD28C88D8DA7589FD1A00D/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"An old Western town once filled with life now filled with evil and destruction."},
-{"id":"3659265140","title":"DROP TOWER[HARD]","imageUrl":"https://images.steamusercontent.com/ugc/11027918728522681235/3117DC469515C7BC384EBFC533212FC1839640E5/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"Difficulty Rating: 5/8. FEATURES: BO2 Weapons, Buyable Ending, Timed Gameplay, Death Ceiling, Custom Weapons."},
-{"id":"3659176950","title":"School of the Zombies","imageUrl":"https://community.akamai.steamstatic.com/public/images/sharedfiles/steam_workshop_default_image.png","description":"Welcome to the School of Zombies. Fight your way through the school."},
-{"id":"3658478726","title":"RURAL FARM","imageUrl":"https://images.steamusercontent.com/ugc/14111859186847883556/A318E997E28889D2E13CC22A70E27205A679074B/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"A zombie map featuring BO6 & 7 perks, BO2 weapons."},
-{"id":"3657900170","title":"Sol Badguy Character Mod","imageUrl":"https://images.steamusercontent.com/ugc/12589509590737188680/94B10B318EA8CE00591F5693E548A21FBA567FA5/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"Sol Badguy character mod for BO3."},
-{"id":"3657886915","title":"FACING'S FLAT MAP","imageUrl":"https://images.steamusercontent.com/ugc/12018625100457671518/44BDB2FE748DA8DB9BFCE21F7228C8B319A96E21/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"Facing's Flat Map - 40 PERKS ON ONE MAP!"},
-{"id":"3657549400","title":"Black Ops 6 + Black Ops 7 Characters mod","imageUrl":"https://images.steamusercontent.com/ugc/16216719299880445495/7D307C7D1930D0E94FC143C9F94A204DAE49F468/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"Characters from Black Ops 6 and Black Ops 7."},
-{"id":"3656779213","title":"Classic Viewmodel FOV (Console-Style) V1.1","imageUrl":"https://images.steamusercontent.com/ugc/11325191810539314643/2978155577D8FC00C85F175412BE5A41346ED978/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"Adjusts viewmodel FOV to match console / other CoD titles."},
-{"id":"3656583092","title":"BRODES' APARTMENT","imageUrl":"https://images.steamusercontent.com/ugc/12518569369083293956/A64E56DD1DF545F064DE3AEDEAAC6E9250F2AC2F/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"A small survival map based on a real life apartment."},
-{"id":"3656248258","title":"THE WAITING ROOM ZOMBIES","imageUrl":"https://images.steamusercontent.com/ugc/9809675098278553771/5AB87DDAF33FF9D719B02E5CFBF6A861B61FCB9D/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"Map based on the horror game THE WAITING ROOM."},
-{"id":"3654882086","title":"GUN RANGE","imageUrl":"https://images.steamusercontent.com/ugc/9655108334957386121/B28AD6F81EBE204A6163585539ED8FD987902259/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"M9K & BF4 Weapons, Buyable Ending, Dogs, Ammomatic."},
-{"id":"3653611984","title":"YELLOW BEAR 36","imageUrl":"https://images.steamusercontent.com/ugc/17056600832089406645/3DED6582B0083DCCD7DBA62E79B262D731628C79/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"BO4 Weapons, BO7 Perks, Fast Gameplay, Buyable Ending."},
-{"id":"3653516165","title":"Grimsel","imageUrl":"https://community.akamai.steamstatic.com/public/images/sharedfiles/steam_workshop_default_image.png","description":"Fill the monkeys in front of the perks to unlock them. Survive as long as you can."},
-{"id":"3653336011","title":"NUKETOWN 1925","imageUrl":"https://images.steamusercontent.com/ugc/9316046992592864423/346237A0877E77825E456BE391FDE570CD4E32E1/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"Experience Nuketown 100 years before the earth was nuked."},
-{"id":"3652765825","title":"the evil within - abandoned hospital challenge map","imageUrl":"https://images.steamusercontent.com/ugc/11917762213855472942/57418C1707A629A75E84CACDC8D47546D230CF0E/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"The evil within abandoned hospital challenge map."},
-{"id":"3651819567","title":"1 Room Challenge","imageUrl":"https://images.steamusercontent.com/ugc/10061471386946354590/2C6C02235EDC10F5F731AA60BBCB3AD56F7F7B2A/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"Limited Perks, Limited Box Spins, Limited playable area."},
-{"id":"3650570722","title":"MELON 2","imageUrl":"https://images.steamusercontent.com/ugc/12435539783903330593/AE02D66C5B73447AEF87C09F6C97E36F767DB4E4/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"The great continuation of MELON with new and improved features."},
-{"id":"3650197721","title":"STORMGATE FORTRESS","imageUrl":"https://images.steamusercontent.com/ugc/15043592501945790701/65896EBB850009B61053C2A4F0A2053A64E0207F/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"Explore the massive Stormgate Fortress. A very large Zombies experience."},
-{"id":"3650139418","title":"Zombie Bodies Instant-Despawn","imageUrl":"https://images.steamusercontent.com/ugc/10562545484082102394/217C97EB583672FD71C2F158BD2A36C8609C04A3/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"A mod to remove corpses instantly."},
-{"id":"3649285026","title":"HOGZMEADE ZOMBIES","imageUrl":"https://images.steamusercontent.com/ugc/9770236674819273014/98341B495C30B4D9B4A779C34939019E8A0D333A/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"The All Wizarding Village of Hogsmeade. 4 PERK LIMIT."}
+{"id":"3662223649","title":"ZM_FATAL_ERROR:TOWER","imageUrl":"https://images.steamusercontent.com/ugc/14179339278271119524/2DF5D01901B5D9BEF6DDD1E647C22608939B5169/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"ZM_FATAL_ERROR:TOWER Difficulty: High. Panzer first appearance: Round 12.","file_size":5565203874,"starRating":0,"subs":473,"favorites":20},
+{"id":"3661484631","title":"Quadinfin 2 - Perkaholic Boogaloo","imageUrl":"https://images.steamusercontent.com/ugc/10776649294626077998/16BDBF8F64ACF11FA468563E948E11AE2C8493E9/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"An updated version of my original Quadinfin, a classic 4-window survival experience. Featuring: 4 windows, 60 Perks, Ultimis Crew, Timed Gameplay.","file_size":5949603447,"starRating":0,"subs":463,"favorites":14},
+{"id":"3660826489","title":"TORRENTE TOWER V1","imageUrl":"https://images.steamusercontent.com/ugc/17418759426979053188/54D8BAC3FC2D4C00DD6E154D4C7D24C8626600D3/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"TORRENTE TOWER - xkrauser7. Bienvenido a Torrente Tower, un mapa estilo torre de alta dificultad.","file_size":9892383425,"starRating":3,"subs":1983,"favorites":59},
+{"id":"3660476314","title":"THE LAST CHIME","imageUrl":"https://images.steamusercontent.com/ugc/11594178117164307986/DCA415507CBF347F7FBD28C88D8DA7589FD1A00D/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"An old Western town once filled with life now filled with evil and destruction.","file_size":3847216955,"starRating":4,"subs":3707,"favorites":219},
+{"id":"3659265140","title":"DROP TOWER[HARD]","imageUrl":"https://images.steamusercontent.com/ugc/11027918728522681235/3117DC469515C7BC384EBFC533212FC1839640E5/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"Difficulty Rating: 5/8. FEATURES: BO2 Weapons, Buyable Ending, Timed Gameplay, Death Ceiling, Custom Weapons.","file_size":1682553438,"starRating":3,"subs":5839,"favorites":95},
+{"id":"3659176950","title":"School of the Zombies","imageUrl":"https://community.akamai.steamstatic.com/public/images/sharedfiles/steam_workshop_default_image.png","description":"Welcome to the School of Zombies. Fight your way through the school.","file_size":4991825740,"starRating":0,"subs":40,"favorites":1},
+{"id":"3658478726","title":"RURAL FARM","imageUrl":"https://images.steamusercontent.com/ugc/14111859186847883556/A318E997E28889D2E13CC22A70E27205A679074B/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"A zombie map featuring BO6 & 7 perks, BO2 weapons.","file_size":5484673237,"starRating":0,"subs":402,"favorites":33},
+{"id":"3657900170","title":"Sol Badguy Character Mod","imageUrl":"https://images.steamusercontent.com/ugc/12589509590737188680/94B10B318EA8CE00591F5693E548A21FBA567FA5/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"Sol Badguy character mod for BO3.","file_size":185379848,"starRating":0,"subs":18,"favorites":5},
+{"id":"3657886915","title":"FACING'S FLAT MAP","imageUrl":"https://images.steamusercontent.com/ugc/12018625100457671518/44BDB2FE748DA8DB9BFCE21F7228C8B319A96E21/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"Facing's Flat Map - 40 PERKS ON ONE MAP!","file_size":4502199468,"starRating":4,"subs":3994,"favorites":104},
+{"id":"3657549400","title":"Black Ops 6 + Black Ops 7 Characters mod","imageUrl":"https://images.steamusercontent.com/ugc/16216719299880445495/7D307C7D1930D0E94FC143C9F94A204DAE49F468/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"Characters from Black Ops 6 and Black Ops 7.","file_size":5404142600,"starRating":4,"subs":696,"favorites":130},
+{"id":"3656779213","title":"Classic Viewmodel FOV (Console-Style) V1.1","imageUrl":"https://images.steamusercontent.com/ugc/11325191810539314643/2978155577D8FC00C85F175412BE5A41346ED978/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"Adjusts viewmodel FOV to match console / other CoD titles.","file_size":14792,"starRating":0,"subs":952,"favorites":85},
+{"id":"3656583092","title":"BRODES' APARTMENT","imageUrl":"https://images.steamusercontent.com/ugc/12518569369083293956/A64E56DD1DF545F064DE3AEDEAAC6E9250F2AC2F/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"A small survival map based on a real life apartment.","file_size":5507221815,"starRating":3,"subs":1337,"favorites":76},
+{"id":"3656248258","title":"THE WAITING ROOM ZOMBIES","imageUrl":"https://images.steamusercontent.com/ugc/9809675098278553771/5AB87DDAF33FF9D719B02E5CFBF6A861B61FCB9D/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"Map based on the horror game THE WAITING ROOM.","file_size":2238751703,"starRating":4,"subs":2829,"favorites":137},
+{"id":"3654882086","title":"GUN RANGE","imageUrl":"https://images.steamusercontent.com/ugc/9655108334957386121/B28AD6F81EBE204A6163585539ED8FD987902259/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"M9K & BF4 Weapons, Buyable Ending, Dogs, Ammomatic.","file_size":1678258471,"starRating":4,"subs":9617,"favorites":235},
+{"id":"3653611984","title":"YELLOW BEAR 36","imageUrl":"https://images.steamusercontent.com/ugc/17056600832089406645/3DED6582B0083DCCD7DBA62E79B262D731628C79/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"BO4 Weapons, BO7 Perks, Fast Gameplay, Buyable Ending.","file_size":4065186546,"starRating":3,"subs":2851,"favorites":91},
+{"id":"3653516165","title":"Grimsel","imageUrl":"https://community.akamai.steamstatic.com/public/images/sharedfiles/steam_workshop_default_image.png","description":"Fill the monkeys in front of the perks to unlock them. Survive as long as you can.","file_size":5221606490,"starRating":0,"subs":45,"favorites":4},
+{"id":"3653336011","title":"NUKETOWN 1925","imageUrl":"https://images.steamusercontent.com/ugc/9316046992592864423/346237A0877E77825E456BE391FDE570CD4E32E1/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"Experience Nuketown 100 years before the earth was nuked.","file_size":904938914,"starRating":3,"subs":1304,"favorites":68},
+{"id":"3652765825","title":"the evil within - abandoned hospital challenge map","imageUrl":"https://images.steamusercontent.com/ugc/11917762213855472942/57418C1707A629A75E84CACDC8D47546D230CF0E/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"The evil within abandoned hospital challenge map.","file_size":5121748500,"starRating":0,"subs":612,"favorites":25},
+{"id":"3651819567","title":"1 Room Challenge","imageUrl":"https://images.steamusercontent.com/ugc/10061471386946354590/2C6C02235EDC10F5F731AA60BBCB3AD56F7F7B2A/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"Limited Perks, Limited Box Spins, Limited playable area.","file_size":657956274,"starRating":0,"subs":356,"favorites":13},
+{"id":"3650570722","title":"MELON 2","imageUrl":"https://images.steamusercontent.com/ugc/12435539783903330593/AE02D66C5B73447AEF87C09F6C97E36F767DB4E4/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"The great continuation of MELON with new and improved features.","file_size":3583076467,"starRating":3,"subs":2226,"favorites":35},
+{"id":"3650197721","title":"STORMGATE FORTRESS","imageUrl":"https://images.steamusercontent.com/ugc/15043592501945790701/65896EBB850009B61053C2A4F0A2053A64E0207F/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"Explore the massive Stormgate Fortress. A very large Zombies experience.","file_size":10685878632,"starRating":4,"subs":6162,"favorites":298},
+{"id":"3650139418","title":"Zombie Bodies Instant-Despawn","imageUrl":"https://images.steamusercontent.com/ugc/10562545484082102394/217C97EB583672FD71C2F158BD2A36C8609C04A3/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"A mod to remove corpses instantly.","file_size":3225,"starRating":0,"subs":8,"favorites":1},
+{"id":"3649285026","title":"HOGZMEADE ZOMBIES","imageUrl":"https://images.steamusercontent.com/ugc/9770236674819273014/98341B495C30B4D9B4A779C34939019E8A0D333A/?imw=200&imh=200&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=true","description":"The All Wizarding Village of Hogsmeade. 4 PERK LIMIT.","file_size":13099650253,"starRating":4,"subs":5501,"favorites":289}
 ])DEFCACHE";
     }
 
@@ -546,6 +545,17 @@ namespace {
             }
 
             std::set<std::string> seen_ids;
+            std::map<std::string, std::uint64_t> backup_sizes;
+            for (auto& item : backup_doc.GetArray()) {
+                if (item.IsObject() && item.HasMember("id") && item["id"].IsString() && item.HasMember("file_size")) {
+                    std::uint64_t sz = 0;
+                    if (item["file_size"].IsUint64()) sz = item["file_size"].GetUint64();
+                    else if (item["file_size"].IsInt64()) sz = static_cast<std::uint64_t>(item["file_size"].GetInt64());
+                    else if (item["file_size"].IsUint()) sz = item["file_size"].GetUint();
+                    if (sz > 0) backup_sizes[item["id"].GetString()] = sz;
+                }
+            }
+
             rapidjson::StringBuffer buf;
             rapidjson::Writer<rapidjson::StringBuffer> w(buf);
             w.StartArray();
@@ -557,7 +567,32 @@ namespace {
                     std::string id = item["id"].GetString();
                     if (seen_ids.find(id) == seen_ids.end()) {
                         seen_ids.insert(id);
-                        item.Accept(w);
+                        bool needs_size_patch = false;
+                        std::uint64_t backup_sz = 0;
+                        if (item.HasMember("file_size")) {
+                            std::uint64_t fsz = 0;
+                            if (item["file_size"].IsUint64()) fsz = item["file_size"].GetUint64();
+                            else if (item["file_size"].IsInt64()) fsz = static_cast<std::uint64_t>(item["file_size"].GetInt64());
+                            else if (item["file_size"].IsUint()) fsz = item["file_size"].GetUint();
+                            if (fsz == 0 && backup_sizes.count(id)) {
+                                needs_size_patch = true;
+                                backup_sz = backup_sizes[id];
+                            }
+                        }
+                        if (needs_size_patch) {
+                            w.StartObject();
+                            for (auto m = item.MemberBegin(); m != item.MemberEnd(); ++m) {
+                                w.Key(m->name.GetString());
+                                if (std::string(m->name.GetString()) == "file_size") {
+                                    w.Uint64(backup_sz);
+                                } else {
+                                    m->value.Accept(w);
+                                }
+                            }
+                            w.EndObject();
+                        } else {
+                            item.Accept(w);
+                        }
                     }
                 }
             }
@@ -592,6 +627,140 @@ namespace {
         } catch (...) {
         }
         return "";
+    }
+
+    void write_workshop_items_json(
+        const std::string& api_response,
+        rapidjson::Writer<rapidjson::StringBuffer>& w,
+        const std::map<std::string, int>& item_ratings,
+        const std::map<std::string, std::uint64_t>& known_sizes = {})
+    {
+        rapidjson::Document doc;
+        if (doc.Parse(api_response.c_str()).HasParseError() || !doc.IsObject())
+            return;
+        auto resp_it = doc.FindMember("response");
+        if (resp_it == doc.MemberEnd() || !resp_it->value.IsObject())
+            return;
+        auto details_it = resp_it->value.FindMember("publishedfiledetails");
+        if (details_it == resp_it->value.MemberEnd() || !details_it->value.IsArray())
+            return;
+
+        struct browse_item {
+            std::string id, title, description, imageUrl;
+            std::int64_t subs = 0, favorites = 0;
+            std::uint64_t file_size = 0;
+            int star_rating = 0;
+        };
+        std::vector<browse_item> items;
+
+        for (auto& item : details_it->value.GetArray()) {
+            if (!item.IsObject())
+                continue;
+
+            auto app_it = item.FindMember("consumer_app_id");
+            if (app_it != item.MemberEnd()) {
+                int app_id = 0;
+                if (app_it->value.IsInt())
+                    app_id = app_it->value.GetInt();
+                else if (app_it->value.IsInt64())
+                    app_id = static_cast<int>(app_it->value.GetInt64());
+                else if (app_it->value.IsString())
+                    app_id = std::atoi(app_it->value.GetString());
+                if (app_id != 0 && app_id != BO3_APP_ID)
+                    continue;
+            }
+
+            browse_item bi;
+
+            auto id_it = item.FindMember("publishedfileid");
+            if (id_it != item.MemberEnd() && id_it->value.IsString())
+                bi.id = id_it->value.GetString();
+            if (bi.id.empty())
+                continue;
+
+            auto title_it = item.FindMember("title");
+            if (title_it != item.MemberEnd() && title_it->value.IsString())
+                bi.title = html_decode(title_it->value.GetString());
+
+            auto desc_it = item.FindMember("description");
+            if (desc_it != item.MemberEnd() && desc_it->value.IsString()) {
+                bi.description = desc_it->value.GetString();
+                if (bi.description.size() > 300)
+                    bi.description = bi.description.substr(0, 300) + "...";
+            }
+
+            auto img_it = item.FindMember("preview_url");
+            if (img_it != item.MemberEnd() && img_it->value.IsString())
+                bi.imageUrl = img_it->value.GetString();
+            if (bi.imageUrl.empty())
+                bi.imageUrl = extract_image_url_from_description(bi.description);
+
+            auto subs_it = item.FindMember("lifetime_subscriptions");
+            if (subs_it != item.MemberEnd())
+                bi.subs = parse_json_int64(subs_it->value);
+            auto fav_it = item.FindMember("lifetime_favorited");
+            if (fav_it != item.MemberEnd())
+                bi.favorites = parse_json_int64(fav_it->value);
+
+            auto size_it = item.FindMember("file_size");
+            if (size_it != item.MemberEnd()) {
+                if (size_it->value.IsUint64()) bi.file_size = size_it->value.GetUint64();
+                else if (size_it->value.IsInt64()) bi.file_size = static_cast<std::uint64_t>(size_it->value.GetInt64());
+                else if (size_it->value.IsUint()) bi.file_size = size_it->value.GetUint();
+                else if (size_it->value.IsInt()) bi.file_size = static_cast<std::uint64_t>(size_it->value.GetInt());
+                else if (size_it->value.IsString()) bi.file_size = static_cast<std::uint64_t>(std::strtoull(size_it->value.GetString(), nullptr, 10));
+            }
+
+            bi.star_rating = item_ratings.count(bi.id) ? item_ratings.at(bi.id) : 0;
+            items.push_back(std::move(bi));
+        }
+
+        for (auto& bi : items) {
+            if (bi.file_size == 0 && !bi.id.empty()) {
+                auto ks = known_sizes.find(bi.id);
+                if (ks != known_sizes.end() && ks->second > 0) {
+                    bi.file_size = ks->second;
+                } else if (workshop_browse_loading.load()) {
+                    try {
+                        const auto scraped = scrape_workshop_file_size_bytes(bi.id);
+                        if (scraped > 0) bi.file_size = scraped;
+                    } catch (...) {}
+                }
+            }
+        }
+
+        for (const auto& bi : items) {
+            w.StartObject();
+            w.Key("id");         w.String(bi.id.c_str());
+            w.Key("title");      w.String(bi.title.c_str());
+            w.Key("description"); w.String(bi.description.c_str());
+            w.Key("imageUrl");   w.String(bi.imageUrl.c_str());
+            w.Key("starRating"); w.Int(bi.star_rating);
+            w.Key("subs");       w.Int64(bi.subs);
+            w.Key("favorites");  w.Int64(bi.favorites);
+            w.Key("file_size");  w.Uint64(bi.file_size);
+            w.EndObject();
+        }
+    }
+
+    void clean_folder_keep_patches(const std::filesystem::path& dir)
+    {
+        std::error_code ec;
+        if (!std::filesystem::exists(dir, ec)) return;
+
+        std::vector<std::filesystem::path> to_remove;
+        for (const auto& entry : std::filesystem::recursive_directory_iterator(dir, ec)) {
+            if (ec) break;
+            if (!entry.is_regular_file(ec)) continue;
+            auto ext = entry.path().extension().string();
+            for (auto& c : ext) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+            if (ext != ".patch") {
+                to_remove.push_back(entry.path());
+            }
+        }
+        for (const auto& p : to_remove) {
+            std::filesystem::remove(p, ec);
+        }
     }
 
     std::string url_encode(const std::string& value)
@@ -701,6 +870,22 @@ namespace {
                 return "[]";
             }
 
+            std::map<std::string, std::uint64_t> known_sizes;
+            {
+                rapidjson::Document bd;
+                if (!bd.Parse(backup_json.c_str()).HasParseError() && bd.IsArray()) {
+                    for (auto& bk : bd.GetArray()) {
+                        if (!bk.IsObject() || !bk.HasMember("id") || !bk["id"].IsString()) continue;
+                        if (!bk.HasMember("file_size")) continue;
+                        std::uint64_t sz = 0;
+                        if (bk["file_size"].IsUint64()) sz = bk["file_size"].GetUint64();
+                        else if (bk["file_size"].IsInt64()) sz = static_cast<std::uint64_t>(bk["file_size"].GetInt64());
+                        else if (bk["file_size"].IsUint()) sz = bk["file_size"].GetUint();
+                        if (sz > 0) known_sizes[bk["id"].GetString()] = sz;
+                    }
+                }
+            }
+
             rapidjson::StringBuffer buf;
             rapidjson::Writer<rapidjson::StringBuffer> w(buf);
             w.StartArray();
@@ -719,83 +904,8 @@ namespace {
                     if (!api_resp || api_resp->empty())
                         continue;
 
-                    rapidjson::Document doc;
-                    if (doc.Parse(api_resp->c_str()).HasParseError() || !doc.IsObject())
-                        continue;
-                    auto resp_it = doc.FindMember("response");
-                    if (resp_it == doc.MemberEnd() || !resp_it->value.IsObject())
-                        continue;
-                    auto details_it = resp_it->value.FindMember("publishedfiledetails");
-                    if (details_it == resp_it->value.MemberEnd() || !details_it->value.IsArray())
-                        continue;
+                    write_workshop_items_json(*api_resp, w, item_ratings, known_sizes);
 
-                    for (auto& item : details_it->value.GetArray()) {
-                        if (!item.IsObject())
-                            continue;
-                        auto app_it = item.FindMember("consumer_app_id");
-                        if (app_it != item.MemberEnd()) {
-                            int app_id = 0;
-                            if (app_it->value.IsInt())
-                                app_id = app_it->value.GetInt();
-                            else if (app_it->value.IsInt64())
-                                app_id = static_cast<int>(app_it->value.GetInt64());
-                            else if (app_it->value.IsString())
-                                app_id = std::atoi(app_it->value.GetString());
-                            if (app_id != 0 && app_id != BO3_APP_ID)
-                                continue;
-                        }
-
-                        std::string id, title, description, imageUrl;
-                        auto id_it = item.FindMember("publishedfileid");
-                        if (id_it != item.MemberEnd() && id_it->value.IsString())
-                            id = id_it->value.GetString();
-                        if (id.empty())
-                            continue;
-
-                        auto title_it = item.FindMember("title");
-                        if (title_it != item.MemberEnd() && title_it->value.IsString())
-                            title = html_decode(title_it->value.GetString());
-
-                        auto desc_it = item.FindMember("description");
-                        if (desc_it != item.MemberEnd() && desc_it->value.IsString()) {
-                            description = desc_it->value.GetString();
-                            if (description.size() > 300)
-                                description = description.substr(0, 300) + "...";
-                        }
-
-                        auto img_it = item.FindMember("preview_url");
-                        if (img_it != item.MemberEnd() && img_it->value.IsString())
-                            imageUrl = img_it->value.GetString();
-                        if (imageUrl.empty())
-                            imageUrl = extract_image_url_from_description(description);
-
-                        std::int64_t subs = 0, favorites = 0;
-                        auto subs_it = item.FindMember("lifetime_subscriptions");
-                        if (subs_it != item.MemberEnd())
-                            subs = parse_json_int64(subs_it->value);
-                        auto fav_it = item.FindMember("lifetime_favorited");
-                        if (fav_it != item.MemberEnd())
-                            favorites = parse_json_int64(fav_it->value);
-
-                        int star_rating = item_ratings.count(id) ? item_ratings[id] : 0;
-
-                        w.StartObject();
-                        w.Key("id");
-                        w.String(id.c_str());
-                        w.Key("title");
-                        w.String(title.c_str());
-                        w.Key("description");
-                        w.String(description.c_str());
-                        w.Key("imageUrl");
-                        w.String(imageUrl.c_str());
-                        w.Key("starRating");
-                        w.Int(star_rating);
-                        w.Key("subs");
-                        w.Int64(subs);
-                        w.Key("favorites");
-                        w.Int64(favorites);
-                        w.EndObject();
-                    }
                     if (i + batch_size < all_ids.size())
                         std::this_thread::sleep_for(std::chrono::milliseconds(200));
                 } catch (...) {
@@ -809,7 +919,7 @@ namespace {
             std::string merged_json = merge_workshop_items(fetched_json, backup_json);
             save_workshop_backup(merged_json);
 
-            return fetched_json;
+            return merged_json;
         } catch (...) {
             return "[]";
         }
@@ -888,6 +998,22 @@ namespace {
                 return get_default_workshop_cache();
             }
 
+            std::map<std::string, std::uint64_t> known_sizes;
+            {
+                rapidjson::Document bd;
+                if (!bd.Parse(backup_json.c_str()).HasParseError() && bd.IsArray()) {
+                    for (auto& bk : bd.GetArray()) {
+                        if (!bk.IsObject() || !bk.HasMember("id") || !bk["id"].IsString()) continue;
+                        if (!bk.HasMember("file_size")) continue;
+                        std::uint64_t sz = 0;
+                        if (bk["file_size"].IsUint64()) sz = bk["file_size"].GetUint64();
+                        else if (bk["file_size"].IsInt64()) sz = static_cast<std::uint64_t>(bk["file_size"].GetInt64());
+                        else if (bk["file_size"].IsUint()) sz = bk["file_size"].GetUint();
+                        if (sz > 0) known_sizes[bk["id"].GetString()] = sz;
+                    }
+                }
+            }
+
             rapidjson::StringBuffer buf;
             rapidjson::Writer<rapidjson::StringBuffer> w(buf);
             w.StartArray();
@@ -907,88 +1033,7 @@ namespace {
                     if (!api_resp || api_resp->empty())
                         continue;
 
-                    rapidjson::Document doc;
-                    if (doc.Parse(api_resp->c_str()).HasParseError() || !doc.IsObject())
-                        continue;
-
-                    auto resp_it = doc.FindMember("response");
-                    if (resp_it == doc.MemberEnd() || !resp_it->value.IsObject())
-                        continue;
-
-                    auto details_it = resp_it->value.FindMember("publishedfiledetails");
-                    if (details_it == resp_it->value.MemberEnd() || !details_it->value.IsArray())
-                        continue;
-
-                    for (auto& item : details_it->value.GetArray()) {
-                        if (!item.IsObject())
-                            continue;
-
-                        auto app_it = item.FindMember("consumer_app_id");
-                        if (app_it != item.MemberEnd()) {
-                            int app_id = 0;
-                            if (app_it->value.IsInt())
-                                app_id = app_it->value.GetInt();
-                            else if (app_it->value.IsInt64())
-                                app_id = static_cast<int>(app_it->value.GetInt64());
-                            else if (app_it->value.IsString())
-                                app_id = std::atoi(app_it->value.GetString());
-                            if (app_id != 0 && app_id != BO3_APP_ID)
-                                continue;
-                        }
-
-                        std::string id, title, description, imageUrl;
-
-                        auto id_it = item.FindMember("publishedfileid");
-                        if (id_it != item.MemberEnd() && id_it->value.IsString())
-                            id = id_it->value.GetString();
-                        if (id.empty())
-                            continue;
-
-                        auto title_it = item.FindMember("title");
-                        if (title_it != item.MemberEnd() && title_it->value.IsString())
-                            title = html_decode(title_it->value.GetString());
-
-                        auto desc_it = item.FindMember("description");
-                        if (desc_it != item.MemberEnd() && desc_it->value.IsString()) {
-                            description = desc_it->value.GetString();
-                            if (description.size() > 300)
-                                description = description.substr(0, 300) + "...";
-                        }
-
-                        auto img_it = item.FindMember("preview_url");
-                        if (img_it != item.MemberEnd() && img_it->value.IsString())
-                            imageUrl = img_it->value.GetString();
-
-                        if (imageUrl.empty())
-                            imageUrl = extract_image_url_from_description(description);
-
-                        std::int64_t subs = 0, favorites = 0;
-                        auto subs_it = item.FindMember("lifetime_subscriptions");
-                        if (subs_it != item.MemberEnd())
-                            subs = parse_json_int64(subs_it->value);
-                        auto fav_it = item.FindMember("lifetime_favorited");
-                        if (fav_it != item.MemberEnd())
-                            favorites = parse_json_int64(fav_it->value);
-
-                        int star_rating = item_ratings.count(id) ? item_ratings[id] : 0;
-
-                        w.StartObject();
-                        w.Key("id");
-                        w.String(id.c_str());
-                        w.Key("title");
-                        w.String(title.c_str());
-                        w.Key("description");
-                        w.String(description.c_str());
-                        w.Key("imageUrl");
-                        w.String(imageUrl.c_str());
-                        w.Key("starRating");
-                        w.Int(star_rating);
-                        w.Key("subs");
-                        w.Int64(subs);
-                        w.Key("favorites");
-                        w.Int64(favorites);
-                        w.EndObject();
-                    }
+                    write_workshop_items_json(*api_resp, w, item_ratings, known_sizes);
 
                     if (i + batch_size < all_ids.size())
                         std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -1061,10 +1106,14 @@ namespace {
         auto item_dir = steam_ws / workshop_id;
         if (!std::filesystem::exists(item_dir, ec)) return false;
         if (has_zone_content(item_dir / "zone")) return true;
+        if (has_zone_content(item_dir)) return true;
         for (const auto& sub : std::filesystem::directory_iterator(item_dir, ec))
         {
-            if (sub.is_directory(ec) && has_zone_content(sub.path() / "zone"))
-                return true;
+            if (sub.is_directory(ec))
+            {
+                if (has_zone_content(sub.path() / "zone")) return true;
+                if (has_zone_content(sub.path())) return true;
+            }
         }
         return false;
     }
@@ -1076,9 +1125,11 @@ namespace {
 
         for (const auto& parent_name : parent_dirs)
         {
-            std::filesystem::path candidate = game_path / parent_name / workshop_id / "zone";
-            if (has_zone_content(candidate))
-                return candidate.parent_path().string();
+            std::filesystem::path item_dir = game_path / parent_name / workshop_id;
+            if (has_zone_content(item_dir / "zone"))
+                return item_dir.string();
+            if (std::filesystem::exists(item_dir, ec) && has_zone_content(item_dir))
+                return item_dir.string();
         }
 
         auto steam_ws = get_steam_workshop_content_path(game_path);
@@ -1092,31 +1143,29 @@ namespace {
             for (const auto& entry : std::filesystem::directory_iterator(parent, ec))
             {
                 if (!entry.is_directory(ec)) continue;
-                std::filesystem::path zone_dir = entry.path() / "zone";
-                if (!std::filesystem::exists(zone_dir, ec)) continue;
+                std::filesystem::path json_paths[] = {
+                    entry.path() / "workshop.json",
+                    entry.path() / "zone" / "workshop.json"
+                };
 
-                std::filesystem::path wsjson = zone_dir / "workshop.json";
-                if (!std::filesystem::exists(wsjson, ec)) continue;
-                std::string json_str;
-                if (!utils::io::read_file(wsjson.string(), &json_str) || json_str.empty()) continue;
-                rapidjson::Document doc;
-                if (doc.Parse(json_str.c_str()).HasParseError() || !doc.IsObject()) continue;
-
-                auto pfid = doc.FindMember("PublishedFileId");
-                if (pfid != doc.MemberEnd() && pfid->value.IsString())
+                for (const auto& wsjson : json_paths)
                 {
-                    if (std::string(pfid->value.GetString()) == workshop_id)
+                    if (!std::filesystem::exists(wsjson, ec)) continue;
+                    std::string json_str;
+                    if (!utils::io::read_file(wsjson.string(), &json_str) || json_str.empty()) continue;
+                    rapidjson::Document doc;
+                    if (doc.Parse(json_str.c_str()).HasParseError() || !doc.IsObject()) continue;
+
+                    auto pfid = doc.FindMember("PublishedFileId");
+                    if (pfid != doc.MemberEnd() && pfid->value.IsString())
                     {
-                        if (has_zone_content(zone_dir))
+                        if (std::string(pfid->value.GetString()) == workshop_id)
                             return entry.path().string();
                     }
-                }
-                auto pubid = doc.FindMember("PublisherID");
-                if (pubid != doc.MemberEnd() && pubid->value.IsString())
-                {
-                    if (std::string(pubid->value.GetString()) == workshop_id)
+                    auto pubid = doc.FindMember("PublisherID");
+                    if (pubid != doc.MemberEnd() && pubid->value.IsString())
                     {
-                        if (has_zone_content(zone_dir))
+                        if (std::string(pubid->value.GetString()) == workshop_id)
                             return entry.path().string();
                     }
                 }
@@ -1288,6 +1337,19 @@ namespace {
                 }
             }
 
+            {
+                set_workshop_status("Checking internet connection...", -1.0, "");
+                auto test = utils::http::get_data("https://steamcommunity.com/sharedfiles/filedetails/?id=" + workshop_id, {}, {}, 1);
+                if (!test || test->empty()) {
+                    auto test2 = utils::http::get_data("https://store.steampowered.com", {}, {}, 1);
+                    if (!test2 || test2->empty()) {
+                        set_workshop_status("Error: No internet connection.", 0.0,
+                            "Could not reach Steam servers. Check your internet connection and try again.");
+                        return;
+                    }
+                }
+            }
+
             set_workshop_status("Fetching file info...", -1.0, "Workshop ID: " + workshop_id);
             const auto ws_info = get_steam_workshop_info(workshop_id);
             const std::uint64_t expected_size = ws_info.file_size;
@@ -1320,10 +1382,11 @@ namespace {
 
             std::string cmd_args = "+login anonymous +workshop_download_item 311210 " + workshop_id + " validate +quit";
 
-            constexpr int MAX_ATTEMPTS = 20;
+            constexpr int MAX_ATTEMPTS = 30;
             constexpr int FAIL_THRESHOLD = 5;
             int attempt = 0;
             int fast_fail_count = 0;
+            bool real_download_started = false;
             auto download_start_time = std::chrono::steady_clock::now();
 
             while (!std::filesystem::exists(content_path) && !std::filesystem::exists(alt_content_path) && !workshop_cancel_requested.load()) {
@@ -1339,7 +1402,7 @@ namespace {
 
                 if (fast_fail_count >= FAIL_THRESHOLD) {
                     set_workshop_status("Resetting SteamCMD...", -1.0,
-                        "Too many quick failures (" + std::to_string(fast_fail_count) + "), resetting and retrying");
+                        "Too many quick failures, resetting");
                     std::error_code ec;
                     for (const auto& dir_name : {"steamapps", "dumps", "logs", "depotcache", "appcache", "userdata"}) {
                         auto dir = steamcmd_dir / dir_name;
@@ -1357,14 +1420,14 @@ namespace {
 
                 std::string full_cmd = "\"" + steamcmd_exe.string() + "\" " + cmd_args;
 
-                HANDLE h_pipe_read = nullptr, h_pipe_write = nullptr;
+                HANDLE h_nul = INVALID_HANDLE_VALUE;
                 {
-                    SECURITY_ATTRIBUTES sa_pipe{};
-                    sa_pipe.nLength = sizeof(SECURITY_ATTRIBUTES);
-                    sa_pipe.bInheritHandle = TRUE;
-                    sa_pipe.lpSecurityDescriptor = nullptr;
-                    CreatePipe(&h_pipe_read, &h_pipe_write, &sa_pipe, 0);
-                    SetHandleInformation(h_pipe_read, HANDLE_FLAG_INHERIT, 0);
+                    SECURITY_ATTRIBUTES sa_nul{};
+                    sa_nul.nLength = sizeof(SECURITY_ATTRIBUTES);
+                    sa_nul.bInheritHandle = TRUE;
+                    sa_nul.lpSecurityDescriptor = nullptr;
+                    h_nul = CreateFileA("NUL", GENERIC_WRITE, FILE_SHARE_WRITE | FILE_SHARE_READ,
+                        &sa_nul, OPEN_EXISTING, 0, nullptr);
                 }
 
                 STARTUPINFOA si {};
@@ -1372,17 +1435,16 @@ namespace {
                 si.cb = sizeof(si);
                 si.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
                 si.wShowWindow = SW_HIDE;
-                si.hStdOutput = h_pipe_write;
-                si.hStdError = h_pipe_write;
+                si.hStdOutput = h_nul;
+                si.hStdError = h_nul;
 
-                if (!CreateProcessA(nullptr, const_cast<char*>(full_cmd.c_str()), nullptr, nullptr, TRUE, 0, nullptr, steamcmd_dir_str.c_str(), &si, &pi)) {
-                    if (h_pipe_read) CloseHandle(h_pipe_read);
-                    if (h_pipe_write) CloseHandle(h_pipe_write);
+                if (!CreateProcessA(nullptr, const_cast<char*>(full_cmd.c_str()), nullptr, nullptr, TRUE, CREATE_NO_WINDOW, nullptr, steamcmd_dir_str.c_str(), &si, &pi)) {
+                    if (h_nul != INVALID_HANDLE_VALUE) CloseHandle(h_nul);
                     set_workshop_status("Error: Failed to start SteamCMD.", 0.0, "Attempt " + std::to_string(attempt));
                     std::this_thread::sleep_for(std::chrono::seconds(2));
                     continue;
                 }
-                if (h_pipe_write) { CloseHandle(h_pipe_write); h_pipe_write = nullptr; }
+                if (h_nul != INVALID_HANDLE_VALUE) { CloseHandle(h_nul); h_nul = INVALID_HANDLE_VALUE; }
                 {
                     std::lock_guard plock(workshop_download_mutex);
                     workshop_download_process = pi;
@@ -1432,7 +1494,7 @@ namespace {
                                     if (last_line.find("Downloading update") != std::string::npos
                                         || last_line.find("downloading") != std::string::npos) {
                                         is_steamcmd_updating = true;
-                                        set_workshop_status("Updating SteamCMD..." + attempt_str, 0.0, "Please wait");
+                                        set_workshop_status("Waiting for SteamCMD...", -1.0, "Updating SteamCMD");
                                     } else if (is_steamcmd_updating) {
                                         is_steamcmd_updating = false;
                                     }
@@ -1478,18 +1540,7 @@ namespace {
                                 is_downloading = true;
                                 last_tick = std::chrono::steady_clock::now();
                             } else {
-                                auto elapsed = std::chrono::steady_clock::now() - download_start_time;
-                                auto elapsed_sec = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
-                                int h = static_cast<int>(elapsed_sec / 3600);
-                                int m = static_cast<int>((elapsed_sec % 3600) / 60);
-                                int s = static_cast<int>(elapsed_sec % 60);
-                                char time_str[32];
-                                snprintf(time_str, sizeof(time_str), "%02d:%02d:%02d", h, m, s);
-
-                                set_workshop_status(
-                                    is_steamcmd_updating ? ("Updating SteamCMD..." + attempt_str) : ("Waiting for SteamCMD..." + attempt_str),
-                                    0.0,
-                                    std::string("Elapsed: ") + time_str);
+                                set_workshop_status("Waiting for SteamCMD...", -1.0, "");
                             }
                         }
                     }
@@ -1538,6 +1589,8 @@ namespace {
                         }
 
 
+
+
                         std::uint64_t net_bytes_now = 0;
                         {
                             MIB_IF_TABLE2* if_table = nullptr;
@@ -1582,6 +1635,7 @@ namespace {
                             }
                             if (percent > 99.0) percent = 99.0;
                             if (percent < 0.1 && current_size > 0) percent = 0.1;
+                            real_download_started = true;
                         }
 
 
@@ -1595,29 +1649,29 @@ namespace {
                         }
                         last_tick = now;
 
-                        auto elapsed = std::chrono::steady_clock::now() - download_start_time;
-                        auto elapsed_sec = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
-                        int eh = static_cast<int>(elapsed_sec / 3600);
-                        int em = static_cast<int>((elapsed_sec % 3600) / 60);
-                        int es = static_cast<int>(elapsed_sec % 60);
-                        char time_str[32];
-                        snprintf(time_str, sizeof(time_str), "%02d:%02d:%02d", eh, em, es);
-
                         std::string details;
-                        if (display_size > 0) {
-                            details = human_readable_size(display_size);
-                            if (expected_size > 0)
-                                details += " / " + human_readable_size(expected_size);
-                        } else if (expected_size > 0) {
-                            details = "0 / " + human_readable_size(expected_size);
-                        }
-                        if (!last_speed_str.empty()) {
-                            if (!details.empty()) details += " | ";
-                            details += last_speed_str;
-                        }
-                        details += " | Elapsed: " + std::string(time_str);
-                        if (attempt > 1) {
-                            details += " | Attempt " + std::to_string(attempt);
+                        if (percent > 0) {
+                            auto elapsed = std::chrono::steady_clock::now() - download_start_time;
+                            auto elapsed_sec = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
+                            int eh = static_cast<int>(elapsed_sec / 3600);
+                            int em = static_cast<int>((elapsed_sec % 3600) / 60);
+                            int es = static_cast<int>(elapsed_sec % 60);
+                            char time_str[32];
+                            snprintf(time_str, sizeof(time_str), "%02d:%02d:%02d", eh, em, es);
+
+                            if (display_size > 0) {
+                                details = human_readable_size(display_size);
+                                if (expected_size > 0)
+                                    details += " / " + human_readable_size(expected_size);
+                            }
+                            if (!last_speed_str.empty()) {
+                                if (!details.empty()) details += " | ";
+                                details += last_speed_str;
+                            }
+                            details += " | " + std::string(time_str);
+                            if (attempt > 1) {
+                                details += " | Attempt " + std::to_string(attempt);
+                            }
                         }
 
                         set_workshop_status("Downloading " + workshop_title + "...", percent, details);
@@ -1996,6 +2050,96 @@ std::map<std::string, std::uint64_t> batch_get_time_updated(const std::vector<st
                 else if (tu_it->value.IsInt()) ts = static_cast<std::uint64_t>(tu_it->value.GetInt());
                 if (ts > 0) result[item_id] = ts;
             }
+        }
+    } catch (...) {}
+    return result;
+}
+
+std::map<std::string, workshop_item_meta> batch_get_workshop_meta(const std::vector<std::string>& ids)
+{
+    std::map<std::string, workshop_item_meta> result;
+    if (ids.empty()) return result;
+    try {
+        const size_t batch_size = 25;
+        for (size_t offset = 0; offset < ids.size(); offset += batch_size) {
+            const size_t end = std::min(offset + batch_size, ids.size());
+            const int count = static_cast<int>(end - offset);
+
+            std::string body = "itemcount=" + std::to_string(count);
+            for (int j = 0; j < count; ++j)
+                body += "&publishedfileids[" + std::to_string(j) + "]=" + ids[offset + j];
+
+            auto resp = utils::http::post_data(
+                "https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/", body, 15);
+            if (!resp || resp->empty()) continue;
+
+            rapidjson::Document doc;
+            if (doc.Parse(resp->c_str()).HasParseError() || !doc.IsObject()) continue;
+            auto resp_it = doc.FindMember("response");
+            if (resp_it == doc.MemberEnd() || !resp_it->value.IsObject()) continue;
+            auto details_it = resp_it->value.FindMember("publishedfiledetails");
+            if (details_it == resp_it->value.MemberEnd() || !details_it->value.IsArray()) continue;
+
+            for (rapidjson::SizeType i = 0; i < details_it->value.Size(); i++) {
+                const auto& item = details_it->value[i];
+                if (!item.IsObject()) continue;
+
+                std::string item_id;
+                auto id_it = item.FindMember("publishedfileid");
+                if (id_it != item.MemberEnd() && id_it->value.IsString())
+                    item_id = id_it->value.GetString();
+                if (item_id.empty()) continue;
+
+                workshop_item_meta meta{};
+
+                auto tu_it = item.FindMember("time_updated");
+                if (tu_it != item.MemberEnd()) {
+                    if (tu_it->value.IsUint64()) meta.time_updated = tu_it->value.GetUint64();
+                    else if (tu_it->value.IsInt64()) meta.time_updated = static_cast<std::uint64_t>(tu_it->value.GetInt64());
+                    else if (tu_it->value.IsUint()) meta.time_updated = tu_it->value.GetUint();
+                    else if (tu_it->value.IsInt()) meta.time_updated = static_cast<std::uint64_t>(tu_it->value.GetInt());
+                }
+
+                auto sz_it = item.FindMember("file_size");
+                if (sz_it != item.MemberEnd()) {
+                    if (sz_it->value.IsUint64()) meta.file_size = sz_it->value.GetUint64();
+                    else if (sz_it->value.IsInt64()) meta.file_size = static_cast<std::uint64_t>(sz_it->value.GetInt64());
+                    else if (sz_it->value.IsUint()) meta.file_size = sz_it->value.GetUint();
+                    else if (sz_it->value.IsInt()) meta.file_size = static_cast<std::uint64_t>(sz_it->value.GetInt());
+                    else if (sz_it->value.IsString()) meta.file_size = static_cast<std::uint64_t>(std::strtoull(sz_it->value.GetString(), nullptr, 10));
+                }
+
+                auto desc_it = item.FindMember("description");
+                if (desc_it != item.MemberEnd() && desc_it->value.IsString()) {
+                    meta.description = desc_it->value.GetString();
+                    if (meta.description.size() > 300)
+                        meta.description = meta.description.substr(0, 300) + "...";
+                }
+
+                auto img_it = item.FindMember("preview_url");
+                if (img_it != item.MemberEnd() && img_it->value.IsString())
+                    meta.preview_url = img_it->value.GetString();
+
+                auto subs_it = item.FindMember("lifetime_subscriptions");
+                if (subs_it != item.MemberEnd())
+                    meta.subs = parse_json_int64(subs_it->value);
+                auto fav_it = item.FindMember("lifetime_favorited");
+                if (fav_it != item.MemberEnd())
+                    meta.favorites = parse_json_int64(fav_it->value);
+
+                auto vote_it = item.FindMember("vote_data");
+                if (vote_it != item.MemberEnd() && vote_it->value.IsObject()) {
+                    auto score_it = vote_it->value.FindMember("score");
+                    if (score_it != vote_it->value.MemberEnd() && score_it->value.IsDouble()) {
+                        meta.star_rating = static_cast<int>(std::round(score_it->value.GetDouble() * 5.0));
+                    }
+                }
+
+                result[item_id] = std::move(meta);
+            }
+
+            if (offset + batch_size < ids.size())
+                std::this_thread::sleep_for(std::chrono::milliseconds(200));
         }
     } catch (...) {}
     return result;

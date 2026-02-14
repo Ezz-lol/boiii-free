@@ -8,12 +8,16 @@
 #include <utils/nt.hpp>
 #include <utils/io.hpp>
 #include <utils/flags.hpp>
+#include <utils/com.hpp>
 
 #include <steam/steam.hpp>
 
 #include "game/game.hpp"
 #include "launcher/launcher.hpp"
+#include "launcher/html/html_window.hpp"
 #include "component/updater.hpp"
+
+#include <ShlObj.h>
 
 namespace
 {
@@ -249,6 +253,135 @@ namespace
 				"You seem to be using a network share:\n\n" + path.string() + "\n\nNetwork shares are not supported!");
 		}
 	}
+
+	std::filesystem::path get_game_path_file()
+	{
+		return game::get_appdata_path() / "user" / "game_path.txt";
+	}
+
+	bool is_valid_game_folder(const std::filesystem::path& folder)
+	{
+		return std::filesystem::exists(folder / "BlackOps3.exe")
+			|| std::filesystem::exists(folder / "BlackOps3_UnrankedDedicatedServer.exe");
+	}
+
+	bool resolve_game_path()
+	{
+		const auto path_file = get_game_path_file();
+
+		if (is_valid_game_folder("."))
+		{
+			char cwd[MAX_PATH];
+			if (GetCurrentDirectoryA(sizeof(cwd), cwd))
+			{
+				std::error_code ec;
+				std::filesystem::create_directories(path_file.parent_path(), ec);
+				utils::io::write_file(path_file.string(), std::string(cwd));
+			}
+			return true;
+		}
+
+		{
+			std::string stored_path;
+			if (utils::io::read_file(path_file.string(), &stored_path) && !stored_path.empty())
+			{
+				while (!stored_path.empty() && (stored_path.back() == '\n' || stored_path.back() == '\r' || stored_path.back() == ' '))
+					stored_path.pop_back();
+
+				if (is_valid_game_folder(stored_path))
+				{
+					SetCurrentDirectoryA(stored_path.c_str());
+					return true;
+				}
+			}
+		}
+
+		bool path_set = false;
+
+		html_window setup_window("BOIII - Game Setup", 480, 300,
+			WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU);
+
+		setup_window.get_html_frame()->register_callback(
+			"selectFolder", [&path_set, &setup_window, &path_file](const std::vector<html_argument>& /*params*/) -> CComVariant
+			{
+				std::string selected_str;
+				try
+				{
+					if (!utils::com::select_folder(selected_str, "Select your Black Ops 3 installation folder"))
+					{
+						return CComVariant("cancelled");
+					}
+				}
+				catch (...)
+				{
+					return CComVariant("error");
+				}
+
+				if (!is_valid_game_folder(selected_str))
+				{
+					return CComVariant("invalid");
+				}
+
+				std::error_code ec;
+				std::filesystem::create_directories(path_file.parent_path(), ec);
+				utils::io::write_file(path_file.string(), selected_str);
+				SetCurrentDirectoryA(selected_str.c_str());
+
+				path_set = true;
+				setup_window.get_window()->close();
+
+				return CComVariant(selected_str.c_str());
+			});
+
+		setup_window.get_html_frame()->load_html(R"html(
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+	background: #1a1a1a; color: #e0e0e0; font-family: 'Segoe UI', sans-serif;
+	display: flex; flex-direction: column; align-items: center; justify-content: center;
+	height: 100vh; padding: 30px; user-select: none;
+}
+.icon { font-size: 42px; margin-bottom: 12px; }
+h2 { font-size: 17px; font-weight: 600; margin-bottom: 8px; color: #fff; }
+p { font-size: 13px; color: #aaa; text-align: center; line-height: 1.5; margin-bottom: 20px; }
+button {
+	background: #2d7d2d; color: #fff; border: none; padding: 10px 28px;
+	font-size: 14px; border-radius: 4px; cursor: pointer; font-weight: 500;
+}
+button:hover { background: #359935; }
+#status { font-size: 12px; color: #e74c3c; margin-top: 12px; min-height: 18px; }
+</style>
+</head>
+<body>
+<div class="icon">&#9888;</div>
+<h2>Game Not Found</h2>
+<p>Could not locate Black Ops 3 installation.<br>Please select your game folder to continue.</p>
+<button onclick="doSelect()">Set Game Path</button>
+<div id="status"></div>
+<script>
+function doSelect() {
+	var result = window.external.selectFolder();
+	if (result === 'invalid') {
+		document.getElementById('status').innerText = 'Selected folder does not contain BlackOps3.exe';
+	} else if (result === 'error') {
+		document.getElementById('status').innerText = 'An error occurred. Please try again.';
+	} else if (result === 'cancelled') {
+		document.getElementById('status').innerText = '';
+	}
+}
+</script>
+</body>
+</html>
+)html");
+
+		window::run();
+
+		return path_set;
+	}
 }
 
 int main()
@@ -277,6 +410,12 @@ int main()
 		{
 			validate_non_network_share();
 			remove_crash_file();
+
+			if (!resolve_game_path())
+			{
+				return 0;
+			}
+
 			updater::update();
 
 			if (!utils::io::file_exists(launcher::get_launcher_ui_file().generic_wstring()))
@@ -287,16 +426,20 @@ int main()
 			const auto client_binary = "BlackOps3.exe"s;
 			const auto server_binary = "BlackOps3_UnrankedDedicatedServer.exe"s;
 
-			const auto has_client = utils::io::file_exists(client_binary);
-			const auto has_server = utils::io::file_exists(server_binary);
+			auto has_client = utils::io::file_exists(client_binary);
+			auto has_server = utils::io::file_exists(server_binary);
+
+			while (!has_client && !has_server)
+			{
+				if (!resolve_game_path())
+				{
+					return 0;
+				}
+				has_client = utils::io::file_exists(client_binary);
+				has_server = utils::io::file_exists(server_binary);
+			}
 
 			const auto is_server = utils::flags::has_flag("dedicated") || (!has_client && has_server);
-
-			if (!has_client && !has_server)
-			{
-				throw std::runtime_error(
-					"Can't find a valid BlackOps3.exe or BlackOps3_UnrankedDedicatedServer.exe. Make sure you put boiii.exe in your Black Ops 3 installation folder.");
-			}
 
 			if (!is_server)
 			{

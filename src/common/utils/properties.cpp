@@ -131,7 +131,7 @@ namespace utils::properties
 
 	std::filesystem::path get_key_path()
 	{
-		return std::filesystem::path("boiii_players");
+		return get_appdata_path() / "user";
 	}
 
 	std::unique_lock<named_mutex> lock()

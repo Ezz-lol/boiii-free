@@ -468,7 +468,11 @@
     }
     .progress-fill.indeterminate {
       width: 30% !important;
-      animation: ws-marquee 1.4s ease-in-out infinite;
+      animation: progress-marquee 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+    @keyframes progress-marquee {
+      0%   { transform: translateX(-100%); }
+      100% { transform: translateX(433%);  }
     }
 
     .progress-percent {
@@ -564,8 +568,6 @@
       margin-top: 6px;
     }
     .option-btn:first-of-type { margin-top: 0; }
-      margin-bottom: 4px;
-    }
 
     .option-btn:last-child { margin-bottom: 0; }
 
@@ -792,12 +794,11 @@
     }
     .workshop-progress-fill.indeterminate {
       width: 30% !important;
-      animation: ws-marquee 1.4s ease-in-out infinite;
+      animation: ws-marquee 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
     }
     @keyframes ws-marquee {
-      0%   { margin-left: 0%;   }
-      50%  { margin-left: 70%;  }
-      100% { margin-left: 0%;   }
+      0%   { transform: translateX(-100%); }
+      100% { transform: translateX(433%);  }
     }
 
     .workshop-status {
@@ -825,17 +826,18 @@
       display: flex;
       justify-content: flex-end;
       align-items: center;
-      padding: 12px 4px 4px 4px;
-      font-size: 0.85rem;
-      color: rgba(200,196,192,0.85);
+      padding: 10px 4px 4px 4px;
+      gap: 8px;
+      font-size: 0.78rem;
+      color: rgba(200,196,192,0.7);
     }
-    .mods-pagination > * { margin-left: 10px; }
-    .mods-pagination > *:first-child { margin-left: 0; }
 
     .mods-pagination .btn {
       padding: 4px 10px;
-      font-size: 0.8rem;
-      min-width: 60px;
+      font-size: 0.75rem;
+      min-width: 50px;
+      border-radius: 4px;
+      line-height: 1.2;
     }
 
     .mod-card {
@@ -846,6 +848,7 @@
       border-radius: 8px;
       padding: 16px;
       transition: all 0.2s;
+      cursor: pointer;
     }
 
     .mod-card:hover {
@@ -888,6 +891,34 @@
       min-width: 0;
       margin-left: 14px;
     }
+    .mod-card-description {
+      font-size: 0.78rem;
+      color: rgba(200,196,192,0.55);
+      line-height: 1.3;
+      margin-top: 4px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      word-break: break-word;
+    }
+    .mod-card-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 14px;
+      margin-top: 6px;
+      font-size: 0.72rem;
+      color: rgba(200,196,192,0.45);
+    }
+    .mod-card-meta span {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+    }
+    .mod-card-meta .meta-icon {
+      font-size: 0.8rem;
+      opacity: 0.7;
+    }
     .mod-card-actions {
       display: flex;
       margin-top: 12px;
@@ -915,6 +946,49 @@
       height: 100%;
       object-fit: cover;
       display: block;
+    }
+
+    .remove-progress-bar {
+      display: none;
+      background: rgba(0,0,0,0.5);
+      border: 1px solid rgba(68,65,63,0.5);
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 12px;
+    }
+    .remove-progress-bar .remove-msg {
+      font-size: 0.85rem;
+      color: rgba(244,240,235,0.9);
+      margin-bottom: 6px;
+    }
+    .remove-progress-bar .remove-details {
+      font-size: 0.75rem;
+      color: rgba(200,196,192,0.5);
+      margin-bottom: 8px;
+    }
+    .remove-progress-bar .remove-track {
+      width: 100%;
+      height: 6px;
+      background: rgba(68,65,63,0.4);
+      border-radius: 3px;
+      overflow: hidden;
+      position: relative;
+    }
+    .remove-progress-bar .remove-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #f97316, #fb923c);
+      border-radius: 3px;
+      transition: width 0.3s ease;
+      width: 0%;
+    }
+    .remove-progress-bar .remove-fill.indeterminate {
+      width: 30%;
+      position: absolute;
+      animation: removeIndeterminate 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+    @keyframes removeIndeterminate {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(333%); }
     }
 
     .empty-state {
@@ -1196,9 +1270,12 @@
       border-top: 1px solid rgba(249,115,22,0.2);
       display: flex;
       justify-content: flex-end;
-      gap: 8px;
     }
-    .workshop-modal-footer .btn { margin-left: 0; }
+
+    .workshop-modal-footer .btn:not(:last-child) {
+      margin-right: 16px;
+    }
+
 
     .workshop-filter-wrap {
       position: relative;
@@ -1363,36 +1440,38 @@
       display: flex;
       justify-content: center;
       align-items: center;
-      margin-top: 12px;
+      margin-top: 14px;
       padding-bottom: 8px;
-      gap: 4px;
+      gap: 6px;
       flex-wrap: wrap;
     }
 
     .workshop-browse-pagination .btn {
-      min-width: 32px;
-      padding: 6px 10px;
-      font-size: 0.82rem;
+      min-width: 28px;
+      padding: 4px 8px;
+      font-size: 0.75rem;
+      border-radius: 4px;
+      line-height: 1.2;
     }
 
     .workshop-browse-pagination .btn.page-active {
       background: rgba(249,115,22,0.85);
       color: #fff;
       border-color: rgba(249,115,22,0.9);
-      font-weight: 700;
+      font-weight: 600;
     }
 
     .workshop-browse-pagination .page-ellipsis {
-      color: rgba(200,196,192,0.5);
-      font-size: 0.9rem;
-      padding: 4px 2px;
+      color: rgba(200,196,192,0.4);
+      font-size: 0.75rem;
+      padding: 0 2px;
       user-select: none;
     }
 
     .workshop-browse-pagination span.page-info {
-      color: rgba(200,196,192,0.5);
-      font-size: 0.78rem;
-      margin-left: 8px;
+      color: rgba(200,196,192,0.4);
+      font-size: 0.72rem;
+      margin-left: 10px;
     }
 
     .loading-spinner {
@@ -1561,6 +1640,8 @@
           </div>
 
           <button type="button" class="btn" id="verifyBtn" style="width:100%;max-width:440px;padding:10px 8px;font-size:0.82rem;margin-top:10px;">Verify Game Files</button>
+          <button type="button" class="btn" id="setPathBtn" style="width:100%;max-width:440px;padding:10px 8px;font-size:0.82rem;margin-top:6px;">Set Game Path</button>
+          <div id="currentPathDisplay" style="text-align:center;font-size:0.72rem;color:rgba(255,255,255,0.35);margin-top:4px;max-width:440px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
         </div>
       </div>
 
@@ -1662,6 +1743,11 @@
             <button type="button" class="btn" id="checkUpdatesBtn" style="margin: 0 4px 4px 0;">Check for updates</button>
             <button type="button" class="btn btn-remove" id="deleteAllModsBtn" style="margin: 0 0 4px 0;">Delete all</button>
           </div>
+        </div>
+        <div class="remove-progress-bar" id="removeProgressBar">
+          <div class="remove-msg" id="removeMsg"></div>
+          <div class="remove-details" id="removeDetails"></div>
+          <div class="remove-track"><div class="remove-fill" id="removeFill"></div></div>
         </div>
         <div class="mods-grid-wrap">
           <div class="mods-grid" id="modsGrid"></div>
@@ -2221,13 +2307,24 @@
             ratingHtml = '<span style="font-size:0.75rem;color:' + rColor + ';margin-left:8px;" title="' + sr + '/5 stars">' + starStr + '</span>';
           }
 
+          var fSize = parseInt(item.file_size, 10) || 0;
+          var fStr = '';
+          if (fSize > 0) {
+            fStr = fSize > 1073741824 ? (fSize / 1073741824).toFixed(2) + ' GB' :
+              fSize > 1048576 ? (fSize / 1048576).toFixed(1) + ' MB' :
+              fSize > 1024 ? (fSize / 1024).toFixed(0) + ' KB' : fSize + ' B';
+          }
+
           var contentHtml = '<div class="workshop-item-content">' +
             '<div style="flex: 1;">' +
             '<div class="workshop-item-title" title="' + escapeHtml(item.title || '') + '">' + escapeHtml(item.title || 'Untitled') + ratingHtml + '</div>' +
             (desc ? '<div style="font-size: 0.8rem; color: rgba(200,196,192,0.6); margin-top: 2px; line-height: 1.2;">' + escapeHtml(desc) + '</div>' : '') +
             '<div style="font-size: 0.75rem; color: rgba(200,196,192,0.4); margin-top: 2px;">ID: ' + escapeHtml(item.id) + '</div>' +
             '</div>' +
-            '<button type="button" class="workshop-item-button" data-workshop-id="' + escapeHtml(item.id) + '" style="white-space: nowrap; margin-left: 8px; flex-shrink: 0;">Download</button>' +
+            '<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;margin-left:8px;">' +
+            '<button type="button" class="workshop-item-button" data-workshop-id="' + escapeHtml(item.id) + '" style="white-space: nowrap;">Download</button>' +
+            (fStr ? '<span style="font-size:0.65rem;color:rgba(200,196,192,0.4);margin-top:3px;">' + fStr + '</span>' : '') +
+            '</div>' +
             '</div>';
 
           card.innerHTML = imageHtml + contentHtml;
@@ -2253,7 +2350,7 @@
             var prevBtn = document.createElement('button');
             prevBtn.type = 'button';
             prevBtn.className = 'btn';
-            prevBtn.textContent = '\u2190 Prev';
+            prevBtn.textContent = '\u2039 Prev';
             prevBtn.disabled = workshopBrowseCurrentPage <= 1;
             prevBtn.onclick = function() {
               if (workshopBrowseCurrentPage > 1) {
@@ -2306,7 +2403,7 @@
             var nextBtn = document.createElement('button');
             nextBtn.type = 'button';
             nextBtn.className = 'btn';
-            nextBtn.textContent = 'Next \u2192';
+            nextBtn.textContent = 'Next \u203A';
             nextBtn.disabled = workshopBrowseCurrentPage >= totalPages;
             nextBtn.onclick = function() {
               if (workshopBrowseCurrentPage < totalPages) {
@@ -2738,7 +2835,7 @@
           if (pf && !pf.classList.contains('indeterminate')) pf.classList.add('indeterminate');
           progressPercent.textContent = '';
         } else {
-          if (pf && pf.classList.contains('indeterminate')) pf.classList.remove('indeterminate');
+          if (pf && pf.classList.contains('indeterminate')) { pf.classList.remove('indeterminate'); pf.style.transform = ''; }
           progressFill.style.width = percent + '%';
           progressPercent.textContent = percent > 0 ? (percent.toFixed(1) + '%') : '0%';
         }
@@ -2769,6 +2866,7 @@
         var pctEl = document.getElementById('workshopProgressPercent');
         if (pctEl) pctEl.textContent = '';
         workshopProgressFill.style.width = '0%';
+        workshopProgressFill.style.transform = '';
         workshopProgressFill.classList.remove('indeterminate');
         window._wsIndeterminate = false;
         hideProgress();
@@ -2842,6 +2940,7 @@
         var selectedVerifyMode = 'all';
         var verifyPollInterval = null;
         var verifySeenRunning = false;
+        var verifyMaxPct = 0;
 
         function resetVerifyUI() {
           verifyProgressSection.classList.remove('active');
@@ -2856,6 +2955,7 @@
           verifyStatusMsg.style.color = '';
           verifyStatusDetails.textContent = '';
           verifySeenRunning = false;
+          verifyMaxPct = 0;
           for (var i = 0; i < verifyModeBtns.length; i++) verifyModeBtns[i].disabled = false;
         }
 
@@ -2881,7 +2981,11 @@
               changedFiles.length + ' file' + (changedFiles.length > 1 ? 's' : '') + ' with issues:</div>';
             html += '<div class="verify-results-bad">';
             for (var i = 0; i < changedFiles.length; i++) {
-              html += '<div class="verify-file-item">' + escapeHtml(changedFiles[i]) + '</div>';
+              var raw = changedFiles[i];
+              var isWarning = raw.indexOf('[warning]') === 0;
+              var display = raw.replace(/^\[(warning|error)\]\s*/, '');
+              var color = isWarning ? 'color:rgba(234,179,8,0.9)' : 'color:rgba(239,68,68,0.9)';
+              html += '<div class="verify-file-item" style="' + color + '">' + escapeHtml(display) + '</div>';
             }
             html += '</div>';
             verifyResults.innerHTML = html;
@@ -2889,6 +2993,40 @@
         }
 
         document.getElementById('verifyBtn').onclick = function() { showVerifyPopup(); };
+
+        // ---- Set Game Path ----
+        (function() {
+          var pathDisplay = document.getElementById('currentPathDisplay');
+          try {
+            var ex = getExternal();
+            if (ex && ex.getGamePath) {
+              var p = ex.getGamePath();
+              if (p) pathDisplay.textContent = p;
+            }
+          } catch(e) {}
+
+          document.getElementById('setPathBtn').onclick = function() {
+            try {
+              var ex = getExternal();
+              if (!ex || !ex.selectGameFolder) return;
+              var result = ex.selectGameFolder();
+              if (result === 'cancelled') return;
+              if (result === 'invalid') {
+                showMessage('Invalid Folder', 'The selected folder does not contain BlackOps3.exe.\\nPlease select a valid Black Ops 3 installation folder.');
+                return;
+              }
+              if (result === 'error') {
+                showMessage('Error', 'Failed to open folder picker.');
+                return;
+              }
+              pathDisplay.textContent = result;
+              showMessage('Game Path Updated', 'Game path set to:\\n' + result + '\\n\\nRestart BOIII for the change to take full effect.');
+            } catch(e) {
+              showMessage('Error', 'Failed to set game path: ' + e.message);
+            }
+          };
+        })();
+
         verifyCloseBtn.onclick = function() {
           try { var ex = getExternal(); if (ex && ex.cancelVerify) ex.cancelVerify(); } catch(e) {}
           hideVerifyPopup();
@@ -2918,7 +3056,7 @@
         function startVerify() {
           try {
             var ex = getExternal();
-            if (!ex || !ex.verifyGameFiles) { showMessage('Error', 'Verification not available.'); return; }
+            if (!ex) { showMessage('Error', 'Verification not available.'); return; }
             var result = ex.verifyGameFiles(selectedVerifyMode);
             if (result === 'already_running') { showMessage('Verify', 'Verification is already running.'); return; }
 
@@ -2939,11 +3077,26 @@
                 var st = typeof raw === 'string' ? JSON.parse(raw) : raw;
 
                 if (st.running) verifySeenRunning = true;
+                if (!st.running && st.progress >= 100) verifySeenRunning = true;
+                if (!st.running && !verifySeenRunning && st.message && st.message.length > 0) {
+                  clearInterval(verifyPollInterval);
+                  verifyPollInterval = null;
+                  verifyCancelBtn.style.display = 'none';
+                  verifyStatusMsg.textContent = st.message;
+                  verifyStatusMsg.style.color = '#ef4444';
+                  verifyStartBtn.style.display = '';
+                  verifyStartBtn.textContent = 'Close';
+                  verifyStartBtn.onclick = function() { hideVerifyPopup(); verifyStartBtn.onclick = startVerify; verifyStartBtn.textContent = 'Start Verification'; };
+                  for (var k = 0; k < verifyModeBtns.length; k++) verifyModeBtns[k].disabled = false;
+                  return;
+                }
                 if (!verifySeenRunning) return;
 
-                var pct = Math.min(st.progress || 0, 100);
+                var rawPct = Math.min(st.progress || 0, 100);
+                if (rawPct > verifyMaxPct) verifyMaxPct = rawPct;
+                var pct = verifyMaxPct;
                 verifyStatusMsg.textContent = st.message || '';
-                if (st.message && (st.message.indexOf('Not installed') !== -1 || st.message.indexOf('No files found') !== -1 || st.message.indexOf('missing from disk') !== -1)) {
+                if (st.message && (st.message.indexOf('missing') !== -1 || st.message.indexOf('wrong size') !== -1 || st.message.indexOf('Not installed') !== -1 || st.message.indexOf('No files found') !== -1)) {
                   verifyStatusMsg.style.color = '#ef4444';
                 } else {
                   verifyStatusMsg.style.color = '';
@@ -2968,14 +3121,17 @@
                     showVerifyResults(st.changedFiles || [], st.message);
                   }
 
-                  verifyStartBtn.textContent = 'Close';
+                  for (var k = 0; k < verifyModeBtns.length; k++) verifyModeBtns[k].disabled = false;
+                  verifyStartBtn.textContent = 'Verify Again';
                   verifyStartBtn.style.display = '';
-                  verifyStartBtn.onclick = function() { hideVerifyPopup(); verifyStartBtn.onclick = startVerify; verifyStartBtn.textContent = 'Start Verification'; };
+                  verifyStartBtn.onclick = startVerify;
                 } else if (!st.running && st.message && (st.message.indexOf('Cancelled') !== -1 || st.message.indexOf('No game files') !== -1)) {
                   clearInterval(verifyPollInterval);
                   verifyPollInterval = null;
                   verifyCancelBtn.style.display = 'none';
                   verifyStartBtn.style.display = '';
+                  verifyStartBtn.textContent = 'Start Verification';
+                  verifyStartBtn.onclick = startVerify;
                   for (var k = 0; k < verifyModeBtns.length; k++) verifyModeBtns[k].disabled = false;
                 }
               } catch (e) {}
@@ -3042,6 +3198,60 @@
       }
 
       var _modsListPollInterval = null;
+      var _removeProgressPollInterval = null;
+
+      function startRemoveProgressPoll() {
+        var bar = document.getElementById('removeProgressBar');
+        var msg = document.getElementById('removeMsg');
+        var det = document.getElementById('removeDetails');
+        var fill = document.getElementById('removeFill');
+        if (!bar) return;
+        bar.style.display = 'block';
+        if (msg) msg.textContent = 'Removing...';
+        if (det) det.textContent = '';
+        if (fill) { fill.style.width = '0%'; fill.classList.add('indeterminate'); }
+
+        if (_removeProgressPollInterval) clearInterval(_removeProgressPollInterval);
+        var pollCount = 0;
+        _removeProgressPollInterval = setInterval(function() {
+          pollCount++;
+          if (pollCount > 600) {
+            clearInterval(_removeProgressPollInterval);
+            _removeProgressPollInterval = null;
+            bar.style.display = 'none';
+            refreshModsGrid();
+            return;
+          }
+          try {
+            var ex = getExternal();
+            if (!ex || !ex.getRemoveStatus) return;
+            var sj = ex.getRemoveStatus();
+            if (!sj) return;
+            var st = typeof sj === 'string' ? JSON.parse(sj) : sj;
+            if (msg) msg.textContent = st.message || 'Removing...';
+            if (det) det.textContent = st.details || '';
+            if (fill) {
+              if (st.progress >= 0 && st.progress <= 100) {
+                fill.classList.remove('indeterminate');
+                fill.style.transform = '';
+                fill.style.width = Math.min(st.progress, 100) + '%';
+              } else {
+                fill.classList.add('indeterminate');
+                fill.style.width = '';
+              }
+            }
+            if (!st.running) {
+              clearInterval(_removeProgressPollInterval);
+              _removeProgressPollInterval = null;
+              setTimeout(function() {
+                bar.style.display = 'none';
+                if (fill) { fill.classList.remove('indeterminate'); fill.style.width = '0%'; fill.style.transform = ''; }
+                refreshModsGrid();
+              }, 600);
+            }
+          } catch (e) {}
+        }, 200);
+      }
 
       function refreshModsGrid() {
         try {
@@ -3061,7 +3271,13 @@
                 modsItemsCache = cachedItems;
                 modsPage = 1;
                 renderModsPage();
+              } else {
+                modsItemsCache = [];
+                renderModsPage();
               }
+            } else {
+              modsItemsCache = [];
+              renderModsPage();
             }
           }
 
@@ -3090,10 +3306,13 @@
                       modsItemsCache = items;
                       modsPage = 1;
                       renderModsPage();
+                    } else {
+                      modsItemsCache = [];
+                      renderModsPage();
                     }
-                  } else if (modsItemsCache.length === 0) {
-                    modsGrid.innerHTML = '<div class="empty-state"><div class="empty-state-icon">&#128230;</div><div class="empty-state-text">No workshop items installed yet</div></div>';
-                    if (modsPagination) modsPagination.style.display = 'none';
+                  } else {
+                    modsItemsCache = [];
+                    renderModsPage();
                   }
                 }
               } catch (e) {}
@@ -3146,6 +3365,64 @@
 
           header.appendChild(nameDiv);
           header.appendChild(typeDiv);
+
+          var descDiv = null;
+          var descText = item.description || '';
+          if (descText.length > 0) {
+            descDiv = document.createElement('div');
+            descDiv.className = 'mod-card-description';
+            descDiv.textContent = descText;
+            descDiv.title = descText.length > 120 ? descText.substring(0, 300) + '...' : descText;
+          }
+
+          var metaDiv = document.createElement('div');
+          metaDiv.className = 'mod-card-meta';
+          var hasMetaContent = false;
+
+          var localSz = parseInt(item.localSize, 10) || 0;
+          var apiSz = parseInt(item.file_size, 10) || 0;
+          var sz = localSz > 0 ? localSz : apiSz;
+          if (sz > 0) {
+            var szStr = sz > 1073741824 ? (sz / 1073741824).toFixed(2) + ' GB' :
+              sz > 1048576 ? (sz / 1048576).toFixed(1) + ' MB' :
+              sz > 1024 ? (sz / 1024).toFixed(0) + ' KB' : sz + ' B';
+            var sizeSpan = document.createElement('span');
+            sizeSpan.title = localSz > 0 ? 'Size on disk' : 'Download size (Steam)';
+            sizeSpan.innerHTML = '<span class="meta-icon">&#128190;</span> ' + szStr;
+            metaDiv.appendChild(sizeSpan);
+            hasMetaContent = true;
+          }
+
+          var sr = parseInt(item.starRating, 10) || 0;
+          if (sr > 0) {
+            var starStr = '';
+            for (var s = 0; s < sr; s++) starStr += '\u2605';
+            for (var s = sr; s < 5; s++) starStr += '\u2606';
+            var rColor = sr >= 4 ? 'rgba(34,197,94,0.8)' : (sr >= 3 ? 'rgba(250,204,21,0.8)' : 'rgba(239,68,68,0.8)');
+            var ratingSpan = document.createElement('span');
+            ratingSpan.style.color = rColor;
+            ratingSpan.title = sr + '/5 stars';
+            ratingSpan.textContent = starStr;
+            metaDiv.appendChild(ratingSpan);
+            hasMetaContent = true;
+          }
+
+          var mSubs = parseInt(item.subs, 10) || 0;
+          var mFavs = parseInt(item.favorites, 10) || 0;
+          if (mSubs > 0) {
+            var subsSpan = document.createElement('span');
+            subsSpan.title = 'Subscribers';
+            subsSpan.innerHTML = '<span class="meta-icon">&#128101;</span> ' + mSubs.toLocaleString();
+            metaDiv.appendChild(subsSpan);
+            hasMetaContent = true;
+          }
+          if (mFavs > 0) {
+            var favsSpan = document.createElement('span');
+            favsSpan.title = 'Favorites';
+            favsSpan.innerHTML = '<span class="meta-icon">&#9829;</span> ' + mFavs.toLocaleString();
+            metaDiv.appendChild(favsSpan);
+            hasMetaContent = true;
+          }
 
           var actions = document.createElement('div');
           actions.className = 'mod-card-actions';
@@ -3224,14 +3501,14 @@
                 }
                 var done = false;
                 if (itemSource === 'steam' && itemPath) {
-                  try { ex.invoke('workshopRemoveByPath', itemPath); done = true; } catch (e1) {}
-                  if (!done) try { ex.workshopRemoveByPath(itemPath); done = true; } catch (e2) {}
+                  try { ex.workshopRemoveByPath(itemPath); done = true; } catch (e1) {}
+                  if (!done) try { ex.invoke('workshopRemoveByPath', itemPath); done = true; } catch (e2) {}
                 } else {
-                  try { ex.invoke('workshopRemove', folderName); done = true; } catch (e1) {}
-                  if (!done) try { ex.workshopRemove(folderName); done = true; } catch (e2) {}
+                  try { ex.workshopRemove(folderName); done = true; } catch (e1) {}
+                  if (!done) try { ex.invoke('workshopRemove', folderName); done = true; } catch (e2) {}
                 }
                 if (done) {
-                  setTimeout(refreshModsGrid, 350);
+                  startRemoveProgressPoll();
                 } else {
                   showMessage('Remove', 'Workshop remove is not available.');
                 }
@@ -3243,6 +3520,8 @@
           var body = document.createElement('div');
           body.className = 'mod-card-body';
           body.appendChild(header);
+          if (descDiv) body.appendChild(descDiv);
+          if (hasMetaContent) body.appendChild(metaDiv);
           body.appendChild(actions);
 
           if (item.image && String(item.image).length > 0) {
@@ -3256,6 +3535,13 @@
             card.appendChild(imgWrap);
           }
           card.appendChild(body);
+          card.onclick = (function(folderPath) {
+            return function(e) {
+              if (folderPath) {
+                window.external.openUrl(folderPath);
+              }
+            };
+          })(item.path || '');
           modsGrid.appendChild(card);
         }
 
@@ -3296,8 +3582,9 @@
               if (window._wsIndeterminate) {
                 window._wsIndeterminate = false;
                 workshopProgressFill.classList.remove('indeterminate');
+                workshopProgressFill.style.transform = '';
                 var pf2 = document.getElementById('progressFill');
-                if (pf2) pf2.classList.remove('indeterminate');
+                if (pf2) { pf2.classList.remove('indeterminate'); pf2.style.transform = ''; }
               }
               var p = Math.min(status.progress, 99);
               workshopProgressFill.style.width = p + '%';
@@ -3422,9 +3709,9 @@
           var ex = getExternal();
           if (!ex) return;
           var done = false;
-          try { ex.invoke('workshopRemoveAll', ''); done = true; } catch (e1) {}
-          if (!done) try { ex.workshopRemoveAll(); done = true; } catch (e2) {}
-          if (done) setTimeout(refreshModsGrid, 350);
+          try { ex.workshopRemoveAll(); done = true; } catch (e1) {}
+          if (!done) try { ex.invoke('workshopRemoveAll', ''); done = true; } catch (e2) {}
+          if (done) startRemoveProgressPoll();
         });
       };
 
