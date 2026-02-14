@@ -15,11 +15,6 @@
 - [Client Download](#client-download)
 - [Prerequisites](#prerequisites)
 - [Install Instructions](#install-instructions)
-  - [Quick Install](#quick-install)
-  - [Manual Installation](#manual-installation)
-- [Where Can I Get the Game?](#where-can-i-get-the-game)
-  - [Downloading via Torrent](#downloading-via-torrent)
-  - [What If I Have a Pirated Version?](#what-if-i-have-a-pirated-version)
 - [Loading Mods & Custom Maps](#loading-mods--custom-maps)
 - [Workshop Downloader](#workshop-downloader)
 - [Command Line Arguments](#command-line-arguments)
@@ -70,13 +65,11 @@ BOIII is a free, community-driven modification for Call of Duty: Black Ops III t
 - **Operating System:** Windows 10/11 (64-bit)
 - **Game Files:** Call of Duty: Black Ops III installation
 - **Storage:** ~60GB free space (for full game + DLC)
-- **Optional:** Steam (if you own the game)
+- **Required:** Steam
 
 ---
 
 ## Install Instructions
-
-### Quick Install
 
 1. **Download** the latest `BOIII.exe` from [Releases](https://github.com/ezz-boiii/boiii/releases/latest)
 2. **Place** the executable in your Call of Duty: Black Ops III game directory
@@ -87,63 +80,13 @@ BOIII is a free, community-driven modification for Call of Duty: Black Ops III t
 > The default Steam installation path is usually:
 > `C:/Program Files (x86)/Steam/steamapps/common/Call of Duty Black Ops III`
 
-### Manual Installation
-
-1. **Download** `BOIII-Full.zip` from the releases page
-2. **Extract** all contents to your Black Ops III game directory
-3. **Launch** the game using `boiii.exe`
-4. **Customize** your name in the settings or use `/name YOURNAME` in-game
-
-> [!WARNING]
-> Make sure to extract **all files** from the zip archive, not just the executable!
-
 ---
 
 ## Where Can I Get the Game?
 
-### Option 1: Steam (Recommended)
-Purchase and download from [Steam Store](https://store.steampowered.com/app/311210/Call_of_Duty_Black_Ops_III/) 💰
-
-### Option 2: Free Download
-If you can't afford the game, you can download the game files here:
-- **Direct Download:** [Click here](https://gofile.io/d/7pvpEs)
-- **Torrent:** [Download torrent](https://github.com/ezz-boiii/boiii/releases/download/game-files/bo3-full-game.torrent)
-
-> [!NOTE]
-> DLC files are included in the torrent download.
-
-### Downloading via Torrent
-
-> [!WARNING]
-> **Use a VPN** to avoid copyright notices from your ISP!
-> Check what's visible about your downloads: https://iknowwhatyoudownload.com
-
-**Steps:**
-
-1. **Download qBittorrent**
-   - Get it from [qBittorrent.org](https://www.qbittorrent.org/download)
-   - ✅ Free, open-source, and ad-free!
-
-2. **Open the `.torrent` file** in qBittorrent
-
-3. **Set download location** to your games folder
-   - Example: `D:/Games/Call of Duty Black Ops III`
-
-4. **Important:** Set "Content layout" to **"Don't create subfolder"**
-
-5. **Start download** and wait until it shows "100% - Seeding"
-
-6. **Keep seeding** to help others download faster (optional but appreciated! 😊)
-
-### What If I Have a Pirated Version?
-
-No worries! BOIII works perfectly with pirated game files. Just make sure you have:
-- ✅ The latest game binaries (`BlackOps3.exe`)
-- ✅ All required DLL files
-- ✅ Complete zone files
-
-The client will verify your game files on launch.
-
+### Option 1: Steam 
+Purchase and download from [Steam Store](https://store.steampowered.com/app/311210/Call_of_Duty_Black_Ops_III/) 💰 \
+If you struggle with this step, join our [Discord](https://dc.ezz.lol) and ask for help!
 ---
 
 ## Loading Mods & Custom Maps

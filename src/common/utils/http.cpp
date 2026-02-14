@@ -173,8 +173,6 @@ namespace utils::http
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, static_cast<long>(timeout_sec));
 		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, "ezz-updater/1.0");
-		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
 		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
 
 		const auto code = curl_easy_perform(curl);
@@ -222,8 +220,6 @@ namespace utils::http
 		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 		curl_easy_setopt(curl, CURLOPT_USERAGENT, "ezz-updater/1.0");
 		curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
-		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-		curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
 		curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "identity");
 
 		for (auto i = 0u; i < retries + 1; ++i)
