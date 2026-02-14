@@ -18,6 +18,10 @@
 #include <utils/http.hpp>
 #include <utils/io.hpp>
 #include <utils/string.hpp>
+<<<<<<< Updated upstream
+=======
+#include <TlHelp32.h>
+>>>>>>> Stashed changes
 
 namespace launcher::workshop {
 void try_refresh_workshop_content()
@@ -743,11 +747,46 @@ namespace {
         }
     }
 
+<<<<<<< Updated upstream
     void clean_folder_keep_patches(const std::filesystem::path& dir)
+=======
+    void kill_process_tree(DWORD parent_pid)
+    {
+        HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+        if (snapshot == INVALID_HANDLE_VALUE) return;
+
+        PROCESSENTRY32W pe{};
+        pe.dwSize = sizeof(pe);
+        std::vector<DWORD> children;
+
+        if (Process32FirstW(snapshot, &pe)) {
+            do {
+                if (pe.th32ParentProcessID == parent_pid) {
+                    children.push_back(pe.th32ProcessID);
+                }
+            } while (Process32NextW(snapshot, &pe));
+        }
+        CloseHandle(snapshot);
+
+        for (DWORD child_pid : children) {
+            kill_process_tree(child_pid);
+        }
+
+        HANDLE proc = OpenProcess(PROCESS_TERMINATE | SYNCHRONIZE, FALSE, parent_pid);
+        if (proc) {
+            TerminateProcess(proc, 1);
+            WaitForSingleObject(proc, 3000);
+            CloseHandle(proc);
+        }
+    }
+
+    void force_delete_folder(const std::filesystem::path& dir)
+>>>>>>> Stashed changes
     {
         std::error_code ec;
         if (!std::filesystem::exists(dir, ec)) return;
 
+<<<<<<< Updated upstream
         std::vector<std::filesystem::path> to_remove;
         for (const auto& entry : std::filesystem::recursive_directory_iterator(dir, ec)) {
             if (ec) break;
@@ -760,6 +799,53 @@ namespace {
         }
         for (const auto& p : to_remove) {
             std::filesystem::remove(p, ec);
+=======
+        for (int attempt = 0; attempt < 5; ++attempt) {
+            ec.clear();
+            if (!std::filesystem::exists(dir, ec)) return;
+
+            for (const auto& entry : std::filesystem::recursive_directory_iterator(
+                     dir, std::filesystem::directory_options::skip_permission_denied, ec)) {
+                if (ec) break;
+                try {
+                    SetFileAttributesW(entry.path().wstring().c_str(), FILE_ATTRIBUTE_NORMAL);
+                } catch (...) {}
+            }
+
+            ec.clear();
+            std::filesystem::remove_all(dir, ec);
+            if (!std::filesystem::exists(dir, ec)) return;
+
+            std::vector<std::filesystem::path> files_to_del;
+            std::vector<std::filesystem::path> dirs_to_del;
+            ec.clear();
+            for (const auto& entry : std::filesystem::recursive_directory_iterator(
+                     dir, std::filesystem::directory_options::skip_permission_denied, ec)) {
+                if (ec) break;
+                if (entry.is_regular_file(ec))
+                    files_to_del.push_back(entry.path());
+                else if (entry.is_directory(ec))
+                    dirs_to_del.push_back(entry.path());
+            }
+            for (const auto& f : files_to_del) {
+                ec.clear();
+                SetFileAttributesW(f.wstring().c_str(), FILE_ATTRIBUTE_NORMAL);
+                std::filesystem::remove(f, ec);
+            }
+            std::sort(dirs_to_del.begin(), dirs_to_del.end(),
+                [](const std::filesystem::path& a, const std::filesystem::path& b) {
+                    return a.wstring().size() > b.wstring().size();
+                });
+            for (const auto& d : dirs_to_del) {
+                ec.clear();
+                std::filesystem::remove(d, ec);
+            }
+            ec.clear();
+            std::filesystem::remove(dir, ec);
+            if (!std::filesystem::exists(dir, ec)) return;
+
+            std::this_thread::sleep_for(std::chrono::seconds(1));
+>>>>>>> Stashed changes
         }
     }
 
@@ -1389,6 +1475,7 @@ namespace {
             bool real_download_started = false;
             auto download_start_time = std::chrono::steady_clock::now();
 
+<<<<<<< Updated upstream
             {
                 std::error_code ec;
                 if (std::filesystem::exists(content_path, ec)) std::filesystem::remove_all(content_path, ec);
@@ -1396,6 +1483,19 @@ namespace {
                 if (std::filesystem::exists(alt_content_path, ec)) std::filesystem::remove_all(alt_content_path, ec);
                 if (std::filesystem::exists(alt_download_path, ec)) std::filesystem::remove_all(alt_download_path, ec);
             }
+=======
+            auto clean_all_workshop_folders = [&]() {
+                force_delete_folder(content_path);
+                force_delete_folder(download_path);
+                force_delete_folder(alt_content_path);
+                force_delete_folder(alt_download_path);
+                force_delete_folder(steamcmd_dir / "steamapps" / "workshop" / "downloads" / "311210");
+                force_delete_folder(game_path / "steamapps" / "workshop" / "downloads" / "311210");
+            };
+
+            set_workshop_status("Cleaning up old files...", -1.0, "");
+            clean_all_workshop_folders();
+>>>>>>> Stashed changes
 
             while (!workshop_cancel_requested.load()) {
                 internal_retry++;
@@ -1453,7 +1553,13 @@ namespace {
 
                 for (;;) {
                     if (workshop_cancel_requested.load()) {
+<<<<<<< Updated upstream
                         TerminateProcess(pi.hProcess, 1);
+=======
+                        kill_process_tree(pi.dwProcessId);
+                        TerminateProcess(pi.hProcess, 1);
+                        WaitForSingleObject(pi.hProcess, 5000);
+>>>>>>> Stashed changes
                         break;
                     }
 
@@ -1569,6 +1675,11 @@ namespace {
                 CloseHandle(pi.hProcess);
                 CloseHandle(pi.hThread);
 
+<<<<<<< Updated upstream
+=======
+                std::this_thread::sleep_for(std::chrono::seconds(2));
+
+>>>>>>> Stashed changes
                 if (workshop_cancel_requested.load()) {
                     set_workshop_status("Canceled.", 0.0, "");
                     return;
@@ -1593,8 +1704,14 @@ namespace {
                     visible_retry++;
                 }
 
+<<<<<<< Updated upstream
                 set_workshop_status("SteamCMD exited, retrying...", -1.0,
                     "Retry " + std::to_string(visible_retry));
+=======
+                set_workshop_status("Cleaning up before retry...", -1.0,
+                    "Retry " + std::to_string(visible_retry));
+                clean_all_workshop_folders();
+>>>>>>> Stashed changes
                 std::this_thread::sleep_for(std::chrono::seconds(2));
             }
 
@@ -1759,6 +1876,7 @@ namespace {
                 }
             }
 
+<<<<<<< Updated upstream
             {
                 std::error_code cleanup_ec;
                 if (std::filesystem::exists(content_path, cleanup_ec))
@@ -1770,6 +1888,9 @@ namespace {
                 if (std::filesystem::exists(alt_download_path, cleanup_ec))
                     std::filesystem::remove_all(alt_download_path, cleanup_ec);
             }
+=======
+            clean_all_workshop_folders();
+>>>>>>> Stashed changes
 
             try {
                 std::filesystem::path ws_json_path = dest / "workshop.json";
@@ -2060,10 +2181,18 @@ void register_callbacks(html_frame* frame)
             {
                 std::lock_guard plock(workshop_download_mutex);
                 if (workshop_download_process.hProcess) {
+<<<<<<< Updated upstream
                     TerminateProcess(workshop_download_process.hProcess, 1);
                 }
             }
             reset_workshop_status();
+=======
+                    kill_process_tree(workshop_download_process.dwProcessId);
+                    TerminateProcess(workshop_download_process.hProcess, 1);
+                    WaitForSingleObject(workshop_download_process.hProcess, 5000);
+                }
+            }
+>>>>>>> Stashed changes
             return CComVariant("Cancel requested");
         });
 
