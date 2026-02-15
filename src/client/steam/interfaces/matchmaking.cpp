@@ -3,6 +3,7 @@
 
 #include "component/network.hpp"
 #include "component/server_list.hpp"
+#include "game/game.hpp"
 
 namespace steam
 {
@@ -10,18 +11,70 @@ namespace steam
 	{
 		constexpr unsigned int k_unFavoriteFlag = 1u;
 		constexpr unsigned int k_unHistoryFlag = 2u;
+		constexpr unsigned int BO3_APP_ID = 311210;
+
+		// combined list of favorites + recents for GetFavoriteGame enumeration
+		struct favorite_entry
+		{
+			game::netadr_t addr;
+			unsigned int flags;
+		};
+
+		std::vector<favorite_entry> build_favorites_list()
+		{
+			std::vector<favorite_entry> result;
+
+			server_list::get_favorite_servers().access([&](const server_list::server_list& favs)
+			{
+				for (const auto& addr : favs)
+				{
+					result.push_back({addr, k_unFavoriteFlag});
+				}
+			});
+
+			server_list::get_recent_servers().access([&](const server_list::recent_list& recents)
+			{
+				for (const auto& addr : recents)
+				{
+					result.push_back({addr, k_unHistoryFlag});
+				}
+			});
+
+			return result;
+		}
 	}
 
 	int matchmaking::GetFavoriteGameCount()
 	{
-		return 0;
+		auto list = build_favorites_list();
+		return static_cast<int>(list.size());
 	}
 
 	bool matchmaking::GetFavoriteGame(int iGame, unsigned int* pnAppID, unsigned int* pnIP, unsigned short* pnConnPort,
 	                                  unsigned short* pnQueryPort, unsigned int* punFlags,
 	                                  unsigned int* pRTime32LastPlayedOnServer)
 	{
-		return false;
+		auto list = build_favorites_list();
+		if (iGame < 0 || iGame >= static_cast<int>(list.size()))
+			return false;
+
+		const auto& entry = list[iGame];
+		if (pnAppID) *pnAppID = BO3_APP_ID;
+
+		// pack IP as network-order uint32
+		if (pnIP)
+		{
+			uint32_t ip = 0;
+			memcpy(&ip, &entry.addr.ipv4.a, 4);
+			*pnIP = ntohl(ip);
+		}
+
+		if (pnConnPort) *pnConnPort = entry.addr.port;
+		if (pnQueryPort) *pnQueryPort = entry.addr.port;
+		if (punFlags) *punFlags = entry.flags;
+		if (pRTime32LastPlayedOnServer) *pRTime32LastPlayedOnServer = static_cast<unsigned int>(std::time(nullptr));
+
+		return true;
 	}
 
 	int matchmaking::AddFavoriteGame(unsigned int nAppID, unsigned int nIP, unsigned short nConnPort,

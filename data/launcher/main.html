@@ -1587,7 +1587,7 @@
           <div class="option-btn" data-option="safe-mode" title="Launch with minimal settings for troubleshooting (no mods loading)"><span class="dot"></span><span class="label">Safe Mode</span></div>
           <div class="option-btn" data-option="console" title="Enable the developer console in-game"><span class="dot"></span><span class="label">Dev</span></div>
           <div class="option-btn" data-option="headless" title="Run the server without a visible window"><span class="dot"></span><span class="label">Headless</span></div>
-          <div class="option-btn" data-option="trimlogs" title="Reduce log file size by trimming old entries"><span class="dot"></span><span class="label">Trim Logs</span></div>
+          <div class="option-btn" data-option="fulllogs" title="Show full untruncated log output (logs are trimmed by default)"><span class="dot"></span><span class="label">Full Logs</span></div>
           <div class="option-btn" data-option="nologs" title="Disable the external console window"><span class="dot"></span><span class="label">No Console</span></div>
           <div class="option-btn" data-option="keeplauncher" title="Keep the launcher open after starting the game"><span class="dot"></span><span class="label">Keep Launcher</span></div>
           <div class="option-btn" data-option="plugins" title="Enable loading of custom plugins"><span class="dot"></span><span class="label">Plugins</span></div>
@@ -3004,11 +3004,15 @@
             }
           } catch(e) {}
 
+          var folderPickerOpen = false;
           document.getElementById('setPathBtn').onclick = function() {
+            if (folderPickerOpen) return;
+            folderPickerOpen = true;
             try {
               var ex = getExternal();
-              if (!ex || !ex.selectGameFolder) return;
+              if (!ex || !ex.selectGameFolder) { folderPickerOpen = false; return; }
               var result = ex.selectGameFolder();
+              folderPickerOpen = false;
               if (result === 'cancelled') return;
               if (result === 'invalid') {
                 showMessage('Invalid Folder', 'The selected folder does not contain BlackOps3.exe.\\nPlease select a valid Black Ops 3 installation folder.');
@@ -3021,6 +3025,7 @@
               pathDisplay.textContent = result;
               showMessage('Game Path Updated', 'Game path set to:\\n' + result + '\\n\\nRestart BOIII for the change to take full effect.');
             } catch(e) {
+              folderPickerOpen = false;
               showMessage('Error', 'Failed to set game path: ' + e.message);
             }
           };

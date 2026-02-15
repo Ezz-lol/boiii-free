@@ -1,10 +1,6 @@
 local modeInfo = LobbyData:UITargetFromId(Engine.GetLobbyUIScreen())
 local maxClients = modeInfo.maxClients
 
--- Disable setting party privacy in menu. Auto set to open + max.
-Engine.SetDvar("partyprivacyenabled", 0)
-Engine.SetDvar("tu4_partyprivacyuseglobal", 0)
-Engine.SetDvar("tu4_partyprivacyluacheck", 0)
 
 -- Fix for invisible bots in custom games
 if maxClients >= 1 then

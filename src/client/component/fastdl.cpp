@@ -39,16 +39,6 @@ namespace fastdl
 			return (file_name.ends_with(".xpak") || file_name.ends_with(".ff"));
 		}
 
-		bool is_safe_filename(const std::string& name)
-		{
-			if (name.empty()) return false;
-			if (name.find('/') != std::string::npos) return false;
-			if (name.find('\\') != std::string::npos) return false;
-			if (name.find("..") != std::string::npos) return false;
-			if (name.size() >= 2 && name[1] == ':') return false;
-			return true;
-		}
-
 		void show_ingame_error(const std::string& error)
 		{
 			scheduler::once([error]
@@ -86,11 +76,6 @@ namespace fastdl
 				info.name.assign(array[0].GetString(), array[0].GetStringLength());
 				info.size = static_cast<std::size_t>(array[1].GetInt64());
 				info.hash.assign(array[2].GetString(), array[2].GetStringLength());
-
-				if (!is_safe_filename(info.name))
-				{
-					continue;
-				}
 
 				files.emplace_back(std::move(info));
 			}

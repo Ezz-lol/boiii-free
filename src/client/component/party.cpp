@@ -58,7 +58,7 @@ namespace party
 			}, scheduler::main);
 		}
 
-		void connect_to_lobby_with_mode(const game::netadr_t& addr, const game::eModes mode, const std::string& mapname,
+		void connect_to_lobby_with_mode_internal(const game::netadr_t& addr, const game::eModes mode, const std::string& mapname,
 		                                const std::string& gametype, const std::string& usermap_id,
 		                                const std::string& mod_id,
 		                                const bool was_retried = false)
@@ -73,7 +73,7 @@ namespace party
 			{
 				scheduler::once([=]
 				{
-					connect_to_lobby_with_mode(addr, mode, mapname, gametype, usermap_id, mod_id, true);
+					connect_to_lobby_with_mode_internal(addr, mode, mapname, gametype, usermap_id, mod_id, true);
 				}, scheduler::main, 5s);
 
 				launch_mode(mode);
@@ -205,13 +205,10 @@ namespace party
 				if (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id) &&
 					workshop::check_valid_mod_id(mod_id, workshop_id))
 				{
-					if (is_connecting_to_dedi)
-					{
-						game::Com_SessionMode_SetGameMode(game::MODE_GAME_MATCHMAKING_PLAYLIST);
-					}
+					game::Com_SessionMode_SetGameMode(game::MODE_GAME_MATCHMAKING_PLAYLIST);
 
 					//connect_to_session(target, hostname, xuid, mode);
-					connect_to_lobby_with_mode(target, mode, mapname, gametype, usermap_id, mod_id);
+					connect_to_lobby_with_mode_internal(target, mode, mapname, gametype, usermap_id, mod_id);
 				}
 			}, scheduler::main);
 		}
@@ -326,6 +323,13 @@ namespace party
 		});
 	}
 
+	void connect_to_lobby_with_mode(const game::netadr_t& addr, const game::eModes mode,
+	                                const std::string& mapname, const std::string& gametype,
+	                                const std::string& usermap_id, const std::string& mod_id)
+	{
+		connect_to_lobby_with_mode_internal(addr, mode, mapname, gametype, usermap_id, mod_id, false);
+	}
+
 	game::netadr_t get_connected_server()
 	{
 		constexpr auto local_client_num = 0ull;
@@ -336,6 +340,22 @@ namespace party
 	bool is_host(const game::netadr_t& addr)
 	{
 		return get_connected_server() == addr || connect_host == addr;
+	}
+
+	void join_session(const game::netadr_t& addr, const std::string& hostname, const uint64_t xuid,
+	                  const game::eModes mode)
+	{
+		connect_to_session(addr, hostname, xuid, mode);
+	}
+
+	uint16_t get_local_port()
+	{
+		const auto* dvar = game::Dvar_FindVar("net_port");
+		if (dvar)
+		{
+			return static_cast<uint16_t>(dvar->current.value.integer);
+		}
+		return 3074; // BO3 default
 	}
 
 	struct component final : client_component

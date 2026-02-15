@@ -315,6 +315,9 @@ namespace launcher
 			std::uint32_t missing_count = 0;
 			std::uint32_t size_mismatch_count = 0;
 			std::uint32_t hash_mismatch_count = 0;
+			std::uint32_t warn_missing_count = 0;
+			std::uint32_t warn_size_count = 0;
+			std::uint32_t warn_hash_count = 0;
 			std::vector<std::string> problematic_files;
 
 			for (std::uint32_t i = 0; i < total; i++)
@@ -342,33 +345,54 @@ namespace launcher
 				std::filesystem::path full_path = base / fe.path;
 				std::error_code ec;
 
-				bool is_optional = (fe.component == "dlc" || fe.component == "zc");
-				std::string severity = is_optional ? "warning" : "error";
+				bool is_dlc_or_zc = (fe.component == "dlc" || fe.component == "zc");
+				std::string severity = is_dlc_or_zc ? "warning" : "error";
 
 				if (!std::filesystem::exists(full_path, ec))
 				{
-					missing_count++;
+					if (is_dlc_or_zc)
+					{
+						warn_missing_count++;
+					}
+					else
+					{
+						missing_count++;
+					}
 					cs.missing++;
 					cs.missing_files.push_back(fe.path);
-					problematic_files.push_back(std::string("[") + severity + "] " + fe.path + " (missing - " + cs.display_name + ")");
+					problematic_files.push_back("[" + severity + "] " + fe.path + " (missing - " + cs.display_name + ")");
 				}
 				else
 				{
 					auto actual_size = std::filesystem::file_size(full_path, ec);
 					if (actual_size != fe.expected_size)
 					{
-						size_mismatch_count++;
+						if (is_dlc_or_zc)
+						{
+							warn_size_count++;
+						}
+						else
+						{
+							size_mismatch_count++;
+						}
 						cs.size_mismatch++;
-						problematic_files.push_back(std::string("[") + severity + "] " + fe.path + " (wrong size - " + cs.display_name + ")");
+						problematic_files.push_back("[" + severity + "] " + fe.path + " (wrong size - " + cs.display_name + ")");
 					}
 					else if (!fe.expected_hash.empty())
 					{
 						auto actual_hash = compute_file_xxh3(full_path);
 						if (!actual_hash.empty() && actual_hash != fe.expected_hash)
 						{
-							hash_mismatch_count++;
+							if (is_dlc_or_zc)
+							{
+								warn_hash_count++;
+							}
+							else
+							{
+								hash_mismatch_count++;
+							}
 							cs.hash_mismatch++;
-							problematic_files.push_back(std::string("[") + severity + "] " + fe.path + " (corrupt - " + cs.display_name + ")");
+							problematic_files.push_back("[" + severity + "] " + fe.path + " (corrupt - " + cs.display_name + ")");
 						}
 						else
 						{
@@ -384,14 +408,33 @@ namespace launcher
 				}
 			}
 
+			const std::uint32_t error_total = missing_count + size_mismatch_count + hash_mismatch_count;
+			const std::uint32_t warn_total = warn_missing_count + warn_size_count + warn_hash_count;
+
 			std::string result_msg = mode_label + ": Verified " + std::to_string(total) + " files: " +
 				std::to_string(ok_count) + " OK";
-			if (missing_count > 0)
-				result_msg += ", " + std::to_string(missing_count) + " missing";
-			if (size_mismatch_count > 0)
-				result_msg += ", " + std::to_string(size_mismatch_count) + " wrong size";
-			if (hash_mismatch_count > 0)
-				result_msg += ", " + std::to_string(hash_mismatch_count) + " corrupt";
+			if (error_total > 0)
+			{
+				result_msg += " | ERRORS:";
+				if (missing_count > 0)
+					result_msg += " " + std::to_string(missing_count) + " missing";
+				if (size_mismatch_count > 0)
+					result_msg += " " + std::to_string(size_mismatch_count) + " wrong size";
+				if (hash_mismatch_count > 0)
+					result_msg += " " + std::to_string(hash_mismatch_count) + " corrupt";
+			}
+			if (warn_total > 0)
+			{
+				result_msg += " | DLC warnings:";
+				if (warn_missing_count > 0)
+					result_msg += " " + std::to_string(warn_missing_count) + " missing";
+				if (warn_size_count > 0)
+					result_msg += " " + std::to_string(warn_size_count) + " wrong size";
+				if (warn_hash_count > 0)
+					result_msg += " " + std::to_string(warn_hash_count) + " corrupt";
+			}
+			if (error_total == 0 && warn_total == 0)
+				result_msg += " - all good!";
 
 			std::vector<std::string> comp_issues;
 			for (const auto& [comp_key, cs] : comp_stats)

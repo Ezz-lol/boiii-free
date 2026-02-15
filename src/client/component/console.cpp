@@ -37,6 +37,12 @@ namespace console
 		constexpr UINT WM_APPEND_CONSOLE_TEXT = WM_APP + 0x1337;
 		constexpr size_t MAX_CONSOLE_CHARS = 1'000'000;
 
+		static bool full_logs_enabled()
+		{
+			static const bool enabled = utils::flags::has_flag("fulllogs");
+			return enabled;
+		}
+
 		COLORREF get_cod_color(const char code)
 		{
 			switch (code)
@@ -196,6 +202,8 @@ namespace console
 
 		void trim_console_buffer(const HWND richedit)
 		{
+			if (full_logs_enabled()) return; // -fulllogs: never trim the console buffer
+
 			const auto text_len = static_cast<size_t>(GetWindowTextLengthW(richedit));
 			if (text_len > MAX_CONSOLE_CHARS)
 			{
@@ -472,10 +480,28 @@ namespace console
 			va_list ap;
 			va_start(ap, fmt);
 
-			char buffer[1024]{0};
-			const int res = vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, fmt, ap);
-			(void)res;
-			print_message(buffer);
+			if (full_logs_enabled())
+			{
+				va_list ap_copy;
+				va_copy(ap_copy, ap);
+				const int needed = _vscprintf(fmt, ap_copy);
+				va_end(ap_copy);
+
+				if (needed > 0)
+				{
+					std::string buffer(static_cast<size_t>(needed) + 1, '\0');
+					vsnprintf_s(buffer.data(), buffer.size(), _TRUNCATE, fmt, ap);
+					buffer.resize(static_cast<size_t>(needed));
+					print_message(buffer.c_str());
+				}
+			}
+			else
+			{
+				char buffer[1024]{0};
+				const int res = vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, fmt, ap);
+				(void)res;
+				print_message(buffer);
+			}
 
 			va_end(ap);
 		}

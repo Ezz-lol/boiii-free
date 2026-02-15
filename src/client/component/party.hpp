@@ -14,4 +14,12 @@ namespace party
 	game::netadr_t get_connected_server();
 
 	bool is_host(const game::netadr_t& addr);
+
+	void join_session(const game::netadr_t& addr, const std::string& hostname, uint64_t xuid, game::eModes mode);
+
+	uint16_t get_local_port();
+
+	void connect_to_lobby_with_mode(const game::netadr_t& addr, game::eModes mode,
+	                                const std::string& mapname, const std::string& gametype,
+	                                const std::string& usermap_id, const std::string& mod_id);
 }

@@ -2,9 +2,12 @@
 #include "../steam.hpp"
 
 #include <utils/nt.hpp>
+#include <utils/string.hpp>
 
 #include "component/name.hpp"
 #include "component/chat.hpp"
+#include "component/friends.hpp"
+#include "component/steam_proxy.hpp"
 
 namespace steam
 {
@@ -25,32 +28,51 @@ namespace steam
 
 	int friends::GetFriendCount(int eFriendFlags)
 	{
-		return 0;
+		return ::friends::get_friend_count();
 	}
 
 	steam_id friends::GetFriendByIndex(int iFriend, int iFriendFlags)
 	{
-		return steam_id();
+		auto entry = ::friends::get_friend_by_index(iFriend);
+		steam_id id{};
+		id.bits = entry.steam_id;
+		return id;
 	}
 
 	int friends::GetFriendRelationship(steam_id steamIDFriend)
 	{
-		return 0;
+		return ::friends::is_friend(steamIDFriend.bits) ? 3 : 0;
 	}
 
 	int friends::GetFriendPersonaState(steam_id steamIDFriend)
 	{
+		auto all = ::friends::get_friends();
+		for (const auto& f : all)
+		{
+			if (f.steam_id == steamIDFriend.bits)
+				return static_cast<int>(f.state);
+		}
 		return 0;
 	}
 
 	const char* friends::GetFriendPersonaName(steam_id steamIDFriend)
 	{
+		static thread_local std::string name_buf;
+		auto all = ::friends::get_friends();
+		for (const auto& f : all)
+		{
+			if (f.steam_id == steamIDFriend.bits && !f.name.empty())
+			{
+				name_buf = f.name;
+				return name_buf.c_str();
+			}
+		}
 		return chat::get_client_name(steamIDFriend.bits);
 	}
 
 	bool friends::GetFriendGamePlayed(steam_id steamIDFriend, void* pFriendGameInfo)
 	{
-		return false;
+		return !::friends::get_presence_server(steamIDFriend.bits).empty();
 	}
 
 	const char* friends::GetFriendPersonaNameHistory(steam_id steamIDFriend, int iPersonaName)
@@ -60,7 +82,7 @@ namespace steam
 
 	bool friends::HasFriend(steam_id steamIDFriend, int eFriendFlags)
 	{
-		return false;
+		return ::friends::is_friend(steamIDFriend.bits);
 	}
 
 	int friends::GetClanCount()
@@ -183,16 +205,20 @@ namespace steam
 
 	bool friends::SetRichPresence(const char* pchKey, const char* pchValue)
 	{
+		steam_proxy::set_rich_presence(pchKey ? pchKey : "", pchValue ? pchValue : "");
 		return true;
 	}
 
 	void friends::ClearRichPresence()
 	{
+		steam_proxy::clear_rich_presence();
 	}
 
 	const char* friends::GetFriendRichPresence(steam_id steamIDFriend, const char* pchKey)
 	{
-		return "";
+		static thread_local std::string rp_buf;
+		rp_buf = steam_proxy::get_friend_rich_presence(steamIDFriend.bits, pchKey ? pchKey : "");
+		return rp_buf.c_str();
 	}
 
 	int friends::GetFriendRichPresenceKeyCount(steam_id steamIDFriend)
@@ -211,7 +237,7 @@ namespace steam
 
 	bool friends::InviteUserToGame(steam_id steamIDFriend, const char* pchConnectString)
 	{
-		return false;
+		return ::friends::invite_to_game(steamIDFriend.bits);
 	}
 
 	int friends::GetCoplayFriendCount()

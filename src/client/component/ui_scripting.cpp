@@ -7,10 +7,12 @@
 #include "command.hpp"
 #include "ui_scripting.hpp"
 #include "scheduler.hpp"
+#include "friends.hpp"
 
 #include <utils/io.hpp>
 #include <utils/hook.hpp>
 #include <utils/flags.hpp>
+#include <utils/string.hpp>
 #include <utils/finally.hpp>
 
 namespace ui_scripting
@@ -181,6 +183,43 @@ namespace ui_scripting
 		{
 			const auto lua = get_globals();
 			lua["game"] = table();
+
+			lua["game"]["getfriendcount"] = function(convert_function([]() -> int
+			{
+				return friends::get_friend_count();
+			}), game::hks::TCFUNCTION);
+
+			lua["game"]["getfriend"] = function(convert_function([](int index) -> table
+			{
+				auto f = friends::get_friend_by_index(index);
+				auto t = table();
+				t.set("steam_id", utils::string::va("%llu", f.steam_id));
+				t.set("name", std::string(f.name));
+				t.set("status", static_cast<int>(f.state));
+				t.set("server", std::string(f.server_address));
+				return t;
+			}), game::hks::TCFUNCTION);
+
+			lua["game"]["addfriend"] = function(convert_function([](const std::string& steam_id_str, const std::string& name)
+			{
+				uint64_t steam_id = 0;
+				try { steam_id = std::stoull(steam_id_str); } catch (...) { return; }
+				friends::add_friend(steam_id, name);
+			}), game::hks::TCFUNCTION);
+
+			lua["game"]["removefriend"] = function(convert_function([](const std::string& steam_id_str)
+			{
+				uint64_t steam_id = 0;
+				try { steam_id = std::stoull(steam_id_str); } catch (...) { return; }
+				friends::remove_friend(steam_id);
+			}), game::hks::TCFUNCTION);
+
+			lua["game"]["invitefriend"] = function(convert_function([](const std::string& id_str) -> bool
+			{
+				uint64_t id = 0;
+				try { id = std::stoull(id_str); } catch (...) { return false; }
+				return friends::invite_to_game(id);
+			}), game::hks::TCFUNCTION);
 		}
 
 		void enable_globals()

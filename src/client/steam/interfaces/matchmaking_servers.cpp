@@ -6,6 +6,8 @@
 #include "component/party.hpp"
 #include "component/network.hpp"
 #include "component/server_list.hpp"
+#include "component/friends.hpp"
+#include "component/steam_proxy.hpp"
 
 #include <utils/string.hpp>
 #include <utils/concurrency.hpp>
@@ -23,13 +25,19 @@ namespace steam
 
 		auto* const internet_request = reinterpret_cast<void*>(1);
 		auto* const favorites_request = reinterpret_cast<void*>(4);
+		auto* const history_request = reinterpret_cast<void*>(5);
+		auto* const friends_request = reinterpret_cast<void*>(3);
 
 		using servers = std::vector<server>;
 
 		::utils::concurrency::container<servers> internet_servers{};
 		::utils::concurrency::container<servers> favorites_servers{};
+		::utils::concurrency::container<servers> history_servers{};
+		::utils::concurrency::container<servers> friends_servers{};
 		std::atomic<matchmaking_server_list_response*> internet_response{};
 		std::atomic<matchmaking_server_list_response*> favorites_response{};
+		std::atomic<matchmaking_server_list_response*> history_response{};
+		std::atomic<matchmaking_server_list_response*> friends_response{};
 
 		template <typename T>
 		void copy_safe(T& dest, const char* in)
@@ -162,6 +170,20 @@ namespace steam
 			handle_server_respone(success, host, info, ping, favorites_servers, favorites_response, favorites_request);
 		}
 
+		void handle_history_server_response(const bool success, const game::netadr_t& host,
+		                                    const ::utils::info_string& info,
+		                                    const uint32_t ping)
+		{
+			handle_server_respone(success, host, info, ping, history_servers, history_response, history_request);
+		}
+
+		void handle_friends_server_response(const bool success, const game::netadr_t& host,
+		                                    const ::utils::info_string& info,
+		                                    const uint32_t ping)
+		{
+			handle_server_respone(success, host, info, ping, friends_servers, friends_response, friends_request);
+		}
+
 		void ping_server(const game::netadr_t& server, party::query_callback callback)
 		{
 			party::query_server(server, callback);
@@ -226,7 +248,61 @@ namespace steam
 	void* matchmaking_servers::RequestFriendsServerList(unsigned int iApp, void** ppchFilters, unsigned int nFilters,
 	                                                    matchmaking_server_list_response* pRequestServersResponse)
 	{
-		return reinterpret_cast<void*>(3);
+		friends_response = pRequestServersResponse;
+
+		auto friend_infos = ::friends::get_friend_server_addresses();
+
+		const auto res = friends_response.load();
+		if (!res)
+		{
+			return friends_request;
+		}
+
+		if (friend_infos.empty())
+		{
+			res->RefreshComplete(friends_request, eNoServersListedOnMasterServer);
+			return friends_request;
+		}
+
+		std::vector<std::pair<game::netadr_t, std::string>> addr_names;
+		for (const auto& info : friend_infos)
+		{
+			auto addr = network::address_from_string(info.address);
+			if (addr.type != game::NA_BAD)
+			{
+				addr_names.emplace_back(addr, info.player_name);
+			}
+		}
+
+		if (addr_names.empty())
+		{
+			res->RefreshComplete(friends_request, eNoServersListedOnMasterServer);
+			return friends_request;
+		}
+
+		friends_servers.access([&addr_names](servers& srvs)
+		{
+			srvs = {};
+			srvs.reserve(addr_names.size());
+
+			for (auto& [address, name] : addr_names)
+			{
+				server new_server{};
+				new_server.address = address;
+				new_server.server_item = create_server_item(address, {}, 0, false);
+
+				copy_safe(new_server.server_item.m_szServerName, name.c_str());
+
+				srvs.push_back(new_server);
+			}
+		});
+
+		for (auto& [addr, name] : addr_names)
+		{
+			ping_server(addr, handle_friends_server_response);
+		}
+
+		return friends_request;
 	}
 
 	void* matchmaking_servers::RequestFavoritesServerList(unsigned int iApp, void** ppchFilters, unsigned int nFilters,
@@ -276,7 +352,45 @@ namespace steam
 	void* matchmaking_servers::RequestHistoryServerList(unsigned int iApp, void** ppchFilters, unsigned int nFilters,
 	                                                    matchmaking_server_list_response* pRequestServersResponse)
 	{
-		return reinterpret_cast<void*>(5);
+		history_response = pRequestServersResponse;
+
+		auto& srvs = server_list::get_recent_servers();
+		srvs.access([&](std::vector<game::netadr_t> s)
+		{
+			const auto res = history_response.load();
+			if (!res)
+			{
+				return;
+			}
+
+			if (s.empty())
+			{
+				res->RefreshComplete(history_request, eNoServersListedOnMasterServer);
+				return;
+			}
+
+			history_servers.access([&s](servers& srvs)
+			{
+				srvs = {};
+				srvs.reserve(s.size());
+
+				for (auto& address : s)
+				{
+					server new_server{};
+					new_server.address = address;
+					new_server.server_item = create_server_item(address, {}, 0, false);
+
+					srvs.push_back(new_server);
+				}
+			});
+
+			for (auto& srv : s)
+			{
+				ping_server(srv, handle_history_server_response);
+			}
+		});
+
+		return history_request;
 	}
 
 	void* matchmaking_servers::RequestSpectatorServerList(unsigned int iApp, void** ppchFilters, unsigned int nFilters,
@@ -295,16 +409,27 @@ namespace steam
 		{
 			favorites_response = nullptr;
 		}
+		if (history_request == hServerListRequest)
+		{
+			history_response = nullptr;
+		}
+		if (friends_request == hServerListRequest)
+		{
+			friends_response = nullptr;
+		}
 	}
 
 	gameserveritem_t* matchmaking_servers::GetServerDetails(void* hRequest, int iServer)
 	{
-		if (internet_request != hRequest && favorites_request != hRequest)
+		if (internet_request != hRequest && favorites_request != hRequest && history_request != hRequest && friends_request != hRequest)
 		{
 			return nullptr;
 		}
 
-		auto& servers_list = hRequest == favorites_request ? favorites_servers : internet_servers;
+		auto& servers_list = hRequest == favorites_request ? favorites_servers
+		                   : hRequest == history_request ? history_servers
+		                   : hRequest == friends_request ? friends_servers
+		                   : internet_servers;
 
 		thread_local gameserveritem_t server_item{};
 		return servers_list.access<gameserveritem_t*>([iServer](const servers& s) -> gameserveritem_t*
@@ -334,12 +459,15 @@ namespace steam
 
 	int matchmaking_servers::GetServerCount(void* hRequest)
 	{
-		if (internet_request != hRequest && favorites_request != hRequest)
+		if (internet_request != hRequest && favorites_request != hRequest && history_request != hRequest && friends_request != hRequest)
 		{
 			return 0;
 		}
 
-		auto& servers_list = hRequest == favorites_request ? favorites_servers : internet_servers;
+		auto& servers_list = hRequest == favorites_request ? favorites_servers
+		                   : hRequest == history_request ? history_servers
+		                   : hRequest == friends_request ? friends_servers
+		                   : internet_servers;
 		return servers_list.access<int>([](const servers& s)
 		{
 			return static_cast<int>(s.size());
@@ -348,13 +476,16 @@ namespace steam
 
 	void matchmaking_servers::RefreshServer(void* hRequest, const int iServer)
 	{
-		if (internet_request != hRequest && favorites_request != hRequest)
+		if (internet_request != hRequest && favorites_request != hRequest && history_request != hRequest && friends_request != hRequest)
 		{
 			return;
 		}
 
 		std::optional<game::netadr_t> address{};
-		auto& servers_list = hRequest == favorites_request ? favorites_servers : internet_servers;
+		auto& servers_list = hRequest == favorites_request ? favorites_servers
+		                   : hRequest == history_request ? history_servers
+		                   : hRequest == friends_request ? friends_servers
+		                   : internet_servers;
 		servers_list.access([&](const servers& s)
 		{
 			if (iServer < 0 || static_cast<size_t>(iServer) >= s.size())
@@ -367,9 +498,10 @@ namespace steam
 
 		if (address)
 		{
-			auto callback = hRequest == favorites_request
-				                ? handle_favorites_server_response
-				                : handle_internet_server_response;
+			auto callback = hRequest == favorites_request ? handle_favorites_server_response
+			              : hRequest == history_request ? handle_history_server_response
+			              : hRequest == friends_request ? handle_friends_server_response
+			              : handle_internet_server_response;
 			ping_server(*address, callback);
 		}
 	}

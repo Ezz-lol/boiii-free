@@ -2,6 +2,7 @@
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
 #include "game/fragment_handler.hpp"
+#include "game/utils.hpp"
 
 #include "command.hpp"
 #include "network.hpp"
@@ -158,7 +159,7 @@ namespace network
 		                                     const game::LobbyType lobby_type, const uint64_t dest_module,
 		                                     game::msg_t* msg)
 		{
-			if (from_adr.type != game::NA_LOOPBACK)
+			if (from_adr.type != game::NA_LOOPBACK && !game::is_server_running())
 			{
 				return 0;
 			}
