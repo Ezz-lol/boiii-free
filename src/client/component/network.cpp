@@ -159,7 +159,7 @@ namespace network
 		                                     const game::LobbyType lobby_type, const uint64_t dest_module,
 		                                     game::msg_t* msg)
 		{
-			if (from_adr.type != game::NA_LOOPBACK && !game::is_server_running())
+			if (from_adr.type != game::NA_LOOPBACK && game::is_server() && !game::is_server_running())
 			{
 				return 0;
 			}

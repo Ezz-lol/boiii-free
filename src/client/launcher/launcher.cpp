@@ -21,6 +21,7 @@
 #include <atomic>
 #include <mutex>
 #include <map>
+#include <set>
 #include <ShlObj.h>
 #include <Shlwapi.h>
 #include <TlHelp32.h>
@@ -855,6 +856,52 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 			std::uint64_t local_size = 0;
 		};
 
+		bool folder_has_zone_content(const std::filesystem::path& dir)
+		{
+			std::error_code ec;
+			auto zone_dir = dir / "zone";
+			if (std::filesystem::exists(zone_dir, ec))
+			{
+				for (const auto& f : std::filesystem::directory_iterator(zone_dir, ec))
+				{
+					if (f.is_regular_file(ec) && f.path().extension() == ".ff")
+						return true;
+				}
+			}
+			for (const auto& f : std::filesystem::directory_iterator(dir, ec))
+			{
+				if (f.is_regular_file(ec) && f.path().extension() == ".ff")
+					return true;
+			}
+			return false;
+		}
+
+		bool try_parse_workshop_json(const std::filesystem::path& dir, mod_item_info& item)
+		{
+			std::filesystem::path zone_json = dir / "zone" / "workshop.json";
+			if (!utils::io::file_exists(zone_json.string())) return false;
+			std::string data;
+			if (!utils::io::read_file(zone_json.string(), &data)) return false;
+			rapidjson::Document doc;
+			if (doc.Parse(data).HasParseError() || !doc.IsObject()) return false;
+			if (!doc.HasMember("Title") || !doc.HasMember("FolderName")) return false;
+			item.name = doc["Title"].GetString();
+			if (doc.HasMember("Description") && doc["Description"].IsString())
+			{
+				item.description = doc["Description"].GetString();
+				if (item.description.size() > 300)
+					item.description = item.description.substr(0, 300) + "...";
+			}
+			if (doc.HasMember("PublisherID"))
+			{
+				const auto& pid = doc["PublisherID"];
+				if (pid.IsString()) item.id = pid.GetString();
+				else if (pid.IsInt64()) item.id = std::to_string(pid.GetInt64());
+				else if (pid.IsUint64()) item.id = std::to_string(pid.GetUint64());
+			}
+			return true;
+		}
+
 		std::string workshop_list_json()
 		{
 			char cwd[MAX_PATH];
@@ -862,41 +909,38 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 			std::filesystem::path base(cwd);
 
 			std::vector<mod_item_info> items;
+			std::set<std::string> seen_paths;
 
 			auto scan = [&](const std::filesystem::path& parent, const char* type_label) {
 				if (!std::filesystem::exists(parent)) return;
-				for (const auto& entry : std::filesystem::directory_iterator(parent))
+				std::error_code ec;
+				for (const auto& entry : std::filesystem::directory_iterator(parent, ec))
 				{
 					if (!entry.is_directory()) continue;
-					std::filesystem::path zone_json = entry.path() / "zone" / "workshop.json";
-					if (!utils::io::file_exists(zone_json.string())) continue;
-					std::string data;
-					if (!utils::io::read_file(zone_json.string(), &data)) continue;
-					rapidjson::Document doc;
-					if (doc.Parse(data).HasParseError() || !doc.IsObject() || !doc.HasMember("Title") || !doc.HasMember("FolderName")) continue;
+					auto abs = std::filesystem::absolute(entry.path(), ec).string();
+					if (seen_paths.count(abs)) continue;
+
 					mod_item_info item;
-					item.name = doc["Title"].GetString();
 					item.folder = entry.path().filename().string();
 					item.type = type_label;
 					item.dir_path = entry.path();
 					item.local_size = compute_folder_size(entry.path());
-					if (doc.HasMember("Description") && doc["Description"].IsString()) {
-						item.description = doc["Description"].GetString();
-						if (item.description.size() > 300)
-							item.description = item.description.substr(0, 300) + "...";
-					}
-					if (doc.HasMember("PublisherID"))
+
+					if (!try_parse_workshop_json(entry.path(), item))
 					{
-						const auto& pid = doc["PublisherID"];
-						if (pid.IsString()) item.id = pid.GetString();
-						else if (pid.IsInt64()) item.id = std::to_string(pid.GetInt64());
-						else if (pid.IsUint64()) item.id = std::to_string(pid.GetUint64());
+						if (!folder_has_zone_content(entry.path())) continue;
+						item.name = item.folder;
+						if (utils::string::is_numeric(item.folder))
+							item.id = item.folder;
 					}
+
 					std::string image_path = find_mod_image_path(entry.path());
 					if (!image_path.empty())
 						item.image = path_to_file_url(image_path);
 					else if (!item.id.empty())
 						item.image = get_steam_workshop_preview_url(item.id);
+
+					seen_paths.insert(abs);
 					items.push_back(std::move(item));
 				}
 			};
@@ -909,82 +953,54 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 				std::error_code ws_ec;
 				if (std::filesystem::exists(steam_ws, ws_ec))
 				{
-				std::error_code ec;
-				for (const auto& ws_entry : std::filesystem::directory_iterator(steam_ws, ec))
-				{
-					if (!ws_entry.is_directory()) continue;
-					std::filesystem::path zone_json = ws_entry.path() / "zone" / "workshop.json";
-					if (utils::io::file_exists(zone_json.string()))
-					{
-						std::string data;
-						if (!utils::io::read_file(zone_json.string(), &data)) continue;
-						rapidjson::Document doc;
-						if (doc.Parse(data).HasParseError() || !doc.IsObject() || !doc.HasMember("Title") || !doc.HasMember("FolderName")) continue;
-                        mod_item_info item;
-						item.name = doc["Title"].GetString();
-						item.folder = ws_entry.path().filename().string();
-						item.type = "map";
-						item.source = "steam";
-						item.path = ws_entry.path().string();
-						item.dir_path = ws_entry.path();
-						item.local_size = compute_folder_size(ws_entry.path());
-						if (doc.HasMember("Description") && doc["Description"].IsString()) {
-							item.description = doc["Description"].GetString();
-							if (item.description.size() > 300)
-								item.description = item.description.substr(0, 300) + "...";
-						}
-						if (doc.HasMember("PublisherID"))
-						{
-							const auto& pid = doc["PublisherID"];
-							if (pid.IsString()) item.id = pid.GetString();
-							else if (pid.IsInt64()) item.id = std::to_string(pid.GetInt64());
-							else if (pid.IsUint64()) item.id = std::to_string(pid.GetUint64());
-						}
-						std::string image_path = find_mod_image_path(ws_entry.path());
-						if (!image_path.empty())
-							item.image = path_to_file_url(image_path);
-						else if (!item.id.empty())
-							item.image = get_steam_workshop_preview_url(item.id);
-						items.push_back(std::move(item));
-						continue;
-					}
-					for (const auto& sub : std::filesystem::directory_iterator(ws_entry.path(), ec))
-					{
-						if (!sub.is_directory()) continue;
-						zone_json = sub.path() / "zone" / "workshop.json";
-						if (!utils::io::file_exists(zone_json.string())) continue;
-						std::string data;
-						if (!utils::io::read_file(zone_json.string(), &data)) continue;
-						rapidjson::Document doc;
-						if (doc.Parse(data).HasParseError() || !doc.IsObject() || !doc.HasMember("Title") || !doc.HasMember("FolderName")) continue;
+					auto scan_steam = [&](const std::filesystem::path& dir) {
+						auto abs = std::filesystem::absolute(dir, ws_ec).string();
+						if (seen_paths.count(abs)) return;
+
 						mod_item_info item;
-						item.name = doc["Title"].GetString();
-						item.folder = sub.path().filename().string();
+						item.folder = dir.filename().string();
 						item.type = "map";
 						item.source = "steam";
-						item.path = sub.path().string();
-						item.dir_path = sub.path();
-						item.local_size = compute_folder_size(sub.path());
-						if (doc.HasMember("Description") && doc["Description"].IsString()) {
-							item.description = doc["Description"].GetString();
-							if (item.description.size() > 300)
-								item.description = item.description.substr(0, 300) + "...";
-						}
-						if (doc.HasMember("PublisherID"))
+						item.path = dir.string();
+						item.dir_path = dir;
+						item.local_size = compute_folder_size(dir);
+
+						if (!try_parse_workshop_json(dir, item))
 						{
-							const auto& pid = doc["PublisherID"];
-							if (pid.IsString()) item.id = pid.GetString();
-							else if (pid.IsInt64()) item.id = std::to_string(pid.GetInt64());
-							else if (pid.IsUint64()) item.id = std::to_string(pid.GetUint64());
+							if (!folder_has_zone_content(dir)) return;
+							item.name = item.folder;
+							if (utils::string::is_numeric(item.folder))
+								item.id = item.folder;
 						}
-						std::string image_path = find_mod_image_path(sub.path());
+
+						std::string image_path = find_mod_image_path(dir);
 						if (!image_path.empty())
 							item.image = path_to_file_url(image_path);
 						else if (!item.id.empty())
 							item.image = get_steam_workshop_preview_url(item.id);
+
+						seen_paths.insert(abs);
 						items.push_back(std::move(item));
+					};
+
+					std::error_code ec;
+					for (const auto& ws_entry : std::filesystem::directory_iterator(steam_ws, ec))
+					{
+						if (!ws_entry.is_directory()) continue;
+
+						if (try_parse_workshop_json(ws_entry.path(), mod_item_info{}) || folder_has_zone_content(ws_entry.path()))
+						{
+							scan_steam(ws_entry.path());
+							continue;
+						}
+
+						std::error_code ec2;
+						for (const auto& sub : std::filesystem::directory_iterator(ws_entry.path(), ec2))
+						{
+							if (!sub.is_directory()) continue;
+							scan_steam(sub.path());
+						}
 					}
-				}
 				}
 			}
 

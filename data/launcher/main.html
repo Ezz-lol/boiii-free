@@ -1012,6 +1012,31 @@
 
     .msg-popup .popup-actions { justify-content: center; }
     .msg-popup .popup-content { color: rgba(244, 240, 235, 0.92); line-height: 1.6; }
+
+    .confirm-item-list {
+      max-height: 260px;
+      overflow-y: auto;
+      margin: 10px 0 4px 0;
+      padding: 0;
+      list-style: none;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(68,65,63,0.5);
+      border-radius: 6px;
+    }
+    .confirm-item-list li {
+      padding: 7px 14px;
+      font-size: 13px;
+      color: rgba(244,240,235,0.88);
+      border-bottom: 1px solid rgba(68,65,63,0.3);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .confirm-item-list li:last-child { border-bottom: none; }
+    .confirm-item-list .item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .confirm-item-list .item-size { color: rgba(200,196,192,0.6); font-size: 12px; margin-left: 12px; white-space: nowrap; }
+    .confirm-popup .popup { min-width: 400px; max-width: 520px; }
+    .confirm-popup .popup-content { max-height: 400px; overflow-y: auto; }
     
 
     .btn-remove {
@@ -1847,7 +1872,7 @@
         <button type="button" class="popup-close" data-close="confirmPopup">&times;</button>
       </div>
       <div class="popup-content">
-        <p id="confirmPopupBody"></p>
+        <div id="confirmPopupBody"></div>
       </div>
       <div class="popup-actions">
         <button type="button" class="btn" id="confirmPopupCancel">Cancel</button>
@@ -2792,7 +2817,7 @@
         var t = document.getElementById('confirmPopupTitle');
         var b = document.getElementById('confirmPopupBody');
         if (t) t.textContent = title || 'Confirm';
-        if (b) b.textContent = body || '';
+        if (b) b.innerHTML = body || '';
         popup.classList.add('active');
         var done = false;
         function close() {
@@ -3497,7 +3522,8 @@
                 showMessage('Remove', 'Cannot remove: folder name is missing.');
                 return;
               }
-              showConfirm('Remove workshop item', 'Remove "' + (itemName || folderName) + '" from your game folder?', function() {
+              var removeBody = 'Remove <strong>' + (itemName || folderName).replace(/</g,'&lt;') + '</strong> from your game folder?';
+              showConfirm('Remove workshop item', removeBody, function() {
                 var ex = getExternal();
                 if (!ex) {
                   showMessage('Remove', 'Workshop remove is not available.');
@@ -3709,7 +3735,27 @@
       };
 
       document.getElementById('deleteAllModsBtn').onclick = function() {
-        showConfirm('Delete all mods', 'Remove ALL workshop mods and maps from your game folder? This cannot be undone.', function() {
+        var items = modsItemsCache || [];
+        var listHtml = '<p style="margin:0 0 8px 0;">Remove <strong>' + items.length + '</strong> workshop item' + (items.length !== 1 ? 's' : '') + ' from your game folder? This cannot be undone.</p>';
+        if (items.length > 0) {
+          listHtml += '<ul class="confirm-item-list">';
+          for (var ci = 0; ci < items.length; ci++) {
+            var cItem = items[ci];
+            var cName = (cItem.name || cItem.folder || 'Unknown').replace(/</g,'&lt;');
+            var cLocalSz = parseInt(cItem.localSize, 10) || 0;
+            var cApiSz = parseInt(cItem.file_size, 10) || 0;
+            var cSz = cLocalSz > 0 ? cLocalSz : cApiSz;
+            var cSzStr = '';
+            if (cSz > 0) {
+              cSzStr = cSz > 1073741824 ? (cSz / 1073741824).toFixed(2) + ' GB' :
+                cSz > 1048576 ? (cSz / 1048576).toFixed(1) + ' MB' :
+                cSz > 1024 ? (cSz / 1024).toFixed(0) + ' KB' : cSz + ' B';
+            }
+            listHtml += '<li><span class="item-name">' + cName + '</span>' + (cSzStr ? '<span class="item-size">' + cSzStr + '</span>' : '') + '</li>';
+          }
+          listHtml += '</ul>';
+        }
+        showConfirm('Delete all mods', listHtml, function() {
           var ex = getExternal();
           if (!ex) return;
           var done = false;

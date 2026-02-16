@@ -265,6 +265,50 @@ namespace
 			|| std::filesystem::exists(folder / "BlackOps3_UnrankedDedicatedServer.exe");
 	}
 
+	std::string find_steam_game_path()
+	{
+		const char* default_path = "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Call of Duty Black Ops III";
+		if (is_valid_game_folder(default_path))
+		{
+			return default_path;
+		}
+
+		const std::string steam_path = steam::SteamAPI_GetSteamInstallPath();
+		if (steam_path.empty()) return {};
+
+		auto steamapps = std::filesystem::path(steam_path) / "steamapps" / "common" / "Call of Duty Black Ops III";
+		if (is_valid_game_folder(steamapps))
+		{
+			return steamapps.string();
+		}
+
+		auto vdf_path = std::filesystem::path(steam_path) / "steamapps" / "libraryfolders.vdf";
+		std::string vdf_data;
+		if (utils::io::read_file(vdf_path.string(), &vdf_data))
+		{
+			std::istringstream stream(vdf_data);
+			std::string line;
+			while (std::getline(stream, line))
+			{
+				auto pos = line.find("\"path\"");
+				if (pos == std::string::npos) continue;
+
+				auto first_quote = line.find('"', pos + 6);
+				auto last_quote = line.rfind('"');
+				if (first_quote == std::string::npos || last_quote <= first_quote) continue;
+
+				auto lib_path = line.substr(first_quote + 1, last_quote - first_quote - 1);
+				auto game_folder = std::filesystem::path(lib_path) / "steamapps" / "common" / "Call of Duty Black Ops III";
+				if (is_valid_game_folder(game_folder))
+				{
+					return game_folder.string();
+				}
+			}
+		}
+
+		return {};
+	}
+
 	bool resolve_game_path()
 	{
 		const auto path_file = get_game_path_file();
@@ -293,6 +337,18 @@ namespace
 					SetCurrentDirectoryA(stored_path.c_str());
 					return true;
 				}
+			}
+		}
+
+		{
+			auto steam_game = find_steam_game_path();
+			if (!steam_game.empty())
+			{
+				std::error_code ec;
+				std::filesystem::create_directories(path_file.parent_path(), ec);
+				utils::io::write_file(path_file.string(), steam_game);
+				SetCurrentDirectoryA(steam_game.c_str());
+				return true;
 			}
 		}
 
