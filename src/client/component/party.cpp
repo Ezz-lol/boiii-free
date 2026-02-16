@@ -4,6 +4,7 @@
 
 #include "party.hpp"
 #include "auth.hpp"
+#include "friends.hpp"
 #include "network.hpp"
 #include "scheduler.hpp"
 #include "workshop.hpp"
@@ -227,6 +228,35 @@ namespace party
 			}
 
 			profile_infos::clear_profile_infos();
+
+			if (address)
+			{
+				auto game_info = friends::get_friend_game_info_by_address(address);
+				if (!game_info.empty())
+				{
+					auto parts = utils::string::split(game_info, '|');
+					if (parts.size() >= 4)
+					{
+						auto mapname = parts[1];
+						auto gametype = parts[2];
+						auto mode = static_cast<game::eModes>(std::atoi(parts[3].c_str()));
+						std::string mod_id = parts.size() >= 5 ? parts[4] : "";
+
+						if (!mapname.empty() && !gametype.empty())
+						{
+
+							scheduler::once([=]
+							{
+								auto usermap_id = workshop::get_usermap_publisher_id(mapname);
+								game::Com_SessionMode_SetGameMode(game::MODE_GAME_MATCHMAKING_PLAYLIST);
+								connect_to_lobby_with_mode_internal(connect_host, mode, mapname, gametype, usermap_id, mod_id);
+							}, scheduler::main);
+							return;
+						}
+					}
+				}
+			}
+
 			query_server(connect_host, handle_connect_query_response);
 		}
 

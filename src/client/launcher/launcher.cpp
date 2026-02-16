@@ -988,7 +988,8 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 					{
 						if (!ws_entry.is_directory()) continue;
 
-						if (try_parse_workshop_json(ws_entry.path(), mod_item_info{}) || folder_has_zone_content(ws_entry.path()))
+						mod_item_info probe{};
+						if (try_parse_workshop_json(ws_entry.path(), probe) || folder_has_zone_content(ws_entry.path()))
 						{
 							scan_steam(ws_entry.path());
 							continue;
