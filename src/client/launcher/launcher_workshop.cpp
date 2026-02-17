@@ -25,6 +25,7 @@
 namespace launcher::workshop
 {
 	std::chrono::steady_clock::time_point download_start_time;
+	double mod_size = 0.0;
 
 	bool clear_directory_contents(const std::filesystem::path& dir)
 	{
@@ -122,6 +123,9 @@ namespace launcher::workshop
 			if (log_time_steady >= download_start_time)
 			{
 				running = false;
+
+				//mod_size = //save mod size before remove
+
 				clear_directory_contents("./steamcmd/steamapps/workshop/downloads/311210/" + workshop_id);
 				return;
 			}
@@ -1450,6 +1454,13 @@ namespace launcher::workshop
 				std::filesystem::path alt_content_path = game_path / "steamapps" / "workshop" / "content" / "311210" / workshop_id;
 				std::filesystem::path alt_download_path = game_path / "steamapps" / "workshop" / "downloads" / "311210" / workshop_id;
 
+				std::string steamapps_folder = "./steamcmd/steamapps";
+
+				if (std::filesystem::exists(steamapps_folder))
+				{
+					std::filesystem::remove_all(steamapps_folder);
+					printf("Old steamapps folder removed successfully.\n");
+				}
 
 				std::string cmd_args = "+login anonymous +workshop_download_item 311210 " + workshop_id + " validate +quit";
 
@@ -1457,9 +1468,11 @@ namespace launcher::workshop
 				constexpr int FAIL_THRESHOLD = 5;
 				int attempt = 0;
 				int fast_fail_count = 0;
+
 				download_start_time = std::chrono::steady_clock::now();
 
 				std::thread log_thread(monitor_initial_dump_phase, workshop_id);
+				log_thread.detach();
 
 				while (!std::filesystem::exists(content_path) && !std::filesystem::exists(alt_content_path) && !workshop_cancel_requested.load())
 				{
@@ -2240,33 +2253,23 @@ namespace launcher::workshop
 				auto tu_it = item.FindMember("time_updated");
 				if (tu_it != item.MemberEnd()) {
 					if (tu_it->value.IsUint64()) meta.time_updated = tu_it->value.GetUint64();
-					else if (tu_it->value.IsInt64()) meta.time_updated = static_cast<std::uint64_t>(tu_it->value.GetInt64());
 					else if (tu_it->value.IsUint()) meta.time_updated = tu_it->value.GetUint();
-					else if (tu_it->value.IsInt()) meta.time_updated = static_cast<std::uint64_t>(tu_it->value.GetInt());
 				}
 
 				auto fs_it = item.FindMember("file_size");
 				if (fs_it != item.MemberEnd()) {
 					if (fs_it->value.IsUint64()) meta.file_size = fs_it->value.GetUint64();
-					else if (fs_it->value.IsInt64()) meta.file_size = static_cast<std::uint64_t>(fs_it->value.GetInt64());
 					else if (fs_it->value.IsUint()) meta.file_size = fs_it->value.GetUint();
-					else if (fs_it->value.IsInt()) meta.file_size = static_cast<std::uint64_t>(fs_it->value.GetInt());
+					else if (fs_it->value.IsString()) meta.file_size = std::strtoull(fs_it->value.GetString(), nullptr, 10);
 				}
 
 				auto desc_it = item.FindMember("description");
 				if (desc_it != item.MemberEnd() && desc_it->value.IsString())
 					meta.description = desc_it->value.GetString();
 
-				auto preview_it = item.FindMember("preview_url");
-				if (preview_it != item.MemberEnd() && preview_it->value.IsString())
-					meta.preview_url = preview_it->value.GetString();
-
-				auto vote_it = item.FindMember("vote_data");
-				if (vote_it != item.MemberEnd() && vote_it->value.IsObject()) {
-					auto score_it = vote_it->value.FindMember("score");
-					if (score_it != vote_it->value.MemberEnd() && score_it->value.IsDouble())
-						meta.star_rating = static_cast<int>(score_it->value.GetDouble() * 5.0 + 0.5);
-				}
+				auto prev_it = item.FindMember("preview_url");
+				if (prev_it != item.MemberEnd() && prev_it->value.IsString())
+					meta.preview_url = prev_it->value.GetString();
 
 				auto subs_it = item.FindMember("subscriptions");
 				if (subs_it != item.MemberEnd()) {

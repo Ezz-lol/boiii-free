@@ -12,6 +12,7 @@
 #include "steam/steam.hpp"
 
 #include "steam_proxy.hpp"
+
 #include "scheduler.hpp"
 
 #define NO_CHECK
@@ -71,7 +72,6 @@ namespace steam_proxy
 			uint64_t steam_id_friend;
 		};
 
-		// Hook for Steam_BGetCallback — intercepts ALL callbacks before the overlay consumes them
 		utils::hook::detour steam_bgetcallback_hook;
 
 		bool steam_bgetcallback_stub(int32_t pipe, callback_msg_t* msg)
@@ -329,6 +329,7 @@ namespace steam_proxy
 				if (original_pipe && original_pipe != steam_pipe)
 					pump(static_cast<int32_t>(original_pipe));
 			}, scheduler::async, 500ms);
+
 		}
 
 		void pre_destroy() override
@@ -654,6 +655,18 @@ namespace steam_proxy
 
 	uint64_t get_own_steam_id()
 	{
+		// Try client_user fis better
+		if (client_user)
+		{
+			try
+			{
+				auto id = client_user.invoke<uint64_t>("GetSteamID");
+				if (id > 0x0110000100000000ULL) return id;
+			}
+			catch (...) {}
+		}
+
+		// Try SteamClient017 path
 		if (steam_client && global_user && steam_pipe)
 		{
 			try
@@ -663,11 +676,13 @@ namespace steam_proxy
 				if (user_iface)
 				{
 					steam::interface su(user_iface);
-					return su.invoke<uint64_t>(0); // GetSteamID is index 0
+					auto id = su.invoke<uint64_t>(0); // GetSteamID is index 0
+					if (id > 0x0110000100000000ULL) return id;
 				}
 			}
 			catch (...) {}
 		}
+
 		// fallback: use emulated steam user
 		return steam::SteamUser() ? steam::SteamUser()->GetSteamID().bits : 0;
 	}

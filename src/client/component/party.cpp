@@ -1,14 +1,16 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
+#include "game/utils.hpp"
 
 #include "party.hpp"
 #include "auth.hpp"
-#include "friends.hpp"
 #include "network.hpp"
 #include "scheduler.hpp"
 #include "workshop.hpp"
 #include "profile_infos.hpp"
+#include "friends.hpp"
+#include "steam_proxy.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -22,6 +24,11 @@ namespace party
 	{
 		std::atomic_bool is_connecting_to_dedi{false};
 		game::netadr_t connect_host{{}, {}, game::NA_BAD, {}};
+
+		void update_dedi_dvar(bool on_dedi)
+		{
+			game::Dvar_SetFromStringByName("cl_connected_to_dedi", on_dedi ? "1" : "0", true);
+		}
 
 		struct server_query
 		{
@@ -41,6 +48,9 @@ namespace party
 		void connect_to_lobby(const game::netadr_t& addr, const std::string& mapname, const std::string& gamemode,
 		                      const std::string& usermap_id, const std::string& mod_id)
 		{
+
+			game::CG_LUIHUDRestart(0);
+
 			auth::clear_stored_guids();
 
 			workshop::setup_same_mod_as_host(usermap_id, mod_id);
@@ -150,6 +160,7 @@ namespace party
 			}
 
 			is_connecting_to_dedi = info.get("dedicated") == "1";
+			update_dedi_dvar(is_connecting_to_dedi.load());
 
 			if (atoi(info.get("protocol").data()) != PROTOCOL)
 			{
@@ -271,6 +282,7 @@ namespace party
 
 		void handle_info_response(const game::netadr_t& target, const network::data_view& data)
 		{
+
 			bool found_query = false;
 			server_query query{};
 
@@ -392,9 +404,12 @@ namespace party
 	{
 		void post_unpack() override
 		{
+			(void)game::register_dvar_bool("cl_connected_to_dedi", false, game::DVAR_NONE, "True when connected to a dedicated server");
+
 			utils::hook::jump(0x141EE5FE0_g, &connect_stub);
 
 			network::on("infoResponse", handle_info_response);
+
 			scheduler::loop(cleanup_queried_servers, scheduler::async, 100ms);
 		}
 

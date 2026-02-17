@@ -8,6 +8,7 @@
 #include "component/server_list.hpp"
 #include "component/friends.hpp"
 #include "component/steam_proxy.hpp"
+#include "component/scheduler.hpp"
 
 #include <utils/string.hpp>
 #include <utils/concurrency.hpp>
@@ -264,40 +265,112 @@ namespace steam
 			return friends_request;
 		}
 
-		std::vector<std::pair<game::netadr_t, std::string>> addr_names;
+		// Separate friends into online (have address) and offline (no address)
+		std::vector<std::pair<game::netadr_t, std::string>> online_friends;
+		std::vector<int> offline_indices;
+
+		int total_index = 0;
 		for (const auto& info : friend_infos)
 		{
-			auto addr = network::address_from_string(info.address);
-			if (addr.type != game::NA_BAD)
+			if (!info.address.empty())
 			{
-				addr_names.emplace_back(addr, info.player_name);
+				auto addr = network::address_from_string(info.address);
+				if (addr.type != game::NA_BAD)
+				{
+					online_friends.emplace_back(addr, info.player_name);
+					total_index++;
+					continue;
+				}
 			}
+			// Offline friend
+			offline_indices.push_back(total_index);
+			total_index++;
 		}
 
-		if (addr_names.empty())
-		{
-			res->RefreshComplete(friends_request, eNoServersListedOnMasterServer);
-			return friends_request;
-		}
-
-		friends_servers.access([&addr_names](servers& srvs)
+		friends_servers.access([&](servers& srvs)
 		{
 			srvs = {};
-			srvs.reserve(addr_names.size());
+			srvs.reserve(total_index);
 
-			for (auto& [address, name] : addr_names)
+			int online_idx = 0;
+			for (int i = 0; i < total_index; i++)
 			{
-				server new_server{};
-				new_server.address = address;
-				new_server.server_item = create_server_item(address, {}, 0, false);
+				bool is_offline = false;
+				for (auto oi : offline_indices)
+				{
+					if (oi == i) { is_offline = true; break; }
+				}
 
-				copy_safe(new_server.server_item.m_szServerName, name.c_str());
+				server new_server{};
+				if (is_offline)
+				{
+					// Create a valid server entry for offline friends
+					new_server.address = {};
+					new_server.address.type = game::NA_RAWIP;
+
+					gameserveritem_t item{};
+					item.m_NetAdr.m_usConnectionPort = 0;
+					item.m_NetAdr.m_usQueryPort = 0;
+					item.m_NetAdr.m_unIP = 0;
+					item.m_nPing = 0;
+					item.m_bHadSuccessfulResponse = true;
+					item.m_bDoNotRefresh = false;
+					item.m_nAppID = 311210;
+					item.m_nPlayers = 0;
+					item.m_nMaxPlayers = 0;
+					item.m_nBotPlayers = 0;
+					item.m_bPassword = false;
+					item.m_bSecure = true;
+					item.m_ulTimeLastPlayed = 0;
+					item.m_nServerVersion = 1000;
+
+					copy_safe(item.m_szServerName, friend_infos[i].player_name.c_str());
+					copy_safe(item.m_szMap, "");
+					copy_safe(item.m_szGameDir, "");
+					copy_safe(item.m_szGameDescription, "Offline");
+					copy_safe(item.m_szGameTags,
+						R"(\gametype\\dedicated\false\ranked\false\hardcore\false\zombies\false\playerCount\0\bots\0\modName\)");
+					item.m_steamID.bits = friend_infos[i].steam_id;
+
+					new_server.server_item = item;
+					new_server.handled = true;
+				}
+				else
+				{
+					new_server.address = online_friends[online_idx].first;
+					new_server.server_item = create_server_item(new_server.address, {}, 0, false);
+					new_server.server_item.m_nAppID = 311210;
+					copy_safe(new_server.server_item.m_szServerName, online_friends[online_idx].second.c_str());
+					online_idx++;
+				}
 
 				srvs.push_back(new_server);
 			}
 		});
 
-		for (auto& [addr, name] : addr_names)
+		// Defer callbacks so they fire AFTER RequestFriendsServerList returns
+		auto offline_copy = offline_indices;
+		bool has_online = !online_friends.empty();
+		scheduler::once([offline_copy, has_online]
+		{
+			const auto resp = friends_response.load();
+			if (!resp) return;
+
+			// Report offline friends as responded (so the game shows them)
+			for (auto idx : offline_copy)
+			{
+				resp->ServerResponded(friends_request, idx);
+			}
+
+			// If no online friends to ping, complete immediately
+			if (!has_online)
+			{
+				resp->RefreshComplete(friends_request, eServerResponded);
+			}
+		}, scheduler::async, 50ms);
+
+		// Ping online friends (responses handled asynchronously by handle_friends_server_response)
+		for (auto& [addr, name] : online_friends)
 		{
 			ping_server(addr, handle_friends_server_response);
 		}

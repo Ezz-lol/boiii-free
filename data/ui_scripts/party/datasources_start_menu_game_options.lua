@@ -1,5 +1,9 @@
 DataSources.StartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOptions", function (controller)
 	local options = {}
+	local currentMode = Engine.CurrentSessionMode()
+	local isMP = currentMode == Enum.eModes.MODE_MULTIPLAYER
+	local isZM = currentMode == Enum.eModes.MODE_ZOMBIES
+	local isCP = currentMode == Enum.eModes.MODE_CAMPAIGN
 	if Engine.IsDemoPlaying() then
 		if not IsDemoRestrictedBasicMode() then
 			table.insert(options, {models = {displayText = Engine.ToUpper(Engine.Localize("MENU_UPLOAD_CLIP", Engine.GetDemoSegmentCount())), action = StartMenuUploadClip, disabledFunction = IsUploadClipButtonDisabled}, properties = {hideHelpItemLabel = true}})
@@ -15,7 +19,7 @@ DataSources.StartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOpti
 			endDemoButtonText = Engine.ToUpper(Engine.Localize("MENU_END_FILM"))
 		end
 		table.insert(options, {models = {displayText = Engine.ToUpper(endDemoButtonText), action = StartMenuEndDemo}})
-	elseif CoD.isCampaign then
+	elseif isCP then
 		table.insert(options, {models = {displayText = "MENU_RESUMEGAME_CAPS", action = StartMenuGoBack_ListElement}})
 		local inTrainingSim = CoD.SafeGetModelValue(Engine.GetModelForController(controller), "safehouse.inTrainingSim")
 		if not inTrainingSim then
@@ -45,7 +49,7 @@ DataSources.StartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOpti
 		else
 			table.insert(options, {models = {displayText = "MENU_LEAVE_PARTY_AND_EXIT_CAPS", action = QuitGame}})
 		end
-	elseif CoD.isMultiplayer then
+	elseif isMP then
 		if Engine.Team(controller, "name") ~= "TEAM_SPECTATOR" and Engine.GetGametypeSetting("disableClassSelection") ~= 1 then
 			table.insert(options, {models = {displayText = "MPUI_CHOOSE_CLASS_BUTTON_CAPS", action = ChooseClass}})
 		end
@@ -54,20 +58,22 @@ DataSources.StartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOpti
 		end
 		if controller == 0 then
 			local endGameText = "MENU_QUIT_GAME_CAPS"
-			if Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_GAME) and not CoD.isOnlineGame() then
+			if Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_GAME) and not Dvar.cl_connected_to_dedi:get() then
 				endGameText = "MENU_END_GAME_CAPS"
 			end
 			table.insert(options, {models = {displayText = endGameText, action = QuitGame_MP}})
 		end
-	elseif CoD.isZombie then
+	elseif isZM then
 		table.insert(options, {models = {displayText = "MENU_RESUMEGAME_CAPS", action = StartMenuGoBack_ListElement}})
-		if Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_GAME) and (not Engine.SessionModeIsMode(CoD.SESSIONMODE_SYSTEMLINK) or Engine.SessionModeIsMode(CoD.SESSIONMODE_OFFLINE)) then
+		if Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_GAME) and not Dvar.cl_connected_to_dedi:get() and (not Engine.SessionModeIsMode(CoD.SESSIONMODE_SYSTEMLINK) or Engine.SessionModeIsMode(CoD.SESSIONMODE_OFFLINE)) then
 			table.insert(options, {models = {displayText = "MENU_RESTART_LEVEL_CAPS", action = RestartGame}})
 		end
-		if Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_GAME) == true then
-			table.insert(options, {models = {displayText = "MENU_END_GAME_CAPS", action = QuitGame_MP}})
-		else
-			table.insert(options, {models = {displayText = "MENU_QUIT_GAME_CAPS", action = QuitGame_MP}})
+		if controller == 0 then
+			local endGameText = "MENU_QUIT_GAME_CAPS"
+			if Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_GAME) and not Dvar.cl_connected_to_dedi:get() then
+				endGameText = "MENU_END_GAME_CAPS"
+			end
+			table.insert(options, {models = {displayText = endGameText, action = QuitGame_MP}})
 		end
 	end
 	table.insert(options, {models = {displayText = "QUIT TO DESKTOP", action = OpenPCQuit}})

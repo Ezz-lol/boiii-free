@@ -40,6 +40,8 @@ namespace friends
 	bool has_pending_invite();
 	std::string consume_pending_invite();
 
+	bool connect_to_friend(uint64_t steam_id);
+
 	std::string get_presence_server(uint64_t steam_id);
 	std::vector<friend_server_info> get_friend_server_addresses();
 	std::string get_friend_game_info_by_address(const std::string& address);

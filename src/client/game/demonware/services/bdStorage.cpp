@@ -19,6 +19,7 @@ namespace demonware
 		this->register_task(18, &bdStorage::upload_files_new);
 		this->register_task(16, &bdStorage::get_files);
 		this->register_task(12, &bdStorage::unk12);
+		this->register_task(13, &bdStorage::get_user_file_list);
 		this->register_task(10, &bdStorage::set_user_file);
 
 		this->map_publisher_resource("motd-.*\\.gz", DW_MOTD);
@@ -336,6 +337,12 @@ namespace demonware
 	void bdStorage::unk12(service_server* server, byte_buffer* buffer) const
 	{
 		// TODO:
+		auto reply = server->create_reply(this->task_id());
+		reply.send();
+	}
+
+	void bdStorage::get_user_file_list(service_server* server, byte_buffer* /*buffer*/) const
+	{
 		auto reply = server->create_reply(this->task_id());
 		reply.send();
 	}

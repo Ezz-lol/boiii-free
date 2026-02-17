@@ -13,6 +13,7 @@
 #include "services/bdProfiles.hpp"          //  8
 #include "services/bdStorage.hpp"           // 10
 #include "services/bdTitleUtilities.hpp"    // 12
+#include "services/bdObjectStore.hpp"       // 15
 #include "services/bdBandwidthTest.hpp"     // 18
 #include "services/bdStats2.hpp"            // 19
 #include "services/bdCounter.hpp"           // 23

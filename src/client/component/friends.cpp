@@ -10,6 +10,7 @@
 #include "steam/steam.hpp"
 #include "steam_proxy.hpp"
 #include "workshop.hpp"
+#include "name.hpp"
 
 #include <utils/io.hpp>
 #include <utils/string.hpp>
@@ -303,7 +304,8 @@ namespace friends
 		int playmode = game::Com_SessionMode_GetMode();
 		std::string mod_id = workshop::get_mod_publisher_id();
 		uint64_t own_steam_id = steam_proxy::get_own_steam_id();
-		std::string own_name = steam_proxy::get_player_name();
+		std::string own_name = name::get_player_name();
+		if (own_name.empty()) own_name = steam_proxy::get_player_name();
 		if (own_name.empty()) own_name = "Player";
 
 		// enriched format: addr|map|gametype|mode|mod|sender_id|sender_name
@@ -319,6 +321,13 @@ namespace friends
 			auto target_name = steam_proxy::get_steam_friend_name(steam_id);
 			if (target_name.empty()) target_name = "Friend";
 			add_friend(steam_id, target_name);
+		}
+		else
+		{
+			// Update name if we have a better one from Steam
+			auto target_name = steam_proxy::get_steam_friend_name(steam_id);
+			if (!target_name.empty())
+				add_friend(steam_id, target_name);
 		}
 
 		try
@@ -375,6 +384,7 @@ namespace friends
 		for (const auto& entry : all_friends)
 		{
 			if (entry.steam_id == 0 || seen_ids.count(entry.steam_id)) continue;
+			seen_ids.insert(entry.steam_id);
 
 			steam_proxy::request_friend_rich_presence(entry.steam_id);
 			auto addr = steam_proxy::get_friend_rich_presence(entry.steam_id, "connect");
@@ -382,14 +392,115 @@ namespace friends
 			if (addr.empty() && !entry.server_address.empty())
 				addr = entry.server_address;
 
-			if (!addr.empty())
-			{
-				seen_ids.insert(entry.steam_id);
-				result.push_back({entry.steam_id, addr, entry.name});
-			}
+			// green online and red offline
+			std::string color_prefix = addr.empty() ? "^1" : "^3";
+			result.push_back({entry.steam_id, addr, color_prefix + entry.name});
 		}
 
 		return result;
+	}
+
+	std::string get_friend_game_info_by_address(const std::string& address)
+	{
+		if (address.empty()) return "";
+
+		auto target = network::address_from_string(address);
+
+		std::vector<friend_entry> all_friends;
+		friends_data.access([&](const friend_state& state)
+		{
+			all_friends = state.list;
+		});
+
+		for (const auto& entry : all_friends)
+		{
+			if (entry.steam_id == 0) continue;
+
+			steam_proxy::request_friend_rich_presence(entry.steam_id);
+			auto game_info = steam_proxy::get_friend_rich_presence(entry.steam_id, "boiii_game_info");
+			if (game_info.empty()) continue;
+
+			auto parts = utils::string::split(game_info, '|');
+			if (parts.empty()) continue;
+
+			// Check if the address in the RP data matches the requested address
+			if (parts[0] == address) return game_info;
+
+			// Also try matching resolved addresses
+			if (target.type != game::NA_BAD)
+			{
+				auto friend_addr = network::address_from_string(parts[0]);
+				if (friend_addr.type != game::NA_BAD && network::are_addresses_equal(friend_addr, target))
+					return game_info;
+			}
+		}
+
+		return "";
+	}
+
+	bool connect_to_friend(uint64_t steam_id)
+	{
+		if (steam_id == 0) return false;
+
+		// Check if friend is in our list and has a server address
+		std::string addr_str;
+		friends_data.access([&](const friend_state& state)
+		{
+			for (const auto& e : state.list)
+			{
+				if (e.steam_id == steam_id && !e.server_address.empty())
+				{
+					addr_str = e.server_address;
+					break;
+				}
+			}
+		});
+
+		// Also try rich presence
+		if (addr_str.empty())
+		{
+			steam_proxy::request_friend_rich_presence(steam_id);
+			addr_str = steam_proxy::get_friend_rich_presence(steam_id, "connect");
+		}
+
+		if (addr_str.empty())
+		{
+			// Friend is not in-game / not reachable
+			scheduler::once([]
+			{
+				game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI,
+					"Friend is not online or not in a joinable game.");
+			}, scheduler::main);
+			return false;
+		}
+
+		// Try enriched game info for proper mode/map connection
+		auto game_info = steam_proxy::get_friend_rich_presence(steam_id, "boiii_game_info");
+		if (!game_info.empty())
+		{
+			auto parts = utils::string::split(game_info, '|');
+			if (parts.size() >= 4)
+			{
+				auto connect_addr = parts[0];
+				auto mapname = parts[1];
+				auto gametype = parts[2];
+				auto mode = static_cast<game::eModes>(std::atoi(parts[3].c_str()));
+				std::string mod_id = parts.size() >= 5 ? parts[4] : "";
+
+				auto target = network::address_from_string(connect_addr);
+				if (target.type != game::NA_BAD && !mapname.empty() && !gametype.empty())
+				{
+					game::Com_SessionMode_SetGameMode(game::MODE_GAME_MATCHMAKING_PLAYLIST);
+					auto usermap_id = workshop::get_usermap_publisher_id(mapname);
+					party::connect_to_lobby_with_mode(target, mode, mapname, gametype, usermap_id, mod_id);
+					return true;
+				}
+			}
+		}
+
+		// Fallback: raw connect
+		game::Cbuf_AddText(0, utils::string::va("connect %s\n", addr_str.c_str()));
+		return true;
 	}
 
 	struct component final : client_component
@@ -444,7 +555,7 @@ namespace friends
 				catch (...) {}
 			}, scheduler::async, 2000ms);
 
-			// Process accepted invites — connect to the host's server
+			// Process accepted invites and joins connect to the host's server
 			scheduler::loop([]
 			{
 				if (!has_pending_invite()) return;
@@ -490,7 +601,8 @@ namespace friends
 						int playmode = game::Com_SessionMode_GetMode();
 						std::string mod_id = workshop::get_mod_publisher_id();
 						uint64_t own_steam_id = steam_proxy::get_own_steam_id();
-						std::string own_name = steam_proxy::get_player_name();
+						std::string own_name = name::get_player_name();
+						if (own_name.empty()) own_name = steam_proxy::get_player_name();
 						if (own_name.empty()) own_name = "Player";
 
 						auto enriched = utils::string::va("%s|%s|%s|%d|%s|%llu|%s",
@@ -522,6 +634,17 @@ namespace friends
 							auto connect_rp = steam_proxy::get_friend_rich_presence(f.steam_id, "connect");
 							auto status_rp = steam_proxy::get_friend_rich_presence(f.steam_id, "status");
 
+							// Try to update friend's name from their enriched RP
+							auto game_info_rp = steam_proxy::get_friend_rich_presence(f.steam_id, "boiii_game_info");
+							if (!game_info_rp.empty())
+							{
+								auto rp_parts = utils::string::split(game_info_rp, '|');
+								if (rp_parts.size() >= 7 && !rp_parts[6].empty())
+								{
+									f.name = rp_parts[6];
+								}
+							}
+
 							if (!connect_rp.empty())
 							{
 								f.state = status::in_game;
@@ -539,6 +662,7 @@ namespace friends
 							}
 						}
 					});
+					save_friends();
 				}
 				catch (...) {}
 			}, scheduler::async, 15000ms);

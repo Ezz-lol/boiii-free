@@ -220,6 +220,13 @@ namespace ui_scripting
 				try { id = std::stoull(id_str); } catch (...) { return false; }
 				return friends::invite_to_game(id);
 			}), game::hks::TCFUNCTION);
+
+			lua["game"]["connecttofriend"] = function(convert_function([](const std::string& id_str) -> bool
+			{
+				uint64_t id = 0;
+				try { id = std::stoull(id_str); } catch (...) { return false; }
+				return friends::connect_to_friend(id);
+			}), game::hks::TCFUNCTION);
 		}
 
 		void enable_globals()

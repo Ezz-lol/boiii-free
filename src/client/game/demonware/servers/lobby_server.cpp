@@ -23,6 +23,7 @@ namespace demonware
 		this->register_service<bdStats3>();
 		this->register_service<bdStorage>();
 		this->register_service<bdTitleUtilities>();
+		this->register_service<bdObjectStore>();
 		this->register_service<bdProfiles>();
 		this->register_service<bdRichPresence>();
 		this->register_service<bdFacebook>();
