@@ -10,12 +10,14 @@
 
 #include "command.hpp"
 #include "client_command.hpp"
+#include "scheduler.hpp"
 
 namespace chat
 {
 	namespace
 	{
 		const game::dvar_t* g_deadChat;
+		const game::dvar_t* sv_sayName;
 
 		void cmd_say_f(game::gentity_s* ent, const command::params_sv& params)
 		{
@@ -98,6 +100,10 @@ namespace chat
 	{
 		if (xuid == 0xFFFFFFFF)
 		{
+			if (sv_sayName && sv_sayName->current.value.string && sv_sayName->current.value.string[0])
+			{
+				return sv_sayName->current.value.string;
+			}
 			return "Server";
 		}
 
@@ -139,7 +145,13 @@ namespace chat
 					const auto text = params.join(1);
 
 					send_chat_message(-1, text);
-					printf("Server: %s\n", text.data());
+
+					const char* say_prefix = "Server";
+					if (sv_sayName && sv_sayName->current.value.string && sv_sayName->current.value.string[0])
+					{
+						say_prefix = sv_sayName->current.value.string;
+					}
+					printf("%s: %s\n", say_prefix, text.data());
 				});
 
 				// Overwrite tell command
@@ -166,6 +178,12 @@ namespace chat
 
 				// Kill say fallback
 				utils::hook::set<uint8_t>(0x1402FF987_g, 0xEB);
+
+				scheduler::once([]
+				{
+					sv_sayName = game::register_dvar_string("sv_sayName", "", game::DVAR_NONE,
+					                                         "Custom name for server chat messages. Defaults to server");
+				}, scheduler::pipeline::main);
 
 				g_deadChat = game::register_dvar_bool("g_deadChat", false, game::DVAR_NONE,
 				                                      "Allow dead players to chat with living players");
