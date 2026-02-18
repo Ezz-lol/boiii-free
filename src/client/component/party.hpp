@@ -19,6 +19,10 @@ namespace party
 
 	uint16_t get_local_port();
 
+	std::string get_server_hostname();
+	int get_server_max_clients();
+	void clear_server_info();
+
 	void connect_to_lobby_with_mode(const game::netadr_t& addr, game::eModes mode,
 	                                const std::string& mapname, const std::string& gametype,
 	                                const std::string& usermap_id, const std::string& mod_id);

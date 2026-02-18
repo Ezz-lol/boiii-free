@@ -96,13 +96,69 @@ namespace workshop
 			for (unsigned int i = 0; i < *game::modsCount; ++i)
 			{
 				const auto& mod_data = game::modsPool[i];
-				if (mod_data.publisherId == pub_id)
+				if (mod_data.publisherId == pub_id || mod_data.folderName == pub_id)
 				{
 					return true;
 				}
 			}
 
 			return false;
+		}
+
+		std::string resolve_mod_workshop_id(const std::string& mod_name)
+		{
+			for (unsigned int i = 0; i < *game::modsCount; ++i)
+			{
+				const auto& mod_data = game::modsPool[i];
+				if (mod_data.folderName == mod_name &&
+					utils::string::is_numeric(mod_data.publisherId))
+				{
+					return mod_data.publisherId;
+				}
+			}
+
+			std::error_code ec;
+			std::filesystem::path mods_dir("mods");
+			if (std::filesystem::exists(mods_dir, ec))
+			{
+				for (const auto& entry : std::filesystem::directory_iterator(mods_dir, ec))
+				{
+					if (!entry.is_directory(ec)) continue;
+
+					auto ws_json = entry.path() / "zone" / "workshop.json";
+					if (!std::filesystem::exists(ws_json, ec)) continue;
+
+					const auto json_str = utils::io::read_file(ws_json.string());
+					if (json_str.empty()) continue;
+
+					rapidjson::Document doc;
+					if (doc.Parse(json_str.c_str()).HasParseError() || !doc.IsObject()) continue;
+
+					auto folder_it = doc.FindMember("FolderName");
+					if (folder_it != doc.MemberEnd() && folder_it->value.IsString())
+					{
+						if (std::string(folder_it->value.GetString()) == mod_name)
+						{
+							auto pub_it = doc.FindMember("PublishedFileId");
+							if (pub_it != doc.MemberEnd() && pub_it->value.IsString())
+							{
+								std::string pfid = pub_it->value.GetString();
+								if (utils::string::is_numeric(pfid.data()))
+									return pfid;
+							}
+							auto pubid_it = doc.FindMember("PublisherID");
+							if (pubid_it != doc.MemberEnd() && pubid_it->value.IsString())
+							{
+								std::string pid = pubid_it->value.GetString();
+								if (utils::string::is_numeric(pid.data()))
+									return pid;
+							}
+						}
+					}
+				}
+			}
+
+			return {};
 		}
 
 		void load_usermap_mod_if_needed()
@@ -454,10 +510,26 @@ namespace workshop
 			}
 			else
 			{
-				game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI,
-					utils::string::va(
-						"Could not download: folder name is not numeric and 'workshop_id' dvar is empty.\nMod: %s\nSet workshop_id or subscribe on Steam Workshop.",
-						mod.data()));
+				std::string resolved_id = resolve_mod_workshop_id(mod);
+				if (!resolved_id.empty())
+				{
+					const int result = MessageBoxA(nullptr,
+						utils::string::va("Mod '%s' not found.\n\nResolved workshop ID: %s\nDo you want to download it from the Workshop now?", mod.data(), resolved_id.data()),
+						"Missing Mod", MB_OKCANCEL | MB_ICONQUESTION | MB_SYSTEMMODAL);
+					if (result == IDOK)
+					{
+						download_thread = utils::thread::create_named_thread(
+							"workshop_download", steamcmd::initialize_download, resolved_id, "Mod");
+						download_thread.detach();
+					}
+				}
+				else
+				{
+					game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI,
+						utils::string::va(
+							"Could not download: folder name is not numeric and 'workshop_id' dvar is empty.\nMod: %s\nSet workshop_id or subscribe on Steam Workshop.",
+							mod.data()));
+				}
 			}
 			return false;
 		}

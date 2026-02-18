@@ -81,8 +81,12 @@ namespace game
 		0x141420ED0, 0x1401D5FB0
 	};
 	WEAK symbol<const char*(const XAsset* asset)> DB_GetXAssetName{0x1413E9DA0, 0x14019F080};
+	WEAK symbol<int(XAssetType type)> DB_GetXAssetTypeSize{0x1413E9DD0};
 	WEAK symbol<bool(const char* zoneName, int source)> DB_FileExists{0x141420B40};
 	WEAK symbol<void()> DB_ReleaseXAssets{0x1414247C0};
+
+	// Asset pool (client only)
+	WEAK symbol<XAssetPool> DB_XAssetPool{0x1494093F0};
 
 	// G
 	WEAK symbol<void()> G_ClearVehicleInputs{0x1423812E0, 0x1405C1200};
@@ -244,6 +248,10 @@ namespace game
 	// Lobby
 	WEAK symbol<int(LobbyType lobbyType, LobbyClientType clientType)> LobbyHost_GetClientCount{
 		0x141ED8AC0, 0x14048A360
+	};
+
+	WEAK symbol<int(int lobbySession, LobbyClientType clientType)> LobbySession_GetClientCount{
+		0x141ED8B30, 0x0
 	};
 
 	// Utils

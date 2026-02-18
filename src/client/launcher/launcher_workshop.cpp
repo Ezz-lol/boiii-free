@@ -158,6 +158,7 @@ namespace launcher::workshop
 		std::mutex workshop_download_mutex;
 		PROCESS_INFORMATION workshop_download_process{};
 		std::atomic<bool> workshop_cancel_requested{ false };
+		std::atomic<bool> workshop_paused{ false };
 
 		std::mutex workshop_browse_mutex;
 		std::vector<std::string> workshop_browse_cache;
@@ -901,6 +902,14 @@ namespace launcher::workshop
 							if (fav_it != item.MemberEnd())
 								favorites = parse_json_int64(fav_it->value);
 
+							std::uint64_t file_size = 0;
+							auto fs_it = item.FindMember("file_size");
+							if (fs_it != item.MemberEnd()) {
+								if (fs_it->value.IsUint64()) file_size = fs_it->value.GetUint64();
+								else if (fs_it->value.IsUint()) file_size = fs_it->value.GetUint();
+								else if (fs_it->value.IsString()) file_size = std::strtoull(fs_it->value.GetString(), nullptr, 10);
+							}
+
 							int star_rating = item_ratings.count(id) ? item_ratings[id] : 0;
 
 							w.StartObject();
@@ -918,6 +927,10 @@ namespace launcher::workshop
 							w.Int64(subs);
 							w.Key("favorites");
 							w.Int64(favorites);
+							if (file_size > 0) {
+								w.Key("file_size");
+								w.Uint64(file_size);
+							}
 							w.EndObject();
 						}
 						if (i + batch_size < all_ids.size())
@@ -1099,6 +1112,14 @@ namespace launcher::workshop
 							if (fav_it != item.MemberEnd())
 								favorites = parse_json_int64(fav_it->value);
 
+							std::uint64_t file_size = 0;
+							auto fs_it = item.FindMember("file_size");
+							if (fs_it != item.MemberEnd()) {
+								if (fs_it->value.IsUint64()) file_size = fs_it->value.GetUint64();
+								else if (fs_it->value.IsUint()) file_size = fs_it->value.GetUint();
+								else if (fs_it->value.IsString()) file_size = std::strtoull(fs_it->value.GetString(), nullptr, 10);
+							}
+
 							int star_rating = item_ratings.count(id) ? item_ratings[id] : 0;
 
 							w.StartObject();
@@ -1116,6 +1137,10 @@ namespace launcher::workshop
 							w.Int64(subs);
 							w.Key("favorites");
 							w.Int64(favorites);
+							if (file_size > 0) {
+								w.Key("file_size");
+								w.Uint64(file_size);
+							}
 							w.EndObject();
 						}
 
@@ -1332,6 +1357,7 @@ namespace launcher::workshop
 			{
 				reset_workshop_status();
 				workshop_cancel_requested = false;
+				workshop_paused = false;
 				set_workshop_status("Initializing...", -1.0, "Workshop ID: " + workshop_id);
 
 				char cwd[MAX_PATH];
@@ -1570,6 +1596,18 @@ namespace launcher::workshop
 						{
 							TerminateProcess(pi.hProcess, 1);
 							break;
+						}
+
+						if (workshop_paused.load())
+						{
+							set_workshop_status("Paused - " + workshop_title, -1.0, "Download paused. Click Resume to continue.");
+							TerminateProcess(pi.hProcess, 1);
+							// Wait for unpause or cancel
+							while (workshop_paused.load() && !workshop_cancel_requested.load())
+							{
+								std::this_thread::sleep_for(std::chrono::milliseconds(300));
+							}
+							break; // Break to outer loop which will restart SteamCMD
 						}
 
 						const DWORD wait = WaitForSingleObject(pi.hProcess, 1000);
@@ -1853,6 +1891,12 @@ namespace launcher::workshop
 					if (workshop_cancel_requested.load()) {
 						set_workshop_status("Canceled.", 0.0, "");
 						return;
+					}
+
+					// If paused, don't count this as a failed attempt - just loop back
+					if (workshop_paused.load()) {
+						attempt--; // Don't consume an attempt for pause
+						continue;
 					}
 
 					if (std::filesystem::exists(content_path)) {
@@ -2306,6 +2350,8 @@ namespace launcher::workshop
 				w.String(workshop_progress_details.c_str());
 				w.Key("downloadFolder");
 				w.String(workshop_download_folder.c_str());
+				w.Key("paused");
+				w.Bool(workshop_paused.load());
 				w.EndObject();
 				return CComVariant(std::string(buf.GetString(), buf.GetSize()).c_str());
 			});
@@ -2339,6 +2385,7 @@ namespace launcher::workshop
 		frame->register_callback(
 			"workshopCancelDownload", [](const std::vector<html_argument>& /*params*/) -> CComVariant {
 				workshop_cancel_requested = true;
+				workshop_paused = false;
 				{
 					std::lock_guard plock(workshop_download_mutex);
 					if (workshop_download_process.hProcess) {
@@ -2347,6 +2394,23 @@ namespace launcher::workshop
 				}
 				reset_workshop_status();
 				return CComVariant("Cancel requested");
+			});
+
+		frame->register_callback(
+			"workshopPauseDownload", [](const std::vector<html_argument>& /*params*/) -> CComVariant {
+				workshop_paused = true;
+				return CComVariant("Pause requested");
+			});
+
+		frame->register_callback(
+			"workshopResumeDownload", [](const std::vector<html_argument>& /*params*/) -> CComVariant {
+				workshop_paused = false;
+				return CComVariant("Resume requested");
+			});
+
+		frame->register_callback(
+			"workshopIsPaused", [](const std::vector<html_argument>& /*params*/) -> CComVariant {
+				return CComVariant(workshop_paused.load() ? "true" : "false");
 			});
 
 		frame->register_callback(

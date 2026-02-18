@@ -1692,6 +1692,7 @@
                 <div class="workshop-progress-fill" id="workshopProgressFill"></div>
                 <span id="workshopProgressPercent" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: 0.75rem; color: #fff; font-weight: 600; text-shadow: 0 1px 3px rgba(0,0,0,0.8);"></span>
               </div>
+              <button type="button" class="btn" id="workshopProgressPause" title="Pause download" style="min-width: 38px; padding: 8px 0;">&#9208;</button>
               <button type="button" class="btn" id="workshopProgressCancel" title="Cancel download" style="min-width: 38px; padding: 8px 0;">&times;</button>
             </div>
             <div id="workshopStatusDetails" style="font-size: 0.8rem; color: rgba(200,196,192,0.7); margin-top: 4px;"></div>
@@ -1793,6 +1794,7 @@
     </div>
     <div class="progress-percent" id="progressPercent">0%</div>
     <button type="button" class="progress-folder" id="progressOpenFolder" title="Open download folder">&#128194;</button>
+    <button type="button" class="progress-cancel" id="progressPause" title="Pause download" style="font-size: 1rem;">&#9208;</button>
     <button type="button" class="progress-cancel" id="progressCancel">×</button>
   </div>
 
@@ -2882,6 +2884,12 @@
           clearInterval(window._workshopPollInterval);
           window._workshopPollInterval = null;
         }
+        window._workshopIsPaused = false;
+        var pauseBtn = document.getElementById('workshopProgressPause');
+        var pauseFooter = document.getElementById('progressPause');
+        if (pauseBtn) { pauseBtn.innerHTML = '&#9208;'; pauseBtn.title = 'Pause download'; }
+        if (pauseFooter) { pauseFooter.innerHTML = '&#9208;'; pauseFooter.title = 'Pause download'; }
+
         workshopDownloadBtn.disabled = false;
         workshopProgress.style.display = 'none';
         var msgEl = document.getElementById('workshopStatusMessage');
@@ -3599,6 +3607,20 @@
           if (status.downloadFolder) _workshopDownloadFolder = status.downloadFolder;
           if (!window._lastWorkshopTerminalState) window._lastWorkshopTerminalState = '';
 
+          if (status.paused !== undefined) {
+            var pauseBtn = document.getElementById('workshopProgressPause');
+            var pauseFooter = document.getElementById('progressPause');
+            if (status.paused && !window._workshopIsPaused) {
+              window._workshopIsPaused = true;
+              if (pauseBtn) { pauseBtn.innerHTML = '&#9654;'; pauseBtn.title = 'Resume download'; }
+              if (pauseFooter) { pauseFooter.innerHTML = '&#9654;'; pauseFooter.title = 'Resume download'; }
+            } else if (!status.paused && window._workshopIsPaused) {
+              window._workshopIsPaused = false;
+              if (pauseBtn) { pauseBtn.innerHTML = '&#9208;'; pauseBtn.title = 'Pause download'; }
+              if (pauseFooter) { pauseFooter.innerHTML = '&#9208;'; pauseFooter.title = 'Pause download'; }
+            }
+          }
+
           var msgEl = document.getElementById('workshopStatusMessage');
           var detEl = document.getElementById('workshopStatusDetails');
           var pctEl = document.getElementById('workshopProgressPercent');
@@ -3694,6 +3716,39 @@
       if (workshopProgressCancel) {
         workshopProgressCancel.onclick = function() {
           stopWorkshopDownloadCompletely();
+        };
+      }
+
+      var workshopProgressPause = document.getElementById('workshopProgressPause');
+      window._workshopIsPaused = false;
+      if (workshopProgressPause) {
+        workshopProgressPause.onclick = function() {
+          try {
+            var ex = getExternal();
+            if (!ex) return;
+            if (window._workshopIsPaused) {
+              if (ex.workshopResumeDownload) ex.workshopResumeDownload();
+              window._workshopIsPaused = false;
+              workshopProgressPause.innerHTML = '&#9208;';
+              workshopProgressPause.title = 'Pause download';
+              var pauseFooter = document.getElementById('progressPause');
+              if (pauseFooter) { pauseFooter.innerHTML = '&#9208;'; pauseFooter.title = 'Pause download'; }
+            } else {
+              if (ex.workshopPauseDownload) ex.workshopPauseDownload();
+              window._workshopIsPaused = true;
+              workshopProgressPause.innerHTML = '&#9654;';
+              workshopProgressPause.title = 'Resume download';
+              var pauseFooter = document.getElementById('progressPause');
+              if (pauseFooter) { pauseFooter.innerHTML = '&#9654;'; pauseFooter.title = 'Resume download'; }
+            }
+          } catch (e) {}
+        };
+      }
+
+      var progressPauseBtn = document.getElementById('progressPause');
+      if (progressPauseBtn) {
+        progressPauseBtn.onclick = function() {
+          if (workshopProgressPause) workshopProgressPause.click();
         };
       }
 
