@@ -11,6 +11,8 @@
 #include <utils/concurrency.hpp>
 #include <utils/image.hpp>
 
+#include "scheduler.hpp"
+
 #include <utils/io.hpp>
 
 #include <Richedit.h>
@@ -37,7 +39,7 @@ namespace console
 		constexpr UINT WM_APPEND_CONSOLE_TEXT = WM_APP + 0x1337;
 		constexpr size_t MAX_CONSOLE_CHARS = 1'000'000;
 
-		static bool full_logs_enabled()
+		bool full_logs_enabled()
 		{
 			static const bool enabled = utils::flags::has_flag("fulllogs");
 			return enabled;
@@ -57,7 +59,7 @@ namespace console
 			case '7': return RGB(255, 255, 255);
 			case '8': return RGB(255, 165, 0);
 			case '9': return RGB(128, 128, 128);
-			default:  return RGB(232, 230, 227);
+			default: return RGB(232, 230, 227);
 			}
 		}
 
@@ -129,28 +131,33 @@ namespace console
 				return RGB(245, 242, 240);
 			}
 
-			if (contains_case_insensitive(line, "com_error:") || contains_case_insensitive(line, "unrecoverable error") ||
+			if (contains_case_insensitive(line, "com_error:") || contains_case_insensitive(line, "unrecoverable error")
+				||
 				contains_case_insensitive(line, "script error"))
 			{
 				return get_error_color();
 			}
 
-			if (contains_case_insensitive(line, "ui error") || contains_case_insensitive(line, "unable to load module") ||
-				contains_case_insensitive(line, "stack traceback") || contains_case_insensitive(line, "attempt to index a nil value") ||
+			if (contains_case_insensitive(line, "ui error") || contains_case_insensitive(line, "unable to load module")
+				||
+				contains_case_insensitive(line, "stack traceback") || contains_case_insensitive(
+					line, "attempt to index a nil value") ||
 				contains_case_insensitive(line, "function expected instead of nil"))
 			{
 				return get_error_color();
 			}
 
 			if (contains_case_insensitive(line, "error") || contains_case_insensitive(line, "could not find") ||
-				contains_case_insensitive(line, "exec from disk failed") || contains_case_insensitive(line, "invalid line") ||
+				contains_case_insensitive(line, "exec from disk failed") || contains_case_insensitive(
+					line, "invalid line") ||
 				contains_case_insensitive(line, "missing asset") || contains_case_insensitive(line, "failed"))
 			{
 				return get_error_color();
 			}
 
 			if (contains_case_insensitive(line, "couldn't exec") || contains_case_insensitive(line, "failed to open") ||
-				contains_case_insensitive(line, "tried to load asset") || contains_case_insensitive(line, "could not load default asset"))
+				contains_case_insensitive(line, "tried to load asset") || contains_case_insensitive(
+					line, "could not load default asset"))
 			{
 				return get_error_color();
 			}
@@ -280,7 +287,8 @@ namespace console
 			scroll_info.cbSize = sizeof(scroll_info);
 			scroll_info.fMask = SIF_ALL;
 			GetScrollInfo(richedit, SB_VERT, &scroll_info);
-			const bool was_at_bottom = (scroll_info.nPos + static_cast<int>(scroll_info.nPage) >= scroll_info.nMax - 1) || scroll_info.nMax == 0;
+			const bool was_at_bottom = (scroll_info.nPos + static_cast<int>(scroll_info.nPage) >= scroll_info.nMax - 1)
+				|| scroll_info.nMax == 0;
 
 			std::string_view remaining(text);
 			while (!remaining.empty())
@@ -333,10 +341,10 @@ namespace console
 								dvar_name_list.push_back(line);
 						}
 						std::sort(dvar_name_list.begin(), dvar_name_list.end(),
-							[](const std::string& a, const std::string& b)
-							{
-								return _stricmp(a.c_str(), b.c_str()) < 0;
-							});
+						          [](const std::string& a, const std::string& b)
+						          {
+							          return _stricmp(a.c_str(), b.c_str()) < 0;
+						          });
 						dvar_list_loaded = true;
 					}
 				}
@@ -384,7 +392,7 @@ namespace console
 			if (matches.size() == 1)
 			{
 				SetWindowTextA(input_hwnd, matches[0]->c_str());
-				SendMessageA(input_hwnd, EM_SETSEL, static_cast<WPARAM>(matches[0]->size()), static_cast<LPARAM>(matches[0]->size()));
+				SendMessageA(input_hwnd, EM_SETSEL, matches[0]->size(), static_cast<LPARAM>(matches[0]->size()));
 				return true;
 			}
 
@@ -413,7 +421,7 @@ namespace console
 			{
 				std::string completed = matches[0]->substr(0, common_len);
 				SetWindowTextA(input_hwnd, completed.c_str());
-				SendMessageA(input_hwnd, EM_SETSEL, static_cast<WPARAM>(completed.size()), static_cast<LPARAM>(completed.size()));
+				SendMessageA(input_hwnd, EM_SETSEL, completed.size(), static_cast<LPARAM>(completed.size()));
 			}
 
 			std::string hint = "\n";
@@ -530,19 +538,20 @@ namespace console
 			const int input_y = (std::max)(top_offset, client_height - input_height - margin);
 
 			MoveWindow(*game::s_wcd::hwndBuffer, margin, top_offset, client_width,
-				(std::max)(0, input_y - top_offset - margin), TRUE);
+			           (std::max)(0, input_y - top_offset - margin), TRUE);
 			MoveWindow(*game::s_wcd::hwndInputLine, margin, input_y, client_width, input_height, TRUE);
 
 			if (*game::s_wcd::codLogo)
 			{
-				HBITMAP bmp = reinterpret_cast<HBITMAP>(SendMessageA(*game::s_wcd::codLogo, STM_GETIMAGE, IMAGE_BITMAP, 0));
+				auto bmp = reinterpret_cast<HBITMAP>(
+					SendMessageA(*game::s_wcd::codLogo, STM_GETIMAGE, IMAGE_BITMAP, 0));
 				BITMAP bm{};
 				if (bmp && GetObjectA(bmp, sizeof(bm), &bm) == sizeof(bm))
 				{
 					const int desired_w = bm.bmWidth;
 					const int desired_h = bm.bmHeight;
 					const int x = (std::max)(margin, margin + (client_width - desired_w) / 2);
-					const int y = 6;
+					constexpr int y = 6;
 					MoveWindow(*game::s_wcd::codLogo, x, y, desired_w, desired_h, TRUE);
 				}
 			}
@@ -591,8 +600,8 @@ namespace console
 			return utils::hook::invoke<LRESULT>(game::select(0x142332C60, 0x1405976E0), hwnd, msg, wparam, lparam);
 		}
 
-		static utils::hook::detour sys_show_console_hook;
-		static std::atomic_bool console_shown_once{false};
+		utils::hook::detour sys_show_console_hook;
+		std::atomic_bool console_shown_once{false};
 
 		void sys_show_console_stub()
 		{
@@ -661,10 +670,11 @@ namespace console
 			utils::hook::set<int>(game::s_wcd::windowHeight, (rect.bottom - rect.top + 1));
 
 			utils::hook::set<HWND>(game::s_wcd::hWnd, CreateWindowExA(
-				0, class_name, window_name, window_style,
-				(swidth - (rect.right - rect.left + 1)) / 2, (sheight - (rect.bottom - rect.top + 1)) / 2,
-				rect.right - rect.left + 1, rect.bottom - rect.top + 1, nullptr, nullptr,
-				h_instance, nullptr));
+				                       0, class_name, window_name, window_style,
+				                       (swidth - (rect.right - rect.left + 1)) / 2,
+				                       (sheight - (rect.bottom - rect.top + 1)) / 2,
+				                       rect.right - rect.left + 1, rect.bottom - rect.top + 1, nullptr, nullptr,
+				                       h_instance, nullptr));
 
 			if (!*game::s_wcd::hWnd)
 			{
@@ -676,35 +686,36 @@ namespace console
 			const auto n_height = MulDiv(8, GetDeviceCaps(dc, 90), 72);
 
 			utils::hook::set<HFONT>(game::s_wcd::hfBufferFont, CreateFontA(
-				-n_height, 0, 0, 0, 300, 0, 0, 0, 1u, 0, 0, 0, 0x31u, "Courier New"));
+				                        -n_height, 0, 0, 0, 300, 0, 0, 0, 1u, 0, 0, 0, 0x31u, "Courier New"));
 
 			ReleaseDC(*game::s_wcd::hWnd, dc);
 
 			if (logo)
 			{
 				utils::hook::set<HWND>(game::s_wcd::codLogo, CreateWindowExA(
-					0, "Static", nullptr, 0x5000000Eu, 5, 5, 0, 0, *game::s_wcd::hWnd,
-					reinterpret_cast<HMENU>(1), h_instance, nullptr));
+					                       0, "Static", nullptr, 0x5000000Eu, 5, 5, 0, 0, *game::s_wcd::hWnd,
+					                       reinterpret_cast<HMENU>(1), h_instance, nullptr));
 				SendMessageA(*game::s_wcd::codLogo, STM_SETIMAGE, IMAGE_BITMAP, logo);
 			}
 
 			utils::hook::set<HWND>(game::s_wcd::hwndInputLine, CreateWindowExA(
-				0, "edit", nullptr, 0x50800080u, 6, 500, WINDOW_WIDTH, 24, *game::s_wcd::hWnd,
-				reinterpret_cast<HMENU>(0x65), h_instance, nullptr));
+				                       0, "edit", nullptr, 0x50800080u, 6, 500, WINDOW_WIDTH, 24, *game::s_wcd::hWnd,
+				                       reinterpret_cast<HMENU>(0x65), h_instance, nullptr));
 			utils::hook::set<HWND>(game::s_wcd::hwndBuffer, CreateWindowExW(
-				0, L"RICHEDIT50W", nullptr,
-				WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY | ES_NOHIDESEL,
-				6, 70, WINDOW_WIDTH, 420, *game::s_wcd::hWnd,
-				reinterpret_cast<HMENU>(0x64), h_instance, nullptr));
+				                       0, L"RICHEDIT50W", nullptr,
+				                       WS_CHILD | WS_VISIBLE | WS_VSCROLL | ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY
+				                       | ES_NOHIDESEL,
+				                       6, 70, WINDOW_WIDTH, 420, *game::s_wcd::hWnd,
+				                       reinterpret_cast<HMENU>(0x64), h_instance, nullptr));
 			SendMessageA(*game::s_wcd::hwndBuffer, WM_SETFONT, reinterpret_cast<WPARAM>(*game::s_wcd::hfBufferFont), 0);
 			SendMessageA(*game::s_wcd::hwndBuffer, EM_SETBKGNDCOLOR, 0, RGB(50, 50, 50));
 			SendMessageA(*game::s_wcd::hwndBuffer, EM_SETLIMITTEXT, 0, 0);
 
 			utils::hook::set<WNDPROC>(game::s_wcd::SysInputLineWndProc, reinterpret_cast<WNDPROC>(SetWindowLongPtrA(
-				*game::s_wcd::hwndInputLine, -4,
-				reinterpret_cast<LONG_PTR>(input_line_wnd_proc))));
+				                          *game::s_wcd::hwndInputLine, -4,
+				                          reinterpret_cast<LONG_PTR>(input_line_wnd_proc))));
 			SendMessageA(*game::s_wcd::hwndInputLine, WM_SETFONT, reinterpret_cast<WPARAM>(*game::s_wcd::hfBufferFont),
-				0);
+			             0);
 
 			SetFocus(*game::s_wcd::hwndInputLine);
 			game::Con_GetTextCopy(text, std::min(0x4000, static_cast<int>(sizeof(text))));
@@ -817,7 +828,7 @@ namespace console
 						else if (*game::s_wcd::hWnd)
 						{
 							PostMessageA(*game::s_wcd::hWnd, WM_APPEND_CONSOLE_TEXT, 0,
-								reinterpret_cast<LPARAM>(new std::string(std::move(message_buffer))));
+							             reinterpret_cast<LPARAM>(new std::string(std::move(message_buffer))));
 						}
 					}
 
@@ -856,6 +867,15 @@ namespace console
 			{
 				std::this_thread::sleep_for(10ms);
 			}
+
+#ifndef NDEBUG
+			scheduler::once([]()
+			{
+				const utils::nt::library game_module{};
+				printf("Entry Point: 0x%llX\n",
+				       reinterpret_cast<unsigned long long>(game_module.get_entry_point()));
+			}, scheduler::main);
+#endif
 		}
 
 		void pre_destroy() override

@@ -1,8 +1,12 @@
 #include <std_include.hpp>
 #include <utils/io.hpp>
+#include <utils/http.hpp>
 #include "game/game.hpp"
 #include "workshop.hpp"
 #include "steamcmd.hpp"
+#include "download_overlay.hpp"
+#include "fastdl.hpp"
+#include "scheduler.hpp"
 #include <curl/curl.h>
 #include "unzip.h"
 #include <zlib.h>
@@ -10,6 +14,40 @@
 
 namespace steamcmd
 {
+	namespace
+	{
+		std::atomic<HANDLE> active_process{nullptr};
+
+		std::size_t get_folder_size(const std::string& path)
+		{
+			std::size_t total = 0;
+			try {
+				for (auto& e : std::filesystem::recursive_directory_iterator(
+					path, std::filesystem::directory_options::skip_permission_denied))
+					if (e.is_regular_file()) total += e.file_size();
+			} catch (...) {}
+			return total;
+		}
+
+		std::size_t query_workshop_size(const std::string& workshop_id)
+		{
+			const std::string body = "itemcount=1&publishedfileids[0]=" + workshop_id;
+			const auto response = utils::http::post_data(
+				"https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/",
+				body);
+			if (!response) return 0;
+
+			rapidjson::Document doc;
+			doc.Parse(response->c_str());
+			if (doc.HasParseError()) return 0;
+			try
+			{
+				return doc["response"]["publishedfiledetails"][0]["file_size"].GetUint64();
+			}
+			catch (...) { return 0; }
+		}
+	}
+
 	int start_new_process(const char* exePath, bool Hide_Window, bool waittill_done, const char* arguments)
 	{
 		std::string commandLine = std::string(exePath) + " " + std::string(arguments);
@@ -40,7 +78,9 @@ namespace steamcmd
 		{
 			if (waittill_done)
 			{
+				active_process.store(pi.hProcess);
 				WaitForSingleObject(pi.hProcess, INFINITE);
+				active_process.store(nullptr);
 			}
 
 			DWORD exitCode;
@@ -311,6 +351,15 @@ namespace steamcmd
 	void initialize_download(std::string workshop_id, std::string modtype)
 	{
 		workshop::downloading_workshop_item = true;
+
+		{
+			download_overlay::download_state s;
+			s.active      = true;
+			s.item_name   = (modtype == "Map" ? "Map: " : "Mod: ") + workshop_id;
+			s.status_line = "Setting up SteamCMD...";
+			download_overlay::update(s);
+		}
+
 		int result = download_workshop_item(workshop_id.data(), modtype.data());
 
 		if (result == 4)
@@ -341,6 +390,8 @@ namespace steamcmd
 			           MB_OK | MB_ICONINFORMATION | MB_SYSTEMMODAL);
 		}
 
+		download_overlay::clear();
+
 		//Refresh steam workshop items with command
 		game::Cbuf_AddText(0, "userContentReload\n");
 		printf("Workshop items refreshed\n");
@@ -354,6 +405,41 @@ namespace steamcmd
 			printf("[ERROR] Could not setup steamcmd! \n");
 			return 3;
 		}
+
+		// Cancel callback: kill the running steamcmd process and stop the loop
+		auto cancel_cb = std::function<void()>([]()
+		{
+			HANDLE h = active_process.load();
+			if (h) TerminateProcess(h, 1);
+			workshop::downloading_workshop_item = false;
+		});
+
+		// Poll the in-progress downloads folder every 500ms.
+		// SteamCMD pre-allocates full file sizes in the content folder, so we watch
+		// the downloads folder for honest byte counts. Bar is indeterminate because
+		// pre-allocation makes total-size tracking unreliable.
+		auto tracker = std::make_shared<fastdl::speed_tracker>();
+		const std::string dl_folder = "./steamcmd/steamapps/workshop/downloads/311210/" + workshop_id;
+		const std::string item_name = (modtype == "Map" ? "Map: " : "Mod: ") + workshop_id;
+		scheduler::schedule([tracker, dl_folder, item_name, cancel_cb]() -> bool
+		{
+			if (!workshop::downloading_workshop_item) return scheduler::cond_end;
+
+			const std::size_t current = get_folder_size(dl_folder);
+			const float spd = tracker->update(current);
+
+			download_overlay::download_state s;
+			s.active           = true;
+			s.item_name        = item_name;
+			s.downloaded_bytes = current;
+			s.total_bytes      = 0;  // indeterminate
+			s.speed_bps        = spd;
+			s.status_line      = "SteamCMD";
+			s.on_cancel        = cancel_cb;
+			download_overlay::update(s);
+
+			return scheduler::cond_continue;
+		}, scheduler::async, 500ms);
 
 		const char* workshop_id_char = workshop_id.c_str();
 		std::string content_folder = "./steamcmd/steamapps/workshop/content/311210/" + workshop_id;
@@ -398,7 +484,7 @@ namespace steamcmd
 			}
 
 			// SteamCMD will resume from where it left off if the download was interrupted
-			int result = start_new_process("./steamcmd/steamcmd.exe", false, true,
+			int result = start_new_process("./steamcmd/steamcmd.exe", true, true,
 			                               ("+login anonymous app_update 311210 +workshop_download_item 311210 " +
 				                               std::string(workshop_id_char) + " validate +quit").c_str());
 
@@ -409,6 +495,12 @@ namespace steamcmd
 			}
 
 			continue_download = true;
+		}
+
+		if (!workshop::downloading_workshop_item)
+		{
+			printf("[ Workshop ] Download cancelled by user.\n");
+			return 1;
 		}
 
 		if (tries >= max_tries)

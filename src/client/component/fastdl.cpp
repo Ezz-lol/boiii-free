@@ -4,6 +4,7 @@
 
 #include "fastdl.hpp"
 #include "scheduler.hpp"
+#include "download_overlay.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -452,6 +453,8 @@ namespace fastdl
 		this->downloaded_files_.clear();
 		this->downloading_files_.clear();
 
+		download_overlay::clear();
+
 		std::this_thread::sleep_for(std::chrono::milliseconds(200));
 	}
 
@@ -499,13 +502,30 @@ namespace fastdl
 		}
 	}
 
-	void fastdl_ui::update_progress() const
+	void fastdl_ui::update_progress()
 	{
 		std::lock_guard<std::recursive_mutex> _{this->mutex_};
-		this->progress_ui_.set_progress(this->get_downloaded_size(), this->get_total_size());
+		const auto downloaded = this->get_downloaded_size();
+		const auto tot        = this->get_total_size();
+		this->progress_ui_.set_progress(downloaded, tot);
+
+		const float spd = this->speed_.update(downloaded);
+		download_overlay::download_state s;
+		s.active           = true;
+		s.item_name        = "FastDL";
+		s.downloaded_bytes = downloaded;
+		s.total_bytes      = tot;
+		s.speed_bps        = spd;
+		s.eta_seconds      = this->speed_.eta(tot, downloaded);
+		s.status_line      = utils::string::va("File %zu/%zu: %s",
+			this->get_downloaded_files() + 1,
+			this->get_total_files(),
+			this->current_filename_.c_str());
+		s.on_cancel        = []{ cancel_download(); };
+		download_overlay::update(s);
 	}
 
-	void fastdl_ui::update_file_name() const
+	void fastdl_ui::update_file_name()
 	{
 		std::lock_guard<std::recursive_mutex> _{this->mutex_};
 
@@ -522,7 +542,8 @@ namespace fastdl
 				downloaded_file_count, total_file_count));
 		}
 
-		this->progress_ui_.set_line(2, this->get_relevant_file_name());
+		this->current_filename_ = this->get_relevant_file_name();
+		this->progress_ui_.set_line(2, this->current_filename_);
 	}
 
 	size_t fastdl_ui::get_total_size() const
