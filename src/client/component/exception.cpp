@@ -218,7 +218,10 @@ namespace exception
 			utils::compression::zip::archive zip_file{};
 			zip_file.add("crash.dmp", create_minidump(exceptioninfo));
 			zip_file.add("info.txt", generate_crash_info(exceptioninfo));
-			zip_file.write(crash_name, "Ezz Crash Dump");
+			if (!zip_file.write(crash_name, "Ezz Crash Dump"))
+			{
+				utils::io::remove_file(crash_name);
+			}
 		}
 
 		bool is_harmless_error(const LPEXCEPTION_POINTERS exceptioninfo)
