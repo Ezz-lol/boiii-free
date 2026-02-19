@@ -196,7 +196,7 @@ namespace discord
 			DiscordRichPresence presence{};
 			presence.instance = 1;
 			presence.startTimestamp = start_timestamp;
-			presence.details = "Playing BO3 via Ezz!";
+			presence.details = "BOIII via Ezz";
 			presence.state = "Starting...";
 			presence.largeImageKey = "logo";
 			presence.smallImageKey = "sexy";
@@ -213,8 +213,8 @@ namespace discord
 			DiscordRichPresence presence{};
 			presence.instance = 1;
 			presence.startTimestamp = start_timestamp;
-			presence.details = game::Com_IsRunningUILevel() ? "In Menus" : "Playing BO3 via Ezz!";
-			presence.state = "Main Menu";
+			presence.details = "BOIII via Ezz";
+			presence.state = game::Com_IsRunningUILevel() ? "Main Menu" : "Loading...";
 			presence.largeImageKey = "logo";
 			presence.largeImageText = "Playing BO3 via Ezz!";
 			presence.smallImageKey = "sexy";

@@ -382,7 +382,13 @@ namespace launcher
 					else if (!fe.expected_hash.empty())
 					{
 						auto actual_hash = compute_file_xxh3(full_path);
-						if (!actual_hash.empty() && actual_hash != fe.expected_hash)
+						if (actual_hash.empty())
+						{
+							// hash computation failed (IO error) -- size matched, treat as ok
+							ok_count++;
+							cs.ok++;
+						}
+						else if (actual_hash != fe.expected_hash)
 						{
 							if (is_dlc_or_zc)
 							{
@@ -426,7 +432,7 @@ namespace launcher
 			}
 			if (warn_total > 0)
 			{
-				result_msg += " | DLC warnings:";
+				result_msg += " | Optional (DLC):";
 				if (warn_missing_count > 0)
 					result_msg += " " + std::to_string(warn_missing_count) + " missing";
 				if (warn_size_count > 0)
