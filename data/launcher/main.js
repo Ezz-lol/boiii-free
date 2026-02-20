@@ -2171,4 +2171,120 @@
   }
 
   refreshModsGrid();
+
+  var _friendsData = [];
+
+  function loadFriendsList() {
+    try {
+      var ex = getExternal();
+      if (ex && ex.readFriends) {
+        var raw = ex.readFriends();
+        if (raw && typeof raw === 'string' && raw.length > 0) {
+          _friendsData = JSON.parse(raw);
+          if (!Array.isArray(_friendsData)) _friendsData = [];
+        } else {
+          _friendsData = [];
+        }
+      }
+    } catch (e) { _friendsData = []; }
+    renderFriendsList();
+  }
+
+  function renderFriendsList() {
+    var list = document.getElementById('friendsList');
+    var countEl = document.getElementById('friendsCount');
+    if (!list) return;
+    if (countEl) countEl.textContent = _friendsData.length + ' friend' + (_friendsData.length !== 1 ? 's' : '');
+
+    if (_friendsData.length === 0) {
+      list.innerHTML = '<div class="friends-empty"><div class="friends-empty-icon">&#128100;</div><div class="friends-empty-text">No friends added yet</div></div>';
+      return;
+    }
+
+    var html = '';
+    for (var i = 0; i < _friendsData.length; i++) {
+      var f = _friendsData[i];
+      var sid = (f.steam_id !== undefined) ? String(f.steam_id) : '';
+      var nm = f.name || 'Unknown';
+      html += '<div class="friend-item" data-steamid="' + sid + '">';
+      html += '<div class="friend-icon">&#128100;</div>';
+      html += '<div class="friend-info">';
+      html += '<div class="friend-name">' + nm.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
+      html += '<div class="friend-steamid">' + sid + '</div>';
+      html += '</div>';
+      html += '<button type="button" class="friend-remove-btn" data-remove-sid="' + sid + '" title="Remove">&times;</button>';
+      html += '</div>';
+    }
+    list.innerHTML = html;
+
+    var removeBtns = list.querySelectorAll('.friend-remove-btn');
+    for (var ri = 0; ri < removeBtns.length; ri++) {
+      (function(btn) {
+        btn.onclick = function() {
+          var sid = btn.getAttribute('data-remove-sid');
+          if (!sid) return;
+          try {
+            var ex = getExternal();
+            if (ex && ex.removeFriend) {
+              ex.removeFriend(sid);
+            }
+          } catch (e) {}
+          loadFriendsList();
+        };
+      })(removeBtns[ri]);
+    }
+  }
+
+  var friendAddBtn = document.getElementById('friendAddBtn');
+  if (friendAddBtn) {
+    friendAddBtn.onclick = function() {
+      var nameInput = document.getElementById('friendNameInput');
+      var sidInput = document.getElementById('friendSteamIdInput');
+      if (!nameInput || !sidInput) return;
+
+      var name = nameInput.value.replace(/^\s+|\s+$/g, '');
+      var sid = sidInput.value.replace(/^\s+|\s+$/g, '');
+
+      if (!name || !sid) {
+        showMessage('Add Friend', 'Please enter both a display name and a Steam ID.');
+        return;
+      }
+      if (!/^\d{5,20}$/.test(sid)) {
+        showMessage('Add Friend', 'Steam ID must be a numeric value (e.g. 76561198...).');
+        return;
+      }
+
+      try {
+        var ex = getExternal();
+        if (ex && ex.addFriend) {
+          var result = ex.addFriend(sid, name);
+          if (result === 'duplicate') {
+            showMessage('Add Friend', 'This Steam ID is already in your friends list.');
+            return;
+          } else if (result === 'error') {
+            showMessage('Add Friend', 'Failed to add friend. Please check the inputs.');
+            return;
+          }
+        }
+      } catch (e) {
+        showMessage('Add Friend', 'An error occurred while adding the friend.');
+        return;
+      }
+
+      nameInput.value = '';
+      sidInput.value = '';
+      loadFriendsList();
+    };
+  }
+
+  var origSetPage = setPage;
+  setPage = function(targetPage) {
+    origSetPage(targetPage);
+    if (targetPage === 'friends') {
+      loadFriendsList();
+    }
+  };
+
+  loadFriendsList();
+
 })();
