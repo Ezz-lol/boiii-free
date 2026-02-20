@@ -815,7 +815,7 @@ namespace launcher::workshop
 						}
 						if (page_items == 0)
 							break;
-						std::this_thread::sleep_for(std::chrono::milliseconds(300));
+						std::this_thread::sleep_for(std::chrono::milliseconds(100));
 					}
 					catch (...) {
 						break;
@@ -884,8 +884,8 @@ namespace launcher::workshop
 							auto desc_it = item.FindMember("description");
 							if (desc_it != item.MemberEnd() && desc_it->value.IsString()) {
 								description = desc_it->value.GetString();
-								if (description.size() > 300)
-									description = description.substr(0, 300) + "...";
+								if (description.size() > 2000)
+									description = description.substr(0, 2000) + "...";
 							}
 
 							auto img_it = item.FindMember("preview_url");
@@ -934,7 +934,7 @@ namespace launcher::workshop
 							w.EndObject();
 						}
 						if (i + batch_size < all_ids.size())
-							std::this_thread::sleep_for(std::chrono::milliseconds(200));
+							std::this_thread::sleep_for(std::chrono::milliseconds(50));
 					}
 					catch (...) {
 						continue;
@@ -1093,8 +1093,8 @@ namespace launcher::workshop
 							auto desc_it = item.FindMember("description");
 							if (desc_it != item.MemberEnd() && desc_it->value.IsString()) {
 								description = desc_it->value.GetString();
-								if (description.size() > 300)
-									description = description.substr(0, 300) + "...";
+								if (description.size() > 2000)
+									description = description.substr(0, 2000) + "...";
 							}
 
 							auto img_it = item.FindMember("preview_url");
