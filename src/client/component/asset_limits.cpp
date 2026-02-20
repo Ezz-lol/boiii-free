@@ -3,11 +3,34 @@
 #include "game/game.hpp"
 
 #include <utils/hook.hpp>
+#include <utils/io.hpp>
+
+#include <rapidjson/document.h>
 
 namespace asset_limits
 {
 	namespace
 	{
+		bool is_enabled()
+		{
+			const auto path = std::filesystem::path("boiii_players") / "user" / "launcher_settings.json";
+			std::string data;
+			if (utils::io::read_file(path.string(), &data) && !data.empty())
+			{
+				rapidjson::Document doc;
+				if (!doc.Parse(data.c_str()).HasParseError() && doc.IsObject())
+				{
+					auto it = doc.FindMember("asset_limits_enabled");
+					if (it != doc.MemberEnd() && it->value.IsString())
+					{
+						return std::string(it->value.GetString()) == "1";
+					}
+				}
+			}
+			// Default: enabled
+			return true;
+		}
+
 		void reallocate_asset_pool(const game::XAssetType type, const unsigned int new_size)
 		{
 			const auto entry_size = game::DB_GetXAssetTypeSize(type);
@@ -57,6 +80,12 @@ namespace asset_limits
 	public:
 		void post_unpack() override
 		{
+			if (!is_enabled())
+			{
+				printf("Asset pool expansion disabled by user settings\n");
+				return;
+			}
+
 			// Increase limits for commonly exhausted pools
 			reallocate_asset_pool(game::ASSET_TYPE_XMODEL, 2048);
 			reallocate_asset_pool(game::ASSET_TYPE_IMAGE, 8192);

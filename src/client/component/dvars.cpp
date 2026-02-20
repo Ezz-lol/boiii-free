@@ -2,11 +2,14 @@
 #include "loader/component_loader.hpp"
 
 #include "game/game.hpp"
+#include "command.hpp"
 #include "scheduler.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/io.hpp>
 #include <utils/string.hpp>
+
+#include <mutex>
 
 namespace dvars
 {
@@ -15,6 +18,170 @@ namespace dvars
 		std::atomic_bool dvar_write_scheduled{false};
 		bool initial_config_read = false;
 		utils::hook::detour dvar_set_variant_hook;
+		utils::hook::detour cmd_execute_single_command_hook;
+
+		std::mutex binds_mutex;
+		std::unordered_map<std::string, std::string> active_binds;
+		std::atomic_bool binds_dirty{false};
+
+		std::string get_binds_file_path()
+		{
+			return "boiii_players/user/binds.cfg";
+		}
+
+		void write_binds_file()
+		{
+			std::string buffer;
+			{
+				std::lock_guard lock(binds_mutex);
+				for (const auto& [key, cmd] : active_binds)
+				{
+					buffer.append(cmd);
+					buffer.append("\n");
+				}
+			}
+			utils::io::write_file(get_binds_file_path(), buffer);
+		}
+
+		void schedule_binds_write()
+		{
+			if (binds_dirty.exchange(true))
+			{
+				return; // already scheduled
+			}
+
+			scheduler::once([]
+			{
+				binds_dirty = false;
+				write_binds_file();
+			}, scheduler::main, 3s);
+		}
+
+		void load_binds_from_file()
+		{
+			const auto path = get_binds_file_path();
+			std::string data;
+			if (!utils::io::read_file(path, &data) || data.empty())
+			{
+				return;
+			}
+
+			{
+				std::lock_guard lock(binds_mutex);
+				std::istringstream stream(data);
+				std::string line;
+				while (std::getline(stream, line))
+				{
+					if (!line.empty() && line.back() == '\r') line.pop_back();
+					if (line.empty()) continue;
+
+					if (utils::string::starts_with(line, "bind "))
+					{
+						auto rest = line.substr(5);
+						auto key_start = rest.find_first_not_of(" \t");
+						if (key_start == std::string::npos) continue;
+						auto key_end = rest.find_first_of(" \t", key_start);
+						if (key_end == std::string::npos) continue;
+						auto key = rest.substr(key_start, key_end - key_start);
+						active_binds[utils::string::to_lower(key)] = line;
+					}
+				}
+			}
+
+			game::Cbuf_ExecuteBuffer(0, game::ControllerIndex_t::CONTROLLER_INDEX_0, data.c_str());
+		}
+
+		void migrate_binds_from_config()
+		{
+			const auto binds_path = get_binds_file_path();
+			if (utils::io::file_exists(binds_path))
+			{
+				return;
+			}
+
+			const std::string config_path = "boiii_players/user/config.cfg";
+			std::string config_data;
+			if (!utils::io::read_file(config_path, &config_data) || config_data.empty())
+			{
+				return;
+			}
+
+			std::string bind_lines;
+			std::istringstream stream(config_data);
+			std::string line;
+			while (std::getline(stream, line))
+			{
+				if (!line.empty() && line.back() == '\r') line.pop_back();
+				if (utils::string::starts_with(line, "bind "))
+				{
+					bind_lines.append(line);
+					bind_lines.append("\n");
+				}
+			}
+
+			if (!bind_lines.empty())
+			{
+				utils::io::write_file(binds_path, bind_lines);
+			}
+		}
+
+		void cmd_execute_single_command_stub(int localClientNum,
+			game::ControllerIndex_t controllerIndex, const char* text, bool fromRemoteConsole)
+		{
+			cmd_execute_single_command_hook.invoke(localClientNum, controllerIndex, text, fromRemoteConsole);
+
+			if (!initial_config_read || !text || !*text)
+			{
+				return;
+			}
+
+			std::string cmd_text(text);
+
+			auto start = cmd_text.find_first_not_of(" \t");
+			if (start == std::string::npos) return;
+			cmd_text = cmd_text.substr(start);
+
+			const auto lower = utils::string::to_lower(cmd_text);
+
+			if (utils::string::starts_with(lower, "bind "))
+			{
+				auto rest = cmd_text.substr(5);
+				auto key_start = rest.find_first_not_of(" \t");
+				if (key_start == std::string::npos) return;
+				auto key_end = rest.find_first_of(" \t", key_start);
+				if (key_end == std::string::npos) return;
+
+				auto key = rest.substr(key_start, key_end - key_start);
+				{
+					std::lock_guard lock(binds_mutex);
+					active_binds[utils::string::to_lower(key)] = cmd_text;
+				}
+				schedule_binds_write();
+			}
+			else if (utils::string::starts_with(lower, "unbind "))
+			{
+				auto rest = cmd_text.substr(7);
+				auto key_start = rest.find_first_not_of(" \t");
+				if (key_start == std::string::npos) return;
+				auto key_end = rest.find_first_of(" \t\n\r", key_start);
+				auto key = (key_end == std::string::npos)
+					? rest.substr(key_start)
+					: rest.substr(key_start, key_end - key_start);
+				{
+					std::lock_guard lock(binds_mutex);
+					active_binds.erase(utils::string::to_lower(key));
+				}
+				schedule_binds_write();
+			}
+			else if (utils::string::starts_with(lower, "unbindall"))
+			{
+				{
+					std::lock_guard lock(binds_mutex);
+					active_binds.clear();
+				}
+				schedule_binds_write();
+			}
+		}
 
 		void dvar_for_each_name_stub(void (*callback)(const char*))
 		{
@@ -117,44 +284,9 @@ namespace dvars
 			return (dvar->flags & game::DVAR_ARCHIVE);
 		}
 
-		std::string extract_bind_lines(const std::string& config_data)
-		{
-			std::string binds;
-			std::istringstream stream(config_data);
-			std::string line;
-
-			while (std::getline(stream, line))
-			{
-				// Remove carriage return if present
-				if (!line.empty() && line.back() == '\r')
-				{
-					line.pop_back();
-				}
-
-				if (utils::string::starts_with(line, "bind "))
-				{
-					binds.append(line);
-					binds.append("\n");
-				}
-			}
-
-			return binds;
-		}
-
 		void write_archive_dvars()
 		{
 			const auto path = get_config_file_path();
-
-			// Preserve existing bind commands from the config file
-			std::string preserved_binds;
-			{
-				std::string existing_config;
-				if (utils::io::read_file(path, &existing_config))
-				{
-					preserved_binds = extract_bind_lines(existing_config);
-				}
-			}
-
 			std::string config_buffer;
 
 			for (int i = 0; i < *game::g_dvarCount; ++i)
@@ -172,15 +304,9 @@ namespace dvars
 				config_buffer.append(utils::string::va("set %s \"%s\"\n", name, value));
 			}
 
-			if (config_buffer.empty() && preserved_binds.empty())
+			if (config_buffer.empty())
 			{
 				return;
-			}
-
-			if (!preserved_binds.empty())
-			{
-				config_buffer.append("\n");
-				config_buffer.append(preserved_binds);
 			}
 
 			utils::io::write_file(path, config_buffer);
@@ -214,16 +340,22 @@ namespace dvars
 		{
 			const std::string path = get_config_file_path();
 
-			if (!utils::io::file_exists(path))
+			// Migrate bind lines from config.cfg to binds.cfg (one-time)
+			migrate_binds_from_config();
+
+			if (utils::io::file_exists(path))
 			{
-				initial_config_read = true;
-				return;
+				std::string filedata;
+				utils::io::read_file(path, &filedata);
+
+				if (!filedata.empty())
+				{
+					game::Cbuf_ExecuteBuffer(0, game::ControllerIndex_t::CONTROLLER_INDEX_0, filedata.c_str());
+				}
 			}
 
-			std::string filedata;
-			utils::io::read_file(path, &filedata);
+			load_binds_from_file();
 
-			game::Cbuf_ExecuteBuffer(0, game::ControllerIndex_t::CONTROLLER_INDEX_0, filedata.c_str());
 			initial_config_read = true;
 			scheduler::execute(scheduler::pipeline::dvars_loaded);
 		}
@@ -238,6 +370,9 @@ namespace dvars
 			{
 				scheduler::once(read_archive_dvars, scheduler::pipeline::dvars_flags_patched);
 				dvar_set_variant_hook.create(0x1422C9030_g, dvar_set_variant_stub);
+
+				// Hook command execution to intercept bind/unbind/unbindall
+				cmd_execute_single_command_hook.create(0x1420ED380_g, cmd_execute_single_command_stub);
 
 				// Show all known dvars in console
 				utils::hook::jump(0x1422BCE30_g, dvar_for_each_name_stub);
