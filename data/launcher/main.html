@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en" style="background:#0a0a0a;">
+
 <head>
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <title>BOIII</title>
   <link rel="stylesheet" href="main.css">
 </head>
+
 <body>
   <div class="main-container">
     <nav class="nav-sidebar">
@@ -44,58 +46,80 @@
       <div id="mainPage" class="page active">
         <div class="main-page-top">
           <button type="button" class="gear-btn" id="gearBtn" title="Launch Options" color="white"">&#128640;</button>
-          <div class="launch-dropdown" id="launchDropdown">
+          <div class=" launch-dropdown" id="launchDropdown">
             <div class="launch-dropdown-header">Launch Options</div>
             <div class="launch-dropdown-list">
-              <div class="launch-option-card" data-option="nointro"  title="Skip the intro cinematic on startup"><span class="launch-option-dot"></span><span class="launch-option-name">Skip Intro</span></div>
-              <div class="launch-option-card" data-option="unsafe-lua"  title="Allow loading of unsigned Lua scripts"><span class="launch-option-dot"></span><span class="launch-option-name">Load Lua</span></div>
-              <div class="launch-option-card" data-option="nosteam"  title="Launch without connecting to Steam"><span class="launch-option-dot"></span><span class="launch-option-name">No Steam</span></div>
-              <div class="launch-option-card" data-option="windowed"  title="Run the game in a windowed window"><span class="launch-option-dot"></span><span class="launch-option-name">Windowed</span></div>
-              <div class="launch-option-card" data-option="borderless"  title="Run in borderless fullscreen mode"><span class="launch-option-dot"></span><span class="launch-option-name">Borderless</span></div>
-              <div class="launch-option-card" data-option="safe-mode"  title="Launch with minimal settings for troubleshooting (no mods loading)"><span class="launch-option-dot"></span><span class="launch-option-name">Safe Mode</span></div>
-              <div class="launch-option-card" data-option="console"  title="Enable the developer console in-game"><span class="launch-option-dot"></span><span class="launch-option-name">Dev Console</span></div>
-              <div class="launch-option-card" data-option="headless"  title="Run the server without a visible window"><span class="launch-option-dot"></span><span class="launch-option-name">Headless</span></div>
-              <div class="launch-option-card" data-option="fulllogs"  title="Show full untruncated log output (logs are trimmed by default)" ><span class="launch-option-dot"></span><span class="launch-option-name">Full Logs</span></div>
-              <div class="launch-option-card" data-option="nologs"  title="Disable the external console window"><span class="launch-option-dot"></span><span class="launch-option-name">No Console</span></div>
-              <div class="launch-option-card" data-option="keeplauncher"  title="Keep the launcher open after starting the game"><span class="launch-option-dot"></span><span class="launch-option-name">Keep Launcher</span></div>
-              <div class="launch-option-card" data-option="plugins"  title="Enable loading of custom plugins"><span class="launch-option-dot"></span><span class="launch-option-name">Plugins</span></div>
+              <div class="launch-option-card" data-option="nointro" title="Skip the intro cinematic on startup"><span
+                  class="launch-option-dot"></span><span class="launch-option-name">Skip Intro</span></div>
+              <div class="launch-option-card" data-option="unsafe-lua" title="Allow loading of unsigned Lua scripts">
+                <span class="launch-option-dot"></span><span class="launch-option-name">Load Lua</span>
+              </div>
+              <div class="launch-option-card" data-option="nosteam" title="Launch without connecting to Steam"><span
+                  class="launch-option-dot"></span><span class="launch-option-name">No Steam</span></div>
+              <div class="launch-option-card" data-option="windowed" title="Run the game in a windowed window"><span
+                  class="launch-option-dot"></span><span class="launch-option-name">Windowed</span></div>
+              <div class="launch-option-card" data-option="borderless" title="Run in borderless fullscreen mode"><span
+                  class="launch-option-dot"></span><span class="launch-option-name">Borderless</span></div>
+              <div class="launch-option-card" data-option="safe-mode"
+                title="Launch with minimal settings for troubleshooting (no mods loading)"><span
+                  class="launch-option-dot"></span><span class="launch-option-name">Safe Mode</span></div>
+              <div class="launch-option-card" data-option="console" title="Enable the developer console in-game"><span
+                  class="launch-option-dot"></span><span class="launch-option-name">Dev Console</span></div>
+              <div class="launch-option-card" data-option="headless" title="Run the server without a visible window">
+                <span class="launch-option-dot"></span><span class="launch-option-name">Headless</span>
+              </div>
+              <div class="launch-option-card" data-option="fulllogs"
+                title="Show full untruncated log output (logs are trimmed by default)"><span
+                  class="launch-option-dot"></span><span class="launch-option-name">Full Logs</span></div>
+              <div class="launch-option-card" data-option="nologs" title="Disable the external console window"><span
+                  class="launch-option-dot"></span><span class="launch-option-name">No Console</span></div>
+              <div class="launch-option-card" data-option="keeplauncher"
+                title="Keep the launcher open after starting the game"><span class="launch-option-dot"></span><span
+                  class="launch-option-name">Keep Launcher</span></div>
+              <div class="launch-option-card" data-option="plugins" title="Enable loading of custom plugins"><span
+                  class="launch-option-dot"></span><span class="launch-option-name">Plugins</span></div>
             </div>
-          </div>
-        </div>
-        <h1>
-          <span class="title-white title-big">E</span><span class="title-white">ZZ</span>
-          <span class="title-gap"></span>
-          <span class="title-orange">BOIII</span>
-        </h1>
-        <p class="description" style="margin-bottom:28px;">
-          Call of Duty: Black Ops 3 enhanced with our modifications. Experience the full campaign, multiplayer, and zombies modes with improved stability and additional features.
-        </p>
-        <div class="main-content">
-          <div class="play-section">
-            <button type="button" class="btn-play-large" id="playBtn">&#9654; PLAY</button>
-          </div>
-          <div class="player-section">
-            <div class="player-label">Player Name</div>
-            <div class="input-wrap">
-              <div class="corner-bl"></div>
-              <div class="corner-br"></div>
-              <input type="text" class="player-input" id="playerName" placeholder="Enter your name..." maxlength="16" autocomplete="off" spellcheck="false">
-            </div>
-          </div>
-          <div class="action-buttons">
-            <button type="button" class="btn btn-discord" id="discordBtn" onclick="window.external.openUrl('https://discord.gg/ezz')">Discord</button>
-            <button type="button" class="btn btn-forum" onclick="window.external.openUrl('https://ezz.lol')">Forum</button>
-            <button type="button" class="btn" id="manageInstallBtn">Manage</button>
-          </div>
-          <div class="main-lower-group">
-            <button type="button" class="btn btn-full" id="verifyBtn">Verify Game Files</button>
-            <button type="button" class="btn btn-full" id="setPathBtn">Change Game Path</button>
-            <div id="currentPathDisplay" class="path-display"></div>
-          </div>
         </div>
       </div>
+      <h1>
+        <span class="title-white title-big">E</span><span class="title-white">ZZ</span>
+        <span class="title-gap"></span>
+        <span class="title-orange">BOIII</span>
+      </h1>
+      <p class="description" style="margin-bottom:28px;">
+        Call of Duty: Black Ops 3 enhanced with our modifications. Experience the full campaign, multiplayer, and
+        zombies modes with improved stability and additional features.
+      </p>
+      <div class="main-content">
+        <div class="play-section">
+          <button type="button" class="btn-play-large" id="playBtn">&#9654; PLAY</button>
+        </div>
+        <div class="player-section">
+          <div class="player-label">Player Name</div>
+          <div class="input-wrap">
+            <div class="corner-bl"></div>
+            <div class="corner-br"></div>
+            <input type="text" class="player-input" id="playerName" placeholder="Enter your name..." maxlength="16"
+              autocomplete="off" spellcheck="false">
+          </div>
+        </div>
+        <div class="action-buttons">
+          <button type="button" class="btn btn-discord" id="discordBtn"
+            onclick="window.external.openUrl('https://discord.gg/ezz')">Discord</button>
+          <button type="button" class="btn btn-forum"
+            onclick="window.external.openUrl('https://ezz.lol')">Forum</button>
+          <button type="button" class="btn" id="manageInstallBtn">Manage</button>
+        </div>
+        <div class="main-lower-group">
+          <button type="button" class="btn btn-full" id="verifyBtn">Verify Game Files</button>
+          <button type="button" class="btn btn-full" id="setPathBtn">Change Game Path</button>
+          <div id="currentPathDisplay" class="path-display"></div>
+        </div>
+      </div>
+    </div>
 
-      <div id="workshopPage" class="page">
+    <div id="workshopPage" class="page">
+      <div class="page-scroll-inner">
         <div class="page-header">
           <h2 class="page-title">Workshop</h2>
           <p class="page-sub">Browse, download, and manage custom maps and mods from the Steam Workshop.</p>
@@ -115,7 +139,8 @@
                 <div class="workshop-progress-fill" id="workshopProgressFill"></div>
                 <span id="workshopProgressPercent" class="ws-pct-label"></span>
               </div>
-              <button type="button" class="btn btn-icon-sm" id="workshopProgressFolder" title="Open Folder">&#128194;</button>
+              <button type="button" class="btn btn-icon-sm" id="workshopProgressFolder"
+                title="Open Folder">&#128194;</button>
               <button type="button" class="btn btn-icon-sm" id="workshopProgressPause" title="Pause">&#9208;</button>
               <button type="button" class="btn btn-icon-sm" id="workshopProgressCancel" title="Cancel">&times;</button>
             </div>
@@ -136,7 +161,8 @@
                   <option value="alphabetical">Alphabetical</option>
                 </select>
               </div>
-              <input type="text" id="workshopSearchInput" class="workshop-search-input" placeholder="Search by name..." autocomplete="off">
+              <input type="text" id="workshopSearchInput" class="workshop-search-input" placeholder="Search by name..."
+                autocomplete="off">
               <button type="button" class="btn" id="workshopSearchBtn">Search</button>
               <button type="button" class="btn" id="workshopBrowseRefreshBtn">&#8635; Refresh</button>
               <button type="button" class="btn" id="workshopBrowseClearBtn">Clear</button>
@@ -152,30 +178,32 @@
 
           <div class="workshop-browse-pagination" id="workshopBrowsePagination" style="display:none;"></div>
         </div>
+      </div><!-- end page-scroll-inner -->
 
-        <div id="workshopOverlay" class="workshop-overlay"></div>
-        <div id="workshopModal" class="workshop-modal">
-          <div class="workshop-modal-header">
-            <h2 class="workshop-modal-title" id="workshopModalTitle">Mod Details</h2>
-            <button type="button" class="workshop-modal-close" id="workshopModalClose">&times;</button>
-          </div>
-          <div class="workshop-modal-body">
-            <div class="workshop-modal-content">
-              <div class="workshop-modal-image" id="workshopModalImage"></div>
-              <div class="workshop-modal-detail-panel">
-                <div class="workshop-modal-info" id="workshopModalInfo"></div>
-                <div class="workshop-modal-description" id="workshopModalDescription"></div>
-              </div>
+      <div id="workshopOverlay" class="workshop-overlay"></div>
+      <div id="workshopModal" class="workshop-modal">
+        <div class="workshop-modal-header">
+          <h2 class="workshop-modal-title" id="workshopModalTitle">Mod Details</h2>
+          <button type="button" class="workshop-modal-close" id="workshopModalClose">&times;</button>
+        </div>
+        <div class="workshop-modal-body">
+          <div class="workshop-modal-content">
+            <div class="workshop-modal-image" id="workshopModalImage"></div>
+            <div class="workshop-modal-detail-panel">
+              <div class="workshop-modal-info" id="workshopModalInfo"></div>
+              <div class="workshop-modal-description" id="workshopModalDescription"></div>
             </div>
           </div>
-          <div class="workshop-modal-footer">
-            <button type="button" class="btn" id="workshopModalViewBtn">View on Steam</button>
-            <button type="button" class="btn btn-primary" id="workshopModalDownloadBtn">Download</button>
-          </div>
+        </div>
+        <div class="workshop-modal-footer">
+          <button type="button" class="btn" id="workshopModalViewBtn">View on Steam</button>
+          <button type="button" class="btn btn-primary" id="workshopModalDownloadBtn">Download</button>
         </div>
       </div>
+    </div>
 
-      <div id="libraryPage" class="page">
+    <div id="libraryPage" class="page">
+      <div class="page-scroll-inner">
         <div class="page-header">
           <h2 class="page-title">Library</h2>
           <p class="page-sub">Browse and manage your installed workshop maps and mods.</p>
@@ -185,7 +213,8 @@
           <span class="library-toolbar-title">Installed Items</span>
           <div class="library-toolbar-actions">
             <button type="button" class="btn" id="workshopRefreshBtn">Refresh</button>
-            <button type="button" class="btn btn-steam" id="workshopLinkBtn" onclick="window.external.openUrl('https://steamcommunity.com/app/311210/workshop/')">Workshop</button>
+            <button type="button" class="btn btn-steam" id="workshopLinkBtn"
+              onclick="window.external.openUrl('https://steamcommunity.com/app/311210/workshop/')">Workshop</button>
             <button type="button" class="btn" id="checkUpdatesBtn">Check Updates</button>
             <button type="button" class="btn btn-danger" id="deleteAllModsBtn">Delete All</button>
           </div>
@@ -194,7 +223,9 @@
         <div class="remove-progress-bar" id="removeProgressBar">
           <div class="remove-msg" id="removeMsg"></div>
           <div class="remove-details" id="removeDetails"></div>
-          <div class="remove-track"><div class="remove-fill" id="removeFill"></div></div>
+          <div class="remove-track">
+            <div class="remove-fill" id="removeFill"></div>
+          </div>
         </div>
 
         <div class="mods-grid-wrap">
@@ -205,30 +236,32 @@
           <span id="modsPageLabel">Page 1 / 1</span>
           <button type="button" class="btn" id="modsNextPageBtn">Next &#8250;</button>
         </div>
+      </div><!-- end page-scroll-inner -->
 
-        <div id="libraryOverlay" class="workshop-overlay"></div>
-        <div id="libraryModal" class="workshop-modal">
-          <div class="workshop-modal-header">
-            <h2 class="workshop-modal-title" id="libraryModalTitle">Mod Details</h2>
-            <button type="button" class="workshop-modal-close" id="libraryModalClose">&times;</button>
-          </div>
-          <div class="workshop-modal-body">
-            <div class="workshop-modal-content">
-              <div class="workshop-modal-image" id="libraryModalImage"></div>
-              <div class="workshop-modal-detail-panel">
-                <div class="workshop-modal-info" id="libraryModalInfo"></div>
-                <div class="workshop-modal-description" id="libraryModalDescription"></div>
-              </div>
+      <div id="libraryOverlay" class="workshop-overlay"></div>
+      <div id="libraryModal" class="workshop-modal">
+        <div class="workshop-modal-header">
+          <h2 class="workshop-modal-title" id="libraryModalTitle">Mod Details</h2>
+          <button type="button" class="workshop-modal-close" id="libraryModalClose">&times;</button>
+        </div>
+        <div class="workshop-modal-body">
+          <div class="workshop-modal-content">
+            <div class="workshop-modal-image" id="libraryModalImage"></div>
+            <div class="workshop-modal-detail-panel">
+              <div class="workshop-modal-info" id="libraryModalInfo"></div>
+              <div class="workshop-modal-description" id="libraryModalDescription"></div>
             </div>
           </div>
-          <div class="workshop-modal-footer">
-            <button type="button" class="btn" id="libraryModalViewBtn">View on Steam</button>
-            <button type="button" class="btn btn-primary" id="libraryModalOpenBtn">Open Folder</button>
-          </div>
+        </div>
+        <div class="workshop-modal-footer">
+          <button type="button" class="btn" id="libraryModalViewBtn">View on Steam</button>
+          <button type="button" class="btn btn-primary" id="libraryModalOpenBtn">Open Folder</button>
         </div>
       </div>
+    </div>
 
-      <div id="friendsPage" class="page">
+    <div id="friendsPage" class="page">
+      <div class="page-scroll-inner">
         <div class="page-header">
           <h2 class="page-title">Friends</h2>
           <p class="page-sub">Manage your friends list. Add friends by their Steam ID to see them here.</p>
@@ -237,10 +270,12 @@
         <div class="friends-add-card">
           <div class="friends-add-label">Add Friend</div>
           <p class="friends-add-sub">Enter a display name and Steam ID to add a friend</p>
-          <p class="friends-add-sub" style="font-size:0.75rem;opacity:0.5;margin-top:-6px;">&#9432; Friends will also be auto-added when invited through Steam.</p>
+          <p class="friends-add-sub" style="font-size:0.75rem;opacity:0.5;margin-top:-6px;">&#9432; Friends will also be
+            auto-added when invited through Steam.</p>
           <div class="friends-add-row">
             <input type="text" id="friendNameInput" placeholder="Display name..." autocomplete="off" maxlength="32">
-            <input type="text" id="friendSteamIdInput" placeholder="Steam ID (e.g. 76561198...)" autocomplete="off" maxlength="20">
+            <input type="text" id="friendSteamIdInput" placeholder="Steam ID (e.g. 76561198...)" autocomplete="off"
+              maxlength="20">
             <button type="button" class="btn btn-primary" id="friendAddBtn">Add</button>
           </div>
         </div>
@@ -254,9 +289,11 @@
             <div class="friends-list" id="friendsList"></div>
           </div>
         </div>
-      </div>
+      </div><!-- end page-scroll-inner -->
+    </div>
 
-      <div id="settingsPage" class="page">
+    <div id="settingsPage" class="page">
+      <div class="page-scroll-inner">
         <div class="page-header">
           <h2 class="page-title">Settings</h2>
           <p class="page-sub">Configure launcher preferences, graphics, and network options.</p>
@@ -265,6 +302,7 @@
         <div class="settings-tabs">
           <button type="button" class="settings-tab active" data-stab="general">General</button>
           <button type="button" class="settings-tab" data-stab="graphics">Graphics</button>
+          <button type="button" class="settings-tab" data-stab="patches">Patches</button>
         </div>
 
         <div class="settings-body">
@@ -286,14 +324,16 @@
                   <div class="settings-row-label">Close launcher on play</div>
                   <div class="settings-row-desc">Close the launcher window when you start the game</div>
                 </div>
-                <button type="button" class="settings-toggle active" id="settingsCloseLauncher" data-setting="closeLauncher"></button>
+                <button type="button" class="settings-toggle active" id="settingsCloseLauncher"
+                  data-setting="closeLauncher"></button>
               </div>
               <div class="settings-row">
                 <div>
                   <div class="settings-row-label">Check for updates on launch</div>
                   <div class="settings-row-desc">Automatically check for client updates when the launcher opens</div>
                 </div>
-                <button type="button" class="settings-toggle active" id="settingsAutoUpdate" data-setting="autoUpdate"></button>
+                <button type="button" class="settings-toggle active" id="settingsAutoUpdate"
+                  data-setting="autoUpdate"></button>
               </div>
             </div>
 
@@ -304,7 +344,8 @@
                   <div class="settings-row-label">Auto-refresh library</div>
                   <div class="settings-row-desc">Refresh the mod library after a workshop download completes</div>
                 </div>
-                <button type="button" class="settings-toggle active" id="settingsAutoRefresh" data-setting="autoRefresh"></button>
+                <button type="button" class="settings-toggle active" id="settingsAutoRefresh"
+                  data-setting="autoRefresh"></button>
               </div>
             </div>
 
@@ -313,16 +354,20 @@
               <div class="settings-row">
                 <div>
                   <div class="settings-row-label">Extended asset pools</div>
-                  <div class="settings-row-desc">Increase model, image, and material pool limits for heavy mods (requires restart)</div>
+                  <div class="settings-row-desc">Increase model, image, and material pool limits for heavy mods
+                    (requires restart)</div>
                 </div>
-                <button type="button" class="settings-toggle active" id="settingsAssetLimits" data-setting="assetLimits"></button>
+                <button type="button" class="settings-toggle active" id="settingsAssetLimits"
+                  data-setting="assetLimits"></button>
               </div>
               <div class="settings-row">
                 <div>
                   <div class="settings-row-label">Reduce stuttering</div>
-                  <div class="settings-row-desc">Rename d3dcompiler_46.dll to use latest compiler and reduce shader stutter</div>
+                  <div class="settings-row-desc">Rename d3dcompiler_46.dll to use latest compiler and reduce shader
+                    stutter</div>
                 </div>
-                <button type="button" class="settings-toggle" id="settingsReduceStutter" data-setting="reduceStutter"></button>
+                <button type="button" class="settings-toggle" id="settingsReduceStutter"
+                  data-setting="reduceStutter"></button>
               </div>
             </div>
 
@@ -340,16 +385,21 @@
                   <div class="settings-row-label">Skip all intros</div>
                   <div class="settings-row-desc">Skip all cinematic intro videos (campaign, zombies, etc.)</div>
                 </div>
-                <button type="button" class="settings-toggle" id="settingsSkipAllIntros" data-setting="skipAllIntros"></button>
+                <button type="button" class="settings-toggle" id="settingsSkipAllIntros"
+                  data-setting="skipAllIntros"></button>
               </div>
             </div>
+
 
             <div class="settings-section">
               <div class="settings-section-title">Links</div>
               <div class="settings-links-row">
-                <button type="button" class="btn btn-discord" onclick="window.external.openUrl('https://discord.gg/ezz')">Discord</button>
-                <button type="button" class="btn btn-forum" onclick="window.external.openUrl('https://ezz.lol')">Forum</button>
-                <button type="button" class="btn btn-steam" onclick="window.external.openUrl('https://steamcommunity.com/app/311210/workshop/')">Workshop</button>
+                <button type="button" class="btn btn-discord"
+                  onclick="window.external.openUrl('https://discord.gg/ezz')">Discord</button>
+                <button type="button" class="btn btn-forum"
+                  onclick="window.external.openUrl('https://ezz.lol')">Forum</button>
+                <button type="button" class="btn btn-steam"
+                  onclick="window.external.openUrl('https://steamcommunity.com/app/311210/workshop/')">Workshop</button>
               </div>
             </div>
 
@@ -358,7 +408,8 @@
               <div class="settings-about">
                 <div class="settings-about-name">EZZ BOIII</div>
                 <div class="settings-about-ver" id="settingsVersion">v1.0.0</div>
-                <div class="settings-about-desc">Call of Duty: Black Ops 3 enhanced client. Custom launcher, workshop support, and community features.</div>
+                <div class="settings-about-desc">Call of Duty: Black Ops 3 enhanced client. Custom launcher, workshop
+                  support, and community features.</div>
               </div>
             </div>
 
@@ -367,21 +418,44 @@
               <div class="settings-row">
                 <div>
                   <div class="settings-row-label">Game Password</div>
-                  <div class="settings-row-desc">Password required to join your hosted game (g_password, leave empty to disable)</div>
+                  <div class="settings-row-desc">Password required to join your hosted game (g_password, leave empty to
+                    disable)</div>
                 </div>
-                <input type="text" class="settings-input" id="settingsNetworkPassword" placeholder="No password" autocomplete="off" maxlength="32" style="width:160px;">
+                <input type="text" class="settings-input" id="settingsNetworkPassword" placeholder="No password"
+                  autocomplete="off" maxlength="32" style="width:160px;">
               </div>
               <div class="settings-row">
                 <div>
                   <div class="settings-row-label">Friends Only</div>
                   <div class="settings-row-desc">Only allow friends to join your lobby</div>
                 </div>
-                <button type="button" class="settings-toggle" id="settingsFriendsOnly" data-setting="friendsOnly"></button>
+                <button type="button" class="settings-toggle" id="settingsFriendsOnly"
+                  data-setting="friendsOnly"></button>
               </div>
             </div>
 
             <div class="settings-section">
-              <button type="button" class="btn btn-danger" id="settingsResetBtn" style="width:100%;">Reset All Settings to Defaults</button>
+              <button type="button" class="btn btn-danger" id="settingsResetBtn" style="width:100%;">Reset All Settings
+                to Defaults</button>
+            </div>
+          </div>
+
+          <!-- ═══ PATCHES TAB ═══ -->
+          <div class="settings-tab-content" id="settingsTabPatches" data-stab="patches">
+            <div class="settings-section">
+              <div class="settings-section-title">Steam Update Fix</div>
+              <div
+                style="display:flex;flex-direction:column;gap:12px;padding:12px 16px;background:rgba(12,11,10,0.5);border:1px solid rgba(68,65,63,0.22);border-radius:8px;">
+                <div>
+                  <div class="settings-row-label">Previous BlackOps3.exe</div>
+                  <div class="settings-row-desc" style="margin-top:4px;">BOIII does not work with the latest Steam
+                    update. If you downloaded the latest update through Steam, use the button below to get the previous
+                    BlackOps3.exe and replace the one in your game directory.</div>
+                </div>
+                <button type="button" class="btn btn-primary" style="margin-top:20px;"
+                  onclick="window.external.openUrl('https://archive.org/download/t7_full_game/BlackOps3.exe')">Download
+                  Previous BlackOps3.exe</button>
+              </div>
             </div>
           </div>
 
@@ -400,7 +474,8 @@
                     <option value="smooth">Smooth</option>
                     <option value="lowlatency">Low-Latency</option>
                   </select>
-                  <button type="button" class="btn btn-primary" id="settingsApplyPresetBtn" style="padding:6px 14px;">Apply</button>
+                  <button type="button" class="btn btn-primary" id="settingsApplyPresetBtn"
+                    style="padding:6px 14px;">Apply</button>
                 </div>
               </div>
             </div>
@@ -423,14 +498,16 @@
                   <div class="settings-row-label">Resolution</div>
                   <div class="settings-row-desc">Game render resolution (e.g. 1920x1080)</div>
                 </div>
-                <input type="text" class="settings-input" id="settingsResolution" placeholder="1920x1080" autocomplete="off" maxlength="11" style="width:120px;">
+                <input type="text" class="settings-input" id="settingsResolution" placeholder="1920x1080"
+                  autocomplete="off" maxlength="11" style="width:120px;">
               </div>
               <div class="settings-row">
                 <div>
                   <div class="settings-row-label">Refresh Rate</div>
                   <div class="settings-row-desc">Monitor refresh rate in Hz</div>
                 </div>
-                <input type="text" class="settings-input" id="settingsRefreshRate" placeholder="60" autocomplete="off" maxlength="4" style="width:70px;">
+                <input type="text" class="settings-input" id="settingsRefreshRate" placeholder="60" autocomplete="off"
+                  maxlength="4" style="width:70px;">
               </div>
               <div class="settings-row">
                 <div>
@@ -448,14 +525,16 @@
                   <div class="settings-row-label">FPS Limit</div>
                   <div class="settings-row-desc">Maximum frames per second (0 = unlimited)</div>
                 </div>
-                <input type="text" class="settings-input" id="settingsFpsLimit" placeholder="0" autocomplete="off" maxlength="4" style="width:70px;">
+                <input type="text" class="settings-input" id="settingsFpsLimit" placeholder="0" autocomplete="off"
+                  maxlength="4" style="width:70px;">
               </div>
               <div class="settings-row">
                 <div>
                   <div class="settings-row-label">FOV</div>
                   <div class="settings-row-desc">Field of view (65-120)</div>
                 </div>
-                <input type="text" class="settings-input" id="settingsFov" placeholder="80" autocomplete="off" maxlength="3" style="width:70px;">
+                <input type="text" class="settings-input" id="settingsFov" placeholder="80" autocomplete="off"
+                  maxlength="3" style="width:70px;">
               </div>
               <div class="settings-row">
                 <div>
@@ -469,7 +548,8 @@
                   <div class="settings-row-label">Smooth Framerate</div>
                   <div class="settings-row-desc">Enable frame smoothing for consistent frame pacing</div>
                 </div>
-                <button type="button" class="settings-toggle" id="settingsSmoothFramerate" data-setting="smoothFramerate"></button>
+                <button type="button" class="settings-toggle" id="settingsSmoothFramerate"
+                  data-setting="smoothFramerate"></button>
               </div>
             </div>
 
@@ -487,7 +567,8 @@
                   <div class="settings-row-label">Max Frame Latency</div>
                   <div class="settings-row-desc">Max queued frames (1=low latency, 4=smooth)</div>
                 </div>
-                <input type="text" class="settings-input" id="settingsMaxLatency" placeholder="1" autocomplete="off" maxlength="1" style="width:50px;">
+                <input type="text" class="settings-input" id="settingsMaxLatency" placeholder="1" autocomplete="off"
+                  maxlength="1" style="width:50px;">
               </div>
               <div class="settings-row">
                 <div>
@@ -500,9 +581,10 @@
           </div>
 
         </div>
-      </div>
-
+      </div><!-- end page-scroll-inner -->
     </div>
+
+  </div>
   </div>
 
 
@@ -513,8 +595,10 @@
     </div>
     <div class="progress-percent" id="progressPercent">0%</div>
     <div class="progress-buttons">
-      <button type="button" class="progress-folder" id="progressOpenFolder" title="Open download folder">&#128194;</button>
-      <button type="button" class="progress-cancel" id="progressPause" title="Pause" style="font-size:1rem;">&#9208;</button>
+      <button type="button" class="progress-folder" id="progressOpenFolder"
+        title="Open download folder">&#128194;</button>
+      <button type="button" class="progress-cancel" id="progressPause" title="Pause"
+        style="font-size:1rem;">&#9208;</button>
       <button type="button" class="progress-cancel" id="progressCancel">&times;</button>
     </div>
   </div>
@@ -604,6 +688,8 @@
     </div>
   </div>
 
+
   <script src="main.js"></script>
 </body>
+
 </html>

@@ -522,10 +522,10 @@ int main()
 			if (is_server != game::is_server())
 			{
 				throw std::runtime_error(
-					"Incompatible Game Version Detected:\n"
-					"The latest Black Ops 3 update is not compatible with BOIII.\n"
-					"To fix this, download a previous version of BlackOps3.exe and replace the current updated file in your game directory.\n"
-					"This will restore full client functionality."
+				"Incompatible game version detected:\n"
+						"The latest Black Ops 3 update is not compatible with BOIII.\n"
+						"To fix this, download a previous version of BlackOps3.exe and replace the updated file in your game directory.\n"
+						"You can find a download link under Settings => Patches."
 				);
 			}
 
@@ -534,14 +534,15 @@ int main()
 				if (game::is_legacy_client())
 				{
 					throw std::runtime_error(
-						"You are using the outdated BlackOps3.exe. This version is not supported anymore. Please use the latest binary from Steam.");
+					"You are using an outdated BlackOps3.exe. This version is no longer supported.\n"
+							"Please use the binary provided under Settings => Patches.");
 				}
 
 				throw std::runtime_error(
-					"Incompatible Game Version Detected:\n"
-					"The latest Black Ops 3 update is not compatible with BOIII.\n"
-					"To fix this, download a previous version of BlackOps3.exe and replace the current updated file in your game directory.\n"
-					"This will restore full client functionality."
+				"Incompatible game version detected:\n"
+						"The latest Black Ops 3 update is not compatible with BOIII.\n"
+						"To fix this, download a previous version of BlackOps3.exe and replace the updated file in your game directory.\n"
+						"You can find a download link under Settings => Patches."
 				);
 			}
 

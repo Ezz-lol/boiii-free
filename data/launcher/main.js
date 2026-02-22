@@ -1,4 +1,4 @@
-(function() {
+(function () {
   var playerName = document.getElementById('playerName');
   var workshopId = document.getElementById('workshopId');
   var workshopStatus = document.getElementById('workshopStatus');
@@ -58,7 +58,7 @@
   var libraryModalOpenBtn = document.getElementById('libraryModalOpenBtn');
 
   if (!Array.prototype.find) {
-    Array.prototype.find = function(predicate) {
+    Array.prototype.find = function (predicate) {
       if (this == null) throw new TypeError('Array.prototype.find called on null or undefined');
       if (typeof predicate !== 'function') throw new TypeError(predicate + ' is not a function');
       var list = Object(this);
@@ -72,7 +72,7 @@
   }
 
   if (!Element.prototype.closest) {
-    Element.prototype.closest = function(selector) {
+    Element.prototype.closest = function (selector) {
       var el = this;
       while (el && el.nodeType === 1) {
         if (el.matches && el.matches(selector)) return el;
@@ -89,7 +89,7 @@
     element.oncut = null;
     element.onpaste = null;
     element.setAttribute('unselectable', 'off');
-    element.onselectstart = function() { return true; };
+    element.onselectstart = function () { return true; };
     element.style.userSelect = 'text';
     element.style.webkitUserSelect = 'text';
     element.style.MozUserSelect = 'text';
@@ -141,7 +141,7 @@
   function saveWorkshopCache(items) {
     try {
       localStorage.setItem(workshopBrowseCacheKey, JSON.stringify({ timestamp: Date.now(), items: items }));
-    } catch (e) {}
+    } catch (e) { }
   }
 
   function loadWorkshopCache() {
@@ -165,7 +165,7 @@
   var launchDropdown = document.getElementById('launchDropdown');
 
   if (gearBtn && launchDropdown) {
-    gearBtn.onclick = function(e) {
+    gearBtn.onclick = function (e) {
       e.stopPropagation();
       var isOpen = launchDropdown.classList.contains('open');
       if (isOpen) {
@@ -176,10 +176,10 @@
         gearBtn.classList.add('open');
       }
     };
-    launchDropdown.onclick = function(e) { e.stopPropagation(); };
+    launchDropdown.onclick = function (e) { e.stopPropagation(); };
   }
 
-  document.addEventListener('click', function() {
+  document.addEventListener('click', function () {
     if (launchDropdown && launchDropdown.classList.contains('open')) {
       launchDropdown.classList.remove('open');
       if (gearBtn) gearBtn.classList.remove('open');
@@ -191,13 +191,15 @@
     if (ver) {
       var vd = document.getElementById('versionDisplay');
       if (vd) vd.textContent = 'v' + ver;
+      var sv = document.getElementById('settingsVersion');
+      if (sv) sv.textContent = 'v' + ver;
     }
-  } catch (e) {}
+  } catch (e) { }
 
   try {
     var stored = getExternal() && getExternal().readPlayerName && getExternal().readPlayerName();
     if (stored && playerName) playerName.value = stored;
-  } catch (e) {}
+  } catch (e) { }
 
   try {
     var storedOpts = getExternal() && getExternal().readLaunchOptions && getExternal().readLaunchOptions();
@@ -218,7 +220,7 @@
         }
       }
     }
-  } catch (e) {}
+  } catch (e) { }
 
   try {
     var ex0 = getExternal();
@@ -231,14 +233,14 @@
         if (spd) spd.textContent = gp;
       }
     }
-  } catch (e) {}
+  } catch (e) { }
 
-  window.getPlayerName = function() {
+  window.getPlayerName = function () {
     if (!playerName) return '';
     return (playerName.value || '').replace(/^\s+|\s+$/g, '');
   };
 
-  window.getSelectedLaunchOption = function() {
+  window.getSelectedLaunchOption = function () {
     var selected = [];
     for (var i = 0; i < launchOptionCards.length; i++) {
       if (launchOptionCards[i].classList.contains('active')) {
@@ -250,8 +252,8 @@
   };
 
   for (var oi = 0; oi < launchOptionCards.length; oi++) {
-    (function(card) {
-      card.onclick = function(e) {
+    (function (card) {
+      card.onclick = function (e) {
         e.stopPropagation();
         card.classList.toggle('active');
       };
@@ -289,7 +291,7 @@
             }
           }
         }
-      } catch (e) {}
+      } catch (e) { }
       if (workshopBrowseItems.length === 0) {
         var lcached = loadWorkshopCache();
         if (lcached && lcached.length > 0) {
@@ -302,9 +304,14 @@
   }
 
   for (var ni = 0; ni < navBtns.length; ni++) {
-    (function(btn) {
-      btn.onclick = function() { setPage(btn.getAttribute('data-page')); };
+    (function (btn) {
+      btn.onclick = function () { setPage(btn.getAttribute('data-page')); };
     })(navBtns[ni]);
+  }
+
+  var navLogo = document.querySelector('.nav-logo');
+  if (navLogo) {
+    navLogo.onclick = function () { setPage('main'); };
   }
 
   function showMessage(title, body) {
@@ -331,14 +338,14 @@
       done = true;
       popup.classList.remove('active');
     }
-    document.getElementById('confirmPopupCancel').onclick = function() { close(); };
-    document.getElementById('confirmPopupConfirm').onclick = function() {
+    document.getElementById('confirmPopupCancel').onclick = function () { close(); };
+    document.getElementById('confirmPopupConfirm').onclick = function () {
       close();
       if (typeof onConfirm === 'function') onConfirm();
     };
     var cClose = popup.querySelector('.popup-close');
     if (cClose) cClose.onclick = close;
-    popup.onclick = function(e) { if (e.target === popup) close(); };
+    popup.onclick = function (e) { if (e.target === popup) close(); };
   }
 
   function hideMessagePopup() {
@@ -347,7 +354,7 @@
   }
 
   document.getElementById('messagePopupOk').onclick = hideMessagePopup;
-  document.getElementById('messagePopup').onclick = function(e) {
+  document.getElementById('messagePopup').onclick = function (e) {
     if (e.target === document.getElementById('messagePopup')) hideMessagePopup();
   };
   var msgClose = document.querySelector('#messagePopup .popup-close');
@@ -428,7 +435,7 @@
     var pollCount = 0;
     var maxPolls = 600;
     var hasShownCachedData = workshopBrowseItems.length > 0;
-    var pollInterval = setInterval(function() {
+    var pollInterval = setInterval(function () {
       pollCount++;
       _workshopBrowsePollInterval = pollInterval;
       if (!isSearchMode && !hasShownCachedData && pollCount === 20) {
@@ -446,7 +453,7 @@
               }
             }
           }
-        } catch (e) {}
+        } catch (e) { }
       }
       if (pollCount > maxPolls) {
         clearInterval(pollInterval);
@@ -507,7 +514,7 @@
           }
         }
       }
-    } catch (e) {}
+    } catch (e) { }
     var cached = loadWorkshopCache();
     if (cached && cached.length > 0) {
       workshopBrowseItems = cached;
@@ -543,7 +550,7 @@
 
     var sortMode = workshopFilterSelect ? workshopFilterSelect.value : 'mostrecent';
     if (sortMode === 'trend') {
-      filteredItems = filteredItems.slice(0).sort(function(a, b) {
+      filteredItems = filteredItems.slice(0).sort(function (a, b) {
         var rA = parseInt(a.starRating, 10) || 0;
         var rB = parseInt(b.starRating, 10) || 0;
         if (rB !== rA) return rB - rA;
@@ -552,7 +559,7 @@
     } else if (sortMode === 'oldest') {
       filteredItems = filteredItems.slice(0).reverse();
     } else if (sortMode === 'alphabetical') {
-      filteredItems = filteredItems.slice(0).sort(function(a, b) {
+      filteredItems = filteredItems.slice(0).sort(function (a, b) {
         var ta = (a.title || '').toLowerCase();
         var tb = (b.title || '').toLowerCase();
         return ta < tb ? -1 : (ta > tb ? 1 : 0);
@@ -599,7 +606,7 @@
       if (fSize > 0) {
         fStr = fSize > 1073741824 ? (fSize / 1073741824).toFixed(2) + ' GB'
           : fSize > 1048576 ? (fSize / 1048576).toFixed(1) + ' MB'
-          : fSize > 1024 ? (fSize / 1024).toFixed(0) + ' KB' : fSize + ' B';
+            : fSize > 1024 ? (fSize / 1024).toFixed(0) + ' KB' : fSize + ' B';
       }
 
       var contentHtml = '<div class="workshop-item-content">'
@@ -618,8 +625,8 @@
 
       var cardImg = card.querySelector('img');
       if (cardImg) {
-        (function(img) {
-          img.onerror = function() {
+        (function (img) {
+          img.onerror = function () {
             this.onerror = null;
             this.parentNode.innerHTML = '<div class="no-image">No Image</div>';
           };
@@ -639,7 +646,7 @@
         prevBtn.className = 'btn';
         prevBtn.textContent = '\u2039 Prev';
         prevBtn.disabled = workshopBrowseCurrentPage <= 1;
-        prevBtn.onclick = function() {
+        prevBtn.onclick = function () {
           if (workshopBrowseCurrentPage > 1) {
             workshopBrowseCurrentPage--;
             renderWorkshopBrowse();
@@ -675,7 +682,7 @@
             pageBtn.className = 'btn' + (pages2[pii] === workshopBrowseCurrentPage ? ' page-active' : '');
             pageBtn.textContent = String(pages2[pii]);
             pageBtn.setAttribute('data-page', pages2[pii]);
-            pageBtn.onclick = function() {
+            pageBtn.onclick = function () {
               var pg = parseInt(this.getAttribute('data-page'), 10);
               if (pg !== workshopBrowseCurrentPage) {
                 workshopBrowseCurrentPage = pg;
@@ -692,7 +699,7 @@
         nextBtn.className = 'btn';
         nextBtn.textContent = 'Next \u203A';
         nextBtn.disabled = workshopBrowseCurrentPage >= totalPages;
-        nextBtn.onclick = function() {
+        nextBtn.onclick = function () {
           if (workshopBrowseCurrentPage < totalPages) {
             workshopBrowseCurrentPage++;
             renderWorkshopBrowse();
@@ -718,7 +725,7 @@
       workshopModalImage.innerHTML = '<img src="' + escapeHtml(item.imageUrl) + '" alt="">';
       var mImg = workshopModalImage.querySelector('img');
       if (mImg) {
-        mImg.onerror = function() {
+        mImg.onerror = function () {
           this.onerror = null;
           workshopModalImage.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:rgba(200,196,192,0.25);font-size:2rem;">No Image</div>';
         };
@@ -757,7 +764,7 @@
     if (mSize > 0) {
       var sStr = mSize > 1073741824 ? (mSize / 1073741824).toFixed(2) + ' GB'
         : mSize > 1048576 ? (mSize / 1048576).toFixed(1) + ' MB'
-        : mSize > 1024 ? (mSize / 1024).toFixed(0) + ' KB' : mSize + ' B';
+          : mSize > 1024 ? (mSize / 1024).toFixed(0) + ' KB' : mSize + ' B';
       modalSizeHtml = '<div class="workshop-modal-info-item">'
         + '<div class="workshop-modal-info-label">Size</div>'
         + '<div class="workshop-modal-info-value">' + sStr + '</div></div>';
@@ -775,10 +782,10 @@
       + modalSubsHtml + modalSizeHtml;
 
     workshopModalDescription.innerHTML = convertBBCodeToHtml(item.description || 'No description available.');
-    workshopModalViewBtn.onclick = function() {
-      try { window.external.openUrl('https://steamcommunity.com/sharedfiles/filedetails/?id=' + item.id); } catch (e) {}
+    workshopModalViewBtn.onclick = function () {
+      try { window.external.openUrl('https://steamcommunity.com/sharedfiles/filedetails/?id=' + item.id); } catch (e) { }
     };
-    workshopModalDownloadBtn.onclick = function() {
+    workshopModalDownloadBtn.onclick = function () {
       hideWorkshopModal();
       startWorkshopDownload(item.id, item.title);
     };
@@ -793,7 +800,7 @@
 
   if (workshopModalClose) workshopModalClose.onclick = hideWorkshopModal;
   if (workshopOverlay) workshopOverlay.onclick = hideWorkshopModal;
-  if (workshopModal) workshopModal.onclick = function(e) { e.stopPropagation(); };
+  if (workshopModal) workshopModal.onclick = function (e) { e.stopPropagation(); };
 
   function showLibraryModModal(item) {
     if (!item) return;
@@ -803,7 +810,7 @@
       libraryModalImage.innerHTML = '<img src="' + escapeHtml(item.image) + '" alt="">';
       var mImg = libraryModalImage.querySelector('img');
       if (mImg) {
-        mImg.onerror = function() {
+        mImg.onerror = function () {
           this.onerror = null;
           libraryModalImage.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:rgba(200,196,192,0.25);font-size:2rem;">No Image</div>';
         };
@@ -839,7 +846,7 @@
     if (mSize > 0) {
       var sStr = mSize > 1073741824 ? (mSize / 1073741824).toFixed(2) + ' GB'
         : mSize > 1048576 ? (mSize / 1048576).toFixed(1) + ' MB'
-        : mSize > 1024 ? (mSize / 1024).toFixed(0) + ' KB' : mSize + ' B';
+          : mSize > 1024 ? (mSize / 1024).toFixed(0) + ' KB' : mSize + ' B';
       modalSizeHtml = '<div class="workshop-modal-info-item">'
         + '<div class="workshop-modal-info-label">Size</div>'
         + '<div class="workshop-modal-info-value">' + sStr + '</div></div>';
@@ -859,16 +866,16 @@
 
     if (item.id && String(item.id).length > 0) {
       libraryModalViewBtn.style.display = '';
-      libraryModalViewBtn.onclick = function() {
-        try { window.external.openUrl('https://steamcommunity.com/sharedfiles/filedetails/?id=' + item.id); } catch (e) {}
+      libraryModalViewBtn.onclick = function () {
+        try { window.external.openUrl('https://steamcommunity.com/sharedfiles/filedetails/?id=' + item.id); } catch (e) { }
       };
     } else {
       libraryModalViewBtn.style.display = 'none';
     }
 
-    libraryModalOpenBtn.onclick = function() {
+    libraryModalOpenBtn.onclick = function () {
       if (item.path) {
-        try { window.external.openUrl(item.path); } catch (e) {}
+        try { window.external.openUrl(item.path); } catch (e) { }
       }
     };
     if (!item.path) libraryModalOpenBtn.style.display = 'none';
@@ -885,17 +892,17 @@
 
   if (libraryModalClose) libraryModalClose.onclick = hideLibraryModal;
   if (libraryOverlay) libraryOverlay.onclick = hideLibraryModal;
-  if (libraryModal) libraryModal.onclick = function(e) { e.stopPropagation(); };
+  if (libraryModal) libraryModal.onclick = function (e) { e.stopPropagation(); };
 
   if (workshopFilterSelect) {
-    workshopFilterSelect.onchange = function() {
+    workshopFilterSelect.onchange = function () {
       workshopBrowseCurrentPage = 1;
       renderWorkshopBrowse();
     };
   }
 
   if (workshopSearchBtn) {
-    workshopSearchBtn.onclick = function() {
+    workshopSearchBtn.onclick = function () {
       var st = workshopSearchInput ? workshopSearchInput.value.replace(/^\s+|\s+$/g, '') : '';
       if (!st) {
         workshopBrowseSearchTerm = '';
@@ -909,13 +916,13 @@
   }
 
   if (workshopSearchInput) {
-    workshopSearchInput.onkeypress = function(e) {
+    workshopSearchInput.onkeypress = function (e) {
       if (e.keyCode === 13 || e.key === 'Enter') workshopSearchBtn.click();
     };
   }
 
   if (workshopBrowseRefreshBtn) {
-    workshopBrowseRefreshBtn.onclick = function() {
+    workshopBrowseRefreshBtn.onclick = function () {
       workshopBrowseSearchTerm = '';
       if (workshopSearchInput) workshopSearchInput.value = '';
       workshopBrowseCurrentPage = 1;
@@ -924,17 +931,17 @@
   }
 
   if (workshopBrowseClearBtn) {
-    workshopBrowseClearBtn.onclick = function() {
+    workshopBrowseClearBtn.onclick = function () {
       workshopBrowseItems = [];
       workshopBrowseSearchTerm = '';
       workshopBrowseCurrentPage = 1;
       if (workshopSearchInput) workshopSearchInput.value = '';
-      try { localStorage.removeItem(workshopBrowseCacheKey); } catch (e) {}
+      try { localStorage.removeItem(workshopBrowseCacheKey); } catch (e) { }
       loadWorkshopBrowse(1);
     };
   }
 
-  workshopBrowseGrid.addEventListener('click', function(e) {
+  workshopBrowseGrid.addEventListener('click', function (e) {
     var btn = e.target.closest ? e.target.closest('.workshop-item-button') : null;
     if (!btn) {
       var t = e.target;
@@ -983,7 +990,7 @@
     try {
       var ex = getExternal();
       if (ex && ex.workshopCancelDownload) ex.workshopCancelDownload();
-    } catch (e) {}
+    } catch (e) { }
     if (window._workshopPollInterval) { clearInterval(window._workshopPollInterval); window._workshopPollInterval = null; }
     window._workshopIsPaused = false;
     var pauseBtn = document.getElementById('workshopProgressPause');
@@ -1033,7 +1040,7 @@
         workshopDownloadBtn.disabled = true;
         showProgress('Starting download for ' + (displayName || id) + '...', -1);
         if (window._workshopPollInterval) { clearInterval(window._workshopPollInterval); window._workshopPollInterval = null; }
-        window._workshopPollInterval = setInterval(function() {
+        window._workshopPollInterval = setInterval(function () {
           pollWorkshopStatus();
           try {
             var ex2 = getExternal();
@@ -1055,14 +1062,14 @@
           }
         }, 500);
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   function startWorkshopDownload(id, displayName) {
     if (window._workshopPollInterval) {
-      showConfirm('Download in progress', 'A download is already in progress. Stop it and download "' + (displayName || id) + '" instead?', function() {
+      showConfirm('Download in progress', 'A download is already in progress. Stop it and download "' + (displayName || id) + '" instead?', function () {
         stopWorkshopDownloadCompletely();
-        setTimeout(function() { doStartWorkshopDownload(id, displayName); }, 300);
+        setTimeout(function () { doStartWorkshopDownload(id, displayName); }, 300);
       });
       return;
     }
@@ -1163,13 +1170,13 @@
             hideProgress();
           } else if (isDone) {
             if (workshopId) workshopId.value = '';
-            setTimeout(function() {
+            setTimeout(function () {
               workshopProgress.style.display = 'none';
               if (msgEl) msgEl.style.color = 'rgba(249,115,22,0.9)';
             }, 4000);
             setTimeout(hideProgress, 4000);
           } else if (isError) {
-            setTimeout(function() {
+            setTimeout(function () {
               workshopProgress.style.display = 'none';
               if (msgEl) msgEl.style.color = 'rgba(249,115,22,0.9)';
             }, 5000);
@@ -1177,10 +1184,10 @@
           }
         }
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
-  workshopDownloadBtn.onclick = function() {
+  workshopDownloadBtn.onclick = function () {
     var id = (workshopId && workshopId.value || '').replace(/^\s+|\s+$/g, '');
     if (!id) {
       if (workshopStatus) workshopStatus.textContent = 'Enter a Workshop ID or link.';
@@ -1190,12 +1197,12 @@
   };
 
   var workshopProgressCancel = document.getElementById('workshopProgressCancel');
-  if (workshopProgressCancel) workshopProgressCancel.onclick = function() { stopWorkshopDownloadCompletely(); };
+  if (workshopProgressCancel) workshopProgressCancel.onclick = function () { stopWorkshopDownloadCompletely(); };
 
   var workshopProgressPause = document.getElementById('workshopProgressPause');
   window._workshopIsPaused = false;
   if (workshopProgressPause) {
-    workshopProgressPause.onclick = function() {
+    workshopProgressPause.onclick = function () {
       try {
         var ex = getExternal();
         if (!ex) return;
@@ -1214,22 +1221,22 @@
           var pf2 = document.getElementById('progressPause');
           if (pf2) { pf2.innerHTML = '&#9654;'; pf2.title = 'Resume'; }
         }
-      } catch (e) {}
+      } catch (e) { }
     };
   }
 
   var progressPauseBtn = document.getElementById('progressPause');
   if (progressPauseBtn) {
-    progressPauseBtn.onclick = function() {
+    progressPauseBtn.onclick = function () {
       if (workshopProgressPause) workshopProgressPause.click();
     };
   }
 
-  document.getElementById('progressCancel').onclick = function() { stopWorkshopDownloadCompletely(); };
+  document.getElementById('progressCancel').onclick = function () { stopWorkshopDownloadCompletely(); };
 
-  progressOpenFolder.onclick = function() {
+  progressOpenFolder.onclick = function () {
     if (_workshopDownloadFolder && _workshopDownloadFolder.length > 0) {
-      try { window.external.openUrl(_workshopDownloadFolder); } catch (e) {}
+      try { window.external.openUrl(_workshopDownloadFolder); } catch (e) { }
     }
   };
 
@@ -1248,7 +1255,7 @@
     if (fill) { fill.style.width = '0%'; fill.classList.add('indeterminate'); }
     if (_removeProgressPollInterval) clearInterval(_removeProgressPollInterval);
     var pollCount = 0;
-    _removeProgressPollInterval = setInterval(function() {
+    _removeProgressPollInterval = setInterval(function () {
       pollCount++;
       if (pollCount > 600) {
         clearInterval(_removeProgressPollInterval);
@@ -1278,13 +1285,13 @@
         if (!st.running) {
           clearInterval(_removeProgressPollInterval);
           _removeProgressPollInterval = null;
-          setTimeout(function() {
+          setTimeout(function () {
             bar.style.display = 'none';
             if (fill) { fill.classList.remove('indeterminate'); fill.style.width = '0%'; fill.style.transform = ''; }
             refreshModsGrid();
           }, 600);
         }
-      } catch (e) {}
+      } catch (e) { }
     }, 200);
   }
 
@@ -1309,7 +1316,7 @@
         ex.workshopListAsync();
         if (_modsListPollInterval) clearInterval(_modsListPollInterval);
         var pc = 0;
-        _modsListPollInterval = setInterval(function() {
+        _modsListPollInterval = setInterval(function () {
           pc++;
           if (pc > 300) { clearInterval(_modsListPollInterval); _modsListPollInterval = null; return; }
           try {
@@ -1326,7 +1333,7 @@
                 else { modsItemsCache = []; renderModsPage(); }
               } else { modsItemsCache = []; renderModsPage(); }
             }
-          } catch (e) {}
+          } catch (e) { }
         }, 100);
       }
     } catch (e) {
@@ -1393,7 +1400,7 @@
       if (sz > 0) {
         var szStr = sz > 1073741824 ? (sz / 1073741824).toFixed(2) + ' GB'
           : sz > 1048576 ? (sz / 1048576).toFixed(1) + ' MB'
-          : sz > 1024 ? (sz / 1024).toFixed(0) + ' KB' : sz + ' B';
+            : sz > 1024 ? (sz / 1024).toFixed(0) + ' KB' : sz + ' B';
         var sizeSpan = document.createElement('span');
         sizeSpan.innerHTML = '<span class="meta-icon">&#128190;</span> ' + szStr;
         metaDiv.appendChild(sizeSpan);
@@ -1441,8 +1448,8 @@
         }
         updateBtn.type = 'button';
         updateBtn.textContent = item.needsUpdate ? 'Update Now' : 'Update';
-        (function(itemId, itemName) {
-          updateBtn.onclick = function(e) {
+        (function (itemId, itemName) {
+          updateBtn.onclick = function (e) {
             e.stopPropagation();
             try {
               var ex = getExternal();
@@ -1451,7 +1458,7 @@
                 workshopProgress.style.display = 'block';
                 workshopProgressFill.style.width = '0%';
                 workshopDownloadBtn.disabled = true;
-                var pi2 = setInterval(function() {
+                var pi2 = setInterval(function () {
                   pollWorkshopStatus();
                   var ex2 = getExternal();
                   if (ex2 && ex2.workshopGetStatus) {
@@ -1467,7 +1474,7 @@
                   }
                 }, 500);
               }
-            } catch (err) {}
+            } catch (err) { }
           };
         })(item.id, item.name || item.folder);
         actions.appendChild(updateBtn);
@@ -1477,21 +1484,21 @@
       removeBtn.className = 'btn btn-remove';
       removeBtn.type = 'button';
       removeBtn.textContent = 'Remove';
-      (function(folderName, itemName, itemSource, itemPath) {
-        removeBtn.onclick = function(e) {
+      (function (folderName, itemName, itemSource, itemPath) {
+        removeBtn.onclick = function (e) {
           e.stopPropagation();
           if (!folderName && !itemPath) { showMessage('Remove', 'Cannot remove: folder name is missing.'); return; }
           var rb = 'Remove <strong>' + (itemName || folderName).replace(/</g, '&lt;') + '</strong> from your game folder?';
-          showConfirm('Remove workshop item', rb, function() {
+          showConfirm('Remove workshop item', rb, function () {
             var ex = getExternal();
             if (!ex) { showMessage('Remove', 'Workshop remove is not available.'); return; }
             var done = false;
             if (itemSource === 'steam' && itemPath) {
-              try { ex.workshopRemoveByPath(itemPath); done = true; } catch (e1) {}
-              if (!done) try { ex.invoke('workshopRemoveByPath', itemPath); done = true; } catch (e2) {}
+              try { ex.workshopRemoveByPath(itemPath); done = true; } catch (e1) { }
+              if (!done) try { ex.invoke('workshopRemoveByPath', itemPath); done = true; } catch (e2) { }
             } else {
-              try { ex.workshopRemove(folderName); done = true; } catch (e1) {}
-              if (!done) try { ex.invoke('workshopRemove', folderName); done = true; } catch (e2) {}
+              try { ex.workshopRemove(folderName); done = true; } catch (e1) { }
+              if (!done) try { ex.invoke('workshopRemove', folderName); done = true; } catch (e2) { }
             }
             if (done) startRemoveProgressPoll();
             else showMessage('Remove', 'Workshop remove is not available.');
@@ -1513,14 +1520,14 @@
         var img = document.createElement('img');
         img.src = item.image;
         img.alt = '';
-        img.onerror = (function(wrap) { return function() { if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap); }; })(imgWrap);
+        img.onerror = (function (wrap) { return function () { if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap); }; })(imgWrap);
         imgWrap.appendChild(img);
         card.appendChild(imgWrap);
       }
 
       card.appendChild(body);
-      card.onclick = (function(it) {
-        return function(e) {
+      card.onclick = (function (it) {
+        return function (e) {
           if (e.target.closest && e.target.closest('.mod-card-actions')) return;
           showLibraryModModal(it);
         };
@@ -1540,29 +1547,29 @@
     }
   }
 
-  modsGrid.onclick = function(e) {
+  modsGrid.onclick = function (e) {
     var t = e.target;
     while (t && t !== modsGrid) {
       var url = t.getAttribute && t.getAttribute('data-open-url');
-      if (url) { e.preventDefault(); e.stopPropagation(); try { window.external.openUrl(url); } catch (err) {} return; }
+      if (url) { e.preventDefault(); e.stopPropagation(); try { window.external.openUrl(url); } catch (err) { } return; }
       t = t.parentNode;
     }
   };
 
   if (modsPrevPageBtn) {
-    modsPrevPageBtn.onclick = function() { if (modsPage > 1) { modsPage--; renderModsPage(); } };
+    modsPrevPageBtn.onclick = function () { if (modsPage > 1) { modsPage--; renderModsPage(); } };
   }
 
   if (modsNextPageBtn) {
-    modsNextPageBtn.onclick = function() {
+    modsNextPageBtn.onclick = function () {
       var tp = Math.ceil((modsItemsCache || []).length / modsPageSize) || 1;
       if (modsPage < tp) { modsPage++; renderModsPage(); }
     };
   }
 
-  document.getElementById('workshopRefreshBtn').onclick = function() { refreshModsGrid(); };
+  document.getElementById('workshopRefreshBtn').onclick = function () { refreshModsGrid(); };
 
-  document.getElementById('deleteAllModsBtn').onclick = function() {
+  document.getElementById('deleteAllModsBtn').onclick = function () {
     var items = modsItemsCache || [];
     var lh = '<p style="margin:0 0 8px 0;">Remove <strong>' + items.length + '</strong> workshop item' + (items.length !== 1 ? 's' : '') + ' from your game folder? This cannot be undone.</p>';
     if (items.length > 0) {
@@ -1575,23 +1582,23 @@
         if (cSz2 > 0) {
           cSzStr = cSz2 > 1073741824 ? (cSz2 / 1073741824).toFixed(2) + ' GB'
             : cSz2 > 1048576 ? (cSz2 / 1048576).toFixed(1) + ' MB'
-            : cSz2 > 1024 ? (cSz2 / 1024).toFixed(0) + ' KB' : cSz2 + ' B';
+              : cSz2 > 1024 ? (cSz2 / 1024).toFixed(0) + ' KB' : cSz2 + ' B';
         }
         lh += '<li><span class="item-name">' + cName + '</span>' + (cSzStr ? '<span class="item-size">' + cSzStr + '</span>' : '') + '</li>';
       }
       lh += '</ul>';
     }
-    showConfirm('Delete all mods', lh, function() {
+    showConfirm('Delete all mods', lh, function () {
       var ex = getExternal();
       if (!ex) return;
       var done = false;
-      try { ex.workshopRemoveAll(); done = true; } catch (e1) {}
-      if (!done) try { ex.invoke('workshopRemoveAll', ''); done = true; } catch (e2) {}
+      try { ex.workshopRemoveAll(); done = true; } catch (e1) { }
+      if (!done) try { ex.invoke('workshopRemoveAll', ''); done = true; } catch (e2) { }
       if (done) startRemoveProgressPoll();
     });
   };
 
-  document.getElementById('checkUpdatesBtn').onclick = function() {
+  document.getElementById('checkUpdatesBtn').onclick = function () {
     var wsStatus = document.getElementById('workshopStatus');
     try {
       var ex = getExternal();
@@ -1599,7 +1606,7 @@
       document.getElementById('checkUpdatesBtn').disabled = true;
       if (ex.workshopListAsync) ex.workshopListAsync();
       var cpCount = 0;
-      var checkPoll = setInterval(function() {
+      var checkPoll = setInterval(function () {
         cpCount++;
         if (cpCount > 300) {
           clearInterval(checkPoll);
@@ -1638,8 +1645,8 @@
                 return;
               }
               var it = toUpdate[idx];
-              try { ex2.workshopDownload(String(it.id)); } catch (e) {}
-              var upi = setInterval(function() {
+              try { ex2.workshopDownload(String(it.id)); } catch (e) { }
+              var upi = setInterval(function () {
                 pollWorkshopStatus();
                 var ex3 = getExternal();
                 if (ex3 && ex3.workshopGetStatus) {
@@ -1664,7 +1671,7 @@
     }
   };
 
-  document.getElementById('manageInstallBtn').onclick = function() {
+  document.getElementById('manageInstallBtn').onclick = function () {
     if (manageInstallPopup) manageInstallPopup.classList.add('active');
     loadComponents();
   };
@@ -1672,7 +1679,7 @@
   function hideManagePopup() { if (manageInstallPopup) manageInstallPopup.classList.remove('active'); }
   manageInstallPopup.querySelector('.popup-close').onclick = hideManagePopup;
   document.getElementById('popupCancel').onclick = hideManagePopup;
-  manageInstallPopup.onclick = function(e) { if (e.target === manageInstallPopup) hideManagePopup(); };
+  manageInstallPopup.onclick = function (e) { if (e.target === manageInstallPopup) hideManagePopup(); };
 
   var componentSelection = { campaign: false, multiplayer: false, zombies: false };
   var modeFilesInfo = {};
@@ -1710,8 +1717,8 @@
       list.appendChild(div);
       if (installed) {
         var cb = div.querySelector('input[type="checkbox"]');
-        cb.onchange = function() { componentSelection[this.getAttribute('data-comp')] = this.checked; };
-        div.onclick = function(e) {
+        cb.onchange = function () { componentSelection[this.getAttribute('data-comp')] = this.checked; };
+        div.onclick = function (e) {
           if (e.target.type !== 'checkbox') {
             var inp = this.querySelector('input[type="checkbox"]');
             if (inp && !inp.disabled) { inp.checked = !inp.checked; componentSelection[inp.getAttribute('data-comp')] = inp.checked; }
@@ -1721,7 +1728,7 @@
     }
   }
 
-  document.getElementById('popupApply').onclick = function() {
+  document.getElementById('popupApply').onclick = function () {
     var selected = [];
     var names = [];
     var prefixMap = { campaign: 'cp_', multiplayer: 'mp_', zombies: 'zm_' };
@@ -1734,7 +1741,7 @@
     }
     if (selected.length === 0) { showMessage('Delete', 'No game modes selected or selected modes have no files.'); return; }
     hideManagePopup();
-    showConfirm('Delete Game Modes', 'Are you sure you want to remove ' + names.join(', ') + '? This cannot be undone.', function() {
+    showConfirm('Delete Game Modes', 'Are you sure you want to remove ' + names.join(', ') + '? This cannot be undone.', function () {
       try {
         var ex = getExternal();
         if (ex && ex.removeModeFiles) {
@@ -1748,7 +1755,7 @@
     });
   };
 
-  (function() {
+  (function () {
     var verifyPopup = document.getElementById('verifyPopup');
     var verifyStartBtn = document.getElementById('verifyStartBtn');
     var verifyCancelBtn = document.getElementById('verifyCancelBtn');
@@ -1809,23 +1816,23 @@
       }
     }
 
-    document.getElementById('verifyBtn').onclick = function() { showVerifyPopup(); };
+    document.getElementById('verifyBtn').onclick = function () { showVerifyPopup(); };
 
-    verifyCloseBtn.onclick = function() {
-      try { var ex = getExternal(); if (ex && ex.cancelVerify) ex.cancelVerify(); } catch (e) {}
+    verifyCloseBtn.onclick = function () {
+      try { var ex = getExternal(); if (ex && ex.cancelVerify) ex.cancelVerify(); } catch (e) { }
       hideVerifyPopup();
     };
 
-    verifyPopup.onclick = function(e) {
+    verifyPopup.onclick = function (e) {
       if (e.target === verifyPopup) {
-        try { var ex = getExternal(); if (ex && ex.cancelVerify) ex.cancelVerify(); } catch (e2) {}
+        try { var ex = getExternal(); if (ex && ex.cancelVerify) ex.cancelVerify(); } catch (e2) { }
         hideVerifyPopup();
       }
     };
 
     for (var vi = 0; vi < verifyModeBtns.length; vi++) {
-      (function(btn) {
-        btn.onclick = function() {
+      (function (btn) {
+        btn.onclick = function () {
           for (var j = 0; j < verifyModeBtns.length; j++) verifyModeBtns[j].classList.remove('selected');
           btn.classList.add('selected');
           selectedVerifyMode = btn.getAttribute('data-mode');
@@ -1833,8 +1840,8 @@
       })(verifyModeBtns[vi]);
     }
 
-    verifyCancelBtn.onclick = function() {
-      try { var ex = getExternal(); if (ex && ex.cancelVerify) ex.cancelVerify(); } catch (e) {}
+    verifyCancelBtn.onclick = function () {
+      try { var ex = getExternal(); if (ex && ex.cancelVerify) ex.cancelVerify(); } catch (e) { }
       verifyCancelBtn.disabled = true;
     };
 
@@ -1853,7 +1860,7 @@
         verifyProgressSection.classList.add('active');
         for (var k = 0; k < verifyModeBtns.length; k++) verifyModeBtns[k].disabled = true;
 
-        verifyPollInterval = setInterval(function() {
+        verifyPollInterval = setInterval(function () {
           try {
             var ex2 = getExternal();
             if (!ex2 || !ex2.getVerifyStatus) return;
@@ -1868,7 +1875,7 @@
               verifyStatusMsg.style.color = '#ef4444';
               verifyStartBtn.style.display = '';
               verifyStartBtn.textContent = 'Close';
-              verifyStartBtn.onclick = function() { hideVerifyPopup(); verifyStartBtn.onclick = startVerify; verifyStartBtn.textContent = 'Start Verification'; };
+              verifyStartBtn.onclick = function () { hideVerifyPopup(); verifyStartBtn.onclick = startVerify; verifyStartBtn.textContent = 'Start Verification'; };
               for (var k = 0; k < verifyModeBtns.length; k++) verifyModeBtns[k].disabled = false;
               return;
             }
@@ -1905,7 +1912,7 @@
               verifyStartBtn.onclick = startVerify;
               for (var k = 0; k < verifyModeBtns.length; k++) verifyModeBtns[k].disabled = false;
             }
-          } catch (e) {}
+          } catch (e) { }
         }, 200);
       } catch (e) { showMessage('Error', 'Failed to start verification: ' + (e.message || '')); }
     }
@@ -1913,7 +1920,7 @@
     verifyStartBtn.onclick = startVerify;
   })();
 
-  document.getElementById('playBtn').onclick = function() {
+  document.getElementById('playBtn').onclick = function () {
     var playBtn = document.getElementById('playBtn');
     try {
       var ex = getExternal();
@@ -1925,17 +1932,17 @@
       var opts = window.getSelectedLaunchOption();
       var hasKeepLauncher = opts.toLowerCase().indexOf('keeplauncher') !== -1;
       if (window._workshopPollInterval && !hasKeepLauncher) {
-        showConfirm('Download in progress', 'A workshop download is in progress. Keep the launcher open while you play?', function() {
-          try { window.external.launchGame(window.getPlayerName(), opts); } catch (e2) {}
+        showConfirm('Download in progress', 'A workshop download is in progress. Keep the launcher open while you play?', function () {
+          try { window.external.launchGame(window.getPlayerName(), opts); } catch (e2) { }
         });
         return;
       }
       if (hasKeepLauncher) { window.external.launchGame(window.getPlayerName(), opts); return; }
       window.external.runGame(window.getPlayerName(), opts);
-    } catch (e) {}
+    } catch (e) { }
   };
 
-  setInterval(function() {
+  setInterval(function () {
     var playBtn = document.getElementById('playBtn');
     if (!playBtn) return;
     try {
@@ -1947,14 +1954,14 @@
         playBtn.disabled = false;
         playBtn.title = '';
       }
-    } catch (e) {}
+    } catch (e) { }
   }, 1500);
 
   window._folderPickerOpen = false;
   function setupPathBtn(btnId, pathDisplayIds) {
     var btn = document.getElementById(btnId);
     if (!btn) return;
-    btn.onclick = function() {
+    btn.onclick = function () {
       if (window._folderPickerOpen) return;
       window._folderPickerOpen = true;
       btn.disabled = true;
@@ -1986,8 +1993,8 @@
   var settingsTabs = document.querySelectorAll('.settings-tab');
   var settingsTabContents = document.querySelectorAll('.settings-tab-content');
   for (var sti = 0; sti < settingsTabs.length; sti++) {
-    (function(tab) {
-      tab.onclick = function() {
+    (function (tab) {
+      tab.onclick = function () {
         var target = tab.getAttribute('data-stab');
         for (var j = 0; j < settingsTabs.length; j++) settingsTabs[j].classList.remove('active');
         for (var j = 0; j < settingsTabContents.length; j++) settingsTabContents[j].classList.remove('active');
@@ -2019,7 +2026,7 @@
     try {
       var stored = localStorage.getItem('boiii_settings');
       if (stored) settings = JSON.parse(stored);
-    } catch (e) {}
+    } catch (e) { }
     var merged = {};
     for (var k in SETTINGS_DEFAULTS) {
       merged[k] = settings.hasOwnProperty(k) ? settings[k] : SETTINGS_DEFAULTS[k];
@@ -2028,7 +2035,7 @@
   }
 
   function saveAllSettings(settings) {
-    try { localStorage.setItem('boiii_settings', JSON.stringify(settings)); } catch (e) {}
+    try { localStorage.setItem('boiii_settings', JSON.stringify(settings)); } catch (e) { }
   }
 
   function getSetting(key) {
@@ -2057,8 +2064,8 @@
 
   var allSettingToggles = document.querySelectorAll('.settings-toggle[data-setting]');
   for (var ti = 0; ti < allSettingToggles.length; ti++) {
-    (function(toggle) {
-      toggle.onclick = function() {
+    (function (toggle) {
+      toggle.onclick = function () {
         toggle.classList.toggle('active');
         var key = toggle.getAttribute('data-setting');
         var isActive = toggle.classList.contains('active');
@@ -2104,7 +2111,7 @@
       } else if (key === 'assetLimits') {
         if (ex.setGameSetting) ex.setGameSetting('asset_limits_enabled', value ? '1' : '0');
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   applySettingsToUI();
@@ -2112,13 +2119,13 @@
   function setupSettingsInput(inputId, configKey) {
     var input = document.getElementById(inputId);
     if (!input) return;
-    input.onchange = function() {
+    input.onchange = function () {
       var val = input.value.replace(/^\s+|\s+$/g, '');
       if (!val) return;
       try {
         var ex = getExternal();
         if (ex && ex.setGameSetting) ex.setGameSetting(configKey, val);
-      } catch (e) {}
+      } catch (e) { }
     };
   }
 
@@ -2130,27 +2137,27 @@
 
   var displayModeSelect = document.getElementById('settingsDisplayMode');
   if (displayModeSelect) {
-    displayModeSelect.onchange = function() {
+    displayModeSelect.onchange = function () {
       try {
         var ex = getExternal();
         if (ex && ex.setGameSetting) ex.setGameSetting('FullScreenMode', displayModeSelect.value);
-      } catch (e) {}
+      } catch (e) { }
     };
   }
 
   var networkPwInput = document.getElementById('settingsNetworkPassword');
   if (networkPwInput) {
-    networkPwInput.onchange = function() {
+    networkPwInput.onchange = function () {
       try {
         var ex = getExternal();
         if (ex && ex.setGameSetting) ex.setGameSetting('networkpassword', networkPwInput.value);
-      } catch (e) {}
+      } catch (e) { }
     };
   }
 
   var applyPresetBtn = document.getElementById('settingsApplyPresetBtn');
   if (applyPresetBtn) {
-    applyPresetBtn.onclick = function() {
+    applyPresetBtn.onclick = function () {
       var presetSelect = document.getElementById('settingsGraphicsPreset');
       if (!presetSelect || !presetSelect.value) return;
       try {
@@ -2164,7 +2171,7 @@
             showMessage('Error', 'Failed to apply preset: ' + result);
           }
         }
-      } catch (e) {}
+      } catch (e) { }
     };
   }
 
@@ -2243,15 +2250,15 @@
         var alt = document.getElementById('settingsAssetLimits');
         if (alt) { if (al) alt.classList.add('active'); else alt.classList.remove('active'); }
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   loadGameSettings();
 
   var resetBtn = document.getElementById('settingsResetBtn');
   if (resetBtn) {
-    resetBtn.onclick = function() {
-      showConfirm('Reset Settings', 'Are you sure you want to reset all settings to defaults? This cannot be undone.', function() {
+    resetBtn.onclick = function () {
+      showConfirm('Reset Settings', 'Are you sure you want to reset all settings to defaults? This cannot be undone.', function () {
         try {
           var ex = getExternal();
           // Revert file-backed toggles
@@ -2265,8 +2272,8 @@
               ex.setGameSetting('networkpassword', '');
             }
           }
-        } catch (e) {}
-        try { localStorage.removeItem('boiii_settings'); } catch (e) {}
+        } catch (e) { }
+        try { localStorage.removeItem('boiii_settings'); } catch (e) { }
         for (var k in SETTINGS_DEFAULTS) {
           setSetting(k, SETTINGS_DEFAULTS[k]);
         }
@@ -2281,9 +2288,9 @@
 
   var workshopProgressFolder = document.getElementById('workshopProgressFolder');
   if (workshopProgressFolder) {
-    workshopProgressFolder.onclick = function() {
+    workshopProgressFolder.onclick = function () {
       if (_workshopDownloadFolder && _workshopDownloadFolder.length > 0) {
-        try { window.external.openUrl(_workshopDownloadFolder); } catch (e) {}
+        try { window.external.openUrl(_workshopDownloadFolder); } catch (e) { }
       }
     };
   }
@@ -2327,7 +2334,7 @@
       html += '<div class="friend-item" data-steamid="' + sid + '">';
       html += '<div class="friend-icon">&#128100;</div>';
       html += '<div class="friend-info">';
-      html += '<div class="friend-name">' + nm.replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</div>';
+      html += '<div class="friend-name">' + nm.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>';
       html += '<div class="friend-steamid">' + sid + '</div>';
       html += '</div>';
       html += '<button type="button" class="friend-remove-btn" data-remove-sid="' + sid + '" title="Remove">&times;</button>';
@@ -2337,8 +2344,8 @@
 
     var removeBtns = list.querySelectorAll('.friend-remove-btn');
     for (var ri = 0; ri < removeBtns.length; ri++) {
-      (function(btn) {
-        btn.onclick = function() {
+      (function (btn) {
+        btn.onclick = function () {
           var sid = btn.getAttribute('data-remove-sid');
           if (!sid) return;
           try {
@@ -2346,7 +2353,7 @@
             if (ex && ex.removeFriend) {
               ex.removeFriend(sid);
             }
-          } catch (e) {}
+          } catch (e) { }
           loadFriendsList();
         };
       })(removeBtns[ri]);
@@ -2355,7 +2362,7 @@
 
   var friendAddBtn = document.getElementById('friendAddBtn');
   if (friendAddBtn) {
-    friendAddBtn.onclick = function() {
+    friendAddBtn.onclick = function () {
       var nameInput = document.getElementById('friendNameInput');
       var sidInput = document.getElementById('friendSteamIdInput');
       if (!nameInput || !sidInput) return;
@@ -2396,7 +2403,7 @@
   }
 
   var origSetPage = setPage;
-  setPage = function(targetPage) {
+  setPage = function (targetPage) {
     origSetPage(targetPage);
     if (targetPage === 'friends') {
       loadFriendsList();
@@ -2406,3 +2413,4 @@
   loadFriendsList();
 
 })();
+
