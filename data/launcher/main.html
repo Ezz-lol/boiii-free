@@ -350,6 +350,26 @@
             </div>
 
             <div class="settings-section">
+              <div class="settings-section-title">Workshop</div>
+              <div class="settings-row">
+                <div>
+                  <div class="settings-row-label">Retry Attempts</div>
+                  <div class="settings-row-desc">Number of connection retry attempts for workshop downloads (1–1000)</div>
+                </div>
+                <input type="number" class="settings-input" id="settingsWorkshopRetry" min="1" max="1000" value="30"
+                  autocomplete="off" style="width:80px;">
+              </div>
+              <div class="settings-row">
+                <div>
+                  <div class="settings-row-label">Timeout (seconds)</div>
+                  <div class="settings-row-desc">Download timeout in seconds for workshop items (60–3600)</div>
+                </div>
+                <input type="number" class="settings-input" id="settingsWorkshopTimeout" min="60" max="3600" value="300"
+                  autocomplete="off" style="width:80px;">
+              </div>
+            </div>
+
+            <div class="settings-section">
               <div class="settings-section-title">Performance</div>
               <div class="settings-row">
                 <div>
@@ -584,11 +604,7 @@
       </div><!-- end page-scroll-inner -->
     </div>
 
-  </div>
-  </div>
-
-
-  <div class="progress-footer" id="progressFooter">
+    <div class="progress-footer" id="progressFooter">
     <div class="progress-info" id="progressInfo">Ready</div>
     <div class="progress-bar-container">
       <div class="progress-fill" id="progressFill"></div>
@@ -601,6 +617,9 @@
         style="font-size:1rem;">&#9208;</button>
       <button type="button" class="progress-cancel" id="progressCancel">&times;</button>
     </div>
+    </div>
+
+  </div>
   </div>
 
   <div class="popup-backdrop" id="manageInstallPopup">

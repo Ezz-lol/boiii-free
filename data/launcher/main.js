@@ -108,34 +108,70 @@
       .replace(/'/g, '&#39;');
   }
 
+  function fixMojibake(str) {
+    if (!str) return '';
+    // Detect mojibake: UTF-8 bytes misinterpreted as Latin-1/Windows-1252
+    // Common pattern: multi-byte sequences like Ã¢, Ã©, â˜…, â™¦ etc.
+    if (/[\xC0-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF7][\x80-\xBF]{3}/.test(str)) {
+      try {
+        var decoded = decodeURIComponent(escape(str));
+        return decoded;
+      } catch (e) { }
+    }
+    return str;
+  }
+
   function convertBBCodeToHtml(str) {
     if (!str) return '';
-    var s = escapeHtml(str);
-    s = s.replace(/\[h1\](.*?)\[\/h1\]/gi, '<h3 style="margin:6px 0 4px;font-size:1.1rem;">$1</h3>');
-    s = s.replace(/\[h2\](.*?)\[\/h2\]/gi, '<h4 style="margin:5px 0 3px;font-size:1rem;">$1</h4>');
-    s = s.replace(/\[h3\](.*?)\[\/h3\]/gi, '<h5 style="margin:4px 0 2px;font-size:0.95rem;">$1</h5>');
-    s = s.replace(/\[b\](.*?)\[\/b\]/gi, '<strong>$1</strong>');
-    s = s.replace(/\[u\](.*?)\[\/u\]/gi, '<u>$1</u>');
-    s = s.replace(/\[i\](.*?)\[\/i\]/gi, '<em>$1</em>');
-    s = s.replace(/\[strike\](.*?)\[\/strike\]/gi, '<s>$1</s>');
-    s = s.replace(/\[code\](.*?)\[\/code\]/gi, '<code style="background:rgba(0,0,0,0.3);padding:2px 5px;border-radius:3px;">$1</code>');
-    s = s.replace(/\[url=(.*?)\](.*?)\[\/url\]/gi, '<a href="$1" style="color:#5b9bd5;text-decoration:underline;cursor:pointer;" onclick="try{window.external.openUrl(this.href)}catch(e){};return false;">$2</a>');
-    s = s.replace(/\[url\](.*?)\[\/url\]/gi, '<a href="$1" style="color:#5b9bd5;text-decoration:underline;cursor:pointer;" onclick="try{window.external.openUrl(this.href)}catch(e){};return false;">$1</a>');
-    s = s.replace(/\[img\](.*?)\[\/img\]/gi, '<img src="$1" style="max-width:100%;border-radius:4px;margin:4px 0;" onerror="this.style.display=\'none\'">');
-    s = s.replace(/\[list\]/gi, '<ul style="margin:4px 0;padding-left:20px;">');
+    var s = escapeHtml(fixMojibake(str));
+    // Headings
+    s = s.replace(/\[h1\](.*?)\[\/h1\]/gi, '<h3 class="bb-h1">$1</h3>');
+    s = s.replace(/\[h2\](.*?)\[\/h2\]/gi, '<h4 class="bb-h2">$1</h4>');
+    s = s.replace(/\[h3\](.*?)\[\/h3\]/gi, '<h5 class="bb-h3">$1</h5>');
+    // Inline formatting
+    s = s.replace(/\[b\]([\s\S]*?)\[\/b\]/gi, '<strong>$1</strong>');
+    s = s.replace(/\[u\]([\s\S]*?)\[\/u\]/gi, '<u>$1</u>');
+    s = s.replace(/\[i\]([\s\S]*?)\[\/i\]/gi, '<em>$1</em>');
+    s = s.replace(/\[strike\]([\s\S]*?)\[\/strike\]/gi, '<s>$1</s>');
+    s = s.replace(/\[code\]([\s\S]*?)\[\/code\]/gi, '<code class="bb-code">$1</code>');
+    // Links
+    s = s.replace(/\[url=(.*?)\]([\s\S]*?)\[\/url\]/gi, '<a href="$1" class="bb-link" onclick="try{window.external.openUrl(this.href)}catch(e){};return false;">$2</a>');
+    s = s.replace(/\[url\](.*?)\[\/url\]/gi, '<a href="$1" class="bb-link" onclick="try{window.external.openUrl(this.href)}catch(e){};return false;">$1</a>');
+    // Images
+    s = s.replace(/\[img\](.*?)\[\/img\]/gi, '<img src="$1" class="bb-img" onerror="this.style.display=\'none\'">');
+    // Lists
+    s = s.replace(/\[list\]/gi, '<ul class="bb-list">');
     s = s.replace(/\[\/list\]/gi, '</ul>');
     s = s.replace(/\[\*\]/gi, '<li>');
-    s = s.replace(/\[hr\]/gi, '<hr style="border:none;border-top:1px solid rgba(200,196,192,0.15);margin:6px 0;">');
-    s = s.replace(/\[spoiler\](.*?)\[\/spoiler\]/gi, '<span style="background:rgba(200,196,192,0.2);padding:1px 4px;border-radius:2px;">$1</span>');
-    s = s.replace(/\[noparse\](.*?)\[\/noparse\]/gi, '$1');
-    s = s.replace(/\[previewyoutube=(\w+)[^\]]*\].*?\[\/previewyoutube\]/gi, '<a href="https://youtube.com/watch?v=$1" style="color:#5b9bd5;text-decoration:underline;cursor:pointer;" onclick="try{window.external.openUrl(this.href)}catch(e){};return false;">[YouTube Video]</a>');
+    // Misc
+    s = s.replace(/\[hr\]/gi, '<hr class="bb-hr">');
+    s = s.replace(/\[spoiler\]([\s\S]*?)\[\/spoiler\]/gi, '<span class="bb-spoiler">$1</span>');
+    s = s.replace(/\[noparse\]([\s\S]*?)\[\/noparse\]/gi, '$1');
+    s = s.replace(/\[previewyoutube=(\w+)[^\]]*\][\s\S]*?\[\/previewyoutube\]/gi, '<a href="https://youtube.com/watch?v=$1" class="bb-link" onclick="try{window.external.openUrl(this.href)}catch(e){};return false;">[YouTube Video]</a>');
+    // Color & size tags
+    s = s.replace(/\[color=(#?[a-zA-Z0-9]+)\]([\s\S]*?)\[\/color\]/gi, '<span style="color:$1;">$2</span>');
+    s = s.replace(/\[size=(\d+)\]([\s\S]*?)\[\/size\]/gi, '');
+    // Table tags (Steam workshop uses these sometimes)
+    s = s.replace(/\[table\]/gi, '<table class="bb-table">');
+    s = s.replace(/\[\/table\]/gi, '</table>');
+    s = s.replace(/\[tr\]/gi, '<tr>');
+    s = s.replace(/\[\/tr\]/gi, '</tr>');
+    s = s.replace(/\[td\]/gi, '<td>');
+    s = s.replace(/\[\/td\]/gi, '</td>');
+    s = s.replace(/\[th\]/gi, '<th>');
+    s = s.replace(/\[\/th\]/gi, '</th>');
+    // Quote
+    s = s.replace(/\[quote(?:=[^\]]*)?\]([\s\S]*?)\[\/quote\]/gi, '<blockquote class="bb-quote">$1</blockquote>');
+    // Strip any remaining unknown BBCode tags
+    s = s.replace(/\[\/?(?:olist|expand|previewyoutube|sharedfile|workshop)[^\]]*\]/gi, '');
+    // Newlines
     s = s.replace(/\r?\n/g, '<br>');
     return s;
   }
 
   function stripBBCode(str) {
     if (!str) return '';
-    return str.replace(/\[\/?[^\]]+\]/g, '').replace(/\s+/g, ' ').replace(/^\s+|\s+$/g, '');
+    return fixMojibake(str).replace(/\[\/?[^\]]+\]/g, '').replace(/\s+/g, ' ').replace(/^\s+|\s+$/g, '');
   }
 
   function saveWorkshopCache(items) {
@@ -365,13 +401,13 @@
     if (details) text += ' \u2014 ' + details;
     progressInfo.textContent = text;
     var pf = document.getElementById('progressFill');
-    if (percent < 0) {
+    if (percent <= 0) {
       if (pf && !pf.classList.contains('indeterminate')) pf.classList.add('indeterminate');
       progressPercent.textContent = '';
     } else {
       if (pf && pf.classList.contains('indeterminate')) { pf.classList.remove('indeterminate'); pf.style.transform = ''; }
       progressFill.style.width = percent + '%';
-      progressPercent.textContent = percent > 0 ? (percent.toFixed(1) + '%') : '0%';
+      progressPercent.textContent = percent.toFixed(1) + '%';
     }
     progressFooter.classList.add('active');
   }
@@ -602,13 +638,12 @@
       }
 
       var fSize = parseInt(it.file_size, 10) || 0;
-      var fStr = '';
-      if (fSize > 0) {
-        fStr = fSize > 1073741824 ? (fSize / 1073741824).toFixed(2) + ' GB'
+      var fStr = fSize > 0
+        ? (fSize > 1073741824 ? (fSize / 1073741824).toFixed(2) + ' GB'
           : fSize > 1048576 ? (fSize / 1048576).toFixed(1) + ' MB'
-            : fSize > 1024 ? (fSize / 1024).toFixed(0) + ' KB' : fSize + ' B';
-      }
-
+            : fSize > 1024 ? (fSize / 1024).toFixed(0) + ' KB' : fSize + ' B')
+        : '';
+        
       var contentHtml = '<div class="workshop-item-content">'
         + '<div style="flex:1;min-width:0;">'
         + '<div class="workshop-item-title">' + escapeHtml(it.title || 'Untitled') + ratingHtml + '</div>'
@@ -617,7 +652,7 @@
         + '</div>'
         + '<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;margin-left:10px;gap:3px;">'
         + '<button type="button" class="workshop-item-button" data-workshop-id="' + escapeHtml(it.id) + '">Download</button>'
-        + (fStr ? '<span style="font-size:0.65rem;color:rgba(200,196,192,0.35);">' + fStr + '</span>' : '')
+        + '<span style="font-size:0.65rem;color:rgba(200,196,192,0.35);">' + fStr + '</span>'
         + '</div>'
         + '</div>';
 
@@ -759,16 +794,15 @@
         + '</div></div>';
     }
 
-    var modalSizeHtml = '';
     var mSize = parseInt(item.file_size, 10) || 0;
-    if (mSize > 0) {
-      var sStr = mSize > 1073741824 ? (mSize / 1073741824).toFixed(2) + ' GB'
+    var sStr = mSize > 0
+      ? (mSize > 1073741824 ? (mSize / 1073741824).toFixed(2) + ' GB'
         : mSize > 1048576 ? (mSize / 1048576).toFixed(1) + ' MB'
-          : mSize > 1024 ? (mSize / 1024).toFixed(0) + ' KB' : mSize + ' B';
-      modalSizeHtml = '<div class="workshop-modal-info-item">'
-        + '<div class="workshop-modal-info-label">Size</div>'
-        + '<div class="workshop-modal-info-value">' + sStr + '</div></div>';
-    }
+          : mSize > 1024 ? (mSize / 1024).toFixed(0) + ' KB' : mSize + ' B')
+      : 'Unknown';
+    var modalSizeHtml = '<div class="workshop-modal-info-item">'
+      + '<div class="workshop-modal-info-label">Size</div>'
+      + '<div class="workshop-modal-info-value">' + sStr + '</div></div>';
 
     workshopModalInfo.innerHTML =
       '<div class="workshop-modal-info-item">'
@@ -1109,7 +1143,7 @@
         if (msgEl) msgEl.textContent = status.message;
         if (detEl) detEl.textContent = status.details || '';
 
-        if (status.progress !== undefined && status.progress >= 0) {
+        if (status.progress !== undefined && status.progress > 0) {
           if (window._wsIndeterminate) {
             window._wsIndeterminate = false;
             workshopProgressFill.classList.remove('indeterminate');
@@ -1119,9 +1153,9 @@
           }
           var p = Math.min(status.progress, 99);
           workshopProgressFill.style.width = p + '%';
-          if (pctEl) pctEl.textContent = p > 0 ? (p.toFixed(1) + '%') : '';
+          if (pctEl) pctEl.textContent = p.toFixed(1) + '%';
           showProgress(status.message, p, status.details);
-        } else if (status.progress !== undefined && status.progress < 0) {
+        } else {
           if (!window._wsIndeterminate) {
             window._wsIndeterminate = true;
             workshopProgressFill.classList.add('indeterminate');
@@ -1130,10 +1164,6 @@
           }
           if (pctEl) pctEl.textContent = '';
           showProgress(status.message, -1, status.details);
-        } else {
-          workshopProgressFill.style.width = '0%';
-          if (pctEl) pctEl.textContent = '';
-          showProgress(status.message, 0, status.details);
         }
 
         var isDone = status.message.indexOf('Done') !== -1;
@@ -1957,33 +1987,34 @@
     } catch (e) { }
   }, 1500);
 
-  window._folderPickerOpen = false;
   function setupPathBtn(btnId, pathDisplayIds) {
     var btn = document.getElementById(btnId);
     if (!btn) return;
     btn.onclick = function () {
-      if (window._folderPickerOpen) return;
-      window._folderPickerOpen = true;
-      btn.disabled = true;
-      var otherBtnId = (btnId === 'setPathBtn') ? 'settingsChangePathBtn' : 'setPathBtn';
-      var otherBtn = document.getElementById(otherBtnId);
-      if (otherBtn) otherBtn.disabled = true;
       try {
         var ex = getExternal();
-        if (!ex || !ex.selectGameFolder) { window._folderPickerOpen = false; btn.disabled = false; if (otherBtn) otherBtn.disabled = false; return; }
-        var result = ex.selectGameFolder();
-        window._folderPickerOpen = false;
-        btn.disabled = false;
-        if (otherBtn) otherBtn.disabled = false;
-        if (result === 'cancelled') return;
-        if (result === 'invalid') { showMessage('Invalid Folder', 'The selected folder does not contain BlackOps3.exe.'); return; }
-        if (result === 'error') { showMessage('Error', 'Failed to open folder picker.'); return; }
-        for (var di = 0; di < pathDisplayIds.length; di++) {
-          var el = document.getElementById(pathDisplayIds[di]);
-          if (el) el.textContent = result;
-        }
-        showMessage('Game Path Updated', 'Game path set to:\n' + result + '\n\nRestart BOIII for the change to take full effect.');
-      } catch (e) { window._folderPickerOpen = false; btn.disabled = false; if (otherBtn) otherBtn.disabled = false; showMessage('Error', 'Failed to set game path: ' + e.message); }
+        if (!ex || !ex.openFolderPicker) return;
+        var r = ex.openFolderPicker();
+        if (r === 'busy') return;
+        btn.disabled = true;
+        var poll = setInterval(function () {
+          try {
+            var ex2 = getExternal();
+            if (!ex2 || !ex2.getFolderPickerResult) { clearInterval(poll); btn.disabled = false; return; }
+            var result = ex2.getFolderPickerResult();
+            if (result === 'pending') return;
+            clearInterval(poll);
+            btn.disabled = false;
+            if (result === 'cancelled') return;
+            if (result === 'invalid') { showMessage('Invalid Folder', 'The selected folder does not contain BlackOps3.exe.'); return; }
+            for (var di = 0; di < pathDisplayIds.length; di++) {
+              var el = document.getElementById(pathDisplayIds[di]);
+              if (el) el.textContent = result;
+            }
+            showMessage('Game Path Updated', 'Game path set to:\n' + result + '\n\nRestart BOIII for the change to take full effect.');
+          } catch (e) { clearInterval(poll); btn.disabled = false; }
+        }, 200);
+      } catch (e) { btn.disabled = false; }
     };
   }
 
@@ -2155,6 +2186,34 @@
     };
   }
 
+  var workshopRetryInput = document.getElementById('settingsWorkshopRetry');
+  if (workshopRetryInput) {
+    workshopRetryInput.onchange = function () {
+      try {
+        var val = parseInt(workshopRetryInput.value, 10);
+        if (isNaN(val) || val < 1) val = 1;
+        if (val > 1000) val = 1000;
+        workshopRetryInput.value = val;
+        var ex = getExternal();
+        if (ex && ex.setGameSetting) ex.setGameSetting('workshop_retry_attempts', String(val));
+      } catch (e) { }
+    };
+  }
+
+  var workshopTimeoutInput = document.getElementById('settingsWorkshopTimeout');
+  if (workshopTimeoutInput) {
+    workshopTimeoutInput.onchange = function () {
+      try {
+        var val = parseInt(workshopTimeoutInput.value, 10);
+        if (isNaN(val) || val < 60) val = 60;
+        if (val > 3600) val = 3600;
+        workshopTimeoutInput.value = val;
+        var ex = getExternal();
+        if (ex && ex.setGameSetting) ex.setGameSetting('workshop_timeout', String(val));
+      } catch (e) { }
+    };
+  }
+
   var applyPresetBtn = document.getElementById('settingsApplyPresetBtn');
   if (applyPresetBtn) {
     applyPresetBtn.onclick = function () {
@@ -2250,6 +2309,15 @@
         var alt = document.getElementById('settingsAssetLimits');
         if (alt) { if (al) alt.classList.add('active'); else alt.classList.remove('active'); }
       }
+
+      if (s.workshop_retry_attempts !== undefined) {
+        var wri = document.getElementById('settingsWorkshopRetry');
+        if (wri) wri.value = s.workshop_retry_attempts;
+      }
+      if (s.workshop_timeout !== undefined) {
+        var wti = document.getElementById('settingsWorkshopTimeout');
+        if (wti) wti.value = s.workshop_timeout;
+      }
     } catch (e) { }
   }
 
@@ -2270,6 +2338,8 @@
               ex.setGameSetting('asset_limits_enabled', '1');
               ex.setGameSetting('friendsOnly', '0');
               ex.setGameSetting('networkpassword', '');
+              ex.setGameSetting('workshop_retry_attempts', '30');
+              ex.setGameSetting('workshop_timeout', '300');
             }
           }
         } catch (e) { }
@@ -2354,7 +2424,10 @@
               ex.removeFriend(sid);
             }
           } catch (e) { }
-          loadFriendsList();
+          _friendsData = _friendsData.filter(function (f) {
+            return String(f.steam_id) !== sid;
+          });
+          renderFriendsList();
         };
       })(removeBtns[ri]);
     }

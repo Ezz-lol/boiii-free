@@ -4,11 +4,13 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <atlbase.h>
 
 class html_frame;
 
 namespace launcher::workshop
 {
+	CComVariant utf8_variant(const std::string& utf8_str);
 	void register_callbacks(html_frame* frame);
 	void try_refresh_workshop_content();
 

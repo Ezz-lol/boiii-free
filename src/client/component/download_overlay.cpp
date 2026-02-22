@@ -33,6 +33,7 @@ namespace download_overlay
 			std::string title;
 			std::string message;
 			std::function<void()> on_yes;
+			std::function<void()> on_no;
 		};
 		utils::concurrency::container<confirm_state> confirm_{};
 
@@ -162,11 +163,11 @@ namespace download_overlay
 
 			ImGui::SetNextWindowPos(
 				ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f),
-				ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+				ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 			ImGui::SetNextWindowSize(ImVec2(560.f, 0.f), ImGuiCond_Always);
 
 			constexpr ImGuiWindowFlags flags =
-				ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+				ImGuiWindowFlags_NoResize |
 				ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings |
 				ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize;
 
@@ -206,7 +207,9 @@ namespace download_overlay
 			ImGui::PushStyleColor(ImGuiCol_ButtonActive,  ImVec4(0.16f, 0.16f, 0.18f, 1.f));
 			if (ImGui::Button("No", ImVec2(button_width, btn_h)))
 			{
+				const auto no_cb = cstate.on_no;
 				confirm_.access([](confirm_state& s) { s = {}; });
+				if (no_cb) no_cb();
 			}
 			ImGui::PopStyleColor(3);
 
@@ -221,11 +224,11 @@ namespace download_overlay
 			const auto& io = ImGui::GetIO();
 			if (io.DisplaySize.x <= 0.f || io.DisplaySize.y <= 0.f) return;
 
-			ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f), ImGuiCond_Always, ImVec2(0.5f, 0.5f));
+			ImGui::SetNextWindowPos(ImVec2(io.DisplaySize.x * 0.5f, io.DisplaySize.y * 0.5f), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
 			ImGui::SetNextWindowSize(ImVec2(620.f, 0.f), ImGuiCond_Always);
 
 			constexpr ImGuiWindowFlags flags =
-				ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
+				ImGuiWindowFlags_NoResize |
 				ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings |
 				ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_AlwaysAutoResize;
 
@@ -465,6 +468,34 @@ namespace download_overlay
 	void close_confirmation()
 	{
 		confirm_.access([](confirm_state& cstate) { cstate = {}; });
+	}
+
+	bool show_confirmation_blocking(const std::string& title, const std::string& message)
+	{
+		// Atomic result: 0 = pending, 1 = yes, 2 = no
+		auto result = std::make_shared<std::atomic<int>>(0);
+
+		confirm_.access([&](confirm_state& cstate)
+		{
+			cstate.active  = true;
+			cstate.title   = title;
+			cstate.message = message;
+			cstate.on_yes  = [result] { result->store(1); };
+			cstate.on_no   = [result] { result->store(2); };
+		});
+
+		// Block the calling thread until the user responds or download is cancelled
+		while (result->load() == 0)
+		{
+			if (!workshop::downloading_workshop_item)
+			{
+				close_confirmation();
+				return false;
+			}
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+		}
+
+		return result->load() == 1;
 	}
 
 	struct component final : client_component

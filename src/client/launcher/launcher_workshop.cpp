@@ -28,6 +28,21 @@ namespace launcher::workshop
 	std::chrono::steady_clock::time_point download_start_time;
 	double mod_size = 0.0;
 
+	// Convert UTF-8 std::string to a CComVariant with proper wide-string encoding
+	CComVariant utf8_variant(const std::string& utf8_str)
+	{
+		if (utf8_str.empty())
+			return CComVariant(L"");
+		const int wide_len = MultiByteToWideChar(CP_UTF8, 0, utf8_str.c_str(),
+			static_cast<int>(utf8_str.size()), nullptr, 0);
+		if (wide_len <= 0)
+			return CComVariant(utf8_str.c_str()); // fallback
+		std::wstring wide(static_cast<size_t>(wide_len), L'\0');
+		MultiByteToWideChar(CP_UTF8, 0, utf8_str.c_str(),
+			static_cast<int>(utf8_str.size()), &wide[0], wide_len);
+		return CComVariant(wide.c_str());
+	}
+
 	bool clear_directory_contents(const std::filesystem::path& dir)
 	{
 		std::error_code ec;
@@ -928,10 +943,8 @@ namespace launcher::workshop
 							w.Int64(subs);
 							w.Key("favorites");
 							w.Int64(favorites);
-							if (file_size > 0) {
-								w.Key("file_size");
-								w.Uint64(file_size);
-							}
+							w.Key("file_size");
+							w.Uint64(file_size);
 							w.EndObject();
 						}
 						if (i + batch_size < all_ids.size())
@@ -1138,10 +1151,8 @@ namespace launcher::workshop
 							w.Int64(subs);
 							w.Key("favorites");
 							w.Int64(favorites);
-							if (file_size > 0) {
-								w.Key("file_size");
-								w.Uint64(file_size);
-							}
+							w.Key("file_size");
+							w.Uint64(file_size);
 							w.EndObject();
 						}
 
@@ -1514,12 +1525,25 @@ namespace launcher::workshop
 					attempt++;
 					if (attempt > MAX_ATTEMPTS)
 					{
-						set_workshop_status("Error: Download failed after " + std::to_string(MAX_ATTEMPTS) + " attempts.", 0.0,
-							"SteamCMD could not complete the download.\n"
-							"Checked: " + content_path.string() + "\n"
-							"    and: " + alt_content_path.string() + "\n"
-							"Try again or check your connection.");
-						return;
+						int response = MessageBoxW(nullptr,
+							L"Download has used all retry attempts without completing.\n\n"
+							L"Do you want to continue downloading?\n"
+							L"(Your progress will be preserved)",
+							L"Retry Limit Reached",
+							MB_YESNO | MB_ICONQUESTION | MB_TOPMOST);
+
+						if (response == IDYES)
+						{
+							attempt = 1;
+							fast_fail_count = 0;
+							continue;
+						}
+						else
+						{
+							set_workshop_status("Download stopped by user after " + std::to_string(MAX_ATTEMPTS) + " attempts.", 0.0,
+								"You can retry the download at any time.");
+							return;
+						}
 					}
 
 					if (fast_fail_count >= FAIL_THRESHOLD)
@@ -1804,7 +1828,7 @@ namespace launcher::workshop
 
 							auto dl_elapsed = std::chrono::steady_clock::now() - download_phase_start;
 							auto dl_elapsed_sec = std::chrono::duration_cast<std::chrono::seconds>(dl_elapsed).count();
-							if (warmup_phase && dl_elapsed_sec >= 10) warmup_phase = false;
+							if (warmup_phase && (dl_elapsed_sec >= 10 || current_size > 0)) warmup_phase = false;
 
 							double percent = -1.0;
 							std::uint64_t display_size = current_size;
@@ -2004,7 +2028,7 @@ namespace launcher::workshop
 				bool has_workshop_json = false;
 				if (utils::io::read_file(json_path, &json_str) && !json_str.empty()) {
 					rapidjson::Document doc;
-					if (!doc.Parse(json_str).HasParseError() && doc.IsObject()) {
+					if (!doc.Parse(json_str.c_str()).HasParseError() && doc.IsObject()) {
 						if (doc.HasMember("Type") && doc["Type"].IsString()) {
 							mod_type = doc["Type"].GetString();
 						}
@@ -2390,7 +2414,7 @@ namespace launcher::workshop
 				w.Key("paused");
 				w.Bool(workshop_paused.load());
 				w.EndObject();
-				return CComVariant(std::string(buf.GetString(), buf.GetSize()).c_str());
+				return utf8_variant(std::string(buf.GetString(), buf.GetSize()));
 			});
 
 		frame->register_callback(
@@ -2494,14 +2518,14 @@ namespace launcher::workshop
 						auto file_cache = load_workshop_backup();
 						if (!file_cache.empty() && file_cache != "[]") {
 							workshop_browse_cache.push_back(file_cache);
-							return CComVariant(file_cache.c_str());
+							return utf8_variant(file_cache);
 						}
 					}
 					catch (...) {
 					}
 					return CComVariant("[]");
 				}
-				return CComVariant(workshop_browse_cache[0].c_str());
+				return utf8_variant(workshop_browse_cache[0]);
 			});
 
 		frame->register_callback(

@@ -22,5 +22,6 @@ namespace download_overlay
 
 	void show_confirmation(const std::string& title, const std::string& message,
 	                       std::function<void()> on_yes);
+	bool show_confirmation_blocking(const std::string& title, const std::string& message);
 	void close_confirmation();
 }

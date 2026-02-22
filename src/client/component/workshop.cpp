@@ -19,6 +19,7 @@
 
 #include <condition_variable>
 #include <mutex>
+#include <regex>
 #include <unordered_map>
 #include <shellapi.h>
 
@@ -455,6 +456,82 @@ namespace workshop
 		return buf;
 	}
 
+	std::uint64_t parse_human_size_to_bytes(const std::string& text)
+	{
+		std::smatch m;
+		std::regex re(R"((\d+(?:\.\d+)?)\s*(B|KB|MB|GB|TB))", std::regex::icase);
+		if (!std::regex_search(text, m, re) || m.size() < 3)
+			return 0;
+		const double value = std::stod(m[1].str());
+		std::string unit = m[2].str();
+		for (auto& c : unit)
+			c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+
+		double mul = 1.0;
+		if (unit == "KB") mul = 1024.0;
+		else if (unit == "MB") mul = 1024.0 * 1024.0;
+		else if (unit == "GB") mul = 1024.0 * 1024.0 * 1024.0;
+		else if (unit == "TB") mul = 1024.0 * 1024.0 * 1024.0 * 1024.0;
+
+		const auto bytes = value * mul;
+		if (bytes <= 0.0) return 0;
+		return static_cast<std::uint64_t>(bytes);
+	}
+
+	std::uint64_t scrape_workshop_file_size_bytes(const std::string& workshop_id)
+	{
+		try
+		{
+			utils::http::headers h;
+			h["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
+			h["Accept"] = "text/html";
+			h["Accept-Language"] = "en-US,en;q=0.9";
+			h["Referer"] = "https://steamcommunity.com/app/311210/workshop/";
+
+			const auto url = "https://steamcommunity.com/sharedfiles/filedetails/?id=" + workshop_id + "&searchtext=";
+			const auto resp = utils::http::get_data(url, h, {}, 2);
+			if (!resp || resp->empty()) return 0;
+
+			const std::string& html = *resp;
+
+			{
+				std::regex re(R"(detailsStatRight[^>]*>\s*([\d,\.]+\s*(?:B|KB|MB|GB|TB))\s*<)", std::regex::icase);
+				std::smatch m;
+				if (std::regex_search(html, m, re) && m.size() >= 2)
+				{
+					std::string size_text = m[1].str();
+					size_text.erase(std::remove(size_text.begin(), size_text.end(), ','), size_text.end());
+					const auto bytes = parse_human_size_to_bytes(size_text);
+					if (bytes > 0) return bytes;
+				}
+			}
+			{
+				std::regex re(R"(File\s*Size\s*<\/div>\s*<div[^>]*>([^<]+)<)", std::regex::icase);
+				std::smatch m;
+				if (std::regex_search(html, m, re) && m.size() >= 2)
+				{
+					std::string size_text = m[1].str();
+					size_text.erase(std::remove(size_text.begin(), size_text.end(), ','), size_text.end());
+					const auto bytes = parse_human_size_to_bytes(size_text);
+					if (bytes > 0) return bytes;
+				}
+			}
+			{
+				std::regex re(R"(File\s*Size[^\d]*(\d+(?:[,.]\d+)?)\s*(B|KB|MB|GB|TB))", std::regex::icase);
+				std::smatch m;
+				if (std::regex_search(html, m, re) && m.size() >= 3)
+				{
+					std::string num = m[1].str();
+					num.erase(std::remove(num.begin(), num.end(), ','), num.end());
+					const auto bytes = parse_human_size_to_bytes(num + " " + m[2].str());
+					if (bytes > 0) return bytes;
+				}
+			}
+			return 0;
+		}
+		catch (...) { return 0; }
+	}
+
 	workshop_info get_steam_workshop_info(const std::string& workshop_id)
 	{
 		workshop_info info{};
@@ -491,8 +568,20 @@ namespace workshop
 				else if (size_it->value.IsDouble()) info.file_size = static_cast<std::uint64_t>(size_it->value.GetDouble());
 				else if (size_it->value.IsNumber()) info.file_size = static_cast<std::uint64_t>(size_it->value.GetDouble());
 			}
+
+			if (info.file_size == 0)
+			{
+				const auto scraped = scrape_workshop_file_size_bytes(workshop_id);
+				if (scraped > 0)
+					info.file_size = scraped;
+			}
 		}
-		catch (...) {}
+		catch (...)
+		{
+			const auto scraped = scrape_workshop_file_size_bytes(workshop_id);
+			if (scraped > 0)
+				info.file_size = scraped;
+		}
 		return info;
 	}
 

@@ -483,7 +483,7 @@ namespace steamcmd
 			}
 
 			// Track when files first appear (start of dump/download phase)
-			if (*warmup_phase && current_size > 4096
+			if (*warmup_phase && current_size > 0
 			    && *download_phase_start == std::chrono::steady_clock::time_point{})
 			{
 				*download_phase_start = std::chrono::steady_clock::now();
@@ -709,8 +709,28 @@ namespace steamcmd
 		int fast_fail_count = 0;
 		constexpr int FAST_FAIL_THRESHOLD = 5;
 
-		while (workshop::downloading_workshop_item && !std::filesystem::exists(content_folder) && tries < max_tries)
+		while (workshop::downloading_workshop_item && !std::filesystem::exists(content_folder))
 		{
+			if (tries >= max_tries)
+			{
+				// Ask the user if they want to keep trying instead of giving up
+				if (download_overlay::show_confirmation_blocking(
+					"Retry Limit Reached",
+					"Download has used all " + std::to_string(max_tries) + " retry attempts without completing.\n\n"
+					"Do you want to continue downloading?\n"
+					"(Your progress will be preserved)"))
+				{
+					printf("[ Workshop ] User chose to continue downloading, resetting retry counter.\n");
+					tries = 0;
+					continue;
+				}
+				else
+				{
+					printf("[ Workshop ] User chose to stop after retry limit.\n");
+					break;
+				}
+			}
+
 			tries++;
 
 			if (fast_fail_count >= FAST_FAIL_THRESHOLD)

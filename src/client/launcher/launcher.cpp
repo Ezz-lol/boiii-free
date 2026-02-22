@@ -44,6 +44,11 @@ namespace launcher
 		std::string library_list_cache;
 		std::atomic<bool> library_list_loading{false};
 
+		std::mutex folder_picker_mutex;
+		std::string folder_picker_result;
+		std::atomic<bool> folder_picker_busy{false};
+		std::atomic<bool> folder_picker_done{false};
+
 		std::mutex remove_status_mutex;
 		std::string remove_status_message;
 		double remove_progress_percent = 0.0;
@@ -889,7 +894,7 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 			std::string data;
 			if (!utils::io::read_file(zone_json.string(), &data)) return false;
 			rapidjson::Document doc;
-			if (doc.Parse(data).HasParseError() || !doc.IsObject()) return false;
+			if (doc.Parse(data.c_str()).HasParseError() || !doc.IsObject()) return false;
 			if (!doc.HasMember("Title") || !doc.HasMember("FolderName")) return false;
 			item.name = doc["Title"].GetString();
 			if (doc.HasMember("Description") && doc["Description"].IsString())
@@ -1190,46 +1195,101 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 			});
 
 		window.get_html_frame()->register_callback(
-			"selectGameFolder", [](const std::vector<html_argument>& /*params*/) -> CComVariant
+			"openFolderPicker", [](const std::vector<html_argument>& /*params*/) -> CComVariant
 			{
-				static std::atomic<bool> folder_picker_active{false};
-				if (folder_picker_active.exchange(true))
+				if (folder_picker_busy.exchange(true))
 				{
-					return CComVariant("cancelled");
+					return CComVariant("busy");
+				}
+				folder_picker_done = false;
+				{
+					std::lock_guard lock(folder_picker_mutex);
+					folder_picker_result.clear();
 				}
 
-				std::string selected_str;
-				try
+				std::thread([]()
 				{
-					if (!utils::com::select_folder(selected_str, "Select your Black Ops 3 installation folder"))
+					CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+					std::string selected;
+					try
 					{
-						folder_picker_active = false;
-						return CComVariant("cancelled");
+						IFileOpenDialog* pfd = nullptr;
+						HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pfd));
+						if (SUCCEEDED(hr) && pfd)
+						{
+							DWORD opts = 0;
+							pfd->GetOptions(&opts);
+							pfd->SetOptions(opts | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM);
+							pfd->SetTitle(L"Select your Black Ops 3 installation folder");
+
+							hr = pfd->Show(nullptr);
+							if (SUCCEEDED(hr))
+							{
+								IShellItem* psi = nullptr;
+								if (SUCCEEDED(pfd->GetResult(&psi)))
+								{
+									LPWSTR path_buf = nullptr;
+									if (SUCCEEDED(psi->GetDisplayName(SIGDN_FILESYSPATH, &path_buf)) && path_buf)
+									{
+										const std::wstring wp(path_buf);
+										const int len = WideCharToMultiByte(CP_UTF8, 0, wp.c_str(), -1, nullptr, 0, nullptr, nullptr);
+										if (len > 0)
+										{
+											selected.resize(len - 1);
+											WideCharToMultiByte(CP_UTF8, 0, wp.c_str(), -1, &selected[0], len, nullptr, nullptr);
+										}
+										CoTaskMemFree(path_buf);
+									}
+									psi->Release();
+								}
+							}
+							pfd->Release();
+						}
 					}
-				}
-				catch (...)
-				{
-					folder_picker_active = false;
-					return CComVariant("error");
-				}
+					catch (...) {}
 
-				const std::filesystem::path selected(selected_str);
-				const bool has_client = std::filesystem::exists(selected / "BlackOps3.exe");
-				const bool has_server = std::filesystem::exists(selected / "BlackOps3_UnrankedDedicatedServer.exe");
-				if (!has_client && !has_server)
-				{
-					return CComVariant("invalid");
-				}
+					if (!selected.empty())
+					{
+						const std::filesystem::path sel(selected);
+						const bool has_client = std::filesystem::exists(sel / "BlackOps3.exe");
+						const bool has_server = std::filesystem::exists(sel / "BlackOps3_UnrankedDedicatedServer.exe");
+						if (!has_client && !has_server)
+						{
+							std::lock_guard lock(folder_picker_mutex);
+							folder_picker_result = "invalid";
+						}
+						else
+						{
+							const auto path_file = game::get_appdata_path() / "user" / "game_path.txt";
+							std::error_code ec;
+							std::filesystem::create_directories(path_file.parent_path(), ec);
+							utils::io::write_file(path_file.string(), selected);
+							SetCurrentDirectoryA(selected.c_str());
 
-				const auto path_file = game::get_appdata_path() / "user" / "game_path.txt";
-				std::error_code ec;
-				std::filesystem::create_directories(path_file.parent_path(), ec);
-				utils::io::write_file(path_file.string(), selected_str);
+							std::lock_guard lock(folder_picker_mutex);
+							folder_picker_result = selected;
+						}
+					}
+					else
+					{
+						std::lock_guard lock(folder_picker_mutex);
+						folder_picker_result = "cancelled";
+					}
 
-				SetCurrentDirectoryA(selected_str.c_str());
+					CoUninitialize();
+					folder_picker_done = true;
+					folder_picker_busy = false;
+				}).detach();
 
-				folder_picker_active = false;
-				return CComVariant(selected_str.c_str());
+				return CComVariant("ok");
+			});
+
+		window.get_html_frame()->register_callback(
+			"getFolderPickerResult", [](const std::vector<html_argument>& /*params*/) -> CComVariant
+			{
+				if (!folder_picker_done.load()) return CComVariant("pending");
+				std::lock_guard lock(folder_picker_mutex);
+				return CComVariant(folder_picker_result.c_str());
 			});
 
 		window.get_html_frame()->register_callback(
@@ -1342,7 +1402,7 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 			{
 				std::lock_guard lock(library_list_mutex);
 				if (!library_list_cache.empty())
-					return CComVariant(library_list_cache.c_str());
+					return launcher::workshop::utf8_variant(library_list_cache);
 				return CComVariant("[]");
 			});
 
@@ -1527,11 +1587,49 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 			"readFriends", [friends_file](const std::vector<html_argument>& /*params*/) -> CComVariant
 			{
 				std::string data;
-				if (utils::io::read_file(friends_file.string(), &data) && !data.empty())
-				{
+				if (!utils::io::read_file(friends_file.string(), &data) || data.empty())
+					return CComVariant("[]");
+
+				// Normalize: ensure all steam_id values are JSON strings so JS
+				// doesn't lose precision on large uint64 values.
+				rapidjson::Document doc;
+				if (doc.Parse(data.c_str()).HasParseError() || !doc.IsArray())
 					return CComVariant(data.c_str());
+
+				bool modified = false;
+				for (auto& item : doc.GetArray())
+				{
+					if (!item.IsObject()) continue;
+					auto si = item.FindMember("steam_id");
+					if (si == item.MemberEnd()) continue;
+					if (si->value.IsUint64())
+					{
+						char buf[32];
+						std::snprintf(buf, sizeof(buf), "%llu", si->value.GetUint64());
+						si->value.SetString(buf, doc.GetAllocator());
+						modified = true;
+					}
+					else if (si->value.IsInt64())
+					{
+						char buf[32];
+						std::snprintf(buf, sizeof(buf), "%lld", si->value.GetInt64());
+						si->value.SetString(buf, doc.GetAllocator());
+						modified = true;
+					}
 				}
-				return CComVariant("[]");
+
+				if (modified)
+				{
+					// Write back the normalized JSON so future reads are clean
+					rapidjson::StringBuffer sb;
+					rapidjson::Writer<rapidjson::StringBuffer> w(sb);
+					doc.Accept(w);
+					std::string fixed(sb.GetString(), sb.GetSize());
+					utils::io::write_file(friends_file.string(), fixed);
+					return CComVariant(fixed.c_str());
+				}
+
+				return CComVariant(data.c_str());
 			});
 
 		window.get_html_frame()->register_callback(
@@ -1596,7 +1694,7 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 				}
 
 				rapidjson::Value entry(rapidjson::kObjectType);
-				entry.AddMember("steam_id", steam_id, doc.GetAllocator());
+				entry.AddMember("steam_id", rapidjson::Value(steam_id_str.c_str(), doc.GetAllocator()), doc.GetAllocator());
 				entry.AddMember("name", rapidjson::Value(name.c_str(), doc.GetAllocator()), doc.GetAllocator());
 				doc.PushBack(entry, doc.GetAllocator());
 
@@ -1713,6 +1811,14 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 						auto pw = extract_dvar("g_password");
 						w.Key("networkpassword");
 						w.String(pw.c_str());
+
+						auto retry = extract_dvar("workshop_retry_attempts");
+						w.Key("workshop_retry_attempts");
+						w.String(retry.empty() ? "30" : retry.c_str());
+
+						auto timeout = extract_dvar("workshop_timeout");
+						w.Key("workshop_timeout");
+						w.String(timeout.empty() ? "300" : timeout.c_str());
 					}
 				}
 
@@ -1814,16 +1920,20 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 					return CComVariant("ok");
 				}
 
-				if (key == "networkpassword")
+				if (key == "networkpassword" || key == "workshop_retry_attempts" || key == "workshop_timeout")
 				{
-					// Write g_password dvar to config.cfg
+					// Map setting key to dvar name
+					std::string dvar_name;
+					if (key == "networkpassword") dvar_name = "g_password";
+					else dvar_name = key; // workshop_retry_attempts, workshop_timeout
+
 					const auto cfg_path = std::filesystem::path(cwd) / "boiii_players" / "user" / "config.cfg";
 					std::string cfg_data;
 					if (std::filesystem::exists(cfg_path))
 						utils::io::read_file(cfg_path.string(), &cfg_data);
 
-					std::string dvar_line = "set g_password \"" + value + "\"";
-					std::string search = "set g_password \"";
+					std::string dvar_line = "set " + dvar_name + " \"" + value + "\"";
+					std::string search = "set " + dvar_name + " \"";
 					auto pos = cfg_data.find(search);
 					if (pos != std::string::npos)
 					{

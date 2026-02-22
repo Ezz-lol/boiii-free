@@ -225,9 +225,6 @@ namespace party
 			{
 				const auto usermap_id = workshop::get_usermap_publisher_id(mapname);
 
-				workshop::set_pending_reconnect(utils::string::va(
-					"%i.%i.%i.%i:%hu", target.ipv4.a, target.ipv4.b, target.ipv4.c, target.ipv4.d, target.port));
-
 				if (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id) &&
 					workshop::check_valid_mod_id(mod_id, workshop_id))
 				{
@@ -235,6 +232,11 @@ namespace party
 
 					//connect_to_session(target, hostname, xuid, mode);
 					connect_to_lobby_with_mode_internal(target, mode, mapname, gametype, usermap_id, mod_id);
+				}
+				else if (!workshop::is_any_download_active())
+				{
+					workshop::set_pending_reconnect(utils::string::va(
+						"%i.%i.%i.%i:%hu", target.ipv4.a, target.ipv4.b, target.ipv4.c, target.ipv4.d, target.port));
 				}
 			}, scheduler::main);
 		}

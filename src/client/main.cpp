@@ -357,36 +357,97 @@ namespace
 		html_window setup_window("BOIII - Game Setup", 480, 300,
 			WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU);
 
+		std::mutex setup_folder_mutex;
+		std::string setup_folder_result;
+		std::atomic<bool> setup_folder_busy{false};
+		std::atomic<bool> setup_folder_done{false};
+
 		setup_window.get_html_frame()->register_callback(
-			"selectFolder", [&path_set, &setup_window, &path_file](const std::vector<html_argument>& /*params*/) -> CComVariant
+			"openFolderPicker", [&setup_folder_busy, &setup_folder_done, &setup_folder_mutex, &setup_folder_result, &path_set, &setup_window, &path_file](const std::vector<html_argument>& /*params*/) -> CComVariant
 			{
-				std::string selected_str;
-				try
+				if (setup_folder_busy.exchange(true))
+					return CComVariant("busy");
+				setup_folder_done = false;
 				{
-					if (!utils::com::select_folder(selected_str, "Select your Black Ops 3 installation folder"))
+					std::lock_guard lock(setup_folder_mutex);
+					setup_folder_result.clear();
+				}
+				std::thread([&setup_folder_busy, &setup_folder_done, &setup_folder_mutex, &setup_folder_result, &path_set, &setup_window, &path_file]()
+				{
+					CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
+					std::string selected;
+					try
 					{
-						return CComVariant("cancelled");
+						IFileOpenDialog* pfd = nullptr;
+						HRESULT hr = CoCreateInstance(CLSID_FileOpenDialog, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pfd));
+						if (SUCCEEDED(hr) && pfd)
+						{
+							DWORD opts = 0;
+							pfd->GetOptions(&opts);
+							pfd->SetOptions(opts | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM);
+							pfd->SetTitle(L"Select your Black Ops 3 installation folder");
+
+							hr = pfd->Show(nullptr);
+							if (SUCCEEDED(hr))
+							{
+								IShellItem* psi = nullptr;
+								if (SUCCEEDED(pfd->GetResult(&psi)))
+								{
+									LPWSTR path_buf = nullptr;
+									if (SUCCEEDED(psi->GetDisplayName(SIGDN_FILESYSPATH, &path_buf)) && path_buf)
+									{
+										const std::wstring wp(path_buf);
+										const int len = WideCharToMultiByte(CP_UTF8, 0, wp.c_str(), -1, nullptr, 0, nullptr, nullptr);
+										if (len > 0) { selected.resize(len - 1); WideCharToMultiByte(CP_UTF8, 0, wp.c_str(), -1, &selected[0], len, nullptr, nullptr); }
+										CoTaskMemFree(path_buf);
+									}
+									psi->Release();
+								}
+							}
+							pfd->Release();
+						}
 					}
-				}
-				catch (...)
-				{
-					return CComVariant("error");
-				}
+					catch (...) {}
 
-				if (!is_valid_game_folder(selected_str))
-				{
-					return CComVariant("invalid");
-				}
+					if (!selected.empty())
+					{
+						if (!is_valid_game_folder(selected))
+						{
+							std::lock_guard lock(setup_folder_mutex);
+							setup_folder_result = "invalid";
+						}
+						else
+						{
+							std::error_code ec;
+							std::filesystem::create_directories(path_file.parent_path(), ec);
+							utils::io::write_file(path_file.string(), selected);
+							SetCurrentDirectoryA(selected.c_str());
+							path_set = true;
+							{
+								std::lock_guard lock(setup_folder_mutex);
+								setup_folder_result = selected;
+							}
+							PostMessage(static_cast<HWND>(*(setup_window.get_window())), WM_CLOSE, 0, 0);
+						}
+					}
+					else
+					{
+						std::lock_guard lock(setup_folder_mutex);
+						setup_folder_result = "cancelled";
+					}
+					CoUninitialize();
+					setup_folder_done = true;
+					setup_folder_busy = false;
+				}).detach();
+				return CComVariant("ok");
+			});
 
-				std::error_code ec;
-				std::filesystem::create_directories(path_file.parent_path(), ec);
-				utils::io::write_file(path_file.string(), selected_str);
-				SetCurrentDirectoryA(selected_str.c_str());
-
-				path_set = true;
-				setup_window.get_window()->close();
-
-				return CComVariant(selected_str.c_str());
+		setup_window.get_html_frame()->register_callback(
+			"getFolderPickerResult", [&setup_folder_done, &setup_folder_mutex, &setup_folder_result](const std::vector<html_argument>& /*params*/) -> CComVariant
+			{
+				if (!setup_folder_done.load()) return CComVariant("pending");
+				std::lock_guard lock(setup_folder_mutex);
+				return CComVariant(setup_folder_result.c_str());
 			});
 
 		setup_window.get_html_frame()->load_html(R"html(
@@ -416,18 +477,26 @@ button:hover { background: #359935; }
 <div class="icon">&#9888;</div>
 <h2>Game Not Found</h2>
 <p>Could not locate Black Ops 3 installation.<br>Please select your game folder to continue.</p>
-<button onclick="doSelect()">Set Game Path</button>
+<button id="selectBtn" onclick="doSelect()">Set Game Path</button>
 <div id="status"></div>
 <script>
 function doSelect() {
-	var result = window.external.selectFolder();
-	if (result === 'invalid') {
-		document.getElementById('status').innerText = 'Selected folder does not contain BlackOps3.exe';
-	} else if (result === 'error') {
-		document.getElementById('status').innerText = 'An error occurred. Please try again.';
-	} else if (result === 'cancelled') {
-		document.getElementById('status').innerText = '';
-	}
+	var btn = document.getElementById('selectBtn');
+	var r = window.external.openFolderPicker();
+	if (r === 'busy') return;
+	btn.disabled = true;
+	document.getElementById('status').innerText = '';
+	var poll = setInterval(function() {
+		var result = window.external.getFolderPickerResult();
+		if (result === 'pending') return;
+		clearInterval(poll);
+		btn.disabled = false;
+		if (result === 'invalid') {
+			document.getElementById('status').innerText = 'Selected folder does not contain BlackOps3.exe';
+		} else if (result === 'cancelled') {
+			document.getElementById('status').innerText = '';
+		}
+	}, 200);
 }
 </script>
 </body>
