@@ -83,26 +83,38 @@ body {
 }
 
 @keyframes titleGlow {
-
-  0%,
-  100% {
-    text-shadow: 0 0 20px rgba(249, 115, 22, 0.4), 0 0 40px rgba(249, 115, 22, 0.15), 0 4px 12px rgba(0, 0, 0, 0.8);
+  0%, 100% {
+    text-shadow:
+      0 0 10px rgba(249, 115, 22, 0.8),
+      0 0 20px rgba(249, 115, 22, 0.5),
+      0 0 30px rgba(249, 115, 22, 0.3),
+      0 0 40px rgba(251, 146, 60, 0.2),
+      0 2px 4px rgba(0, 0, 0, 0.9);
+    transform: translateY(0);
   }
-
   50% {
-    text-shadow: 0 0 30px rgba(249, 115, 22, 0.7), 0 0 60px rgba(249, 115, 22, 0.3), 0 0 90px rgba(249, 115, 22, 0.1), 0 4px 12px rgba(0, 0, 0, 0.8);
+    text-shadow:
+      0 0 15px rgba(249, 115, 22, 1),
+      0 0 30px rgba(249, 115, 22, 0.7),
+      0 0 45px rgba(249, 115, 22, 0.5),
+      0 0 60px rgba(251, 146, 60, 0.3),
+      0 0 80px rgba(251, 146, 60, 0.1),
+      0 2px 4px rgba(0, 0, 0, 0.9);
+    transform: translateY(-1px);
   }
 }
 
 @keyframes logoGlow {
-
-  0%,
-  100% {
-    text-shadow: 0 0 10px rgba(249, 115, 22, 0.3);
+  0%, 100% {
+    text-shadow:
+      0 0 8px rgba(249, 115, 22, 0.6),
+      0 0 16px rgba(249, 115, 22, 0.3);
   }
-
   50% {
-    text-shadow: 0 0 18px rgba(249, 115, 22, 0.65), 0 0 30px rgba(249, 115, 22, 0.2);
+    text-shadow:
+      0 0 12px rgba(249, 115, 22, 0.9),
+      0 0 24px rgba(249, 115, 22, 0.5),
+      0 0 36px rgba(251, 146, 60, 0.2);
   }
 }
 
@@ -164,7 +176,8 @@ body {
 .nav-logo-text em {
   color: rgba(249, 115, 22, 0.95);
   font-style: normal;
-  animation: logoGlow 3s ease-in-out infinite;
+  animation: logoGlow 2.5s ease-in-out infinite;
+  will-change: text-shadow;
 }
 
 .nav-items {
@@ -188,8 +201,9 @@ body {
   background: transparent;
   color: rgba(180, 175, 170, 0.45);
   font-size: inherit;
-  transition: color 0.25s ease, background 0.25s ease;
+  transition: color 0.25s ease, background 0.25s ease, transform 0.2s ease;
   position: relative;
+  will-change: transform;
 }
 
 .nav-btn::before {
@@ -197,13 +211,15 @@ body {
   position: absolute;
   left: 0;
   top: 50%;
-  transform: translateY(-50%);
+  transform: translateY(-50%) scaleY(0);
   width: 3px;
-  height: 0;
+  height: 50%;
   background: linear-gradient(180deg, rgba(249, 115, 22, 0.95), rgba(251, 146, 60, 0.8));
-  transition: height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease;
   border-radius: 0 3px 3px 0;
   box-shadow: 0 0 8px rgba(249, 115, 22, 0);
+  transform-origin: center;
+  will-change: transform, box-shadow;
 }
 
 .nav-btn:hover {
@@ -217,7 +233,7 @@ body {
 }
 
 .nav-btn.active::before {
-  height: 50%;
+  transform: translateY(-50%) scaleY(1);
   box-shadow: 0 0 12px rgba(249, 115, 22, 0.4);
 }
 
@@ -225,7 +241,8 @@ body {
   font-size: 1.3rem;
   line-height: 1.5;
   filter: drop-shadow(0 0 0px transparent);
-  transition: filter 0.3s ease;
+  transition: filter 0.3s ease, opacity 0.3s ease;
+  will-change: filter;
 }
 
 .nav-btn.active .nav-icon {
@@ -291,6 +308,8 @@ body {
 #settingsPage .page-scroll-inner {
   overflow-y: auto;
   overflow-x: hidden;
+  min-width: 0;
+  width: 100%;
 }
 
 #mainPage.active {
@@ -305,7 +324,8 @@ h1 {
   font-weight: 700;
   letter-spacing: 0.04em;
   margin-bottom: 10px;
-  animation: titleGlow 3s ease-in-out infinite;
+  animation: titleGlow 4s ease-in-out infinite;
+  will-change: text-shadow, transform;
 }
 
 .title-big {
@@ -361,13 +381,15 @@ h1 {
   font-size: 1.2rem;
   font-weight: 700;
   font-family: inherit;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
   box-shadow: 0 4px 16px rgba(249, 115, 22, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   position: relative;
   overflow: hidden;
   letter-spacing: 0.06em;
   width: 100%;
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .btn-play-large::before {
@@ -486,7 +508,7 @@ h1 {
   padding: 10px 16px;
   text-align: center;
   outline: none;
-  transition: all 0.25s;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   font-weight: 500;
   letter-spacing: 0.06em;
@@ -552,11 +574,13 @@ h1 {
   font-size: 0.88rem;
   font-weight: 500;
   font-family: inherit;
-  transition: all 0.22s ease;
+  transition: transform 0.22s ease, background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
   position: relative;
   overflow: hidden;
   white-space: nowrap;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .btn::before {
@@ -982,18 +1006,20 @@ h1 {
   overflow: hidden;
   display: flex;
   flex-direction: row;
-  transition: all 0.18s;
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
   cursor: pointer;
   min-height: 90px;
   align-items: stretch;
   flex-shrink: 0;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .workshop-item-card:hover {
   background: rgba(48, 46, 44, 0.88);
   border-color: rgba(249, 115, 22, 0.45);
-  transform: translateX(3px);
-  box-shadow: 0 3px 14px rgba(249, 115, 22, 0.15);
+  transform: translateX(3px) translateY(-1px);
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.2);
 }
 
 .workshop-item-image {
@@ -1395,15 +1421,17 @@ h1 {
   border: 1px solid rgba(68, 65, 63, 0.45);
   border-radius: 7px;
   padding: 14px;
-  transition: all 0.18s;
+  transition: transform 0.18s ease, background 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
   cursor: pointer;
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .mod-card:hover {
   background: rgba(0, 0, 0, 0.55);
   border-color: rgba(249, 115, 22, 0.38);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 14px rgba(249, 115, 22, 0.12);
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 6px 20px rgba(249, 115, 22, 0.18);
 }
 
 .mod-card-header {
@@ -1610,10 +1638,11 @@ h1 {
   border: 1px solid rgba(68, 65, 63, 0.28);
   border-radius: 5px;
   cursor: pointer;
-  transition: all 0.15s;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
   -ms-user-select: none;
   -webkit-user-select: none;
   user-select: none;
+  will-change: transform, background, border-color;
 }
 
 .launch-option-card:last-child {
@@ -1637,12 +1666,14 @@ h1 {
   background: rgba(80, 77, 75, 0.3);
   flex-shrink: 0;
   margin-right: 10px;
-  transition: background 0.15s, box-shadow 0.15s;
+  transition: background 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  will-change: transform, background, box-shadow;
 }
 
 .launch-option-card.active .launch-option-dot {
   background: rgba(249, 115, 22, 0.95);
   box-shadow: 0 0 5px rgba(249, 115, 22, 0.5);
+  transform: scale(1.3);
 }
 
 .launch-option-name {
@@ -2347,7 +2378,8 @@ h1 {
   background: rgba(38, 36, 34, 0.65);
   border: 1px solid rgba(68, 65, 63, 0.35);
   border-radius: 6px;
-  transition: all 0.15s;
+  transition: background 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  will-change: transform;
 }
 
 .friend-item:hover {
@@ -2470,7 +2502,12 @@ h1 {
 }
 
 .settings-tab-content.active {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 600px;
+  flex-shrink: 0;
+  align-items: stretch;
 }
 
 .settings-body {
@@ -2478,10 +2515,14 @@ h1 {
   max-width: 880px;
   margin: 0 auto;
   width: 100%;
+  min-width: 600px;
+  flex-shrink: 0;
 }
 
 .settings-section {
   margin-bottom: 30px;
+  width: 100%;
+  flex-shrink: 0;
 }
 
 .settings-section-title {
@@ -2507,7 +2548,11 @@ h1 {
   border: 1px solid rgba(68, 65, 63, 0.22);
   border-radius: 8px;
   margin-bottom: 8px;
-  transition: border-color 0.25s ease, background 0.25s ease;
+  transition: border-color 0.25s ease, background 0.25s ease, transform 0.2s ease;
+  will-change: transform;
+  width: 100%;
+  flex-shrink: 0;
+  min-width: 0;
 }
 
 .settings-row:hover {
@@ -2540,8 +2585,9 @@ h1 {
   border: none;
   border-radius: 12px;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s ease;
   flex-shrink: 0;
+  will-change: background;
 }
 
 .settings-toggle::after {
@@ -2553,7 +2599,8 @@ h1 {
   height: 16px;
   background: rgba(200, 196, 192, 0.7);
   border-radius: 50%;
-  transition: all 0.2s;
+  transition: transform 0.2s ease, background 0.2s ease;
+  will-change: transform, background;
 }
 
 .settings-toggle.active {
