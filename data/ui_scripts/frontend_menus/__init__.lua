@@ -2,6 +2,10 @@ if Engine.GetCurrentMap() ~= "core_frontend" then
   return
 end
 
+if not CoD.LobbyButtons then
+  return
+end
+
 local enableLobbyMapVote = true             -- toggle map vote in public lobby
 local enableLargeServerBrowserButton = true -- toggle large server browser button
 

@@ -2,7 +2,9 @@ if Engine.GetCurrentMap() ~= "core_frontend" then
 	return
 end
 
-require( "ui.uieditor.widgets.PC.ServerBrowser.ServerBrowserRowInternal" )
+if not pcall(require, "ui.uieditor.widgets.PC.ServerBrowser.ServerBrowserRowInternal") then
+	return
+end
 require( "ui.uieditor.widgets.Lobby.Common.FE_FocusBarContainer" )
 
 CoD.ServerBrowserRow = InheritFrom( LUI.UIElement )
