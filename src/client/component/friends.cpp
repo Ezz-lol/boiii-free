@@ -32,6 +32,56 @@ namespace friends
 		std::string cached_public_ip;
 		std::atomic_bool public_ip_fetched{false};
 
+		// Helper to find VPN/Virtual LAN IPs (Radmin, Hamachi)
+		std::string get_preferred_local_ip()
+		{
+			ULONG outBufLen = 15000;
+			std::vector<unsigned char> buffer(outBufLen);
+			PIP_ADAPTER_INFO pAdapterInfo = reinterpret_cast<IP_ADAPTER_INFO*>(buffer.data());
+
+			// Retry with larger buffer if needed
+			if (GetAdaptersInfo(pAdapterInfo, &outBufLen) == ERROR_BUFFER_OVERFLOW)
+			{
+				buffer.resize(outBufLen);
+				pAdapterInfo = reinterpret_cast<IP_ADAPTER_INFO*>(buffer.data());
+			}
+
+			if (GetAdaptersInfo(pAdapterInfo, &outBufLen) != NO_ERROR)
+			{
+				return "";
+			}
+
+			std::string radmin_ip;
+			std::string hamachi_ip;
+			std::string other_vpn_ip; // e.g. ZeroTier often uses managed ranges, but we can detect 10.x if needed
+
+			PIP_ADAPTER_INFO pAdapter = pAdapterInfo;
+			while (pAdapter)
+			{
+				std::string ip = pAdapter->IpAddressList.IpAddress.String;
+				if (ip != "0.0.0.0" && !ip.empty())
+				{
+					// Radmin VPN usually uses 26.x.x.x
+					if (ip.starts_with("26."))
+					{
+						radmin_ip = ip;
+					}
+					// Hamachi usually uses 25.x.x.x
+					else if (ip.starts_with("25."))
+					{
+						hamachi_ip = ip;
+					}
+				}
+				pAdapter = pAdapter->Next;
+			}
+
+			// Priority: Radmin > Hamachi
+			if (!radmin_ip.empty()) return radmin_ip;
+			if (!hamachi_ip.empty()) return hamachi_ip;
+
+			return "";
+		}
+
 		void fetch_public_ip()
 		{
 			try
@@ -142,6 +192,13 @@ namespace friends
 		std::string get_own_connect_address()
 		{
 			auto local_port = party::get_local_port();
+			auto vpn_ip = get_preferred_local_ip();
+
+			// If we found a Radmin/Hamachi IP, prioritize it immediately
+			if (!vpn_ip.empty())
+			{
+				return utils::string::va("%s:%u", vpn_ip.c_str(), static_cast<unsigned>(local_port));
+			}
 
 			if (game::Com_IsInGame())
 			{
