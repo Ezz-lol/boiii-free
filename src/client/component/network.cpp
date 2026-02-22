@@ -8,6 +8,7 @@
 #include "network.hpp"
 #include "party.hpp"
 #include "scheduler.hpp"
+#include "something.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -171,6 +172,12 @@ namespace network
 			if (from_adr.type != game::NA_LOOPBACK && game::is_server() && !game::is_server_running())
 			{
 				return 0;
+			}
+
+			// Network security: inspect packet for exploits before processing
+			if (from_adr.type != game::NA_LOOPBACK && ezzsec::InspectPacket(msg))
+			{
+				return 0; // drop malicious packet
 			}
 
 			return handle_packet_internal_hook.invoke<bool>(controller_index, from_adr, from_xuid, lobby_type,
