@@ -365,7 +365,6 @@ namespace discord
 		{
 			printf("Discord: Error (%i): %s\n", error_code, message);
 		}
-
 	}
 
 	void set_player_score(const int score)
@@ -389,7 +388,6 @@ namespace discord
 			handlers.ready = ready;
 			handlers.errored = errored;
 			handlers.disconnected = errored;
-			// handlers.joinGame = join_game; // TODO: Need correct LobbyVM_JoinEvent address
 
 			Discord_Initialize(DISCORD_APP_ID, &handlers, 1, nullptr);
 			initialized_ = true;
