@@ -302,6 +302,7 @@
         <div class="settings-tabs">
           <button type="button" class="settings-tab active" data-stab="general">General</button>
           <button type="button" class="settings-tab" data-stab="graphics">Graphics</button>
+          <button type="button" class="settings-tab" data-stab="assetpools">Asset Pools</button>
           <button type="button" class="settings-tab" data-stab="patches">Patches</button>
         </div>
 
@@ -465,6 +466,131 @@
             <div class="settings-section">
               <button type="button" class="btn btn-danger" id="settingsResetBtn" style="width:100%;">Reset All Settings
                 to Defaults</button>
+            </div>
+          </div>
+
+          <!-- ═══ ASSET POOLS TAB ═══ -->
+          <div class="settings-tab-content" id="settingsTabAssetPools" data-stab="assetpools">
+            <div class="settings-section">
+              <div class="settings-section-title">Asset Pool Expansion</div>
+              <div class="settings-row">
+                <div>
+                  <div class="settings-row-label">Disable asset pools patches</div>
+                  <div class="settings-row-desc">Turn off all asset pool patches and use the game's original limits (requires restart)</div>
+                </div>
+                <button type="button" class="settings-toggle" id="settingsDisableAssetPools" data-setting="disableAssetPools"></button>
+              </div>
+            </div>
+
+            <div class="asset-pools-warning">
+              <span class="asset-pools-warning-icon">&#9888;</span>
+              <span>These settings control memory allocation for game assets. Setting values too high can cause crashes or excessive memory usage. Only change these if you know what you're doing.</span>
+            </div>
+
+            <div id="assetPoolsFieldset">
+              <div class="settings-section">
+                <div class="settings-section-title">Core Pools</div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">XModel</div>
+                    <div class="settings-row-desc">3D model assets (default: 2048, min: 512)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apXModel" data-pool="ap_xmodel" min="512" value="2048" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">Image</div>
+                    <div class="settings-row-desc">Texture/image assets (default: 8192, min: 1024)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apImage" data-pool="ap_image" min="1024" value="8192" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">Material</div>
+                    <div class="settings-row-desc">Material/shader assets (default: 8192, min: 1024)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apMaterial" data-pool="ap_material" min="1024" value="8192" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">XAnim</div>
+                    <div class="settings-row-desc">Animation assets (default: 4096, min: 512)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apXAnim" data-pool="ap_xanim" min="512" value="4096" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">Sound</div>
+                    <div class="settings-row-desc">Sound/audio assets (default: 4096, min: 512)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apSound" data-pool="ap_sound" min="512" value="4096" autocomplete="off" style="width:90px;">
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <div class="settings-section-title">Script &amp; Data Pools</div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">Raw File</div>
+                    <div class="settings-row-desc">Raw data files (default: 2048, min: 256)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apRawFile" data-pool="ap_rawfile" min="256" value="2048" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">Script Parse Tree</div>
+                    <div class="settings-row-desc">Compiled GSC scripts (default: 2048, min: 256)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apScriptParseTree" data-pool="ap_scriptparsetree" min="256" value="2048" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">String Table</div>
+                    <div class="settings-row-desc">CSV string tables (default: 128, min: 32)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apStringTable" data-pool="ap_stringtable" min="32" value="128" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">Script Bundle</div>
+                    <div class="settings-row-desc">Script bundle assets (default: 512, min: 64)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apScriptBundle" data-pool="ap_scriptbundle" min="64" value="512" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">Localize</div>
+                    <div class="settings-row-desc">Localization string entries (default: 2048, min: 256)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apLocalize" data-pool="ap_localize" min="256" value="2048" autocomplete="off" style="width:90px;">
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <div class="settings-section-title">Gameplay Pools</div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">FX</div>
+                    <div class="settings-row-desc">Visual effects (default: 1024, min: 128)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apFx" data-pool="ap_fx" min="128" value="1024" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">Weapon</div>
+                    <div class="settings-row-desc">Weapon definition assets (default: 512, min: 64)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apWeapon" data-pool="ap_weapon" min="64" value="512" autocomplete="off" style="width:90px;">
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <div class="asset-pools-crash-warning">
+                  <span class="asset-pools-warning-icon">&#9888;</span>
+                  <span>Values above 16384 for large pools or 2048 for small pools may cause out-of-memory crashes. Changes require a game restart.</span>
+                </div>
+                <button type="button" class="btn" id="assetPoolsResetBtn" style="width:100%;margin-top:12px;">Reset Asset Pools to Defaults</button>
+              </div>
             </div>
           </div>
 

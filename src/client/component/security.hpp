@@ -736,6 +736,8 @@ namespace ezzsec
 			callbacks[0x16] = callbacks[0xF]; // MESSAGE_TYPE_SERVERLIST_INFO
 			callbacks[0x17] = callbacks[0xF]; // MESSAGE_TYPE_PEER_TO_PEER_CONNECTIVITY_TEST
 			callbacks[0x18] = callbacks[0xF]; // MESSAGE_TYPE_PEER_TO_PEER_INFO
+			callbacks[0x1F] = callbacks[0xF]; // MESSAGE_TYPE_VOICE_RELAY_PACKET (relay crash vector)
+			callbacks[0x20] = callbacks[0xF]; // MESSAGE_TYPE_DEMO_STATE (demo state crash vector)
 
 			// 0x7 = MESSAGE_TYPE_LOBBY_HOST_HEARTBEAT
 			callbacks[MESSAGE_TYPE_LOBBY_HOST_HEARTBEAT] = [](int32_t* lobbyMsgTypePtr, char* lobbyMsg)
@@ -801,6 +803,24 @@ namespace ezzsec
 			callbacks[0x4] = callbacks[0x3]; // MESSAGE_TYPE_LOBBY_STATE_GAME_PUBLIC
 			callbacks[0x5] = callbacks[0x3]; // MESSAGE_TYPE_LOBBY_STATE_GAME_CUSTOM
 			callbacks[0x6] = callbacks[0x2]; // MESSAGE_TYPE_LOBBY_STATE_GAME_THEATER (uses LobbyState format)
+
+			// 0xD = MESSAGE_TYPE_LOBBY_CLIENT_RELIABLE_DATA
+			// Can be abused to send oversized reliable data causing buffer overflows
+			callbacks[0xD] = [](int32_t* lobbyMsgTypePtr, char* lobbyMsg)
+			{
+				// Validate reliable data has sane structure
+				memset(requestOut, 0, sizeof(requestOut));
+				memset(lobbyMsgCpy, 0, sizeof(lobbyMsgCpy));
+				memcpy_s(lobbyMsgCpy, sizeof(lobbyMsgCpy), lobbyMsg, 0x44);
+
+				auto* lm = reinterpret_cast<LobbyMsg*>(lobbyMsgCpy);
+				// Check the underlying msg_t for overflow indicators
+				if (lm->msg.overflowed || lm->msg.cursize > 0x4000)
+				{
+					*lobbyMsgTypePtr = 0xFF;
+					printf("[Security] Dropped oversized reliable data packet (size: %d)\n", lm->msg.cursize);
+				}
+			};
 		}
 
 		return callbacks;

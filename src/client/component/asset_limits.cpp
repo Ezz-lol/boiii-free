@@ -11,30 +11,110 @@ namespace asset_limits
 {
 	namespace
 	{
-		bool is_enabled()
+		struct pool_config
 		{
+			game::XAssetType type;
+			const char* setting_key;
+			unsigned int default_size;
+		};
+
+		static const pool_config pool_configs[] = {
+			{ game::ASSET_TYPE_XMODEL,           "ap_xmodel",          2048 },
+			{ game::ASSET_TYPE_IMAGE,            "ap_image",           8192 },
+			{ game::ASSET_TYPE_MATERIAL,         "ap_material",        8192 },
+			{ game::ASSET_TYPE_XANIMPARTS,       "ap_xanim",           4096 },
+			{ game::ASSET_TYPE_SOUND,            "ap_sound",           4096 },
+			{ game::ASSET_TYPE_RAWFILE,          "ap_rawfile",         2048 },
+			{ game::ASSET_TYPE_SCRIPTPARSETREE,  "ap_scriptparsetree", 2048 },
+			{ game::ASSET_TYPE_STRINGTABLE,      "ap_stringtable",     128 },
+			{ game::ASSET_TYPE_SCRIPTBUNDLE,     "ap_scriptbundle",    512 },
+			{ game::ASSET_TYPE_LOCALIZE_ENTRY,   "ap_localize",        2048 },
+			{ game::ASSET_TYPE_FX,               "ap_fx",              1024 },
+			{ game::ASSET_TYPE_WEAPON,           "ap_weapon",          512 },
+		};
+
+		rapidjson::Document load_settings_doc()
+		{
+			rapidjson::Document doc;
 			const auto path = std::filesystem::path("boiii_players") / "user" / "launcher_settings.json";
 			std::string data;
 			if (utils::io::read_file(path.string(), &data) && !data.empty())
 			{
-				rapidjson::Document doc;
-				if (!doc.Parse(data.c_str()).HasParseError() && doc.IsObject())
+				if (doc.Parse(data.c_str()).HasParseError() || !doc.IsObject())
 				{
-					auto it = doc.FindMember("asset_limits_enabled");
-					if (it != doc.MemberEnd() && it->value.IsString())
-					{
-						return std::string(it->value.GetString()) == "1";
-					}
+					doc.SetObject();
 				}
 			}
-			// Default: enabled
+			else
+			{
+				doc.SetObject();
+			}
+			return doc;
+		}
+
+		std::string get_setting(const rapidjson::Document& doc, const char* key)
+		{
+			auto it = doc.FindMember(key);
+			if (it != doc.MemberEnd() && it->value.IsString())
+			{
+				return it->value.GetString();
+			}
+			return {};
+		}
+
+		bool is_enabled(const rapidjson::Document& doc)
+		{
+			// Check master enable flag
+			const auto val = get_setting(doc, "asset_limits_enabled");
+			if (!val.empty() && val != "1") return false;
+
+			// Check disable_asset_pools flag (inverted)
+			const auto disable_val = get_setting(doc, "disable_asset_pools");
+			if (disable_val == "1") return false;
+
 			return true;
+		}
+
+		unsigned int get_pool_size(const rapidjson::Document& doc, const pool_config& cfg)
+		{
+			const auto val = get_setting(doc, cfg.setting_key);
+			if (!val.empty())
+			{
+				try
+				{
+					const auto parsed = std::stoul(val);
+					if (parsed >= 32 && parsed <= 65536)
+					{
+						return static_cast<unsigned int>(parsed);
+					}
+				}
+				catch (...) {}
+			}
+			return cfg.default_size;
 		}
 
 		void reallocate_asset_pool(const game::XAssetType type, const unsigned int new_size)
 		{
+			if (static_cast<int>(type) < 0 || type >= game::ASSET_TYPE_COUNT)
+			{
+				printf("[AssetLimits] Invalid asset type %d\n", static_cast<int>(type));
+				return;
+			}
+
 			const auto entry_size = game::DB_GetXAssetTypeSize(type);
+			if (entry_size <= 0)
+			{
+				printf("[AssetLimits] Invalid entry size for type %d\n", static_cast<int>(type));
+				return;
+			}
+
 			auto* pool = &game::DB_XAssetPool[type];
+
+			// Skip if pool already meets or exceeds requested size
+			if (pool->itemAllocCount >= static_cast<int>(new_size))
+			{
+				return;
+			}
 
 			const auto new_pool = calloc(new_size, entry_size);
 			if (!new_pool)
@@ -80,19 +160,19 @@ namespace asset_limits
 	public:
 		void post_unpack() override
 		{
-			if (!is_enabled())
+			const auto doc = load_settings_doc();
+
+			if (!is_enabled(doc))
 			{
 				printf("Asset pool expansion disabled by user settings\n");
 				return;
 			}
 
-			// Increase limits for commonly exhausted pools
-			reallocate_asset_pool(game::ASSET_TYPE_XMODEL, 2048);
-			reallocate_asset_pool(game::ASSET_TYPE_IMAGE, 8192);
-			reallocate_asset_pool(game::ASSET_TYPE_MATERIAL, 8192);
-			reallocate_asset_pool(game::ASSET_TYPE_STRINGTABLE, 128);
-			reallocate_asset_pool(game::ASSET_TYPE_RAWFILE, 2048);
-			reallocate_asset_pool(game::ASSET_TYPE_SCRIPTPARSETREE, 2048);
+			for (const auto& cfg : pool_configs)
+			{
+				const auto size = get_pool_size(doc, cfg);
+				reallocate_asset_pool(cfg.type, size);
+			}
 		}
 	};
 }

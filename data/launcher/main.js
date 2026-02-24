@@ -2041,6 +2041,7 @@
     autoUpdate: true,
     autoRefresh: true,
     assetLimits: true,
+    disableAssetPools: false,
     reduceStutter: false,
     skipIntro: false,
     skipAllIntros: false,
@@ -2050,6 +2051,21 @@
     smoothFramerate: false,
     unlockGfx: false,
     fullVram: false
+  };
+
+  var ASSET_POOL_DEFAULTS = {
+    ap_xmodel: 2048,
+    ap_image: 8192,
+    ap_material: 8192,
+    ap_xanim: 4096,
+    ap_sound: 4096,
+    ap_rawfile: 2048,
+    ap_scriptparsetree: 2048,
+    ap_stringtable: 128,
+    ap_scriptbundle: 512,
+    ap_localize: 2048,
+    ap_fx: 1024,
+    ap_weapon: 512
   };
 
   function loadAllSettings() {
@@ -2141,6 +2157,14 @@
         }
       } else if (key === 'assetLimits') {
         if (ex.setGameSetting) ex.setGameSetting('asset_limits_enabled', value ? '1' : '0');
+      } else if (key === 'disableAssetPools') {
+        var fieldset = document.getElementById('assetPoolsFieldset');
+        if (fieldset) {
+          if (value) { fieldset.classList.add('disabled'); } else { fieldset.classList.remove('disabled'); }
+        }
+        if (ex.setGameSetting) {
+          ex.setGameSetting('disable_asset_pools', value ? '1' : '0');
+        }
       }
     } catch (e) { }
   }
@@ -2223,6 +2247,32 @@
       } catch (e) { }
     };
   }
+
+  // Asset pool input handlers
+  var allPoolInputs = document.querySelectorAll('.asset-pool-input');
+  for (var pi = 0; pi < allPoolInputs.length; pi++) {
+    (function (input) {
+      input.onchange = function () {
+        try {
+          var val = parseInt(input.value, 10);
+          var minVal = parseInt(input.getAttribute('min'), 10) || 64;
+          var poolKey = input.getAttribute('data-pool');
+          if (isNaN(val) || val < minVal) val = minVal;
+          if (val > 65536) val = 65536;
+          input.value = val;
+          var ex = getExternal();
+          if (ex && ex.setGameSetting) ex.setGameSetting(poolKey, String(val));
+        } catch (e) { }
+      };
+    })(allPoolInputs[pi]);
+  }
+
+  // Apply initial disable state for asset pools fieldset
+  (function () {
+    var disabled = getSetting('disableAssetPools');
+    var fieldset = document.getElementById('assetPoolsFieldset');
+    if (fieldset && disabled) fieldset.classList.add('disabled');
+  })();
 
   var applyPresetBtn = document.getElementById('settingsApplyPresetBtn');
   if (applyPresetBtn) {
@@ -2321,6 +2371,24 @@
         if (alt) { if (al) alt.classList.add('active'); else alt.classList.remove('active'); }
       }
 
+      if (s.disable_asset_pools !== undefined) {
+        var dap = s.disable_asset_pools === '1' || s.disable_asset_pools === 1 || s.disable_asset_pools === true;
+        setSetting('disableAssetPools', dap);
+        var dapt = document.getElementById('settingsDisableAssetPools');
+        if (dapt) { if (dap) dapt.classList.add('active'); else dapt.classList.remove('active'); }
+        var fieldset = document.getElementById('assetPoolsFieldset');
+        if (fieldset) { if (dap) fieldset.classList.add('disabled'); else fieldset.classList.remove('disabled'); }
+      }
+
+      for (var poolKey in ASSET_POOL_DEFAULTS) {
+        if (s[poolKey] !== undefined) {
+          var poolInputs = document.querySelectorAll('.asset-pool-input[data-pool="' + poolKey + '"]');
+          for (var pii = 0; pii < poolInputs.length; pii++) {
+            poolInputs[pii].value = s[poolKey];
+          }
+        }
+      }
+
       if (s.workshop_retry_attempts !== undefined) {
         var wri = document.getElementById('settingsWorkshopRetry');
         if (wri) wri.value = s.workshop_retry_attempts;
@@ -2347,11 +2415,16 @@
             if (ex.toggleSkipAllIntros) ex.toggleSkipAllIntros('0');
             if (ex.setGameSetting) {
               ex.setGameSetting('asset_limits_enabled', '1');
+              ex.setGameSetting('disable_asset_pools', '0');
               ex.setGameSetting('friendsOnly', '0');
               ex.setGameSetting('networkpassword', '');
               ex.setGameSetting('netpassword', '');
               ex.setGameSetting('workshop_retry_attempts', '30');
               ex.setGameSetting('workshop_timeout', '300');
+              // Reset all pool sizes to defaults
+              for (var pk in ASSET_POOL_DEFAULTS) {
+                ex.setGameSetting(pk, String(ASSET_POOL_DEFAULTS[pk]));
+              }
             }
           }
         } catch (e) { }
@@ -2364,6 +2437,28 @@
         if (netPasswordInput) netPasswordInput.value = '';
         loadGameSettings();
         showMessage('Settings Reset', 'All settings have been reset to defaults. Restart the game for changes to take effect.');
+      });
+    };
+  }
+
+
+  var assetPoolsResetBtn = document.getElementById('assetPoolsResetBtn');
+  if (assetPoolsResetBtn) {
+    assetPoolsResetBtn.onclick = function () {
+      showConfirm('Reset Asset Pools', 'Reset all asset pool sizes to their default values?', function () {
+        try {
+          var ex = getExternal();
+          var inputs = document.querySelectorAll('.asset-pool-input');
+          for (var ri = 0; ri < inputs.length; ri++) {
+            var poolKey = inputs[ri].getAttribute('data-pool');
+            var defVal = ASSET_POOL_DEFAULTS[poolKey];
+            if (defVal !== undefined) {
+              inputs[ri].value = defVal;
+              if (ex && ex.setGameSetting) ex.setGameSetting(poolKey, String(defVal));
+            }
+          }
+        } catch (e) { }
+        showMessage('Asset Pools Reset', 'All asset pool sizes have been reset to defaults. Restart the game for changes to take effect.');
       });
     };
   }

@@ -91,13 +91,19 @@ namespace server_patches2
 				if (c == 0x7F)
 					continue;
 
-				// Block format string exploits
+				// Block format string exploits (all dangerous C format specifiers)
 				if (c == '%' && (i + 1) < msg.size())
 				{
 					const unsigned char next = static_cast<unsigned char>(msg[i + 1]);
-					if (next == 'n' || next == 's' || next == 'x' || next == 'p' || next == 'd')
+					if (next == 'n' || next == 's' || next == 'x' || next == 'p' || next == 'd' ||
+					    next == 'i' || next == 'u' || next == 'o' || next == 'f' || next == 'e' ||
+					    next == 'g' || next == 'c' || next == 'X')
 						continue;
 				}
+
+				// Block extended ASCII control chars (can cause rendering issues)
+				if (c >= 0x80 && c <= 0x9F)
+					continue;
 
 				result += static_cast<char>(c);
 			}
@@ -163,6 +169,15 @@ namespace server_patches2
 
 			// Rate limit connections
 			sv_direct_connect_hook.create(0x14052EC60_g, sv_direct_connect_stub);
+
+			// RCE Prevention: Patch Cmd_ParseArgs to prevent remote code execution
+			// Makes the vulnerable function immediately return, blocking crafted
+			// command strings from executing arbitrary code on the server
+			utils::hook::set<uint8_t>(0x1404B2E00_g, 0xC3);
+
+			// TeamOps arbitrary write fix: NOP the inlined arbitrary write
+			// that allows attackers to write to arbitrary memory via team operations
+			utils::hook::nop(0x1401155D5_g, 7);
 
 			// Enforce sv_cheats = 0 periodically
 			scheduler::loop([]

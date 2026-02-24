@@ -2727,3 +2727,53 @@ html {
 .settings-input::placeholder {
   color: rgba(200, 196, 192, 0.3);
 }
+
+/* Asset Pools tab */
+.asset-pools-warning {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px;
+  background: rgba(249, 115, 22, 0.08);
+  border: 1px solid rgba(249, 115, 22, 0.25);
+  border-radius: 8px;
+  margin-bottom: 18px;
+  font-size: 0.78rem;
+  color: rgba(249, 180, 100, 0.85);
+  line-height: 1.5;
+}
+
+.asset-pools-crash-warning {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 14px;
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid rgba(220, 38, 38, 0.25);
+  border-radius: 8px;
+  font-size: 0.76rem;
+  color: rgba(250, 150, 150, 0.85);
+  line-height: 1.5;
+}
+
+.asset-pools-warning-icon {
+  font-size: 1.1rem;
+  color: rgba(249, 115, 22, 0.8);
+  flex-shrink: 0;
+  margin-top: 1px;
+  margin-right: 10px;
+}
+
+#assetPoolsFieldset.disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+#assetPoolsFieldset.disabled .settings-input {
+  cursor: not-allowed;
+}
+
+.settings-input.asset-pool-input::-webkit-inner-spin-button,
+.settings-input.asset-pool-input::-webkit-outer-spin-button {
+  opacity: 1;
+}
