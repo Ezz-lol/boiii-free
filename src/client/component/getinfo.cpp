@@ -6,6 +6,7 @@
 
 #include "network.hpp"
 #include "workshop.hpp"
+#include "network_password.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -115,6 +116,11 @@ namespace getinfo
 
 				info.set("sv_wwwBaseURL", game::get_dvar_string("sv_wwwBaseURL"));
 				info.set("workshop_id", game::get_dvar_string("workshop_id"));
+
+				if (network_password::is_password_set())
+				{
+					info.set("net_password_hash", network_password::get_password_hash_string());
+				}
 
 				network::send(target, "infoResponse", info.build(), '\n');
 			});

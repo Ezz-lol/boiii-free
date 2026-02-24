@@ -1812,6 +1812,10 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 						w.Key("networkpassword");
 						w.String(pw.c_str());
 
+						auto net_pw = extract_dvar("net_password");
+						w.Key("netpassword");
+						w.String(net_pw.c_str());
+
 						auto retry = extract_dvar("workshop_retry_attempts");
 						w.Key("workshop_retry_attempts");
 						w.String(retry.empty() ? "30" : retry.c_str());
@@ -1920,11 +1924,12 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 					return CComVariant("ok");
 				}
 
-				if (key == "networkpassword" || key == "workshop_retry_attempts" || key == "workshop_timeout")
+				if (key == "networkpassword" || key == "netpassword" || key == "workshop_retry_attempts" || key == "workshop_timeout")
 				{
 					// Map setting key to dvar name
 					std::string dvar_name;
 					if (key == "networkpassword") dvar_name = "g_password";
+					else if (key == "netpassword") dvar_name = "net_password";
 					else dvar_name = key; // workshop_retry_attempts, workshop_timeout
 
 					const auto cfg_path = std::filesystem::path(cwd) / "boiii_players" / "user" / "config.cfg";

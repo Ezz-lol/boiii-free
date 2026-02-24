@@ -17,7 +17,7 @@ namespace chat
 	namespace
 	{
 		const game::dvar_t* g_deadChat;
-		const game::dvar_t* sv_sayName;
+		const game::dvar_t* sv_setname;
 
 		void cmd_say_f(game::gentity_s* ent, const command::params_sv& params)
 		{
@@ -100,9 +100,9 @@ namespace chat
 	{
 		if (xuid == 0xFFFFFFFF)
 		{
-			if (sv_sayName && sv_sayName->current.value.string && sv_sayName->current.value.string[0])
+			if (sv_setname && sv_setname->current.value.string && sv_setname->current.value.string[0])
 			{
-				return sv_sayName->current.value.string;
+				return sv_setname->current.value.string;
 			}
 			return "Server";
 		}
@@ -147,9 +147,9 @@ namespace chat
 					send_chat_message(-1, text);
 
 					const char* say_prefix = "Server";
-					if (sv_sayName && sv_sayName->current.value.string && sv_sayName->current.value.string[0])
+					if (sv_setname && sv_setname->current.value.string && sv_setname->current.value.string[0])
 					{
-						say_prefix = sv_sayName->current.value.string;
+						say_prefix = sv_setname->current.value.string;
 					}
 					printf("%s: %s\n", say_prefix, text.data());
 				});
@@ -181,7 +181,7 @@ namespace chat
 
 				scheduler::once([]
 				{
-					sv_sayName = game::register_dvar_string("sv_sayName", "", game::DVAR_NONE,
+					sv_setname = game::register_dvar_string("sv_setname", "Server", game::DVAR_NONE,
 					                                         "Custom name for server chat messages. Defaults to server");
 				}, scheduler::pipeline::main);
 

@@ -2186,6 +2186,16 @@
     };
   }
 
+  var netPasswordInput = document.getElementById('settingsNetPassword');
+  if (netPasswordInput) {
+    netPasswordInput.onchange = function () {
+      try {
+        var ex = getExternal();
+        if (ex && ex.setGameSetting) ex.setGameSetting('netpassword', netPasswordInput.value);
+      } catch (e) { }
+    };
+  }
+
   var workshopRetryInput = document.getElementById('settingsWorkshopRetry');
   if (workshopRetryInput) {
     workshopRetryInput.onchange = function () {
@@ -2280,6 +2290,7 @@
       }
 
       if (s.networkpassword !== undefined && networkPwInput) networkPwInput.value = s.networkpassword;
+      if (s.netpassword !== undefined && netPasswordInput) netPasswordInput.value = s.netpassword;
       if (s.friendsOnly !== undefined) {
         var fo = s.friendsOnly === '1' || s.friendsOnly === 1 || s.friendsOnly === true;
         setSetting('friendsOnly', fo);
@@ -2338,6 +2349,7 @@
               ex.setGameSetting('asset_limits_enabled', '1');
               ex.setGameSetting('friendsOnly', '0');
               ex.setGameSetting('networkpassword', '');
+              ex.setGameSetting('netpassword', '');
               ex.setGameSetting('workshop_retry_attempts', '30');
               ex.setGameSetting('workshop_timeout', '300');
             }
@@ -2349,6 +2361,7 @@
         }
         applySettingsToUI();
         if (networkPwInput) networkPwInput.value = '';
+        if (netPasswordInput) netPasswordInput.value = '';
         loadGameSettings();
         showMessage('Settings Reset', 'All settings have been reset to defaults. Restart the game for changes to take effect.');
       });

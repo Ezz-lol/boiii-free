@@ -6,6 +6,7 @@
 #include "party.hpp"
 #include "auth.hpp"
 #include "network.hpp"
+#include "network_password.hpp"
 #include "scheduler.hpp"
 #include "workshop.hpp"
 #include "profile_infos.hpp"
@@ -194,6 +195,28 @@ namespace party
 				const auto str = "Invalid gamename.";
 				printf("%s\n", str);
 				return;
+			}
+
+			// Verify network password
+			const auto server_net_hash = info.get("net_password_hash");
+			if (!server_net_hash.empty() && server_net_hash != "0")
+			{
+				if (!network_password::is_password_set())
+				{
+					printf("Server requires a network password.\n");
+					return;
+				}
+
+				const auto client_hash = network_password::get_password_hash_string();
+				if (client_hash != server_net_hash)
+				{
+					printf("Network password mismatch.\n");
+					return;
+				}
+			}
+			else if (network_password::is_password_set())
+			{
+				printf("Client has network password set but server does not. Allowing connection.\n");
 			}
 
 			const auto mapname = info.get("mapname");
