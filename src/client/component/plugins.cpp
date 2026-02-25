@@ -21,9 +21,9 @@ namespace plugins
 
             const auto is_server = utils::flags::has_flag("dedicated");
 
-            if (!is_server && !utils::flags::has_flag("plugins"))
+            if (!is_server && utils::flags::has_flag("noplugins"))
             {
-                log("Plugin loading is disabled. Enable the Plugins option in the launcher to load plugins.");
+                log("Plugin loading is disabled via -noplugins launch flag.");
                 return;
             }
 

@@ -26,4 +26,6 @@ namespace party
 	void connect_to_lobby_with_mode(const game::netadr_t& addr, game::eModes mode,
 	                                const std::string& mapname, const std::string& gametype,
 	                                const std::string& usermap_id, const std::string& mod_id);
+
+	game::netadr_t get_connect_host();
 }

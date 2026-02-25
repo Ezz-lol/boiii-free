@@ -6,6 +6,10 @@ function IsServerBrowserEnabled()
 	return true
 end
 
+local skullSortedOrder = nil  
+local skullSortAscending = nil
+local activeServerList = nil
+
 DataSources.LobbyServer = {
 	prepare = function(controller, list, filter)
 		list.numElementsInList = list.vCount
@@ -17,6 +21,7 @@ DataSources.LobbyServer = {
 		else
 			list.serverCount = 0
 		end
+		activeServerList = list
 		list.servers = {}
 		local serversModel = Engine.CreateModel(list.serverBrowserRootModel, "servers")
 		for i = 1, list.numElementsInList, 1 do
@@ -24,7 +29,7 @@ DataSources.LobbyServer = {
 			list.servers[i].root = Engine.CreateModel(serversModel, "server_" .. i)
 			list.servers[i].model = Engine.CreateModel(list.servers[i].root, "model")
 		end
-		list.updateModels = function(controller, list, offset)
+		list.updateModels = function(controller, list, offset, displayOffset)
 			local serverInfo = Engine.SteamServerBrowser_GetServerInfo(offset)
 			if serverInfo then
 				local SetModelValue = function(model, key, value)
@@ -34,7 +39,7 @@ DataSources.LobbyServer = {
 					end
 				end
 
-				local elementIndex = offset % list.numElementsInList + 1
+				local elementIndex = (displayOffset or offset) % list.numElementsInList + 1
 				local serverModel = list.servers[elementIndex].model
 				SetModelValue(serverModel, "serverIndex", serverInfo.serverIndex)
 				SetModelValue(serverModel, "connectAddr", serverInfo.connectAddr)
@@ -56,6 +61,8 @@ DataSources.LobbyServer = {
 				SetModelValue(serverModel, "zombies", serverInfo.zombies)
 				-- Add the bot count
 				SetModelValue(serverModel, "botCount", serverInfo.botCount)
+				-- Add rounds played
+				SetModelValue(serverModel, "rounds", serverInfo.rounds or 0)
 				return serverModel
 			else
 				return nil
@@ -67,6 +74,8 @@ DataSources.LobbyServer = {
 		end
 		local serverListUpdateModel = Engine.CreateModel(list.serverBrowserRootModel, "serverListCount")
 		list.serverListUpdateSubscription = list:subscribeToModel(serverListUpdateModel, function(model)
+			skullSortedOrder = nil
+			skullSortAscending = nil
 			list:updateDataSource(false, false)
 		end, false)
 		if list.serverListSortTypeSubscription then
@@ -74,6 +83,8 @@ DataSources.LobbyServer = {
 		end
 		local serverListSortTypeModel = Engine.CreateModel(list.serverBrowserRootModel, "serverListSortType")
 		list.serverListSortTypeSubscription = list:subscribeToModel(serverListSortTypeModel, function(model)
+			skullSortedOrder = nil
+			skullSortAscending = nil
 			list:updateDataSource(false, false)
 		end, false)
 	end,
@@ -81,8 +92,13 @@ DataSources.LobbyServer = {
 		return list.serverCount
 	end,
 	getItem = function(controller, list, index)
-		local offset = index - 1
-		return list.updateModels(controller, list, offset)
+		local displayOffset = index - 1
+		local engineOffset = displayOffset
+		if skullSortedOrder then
+			engineOffset = skullSortedOrder[index]
+			if engineOffset == nil then return nil end
+		end
+		return list.updateModels(controller, list, engineOffset, displayOffset)
 	end,
 	cleanup = function(list)
 		if list.serverBrowserRootModel then
@@ -257,6 +273,31 @@ CoD.ServerBrowserRowInternal.new = function(menu, controller)
 	self:addElement(hardcoreFlag)
 	self.hardcoreFlag = hardcoreFlag
 
+	local roundText = LUI.UIText.new()
+	roundText:setLeftRight(true, true, 0, 0)
+	roundText:setTopBottom(true, false, 2, 20)
+	roundText:setTTF("fonts/RefrigeratorDeluxe-Regular.ttf")
+	roundText:setAlignment(Enum.LUIAlignment.LUI_ALIGNMENT_CENTER)
+	roundText:setAlignment(Enum.LUIAlignment.LUI_ALIGNMENT_TOP)
+	roundText:setAlpha(0)
+	roundText:linkToElementModel(self, "rounds", true, function(model)
+		local rounds = Engine.GetModelValue(model)
+		if rounds and rounds > 0 then
+			roundText:setText(tostring(rounds))
+		else
+			roundText:setText("0")
+		end
+	end)
+	roundText:linkToElementModel(self, "zombies", true, function(model)
+		local zombies = Engine.GetModelValue(model)
+		if zombies ~= nil then
+			roundText:setAlpha(zombies and 1 or 0)
+			hardcoreFlag.icon:setAlpha(zombies and 0 or 1)
+		end
+	end)
+	hardcoreFlag:addElement(roundText)
+	self.roundText = roundText
+
 	local gametype = LUI.UIText.new()
 	gametype:setLeftRight(true, false, 472, 576)
 	gametype:setTopBottom(true, false, 2, 20)
@@ -372,6 +413,62 @@ CoD.ServerBrowserRowInternal.new = function(menu, controller)
 
 	if PostLoadFunc then
 		PostLoadFunc(self, controller, menu)
+	end
+
+	return self
+end
+
+local originalHeaderNew = CoD.ServerBrowserHeader.new
+CoD.ServerBrowserHeader.new = function(menu, controller)
+	local self = originalHeaderNew(menu, controller)
+
+	if self.skull then
+		self.skull:registerEventHandler("button_action", function(element, event)
+			if skullSortAscending == nil then
+				skullSortAscending = false -- descending
+			elseif skullSortAscending == false then
+				skullSortAscending = true -- ascending
+			else
+				skullSortAscending = nil
+				skullSortedOrder = nil
+				if activeServerList then
+					activeServerList:updateDataSource(false, false)
+				end
+				return
+			end
+
+			local countModel = Engine.GetModel(Engine.GetGlobalModel(), "serverBrowser.serverListCount")
+			local totalCount = countModel and Engine.GetModelValue(countModel) or 0
+
+			local entries = {}
+			for i = 0, totalCount - 1 do
+				local info = Engine.SteamServerBrowser_GetServerInfo(i)
+				if info then
+					local sortVal
+					if info.zombies then
+						sortVal = info.rounds or 0
+					else
+						sortVal = info.hardcore and 1 or 0
+					end
+					table.insert(entries, {idx = i, val = sortVal})
+				end
+			end
+
+			if skullSortAscending then
+				table.sort(entries, function(a, b) return a.val < b.val end)
+			else
+				table.sort(entries, function(a, b) return a.val > b.val end)
+			end
+
+			skullSortedOrder = {}
+			for i, entry in ipairs(entries) do
+				skullSortedOrder[i] = entry.idx
+			end
+
+			if activeServerList then
+				activeServerList:updateDataSource(false, false)
+			end
+		end)
 	end
 
 	return self

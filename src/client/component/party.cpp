@@ -53,10 +53,37 @@ namespace party
 		void connect_to_lobby(const game::netadr_t& addr, const std::string& mapname, const std::string& gamemode,
 		                      const std::string& usermap_id, const std::string& mod_id)
 		{
-
 			game::CG_LUIHUDRestart(0);
-
 			auth::clear_stored_guids();
+
+			const auto current_mod = std::string(game::getPublisherIdFromLoadedMod());
+			bool will_restart = false;
+			if (current_mod != mod_id)
+			{
+				if (!usermap_id.empty() || mod_id != "usermaps")
+					will_restart = true;
+				else if (game::isModLoaded())
+					will_restart = true;
+			}
+
+			if (will_restart)
+			{
+				const auto addr_str = utils::string::va("%i.%i.%i.%i:%hu",
+					addr.ipv4.a, addr.ipv4.b, addr.ipv4.c, addr.ipv4.d, addr.port);
+				const std::string addr_copy(addr_str);
+
+				printf("[ Party ] Mod switch needed (%s -> %s), will reconnect to %s after restart\n",
+					current_mod.c_str(), mod_id.c_str(), addr_copy.c_str());
+
+				scheduler::once([addr_copy]
+				{
+					printf("[ Party ] Reconnecting to %s after mod switch\n", addr_copy.c_str());
+					game::Cbuf_AddText(0, utils::string::va("connect %s\n", addr_copy.c_str()));
+				}, scheduler::main, 5s);
+
+				workshop::setup_same_mod_as_host(usermap_id, mod_id);
+				return;
+			}
 
 			workshop::setup_same_mod_as_host(usermap_id, mod_id);
 
@@ -238,6 +265,7 @@ namespace party
 			const auto mod_id = info.get("modId");
 
 			const auto workshop_id = info.get("workshop_id"); //check workshop_id dvar for id
+			const auto base_url = info.get("sv_wwwBaseURL"); // FastDL base URL from server
 
 			//const auto hostname = info.get("sv_hostname");
 			const auto playmode = info.get("playmode");
@@ -248,7 +276,7 @@ namespace party
 			{
 				const auto usermap_id = workshop::get_usermap_publisher_id(mapname);
 
-				if (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id) &&
+				if (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id, base_url) &&
 					workshop::check_valid_mod_id(mod_id, workshop_id))
 				{
 					game::Com_SessionMode_SetGameMode(game::MODE_GAME_MATCHMAKING_PLAYLIST);
@@ -416,6 +444,11 @@ namespace party
 		constexpr auto local_client_num = 0ull;
 		const auto address = *reinterpret_cast<uint64_t*>(0x1453D8BB8_g) + (0x25780 * local_client_num) + 0x10;
 		return *reinterpret_cast<game::netadr_t*>(address);
+	}
+
+	game::netadr_t get_connect_host()
+	{
+		return connect_host;
 	}
 
 	bool is_host(const game::netadr_t& addr)

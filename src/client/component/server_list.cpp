@@ -155,6 +155,9 @@ namespace server_list
 			{
 				const auto bot_count = atoi(game::Info_ValueForKey(server_info.tags, "bots"));
 				game::Lua_SetTableInt("botCount", bot_count, state);
+
+				const auto rounds = atoi(game::Info_ValueForKey(server_info.tags, "rounds"));
+				game::Lua_SetTableInt("rounds", rounds, state);
 			}
 		}
 

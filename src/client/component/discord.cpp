@@ -212,7 +212,7 @@ namespace discord
 				seh_Com_IsRunningUILevel(&ui_level);
 
 				dp.startTimestamp = start_time;
-				dp.details = "BOIII via Ezz";
+				dp.details = "BO3 via Ezz";
 				dp.state = ui_level ? "Main Menu" : "Loading...";
 				dp.largeImageKey = "logo";
 				dp.largeImageText = "Playing BO3 via Ezz!";
@@ -251,31 +251,54 @@ namespace discord
 			if (!server_name.empty())
 				server_name = truncate(strip_colors(server_name), 32);
 
-			const std::string details = server_name.empty() ? "Private Game" : server_name;
-			dp.details = details.c_str();
+			const bool is_private = server_name.empty();
 
+			std::string details;
 			std::string state;
+
 			if (is_cp)
 			{
-				state = display_map;
+				details = is_private ? display_map : server_name;
+				state = is_private ? "" : display_map;
 			}
 			else if (is_mp)
 			{
 				int ps = s_player_score.load();
 				int es = s_enemy_score.load();
-				if (!mapname.empty())
-					state = display_type + " on " + display_map + " | " + std::to_string(ps) + " - " + std::to_string(es);
+				const std::string score_str = std::to_string(ps) + " - " + std::to_string(es);
+				const std::string map_info = !mapname.empty()
+					? (display_type + " on " + display_map)
+					: display_type;
+
+				if (is_private)
+				{
+					details = map_info;
+					state = score_str;
+				}
 				else
-					state = display_type + " | " + std::to_string(ps) + " - " + std::to_string(es);
+				{
+					details = server_name;
+					state = map_info + " | " + score_str;
+				}
 			}
 			else
 			{
 				int round = s_rounds_played.load();
-				if (round > 0)
-					state = display_map + " | Round " + std::to_string(round);
+				const std::string round_str = round > 0 ? ("Round " + std::to_string(round)) : "";
+
+				if (is_private)
+				{
+					details = std::string(get_mode_name(is_mp, is_zm, is_cp)) + " on " + display_map;
+					state = round_str;
+				}
 				else
-					state = display_map;
+				{
+					details = server_name;
+					state = round > 0 ? (display_map + " | " + round_str) : display_map;
+				}
 			}
+
+			dp.details = details.c_str();
 			dp.state = state.c_str();
 
 			const bool known_map = map_names.count(mapname) > 0;

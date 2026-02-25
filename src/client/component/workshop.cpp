@@ -785,9 +785,41 @@ namespace workshop
 			game::loadMod(0, "", true);
 		}
 	}
+	static std::mutex reconnect_guard_mutex;
+	static std::string last_auto_reconnect_target;
+
 	void com_error_missing_map_stub(const char* file, int line, int code, const char* fmt, ...)
 	{
-		game::Com_Error_(file, line, code, "%s", "Missing map! Trying to reconnect to server...");
+		const auto target = party::get_connect_host();
+		if (target.type != game::NA_BAD)
+		{
+			const auto addr_str = utils::string::va("%i.%i.%i.%i:%hu",
+				target.ipv4.a, target.ipv4.b, target.ipv4.c, target.ipv4.d, target.port);
+
+			{
+				std::lock_guard lock(reconnect_guard_mutex);
+				if (last_auto_reconnect_target == addr_str)
+				{
+					last_auto_reconnect_target.clear();
+					game::Com_Error_(file, line, code, "%s", "Missing map!");
+					return;
+				}
+				last_auto_reconnect_target = addr_str;
+			}
+
+			const std::string addr_copy(addr_str);
+			printf("[ Workshop ] Missing map/mod detected, reconnecting to %s for download\n", addr_copy.c_str());
+
+			scheduler::once([addr_copy]
+			{
+				game::Cbuf_AddText(0, utils::string::va("connect %s\n", addr_copy.c_str()));
+			}, scheduler::main, 3s);
+
+			game::Com_Error_(file, line, code, "%s", "Missing map! Reconnecting to download...");
+			return;
+		}
+
+		game::Com_Error_(file, line, code, "%s", "Missing map!");
 	}
 
 	class component final : public generic_component
