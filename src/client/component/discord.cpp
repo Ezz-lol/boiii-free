@@ -7,358 +7,310 @@
 #include "party.hpp"
 
 #include <discord_rpc.h>
+#include <utils/string.hpp>
+
 #include <ctime>
 #include <unordered_map>
-#include <regex>
+
+static __declspec(noinline) bool seh_dvar_string(const char* name, char* buf, size_t sz)
+{
+	__try
+	{
+		const auto* dvar = game::Dvar_FindVar(name);
+		if (!dvar) { buf[0] = '\0'; return true; }
+		const char* val = game::Dvar_GetString(dvar);
+		if (!val) { buf[0] = '\0'; return true; }
+		strncpy_s(buf, sz, val, _TRUNCATE);
+		return true;
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER) { buf[0] = '\0'; return false; }
+}
+
+static __declspec(noinline) bool seh_dvar_int(const char* name, int* out)
+{
+	__try
+	{
+		const auto* dvar = game::Dvar_FindVar(name);
+		if (!dvar) { *out = 0; return true; }
+		*out = dvar->current.value.integer;
+		return true;
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER) { *out = 0; return false; }
+}
+
+static __declspec(noinline) bool seh_Com_IsInGame(bool* out)
+{
+	__try { *out = game::Com_IsInGame(); return true; }
+	__except (EXCEPTION_EXECUTE_HANDLER) { *out = false; return false; }
+}
+
+static __declspec(noinline) bool seh_Com_IsRunningUILevel(bool* out)
+{
+	__try { *out = game::Com_IsRunningUILevel(); return true; }
+	__except (EXCEPTION_EXECUTE_HANDLER) { *out = false; return false; }
+}
+
+static __declspec(noinline) bool seh_SessionMode_IsMode(game::eModes mode, bool* out)
+{
+	__try { *out = game::Com_SessionMode_IsMode(mode); return true; }
+	__except (EXCEPTION_EXECUTE_HANDLER) { *out = false; return false; }
+}
+
+static __declspec(noinline) bool seh_get_client_count(int max_clients, int* out)
+{
+	__try
+	{
+		int count = 0;
+		char name_buf[64];
+		for (int i = 0; i < max_clients; ++i)
+		{
+			name_buf[0] = '\0';
+			if (game::CL_GetClientName(0, i, name_buf, sizeof(name_buf), false) && name_buf[0] != '\0')
+				++count;
+		}
+		*out = count;
+		return true;
+	}
+	__except (EXCEPTION_EXECUTE_HANDLER) { *out = 0; return false; }
+}
 
 namespace discord
 {
 	namespace
 	{
 		constexpr auto DISCORD_APP_ID = "967371125573177474";
-		constexpr auto UPDATE_INTERVAL = 5s;
-		constexpr size_t MAX_SERVER_NAME_LENGTH = 32;
 
-		time_t start_timestamp = 0;
-		time_t match_timestamp = 0;
+		time_t start_time = 0;
+		time_t match_time = 0;
 		bool was_in_game = false;
-		std::atomic_bool engine_ready = false;
-		std::atomic_int player_score = 0;
-		std::atomic_int enemy_score = 0;
 
-		const std::unordered_map<std::string, std::string> map_display_names = {
-			{"mp_combine", "Combine"},
-			{"mp_biodome", "Aquarium"},
-			{"mp_redwood", "Redwood"},
-			{"mp_stronghold", "Stronghold"},
-			{"mp_nuketown_x", "Nuk3town"},
-			{"mp_apartments", "Evac"},
-			{"mp_havoc", "Havoc"},
-			{"mp_ethiopia", "Hunted"},
-			{"mp_infection", "Infection"},
-			{"mp_metro", "Metro"},
-			{"mp_exodus", "Exodus"},
-			{"mp_sector", "Breach"},
-			{"mp_spire", "Spire"},
-			{"mp_veiled", "Rift"},
-			{"mp_crucible", "Verge"},
-			{"mp_rise", "Rise"},
-			{"mp_skyjacked", "Skyjacked"},
-			{"mp_waterpark", "Splash"},
-			{"mp_chinatown", "Knockout"},
-			{"mp_kung_fu", "Empire"},
-			{"mp_arena", "Gauntlet"},
-			{"mp_ruins", "Ruins"},
-			{"mp_rome", "Citadel"},
-			{"mp_miniature", "Micro"},
-			{"mp_banzai", "Berserk"},
-			{"mp_platform", "Cryogen"},
-			{"mp_conduit", "Rumble"},
-			{"mp_aerospace2", "Outlaw"},
-			{"zm_zod", "Shadows of Evil"},
-			{"zm_factory", "The Giant"},
-			{"zm_castle", "Der Eisendrache"},
-			{"zm_island", "Zetsubou No Shima"},
-			{"zm_stalingrad", "Gorod Krovi"},
-			{"zm_genesis", "Revelations"},
-			{"zm_prototype", "Nacht Der Untoten"},
-			{"zm_asylum", "Verruckt"},
-			{"zm_sumpf", "Shi No Numa"},
-			{"zm_theater", "Kino Der Toten"},
-			{"zm_cosmodrome", "Ascension"},
-			{"zm_temple", "Shangri-La"},
-			{"zm_moon", "Moon"},
-			{"zm_tomb", "Origins"},
+		std::atomic_int s_player_score{0};
+		std::atomic_int s_enemy_score{0};
+		std::atomic_int s_rounds_played{0};
+
+		static const std::unordered_map<std::string, const char*> map_names = {
+			{"mp_combine", "Combine"}, {"mp_biodome", "Aquarium"},
+			{"mp_redwood", "Redwood"}, {"mp_stronghold", "Stronghold"},
+			{"mp_nuketown_x", "Nuk3town"}, {"mp_apartments", "Evac"},
+			{"mp_havoc", "Havoc"}, {"mp_ethiopia", "Hunted"},
+			{"mp_infection", "Infection"}, {"mp_metro", "Metro"},
+			{"mp_exodus", "Exodus"}, {"mp_sector", "Breach"},
+			{"mp_spire", "Spire"}, {"mp_veiled", "Rift"},
+			{"mp_crucible", "Verge"}, {"mp_rise", "Rise"},
+			{"mp_skyjacked", "Skyjacked"}, {"mp_waterpark", "Splash"},
+			{"mp_chinatown", "Knockout"}, {"mp_kung_fu", "Empire"},
+			{"mp_arena", "Gauntlet"}, {"mp_ruins", "Ruins"},
+			{"mp_rome", "Citadel"}, {"mp_miniature", "Micro"},
+			{"mp_banzai", "Berserk"}, {"mp_platform", "Cryogen"},
+			{"mp_conduit", "Rumble"}, {"mp_aerospace2", "Outlaw"},
+			{"zm_zod", "Shadows of Evil"}, {"zm_factory", "The Giant"},
+			{"zm_castle", "Der Eisendrache"}, {"zm_island", "Zetsubou No Shima"},
+			{"zm_stalingrad", "Gorod Krovi"}, {"zm_genesis", "Revelations"},
+			{"zm_prototype", "Nacht Der Untoten"}, {"zm_asylum", "Verruckt"},
+			{"zm_sumpf", "Shi No Numa"}, {"zm_theater", "Kino Der Toten"},
+			{"zm_cosmodrome", "Ascension"}, {"zm_temple", "Shangri-La"},
+			{"zm_moon", "Moon"}, {"zm_tomb", "Origins"},
 		};
 
-		const std::unordered_map<std::string, std::string> gametype_display_names = {
-			{"tdm", "Team Deathmatch"},
-			{"dm", "Free-For-All"},
-			{"ffa", "Free-For-All"},
-			{"dom", "Domination"},
-			{"sd", "Search & Destroy"},
-			{"hp", "Hardpoint"},
-			{"ctf", "Capture The Flag"},
-			{"kc", "Kill Confirmed"},
-			{"conf", "Kill Confirmed"},
-			{"gun", "Gun Game"},
-			{"sas", "Safeguard"},
-			{"snipe", "One Shot"},
-			{"oic", "One in the Chamber"},
-			{"sharp", "Sharpshooter"},
-			{"prop", "Prop Hunt"},
-			{"ball", "Uplink"},
-			{"infect", "Infected"},
-			{"dem", "Demolition"},
-			{"clean", "Search & Rescue"},
-			{"zom", "Zombies"},
+		static const std::unordered_map<std::string, const char*> gametype_names = {
+			{"tdm", "Team Deathmatch"}, {"dm", "Free-For-All"},
+			{"ffa", "Free-For-All"}, {"dom", "Domination"},
+			{"sd", "Search & Destroy"}, {"hp", "Hardpoint"},
+			{"ctf", "Capture The Flag"}, {"kc", "Kill Confirmed"},
+			{"conf", "Kill Confirmed"}, {"gun", "Gun Game"},
+			{"sas", "Safeguard"}, {"snipe", "One Shot"},
+			{"oic", "One in the Chamber"}, {"sharp", "Sharpshooter"},
+			{"prop", "Prop Hunt"}, {"ball", "Uplink"},
+			{"infect", "Infected"}, {"dem", "Demolition"},
+			{"clean", "Search & Rescue"}, {"zom", "Zombies"},
+			{"zclassic", "Zombies"},
 		};
 
-		std::string strip_color_codes(const std::string& str)
+		const char* get_mode_name(bool is_mp, bool is_zm, bool is_cp)
 		{
-			std::string result;
-			result.reserve(str.length());
+			if (is_mp) return "Multiplayer";
+			if (is_zm) return "Zombies";
+			if (is_cp) return "Campaign";
+			return "Playing";
+		}
 
-			for (size_t i = 0; i < str.length(); ++i)
+		std::string get_display_map(const std::string& raw, bool is_mp, bool is_zm, bool is_cp)
+		{
+			if (const auto it = map_names.find(raw); it != map_names.end())
+				return it->second;
+			if (raw.empty()) return get_mode_name(is_mp, is_zm, is_cp);
+			return raw;
+		}
+
+		std::string get_display_gametype(const std::string& raw)
+		{
+			if (const auto it = gametype_names.find(raw); it != gametype_names.end())
+				return it->second;
+			return raw.empty() ? "" : raw;
+		}
+
+		std::string strip_colors(const std::string& src)
+		{
+			std::string out;
+			out.reserve(src.size());
+			for (size_t i = 0; i < src.size(); ++i)
 			{
-				if (str[i] == '^' && i + 1 < str.length())
+				if (src[i] == '^' && i + 1 < src.size())
 				{
-					const char next = str[i + 1];
-					if ((next >= '0' && next <= '9') || next == ':' || next == ';')
+					char c = src[i + 1];
+					if ((c >= '0' && c <= '9') || c == ':' || c == ';')
 					{
 						++i;
 						continue;
 					}
 				}
-				result += str[i];
+				out += src[i];
 			}
-
-			return result;
+			return out;
 		}
 
-		std::string truncate_string(const std::string& str, size_t max_length)
+		std::string truncate(const std::string& s, size_t max_len)
 		{
-			if (str.length() <= max_length)
-			{
-				return str;
-			}
-			return str.substr(0, max_length - 3) + "...";
+			if (s.size() <= max_len) return s;
+			return s.substr(0, max_len - 3) + "...";
 		}
 
-		std::string get_display_map_name(const std::string& raw_name)
+		std::string safe_dvar_string(const char* name)
 		{
-			if (const auto it = map_display_names.find(raw_name); it != map_display_names.end())
-			{
-				return it->second;
-			}
+			char buf[128] = {};
+			seh_dvar_string(name, buf, sizeof(buf));
+			return buf;
+		}
 
-			if (raw_name.starts_with("mp_") || raw_name.starts_with("zm_"))
+		void update_discord()
+		{
+		  try
+		  {
+			DiscordRichPresence dp{};
+			ZeroMemory(&dp, sizeof(dp));
+			dp.instance = 1;
+			dp.button1_label = "Join our Discord \xF0\x9F\x91\x8D";
+			dp.button1_url = "https://discord.gg/ezz";
+			dp.button2_label = "Ezz Forum \xF0\x9F\xA4\x96";
+			dp.button2_url = "https://forum.ezz.lol";
+
+			bool in_game = false;
+			seh_Com_IsInGame(&in_game);
+
+			if (!in_game)
 			{
-				auto name = raw_name.substr(3);
-				if (!name.empty())
+				if (was_in_game)
 				{
-					name[0] = static_cast<char>(std::toupper(name[0]));
-				}
-				return name;
-			}
-
-			return raw_name.empty() ? "Unknown" : raw_name;
-		}
-
-		std::string get_display_gametype(const std::string& raw_type)
-		{
-			if (const auto it = gametype_display_names.find(raw_type); it != gametype_display_names.end())
-			{
-				return it->second;
-			}
-
-			return raw_type.empty() ? "Unknown" : raw_type;
-		}
-
-		const char* get_map_image_key(const std::string& raw_name)
-		{
-			return map_display_names.contains(raw_name) ? raw_name.c_str() : "logo";
-		}
-
-		std::string get_dvar_string(const char* dvar_name)
-		{
-			if (const auto* dvar = game::Dvar_FindVar(dvar_name))
-			{
-				return game::Dvar_GetString(dvar);
-			}
-			return {};
-		}
-
-		bool get_dvar_bool(const char* dvar_name)
-		{
-			if (const auto* dvar = game::Dvar_FindVar(dvar_name))
-			{
-				return dvar->current.value.enabled;
-			}
-			return false;
-		}
-
-		int get_player_count()
-		{
-			return game::LobbyHost_GetClientCount(game::LOBBY_TYPE_GAME, game::LOBBY_CLIENT_TYPE_ALL);
-		}
-
-		void reset_match_state()
-		{
-			was_in_game = false;
-			player_score = 0;
-			enemy_score = 0;
-			party::clear_server_info();
-		}
-
-		void update_presence_loading()
-		{
-			DiscordRichPresence presence{};
-			presence.instance = 1;
-			presence.startTimestamp = start_timestamp;
-			presence.details = "BOIII via Ezz";
-			presence.state = "Starting...";
-			presence.largeImageKey = "logo";
-			presence.smallImageKey = "sexy";
-			presence.button1_label = "Join our Discord \xF0\x9F\x91\x8D";
-			presence.button1_url = "https://discord.gg/ezz";
-			presence.button2_label = "Ezz Forum \xF0\x9F\xA4\x96";
-			presence.button2_url = "https://forum.ezz.lol";
-
-			Discord_UpdatePresence(&presence);
-		}
-
-		void update_presence_menu()
-		{
-			DiscordRichPresence presence{};
-			presence.instance = 1;
-			presence.startTimestamp = start_timestamp;
-			presence.details = "BOIII via Ezz";
-			presence.state = game::Com_IsRunningUILevel() ? "Main Menu" : "Loading...";
-			presence.largeImageKey = "logo";
-			presence.largeImageText = "Playing BO3 via Ezz!";
-			presence.smallImageKey = "sexy";
-			presence.button1_label = "Join our Discord \xF0\x9F\x91\x8D";
-			presence.button1_url = "https://discord.gg/ezz";
-			presence.button2_label = "Ezz Forum \xF0\x9F\xA4\x96";
-			presence.button2_url = "https://forum.ezz.lol";
-
-			Discord_UpdatePresence(&presence);
-		}
-
-		void update_presence_ingame()
-		{
-			if (!was_in_game)
-			{
-				match_timestamp = time(nullptr);
-				was_in_game = true;
-				player_score = 0;
-				enemy_score = 0;
-			}
-
-			const auto map_name = get_dvar_string("mapname");
-			const auto gametype = get_dvar_string("g_gametype");
-			const auto display_map = get_display_map_name(map_name);
-			const auto display_type = get_display_gametype(gametype);
-
-			const bool is_zombies = game::Com_SessionMode_IsMode(game::MODE_ZOMBIES);
-			const bool is_mp = game::Com_SessionMode_IsMode(game::MODE_MULTIPLAYER);
-			const bool is_campaign = game::Com_SessionMode_IsMode(game::MODE_CAMPAIGN);
-
-			auto raw_server_name = party::get_server_hostname();
-			const int max_clients = party::get_server_max_clients();
-			const bool on_server = !raw_server_name.empty();
-
-			std::string server_name;
-			if (on_server)
-			{
-				server_name = strip_color_codes(raw_server_name);
-				server_name = truncate_string(server_name, MAX_SERVER_NAME_LENGTH);
-			}
-
-			const std::string details = on_server ? server_name : "Private Game";
-
-			std::string state;
-			std::string mode_str;
-			if (is_zombies) mode_str = "Zombies";
-			else if (is_mp) mode_str = "Multiplayer";
-			else if (is_campaign) mode_str = "Campaign";
-
-			if (!mode_str.empty() && !map_name.empty())
-			{
-				state = mode_str + " on " + display_map;
-			}
-			else if (!map_name.empty())
-			{
-				state = "Playing " + display_map;
-			}
-			else
-			{
-				state = "In Game";
-			}
-
-			if (is_mp)
-			{
-				state += " | " + std::to_string(player_score.load()) + " - " + std::to_string(enemy_score.load());
-			}
-			else if (is_zombies)
-			{
-				const int round = *game::level_rounds_played;
-				if (round > 0)
-				{
-					state += " | Round " + std::to_string(round);
-				}
-			}
-
-			std::string large_text;
-			if (!mode_str.empty())
-			{
-				large_text = mode_str + " - " + display_map;
-			}
-			else
-			{
-				large_text = display_map;
-			}
-
-			DiscordRichPresence presence{};
-			presence.instance = 1;
-			presence.startTimestamp = match_timestamp;
-			presence.details = details.c_str();
-			presence.state = state.c_str();
-			presence.largeImageKey = get_map_image_key(map_name);
-			presence.largeImageText = large_text.c_str();
-			presence.smallImageKey = "logo";
-			presence.smallImageText = "Playing BO3 via Ezz!";
-			presence.button1_label = "Join our Discord \xF0\x9F\x91\x8D";
-			presence.button1_url = "https://discord.gg/ezz";
-			presence.button2_label = "Ezz Forum \xF0\x9F\xA4\x96";
-			presence.button2_url = "https://forum.ezz.lol";
-
-			{
-				int party_max = max_clients;
-				if (party_max <= 0)
-				{
-					const auto* maxclients_dvar = game::Dvar_FindVar("com_maxclients");
-					if (maxclients_dvar) party_max = maxclients_dvar->current.value.integer;
+					was_in_game = false;
+					s_player_score = 0;
+					s_enemy_score = 0;
+					s_rounds_played = 0;
+					party::clear_server_info();
 				}
 
-				int party_size = get_player_count();
-				if (party_size <= 0) party_size = 1;
+				bool ui_level = false;
+				seh_Com_IsRunningUILevel(&ui_level);
 
-				if (party_max > 0)
-				{
-					presence.partySize = party_size;
-					presence.partyMax = party_max;
-				}
-			}
-
-			Discord_UpdatePresence(&presence);
-		}
-
-		void update_presence()
-		{
-			if (!engine_ready)
-			{
-				update_presence_loading();
+				dp.startTimestamp = start_time;
+				dp.details = "BOIII via Ezz";
+				dp.state = ui_level ? "Main Menu" : "Loading...";
+				dp.largeImageKey = "logo";
+				dp.largeImageText = "Playing BO3 via Ezz!";
+				dp.smallImageKey = "sexy";
+				Discord_UpdatePresence(&dp);
 				return;
 			}
 
-			if (game::Com_IsInGame())
+			if (!was_in_game)
 			{
-				update_presence_ingame();
+				match_time = time(nullptr);
+				was_in_game = true;
+				s_player_score = 0;
+				s_enemy_score = 0;
+				s_rounds_played = 0;
+			}
+
+			dp.startTimestamp = match_time;
+
+			bool is_mp = false, is_zm = false, is_cp = false;
+			seh_SessionMode_IsMode(game::MODE_MULTIPLAYER, &is_mp);
+			seh_SessionMode_IsMode(game::MODE_ZOMBIES, &is_zm);
+			seh_SessionMode_IsMode(game::MODE_CAMPAIGN, &is_cp);
+
+			auto mapname = safe_dvar_string("mapname");
+			if (mapname == "core_frontend") mapname.clear();
+			const auto display_map = get_display_map(mapname, is_mp, is_zm, is_cp);
+
+			auto gametype = safe_dvar_string("g_gametype");
+			if (gametype.empty() || gametype == "frontend")
+				gametype = safe_dvar_string("ui_gametype");
+			const auto display_type = get_display_gametype(gametype);
+
+			std::string server_name;
+			try { server_name = party::get_server_hostname(); } catch (...) {}
+			if (!server_name.empty())
+				server_name = truncate(strip_colors(server_name), 32);
+
+			const std::string details = server_name.empty() ? "Private Game" : server_name;
+			dp.details = details.c_str();
+
+			std::string state;
+			if (is_cp)
+			{
+				state = display_map;
+			}
+			else if (is_mp)
+			{
+				int ps = s_player_score.load();
+				int es = s_enemy_score.load();
+				if (!mapname.empty())
+					state = display_type + " on " + display_map + " | " + std::to_string(ps) + " - " + std::to_string(es);
+				else
+					state = display_type + " | " + std::to_string(ps) + " - " + std::to_string(es);
 			}
 			else
 			{
-				reset_match_state();
-				update_presence_menu();
+				int round = s_rounds_played.load();
+				if (round > 0)
+					state = display_map + " | Round " + std::to_string(round);
+				else
+					state = display_map;
 			}
+			dp.state = state.c_str();
+
+			const bool known_map = map_names.count(mapname) > 0;
+			dp.largeImageKey = known_map ? mapname.c_str() : "logo";
+
+			std::string large_text = std::string(get_mode_name(is_mp, is_zm, is_cp)) + " - " + display_map;
+			dp.largeImageText = large_text.c_str();
+			dp.smallImageKey = "logo";
+			dp.smallImageText = "Playing BO3 via Ezz!";
+
+			int max_clients = 0;
+			try { max_clients = party::get_server_max_clients(); } catch (...) {}
+			if (max_clients <= 0)
+				seh_dvar_int("com_maxclients", &max_clients);
+
+			int party_size = 1;
+			if (max_clients > 0)
+				seh_get_client_count(max_clients, &party_size);
+			if (party_size < 1) party_size = 1;
+
+			if (max_clients > 0)
+			{
+				dp.partySize = party_size;
+				dp.partyMax = max_clients;
+			}
+
+			Discord_UpdatePresence(&dp);
+		  }
+		  catch (...) {}
 		}
 
 		void ready(const DiscordUser* request)
 		{
 			SetEnvironmentVariableA("discord_user", request->userId);
 			printf("Discord: Ready: %s - %s\n", request->userId, request->username);
-			update_presence();
 		}
 
 		void errored(const int error_code, const char* message)
@@ -367,53 +319,33 @@ namespace discord
 		}
 	}
 
-	void set_player_score(const int score)
-	{
-		player_score = score;
-	}
-
-	void set_enemy_score(const int score)
-	{
-		enemy_score = score;
-	}
+	void set_player_score(const int score) { s_player_score = score; }
+	void set_enemy_score(const int score) { s_enemy_score = score; }
+	void set_rounds_played(const int round) { s_rounds_played = round; }
 
 	class component final : public client_component
 	{
 	public:
 		void post_load() override
 		{
-			start_timestamp = time(nullptr);
+			start_time = time(nullptr);
 
 			DiscordEventHandlers handlers{};
+			ZeroMemory(&handlers, sizeof(handlers));
 			handlers.ready = ready;
 			handlers.errored = errored;
 			handlers.disconnected = errored;
 
 			Discord_Initialize(DISCORD_APP_ID, &handlers, 1, nullptr);
-			initialized_ = true;
 
-			scheduler::loop([]
-			{
-				Discord_RunCallbacks();
-				update_presence();
-			}, scheduler::pipeline::async, UPDATE_INTERVAL);
-		}
-
-		void post_unpack() override
-		{
-			engine_ready = true;
+			scheduler::loop(Discord_RunCallbacks, scheduler::pipeline::async, 1s);
+			scheduler::loop(update_discord, scheduler::pipeline::main, 5s);
 		}
 
 		void pre_destroy() override
 		{
-			if (initialized_)
-			{
-				Discord_Shutdown();
-			}
+			Discord_Shutdown();
 		}
-
-	private:
-		bool initialized_ = false;
 	};
 }
 

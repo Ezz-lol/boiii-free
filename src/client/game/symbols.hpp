@@ -250,7 +250,7 @@ namespace game
 		0x141ED8AC0, 0x14048A360
 	};
 
-	WEAK symbol<int(int lobbySession, LobbyClientType clientType)> LobbySession_GetClientCount{
+	WEAK symbol<int(INT64 lobbySession, LobbyClientType clientType)> LobbySession_GetClientCount{
 		0x141ED8B30, 0x0
 	};
 

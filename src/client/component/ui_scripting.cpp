@@ -412,6 +412,11 @@ namespace ui_scripting
 				discord::set_enemy_score(score);
 			}), game::hks::TCFUNCTION);
 
+			lua["game"]["setDiscordRoundsPlayed"] = function(convert_function([](int round)
+			{
+				discord::set_rounds_played(round);
+			}), game::hks::TCFUNCTION);
+
 			// Hot reload functions (callable from Lua timers)
 			lua["game"]["hotreloadcheck"] = function(convert_function([]()
 			{
@@ -521,31 +526,28 @@ namespace ui_scripting
 
 		void inject_discord_score_subscriptions()
 		{
-			const auto state = *game::hks::lua_state;
-			if (!state) return;
-
 			const std::string lua_code =
-				"pcall(function() "
 				"LUI.roots.UIRoot0:subscribeToGlobalModel(0, 'GameScore', 'playerScore', function(model) "
 				"local score = Engine.GetModelValue(model); "
-				"if score and not Engine.IsVisibilityBitSet(0, Enum.UIVisibilityBit.BIT_IN_KILLCAM) then "
+				"if score and not Engine.IsVisibilityBitSet( 0, Enum.UIVisibilityBit.BIT_IN_KILLCAM ) then "
 				"game.setDiscordPlayerScore(score); "
 				"end; "
 				"end); "
 				"LUI.roots.UIRoot0:subscribeToGlobalModel(0, 'GameScore', 'enemyScore', function(model) "
 				"local score = Engine.GetModelValue(model); "
-				"if score and not Engine.IsVisibilityBitSet(0, Enum.UIVisibilityBit.BIT_IN_KILLCAM) then "
+				"if score and not Engine.IsVisibilityBitSet( 0, Enum.UIVisibilityBit.BIT_IN_KILLCAM ) then "
 				"game.setDiscordEnemyScore(score); "
 				"end; "
 				"end); "
-				"end)";
+				"LUI.roots.UIRoot0:subscribeToGlobalModel(0, 'GameScore', 'roundsPlayed', function(model) "
+				"local roundsPlayed = Engine.GetModelValue(model); "
+				"if roundsPlayed then "
+				"game.setDiscordRoundsPlayed(roundsPlayed - 1); "
+				"end; "
+				"end); ";
 
-			game::hks::HksCompilerSettings compiler_settings{};
-			const auto load_result = game::hks::hksi_hksL_loadbuffer(
-				state, &compiler_settings, lua_code.data(),
-				static_cast<unsigned __int64>(lua_code.size()), "discord_score_hooks");
-
-			if (load_result == 0)
+			const auto state = *game::hks::lua_state;
+			if (state && load_buffer("discord_score_hooks", lua_code) == 0)
 			{
 				game::hks::vm_call_internal(state, 0, 0, nullptr);
 			}
