@@ -621,6 +621,14 @@ namespace steamcmd
 
 		int result = download_workshop_item(workshop_id.data(), modtype.data());
 
+		// Clean up partial download files on cancel
+		if (result == 1)
+		{
+			std::error_code cleanup_ec;
+			std::filesystem::remove_all(dl_folder, cleanup_ec);
+			std::filesystem::remove_all(content_folder, cleanup_ec);
+		}
+
 		const char* error_msg = nullptr;
 		if (result == 4)
 			error_msg = "Problem downloading the workshop item. Max tries used.";

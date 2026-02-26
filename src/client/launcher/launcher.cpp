@@ -491,6 +491,46 @@ namespace launcher
 			verify_running = false;
 		}
 
+		bool is_dedicated_server_process(DWORD pid)
+		{
+			const HANDLE hProcess = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+			if (!hProcess) return false;
+
+			using NtQueryInformationProcessFn = LONG(NTAPI*)(HANDLE, ULONG, PVOID, ULONG, PULONG);
+			static const auto pNtQueryInformationProcess = reinterpret_cast<NtQueryInformationProcessFn>(
+				GetProcAddress(GetModuleHandleA("ntdll.dll"), "NtQueryInformationProcess"));
+
+			if (!pNtQueryInformationProcess)
+			{
+				CloseHandle(hProcess);
+				return false;
+			}
+
+			constexpr ULONG ProcessCommandLineInformation = 60;
+			ULONG size = 0;
+			pNtQueryInformationProcess(hProcess, ProcessCommandLineInformation, nullptr, 0, &size);
+			if (size == 0)
+			{
+				CloseHandle(hProcess);
+				return false;
+			}
+
+			std::vector<uint8_t> buffer(size);
+			const auto status = pNtQueryInformationProcess(hProcess, ProcessCommandLineInformation,
+				buffer.data(), size, &size);
+			if (status != 0)
+			{
+				CloseHandle(hProcess);
+				return false;
+			}
+
+			const auto* us = reinterpret_cast<UNICODE_STRING*>(buffer.data());
+			std::wstring cmdline(us->Buffer, us->Length / sizeof(WCHAR));
+			CloseHandle(hProcess);
+
+			return cmdline.find(L"-dedicated") != std::wstring::npos;
+		}
+
 		bool is_game_process_running()
 		{
 			const auto self_pid = GetCurrentProcessId();
@@ -507,9 +547,21 @@ namespace launcher
 					if (pe.th32ProcessID == self_pid) continue;
 
 					std::wstring name(pe.szExeFile);
-					if (_wcsicmp(name.c_str(), L"BlackOps3.exe") == 0 ||
-						_wcsicmp(name.c_str(), L"boiii.exe") == 0)
+
+					if (_wcsicmp(name.c_str(), L"BlackOps3_UnrankedDedicatedServer.exe") == 0)
+						continue;
+
+					if (_wcsicmp(name.c_str(), L"BlackOps3.exe") == 0)
 					{
+						CloseHandle(snap);
+						return true;
+					}
+
+					if (_wcsicmp(name.c_str(), L"boiii.exe") == 0)
+					{
+						if (is_dedicated_server_process(pe.th32ProcessID))
+							continue;
+
 						CloseHandle(snap);
 						return true;
 					}

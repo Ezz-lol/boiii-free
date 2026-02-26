@@ -1948,6 +1948,12 @@ namespace launcher::workshop
 					CloseHandle(pi.hThread);
 
 					if (workshop_cancel_requested.load()) {
+						// Clean up partial download files
+						std::error_code cleanup_ec;
+						std::filesystem::remove_all(download_path, cleanup_ec);
+						std::filesystem::remove_all(content_path, cleanup_ec);
+						std::filesystem::remove_all(alt_download_path, cleanup_ec);
+						std::filesystem::remove_all(alt_content_path, cleanup_ec);
 						set_workshop_status("Canceled.", 0.0, "");
 						return;
 					}
@@ -1991,6 +1997,12 @@ namespace launcher::workshop
 				}
 
 				if (workshop_cancel_requested.load()) {
+					// Clean up partial download files
+					std::error_code cleanup_ec;
+					std::filesystem::remove_all(download_path, cleanup_ec);
+					std::filesystem::remove_all(content_path, cleanup_ec);
+					std::filesystem::remove_all(alt_download_path, cleanup_ec);
+					std::filesystem::remove_all(alt_content_path, cleanup_ec);
 					set_workshop_status("Canceled.", 0.0, "");
 					return;
 				}

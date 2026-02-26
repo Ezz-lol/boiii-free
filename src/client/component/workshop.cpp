@@ -181,6 +181,11 @@ namespace workshop
 			{
 				load_usermap_mod_if_needed();
 			}
+			else if (game::isModLoaded() &&
+				std::string(game::getPublisherIdFromLoadedMod()) == "usermaps")
+			{
+				game::loadMod(0, "", false);
+			}
 
 			setup_server_map_hook.invoke(localClientNum, map, gametype);
 		}
