@@ -63,6 +63,7 @@ DataSources.LobbyServer = {
 				SetModelValue(serverModel, "botCount", serverInfo.botCount)
 				-- Add rounds played
 				SetModelValue(serverModel, "rounds", serverInfo.rounds or 0)
+
 				return serverModel
 			else
 				return nil
@@ -310,10 +311,32 @@ CoD.ServerBrowserRowInternal.new = function(menu, controller)
 			gametype:setText(Engine.Localize(GetGameTypeDisplayString(gameType)))
 		end
 	end)
+	gametype:setRGB(0.78, 0.78, 0.78)
 	self:addElement(gametype)
 	self.gametype = gametype
 
-	local playerCount = LUI.UIText.new()
+	self._clientCount = 0
+	self._maxClients = 0
+	local playerCount
+
+	local function updatePlayerCountColor()
+		if self._maxClients > 0 then
+			local ratio = self._clientCount / self._maxClients
+			if ratio < 0.5 then
+				playerCount:setRGB(0.2, 1.0, 0.2)
+			elseif ratio < 0.8 then
+				playerCount:setRGB(1.0, 0.85, 0.1)
+			elseif ratio < 0.95 then
+				playerCount:setRGB(1.0, 0.55, 0.1)
+			else
+				playerCount:setRGB(1.0, 0.2, 0.2)
+			end
+		else
+			playerCount:setRGB(1.0, 1.0, 1.0)
+		end
+	end
+
+	playerCount = LUI.UIText.new()
 	playerCount:setLeftRight(true, false, 593, 613)
 	playerCount:setTopBottom(true, false, 2, 20)
 	playerCount:setTTF("fonts/RefrigeratorDeluxe-Regular.ttf")
@@ -323,6 +346,8 @@ CoD.ServerBrowserRowInternal.new = function(menu, controller)
 		local clientCount = Engine.GetModelValue(model)
 		if clientCount then
 			playerCount:setText(Engine.Localize(clientCount))
+			self._clientCount = tonumber(clientCount) or 0
+			updatePlayerCountColor()
 		end
 	end)
 	self:addElement(playerCount)
@@ -335,6 +360,7 @@ CoD.ServerBrowserRowInternal.new = function(menu, controller)
 	slash:setTTF("fonts/RefrigeratorDeluxe-Regular.ttf")
 	slash:setAlignment(Enum.LUIAlignment.LUI_ALIGNMENT_LEFT)
 	slash:setAlignment(Enum.LUIAlignment.LUI_ALIGNMENT_TOP)
+	slash:setRGB(0.6, 0.6, 0.6)
 	self:addElement(slash)
 	self.slash = slash
 
@@ -344,10 +370,13 @@ CoD.ServerBrowserRowInternal.new = function(menu, controller)
 	maxPlayers:setTTF("fonts/RefrigeratorDeluxe-Regular.ttf")
 	maxPlayers:setAlignment(Enum.LUIAlignment.LUI_ALIGNMENT_LEFT)
 	maxPlayers:setAlignment(Enum.LUIAlignment.LUI_ALIGNMENT_TOP)
+	maxPlayers:setRGB(0.7, 0.7, 0.7)
 	maxPlayers:linkToElementModel(self, "maxClients", true, function(model)
 		local maxClients = Engine.GetModelValue(model)
 		if maxClients then
 			maxPlayers:setText(Engine.Localize(maxClients))
+			self._maxClients = tonumber(maxClients) or 0
+			updatePlayerCountColor()
 		end
 	end)
 	self:addElement(maxPlayers)
@@ -365,6 +394,7 @@ CoD.ServerBrowserRowInternal.new = function(menu, controller)
 			botCount:setText("[" .. Engine.Localize(_botCount) .. "]")
 		end
 	end)
+	botCount:setRGB(0.6, 0.6, 0.6)
 	botCount:linkToElementModel(self, "zombies", true, function(model)
 		local zombies = Engine.GetModelValue(model)
 		if zombies ~= nil then
@@ -384,6 +414,17 @@ CoD.ServerBrowserRowInternal.new = function(menu, controller)
 		local _ping = Engine.GetModelValue(model)
 		if _ping then
 			ping:setText(Engine.Localize(_ping))
+			local pingVal = tonumber(_ping) or 0
+			
+			if pingVal <= 100 then
+				ping:setRGB(0.0, 1.0, 0.0)
+			elseif pingVal <= 150 then
+				ping:setRGB(1.0, 0.9, 0.0)
+			elseif pingVal <= 200 then
+				ping:setRGB(1.0, 0.5, 0.0)
+			else
+				ping:setRGB(1.0, 0.0, 0.0)
+			end
 		end
 	end)
 	self:addElement(ping)

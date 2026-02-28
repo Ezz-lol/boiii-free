@@ -176,17 +176,62 @@ namespace workshop
 
 		void setup_server_map_stub(int localClientNum, const char* map, const char* gametype)
 		{
-			if (utils::string::is_numeric(map) ||
-				!get_usermap_publisher_id(map).empty())
+			if (game::isModLoaded())
+			{
+				const auto reconnect_addr = workshop::get_pending_mod_reconnect();
+
+				game::loadMod(0, "", true);
+
+				auto start_time = std::make_shared<std::chrono::steady_clock::time_point>(
+					std::chrono::steady_clock::now());
+
+				scheduler::schedule([reconnect_addr, start_time]() -> bool
+				{
+					const auto elapsed = std::chrono::steady_clock::now() - *start_time;
+
+					if (elapsed < std::chrono::seconds(1))
+						return scheduler::cond_continue;
+
+					if (game::isModLoaded() && elapsed < std::chrono::seconds(30))
+						return scheduler::cond_continue;
+
+					if (game::isModLoaded())
+					{
+						printf("[ Workshop ] Timeout: mod still loaded after 30s, attempting reconnect anyway\n");
+					}
+					else
+					{
+						printf("[ Workshop ] Mod unloaded after %lld ms\n",
+							std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+					}
+
+					if (!reconnect_addr.empty())
+					{
+						printf("[ RECONNECT ] scheduling reconnect in 3 seconds...\n");
+
+						scheduler::schedule([reconnect_addr]() -> bool
+							{
+								printf("[ RECONNECT ] connecting back to the server\n");
+								game::Cbuf_AddText(0, utils::string::va("connect %s\n", reconnect_addr.c_str()));
+								return scheduler::cond_end;
+							}, scheduler::main, 3s);
+					}
+					else
+					{
+						printf("[ RECONNECT ] no address found\n");
+					}
+
+					return scheduler::cond_end;
+				}, scheduler::main, 200ms);
+
+				return;
+			}
+
+			if (utils::string::is_numeric(map) || !get_usermap_publisher_id(map).empty())
 			{
 				load_usermap_mod_if_needed();
 			}
-			else if (game::isModLoaded() &&
-				std::string(game::getPublisherIdFromLoadedMod()) == "usermaps")
-			{
-				game::loadMod(0, "", false);
-			}
-
+			
 			setup_server_map_hook.invoke(localClientNum, map, gametype);
 		}
 
@@ -407,26 +452,45 @@ namespace workshop
 	extern bool downloading_workshop_item = false;
 	std::atomic<bool> launcher_downloading{false};
 
-	static std::mutex reconnect_mutex;
-	static std::string pending_reconnect_address;
-
-	void set_pending_reconnect(const std::string& address)
-	{
-		std::lock_guard lock(reconnect_mutex);
-		pending_reconnect_address = address;
-	}
-
-	std::string get_pending_reconnect()
-	{
-		std::lock_guard lock(reconnect_mutex);
-		auto addr = std::move(pending_reconnect_address);
-		pending_reconnect_address.clear();
-		return addr;
-	}
-
 	bool is_any_download_active()
 	{
 		return downloading_workshop_item || launcher_downloading.load() || fastdl::is_downloading();
+	}
+
+	static std::mutex reconnect_mutex;
+	static std::string pending_mod_reconnect_address;
+	static std::string pending_download_reconnect_address;
+
+	void set_pending_mod_reconnect(const std::string& address)
+	{
+		std::lock_guard lock(reconnect_mutex);
+		pending_mod_reconnect_address = address;
+	}
+
+	std::string get_pending_mod_reconnect()
+	{
+		std::lock_guard lock(reconnect_mutex);
+		auto addr = std::move(pending_mod_reconnect_address);
+		pending_mod_reconnect_address.clear();
+		return addr;
+	}
+
+	void set_pending_download_reconnect(const std::string& address)
+	{
+		std::lock_guard lock(reconnect_mutex);
+		// Don't overwrite if a download is already active, preserve the original server
+		if (pending_download_reconnect_address.empty() || !is_any_download_active())
+		{
+			pending_download_reconnect_address = address;
+		}
+	}
+
+	std::string get_pending_download_reconnect()
+	{
+		std::lock_guard lock(reconnect_mutex);
+		auto addr = std::move(pending_download_reconnect_address);
+		pending_download_reconnect_address.clear();
+		return addr;
 	}
 
 	std::uint64_t compute_folder_size_bytes(const std::filesystem::path& folder)

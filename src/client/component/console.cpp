@@ -220,6 +220,12 @@ namespace console
 				cr.cpMax = to_remove;
 				SendMessageW(richedit, EM_EXSETSEL, 0, reinterpret_cast<LPARAM>(&cr));
 				SendMessageW(richedit, EM_REPLACESEL, FALSE, reinterpret_cast<LPARAM>(L""));
+
+				// Reset selection to the end after trimming
+				CHARRANGE cr_end;
+				cr_end.cpMin = -1;
+				cr_end.cpMax = -1;
+				SendMessageW(richedit, EM_EXSETSEL, 0, reinterpret_cast<LPARAM>(&cr_end));
 			}
 		}
 
@@ -290,6 +296,8 @@ namespace console
 			const bool was_at_bottom = (scroll_info.nPos + static_cast<int>(scroll_info.nPage) >= scroll_info.nMax - 1)
 				|| scroll_info.nMax == 0;
 
+			trim_console_buffer(richedit);
+
 			std::string_view remaining(text);
 			while (!remaining.empty())
 			{
@@ -309,8 +317,6 @@ namespace console
 				const COLORREF base_color = get_line_base_color(line_view);
 				append_line_colored(richedit, line_view, base_color);
 			}
-
-			trim_console_buffer(richedit);
 
 			if (was_at_bottom)
 			{

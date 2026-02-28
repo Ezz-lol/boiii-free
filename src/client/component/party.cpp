@@ -50,38 +50,60 @@ namespace party
 			return server_queries;
 		}
 
-		void connect_to_lobby(const game::netadr_t& addr, const std::string& mapname, const std::string& gamemode,
-		                      const std::string& usermap_id, const std::string& mod_id)
+		void connect_to_lobby(const game::netadr_t& addr, const std::string& mapname, const std::string& gamemode, const std::string& usermap_id, const std::string& mod_id)
 		{
-			game::CG_LUIHUDRestart(0);
 			auth::clear_stored_guids();
 
-			const auto current_mod = std::string(game::getPublisherIdFromLoadedMod());
-			bool will_restart = false;
-			if (current_mod != mod_id)
+			//FAILSAFE incase setup_server_map_stub fail to unload. sometimes it bug out and wont unload mod anymore.
+			//has not been actually tested to work.
+			if (game::isModLoaded())
 			{
-				if (!usermap_id.empty() || mod_id != "usermaps")
-					will_restart = true;
-				else if (game::isModLoaded())
-					will_restart = true;
-			}
+				const auto reconnect_addr = workshop::get_pending_mod_reconnect();
 
-			if (will_restart)
-			{
-				const auto addr_str = utils::string::va("%i.%i.%i.%i:%hu",
-					addr.ipv4.a, addr.ipv4.b, addr.ipv4.c, addr.ipv4.d, addr.port);
-				const std::string addr_copy(addr_str);
+				game::loadMod(0, "", true);
 
-				printf("[ Party ] Mod switch needed (%s -> %s), will reconnect to %s after restart\n",
-					current_mod.c_str(), mod_id.c_str(), addr_copy.c_str());
+				auto start_time = std::make_shared<std::chrono::steady_clock::time_point>(
+					std::chrono::steady_clock::now());
 
-				scheduler::once([addr_copy]
-				{
-					printf("[ Party ] Reconnecting to %s after mod switch\n", addr_copy.c_str());
-					game::Cbuf_AddText(0, utils::string::va("connect %s\n", addr_copy.c_str()));
-				}, scheduler::main, 5s);
+				scheduler::schedule([reconnect_addr, start_time]() -> bool
+					{
+						const auto elapsed = std::chrono::steady_clock::now() - *start_time;
 
-				workshop::setup_same_mod_as_host(usermap_id, mod_id);
+						if (elapsed < std::chrono::seconds(1))
+							return scheduler::cond_continue;
+
+						if (game::isModLoaded() && elapsed < std::chrono::seconds(30))
+							return scheduler::cond_continue;
+
+						if (game::isModLoaded())
+						{
+							printf("[ Party ] Timeout: mod still loaded after 30s, attempting reconnect anyway\n");
+						}
+						else
+						{
+							printf("[ Party ] Mod unloaded after %lld ms\n",
+								std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+						}
+
+						if (!reconnect_addr.empty())
+						{
+							printf("[ RECONNECT ] scheduling reconnect in 3 seconds...\n");
+
+							scheduler::schedule([reconnect_addr]() -> bool
+								{
+									printf("[ RECONNECT ] connecting back to the server\n");
+									game::Cbuf_AddText(0, utils::string::va("connect %s\n", reconnect_addr.c_str()));
+									return scheduler::cond_end;
+								}, scheduler::main, 3s);
+						}
+						else
+						{
+							printf("[ RECONNECT ] no address found\n");
+						}
+
+						return scheduler::cond_end;
+					}, scheduler::main, 200ms);
+
 				return;
 			}
 
@@ -274,6 +296,12 @@ namespace party
 
 			scheduler::once([=]
 			{
+				const auto addr_str = utils::string::va(
+					"%i.%i.%i.%i:%hu", target.ipv4.a, target.ipv4.b, target.ipv4.c, target.ipv4.d, target.port);
+
+				// Always save latest address for mod reconnect (mod unload/reload)
+				workshop::set_pending_mod_reconnect(addr_str);
+
 				const auto usermap_id = workshop::get_usermap_publisher_id(mapname);
 
 				if (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id, base_url) &&
@@ -284,10 +312,10 @@ namespace party
 					//connect_to_session(target, hostname, xuid, mode);
 					connect_to_lobby_with_mode_internal(target, mode, mapname, gametype, usermap_id, mod_id);
 				}
-				else if (!workshop::is_any_download_active())
+				else
 				{
-					workshop::set_pending_reconnect(utils::string::va(
-						"%i.%i.%i.%i:%hu", target.ipv4.a, target.ipv4.b, target.ipv4.c, target.ipv4.d, target.port));
+					// Save download reconnect
+					workshop::set_pending_download_reconnect(addr_str);
 				}
 			}, scheduler::main);
 		}

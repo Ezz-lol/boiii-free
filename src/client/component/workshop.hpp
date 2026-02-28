@@ -23,8 +23,11 @@ namespace workshop
 	bool check_valid_mod_id(const std::string& pub_id, const std::string& workshop_id);
 	void setup_same_mod_as_host(const std::string& usermap, const std::string& mod);
 
-	void set_pending_reconnect(const std::string& address);
-	std::string get_pending_reconnect();
+	void set_pending_mod_reconnect(const std::string& address);
+	std::string get_pending_mod_reconnect();
+
+	void set_pending_download_reconnect(const std::string& address);
+	std::string get_pending_download_reconnect();
 
 	std::uint64_t compute_folder_size_bytes(const std::filesystem::path& folder);
 	std::string human_readable_size(std::uint64_t bytes);

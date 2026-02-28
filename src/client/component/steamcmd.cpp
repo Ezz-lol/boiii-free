@@ -648,7 +648,7 @@ namespace steamcmd
 		}
 		else if (result == 0)
 		{
-			const auto reconnect_addr = workshop::get_pending_reconnect();
+			const auto reconnect_addr = workshop::get_pending_download_reconnect();
 			if (!reconnect_addr.empty())
 			{
 				const auto addr_copy = reconnect_addr;
