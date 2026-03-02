@@ -76,6 +76,21 @@ DataSources.StartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOpti
 			table.insert(options, {models = {displayText = endGameText, action = QuitGame_MP}})
 		end
 	end
+	local isLocalGame = true
+	pcall(function()
+		if Dvar.cl_connected_to_dedi and Dvar.cl_connected_to_dedi:get() then
+			isLocalGame = false
+		end
+	end)
+	if isLocalGame then
+		table.insert(options, {models = {displayText = "GAME TWEAKS", action = function(self, element, controller, param, menu)
+			if menu and menu.openPopup then
+				menu:openPopup("BoiiiGameTweaksMenu", controller)
+			else
+				OpenPopup(self, "BoiiiGameTweaksMenu", controller)
+			end
+		end}})
+	end
 	table.insert(options, {models = {displayText = "QUIT TO DESKTOP", action = OpenPCQuit}})
 	return options
 end, true)

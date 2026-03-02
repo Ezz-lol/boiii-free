@@ -125,7 +125,7 @@ namespace server_patches2
 			if (sv_cheats_val != 0)
 			{
 				printf("[Security] sv_cheats was non-zero (%d), forcing to 0\n", sv_cheats_val);
-				game::Dvar_SetFromStringByName("sv_cheats", "0", true);
+				game::Cbuf_AddText(0, "set sv_cheats 0\n");
 			}
 		}
 
