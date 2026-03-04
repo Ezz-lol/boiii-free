@@ -36,22 +36,10 @@ namespace dvars_patches
 			if (!game::is_client()) return;
 
 			game::dvar_remove_flags("cg_drawGun", game::DVAR_CHEAT);
-			game::dvar_remove_flags("cg_draw2d", game::DVAR_CHEAT);
-			game::dvar_remove_flags("cg_drawCrosshair", game::DVAR_CHEAT);
 			game::dvar_remove_flags("g_speed", game::DVAR_CHEAT);
-			game::dvar_remove_flags("g_knockback", game::DVAR_CHEAT);
 			game::dvar_remove_flags("bg_gravity", game::DVAR_CHEAT);
-			game::dvar_remove_flags("bg_fallDamageMinHeight", game::DVAR_CHEAT);
-			game::dvar_remove_flags("bullet_penetrationEnabled", game::DVAR_CHEAT);
-			game::dvar_remove_flags("player_sprintUnlimited", game::DVAR_CHEAT);
 			game::dvar_remove_flags("player_sustainAmmo", game::DVAR_CHEAT);
-			game::dvar_remove_flags("player_sprintSpeedScale", game::DVAR_CHEAT);
-			game::dvar_remove_flags("jump_slowdownEnable", game::DVAR_CHEAT);
-			game::dvar_remove_flags("doublejump_enabled", game::DVAR_CHEAT);
 			game::dvar_remove_flags("r_fog", game::DVAR_CHEAT);
-			game::dvar_remove_flags("r_filmTweakEnable", game::DVAR_CHEAT);
-			game::dvar_remove_flags("r_fullbright", game::DVAR_CHEAT);
-			game::dvar_remove_flags("r_dof_enable", game::DVAR_CHEAT);
 			game::dvar_remove_flags("timescale", game::DVAR_CHEAT);
 		}
 

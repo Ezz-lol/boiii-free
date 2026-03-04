@@ -44,40 +44,10 @@ DataSources.BoiiiGameTweaks = DataSourceHelpers.ListSetup("BoiiiGameTweaks", fun
 	table.insert(t, CoD.OptionsUtility.CreateDvarSettings(controller, "Gravity",
 		"Lower = floaty, higher = heavy.", "GameTweaks_gravity", "bg_gravity", gravityOptions, nil, updateDvar))
 
-	table.insert(t, CoD.OptionsUtility.CreateDvarSettings(controller, "Unlimited Sprint",
-		"Sprint without stamina limit.", "GameTweaks_unlimitedsprint", "player_sprintUnlimited", {
-			{ option = "MENU_DISABLED", value = 0, default = true },
-			{ option = "MENU_ENABLED", value = 1 },
-		}, nil, updateDvar))
-
-	table.insert(t, CoD.OptionsUtility.CreateDvarSettings(controller, "Fall Damage",
-		"9999 = no fall damage.", "GameTweaks_falldmg", "bg_fallDamageMinHeight", {
-			{ option = "128 (Default)", value = 128, default = true },
-			{ option = "256 (Forgiving)", value = 256 },
-			{ option = "512 (Very High)", value = 512 },
-			{ option = "9999 (No Fall Damage)", value = 9999 },
-		}, nil, updateDvar))
-
-	table.insert(t, CoD.OptionsUtility.CreateDvarSettings(controller, "Knockback",
-		"Knockback force when hit.", "GameTweaks_knockback", "g_knockback", {
-			{ option = "Off", value = 0 },
-			{ option = "500 (Low)", value = 500 },
-			{ option = "1000 (Default)", value = 1000, default = true },
-			{ option = "2000", value = 2000 },
-			{ option = "5000 (Insane)", value = 5000 },
-			{ option = "10000 (Yeet)", value = 10000 },
-		}, nil, updateDvar))
-
 	table.insert(t, CoD.OptionsUtility.CreateDvarSettings(controller, "Infinite Ammo",
 		"Never run out of ammo.", "GameTweaks_infiniteammo", "player_sustainAmmo", {
 			{ option = "MENU_DISABLED", value = 0, default = true },
 			{ option = "MENU_ENABLED", value = 1 },
-		}, nil, updateDvar))
-
-	table.insert(t, CoD.OptionsUtility.CreateDvarSettings(controller, "Bullet Penetration",
-		"Bullets go through walls.", "GameTweaks_bulletpen", "bullet_penetrationEnabled", {
-			{ option = "MENU_ENABLED", value = 1, default = true },
-			{ option = "MENU_DISABLED", value = 0 },
 		}, nil, updateDvar))
 
 	table.insert(t, CoD.OptionsUtility.CreateDvarSettings(controller, "Game Speed",
@@ -90,18 +60,6 @@ DataSources.BoiiiGameTweaks = DataSourceHelpers.ListSetup("BoiiiGameTweaks", fun
 			{ option = "4x (Chaos)", value = 4 },
 		}, nil, updateDvar))
 
-	table.insert(t, CoD.OptionsUtility.CreateDvarSettings(controller, "Hide HUD",
-		"Hide all 2D HUD elements.", "GameTweaks_draw2d", "cg_draw2d", {
-			{ option = "Show (Default)", value = 1, default = true },
-			{ option = "Hide All", value = 0 },
-		}, nil, updateDvar))
-
-	table.insert(t, CoD.OptionsUtility.CreateDvarSettings(controller, "Hide Crosshair",
-		"Hide the crosshair.", "GameTweaks_crosshair", "cg_drawCrosshair", {
-			{ option = "Show (Default)", value = 1, default = true },
-			{ option = "Hide", value = 0 },
-		}, nil, updateDvar))
-
 	table.insert(t, CoD.OptionsUtility.CreateDvarSettings(controller, "Hide Weapon Model",
 		"Hide the gun model on screen.", "GameTweaks_drawgun", "cg_drawGun", {
 			{ option = "Show (Default)", value = 1, default = true },
@@ -112,24 +70,6 @@ DataSources.BoiiiGameTweaks = DataSourceHelpers.ListSetup("BoiiiGameTweaks", fun
 		"Remove fog effects.", "GameTweaks_fog", "r_fog", {
 			{ option = "Fog On (Default)", value = 1, default = true },
 			{ option = "Fog Off", value = 0 },
-		}, nil, updateDvar))
-
-	table.insert(t, CoD.OptionsUtility.CreateDvarSettings(controller, "Depth of Field",
-		"Blur effect on distant objects.", "GameTweaks_dof", "r_dof_enable", {
-			{ option = "MENU_ENABLED", value = 1, default = true },
-			{ option = "MENU_DISABLED", value = 0 },
-		}, nil, updateDvar))
-
-	table.insert(t, CoD.OptionsUtility.CreateDvarSettings(controller, "Film Grain",
-		"Cinematic film post-processing.", "GameTweaks_filmtweak", "r_filmTweakEnable", {
-			{ option = "MENU_DISABLED", value = 0, default = true },
-			{ option = "MENU_ENABLED", value = 1 },
-		}, nil, updateDvar))
-
-	table.insert(t, CoD.OptionsUtility.CreateDvarSettings(controller, "Fullbright",
-		"Remove all shadows.", "GameTweaks_fullbright", "r_fullbright", {
-			{ option = "Off (Default)", value = 0, default = true },
-			{ option = "On", value = 1 },
 		}, nil, updateDvar))
 
 	return t
