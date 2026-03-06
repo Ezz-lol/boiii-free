@@ -67,7 +67,7 @@ namespace steamcmd
 
 			// Wait for the log file to appear (up to 120 seconds)
 			std::ifstream file;
-			for (int i = 0; i < 600 && workshop::downloading_workshop_item; ++i)
+			for (int i = 0; i < 600 && workshop::downloading_workshop_item.load(); ++i)
 			{
 				file.open(content_log_path, std::ios::in);
 				if (file.is_open()) break;
@@ -81,7 +81,7 @@ namespace steamcmd
 			const std::string base_pattern = "AppID 311210 update started";
 			std::string line;
 
-			while (workshop::downloading_workshop_item)
+			while (workshop::downloading_workshop_item.load())
 			{
 				std::streampos pos = file.tellg();
 				if (!std::getline(file, line))
@@ -285,61 +285,67 @@ namespace steamcmd
 
 		if (!utils::io::file_exists("steamcmd.zip") && !utils::io::file_exists("steamcmd/steamcmd.exe"))
 		{
-			CURL* curl = curl_easy_init();
-			if (!curl)
-			{
-				printf("CURL initialization failed.\n");
-				return 1;
-			}
-
 			constexpr char url[] = "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip";
-			//official steamcmd download link
+			// official steamcmd download link
 			constexpr char outfilename[] = "./steamcmd.zip";
 
-			curl_version_info_data* vinfo = curl_version_info(CURLVERSION_NOW);
-
-			if (vinfo->features & CURL_VERSION_SSL)
+			for (; tries < max_tries; ++tries)
 			{
-				printf("CURL: SSL enabled\n");
-			}
-			else
-			{
-				printf("CURL: SSL not enabled\n");
-			}
+				CURL* curl = curl_easy_init();
+				if (!curl)
+				{
+					printf("CURL initialization failed.\n");
+					return 1;
+				}
 
-			FILE* outFile = nullptr;
-			errno_t err = fopen_s(&outFile, outfilename, "wb");
-			if (err != 0 || outFile == nullptr)
-			{
-				printf("Error opening file for writing.\n");
-				return 1;
-			}
+				curl_version_info_data* vinfo = curl_version_info(CURLVERSION_NOW);
+				if (vinfo->features & CURL_VERSION_SSL)
+				{
+					printf("CURL: SSL enabled\n");
+				}
+				else
+				{
+					printf("CURL: SSL not enabled\n");
+				}
 
-			curl_easy_setopt(curl, CURLOPT_URL, url);
-			curl_easy_setopt(curl, CURLOPT_CAINFO, "./ca-bundle.crt");
-			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-			curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
-			curl_easy_setopt(curl, CURLOPT_WRITEDATA, outFile);
+				FILE* outFile = nullptr;
+				errno_t err = fopen_s(&outFile, outfilename, "wb");
+				if (err != 0 || outFile == nullptr)
+				{
+					printf("Error opening file for writing.\n");
+					curl_easy_cleanup(curl);
+					return 1;
+				}
 
-			CURLcode res = curl_easy_perform(curl);
-			if (res != CURLE_OK && tries < max_tries)
-			{
-				++tries;
-				printf("CURL failed: %s\n", curl_easy_strerror(res));
+				curl_easy_setopt(curl, CURLOPT_URL, url);
+				curl_easy_setopt(curl, CURLOPT_CAINFO, "./ca-bundle.crt");
+				curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+				curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
+				curl_easy_setopt(curl, CURLOPT_WRITEDATA, outFile);
+
+				CURLcode res = curl_easy_perform(curl);
 				fclose(outFile);
-				remove(outfilename); // Delete the file in case of failure and try again untill max tries used
-				Sleep(2000);
-				return setup_steamcmd();
+				curl_easy_cleanup(curl);
+
+				if (res == CURLE_OK)
+				{
+					break;
+				}
+
+				printf("CURL failed: %s\n", curl_easy_strerror(res));
+				remove(outfilename); // Delete the file in case of failure and try again until max tries used
+				if (tries + 1 < max_tries)
+				{
+					Sleep(2000);
+				}
 			}
-			if (res != CURLE_OK && tries >= max_tries)
+
+			if (tries >= max_tries)
 			{
 				printf("[ERROR] Could not download steamcmd! \nMax tries used.");
 				return 1;
 			}
-
-			fclose(outFile);
-			curl_easy_cleanup(curl);
 
 			if (extract_steamcmd() == 1)
 			{
@@ -375,7 +381,7 @@ namespace steamcmd
 		}
 		catch (std::filesystem::filesystem_error& e)
 		{
-			printf(e.what() + '\n');
+			printf("%s\n", e.what());
 		}
 
 		return 0;
@@ -472,7 +478,7 @@ namespace steamcmd
 
 		scheduler::schedule([=]() -> bool
 		{
-			if (!workshop::downloading_workshop_item) return scheduler::cond_end;
+			if (!workshop::downloading_workshop_item.load()) return scheduler::cond_end;
 
 			// Check multiple possible download paths
 			std::uint64_t current_size = 0;
@@ -717,7 +723,7 @@ namespace steamcmd
 		int fast_fail_count = 0;
 		constexpr int FAST_FAIL_THRESHOLD = 5;
 
-		while (workshop::downloading_workshop_item && !std::filesystem::exists(content_folder))
+		while (workshop::downloading_workshop_item.load() && !std::filesystem::exists(content_folder))
 		{
 			if (tries >= max_tries)
 			{
@@ -792,7 +798,7 @@ namespace steamcmd
 			continue_download = true;
 		}
 
-		if (!workshop::downloading_workshop_item)
+		if (!workshop::downloading_workshop_item.load())
 		{
 			printf("[ Workshop ] Download cancelled by user.\n");
 			return 1;

@@ -116,6 +116,13 @@ namespace asset_limits
 				return;
 			}
 
+			if (pool->itemCount > 0)
+			{
+				printf("[AssetLimits] Skipping pool resize for type %d (in-use count: %d)\n",
+				       static_cast<int>(type), pool->itemCount);
+				return;
+			}
+
 			const auto new_pool = calloc(new_size, entry_size);
 			if (!new_pool)
 			{
@@ -125,8 +132,11 @@ namespace asset_limits
 			}
 
 			// Copy existing entries
-			memcpy(new_pool, pool->pool,
-			       pool->itemAllocCount * static_cast<size_t>(entry_size));
+			if (pool->pool && pool->itemAllocCount > 0)
+			{
+				memcpy(new_pool, pool->pool,
+				       pool->itemAllocCount * static_cast<size_t>(entry_size));
+			}
 
 			// Rebuild free list for new entries
 			pool->freeHead = reinterpret_cast<game::AssetLink*>(
@@ -147,11 +157,18 @@ namespace asset_limits
 				static_cast<size_t>(entry_size) * (new_size - 1));
 			last->next = nullptr;
 
+			const auto old_pool = pool->pool;
+			const auto old_alloc = pool->itemAllocCount;
 			pool->pool = new_pool;
 			pool->itemAllocCount = static_cast<int>(new_size);
 
+			if (old_pool)
+			{
+				free(old_pool);
+			}
+
 			printf("Reallocated asset pool type %d: %d -> %u entries\n",
-			       static_cast<int>(type), pool->itemCount, new_size);
+			       static_cast<int>(type), old_alloc, new_size);
 		}
 	}
 

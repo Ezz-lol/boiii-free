@@ -136,8 +136,8 @@ namespace ezzsec
 	// =====================================================================
 	// Scratch buffers for packet inspection
 	// =====================================================================
-	inline char requestOut[0x20000]{};
-	inline char lobbyMsgCpy[0x50]{};
+	inline thread_local char requestOut[0x20000]{};
+	inline thread_local char lobbyMsgCpy[0x50]{};
 
 	// =====================================================================
 	// MSG_JoinParty_Package_Inspect

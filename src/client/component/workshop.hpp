@@ -7,7 +7,7 @@
 
 namespace workshop
 {
-	extern bool downloading_workshop_item;
+extern std::atomic<bool> downloading_workshop_item;
 
 	extern std::atomic<bool> launcher_downloading;
 

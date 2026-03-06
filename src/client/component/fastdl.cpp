@@ -12,6 +12,7 @@
 #include <utils/http.hpp>
 #include <utils/cryptography.hpp>
 #include <utils/concurrency.hpp>
+#include <utils/finally.hpp>
 
 #include <curl/curl.h>
 #include <fstream>
@@ -30,6 +31,55 @@ namespace fastdl
 					std::chrono::system_clock::now().time_since_epoch()).count());
 		}
 
+		struct download_stream_context
+		{
+			fastdl_ui* ui{};
+			updater::file_info file{};
+			std::ofstream* stream{};
+		};
+
+		int download_progress_cb(void* clientp, const curl_off_t /*dltotal*/, const curl_off_t dlnow,
+			                     const curl_off_t /*ultotal*/, const curl_off_t /*ulnow*/)
+		{
+			auto* ctx = static_cast<download_stream_context*>(clientp);
+			if (download_cancelled.load())
+			{
+				return 1;
+			}
+			if (ctx && ctx->ui)
+			{
+				try
+				{
+					ctx->ui->file_progress(ctx->file, static_cast<size_t>(dlnow));
+				}
+				catch (...)
+				{
+					download_cancelled.store(true);
+					return 1;
+				}
+			}
+			return 0;
+		}
+
+		size_t download_write_cb(void* contents, const size_t size, const size_t nmemb, void* userp)
+		{
+			if (download_cancelled.load())
+			{
+				return 0;
+			}
+			const auto total_size = size * nmemb;
+			auto* ctx = static_cast<download_stream_context*>(userp);
+			if (ctx && ctx->stream && contents && total_size > 0)
+			{
+				ctx->stream->write(static_cast<const char*>(contents), static_cast<std::streamsize>(total_size));
+				if (!*ctx->stream)
+				{
+					return 0;
+				}
+			}
+			return total_size;
+		}
+
 		std::string get_hash(const std::string& data)
 		{
 			return utils::cryptography::sha1::compute(data, true);
@@ -38,6 +88,35 @@ namespace fastdl
 		bool is_map_file(const std::string& file_name)
 		{
 			return (file_name.ends_with(".xpak") || file_name.ends_with(".ff"));
+		}
+
+		bool is_safe_relative_path(const std::string& path_string)
+		{
+			if (path_string.empty())
+			{
+				return false;
+			}
+
+			const std::filesystem::path path{path_string};
+			if (path.is_absolute() || path.has_root_name() || path.has_root_directory())
+			{
+				return false;
+			}
+
+			for (const auto& part : path)
+			{
+				if (part == "." || part.empty())
+				{
+					continue;
+				}
+
+				if (part == "..")
+				{
+					return false;
+				}
+			}
+
+			return true;
 		}
 
 		void show_ingame_error(const std::string& error)
@@ -116,91 +195,126 @@ namespace fastdl
 
 		void download_file(const updater::file_info& file, const download_context& context, fastdl_ui& ui)
 		{
-			if (download_cancelled)
+		if (download_cancelled.load())
 			{
 				throw download_is_cancelled();
 			}
 
+			if (!is_safe_relative_path(context.mapname) || !is_safe_relative_path(file.name))
+			{
+				throw std::runtime_error("Invalid download path");
+			}
+
 			const auto file_url = context.base_url + "/usermaps/" + context.mapname + "/" + file.name;
-			const auto local_path = context.map_path + "/" + file.name;
+			const auto local_path = (std::filesystem::path(context.map_path) / file.name).string();
+			bool completed = false;
 
-			std::string empty{};
-			if (!utils::io::write_file(local_path, empty, false))
+			try
 			{
-				throw std::runtime_error(utils::string::va("Failed to write file: %s", local_path.data()));
-			}
-
-			std::ofstream ofs(local_path, std::ios::binary);
-			if (!ofs)
-			{
-				throw std::runtime_error(utils::string::va("Failed to open file: %s", local_path.data()));
-			}
-
-			const auto result_code = utils::http::get_data_stream(file_url, {},
-				[&](size_t progress)
+				std::string empty{};
+				if (!utils::io::write_file(local_path, empty, false))
 				{
-					if (download_cancelled)
-					{
-						return;
-					}
-					ui.file_progress(file, progress);
-				},
-				[&](const char* chunk, size_t size)
+					throw std::runtime_error(utils::string::va("Failed to write file: %s", local_path.data()));
+				}
+
+				std::ofstream ofs(local_path, std::ios::binary);
+				if (!ofs)
 				{
-					if (chunk && size > 0 && !download_cancelled)
-					{
-						ofs.write(chunk, size);
-					}
+					throw std::runtime_error(utils::string::va("Failed to open file: %s", local_path.data()));
+				}
+
+				auto* curl = curl_easy_init();
+				if (!curl)
+				{
+					throw std::runtime_error("Failed to initialize curl");
+				}
+
+				auto curl_cleanup = utils::finally([&]()
+				{
+					curl_easy_cleanup(curl);
 				});
 
-			ofs.close();
+				curl_easy_setopt(curl, CURLOPT_URL, file_url.data());
+				curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+				curl_easy_setopt(curl, CURLOPT_USERAGENT, "ezz-updater/1.0");
+				curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+				curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
+				curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+				curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "identity");
+				download_stream_context stream_ctx{&ui, file, &ofs};
+				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, download_write_cb);
+				curl_easy_setopt(curl, CURLOPT_WRITEDATA, &stream_ctx);
+				curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, download_progress_cb);
+				curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &stream_ctx);
+				curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+				curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
+				curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 15L);
 
-			if (download_cancelled)
-			{
-				return;
-			}
+				const auto result_code = curl_easy_perform(curl);
 
-			if (result_code != CURLE_OK)
-			{
-				throw std::runtime_error(utils::string::va("Failed to download: %s - curl error %d", file_url.data(), result_code));
-			}
+				ofs.close();
 
-			if (utils::io::file_size(local_path) != file.size)
-			{
-				throw std::runtime_error(utils::string::va("Downloaded file size mismatch: %s", local_path.data()));
-			}
-
-			if (!is_map_file(file.name))
-			{
-				std::string data{};
-				if (!utils::io::read_file(local_path, &data))
+				if (download_cancelled.load())
 				{
-					throw std::runtime_error(utils::string::va("Failed to read downloaded file: %s", local_path.data()));
+					throw download_is_cancelled();
 				}
 
-				if (get_hash(data) != file.hash)
+				if (result_code != CURLE_OK)
 				{
-					throw std::runtime_error(utils::string::va("Downloaded file hash mismatch: %s", local_path.data()));
+					throw std::runtime_error(utils::string::va("Failed to download: %s - curl error %d", file_url.data(), result_code));
 				}
+
+				if (utils::io::file_size(local_path) != file.size)
+				{
+					throw std::runtime_error(utils::string::va("Downloaded file size mismatch: %s", local_path.data()));
+				}
+
+				{
+					std::string data{};
+					if (!utils::io::read_file(local_path, &data))
+					{
+						throw std::runtime_error(utils::string::va("Failed to read downloaded file: %s", local_path.data()));
+					}
+
+					if (get_hash(data) != file.hash)
+					{
+						throw std::runtime_error(utils::string::va("Downloaded file hash mismatch: %s", local_path.data()));
+					}
+				}
+
+				completed = true;
+			}
+			catch (...)
+			{
+				if (!completed)
+				{
+					utils::io::remove_file(local_path);
+				}
+				throw;
 			}
 		}
 
 		void download_workshop_file(const updater::file_info& file, const download_context& context)
 		{
-			if (download_cancelled)
+			if (download_cancelled.load())
 			{
 				throw download_is_cancelled();
+			}
+
+			if (!is_safe_relative_path(context.mapname) || !is_safe_relative_path(file.name))
+			{
+				throw std::runtime_error("Invalid download path");
 			}
 
 			const auto file_url = context.base_url + "/usermaps/" + context.mapname + "/" + file.name;
 			const auto data = utils::http::get_data(file_url);
 
-			if (!data || (data->size() != file.size && get_hash(*data) != file.hash))
+			if (!data || (data->size() != file.size || get_hash(*data) != file.hash))
 			{
 				throw std::runtime_error(utils::string::va("Failed to download: %s", file_url.data()));
 			}
 
-			const auto local_path = context.map_path + "/" + file.name;
+			const auto local_path = (std::filesystem::path(context.map_path) / file.name).string();
 			if (!utils::io::write_file(local_path, *data, false))
 			{
 				throw std::runtime_error(utils::string::va("Failed to write: %s", local_path.data()));
@@ -324,7 +438,7 @@ namespace fastdl
 			try
 			{
 				download_active = true;
-				download_cancelled = false;
+				download_cancelled.store(false);
 
 				const auto [files, workshop_json] = get_manifest_files(context.base_url, context.mapname);
 				if (files.empty() || workshop_json.name.empty())
@@ -398,7 +512,8 @@ namespace fastdl
 
 	void start_map_download(const download_context& context)
 	{
-		if (download_active)
+		bool expected = false;
+		if (!download_active.compare_exchange_strong(expected, true))
 		{
 			return;
 		}
@@ -411,7 +526,7 @@ namespace fastdl
 
 	void cancel_download()
 	{
-		download_cancelled = true;
+		download_cancelled.store(true);
 	}
 
 	bool is_downloading()
@@ -497,7 +612,7 @@ namespace fastdl
 	{
 		if (this->progress_ui_.is_cancelled())
 		{
-			download_cancelled = true;
+			download_cancelled.store(true);
 			throw download_is_cancelled();
 		}
 	}

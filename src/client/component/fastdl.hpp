@@ -32,7 +32,7 @@ namespace fastdl
 
 		int eta(std::size_t total, std::size_t downloaded) const
 		{
-			if (speed_bps < 1024.f || total == 0) return -1;
+			if (speed_bps < 1024.f || total == 0 || downloaded >= total) return -1;
 			return static_cast<int>(static_cast<float>(total - downloaded) / speed_bps);
 		}
 	};
@@ -64,6 +64,16 @@ namespace fastdl
 
 		void file_progress(const updater::file_info& file, size_t progress) override;
 
+		void set_current_file(const updater::file_info& file)
+		{
+			this->current_file_ = file;
+		}
+
+		const updater::file_info& get_current_file() const
+		{
+			return this->current_file_;
+		}
+
 	private:
 		mutable std::recursive_mutex mutex_;
 		std::vector<updater::file_info> total_files_{};
@@ -73,6 +83,7 @@ namespace fastdl
 		utils::progress_ui progress_ui_{false};
 		speed_tracker speed_{};
 		std::string current_filename_{};
+		updater::file_info current_file_{};
 
 		void handle_cancellation() const;
 		void update_progress();
