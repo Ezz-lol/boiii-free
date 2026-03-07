@@ -11,6 +11,9 @@
 #include "friends.hpp"
 #include "discord.hpp"
 
+#include "../steam/steam.hpp"
+#include "../steam/interfaces/matchmaking_servers.hpp"
+
 #include <utils/io.hpp>
 #include <utils/hook.hpp>
 #include <utils/flags.hpp>
@@ -429,6 +432,55 @@ namespace ui_scripting
 			lua["game"]["hotreloadstart"] = function(convert_function([](const std::string& path)
 			{
 				start_hot_reload(path);
+			}), game::hks::TCFUNCTION);
+
+			lua["game"]["getrawservercount"] = function(convert_function([]() -> int
+			{
+				return steam::get_raw_internet_server_count();
+			}), game::hks::TCFUNCTION);
+
+			lua["game"]["getrawserverinfo"] = function(convert_function([](const int index) -> table
+			{
+				auto t = table();
+				const auto* item = steam::get_raw_internet_server_item(index);
+				if (!item)
+				{
+					return t;
+				}
+
+				t.set("name", std::string(item->m_szServerName));
+				t.set("map", std::string(item->m_szMap));
+				t.set("desc", std::string(item->m_szGameDescription));
+				t.set("ping", item->m_nPing);
+				t.set("playerCount", item->m_nPlayers);
+				t.set("maxPlayers", item->m_nMaxPlayers);
+				t.set("botCount", item->m_nBotPlayers);
+				t.set("password", item->m_bPassword);
+				t.set("secure", item->m_bSecure);
+
+				const auto tags = std::string(item->m_szGameTags);
+				const auto get_tag = [&](const char* key) -> std::string
+				{
+					const auto* val = game::Info_ValueForKey(tags.c_str(), key);
+					return val ? val : "";
+				};
+
+				t.set("gametype", get_tag("gametype"));
+				t.set("dedicated", get_tag("dedicated") == "true");
+				t.set("ranked", get_tag("ranked") == "true");
+				t.set("hardcore", get_tag("hardcore") == "true");
+				t.set("zombies", get_tag("zombies") == "true");
+				t.set("campaign", get_tag("campaign") == "true" ? 1 : 0);
+				t.set("rounds", std::atoi(get_tag("rounds").c_str()));
+				t.set("modName", get_tag("modName"));
+
+				const auto ip = htonl(item->m_NetAdr.m_unIP);
+				const auto port = item->m_NetAdr.m_usConnectionPort;
+				t.set("connectAddr", utils::string::va("%u.%u.%u.%u:%u",
+					(ip >> 24) & 0xFF, (ip >> 16) & 0xFF, (ip >> 8) & 0xFF, ip & 0xFF, port));
+				t.set("serverIndex", index);
+
+				return t;
 			}), game::hks::TCFUNCTION);
 		}
 

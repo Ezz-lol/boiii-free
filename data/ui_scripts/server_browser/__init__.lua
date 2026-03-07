@@ -6,9 +6,229 @@ function IsServerBrowserEnabled()
 	return true
 end
 
-local skullSortedOrder = nil  
+local skullSortedOrder = nil
 local skullSortAscending = nil
 local activeServerList = nil
+
+local CUSTOM_TYPE_ALL = 100
+local CUSTOM_TYPE_CAMPAIGN = 101
+
+local currentCustomMode = nil
+local filteredServerIndices = nil
+local cachedRawCount = 0
+
+local function isCustomTab()
+	return currentCustomMode == "all" or currentCustomMode == "cp"
+end
+
+local function isValidServer(info)
+	if not info or not info.name or info.name == "" then return false end
+	if not info.gametype or info.gametype == "" then return false end
+	return true
+end
+
+local currentSortType = nil
+
+local function sortFilteredIndices(sortType)
+	if not filteredServerIndices or #filteredServerIndices == 0 then return end
+
+	local field, ascending
+	local st = Enum.SteamServerSortType
+	if sortType == st.STEAM_SERVER_SORT_TYPE_NAME_ASCENDING then
+		field, ascending = "name", true
+	elseif sortType == st.STEAM_SERVER_SORT_TYPE_NAME_DESCENDING then
+		field, ascending = "name", false
+	elseif sortType == st.STEAM_SERVER_SORT_TYPE_PING_ASCENDING then
+		field, ascending = "ping", true
+	elseif sortType == st.STEAM_SERVER_SORT_TYPE_PING_DESCENDING then
+		field, ascending = "ping", false
+	elseif sortType == st.STEAM_SERVER_SORT_TYPE_PLAYERS_ASCENDING then
+		field, ascending = "playerCount", true
+	elseif sortType == st.STEAM_SERVER_SORT_TYPE_PLAYERS_DESCENDING then
+		field, ascending = "playerCount", false
+	elseif sortType == st.STEAM_SERVER_SORT_TYPE_MAP_ASCENDING then
+		field, ascending = "map", true
+	elseif sortType == st.STEAM_SERVER_SORT_TYPE_MAP_DESCENDING then
+		field, ascending = "map", false
+	elseif sortType == st.STEAM_SERVER_SORT_TYPE_GAMETYPE_ASCENDING then
+		field, ascending = "gametype", true
+	elseif sortType == st.STEAM_SERVER_SORT_TYPE_GAMETYPE_DESCENDING then
+		field, ascending = "gametype", false
+	elseif sortType == st.STEAM_SERVER_SORT_TYPE_DEDICATED_ASCENDING then
+		field, ascending = "dedicated", true
+	elseif sortType == st.STEAM_SERVER_SORT_TYPE_DEDICATED_DESCENDING then
+		field, ascending = "dedicated", false
+	elseif sortType == st.STEAM_SERVER_SORT_TYPE_RANKED_ASCENDING then
+		field, ascending = "ranked", true
+	elseif sortType == st.STEAM_SERVER_SORT_TYPE_RANKED_DESCENDING then
+		field, ascending = "ranked", false
+	elseif sortType == st.STEAM_SERVER_SORT_TYPE_PROTECTED_ASCENDING then
+		field, ascending = "password", true
+	elseif sortType == st.STEAM_SERVER_SORT_TYPE_PROTECTED_DESCENDING then
+		field, ascending = "password", false
+	elseif sortType == st.STEAM_SERVER_SORT_TYPE_HARDCORE_ASCENDING then
+		field, ascending = "hardcore", true
+	elseif sortType == st.STEAM_SERVER_SORT_TYPE_HARDCORE_DESCENDING then
+		field, ascending = "hardcore", false
+	else
+		return
+	end
+
+	local cache = {}
+	for _, idx in ipairs(filteredServerIndices) do
+		cache[idx] = game.getrawserverinfo(idx)
+	end
+
+	table.sort(filteredServerIndices, function(a, b)
+		local infoA = cache[a]
+		local infoB = cache[b]
+		if not infoA or not infoB then return false end
+		local va = infoA[field]
+		local vb = infoB[field]
+		if va == nil then va = type(vb) == "string" and "" or 0 end
+		if vb == nil then vb = type(va) == "string" and "" or 0 end
+		if type(va) == "boolean" then va = va and 1 or 0 end
+		if type(vb) == "boolean" then vb = vb and 1 or 0 end
+		if ascending then
+			return va < vb
+		else
+			return va > vb
+		end
+	end)
+end
+
+local function rebuildCustomIndices()
+	skullSortedOrder = nil
+	skullSortAscending = nil
+
+	cachedRawCount = game.getrawservercount()
+
+	filteredServerIndices = {}
+	for i = 0, cachedRawCount - 1 do
+		local info = game.getrawserverinfo(i)
+		if isValidServer(info) then
+			if currentCustomMode == "all" then
+				table.insert(filteredServerIndices, i)
+			elseif currentCustomMode == "cp" then
+				if info.campaign and info.campaign == 1 then
+					table.insert(filteredServerIndices, i)
+				end
+			end
+		end
+	end
+
+	if currentSortType then
+		sortFilteredIndices(currentSortType)
+	end
+
+	return #filteredServerIndices
+end
+
+local originalRequestServers = Engine.SteamServerBrowser_RequestServers
+Engine.SteamServerBrowser_RequestServers = function(serverType)
+	filteredServerIndices = nil
+	skullSortedOrder = nil
+	skullSortAscending = nil
+	cachedRawCount = 0
+	currentSortType = nil
+
+	if serverType == CUSTOM_TYPE_ALL then
+		currentCustomMode = "all"
+		return originalRequestServers(Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_INTERNET)
+	elseif serverType == CUSTOM_TYPE_CAMPAIGN then
+		currentCustomMode = "cp"
+		return originalRequestServers(Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_INTERNET)
+	else
+		currentCustomMode = nil
+		return originalRequestServers(serverType)
+	end
+end
+
+local originalSort = Engine.SteamServerBrowser_Sort
+Engine.SteamServerBrowser_Sort = function(sortType)
+	originalSort(sortType)
+	if isCustomTab() and filteredServerIndices then
+		currentSortType = sortType
+		skullSortedOrder = nil
+		skullSortAscending = nil
+		sortFilteredIndices(sortType)
+		if activeServerList then
+			activeServerList:updateDataSource(false, false)
+		end
+	end
+end
+
+DataSources.ServerBrowserCategories = ListHelper_SetupDataSource("ServerBrowserCategories", function(controller)
+	local tabs = {}
+
+	table.insert(tabs, {
+		models = { tabIcon = CoD.buttonStrings.shoulderl },
+		properties = { m_mouseDisabled = true }
+	})
+
+	table.insert(tabs, {
+		models = {
+			tabName = "ALL SERVERS",
+			serverType = CUSTOM_TYPE_ALL
+		}
+	})
+
+	table.insert(tabs, {
+		models = {
+			tabName = "MENU_MULTIPLAYER_CAPS",
+			serverType = Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_INTERNET
+		}
+	})
+
+	table.insert(tabs, {
+		models = {
+			tabName = "MENU_ZOMBIES_CAPS",
+			serverType = Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_ZOMBIES
+		}
+	})
+
+	table.insert(tabs, {
+		models = {
+			tabName = "CAMPAIGN",
+			serverType = CUSTOM_TYPE_CAMPAIGN
+		}
+	})
+
+	table.insert(tabs, {
+		models = {
+			tabName = "MENU_LAN",
+			serverType = Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_LAN
+		}
+	})
+
+	table.insert(tabs, {
+		models = {
+			tabName = "MENU_RECENT_CAPS",
+			serverType = Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_HISTORY
+		}
+	})
+
+	table.insert(tabs, {
+		models = {
+			tabName = "MENU_FRIENDS_CAPS",
+			serverType = Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_FRIENDS
+		}
+	})
+
+	table.insert(tabs, {
+		models = {
+			tabName = "MENU_FAVORITES_CAPS",
+			serverType = Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_FAVORITES
+		}
+	})
+
+	table.insert(tabs, {
+		models = { tabIcon = CoD.buttonStrings.shoulderr },
+		properties = { m_mouseDisabled = true }
+	})
+
+	return tabs
+end, true)
 
 DataSources.LobbyServer = {
 	prepare = function(controller, list, filter)
@@ -17,7 +237,7 @@ DataSources.LobbyServer = {
 		list.serverBrowserRootModel = Engine.CreateModel(Engine.GetGlobalModel(), "serverBrowser")
 		local serverListCountModel = Engine.GetModel(list.serverBrowserRootModel, "serverListCount")
 		if serverListCountModel then
-			list.serverCount = Engine.GetModelValue(serverListCountModel)
+			list.serverCount = Engine.GetModelValue(serverListCountModel) or 0
 		else
 			list.serverCount = 0
 		end
@@ -30,8 +250,13 @@ DataSources.LobbyServer = {
 			list.servers[i].model = Engine.CreateModel(list.servers[i].root, "model")
 		end
 		list.updateModels = function(controller, list, offset, displayOffset)
-			local serverInfo = Engine.SteamServerBrowser_GetServerInfo(offset)
-			if serverInfo then
+			local serverInfo
+			if isCustomTab() then
+				serverInfo = game.getrawserverinfo(offset)
+			else
+				serverInfo = Engine.SteamServerBrowser_GetServerInfo(offset)
+			end
+			if serverInfo and serverInfo.name then
 				local SetModelValue = function(model, key, value)
 					local model = Engine.CreateModel(model, key)
 					if model then
@@ -41,27 +266,25 @@ DataSources.LobbyServer = {
 
 				local elementIndex = (displayOffset or offset) % list.numElementsInList + 1
 				local serverModel = list.servers[elementIndex].model
-				SetModelValue(serverModel, "serverIndex", serverInfo.serverIndex)
-				SetModelValue(serverModel, "connectAddr", serverInfo.connectAddr)
-				SetModelValue(serverModel, "ping", serverInfo.ping)
-				SetModelValue(serverModel, "modName", serverInfo.modName)
-				SetModelValue(serverModel, "mapName", serverInfo.map)
-				SetModelValue(serverModel, "desc", serverInfo.desc)
-				-- Change the client count to be the actual player count
-				local clientCount = serverInfo.playerCount - serverInfo.botCount
+				SetModelValue(serverModel, "serverIndex", serverInfo.serverIndex or offset)
+				SetModelValue(serverModel, "connectAddr", serverInfo.connectAddr or "")
+				SetModelValue(serverModel, "ping", serverInfo.ping or 0)
+				SetModelValue(serverModel, "modName", serverInfo.modName or "")
+				SetModelValue(serverModel, "mapName", serverInfo.map or "")
+				SetModelValue(serverModel, "desc", serverInfo.desc or "")
+				local clientCount = (serverInfo.playerCount or 0) - (serverInfo.botCount or 0)
 				SetModelValue(serverModel, "clientCount", clientCount)
-				SetModelValue(serverModel, "maxClients", serverInfo.maxPlayers)
-				SetModelValue(serverModel, "passwordProtected", serverInfo.password)
-				SetModelValue(serverModel, "secure", serverInfo.secure)
-				SetModelValue(serverModel, "name", serverInfo.name)
-				SetModelValue(serverModel, "gameType", serverInfo.gametype)
-				SetModelValue(serverModel, "dedicated", serverInfo.dedicated)
-				SetModelValue(serverModel, "ranked", serverInfo.ranked)
-				SetModelValue(serverModel, "hardcore", serverInfo.hardcore)
-				SetModelValue(serverModel, "zombies", serverInfo.zombies)
-				-- Add the bot count
-				SetModelValue(serverModel, "botCount", serverInfo.botCount)
-				-- Add rounds played
+				SetModelValue(serverModel, "maxClients", serverInfo.maxPlayers or 0)
+				SetModelValue(serverModel, "passwordProtected", serverInfo.password or false)
+				SetModelValue(serverModel, "secure", serverInfo.secure or false)
+				SetModelValue(serverModel, "name", serverInfo.name or "")
+				SetModelValue(serverModel, "gameType", serverInfo.gametype or "")
+				SetModelValue(serverModel, "dedicated", serverInfo.dedicated or false)
+				SetModelValue(serverModel, "ranked", serverInfo.ranked or false)
+				SetModelValue(serverModel, "hardcore", serverInfo.hardcore or false)
+				SetModelValue(serverModel, "zombies", serverInfo.zombies or false)
+				SetModelValue(serverModel, "campaign", serverInfo.campaign or 0)
+				SetModelValue(serverModel, "botCount", serverInfo.botCount or 0)
 				SetModelValue(serverModel, "rounds", serverInfo.rounds or 0)
 
 				return serverModel
@@ -73,10 +296,43 @@ DataSources.LobbyServer = {
 		if list.serverListUpdateSubscription then
 			list:removeSubscription(list.serverListUpdateSubscription)
 		end
+		local settingModel = false
 		local serverListUpdateModel = Engine.CreateModel(list.serverBrowserRootModel, "serverListCount")
 		list.serverListUpdateSubscription = list:subscribeToModel(serverListUpdateModel, function(model)
+			if settingModel then return end
+
 			skullSortedOrder = nil
 			skullSortAscending = nil
+
+			if isCustomTab() then
+				local customCount = rebuildCustomIndices()
+				list.serverCount = customCount
+				settingModel = true
+				Engine.SetModelValue(model, customCount)
+				settingModel = false
+			else
+				list.serverCount = Engine.GetModelValue(model) or 0
+			end
+
+			list:updateDataSource(false, false)
+		end, false)
+		if list.serverUpdatedCountSubscription then
+			list:removeSubscription(list.serverUpdatedCountSubscription)
+		end
+		local serverUpdatedCountModel = Engine.CreateModel(list.serverBrowserRootModel, "serverListUpdatedCount")
+		list.serverUpdatedCountSubscription = list:subscribeToModel(serverUpdatedCountModel, function(model)
+			if settingModel then return end
+			if not isCustomTab() then return end
+
+			local engineVal = Engine.GetModelValue(model) or 0
+			if engineVal <= 0 then return end
+
+			local customCount = rebuildCustomIndices()
+			list.serverCount = customCount
+			settingModel = true
+			Engine.SetModelValue(model, customCount)
+			settingModel = false
+
 			list:updateDataSource(false, false)
 		end, false)
 		if list.serverListSortTypeSubscription then
@@ -97,6 +353,9 @@ DataSources.LobbyServer = {
 		local engineOffset = displayOffset
 		if skullSortedOrder then
 			engineOffset = skullSortedOrder[index]
+			if engineOffset == nil then return nil end
+		elseif filteredServerIndices then
+			engineOffset = filteredServerIndices[index]
 			if engineOffset == nil then return nil end
 		end
 		return list.updateModels(controller, list, engineOffset, displayOffset)
@@ -466,9 +725,9 @@ CoD.ServerBrowserHeader.new = function(menu, controller)
 	if self.skull then
 		self.skull:registerEventHandler("button_action", function(element, event)
 			if skullSortAscending == nil then
-				skullSortAscending = false -- descending
+				skullSortAscending = false
 			elseif skullSortAscending == false then
-				skullSortAscending = true -- ascending
+				skullSortAscending = true
 			else
 				skullSortAscending = nil
 				skullSortedOrder = nil
@@ -481,9 +740,25 @@ CoD.ServerBrowserHeader.new = function(menu, controller)
 			local countModel = Engine.GetModel(Engine.GetGlobalModel(), "serverBrowser.serverListCount")
 			local totalCount = countModel and Engine.GetModelValue(countModel) or 0
 
+			local indicesToSort = {}
+			if filteredServerIndices then
+				for _, idx in ipairs(filteredServerIndices) do
+					table.insert(indicesToSort, idx)
+				end
+			else
+				for i = 0, totalCount - 1 do
+					table.insert(indicesToSort, i)
+				end
+			end
+
 			local entries = {}
-			for i = 0, totalCount - 1 do
-				local info = Engine.SteamServerBrowser_GetServerInfo(i)
+			for _, engineIdx in ipairs(indicesToSort) do
+				local info
+				if isCustomTab() then
+					info = game.getrawserverinfo(engineIdx)
+				else
+					info = Engine.SteamServerBrowser_GetServerInfo(engineIdx)
+				end
 				if info then
 					local sortVal
 					if info.zombies then
@@ -491,7 +766,7 @@ CoD.ServerBrowserHeader.new = function(menu, controller)
 					else
 						sortVal = info.hardcore and 1 or 0
 					end
-					table.insert(entries, {idx = i, val = sortVal})
+					table.insert(entries, {idx = engineIdx, val = sortVal})
 				end
 			end
 

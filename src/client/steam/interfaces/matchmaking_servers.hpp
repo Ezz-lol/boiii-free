@@ -85,4 +85,7 @@ namespace steam
 		virtual int ServerRules(unsigned int unIP, unsigned short usPort, void* pRequestServersResponse);
 		virtual void CancelServerQuery(int hServerQuery);
 	};
+
+	int get_raw_internet_server_count();
+	gameserveritem_t* get_raw_internet_server_item(int index);
 }

@@ -76,14 +76,15 @@ namespace steam
 			copy_safe(server.m_szServerName, info.get("hostname").data());
 
 			const auto playmode = info.get("playmode");
-			const auto mode = static_cast<game::eModes>(std::atoi(playmode.data()));
+			const auto mode = playmode.empty() ? std::optional<game::eModes>{} : static_cast<game::eModes>(std::atoi(playmode.data()));
 
 			const auto* tags = ::utils::string::va(
-				R"(\gametype\%s\dedicated\%s\ranked\false\hardcore\%s\zombies\%s\playerCount\%d\bots\%d\rounds\%d\modName\%s\)",
+				R"(\gametype\%s\dedicated\%s\ranked\false\hardcore\%s\zombies\%s\campaign\%s\playerCount\%d\bots\%d\rounds\%d\modName\%s\)",
 				info.get("gametype").data(),
 				info.get("dedicated") == "1" ? "true" : "false",
 				info.get("hc") == "1" ? "true" : "false",
-				mode == game::MODE_ZOMBIES ? "true" : "false",
+				mode.has_value() && *mode == game::MODE_ZOMBIES ? "true" : "false",
+				mode.has_value() && *mode == game::MODE_CAMPAIGN ? "true" : "false",
 				server.m_nPlayers,
 				atoi(info.get("bots").data()),
 				atoi(info.get("rounds_played").data()),
@@ -330,7 +331,7 @@ namespace steam
 					copy_safe(item.m_szGameDir, "");
 					copy_safe(item.m_szGameDescription, "Offline");
 					copy_safe(item.m_szGameTags,
-						R"(\gametype\\dedicated\false\ranked\false\hardcore\false\zombies\false\playerCount\0\bots\0\modName\)");
+						R"(\gametype\\dedicated\false\ranked\false\hardcore\false\zombies\false\campaign\false\playerCount\0\bots\0\modName\)");
 					item.m_steamID.bits = friend_infos[i].steam_id;
 
 					new_server.server_item = item;
@@ -616,5 +617,27 @@ namespace steam
 
 	void matchmaking_servers::CancelServerQuery(int hServerQuery)
 	{
+	}
+
+	int get_raw_internet_server_count()
+	{
+		return internet_servers.access<int>([](const servers& s)
+		{
+			return static_cast<int>(s.size());
+		});
+	}
+
+	gameserveritem_t* get_raw_internet_server_item(const int index)
+	{
+		thread_local gameserveritem_t item{};
+		return internet_servers.access<gameserveritem_t*>([index](const servers& s) -> gameserveritem_t*
+		{
+			if (index < 0 || static_cast<size_t>(index) >= s.size())
+			{
+				return nullptr;
+			}
+			item = s[index].server_item;
+			return &item;
+		});
 	}
 }
