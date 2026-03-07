@@ -24,6 +24,7 @@ namespace party
 	namespace
 	{
 		std::atomic_bool is_connecting_to_dedi{false};
+		std::mutex connect_host_mutex;
 		game::netadr_t connect_host{{}, {}, game::NA_BAD, {}};
 
 		std::mutex hostname_mutex;
@@ -330,7 +331,10 @@ namespace party
 					return;
 				}
 
-				connect_host = target;
+				{
+					std::lock_guard lock(connect_host_mutex);
+					connect_host = target;
+				}
 			}
 
 			profile_infos::clear_profile_infos();
@@ -355,7 +359,12 @@ namespace party
 							{
 								auto usermap_id = workshop::get_usermap_publisher_id(mapname);
 								game::Com_SessionMode_SetGameMode(game::MODE_GAME_MATCHMAKING_PLAYLIST);
-								connect_to_lobby_with_mode_internal(connect_host, mode, mapname, gametype, usermap_id, mod_id);
+							game::netadr_t host_copy{};
+							{
+								std::lock_guard lock(connect_host_mutex);
+								host_copy = connect_host;
+							}
+							connect_to_lobby_with_mode_internal(host_copy, mode, mapname, gametype, usermap_id, mod_id);
 							}, scheduler::main);
 							return;
 						}
@@ -363,7 +372,12 @@ namespace party
 				}
 			}
 
-			query_server(connect_host, handle_connect_query_response);
+			game::netadr_t host_copy{};
+			{
+				std::lock_guard lock(connect_host_mutex);
+				host_copy = connect_host;
+			}
+			query_server(host_copy, handle_connect_query_response);
 		}
 
 		void send_server_query(server_query& query)
@@ -476,12 +490,18 @@ namespace party
 
 	game::netadr_t get_connect_host()
 	{
+		std::lock_guard lock(connect_host_mutex);
 		return connect_host;
 	}
 
 	bool is_host(const game::netadr_t& addr)
 	{
-		return get_connected_server() == addr || connect_host == addr;
+		game::netadr_t host_copy{};
+		{
+			std::lock_guard lock(connect_host_mutex);
+			host_copy = connect_host;
+		}
+		return get_connected_server() == addr || host_copy == addr;
 	}
 
 	void join_session(const game::netadr_t& addr, const std::string& hostname, const uint64_t xuid,

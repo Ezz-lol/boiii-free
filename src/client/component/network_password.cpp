@@ -33,6 +33,7 @@ namespace network_password
 
 	std::string get_password_hash_string()
 	{
+		// TODO: Replace FNV1a hash with a salted challenge-response scheme.
 		if (!is_password_set())
 		{
 			return "0";

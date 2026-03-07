@@ -107,12 +107,12 @@ namespace chat
 			return "Server";
 		}
 
-		if (xuid < 19 && !game::is_server())
+		if (xuid > 0 && xuid < 19 && !game::is_server())
 		{
 			char buffer[256]{};
 			game::CL_GetClientName(0, static_cast<int>(xuid - 1), buffer, sizeof(buffer), true);
 
-			return utils::string::va("%s\n", buffer);
+			return utils::string::va("%s", buffer);
 		}
 
 		return "Unknown Soldier";

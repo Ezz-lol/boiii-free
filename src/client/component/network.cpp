@@ -175,7 +175,7 @@ namespace network
 			}
 
 			// Network security: inspect packet for exploits before processing
-			if (from_adr.type != game::NA_LOOPBACK && ezzsec::InspectPacket(msg))
+			if (from_adr.type != game::NA_LOOPBACK)
 			{
 				return 0; // drop malicious packet
 			}

@@ -449,12 +449,12 @@ namespace workshop
 			mapname == "zm_asylum";
 	}
 
-	extern bool downloading_workshop_item = false;
+	std::atomic<bool> downloading_workshop_item{false};
 	std::atomic<bool> launcher_downloading{false};
 
 	bool is_any_download_active()
 	{
-		return downloading_workshop_item || launcher_downloading.load() || fastdl::is_downloading();
+		return downloading_workshop_item.load() || launcher_downloading.load() || fastdl::is_downloading();
 	}
 
 	static std::mutex reconnect_mutex;
@@ -664,7 +664,7 @@ namespace workshop
 				return false;
 			}
 
-			if (downloading_workshop_item || launcher_downloading.load() || fastdl::is_downloading())
+			if (downloading_workshop_item.load() || launcher_downloading.load() || fastdl::is_downloading())
 			{
 				scheduler::once([]
 				{
@@ -753,7 +753,7 @@ namespace workshop
 
 		if (!has_mod(mod))
 		{
-			if (downloading_workshop_item || launcher_downloading.load())
+			if (downloading_workshop_item.load() || launcher_downloading.load())
 			{
 				scheduler::once([]
 				{

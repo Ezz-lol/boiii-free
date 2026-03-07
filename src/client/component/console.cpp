@@ -34,7 +34,10 @@ namespace console
 		utils::concurrency::container<std::function<void(const std::string& message)>> interceptor{};
 		utils::concurrency::container<std::queue<std::string>> message_queue{};
 		std::vector<std::string> dvar_name_list{};
+		std::mutex dvar_list_mutex;
 		std::atomic_bool dvar_list_loaded{false};
+		std::atomic_bool dvar_list_loading{false};
+		std::thread dvar_list_thread{};
 
 		constexpr UINT WM_APPEND_CONSOLE_TEXT = WM_APP + 0x1337;
 		constexpr size_t MAX_CONSOLE_CHARS = 1'000'000;
@@ -329,7 +332,12 @@ namespace console
 
 		void load_dvar_list()
 		{
-			std::thread([]()
+			if (dvar_list_loading.exchange(true))
+			{
+				return;
+			}
+
+			dvar_list_thread = std::thread([]()
 			{
 				try
 				{
@@ -339,30 +347,37 @@ namespace console
 						std::istringstream iss(data);
 						std::string line;
 						std::unordered_set<std::string> seen;
+						std::vector<std::string> loaded;
 						while (std::getline(iss, line))
 						{
 							while (!line.empty() && (line.back() == '\r' || line.back() == '\n'))
 								line.pop_back();
 							if (!line.empty() && seen.insert(line).second)
-								dvar_name_list.push_back(line);
+								loaded.push_back(line);
 						}
-						std::sort(dvar_name_list.begin(), dvar_name_list.end(),
+						std::sort(loaded.begin(), loaded.end(),
 						          [](const std::string& a, const std::string& b)
 						          {
 							          return _stricmp(a.c_str(), b.c_str()) < 0;
 						          });
+						{
+							std::lock_guard lock(dvar_list_mutex);
+							dvar_name_list = std::move(loaded);
+						}
 						dvar_list_loaded = true;
 					}
 				}
 				catch (...)
 				{
 				}
-			}).detach();
+
+				dvar_list_loading = false;
+			});
 		}
 
 		bool try_autocomplete_dvar(const HWND input_hwnd)
 		{
-			if (!dvar_list_loaded || dvar_name_list.empty())
+			if (!dvar_list_loaded)
 			{
 				return false;
 			}
@@ -377,8 +392,19 @@ namespace console
 				return false;
 			}
 
+			std::vector<std::string> snapshot;
+			{
+				std::lock_guard lock(dvar_list_mutex);
+				snapshot = dvar_name_list;
+			}
+
+			if (snapshot.empty())
+			{
+				return false;
+			}
+
 			std::vector<std::string*> matches;
-			for (auto& dvar : dvar_name_list)
+			for (auto& dvar : snapshot)
 			{
 				if (_strnicmp(dvar.c_str(), partial.c_str(), partial.size()) == 0)
 				{
@@ -887,6 +913,11 @@ namespace console
 		void pre_destroy() override
 		{
 			terminate_runner = true;
+
+			if (dvar_list_thread.joinable())
+			{
+				dvar_list_thread.join();
+			}
 
 			if (this->message_runner_.joinable())
 			{

@@ -27,6 +27,7 @@ namespace launcher::workshop
 {
 	std::chrono::steady_clock::time_point download_start_time;
 	double mod_size = 0.0;
+	std::atomic<bool> workshop_cancel_requested{ false };
 
 	// Convert UTF-8 std::string to a CComVariant with proper wide-string encoding
 	CComVariant utf8_variant(const std::string& utf8_str)
@@ -111,6 +112,11 @@ namespace launcher::workshop
 
 		while ( running)
 		{
+			if (!::workshop::launcher_downloading.load() || workshop_cancel_requested.load())
+			{
+				return;
+			}
+
 			std::streampos pos = file.tellg();
 
 			if (!std::getline(file, line))
@@ -173,7 +179,6 @@ namespace launcher::workshop
 
 		std::mutex workshop_download_mutex;
 		PROCESS_INFORMATION workshop_download_process{};
-		std::atomic<bool> workshop_cancel_requested{ false };
 		std::atomic<bool> workshop_paused{ false };
 
 		std::mutex workshop_browse_mutex;
@@ -1367,7 +1372,7 @@ namespace launcher::workshop
 		{
 			try
 			{
-				if (::workshop::downloading_workshop_item)
+				if (::workshop::downloading_workshop_item.load())
 				{
 					set_workshop_status("Error: An in-game download is already in progress.", 0.0,
 						"Wait for the current in-game download to finish before starting a new one from the launcher.");
@@ -2449,7 +2454,7 @@ namespace launcher::workshop
 				auto id = extract_workshop_id(params[0].get_string());
 				if (id.empty())
 					return CComVariant("Error: Invalid Workshop ID or link.");
-				if (::workshop::downloading_workshop_item)
+				if (::workshop::downloading_workshop_item.load())
 					return CComVariant("Error: An in-game download is already in progress. Wait for it to finish.");
 				if (::workshop::launcher_downloading.load())
 					return CComVariant("Error: A launcher download is already in progress.");

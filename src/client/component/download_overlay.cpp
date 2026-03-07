@@ -329,7 +329,12 @@ namespace download_overlay
 		LRESULT CALLBACK wndproc_stub(HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam)
 		{
 			if (imgui_initialized)
-				ImGui_ImplWin32_WndProcHandler(hwnd, msg, wparam, lparam);
+			{
+				if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wparam, lparam))
+				{
+					return TRUE;
+				}
+			}
 			return CallWindowProcA(original_wndproc, hwnd, msg, wparam, lparam);
 		}
 
@@ -487,7 +492,7 @@ namespace download_overlay
 		// Block the calling thread until the user responds or download is cancelled
 		while (result->load() == 0)
 		{
-			if (!workshop::downloading_workshop_item)
+			if (!workshop::downloading_workshop_item.load())
 			{
 				close_confirmation();
 				return false;
@@ -513,6 +518,9 @@ namespace download_overlay
 				if (game_hwnd && original_wndproc)
 					SetWindowLongPtrA(game_hwnd, GWLP_WNDPROC,
 						reinterpret_cast<LONG_PTR>(original_wndproc));
+
+				imgui_initialized = false;
+				present_hook.disable();
 
 				ImGui_ImplDX11_Shutdown();
 				ImGui_ImplWin32_Shutdown();

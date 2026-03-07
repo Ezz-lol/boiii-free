@@ -556,8 +556,17 @@ namespace friends
 		}
 
 		// Fallback: raw connect
-		game::Cbuf_AddText(0, utils::string::va("connect %s\n", addr_str.c_str()));
-		return true;
+		const auto fallback_addr = network::address_from_string(addr_str);
+		if (fallback_addr.type != game::NA_BAD)
+		{
+			const auto sanitized = utils::string::va("%i.%i.%i.%i:%hu",
+				fallback_addr.ipv4.a, fallback_addr.ipv4.b, fallback_addr.ipv4.c, fallback_addr.ipv4.d,
+				fallback_addr.port);
+			game::Cbuf_AddText(0, utils::string::va("connect %s\n", sanitized));
+			return true;
+		}
+
+		return false;
 	}
 
 	struct component final : client_component
@@ -640,7 +649,14 @@ namespace friends
 					}
 				}
 
-				game::Cbuf_AddText(0, utils::string::va("connect %s\n", invite_data.c_str()));
+			const auto fallback_addr = network::address_from_string(invite_data);
+			if (fallback_addr.type != game::NA_BAD)
+			{
+				const auto sanitized = utils::string::va("%i.%i.%i.%i:%hu",
+					fallback_addr.ipv4.a, fallback_addr.ipv4.b, fallback_addr.ipv4.c, fallback_addr.ipv4.d,
+					fallback_addr.port);
+				game::Cbuf_AddText(0, utils::string::va("connect %s\n", sanitized));
+			}
 			}, scheduler::main, 1000ms);
 
 			// Publish our rich presence so friends can see us and join

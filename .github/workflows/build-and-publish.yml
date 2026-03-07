@@ -143,10 +143,11 @@ jobs:
       - name: Upload to R2
         run: |
           # Upload the folder contents (boiii.exe and data/)
-          rclone copy upload/${{ env.R2_FOLDER }}/ r2:${{ env.R2_BUCKET }}/${{ env.R2_FOLDER }}/ --progress
+          # Force application/octet-stream on all files so Cloudflare never injects into HTML responses (they're ignoring my security rules :c)
+          rclone copy upload/${{ env.R2_FOLDER }}/ r2:${{ env.R2_BUCKET }}/${{ env.R2_FOLDER }}/ --progress --header-upload "Content-Type: application/octet-stream"
 
           # Upload the manifest JSON to root
-          rclone copy upload/${{ env.MANIFEST_FILE }} r2:${{ env.R2_BUCKET }}/ --progress
+          rclone copy upload/${{ env.MANIFEST_FILE }} r2:${{ env.R2_BUCKET }}/ --progress --header-upload "Content-Type: application/octet-stream"
 
       - name: Verify upload
         run: |
