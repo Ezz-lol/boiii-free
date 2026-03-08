@@ -39,6 +39,7 @@ namespace steam
 		std::atomic<matchmaking_server_list_response*> favorites_response{};
 		std::atomic<matchmaking_server_list_response*> history_response{};
 		std::atomic<matchmaking_server_list_response*> friends_response{};
+		std::atomic<bool> internet_refreshing{false};
 
 		template <typename T>
 		void copy_safe(T& dest, const char* in)
@@ -125,7 +126,6 @@ namespace steam
 				srv.handled = true;
 				srv.server_item = create_server_item(host, info, ping, success);
 
-
 				for (const auto& entry : srvs)
 				{
 					if (!entry.handled)
@@ -154,6 +154,10 @@ namespace steam
 
 			if (all_handled)
 			{
+				if (request == internet_request)
+				{
+					internet_refreshing = false;
+				}
 				res->RefreshComplete(request, eServerResponded);
 			}
 		}
@@ -197,23 +201,27 @@ namespace steam
 	                                                     matchmaking_server_list_response* pRequestServersResponse)
 	{
 		internet_response = pRequestServersResponse;
+		internet_refreshing = true;
 
 		server_list::request_servers([](const bool success, const std::unordered_set<game::netadr_t>& s)
 		{
 			const auto res = internet_response.load();
 			if (!res)
 			{
+				internet_refreshing = false;
 				return;
 			}
 
 			if (!success)
 			{
+				internet_refreshing = false;
 				res->RefreshComplete(internet_request, eServerFailedToRespond);
 				return;
 			}
 
 			if (s.empty())
 			{
+				internet_refreshing = false;
 				res->RefreshComplete(internet_request, eNoServersListedOnMasterServer);
 				return;
 			}
@@ -617,6 +625,11 @@ namespace steam
 
 	void matchmaking_servers::CancelServerQuery(int hServerQuery)
 	{
+	}
+
+	bool is_server_list_refreshing()
+	{
+		return internet_refreshing;
 	}
 
 	int get_raw_internet_server_count()

@@ -6,6 +6,10 @@ function IsServerBrowserEnabled()
 	return true
 end
 
+function IsSteamServerBrowserUpdating()
+	return game.isserverlistrefreshing()
+end
+
 local skullSortedOrder = nil
 local skullSortAscending = nil
 local activeServerList = nil
@@ -15,7 +19,9 @@ local CUSTOM_TYPE_CAMPAIGN = 101
 
 local currentCustomMode = nil
 local filteredServerIndices = nil
-local cachedRawCount = 0
+
+local addressToRawIndex = {}
+local isRebuildingCustom = false
 
 local function isCustomTab()
 	return currentCustomMode == "all" or currentCustomMode == "cp"
@@ -97,15 +103,26 @@ local function sortFilteredIndices(sortType)
 	end)
 end
 
-local function rebuildCustomIndices()
-	skullSortedOrder = nil
-	skullSortAscending = nil
-
-	cachedRawCount = game.getrawservercount()
-
-	filteredServerIndices = {}
-	for i = 0, cachedRawCount - 1 do
+local function rebuildAddressMap()
+	addressToRawIndex = {}
+	local rawCount = game.getrawservercount()
+	for i = 0, rawCount - 1 do
 		local info = game.getrawserverinfo(i)
+		if info and info.connectAddr and info.connectAddr ~= "" then
+			addressToRawIndex[info.connectAddr] = i
+		end
+	end
+end
+
+local function rebuildFilteredIndices()
+	local rawCount = game.getrawservercount()
+	filteredServerIndices = {}
+	addressToRawIndex = {}
+	for i = 0, rawCount - 1 do
+		local info = game.getrawserverinfo(i)
+		if info and info.connectAddr and info.connectAddr ~= "" then
+			addressToRawIndex[info.connectAddr] = i
+		end
 		if isValidServer(info) then
 			if currentCustomMode == "all" then
 				table.insert(filteredServerIndices, i)
@@ -129,7 +146,6 @@ Engine.SteamServerBrowser_RequestServers = function(serverType)
 	filteredServerIndices = nil
 	skullSortedOrder = nil
 	skullSortAscending = nil
-	cachedRawCount = 0
 	currentSortType = nil
 
 	if serverType == CUSTOM_TYPE_ALL then
@@ -255,6 +271,15 @@ DataSources.LobbyServer = {
 				serverInfo = game.getrawserverinfo(offset)
 			else
 				serverInfo = Engine.SteamServerBrowser_GetServerInfo(offset)
+				if serverInfo and (not serverInfo.modName or serverInfo.modName == "") then
+					local addr = serverInfo.connectAddr
+					if addr and addressToRawIndex[addr] then
+						local rawInfo = game.getrawserverinfo(addressToRawIndex[addr])
+						if rawInfo and rawInfo.modName and rawInfo.modName ~= "" then
+							serverInfo.modName = rawInfo.modName
+						end
+					end
+				end
 			end
 			if serverInfo and serverInfo.name then
 				local SetModelValue = function(model, key, value)
@@ -296,44 +321,35 @@ DataSources.LobbyServer = {
 		if list.serverListUpdateSubscription then
 			list:removeSubscription(list.serverListUpdateSubscription)
 		end
-		local settingModel = false
 		local serverListUpdateModel = Engine.CreateModel(list.serverBrowserRootModel, "serverListCount")
 		list.serverListUpdateSubscription = list:subscribeToModel(serverListUpdateModel, function(model)
-			if settingModel then return end
-
 			skullSortedOrder = nil
 			skullSortAscending = nil
 
 			if isCustomTab() then
-				local customCount = rebuildCustomIndices()
+				if isRebuildingCustom then return end
+				isRebuildingCustom = true
+				local customCount = rebuildFilteredIndices()
 				list.serverCount = customCount
-				settingModel = true
 				Engine.SetModelValue(model, customCount)
-				settingModel = false
+				local updatedModel = Engine.GetModel(list.serverBrowserRootModel, "serverListUpdatedCount")
+				if updatedModel then Engine.SetModelValue(updatedModel, customCount) end
+				list:updateDataSource(false, false)
+				isRebuildingCustom = false
 			else
+				rebuildAddressMap()
 				list.serverCount = Engine.GetModelValue(model) or 0
+				list:updateDataSource(false, false)
 			end
-
-			list:updateDataSource(false, false)
 		end, false)
 		if list.serverUpdatedCountSubscription then
 			list:removeSubscription(list.serverUpdatedCountSubscription)
 		end
 		local serverUpdatedCountModel = Engine.CreateModel(list.serverBrowserRootModel, "serverListUpdatedCount")
 		list.serverUpdatedCountSubscription = list:subscribeToModel(serverUpdatedCountModel, function(model)
-			if settingModel then return end
 			if not isCustomTab() then return end
-
-			local engineVal = Engine.GetModelValue(model) or 0
-			if engineVal <= 0 then return end
-
-			local customCount = rebuildCustomIndices()
-			list.serverCount = customCount
-			settingModel = true
-			Engine.SetModelValue(model, customCount)
-			settingModel = false
-
-			list:updateDataSource(false, false)
+			if isRebuildingCustom then return end
+			Engine.SetModelValue(model, list.serverCount)
 		end, false)
 		if list.serverListSortTypeSubscription then
 			list:removeSubscription(list.serverListSortTypeSubscription)
@@ -344,6 +360,7 @@ DataSources.LobbyServer = {
 			skullSortAscending = nil
 			list:updateDataSource(false, false)
 		end, false)
+
 	end,
 	getCount = function(list)
 		return list.serverCount
@@ -361,10 +378,20 @@ DataSources.LobbyServer = {
 		return list.updateModels(controller, list, engineOffset, displayOffset)
 	end,
 	cleanup = function(list)
-		if list.serverBrowserRootModel then
-			Engine.UnsubscribeAndFreeModel(list.serverBrowserRootModel)
-			list.serverBrowserRootModel = nil
+		activeServerList = nil
+		if list.serverListUpdateSubscription then
+			list:removeSubscription(list.serverListUpdateSubscription)
+			list.serverListUpdateSubscription = nil
 		end
+		if list.serverUpdatedCountSubscription then
+			list:removeSubscription(list.serverUpdatedCountSubscription)
+			list.serverUpdatedCountSubscription = nil
+		end
+		if list.serverListSortTypeSubscription then
+			list:removeSubscription(list.serverListSortTypeSubscription)
+			list.serverListSortTypeSubscription = nil
+		end
+		list.serverBrowserRootModel = nil
 	end
 }
 
@@ -788,4 +815,18 @@ CoD.ServerBrowserHeader.new = function(menu, controller)
 	end
 
 	return self
+end
+
+Engine.SteamServerBrowser_RequestPlayersInfo = function(serverIndex)
+end
+
+local originalCreateLobbyBrowser = LUI.createMenu.LobbyServerBrowserOnline
+if originalCreateLobbyBrowser then
+	LUI.createMenu.LobbyServerBrowserOnline = function(...)
+		local self = originalCreateLobbyBrowser(...)
+		if self and self.Tabs and self.Tabs.Tabs and self.Tabs.Tabs.grid then
+			self.Tabs.Tabs.grid:setHorizontalCount(10)
+		end
+		return self
+	end
 end

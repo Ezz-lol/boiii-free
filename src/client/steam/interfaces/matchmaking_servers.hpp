@@ -88,4 +88,5 @@ namespace steam
 
 	int get_raw_internet_server_count();
 	gameserveritem_t* get_raw_internet_server_item(int index);
+	bool is_server_list_refreshing();
 }

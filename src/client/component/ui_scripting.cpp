@@ -10,9 +10,11 @@
 #include "scheduler.hpp"
 #include "friends.hpp"
 #include "discord.hpp"
+#include "network.hpp"
 
 #include "../steam/steam.hpp"
 #include "../steam/interfaces/matchmaking_servers.hpp"
+#include "getinfo.hpp"
 
 #include <utils/io.hpp>
 #include <utils/hook.hpp>
@@ -41,8 +43,6 @@ namespace ui_scripting
 
 		bool unsafe_function_called_message_shown = false;
 		bool unsafe_lua_approved_for_session = false;
-
-		void show_unsafe_lua_dialog();
 
 		using lua_function_t = int(*)(game::hks::lua_State*);
 		std::unordered_map<size_t, utils::hook::detour> unsafe_function_detours;
@@ -394,28 +394,18 @@ namespace ui_scripting
 				return friends::connect_to_friend(id);
 			}), game::hks::TCFUNCTION);
 
-		// HTTP functions
-		lua["game"]["httpget"] = function(convert_function([](const std::string& url) -> std::string
-		{
-			if (!unsafe_lua_approved_for_session)
+			// HTTP functions
+			lua["game"]["httpget"] = function(convert_function([](const std::string& url) -> std::string
 			{
-				show_unsafe_lua_dialog();
-				return "";
-			}
-			const auto result = utils::http::get_data(url);
-			return result.value_or("");
-		}), game::hks::TCFUNCTION);
+				const auto result = utils::http::get_data(url);
+				return result.value_or("");
+			}), game::hks::TCFUNCTION);
 
-		lua["game"]["httppost"] = function(convert_function([](const std::string& url, const std::string& body) -> std::string
-		{
-			if (!unsafe_lua_approved_for_session)
+			lua["game"]["httppost"] = function(convert_function([](const std::string& url, const std::string& body) -> std::string
 			{
-				show_unsafe_lua_dialog();
-				return "";
-			}
-			const auto result = utils::http::post_data(url, body);
-			return result.value_or("");
-		}), game::hks::TCFUNCTION);
+				const auto result = utils::http::post_data(url, body);
+				return result.value_or("");
+			}), game::hks::TCFUNCTION);
 
 			lua["game"]["setDiscordPlayerScore"] = function(convert_function([](int score)
 			{
@@ -449,6 +439,11 @@ namespace ui_scripting
 			lua["game"]["getrawservercount"] = function(convert_function([]() -> int
 			{
 				return steam::get_raw_internet_server_count();
+			}), game::hks::TCFUNCTION);
+
+			lua["game"]["isserverlistrefreshing"] = function(convert_function([]() -> bool
+			{
+				return steam::is_server_list_refreshing();
 			}), game::hks::TCFUNCTION);
 
 			lua["game"]["getrawserverinfo"] = function(convert_function([](const int index) -> table
@@ -562,7 +557,7 @@ namespace ui_scripting
 			setup_lua_globals();
 		}
 
-		std::atomic_bool doneFirstSnapshot{false};
+		bool doneFirstSnapshot = false;
 
 		void ui_cod_init_stub(const bool frontend)
 		{
@@ -573,7 +568,7 @@ namespace ui_scripting
 				// Fetch the names of the local files so file overrides are already handled
 				globals = {};
 				const utils::nt::library host{};
-			doneFirstSnapshot = false;
+				doneFirstSnapshot = false;
 
 				load_local_script_files((game::get_appdata_path() / "data/ui_scripts/").string());
 				load_local_script_files((host.get_folder() / "boiii/ui_scripts/").string());
@@ -621,7 +616,7 @@ namespace ui_scripting
 		{
 			cl_first_snapshot_hook.invoke(a1);
 
-			if (game::Com_IsRunningUILevel() || doneFirstSnapshot.load())
+			if (game::Com_IsRunningUILevel() || doneFirstSnapshot)
 			{
 				return;
 			}
