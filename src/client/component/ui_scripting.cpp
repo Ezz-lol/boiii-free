@@ -397,12 +397,22 @@ namespace ui_scripting
 			// HTTP functions
 			lua["game"]["httpget"] = function(convert_function([](const std::string& url) -> std::string
 			{
+				if (!unsafe_lua_approved_for_session)
+				{
+					show_unsafe_lua_dialog();
+					return "";
+				}
 				const auto result = utils::http::get_data(url);
 				return result.value_or("");
 			}), game::hks::TCFUNCTION);
 
 			lua["game"]["httppost"] = function(convert_function([](const std::string& url, const std::string& body) -> std::string
 			{
+				if (!unsafe_lua_approved_for_session)
+				{
+					show_unsafe_lua_dialog();
+					return "";
+				}
 				const auto result = utils::http::post_data(url, body);
 				return result.value_or("");
 			}), game::hks::TCFUNCTION);
@@ -557,7 +567,7 @@ namespace ui_scripting
 			setup_lua_globals();
 		}
 
-		bool doneFirstSnapshot = false;
+		std::atomic_bool doneFirstSnapshot{false};
 
 		void ui_cod_init_stub(const bool frontend)
 		{
@@ -568,7 +578,7 @@ namespace ui_scripting
 				// Fetch the names of the local files so file overrides are already handled
 				globals = {};
 				const utils::nt::library host{};
-				doneFirstSnapshot = false;
+				doneFirstSnapshot.store(false);
 
 				load_local_script_files((game::get_appdata_path() / "data/ui_scripts/").string());
 				load_local_script_files((host.get_folder() / "boiii/ui_scripts/").string());
@@ -616,11 +626,11 @@ namespace ui_scripting
 		{
 			cl_first_snapshot_hook.invoke(a1);
 
-			if (game::Com_IsRunningUILevel() || doneFirstSnapshot)
+			if (game::Com_IsRunningUILevel() || doneFirstSnapshot.load())
 			{
 				return;
 			}
-			doneFirstSnapshot = true;
+			doneFirstSnapshot.store(true);
 			hot_reload_in_game = true;
 			try_start();
 
