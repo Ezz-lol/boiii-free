@@ -1,17 +1,30 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
+#include "game/utils.hpp"
 
 #include "game/ui_scripting/execution.hpp"
 
 #include "command.hpp"
 #include "ui_scripting.hpp"
 #include "scheduler.hpp"
+#include "friends.hpp"
+#include "discord.hpp"
+#include "network.hpp"
+
+#include "../steam/steam.hpp"
+#include "../steam/interfaces/matchmaking_servers.hpp"
+#include "getinfo.hpp"
 
 #include <utils/io.hpp>
 #include <utils/hook.hpp>
 #include <utils/flags.hpp>
+#include <utils/string.hpp>
 #include <utils/finally.hpp>
+#include <utils/http.hpp>
+
+#include <filesystem>
+#include <unordered_map>
 
 namespace ui_scripting
 {
@@ -45,6 +58,161 @@ namespace ui_scripting
 		};
 
 		globals_t globals;
+
+		// Hot reload state
+		std::string hot_reload_path;
+		std::map<std::string, std::filesystem::file_time_type> hot_reload_files;
+		bool hot_reload_running = false;
+		bool hot_reload_in_game = false;
+
+		bool execute_raw_lua(const std::string& code, const char* chunk_name = "hot_reload")
+		{
+			const auto state = *game::hks::lua_state;
+			if (!state) return false;
+
+			game::hks::HksCompilerSettings compiler_settings{};
+			const auto result = game::hks::hksi_hksL_loadbuffer(
+				state, &compiler_settings, code.data(),
+				static_cast<unsigned __int64>(code.size()), chunk_name);
+
+			if (result != 0)
+			{
+				game::Com_Printf(0, 0, "^1Hot Reload: Failed to compile Lua chunk '%s'\n", chunk_name);
+				return false;
+			}
+
+			game::hks::vm_call_internal(state, 0, 0, nullptr);
+			return true;
+		}
+
+		void fire_debug_reload(const char* root_name)
+		{
+			const auto mapname = game::get_dvar_string("mapname");
+			const auto code = utils::string::va(
+				"pcall(function() LUI.roots.%s:processEvent({ name = 'debug_reload', mapname = '%s' }) end)",
+				root_name, mapname.c_str());
+			execute_raw_lua(code, "DebugReload");
+		}
+
+		int hot_reload_check_files()
+		{
+			if (hot_reload_path.empty()) return 0;
+
+			std::vector<std::filesystem::directory_entry> changed;
+
+			try
+			{
+				for (const auto& entry : std::filesystem::recursive_directory_iterator(hot_reload_path))
+				{
+					if (!entry.is_regular_file()) continue;
+					if (entry.path().extension() != ".lua") continue;
+
+					const auto path_str = entry.path().string();
+					const auto mod_time = entry.last_write_time();
+
+					auto it = hot_reload_files.find(path_str);
+					if (it == hot_reload_files.end())
+					{
+						hot_reload_files[path_str] = mod_time;
+						changed.push_back(entry);
+					}
+					else if (it->second < mod_time)
+					{
+						it->second = mod_time;
+						changed.push_back(entry);
+					}
+				}
+			}
+			catch (const std::exception& ex)
+			{
+				game::Com_Printf(0, 0, "^1Hot Reload: Error scanning: %s\n", ex.what());
+				return 0;
+			}
+
+			if (changed.empty()) return 0;
+
+			game::Com_Printf(0, 0, "^2Hot Reload: Found %d file(s) to reload\n", static_cast<int>(changed.size()));
+
+			for (const auto& entry : changed)
+			{
+				const auto path_str = entry.path().string();
+				std::string data;
+				if (!utils::io::read_file(path_str, &data)) continue;
+
+				// Use relative path as chunk name
+				auto chunk = path_str;
+				if (chunk.starts_with(hot_reload_path))
+				{
+					chunk = chunk.substr(hot_reload_path.size());
+				}
+
+				if (execute_raw_lua(data, chunk.c_str()))
+				{
+					game::Com_Printf(0, 0, "^2Hot Reload: Reloaded %s\n", chunk.c_str());
+				}
+				else
+				{
+					game::Com_Printf(0, 0, "^1Hot Reload: Error reloading %s\n", chunk.c_str());
+				}
+			}
+
+			// Fire debug_reload events to refresh UI
+			fire_debug_reload("UIRootFull");
+			if (hot_reload_in_game)
+			{
+				fire_debug_reload("UIRoot0");
+				fire_debug_reload("UIRoot1");
+			}
+
+			return 1;
+		}
+
+		void start_hot_reload(const std::string& path)
+		{
+			hot_reload_path = path;
+			hot_reload_files.clear();
+			hot_reload_running = true;
+
+			// Initial scan to populate timestamps
+			hot_reload_check_files();
+
+			// Install a Lua timer that calls back into C++ every second
+			const std::string lua_code =
+				"pcall(function() "
+				"local UIRootFull = LUI.roots.UIRootFull; "
+				"if UIRootFull.HotReloadTimer then UIRootFull:removeElement(UIRootFull.HotReloadTimer) end; "
+				"UIRootFull.HotReloadTimer = LUI.UITimer.newElementTimer(1000, false, function() "
+				"game.hotreloadcheck(); "
+				"end); "
+				"UIRootFull:addElement(UIRootFull.HotReloadTimer); "
+				"end)";
+
+			execute_raw_lua(lua_code, "HotReloadTimer");
+			game::Com_Printf(0, 0, "^2Hot Reload: Watching '%s'\n", path.c_str());
+		}
+
+		void stop_hot_reload()
+		{
+			if (!hot_reload_running)
+			{
+				game::Com_Printf(0, 0, "^3Hot Reload: Not currently watching.\n");
+				return;
+			}
+
+			hot_reload_running = false;
+			hot_reload_files.clear();
+			hot_reload_path.clear();
+
+			// Remove the Lua timer
+			const std::string lua_code =
+				"pcall(function() "
+				"local UIRootFull = LUI.roots.UIRootFull; "
+				"if UIRootFull.HotReloadTimer then UIRootFull:removeElement(UIRootFull.HotReloadTimer); UIRootFull.HotReloadTimer = nil end; "
+				"end)";
+			execute_raw_lua(lua_code, "HotReloadTimerStop");
+
+			game::Com_Printf(0, 0, "^2Hot Reload: Stopped watching.\n");
+		}
 
 		bool is_loaded_script(const std::string& name)
 		{
@@ -182,6 +350,156 @@ namespace ui_scripting
 		{
 			const auto lua = get_globals();
 			lua["game"] = table();
+
+			lua["game"]["getfriendcount"] = function(convert_function([]() -> int
+			{
+				return friends::get_friend_count();
+			}), game::hks::TCFUNCTION);
+
+			lua["game"]["getfriend"] = function(convert_function([](int index) -> table
+			{
+				auto f = friends::get_friend_by_index(index);
+				auto t = table();
+				t.set("steam_id", utils::string::va("%llu", f.steam_id));
+				t.set("name", std::string(f.name));
+				t.set("status", static_cast<int>(f.state));
+				t.set("server", std::string(f.server_address));
+				return t;
+			}), game::hks::TCFUNCTION);
+
+			lua["game"]["addfriend"] = function(convert_function([](const std::string& steam_id_str, const std::string& name)
+			{
+				uint64_t steam_id = 0;
+				try { steam_id = std::stoull(steam_id_str); } catch (...) { return; }
+				friends::add_friend(steam_id, name);
+			}), game::hks::TCFUNCTION);
+
+			lua["game"]["removefriend"] = function(convert_function([](const std::string& steam_id_str)
+			{
+				uint64_t steam_id = 0;
+				try { steam_id = std::stoull(steam_id_str); } catch (...) { return; }
+				friends::remove_friend(steam_id);
+			}), game::hks::TCFUNCTION);
+
+			lua["game"]["invitefriend"] = function(convert_function([](const std::string& id_str) -> bool
+			{
+				uint64_t id = 0;
+				try { id = std::stoull(id_str); } catch (...) { return false; }
+				return friends::invite_to_game(id);
+			}), game::hks::TCFUNCTION);
+
+			lua["game"]["connecttofriend"] = function(convert_function([](const std::string& id_str) -> bool
+			{
+				uint64_t id = 0;
+				try { id = std::stoull(id_str); } catch (...) { return false; }
+				return friends::connect_to_friend(id);
+			}), game::hks::TCFUNCTION);
+
+			// HTTP functions
+			lua["game"]["httpget"] = function(convert_function([](const std::string& url) -> std::string
+			{
+				if (!unsafe_lua_approved_for_session)
+				{
+					show_unsafe_lua_dialog();
+					return "";
+				}
+				const auto result = utils::http::get_data(url);
+				return result.value_or("");
+			}), game::hks::TCFUNCTION);
+
+			lua["game"]["httppost"] = function(convert_function([](const std::string& url, const std::string& body) -> std::string
+			{
+				if (!unsafe_lua_approved_for_session)
+				{
+					show_unsafe_lua_dialog();
+					return "";
+				}
+				const auto result = utils::http::post_data(url, body);
+				return result.value_or("");
+			}), game::hks::TCFUNCTION);
+
+			lua["game"]["setDiscordPlayerScore"] = function(convert_function([](int score)
+			{
+				discord::set_player_score(score);
+			}), game::hks::TCFUNCTION);
+
+			lua["game"]["setDiscordEnemyScore"] = function(convert_function([](int score)
+			{
+				discord::set_enemy_score(score);
+			}), game::hks::TCFUNCTION);
+
+			lua["game"]["setDiscordRoundsPlayed"] = function(convert_function([](int round)
+			{
+				discord::set_rounds_played(round);
+			}), game::hks::TCFUNCTION);
+
+			// Hot reload functions (callable from Lua timers)
+			lua["game"]["hotreloadcheck"] = function(convert_function([]()
+			{
+				if (hot_reload_running)
+				{
+					hot_reload_check_files();
+				}
+			}), game::hks::TCFUNCTION);
+
+			lua["game"]["hotreloadstart"] = function(convert_function([](const std::string& path)
+			{
+				start_hot_reload(path);
+			}), game::hks::TCFUNCTION);
+
+			lua["game"]["getrawservercount"] = function(convert_function([]() -> int
+			{
+				return steam::get_raw_internet_server_count();
+			}), game::hks::TCFUNCTION);
+
+			lua["game"]["isserverlistrefreshing"] = function(convert_function([]() -> bool
+			{
+				return steam::is_server_list_refreshing();
+			}), game::hks::TCFUNCTION);
+
+			lua["game"]["getrawserverinfo"] = function(convert_function([](const int index) -> table
+			{
+				auto t = table();
+				const auto* item = steam::get_raw_internet_server_item(index);
+				if (!item)
+				{
+					return t;
+				}
+
+				t.set("name", std::string(item->m_szServerName));
+				t.set("map", std::string(item->m_szMap));
+				t.set("desc", std::string(item->m_szGameDescription));
+				t.set("ping", item->m_nPing);
+				t.set("playerCount", item->m_nPlayers);
+				t.set("maxPlayers", item->m_nMaxPlayers);
+				t.set("botCount", item->m_nBotPlayers);
+				t.set("password", item->m_bPassword);
+				t.set("secure", item->m_bSecure);
+
+				const auto tags = std::string(item->m_szGameTags);
+				const auto get_tag = [&](const char* key) -> std::string
+				{
+					const auto* val = game::Info_ValueForKey(tags.c_str(), key);
+					return val ? val : "";
+				};
+
+				t.set("gametype", get_tag("gametype"));
+				t.set("dedicated", get_tag("dedicated") == "true");
+				t.set("ranked", get_tag("ranked") == "true");
+				t.set("hardcore", get_tag("hardcore") == "true");
+				t.set("zombies", get_tag("zombies") == "true");
+				t.set("campaign", get_tag("campaign") == "true" ? 1 : 0);
+				t.set("rounds", std::atoi(get_tag("rounds").c_str()));
+				t.set("modName", get_tag("modName"));
+
+				const auto ip = htonl(item->m_NetAdr.m_unIP);
+				const auto port = item->m_NetAdr.m_usConnectionPort;
+				t.set("connectAddr", utils::string::va("%u.%u.%u.%u:%u",
+					(ip >> 24) & 0xFF, (ip >> 16) & 0xFF, (ip >> 8) & 0xFF, ip & 0xFF, port));
+				t.set("serverIndex", index);
+
+				return t;
+			}), game::hks::TCFUNCTION);
 		}
 
 		void enable_globals()
@@ -215,7 +533,9 @@ namespace ui_scripting
 			lua["luiglobals"] = lua;
 
 			// Expose IsBOIII for mod compatibility - both as a value and function
-			lua["Engine"]["IsBOIII"] = false;
+			lua["Engine"]["IsBOIII"] = true;
+			lua["Engine"]["IsEZZBOIII"] = true;
+
 			//lua["IsBOIII"] = function([]() { return false; });
 		}
 
@@ -248,7 +568,7 @@ namespace ui_scripting
 			setup_lua_globals();
 		}
 
-		bool doneFirstSnapshot = false;
+		std::atomic_bool doneFirstSnapshot{false};
 
 		void ui_cod_init_stub(const bool frontend)
 		{
@@ -259,7 +579,7 @@ namespace ui_scripting
 				// Fetch the names of the local files so file overrides are already handled
 				globals = {};
 				const utils::nt::library host{};
-				doneFirstSnapshot = false;
+				doneFirstSnapshot.store(false);
 
 				load_local_script_files((game::get_appdata_path() / "data/ui_scripts/").string());
 				load_local_script_files((host.get_folder() / "boiii/ui_scripts/").string());
@@ -274,22 +594,61 @@ namespace ui_scripting
 			try_start();
 		}
 
+		void inject_discord_score_subscriptions()
+		{
+			const std::string lua_code =
+				"LUI.roots.UIRoot0:subscribeToGlobalModel(0, 'GameScore', 'playerScore', function(model) "
+				"local score = Engine.GetModelValue(model); "
+				"if score and not Engine.IsVisibilityBitSet( 0, Enum.UIVisibilityBit.BIT_IN_KILLCAM ) then "
+				"game.setDiscordPlayerScore(score); "
+				"end; "
+				"end); "
+				"LUI.roots.UIRoot0:subscribeToGlobalModel(0, 'GameScore', 'enemyScore', function(model) "
+				"local score = Engine.GetModelValue(model); "
+				"if score and not Engine.IsVisibilityBitSet( 0, Enum.UIVisibilityBit.BIT_IN_KILLCAM ) then "
+				"game.setDiscordEnemyScore(score); "
+				"end; "
+				"end); "
+				"LUI.roots.UIRoot0:subscribeToGlobalModel(0, 'GameScore', 'roundsPlayed', function(model) "
+				"local roundsPlayed = Engine.GetModelValue(model); "
+				"if roundsPlayed then "
+				"game.setDiscordRoundsPlayed(roundsPlayed - 1); "
+				"end; "
+				"end); ";
+
+			const auto state = *game::hks::lua_state;
+			if (state && load_buffer("discord_score_hooks", lua_code) == 0)
+			{
+				game::hks::vm_call_internal(state, 0, 0, nullptr);
+			}
+		}
+
 		void cl_first_snapshot_stub(int a1)
 		{
 			cl_first_snapshot_hook.invoke(a1);
 
-			if (game::Com_IsRunningUILevel() || doneFirstSnapshot)
+			if (game::Com_IsRunningUILevel() || doneFirstSnapshot.load())
 			{
 				return;
 			}
-			doneFirstSnapshot = true;
+			doneFirstSnapshot.store(true);
+			hot_reload_in_game = true;
 			try_start();
+
+			try
+			{
+				inject_discord_score_subscriptions();
+			}
+			catch (...)
+			{
+			}
 		}
 
 		void ui_shutdown_stub()
 		{
 			converted_functions.clear();
 			globals = {};
+			hot_reload_in_game = false;
 			unsafe_function_called_message_shown = false;
 			unsafe_lua_approved_for_session = false;
 			return ui_shutdown_hook.invoke<void>();
@@ -583,6 +942,105 @@ namespace ui_scripting
 					// TODO: Find a way to do a full shutdown & restart like in frontend, that opens up the loading screen that can't be easily closed
 					game::CG_LUIHUDRestart(0);
 				}
+			});
+
+			command::add("lua_hotreload", [](const command::params& params)
+			{
+				std::string dir;
+				if (params.size() >= 2)
+				{
+					dir = params.get(1);
+				}
+				else
+				{
+					dir = (game::get_appdata_path() / "data" / "ui_scripts").string();
+				}
+
+				scheduler::once([dir]
+				{
+					start_hot_reload(dir);
+				}, scheduler::pipeline::renderer);
+			});
+
+			command::add("lua_hotreload_stop", [](const command::params&)
+			{
+				scheduler::once([]
+				{
+					stop_hot_reload();
+				}, scheduler::pipeline::renderer);
+			});
+
+			command::add("lua_reload", [](const command::params& params)
+			{
+				std::string dir;
+				if (params.size() >= 2)
+				{
+					dir = params.get(1);
+				}
+				else
+				{
+					dir = (game::get_appdata_path() / "data" / "ui_scripts").string();
+				}
+
+				scheduler::once([dir]
+				{
+					try
+					{
+						int count = 0;
+						for (const auto& entry : std::filesystem::recursive_directory_iterator(dir))
+						{
+							if (!entry.is_regular_file()) continue;
+							if (entry.path().extension() != ".lua") continue;
+
+							std::string data;
+							if (utils::io::read_file(entry.path().string(), &data))
+							{
+								auto chunk = entry.path().string();
+								if (chunk.starts_with(dir)) chunk = chunk.substr(dir.size());
+								execute_raw_lua(data, chunk.c_str());
+								count++;
+							}
+						}
+
+						game::Com_Printf(0, 0, "^2Lua Reload: Reloaded %d file(s)\n", count);
+
+						fire_debug_reload("UIRootFull");
+						if (hot_reload_in_game)
+						{
+							fire_debug_reload("UIRoot0");
+							fire_debug_reload("UIRoot1");
+						}
+					}
+					catch (const std::exception& ex)
+					{
+						game::Com_Printf(0, 0, "^1Lua Reload: Error: %s\n", ex.what());
+					}
+				}, scheduler::pipeline::renderer);
+			});
+
+			command::add("lua_exec", [](const command::params& params)
+			{
+				if (params.size() < 2)
+				{
+					game::Com_Printf(0, 0, "Usage: lua_exec <file.lua>\n");
+					return;
+				}
+
+				const std::string file = params.get(1);
+				std::string data;
+				if (!utils::io::read_file(file, &data))
+				{
+					game::Com_Printf(0, 0, "^1Failed to read file: %s\n", file.c_str());
+					return;
+				}
+
+				scheduler::once([data, file]
+				{
+					if (execute_raw_lua(data, file.c_str()))
+					{
+						game::Com_Printf(0, 0, "^2Executed Lua file successfully\n");
+					}
+				}, scheduler::pipeline::renderer);
 			});
 
 			patch_unsafe_lua_functions();

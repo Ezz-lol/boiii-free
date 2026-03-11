@@ -23,6 +23,7 @@ namespace demonware
 		void upload_files_new(service_server* server, byte_buffer* buffer) const;
 		void get_files(service_server* server, byte_buffer* buffer) const;
 		void unk12(service_server* server, byte_buffer* buffer) const;
+		void get_user_file_list(service_server* server, byte_buffer* buffer) const;
 
 		static std::string get_user_file_path(const std::string& name);
 	};

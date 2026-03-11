@@ -129,7 +129,18 @@ namespace utils::compression
 					zipCloseFileInZip(zip_file);
 				});
 
-				return ZIP_OK == zipWriteInFileInZip(zip_file, data.data(), static_cast<unsigned>(data.size()));
+				size_t offset = 0;
+				while (offset < data.size())
+				{
+					const auto chunk_size = std::min(data.size() - offset, static_cast<size_t>(UINT_MAX));
+					if (ZIP_OK != zipWriteInFileInZip(zip_file, data.data() + offset, static_cast<unsigned>(chunk_size)))
+					{
+						return false;
+					}
+					offset += chunk_size;
+				}
+
+				return true;
 			}
 		}
 
@@ -140,7 +151,6 @@ namespace utils::compression
 
 		bool archive::write(const std::string& filename, const std::string& comment)
 		{
-			// Hack to create the directory :3
 			io::write_file(filename, {});
 			io::remove_file(filename);
 
@@ -150,15 +160,21 @@ namespace utils::compression
 				return false;
 			}
 
-			const auto _ = finally([&zip_file, &comment]()
+			bool success = true;
+			const auto _ = finally([&zip_file, &comment, &filename, &success]()
 			{
 				zipClose(zip_file, comment.empty() ? nullptr : comment.data());
+				if (!success)
+				{
+					io::remove_file(filename);
+				}
 			});
 
 			for (const auto& file : this->files_)
 			{
 				if (!add_file(zip_file, file.first, file.second))
 				{
+					success = false;
 					return false;
 				}
 			}

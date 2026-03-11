@@ -1,13 +1,17 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
+#include "game/utils.hpp"
 
 #include "party.hpp"
 #include "auth.hpp"
 #include "network.hpp"
+#include "network_password.hpp"
 #include "scheduler.hpp"
 #include "workshop.hpp"
 #include "profile_infos.hpp"
+#include "friends.hpp"
+#include "steam_proxy.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -20,7 +24,17 @@ namespace party
 	namespace
 	{
 		std::atomic_bool is_connecting_to_dedi{false};
+		std::mutex connect_host_mutex;
 		game::netadr_t connect_host{{}, {}, game::NA_BAD, {}};
+
+		std::mutex hostname_mutex;
+		std::string cached_server_hostname;
+		int cached_server_max_clients = 0;
+
+		void update_dedi_dvar(bool on_dedi)
+		{
+			game::Dvar_SetFromStringByName("cl_connected_to_dedi", on_dedi ? "1" : "0", true);
+		}
 
 		struct server_query
 		{
@@ -37,10 +51,62 @@ namespace party
 			return server_queries;
 		}
 
-		void connect_to_lobby(const game::netadr_t& addr, const std::string& mapname, const std::string& gamemode,
-		                      const std::string& usermap_id, const std::string& mod_id)
+		void connect_to_lobby(const game::netadr_t& addr, const std::string& mapname, const std::string& gamemode, const std::string& usermap_id, const std::string& mod_id)
 		{
 			auth::clear_stored_guids();
+
+			//FAILSAFE incase setup_server_map_stub fail to unload. sometimes it bug out and wont unload mod anymore.
+			//has not been actually tested to work.
+			if (game::isModLoaded())
+			{
+				const auto reconnect_addr = workshop::get_pending_mod_reconnect();
+
+				game::loadMod(0, "", true);
+
+				auto start_time = std::make_shared<std::chrono::steady_clock::time_point>(
+					std::chrono::steady_clock::now());
+
+				scheduler::schedule([reconnect_addr, start_time]() -> bool
+					{
+						const auto elapsed = std::chrono::steady_clock::now() - *start_time;
+
+						if (elapsed < std::chrono::seconds(1))
+							return scheduler::cond_continue;
+
+						if (game::isModLoaded() && elapsed < std::chrono::seconds(30))
+							return scheduler::cond_continue;
+
+						if (game::isModLoaded())
+						{
+							printf("[ Party ] Timeout: mod still loaded after 30s, attempting reconnect anyway\n");
+						}
+						else
+						{
+							printf("[ Party ] Mod unloaded after %lld ms\n",
+								std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+						}
+
+						if (!reconnect_addr.empty())
+						{
+							printf("[ RECONNECT ] scheduling reconnect in 3 seconds...\n");
+
+							scheduler::schedule([reconnect_addr]() -> bool
+								{
+									printf("[ RECONNECT ] connecting back to the server\n");
+									game::Cbuf_AddText(0, utils::string::va("connect %s\n", reconnect_addr.c_str()));
+									return scheduler::cond_end;
+								}, scheduler::main, 3s);
+						}
+						else
+						{
+							printf("[ RECONNECT ] no address found\n");
+						}
+
+						return scheduler::cond_end;
+					}, scheduler::main, 200ms);
+
+				return;
+			}
 
 			workshop::setup_same_mod_as_host(usermap_id, mod_id);
 
@@ -58,7 +124,7 @@ namespace party
 			}, scheduler::main);
 		}
 
-		void connect_to_lobby_with_mode(const game::netadr_t& addr, const game::eModes mode, const std::string& mapname,
+		void connect_to_lobby_with_mode_internal(const game::netadr_t& addr, const game::eModes mode, const std::string& mapname,
 		                                const std::string& gametype, const std::string& usermap_id,
 		                                const std::string& mod_id,
 		                                const bool was_retried = false)
@@ -73,7 +139,7 @@ namespace party
 			{
 				scheduler::once([=]
 				{
-					connect_to_lobby_with_mode(addr, mode, mapname, gametype, usermap_id, mod_id, true);
+					connect_to_lobby_with_mode_internal(addr, mode, mapname, gametype, usermap_id, mod_id, true);
 				}, scheduler::main, 5s);
 
 				launch_mode(mode);
@@ -149,6 +215,14 @@ namespace party
 			}
 
 			is_connecting_to_dedi = info.get("dedicated") == "1";
+			update_dedi_dvar(is_connecting_to_dedi.load());
+
+			{
+				std::lock_guard lock(hostname_mutex);
+				cached_server_hostname = info.get("hostname");
+				const auto max_clients_str = info.get("sv_maxclients");
+				cached_server_max_clients = max_clients_str.empty() ? 0 : atoi(max_clients_str.data());
+			}
 
 			if (atoi(info.get("protocol").data()) != PROTOCOL)
 			{
@@ -173,6 +247,28 @@ namespace party
 				return;
 			}
 
+			// Verify network password
+			const auto server_net_hash = info.get("net_password_hash");
+			if (!server_net_hash.empty() && server_net_hash != "0")
+			{
+				if (!network_password::is_password_set())
+				{
+					printf("Server requires a network password.\n");
+					return;
+				}
+
+				const auto client_hash = network_password::get_password_hash_string();
+				if (client_hash != server_net_hash)
+				{
+					printf("Network password mismatch.\n");
+					return;
+				}
+			}
+			else if (network_password::is_password_set())
+			{
+				printf("Client has network password set but server does not. Allowing connection.\n");
+			}
+
 			const auto mapname = info.get("mapname");
 			if (mapname.empty())
 			{
@@ -192,6 +288,7 @@ namespace party
 			const auto mod_id = info.get("modId");
 
 			const auto workshop_id = info.get("workshop_id"); //check workshop_id dvar for id
+			const auto base_url = info.get("sv_wwwBaseURL"); // FastDL base URL from server
 
 			//const auto hostname = info.get("sv_hostname");
 			const auto playmode = info.get("playmode");
@@ -200,18 +297,26 @@ namespace party
 
 			scheduler::once([=]
 			{
+				const auto addr_str = utils::string::va(
+					"%i.%i.%i.%i:%hu", target.ipv4.a, target.ipv4.b, target.ipv4.c, target.ipv4.d, target.port);
+
+				// Always save latest address for mod reconnect (mod unload/reload)
+				workshop::set_pending_mod_reconnect(addr_str);
+
 				const auto usermap_id = workshop::get_usermap_publisher_id(mapname);
 
-				if (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id) &&
+				if (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id, base_url) &&
 					workshop::check_valid_mod_id(mod_id, workshop_id))
 				{
-					if (is_connecting_to_dedi)
-					{
-						game::Com_SessionMode_SetGameMode(game::MODE_GAME_MATCHMAKING_PLAYLIST);
-					}
+					game::Com_SessionMode_SetGameMode(game::MODE_GAME_MATCHMAKING_PLAYLIST);
 
 					//connect_to_session(target, hostname, xuid, mode);
-					connect_to_lobby_with_mode(target, mode, mapname, gametype, usermap_id, mod_id);
+					connect_to_lobby_with_mode_internal(target, mode, mapname, gametype, usermap_id, mod_id);
+				}
+				else
+				{
+					// Save download reconnect
+					workshop::set_pending_download_reconnect(addr_str);
 				}
 			}, scheduler::main);
 		}
@@ -226,11 +331,53 @@ namespace party
 					return;
 				}
 
-				connect_host = target;
+				{
+					std::lock_guard lock(connect_host_mutex);
+					connect_host = target;
+				}
 			}
 
 			profile_infos::clear_profile_infos();
-			query_server(connect_host, handle_connect_query_response);
+
+			if (address)
+			{
+				auto game_info = friends::get_friend_game_info_by_address(address);
+				if (!game_info.empty())
+				{
+					auto parts = utils::string::split(game_info, '|');
+					if (parts.size() >= 4)
+					{
+						auto mapname = parts[1];
+						auto gametype = parts[2];
+						auto mode = static_cast<game::eModes>(std::atoi(parts[3].c_str()));
+						std::string mod_id = parts.size() >= 5 ? parts[4] : "";
+
+						if (!mapname.empty() && !gametype.empty())
+						{
+
+							scheduler::once([=]
+							{
+								auto usermap_id = workshop::get_usermap_publisher_id(mapname);
+								game::Com_SessionMode_SetGameMode(game::MODE_GAME_MATCHMAKING_PLAYLIST);
+							game::netadr_t host_copy{};
+							{
+								std::lock_guard lock(connect_host_mutex);
+								host_copy = connect_host;
+							}
+							connect_to_lobby_with_mode_internal(host_copy, mode, mapname, gametype, usermap_id, mod_id);
+							}, scheduler::main);
+							return;
+						}
+					}
+				}
+			}
+
+			game::netadr_t host_copy{};
+			{
+				std::lock_guard lock(connect_host_mutex);
+				host_copy = connect_host;
+			}
+			query_server(host_copy, handle_connect_query_response);
 		}
 
 		void send_server_query(server_query& query)
@@ -244,6 +391,7 @@ namespace party
 
 		void handle_info_response(const game::netadr_t& target, const network::data_view& data)
 		{
+
 			bool found_query = false;
 			server_query query{};
 
@@ -326,6 +474,13 @@ namespace party
 		});
 	}
 
+	void connect_to_lobby_with_mode(const game::netadr_t& addr, const game::eModes mode,
+	                                const std::string& mapname, const std::string& gametype,
+	                                const std::string& usermap_id, const std::string& mod_id)
+	{
+		connect_to_lobby_with_mode_internal(addr, mode, mapname, gametype, usermap_id, mod_id, false);
+	}
+
 	game::netadr_t get_connected_server()
 	{
 		constexpr auto local_client_num = 0ull;
@@ -333,18 +488,67 @@ namespace party
 		return *reinterpret_cast<game::netadr_t*>(address);
 	}
 
+	game::netadr_t get_connect_host()
+	{
+		std::lock_guard lock(connect_host_mutex);
+		return connect_host;
+	}
+
 	bool is_host(const game::netadr_t& addr)
 	{
-		return get_connected_server() == addr || connect_host == addr;
+		game::netadr_t host_copy{};
+		{
+			std::lock_guard lock(connect_host_mutex);
+			host_copy = connect_host;
+		}
+		return get_connected_server() == addr || host_copy == addr;
+	}
+
+	void join_session(const game::netadr_t& addr, const std::string& hostname, const uint64_t xuid,
+	                  const game::eModes mode)
+	{
+		connect_to_session(addr, hostname, xuid, mode);
+	}
+
+	uint16_t get_local_port()
+	{
+		const auto* dvar = game::Dvar_FindVar("net_port");
+		if (dvar)
+		{
+			return static_cast<uint16_t>(dvar->current.value.integer);
+		}
+		return 3074; // BO3 default
+	}
+
+	std::string get_server_hostname()
+	{
+		std::lock_guard lock(hostname_mutex);
+		return cached_server_hostname;
+	}
+
+	int get_server_max_clients()
+	{
+		std::lock_guard lock(hostname_mutex);
+		return cached_server_max_clients;
+	}
+
+	void clear_server_info()
+	{
+		std::lock_guard lock(hostname_mutex);
+		cached_server_hostname.clear();
+		cached_server_max_clients = 0;
 	}
 
 	struct component final : client_component
 	{
 		void post_unpack() override
 		{
+			(void)game::register_dvar_bool("cl_connected_to_dedi", false, game::DVAR_NONE, "True when connected to a dedicated server");
+
 			utils::hook::jump(0x141EE5FE0_g, &connect_stub);
 
 			network::on("infoResponse", handle_info_response);
+
 			scheduler::loop(cleanup_queried_servers, scheduler::async, 100ms);
 		}
 

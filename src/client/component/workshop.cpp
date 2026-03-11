@@ -9,11 +9,17 @@
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/io.hpp>
+#include <utils/http.hpp>
 #include <utils/thread.hpp>
 #include "steamcmd.hpp"
+#include "fastdl.hpp"
+#include "party.hpp"
+#include "scheduler.hpp"
+#include "download_overlay.hpp"
 
 #include <condition_variable>
 #include <mutex>
+#include <regex>
 #include <unordered_map>
 #include <shellapi.h>
 
@@ -70,13 +76,15 @@ namespace workshop
 				const auto it = dlc_links.find(map);
 				if (it != dlc_links.end())
 				{
-					const auto* msg = utils::string::va(
-						"Missing DLC map: %s\n\nYou can download it from:\n%s\n\nWould you like to open the download page?",
-						map.c_str(), it->second.c_str());
-					const int result = MessageBoxA(nullptr, msg, "DLC Required",
-						MB_YESNO | MB_ICONQUESTION | MB_SYSTEMMODAL);
-					if (result == IDYES)
-						ShellExecuteA(nullptr, "open", it->second.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+					const std::string link = it->second;
+					const std::string map_copy = map;
+					scheduler::once([map_copy, link]
+					{
+						game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI,
+							utils::string::va("Missing DLC map: %s\n\nOpening download page...\n%s",
+								map_copy.c_str(), link.c_str()));
+					}, scheduler::main);
+					ShellExecuteA(nullptr, "open", link.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 				}
 			}
 		}
@@ -93,13 +101,69 @@ namespace workshop
 			for (unsigned int i = 0; i < *game::modsCount; ++i)
 			{
 				const auto& mod_data = game::modsPool[i];
-				if (mod_data.publisherId == pub_id)
+				if (mod_data.publisherId == pub_id || mod_data.folderName == pub_id)
 				{
 					return true;
 				}
 			}
 
 			return false;
+		}
+
+		std::string resolve_mod_workshop_id(const std::string& mod_name)
+		{
+			for (unsigned int i = 0; i < *game::modsCount; ++i)
+			{
+				const auto& mod_data = game::modsPool[i];
+				if (mod_data.folderName == mod_name &&
+					utils::string::is_numeric(mod_data.publisherId))
+				{
+					return mod_data.publisherId;
+				}
+			}
+
+			std::error_code ec;
+			std::filesystem::path mods_dir("mods");
+			if (std::filesystem::exists(mods_dir, ec))
+			{
+				for (const auto& entry : std::filesystem::directory_iterator(mods_dir, ec))
+				{
+					if (!entry.is_directory(ec)) continue;
+
+					auto ws_json = entry.path() / "zone" / "workshop.json";
+					if (!std::filesystem::exists(ws_json, ec)) continue;
+
+					const auto json_str = utils::io::read_file(ws_json.string());
+					if (json_str.empty()) continue;
+
+					rapidjson::Document doc;
+					if (doc.Parse(json_str.c_str()).HasParseError() || !doc.IsObject()) continue;
+
+					auto folder_it = doc.FindMember("FolderName");
+					if (folder_it != doc.MemberEnd() && folder_it->value.IsString())
+					{
+						if (std::string(folder_it->value.GetString()) == mod_name)
+						{
+							auto pub_it = doc.FindMember("PublishedFileId");
+							if (pub_it != doc.MemberEnd() && pub_it->value.IsString())
+							{
+								std::string pfid = pub_it->value.GetString();
+								if (utils::string::is_numeric(pfid.data()))
+									return pfid;
+							}
+							auto pubid_it = doc.FindMember("PublisherID");
+							if (pubid_it != doc.MemberEnd() && pubid_it->value.IsString())
+							{
+								std::string pid = pubid_it->value.GetString();
+								if (utils::string::is_numeric(pid.data()))
+									return pid;
+							}
+						}
+					}
+				}
+			}
+
+			return {};
 		}
 
 		void load_usermap_mod_if_needed()
@@ -112,12 +176,62 @@ namespace workshop
 
 		void setup_server_map_stub(int localClientNum, const char* map, const char* gametype)
 		{
-			if (utils::string::is_numeric(map) ||
-				!get_usermap_publisher_id(map).empty())
+			if (game::isModLoaded())
+			{
+				const auto reconnect_addr = workshop::get_pending_mod_reconnect();
+
+				game::loadMod(0, "", true);
+
+				auto start_time = std::make_shared<std::chrono::steady_clock::time_point>(
+					std::chrono::steady_clock::now());
+
+				scheduler::schedule([reconnect_addr, start_time]() -> bool
+				{
+					const auto elapsed = std::chrono::steady_clock::now() - *start_time;
+
+					if (elapsed < std::chrono::seconds(1))
+						return scheduler::cond_continue;
+
+					if (game::isModLoaded() && elapsed < std::chrono::seconds(30))
+						return scheduler::cond_continue;
+
+					if (game::isModLoaded())
+					{
+						printf("[ Workshop ] Timeout: mod still loaded after 30s, attempting reconnect anyway\n");
+					}
+					else
+					{
+						printf("[ Workshop ] Mod unloaded after %lld ms\n",
+							std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
+					}
+
+					if (!reconnect_addr.empty())
+					{
+						printf("[ RECONNECT ] scheduling reconnect in 3 seconds...\n");
+
+						scheduler::schedule([reconnect_addr]() -> bool
+							{
+								printf("[ RECONNECT ] connecting back to the server\n");
+								game::Cbuf_AddText(0, utils::string::va("connect %s\n", reconnect_addr.c_str()));
+								return scheduler::cond_end;
+							}, scheduler::main, 3s);
+					}
+					else
+					{
+						printf("[ RECONNECT ] no address found\n");
+					}
+
+					return scheduler::cond_end;
+				}, scheduler::main, 200ms);
+
+				return;
+			}
+
+			if (utils::string::is_numeric(map) || !get_usermap_publisher_id(map).empty())
 			{
 				load_usermap_mod_if_needed();
 			}
-
+			
 			setup_server_map_hook.invoke(localClientNum, map, gametype);
 		}
 
@@ -166,7 +280,6 @@ namespace workshop
 			{
 				auto& usermap_data = game::usermapsPool[i];
 
-				// foldername == title -> non-steam workshop usercontent
 				if (std::strcmp(usermap_data.folderName, usermap_data.title) != 0)
 				{
 					continue;
@@ -219,7 +332,6 @@ namespace workshop
 		{
 			const auto original_path = utils::string::va(fmt, root_dir, mods_dir, dir_name);
 
-			// check if the zone folder exists
 			if (utils::io::directory_exists(original_path))
 			{
 				return original_path;
@@ -296,7 +408,7 @@ namespace workshop
 	{
 		const int val = game::get_dvar_int("workshop_retry_attempts");
 		if (val < 1) return 1;
-		if (val > 100) return 100;
+		if (val > 1000) return 1000;
 		return val;
 	}
 
@@ -337,9 +449,212 @@ namespace workshop
 			mapname == "zm_asylum";
 	}
 
-	extern bool downloading_workshop_item = false;
+	std::atomic<bool> downloading_workshop_item{false};
+	std::atomic<bool> launcher_downloading{false};
 
-	bool check_valid_usermap_id(const std::string& mapname, const std::string& pub_id, const std::string& workshop_id)
+	bool is_any_download_active()
+	{
+		return downloading_workshop_item.load() || launcher_downloading.load() || fastdl::is_downloading();
+	}
+
+	static std::mutex reconnect_mutex;
+	static std::string pending_mod_reconnect_address;
+	static std::string pending_download_reconnect_address;
+
+	void set_pending_mod_reconnect(const std::string& address)
+	{
+		std::lock_guard lock(reconnect_mutex);
+		pending_mod_reconnect_address = address;
+	}
+
+	std::string get_pending_mod_reconnect()
+	{
+		std::lock_guard lock(reconnect_mutex);
+		auto addr = std::move(pending_mod_reconnect_address);
+		pending_mod_reconnect_address.clear();
+		return addr;
+	}
+
+	void set_pending_download_reconnect(const std::string& address)
+	{
+		std::lock_guard lock(reconnect_mutex);
+		// Don't overwrite if a download is already active, preserve the original server
+		if (pending_download_reconnect_address.empty() || !is_any_download_active())
+		{
+			pending_download_reconnect_address = address;
+		}
+	}
+
+	std::string get_pending_download_reconnect()
+	{
+		std::lock_guard lock(reconnect_mutex);
+		auto addr = std::move(pending_download_reconnect_address);
+		pending_download_reconnect_address.clear();
+		return addr;
+	}
+
+	std::uint64_t compute_folder_size_bytes(const std::filesystem::path& folder)
+	{
+		std::error_code ec;
+		if (!std::filesystem::exists(folder, ec))
+			return 0;
+		std::uint64_t total = 0;
+		for (const auto& entry : std::filesystem::recursive_directory_iterator(folder,
+			std::filesystem::directory_options::skip_permission_denied, ec))
+		{
+			if (ec) break;
+			if (!entry.is_regular_file(ec)) continue;
+			total += static_cast<std::uint64_t>(std::filesystem::file_size(entry.path(), ec));
+			if (ec) break;
+		}
+		return total;
+	}
+
+	std::string human_readable_size(std::uint64_t bytes)
+	{
+		const char* suffixes[] = {"B", "KB", "MB", "GB", "TB"};
+		double value = static_cast<double>(bytes);
+		int idx = 0;
+		while (value >= 1024.0 && idx < 4)
+		{
+			value /= 1024.0;
+			++idx;
+		}
+		char buf[64]{};
+		std::snprintf(buf, sizeof(buf), "%.2f %s", value, suffixes[idx]);
+		return buf;
+	}
+
+	std::uint64_t parse_human_size_to_bytes(const std::string& text)
+	{
+		std::smatch m;
+		std::regex re(R"((\d+(?:\.\d+)?)\s*(B|KB|MB|GB|TB))", std::regex::icase);
+		if (!std::regex_search(text, m, re) || m.size() < 3)
+			return 0;
+		const double value = std::stod(m[1].str());
+		std::string unit = m[2].str();
+		for (auto& c : unit)
+			c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
+
+		double mul = 1.0;
+		if (unit == "KB") mul = 1024.0;
+		else if (unit == "MB") mul = 1024.0 * 1024.0;
+		else if (unit == "GB") mul = 1024.0 * 1024.0 * 1024.0;
+		else if (unit == "TB") mul = 1024.0 * 1024.0 * 1024.0 * 1024.0;
+
+		const auto bytes = value * mul;
+		if (bytes <= 0.0) return 0;
+		return static_cast<std::uint64_t>(bytes);
+	}
+
+	std::uint64_t scrape_workshop_file_size_bytes(const std::string& workshop_id)
+	{
+		try
+		{
+			utils::http::headers h;
+			h["User-Agent"] = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
+			h["Accept"] = "text/html";
+			h["Accept-Language"] = "en-US,en;q=0.9";
+			h["Referer"] = "https://steamcommunity.com/app/311210/workshop/";
+
+			const auto url = "https://steamcommunity.com/sharedfiles/filedetails/?id=" + workshop_id + "&searchtext=";
+			const auto resp = utils::http::get_data(url, h, {}, 2);
+			if (!resp || resp->empty()) return 0;
+
+			const std::string& html = *resp;
+
+			{
+				std::regex re(R"(detailsStatRight[^>]*>\s*([\d,\.]+\s*(?:B|KB|MB|GB|TB))\s*<)", std::regex::icase);
+				std::smatch m;
+				if (std::regex_search(html, m, re) && m.size() >= 2)
+				{
+					std::string size_text = m[1].str();
+					size_text.erase(std::remove(size_text.begin(), size_text.end(), ','), size_text.end());
+					const auto bytes = parse_human_size_to_bytes(size_text);
+					if (bytes > 0) return bytes;
+				}
+			}
+			{
+				std::regex re(R"(File\s*Size\s*<\/div>\s*<div[^>]*>([^<]+)<)", std::regex::icase);
+				std::smatch m;
+				if (std::regex_search(html, m, re) && m.size() >= 2)
+				{
+					std::string size_text = m[1].str();
+					size_text.erase(std::remove(size_text.begin(), size_text.end(), ','), size_text.end());
+					const auto bytes = parse_human_size_to_bytes(size_text);
+					if (bytes > 0) return bytes;
+				}
+			}
+			{
+				std::regex re(R"(File\s*Size[^\d]*(\d+(?:[,.]\d+)?)\s*(B|KB|MB|GB|TB))", std::regex::icase);
+				std::smatch m;
+				if (std::regex_search(html, m, re) && m.size() >= 3)
+				{
+					std::string num = m[1].str();
+					num.erase(std::remove(num.begin(), num.end(), ','), num.end());
+					const auto bytes = parse_human_size_to_bytes(num + " " + m[2].str());
+					if (bytes > 0) return bytes;
+				}
+			}
+			return 0;
+		}
+		catch (...) { return 0; }
+	}
+
+	workshop_info get_steam_workshop_info(const std::string& workshop_id)
+	{
+		workshop_info info{};
+		if (workshop_id.empty()) return info;
+		try
+		{
+			const std::string body = "itemcount=1&publishedfileids[0]=" + workshop_id;
+			const auto resp = utils::http::post_data(
+				"https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/v1/",
+				body, 10);
+			if (!resp || resp->empty()) return info;
+
+			rapidjson::Document doc;
+			if (doc.Parse(resp->c_str()).HasParseError() || !doc.IsObject()) return info;
+			auto resp_it = doc.FindMember("response");
+			if (resp_it == doc.MemberEnd() || !resp_it->value.IsObject()) return info;
+			auto details_it = resp_it->value.FindMember("publishedfiledetails");
+			if (details_it == resp_it->value.MemberEnd() || !details_it->value.IsArray() || details_it->value.Empty()) return info;
+			const auto& first = details_it->value[0];
+			if (!first.IsObject()) return info;
+
+			auto title_it = first.FindMember("title");
+			if (title_it != first.MemberEnd() && title_it->value.IsString())
+				info.title = title_it->value.GetString();
+
+			auto size_it = first.FindMember("file_size");
+			if (size_it != first.MemberEnd())
+			{
+				if (size_it->value.IsUint64()) info.file_size = size_it->value.GetUint64();
+				else if (size_it->value.IsInt64()) info.file_size = static_cast<std::uint64_t>(size_it->value.GetInt64());
+				else if (size_it->value.IsUint()) info.file_size = size_it->value.GetUint();
+				else if (size_it->value.IsInt()) info.file_size = static_cast<std::uint64_t>(size_it->value.GetInt());
+				else if (size_it->value.IsString()) info.file_size = static_cast<std::uint64_t>(std::strtoull(size_it->value.GetString(), nullptr, 10));
+				else if (size_it->value.IsDouble()) info.file_size = static_cast<std::uint64_t>(size_it->value.GetDouble());
+				else if (size_it->value.IsNumber()) info.file_size = static_cast<std::uint64_t>(size_it->value.GetDouble());
+			}
+
+			if (info.file_size == 0)
+			{
+				const auto scraped = scrape_workshop_file_size_bytes(workshop_id);
+				if (scraped > 0)
+					info.file_size = scraped;
+			}
+		}
+		catch (...)
+		{
+			const auto scraped = scrape_workshop_file_size_bytes(workshop_id);
+			if (scraped > 0)
+				info.file_size = scraped;
+		}
+		return info;
+	}
+
+	bool check_valid_usermap_id(const std::string& mapname, const std::string& pub_id, const std::string& workshop_id, const std::string& base_url)
 	{
 		if (!game::DB_FileExists(mapname.data(), 0) && pub_id.empty())
 		{
@@ -349,43 +664,80 @@ namespace workshop
 				return false;
 			}
 
-			if (downloading_workshop_item)
+			if (downloading_workshop_item.load() || launcher_downloading.load() || fastdl::is_downloading())
 			{
-				game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI,
-					"You are already downloading a map in the background. You can download only one item at a time.");
+				scheduler::once([]
+				{
+					game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI,
+						"You are already downloading a map in the background. You can download only one item at a time.");
+				}, scheduler::main);
+				return false;
+			}
+
+			if (!base_url.empty())
+			{
+				fastdl::download_context context{};
+				context.mapname = mapname;
+				context.pub_id = workshop_id.empty() ? mapname : workshop_id;
+				context.map_path = "./usermaps/" + mapname;
+				context.base_url = base_url;
+				context.success_callback = []()
+				{
+					scheduler::once([]
+					{
+						game::reloadUserContent();
+					}, scheduler::main);
+				};
+				printf("[ Workshop ] Server has FastDL, attempting download for %s from %s\n", mapname.data(), base_url.data());
+				fastdl::start_map_download(context);
 				return false;
 			}
 
 			if (utils::string::is_numeric(mapname.data()))
 			{
-				const int result = MessageBoxA(nullptr,
-					utils::string::va("Usermap '%s' not found.\n\nDo you want to download it from the Workshop now?", mapname.data()),
-					"Missing Usermap", MB_OKCANCEL | MB_ICONQUESTION | MB_SYSTEMMODAL);
-				if (result == IDOK)
-				{
-					download_thread = utils::thread::create_named_thread(
-						"workshop_download", steamcmd::initialize_download, mapname, "Map");
-					download_thread.detach();
-				}
+				const std::string id_copy = mapname;
+				const auto ws_info = get_steam_workshop_info(id_copy);
+				std::string confirm_msg = utils::string::va("Usermap '%s' was not found.\n", id_copy.c_str());
+				if (!ws_info.title.empty()) confirm_msg += "Title: " + ws_info.title + "\n";
+				if (ws_info.file_size > 0) confirm_msg += "Size: " + human_readable_size(ws_info.file_size) + "\n";
+				confirm_msg += "\nDo you want to download it from the Steam Workshop?";
+				download_overlay::show_confirmation(
+					"Download Map?", confirm_msg,
+					[id_copy]
+					{
+						download_thread = utils::thread::create_named_thread(
+							"workshop_download", steamcmd::initialize_download, id_copy, std::string("Map"));
+						download_thread.detach();
+					});
 			}
 			else if (!workshop_id.empty() && utils::string::is_numeric(workshop_id.data()))
 			{
-				const int result = MessageBoxA(nullptr,
-					utils::string::va("Usermap '%s' not found.\n\nDo you want to download it from the Workshop now?", mapname.data()),
-					"Missing Usermap", MB_OKCANCEL | MB_ICONQUESTION | MB_SYSTEMMODAL);
-				if (result == IDOK)
-				{
-					download_thread = utils::thread::create_named_thread(
-						"workshop_download", steamcmd::initialize_download, workshop_id, "Map");
-					download_thread.detach();
-				}
+				const std::string id_copy = workshop_id;
+				const std::string name_copy = mapname;
+				const auto ws_info = get_steam_workshop_info(id_copy);
+				std::string confirm_msg = utils::string::va("Usermap '%s' was not found.\n", name_copy.c_str());
+				if (!ws_info.title.empty()) confirm_msg += "Title: " + ws_info.title + "\n";
+				if (ws_info.file_size > 0) confirm_msg += "Size: " + human_readable_size(ws_info.file_size) + "\n";
+				confirm_msg += "\nDo you want to download it from the Steam Workshop?";
+				download_overlay::show_confirmation(
+					"Download Map?", confirm_msg,
+					[id_copy]
+					{
+						download_thread = utils::thread::create_named_thread(
+							"workshop_download", steamcmd::initialize_download, id_copy, std::string("Map"));
+						download_thread.detach();
+					});
 			}
 			else
 			{
-				game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI,
-					utils::string::va(
-						"Could not download: folder name is not numeric and 'workshop_id' dvar is empty.\nUsermap: %s\nSet workshop_id or subscribe on Steam Workshop.",
-						mapname.data()));
+				const std::string name_copy = mapname;
+				scheduler::once([name_copy]
+				{
+					game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI,
+						utils::string::va(
+							"Missing usermap: %s\n\nThis server did not provide FastDL and did not set workshop_id.\n\nSubscribe on Steam Workshop, or ask the server to set sv_wwwBaseURL or workshop_id.",
+							name_copy.c_str()));
+				}, scheduler::main);
 			}
 			return false;
 		}
@@ -401,43 +753,82 @@ namespace workshop
 
 		if (!has_mod(mod))
 		{
-			if (downloading_workshop_item)
+			if (downloading_workshop_item.load() || launcher_downloading.load())
 			{
-				game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI,
-					"You are already downloading a mod in the background. You can download only one item at a time.");
+				scheduler::once([]
+				{
+					game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI,
+						"You are already downloading a mod in the background. You can download only one item at a time.");
+				}, scheduler::main);
 				return false;
 			}
 
 			if (utils::string::is_numeric(mod.data()))
 			{
-				const int result = MessageBoxA(nullptr,
-					utils::string::va("Mod '%s' not found.\n\nDo you want to download it from the Workshop now?", mod.data()),
-					"Missing Mod", MB_OKCANCEL | MB_ICONQUESTION | MB_SYSTEMMODAL);
-				if (result == IDOK)
-				{
-					download_thread = utils::thread::create_named_thread(
-						"workshop_download", steamcmd::initialize_download, mod, "Mod");
-					download_thread.detach();
-				}
+				const std::string id_copy = mod;
+				const auto ws_info = get_steam_workshop_info(id_copy);
+				std::string confirm_msg = utils::string::va("Mod '%s' was not found.\n", id_copy.c_str());
+				if (!ws_info.title.empty()) confirm_msg += "Title: " + ws_info.title + "\n";
+				if (ws_info.file_size > 0) confirm_msg += "Size: " + human_readable_size(ws_info.file_size) + "\n";
+				confirm_msg += "\nDo you want to download it from the Steam Workshop?";
+				download_overlay::show_confirmation(
+					"Download Mod?", confirm_msg,
+					[id_copy]
+					{
+						download_thread = utils::thread::create_named_thread(
+							"workshop_download", steamcmd::initialize_download, id_copy, std::string("Mod"));
+						download_thread.detach();
+					});
 			}
 			else if (!workshop_id.empty() && utils::string::is_numeric(workshop_id.data()))
 			{
-				const int result = MessageBoxA(nullptr,
-					utils::string::va("Mod '%s' not found.\n\nDo you want to download it from the Workshop now?", mod.data()),
-					"Missing Mod", MB_OKCANCEL | MB_ICONQUESTION | MB_SYSTEMMODAL);
-				if (result == IDOK)
-				{
-					download_thread = utils::thread::create_named_thread(
-						"workshop_download", steamcmd::initialize_download, workshop_id, "Mod");
-					download_thread.detach();
-				}
+				const std::string id_copy = workshop_id;
+				const std::string name_copy = mod;
+				const auto ws_info = get_steam_workshop_info(id_copy);
+				std::string confirm_msg = utils::string::va("Mod '%s' was not found.\n", name_copy.c_str());
+				if (!ws_info.title.empty()) confirm_msg += "Title: " + ws_info.title + "\n";
+				if (ws_info.file_size > 0) confirm_msg += "Size: " + human_readable_size(ws_info.file_size) + "\n";
+				confirm_msg += "\nDo you want to download it from the Steam Workshop?";
+				download_overlay::show_confirmation(
+					"Download Mod?", confirm_msg,
+					[id_copy]
+					{
+						download_thread = utils::thread::create_named_thread(
+							"workshop_download", steamcmd::initialize_download, id_copy, std::string("Mod"));
+						download_thread.detach();
+					});
 			}
 			else
 			{
-				game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI,
-					utils::string::va(
-						"Could not download: folder name is not numeric and 'workshop_id' dvar is empty.\nMod: %s\nSet workshop_id or subscribe on Steam Workshop.",
-						mod.data()));
+				std::string resolved_id = resolve_mod_workshop_id(mod);
+				if (!resolved_id.empty())
+				{
+					const std::string name_copy = mod;
+					const auto ws_info = get_steam_workshop_info(resolved_id);
+					std::string confirm_msg = utils::string::va("Mod '%s' was not found.\nResolved workshop ID: %s\n", name_copy.c_str(), resolved_id.c_str());
+					if (!ws_info.title.empty()) confirm_msg += "Title: " + ws_info.title + "\n";
+					if (ws_info.file_size > 0) confirm_msg += "Size: " + human_readable_size(ws_info.file_size) + "\n";
+					confirm_msg += "\nDo you want to download it now?";
+					download_overlay::show_confirmation(
+						"Download Mod?", confirm_msg,
+						[resolved_id]
+						{
+							download_thread = utils::thread::create_named_thread(
+								"workshop_download", steamcmd::initialize_download, resolved_id, std::string("Mod"));
+							download_thread.detach();
+						});
+				}
+				else
+				{
+					const std::string name_copy = mod;
+					scheduler::once([name_copy]
+					{
+						game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI,
+							utils::string::va(
+								"Could not download: folder name is not numeric and 'workshop_id' dvar is empty.\nMod: %s\nSet workshop_id or subscribe on Steam Workshop.",
+								name_copy.c_str()));
+					}, scheduler::main);
+				}
 			}
 			return false;
 		}
@@ -463,14 +854,50 @@ namespace workshop
 			game::loadMod(0, "", true);
 		}
 	}
+	static std::mutex reconnect_guard_mutex;
+	static std::string last_auto_reconnect_target;
+
+	void com_error_missing_map_stub(const char* file, int line, int code, const char* fmt, ...)
+	{
+		const auto target = party::get_connect_host();
+		if (target.type != game::NA_BAD)
+		{
+			const auto addr_str = utils::string::va("%i.%i.%i.%i:%hu",
+				target.ipv4.a, target.ipv4.b, target.ipv4.c, target.ipv4.d, target.port);
+
+			{
+				std::lock_guard lock(reconnect_guard_mutex);
+				if (last_auto_reconnect_target == addr_str)
+				{
+					last_auto_reconnect_target.clear();
+					game::Com_Error_(file, line, code, "%s", "Missing map!");
+					return;
+				}
+				last_auto_reconnect_target = addr_str;
+			}
+
+			const std::string addr_copy(addr_str);
+			printf("[ Workshop ] Missing map/mod detected, reconnecting to %s for download\n", addr_copy.c_str());
+
+			scheduler::once([addr_copy]
+			{
+				game::Cbuf_AddText(0, utils::string::va("connect %s\n", addr_copy.c_str()));
+			}, scheduler::main, 3s);
+
+			game::Com_Error_(file, line, code, "%s", "Missing map! Reconnecting to download...");
+			return;
+		}
+
+		game::Com_Error_(file, line, code, "%s", "Missing map!");
+	}
 
 	class component final : public generic_component
 	{
 	public:
 		void post_unpack() override
 		{
-			[[maybe_unused]] const auto* dvar_retry = game::register_dvar_int("workshop_retry_attempts", 15, 1, 100, game::DVAR_ARCHIVE,
-				"Number of connection retry attempts for workshop downloads");
+			[[maybe_unused]] const auto* dvar_retry = game::register_dvar_int("workshop_retry_attempts", 30, 1, 1000, game::DVAR_ARCHIVE,
+				"Number of connection retry attempts for workshop downloads (default 15, increase for slow connections)");
 			[[maybe_unused]] const auto* dvar_timeout = game::register_dvar_int("workshop_timeout", 300, 60, 3600, game::DVAR_ARCHIVE,
 				"Download timeout in seconds for workshop items (reserved for future use)");
 
@@ -497,10 +924,10 @@ namespace workshop
 				std::string type_str = params.size() >= 3 ? params.get(2) : "Map";
 				if (id.empty())
 					return;
-				if (downloading_workshop_item)
+				if (is_any_download_active())
 				{
 					game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI,
-						"A workshop download is already in progress. Wait for it to finish.");
+						"A download is already in progress. Wait for it to finish.");
 					return;
 				}
 				if (type_str != "Map" && type_str != "Mod")
@@ -526,6 +953,11 @@ namespace workshop
 			utils::hook::call(0x1420D6745_g, load_mod_content_stub);
 			utils::hook::call(0x14135CD84_g, has_workshop_item_stub);
 			setup_server_map_hook.create(0x14135CD20_g, setup_server_map_stub);
+
+			if (game::is_client())
+			{
+				utils::hook::call(0x14135CDA1_g, com_error_missing_map_stub);
+			}
 		}
 
 

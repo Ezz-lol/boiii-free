@@ -117,43 +117,9 @@ namespace dvars
 			return (dvar->flags & game::DVAR_ARCHIVE);
 		}
 
-		std::string extract_bind_lines(const std::string& config_data)
-		{
-			std::string binds;
-			std::istringstream stream(config_data);
-			std::string line;
-
-			while (std::getline(stream, line))
-			{
-				// Remove carriage return if present
-				if (!line.empty() && line.back() == '\r')
-				{
-					line.pop_back();
-				}
-
-				if (utils::string::starts_with(line, "bind "))
-				{
-					binds.append(line);
-					binds.append("\n");
-				}
-			}
-
-			return binds;
-		}
-
 		void write_archive_dvars()
 		{
 			const auto path = get_config_file_path();
-
-			// Preserve existing bind commands from the config file
-			std::string preserved_binds;
-			{
-				std::string existing_config;
-				if (utils::io::read_file(path, &existing_config))
-				{
-					preserved_binds = extract_bind_lines(existing_config);
-				}
-			}
 
 			std::string config_buffer;
 
@@ -172,15 +138,9 @@ namespace dvars
 				config_buffer.append(utils::string::va("set %s \"%s\"\n", name, value));
 			}
 
-			if (config_buffer.empty() && preserved_binds.empty())
+			if (config_buffer.empty())
 			{
 				return;
-			}
-
-			if (!preserved_binds.empty())
-			{
-				config_buffer.append("\n");
-				config_buffer.append(preserved_binds);
 			}
 
 			utils::io::write_file(path, config_buffer);

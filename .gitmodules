@@ -33,3 +33,6 @@
 	path = deps/curl
 	url = https://github.com/curl/curl.git
 	branch = curl-8_4_0
+[submodule "deps/imgui"]
+	path = deps/imgui
+	url = https://github.com/ocornut/imgui.git

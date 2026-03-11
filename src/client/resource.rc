@@ -70,11 +70,11 @@ BEGIN
     BEGIN
         BLOCK "040904b0"
         BEGIN
-            VALUE "CompanyName", "momo5502"
+            VALUE "CompanyName", "Ezz"
             VALUE "FileDescription", "BOIII"
             VALUE "FileVersion", VERSION_FILE
             VALUE "InternalName", "something"
-            VALUE "LegalCopyright", "Copyright (C) 2022 momo5502. All rights reserved."
+            VALUE "LegalCopyright", "Copyright (C) 2026 Ezz. All rights reserved."
             VALUE "OriginalFilename", "boiii.exe"
             VALUE "ProductName", "BOIII"
             VALUE "ProductVersion", VERSION_PRODUCT

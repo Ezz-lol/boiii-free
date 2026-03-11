@@ -21,6 +21,7 @@ namespace game
 
 	void dvar_add_flags(const char* dvar, unsigned int flags);
 	void dvar_set_flags(const char* dvar_name, unsigned int flags);
+	void dvar_remove_flags(const char* dvar_name, unsigned int flags);
 
 	[[nodiscard]] bool is_server_running();
 	[[nodiscard]] size_t get_max_client_count();

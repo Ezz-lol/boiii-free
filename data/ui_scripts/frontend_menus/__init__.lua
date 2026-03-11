@@ -2,6 +2,10 @@ if Engine.GetCurrentMap() ~= "core_frontend" then
   return
 end
 
+if not CoD.LobbyButtons then
+  return
+end
+
 local enableLobbyMapVote = true             -- toggle map vote in public lobby
 local enableLargeServerBrowserButton = true -- toggle large server browser button
 
@@ -30,6 +34,15 @@ CoD.LobbyButtons.STATS = {
     OpenPopup(menu, "BoiiiStatsMenu", controller)
   end,
   customId = "btnMPStats"
+}
+
+CoD.LobbyButtons.QUICK_SETTINGS = {
+  stringRef = "QUICK SETTINGS",
+  action = function(self, element, controller, param, menu)
+    SetPerControllerTableProperty(controller, "disableGameSettingsOptions", true)
+    OpenPopup(menu, "BoiiiQuickSettingsMenu", controller)
+  end,
+  customId = "btnQuickSettings"
 }
 
 CoD.LobbyButtons.MP_START_GAME = {
@@ -93,8 +106,11 @@ local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
     end
   end
 
-  if menuId == LobbyData.UITargets.UI_MPLOBBYONLINE.id or menuId == LobbyData.UITargets.UI_ZMLOBBYONLINE.id then
+  if menuId == LobbyData.UITargets.UI_MPLOBBYMAIN.id or menuId == LobbyData.UITargets.UI_MPLOBBYONLINE.id or menuId == LobbyData.UITargets.UI_ZMLOBBYONLINE.id
+      or (LobbyData.UITargets.UI_CPLOBBYONLINE and menuId == LobbyData.UITargets.UI_CPLOBBYONLINE.id)
+      or (LobbyData.UITargets.UI_CPLOBBYLANGAME and menuId == LobbyData.UITargets.UI_CPLOBBYLANGAME.id) then
     utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.STATS)
+    utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.QUICK_SETTINGS)
   end
 
   if menuId == LobbyData.UITargets.UI_MPLOBBYONLINE.id or menuId == LobbyData.UITargets.UI_ZMLOBBYONLINE.id or menuId == LobbyData.UITargets.UI_MPLOBBYMAIN.id or menuId == LobbyData.UITargets.UI_MPLOBBYLANGAME.id then
