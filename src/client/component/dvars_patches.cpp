@@ -31,6 +31,18 @@ namespace dvars_patches
 			scheduler::execute(scheduler::pipeline::dvars_flags_patched);
 		}
 
+		void strip_cheat_flags()
+		{
+			if (!game::is_client()) return;
+
+			game::dvar_remove_flags("cg_drawGun", game::DVAR_CHEAT);
+			game::dvar_remove_flags("g_speed", game::DVAR_CHEAT);
+			game::dvar_remove_flags("bg_gravity", game::DVAR_CHEAT);
+			game::dvar_remove_flags("player_sustainAmmo", game::DVAR_CHEAT);
+			game::dvar_remove_flags("r_fog", game::DVAR_CHEAT);
+			game::dvar_remove_flags("timescale", game::DVAR_CHEAT);
+		}
+
 		void dof_enabled_stub(utils::hook::assembler& a)
 		{
 			const auto update_ads_dof = a.newLabel();
@@ -59,6 +71,7 @@ namespace dvars_patches
 		{
 			scheduler::once(patch_dvars, scheduler::pipeline::main);
 			scheduler::once(patch_flags, scheduler::pipeline::main);
+			scheduler::loop(strip_cheat_flags, scheduler::pipeline::main, 5s);
 
 			if (game::is_client()) this->patch_client();
 			else this->patch_server();

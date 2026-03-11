@@ -16,6 +16,8 @@ namespace demonware
 		this->register_task(165, &bdMarketplace::getInventoryPaginated);
 		this->register_task(193, &bdMarketplace::putPlayersInventoryItems);
 		this->register_task(232, &bdMarketplace::getEntitlements);
+		this->register_task(154, &bdMarketplace::getMarketplaceInventory);
+		this->register_task(204, &bdMarketplace::validateMarketplaceTransaction);
 	}
 
 	void bdMarketplace::startExchangeTransaction(service_server* server, byte_buffer* buffer) const
@@ -78,6 +80,18 @@ namespace demonware
 	void bdMarketplace::getEntitlements(service_server* server, byte_buffer* /*buffer*/) const
 	{
 		// TODO:
+		auto reply = server->create_reply(this->task_id());
+		reply.send();
+	}
+
+	void bdMarketplace::getMarketplaceInventory(service_server* server, byte_buffer* /*buffer*/) const
+	{
+		auto reply = server->create_reply(this->task_id());
+		reply.send();
+	}
+
+	void bdMarketplace::validateMarketplaceTransaction(service_server* server, byte_buffer* /*buffer*/) const
+	{
 		auto reply = server->create_reply(this->task_id());
 		reply.send();
 	}

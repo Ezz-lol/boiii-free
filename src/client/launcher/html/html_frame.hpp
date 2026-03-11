@@ -41,6 +41,11 @@ public:
 	CComPtr<IDispatch> get_dispatch() const;
 	CComPtr<IHTMLDocument2> get_document() const;
 
+	IOleInPlaceActiveObject* get_active_object() const
+	{
+		return ole_in_place_frame::get_active_object();
+	}
+
 	int get_callback_id(const std::string& name) const;
 	html_argument invoke_callback(int id, const std::vector<html_argument>& params) const;
 

@@ -129,6 +129,11 @@ namespace utils::properties
 		return appdata;
 	}
 
+	std::filesystem::path get_key_path()
+	{
+		return get_appdata_path() / "user";
+	}
+
 	std::unique_lock<named_mutex> lock()
 	{
 		static named_mutex mutex{"boiii-properties-lock"};

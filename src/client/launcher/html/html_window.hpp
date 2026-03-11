@@ -6,7 +6,7 @@ class html_window final
 {
 public:
 	html_window(const std::string& title, int width, int height,
-	            long flags = (WS_OVERLAPPEDWINDOW & ~(WS_THICKFRAME | WS_MAXIMIZEBOX)));
+	            long flags = WS_OVERLAPPEDWINDOW);
 
 	~html_window() = default;
 

@@ -569,6 +569,21 @@ namespace game
 		ASSET_TYPE_FULL_COUNT = 0x6C,
 	};
 
+	struct AssetLink
+	{
+		AssetLink* next;
+	};
+
+	struct XAssetPool
+	{
+		void* pool;
+		unsigned int itemSize;
+		int itemCount;
+		bool isSingleton[4];
+		int itemAllocCount;
+		AssetLink* freeHead;
+	};
+
 	struct RawFile
 	{
 		const char* name;

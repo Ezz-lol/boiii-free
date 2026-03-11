@@ -10,5 +10,6 @@ namespace demonware
 	private:
 		void incrementCounters(service_server* server, byte_buffer* buffer) const;
 		void getCounterTotals(service_server* server, byte_buffer* buffer) const;
+		void getCountersByGroup(service_server* server, byte_buffer* buffer) const;
 	};
 }

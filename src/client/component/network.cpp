@@ -2,11 +2,13 @@
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
 #include "game/fragment_handler.hpp"
+#include "game/utils.hpp"
 
 #include "command.hpp"
 #include "network.hpp"
 #include "party.hpp"
 #include "scheduler.hpp"
+#include "security.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -30,6 +32,7 @@ namespace network
 			auto& callbacks = get_callbacks();
 			const auto handler = callbacks.find(cmd_string);
 			const auto offset = cmd_string.size() + 5;
+
 			if (message->cursize < 0 || static_cast<size_t>(message->cursize) < offset || handler == callbacks.end())
 			{
 				return TRUE;
@@ -117,6 +120,14 @@ namespace network
 				if (++retries > 10) return;
 			}
 			while (bind(s, reinterpret_cast<sockaddr*>(&server_addr), sizeof(server_addr)) == SOCKET_ERROR);
+
+			printf("[NET] Socket bound on port %u\n", static_cast<unsigned>(port - 1));
+
+			if (!game::is_server())
+			{
+				auto* server_socket = reinterpret_cast<SOCKET*>(0x14A640988_g);
+				*server_socket = s;
+			}
 		}
 
 		bool& socket_byte_missing()
@@ -158,9 +169,15 @@ namespace network
 		                                     const game::LobbyType lobby_type, const uint64_t dest_module,
 		                                     game::msg_t* msg)
 		{
-			if (from_adr.type != game::NA_LOOPBACK)
+			if (from_adr.type != game::NA_LOOPBACK && game::is_server() && !game::is_server_running())
 			{
 				return 0;
+			}
+
+			// Network security: inspect packet for exploits before processing
+			if (from_adr.type != game::NA_LOOPBACK)
+			{
+				return 0; // drop malicious packet
 			}
 
 			return handle_packet_internal_hook.invoke<bool>(controller_index, from_adr, from_xuid, lobby_type,
@@ -351,10 +368,12 @@ namespace network
 				// Truncate error string to make sure there are no buffer overruns later
 				utils::hook::call(0x14134D206_g, com_error_oob_stub);
 
-				// intercept command handling
+				// intercept command handling (client-side OOB dispatch)
 				utils::hook::call(0x14134D146_g, utils::hook::assemble(handle_command_stub));
 
 				utils::hook::set<uint8_t>(0x14134D0FB_g, 0xEB);
+
+				utils::hook::call(0x14018E698_g, cl_dispatch_connectionless_packet_stub);
 			}
 
 			// TODO: Fix that
