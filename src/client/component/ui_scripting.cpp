@@ -43,6 +43,7 @@ namespace ui_scripting
 
 		bool unsafe_function_called_message_shown = false;
 		bool unsafe_lua_approved_for_session = false;
+		void show_unsafe_lua_dialog();
 
 		using lua_function_t = int(*)(game::hks::lua_State*);
 		std::unordered_map<size_t, utils::hook::detour> unsafe_function_detours;
