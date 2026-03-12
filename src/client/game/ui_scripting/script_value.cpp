@@ -93,7 +93,7 @@ namespace ui_scripting
 		obj.t = game::hks::TNUMBER;
 		obj.v.number = static_cast<float>(value);
 
-		this->value_.assign(obj);
+		this->value_ = hks_object(obj);
 	}
 
 	script_value::script_value(const unsigned int value)
@@ -102,7 +102,7 @@ namespace ui_scripting
 		obj.t = game::hks::TNUMBER;
 		obj.v.number = static_cast<float>(value);
 
-		this->value_.assign(obj);
+		this->value_ = hks_object(obj);
 	}
 
 	script_value::script_value(const bool value)
@@ -111,7 +111,7 @@ namespace ui_scripting
 		obj.t = game::hks::TBOOLEAN;
 		obj.v.boolean = value;
 
-		this->value_.assign(obj);
+		this->value_ = hks_object(obj);
 	}
 
 	script_value::script_value(const float value)
@@ -120,7 +120,7 @@ namespace ui_scripting
 		obj.t = game::hks::TNUMBER;
 		obj.v.number = static_cast<float>(value);
 
-		this->value_.assign(obj);
+		this->value_ = hks_object(obj);
 	}
 
 	script_value::script_value(const double value)
@@ -138,7 +138,7 @@ namespace ui_scripting
 
 		const auto top = state->m_apistack.top;
 		game::hks::hksi_lua_pushlstring(state, value, static_cast<std::uint32_t>(len));
-		this->value_.assign(state->m_apistack.top[-1]);
+		this->value_ = hks_object(state->m_apistack.top[-1]);
 		state->m_apistack.top = top;
 	}
 
