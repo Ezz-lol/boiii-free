@@ -58,6 +58,7 @@ namespace ui_scripting
 		};
 
 		globals_t globals;
+		table get_globals();
 
 		// Hot reload state
 		std::string hot_reload_path;
