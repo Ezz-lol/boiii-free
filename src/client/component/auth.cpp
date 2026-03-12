@@ -410,7 +410,7 @@ namespace auth
 	{
 		static const auto guid = []() -> uint64_t
 		{
-			if (game::is_server() || is_second_instance())
+			if (game::is_server())
 			{
 				return 0x110000100000000 | (::utils::cryptography::random::get_integer() & ~0x80000000);
 			}
