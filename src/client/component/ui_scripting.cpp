@@ -43,6 +43,7 @@ namespace ui_scripting
 
 		bool unsafe_function_called_message_shown = false;
 		bool unsafe_lua_approved_for_session = false;
+		void show_unsafe_lua_dialog();
 
 		using lua_function_t = int(*)(game::hks::lua_State*);
 		std::unordered_map<size_t, utils::hook::detour> unsafe_function_detours;
@@ -57,6 +58,7 @@ namespace ui_scripting
 		};
 
 		globals_t globals;
+		table get_globals();
 
 		// Hot reload state
 		std::string hot_reload_path;
@@ -69,19 +71,42 @@ namespace ui_scripting
 			const auto state = *game::hks::lua_state;
 			if (!state) return false;
 
-			game::hks::HksCompilerSettings compiler_settings{};
-			const auto result = game::hks::hksi_hksL_loadbuffer(
-				state, &compiler_settings, code.data(),
-				static_cast<unsigned __int64>(code.size()), chunk_name);
-
-			if (result != 0)
+			const auto lua = get_globals();
+			auto loadstring = lua["loadstring"];
+			if (!loadstring.is<function>())
 			{
-				game::Com_Printf(0, 0, "^1Hot Reload: Failed to compile Lua chunk '%s'\n", chunk_name);
+				game::Com_Printf(0, 0, "^1Lua chunk '%s' could not run: loadstring is unavailable\n", chunk_name);
 				return false;
 			}
 
-			game::hks::vm_call_internal(state, 0, 0, nullptr);
-			return true;
+			const auto sharing_mode = state->m_global->m_bytecodeSharingMode;
+			state->m_global->m_bytecodeSharingMode = game::hks::HKS_BYTECODE_SHARING_ON;
+			const auto _0 = utils::finally([&]
+			{
+				state->m_global->m_bytecodeSharingMode = sharing_mode;
+			});
+
+			const auto load_results = loadstring(code, chunk_name);
+			if (!load_results.empty() && load_results[0].is<function>())
+			{
+				const auto results = lua["pcall"](load_results[0]);
+				if (!results.empty() && results[0].is<bool>() && !results[0].as<bool>())
+				{
+					const auto error = (results.size() > 1 && results[1].is<std::string>())
+						? results[1].as<std::string>()
+						: "unknown Lua runtime error";
+					game::Com_Printf(0, 0, "^1Lua chunk '%s' failed: %s\n", chunk_name, error.c_str());
+					return false;
+				}
+
+				return true;
+			}
+
+			const auto error = (load_results.size() > 1 && load_results[1].is<std::string>())
+				? load_results[1].as<std::string>()
+				: "unknown Lua compile error";
+			game::Com_Printf(0, 0, "^1Lua chunk '%s' failed to compile: %s\n", chunk_name, error.c_str());
+			return false;
 		}
 
 		void fire_debug_reload(const char* root_name)
@@ -397,12 +422,22 @@ namespace ui_scripting
 			// HTTP functions
 			lua["game"]["httpget"] = function(convert_function([](const std::string& url) -> std::string
 			{
+				if (!unsafe_lua_approved_for_session)
+				{
+					show_unsafe_lua_dialog();
+					return "";
+				}
 				const auto result = utils::http::get_data(url);
 				return result.value_or("");
 			}), game::hks::TCFUNCTION);
 
 			lua["game"]["httppost"] = function(convert_function([](const std::string& url, const std::string& body) -> std::string
 			{
+				if (!unsafe_lua_approved_for_session)
+				{
+					show_unsafe_lua_dialog();
+					return "";
+				}
 				const auto result = utils::http::post_data(url, body);
 				return result.value_or("");
 			}), game::hks::TCFUNCTION);
@@ -493,7 +528,6 @@ namespace ui_scripting
 
 		void enable_globals()
 		{
-			const auto lua = get_globals();
 			const std::string code =
 				"local g = getmetatable(_G)\n"
 				"if not g then\n"
@@ -502,10 +536,7 @@ namespace ui_scripting
 				"end\n"
 				"g.__newindex = nil\n";
 
-			const auto state = *game::hks::lua_state;
-			state->m_global->m_bytecodeSharingMode = game::hks::HKS_BYTECODE_SHARING_ON;
-			lua["loadstring"](code)[0]();
-			state->m_global->m_bytecodeSharingMode = game::hks::HKS_BYTECODE_SHARING_SECURE;
+			execute_raw_lua(code, "enable_globals");
 		}
 
 		void setup_lua_globals()
@@ -557,7 +588,7 @@ namespace ui_scripting
 			setup_lua_globals();
 		}
 
-		bool doneFirstSnapshot = false;
+		std::atomic_bool doneFirstSnapshot{false};
 
 		void ui_cod_init_stub(const bool frontend)
 		{
@@ -568,7 +599,7 @@ namespace ui_scripting
 				// Fetch the names of the local files so file overrides are already handled
 				globals = {};
 				const utils::nt::library host{};
-				doneFirstSnapshot = false;
+				doneFirstSnapshot.store(false);
 
 				load_local_script_files((game::get_appdata_path() / "data/ui_scripts/").string());
 				load_local_script_files((host.get_folder() / "boiii/ui_scripts/").string());
@@ -616,11 +647,11 @@ namespace ui_scripting
 		{
 			cl_first_snapshot_hook.invoke(a1);
 
-			if (game::Com_IsRunningUILevel() || doneFirstSnapshot)
+			if (game::Com_IsRunningUILevel() || doneFirstSnapshot.load())
 			{
 				return;
 			}
-			doneFirstSnapshot = true;
+			doneFirstSnapshot.store(true);
 			hot_reload_in_game = true;
 			try_start();
 

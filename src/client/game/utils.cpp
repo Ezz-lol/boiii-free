@@ -12,6 +12,25 @@ namespace game
 	static_assert(offsetof(dvar_t, modified) == 32);
 	static_assert(offsetof(dvar_t, current) == 40);
 
+	namespace
+	{
+		dvar_t* try_get_sessionmode_specific_dvar(dvar_t* dvar)
+		{
+			if (!dvar || dvar->type != DVAR_TYPE_SESSIONMODE_BASE_DVAR)
+			{
+				return dvar;
+			}
+
+			if (Com_SessionMode_IsMode(MODE_COUNT))
+			{
+				return nullptr;
+			}
+
+			const auto mode = Com_SessionMode_GetMode();
+			return Dvar_GetSessionModeSpecificDvar(dvar, static_cast<eModes>(mode));
+		}
+	}
+
 	std::string get_dvar_string(const char* dvar_name)
 	{
 		const auto* dvar = Dvar_FindVar(dvar_name);
@@ -140,8 +159,11 @@ namespace game
 		auto* dvar_to_change = dvar;
 		if (dvar_to_change->type == DVAR_TYPE_SESSIONMODE_BASE_DVAR)
 		{
-			const auto mode = Com_SessionMode_GetMode();
-			dvar_to_change = Dvar_GetSessionModeSpecificDvar(dvar_to_change, static_cast<eModes>(mode));
+			dvar_to_change = try_get_sessionmode_specific_dvar(dvar_to_change);
+			if (!dvar_to_change)
+			{
+				return;
+			}
 		}
 
 		dvar_to_change->flags |= flags;
@@ -159,8 +181,11 @@ namespace game
 		auto* dvar_to_change = dvar;
 		if (dvar_to_change->type == DVAR_TYPE_SESSIONMODE_BASE_DVAR)
 		{
-			const auto mode = Com_SessionMode_GetMode();
-			dvar_to_change = Dvar_GetSessionModeSpecificDvar(dvar_to_change, static_cast<eModes>(mode));
+			dvar_to_change = try_get_sessionmode_specific_dvar(dvar_to_change);
+			if (!dvar_to_change)
+			{
+				return;
+			}
 		}
 
 		dvar_to_change->flags = flags;
@@ -178,8 +203,11 @@ namespace game
 		auto* dvar_to_change = dvar;
 		if (dvar_to_change->type == DVAR_TYPE_SESSIONMODE_BASE_DVAR)
 		{
-			const auto mode = Com_SessionMode_GetMode();
-			dvar_to_change = Dvar_GetSessionModeSpecificDvar(dvar_to_change, static_cast<eModes>(mode));
+			dvar_to_change = try_get_sessionmode_specific_dvar(dvar_to_change);
+			if (!dvar_to_change)
+			{
+				return;
+			}
 		}
 
 		dvar_to_change->flags &= ~flags;

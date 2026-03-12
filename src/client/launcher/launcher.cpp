@@ -556,15 +556,6 @@ namespace launcher
 						CloseHandle(snap);
 						return true;
 					}
-
-					if (_wcsicmp(name.c_str(), L"boiii.exe") == 0)
-					{
-						if (is_dedicated_server_process(pe.th32ProcessID))
-							continue;
-
-						CloseHandle(snap);
-						return true;
-					}
 				} while (Process32NextW(snap, &pe));
 			}
 

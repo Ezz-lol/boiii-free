@@ -34,6 +34,9 @@ namespace steam_proxy
 		steam::interface client_friends{};
 		steam::interface client_ugc{};
 
+		constexpr uint32_t workshop_app_id = 311210;
+		constexpr uint32_t launch_app_id = 480;
+
 		// real ISteamFriends from steamclient64.dll for rich presence/invites
 		steam::interface steam_friends_real{};
 
@@ -121,6 +124,80 @@ namespace steam_proxy
 			return disabled;
 		}
 
+		void set_pipe_app_id(const uint32_t app_id)
+		{
+			if (!client_utils)
+			{
+				return;
+			}
+
+			try
+			{
+				client_utils.invoke<void>("SetAppIDForCurrentPipe", app_id, false);
+			}
+			catch (...)
+			{
+			}
+		}
+
+		std::vector<std::filesystem::path> get_bo3_workshop_content_paths()
+		{
+			std::vector<std::filesystem::path> result;
+			std::error_code ec;
+
+			const auto module_path = utils::nt::library{}.get_path();
+			const auto game_path = module_path.parent_path();
+			const auto game_workshop_path = game_path.parent_path().parent_path() / "workshop" / "content" / "311210";
+			if (std::filesystem::exists(game_workshop_path, ec))
+			{
+				result.push_back(game_workshop_path);
+			}
+
+			const std::filesystem::path steam_path = steam::SteamAPI_GetSteamInstallPath();
+			if (!steam_path.empty())
+			{
+				const auto steam_workshop_path = steam_path / "steamapps" / "workshop" / "content" / "311210";
+				if (std::filesystem::exists(steam_workshop_path, ec)
+					&& std::find(result.begin(), result.end(), steam_workshop_path) == result.end())
+				{
+					result.push_back(steam_workshop_path);
+				}
+			}
+
+			return result;
+		}
+
+		void merge_local_workshop_content(subscribed_item_map& map)
+		{
+			std::error_code ec;
+
+			for (const auto& workshop_root : get_bo3_workshop_content_paths())
+			{
+				for (const auto& entry : std::filesystem::directory_iterator(workshop_root, ec))
+				{
+					if (ec || !entry.is_directory(ec))
+					{
+						continue;
+					}
+
+					const auto folder_name = entry.path().filename().string();
+					if (folder_name.empty() || !std::all_of(folder_name.begin(), folder_name.end(), [](const unsigned char c)
+					{
+						return std::isdigit(c) != 0;
+					}))
+					{
+						continue;
+					}
+
+					const auto workshop_id = std::strtoull(folder_name.c_str(), nullptr, 10);
+					auto& item = map[workshop_id];
+					item.available = true;
+					item.path = entry.path().string();
+					item.state |= 0x5;
+				}
+			}
+		}
+
 		void* load_client_engine()
 		{
 			if (!steam_client_module) return nullptr;
@@ -138,7 +215,7 @@ namespace steam_proxy
 
 		void load_client()
 		{
-			SetEnvironmentVariableA("SteamAppId", "480");
+			SetEnvironmentVariableA("SteamAppId", "311210");
 
 			const std::filesystem::path steam_path = steam::SteamAPI_GetSteamInstallPath();
 			if (steam_path.empty()) return;
@@ -161,6 +238,7 @@ namespace steam_proxy
 			client_utils = client_engine.invoke<void*>(14, steam_pipe);
 			client_friends = client_engine.invoke<void*>(13, global_user, steam_pipe);
 			client_ugc = client_engine.invoke<void*>(62, global_user, steam_pipe);
+			set_pipe_app_id(workshop_app_id);
 
 		}
 
@@ -219,14 +297,18 @@ namespace steam_proxy
 				return ownership_state::nosteam;
 			}
 
-			app_id = 480;
+			app_id = launch_app_id;
 
 			if (is_disabled())
 			{
 				return ownership_state::success;
 			}
 
-			client_utils.invoke<void>("SetAppIDForCurrentPipe", app_id, false);
+			set_pipe_app_id(static_cast<uint32_t>(app_id));
+			const auto _0 = utils::finally([]
+			{
+				set_pipe_app_id(workshop_app_id);
+			});
 
 			char our_directory[MAX_PATH] = {0};
 			GetCurrentDirectoryA(sizeof(our_directory), our_directory);
@@ -375,7 +457,7 @@ namespace steam_proxy
 		}
 		if (client_friends)
 		{
-			try { return client_friends.invoke<bool>("SetRichPresence", 480u, key.c_str(), value.c_str()); }
+			try { return client_friends.invoke<bool>("SetRichPresence", launch_app_id, key.c_str(), value.c_str()); }
 			catch (...) {}
 		}
 		return false;
@@ -390,7 +472,7 @@ namespace steam_proxy
 		}
 		if (client_friends)
 		{
-			try { client_friends.invoke<void>("ClearRichPresence", 480u); }
+			try { client_friends.invoke<void>("ClearRichPresence", launch_app_id); }
 			catch (...) {}
 		}
 	}
@@ -428,38 +510,35 @@ namespace steam_proxy
 		steam_ugc = static_cast<steam::ugc*>(ugc);
 	}
 
-	void update_map_client(subscribed_item_map& map)
-	{
-		const auto app_id = steam::SteamUtils()->GetAppID();
-		const auto num_items = client_ugc.invoke<uint32_t>("GetNumSubscribedItems", app_id);
-
-		if (!num_items)
+		void update_map_client(subscribed_item_map& map)
 		{
-			return;
+			const auto app_id = workshop_app_id;
+			const auto num_items = client_ugc.invoke<uint32_t>("GetNumSubscribedItems", app_id);
+
+			if (!num_items)
+			{
+				return;
+			}
+
+			std::vector<uint64_t> ids;
+			ids.resize(num_items);
+
+			auto result = client_ugc.invoke<uint32_t>("GetSubscribedItems", app_id, ids.data(), num_items);
+			result = std::min(num_items, result);
+
+			for (uint32_t i = 0; i < result; ++i)
+			{
+				char buffer[0x1000] = {0};
+				subscribed_item item{};
+
+				item.state = client_ugc.invoke<uint32_t>("GetItemState", app_id, ids[i]);
+				item.available = client_ugc.invoke<bool>("GetItemInstallInfo", app_id, ids[i], &item.size_on_disk,
+				                                         buffer, sizeof(buffer), &item.time_stamp);
+				item.path = buffer;
+
+				map[ids[i]] = std::move(item);
+			}
 		}
-
-		std::vector<uint64_t> ids;
-		ids.resize(num_items);
-
-		auto result = client_ugc.invoke<uint32_t>("GetSubscribedItems", app_id, ids.data(),
-		                                          num_items);
-		result = std::min(num_items, result);
-
-		for (uint32_t i = 0; i < result; ++i)
-		{
-			char buffer[0x1000] = {0};
-			subscribed_item item{};
-
-			item.state = client_ugc.invoke<uint32_t>("GetItemState", app_id, ids[i]);
-			item.available = client_ugc.invoke<bool>("GetItemInstallInfo", app_id, ids[i],
-			                                         &item.size_on_disk,
-			                                         buffer,
-			                                         sizeof(buffer), &item.time_stamp);
-			item.path = buffer;
-
-			map[ids[i]] = std::move(item);
-		}
-	}
 
 	void update_map_steam(subscribed_item_map& map)
 	{
@@ -490,34 +569,37 @@ namespace steam_proxy
 		}
 	}
 
-	void update_subscribed_items()
-	{
-		subscribed_item_map map{};
-
-		const auto _ = utils::finally([&]
+		void update_subscribed_items()
 		{
-			subscribed_items.access([&](subscribed_item_map& items)
+			subscribed_item_map map{};
+
+			const auto _ = utils::finally([&]
 			{
-				items = std::move(map);
+				subscribed_items.access([&](subscribed_item_map& items)
+				{
+					items = std::move(map);
+				});
 			});
-		});
 
-		try
-		{
-			if (client_ugc)
+			try
 			{
-				update_map_client(map);
+				if (client_ugc)
+				{
+					update_map_client(map);
+				}
+				else if (steam_ugc)
+				{
+					update_map_steam(map);
+				}
+
+				merge_local_workshop_content(map);
 			}
-			else if (steam_ugc)
+			catch (...)
 			{
-				update_map_steam(map);
+				client_ugc = {};
+				merge_local_workshop_content(map);
 			}
 		}
-		catch (...)
-		{
-			client_ugc = {};
-		}
-	}
 
 	void access_subscribed_items(
 		const std::function<void(const subscribed_item_map&)>& callback)

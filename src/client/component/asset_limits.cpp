@@ -146,12 +146,10 @@ namespace asset_limits
 			memcpy(new_pool, pool->pool,
 			       pool->itemAllocCount * static_cast<size_t>(entry_size));
 
-			// Rebuild free list for new entries
-			pool->freeHead = reinterpret_cast<game::AssetLink*>(
-				static_cast<char*>(new_pool) +
-				static_cast<size_t>(entry_size) * pool->itemAllocCount);
+			// Rebuild free list for ALL entries
+			pool->freeHead = reinterpret_cast<game::AssetLink*>(new_pool);
 
-			for (auto i = pool->itemAllocCount; i < static_cast<int>(new_size) - 1; i++)
+			for (auto i = 0; i < static_cast<int>(new_size) - 1; i++)
 			{
 				auto* current = reinterpret_cast<game::AssetLink*>(
 					static_cast<char*>(new_pool) + static_cast<size_t>(entry_size) * i);
