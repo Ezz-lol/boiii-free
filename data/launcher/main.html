@@ -499,6 +499,13 @@
                 </div>
                 <div class="settings-row">
                   <div>
+                    <div class="settings-row-label">XModel Mesh</div>
+                    <div class="settings-row-desc">Model mesh assets (default: 2048, min: 512)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apXModelMesh" data-pool="ap_xmodelmesh" min="512" value="2048" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
                     <div class="settings-row-label">Image</div>
                     <div class="settings-row-desc">Texture/image assets (default: 8192, min: 1024)</div>
                   </div>
@@ -513,6 +520,13 @@
                 </div>
                 <div class="settings-row">
                   <div>
+                    <div class="settings-row-label">Technique Set</div>
+                    <div class="settings-row-desc">Shader technique sets (default: 2048, min: 256)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apTechSet" data-pool="ap_techset" min="256" value="2048" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
                     <div class="settings-row-label">XAnim</div>
                     <div class="settings-row-desc">Animation assets (default: 4096, min: 512)</div>
                   </div>
@@ -524,6 +538,13 @@
                     <div class="settings-row-desc">Sound/audio assets (default: 4096, min: 512)</div>
                   </div>
                   <input type="number" class="settings-input asset-pool-input" id="apSound" data-pool="ap_sound" min="512" value="4096" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">TrueType Font</div>
+                    <div class="settings-row-desc">TTF font assets (default: 64, min: 32)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apTtf" data-pool="ap_ttf" min="32" value="64" autocomplete="off" style="width:90px;">
                 </div>
               </div>
 
@@ -577,10 +598,119 @@
                 </div>
                 <div class="settings-row">
                   <div>
+                    <div class="settings-row-label">Tag FX</div>
+                    <div class="settings-row-desc">Tag-attached effects (default: 256, min: 64)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apTagFx" data-pool="ap_tagfx" min="64" value="256" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
                     <div class="settings-row-label">Weapon</div>
                     <div class="settings-row-desc">Weapon definition assets (default: 512, min: 64)</div>
                   </div>
                   <input type="number" class="settings-input asset-pool-input" id="apWeapon" data-pool="ap_weapon" min="64" value="512" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">Attachment</div>
+                    <div class="settings-row-desc">Weapon attachment assets (default: 512, min: 64)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apAttachment" data-pool="ap_attachment" min="64" value="512" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">Attachment Unique</div>
+                    <div class="settings-row-desc">Unique attachment variants (default: 1024, min: 128)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apAttachUnique" data-pool="ap_attachunique" min="128" value="1024" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">Weapon Camo</div>
+                    <div class="settings-row-desc">Weapon camouflage assets (default: 256, min: 64)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apWeaponCamo" data-pool="ap_weaponcamo" min="64" value="256" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">Tracer</div>
+                    <div class="settings-row-desc">Bullet tracer effects (default: 128, min: 32)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apTracer" data-pool="ap_tracer" min="32" value="128" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">Vehicle</div>
+                    <div class="settings-row-desc">Vehicle definition assets (default: 128, min: 32)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apVehicleDef" data-pool="ap_vehicledef" min="32" value="128" autocomplete="off" style="width:90px;">
+                </div>
+              </div>
+
+              <div class="settings-section">
+                <div class="settings-section-title">Environment &amp; AI Pools</div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">Phys Preset</div>
+                    <div class="settings-row-desc">Physics preset definitions (default: 256, min: 64)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apPhysPreset" data-pool="ap_physpreset" min="64" value="256" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">Destructible Def</div>
+                    <div class="settings-row-desc">Destructible object definitions (default: 256, min: 64)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apDestructibleDef" data-pool="ap_destructibledef" min="64" value="256" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">Light Def</div>
+                    <div class="settings-row-desc">Light definition assets (default: 256, min: 64)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apLightDef" data-pool="ap_lightdef" min="64" value="256" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">Light Description</div>
+                    <div class="settings-row-desc">Light description assets (default: 1024, min: 128)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apLightDescription" data-pool="ap_lightdescription" min="128" value="1024" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">AI Type</div>
+                    <div class="settings-row-desc">AI type definitions (default: 256, min: 64)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apAiType" data-pool="ap_aitype" min="64" value="256" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">Character</div>
+                    <div class="settings-row-desc">Character definition assets (default: 256, min: 64)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apCharacter" data-pool="ap_character" min="64" value="256" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">Shellshock</div>
+                    <div class="settings-row-desc">Shellshock effect definitions (default: 128, min: 32)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apShellshock" data-pool="ap_shellshock" min="32" value="128" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">Rumble</div>
+                    <div class="settings-row-desc">Controller rumble definitions (default: 128, min: 32)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apRumble" data-pool="ap_rumble" min="32" value="128" autocomplete="off" style="width:90px;">
+                </div>
+                <div class="settings-row">
+                  <div>
+                    <div class="settings-row-label">XCam</div>
+                    <div class="settings-row-desc">Scripted camera assets (default: 256, min: 64)</div>
+                  </div>
+                  <input type="number" class="settings-input asset-pool-input" id="apXCam" data-pool="ap_xcam" min="64" value="256" autocomplete="off" style="width:90px;">
                 </div>
               </div>
 
