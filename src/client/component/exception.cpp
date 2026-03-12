@@ -352,6 +352,12 @@ namespace exception
 			return code == STATUS_INTEGER_OVERFLOW || code == STATUS_FLOAT_OVERFLOW || code == STATUS_SINGLE_STEP;
 		}
 
+		bool is_nonrecoverable_error(const LPEXCEPTION_POINTERS exceptioninfo)
+		{
+			const auto code = exceptioninfo->ExceptionRecord->ExceptionCode;
+			return code == EXCEPTION_NONCONTINUABLE_EXCEPTION;
+		}
+
 		LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo)
 		{
 			if (is_harmless_error(exceptioninfo))
@@ -363,6 +369,12 @@ namespace exception
 
 			exception_data.code = exceptioninfo->ExceptionRecord->ExceptionCode;
 			exception_data.address = exceptioninfo->ExceptionRecord->ExceptionAddress;
+
+			if (is_nonrecoverable_error(exceptioninfo))
+			{
+				display_error_dialog();
+			}
+
 			exceptioninfo->ContextRecord->Rip = get_reset_state_stub();
 
 			return EXCEPTION_CONTINUE_EXECUTION;
