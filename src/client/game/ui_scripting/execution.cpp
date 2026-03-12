@@ -5,6 +5,19 @@ namespace ui_scripting
 {
 	namespace
 	{
+		void report_lua_stack_overflow_once()
+		{
+			static std::atomic_bool logged{false};
+			if (!logged.exchange(true))
+			{
+				game::Com_Printf(0, 0, "^1UI scripting: Lua stack overflow prevented while pushing a value\n");
+			}
+
+#ifndef NDEBUG
+			assert(false && "UI scripting Lua stack overflow prevented");
+#endif
+		}
+
 		script_value get_field(void* ptr, game::hks::HksObjectType type, const script_value& key)
 		{
 			const auto state = *game::hks::lua_state;
@@ -37,15 +50,29 @@ namespace ui_scripting
 	void push_value(const script_value& value)
 	{
 		const auto state = *game::hks::lua_state;
-		*state->m_apistack.top = value.get_raw();
-		state->m_apistack.top++;
+		if (state->m_apistack.top < state->m_apistack.alloc_top)
+		{
+			*state->m_apistack.top = value.get_raw();
+			state->m_apistack.top++;
+		}
+		else
+		{
+			report_lua_stack_overflow_once();
+		}
 	}
 
 	void push_value(const game::hks::HksObject& value)
 	{
 		const auto state = *game::hks::lua_state;
-		*state->m_apistack.top = value;
-		state->m_apistack.top++;
+		if (state->m_apistack.top < state->m_apistack.alloc_top)
+		{
+			*state->m_apistack.top = value;
+			state->m_apistack.top++;
+		}
+		else
+		{
+			report_lua_stack_overflow_once();
+		}
 	}
 
 	script_value get_return_value(std::int64_t offset)

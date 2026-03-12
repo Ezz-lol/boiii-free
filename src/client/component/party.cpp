@@ -24,7 +24,6 @@ namespace party
 	namespace
 	{
 		std::atomic_bool is_connecting_to_dedi{false};
-		std::mutex connect_host_mutex;
 		game::netadr_t connect_host{{}, {}, game::NA_BAD, {}};
 
 		std::mutex hostname_mutex;
@@ -56,17 +55,17 @@ namespace party
 			auth::clear_stored_guids();
 
 			//FAILSAFE incase setup_server_map_stub fail to unload. sometimes it bug out and wont unload mod anymore.
-			//has not been actually tested to work.
 			if (game::isModLoaded())
 			{
-				const auto reconnect_addr = workshop::get_pending_mod_reconnect();
+
+				(void)workshop::get_pending_mod_reconnect();
 
 				game::loadMod(0, "", true);
 
 				auto start_time = std::make_shared<std::chrono::steady_clock::time_point>(
 					std::chrono::steady_clock::now());
 
-				scheduler::schedule([reconnect_addr, start_time]() -> bool
+				scheduler::schedule([addr, mapname, gamemode, usermap_id, mod_id, start_time]() -> bool
 					{
 						const auto elapsed = std::chrono::steady_clock::now() - *start_time;
 
@@ -78,7 +77,7 @@ namespace party
 
 						if (game::isModLoaded())
 						{
-							printf("[ Party ] Timeout: mod still loaded after 30s, attempting reconnect anyway\n");
+							printf("[ Party ] Timeout: mod still loaded after 30s, attempting connection anyway\n");
 						}
 						else
 						{
@@ -86,21 +85,10 @@ namespace party
 								std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
 						}
 
-						if (!reconnect_addr.empty())
-						{
-							printf("[ RECONNECT ] scheduling reconnect in 3 seconds...\n");
+						workshop::setup_same_mod_as_host(usermap_id, mod_id);
 
-							scheduler::schedule([reconnect_addr]() -> bool
-								{
-									printf("[ RECONNECT ] connecting back to the server\n");
-									game::Cbuf_AddText(0, utils::string::va("connect %s\n", reconnect_addr.c_str()));
-									return scheduler::cond_end;
-								}, scheduler::main, 3s);
-						}
-						else
-						{
-							printf("[ RECONNECT ] no address found\n");
-						}
+						game::XSESSION_INFO info{};
+						game::CL_ConnectFromLobby(0, &info, &addr, 1, 0, mapname.data(), gamemode.data(), usermap_id.data());
 
 						return scheduler::cond_end;
 					}, scheduler::main, 200ms);
@@ -331,10 +319,7 @@ namespace party
 					return;
 				}
 
-				{
-					std::lock_guard lock(connect_host_mutex);
-					connect_host = target;
-				}
+				connect_host = target;
 			}
 
 			profile_infos::clear_profile_infos();
@@ -359,12 +344,7 @@ namespace party
 							{
 								auto usermap_id = workshop::get_usermap_publisher_id(mapname);
 								game::Com_SessionMode_SetGameMode(game::MODE_GAME_MATCHMAKING_PLAYLIST);
-							game::netadr_t host_copy{};
-							{
-								std::lock_guard lock(connect_host_mutex);
-								host_copy = connect_host;
-							}
-							connect_to_lobby_with_mode_internal(host_copy, mode, mapname, gametype, usermap_id, mod_id);
+								connect_to_lobby_with_mode_internal(connect_host, mode, mapname, gametype, usermap_id, mod_id);
 							}, scheduler::main);
 							return;
 						}
@@ -372,12 +352,7 @@ namespace party
 				}
 			}
 
-			game::netadr_t host_copy{};
-			{
-				std::lock_guard lock(connect_host_mutex);
-				host_copy = connect_host;
-			}
-			query_server(host_copy, handle_connect_query_response);
+			query_server(connect_host, handle_connect_query_response);
 		}
 
 		void send_server_query(server_query& query)
@@ -490,18 +465,12 @@ namespace party
 
 	game::netadr_t get_connect_host()
 	{
-		std::lock_guard lock(connect_host_mutex);
 		return connect_host;
 	}
 
 	bool is_host(const game::netadr_t& addr)
 	{
-		game::netadr_t host_copy{};
-		{
-			std::lock_guard lock(connect_host_mutex);
-			host_copy = connect_host;
-		}
-		return get_connected_server() == addr || host_copy == addr;
+		return get_connected_server() == addr || connect_host == addr;
 	}
 
 	void join_session(const game::netadr_t& addr, const std::string& hostname, const uint64_t xuid,

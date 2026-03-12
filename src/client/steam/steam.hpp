@@ -1,7 +1,6 @@
 #pragma once
 
-//#define STEAM_EXPORT extern "C" __declspec(dllexport)
-#define STEAM_EXPORT
+#define STEAM_EXPORT extern "C" __declspec(dllexport)
 
 struct raw_steam_id final
 {

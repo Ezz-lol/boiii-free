@@ -19,18 +19,36 @@ namespace asset_limits
 		};
 
 		static const pool_config pool_configs[] = {
-			{ game::ASSET_TYPE_XMODEL,           "ap_xmodel",          2048 },
-			{ game::ASSET_TYPE_IMAGE,            "ap_image",           8192 },
-			{ game::ASSET_TYPE_MATERIAL,         "ap_material",        8192 },
+			{ game::ASSET_TYPE_PHYSPRESET,       "ap_physpreset",      256  },
+			{ game::ASSET_TYPE_DESTRUCTIBLEDEF,  "ap_destructibledef", 256  },
 			{ game::ASSET_TYPE_XANIMPARTS,       "ap_xanim",           4096 },
+			{ game::ASSET_TYPE_XMODEL,           "ap_xmodel",          2048 },
+			{ game::ASSET_TYPE_XMODELMESH,       "ap_xmodelmesh",      2048 },
+			{ game::ASSET_TYPE_MATERIAL,         "ap_material",        8192 },
+			{ game::ASSET_TYPE_TECHNIQUE_SET,    "ap_techset",         2048 },
+			{ game::ASSET_TYPE_IMAGE,            "ap_image",           8192 },
 			{ game::ASSET_TYPE_SOUND,            "ap_sound",           4096 },
-			{ game::ASSET_TYPE_RAWFILE,          "ap_rawfile",         2048 },
-			{ game::ASSET_TYPE_SCRIPTPARSETREE,  "ap_scriptparsetree", 2048 },
-			{ game::ASSET_TYPE_STRINGTABLE,      "ap_stringtable",     128 },
-			{ game::ASSET_TYPE_SCRIPTBUNDLE,     "ap_scriptbundle",    512 },
+			{ game::ASSET_TYPE_LIGHT_DEF,        "ap_lightdef",        256  },
 			{ game::ASSET_TYPE_LOCALIZE_ENTRY,   "ap_localize",        2048 },
+			{ game::ASSET_TYPE_WEAPON,           "ap_weapon",          512  },
+			{ game::ASSET_TYPE_ATTACHMENT,       "ap_attachment",      512  },
+			{ game::ASSET_TYPE_ATTACHMENT_UNIQUE,"ap_attachunique",    1024 },
+			{ game::ASSET_TYPE_WEAPON_CAMO,      "ap_weaponcamo",      256  },
 			{ game::ASSET_TYPE_FX,               "ap_fx",              1024 },
-			{ game::ASSET_TYPE_WEAPON,           "ap_weapon",          512 },
+			{ game::ASSET_TYPE_TAGFX,            "ap_tagfx",           256  },
+			{ game::ASSET_TYPE_AITYPE,           "ap_aitype",          256  },
+			{ game::ASSET_TYPE_CHARACTER,        "ap_character",       256  },
+			{ game::ASSET_TYPE_RAWFILE,          "ap_rawfile",         2048 },
+			{ game::ASSET_TYPE_STRINGTABLE,      "ap_stringtable",     128  },
+			{ game::ASSET_TYPE_SCRIPTPARSETREE,  "ap_scriptparsetree", 2048 },
+			{ game::ASSET_TYPE_SCRIPTBUNDLE,     "ap_scriptbundle",    512  },
+			{ game::ASSET_TYPE_RUMBLE,           "ap_rumble",          128  },
+			{ game::ASSET_TYPE_LIGHT_DESCRIPTION,"ap_lightdescription",1024 },
+			{ game::ASSET_TYPE_SHELLSHOCK,       "ap_shellshock",      128  },
+			{ game::ASSET_TYPE_XCAM,             "ap_xcam",            256  },
+			{ game::ASSET_TYPE_TRACER,           "ap_tracer",          128  },
+			{ game::ASSET_TYPE_VEHICLEDEF,       "ap_vehicledef",      128  },
+			{ game::ASSET_TYPE_TTF,              "ap_ttf",             64   },
 		};
 
 		rapidjson::Document load_settings_doc()
@@ -116,13 +134,6 @@ namespace asset_limits
 				return;
 			}
 
-			if (pool->itemCount > 0)
-			{
-				printf("[AssetLimits] Skipping pool resize for type %d (in-use count: %d)\n",
-				       static_cast<int>(type), pool->itemCount);
-				return;
-			}
-
 			const auto new_pool = calloc(new_size, entry_size);
 			if (!new_pool)
 			{
@@ -132,18 +143,13 @@ namespace asset_limits
 			}
 
 			// Copy existing entries
-			if (pool->pool && pool->itemAllocCount > 0)
-			{
-				memcpy(new_pool, pool->pool,
-				       pool->itemAllocCount * static_cast<size_t>(entry_size));
-			}
+			memcpy(new_pool, pool->pool,
+			       pool->itemAllocCount * static_cast<size_t>(entry_size));
 
-			// Rebuild free list for new entries
-			pool->freeHead = reinterpret_cast<game::AssetLink*>(
-				static_cast<char*>(new_pool) +
-				static_cast<size_t>(entry_size) * pool->itemAllocCount);
+			// Rebuild free list for ALL entries
+			pool->freeHead = reinterpret_cast<game::AssetLink*>(new_pool);
 
-			for (auto i = pool->itemAllocCount; i < static_cast<int>(new_size) - 1; i++)
+			for (auto i = 0; i < static_cast<int>(new_size) - 1; i++)
 			{
 				auto* current = reinterpret_cast<game::AssetLink*>(
 					static_cast<char*>(new_pool) + static_cast<size_t>(entry_size) * i);
@@ -157,18 +163,11 @@ namespace asset_limits
 				static_cast<size_t>(entry_size) * (new_size - 1));
 			last->next = nullptr;
 
-			const auto old_pool = pool->pool;
-			const auto old_alloc = pool->itemAllocCount;
 			pool->pool = new_pool;
 			pool->itemAllocCount = static_cast<int>(new_size);
 
-			if (old_pool)
-			{
-				free(old_pool);
-			}
-
 			printf("Reallocated asset pool type %d: %d -> %u entries\n",
-			       static_cast<int>(type), old_alloc, new_size);
+			       static_cast<int>(type), pool->itemCount, new_size);
 		}
 	}
 

@@ -272,6 +272,67 @@ namespace workshop
 			item.publisherIdInteger = std::strtoul(item.publisherId, nullptr, 10);
 		}
 
+		void populate_workshop_paths(game::workshop_data& item, const std::filesystem::path& content_folder,
+			const game::workshop_type type)
+		{
+			std::memset(&item, 0, sizeof(item));
+
+			const auto zone_path = content_folder / "zone";
+			const auto relative_zone_path = std::filesystem::path(type == game::WORKSHOP_MOD ? "mods" : "usermaps") /
+				content_folder.filename() / "zone";
+
+			utils::string::copy(item.contentPathToZoneFiles, relative_zone_path.generic_string().c_str());
+			utils::string::copy(item.absolutePathContentFolder, content_folder.generic_string().c_str());
+			utils::string::copy(item.absolutePathZoneFiles, zone_path.generic_string().c_str());
+			item.unk = 1;
+			item.unk2 = 0;
+			item.unk3 = 0;
+			item.unk4 = 0;
+			item.type = type;
+		}
+
+		void supplement_mods_from_disk()
+		{
+			if (*game::modsCount != 0)
+			{
+				return;
+			}
+
+			std::error_code ec;
+			const auto mods_dir = std::filesystem::current_path() / "mods";
+			if (!std::filesystem::exists(mods_dir, ec))
+			{
+				return;
+			}
+
+			unsigned int count = 0;
+			for (const auto& entry : std::filesystem::directory_iterator(mods_dir, ec))
+			{
+				if (ec || !entry.is_directory(ec))
+				{
+					continue;
+				}
+
+				const auto zone_dir = entry.path() / "zone";
+				const auto workshop_json = zone_dir / "workshop.json";
+				if (!std::filesystem::exists(zone_dir, ec) || !std::filesystem::exists(workshop_json, ec))
+				{
+					continue;
+				}
+
+				auto& mod_data = game::modsPool[count];
+				populate_workshop_paths(mod_data, entry.path(), game::WORKSHOP_MOD);
+				load_workshop_data(mod_data);
+				++count;
+			}
+
+			if (count)
+			{
+				*game::modsCount = count;
+				printf("[ Workshop ] Supplemented %u mods from disk fallback\n", count);
+			}
+		}
+
 		void load_usermap_content_stub(void* usermaps_count, int type)
 		{
 			utils::hook::invoke<void>(game::select(0x1420D6430, 0x1404E2360), usermaps_count, type);
@@ -292,6 +353,7 @@ namespace workshop
 		void load_mod_content_stub(void* mods_count, int type)
 		{
 			utils::hook::invoke<void>(game::select(0x1420D6430, 0x1404E2360), mods_count, type);
+			supplement_mods_from_disk();
 
 			for (unsigned int i = 0; i < *game::modsCount; ++i)
 			{

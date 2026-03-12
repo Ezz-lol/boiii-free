@@ -73,19 +73,23 @@ namespace ui_scripting
 		value.t = game::hks::TUSERDATA;
 
 		const auto state = *game::hks::lua_state;
-		const auto top = state->m_apistack.top;
+		if (state)
+		{
+			const auto top = state->m_apistack.top;
 
-		push_value(value);
+			push_value(value);
 
-		this->ref = game::hks::hksi_luaL_ref(*game::hks::lua_state, -10000);
-		state->m_apistack.top = top;
+			this->ref = game::hks::hksi_luaL_ref(state, -10000);
+			state->m_apistack.top = top;
+		}
 	}
 
 	void userdata::release()
 	{
-		if (this->ref)
+		const auto state = *game::hks::lua_state;
+		if (this->ref && state)
 		{
-			game::hks::hksi_luaL_unref(*game::hks::lua_state, -10000, this->ref);
+			game::hks::hksi_luaL_unref(state, -10000, this->ref);
 		}
 	}
 
@@ -188,25 +192,33 @@ namespace ui_scripting
 		value.t = game::hks::TTABLE;
 
 		const auto state = *game::hks::lua_state;
-		const auto top = state->m_apistack.top;
+		if (state)
+		{
+			const auto top = state->m_apistack.top;
 
-		push_value(value);
+			push_value(value);
 
-		this->ref = game::hks::hksi_luaL_ref(*game::hks::lua_state, -10000);
-		state->m_apistack.top = top;
+			this->ref = game::hks::hksi_luaL_ref(state, -10000);
+			state->m_apistack.top = top;
+		}
 	}
 
 	void table::release()
 	{
-		if (this->ref)
+		const auto state = *game::hks::lua_state;
+		if (this->ref && state)
 		{
-			game::hks::hksi_luaL_unref(*game::hks::lua_state, -10000, this->ref);
+			game::hks::hksi_luaL_unref(state, -10000, this->ref);
 		}
 	}
 
 	void table::set(const script_value& key, const script_value& value) const
 	{
-		set_field(*this, key, value);
+		const auto state = *game::hks::lua_state;
+		if (state)
+		{
+			set_field(*this, key, value);
+		}
 	}
 
 	table_value table::operator[](const script_value& key) const
@@ -216,13 +228,23 @@ namespace ui_scripting
 
 	script_value table::get(const script_value& key) const
 	{
-		return get_field(*this, key);
+		const auto state = *game::hks::lua_state;
+		if (state)
+		{
+			return get_field(*this, key);
+		}
+
+		return {};
 	}
 
 	table_value::table_value(const table& table, const script_value& key)
 		: table_(table), key_(key)
 	{
-		this->value_ = this->table_.get(key).get_raw();
+		const auto state = *game::hks::lua_state;
+		if (state)
+		{
+			this->value_ = this->table_.get(key).get_raw();
+		}
 	}
 
 	void table_value::operator=(const script_value& value)
@@ -254,9 +276,12 @@ namespace ui_scripting
 	function::function(game::hks::lua_function func)
 	{
 		const auto state = *game::hks::lua_state;
-		this->ptr = game::hks::cclosure_Create(state, func, 0, 0, 0);
-		this->type = game::hks::HksObjectType::TCFUNCTION;
-		this->add();
+		if (state)
+		{
+			this->ptr = game::hks::cclosure_Create(state, func, 0, 0, 0);
+			this->type = game::hks::HksObjectType::TCFUNCTION;
+			this->add();
+		}
 	}
 
 	function::function(game::hks::cclosure* ptr_, game::hks::HksObjectType type_)
@@ -318,19 +343,23 @@ namespace ui_scripting
 		value.t = this->type;
 
 		const auto state = *game::hks::lua_state;
-		const auto top = state->m_apistack.top;
+		if (state)
+		{
+			const auto top = state->m_apistack.top;
 
-		push_value(value);
+			push_value(value);
 
-		this->ref = game::hks::hksi_luaL_ref(*game::hks::lua_state, -10000);
-		state->m_apistack.top = top;
+			this->ref = game::hks::hksi_luaL_ref(state, -10000);
+			state->m_apistack.top = top;
+		}
 	}
 
 	void function::release()
 	{
-		if (this->ref)
+		const auto state = *game::hks::lua_state;
+		if (this->ref && state)
 		{
-			game::hks::hksi_luaL_unref(*game::hks::lua_state, -10000, this->ref);
+			game::hks::hksi_luaL_unref(state, -10000, this->ref);
 		}
 	}
 

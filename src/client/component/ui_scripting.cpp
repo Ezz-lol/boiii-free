@@ -58,6 +58,7 @@ namespace ui_scripting
 		};
 
 		globals_t globals;
+		table get_globals();
 
 		// Hot reload state
 		std::string hot_reload_path;
@@ -70,19 +71,42 @@ namespace ui_scripting
 			const auto state = *game::hks::lua_state;
 			if (!state) return false;
 
-			game::hks::HksCompilerSettings compiler_settings{};
-			const auto result = game::hks::hksi_hksL_loadbuffer(
-				state, &compiler_settings, code.data(),
-				static_cast<unsigned __int64>(code.size()), chunk_name);
-
-			if (result != 0)
+			const auto lua = get_globals();
+			auto loadstring = lua["loadstring"];
+			if (!loadstring.is<function>())
 			{
-				game::Com_Printf(0, 0, "^1Hot Reload: Failed to compile Lua chunk '%s'\n", chunk_name);
+				game::Com_Printf(0, 0, "^1Lua chunk '%s' could not run: loadstring is unavailable\n", chunk_name);
 				return false;
 			}
 
-			game::hks::vm_call_internal(state, 0, 0, nullptr);
-			return true;
+			const auto sharing_mode = state->m_global->m_bytecodeSharingMode;
+			state->m_global->m_bytecodeSharingMode = game::hks::HKS_BYTECODE_SHARING_ON;
+			const auto _0 = utils::finally([&]
+			{
+				state->m_global->m_bytecodeSharingMode = sharing_mode;
+			});
+
+			const auto load_results = loadstring(code, chunk_name);
+			if (!load_results.empty() && load_results[0].is<function>())
+			{
+				const auto results = lua["pcall"](load_results[0]);
+				if (!results.empty() && results[0].is<bool>() && !results[0].as<bool>())
+				{
+					const auto error = (results.size() > 1 && results[1].is<std::string>())
+						? results[1].as<std::string>()
+						: "unknown Lua runtime error";
+					game::Com_Printf(0, 0, "^1Lua chunk '%s' failed: %s\n", chunk_name, error.c_str());
+					return false;
+				}
+
+				return true;
+			}
+
+			const auto error = (load_results.size() > 1 && load_results[1].is<std::string>())
+				? load_results[1].as<std::string>()
+				: "unknown Lua compile error";
+			game::Com_Printf(0, 0, "^1Lua chunk '%s' failed to compile: %s\n", chunk_name, error.c_str());
+			return false;
 		}
 
 		void fire_debug_reload(const char* root_name)
@@ -504,7 +528,6 @@ namespace ui_scripting
 
 		void enable_globals()
 		{
-			const auto lua = get_globals();
 			const std::string code =
 				"local g = getmetatable(_G)\n"
 				"if not g then\n"
@@ -513,10 +536,7 @@ namespace ui_scripting
 				"end\n"
 				"g.__newindex = nil\n";
 
-			const auto state = *game::hks::lua_state;
-			state->m_global->m_bytecodeSharingMode = game::hks::HKS_BYTECODE_SHARING_ON;
-			lua["loadstring"](code)[0]();
-			state->m_global->m_bytecodeSharingMode = game::hks::HKS_BYTECODE_SHARING_SECURE;
+			execute_raw_lua(code, "enable_globals");
 		}
 
 		void setup_lua_globals()

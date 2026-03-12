@@ -27,7 +27,6 @@ namespace launcher::workshop
 {
 	std::chrono::steady_clock::time_point download_start_time;
 	double mod_size = 0.0;
-	std::atomic<bool> workshop_cancel_requested{ false };
 
 	// Convert UTF-8 std::string to a CComVariant with proper wide-string encoding
 	CComVariant utf8_variant(const std::string& utf8_str)
@@ -112,11 +111,6 @@ namespace launcher::workshop
 
 		while ( running)
 		{
-			if (!::workshop::launcher_downloading.load() || workshop_cancel_requested.load())
-			{
-				return;
-			}
-
 			std::streampos pos = file.tellg();
 
 			if (!std::getline(file, line))
@@ -179,11 +173,26 @@ namespace launcher::workshop
 
 		std::mutex workshop_download_mutex;
 		PROCESS_INFORMATION workshop_download_process{};
+		std::atomic<bool> workshop_cancel_requested{ false };
 		std::atomic<bool> workshop_paused{ false };
 
 		std::mutex workshop_browse_mutex;
 		std::vector<std::string> workshop_browse_cache;
 		std::atomic<bool> workshop_browse_loading{ false };
+		std::atomic<std::uint64_t> workshop_browse_request_token{ 0 };
+
+		bool is_active_browse_request(const std::uint64_t token)
+		{
+			return workshop_browse_loading.load() && workshop_browse_request_token.load() == token;
+		}
+
+		void finish_browse_request(const std::uint64_t token)
+		{
+			if (workshop_browse_request_token.load() == token)
+			{
+				workshop_browse_loading = false;
+			}
+		}
 
 		std::string human_readable_size(std::uint64_t bytes);
 		void save_workshop_backup(const std::string& json_data);
@@ -800,7 +809,7 @@ namespace launcher::workshop
 			return 0;
 		}
 
-		std::string search_workshop_by_name(const std::string& search_text)
+		std::string search_workshop_by_name(const std::string& search_text, const std::uint64_t request_token)
 		{
 			std::string backup_json = load_workshop_backup();
 			try {
@@ -816,7 +825,7 @@ namespace launcher::workshop
 				const int max_pages = 5;
 				const std::string encoded_query = url_encode(search_text);
 
-				for (int page = 1; page <= max_pages && workshop_browse_loading; ++page) {
+				for (int page = 1; page <= max_pages && is_active_browse_request(request_token); ++page) {
 					try {
 						std::string url = "https://steamcommunity.com/workshop/browse/?appid=311210&searchtext=" + encoded_query
 							+ "&browsesort=textsearch&section=readytouseitems&actualsort=textsearch&p=" + std::to_string(page);
@@ -852,7 +861,7 @@ namespace launcher::workshop
 				w.StartArray();
 
 				const size_t batch_size = 20;
-				for (size_t i = 0; i < all_ids.size() && workshop_browse_loading; i += batch_size) {
+				for (size_t i = 0; i < all_ids.size() && is_active_browse_request(request_token); i += batch_size) {
 					try {
 						const size_t batch_end = std::min(i + batch_size, all_ids.size());
 						const int count = static_cast<int>(batch_end - i);
@@ -973,14 +982,12 @@ namespace launcher::workshop
 			}
 		}
 
-		void workshop_search_fetch_thread(const std::string& search_text)
+		void workshop_search_fetch_thread(const std::string& search_text, const std::uint64_t request_token)
 		{
 			try {
-				workshop_browse_loading = true;
-
 				try {
 					std::string cached = load_workshop_backup();
-					if (!cached.empty() && cached != "[]") {
+					if (!cached.empty() && cached != "[]" && is_active_browse_request(request_token)) {
 						std::lock_guard lock(workshop_browse_mutex);
 						workshop_browse_cache.clear();
 						workshop_browse_cache.push_back(cached);
@@ -989,20 +996,20 @@ namespace launcher::workshop
 				catch (...) {
 				}
 
-				std::string result = search_workshop_by_name(search_text);
-				if (!result.empty() && result != "[]") {
+				std::string result = search_workshop_by_name(search_text, request_token);
+				if (!result.empty() && result != "[]" && is_active_browse_request(request_token)) {
 					std::lock_guard lock(workshop_browse_mutex);
 					workshop_browse_cache.clear();
 					workshop_browse_cache.push_back(result);
 				}
-				workshop_browse_loading = false;
+				finish_browse_request(request_token);
 			}
 			catch (...) {
-				workshop_browse_loading = false;
+				finish_browse_request(request_token);
 			}
 		}
 
-		std::string fetch_all_workshop_items()
+		std::string fetch_all_workshop_items(const std::uint64_t request_token)
 		{
 			std::string backup_json = load_workshop_backup();
 			try {
@@ -1017,7 +1024,7 @@ namespace launcher::workshop
 				std::map<std::string, int> item_ratings;
 				const int max_pages = 20;
 
-				for (int page = 1; page <= max_pages && workshop_browse_loading; ++page) {
+				for (int page = 1; page <= max_pages && is_active_browse_request(request_token); ++page) {
 					try {
 						std::string url = "https://steamcommunity.com/workshop/browse/?appid=311210&browsesort=mostrecent&section=readytouseitems&actualsort=mostrecent&p=" + std::to_string(page);
 						const auto resp = utils::http::get_data(url, h, {}, 3);
@@ -1054,7 +1061,7 @@ namespace launcher::workshop
 				w.StartArray();
 
 				const size_t batch_size = 20;
-				for (size_t i = 0; i < all_ids.size() && workshop_browse_loading; i += batch_size) {
+				for (size_t i = 0; i < all_ids.size() && is_active_browse_request(request_token); i += batch_size) {
 					try {
 						const size_t batch_end = std::min(i + batch_size, all_ids.size());
 						const int count = static_cast<int>(batch_end - i);
@@ -1184,14 +1191,12 @@ namespace launcher::workshop
 			}
 		}
 
-		void workshop_browse_fetch_thread(int /*page_num*/)
+		void workshop_browse_fetch_thread(int /*page_num*/, const std::uint64_t request_token)
 		{
 			try {
-				workshop_browse_loading = true;
-
 				try {
 					std::string cached = load_workshop_backup();
-					if (!cached.empty() && cached != "[]") {
+					if (!cached.empty() && cached != "[]" && is_active_browse_request(request_token)) {
 						std::lock_guard lock(workshop_browse_mutex);
 						workshop_browse_cache.clear();
 						workshop_browse_cache.push_back(cached);
@@ -1200,16 +1205,16 @@ namespace launcher::workshop
 				catch (...) {
 				}
 
-				std::string result = fetch_all_workshop_items();
-				{
+				std::string result = fetch_all_workshop_items(request_token);
+				if (is_active_browse_request(request_token)) {
 					std::lock_guard lock(workshop_browse_mutex);
 					workshop_browse_cache.clear();
 					workshop_browse_cache.push_back(result);
 				}
-				workshop_browse_loading = false;
+				finish_browse_request(request_token);
 			}
 			catch (...) {
-				workshop_browse_loading = false;
+				finish_browse_request(request_token);
 			}
 		}
 
@@ -1372,7 +1377,7 @@ namespace launcher::workshop
 		{
 			try
 			{
-				if (::workshop::downloading_workshop_item.load())
+				if (::workshop::downloading_workshop_item)
 				{
 					set_workshop_status("Error: An in-game download is already in progress.", 0.0,
 						"Wait for the current in-game download to finish before starting a new one from the launcher.");
@@ -2454,7 +2459,7 @@ namespace launcher::workshop
 				auto id = extract_workshop_id(params[0].get_string());
 				if (id.empty())
 					return CComVariant("Error: Invalid Workshop ID or link.");
-				if (::workshop::downloading_workshop_item.load())
+				if (::workshop::downloading_workshop_item)
 					return CComVariant("Error: An in-game download is already in progress. Wait for it to finish.");
 				if (::workshop::launcher_downloading.load())
 					return CComVariant("Error: A launcher download is already in progress.");
@@ -2510,7 +2515,9 @@ namespace launcher::workshop
 				if (page < 1)
 					page = 1;
 
-				std::thread(workshop_browse_fetch_thread, page).detach();
+				workshop_browse_loading = true;
+				const auto request_token = workshop_browse_request_token.fetch_add(1) + 1;
+				std::thread(workshop_browse_fetch_thread, page, request_token).detach();
 				return CComVariant("Fetching...");
 			});
 
@@ -2523,7 +2530,9 @@ namespace launcher::workshop
 				if (query.empty())
 					return CComVariant("Error: empty search query");
 
-				std::thread(workshop_search_fetch_thread, query).detach();
+				workshop_browse_loading = true;
+				const auto request_token = workshop_browse_request_token.fetch_add(1) + 1;
+				std::thread(workshop_search_fetch_thread, query, request_token).detach();
 				return CComVariant("Searching...");
 			});
 

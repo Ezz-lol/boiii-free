@@ -51,7 +51,7 @@ namespace launcher
 
 		std::mutex remove_status_mutex;
 		std::string remove_status_message;
-		std::atomic<double> remove_progress_percent{0.0};
+		double remove_progress_percent = 0.0;
 		std::string remove_progress_details;
 		std::atomic<bool> remove_running{false};
 
@@ -59,7 +59,7 @@ namespace launcher
 		{
 			std::lock_guard lock(remove_status_mutex);
 			remove_status_message = msg;
-			remove_progress_percent.store(pct);
+			remove_progress_percent = pct;
 			remove_progress_details = details;
 		}
 
@@ -67,7 +67,7 @@ namespace launcher
 		{
 			std::lock_guard lock(remove_status_mutex);
 			remove_status_message.clear();
-			remove_progress_percent.store(0.0);
+			remove_progress_percent = 0.0;
 			remove_progress_details.clear();
 		}
 
@@ -553,15 +553,6 @@ namespace launcher
 
 					if (_wcsicmp(name.c_str(), L"BlackOps3.exe") == 0)
 					{
-						CloseHandle(snap);
-						return true;
-					}
-
-					if (_wcsicmp(name.c_str(), L"boiii.exe") == 0)
-					{
-						if (is_dedicated_server_process(pe.th32ProcessID))
-							continue;
-
 						CloseHandle(snap);
 						return true;
 					}
@@ -1547,7 +1538,7 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 				rapidjson::Writer<rapidjson::StringBuffer> w(buf);
 				w.StartObject();
 				w.Key("message"); w.String(remove_status_message.c_str());
-			w.Key("progress"); w.Double(remove_progress_percent.load());
+				w.Key("progress"); w.Double(remove_progress_percent);
 				w.Key("details"); w.String(remove_progress_details.c_str());
 				w.Key("running"); w.Bool(remove_running.load());
 				w.EndObject();

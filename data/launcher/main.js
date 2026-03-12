@@ -2054,18 +2054,36 @@
   };
 
   var ASSET_POOL_DEFAULTS = {
-    ap_xmodel: 2048,
-    ap_image: 8192,
-    ap_material: 8192,
+    ap_physpreset: 256,
+    ap_destructibledef: 256,
     ap_xanim: 4096,
+    ap_xmodel: 2048,
+    ap_xmodelmesh: 2048,
+    ap_material: 8192,
+    ap_techset: 2048,
+    ap_image: 8192,
     ap_sound: 4096,
-    ap_rawfile: 2048,
-    ap_scriptparsetree: 2048,
-    ap_stringtable: 128,
-    ap_scriptbundle: 512,
+    ap_lightdef: 256,
     ap_localize: 2048,
+    ap_weapon: 512,
+    ap_attachment: 512,
+    ap_attachunique: 1024,
+    ap_weaponcamo: 256,
     ap_fx: 1024,
-    ap_weapon: 512
+    ap_tagfx: 256,
+    ap_aitype: 256,
+    ap_character: 256,
+    ap_rawfile: 2048,
+    ap_stringtable: 128,
+    ap_scriptparsetree: 2048,
+    ap_scriptbundle: 512,
+    ap_rumble: 128,
+    ap_lightdescription: 1024,
+    ap_shellshock: 128,
+    ap_xcam: 256,
+    ap_tracer: 128,
+    ap_vehicledef: 128,
+    ap_ttf: 64
   };
 
   function loadAllSettings() {
