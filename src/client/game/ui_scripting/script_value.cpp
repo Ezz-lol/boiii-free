@@ -58,18 +58,22 @@ namespace ui_scripting
 		this->value_ = value;
 
 		const auto state = *game::hks::lua_state;
-		const auto top = state->m_apistack.top;
+		if (state)
+		{
+			const auto top = state->m_apistack.top;
 
-		push_value(this->value_);
-		this->ref_ = game::hks::hksi_luaL_ref(*game::hks::lua_state, -10000);
-		state->m_apistack.top = top;
+			push_value(this->value_);
+			this->ref_ = game::hks::hksi_luaL_ref(state, -10000);
+			state->m_apistack.top = top;
+		}
 	}
 
 	void hks_object::release()
 	{
-		if (this->ref_)
+		const auto state = *game::hks::lua_state;
+		if (this->ref_ && state)
 		{
-			game::hks::hksi_luaL_unref(*game::hks::lua_state, -10000, this->ref_);
+			game::hks::hksi_luaL_unref(state, -10000, this->ref_);
 			this->value_.t = game::hks::TNONE;
 		}
 	}
@@ -89,7 +93,7 @@ namespace ui_scripting
 		obj.t = game::hks::TNUMBER;
 		obj.v.number = static_cast<float>(value);
 
-		this->value_ = obj;
+		this->value_.assign(obj);
 	}
 
 	script_value::script_value(const unsigned int value)
@@ -98,7 +102,7 @@ namespace ui_scripting
 		obj.t = game::hks::TNUMBER;
 		obj.v.number = static_cast<float>(value);
 
-		this->value_ = obj;
+		this->value_.assign(obj);
 	}
 
 	script_value::script_value(const bool value)
@@ -107,7 +111,7 @@ namespace ui_scripting
 		obj.t = game::hks::TBOOLEAN;
 		obj.v.boolean = value;
 
-		this->value_ = obj;
+		this->value_.assign(obj);
 	}
 
 	script_value::script_value(const float value)
@@ -116,7 +120,7 @@ namespace ui_scripting
 		obj.t = game::hks::TNUMBER;
 		obj.v.number = static_cast<float>(value);
 
-		this->value_ = obj;
+		this->value_.assign(obj);
 	}
 
 	script_value::script_value(const double value)
@@ -126,8 +130,6 @@ namespace ui_scripting
 
 	script_value::script_value(const char* value, const std::size_t len)
 	{
-		game::hks::HksObject obj{};
-
 		const auto state = *game::hks::lua_state;
 		if (state == nullptr)
 		{
@@ -136,10 +138,8 @@ namespace ui_scripting
 
 		const auto top = state->m_apistack.top;
 		game::hks::hksi_lua_pushlstring(state, value, static_cast<std::uint32_t>(len));
-		obj = state->m_apistack.top[-1];
+		this->value_.assign(state->m_apistack.top[-1]);
 		state->m_apistack.top = top;
-
-		this->value_ = obj;
 	}
 
 	script_value::script_value(const char* value)
