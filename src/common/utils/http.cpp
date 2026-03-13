@@ -100,6 +100,7 @@ namespace utils::http
 		// Add Accept header for binary data to prevent CDN content modification
 		header_list = curl_slist_append(header_list, "Accept: application/octet-stream");
 
+		curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
 		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
 		curl_easy_setopt(curl, CURLOPT_URL, url.data());
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
@@ -166,6 +167,7 @@ namespace utils::http
 		});
 
 		std::string buffer{};
+		curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
 		curl_easy_setopt(curl, CURLOPT_URL, url.data());
 		curl_easy_setopt(curl, CURLOPT_POSTFIELDS, post_body.data());
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback);
@@ -217,6 +219,7 @@ namespace utils::http
 			curl_easy_cleanup(curl);
 		});
 
+		curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
 		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
 		curl_easy_setopt(curl, CURLOPT_URL, url.data());
 		curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
