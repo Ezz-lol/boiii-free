@@ -70,9 +70,33 @@ namespace steam
 		return chat::get_client_name(steamIDFriend.bits);
 	}
 
+	struct FriendGameInfo_t
+	{
+		uint64_t m_gameID;
+		uint32_t m_unGameIP;
+		uint16_t m_usGamePort;
+		uint16_t m_usQueryPort;
+		uint64_t m_steamIDLobby;
+	};
+
 	bool friends::GetFriendGamePlayed(steam_id steamIDFriend, void* pFriendGameInfo)
 	{
-		return !::friends::get_presence_server(steamIDFriend.bits).empty();
+		if (::friends::get_presence_server(steamIDFriend.bits).empty())
+		{
+			return false;
+		}
+
+		if (pFriendGameInfo)
+		{
+			auto* info = static_cast<FriendGameInfo_t*>(pFriendGameInfo);
+			info->m_gameID = 311210; // Black Ops 3 AppID
+			info->m_unGameIP = 0;
+			info->m_usGamePort = 0;
+			info->m_usQueryPort = 0;
+			info->m_steamIDLobby = 0;
+		}
+
+		return true;
 	}
 
 	const char* friends::GetFriendPersonaNameHistory(steam_id steamIDFriend, int iPersonaName)
