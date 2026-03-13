@@ -169,12 +169,8 @@ namespace asset_limits
 			printf("Reallocated asset pool type %d: %d -> %u entries\n",
 			       static_cast<int>(type), pool->itemCount, new_size);
 		}
-	}
 
-	class component final : public client_component
-	{
-	public:
-		void post_unpack() override
+		void apply_asset_limits()
 		{
 			const auto doc = load_settings_doc();
 
@@ -189,6 +185,25 @@ namespace asset_limits
 				const auto size = get_pool_size(doc, cfg);
 				reallocate_asset_pool(cfg.type, size);
 			}
+		}
+
+		utils::hook::detour com_sessionmode_setmode_hook;
+
+		game::eModes com_sessionmode_setmode_stub(game::eModes mode)
+		{
+			const auto result = com_sessionmode_setmode_hook.invoke<game::eModes>(mode);
+			apply_asset_limits();
+			return result;
+		}
+	}
+
+	class component final : public client_component
+	{
+	public:
+		void post_unpack() override
+		{
+			com_sessionmode_setmode_hook.create(game::Com_SessionMode_SetMode.get(), com_sessionmode_setmode_stub);
+			apply_asset_limits();
 		}
 	};
 }
