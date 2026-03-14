@@ -111,6 +111,11 @@ namespace steam
 
 	bool SteamAPI_Init()
 	{
+		if (utils::flags::has_flag("nosteam"))
+		{
+			return true;
+		}
+
 		const std::filesystem::path steam_path = SteamAPI_GetSteamInstallPath();
 		if (steam_path.empty()) return true;
 
