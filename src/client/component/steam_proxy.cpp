@@ -215,6 +215,8 @@ namespace steam_proxy
 
 		void load_client()
 		{
+			if (is_disabled()) return;
+
 			SetEnvironmentVariableA("SteamAppId", "311210");
 
 			const std::filesystem::path steam_path = steam::SteamAPI_GetSteamInstallPath();

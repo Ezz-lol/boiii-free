@@ -3,6 +3,7 @@
 
 #include <utils/nt.hpp>
 #include <utils/io.hpp>
+#include <utils/flags.hpp>
 
 #include "../component/steam_proxy.hpp"
 
@@ -111,6 +112,11 @@ namespace steam
 
 	bool SteamAPI_Init()
 	{
+		if (::utils::flags::has_flag("nosteam"))
+		{
+			return true;
+		}
+
 		const std::filesystem::path steam_path = SteamAPI_GetSteamInstallPath();
 		if (steam_path.empty()) return true;
 
