@@ -1,4 +1,5 @@
 #include <std_include.hpp>
+#include <curl/curl.h>
 
 #include "loader/component_loader.hpp"
 #include "loader/loader.hpp"

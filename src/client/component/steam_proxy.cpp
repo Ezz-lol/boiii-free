@@ -412,7 +412,7 @@ namespace steam_proxy
 				pump(static_cast<int32_t>(steam_pipe));
 				if (original_pipe && original_pipe != steam_pipe)
 					pump(static_cast<int32_t>(original_pipe));
-			}, scheduler::async, 500ms);
+			}, scheduler::main, 500ms);
 
 		}
 
