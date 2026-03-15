@@ -34,12 +34,14 @@ namespace asset_limits
 			{ game::ASSET_TYPE_ATTACHMENT,       "ap_attachment",      512  },
 			{ game::ASSET_TYPE_ATTACHMENT_UNIQUE,"ap_attachunique",    1024 },
 			{ game::ASSET_TYPE_WEAPON_CAMO,      "ap_weaponcamo",      256  },
+			{ game::ASSET_TYPE_SHAREDWEAPONSOUNDS,"ap_sharedweaponsounds",128 },
 			{ game::ASSET_TYPE_FX,               "ap_fx",              1024 },
 			{ game::ASSET_TYPE_TAGFX,            "ap_tagfx",           256  },
+			{ game::ASSET_TYPE_NEW_LENSFLARE_DEF,"ap_newlensflaredef", 128  },
 			{ game::ASSET_TYPE_AITYPE,           "ap_aitype",          256  },
 			{ game::ASSET_TYPE_CHARACTER,        "ap_character",       256  },
 			{ game::ASSET_TYPE_RAWFILE,          "ap_rawfile",         2048 },
-			{ game::ASSET_TYPE_STRINGTABLE,      "ap_stringtable",     128  },
+			{ game::ASSET_TYPE_STRINGTABLE,      "ap_stringtable",     512  },
 			{ game::ASSET_TYPE_SCRIPTPARSETREE,  "ap_scriptparsetree", 2048 },
 			{ game::ASSET_TYPE_SCRIPTBUNDLE,     "ap_scriptbundle",    512  },
 			{ game::ASSET_TYPE_RUMBLE,           "ap_rumble",          128  },
@@ -146,10 +148,12 @@ namespace asset_limits
 			memcpy(new_pool, pool->pool,
 			       pool->itemAllocCount * static_cast<size_t>(entry_size));
 
-			// Rebuild free list for ALL entries
-			pool->freeHead = reinterpret_cast<game::AssetLink*>(new_pool);
+			// Rebuild free list for new entries
+			pool->freeHead = reinterpret_cast<game::AssetLink*>(
+				static_cast<char*>(new_pool) +
+				static_cast<size_t>(entry_size) * pool->itemAllocCount);
 
-			for (auto i = 0; i < static_cast<int>(new_size) - 1; i++)
+			for (auto i = pool->itemAllocCount; i < static_cast<int>(new_size) - 1; i++)
 			{
 				auto* current = reinterpret_cast<game::AssetLink*>(
 					static_cast<char*>(new_pool) + static_cast<size_t>(entry_size) * i);
