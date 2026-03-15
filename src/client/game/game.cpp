@@ -89,4 +89,9 @@ namespace game
 
 		return appdata_path;
 	}
+
+	std::filesystem::path get_game_path()
+	{
+		return std::filesystem::current_path();
+	}
 }

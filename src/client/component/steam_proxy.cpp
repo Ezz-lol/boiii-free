@@ -145,8 +145,7 @@ namespace steam_proxy
 			std::vector<std::filesystem::path> result;
 			std::error_code ec;
 
-			const auto module_path = utils::nt::library{}.get_path();
-			const auto game_path = module_path.parent_path();
+			const auto game_path = game::get_game_path();
 			const auto game_workshop_path = game_path.parent_path().parent_path() / "workshop" / "content" / "311210";
 			if (std::filesystem::exists(game_workshop_path, ec))
 			{

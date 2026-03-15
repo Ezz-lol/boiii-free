@@ -41,7 +41,7 @@ namespace exception
 				const std::filesystem::path p(path);
 				if (p.extension() == L".dmp")
 				{
-					const auto root_path = utils::nt::library{}.get_path().parent_path();
+					const auto root_path = game::get_game_path();
 					const auto minidumps_path = root_path / "minidumps";
 					std::filesystem::create_directories(minidumps_path);
 
@@ -129,7 +129,8 @@ namespace exception
 
 			game::show_error(error_str.data(), "Ezz ERROR");
 
-			ShellExecuteA(nullptr, "open", "minidumps", nullptr, nullptr, SW_SHOWNORMAL);
+			const auto minidumps_path = game::get_game_path() / "minidumps";
+			ShellExecuteA(nullptr, "open", minidumps_path.string().data(), nullptr, nullptr, SW_SHOWNORMAL);
 
 			TerminateProcess(GetCurrentProcess(), exception_data.code);
 		}
@@ -334,8 +335,8 @@ namespace exception
 
 		void write_minidump(const LPEXCEPTION_POINTERS exceptioninfo)
 		{
-			const std::string crash_name = utils::string::va("minidumps/ezz-crash-%s.zip",
-			                                                 get_timestamp().data());
+			const auto minidumps_path = game::get_game_path() / "minidumps";
+			const std::string crash_name = (minidumps_path / utils::string::va("ezz-crash-%s.zip", get_timestamp().data())).string();
 
 			utils::compression::zip::archive zip_file{};
 			zip_file.add("crash.dmp", create_minidump(exceptioninfo));
@@ -393,7 +394,7 @@ namespace exception
 			main_thread_id = GetCurrentThreadId();
 			SetUnhandledExceptionFilter(exception_filter);
 
-			const auto root_path = utils::nt::library{}.get_path().parent_path();
+			const auto root_path = game::get_game_path();
 			std::filesystem::create_directories(root_path / "minidumps");
 		}
 

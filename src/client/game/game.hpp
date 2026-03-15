@@ -107,6 +107,7 @@ namespace game
 	};
 
 	std::filesystem::path get_appdata_path();
+	std::filesystem::path get_game_path();
 }
 
 inline size_t operator"" _g(const size_t val)
