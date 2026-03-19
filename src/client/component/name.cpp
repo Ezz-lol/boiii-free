@@ -16,6 +16,18 @@ namespace name
 	{
 		utils::concurrency::container<std::string> player_name{};
 
+		std::string sanitize_name(const std::string& name)
+		{
+			std::string result;
+			for (const auto c : name)
+			{
+				const auto uc = static_cast<unsigned char>(c);
+				if (uc >= 32 && uc <= 126)
+					result += c;
+			}
+			return result;
+		}
+
 		void store_player_name(const std::string& name)
 		{
 			utils::properties::store("playerName", name);
@@ -37,7 +49,7 @@ namespace name
 
 		void setup_player_name()
 		{
-			std::string initial_name = steam_proxy::get_player_name();
+			std::string initial_name = sanitize_name(steam_proxy::get_player_name());
 
 			if (initial_name.empty())
 			{
@@ -58,7 +70,9 @@ namespace name
 
 			if (stored_name)
 			{
-				activate_player_name(*stored_name);
+				auto safe = sanitize_name(*stored_name);
+				if (safe.empty()) safe = "Unknown Soldier";
+				activate_player_name(safe);
 			}
 			else
 			{

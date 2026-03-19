@@ -366,6 +366,16 @@ namespace utils::nt
 			return {};
 		}
 
-		return std::string(username, username_len - 1);
+		std::string result;
+		for (DWORD i = 0; i < username_len - 1; ++i)
+		{
+			const auto c = static_cast<unsigned char>(username[i]);
+			if (c >= 32 && c <= 126)
+			{
+				result += static_cast<char>(c);
+			}
+		}
+
+		return result;
 	}
 }

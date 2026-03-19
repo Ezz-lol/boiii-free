@@ -40,6 +40,18 @@ namespace launcher
 		std::string human_readable_size(std::uint64_t bytes);
 		std::filesystem::path get_steam_workshop_path();
 
+		std::string sanitize_player_name(const std::string& name)
+		{
+			std::string result;
+			for (const auto c : name)
+			{
+				const auto uc = static_cast<unsigned char>(c);
+				if (uc >= 32 && uc <= 126)
+					result += c;
+			}
+			return result;
+		}
+
 		std::mutex library_list_mutex;
 		std::string library_list_cache;
 		std::atomic<bool> library_list_loading{false};
@@ -553,6 +565,15 @@ namespace launcher
 
 					if (_wcsicmp(name.c_str(), L"BlackOps3.exe") == 0)
 					{
+						CloseHandle(snap);
+						return true;
+					}
+
+					if (_wcsicmp(name.c_str(), L"boiii.exe") == 0)
+					{
+						if (is_dedicated_server_process(pe.th32ProcessID))
+							continue;
+
 						CloseHandle(snap);
 						return true;
 					}
@@ -1611,16 +1632,14 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 			"readPlayerName", [](const std::vector<html_argument>& /*params*/) -> CComVariant
 			{
 				const auto stored_name = utils::properties::load("playerName");
-				if (!stored_name)
-				{
-					auto fallback = utils::nt::get_user_name();
-					if (fallback.empty())
-					{
-						fallback = "Unknown Soldier";
-					}
-					return CComVariant(fallback.c_str());
-				}
-				return CComVariant(stored_name->c_str());
+				std::string name;
+				if (stored_name)
+					name = sanitize_player_name(*stored_name);
+				if (name.empty())
+					name = sanitize_player_name(utils::nt::get_user_name());
+				if (name.empty())
+					name = "Unknown Soldier";
+				return CComVariant(name.c_str());
 			});
 
 
@@ -2256,7 +2275,7 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 				std::string new_name{};
 				if (!params.empty() && params[0].is_string())
 				{
-					new_name = params[0].get_string();
+					new_name = sanitize_player_name(params[0].get_string());
 					utils::string::trim(new_name);
 				}
 
@@ -2296,7 +2315,7 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 				std::string new_name{};
 				if (!params.empty() && params[0].is_string())
 				{
-					new_name = params[0].get_string();
+					new_name = sanitize_player_name(params[0].get_string());
 					utils::string::trim(new_name);
 				}
 

@@ -191,6 +191,7 @@ namespace game
 	WEAK symbol<void(int localClientNum)> CG_LUIHUDRestart{0x140F7E970};
 	WEAK symbol<void(int localClientNum)> CL_CheckKeepDrawingConnectScreen{0x1413CCAE0};
 	WEAK symbol<void(const char* key, int value, hks::lua_State* luaVM)> Lua_SetTableInt{0x141F066E0};
+	WEAK symbol<const char*(const char* reference)> SEH_SafeTranslateString{0x142279510};
 
 	// Scr
 	WEAK symbol<void(scriptInstance_t inst, int value)> Scr_AddInt{0x1412E9870, 0x14016F160};
@@ -340,6 +341,7 @@ namespace game
 		WEAK symbol<int(lua_State* s, const char* what, lua_Debug* ar)> hksi_lua_getinfo{0x141D4D8D0, 0x1403F64B0};
 		WEAK symbol<int(lua_State* s, int level, lua_Debug* ar)> hksi_lua_getstack{0x141D4DB90, 0x1403F6770};
 		WEAK symbol<void(lua_State* s, const char* fmt, ...)> hksi_luaL_error{0x141D4D050, 0x1403F5BA0};
+		WEAK symbol<const char*(lua_State* s, int index, size_t* len)> hksi_lua_tolstring{0x141D4B6C0, 0x1403F42B0};
 		WEAK symbol<const char*> s_compilerTypeName{0x140A18430};
 	}
 }
