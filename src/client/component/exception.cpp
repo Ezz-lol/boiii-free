@@ -41,7 +41,7 @@ namespace exception
 				const std::filesystem::path p(path);
 				if (p.extension() == L".dmp")
 				{
-					const auto root_path = game::get_game_path();
+					const auto root_path = utils::nt::library{}.get_path().parent_path();
 					const auto minidumps_path = root_path / "minidumps";
 					std::filesystem::create_directories(minidumps_path);
 
@@ -97,7 +97,7 @@ namespace exception
 
 		volatile bool& is_initialized()
 		{
-			static volatile bool initialized = false;
+			static volatile bool initialized = true;
 			return initialized;
 		}
 
@@ -129,14 +129,18 @@ namespace exception
 
 			game::show_error(error_str.data(), "Ezz ERROR");
 
-			const auto minidumps_path = game::get_game_path() / "minidumps";
-			ShellExecuteA(nullptr, "open", minidumps_path.string().data(), nullptr, nullptr, SW_SHOWNORMAL);
+			ShellExecuteA(nullptr, "open", "minidumps", nullptr, nullptr, SW_SHOWNORMAL);
 
 			TerminateProcess(GetCurrentProcess(), exception_data.code);
 		}
 
 		void reset_state()
 		{
+			printf("[Exception] reset_state called: code=0x%08X addr=0x%llX game_thread=%d recoverable=%d\n",
+				exception_data.code,
+				reinterpret_cast<uint64_t>(exception_data.address),
+				is_game_thread() ? 1 : 0, is_recoverable() ? 1 : 0);
+
 			if (is_recoverable())
 			{
 				recovery_data.last_recovery = std::chrono::high_resolution_clock::now();
@@ -213,8 +217,8 @@ namespace exception
 
 		void write_minidump(const LPEXCEPTION_POINTERS exceptioninfo)
 		{
-			const auto minidumps_path = game::get_game_path() / "minidumps";
-			const std::string crash_name = (minidumps_path / utils::string::va("ezz-crash-%s.zip", get_timestamp().data())).string();
+			const std::string crash_name = utils::string::va("minidumps/ezz-crash-%s.zip",
+			                                                 get_timestamp().data());
 
 			utils::compression::zip::archive zip_file{};
 			zip_file.add("crash.dmp", create_minidump(exceptioninfo));
@@ -356,6 +360,10 @@ namespace exception
 				return EXCEPTION_CONTINUE_EXECUTION;
 			}
 
+			printf("[Exception] Caught fatal exception 0x%08X at 0x%llX\n",
+				exceptioninfo->ExceptionRecord->ExceptionCode,
+				reinterpret_cast<uint64_t>(exceptioninfo->ExceptionRecord->ExceptionAddress));
+
 			write_minidump(exceptioninfo);
 
 			exception_data.code = exceptioninfo->ExceptionRecord->ExceptionCode;
@@ -378,7 +386,7 @@ namespace exception
 			main_thread_id = GetCurrentThreadId();
 			SetUnhandledExceptionFilter(exception_filter);
 
-			const auto root_path = game::get_game_path();
+			const auto root_path = utils::nt::library{}.get_path().parent_path();
 			std::filesystem::create_directories(root_path / "minidumps");
 		}
 

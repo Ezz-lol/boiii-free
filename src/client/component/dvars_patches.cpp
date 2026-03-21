@@ -41,10 +41,6 @@ namespace dvars_patches
 			game::dvar_remove_flags("player_sustainAmmo", game::DVAR_CHEAT);
 			game::dvar_remove_flags("r_fog", game::DVAR_CHEAT);
 			game::dvar_remove_flags("timescale", game::DVAR_CHEAT);
-
-			game::dvar_remove_flags("cg_thirdPerson", game::DVAR_CHEAT);
-			game::dvar_remove_flags("cg_thirdPersonAngle", game::DVAR_CHEAT);
-			game::dvar_remove_flags("cg_thirdPersonRange", game::DVAR_CHEAT);
 		}
 
 		void dof_enabled_stub(utils::hook::assembler& a)

@@ -4,6 +4,8 @@
 #include "game/utils.hpp"
 
 #include "game_event.hpp"
+#include "gsc/gsc_compiler.hpp"
+#include "scheduler.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -20,6 +22,16 @@ namespace script
 
 		utils::memory::allocator allocator;
 		std::unordered_map<std::string, game::RawFile*> loaded_scripts;
+
+		struct hash_info
+		{
+			std::string name;
+			int line;
+			uint8_t params;
+		};
+		std::unordered_map<uint32_t, std::vector<hash_info>> script_hash_names;
+
+		std::unordered_map<std::string, std::string> script_sources;
 
 		game::RawFile* get_loaded_script(const std::string& name)
 		{
@@ -101,6 +113,64 @@ namespace script
 					{
 						print_loading_script(script_file);
 						load_script(script_file, data, is_custom);
+					}
+					else if (utils::string::ends_with(script_file, ".gsc") && !data.empty())
+					{
+						// compile Raw GSC source file
+						printf("Compiling GSC script '%s'\n", script_file.data());
+						auto result = gsc_compiler::compile(data, script_file);
+						if (result.success)
+						{
+							std::string bytecode(result.bytecode.begin(), result.bytecode.end());
+
+							// Store hash-to-name+line map from this compilation
+							for (auto& hn : result.hash_names)
+								script_hash_names[hn.hash].push_back({hn.name, hn.line, hn.params});
+
+							// Store original source text for this file
+							script_sources[script_file] = data;
+
+							print_loading_script(script_file);
+							load_script(script_file, bytecode, is_custom);
+						}
+						else
+						{
+							auto get_source_line = [](const std::string& src, int line_num) -> std::string
+							{
+								if (line_num <= 0) return "";
+								int current = 1;
+								size_t start = 0;
+								while (current < line_num && start < src.size())
+								{
+									if (src[start] == '\n') current++;
+									start++;
+								}
+								if (current != line_num) return "";
+								size_t end = src.find('\n', start);
+								if (end == std::string::npos) end = src.size();
+								auto line = src.substr(start, end - start);
+								if (!line.empty() && line.back() == '\r') line.pop_back();
+								return line;
+							};
+
+							printf("^1*********************GSC COMPILE ERROR*********************n");
+							for (const auto& err : result.errors)
+							{
+								printf("^1  File:    ^5%s\n", err.file.data());
+								if (err.line > 0)
+								{
+									printf("^1  Line:    ^2%d^7, ^1Column: ^2%d\n", err.line, err.column);
+									auto src_line = get_source_line(data, err.line);
+									if (!src_line.empty())
+									{
+										printf("^1  Source:  ^7%s\n", src_line.data());
+									}
+								}
+								printf("^1  Error:   ^1%s\n", err.message.data());
+								printf("^1------------------------------------------------------------\n");
+							}
+							printf("^1************************************************************\n");
+						}
 					}
 
 					continue;
@@ -184,6 +254,8 @@ namespace script
 		void clear_script_memory()
 		{
 			loaded_scripts.clear();
+			script_hash_names.clear();
+			script_sources.clear();
 			allocator.clear();
 		}
 
@@ -207,6 +279,53 @@ namespace script
 		{
 			game::Scr_AddInt(game::SCRIPTINSTANCE_SERVER, 255);
 		}
+	}
+
+	std::string resolve_hash(uint32_t hash)
+	{
+		auto it = script_hash_names.find(hash);
+		if (it != script_hash_names.end() && !it->second.empty())
+			return it->second[0].name;
+		return {};
+	}
+
+	int resolve_hash_line(uint32_t hash, int num_params)
+	{
+		auto it = script_hash_names.find(hash);
+		if (it != script_hash_names.end())
+		{
+			for (auto& entry : it->second)
+				if (entry.params == static_cast<uint8_t>(num_params) && entry.line > 0)
+					return entry.line;
+		}
+		return 0;
+	}
+
+	std::string get_source_line(const std::string& file, int line_num)
+	{
+		// Try to find source by matching file path suffix
+		for (auto& [path, src] : script_sources)
+		{
+			if (file.find(path) != std::string::npos || path.find(file) != std::string::npos
+				|| file.find(std::filesystem::path(path).filename().string()) != std::string::npos)
+			{
+				if (line_num <= 0) return {};
+				int current = 1;
+				size_t start = 0;
+				while (current < line_num && start < src.size())
+				{
+					if (src[start] == '\n') current++;
+					start++;
+				}
+				if (current != line_num) return {};
+				size_t end = src.find('\n', start);
+				if (end == std::string::npos) end = src.size();
+				auto line = src.substr(start, end - start);
+				if (!line.empty() && line.back() == '\r') line.pop_back();
+				return line;
+			}
+		}
+		return {};
 	}
 
 	struct component final : generic_component
