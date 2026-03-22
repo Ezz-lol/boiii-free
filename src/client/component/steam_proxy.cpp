@@ -11,6 +11,8 @@
 #include "steam/interface.hpp"
 #include "steam/steam.hpp"
 
+#include "game/game.hpp"
+
 #include "steam_proxy.hpp"
 
 #include "scheduler.hpp"

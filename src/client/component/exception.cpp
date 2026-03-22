@@ -185,6 +185,111 @@ namespace exception
 			return timestamp;
 		}
 
+		const char* get_exception_string(const DWORD exception)
+		{
+#define EXCEPTION_CASE(code) case EXCEPTION_##code: return "EXCEPTION_" #code
+			switch (exception)
+			{
+				EXCEPTION_CASE(ACCESS_VIOLATION);
+				EXCEPTION_CASE(DATATYPE_MISALIGNMENT);
+				EXCEPTION_CASE(BREAKPOINT);
+				EXCEPTION_CASE(SINGLE_STEP);
+				EXCEPTION_CASE(ARRAY_BOUNDS_EXCEEDED);
+				EXCEPTION_CASE(FLT_DENORMAL_OPERAND);
+				EXCEPTION_CASE(FLT_DIVIDE_BY_ZERO);
+				EXCEPTION_CASE(FLT_INEXACT_RESULT);
+				EXCEPTION_CASE(FLT_INVALID_OPERATION);
+				EXCEPTION_CASE(FLT_OVERFLOW);
+				EXCEPTION_CASE(FLT_STACK_CHECK);
+				EXCEPTION_CASE(FLT_UNDERFLOW);
+				EXCEPTION_CASE(INT_DIVIDE_BY_ZERO);
+				EXCEPTION_CASE(INT_OVERFLOW);
+				EXCEPTION_CASE(PRIV_INSTRUCTION);
+				EXCEPTION_CASE(IN_PAGE_ERROR);
+				EXCEPTION_CASE(ILLEGAL_INSTRUCTION);
+				EXCEPTION_CASE(NONCONTINUABLE_EXCEPTION);
+				EXCEPTION_CASE(STACK_OVERFLOW);
+				EXCEPTION_CASE(INVALID_DISPOSITION);
+				EXCEPTION_CASE(GUARD_PAGE);
+				EXCEPTION_CASE(INVALID_HANDLE);
+			default:
+				return "UNKNOWN";
+			}
+#undef EXCEPTION_CASE
+		}
+
+		std::string get_memory_registers(const LPEXCEPTION_POINTERS exceptioninfo)
+		{
+			if (!exceptioninfo || !exceptioninfo->ContextRecord)
+			{
+				return {};
+			}
+
+			const auto* ctx = exceptioninfo->ContextRecord;
+			std::string info{"registers:\r\n{\r\n"};
+
+			const auto reg = [&info](const char* key, const DWORD64 value)
+			{
+				info.append(utils::string::va("\t%s = 0x%llX\r\n", key, value));
+			};
+
+			reg("rax", ctx->Rax);
+			reg("rbx", ctx->Rbx);
+			reg("rcx", ctx->Rcx);
+			reg("rdx", ctx->Rdx);
+			reg("rsp", ctx->Rsp);
+			reg("rbp", ctx->Rbp);
+			reg("rsi", ctx->Rsi);
+			reg("rdi", ctx->Rdi);
+			reg("r8", ctx->R8);
+			reg("r9", ctx->R9);
+			reg("r10", ctx->R10);
+			reg("r11", ctx->R11);
+			reg("r12", ctx->R12);
+			reg("r13", ctx->R13);
+			reg("r14", ctx->R14);
+			reg("r15", ctx->R15);
+			reg("rip", ctx->Rip);
+
+			info.append("}");
+			return info;
+		}
+
+		std::string get_callstack_summary(void* exception_addr, int trace_depth = 32)
+		{
+			std::string info{"callstack:\r\n{\r\n"};
+
+			void* backtrace_stack[32]{};
+			if (trace_depth > static_cast<int>(ARRAYSIZE(backtrace_stack)))
+			{
+				trace_depth = ARRAYSIZE(backtrace_stack);
+			}
+
+			const auto count = RtlCaptureStackBackTrace(0, trace_depth, backtrace_stack, nullptr);
+			auto* start = backtrace_stack;
+			auto* end = backtrace_stack + count;
+			const auto itr = std::find(start, end, exception_addr);
+			const auto exception_start_index = (itr == end) ? 0 : static_cast<size_t>(std::distance(start, itr));
+
+			for (size_t i = exception_start_index; i < count; ++i)
+			{
+				const auto from = utils::nt::library::get_by_address(backtrace_stack[i]);
+				const auto address = reinterpret_cast<uint64_t>(backtrace_stack[i]);
+				const auto base = reinterpret_cast<uint64_t>(from.get_ptr());
+				uint64_t rva = (from && address >= base) ? (address - base) : address;
+
+				if (from.get_name() == "BlackOps3.exe")
+				{
+					rva += 0x140000000;
+				}
+
+				info.append(utils::string::va("\t%s: %012llX\r\n", from.get_name().c_str(), rva));
+			}
+
+			info.append("}");
+			return info;
+		}
+
 		std::string generate_crash_info(const LPEXCEPTION_POINTERS exceptioninfo)
 		{
 			std::string info{};
@@ -198,9 +303,19 @@ namespace exception
 			line(std::string{});
 			line("Version: "s + VERSION);
 			line("Timestamp: "s + get_timestamp());
-			line(utils::string::va("Exception: 0x%08X", exceptioninfo->ExceptionRecord->ExceptionCode));
-			line(utils::string::va("Address: 0x%llX", exceptioninfo->ExceptionRecord->ExceptionAddress));
+			line(utils::string::va("Exception: 0x%08X (%s)", exceptioninfo->ExceptionRecord->ExceptionCode,
+			                      get_exception_string(exceptioninfo->ExceptionRecord->ExceptionCode)));
+			line(utils::string::va("Address: 0x%llX [%s]", exceptioninfo->ExceptionRecord->ExceptionAddress,
+			                      utils::nt::library::get_by_address(exceptioninfo->ExceptionRecord->ExceptionAddress).get_name().c_str()));
 			line(utils::string::va("Base: 0x%llX", game::get_base()));
+			line(utils::string::va("Thread ID: %lu (%s)", GetCurrentThreadId(), is_game_thread() ? "main" : "auxiliary"));      
+
+			if (exceptioninfo->ExceptionRecord->ExceptionCode == EXCEPTION_ACCESS_VIOLATION)
+			{
+				line(utils::string::va("Extended Info: Attempted to %s 0x%012llX",
+					exceptioninfo->ExceptionRecord->ExceptionInformation[0] == 1 ? "write to" : "read from",
+					exceptioninfo->ExceptionRecord->ExceptionInformation[1]));
+			}
 
 #pragma warning(push)
 #pragma warning(disable: 4996)
@@ -211,6 +326,14 @@ namespace exception
 #pragma warning(pop)
 
 			line(utils::string::va("OS Version: %u.%u", version_info.dwMajorVersion, version_info.dwMinorVersion));
+			line(std::string{});
+			line(get_callstack_summary(exceptioninfo->ExceptionRecord->ExceptionAddress));
+			const auto registers = get_memory_registers(exceptioninfo);
+			if (!registers.empty())
+			{
+				line(std::string{});
+				line(registers);
+			}
 
 			return info;
 		}
