@@ -362,7 +362,6 @@ namespace friends
 		std::string mod_id = workshop::get_mod_publisher_id();
 		uint64_t own_steam_id = steam_proxy::get_own_steam_id();
 		std::string own_name = name::get_player_name();
-		if (own_name.empty()) own_name = steam_proxy::get_player_name();
 		if (own_name.empty()) own_name = "Player";
 
 		// enriched format: addr|map|gametype|mode|mod|sender_id|sender_name
@@ -675,7 +674,6 @@ namespace friends
 						std::string mod_id = workshop::get_mod_publisher_id();
 						uint64_t own_steam_id = steam_proxy::get_own_steam_id();
 						std::string own_name = name::get_player_name();
-						if (own_name.empty()) own_name = steam_proxy::get_player_name();
 						if (own_name.empty()) own_name = "Player";
 
 						auto enriched = utils::string::va("%s|%s|%s|%d|%s|%llu|%s",

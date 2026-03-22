@@ -2281,7 +2281,7 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 
 				if (new_name.empty())
 				{
-					new_name = utils::nt::get_user_name();
+					new_name = sanitize_player_name(utils::nt::get_user_name());
 					if (new_name.empty()) new_name = "Unknown Soldier";
 				}
 				if (new_name.size() > 16) new_name.resize(16);
@@ -2321,7 +2321,7 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 
 				if (new_name.empty())
 				{
-					new_name = utils::nt::get_user_name();
+					new_name = sanitize_player_name(utils::nt::get_user_name());
 					if (new_name.empty())
 					{
 						new_name = "Unknown Soldier";

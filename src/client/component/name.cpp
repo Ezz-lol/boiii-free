@@ -53,7 +53,7 @@ namespace name
 
 			if (initial_name.empty())
 			{
-				initial_name = utils::nt::get_user_name();
+				initial_name = sanitize_name(utils::nt::get_user_name());
 			}
 
 			if (initial_name.empty())
