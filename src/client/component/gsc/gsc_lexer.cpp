@@ -321,15 +321,27 @@ namespace gsc_compiler
 			}
 
 			// &func_name is a function reference (same as ::func_name)
+			// &namespace::func is a namespaced function reference
 			if (c == '&' && is_ident_start(s.peek_next()))
 			{
 				s.advance();
 				std::string word;
 				while (!s.at_end() && is_ident_char(s.peek()))
 					word += s.advance();
-				// Emit as :: followed by identifier to produce a func_ref
-				result.tokens.push_back({token_type::t_double_colon, "::", tok.line, tok.column});
-				result.tokens.push_back({token_type::t_identifier, word, tok.line, tok.column + 1});
+
+				// Check for namespace path: &ns\path::func or &ns::func
+				if (!s.at_end() && (s.peek() == ':' || s.peek() == '\\'))
+				{
+					// Emit & as ampersand, then the identifier — let the parser handle namespacing
+					result.tokens.push_back({token_type::t_ampersand, "&", tok.line, tok.column});
+					result.tokens.push_back({token_type::t_identifier, word, tok.line, tok.column + 1});
+				}
+				else
+				{
+					// Simple &func — emit as :: + identifier for func_ref
+					result.tokens.push_back({token_type::t_double_colon, "::", tok.line, tok.column});
+					result.tokens.push_back({token_type::t_identifier, word, tok.line, tok.column + 1});
+				}
 				continue;
 			}
 

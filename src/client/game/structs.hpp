@@ -1645,6 +1645,15 @@ namespace game
 
 	using ScrVarCanonicalName_t = uint32_t;
 
+	struct BuiltinFunctionDef
+	{
+		ScrVarCanonicalName_t canonId;
+		unsigned int min_args;
+		unsigned int max_args;
+		void* actionFunc;
+		int type;
+	};
+
 	enum svscmd_type
 	{
 		SV_CMD_CAN_IGNORE_0 = 0x0,
