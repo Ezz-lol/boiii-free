@@ -22,12 +22,20 @@ namespace gsc_compiler
 		uint8_t params;
 	};
 
+	struct replacefunc_entry
+	{
+		std::string target_script;
+		std::string target_func;
+		std::string replace_func;
+	};
+
 	struct compile_result
 	{
 		bool success;
 		std::vector<uint8_t> bytecode;
 		std::vector<compile_error> errors;
 		std::vector<hash_name_pair> hash_names;
+		std::vector<replacefunc_entry> replacefuncs;
 	};
 
 	// Compile raw GSC source code to T7 PC bytecode.

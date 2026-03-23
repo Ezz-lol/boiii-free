@@ -395,6 +395,7 @@ namespace gsc_compiler
 		result.bytecode = std::move(emit_result.data);
 		for (auto& hn : emit_result.hash_names)
 			result.hash_names.push_back({hn.hash, std::move(hn.name), hn.line, hn.params});
+		result.replacefuncs = std::move(emit_result.replacefuncs);
 		return result;
 	}
 }

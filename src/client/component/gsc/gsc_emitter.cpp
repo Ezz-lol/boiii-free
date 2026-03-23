@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <numeric>
 #include <cstring>
+#include <unordered_set>
 
 namespace gsc_compiler
 {
@@ -266,6 +267,7 @@ namespace gsc_compiler
 			int temp_var_counter;
 
 			std::vector<hash_name_pair> hash_names;
+			std::vector<replacefunc_entry> replacefuncs;
 
 			void record_hash(const std::string& name, int line = 0, uint8_t params = 0)
 			{
@@ -508,6 +510,96 @@ namespace gsc_compiler
 			for (auto& child : node->children)
 				collect_locals(child, locals, params);
 		}
+		std::string normalize_ns(const std::string& ns)
+		{
+			std::string result = ns;
+			for (char& c : result)
+				if (c == '\\') c = '/';
+			return result;
+		}
+
+		bool is_path_namespace(const std::string& ns)
+		{
+			return ns.find('/') != std::string::npos || ns.find('\\') != std::string::npos;
+		}
+
+		// Resolve short namespace to full include path if it matches
+		std::string resolve_ns(const emitter_state& s, const std::string& ns)
+		{
+			if (is_path_namespace(ns))
+				return normalize_ns(ns);
+
+			std::string lower_ns = ns;
+			std::transform(lower_ns.begin(), lower_ns.end(), lower_ns.begin(),
+				[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+			for (auto& inc : s.includes)
+			{
+				std::string norm = normalize_ns(inc);
+				std::transform(norm.begin(), norm.end(), norm.begin(),
+					[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+				size_t last_sep = norm.rfind('/');
+				std::string tail = (last_sep != std::string::npos) ? norm.substr(last_sep + 1) : norm;
+				if (tail == lower_ns)
+					return normalize_ns(inc);
+			}
+			return ns;
+		}
+
+		constexpr uint32_t fnv1a(const char* str)
+		{
+			uint32_t hash = 0x811c9dc5;
+			while (*str) { hash ^= static_cast<uint8_t>(*str++); hash *= 0x01000193; }
+			return hash;
+		}
+
+		// Auto-add a path namespace to includes if not already present
+		void auto_include_path(emitter_state& s, const std::string& ns)
+		{
+			std::string normalized = ns;
+			for (char& c : normalized) { if (c == '\\') c = '/'; c = static_cast<char>(std::tolower(static_cast<unsigned char>(c))); }
+			for (auto& inc : s.includes)
+			{
+				std::string norm_inc = inc;
+				for (char& c : norm_inc) { if (c == '\\') c = '/'; c = static_cast<char>(std::tolower(static_cast<unsigned char>(c))); }
+				if (norm_inc == normalized) return;
+			}
+			s.includes.push_back(ns);
+		}
+
+		std::pair<std::string, std::string> extract_func_ref(const ast_ptr& arg)
+		{
+			if (arg->type == node_type::n_func_ref)
+			{
+				std::string ns = (!arg->children.empty() && !arg->children[0]->value.empty())
+					? arg->children[0]->value : "";
+				return {ns, arg->value};
+			}
+			else if (arg->type == node_type::n_call && arg->children[1]->children.empty())
+			{
+				std::string ns = !arg->children[0]->value.empty()
+					? arg->children[0]->value : "";
+				return {ns, arg->value};
+			}
+			return {"", ""};
+		}
+
+		bool is_custom_function(const std::string& name)
+		{
+			static const std::unordered_set<std::string> custom_funcs = {
+				"executecommand", "say", "println"
+			};
+			return custom_funcs.count(name) > 0;
+		}
+
+		// Custom methods: entity func(args) dispatched via isprofilebuild
+		bool is_custom_method(const std::string& name)
+		{
+			static const std::unordered_set<std::string> custom_meths = {
+				"tell"
+			};
+			return custom_meths.count(name) > 0;
+		}
 
 		bool is_builtin(const std::string& name)
 		{
@@ -666,7 +758,24 @@ namespace gsc_compiler
 				break;
 			case node_type::n_hash_string:
 			{
-				uint32_t hash = gsc_hash(node->value);
+				uint32_t hash = 0;
+				// Support raw hex hashes: hash_XX, function_XX, var_XX, namespace_XX
+				const auto& val = node->value;
+				auto underscore = val.find('_');
+				bool is_raw_hex = false;
+				if (underscore != std::string::npos && underscore + 1 < val.size())
+				{
+					auto prefix = val.substr(0, underscore);
+					if (prefix == "hash" || prefix == "function" || prefix == "var" || prefix == "namespace")
+					{
+						hash = static_cast<uint32_t>(std::stoul(val.substr(underscore + 1), nullptr, 16));
+						is_raw_hex = true;
+					}
+				}
+				if (!is_raw_hex)
+				{
+					hash = gsc_hash(val);
+				}
 				s.emit_op(script_opcode::OP_GetHash);
 				s.emit_u32_aligned();
 				s.emit_u32(hash);
@@ -826,7 +935,11 @@ namespace gsc_compiler
 				uint32_t func_hash = gsc_hash(node->value);
 				uint32_t ns_hash = s.script_namespace;
 				if (!node->children.empty() && !node->children[0]->value.empty())
-					ns_hash = gsc_hash(node->children[0]->value);
+				{
+					ns_hash = gsc_hash(normalize_ns(node->children[0]->value));
+					if (is_path_namespace(node->children[0]->value))
+						auto_include_path(s, node->children[0]->value);
+				}
 
 				// Import flags: GetFunction | CallFlags
 				uint8_t flags = IMPORT_FUNC_GETFUNCTION;
@@ -871,6 +984,19 @@ namespace gsc_compiler
 					break;
 				}
 
+				// Custom functions routed through isprofilebuild dispatch
+				if (ns_node->value.empty() && is_custom_function(lower_name))
+				{
+					s.emit_op(script_opcode::OP_PreScriptCall);
+					for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0; i--)
+						emit_expression(s, args_node->children[i]);
+					uint32_t dispatch_hash = fnv1a(lower_name.c_str());
+					emit_get_number(s, static_cast<int64_t>(static_cast<int32_t>(dispatch_hash)));
+					s.emit_call(gsc_hash("isprofilebuild"), s.script_namespace,
+						static_cast<uint8_t>(num_params + 1), false, false, true);
+					break;
+				}
+
 				s.emit_op(script_opcode::OP_PreScriptCall);
 
 				for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0; i--)
@@ -878,7 +1004,11 @@ namespace gsc_compiler
 
 				uint32_t func_hash = gsc_hash(lower_name);
 				bool has_explicit_ns = !ns_node->value.empty();
-				uint32_t ns_hash = has_explicit_ns ? gsc_hash(ns_node->value) : s.script_namespace;
+				uint32_t ns_hash = has_explicit_ns ? gsc_hash(normalize_ns(ns_node->value)) : s.script_namespace;
+
+				// Auto-include for path-style namespaces
+				if (has_explicit_ns && is_path_namespace(ns_node->value))
+					auto_include_path(s, ns_node->value);
 
 				bool is_local = !has_explicit_ns;
 
@@ -899,6 +1029,29 @@ namespace gsc_compiler
 				std::transform(lower_name.begin(), lower_name.end(), lower_name.begin(),
 					[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
+				// Custom methods: entity.tell("msg")
+				if (is_custom_method(lower_name))
+				{
+					s.emit_op(script_opcode::OP_PreScriptCall);
+
+					// Push regular args in reverse
+					for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0; i--)
+						emit_expression(s, args_node->children[i]);
+
+					// Emit entity.getEntityNumber() to convert entity to int
+					s.emit_op(script_opcode::OP_PreScriptCall);
+					emit_expression(s, obj);
+					s.emit_call(gsc_hash("getentitynumber"), s.script_namespace, 0, true, false, true);
+
+					// Push dispatch hash
+					uint32_t dispatch_hash = fnv1a(lower_name.c_str());
+					emit_get_number(s, static_cast<int64_t>(static_cast<int32_t>(dispatch_hash)));
+
+					s.emit_call(gsc_hash("isprofilebuild"), s.script_namespace,
+						static_cast<uint8_t>(num_params + 2), false, false, true);
+					break;
+				}
+
 				s.emit_op(script_opcode::OP_PreScriptCall);
 
 				for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0; i--)
@@ -908,7 +1061,11 @@ namespace gsc_compiler
 
 				uint32_t func_hash = gsc_hash(lower_name);
 				bool has_explicit_ns = (node->children.size() > 2 && !node->children[2]->value.empty());
-				uint32_t ns_hash = has_explicit_ns ? gsc_hash(node->children[2]->value) : s.script_namespace;
+				uint32_t ns_hash = has_explicit_ns ? gsc_hash(normalize_ns(node->children[2]->value)) : s.script_namespace;
+
+				// Auto-include for path-style namespaces
+				if (has_explicit_ns && is_path_namespace(node->children[2]->value))
+					auto_include_path(s, node->children[2]->value);
 
 				bool is_local = !has_explicit_ns;
 
@@ -957,7 +1114,9 @@ namespace gsc_compiler
 
 					uint32_t func_hash = gsc_hash(lower_name);
 					bool has_explicit_ns = !ns_node->value.empty();
-					uint32_t ns_hash = has_explicit_ns ? gsc_hash(ns_node->value) : s.script_namespace;
+					uint32_t ns_hash = has_explicit_ns ? gsc_hash(normalize_ns(ns_node->value)) : s.script_namespace;
+					if (has_explicit_ns && is_path_namespace(ns_node->value))
+						auto_include_path(s, ns_node->value);
 					bool is_local = !has_explicit_ns;
 					s.record_hash(lower_name, inner->line, num_params);
 					s.emit_call(func_hash, ns_hash, num_params, false, true, is_local);
@@ -980,7 +1139,9 @@ namespace gsc_compiler
 
 					uint32_t func_hash = gsc_hash(lower_name);
 					bool has_ns = (inner->children.size() > 2 && !inner->children[2]->value.empty());
-					uint32_t ns_hash = has_ns ? gsc_hash(inner->children[2]->value) : s.script_namespace;
+					uint32_t ns_hash = has_ns ? gsc_hash(normalize_ns(inner->children[2]->value)) : s.script_namespace;
+					if (has_ns && is_path_namespace(inner->children[2]->value))
+						auto_include_path(s, inner->children[2]->value);
 					bool is_local = !has_ns;
 					s.record_hash(lower_name, inner->line, num_params);
 					s.emit_call(func_hash, ns_hash, num_params, true, true, is_local);
@@ -1077,6 +1238,55 @@ namespace gsc_compiler
 			case node_type::n_expression_stmt:
 			{
 				auto& expr = node->children[0];
+
+				if (expr->type == node_type::n_call)
+				{
+					std::string call_name = expr->value;
+					std::transform(call_name.begin(), call_name.end(), call_name.begin(),
+						[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+					if (expr->children[0]->value.empty() && call_name == "replacefunc")
+					{
+						auto& args = expr->children[1]->children;
+						if (args.size() == 2)
+						{
+							auto [target_ns, target_fn] = extract_func_ref(args[0]);
+							auto [replace_ns, replace_fn] = extract_func_ref(args[1]);
+							if (!target_fn.empty() && !replace_fn.empty() && !target_ns.empty())
+							{
+								std::string ts = normalize_ns(target_ns);
+								std::string tfn = target_fn;
+								std::transform(tfn.begin(), tfn.end(), tfn.begin(),
+									[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+								std::string rfn = replace_fn;
+								std::transform(rfn.begin(), rfn.end(), rfn.begin(),
+									[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+								// Compile-time metadata (applied before scripts execute)
+								s.replacefuncs.push_back({ts, tfn, rfn});
+
+								// Runtime bytecode (supports wait between calls)
+								std::string replace_script = s.script_name;
+								for (char& c : replace_script) { if (c == '\\') c = '/'; }
+								if (replace_script.size() >= 4 &&
+									replace_script.substr(replace_script.size() - 4) == ".gsc")
+									replace_script = replace_script.substr(0, replace_script.size() - 4);
+
+								s.emit_op(script_opcode::OP_PreScriptCall);
+								s.emit_string_ref(script_opcode::OP_GetString, rfn);
+								s.emit_string_ref(script_opcode::OP_GetString, replace_script);
+								s.emit_string_ref(script_opcode::OP_GetString, tfn);
+								s.emit_string_ref(script_opcode::OP_GetString, ts);
+								uint32_t dispatch_hash = fnv1a("replacefunc");
+								emit_get_number(s, static_cast<int64_t>(static_cast<int32_t>(dispatch_hash)));
+								s.emit_call(gsc_hash("isprofilebuild"), s.script_namespace,
+									5, false, false, true);
+								s.emit_op(script_opcode::OP_DecTop);
+								break;
+							}
+						}
+					}
+				}
+
 				if (expr->type == node_type::n_endon || expr->type == node_type::n_notify
 					|| expr->type == node_type::n_waittill || expr->type == node_type::n_assign
 					|| expr->type == node_type::n_inc_dec)
@@ -1815,6 +2025,7 @@ namespace gsc_compiler
 			result.data = assemble(state);
 			for (auto& hn : state.hash_names)
 				result.hash_names.push_back({hn.hash, std::move(hn.name), hn.line, hn.params});
+			result.replacefuncs = std::move(state.replacefuncs);
 			result.success = true;
 		}
 		catch (const std::runtime_error& e)

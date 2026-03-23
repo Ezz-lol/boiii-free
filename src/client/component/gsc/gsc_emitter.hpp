@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gsc_parser.hpp"
+#include "gsc_compiler.hpp"
 #include <unordered_map>
 
 namespace gsc_compiler
@@ -204,6 +205,7 @@ namespace gsc_compiler
 		int error_line;
 		int error_column;
 		std::vector<hash_name_entry> hash_names;
+		std::vector<replacefunc_entry> replacefuncs;
 	};
 
 	emitter_result emit(const ast_ptr& root, const std::string& script_name);

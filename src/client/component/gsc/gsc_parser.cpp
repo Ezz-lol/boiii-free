@@ -379,43 +379,55 @@ namespace gsc_compiler
 							}
 							continue;
 						}
-						// Also handle: expr namespace::func(args) as method
-						if (s.peek(1).type == token_type::t_double_colon)
+						// Handle path-style method call: expr scripts\path::func(args)
+						if (next.type == token_type::t_backslash || next.type == token_type::t_double_colon)
 						{
-							auto& ns_tok = s.advance();
-							std::string ns = ns_tok.value;
-							s.advance(); // ::
-							if (s.check(token_type::t_identifier) && s.peek(1).type == token_type::t_lparen)
+							auto& first_tok = s.advance();
+							std::string ns = first_tok.value;
+
+							while (s.check(token_type::t_backslash))
 							{
-								auto& func_tok = s.advance();
-s.advance();
+								ns += "\\";
+								s.advance();
+								if (s.check(token_type::t_identifier))
+									ns += s.advance().value;
+							}
 
-								auto call = make_node(node_type::n_method_call, func_tok.value, func_tok.line, func_tok.column);
-								call->children.push_back(std::move(expr));
-auto ns_node = make_node(node_type::n_identifier, ns, ns_tok.line, ns_tok.column);
-
-								auto args = make_node(node_type::n_block, "args", func_tok.line, func_tok.column);
-								if (!s.check(token_type::t_rparen))
+							if (s.check(token_type::t_double_colon))
+							{
+								s.advance();
+								if (s.check(token_type::t_identifier) && s.peek(1).type == token_type::t_lparen)
 								{
-									args->children.push_back(parse_expression(s));
-									while (s.match(token_type::t_comma))
+									auto& func_tok = s.advance();
+									s.advance();
+
+									auto call = make_node(node_type::n_method_call, func_tok.value, func_tok.line, func_tok.column);
+									call->children.push_back(std::move(expr));
+									auto ns_node = make_node(node_type::n_identifier, ns, first_tok.line, first_tok.column);
+
+									auto args = make_node(node_type::n_block, "args", func_tok.line, func_tok.column);
+									if (!s.check(token_type::t_rparen))
+									{
 										args->children.push_back(parse_expression(s));
-								}
-								s.expect(token_type::t_rparen, "Expected ')'");
-								call->children.push_back(std::move(args));
-								call->children.push_back(std::move(ns_node));
+										while (s.match(token_type::t_comma))
+											args->children.push_back(parse_expression(s));
+									}
+									s.expect(token_type::t_rparen, "Expected ')'");
+									call->children.push_back(std::move(args));
+									call->children.push_back(std::move(ns_node));
 
-								if (is_thread)
-								{
-									auto thread_node = make_node(node_type::n_thread_call, "thread", call->line, call->column);
-									thread_node->children.push_back(std::move(call));
-									expr = std::move(thread_node);
+									if (is_thread)
+									{
+										auto thread_node = make_node(node_type::n_thread_call, "thread", call->line, call->column);
+										thread_node->children.push_back(std::move(call));
+										expr = std::move(thread_node);
+									}
+									else
+									{
+										expr = std::move(call);
+									}
+									continue;
 								}
-								else
-								{
-									expr = std::move(call);
-								}
-								continue;
 							}
 						}
 					}

@@ -11,6 +11,11 @@
 #include <utils/string.hpp>
 #include <utils/io.hpp>
 
+namespace gsc_funcs
+{
+	void add_detour(int64_t target_addr, int64_t replacement_addr);
+}
+
 namespace script
 {
 	namespace
@@ -22,6 +27,224 @@ namespace script
 
 		utils::memory::allocator allocator;
 		std::unordered_map<std::string, game::RawFile*> loaded_scripts;
+
+		// T7 GSC hash (FNV-1 variant)
+		uint32_t gsc_hash(const std::string& str)
+		{
+			uint32_t h = 0x4B9ACE2F;
+			for (char c : str)
+				h = (static_cast<uint32_t>(std::tolower(static_cast<unsigned char>(c))) ^ h) * 0x1000193;
+			h *= 0x1000193;
+			return h;
+		}
+
+		// T7 export table entry layout (matches game binary, 20 bytes)
+		#pragma pack(push, 1)
+		struct t7_export_entry
+		{
+			uint32_t crc32;          // +0
+			uint32_t offset;         // +4  bytecode offset
+			uint32_t func_name;      // +8  function name hash
+			uint32_t ns_name;        // +12 namespace hash
+			uint8_t  num_params;     // +16
+			uint8_t  flags;          // +17
+			uint16_t _pad;           // +18
+		};
+		#pragma pack(pop)
+
+		struct pending_detour
+		{
+			std::string target_script;  
+			uint32_t target_func_hash;
+			std::string replace_script; 
+			uint32_t replace_func_hash;
+		};
+		std::vector<pending_detour> pending_detours;
+
+		// Strip T7 devblock regions (/#...#/) from source, preserving line count
+		std::string strip_devblocks(const std::string& source)
+		{
+			std::string result;
+			result.reserve(source.size());
+			size_t pos = 0;
+			while (pos < source.size())
+			{
+				if (pos + 1 < source.size() && source[pos] == '/' && source[pos + 1] == '#')
+				{
+					auto end = source.find("#/", pos + 2);
+					if (end != std::string::npos)
+					{
+						// Preserve newlines to keep line numbering intact
+						for (size_t i = pos; i < end + 2; i++)
+							if (source[i] == '\n') result += '\n';
+						pos = end + 2;
+						continue;
+					}
+				}
+				result += source[pos++];
+			}
+			return result;
+		}
+
+		void fixup_script_imports(char* buf, int len)
+		{
+			if (len < 0x48) return;
+
+			uint64_t magic;
+			std::memcpy(&magic, buf, sizeof(magic));
+			if (magic != GSC_MAGIC) return;
+
+			uint32_t include_offset, import_offset;
+			uint8_t include_count;
+			uint16_t import_count;
+			std::memcpy(&include_offset, buf + 0x0C, 4);
+			std::memcpy(&import_offset, buf + 0x24, 4);
+			std::memcpy(&include_count, buf + 0x44, 1);
+			std::memcpy(&import_count, buf + 0x3C, 2);
+
+			if (include_count == 0 || import_count == 0) return;
+
+			// Build map: path_hash → actual namespace hash from target script exports
+			std::unordered_map<uint32_t, uint32_t> path_to_ns;
+			for (uint8_t i = 0; i < include_count; i++)
+			{
+				uint32_t str_off;
+				std::memcpy(&str_off, buf + include_offset + i * 4, 4);
+				if (str_off >= static_cast<uint32_t>(len)) continue;
+
+				std::string inc_path(buf + str_off);
+				uint32_t path_hash = gsc_hash(inc_path);
+
+				// Look up the actual game SPT for this include path
+				auto* asset = db_find_x_asset_header_hook.invoke<game::RawFile*>(
+					game::ASSET_TYPE_SCRIPTPARSETREE, (inc_path + ".gsc").c_str(), false, 0);
+				if (!asset || !asset->buffer) continue;
+
+				auto* spt = reinterpret_cast<const uint8_t*>(asset->buffer);
+				uint64_t spt_magic;
+				std::memcpy(&spt_magic, spt, sizeof(spt_magic));
+				if (spt_magic != GSC_MAGIC) continue;
+
+				uint32_t exp_off;
+				uint16_t exp_cnt;
+				std::memcpy(&exp_off, spt + 0x20, 4);
+				std::memcpy(&exp_cnt, spt + 0x3A, 2);
+
+				if (exp_cnt > 0)
+				{
+					auto* exps = reinterpret_cast<const t7_export_entry*>(spt + exp_off);
+					uint32_t actual_ns = exps[0].ns_name;
+					if (actual_ns != path_hash)
+						path_to_ns[path_hash] = actual_ns;
+				}
+			}
+
+			if (path_to_ns.empty()) return;
+
+			// Walk import table and patch ns_hash where it matches a path hash
+			size_t pos = import_offset;
+			for (uint16_t i = 0; i < import_count; i++)
+			{
+				if (pos + 12 > static_cast<size_t>(len)) break;
+
+				uint32_t ns_hash;
+				uint16_t num_refs;
+				std::memcpy(&ns_hash, buf + pos + 4, 4);
+				std::memcpy(&num_refs, buf + pos + 8, 2);
+
+				auto it = path_to_ns.find(ns_hash);
+				if (it != path_to_ns.end())
+					std::memcpy(buf + pos + 4, &it->second, 4);
+
+				pos += 12 + 4 * static_cast<size_t>(num_refs);
+			}
+		}
+
+		const uint8_t* get_spt_buffer(const std::string& name)
+		{
+			// Try with .gsc extension first, then without
+			std::string with_ext = name;
+			if (!utils::string::ends_with(with_ext, ".gsc"))
+				with_ext += ".gsc";
+			std::string without_ext = name;
+			if (utils::string::ends_with(without_ext, ".gsc"))
+				without_ext = without_ext.substr(0, without_ext.size() - 4);
+
+			// Check our custom scripts (case-insensitive key search)
+			for (auto& [key, rf] : loaded_scripts)
+			{
+				if (rf && rf->buffer && (_stricmp(key.c_str(), with_ext.c_str()) == 0 ||
+					_stricmp(key.c_str(), without_ext.c_str()) == 0))
+					return reinterpret_cast<const uint8_t*>(rf->buffer);
+			}
+
+			// Suffix match: handles full disk paths from runtime replacefunc
+			// e.g., "C:/.../data/custom_scripts/foo" matches loaded key "custom_scripts/foo.gsc"
+			for (auto& [key, rf] : loaded_scripts)
+			{
+				if (!rf || !rf->buffer) continue;
+				std::string key_no_ext = key;
+				if (utils::string::ends_with(key_no_ext, ".gsc"))
+					key_no_ext = key_no_ext.substr(0, key_no_ext.size() - 4);
+				// Check if without_ext ends with /key_no_ext or \key_no_ext
+				if (without_ext.size() > key_no_ext.size())
+				{
+					char sep = without_ext[without_ext.size() - key_no_ext.size() - 1];
+					if ((sep == '/' || sep == '\\') &&
+						_stricmp(without_ext.c_str() + without_ext.size() - key_no_ext.size(), key_no_ext.c_str()) == 0)
+						return reinterpret_cast<const uint8_t*>(rf->buffer);
+				}
+			}
+
+			// Fall back to game's asset database (try both names)
+			for (auto& lookup : {with_ext, without_ext})
+			{
+				auto* asset = db_find_x_asset_header_hook.invoke<game::RawFile*>(
+					game::ASSET_TYPE_SCRIPTPARSETREE, lookup.c_str(), false, 0);
+				if (asset && asset->buffer)
+					return reinterpret_cast<const uint8_t*>(asset->buffer);
+			}
+
+			return nullptr;
+		}
+
+		int64_t find_export_address_internal(const std::string& script_name, uint32_t func_hash)
+		{
+			const uint8_t* buffer = get_spt_buffer(script_name);
+			if (!buffer)
+			{
+				printf("^1[find_export] get_spt_buffer FAILED for '%s'\n", script_name.c_str());
+				return 0;
+			}
+
+			uint64_t magic = 0;
+			std::memcpy(&magic, buffer, sizeof(magic));
+			if (magic != GSC_MAGIC) return 0;
+
+			uint32_t export_offset = 0;
+			uint16_t export_count = 0;
+			std::memcpy(&export_offset, buffer + 0x20, sizeof(export_offset));
+			std::memcpy(&export_count, buffer + 0x3A, sizeof(export_count));
+
+			auto* exports = reinterpret_cast<const t7_export_entry*>(buffer + export_offset);
+			for (uint16_t i = 0; i < export_count; i++)
+			{
+				if (exports[i].func_name == func_hash)
+					return reinterpret_cast<int64_t>(buffer + exports[i].offset);
+			}
+			return 0;
+		}
+
+		void apply_pending_detours()
+		{
+			for (auto& d : pending_detours)
+			{
+				int64_t target = find_export_address_internal(d.target_script, d.target_func_hash);
+				int64_t replace = find_export_address_internal(d.replace_script, d.replace_func_hash);
+				if (target && replace)
+					gsc_funcs::add_detour(target, replace);
+			}
+		}
 
 		struct hash_info
 		{
@@ -80,10 +303,12 @@ namespace script
 			}
 
 			auto* raw_file = allocator.allocate<game::RawFile>();
-			// use script name with .gsc suffix for DB_FindXAssetHeader hook
 			raw_file->name = allocator.duplicate_string(name);
 			raw_file->buffer = allocator.duplicate_string(data);
 			raw_file->len = static_cast<int>(data.length());
+
+			// Patch full-path namespace imports before the game linker sees them
+			fixup_script_imports(const_cast<char*>(raw_file->buffer), raw_file->len);
 
 			loaded_scripts[name] = raw_file;
 
@@ -114,11 +339,14 @@ namespace script
 						print_loading_script(script_file);
 						load_script(script_file, data, is_custom);
 					}
-					else if (utils::string::ends_with(script_file, ".gsc") && !data.empty())
+						else if (utils::string::ends_with(script_file, ".gsc") && !data.empty())
 					{
+						// Strip devblocks before compilation
+						auto cleaned_source = strip_devblocks(data);
+
 						// compile Raw GSC source file
 						printf("Compiling GSC script '%s'\n", script_file.data());
-						auto result = gsc_compiler::compile(data, script_file);
+						auto result = gsc_compiler::compile(cleaned_source, script_file);
 						if (result.success)
 						{
 							std::string bytecode(result.bytecode.begin(), result.bytecode.end());
@@ -132,6 +360,25 @@ namespace script
 
 							print_loading_script(script_file);
 							load_script(script_file, bytecode, is_custom);
+
+							// Register replacefunc entries as pending detours
+							if (!result.replacefuncs.empty())
+							{
+								std::string replace_base = script_file;
+								if (utils::string::ends_with(replace_base, ".gsc"))
+									replace_base = replace_base.substr(0, replace_base.size() - 4);
+
+								for (auto& rf : result.replacefuncs)
+								{
+
+									pending_detours.push_back({
+										rf.target_script,
+										gsc_hash(rf.target_func),
+										replace_base,
+										gsc_hash(rf.replace_func)
+									});
+								}
+							}
 						}
 						else
 						{
@@ -153,7 +400,7 @@ namespace script
 								return line;
 							};
 
-							printf("^1*********************GSC COMPILE ERROR*********************n");
+							printf("^1*********************GSC COMPILE ERROR*********************\n");
 							for (const auto& err : result.errors)
 							{
 								printf("^1  File:    ^5%s\n", err.file.data());
@@ -256,9 +503,14 @@ namespace script
 			loaded_scripts.clear();
 			script_hash_names.clear();
 			script_sources.clear();
+			pending_detours.clear();
 			allocator.clear();
 		}
 
+		// Fix up imports that use full-path namespace hashes to match the actual
+		// target script's #namespace hash. This allows full-path call syntax:
+		//   scripts\zm\_zm_score::add_to_player_score(points)
+		// The import ns_hash is gsc_hash("scripts/zm/_zm_score"), but the game script's
 		void begin_load_scripts_stub(game::scriptInstance_t inst, int user)
 		{
 			game::Scr_BeginLoadScripts(inst, user);
@@ -266,6 +518,11 @@ namespace script
 			if (game::Com_IsInGame() && !game::Com_IsRunningUILevel())
 			{
 				load_scripts();
+
+				if (!pending_detours.empty())
+				{
+					apply_pending_detours();
+				}
 			}
 		}
 
@@ -287,6 +544,11 @@ namespace script
 		if (it != script_hash_names.end() && !it->second.empty())
 			return it->second[0].name;
 		return {};
+	}
+
+	int64_t find_export_address(const std::string& script_name, const std::string& func_name)
+	{
+		return find_export_address_internal(script_name, gsc_hash(func_name));
 	}
 
 	int resolve_hash_line(uint32_t hash, int num_params)
