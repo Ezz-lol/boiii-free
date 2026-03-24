@@ -587,7 +587,11 @@ namespace gsc_compiler
 		bool is_custom_function(const std::string& name)
 		{
 			static const std::unordered_set<std::string> custom_funcs = {
-				"executecommand", "say", "println"
+				"executecommand", "say", "println",
+				"writefile", "readfile", "appendfile", "fileexists", "removefile",
+				"filesize", "createdirectory", "directoryexists", "listfiles",
+				"jsonvalid", "jsonparse", "jsonset", "jsondump",
+				"int64_op", "int64_isint", "int64_toint", "int64_min", "int64_max",
 			};
 			return custom_funcs.count(name) > 0;
 		}

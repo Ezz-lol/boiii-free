@@ -197,8 +197,31 @@ namespace gsc_compiler
 			if (s.check(token_type::t_ampersand) && s.peek(1).type == token_type::t_identifier)
 			{
 				auto& amp_tok = s.advance();
-				auto& name = s.advance();
-				return make_node(node_type::n_func_ref, name.value, amp_tok.line, amp_tok.column);
+				auto& name_tok = s.advance();
+				std::string ns_name = name_tok.value;
+
+				// Support &path\to\namespace::function syntax
+				while (s.check(token_type::t_backslash))
+				{
+					ns_name += "\\";
+					s.advance();
+					if (s.check(token_type::t_identifier))
+						ns_name += s.advance().value;
+				}
+
+				if (s.check(token_type::t_double_colon))
+				{
+					s.advance();
+					if (s.check(token_type::t_identifier))
+					{
+						std::string func_name = s.advance().value;
+						auto ref = make_node(node_type::n_func_ref, func_name, amp_tok.line, amp_tok.column);
+						ref->children.push_back(make_node(node_type::n_identifier, ns_name, amp_tok.line, amp_tok.column));
+						return ref;
+					}
+				}
+
+				return make_node(node_type::n_func_ref, ns_name, amp_tok.line, amp_tok.column);
 			}
 
 			if (s.check(token_type::t_identifier))

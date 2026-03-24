@@ -212,14 +212,12 @@ namespace script
 		{
 			const uint8_t* buffer = get_spt_buffer(script_name);
 			if (!buffer)
-			{
-				printf("^1[find_export] get_spt_buffer FAILED for '%s'\n", script_name.c_str());
 				return 0;
-			}
 
 			uint64_t magic = 0;
 			std::memcpy(&magic, buffer, sizeof(magic));
-			if (magic != GSC_MAGIC) return 0;
+			if (magic != GSC_MAGIC)
+				return 0;
 
 			uint32_t export_offset = 0;
 			uint16_t export_count = 0;
