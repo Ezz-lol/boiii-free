@@ -522,7 +522,10 @@ namespace ui_scripting
 
 			setup_functions();
 
-			lua["print"] = function(reinterpret_cast<game::hks::lua_function>(0x141D30290_g)); // hks::base_print
+			if (!game::is_server())
+			{
+				lua["print"] = function(reinterpret_cast<game::hks::lua_function>(0x141D30290_g)); // hks::base_print
+			}
 			lua["table"]["unpack"] = lua["unpack"];
 			lua["luiglobals"] = lua;
 
@@ -886,7 +889,7 @@ namespace ui_scripting
 
 		const char* resolve_c_function_name(uintptr_t c_func_ptr)
 		{
-			if (!c_func_ptr) return nullptr;
+			if (!c_func_ptr || game::is_server()) return nullptr;
 			auto list_head = *reinterpret_cast<uintptr_t*>(0x14365C5E0_g);
 			while (list_head)
 			{
@@ -990,9 +993,13 @@ namespace ui_scripting
 						ar->name = getinfo_name_buf;
 					}
 
-					using getPC_t = uintptr_t(__fastcall*)(game::hks::lua_State*, game::hks::lua_Debug*);
-					auto fn_getPC = reinterpret_cast<getPC_t>(0x141D46310_g);
-					auto pc = fn_getPC(s, ar);
+					uintptr_t pc = 0;
+					if (!game::is_server())
+					{
+						using getPC_t = uintptr_t(__fastcall*)(game::hks::lua_State*, game::hks::lua_Debug*);
+						auto fn_getPC = reinterpret_cast<getPC_t>(0x141D46310_g);
+						pc = fn_getPC(s, ar);
+					}
 
 					const char* resolved_source = nullptr;
 					if (pc)

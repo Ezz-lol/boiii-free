@@ -102,35 +102,35 @@ namespace gsc_funcs
 
 		void __fastcall hk_SafeCreateLocalVariables(int32_t inst, int64_t* fs_0, int64_t vmc, bool* terminate)
 		{
-			if (!try_redirect(inst, fs_0))
-				orig_SafeCreateLocalVariables(inst, fs_0, vmc, terminate);
+			if (try_redirect(inst, fs_0))
+				return; // VM re-dispatches from replacement's first opcode
+			orig_SafeCreateLocalVariables(inst, fs_0, vmc, terminate);
 		}
 
 		void __fastcall hk_CheckClearParams(int32_t inst, int64_t* fs_0, int64_t vmc, bool* terminate)
 		{
-			if (!try_redirect(inst, fs_0))
-				orig_CheckClearParams(inst, fs_0, vmc, terminate);
+			if (try_redirect(inst, fs_0))
+				return; // VM re-dispatches from replacement's first opcode
+			orig_CheckClearParams(inst, fs_0, vmc, terminate);
 		}
 
-		void hook_opcode(uint16_t opcode, vm_opcode_handler_t hook, vm_opcode_handler_t* out_orig)
+		void hook_opcode(size_t* table, uint16_t opcode, vm_opcode_handler_t hook, vm_opcode_handler_t* out_orig)
 		{
-			const auto table1 = game::select(0x1432E6350, 0x0);
-			const auto table2 = game::select(0x143306350, 0x0);
+			auto current = table[opcode];
+			const auto base = game::get_base();
+			const utils::nt::library game_binary{};
+			auto image_size = game_binary.get_optional_header()->SizeOfImage;
+			if (current < base || current >= base + image_size)
+				return;
 
-			for (const auto table : { table1, table2 })
-			{
-				if (!table) continue;
-				auto* entry = reinterpret_cast<int64_t*>(table + opcode * 8);
-				if (!*out_orig)
-					*out_orig = reinterpret_cast<vm_opcode_handler_t>(*entry);
-				if (*entry == reinterpret_cast<int64_t>(*out_orig))
-					*entry = reinterpret_cast<int64_t>(hook);
-			}
+			if (!*out_orig)
+				*out_orig = reinterpret_cast<vm_opcode_handler_t>(current);
+
+			DWORD old_protect = 0;
+			VirtualProtect(&table[opcode], 8, PAGE_READWRITE, &old_protect);
+			table[opcode] = reinterpret_cast<size_t>(hook);
+			VirtualProtect(&table[opcode], 8, old_protect, &old_protect);
 		}
-
-		// =====================================================
-		// Builtin dispatcher
-		// =====================================================
 
 		void builtin_dispatcher(game::scriptInstance_t inst)
 		{
@@ -559,9 +559,9 @@ namespace gsc_funcs
 	{
 		void post_unpack() override
 		{
-			ScrVm_GetInt = reinterpret_cast<ScrVm_GetInt_t>(game::relocate(0x1412EB7F0));
-			ScrVm_GetString = reinterpret_cast<ScrVm_GetString_t>(game::relocate(0x1412EBAA0));
-			ScrVm_AddString = reinterpret_cast<ScrVm_AddString_t>(game::relocate(0x1412E9A30));
+			ScrVm_GetInt = reinterpret_cast<ScrVm_GetInt_t>(game::select(0x1412EB7F0, 0x1401711E0));
+			ScrVm_GetString = reinterpret_cast<ScrVm_GetString_t>(game::select(0x1412EBAA0, 0x140171490));
+			ScrVm_AddString = reinterpret_cast<ScrVm_AddString_t>(game::select(0x1412E9A30, 0x14016F320));
 
 			// Core
 			custom_builtins[static_cast<int32_t>(fnv1a("replacefunc"))] = gscr_replacefunc;
@@ -594,12 +594,26 @@ namespace gsc_funcs
 			custom_builtins[static_cast<int32_t>(fnv1a("int64_min"))] = gscr_int64_min;
 			custom_builtins[static_cast<int32_t>(fnv1a("int64_max"))] = gscr_int64_max;
 
-			auto* builtin_def = reinterpret_cast<game::BuiltinFunctionDef*>(game::relocate(0x1432D7D70));
+			auto* builtin_def = reinterpret_cast<game::BuiltinFunctionDef*>(game::select(0x1432D7D70, 0x14106DD70));
 			builtin_def->max_args = 255;
 			builtin_def->actionFunc = reinterpret_cast<void*>(builtin_dispatcher);
 
-			hook_opcode(0x01D2, hk_SafeCreateLocalVariables, &orig_SafeCreateLocalVariables);
-			hook_opcode(0x000D, hk_CheckClearParams, &orig_CheckClearParams);
+			// Server: single handler table at image offset 0x107C150 (32768 entries)
+			if (game::is_server())
+			{
+				auto* table = reinterpret_cast<size_t*>(game::relocate(0x14107C150));
+				hook_opcode(table, 0x01D2, hk_SafeCreateLocalVariables, &orig_SafeCreateLocalVariables);
+				hook_opcode(table, 0x000D, hk_CheckClearParams, &orig_CheckClearParams);
+			}
+			else
+			{
+				auto* table1 = reinterpret_cast<size_t*>(game::relocate(0x1432E6350));
+				auto* table2 = reinterpret_cast<size_t*>(game::relocate(0x143306350));
+				hook_opcode(table1, 0x01D2, hk_SafeCreateLocalVariables, &orig_SafeCreateLocalVariables);
+				hook_opcode(table1, 0x000D, hk_CheckClearParams, &orig_CheckClearParams);
+				hook_opcode(table2, 0x01D2, hk_SafeCreateLocalVariables, &orig_SafeCreateLocalVariables);
+				hook_opcode(table2, 0x000D, hk_CheckClearParams, &orig_CheckClearParams);
+			}
 
 			game_event::on_g_shutdown_game([] {
 				function_replacements.clear();
