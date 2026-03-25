@@ -607,6 +607,33 @@ namespace game
 		XZoneBuffer fileBuffer;
 	};
 
+	
+	enum XZoneState : int
+	{
+	  XZONE_UNLOADING = -1,
+	  XZONE_EMPTY = 0x0,
+	  XZONE_LOADING = 0x1,
+	  XZONE_LOADED = 0x2,
+	  XZONE_COMPLETE = 0x3,
+	  XZONE_FAILED = 0x4,
+	};
+
+	#pragma pack(push, 1)
+	struct XZoneName // Size must be 96 == 0x60
+	{
+	  char name[64];
+	  int flags;
+	  int slot;
+	  // Definitely values being set at _unknown and _unknown[8]. 
+	  // They might be related to whether it's loaded? 
+	  // No immediate indication of what these are for, and we do not currently need to know, so leaving them as unknown for now.
+	  char _unknown[16];   
+	  XZoneState state;
+	  bool streamPreloaded;
+	  char __unknown[3];
+	};
+	#pragma pack(pop)
+
 	using xcommand_t = void(*)();
 
 	struct cmd_function_s
@@ -745,7 +772,6 @@ namespace game
 		DVAR_SOURCE_EXTERNAL = 0x1,
 		DVAR_SOURCE_SCRIPT = 0x2,
 	};
-
 
 	struct DvarValue
 	{

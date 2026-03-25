@@ -1,3 +1,4 @@
+#include <cstring>
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "workshop.hpp"
@@ -171,68 +172,59 @@ namespace workshop
 		{
 			if (!game::isModLoaded())
 			{
-				game::loadMod(0, "usermaps", false);
+				game::loadMod(game::LOCAL_CLIENT_0, "usermaps", false);
 			}
 		}
 
+	  	uint32_t get_xzone_index_by_name(const char* zone_name) {
+	      		for ( uint32_t zoneIdx = 0; zoneIdx < *(game::g_zoneCount.get()); zoneIdx++ ) {
+	          		game::XZoneName* zoneInfo = reinterpret_cast<game::XZoneName*>(&game::g_zoneNames[zoneIdx]);
+
+	          		if (std::strcmp(zoneInfo->name, zone_name) == 0) {
+	  	        		return zoneIdx;
+		  	      	}
+	      		}
+	        	
+	      		return 0xFFFFFFFF; // Invalid index
+		}
+	
+	  	bool unload_xzone_by_name(const char* zone_name, bool createDefault, bool suppressSync) {
+		  	uint32_t zoneIdx = get_xzone_index_by_name(zone_name);
+		  	if (zoneIdx != 0xFFFFFFFF) {
+		   		game::DB_UnloadXZone(zoneIdx, createDefault, suppressSync ? 1 : 0);
+		   		return true;
+			}
+		  	return false; // Zone not found
+		}
+
+	  	void clear_loaded_usermap() { 
+			// Set first byte of each to null, terminating string immediately - sets each to an empty string
+			*(game::usermap_publisher_id.get()) = 0;
+			*(game::usermap_title.get()) = 0;
+			*(game::internal_usermap_id.get()) = 0; // e.g. zm_*
+	  	}
+
 		void setup_server_map_stub(int localClientNum, const char* map, const char* gametype)
 		{
-			if (game::isModLoaded())
-			{
-				const auto reconnect_addr = workshop::get_pending_mod_reconnect();
-
-				game::loadMod(0, "", true);
-
-				auto start_time = std::make_shared<std::chrono::steady_clock::time_point>(
-					std::chrono::steady_clock::now());
-
-				scheduler::schedule([reconnect_addr, start_time]() -> bool
-				{
-					const auto elapsed = std::chrono::steady_clock::now() - *start_time;
-
-					if (elapsed < std::chrono::seconds(1))
-						return scheduler::cond_continue;
-
-					if (game::isModLoaded() && elapsed < std::chrono::seconds(30))
-						return scheduler::cond_continue;
-
-					if (game::isModLoaded())
-					{
-						printf("[ Workshop ] Timeout: mod still loaded after 30s, attempting reconnect anyway\n");
-					}
-					else
-					{
-						printf("[ Workshop ] Mod unloaded after %lld ms\n",
-							std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
-					}
-
-					if (!reconnect_addr.empty())
-					{
-						printf("[ RECONNECT ] scheduling reconnect in 3 seconds...\n");
-
-						scheduler::schedule([reconnect_addr]() -> bool
-							{
-								printf("[ RECONNECT ] connecting back to the server\n");
-								game::Cbuf_AddText(0, utils::string::va("connect %s\n", reconnect_addr.c_str()));
-								return scheduler::cond_end;
-							}, scheduler::main, 3s);
-					}
-					else
-					{
-						printf("[ RECONNECT ] no address found\n");
-					}
-
-					return scheduler::cond_end;
-				}, scheduler::main, 200ms);
-
-				return;
-			}
-
-			if (utils::string::is_numeric(map) || !get_usermap_publisher_id(map).empty())
-			{
-				load_usermap_mod_if_needed();
-			}
-			
+  			const char* loaded_mod_id = game::getPublisherIdFromLoadedMod();
+  			const bool is_usermap = utils::string::is_numeric(map) || !get_usermap_publisher_id(map).empty();
+  			const bool is_mod_loaded = std::strlen(loaded_mod_id) > 0;
+  			const bool is_usermaps_mod_loaded = is_mod_loaded && std::strcmp(loaded_mod_id, "usermaps") == 0;
+		
+		  	if (is_usermap) {
+				if (!is_mod_loaded) {
+					game::loadMod(game::LOCAL_CLIENT_0, "usermaps", false);
+				}
+		  	} else {
+				clear_loaded_usermap();
+	
+				if (is_usermaps_mod_loaded) {
+			  	game::loadMod(game::LOCAL_CLIENT_0, "", false);
+				}
+	
+				unload_xzone_by_name("zm_levelcommon", false, false);
+		  	}
+	
 			setup_server_map_hook.invoke(localClientNum, map, gametype);
 		}
 
@@ -899,24 +891,45 @@ namespace workshop
 		return true;
 	}
 
+	bool mod_load_requires_fs_reinitialization(const std::string& mod_name) {
+		return ! mod_name.empty() && mod_name != "usermaps";
+	}
+
+	bool mod_switch_requires_fs_reinitialization(const std::string& current_mod, const std::string& new_mod) {
+		return mod_load_requires_fs_reinitialization(current_mod) || 
+			mod_load_requires_fs_reinitialization(new_mod);
+	}
+
 	void setup_same_mod_as_host(const std::string& usermap, const std::string& mod)
 	{
-		if (game::getPublisherIdFromLoadedMod() == mod)
+		const std::string loaded_mod = game::getPublisherIdFromLoadedMod();
+		if (loaded_mod != mod)
 		{
-			return;
-		}
+			if (!usermap.empty() || !mod.empty())
+			{
+				bool fs_reinit_required = mod_switch_requires_fs_reinitialization(loaded_mod, mod);
+				game::loadMod(game::LOCAL_CLIENT_0, mod.data(), fs_reinit_required);
+				if (fs_reinit_required)
+				{
+					while (game::isModLoading(game::LOCAL_CLIENT_0)) {
+					  std::this_thread::sleep_for(100ms);
+					}
+				}
+			} else if (game::isModLoaded())
+			{
+				bool fs_reinit_required = mod_switch_requires_fs_reinitialization(loaded_mod, "");
+				game::loadMod(game::LOCAL_CLIENT_0, "", fs_reinit_required);
+				if (fs_reinit_required)
+				{
+					while (game::isModLoading(game::LOCAL_CLIENT_0)) {
+					  std::this_thread::sleep_for(100ms);
+					}
+				}
 
-		if (!usermap.empty() || mod != "usermaps")
-		{
-			game::loadMod(0, mod.data(), true);
-			return;
-		}
-
-		if (game::isModLoaded())
-		{
-			game::loadMod(0, "", true);
+			}
 		}
 	}
+
 	static std::mutex reconnect_guard_mutex;
 	static std::string last_auto_reconnect_target;
 
@@ -1017,12 +1030,31 @@ namespace workshop
 
 			utils::hook::call(0x1420D6745_g, load_mod_content_stub);
 			utils::hook::call(0x14135CD84_g, has_workshop_item_stub);
-			setup_server_map_hook.create(0x14135CD20_g, setup_server_map_stub);
+			setup_server_map_hook.create(*game::CL_SetupForNewServerMap, setup_server_map_stub);
 
 			if (game::is_client())
 			{
 				utils::hook::call(0x14135CDA1_g, com_error_missing_map_stub);
 			}
+
+
+
+			/* 
+			The game attempts to acceess the structured table "mod_game_types" each time `isModLoading` is called if the mod is not yet loaded.
+			
+			This table does not exist. As such, ~2-3s of load time is wasted searching for the non-existent table each time either:
+				- A map switch or mod load is initiated, when the engine itself checks if a mod is still loading
+				- We call `isModLoading`
+			
+			The below code disables this attempt to access the "mod_game_types" structured table.
+			*/
+			// Nop out function call to attempt accessing table, as well as its argument register
+			// assignments
+			utils::hook::nop(game::select(0x1420F3CFD, 0x1404FD54D), 9);
+			// Make subsequent jz always jmp, causing failure return code `0`, and skipping attempt to access table entirely.
+			// Retains instructions which assign this return code to globals to be used later.
+			uint8_t zero_return_reg_patch[2] = { 0x31, 0xC0 }; // xor eax, eax
+			utils::hook::set(game::select(0x1420F3CFB, 0x1404FD54B), zero_return_reg_patch);
 		}
 
 
