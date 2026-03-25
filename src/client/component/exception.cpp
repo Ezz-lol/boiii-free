@@ -2,6 +2,7 @@
 #include "loader/component_loader.hpp"
 
 #include "game/game.hpp"
+#include "scheduler.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/io.hpp>
@@ -146,6 +147,21 @@ namespace exception
 				recovery_data.last_recovery = std::chrono::high_resolution_clock::now();
 				++recovery_data.recovery_counts;
 
+				printf("^1[Exception] Attempting recovery from error 0x%08X at 0x%p\n",
+					exception_data.code, exception_data.address);
+
+				// Pre-schedule disconnect so it's queued before the longjmp
+				if (!game::is_server())
+				{
+					scheduler::once([]
+					{
+						if (game::Com_IsInGame())
+							game::Cbuf_AddText(0, "disconnect\n");
+					}, scheduler::pipeline::main);
+				}
+
+				// The original Com_Error with ERR_DROP performs a longjmp to safely unwind the
+				// corrupted exception stack - our com_error_stub hook will show the error popup
 				game::Com_Error(game::ERR_DROP,
 				                "Fatal error (0x%08X) at 0x%p (0x%p).\nA crash dump has been saved to the 'minidumps' folder.\n\n"
 				                "Ezz has tried to recover your game, but it might not run stable anymore.\n\n"
@@ -153,7 +169,7 @@ namespace exception
 				                "Closing or restarting Steam might also help.\n\n"
 				                "If this keeps happening, please report it on our Discord: https://dc.ezz.lol",
 				                exception_data.code, exception_data.address,
-				                game::derelocate(reinterpret_cast<uint64_t>(exception_data.address)))				;
+				                game::derelocate(reinterpret_cast<uint64_t>(exception_data.address)));
 			}
 			else
 			{

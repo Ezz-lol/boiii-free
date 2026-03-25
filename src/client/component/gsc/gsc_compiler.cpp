@@ -30,6 +30,7 @@ namespace gsc_compiler
 			std::string norm_path = insert_path;
 			for (char& c : norm_path) if (c == '\\') c = '/';
 
+			// 1) Relative to source file + walk up parents
 			auto src_dir = std::filesystem::path(source_file).parent_path();
 			auto candidate = src_dir / norm_path;
 			auto result = try_read_file(candidate);
@@ -46,18 +47,19 @@ namespace gsc_compiler
 
 			try
 			{
-				const auto host_boiii = utils::nt::library{}.get_folder() / "boiii";
-				candidate = host_boiii / norm_path;
-				result = try_read_file(candidate);
-				if (!result.empty()) return {result, candidate.generic_string()};
-
+				// 2) AppData: %localappdata%/boiii/data/ and data/scripts/
 				const auto appdata_data = game::get_appdata_path() / "data";
 				candidate = appdata_data / norm_path;
 				result = try_read_file(candidate);
 				if (!result.empty()) return {result, candidate.generic_string()};
 
-				// Also search data/scripts/ for .gsh files referenced by path
 				candidate = appdata_data / "scripts" / norm_path;
+				result = try_read_file(candidate);
+				if (!result.empty()) return {result, candidate.generic_string()};
+
+				// 3) Game folder: boiii/ and boiii/scripts/
+				const auto host_boiii = utils::nt::library{}.get_folder() / "boiii";
+				candidate = host_boiii / norm_path;
 				result = try_read_file(candidate);
 				if (!result.empty()) return {result, candidate.generic_string()};
 
@@ -83,13 +85,31 @@ namespace gsc_compiler
 				return {};
 			included_files.insert(canon);
 
+			// Conditional compilation state
+			struct cond_state { bool active; bool has_matched; };
+			std::vector<cond_state> cond_stack;
+
+			auto is_skipping = [&]() -> bool
+			{
+				for (auto& c : cond_stack)
+					if (!c.active) return true;
+				return false;
+			};
+
+			auto is_macro_defined = [&](const std::string& name) -> bool
+			{
+				return defines.count(name) > 0 || func_defines.count(name) > 0;
+			};
+
 			std::istringstream stream(source);
 			std::string output;
 			output.reserve(source.size());
 			std::string line;
+			int line_number = 0;
 
 			while (std::getline(stream, line))
 			{
+				line_number++;
 				if (!line.empty() && line.back() == '\r') line.pop_back();
 
 				// Backslash line continuation - count joined lines to preserve line numbers
@@ -113,6 +133,80 @@ namespace gsc_compiler
 				if (first_nonws != std::string::npos && line[first_nonws] == '#')
 				{
 					std::string trimmed = line.substr(first_nonws);
+
+					// Extract directive name for conditional handling
+					auto extract_directive_arg = [](const std::string& dir, size_t prefix_len) -> std::string
+					{
+						std::string rest = dir.substr(prefix_len);
+						size_t i = 0;
+						while (i < rest.size() && (rest[i] == ' ' || rest[i] == '\t')) i++;
+						size_t start = i;
+						while (i < rest.size() && (std::isalnum(static_cast<unsigned char>(rest[i])) || rest[i] == '_')) i++;
+						return rest.substr(start, i - start);
+					};
+
+					// Conditional compilation directives must be processed even when skipping
+					if (trimmed.substr(0, 6) == "#ifdef")
+					{
+						auto macro = extract_directive_arg(trimmed, 6);
+						bool defined = is_macro_defined(macro);
+						bool parent_active = !is_skipping();
+						cond_stack.push_back({parent_active && defined, parent_active && defined});
+						output += "\n";
+						for (int ci = 0; ci < continuation_count; ci++) output += "\n";
+						continue;
+					}
+					if (trimmed.substr(0, 7) == "#ifndef")
+					{
+						auto macro = extract_directive_arg(trimmed, 7);
+						bool defined = is_macro_defined(macro);
+						bool parent_active = !is_skipping();
+						cond_stack.push_back({parent_active && !defined, parent_active && !defined});
+						output += "\n";
+						for (int ci = 0; ci < continuation_count; ci++) output += "\n";
+						continue;
+					}
+					if (trimmed.substr(0, 5) == "#else")
+					{
+						if (!cond_stack.empty())
+						{
+							auto& top = cond_stack.back();
+							// Check if parent scope is active
+							bool parent_active = true;
+							for (size_t ci = 0; ci + 1 < cond_stack.size(); ci++)
+								if (!cond_stack[ci].active) { parent_active = false; break; }
+							top.active = parent_active && !top.has_matched;
+						}
+						output += "\n";
+						for (int ci = 0; ci < continuation_count; ci++) output += "\n";
+						continue;
+					}
+					if (trimmed.substr(0, 6) == "#endif")
+					{
+						if (!cond_stack.empty())
+							cond_stack.pop_back();
+						output += "\n";
+						for (int ci = 0; ci < continuation_count; ci++) output += "\n";
+						continue;
+					}
+
+					// All other directives are skipped when inside a false conditional block
+					if (is_skipping())
+					{
+						output += "\n";
+						for (int ci = 0; ci < continuation_count; ci++) output += "\n";
+						continue;
+					}
+
+					if (trimmed.substr(0, 6) == "#undef")
+					{
+						auto macro = extract_directive_arg(trimmed, 6);
+						defines.erase(macro);
+						func_defines.erase(macro);
+						output += "\n";
+						for (int ci = 0; ci < continuation_count; ci++) output += "\n";
+						continue;
+					}
 
 					if (trimmed.substr(0, 7) == "#define")
 					{
@@ -189,17 +283,28 @@ namespace gsc_compiler
 						}
 						else
 						{
-							// Game-internal scripts/ .gsh files live in fastfiles, i still dont know how to make em load from there
-							bool is_gsh = (insert_path.size() > 4 && insert_path.substr(insert_path.size() - 4) == ".gsh");
-							if (is_gsh || (insert_path.find("scripts/") != 0 && insert_path.find("scripts\\") != 0))
+							try
 							{
-								printf("^3[GSC] Warning: #insert file not found: '%s' (referenced from '%s')\n",
-									insert_path.data(), filename.data());
+								auto appdata_scripts = (game::get_appdata_path() / "data" / "scripts").string();
+								printf("^3[GSC] Warning: #insert file not found: '%s' — download/download the .gsh headers and place them in '%s\\'\n",
+									insert_path.data(), appdata_scripts.data());
+							}
+							catch (...)
+							{
+								printf("^3[GSC] Warning: #insert file not found: '%s'\n", insert_path.data());
 							}
 							output += "\n";
 						}
 						continue;
 					}
+				}
+
+				// Skip code lines inside false conditional blocks
+				if (is_skipping())
+				{
+					output += "\n";
+					for (int ci = 0; ci < continuation_count; ci++) output += "\n";
+					continue;
 				}
 
 				std::string processed = line;
@@ -318,6 +423,24 @@ namespace gsc_compiler
 					}
 				}
 
+				// Built-in macros: __FILE__, __LINE__, __DATE__, __TIME__
+				{
+					size_t pos = 0;
+					std::string file_val = "\"" + filename + "\"";
+					while ((pos = processed.find("__FILE__", pos)) != std::string::npos)
+					{
+						processed.replace(pos, 8, file_val);
+						pos += file_val.size();
+					}
+					pos = 0;
+					std::string line_val = std::to_string(line_number);
+					while ((pos = processed.find("__LINE__", pos)) != std::string::npos)
+					{
+						processed.replace(pos, 8, line_val);
+						pos += line_val.size();
+					}
+				}
+
 				output += processed;
 				output += "\n";
 				for (int ci = 0; ci < continuation_count; ci++) output += "\n";
@@ -332,11 +455,29 @@ namespace gsc_compiler
 			define_map defines;
 			func_define_map func_defines;
 
-		// Seed with built-in macros (Treyarch's shared.gsh lives in fastfiles, not on disk)
+			// __DATE__ / __TIME__
+			{
+				auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+				std::tm lt{};
+				localtime_s(&lt, &now);
+				char date_buf[32], time_buf[32];
+				std::strftime(date_buf, sizeof(date_buf), "%b %d %Y", &lt);
+				std::strftime(time_buf, sizeof(time_buf), "%H:%M:%S", &lt);
+				defines["__DATE__"] = std::string("\"") + date_buf + "\"";
+				defines["__TIME__"] = std::string("\"") + time_buf + "\"";
+			}
+
 			defines["SERVER_FRAME"] = ".05";
 			defines["CLIENT_FRAME"] = ".016";
 			defines["WAIT_SERVER_FRAME"] = "{wait(SERVER_FRAME);}";
 			defines["WAIT_CLIENT_FRAME"] = "{wait(CLIENT_FRAME);}";
+
+			defines["VERSION_SHIP"] = "0";
+			defines["VERSION_DLC1"] = "1";
+			defines["VERSION_DLC2"] = "2";
+			defines["VERSION_DLC3"] = "3";
+			defines["VERSION_DLC4"] = "4";
+			defines["VERSION_TU"] = "5";
 
 			func_defines["REGISTER_SYSTEM"] = {
 				{"__sys", "__func_init_preload", "__reqs"},
@@ -346,6 +487,7 @@ namespace gsc_compiler
 				{"__sys", "__func_init_preload", "__func_init_postload", "__reqs"},
 				"function autoexec __init__sytem__() { system::register(__sys,__func_init_preload,__func_init_postload,__reqs); }"
 			};
+
 			func_defines["IS_TRUE"] = {{"__a"}, "( isdefined( __a ) && __a )"};
 			func_defines["DEFAULT"] = {{"__var", "__default"}, "if(!isdefined(__var))__var=__default"};
 			func_defines["DEFAULT2"] = {{"__var", "__default1", "__default2"}, "if(!isdefined(__var))__var=(isdefined(__default1)?__default1:__default2)"};
@@ -357,6 +499,23 @@ namespace gsc_compiler
 			func_defines["RGB"] = {{"__r", "__g", "__b"}, "(__r/255,__g/255,__b/255)"};
 			func_defines["FLAT_ORIGIN"] = {{"__origin"}, "( __origin[0], __origin[1], 0 )"};
 			func_defines["FLAT_ANGLES"] = {{"__angles"}, "( 0, __angles[1], 0 )"};
+
+			defines["HORIZONTAL_ALIGN_SUBLEFT"] = "0";
+			defines["HORIZONTAL_ALIGN_LEFT"] = "1";
+			defines["HORIZONTAL_ALIGN_CENTER"] = "2";
+			defines["HORIZONTAL_ALIGN_RIGHT"] = "3";
+			defines["HORIZONTAL_ALIGN_FULLSCREEN"] = "4";
+			defines["HORIZONTAL_ALIGN_NOSCALE"] = "5";
+			defines["HORIZONTAL_ALIGN_TO640"] = "6";
+			defines["HORIZONTAL_ALIGN_CENTER_SAFEAREA"] = "7";
+			defines["VERTICAL_ALIGN_SUBTOP"] = "0";
+			defines["VERTICAL_ALIGN_TOP"] = "1";
+			defines["VERTICAL_ALIGN_CENTER"] = "2";
+			defines["VERTICAL_ALIGN_BOTTOM"] = "3";
+			defines["VERTICAL_ALIGN_FULLSCREEN"] = "4";
+			defines["VERTICAL_ALIGN_NOSCALE"] = "5";
+			defines["VERTICAL_ALIGN_TO480"] = "6";
+			defines["VERTICAL_ALIGN_CENTER_SAFEAREA"] = "7";
 
 			return preprocess_impl(source, filename, included_files, error, defines, func_defines);
 		}

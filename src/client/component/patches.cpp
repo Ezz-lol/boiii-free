@@ -19,19 +19,6 @@ namespace patches
 	{
 		const game::dvar_t* lobby_min_players;
 		utils::hook::detour com_error_hook;
-		utils::hook::detour marketing_comms_handler_hook;
-
-		void marketing_comms_handler_stub(void* a1, void* a2, void* a3, void* a4, void* a5, void* a6, void* a7, void* a8)
-		{
-			__try
-			{
-				marketing_comms_handler_hook.invoke<void>(a1, a2, a3, a4, a5, a6, a7, a8);
-			}
-			__except (EXCEPTION_EXECUTE_HANDLER)
-			{
-				// Catch ext.dll CTD when processing bad marketing comms data from public servers
-			}
-		}
 
 		std::string try_resolve_hex_token(const std::string& token)
 		{
@@ -247,7 +234,8 @@ namespace patches
 					scheduler::once([deferred_error]()
 					{
 						client_script_error_pending = false;
-						game::Cbuf_AddText(0, "disconnect\n");
+						if (game::Com_IsInGame())
+							game::Cbuf_AddText(0, "disconnect\n");
 						scheduler::once([deferred_error]()
 						{
 							game::UI_OpenErrorPopupWithMessage(0, 0, deferred_error.c_str());
@@ -271,6 +259,18 @@ namespace patches
 				return;
 			}
 
+			// For ERR_DROP client errors only, schedule a popup so the error message is visible
+			// after the engine's longjmp unwinds the stack and disconnects
+			if (!game::is_server() && code == game::ERR_DROP)
+			{
+				auto deferred_error = std::string(buffer);
+				scheduler::once([deferred_error]()
+				{
+					game::UI_OpenErrorPopupWithMessage(0, 0, deferred_error.c_str());
+				}, scheduler::pipeline::main, 500ms);
+			}
+
+			// removing this will ruin stuff
 			com_error_hook.invoke<void>(file, line, code, "%s", buffer);
 		}
 
@@ -314,9 +314,6 @@ namespace patches
 	{
 		void post_unpack() override
 		{
-			// Protect against public server ext.dll marketing comms crash
-			marketing_comms_handler_hook.create(game::select(0x141359E40, 0x141359E40), marketing_comms_handler_stub);
-
 			// Clientfield Mismatch -> recoverable ERR_DROP
 			com_error_hook.create(game::Com_Error_, com_error_stub);
 

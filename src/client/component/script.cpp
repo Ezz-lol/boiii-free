@@ -590,6 +590,36 @@ namespace script
 		auto it = script_hash_names.find(hash);
 		if (it != script_hash_names.end() && !it->second.empty())
 			return it->second[0].name;
+
+		// Fallback: well-known GSC/CSC function and keyword names that may not
+		static const std::unordered_map<uint32_t, const char*> known_names = []
+		{
+			std::unordered_map<uint32_t, const char*> m;
+			static const char* names[] = {
+				"__init__", "__main__", "__constructor", "__destructor",
+				"init", "main", "setclientdvar",
+				"precache", "postcache",
+				"callback_startgametype", "callback_playerdamage", "callback_playerkilled",
+				"callback_vehicledamage", "callback_playerlaststand", "callback_playerconnect",
+				"callback_playerdisconnect", "callback_playermigrated", "callback_hostmigration",
+				"callback_codcastervisioncheckevent",
+				"iprintln", "iprintlnbold",
+				"getplayers", "getentarray", "getent",
+				"spawnstuct", "spawnstruct",
+				"isdefined", "isalive", "isplayer", "isai",
+				"self", "level", "game",
+				"setdvar", "getdvar", "getdvarint", "getdvarfloat",
+				"distance", "anglestoforward", "vectornormalize",
+			};
+			for (auto* name : names)
+				m[gsc_hash(name)] = name;
+			return m;
+		}();
+
+		auto kit = known_names.find(hash);
+		if (kit != known_names.end())
+			return kit->second;
+
 		return {};
 	}
 

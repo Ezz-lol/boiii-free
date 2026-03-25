@@ -74,19 +74,36 @@ namespace ui_scripting
 			const auto state = *game::hks::lua_state;
 			if (!state) return false;
 
-			game::hks::HksCompilerSettings compiler_settings{};
-			const auto result = game::hks::hksi_hksL_loadbuffer(
-				state, &compiler_settings, code.data(),
-				static_cast<unsigned __int64>(code.size()), chunk_name);
-
-			if (result != 0)
+			try
 			{
-				game::Com_Printf(0, 0, "^1Hot Reload: Failed to compile Lua chunk '%s'\n", chunk_name);
-				return false;
+				const table lua = state->globals.v.table;
+				state->m_global->m_bytecodeSharingMode = game::hks::HKS_BYTECODE_SHARING_ON;
+				const auto load_results = lua["loadstring"](code, chunk_name);
+				state->m_global->m_bytecodeSharingMode = game::hks::HKS_BYTECODE_SHARING_SECURE;
+
+				if (load_results[0].is<function>())
+				{
+					const auto results = lua["pcall"](load_results);
+					if (!results[0].as<bool>())
+					{
+						auto err = results[1].as<std::string>();
+						game::Com_Printf(0, 0, "^1Lua Error [%s]: %s\n", chunk_name, err.c_str());
+						return false;
+					}
+					return true;
+				}
+				else if (load_results[1].is<std::string>())
+				{
+					auto err = load_results[1].as<std::string>();
+					game::Com_Printf(0, 0, "^1Lua Compile Error [%s]: %s\n", chunk_name, err.c_str());
+				}
+			}
+			catch (const std::exception& ex)
+			{
+				game::Com_Printf(0, 0, "^1Lua Error [%s]: %s\n", chunk_name, ex.what());
 			}
 
-			game::hks::vm_call_internal(state, 0, 0, nullptr);
-			return true;
+			return false;
 		}
 
 		void fire_debug_reload(const char* root_name)
@@ -244,10 +261,15 @@ namespace ui_scripting
 
 		void print_error(const std::string& error)
 		{
-			printf("************** LUI script execution error **************\n");
-			printf("%s\n", error.data());
-			printf("********************************************************\n");
-			MessageBoxA(nullptr, error.c_str(), "LUI Script Error", MB_OK | MB_ICONERROR | MB_TOPMOST | MB_SETFOREGROUND);
+			game::Com_Printf(0, 0, "^1************** LUI script error **************\n");
+			game::Com_Printf(0, 0, "^1%s\n", error.data());
+			game::Com_Printf(0, 0, "^1**********************************************\n");
+
+			auto popup_msg = error;
+			scheduler::once([popup_msg]
+			{
+				game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI, popup_msg.c_str());
+			}, scheduler::main, 1s);
 		}
 
 		void print_loading_script(const std::string& name)
@@ -613,11 +635,7 @@ namespace ui_scripting
 				"end; "
 				"end); ";
 
-			const auto state = *game::hks::lua_state;
-			if (state && load_buffer("discord_score_hooks", lua_code) == 0)
-			{
-				game::hks::vm_call_internal(state, 0, 0, nullptr);
-			}
+			execute_raw_lua(lua_code, "discord_score_hooks");
 		}
 
 		void cl_first_snapshot_stub(int a1)
@@ -1135,42 +1153,78 @@ namespace ui_scripting
 			return result;
 		}
 
+		const char* safe_get_lua_error_stack(game::hks::lua_State* luaVM)
+		{
+			__try
+			{
+				auto* api_top = luaVM->m_apistack.top;
+				auto* api_bottom = luaVM->m_apistack.bottom;
+
+				if (api_top && api_bottom && (api_top - 1) >= api_bottom)
+				{
+					auto* top_obj = api_top - 1;
+					if (top_obj->t == game::hks::TSTRING && top_obj->v.str)
+					{
+						return top_obj->v.str->m_data;
+					}
+				}
+			}
+			__except (EXCEPTION_EXECUTE_HANDLER)
+			{
+			}
+			return nullptr;
+		}
+
 		void lua_cod_luastatemanager_error_stub(const char* error, game::hks::lua_State* luaVM)
 		{
 			if (!error || !luaVM)
 			{
-				return lua_error_hook.invoke<void>(error, luaVM);
+				return;
 			}
 
-			const char* error_stack = nullptr;
+			// Suppress duplicate errors - the engine often fires the same error twice
+			static std::string last_error;
+			static std::chrono::steady_clock::time_point last_error_time;
+			const auto now = std::chrono::steady_clock::now();
 
-			auto* api_top = luaVM->m_apistack.top;
-			auto* api_bottom = luaVM->m_apistack.bottom;
-
-			if (api_top && api_bottom && (api_top - 1) >= api_bottom)
-			{
-				auto* top_obj = api_top - 1;
-				if (top_obj->t == game::hks::TSTRING && top_obj->v.str)
-				{
-					error_stack = top_obj->v.str->m_data;
-				}
-				else
-				{
-					try
-					{
-						error_stack = game::hks::hksi_lua_tolstring(luaVM, -1, nullptr);
-					}
-					catch (...)
-					{
-						error_stack = nullptr;
-					}
-				}
-			}
-
+			const char* error_stack = safe_get_lua_error_stack(luaVM);
 			if (!error_stack)
 			{
-				error_stack = "<stack unknown>";
+				error_stack = error;
 			}
+
+			// Skip empty/useless errors with no real traceback info
+			const std::string stack_str(error_stack);
+			if (stack_str.find('\n') != std::string::npos)
+			{
+				// Check if traceback is empty (just "stack traceback:" with no frames)
+				bool has_frames = false;
+				std::istringstream check(stack_str);
+				std::string check_line;
+				while (std::getline(check, check_line))
+				{
+					auto trimmed = check_line;
+					while (!trimmed.empty() && (trimmed[0] == ' ' || trimmed[0] == '\t'))
+						trimmed.erase(trimmed.begin());
+					if (trimmed.find(':') != std::string::npos && trimmed != "stack traceback:")
+					{
+						has_frames = true;
+						break;
+					}
+				}
+				if (!has_frames)
+				{
+					return; // Skip errors with empty stack traces (duplicates from engine)
+				}
+			}
+
+			// Deduplicate: skip if same error within 2 seconds
+			if (stack_str == last_error && (now - last_error_time) < std::chrono::seconds(2))
+			{
+				return;
+			}
+			last_error = stack_str;
+			last_error_time = now;
 
 			const char* resolved_stack = error_stack;
 
@@ -1186,8 +1240,8 @@ namespace ui_scripting
 				std::filesystem::create_directories(logs_dir);
 				const auto log_path = (logs_dir / "boiii_lua_errors.log").string();
 
-				auto now = std::chrono::system_clock::now();
-				auto time_t = std::chrono::system_clock::to_time_t(now);
+				auto now_sys = std::chrono::system_clock::now();
+				auto time_t = std::chrono::system_clock::to_time_t(now_sys);
 				tm ltime{};
 				localtime_s(&ltime, &time_t);
 				char timestamp[64]{};
@@ -1204,26 +1258,14 @@ namespace ui_scripting
 			{
 			}
 
+			game::Com_Printf(0, 0, "%s", colored.c_str());
+
+			// Show colored error popup with delay to ensure UI is ready
 			auto popup_text = colorize_lua_error(nullptr, resolved_stack);
-			{
-				size_t pos = 0;
-				int lines = 0;
-				while (pos < popup_text.size() && lines < 10)
-				{
-					pos = popup_text.find('\n', pos);
-					if (pos == std::string::npos) break;
-					++pos;
-					++lines;
-				}
-				if (pos < popup_text.size())
-					popup_text.resize(pos);
-			}
 			scheduler::once([popup_text]
 			{
 				game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI, popup_text.c_str());
-			}, scheduler::main);
-
-			game::Com_Error(game::ERROR_LUA, "%s", colored.c_str());
+			}, scheduler::main, 500ms);
 		}
 
 		void lua_error_print_stub(int, const char*, ...)
@@ -1336,28 +1378,52 @@ namespace ui_scripting
 					try
 					{
 						int count = 0;
-						for (const auto& entry : std::filesystem::recursive_directory_iterator(dir))
+						std::string errors;
+						const auto reload_dir = [&](const std::string& script_dir)
 						{
-							if (!entry.is_regular_file()) continue;
-							if (entry.path().extension() != ".lua") continue;
-
-							std::string data;
-							if (utils::io::read_file(entry.path().string(), &data))
+							if (!utils::io::directory_exists(script_dir)) return;
+							for (const auto& entry : std::filesystem::recursive_directory_iterator(script_dir))
 							{
-								auto chunk = entry.path().string();
-								if (chunk.starts_with(dir)) chunk = chunk.substr(dir.size());
-								execute_raw_lua(data, chunk.c_str());
-								count++;
+								if (!entry.is_regular_file()) continue;
+								if (entry.path().extension() != ".lua") continue;
+
+								std::string data;
+								if (utils::io::read_file(entry.path().string(), &data))
+								{
+									auto chunk = entry.path().string();
+									if (chunk.starts_with(script_dir))
+										chunk = chunk.substr(script_dir.size());
+									if (execute_raw_lua(data, chunk.c_str()))
+										count++;
+									else
+										errors += chunk + "\n";
+								}
 							}
-						}
+						};
+
+						reload_dir(dir);
+
+						const utils::nt::library host{};
+						reload_dir((host.get_folder() / "boiii" / "ui_scripts").string());
 
 						game::Com_Printf(0, 0, "^2Lua Reload: Reloaded %d file(s)\n", count);
 
+						// Refresh current page
 						fire_debug_reload("UIRootFull");
 						if (hot_reload_in_game)
 						{
 							fire_debug_reload("UIRoot0");
 							fire_debug_reload("UIRoot1");
+						}
+
+						// Show collected errors in one popup after reload is done
+						if (!errors.empty())
+						{
+							auto popup_msg = std::string("^1Lua Reload Errors:\n") + errors;
+							scheduler::once([popup_msg]
+							{
+								game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI, popup_msg.c_str());
+							}, scheduler::pipeline::renderer, 1s);
 						}
 					}
 					catch (const std::exception& ex)
