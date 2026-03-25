@@ -181,6 +181,7 @@ Launch BOIII with these arguments for extra features:
 | `-trimlogs` | Trim or rotate old log files on startup |
 | `-keep-launcher` | Keep the launcher process running after starting the game |
 | `-noconsole` | Suppress the external launcher console window |
+| `-allowcheats` | Allow `sv_cheats` DVAR to be enabled in dedicated server |
 
 **Example:**
 ```bash

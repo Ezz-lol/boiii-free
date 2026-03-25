@@ -3,6 +3,7 @@
 #include "game/game.hpp"
 #include "game/utils.hpp"
 
+#include <utils/flags.hpp>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 
@@ -179,11 +180,15 @@ namespace server_patches2
 			// that allows attackers to write to arbitrary memory via team operations
 			utils::hook::nop(0x1401155D5_g, 7);
 
-			// Enforce sv_cheats = 0 periodically
-			scheduler::loop([]
-			{
-				enforce_sv_cheats();
-			}, scheduler::pipeline::server, 5000ms);
+                        // Poor scripting in some custom maps - e.g. Kowloon/zm_log_kowloon - requires this to be enabled.
+                        // Allow sv_cheats to be enabled if configured by user.
+                        if (!utils::flags::has_flag("allowcheats")) {
+                                // Enforce sv_cheats = 0 periodically
+                                scheduler::loop([]
+                                {
+                                        enforce_sv_cheats();
+                                }, scheduler::pipeline::server, 5000ms);
+                        }
 
 			// Cleanup old rate limit entries periodically
 			scheduler::loop([]
