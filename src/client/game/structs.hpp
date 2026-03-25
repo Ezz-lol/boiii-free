@@ -1755,15 +1755,6 @@ namespace game
 		SCRIPT_INSTANCE_MAX = 0x2,
 	};
 
-	struct BuiltinFunctionDef
-	{
-		const char* name;
-		void* actionFunc;
-		int type;
-		int min_args;
-		int max_args;
-	};
-
 	struct gclient_s
 	{
 		char __pad0[0x8C];
