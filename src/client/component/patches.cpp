@@ -19,6 +19,19 @@ namespace patches
 	{
 		const game::dvar_t* lobby_min_players;
 		utils::hook::detour com_error_hook;
+		utils::hook::detour marketing_comms_handler_hook;
+
+		void marketing_comms_handler_stub(void* a1, void* a2, void* a3, void* a4, void* a5, void* a6, void* a7, void* a8)
+		{
+			__try
+			{
+				marketing_comms_handler_hook.invoke<void>(a1, a2, a3, a4, a5, a6, a7, a8);
+			}
+			__except (EXCEPTION_EXECUTE_HANDLER)
+			{
+				// Catch ext.dll CTD when processing bad marketing comms data from public servers
+			}
+		}
 
 		std::string try_resolve_hex_token(const std::string& token)
 		{
@@ -301,6 +314,9 @@ namespace patches
 	{
 		void post_unpack() override
 		{
+			// Protect against public server ext.dll marketing comms crash
+			marketing_comms_handler_hook.create(game::select(0x141359E40, 0x141359E40), marketing_comms_handler_stub);
+
 			// Clientfield Mismatch -> recoverable ERR_DROP
 			com_error_hook.create(game::Com_Error_, com_error_stub);
 
