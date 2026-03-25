@@ -468,7 +468,7 @@ namespace gsc_compiler
 						call->children.push_back(std::move(expr));
 						call->children.push_back(std::move(ptr_expr));
 
-						auto args = make_node(node_type::n_block, "args", expr->line, expr->column);
+						auto args = make_node(node_type::n_block, "args", call->line, call->column);
 						if (!s.check(token_type::t_rparen))
 						{
 							args->children.push_back(parse_expression(s));

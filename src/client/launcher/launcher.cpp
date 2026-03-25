@@ -1642,6 +1642,22 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 				return CComVariant(name.c_str());
 			});
 
+		window.get_html_frame()->register_callback(
+			"savePlayerName", [](const std::vector<html_argument>& params) -> CComVariant
+			{
+				if (!params.empty() && params[0].is_string())
+				{
+					auto name = sanitize_player_name(params[0].get_string());
+					utils::string::trim(name);
+					if (!name.empty())
+					{
+						if (name.size() > 16) name.resize(16);
+						utils::properties::store("playerName", name);
+					}
+				}
+				return CComVariant("");
+			});
+
 
 		const auto friends_file = std::filesystem::path("boiii_players") / "user" / "friends.json";
 

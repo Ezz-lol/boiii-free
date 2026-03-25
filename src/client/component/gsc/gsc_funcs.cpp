@@ -33,6 +33,8 @@ namespace gsc_funcs
 
 		vm_opcode_handler_t orig_SafeCreateLocalVariables = nullptr;
 		vm_opcode_handler_t orig_CheckClearParams = nullptr;
+		vm_opcode_handler_t orig_ScriptMethodCallPointer = nullptr;     // 0x0077
+		vm_opcode_handler_t orig_ScriptFunctionCallPointer = nullptr;   // 0x003A
 
 		thread_local bool return_value_set = false;
 
@@ -123,8 +125,10 @@ namespace gsc_funcs
 			if (current < base || current >= base + image_size)
 				return;
 
-			if (!*out_orig)
+			if (out_orig && !*out_orig)
 				*out_orig = reinterpret_cast<vm_opcode_handler_t>(current);
+
+			if (!hook) return; // just saving the original
 
 			DWORD old_protect = 0;
 			VirtualProtect(&table[opcode], 8, PAGE_READWRITE, &old_protect);
@@ -569,6 +573,8 @@ namespace gsc_funcs
 			custom_builtins[static_cast<int32_t>(fnv1a("say"))] = gscr_say;
 			custom_builtins[static_cast<int32_t>(fnv1a("tell"))] = gscr_tell;
 			custom_builtins[static_cast<int32_t>(fnv1a("println"))] = gscr_println;
+			custom_builtins[static_cast<int32_t>(fnv1a("print"))] = gscr_println;
+			custom_builtins[static_cast<int32_t>(fnv1a("printf"))] = gscr_println;
 
 			// File I/O
 			custom_builtins[static_cast<int32_t>(fnv1a("writefile"))] = gscr_writefile;
@@ -602,6 +608,7 @@ namespace gsc_funcs
 			if (game::is_server())
 			{
 				auto* table = reinterpret_cast<size_t*>(game::relocate(0x14107C150));
+
 				hook_opcode(table, 0x01D2, hk_SafeCreateLocalVariables, &orig_SafeCreateLocalVariables);
 				hook_opcode(table, 0x000D, hk_CheckClearParams, &orig_CheckClearParams);
 			}
@@ -609,6 +616,7 @@ namespace gsc_funcs
 			{
 				auto* table1 = reinterpret_cast<size_t*>(game::relocate(0x1432E6350));
 				auto* table2 = reinterpret_cast<size_t*>(game::relocate(0x143306350));
+
 				hook_opcode(table1, 0x01D2, hk_SafeCreateLocalVariables, &orig_SafeCreateLocalVariables);
 				hook_opcode(table1, 0x000D, hk_CheckClearParams, &orig_CheckClearParams);
 				hook_opcode(table2, 0x01D2, hk_SafeCreateLocalVariables, &orig_SafeCreateLocalVariables);

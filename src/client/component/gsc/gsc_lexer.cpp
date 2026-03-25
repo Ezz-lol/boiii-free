@@ -332,13 +332,13 @@ namespace gsc_compiler
 				// Check for namespace path: &ns\path::func or &ns::func
 				if (!s.at_end() && (s.peek() == ':' || s.peek() == '\\'))
 				{
-					// Emit & as ampersand, then the identifier — let the parser handle namespacing
+					// Emit '&' as an ampersand, then the identifier. Let the parser handle namespacing
 					result.tokens.push_back({token_type::t_ampersand, "&", tok.line, tok.column});
 					result.tokens.push_back({token_type::t_identifier, word, tok.line, tok.column + 1});
 				}
 				else
 				{
-					// Simple &func — emit as :: + identifier for func_ref
+					// Simple &func. Emit as '::' followed by the identifier for func_ref
 					result.tokens.push_back({token_type::t_double_colon, "::", tok.line, tok.column});
 					result.tokens.push_back({token_type::t_identifier, word, tok.line, tok.column + 1});
 				}

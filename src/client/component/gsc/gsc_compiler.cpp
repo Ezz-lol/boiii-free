@@ -55,6 +55,15 @@ namespace gsc_compiler
 				candidate = appdata_data / norm_path;
 				result = try_read_file(candidate);
 				if (!result.empty()) return {result, candidate.generic_string()};
+
+				// Also search data/scripts/ for .gsh files referenced by path
+				candidate = appdata_data / "scripts" / norm_path;
+				result = try_read_file(candidate);
+				if (!result.empty()) return {result, candidate.generic_string()};
+
+				candidate = host_boiii / "scripts" / norm_path;
+				result = try_read_file(candidate);
+				if (!result.empty()) return {result, candidate.generic_string()};
 			}
 			catch (...) {}
 
@@ -180,9 +189,9 @@ namespace gsc_compiler
 						}
 						else
 						{
-							// Game-internal .gsh files (scripts/shared/shared.gsh etc.) live inside
-							// fastfiles and can never be found on disk. Only warn for user/custom paths.
-							if (insert_path.find("scripts/") != 0 && insert_path.find("scripts\\") != 0)
+							// Game-internal scripts/ .gsh files live in fastfiles, i still dont know how to make em load from there
+							bool is_gsh = (insert_path.size() > 4 && insert_path.substr(insert_path.size() - 4) == ".gsh");
+							if (is_gsh || (insert_path.find("scripts/") != 0 && insert_path.find("scripts\\") != 0))
 							{
 								printf("^3[GSC] Warning: #insert file not found: '%s' (referenced from '%s')\n",
 									insert_path.data(), filename.data());

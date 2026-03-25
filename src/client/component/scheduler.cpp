@@ -103,9 +103,21 @@ namespace scheduler
 			execute(server);
 		}
 
+		void safe_invoke_main_frame()
+		{
+			__try
+			{
+				main_frame_hook.invoke<void>();
+			}
+			__except (EXCEPTION_EXECUTE_HANDLER)
+			{
+				printf("[Recovery] Caught crash in game frame, please fix the script and run map_restart...\n");
+			}
+		}
+
 		void main_frame_stub()
 		{
-			main_frame_hook.invoke<void>();
+			safe_invoke_main_frame();
 			execute(main);
 		}
 	}

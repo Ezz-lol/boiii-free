@@ -1,5 +1,6 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
+#include "scheduler.hpp"
 
 #include <game/game.hpp>
 #include <game/utils.hpp>
@@ -100,6 +101,10 @@ namespace patches
 		void com_error_stub(const char* file, int line, int code, const char* fmt, ...)
 		{
 			static bool suppress_next_lua_error = false;
+			static bool server_restart_pending = false;
+			static bool client_script_error_pending = false;
+			static int server_restart_count = 0;
+			constexpr int max_server_restarts = 5;
 
 			char buffer[0x1000];
 
@@ -114,7 +119,6 @@ namespace patches
 			if (suppress_next_lua_error && code == 512)
 			{
 				suppress_next_lua_error = false;
-				com_error_hook.invoke<void>(file, line, code, "%s", buffer);
 				return;
 			}
 
@@ -123,14 +127,21 @@ namespace patches
 
 			if (is_script_error || is_link_error)
 			{
+				// Suppress cascading script errors (first error already scheduled recovery)
+				if ((!game::is_server() && client_script_error_pending) || (game::is_server() && server_restart_pending))
+					return;
+
 				suppress_next_lua_error = true;
 				std::string resolved = resolve_hashes_in_string(buffer);
+				const bool is_csc = resolved.find(".csc") != std::string::npos;
+				const char* script_type = is_csc ? "CSC" : "GSC";
 
 				std::string formatted_error;
 				formatted_error.reserve(2048);
 
-				printf("^1************* GSC SCRIPT ERROR *************\n");
-				formatted_error += "GSC SCRIPT ERROR\n";
+				printf("^1************* %s SCRIPT ERROR *************\n", script_type);
+				formatted_error += script_type;
+				formatted_error += " SCRIPT ERROR\n";
 
 				std::istringstream stream(resolved);
 				std::string err_line;
@@ -189,7 +200,6 @@ namespace patches
 								formatted_error += "Source: " + src + "\n";
 							}
 						}
-						printf("^1---------------------------------------------\n");
 					}
 					else
 					{
@@ -199,8 +209,39 @@ namespace patches
 				}
 				printf("^1*********************************************\n");
 
-				// Pass the detailed error text to the game's handler
-				com_error_hook.invoke<void>(file, line, code, "%s", formatted_error.c_str());
+				if (game::is_server())
+				{
+					server_restart_pending = true;
+					server_restart_count++;
+
+					if (server_restart_count <= max_server_restarts)
+					{
+						scheduler::once([]
+						{
+							server_restart_pending = false;
+							game::Cbuf_AddText(0, "map_restart\n");
+						}, scheduler::pipeline::main);
+					}
+					else
+					{
+						printf("^1[Server] Too many script errors restarts(%d), not restarting. Fix your scripts and restart manually.\n", server_restart_count);
+					}
+				}
+				else
+				{
+					client_script_error_pending = true;
+					auto deferred_error = formatted_error;
+					scheduler::once([deferred_error]()
+					{
+						client_script_error_pending = false;
+						game::Cbuf_AddText(0, "disconnect\n");
+						scheduler::once([deferred_error]()
+						{
+							game::UI_OpenErrorPopupWithMessage(0, 0, deferred_error.c_str());
+						}, scheduler::pipeline::main, 500ms);
+					}, scheduler::pipeline::main);
+				}
+
 				return;
 			}
 			else

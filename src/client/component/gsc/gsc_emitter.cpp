@@ -60,7 +60,7 @@ namespace gsc_compiler
 			return (val + alignment - 1) & ~(alignment - 1);
 		}
 
-		// T7 PC opcode table from the proven reference compiler (Black-Ops-3-GSC-Compiler-1.0)
+		// T7 PC opcode table
 		uint16_t map_opcode(script_opcode op)
 		{
 			switch (op)
@@ -169,7 +169,6 @@ namespace gsc_compiler
 			}
 		}
 
-		// Structures for compilation
 		struct hash_name_pair
 		{
 			uint32_t hash;
@@ -181,8 +180,7 @@ namespace gsc_compiler
 		struct string_entry
 		{
 			std::string value;
-			uint32_t offset; // filled during commit
-			// Each reference: (export_index, bytecode_offset_within_that_export)
+			uint32_t offset;
 			std::vector<std::pair<size_t, uint32_t>> references;
 		};
 
@@ -192,7 +190,6 @@ namespace gsc_compiler
 			uint32_t namespace_hash;
 			uint8_t num_params;
 			uint8_t flags;
-			// Each reference: (export_index, bytecode_offset_within_that_export)
 			std::vector<std::pair<size_t, uint32_t>> references;
 		};
 
@@ -203,7 +200,7 @@ namespace gsc_compiler
 			uint8_t num_params;
 			uint8_t flags;
 			std::vector<uint8_t> bytecode;
-			uint32_t bytecode_offset; // filled during commit
+			uint32_t bytecode_offset;
 
 			std::vector<uint32_t> local_hashes;
 			std::unordered_map<uint32_t, uint8_t> local_indices;
@@ -226,12 +223,11 @@ namespace gsc_compiler
 			}
 		};
 
-		// Jump fixup: store where the jump instruction's offset is, and the target label
 		struct jump_fixup
 		{
-			uint32_t offset_location; // where in bytecode the i16 offset is
-			uint32_t jump_end;        // end of the jump instruction (where offset is relative from)
-			int target_label;         // label ID to jump to
+			uint32_t offset_location;
+			uint32_t jump_end;
+			int target_label;
 		};
 
 		struct loop_context
@@ -252,8 +248,7 @@ namespace gsc_compiler
 
 			std::vector<import_entry> imports;
 
-			// Include table (stores path strings, NOT hashes)
-			std::vector<std::string> includes;
+				std::vector<std::string> includes;
 
 			std::vector<export_entry> exports;
 
@@ -263,7 +258,6 @@ namespace gsc_compiler
 
 			std::vector<loop_context> loop_stack;
 
-			// Temp variable counter for foreach/switch
 			int temp_var_counter;
 
 			std::vector<hash_name_pair> hash_names;
@@ -316,7 +310,6 @@ namespace gsc_compiler
 			void emit_i16(int16_t v) { write_i16(current_func->bytecode, v); }
 			void emit_float(float v) { write_float(current_func->bytecode, v); }
 
-			// Emit a jump instruction; returns the fixup record index
 			void emit_jump(script_opcode op, int target_label)
 			{
 				emit_op(op);
@@ -341,10 +334,9 @@ namespace gsc_compiler
 				size_t idx = add_string(str);
 				emit_op(op);
 				emit_u32_aligned();
-				// Record reference location (will be patched by game loader via fixup table)
 				strings[idx].references.push_back(
 					{current_export_index, static_cast<uint32_t>(current_func->bytecode.size())});
-				emit_u32(0xFFFFFFFF); // placeholder
+				emit_u32(0xFFFFFFFF);
 			}
 
 			uint64_t make_import_key(uint32_t func, uint32_t ns, uint8_t params, uint8_t flags) const
@@ -370,7 +362,6 @@ namespace gsc_compiler
 			void emit_call(uint32_t func_hash, uint32_t ns_hash, uint8_t num_params, bool is_method,
 				bool is_thread, bool same_namespace)
 			{
-				// Import flags: FunctionFlags | CallFlags (matching reference compiler)
 				uint8_t flags = 0;
 				if (is_method)
 					flags = is_thread ? IMPORT_FUNC_METHOD_THREAD : IMPORT_FUNC_METHOD;
@@ -387,23 +378,21 @@ namespace gsc_compiler
 
 				size_t import_idx = add_import(func_hash, ns_hash, num_params, flags);
 
-				// Import ref points to OPCODE START (Count - 2 in reference)
 				uint32_t opcode_pos = static_cast<uint32_t>(current_func->bytecode.size());
 				emit_op(op);
 				imports[import_idx].references.push_back(
 					{current_export_index, opcode_pos});
 
 				emit_u8(num_params);
-				// NO flags byte in bytecode (flags are in the import table only)
-				// Aggressive QWord align: (pos + 8) & ~7, matching reference SetAlignedQWord
+				// QWord align
 				{
 					uint32_t pad_pos = static_cast<uint32_t>(current_func->bytecode.size());
 					uint32_t aligned = (pad_pos + 8) & ~7u;
 					while (current_func->bytecode.size() < aligned)
 						current_func->bytecode.push_back(0);
 				}
-				emit_u32(func_hash); // will be patched by game loader
-				emit_u32(0);         // zero padding
+				emit_u32(func_hash);
+				emit_u32(0);
 			}
 
 			void emit_call_ptr(uint8_t num_params, bool is_method, bool is_thread)
@@ -415,7 +404,7 @@ namespace gsc_compiler
 					op = is_thread ? script_opcode::OP_ScriptThreadCallPointer : script_opcode::OP_ScriptFunctionCallPointer;
 
 				emit_op(op);
-				emit_u16(static_cast<uint16_t>(num_params)); // reference uses AddUshort (2 bytes)
+				emit_u16(static_cast<uint16_t>(num_params));
 			}
 
 			std::string temp_var_name()
@@ -424,7 +413,6 @@ namespace gsc_compiler
 			}
 		};
 
-		// Forward declarations
 		void emit_expression(emitter_state& s, const ast_ptr& node);
 		void emit_statement(emitter_state& s, const ast_ptr& node);
 		void emit_block(emitter_state& s, const ast_ptr& node);
@@ -523,7 +511,7 @@ namespace gsc_compiler
 			return ns.find('/') != std::string::npos || ns.find('\\') != std::string::npos;
 		}
 
-		// Resolve short namespace to full include path if it matches
+		// Resolve short namespace to full include path
 		std::string resolve_ns(const emitter_state& s, const std::string& ns)
 		{
 			if (is_path_namespace(ns))
@@ -553,7 +541,6 @@ namespace gsc_compiler
 			return hash;
 		}
 
-		// Auto-add a path namespace to includes if not already present
 		void auto_include_path(emitter_state& s, const std::string& ns)
 		{
 			std::string normalized = ns;
@@ -587,7 +574,7 @@ namespace gsc_compiler
 		bool is_custom_function(const std::string& name)
 		{
 			static const std::unordered_set<std::string> custom_funcs = {
-				"executecommand", "say", "println",
+				"executecommand", "say", "println", "print", "printf",
 				"writefile", "readfile", "appendfile", "fileexists", "removefile",
 				"filesize", "createdirectory", "directoryexists", "listfiles",
 				"jsonvalid", "jsonparse", "jsonset", "jsondump",
@@ -596,7 +583,7 @@ namespace gsc_compiler
 			return custom_funcs.count(name) > 0;
 		}
 
-		// Custom methods: entity func(args) dispatched via isprofilebuild
+		// Custom methods dispatched via isprofilebuild
 		bool is_custom_method(const std::string& name)
 		{
 			static const std::unordered_set<std::string> custom_meths = {
@@ -637,12 +624,12 @@ namespace gsc_compiler
 			else if (value > 0 && value <= 255)
 			{
 				s.emit_op(script_opcode::OP_GetByte);
-				s.emit_u16(static_cast<uint16_t>(value)); // reference uses AddUshort (2 bytes)
+				s.emit_u16(static_cast<uint16_t>(value)); 
 			}
 			else if (value < 0 && value >= -255)
 			{
 				s.emit_op(script_opcode::OP_GetNegByte);
-				s.emit_u16(static_cast<uint16_t>(-value)); // reference uses AddUshort (2 bytes)
+				s.emit_u16(static_cast<uint16_t>(-value));
 			}
 			else if (value > 0 && value <= 65535)
 			{
@@ -680,21 +667,20 @@ namespace gsc_compiler
 			if (is_waittill)
 			{
 				s.emit_op(script_opcode::OP_SetWaittillVariableFieldCached);
-				s.emit_u16(static_cast<uint16_t>(idx)); // reference uses AddUshort
+				s.emit_u16(static_cast<uint16_t>(idx));
 			}
 			else if (is_ref)
 			{
 				s.emit_op(script_opcode::OP_EvalLocalVariableRefCached);
-				s.emit_u16(static_cast<uint16_t>(idx)); // reference uses AddUshort
+				s.emit_u16(static_cast<uint16_t>(idx));
 			}
 			else
 			{
 				s.emit_op(script_opcode::OP_EvalLocalVariableCached);
-				s.emit_u16(static_cast<uint16_t>(idx)); // reference uses AddUshort
+				s.emit_u16(static_cast<uint16_t>(idx));
 			}
 		}
 
-		// Emit code to push an object reference for field/method operations (CastFieldObject for unknowns)
 		void emit_object(emitter_state& s, const ast_ptr& node)
 		{
 			if (node->type == node_type::n_self)
@@ -712,7 +698,6 @@ namespace gsc_compiler
 			}
 		}
 
-		// Emit owner value for endon/notify/waittill/method calls (NOT the Object variant)
 		void emit_owner(emitter_state& s, const ast_ptr& node)
 		{
 			if (node->type == node_type::n_self)
@@ -851,7 +836,6 @@ namespace gsc_compiler
 
 			case node_type::n_vector:
 			{
-				// Reference pushes z, y, x (reverse order)
 				emit_expression(s, node->children[2]); // z
 				emit_expression(s, node->children[1]); // y
 				emit_expression(s, node->children[0]); // x
@@ -926,7 +910,6 @@ namespace gsc_compiler
 				else if (node->value == "~") s.emit_op(script_opcode::OP_Bit_Not);
 				else if (node->value == "-")
 				{
-					// Negate: push -1 and multiply
 					emit_get_number(s, -1);
 					s.emit_op(script_opcode::OP_Multiply);
 				}
@@ -935,7 +918,6 @@ namespace gsc_compiler
 
 			case node_type::n_func_ref:
 			{
-				// ::func or ns::func -> GetFunction
 				uint32_t func_hash = gsc_hash(node->value);
 				uint32_t ns_hash = s.script_namespace;
 				if (!node->children.empty() && !node->children[0]->value.empty())
@@ -945,14 +927,12 @@ namespace gsc_compiler
 						auto_include_path(s, node->children[0]->value);
 				}
 
-				// Import flags: GetFunction | CallFlags
 				uint8_t flags = IMPORT_FUNC_GETFUNCTION;
 				if (ns_hash == s.script_namespace)
 					flags |= IMPORT_CALL_LOCAL;
 
 				size_t import_idx = s.add_import(func_hash, ns_hash, 0, flags);
 
-				// Import ref points to OPCODE START
 				uint32_t opcode_pos = static_cast<uint32_t>(s.current_func->bytecode.size());
 				s.emit_op(script_opcode::OP_GetFunction);
 				s.imports[import_idx].references.push_back(
@@ -964,13 +944,12 @@ namespace gsc_compiler
 						s.current_func->bytecode.push_back(0);
 				}
 				s.emit_u32(func_hash);
-				s.emit_u32(0); // zero padding
+				s.emit_u32(0);
 				break;
 			}
 
 			case node_type::n_call:
 			{
-				// children[0] = namespace node, children[1] = args
 				std::string func_name = node->value;
 				std::string lower_name = func_name;
 				std::transform(lower_name.begin(), lower_name.end(), lower_name.begin(),
@@ -988,7 +967,7 @@ namespace gsc_compiler
 					break;
 				}
 
-				// Custom functions routed through isprofilebuild dispatch
+				// Custom functions via isprofilebuild dispatch
 				if (ns_node->value.empty() && is_custom_function(lower_name))
 				{
 					s.emit_op(script_opcode::OP_PreScriptCall);
@@ -1010,7 +989,7 @@ namespace gsc_compiler
 				bool has_explicit_ns = !ns_node->value.empty();
 				uint32_t ns_hash = has_explicit_ns ? gsc_hash(normalize_ns(ns_node->value)) : s.script_namespace;
 
-				// Auto-include for path-style namespaces
+				// Auto-include for path namespaces
 				if (has_explicit_ns && is_path_namespace(ns_node->value))
 					auto_include_path(s, ns_node->value);
 
@@ -1023,7 +1002,6 @@ namespace gsc_compiler
 
 			case node_type::n_method_call:
 			{
-				// children[0] = object, children[1] = args, children[2] = namespace (optional)
 				auto& obj = node->children[0];
 				auto& args_node = node->children[1];
 				uint8_t num_params = static_cast<uint8_t>(args_node->children.size());
@@ -1042,12 +1020,11 @@ namespace gsc_compiler
 					for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0; i--)
 						emit_expression(s, args_node->children[i]);
 
-					// Emit entity.getEntityNumber() to convert entity to int
+					// entity.getEntityNumber() to get entity as int
 					s.emit_op(script_opcode::OP_PreScriptCall);
 					emit_expression(s, obj);
 					s.emit_call(gsc_hash("getentitynumber"), s.script_namespace, 0, true, false, true);
 
-					// Push dispatch hash
 					uint32_t dispatch_hash = fnv1a(lower_name.c_str());
 					emit_get_number(s, static_cast<int64_t>(static_cast<int32_t>(dispatch_hash)));
 
@@ -1067,7 +1044,7 @@ namespace gsc_compiler
 				bool has_explicit_ns = (node->children.size() > 2 && !node->children[2]->value.empty());
 				uint32_t ns_hash = has_explicit_ns ? gsc_hash(normalize_ns(node->children[2]->value)) : s.script_namespace;
 
-				// Auto-include for path-style namespaces
+				// Auto-include for path namespaces
 				if (has_explicit_ns && is_path_namespace(node->children[2]->value))
 					auto_include_path(s, node->children[2]->value);
 
@@ -1080,7 +1057,6 @@ namespace gsc_compiler
 
 			case node_type::n_call_ptr:
 			{
-				// children[0] = caller/nullptr, children[1] = func ptr expr, children[2] = args
 				auto& args_node = node->children[2];
 				uint8_t num_params = static_cast<uint8_t>(args_node->children.size());
 				bool has_caller = node->children[0]->type != node_type::n_undefined;
@@ -1100,7 +1076,6 @@ namespace gsc_compiler
 
 			case node_type::n_thread_call:
 			{
-				// children[0] = actual call/method_call
 				auto& inner = node->children[0];
 				if (inner->type == node_type::n_call)
 				{
@@ -1695,8 +1670,6 @@ namespace gsc_compiler
 
 		void emit_function(emitter_state& s, const ast_ptr& node)
 		{
-			// node->value = function name
-			// children[0] = autoexec flag, [1] = params, [2] = body
 			std::string func_name = node->value;
 			std::string lower_name = func_name;
 			std::transform(lower_name.begin(), lower_name.end(), lower_name.begin(),
@@ -1766,7 +1739,7 @@ namespace gsc_compiler
 				}
 				s.emit_u8(0); // final null byte (no CheckClearParams!)
 
-				// Reverse variable index mapping (last declared = index 0)
+				// Reverse variable indices (last declared = index 0)
 				uint8_t N = static_cast<uint8_t>(s.current_func->local_hashes.size());
 				for (auto& [hash, idx] : s.current_func->local_indices)
 					idx = N - 1 - idx;
@@ -1803,23 +1776,17 @@ namespace gsc_compiler
 			return ~crc;
 		}
 
-		// Final binary assembly — section order matches reference compiler exactly:
-		// Header → IncludeStrings+Name+CodeStrings → IncludeTable → Code → Exports → Imports → AnimTrees → StringTable
+		// Binary assembly: Header | Strings | Includes | Code | Exports | Imports | AnimTrees | StringFixups
 		std::vector<uint8_t> assemble(emitter_state& s)
 		{
 			std::vector<uint8_t> output;
 
-			// Reserve header space (0x48 bytes)
 			output.resize(sizeof(t7_script_header), 0);
 
-			// -- String data section (NO padding between strings or after, matching reference) --
-			// Reference order: include path strings FIRST, then script name, then code strings
-
-			// 1. Include path strings (normalized: forward slashes, lowercase)
+			// Include path strings
 			std::vector<uint32_t> include_string_offsets;
 			for (auto& inc_path : s.includes)
 			{
-				// Normalize: backslash→forward slash, lowercase (matching reference)
 				std::string normalized = inc_path;
 				for (char& c : normalized)
 				{
@@ -1832,13 +1799,13 @@ namespace gsc_compiler
 				output.push_back(0);
 			}
 
-			// 2. Script name (null-terminated)
+			// Script name
 			uint32_t name_offset = static_cast<uint32_t>(output.size());
 			for (char c : s.script_name)
 				output.push_back(static_cast<uint8_t>(c));
 			output.push_back(0);
 
-			// 3. Script strings used in bytecode (GetString/GetIString)
+			// Code strings
 			for (auto& str : s.strings)
 			{
 				str.offset = static_cast<uint32_t>(output.size());
@@ -1846,25 +1813,20 @@ namespace gsc_compiler
 					output.push_back(static_cast<uint8_t>(c));
 				output.push_back(0);
 			}
-			// NO padding after strings (reference has none)
 
-			// -- Include table (4 bytes each: file offset to include string) --
+			// Include table (reversed)
 			uint32_t include_offset = static_cast<uint32_t>(output.size());
-			// Reference reverses includes before writing
 			for (int i = static_cast<int>(include_string_offsets.size()) - 1; i >= 0; i--)
 				write_u32(output, include_string_offsets[i]);
-			// NO padding after include table (reference has none)
 
-			// -- Code section (functions with alignment padding) --
-			// Reference: CodeSectionStart = position BEFORE any function alignment
+			// Code section
 			uint32_t bytecode_start = static_cast<uint32_t>(output.size());
 
 			for (size_t i = 0; i < s.exports.size(); i++)
 			{
 				auto& exp = s.exports[i];
 
-				// Double QWord align before each function (reference: SetAlignedQWord(); SetAlignedQWord();)
-				// SetAlignedQWord: (pos + 8) & ~7
+				// Double QWord align before each function
 				{
 					uint32_t pos = static_cast<uint32_t>(output.size());
 					uint32_t a1 = (pos + 8) & ~7u;
@@ -1878,11 +1840,11 @@ namespace gsc_compiler
 				output.insert(output.end(), exp.bytecode.begin(), exp.bytecode.end());
 			}
 
-			// bytecode_size = total code section including alignment padding (reference: Count - CodeSectionStart)
+			// bytecode_size covers the full code section with alignment
 			uint32_t bytecode_end = static_cast<uint32_t>(output.size());
 			uint32_t total_bytecode_size = bytecode_end - bytecode_start;
 
-			// Patch string placeholders (0xFFFFFFFF) in bytecode with actual string file offsets
+			// Patch string placeholders with actual offsets
 			auto resolve_ref = [&](const std::pair<size_t, uint32_t>& ref) -> uint32_t
 			{
 				return s.exports[ref.first].bytecode_offset + ref.second;
@@ -1897,13 +1859,12 @@ namespace gsc_compiler
 				}
 			}
 
-			// -- Section 5: Export table (20 bytes each) --
+			// Export table
 			uint32_t export_offset = static_cast<uint32_t>(output.size());
 
 			for (size_t i = 0; i < s.exports.size(); i++)
 			{
 				auto& exp = s.exports[i];
-				// CRC32 computed from OUTPUT buffer (has patched string offsets), matching reference
 				uint32_t crc = crc32_calc(output.data() + exp.bytecode_offset, exp.bytecode.size());
 
 				write_u32(output, crc);
@@ -1915,7 +1876,7 @@ namespace gsc_compiler
 				write_u16(output, 0); // Unknown, always 0
 			}
 
-			// -- Section 6: Import table --
+			// Import table
 			uint32_t import_offset = static_cast<uint32_t>(output.size());
 			for (auto& imp : s.imports)
 			{
@@ -1928,13 +1889,11 @@ namespace gsc_compiler
 				for (auto& ref : imp.references)
 					write_u32(output, resolve_ref(ref));
 			}
-			// NO padding after imports (reference has none)
 
-			// -- AnimTree section (empty, but offset must be recorded here) --
+			// AnimTree section (empty)
 			uint32_t animtree_offset = static_cast<uint32_t>(output.size());
 
-			// -- String fixup/reference table --
-			// Format per string: u32 string_ptr | u32 num_refs | u32 refs[N]
+			// String fixup table: u32 string_ptr | u32 num_refs | u32 refs[N]
 			uint32_t string_fixup_offset = static_cast<uint32_t>(output.size());
 			uint16_t string_count = 0;
 			for (auto& str : s.strings)
@@ -1948,11 +1907,10 @@ namespace gsc_compiler
 				for (size_t j = 0; j < str.references.size(); j++)
 					write_u32(output, resolve_ref(str.references[j]));
 			}
-			// NO padding after string fixup (reference has none)
 
 			uint32_t file_size = static_cast<uint32_t>(output.size());
 
-			// -- Fill header --
+			// Header
 			t7_script_header header{};
 			header.magic = T7_MAGIC;
 			header.source_crc = 0x4C492053;
@@ -1988,7 +1946,18 @@ namespace gsc_compiler
 		emitter_result result{};
 		emitter_state state;
 		state.script_name = script_name;
-		state.script_namespace = gsc_hash("ilcustom"); // default namespace
+
+		{
+			std::string ns_fallback = script_name;
+			auto slash = ns_fallback.find_last_of("/\\");
+			if (slash != std::string::npos) ns_fallback = ns_fallback.substr(slash + 1);
+			auto dot = ns_fallback.find_last_of('.');
+			if (dot != std::string::npos) ns_fallback = ns_fallback.substr(0, dot);
+			std::transform(ns_fallback.begin(), ns_fallback.end(), ns_fallback.begin(),
+				[](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+			state.script_namespace = ns_fallback.empty() ? gsc_hash("ilcustom") : gsc_hash(ns_fallback);
+		}
+		uint32_t default_namespace = state.script_namespace;
 
 		try
 		{
@@ -2006,8 +1975,8 @@ namespace gsc_compiler
 				}
 			}
 
-			// Reset namespace for second pass (in case it was set above)
-			state.script_namespace = gsc_hash("ilcustom");
+			// Reset namespace for second pass
+			state.script_namespace = default_namespace;
 
 			// Second pass: process directives and emit functions
 			for (auto& child : root->children)

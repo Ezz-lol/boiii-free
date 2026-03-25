@@ -276,6 +276,26 @@
     return (playerName.value || '').replace(/^\s+|\s+$/g, '');
   };
 
+  (function () {
+    var saveTimer = null;
+    function saveName() {
+      var name = (playerName.value || '').replace(/^\s+|\s+$/g, '');
+      if (name) {
+        try { window.external.savePlayerName(name); } catch (e) { }
+      }
+    }
+    if (playerName) {
+      playerName.addEventListener('input', function () {
+        if (saveTimer) clearTimeout(saveTimer);
+        saveTimer = setTimeout(saveName, 500);
+      });
+      playerName.addEventListener('blur', function () {
+        if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+        saveName();
+      });
+    }
+  })();
+
   window.getSelectedLaunchOption = function () {
     var selected = [];
     for (var i = 0; i < launchOptionCards.length; i++) {

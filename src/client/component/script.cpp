@@ -69,6 +69,35 @@ namespace script
 			size_t pos = 0;
 			while (pos < source.size())
 			{
+				// Skip // line comments so they don't accidentally match /# devblock start
+				if (pos + 1 < source.size() && source[pos] == '/' && source[pos + 1] == '/')
+				{
+					while (pos < source.size() && source[pos] != '\n')
+						result += source[pos++];
+					continue;
+				}
+				// Skip /* block comments */
+				if (pos + 1 < source.size() && source[pos] == '/' && source[pos + 1] == '*')
+				{
+					result += source[pos++];
+					result += source[pos++];
+					while (pos + 1 < source.size() && !(source[pos] == '*' && source[pos + 1] == '/'))
+						result += source[pos++];
+					if (pos + 1 < source.size()) { result += source[pos++]; result += source[pos++]; }
+					continue;
+				}
+				// Skip string literals
+				if (source[pos] == '"')
+				{
+					result += source[pos++];
+					while (pos < source.size() && source[pos] != '"')
+					{
+						if (source[pos] == '\\' && pos + 1 < source.size()) result += source[pos++];
+						result += source[pos++];
+					}
+					if (pos < source.size()) result += source[pos++];
+					continue;
+				}
 				if (pos + 1 < source.size() && source[pos] == '/' && source[pos + 1] == '#')
 				{
 					auto end = source.find("#/", pos + 2);
@@ -115,9 +144,12 @@ namespace script
 				std::string inc_path(buf + str_off);
 				uint32_t path_hash = gsc_hash(inc_path);
 
-				// Look up the actual game SPT for this include path
+				// Look up the actual game SPT for this include path (try .gsc then .csc)
 				auto* asset = db_find_x_asset_header_hook.invoke<game::RawFile*>(
 					game::ASSET_TYPE_SCRIPTPARSETREE, (inc_path + ".gsc").c_str(), false, 0);
+				if (!asset || !asset->buffer)
+					asset = db_find_x_asset_header_hook.invoke<game::RawFile*>(
+						game::ASSET_TYPE_SCRIPTPARSETREE, (inc_path + ".csc").c_str(), false, 0);
 				if (!asset || !asset->buffer) continue;
 
 				auto* spt = reinterpret_cast<const uint8_t*>(asset->buffer);
@@ -162,12 +194,13 @@ namespace script
 
 		const uint8_t* get_spt_buffer(const std::string& name)
 		{
-			// Try with .gsc extension first, then without
+			// Try with extension first, then without
 			std::string with_ext = name;
-			if (!utils::string::ends_with(with_ext, ".gsc"))
+			const bool has_ext = utils::string::ends_with(with_ext, ".gsc") || utils::string::ends_with(with_ext, ".csc");
+			if (!has_ext)
 				with_ext += ".gsc";
 			std::string without_ext = name;
-			if (utils::string::ends_with(without_ext, ".gsc"))
+			if (utils::string::ends_with(without_ext, ".gsc") || utils::string::ends_with(without_ext, ".csc"))
 				without_ext = without_ext.substr(0, without_ext.size() - 4);
 
 			// Check our custom scripts (case-insensitive key search)
@@ -184,7 +217,7 @@ namespace script
 			{
 				if (!rf || !rf->buffer) continue;
 				std::string key_no_ext = key;
-				if (utils::string::ends_with(key_no_ext, ".gsc"))
+				if (utils::string::ends_with(key_no_ext, ".gsc") || utils::string::ends_with(key_no_ext, ".csc"))
 					key_no_ext = key_no_ext.substr(0, key_no_ext.size() - 4);
 				// Check if without_ext ends with /key_no_ext or \key_no_ext
 				if (without_ext.size() > key_no_ext.size())
@@ -196,8 +229,9 @@ namespace script
 				}
 			}
 
-			// Fall back to game's asset database (try both names)
-			for (auto& lookup : {with_ext, without_ext})
+			// Fall back to game's asset database (try .gsc, .csc, and without ext)
+			std::string with_csc = without_ext + ".csc";
+			for (auto& lookup : {with_ext, with_csc, without_ext})
 			{
 				auto* asset = db_find_x_asset_header_hook.invoke<game::RawFile*>(
 					game::ASSET_TYPE_SCRIPTPARSETREE, lookup.c_str(), false, 0);
@@ -262,7 +296,8 @@ namespace script
 
 		void print_loading_script(const std::string& name)
 		{
-			printf("Loading GSC script '%s'\n", name.data());
+			const char* type = utils::string::ends_with(name, ".csc") ? "CSC" : "GSC";
+			printf("Loading %s script '%s'\n", type, name.data());
 		}
 
 		void load_script(std::string& name, const std::string& data, const bool is_custom)
@@ -282,20 +317,28 @@ namespace script
 				name.erase(i, host_path.length());
 			}
 
+			const bool is_csc = utils::string::ends_with(name, ".csc");
+			const bool is_gsc = utils::string::ends_with(name, ".gsc");
+
 			auto base_name = name;
-			if (!utils::string::ends_with(name, ".gsc"))
+			if (!is_gsc && !is_csc)
 			{
-				printf("GSC script '%s' failed to load due to invalid suffix.\n", name.data());
+				printf("Script '%s' failed to load due to invalid suffix.\n", name.data());
+				return;
+			}
+
+			// Skip CSC on dedicated server (no client script instance)
+			if (is_csc && game::is_server())
+			{
 				return;
 			}
 
 			if (is_custom)
 			{
-				// .gsc suffix will be added back by Scr_LoadScript
 				base_name = name.substr(0, name.size() - 4);
 				if (base_name.empty())
 				{
-					printf("GSC script '%s' failed to load due to invalid name.\n", name.data());
+					printf("Script '%s' failed to load due to invalid name.\n", name.data());
 					return;
 				}
 			}
@@ -305,14 +348,14 @@ namespace script
 			raw_file->buffer = allocator.duplicate_string(data);
 			raw_file->len = static_cast<int>(data.length());
 
-			// Patch full-path namespace imports before the game linker sees them
 			fixup_script_imports(const_cast<char*>(raw_file->buffer), raw_file->len);
 
 			loaded_scripts[name] = raw_file;
 
 			if (is_custom)
 			{
-				game::Scr_LoadScript(game::SCRIPTINSTANCE_SERVER, base_name.data());
+				const auto inst = is_csc ? game::SCRIPTINSTANCE_CLIENT : game::SCRIPTINSTANCE_SERVER;
+				game::Scr_LoadScript(inst, base_name.data());
 			}
 		}
 
@@ -337,13 +380,19 @@ namespace script
 						print_loading_script(script_file);
 						load_script(script_file, data, is_custom);
 					}
-						else if (utils::string::ends_with(script_file, ".gsc") && !data.empty())
+					else if ((utils::string::ends_with(script_file, ".gsc") || utils::string::ends_with(script_file, ".csc")) && !data.empty())
 					{
+						const bool is_csc = utils::string::ends_with(script_file, ".csc");
+						const char* script_type = is_csc ? "CSC" : "GSC";
+
+						// Skip CSC on dedicated server
+						if (is_csc && game::is_server())
+							continue;
+
 						// Strip devblocks before compilation
 						auto cleaned_source = strip_devblocks(data);
 
-						// compile Raw GSC source file
-						printf("Compiling GSC script '%s'\n", script_file.data());
+						printf("Compiling %s script '%s'\n", script_type, script_file.data());
 						auto result = gsc_compiler::compile(cleaned_source, script_file);
 						if (result.success)
 						{
@@ -363,7 +412,7 @@ namespace script
 							if (!result.replacefuncs.empty())
 							{
 								std::string replace_base = script_file;
-								if (utils::string::ends_with(replace_base, ".gsc"))
+								if (utils::string::ends_with(replace_base, ".gsc") || utils::string::ends_with(replace_base, ".csc"))
 									replace_base = replace_base.substr(0, replace_base.size() - 4);
 
 								for (auto& rf : result.replacefuncs)
@@ -398,7 +447,7 @@ namespace script
 								return line;
 							};
 
-							printf("^1*********************GSC COMPILE ERROR*********************\n");
+							printf("^1*********************%s COMPILE ERROR*********************\n", script_type);
 							for (const auto& err : result.errors)
 							{
 								printf("^1  File:    ^5%s\n", err.file.data());
