@@ -161,8 +161,8 @@ namespace server_patches2
 
 		utils::hook::detour sv_removeallclientsfromaddress_hook;
 		void sv_live_removeallclientsfromaddress_stub(game::client_s* client, const char* reason) {
-			// Instead of removing all clients from the same IP, we only remove the client that disconnected. 
-			// This is useful if e.g. server is hosted behind a reverse proxy or load balancer where multiple clients share the same IP.
+			// Skip disconnecting other clients from the same IP -
+			// just free the disconnected client's slot, and return. 
 			game::SV_Live_RemoveClient(client, reason);
 			return;
 		}
