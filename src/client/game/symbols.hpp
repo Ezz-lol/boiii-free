@@ -26,6 +26,8 @@ namespace game
 	// Game
 	WEAK symbol<void(gentity_s* ent, gentity_s* target, int mode, const char* chatText)> G_Say{0x0, 0x140299170};
 	WEAK symbol<void(const char* fmt, ...)> G_LogPrintf{0x0, 0x1402A7BB0};
+	WEAK symbol<void(int32_t levelTime, int32_t randomSeed, game::qboolean restart, qboolean registerDvars, 
+			qboolean savegame)> G_InitGame{0x1419CA420, 0x1402ABB80};
 
 	// Com
 	WEAK symbol<void(int channel, unsigned int label, const char* fmt, ...)> Com_Printf{0x142148F60, 0x140505630};
@@ -270,7 +272,7 @@ namespace game
 	WEAK symbol<void(int clientNum, svscmd_type type, const char* text)> SV_GameSendServerCommand{
 		0x14224F580, 0x140532CA0
 	};
-	WEAK symbol<void(client_s* cl_0, svscmd_type type, const char* fmt, ...)> SV_SendServerCommand{0x0, 0x140537F10};
+	WEAK symbol<void(client_s* cl_0, svscmd_type type, const char* fmt, ...)> SV_SendServerCommand{0x142254D30, 0x140537F10};
 	WEAK symbol<bool(int clientNum)> SV_IsTestClient{0x14224AB60, 0x14052FF40};
 	WEAK symbol<void(int controllerIndex, const char* server, MapPreload preload, bool savegame)> SV_SpawnServer{
 		0x1422528C0, 0x140535B20
@@ -284,6 +286,9 @@ namespace game
 	};
 	WEAK symbol<void (client_s *cl_0, const char *reason)> SV_Live_RemoveClient{
 		0x142242510, 0x140527530
+	};
+	WEAK symbol<void(client_s *client, svscmd_type type, const char* cmd)> SV_AddServerCommand{
+		0x142253460, 0x140536660
 	};
 	/* 
 		Server only. Function exists on client but requires accessing areas of memory which are only initialized
@@ -346,6 +351,7 @@ namespace game
 	// Client and dedi struct size differs :(
 	WEAK symbol<client_s_cl*> svs_clients_cl{0x1576F9318, 0};
 	WEAK symbol<client_s*> svs_clients{0x0, 0x14A178E98};
+	WEAK symbol<unsigned int> svs_time{0x0, 0x14A178E84};
 
 	// Dvar variables
 	WEAK symbol<dvar_t*> com_maxclients{0x0, 0x14948EE70};

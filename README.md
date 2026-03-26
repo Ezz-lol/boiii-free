@@ -182,6 +182,7 @@ Launch BOIII with these arguments for extra features:
 | `-keep-launcher` | Keep the launcher process running after starting the game |
 | `-noconsole` | Suppress the external launcher console window |
 | `-noratelimit` | Disable rate limiting in dedicated server |
+| `-mitigatepacketspam` | In dedicated server, attempt to reduce unnecessary reliable command packets sent by some custom maps' scripts. Fixes Kowloon and Daybreak client load-in failures. |
 
 **Example:**
 ```bash
