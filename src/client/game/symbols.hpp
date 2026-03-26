@@ -202,7 +202,7 @@ namespace game
 	WEAK symbol<int32_t (const dvar_t* dvar)> Dvar_GetInt{0x1422BE860, 0x140575C20};
 	WEAK symbol<dvarType_t (const dvar_t* dvar)> Dvar_GetType{0x1422BF5E0, 0x140575E90};
 	WEAK symbol<uint64_t (const dvar_t* dvar)> Dvar_GetUInt64{0x1422BF620, 0x140575ED0};
-	WEAK symbol<const char*(const dvar_t* dvar)> Dvar_GetString{0x1422BF590, 0x140575E30};
+	WEAK symbol<const char* (const dvar_t* dvar)> Dvar_GetString{0x1422BF590, 0x140575E30};
 
 
 	WEAK symbol<void (const dvar_t* dvar, bool val, DvarSetSource source)> Dvar_SetBoolFromSource{
