@@ -194,7 +194,7 @@ namespace server_patches2
 				Useful if e.g. server is hosted behind a reverse proxy or 
 				load balancer where multiple clients share the same IP.
 			*/
-                        sv_removeallclientsfromaddress_hook.create(game::SV_Live_RemoveAllClientsFromAddress.get(), sv_live_removeallclientsfromaddress_stub);
+			sv_removeallclientsfromaddress_hook.create(game::SV_Live_RemoveAllClientsFromAddress.get(), sv_live_removeallclientsfromaddress_stub);
 
 			// Enforce sv_cheats = 0 periodically
 			scheduler::loop([]
