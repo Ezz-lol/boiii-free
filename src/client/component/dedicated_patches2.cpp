@@ -286,7 +286,7 @@ namespace server_patches2
 
 				Unfortunately, when executed in either dedicated server or when hosting a private match, each one of these `luinotify`s results in a packet sent to each non-host client.
 				
-				In two extreme cases - in the custom maps Kowloon and Daybreak - this results in a constant, massive flood of redundant `openmenu` reliable commands being sent to each client.
+				In two tested cases - in the custom maps Kowloon and Daybreak - this results in a constant, massive flood of redundant `openmenu` reliable commands being sent to each client.
 				While inefficient, this is generally acceptable. However, when the client is completing load-in to the map, 
 				in the initial blackscreen before they begin playing, reliable commands are temporarily unhandled. 
 				In the case of the aforementioned examples, this results in a near-consistent inability for clients to succesfully load into the map, 
