@@ -25,7 +25,6 @@ namespace game
 	WEAK symbol<void(LocalClientNum_t localClientNum, const char* pszMapName, const char* pszGametype)> 
 	CL_SetupForNewServerMap{0x14135CD20};
 
-
 	// Game
 	WEAK symbol<void(gentity_s* ent, gentity_s* target, int mode, const char* chatText)> G_Say{0x0, 0x140299170};
 	WEAK symbol<void(const char* fmt, ...)> G_LogPrintf{0x0, 0x1402A7BB0};
@@ -152,7 +151,6 @@ namespace game
 	// This should correspond to folder name, with value something like
 	// cp_* for a campaign map, zm_* for zombies map, or mp_* for multiplayer map
 	WEAK symbol<char> internal_usermap_id{0x1567D9A04}; 
-
 	WEAK symbol<void()> reloadUserContent{0x1420D66C0, 0x1404E25C0};
 
 	// Dvar
@@ -189,7 +187,6 @@ namespace game
 	WEAK symbol<void(const char* dvarName, const char* string, bool createIfMissing)> Dvar_SetFromStringByName{
 		0x1422C7500
 	};
-	
 	WEAK symbol<dvar_t*(dvar_t* dvar, eModes mode)> Dvar_GetSessionModeSpecificDvar{
 		0x1422BF500, 0x140575D90
 	};

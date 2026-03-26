@@ -606,7 +606,6 @@ namespace game
 		int freeSlot;
 		XZoneBuffer fileBuffer;
 	};
-
 	
 	enum XZoneState : int
 	{
