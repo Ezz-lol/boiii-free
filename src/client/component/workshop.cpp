@@ -219,7 +219,7 @@ namespace workshop
 				clear_loaded_usermap();
 	
 				if (is_usermaps_mod_loaded) {
-			  	game::loadMod(game::LOCAL_CLIENT_0, "", false);
+			  		game::loadMod(game::LOCAL_CLIENT_0, "", false);
 				}
 	
 				unload_xzone_by_name("zm_levelcommon", false, false);
