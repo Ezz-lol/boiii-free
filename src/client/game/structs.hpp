@@ -766,13 +766,6 @@ namespace game
 
 	struct dvar_t;
 
-	enum DvarSetSource : int
-	{
-		DVAR_SOURCE_INTERNAL = 0x0,
-		DVAR_SOURCE_EXTERNAL = 0x1,
-		DVAR_SOURCE_SCRIPT = 0x2,
-	};
-
 	struct DvarValue
 	{
 		union
