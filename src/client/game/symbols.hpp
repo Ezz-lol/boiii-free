@@ -149,7 +149,9 @@ namespace game
 	WEAK symbol<bool(LocalClientNum_t localClientNum)> isModLoading{0x1420D6DE0};
 	WEAK symbol<char> usermap_publisher_id{0x1567D9A24};
 	WEAK symbol<char> usermap_title{0x1567D99A0};
-	WEAK symbol<char> internal_usermap_id{0x1567D9A04};
+	// This should correspond to folder name, with value something like
+	// cp_* for a campaign map, zm_* for zombies map, or mp_* for multiplayer map
+	WEAK symbol<char> internal_usermap_id{0x1567D9A04}; 
 
 	WEAK symbol<void()> reloadUserContent{0x1420D66C0, 0x1404E25C0};
 
