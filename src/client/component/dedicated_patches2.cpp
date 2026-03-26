@@ -181,9 +181,7 @@ namespace server_patches2
 
 			// Reset tracked openmenu reliable cmds on starting a new game.
 			for (auto& [cmd, client_map] : client_openmenu_cmd_last_sequence_time) {
-				// Clear client map for each cmd.
 				client_map.clear();
-				// Dealloc client_map
 				client_openmenu_cmd_last_sequence_time.erase(cmd);
 
 			}
