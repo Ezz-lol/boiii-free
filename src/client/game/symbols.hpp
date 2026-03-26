@@ -187,9 +187,7 @@ namespace game
 	WEAK symbol<void(const char* dvarName, const char* string, bool createIfMissing)> Dvar_SetFromStringByName{
 		0x1422C7500
 	};
-	WEAK symbol<void(const dvar_t* dvar, int value, DvarSetSource source)> Dvar_SetIntFromSource{
-		0x1422C7ED0
-	};
+	
 	WEAK symbol<dvar_t*(dvar_t* dvar, eModes mode)> Dvar_GetSessionModeSpecificDvar{
 		0x1422BF500, 0x140575D90
 	};
