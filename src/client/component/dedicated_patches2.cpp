@@ -279,7 +279,7 @@ namespace server_patches2
 
 			/*
 				Some custom maps, especially those with custom HUDs, update HUD state with server-side logic.
-				Often, this is implemented through a spin-loop which executes `luinotify`s every 500ms to update HUD state, regardless of whether
+				Often, this is implemented through a spin-loop which executes `luinotify`s every 50ms to update HUD state, regardless of whether
 				there has been a change in state.
 
 				When executed client-side, in a singleplayer game, this works well.
