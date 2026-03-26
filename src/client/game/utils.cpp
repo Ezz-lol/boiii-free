@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 
 #include "game.hpp"
+#include "structs.hpp"
 #include "utils.hpp"
 
 namespace game
@@ -53,6 +54,72 @@ namespace game
 		return dvar->current.value.integer;
 	}
 
+	int set_dvar_int(const char* dvar_name, int val, DvarSetSource source) {
+		const auto* dvar = Dvar_FindVar(dvar_name);
+		if (!dvar)
+		{
+			return {};
+		}
+		int prev_val = dvar->current.value.integer;
+		Dvar_SetIntFromSource(dvar, val, source);
+		return prev_val;
+	}
+
+	uint32_t get_dvar_uint(const char* dvar_name)
+	{
+		const auto* dvar = Dvar_FindVar(dvar_name);
+		if (!dvar)
+		{
+			return {};
+		}
+
+		return dvar->current.value.unsignedInt;
+	}
+
+	uint64_t get_dvar_uint64(const char* dvar_name)
+	{
+		const auto* dvar = Dvar_FindVar(dvar_name);
+		if (!dvar)
+		{
+			return {};
+		}
+
+		return dvar->current.value.unsignedInt64; 
+	}
+
+	uint64_t set_dvar_uint64(const char* dvar_name, uint64_t val, DvarSetSource source) {
+		const auto* dvar = Dvar_FindVar(dvar_name);
+		if (!dvar)
+		{
+			return {};
+		}
+		uint64_t prev_val = dvar->current.value.unsignedInt64;
+		Dvar_SetUInt64FromSource(dvar, val, source);
+		return prev_val;
+	}
+
+	int64_t get_dvar_int64(const char* dvar_name)
+	{
+		const auto* dvar = Dvar_FindVar(dvar_name);
+		if (!dvar)
+		{
+			return {};
+		}
+
+		return dvar->current.value.integer64; 
+	}
+
+	int64_t set_dvar_int64(const char* dvar_name, int64_t val, DvarSetSource source) {
+		const auto* dvar = Dvar_FindVar(dvar_name);
+		if (!dvar)
+		{
+			return {};
+		}
+		int64_t prev_val = dvar->current.value.integer64;
+		Dvar_SetInt64FromSource(dvar, val, source);
+		return prev_val;
+	}
+
 	bool get_dvar_bool(const char* dvar_name)
 	{
 		const auto* dvar = Dvar_FindVar(dvar_name);
@@ -62,6 +129,39 @@ namespace game
 		}
 
 		return dvar->current.value.enabled;
+	}
+
+	bool set_dvar_bool(const char* dvar_name, bool val, DvarSetSource source) {
+		const auto* dvar = Dvar_FindVar(dvar_name);
+		if (!dvar)
+		{
+			return {};
+		}
+		bool prev_val = dvar->current.value.enabled;
+		Dvar_SetBoolFromSource(dvar, val, source);
+		return prev_val;
+	}
+
+	float get_dvar_float(const char* dvar_name)
+	{
+		const auto* dvar = Dvar_FindVar(dvar_name);
+		if (!dvar)
+		{
+			return {};
+		}
+
+		return dvar->current.value.value;
+	}
+
+	float set_dvar_float(const char* dvar_name, float val, DvarSetSource source) {
+		const auto* dvar = Dvar_FindVar(dvar_name);
+		if (!dvar)
+		{
+			return {};
+		}
+		float prev_val = dvar->current.value.value;
+		Dvar_SetFloatFromSource(dvar, val, source);
+		return prev_val;
 	}
 
 	const dvar_t* register_sessionmode_dvar_bool(const char* dvar_name, const bool value, const unsigned int flags,
