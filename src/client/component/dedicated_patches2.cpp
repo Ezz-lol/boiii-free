@@ -119,16 +119,17 @@ namespace server_patches2
 		// sv_cheats enforcement
 		void enforce_sv_cheats()
 		{
-			if (!game::is_server_running())
-				return;
-
-			const auto sv_cheats_val = game::get_dvar_int("sv_cheats");
-			if (sv_cheats_val != 0)
+			if (game::is_server_running())
 			{
-				printf("[Security] sv_cheats was non-zero (%d), forcing to 0\n", sv_cheats_val);
-				game::Cbuf_AddText(0, "set sv_cheats 0\n");
+				const bool sv_cheats_val = game::get_dvar_bool("sv_cheats");
+				if (sv_cheats_val)
+				{
+					printf("[Security] sv_cheats was non-zero (%d), forcing to 0\n", sv_cheats_val);
+					game::set_dvar_bool("sv_cheats", false);
+				}
 			}
 		}
+
 
 		// Hook for G_Say to sanitize messages
 		utils::hook::detour g_say_hook;
