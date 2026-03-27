@@ -1450,7 +1450,7 @@ namespace ui_scripting
 				const std::string mod_id = game::getPublisherIdFromLoadedMod();
 				if (mod_id.empty() || mod_id == "usermaps")
 				{
-					scheduler::once([toast_msg] { toast::success("Lua Reload Mod", "No mod loaded"); }, scheduler::pipeline::renderer, 2s);
+					scheduler::once([] { toast::success("Lua Reload Mod", "No mod loaded"); }, scheduler::pipeline::renderer, 2s);
 					game::Com_Printf(0, 0, "^3Lua Reload Mod: No mod currently loaded\n");
 					return;
 				}
