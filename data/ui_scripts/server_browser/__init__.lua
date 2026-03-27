@@ -142,6 +142,10 @@ local function rebuildFilteredIndices()
 end
 
 local originalRequestServers = Engine.SteamServerBrowser_RequestServers
+local function safeRequestServers(st)
+	local fn = originalRequestServers
+	if fn then pcall(fn, st) end
+end
 Engine.SteamServerBrowser_RequestServers = function(serverType)
 	filteredServerIndices = nil
 	skullSortedOrder = nil
@@ -150,19 +154,21 @@ Engine.SteamServerBrowser_RequestServers = function(serverType)
 
 	if serverType == CUSTOM_TYPE_ALL then
 		currentCustomMode = "all"
-		return originalRequestServers(Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_INTERNET)
+		safeRequestServers(Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_INTERNET)
 	elseif serverType == CUSTOM_TYPE_CAMPAIGN then
 		currentCustomMode = "cp"
-		return originalRequestServers(Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_INTERNET)
+		safeRequestServers(Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_INTERNET)
 	else
 		currentCustomMode = nil
-		return originalRequestServers(serverType)
+		safeRequestServers(serverType)
 	end
 end
 
 local originalSort = Engine.SteamServerBrowser_Sort
 Engine.SteamServerBrowser_Sort = function(sortType)
-	originalSort(sortType)
+	if originalSort then
+		local ok, err = pcall(originalSort, sortType)
+	end
 	if isCustomTab() and filteredServerIndices then
 		currentSortType = sortType
 		skullSortedOrder = nil
@@ -323,42 +329,51 @@ DataSources.LobbyServer = {
 		end
 		local serverListUpdateModel = Engine.CreateModel(list.serverBrowserRootModel, "serverListCount")
 		list.serverListUpdateSubscription = list:subscribeToModel(serverListUpdateModel, function(model)
-			skullSortedOrder = nil
-			skullSortAscending = nil
+			if not list.serverBrowserRootModel then return end
+			local ok, err = pcall(function()
+				skullSortedOrder = nil
+				skullSortAscending = nil
 
-			if isCustomTab() then
-				if isRebuildingCustom then return end
-				isRebuildingCustom = true
-				local customCount = rebuildFilteredIndices()
-				list.serverCount = customCount
-				Engine.SetModelValue(model, customCount)
-				local updatedModel = Engine.GetModel(list.serverBrowserRootModel, "serverListUpdatedCount")
-				if updatedModel then Engine.SetModelValue(updatedModel, customCount) end
-				list:updateDataSource(false, false)
-				isRebuildingCustom = false
-			else
-				rebuildAddressMap()
-				list.serverCount = Engine.GetModelValue(model) or 0
-				list:updateDataSource(false, false)
-			end
+				if isCustomTab() then
+					if isRebuildingCustom then return end
+					isRebuildingCustom = true
+					local customCount = rebuildFilteredIndices()
+					list.serverCount = customCount
+					Engine.SetModelValue(model, customCount)
+					local updatedModel = Engine.GetModel(list.serverBrowserRootModel, "serverListUpdatedCount")
+					if updatedModel then Engine.SetModelValue(updatedModel, customCount) end
+					list:updateDataSource(false, false)
+					isRebuildingCustom = false
+				else
+					rebuildAddressMap()
+					list.serverCount = Engine.GetModelValue(model) or 0
+					list:updateDataSource(false, false)
+				end
+			end)
 		end, false)
 		if list.serverUpdatedCountSubscription then
 			list:removeSubscription(list.serverUpdatedCountSubscription)
 		end
 		local serverUpdatedCountModel = Engine.CreateModel(list.serverBrowserRootModel, "serverListUpdatedCount")
 		list.serverUpdatedCountSubscription = list:subscribeToModel(serverUpdatedCountModel, function(model)
+			if not list.serverBrowserRootModel then return end
 			if not isCustomTab() then return end
 			if isRebuildingCustom then return end
-			Engine.SetModelValue(model, list.serverCount)
+			if model and list.serverCount then
+				pcall(Engine.SetModelValue, model, list.serverCount)
+			end
 		end, false)
 		if list.serverListSortTypeSubscription then
 			list:removeSubscription(list.serverListSortTypeSubscription)
 		end
 		local serverListSortTypeModel = Engine.CreateModel(list.serverBrowserRootModel, "serverListSortType")
 		list.serverListSortTypeSubscription = list:subscribeToModel(serverListSortTypeModel, function(model)
-			skullSortedOrder = nil
-			skullSortAscending = nil
-			list:updateDataSource(false, false)
+			if not list.serverBrowserRootModel then return end
+			pcall(function()
+				skullSortedOrder = nil
+				skullSortAscending = nil
+				list:updateDataSource(false, false)
+			end)
 		end, false)
 
 	end,

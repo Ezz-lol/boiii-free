@@ -12,6 +12,7 @@
 #include "profile_infos.hpp"
 #include "friends.hpp"
 #include "steam_proxy.hpp"
+#include "toast.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -320,6 +321,7 @@ namespace party
 				}
 
 				connect_host = target;
+				toast::show("Connecting", address, "t7_icon_connect_overlays");
 			}
 
 			profile_infos::clear_profile_infos();

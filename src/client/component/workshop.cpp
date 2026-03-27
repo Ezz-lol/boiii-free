@@ -16,6 +16,7 @@
 #include "party.hpp"
 #include "scheduler.hpp"
 #include "download_overlay.hpp"
+#include "toast.hpp"
 
 #include <condition_variable>
 #include <mutex>
@@ -968,6 +969,7 @@ namespace workshop
 			command::add("userContentReload", [](const command::params& params)
 			{
 				game::reloadUserContent();
+				if (!game::is_server()) toast::info("Workshop", "User content reloaded");
 			});
 			command::add("workshop_config", [](const command::params& params)
 			{
@@ -995,6 +997,7 @@ namespace workshop
 				if (type_str != "Map" && type_str != "Mod")
 					type_str = "Map";
 				printf("[ Workshop ] Starting download: %s (%s)\n", id.c_str(), type_str.c_str());
+				if (!game::is_server()) toast::show("Workshop", utils::string::va("Downloading %s: %s", type_str.c_str(), id.c_str()), "t7_icon_menu_options_download");
 				download_thread = utils::thread::create_named_thread(
 					"workshop_download", steamcmd::initialize_download, id, type_str);
 				download_thread.detach();

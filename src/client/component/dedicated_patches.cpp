@@ -11,6 +11,7 @@ namespace dedicated_patches
 	namespace
 	{
 		utils::hook::detour spawn_server_hook;
+		utils::hook::detour pmem_free_hook;
 
 		void scr_are_textures_loaded_stub()
 		{
@@ -88,6 +89,17 @@ namespace dedicated_patches
 		{
 			return utils::string::va("%s", name);
 		}
+
+		// Fix: PMem_Free "LensFlareManager" crashes on dedicated server because 
+		void pmem_free_stub(const char* name, int alloc_dir)
+		{
+			if (name && strcmp(name, "LensFlareManager") == 0)
+			{
+				printf("[Fix] Skipping PMem_Free for '%s' (not allocated on dedicated server)\n", name);
+				return;
+			}
+			pmem_free_hook.invoke(name, alloc_dir);
+		}
 	}
 
 	struct component final : server_component
@@ -135,6 +147,10 @@ namespace dedicated_patches
 			utils::hook::call(0x140531311_g, info_set_value_for_key_stub);
 			utils::hook::call(0x1405311E0_g, va_stub);
 			utils::hook::call(0x140531227_g, va_stub);
+
+			// Fix PMem_Free "LensFlareManager" not at top of stack error
+			// Dedi server: PMem_Free at 0x5D8B30
+			pmem_free_hook.create(0x1405D8B30_g, pmem_free_stub);
 		}
 	};
 }

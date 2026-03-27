@@ -286,7 +286,7 @@ namespace gsc_compiler
 							try
 							{
 								auto appdata_scripts = (game::get_appdata_path() / "data" / "scripts").string();
-								printf("^3[GSC] Warning: #insert file not found: '%s' — download/download the .gsh headers and place them in '%s\\'\n",
+								printf("^3[GSC] Warning: #insert file not found: '%s' — download/create the .gsh headers and place them in '%s\\'\n",
 									insert_path.data(), appdata_scripts.data());
 							}
 							catch (...)

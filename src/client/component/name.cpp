@@ -4,6 +4,7 @@
 #include "name.hpp"
 #include "steam_proxy.hpp"
 #include "command.hpp"
+#include "toast.hpp"
 
 #include <utils/nt.hpp>
 #include <utils/string.hpp>
@@ -98,6 +99,7 @@ namespace name
 				}
 
 				update_player_name(params[1]);
+				toast::success("Name Changed", params[1]);
 			});
 		}
 

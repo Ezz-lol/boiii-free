@@ -176,6 +176,9 @@ namespace asset_limits
 
 		void apply_asset_limits()
 		{
+			static bool applied = false;
+			if (applied) return;
+
 			const auto doc = load_settings_doc();
 
 			if (!is_enabled(doc))
@@ -189,6 +192,8 @@ namespace asset_limits
 				const auto size = get_pool_size(doc, cfg);
 				reallocate_asset_pool(cfg.type, size);
 			}
+
+			applied = true;
 		}
 
 		utils::hook::detour com_sessionmode_setmode_hook;

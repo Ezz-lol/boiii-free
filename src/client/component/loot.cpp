@@ -3,7 +3,9 @@
 
 #include <utils/hook.hpp>
 
+#include "command.hpp"
 #include "scheduler.hpp"
+#include "toast.hpp"
 #include "game/game.hpp"
 #include "game/utils.hpp"
 
@@ -237,6 +239,81 @@ namespace loot
 				"cg_unlockall_specialists_outfits", false, game::DVAR_ARCHIVE, "Unlocks all specialists outfits");
 			dvar_cg_unlockall_cac_slots = game::register_dvar_bool("cg_unlockall_cac_slots", false, game::DVAR_ARCHIVE,
 			                                                       "Unlocks all Create a Class Slots");
+
+			command::add("unlockall", [](const command::params&)
+			{
+				// Enable all unlock dvars (mode-independent)
+				game::Dvar_SetFromStringByName("cg_unlockall_loot", "1", true);
+				game::Dvar_SetFromStringByName("cg_unlockall_purchases", "1", true);
+				game::Dvar_SetFromStringByName("cg_unlockall_attachments", "1", true);
+				game::Dvar_SetFromStringByName("cg_unlockall_camos_and_reticles", "1", true);
+				game::Dvar_SetFromStringByName("cg_unlockall_calling_cards", "1", true);
+				game::Dvar_SetFromStringByName("cg_unlockall_specialists_outfits", "1", true);
+				game::Dvar_SetFromStringByName("cg_unlockall_cac_slots", "1", true);
+				game::Dvar_SetFromStringByName("ui_enableAllHeroes", "1", true);
+
+				// Set master prestige for all 3 modes (eModes: ZM=0, MP=1, CP=2)
+				game::Cbuf_AddText(0, "PrestigeStatsMaster 0\n"); // ZM
+				game::Cbuf_AddText(0, "PrestigeStatsMaster 1\n"); // MP
+				game::Cbuf_AddText(0, "PrestigeStatsMaster 2\n"); // CP
+
+				// statsetbyname only affects the current session mode
+				game::Cbuf_AddText(0, "statsetbyname plevel 11\n");
+				game::Cbuf_AddText(0, "statsetbyname hasprestiged 1\n");
+
+
+				const auto mode = game::Com_SessionMode_GetMode();
+				const char* mode_name = "Unknown";
+
+				if (mode == game::eModes::MODE_MULTIPLAYER)
+				{
+					game::Cbuf_AddText(0, "statsetbyname rank 54\n");
+					game::Cbuf_AddText(0, "statsetbyname paragon_rank 944\n");
+					game::Cbuf_AddText(0, "statsetbyname paragon_rankxp 56800000\n");
+					mode_name = "Multiplayer";
+				}
+				else if (mode == game::eModes::MODE_ZOMBIES)
+				{
+					game::Cbuf_AddText(0, "statsetbyname rank 34\n");
+					game::Cbuf_AddText(0, "statsetbyname paragon_rank 1000\n");
+					game::Cbuf_AddText(0, "statsetbyname paragon_rankxp 56800000\n");
+					mode_name = "Zombies";
+				}
+				else if (mode == game::eModes::MODE_CAMPAIGN)
+				{
+					game::Cbuf_AddText(0, "statsetbyname rank 19\n");
+					game::Cbuf_AddText(0, "statsetbyname paragon_rank 999\n");
+					game::Cbuf_AddText(0, "statsetbyname paragon_rankxp 0\n");
+					mode_name = "Campaign";
+				}else{
+					game::Cbuf_AddText(0, "statsetbyname rank 54\n");
+					game::Cbuf_AddText(0, "statsetbyname paragon_rank 1000\n");
+					game::Cbuf_AddText(0, "statsetbyname paragon_rankxp 56800000\n");
+					mode_name = "";
+				}
+
+				// Unlock all easter eggs (zombie darkops)
+				game::Cbuf_AddText(0, "statsetbyname darkops_zod_ee 1\n");
+				game::Cbuf_AddText(0, "statsetbyname darkops_zod_super_ee 1\n");
+				game::Cbuf_AddText(0, "statsetbyname darkops_factory_ee 1\n");
+				game::Cbuf_AddText(0, "statsetbyname darkops_factory_super_ee 1\n");
+				game::Cbuf_AddText(0, "statsetbyname darkops_castle_ee 1\n");
+				game::Cbuf_AddText(0, "statsetbyname darkops_castle_super_ee 1\n");
+				game::Cbuf_AddText(0, "statsetbyname darkops_island_ee 1\n");
+				game::Cbuf_AddText(0, "statsetbyname darkops_island_super_ee 1\n");
+				game::Cbuf_AddText(0, "statsetbyname darkops_stalingrad_ee 1\n");
+				game::Cbuf_AddText(0, "statsetbyname darkops_stalingrad_super_ee 1\n");
+				game::Cbuf_AddText(0, "statsetbyname darkops_genesis_ee 1\n");
+				game::Cbuf_AddText(0, "statsetbyname DARKOPS_GENESIS_SUPER_EE 1\n");
+
+				// Upload stats for all modes (eModes: ZM=0, MP=1, CP=2)
+				game::Cbuf_AddText(0, "uploadstats 0\n"); // ZM
+				game::Cbuf_AddText(0, "uploadstats 1\n"); // MP
+				game::Cbuf_AddText(0, "uploadstats 2\n"); // CP
+
+				printf("[Loot] Unlock All (%s): all items, master prestige (all modes), max rank (%s), easter eggs\n", mode_name, mode_name);
+				toast::success("Unlock All", std::string("Unlocked all ") + mode_name + " stats!");
+			});
 
 			loot_getitemquantity_hook.create(0x141E82C00_g, loot_getitemquantity_stub);
 			liveinventory_getitemquantity_hook.create(0x141E09030_g, liveinventory_getitemquantity_stub);

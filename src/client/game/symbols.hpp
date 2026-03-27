@@ -128,6 +128,9 @@ namespace game
 	// Mantle
 	WEAK symbol<void()> Mantle_ShutdownAnims{0x142678C80, 0x1406A1B50};
 
+	// PMem
+	WEAK symbol<void(const char* name, int allocDir)> PMem_Free{0x141439190, 0x1405D8B30};
+
 	// Unnamed
 	WEAK symbol<const char*(const char* name)> CopyString{0x1422AC220, 0x14056BD70};
 

@@ -13,6 +13,7 @@
 
 #include "network.hpp"
 #include "scheduler.hpp"
+#include "toast.hpp"
 
 namespace server_list
 {
@@ -511,6 +512,7 @@ namespace server_list
 				}
 
 				add_lan_server_from_string(params.get(1));
+				toast::show("Server List", utils::string::va("Added LAN server: %s", params.get(1)), "t7_icon_connect_overlays");
 			});
 		}
 
