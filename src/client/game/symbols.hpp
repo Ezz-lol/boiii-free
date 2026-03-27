@@ -281,7 +281,7 @@ namespace game
 	WEAK symbol<void()> SV_Cmd_EndTokenizedString{0x1420EF0E0, 0x1404FA670};
 	WEAK symbol<void(void* client, msg_t* msg)> SV_ExecuteClientMessage{0x14224A460, 0x14052F840};
 
-	WEAK symbol<void(void* drop, const char* reason, bool tellThem, bool removeFromLobby)> SV_DropClient{
+	WEAK symbol<void(client_s* drop, const char* reason, bool tellThem, bool removeFromLobby)> SV_DropClient{
 		0x14224A050, 0x14052F430
 	};
 	WEAK symbol<void (client_s *cl_0, const char *reason)> SV_Live_RemoveClient{
