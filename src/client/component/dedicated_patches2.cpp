@@ -3,6 +3,7 @@
 #include "game/game.hpp"
 #include "game/utils.hpp"
 
+#include <utils/flags.hpp>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 
@@ -173,10 +174,20 @@ namespace server_patches2
 		void post_unpack() override
 		{
 			// Sanitize chat messages on server
-			g_say_hook.create(0x140299170_g, g_say_stub);
+			g_say_hook.create(game::G_Say.get(), g_say_stub);
 
-			// Rate limit connections
-			sv_direct_connect_hook.create(0x14052EC60_g, sv_direct_connect_stub);
+			/*
+			 Some server configurations will require this to be disabled.
+			 For example, if the server operates behind a reverse proxy, all incoming connections will appear to be from the same IP.
+			 As such, clients will be erroneously rate limited, despite being unique connections.
+
+			 In this case, rate limiting should be enforced in the server which is executing the reverse proxy.
+			 Enforcement of rate limiting elsewhere will be the responsibility of the server operator using this abnormal configuration.
+			*/
+			if (!utils::flags::has_flag("noratelimit")) {
+				// Rate limit connections
+				sv_direct_connect_hook.create(game::SV_DirectConnect.get(), sv_direct_connect_stub);
+			}
 
 			// RCE Prevention: Patch Cmd_ParseArgs to prevent remote code execution
 			// Makes the vulnerable function immediately return, blocking crafted
@@ -202,11 +213,13 @@ namespace server_patches2
 				enforce_sv_cheats();
 			}, scheduler::pipeline::server, 5000ms);
 
-			// Cleanup old rate limit entries periodically
-			scheduler::loop([]
-			{
-				cleanup_rate_limits();
-			}, scheduler::pipeline::async, 30000ms);
+			if (!utils::flags::has_flag("noratelimit")) {
+				// Cleanup old rate limit entries periodically
+				scheduler::loop([]
+				{
+					cleanup_rate_limits();
+				}, scheduler::pipeline::async, 30000ms);
+			}
 		}
 	};
 }
