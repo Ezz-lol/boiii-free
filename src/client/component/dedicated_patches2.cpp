@@ -158,6 +158,14 @@ namespace server_patches2
 
 			sv_direct_connect_hook.invoke(adr);
 		}
+
+		utils::hook::detour sv_removeallclientsfromaddress_hook;
+		void sv_live_removeallclientsfromaddress_stub(game::client_s* client, const char* reason) {
+			// Skip disconnecting other clients from the same IP -
+			// just free the disconnected client's slot, and return. 
+			game::SV_Live_RemoveClient(client, reason);
+			return;
+		}
 	}
 
 	struct component final : server_component
@@ -178,6 +186,15 @@ namespace server_patches2
 			// TeamOps arbitrary write fix: NOP the inlined arbitrary write
 			// that allows attackers to write to arbitrary memory via team operations
 			utils::hook::nop(0x1401155D5_g, 7);
+
+			/*
+				Disable removal of all clients from an IP address if
+				one client from that IP address disconnects.
+				
+				Useful if e.g. server is hosted behind a reverse proxy or 
+				load balancer where multiple clients share the same IP.
+			*/
+			sv_removeallclientsfromaddress_hook.create(game::SV_Live_RemoveAllClientsFromAddress.get(), sv_live_removeallclientsfromaddress_stub);
 
 			// Enforce sv_cheats = 0 periodically
 			scheduler::loop([]
