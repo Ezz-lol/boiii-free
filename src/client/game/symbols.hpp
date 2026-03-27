@@ -284,6 +284,17 @@ namespace game
 	WEAK symbol<void(void* drop, const char* reason, bool tellThem, bool removeFromLobby)> SV_DropClient{
 		0x14224A050, 0x14052F430
 	};
+	WEAK symbol<void (client_s *cl_0, const char *reason)> SV_Live_RemoveClient{
+		0x142242510, 0x140527530
+	};
+	/*
+		Server only. Function exists on client but requires accessing areas of memory which are only initialized
+		when running as dedicated server. Also might not (?) take the second `reason` argument, but it is
+		entirely unused anyway, so this is of no consequence.
+	*/
+	WEAK symbol<void(client_s *cl_0, const char* reason)> SV_Live_RemoveAllClientsFromAddress{
+		0x142254630, 0x1405379E0
+	};
 	WEAK symbol<void(client_s *client, svscmd_type type, const char* cmd)> SV_AddServerCommand{
 		0x142253460, 0x140536660
 	};
