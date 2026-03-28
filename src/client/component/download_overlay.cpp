@@ -330,9 +330,15 @@ namespace download_overlay
 		{
 			if (imgui_initialized)
 			{
-				if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wparam, lparam))
+				const auto s = state_.copy();
+				const auto c = confirm_.copy();
+
+				if (s.active || c.active)
 				{
-					return TRUE;
+					if (ImGui_ImplWin32_WndProcHandler(hwnd, msg, wparam, lparam))
+					{
+						return TRUE;
+					}
 				}
 			}
 			return CallWindowProcA(original_wndproc, hwnd, msg, wparam, lparam);
@@ -354,6 +360,7 @@ namespace download_overlay
 					ImGui::CreateContext();
 					ImGui::GetIO().IniFilename = nullptr;
 					ImGui::GetIO().LogFilename = nullptr;
+					ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
 
 					apply_cod_theme();
 
