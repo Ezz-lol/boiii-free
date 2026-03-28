@@ -168,6 +168,61 @@ namespace server_patches2
 			game::SV_Live_RemoveClient(client, reason);
 			return;
 		}
+		
+		std::mutex reliable_cmd_mutex;
+		// Map of reliable command string -> Map of xuid -> svs->time of last sequencing
+		std::unordered_map<std::string, std::unordered_map<uint64_t, uint32_t>> client_openmenu_cmd_last_sequence_time;	
+		// Map of xuid -> last sequenced reliable command string
+		std::unordered_map<uint64_t, std::string> client_last_cmd;	
+		
+		utils::hook::detour g_init_game_hook;
+		void g_init_game_stub(uint32_t levelTime, uint32_t randomSeed, game::qboolean restart, game::qboolean registerDvars, game::qboolean savegame) {
+			std::lock_guard lock(reliable_cmd_mutex);
+
+			// Reset tracked openmenu reliable cmds on starting a new game.
+			for (auto& [cmd, client_map] : client_openmenu_cmd_last_sequence_time) {
+				client_map.clear();
+				client_openmenu_cmd_last_sequence_time.erase(cmd);
+
+			}
+
+			client_openmenu_cmd_last_sequence_time.clear();
+			client_last_cmd.clear();
+
+			g_init_game_hook.invoke(levelTime, randomSeed, restart, registerDvars, savegame);
+		}
+		
+		utils::hook::detour sv_addservercommand_hook;
+
+		void sv_addservercommand_stub(game::client_s* client, game::svscmd_type type, const char* cmd) {
+			
+			std::string cmd_str = cmd ? std::string(cmd) : "";
+			std::lock_guard lock(reliable_cmd_mutex);
+
+			/* 
+				`openmenu` reliable commands have format "D %d %d %d %d", or "D %d %d %d". 
+				Note that the prefix "D " is its unique command type identifier.
+			*/
+			if (utils::string::starts_with(cmd_str, "D ")) {
+				// If this command was sent less than 1000 ms ago, skip.
+				if (client_openmenu_cmd_last_sequence_time.contains(cmd_str) && 
+					client_openmenu_cmd_last_sequence_time[cmd_str].contains(client->xuid) &&
+					*(game::svs_time.get()) - client_openmenu_cmd_last_sequence_time[cmd_str][client->xuid] < 1000) {
+					return;
+				}
+
+				// We also do not need to send a redundant openmenu command if it was the last command sent, even if sent > 1 second ago. 
+				// This is valid because we can guarantee that menu state was not modified otherwise in the interim.
+				if (client_last_cmd.contains(client->xuid) && client_last_cmd[client->xuid] == cmd_str) {
+					return;
+				}
+			}
+
+			client_openmenu_cmd_last_sequence_time[cmd_str][client->xuid] = *(game::svs_time.get());
+			client_last_cmd[client->xuid] = cmd_str;
+
+			sv_addservercommand_hook.invoke(client, type, cmd);
+		}
 	}
 
 	struct component final : server_component
@@ -221,6 +276,35 @@ namespace server_patches2
 					cleanup_rate_limits();
 				}, scheduler::pipeline::async, 30000ms);
 			}
+
+			/*
+				Some custom maps, especially those with custom HUDs, update HUD state with server-side logic.
+				Often, this is implemented through a spin-loop which executes `luinotify`s every 50ms to update HUD state, regardless of whether
+				there has been a change in state.
+
+				When executed client-side, in a singleplayer game, this works well.
+
+				Unfortunately, when executed in either dedicated server or when hosting a private match, each one of these `luinotify`s results in a packet sent to each non-host client.
+				
+				In two tested cases - in the custom maps Kowloon and Daybreak - this results in a constant, massive flood of redundant `openmenu` reliable commands being sent to each client.
+				While inefficient, this is generally acceptable. However, when the client is completing load-in to the map, 
+				in the initial blackscreen before they begin playing, reliable commands are temporarily unhandled. 
+				In the case of the aforementioned examples, this results in a near-consistent inability for clients to succesfully load into the map, 
+				instead resulting in an `EXE_ERR_RELIABLE_CYCLED_OUT` error, as the flood of hundreds of menu update packets are unhandled.
+
+				Inability to reliably play these maps online has been noted many times in the steamcommunity workshop pages for these maps. 
+				Neither has been updated to resolve the issue, and new maps are often created with HUD update logic which contains similarly poor design.
+
+				To mitigate this, these duplicative menu update packets without state change can be handled and filtered out server-side.
+			*/
+
+			if (utils::flags::has_flag("mitigatepacketspam")) {
+				sv_addservercommand_hook.create(game::SV_AddServerCommand.get(), sv_addservercommand_stub);
+				g_init_game_hook.create(game::G_InitGame.get(), g_init_game_stub);
+			}
+
+
+
 		}
 	};
 }
