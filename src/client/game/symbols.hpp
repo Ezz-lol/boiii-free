@@ -22,6 +22,8 @@ namespace game
 	};
 	WEAK symbol<bool(int localClientNum)> CL_LocalClient_IsActive{0x14283AA50};
 	WEAK symbol<float(void* key)> CL_KeyState{0x1412FF860};
+	WEAK symbol<void(LocalClientNum_t localClientNum, const char* pszMapName, const char* pszGametype)> 
+	CL_SetupForNewServerMap{0x14135CD20};
 
 	// Game
 	WEAK symbol<void(gentity_s* ent, gentity_s* target, int mode, const char* chatText)> G_Say{0x0, 0x140299170};
@@ -71,8 +73,14 @@ namespace game
 	WEAK symbol<void(char* text, int maxSize)> Con_GetTextCopy{0x14133A7D0, 0x140182C40};
 
 	// DB
+	WEAK symbol<unsigned int> g_zoneCount{0x14941097C};
+	WEAK symbol<game::XZoneName> g_zoneNames{0x14998FB80}; 
+
 	WEAK symbol<void(XZoneInfo* zoneInfo, uint32_t zoneCount, bool sync, bool suppressSync)> DB_LoadXAssets{
 		0x1414236A0
+	};
+	WEAK symbol <void(int zoneIndex, bool createDefault, qboolean suppressSync)> DB_UnloadXZone{
+	    0x141425A70
 	};
 	WEAK symbol<void(XAssetType type, XAssetEnum* func, void* inData, bool includeOverride)> DB_EnumXAssets{
 		0x141420970, 0x1401D5A50
@@ -136,7 +144,13 @@ namespace game
 
 	WEAK symbol<bool()> isModLoaded{0x1420D5020};
 	WEAK symbol<const char*()> getPublisherIdFromLoadedMod{0x1420D7680, 0x1404E3230};
-	WEAK symbol<void(int localClientNum, const char* mod, bool)> loadMod{0x1420D6930};
+	WEAK symbol<void(LocalClientNum_t localClientNum, const char* mod, bool reloadFS)> loadMod{0x1420D6930};
+	WEAK symbol<bool(LocalClientNum_t localClientNum)> isModLoading{0x1420D6DE0};
+	WEAK symbol<char> usermap_publisher_id{0x1567D9A24};
+	WEAK symbol<char> usermap_title{0x1567D99A0};
+	// This should correspond to folder name, with value something like
+	// cp_* for a campaign map, zm_* for zombies map, or mp_* for multiplayer map
+	WEAK symbol<char> internal_usermap_id{0x1567D9A04}; 
 	WEAK symbol<void()> reloadUserContent{0x1420D66C0, 0x1404E25C0};
 
 	// Dvar

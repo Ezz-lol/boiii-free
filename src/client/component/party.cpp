@@ -55,48 +55,6 @@ namespace party
 		{
 			auth::clear_stored_guids();
 
-			//FAILSAFE incase setup_server_map_stub fail to unload. sometimes it bug out and wont unload mod anymore.
-			if (game::isModLoaded())
-			{
-
-				(void)workshop::get_pending_mod_reconnect();
-
-				game::loadMod(0, "", true);
-
-				auto start_time = std::make_shared<std::chrono::steady_clock::time_point>(
-					std::chrono::steady_clock::now());
-
-				scheduler::schedule([addr, mapname, gamemode, usermap_id, mod_id, start_time]() -> bool
-					{
-						const auto elapsed = std::chrono::steady_clock::now() - *start_time;
-
-						if (elapsed < std::chrono::seconds(1))
-							return scheduler::cond_continue;
-
-						if (game::isModLoaded() && elapsed < std::chrono::seconds(30))
-							return scheduler::cond_continue;
-
-						if (game::isModLoaded())
-						{
-							printf("[ Party ] Timeout: mod still loaded after 30s, attempting connection anyway\n");
-						}
-						else
-						{
-							printf("[ Party ] Mod unloaded after %lld ms\n",
-								std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count());
-						}
-
-						workshop::setup_same_mod_as_host(usermap_id, mod_id);
-
-						game::XSESSION_INFO info{};
-						game::CL_ConnectFromLobby(0, &info, &addr, 1, 0, mapname.data(), gamemode.data(), usermap_id.data());
-
-						return scheduler::cond_end;
-					}, scheduler::main, 200ms);
-
-				return;
-			}
-
 			workshop::setup_same_mod_as_host(usermap_id, mod_id);
 
 			game::XSESSION_INFO info{};

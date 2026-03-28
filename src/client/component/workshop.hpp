@@ -21,6 +21,8 @@ extern std::atomic<bool> downloading_workshop_item;
 	std::string get_mod_resized_name();
 	bool check_valid_usermap_id(const std::string& mapname, const std::string& pub_id, const std::string& workshop_id, const std::string& base_url = {});
 	bool check_valid_mod_id(const std::string& pub_id, const std::string& workshop_id);
+	bool mod_switch_requires_fs_reinitialization(const std::string& current_mod, const std::string& new_mod);
+	bool mod_load_requires_fs_reinitialization(std::string& mod_name);
 	void setup_same_mod_as_host(const std::string& usermap, const std::string& mod);
 
 	void set_pending_mod_reconnect(const std::string& address);
