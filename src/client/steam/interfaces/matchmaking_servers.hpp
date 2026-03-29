@@ -36,7 +36,7 @@ namespace steam
 		uint32_t m_ulTimeLastPlayed;
 		int m_nServerVersion;
 		char m_szServerName[64];
-		char m_szGameTags[128];
+		char m_szGameTags[256];
 		steam_id m_steamID;
 	};
 
