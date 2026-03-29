@@ -1,6 +1,6 @@
 #pragma once
 
-#define PROTOCOL 7
+#define PROTOCOL 8
 #define SUB_PROTOCOL 1
 
 #ifdef __cplusplus
@@ -606,7 +606,7 @@ namespace game
 		int freeSlot;
 		XZoneBuffer fileBuffer;
 	};
-	
+
 	enum XZoneState : int
 	{
 	  XZONE_UNLOADING = -1,
@@ -623,10 +623,10 @@ namespace game
 	  char name[64];
 	  int flags;
 	  int slot;
-	  // Definitely values being set at _unknown and _unknown[8]. 
-	  // They might be related to whether it's loaded? 
+	  // Definitely values being set at _unknown and _unknown[8].
+	  // They might be related to whether it's loaded?
 	  // No immediate indication of what these are for, and we do not currently need to know, so leaving them as unknown for now.
-	  char _unknown[16];   
+	  char _unknown[16];
 	  XZoneState state;
 	  bool streamPreloaded;
 	  char __unknown[3];

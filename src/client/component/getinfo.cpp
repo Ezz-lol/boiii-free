@@ -115,7 +115,9 @@ namespace getinfo
 				info.set("shortversion", SHORTVERSION);
 
 				info.set("sv_wwwBaseURL", game::get_dvar_string("sv_wwwBaseURL"));
+				info.set("sv_wwwBaseUrl", game::get_dvar_string("sv_wwwBaseURL"));
 				info.set("workshop_id", game::get_dvar_string("workshop_id"));
+				info.set("usermapId", game::get_dvar_string("workshop_id"));
 
 				if (network_password::is_password_set())
 				{

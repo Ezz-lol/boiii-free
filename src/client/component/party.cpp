@@ -234,8 +234,8 @@ namespace party
 
 			const auto mod_id = info.get("modId");
 
-			const auto workshop_id = info.get("workshop_id"); //check workshop_id dvar for id
-			const auto base_url = info.get("sv_wwwBaseURL"); // FastDL base URL from server
+			const auto workshop_id = info.get("workshop_id").empty() ? info.get("usermapId") : info.get("workshop_id");
+			const auto base_url = info.get("sv_wwwBaseURL").empty() ? info.get("sv_wwwBaseUrl") : info.get("sv_wwwBaseURL");
 
 			//const auto hostname = info.get("sv_hostname");
 			const auto playmode = info.get("playmode");
