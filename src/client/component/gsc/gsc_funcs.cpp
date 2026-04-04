@@ -9,6 +9,8 @@
 
 #include <rapidjson/writer.h>
 
+#include "../command.hpp"
+
 namespace script
 {
 	int64_t find_export_address(const std::string& script_name, const std::string& func_name);
@@ -60,6 +62,34 @@ namespace gsc_funcs
 		{
 			game::Scr_AddInt(static_cast<game::scriptInstance_t>(inst), val);
 			return_value_set = true;
+		}
+
+		// =====================================================
+		// Script console commands (addcommand/getcommand)
+		// =====================================================
+
+		std::mutex script_cmd_mutex;
+		std::vector<std::string> script_cmd_names;
+		std::deque<std::string> script_cmd_queue;
+
+		void script_cmd_handler(const command::params& params)
+		{
+			std::string result;
+			for (auto i = 0; i < params.size(); i++)
+			{
+				if (i > 0) result += ' ';
+				result += params.get(i);
+			}
+
+			std::lock_guard lock(script_cmd_mutex);
+			script_cmd_queue.push_back(std::move(result));
+		}
+
+		void clear_script_commands()
+		{
+			std::lock_guard lock(script_cmd_mutex);
+			script_cmd_queue.clear();
+			script_cmd_names.clear();
 		}
 
 		// =====================================================
@@ -198,6 +228,42 @@ namespace gsc_funcs
 			const auto cmd = ScrVm_GetString(static_cast<unsigned int>(inst), 1);
 			if (cmd)
 				game::Cbuf_AddText(0, utils::string::va("%s\n", cmd));
+		}
+
+		// addcommand("name") - registers a console command that GSC can read via getcommand() and you are free to to whatever you with it once you detect the command
+		void gscr_addcommand(int inst)
+		{
+			const auto name = ScrVm_GetString(static_cast<unsigned int>(inst), 1);
+			if (!name || !name[0]) return;
+
+			const std::string cmd_name(name);
+			{
+				std::lock_guard lock(script_cmd_mutex);
+				for (const auto& existing : script_cmd_names)
+				{
+					if (existing == cmd_name) return; // Already registered
+				}
+				script_cmd_names.push_back(cmd_name);
+			}
+
+			command::add(cmd_name, [](const command::params& params)
+			{
+				script_cmd_handler(params);
+			});
+		}
+
+		// getcommand() - returns the next queued command string, or "" if none
+		void gscr_getcommand(int inst)
+		{
+			std::lock_guard lock(script_cmd_mutex);
+			if (script_cmd_queue.empty())
+			{
+				push_string(inst, "");
+				return;
+			}
+			auto cmd = std::move(script_cmd_queue.front());
+			script_cmd_queue.pop_front();
+			push_string(inst, cmd.c_str());
 		}
 
 		// say: broadcast a chat message to all players
@@ -551,6 +617,19 @@ namespace gsc_funcs
 			const auto b = parse_int64_arg(static_cast<unsigned int>(inst), 2);
 			push_string(inst, std::to_string(std::max(a, b)).c_str());
 		}
+
+		void gscr_getfunction(int inst)
+		{
+			const auto script_name = ScrVm_GetString(static_cast<unsigned int>(inst), 1);
+			const auto func_name = ScrVm_GetString(static_cast<unsigned int>(inst), 2);
+			if (!script_name || !func_name)
+			{
+				push_int(inst, 0);
+				return;
+			}
+			const auto addr = script::find_export_address(script_name, func_name);
+			push_int(inst, addr ? 1 : 0);
+		}
 	}
 
 	void add_detour(int64_t target_addr, int64_t replacement_addr)
@@ -600,6 +679,13 @@ namespace gsc_funcs
 			custom_builtins[static_cast<int32_t>(fnv1a("int64_min"))] = gscr_int64_min;
 			custom_builtins[static_cast<int32_t>(fnv1a("int64_max"))] = gscr_int64_max;
 
+			// Function lookup
+			custom_builtins[static_cast<int32_t>(fnv1a("getfunction"))] = gscr_getfunction;
+
+			// Console commands
+			custom_builtins[static_cast<int32_t>(fnv1a("addcommand"))] = gscr_addcommand;
+			custom_builtins[static_cast<int32_t>(fnv1a("getcommand"))] = gscr_getcommand;
+
 			auto* builtin_def = reinterpret_cast<game::BuiltinFunctionDef*>(game::select(0x1432D7D70, 0x14106DD70));
 			builtin_def->max_args = 255;
 			builtin_def->actionFunc = reinterpret_cast<void*>(builtin_dispatcher);
@@ -626,6 +712,7 @@ namespace gsc_funcs
 			game_event::on_g_shutdown_game([] {
 				function_replacements.clear();
 				detours_enabled = false;
+				clear_script_commands();
 			});
 		}
 	};

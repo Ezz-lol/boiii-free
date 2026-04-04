@@ -76,7 +76,7 @@ namespace game
 
 	// DB
 	WEAK symbol<unsigned int> g_zoneCount{0x14941097C};
-	WEAK symbol<game::XZoneName> g_zoneNames{0x14998FB80}; 
+	WEAK symbol<XZoneName> g_zoneNames{0x14998FB80}; 
 
 	WEAK symbol<void(XZoneInfo* zoneInfo, uint32_t zoneCount, bool sync, bool suppressSync)> DB_LoadXAssets{
 		0x1414236A0
@@ -146,8 +146,8 @@ namespace game
 
 	WEAK symbol<bool()> isModLoaded{0x1420D5020};
 	WEAK symbol<const char*()> getPublisherIdFromLoadedMod{0x1420D7680, 0x1404E3230};
-	WEAK symbol<void(LocalClientNum_t localClientNum, const char* mod, bool reloadFS)> loadMod{0x1420D6930};
-	WEAK symbol<bool(LocalClientNum_t localClientNum)> isModLoading{0x1420D6DE0};
+	WEAK symbol<void(int localClientNum, const char* mod, bool reloadFS)> loadMod{0x1420D6930};
+	WEAK symbol<bool(int localClientNum)> isModLoading{0x1420D6DE0};
 	WEAK symbol<char> usermap_publisher_id{0x1567D9A24};
 	WEAK symbol<char> usermap_title{0x1567D99A0};
 	// This should correspond to folder name, with value something like

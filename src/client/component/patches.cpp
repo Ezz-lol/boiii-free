@@ -101,10 +101,7 @@ namespace patches
 		void com_error_stub(const char* file, int line, int code, const char* fmt, ...)
 		{
 			static bool suppress_next_lua_error = false;
-			static bool server_restart_pending = false;
 			static bool client_script_error_pending = false;
-			static int server_restart_count = 0;
-			constexpr int max_server_restarts = 5;
 
 			char buffer[0x1000];
 
@@ -113,6 +110,12 @@ namespace patches
 				va_start(ap, fmt);
 				vsnprintf_s(buffer, _TRUNCATE, fmt, ap);
 				va_end(ap);
+			}
+
+			if (game::is_server() && server_restart::restart_pending.load())
+			{
+
+				return;
 			}
 
 			// Suppress cascading Lua error (code 512) after a script error
@@ -124,14 +127,16 @@ namespace patches
 
 			const bool is_script_error = strstr(buffer, "script error") != nullptr;
 			const bool is_link_error = strstr(buffer, "linking") != nullptr || strstr(buffer, "Linking") != nullptr;
+			const bool is_script_not_found = strstr(buffer, "Script file not found") != nullptr;
 
-			if (is_script_error || is_link_error)
+			if (is_script_error || is_link_error || is_script_not_found)
 			{
-				// Suppress cascading script errors (first error already scheduled recovery)
-				if ((!game::is_server() && client_script_error_pending) || (game::is_server() && server_restart_pending))
+				if ((!game::is_server() && client_script_error_pending) || 
+					(game::is_server() && server_restart::restart_pending.load()))
 					return;
 
-				suppress_next_lua_error = true;
+				if (!game::is_server())
+					suppress_next_lua_error = true;
 				std::string resolved = resolve_hashes_in_string(buffer);
 				const bool is_csc = resolved.find(".csc") != std::string::npos;
 				const char* script_type = is_csc ? "CSC" : "GSC";
@@ -170,7 +175,20 @@ namespace patches
 							? err_line.substr(fq1 + 4, fq2 - fq1 - 4) : "";
 
 						uint32_t func_hash = 0;
+						bool func_is_hex = !func.empty() && func.size() <= 8
+							&& func.find_first_not_of("0123456789ABCDEFabcdef") == std::string::npos;
+
+						if (func_is_hex)
 						{
+							// func is still a raw hex hash - parse it directly
+							func_hash = static_cast<uint32_t>(std::strtoul(func.c_str(), nullptr, 16));
+							auto resolved_name = script::resolve_hash(func_hash);
+							if (!resolved_name.empty())
+								func = resolved_name;
+						}
+						else
+						{
+							// func was already resolved to a name - hash it back
 							uint32_t h = 0x4B9ACE2F;
 							for (char c : func)
 								h = (static_cast<uint32_t>(std::tolower(static_cast<unsigned char>(c))) ^ h) * 0x1000193;
@@ -211,20 +229,19 @@ namespace patches
 
 				if (game::is_server())
 				{
-					server_restart_pending = true;
-					server_restart_count++;
+					server_restart::last_error_is_link.store(is_link_error);
 
-					if (server_restart_count <= max_server_restarts)
+					if (is_link_error)
 					{
-						scheduler::once([]
-						{
-							server_restart_pending = false;
-							game::Cbuf_AddText(0, "map_restart\n");
-						}, scheduler::pipeline::main);
+						server_restart::schedule("Link error detected");
+						server_restart::abort_game_frame();
+						return;
 					}
 					else
 					{
-						printf("^1[Server] Too many script errors restarts(%d), not restarting. Fix your scripts and restart manually.\n", server_restart_count);
+						server_restart::schedule("Script error detected");
+						RaiseException(server_restart::SCRIPT_ERROR_EXCEPTION, 0, 0, nullptr);
+						return;
 					}
 				}
 				else
@@ -241,9 +258,8 @@ namespace patches
 							game::UI_OpenErrorPopupWithMessage(0, 0, deferred_error.c_str());
 						}, scheduler::pipeline::main, 500ms);
 					}, scheduler::pipeline::main);
+					return;
 				}
-
-				return;
 			}
 			else
 			{
@@ -259,8 +275,6 @@ namespace patches
 				return;
 			}
 
-			// For ERR_DROP client errors only, schedule a popup so the error message is visible
-			// after the engine's longjmp unwinds the stack and disconnects
 			if (!game::is_server() && code == game::ERR_DROP)
 			{
 				auto deferred_error = std::string(buffer);

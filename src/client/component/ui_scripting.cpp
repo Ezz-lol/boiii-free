@@ -524,7 +524,6 @@ namespace ui_scripting
 
 				return t;
 			}), game::hks::TCFUNCTION);
-
 		}
 
 		void enable_globals()
@@ -1236,6 +1235,15 @@ namespace ui_scripting
 
 			const char* resolved_stack = error_stack;
 
+			// Suppress known benign nil errors from server_browser scripts
+			if (stack_str.find("Attempt to call a nil value") != std::string::npos
+				&& stack_str.find("server_browser/") != std::string::npos)
+			{
+				const auto colored = colorize_lua_error("LUI script (suppressed)", error_stack);
+				game::Com_Printf(0, 0, "%s", colored.c_str());
+				return;
+			}
+
 			const bool is_ui = (*game::hks::lua_state == luaVM);
 			const char* error_loc = is_ui ? "LUI script execution error" : "LobbyVM script execution error";
 
@@ -1417,8 +1425,8 @@ namespace ui_scripting
 						reload_dir((host.get_folder() / "boiii" / "ui_scripts").string());
 
 						game::Com_Printf(0, 0, "^2Lua Reload: Reloaded %d file(s)\n", count);
-						const auto toast_msg = utils::string::va("Reloaded %d file(s)", count);
-						scheduler::once([toast_msg] { toast::success("Lua Reload", toast_msg); }, scheduler::pipeline::renderer, 2s);
+						const std::string toast_msg = "Reloaded " + std::to_string(count) + " file(s)";
+						scheduler::once([toast_msg] { toast::success("Lua Reload", toast_msg.c_str()); }, scheduler::pipeline::renderer, 2s);
 
 						// Refresh current page
 						fire_debug_reload("UIRootFull");
@@ -1473,8 +1481,11 @@ namespace ui_scripting
 					return;
 				}
 
-				const auto folder = game::is_server() ? "lobby_scripts" : "ui_scripts";
-				const auto script_dir = (std::filesystem::path(mod_content_path) / folder).string();
+				//const auto folder = game::is_server() ? "lobby_scripts" : "ui_scripts";
+				//const auto script_dir = (std::filesystem::path(mod_content_path) / folder).string();
+
+
+				const auto script_dir = (std::filesystem::path(mod_content_path) / "mods" / mod_id).string();
 
 				scheduler::once([script_dir, mod_id]
 				{
@@ -1505,8 +1516,8 @@ namespace ui_scripting
 
 						game::Com_Printf(0, 0, "^2Lua Reload Mod: Reloaded %d file(s) for mod '%s' from %s\n",
 							count, mod_id.c_str(), script_dir.c_str());
-						const auto toast_msg = utils::string::va("Mod '%s': %d file(s)", mod_id.c_str(), count);
-						scheduler::once([toast_msg] { toast::success("Lua Reload Mod", toast_msg); }, scheduler::pipeline::renderer, 2s);
+						const std::string toast_msg = std::string("Mod '") + mod_id + "': " + std::to_string(count) + " file(s)";
+						scheduler::once([toast_msg] { toast::success("Lua Reload Mod", toast_msg.c_str()); }, scheduler::pipeline::renderer, 2s);
 
 						fire_debug_reload("UIRootFull");
 						if (hot_reload_in_game)
@@ -1553,13 +1564,13 @@ namespace ui_scripting
 					if (execute_raw_lua(data, file.c_str()))
 					{
 						game::Com_Printf(0, 0, "^2Executed Lua file successfully\n");
-						const auto msg = utils::string::va("Executed %s", name.c_str());
-						scheduler::once([msg] { toast::success("Lua", msg); }, scheduler::pipeline::renderer, 1s);
+						const std::string msg = "Executed " + name;
+						scheduler::once([msg] { toast::success("Lua", msg.c_str()); }, scheduler::pipeline::renderer, 1s);
 					}
 					else
 					{
-						const auto msg = utils::string::va("Failed: %s", name.c_str());
-						scheduler::once([msg] { toast::error("Lua", msg); }, scheduler::pipeline::renderer, 1s);
+						const std::string msg = "Failed: " + name;
+						scheduler::once([msg] { toast::error("Lua", msg.c_str()); }, scheduler::pipeline::renderer, 1s);
 					}
 				}, scheduler::pipeline::renderer);
 			});

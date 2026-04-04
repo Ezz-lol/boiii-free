@@ -736,6 +736,37 @@ namespace arxan
 			search_and_patch_integrity_checks_precomputed();
 		}
 
+		void patch_checksum_comparisons()
+		{
+			constexpr auto xor_ecx = static_cast<uint16_t>(0xC933);
+			constexpr auto xor_edx = static_cast<uint16_t>(0xD233);
+
+			// Variant 1: XOR table equality check
+			const auto xor_table_compare = "8B 0C 8B 33 0C 82"_sig;
+			for (auto* i : xor_table_compare)
+			{
+				utils::hook::set<uint16_t>(i, xor_ecx);
+				utils::hook::nop(i + 2, 4);
+			}
+
+			// Variant 2: Subtraction equality check
+			const auto sub_compare = "8B 0C 8B F7 D9 03 0C 82"_sig;
+			for (auto* i : sub_compare)
+			{
+				utils::hook::set<uint16_t>(i, xor_ecx);
+				utils::hook::nop(i + 2, 6);
+			}
+
+			// Variant 3: Direct table comparison
+			const auto cmp_compare = "8B 04 82 8B 14 8B 3B C2"_sig;
+			for (auto* i : cmp_compare)
+			{
+				utils::hook::set<uint16_t>(i, xor_ecx);
+				utils::hook::set<uint16_t>(i + 2, xor_edx);
+				utils::hook::nop(i + 4, 4);
+			}
+		}
+
 		LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS info)
 		{
 			if (info->ExceptionRecord->ExceptionCode == STATUS_INVALID_HANDLE)
@@ -869,6 +900,7 @@ namespace arxan
 		void post_unpack() override
 		{
 			search_and_patch_integrity_checks();
+			patch_checksum_comparisons();
 			//restore_debug_functions();
 
 			detail::callstack_proxy_addr = utils::hook::assemble(callstack_stub);

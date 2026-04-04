@@ -142,6 +142,8 @@ namespace script
 				if (str_off >= static_cast<uint32_t>(len)) continue;
 
 				std::string inc_path(buf + str_off);
+				// Normalize include path (forward slashes, lowercase) before hashing
+				for (char& c : inc_path) { if (c == '\\') c = '/'; c = static_cast<char>(std::tolower(static_cast<unsigned char>(c))); }
 				uint32_t path_hash = gsc_hash(inc_path);
 
 				// Look up the actual game SPT for this include path (try .gsc then .csc)
@@ -150,7 +152,8 @@ namespace script
 				if (!asset || !asset->buffer)
 					asset = db_find_x_asset_header_hook.invoke<game::RawFile*>(
 						game::ASSET_TYPE_SCRIPTPARSETREE, (inc_path + ".csc").c_str(), false, 0);
-				if (!asset || !asset->buffer) continue;
+				if (!asset || !asset->buffer)
+					continue;
 
 				auto* spt = reinterpret_cast<const uint8_t*>(asset->buffer);
 				uint64_t spt_magic;
@@ -175,18 +178,23 @@ namespace script
 
 			// Walk import table and patch ns_hash where it matches a path hash
 			size_t pos = import_offset;
+			int patched = 0;
 			for (uint16_t i = 0; i < import_count; i++)
 			{
 				if (pos + 12 > static_cast<size_t>(len)) break;
 
-				uint32_t ns_hash;
+				uint32_t func_hash, ns_hash;
 				uint16_t num_refs;
+				std::memcpy(&func_hash, buf + pos, 4);
 				std::memcpy(&ns_hash, buf + pos + 4, 4);
 				std::memcpy(&num_refs, buf + pos + 8, 2);
 
 				auto it = path_to_ns.find(ns_hash);
 				if (it != path_to_ns.end())
+				{
 					std::memcpy(buf + pos + 4, &it->second, 4);
+					patched++;
+				}
 
 				pos += 12 + 4 * static_cast<size_t>(num_refs);
 			}
@@ -274,7 +282,22 @@ namespace script
 				int64_t target = find_export_address_internal(d.target_script, d.target_func_hash);
 				int64_t replace = find_export_address_internal(d.replace_script, d.replace_func_hash);
 				if (target && replace)
+				{
 					gsc_funcs::add_detour(target, replace);
+				}
+				else
+				{
+					printf("^1[replacefunc] FAILED: %s::0x%08X -> %s::0x%08X\n",
+						d.target_script.c_str(), d.target_func_hash,
+						d.replace_script.c_str(), d.replace_func_hash);
+
+					if (!target)
+						printf("^1  Reason: target function not found in '%s' (script %s loaded)\n",
+							d.target_script.c_str(), get_spt_buffer(d.target_script) ? "IS" : "NOT");
+					if (!replace)
+						printf("^1  Reason: replacement function not found in '%s' (script %s loaded)\n",
+							d.replace_script.c_str(), get_spt_buffer(d.replace_script) ? "IS" : "NOT");
+				}
 			}
 		}
 
@@ -400,7 +423,9 @@ namespace script
 
 							// Store hash-to-name+line map from this compilation
 							for (auto& hn : result.hash_names)
+							{
 								script_hash_names[hn.hash].push_back({hn.name, hn.line, hn.params});
+							}
 
 							// Store original source text for this file
 							script_sources[script_file] = data;
@@ -528,21 +553,16 @@ namespace script
 		                                           const bool error_if_missing,
 		                                           const int wait_time)
 		{
-			auto* asset_header = db_find_x_asset_header_hook.invoke<game::RawFile*>(
+			// Check our loaded scripts FIRST to avoid "Could not find scriptparsetree" spam
+			if (type == game::ASSET_TYPE_SCRIPTPARSETREE)
+			{
+				auto* script = get_loaded_script(name);
+				if (script)
+					return script;
+			}
+
+			return db_find_x_asset_header_hook.invoke<game::RawFile*>(
 				type, name, error_if_missing, wait_time);
-
-			if (type != game::ASSET_TYPE_SCRIPTPARSETREE)
-			{
-				return asset_header;
-			}
-
-			auto* script = get_loaded_script(name);
-			if (script)
-			{
-				return script;
-			}
-
-			return asset_header;
 		}
 
 		void clear_script_memory()
@@ -585,40 +605,54 @@ namespace script
 		}
 	}
 
+	// Global hash→name lookup table loaded from data/lookup_tables/hash_names.txt
+	std::unordered_map<uint32_t, std::string> global_hash_table;
+	std::once_flag hash_table_load_flag;
+
+	void load_global_hash_table()
+	{
+		std::call_once(hash_table_load_flag, []
+		{
+			const auto try_load = [](const std::filesystem::path& path)
+			{
+				std::string data;
+				if (!utils::io::read_file(path.string(), &data)) return false;
+				size_t count = 0;
+				std::istringstream stream(data);
+				std::string line;
+				while (std::getline(stream, line))
+				{
+					if (line.empty()) continue;
+					auto space = line.find(' ');
+					if (space == std::string::npos) continue;
+					uint32_t hash = static_cast<uint32_t>(std::strtoul(line.substr(0, space).c_str(), nullptr, 16));
+					if (hash != 0)
+						global_hash_table[hash] = line.substr(space + 1);
+					count++;
+				}
+				printf("Loaded %zu hash names from '%s'\n", count, path.string().c_str());
+				return true;
+			};
+
+			// Try appdata path first, then exe-relative path
+			const auto appdata = game::get_appdata_path() / "data" / "lookup_tables" / "hash_names.txt";
+			if (try_load(appdata)) return;
+			const auto host = utils::nt::library{}.get_folder() / "boiii" / "data" / "lookup_tables" / "hash_names.txt";
+			if (try_load(host)) return;
+		});
+	}
+
 	std::string resolve_hash(uint32_t hash)
 	{
 		auto it = script_hash_names.find(hash);
 		if (it != script_hash_names.end() && !it->second.empty())
 			return it->second[0].name;
 
-		// Fallback: well-known GSC/CSC function and keyword names that may not
-		static const std::unordered_map<uint32_t, const char*> known_names = []
-		{
-			std::unordered_map<uint32_t, const char*> m;
-			static const char* names[] = {
-				"__init__", "__main__", "__constructor", "__destructor",
-				"init", "main", "setclientdvar",
-				"precache", "postcache",
-				"callback_startgametype", "callback_playerdamage", "callback_playerkilled",
-				"callback_vehicledamage", "callback_playerlaststand", "callback_playerconnect",
-				"callback_playerdisconnect", "callback_playermigrated", "callback_hostmigration",
-				"callback_codcastervisioncheckevent",
-				"iprintln", "iprintlnbold",
-				"getplayers", "getentarray", "getent",
-				"spawnstuct", "spawnstruct",
-				"isdefined", "isalive", "isplayer", "isai",
-				"self", "level", "game",
-				"setdvar", "getdvar", "getdvarint", "getdvarfloat",
-				"distance", "anglestoforward", "vectornormalize",
-			};
-			for (auto* name : names)
-				m[gsc_hash(name)] = name;
-			return m;
-		}();
-
-		auto kit = known_names.find(hash);
-		if (kit != known_names.end())
-			return kit->second;
+		// Fallback: global hash table from data file
+		load_global_hash_table();
+		auto git = global_hash_table.find(hash);
+		if (git != global_hash_table.end())
+			return git->second;
 
 		return {};
 	}

@@ -15,12 +15,144 @@
 #include <version.hpp>
 
 #include <DbgHelp.h>
+#pragma comment(lib, "dbghelp.lib")
 
 namespace exception
 {
 	namespace
 	{
 		DWORD main_thread_id{};
+		std::once_flag sym_init_flag{};
+
+		void ensure_symbols_initialized()
+		{
+			std::call_once(sym_init_flag, []
+			{
+				SymSetOptions(SYMOPT_UNDNAME | SYMOPT_DEFERRED_LOADS | SYMOPT_LOAD_LINES);
+				SymInitialize(GetCurrentProcess(), nullptr, TRUE);
+			});
+		}
+
+		struct resolved_frame
+		{
+			std::string module_name;
+			std::string function_name;
+			std::string file_name;
+			uint64_t address = 0;
+			uint64_t module_base = 0;
+			uint64_t rva = 0;
+			DWORD line_number = 0;
+		};
+
+		resolved_frame resolve_address(void* addr)
+		{
+			resolved_frame frame{};
+			frame.address = reinterpret_cast<uint64_t>(addr);
+
+			const auto mod = utils::nt::library::get_by_address(addr);
+			if (mod)
+			{
+				frame.module_name = mod.get_name();
+				frame.module_base = reinterpret_cast<uint64_t>(mod.get_ptr());
+				frame.rva = frame.address - frame.module_base;
+
+				if (frame.module_name == "BlackOps3.exe")
+					frame.rva += 0x140000000;
+			}
+			else
+			{
+				frame.module_name = "unknown";
+				frame.rva = frame.address;
+			}
+
+			ensure_symbols_initialized();
+
+			// Try to resolve function name from PDB symbols
+			alignas(SYMBOL_INFO) char sym_buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME]{};
+			auto* sym = reinterpret_cast<SYMBOL_INFO*>(sym_buffer);
+			sym->SizeOfStruct = sizeof(SYMBOL_INFO);
+			sym->MaxNameLen = MAX_SYM_NAME;
+
+			DWORD64 displacement = 0;
+			if (SymFromAddr(GetCurrentProcess(), frame.address, &displacement, sym))
+			{
+				frame.function_name = sym->Name;
+				if (displacement > 0)
+					frame.function_name += utils::string::va("+0x%llX", displacement);
+			}
+
+			// Try to resolve source file and line
+			IMAGEHLP_LINE64 line_info{};
+			line_info.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
+			DWORD line_displacement = 0;
+			if (SymGetLineFromAddr64(GetCurrentProcess(), frame.address, &line_displacement, &line_info))
+			{
+				frame.file_name = line_info.FileName;
+				frame.line_number = line_info.LineNumber;
+			}
+
+			return frame;
+		}
+
+		std::string format_frame(const resolved_frame& f, size_t index)
+		{
+			std::string entry = utils::string::va("\t[%zu] %s + 0x%llX", index, f.module_name.c_str(), f.rva);
+
+			if (!f.function_name.empty())
+				entry += utils::string::va("  (%s)", f.function_name.c_str());
+
+			if (!f.file_name.empty() && f.line_number > 0)
+				entry += utils::string::va("  [%s:%lu]", f.file_name.c_str(), f.line_number);
+
+			return entry;
+		}
+
+		std::vector<resolved_frame> capture_stackwalk(const LPEXCEPTION_POINTERS exceptioninfo, int max_frames = 48)
+		{
+			std::vector<resolved_frame> frames;
+
+			if (!exceptioninfo || !exceptioninfo->ContextRecord)
+				return frames;
+
+			ensure_symbols_initialized();
+
+			CONTEXT ctx = *exceptioninfo->ContextRecord;
+
+			STACKFRAME64 stack_frame{};
+			stack_frame.AddrPC.Offset = ctx.Rip;
+			stack_frame.AddrPC.Mode = AddrModeFlat;
+			stack_frame.AddrFrame.Offset = ctx.Rbp;
+			stack_frame.AddrFrame.Mode = AddrModeFlat;
+			stack_frame.AddrStack.Offset = ctx.Rsp;
+			stack_frame.AddrStack.Mode = AddrModeFlat;
+
+			const auto process = GetCurrentProcess();
+			const auto thread = GetCurrentThread();
+
+			for (int i = 0; i < max_frames; ++i)
+			{
+				if (!StackWalk64(IMAGE_FILE_MACHINE_AMD64, process, thread,
+					&stack_frame, &ctx, nullptr, SymFunctionTableAccess64,
+					SymGetModuleBase64, nullptr))
+					break;
+
+				if (stack_frame.AddrPC.Offset == 0)
+					break;
+
+				frames.push_back(resolve_address(reinterpret_cast<void*>(stack_frame.AddrPC.Offset)));
+			}
+
+			return frames;
+		}
+
+		std::string get_crash_module_info(void* address)
+		{
+			auto frame = resolve_address(address);
+			std::string info = frame.module_name + utils::string::va("+0x%llX", frame.rva);
+			if (!frame.function_name.empty())
+				info += " (" + frame.function_name + ")";
+			return info;
+		}
 
 		utils::hook::detour mini_dump_write_dump_hook;
 
@@ -115,15 +247,26 @@ namespace exception
 			while (ShowCursor(TRUE) < 0);
 		}
 
+		const char* get_exception_string(DWORD exception);
+
 		void display_error_dialog()
 		{
+			const auto frame = resolve_address(exception_data.address);
+			const auto exception_name = get_exception_string(exception_data.code);
+			const auto location = get_crash_module_info(exception_data.address);
+
 			const std::string error_str = utils::string::va(
-				"Fatal error (0x%08X) at 0x%p (0x%p).\n\n"
-				"A crash dump has been saved to the 'minidumps' folder.\n\n"
+				"%s (0x%08X) at %s\n\n"
+				"Address: 0x%p (RVA: 0x%llX)\n"
+				"Module: %s\n"
+				"%s%s"
+				"\nA crash dump has been saved to the 'minidumps' folder.\n"
 				"Please report this crash and upload the dump file on our Discord:\n"
 				"https://dc.ezz.lol\n",
-				exception_data.code, exception_data.address,
-				game::derelocate(reinterpret_cast<uint64_t>(exception_data.address)));
+				exception_name, exception_data.code, location.c_str(),
+				exception_data.address, frame.rva, frame.module_name.c_str(),
+				frame.function_name.empty() ? "" : "Function: ",
+				frame.function_name.empty() ? "" : (frame.function_name + "\n").c_str());
 
 			utils::thread::suspend_other_threads();
 			show_mouse_cursor();
@@ -135,41 +278,48 @@ namespace exception
 			TerminateProcess(GetCurrentProcess(), exception_data.code);
 		}
 
+
 		void reset_state()
 		{
-			printf("[Exception] reset_state called: code=0x%08X addr=0x%llX game_thread=%d recoverable=%d\n",
-				exception_data.code,
-				reinterpret_cast<uint64_t>(exception_data.address),
-				is_game_thread() ? 1 : 0, is_recoverable() ? 1 : 0);
+			if (game::is_server())
+			{
+				if (!server_restart::restart_pending.load())
+				{
+					if (server_restart::consecutive_crash_count.fetch_add(1) < 3)
+					{
+						server_restart::schedule("Unhandled server exception");
+					}
+				}
+
+				if (!is_game_thread())
+				{
+					SuspendThread(GetCurrentThread());
+				}
+				return;
+			}
 
 			if (is_recoverable())
 			{
+				const auto location = get_crash_module_info(exception_data.address);
+				const auto exception_name = get_exception_string(exception_data.code);
+
 				recovery_data.last_recovery = std::chrono::high_resolution_clock::now();
 				++recovery_data.recovery_counts;
 
-				printf("^1[Exception] Attempting recovery from error 0x%08X at 0x%p\n",
-					exception_data.code, exception_data.address);
-
-				// Pre-schedule disconnect so it's queued before the longjmp
-				if (!game::is_server())
+				scheduler::once([]
 				{
-					scheduler::once([]
-					{
-						if (game::Com_IsInGame())
-							game::Cbuf_AddText(0, "disconnect\n");
-					}, scheduler::pipeline::main);
-				}
+					if (game::Com_IsInGame())
+						game::Cbuf_AddText(0, "disconnect\n");
+				}, scheduler::pipeline::main);
 
-				// The original Com_Error with ERR_DROP performs a longjmp to safely unwind the
-				// corrupted exception stack - our com_error_stub hook will show the error popup
 				game::Com_Error(game::ERR_DROP,
-				                "Fatal error (0x%08X) at 0x%p (0x%p).\nA crash dump has been saved to the 'minidumps' folder.\n\n"
+				                "%s (0x%08X) at %s\n\n"
+				                "A crash dump has been saved to the 'minidumps' folder.\n\n"
 				                "Ezz has tried to recover your game, but it might not run stable anymore.\n\n"
 				                "Make sure to update your graphics card drivers and install operating system updates!\n"
 				                "Closing or restarting Steam might also help.\n\n"
 				                "If this keeps happening, please report it on our Discord: https://dc.ezz.lol",
-				                exception_data.code, exception_data.address,
-				                game::derelocate(reinterpret_cast<uint64_t>(exception_data.address)));
+				                exception_name, exception_data.code, location.c_str());
 			}
 			else
 			{
@@ -271,35 +421,31 @@ namespace exception
 			return info;
 		}
 
-		std::string get_callstack_summary(void* exception_addr, int trace_depth = 32)
+		std::string get_callstack_summary(const LPEXCEPTION_POINTERS exceptioninfo, int trace_depth = 48)
 		{
 			std::string info{"callstack:\r\n{\r\n"};
 
-			void* backtrace_stack[32]{};
-			if (trace_depth > static_cast<int>(ARRAYSIZE(backtrace_stack)))
+			auto frames = capture_stackwalk(exceptioninfo, trace_depth);
+
+			if (frames.empty())
 			{
-				trace_depth = ARRAYSIZE(backtrace_stack);
-			}
-
-			const auto count = RtlCaptureStackBackTrace(0, trace_depth, backtrace_stack, nullptr);
-			auto* start = backtrace_stack;
-			auto* end = backtrace_stack + count;
-			const auto itr = std::find(start, end, exception_addr);
-			const auto exception_start_index = (itr == end) ? 0 : static_cast<size_t>(std::distance(start, itr));
-
-			for (size_t i = exception_start_index; i < count; ++i)
-			{
-				const auto from = utils::nt::library::get_by_address(backtrace_stack[i]);
-				const auto address = reinterpret_cast<uint64_t>(backtrace_stack[i]);
-				const auto base = reinterpret_cast<uint64_t>(from.get_ptr());
-				uint64_t rva = (from && address >= base) ? (address - base) : address;
-
-				if (from.get_name() == "BlackOps3.exe")
+				// Fallback to RtlCaptureStackBackTrace if StackWalk64 fails
+				void* backtrace_stack[32]{};
+				const auto count = RtlCaptureStackBackTrace(0, 32, backtrace_stack, nullptr);
+				for (USHORT i = 0; i < count; ++i)
 				{
-					rva += 0x140000000;
+					auto f = resolve_address(backtrace_stack[i]);
+					info.append(format_frame(f, i));
+					info.append("\r\n");
 				}
-
-				info.append(utils::string::va("\t%s: %012llX\r\n", from.get_name().c_str(), rva));
+			}
+			else
+			{
+				for (size_t i = 0; i < frames.size(); ++i)
+				{
+					info.append(format_frame(frames[i], i));
+					info.append("\r\n");
+				}
 			}
 
 			info.append("}");
@@ -315,22 +461,29 @@ namespace exception
 				info.append("\r\n");
 			};
 
+			const auto crash_frame = resolve_address(exceptioninfo->ExceptionRecord->ExceptionAddress);
+
 			line("Ezz Crash Dump");
 			line(std::string{});
 			line("Version: "s + VERSION);
 			line("Timestamp: "s + get_timestamp());
 			line(utils::string::va("Exception: 0x%08X (%s)", exceptioninfo->ExceptionRecord->ExceptionCode,
 			                      get_exception_string(exceptioninfo->ExceptionRecord->ExceptionCode)));
-			line(utils::string::va("Address: 0x%llX [%s]", exceptioninfo->ExceptionRecord->ExceptionAddress,
-			                      utils::nt::library::get_by_address(exceptioninfo->ExceptionRecord->ExceptionAddress).get_name().c_str()));
+			line(utils::string::va("Address: 0x%llX", crash_frame.address));
+			line(utils::string::va("Module: %s + 0x%llX", crash_frame.module_name.c_str(), crash_frame.rva));
+			if (!crash_frame.function_name.empty())
+				line("Function: " + crash_frame.function_name);
+			if (!crash_frame.file_name.empty() && crash_frame.line_number > 0)
+				line(utils::string::va("Source: %s:%lu", crash_frame.file_name.c_str(), crash_frame.line_number));
 			line(utils::string::va("Base: 0x%llX", game::get_base()));
 			line(utils::string::va("Thread ID: %lu (%s)", GetCurrentThreadId(), is_game_thread() ? "main" : "auxiliary"));      
 
 			if (exceptioninfo->ExceptionRecord->ExceptionCode == EXCEPTION_ACCESS_VIOLATION)
 			{
-				line(utils::string::va("Extended Info: Attempted to %s 0x%012llX",
-					exceptioninfo->ExceptionRecord->ExceptionInformation[0] == 1 ? "write to" : "read from",
-					exceptioninfo->ExceptionRecord->ExceptionInformation[1]));
+				const char* op = exceptioninfo->ExceptionRecord->ExceptionInformation[0] == 1 ? "write to" : "read from";
+				auto target = exceptioninfo->ExceptionRecord->ExceptionInformation[1];
+				line(utils::string::va("Access Violation: Attempted to %s 0x%012llX%s",
+					op, target, target < 0x10000 ? " (NULL pointer dereference)" : ""));
 			}
 
 #pragma warning(push)
@@ -343,7 +496,7 @@ namespace exception
 
 			line(utils::string::va("OS Version: %u.%u", version_info.dwMajorVersion, version_info.dwMinorVersion));
 			line(std::string{});
-			line(get_callstack_summary(exceptioninfo->ExceptionRecord->ExceptionAddress));
+			line(get_callstack_summary(exceptioninfo));
 			const auto registers = get_memory_registers(exceptioninfo);
 			if (!registers.empty())
 			{
@@ -385,68 +538,80 @@ namespace exception
 			const auto addr = reinterpret_cast<uintptr_t>(record->ExceptionAddress);
 			const auto base = game::get_base();
 			const auto offset = addr - base;
+			const char* patch_name = nullptr;
 
 			switch (offset)
 			{
 			// Killcam animation crash - invalid anim data access
 			case 0x234B9BD:
+				patch_name = "Killcam animation (invalid anim data)";
 				context->Rax = 0;
 				context->Rip = base + 0x234D14B;
-				return EXCEPTION_CONTINUE_EXECUTION;
+				break;
 
 			// CG_ZBarrierAttachWeapon - null weapon pointer in zombie barriers
 			case 0x464FEF:
+				patch_name = "ZBarrier weapon attach (null weapon)";
 				context->Rax = 0;
 				context->Rip = base + 0x4651A2;
-				return EXCEPTION_CONTINUE_EXECUTION;
+				break;
 
 			// asmsetanimationrate - bad entity reference
 			case 0x15E4B5A:
+				patch_name = "asmsetanimationrate (bad entity ref)";
 				context->Rip = base + 0x15E4B83;
-				return EXCEPTION_CONTINUE_EXECUTION;
+				break;
 
 			// Orphaned thread crash
 			case 0x12EE4CC:
+				patch_name = "Orphaned thread";
 				context->Rip = base + 0x12EE5C8;
-				return EXCEPTION_CONTINUE_EXECUTION;
+				break;
 
 			// Character index out-of-bounds crash
 			case 0x234210C:
+				patch_name = "Character index out-of-bounds";
 				context->Rip = base + 0x2342136;
-				return EXCEPTION_CONTINUE_EXECUTION;
+				break;
 
 			// HKS internal crash
 			case 0x1CAB4F1:
+				patch_name = "HKS/Lua internal error";
 				context->Rip = base + 0x1CAB69E;
-				return EXCEPTION_CONTINUE_EXECUTION;
+				break;
 
 			// Null localization string crashes
 			case 0x2279323:
+				patch_name = "Null localization string (UI)";
 				context->Rdx = reinterpret_cast<uintptr_t>(ui_localize_fallback);
-				return EXCEPTION_CONTINUE_EXECUTION;
+				break;
 
 			case 0x2278B96:
+				patch_name = "Null localization string (UI)";
 				context->Rsi = reinterpret_cast<uintptr_t>(ui_localize_fallback);
-				return EXCEPTION_CONTINUE_EXECUTION;
+				break;
 
 			case 0x228ED56:
+				patch_name = "Null localization string (UI)";
 				context->Rcx = reinterpret_cast<uintptr_t>(ui_localize_fallback);
-				return EXCEPTION_CONTINUE_EXECUTION;
+				break;
 
 			// Unknown UI crash
 			case 0x1EAAA27:
+				patch_name = "UI crash (unknown)";
 				context->Rip = base + 0x1EAABB3;
-				return EXCEPTION_CONTINUE_EXECUTION;
+				break;
 
 			// Non-existent clientfield crashes (CSC side)
 			case 0xC15B80:
 			case 0xC15C50:
 			case 0xC18CF5:
+				patch_name = "Non-existent clientfield (CSC)";
 				context->Rcx = 1; // CSC instance
 				context->Rdx = reinterpret_cast<uintptr_t>("Clientfield does not exist");
 				context->R8 = 0;
 				context->Rip = base + 0x12EA430; // Scr_Error
-				return EXCEPTION_CONTINUE_EXECUTION;
+				break;
 
 			// Non-existent clientfield crashes (GSC side)
 			case 0x1A6BD1B:
@@ -458,38 +623,112 @@ namespace exception
 			case 0x1A6C40D:
 			case 0x1A6C697:
 			case 0x1A6C894:
+				patch_name = "Non-existent clientfield (GSC)";
 				context->Rcx = 0; // GSC instance
 				context->Rdx = reinterpret_cast<uintptr_t>("Clientfield does not exist");
 				context->R8 = 0;
 				context->Rip = base + 0x12EA430; // Scr_Error
-				return EXCEPTION_CONTINUE_EXECUTION;
+				break;
 
 			// Non-existent clientfield (additional crash sites)
 			case 0x133EC1:
 			case 0x133EEB:
+				patch_name = "Non-existent clientfield (additional)";
 				context->Rip = base + 0x133F12;
-				return EXCEPTION_CONTINUE_EXECUTION;
+				break;
 
 			case 0x133F31:
+				patch_name = "Non-existent clientfield (additional)";
 				context->Rip = base + 0x133F42;
-				return EXCEPTION_CONTINUE_EXECUTION;
+				break;
 
 			// Random crash on Zetsubou No Shima
 			case 0x13591D3:
+				patch_name = "Zetsubou No Shima map bug";
 				context->Rip = base + 0x13591DA;
-				return EXCEPTION_CONTINUE_EXECUTION;
+				break;
 
 			default:
-				break;
+				// Server restart recovery: skip crashes using udis86 instruction decode
+				if (game::is_server() && server_restart::restart_recovery_active.load()
+					&& record->ExceptionCode == EXCEPTION_ACCESS_VIOLATION)
+				{
+					const int skips = server_restart::recovery_skip_count.fetch_add(1);
+					if (skips < 20) // Max 20 instruction skips per recovery cycle
+					{
+						ud_t ud;
+						ud_init(&ud);
+						ud_set_mode(&ud, 64);
+						ud_set_pc(&ud, addr);
+						ud_set_input_buffer(&ud, reinterpret_cast<const uint8_t*>(addr), 15);
+						if (ud_decode(&ud))
+						{
+							const auto len = ud_insn_len(&ud);
+
+							context->Rip += len;
+							context->Rax = 0;
+							return EXCEPTION_CONTINUE_EXECUTION;
+						}
+					}
+					else
+					{
+
+						server_restart::restart_recovery_active.store(false);
+					}
+				}
+				return EXCEPTION_CONTINUE_SEARCH;
 			}
 
-			return EXCEPTION_CONTINUE_SEARCH;
+			if (patch_name)
+			{
+				printf("^3[Exception] Known crash patched: %s (base+0x%llX)\n", patch_name, offset);
+			}
+
+			return EXCEPTION_CONTINUE_EXECUTION;
 		}
 
 		bool is_harmless_error(const LPEXCEPTION_POINTERS exceptioninfo)
 		{
 			const auto code = exceptioninfo->ExceptionRecord->ExceptionCode;
 			return code == STATUS_INTEGER_OVERFLOW || code == STATUS_FLOAT_OVERFLOW || code == STATUS_SINGLE_STEP;
+		}
+
+		void handle_server_script_vm_crash()
+		{
+			server_restart::schedule("Script VM crash (auxiliary thread)");
+			SuspendThread(GetCurrentThread());
+		}
+
+		size_t get_script_error_stub()
+		{
+			static auto* stub = utils::hook::assemble([](utils::hook::assembler& a)
+			{
+				a.sub(rsp, 0x10);
+				a.or_(rsp, 0x8);
+				a.jmp(handle_server_script_vm_crash);
+			});
+
+			return reinterpret_cast<size_t>(stub);
+		}
+
+		bool is_server_script_vm_crash(uint64_t offset, DWORD exception_code, const EXCEPTION_RECORD* record)
+		{
+			if (exception_code != EXCEPTION_ACCESS_VIOLATION)
+				return false;
+
+			if (record->ExceptionInformation[1] >= 0x10000)
+				return false;
+
+			switch (offset)
+			{
+			case 0x269F8A:
+			case 0x2ADCF9:
+			case 0x2ADA49:
+			case 0x2AD551:
+				return true;
+			default:
+				return false;
+			}
 		}
 
 		LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo)
@@ -499,12 +738,68 @@ namespace exception
 				return EXCEPTION_CONTINUE_EXECUTION;
 			}
 
-			printf("[Exception] Caught fatal exception 0x%08X at 0x%llX\n",
-				exceptioninfo->ExceptionRecord->ExceptionCode,
-				reinterpret_cast<uint64_t>(exceptioninfo->ExceptionRecord->ExceptionAddress));
+			const auto addr = reinterpret_cast<uintptr_t>(exceptioninfo->ExceptionRecord->ExceptionAddress);
+			const auto base = game::get_base();
+			const auto filter_offset = addr - base;
 
-			write_minidump(exceptioninfo);
+			// Handle known server script VM crashes on ANY thread
+			if (game::is_server() && is_server_script_vm_crash(filter_offset, exceptioninfo->ExceptionRecord->ExceptionCode, exceptioninfo->ExceptionRecord))
+			{
+				if (!is_game_thread())
+				{
+					exceptioninfo->ContextRecord->Rip = get_script_error_stub();
+					return EXCEPTION_CONTINUE_EXECUTION;
+				}
+				else
+				{
+					return EXCEPTION_CONTINUE_SEARCH;
+				}
+			}
 
+			const auto crash_frame = resolve_address(exceptioninfo->ExceptionRecord->ExceptionAddress);
+			const auto exception_name = get_exception_string(exceptioninfo->ExceptionRecord->ExceptionCode);
+
+			// Detailed console crash report
+			printf("\n^1========== CRASH DETECTED ==========\n");
+			printf("^1  Exception:  %s (0x%08X)\n", exception_name, exceptioninfo->ExceptionRecord->ExceptionCode);
+			printf("^1  Module:     %s + 0x%llX\n", crash_frame.module_name.c_str(), crash_frame.rva);
+			if (!crash_frame.function_name.empty())
+				printf("^1  Function:   %s\n", crash_frame.function_name.c_str());
+			if (!crash_frame.file_name.empty() && crash_frame.line_number > 0)
+				printf("^1  Source:     %s:%lu\n", crash_frame.file_name.c_str(), crash_frame.line_number);
+			printf("^1  Address:    0x%llX\n", crash_frame.address);
+			printf("^1  Thread:     %lu (%s)\n", GetCurrentThreadId(), is_game_thread() ? "main" : "auxiliary");
+
+			if (exceptioninfo->ExceptionRecord->ExceptionCode == EXCEPTION_ACCESS_VIOLATION)
+			{
+				const char* op = exceptioninfo->ExceptionRecord->ExceptionInformation[0] == 1 ? "write to" : "read from";
+				auto target = exceptioninfo->ExceptionRecord->ExceptionInformation[1];
+				printf("^1  Details:    Attempted to %s 0x%012llX%s\n",
+					op, target, target < 0x10000 ? " (NULL pointer dereference)" : "");
+			}
+
+			// Print condensed callstack to console
+			auto frames = capture_stackwalk(exceptioninfo, 16);
+			if (!frames.empty())
+			{
+				printf("^1  Callstack:\n");
+				for (size_t i = 0; i < frames.size(); ++i)
+				{
+					const auto& f = frames[i];
+					if (!f.function_name.empty())
+						printf("^1    [%zu] %s!%s\n", i, f.module_name.c_str(), f.function_name.c_str());
+					else
+						printf("^1    [%zu] %s + 0x%llX\n", i, f.module_name.c_str(), f.rva);
+				}
+			}
+			printf("^1=====================================\n\n");
+
+			if (!game::is_server())
+			{
+				const auto crash_info = generate_crash_info(exceptioninfo);
+				write_minidump(exceptioninfo);
+			}
+			
 			exception_data.code = exceptioninfo->ExceptionRecord->ExceptionCode;
 			exception_data.address = exceptioninfo->ExceptionRecord->ExceptionAddress;
 			exceptioninfo->ContextRecord->Rip = get_reset_state_stub();
@@ -543,10 +838,7 @@ namespace exception
 				mini_dump_write_dump_hook.create(dbghelp.get_proc<void*>("MiniDumpWriteDump"), mini_dump_write_dump_stub);
 			}
 
-			if (!game::is_server())
-			{
-				AddVectoredExceptionHandler(1, crash_fix_exception_handler);
-			}
+			AddVectoredExceptionHandler(1, crash_fix_exception_handler);
 		}
 	};
 }

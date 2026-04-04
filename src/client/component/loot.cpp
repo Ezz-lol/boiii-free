@@ -242,6 +242,11 @@ namespace loot
 
 			command::add("unlockall", [](const command::params&)
 			{
+				if (game::Com_IsInGame())
+				{
+					toast::error("Unlock All", "Cannot use unlockall while in-game. Return to main menu first.");
+					return;
+				}
 				// Enable all unlock dvars (mode-independent)
 				game::Dvar_SetFromStringByName("cg_unlockall_loot", "1", true);
 				game::Dvar_SetFromStringByName("cg_unlockall_purchases", "1", true);
@@ -263,33 +268,28 @@ namespace loot
 
 
 				const auto mode = game::Com_SessionMode_GetMode();
-				const char* mode_name = "Unknown";
+				const char* mode_name = "";
 
 				if (mode == game::eModes::MODE_MULTIPLAYER)
 				{
 					game::Cbuf_AddText(0, "statsetbyname rank 54\n");
 					game::Cbuf_AddText(0, "statsetbyname paragon_rank 944\n");
 					game::Cbuf_AddText(0, "statsetbyname paragon_rankxp 56800000\n");
-					mode_name = "Multiplayer";
+					mode_name = " Multiplayer";
 				}
 				else if (mode == game::eModes::MODE_ZOMBIES)
 				{
 					game::Cbuf_AddText(0, "statsetbyname rank 34\n");
-					game::Cbuf_AddText(0, "statsetbyname paragon_rank 1000\n");
+					game::Cbuf_AddText(0, "statsetbyname paragon_rank 999\n");
 					game::Cbuf_AddText(0, "statsetbyname paragon_rankxp 56800000\n");
-					mode_name = "Zombies";
+					mode_name = " Zombies";
 				}
 				else if (mode == game::eModes::MODE_CAMPAIGN)
 				{
 					game::Cbuf_AddText(0, "statsetbyname rank 19\n");
 					game::Cbuf_AddText(0, "statsetbyname paragon_rank 999\n");
 					game::Cbuf_AddText(0, "statsetbyname paragon_rankxp 0\n");
-					mode_name = "Campaign";
-				}else{
-					game::Cbuf_AddText(0, "statsetbyname rank 54\n");
-					game::Cbuf_AddText(0, "statsetbyname paragon_rank 1000\n");
-					game::Cbuf_AddText(0, "statsetbyname paragon_rankxp 56800000\n");
-					mode_name = "";
+					mode_name = " Campaign";
 				}
 
 				// Unlock all easter eggs (zombie darkops)
@@ -312,7 +312,7 @@ namespace loot
 				game::Cbuf_AddText(0, "uploadstats 2\n"); // CP
 
 				printf("[Loot] Unlock All (%s): all items, master prestige (all modes), max rank (%s), easter eggs\n", mode_name, mode_name);
-				toast::success("Unlock All", std::string("Unlocked all ") + mode_name + " stats!");
+				toast::success("Unlock All", std::string("Unlocked all") + mode_name + " stats!");
 			});
 
 			loot_getitemquantity_hook.create(0x141E82C00_g, loot_getitemquantity_stub);
