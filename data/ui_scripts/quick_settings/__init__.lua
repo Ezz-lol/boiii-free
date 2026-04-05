@@ -25,7 +25,7 @@ DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings
 	pcall(function() currentFov = Engine.DvarInt(nil, "cg_fov_default") end)
 	for fov = 65, 120, 5 do
 		table.insert(fovOptions, {
-			option = tostring(fov),
+			option = fov == 80 and "80 (Default)" or tostring(fov),
 			value = fov,
 			default = fov == currentFov
 		})
@@ -40,7 +40,7 @@ DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings
 	-- DvarInt("cg_fovScale") returns 1 for 1.0, so only 1.0 auto-selects.
 	-- We default to 1.0 and use float values directly.
 	local fovScaleOptions = {}
-	local fovScaleValues = { 0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0, 1.05, 1.1, 1.15, 1.2 }
+	local fovScaleValues = { 0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0, 1.05, 1.1, 1.15, 1.2, 1.5, 2.0 }
 	for _, scale in ipairs(fovScaleValues) do
 		table.insert(fovScaleOptions, {
 			option = scale == 1.0 and "1.0 (Default)" or tostring(scale),

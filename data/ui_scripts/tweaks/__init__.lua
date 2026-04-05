@@ -72,6 +72,35 @@ DataSources.BoiiiGameTweaks = DataSourceHelpers.ListSetup("BoiiiGameTweaks", fun
 			{ option = "Fog Off", value = 0 },
 		}, nil, updateDvar))
 
+	-- FOV
+	local fovOptions = {}
+	local currentFov = 80
+	pcall(function() currentFov = Engine.DvarInt(nil, "cg_fov_default") end)
+	for fov = 65, 120, 5 do
+		table.insert(fovOptions, {
+			option = fov == 80 and "80 (Default)" or tostring(fov),
+			value = fov, default = fov == currentFov
+		})
+	end
+	table.insert(t, CoD.OptionsUtility.CreateDvarSettings(controller, "Field of View",
+		"Adjust your field of view (65-120).", "GameTweaks_fov",
+		"cg_fov_default", fovOptions, nil, updateDvar))
+
+	-- FOV Scale
+	local fovScaleOptions = {}
+	for _, s in ipairs({0.5, 0.6, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0, 1.05, 1.1, 1.15, 1.2, 1.5, 2.0}) do
+		table.insert(fovScaleOptions, {
+			option = s == 1.0 and "1.0 (Default)" or tostring(s),
+			value = s, default = s == 1.0
+		})
+	end
+	table.insert(t, CoD.OptionsUtility.CreateDvarSettings(controller, "FOV Scale",
+		"Multiplier for ADS/zoom FOV. 1.0 = default.", "GameTweaks_fovscale",
+		"cg_fovScale", fovScaleOptions, nil, function(f1_arg0, f1_arg1, f1_arg2, dvarName, f1_arg4)
+			UpdateInfoModels(f1_arg1)
+			Engine.SetDvar(dvarName, f1_arg1.value)
+		end))
+
 	return t
 end)
 

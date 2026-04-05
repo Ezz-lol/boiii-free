@@ -141,41 +141,49 @@ local function rebuildFilteredIndices()
 	return #filteredServerIndices
 end
 
-local originalRequestServers = Engine.SteamServerBrowser_RequestServers
-local function safeRequestServers(st)
-	local fn = originalRequestServers
-	if fn then pcall(fn, st) end
+-- Capture real engine originals only once (survives lua_reload)
+if not __sb_originals then
+	__sb_originals = {
+		RequestServers = Engine.SteamServerBrowser_RequestServers,
+		Sort = Engine.SteamServerBrowser_Sort,
+		HeaderNew = CoD.ServerBrowserHeader and CoD.ServerBrowserHeader.new or nil,
+		CreateLobbyBrowser = LUI.createMenu and LUI.createMenu.LobbyServerBrowserOnline or nil,
+	}
 end
-Engine.SteamServerBrowser_RequestServers = function(serverType)
-	filteredServerIndices = nil
-	skullSortedOrder = nil
-	skullSortAscending = nil
-	currentSortType = nil
+local SB = __sb_originals
 
-	if serverType == CUSTOM_TYPE_ALL then
-		currentCustomMode = "all"
-		safeRequestServers(Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_INTERNET)
-	elseif serverType == CUSTOM_TYPE_CAMPAIGN then
-		currentCustomMode = "cp"
-		safeRequestServers(Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_INTERNET)
-	else
-		currentCustomMode = nil
-		safeRequestServers(serverType)
-	end
-end
-
-local originalSort = Engine.SteamServerBrowser_Sort
-Engine.SteamServerBrowser_Sort = function(sortType)
-	if originalSort then
-		local ok, err = pcall(originalSort, sortType)
-	end
-	if isCustomTab() and filteredServerIndices then
-		currentSortType = sortType
+if SB.RequestServers then
+	Engine.SteamServerBrowser_RequestServers = function(serverType)
+		filteredServerIndices = nil
 		skullSortedOrder = nil
 		skullSortAscending = nil
-		sortFilteredIndices(sortType)
-		if activeServerList then
-			activeServerList:updateDataSource(false, false)
+		currentSortType = nil
+
+		local ok, err
+		if serverType == CUSTOM_TYPE_ALL then
+			currentCustomMode = "all"
+			ok, err = pcall(SB.RequestServers, Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_INTERNET)
+		elseif serverType == CUSTOM_TYPE_CAMPAIGN then
+			currentCustomMode = "cp"
+			ok, err = pcall(SB.RequestServers, Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_INTERNET)
+		else
+			currentCustomMode = nil
+			ok, err = pcall(SB.RequestServers, serverType)
+		end
+	end
+end
+
+if SB.Sort then
+	Engine.SteamServerBrowser_Sort = function(sortType)
+		local ok, err = pcall(SB.Sort, sortType)
+		if isCustomTab() and filteredServerIndices then
+			currentSortType = sortType
+			skullSortedOrder = nil
+			skullSortAscending = nil
+			sortFilteredIndices(sortType)
+			if activeServerList then
+				pcall(function() activeServerList:updateDataSource(false, false) end)
+			end
 		end
 	end
 end
@@ -272,21 +280,24 @@ DataSources.LobbyServer = {
 			list.servers[i].model = Engine.CreateModel(list.servers[i].root, "model")
 		end
 		list.updateModels = function(controller, list, offset, displayOffset)
-			local serverInfo
-			if isCustomTab() then
-				serverInfo = game.getrawserverinfo(offset)
-			else
-				serverInfo = Engine.SteamServerBrowser_GetServerInfo(offset)
-				if serverInfo and (not serverInfo.modName or serverInfo.modName == "") then
-					local addr = serverInfo.connectAddr
-					if addr and addressToRawIndex[addr] then
-						local rawInfo = game.getrawserverinfo(addressToRawIndex[addr])
-						if rawInfo and rawInfo.modName and rawInfo.modName ~= "" then
-							serverInfo.modName = rawInfo.modName
+			local ok, serverInfo = pcall(function()
+				if isCustomTab() then
+					return game.getrawserverinfo(offset)
+				else
+					local info = Engine.SteamServerBrowser_GetServerInfo(offset)
+					if info and (not info.modName or info.modName == "") then
+						local addr = info.connectAddr
+						if addr and addressToRawIndex[addr] then
+							local rawInfo = game.getrawserverinfo(addressToRawIndex[addr])
+							if rawInfo and rawInfo.modName and rawInfo.modName ~= "" then
+								info.modName = rawInfo.modName
+							end
 						end
 					end
+					return info
 				end
-			end
+			end)
+			if not ok then serverInfo = nil end
 			if serverInfo and serverInfo.name then
 				local SetModelValue = function(model, key, value)
 					local model = Engine.CreateModel(model, key)
@@ -329,8 +340,8 @@ DataSources.LobbyServer = {
 		end
 		local serverListUpdateModel = Engine.CreateModel(list.serverBrowserRootModel, "serverListCount")
 		list.serverListUpdateSubscription = list:subscribeToModel(serverListUpdateModel, function(model)
-			if not list.serverBrowserRootModel then return end
 			local ok, err = pcall(function()
+				if not list or not list.serverBrowserRootModel then return end
 				skullSortedOrder = nil
 				skullSortAscending = nil
 
@@ -339,14 +350,14 @@ DataSources.LobbyServer = {
 					isRebuildingCustom = true
 					local customCount = rebuildFilteredIndices()
 					list.serverCount = customCount
-					Engine.SetModelValue(model, customCount)
-					local updatedModel = Engine.GetModel(list.serverBrowserRootModel, "serverListUpdatedCount")
+					if model then Engine.SetModelValue(model, customCount) end
+					local updatedModel = list.serverBrowserRootModel and Engine.GetModel(list.serverBrowserRootModel, "serverListUpdatedCount")
 					if updatedModel then Engine.SetModelValue(updatedModel, customCount) end
 					list:updateDataSource(false, false)
 					isRebuildingCustom = false
 				else
 					rebuildAddressMap()
-					list.serverCount = Engine.GetModelValue(model) or 0
+					list.serverCount = (model and Engine.GetModelValue(model)) or 0
 					list:updateDataSource(false, false)
 				end
 			end)
@@ -356,20 +367,22 @@ DataSources.LobbyServer = {
 		end
 		local serverUpdatedCountModel = Engine.CreateModel(list.serverBrowserRootModel, "serverListUpdatedCount")
 		list.serverUpdatedCountSubscription = list:subscribeToModel(serverUpdatedCountModel, function(model)
-			if not list.serverBrowserRootModel then return end
-			if not isCustomTab() then return end
-			if isRebuildingCustom then return end
-			if model and list.serverCount then
-				pcall(Engine.SetModelValue, model, list.serverCount)
-			end
+			pcall(function()
+				if not isCustomTab() then return end
+				if isRebuildingCustom then return end
+				if not list or not list.serverBrowserRootModel then return end
+				if model and type(Engine.SetModelValue) == "function" then
+					Engine.SetModelValue(model, list.serverCount or 0)
+				end
+			end)
 		end, false)
 		if list.serverListSortTypeSubscription then
 			list:removeSubscription(list.serverListSortTypeSubscription)
 		end
 		local serverListSortTypeModel = Engine.CreateModel(list.serverBrowserRootModel, "serverListSortType")
 		list.serverListSortTypeSubscription = list:subscribeToModel(serverListSortTypeModel, function(model)
-			if not list.serverBrowserRootModel then return end
 			pcall(function()
+				if not list or not list.serverBrowserRootModel then return end
 				skullSortedOrder = nil
 				skullSortAscending = nil
 				list:updateDataSource(false, false)
@@ -381,16 +394,20 @@ DataSources.LobbyServer = {
 		return list.serverCount
 	end,
 	getItem = function(controller, list, index)
-		local displayOffset = index - 1
-		local engineOffset = displayOffset
-		if skullSortedOrder then
-			engineOffset = skullSortedOrder[index]
-			if engineOffset == nil then return nil end
-		elseif filteredServerIndices then
-			engineOffset = filteredServerIndices[index]
-			if engineOffset == nil then return nil end
-		end
-		return list.updateModels(controller, list, engineOffset, displayOffset)
+		local ok, result = pcall(function()
+			local displayOffset = index - 1
+			local engineOffset = displayOffset
+			if skullSortedOrder then
+				engineOffset = skullSortedOrder[index]
+				if engineOffset == nil then return nil end
+			elseif filteredServerIndices then
+				engineOffset = filteredServerIndices[index]
+				if engineOffset == nil then return nil end
+			end
+			return list.updateModels(controller, list, engineOffset, displayOffset)
+		end)
+		if not ok then return nil end
+		return result
 	end,
 	cleanup = function(list)
 		activeServerList = nil
@@ -760,88 +777,94 @@ CoD.ServerBrowserRowInternal.new = function(menu, controller)
 	return self
 end
 
-local originalHeaderNew = CoD.ServerBrowserHeader.new
-CoD.ServerBrowserHeader.new = function(menu, controller)
-	local self = originalHeaderNew(menu, controller)
+if SB.HeaderNew then
+	CoD.ServerBrowserHeader.new = function(menu, controller)
+		local ok, self = pcall(SB.HeaderNew, menu, controller)
+		if not ok or not self then return self end
 
-	if self.skull then
-		self.skull:registerEventHandler("button_action", function(element, event)
-			if skullSortAscending == nil then
-				skullSortAscending = false
-			elseif skullSortAscending == false then
-				skullSortAscending = true
-			else
-				skullSortAscending = nil
-				skullSortedOrder = nil
-				if activeServerList then
-					activeServerList:updateDataSource(false, false)
-				end
-				return
-			end
-
-			local countModel = Engine.GetModel(Engine.GetGlobalModel(), "serverBrowser.serverListCount")
-			local totalCount = countModel and Engine.GetModelValue(countModel) or 0
-
-			local indicesToSort = {}
-			if filteredServerIndices then
-				for _, idx in ipairs(filteredServerIndices) do
-					table.insert(indicesToSort, idx)
-				end
-			else
-				for i = 0, totalCount - 1 do
-					table.insert(indicesToSort, i)
-				end
-			end
-
-			local entries = {}
-			for _, engineIdx in ipairs(indicesToSort) do
-				local info
-				if isCustomTab() then
-					info = game.getrawserverinfo(engineIdx)
-				else
-					info = Engine.SteamServerBrowser_GetServerInfo(engineIdx)
-				end
-				if info then
-					local sortVal
-					if info.zombies then
-						sortVal = info.rounds or 0
+		if self.skull then
+			self.skull:registerEventHandler("button_action", function(element, event)
+				pcall(function()
+					if skullSortAscending == nil then
+						skullSortAscending = false
+					elseif skullSortAscending == false then
+						skullSortAscending = true
 					else
-						sortVal = info.hardcore and 1 or 0
+						skullSortAscending = nil
+						skullSortedOrder = nil
+						if activeServerList then
+							activeServerList:updateDataSource(false, false)
+						end
+						return
 					end
-					table.insert(entries, {idx = engineIdx, val = sortVal})
-				end
-			end
 
-			if skullSortAscending then
-				table.sort(entries, function(a, b) return a.val < b.val end)
-			else
-				table.sort(entries, function(a, b) return a.val > b.val end)
-			end
+					local countModel = Engine.GetModel(Engine.GetGlobalModel(), "serverBrowser.serverListCount")
+					local totalCount = countModel and Engine.GetModelValue(countModel) or 0
 
-			skullSortedOrder = {}
-			for i, entry in ipairs(entries) do
-				skullSortedOrder[i] = entry.idx
-			end
+					local indicesToSort = {}
+					if filteredServerIndices then
+						for _, idx in ipairs(filteredServerIndices) do
+							table.insert(indicesToSort, idx)
+						end
+					else
+						for i = 0, totalCount - 1 do
+							table.insert(indicesToSort, i)
+						end
+					end
 
-			if activeServerList then
-				activeServerList:updateDataSource(false, false)
-			end
-		end)
+					local entries = {}
+					for _, engineIdx in ipairs(indicesToSort) do
+						local info
+						if isCustomTab() then
+							info = game.getrawserverinfo(engineIdx)
+						else
+							info = Engine.SteamServerBrowser_GetServerInfo(engineIdx)
+						end
+						if info then
+							local sortVal
+							if info.zombies then
+								sortVal = info.rounds or 0
+							else
+								sortVal = info.hardcore and 1 or 0
+							end
+							table.insert(entries, {idx = engineIdx, val = sortVal})
+						end
+					end
+
+					if skullSortAscending then
+						table.sort(entries, function(a, b) return a.val < b.val end)
+					else
+						table.sort(entries, function(a, b) return a.val > b.val end)
+					end
+
+					skullSortedOrder = {}
+					for i, entry in ipairs(entries) do
+						skullSortedOrder[i] = entry.idx
+					end
+
+					if activeServerList then
+						activeServerList:updateDataSource(false, false)
+					end
+				end)
+			end)
+		end
+
+		return self
 	end
-
-	return self
 end
 
 Engine.SteamServerBrowser_RequestPlayersInfo = function(serverIndex)
 end
 
-local originalCreateLobbyBrowser = LUI.createMenu.LobbyServerBrowserOnline
-if originalCreateLobbyBrowser then
+if SB.CreateLobbyBrowser then
 	LUI.createMenu.LobbyServerBrowserOnline = function(...)
-		local self = originalCreateLobbyBrowser(...)
-		if self and self.Tabs and self.Tabs.Tabs and self.Tabs.Tabs.grid then
-			self.Tabs.Tabs.grid:setHorizontalCount(10)
-		end
+		local ok, self = pcall(SB.CreateLobbyBrowser, ...)
+		if not ok or not self then return self end
+		pcall(function()
+			if self.Tabs and self.Tabs.Tabs and self.Tabs.Tabs.grid then
+				self.Tabs.Tabs.grid:setHorizontalCount(10)
+			end
+		end)
 		return self
 	end
 end
