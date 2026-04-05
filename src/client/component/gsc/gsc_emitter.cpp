@@ -607,7 +607,9 @@ namespace gsc_compiler
 				"filesize", "createdirectory", "directoryexists", "listfiles",
 				"jsonvalid", "jsonparse", "jsonset", "jsondump",
 				"int64_op", "int64_isint", "int64_toint", "int64_min", "int64_max",
+				"int64_abs", "int64_clamp", "int64_tostring",
 				"addcommand", "getcommand",
+				"getfunction", "replacefunc",
 			};
 			return custom_funcs.count(name) > 0;
 		}
