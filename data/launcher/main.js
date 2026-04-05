@@ -22,8 +22,12 @@
   var modsPage = 1;
   var modsPageSize = 12;
 
-  var versionSelect = document.getElementById('versionSelect');
+  var versionDropdown = document.getElementById('versionDropdown');
+  var verDropDisplay = document.getElementById('verDropDisplay');
+  var verDropText = document.getElementById('verDropText');
+  var versionOptions = document.getElementById('versionOptions');
   var _versionsData = {};
+  var _selectedVersion = 'latest';
 
   var workshopBrowseGrid = document.getElementById('workshopBrowseGrid');
   var workshopSearchInput = document.getElementById('workshopSearchInput');
@@ -1984,7 +1988,7 @@
       playBtn.disabled = true;
       var opts = window.getSelectedLaunchOption();
 
-      var selectedVersion = versionSelect ? versionSelect.value : 'latest';
+      var selectedVersion = _selectedVersion || 'latest';
       var exeName = '';
       var exeUrl = '';
 
@@ -2668,8 +2672,66 @@
 
   loadFriendsList();
 
+  function selectVersion(value, label) {
+    _selectedVersion = value;
+    if (verDropText) verDropText.textContent = label;
+    if (versionOptions) {
+      var opts = versionOptions.querySelectorAll('.version-selector-option');
+      for (var i = 0; i < opts.length; i++) {
+        if (opts[i].getAttribute('data-value') === value) {
+          opts[i].className = 'version-selector-option selected';
+        } else {
+          opts[i].className = 'version-selector-option';
+        }
+      }
+    }
+    if (versionDropdown) versionDropdown.className = 'version-selector-container';
+  }
+
+  function addVersionOption(value, label) {
+    if (!versionOptions) return;
+    var div = document.createElement('div');
+    div.className = 'version-selector-option';
+    div.setAttribute('data-value', value);
+    div.textContent = label;
+    div.onclick = function () { selectVersion(value, label); };
+    versionOptions.appendChild(div);
+  }
+
+  if (verDropDisplay) {
+    verDropDisplay.onclick = function () {
+      if (!versionDropdown) return;
+      if (versionDropdown.className.indexOf('open') !== -1) {
+        versionDropdown.className = 'version-selector-container';
+      } else {
+        versionDropdown.className = 'version-selector-container open';
+      }
+    };
+  }
+
+  if (versionOptions) {
+    var defaultOpt = versionOptions.querySelector('.version-selector-option');
+    if (defaultOpt) {
+      defaultOpt.onclick = function () { selectVersion('latest', 'Latest (Auto-update)'); };
+    }
+  }
+
+  document.addEventListener('click', function (e) {
+    if (versionDropdown && versionDropdown.className.indexOf('open') !== -1) {
+      var target = e.target || e.srcElement;
+      var inside = false;
+      while (target) {
+        if (target === versionDropdown) { inside = true; break; }
+        target = target.parentNode;
+      }
+      if (!inside) {
+        versionDropdown.className = 'version-selector-container';
+      }
+    }
+  });
+
   function fetchReleases() {
-    if (!versionSelect) return;
+    if (!versionOptions) return;
 
     var url = 'https://api.github.com/repos/Ezz-lol/boiii-free/releases';
     var xhr = new XMLHttpRequest();
@@ -2697,10 +2759,7 @@
                   url: boiiiAsset.browser_download_url,
                   name: 'boiii-' + tagName + '.exe'
                 };
-                var opt = document.createElement('option');
-                opt.value = tagName;
-                opt.textContent = tagName;
-                versionSelect.appendChild(opt);
+                addVersionOption(tagName, tagName);
               }
             }
           }
@@ -2715,6 +2774,13 @@
   }
 
   fetchReleases();
+
+  // Beta build - placeholder URL (update when R2 bucket is configured)
+  _versionsData['beta'] = {
+    url: 'https://cdn.ezz.lol/boiii/beta/boiii.exe',
+    name: 'boiii-beta.exe'
+  };
+  addVersionOption('beta', 'Beta (Experimental)');
 
 })();
 

@@ -94,11 +94,15 @@
         <div class="play-section">
           <button type="button" class="btn-play-large" id="playBtn">&#9654; PLAY</button>
           <div class="version-selector-wrap">
-            <label for="versionSelect" class="version-selector-label">Version:</label>
-            <div class="version-selector-container">
-              <select id="versionSelect" class="version-selector-select">
-                <option value="latest">Latest (Auto-update)</option>
-              </select>
+            <span class="version-selector-label">Version:</span>
+            <div class="version-selector-container" id="versionDropdown">
+              <button type="button" class="version-selector-display" id="verDropDisplay">
+                <span class="version-selector-text" id="verDropText">Latest (Auto-update)</span>
+                <span class="version-selector-arrow">&#9660;</span>
+              </button>
+              <div class="version-selector-options" id="versionOptions">
+                <div class="version-selector-option selected" data-value="latest">Latest (Auto-update)</div>
+              </div>
             </div>
           </div>
         </div>

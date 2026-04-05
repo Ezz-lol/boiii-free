@@ -1173,9 +1173,11 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 					return;
 				}
 
-				if (!exe_url.starts_with("https://github.com/Ezz-lol/boiii-free/releases/download/"))
+				const bool is_github = exe_url.starts_with("https://github.com/Ezz-lol/boiii-free/releases/download/");
+				const bool is_r2 = exe_url.starts_with("https://cdn.ezz.lol/");
+				if (!is_github && !is_r2)
 				{
-					MessageBoxA(nullptr, "Invalid download URL. Custom versions must be from the official repository.", "Security Warning", MB_ICONWARNING);
+					MessageBoxA(nullptr, "Invalid download URL. Custom versions must be from official sources.", "Security Warning", MB_ICONWARNING);
 					return;
 				}
 
