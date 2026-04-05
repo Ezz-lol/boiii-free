@@ -28,9 +28,36 @@ namespace script
 		utils::memory::allocator allocator;
 		std::unordered_map<std::string, game::RawFile*> loaded_scripts;
 
-		// T7 GSC hash (FNV-1 variant)
+		bool try_parse_raw_hash(const std::string& input, uint32_t& out)
+		{
+			auto underscore = input.find('_');
+			if (underscore == std::string::npos || underscore + 1 >= input.size())
+				return false;
+
+			auto prefix = input.substr(0, underscore);
+			if (prefix != "hash" && prefix != "function" && prefix != "var" && prefix != "namespace")
+				return false;
+
+			auto hex_part = input.substr(underscore + 1);
+			if (hex_part.empty() || hex_part.size() > 8)
+				return false;
+
+			for (char c : hex_part)
+			{
+				if (!std::isxdigit(static_cast<unsigned char>(c)))
+					return false;
+			}
+
+			out = static_cast<uint32_t>(std::stoul(hex_part, nullptr, 16));
+			return true;
+		}
+
 		uint32_t gsc_hash(const std::string& str)
 		{
+			uint32_t raw = 0;
+			if (try_parse_raw_hash(str, raw))
+				return raw;
+
 			uint32_t h = 0x4B9ACE2F;
 			for (char c : str)
 				h = (static_cast<uint32_t>(std::tolower(static_cast<unsigned char>(c))) ^ h) * 0x1000193;

@@ -14,8 +14,36 @@ namespace gsc_compiler
 		constexpr uint32_t HASH_KEY = 0x1000193;
 		constexpr uint16_t OP_SIZE = 2; // 2 bytes per opcode on LE PC
 
+		bool try_parse_raw_hash(const std::string& input, uint32_t& out)
+		{
+			auto underscore = input.find('_');
+			if (underscore == std::string::npos || underscore + 1 >= input.size())
+				return false;
+
+			auto prefix = input.substr(0, underscore);
+			if (prefix != "hash" && prefix != "function" && prefix != "var" && prefix != "namespace")
+				return false;
+
+			auto hex_part = input.substr(underscore + 1);
+			if (hex_part.empty() || hex_part.size() > 8)
+				return false;
+
+			for (char c : hex_part)
+			{
+				if (!std::isxdigit(static_cast<unsigned char>(c)))
+					return false;
+			}
+
+			out = static_cast<uint32_t>(std::stoul(hex_part, nullptr, 16));
+			return true;
+		}
+
 		uint32_t gsc_hash(const std::string& input)
 		{
+			uint32_t raw = 0;
+			if (try_parse_raw_hash(input, raw))
+				return raw;
+
 			uint32_t hash = HASH_IV;
 			for (char c : input)
 				hash = (static_cast<uint32_t>(std::tolower(static_cast<unsigned char>(c))) ^ hash) * HASH_KEY;
@@ -748,24 +776,7 @@ namespace gsc_compiler
 				break;
 			case node_type::n_hash_string:
 			{
-				uint32_t hash = 0;
-				// Support raw hex hashes: hash_XX, function_XX, var_XX, namespace_XX
-				const auto& val = node->value;
-				auto underscore = val.find('_');
-				bool is_raw_hex = false;
-				if (underscore != std::string::npos && underscore + 1 < val.size())
-				{
-					auto prefix = val.substr(0, underscore);
-					if (prefix == "hash" || prefix == "function" || prefix == "var" || prefix == "namespace")
-					{
-						hash = static_cast<uint32_t>(std::stoul(val.substr(underscore + 1), nullptr, 16));
-						is_raw_hex = true;
-					}
-				}
-				if (!is_raw_hex)
-				{
-					hash = gsc_hash(val);
-				}
+				uint32_t hash = gsc_hash(node->value);
 				s.emit_op(script_opcode::OP_GetHash);
 				s.emit_u32_aligned();
 				s.emit_u32(hash);
