@@ -170,7 +170,7 @@ namespace workshop
 
 		void load_usermap_mod_if_needed()
 		{
-			if (!game::isModLoaded())
+			if (std::strlen(game::getPublisherIdFromLoadedMod()) == 0)
 			{
 				game::loadMod(game::LOCAL_CLIENT_0, "usermaps", false);
 			}
@@ -184,10 +184,10 @@ namespace workshop
 	  	        		return zoneIdx;
 		  	      	}
 	      		}
-	        	
+
 	      		return 0xFFFFFFFF; // Invalid index
 		}
-	
+
 	  	bool unload_xzone_by_name(const char* zone_name, bool createDefault, bool suppressSync) {
 		  	uint32_t zoneIdx = get_xzone_index_by_name(zone_name);
 		  	if (zoneIdx != 0xFFFFFFFF) {
@@ -197,7 +197,7 @@ namespace workshop
 		  	return false; // Zone not found
 		}
 
-	  	void clear_loaded_usermap() { 
+	  	void clear_loaded_usermap() {
 			// Set first byte of each to null, terminating string immediately - sets each to an empty string
 			*(game::usermap_publisher_id.get()) = 0;
 			*(game::usermap_title.get()) = 0;
@@ -210,21 +210,21 @@ namespace workshop
   			const bool is_usermap = utils::string::is_numeric(map) || !get_usermap_publisher_id(map).empty();
   			const bool is_mod_loaded = std::strlen(loaded_mod_id) > 0;
   			const bool is_usermaps_mod_loaded = is_mod_loaded && std::strcmp(loaded_mod_id, "usermaps") == 0;
-		
+
 		  	if (is_usermap) {
 				if (!is_mod_loaded) {
 					game::loadMod(game::LOCAL_CLIENT_0, "usermaps", false);
 				}
 		  	} else {
 				clear_loaded_usermap();
-	
+
 				if (is_usermaps_mod_loaded) {
 			  		game::loadMod(game::LOCAL_CLIENT_0, "", false);
 				}
-	
+
 				unload_xzone_by_name("zm_levelcommon", false, false);
 		  	}
-	
+
 			setup_server_map_hook.invoke(localClientNum, map, gametype);
 		}
 
@@ -896,7 +896,7 @@ namespace workshop
 	}
 
 	bool mod_switch_requires_fs_reinitialization(const std::string& current_mod, const std::string& new_mod) {
-		return mod_load_requires_fs_reinitialization(current_mod) || 
+		return mod_load_requires_fs_reinitialization(current_mod) ||
 			mod_load_requires_fs_reinitialization(new_mod);
 	}
 
@@ -915,7 +915,7 @@ namespace workshop
 					  std::this_thread::sleep_for(100ms);
 					}
 				}
-			} else if (game::isModLoaded())
+			} else if (!loaded_mod.empty())
 			{
 				bool fs_reinit_required = mod_switch_requires_fs_reinitialization(loaded_mod, "");
 				game::loadMod(game::LOCAL_CLIENT_0, "", fs_reinit_required);
@@ -1036,6 +1036,27 @@ namespace workshop
 			{
 				utils::hook::call(0x14135CDA1_g, com_error_missing_map_stub);
 			}
+
+			// Disable the engine's attempt to load the structured table
+			// "gamedata/tables/common/mod_game_types.json".
+			// This table does not exist in the base game. Each time the engine
+			// tries to find it, DB_FindXAssetHeader blocks the main thread for
+			// ~5 seconds waiting for the missing asset. This stalls packet
+			// processing and causes ERR_SERVERDISCONNECT (timeout) when
+			// connecting to dedicated servers.
+			//
+			// The byte layout at the patch site (client):
+			//   0x1420F3CFA: 48        (REX.W prefix - left intact)
+			//   0x1420F3CFB: xx xx     (overwritten with 31 C0 -> xor eax,eax; with REX.W = xor rax,rax)
+			//   0x1420F3CFD: xx .. x9  (9 bytes NOP'd - was a call + arg setup)
+			//
+			// First NOP out the function call and arg registers (9 bytes at 0x1420F3CFD),
+			// then patch the 2 bytes before it to form `xor rax, rax` (leveraging
+			// the pre-existing 0x48 REX.W prefix at 0x1420F3CFA). This sets rax=0,
+			// causing the subsequent jz to always jump, skipping the table access.
+			utils::hook::nop(game::select(0x1420F3CFD, 0x1404FD54D), 9);
+			const uint8_t xor_rax_rax[] = { 0x31, 0xC0 };
+			utils::hook::copy(game::select(0x1420F3CFB, 0x1404FD54B), xor_rax_rax, sizeof(xor_rax_rax));
 		}
 
 

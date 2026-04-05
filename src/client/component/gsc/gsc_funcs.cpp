@@ -618,6 +618,26 @@ namespace gsc_funcs
 			push_string(inst, std::to_string(std::max(a, b)).c_str());
 		}
 
+		void gscr_int64_abs(int inst)
+		{
+			const auto a = parse_int64_arg(static_cast<unsigned int>(inst), 1);
+			push_string(inst, std::to_string(a < 0 ? -a : a).c_str());
+		}
+
+		void gscr_int64_clamp(int inst)
+		{
+			const auto val = parse_int64_arg(static_cast<unsigned int>(inst), 1);
+			const auto lo = parse_int64_arg(static_cast<unsigned int>(inst), 2);
+			const auto hi = parse_int64_arg(static_cast<unsigned int>(inst), 3);
+			push_string(inst, std::to_string(std::clamp(val, lo, hi)).c_str());
+		}
+
+		void gscr_int64_tostring(int inst)
+		{
+			const auto val = parse_int64_arg(static_cast<unsigned int>(inst), 1);
+			push_string(inst, std::to_string(val).c_str());
+		}
+
 		void gscr_getfunction(int inst)
 		{
 			const auto script_name = ScrVm_GetString(static_cast<unsigned int>(inst), 1);
@@ -678,6 +698,9 @@ namespace gsc_funcs
 			custom_builtins[static_cast<int32_t>(fnv1a("int64_toint"))] = gscr_int64_toint;
 			custom_builtins[static_cast<int32_t>(fnv1a("int64_min"))] = gscr_int64_min;
 			custom_builtins[static_cast<int32_t>(fnv1a("int64_max"))] = gscr_int64_max;
+			custom_builtins[static_cast<int32_t>(fnv1a("int64_abs"))] = gscr_int64_abs;
+			custom_builtins[static_cast<int32_t>(fnv1a("int64_clamp"))] = gscr_int64_clamp;
+			custom_builtins[static_cast<int32_t>(fnv1a("int64_tostring"))] = gscr_int64_tostring;
 
 			// Function lookup
 			custom_builtins[static_cast<int32_t>(fnv1a("getfunction"))] = gscr_getfunction;

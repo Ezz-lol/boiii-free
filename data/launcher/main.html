@@ -86,13 +86,25 @@
         <span class="title-gap"></span>
         <span class="title-orange">BOIII</span>
       </h1>
-      <p class="description" style="margin-bottom:28px;">
+      <p class="description">
         Call of Duty: Black Ops 3 enhanced with our modifications. Experience the full campaign, multiplayer, and
         zombies modes with improved stability and additional features.
       </p>
       <div class="main-content">
         <div class="play-section">
           <button type="button" class="btn-play-large" id="playBtn">&#9654; PLAY</button>
+          <div class="version-selector-wrap">
+            <span class="version-selector-label">Version:</span>
+            <div class="version-selector-container" id="versionDropdown">
+              <button type="button" class="version-selector-display" id="verDropDisplay">
+                <span class="version-selector-text" id="verDropText">Latest (Auto-update)</span>
+                <span class="version-selector-arrow">&#9660;</span>
+              </button>
+              <div class="version-selector-options" id="versionOptions">
+                <div class="version-selector-option selected" data-value="latest">Latest (Auto-update)</div>
+              </div>
+            </div>
+          </div>
         </div>
         <div class="player-section">
           <div class="player-label">Player Name</div>

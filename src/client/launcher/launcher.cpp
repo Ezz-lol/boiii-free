@@ -1159,10 +1159,76 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 			return token;
 		}
 
-		void relaunch_with_launch_options(const std::vector<std::string>& options)
+		void relaunch_with_launch_options(const std::vector<std::string>& options, const std::string& exe_name = "", const std::string& exe_url = "")
 		{
 			const auto self = utils::nt::library::get_by_address(relaunch_with_launch_options);
-			const auto exe_path = self.get_path().generic_string();
+			auto exe_path = self.get_path();
+
+			if (!exe_name.empty() && !exe_url.empty())
+			{
+				const std::string safe_exe_name = std::filesystem::path(exe_name).filename().string();
+				if (safe_exe_name.empty() || safe_exe_name == "." || safe_exe_name == "..")
+				{
+					MessageBoxA(nullptr, "Invalid executable name provided.", "Launcher Error", MB_ICONERROR);
+					return;
+				}
+
+				const bool is_github = exe_url.starts_with("https://github.com/Ezz-lol/boiii-free/releases/download/");
+				const bool is_r2 = exe_url.starts_with("https://cdn.ezz.lol/");
+				if (!is_github && !is_r2)
+				{
+					MessageBoxA(nullptr, "Invalid download URL. Custom versions must be from official sources.", "Security Warning", MB_ICONWARNING);
+					return;
+				}
+
+				if (exe_path.empty())
+				{
+					MessageBoxA(nullptr, "Could not determine current executable path.", "Launcher Error", MB_ICONERROR);
+					return;
+				}
+
+				const auto versions_dir = exe_path.parent_path() / "versions";
+				std::error_code ec;
+				if (!std::filesystem::exists(versions_dir, ec))
+				{
+					if (!std::filesystem::create_directories(versions_dir, ec) && ec)
+					{
+						MessageBoxA(nullptr, utils::string::va("Failed to create versions directory: %s", ec.message().c_str()), "Launcher Error", MB_ICONERROR);
+						return;
+					}
+				}
+
+				const auto target_exe = versions_dir / safe_exe_name;
+				if (!std::filesystem::exists(target_exe, ec))
+				{
+					const auto data = utils::http::get_data(exe_url);
+					if (data)
+					{
+						if (!utils::io::write_file(target_exe.string(), *data))
+						{
+							MessageBoxA(nullptr, "Failed to write the custom version executable to disk.", "Launcher Error", MB_ICONERROR);
+							return;
+						}
+					}
+					else
+					{
+						MessageBoxA(nullptr, "Failed to download the custom version executable.", "Launcher Error", MB_ICONERROR);
+						return;
+					}
+				}
+
+				if (std::filesystem::exists(target_exe, ec))
+				{
+					exe_path = target_exe;
+				}
+				else
+				{
+					MessageBoxA(nullptr, "Custom version executable not found after download attempt.", "Launcher Error", MB_ICONERROR);
+					return;
+				}
+			}
+
+			const auto exe_path_str = exe_path.generic_string();
 
 			STARTUPINFOA startup_info;
 			PROCESS_INFORMATION process_info;
@@ -1173,7 +1239,7 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 			char current_dir[MAX_PATH];
 			GetCurrentDirectoryA(sizeof(current_dir), current_dir);
 
-			std::string command_line = "\"" + exe_path + "\"";
+			std::string command_line = "\"" + exe_path_str + "\"";
 
 			int num_args = 0;
 			auto* const argv = CommandLineToArgvW(GetCommandLineW(), &num_args);
@@ -1208,7 +1274,7 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 				command_line += " \"-" + token + "\"";
 			}
 
-			if (CreateProcessA(exe_path.data(), command_line.data(), nullptr, nullptr, false,
+			if (CreateProcessA(exe_path_str.data(), command_line.data(), nullptr, nullptr, false,
 				CREATE_NEW_CONSOLE, nullptr, current_dir, &startup_info, &process_info))
 			{
 				if (process_info.hThread && process_info.hThread != INVALID_HANDLE_VALUE)
@@ -1220,6 +1286,11 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 				{
 					CloseHandle(process_info.hProcess);
 				}
+			}
+			else
+			{
+				const auto error = GetLastError();
+				MessageBoxA(nullptr, utils::string::va("Failed to start process (Error %lu):\n%s", error, exe_path_str.c_str()), "Launcher Error", MB_ICONERROR);
 			}
 		}
 	}
@@ -2321,7 +2392,21 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 					}
 				}
 
-				relaunch_with_launch_options(opts);
+				std::string exe_name{};
+				if (params.size() >= 3 && params[2].is_string())
+				{
+					exe_name = params[2].get_string();
+					utils::string::trim(exe_name);
+				}
+
+				std::string exe_url{};
+				if (params.size() >= 4 && params[3].is_string())
+				{
+					exe_url = params[3].get_string();
+					utils::string::trim(exe_url);
+				}
+
+				relaunch_with_launch_options(opts, exe_name, exe_url);
 				return CComVariant("ok");
 			});
 
@@ -2360,6 +2445,20 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 
 				utils::properties::store("launchOptions", option_list);
 
+				std::string exe_name{};
+				if (params.size() >= 3 && params[2].is_string())
+				{
+					exe_name = params[2].get_string();
+					utils::string::trim(exe_name);
+				}
+
+				std::string exe_url{};
+				if (params.size() >= 4 && params[3].is_string())
+				{
+					exe_url = params[3].get_string();
+					utils::string::trim(exe_url);
+				}
+
 				launch_options.clear();
 				if (!option_list.empty())
 				{
@@ -2373,7 +2472,13 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 					}
 				}
 
-				if (!launch_options.empty())
+				if (!exe_name.empty() && !exe_url.empty())
+				{
+					relaunch_with_launch_options(launch_options, exe_name, exe_url);
+					run_game = false;
+					launch_options.clear();
+				}
+				else if (!launch_options.empty())
 				{
 					run_game = false;
 				}

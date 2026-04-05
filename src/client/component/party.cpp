@@ -27,6 +27,21 @@ namespace party
 		std::atomic_bool is_connecting_to_dedi{false};
 		game::netadr_t connect_host{{}, {}, game::NA_BAD, {}};
 
+		bool is_supported_protocol(const int protocol)
+		{
+			return protocol == PROTOCOL || protocol == LEGACY_PROTOCOL;
+		}
+
+		bool is_supported_sub_protocol(const int protocol, const int sub_protocol)
+		{
+			if (protocol == LEGACY_PROTOCOL)
+			{
+				return true;
+			}
+
+			return sub_protocol == SUB_PROTOCOL || sub_protocol == (SUB_PROTOCOL - 1);
+		}
+
 		std::mutex hostname_mutex;
 		std::string cached_server_hostname;
 		int cached_server_max_clients = 0;
@@ -171,7 +186,8 @@ namespace party
 				cached_server_max_clients = max_clients_str.empty() ? 0 : atoi(max_clients_str.data());
 			}
 
-			if (atoi(info.get("protocol").data()) != PROTOCOL)
+			const auto protocol = atoi(info.get("protocol").data());
+			if (!is_supported_protocol(protocol))
 			{
 				const auto str = "Invalid protocol.";
 				printf("%s\n", str);
@@ -179,7 +195,7 @@ namespace party
 			}
 
 			const auto sub_protocol = atoi(info.get("sub_protocol").data());
-			if (sub_protocol != SUB_PROTOCOL && sub_protocol != (SUB_PROTOCOL - 1))
+			if (!is_supported_sub_protocol(protocol, sub_protocol))
 			{
 				const auto str = "Invalid sub-protocol.";
 				printf("%s\n", str);

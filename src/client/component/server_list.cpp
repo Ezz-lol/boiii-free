@@ -19,13 +19,21 @@ namespace server_list
 {
 	namespace
 	{
+		static constexpr bool has_legacy_protocol = LEGACY_PROTOCOL != PROTOCOL;
+
+		struct protocol_query
+		{
+			int protocol{};
+			bool responded{false};
+			std::unordered_set<game::netadr_t> results{};
+		};
+
 		utils::hook::detour lua_server_info_to_table_hook;
 
 		struct master_query
 		{
 			game::netadr_t address{};
-			bool responded{false};
-			std::unordered_set<game::netadr_t> results{};
+			std::vector<protocol_query> protocols{};
 		};
 
 		struct state
@@ -84,9 +92,12 @@ namespace server_list
 		{
 			for (const auto& m : s.masters)
 			{
-				if (!m.responded)
+				for (const auto& protocol : m.protocols)
 				{
-					return false;
+					if (!protocol.responded)
+					{
+						return false;
+					}
 				}
 			}
 			return true;
@@ -102,13 +113,17 @@ namespace server_list
 
 			for (const auto& m : s.masters)
 			{
-				if (!m.results.empty())
+				for (const auto& protocol : m.protocols)
 				{
-					any_success = true;
-				}
-				for (const auto& addr : m.results)
-				{
-					merged.insert(addr);
+					if (!protocol.results.empty())
+					{
+						any_success = true;
+					}
+
+					for (const auto& addr : protocol.results)
+					{
+						merged.insert(addr);
+					}
 				}
 			}
 
@@ -124,12 +139,25 @@ namespace server_list
 				return;
 			}
 
-			master_query* matched = nullptr;
+			protocol_query* matched = nullptr;
 			for (auto& m : s.masters)
 			{
-				if (!m.responded && m.address == target)
+				if (m.address != target)
 				{
-					matched = &m;
+					continue;
+				}
+
+				for (auto& protocol : m.protocols)
+				{
+					if (!protocol.responded)
+					{
+						matched = &protocol;
+						break;
+					}
+				}
+
+				if (matched)
+				{
 					break;
 				}
 			}
@@ -377,9 +405,21 @@ namespace server_list
 			{
 				master_query mq{};
 				mq.address = addr;
-				s.masters.push_back(mq);
+				mq.protocols.push_back({PROTOCOL});
+
+				if constexpr (has_legacy_protocol)
+				{
+					mq.protocols.push_back({LEGACY_PROTOCOL});
+				}
+
+				s.masters.push_back(std::move(mq));
 
 				network::send(addr, "getservers", utils::string::va("T7 %i full empty", PROTOCOL));
+
+				if constexpr (has_legacy_protocol)
+				{
+					network::send(addr, "getservers", utils::string::va("T7 %i full empty", LEGACY_PROTOCOL));
+				}
 			}
 		});
 	}
@@ -489,7 +529,10 @@ namespace server_list
 					// Timeout: mark all non-responded masters as done
 					for (auto& m : s.masters)
 					{
-						m.responded = true;
+						for (auto& protocol : m.protocols)
+						{
+							protocol.responded = true;
+						}
 					}
 
 					finalize_master_query(s);

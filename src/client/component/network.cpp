@@ -328,6 +328,25 @@ namespace network
 		{
 			scheduler::loop(game::fragment_handler::clean, scheduler::async, 5s);
 
+			// Increase timeouts to prevent alt-tab disconnects
+			// When the game loses focus it throttles its frame loop, causing
+			// the client to stop sending packets. The server's default timeout
+			// is too aggressive and kicks the client before focus returns.
+			if (!game::is_server())
+			{
+				scheduler::once([]
+				{
+					game::Dvar_SetFromStringByName("cl_timeout", "300", true);
+				}, scheduler::main);
+			}
+			else
+			{
+				scheduler::once([]
+				{
+					game::Dvar_SetFromStringByName("sv_timeout", "300", true);
+				}, scheduler::main);
+			}
+
 			// don't increment data pointer to optionally skip socket byte
 			utils::hook::nop(game::select(0x1423322B6, 0x140596DF6), 4);
 
