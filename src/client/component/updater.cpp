@@ -4,6 +4,7 @@
 #include "game/game.hpp"
 
 #include <utils/flags.hpp>
+#include <utils/progress_ui.hpp>
 #include <updater/updater.hpp>
 
 namespace updater
@@ -25,11 +26,11 @@ namespace updater
 		}
 		catch (const std::exception& e)
 		{
-			MessageBoxA(nullptr, e.what(), "Updater Error", MB_OK | MB_ICONERROR);
+			utils::progress_ui::show_error("Updater Error", e.what());
 		}
 		catch (...)
 		{
-			MessageBoxA(nullptr, "Unknown error occurred during update.", "Updater Error", MB_OK | MB_ICONERROR);
+			utils::progress_ui::show_error("Updater Error", "Unknown error occurred during update.");
 		}
 	}
 

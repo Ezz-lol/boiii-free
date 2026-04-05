@@ -8,6 +8,7 @@
 #include <utils/flags.hpp>
 #include <utils/http.hpp>
 #include <utils/io.hpp>
+#include <utils/progress_ui.hpp>
 #include <utils/compression.hpp>
 
 #define UPDATE_SERVER "https://r2.ezz.lol/"
@@ -125,10 +126,8 @@ namespace updater
 
 		if (this->process_file_.extension() == ".old")
 		{
-			MessageBoxA(nullptr,
-			            "You are running from a backup file (boiii.exe.old). This indicates a previous update failed.\n"
-			            "Please restore boiii.exe from the .old file and try again.",
-			            "Update Error", MB_OK | MB_ICONERROR);
+			utils::progress_ui::show_error("Update Error",
+				"You are running from a backup file (boiii.exe.old). Please restore boiii.exe and try again.");
 		}
 
 		this->delete_old_process_file();
