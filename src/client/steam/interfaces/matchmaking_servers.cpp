@@ -51,6 +51,7 @@ namespace steam
 		gameserveritem_t create_server_item(const game::netadr_t& address, const ::utils::info_string& info,
 		                                    const uint32_t ping, const bool success)
 		{
+			const auto protocol = atoi(info.get("protocol").data());
 			const auto sub_protocol = atoi(info.get("sub_protocol").data());
 
 			gameserveritem_t server{};
@@ -65,7 +66,12 @@ namespace steam
 			copy_safe(server.m_szMap, info.get("mapname").data());
 			copy_safe(server.m_szGameDescription, info.get("description").data());
 
-			server.m_nAppID = (sub_protocol == SUB_PROTOCOL || sub_protocol == (SUB_PROTOCOL - 1)) ? 311210 : 0;
+			const bool protocol_supported = protocol == PROTOCOL || protocol == LEGACY_PROTOCOL;
+			const bool sub_protocol_supported = protocol == LEGACY_PROTOCOL
+				|| sub_protocol == SUB_PROTOCOL
+				|| sub_protocol == (SUB_PROTOCOL - 1);
+
+			server.m_nAppID = (protocol_supported && sub_protocol_supported) ? 311210 : 0;
 			server.m_nPlayers = atoi(info.get("clients").data());
 			server.m_nMaxPlayers = atoi(info.get("sv_maxclients").data());
 			server.m_nBotPlayers = atoi(info.get("bots").data());
