@@ -22,6 +22,9 @@
   var modsPage = 1;
   var modsPageSize = 12;
 
+  var versionSelect = document.getElementById('versionSelect');
+  var _versionsData = {};
+
   var workshopBrowseGrid = document.getElementById('workshopBrowseGrid');
   var workshopSearchInput = document.getElementById('workshopSearchInput');
   var workshopSearchBtn = document.getElementById('workshopSearchBtn');
@@ -1980,15 +1983,47 @@
       }
       playBtn.disabled = true;
       var opts = window.getSelectedLaunchOption();
+
+      var selectedVersion = versionSelect ? versionSelect.value : 'latest';
+      var exeName = '';
+      var exeUrl = '';
+
+      if (selectedVersion !== 'latest' && _versionsData[selectedVersion]) {
+        exeName = _versionsData[selectedVersion].name;
+        exeUrl = _versionsData[selectedVersion].url;
+        if (opts.toLowerCase().indexOf('-noupdate') === -1) {
+          opts = (opts + ' -noupdate').trim();
+        }
+      }
+
       var hasKeepLauncher = opts.toLowerCase().indexOf('keeplauncher') !== -1;
       if (window._workshopPollInterval && !hasKeepLauncher) {
         showConfirm('Download in progress', 'A workshop download is in progress. Keep the launcher open while you play?', function () {
-          try { window.external.launchGame(window.getPlayerName(), opts); } catch (e2) { }
+          try {
+            if (exeName && exeUrl) {
+              window.external.launchGame(window.getPlayerName(), opts, exeName, exeUrl);
+            } else {
+              window.external.launchGame(window.getPlayerName(), opts);
+            }
+          } catch (e2) { }
         });
         return;
       }
-      if (hasKeepLauncher) { window.external.launchGame(window.getPlayerName(), opts); return; }
-      window.external.runGame(window.getPlayerName(), opts);
+
+      if (hasKeepLauncher) {
+        if (exeName && exeUrl) {
+          window.external.launchGame(window.getPlayerName(), opts, exeName, exeUrl);
+        } else {
+          window.external.launchGame(window.getPlayerName(), opts);
+        }
+        return;
+      }
+
+      if (exeName && exeUrl) {
+        window.external.runGame(window.getPlayerName(), opts, exeName, exeUrl);
+      } else {
+        window.external.runGame(window.getPlayerName(), opts);
+      }
     } catch (e) { }
   };
 
@@ -2632,6 +2667,54 @@
   };
 
   loadFriendsList();
+
+  function fetchReleases() {
+    if (!versionSelect) return;
+
+    var url = 'https://api.github.com/repos/Ezz-lol/boiii-free/releases';
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState !== 4) return;
+
+      if (xhr.status === 200) {
+        try {
+          var releases = JSON.parse(xhr.responseText);
+          if (releases && Array.isArray(releases)) {
+            for (var i = 0; i < releases.length; i++) {
+              var rel = releases[i];
+              var tagName = rel.tag_name;
+              var assets = rel.assets || [];
+              var boiiiAsset = null;
+              for (var j = 0; j < assets.length; j++) {
+                if (assets[j].name === 'boiii.exe') {
+                  boiiiAsset = assets[j];
+                  break;
+                }
+              }
+              if (boiiiAsset) {
+                _versionsData[tagName] = {
+                  url: boiiiAsset.browser_download_url,
+                  name: 'boiii-' + tagName + '.exe'
+                };
+                var opt = document.createElement('option');
+                opt.value = tagName;
+                opt.textContent = tagName;
+                versionSelect.appendChild(opt);
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing releases:', e);
+        }
+      } else {
+        console.error('Error fetching releases:', xhr.status, xhr.statusText);
+      }
+    };
+    xhr.send();
+  }
+
+  fetchReleases();
 
 })();
 

@@ -24,17 +24,17 @@ namespace server_list
 		struct protocol_query
 		{
 			int protocol{};
-				bool responded{false};
-				std::unordered_set<game::netadr_t> results{};
-			};
+			bool responded{false};
+			std::unordered_set<game::netadr_t> results{};
+		};
 
-			utils::hook::detour lua_server_info_to_table_hook;
+		utils::hook::detour lua_server_info_to_table_hook;
 
-			struct master_query
-			{
-				game::netadr_t address{};
-				std::vector<protocol_query> protocols{};
-			};
+		struct master_query
+		{
+			game::netadr_t address{};
+			std::vector<protocol_query> protocols{};
+		};
 
 		struct state
 		{
@@ -386,10 +386,10 @@ namespace server_list
 		return servers;
 	}
 
-		void request_servers(callback callback)
+	void request_servers(callback callback)
+	{
+		master_state.access([&callback](state& s)
 		{
-			master_state.access([&callback](state& s)
-			{
 			auto masters = get_master_servers();
 			if (masters.empty())
 			{
@@ -401,28 +401,28 @@ namespace server_list
 			s.callback = std::move(callback);
 			s.query_start = std::chrono::high_resolution_clock::now();
 
-				for (const auto& addr : masters)
+			for (const auto& addr : masters)
+			{
+				master_query mq{};
+				mq.address = addr;
+				mq.protocols.push_back({PROTOCOL});
+
+				if constexpr (has_legacy_protocol)
 				{
-					master_query mq{};
-					mq.address = addr;
-					mq.protocols.push_back({PROTOCOL});
-
-					if constexpr (has_legacy_protocol)
-					{
-						mq.protocols.push_back({LEGACY_PROTOCOL});
-					}
-
-					s.masters.push_back(std::move(mq));
-
-					network::send(addr, "getservers", utils::string::va("T7 %i full empty", PROTOCOL));
-
-					if constexpr (has_legacy_protocol)
-					{
-						network::send(addr, "getservers", utils::string::va("T7 %i full empty", LEGACY_PROTOCOL));
-					}
+					mq.protocols.push_back({LEGACY_PROTOCOL});
 				}
-			});
-		}
+
+				s.masters.push_back(std::move(mq));
+
+				network::send(addr, "getservers", utils::string::va("T7 %i full empty", PROTOCOL));
+
+				if constexpr (has_legacy_protocol)
+				{
+					network::send(addr, "getservers", utils::string::va("T7 %i full empty", LEGACY_PROTOCOL));
+				}
+			}
+		});
+	}
 
 	void add_favorite_server(game::netadr_t addr)
 	{
