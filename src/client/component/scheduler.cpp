@@ -182,21 +182,31 @@ namespace scheduler
 		void main_frame_stub()
 		{
 			safe_invoke_main_frame();
-			__try
+
+			if (game::is_server())
 			{
-				execute(main);
-			}
-			__except (server_seh_filter(GetExceptionInformation(), "Scheduler task"))
-			{
-				if (game::is_server() && !server_restart::restart_pending.load())
+				// Server: wrap scheduler execution in SEH for crash recovery
+				__try
 				{
-					if (server_restart::consecutive_crash_count.fetch_add(1) < 3)
+					execute(main);
+				}
+				__except (server_seh_filter(GetExceptionInformation(), "Scheduler task"))
+				{
+					if (!server_restart::restart_pending.load())
 					{
-						server_restart::schedule("Scheduler task crash");
+						if (server_restart::consecutive_crash_count.fetch_add(1) < 3)
+						{
+							server_restart::schedule("Scheduler task crash");
+						}
 					}
 				}
+				server_restart::check_and_execute();
 			}
-			server_restart::check_and_execute();
+			else
+			{
+				// Client: direct execution without SEH overhead
+				execute(main);
+			}
 		}
 	}
 

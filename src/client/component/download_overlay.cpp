@@ -381,22 +381,31 @@ namespace download_overlay
 
 			if (imgui_initialized)
 			{
-				// Ensure DisplaySize is always correct by reading from the swap chain
-				DXGI_SWAP_CHAIN_DESC sc_desc{};
-				if (SUCCEEDED(swap_chain->GetDesc(&sc_desc)))
-				{
-					ImGui::GetIO().DisplaySize = ImVec2(
-						static_cast<float>(sc_desc.BufferDesc.Width),
-						static_cast<float>(sc_desc.BufferDesc.Height));
-				}
+				const auto s = state_.copy();
+				const auto c = confirm_.copy();
 
-				ImGui_ImplDX11_NewFrame();
-				ImGui_ImplWin32_NewFrame();
-				ImGui::NewFrame();
-				render_confirmation();
-				render();
-				ImGui::Render();
-				ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+				// Only run ImGui frame when an overlay is actually visible.
+				// Running a full ImGui frame + render pass every Present call
+				// adds measurable overhead that hurts FPS on dedicated servers.
+				if (s.active || c.active)
+				{
+					// Ensure DisplaySize is always correct by reading from the swap chain
+					DXGI_SWAP_CHAIN_DESC sc_desc{};
+					if (SUCCEEDED(swap_chain->GetDesc(&sc_desc)))
+					{
+						ImGui::GetIO().DisplaySize = ImVec2(
+							static_cast<float>(sc_desc.BufferDesc.Width),
+							static_cast<float>(sc_desc.BufferDesc.Height));
+					}
+
+					ImGui_ImplDX11_NewFrame();
+					ImGui_ImplWin32_NewFrame();
+					ImGui::NewFrame();
+					render_confirmation();
+					render();
+					ImGui::Render();
+					ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
+				}
 			}
 
 			return present_hook.invoke<HRESULT>(swap_chain, sync_interval, flags);
