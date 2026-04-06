@@ -1,27 +1,59 @@
 #!/bin/bash
 
-remove_git_dir_from_path() {
+normalize_path() {
+  local file_path
+  file_path="$1"
+
+  if [ -z "$file_path" ]; then
+    file_path="$(cat -)"
+  fi
+
+  if [ -z "$file_path" ]; then
+    echo "Error: No file path provided to normalize_path." >&2
+    exit 1
+  fi
+
+  if [ -L "$file_path" ]; then
+    file_path="$(readlink -f "$file_path")"
+  fi
+  realpath "$file_path"
+}
+
+path_remove_tree_by_name() {
+  local input_path
+  input_path="$(normalize_path "$1")"
+
+  local dir_name
+  dir_name="$2"
+
+  if [ -z "$input_path" ]; then
+    echo "Error: No input path provided to path_remove_tree_by_name." >&2
+    exit 1
+  fi
+
+  if [ -z "$dir_name" ]; then
+    echo "Error: No directory name provided to path_remove_tree_by_name." >&2
+    exit 1
+  fi
+
   local PATH_PARTS
   PATH_PARTS=()
-  IFS='/' read -ra PATH_PARTS <<<"$1"
-  local CLEANED_PATH=""
-  for PART in "${PATH_PARTS[@]}"; do
-    if [[ "$PART" == ".git" ]]; then
+  IFS='/' read -ra PATH_PARTS <<<"$input_path"
+
+  local out_path
+  out_path=""
+
+  for part in "${PATH_PARTS[@]}"; do
+    if [[ "$part" == "$dir_name" ]]; then
       break
     fi
-    CLEANED_PATH="${CLEANED_PATH}/${PART}"
+    out_path="${out_path}/${part}"
   done
-  realpath "$CLEANED_PATH"
+  normalize_path "$out_path"
 }
 
 script_dir() {
-  local script_dirname
-  script_dirname="$(dirname "$0")"
-  if [ -L "$script_dirname" ]; then
-    script_dirname="$(readlink -f "$script_dirname")"
-  fi
-
-  realpath "$script_dirname"
+  normalize_path "$(dirname "$0")"
 }
 
 # Returns the root of the containing git repository
@@ -31,28 +63,38 @@ repo_dir() {
   local earliest_possible_worktree_dir
 
   script_dir_path="$(script_dir)"
-  earliest_possible_worktree_dir="$(remove_git_dir_from_path "$script_dir_path")"
-  repo_dir="$(git -C "${earliest_possible_worktree_dir}" rev-parse --show-toplevel)"
-  if [ -L "$repo_dir" ]; then
-    repo_dir="$(readlink -f "$repo_dir")"
-  fi
-  repo_dir="$(realpath "$repo_dir")"
+  earliest_possible_worktree_dir="$(path_remove_tree_by_name "$script_dir_path" ".git")"
+  repo_dir="$(git -C "${earliest_possible_worktree_dir}" rev-parse --show-toplevel | normalize_path)"
   if ! [ -e "$repo_dir" ] || ! [ -d "$repo_dir" ] || ! [ -d "${repo_dir}/.git" ]; then
-    echo "Error: Unable to determine the root of the git repository."
+    echo "Error: Unable to determine the root of the git repository." >&2
     exit 1
   fi
   echo "$repo_dir"
 }
 
-formattable_diff_files() {
+can_be_formatted_by_clang_format() {
+  local file_path
+  file_path="$1"
+  if clang-format -style=file --dry-run "$file_path" >/dev/null 2>&1; then
+    return 0
+  else
+    return 1
+  fi
+
+}
+
+src_diff_files() {
   local repo_root
   repo_root="$1"
   if [ -z "$repo_root" ]; then
     repo_root="$(repo_dir)"
   fi
 
-  git --no-pager -C "${repo_root}" diff --cached --staged --name-only --diff-filter=ACMR |
-    safe_grep -iE "\.(cpp|hpp|c|h|cc|cxx|hh)$"
+  while IFS=$'\n' read -r staged; do
+    if [ -n "$staged" ] && path_in_tree_by_name "$staged" "src" && can_be_formatted_by_clang_format "$staged"; then
+      echo "$staged"
+    fi
+  done < <(git --no-pager -C "${repo_root}" diff --cached --staged --name-only --diff-filter=ACMR)
 }
 
 # Need to duplicate function here first to allow reliably finding and sourcing env.sh
@@ -64,29 +106,29 @@ REPO_ROOT="$(repo_dir)"
 check_dependencies
 
 if ! [ -e "$REPO_ROOT" ] || ! [ -d "$REPO_ROOT" ] || ! [ -d "${REPO_ROOT}/.git" ]; then
-  echo "Error: Unable to determine the root of the git repository."
+  echo "Error: Unable to determine the root of the git repository." >&2
   exit 1
 fi
 
-# Filter for staged C++ files
+# Filter for staged, primary codebase source code files
 FILES=()
-while IFS=$'\n' read -r FILE; do
-  FILES+=("$FILE")
-done < <(formattable_diff_files "$REPO_ROOT")
+while IFS=$'\n' read -r source_file; do
+  FILES+=("$source_file")
+done < <(src_diff_files "$REPO_ROOT")
 
-echo "Found ${#FILES[@]} staged C++ files to format."
+echo "Found ${#FILES[@]} staged files to format."
 if [ ${#FILES[@]} -eq 0 ]; then
-  echo "No staged C++ files to format."
+  echo "No staged files to format."
   exit 0
 fi
 
-echo "Running clang-format on staged C++ files..."
-for FILE in "${FILES[@]}"; do
-  if [ -f "$FILE" ]; then
-    if clang-format -i -style=file "$FILE"; then
-      git add "$FILE"
+echo "Running clang-format on staged files..."
+for source_file in "${FILES[@]}"; do
+  if [ -f "$source_file" ]; then
+    if clang-format -i -style=file "$source_file"; then
+      git add "$source_file"
     else
-      echo "Error: clang-format failed on $FILE"
+      echo "Error: clang-format failed on $source_file"
       exit 1
     fi
   fi
