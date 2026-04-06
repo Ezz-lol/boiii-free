@@ -158,8 +158,6 @@ while IFS=$'\n' read -r source_file; do
   fi
 done < <(diff_code_files "$REPO_ROOT")
 
-echo "Found ${#SRC_FILES[@]} staged files to format under src/."
-echo "Found ${#LUA_FILES[@]} staged files to format under data/."
 if [ ${#SRC_FILES[@]} -eq 0 ] && [ ${#LUA_FILES[@]} -eq 0 ]; then
   echo "No staged files to format."
   exit 0
