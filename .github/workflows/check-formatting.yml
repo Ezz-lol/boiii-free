@@ -10,6 +10,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Run stylua format check
+        uses: JohnnyMorganz/stylua-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Use 'check' to fail if files aren't formatted correctly
+          args: --check .
+
       - name: Run clang-format style check
         uses: jidicula/clang-format-action@v4.18.0
         with:
