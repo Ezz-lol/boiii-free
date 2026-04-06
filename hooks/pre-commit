@@ -86,7 +86,10 @@ can_be_formatted_by_clang_format() {
 can_be_formatted_by_stylua() {
   local file_path
   file_path="$1"
-  file_ext="$(ext "$file_path" | to_lower)"
+  #Function can take positional argument or take arg from stdin - shellcheck does not
+  #recognize this and creates a warning about missing argument, so we disable that specific warning here
+  #shellcheck disable=SC2119
+  file_ext="$(ext "$file_path" | to_lowercase)"
   case "$file_ext" in
   "lua")
     return 0
@@ -176,6 +179,7 @@ for source_file in "${SRC_FILES[@]}"; do
 done
 
 STYLUA_CONFIG_FILE="${REPO_ROOT}/.stylua.toml"
+echo
 echo "Running stylua on staged files under data/"
 for lua_file in "${LUA_FILES[@]}"; do
   if stylua -f "$STYLUA_CONFIG_FILE" "$lua_file"; then
