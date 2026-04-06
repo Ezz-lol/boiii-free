@@ -83,7 +83,36 @@ can_be_formatted_by_clang_format() {
 
 }
 
-src_diff_files() {
+can_be_formatted_by_stylua() {
+  local file_path
+  file_path="$1"
+  file_ext="$(ext "$file_path" | to_lower)"
+  case "$file_ext" in
+  "lua")
+    return 0
+    ;;
+  "lui")
+    return 0
+    ;;
+  "luac")
+    return 0
+    ;;
+  "luau")
+    return 0
+    ;;
+  "wlua")
+    return 0
+    ;;
+  "rockspec")
+    return 0
+    ;;
+  *)
+    return 1
+    ;;
+  esac
+}
+
+diff_code_files() {
   local repo_root
   repo_root="$1"
   if [ -z "$repo_root" ]; then
@@ -91,8 +120,13 @@ src_diff_files() {
   fi
 
   while IFS=$'\n' read -r staged; do
-    if [ -n "$staged" ] && path_in_tree_by_name "$staged" "src" && can_be_formatted_by_clang_format "$staged"; then
-      echo "$staged"
+    abs_staged="$(normalize_path "${repo_root}/${staged}")"
+    if [ -n "$abs_staged" ] && [ -f "$abs_staged" ]; then
+      if path_in_tree_by_name "$abs_staged" "src" && can_be_formatted_by_clang_format "$abs_staged"; then
+        echo "$abs_staged"
+      elif path_in_tree_by_name "$abs_staged" "data" && can_be_formatted_by_stylua "$abs_staged"; then
+        echo "$abs_staged"
+      fi
     fi
   done < <(git --no-pager -C "${repo_root}" diff --cached --staged --name-only --diff-filter=ACMR)
 }
@@ -111,26 +145,46 @@ if ! [ -e "$REPO_ROOT" ] || ! [ -d "$REPO_ROOT" ] || ! [ -d "${REPO_ROOT}/.git" 
 fi
 
 # Filter for staged, primary codebase source code files
-FILES=()
+SRC_FILES=()
+LUA_FILES=()
 while IFS=$'\n' read -r source_file; do
-  FILES+=("$source_file")
-done < <(src_diff_files "$REPO_ROOT")
+  if [ -n "$source_file" ] && [ -f "$source_file" ]; then
+    if path_in_tree_by_name "$source_file" "data"; then
+      LUA_FILES+=("$source_file")
+    elif path_in_tree_by_name "$source_file" "src"; then
 
-echo "Found ${#FILES[@]} staged files to format."
-if [ ${#FILES[@]} -eq 0 ]; then
+      SRC_FILES+=("$source_file")
+    fi
+  fi
+done < <(diff_code_files "$REPO_ROOT")
+
+echo "Found ${#SRC_FILES[@]} staged files to format under src/."
+echo "Found ${#LUA_FILES[@]} staged files to format under data/."
+if [ ${#SRC_FILES[@]} -eq 0 ] && [ ${#LUA_FILES[@]} -eq 0 ]; then
   echo "No staged files to format."
   exit 0
 fi
 
-echo "Running clang-format on staged files..."
-for source_file in "${FILES[@]}"; do
+echo "Running clang-format on staged files under src/"
+for source_file in "${SRC_FILES[@]}"; do
   if [ -f "$source_file" ]; then
     if clang-format -i -style=file "$source_file"; then
       git add "$source_file"
     else
-      echo "Error: clang-format failed on $source_file"
+      echo "Error: clang-format failed on $source_file" >&2
       exit 1
     fi
+  fi
+done
+
+STYLUA_CONFIG_FILE="${REPO_ROOT}/.stylua.toml"
+echo "Running stylua on staged files under data/"
+for lua_file in "${LUA_FILES[@]}"; do
+  if stylua -f "$STYLUA_CONFIG_FILE" "$lua_file"; then
+    git add "$lua_file"
+  else
+    echo "Error: stylua failed on $lua_file" >&2
+    exit 1
   fi
 done
 

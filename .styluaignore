@@ -1,0 +1,4 @@
+# Ignore third-party libraries
+deps/
+build/
+lua/extern/

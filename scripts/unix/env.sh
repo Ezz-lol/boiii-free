@@ -5,7 +5,7 @@ normalize_path() {
   file_path="$1"
 
   if [ -z "$file_path" ]; then
-    file_path="$(read -r)"
+    file_path="$(cat -)"
   fi
 
   if [ -z "$file_path" ]; then
@@ -17,6 +17,54 @@ normalize_path() {
     file_path="$(readlink -f "$file_path")"
   fi
   realpath "$file_path"
+}
+
+ext() {
+  local file_path
+  file_path="$1"
+
+  if [ -z "$file_path" ]; then
+    file_path="$(cat -)"
+  fi
+
+  if [ -z "$file_path" ]; then
+    echo "Error: No file path provided to ext." >&2
+    exit 1
+  fi
+
+  echo "${file_path##*.}"
+}
+
+to_lowercase() {
+  local input_str
+  input_str="$1"
+
+  if [ -z "$input_str" ]; then
+    input_str="$(cat -)"
+  fi
+
+  if [ -z "$input_str" ]; then
+    echo "Error: No input string provided to to_lowercase." >&2
+    exit 1
+  fi
+
+  echo "${input_str,,}"
+}
+
+to_uppercase() {
+  local input_str
+  input_str="$1"
+
+  if [ -z "$input_str" ]; then
+    input_str="$(cat -)"
+  fi
+
+  if [ -z "$input_str" ]; then
+    echo "Error: No input string provided to to_uppercase." >&2
+    exit 1
+  fi
+
+  echo "${input_str^^}"
 }
 
 # Returns the absolute path of the directory containing this script

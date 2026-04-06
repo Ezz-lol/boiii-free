@@ -15,7 +15,7 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           # Use 'check' to fail if files aren't formatted correctly
-          args: --check .
+          args: --check data
 
       - name: Run clang-format style check
         uses: jidicula/clang-format-action@v4.18.0
