@@ -1,0 +1,95 @@
+#!/bin/bash
+
+remove_git_dir_from_path() {
+  local PATH_PARTS
+  PATH_PARTS=()
+  IFS='/' read -ra PATH_PARTS <<<"$1"
+  local CLEANED_PATH=""
+  for PART in "${PATH_PARTS[@]}"; do
+    if [[ "$PART" == ".git" ]]; then
+      break
+    fi
+    CLEANED_PATH="${CLEANED_PATH}/${PART}"
+  done
+  realpath "$CLEANED_PATH"
+}
+
+script_dir() {
+  local script_dirname
+  script_dirname="$(dirname "$0")"
+  if [ -L "$script_dirname" ]; then
+    script_dirname="$(readlink -f "$script_dirname")"
+  fi
+
+  realpath "$script_dirname"
+}
+
+# Returns the root of the containing git repository
+repo_dir() {
+  local repo_dir
+  local script_dir_path
+  local earliest_possible_worktree_dir
+
+  script_dir_path="$(script_dir)"
+  earliest_possible_worktree_dir="$(remove_git_dir_from_path "$script_dir_path")"
+  repo_dir="$(git -C "${earliest_possible_worktree_dir}" rev-parse --show-toplevel)"
+  if [ -L "$repo_dir" ]; then
+    repo_dir="$(readlink -f "$repo_dir")"
+  fi
+  repo_dir="$(realpath "$repo_dir")"
+  if ! [ -e "$repo_dir" ] || ! [ -d "$repo_dir" ] || ! [ -d "${repo_dir}/.git" ]; then
+    echo "Error: Unable to determine the root of the git repository."
+    exit 1
+  fi
+  echo "$repo_dir"
+}
+
+formattable_diff_files() {
+  local repo_root
+  repo_root="$1"
+  if [ -z "$repo_root" ]; then
+    repo_root="$(repo_dir)"
+  fi
+
+  git --no-pager -C "${repo_root}" diff --cached --staged --name-only --diff-filter=ACMR |
+    safe_grep -E "\.(cpp|hpp|c|h|cc|cxx|hh)$"
+}
+
+# Need to duplicate function here first to allow reliably finding and sourcing env.sh
+# shellcheck disable=SC2218
+REPO_ROOT="$(repo_dir)"
+. "${REPO_ROOT}/scripts/unix/env.sh"
+
+# Ensure git and clang-format are present
+check_dependencies
+
+if ! [ -e "$REPO_ROOT" ] || ! [ -d "$REPO_ROOT" ] || ! [ -d "${REPO_ROOT}/.git" ]; then
+  echo "Error: Unable to determine the root of the git repository."
+  exit 1
+fi
+
+# Filter for staged C++ files
+FILES=()
+while IFS=$'\n' read -r FILE; do
+  FILES+=("$FILE")
+done < <(formattable_diff_files "$REPO_ROOT")
+
+echo "Found ${#FILES[@]} staged C++ files to format."
+if [ ${#FILES[@]} -eq 0 ]; then
+  echo "No staged C++ files to format."
+  exit 0
+fi
+
+echo "Running clang-format on staged C++ files..."
+for FILE in "${FILES[@]}"; do
+  if [ -f "$FILE" ]; then
+    if clang-format -i -style=file "$FILE"; then
+      git add "$FILE"
+    else
+      echo "Error: clang-format failed on $FILE"
+      exit 1
+    fi
+  fi
+done
+
+exit 0
