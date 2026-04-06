@@ -39,7 +39,7 @@ namespace script
 				return false;
 
 			auto hex_part = input.substr(underscore + 1);
-			if (hex_part.empty() || hex_part.size() > 8)
+			if (hex_part.size() != 8)
 				return false;
 
 			for (char c : hex_part)
@@ -49,7 +49,7 @@ namespace script
 			}
 
 			out = static_cast<uint32_t>(std::stoul(hex_part, nullptr, 16));
-			return true;
+			return out != 0;
 		}
 
 		uint32_t gsc_hash(const std::string& str)
@@ -625,10 +625,10 @@ namespace script
 			return 1;
 		}
 
-		void scr_loot_get_item_quantity_stub([[maybe_unused]] game::scriptInstance_t inst,
+		void scr_loot_get_item_quantity_stub(game::scriptInstance_t inst,
 		                                     [[maybe_unused]] game::scr_entref_t entref)
 		{
-			game::Scr_AddInt(game::SCRIPTINSTANCE_SERVER, 255);
+			game::Scr_AddInt(inst, 255);
 		}
 	}
 

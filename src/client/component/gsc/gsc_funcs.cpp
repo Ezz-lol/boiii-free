@@ -33,8 +33,10 @@ namespace gsc_funcs
 		std::unordered_map<int64_t, int64_t> function_replacements;
 		bool detours_enabled = false;
 
-		vm_opcode_handler_t orig_SafeCreateLocalVariables = nullptr;
-		vm_opcode_handler_t orig_CheckClearParams = nullptr;
+		vm_opcode_handler_t orig_SafeCreateLocalVariables_gsc = nullptr;  // table1 (inst 0)
+		vm_opcode_handler_t orig_SafeCreateLocalVariables_csc = nullptr;  // table2 (inst 1)
+		vm_opcode_handler_t orig_CheckClearParams_gsc = nullptr;
+		vm_opcode_handler_t orig_CheckClearParams_csc = nullptr;
 		vm_opcode_handler_t orig_ScriptMethodCallPointer = nullptr;     // 0x0077
 		vm_opcode_handler_t orig_ScriptFunctionCallPointer = nullptr;   // 0x003A
 
@@ -136,14 +138,16 @@ namespace gsc_funcs
 		{
 			if (try_redirect(inst, fs_0))
 				return; // VM re-dispatches from replacement's first opcode
-			orig_SafeCreateLocalVariables(inst, fs_0, vmc, terminate);
+			auto* orig = (inst == 0) ? orig_SafeCreateLocalVariables_gsc : orig_SafeCreateLocalVariables_csc;
+			if (orig) orig(inst, fs_0, vmc, terminate);
 		}
 
 		void __fastcall hk_CheckClearParams(int32_t inst, int64_t* fs_0, int64_t vmc, bool* terminate)
 		{
 			if (try_redirect(inst, fs_0))
 				return; // VM re-dispatches from replacement's first opcode
-			orig_CheckClearParams(inst, fs_0, vmc, terminate);
+			auto* orig = (inst == 0) ? orig_CheckClearParams_gsc : orig_CheckClearParams_csc;
+			if (orig) orig(inst, fs_0, vmc, terminate);
 		}
 
 		void hook_opcode(size_t* table, uint16_t opcode, vm_opcode_handler_t hook, vm_opcode_handler_t* out_orig)
@@ -718,18 +722,18 @@ namespace gsc_funcs
 			{
 				auto* table = reinterpret_cast<size_t*>(game::relocate(0x14107C150));
 
-				hook_opcode(table, 0x01D2, hk_SafeCreateLocalVariables, &orig_SafeCreateLocalVariables);
-				hook_opcode(table, 0x000D, hk_CheckClearParams, &orig_CheckClearParams);
+				hook_opcode(table, 0x01D2, hk_SafeCreateLocalVariables, &orig_SafeCreateLocalVariables_gsc);
+				hook_opcode(table, 0x000D, hk_CheckClearParams, &orig_CheckClearParams_gsc);
 			}
 			else
 			{
 				auto* table1 = reinterpret_cast<size_t*>(game::relocate(0x1432E6350));
 				auto* table2 = reinterpret_cast<size_t*>(game::relocate(0x143306350));
 
-				hook_opcode(table1, 0x01D2, hk_SafeCreateLocalVariables, &orig_SafeCreateLocalVariables);
-				hook_opcode(table1, 0x000D, hk_CheckClearParams, &orig_CheckClearParams);
-				hook_opcode(table2, 0x01D2, hk_SafeCreateLocalVariables, &orig_SafeCreateLocalVariables);
-				hook_opcode(table2, 0x000D, hk_CheckClearParams, &orig_CheckClearParams);
+				hook_opcode(table1, 0x01D2, hk_SafeCreateLocalVariables, &orig_SafeCreateLocalVariables_gsc);
+				hook_opcode(table1, 0x000D, hk_CheckClearParams, &orig_CheckClearParams_gsc);
+				hook_opcode(table2, 0x01D2, hk_SafeCreateLocalVariables, &orig_SafeCreateLocalVariables_csc);
+				hook_opcode(table2, 0x000D, hk_CheckClearParams, &orig_CheckClearParams_csc);
 			}
 
 			game_event::on_g_shutdown_game([] {
