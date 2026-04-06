@@ -387,3 +387,5 @@ UseCRLF: false
 # Tab style.
 # Options: Never, ForIndentation, ForContinuationAndIndentation, AlignWithSpaces, Always
 UseTab: Never
+
+TabWidth: 2
