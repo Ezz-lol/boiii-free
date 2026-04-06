@@ -11,4 +11,5 @@ jobs:
 
       - name: Run clang-format style check
         uses: jidicula/actions-clang-format@v4.18.0
-        check-path: "src"
+        with:
+          check-path: "src"
