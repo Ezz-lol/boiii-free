@@ -52,7 +52,7 @@ formattable_diff_files() {
   fi
 
   git --no-pager -C "${repo_root}" diff --cached --staged --name-only --diff-filter=ACMR |
-    safe_grep -E "\.(cpp|hpp|c|h|cc|cxx|hh)$"
+    safe_grep -iE "\.(cpp|hpp|c|h|cc|cxx|hh)$"
 }
 
 # Need to duplicate function here first to allow reliably finding and sourcing env.sh
