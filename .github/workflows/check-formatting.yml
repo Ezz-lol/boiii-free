@@ -1,10 +1,6 @@
 name: Check Formatting
 
-on:
-  push:
-    branches: [main, beta]
-  pull_request:
-    branches: [main, beta]
+on: [push, pull_request]
 
 jobs:
   formatting-check:
@@ -14,7 +10,5 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run clang-format style check
-        uses: jwlawson/actions-clang-format@v2
-        with:
-          files: "src/**/*.cpp src/**/*.cxx src/**/*.c src/**/*.hpp src/**/*.hxx src/**/*.h"
-          style: "file"
+        uses: jidicula/actions-clang-format@v4.18.0
+        check-path: "src"
