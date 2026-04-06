@@ -1,45 +1,90 @@
 #!/bin/bash
 
-# Returns the absolute path of the directory containing this script
-script_dir() {
-  local script_dirname
-  script_dirname="$(dirname "$0")"
-  if [ -L "$script_dirname" ]; then
-    script_dirname="$(readlink -f "$script_dirname")"
+normalize_path() {
+  local file_path
+  file_path="$1"
+
+  if [ -z "$file_path" ]; then
+    file_path="$(read -r)"
   fi
 
-  realpath "$script_dirname"
-}
-
-# Returns the root of the containing git repository
-repo_dir() {
-  local repo_dir
-  local script_dir_path
-  local earliest_possible_worktree_dir
-
-  script_dir_path="$(script_dir)"
-  earliest_possible_worktree_dir="$(remove_git_dir_from_path "$script_dir_path")"
-  repo_dir="$(git -C "${earliest_possible_worktree_dir}" rev-parse --show-toplevel)"
-  if [ -L "$repo_dir" ]; then
-    repo_dir="$(readlink -f "$repo_dir")"
-  fi
-  repo_dir="$(realpath "$repo_dir")"
-  if ! [ -e "$repo_dir" ] || ! [ -d "$repo_dir" ] || ! [ -d "${repo_dir}/.git" ]; then
-    echo "Error: Unable to determine the root of the git repository."
+  if [ -z "$file_path" ]; then
+    echo "Error: No file path provided to normalize_path." >&2
     exit 1
   fi
 
-  echo "$repo_dir"
+  if [ -L "$file_path" ]; then
+    file_path="$(readlink -f "$file_path")"
+  fi
+  realpath "$file_path"
 }
 
-safe_grep() {
-  ARGS=()
-  while [ "$#" -gt 0 ]; do
-    ARGS+=("$1")
-    shift
+# Returns the absolute path of the directory containing this script
+script_dir() {
+  normalize_path "$(dirname "$0")"
+}
+
+path_in_tree_by_name() {
+  local input_path
+  input_path="$(normalize_path "$1")"
+
+  local dir_name
+  dir_name="$2"
+
+  if [ -z "$input_path" ]; then
+    echo "Error: No input path provided to path_in_tree_by_name." >&2
+    exit 1
+  fi
+
+  if [ -z "$dir_name" ]; then
+    echo "Error: No directory name provided to path_in_tree_by_name." >&2
+    exit 1
+  fi
+
+  local PATH_PARTS
+  PATH_PARTS=()
+  IFS='/' read -ra PATH_PARTS <<<"$input_path"
+
+  for part in "${PATH_PARTS[@]}"; do
+    if [[ "$part" == "$dir_name" ]]; then
+      return 0
+    fi
   done
 
-  grep -E "${ARGS[@]}" 2>/dev/null || true
+  return 1
+}
+
+path_remove_tree_by_name() {
+  local input_path
+  input_path="$(normalize_path "$1")"
+
+  local dir_name
+  dir_name="$2"
+
+  if [ -z "$input_path" ]; then
+    echo "Error: No input path provided to path_remove_tree_by_name." >&2
+    exit 1
+  fi
+
+  if [ -z "$dir_name" ]; then
+    echo "Error: No directory name provided to path_remove_tree_by_name." >&2
+    exit 1
+  fi
+
+  local PATH_PARTS
+  PATH_PARTS=()
+  IFS='/' read -ra PATH_PARTS <<<"$input_path"
+
+  local out_path
+  out_path=""
+
+  for part in "${PATH_PARTS[@]}"; do
+    if [[ "$part" == "$dir_name" ]]; then
+      break
+    fi
+    out_path="${out_path}/${part}"
+  done
+  normalize_path "$out_path"
 }
 
 # Verifies required CLI tools are installed
@@ -47,22 +92,8 @@ check_dependencies() {
   local deps=("git" "clang-format")
   for tool in "${deps[@]}"; do
     if ! command -v "$tool" &>/dev/null; then
-      echo "Error: Required dependency '$tool' is not installed or not in PATH."
+      echo "Error: Required dependency '$tool' is not installed or not in PATH." >&2
       exit 1
     fi
   done
-}
-
-remove_git_dir_from_path() {
-  local PATH_PARTS
-  PATH_PARTS=()
-  IFS='/' read -ra PATH_PARTS <<<"$1"
-  local CLEANED_PATH=""
-  for PART in "${PATH_PARTS[@]}"; do
-    if [ "$PART" == ".git" ]; then
-      break
-    fi
-    CLEANED_PATH="${CLEANED_PATH}/${PART}"
-  done
-  realpath "$CLEANED_PATH"
 }
