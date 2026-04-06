@@ -516,7 +516,7 @@ namespace ui_scripting
 				t.set("rounds", std::atoi(get_tag("rounds").c_str()));
 				t.set("modName", get_tag("modName"));
 
-				const auto ip = htonl(item->m_NetAdr.m_unIP);
+				const auto ip = item->m_NetAdr.m_unIP;
 				const auto port = item->m_NetAdr.m_usConnectionPort;
 				t.set("connectAddr", utils::string::va("%u.%u.%u.%u:%u",
 					(ip >> 24) & 0xFF, (ip >> 16) & 0xFF, (ip >> 8) & 0xFF, ip & 0xFF, port));

@@ -2264,9 +2264,8 @@ namespace launcher::workshop
 								"This item may be corrupt or incompatible.");
 							return;
 						}
-						set_workshop_status("Done! Workshop item installed.", 100.0,
-							mod_type + " \"" + folder_name + "\" installed (" + human_readable_size(dest_size) + ") - no .ff files found, may need manual setup.\n"
-							"Installed to: " + dest.string());
+						set_workshop_status("Done! Download complete.", 100.0,
+							folder_name + " (" + human_readable_size(dest_size) + ") \u2014 no .ff files found, may need manual setup.");
 						try_refresh_workshop_content();
 						return;
 					}
@@ -2274,9 +2273,8 @@ namespace launcher::workshop
 
 				{
 					std::uint64_t final_size = compute_folder_size_bytes(dest);
-					set_workshop_status("Done! Workshop item installed successfully.", 100.0,
-						mod_type + " \"" + folder_name + "\" is ready to use (" + human_readable_size(final_size) + ").\n"
-						"Installed to: " + dest.string());
+					set_workshop_status("Done! Download complete.", 100.0,
+						folder_name + " is ready to use (" + human_readable_size(final_size) + ").");
 					try_refresh_workshop_content();
 				}
 			}

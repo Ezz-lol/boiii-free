@@ -22,6 +22,13 @@
   var modsPage = 1;
   var modsPageSize = 12;
 
+  var versionDropdown = document.getElementById('versionDropdown');
+  var verDropDisplay = document.getElementById('verDropDisplay');
+  var verDropText = document.getElementById('verDropText');
+  var versionOptions = document.getElementById('versionOptions');
+  var _versionsData = {};
+  var _selectedVersion = 'latest';
+
   var workshopBrowseGrid = document.getElementById('workshopBrowseGrid');
   var workshopSearchInput = document.getElementById('workshopSearchInput');
   var workshopSearchBtn = document.getElementById('workshopSearchBtn');
@@ -1199,7 +1206,7 @@
             window._lastWorkshopTerminalState = status.message;
             if (isDone) {
               if (msgEl) msgEl.style.color = 'rgba(34,197,94,0.9)';
-              showMessage('Workshop', status.message + (status.details ? '\n' + status.details : ''));
+              showMessage('Download Complete', status.details || 'Workshop item installed successfully.');
             } else if (isCanceled) {
               if (msgEl) msgEl.style.color = 'rgba(250,204,21,0.9)';
             } else if (isAlready) {
@@ -1980,15 +1987,47 @@
       }
       playBtn.disabled = true;
       var opts = window.getSelectedLaunchOption();
+
+      var selectedVersion = _selectedVersion || 'latest';
+      var exeName = '';
+      var exeUrl = '';
+
+      if (selectedVersion !== 'latest' && _versionsData[selectedVersion]) {
+        exeName = _versionsData[selectedVersion].name;
+        exeUrl = _versionsData[selectedVersion].url;
+        if (opts.toLowerCase().indexOf('-noupdate') === -1) {
+          opts = (opts + ' -noupdate').trim();
+        }
+      }
+
       var hasKeepLauncher = opts.toLowerCase().indexOf('keeplauncher') !== -1;
       if (window._workshopPollInterval && !hasKeepLauncher) {
         showConfirm('Download in progress', 'A workshop download is in progress. Keep the launcher open while you play?', function () {
-          try { window.external.launchGame(window.getPlayerName(), opts); } catch (e2) { }
+          try {
+            if (exeName && exeUrl) {
+              window.external.launchGame(window.getPlayerName(), opts, exeName, exeUrl);
+            } else {
+              window.external.launchGame(window.getPlayerName(), opts);
+            }
+          } catch (e2) { }
         });
         return;
       }
-      if (hasKeepLauncher) { window.external.launchGame(window.getPlayerName(), opts); return; }
-      window.external.runGame(window.getPlayerName(), opts);
+
+      if (hasKeepLauncher) {
+        if (exeName && exeUrl) {
+          window.external.launchGame(window.getPlayerName(), opts, exeName, exeUrl);
+        } else {
+          window.external.launchGame(window.getPlayerName(), opts);
+        }
+        return;
+      }
+
+      if (exeName && exeUrl) {
+        window.external.runGame(window.getPlayerName(), opts, exeName, exeUrl);
+      } else {
+        window.external.runGame(window.getPlayerName(), opts);
+      }
     } catch (e) { }
   };
 
@@ -2632,6 +2671,116 @@
   };
 
   loadFriendsList();
+
+  function selectVersion(value, label) {
+    _selectedVersion = value;
+    if (verDropText) verDropText.textContent = label;
+    if (versionOptions) {
+      var opts = versionOptions.querySelectorAll('.version-selector-option');
+      for (var i = 0; i < opts.length; i++) {
+        if (opts[i].getAttribute('data-value') === value) {
+          opts[i].className = 'version-selector-option selected';
+        } else {
+          opts[i].className = 'version-selector-option';
+        }
+      }
+    }
+    if (versionDropdown) versionDropdown.className = 'version-selector-container';
+  }
+
+  function addVersionOption(value, label) {
+    if (!versionOptions) return;
+    var div = document.createElement('div');
+    div.className = 'version-selector-option';
+    div.setAttribute('data-value', value);
+    div.textContent = label;
+    div.onclick = function () { selectVersion(value, label); };
+    versionOptions.appendChild(div);
+  }
+
+  if (verDropDisplay) {
+    verDropDisplay.onclick = function () {
+      if (!versionDropdown) return;
+      if (versionDropdown.className.indexOf('open') !== -1) {
+        versionDropdown.className = 'version-selector-container';
+      } else {
+        versionDropdown.className = 'version-selector-container open';
+      }
+    };
+  }
+
+  if (versionOptions) {
+    var defaultOpt = versionOptions.querySelector('.version-selector-option');
+    if (defaultOpt) {
+      defaultOpt.onclick = function () { selectVersion('latest', 'Latest (Auto-update)'); };
+    }
+  }
+
+  document.addEventListener('click', function (e) {
+    if (versionDropdown && versionDropdown.className.indexOf('open') !== -1) {
+      var target = e.target || e.srcElement;
+      var inside = false;
+      while (target) {
+        if (target === versionDropdown) { inside = true; break; }
+        target = target.parentNode;
+      }
+      if (!inside) {
+        versionDropdown.className = 'version-selector-container';
+      }
+    }
+  });
+
+  function fetchReleases() {
+    if (!versionOptions) return;
+
+    var url = 'https://api.github.com/repos/Ezz-lol/boiii-free/releases';
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState !== 4) return;
+
+      if (xhr.status === 200) {
+        try {
+          var releases = JSON.parse(xhr.responseText);
+          if (releases && Array.isArray(releases)) {
+            for (var i = 0; i < releases.length; i++) {
+              var rel = releases[i];
+              var tagName = rel.tag_name;
+              var assets = rel.assets || [];
+              var boiiiAsset = null;
+              for (var j = 0; j < assets.length; j++) {
+                if (assets[j].name === 'boiii.exe') {
+                  boiiiAsset = assets[j];
+                  break;
+                }
+              }
+              if (boiiiAsset) {
+                _versionsData[tagName] = {
+                  url: boiiiAsset.browser_download_url,
+                  name: 'boiii-' + tagName + '.exe'
+                };
+                addVersionOption(tagName, tagName);
+              }
+            }
+          }
+        } catch (e) {
+          console.error('Error parsing releases:', e);
+        }
+      } else {
+        console.error('Error fetching releases:', xhr.status, xhr.statusText);
+      }
+    };
+    xhr.send();
+  }
+
+  fetchReleases();
+
+  // Beta build - placeholder URL (update when R2 bucket is configured)
+  _versionsData['beta'] = {
+    url: 'https://cdn.ezz.lol/boiii/beta/boiii.exe',
+    name: 'boiii-beta.exe'
+  };
+  addVersionOption('beta', 'Beta (Experimental)');
 
 })();
 

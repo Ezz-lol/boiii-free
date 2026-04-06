@@ -16,15 +16,19 @@ local activeServerList = nil
 
 local CUSTOM_TYPE_ALL = 100
 local CUSTOM_TYPE_CAMPAIGN = 101
+local CUSTOM_TYPE_ZOMBIES = 102
 
 local currentCustomMode = nil
 local filteredServerIndices = nil
+local currentRequestedServerType = nil
 
 local addressToRawIndex = {}
 local isRebuildingCustom = false
+local customActiveFilters = {}
+local customActiveAttributes = {}
 
 local function isCustomTab()
-	return currentCustomMode == "all" or currentCustomMode == "cp"
+	return currentCustomMode == "all" or currentCustomMode == "cp" or currentCustomMode == "zm"
 end
 
 local function isValidServer(info)
@@ -114,6 +118,54 @@ local function rebuildAddressMap()
 	end
 end
 
+local function passesCustomFilters(info)
+	-- Attribute filters
+	local attr = Enum.SteamServerAttributeFilter
+	if attr then
+		if customActiveAttributes[attr.STEAM_SERVER_BROWSER_ATTRIBUTEFILTER_DEDICATED] and not info.dedicated then return false end
+		if customActiveAttributes[attr.STEAM_SERVER_BROWSER_ATTRIBUTEFILTER_NOTDEDICATED] and info.dedicated then return false end
+		if customActiveAttributes[attr.STEAM_SERVER_BROWSER_ATTRIBUTEFILTER_RANKED] and not info.ranked then return false end
+		if customActiveAttributes[attr.STEAM_SERVER_BROWSER_ATTRIBUTEFILTER_UNRANKED] and info.ranked then return false end
+		if customActiveAttributes[attr.STEAM_SERVER_BROWSER_ATTRIBUTEFILTER_HARDCORE] and not info.hardcore then return false end
+		if customActiveAttributes[attr.STEAM_SERVER_BROWSER_ATTRIBUTEFILTER_CORE] and info.hardcore then return false end
+	end
+
+	local ft = Enum.SteamServerFilterType
+	if ft then
+		-- Map filter
+		local mapSet = customActiveFilters[ft.STEAM_SERVER_BROWSER_FILTERTYPE_MAP]
+		if mapSet and next(mapSet) and not mapSet[info.map] then return false end
+
+		-- Gametype filter
+		local gtSet = customActiveFilters[ft.STEAM_SERVER_BROWSER_FILTERTYPE_GAMETYPE]
+		if gtSet and next(gtSet) and not gtSet[info.gametype] then return false end
+
+		-- Mod filter
+		local modSet = customActiveFilters[ft.STEAM_SERVER_BROWSER_FILTERTYPE_MOD]
+		if modSet and next(modSet) and not modSet[info.modName or ""] then return false end
+
+		-- Keyword filter (match against name/description/mod)
+		local kwSet = customActiveFilters[ft.STEAM_SERVER_BROWSER_FILTERTYPE_KEYWORDS]
+		if kwSet and next(kwSet) then
+			local nameLower = string.lower(info.name or "")
+			local descLower = string.lower(info.desc or "")
+			local modLower = string.lower(info.modName or "")
+			local found = false
+			for kw, _ in pairs(kwSet) do
+				if string.find(nameLower, kw, 1, true) or
+				   string.find(descLower, kw, 1, true) or
+				   string.find(modLower, kw, 1, true) then
+					found = true
+					break
+				end
+			end
+			if not found then return false end
+		end
+	end
+
+	return true
+end
+
 local function rebuildFilteredIndices()
 	local rawCount = game.getrawservercount()
 	filteredServerIndices = {}
@@ -124,12 +176,17 @@ local function rebuildFilteredIndices()
 			addressToRawIndex[info.connectAddr] = i
 		end
 		if isValidServer(info) then
+			local modeOk = false
 			if currentCustomMode == "all" then
-				table.insert(filteredServerIndices, i)
+				modeOk = true
+			elseif currentCustomMode == "zm" then
+				modeOk = (info.zombies == true)
 			elseif currentCustomMode == "cp" then
-				if info.campaign and info.campaign == 1 then
-					table.insert(filteredServerIndices, i)
-				end
+				modeOk = (info.campaign and info.campaign == 1)
+			end
+
+			if modeOk and passesCustomFilters(info) then
+				table.insert(filteredServerIndices, i)
 			end
 		end
 	end
@@ -148,6 +205,12 @@ if not __sb_originals then
 		Sort = Engine.SteamServerBrowser_Sort,
 		HeaderNew = CoD.ServerBrowserHeader and CoD.ServerBrowserHeader.new or nil,
 		CreateLobbyBrowser = LUI.createMenu and LUI.createMenu.LobbyServerBrowserOnline or nil,
+		AddFilter = Engine.SteamServerBrowser_AddFilter,
+		RemoveFilter = Engine.SteamServerBrowser_RemoveFilter,
+		ClearFilter = Engine.SteamServerBrowser_ClearFilter,
+		SetAttributeFilter = Engine.SteamServerBrowser_SetAttributeFilter,
+		ClearAttributeFilters = Engine.SteamServerBrowser_ClearAttributeFilters,
+		GetCurrentServerRequestType = Engine.SteamServerBrowser_GetCurrentServerRequestType,
 	}
 end
 local SB = __sb_originals
@@ -158,6 +221,7 @@ if SB.RequestServers then
 		skullSortedOrder = nil
 		skullSortAscending = nil
 		currentSortType = nil
+		currentRequestedServerType = serverType
 
 		local ok, err
 		if serverType == CUSTOM_TYPE_ALL then
@@ -166,10 +230,25 @@ if SB.RequestServers then
 		elseif serverType == CUSTOM_TYPE_CAMPAIGN then
 			currentCustomMode = "cp"
 			ok, err = pcall(SB.RequestServers, Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_INTERNET)
+		elseif serverType == CUSTOM_TYPE_ZOMBIES then
+			currentCustomMode = "zm"
+			ok, err = pcall(SB.RequestServers, Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_INTERNET)
 		else
 			currentCustomMode = nil
 			ok, err = pcall(SB.RequestServers, serverType)
 		end
+	end
+end
+
+-- Override GetCurrentServerRequestType so RefreshLobbyServerBrowser preserves custom tab state
+if SB.GetCurrentServerRequestType then
+	Engine.SteamServerBrowser_GetCurrentServerRequestType = function()
+		if currentRequestedServerType then
+			return currentRequestedServerType
+		end
+		local ok, result = pcall(SB.GetCurrentServerRequestType)
+		if ok then return result end
+		return Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_INTERNET
 	end
 end
 
@@ -185,6 +264,72 @@ if SB.Sort then
 				pcall(function() activeServerList:updateDataSource(false, false) end)
 			end
 		end
+	end
+end
+
+-- Hook filter APIs to track state and trigger rebuilds on custom tabs
+local function triggerCustomRebuild()
+	if isCustomTab() and activeServerList and not isRebuildingCustom then
+		pcall(function()
+			isRebuildingCustom = true
+			local customCount = rebuildFilteredIndices()
+			activeServerList.serverCount = customCount
+			if activeServerList.serverBrowserRootModel then
+				local countModel = Engine.GetModel(activeServerList.serverBrowserRootModel, "serverListCount")
+				if countModel then Engine.SetModelValue(countModel, customCount) end
+				local updatedModel = Engine.GetModel(activeServerList.serverBrowserRootModel, "serverListUpdatedCount")
+				if updatedModel then Engine.SetModelValue(updatedModel, customCount) end
+			end
+			activeServerList:updateDataSource(false, false)
+			isRebuildingCustom = false
+		end)
+	end
+end
+
+if SB.AddFilter then
+	Engine.SteamServerBrowser_AddFilter = function(filterType, id)
+		customActiveFilters[filterType] = customActiveFilters[filterType] or {}
+		customActiveFilters[filterType][id] = true
+		local ok, err = pcall(SB.AddFilter, filterType, id)
+		triggerCustomRebuild()
+	end
+end
+
+if SB.RemoveFilter then
+	Engine.SteamServerBrowser_RemoveFilter = function(filterType, id)
+		if customActiveFilters[filterType] then
+			customActiveFilters[filterType][id] = nil
+		end
+		local ok, err = pcall(SB.RemoveFilter, filterType, id)
+		triggerCustomRebuild()
+	end
+end
+
+if SB.ClearFilter then
+	Engine.SteamServerBrowser_ClearFilter = function(filterType)
+		customActiveFilters[filterType] = nil
+		local ok, err = pcall(SB.ClearFilter, filterType)
+		triggerCustomRebuild()
+	end
+end
+
+if SB.SetAttributeFilter then
+	Engine.SteamServerBrowser_SetAttributeFilter = function(attr, active)
+		if active then
+			customActiveAttributes[attr] = true
+		else
+			customActiveAttributes[attr] = nil
+		end
+		local ok, err = pcall(SB.SetAttributeFilter, attr, active)
+		triggerCustomRebuild()
+	end
+end
+
+if SB.ClearAttributeFilters then
+	Engine.SteamServerBrowser_ClearAttributeFilters = function()
+		customActiveAttributes = {}
+		local ok, err = pcall(SB.ClearAttributeFilters)
+		triggerCustomRebuild()
 	end
 end
 
@@ -213,7 +358,7 @@ DataSources.ServerBrowserCategories = ListHelper_SetupDataSource("ServerBrowserC
 	table.insert(tabs, {
 		models = {
 			tabName = "MENU_ZOMBIES_CAPS",
-			serverType = Enum.SteamServerRequestType.STEAM_SERVER_REQUEST_TYPE_ZOMBIES
+			serverType = CUSTOM_TYPE_ZOMBIES
 		}
 	})
 
@@ -868,3 +1013,156 @@ if SB.CreateLobbyBrowser then
 		return self
 	end
 end
+
+-- Override filter data sources to be mode-aware (zombie/campaign/all)
+pcall(function()
+	local freerunMaps = {
+		mp_freerun_01 = true, mp_freerun_02 = true,
+		mp_freerun_03 = true, mp_freerun_04 = true
+	}
+
+	local function getSessionModeForTab()
+		if currentCustomMode == "zm" then
+			return Enum.eModes.MODE_ZOMBIES
+		elseif currentCustomMode == "cp" then
+			return Enum.eModes.MODE_CAMPAIGN
+		else
+			return Enum.eModes.MODE_MULTIPLAYER
+		end
+	end
+
+	local function isAllModeFilter()
+		return currentCustomMode == nil or currentCustomMode == "all"
+	end
+
+	-- Base maps (non-DLC)
+	DataSources.ServerBrowserFilter = DataSourceHelpers.ListSetup("ServerBrowserFilter", function(arg0, arg1)
+		local items = {}
+		table.insert(items, {
+			models = {
+				type = Enum.SteamServerFilterType.STEAM_SERVER_BROWSER_FILTERTYPE_MAP,
+				id = "any",
+				name = "PLATFORM_ANY"
+			}
+		})
+		if CoD.mapsTable then
+			local sessionMode = getSessionModeForTab()
+			local sorted = {}
+			local seenNames = {}
+			for key, data in pairs(CoD.mapsTable) do
+				if not freerunMaps[key] and data.dlc_pack == 0 then
+					local show = false
+					if isAllModeFilter() then
+						show = true
+					else
+						show = (data.session_mode == sessionMode)
+					end
+					if show and not seenNames[data.mapName] then
+						seenNames[data.mapName] = true
+						table.insert(sorted, {key = key, data = data})
+					end
+				end
+			end
+			table.sort(sorted, function(a, b)
+				return (a.data.unique_id or 0) < (b.data.unique_id or 0)
+			end)
+			for _, entry in ipairs(sorted) do
+				table.insert(items, {
+					models = {
+						type = Enum.SteamServerFilterType.STEAM_SERVER_BROWSER_FILTERTYPE_MAP,
+						id = entry.key,
+						name = entry.data.mapName
+					}
+				})
+			end
+		end
+		return items
+	end, false)
+
+	-- DLC maps
+	DataSources.ServerBrowserDLCFilter = DataSourceHelpers.ListSetup("ServerBrowserDLCFilter", function(arg0, arg1)
+		local items = {}
+		if CoD.mapsTable then
+			local sessionMode = getSessionModeForTab()
+			local sorted = {}
+			local seenNames = {}
+			for key, data in pairs(CoD.mapsTable) do
+				if not freerunMaps[key] and data.dlc_pack ~= nil and data.dlc_pack > 0 then
+					local show = false
+					if isAllModeFilter() then
+						show = true
+					else
+						show = (data.session_mode == sessionMode)
+					end
+					if show and not seenNames[data.mapName] then
+						seenNames[data.mapName] = true
+						table.insert(sorted, {key = key, data = data})
+					end
+				end
+			end
+			table.sort(sorted, function(a, b)
+				return (a.data.unique_id or 0) < (b.data.unique_id or 0)
+			end)
+			for _, entry in ipairs(sorted) do
+				table.insert(items, {
+					models = {
+						type = Enum.SteamServerFilterType.STEAM_SERVER_BROWSER_FILTERTYPE_MAP,
+						id = entry.key,
+						name = entry.data.mapName
+					}
+				})
+			end
+		end
+		return items
+	end, false)
+
+	-- Game modes
+	DataSources.ServerBrowserGameModeFilter = DataSourceHelpers.ListSetup("ServerBrowserGameModeFilter", function(arg0, arg1)
+		local items = {}
+		table.insert(items, {
+			models = {
+				type = Enum.SteamServerFilterType.STEAM_SERVER_BROWSER_FILTERTYPE_GAMETYPE,
+				id = "any",
+				name = "PLATFORM_ANY"
+			}
+		})
+		local sessionMode = getSessionModeForTab()
+		local modes = {}
+		if isAllModeFilter() then
+			-- Show gametypes from all modes
+			for _, mode in ipairs({Enum.eModes.MODE_MULTIPLAYER, Enum.eModes.MODE_ZOMBIES}) do
+				local ok, gametypes = pcall(Engine.GetGametypesBase, mode)
+				if ok and gametypes then
+					for _, gt in pairs(gametypes) do
+						if not modes[gt.gametype] then
+							modes[gt.gametype] = gt
+						end
+					end
+				end
+			end
+		else
+			local ok, gametypes = pcall(Engine.GetGametypesBase, sessionMode)
+			if ok and gametypes then
+				for _, gt in pairs(gametypes) do
+					modes[gt.gametype] = gt
+				end
+			end
+		end
+		for _, gt in pairs(modes) do
+			local allowed = true
+			if CoD.AllowGameType then
+				allowed = CoD.AllowGameType(gt.gametype)
+			end
+			if allowed then
+				table.insert(items, {
+					models = {
+						type = Enum.SteamServerFilterType.STEAM_SERVER_BROWSER_FILTERTYPE_GAMETYPE,
+						id = gt.gametype,
+						name = gt.name
+					}
+				})
+			end
+		end
+		return items
+	end, false)
+end)

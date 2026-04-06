@@ -174,24 +174,20 @@ namespace exception
 				const std::filesystem::path p(path);
 				if (p.extension() == L".dmp")
 				{
-					const auto root_path = utils::nt::library{}.get_path().parent_path();
-					const auto minidumps_path = root_path / "minidumps";
+					const auto minidumps_path = game::get_appdata_path() / "minidumps";
 					std::filesystem::create_directories(minidumps_path);
 
-					if (p.parent_path() == root_path)
-					{
-						const auto new_path = minidumps_path / p.filename();
-						const auto new_handle = CreateFileW(new_path.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr,
-						                                    CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+					const auto new_path = minidumps_path / p.filename();
+					const auto new_handle = CreateFileW(new_path.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr,
+					                                    CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 
-						if (new_handle != INVALID_HANDLE_VALUE)
-						{
-							const auto result = mini_dump_write_dump_hook.invoke<BOOL>(
-								h_process, process_id, new_handle, dump_type, exception_param, user_stream_param,
-								callback_param);
-							CloseHandle(new_handle);
-							return result;
-						}
+					if (new_handle != INVALID_HANDLE_VALUE)
+					{
+						const auto result = mini_dump_write_dump_hook.invoke<BOOL>(
+							h_process, process_id, new_handle, dump_type, exception_param, user_stream_param,
+							callback_param);
+						CloseHandle(new_handle);
+						return result;
 					}
 				}
 			}
@@ -260,20 +256,21 @@ namespace exception
 				"Address: 0x%p (RVA: 0x%llX)\n"
 				"Module: %s\n"
 				"%s%s"
-				"\nA crash dump has been saved to the 'minidumps' folder.\n"
+				"\nA crash dump has been saved to:\n%s\n"
 				"Please report this crash and upload the dump file on our Discord:\n"
 				"https://dc.ezz.lol\n",
 				exception_name, exception_data.code, location.c_str(),
 				exception_data.address, frame.rva, frame.module_name.c_str(),
 				frame.function_name.empty() ? "" : "Function: ",
-				frame.function_name.empty() ? "" : (frame.function_name + "\n").c_str());
+				frame.function_name.empty() ? "" : (frame.function_name + "\n").c_str(),
+				(game::get_appdata_path() / "minidumps").string().c_str());
 
 			utils::thread::suspend_other_threads();
 			show_mouse_cursor();
 
 			game::show_error(error_str.data(), "Ezz ERROR");
 
-			ShellExecuteA(nullptr, "open", "minidumps", nullptr, nullptr, SW_SHOWNORMAL);
+			ShellExecuteA(nullptr, "open", (game::get_appdata_path() / "minidumps").string().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 
 			TerminateProcess(GetCurrentProcess(), exception_data.code);
 		}
@@ -314,12 +311,13 @@ namespace exception
 
 				game::Com_Error(game::ERR_DROP,
 				                "%s (0x%08X) at %s\n\n"
-				                "A crash dump has been saved to the 'minidumps' folder.\n\n"
+				                "A crash dump has been saved to:\n%s\n\n"
 				                "Ezz has tried to recover your game, but it might not run stable anymore.\n\n"
 				                "Make sure to update your graphics card drivers and install operating system updates!\n"
 				                "Closing or restarting Steam might also help.\n\n"
 				                "If this keeps happening, please report it on our Discord: https://dc.ezz.lol",
-				                exception_name, exception_data.code, location.c_str());
+				                exception_name, exception_data.code, location.c_str(),
+				                (game::get_appdata_path() / "minidumps").string().c_str());
 			}
 			else
 			{
@@ -509,8 +507,8 @@ namespace exception
 
 		void write_minidump(const LPEXCEPTION_POINTERS exceptioninfo)
 		{
-			const std::string crash_name = utils::string::va("minidumps/ezz-crash-%s.zip",
-			                                                 get_timestamp().data());
+			const auto crash_name = (game::get_appdata_path() / "minidumps" /
+				utils::string::va("ezz-crash-%s.zip", get_timestamp().data())).string();
 
 			utils::compression::zip::archive zip_file{};
 			zip_file.add("crash.dmp", create_minidump(exceptioninfo));
@@ -820,8 +818,7 @@ namespace exception
 			main_thread_id = GetCurrentThreadId();
 			SetUnhandledExceptionFilter(exception_filter);
 
-			const auto root_path = utils::nt::library{}.get_path().parent_path();
-			std::filesystem::create_directories(root_path / "minidumps");
+			std::filesystem::create_directories(game::get_appdata_path() / "minidumps");
 		}
 
 		void post_load() override

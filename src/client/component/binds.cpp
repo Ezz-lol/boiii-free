@@ -93,6 +93,8 @@ namespace binds
 				return;
 			}
 
+			const bool show_toasts = static_cast<int>(ops.size()) <= BATCH_THRESHOLD;
+
 			bool changed = false;
 			std::lock_guard lock(binds_mutex);
 			for (const auto& op : ops)
@@ -107,25 +109,28 @@ namespace binds
 						printf("[Binds] Rebind: %s -> %s (was: %s)\n",
 						       op.key.c_str(), op.cmd.c_str(), it->second.c_str());
 						it->second = op.cmd;
-						toast::show("Bind Updated",
-						            op.key + " -> " + op.cmd, "t7_icon_options_overlays");
+						if (show_toasts)
+							toast::show("Bind Updated",
+							            op.key + " -> " + op.cmd, "t7_icon_options_overlays");
 						changed = true;
 					}
 					else if (it == custom_binds.end())
 					{
 						custom_binds[op.key] = op.cmd;
 						changed = true;
+						printf("[Binds] Bind: %s -> %s\n", op.key.c_str(), op.cmd.c_str());
+						if (show_toasts)
+							toast::show("Bind Saved",
+							            op.key + " -> " + op.cmd, "t7_icon_save_overlays");
 					}
-					printf("[Binds] Bind: %s -> %s\n", op.key.c_str(), op.cmd.c_str());
-					toast::show("Bind Saved",
-					            op.key + " -> " + op.cmd, "t7_icon_save_overlays");
 					break;
 				}
 				case pending_op::UNBIND:
 					if (custom_binds.erase(op.key))
 					{
 						printf("[Binds] Unbind: %s\n", op.key.c_str());
-						toast::info("Bind Removed", op.key);
+						if (show_toasts)
+							toast::info("Bind Removed", op.key);
 						changed = true;
 					}
 					break;
