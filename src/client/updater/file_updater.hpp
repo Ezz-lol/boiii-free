@@ -27,10 +27,13 @@ namespace updater
 
 		[[nodiscard]] bool is_outdated_file(const file_info& file) const;
 		[[nodiscard]] std::filesystem::path get_drive_filename(const file_info& file) const;
+		[[nodiscard]] std::filesystem::path get_target_host_binary_path() const;
+		[[nodiscard]] bool should_switch_to_target_host() const;
 
 		void move_current_process_file() const;
 		void restore_current_process_file() const;
 		void delete_old_process_file() const;
+		void relaunch_target_host_binary() const;
 
 		void cleanup_directories(const std::vector<file_info>& files) const;
 		void cleanup_root_directory(const std::vector<file_info>& files) const;

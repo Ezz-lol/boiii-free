@@ -10,6 +10,7 @@
 #include <utils/io.hpp>
 #include <utils/progress_ui.hpp>
 #include <utils/compression.hpp>
+#include <utils/string.hpp>
 
 #define UPDATE_SERVER "https://r2.ezz.lol/"
 
@@ -22,14 +23,47 @@ namespace updater
 {
 	namespace
 	{
+		constexpr auto UPDATE_HOST_BINARY_BETA = "boiii-beta.exe";
+
+		bool use_beta_updates()
+		{
+			return utils::flags::has_flag("beta");
+		}
+
 		std::string get_update_file()
 		{
-			return UPDATE_FILE_MAIN;
+			return use_beta_updates() ? UPDATE_SERVER "boiii-beta.json" : UPDATE_FILE_MAIN;
 		}
 
 		std::string get_update_folder()
 		{
-			return UPDATE_FOLDER_MAIN;
+			return use_beta_updates() ? UPDATE_SERVER "boiii/beta/" : UPDATE_FOLDER_MAIN;
+		}
+
+		std::string get_update_host_binary()
+		{
+			return use_beta_updates() ? UPDATE_HOST_BINARY_BETA : UPDATE_HOST_BINARY;
+		}
+
+		bool is_host_binary_name(const std::string& name)
+		{
+			if (use_beta_updates())
+			{
+				return name == UPDATE_HOST_BINARY_BETA || name == UPDATE_HOST_BINARY;
+			}
+
+			return name == UPDATE_HOST_BINARY;
+		}
+
+		std::string normalize_path_key(const std::filesystem::path& path)
+		{
+			auto key = path.lexically_normal().generic_string();
+			for (auto& ch : key)
+			{
+				ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));
+			}
+
+			return key;
 		}
 
 		std::vector<file_info> parse_file_infos(const std::string& json)
@@ -89,9 +123,11 @@ namespace updater
 
 		const file_info* find_host_file_info(const std::vector<file_info>& outdated_files)
 		{
+			const auto host_binary = get_update_host_binary();
+
 			for (const auto& file : outdated_files)
 			{
-				if (file.name == UPDATE_HOST_BINARY)
+				if (file.name == host_binary || (use_beta_updates() && file.name == UPDATE_HOST_BINARY))
 				{
 					return &file;
 				}
@@ -122,6 +158,7 @@ namespace updater
 		  , process_file_(std::move(process_file))
 		  , dead_process_file_(process_file_)
 	{
+		this->dead_process_file_ = this->get_target_host_binary_path();
 		this->dead_process_file_.replace_extension(".exe.old");
 
 		if (this->process_file_.extension() == ".old")
@@ -209,11 +246,36 @@ namespace updater
 
 		if (outdated_files.empty())
 		{
+			if (this->should_switch_to_target_host())
+			{
+				this->relaunch_target_host_binary();
+				throw update_cancelled();
+			}
+
 			return;
 		}
 
+		std::vector<file_info> non_host_outdated_files{};
+		non_host_outdated_files.reserve(outdated_files.size());
+		for (const auto& file : outdated_files)
+		{
+			if (!is_host_binary_name(file.name))
+			{
+				non_host_outdated_files.emplace_back(file);
+			}
+		}
+
 		this->update_host_binary(outdated_files);
-		this->update_files(outdated_files);
+		if (!non_host_outdated_files.empty())
+		{
+			this->update_files(non_host_outdated_files);
+		}
+
+		if (this->should_switch_to_target_host())
+		{
+			this->relaunch_target_host_binary();
+			throw update_cancelled();
+		}
 
 		std::this_thread::sleep_for(1s);
 	}
@@ -246,7 +308,7 @@ namespace updater
 		}
 
 		const auto out_file = this->get_drive_filename(file);
-		const bool is_exe = file.name.ends_with(".exe") || file.name == UPDATE_HOST_BINARY;
+		const bool is_exe = file.name.ends_with(".exe") || file.name == get_update_host_binary();
 
 		if (is_exe)
 		{
@@ -329,10 +391,18 @@ namespace updater
 			return;
 		}
 
+		const auto target_host_path = this->get_target_host_binary_path();
+		const auto normalized_target = normalize_path_key(target_host_path);
+		const auto normalized_process = normalize_path_key(this->process_file_);
+		const bool updating_running_host = normalized_target == normalized_process;
+
 		try
 		{
 			OutputDebugStringA("Starting exe update process...\n");
-			this->move_current_process_file();
+			if (updating_running_host)
+			{
+				this->move_current_process_file();
+			}
 
 			OutputDebugStringA("Waiting for file system to settle...\n");
 			std::this_thread::sleep_for(500ms);
@@ -352,7 +422,7 @@ namespace updater
 
 					OutputDebugStringA("Verifying final exe file...\n");
 					std::string verify_data{};
-					if (!utils::io::read_file(this->process_file_, &verify_data))
+					if (!utils::io::read_file(target_host_path, &verify_data))
 					{
 						throw std::runtime_error("Failed to read updated exe for verification");
 					}
@@ -389,19 +459,21 @@ namespace updater
 		}
 		catch (...)
 		{
-			OutputDebugStringA("Exe update failed, restoring old file...\n");
-			this->restore_current_process_file();
+			if (updating_running_host)
+			{
+				OutputDebugStringA("Exe update failed, restoring old file...\n");
+				this->restore_current_process_file();
+			}
 			throw;
 		}
 
 		OutputDebugStringA("Exe update complete, preparing to relaunch...\n");
 
-		if (!utils::flags::has_flag("norelaunch"))
+		if (updating_running_host && !utils::flags::has_flag("norelaunch"))
 		{
 			utils::nt::relaunch_self();
+			throw update_cancelled();
 		}
-
-		throw update_cancelled();
 	}
 
 	void file_updater::update_files(const std::vector<file_info>& outdated_files) const
@@ -472,7 +544,7 @@ namespace updater
 	bool file_updater::is_outdated_file(const file_info& file) const
 	{
 #ifndef NDEBUG
-		if (file.name == UPDATE_HOST_BINARY && !utils::flags::has_flag("update"))
+		if (file.name == get_update_host_binary() && !utils::flags::has_flag("update"))
 		{
 			OutputDebugStringA("Skipping host binary update in debug build (use -update flag to enable)\n");
 			return false;
@@ -506,12 +578,35 @@ namespace updater
 
 	std::filesystem::path file_updater::get_drive_filename(const file_info& file) const
 	{
-		if (file.name == UPDATE_HOST_BINARY)
+		if (is_host_binary_name(file.name))
 		{
-			return this->process_file_;
+			return this->get_target_host_binary_path();
 		}
 
 		return this->base_ / file.name;
+	}
+
+	std::filesystem::path file_updater::get_target_host_binary_path() const
+	{
+		if (use_beta_updates())
+		{
+			return this->process_file_.parent_path() / get_update_host_binary();
+		}
+
+		return this->process_file_;
+	}
+
+	bool file_updater::should_switch_to_target_host() const
+	{
+		if (!use_beta_updates())
+		{
+			return false;
+		}
+
+		const auto target_host_path = this->get_target_host_binary_path();
+		const auto normalized_target = normalize_path_key(target_host_path);
+		const auto normalized_process = normalize_path_key(this->process_file_);
+		return normalized_target != normalized_process && utils::io::file_exists(target_host_path);
 	}
 
 	void file_updater::move_current_process_file() const
@@ -597,6 +692,59 @@ namespace updater
 		if (utils::io::file_exists(this->dead_process_file_))
 		{
 			OutputDebugStringA("Warning: Could not delete old process file after 4 attempts\n");
+		}
+	}
+
+	void file_updater::relaunch_target_host_binary() const
+	{
+		if (utils::flags::has_flag("norelaunch"))
+		{
+			return;
+		}
+
+		const auto exe_path = this->get_target_host_binary_path().generic_string();
+		std::string command_line = "\"" + exe_path + "\"";
+
+		int num_args = 0;
+		auto* const argv = CommandLineToArgvW(GetCommandLineW(), &num_args);
+		for (auto i = 1; i < num_args && argv; ++i)
+		{
+			std::wstring wide_arg(argv[i]);
+			std::string arg = utils::string::convert(wide_arg);
+
+			if (arg != "norelaunch" && arg != "update")
+			{
+				command_line += " \"" + arg + "\"";
+			}
+		}
+
+		if (argv)
+		{
+			LocalFree(argv);
+		}
+
+		STARTUPINFOA startup_info{};
+		PROCESS_INFORMATION process_info{};
+		startup_info.cb = sizeof(startup_info);
+
+		char current_dir[MAX_PATH]{};
+		GetCurrentDirectoryA(sizeof(current_dir), current_dir);
+
+		if (!CreateProcessA(exe_path.data(), command_line.data(), nullptr, nullptr, false,
+			CREATE_NEW_CONSOLE, nullptr, current_dir, &startup_info, &process_info))
+		{
+			const auto error = GetLastError();
+			throw std::runtime_error("Failed to relaunch target host binary (error " + std::to_string(error) + "): " + exe_path);
+		}
+
+		if (process_info.hThread && process_info.hThread != INVALID_HANDLE_VALUE)
+		{
+			CloseHandle(process_info.hThread);
+		}
+
+		if (process_info.hProcess && process_info.hProcess != INVALID_HANDLE_VALUE)
+		{
+			CloseHandle(process_info.hProcess);
 		}
 	}
 

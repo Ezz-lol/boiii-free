@@ -4,6 +4,7 @@
 #include <utils/io.hpp>
 #include <utils/string.hpp>
 #include <utils/http.hpp>
+#include <utils/flags.hpp>
 #include <utils/com.hpp>
 
 #include "launcher.hpp"
@@ -1163,6 +1164,35 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 		{
 			const auto self = utils::nt::library::get_by_address(relaunch_with_launch_options);
 			auto exe_path = self.get_path();
+			const bool use_beta_binary = exe_name.empty() && exe_url.empty() && [&]()
+			{
+				int num_args = 0;
+				auto* const argv = CommandLineToArgvW(GetCommandLineW(), &num_args);
+				bool has_beta = false;
+
+				for (auto i = 1; i < num_args && argv; ++i)
+				{
+					std::wstring wide_arg(argv[i]);
+					std::string arg = utils::string::to_lower(utils::string::convert(wide_arg));
+					while (!arg.empty() && arg[0] == '-')
+					{
+						arg.erase(arg.begin());
+					}
+
+					if (arg == "beta")
+					{
+						has_beta = true;
+						break;
+					}
+				}
+
+				if (argv)
+				{
+					LocalFree(argv);
+				}
+
+				return has_beta;
+			}();
 
 			if (!exe_name.empty() && !exe_url.empty())
 			{
@@ -1225,6 +1255,15 @@ for (auto& p : prefixes) utils::string::trim(p); std::vector<std::filesystem::pa
 				{
 					MessageBoxA(nullptr, "Custom version executable not found after download attempt.", "Launcher Error", MB_ICONERROR);
 					return;
+				}
+			}
+			else if (use_beta_binary)
+			{
+				std::error_code ec;
+				const auto beta_exe = exe_path.parent_path() / "versions" / "boiii-beta.exe";
+				if (std::filesystem::exists(beta_exe, ec))
+				{
+					exe_path = beta_exe;
 				}
 			}
 
