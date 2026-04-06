@@ -1,0 +1,20 @@
+name: Check Formatting
+
+on:
+  push:
+    branches: [main, beta]
+  pull_request:
+    branches: [main, beta]
+
+jobs:
+  formatting-check:
+    name: Check Code Formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run clang-format style check
+        uses: jwlawson/actions-clang-format@v2
+        with:
+          files: "src/**/*.cpp src/**/*.cxx src/**/*.c src/**/*.hpp src/**/*.hxx src/**/*.h"
+          style: "file"
