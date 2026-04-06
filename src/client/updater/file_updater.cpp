@@ -23,8 +23,6 @@ namespace updater
 {
 	namespace
 	{
-		constexpr auto UPDATE_HOST_BINARY_BETA = "boiii-beta.exe";
-
 		bool use_beta_updates()
 		{
 			return utils::flags::has_flag("beta");
@@ -40,18 +38,8 @@ namespace updater
 			return use_beta_updates() ? UPDATE_SERVER "boiii/beta/" : UPDATE_FOLDER_MAIN;
 		}
 
-		std::string get_update_host_binary()
-		{
-			return use_beta_updates() ? UPDATE_HOST_BINARY_BETA : UPDATE_HOST_BINARY;
-		}
-
 		bool is_host_binary_name(const std::string& name)
 		{
-			if (use_beta_updates())
-			{
-				return name == UPDATE_HOST_BINARY_BETA || name == UPDATE_HOST_BINARY;
-			}
-
 			return name == UPDATE_HOST_BINARY;
 		}
 
@@ -123,7 +111,7 @@ namespace updater
 
 		const file_info* find_host_file_info(const std::vector<file_info>& outdated_files)
 		{
-			const auto host_binary = get_update_host_binary();
+			const auto host_binary = UPDATE_HOST_BINARY;
 
 			for (const auto& file : outdated_files)
 			{
@@ -308,7 +296,7 @@ namespace updater
 		}
 
 		const auto out_file = this->get_drive_filename(file);
-		const bool is_exe = file.name.ends_with(".exe") || file.name == get_update_host_binary();
+		const bool is_exe = file.name.ends_with(".exe") || file.name == UPDATE_HOST_BINARY;
 
 		if (is_exe)
 		{
@@ -544,7 +532,7 @@ namespace updater
 	bool file_updater::is_outdated_file(const file_info& file) const
 	{
 #ifndef NDEBUG
-		if (file.name == get_update_host_binary() && !utils::flags::has_flag("update"))
+		if (file.name == UPDATE_HOST_BINARY && !utils::flags::has_flag("update"))
 		{
 			OutputDebugStringA("Skipping host binary update in debug build (use -update flag to enable)\n");
 			return false;
@@ -588,25 +576,12 @@ namespace updater
 
 	std::filesystem::path file_updater::get_target_host_binary_path() const
 	{
-		if (use_beta_updates())
-		{
-			return this->process_file_.parent_path() / get_update_host_binary();
-		}
-
 		return this->process_file_;
 	}
 
 	bool file_updater::should_switch_to_target_host() const
 	{
-		if (!use_beta_updates())
-		{
-			return false;
-		}
-
-		const auto target_host_path = this->get_target_host_binary_path();
-		const auto normalized_target = normalize_path_key(target_host_path);
-		const auto normalized_process = normalize_path_key(this->process_file_);
-		return normalized_target != normalized_process && utils::io::file_exists(target_host_path);
+		return false;
 	}
 
 	void file_updater::move_current_process_file() const

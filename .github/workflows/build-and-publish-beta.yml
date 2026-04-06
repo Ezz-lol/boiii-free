@@ -1,0 +1,138 @@
+name: Build and Publish Beta to R2
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to build from (default: beta)'
+        required: false
+        default: 'beta'
+
+concurrency:
+  group: beta-build
+  cancel-in-progress: true
+
+env:
+  R2_BUCKET: ${{ secrets.R2_BUCKET }}
+  R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+  R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+  R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+  R2_FOLDER: boiii/beta
+  MANIFEST_FILE: boiii-beta.json
+
+jobs:
+  build:
+    name: Build Beta
+    runs-on: windows-2022
+    steps:
+      - name: Check out files
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          ref: ${{ github.event.inputs.branch }}
+          fetch-depth: 0
+          lfs: false
+
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v1.3.1
+
+      - name: Generate project files
+        run: tools/premake5 vs2022
+
+      - name: Set up problem matching
+        uses: ammaraskar/msvc-problem-matcher@master
+
+      - name: Build Release
+        run: msbuild /m /v:minimal /p:Configuration=Release /p:Platform=x64 build/boiii.sln
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: beta-build-artifacts
+          path: |
+            build/bin/x64/Release/boiii.exe
+            data/
+
+  publish:
+    name: Publish Beta to R2
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: beta-build-artifacts
+          path: artifacts
+
+      - name: Setup directory structure
+        run: |
+          mkdir -p upload/${{ env.R2_FOLDER }}
+
+          # Upload as boiii.exe (same name as stable, different R2 folder)
+          cp artifacts/build/bin/x64/Release/boiii.exe upload/${{ env.R2_FOLDER }}/boiii.exe
+
+          # Copy data directory
+          cp -r artifacts/data upload/${{ env.R2_FOLDER }}/
+
+      - name: Generate beta manifest JSON
+        run: |
+          cd upload/${{ env.R2_FOLDER }}
+
+          echo "[" > ../${{ env.MANIFEST_FILE }}
+
+          # Process boiii.exe
+          size=$(stat -c%s "boiii.exe")
+          hash=$(sha1sum "boiii.exe" | awk '{print toupper($1)}')
+          echo "  [\"boiii.exe\", $size, \"$hash\"]" >> ../${{ env.MANIFEST_FILE }}
+
+          # Add ext.dll entry if available
+          if [ -n "${{ secrets.EXT_DLL_SIZE }}" ] && [ -n "${{ secrets.EXT_DLL_HASH }}" ]; then
+            echo "  ,[\"ext.dll\", ${{ secrets.EXT_DLL_SIZE }}, \"${{ secrets.EXT_DLL_HASH }}\"]" >> ../${{ env.MANIFEST_FILE }}
+          fi
+
+          # Process all files in data directory
+          find data -type f | sort | while read file; do
+            size=$(stat -c%s "$file")
+            hash=$(sha1sum "$file" | awk '{print toupper($1)}')
+            echo "  ,[\"$file\", $size, \"$hash\"]" >> ../${{ env.MANIFEST_FILE }}
+          done
+
+          echo "]" >> ../${{ env.MANIFEST_FILE }}
+
+          echo "Generated beta manifest:"
+          cat ../${{ env.MANIFEST_FILE }}
+
+      - name: Install rclone
+        run: |
+          curl -O https://downloads.rclone.org/rclone-current-linux-amd64.deb
+          sudo dpkg -i rclone-current-linux-amd64.deb
+
+      - name: Configure rclone for R2
+        run: |
+          mkdir -p ~/.config/rclone
+          cat > ~/.config/rclone/rclone.conf << EOF
+          [r2]
+          type = s3
+          provider = Cloudflare
+          access_key_id = ${{ secrets.R2_ACCESS_KEY_ID }}
+          secret_access_key = ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          endpoint = https://${{ secrets.R2_ACCOUNT_ID }}.r2.cloudflarestorage.com
+          acl = private
+          no_check_bucket = true
+          EOF
+
+      - name: Upload to R2
+        run: |
+          # Upload beta binary and data
+          rclone copy upload/${{ env.R2_FOLDER }}/ r2:${{ env.R2_BUCKET }}/${{ env.R2_FOLDER }}/ --progress --header-upload "Content-Type: application/octet-stream"
+
+          # Upload beta manifest
+          rclone copy upload/${{ env.MANIFEST_FILE }} r2:${{ env.R2_BUCKET }}/ --progress --header-upload "Content-Type: application/octet-stream"
+
+      - name: Verify upload
+        run: |
+          echo "R2 bucket contents (beta):"
+          rclone ls r2:${{ env.R2_BUCKET }}/${{ env.R2_FOLDER }}/ | head -30
+          echo ""
+          echo "Beta manifest:"
+          rclone cat r2:${{ env.R2_BUCKET }}/${{ env.MANIFEST_FILE }}
