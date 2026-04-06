@@ -35,6 +35,29 @@ ext() {
   echo "${file_path##*.}"
 }
 
+starts_with() {
+  local str
+  str="$1"
+  local prefix
+  prefix="$2"
+
+  if [ -z "$str" ]; then
+    str="$(cat -)"
+  fi
+
+  if [ -z "$str" ]; then
+    echo "Error: No string provided to starts_with." >&2
+    exit 1
+  fi
+
+  if [ -z "$prefix" ]; then
+    echo "Error: No prefix provided to starts_with." >&2
+    exit 1
+  fi
+
+  [[ "$str" == "$prefix"* ]]
+}
+
 to_lowercase() {
   local input_str
   input_str="$1"

@@ -122,12 +122,15 @@ diff_code_files() {
     repo_root="$(repo_dir)"
   fi
 
+  local deps_dir
+  deps_dir="${repo_root}/deps"
+
   while IFS=$'\n' read -r staged; do
     abs_staged="$(normalize_path "${repo_root}/${staged}")"
     if [ -n "$abs_staged" ] && [ -f "$abs_staged" ]; then
       if path_in_tree_by_name "$abs_staged" "src" && can_be_formatted_by_clang_format "$abs_staged"; then
         echo "$abs_staged"
-      elif path_in_tree_by_name "$abs_staged" "data" && can_be_formatted_by_stylua "$abs_staged"; then
+      elif ! starts_with "$staged" "${deps_dir}" && can_be_formatted_by_stylua "$abs_staged"; then
         echo "$abs_staged"
       fi
     fi
@@ -152,11 +155,11 @@ SRC_FILES=()
 LUA_FILES=()
 while IFS=$'\n' read -r source_file; do
   if [ -n "$source_file" ] && [ -f "$source_file" ]; then
-    if path_in_tree_by_name "$source_file" "data"; then
-      LUA_FILES+=("$source_file")
-    elif path_in_tree_by_name "$source_file" "src"; then
+    if path_in_tree_by_name "$source_file" "src"; then
 
       SRC_FILES+=("$source_file")
+    elif can_be_formatted_by_stylua "$source_file"; then
+      LUA_FILES+=("$source_file")
     fi
   fi
 done < <(diff_code_files "$REPO_ROOT")
