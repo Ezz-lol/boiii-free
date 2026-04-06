@@ -166,28 +166,34 @@ if [ ${#SRC_FILES[@]} -eq 0 ] && [ ${#LUA_FILES[@]} -eq 0 ]; then
   exit 0
 fi
 
-echo "Running clang-format on staged files under src/"
-for source_file in "${SRC_FILES[@]}"; do
-  if [ -f "$source_file" ]; then
-    if clang-format -i -style=file "$source_file"; then
-      git add "$source_file"
+if [ ${#SRC_FILES[@]} -gt 0 ]; then
+
+  echo "Formatting staged C++ files..."
+  for source_file in "${SRC_FILES[@]}"; do
+    if [ -f "$source_file" ]; then
+      if clang-format -i -style=file "$source_file"; then
+        git add "$source_file"
+      else
+        echo "Error: clang-format failed on $source_file" >&2
+        exit 1
+      fi
+    fi
+  done
+  echo "C++ files formatted successfully."
+fi
+
+if [ ${#LUA_FILES[@]} -gt 0 ]; then
+  STYLUA_CONFIG_FILE="${REPO_ROOT}/.stylua.toml"
+  echo "Formatting staged lua files..."
+  for lua_file in "${LUA_FILES[@]}"; do
+    if stylua -f "$STYLUA_CONFIG_FILE" "$lua_file"; then
+      git add "$lua_file"
     else
-      echo "Error: clang-format failed on $source_file" >&2
+      echo "Error: stylua failed on $lua_file" >&2
       exit 1
     fi
-  fi
-done
-
-STYLUA_CONFIG_FILE="${REPO_ROOT}/.stylua.toml"
-echo
-echo "Running stylua on staged files under data/"
-for lua_file in "${LUA_FILES[@]}"; do
-  if stylua -f "$STYLUA_CONFIG_FILE" "$lua_file"; then
-    git add "$lua_file"
-  else
-    echo "Error: stylua failed on $lua_file" >&2
-    exit 1
-  fi
-done
+  done
+  echo "Lua files formatted successfully."
+fi
 
 exit 0
