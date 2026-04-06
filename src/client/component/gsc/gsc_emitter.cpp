@@ -25,7 +25,7 @@ namespace gsc_compiler
 				return false;
 
 			auto hex_part = input.substr(underscore + 1);
-			if (hex_part.empty() || hex_part.size() > 8)
+			if (hex_part.size() != 8)
 				return false;
 
 			for (char c : hex_part)
@@ -35,7 +35,7 @@ namespace gsc_compiler
 			}
 
 			out = static_cast<uint32_t>(std::stoul(hex_part, nullptr, 16));
-			return true;
+			return out != 0;
 		}
 
 		uint32_t gsc_hash(const std::string& input)
