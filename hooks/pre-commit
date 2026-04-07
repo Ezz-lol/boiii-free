@@ -91,7 +91,7 @@ src_diff_files() {
   fi
 
   while IFS=$'\n' read -r staged; do
-    if [ -n "$staged" ] && path_in_tree_by_name "$staged" "src" && can_be_formatted_by_clang_format "$staged"; then
+    if [ -n "$staged" ] && ! path_in_tree_by_name "$staged" "deps" && can_be_formatted_by_clang_format "$staged"; then
       echo "$staged"
     fi
   done < <(git --no-pager -C "${repo_root}" diff --cached --staged --name-only --diff-filter=ACMR)
@@ -122,7 +122,7 @@ if [ ${#FILES[@]} -eq 0 ]; then
   exit 0
 fi
 
-echo "Running clang-format on staged files..."
+echo "Formatting staged files..."
 for source_file in "${FILES[@]}"; do
   if [ -f "$source_file" ]; then
     if clang-format -i -style=file "$source_file"; then
