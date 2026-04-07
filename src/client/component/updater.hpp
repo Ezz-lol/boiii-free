@@ -1,6 +1,5 @@
 #pragma once
 
-namespace updater
-{
-	void update();
+namespace updater {
+void update();
 }

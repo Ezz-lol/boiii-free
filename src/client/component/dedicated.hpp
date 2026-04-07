@@ -1,6 +1,5 @@
 #pragma once
 
-namespace dedicated
-{
-	void send_heartbeat();
+namespace dedicated {
+void send_heartbeat();
 }

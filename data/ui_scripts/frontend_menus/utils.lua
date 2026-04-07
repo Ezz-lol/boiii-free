@@ -112,7 +112,7 @@ local AddButton = function(controller, options, button, isLargeButton, index)
       warning = button.warning,
       requiredChunk = button.selectedParam,
       starterPackUpgrade = button.starterPackUpgrade,
-      unloadMod = button.unloadMod
+      unloadMod = button.unloadMod,
     })
   else
     table.insert(options, {
@@ -128,7 +128,7 @@ local AddButton = function(controller, options, button, isLargeButton, index)
       warning = button.warning,
       requiredChunk = button.selectedParam,
       starterPackUpgrade = button.starterPackUpgrade,
-      unloadMod = button.unloadMod
+      unloadMod = button.unloadMod,
     })
   end
 end
@@ -156,5 +156,5 @@ return {
   AddSpacer = AddSpacer,
   RemoveButton = RemoveButton,
   RemoveSpaces = RemoveSpaces,
-  GetButtonIndex = GetButtonIndex
+  GetButtonIndex = GetButtonIndex,
 }
