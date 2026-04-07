@@ -1,0 +1,12 @@
+# stylua.toml
+column_width = 120
+line_endings = "Unix"
+indent_type = "Spaces"
+indent_width = 2
+quote_style = "AutoPreferDouble"
+call_parentheses = "Always"
+collapse_simple_statement = "Never"
+syntax = "LuaJIT"
+
+[sort_requires]
+enabled = true

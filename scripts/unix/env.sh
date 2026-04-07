@@ -5,7 +5,7 @@ normalize_path() {
   file_path="$1"
 
   if [ -z "$file_path" ]; then
-    file_path="$(read -r)"
+    file_path="$(cat -)"
   fi
 
   if [ -z "$file_path" ]; then
@@ -17,6 +17,77 @@ normalize_path() {
     file_path="$(readlink -f "$file_path")"
   fi
   realpath "$file_path"
+}
+
+ext() {
+  local file_path
+  file_path="$1"
+
+  if [ -z "$file_path" ]; then
+    file_path="$(cat -)"
+  fi
+
+  if [ -z "$file_path" ]; then
+    echo "Error: No file path provided to ext." >&2
+    exit 1
+  fi
+
+  echo "${file_path##*.}"
+}
+
+starts_with() {
+  local str
+  str="$1"
+  local prefix
+  prefix="$2"
+
+  if [ -z "$str" ]; then
+    str="$(cat -)"
+  fi
+
+  if [ -z "$str" ]; then
+    echo "Error: No string provided to starts_with." >&2
+    exit 1
+  fi
+
+  if [ -z "$prefix" ]; then
+    echo "Error: No prefix provided to starts_with." >&2
+    exit 1
+  fi
+
+  [[ "$str" == "$prefix"* ]]
+}
+
+to_lowercase() {
+  local input_str
+  input_str="$1"
+
+  if [ -z "$input_str" ]; then
+    input_str="$(cat -)"
+  fi
+
+  if [ -z "$input_str" ]; then
+    echo "Error: No input string provided to to_lowercase." >&2
+    exit 1
+  fi
+
+  echo "${input_str,,}"
+}
+
+to_uppercase() {
+  local input_str
+  input_str="$1"
+
+  if [ -z "$input_str" ]; then
+    input_str="$(cat -)"
+  fi
+
+  if [ -z "$input_str" ]; then
+    echo "Error: No input string provided to to_uppercase." >&2
+    exit 1
+  fi
+
+  echo "${input_str^^}"
 }
 
 # Returns the absolute path of the directory containing this script
@@ -89,7 +160,7 @@ path_remove_tree_by_name() {
 
 # Verifies required CLI tools are installed
 check_dependencies() {
-  local deps=("git" "clang-format")
+  local deps=("git" "clang-format" "stylua")
   for tool in "${deps[@]}"; do
     if ! command -v "$tool" &>/dev/null; then
       echo "Error: Required dependency '$tool' is not installed or not in PATH." >&2
