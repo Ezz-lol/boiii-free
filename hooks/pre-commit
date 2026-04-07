@@ -199,7 +199,6 @@ done < <(diff_files "$REPO_ROOT")
 
 num_files_to_format=$((${#CLANG_FORMAT_FILES[@]} + ${#STYLUA_FORMAT_FILES[@]}))
 if [ "$num_files_to_format" -eq 0 ]; then
-  echo "No staged files to format."
   exit 0
 fi
 
