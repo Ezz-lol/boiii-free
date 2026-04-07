@@ -75,11 +75,56 @@ repo_dir() {
 can_be_formatted_by_clang_format() {
   local file_path
   file_path="$1"
-  if clang-format -style=file --dry-run "$file_path" >/dev/null 2>&1; then
+
+  local file_ext
+  file_ext="${file_path##*.}"
+  file_ext="${file_ext,,}" # Convert to lowercase
+  case "$file_ext" in
+  # C
+  c | h)
     return 0
-  else
+    ;;
+  # C++
+  cc | cpp | cxx | hpp | hxx)
+    return 0
+    ;;
+
+  # JavaScript
+  js)
+    return 0
+    ;;
+  # JSON
+  json)
+    return 0
+    ;;
+  # Protocol Buffers
+  proto)
+    return 0
+    ;;
+  # Java
+  java)
+    return 0
+    ;;
+  # C#
+  cs)
+    return 0
+    ;;
+  # Objective-C
+  objc)
+    return 0
+    ;;
+  # SystemVerilog
+  sv | svh | svp | svl)
+    return 0
+    ;;
+  # Verilog
+  v | vlg | vt | vh | verilog | vo | vqm | vcd)
+    return 0
+    ;;
+  *)
     return 1
-  fi
+    ;;
+  esac
 
 }
 
