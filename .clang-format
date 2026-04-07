@@ -1,6 +1,6 @@
 # Language to format.
-# Options: Cpp, Java, JavaScript, ObjC, Proto, TableGen, TextProto
-Language: Cpp
+# Options: C, C#, JSON, Cpp, Java, JavaScript, ObjC, Proto, TableGen, TextProto
+Language: C, C#, JSON, Cpp, Java, JavaScript, ObjC, Proto, TableGen, TextProto
 
 # The style this configuration is based on.
 # Options: LLVM, Google, Chromium, Mozilla, WebKit, Microsoft, GNU
