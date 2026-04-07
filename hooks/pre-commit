@@ -1,0 +1,227 @@
+#!/bin/bash
+
+normalize_path() {
+  local file_path
+  file_path="$1"
+
+  if [ -z "$file_path" ]; then
+    file_path="$(cat -)"
+  fi
+
+  if [ -z "$file_path" ]; then
+    echo "Error: No file path provided to normalize_path." >&2
+    exit 1
+  fi
+
+  if [ -L "$file_path" ]; then
+    file_path="$(readlink -f "$file_path")"
+  fi
+  realpath "$file_path"
+}
+
+path_remove_tree_by_name() {
+  local input_path
+  input_path="$(normalize_path "$1")"
+
+  local dir_name
+  dir_name="$2"
+
+  if [ -z "$input_path" ]; then
+    echo "Error: No input path provided to path_remove_tree_by_name." >&2
+    exit 1
+  fi
+
+  if [ -z "$dir_name" ]; then
+    echo "Error: No directory name provided to path_remove_tree_by_name." >&2
+    exit 1
+  fi
+
+  local PATH_PARTS
+  PATH_PARTS=()
+  IFS='/' read -ra PATH_PARTS <<<"$input_path"
+
+  local out_path
+  out_path=""
+
+  for part in "${PATH_PARTS[@]}"; do
+    if [[ "$part" == "$dir_name" ]]; then
+      break
+    fi
+    out_path="${out_path}/${part}"
+  done
+  normalize_path "$out_path"
+}
+
+script_dir() {
+  normalize_path "$(dirname "$0")"
+}
+
+# Returns the root of the containing git repository
+repo_dir() {
+  local repo_dir
+  local script_dir_path
+  local earliest_possible_worktree_dir
+
+  script_dir_path="$(script_dir)"
+  earliest_possible_worktree_dir="$(path_remove_tree_by_name "$script_dir_path" ".git")"
+  repo_dir="$(git -C "${earliest_possible_worktree_dir}" rev-parse --show-toplevel | normalize_path)"
+  if ! [ -e "$repo_dir" ] || ! [ -d "$repo_dir" ] || ! [ -d "${repo_dir}/.git" ]; then
+    echo "Error: Unable to determine the root of the git repository." >&2
+    exit 1
+  fi
+  echo "$repo_dir"
+}
+
+can_be_formatted_by_clang_format() {
+  local file_path
+  file_path="$1"
+
+  local file_ext
+  file_ext="${file_path##*.}"
+  file_ext="${file_ext,,}" # Convert to lowercase
+  case "$file_ext" in
+  # C
+  c | h)
+    return 0
+    ;;
+  # C++
+  cc | cpp | cxx | hpp | hxx)
+    return 0
+    ;;
+
+  # JavaScript
+  js)
+    return 0
+    ;;
+  # JSON
+  json)
+    return 0
+    ;;
+  # Protocol Buffers
+  proto)
+    return 0
+    ;;
+  # Java
+  java)
+    return 0
+    ;;
+  # C#
+  cs)
+    return 0
+    ;;
+  # Objective-C
+  objc)
+    return 0
+    ;;
+  # SystemVerilog
+  sv | svh | svp | svl)
+    return 0
+    ;;
+  # Verilog
+  v | vlg | vt | vh | verilog | vo | vqm | vcd)
+    return 0
+    ;;
+  *)
+    return 1
+    ;;
+  esac
+
+}
+
+can_be_formatted_by_stylua() {
+  local file_path
+  file_path="$1"
+  # Does not support stdin-based argument passing to functions very well
+  # shellcheck disable=SC2119
+  file_ext="$(ext "$file_path" | to_lowercase)"
+  case "$file_ext" in
+  "lua")
+    return 0
+    ;;
+  "lui")
+    return 0
+    ;;
+  "luac")
+    return 0
+    ;;
+  "luau")
+    return 0
+    ;;
+  "wlua")
+    return 0
+    ;;
+  "rockspec")
+    return 0
+    ;;
+  *)
+    return 1
+    ;;
+  esac
+}
+
+diff_files() {
+  local repo_root
+  repo_root="$1"
+  if [ -z "$repo_root" ]; then
+    repo_root="$(repo_dir)"
+  fi
+
+  git --no-pager -C "${repo_root}" diff --cached --staged --name-only --diff-filter=ACMR
+
+}
+
+# Need to duplicate function here first to allow reliably finding and sourcing env.sh
+# shellcheck disable=SC2218
+REPO_ROOT="$(repo_dir)"
+. "${REPO_ROOT}/scripts/unix/env.sh"
+
+# Ensure git and clang-format are present
+check_dependencies
+
+if ! [ -e "$REPO_ROOT" ] || ! [ -d "$REPO_ROOT" ] || ! [ -d "${REPO_ROOT}/.git" ]; then
+  echo "Error: Unable to determine the root of the git repository." >&2
+  exit 1
+fi
+
+# Filter for staged, primary codebase source code files
+CLANG_FORMAT_FILES=()
+STYLUA_FORMAT_FILES=()
+while IFS=$'\n' read -r staged; do
+  abs_staged="$(normalize_path "${REPO_ROOT}/${staged}")"
+  if [ -n "$abs_staged" ] && [ -f "$abs_staged" ] && ! path_in_tree_by_name "$abs_staged" "deps"; then
+    if can_be_formatted_by_stylua "$abs_staged"; then
+      STYLUA_FORMAT_FILES+=("$abs_staged")
+    elif can_be_formatted_by_clang_format "$abs_staged"; then
+      CLANG_FORMAT_FILES+=("$abs_staged")
+    fi
+  fi
+done < <(diff_files "$REPO_ROOT")
+
+num_files_to_format=$((${#CLANG_FORMAT_FILES[@]} + ${#STYLUA_FORMAT_FILES[@]}))
+if [ "$num_files_to_format" -eq 0 ]; then
+  exit 0
+fi
+
+echo "Found ${num_files_to_format} staged files to format. Formatting..."
+for source_file in "${CLANG_FORMAT_FILES[@]}"; do
+  if [ -f "$source_file" ]; then
+    if clang-format -i -style=file "$source_file"; then
+      git add "$source_file"
+    else
+      echo "Error: clang-format failed on $source_file" >&2
+      exit 1
+    fi
+  fi
+done
+
+STYLUA_CONFIG_FILE="${REPO_ROOT}/.stylua.toml"
+for lua_file in "${STYLUA_FORMAT_FILES[@]}"; do
+  if stylua -f "$STYLUA_CONFIG_FILE" "$lua_file"; then
+    git add "$lua_file"
+  else
+    echo "Error: stylua failed on $lua_file" >&2
+    exit 1
+  fi
+done
+
+exit 0

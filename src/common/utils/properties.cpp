@@ -12,171 +12,147 @@
 #include "com.hpp"
 #include "string.hpp"
 
-namespace utils::properties
-{
-	namespace
-	{
-		using OutputStream = rapidjson::EncodedOutputStream<rapidjson::UTF8<>, rapidjson::FileWriteStream>;
-		using InputStream = rapidjson::EncodedInputStream<rapidjson::UTF8<>, rapidjson::FileReadStream>;
+namespace utils::properties {
+namespace {
+using OutputStream = rapidjson::EncodedOutputStream<rapidjson::UTF8<>,
+                                                    rapidjson::FileWriteStream>;
+using InputStream =
+    rapidjson::EncodedInputStream<rapidjson::UTF8<>, rapidjson::FileReadStream>;
 
-		std::filesystem::path get_properties_folder()
-		{
-			static auto props = get_appdata_path() / "user";
-			return props;
-		}
-
-		std::filesystem::path get_properties_file()
-		{
-			static auto props = []
-			{
-				auto path = std::filesystem::path("boiii_players/properties.json");
-				const auto legacy_path = get_properties_folder() / "properties.json";
-
-				if (io::file_exists(legacy_path) && !io::file_exists(path))
-				{
-					std::error_code e;
-					std::filesystem::copy(legacy_path, path, std::filesystem::copy_options::skip_existing, e);
-				}
-
-				return path;
-			}();
-			return props;
-		}
-
-		rapidjson::Document load_properties()
-		{
-			rapidjson::Document default_doc{};
-			default_doc.SetObject();
-
-			char read_buffer[256]{0}; // Raw buffer for reading
-
-			const std::wstring& props = get_properties_file();
-
-			FILE* fp;
-			auto err = _wfopen_s(&fp, props.data(), L"rb");
-			if (err || !fp)
-			{
-				return default_doc;
-			}
-
-			const auto _ = finally([&]
-			{
-				if (fp)
-				{
-					fclose(fp);
-				}
-			});
-
-			// This will handle the BOM
-			rapidjson::FileReadStream bis(fp, read_buffer, sizeof(read_buffer));
-			InputStream eis(bis);
-
-			rapidjson::Document doc{};
-			const rapidjson::ParseResult result = doc.ParseStream<rapidjson::kParseNoFlags, rapidjson::UTF8<>>(eis);
-
-			if (!result || !doc.IsObject())
-			{
-				return default_doc;
-			}
-
-			return doc;
-		}
-
-		void store_properties(const rapidjson::Document& doc)
-		{
-			char write_buffer[256]{0}; // Raw buffer for writing
-
-			const std::wstring& props = get_properties_file();
-			io::create_directory(get_properties_folder());
-
-			FILE* fp;
-			auto err = _wfopen_s(&fp, props.data(), L"wb");
-			if (err || !fp)
-			{
-				return;
-			}
-
-			const auto _ = finally([&]
-			{
-				if (fp)
-				{
-					fclose(fp);
-				}
-			});
-
-			rapidjson::FileWriteStream bos(fp, write_buffer, sizeof(write_buffer));
-			OutputStream eos(bos);
-
-			rapidjson::Writer writer(eos);
-			doc.Accept(writer);
-		}
-	}
-
-	std::filesystem::path get_appdata_path()
-	{
-		PWSTR path;
-		if (!SUCCEEDED(SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &path)))
-		{
-			throw std::runtime_error("Failed to read APPDATA path!");
-		}
-
-		auto _ = finally([&path]
-		{
-			CoTaskMemFree(path);
-		});
-
-		static auto appdata = std::filesystem::path(path) / "boiii";
-		return appdata;
-	}
-
-	std::filesystem::path get_key_path()
-	{
-		return get_appdata_path() / "user";
-	}
-
-	std::unique_lock<named_mutex> lock()
-	{
-		static named_mutex mutex{"boiii-properties-lock"};
-		return std::unique_lock{mutex};
-	}
-
-	std::optional<std::string> load(const std::string& name)
-	{
-		const auto _ = lock();
-		const auto doc = load_properties();
-
-		if (!doc.HasMember(name))
-		{
-			return {};
-		}
-
-		const auto& value = doc[name];
-		if (!value.IsString())
-		{
-			return {};
-		}
-
-		return {std::string{value.GetString()}};
-	}
-
-	void store(const std::string& name, const std::string& value)
-	{
-		const auto _ = lock();
-		auto doc = load_properties();
-
-		while (doc.HasMember(name))
-		{
-			doc.RemoveMember(name);
-		}
-
-		rapidjson::Value key{};
-		key.SetString(name, doc.GetAllocator());
-
-		rapidjson::Value member{};
-		member.SetString(value, doc.GetAllocator());
-
-		doc.AddMember(key, member, doc.GetAllocator());
-
-		store_properties(doc);
-	}
+std::filesystem::path get_properties_folder() {
+  static auto props = get_appdata_path() / "user";
+  return props;
 }
+
+std::filesystem::path get_properties_file() {
+  static auto props = [] {
+    auto path = std::filesystem::path("boiii_players/properties.json");
+    const auto legacy_path = get_properties_folder() / "properties.json";
+
+    if (io::file_exists(legacy_path) && !io::file_exists(path)) {
+      std::error_code e;
+      std::filesystem::copy(legacy_path, path,
+                            std::filesystem::copy_options::skip_existing, e);
+    }
+
+    return path;
+  }();
+  return props;
+}
+
+rapidjson::Document load_properties() {
+  rapidjson::Document default_doc{};
+  default_doc.SetObject();
+
+  char read_buffer[256]{0}; // Raw buffer for reading
+
+  const std::wstring &props = get_properties_file();
+
+  FILE *fp;
+  auto err = _wfopen_s(&fp, props.data(), L"rb");
+  if (err || !fp) {
+    return default_doc;
+  }
+
+  const auto _ = finally([&] {
+    if (fp) {
+      fclose(fp);
+    }
+  });
+
+  // This will handle the BOM
+  rapidjson::FileReadStream bis(fp, read_buffer, sizeof(read_buffer));
+  InputStream eis(bis);
+
+  rapidjson::Document doc{};
+  const rapidjson::ParseResult result =
+      doc.ParseStream<rapidjson::kParseNoFlags, rapidjson::UTF8<>>(eis);
+
+  if (!result || !doc.IsObject()) {
+    return default_doc;
+  }
+
+  return doc;
+}
+
+void store_properties(const rapidjson::Document &doc) {
+  char write_buffer[256]{0}; // Raw buffer for writing
+
+  const std::wstring &props = get_properties_file();
+  io::create_directory(get_properties_folder());
+
+  FILE *fp;
+  auto err = _wfopen_s(&fp, props.data(), L"wb");
+  if (err || !fp) {
+    return;
+  }
+
+  const auto _ = finally([&] {
+    if (fp) {
+      fclose(fp);
+    }
+  });
+
+  rapidjson::FileWriteStream bos(fp, write_buffer, sizeof(write_buffer));
+  OutputStream eos(bos);
+
+  rapidjson::Writer writer(eos);
+  doc.Accept(writer);
+}
+} // namespace
+
+std::filesystem::path get_appdata_path() {
+  PWSTR path;
+  if (!SUCCEEDED(
+          SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &path))) {
+    throw std::runtime_error("Failed to read APPDATA path!");
+  }
+
+  auto _ = finally([&path] { CoTaskMemFree(path); });
+
+  static auto appdata = std::filesystem::path(path) / "boiii";
+  return appdata;
+}
+
+std::filesystem::path get_key_path() { return get_appdata_path() / "user"; }
+
+std::unique_lock<named_mutex> lock() {
+  static named_mutex mutex{"boiii-properties-lock"};
+  return std::unique_lock{mutex};
+}
+
+std::optional<std::string> load(const std::string &name) {
+  const auto _ = lock();
+  const auto doc = load_properties();
+
+  if (!doc.HasMember(name)) {
+    return {};
+  }
+
+  const auto &value = doc[name];
+  if (!value.IsString()) {
+    return {};
+  }
+
+  return {std::string{value.GetString()}};
+}
+
+void store(const std::string &name, const std::string &value) {
+  const auto _ = lock();
+  auto doc = load_properties();
+
+  while (doc.HasMember(name)) {
+    doc.RemoveMember(name);
+  }
+
+  rapidjson::Value key{};
+  key.SetString(name, doc.GetAllocator());
+
+  rapidjson::Value member{};
+  member.SetString(value, doc.GetAllocator());
+
+  doc.AddMember(key, member, doc.GetAllocator());
+
+  store_properties(doc);
+}
+} // namespace utils::properties
