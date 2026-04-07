@@ -1,0 +1,3 @@
+hooks/pre-commit text eol=lf
+hooks/* text eol=lf
+*.sh text eol=lf
