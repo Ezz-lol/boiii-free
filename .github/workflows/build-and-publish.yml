@@ -58,7 +58,7 @@ jobs:
         uses: ammaraskar/msvc-problem-matcher@master
 
       - name: Build Release
-        run: msbuild /m /v:minimal /p:Configuration=Release /p:Platform=x64 build/boiii.sln
+        run: msbuild /m /v:minimal /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=ClangCL build/boiii.sln
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4

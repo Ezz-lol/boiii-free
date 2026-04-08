@@ -241,6 +241,7 @@ newaction({
 dependencies.load()
 
 workspace("boiii")
+toolset("msc-clangcl")
 startproject("client")
 location("./build")
 objdir("%{wks.location}/obj")
