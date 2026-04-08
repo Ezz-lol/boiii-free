@@ -239,6 +239,11 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
         return;
       }
     } else {
+      // On the main menu (not in-game), just log to console — no popup/disconnect
+      if (!game::Com_IsInGame()) {
+        return;
+      }
+
       client_script_error_pending = true;
       auto deferred_error = formatted_error;
       scheduler::once(
