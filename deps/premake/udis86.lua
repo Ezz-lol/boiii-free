@@ -32,6 +32,7 @@ function udis86.project()
 
   warnings("Off")
   kind("StaticLib")
+  buildoptions({ "-Wno-implicit-function-declaration" })
 end
 
 table.insert(dependencies, udis86)

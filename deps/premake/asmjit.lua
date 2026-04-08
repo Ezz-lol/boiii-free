@@ -31,6 +31,7 @@ function asmjit.project()
 
   warnings("Off")
   kind("StaticLib")
+  buildoptions({ "-Wno-enum-enum-conversion" })
 end
 
 table.insert(dependencies, asmjit)

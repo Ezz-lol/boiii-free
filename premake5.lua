@@ -283,7 +283,17 @@ filter({})
 filter("configurations:Release")
 optimize("Size")
 if os.host() == "windows" then
-  buildoptions({ "/GL" })
+  -- buildoptions({ "/GL" })
+  buildoptions({
+    "-Wno-unused-command-line-argument",
+    "-Wno-microsoft-cast",
+    "-Wno-dangling-else",
+    "-Wno-unused",
+    "-Wno-format",
+    "-Wno-sign-compare",
+    "/clang:-msse4.2",
+    "/clang:-maes",
+  })
   linkoptions({ "/IGNORE:4702", "/LTCG" })
 else
   -- incompatible with LTCG, and Windows libraries are not released with LTO
@@ -333,7 +343,7 @@ links({ "common" })
 
 if not os.isfile("%{_MAIN_SCRIPT_DIR}/src/version.h") then
   if os.host() == "windows" then
-    prebuildcommands({ "pushd %{_MAIN_SCRIPT_DIR}", "tools/premake5 generate-buildinfo", "popd" })
+    prebuildcommands({ "pushd %{_MAIN_SCRIPT_DIR}", "tools\\premake5.exe generate-buildinfo", "popd" })
   else
     prebuildcommands({ "cd %{_MAIN_SCRIPT_DIR} && premake5 generate-buildinfo" })
   end
@@ -375,7 +385,7 @@ filter("toolset:not msc*")
 linkoptions({ "-nodefaultlibs", "-nostdlib" })
 filter({})
 
-removebuildoptions({ "/GL" })
+-- removebuildoptions({ "/GL" })
 removelinkoptions({ "/LTCG" })
 
 files({ "./src/tlsdll/**.rc", "./src/tlsdll/**.hpp", "./src/tlsdll/**.cpp", "./src/tlsdll/resources/**.*" })
@@ -396,7 +406,7 @@ dependencies.projects()
 -- It's also easier than finding some way of sycnhronizing the generation of the version header between the two projects.
 if not os.isfile("%{_MAIN_SCRIPT_DIR}/src/version.h") then
   if os.host() == "windows" then
-    prebuildcommands({ "pushd %{_MAIN_SCRIPT_DIR}", "tools/premake5 generate-buildinfo", "popd" })
+    prebuildcommands({ "pushd %{_MAIN_SCRIPT_DIR}", "tools\\premake5.exe generate-buildinfo", "popd" })
   else
     prebuildcommands({ "cd %{_MAIN_SCRIPT_DIR} && premake5 generate-buildinfo" })
   end
