@@ -333,7 +333,7 @@ premake() {
     args+=("$1")
   done
 
-  args+=("gmake2")
+  args+=("gmake")
   cross_env \
     premake5 "${args[@]}"
 }
@@ -631,7 +631,7 @@ else
 
   bash_path="$(resolve_path "bash")"
   if cross_env \
-    env SHELL="${bash_path}" -- \
+    env SHELL="${bash_path}" \
     gmake SHELL="${bash_path}" \
     config="$(build_type)" \
     -Cbuild \
