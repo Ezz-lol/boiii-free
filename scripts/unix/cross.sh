@@ -353,7 +353,7 @@ print_usage() {
   echo "Cross-compilation build script for Windows using MSVC toolchain sysroot and LLVM toolchain on Unix-like systems."
   echo "Usage: $0 [OPTIONS]"
   echo "Options:"
-  echo " --exec, -e [command]        Execute an arbitrary command instead of building. Example: --exec echo Hello, world!"
+  echo "  --exec, -e [command]       Execute an arbitrary command instead of building. Example: --exec echo Hello, world!"
   echo "  --tidy, -t [tidy-args]     Run clang-tidy with all other arguments instead of building. Example: --tidy -checks='*' src/client/main.cpp"
   echo "  --clean, -c                Clean the build directory before building."
   echo "  --sysroot, -s              Specify the path to the MSVC toolchain sysroot."
