@@ -46,6 +46,12 @@ normalize_path() {
   if [ -L "$file_path" ]; then
     file_path="$(readlink -f "$file_path")"
   fi
+  
+  # Fix Git Bash path translation bug where C:/ gets converted to //c/
+  if [[ "$file_path" == //* ]]; then
+    file_path="/${file_path:2}"
+  fi
+
   realpath "$file_path"
 }
 
