@@ -219,29 +219,8 @@ get_compiler_rt_path() {
   normalize_path "$("$(get_clang)" --print-libgcc-file-name -rtlib=compiler-rt)"
 }
 
-get_llvm_sysroot() {
-  realpath "${RUSTC_LLVM_VERSION_BINPATH}/.."
-}
-
 get_llvm_libdir() {
   realpath "$(get_llvm_sysroot)/lib"
-}
-
-clang_include_paths() {
-  local default_clang_includes
-  default_clang_includes="$(echo | "$(get_clang)" -E -xc -v - 2>&1 |
-    rg -PUoIN '^#include [<"]\.\.\.[>"] search starts here:\s*(\n\s+/.+\s*)*\s*E
-nd of search list\.\s*' |
-    rg -v '^\s*#|^End of search list\.$' |
-    sed -e 's/^\s*//g' -e 's/\s*$//g' |
-    while IFS=$'\n' read -r include_path; do
-      if [ -e "$include_path" ]; then
-        realpath "$include_path"
-      fi
-    done |
-    sort -u)"
-  sort -u <<<"$(trim "${default_clang_includes}
-  $(compiler_rt_include_paths)")"
 }
 
 windres_is_llvm() {
