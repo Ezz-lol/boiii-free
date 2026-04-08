@@ -529,7 +529,6 @@ cxxflags=(
   "-I${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}")
 ldflags=("-static"
   "-march=${MARCH}" "-m64"
-  "-Wl,/allowbind:no"
   "-fms-extensions"
   "-isystem"
   "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}"
@@ -542,7 +541,7 @@ ldflags=("-static"
   "-L${WINDOWS_MSVC_TOOLCHAIN_BIN_PATH}"
   "-Wl,/subsystem:windows")
 if [ "$RELEASE" -eq 1 ]; then
-  ldflags+=("-Wl,/opt:ref" "-Wl,/opt:icf" "-Wl,/release")
+  ldflags+=("-Wl,/release")
 fi
 
 resflags=("-I${msvc_toolchain_sysroot}/include")

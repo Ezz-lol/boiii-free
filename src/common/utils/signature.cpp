@@ -20,11 +20,6 @@
 #undef min
 #endif
 
-#if !defined(__SSE4_1__) || !defined(__SSE4_2__)
-#error                                                                         \
-    "SSE4.1 and SSE4.2 support is required for vectorized signature scanning "
-#endif
-
 namespace utils::hook {
 void signature::load_pattern(const std::string &pattern) {
   this->mask_.clear();

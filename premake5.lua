@@ -343,7 +343,12 @@ if _OPTIONS["copy-to"] then
 end
 
 dependencies.imports()
+filter("toolset:msc*")
+linkoptions({ "/base:0x170000000" })
+filter({})
+filter("toolset:not msc*")
 linkoptions({ "-Wl,/base:0x170000000" })
+filter({})
 
 project("tlsdll")
 kind("SharedLib")

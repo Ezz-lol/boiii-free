@@ -1,8 +1,7 @@
 #pragma once
 
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <functional>
+#include <Windows.h>
 
 // min and max is required by gdi, therefore NOMINMAX won't work
 #ifdef max
@@ -14,8 +13,7 @@
 #endif
 
 #include <string>
-#include <vector>
-#include <cstdint>
+#include <functional>
 #include <filesystem>
 
 namespace utils::nt {
@@ -52,49 +50,66 @@ public:
 
   [[nodiscard]] HMODULE get_handle() const;
 
-  template <typename T> [[nodiscard]] T get_proc(const char *process) const {
-    if (!this->is_valid())
-      return T{};
-    return reinterpret_cast<T>(GetProcAddress(this->module_, process));
+private:
+  template <typename Fn> static Fn cast_proc(FARPROC proc) {
+    static_assert(std::is_pointer_v<Fn>, "Fn must be function pointer");
+    return reinterpret_cast<Fn>(proc);
   }
 
-  template <typename T>
-  [[nodiscard]] T get_proc(const std::string &process) const {
-    return get_proc<T>(process.c_str());
-  }
-
-  template <typename T> [[nodiscard]] T get(const std::string &process) const {
-    if (!this->is_valid())
+public:
+  template <typename Fn> Fn get_proc(const char *name) const {
+    if (!module_)
       return nullptr;
-    return this->get_proc<T>(process.c_str());
+
+    FARPROC p = GetProcAddress(module_, name);
+    if (!p)
+      return nullptr;
+
+    return cast_proc<Fn>(p);
+  }
+
+  template <typename Fn> Fn get_proc(const std::string &name) const {
+    return get_proc<Fn>(name.c_str());
+  }
+
+  template <typename Fn> std::function<Fn> get(const std::string &name) const {
+    Fn *fp = get_proc<Fn *>(name);
+    if (!fp)
+      return {};
+    return std::function<Fn>(fp);
   }
 
   template <typename T, typename... Args>
-  T invoke(const std::string &process, Args... args) const {
-    using func_t = T(__cdecl *)(Args...);
-    auto method = this->get<func_t>(process);
-    if (method)
-      return method(args...);
-    return T();
+  T invoke(const std::string &name, Args... args) const {
+    using fn = T(__cdecl *)(Args...);
+
+    auto f = get_proc<fn>(name);
+    if (!f)
+      return T();
+
+    return f(args...);
   }
 
   template <typename T, typename... Args>
-  T invoke_pascal(const std::string &process, Args... args) const {
-    using pascal_t = T(__stdcall *)(Args...);
-    auto method = this->get<pascal_t>(process);
-    if (method)
-      return method(args...);
-    return T();
+  T invoke_pascal(const std::string &name, Args... args) const {
+    using fn = T(__stdcall *)(Args...);
+
+    auto f = get_proc<fn>(name);
+    if (!f)
+      return T();
+
+    return f(args...);
   }
 
   template <typename T, typename... Args>
-  T invoke_this(const std::string &process, void *this_ptr,
-                Args... args) const {
-    using this_t = T(__thiscall *)(void *, Args...);
-    auto method = this->get<this_t>(process);
-    if (method)
-      return method(this_ptr, args...);
-    return T();
+  T invoke_this(const std::string &name, void *this_ptr, Args... args) const {
+    using fn = T(__thiscall *)(void *, Args...);
+
+    auto f = get_proc<fn>(name);
+    if (!f)
+      return T();
+
+    return f(this_ptr, args...);
   }
 
   [[nodiscard]] std::vector<PIMAGE_SECTION_HEADER> get_section_headers() const;
@@ -112,7 +127,7 @@ private:
   HMODULE module_;
 };
 
-template <auto InvalidHandleValue = 0> class handle {
+template <auto InvalidHandle = nullptr> class handle {
 public:
   handle() = default;
 
@@ -121,7 +136,7 @@ public:
   ~handle() {
     if (*this) {
       CloseHandle(this->handle_);
-      this->handle_ = (HANDLE)InvalidHandleValue;
+      this->handle_ = (HANDLE)InvalidHandle;
     }
   }
 
@@ -134,7 +149,7 @@ public:
     if (this != &obj) {
       this->~handle();
       this->handle_ = obj.handle_;
-      obj.handle_ = (HANDLE)InvalidHandleValue;
+      obj.handle_ = (HANDLE)InvalidHandle;
     }
 
     return *this;
@@ -147,12 +162,12 @@ public:
     return *this;
   }
 
-  operator bool() const { return this->handle_ != (HANDLE)InvalidHandleValue; }
+  operator bool() const { return this->handle_ != (HANDLE)InvalidHandle; }
 
   operator HANDLE() const { return this->handle_; }
 
 private:
-  HANDLE handle_{(HANDLE)InvalidHandleValue};
+  HANDLE handle_{(HANDLE)InvalidHandle};
 };
 
 class registry_key {
