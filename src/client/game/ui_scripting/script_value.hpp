@@ -18,7 +18,6 @@ class table;
 class function;
 class script_value;
 
-// DECLARATION ONLY: Implementation moved to types.hpp
 template <typename T> std::string get_typename();
 
 class hks_object {
@@ -67,7 +66,6 @@ public:
   script_value(const table &value);
   script_value(const function &value);
 
-  // DECLARATIONS ONLY
   template <template <class, class> class C, class T,
             typename TableType = table>
   script_value(const C<T, std::allocator<T>> &container);
@@ -89,7 +87,6 @@ public:
 
   template <typename T> [[nodiscard]] bool is() const;
 
-  // DECLARATION ONLY
   template <typename T> T as() const;
 
   template <typename T> operator T() const { return this->as<T>(); }
@@ -109,7 +106,6 @@ public:
   function_argument(const arguments &args, const script_value &value,
                     int index);
 
-  // DECLARATION ONLY
   template <typename T> T as() const;
 
   template <typename T> operator T() const { return this->as<T>(); }
