@@ -763,7 +763,8 @@ template <size_t Key> int lua_unsafe_function_stub(game::hks::lua_State *l) {
 }
 
 template <size_t Key> void hook_unsafe_function(size_t address) {
-  unsafe_function_detours[Key].create(address, lua_unsafe_function_stub<Key>);
+  unsafe_function_detours[Key].create(
+      address, reinterpret_cast<void *>(lua_unsafe_function_stub<Key>));
 }
 
 #define HOOK_UNSAFE_FUNCTION(addr) hook_unsafe_function<addr>(addr##_g)

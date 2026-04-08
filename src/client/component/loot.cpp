@@ -52,8 +52,8 @@ int liveinventory_getitemquantity_stub(
     const game::ControllerIndex_t controller_index, const int item_id) {
   // Item id's for CWL camo's and paid specialist outfits
   if (dvar_cg_unlockall_loot->current.value.enabled &&
-      (item_id == 99003 || item_id >= 99018 && item_id <= 99021 ||
-       item_id == 99025 || item_id >= 90047 && item_id <= 90064)) {
+      (item_id == 99003 || (item_id >= 99018 && item_id <= 99021) ||
+       item_id == 99025 || (item_id >= 90047 && item_id <= 90064))) {
     return 1;
   }
 

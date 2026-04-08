@@ -4,6 +4,7 @@
 #include "gsc_parser.hpp"
 #include "gsc_emitter.hpp"
 #include "game/game.hpp"
+#include <string>
 #include <utils/nt.hpp>
 #include <filesystem>
 #include <fstream>

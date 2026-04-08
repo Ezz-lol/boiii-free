@@ -15,7 +15,7 @@
 
 #include <utils/io.hpp>
 
-#include <Richedit.h>
+#include <richedit.h>
 
 #include <algorithm>
 #include <sstream>

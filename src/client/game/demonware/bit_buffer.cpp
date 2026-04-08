@@ -98,7 +98,7 @@ bool bit_buffer::read(unsigned int bits, void *output) {
           static_cast<BYTE>((0xFF >> (8 - min_bit)) & (this_byte >> remain));
     } else {
       output_bytes[cur_out] = static_cast<BYTE>(
-          (0xFF >> (8 - min_bit)) & (bytes[cur_byte] << (8 - remain)) |
+          ((0xFF >> (8 - min_bit)) & (bytes[cur_byte] << (8 - remain))) |
           (this_byte >> remain));
     }
 
@@ -139,7 +139,7 @@ bool bit_buffer::write(const unsigned int bits, const void *data) {
     this_data = static_cast<BYTE>((next_byte << (8 - this_bit)) |
                                   (this_data >> this_bit));
 
-    const BYTE out_byte = (~mask & (this_data << bit_pos) | temp_byte);
+    const BYTE out_byte = ((~mask & (this_data << bit_pos)) | temp_byte);
     bytes[byte_pos] = out_byte;
 
     this->current_bit_ += this_write;

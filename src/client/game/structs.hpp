@@ -1189,7 +1189,7 @@ struct HksObject {
   HksValue v;
 };
 
-const struct hksInstruction {
+struct hksInstruction {
   unsigned int code;
 };
 

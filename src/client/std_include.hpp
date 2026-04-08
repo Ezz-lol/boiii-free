@@ -31,20 +31,20 @@
 
 #define WIN32_LEAN_AND_MEAN
 
-#include <Windows.h>
-#include <MsHTML.h>
-#include <MsHtmHst.h>
-#include <ExDisp.h>
-#include <WinSock2.h>
-#include <WS2tcpip.h>
+#include <windows.h>
+#include <mshtml.h>
+#include <mshtmhst.h>
+#include <exdisp.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
 #include <corecrt_io.h>
 #include <fcntl.h>
 #include <shellapi.h>
 #include <csetjmp>
-#include <ShlObj.h>
+#include <shlobj.h>
 #include <winternl.h>
-#include <VersionHelpers.h>
-#include <Psapi.h>
+#include <versionhelpers.h>
+#include <psapi.h>
 #include <urlmon.h>
 #include <atlbase.h>
 #include <atlsafe.h>

@@ -1,7 +1,8 @@
 #pragma once
 
 #define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+#include <windows.h>
+#include <functional>
 
 // min and max is required by gdi, therefore NOMINMAX won't work
 #ifdef max
@@ -13,7 +14,8 @@
 #endif
 
 #include <string>
-#include <functional>
+#include <vector>
+#include <cstdint>
 #include <filesystem>
 
 namespace utils::nt {
@@ -28,6 +30,7 @@ public:
   explicit library(const std::string &name);
   explicit library(HMODULE handle);
 
+  library &operator=(const library &) = default;
   library(const library &a) : module_(a.module_) {}
 
   bool operator!=(const library &obj) const { return !(*this == obj); };
@@ -57,19 +60,19 @@ public:
 
   template <typename T>
   [[nodiscard]] T get_proc(const std::string &process) const {
-    return get_proc<T>(process.data());
+    return get_proc<T>(process.c_str());
   }
 
-  template <typename T>
-  [[nodiscard]] std::function<T> get(const std::string &process) const {
+  template <typename T> [[nodiscard]] T get(const std::string &process) const {
     if (!this->is_valid())
-      return std::function<T>();
-    return static_cast<T *>(this->get_proc<void *>(process));
+      return nullptr;
+    return this->get_proc<T>(process.c_str());
   }
 
   template <typename T, typename... Args>
   T invoke(const std::string &process, Args... args) const {
-    auto method = this->get<T(__cdecl)(Args...)>(process);
+    using func_t = T(__cdecl *)(Args...);
+    auto method = this->get<func_t>(process);
     if (method)
       return method(args...);
     return T();
@@ -77,7 +80,8 @@ public:
 
   template <typename T, typename... Args>
   T invoke_pascal(const std::string &process, Args... args) const {
-    auto method = this->get<T(__stdcall)(Args...)>(process);
+    using pascal_t = T(__stdcall *)(Args...);
+    auto method = this->get<pascal_t>(process);
     if (method)
       return method(args...);
     return T();
@@ -86,9 +90,10 @@ public:
   template <typename T, typename... Args>
   T invoke_this(const std::string &process, void *this_ptr,
                 Args... args) const {
-    auto method = this->get<T(__thiscall)(void *, Args...)>(this_ptr, process);
+    using this_t = T(__thiscall *)(void *, Args...);
+    auto method = this->get<this_t>(process);
     if (method)
-      return method(args...);
+      return method(this_ptr, args...);
     return T();
   }
 
@@ -107,7 +112,7 @@ private:
   HMODULE module_;
 };
 
-template <HANDLE InvalidHandle = nullptr> class handle {
+template <auto InvalidHandleValue = 0> class handle {
 public:
   handle() = default;
 
@@ -116,7 +121,7 @@ public:
   ~handle() {
     if (*this) {
       CloseHandle(this->handle_);
-      this->handle_ = InvalidHandle;
+      this->handle_ = (HANDLE)InvalidHandleValue;
     }
   }
 
@@ -129,7 +134,7 @@ public:
     if (this != &obj) {
       this->~handle();
       this->handle_ = obj.handle_;
-      obj.handle_ = InvalidHandle;
+      obj.handle_ = (HANDLE)InvalidHandleValue;
     }
 
     return *this;
@@ -142,12 +147,12 @@ public:
     return *this;
   }
 
-  operator bool() const { return this->handle_ != InvalidHandle; }
+  operator bool() const { return this->handle_ != (HANDLE)InvalidHandleValue; }
 
   operator HANDLE() const { return this->handle_; }
 
 private:
-  HANDLE handle_{InvalidHandle};
+  HANDLE handle_{(HANDLE)InvalidHandleValue};
 };
 
 class registry_key {

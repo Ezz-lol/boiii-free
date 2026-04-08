@@ -2,7 +2,15 @@
 #include <thread>
 #include <mutex>
 
+#ifdef __clang__
 #include <intrin.h>
+#elif defined(_MSC_VER)
+#include <intrin.h>
+#elif defined(__GNUC__)
+#include <x86intrin.h>
+#else
+#error "Unsupported compiler: Only MSVC, Clang and GCC are supported"
+#endif
 
 #ifdef max
 #undef max
@@ -10,6 +18,11 @@
 
 #ifdef min
 #undef min
+#endif
+
+#if !defined(__SSE4_1__) || !defined(__SSE4_2__)
+#error                                                                         \
+    "SSE4.1 and SSE4.2 support is required for vectorized signature scanning "
 #endif
 
 namespace utils::hook {
@@ -175,7 +188,9 @@ signature::signature_result signature::process_parallel() const {
   }
 
   std::sort(result.begin(), result.end());
-  return {std::move(result)};
+  // Copy first to prevent pessimizing-move warning
+  const std::vector<uint8_t *> moved = std::move(result);
+  return moved;
 }
 
 bool signature::has_sse_support() const {
@@ -193,7 +208,7 @@ bool signature::has_sse_support() const {
 }
 } // namespace utils::hook
 
-utils::hook::signature::signature_result operator"" _sig(const char *str,
-                                                         const size_t len) {
+utils::hook::signature::signature_result operator""_sig(const char *str,
+                                                        const size_t len) {
   return utils::hook::signature(std::string(str, len)).process();
 }

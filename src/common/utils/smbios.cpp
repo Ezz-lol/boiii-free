@@ -2,7 +2,7 @@
 #include "memory.hpp"
 
 #define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+#include <windows.h>
 #include <intrin.h>
 
 namespace utils::smbios {

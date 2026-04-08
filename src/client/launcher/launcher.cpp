@@ -22,9 +22,9 @@
 #include <mutex>
 #include <map>
 #include <set>
-#include <ShlObj.h>
-#include <Shlwapi.h>
-#include <TlHelp32.h>
+#include <shlobj.h>
+#include <shlwapi.h>
+#include <tlhelp32.h>
 
 // XXH3 via single-header xxhash library (must be at file scope)
 #define XXH_INLINE_ALL

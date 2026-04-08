@@ -143,7 +143,7 @@ void get_map_id_from_json() {
 
   const std::string loaded_mod_id = game::getPublisherIdFromLoadedMod();
   if (utils::string::is_numeric(loaded_mod_id)) {
-    printf(loaded_mod_id.c_str());
+    printf("%s", loaded_mod_id.c_str());
     write_pubid_to_file(loaded_mod_id);
   } else {
     const std::string &usermaps_path =

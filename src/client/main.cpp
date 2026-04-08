@@ -18,7 +18,7 @@
 #include "launcher/html/html_window.hpp"
 #include "component/updater.hpp"
 
-#include <ShlObj.h>
+#include <shlobj.h>
 
 namespace {
 volatile bool g_call_tls_callbacks = false;

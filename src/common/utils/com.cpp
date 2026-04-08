@@ -5,7 +5,7 @@
 
 #include <stdexcept>
 
-#include <ShlObj.h>
+#include <shlobj.h>
 
 namespace utils::com {
 namespace {

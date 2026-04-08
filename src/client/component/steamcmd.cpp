@@ -758,7 +758,7 @@ int download_workshop_item(std::string workshop_id, std::string modtype) {
     move_downloaded_folder(content_folder, destination_folder);
     printf("Mod moved to correct folder \n");
   } catch (const std::filesystem::filesystem_error &ex) {
-    printf(ex.what() + '\n');
+    printf("%s\n", ex.what());
     return 2;
   }
 

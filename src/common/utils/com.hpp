@@ -1,7 +1,7 @@
 #pragma once
 
 #include "nt.hpp"
-#include <ShlObj.h>
+#include <shlobj.h>
 #include <atlbase.h>
 
 namespace utils::com {

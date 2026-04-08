@@ -294,7 +294,4 @@ arguments script_value::operator()(const arguments &arguments) const {
 function_argument::function_argument(const arguments &args,
                                      const script_value &value, const int index)
     : values_(args), value_(value), index_(index) {}
-
-function_arguments::function_arguments(const arguments &values)
-    : values_(values) {}
 } // namespace ui_scripting

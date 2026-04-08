@@ -2,7 +2,7 @@
 #include "string.hpp"
 #include "finally.hpp"
 
-#include <TlHelp32.h>
+#include <tlhelp32.h>
 
 namespace utils::thread {
 bool set_name(const HANDLE t, const std::string &name) {
@@ -40,7 +40,7 @@ bool set_name(const std::string &name) {
 }
 
 std::vector<DWORD> get_thread_ids() {
-  nt::handle<INVALID_HANDLE_VALUE> h =
+  nt::handle<-1> h =
       CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, GetCurrentProcessId());
   if (!h) {
     return {};

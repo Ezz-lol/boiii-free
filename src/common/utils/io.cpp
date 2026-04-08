@@ -1,7 +1,7 @@
 #include "io.hpp"
 #include "nt.hpp"
 #include <fstream>
-#include <Windows.h>
+#include <windows.h>
 
 namespace utils::io {
 bool remove_file(const std::filesystem::path &file) {

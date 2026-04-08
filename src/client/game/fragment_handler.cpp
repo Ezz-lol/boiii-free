@@ -110,7 +110,7 @@ void clean() {
   });
 }
 
-void fragment_handler::fragment_data(
+void fragment_data(
     const void *data, const size_t size,
     const std::function<void(const utils::byte_buffer &buffer)> &callback) {
   static std::atomic_uint64_t current_id{0};

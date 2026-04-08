@@ -20,7 +20,7 @@
 #define _CRTALLOC(x) __declspec(allocate(x))
 
 // #include <internal_shared.h>
-#include <Windows.h>
+#include <windows.h>
 
 extern "C" {
 /* Thread Local Storage index for this .EXE or .DLL */
@@ -72,9 +72,8 @@ extern const IMAGE_TLS_DIRECTORY64 _tls_used = {
     (ULONGLONG)&_tls_index,   // address of tls_index
     (ULONGLONG)(&__xl_a + 1), // pointer to call back array
     static_cast<ULONG>(0),    // size of tls zero fill
-    static_cast<ULONG>(0      // characteristics
-                       )      // characteristics
-};
+    {static_cast<ULONG>(0)    // characteristics
+     /* characteristics */}};
 
 #else /* _WIN64 */
 

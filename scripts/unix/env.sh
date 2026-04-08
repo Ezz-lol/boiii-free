@@ -1,5 +1,35 @@
 #!/bin/bash
 
+first_in_dir() {
+  local search_dir
+  search_dir="$(normalize_path "$1")"
+  shift
+  local search_files
+  search_files=()
+  while [ "$#" -gt 0 ]; do
+    search_files+=("$1")
+    shift
+  done
+
+  if [ -z "$search_dir" ]; then
+    echo "Error: No search directory provided to first_in_dir." >&2
+    exit 1
+  fi
+
+  if [ "${#search_files[@]}" -eq 0 ]; then
+    echo "Error: No search files provided to first_in_dir." >&2
+    exit 1
+  fi
+
+  for file in "${search_files[@]}"; do
+    if [ -e "$search_dir/$file" ]; then
+      normalize_path "$search_dir/$file"
+      return 0
+    fi
+  done
+
+}
+
 normalize_path() {
   local file_path
   file_path="$1"
@@ -17,6 +47,28 @@ normalize_path() {
     file_path="$(readlink -f "$file_path")"
   fi
   realpath "$file_path"
+}
+
+resolve_path() {
+  local path_to_resolve
+  path_to_resolve="$1"
+
+  if [ -z "$path_to_resolve" ]; then
+    path_to_resolve="$(cat -)"
+  fi
+
+  if [ -z "$path_to_resolve" ]; then
+    echo "Error: No path provided to resolve_path." >&2
+    exit 1
+  fi
+
+  resolved="$(which "$path_to_resolve" 2>/dev/null || command -v "$path_to_resolve" 2>/dev/null)"
+  if [ -z "$resolved" ]; then
+    echo "Error: Could not resolve path for '$path_to_resolve'." >&2
+    exit 1
+  fi
+
+  normalize_path "$resolved"
 }
 
 ext() {
@@ -161,6 +213,11 @@ path_remove_tree_by_name() {
 # Verifies required CLI tools are installed
 check_dependencies() {
   local deps=("git" "clang-format" "stylua")
+  while [ "$#" -gt 0 ]; do
+    deps+=("$1")
+    shift
+  done
+
   for tool in "${deps[@]}"; do
     if ! command -v "$tool" &>/dev/null; then
       echo "Error: Required dependency '$tool' is not installed or not in PATH." >&2

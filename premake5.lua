@@ -281,8 +281,15 @@ filter({})
 
 filter("configurations:Release")
 optimize("Size")
-buildoptions({ "/GL" })
-linkoptions({ "/IGNORE:4702", "/LTCG" })
+if os.host() == "windows" then
+  buildoptions({ "/GL" })
+  linkoptions({ "/IGNORE:4702", "/LTCG" })
+else
+  -- incompatible with LTCG, and Windows libraries are not released with LTO
+  -- None of full, fat, or thin LTO work - tested.
+  buildoptions({ "-fno-lto" })
+  linkoptions({ "-fno-lto" })
+end
 defines({ "NDEBUG" })
 flags({ "FatalCompileWarnings" })
 filter({})
@@ -323,13 +330,20 @@ dependson({ "tlsdll" })
 
 links({ "common" })
 
-prebuildcommands({ "pushd %{_MAIN_SCRIPT_DIR}", "tools\\premake5 generate-buildinfo", "popd" })
+if not os.isfile("%{_MAIN_SCRIPT_DIR}/src/version.h") then
+  if os.host() == "windows" then
+    prebuildcommands({ "pushd %{_MAIN_SCRIPT_DIR}", "tools/premake5 generate-buildinfo", "popd" })
+  else
+    prebuildcommands({ "cd %{_MAIN_SCRIPT_DIR} && premake5 generate-buildinfo" })
+  end
+end
 
 if _OPTIONS["copy-to"] then
   postbuildcommands({ 'copy /y "$(TargetPath)" "' .. _OPTIONS["copy-to"] .. '"' })
 end
 
 dependencies.imports()
+linkoptions({ "-Wl,/base:0x170000000" })
 
 project("tlsdll")
 kind("SharedLib")
@@ -340,8 +354,20 @@ exceptionhandling("Off")
 
 flags({ "NoRuntimeChecks", "NoBufferSecurityCheck", "OmitDefaultLibrary" })
 
+-- check if CXX is cl, use /Zc:threadSafeInit- if so
+-- If g++ or clang++ is used, skip this, as this is the default; they can only disable it using -fno-threadsafe-statics, but we don't want that
+filter("toolset:msc*")
+
 buildoptions({ "/Zc:threadSafeInit-" })
+
 linkoptions({ "/NODEFAULTLIB", "/IGNORE:4210" })
+filter({})
+
+filter("toolset:not msc*")
+
+-- equivalents for /NODEFAULTLIB and /IGNORE:4210 for gcc/clang
+linkoptions({ "-nodefaultlibs", "-nostdlib" })
+filter({})
 
 removebuildoptions({ "/GL" })
 removelinkoptions({ "/LTCG" })
@@ -356,3 +382,16 @@ resincludedirs({ "$(ProjectDir)src" })
 
 group("Dependencies")
 dependencies.projects()
+
+-- Create version.h header here, too, to allow multi-threaded builds to work.
+-- Otherwise, tls.dll will often fail to build due to missing version.h if the client project happens to build first and delete the generated version.h before tls.dll can build,
+-- or hasn't generated it yet when tls.dll is completing compilation.
+-- This is duplicative, but allows the build to work without forcing a single-threaded build or requiring a separate manual step to generate the version header before building.
+-- It's also easier than finding some way of sycnhronizing the generation of the version header between the two projects.
+if not os.isfile("%{_MAIN_SCRIPT_DIR}/src/version.h") then
+  if os.host() == "windows" then
+    prebuildcommands({ "pushd %{_MAIN_SCRIPT_DIR}", "tools/premake5 generate-buildinfo", "popd" })
+  else
+    prebuildcommands({ "cd %{_MAIN_SCRIPT_DIR} && premake5 generate-buildinfo" })
+  end
+end

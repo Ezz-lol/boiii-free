@@ -1,7 +1,13 @@
 #pragma once
 #include "game/game.hpp"
-
 #include <utils/string.hpp>
+
+#include <vector>
+#include <unordered_map>
+#include <string>
+#include <stdexcept>
+#include <typeinfo>
+#include <type_traits>
 
 namespace ui_scripting {
 class lightuserdata;
@@ -12,40 +18,8 @@ class table;
 class function;
 class script_value;
 
-template <typename T> std::string get_typename() {
-  auto &info = typeid(T);
-
-  if (info == typeid(std::string) || info == typeid(const char *)) {
-    return "string";
-  }
-
-  if (info == typeid(lightuserdata)) {
-    return "lightuserdata";
-  }
-
-  if (info == typeid(userdata)) {
-    return "userdata";
-  }
-
-  if (info == typeid(table)) {
-    return "table";
-  }
-
-  if (info == typeid(function)) {
-    return "function";
-  }
-
-  if (info == typeid(int) || info == typeid(float) ||
-      info == typeid(unsigned int)) {
-    return "number";
-  }
-
-  if (info == typeid(bool)) {
-    return "boolean";
-  }
-
-  return info.name();
-}
+// DECLARATION ONLY: Implementation moved to types.hpp
+template <typename T> std::string get_typename();
 
 class hks_object {
 public:
@@ -93,24 +67,12 @@ public:
   script_value(const table &value);
   script_value(const function &value);
 
+  // DECLARATIONS ONLY
   template <template <class, class> class C, class T,
             typename TableType = table>
-  script_value(const C<T, std::allocator<T>> &container) {
-    TableType table_{};
-    int index = 1;
+  script_value(const C<T, std::allocator<T>> &container);
 
-    for (const auto &value : container) {
-      table_.set(index++, value);
-    }
-
-    game::hks::HksObject obj{};
-    obj.t = game::hks::TTABLE;
-    obj.v.ptr = table_.ptr;
-
-    this->value_ = obj;
-  }
-
-  template <typename F> script_value(F f) : script_value(function(f)) {}
+  template <typename F> script_value(F f);
 
   bool operator==(const script_value &other) const;
 
@@ -118,33 +80,17 @@ public:
   [[maybe_unused]] arguments operator()(const arguments &arguments) const;
 
   template <class... T>
-  [[maybe_unused]] arguments operator()(T... arguments) const {
-    return this->as<function>().call({arguments...});
-  }
+  [[maybe_unused]] arguments operator()(T... arguments) const;
 
-  template <size_t Size> table_value operator[](const char (&key)[Size]) const {
-    return {this->as<table>(), key};
-  }
+  template <size_t Size> table_value operator[](const char (&key)[Size]) const;
 
   template <typename T = script_value>
-  table_value operator[](const T &key) const {
-    return {this->as<table>(), key};
-  }
+  table_value operator[](const T &key) const;
 
   template <typename T> [[nodiscard]] bool is() const;
 
-  template <typename T> T as() const {
-    if (!this->is<T>()) {
-      const auto hks_typename =
-          game::hks::s_compilerTypeName[this->get_raw().t + 2];
-      const auto typename_ = get_typename<T>();
-
-      throw std::runtime_error(utils::string::va(
-          "%s expected, got %s", typename_.data(), hks_typename));
-    }
-
-    return get<T>();
-  }
+  // DECLARATION ONLY
+  template <typename T> T as() const;
 
   template <typename T> operator T() const { return this->as<T>(); }
 
@@ -163,22 +109,8 @@ public:
   function_argument(const arguments &args, const script_value &value,
                     int index);
 
-  template <typename T> T as() const {
-    try {
-      return this->value_.as<T>();
-    } catch (const std::exception &e) {
-      throw std::runtime_error(utils::string::va("bad argument #%d (%s)",
-                                                 this->index_ + 1, e.what()));
-    }
-  }
-
-  template <> variadic_args as() const {
-    variadic_args args{};
-    for (auto i = this->index_; i < this->values_.size(); i++) {
-      args.push_back(this->values_[i]);
-    }
-    return args;
-  }
+  // DECLARATION ONLY
+  template <typename T> T as() const;
 
   template <typename T> operator T() const { return this->as<T>(); }
 
@@ -190,13 +122,12 @@ private:
 
 class function_arguments {
 public:
-  function_arguments(const arguments &values);
+  function_arguments(const arguments &values) : values_(values) {}
 
   function_argument operator[](const int index) const {
     if (static_cast<std::size_t>(index) >= values_.size()) {
       return {values_, {}, index};
     }
-
     return {values_, values_[index], index};
   }
 

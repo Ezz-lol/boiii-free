@@ -22,10 +22,10 @@ bool is_mod_loaded_stub() { return false; }
 
 void patch_is_mod_loaded_checks() {
   const std::vector<uintptr_t> is_mod_loaded_addresses = {
-      {0x14019CFC4_g}, {0x14024D4A0_g}, {0x14024D669_g}, {0x14024D939_g},
-      {0x14024DC64_g}, {0x14024E13A_g}, {0x14024E5A3_g}, {0x14024FFB9_g},
-      {0x140251E9E_g}, {0x140253680_g}, {0x140257BF6_g}, {0x1402D296D_g},
-      {0x1402D58E9_g}, {0x140468374_g}, {0x14046B796_g}, {0x14048003D_g},
+      0x14019CFC4_g, 0x14024D4A0_g, 0x14024D669_g, 0x14024D939_g,
+      0x14024DC64_g, 0x14024E13A_g, 0x14024E5A3_g, 0x14024FFB9_g,
+      0x140251E9E_g, 0x140253680_g, 0x140257BF6_g, 0x1402D296D_g,
+      0x1402D58E9_g, 0x140468374_g, 0x14046B796_g, 0x14048003D_g,
   };
 
   for (const auto &address : is_mod_loaded_addresses) {

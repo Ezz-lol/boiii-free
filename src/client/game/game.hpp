@@ -88,7 +88,7 @@ std::filesystem::path get_appdata_path();
 std::filesystem::path get_game_path();
 } // namespace game
 
-inline size_t operator"" _g(const size_t val) { return game::relocate(val); }
+inline size_t operator""_g(const size_t val) { return game::relocate(val); }
 
 #include "structs.hpp"
 #include "symbols.hpp"

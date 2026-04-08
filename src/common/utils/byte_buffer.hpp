@@ -48,9 +48,13 @@ public:
     this->write(vec);
   }
 
-  const std::string &get_buffer() const { return this->buffer_; }
+  inline const std::string &get_buffer() const { return this->buffer_; }
 
-  std::string move_buffer() { return std::move(this->buffer_); }
+  inline std::string move_buffer() {
+    // Copy first to prevent pessimizing-move warning
+    const std::string _moved = std::move(this->buffer_);
+    return _moved;
+  }
 
   void read(void *data, size_t length);
 

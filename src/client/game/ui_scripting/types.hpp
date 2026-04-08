@@ -129,4 +129,95 @@ private:
 
   int ref{};
 };
+
+template <typename T> std::string get_typename() {
+  auto &info = typeid(T);
+
+  if (info == typeid(std::string) || info == typeid(const char *)) {
+    return "string";
+  }
+  if (info == typeid(lightuserdata)) {
+    return "lightuserdata";
+  }
+  if (info == typeid(userdata)) {
+    return "userdata";
+  }
+  if (info == typeid(table)) {
+    return "table";
+  }
+  if (info == typeid(function)) {
+    return "function";
+  }
+  if (info == typeid(int) || info == typeid(float) ||
+      info == typeid(unsigned int)) {
+    return "number";
+  }
+  if (info == typeid(bool)) {
+    return "boolean";
+  }
+
+  return info.name();
+}
+
+template <typename T> T script_value::as() const {
+  if (!this->is<T>()) {
+    const auto hks_typename =
+        game::hks::s_compilerTypeName[this->get_raw().t + 2];
+    const auto typename_ = get_typename<T>();
+
+    throw std::runtime_error(utils::string::va("%s expected, got %s",
+                                               typename_.data(), hks_typename));
+  }
+  return get<T>();
+}
+
+template <typename T> T function_argument::as() const {
+  if constexpr (std::is_same_v<T, variadic_args>) {
+    variadic_args args{};
+    for (std::size_t i = this->index_; i < this->values_.size(); i++) {
+      args.push_back(this->values_[i]);
+    }
+    return args;
+  } else {
+    try {
+      return this->value_.as<T>();
+    } catch (const std::exception &e) {
+      throw std::runtime_error(utils::string::va("bad argument #%d (%s)",
+                                                 this->index_ + 1, e.what()));
+    }
+  }
+}
+
+template <template <class, class> class C, class T, typename TableType>
+script_value::script_value(const C<T, std::allocator<T>> &container) {
+  TableType table_{};
+  int index = 1;
+
+  for (const auto &value : container) {
+    table_.set(index++, value);
+  }
+
+  game::hks::HksObject obj{};
+  obj.t = game::hks::TTABLE;
+  obj.v.ptr = table_.ptr;
+
+  this->value_ = obj;
+}
+
+template <typename F>
+script_value::script_value(F f) : script_value(function(f)) {}
+
+template <class... T> arguments script_value::operator()(T... arguments) const {
+  return this->as<function>().call({arguments...});
+}
+
+template <size_t Size>
+table_value script_value::operator[](const char (&key)[Size]) const {
+  return {this->as<table>(), key};
+}
+
+template <typename T> table_value script_value::operator[](const T &key) const {
+  return {this->as<table>(), key};
+}
+
 } // namespace ui_scripting
