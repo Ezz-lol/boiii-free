@@ -260,7 +260,7 @@ cross_env() {
   fi
   exit_code=0
   if ! env --chdir="${REPO_DIR}" \
-    env PATH="$(get_llvm_bin):${PATH}" \
+    env PATH="${TEMP_PATH}" \
     CC="$TEMP_CC" \
     CXX="$TEMP_CXX" \
     CPP="$TEMP_CPP" \
