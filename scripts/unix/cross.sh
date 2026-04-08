@@ -574,6 +574,9 @@ BUILD_DEPS=(
   "$TEMP_LD"
   "gmake"
   "premake5"
+  "env"
+  "grep"
+  "sed"
 )
 
 if tidy; then
