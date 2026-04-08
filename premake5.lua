@@ -241,7 +241,11 @@ newaction({
 dependencies.load()
 
 workspace("boiii")
-toolset("msc-clangcl")
+if os.host() == "windows" then
+  toolset("msc-clangcl")
+else
+  toolset("clang")
+end
 startproject("client")
 location("./build")
 objdir("%{wks.location}/obj")
