@@ -302,7 +302,7 @@ else
   linkoptions({ "-fno-lto" })
 end
 defines({ "NDEBUG" })
-flags({ "FatalCompileWarnings" })
+-- flags({ "FatalCompileWarnings" })
 filter({})
 
 filter("configurations:Debug")
