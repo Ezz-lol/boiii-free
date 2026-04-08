@@ -1,6 +1,5 @@
 #define WIN32_LEAN_AND_MEAN
-#pragma comment(lib, "kernel32.lib")
-#include "Windows.h"
+#include "windows.h"
 
 #define TLS_PAYLOAD_SIZE 0x2000
 thread_local char tls_data[TLS_PAYLOAD_SIZE];
