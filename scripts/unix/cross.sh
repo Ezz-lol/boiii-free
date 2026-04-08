@@ -251,7 +251,7 @@ cross_env() {
   TEMP_PATH="$(get_llvm_bin):${PATH}"
   # ensure literal "windres" file for LLVM windres exists on path, somewhere.
   temp_windres_link_dir="$(mktemp -d)"
-  resolved_windres="$(env PATH="$TEMP_PATH" which windres | normalize_path)"
+  resolved_windres="$(env PATH="$TEMP_PATH" which windres 2>/dev/null | normalize_path)"
 
   if ! windres_is_llvm "$resolved_windres"; then
     ln -s "$(get_llvm_windres)" "${temp_windres_link_dir}/windres"
