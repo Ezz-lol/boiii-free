@@ -943,15 +943,24 @@ ast_ptr parse_parameters(parser_state &s) {
                           s.current().column);
   s.expect(token_type::t_lparen, "Expected '('");
 
-  if (!s.check(token_type::t_rparen)) {
+  auto parse_one_param = [&]() {
+    // Skip & or :: prefix (pass-by-reference / function-ref marker, handled by VM)
+    s.match(token_type::t_ampersand);
+    s.match(token_type::t_double_colon);
     auto &p = s.expect(token_type::t_identifier, "Expected parameter name");
-    params->children.push_back(
-        make_node(node_type::n_identifier, p.value, p.line, p.column));
+    auto param_node =
+        make_node(node_type::n_identifier, p.value, p.line, p.column);
+    // Optional default value: param = expr
+    if (s.match(token_type::t_assign)) {
+      param_node->children.push_back(parse_expression(s));
+    }
+    params->children.push_back(std::move(param_node));
+  };
 
+  if (!s.check(token_type::t_rparen)) {
+    parse_one_param();
     while (s.match(token_type::t_comma)) {
-      auto &p2 = s.expect(token_type::t_identifier, "Expected parameter name");
-      params->children.push_back(
-          make_node(node_type::n_identifier, p2.value, p2.line, p2.column));
+      parse_one_param();
     }
   }
 
