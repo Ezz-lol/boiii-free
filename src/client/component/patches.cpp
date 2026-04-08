@@ -239,7 +239,8 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
         return;
       }
     } else {
-      // On the main menu (not in-game), just log to console — no popup/disconnect
+      // No script errors popups for ingame menu , just logs in console since
+      // most are harmless csc erros anyway
       if (!game::Com_IsInGame()) {
         return;
       }

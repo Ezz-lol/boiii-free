@@ -1,8 +1,8 @@
 #include <std_include.hpp>
 #include "gsc_emitter.hpp"
 #include <algorithm>
-#include <numeric>
 #include <cstring>
+#include <numeric>
 #include <unordered_set>
 
 namespace gsc_compiler {
@@ -1851,7 +1851,7 @@ void emit_function(emitter_state &s, const ast_ptr &node) {
       idx = N - 1 - idx;
   }
 
-  // this will allow default values in params 
+  // this will allow default values in params
   for (auto &param : params_node->children) {
     if (param->children.empty())
       continue; // no default value
@@ -1862,13 +1862,13 @@ void emit_function(emitter_state &s, const ast_ptr &node) {
 
     int skip_label = s.new_label();
 
-    emit_eval_local(s, pname, false);                    // push param value
-    s.emit_op(script_opcode::OP_IsDefined);              // isdefined check
+    emit_eval_local(s, pname, false);                      // push param value
+    s.emit_op(script_opcode::OP_IsDefined);                // isdefined check
     s.emit_jump(script_opcode::OP_JumpOnTrue, skip_label); // skip if defined
 
-    emit_expression(s, param->children[0]);              // push default value
-    emit_eval_local(s, pname, true);                     // push param ref
-    s.emit_op(script_opcode::OP_SetVariableField);       // assign
+    emit_expression(s, param->children[0]);        // push default value
+    emit_eval_local(s, pname, true);               // push param ref
+    s.emit_op(script_opcode::OP_SetVariableField); // assign
 
     s.set_label(skip_label);
   }

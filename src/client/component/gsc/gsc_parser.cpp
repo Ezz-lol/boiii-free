@@ -1,7 +1,7 @@
 #include <std_include.hpp>
 #include "gsc_parser.hpp"
-#include <stdexcept>
 #include <algorithm>
+#include <stdexcept>
 
 namespace gsc_compiler {
 namespace {
@@ -944,7 +944,8 @@ ast_ptr parse_parameters(parser_state &s) {
   s.expect(token_type::t_lparen, "Expected '('");
 
   auto parse_one_param = [&]() {
-    // Skip & or :: prefix (pass-by-reference / function-ref marker, handled by VM)
+    // Skip & or :: prefix (pass-by-reference / function-ref marker, handled by
+    // VM)
     s.match(token_type::t_ampersand);
     s.match(token_type::t_double_colon);
     auto &p = s.expect(token_type::t_identifier, "Expected parameter name");
