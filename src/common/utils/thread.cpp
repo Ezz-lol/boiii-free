@@ -39,8 +39,24 @@ bool set_name(const std::string &name) {
   return set_name(GetCurrentThread(), name);
 }
 
+#ifndef TEMPLATE_INVALID_HANDLE_VALUE
+
+#ifdef __clang__
+// clang does not support `reinterpret_cast` in a constexpr
+#define TEMPLATE_INVALID_HANDLE_VALUE -1
+#elif defined(_MSC_VER)
+// MSVC does support `reinterpret_cast` in a constexpr
+#define TEMPLATE_INVALID_HANDLE_VALUE INVALID_HANDLE_VALUE
+#elif defined(__GNUC__)
+// GCC does not support `reinterpret_cast` in a constexpr
+#define TEMPLATE_INVALID_HANDLE_VALUE -1
+else
+#error "Unsupported compiler. Only MSVC, Clang and GCC are supported."
+#endif
+#endif
+
 std::vector<DWORD> get_thread_ids() {
-  nt::handle<-1> h =
+  nt::handle<TEMPLATE_INVALID_HANDLE_VALUE> h =
       CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, GetCurrentProcessId());
   if (!h) {
     return {};
