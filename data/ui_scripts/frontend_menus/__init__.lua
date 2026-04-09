@@ -6,7 +6,7 @@ if not CoD.LobbyButtons then
   return
 end
 
-local enableLobbyMapVote = true             -- toggle map vote in public lobby
+local enableLobbyMapVote = true -- toggle map vote in public lobby
 local enableLargeServerBrowserButton = true -- toggle large server browser button
 
 local utils = require("utils")
@@ -33,7 +33,7 @@ CoD.LobbyButtons.STATS = {
     SetPerControllerTableProperty(controller, "disableGameSettingsOptions", true)
     OpenPopup(menu, "BoiiiStatsMenu", controller)
   end,
-  customId = "btnMPStats"
+  customId = "btnMPStats",
 }
 
 CoD.LobbyButtons.QUICK_SETTINGS = {
@@ -42,7 +42,7 @@ CoD.LobbyButtons.QUICK_SETTINGS = {
     SetPerControllerTableProperty(controller, "disableGameSettingsOptions", true)
     OpenPopup(menu, "BoiiiQuickSettingsMenu", controller)
   end,
-  customId = "btnQuickSettings"
+  customId = "btnQuickSettings",
 }
 
 CoD.LobbyButtons.MP_START_GAME = {
@@ -51,7 +51,7 @@ CoD.LobbyButtons.MP_START_GAME = {
     Engine.SetDvar("party_minplayers", 1)
     Engine.Exec(nil, "launchgame")
   end,
-  customId = "btnStartGame"
+  customId = "btnStartGame",
 }
 
 CoD.LobbyButtons.SETTING_UP_BOTS = {
@@ -60,7 +60,7 @@ CoD.LobbyButtons.SETTING_UP_BOTS = {
     SetPerControllerTableProperty(controller, "disableGameSettingsOptions", true)
     OpenPopup(menu, "GameSettings_Bots", controller)
   end,
-  customId = "btnSettingUpBots"
+  customId = "btnSettingUpBots",
 }
 
 CoD.LobbyButtons.GameSettingsFlyoutArenas = {
@@ -69,7 +69,7 @@ CoD.LobbyButtons.GameSettingsFlyoutArenas = {
     SetPerControllerTableProperty(controller, "disableGameSettingsOptions", true)
     OpenPopup(menu, "GameSettingsFlyoutMP", controller)
   end,
-  customId = "btnGameSettingsFlyoutMP"
+  customId = "btnGameSettingsFlyoutMP",
 }
 
 CoD.LobbyButtons.GameSettingsFlyoutMP = {
@@ -78,7 +78,7 @@ CoD.LobbyButtons.GameSettingsFlyoutMP = {
     SetPerControllerTableProperty(controller, "disableGameSettingsOptions", true)
     OpenPopup(menu, "GameSettingsFlyoutMPCustom", controller)
   end,
-  customId = "btnGameSettingsFlyoutMPCustom"
+  customId = "btnGameSettingsFlyoutMPCustom",
 }
 
 CoD.LobbyButtons.SERVER_BROWSER = {
@@ -87,7 +87,7 @@ CoD.LobbyButtons.SERVER_BROWSER = {
     SetPerControllerTableProperty(controller, "disableGameSettingsOptions", true)
     OpenPopup(menu, "LobbyServerBrowserOnline", controller)
   end,
-  customId = "btnDedicated"
+  customId = "btnDedicated",
 }
 
 local shouldShowMapVote = enableLobbyMapVote
@@ -106,14 +106,23 @@ local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
     end
   end
 
-  if menuId == LobbyData.UITargets.UI_MPLOBBYMAIN.id or menuId == LobbyData.UITargets.UI_MPLOBBYONLINE.id or menuId == LobbyData.UITargets.UI_ZMLOBBYONLINE.id
-      or (LobbyData.UITargets.UI_CPLOBBYONLINE and menuId == LobbyData.UITargets.UI_CPLOBBYONLINE.id)
-      or (LobbyData.UITargets.UI_CPLOBBYLANGAME and menuId == LobbyData.UITargets.UI_CPLOBBYLANGAME.id) then
+  if
+    menuId == LobbyData.UITargets.UI_MPLOBBYMAIN.id
+    or menuId == LobbyData.UITargets.UI_MPLOBBYONLINE.id
+    or menuId == LobbyData.UITargets.UI_ZMLOBBYONLINE.id
+    or (LobbyData.UITargets.UI_CPLOBBYONLINE and menuId == LobbyData.UITargets.UI_CPLOBBYONLINE.id)
+    or (LobbyData.UITargets.UI_CPLOBBYLANGAME and menuId == LobbyData.UITargets.UI_CPLOBBYLANGAME.id)
+  then
     utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.STATS)
     utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.QUICK_SETTINGS)
   end
 
-  if menuId == LobbyData.UITargets.UI_MPLOBBYONLINE.id or menuId == LobbyData.UITargets.UI_ZMLOBBYONLINE.id or menuId == LobbyData.UITargets.UI_MPLOBBYMAIN.id or menuId == LobbyData.UITargets.UI_MPLOBBYLANGAME.id then
+  if
+    menuId == LobbyData.UITargets.UI_MPLOBBYONLINE.id
+    or menuId == LobbyData.UITargets.UI_ZMLOBBYONLINE.id
+    or menuId == LobbyData.UITargets.UI_MPLOBBYMAIN.id
+    or menuId == LobbyData.UITargets.UI_MPLOBBYLANGAME.id
+  then
     Engine.Mods_Lists_UpdateUsermaps()
   end
 

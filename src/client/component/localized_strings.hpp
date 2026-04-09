@@ -1,6 +1,5 @@
 #pragma once
 
-namespace localized_strings
-{
-	void override(const std::string& key, const std::string& value);
+namespace localized_strings {
+void override(const std::string &key, const std::string &value);
 }

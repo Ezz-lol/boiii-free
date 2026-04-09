@@ -19,11 +19,10 @@
 
 #define _CRTALLOC(x) __declspec(allocate(x))
 
-//#include <internal_shared.h>
-#include <Windows.h>
+// #include <internal_shared.h>
+#include <windows.h>
 
-extern "C"
-{
+extern "C" {
 /* Thread Local Storage index for this .EXE or .DLL */
 
 ULONG _tls_index = 0;
@@ -68,25 +67,24 @@ _CRTALLOC(".CRT$XLZ") PIMAGE_TLS_CALLBACK __xl_z = nullptr;
 
 _CRTALLOC(".rdata$T")
 extern const IMAGE_TLS_DIRECTORY64 _tls_used = {
-	(ULONGLONG)&_tls_start, // start of tls data
-	(ULONGLONG)&_tls_end, // end of tls data
-	(ULONGLONG)&_tls_index, // address of tls_index
-	(ULONGLONG)(&__xl_a + 1), // pointer to call back array
-	static_cast<ULONG>(0), // size of tls zero fill
-	static_cast<ULONG>(0 // characteristics
-	) // characteristics
-};
+    (ULONGLONG)&_tls_start,   // start of tls data
+    (ULONGLONG)&_tls_end,     // end of tls data
+    (ULONGLONG)&_tls_index,   // address of tls_index
+    (ULONGLONG)(&__xl_a + 1), // pointer to call back array
+    static_cast<ULONG>(0),    // size of tls zero fill
+    {static_cast<ULONG>(0)    // characteristics
+     /* characteristics */}};
 
 #else /* _WIN64 */
 
-_CRTALLOC (".rdata$T")
+_CRTALLOC(".rdata$T")
 extern const IMAGE_TLS_DIRECTORY _tls_used = {
-	(ULONG)(ULONG_PTR)&_tls_start, // start of tls data
-	(ULONG)(ULONG_PTR)&_tls_end, // end of tls data
-	(ULONG)(ULONG_PTR)&_tls_index, // address of tls_index
-	(ULONG)(ULONG_PTR)(&__xl_a + 1), // pointer to call back array
-	(ULONG)0, // size of tls zero fill
-	(ULONG)0 // characteristics
+    (ULONG)(ULONG_PTR)&_tls_start,   // start of tls data
+    (ULONG)(ULONG_PTR)&_tls_end,     // end of tls data
+    (ULONG)(ULONG_PTR)&_tls_index,   // address of tls_index
+    (ULONG)(ULONG_PTR)(&__xl_a + 1), // pointer to call back array
+    (ULONG)0,                        // size of tls zero fill
+    (ULONG)0                         // characteristics
 };
 
 #endif /* _WIN64 */

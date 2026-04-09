@@ -2,10 +2,8 @@
 
 #include "umbrella_server.hpp"
 
-namespace demonware
-{
-	void umbrella_server::handle(const std::string& packet)
-	{
-		// TODO:
-	}
+namespace demonware {
+void umbrella_server::handle(const std::string &packet) {
+  // TODO:
 }
+} // namespace demonware

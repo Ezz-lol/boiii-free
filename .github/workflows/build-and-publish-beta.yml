@@ -43,7 +43,7 @@ jobs:
         uses: ammaraskar/msvc-problem-matcher@master
 
       - name: Build Release
-        run: msbuild /m /v:minimal /p:Configuration=Release /p:Platform=x64 build/boiii.sln
+        run: msbuild /m /v:minimal /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=ClangCL build/boiii.sln
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -76,31 +76,34 @@ jobs:
 
       - name: Generate beta manifest JSON
         run: |
+          # Go to the data directory to list files correctly
           cd upload/${{ env.R2_FOLDER }}
 
-          echo "[" > ../${{ env.MANIFEST_FILE }}
+          # Start JSON array in the manifest file at the root of 'upload'
+          # Since we are in upload/boiii/beta, we need to go up two levels
+          echo "[" > ../../${{ env.MANIFEST_FILE }}
 
           # Process boiii.exe
           size=$(stat -c%s "boiii.exe")
           hash=$(sha1sum "boiii.exe" | awk '{print toupper($1)}')
-          echo "  [\"boiii.exe\", $size, \"$hash\"]" >> ../${{ env.MANIFEST_FILE }}
+          echo "  [\"boiii.exe\", $size, \"$hash\"]" >> ../../${{ env.MANIFEST_FILE }}
 
           # Add ext.dll entry if available
           if [ -n "${{ secrets.EXT_DLL_SIZE }}" ] && [ -n "${{ secrets.EXT_DLL_HASH }}" ]; then
-            echo "  ,[\"ext.dll\", ${{ secrets.EXT_DLL_SIZE }}, \"${{ secrets.EXT_DLL_HASH }}\"]" >> ../${{ env.MANIFEST_FILE }}
+            echo "  ,[\"ext.dll\", ${{ secrets.EXT_DLL_SIZE }}, \"${{ secrets.EXT_DLL_HASH }}\"]" >> ../../${{ env.MANIFEST_FILE }}
           fi
 
           # Process all files in data directory
           find data -type f | sort | while read file; do
             size=$(stat -c%s "$file")
             hash=$(sha1sum "$file" | awk '{print toupper($1)}')
-            echo "  ,[\"$file\", $size, \"$hash\"]" >> ../${{ env.MANIFEST_FILE }}
+            echo "  ,[\"$file\", $size, \"$hash\"]" >> ../../${{ env.MANIFEST_FILE }}
           done
 
-          echo "]" >> ../${{ env.MANIFEST_FILE }}
+          echo "]" >> ../../${{ env.MANIFEST_FILE }}
 
           echo "Generated beta manifest:"
-          cat ../${{ env.MANIFEST_FILE }}
+          cat ../../${{ env.MANIFEST_FILE }}
 
       - name: Install rclone
         run: |
@@ -127,7 +130,7 @@ jobs:
           rclone copy upload/${{ env.R2_FOLDER }}/ r2:${{ env.R2_BUCKET }}/${{ env.R2_FOLDER }}/ --progress --header-upload "Content-Type: application/octet-stream"
 
           # Upload beta manifest
-          rclone copy upload/${{ env.MANIFEST_FILE }} r2:${{ env.R2_BUCKET }}/ --progress --header-upload "Content-Type: application/octet-stream"
+          rclone copy upload/${{ env.MANIFEST_FILE }} r2:${{ env.R2_BUCKET }}/ --progress --header-upload "Content-Type: application/octet-stream"  
 
       - name: Verify upload
         run: |
