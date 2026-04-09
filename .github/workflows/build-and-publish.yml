@@ -47,10 +47,10 @@ jobs:
       - name: Generate project files
         run: tools/premake5 vs2022
 
-      - name: Get version from git tag
+      - name: Get version from trigger tag
         id: get-version
         run: |
-          version=$(git describe --tags --abbrev=0)
+          version="${GITHUB_REF_NAME}"
           echo "version=$version" >> $GITHUB_OUTPUT
         shell: bash
 

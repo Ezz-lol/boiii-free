@@ -10,6 +10,7 @@
 #include <utils/io.hpp>
 #include <utils/progress_ui.hpp>
 #include <utils/compression.hpp>
+#include <utils/string.hpp>
 
 #define UPDATE_SERVER "https://r2.ezz.lol/"
 

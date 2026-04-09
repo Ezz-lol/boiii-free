@@ -4,6 +4,7 @@
 #include <utils/io.hpp>
 #include <utils/string.hpp>
 #include <utils/http.hpp>
+#include <utils/flags.hpp>
 #include <utils/com.hpp>
 
 #include "launcher.hpp"
