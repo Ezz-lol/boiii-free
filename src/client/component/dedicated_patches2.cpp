@@ -154,12 +154,58 @@ void sv_live_removeallclientsfromaddress_stub(game::client_s *client,
   return;
 }
 
+/*
+  SND_GetPlaybackTime returns `-1` when a sound is not found.
+
+  I am not presently 100 certain why (active WIP), but in dedicated server,
+  Soundbanks are never loaded, and thus consistuting sounds are never
+  aliased, and can never be found - even those provided and used by Treyarch,
+  such as perk jingles and map voicelines. The dedicated server is, unmodified,
+  entirely incapable of correctly executing server-side logic which requires
+  usage of valid sound metadata, such as playback time.
+
+  This would be a valid optimization for the stated intention of the dedicated
+  server - an MP-only server running only Treyarch MP maps and scripts, all of
+  which do not require server-side sound metadata access, nor sounds to be
+  loaded by extension. When used outside of this scope, this is obviously
+  problematic, and is most likely causing the notoriously broken sound timings
+  seen when playing some maps on boiii dedicated servers now - looping, missing,
+  or simultaneous Origins voicelines, for example.
+
+  Regardless of the cause, in the short term, some custom maps rely on correct
+  `soundgetplaybacktime` GSC function call returns to manually implement sound
+  looping. When `soundgetplaybacktime` returns `-1`, this resuls in the same
+  sound being played rapidly and repeatedly, until the server crashes with a
+  "G_Spawn: no free entities" error, as each sound consumed a temporary entity,
+  and thus filled all entity slots, triggering a crash on next entity spawn
+  attempt.
+
+  These custom maps consistently fail to load in dedicated server. A prevalant
+  example of a custom map which fails to load for this reason is Die Rise
+  remastered.
+
+  As a short term fix, when the return value is provided as `-1`, return 10000
+  (ms) instead. 10000ms will still often be incorrect, but providing a positive,
+  more realistic value, will lead to at least slightly more correct behaviour in
+  all cases, and in an extreme case such as Die Rise, fixes map load.
+*/
+utils::hook::detour snd_getplaybacktime_hook;
+int32_t snd_getplaybacktime_stub(const char *name) {
+  const int32_t playback_time = snd_getplaybacktime_hook.invoke<int32_t>(name);
+  /*
+   Adjust -1 val (not found) to a default of 10
+   seconds to ensure valid, positive time domain
+   value return
+  */
+  return playback_time < 0 ? 10000 : playback_time;
+}
+
 std::mutex reliable_cmd_mutex;
 // Map of reliable command string -> Map of xuid -> svs->time of last sequencing
 std::unordered_map<std::string, std::unordered_map<game::XUID, uint32_t>>
     client_openmenu_cmd_last_sequence_time;
 // Map of xuid -> last sequenced reliable command string
-std::unordered_map<uint64_t, std::string> client_last_cmd;
+std::unordered_map<game::XUID, std::string> client_last_cmd;
 
 utils::hook::detour g_init_game_hook;
 void g_init_game_stub(uint32_t levelTime, uint32_t randomSeed,
@@ -224,6 +270,9 @@ struct component final : server_component {
   void post_unpack() override {
     // Sanitize chat messages on server
     g_say_hook.create(game::G_Say.get(), g_say_stub);
+
+    snd_getplaybacktime_hook.create(game::snd::SND_GetPlaybackTime.get(),
+                                    snd_getplaybacktime_stub);
 
     /*
      Some server configurations will require this to be disabled.
