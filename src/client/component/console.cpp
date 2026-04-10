@@ -1,3 +1,4 @@
+#include <atomic>
 #include <std_include.hpp>
 #include "console.hpp"
 #include "loader/component_loader.hpp"
@@ -20,6 +21,7 @@
 #include <algorithm>
 #include <sstream>
 #include <unordered_set>
+#include <vector>
 
 #define CONSOLE_BUFFER_SIZE 16384
 #define WINDOW_WIDTH 608
