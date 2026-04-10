@@ -1,8 +1,11 @@
+#include <mutex>
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
 #include "game/utils.hpp"
 
+#include <string>
+#include <unordered_map>
 #include <utils/flags.hpp>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -153,7 +156,7 @@ void sv_live_removeallclientsfromaddress_stub(game::client_s *client,
 
 std::mutex reliable_cmd_mutex;
 // Map of reliable command string -> Map of xuid -> svs->time of last sequencing
-std::unordered_map<std::string, std::unordered_map<uint64_t, uint32_t>>
+std::unordered_map<std::string, std::unordered_map<game::XUID, uint32_t>>
     client_openmenu_cmd_last_sequence_time;
 // Map of xuid -> last sequenced reliable command string
 std::unordered_map<uint64_t, std::string> client_last_cmd;
