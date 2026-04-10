@@ -9,6 +9,8 @@
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/thread.hpp>
+#include <utils/pe.hpp>
+#include <utils/flags.hpp>
 
 #include "integrity.hpp"
 
@@ -816,6 +818,26 @@ struct component final : generic_component {
     // auto* gpafc = ntdll.get_proc<void*>("LdrGetProcedureAddressForCaller");
     // get_proc_address_hook.create(gpafc, get_proc_address_stub);
     // get_proc_address_hook.move();
+
+    if (utils::flags::has_flag("dump")) {
+      const char *output_file_name =
+          game::is_server()
+              ? "BlackOps3.dump.post_load.exe"
+              : "BlackOps3_UnrankedDedicatedServer.dump.post_load.exe";
+      std::filesystem::path output_file_path =
+          game::get_game_path() / output_file_name;
+      const bool successful = utils::pe::dump_loaded_pe(output_file_path);
+      const char *base_file_name =
+          game::is_server() ? "BlackOps3.exe"
+                            : "BlackOps3_UnrankedDedicatedServer.exe";
+      if (successful) {
+        printf("%s dumped to %s successfully\n", base_file_name,
+               output_file_path.string().c_str());
+      } else {
+        printf("Failed to dump %s to %s\n", base_file_name,
+               output_file_path.string().c_str());
+      }
+    }
   }
 
   void post_unpack() override {
@@ -824,6 +846,27 @@ struct component final : generic_component {
     // restore_debug_functions();
 
     detail::callstack_proxy_addr = utils::hook::assemble(callstack_stub);
+
+    // Server needs to be dumped here; arxan-packed if dumped prior.
+    if (utils::flags::has_flag("dump")) {
+      const char *output_file_name =
+          game::is_server()
+              ? "BlackOps3.dump.post_unpack.exe"
+              : "BlackOps3_UnrankedDedicatedServer.dump.post_unpack.exe";
+      std::filesystem::path output_file_path =
+          game::get_game_path() / output_file_name;
+      const bool successful = utils::pe::dump_loaded_pe(output_file_path);
+      const char *base_file_name =
+          game::is_server() ? "BlackOps3.exe"
+                            : "BlackOps3_UnrankedDedicatedServer.exe";
+      if (successful) {
+        printf("%s dumped to %s successfully\n", base_file_name,
+               output_file_path.string().c_str());
+      } else {
+        printf("Failed to dump %s to %s\n", base_file_name,
+               output_file_path.string().c_str());
+      }
+    }
   }
 
   component_priority priority() const override {
