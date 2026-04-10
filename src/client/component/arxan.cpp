@@ -822,14 +822,14 @@ struct component final : generic_component {
     if (utils::flags::has_flag("dump")) {
       const char *output_file_name =
           game::is_server()
-              ? "BlackOps3.dump.post_load.exe"
-              : "BlackOps3_UnrankedDedicatedServer.dump.post_load.exe";
+              ? "BlackOps3_UnrankedDedicatedServer.dump.post_load.exe"
+              : "BlackOps3.dump.post_load.exe";
       std::filesystem::path output_file_path =
           game::get_game_path() / output_file_name;
       const bool successful = utils::pe::dump_loaded_pe(output_file_path);
-      const char *base_file_name =
-          game::is_server() ? "BlackOps3.exe"
-                            : "BlackOps3_UnrankedDedicatedServer.exe";
+      const char *base_file_name = game::is_server()
+                                       ? "BlackOps3_UnrankedDedicatedServer.exe"
+                                       : "BlackOps3.exe";
       if (successful) {
         printf("%s dumped to %s successfully\n", base_file_name,
                output_file_path.string().c_str());
@@ -851,14 +851,14 @@ struct component final : generic_component {
     if (utils::flags::has_flag("dump")) {
       const char *output_file_name =
           game::is_server()
-              ? "BlackOps3.dump.post_unpack.exe"
-              : "BlackOps3_UnrankedDedicatedServer.dump.post_unpack.exe";
+              ? "BlackOps3_UnrankedDedicatedServer.dump.post_unpack.exe"
+              : "BlackOps3.dump.post_unpack.exe";
       std::filesystem::path output_file_path =
           game::get_game_path() / output_file_name;
       const bool successful = utils::pe::dump_loaded_pe(output_file_path);
-      const char *base_file_name =
-          game::is_server() ? "BlackOps3.exe"
-                            : "BlackOps3_UnrankedDedicatedServer.exe";
+      const char *base_file_name = game::is_server()
+                                       ? "BlackOps3_UnrankedDedicatedServer.exe"
+                                       : "BlackOps3.exe";
       if (successful) {
         printf("%s dumped to %s successfully\n", base_file_name,
                output_file_path.string().c_str());
