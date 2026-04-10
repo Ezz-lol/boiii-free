@@ -1,6 +1,7 @@
 #pragma once
 
-#include "structs.hpp"
+#include "game.hpp"
+#include "structs/structs.hpp"
 
 #define WEAK __declspec(selectany)
 
@@ -111,7 +112,98 @@ WEAK symbol<XAssetPool> DB_XAssetPool{0x1494093F0};
 
 // G
 WEAK symbol<void()> G_ClearVehicleInputs{0x1423812E0, 0x1405C1200};
+WEAK symbol<gentity_s *(gentity_s *ent, game::snd::SndAliasId alias,
+                        scr::ScrString_t notifyString, BoneIndex bone)>
+    G_PlaySoundAlias{0x0, 0x140307480};
+WEAK symbol<gentity_s *(const vec3_t *origin, game::snd::SndAliasId alias)>
+    G_PlaySoundAliasAtPoint{0x0, 0x1403075C0};
+WEAK symbol<gentity_s *(gentity_s *ent, game::snd::SndAliasId alias,
+                        scr::ScrString_t notifyString, uint32_t tag)>
+    G_PlaySoundAliasWithNotify{0x0, 0x1403076E0};
 
+// SND
+namespace snd {
+WEAK symbol<SndAliasId(const char *aliasName)> SND_FindAliasId{0x0,
+                                                               0x14064BD90};
+WEAK symbol<int32_t(const char *name)> SND_GetPlaybackTime{
+    0x0, 0x14064C220}; // Gscr - get length of sound by name, in milliseconds
+WEAK symbol<SndStringHash(const char *name)> SND_HashName{0x0, 0x140651520};
+WEAK symbol<bool(game::snd::SndPlaybackId playbackId, int32_t *msec)>
+    SND_GetKnownLength{0x0, 0x1405465C0};
+/*
+ Used only in cscr - get _current time_ in playback of sound by playbackId, in
+ milliseconds.
+
+ Note that this is not the same as the length of the sound, and
+ will be less than or equal to the value returned by SND_GetPlaybackTime for
+ the same sound, or -1 if playback or sound not found.
+
+ Interestingly, when you call `soundgetplaybacktime` in CSC scripts, this
+ function is used.
+
+ When the same function - `soundgetplaybacktime` - is called in GSC scripts, the
+ above SND_GetPlaybackTime function is used.
+
+ Simply: in CSC scripts, `soundgetplaybacktime` returns current playback
+ progress, and in GSC scripts, `soundgetplaybacktime` returns total length of
+ the sound.
+*/
+WEAK symbol<int32_t(game::snd::SndPlaybackId playbackId)> SND_GetPlaybackTime2{
+    0x0, 0x140546620}; // Name in engine is also SND_GetPlaybackTime - override.
+
+/* Called by the other SND_AssetBankFindEntry.
+
+   Name in engine is also `SND_AssetBankFindEntry`, overriding the other
+   SND_AssetBankEntry with a different signature.
+
+   Overrides will not work when defining symbols here, to my knowledge, so
+   providing it with a more specific name based on usage.
+*/
+WEAK symbol<bool(game::snd::SndStringHash id,
+                 game::snd::SndAssetBankEntry *entries, uint32_t entryCount,
+                 game::snd::SndAssetBankEntry **entry)>
+    SND_AssetBankFindEntries{0x0, 0x140649D40};
+WEAK symbol<uint32_t(const SndAssetBankEntry *entry)> SND_AssetBankGetFrameRate{
+    0x0, 0x140649DA0};
+WEAK symbol<uint32_t(const SndAssetBankEntry *entry)> SND_AssetBankGetLengthMs{
+    0x0, 0x140649E20};
+WEAK symbol<bool(game::snd::SndStringHash id,
+                 game::snd::SndAssetBankEntry **entry, stream_fileid *fid,
+                 bool streamed)>
+    SND_AssetBankFindEntry{0x0, 0x14064AC10};
+WEAK symbol<bool(game::snd::SndStringHash id,
+                 game::snd::SndAssetBankEntry **entry, void **data)>
+    SND_AssetBankFindLoaded{0x0, 0x14064ADF0};
+WEAK symbol<SndAliasList *(game::snd::SndStringHash key)> SND_BankAliasLookup{
+    0x0, 0x14064AFA0};
+WEAK symbol<qboolean()> SND_Active{0x0, 0x1405479D0};
+WEAK symbol<bool()> SND_Init{0x0, 0x1406459B0};
+// return g_pc_nosnd != 0;
+WEAK symbol<bool()> G_SNDEnabled{0x0, 0x140584DB0};
+
+// snd globals
+WEAK symbol<volatile int32_t> snd_update_fence{0x0, 0x14A2CEF30};
+WEAK symbol<volatile int32_t> snd_update_start{0x0, 0x14A2CEF34};
+
+// g_snd globals
+WEAK symbol<SndLocal> g_snd{0x0, 0x141189800};
+// one snd_fire_manager per local client, each with 8 fire slots
+WEAK symbol<matrix2d<snd_fire_manager, 2, 8>> cl_g_snd_fire{0x144D2A13C, 0x0};
+WEAK symbol<matrix2d<snd_fire_manager, 1, 8>> sv_g_snd_fires{0x0, 0x14223B840};
+// Total size 0x1600
+WEAK symbol<std::array<snd_autosim, 64>> g_snd_autosims{0x144D3FC20,
+                                                        0x142243B80};
+// Total size 0x1200
+WEAK symbol<std::array<snd_autosim_play, 64>> g_snd_autosim_history{
+    0x144D3FC20, 0x142242980};
+WEAK symbol<unsigned int> g_snd_autosim_time{0x144D4B640, 0x14224E040};
+WEAK symbol<unsigned int> g_snd_autosim_frame{0x144D42AEC, 0x1422454EC};
+// true if "nosnd" given as CLI arg
+WEAK symbol<qboolean> g_pc_nosnd{0x0, 0x14A63D4EC};
+} // namespace snd
+
+// misc globals
+WEAK symbol<clientplatform_t> clientplatform{0x0, 0x14A63D4E8};
 WEAK symbol<qboolean(void *ent)> StuckInClient{0x1415A8360, 0x14023BFE0};
 
 // Live
@@ -177,13 +269,20 @@ WEAK symbol<char> internal_usermap_id{0x1567D9A04};
 WEAK symbol<void()> reloadUserContent{0x1420D66C0, 0x1404E25C0};
 
 // Dvar
+// Used for e.g. changing in-game client FOV when `cg_fov` is changed,
+// queueing mod load when `fs_game` is changed.
+WEAK symbol<void(const dvar_t *dvar, modifiedCallback callback)>
+    Dvar_SetModifiedCallback{0x1422C8650, 0x140579990};
+WEAK symbol<void(const dvar_t *dvar, int flags)> Dvar_AddFlags{0x1422B8260,
+                                                               0x140574880};
 WEAK symbol<bool(const dvar_t *dvar)> Dvar_IsSessionModeBaseDvar{0x1422C23A0,
                                                                  0x140576890};
 WEAK symbol<dvar_t *(const char *dvarName)> Dvar_FindVar{0x1422BCCD0,
                                                          0x140575540};
 WEAK symbol<unsigned int(const char *str)> Dvar_GenerateHash{0x14133DBF0,
                                                              0x140185800};
-WEAK symbol<dvar_t *(unsigned int hash)> Dvar_FindMalleableVar{0x1422BCC40};
+WEAK symbol<dvar_t *(unsigned int hash)> Dvar_FindMalleableVar{0x1422BCC40,
+                                                               0x1405754B0};
 WEAK symbol<const char *(const dvar_t *dvar)> Dvar_GetDebugName{0x1422BD250};
 WEAK symbol<const char *(const dvar_t *dvar)> Dvar_DisplayableValue{
     0x1422BC080};
@@ -210,7 +309,7 @@ WEAK symbol<void(void (*callback)(const dvar_t *, void *), void *userData)>
     Dvar_ForEach{0x1422BCD00};
 WEAK
     symbol<void(const char *dvarName, const char *string, bool createIfMissing)>
-        Dvar_SetFromStringByName{0x1422C7500};
+        Dvar_SetFromStringByName{0x1422C7500, 0x140579290};
 WEAK symbol<dvar_t *(dvar_t *dvar, eModes mode)>
     Dvar_GetSessionModeSpecificDvar{0x1422BF500, 0x140575D90};
 
@@ -374,8 +473,9 @@ WEAK symbol<int> level_rounds_played{0x14A55BDEC, 0x1475097BC};
 WEAK symbol<SOCKET> ip_socket{0x157E75818, 0x14A640988};
 
 WEAK symbol<Join> s_join{0x15574A640};
-
 WEAK symbol<char> s_dvarPool{0x157AC6220, 0x14A3CB620};
+WEAK symbol<bool> s_canSetConfigDvars{0x0, 0x14A3CB5D8};
+
 WEAK symbol<int> g_dvarCount{0x157AC61CC, 0x14A3CB5FC};
 
 WEAK symbol<unsigned int> modsCount{0x15678D170, 0x14933EAE0};
@@ -389,12 +489,47 @@ WEAK symbol<int> fs_loadStack{0x157A65310, 0x14A39C650};
 // Client and dedi struct size differs :(
 WEAK symbol<client_s_cl *> svs_clients_cl{0x1576F9318, 0};
 WEAK symbol<client_s *> svs_clients{0x0, 0x14A178E98};
-WEAK symbol<unsigned int> svs_time{0x0, 0x14A178E84};
+WEAK symbol<uint32_t> svs_time{0x0, 0x14A178E84};
 
 // Dvar variables
 WEAK symbol<dvar_t *> com_maxclients{0x0, 0x14948EE70};
 
 WEAK symbol<clientUIActive_t> clientUIActives{0x1453D8BC0};
+
+// GScr
+WEAK symbol<void(scriptInstance_t inst)> GScr_PIXBeginEvent{0x0, 0x1402DA730};
+WEAK symbol<void(scriptInstance_t inst)> GScr_PIXEndEvent{0x0, 0x140515B60};
+
+// PIX
+WEAK symbol<void(int64_t, char *event)> PIXBeginNamedEvent{0x0, 0x14050BAE0};
+WEAK symbol<void()> PIXEndNamedEvent{0x0, 0x14050C280};
+
+// jq
+WEAK symbol<void(jq::jqBatch *batch, char *event)> jqCallbackPre{0x0,
+                                                                 0x1405711A0};
+// void __cdecl jqCallbackPost(jqBatch *batch, void *data, bool finished);
+WEAK symbol<void(jq::jqBatch *batch, void *data, bool finished)> jqCallbackPost{
+    0x0, 0x140571140};
+WEAK symbol<void(void *data)> jqFreeBatchData{
+    0x0, 0x14000A350}; // arg usually passed as batch->p3x_info
+
+// BG_ASM_
+
+/*
+Function _contents_ are removed, but call is still made with debug logs. Can be
+hooked to actually log messages. Call occurs if the relevant debugging
+conditions are satisified, set with the following dvars;
+  - asm_debuglevel
+  - asm_debugshootlayer
+  - asm_debugprimarydeltalayer
+  - asm_debugaimlayer
+*/
+WEAK symbol<void(const char *message, asmPrintLevel_t asmPrintLevel)>
+    BG_ASM_PrintMessage{0x0, 0x1400AE3E0};
+WEAK symbol<void(const char *message, int32_t entityNumber,
+                 asmPrintLevel_t printLevel)>
+    BG_ASM_PrintEntMessage{0x0,
+                           0x1407DB4C0}; // names BG_ASM_PrintMessage in engine
 
 namespace s_wcd {
 WEAK symbol<HWND> codLogo{0x157E75A50, 0x14A640BC0};

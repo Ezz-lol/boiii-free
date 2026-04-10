@@ -1,6 +1,7 @@
 #pragma once
 
-#include "structs.hpp"
+#include <filesystem>
+#include <string>
 #include <utils/nt.hpp>
 
 namespace arxan::detail {
@@ -90,5 +91,5 @@ std::filesystem::path get_game_path();
 
 inline size_t operator""_g(const size_t val) { return game::relocate(val); }
 
-#include "structs.hpp"
+#include "structs/structs.hpp"
 #include "symbols.hpp"

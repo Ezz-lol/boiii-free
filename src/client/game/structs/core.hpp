@@ -1,11 +1,177 @@
 #pragma once
 
+#include "quake.hpp"
+#include <array>
+#include <cstddef>
+#include <cstdint>
+#include <stdfloat>
+#include <csetjmp>
+
 #define PROTOCOL 8
 #define SUB_PROTOCOL 1
 
 #ifdef __cplusplus
 namespace game {
 #endif
+
+// Automatically pad a partially defined (reverse-engineered, in our case)
+// struct to a fixed, known-correct total length
+#define partial_def(TotalSize, PrimType, Fixed, Verified)                      \
+  PrimType Fixed {                                                             \
+    union {                                                                    \
+      PrimType Verified;                                                       \
+      uint8_t __raw[TotalSize];                                                \
+    };                                                                         \
+  }
+
+#define inline_partial_def(FixedTotalSize, Verified)                           \
+  union {                                                                      \
+    Verified;                                                                  \
+    uint8_t __raw[TotalSize];                                                  \
+  }
+
+typedef uint64_t bdUInt64;
+typedef bdUInt64 bdEntityID;
+typedef bdEntityID bdOnlineUserID;
+typedef bdOnlineUserID XUID;
+
+typedef int32_t stream_fileid;
+typedef int32_t stream_id;
+
+typedef int16_t BoneIndex;
+typedef int32_t time32_t;
+typedef int64_t time64_t;
+typedef time64_t time_t;
+
+typedef float vec_t;
+
+union vec2_t {
+  vec_t v[2];
+  struct {
+    vec_t x;
+    vec_t y;
+  };
+};
+
+union vec3_t {
+  struct {
+    vec_t x;
+    vec_t y;
+    vec_t z;
+  };
+  vec_t v[3];
+};
+
+union vec4_t {
+  vec_t v[4];
+  struct {
+    vec_t x;
+    vec_t y;
+    vec_t z;
+    vec_t w;
+  };
+  struct {
+    vec_t r;
+    vec_t g;
+    vec_t b;
+    vec_t a;
+  };
+  vec3_t xyz;
+};
+
+struct orientation_t {
+  vec3_t origin;
+  vec3_t axis[3];
+};
+
+#pragma pack(push, 16)
+struct float128_t {
+  int64_t LowPart;
+  int64_t HighPart;
+};
+#pragma pack(pop)
+
+enum asmPrintLevel_t : int32_t {
+  ASM_PRINT_LEVEL_INFO = 0x0,
+  ASM_PRINT_LEVEL_WARNING = 0x1,
+  ASM_PRINT_LEVEL_ERROR = 0x2,
+};
+
+enum clientplatform_t : int32_t {
+  CLIENT_PLATFORM_PC = 0x0,      // PC
+  CLIENT_PLATFORM_ORBIS = 0x1,   // PS4
+  CLIENT_PLATFORM_DURANGO = 0x2, // Xbox One
+  MAX_CLIENT_PLATFORMS = 0x3,
+};
+
+enum team_t : uint32_t {
+  TEAM_FREE = 0x0,
+  TEAM_BAD = 0x0,
+  TEAM_DEAD = 0x0,
+  TEAM_ALLIES = 0x1,
+  TEAM_AXIS = 0x2,
+  TEAM_THREE = 0x3,
+  TEAM_FOUR = 0x4,
+  TEAM_FIVE = 0x5,
+  TEAM_SIX = 0x6,
+  TEAM_SEVEN = 0x7,
+  TEAM_EIGHT = 0x8,
+  TEAM_NINE = 0x9,
+  TEAM_TEN = 0xA,
+  TEAM_ELEVEN = 0xB,
+  TEAM_TWELVE = 0xC,
+  TEAM_THIRTEEN = 0xD,
+  TEAM_FOURTEEN = 0xE,
+  TEAM_FIFTEEN = 0xF,
+  TEAM_SIXTEEN = 0x10,
+  TEAM_SEVENTEEN = 0x11,
+  TEAM_EIGHTEEN = 0x12,
+  TEAM_NEUTRAL = 0x13,
+  TEAM_SPECTATOR = 0x14,
+  TEAM_NUM_PLAYING_TEAMS = 0x14,
+  TEAM_NUM_TEAMS = 0x15,
+  TEAM_LOCALPLAYERS = 0x16,
+  TEAM_FIRST_PLAYING_TEAM = 0x1,
+  TEAM_LAST_PLAYING_TEAM = 0x13,
+};
+
+enum ClientNum_t : int32_t {
+  INVALID_CLIENT_INDEX = -1,
+  CLIENT_INDEX_0 = 0x0,
+  CLIENT_INDEX_FIRST = 0x0,
+  CLIENT_INDEX_1 = 0x1,
+  CLIENT_INDEX_2 = 0x2,
+  CLIENT_INDEX_3 = 0x3,
+  CLIENT_INDEX_4 = 0x4,
+  CLIENT_INDEX_5 = 0x5,
+  CLIENT_INDEX_6 = 0x6,
+  CLIENT_INDEX_7 = 0x7,
+  CLIENT_INDEX_8 = 0x8,
+  CLIENT_INDEX_9 = 0x9,
+  CLIENT_INDEX_10 = 0xA,
+  CLIENT_INDEX_11 = 0xB,
+  CLIENT_INDEX_12 = 0xC,
+  CLIENT_INDEX_13 = 0xD,
+  CLIENT_INDEX_14 = 0xE,
+  CLIENT_INDEX_15 = 0xF,
+  CLIENT_INDEX_16 = 0x10,
+  CLIENT_INDEX_17 = 0x11,
+  CLIENT_INDEX_18 = 0x12,
+  CLIENT_INDEX_19 = 0x13,
+  CLIENT_INDEX_20 = 0x14,
+  CLIENT_INDEX_21 = 0x15,
+  CLIENT_INDEX_22 = 0x16,
+  CLIENT_INDEX_23 = 0x17,
+  CLIENT_INDEX_24 = 0x18,
+  CLIENT_INDEX_25 = 0x19,
+  CLIENT_INDEX_26 = 0x1A,
+  CLIENT_INDEX_27 = 0x1B,
+  CLIENT_INDEX_28 = 0x1C,
+  CLIENT_INDEX_29 = 0x1D,
+  CLIENT_INDEX_30 = 0x1E,
+  CLIENT_INDEX_31 = 0x1F,
+  CLIENT_INDEX_COUNT = 0x12,
+};
 
 enum ControllerIndex_t {
   INVALID_CONTROLLER_PORT = -1,
@@ -562,16 +728,16 @@ struct AssetLink {
 
 struct XAssetPool {
   void *pool;
-  unsigned int itemSize;
-  int itemCount;
+  uint32_t itemSize;
+  int32_t itemCount;
   bool isSingleton[4];
-  int itemAllocCount;
+  int32_t itemAllocCount;
   AssetLink *freeHead;
 };
 
 struct RawFile {
   const char *name;
-  int len;
+  int32_t len;
   const char *buffer;
 };
 
@@ -582,14 +748,14 @@ struct XZoneBuffer {
 
 struct XZoneInfo {
   const char *name;
-  int allocFlags;
-  int freeFlags;
-  int allocSlot;
-  int freeSlot;
+  int32_t allocFlags;
+  int32_t freeFlags;
+  int32_t allocSlot;
+  int32_t freeSlot;
   XZoneBuffer fileBuffer;
 };
 
-enum XZoneState : int {
+enum XZoneState : int32_t {
   XZONE_UNLOADING = -1,
   XZONE_EMPTY = 0x0,
   XZONE_LOADING = 0x1,
@@ -602,8 +768,8 @@ enum XZoneState : int {
 struct XZoneName // Size must be 96 == 0x60
 {
   char name[64];
-  int flags;
-  int slot;
+  int32_t flags;
+  int32_t slot;
   // Definitely values being set at _unknown and _unknown[8].
   // They might be related to whether it's loaded?
   // No immediate indication of what these are for, and we do not currently need
@@ -623,26 +789,26 @@ struct cmd_function_s {
   const char *autoCompleteDir;
   const char *autoCompleteExt;
   xcommand_t function;
-  int autoComplete;
+  int32_t autoComplete;
 };
 
 struct CmdArgs {
-  int nesting;
-  int localClientNum[8];
-  int controllerIndex[8];
-  int argshift[8];
-  int argc[8];
+  int32_t nesting;
+  int32_t localClientNum[8];
+  int32_t controllerIndex[8];
+  int32_t argshift[8];
+  int32_t argc[8];
   const char **argv[8];
   char textPool[8192];
   const char *argvPool[512];
-  int usedTextPool[8];
-  int totalUsedArgvPool;
-  int totalUsedTextPool;
+  int32_t usedTextPool[8];
+  int32_t totalUsedArgvPool;
+  int32_t totalUsedTextPool;
 };
 
 struct va_info_t {
   char va_string[4][1024];
-  int index;
+  int32_t index;
 };
 
 struct TLSData {
@@ -669,8 +835,8 @@ enum connstate_t {
 };
 
 struct clientUIActive_t {
-  int flags;
-  int keyCatchers;
+  int32_t flags;
+  int32_t keyCatchers;
   connstate_t connectionState;
   unsigned char __pad0[0x106C];
 };
@@ -687,130 +853,11 @@ static_assert(sizeof(clientActive_t) == 0x197A30);
 
 using fileHandle_t = void *;
 
-using dvarStrHash_t = uint32_t;
-
-enum dvarType_t {
-  DVAR_TYPE_INVALID = 0x0,
-  DVAR_TYPE_BOOL = 0x1,
-  DVAR_TYPE_FLOAT = 0x2,
-  DVAR_TYPE_FLOAT_2 = 0x3,
-  DVAR_TYPE_FLOAT_3 = 0x4,
-  DVAR_TYPE_FLOAT_4 = 0x5,
-  DVAR_TYPE_INT = 0x6,
-  DVAR_TYPE_ENUM = 0x7,
-  DVAR_TYPE_STRING = 0x8,
-  DVAR_TYPE_COLOR = 0x9,
-  DVAR_TYPE_INT64 = 0xA,
-  DVAR_TYPE_UINT64 = 0xB,
-  DVAR_TYPE_LINEAR_COLOR_RGB = 0xC,
-  DVAR_TYPE_COLOR_XYZ = 0xD,
-  DVAR_TYPE_COLOR_LAB = 0xE,
-  DVAR_TYPE_SESSIONMODE_BASE_DVAR = 0xF,
-  DVAR_TYPE_COUNT = 0x10,
-};
-
-enum dvarFlags_e {
-  DVAR_NONE = 0,
-  DVAR_ARCHIVE = 1 << 0,
-  DVAR_USERINFO = 1 << 1,
-  DVAR_SERVERINFO = 1 << 2,
-  DVAR_SYSTEMINFO = 1 << 3,
-  DVAR_LATCH = 1 << 4,
-  DVAR_ROM = 1 << 5,
-  DVAR_SAVED = 1 << 6,
-  DVAR_INIT = 1 << 7,
-  DVAR_CHEAT = 1 << 8,
-  // DVAR_UNKNOWN = 1 << 9,
-  DVAR_EXTERNAL = 1 << 10,
-  // DVAR_UNKNOWN3x = 1 << 11-13,
-  DVAR_SESSIONMODE = 1 << 15
-};
-
-using vec_t = float;
-
-union vec4_t {
-  vec_t v[4];
-  // vec4_t::$E8049E02A67BEF20C2B48C1E90A72E45 _anon_0;
-  // vec4_t::$65A5F67E76558B5B186374890F5F7384 _anon_1;
-  // vec3_t xyz;
-};
-
-struct dvar_t;
-
-enum DvarSetSource : int {
-  DVAR_SOURCE_INTERNAL = 0x0,
-  DVAR_SOURCE_EXTERNAL = 0x1,
-  DVAR_SOURCE_SCRIPT = 0x2,
-};
-
-struct DvarValue {
-  union {
-    bool enabled;
-    int integer;
-    uint32_t unsignedInt;
-    int64_t integer64;
-    uint64_t unsignedInt64;
-    float value;
-    vec4_t vector;
-    const char *string;
-    byte color[4];
-    const dvar_t *indirect[3];
-  } value;
-
-  uint64_t encryptedValue;
-};
-
-union DvarLimits {
-  struct {
-    int stringCount;
-    const char **strings;
-  } enumeration;
-
-  struct {
-    int min;
-    int max;
-  } integer;
-
-  struct {
-    int64_t min;
-    int64_t max;
-  } integer64;
-
-  struct {
-    uint64_t min;
-    uint64_t max;
-  } unsignedInt64;
-
-  struct {
-    float min;
-    float max;
-  } value;
-
-  struct {
-    vec_t min;
-    vec_t max;
-  } vector;
-};
-
-struct dvar_t {
-  dvarStrHash_t name;
-  const char *debugName;
-  const char *description;
-  unsigned int flags;
-  dvarType_t type;
-  bool modified;
-  DvarValue current;
-  DvarValue latched;
-  DvarValue reset;
-  DvarLimits domain;
-  dvar_t *hashNext;
-};
-
 struct netipv4_t {
-  byte a;
-  byte b;
-  byte c;
-  byte d;
+  uint8_t a;
+  uint8_t b;
+  uint8_t c;
+  uint8_t d;
 };
 
 enum netadrtype_t {
@@ -844,26 +891,24 @@ struct netadr_t {
 };
 
 struct XNADDR {
-  byte addrBuff[37];
+  uint8_t addrBuff[37];
 };
 
 struct bdSecurityID {
-  byte ab[8];
+  uint8_t ab[8];
 };
 
 using XNKID = bdSecurityID;
 
 struct bdSecurityKey {
-  byte ab[16];
+  uint8_t ab[16];
 };
 
 using XNKEY = bdSecurityKey;
 
-using XUID = uint64_t;
-
 struct SerializedAdr {
-  byte valid;
-  byte addrBuff[37];
+  uint8_t valid;
+  uint8_t addrBuff[37];
 };
 
 struct XSESSION_INFO {
@@ -871,8 +916,6 @@ struct XSESSION_INFO {
   XNADDR hostAddress;
   XNKEY keyExchangeKey;
 };
-
-using qboolean = int;
 
 enum PacketModeList {
   PACKETDATA_FIRST = 0x0,
@@ -900,21 +943,21 @@ enum PacketModeList {
 };
 
 struct PacketMode {
-  unsigned int start;
+  uint32_t start;
   PacketModeList mode;
 };
 
 struct msg_t {
   qboolean overflowed;
   qboolean readOnly;
-  byte *data;
-  byte *splitData;
-  int maxsize;
-  int cursize;
-  int splitSize;
-  int readcount;
-  int bit;
-  int lastEntityRef;
+  uint8_t *data;
+  uint8_t *splitData;
+  int32_t maxsize;
+  int32_t cursize;
+  int32_t splitSize;
+  int32_t readcount;
+  int32_t bit;
+  int32_t lastEntityRef;
   qboolean flush;
   netsrc_t targetLocalNetID;
   // PacketMode analysis;
@@ -923,7 +966,7 @@ struct msg_t {
 using bdCommonAddrRef = void *;
 
 struct HostInfo {
-  uint64_t xuid;
+  XUID xuid;
   char name[32];
   netadr_t netAdr;
   SerializedAdr serializedAdr;
@@ -985,8 +1028,8 @@ struct JoinHost {
   LobbyType lobbyType;
   LobbyParams lobbyParams;
   uint64_t reservationKey;
-  int retryTime;
-  int retryCount;
+  int32_t retryTime;
+  int32_t retryCount;
 };
 
 enum JoinSourceState {
@@ -1043,30 +1086,30 @@ struct AgreementStatus {
   char name[32];
   bool responded;
   bool agrees;
-  int startTime;
-  int responseTime;
+  int32_t startTime;
+  int32_t responseTime;
 };
 
 struct Agreement {
-  int nonce;
+  int32_t nonce;
   AgreementStatus status[18];
-  int requestCount;
-  int responseCount;
-  int agreeCount;
+  int32_t requestCount;
+  int32_t responseCount;
+  int32_t agreeCount;
 };
 
 struct Join {
   JoinSourceState state;
-  int actionId;
-  int startTime;
-  int duration;
+  int32_t actionId;
+  int32_t startTime;
+  int32_t duration;
   ControllerIndex_t controllerIndex;
   LobbyType sourceLobbyType;
   LobbyType targetLobbyType;
   joinCompleteCallback joinComplete;
   JoinHost hostList[50];
-  int hostCount;
-  int processedCount;
+  int32_t hostCount;
+  int32_t processedCount;
   bool isFinalized;
   JoinHost potentialHost;
   Agreement agreement;
@@ -1079,494 +1122,34 @@ struct ServerInfo {
   uint16_t m_usConnectionPort;
   uint16_t m_usQueryPort;
   uint32_t m_unIP;
-  int m_nPing;
-  byte unk[0x22];
+  int32_t m_nPing;
+  uint8_t unk[0x22];
   char mapname[32];
   char description[64];
   char gamemode[16];
   char modname[32];
-  int playerCount;
-  int maxPlayers;
-  int unk2;
-  int unk3;
-  int unk4;
+  int32_t playerCount;
+  int32_t maxPlayers;
+  int32_t unk2;
+  int32_t unk3;
+  int32_t unk4;
   bool dedicated;
   bool ranked;
   bool hardcore;
   bool zombies;
   char servername[64];
   char tags[128];
-  int unk5;
-  int unk6;
+  int32_t unk5;
+  int32_t unk6;
 };
-
-#ifdef __cplusplus
-namespace hks {
-struct lua_State;
-struct HashTable;
-struct StringTable;
-struct cclosure;
-using hksBool = int;
-using hksChar = char;
-using hksByte = unsigned __int8;
-using hksShort16 = __int16;
-using hksUshort16 = unsigned __int16;
-using HksNumber = float;
-using hksInt32 = int;
-using hksUint32 = unsigned int;
-using hksInt64 = __int64;
-using hksUint64 = unsigned __int64;
-
-using HksGcCost = int;
-
-using hksSize = size_t;
-using lua_Alloc = void *(*)(void *, void *, size_t, size_t);
-using lua_CFunction = hksInt32 (*)(lua_State *);
-
-struct GenericChunkHeader {
-  hksSize m_flags;
-};
-
-struct ChunkHeader : GenericChunkHeader {
-  ChunkHeader *m_next;
-};
-
-struct ChunkList {
-  ChunkHeader m_head;
-};
-
-struct UserData : ChunkHeader {
-  unsigned __int64 m_envAndSizeOffsetHighBits;
-  unsigned __int64 m_metaAndSizeOffsetLowBits;
-  char m_data[8];
-};
-
-struct InternString {
-  unsigned __int64 m_flags;
-  unsigned __int64 m_lengthbits;
-  unsigned int m_hash;
-  char m_data[30];
-};
-
-union HksValue {
-  cclosure *cClosure;
-  void *closure;
-  UserData *userData;
-  HashTable *table;
-  void *tstruct;
-  InternString *str;
-  void *thread;
-  void *ptr;
-  float number;
-  unsigned int native;
-  bool boolean;
-};
-
-enum HksObjectType {
-  TANY = -1,
-  TNONE = -1,
-  TNIL = 0x0,
-  TBOOLEAN = 0x1,
-  TLIGHTUSERDATA = 0x2,
-  TNUMBER = 0x3,
-  TSTRING = 0x4,
-  TTABLE = 0x5,
-  TFUNCTION = 0x6,
-  // idk
-  TUSERDATA = 0x7,
-  TTHREAD = 0x8,
-  TIFUNCTION = 0x9,
-  // Lua function
-  TCFUNCTION = 0xA,
-  // C function
-  TUI64 = 0xB,
-  TSTRUCT = 0xC,
-  NUM_TYPE_OBJECTS = 0xE,
-};
-
-struct HksObject {
-  HksObjectType t;
-  HksValue v;
-};
-
-struct hksInstruction {
-  unsigned int code;
-};
-
-struct ActivationRecord {
-  HksObject *m_base;
-  const hksInstruction *m_returnAddress;
-  __int16 m_tailCallDepth;
-  __int16 m_numVarargs;
-  int m_numExpectedReturns;
-};
-
-struct CallStack {
-  ActivationRecord *m_records;
-  ActivationRecord *m_lastrecord;
-  ActivationRecord *m_current;
-  const hksInstruction *m_current_lua_pc;
-  const hksInstruction *m_hook_return_addr;
-  int m_hook_level;
-};
-
-struct ApiStack {
-  HksObject *top;
-  HksObject *base;
-  HksObject *alloc_top;
-  HksObject *bottom;
-};
-
-struct UpValue : ChunkHeader {
-  HksObject m_storage;
-  HksObject *loc;
-  UpValue *m_next;
-};
-
-struct CallSite {
-  _SETJMP_FLOAT128 m_jumpBuffer[16];
-  CallSite *m_prev;
-};
-
-enum Status {
-  NEW = 0x1,
-  RUNNING = 0x2,
-  YIELDED = 0x3,
-  DEAD_ERROR = 0x4,
-};
-
-enum HksError {
-  HKS_NO_ERROR = 0,
-  HKS_ERRSYNTAX = -4,
-  HKS_ERRFILE = -5,
-  HKS_ERRRUN = -100,
-  HKS_ERRMEM = -200,
-  HKS_ERRERR = -300,
-  HKS_THROWING_ERROR = -500,
-  HKS_GC_YIELD = 1,
-};
-
-struct lua_Debug {
-  int event;
-  const char *name;
-  const char *namewhat;
-  const char *what;
-  const char *source;
-  int currentline;
-  int nups;
-  int nparams;
-  int ishksfunc;
-  int linedefined;
-  int lastlinedefined;
-  char short_src[512];
-  int callstack_level;
-  int is_tail_call;
-};
-
-using lua_function = int(__fastcall *)(lua_State *);
-
-struct luaL_Reg {
-  const char *name;
-  lua_function function;
-};
-
-struct Node {
-  HksObject m_key;
-  HksObject m_value;
-};
-
-struct StringPinner {
-  struct Node {
-    InternString *m_strings[32];
-    Node *m_prev;
-  };
-
-  lua_State *const m_state;
-  StringPinner *const m_prev;
-  InternString **m_nextStringsPlace;
-  Node m_firstNode;
-  Node *m_currentNode;
-};
-
-struct StringTable {
-  InternString **m_data;
-  unsigned int m_count;
-  unsigned int m_mask;
-  StringPinner *m_pinnedStrings;
-};
-
-struct Metatable {};
-
-struct HashTable : ChunkHeader {
-  Metatable *m_meta;
-  unsigned int m_version;
-  unsigned int m_mask;
-  Node *m_hashPart;
-  HksObject *m_arrayPart;
-  unsigned int m_arraySize;
-  Node *m_freeNode;
-};
-
-struct cclosure : ChunkHeader {
-  lua_function m_function;
-  HashTable *m_env;
-  __int16 m_numUpvalues;
-  __int16 m_flags;
-  InternString *m_name;
-  HksObject m_upvalues[1];
-};
-
-enum HksCompilerSettings_BytecodeSharingFormat {
-  BYTECODE_DEFAULT = 0x0,
-  BYTECODE_INPLACE = 0x1,
-  BYTECODE_REFERENCED = 0x2,
-};
-
-enum HksCompilerSettings_IntLiteralOptions {
-  INT_LITERALS_NONE = 0x0,
-  INT_LITERALS_LUD = 0x1,
-  INT_LITERALS_32BIT = 0x1,
-  INT_LITERALS_UI64 = 0x2,
-  INT_LITERALS_64BIT = 0x2,
-  INT_LITERALS_ALL = 0x3,
-};
-
-struct HksCompilerSettings {
-  int m_emitStructCode;
-  const char **m_stripNames;
-  int m_emitGlobalMemoization;
-  int _m_isHksGlobalMemoTestingMode;
-  HksCompilerSettings_BytecodeSharingFormat m_bytecodeSharingFormat;
-  HksCompilerSettings_IntLiteralOptions m_enableIntLiterals;
-  int (*m_debugMap)(const char *, int);
-};
-
-enum HksBytecodeSharingMode : __int64 {
-  HKS_BYTECODE_SHARING_OFF = 0,
-  HKS_BYTECODE_SHARING_ON = 1,
-  HKS_BYTECODE_SHARING_SECURE = 2
-};
-
-struct HksGcWeights {
-  int m_removeString;
-  int m_finalizeUserdataNoMM;
-  int m_finalizeUserdataGcMM;
-  int m_cleanCoroutine;
-  int m_removeWeak;
-  int m_markObject;
-  int m_traverseString;
-  int m_traverseUserdata;
-  int m_traverseCoroutine;
-  int m_traverseWeakTable;
-  int m_freeChunk;
-  int m_sweepTraverse;
-};
-
-struct GarbageCollector_Stack {
-  void *m_storage;
-  unsigned int m_numEntries;
-  unsigned int m_numAllocated;
-};
-
-struct ProtoList {
-  void **m_protoList;
-  unsigned __int16 m_protoSize;
-  unsigned __int16 m_protoAllocSize;
-};
-
-struct MemoryManager;
-
-struct GarbageCollector {
-  struct ResumeStack {
-    void *m_storage;
-    hksInt32 m_numEntries;
-    hksUint32 m_numAllocated;
-  };
-
-  struct GreyStack {
-    HksObject *m_storage;
-    hksSize m_numEntries;
-    hksSize m_numAllocated;
-  };
-
-  struct RemarkStack {
-    HashTable **m_storage;
-    hksSize m_numAllocated;
-    hksSize m_numEntries;
-  };
-
-  struct WeakStack_Entry {
-    hksInt32 m_weakness;
-    HashTable *m_table;
-  };
-
-  struct WeakStack {
-    WeakStack_Entry *m_storage;
-    hksInt32 m_numEntries;
-    hksUint32 m_numAllocated;
-  };
-
-  HksGcCost m_target;
-  HksGcCost m_stepsLeft;
-  HksGcCost m_stepLimit;
-  HksGcWeights m_costs;
-  HksGcCost m_unit;
-  void *m_jumpPoint;
-  lua_State *m_mainState;
-  lua_State *m_finalizerState;
-  MemoryManager *m_memory;
-  void *m_emergencyGCMemory;
-  hksInt32 m_phase;
-  ResumeStack m_resumeStack;
-  GreyStack m_greyStack;
-  RemarkStack m_remarkStack;
-  WeakStack m_weakStack;
-  hksBool m_finalizing;
-  HksObject m_safeTableValue;
-  lua_State *m_startOfStateStackList;
-  lua_State *m_endOfStateStackList;
-  lua_State *m_currentState;
-  HksObject m_safeValue;
-  void *m_compiler;
-  void *m_bytecodeReader;
-  void *m_bytecodeWriter;
-  hksInt32 m_pauseMultiplier;
-  HksGcCost m_stepMultiplier;
-  hksSize m_emergencyMemorySize;
-  bool m_stopped;
-  lua_CFunction m_gcPolicy;
-  hksSize m_pauseTriggerMemoryUsage;
-  hksInt32 m_stepTriggerCountdown;
-  hksUint32 m_stringTableIndex;
-  hksUint32 m_stringTableSize;
-  UserData *m_lastBlackUD;
-  UserData *m_activeUD;
-};
-
-enum MemoryManager_ChunkColor {
-  RED = 0x0,
-  BLACK = 0x1,
-};
-
-enum Hks_DeleteCheckingMode {
-  HKS_DELETE_CHECKING_OFF = 0x0,
-  HKS_DELETE_CHECKING_ACCURATE = 0x1,
-  HKS_DELETE_CHECKING_SAFE = 0x2,
-};
-
-struct MemoryManager {
-  enum ChunkColor : __int32 {
-    WHITE = 0x0,
-    BLACK = 0x1,
-  };
-
-  lua_Alloc m_allocator;
-  void *m_allocatorUd;
-  ChunkColor m_chunkColor;
-  hksSize m_used;
-  hksSize m_highwatermark;
-  ChunkList m_allocationList;
-  ChunkList m_sweepList;
-  ChunkHeader *m_lastKeptChunk;
-  lua_State *m_state;
-};
-
-struct StaticStringCache {
-  HksObject m_objects[41];
-};
-
-enum HksBytecodeEndianness {
-  HKS_BYTECODE_DEFAULT_ENDIAN = 0x0,
-  HKS_BYTECODE_BIG_ENDIAN = 0x1,
-  HKS_BYTECODE_LITTLE_ENDIAN = 0x2,
-};
-
-struct RuntimeProfileData_Stats {
-  unsigned __int64 hksTime;
-  unsigned __int64 callbackTime;
-  unsigned __int64 gcTime;
-  unsigned __int64 cFinalizerTime;
-  unsigned __int64 compilerTime;
-  unsigned int hkssTimeSamples;
-  unsigned int callbackTimeSamples;
-  unsigned int gcTimeSamples;
-  unsigned int compilerTimeSamples;
-  unsigned int num_newuserdata;
-  unsigned int num_tablerehash;
-  unsigned int num_pushstring;
-  unsigned int num_pushcfunction;
-  unsigned int num_newtables;
-};
-
-struct RuntimeProfileData {
-  __int64 stackDepth;
-  __int64 callbackDepth;
-  unsigned __int64 lastTimer;
-  RuntimeProfileData_Stats frameStats;
-  unsigned __int64 gcStartTime;
-  unsigned __int64 finalizerStartTime;
-  unsigned __int64 compilerStartTime;
-  unsigned __int64 compilerStartGCTime;
-  unsigned __int64 compilerStartGCFinalizerTime;
-  unsigned __int64 compilerCallbackStartTime;
-  __int64 compilerDepth;
-  void *outFile;
-  lua_State *rootState;
-};
-
-struct HksGlobal {
-  MemoryManager m_memory;
-  GarbageCollector m_collector;
-  StringTable m_stringTable;
-  __int64 padding3;
-  HksBytecodeSharingMode m_bytecodeSharingMode;
-  int padding;
-  HksObject m_registry;
-  ChunkList m_userDataList;
-  lua_State *m_root;
-  StaticStringCache m_staticStringCache;
-  void *m_debugger;
-  void *m_profiler;
-  RuntimeProfileData m_runProfilerData;
-  HksCompilerSettings m_compilerSettings;
-  int (*m_panicFunction)(lua_State *);
-  void *m_luaplusObjectList;
-  int m_heapAssertionFrequency;
-  int m_heapAssertionCount;
-  void (*m_logFunction)(lua_State *, const char *, ...);
-  void (*m_emergencyGCFailFunction)(lua_State *, size_t);
-  HksBytecodeEndianness m_bytecodeDumpEndianness;
-  int padding2;
-};
-
-struct lua_State {
-  ChunkHeader baseclass;
-  HksGlobal *m_global;
-  CallStack m_callStack;
-  ApiStack m_apistack;
-  UpValue *pending;
-  HksObject globals;
-  HksObject m_cEnv;
-  CallSite *m_callsites;
-  int m_numberOfCCalls;
-  void *m_context;
-  InternString *m_name;
-  lua_State *m_nextState;
-  lua_State *m_nextStateStack;
-  Status m_status;
-  HksError m_error;
-};
-} // namespace hks
-#endif
-
 using ScrVarCanonicalName_t = uint32_t;
 
 struct BuiltinFunctionDef {
   ScrVarCanonicalName_t canonId;
-  unsigned int min_args;
-  unsigned int max_args;
+  uint32_t min_args;
+  uint32_t max_args;
   void *actionFunc;
-  int type;
+  int32_t type;
 };
 
 enum svscmd_type {
@@ -1584,22 +1167,22 @@ enum {
 };
 
 struct client_s {
-  int state;
+  int32_t state;
   char __pad0[0x28];
   netadr_t address;
   char __pad1[20468];
-  int reliableSequence;
-  int reliableAcknowledge;
+  int32_t reliableSequence;
+  int32_t reliableAcknowledge;
   char __pad2[4];
-  int messageAcknowledge;
+  int32_t messageAcknowledge;
   char gap_5040[1416];
-  uint64_t xuid;
+  XUID xuid;
   char __pad3[0xB5D84];
-  int guid;
+  int32_t guid;
   char __pad4[0x8];
   bool bIsTestClient;
   char __pad5[3];
-  int serverId;
+  int32_t serverId;
   char __pad6[171432];
 };
 
@@ -1669,7 +1252,7 @@ struct gclient_s {
 };
 
 struct EntityState {
-  int number;
+  int32_t number;
 }; // Incomplete
 
 struct gentity_s {
@@ -1679,11 +1262,11 @@ struct gentity_s {
   unsigned char __pad1[0x17C];
 
   struct {
-    unsigned int notifyString;
-    unsigned int index;
+    uint32_t notifyString;
+    uint32_t index;
     unsigned char stoppable;
-    int basetime;
-    int duration;
+    int32_t basetime;
+    int32_t duration;
   } snd_wait;
 
   unsigned char __pad2[0x110];
@@ -1703,11 +1286,11 @@ struct workshop_data {
   char contentPathToZoneFiles[260];
   char absolutePathContentFolder[260];
   char absolutePathZoneFiles[260];
-  int unk;  // 1
-  int unk2; // 0
-  unsigned int publisherIdInteger;
-  int unk3;
-  unsigned int unk4;
+  int32_t unk;  // 1
+  int32_t unk2; // 0
+  uint32_t publisherIdInteger;
+  int32_t unk3;
+  uint32_t unk4;
   workshop_type type;
 };
 
@@ -1717,36 +1300,36 @@ static_assert(sizeof(workshop_data) == 0x4C8);
 
 struct DDLMember {
   const char *name;
-  int index;
+  int32_t index;
   void *parent;
-  int bitSize;
-  int limitSize;
-  int offset;
-  int type;
-  int externalIndex;
-  unsigned int rangeLimit;
-  unsigned int serverDelta;
-  unsigned int clientDelta;
-  int arraySize;
-  int enumIndex;
-  int permission;
+  int32_t bitSize;
+  int32_t limitSize;
+  int32_t offset;
+  int32_t type;
+  int32_t externalIndex;
+  uint32_t rangeLimit;
+  uint32_t serverDelta;
+  uint32_t clientDelta;
+  int32_t arraySize;
+  int32_t enumIndex;
+  int32_t permission;
 };
 
 struct DDLHash {
-  int hash;
-  int index;
+  int32_t hash;
+  int32_t index;
 };
 
 struct DDLHashTable {
   DDLHash *list;
-  int count;
-  int max;
+  int32_t count;
+  int32_t max;
 };
 
 struct DDLStruct {
   const char *name;
-  int bitSize;
-  int memberCount;
+  int32_t bitSize;
+  int32_t memberCount;
   DDLMember *members;
   DDLHashTable hashTableUpper;
   DDLHashTable hashTableLower;
@@ -1754,7 +1337,7 @@ struct DDLStruct {
 
 struct DDLEnum {
   const char *name;
-  int memberCount;
+  int32_t memberCount;
   const char **members;
   DDLHashTable hashTable;
 };
@@ -1762,19 +1345,19 @@ struct DDLEnum {
 struct DDLDef {
   char *name;
   uint16_t version;
-  unsigned int checksum;
-  byte flags;
-  int bitSize;
-  int byteSize;
+  uint32_t checksum;
+  uint8_t flags;
+  int32_t bitSize;
+  int32_t byteSize;
   DDLStruct *structList;
-  int structCount;
+  int32_t structCount;
   DDLEnum *enumList;
-  int enumCount;
+  int32_t enumCount;
   DDLDef *next;
-  int headerBitSize;
-  int headerByteSize;
-  int reserveSize;
-  int userFlagsSize;
+  int32_t headerBitSize;
+  int32_t headerByteSize;
+  int32_t reserveSize;
+  int32_t userFlagsSize;
   bool paddingUsed;
 };
 
@@ -1783,14 +1366,14 @@ using DDLWriteCB = void (*)(DDLContext *, void *);
 
 struct DDLContext {
   void *buff;
-  int len;
+  int32_t len;
   const DDLDef *def;
   DDLWriteCB writeCB;
   void *userData;
 };
 
 struct emblemChallengeLookup_t {
-  __int16 challengeIndex;
+  int16_t challengeIndex;
   unsigned char itemIndex;
 };
 
@@ -1800,7 +1383,7 @@ enum CharacterItemType {
   CHARACTER_ITEM_TYPE_COUNT = 0x2,
 };
 
-using BGEmblemBackgroundID = __int16;
+using BGEmblemBackgroundID = int16_t;
 
 union XAssetHeader {
   /*PhysPreset* physPreset;
@@ -1910,6 +1493,10 @@ struct XAsset {
 };
 
 using XAssetEnum = void(XAssetHeader, void *);
+
+template <typename T, size_t X, size_t Y>
+using matrix2d = std::array<std::array<T, Y>, X>;
+// Length of level_locals_t is 0x23A10 on both client and server
 
 #ifdef __cplusplus
 }

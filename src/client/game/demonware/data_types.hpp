@@ -1,7 +1,7 @@
 #pragma once
 
 #include "byte_buffer.hpp"
-#include "game/structs.hpp"
+#include "game/structs/structs.hpp"
 
 namespace demonware {
 class bdTaskResult {

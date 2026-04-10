@@ -1,7 +1,6 @@
 #include <std_include.hpp>
 
 #include "game.hpp"
-#include "structs.hpp"
 #include "utils.hpp"
 
 namespace game {

@@ -1,6 +1,8 @@
 #pragma once
 
-#include "structs.hpp"
+#include "structs/structs.hpp"
+#include <functional>
+#include <string>
 
 namespace game {
 [[nodiscard]] std::string get_dvar_string(const char *dvar_name);
