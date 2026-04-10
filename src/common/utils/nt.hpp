@@ -17,6 +17,27 @@
 #include <filesystem>
 
 namespace utils::nt {
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wignored-attributes"
+template <typename T, typename... Args>
+using stdcall_t = T(__stdcall *)(Args...);
+#pragma clang diagnostic pop
+
+template <typename T, typename... Args> using cdecl_t = T(__cdecl *)(Args...);
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wignored-attributes"
+template <typename T, typename This = void, typename... Args>
+using thiscall_t = T(__thiscall *)(This *, Args...);
+#pragma clang diagnostic pop
+
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wignored-attributes"
+template <typename T, typename... Args>
+using stdcall_t = T(__fastcall *)(Args...);
+#pragma clang diagnostic pop
+
 class library final {
 public:
   static library load(const char *name);
@@ -81,9 +102,7 @@ public:
 
   template <typename T, typename... Args>
   T invoke(const std::string &name, Args... args) const {
-    using fn = T(__cdecl *)(Args...);
-
-    auto f = get_proc<fn>(name);
+    auto f = get_proc<cdecl_t<T, Args...>>(name);
     if (!f)
       return T();
 
@@ -92,9 +111,7 @@ public:
 
   template <typename T, typename... Args>
   T invoke_pascal(const std::string &name, Args... args) const {
-    using fn = T(__stdcall *)(Args...);
-
-    auto f = get_proc<fn>(name);
+    auto f = get_proc<stdcall_t<T, Args...>>(name);
     if (!f)
       return T();
 
@@ -103,9 +120,7 @@ public:
 
   template <typename T, typename... Args>
   T invoke_this(const std::string &name, void *this_ptr, Args... args) const {
-    using fn = T(__thiscall *)(void *, Args...);
-
-    auto f = get_proc<fn>(name);
+    auto f = get_proc<thiscall_t<T, void, Args...>>(name);
     if (!f)
       return T();
 
