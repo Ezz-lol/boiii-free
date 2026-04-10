@@ -157,8 +157,8 @@ void sv_live_removeallclientsfromaddress_stub(game::client_s *client,
 /*
   SND_GetPlaybackTime returns `-1` when a sound is not found.
 
-  I am not presently 100 certain why (active WIP), but in dedicated server,
-  Soundbanks are never loaded, and thus consistuting sounds are never
+  I am not presently 100% certain why (active WIP), but in dedicated server,
+  Soundbanks are never loaded, and thus constituting sounds are never
   aliased, and can never be found - even those provided and used by Treyarch,
   such as perk jingles and map voicelines. The dedicated server is, unmodified,
   entirely incapable of correctly executing server-side logic which requires
@@ -174,7 +174,7 @@ void sv_live_removeallclientsfromaddress_stub(game::client_s *client,
 
   Regardless of the cause, in the short term, some custom maps rely on correct
   `soundgetplaybacktime` GSC function call returns to manually implement sound
-  looping. When `soundgetplaybacktime` returns `-1`, this resuls in the same
+  looping. When `soundgetplaybacktime` returns `-1`, this results in the same
   sound being played rapidly and repeatedly, until the server crashes with a
   "G_Spawn: no free entities" error, as each sound consumed a temporary entity,
   and thus filled all entity slots, triggering a crash on next entity spawn
