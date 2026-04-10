@@ -3,7 +3,11 @@
 #include "game.hpp"
 #include "structs/structs.hpp"
 
+#ifdef _MSC_VER
 #define WEAK __declspec(selectany)
+#else
+#define WEAK __attribute__((weak))
+#endif
 
 namespace game {
 #define Com_Error(code, fmt, ...)                                              \
