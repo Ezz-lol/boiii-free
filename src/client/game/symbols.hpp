@@ -127,13 +127,15 @@ WEAK symbol<gentity_s *(gentity_s *ent, game::snd::SndAliasId alias,
 
 // SND
 namespace snd {
-WEAK symbol<SndAliasId(const char *aliasName)> SND_FindAliasId{0x0,
+WEAK symbol<SndAliasId(const char *aliasName)> SND_FindAliasId{0x14258B860,
                                                                0x14064BD90};
 WEAK symbol<int32_t(const char *name)> SND_GetPlaybackTime{
-    0x0, 0x14064C220}; // Gscr - get length of sound by name, in milliseconds
-WEAK symbol<SndStringHash(const char *name)> SND_HashName{0x0, 0x140651520};
+    0x14258BCD0,
+    0x14064C220}; // Gscr - get length of sound by name, in milliseconds
+WEAK symbol<SndStringHash(const char *name)> SND_HashName{0x142595ED0,
+                                                          0x140651520};
 WEAK symbol<bool(game::snd::SndPlaybackId playbackId, int32_t *msec)>
-    SND_GetKnownLength{0x0, 0x1405465C0};
+    SND_GetKnownLength{0x142271340, 0x1405465C0};
 /*
  Used only in cscr - get _current time_ in playback of sound by playbackId, in
  milliseconds.
@@ -153,7 +155,8 @@ WEAK symbol<bool(game::snd::SndPlaybackId playbackId, int32_t *msec)>
  the sound.
 */
 WEAK symbol<int32_t(game::snd::SndPlaybackId playbackId)> SND_GetPlaybackTime2{
-    0x0, 0x140546620}; // Name in engine is also SND_GetPlaybackTime - override.
+    0x142271390,
+    0x140546620}; // Name in engine is also SND_GetPlaybackTime - override.
 
 /* Called by the other SND_AssetBankFindEntry.
 
@@ -166,31 +169,51 @@ WEAK symbol<int32_t(game::snd::SndPlaybackId playbackId)> SND_GetPlaybackTime2{
 WEAK symbol<bool(game::snd::SndStringHash id,
                  game::snd::SndAssetBankEntry *entries, uint32_t entryCount,
                  game::snd::SndAssetBankEntry **entry)>
-    SND_AssetBankFindEntries{0x0, 0x140649D40};
+    SND_AssetBankFindEntries{0x1425897A0, 0x140649D40};
 WEAK symbol<uint32_t(const SndAssetBankEntry *entry)> SND_AssetBankGetFrameRate{
-    0x0, 0x140649DA0};
+    0x142589810, 0x140649DA0};
 WEAK symbol<uint32_t(const SndAssetBankEntry *entry)> SND_AssetBankGetLengthMs{
-    0x0, 0x140649E20};
+    0x142589890, 0x140649E20};
 WEAK symbol<bool(game::snd::SndStringHash id,
                  game::snd::SndAssetBankEntry **entry, stream_fileid *fid,
                  bool streamed)>
-    SND_AssetBankFindEntry{0x0, 0x14064AC10};
+    SND_AssetBankFindEntry{0x14258A6F0, 0x14064AC10};
 WEAK symbol<bool(game::snd::SndStringHash id,
                  game::snd::SndAssetBankEntry **entry, void **data)>
-    SND_AssetBankFindLoaded{0x0, 0x14064ADF0};
+    SND_AssetBankFindLoaded{0x14258A8C0, 0x14064ADF0};
 WEAK symbol<SndAliasList *(game::snd::SndStringHash key)> SND_BankAliasLookup{
-    0x0, 0x14064AFA0};
-WEAK symbol<qboolean()> SND_Active{0x0, 0x1405479D0};
+    0x14258AA70, 0x14064AFA0};
+
+/*
+   Client has two equivalent functions for this. The main, used-as-usual
+   SND_Active at 0x142272820, and an exact copy at 0x1422F4880, used only for:
+   1. `SND_ShouldInit`'s return value - return true if sound not yet initialised
+   2. An inlined `SND_ShouldInit` call in `SND_InitAfterGlobals`
+*/
+WEAK symbol<qboolean()> SND_Active{0x142272820, 0x1405479D0};
+
+/*
+  This seems to be heavily obfuscated by arxan on client, somehow.
+  I've found SND_InitAfterGlobals and other functions which SND_Init _must_
+  call, but they seemingly have no callers.
+
+  Currently not found on client.
+*/
 WEAK symbol<bool()> SND_Init{0x0, 0x1406459B0};
-// return g_pc_nosnd != 0;
+/*
+   `return g_pc_nosnd != 0;`
+   Most likely does not exist on client.
+   The `nosnd` CLI arg handling seems to, in general,
+   be server-specific in older CoD engines.
+*/
 WEAK symbol<bool()> G_SNDEnabled{0x0, 0x140584DB0};
 
 // snd globals
-WEAK symbol<volatile int32_t> snd_update_fence{0x0, 0x14A2CEF30};
-WEAK symbol<volatile int32_t> snd_update_start{0x0, 0x14A2CEF34};
+WEAK symbol<volatile int32_t> snd_update_fence{0x1579072B0, 0x14A2CEF30};
+WEAK symbol<volatile int32_t> snd_update_start{0x1579072B4, 0x14A2CEF34};
 
 // g_snd globals
-WEAK symbol<SndLocal> g_snd{0x0, 0x141189800};
+WEAK symbol<SndLocal> g_snd{0x14347EE00, 0x141189800};
 // one snd_fire_manager per local client, each with 8 fire slots
 WEAK symbol<matrix2d<snd_fire_manager, 2, 8>> cl_g_snd_fire{0x144D2A13C, 0x0};
 WEAK symbol<matrix2d<snd_fire_manager, 1, 8>> sv_g_snd_fires{0x0, 0x14223B840};
@@ -202,7 +225,12 @@ WEAK symbol<std::array<snd_autosim_play, 64>> g_snd_autosim_history{
     0x144D3FC20, 0x142242980};
 WEAK symbol<unsigned int> g_snd_autosim_time{0x144D4B640, 0x14224E040};
 WEAK symbol<unsigned int> g_snd_autosim_frame{0x144D42AEC, 0x1422454EC};
-// true if "nosnd" given as CLI arg
+/*
+   True if "nosnd" given as CLI arg.
+   Probably does not exist on client, and is not seen used
+   anywhere where it is used in dedicated server.
+   See note above G_SNDEnabled.
+*/
 WEAK symbol<qboolean> g_pc_nosnd{0x0, 0x14A63D4EC};
 } // namespace snd
 
