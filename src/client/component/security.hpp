@@ -62,44 +62,47 @@ struct LobbyMsg {
 // =====================================================================
 // Function pointer typedefs for LobbyMsgRW functions
 // =====================================================================
-using tLobbyMsgRW_PackageInt = BOOL(__fastcall *)(void *lobbyMsg,
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wignored-attributes"
+using tLobbyMsgRW_PackageInt = bool(__fastcall *)(void *lobbyMsg,
                                                   const char *key,
                                                   int32_t *val);
-using tLobbyMsgRW_PackageUChar = BOOL(__fastcall *)(void *lobbyMsg,
+using tLobbyMsgRW_PackageUChar = bool(__fastcall *)(void *lobbyMsg,
                                                     const char *key, char *val);
-using tLobbyMsgRW_PackageString = BOOL(__fastcall *)(void *lobbyMsg,
+using tLobbyMsgRW_PackageString = bool(__fastcall *)(void *lobbyMsg,
                                                      const char *key,
                                                      const char *val,
                                                      int maxLength);
-using tLobbyMsgRW_PackageXuid = BOOL(__fastcall *)(void *lobbyMsg,
+using tLobbyMsgRW_PackageXuid = bool(__fastcall *)(void *lobbyMsg,
                                                    const char *key,
                                                    uint64_t *val);
-using tLobbyMsgRW_PackageBool = BOOL(__fastcall *)(void *lobbyMsg,
+using tLobbyMsgRW_PackageBool = bool(__fastcall *)(void *lobbyMsg,
                                                    const char *key, char *val);
-using tLobbyMsgRW_PackageUInt = BOOL(__fastcall *)(void *lobbyMsg,
+using tLobbyMsgRW_PackageUInt = bool(__fastcall *)(void *lobbyMsg,
                                                    const char *key,
                                                    uint32_t *val);
-using tLobbyMsgRW_PackageShort = BOOL(__fastcall *)(void *lobbyMsg,
+using tLobbyMsgRW_PackageShort = bool(__fastcall *)(void *lobbyMsg,
                                                     const char *key,
                                                     int16_t *val);
-using tLobbyMsgRW_PackageUInt64 = BOOL(__fastcall *)(void *lobbyMsg,
+using tLobbyMsgRW_PackageUInt64 = bool(__fastcall *)(void *lobbyMsg,
                                                      const char *key,
                                                      uint64_t *val);
-using tLobbyMsgRW_PackageArrayStart = BOOL(__fastcall *)(void *lobbyMsg,
+using tLobbyMsgRW_PackageArrayStart = bool(__fastcall *)(void *lobbyMsg,
                                                          const char *key);
-using tLobbyMsgRW_PackageElement = BOOL(__fastcall *)(void *lobbyMsg,
-                                                      BOOL addElement);
-using tLobbyMsgRW_PackageGlob = BOOL(__fastcall *)(void *lobbyMsg,
+using tLobbyMsgRW_PackageElement = bool(__fastcall *)(void *lobbyMsg,
+                                                      bool addElement);
+using tLobbyMsgRW_PackageGlob = bool(__fastcall *)(void *lobbyMsg,
                                                    const char *key,
                                                    const char *val,
                                                    int maxLength);
-using tLobbyMsgRW_PackageFloat = BOOL(__fastcall *)(void *lobbyMsg,
+using tLobbyMsgRW_PackageFloat = bool(__fastcall *)(void *lobbyMsg,
                                                     const char *key,
                                                     float *val);
-using tMsgMutableClientInfo_Package = BOOL(__fastcall *)(void *outRequest,
+using tMsgMutableClientInfo_Package = bool(__fastcall *)(void *outRequest,
                                                          void *lobbyMsg);
 using tLobbyMsgRW_PrepReadData = bool(__fastcall *)(LobbyMsg *, char *, int);
 using tMSG_ReadData = void(__fastcall *)(game::msg_t *, char *, int);
+#pragma clang diagnostic pop
 
 // =====================================================================
 // Lazy-initialized function pointers
@@ -179,7 +182,7 @@ inline thread_local char lobbyMsgCpy[0x50]{};
 // Returns 0 if packet is safe, non-zero if malicious.
 // =====================================================================
 inline int MSG_JoinParty_Package_Inspect(char *_this, char *lobbyMsg) {
-  BOOL packageOK =
+  bool packageOK =
       fn::LobbyMsgRW_PackageInt(lobbyMsg, "targetlobby",
                                 reinterpret_cast<int32_t *>(_this)) &&
       fn::LobbyMsgRW_PackageInt(lobbyMsg, "sourcelobby",
@@ -276,7 +279,7 @@ inline int MSG_JoinParty_Package_Inspect(char *_this, char *lobbyMsg) {
 inline int MSG_LobbyState_Package_Inspect(char *__this, char *lobbyMsg) {
   int32_t *_this = reinterpret_cast<int32_t *>(__this);
 
-  BOOL packageOK =
+  bool packageOK =
       fn::LobbyMsgRW_PackageInt(lobbyMsg, "statenum", _this) &&
       fn::LobbyMsgRW_PackageInt(lobbyMsg, "networkmode", _this + 1) &&
       fn::LobbyMsgRW_PackageInt(lobbyMsg, "mainmode", _this + 2) &&

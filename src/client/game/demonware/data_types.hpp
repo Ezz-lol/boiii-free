@@ -1,7 +1,7 @@
 #pragma once
 
 #include "byte_buffer.hpp"
-#include "game/structs/structs.hpp"
+#include <game/structs/structs.hpp>
 
 namespace demonware {
 class bdTaskResult {
@@ -277,21 +277,21 @@ struct bdSockAddr final {
     unsigned int m_iaddr;
 
     struct {
-      unsigned __int16 m_w1;
-      unsigned __int16 m_w2;
-      unsigned __int16 m_w3;
-      unsigned __int16 m_w4;
-      unsigned __int16 m_w5;
-      unsigned __int16 m_w6;
-      unsigned __int16 m_w7;
-      unsigned __int16 m_w8;
+      uint16_t m_w1;
+      uint16_t m_w2;
+      uint16_t m_w3;
+      uint16_t m_w4;
+      uint16_t m_w5;
+      uint16_t m_w6;
+      uint16_t m_w7;
+      uint16_t m_w8;
     } m_caddr6;
 
     char m_iaddr6[16];
     char m_sockaddr_storage[128];
   } in_un;
 
-  unsigned __int16 m_family;
+  uint16_t m_family;
 };
 
 struct bdInetAddr final : bdTaskResult {
@@ -327,7 +327,7 @@ struct bdInetAddr final : bdTaskResult {
 
 struct bdAddr final : bdTaskResult {
   bdInetAddr m_address;
-  unsigned __int16 m_port{};
+  uint16_t m_port{};
 
   void serialize(byte_buffer *buffer) override {
     const bool data_types = buffer->is_using_data_types();
