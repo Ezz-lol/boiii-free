@@ -61,44 +61,49 @@ namespace utils::pe {
 bool loaded_pe(std::vector<uint8_t> &pe_buffer) {
   try {
     // Get the base address of the current module
-    const auto base_address =
+    const uint8_t *base_address =
         reinterpret_cast<uint8_t *>(GetModuleHandleA(nullptr));
     if (base_address) {
 
       // Read DOS header
-      const auto dos_header = reinterpret_cast<PIMAGE_DOS_HEADER>(base_address);
+      const PIMAGE_DOS_HEADER dos_header = reinterpret_cast<PIMAGE_DOS_HEADER>(
+          const_cast<uint8_t *>(base_address));
       if (dos_header->e_magic == IMAGE_DOS_SIGNATURE) {
 
         // Read NT headers
-        const auto nt_headers = reinterpret_cast<PIMAGE_NT_HEADERS>(
-            base_address + dos_header->e_lfanew);
+        const PIMAGE_NT_HEADERS nt_headers =
+            reinterpret_cast<PIMAGE_NT_HEADERS>(
+                const_cast<uint8_t *>(base_address + dos_header->e_lfanew));
         if (nt_headers->Signature == IMAGE_NT_SIGNATURE) {
 
           // Get size of image
-          const auto image_size = nt_headers->OptionalHeader.SizeOfImage;
+          const uint32_t image_size = nt_headers->OptionalHeader.SizeOfImage;
 
           // Allocate buffer for the PE file
-          pe_buffer.reserve(image_size);
+          pe_buffer.resize(image_size);
 
           // Copy headers
-          const auto headers_size = nt_headers->OptionalHeader.SizeOfHeaders;
+          const uint32_t headers_size =
+              nt_headers->OptionalHeader.SizeOfHeaders;
           memcpy(pe_buffer.data(), base_address, headers_size);
 
           // Copy each section to its proper file offset
-          const auto section_header = IMAGE_FIRST_SECTION(nt_headers);
+          const PIMAGE_SECTION_HEADER section_header =
+              IMAGE_FIRST_SECTION(nt_headers);
           for (uint16_t i = 0; i < nt_headers->FileHeader.NumberOfSections;
                i++) {
             const auto &section = section_header[i];
 
             if (section.SizeOfRawData > 0 && section.PointerToRawData > 0) {
-              const auto source = base_address + section.VirtualAddress;
-              const auto dest_offset = section.PointerToRawData;
-              const auto size =
+              const uint8_t *source = base_address + section.VirtualAddress;
+              const uint64_t dest_offset = section.PointerToRawData;
+              const uint64_t size =
                   (std::min)(section.SizeOfRawData, section.Misc.VirtualSize);
 
-              if (dest_offset + size <= pe_buffer.size()) {
-                memcpy(&pe_buffer[dest_offset], source, size);
+              if (dest_offset + size > pe_buffer.size()) {
+                pe_buffer.resize(dest_offset + size);
               }
+              memcpy(&pe_buffer[dest_offset], source, size);
             }
           }
 
