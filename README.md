@@ -177,6 +177,7 @@ Launch BOIII with these arguments for extra features:
 | `-norelaunch` | Skip automatic relaunch after updates |
 | `-headless` | Run in headless mode (no GUI) |
 | `-nopatch` | Disable selected runtime patches |
+| `-legacyload` | Disable the `mod_game_types` table check skip (enabled by default). Use this if certain custom game types fail to load. |
 | `-plugins` | Load additional plugins from the `plugins/` directory |
 | `-trimlogs` | Trim or rotate old log files on startup |
 | `-keep-launcher` | Keep the launcher process running after starting the game |
