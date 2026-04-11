@@ -1212,6 +1212,64 @@ std::string normalize_option_token(std::string token) {
   return token;
 }
 
+void relaunch_exe_with_launch_options(const std::string &exe_path,
+                                      const std::vector<std::string> &options) {
+  STARTUPINFOA startup_info;
+  PROCESS_INFORMATION process_info;
+  ZeroMemory(&startup_info, sizeof(startup_info));
+  ZeroMemory(&process_info, sizeof(process_info));
+  startup_info.cb = sizeof(startup_info);
+
+  char current_dir[MAX_PATH];
+  GetCurrentDirectoryA(sizeof(current_dir), current_dir);
+
+  std::string command_line = "\"" + exe_path + "\"";
+
+  for (const auto &option : options) {
+    command_line += " -";
+    command_line += option;
+  }
+
+  if (CreateProcessA(exe_path.c_str(), command_line.data(), nullptr, nullptr,
+                     FALSE, CREATE_NEW_CONSOLE, nullptr, current_dir,
+                     &startup_info, &process_info)) {
+    CloseHandle(process_info.hProcess);
+    CloseHandle(process_info.hThread);
+    TerminateProcess(GetCurrentProcess(), 0);
+  }
+}
+
+bool handle_version_launch(const std::string &exe_name,
+                           const std::string &exe_url,
+                           const std::vector<std::string> &options) {
+  if (exe_name.empty() || exe_url.empty()) {
+    return false;
+  }
+
+  // Beta is handled by the main updater upon restart
+  if (exe_name == "boiii-beta.exe") {
+    utils::properties::store("selectedVersion", "beta");
+    relaunch_with_launch_options(options);
+    return true;
+  }
+
+  // Specific version download
+  if (!utils::io::file_exists(exe_name)) {
+    const auto data = utils::http::get_data(exe_url);
+    if (data) {
+      utils::io::write_file(exe_name, *data);
+    } else {
+      game::show_error(utils::string::va("Failed to download version: %s",
+                                         exe_name.c_str()));
+      return false;
+    }
+  }
+
+  utils::properties::store("selectedVersion", exe_name);
+  relaunch_exe_with_launch_options(exe_name, options);
+  return true;
+}
+
 void relaunch_with_launch_options(const std::vector<std::string> &options) {
   const auto self =
       utils::nt::library::get_by_address(relaunch_with_launch_options);
@@ -1691,6 +1749,22 @@ bool run() {
           return CComVariant("");
         }
         return CComVariant(stored->c_str());
+      });
+
+  window.get_html_frame()->register_callback(
+      "setSelectedVersion",
+      [](const std::vector<html_argument> &params) -> CComVariant {
+        if (!params.empty() && params[0].is_string()) {
+          utils::properties::store("selectedVersion", params[0].get_string());
+        }
+        return {};
+      });
+
+  window.get_html_frame()->register_callback(
+      "getSelectedVersion",
+      [](const std::vector<html_argument> & /*params*/) -> CComVariant {
+        const auto stored = utils::properties::load("selectedVersion");
+        return CComVariant(stored ? stored->c_str() : "latest");
       });
 
   window.get_html_frame()->register_callback(
@@ -2381,12 +2455,25 @@ bool run() {
         }
         utils::properties::store("launchOptions", option_list);
 
+        std::string exe_name{};
+        std::string exe_url{};
+        if (params.size() >= 3 && params[2].is_string())
+          exe_name = params[2].get_string();
+        if (params.size() >= 4 && params[3].is_string())
+          exe_url = params[3].get_string();
+
         std::vector<std::string> opts;
         if (!option_list.empty()) {
           for (auto &part : utils::string::split(option_list, ' ')) {
             auto token = normalize_option_token(std::move(part));
             if (!token.empty())
               opts.emplace_back(std::move(token));
+          }
+        }
+
+        if (!exe_name.empty() && !exe_url.empty()) {
+          if (handle_version_launch(exe_name, exe_url, opts)) {
+            return CComVariant("ok");
           }
         }
 
@@ -2423,6 +2510,13 @@ bool run() {
 
         utils::properties::store("launchOptions", option_list);
 
+        std::string exe_name{};
+        std::string exe_url{};
+        if (params.size() >= 3 && params[2].is_string())
+          exe_name = params[2].get_string();
+        if (params.size() >= 4 && params[3].is_string())
+          exe_url = params[3].get_string();
+
         launch_options.clear();
         if (!option_list.empty()) {
           for (auto &part : utils::string::split(option_list, ' ')) {
@@ -2430,6 +2524,12 @@ bool run() {
             if (!token.empty()) {
               launch_options.emplace_back(std::move(token));
             }
+          }
+        }
+
+        if (!exe_name.empty() && !exe_url.empty()) {
+          if (handle_version_launch(exe_name, exe_url, launch_options)) {
+            return {};
           }
         }
 

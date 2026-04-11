@@ -37,7 +37,7 @@
         </button>
       </div>
       <div class="nav-footer">
-        <span class="nav-version" id="versionDisplay">v1.0.0</span>
+        <span class="nav-version" id="versionDisplay" style="cursor: pointer;" title="Show Credits">v1.0.0</span>
       </div>
     </nav>
 
@@ -997,6 +997,38 @@
     </div>
   </div>
 
+
+  <div class="popup-backdrop" id="creditsPopup">
+    <div class="popup credits-popup">
+      <div class="popup-header">
+        <h3>Credits</h3>
+        <button type="button" class="popup-close" data-close="creditsPopup">&times;</button>
+      </div>
+      <div class="popup-content">
+        <div class="credits-section">
+          <div class="credits-label">Maintainers</div>
+          <div class="maintainers-list">
+            <div class="maintainer-card" onclick="window.external.openUrl('https://github.com/Skwll')">
+              <img src="https://github.com/Skwll.png" alt="Skwll" class="maintainer-avatar">
+              <div class="maintainer-name">Skwll</div>
+            </div>
+            <div class="maintainer-card" onclick="window.external.openUrl('https://github.com/Frozedy')">
+              <img src="https://github.com/Frozedy.png" alt="Frozedy" class="maintainer-avatar">
+              <div class="maintainer-name">Frozedy</div>
+            </div>
+            <div class="maintainer-card" onclick="window.external.openUrl('https://github.com/amkillam')">
+              <img src="https://github.com/amkillam.png" alt="amkillam" class="maintainer-avatar">
+              <div class="maintainer-name">amkillam</div>
+            </div>
+          </div>
+        </div>
+        <div class="credits-divider"></div>
+        <div class="credits-section">
+          <button type="button" class="btn btn-full" onclick="window.external.openUrl('https://github.com/Ezz-lol/boiii-free/graphs/contributors')">View All Contributors</button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="main.js"></script>
 </body>

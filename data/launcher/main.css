@@ -1958,6 +1958,73 @@ h1 {
   margin-left: 4px;
 }
 
+/* ═══ CREDITS MODAL ═══ */
+.credits-popup {
+  max-width: 480px;
+}
+
+.credits-section {
+  padding: 16px 4px;
+}
+
+.credits-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(244, 240, 235, 0.5);
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.maintainers-list {
+  display: flex;
+  justify-content: space-around;
+  gap: 16px;
+}
+
+.maintainer-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  flex: 1;
+}
+
+.maintainer-card:hover {
+  transform: translateY(-4px);
+}
+
+.maintainer-card:active {
+  transform: translateY(0);
+}
+
+.maintainer-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px solid rgba(249, 115, 22, 0.3);
+  background: rgba(0, 0, 0, 0.3);
+  transition: border-color 0.2s ease;
+}
+
+.maintainer-card:hover .maintainer-avatar {
+  border-color: rgba(249, 115, 22, 0.8);
+}
+
+.maintainer-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: rgba(244, 240, 235, 0.9);
+}
+
+.credits-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(249, 115, 22, 0.15), transparent);
+  margin: 8px 0;
+}
+
 .popup-backdrop {
   position: fixed;
   top: 0;
