@@ -1162,8 +1162,6 @@ void relaunch_exe_with_launch_options(const std::string &exe_path,
   }
 }
 
-void relaunch_with_launch_options(const std::vector<std::string> &options);
-
 bool handle_version_launch(const std::string &exe_name,
                            const std::string &exe_url,
                            const std::vector<std::string> &options) {
@@ -1254,47 +1252,6 @@ void relaunch_with_launch_options(const std::vector<std::string> &options) {
 }
 } // namespace
 
-bool is_dedicated_server_process(DWORD pid) {
-  const HANDLE hProcess =
-      OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
-  if (!hProcess)
-    return false;
-
-  using NtQueryInformationProcessFn =
-      LONG(NTAPI *)(HANDLE, ULONG, PVOID, ULONG, PULONG);
-  static const auto pNtQueryInformationProcess =
-      reinterpret_cast<NtQueryInformationProcessFn>(GetProcAddress(
-          GetModuleHandleA("ntdll.dll"), "NtQueryInformationProcess"));
-
-  if (!pNtQueryInformationProcess) {
-    CloseHandle(hProcess);
-    return false;
-  }
-
-  constexpr ULONG ProcessCommandLineInformation = 60;
-  ULONG size = 0;
-  pNtQueryInformationProcess(hProcess, ProcessCommandLineInformation, nullptr,
-                             0, &size);
-  if (size == 0) {
-    CloseHandle(hProcess);
-    return false;
-  }
-
-  std::vector<uint8_t> buffer(size);
-  const auto status = pNtQueryInformationProcess(
-      hProcess, ProcessCommandLineInformation, buffer.data(), size, &size);
-  if (status != 0) {
-    CloseHandle(hProcess);
-    return false;
-  }
-
-  const auto *us = reinterpret_cast<UNICODE_STRING *>(buffer.data());
-  std::wstring cmdline(us->Buffer, us->Length / sizeof(WCHAR));
-  CloseHandle(hProcess);
-
-  return cmdline.find(L"-dedicated") != std::wstring::npos;
-}
-
 bool is_game_process_running() {
   const auto self_pid = GetCurrentProcessId();
   const HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -1311,18 +1268,18 @@ bool is_game_process_running() {
 
       std::wstring name(pe.szExeFile);
 
+      // Skip dedicated servers (known names)
       if (_wcsicmp(name.c_str(), L"BlackOps3_UnrankedDedicatedServer.exe") == 0)
         continue;
 
+      // Check for game process
       if (_wcsicmp(name.c_str(), L"BlackOps3.exe") == 0) {
         CloseHandle(snap);
         return true;
       }
 
+      // Check for other boiii instances
       if (_wcsicmp(name.c_str(), L"boiii.exe") == 0) {
-        if (is_dedicated_server_process(pe.th32ProcessID))
-          continue;
-
         CloseHandle(snap);
         return true;
       }
@@ -1334,8 +1291,11 @@ bool is_game_process_running() {
 }
 
 bool run() {
-  bool run_game = false;
-  std::vector<std::string> launch_options{};
+  // Use shared pointers for results to avoid capture-by-reference crashes on
+  // exit
+  auto run_game = std::make_shared<bool>(false);
+  auto launch_options = std::make_shared<std::vector<std::string>>();
+
   html_window window("EZZ BOIII", 1260, 680);
 
   window.get_html_frame()->register_callback(
@@ -2521,26 +2481,26 @@ bool run() {
         if (params.size() >= 4 && params[3].is_string())
           exe_url = params[3].get_string();
 
-        launch_options.clear();
+        launch_options->clear();
         if (!option_list.empty()) {
           for (auto &part : utils::string::split(option_list, ' ')) {
             auto token = normalize_option_token(std::move(part));
             if (!token.empty()) {
-              launch_options.emplace_back(std::move(token));
+              launch_options->emplace_back(std::move(token));
             }
           }
         }
 
         if (!exe_name.empty() && !exe_url.empty()) {
-          if (handle_version_launch(exe_name, exe_url, launch_options)) {
+          if (handle_version_launch(exe_name, exe_url, *launch_options)) {
             return {};
           }
         }
 
-        if (!launch_options.empty()) {
-          run_game = false;
+        if (!launch_options->empty()) {
+          *run_game = false;
         } else {
-          run_game = true;
+          *run_game = true;
         }
 
         window.get_window()->close();
@@ -2552,11 +2512,11 @@ bool run() {
       "file:///%ls", get_launcher_ui_file().wstring().c_str()));
 
   window::run();
-  if (!launch_options.empty()) {
-    relaunch_with_launch_options(launch_options);
+  if (!launch_options->empty()) {
+    relaunch_with_launch_options(*launch_options);
     return false;
   }
-  return run_game;
+  return *run_game;
 }
 
 std::filesystem::path get_launcher_ui_file() {

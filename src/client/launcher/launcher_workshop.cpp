@@ -241,12 +241,20 @@ constexpr const char *STEAM_WORKSHOP_API =
 constexpr int BO3_APP_ID = 311210;
 
 std::uint64_t parse_human_size_to_bytes(const std::string &text) {
-  std::smatch m;
-  std::regex re(R"((\d+(?:\.\d+)?)\s*(B|KB|MB|GB|TB))", std::regex::icase);
-  if (!std::regex_search(text, m, re) || m.size() < 3)
+  if (text.empty())
     return 0;
-  const double value = std::stod(m[1].str());
-  std::string unit = m[2].str();
+
+  double value = 0.0;
+  std::string unit;
+  std::istringstream ss(text);
+  if (!(ss >> value))
+    return 0;
+
+  if (!(ss >> unit)) {
+    // If no unit, assume bytes
+    return static_cast<std::uint64_t>(value);
+  }
+
   for (auto &c : unit)
     c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
 
