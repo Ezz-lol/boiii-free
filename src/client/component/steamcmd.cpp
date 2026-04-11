@@ -239,12 +239,21 @@ int setup_steamcmd() {
     std::filesystem::create_directory("steamcmd");
   }
 
+  const bool is_wine = utils::nt::is_wine();
+  const std::string steamcmd_bin =
+      is_wine ? "steamcmd/steamcmd.sh" : "steamcmd/steamcmd.exe";
+
   if (!utils::io::file_exists("steamcmd.zip") &&
-      !utils::io::file_exists("steamcmd/steamcmd.exe")) {
-    constexpr char url[] =
-        "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip";
-    // official steamcmd download link
-    constexpr char outfilename[] = "./steamcmd.zip";
+      !utils::io::file_exists("steamcmd.tar.gz") &&
+      !utils::io::file_exists(steamcmd_bin)) {
+    const std::string url =
+        is_wine
+            ? "https://steamcdn-a.akamaihd.net/client/installer/"
+              "steamcmd_linux.tar.gz"
+            : "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip";
+
+    const std::string outfilename =
+        is_wine ? "./steamcmd.tar.gz" : "./steamcmd.zip";
 
     for (; tries < max_tries; ++tries) {
       CURL *curl = curl_easy_init();
@@ -253,27 +262,21 @@ int setup_steamcmd() {
         return 1;
       }
 
-      curl_version_info_data *vinfo = curl_version_info(CURLVERSION_NOW);
-      if (vinfo->features & CURL_VERSION_SSL) {
-        printf("CURL: SSL enabled\n");
-      } else {
-        printf("CURL: SSL not enabled\n");
-      }
-
       FILE *outFile = nullptr;
-      errno_t err = fopen_s(&outFile, outfilename, "wb");
+      errno_t err = fopen_s(&outFile, outfilename.c_str(), "wb");
       if (err != 0 || outFile == nullptr) {
         printf("Error opening file for writing.\n");
         curl_easy_cleanup(curl);
         return 1;
       }
 
-      curl_easy_setopt(curl, CURLOPT_URL, url);
+      curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
       curl_easy_setopt(curl, CURLOPT_CAINFO, "./ca-bundle.crt");
       curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
       curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
       curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_data);
       curl_easy_setopt(curl, CURLOPT_WRITEDATA, outFile);
+      curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
 
       CURLcode res = curl_easy_perform(curl);
       fclose(outFile);
@@ -284,8 +287,7 @@ int setup_steamcmd() {
       }
 
       printf("CURL failed: %s\n", curl_easy_strerror(res));
-      remove(outfilename); // Delete the file in case of failure and try again
-                           // until max tries used
+      remove(outfilename.c_str());
       if (tries + 1 < max_tries) {
         Sleep(2000);
       }
@@ -295,35 +297,42 @@ int setup_steamcmd() {
       printf("[ERROR] Could not download steamcmd! \nMax tries used.");
       return 1;
     }
-
-    if (extract_steamcmd() == 1) {
-      printf("[ERROR] Could not extract steamcmd! \n");
-      return 1;
-    }
-  } else if (!utils::io::file_exists("steamcmd/steamcmd.exe") &&
-             utils::io::file_exists("steamcmd.zip")) {
-    if (extract_steamcmd() == 1) {
-      printf("[ERROR] Could not extract steamcmd! \n");
-      return 1;
-    }
-  }
-  if (!utils::io::file_exists("steamcmd/steamcmd.exe") &&
-      utils::io::file_exists("steamcmd.exe")) {
-    std::filesystem::rename("steamcmd.exe", "steamcmd/steamcmd.exe");
   }
 
-  try {
-    if (utils::io::file_exists("steamcmd/steamcmd.exe") &&
-        std::filesystem::is_regular_file("steamcmd/steamcmd.exe")) {
-      std::uintmax_t file_size =
-          std::filesystem::file_size("steamcmd/steamcmd.exe");
-      if (file_size < 3 * 1024 * 1024) {
-        printf("Install / update SteamCMD \n");
-        start_new_process("./steamcmd/steamcmd.exe", false, true, "+quit");
+  if (is_wine) {
+    if (utils::io::file_exists("steamcmd.tar.gz") &&
+        !utils::io::file_exists("steamcmd/steamcmd.sh")) {
+      printf("Extracting steamcmd_linux.tar.gz...\n");
+      system("tar -xzf steamcmd.tar.gz -C steamcmd");
+    }
+  } else {
+    if (utils::io::file_exists("steamcmd.zip") &&
+        !utils::io::file_exists("steamcmd/steamcmd.exe")) {
+      if (extract_steamcmd() != 0) {
+        return 1;
       }
     }
-  } catch (std::filesystem::filesystem_error &e) {
-    printf("%s\n", e.what());
+  }
+
+  if (!is_wine) {
+    if (!utils::io::file_exists("steamcmd/steamcmd.exe") &&
+        utils::io::file_exists("steamcmd.exe")) {
+      std::filesystem::rename("steamcmd.exe", "steamcmd/steamcmd.exe");
+    }
+
+    try {
+      if (utils::io::file_exists("steamcmd/steamcmd.exe") &&
+          std::filesystem::is_regular_file("steamcmd/steamcmd.exe")) {
+        std::uintmax_t file_size =
+            std::filesystem::file_size("steamcmd/steamcmd.exe");
+        if (file_size < 3 * 1024 * 1024) {
+          printf("Install / update SteamCMD \n");
+          start_new_process("./steamcmd/steamcmd.exe", false, true, "+quit");
+        }
+      }
+    } catch (std::filesystem::filesystem_error &e) {
+      printf("%s\n", e.what());
+    }
   }
 
   return 0;
@@ -713,12 +722,16 @@ int download_workshop_item(std::string workshop_id, std::string modtype) {
       printf("[ Workshop ] Downloading (attempt %d/%d)...\n", tries, max_tries);
     }
 
+    const bool is_wine = utils::nt::is_wine();
+    const std::string steamcmd_bin =
+        is_wine ? "./steamcmd/steamcmd.sh" : "./steamcmd/steamcmd.exe";
+
     auto attempt_start = std::chrono::steady_clock::now();
 
     // SteamCMD will resume from where it left off if the download was
     // interrupted
     int result = start_new_process(
-        "./steamcmd/steamcmd.exe", true, true,
+        steamcmd_bin.c_str(), true, true,
         ("+login anonymous app_update 311210 +workshop_download_item 311210 " +
          std::string(workshop_id_char) + " validate +quit")
             .c_str());
