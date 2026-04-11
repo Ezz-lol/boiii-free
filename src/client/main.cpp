@@ -530,14 +530,6 @@ int main() {
         return 0;
       }
 
-      updater::update();
-
-      if (!utils::io::file_exists(
-              launcher::get_launcher_ui_file().generic_wstring())) {
-        throw std::runtime_error("BOIII needs an active internet connection "
-                                 "for the first time you launch it.");
-      }
-
       const auto client_binary = "BlackOps3.exe"s;
       const auto server_binary = "BlackOps3_UnrankedDedicatedServer.exe"s;
 
@@ -554,6 +546,16 @@ int main() {
 
       const auto is_server =
           utils::flags::has_flag("dedicated") || (!has_client && has_server);
+
+      if (!is_server && !launcher::is_game_process_running()) {
+        updater::update();
+      }
+
+      if (!utils::io::file_exists(
+              launcher::get_launcher_ui_file().generic_wstring())) {
+        throw std::runtime_error("BOIII needs an active internet connection "
+                                 "for the first time you launch it.");
+      }
 
       if (!is_server) {
         trigger_high_performance_gpu_switch();
