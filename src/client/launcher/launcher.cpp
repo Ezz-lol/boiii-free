@@ -511,85 +511,6 @@ void verify_game_thread(const std::string &modes_csv) {
   verify_running = false;
 }
 
-bool is_dedicated_server_process(DWORD pid) {
-  const HANDLE hProcess =
-      OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
-  if (!hProcess)
-    return false;
-
-  using NtQueryInformationProcessFn =
-      LONG(NTAPI *)(HANDLE, ULONG, PVOID, ULONG, PULONG);
-  static const auto pNtQueryInformationProcess =
-      reinterpret_cast<NtQueryInformationProcessFn>(GetProcAddress(
-          GetModuleHandleA("ntdll.dll"), "NtQueryInformationProcess"));
-
-  if (!pNtQueryInformationProcess) {
-    CloseHandle(hProcess);
-    return false;
-  }
-
-  constexpr ULONG ProcessCommandLineInformation = 60;
-  ULONG size = 0;
-  pNtQueryInformationProcess(hProcess, ProcessCommandLineInformation, nullptr,
-                             0, &size);
-  if (size == 0) {
-    CloseHandle(hProcess);
-    return false;
-  }
-
-  std::vector<uint8_t> buffer(size);
-  const auto status = pNtQueryInformationProcess(
-      hProcess, ProcessCommandLineInformation, buffer.data(), size, &size);
-  if (status != 0) {
-    CloseHandle(hProcess);
-    return false;
-  }
-
-  const auto *us = reinterpret_cast<UNICODE_STRING *>(buffer.data());
-  std::wstring cmdline(us->Buffer, us->Length / sizeof(WCHAR));
-  CloseHandle(hProcess);
-
-  return cmdline.find(L"-dedicated") != std::wstring::npos;
-}
-
-bool is_game_process_running() {
-  const auto self_pid = GetCurrentProcessId();
-  const HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
-  if (snap == INVALID_HANDLE_VALUE)
-    return false;
-
-  PROCESSENTRY32W pe{};
-  pe.dwSize = sizeof(pe);
-
-  if (Process32FirstW(snap, &pe)) {
-    do {
-      if (pe.th32ProcessID == self_pid)
-        continue;
-
-      std::wstring name(pe.szExeFile);
-
-      if (_wcsicmp(name.c_str(), L"BlackOps3_UnrankedDedicatedServer.exe") == 0)
-        continue;
-
-      if (_wcsicmp(name.c_str(), L"BlackOps3.exe") == 0) {
-        CloseHandle(snap);
-        return true;
-      }
-
-      if (_wcsicmp(name.c_str(), L"boiii.exe") == 0) {
-        if (is_dedicated_server_process(pe.th32ProcessID))
-          continue;
-
-        CloseHandle(snap);
-        return true;
-      }
-    } while (Process32NextW(snap, &pe));
-  }
-
-  CloseHandle(snap);
-  return false;
-}
-
 void workshop_remove_one(const std::string &folder_name) {
   std::string name = folder_name;
   utils::string::trim(name);
@@ -1212,6 +1133,8 @@ std::string normalize_option_token(std::string token) {
   return token;
 }
 
+void relaunch_with_launch_options(const std::vector<std::string> &options);
+
 void relaunch_exe_with_launch_options(const std::string &exe_path,
                                       const std::vector<std::string> &options) {
   STARTUPINFOA startup_info;
@@ -1238,6 +1161,8 @@ void relaunch_exe_with_launch_options(const std::string &exe_path,
     TerminateProcess(GetCurrentProcess(), 0);
   }
 }
+
+void relaunch_with_launch_options(const std::vector<std::string> &options);
 
 bool handle_version_launch(const std::string &exe_name,
                            const std::string &exe_url,
@@ -1328,6 +1253,85 @@ void relaunch_with_launch_options(const std::vector<std::string> &options) {
   }
 }
 } // namespace
+
+bool is_dedicated_server_process(DWORD pid) {
+  const HANDLE hProcess =
+      OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, FALSE, pid);
+  if (!hProcess)
+    return false;
+
+  using NtQueryInformationProcessFn =
+      LONG(NTAPI *)(HANDLE, ULONG, PVOID, ULONG, PULONG);
+  static const auto pNtQueryInformationProcess =
+      reinterpret_cast<NtQueryInformationProcessFn>(GetProcAddress(
+          GetModuleHandleA("ntdll.dll"), "NtQueryInformationProcess"));
+
+  if (!pNtQueryInformationProcess) {
+    CloseHandle(hProcess);
+    return false;
+  }
+
+  constexpr ULONG ProcessCommandLineInformation = 60;
+  ULONG size = 0;
+  pNtQueryInformationProcess(hProcess, ProcessCommandLineInformation, nullptr,
+                             0, &size);
+  if (size == 0) {
+    CloseHandle(hProcess);
+    return false;
+  }
+
+  std::vector<uint8_t> buffer(size);
+  const auto status = pNtQueryInformationProcess(
+      hProcess, ProcessCommandLineInformation, buffer.data(), size, &size);
+  if (status != 0) {
+    CloseHandle(hProcess);
+    return false;
+  }
+
+  const auto *us = reinterpret_cast<UNICODE_STRING *>(buffer.data());
+  std::wstring cmdline(us->Buffer, us->Length / sizeof(WCHAR));
+  CloseHandle(hProcess);
+
+  return cmdline.find(L"-dedicated") != std::wstring::npos;
+}
+
+bool is_game_process_running() {
+  const auto self_pid = GetCurrentProcessId();
+  const HANDLE snap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+  if (snap == INVALID_HANDLE_VALUE)
+    return false;
+
+  PROCESSENTRY32W pe{};
+  pe.dwSize = sizeof(pe);
+
+  if (Process32FirstW(snap, &pe)) {
+    do {
+      if (pe.th32ProcessID == self_pid)
+        continue;
+
+      std::wstring name(pe.szExeFile);
+
+      if (_wcsicmp(name.c_str(), L"BlackOps3_UnrankedDedicatedServer.exe") == 0)
+        continue;
+
+      if (_wcsicmp(name.c_str(), L"BlackOps3.exe") == 0) {
+        CloseHandle(snap);
+        return true;
+      }
+
+      if (_wcsicmp(name.c_str(), L"boiii.exe") == 0) {
+        if (is_dedicated_server_process(pe.th32ProcessID))
+          continue;
+
+        CloseHandle(snap);
+        return true;
+      }
+    } while (Process32NextW(snap, &pe));
+  }
+
+  CloseHandle(snap);
+  return false;
+}
 
 bool run() {
   bool run_game = false;
