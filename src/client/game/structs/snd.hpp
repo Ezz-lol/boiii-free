@@ -569,8 +569,8 @@ partial_def(SND_LOCAL_SIZE, struct, SndLocal, {
   // g_snd_sndq: len 56 == 0x38
   // Struct in BO3 and BO4 alpha has 16 bytes of padding here, but
   // there is no padding in latest version of engine - there is an unrelated
-  // global (function-local variable) that is allocated just after SNDQ.
-  // Either an alignment change, or size of non-pointer field(s) change.
+  // global (function-specific, static variable) that is allocated just after
+  // SNDQ. Either an alignment change, or size of non-pointer field(s) change.
 });
 #pragma pack(pop)
 
