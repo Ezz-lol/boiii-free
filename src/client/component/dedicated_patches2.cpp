@@ -123,7 +123,7 @@ void enforce_sv_cheats() {
 // Hook for G_Say to sanitize messages
 utils::hook::detour g_say_hook;
 
-void g_say_stub(game::gentity_s *ent, game::gentity_s *target, int mode,
+void g_say_stub(game::level::gentity_s *ent, game::level::gentity_s *target, int mode,
                 const char *chatText) {
   if (chatText) {
     const auto sanitized = sanitize_chat_message(chatText);
@@ -136,7 +136,7 @@ void g_say_stub(game::gentity_s *ent, game::gentity_s *target, int mode,
 // Hook for SV_DirectConnect to rate limit connections
 utils::hook::detour sv_direct_connect_hook;
 
-void sv_direct_connect_stub(game::netadr_t adr) {
+void sv_direct_connect_stub(game::net::netadr_t adr) {
   if (is_rate_limited(adr.addr)) {
     printf("[Security] Rejected connection from rate-limited IP\n");
     return;
@@ -146,7 +146,7 @@ void sv_direct_connect_stub(game::netadr_t adr) {
 }
 
 utils::hook::detour sv_removeallclientsfromaddress_hook;
-void sv_live_removeallclientsfromaddress_stub(game::client_s *client,
+void sv_live_removeallclientsfromaddress_stub(game::net::client_s *client,
                                               const char *reason) {
   // Skip disconnecting other clients from the same IP -
   // just free the disconnected client's slot, and return.
@@ -228,7 +228,7 @@ void g_init_game_stub(uint32_t levelTime, uint32_t randomSeed,
 
 utils::hook::detour sv_addservercommand_hook;
 
-void sv_addservercommand_stub(game::client_s *client, game::svscmd_type type,
+void sv_addservercommand_stub(game::net::client_s *client, game::net::svscmd_type type,
                               const char *cmd) {
 
   std::string cmd_str = cmd ? std::string(cmd) : "";
