@@ -311,7 +311,32 @@ filter({})
 
 filter("configurations:Debug")
 optimize("Debug")
-defines({ "DEBUG", "_DEBUG" })
+defines({ "DEBUG", "_DEBUG", "_CRT_DEBUG" })
+if os.host() == "windows" then
+  buildoptions({ "/MDd" })
+  linkoptions({
+    "/DEBUG",
+    "/NODEFAULTLIB:libcmt.lib",
+    "/NODEFAULTLIB:libucrt.lib",
+    "-l libcmtd.lib",
+    "/MTd",
+  })
+else
+  buildoptions({
+    "-Wl,/DEBUG",
+    "-Wl,/NODEFAULTLIB:libcmt.lib",
+    "-Wl,/NODEFAULTLIB:libucrt.lib",
+    "-l libcmtd.lib",
+  })
+  linkoptions({
+    "-fms-extensions",
+    "-fms-runtime-lib=static_dbg",
+    "-Wl,/DEBUG",
+    "-Wl,/NODEFAULTLIB:libcmt.lib",
+    "-Wl,/NODEFAULTLIB:libucrt.lib",
+    "-l libcmtd.lib",
+  })
+end
 filter({})
 
 project("common")
