@@ -25,3 +25,4 @@
 #include "live/live.hpp" // IWYU pragma: export
 #include "db/db.hpp"     // IWYU pragma: export
 #include "cl.hpp"        // IWYU pragma: export
+#include "ui/ui.hpp"     // IWYU pragma: export

@@ -2,8 +2,6 @@
 
 #include <cstdint>
 #include "game.hpp"
-#include "structs/db/xasset.hpp"
-#include "structs/snd.hpp"
 #include "structs/structs.hpp"
 
 #ifdef _MSC_VER
@@ -1068,5 +1066,12 @@ WEAK symbol<const char *(lua_State *s, int index, size_t *len)>
     hksi_lua_tolstring{0x141D4B6C0, 0x1403F42B0};
 WEAK symbol<const char *> s_compilerTypeName{0x140A18430};
 } // namespace hks
+
+namespace ui {
+namespace hud {
+WEAK symbol<std::array<game_hudelem_t, 1116>> g_hudelems{0x14A08B560,
+                                                         0x1470D7D70};
+}
+} // namespace ui
 
 } // namespace game
