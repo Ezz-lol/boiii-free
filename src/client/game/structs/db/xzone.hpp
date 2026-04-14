@@ -32,6 +32,9 @@ static_assert(sizeof(XZoneBuffer) == 0x10,
               "XZoneBuffer size must be 0x10 bytes");
 #pragma pack(pop)
 
+// 64 slots allocated, but the engine will error if 64 are used
+static constexpr uint32_t MAX_ZONE_COUNT = 63;
+
 struct XZoneInfoInternal {
   int32_t flags;
   char name[64];

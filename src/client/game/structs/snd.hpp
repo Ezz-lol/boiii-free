@@ -434,6 +434,67 @@ struct SndOcclusionTrace {
 };
 #pragma pack(pop)
 
+#pragma pack(push, 1)
+
+// sizeof=0x18
+class tlAtomicMutex {
+public:
+  uint64_t ThreadId;
+  int LockCount;
+  uint8_t _padding0C[4];
+  tlAtomicMutex *ThisPtr;
+};
+static_assert(sizeof(tlAtomicMutex) == 0x18,
+              "tlAtomicMutex size must be 24 bytes");
+
+#pragma pack(pop)
+struct SndQueueBuffers;
+struct SndCommandBuffer;
+
+typedef void (*SND_QueueBufferProcess)(SndCommandBuffer *);
+
+#pragma pack(push, 1)
+// sizeof=0x8020
+struct SndCommandBuffer {
+  int32_t sequence;
+  int32_t used;
+  SND_QueueBufferProcess *process;
+  SndCommandBuffer *next;
+  SndQueueBuffers *buffers;
+  uint8_t data[32768];
+};
+static_assert(sizeof(SndCommandBuffer) == 0x8020,
+              "SndCommandBuffer size must be 32768 bytes plus header");
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+// sizeof=0x80220
+struct SndQueueBuffers {
+  tlAtomicMutex mutex;
+  SndCommandBuffer buffers[16];
+  SndCommandBuffer *freeList;
+};
+static_assert(sizeof(SndQueueBuffers) == 0x80220,
+              "SndQueueBuffers size must be 16 times the size of "
+              "SndCommandBuffer plus header");
+#pragma pack(pop)
+
+struct SndQueue;
+typedef void (*SND_QueueCallback)(SndQueue *);
+
+#pragma pack(push, 1)
+// sizeof=0x38
+struct SndQueue {
+  tlAtomicMutex mutex;
+  SndCommandBuffer *active;
+  SndCommandBuffer *submitted;
+  SndQueueBuffers *buffers;
+  SND_QueueCallback processNotify;
+};
+static_assert(sizeof(SndQueue) == 0x38, "SndQueue size must be 56 bytes");
+
+#pragma pack(pop)
+
 /*
   The SndLocal struct used in the latest BO3 client and dedicated server engines
   deviates significantly from the BO2 dedicated server, BO3 client, and BO4
@@ -472,31 +533,45 @@ struct SndOcclusionTrace {
   - Offset of playbackId in voice verified.
   - voiceAliasHash offset is verified.
 */
+#define SND_LOCAL_SIZE 0x1CD168
+static constexpr size_t SND_LOCAL_CGQ_OFFSET =
+    SND_LOCAL_SIZE - 2 * sizeof(SndQueue);
 #pragma pack(push, 1)
-partial_def(0x1CD168, struct, SndLocal, {
-  int32_t magic;
-  qboolean init;
-  qboolean paused;
-  float timescale;
-  float scriptTimescale;
-  int32_t time;
-  int32_t looptime;
-  int32_t pausetime;
-  uint32_t frame;
-  uint8_t padding[4];
-  const SndDriverGlobals *global_constants;
-  int32_t cinematicVoicesPlaying;
-  int32_t cinematicTimestamp;
-  qboolean cinematicUpdate;
-  qboolean forcePause;
-  SndPlaybackId playbackIdCounter;
-  SndStringHash defaultHash;
-  const SndCurve *defaultCurve;
-  uint32_t defaultPanIndex;
-  uint32_t activeListenerCount;
-  qboolean curveMagnitudeIsZero[32];
+partial_def(SND_LOCAL_SIZE, struct, SndLocal, {
+  inline_partial_def(0, SND_LOCAL_CGQ_OFFSET, struct, {
+    int32_t magic;
+    qboolean init;
+    qboolean paused;
+    float timescale;
+    float scriptTimescale;
+    int32_t time;
+    int32_t looptime;
+    int32_t pausetime;
+    uint32_t frame;
+    uint8_t padding[4];
+    const SndDriverGlobals *global_constants;
+    int32_t cinematicVoicesPlaying;
+    int32_t cinematicTimestamp;
+    qboolean cinematicUpdate;
+    qboolean forcePause;
+    SndPlaybackId playbackIdCounter;
+    SndStringHash defaultHash;
+    const SndCurve *defaultCurve;
+    uint32_t defaultPanIndex;
+    uint32_t activeListenerCount;
+    qboolean curveMagnitudeIsZero[32];
+  });
+  SndQueue CGQ;
+  SndQueue SNDQ;
+
+  // Confirmed last fields:
+  // g_snd_cgq: len 56 == 0x38
+  // g_snd_sndq: len 56 == 0x38
+  // Struct in BO3 and BO4 alpha has 16 bytes of padding here, but
+  // there is no padding in latest version of engine - there is an unrelated
+  // global (function-local variable) that is allocated just after SNDQ.
+  // Either an alignment change, or size of non-pointer field(s) change.
 });
-static_assert(sizeof(SndLocal) == 0x1CD168);
 #pragma pack(pop)
 
 // Not verified to be correct.
@@ -1419,56 +1494,6 @@ struct SndMusicAssetInstance {
 };
 static_assert(sizeof(SndMusicAssetInstance) == 0x28,
               "SndMusicAssetInstance size must be 40 bytes");
-
-// sizeof=0x18
-class tlAtomicMutex {
-public:
-  uint64_t ThreadId;
-  int LockCount;
-  uint8_t _padding0C[4];
-  tlAtomicMutex *ThisPtr;
-};
-static_assert(sizeof(tlAtomicMutex) == 0x18,
-              "tlAtomicMutex size must be 24 bytes");
-
-struct SndQueueBuffers;
-struct SndCommandBuffer;
-
-typedef void (*SND_QueueBufferProcess)(SndCommandBuffer *);
-
-// sizeof=0x8020
-struct SndCommandBuffer {
-  int32_t sequence;
-  int32_t used;
-  SND_QueueBufferProcess *process;
-  SndCommandBuffer *next;
-  SndQueueBuffers *buffers;
-  uint8_t data[32768];
-};
-static_assert(sizeof(SndCommandBuffer) == 0x8020,
-              "SndCommandBuffer size must be 32768 bytes plus header");
-
-// sizeof=0x80220
-struct SndQueueBuffers {
-  tlAtomicMutex mutex;
-  SndCommandBuffer buffers[16];
-  SndCommandBuffer *freeList;
-};
-static_assert(sizeof(SndQueueBuffers) == 0x80220,
-              "SndQueueBuffers size must be 16 times the size of "
-              "SndCommandBuffer plus header");
-
-struct SndQueue;
-typedef void (*SND_QueueCallback)(SndQueue *);
-// sizeof=0x38
-struct SndQueue {
-  tlAtomicMutex mutex;
-  SndCommandBuffer *active;
-  SndCommandBuffer *submitted;
-  SndQueueBuffers *buffers;
-  SND_QueueCallback processNotify;
-};
-static_assert(sizeof(SndQueue) == 0x38, "SndQueue size must be 56 bytes");
 
 #pragma pack(pop)
 

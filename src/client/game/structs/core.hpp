@@ -21,10 +21,10 @@ namespace game {
     };                                                                         \
   }
 
-#define inline_partial_def(FixedTotalSize, Verified)                           \
+#define inline_partial_def(InlineNum, FixedTotalSize, PrimType, Verified)      \
   union {                                                                      \
-    Verified;                                                                  \
-    uint8_t __raw[TotalSize];                                                  \
+    PrimType Verified verified_##InlineNum;                                    \
+    uint8_t __raw_##InlineNum[FixedTotalSize];                                 \
   }
 
 typedef const char *XString;
