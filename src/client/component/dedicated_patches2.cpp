@@ -123,8 +123,8 @@ void enforce_sv_cheats() {
 // Hook for G_Say to sanitize messages
 utils::hook::detour g_say_hook;
 
-void g_say_stub(game::level::gentity_s *ent, game::level::gentity_s *target, int mode,
-                const char *chatText) {
+void g_say_stub(game::level::gentity_s *ent, game::level::gentity_s *target,
+                int mode, const char *chatText) {
   if (chatText) {
     const auto sanitized = sanitize_chat_message(chatText);
     g_say_hook.invoke(ent, target, mode, sanitized.data());
@@ -228,8 +228,8 @@ void g_init_game_stub(uint32_t levelTime, uint32_t randomSeed,
 
 utils::hook::detour sv_addservercommand_hook;
 
-void sv_addservercommand_stub(game::net::client_s *client, game::net::svscmd_type type,
-                              const char *cmd) {
+void sv_addservercommand_stub(game::net::client_s *client,
+                              game::net::svscmd_type type, const char *cmd) {
 
   std::string cmd_str = cmd ? std::string(cmd) : "";
   std::lock_guard lock(reliable_cmd_mutex);
