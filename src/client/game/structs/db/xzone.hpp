@@ -36,12 +36,36 @@ static_assert(sizeof(XZoneBuffer) == 0x10,
 static constexpr uint32_t MAX_ZONE_COUNT = 63;
 
 struct XZoneInfoInternal {
-  int32_t flags;
-  char name[64];
-};
-static_assert(sizeof(XZoneInfoInternal) == 0x44,
-              "XZoneInfoInternal size must be 0x44 bytes");
+  char name[64];           // Correct
+  int allocFlags;          // Correct
+  int freeFlags;           // Correct
+  XZoneInfoInternal *next; // Most likely correct
+  /*
+    Almost certainly a pointer, unsure on what _to_.
+    My guess was the previous node if this is a doubly linked list, but
+    otherwise this could maybe be a list of dependency xzones, or maybe an
+    XZoneBuffer.
 
+    TODO: investigate and confirm actual pointee type and update
+  */
+  XZoneInfoInternal *prevMaybe;
+};
+// Correct size is 0x58
+static_assert(sizeof(XZoneInfoInternal) == 0x58,
+              "XZoneInfoInternal size must be 0x58 bytes");
+
+/*
+  Definitely incorrect; this contains a pointer to an at least singly
+  linked list of `XZoneInfoInternal\`s now, and maybe either corresponding
+  dependency lists by index, XZoneBuffers, or previous/loaded nodes but the
+  exact structure is currently unknown.
+
+   \`allocFlags\`, and \`freeFlags\` are still correct.
+   \`name\` is most likely the pointer to the primary XZoneInfoInternal for the
+  zone.
+
+  TODO: confirm actual structure and update
+*/
 #pragma pack(push, 1)
 struct XZoneInfo {
   const char *name;
