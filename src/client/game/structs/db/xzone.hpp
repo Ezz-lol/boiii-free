@@ -10,7 +10,7 @@ namespace db {
 
 namespace xzone {
 
-inline constexpr size_t ZONE_POOL_LENGTH = 65;
+inline constexpr size_t ZONE_POOL_LENGTH = 64;
 
 template <typename T> using ZonePool = std::array<T, ZONE_POOL_LENGTH>;
 enum class XZoneState : int32_t {
@@ -33,8 +33,8 @@ static_assert(sizeof(XZoneBuffer) == 0x10,
 #pragma pack(pop)
 
 struct XZoneInfoInternal {
-  char name[64];
   int32_t flags;
+  char name[64];
 };
 static_assert(sizeof(XZoneInfoInternal) == 0x44,
               "XZoneInfoInternal size must be 0x44 bytes");
