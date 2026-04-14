@@ -20,9 +20,9 @@ namespace {
 utils::hook::detour lua_server_info_to_table_hook;
 
 struct master_query {
-  game::netadr_t address{};
+  game::net::netadr_t address{};
   bool responded{false};
-  std::unordered_set<game::netadr_t> results{};
+  std::unordered_set<game::net::netadr_t> results{};
 };
 
 struct state {
@@ -35,11 +35,12 @@ struct state {
 utils::concurrency::container<state> master_state;
 
 utils::concurrency::container<server_list> favorite_servers{};
-utils::concurrency::container<std::vector<game::netadr_t>> recent_servers{};
+utils::concurrency::container<std::vector<game::net::netadr_t>>
+    recent_servers{};
 
-std::unordered_set<game::netadr_t>
+std::unordered_set<game::net::netadr_t>
 parse_server_list_data(const network::data_view &data) {
-  std::unordered_set<game::netadr_t> result{};
+  std::unordered_set<game::net::netadr_t> result{};
 
   std::optional<size_t> start{};
   for (size_t i = 0; i + 6 < data.size(); ++i) {
@@ -58,9 +59,9 @@ parse_server_list_data(const network::data_view &data) {
       break;
     }
 
-    game::netadr_t address{};
-    address.type = game::NA_RAWIP;
-    address.localNetID = game::NS_CLIENT1;
+    game::net::netadr_t address{};
+    address.type = game::net::NA_RAWIP;
+    address.localNetID = game::net::NS_CLIENT1;
     memcpy(&address.ipv4.a, data.data() + i + 0, 4);
     memcpy(&address.port, data.data() + i + 4, 2);
     address.port = ntohs(address.port);
@@ -84,7 +85,7 @@ void finalize_master_query(state &s) {
   s.requesting = false;
   auto cb = std::move(s.callback);
 
-  std::unordered_set<game::netadr_t> merged{};
+  std::unordered_set<game::net::netadr_t> merged{};
   bool any_success = false;
 
   for (const auto &m : s.masters) {
@@ -100,7 +101,7 @@ void finalize_master_query(state &s) {
   cb(any_success, merged);
 }
 
-void handle_server_list_response(const game::netadr_t &target,
+void handle_server_list_response(const game::net::netadr_t &target,
                                  const network::data_view &data, state &s) {
   if (!s.requesting) {
     return;
@@ -127,7 +128,8 @@ void handle_server_list_response(const game::netadr_t &target,
 }
 
 void lua_server_info_to_table_stub(game::hks::lua_State *state,
-                                   game::ServerInfo server_info, int index) {
+                                   game::lobby::ServerInfo server_info,
+                                   int index) {
   lua_server_info_to_table_hook.invoke(state, server_info, index);
 
   if (state) {
@@ -157,7 +159,7 @@ std::string get_recent_servers_file_path() {
 
 void write_favorite_servers() {
   favorite_servers.access(
-      [](const std::unordered_set<game::netadr_t> &servers) {
+      [](const std::unordered_set<game::net::netadr_t> &servers) {
         std::string servers_buffer{};
         for (const auto &itr : servers) {
           servers_buffer.append(
@@ -175,22 +177,23 @@ void read_favorite_servers() {
     return;
   }
 
-  favorite_servers.access([&path](std::unordered_set<game::netadr_t> &servers) {
-    servers.clear();
+  favorite_servers.access(
+      [&path](std::unordered_set<game::net::netadr_t> &servers) {
+        servers.clear();
 
-    std::string data;
-    if (utils::io::read_file(path, &data)) {
-      const auto srv = utils::string::split(data, '\n');
-      for (const auto &server_address : srv) {
-        auto server = network::address_from_string(server_address);
-        servers.insert(server);
-      }
-    }
-  });
+        std::string data;
+        if (utils::io::read_file(path, &data)) {
+          const auto srv = utils::string::split(data, '\n');
+          for (const auto &server_address : srv) {
+            auto server = network::address_from_string(server_address);
+            servers.insert(server);
+          }
+        }
+      });
 }
 
 void write_recent_servers() {
-  recent_servers.access([](const std::vector<game::netadr_t> &servers) {
+  recent_servers.access([](const std::vector<game::net::netadr_t> &servers) {
     std::string servers_buffer{};
     for (const auto &itr : servers) {
       servers_buffer.append(utils::string::va("%i.%i.%i.%i:%hu\n", itr.ipv4.a,
@@ -207,7 +210,7 @@ void read_recent_servers() {
     return;
   }
 
-  recent_servers.access([&path](std::vector<game::netadr_t> &servers) {
+  recent_servers.access([&path](std::vector<game::net::netadr_t> &servers) {
     servers.clear();
     servers.reserve(64);
 
@@ -220,7 +223,7 @@ void read_recent_servers() {
         }
 
         auto server = network::address_from_string(server_address);
-        if (server.type == game::NA_BAD) {
+        if (server.type == game::net::NA_BAD) {
           continue;
         }
 
@@ -258,7 +261,7 @@ void add_lan_server_from_string(const std::string &in) {
   }
 
   const auto addr = network::address_from_string(normalized);
-  if (addr.type == game::NA_BAD) {
+  if (addr.type == game::net::NA_BAD) {
     return;
   }
 
@@ -294,12 +297,12 @@ void add_lan_server_from_string(const std::string &in) {
 }
 } // namespace
 
-std::vector<game::netadr_t> get_master_servers() {
-  std::vector<game::netadr_t> servers;
+std::vector<game::net::netadr_t> get_master_servers() {
+  std::vector<game::net::netadr_t> servers;
   const char *hosts[] = {"master.ezz.lol:20810", "m.ezz.lol:20810"};
   for (const auto *host : hosts) {
     auto addr = network::address_from_string(host);
-    if (addr.type != game::NA_BAD) {
+    if (addr.type != game::net::NA_BAD) {
       servers.push_back(addr);
     }
   }
@@ -329,22 +332,24 @@ void request_servers(callback callback) {
   });
 }
 
-void add_favorite_server(game::netadr_t addr) {
-  favorite_servers.access([&addr](std::unordered_set<game::netadr_t> &servers) {
-    servers.insert(addr);
-  });
+void add_favorite_server(game::net::netadr_t addr) {
+  favorite_servers.access(
+      [&addr](std::unordered_set<game::net::netadr_t> &servers) {
+        servers.insert(addr);
+      });
   write_favorite_servers();
 }
 
-void remove_favorite_server(game::netadr_t addr) {
-  favorite_servers.access([&addr](std::unordered_set<game::netadr_t> &servers) {
-    for (auto it = servers.begin(); it != servers.end(); ++it) {
-      if (network::are_addresses_equal(*it, addr)) {
-        servers.erase(it);
-        break;
-      }
-    }
-  });
+void remove_favorite_server(game::net::netadr_t addr) {
+  favorite_servers.access(
+      [&addr](std::unordered_set<game::net::netadr_t> &servers) {
+        for (auto it = servers.begin(); it != servers.end(); ++it) {
+          if (network::are_addresses_equal(*it, addr)) {
+            servers.erase(it);
+            break;
+          }
+        }
+      });
   write_favorite_servers();
 }
 
@@ -352,8 +357,8 @@ utils::concurrency::container<server_list> &get_favorite_servers() {
   return favorite_servers;
 }
 
-void add_recent_server(game::netadr_t addr) {
-  recent_servers.access([&addr](std::vector<game::netadr_t> &servers) {
+void add_recent_server(game::net::netadr_t addr) {
+  recent_servers.access([&addr](std::vector<game::net::netadr_t> &servers) {
     for (auto it = servers.begin(); it != servers.end(); ++it) {
       if (network::are_addresses_equal(*it, addr)) {
         servers.erase(it);
@@ -370,8 +375,8 @@ void add_recent_server(game::netadr_t addr) {
   write_recent_servers();
 }
 
-void remove_recent_server(game::netadr_t addr) {
-  recent_servers.access([&addr](std::vector<game::netadr_t> &servers) {
+void remove_recent_server(game::net::netadr_t addr) {
+  recent_servers.access([&addr](std::vector<game::net::netadr_t> &servers) {
     for (auto it = servers.begin(); it != servers.end(); ++it) {
       if (network::are_addresses_equal(*it, addr)) {
         servers.erase(it);
@@ -389,7 +394,7 @@ utils::concurrency::container<recent_list> &get_recent_servers() {
 
 struct component final : client_component {
   void post_unpack() override {
-    network::on("getServersResponse", [](const game::netadr_t &target,
+    network::on("getServersResponse", [](const game::net::netadr_t &target,
                                          const network::data_view &data) {
       master_state.access(
           [&](state &s) { handle_server_list_response(target, data, s); });

@@ -15,7 +15,7 @@ namespace dedicated {
 namespace {
 const game::dvar_t *sv_lan_only;
 
-void sv_con_tell_f_stub(game::client_s *cl_0, game::svscmd_type type,
+void sv_con_tell_f_stub(game::net::client_s *cl_0, game::net::svscmd_type type,
                         [[maybe_unused]] const char *fmt,
                         [[maybe_unused]] int c, char *text) {
   game::SV_SendServerCommand(cl_0, type, "%c \"GAME_SERVER\x15: %s\"", 79,

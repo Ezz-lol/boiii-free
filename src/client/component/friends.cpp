@@ -195,7 +195,7 @@ std::string get_own_connect_address() {
   if (game::Com_IsInGame()) {
     auto connected = party::get_connected_server();
 
-    if (connected.type == game::NA_LOOPBACK) {
+    if (connected.type == game::net::NA_LOOPBACK) {
       if (public_ip_fetched.load()) {
         std::lock_guard lock(public_ip_mutex);
         if (!cached_public_ip.empty()) {
@@ -203,8 +203,8 @@ std::string get_own_connect_address() {
                                    static_cast<unsigned>(local_port));
         }
       }
-    } else if ((connected.type == game::NA_IP ||
-                connected.type == game::NA_RAWIP) &&
+    } else if ((connected.type == game::net::NA_IP ||
+                connected.type == game::net::NA_RAWIP) &&
                connected.port >= 1024 && connected.ipv4.a != 127 &&
                connected.addr != 0) {
       bool is_private = (connected.ipv4.a == 10) ||
@@ -454,9 +454,9 @@ std::string get_friend_game_info_by_address(const std::string &address) {
       return game_info;
 
     // Also try matching resolved addresses
-    if (target.type != game::NA_BAD) {
+    if (target.type != game::net::NA_BAD) {
       auto friend_addr = network::address_from_string(parts[0]);
-      if (friend_addr.type != game::NA_BAD &&
+      if (friend_addr.type != game::net::NA_BAD &&
           network::are_addresses_equal(friend_addr, target))
         return game_info;
     }
@@ -511,7 +511,7 @@ bool connect_to_friend(uint64_t steam_id) {
       std::string mod_id = parts.size() >= 5 ? parts[4] : "";
 
       auto target = network::address_from_string(connect_addr);
-      if (target.type != game::NA_BAD && !mapname.empty() &&
+      if (target.type != game::net::NA_BAD && !mapname.empty() &&
           !gametype.empty()) {
         game::Com_SessionMode_SetGameMode(game::MODE_GAME_MATCHMAKING_PLAYLIST);
         auto usermap_id = workshop::get_usermap_publisher_id(mapname);
@@ -524,7 +524,7 @@ bool connect_to_friend(uint64_t steam_id) {
 
   // Fallback: raw connect
   const auto fallback_addr = network::address_from_string(addr_str);
-  if (fallback_addr.type != game::NA_BAD) {
+  if (fallback_addr.type != game::net::NA_BAD) {
     const auto sanitized = utils::string::va(
         "%i.%i.%i.%i:%hu", fallback_addr.ipv4.a, fallback_addr.ipv4.b,
         fallback_addr.ipv4.c, fallback_addr.ipv4.d, fallback_addr.port);
@@ -607,7 +607,7 @@ struct component final : client_component {
             std::string mod_id = parts.size() >= 5 ? parts[4] : "";
 
             auto target = network::address_from_string(addr_str);
-            if (target.type != game::NA_BAD && !mapname.empty() &&
+            if (target.type != game::net::NA_BAD && !mapname.empty() &&
                 !gametype.empty()) {
               game::Com_SessionMode_SetGameMode(
                   game::MODE_GAME_MATCHMAKING_PLAYLIST);
@@ -619,7 +619,7 @@ struct component final : client_component {
           }
 
           const auto fallback_addr = network::address_from_string(invite_data);
-          if (fallback_addr.type != game::NA_BAD) {
+          if (fallback_addr.type != game::net::NA_BAD) {
             const auto sanitized = utils::string::va(
                 "%i.%i.%i.%i:%hu", fallback_addr.ipv4.a, fallback_addr.ipv4.b,
                 fallback_addr.ipv4.c, fallback_addr.ipv4.d, fallback_addr.port);

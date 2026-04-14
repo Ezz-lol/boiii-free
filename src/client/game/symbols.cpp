@@ -3,6 +3,7 @@
 #include "game.hpp"
 
 namespace game {
+namespace scr {
 bool I_islower(int c) { return c >= 'a' && c <= 'z'; }
 
 bool I_isupper(int c) { return c >= 'A' && c <= 'Z'; }
@@ -26,4 +27,5 @@ unsigned int Scr_CanonHash(const char *str) {
 
   return hash;
 }
+} // namespace scr
 } // namespace game

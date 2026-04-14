@@ -50,13 +50,13 @@ enum MsgType : int32_t {
 
 // =====================================================================
 // LobbyMsg struct - matches in-memory layout at the point of inspection.
-// game::msg_t is 0x38 bytes, followed by msgType at offset 0x38.
+// game::net::msg_t is 0x38 bytes, followed by msgType at offset 0x38.
 // =====================================================================
 struct LobbyMsg {
-  game::msg_t msg;     // 0x00 - 0x37
-  int32_t msgType;     // 0x38
-  char encodeFlags;    // 0x3C
-  int32_t packageType; // 0x40
+  game::net::msg_t msg; // 0x00 - 0x37
+  int32_t msgType;      // 0x38
+  char encodeFlags;     // 0x3C
+  int32_t packageType;  // 0x40
 };
 
 // =====================================================================
@@ -101,7 +101,7 @@ using tLobbyMsgRW_PackageFloat = bool(__fastcall *)(void *lobbyMsg,
 using tMsgMutableClientInfo_Package = bool(__fastcall *)(void *outRequest,
                                                          void *lobbyMsg);
 using tLobbyMsgRW_PrepReadData = bool(__fastcall *)(LobbyMsg *, char *, int);
-using tMSG_ReadData = void(__fastcall *)(game::msg_t *, char *, int);
+using tMSG_ReadData = void(__fastcall *)(game::net::msg_t *, char *, int);
 #pragma clang diagnostic pop
 
 // =====================================================================
@@ -978,7 +978,7 @@ inline std::unordered_map<uint8_t, packet_callback_t> &get_packet_callbacks() {
 // Returns true if the packet should be DROPPED (malicious),
 // false if the packet is OK and should be processed normally.
 // =====================================================================
-inline bool InspectPacket(game::msg_t *msg) {
+inline bool InspectPacket(game::net::msg_t *msg) {
   // Only run on client builds - offsets are client-only
   if (game::is_server()) {
     return false;
@@ -1008,8 +1008,8 @@ inline bool InspectPacket(game::msg_t *msg) {
                                 : static_cast<uint32_t>(sizeof(data));
 
   // Make a copy of msg so we don't disturb the original read position
-  game::msg_t msgCopy{};
-  memcpy(&msgCopy, msg, sizeof(game::msg_t));
+  game::net::msg_t msgCopy{};
+  memcpy(&msgCopy, msg, sizeof(game::net::msg_t));
 
   fn::MSG_ReadData(&msgCopy, data, static_cast<int>(readSize));
 

@@ -12,7 +12,6 @@
 #include <utils/io.hpp>
 #include <utils/http.hpp>
 #include <utils/thread.hpp>
-#include <utils/flags.hpp>
 #include "steamcmd.hpp"
 #include "fastdl.hpp"
 #include "party.hpp"
@@ -25,6 +24,9 @@
 #include <regex>
 #include <unordered_map>
 #include <shellapi.h>
+
+using namespace game::db;
+using XZoneName = xzone::XZoneName;
 
 namespace workshop {
 namespace {
@@ -164,9 +166,9 @@ void load_usermap_mod_if_needed() {
 }
 
 uint32_t get_xzone_index_by_name(const char *zone_name) {
-  for (uint32_t zoneIdx = 0; zoneIdx < *(game::g_zoneCount.get()); zoneIdx++) {
-    game::XZoneName *zoneInfo =
-        reinterpret_cast<game::XZoneName *>(&game::g_zoneNames[zoneIdx]);
+  for (uint32_t zoneIdx = 0; zoneIdx < *(xzone::g_zoneCount.get()); zoneIdx++) {
+    XZoneName *zoneInfo =
+        reinterpret_cast<XZoneName *>(&xzone::g_zoneNames[zoneIdx]);
 
     if (std::strcmp(zoneInfo->name, zone_name) == 0) {
       return zoneIdx;
@@ -180,7 +182,7 @@ bool unload_xzone_by_name(const char *zone_name, bool createDefault,
                           bool suppressSync) {
   uint32_t zoneIdx = get_xzone_index_by_name(zone_name);
   if (zoneIdx != 0xFFFFFFFF) {
-    game::DB_UnloadXZone(zoneIdx, createDefault, suppressSync ? 1 : 0);
+    load::DB_UnloadXZone(zoneIdx, createDefault, suppressSync ? 1 : 0);
     return true;
   }
   return false; // Zone not found
@@ -690,7 +692,7 @@ bool check_valid_usermap_id(const std::string &mapname,
                             const std::string &pub_id,
                             const std::string &workshop_id,
                             const std::string &base_url) {
-  if (!game::DB_FileExists(mapname.data(), 0) && pub_id.empty()) {
+  if (!DB_FileExists(mapname.data(), 0) && pub_id.empty()) {
     if (is_dlc_map(mapname.data())) {
       queue_dlc_popup(mapname);
       return false;
@@ -920,7 +922,7 @@ static std::string last_auto_reconnect_target;
 void com_error_missing_map_stub(const char *file, int line, int code,
                                 const char *fmt, ...) {
   const auto target = party::get_connect_host();
-  if (target.type != game::NA_BAD) {
+  if (target.type != game::net::NA_BAD) {
     const auto addr_str =
         utils::string::va("%i.%i.%i.%i:%hu", target.ipv4.a, target.ipv4.b,
                           target.ipv4.c, target.ipv4.d, target.port);
@@ -1032,34 +1034,6 @@ public:
 
     if (game::is_client()) {
       utils::hook::call(0x14135CDA1_g, com_error_missing_map_stub);
-    }
-
-    if (!utils::flags::has_flag("legacyload")) {
-      /*
-      The game attempts to access the structured table "mod_game_types" each
-      time `isModLoading` is called if the mod is not yet loaded.
-
-      This table does not exist. As such, ~2-3s of load time is wasted searching
-      for the non-existent table each time either:
-              - A map switch or mod load is initiated, when the engine itself
-      checks if a mod is still loading
-              - We call `isModLoading`
-
-      The below code disables this attempt to access the "mod_game_types"
-      structured table.
-      */
-      // Nop out function call to attempt accessing table, as well as its
-      // argument register assignments
-      utils::hook::nop(game::select(0x1420F3CFD, 0x1404FD54D), 9);
-      // Make subsequent jz always jmp, causing failure return code `0`, and
-      // skipping attempt to access table entirely. Retains instructions which
-      // assign this return code to globals to be used later. Note: this is `xor
-      // rax, rax` - there is an unpatched 0x48 byte preceding. The full
-      // instruction should be 0x48, 0x31, 0xc0. This instruction is placed just
-      // before the `nop`s to take advantage of this pre-existing REX prefix.
-      uint8_t zero_return_reg_patch[2] = {0x31, 0xC0}; // xor rax, rax
-      utils::hook::set(game::select(0x1420F3CFB, 0x1404FD54B),
-                       zero_return_reg_patch);
     }
   }
 

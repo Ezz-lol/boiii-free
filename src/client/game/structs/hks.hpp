@@ -1,9 +1,9 @@
 #pragma once
 
-#include "structs.hpp"
+#include "core.hpp"
 
-#ifdef __cplusplus
-namespace game::hks {
+namespace game {
+namespace hks {
 struct lua_State;
 struct HashTable;
 struct StringTable;
@@ -461,5 +461,5 @@ struct lua_State {
   Status m_status;
   HksError m_error;
 };
-} // namespace game::hks
-#endif
+} // namespace hks
+} // namespace game

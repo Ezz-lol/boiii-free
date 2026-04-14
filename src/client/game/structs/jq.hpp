@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+namespace game {
 namespace jq {
 #pragma pack(push, 1)
 
@@ -41,3 +42,4 @@ struct jqBatch {
 
 #pragma pack(pop)
 } // namespace jq
+} // namespace game

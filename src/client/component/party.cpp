@@ -23,7 +23,7 @@
 namespace party {
 namespace {
 std::atomic_bool is_connecting_to_dedi{false};
-game::netadr_t connect_host{{}, {}, game::NA_BAD, {}};
+game::net::netadr_t connect_host{{}, {}, game::net::NA_BAD, {}};
 
 std::mutex hostname_mutex;
 std::string cached_server_hostname;
@@ -36,7 +36,7 @@ void update_dedi_dvar(bool on_dedi) {
 
 struct server_query {
   bool sent{false};
-  game::netadr_t host{};
+  game::net::netadr_t host{};
   std::string challenge{};
   query_callback callback{};
   std::chrono::high_resolution_clock::time_point query_time{};
@@ -48,15 +48,15 @@ utils::concurrency::container<std::vector<server_query>> &get_server_queries() {
   return server_queries;
 }
 
-void connect_to_lobby(const game::netadr_t &addr, const std::string &mapname,
-                      const std::string &gamemode,
+void connect_to_lobby(const game::net::netadr_t &addr,
+                      const std::string &mapname, const std::string &gamemode,
                       const std::string &usermap_id,
                       const std::string &mod_id) {
   auth::clear_stored_guids();
 
   workshop::setup_same_mod_as_host(usermap_id, mod_id);
 
-  game::XSESSION_INFO info{};
+  game::net::XSESSION_INFO info{};
   game::CL_ConnectFromLobby(0, &info, &addr, 1, 0, mapname.data(),
                             gamemode.data(), usermap_id.data());
 }
@@ -72,7 +72,7 @@ void launch_mode(const game::eModes mode) {
       scheduler::main);
 }
 
-void connect_to_lobby_with_mode_internal(const game::netadr_t &addr,
+void connect_to_lobby_with_mode_internal(const game::net::netadr_t &addr,
                                          const game::eModes mode,
                                          const std::string &mapname,
                                          const std::string &gametype,
@@ -96,28 +96,30 @@ void connect_to_lobby_with_mode_internal(const game::netadr_t &addr,
   }
 }
 
-game::LobbyMainMode convert_mode(const game::eModes mode) {
+game::lobby::LobbyMainMode convert_mode(const game::eModes mode) {
   switch (mode) {
   case game::MODE_CAMPAIGN:
-    return game::LOBBY_MAINMODE_CP;
+    return game::lobby::LOBBY_MAINMODE_CP;
   case game::MODE_MULTIPLAYER:
-    return game::LOBBY_MAINMODE_MP;
+    return game::lobby::LOBBY_MAINMODE_MP;
   case game::MODE_ZOMBIES:
-    return game::LOBBY_MAINMODE_ZM;
+    return game::lobby::LOBBY_MAINMODE_ZM;
   default:
-    return game::LOBBY_MAINMODE_INVALID;
+    return game::lobby::LOBBY_MAINMODE_INVALID;
   }
 }
 
-void connect_to_session(const game::netadr_t &addr, const std::string &hostname,
-                        const uint64_t xuid, const game::eModes mode) {
+void connect_to_session(const game::net::netadr_t &addr,
+                        const std::string &hostname, const uint64_t xuid,
+                        const game::eModes mode) {
   const auto LobbyJoin_Begin = reinterpret_cast<bool (*)(
       int actionId, game::ControllerIndex_t controllerIndex,
-      game::LobbyType sourceLobbyType, game::LobbyType targetLobbyType)>(
-      0x141ED94D0_g);
+      game::lobby::LobbyType sourceLobbyType,
+      game::lobby::LobbyType targetLobbyType)>(0x141ED94D0_g);
 
   if (!LobbyJoin_Begin(0, game::CONTROLLER_INDEX_FIRST,
-                       game::LOBBY_TYPE_PRIVATE, game::LOBBY_TYPE_PRIVATE)) {
+                       game::lobby::LOBBY_TYPE_PRIVATE,
+                       game::lobby::LOBBY_TYPE_PRIVATE)) {
     return;
   }
 
@@ -130,8 +132,8 @@ void connect_to_session(const game::netadr_t &addr, const std::string &hostname,
   host.info.xuid = xuid;
   utils::string::copy(host.info.name, hostname.data());
 
-  host.lobbyType = game::LOBBY_TYPE_PRIVATE;
-  host.lobbyParams.networkMode = game::LOBBY_NETWORKMODE_LIVE;
+  host.lobbyType = game::lobby::LOBBY_TYPE_PRIVATE;
+  host.lobbyParams.networkMode = game::lobby::LOBBY_NETWORKMODE_LIVE;
   host.lobbyParams.mainMode = convert_mode(mode);
 
   host.retryCount = 0;
@@ -140,14 +142,14 @@ void connect_to_session(const game::netadr_t &addr, const std::string &hostname,
   join.potentialHost = host;
   join.hostCount = 1;
   join.processedCount = 1;
-  join.state = game::JOIN_SOURCE_STATE_ASSOCIATING;
+  join.state = game::lobby::JOIN_SOURCE_STATE_ASSOCIATING;
   join.startTime = game::Sys_Milliseconds();
 
-  /*join.targetLobbyType = game::LOBBY_TYPE_PRIVATE;
-  join.sourceLobbyType = game::LOBBY_TYPE_PRIVATE;
+  /*join.targetLobbyType = game::lobby::LOBBY_TYPE_PRIVATE;
+  join.sourceLobbyType = game::lobby::LOBBY_TYPE_PRIVATE;
   join.controllerIndex = game::CONTROLLER_INDEX_FIRST;
-  join.joinType = game::JOIN_TYPE_NORMAL;
-  join.joinResult = game::JOIN_RESULT_INVALID;
+  join.joinType = game::lobby::JOIN_TYPE_NORMAL;
+  join.joinResult = game::lobby::JOIN_RESULT_INVALID;
   join.isFinalized = false;*/
 
   // LobbyJoinSource_Finalize
@@ -155,7 +157,7 @@ void connect_to_session(const game::netadr_t &addr, const std::string &hostname,
 }
 
 void handle_connect_query_response(const bool success,
-                                   const game::netadr_t &target,
+                                   const game::net::netadr_t &target,
                                    const utils::info_string &info,
                                    uint32_t ping) {
   if (!success) {
@@ -270,7 +272,7 @@ void handle_connect_query_response(const bool success,
 void connect_stub(const char *address) {
   if (address) {
     const auto target = network::address_from_string(address);
-    if (target.type == game::NA_BAD) {
+    if (target.type == game::net::NA_BAD) {
       return;
     }
 
@@ -318,7 +320,7 @@ void send_server_query(server_query &query) {
   network::send(query.host, "getInfo", query.challenge);
 }
 
-void handle_info_response(const game::netadr_t &target,
+void handle_info_response(const game::net::netadr_t &target,
                           const network::data_view &data) {
 
   bool found_query = false;
@@ -381,7 +383,7 @@ void cleanup_queried_servers() {
 }
 } // namespace
 
-void query_server(const game::netadr_t &host, query_callback callback) {
+void query_server(const game::net::netadr_t &host, query_callback callback) {
   server_query query{};
   query.sent = false;
   query.host = host;
@@ -392,7 +394,7 @@ void query_server(const game::netadr_t &host, query_callback callback) {
   });
 }
 
-void connect_to_lobby_with_mode(const game::netadr_t &addr,
+void connect_to_lobby_with_mode(const game::net::netadr_t &addr,
                                 const game::eModes mode,
                                 const std::string &mapname,
                                 const std::string &gametype,
@@ -402,20 +404,20 @@ void connect_to_lobby_with_mode(const game::netadr_t &addr,
                                       mod_id, false);
 }
 
-game::netadr_t get_connected_server() {
+game::net::netadr_t get_connected_server() {
   constexpr auto local_client_num = 0ull;
   const auto address = *reinterpret_cast<uint64_t *>(0x1453D8BB8_g) +
                        (0x25780 * local_client_num) + 0x10;
-  return *reinterpret_cast<game::netadr_t *>(address);
+  return *reinterpret_cast<game::net::netadr_t *>(address);
 }
 
-game::netadr_t get_connect_host() { return connect_host; }
+game::net::netadr_t get_connect_host() { return connect_host; }
 
-bool is_host(const game::netadr_t &addr) {
+bool is_host(const game::net::netadr_t &addr) {
   return get_connected_server() == addr || connect_host == addr;
 }
 
-void join_session(const game::netadr_t &addr, const std::string &hostname,
+void join_session(const game::net::netadr_t &addr, const std::string &hostname,
                   const uint64_t xuid, const game::eModes mode) {
   connect_to_session(addr, hostname, xuid, mode);
 }

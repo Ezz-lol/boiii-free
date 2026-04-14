@@ -169,8 +169,8 @@ std::string serialize_connect_data(const char *data, const int length) {
   return buffer.move_buffer();
 }
 
-void send_fragmented_connect_packet(const game::netsrc_t sock,
-                                    game::netadr_t *adr, const char *data,
+void send_fragmented_connect_packet(const game::net::netsrc_t sock,
+                                    game::net::netadr_t *adr, const char *data,
                                     const int length) {
   const auto connect_data = serialize_connect_data(data, length);
   game::fragment_handler::fragment_data //
@@ -183,18 +183,19 @@ void send_fragmented_connect_packet(const game::netsrc_t sock,
 
          const auto &fragment_packet = packet_buffer.get_buffer();
 
-         game::NET_OutOfBandData(sock, adr, fragment_packet.data(),
-                                 static_cast<int>(fragment_packet.size()));
+         game::net::NET_OutOfBandData(sock, adr, fragment_packet.data(),
+                                      static_cast<int>(fragment_packet.size()));
        });
 }
 
-int send_connect_data_stub(const game::netsrc_t sock, game::netadr_t *adr,
-                           const char *data, const int len) {
+int send_connect_data_stub(const game::net::netsrc_t sock,
+                           game::net::netadr_t *adr, const char *data,
+                           const int len) {
   try {
     const auto is_connect_sequence =
         len >= 7 && strncmp("connect", data, 7) == 0;
     if (!is_connect_sequence) {
-      return game::NET_OutOfBandData(sock, adr, data, len);
+      return game::net::NET_OutOfBandData(sock, adr, data, len);
     }
 
     send_fragmented_connect_packet(sock, adr, data, len);
@@ -206,7 +207,7 @@ int send_connect_data_stub(const game::netsrc_t sock, game::netadr_t *adr,
   return 0;
 }
 
-void distribute_player_xuid(const game::netadr_t &target,
+void distribute_player_xuid(const game::net::netadr_t &target,
                             const size_t player_index, const uint64_t xuid) {
   if (player_index >= 18) {
     return;
@@ -217,12 +218,12 @@ void distribute_player_xuid(const game::netadr_t &target,
   buffer.write(xuid);
 
   game::foreach_connected_client(
-      [&](const game::client_s &client, const size_t index) {
-        if (client.address.type != game::NA_BOT) {
+      [&](const game::net::client_s &client, const size_t index) {
+        if (client.address.type != game::net::NA_BOT) {
           network::send(client.address, "playerXuid", buffer.get_buffer());
         }
 
-        if (index != player_index && target.type != game::NA_BOT) {
+        if (index != player_index && target.type != game::net::NA_BOT) {
           utils::byte_buffer current_buffer{};
           current_buffer.write(static_cast<uint32_t>(index));
           current_buffer.write(client.xuid);
@@ -232,7 +233,7 @@ void distribute_player_xuid(const game::netadr_t &target,
       });
 }
 
-void handle_new_player(const game::netadr_t &target) {
+void handle_new_player(const game::net::netadr_t &target) {
   const command::params_sv params{};
   if (params.size() < 2) {
     return;
@@ -243,7 +244,7 @@ void handle_new_player(const game::netadr_t &target) {
 
   size_t player_index = 18;
   game::foreach_connected_client(
-      [&](game::client_s &client, const size_t index) {
+      [&](game::net::client_s &client, const size_t index) {
         if (client.address == target) {
           client.xuid = xuid;
           player_index = index;
@@ -269,7 +270,7 @@ bool is_invalid_char(const int c) {
   return false;
 }
 
-void dispatch_connect_packet(const game::netadr_t &target,
+void dispatch_connect_packet(const game::net::netadr_t &target,
                              const std::string &data) {
   utils::byte_buffer buffer(data);
 
@@ -280,13 +281,13 @@ void dispatch_connect_packet(const game::netadr_t &target,
   challenge.resize(32);
 
   const auto get_challenge =
-      reinterpret_cast<void (*)(const game::netadr_t *, void *, size_t)>(
+      reinterpret_cast<void (*)(const game::net::netadr_t *, void *, size_t)>(
           game::select(0x1412E15E0, 0x14016DDC0));
   get_challenge(&target, challenge.data(), challenge.size());
 
   if (!utils::cryptography::ecc::verify_message(key, challenge,
                                                 buffer.read_string()) &&
-      target.type != game::NA_LOOPBACK) {
+      target.type != game::net::NA_LOOPBACK) {
     network::send(target, "error", "Bad signature");
     return;
   }
@@ -327,7 +328,7 @@ void dispatch_connect_packet(const game::netadr_t &target,
   handle_new_player(target);
 }
 
-void handle_connect_packet_fragment(const game::netadr_t &target,
+void handle_connect_packet_fragment(const game::net::netadr_t &target,
                                     const network::data_view &data) {
   if (!game::is_server_running()) {
     return;
@@ -345,7 +346,7 @@ void handle_connect_packet_fragment(const game::netadr_t &target,
   }
 }
 
-void handle_player_xuid_packet(const game::netadr_t &target,
+void handle_player_xuid_packet(const game::net::netadr_t &target,
                                const network::data_view &data) {
   if (game::is_server_running() || !party::is_host(target)) {
     return;
@@ -361,7 +362,7 @@ void handle_player_xuid_packet(const game::netadr_t &target,
   }
 }
 
-void direct_connect_bots_stub(const game::netadr_t address) {
+void direct_connect_bots_stub(const game::net::netadr_t address) {
   game::SV_DirectConnect(address);
   handle_new_player(address);
 }
@@ -390,7 +391,7 @@ uint64_t get_guid(const size_t client_num) {
   }
 
   uint64_t xuid = 0;
-  const auto callback = [&xuid](const game::client_s &client) {
+  const auto callback = [&xuid](const game::net::client_s &client) {
     xuid = client.xuid;
   };
 

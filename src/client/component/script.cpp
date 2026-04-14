@@ -11,6 +11,7 @@
 #include <utils/string.hpp>
 #include <utils/io.hpp>
 
+using namespace game::db::xasset;
 namespace gsc_funcs {
 void add_detour(int64_t target_addr, int64_t replacement_addr);
 }
@@ -23,7 +24,7 @@ utils::hook::detour db_find_x_asset_header_hook;
 utils::hook::detour gscr_get_bgb_remaining_hook;
 
 utils::memory::allocator allocator;
-std::unordered_map<std::string, game::RawFile *> loaded_scripts;
+std::unordered_map<std::string, RawFile *> loaded_scripts;
 
 bool try_parse_raw_hash(const std::string &input, uint32_t &out) {
   auto underscore = input.find('_');
@@ -177,13 +178,13 @@ void fixup_script_imports(char *buf, int len) {
     uint32_t path_hash = gsc_hash(inc_path);
 
     // Look up the actual game SPT for this include path (try .gsc then .csc)
-    auto *asset = db_find_x_asset_header_hook.invoke<game::RawFile *>(
-        game::ASSET_TYPE_SCRIPTPARSETREE, (inc_path + ".gsc").c_str(), false,
-        0);
+    auto *asset = db_find_x_asset_header_hook.invoke<RawFile *>(
+        XAssetType::ASSET_TYPE_SCRIPTPARSETREE, (inc_path + ".gsc").c_str(),
+        false, 0);
     if (!asset || !asset->buffer)
-      asset = db_find_x_asset_header_hook.invoke<game::RawFile *>(
-          game::ASSET_TYPE_SCRIPTPARSETREE, (inc_path + ".csc").c_str(), false,
-          0);
+      asset = db_find_x_asset_header_hook.invoke<RawFile *>(
+          XAssetType::ASSET_TYPE_SCRIPTPARSETREE, (inc_path + ".csc").c_str(),
+          false, 0);
     if (!asset || !asset->buffer)
       continue;
 
@@ -275,8 +276,8 @@ const uint8_t *get_spt_buffer(const std::string &name) {
   // Fall back to game's asset database (try .gsc, .csc, and without ext)
   std::string with_csc = without_ext + ".csc";
   for (auto &lookup : {with_ext, with_csc, without_ext}) {
-    auto *asset = db_find_x_asset_header_hook.invoke<game::RawFile *>(
-        game::ASSET_TYPE_SCRIPTPARSETREE, lookup.c_str(), false, 0);
+    auto *asset = db_find_x_asset_header_hook.invoke<RawFile *>(
+        XAssetType::ASSET_TYPE_SCRIPTPARSETREE, lookup.c_str(), false, 0);
     if (asset && asset->buffer)
       return reinterpret_cast<const uint8_t *>(asset->buffer);
   }
@@ -345,7 +346,7 @@ std::unordered_map<uint32_t, std::vector<hash_info>> script_hash_names;
 
 std::unordered_map<std::string, std::string> script_sources;
 
-game::RawFile *get_loaded_script(const std::string &name) {
+RawFile *get_loaded_script(const std::string &name) {
   const auto itr = loaded_scripts.find(name);
   return (itr == loaded_scripts.end()) ? nullptr : itr->second;
 }
@@ -394,7 +395,7 @@ void load_script(std::string &name, const std::string &data,
     }
   }
 
-  auto *raw_file = allocator.allocate<game::RawFile>();
+  auto *raw_file = allocator.allocate<RawFile>();
   raw_file->name = allocator.duplicate_string(name);
   raw_file->buffer = allocator.duplicate_string(data);
   raw_file->len = static_cast<int>(data.length());
@@ -404,8 +405,8 @@ void load_script(std::string &name, const std::string &data,
   loaded_scripts[name] = raw_file;
 
   if (is_custom) {
-    const auto inst =
-        is_csc ? game::SCRIPTINSTANCE_CLIENT : game::SCRIPTINSTANCE_SERVER;
+    const auto inst = is_csc ? game::scr::SCRIPTINSTANCE_CLIENT
+                             : game::scr::SCRIPTINSTANCE_SERVER;
     game::Scr_LoadScript(inst, base_name.data());
   }
 }
@@ -569,19 +570,18 @@ void load_scripts() {
   }
 }
 
-game::RawFile *db_find_x_asset_header_stub(const game::XAssetType type,
-                                           const char *name,
-                                           const bool error_if_missing,
-                                           const int wait_time) {
+RawFile *db_find_x_asset_header_stub(const XAssetType type, const char *name,
+                                     const bool error_if_missing,
+                                     const int wait_time) {
   // Check our loaded scripts FIRST to avoid "Could not find scriptparsetree"
   // spam
-  if (type == game::ASSET_TYPE_SCRIPTPARSETREE) {
+  if (type == XAssetType::ASSET_TYPE_SCRIPTPARSETREE) {
     auto *script = get_loaded_script(name);
     if (script)
       return script;
   }
 
-  return db_find_x_asset_header_hook.invoke<game::RawFile *>(
+  return db_find_x_asset_header_hook.invoke<RawFile *>(
       type, name, error_if_missing, wait_time);
 }
 
@@ -597,7 +597,7 @@ void clear_script_memory() {
 // target script's #namespace hash. This allows full-path call syntax:
 //   scripts\zm\_zm_score::add_to_player_score(points)
 // The import ns_hash is gsc_hash("scripts/zm/_zm_score"), but the game script's
-void begin_load_scripts_stub(game::scriptInstance_t inst, int user) {
+void begin_load_scripts_stub(game::scr::scriptInstance_t inst, int user) {
   game::Scr_BeginLoadScripts(inst, user);
 
   if (game::Com_IsInGame() && !game::Com_IsRunningUILevel()) {
@@ -612,7 +612,8 @@ void begin_load_scripts_stub(game::scriptInstance_t inst, int user) {
 int server_script_checksum_stub() { return 1; }
 
 void scr_loot_get_item_quantity_stub(
-    game::scriptInstance_t inst, [[maybe_unused]] game::scr_entref_t entref) {
+    game::scr::scriptInstance_t inst,
+    [[maybe_unused]] game::scr::scr_entref_t entref) {
   game::Scr_AddInt(inst, 255);
 }
 } // namespace

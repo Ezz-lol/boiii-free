@@ -51,13 +51,14 @@ void dvar_remove_flags(const char *dvar_name, unsigned int flags);
 [[nodiscard]] size_t get_max_client_count();
 
 void foreach_client(
-    const std::function<void(client_s &, size_t index)> &callback);
-void foreach_client(const std::function<void(client_s &)> &callback);
+    const std::function<void(net::client_s &, size_t index)> &callback);
+void foreach_client(const std::function<void(net::client_s &)> &callback);
 
 void foreach_connected_client(
-    const std::function<void(client_s &, size_t index)> &callback);
-void foreach_connected_client(const std::function<void(client_s &)> &callback);
+    const std::function<void(net::client_s &, size_t index)> &callback);
+void foreach_connected_client(
+    const std::function<void(net::client_s &)> &callback);
 
-bool access_connected_client(size_t index,
-                             const std::function<void(client_s &)> &callback);
+bool access_connected_client(
+    size_t index, const std::function<void(net::client_s &)> &callback);
 } // namespace game

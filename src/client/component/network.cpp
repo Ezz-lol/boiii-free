@@ -23,8 +23,8 @@ std::unordered_map<std::string, callback> &get_callbacks() {
   return callbacks;
 }
 
-int64_t handle_command(const game::netadr_t *address, const char *command,
-                       const game::msg_t *message) {
+int64_t handle_command(const game::net::netadr_t *address, const char *command,
+                       const game::net::msg_t *message) {
   const auto cmd_string = utils::string::to_lower(command);
   auto &callbacks = get_callbacks();
   const auto handler = callbacks.find(cmd_string);
@@ -49,8 +49,8 @@ int64_t handle_command(const game::netadr_t *address, const char *command,
 }
 
 bool cl_dispatch_connectionless_packet_stub(
-    [[maybe_unused]] int local_client_num, game::netadr_t from,
-    game::msg_t *msg, [[maybe_unused]] int time) {
+    [[maybe_unused]] int local_client_num, game::net::netadr_t from,
+    game::net::msg_t *msg, [[maybe_unused]] int time) {
   const command::params params;
   const auto *c = params.get(0);
 
@@ -123,16 +123,16 @@ bool &socket_byte_missing() {
   return was_missing;
 }
 
-uint8_t read_socket_byte_stub(game::msg_t *msg) {
+uint8_t read_socket_byte_stub(game::net::msg_t *msg) {
   auto &byte_missing = socket_byte_missing();
   byte_missing = msg->cursize >= 4 && *reinterpret_cast<int *>(msg->data) == -1;
   if (byte_missing) {
-    return game::NS_SERVER | (game::NS_SERVER << 4);
+    return game::net::NS_SERVER | (game::net::NS_SERVER << 4);
   }
 
   const auto _ = utils::finally([msg] { ++msg->data; });
 
-  return game::MSG_ReadByte(msg);
+  return game::net::MSG_ReadByte(msg);
 }
 
 int verify_checksum_stub(void * /*data*/, const int length) {
@@ -147,17 +147,17 @@ void con_restricted_execute_buf_stub(int local_client_num,
 
 uint64_t
 handle_packet_internal_stub(const game::ControllerIndex_t controller_index,
-                            const game::netadr_t from_adr,
+                            const game::net::netadr_t from_adr,
                             const game::XUID from_xuid,
-                            const game::LobbyType lobby_type,
-                            const uint64_t dest_module, game::msg_t *msg) {
-  if (from_adr.type != game::NA_LOOPBACK && game::is_server() &&
+                            const game::lobby::LobbyType lobby_type,
+                            const uint64_t dest_module, game::net::msg_t *msg) {
+  if (from_adr.type != game::net::NA_LOOPBACK && game::is_server() &&
       !game::is_server_running()) {
     return 0;
   }
 
   // Network security: inspect packet for exploits before processing
-  if (from_adr.type != game::NA_LOOPBACK) {
+  if (from_adr.type != game::net::NA_LOOPBACK) {
     return 0; // drop malicious packet
   }
 
@@ -188,7 +188,7 @@ void on(const std::string &command, const callback &callback) {
   get_callbacks()[utils::string::to_lower(command)] = callback;
 }
 
-void send(const game::netadr_t &address, const std::string &command,
+void send(const game::net::netadr_t &address, const std::string &command,
           const std::string &data, const char separator) {
   std::string packet = "\xFF\xFF\xFF\xFF";
   packet.append(command);
@@ -198,7 +198,7 @@ void send(const game::netadr_t &address, const std::string &command,
   send_data(address, packet);
 }
 
-sockaddr_in convert_to_sockaddr(const game::netadr_t &address) {
+sockaddr_in convert_to_sockaddr(const game::net::netadr_t &address) {
   sockaddr_in to{};
   to.sin_family = AF_INET;
   to.sin_port = htons(address.port);
@@ -206,10 +206,10 @@ sockaddr_in convert_to_sockaddr(const game::netadr_t &address) {
   return to;
 }
 
-void send_data(const game::netadr_t &address, const void *data,
+void send_data(const game::net::netadr_t &address, const void *data,
                const size_t length) {
-  // game::NET_SendPacket(game::NS_CLIENT1, static_cast<int>(size), data,
-  // &address);
+  // game::net::NET_SendPacket(game::net::NS_CLIENT1, static_cast<int>(size),
+  // data, &address);
 
   const auto to = convert_to_sockaddr(address);
   sendto(*game::ip_socket, static_cast<const char *>(data),
@@ -217,59 +217,60 @@ void send_data(const game::netadr_t &address, const void *data,
          sizeof(to));
 }
 
-void send_data(const game::netadr_t &address, const std::string &data) {
+void send_data(const game::net::netadr_t &address, const std::string &data) {
   send_data(address, data.data(), data.size());
 }
 
-game::netadr_t address_from_string(const std::string &address) {
-  game::netadr_t addr{};
-  addr.localNetID = game::NS_SERVER;
+game::net::netadr_t address_from_string(const std::string &address) {
+  game::net::netadr_t addr{};
+  addr.localNetID = game::net::NS_SERVER;
 
-  if (!game::NET_StringToAdr(address.data(), &addr)) {
-    addr.type = game::NA_BAD;
+  if (!game::net::NET_StringToAdr(address.data(), &addr)) {
+    addr.type = game::net::NA_BAD;
     return addr;
   }
 
-  if (addr.type == game::NA_IP) {
-    addr.type = game::NA_RAWIP;
+  if (addr.type == game::net::NA_IP) {
+    addr.type = game::net::NA_RAWIP;
   }
 
   return addr;
 }
 
-game::netadr_t address_from_ip(const uint32_t ip, const uint16_t port) {
-  game::netadr_t addr{};
-  addr.localNetID = game::NS_SERVER;
-  addr.type = game::NA_RAWIP;
+game::net::netadr_t address_from_ip(const uint32_t ip, const uint16_t port) {
+  game::net::netadr_t addr{};
+  addr.localNetID = game::net::NS_SERVER;
+  addr.type = game::net::NA_RAWIP;
   addr.port = port;
   addr.addr = ip;
 
   return addr;
 }
 
-bool are_addresses_equal(const game::netadr_t &a, const game::netadr_t &b) {
+bool are_addresses_equal(const game::net::netadr_t &a,
+                         const game::net::netadr_t &b) {
   if (a.type != b.type) {
     return false;
   }
 
-  if (a.type != game::NA_RAWIP && a.type != game::NA_IP) {
+  if (a.type != game::net::NA_RAWIP && a.type != game::net::NA_IP) {
     return true;
   }
 
   return a.port == b.port && a.addr == b.addr;
 }
 
-int net_sendpacket_stub(const game::netsrc_t sock, const int length,
-                        const char *data, const game::netadr_t *to) {
+int net_sendpacket_stub(const game::net::netsrc_t sock, const int length,
+                        const char *data, const game::net::netadr_t *to) {
   // printf("Sending packet of size: %X\n", length);
 
-  if (to->type != game::NA_RAWIP) {
+  if (to->type != game::net::NA_RAWIP) {
     printf("NET_SendPacket: bad address type\n");
     return 0;
   }
 
   const auto s = *game::ip_socket;
-  if (!s || sock > game::NS_MAXCLIENTS) {
+  if (!s || sock > game::net::NS_MAXCLIENTS) {
     return 0;
   }
 
@@ -325,7 +326,7 @@ struct component final : generic_component {
 
     // NA_IP -> NA_RAWIP in NetAdr_ToString
     utils::hook::set<uint8_t>(game::select(0x142172ED4, 0x140515864),
-                              game::NA_RAWIP);
+                              game::net::NA_RAWIP);
 
     if (game::is_server()) {
       // Remove restrictions for rcon commands

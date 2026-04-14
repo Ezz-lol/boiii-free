@@ -283,9 +283,9 @@ size_t get_max_client_count() {
 }
 
 template <typename T>
-static void
-foreach_client(T *client_states,
-               const std::function<void(client_s &, size_t index)> &callback) {
+static void foreach_client(
+    T *client_states,
+    const std::function<void(net::client_s &, size_t index)> &callback) {
   if (!client_states || !callback) {
     return;
   }
@@ -296,8 +296,9 @@ foreach_client(T *client_states,
 }
 
 template <typename T>
-static bool access_client(T *client_states, const size_t index,
-                          const std::function<void(client_s &)> &callback) {
+static bool
+access_client(T *client_states, const size_t index,
+              const std::function<void(net::client_s &)> &callback) {
   if (!client_states || !callback) {
     return false;
   }
@@ -307,7 +308,7 @@ static bool access_client(T *client_states, const size_t index,
   }
 
   auto &client = client_states[index];
-  if (client.state == CS_FREE) {
+  if (client.state == net::CS_FREE) {
     return false;
   }
 
@@ -316,7 +317,7 @@ static bool access_client(T *client_states, const size_t index,
 }
 
 void foreach_client(
-    const std::function<void(client_s &, size_t index)> &callback) {
+    const std::function<void(net::client_s &, size_t index)> &callback) {
   if (is_server()) {
     foreach_client(*svs_clients, callback);
   } else {
@@ -324,25 +325,27 @@ void foreach_client(
   }
 }
 
-void foreach_client(const std::function<void(client_s &)> &callback) {
-  foreach_client([&](client_s &client, size_t) { callback(client); });
+void foreach_client(const std::function<void(net::client_s &)> &callback) {
+  foreach_client([&](net::client_s &client, size_t) { callback(client); });
 }
 
 void foreach_connected_client(
-    const std::function<void(client_s &, size_t index)> &callback) {
-  foreach_client([&](client_s &client, const size_t index) {
-    if (client.state != CS_FREE) {
+    const std::function<void(net::client_s &, size_t index)> &callback) {
+  foreach_client([&](net::client_s &client, const size_t index) {
+    if (client.state != net::CS_FREE) {
       callback(client, index);
     }
   });
 }
 
-void foreach_connected_client(const std::function<void(client_s &)> &callback) {
-  foreach_connected_client([&](client_s &client, size_t) { callback(client); });
+void foreach_connected_client(
+    const std::function<void(net::client_s &)> &callback) {
+  foreach_connected_client(
+      [&](net::client_s &client, size_t) { callback(client); });
 }
 
-bool access_connected_client(const size_t index,
-                             const std::function<void(client_s &)> &callback) {
+bool access_connected_client(
+    const size_t index, const std::function<void(net::client_s &)> &callback) {
   if (is_server()) {
     return access_client(*svs_clients, index, callback);
   }

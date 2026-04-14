@@ -36,7 +36,8 @@ template <typename T> int get_client_count(T *client_states) {
 
 size_t get_client_count() {
   size_t count = 0;
-  game::foreach_connected_client([&count](const game::client_s &) { ++count; });
+  game::foreach_connected_client(
+      [&count](const game::net::client_s &) { ++count; });
 
   return count;
 }
@@ -45,7 +46,7 @@ size_t get_bot_count() {
   size_t count = 0;
 
   game::foreach_connected_client(
-      [&count](const game::client_s &, const size_t index) {
+      [&count](const game::net::client_s &, const size_t index) {
         if (game::SV_IsTestClient(static_cast<int>(index))) {
           ++count;
         }
@@ -66,7 +67,7 @@ struct component final : generic_component {
     // utils::hook::jump(game::select(0x142254EF0, 0x140537730),
     // get_assigned_team);
 
-    network::on("getInfo", [](const game::netadr_t &target,
+    network::on("getInfo", [](const game::net::netadr_t &target,
                               const network::data_view &data) {
       utils::info_string info{};
       info.set("challenge", std::string{data.begin(), data.end()});

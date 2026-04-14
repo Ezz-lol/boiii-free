@@ -173,7 +173,7 @@ void add_sv(const std::string &command, sv_command_param_function function) {
   auto &allocator = *utils::memory::get_allocator();
   const auto *cmd_string = allocator.duplicate_string(command);
 
-  game::Cmd_AddCommandInternal(cmd_string, game::Cbuf_AddServerText_f,
+  game::Cmd_AddCommandInternal(cmd_string, game::Stub,
                                allocator.allocate<game::cmd_function_s>());
   game::Cmd_AddServerCommandInternal(
       cmd_string, execute_custom_sv_command,

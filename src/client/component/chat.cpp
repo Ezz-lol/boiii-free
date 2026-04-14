@@ -17,7 +17,7 @@ namespace {
 const game::dvar_t *g_deadChat;
 const game::dvar_t *sv_setname;
 
-void cmd_say_f(game::gentity_s *ent, const command::params_sv &params) {
+void cmd_say_f(game::level::gentity_s *ent, const command::params_sv &params) {
   if (params.size() < 2) {
     return;
   }
@@ -28,20 +28,20 @@ void cmd_say_f(game::gentity_s *ent, const command::params_sv &params) {
   }
 
   const auto p = params.join(1);
-  game::Scr_AddString(game::SCRIPTINSTANCE_SERVER,
+  game::Scr_AddString(game::scr::SCRIPTINSTANCE_SERVER,
                       p.data() + 1); // Skip special char
-  game::Scr_Notify_Canon(ent, game::Scr_CanonHash(params[0]), 1);
+  game::Scr_Notify_Canon(ent, game::scr::Scr_CanonHash(params[0]), 1);
 
   game::G_Say(ent, nullptr, mode, p.data());
 }
 
-void cmd_chat_f(game::gentity_s *ent, const command::params_sv &params) {
+void cmd_chat_f(game::level::gentity_s *ent, const command::params_sv &params) {
   auto p = params.join(1);
 
   // Not a mistake! + 2 is necessary for the GSC script to receive only the
   // actual chat text
-  game::Scr_AddString(game::SCRIPTINSTANCE_SERVER, p.data() + 2);
-  game::Scr_Notify_Canon(ent, game::Scr_CanonHash(params[0]), 1);
+  game::Scr_AddString(game::scr::SCRIPTINSTANCE_SERVER, p.data() + 2);
+  game::Scr_Notify_Canon(ent, game::scr::Scr_CanonHash(params[0]), 1);
 
   utils::hook::invoke<void>(0x140298E70_g, ent, p.data());
 }
@@ -55,7 +55,7 @@ uint64_t *divert_xuid_to_client_num_stub(int, const int client_num, int) {
 
 void send_chat_message(int client_num, const std::string &text) {
   game::SV_GameSendServerCommand(
-      client_num, game::SV_CMD_CAN_IGNORE_0,
+      client_num, game::net::SV_CMD_CAN_IGNORE_0,
       utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, text.data()));
 }
 

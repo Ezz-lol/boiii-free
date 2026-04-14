@@ -11,7 +11,7 @@ namespace {
 utils::hook::detour spawn_server_hook;
 
 void scr_are_textures_loaded_stub() {
-  game::Scr_AddInt(game::SCRIPTINSTANCE_SERVER, 1);
+  game::Scr_AddInt(game::scr::SCRIPTINSTANCE_SERVER, 1);
 }
 
 game::eNetworkModes get_online_mode_stub() { return game::MODE_NETWORK_ONLINE; }

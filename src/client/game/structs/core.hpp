@@ -1,8 +1,7 @@
 #pragma once
 
-#include "quake.hpp"
-#include <array>
 #include <cstddef>
+#include <array>
 #include <cstdint>
 #include <stdfloat>
 #include <csetjmp>
@@ -10,9 +9,7 @@
 #define PROTOCOL 8
 #define SUB_PROTOCOL 1
 
-#ifdef __cplusplus
 namespace game {
-#endif
 
 // Automatically pad a partially defined (reverse-engineered, in our case)
 // struct to a fixed, known-correct total length
@@ -30,20 +27,153 @@ namespace game {
     uint8_t __raw[TotalSize];                                                  \
   }
 
+typedef const char *XString;
+typedef XString *XStringPtr;
+typedef const char ConstChar;
+typedef ConstChar *ConstCharPtr;
 typedef uint64_t bdUInt64;
 typedef bdUInt64 bdEntityID;
 typedef bdEntityID bdOnlineUserID;
 typedef bdOnlineUserID XUID;
-
-typedef int32_t stream_fileid;
-typedef int32_t stream_id;
 
 typedef int16_t BoneIndex;
 typedef int32_t time32_t;
 typedef int64_t time64_t;
 typedef time64_t time_t;
 
+typedef char str32_t[32];
+typedef char str64_t[64];
+typedef char str128_t[128];
+
+typedef int32_t cinematic_id;
+
 typedef float vec_t;
+
+enum class PMemStack : uint32_t {
+  PMEM_STACK_DB = 0x0,
+  PMEM_STACK_DB2 = 0x1,
+  PMEM_STACK_GAME = 0x2,
+  PMEM_STACK_SERVER = 0x3,
+  PMEM_STACK_HOT = 0x4,
+  PMEM_STACK_CINEMATICS = 0x5,
+  PMEM_STACK_DYNAMIC_IMAGES = 0x6,
+  PMEM_STACK_LIGHTING = 0x7,
+  PMEM_STACK_COUNT = 0x8,
+  PMEM_STACK_INVALID = 0xFFFFFFFF,
+  PHYS_ALLOC_LOW = 0x0,
+  PHYS_ALLOC_HIGH = 0x2,
+  PHYS_ALLOC_COUNT = 0x8,
+};
+
+enum class SwimStateType : int32_t {
+
+  SWIM_STATE_NONE = 0x0,
+  SWIM_STATE_SURFACE = 0x1,
+  SWIM_STATE_UNDERWATER = 0x2,
+  NUM_SWIM_STATES = 0x3,
+};
+
+enum class KillCamEntityRestState : int32_t {
+
+  KC_ENT_MOVING = 0x0,
+  KC_ENT_AT_REST = 0x1,
+  KC_ENT_STUCK_GROUND = 0x2,
+  KC_ENT_STUCK_WALL = 0x3,
+};
+
+enum class KillCamEntityType : int32_t {
+
+  KC_NO_ENTITY = 0x0,
+  KC_HELICOPTER = 0x1,
+  KC_DESTRUCTIBLE = 0x2,
+  KC_SCRIPTED = 0x3,
+  KC_EXPLOSIVE = 0x4,
+  KC_FAST_EXPLOSIVE = 0x5,
+  KC_ROCKET = 0x6,
+  KC_DRONE = 0x7,
+  KC_DOG = 0x8,
+  KC_COMBAT_ROBOT = 0x9,
+  KC_ARTILLERY = 0xA,
+  KC_VEHICLE = 0xB,
+};
+
+enum class InvalidCmdHintType : int32_t {
+
+  INVALID_CMD_NONE = 0x0,
+  INVALID_CMD_NO_AMMO_BULLETS = 0x1,
+  INVALID_CMD_NO_AMMO_FRAG_GRENADE = 0x2,
+  INVALID_CMD_NO_AMMO_SPECIAL_GRENADE = 0x3,
+  INVALID_CMD_NO_AMMO_FLASH_GRENADE = 0x4,
+  INVALID_CMD_NO_AMMO_EQUIPMENT = 0x5,
+  INVALID_CMD_STAND_BLOCKED = 0x6,
+  INVALID_CMD_CROUCH_BLOCKED = 0x7,
+  INVALID_CMD_TARGET_TOO_CLOSE = 0x8,
+  INVALID_CMD_LOCKON_REQUIRED = 0x9,
+  INVALID_CMD_NOT_ENOUGH_CLEARANCE = 0xA,
+  INVALID_CMD_CANT_PLACE_TURRET = 0xB,
+  INVALID_CMD_CANT_EQUIP_WHILE_PRONE = 0xC,
+  INVALID_CMD_CANT_PLANT_EQUIPMENT = 0xD,
+  INVALID_CMD_ROUND_START_DELAY = 0xE,
+  INVALID_CMD_GRENADES_NOT_ALLOWED = 0xF,
+  INVALID_CMD_GADGET_DENIED_ALREADY_ACTIVE = 0x10,
+  INVALID_CMD_GADGET_DENIED_CANNOT_ACTIVATE = 0x11,
+  INVALID_CMD_TARGET_OUT_OF_RANGE = 0x12,
+  INVALID_CMD_TARGET_BEING_USED = 0x13,
+  INVALID_CMD_TARGET_INVALID_TYPE = 0x14,
+  INVALID_CMD_NO_TARGET_IN_RANGE = 0x15,
+  INVALID_CMD_TARGET_DISABLED = 0x16,
+  INVALID_CMD_TARGETING_ABORTED = 0x17,
+  INVALID_CMD_TARGET_ALREADY_TARGETED = 0x18,
+  INVALID_CMD_SYSTEM_DISABLED = 0x19,
+};
+
+enum class SettingTeamIndicator : int32_t {
+
+  SettingTeamIndicator_FULL = 0x0,
+  SettingTeamIndicator_ABBREVIATED = 0x1,
+  SettingTeamIndicator_ICON = 0x2,
+  SettingTeamIndicator_COUNT = 0x3,
+};
+
+enum class CubemapShot : int32_t {
+
+  CUBEMAPSHOT_NONE = 0x0,
+  CUBEMAPSHOT_RIGHT = 0x1,
+  CUBEMAPSHOT_LEFT = 0x2,
+  CUBEMAPSHOT_BACK = 0x3,
+  CUBEMAPSHOT_FRONT = 0x4,
+  CUBEMAPSHOT_UP = 0x5,
+  CUBEMAPSHOT_DOWN = 0x6,
+  CUBEMAPSHOT_COUNT = 0x7,
+};
+
+enum class DemoType : int32_t {
+
+  DEMO_TYPE_NONE = 0x0,
+  DEMO_TYPE_CLIENT = 0x1,
+  DEMO_TYPE_SERVER = 0x2,
+  DEMO_TYPE_SERVER_SNAPSHOT = 0x3,
+};
+
+enum class TraceHitType : int32_t {
+
+  TRACE_HITTYPE_NONE = 0x0,
+  TRACE_HITTYPE_ENTITY = 0x1,
+  TRACE_HITTYPE_DYNENT_MODEL = 0x2,
+  TRACE_HITTYPE_DYNENT_BRUSH = 0x3,
+  TRACE_HITTYPE_GLASS = 0x4,
+};
+
+enum class MissileFlightMode : int32_t {
+  MISSILEFLIGHTMODE_TOP = 0x0,
+  MISSILEFLIGHTMODE_DIRECT = 0x1,
+};
+
+enum class MissileStage : int32_t {
+  MISSILESTAGE_SOFTLAUNCH = 0x0,
+  MISSILESTAGE_ASCENT = 0x1,
+  MISSILESTAGE_DESCENT = 0x2,
+};
 
 union vec2_t {
   vec_t v[2];
@@ -91,12 +221,6 @@ struct float128_t {
 };
 #pragma pack(pop)
 
-enum asmPrintLevel_t : int32_t {
-  ASM_PRINT_LEVEL_INFO = 0x0,
-  ASM_PRINT_LEVEL_WARNING = 0x1,
-  ASM_PRINT_LEVEL_ERROR = 0x2,
-};
-
 enum clientplatform_t : int32_t {
   CLIENT_PLATFORM_PC = 0x0,      // PC
   CLIENT_PLATFORM_ORBIS = 0x1,   // PS4
@@ -104,7 +228,7 @@ enum clientplatform_t : int32_t {
   MAX_CLIENT_PLATFORMS = 0x3,
 };
 
-enum team_t : uint32_t {
+enum class team_t : uint32_t {
   TEAM_FREE = 0x0,
   TEAM_BAD = 0x0,
   TEAM_DEAD = 0x0,
@@ -610,177 +734,6 @@ enum errorCode {
   ERROR_SOFTRESTART_KEEPDW = 0x800,
 };
 
-enum XAssetType {
-  ASSET_TYPE_PHYSPRESET = 0x0,
-  ASSET_TYPE_PHYSCONSTRAINTS = 0x1,
-  ASSET_TYPE_DESTRUCTIBLEDEF = 0x2,
-  ASSET_TYPE_XANIMPARTS = 0x3,
-  ASSET_TYPE_XMODEL = 0x4,
-  ASSET_TYPE_XMODELMESH = 0x5,
-  ASSET_TYPE_MATERIAL = 0x6,
-  ASSET_TYPE_COMPUTE_SHADER_SET = 0x7,
-  ASSET_TYPE_TECHNIQUE_SET = 0x8,
-  ASSET_TYPE_IMAGE = 0x9,
-  ASSET_TYPE_SOUND = 0xA,
-  ASSET_TYPE_SOUND_PATCH = 0xB,
-  ASSET_TYPE_CLIPMAP = 0xC,
-  ASSET_TYPE_COMWORLD = 0xD,
-  ASSET_TYPE_GAMEWORLD = 0xE,
-  ASSET_TYPE_MAP_ENTS = 0xF,
-  ASSET_TYPE_GFXWORLD = 0x10,
-  ASSET_TYPE_LIGHT_DEF = 0x11,
-  ASSET_TYPE_LENSFLARE_DEF = 0x12,
-  ASSET_TYPE_UI_MAP = 0x13,
-  ASSET_TYPE_FONT = 0x14,
-  ASSET_TYPE_FONTICON = 0x15,
-  ASSET_TYPE_LOCALIZE_ENTRY = 0x16,
-  ASSET_TYPE_WEAPON = 0x17,
-  ASSET_TYPE_WEAPONDEF = 0x18,
-  ASSET_TYPE_WEAPON_VARIANT = 0x19,
-  ASSET_TYPE_WEAPON_FULL = 0x1A,
-  ASSET_TYPE_CGMEDIA = 0x1B,
-  ASSET_TYPE_PLAYERSOUNDS = 0x1C,
-  ASSET_TYPE_PLAYERFX = 0x1D,
-  ASSET_TYPE_SHAREDWEAPONSOUNDS = 0x1E,
-  ASSET_TYPE_ATTACHMENT = 0x1F,
-  ASSET_TYPE_ATTACHMENT_UNIQUE = 0x20,
-  ASSET_TYPE_WEAPON_CAMO = 0x21,
-  ASSET_TYPE_CUSTOMIZATION_TABLE = 0x22,
-  ASSET_TYPE_CUSTOMIZATION_TABLE_FE_IMAGES = 0x23,
-  ASSET_TYPE_CUSTOMIZATION_TABLE_COLOR = 0x24,
-  ASSET_TYPE_SNDDRIVER_GLOBALS = 0x25,
-  ASSET_TYPE_FX = 0x26,
-  ASSET_TYPE_TAGFX = 0x27,
-  ASSET_TYPE_NEW_LENSFLARE_DEF = 0x28,
-  ASSET_TYPE_IMPACT_FX = 0x29,
-  ASSET_TYPE_IMPACT_SOUND = 0x2A,
-  ASSET_TYPE_PLAYER_CHARACTER = 0x2B,
-  ASSET_TYPE_AITYPE = 0x2C,
-  ASSET_TYPE_CHARACTER = 0x2D,
-  ASSET_TYPE_XMODELALIAS = 0x2E,
-  ASSET_TYPE_RAWFILE = 0x2F,
-  ASSET_TYPE_STRINGTABLE = 0x30,
-  ASSET_TYPE_STRUCTURED_TABLE = 0x31,
-  ASSET_TYPE_LEADERBOARD = 0x32,
-  ASSET_TYPE_DDL = 0x33,
-  ASSET_TYPE_GLASSES = 0x34,
-  ASSET_TYPE_TEXTURELIST = 0x35,
-  ASSET_TYPE_SCRIPTPARSETREE = 0x36,
-  ASSET_TYPE_KEYVALUEPAIRS = 0x37,
-  ASSET_TYPE_VEHICLEDEF = 0x38,
-  ASSET_TYPE_ADDON_MAP_ENTS = 0x39,
-  ASSET_TYPE_TRACER = 0x3A,
-  ASSET_TYPE_SLUG = 0x3B,
-  ASSET_TYPE_SURFACEFX_TABLE = 0x3C,
-  ASSET_TYPE_SURFACESOUNDDEF = 0x3D,
-  ASSET_TYPE_FOOTSTEP_TABLE = 0x3E,
-  ASSET_TYPE_ENTITYFXIMPACTS = 0x3F,
-  ASSET_TYPE_ENTITYSOUNDIMPACTS = 0x40,
-  ASSET_TYPE_ZBARRIER = 0x41,
-  ASSET_TYPE_VEHICLEFXDEF = 0x42,
-  ASSET_TYPE_VEHICLESOUNDDEF = 0x43,
-  ASSET_TYPE_TYPEINFO = 0x44,
-  ASSET_TYPE_SCRIPTBUNDLE = 0x45,
-  ASSET_TYPE_SCRIPTBUNDLELIST = 0x46,
-  ASSET_TYPE_RUMBLE = 0x47,
-  ASSET_TYPE_BULLETPENETRATION = 0x48,
-  ASSET_TYPE_LOCDMGTABLE = 0x49,
-  ASSET_TYPE_AIMTABLE = 0x4A,
-  ASSET_TYPE_ANIMSELECTORTABLESET = 0x4B,
-  ASSET_TYPE_ANIMMAPPINGTABLE = 0x4C,
-  ASSET_TYPE_ANIMSTATEMACHINE = 0x4D,
-  ASSET_TYPE_BEHAVIORTREE = 0x4E,
-  ASSET_TYPE_BEHAVIORSTATEMACHINE = 0x4F,
-  ASSET_TYPE_TTF = 0x50,
-  ASSET_TYPE_SANIM = 0x51,
-  ASSET_TYPE_LIGHT_DESCRIPTION = 0x52,
-  ASSET_TYPE_SHELLSHOCK = 0x53,
-  ASSET_TYPE_XCAM = 0x54,
-  ASSET_TYPE_BG_CACHE = 0x55,
-  ASSET_TYPE_TEXTURE_COMBO = 0x56,
-  ASSET_TYPE_FLAMETABLE = 0x57,
-  ASSET_TYPE_BITFIELD = 0x58,
-  ASSET_TYPE_ATTACHMENT_COSMETIC_VARIANT = 0x59,
-  ASSET_TYPE_MAPTABLE = 0x5A,
-  ASSET_TYPE_MAPTABLE_LOADING_IMAGES = 0x5B,
-  ASSET_TYPE_MEDAL = 0x5C,
-  ASSET_TYPE_MEDALTABLE = 0x5D,
-  ASSET_TYPE_OBJECTIVE = 0x5E,
-  ASSET_TYPE_OBJECTIVE_LIST = 0x5F,
-  ASSET_TYPE_UMBRA_TOME = 0x60,
-  ASSET_TYPE_NAVMESH = 0x61,
-  ASSET_TYPE_NAVVOLUME = 0x62,
-  ASSET_TYPE_BINARYHTML = 0x63,
-  ASSET_TYPE_LASER = 0x64,
-  ASSET_TYPE_BEAM = 0x65,
-  ASSET_TYPE_STREAMER_HINT = 0x66,
-  ASSET_TYPE_COUNT = 0x67,
-  ASSET_TYPE_STRING = 0x68,
-  ASSET_TYPE_ASSETLIST = 0x69,
-  ASSET_TYPE_REPORT = 0x6A,
-  ASSET_TYPE_DEPEND = 0x68,
-  ASSET_TYPE_FULL_COUNT = 0x6C,
-};
-
-struct AssetLink {
-  AssetLink *next;
-};
-
-struct XAssetPool {
-  void *pool;
-  uint32_t itemSize;
-  int32_t itemCount;
-  bool isSingleton[4];
-  int32_t itemAllocCount;
-  AssetLink *freeHead;
-};
-
-struct RawFile {
-  const char *name;
-  int32_t len;
-  const char *buffer;
-};
-
-struct XZoneBuffer {
-  const void *data;
-  size_t dataSize;
-};
-
-struct XZoneInfo {
-  const char *name;
-  int32_t allocFlags;
-  int32_t freeFlags;
-  int32_t allocSlot;
-  int32_t freeSlot;
-  XZoneBuffer fileBuffer;
-};
-
-enum XZoneState : int32_t {
-  XZONE_UNLOADING = -1,
-  XZONE_EMPTY = 0x0,
-  XZONE_LOADING = 0x1,
-  XZONE_LOADED = 0x2,
-  XZONE_COMPLETE = 0x3,
-  XZONE_FAILED = 0x4,
-};
-
-#pragma pack(push, 1)
-struct XZoneName // Size must be 96 == 0x60
-{
-  char name[64];
-  int32_t flags;
-  int32_t slot;
-  // Definitely values being set at _unknown and _unknown[8].
-  // They might be related to whether it's loaded?
-  // No immediate indication of what these are for, and we do not currently need
-  // to know, so leaving them as unknown for now.
-  char _unknown[16];
-  XZoneState state;
-  bool streamPreloaded;
-  char __unknown[3];
-};
-#pragma pack(pop)
-
 using xcommand_t = void (*)();
 
 struct cmd_function_s {
@@ -853,295 +806,6 @@ static_assert(sizeof(clientActive_t) == 0x197A30);
 
 using fileHandle_t = void *;
 
-struct netipv4_t {
-  uint8_t a;
-  uint8_t b;
-  uint8_t c;
-  uint8_t d;
-};
-
-enum netadrtype_t {
-  NA_BOT = 0x0,
-  NA_BAD = 0x1,
-  NA_LOOPBACK = 0x2,
-  NA_RAWIP = 0x3,
-  NA_IP = 0x4,
-};
-
-enum netsrc_t {
-  NS_NULL = -1,
-  NS_CLIENT1 = 0x0,
-  NS_CLIENT2 = 0x1,
-  NS_CLIENT3 = 0x2,
-  NS_CLIENT4 = 0x3,
-  NS_SERVER = 0x4,
-  NS_MAXCLIENTS = 0x4,
-  NS_PACKET = 0x5,
-};
-
-struct netadr_t {
-  union {
-    netipv4_t ipv4;
-    uint32_t addr;
-  };
-
-  uint16_t port;
-  netadrtype_t type;
-  netsrc_t localNetID;
-};
-
-struct XNADDR {
-  uint8_t addrBuff[37];
-};
-
-struct bdSecurityID {
-  uint8_t ab[8];
-};
-
-using XNKID = bdSecurityID;
-
-struct bdSecurityKey {
-  uint8_t ab[16];
-};
-
-using XNKEY = bdSecurityKey;
-
-struct SerializedAdr {
-  uint8_t valid;
-  uint8_t addrBuff[37];
-};
-
-struct XSESSION_INFO {
-  XNKID sessionID;
-  XNADDR hostAddress;
-  XNKEY keyExchangeKey;
-};
-
-enum PacketModeList {
-  PACKETDATA_FIRST = 0x0,
-  PACKETDATA_UNDEFINED = 0x0,
-  PACKETDATA_HEADER = 0x1,
-  PACKETDATA_OVERHEAD = 0x2,
-  PACKETDATA_DATA = 0x3,
-  PACKETDATA_RELIABLEDATA = 0x4,
-  PACKETDATA_ZEROFLOAT = 0x5,
-  PACKETDATA_SMALLFLOAT = 0x6,
-  PACKETDATA_LARGEFLOAT = 0x7,
-  PACKETDATA_ZEROINT = 0x8,
-  PACKETDATA_SMALLANGLE = 0x9,
-  PACKETDATA_ZEROANGLE = 0xA,
-  PACKETDATA_TIMEDELTA = 0xB,
-  PACKETDATA_TIME = 0xC,
-  PACKETDATA_24BITFLAGINDEX = 0xD,
-  PACKETDATA_GROUNDENTITY = 0xE,
-  PACKETDATA_ENTITYNUM = 0xF,
-  PACKETDATA_LASTFIELDCHANGED = 0x10,
-  PACKETDATA_NOTNETWORKDATA = 0x11,
-  PACKETDATA_ORIGINDELTA = 0x12,
-  PACKETDATA_ORIGIN = 0x13,
-  NUM_PACKETDATA_MODES = 0x14,
-};
-
-struct PacketMode {
-  uint32_t start;
-  PacketModeList mode;
-};
-
-struct msg_t {
-  qboolean overflowed;
-  qboolean readOnly;
-  uint8_t *data;
-  uint8_t *splitData;
-  int32_t maxsize;
-  int32_t cursize;
-  int32_t splitSize;
-  int32_t readcount;
-  int32_t bit;
-  int32_t lastEntityRef;
-  qboolean flush;
-  netsrc_t targetLocalNetID;
-  // PacketMode analysis;
-};
-
-using bdCommonAddrRef = void *;
-
-struct HostInfo {
-  XUID xuid;
-  char name[32];
-  netadr_t netAdr;
-  SerializedAdr serializedAdr;
-  bdSecurityID secId;
-  bdSecurityKey secKey;
-  uint32_t serverLocation;
-};
-
-enum LobbyType {
-  LOBBY_TYPE_INVALID = -1,
-  LOBBY_TYPE_PRIVATE = 0x0,
-  LOBBY_TYPE_GAME = 0x1,
-  LOBBY_TYPE_TRANSITION = 0x2,
-  LOBBY_TYPE_COUNT = 0x3,
-  LOBBY_TYPE_FIRST = 0x0,
-  LOBBY_TYPE_LAST = 0x2,
-  LOBBY_TYPE_AUTO = 0x3,
-};
-
-enum LobbyClientType {
-  LOBBY_CLIENT_TYPE_INVALID = -1,
-  LOBBY_CLIENT_TYPE_ALL = 0x0,
-  LOBBY_CLIENT_TYPE_LOCAL = 0x1,
-  LOBBY_CLIENT_TYPE_REMOTE = 0x2,
-};
-
-enum LobbyNetworkMode {
-  LOBBY_NETWORKMODE_INVALID = -1,
-  LOBBY_NETWORKMODE_LOCAL = 0x0,
-  LOBBY_NETWORKMODE_LAN = 0x1,
-  LOBBY_NETWORKMODE_LIVE = 0x2,
-  LOBBY_NETWORKMODE_COUNT = 0x3,
-};
-
-enum LobbyMainMode {
-  LOBBY_MAINMODE_INVALID = -1,
-  LOBBY_MAINMODE_CP = 0x0,
-  LOBBY_MAINMODE_MP = 0x1,
-  LOBBY_MAINMODE_ZM = 0x2,
-  LOBBY_MAINMODE_COUNT = 0x3,
-};
-
-struct LobbyParams {
-  LobbyNetworkMode networkMode;
-  LobbyMainMode mainMode;
-};
-
-enum JoinType {
-  JOIN_TYPE_NORMAL = 0x0,
-  JOIN_TYPE_PLAYLIST = 0x1,
-  JOIN_TYPE_FRIEND = 0x2,
-  JOIN_TYPE_INVITE = 0x3,
-  JOIN_TYPE_PARTY = 0x4,
-  JOIN_TYPE_COUNT = 0x5,
-};
-
-struct JoinHost {
-  HostInfo info;
-  LobbyType lobbyType;
-  LobbyParams lobbyParams;
-  uint64_t reservationKey;
-  int32_t retryTime;
-  int32_t retryCount;
-};
-
-enum JoinSourceState {
-  JOIN_SOURCE_STATE_IDLE = 0x0,
-  JOIN_SOURCE_STATE_CONNECT_TO_NEXT_HOST = 0x1,
-  JOIN_SOURCE_STATE_ASSOCIATING = 0x2,
-  JOIN_SOURCE_STATE_HANDSHAKING = 0x3,
-  JOIN_SOURCE_STATE_WAITING_FOR_AGREEMENT = 0x4,
-  JOIN_SOURCE_STATE_CONNECTION_FAILED = 0x5,
-  JOIN_SOURCE_STATE_CONNECTION_SUCCESS = 0x6,
-  JOIN_SOURCE_STATE_ENDING_HOST = 0x7,
-  JOIN_SOURCE_STATE_CLEANUP = 0x8,
-  JOIN_SOURCE_STATE_COUNT = 0x9,
-};
-
-enum JoinResult {
-  JOIN_RESULT_INVALID = 0x0,
-  JOIN_RESULT_SUCCESS = 0x1,
-  JOIN_RESULT_CONNECT_TO_HOST_FAILURE = 0x2,
-  JOIN_RESULT_PROBE_SEND_FAILURE = 0x3,
-  JOIN_RESULT_PROBE_TIMEOUT = 0x4,
-  JOIN_RESULT_PROBE_INVALID_LOBBY = 0x5,
-  JOIN_RESULT_PROBE_INVALID_INFO = 0x6,
-  JOIN_RESULT_PROBE_RESULT_INVALID = 0x7,
-  JOIN_RESULT_INVALID_LOBBY = 0x8,
-  JOIN_RESULT_SEND_AGREEMENT_REQUEST_FAILED = 0x9,
-  JOIN_RESULT_HANDSHAKE_WINDOW_EXPIRED = 0xA,
-  JOIN_RESULT_AGREEMENT_WINDOW_EXPIRED = 0xB,
-  JOIN_RESULT_JOIN_DISABLED = 0xC,
-  JOIN_RESULT_JOIN_ALREADY_IN_PROGRESS = 0xD,
-  JOIN_RESULT_NOT_JOINABLE_NOT_HOSTING = 0xE,
-  JOIN_RESULT_NOT_JOINABLE_NOT_IDLE = 0xF,
-  JOIN_RESULT_NOT_JOINABLE_CLOSED = 0x10,
-  JOIN_RESULT_NOT_JOINABLE_INVITE_ONLY = 0x11,
-  JOIN_RESULT_NOT_JOINABLE_FRIENDS_ONLY = 0x12,
-  JOIN_RESULT_LOBBY_FULL = 0x13,
-  JOIN_RESULT_NETWORK_MODE_MISMATCH = 0x14,
-  JOIN_RESULT_MISMATCH_PLAYLISTID = 0x15,
-  JOIN_RESULT_MISMATCH_PLAYLIST_VERSION_TO_NEW = 0x16,
-  JOIN_RESULT_MISMATCH_PLAYLIST_VERSION_TO_OLD = 0x17,
-  JOIN_RESULT_MISMATCH_PROTOCOL_VERSION = 0x18,
-  JOIN_RESULT_MISMATCH_NETFIELD_CHECKSUM = 0x19,
-  JOIN_RESULT_MISMATCH_FFOTD_VERSION_TO_NEW = 0x1A,
-  JOIN_RESULT_MISMATCH_FFOTD_VERSION_TO_OLD = 0x1B,
-  JOIN_RESULT_MIGRATE_IN_PROGRESS = 0x1C,
-  JOIN_RESULT_COULD_NOT_RESERVE = 0x1D,
-  JOIN_RESPONSE_COUNT = 0x1E,
-};
-
-using joinCompleteCallback = void (*)(int, JoinResult);
-
-struct AgreementStatus {
-  XUID xuid;
-  char name[32];
-  bool responded;
-  bool agrees;
-  int32_t startTime;
-  int32_t responseTime;
-};
-
-struct Agreement {
-  int32_t nonce;
-  AgreementStatus status[18];
-  int32_t requestCount;
-  int32_t responseCount;
-  int32_t agreeCount;
-};
-
-struct Join {
-  JoinSourceState state;
-  int32_t actionId;
-  int32_t startTime;
-  int32_t duration;
-  ControllerIndex_t controllerIndex;
-  LobbyType sourceLobbyType;
-  LobbyType targetLobbyType;
-  joinCompleteCallback joinComplete;
-  JoinHost hostList[50];
-  int32_t hostCount;
-  int32_t processedCount;
-  bool isFinalized;
-  JoinHost potentialHost;
-  Agreement agreement;
-  Agreement debugAgreement;
-  JoinType joinType;
-  JoinResult joinResult;
-};
-
-struct ServerInfo {
-  uint16_t m_usConnectionPort;
-  uint16_t m_usQueryPort;
-  uint32_t m_unIP;
-  int32_t m_nPing;
-  uint8_t unk[0x22];
-  char mapname[32];
-  char description[64];
-  char gamemode[16];
-  char modname[32];
-  int32_t playerCount;
-  int32_t maxPlayers;
-  int32_t unk2;
-  int32_t unk3;
-  int32_t unk4;
-  bool dedicated;
-  bool ranked;
-  bool hardcore;
-  bool zombies;
-  char servername[64];
-  char tags[128];
-  int32_t unk5;
-  int32_t unk6;
-};
 using ScrVarCanonicalName_t = uint32_t;
 
 struct BuiltinFunctionDef {
@@ -1152,129 +816,12 @@ struct BuiltinFunctionDef {
   int32_t type;
 };
 
-enum svscmd_type {
-  SV_CMD_CAN_IGNORE_0 = 0x0,
-  SV_CMD_RELIABLE_0 = 0x1,
-};
-
-enum {
-  CS_FREE = 0x0,
-  CS_ZOMBIE = 0x1,
-  CS_RECONNECTING = 0x2,
-  CS_CONNECTED = 0x3,
-  CS_CLIENTLOADING = 0x4,
-  CS_ACTIVE = 0x5,
-};
-
-struct client_s {
-  int32_t state;
-  char __pad0[0x28];
-  netadr_t address;
-  char __pad1[20468];
-  int32_t reliableSequence;
-  int32_t reliableAcknowledge;
-  char __pad2[4];
-  int32_t messageAcknowledge;
-  char gap_5040[1416];
-  XUID xuid;
-  char __pad3[0xB5D84];
-  int32_t guid;
-  char __pad4[0x8];
-  bool bIsTestClient;
-  char __pad5[3];
-  int32_t serverId;
-  char __pad6[171432];
-};
-
-#ifdef __cplusplus
-static_assert(sizeof(client_s) == 0xE5110);
-
-static_assert(offsetof(game::client_s, address) == 0x2C);
-static_assert(offsetof(game::client_s, xuid) == 0x55C8);
-static_assert(offsetof(game::client_s, guid) == 0xBB354);
-static_assert(offsetof(game::client_s, bIsTestClient) == 0xBB360);
-#endif
-
-struct client_s_cl : client_s {
-  char __pad1_0[0x60];
-};
-
-#ifdef __cplusplus
-static_assert(sizeof(client_s_cl) == 0xE5170);
-#endif
-
-union Weapon {
-  struct {
-    uint64_t weaponIdx : 9;
-    uint64_t attachment1 : 6;
-    uint64_t attachment2 : 6;
-    uint64_t attachment3 : 6;
-    uint64_t attachment4 : 6;
-    uint64_t attachment5 : 6;
-    uint64_t attachment6 : 6;
-    uint64_t attachment7 : 6;
-    uint64_t attachment8 : 6;
-    uint64_t padding : 7;
-  } _anon_0;
-
-  uint64_t weaponData;
-};
-
-union EntRefUnion {
-  int32_t entnum;
-  uint32_t hudElemIndex;
-  uint32_t pathNodeIndex;
-  short vehicleNodeIndex;
-  unsigned short absDynEntIndex;
-  Weapon weapon;
-  uint64_t val;
-};
-
-struct scr_entref_t {
-  EntRefUnion u;
-  unsigned short classnum;
-  LocalClientNum_t client;
-};
-
-static_assert(sizeof(scr_entref_t) == 0x10);
-
-enum scriptInstance_t {
-  SCRIPTINSTANCE_SERVER = 0x0,
-  SCRIPTINSTANCE_CLIENT = 0x1,
-  SCRIPT_INSTANCE_MAX = 0x2,
-};
-
 struct gclient_s {
   char __pad0[0x8C];
   float velocity[3];
   char __pad1[59504];
   char flags;
 };
-
-struct EntityState {
-  int32_t number;
-}; // Incomplete
-
-struct gentity_s {
-  EntityState s;
-  unsigned char __pad0[0x24C];
-  gclient_s *client;
-  unsigned char __pad1[0x17C];
-
-  struct {
-    uint32_t notifyString;
-    uint32_t index;
-    unsigned char stoppable;
-    int32_t basetime;
-    int32_t duration;
-  } snd_wait;
-
-  unsigned char __pad2[0x110];
-};
-
-#ifdef __cplusplus
-static_assert(sizeof(gentity_s) == 0x4F8);
-#endif
 
 enum workshop_type { WORKSHOP_MOD = 0x1, WORKSHOP_USERMAP = 0x2 };
 
@@ -1385,119 +932,233 @@ enum CharacterItemType {
 
 using BGEmblemBackgroundID = int16_t;
 
-union XAssetHeader {
-  /*PhysPreset* physPreset;
-  PhysConstraints* physConstraints;
-  DestructibleDef* destructibleDef;
-  XAnimParts* parts;
-  XModel* model;
-  XModelMesh* modelMesh;
-  Material* material;
-  MaterialComputeShaderSet* computeShaderSet;
-  MaterialTechniqueSet* techniqueSet;
-  GfxImage* image;
-  SndBank* sound;
-  SndPatch* soundPatch;
-  clipMap_t* clipMap;
-  ComWorld* comWorld;
-  GameWorld* gameWorld;
-  MapEnts* mapEnts;
-  GfxWorld* gfxWorld;
-  GfxLightDef* lightDef;
-  GfxLensFlareDef* lensFlareDef;
-  Font* font;
-  FontIcon* fontIcon;
-  LocalizeEntry* localize;
-  WeaponVariantDef* weapon;
-  WeaponAttachment* attachment;
-  WeaponAttachmentUnique* attachmentUnique;
-  WeaponCamo* weaponCamo;
-  CustomizationTable* customizationTable;
-  CustomizationColorInfo* customizationColorInfo;
-  SndDriverGlobals* sndDriverGlobals;
-  FxEffectDefHandleRaw fx;
-  TagFxSet* tagFX;
-  FxLensFlareDefPtr newLensFlareDef;
-  FxImpactTable* impactFx;
-  SoundsImpactTable* impactSounds;
-  CgMediaTable* cgMedia;
-  PlayerSoundsTable* playerSounds;
-  PlayerFXTable* playerFX;
-  SharedWeaponSounds* sharedWeaponSounds;
-  RawFile* rawfile;
-  StringTable* stringTable;
-  StructuredTable* structuredTable;
-  LeaderboardDef* leaderboardDef;
-  DDLRoot* ddlRoot;
-  Glasses* glasses;
-  TextureList* textureList;
-  ScriptParseTree* scriptParseTree;
-  KeyValuePairs* keyValuePairs;
-  VehicleDef* vehicleDef;
-  AddonMapEnts* addonMapEnts;
-  TracerDef* tracerDef;
-  Qdb* qdb;
-  Slug* slug;
-  SurfaceFXTableDef* surfaceFXTableDef;
-  SurfaceSoundDef* surfaceSoundDef;
-  FootstepTableDef* footstepTableDef;
-  EntitySoundImpacts* entitySoundImpacts;
-  EntityFxImpacts* entityFxImpacts;
-  ZBarrierDef* zbarrierDef;
-  VehicleFxDef* vehicleFxDef;
-  VehicleSoundDef* vehicleSoundDef;
-  ArchiveTypeInfoArray* typeInfo;
-  ScriptBundle* scriptBundle;
-  ScriptBundleList* scriptBundleList;
-  RumbleInfo* rumble;
-  BulletPenetrationTable* bulletPenetration;
-  LocDmgTable* locDmgTable;
-  AimTable* aimTable;
-  XModelAlias* xModelAlias;
-  Character* character;
-  AIType* aiType;
-  PlayerCharacter* player_character;
-  AnimSelectorTableSet* animSelectorTableSet;
-  AnimMappingTable* animMappingTable;
-  AnimStateMachine* animStateMachine;
-  BehaviorTree* behaviorTree;
-  BehaviorStateMachine* behaviorStateMachine;
-  TTFDef* ttfDef;
-  GfxSiegeAnim* sanim;
-  GfxLightDescription* lightDescription;
-  ShellshockParams* shellshock;
-  XCam* xcam;
-  BGCacheInfo* bgCache;
-  TextureCombo* textureCombo;
-  FlameTable* flameTable;
-  Bitfield* bitfield;
-  AttachmentCosmeticVariant* attachmentCosmeticVariant;
-  MapTable* mapTable;
-  Medal* medal;
-  MedalTable* medalTable;
-  Objective* objective;
-  ObjectiveList* objectiveList;
-  NavMeshData* navMesh;
-  NavVolumeData* navVolume;
-  BinaryHTML* binaryHTML;
-  LaserDef* laserDef;
-  BeamDef* beamDef;
-  StreamerHint* streamerHint;*/
-  void *data;
-  RawFile *luaFile;
-};
-
-struct XAsset {
-  XAssetType type;
-  XAssetHeader header;
-};
-
-using XAssetEnum = void(XAssetHeader, void *);
-
 template <typename T, size_t X, size_t Y>
 using matrix2d = std::array<std::array<T, Y>, X>;
-// Length of level_locals_t is 0x23A10 on both client and server
 
-#ifdef __cplusplus
-}
-#endif
+struct SpawnVar {
+  bool spawnVarsValid;
+  uint32_t numSpawnVars;
+  char *spawnVars[100][2];
+  uint32_t numSpawnVarChars;
+  char spawnVarChars[2048];
+  char spawnVarTypes[100];
+};
+
+#pragma pack(push, 1)
+template <size_t B> struct bitarray {
+  std::array<int32_t, (B + 31) / 32> data;
+
+  void set(size_t index) { return data[index / 32] |= (1 << (index % 32)); }
+
+  void clear(size_t index) { return data[index / 32] &= ~(1 << (index % 32)); }
+
+  bool get(size_t index) const {
+    return (data[index / 32] & (1 << (index % 32))) != 0;
+  }
+};
+
+// sizeof=0xC
+typedef bitarray<72> game_button_bits_t;
+static_assert(sizeof(game_button_bits_t) == 0xC,
+              "game_button_bits_t size must be 12 bytes");
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+
+enum class UIModelDataType : int32_t {
+
+  UI_MODEL_DT_INVALID = 0x0,
+  UI_MODEL_DT_BOOL = 0x1,
+  UI_MODEL_DT_UINT64 = 0x2,
+  UI_MODEL_DT_INT = 0x3,
+  UI_MODEL_DT_REAL = 0x4,
+  UI_MODEL_DT_STRING = 0x5,
+  UI_MODEL_DT_FUNCTION = 0x6,
+  UI_MODEL_NUM_DATATYPES = 0x7,
+};
+
+enum class objectiveDrawState_t : int32_t {
+  OBJECTIVE_DRAW_STATE_ONSCREEN = 0x0,
+  OBJECTIVE_DRAW_STATE_OFFSCREEN = 0x1,
+};
+
+enum class objectiveState_t : int32_t {
+
+  OBJST_EMPTY = 0x0,
+  OBJST_ACTIVE = 0x1,
+  OBJST_INVISIBLE = 0x2,
+  OBJST_DONE = 0x3,
+  OBJST_CURRENT = 0x4,
+  OBJST_FAILED = 0x5,
+  OBJST_NUMSTATES = 0x6,
+};
+
+// sizeof=0x10
+struct UIModelData {
+  UIModelDataType dataType;
+  uint8_t _padding04[4];
+  union {
+    uint64_t uint64;
+    const char *string;
+    int32_t integer;
+    float real;
+    bool boolean;
+    int32_t functionRef;
+  };
+};
+static_assert(sizeof(UIModelData) == 0x10, "UIModelData size must be 16 bytes");
+
+// sizeof=0x20
+struct objectiveUIModel_t {
+  UIModelData modelData;
+  int32_t modelName;
+  uint8_t _padding14[12];
+};
+
+// sizeof=0xD0
+struct objective_t {
+  objectiveState_t objState;
+  vec3_t origin;
+  int32_t entNum;
+  int32_t color;
+  int16_t colorSetColor;
+  uint8_t _padding1A[2];
+  vec2_t objIconSize;
+  int32_t icon;
+  int32_t objOwnerNum;
+  uint16_t name;
+  int16_t teamMask;
+  uint8_t progress;
+  uint8_t _padding31[3];
+  int32_t clientUseMask[1];
+  uint16_t gamemodeFlags;
+  uint8_t objTeamNum;
+  uint8_t _padding3B[1];
+  objectiveDrawState_t drawState;
+  int32_t drawStateStartTime;
+  float alpha;
+  bool syncFlag;
+  uint8_t _padding49[7];
+  objectiveUIModel_t uiModels[4];
+};
+static_assert(sizeof(objective_t) == 0xD0,
+              "objective_t size must be 208 bytes");
+
+struct ArchivedMatchState {
+  int32_t matchUIVisibilityFlags;
+  int32_t bombTimer[2];
+  int32_t roundsPlayed;
+  int32_t worldFields[64];
+  int32_t worldUIModelFields[16];
+  int32_t activeSkiptos;
+  int32_t hiddentMiscModelGroups;
+  int32_t umbraGates;
+};
+
+enum scoreboardColumnType_t : int32_t {
+  SB_TYPE_INVALID = 0x0,
+  SB_TYPE_NONE = 0x1,
+  SB_TYPE_SCORE = 0x2,
+  SB_TYPE_KILLS = 0x3,
+  SB_TYPE_DEATHS = 0x4,
+  SB_TYPE_ASSISTS = 0x5,
+  SB_TYPE_DEFENDS = 0x6,
+  SB_TYPE_PLANTS = 0x7,
+  SB_TYPE_DEFUSES = 0x8,
+  SB_TYPE_RETURNS = 0x9,
+  SB_TYPE_CAPTURES = 0xA,
+  SB_TYPE_DESTRUCTIONS = 0xB,
+  SB_TYPE_DISABLES = 0xC,
+  SB_TYPE_ESCORTS = 0xD,
+  SB_TYPE_CARRIES = 0xE,
+  SB_TYPE_THROWS = 0xF,
+  SB_TYPE_KDRATIO = 0x10,
+  SB_TYPE_SURVIVED = 0x11,
+  SB_TYPE_STABS = 0x12,
+  SB_TYPE_TOMAHAWKS = 0x13,
+  SB_TYPE_HUMILIATED = 0x14,
+  SB_TYPE_X2SCORE = 0x15,
+  SB_TYPE_HEADSHOTS = 0x16,
+  SB_TYPE_DOWNS = 0x17,
+  SB_TYPE_REVIVES = 0x18,
+  SB_TYPE_AGRKILLS = 0x19,
+  SB_TYPE_HACKS = 0x1A,
+  SB_TYPE_POINTS_TO_WIN = 0x1B,
+  SB_TYPE_KILLS_CONFIRMED = 0x1C,
+  SB_TYPE_KILLS_DENIED = 0x1D,
+  SB_TYPE_SHOTS_MISSED = 0x1E,
+  SB_TYPE_SHOTS_HIT = 0x1F,
+  SB_TYPE_TIME_PLAYED = 0x20,
+  SB_TYPE_VICTORY = 0x21,
+  SB_TYPE_INCAPS = 0x22,
+  SB_TYPE_GEMS = 0x23,
+  NUM_SB_TYPES = 0x24,
+};
+
+// sizeof=0x10
+struct uint128_t {
+  uint64_t low;
+  uint64_t high;
+};
+static_assert(sizeof(uint128_t) == 0x10, "uint128_t size must be 16 bytes");
+
+// sizeof=0x10
+struct renderOptions_t {
+  union {
+    struct {
+      union {
+        struct {
+          uint32_t camo : 7;
+          uint32_t reticle : 6;
+          uint32_t playerTag : 1;
+          uint32_t emblem : 1;
+          uint32_t paintshop : 1;
+          uint32_t paintjobIndex : 4;
+          uint32_t paintjobSlot : 4;
+          uint32_t extraCamPreview : 1;
+          uint32_t playerNum : 5;
+          uint32_t customClass : 4;
+          uint32_t customClassPrimary : 1;
+          uint32_t stowedPlayerTag : 1;
+          uint32_t stowedEmblem : 1;
+          uint32_t stowedPaintshop : 1;
+          uint32_t stowedPlayerNum : 5;
+          uint32_t stowedCustomClass : 4;
+          uint32_t stowedCustomClassPrimary : 1;
+        };
+        uint64_t weaponPacked : 48;
+      };
+      union {
+        struct {
+          uint32_t characterMode : 3;
+          uint32_t bodyType : 4;
+          uint32_t bodyStyle : 4;
+          uint32_t bodyColor1 : 3;
+          uint32_t bodyColor2 : 3;
+          uint32_t bodyColor3 : 3;
+          uint32_t helmetStyle : 4;
+          uint32_t helmetColor1 : 3;
+          uint32_t helmetColor2 : 3;
+          uint32_t helmetColor3 : 3;
+          uint32_t headStyle : 4;
+        };
+        uint64_t bodyPacked : 37;
+      };
+    };
+    uint128_t allPacked;
+  };
+};
+static_assert(sizeof(renderOptions_t) == 0x10,
+              "renderOptions_t size must be 16 bytes");
+
+typedef uint16_t modelNameIndex_t;
+
+// sizeof=0x4
+class EntHandle {
+public:
+  uint16_t number;
+  uint16_t infoIndex;
+};
+static_assert(sizeof(EntHandle) == 0x4, "EntHandle size must be 4 bytes");
+#pragma pack(pop)
+} // namespace game

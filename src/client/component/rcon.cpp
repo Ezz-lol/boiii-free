@@ -14,7 +14,7 @@ namespace rcon {
 namespace {
 const game::dvar_t *rcon_timeout;
 
-std::unordered_map<game::netadr_t, int> rate_limit_map;
+std::unordered_map<game::net::netadr_t, int> rate_limit_map;
 
 std::optional<std::string>
 get_and_validate_rcon_command(const std::string &data) {
@@ -31,7 +31,7 @@ get_and_validate_rcon_command(const std::string &data) {
   return params.join(1);
 }
 
-void rcon_executer(const game::netadr_t &target, const std::string &data) {
+void rcon_executer(const game::net::netadr_t &target, const std::string &data) {
   const auto command = get_and_validate_rcon_command(data);
   if (!command) {
     return;
@@ -48,7 +48,7 @@ void rcon_executer(const game::netadr_t &target, const std::string &data) {
   network::send(target, "print", console_buffer);
 }
 
-bool rate_limit_check(const game::netadr_t &address, const int time) {
+bool rate_limit_check(const game::net::netadr_t &address, const int time) {
   const auto last_time = rate_limit_map[address];
 
   if (last_time && (time - last_time) < rcon_timeout->current.value.integer) {
@@ -70,7 +70,7 @@ void rate_limit_cleanup(const int time) {
   }
 }
 
-void rcon_handler(const game::netadr_t &target,
+void rcon_handler(const game::net::netadr_t &target,
                   const network::data_view &data) {
   const auto time = game::Sys_Milliseconds();
   if (!rate_limit_check(target, time)) {

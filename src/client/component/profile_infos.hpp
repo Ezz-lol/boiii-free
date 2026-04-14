@@ -14,7 +14,7 @@ struct profile_info {
 };
 
 void add_profile_info(uint64_t user_id, const profile_info &info);
-void add_and_distribute_profile_info(const game::netadr_t &addr,
+void add_and_distribute_profile_info(const game::net::netadr_t &addr,
                                      uint64_t user_id,
                                      const profile_info &info);
 void clear_profile_infos();

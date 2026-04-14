@@ -13,7 +13,7 @@ constexpr unsigned int BO3_APP_ID = 311210;
 
 // combined list of favorites + recents for GetFavoriteGame enumeration
 struct favorite_entry {
-  game::netadr_t addr;
+  game::net::netadr_t addr;
   unsigned int flags;
 };
 

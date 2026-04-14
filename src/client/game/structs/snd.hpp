@@ -1,23 +1,53 @@
-#pragma once
+#ifndef STRUCTS_SND_HPP
+#define STRUCTS_SND_HPP
 
 #include <cstdint>
+#include "core.hpp"
+#include "quake.hpp"
+#include "db/xasset.hpp"
 #include "scr.hpp"
-#include "structs.hpp"
+#include "io.hpp"
 
-#ifdef __cplusplus
-namespace game::snd {
-#endif
+namespace game {
+namespace snd {
 
 typedef uint32_t SndStringHash;
 typedef int32_t SndPlaybackId;
 typedef uint8_t sd_byte;
 typedef uint32_t SndAliasId;
 
+enum class SndGameMode : int32_t {
+  SND_GAME_MODE_MULTIPLAYER = 0x0,
+  SND_GAME_MODE_ZOMBIES = 0x1,
+  SND_GAME_MODE_CAMPAIGN = 0x2,
+  SND_GAME_MODE_CAMPAIGN_ZOMBIES = 0x3,
+};
+
+enum class SndStopSoundFlags : int32_t {
+  SND_STOP_ALL = 0x0,
+  SND_STOP_PAUSED = 0x1,
+  SND_STOP_DEATH = 0x2,
+};
+
+enum class SndGfutzLocation : int32_t {
+  SND_GFUTZ_LOCATION_SCRIPT = 0x0,
+  SND_GFUTZ_LOCATION_GDT = 0x1,
+  SND_GFUTZ_LOCATION_COUNT = 0x2,
+};
+
+enum class SndLimitType : int32_t {
+  SND_LIMIT_NONE = 0x0,
+  SND_LIMIT_OLDEST = 0x1,
+  SND_LIMIT_REJECT = 0x2,
+  SND_LIMIT_PRIORITY = 0x3,
+  SND_LIMIT_COUNT = 0x4,
+};
+
 /**
  * @brief Defines the lifecycle of a Sound Bank loading process.
  * Managed primarily within SND_BankLoadUpdateState.
  */
-enum SndBankState : int32_t {
+enum class SndBankState : int32_t {
   /**
    * Initial state for a new load request.
    * Resets load indices and file handles.
@@ -88,7 +118,7 @@ enum SndBankState : int32_t {
   SND_BANK_STATE_ERROR = 0x8,
 };
 
-enum SndDuckCategoryType : uint32_t {
+enum class SndDuckCategoryType : uint32_t {
   SND_DUCK_CATEGORY_ALIAS = 0x0,
   SND_DUCK_CATEGORY_AMBIENT = 0x1,
   SND_DUCK_CATEGORY_SCRIPT = 0x2,
@@ -106,14 +136,14 @@ enum SndDuckCategoryType : uint32_t {
   SND_DUCK_CATEGORY_COUNT = 0xE,
 };
 
-enum SndLengthType : uint32_t {
+enum class SndLengthType : uint32_t {
   SND_LENGTH_NOTIFY_NONE = 0x0,
   SND_LENGTH_NOTIFY_SCRIPT = 0x1,
   SND_LENGTH_NOTIFY_SUBTITLE = 0x2,
   SND_LENGTH_NOTIFY_COUNT = 0x3,
 };
 
-enum SndCallLocation : int32_t {
+enum class SndCallLocation : int32_t {
   SND_CALL_LOCATION_CLIENTSCRIPT = 0x0,
   SND_CALL_LOCATION_SERVER = 0x1,
   SND_CALL_LOCATION_GDT = 0x2,
@@ -123,12 +153,12 @@ enum SndCallLocation : int32_t {
   SND_CALL_LOCATION_COUNT = 0x6,
 };
 
-enum SndEntityUpdate : uint32_t {
+enum class SndEntityUpdate : uint32_t {
   SND_ENTITY_UPDATE_ALWAYS = 0x0,
   SND_ENTITY_UPDATE_NEVER = 0x1,
 };
 
-enum SndMenuCategory : uint32_t {
+enum class SndMenuCategory : uint32_t {
   SND_CATEGORY_SFX = 0x0,
   SND_CATEGORY_MUSIC = 0x1,
   SND_CATEGORY_VOICE = 0x2,
@@ -137,6 +167,8 @@ enum SndMenuCategory : uint32_t {
   SND_CATEGORY_COUNT = 0x5,
 };
 
+#pragma pack(push, 1)
+// sizeof=0x800
 struct SndAssetBankHeader {
   uint32_t magic;
   uint32_t version;
@@ -152,7 +184,7 @@ struct SndAssetBankHeader {
   uint8_t checksumChecksum[16];
   /*
     This may be a struct in its own right, but the type is unknown and
-    unlabelled in engine, only stored as a 512-byte buffer. It does not seem
+    unlabelled in engine, only stoted as a 512-byte buffer. It does not seem
     to be used in BO3 alpha, at least directly with automatically decompiled
     struct field indexing, so it may simply just be a field leftover from
     earlier implementations of the engine's sound architecture.
@@ -166,12 +198,15 @@ struct SndAssetBankHeader {
   uint32_t convertedAssetVersion;
   /*
     These padding fields are used and labelled explicitly in both BO3
-    and BO4 engines. These are not our additions - they is, verbatim, what is
+    and BO4 engines. These are not our additions - this is, verbatim, what is
     used by Treyarch.
   */
   uint32_t padding0;
   uint8_t padding[1366];
 };
+static_assert(sizeof(SndAssetBankHeader) == 0x800,
+              "SndAssetBankHeader size must be 2048 bytes");
+#pragma pack(pop)
 
 /*
   This struct is not 100% verified to be correct yet, but the fields
@@ -198,6 +233,8 @@ struct SndAssetBankEntry {
   uint16_t EnvelopeTime1;
   uint16_t EnvelopeTime2;
 };
+static_assert(sizeof(SndAssetBankEntry) == 0x24,
+              "SndAssetBankEntry size must be 32 bytes");
 #pragma pack(pop)
 
 #pragma pack(push, 1)
@@ -206,10 +243,12 @@ struct SndAssetBankLoad {
   char filename[256];
   SndAssetBankEntry *entries;
   uint32_t entryCount;
-  stream_fileid fileHandle;
+  io::stream_fileid fileHandle;
   qboolean indicesLoaded;
   qboolean indicesAllocated;
 };
+static_assert(sizeof(SndAssetBankLoad) == 0x918,
+              "SndAssetBankLoad size must be 2328 bytes");
 #pragma pack(pop)
 
 #define G_SND_INITIALIZED_MAGIC 0x23459876
@@ -230,7 +269,7 @@ struct SndVolumeGroup {
 struct SndCurve {
   char name[32];
   uint32_t id;
-  vec2_t points[8];
+  game::vec2_t points[8];
 };
 #pragma pack(pop)
 
@@ -423,14 +462,16 @@ struct SndOcclusionTrace {
 /*
   Known to be 0x1CD100 bytes in size, but the fields and their order are
   not yet verified
+
+  Progress:
+  - EntState offset and length are verified to be correct.
+  - In entState, offset of contexts is verified.
+  - `pfutzLoops` offset is correct. Length of array (SndPlaybackId[8]) is also
+  - verified.
+  - Voice offset and length are verified.
+  - Offset of playbackId in voice verified.
+  - voiceAliasHash offset is verified.
 */
-// entState offset and length known correct.
-// in entState, contexts offset known correct.
-// pfutzLoops offset known correct. Length of array (SndPlaybackId[8]) known
-// correct.
-// voice offset, length known correct. offset of playbackId in voice known
-// correct.
-// voiceAliasHash known to be correct offset.
 #pragma pack(push, 1)
 partial_def(0x1CD168, struct, SndLocal, {
   int32_t magic;
@@ -553,8 +594,7 @@ static_assert(sizeof(SndAliasList) == 0x28);
 
 #pragma pack(push, 1)
 // Correct
-struct SndPatch {
-  const char *name;
+struct SndPatch : db::xasset::NamedXAsset {
   uint32_t elementCount;
   uint8_t _padding0C[4];
   uint32_t *elements;
@@ -564,22 +604,29 @@ static_assert(sizeof(SndPatch) == 0x18);
 
 #pragma pack(push, 1)
 
+#pragma pack(push, 1)
 struct SndAliasLookupNode {
   SndStringHash id;
   uint8_t _padding04[4];
   SndAliasList *list;
 };
+static_assert(sizeof(SndAliasLookupNode) == 0x10);
+#pragma pack(pop)
 
 #pragma pack(pop)
 
+#pragma pack(push, 1)
 struct SndAliasLookupCache {
   uint32_t hit;
   uint32_t miss;
   uint32_t collision;
+  uint8_t _padding0C[4];
   SndAliasLookupNode cache[4096];
 };
+static_assert(sizeof(SndAliasLookupCache) == 0x10010);
+#pragma pack(pop)
 
-enum SndFileLoadingState : int32_t {
+enum class SndFileLoadingState : int32_t {
   SFLS_UNLOADED = 0x0,
   SFLS_LOADING = 0x1,
   SFLS_LOADED = 0x2,
@@ -702,7 +749,7 @@ struct SndDuckActive {
 };
 #pragma pack(pop)
 
-// Complete unknown if correct, at this time.
+// Completely unknown if correct at this time.
 #pragma pack(push, 1)
 struct SndPlayState {
   SndEntHandle entHandle;
@@ -773,8 +820,8 @@ static_assert(sizeof(SndPlayback) == 0x28);
 
 #pragma pack(push, 1)
 // Length known correct, and all but the SndFade fields are verified to be
-// correct, though not necessarily the fields contained within structs included
-// by pointers here; see those structs for verification progress.
+// correct, though not necessarily the fields contained within structs
+// included by pointers here; see those structs for verification progress.
 struct SndVoice {
   SndPlayState state;
   SndFileLoadingState loadingState;
@@ -851,7 +898,7 @@ struct SndVoice {
 
 #pragma pack(pop)
 
-enum SndCommandType : uint32_t {
+enum class SndCommandType : uint32_t {
   SND_COMMAND_NOP = 0x0,
   SND_COMMAND_ALIAS_NAME = 0x1,
   SND_COMMAND_PLAY = 0x2,
@@ -921,7 +968,7 @@ enum SndCommandType : uint32_t {
   from the command ID, then handling each case of the result. This enum serves
   to strongly type this 'nopless' command ID handling.
 */
-enum NoplessSndCommandType : uint32_t {
+enum class NoplessSndCommandType : uint32_t {
   NOPLESS_SND_COMMAND_ALIAS_NAME = 0x0,
   NOPLESS_SND_COMMAND_PLAY = 0x1,
   NOPLESS_SND_COMMAND_STOP_ALIAS = 0x2,
@@ -989,7 +1036,7 @@ enum NoplessSndCommandType : uint32_t {
 #pragma pack(push, 1)
 
 // Correct
-enum SndMusicStateStatus : uint32_t {
+enum class SndMusicStateStatus : uint32_t {
   SND_MUSIC_STATE_INACTIVE = 0x0,
   SND_MUSIC_STATE_ACTIVE = 0x1,
 };
@@ -1145,8 +1192,7 @@ static_assert(sizeof(SndDialogScriptIdLookup) == 0x8,
               "SndDialogScriptIdLookup size is incorrect");
 
 // Correct! Must be length 0x220B0.
-struct SndBank {
-  const char *name;
+struct SndBank : db::xasset::NamedXAsset {
   const char *zone;
   const char *gameLanguage;
   const char *soundLanguage;
@@ -1173,11 +1219,14 @@ struct SndBank {
   SndMusicSet *musicSets;
 };
 static_assert(sizeof(SndBank) == 0x220B0, "SndBank size is incorrect");
+typedef SndBank *SndBankPtr;
 
 #pragma pack(pop)
 
 // Correct.
+
 #pragma pack(push, 1)
+
 struct SndBankLoad {
   const SndBank *bank;
   SndAssetBankLoad streamAssetBank;
@@ -1190,17 +1239,32 @@ struct SndBankLoad {
   uint32_t loadedDataSize;
   uint32_t priority;
   qboolean patchZone;
-  stream_id streamRequestId;
   uint8_t _unknown[4];
+  io::stream_id streamRequestId;
   qboolean pendingIo;
   qboolean ioError;
   SndBankState state;
-  uint8_t _padding[4];
+  /*
+     Added to allow multiple concurrent readers; previously read call back
+     toggled pendingIO off on read completion even if there were other reads in
+     progress.
+  */
+  uint32_t pendingIoCount;
 };
+
+static_assert(sizeof(SndBankLoad) == 0x1278, "SndBankLoad size is incorrect");
 #pragma pack(pop)
 
 #pragma pack(push, 1)
 
+/*
+  Known to be at least partially incorrect.
+  Up to and including aliasCache is verified and should be correct.
+  However, though SndBankLoad is entirely verified and correct,
+  accessing `loadGate` in the engine appears to access a field of
+  `loads[23]` when using this definition, so this must be incorrect,
+  somewhere.
+*/
 struct SndBankGlobals {
   uint32_t bankMagic;
   uint32_t bankCount;
@@ -1219,6 +1283,8 @@ struct SndBankGlobals {
   float assetLoadPercent;
   uint8_t _padding317F8[8];
 };
+static_assert(sizeof(SndBankGlobals) == 0x39800,
+              "SndBankGlobals size is incorrect");
 #pragma pack(pop)
 
 // Not yet verified to be correct.
@@ -1238,7 +1304,7 @@ struct snd_weapon_shot {
   LocalClientNum_t localClientNum;
   uint8_t _padding04[4];
   SndEntHandle shooter;
-  Weapon weapon;
+  weapon::Weapon weapon;
   vec3_t origin;
   vec3_t direction;
   uint32_t tagName;
@@ -1274,8 +1340,138 @@ struct snd_autosim_play {
 };
 static_assert(sizeof(snd_autosim_play) == 0x48,
               "snd_autosim_play size is incorrect");
+
+// sizeof=0x18
+struct EntityImpactPositions {
+  uint32_t entityImpactPositions[6];
+};
+static_assert(sizeof(EntityImpactPositions) == 0x18,
+              "EntityImpactPositions size must be 24 bytes");
+
+// sizeof=0x110
+struct EntitySoundImpacts {
+  const char *name;
+  EntityImpactPositions entityImpacts[11];
+};
+static_assert(sizeof(EntitySoundImpacts) == 0x110,
+              "EntitySoundImpacts size must be 272 bytes");
+
+// sizeof=0xA8
+struct SurfaceSoundDef {
+  const char *name;
+  snd::SndAliasId surfaceSound[40];
+};
+static_assert(sizeof(SurfaceSoundDef) == 0xA8,
+              "SurfaceSoundDef size must be 168 bytes");
+
+typedef SurfaceSoundDef *SurfaceSoundDefPtr;
+typedef EntitySoundImpacts *EntitySoundImpactsPtr;
+// sizeof=0x20
+struct SoundsImpactTable {
+  const char *name;
+  SurfaceSoundDefPtr surfaceSoundTable;
+  EntitySoundImpactsPtr entitySoundImpacts;
+  EntitySoundImpactsPtr victimSoundImpacts;
+};
+static_assert(sizeof(SoundsImpactTable) == 0x20,
+              "SoundsImpactTable size must be 32 bytes");
+
+typedef SoundsImpactTable *SoundsImpactTablePtr;
+
+// sizeof=0x20
+struct SndEntLoop {
+  SndAliasId id;
+  uint8_t _padding04[4];
+  SndEntHandle handle;
+  vec3_t origin;
+  int32_t fade;
+};
+static_assert(sizeof(SndEntLoop) == 0x20, "SndEntLoop size must be 32 bytes");
+
+// sizeof=0x14
+struct SndOcclusionStartCache {
+  vec3_t position;
+  float value;
+  bool valid;
+  uint8_t _padding11[3];
+};
+static_assert(sizeof(SndOcclusionStartCache) == 0x14,
+              "SndOcclusionStartCache size must be 20 bytes");
+
+enum class SndMusicAssetPlaybackState : int32_t {
+  SND_MUSIC_PLAYBACK_STOPPING = 0x0,
+  SND_MUSIC_PLAYBACK_STOPPED = 0x1,
+  SND_MUSIC_PLAYBACK_STARTED = 0x2,
+  SND_MUSIC_PLAYBACK_COUNT = 0x3,
+};
+
+// sizeof=0x28
+struct SndMusicAssetInstance {
+  const SndMusicAsset *asset;
+  const SndMusicState *state;
+  SndPlaybackId id;
+  SndMusicAssetPlaybackState playbackState;
+  int startFrame;
+  int loopNumber;
+  int queuedNextLoop;
+
+  uint8_t _padding24[4];
+};
+static_assert(sizeof(SndMusicAssetInstance) == 0x28,
+              "SndMusicAssetInstance size must be 40 bytes");
+
+// sizeof=0x18
+class tlAtomicMutex {
+public:
+  uint64_t ThreadId;
+  int LockCount;
+  uint8_t _padding0C[4];
+  tlAtomicMutex *ThisPtr;
+};
+static_assert(sizeof(tlAtomicMutex) == 0x18,
+              "tlAtomicMutex size must be 24 bytes");
+
+struct SndQueueBuffers;
+struct SndCommandBuffer;
+
+typedef void (*SND_QueueBufferProcess)(SndCommandBuffer *);
+
+// sizeof=0x8020
+struct SndCommandBuffer {
+  int32_t sequence;
+  int32_t used;
+  SND_QueueBufferProcess *process;
+  SndCommandBuffer *next;
+  SndQueueBuffers *buffers;
+  uint8_t data[32768];
+};
+static_assert(sizeof(SndCommandBuffer) == 0x8020,
+              "SndCommandBuffer size must be 32768 bytes plus header");
+
+// sizeof=0x80220
+struct SndQueueBuffers {
+  tlAtomicMutex mutex;
+  SndCommandBuffer buffers[16];
+  SndCommandBuffer *freeList;
+};
+static_assert(sizeof(SndQueueBuffers) == 0x80220,
+              "SndQueueBuffers size must be 16 times the size of "
+              "SndCommandBuffer plus header");
+
+struct SndQueue;
+typedef void (*SND_QueueCallback)(SndQueue *);
+// sizeof=0x38
+struct SndQueue {
+  tlAtomicMutex mutex;
+  SndCommandBuffer *active;
+  SndCommandBuffer *submitted;
+  SndQueueBuffers *buffers;
+  SND_QueueCallback processNotify;
+};
+static_assert(sizeof(SndQueue) == 0x38, "SndQueue size must be 56 bytes");
+
 #pragma pack(pop)
 
-#ifdef __cplusplus
-}
+} // namespace snd
+} // namespace game
 #endif

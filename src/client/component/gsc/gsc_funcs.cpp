@@ -58,7 +58,7 @@ void push_string(int inst, const char *val) {
 }
 
 void push_int(int inst, int val) {
-  game::Scr_AddInt(static_cast<game::scriptInstance_t>(inst), val);
+  game::Scr_AddInt(static_cast<game::scr::scriptInstance_t>(inst), val);
   return_value_set = true;
 }
 
@@ -163,7 +163,7 @@ void hook_opcode(uint16_t opcode, vm_opcode_handler_t hook,
   }
 }
 
-void builtin_dispatcher(game::scriptInstance_t inst) {
+void builtin_dispatcher(game::scr::scriptInstance_t inst) {
   if (!ScrVm_GetInt)
     return;
 
@@ -283,7 +283,7 @@ void gscr_say(int inst) {
   const auto msg = ScrVm_GetString(static_cast<unsigned int>(inst), 1);
   if (msg)
     game::SV_GameSendServerCommand(
-        -1, game::SV_CMD_CAN_IGNORE_0,
+        -1, game::net::SV_CMD_CAN_IGNORE_0,
         utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, msg));
 }
 
@@ -295,7 +295,7 @@ void gscr_tell(int inst) {
   const auto msg = ScrVm_GetString(static_cast<unsigned int>(inst), 2);
   if (client_num >= 0 && client_num < 18 && msg)
     game::SV_GameSendServerCommand(
-        client_num, game::SV_CMD_CAN_IGNORE_0,
+        client_num, game::net::SV_CMD_CAN_IGNORE_0,
         utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, msg));
 }
 

@@ -27,6 +27,9 @@
 #include <filesystem>
 #include <unordered_map>
 
+using namespace game::db;
+using namespace game::db::xasset;
+
 namespace ui_scripting {
 namespace {
 std::unordered_map<game::hks::cclosure *,
@@ -678,10 +681,10 @@ int hks_load_stub(game::hks::lua_State *state, void *compiler_options,
                                   debug_reader, debug_reader_data, chunk_name);
 }
 
-game::XAssetHeader lua_cod_getrawfile_stub(char *filename) {
+xasset::XAssetHeader lua_cod_getrawfile_stub(char *filename) {
   if (!is_loaded_script(globals.in_require_script) &&
       !is_local_script(filename)) {
-    return lua_cod_getrawfile_hook.invoke<game::XAssetHeader>(filename);
+    return lua_cod_getrawfile_hook.invoke<xasset::XAssetHeader>(filename);
   }
 
   const std::string name_ = filename;
@@ -707,12 +710,12 @@ game::XAssetHeader lua_cod_getrawfile_stub(char *filename) {
     globals.load_raw_script = true;
     globals.raw_script_name = target_script;
 
-    return game::XAssetHeader{
-        .luaFile = reinterpret_cast<game::RawFile *>(1) //
+    return xasset::XAssetHeader{
+        .luaFile = reinterpret_cast<xasset::RawFile *>(1) //
     };
   }
 
-  return lua_cod_getrawfile_hook.invoke<game::XAssetHeader>(filename);
+  return lua_cod_getrawfile_hook.invoke<xasset::XAssetHeader>(filename);
 }
 
 int luaopen_stub([[maybe_unused]] game::hks::lua_State *l) { return 0; }
@@ -887,9 +890,9 @@ const char *resolve_source_from_rawfiles(uintptr_t bytecode_header) {
   };
   lookup_ctx ctx{bytecode_header, nullptr};
 
-  game::DB_EnumXAssets(
-      game::ASSET_TYPE_RAWFILE,
-      [](game::XAssetHeader header, void *data) {
+  xasset::DB_EnumXAssets(
+      xasset::XAssetType::ASSET_TYPE_RAWFILE,
+      [](xasset::XAssetHeader header, void *data) {
         auto *c = static_cast<lookup_ctx *>(data);
         if (c->found)
           return;

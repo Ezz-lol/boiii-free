@@ -1,12 +1,16 @@
 #pragma once
 
+#include <cstddef>
+#include <functional>
+#include <string>
 #include <utils/byte_buffer.hpp>
 #include <utils/concurrency.hpp>
 
 #include "../component/network.hpp"
+#include "structs/net.hpp"
 
 namespace game::fragment_handler {
-bool handle(const netadr_t &target, utils::byte_buffer &buffer,
+bool handle(const net::netadr_t &target, utils::byte_buffer &buffer,
             std::string &final_packet);
 
 void clean();

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 namespace ui_scripting {
 template <class... Args, std::size_t... I>
 auto wrap_function(const std::function<void(Args...)> &f,

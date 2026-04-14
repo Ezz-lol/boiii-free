@@ -40,7 +40,8 @@ std::optional<profile_info> load_profile_info() {
   return {std::move(info)};
 }
 
-void send_profile_info(const game::netadr_t &address, const std::string &data) {
+void send_profile_info(const game::net::netadr_t &address,
+                       const std::string &data) {
   game::fragment_handler::fragment_data(
       data.data(), data.size(), [&address](const utils::byte_buffer &buffer) {
         network::send(address, "profileInfo", buffer.get_buffer());
@@ -58,7 +59,7 @@ void distribute_profile_info(const uint64_t user_id, const profile_info &info) {
 
   const std::string data = buffer.move_buffer();
 
-  game::foreach_connected_client([&](const game::client_s &client) {
+  game::foreach_connected_client([&](const game::net::client_s &client) {
     send_profile_info(client.address, data);
   });
 }
@@ -67,7 +68,7 @@ std::unordered_set<uint64_t> get_connected_client_xuids() {
   std::unordered_set<uint64_t> connected_clients{};
   connected_clients.reserve(game::get_max_client_count());
 
-  game::foreach_connected_client([&](const game::client_s &client) {
+  game::foreach_connected_client([&](const game::net::client_s &client) {
     connected_clients.emplace(client.xuid);
   });
 
@@ -120,7 +121,7 @@ void add_profile_info(const uint64_t user_id, const profile_info &info) {
       [&](profile_map &profiles) { profiles[user_id] = info; });
 }
 
-void distribute_profile_info_to_user(const game::netadr_t &addr,
+void distribute_profile_info_to_user(const game::net::netadr_t &addr,
                                      const uint64_t user_id,
                                      const profile_info &info) {
   utils::byte_buffer buffer{};
@@ -130,7 +131,7 @@ void distribute_profile_info_to_user(const game::netadr_t &addr,
   send_profile_info(addr, buffer.get_buffer());
 }
 
-void distribute_profile_infos_to_user(const game::netadr_t &addr) {
+void distribute_profile_infos_to_user(const game::net::netadr_t &addr) {
   profile_mapping.access([&](const profile_map &profiles) {
     for (const auto &entry : profiles) {
       distribute_profile_info_to_user(addr, entry.first, entry.second);
@@ -146,7 +147,7 @@ void distribute_profile_infos_to_user(const game::netadr_t &addr) {
   }
 }
 
-void add_and_distribute_profile_info(const game::netadr_t &addr,
+void add_and_distribute_profile_info(const game::net::netadr_t &addr,
                                      const uint64_t user_id,
                                      const profile_info &info) {
   distribute_profile_infos_to_user(addr);
@@ -208,7 +209,7 @@ struct component final : generic_component {
     scheduler::loop(clean_cached_profile_infos, scheduler::main, 5s);
 
     if (game::is_client()) {
-      network::on("profileInfo", [](const game::netadr_t &server,
+      network::on("profileInfo", [](const game::net::netadr_t &server,
                                     const network::data_view &data) {
         if (!party::is_host(server)) {
           return;

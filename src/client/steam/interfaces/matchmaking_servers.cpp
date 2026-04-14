@@ -17,7 +17,7 @@ namespace steam {
 namespace {
 struct server {
   bool handled{false};
-  game::netadr_t address{};
+  game::net::netadr_t address{};
   gameserveritem_t server_item{};
 };
 
@@ -43,7 +43,7 @@ template <typename T> void copy_safe(T &dest, const char *in) {
   ::utils::string::strip_material(dest, dest, std::extent_v<T>);
 }
 
-gameserveritem_t create_server_item(const game::netadr_t &address,
+gameserveritem_t create_server_item(const game::net::netadr_t &address,
                                     const ::utils::info_string &info,
                                     const uint32_t ping, const bool success) {
   const auto sub_protocol = atoi(info.get("sub_protocol").data());
@@ -97,7 +97,7 @@ gameserveritem_t create_server_item(const game::netadr_t &address,
 }
 
 void handle_server_respone(
-    const bool success, const game::netadr_t &host,
+    const bool success, const game::net::netadr_t &host,
     const ::utils::info_string &info, const uint32_t ping,
     ::utils::concurrency::container<servers> &server_list,
     std::atomic<matchmaking_server_list_response *> &response, void *request) {
@@ -150,7 +150,7 @@ void handle_server_respone(
 }
 
 void handle_internet_server_response(const bool success,
-                                     const game::netadr_t &host,
+                                     const game::net::netadr_t &host,
                                      const ::utils::info_string &info,
                                      const uint32_t ping) {
   handle_server_respone(success, host, info, ping, internet_servers,
@@ -158,7 +158,7 @@ void handle_internet_server_response(const bool success,
 }
 
 void handle_favorites_server_response(const bool success,
-                                      const game::netadr_t &host,
+                                      const game::net::netadr_t &host,
                                       const ::utils::info_string &info,
                                       const uint32_t ping) {
   handle_server_respone(success, host, info, ping, favorites_servers,
@@ -166,7 +166,7 @@ void handle_favorites_server_response(const bool success,
 }
 
 void handle_history_server_response(const bool success,
-                                    const game::netadr_t &host,
+                                    const game::net::netadr_t &host,
                                     const ::utils::info_string &info,
                                     const uint32_t ping) {
   handle_server_respone(success, host, info, ping, history_servers,
@@ -174,14 +174,15 @@ void handle_history_server_response(const bool success,
 }
 
 void handle_friends_server_response(const bool success,
-                                    const game::netadr_t &host,
+                                    const game::net::netadr_t &host,
                                     const ::utils::info_string &info,
                                     const uint32_t ping) {
   handle_server_respone(success, host, info, ping, friends_servers,
                         friends_response, friends_request);
 }
 
-void ping_server(const game::netadr_t &server, party::query_callback callback) {
+void ping_server(const game::net::netadr_t &server,
+                 party::query_callback callback) {
   party::query_server(server, callback);
 }
 } // namespace
@@ -192,43 +193,44 @@ void *matchmaking_servers::RequestInternetServerList(
   internet_response = pRequestServersResponse;
   internet_refreshing = true;
 
-  server_list::request_servers([](const bool success,
-                                  const std::unordered_set<game::netadr_t> &s) {
-    const auto res = internet_response.load();
-    if (!res) {
-      internet_refreshing = false;
-      return;
-    }
+  server_list::request_servers(
+      [](const bool success, const std::unordered_set<game::net::netadr_t> &s) {
+        const auto res = internet_response.load();
+        if (!res) {
+          internet_refreshing = false;
+          return;
+        }
 
-    if (!success) {
-      internet_refreshing = false;
-      res->RefreshComplete(internet_request, eServerFailedToRespond);
-      return;
-    }
+        if (!success) {
+          internet_refreshing = false;
+          res->RefreshComplete(internet_request, eServerFailedToRespond);
+          return;
+        }
 
-    if (s.empty()) {
-      internet_refreshing = false;
-      res->RefreshComplete(internet_request, eNoServersListedOnMasterServer);
-      return;
-    }
+        if (s.empty()) {
+          internet_refreshing = false;
+          res->RefreshComplete(internet_request,
+                               eNoServersListedOnMasterServer);
+          return;
+        }
 
-    internet_servers.access([&s](servers &srvs) {
-      srvs = {};
-      srvs.reserve(s.size());
+        internet_servers.access([&s](servers &srvs) {
+          srvs = {};
+          srvs.reserve(s.size());
 
-      for (auto &address : s) {
-        server new_server{};
-        new_server.address = address;
-        new_server.server_item = create_server_item(address, {}, 0, false);
+          for (auto &address : s) {
+            server new_server{};
+            new_server.address = address;
+            new_server.server_item = create_server_item(address, {}, 0, false);
 
-        srvs.push_back(new_server);
-      }
-    });
+            srvs.push_back(new_server);
+          }
+        });
 
-    for (auto &srv : s) {
-      ping_server(srv, handle_internet_server_response);
-    }
-  });
+        for (auto &srv : s) {
+          ping_server(srv, handle_internet_server_response);
+        }
+      });
 
   return internet_request;
 }
@@ -257,14 +259,14 @@ void *matchmaking_servers::RequestFriendsServerList(
   }
 
   // Separate friends into online (have address) and offline (no address)
-  std::vector<std::pair<game::netadr_t, std::string>> online_friends;
+  std::vector<std::pair<game::net::netadr_t, std::string>> online_friends;
   std::vector<int> offline_indices;
 
   int total_index = 0;
   for (const auto &info : friend_infos) {
     if (!info.address.empty()) {
       auto addr = network::address_from_string(info.address);
-      if (addr.type != game::NA_BAD) {
+      if (addr.type != game::net::NA_BAD) {
         online_friends.emplace_back(addr, info.player_name);
         total_index++;
         continue;
@@ -293,7 +295,7 @@ void *matchmaking_servers::RequestFriendsServerList(
       if (is_offline) {
         // Create a valid server entry for offline friends
         new_server.address = {};
-        new_server.address.type = game::NA_RAWIP;
+        new_server.address.type = game::net::NA_RAWIP;
 
         gameserveritem_t item{};
         item.m_NetAdr.m_usConnectionPort = 0;
@@ -372,7 +374,7 @@ void *matchmaking_servers::RequestFavoritesServerList(
   favorites_response = pRequestServersResponse;
 
   auto &srvs = server_list::get_favorite_servers();
-  srvs.access([&](std::unordered_set<game::netadr_t> s) {
+  srvs.access([&](std::unordered_set<game::net::netadr_t> s) {
     const auto res = favorites_response.load();
     if (!res) {
       return;
@@ -410,7 +412,7 @@ void *matchmaking_servers::RequestHistoryServerList(
   history_response = pRequestServersResponse;
 
   auto &srvs = server_list::get_recent_servers();
-  srvs.access([&](std::vector<game::netadr_t> s) {
+  srvs.access([&](std::vector<game::net::netadr_t> s) {
     const auto res = history_response.load();
     if (!res) {
       return;
@@ -513,7 +515,7 @@ void matchmaking_servers::RefreshServer(void *hRequest, const int iServer) {
     return;
   }
 
-  std::optional<game::netadr_t> address{};
+  std::optional<game::net::netadr_t> address{};
   auto &servers_list = hRequest == favorites_request ? favorites_servers
                        : hRequest == history_request ? history_servers
                        : hRequest == friends_request ? friends_servers
@@ -543,7 +545,7 @@ void *matchmaking_servers::PingServer(
   const auto addr = network::address_from_ip(htonl(unIP), usPort);
 
   party::query_server(
-      addr, [response](const bool success, const game::netadr_t &host,
+      addr, [response](const bool success, const game::net::netadr_t &host,
                        const ::utils::info_string &info, const uint32_t ping) {
         if (success) {
           auto server_item = create_server_item(host, info, ping, success);

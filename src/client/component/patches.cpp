@@ -292,8 +292,8 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
 }
 
 void scr_get_num_expected_players() {
-  auto expected_players = game::LobbyHost_GetClientCount(
-      game::LOBBY_TYPE_GAME, game::LOBBY_CLIENT_TYPE_ALL);
+  auto expected_players = game::lobby::LobbyHost_GetClientCount(
+      game::lobby::LOBBY_TYPE_GAME, game::lobby::LOBBY_CLIENT_TYPE_ALL);
 
   const auto mode = game::Com_SessionMode_GetMode();
   if ((mode == game::MODE_ZOMBIES || mode == game::MODE_CAMPAIGN)) {
@@ -306,10 +306,11 @@ void scr_get_num_expected_players() {
   }
 
   const auto num_expected_players = std::max(1, expected_players);
-  game::Scr_AddInt(game::SCRIPTINSTANCE_SERVER, num_expected_players);
+  game::Scr_AddInt(game::scr::SCRIPTINSTANCE_SERVER, num_expected_players);
 }
 
-void sv_execute_client_messages_stub(game::client_s *client, game::msg_t *msg) {
+void sv_execute_client_messages_stub(game::net::client_s *client,
+                                     game::net::msg_t *msg) {
   if ((client->reliableSequence - client->reliableAcknowledge) < 0) {
     client->reliableAcknowledge = client->reliableSequence;
     game::SV_DropClient(client, "EXE_LOSTRELIABLECOMMANDS", true, true);
