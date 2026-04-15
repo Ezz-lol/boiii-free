@@ -121,6 +121,7 @@ namespace xasset {
 
 // Asset pool (client only)
 WEAK symbol<XAssetPool> DB_XAssetPool{0x1494093F0};
+WEAK symbol<XAssetEntryPool> g_assetEntryPool{0x1494C7B80, 0x1469BB270};
 
 WEAK symbol<void(XAssetType type, XAssetEnum *func, void *inData,
                  bool includeOverride)>

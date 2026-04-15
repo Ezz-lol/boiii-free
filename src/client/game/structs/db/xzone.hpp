@@ -55,16 +55,9 @@ static_assert(sizeof(XZoneInfoInternal) == 0x58,
               "XZoneInfoInternal size must be 0x58 bytes");
 
 /*
-  Definitely incorrect; this contains a pointer to an at least singly
-  linked list of `XZoneInfoInternal\`s now, and maybe either corresponding
-  dependency lists by index, XZoneBuffers, or previous/loaded nodes but the
-  exact structure is currently unknown.
-
-   \`allocFlags\`, and \`freeFlags\` are still correct.
-   \`name\` is most likely the pointer to the primary XZoneInfoInternal for the
-  zone.
-
-  TODO: confirm actual structure and update
+   Correct. allocFlags and freeFlags are verified, and
+   allocSlot-freeSlot are used as in earlier engines with size of allocSlot -
+  end of XZoneBuffer confirmed as 0x18 (2 * 4 + sizeof(XZoneBuffer) == 0x18)
 */
 #pragma pack(push, 1)
 struct XZoneInfo {
