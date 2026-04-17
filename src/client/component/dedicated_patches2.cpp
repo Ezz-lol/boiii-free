@@ -443,13 +443,18 @@ struct component final : server_component {
         game::sv::SV_Live_RemoveAllClientsFromAddress.get(),
         sv_live_removeallclientsfromaddress_stub);
 
-    const game::dvar_t *sv_cheats = game::Dvar_FindVar("sv_cheats");
-    game::Dvar_SetBoolFromSource(sv_cheats, false, game::DVAR_SOURCE_INTERNAL);
+    scheduler::once(
+        [] {
+          const game::dvar_t *sv_cheats = game::Dvar_FindVar("sv_cheats");
+          game::Dvar_SetBoolFromSource(sv_cheats, false,
+                                       game::DVAR_SOURCE_INTERNAL);
 
-    // Enforce sv_cheats = 0
-    game::Dvar_SetModifiedCallback(
-        sv_cheats,
-        reinterpret_cast<game::modifiedCallback>(disable_sv_cheats_cb));
+          // Enforce sv_cheats = 0
+          game::Dvar_SetModifiedCallback(
+              sv_cheats,
+              reinterpret_cast<game::modifiedCallback>(disable_sv_cheats_cb));
+        },
+        scheduler::pipeline::async, 30000ms);
 
     if (!utils::flags::has_flag("noratelimit")) {
       // Cleanup old rate limit entries periodically
