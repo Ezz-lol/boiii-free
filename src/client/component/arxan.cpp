@@ -11,6 +11,12 @@
 #include <utils/thread.hpp>
 #include <utils/pe.hpp>
 #include <utils/flags.hpp>
+#include <windows.h>
+#include <cstdint>
+#include <vector>
+#include <string>
+#include <sstream>
+#include <stdexcept>
 
 #include "integrity.hpp"
 
@@ -622,6 +628,216 @@ void search_and_patch_integrity_checks_precomputed() {
   }
 }
 
+struct PatternByte {
+  std::uint8_t value;
+  bool isWildcard;
+};
+
+// Parse a signature string like:
+static std::vector<PatternByte> parse_signature(const char *signature) {
+  if (!signature) {
+    throw std::invalid_argument("signature is null");
+  }
+
+  std::vector<PatternByte> pattern;
+  std::istringstream iss(signature);
+  std::string token;
+
+  while (iss >> token) {
+    // Treat "??" or "?" as wildcard
+    if (token == "??" || token == "?") {
+      pattern.push_back({0u, true});
+      continue;
+    }
+
+    // Basic validation: must be two hex chars
+    if (token.size() != 2 ||
+        !std::isxdigit(static_cast<unsigned char>(token[0])) ||
+        !std::isxdigit(static_cast<unsigned char>(token[1]))) {
+      throw std::invalid_argument("Invalid token in signature: " + token);
+    }
+
+    // Convert hex byte
+    unsigned long val = std::stoul(token, nullptr, 16);
+    pattern.push_back({static_cast<std::uint8_t>(val & 0xFFu), false});
+  }
+
+  if (pattern.empty()) {
+    throw std::invalid_argument("Empty pattern");
+  }
+
+  return pattern;
+}
+
+// Scan a memory range [base, base + size) for the pattern (with wildcards)
+static void scan_range_for_pattern(std::uint8_t *base, std::size_t size,
+                                   const std::vector<PatternByte> &pattern,
+                                   std::vector<std::uint8_t *> &outMatches) {
+  const std::size_t patSize = pattern.size();
+  if (size < patSize) {
+    return;
+  }
+
+  std::uint8_t *end = base + (size - patSize);
+
+  for (std::uint8_t *p = base; p <= end; ++p) {
+    bool match = true;
+    for (std::size_t i = 0; i < patSize; ++i) {
+      const PatternByte &pb = pattern[i];
+      if (!pb.isWildcard && p[i] != pb.value) {
+        match = false;
+        break;
+      }
+    }
+    if (match) {
+      outMatches.push_back(p);
+    }
+  }
+}
+
+// Scan all executable memory in the *current* process
+// for the given signature string, returning all match addresses.
+std::vector<std::uint8_t *>
+scan_executable_memory_for_signature(const char *signature) {
+  std::vector<PatternByte> pattern = parse_signature(signature);
+  std::vector<std::uint8_t *> matches;
+
+  SYSTEM_INFO sysInfo{};
+  GetSystemInfo(&sysInfo);
+
+  auto minAddr =
+      static_cast<std::uint8_t *>(sysInfo.lpMinimumApplicationAddress);
+  auto maxAddr =
+      static_cast<std::uint8_t *>(sysInfo.lpMaximumApplicationAddress);
+
+  MEMORY_BASIC_INFORMATION mbi{};
+  std::uint8_t *addr = minAddr;
+
+  while (addr < maxAddr) {
+    if (!VirtualQuery(addr, &mbi, sizeof(mbi))) {
+      break; // can't query further
+    }
+
+    // Ensure non-zero region size to avoid infinite loops in weird cases
+    if (mbi.RegionSize == 0) {
+      addr += 0x1000; // advance by one page as a fallback
+      continue;
+    }
+
+    bool isCommitted = (mbi.State == MEM_COMMIT);
+    bool isGuard = (mbi.Protect & PAGE_GUARD) != 0;
+    bool isNoAccess = (mbi.Protect & PAGE_NOACCESS) != 0;
+
+    bool isExecutable = (mbi.Protect & PAGE_EXECUTE) ||
+                        (mbi.Protect & PAGE_EXECUTE_READ) ||
+                        (mbi.Protect & PAGE_EXECUTE_READWRITE) ||
+                        (mbi.Protect & PAGE_EXECUTE_WRITECOPY);
+
+    if (isCommitted && !isGuard && !isNoAccess && isExecutable) {
+      auto *regionStart = static_cast<std::uint8_t *>(mbi.BaseAddress);
+      std::size_t regionSize = static_cast<std::size_t>(mbi.RegionSize);
+
+      // Only scan regions that can possibly contain the whole pattern
+      if (regionSize >= pattern.size()) {
+        scan_range_for_pattern(regionStart, regionSize, pattern, matches);
+      }
+    }
+
+    addr += mbi.RegionSize;
+  }
+
+  return matches;
+}
+
+// Scan all executable memory in the current process for `searchSignature`,
+// and replace ONLY the first N bytes of each match, where N is the length
+// of `replacementSignature`. Any remaining bytes in the match (if the search
+// pattern is longer) are left untouched.
+//
+// - `searchSignature` may contain wildcards ("?" / "??").
+// - `replacementSignature` may be shorter than the search pattern, but
+//   NOT longer, and must NOT contain wildcards.
+// - Example: scan_and_replace_pattern("CC ?? CC", "90 90");  // only first 2
+// bytes changed
+std::vector<std::uint8_t *>
+scan_and_replace_pattern(const char *searchSignature,
+                         const char *replacementSignature) {
+  if (!searchSignature || !replacementSignature) {
+    throw std::invalid_argument(
+        "scan_and_replace_pattern: null signature argument");
+  }
+
+  // Parse both signatures.
+  std::vector<PatternByte> searchPattern = parse_signature(searchSignature);
+  std::vector<PatternByte> replacementPattern =
+      parse_signature(replacementSignature);
+
+  if (replacementPattern.empty()) {
+    throw std::invalid_argument(
+        "scan_and_replace_pattern: replacement pattern must not be empty");
+  }
+
+  if (replacementPattern.size() > searchPattern.size()) {
+    throw std::invalid_argument("scan_and_replace_pattern: replacement pattern "
+                                "cannot be longer than search pattern");
+  }
+
+  // Require that the replacement has no wildcards.
+  for (const auto &pb : replacementPattern) {
+    if (pb.isWildcard) {
+      throw std::invalid_argument("scan_and_replace_pattern: replacement "
+                                  "pattern must not contain wildcards");
+    }
+  }
+
+  const std::size_t bytesToPatch = replacementPattern.size();
+
+  // Find all locations that match the full search signature.
+  std::vector<std::uint8_t *> matches =
+      scan_executable_memory_for_signature(searchSignature);
+
+  std::vector<std::uint8_t *> patched; // addresses we actually modified
+
+  for (auto *p : matches) {
+    if (!p) {
+      continue;
+    }
+
+    DWORD oldProtect = 0;
+    // Make just the bytes we are going to overwrite RWX.
+    if (!VirtualProtect(static_cast<LPVOID>(p),
+                        static_cast<SIZE_T>(bytesToPatch),
+                        PAGE_EXECUTE_READWRITE, &oldProtect)) {
+      // Couldn't change protection; skip this match.
+      continue;
+    }
+
+    // Apply the replacement bytes over the first N bytes.
+    for (std::size_t i = 0; i < bytesToPatch; ++i) {
+      p[i] = replacementPattern[i].value;
+    }
+
+    // Make sure the CPU sees the modified code.
+    FlushInstructionCache(GetCurrentProcess(), p, bytesToPatch);
+
+    // Restore original protection.
+    DWORD dummy = 0;
+    VirtualProtect(static_cast<LPVOID>(p), static_cast<SIZE_T>(bytesToPatch),
+                   oldProtect, &dummy);
+
+    patched.push_back(p);
+  }
+
+  return patched;
+}
+
+void patch_checksum_comparisons_new() {
+  scan_and_replace_pattern("8B 0C 8B 33 0C 82", "48 31 C9 90 90 90");
+  scan_and_replace_pattern("8B 0C 8B F7 D9 03 0C 82",
+                           "48 31 C9 90 90 90 90 90");
+  scan_and_replace_pattern("8B 04 82 8B 14 8B 3B C2", "48 31 C0 48 31 D2");
+}
+
 void search_and_patch_integrity_checks() {
   // There seem to be 1219 results.
   // Searching them is quite slow.
@@ -801,8 +1017,13 @@ struct component final : generic_component {
   }
 
   void post_unpack() override {
-    search_and_patch_integrity_checks();
-    patch_checksum_comparisons();
+
+    if (utils::flags::has_flag("newsteamclient")) {
+      patch_checksum_comparisons_new();
+    } else {
+      search_and_patch_integrity_checks();
+      patch_checksum_comparisons();
+    }
     // restore_debug_functions();
 
     detail::callstack_proxy_addr = utils::hook::assemble(callstack_stub);

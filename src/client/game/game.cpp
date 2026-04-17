@@ -35,6 +35,11 @@ bool is_server() {
 }
 
 bool is_client() {
+  if (utils::flags::has_flag("newsteamclient")) {
+    static const auto server =
+        get_host_library().get_optional_header()->CheckSum == 0x6517980;
+    return server;
+  }
   static const auto server =
       get_host_library().get_optional_header()->CheckSum == 0x888C368;
   return server;
