@@ -140,7 +140,7 @@ void monitor_initial_dump_phase(std::string workshop_id) {
 
 void try_refresh_workshop_content() {
   try {
-    game::Cbuf_AddText(0, "userContentReload\n");
+    game::cbuf::Cbuf_AddText(0, "userContentReload\n");
     printf("Workshop items refreshed in-game.\n");
   } catch (...) {
     // Game not running yet, nothing to refresh

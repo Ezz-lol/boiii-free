@@ -160,7 +160,7 @@ struct component final : generic_component {
       scheduler::once(
           [count] {
             for (size_t i = 0; i < count; ++i) {
-              if (!game::SV_AddTestClient()) {
+              if (!game::sv::SV_AddTestClient()) {
                 break;
               }
             }

@@ -372,7 +372,7 @@ void initialize_download(std::string workshop_id, std::string modtype) {
   if (workshop::launcher_downloading.load()) {
     scheduler::once(
         [] {
-          game::UI_OpenErrorPopupWithMessage(
+          game::ui::UI_OpenErrorPopupWithMessage(
               0, game::ERROR_UI,
               "A download is already in progress from the launcher. Wait for "
               "it to finish.");
@@ -607,7 +607,7 @@ void initialize_download(std::string workshop_id, std::string modtype) {
   if (error_msg) {
     scheduler::once(
         [error_msg] {
-          game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI, error_msg);
+          game::ui::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI, error_msg);
         },
         scheduler::main);
   } else if (result == 0) {
@@ -621,7 +621,7 @@ void initialize_download(std::string workshop_id, std::string modtype) {
                 "Workshop item downloaded successfully!\n\nDo you want to "
                 "connect to the server?",
                 [addr_copy] {
-                  game::Cbuf_AddText(
+                  game::cbuf::Cbuf_AddText(
                       0, utils::string::va("connect %s\n", addr_copy.c_str()));
                 });
           },
@@ -629,7 +629,7 @@ void initialize_download(std::string workshop_id, std::string modtype) {
     } else {
       scheduler::once(
           [] {
-            game::UI_OpenErrorPopupWithMessage(
+            game::ui::UI_OpenErrorPopupWithMessage(
                 0, game::ERROR_UI, "Workshop item downloaded successfully!");
           },
           scheduler::main);
@@ -639,7 +639,7 @@ void initialize_download(std::string workshop_id, std::string modtype) {
   download_overlay::clear();
 
   // Refresh steam workshop items with command
-  game::Cbuf_AddText(0, "userContentReload\n");
+  game::cbuf::Cbuf_AddText(0, "userContentReload\n");
   printf("Workshop items refreshed\n");
   workshop::downloading_workshop_item = false;
 }

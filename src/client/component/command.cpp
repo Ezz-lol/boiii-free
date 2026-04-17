@@ -45,10 +45,10 @@ void execute_custom_sv_command() {
   }
 }
 
-game::CmdArgs *get_cmd_args() { return game::Sys_GetTLS()->cmdArgs; }
+game::CmdArgs *get_cmd_args() { return game::sys::Sys_GetTLS()->cmdArgs; }
 
 void update_whitelist_stub() {
-  game::cmd_function_s *current_function = game::cmd_functions;
+  game::cmd::cmd_function_s *current_function = game::cmd::cmd_functions;
   while (current_function) {
     current_function->autoComplete = 1;
     current_function = current_function->next;
@@ -57,49 +57,51 @@ void update_whitelist_stub() {
 } // namespace
 
 params::params() : nesting_(get_cmd_args()->nesting) {
-  assert(this->nesting_ < game::CMD_MAX_NESTING);
+  assert(this->nesting_ < game::cmd::CMD_MAX_NESTING);
 }
 
 params::params(const std::string &text) : needs_end_(true) {
   auto *cmd_args = get_cmd_args();
-  game::Cmd_TokenizeStringKernel(0, game::CONTROLLER_INDEX_FIRST, text.data(),
-                                 512 - cmd_args->totalUsedArgvPool, false,
-                                 cmd_args);
+  game::cmd::Cmd_TokenizeStringKernel(
+      0, game::CONTROLLER_INDEX_FIRST, text.data(),
+      512 - cmd_args->totalUsedArgvPool, false, cmd_args);
 
   this->nesting_ = cmd_args->nesting;
 }
 
 params::~params() {
   if (this->needs_end_) {
-    game::Cmd_EndTokenizedString();
+    game::cmd::Cmd_EndTokenizedString();
   }
 }
 
 int params::size() const { return get_cmd_args()->argc[this->nesting_]; }
 
-params_sv::params_sv() : nesting_(game::sv_cmd_args->nesting) {
-  assert(this->nesting_ < game::CMD_MAX_NESTING);
+params_sv::params_sv() : nesting_(game::sv::sv_cmd_args->nesting) {
+  assert(this->nesting_ < game::cmd::CMD_MAX_NESTING);
 }
 
 params_sv::params_sv(const std::string &text) : needs_end_(true) {
-  game::SV_Cmd_TokenizeString(text.data());
-  this->nesting_ = game::sv_cmd_args->nesting;
+  game::sv::SV_Cmd_TokenizeString(text.data());
+  this->nesting_ = game::sv::sv_cmd_args->nesting;
 }
 
 params_sv::~params_sv() {
   if (this->needs_end_) {
-    game::SV_Cmd_EndTokenizedString();
+    game::sv::SV_Cmd_EndTokenizedString();
   }
 }
 
-int params_sv::size() const { return game::sv_cmd_args->argc[this->nesting_]; }
+int params_sv::size() const {
+  return game::sv::sv_cmd_args->argc[this->nesting_];
+}
 
 const char *params_sv::get(const int index) const {
   if (index >= this->size()) {
     return "";
   }
 
-  return game::sv_cmd_args->argv[this->nesting_][index];
+  return game::sv::sv_cmd_args->argv[this->nesting_][index];
 }
 
 std::string params_sv::join(const int index) const {
@@ -150,11 +152,11 @@ void add(const std::string &command, command_param_function function) {
   }
 
   auto &allocator = *utils::memory::get_allocator();
-  auto *cmd_function = allocator.allocate<game::cmd_function_s>();
+  auto *cmd_function = allocator.allocate<game::cmd::cmd_function_s>();
   const auto *cmd_string = allocator.duplicate_string(command);
 
-  game::Cmd_AddCommandInternal(cmd_string, execute_custom_command,
-                               cmd_function);
+  game::cmd::Cmd_AddCommandInternal(cmd_string, execute_custom_command,
+                                    cmd_function);
   cmd_function->autoComplete = 1;
 }
 
@@ -173,11 +175,12 @@ void add_sv(const std::string &command, sv_command_param_function function) {
   auto &allocator = *utils::memory::get_allocator();
   const auto *cmd_string = allocator.duplicate_string(command);
 
-  game::Cmd_AddCommandInternal(cmd_string, game::Stub,
-                               allocator.allocate<game::cmd_function_s>());
-  game::Cmd_AddServerCommandInternal(
+  game::cmd::Cmd_AddCommandInternal(
+      cmd_string, game::cmd::Stub,
+      allocator.allocate<game::cmd::cmd_function_s>());
+  game::cmd::Cmd_AddServerCommandInternal(
       cmd_string, execute_custom_sv_command,
-      allocator.allocate<game::cmd_function_s>());
+      allocator.allocate<game::cmd::cmd_function_s>());
 }
 
 struct component final : generic_component {

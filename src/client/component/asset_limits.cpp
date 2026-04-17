@@ -1,7 +1,7 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
-#include "game/db/db.hpp"
+#include "game/impl/db/db.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/io.hpp>
@@ -143,8 +143,8 @@ void db_init_stub() {
 class component final : public generic_component {
 public:
   void post_unpack() override {
-    com_sessionmode_setmode_hook.create(game::Com_SessionMode_SetMode.get(),
-                                        com_sessionmode_setmode_stub);
+    com_sessionmode_setmode_hook.create(
+        game::com::Com_SessionMode_SetMode.get(), com_sessionmode_setmode_stub);
     db_init_hook.create(game::db::DB_Init.get(), db_init_stub);
     apply_asset_limits();
   }

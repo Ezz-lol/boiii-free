@@ -18,8 +18,8 @@ const game::dvar_t *sv_lan_only;
 void sv_con_tell_f_stub(game::net::client_s *cl_0, game::net::svscmd_type type,
                         [[maybe_unused]] const char *fmt,
                         [[maybe_unused]] int c, char *text) {
-  game::SV_SendServerCommand(cl_0, type, "%c \"GAME_SERVER\x15: %s\"", 79,
-                             text);
+  game::sv::SV_SendServerCommand(cl_0, type, "%c \"GAME_SERVER\x15: %s\"", 79,
+                                 text);
 }
 
 void send_heartbeat_packet() {
@@ -45,7 +45,7 @@ void trigger_map_rotation() {
   scheduler::once(
       [] {
         if (!game::get_dvar_string("sv_maprotation").empty()) {
-          game::Cbuf_AddText(0, "map_rotate\n");
+          game::cbuf::Cbuf_AddText(0, "map_rotate\n");
           send_heartbeat();
         }
       },

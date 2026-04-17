@@ -19,8 +19,8 @@ const game::dvar_t *cl_yaw_speed;
 const game::dvar_t *cl_pitch_speed;
 
 void stop_intro_if_needed() {
-  if (game::Com_SessionMode_GetMode() != game::MODE_ZOMBIES &&
-      game::Com_SessionMode_GetMode() != game::MODE_CAMPAIGN) {
+  if (game::com::Com_SessionMode_GetMode() != game::MODE_ZOMBIES &&
+      game::com::Com_SessionMode_GetMode() != game::MODE_CAMPAIGN) {
     return;
   }
 
@@ -28,11 +28,11 @@ void stop_intro_if_needed() {
       [] {
         scheduler::schedule(
             [] {
-              if (!game::Sys_IsDatabaseReady()) {
+              if (!game::sys::Sys_IsDatabaseReady()) {
                 return scheduler::cond_continue;
               }
 
-              game::Cinematic_StopPlayback(0, true);
+              game::cinematic::Cinematic_StopPlayback(0, true);
               return scheduler::cond_end;
             },
             scheduler::main);
@@ -42,7 +42,7 @@ void stop_intro_if_needed() {
 
 void preload_map_stub(int local_client_num, const char *mapname,
                       const char *gametype) {
-  game::Com_GametypeSettings_SetGametype(gametype, true);
+  game::com::Com_GametypeSettings_SetGametype(gametype, true);
   stop_intro_if_needed();
   preload_map_hook.invoke(local_client_num, mapname, gametype);
 }
@@ -86,25 +86,27 @@ void patch_is_mod_loaded_checks() {
 }
 
 float cl_key_state_yaw_speed_stub(void *key) {
-  return game::CL_KeyState(key) * cl_yaw_speed->current.value.value;
+  return game::cl::CL_KeyState(key) * cl_yaw_speed->current.value.value;
 }
 
 float cl_key_state_pitch_speed_stub(void *key) {
-  return game::CL_KeyState(key) * cl_pitch_speed->current.value.value;
+  return game::cl::CL_KeyState(key) * cl_pitch_speed->current.value.value;
 }
 
 game::fileHandle_t
 fs_f_open_file_write_to_dir_stub(const char *filename,
                                  [[maybe_unused]] const char *dir,
                                  const char *os_base_path) {
-  return game::FS_FOpenFileWriteToDir(filename, "boiii_players", os_base_path);
+  return game::fs::FS_FOpenFileWriteToDir(filename, "boiii_players",
+                                          os_base_path);
 }
 
 game::fileHandle_t
 fs_f_open_file_read_from_dir_stub(const char *filename,
                                   [[maybe_unused]] const char *dir,
                                   const char *os_base_path) {
-  return game::FS_FOpenFileReadFromDir(filename, "boiii_players", os_base_path);
+  return game::fs::FS_FOpenFileReadFromDir(filename, "boiii_players",
+                                           os_base_path);
 }
 
 int i_stricmp_stub(const char *s0, [[maybe_unused]] const char *s1) {

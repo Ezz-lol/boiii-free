@@ -192,7 +192,7 @@ std::string get_own_connect_address() {
                              static_cast<unsigned>(local_port));
   }
 
-  if (game::Com_IsInGame()) {
+  if (game::com::Com_IsInGame()) {
     auto connected = party::get_connected_server();
 
     if (connected.type == game::net::NA_LOOPBACK) {
@@ -336,7 +336,7 @@ bool invite_to_game(uint64_t steam_id) {
 
   std::string mapname = game::get_dvar_string("mapname");
   std::string gametype = game::get_dvar_string("g_gametype");
-  int playmode = game::Com_SessionMode_GetMode();
+  int playmode = game::com::Com_SessionMode_GetMode();
   std::string mod_id = workshop::get_mod_publisher_id();
   uint64_t own_steam_id = steam_proxy::get_own_steam_id();
   std::string own_name = name::get_player_name();
@@ -490,7 +490,7 @@ bool connect_to_friend(uint64_t steam_id) {
     // Friend is not in-game / not reachable
     scheduler::once(
         [] {
-          game::UI_OpenErrorPopupWithMessage(
+          game::ui::UI_OpenErrorPopupWithMessage(
               0, game::ERROR_UI,
               "Friend is not online or not in a joinable game.");
         },
@@ -513,7 +513,8 @@ bool connect_to_friend(uint64_t steam_id) {
       auto target = network::address_from_string(connect_addr);
       if (target.type != game::net::NA_BAD && !mapname.empty() &&
           !gametype.empty()) {
-        game::Com_SessionMode_SetGameMode(game::MODE_GAME_MATCHMAKING_PLAYLIST);
+        game::com::Com_SessionMode_SetGameMode(
+            game::MODE_GAME_MATCHMAKING_PLAYLIST);
         auto usermap_id = workshop::get_usermap_publisher_id(mapname);
         party::connect_to_lobby_with_mode(target, mode, mapname, gametype,
                                           usermap_id, mod_id);
@@ -528,7 +529,7 @@ bool connect_to_friend(uint64_t steam_id) {
     const auto sanitized = utils::string::va(
         "%i.%i.%i.%i:%hu", fallback_addr.ipv4.a, fallback_addr.ipv4.b,
         fallback_addr.ipv4.c, fallback_addr.ipv4.d, fallback_addr.port);
-    game::Cbuf_AddText(0, utils::string::va("connect %s\n", sanitized));
+    game::cbuf::Cbuf_AddText(0, utils::string::va("connect %s\n", sanitized));
     return true;
   }
 
@@ -609,7 +610,7 @@ struct component final : client_component {
             auto target = network::address_from_string(addr_str);
             if (target.type != game::net::NA_BAD && !mapname.empty() &&
                 !gametype.empty()) {
-              game::Com_SessionMode_SetGameMode(
+              game::com::Com_SessionMode_SetGameMode(
                   game::MODE_GAME_MATCHMAKING_PLAYLIST);
               auto usermap_id = workshop::get_usermap_publisher_id(mapname);
               party::connect_to_lobby_with_mode(target, mode, mapname, gametype,
@@ -623,7 +624,8 @@ struct component final : client_component {
             const auto sanitized = utils::string::va(
                 "%i.%i.%i.%i:%hu", fallback_addr.ipv4.a, fallback_addr.ipv4.b,
                 fallback_addr.ipv4.c, fallback_addr.ipv4.d, fallback_addr.port);
-            game::Cbuf_AddText(0, utils::string::va("connect %s\n", sanitized));
+            game::cbuf::Cbuf_AddText(
+                0, utils::string::va("connect %s\n", sanitized));
           }
         },
         scheduler::main, 1000ms);
@@ -635,10 +637,10 @@ struct component final : client_component {
             auto addr = get_own_connect_address();
             steam_proxy::set_rich_presence("connect", addr);
 
-            if (!addr.empty() && game::Com_IsInGame()) {
+            if (!addr.empty() && game::com::Com_IsInGame()) {
               std::string mapname = game::get_dvar_string("mapname");
               std::string gametype = game::get_dvar_string("g_gametype");
-              int playmode = game::Com_SessionMode_GetMode();
+              int playmode = game::com::Com_SessionMode_GetMode();
               std::string mod_id = workshop::get_mod_publisher_id();
               uint64_t own_steam_id = steam_proxy::get_own_steam_id();
               std::string own_name = name::get_player_name();
@@ -655,7 +657,7 @@ struct component final : client_component {
             }
 
             steam_proxy::set_rich_presence(
-                "status", game::Com_IsInGame() ? "In Game" : "Online");
+                "status", game::com::Com_IsInGame() ? "In Game" : "Online");
           } catch (...) {
           }
         },

@@ -23,7 +23,7 @@ template <typename T> std::string get_typename();
 class hks_object {
 public:
   hks_object() = default;
-  hks_object(const game::hks::HksObject &value);
+  hks_object(const game::ui::lua::hks::HksObject &value);
   hks_object(const hks_object &other) noexcept;
   hks_object(hks_object &&other) noexcept;
 
@@ -32,13 +32,13 @@ public:
 
   ~hks_object();
 
-  const game::hks::HksObject &get() const;
+  const game::ui::lua::hks::HksObject &get() const;
 
 private:
-  void assign(const game::hks::HksObject &value);
+  void assign(const game::ui::lua::hks::HksObject &value);
   void release();
 
-  game::hks::HksObject value_{game::hks::TNONE, {}};
+  game::ui::lua::hks::HksObject value_{game::ui::lua::hks::TNONE, {}};
   int ref_{};
 };
 
@@ -48,7 +48,7 @@ using event_arguments = std::unordered_map<std::string, script_value>;
 class script_value {
 public:
   script_value() = default;
-  script_value(const game::hks::HksObject &value);
+  script_value(const game::ui::lua::hks::HksObject &value);
 
   script_value(int value);
   script_value(unsigned int value);
@@ -91,7 +91,7 @@ public:
 
   template <typename T> operator T() const { return this->as<T>(); }
 
-  [[nodiscard]] const game::hks::HksObject &get_raw() const;
+  [[nodiscard]] const game::ui::lua::hks::HksObject &get_raw() const;
 
   hks_object value_{};
 

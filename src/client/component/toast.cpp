@@ -34,7 +34,7 @@ std::string escape_lua_string(const std::string &s) {
 }
 
 bool execute_lua(const std::string &code) {
-  const auto state = *game::hks::lua_state;
+  const auto state = *game::ui::lua::hks::lua_state;
   if (!state)
     return false;
 
@@ -42,10 +42,11 @@ bool execute_lua(const std::string &code) {
     const auto globals = state->globals.v.table;
     const ui_scripting::table lua{globals};
 
-    state->m_global->m_bytecodeSharingMode = game::hks::HKS_BYTECODE_SHARING_ON;
+    state->m_global->m_bytecodeSharingMode =
+        game::ui::lua::hks::HKS_BYTECODE_SHARING_ON;
     const auto load_results = lua["loadstring"](code, "toast");
     state->m_global->m_bytecodeSharingMode =
-        game::hks::HKS_BYTECODE_SHARING_SECURE;
+        game::ui::lua::hks::HKS_BYTECODE_SHARING_SECURE;
 
     if (load_results[0].is<ui_scripting::function>()) {
       const auto results = lua["pcall"](load_results);
@@ -71,7 +72,7 @@ void show(const std::string &title, const std::string &description,
           const std::string &icon) {
   if (game::is_server())
     return;
-  if (game::Com_IsInGame())
+  if (game::com::Com_IsInGame())
     return;
 
   const auto escaped_title = escape_lua_string(title);

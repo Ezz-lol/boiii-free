@@ -241,7 +241,7 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
     } else {
       // No script errors popups for ingame menu , just logs in console since
       // most are harmless csc erros anyway
-      if (!game::Com_IsInGame()) {
+      if (!game::com::Com_IsInGame()) {
         return;
       }
 
@@ -250,12 +250,12 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
       scheduler::once(
           [deferred_error]() {
             client_script_error_pending = false;
-            if (game::Com_IsInGame())
-              game::Cbuf_AddText(0, "disconnect\n");
+            if (game::com::Com_IsInGame())
+              game::cbuf::Cbuf_AddText(0, "disconnect\n");
             scheduler::once(
                 [deferred_error]() {
-                  game::UI_OpenErrorPopupWithMessage(0, 0,
-                                                     deferred_error.c_str());
+                  game::ui::UI_OpenErrorPopupWithMessage(
+                      0, 0, deferred_error.c_str());
                 },
                 scheduler::pipeline::main, 500ms);
           },
@@ -282,7 +282,7 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
     auto deferred_error = std::string(buffer);
     scheduler::once(
         [deferred_error]() {
-          game::UI_OpenErrorPopupWithMessage(0, 0, deferred_error.c_str());
+          game::ui::UI_OpenErrorPopupWithMessage(0, 0, deferred_error.c_str());
         },
         scheduler::pipeline::main, 500ms);
   }
@@ -295,7 +295,7 @@ void scr_get_num_expected_players() {
   auto expected_players = game::lobby::LobbyHost_GetClientCount(
       game::lobby::LOBBY_TYPE_GAME, game::lobby::LOBBY_CLIENT_TYPE_ALL);
 
-  const auto mode = game::Com_SessionMode_GetMode();
+  const auto mode = game::com::Com_SessionMode_GetMode();
   if ((mode == game::MODE_ZOMBIES || mode == game::MODE_CAMPAIGN)) {
     const auto min_players = lobby_min_players->current.value.integer;
     if (min_players > 0) {
@@ -306,25 +306,25 @@ void scr_get_num_expected_players() {
   }
 
   const auto num_expected_players = std::max(1, expected_players);
-  game::Scr_AddInt(game::scr::SCRIPTINSTANCE_SERVER, num_expected_players);
+  game::scr::Scr_AddInt(game::scr::SCRIPTINSTANCE_SERVER, num_expected_players);
 }
 
 void sv_execute_client_messages_stub(game::net::client_s *client,
                                      game::net::msg_t *msg) {
   if ((client->reliableSequence - client->reliableAcknowledge) < 0) {
     client->reliableAcknowledge = client->reliableSequence;
-    game::SV_DropClient(client, "EXE_LOSTRELIABLECOMMANDS", true, true);
+    game::sv::SV_DropClient(client, "EXE_LOSTRELIABLECOMMANDS", true, true);
     return;
   }
 
-  game::SV_ExecuteClientMessage(client, msg);
+  game::sv::SV_ExecuteClientMessage(client, msg);
 }
 } // namespace
 
 struct component final : generic_component {
   void post_unpack() override {
     // Clientfield Mismatch -> recoverable ERR_DROP
-    com_error_hook.create(game::Com_Error_, com_error_stub);
+    com_error_hook.create(game::com::Com_Error_, com_error_stub);
 
     // print hexadecimal xuids in chat game log command
     utils::hook::set<char>(game::select(0x142FD9362, 0x140E16FA2), 'x');

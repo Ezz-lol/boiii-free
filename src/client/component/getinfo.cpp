@@ -47,7 +47,7 @@ size_t get_bot_count() {
 
   game::foreach_connected_client(
       [&count](const game::net::client_s &, const size_t index) {
-        if (game::SV_IsTestClient(static_cast<int>(index))) {
+        if (game::sv::SV_IsTestClient(static_cast<int>(index))) {
           ++count;
         }
       });
@@ -58,8 +58,8 @@ size_t get_bot_count() {
 int get_assigned_team() { return (rand() % 2) + 1; }
 
 bool is_host() {
-  return game::SV_Loaded() &&
-         (game::is_server() || !game::Com_IsRunningUILevel());
+  return game::sv::SV_Loaded() &&
+         (game::is_server() || !game::com::Com_IsRunningUILevel());
 }
 
 struct component final : generic_component {
@@ -91,15 +91,18 @@ struct component final : generic_component {
       info.set("sv_maxclients", std::to_string(get_max_client_count()));
       info.set("protocol", std::to_string(PROTOCOL));
       info.set("sub_protocol", std::to_string(SUB_PROTOCOL));
-      info.set("playmode", std::to_string(game::Com_SessionMode_GetMode()));
-      info.set("gamemode", std::to_string(game::Com_SessionMode_GetGameMode()));
+      info.set("playmode",
+               std::to_string(game::com::Com_SessionMode_GetMode()));
+      info.set("gamemode",
+               std::to_string(game::com::Com_SessionMode_GetGameMode()));
       info.set("sv_running", std::to_string(game::is_server_running()));
       info.set("dedicated", game::is_server() ? "1" : "0");
-      info.set("hc", std::to_string(game::Com_GametypeSettings_GetUInt(
+      info.set("hc", std::to_string(game::com::Com_GametypeSettings_GetUInt(
                          "hardcoremode", false)));
       info.set("modName", workshop::get_mod_resized_name());
       info.set("modId", workshop::get_mod_publisher_id());
-      info.set("rounds_played", std::to_string(*game::level_rounds_played));
+      info.set("rounds_played",
+               std::to_string(*game::level::level_rounds_played));
       info.set("shortversion", SHORTVERSION);
 
       info.set("sv_wwwBaseURL", game::get_dvar_string("sv_wwwBaseURL"));

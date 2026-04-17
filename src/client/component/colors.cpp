@@ -96,7 +96,7 @@ struct component final : client_component {
     patch_color<6>(151, 80, 221); // 6  - Pink
 
     // Old addresses
-    cl_get_client_name_hook.create(game::CL_GetClientName,
+    cl_get_client_name_hook.create(game::cl::CL_GetClientName,
                                    cl_get_client_name_stub);
     // utils::hook::jump(0x141EC72E0_g, get_gamer_tag_stub);
   }

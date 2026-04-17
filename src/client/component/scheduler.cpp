@@ -226,7 +226,7 @@ void check_and_execute() {
   restart_execute_time.store(0);
   restart_recovery_active.store(true);
   recovery_skip_count.store(0);
-  game::Cbuf_AddText(0, "map_restart\n");
+  game::cbuf::Cbuf_AddText(0, "map_restart\n");
 }
 
 void abort_game_frame() {

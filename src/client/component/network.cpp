@@ -79,7 +79,7 @@ bool socket_set_blocking(const SOCKET s, const bool blocking) {
 }
 
 void create_ip_socket() {
-  auto &s = *game::ip_socket;
+  auto &s = *game::net::ip_socket;
   if (s) {
     return;
   }
@@ -96,7 +96,7 @@ void create_ip_socket() {
 
   const auto address = htonl(INADDR_ANY);
   auto port = static_cast<uint16_t>(
-      game::Dvar_FindVar("net_port")->current.value.integer);
+      game::dvar::Dvar_FindVar("net_port")->current.value.integer);
 
   sockaddr_in server_addr{};
   server_addr.sin_family = AF_INET;
@@ -142,7 +142,7 @@ int verify_checksum_stub(void * /*data*/, const int length) {
 void con_restricted_execute_buf_stub(int local_client_num,
                                      game::ControllerIndex_t controller_index,
                                      const char *buffer) {
-  game::Cbuf_ExecuteBuffer(local_client_num, controller_index, buffer);
+  game::cbuf::Cbuf_ExecuteBuffer(local_client_num, controller_index, buffer);
 }
 
 uint64_t
@@ -180,7 +180,7 @@ void com_error_oob_stub(const char *file, int line, int code,
 
   strncpy_s(buffer, error, _TRUNCATE);
 
-  game::Com_Error_(file, line, code, "%s", buffer);
+  game::com::Com_Error_(file, line, code, "%s", buffer);
 }
 } // namespace
 
@@ -212,7 +212,7 @@ void send_data(const game::net::netadr_t &address, const void *data,
   // data, &address);
 
   const auto to = convert_to_sockaddr(address);
-  sendto(*game::ip_socket, static_cast<const char *>(data),
+  sendto(*game::net::ip_socket, static_cast<const char *>(data),
          static_cast<int>(length), 0, reinterpret_cast<const sockaddr *>(&to),
          sizeof(to));
 }
@@ -269,7 +269,7 @@ int net_sendpacket_stub(const game::net::netsrc_t sock, const int length,
     return 0;
   }
 
-  const auto s = *game::ip_socket;
+  const auto s = *game::net::ip_socket;
   if (!s || sock > game::net::NS_MAXCLIENTS) {
     return 0;
   }

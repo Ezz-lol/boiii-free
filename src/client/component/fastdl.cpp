@@ -104,7 +104,7 @@ bool is_safe_relative_path(const std::string &path_string) {
 void show_ingame_error(const std::string &error) {
   scheduler::once(
       [error] {
-        game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI, error.data());
+        game::ui::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI, error.data());
       },
       scheduler::main);
 }

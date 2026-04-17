@@ -9,12 +9,12 @@ namespace startup_flags {
 namespace {
 void apply_startup_flags() {
   if (utils::flags::has_flag("windowed")) {
-    game::Dvar_SetFromStringByName("r_fullscreen", "0", true);
+    game::dvar::Dvar_SetFromStringByName("r_fullscreen", "0", true);
   }
 
   if (utils::flags::has_flag("safe")) {
-    game::Dvar_SetFromStringByName("r_fullscreen", "0", true);
-    game::Dvar_SetFromStringByName("r_vsync", "0", true);
+    game::dvar::Dvar_SetFromStringByName("r_fullscreen", "0", true);
+    game::dvar::Dvar_SetFromStringByName("r_vsync", "0", true);
   }
 }
 } // namespace

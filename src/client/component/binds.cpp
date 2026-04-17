@@ -14,9 +14,9 @@ namespace {
 enum class phase { init, loading, ready };
 std::atomic<phase> current_phase{phase::init};
 
-game::xcommand_t original_bind_fn{nullptr};
-game::xcommand_t original_unbind_fn{nullptr};
-game::xcommand_t original_unbindall_fn{nullptr};
+game::cmd::xcommand_t original_bind_fn{nullptr};
+game::cmd::xcommand_t original_unbind_fn{nullptr};
+game::cmd::xcommand_t original_unbindall_fn{nullptr};
 
 std::mutex binds_mutex;
 std::map<std::string, std::string> custom_binds;
@@ -150,12 +150,14 @@ void queue_op(pending_op op) {
       scheduler::main, 100ms);
 }
 
-game::cmd_function_s *get_command_list_head() {
-  auto *raw = static_cast<game::cmd_function_s *>(game::cmd_functions);
+game::cmd::cmd_function_s *get_command_list_head() {
+  auto *raw =
+      static_cast<game::cmd::cmd_function_s *>(game::cmd::cmd_functions);
 
-  auto *as_pointer = *reinterpret_cast<game::cmd_function_s **>(raw);
+  auto *as_pointer = *reinterpret_cast<game::cmd::cmd_function_s **>(raw);
 
-  if (as_pointer && !IsBadReadPtr(as_pointer, sizeof(game::cmd_function_s))) {
+  if (as_pointer &&
+      !IsBadReadPtr(as_pointer, sizeof(game::cmd::cmd_function_s))) {
     if (as_pointer->name && !IsBadReadPtr(as_pointer->name, 1)) {
       return as_pointer;
     }
@@ -164,12 +166,12 @@ game::cmd_function_s *get_command_list_head() {
   return raw;
 }
 
-game::cmd_function_s *find_command(const char *name) {
-  game::cmd_function_s *cmd = get_command_list_head();
+game::cmd::cmd_function_s *find_command(const char *name) {
+  game::cmd::cmd_function_s *cmd = get_command_list_head();
   int safety = 0;
   while (cmd && safety < 2000) {
     safety++;
-    if (!IsBadReadPtr(cmd, sizeof(game::cmd_function_s)) && cmd->name &&
+    if (!IsBadReadPtr(cmd, sizeof(game::cmd::cmd_function_s)) && cmd->name &&
         !IsBadReadPtr(cmd->name, 1) && _stricmp(cmd->name, name) == 0) {
       return cmd;
     }
@@ -224,8 +226,8 @@ void unbindall_wrapper() {
   queue_op({pending_op::UNBINDALL, "", ""});
 }
 
-bool patch_command(const char *name, game::xcommand_t wrapper,
-                   game::xcommand_t *original_out) {
+bool patch_command(const char *name, game::cmd::xcommand_t wrapper,
+                   game::cmd::xcommand_t *original_out) {
   auto *cmd = find_command(name);
   if (!cmd || !cmd->function) {
     printf("[Binds] WARNING: Could not find engine command '%s'\n", name);
@@ -288,8 +290,8 @@ void init_hooks_and_load() {
   printf("[Binds] Loading %zu custom bind(s)...\n", custom_binds.size());
 
   current_phase = phase::loading;
-  game::Cbuf_AddText(0, data.c_str());
-  game::Cbuf_AddText(0, "binds_loaded\n");
+  game::cbuf::Cbuf_AddText(0, data.c_str());
+  game::cbuf::Cbuf_AddText(0, "binds_loaded\n");
 }
 } // namespace
 

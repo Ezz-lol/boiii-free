@@ -11,7 +11,7 @@ namespace {
 utils::hook::detour spawn_server_hook;
 
 void scr_are_textures_loaded_stub() {
-  game::Scr_AddInt(game::scr::SCRIPTINSTANCE_SERVER, 1);
+  game::scr::Scr_AddInt(game::scr::SCRIPTINSTANCE_SERVER, 1);
 }
 
 game::eNetworkModes get_online_mode_stub() { return game::MODE_NETWORK_ONLINE; }
@@ -35,14 +35,14 @@ void patch_is_mod_loaded_checks() {
 
 void spawn_server_stub(int controllerIndex, const char *server,
                        game::MapPreload preload, bool savegame) {
-  game::Com_SessionMode_SetNetworkMode(game::MODE_NETWORK_ONLINE);
-  game::Com_SessionMode_SetGameMode(game::MODE_GAME_MATCHMAKING_PLAYLIST);
+  game::com::Com_SessionMode_SetNetworkMode(game::MODE_NETWORK_ONLINE);
+  game::com::Com_SessionMode_SetGameMode(game::MODE_GAME_MATCHMAKING_PLAYLIST);
 
   spawn_server_hook.invoke(controllerIndex, server, preload, savegame);
 }
 
 uint64_t sv_get_player_xuid_stub(const int client_num) {
-  const auto *clients = *game::svs_clients;
+  const auto *clients = *game::sv::svs_clients;
   if (!clients) {
     return 0;
   }
@@ -52,7 +52,7 @@ uint64_t sv_get_player_xuid_stub(const int client_num) {
 
 void info_set_value_for_key_stub(char *s, const char *key,
                                  [[maybe_unused]] const char *value) {
-  game::Info_SetValueForKey(s, key, "Unknown Soldier");
+  game::info::Info_SetValueForKey(s, key, "Unknown Soldier");
 }
 
 const char *va_stub([[maybe_unused]] const char *fmt, const char *name,
@@ -81,7 +81,7 @@ struct component final : server_component {
     utils::hook::jump(0x1402565D0_g, is_online_stub);
     patch_is_mod_loaded_checks();
 
-    spawn_server_hook.create(game::SV_SpawnServer, spawn_server_stub);
+    spawn_server_hook.create(game::sv::SV_SpawnServer, spawn_server_stub);
 
     // Don't count server as client
     utils::hook::jump(0x14052F0F5_g, 0x14052F139_g);

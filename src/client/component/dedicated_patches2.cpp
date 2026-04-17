@@ -3,7 +3,7 @@
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
 #include "game/utils.hpp"
-#include "game/snd/snd.hpp"
+#include "game/impl/snd/snd.hpp"
 
 #include <string>
 #include <unordered_map>
@@ -151,7 +151,7 @@ void sv_live_removeallclientsfromaddress_stub(game::net::client_s *client,
                                               const char *reason) {
   // Skip disconnecting other clients from the same IP -
   // just free the disconnected client's slot, and return.
-  game::SV_Live_RemoveClient(client, reason);
+  game::sv::SV_Live_RemoveClient(client, reason);
   return;
 }
 
@@ -198,7 +198,7 @@ void sv_addservercommand_stub(game::net::client_s *client,
     if (client_openmenu_cmd_last_sequence_time.contains(cmd_str) &&
         client_openmenu_cmd_last_sequence_time[cmd_str].contains(
             client->xuid) &&
-        *(game::svs_time.get()) -
+        *(game::sv::svs_time.get()) -
                 client_openmenu_cmd_last_sequence_time[cmd_str][client->xuid] <
             1000) {
       return;
@@ -214,7 +214,7 @@ void sv_addservercommand_stub(game::net::client_s *client,
   }
 
   client_openmenu_cmd_last_sequence_time[cmd_str][client->xuid] =
-      *(game::svs_time.get());
+      *(game::sv::svs_time.get());
   client_last_cmd[client->xuid] = cmd_str;
 
   sv_addservercommand_hook.invoke(client, type, cmd);
@@ -430,7 +430,7 @@ struct component final : server_component {
     */
     if (!utils::flags::has_flag("noratelimit")) {
       // Rate limit connections
-      sv_direct_connect_hook.create(game::SV_DirectConnect.get(),
+      sv_direct_connect_hook.create(game::sv::SV_DirectConnect.get(),
                                     sv_direct_connect_stub);
     }
 
@@ -451,7 +451,7 @@ struct component final : server_component {
       load balancer where multiple clients share the same IP.
     */
     sv_removeallclientsfromaddress_hook.create(
-        game::SV_Live_RemoveAllClientsFromAddress.get(),
+        game::sv::SV_Live_RemoveAllClientsFromAddress.get(),
         sv_live_removeallclientsfromaddress_stub);
 
     // Enforce sv_cheats = 0 periodically
@@ -496,7 +496,7 @@ struct component final : server_component {
     */
 
     if (utils::flags::has_flag("mitigatepacketspam")) {
-      sv_addservercommand_hook.create(game::SV_AddServerCommand.get(),
+      sv_addservercommand_hook.create(game::sv::SV_AddServerCommand.get(),
                                       sv_addservercommand_stub);
       g_init_game_hook.create(game::G_InitGame.get(), g_init_game_stub);
     }

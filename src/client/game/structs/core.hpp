@@ -915,17 +915,6 @@ enum errorCode {
   ERROR_SOFTRESTART_KEEPDW = 0x800,
 };
 
-using xcommand_t = void (*)();
-
-struct cmd_function_s {
-  cmd_function_s *next;
-  const char *name;
-  const char *autoCompleteDir;
-  const char *autoCompleteExt;
-  xcommand_t function;
-  int32_t autoComplete;
-};
-
 struct CmdArgs {
   int32_t nesting;
   int32_t localClientNum[8];

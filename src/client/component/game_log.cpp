@@ -17,10 +17,10 @@ void g_scr_log_print() {
   std::size_t i_string_len = 0;
 
   const auto i_num_parms =
-      game::Scr_GetNumParam(game::scr::SCRIPTINSTANCE_SERVER);
+      game::scr::Scr_GetNumParam(game::scr::SCRIPTINSTANCE_SERVER);
   for (std::uint32_t i = 0; i < i_num_parms; ++i) {
     const auto *psz_token =
-        game::Scr_GetString(game::scr::SCRIPTINSTANCE_SERVER, i);
+        game::scr::Scr_GetString(game::scr::SCRIPTINSTANCE_SERVER, i);
     const auto i_token_len = std::strlen(psz_token);
 
     i_string_len += i_token_len;
@@ -44,7 +44,7 @@ void g_log_printf_stub(const char *fmt, ...) {
   va_end(ap);
 
   const auto *file = g_log ? g_log->current.value.string : "games_mp.log";
-  const auto time = *game::level_time / 1000;
+  const auto time = *game::level::level_time / 1000;
 
   utils::io::write_file(file,
                         utils::string::va("%3i:%i%i %s", time / 60,

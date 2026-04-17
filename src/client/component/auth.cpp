@@ -324,7 +324,7 @@ void dispatch_connect_packet(const game::net::netadr_t &target,
 
   profile_infos::add_and_distribute_profile_info(target, xuid, info);
 
-  game::SV_DirectConnect(target);
+  game::sv::SV_DirectConnect(target);
   handle_new_player(target);
 }
 
@@ -363,7 +363,7 @@ void handle_player_xuid_packet(const game::net::netadr_t &target,
 }
 
 void direct_connect_bots_stub(const game::net::netadr_t address) {
-  game::SV_DirectConnect(address);
+  game::sv::SV_DirectConnect(address);
   handle_new_player(address);
 }
 } // namespace
@@ -409,15 +409,16 @@ void clear_stored_guids() {
 }
 
 void info_set_value_for_key_stub(char *s, const char *key, const char *value) {
-  game::Info_SetValueForKey(s, key, value);
+  game::info::Info_SetValueForKey(s, key, value);
 
   if (password && *password->current.value.string) {
-    game::Info_SetValueForKey(s, "password", password->current.value.string);
+    game::info::Info_SetValueForKey(s, "password",
+                                    password->current.value.string);
   }
 
-  const auto *clan_abbrev = game::LiveStats_GetClanTagText(0);
+  const auto *clan_abbrev = game::live::LiveStats_GetClanTagText(0);
   if (*clan_abbrev) {
-    game::Info_SetValueForKey(s, "clanAbbrev", clan_abbrev);
+    game::info::Info_SetValueForKey(s, "clanAbbrev", clan_abbrev);
   }
 }
 

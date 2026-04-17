@@ -58,7 +58,7 @@ void push_string(int inst, const char *val) {
 }
 
 void push_int(int inst, int val) {
-  game::Scr_AddInt(static_cast<game::scr::scriptInstance_t>(inst), val);
+  game::scr::Scr_AddInt(static_cast<game::scr::scriptInstance_t>(inst), val);
   return_value_set = true;
 }
 
@@ -182,7 +182,7 @@ void builtin_dispatcher(game::scr::scriptInstance_t inst) {
   }
 
   if (!return_value_set)
-    game::Scr_AddInt(inst, 0);
+    game::scr::Scr_AddInt(inst, 0);
 }
 
 // =====================================================
@@ -239,7 +239,7 @@ void gscr_println(int inst) {
 void gscr_executecommand(int inst) {
   const auto cmd = ScrVm_GetString(static_cast<unsigned int>(inst), 1);
   if (cmd)
-    game::Cbuf_AddText(0, utils::string::va("%s\n", cmd));
+    game::cbuf::Cbuf_AddText(0, utils::string::va("%s\n", cmd));
 }
 
 // addcommand("name") - registers a console command that GSC can read via
@@ -282,7 +282,7 @@ void gscr_getcommand(int inst) {
 void gscr_say(int inst) {
   const auto msg = ScrVm_GetString(static_cast<unsigned int>(inst), 1);
   if (msg)
-    game::SV_GameSendServerCommand(
+    game::sv::SV_GameSendServerCommand(
         -1, game::net::SV_CMD_CAN_IGNORE_0,
         utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, msg));
 }
@@ -294,7 +294,7 @@ void gscr_tell(int inst) {
       static_cast<int>(ScrVm_GetInt(static_cast<unsigned int>(inst), 1));
   const auto msg = ScrVm_GetString(static_cast<unsigned int>(inst), 2);
   if (client_num >= 0 && client_num < 18 && msg)
-    game::SV_GameSendServerCommand(
+    game::sv::SV_GameSendServerCommand(
         client_num, game::net::SV_CMD_CAN_IGNORE_0,
         utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, msg));
 }

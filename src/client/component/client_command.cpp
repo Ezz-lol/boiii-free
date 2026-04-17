@@ -14,7 +14,7 @@ namespace {
 std::unordered_map<std::string, callback> handlers;
 
 void client_command_stub(const int client_num) {
-  const auto ent = &game::g_entities[client_num];
+  const auto ent = &game::level::g_entities[client_num];
 
   if (ent->client == nullptr) {
     // Client is not fully in game

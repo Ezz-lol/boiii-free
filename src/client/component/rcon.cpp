@@ -42,8 +42,8 @@ void rcon_executer(const game::net::netadr_t &target, const std::string &data) {
   console::scoped_interceptor _(
       [&console_buffer](const std::string &text) { console_buffer += text; });
 
-  game::Cmd_ExecuteSingleCommand(0, game::CONTROLLER_INDEX_FIRST,
-                                 command->data(), true);
+  game::cmd::Cmd_ExecuteSingleCommand(0, game::CONTROLLER_INDEX_FIRST,
+                                      command->data(), true);
 
   network::send(target, "print", console_buffer);
 }
@@ -72,7 +72,7 @@ void rate_limit_cleanup(const int time) {
 
 void rcon_handler(const game::net::netadr_t &target,
                   const network::data_view &data) {
-  const auto time = game::Sys_Milliseconds();
+  const auto time = game::sys::Sys_Milliseconds();
   if (!rate_limit_check(target, time)) {
     return;
   }

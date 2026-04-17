@@ -15,12 +15,12 @@
 static __declspec(noinline) bool seh_dvar_string(const char *name, char *buf,
                                                  size_t sz) {
   __try {
-    const auto *dvar = game::Dvar_FindVar(name);
+    const auto *dvar = game::dvar::Dvar_FindVar(name);
     if (!dvar) {
       buf[0] = '\0';
       return true;
     }
-    const char *val = game::Dvar_GetString(dvar);
+    const char *val = game::dvar::Dvar_GetString(dvar);
     if (!val) {
       buf[0] = '\0';
       return true;
@@ -35,7 +35,7 @@ static __declspec(noinline) bool seh_dvar_string(const char *name, char *buf,
 
 static __declspec(noinline) bool seh_dvar_int(const char *name, int *out) {
   __try {
-    const auto *dvar = game::Dvar_FindVar(name);
+    const auto *dvar = game::dvar::Dvar_FindVar(name);
     if (!dvar) {
       *out = 0;
       return true;
@@ -50,7 +50,7 @@ static __declspec(noinline) bool seh_dvar_int(const char *name, int *out) {
 
 static __declspec(noinline) bool seh_Com_IsInGame(bool *out) {
   __try {
-    *out = game::Com_IsInGame();
+    *out = game::com::Com_IsInGame();
     return true;
   } __except (EXCEPTION_EXECUTE_HANDLER) {
     *out = false;
@@ -60,7 +60,7 @@ static __declspec(noinline) bool seh_Com_IsInGame(bool *out) {
 
 static __declspec(noinline) bool seh_Com_IsRunningUILevel(bool *out) {
   __try {
-    *out = game::Com_IsRunningUILevel();
+    *out = game::com::Com_IsRunningUILevel();
     return true;
   } __except (EXCEPTION_EXECUTE_HANDLER) {
     *out = false;
@@ -71,7 +71,7 @@ static __declspec(noinline) bool seh_Com_IsRunningUILevel(bool *out) {
 static __declspec(noinline) bool seh_SessionMode_IsMode(game::eModes mode,
                                                         bool *out) {
   __try {
-    *out = game::Com_SessionMode_IsMode(mode);
+    *out = game::com::Com_SessionMode_IsMode(mode);
     return true;
   } __except (EXCEPTION_EXECUTE_HANDLER) {
     *out = false;
@@ -86,7 +86,7 @@ static __declspec(noinline) bool seh_get_client_count(int max_clients,
     char name_buf[64];
     for (int i = 0; i < max_clients; ++i) {
       name_buf[0] = '\0';
-      if (game::CL_GetClientName(0, i, name_buf, sizeof(name_buf), false) &&
+      if (game::cl::CL_GetClientName(0, i, name_buf, sizeof(name_buf), false) &&
           name_buf[0] != '\0')
         ++count;
     }

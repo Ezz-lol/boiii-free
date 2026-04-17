@@ -1,6 +1,5 @@
-#include <std_include.hpp>
-
-#include "game.hpp"
+#include "symbols.hpp"
+#include <cctype>
 
 namespace game {
 namespace scr {

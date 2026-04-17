@@ -77,7 +77,7 @@ void dlc_popup_thread_func() {
       const std::string map_copy = map;
       scheduler::once(
           [map_copy, link] {
-            game::UI_OpenErrorPopupWithMessage(
+            game::ui::UI_OpenErrorPopupWithMessage(
                 0, game::ERROR_UI,
                 utils::string::va(
                     "Missing DLC map: %s\n\nOpening download page...\n%s",
@@ -97,8 +97,8 @@ void queue_dlc_popup(const std::string &mapname) {
 }
 
 bool has_mod(const std::string &pub_id) {
-  for (unsigned int i = 0; i < *game::modsCount; ++i) {
-    const auto &mod_data = game::modsPool[i];
+  for (unsigned int i = 0; i < *game::ugc::modsCount; ++i) {
+    const auto &mod_data = game::ugc::modsPool[i];
     if (mod_data.publisherId == pub_id || mod_data.folderName == pub_id) {
       return true;
     }
@@ -108,8 +108,8 @@ bool has_mod(const std::string &pub_id) {
 }
 
 std::string resolve_mod_workshop_id(const std::string &mod_name) {
-  for (unsigned int i = 0; i < *game::modsCount; ++i) {
-    const auto &mod_data = game::modsPool[i];
+  for (unsigned int i = 0; i < *game::ugc::modsCount; ++i) {
+    const auto &mod_data = game::ugc::modsPool[i];
     if (mod_data.folderName == mod_name &&
         utils::string::is_numeric(mod_data.publisherId)) {
       return mod_data.publisherId;
@@ -160,8 +160,8 @@ std::string resolve_mod_workshop_id(const std::string &mod_name) {
 }
 
 void load_usermap_mod_if_needed() {
-  if (!game::isModLoaded()) {
-    game::loadMod(game::LOCAL_CLIENT_0, "usermaps", false);
+  if (!game::ugc::isModLoaded()) {
+    game::ugc::loadMod(game::LOCAL_CLIENT_0, "usermaps", false);
   }
 }
 
@@ -191,14 +191,14 @@ bool unload_xzone_by_name(const char *zone_name, bool createDefault,
 void clear_loaded_usermap() {
   // Set first byte of each to null, terminating string immediately - sets each
   // to an empty string
-  *(game::usermap_publisher_id.get()) = 0;
-  *(game::usermap_title.get()) = 0;
-  *(game::internal_usermap_id.get()) = 0; // e.g. zm_*
+  *(game::ugc::usermap_publisher_id.get()) = 0;
+  *(game::ugc::usermap_title.get()) = 0;
+  *(game::ugc::internal_usermap_id.get()) = 0; // e.g. zm_*
 }
 
 void setup_server_map_stub(int localClientNum, const char *map,
                            const char *gametype) {
-  const char *loaded_mod_id = game::getPublisherIdFromLoadedMod();
+  const char *loaded_mod_id = game::ugc::getPublisherIdFromLoadedMod();
   const bool is_usermap =
       utils::string::is_numeric(map) || !get_usermap_publisher_id(map).empty();
   const bool is_mod_loaded = std::strlen(loaded_mod_id) > 0;
@@ -207,13 +207,13 @@ void setup_server_map_stub(int localClientNum, const char *map,
 
   if (is_usermap) {
     if (!is_mod_loaded) {
-      game::loadMod(game::LOCAL_CLIENT_0, "usermaps", false);
+      game::ugc::loadMod(game::LOCAL_CLIENT_0, "usermaps", false);
     }
   } else {
     clear_loaded_usermap();
 
     if (is_usermaps_mod_loaded) {
-      game::loadMod(game::LOCAL_CLIENT_0, "", false);
+      game::ugc::loadMod(game::LOCAL_CLIENT_0, "", false);
     }
 
     unload_xzone_by_name("zm_levelcommon", false, false);
@@ -279,7 +279,7 @@ void populate_workshop_paths(game::workshop_data &item,
 }
 
 void supplement_mods_from_disk() {
-  if (*game::modsCount != 0) {
+  if (*game::ugc::modsCount != 0) {
     return;
   }
 
@@ -302,14 +302,14 @@ void supplement_mods_from_disk() {
       continue;
     }
 
-    auto &mod_data = game::modsPool[count];
+    auto &mod_data = game::ugc::modsPool[count];
     populate_workshop_paths(mod_data, entry.path(), game::WORKSHOP_MOD);
     load_workshop_data(mod_data);
     ++count;
   }
 
   if (count) {
-    *game::modsCount = count;
+    *game::ugc::modsCount = count;
     printf("[ Workshop ] Supplemented %u mods from disk fallback\n", count);
   }
 }
@@ -318,8 +318,8 @@ void load_usermap_content_stub(void *usermaps_count, int type) {
   utils::hook::invoke<void>(game::select(0x1420D6430, 0x1404E2360),
                             usermaps_count, type);
 
-  for (unsigned int i = 0; i < *game::usermapsCount; ++i) {
-    auto &usermap_data = game::usermapsPool[i];
+  for (unsigned int i = 0; i < *game::ugc::usermapsCount; ++i) {
+    auto &usermap_data = game::ugc::usermapsPool[i];
 
     if (std::strcmp(usermap_data.folderName, usermap_data.title) != 0) {
       continue;
@@ -334,8 +334,8 @@ void load_mod_content_stub(void *mods_count, int type) {
                             type);
   supplement_mods_from_disk();
 
-  for (unsigned int i = 0; i < *game::modsCount; ++i) {
-    auto &mod_data = game::modsPool[i];
+  for (unsigned int i = 0; i < *game::ugc::modsCount; ++i) {
+    auto &mod_data = game::ugc::modsPool[i];
 
     if (std::strcmp(mod_data.folderName, mod_data.title) != 0) {
       continue;
@@ -388,7 +388,7 @@ const char *va_user_content_path_stub(const char *fmt, const char *root_dir,
 } // namespace
 
 std::string get_mod_resized_name() {
-  const std::string loaded_mod_id = game::getPublisherIdFromLoadedMod();
+  const std::string loaded_mod_id = game::ugc::getPublisherIdFromLoadedMod();
 
   if (loaded_mod_id == "usermaps" || loaded_mod_id.empty()) {
     return loaded_mod_id;
@@ -396,8 +396,8 @@ std::string get_mod_resized_name() {
 
   std::string mod_name = loaded_mod_id;
 
-  for (unsigned int i = 0; i < *game::modsCount; ++i) {
-    const auto &mod_data = game::modsPool[i];
+  for (unsigned int i = 0; i < *game::ugc::modsCount; ++i) {
+    const auto &mod_data = game::ugc::modsPool[i];
 
     if (mod_data.publisherId == loaded_mod_id) {
       mod_name = mod_data.title;
@@ -413,8 +413,8 @@ std::string get_mod_resized_name() {
 }
 
 std::string get_usermap_publisher_id(const std::string &zone_name) {
-  for (unsigned int i = 0; i < *game::usermapsCount; ++i) {
-    const auto &usermap_data = game::usermapsPool[i];
+  for (unsigned int i = 0; i < *game::ugc::usermapsCount; ++i) {
+    const auto &usermap_data = game::ugc::usermapsPool[i];
     if (usermap_data.folderName == zone_name) {
       if (!utils::string::is_numeric(usermap_data.publisherId)) {
         printf("[ Workshop ] WARNING: The publisherId is not numerical you "
@@ -439,7 +439,7 @@ int get_workshop_retry_attempts() {
 }
 
 std::string get_mod_publisher_id() {
-  const std::string loaded_mod_id = game::getPublisherIdFromLoadedMod();
+  const std::string loaded_mod_id = game::ugc::getPublisherIdFromLoadedMod();
 
   if (loaded_mod_id == "usermaps" || loaded_mod_id.empty()) {
     return loaded_mod_id;
@@ -702,7 +702,7 @@ bool check_valid_usermap_id(const std::string &mapname,
         fastdl::is_downloading()) {
       scheduler::once(
           [] {
-            game::UI_OpenErrorPopupWithMessage(
+            game::ui::UI_OpenErrorPopupWithMessage(
                 0, game::ERROR_UI,
                 "You are already downloading a map in the background. You can "
                 "download only one item at a time.");
@@ -718,7 +718,8 @@ bool check_valid_usermap_id(const std::string &mapname,
       context.map_path = "./usermaps/" + mapname;
       context.base_url = base_url;
       context.success_callback = []() {
-        scheduler::once([] { game::reloadUserContent(); }, scheduler::main);
+        scheduler::once([] { game::ugc::reloadUserContent(); },
+                        scheduler::main);
       };
       printf("[ Workshop ] Server has FastDL, attempting download for %s from "
              "%s\n",
@@ -767,7 +768,7 @@ bool check_valid_usermap_id(const std::string &mapname,
       const std::string name_copy = mapname;
       scheduler::once(
           [name_copy] {
-            game::UI_OpenErrorPopupWithMessage(
+            game::ui::UI_OpenErrorPopupWithMessage(
                 0, game::ERROR_UI,
                 utils::string::va(
                     "Missing usermap: %s\n\nThis server did not provide FastDL "
@@ -793,7 +794,7 @@ bool check_valid_mod_id(const std::string &mod,
     if (downloading_workshop_item.load() || launcher_downloading.load()) {
       scheduler::once(
           [] {
-            game::UI_OpenErrorPopupWithMessage(
+            game::ui::UI_OpenErrorPopupWithMessage(
                 0, game::ERROR_UI,
                 "You are already downloading a mod in the background. You can "
                 "download only one item at a time.");
@@ -863,7 +864,7 @@ bool check_valid_mod_id(const std::string &mod,
         const std::string name_copy = mod;
         scheduler::once(
             [name_copy] {
-              game::UI_OpenErrorPopupWithMessage(
+              game::ui::UI_OpenErrorPopupWithMessage(
                   0, game::ERROR_UI,
                   utils::string::va(
                       "Could not download: folder name is not numeric and "
@@ -892,23 +893,23 @@ bool mod_switch_requires_fs_reinitialization(const std::string &current_mod,
 
 void setup_same_mod_as_host(const std::string &usermap,
                             const std::string &mod) {
-  const std::string loaded_mod = game::getPublisherIdFromLoadedMod();
+  const std::string loaded_mod = game::ugc::getPublisherIdFromLoadedMod();
   if (loaded_mod != mod) {
     if (!usermap.empty() || !mod.empty()) {
       bool fs_reinit_required =
           mod_switch_requires_fs_reinitialization(loaded_mod, mod);
-      game::loadMod(game::LOCAL_CLIENT_0, mod.data(), fs_reinit_required);
+      game::ugc::loadMod(game::LOCAL_CLIENT_0, mod.data(), fs_reinit_required);
       if (fs_reinit_required) {
-        while (game::isModLoading(game::LOCAL_CLIENT_0)) {
+        while (game::ugc::isModLoading(game::LOCAL_CLIENT_0)) {
           std::this_thread::sleep_for(100ms);
         }
       }
-    } else if (game::isModLoaded()) {
+    } else if (game::ugc::isModLoaded()) {
       bool fs_reinit_required =
           mod_switch_requires_fs_reinitialization(loaded_mod, "");
-      game::loadMod(game::LOCAL_CLIENT_0, "", fs_reinit_required);
+      game::ugc::loadMod(game::LOCAL_CLIENT_0, "", fs_reinit_required);
       if (fs_reinit_required) {
-        while (game::isModLoading(game::LOCAL_CLIENT_0)) {
+        while (game::ugc::isModLoading(game::LOCAL_CLIENT_0)) {
           std::this_thread::sleep_for(100ms);
         }
       }
@@ -931,7 +932,7 @@ void com_error_missing_map_stub(const char *file, int line, int code,
       std::lock_guard lock(reconnect_guard_mutex);
       if (last_auto_reconnect_target == addr_str) {
         last_auto_reconnect_target.clear();
-        game::Com_Error_(file, line, code, "%s", "Missing map!");
+        game::com::Com_Error_(file, line, code, "%s", "Missing map!");
         return;
       }
       last_auto_reconnect_target = addr_str;
@@ -944,17 +945,17 @@ void com_error_missing_map_stub(const char *file, int line, int code,
 
     scheduler::once(
         [addr_copy] {
-          game::Cbuf_AddText(
+          game::cbuf::Cbuf_AddText(
               0, utils::string::va("connect %s\n", addr_copy.c_str()));
         },
         scheduler::main, 3s);
 
-    game::Com_Error_(file, line, code, "%s",
-                     "Missing map! Reconnecting to download...");
+    game::com::Com_Error_(file, line, code, "%s",
+                          "Missing map! Reconnecting to download...");
     return;
   }
 
-  game::Com_Error_(file, line, code, "%s", "Missing map!");
+  game::com::Com_Error_(file, line, code, "%s", "Missing map!");
 }
 
 class component final : public generic_component {
@@ -972,7 +973,7 @@ public:
     dlc_popup_thread_obj = std::thread(dlc_popup_thread_func);
 
     command::add("userContentReload", [](const command::params &params) {
-      game::reloadUserContent();
+      game::ugc::reloadUserContent();
       if (!game::is_server())
         toast::info("Workshop", "User content reloaded");
     });
@@ -993,7 +994,7 @@ public:
       if (id.empty())
         return;
       if (is_any_download_active()) {
-        game::UI_OpenErrorPopupWithMessage(
+        game::ui::UI_OpenErrorPopupWithMessage(
             0, game::ERROR_UI,
             "A download is already in progress. Wait for it to finish.");
         return;
@@ -1029,7 +1030,7 @@ public:
 
     utils::hook::call(0x1420D6745_g, load_mod_content_stub);
     utils::hook::call(0x14135CD84_g, has_workshop_item_stub);
-    setup_server_map_hook.create(*game::CL_SetupForNewServerMap,
+    setup_server_map_hook.create(*game::cl::CL_SetupForNewServerMap,
                                  setup_server_map_stub);
 
     if (game::is_client()) {

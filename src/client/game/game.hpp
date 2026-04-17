@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GAME_HPP
+#define GAME_HPP
 
 #include <filesystem>
 #include <string>
@@ -92,4 +93,6 @@ std::filesystem::path get_game_path();
 inline size_t operator""_g(const size_t val) { return game::relocate(val); }
 
 #include "structs/structs.hpp"
-#include "symbols.hpp"
+#include "symbols/symbols.hpp"
+
+#endif

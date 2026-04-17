@@ -33,5 +33,5 @@ template <class F> auto wrap_function(F f) {
   return wrap_function(std::function(f));
 }
 
-template <typename F> game::hks::cclosure *convert_function(F f);
+template <typename F> game::ui::lua::hks::cclosure *convert_function(F f);
 } // namespace ui_scripting

@@ -408,7 +408,7 @@ void load_script(std::string &name, const std::string &data,
   if (is_custom) {
     const scriptInstance_t inst =
         is_csc ? SCRIPTINSTANCE_CLIENT : SCRIPTINSTANCE_SERVER;
-    game::Scr_LoadScript(inst, base_name.data());
+    game::scr::Scr_LoadScript(inst, base_name.data());
   }
 }
 
@@ -528,7 +528,7 @@ void load_scripts_folder(const std::string &script_dir, const bool is_custom) {
 }
 
 std::optional<std::filesystem::path> get_game_type_specific_folder() {
-  switch (game::Com_SessionMode_GetMode()) {
+  switch (game::com::Com_SessionMode_GetMode()) {
   case game::MODE_MULTIPLAYER:
     return "mp";
   case game::MODE_ZOMBIES:
@@ -602,9 +602,9 @@ void clear_script_memory() {
 // The import ns_hash is gsc_hash("scripts/zm/_zm_score"), but the game
 // script's
 void begin_load_scripts_stub(scriptInstance_t inst, int user) {
-  game::Scr_BeginLoadScripts(inst, user);
+  game::scr::Scr_BeginLoadScripts(inst, user);
 
-  if (game::Com_IsInGame() && !game::Com_IsRunningUILevel()) {
+  if (game::com::Com_IsInGame() && !game::com::Com_IsRunningUILevel()) {
     load_scripts();
 
     if (!pending_detours.empty()) {
@@ -617,7 +617,7 @@ int server_script_checksum_stub() { return 1; }
 
 void gscr_getbgbtokensremaining_stub(scriptInstance_t inst,
                                      [[maybe_unused]] scr_entref_t entref) {
-  game::Scr_AddInt(inst, 255);
+  game::scr::Scr_AddInt(inst, 255);
 }
 } // namespace
 

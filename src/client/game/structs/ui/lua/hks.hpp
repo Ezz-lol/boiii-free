@@ -1,8 +1,10 @@
 #pragma once
 
-#include "core.hpp"
+#include "../../core.hpp"
 
 namespace game {
+namespace ui {
+namespace lua {
 namespace hks {
 struct lua_State;
 struct HashTable;
@@ -462,4 +464,6 @@ struct lua_State {
   HksError m_error;
 };
 } // namespace hks
+} // namespace lua
+} // namespace ui
 } // namespace game

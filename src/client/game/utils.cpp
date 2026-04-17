@@ -3,6 +3,10 @@
 #include "game.hpp"
 #include "utils.hpp"
 
+using namespace game::dvar;
+using namespace game::com;
+using namespace game::sv;
+
 namespace game {
 static_assert(offsetof(dvar_t, debugName) == 8);
 static_assert(offsetof(dvar_t, description) == 16);

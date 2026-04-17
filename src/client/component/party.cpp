@@ -30,8 +30,8 @@ std::string cached_server_hostname;
 int cached_server_max_clients = 0;
 
 void update_dedi_dvar(bool on_dedi) {
-  game::Dvar_SetFromStringByName("cl_connected_to_dedi", on_dedi ? "1" : "0",
-                                 true);
+  game::dvar::Dvar_SetFromStringByName("cl_connected_to_dedi",
+                                       on_dedi ? "1" : "0", true);
 }
 
 struct server_query {
@@ -57,17 +57,17 @@ void connect_to_lobby(const game::net::netadr_t &addr,
   workshop::setup_same_mod_as_host(usermap_id, mod_id);
 
   game::net::XSESSION_INFO info{};
-  game::CL_ConnectFromLobby(0, &info, &addr, 1, 0, mapname.data(),
-                            gamemode.data(), usermap_id.data());
+  game::cl::CL_ConnectFromLobby(0, &info, &addr, 1, 0, mapname.data(),
+                                gamemode.data(), usermap_id.data());
 }
 
 void launch_mode(const game::eModes mode) {
   scheduler::once(
       [=] {
         const auto local_client = *reinterpret_cast<DWORD *>(0x14342155C_g);
-        const auto current_mode = game::Com_SessionMode_GetMode();
-        game::Com_SwitchMode(local_client,
-                             static_cast<game::eModes>(current_mode), mode, 6);
+        const auto current_mode = game::com::Com_SessionMode_GetMode();
+        game::com::Com_SwitchMode(
+            local_client, static_cast<game::eModes>(current_mode), mode, 6);
       },
       scheduler::main);
 }
@@ -79,7 +79,7 @@ void connect_to_lobby_with_mode_internal(const game::net::netadr_t &addr,
                                          const std::string &usermap_id,
                                          const std::string &mod_id,
                                          const bool was_retried = false) {
-  if (game::Com_SessionMode_IsMode(mode)) {
+  if (game::com::Com_SessionMode_IsMode(mode)) {
     connect_to_lobby(addr, mapname, gametype, usermap_id, mod_id);
     return;
   }
@@ -123,7 +123,7 @@ void connect_to_session(const game::net::netadr_t &addr,
     return;
   }
 
-  auto &join = *game::s_join;
+  auto &join = *game::lobby::s_join;
 
   auto &host = join.hostList[0];
   memset(&host, 0, sizeof(host));
@@ -137,13 +137,13 @@ void connect_to_session(const game::net::netadr_t &addr,
   host.lobbyParams.mainMode = convert_mode(mode);
 
   host.retryCount = 0;
-  host.retryTime = game::Sys_Milliseconds();
+  host.retryTime = game::sys::Sys_Milliseconds();
 
   join.potentialHost = host;
   join.hostCount = 1;
   join.processedCount = 1;
   join.state = game::lobby::JOIN_SOURCE_STATE_ASSOCIATING;
-  join.startTime = game::Sys_Milliseconds();
+  join.startTime = game::sys::Sys_Milliseconds();
 
   /*join.targetLobbyType = game::lobby::LOBBY_TYPE_PRIVATE;
   join.sourceLobbyType = game::lobby::LOBBY_TYPE_PRIVATE;
@@ -255,7 +255,7 @@ void handle_connect_query_response(const bool success,
         if (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id,
                                              base_url) &&
             workshop::check_valid_mod_id(mod_id, workshop_id)) {
-          game::Com_SessionMode_SetGameMode(
+          game::com::Com_SessionMode_SetGameMode(
               game::MODE_GAME_MATCHMAKING_PLAYLIST);
 
           // connect_to_session(target, hostname, xuid, mode);
@@ -297,7 +297,7 @@ void connect_stub(const char *address) {
           scheduler::once(
               [=] {
                 auto usermap_id = workshop::get_usermap_publisher_id(mapname);
-                game::Com_SessionMode_SetGameMode(
+                game::com::Com_SessionMode_SetGameMode(
                     game::MODE_GAME_MATCHMAKING_PLAYLIST);
                 connect_to_lobby_with_mode_internal(
                     connect_host, mode, mapname, gametype, usermap_id, mod_id);
@@ -423,7 +423,7 @@ void join_session(const game::net::netadr_t &addr, const std::string &hostname,
 }
 
 uint16_t get_local_port() {
-  const auto *dvar = game::Dvar_FindVar("net_port");
+  const auto *dvar = game::dvar::Dvar_FindVar("net_port");
   if (dvar) {
     return static_cast<uint16_t>(dvar->current.value.integer);
   }

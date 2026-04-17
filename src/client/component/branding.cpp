@@ -10,7 +10,7 @@
 namespace branding {
 namespace {
 void draw_branding() {
-  if (game::Com_IsInGame()) {
+  if (game::com::Com_IsInGame()) {
     return;
   }
 
@@ -23,10 +23,10 @@ void draw_branding() {
   if (!font)
     return;
 
-  game::R_AddCmdDrawText("EZZ: " VERSION, std::numeric_limits<int>::max(), font,
-                         static_cast<float>(x),
-                         y + static_cast<float>(font[2]) * scale, scale, scale,
-                         0.0f, color, game::ITEM_TEXTSTYLE_NORMAL);
+  game::render::R_AddCmdDrawText(
+      "EZZ: " VERSION, std::numeric_limits<int>::max(), font,
+      static_cast<float>(x), y + static_cast<float>(font[2]) * scale, scale,
+      scale, 0.0f, color, game::ITEM_TEXTSTYLE_NORMAL);
 }
 
 const char *get_ingame_console_prefix_stub() { return "EZZ> "; }

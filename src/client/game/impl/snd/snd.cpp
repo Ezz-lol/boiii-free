@@ -2,10 +2,14 @@
 #include "stdlib.h"
 #include "stdint.h"
 #include <cstring>
+#include <mutex>
 #include <string>
 #include <utils/string.hpp>
 #include <cstdint>
 #include <unordered_map>
+
+using namespace game::com;
+using namespace game::sys;
 
 namespace game {
 namespace snd {
@@ -32,7 +36,7 @@ void aligned_free(void *ptr) {
   }
 }
 
-std::mutex sd_allocations_mutex;
+static std::mutex sd_allocations_mutex;
 static std::unordered_map<std::string, sd_byte *> sd_allocations;
 sd_byte *SD_Alloc_BasicImpl(const char *name, uint32_t size, uint32_t align) {
   std::lock_guard<std::mutex> lock(sd_allocations_mutex);
@@ -41,9 +45,8 @@ sd_byte *SD_Alloc_BasicImpl(const char *name, uint32_t size, uint32_t align) {
   if (allocation) {
     sd_allocations[name] = allocation;
   } else {
-    game::Com_Printf(game::CON_LABEL_LOBBYHOST, 28,
-                     "SOUND ERROR: unable to allocate %u bytes for %s\n", size,
-                     name);
+    Com_Printf(game::CON_LABEL_LOBBYHOST, 28,
+               "SOUND ERROR: unable to allocate %u bytes for %s\n", size, name);
     sd_allocations[name] = nullptr;
   }
 
