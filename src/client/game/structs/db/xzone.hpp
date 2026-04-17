@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 #include "core.hpp"
+#include "../core.hpp"
 
 namespace game {
 namespace db {

@@ -56,14 +56,15 @@ WEAK symbol<void(int channel, unsigned int label, const char *fmt, ...)>
     Com_Printf{0x142148F60, 0x140505630};
 WEAK symbol<void(const char *file, int line, int code, const char *fmt, ...)>
     Com_Error_{0x1420F8170, 0x140501470};
-WEAK symbol<bool(eModes mode)> Com_SessionMode_IsMode{0x1420F7370};
+WEAK symbol<bool(eModes mode)> Com_SessionMode_IsMode{0x1420F7370, 0x140500940};
 WEAK symbol<int()> Com_SessionMode_GetMode{0x1420F6D30, 0x1405002D0};
 WEAK symbol<int()> Com_SessionMode_GetGameMode{0x1420F68B0, 0x1404FFE50};
 WEAK symbol<void(eNetworkModes networkMode)> Com_SessionMode_SetNetworkMode{
     0x1420F75B0, 0x140500B80};
 WEAK symbol<eGameModes(eGameModes gameMode)> Com_SessionMode_SetGameMode{
     0x1420F7570, 0x140500B40};
-WEAK symbol<eModes(eModes mode)> Com_SessionMode_SetMode{0x1420F7570};
+WEAK symbol<eModes(eModes mode)> Com_SessionMode_SetMode{0x1420F7570,
+                                                         0x140500B40};
 WEAK symbol<void(const char *gametype, bool loadDefaultSettings)>
     Com_GametypeSettings_SetGametype{0x1420F5980};
 WEAK symbol<unsigned int(const char *settingName, bool getDefault)>
@@ -102,6 +103,8 @@ WEAK symbol<void(char *text, int maxSize)> Con_GetTextCopy{0x14133A7D0,
                                                            0x140182C40};
 namespace db {
 
+WEAK symbol<uint32_t[0x26400]> db_hashTable{0x149410980, 146904070};
+
 WEAK symbol<bool(const char *zoneName, int source)> DB_FileExists{0x141420B40};
 
 namespace xzone {
@@ -109,7 +112,7 @@ namespace xzone {
 WEAK symbol<bool> g_zoneInited{0x0, 0x14690202C};
 WEAK symbol<uint32_t> g_zoneCount{0x14941097C, 0x14699D21C};
 WEAK symbol<uint32_t> g_zoneIndex{0x0, 0x1469BB268};
-WEAK symbol<ZonePool<XZoneName>> g_zoneNames{0x14998FB80, 0x146E83270};
+WEAK symbol<ZonePool<XZoneName>> g_zoneNames{0x14998FB80, 0x146E83210};
 WEAK symbol<ZonePool<XZone>> g_zones{0x0, 0x146E84AD0};
 WEAK symbol<ZonePool<char[65]>> g_zoneNameList{0x0, 0x146E876D0};
 WEAK symbol<ZonePool<XZoneInfoInternal>> g_zoneInfo{0x149995020, 0x146E88730};
@@ -119,10 +122,8 @@ WEAK symbol<uint32_t> g_zoneInfoCount{0x149996620, 0x146E88714};
 
 namespace xasset {
 
-// Asset pool (client only)
-WEAK symbol<XAssetPool> DB_XAssetPool{0x1494093F0};
-WEAK symbol<XAssetEntryPool> g_assetEntryPool{0x1494C7B80, 0x1469BB270};
-
+WEAK symbol<XAssetPool[103]> s_assetPools{0x1494093F0, 0x1468F84E0};
+WEAK symbol<XAssetEntryPool[155671]> g_assetEntryPool{0x1494C7B80, 0x1469BB270};
 WEAK symbol<void(XAssetType type, XAssetEnum *func, void *inData,
                  bool includeOverride)>
     DB_EnumXAssets{0x141420970, 0x1401D5A50};
@@ -131,7 +132,7 @@ WEAK symbol<XAssetHeader(XAssetType type, const char *name, bool errorIfMissing,
     DB_FindXAssetHeader{0x141420ED0, 0x1401D5FB0};
 WEAK symbol<const char *(const XAsset *asset)> DB_GetXAssetName{0x1413E9DA0,
                                                                 0x14019F080};
-WEAK symbol<int(XAssetType type)> DB_GetXAssetTypeSize{0x1413E9DD0};
+symbol<int(XAssetType type)> DB_GetXAssetTypeSize{0x1413E9DD0, 0x14019F0B0};
 
 } // namespace xasset
 namespace load {
@@ -145,9 +146,12 @@ WEAK symbol<void(const char *path, DBFile f, xzone::XZoneBuffer *fileBuffer,
                  XBlock *blocks, DB_Interrupt *interrupt, uint8_t *buf,
                  PMemStack side, int flags, int32_t desiredReadBytes)>
     DB_LoadXFile{0x1413EF6D0, 0x1401A4920};
-WEAK symbol<void(int zoneIndex, bool createDefault, qboolean suppressSync)>
-    DB_UnloadXZone{0x141425A70, 0x1401DA6C0};
-WEAK symbol<void()> DB_ReleaseXAssets{0x1414247C0};
+
+WEAK symbol<xasset::XAssetEntry *(xasset::XAssetEntry *entry,
+                                  qboolean allowOverride)>
+    DB_LinkXAssetEntry{0x1414228C0, 0x1401D7960};
+
+WEAK symbol<void()> DB_ReleaseXAssets{0x1414247C0, 0x1401D9870};
 } // namespace load
 } // namespace db
 
@@ -410,9 +414,7 @@ WEAK symbol<void(snd::SndBankPtr *sound)> Load_SndBankAsset{0x0, 0x1401DB2D0};
 WEAK symbol<void()> SND_CheckpointRestore{0x0, 0x140547D60};
 WEAK symbol<void(snd::SndCommandBuffer *buffer)> SND_CommandCG{0x0,
                                                                0x140545B60};
-WEAK symbol<void(snd::SndCommandType command, int64_t cmdSize, void *cmdData,
-                 double _unk1, float _unk2, double _unk3, double _unk4,
-                 float _unk5)>
+WEAK symbol<void(snd::SndCommandType command, int64_t cmdSize, void *cmdData)>
     SND_CommandSND{0x0, 0x140545CB0};
 WEAK symbol<void()> SND_DebugFini{0x0, 0x14064CE90};
 WEAK symbol<void(snd::SndDuckActive *duck)> SND_StopDuck{0x0, 0x1406480D0};
@@ -642,7 +644,7 @@ WEAK symbol<qboolean()> SND_Active{0x142272820, 0x1405479D0};
  Very heavily obfuscated by arxan on client. Control flow is hard to follow,
  but this is indeed SND_Init
 */
-WEAK symbol<bool()> SND_Init{0x142584E20, 0x1406459B0};
+WEAK symbol<void()> SND_Init{0x142584E20, 0x1406459B0};
 /*
    `return g_pc_nosnd != 0;`
    Most likely does not exist on client.
