@@ -275,8 +275,15 @@ bool ecc::verify_message(const key &key, const std::string &message,
   const auto hash = sha512::compute(message);
 
   auto result = 0;
+  ltc_ecc_sig_opts opts = {.type = LTC_ECCSIG_ANSIX962,
+                           .prng = nullptr,
+                           .wprng = 0,
+                           .recid = nullptr,
+                           .rfc6979_hash_alg = nullptr
+
+  };
   return ecc_verify_hash_v2(cs(signature.data()), ul(signature.size()),
-                            cs(hash.data()), ul(hash.size()), nullptr, &result,
+                            cs(hash.data()), ul(hash.size()), &opts, &result,
                             &key.get()) == CRYPT_OK &&
          result != 0;
 }
