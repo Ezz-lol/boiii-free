@@ -168,7 +168,7 @@ enum class SndMenuCategory : uint32_t {
 };
 
 #pragma pack(push, 1)
-// sizeof=0x800
+// sizeof==0x800
 struct SndAssetBankHeader {
   uint32_t magic;
   uint32_t version;
@@ -184,7 +184,7 @@ struct SndAssetBankHeader {
   uint8_t checksumChecksum[16];
   /*
     This may be a struct in its own right, but the type is unknown and
-    unlabelled in engine, only stoted as a 512-byte buffer. It does not seem
+    unlabelled in engine, only stored as a 512-byte buffer. It does not seem
     to be used in BO3 alpha, at least directly with automatically decompiled
     struct field indexing, so it may simply just be a field leftover from
     earlier implementations of the engine's sound architecture.
@@ -205,7 +205,7 @@ struct SndAssetBankHeader {
   uint8_t padding[1366];
 };
 static_assert(sizeof(SndAssetBankHeader) == 0x800,
-              "SndAssetBankHeader size must be 2048 bytes");
+              "SndAssetBankHeader size must be 0x800 bytes");
 #pragma pack(pop)
 
 /*
@@ -238,6 +238,7 @@ static_assert(sizeof(SndAssetBankEntry) == 0x24,
 #pragma pack(pop)
 
 #pragma pack(push, 1)
+// sizeof=0x918
 struct SndAssetBankLoad {
   SndAssetBankHeader header;
   char filename[256];
@@ -248,7 +249,7 @@ struct SndAssetBankLoad {
   qboolean indicesAllocated;
 };
 static_assert(sizeof(SndAssetBankLoad) == 0x918,
-              "SndAssetBankLoad size must be 2328 bytes");
+              "SndAssetBankLoad size must be 0x918 bytes");
 #pragma pack(pop)
 
 #define G_SND_INITIALIZED_MAGIC 0x23459876
@@ -508,7 +509,7 @@ static_assert(sizeof(SndQueue) == 0x38, "SndQueue size must be 56 bytes");
   server engines, thus far, that does not at least nearly match that used in
   either the BO4 alpha or BO3 alpha. All other data structures foundational to
   the engine's sound functionality closely match either the BO3 alpha or BO4
-  alpha (most ofteh the latter). For example:
+  alpha (most often the latter). For example:
    - `SndBankGlobals` - stored under g_sb, in engine - closely matches that used
   in BO4 alpha
    - `SndBankLoad` exactly matches that used in the BO4 alpha, with only one
@@ -522,7 +523,7 @@ static_assert(sizeof(SndQueue) == 0x38, "SndQueue size must be 56 bytes");
 
 /*
   Known to be 0x1CD100 bytes in size, but the fields and their order are
-  not yet verified
+  not yet completely verified
 
   Progress:
   - EntState offset and length are verified to be correct.
@@ -534,7 +535,7 @@ static_assert(sizeof(SndQueue) == 0x38, "SndQueue size must be 56 bytes");
   - voiceAliasHash offset is verified.
 */
 #define SND_LOCAL_SIZE 0x1CD168
-static constexpr size_t SND_LOCAL_CGQ_OFFSET =
+static inline const size_t SND_LOCAL_CGQ_OFFSET =
     SND_LOCAL_SIZE - 2 * sizeof(SndQueue);
 #pragma pack(push, 1)
 partial_def(SND_LOCAL_SIZE, struct, SndLocal, {
@@ -563,15 +564,27 @@ partial_def(SND_LOCAL_SIZE, struct, SndLocal, {
   });
   SndQueue CGQ;
   SndQueue SNDQ;
-
-  // Confirmed last fields:
-  // g_snd_cgq: len 56 == 0x38
-  // g_snd_sndq: len 56 == 0x38
-  // Struct in BO3 and BO4 alpha has 16 bytes of padding here, but
-  // there is no padding in latest version of engine - there is an unrelated
-  // global (function-specific, static variable) that is allocated just after
-  // SNDQ. Either an alignment change, or size of non-pointer field(s) change.
+  /*
+   Confirmed last fields:
+   g_snd_cgq: len 56 == 0x38
+   g_snd_sndq: len 56 == 0x38
+   Struct in BO3 and BO4 alpha has 16 bytes of padding here, but
+   there is no padding in latest version of engine - there is an unrelated
+   global (function-specific, static variable) that is allocated just after
+   SNDQ. Either an alignment change, or size of non-pointer field(s) change.
+  */
 });
+static_assert(offsetof(SndLocal, CGQ) == SND_LOCAL_CGQ_OFFSET);
+static_assert(offsetof(SndLocal, SNDQ) ==
+              SND_LOCAL_CGQ_OFFSET + sizeof(SndQueue));
+static_assert(sizeof(SndLocal) == SND_LOCAL_SIZE);
+/*
+  SndLocal has total size (0x1413568F0 - 0x141189800) == 0x1CD168.
+  Confirmed by:
+    - Struct allocation size
+    - Real memory addresses of definite-last field in g_snd and definite-first
+field in g_snd
+*/
 #pragma pack(pop)
 
 // Not verified to be correct.
@@ -587,7 +600,7 @@ struct SndAlias {
   const char *stopAliasName;
   SndStringHash stopAliasID;
   scr::ScrString_t facialAnimation;
-  SndStringHash assetId;
+  SndStringHash assetId; // correct
   uint8_t _padding3C[4];
   const char *assetFileName;
   SndStringHash assetIdSustain;
@@ -654,12 +667,11 @@ struct SndIndexEntry {
 // correct
 // sizeof=0x28
 #pragma pack(push, 1)
-struct SndAliasList {
-  const char *name;
+struct SndAliasList : db::xasset::NamedXAsset {
   SndAliasId id;
   uint8_t _padding0C[4];
-  SndAlias *head;
-  uint32_t count;
+  SndAlias *head; // correct
+  uint32_t count; // correct
   uint32_t sequence;
   float cullDistance;
   qboolean spatial;
@@ -670,14 +682,11 @@ static_assert(sizeof(SndAliasList) == 0x28);
 #pragma pack(push, 1)
 // Correct
 struct SndPatch : db::xasset::NamedXAsset {
-  uint32_t elementCount;
-  uint8_t _padding0C[4];
+  uint64_t elementCount;
   uint32_t *elements;
 };
 static_assert(sizeof(SndPatch) == 0x18);
 #pragma pack(pop)
-
-#pragma pack(push, 1)
 
 #pragma pack(push, 1)
 struct SndAliasLookupNode {
@@ -688,17 +697,16 @@ struct SndAliasLookupNode {
 static_assert(sizeof(SndAliasLookupNode) == 0x10);
 #pragma pack(pop)
 
-#pragma pack(pop)
-
 #pragma pack(push, 1)
+// sizeof=0xFE20
 struct SndAliasLookupCache {
   uint32_t hit;
   uint32_t miss;
   uint32_t collision;
   uint8_t _padding0C[4];
-  SndAliasLookupNode cache[4096];
+  SndAliasLookupNode cache[4065];
 };
-static_assert(sizeof(SndAliasLookupCache) == 0x10010);
+static_assert(sizeof(SndAliasLookupCache) == 0xFE20);
 #pragma pack(pop)
 
 enum class SndFileLoadingState : int32_t {
@@ -1302,6 +1310,7 @@ typedef SndBank *SndBankPtr;
 
 #pragma pack(push, 1)
 
+// sizeof=x01278, verified
 struct SndBankLoad {
   const SndBank *bank;
   SndAssetBankLoad streamAssetBank;
@@ -1331,15 +1340,7 @@ static_assert(sizeof(SndBankLoad) == 0x1278, "SndBankLoad size is incorrect");
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-
-/*
-  Known to be at least partially incorrect.
-  Up to and including aliasCache is verified and should be correct.
-  However, though SndBankLoad is entirely verified and correct,
-  accessing `loadGate` in the engine appears to access a field of
-  `loads[23]` when using this definition, so this must be incorrect,
-  somewhere.
-*/
+// sizeof=0x39594
 struct SndBankGlobals {
   uint32_t bankMagic;
   uint32_t bankCount;
@@ -1347,9 +1348,9 @@ struct SndBankGlobals {
   const SndBank *banks[16];
   const SndPatch *patches[8];
   SndAliasLookupCache aliasCache;
-  SndStringHash missingAliasCache[4096];
+  SndStringHash missingAliasCache[4065];
   SndBankLoad loads[32];
-  qboolean loadGate;
+  qboolean loadGate; // Verified correct <= here
   uint32_t assetLoadIndex;
   uint32_t assetLoadId;
   SndBankLoad *sequentialReadInProgress;
@@ -1358,7 +1359,7 @@ struct SndBankGlobals {
   float assetLoadPercent;
   uint8_t _padding317F8[8];
 };
-static_assert(sizeof(SndBankGlobals) == 0x39800,
+static_assert(sizeof(SndBankGlobals) == 0x39594,
               "SndBankGlobals size is incorrect");
 #pragma pack(pop)
 
@@ -1494,7 +1495,6 @@ struct SndMusicAssetInstance {
 };
 static_assert(sizeof(SndMusicAssetInstance) == 0x28,
               "SndMusicAssetInstance size must be 40 bytes");
-
 #pragma pack(pop)
 
 } // namespace snd

@@ -8,7 +8,7 @@
 namespace game {
 namespace db {
 
-typedef int DBFile;
+typedef int32_t DBFile;
 
 typedef void DB_Interrupt(void);
 
@@ -16,11 +16,11 @@ struct alignas(128) DB_LOAD_STREAM {
   uint8_t decompressedData[262144];
   uint8_t checksum[32];
   uint8_t *compressedData;
-  int expectedDataAvail;
-  int compressedDataAvail;
-  int alignedDataAvail;
-  int decompressedDataAvail;
-  int decompressedDataOffset;
+  int32_t expectedDataAvail;
+  int32_t compressedDataAvail;
+  int32_t alignedDataAvail;
+  int32_t decompressedDataAvail;
+  int32_t decompressedDataOffset;
   bool busy;
 };
 
@@ -42,29 +42,29 @@ static_assert(sizeof(DBDecompressCmd_t) == 0x28,
 #ifdef STRUCTS_DB_XFILE_HPP
 struct DB_LoadData {
   DBFile f;
-  const char *filename; // correct
-  XBlock *blocks;       // correct
-  int flags;            // correct
+  const char *filename;
+  XBlock *blocks;
+  int32_t flags;
   DB_Interrupt *interrupt;
-  PMemStack side; // correct
+  PMemStack side;
   int64_t readOffset;
   int64_t endOffset;
   uint8_t *ioBuffer;
-  int ioBufferOffset;
+  int32_t ioBufferOffset;
   uint8_t *compressData;
-  int tail;
-  int head;
+  int32_t tail;
+  int32_t head;
   DBDecompressCmd_t cmd[4];
   DB_LOAD_STREAM *stream;
-  int next_buffer;
-  int locks[4];
+  int32_t next_buffer;
+  int32_t locks[4];
   bool loadPending[4];
   bool abort;
-  int lastError;
+  int32_t lastError;
   bool throttleDecompression;
-  xfile::XFile header; // correct
-  int numBlocksDecrypted;
-  int startTime;
+  xfile::XFile header;
+  int32_t numBlocksDecrypted;
+  int32_t startTime;
 };
 #endif
 } // namespace db

@@ -16,11 +16,9 @@ struct SndPatch;
 } // namespace snd
 namespace db {
 namespace xasset {
-
 /*
- For future reference, some known-correct asset struct sizes as per
- `DB_GetXAssetTypeSize`:
-  - ASSET_TYPE_PHYSPRESET: 120 or 0x78
+ Some known correct asset struct sizes as per DB_GetXAssetTypeSize:
+  - ASSET_TYPE_PHYSPRESET:
   - ASSET_TYPE_XMODELMESH: 120 or 0x78
   - ASSET_TYPE_PHYSCONSTRAINTS: 1680 or 0x690
   - ASSET_TYPE_DESTRUCTIBLEDEF: 48 or 0x30
@@ -343,6 +341,7 @@ struct XAssetEntry {
   uint32_t nextOverride;
 };
 static_assert(sizeof(XAssetEntry) == 0x20, "sizeof(XAssetEntry) must be 0x20");
+typedef XAssetEntry *XAssetEntryPtr;
 #pragma pack(pop)
 
 union XAssetEntryPoolEntry;
@@ -352,8 +351,17 @@ union XAssetEntryPoolEntry {
 };
 static_assert(sizeof(XAssetEntryPoolEntry) == 0x20,
               "sizeof(XAssetEntryPoolEntry) must be 0x20");
-#define XASSET_ENTRY_POOL_LENGTH 156671
-typedef XAssetEntryPoolEntry XAssetEntryPool[XASSET_ENTRY_POOL_LENGTH];
+static inline const std::size_t XASSET_ENTRY_POOL_LENGTH = 156671;
+
+#pragma pack(push, 1)
+struct XAssetEntryPool {
+  XAssetEntryPoolEntry pool[XASSET_ENTRY_POOL_LENGTH];
+};
+
+struct XAssetPools {
+  XAssetPool pools[static_cast<int>(XAssetType::ASSET_TYPE_COUNT)];
+};
+#pragma pack(pop)
 
 } // namespace xasset
 } // namespace db

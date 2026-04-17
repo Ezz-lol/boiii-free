@@ -10,8 +10,9 @@
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/io.hpp>
-
 using namespace game::db::xasset;
+using namespace game::scr;
+
 namespace gsc_funcs {
 void add_detour(int64_t target_addr, int64_t replacement_addr);
 }
@@ -21,7 +22,7 @@ namespace {
 constexpr size_t GSC_MAGIC = 0x1C000A0D43534780;
 
 utils::hook::detour db_find_x_asset_header_hook;
-utils::hook::detour gscr_get_bgb_remaining_hook;
+utils::hook::detour gscr_get_bgb_tokens_remaining_hook;
 
 utils::memory::allocator allocator;
 std::unordered_map<std::string, RawFile *> loaded_scripts;
@@ -405,8 +406,8 @@ void load_script(std::string &name, const std::string &data,
   loaded_scripts[name] = raw_file;
 
   if (is_custom) {
-    const auto inst = is_csc ? game::scr::SCRIPTINSTANCE_CLIENT
-                             : game::scr::SCRIPTINSTANCE_SERVER;
+    const scriptInstance_t inst =
+        is_csc ? SCRIPTINSTANCE_CLIENT : SCRIPTINSTANCE_SERVER;
     game::Scr_LoadScript(inst, base_name.data());
   }
 }
@@ -570,18 +571,20 @@ void load_scripts() {
   }
 }
 
-RawFile *db_find_x_asset_header_stub(const XAssetType type, const char *name,
-                                     const bool error_if_missing,
-                                     const int wait_time) {
+XAssetHeader db_find_x_asset_header_stub(const XAssetType type,
+                                         const char *name,
+                                         const bool error_if_missing,
+                                         const int wait_time) {
   // Check our loaded scripts FIRST to avoid "Could not find scriptparsetree"
   // spam
   if (type == XAssetType::ASSET_TYPE_SCRIPTPARSETREE) {
-    auto *script = get_loaded_script(name);
-    if (script)
-      return script;
+    RawFile *script = get_loaded_script(name);
+    if (script != nullptr) {
+      return static_cast<XAssetHeader>(script);
+    }
   }
 
-  return db_find_x_asset_header_hook.invoke<RawFile *>(
+  return db_find_x_asset_header_hook.invoke<XAssetHeader>(
       type, name, error_if_missing, wait_time);
 }
 
@@ -596,8 +599,9 @@ void clear_script_memory() {
 // Fix up imports that use full-path namespace hashes to match the actual
 // target script's #namespace hash. This allows full-path call syntax:
 //   scripts\zm\_zm_score::add_to_player_score(points)
-// The import ns_hash is gsc_hash("scripts/zm/_zm_score"), but the game script's
-void begin_load_scripts_stub(game::scr::scriptInstance_t inst, int user) {
+// The import ns_hash is gsc_hash("scripts/zm/_zm_score"), but the game
+// script's
+void begin_load_scripts_stub(scriptInstance_t inst, int user) {
   game::Scr_BeginLoadScripts(inst, user);
 
   if (game::Com_IsInGame() && !game::Com_IsRunningUILevel()) {
@@ -611,9 +615,8 @@ void begin_load_scripts_stub(game::scr::scriptInstance_t inst, int user) {
 
 int server_script_checksum_stub() { return 1; }
 
-void scr_loot_get_item_quantity_stub(
-    game::scr::scriptInstance_t inst,
-    [[maybe_unused]] game::scr::scr_entref_t entref) {
+void gscr_getbgbtokensremaining_stub(scriptInstance_t inst,
+                                     [[maybe_unused]] scr_entref_t entref) {
   game::Scr_AddInt(inst, 255);
 }
 } // namespace
@@ -720,8 +723,9 @@ std::string get_source_line(const std::string &file, int line_num) {
 
 struct component final : generic_component {
   void post_unpack() override {
+
     // Return custom or overrided scripts if found
-    db_find_x_asset_header_hook.create(game::select(0x141420ED0, 0x1401D5FB0),
+    db_find_x_asset_header_hook.create(DB_FindXAssetHeader.get(),
                                        db_find_x_asset_header_stub);
 
     // Free our scripts when the game ends
@@ -736,10 +740,11 @@ struct component final : generic_component {
                       server_script_checksum_stub);
 
     // Workaround for "Out of X" gobblegum
-    gscr_get_bgb_remaining_hook.create(game::select(0x141A8CAB0, 0x1402D2310),
-                                       scr_loot_get_item_quantity_stub);
+    gscr_get_bgb_tokens_remaining_hook.create(
+        gscr::GScr_GetBGBTokensRemaining.get(),
+        gscr_getbgbtokensremaining_stub);
   }
 };
-}; // namespace script
+} // namespace script
 
 REGISTER_COMPONENT(script::component)

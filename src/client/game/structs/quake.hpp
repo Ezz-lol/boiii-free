@@ -13,4 +13,10 @@ using qboolean = uint32_t;
 inline constexpr qboolean qfalse = 0;
 inline constexpr qboolean qtrue = 1;
 
+typedef int(__cdecl *_CoreCrtNonSecureSearchSortCompareFunction)(const void *,
+                                                                 const void *);
+
+typedef int(__cdecl *_CoreCrtSecureSearchSortCompareFunction)(void *,
+                                                              const void *,
+                                                              const void *);
 } // namespace game

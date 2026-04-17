@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
+#include "game/db/db.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/io.hpp>
@@ -104,63 +105,6 @@ unsigned int get_pool_size(const rapidjson::Document &doc,
   return cfg.default_size;
 }
 
-void reallocate_asset_pool(const XAssetType type, const unsigned int new_size) {
-  if (static_cast<int>(type) < 0 || type >= XAssetType::ASSET_TYPE_COUNT) {
-    printf("[AssetLimits] Invalid asset type %d\n", static_cast<int>(type));
-    return;
-  }
-
-  const auto entry_size = DB_GetXAssetTypeSize(type);
-  if (entry_size <= 0) {
-    printf("[AssetLimits] Invalid entry size for type %d\n",
-           static_cast<int>(type));
-    return;
-  }
-
-  auto *pool = &DB_XAssetPool[static_cast<int>(type)];
-
-  // Skip if pool already meets or exceeds requested size
-  if (pool->itemAllocCount >= static_cast<int>(new_size)) {
-    return;
-  }
-
-  const auto new_pool = calloc(new_size, entry_size);
-  if (!new_pool) {
-    printf("Failed to allocate asset pool for type %d (size: %u)\n",
-           static_cast<int>(type), new_size);
-    return;
-  }
-
-  // Copy existing entries
-  memcpy(new_pool, pool->pool,
-         pool->itemAllocCount * static_cast<size_t>(entry_size));
-
-  // Rebuild free list for new entries
-  pool->freeHead = reinterpret_cast<AssetLink *>(
-      static_cast<char *>(new_pool) +
-      static_cast<size_t>(entry_size) * pool->itemAllocCount);
-
-  for (auto i = pool->itemAllocCount; i < static_cast<int>(new_size) - 1; i++) {
-    auto *current = reinterpret_cast<AssetLink *>(
-        static_cast<char *>(new_pool) + static_cast<size_t>(entry_size) * i);
-    current->next = reinterpret_cast<AssetLink *>(
-        static_cast<char *>(new_pool) +
-        static_cast<size_t>(entry_size) * (i + 1));
-  }
-
-  // Last entry points to null
-  auto *last = reinterpret_cast<AssetLink *>(static_cast<char *>(new_pool) +
-                                             static_cast<size_t>(entry_size) *
-                                                 (new_size - 1));
-  last->next = nullptr;
-
-  pool->pool = new_pool;
-  pool->itemAllocCount = static_cast<int>(new_size);
-
-  printf("Reallocated asset pool type %d: %d -> %u entries\n",
-         static_cast<int>(type), pool->itemCount, new_size);
-}
-
 void apply_asset_limits() {
   static bool applied = false;
   if (applied)
@@ -188,13 +132,20 @@ game::eModes com_sessionmode_setmode_stub(game::eModes mode) {
   apply_asset_limits();
   return result;
 }
+
+utils::hook::detour db_init_hook;
+void db_init_stub() {
+  db_init_hook.invoke();
+  apply_asset_limits();
+}
 } // namespace
 
-class component final : public client_component {
+class component final : public generic_component {
 public:
   void post_unpack() override {
     com_sessionmode_setmode_hook.create(game::Com_SessionMode_SetMode.get(),
                                         com_sessionmode_setmode_stub);
+    db_init_hook.create(game::db::DB_Init.get(), db_init_stub);
     apply_asset_limits();
   }
 };

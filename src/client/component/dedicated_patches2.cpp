@@ -3,6 +3,7 @@
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
 #include "game/utils.hpp"
+#include "game/snd/snd.hpp"
 
 #include <string>
 #include <unordered_map>
@@ -154,52 +155,6 @@ void sv_live_removeallclientsfromaddress_stub(game::net::client_s *client,
   return;
 }
 
-/*
-  SND_GetPlaybackTime returns `-1` when a sound is not found.
-
-  I am not presently 100% certain why (active WIP), but in dedicated server,
-  Soundbanks are never loaded, and thus constituting sounds are never
-  aliased, and can never be found - even those provided and used by Treyarch,
-  such as perk jingles and map voicelines. The dedicated server is, unmodified,
-  entirely incapable of correctly executing server-side logic which requires
-  usage of valid sound metadata, such as playback time.
-
-  This would be a valid optimization for the stated intention of the dedicated
-  server - an MP-only server running only Treyarch MP maps and scripts, all of
-  which do not require server-side sound metadata access, nor sounds to be
-  loaded by extension. When used outside of this scope, this is obviously
-  problematic, and is most likely causing the notoriously broken sound timings
-  seen when playing some maps on boiii dedicated servers now - looping, missing,
-  or simultaneous Origins voicelines, for example.
-
-  Regardless of the cause, in the short term, some custom maps rely on correct
-  `soundgetplaybacktime` GSC function call returns to manually implement sound
-  looping. When `soundgetplaybacktime` returns `-1`, this results in the same
-  sound being played rapidly and repeatedly, until the server crashes with a
-  "G_Spawn: no free entities" error, as each sound consumed a temporary entity,
-  and thus filled all entity slots, triggering a crash on next entity spawn
-  attempt.
-
-  These custom maps consistently fail to load in dedicated server. A prevalant
-  example of a custom map which fails to load for this reason is Die Rise
-  remastered.
-
-  As a short term fix, when the return value is provided as `-1`, return 10000
-  (ms) instead. 10000ms will still often be incorrect, but providing a positive,
-  more realistic value, will lead to at least slightly more correct behaviour in
-  all cases, and in an extreme case such as Die Rise, fixes map load.
-*/
-utils::hook::detour snd_getplaybacktime_hook;
-int32_t snd_getplaybacktime_stub(const char *name) {
-  const int32_t playback_time = snd_getplaybacktime_hook.invoke<int32_t>(name);
-  /*
-   Adjust -1 val (not found) to a default of 10
-   seconds to ensure valid, positive time domain
-   value return
-  */
-  return playback_time < 0 ? 10000 : playback_time;
-}
-
 std::mutex reliable_cmd_mutex;
 // Map of reliable command string -> Map of xuid -> svs->time of last sequencing
 std::unordered_map<std::string, std::unordered_map<game::XUID, uint32_t>>
@@ -264,15 +219,203 @@ void sv_addservercommand_stub(game::net::client_s *client,
 
   sv_addservercommand_hook.invoke(client, type, cmd);
 }
+
+utils::hook::detour db_loadxfile_hook;
+bool db_loadxfile_stub(const char *path, game::db::DBFile f,
+                       game::db::xzone::XZoneBuffer *fileBuffer,
+                       const char *filename, game::db::XBlock *blocks,
+                       game::db::DB_Interrupt *interrupt, uint8_t *buf,
+                       game::PMemStack side, int flags) {
+  bool succeeded = db_loadxfile_hook.invoke<bool>(
+      path, f, fileBuffer, filename, blocks, interrupt, buf, side, flags);
+
+  if (succeeded && (game::db::load::g_load->flags & 0x1000C00) != 0) {
+    game::snd::g_sb->loadGate = 0;
+    game::snd::SND_LoadSoundsWait();
+  }
+
+  return succeeded;
+}
+
+void free_bank_allocations_before_clearing_address_stub(
+    game::snd::SndBankLoad *load, int64_t offset, uint64_t len) {
+
+  game::snd::sd_byte *loadedEntries =
+      reinterpret_cast<game::snd::sd_byte *>(load->loadedEntries);
+  if (loadedEntries) {
+    game::snd::SD_Free_Impl(loadedEntries);
+  }
+  game::snd::sd_byte *loadedData = load->loadedData;
+  if (loadedData) {
+    game::snd::SD_Free_Impl(loadedData);
+  }
+  game::snd::sd_byte *loadAssetBankEntries =
+      reinterpret_cast<game::snd::sd_byte *>(load->loadAssetBank.entries);
+  if (loadAssetBankEntries) {
+    game::snd::SD_Free_Impl(loadAssetBankEntries);
+  }
+  game::snd::sd_byte *streamAssetBankEntries =
+      reinterpret_cast<game::snd::sd_byte *>(load->streamAssetBank.entries);
+  if (streamAssetBankEntries) {
+    game::snd::SD_Free_Impl(streamAssetBankEntries);
+  }
+
+  memset(reinterpret_cast<void *>(load), offset, len);
+}
+
+utils::hook::detour snd_init_hook;
+void snd_init_stub() {
+  void *callerAddr = _ReturnAddress();
+  snd_init_hook.invoke();
+  *(game::snd::g_pc_nosnd.get()) = 0;
+  game::snd::g_snd->verified_0.init = 1;
+  game::snd::g_sb->bankMagic = 0x12233445;
+}
+
+utils::hook::detour snd_queueadd_hook;
+void snd_queueadd_stub(game::snd::SndQueue *queue,
+                       game::snd::SndCommandType cmd, uint32_t size,
+                       const void *data) {
+  game::snd::SND_CommandSND(cmd, static_cast<int64_t>(size),
+                            const_cast<void *>(data));
+}
+
+utils::hook::detour snd_active_hook;
+game::qboolean snd_active_stub() {
+  game::snd::g_snd->verified_0.init = 1;
+  const game::qboolean active = snd_active_hook.invoke<game::qboolean>();
+  return active;
+}
+
+utils::hook::detour g_sndenabled_hook;
+utils::hook::detour snd_shouldinit_hook;
+bool return_true() { return true; }
+
+utils::hook::detour snd_queueflush_hook;
+utils::hook::detour snd_processsndqueue_hook;
+void stub_func() { return; }
+
+utils::hook::detour snd_enqueueloadedassets_hook;
+utils::hook::detour snd_starttocread_hook;
+
+/*
+  Sound load, processing, and data access functionality was consistently either
+  removed or disabled in dedicated server. This was a valid optimization for the
+  stated intent - a dedicated, multiplayer server using only Treyarch maps - as
+  Treyarch multiplayer maps never require server-side sound handling in any
+  form.
+
+  Treyarch zombies and custom maps for any gamemode, however, generally do
+  require server-side sound processing, and the lack of it causes a wide variety
+  of sound-related bugs. This function re-enables where possible and otherwise
+  re-implements sound functionality in the dedicated server engine.
+
+  This fixes most bugs related to server-side sound handling.
+
+  For example:
+  - Map music, sound effects, or voicelines not playing, playing on a loop,
+  playing at the wrong time, or all playing at the same time - occurs in most
+  zombies maps.
+  - Maps with manual sound loops crashing the server with `G_Spawn: no free
+  entities` error - Die Rise, for example.
+
+  Does not fix:
+  - Perk machine jingles inconsistently playing when player is in proximity.
+*/
+
+inline void enable_sound() {
+  /*
+   Disable usage of g_copyInfo - force using asset pools instead.
+   XAsset dependency graph linking handles this already, and more
+   effectively - this seems to be leftover from earlier engine versions with
+   hardcoded asset load ordering, and crashes server when sound is enabled
+   and g_copyInfo is used.
+  */
+  utils::hook::nop(0x1401D7C23_g, 9);
+  utils::hook::nop(0x1401DA103_g, 5);
+  /*
+     Disable purposely crashing application by
+     incrementing g_copyInfoCount by 16384 (over limit) on authload failure.
+     Newer engine versions (e.g. Bo4) throw an error properly (`Sys_Error`)
+     instead.
+  */
+  utils::hook::nop(0x1401A18E1_g, 10);
+  utils::hook::nop(0x1401A1B5D_g, 10);
+
+  /*
+    In the lines of code where the client versions of SND_EnqueueLoadedAssets
+    and SND_StartTocRead require usage of `SD_Alloc`, in dedicated server, a
+    `nullptr` immediate value is used instead, causing these steps of bank
+    load to immediately fail, and bank load to never occur.
+
+    Hook these functions and replace them with the client-equivalent
+    implementation.
+  */
+  snd_enqueueloadedassets_hook.create(game::snd::SND_EnqueueLoadedAssets.get(),
+                                      game::snd::SND_EnqueueLoadedAssets_Impl);
+  snd_starttocread_hook.create(game::snd::SND_StartTocRead.get(),
+                               game::snd::SND_StartTocRead_Impl);
+
+  /*
+    In client, in SNDL_RemoveBank, SD_Free is called to free the
+    heap-allocated bank data of a SndBankLoad, before clearing the
+    SndBankLoad with memset.
+
+    This obviously is not performed in server, as SD_Alloc is also not
+    used in the unmodified engine; it was reimplemented and used in the above
+    SND_EnqueueLoadedAssets_Impl.
+
+    This call hooks the memset call to instead first free these allocations,
+    if they are present, to prevent memory leak. The client frees these
+    allocations in the same location.
+  */
+  utils::hook::call(0x14064AB30_g,
+                    free_bank_allocations_before_clearing_address_stub);
+
+  /*
+    After loading level XPAK, block on loading its soundbanks, just as
+    client does.
+  */
+  db_loadxfile_hook.create(game::db::load::DB_LoadXFile.get(),
+                           db_loadxfile_stub);
+
+  /*
+    The dedicated server does not have an async sound queue, and the
+    initialization in client is heavily arxan obfuscated.
+    Suffice to say I have so far been unable (in a time-sensitive manner) to
+    verify accurate structure and values for async queue initialization.
+
+    Fortunately, the dedicated server actually doesn't need an async queue at
+    all. Sounds only need to be processed at initial load, but not afterwards,
+    except as requested by scripts.
+
+    The below hooks circumvent attempted usage of the (non-existent) async
+    sound queue, instead forwarding queue additions to the intended handler,
+    immediately.
+  */
+  snd_queueadd_hook.create(game::snd::SND_QueueAdd.get(), snd_queueadd_stub);
+  snd_processsndqueue_hook.create(game::snd::SND_ProcessSNDQueue.get(),
+                                  stub_func);
+  snd_queueflush_hook.create(game::snd::SND_QueueFlush.get(),
+                             reinterpret_cast<void (*)(int)>(stub_func));
+
+  /*
+    Enable sound
+  */
+  snd_active_hook.create(game::snd::SND_Active.get(), snd_active_stub);
+  snd_init_hook.create(game::snd::SND_Init.get(), snd_init_stub);
+  g_sndenabled_hook.create(game::snd::G_SndEnabled.get(), return_true);
+  snd_shouldinit_hook.create(game::snd::SND_ShouldInit.get(), return_true);
+}
+
 } // namespace
 
 struct component final : server_component {
   void post_unpack() override {
+
+    enable_sound();
     // Sanitize chat messages on server
     g_say_hook.create(game::G_Say.get(), g_say_stub);
-
-    snd_getplaybacktime_hook.create(game::snd::SND_GetPlaybackTime.get(),
-                                    snd_getplaybacktime_stub);
 
     /*
      Some server configurations will require this to be disabled.
