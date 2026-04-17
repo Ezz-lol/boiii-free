@@ -213,7 +213,6 @@ void fixup_script_imports(char *buf, int len) {
 
   // Walk import table and patch ns_hash where it matches a path hash
   size_t pos = import_offset;
-  int patched = 0;
   for (uint16_t i = 0; i < import_count; i++) {
     if (pos + 12 > static_cast<size_t>(len))
       break;
@@ -227,7 +226,6 @@ void fixup_script_imports(char *buf, int len) {
     auto it = path_to_ns.find(ns_hash);
     if (it != path_to_ns.end()) {
       std::memcpy(buf + pos + 4, &it->second, 4);
-      patched++;
     }
 
     pos += 12 + 4 * static_cast<size_t>(num_refs);

@@ -31,7 +31,6 @@ using XZoneName = xzone::XZoneName;
 namespace workshop {
 namespace {
 std::thread download_thread{};
-std::atomic_bool downloading{false};
 
 utils::hook::detour setup_server_map_hook;
 utils::hook::detour load_usermap_hook;
@@ -157,12 +156,6 @@ std::string resolve_mod_workshop_id(const std::string &mod_name) {
   }
 
   return {};
-}
-
-void load_usermap_mod_if_needed() {
-  if (!game::ugc::isModLoaded()) {
-    game::ugc::loadMod(game::LOCAL_CLIENT_0, "usermaps", false);
-  }
 }
 
 uint32_t get_xzone_index_by_name(const char *zone_name) {

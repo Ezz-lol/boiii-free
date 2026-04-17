@@ -217,20 +217,6 @@ bool remove_evil_keywords_from_string(wchar_t *str, const size_t length) {
   return remove_evil_keywords_from_string(unicode_string);
 }
 
-bool remove_evil_keywords_from_string(char *str, const size_t length) {
-  std::string_view str_view(str, length);
-  std::wstring wstr(str_view.begin(), str_view.end());
-
-  if (!remove_evil_keywords_from_string(wstr.data(), wstr.size())) {
-    return false;
-  }
-
-  const std::string regular_str(wstr.begin(), wstr.end());
-  memcpy(str, regular_str.data(), length);
-
-  return true;
-}
-
 int WINAPI get_window_text_a_stub(const HWND wnd, const LPSTR str,
                                   const int max_count) {
   std::wstring wstr{};
@@ -691,19 +677,6 @@ LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS info) {
 
   return EXCEPTION_CONTINUE_SEARCH;
 }
-
-const char *get_command_line_a_stub() {
-  static auto cmd = [] {
-    std::string cmd_line = GetCommandLineA();
-    if (!strstr(cmd_line.data(), "fs_game")) {
-      cmd_line += " +set fs_game \"boiii\"";
-    }
-
-    return cmd_line;
-  }();
-
-  return cmd.data();
-}
 } // namespace
 
 int WINAPI get_system_metrics_stub(const int index) {
@@ -713,7 +686,6 @@ int WINAPI get_system_metrics_stub(const int index) {
 
   return GetSystemMetrics(index);
 }
-
 BOOL WINAPI get_thread_context_stub(const HANDLE thread_handle,
                                     const LPCONTEXT context) {
   constexpr auto debug_registers_flag =
@@ -806,18 +778,6 @@ struct component final : generic_component {
         utils::nt::library{}.get_iat_entry("user32.dll", "GetSystemMetrics");
     if (sys_met_import)
       utils::hook::set(sys_met_import, get_system_metrics_stub);
-
-    // TODO: Remove as soon as real hooking works
-    // auto* get_cmd_import = utils::nt::library{}.get_iat_entry("kernel32.dll",
-    // "GetCommandLineA"); if (get_cmd_import) utils::hook::set(get_cmd_import,
-    // get_command_line_a_stub);
-
-    // zw_terminate_process_hook.create(ntdll.get_proc<void*>("ZwTerminateProcess"),
-    // zw_terminate_process_stub); zw_terminate_process_hook.move();
-
-    // auto* gpafc = ntdll.get_proc<void*>("LdrGetProcedureAddressForCaller");
-    // get_proc_address_hook.create(gpafc, get_proc_address_stub);
-    // get_proc_address_hook.move();
 
     if (utils::flags::has_flag("dump")) {
       const char *output_file_name =

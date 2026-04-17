@@ -723,7 +723,7 @@ LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
 
   // Detailed console crash report
   printf("\n^1========== CRASH DETECTED ==========\n");
-  printf("^1  Exception:  %s (0x%08X)\n", exception_name,
+  printf("^1  Exception:  %s (0x%08lX)\n", exception_name,
          exceptioninfo->ExceptionRecord->ExceptionCode);
   printf("^1  Module:     %s + 0x%llX\n", crash_frame.module_name.c_str(),
          crash_frame.rva);

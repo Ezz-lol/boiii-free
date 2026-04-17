@@ -168,8 +168,6 @@ handle_packet_internal_stub(const game::ControllerIndex_t controller_index,
              : 0;
 }
 
-uint64_t ret2() { return 2; }
-
 int bind_stub(SOCKET /*s*/, const sockaddr * /*addr*/, int /*namelen*/) {
   return 0;
 }

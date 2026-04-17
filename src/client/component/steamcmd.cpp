@@ -135,7 +135,7 @@ int start_new_process(const char *exePath, bool Hide_Window, bool waittill_done,
 
     DWORD exitCode;
     if (GetExitCodeProcess(pi.hProcess, &exitCode)) {
-      if (exitCode == -1073741510) {
+      if (exitCode == static_cast<uint32_t>(-1073741510)) {
         return 1;
       }
 

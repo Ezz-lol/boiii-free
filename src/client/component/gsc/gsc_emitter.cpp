@@ -10,7 +10,6 @@ namespace {
 constexpr uint64_t T7_MAGIC = 0x1C000A0D43534780;
 constexpr uint32_t HASH_IV = 0x4B9ACE2F;
 constexpr uint32_t HASH_KEY = 0x1000193;
-constexpr uint16_t OP_SIZE = 2; // 2 bytes per opcode on LE PC
 
 bool try_parse_raw_hash(const std::string &input, uint32_t &out) {
   auto underscore = input.find('_');
@@ -70,11 +69,6 @@ void write_float(std::vector<uint8_t> &buf, float v) {
   auto s = buf.size();
   buf.resize(s + 4);
   std::memcpy(&buf[s], &v, 4);
-}
-
-void pad_to(std::vector<uint8_t> &buf, uint32_t alignment) {
-  while (buf.size() % alignment != 0)
-    buf.push_back(0);
 }
 
 void write_at_u16(std::vector<uint8_t> &buf, size_t offset, uint16_t v) {
@@ -632,30 +626,6 @@ std::string normalize_ns(const std::string &ns) {
 bool is_path_namespace(const std::string &ns) {
   return ns.find('/') != std::string::npos ||
          ns.find('\\') != std::string::npos;
-}
-
-// Resolve short namespace to full include path
-std::string resolve_ns(const emitter_state &s, const std::string &ns) {
-  if (is_path_namespace(ns))
-    return normalize_ns(ns);
-
-  std::string lower_ns = ns;
-  std::transform(
-      lower_ns.begin(), lower_ns.end(), lower_ns.begin(),
-      [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-
-  for (auto &inc : s.includes) {
-    std::string norm = normalize_ns(inc);
-    std::transform(norm.begin(), norm.end(), norm.begin(), [](unsigned char c) {
-      return static_cast<char>(std::tolower(c));
-    });
-    size_t last_sep = norm.rfind('/');
-    std::string tail =
-        (last_sep != std::string::npos) ? norm.substr(last_sep + 1) : norm;
-    if (tail == lower_ns)
-      return normalize_ns(inc);
-  }
-  return ns;
 }
 
 constexpr uint32_t fnv1a(const char *str) {

@@ -137,7 +137,7 @@ void draw() {
 struct component final : client_component {
   component() {
     image = load_splash_image();
-    window_thread = std::thread([this] { draw(); });
+    window_thread = std::thread([] { draw(); });
   }
 
   void pre_destroy() override {

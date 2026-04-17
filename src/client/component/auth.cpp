@@ -142,15 +142,6 @@ utils::cryptography::ecc::key &get_key() {
   return key;
 }
 
-bool is_second_instance() {
-  static const auto is_first = [] {
-    static utils::nt::handle mutex = CreateMutexA(nullptr, FALSE, "ezz_mutex");
-    return mutex && GetLastError() != ERROR_ALREADY_EXISTS;
-  }();
-
-  return !is_first;
-}
-
 std::string serialize_connect_data(const char *data, const int length) {
   utils::byte_buffer buffer{};
   buffer.write_string(get_key().serialize(PK_PUBLIC));

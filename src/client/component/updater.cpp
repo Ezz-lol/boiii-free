@@ -28,7 +28,7 @@ void update() {
 class component final : public generic_component {
 public:
   component() {
-    this->update_thread_ = std::thread([this] { update(); });
+    this->update_thread_ = std::thread([] { update(); });
   }
 
   void pre_destroy() override { join(); }

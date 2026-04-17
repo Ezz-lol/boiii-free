@@ -793,7 +793,7 @@ struct component final : generic_component {
         });
 
     this->console_runner_ =
-        utils::thread::create_named_thread("Console Window", [this] {
+        utils::thread::create_named_thread("Console Window", [] {
           {
             static utils::hook::detour sys_create_console_hook;
             sys_create_console_hook.create(

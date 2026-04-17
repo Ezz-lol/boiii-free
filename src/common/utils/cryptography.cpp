@@ -256,8 +256,13 @@ std::string ecc::sign_message(const key &key, const std::string &message) {
 
   const auto hash = sha512::compute(message);
 
-  ecc_sign_hash(cs(hash.data()), ul(hash.size()), buffer, &length,
-                prng_.get_state(), prng_.get_id(), &key.get());
+  ltc_ecc_sig_opts sig_opts = {.type = LTC_ECCSIG_ANSIX962,
+                               .prng = prng_.get_state(),
+                               .wprng = prng_.get_id(),
+                               .recid = nullptr,
+                               .rfc6979_hash_alg = nullptr};
+  ecc_sign_hash_v2(cs(hash.data()), ul(hash.size()), buffer, &length, &sig_opts,
+                   &key.get());
 
   return std::string(cs(buffer), length);
 }
@@ -270,10 +275,10 @@ bool ecc::verify_message(const key &key, const std::string &message,
   const auto hash = sha512::compute(message);
 
   auto result = 0;
-  return (ecc_verify_hash(cs(signature.data()), ul(signature.size()),
-                          cs(hash.data()), ul(hash.size()), &result,
-                          &key.get()) == CRYPT_OK &&
-          result != 0);
+  return ecc_verify_hash_v2(cs(signature.data()), ul(signature.size()),
+                            cs(hash.data()), ul(hash.size()), nullptr, &result,
+                            &key.get()) == CRYPT_OK &&
+         result != 0;
 }
 
 bool ecc::encrypt(const key &key, std::string &data) {

@@ -37,9 +37,6 @@ bool detours_enabled = false;
 
 vm_opcode_handler_t orig_SafeCreateLocalVariables = nullptr;
 vm_opcode_handler_t orig_CheckClearParams = nullptr;
-vm_opcode_handler_t orig_ScriptMethodCallPointer = nullptr;   // 0x0077
-vm_opcode_handler_t orig_ScriptFunctionCallPointer = nullptr; // 0x003A
-
 thread_local bool return_value_set = false;
 
 constexpr uint32_t fnv1a(const char *str) {

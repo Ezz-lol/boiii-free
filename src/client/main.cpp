@@ -209,7 +209,7 @@ void enable_dpi_awareness() {
 
 void trigger_high_performance_gpu_switch() {
   // Make sure to link D3D11, as this might trigger high performance GPU
-  static volatile auto _ = &D3D11CreateDevice;
+  [[maybe_unused]] static volatile auto _ = &D3D11CreateDevice;
 
   const auto key = utils::nt::open_or_create_registry_key(
       HKEY_CURRENT_USER, R"(Software\Microsoft\DirectX\UserGpuPreferences)");

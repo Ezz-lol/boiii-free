@@ -265,7 +265,6 @@ void free_bank_allocations_before_clearing_address_stub(
 
 utils::hook::detour snd_init_hook;
 void snd_init_stub() {
-  void *callerAddr = _ReturnAddress();
   snd_init_hook.invoke();
   *(game::snd::g_pc_nosnd.get()) = 0;
   game::snd::g_snd->verified_0.init = 1;

@@ -550,32 +550,6 @@ void workshop_remove_by_path(const std::string &path_str) {
   launcher::workshop::try_refresh_workshop_content();
 }
 
-void workshop_remove_all_folders() {
-  char cwd[MAX_PATH];
-  GetCurrentDirectoryA(sizeof(cwd), cwd);
-  std::filesystem::path base(cwd);
-
-  std::error_code ec;
-  auto clear_subdirs = [&ec](const std::filesystem::path &dir) {
-    if (!std::filesystem::exists(dir))
-      return;
-    for (const auto &entry : std::filesystem::directory_iterator(dir, ec))
-      if (entry.is_directory())
-        std::filesystem::remove_all(entry.path(), ec);
-  };
-  clear_subdirs(base / "mods");
-  clear_subdirs(base / "usermaps");
-
-  std::filesystem::path steam_ws = get_steam_workshop_path();
-  if (!steam_ws.empty()) {
-    std::error_code ec2;
-    if (std::filesystem::exists(steam_ws, ec2)) {
-      clear_subdirs(steam_ws);
-    }
-  }
-  launcher::workshop::try_refresh_workshop_content();
-}
-
 static const std::vector<std::string> IMAGE_EXTENSIONS = {
     ".jpg", ".jpeg", ".png", ".webp", ".gif", ".bmp"};
 
