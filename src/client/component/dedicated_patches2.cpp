@@ -109,16 +109,8 @@ std::string sanitize_chat_message(const std::string &msg) {
   return result;
 }
 
-// sv_cheats enforcement
-void enforce_sv_cheats() {
-  if (game::is_server_running()) {
-    const bool sv_cheats_val = game::get_dvar_bool("sv_cheats");
-    if (sv_cheats_val) {
-      printf("[Security] sv_cheats was non-zero (%d), forcing to 0\n",
-             sv_cheats_val);
-      game::set_dvar_bool("sv_cheats", false);
-    }
-  }
+void disable_sv_cheats_cb(game::dvar_t *sv_cheats) {
+  game::Dvar_SetBoolFromSource(sv_cheats, false, game::DVAR_SOURCE_INTERNAL);
 }
 
 // Hook for G_Say to sanitize messages
@@ -171,7 +163,6 @@ void g_init_game_stub(uint32_t levelTime, uint32_t randomSeed,
   // Reset tracked openmenu reliable cmds on starting a new game.
   for (auto &[cmd, client_map] : client_openmenu_cmd_last_sequence_time) {
     client_map.clear();
-    client_openmenu_cmd_last_sequence_time.erase(cmd);
   }
 
   client_openmenu_cmd_last_sequence_time.clear();
@@ -406,7 +397,6 @@ inline void enable_sound() {
   g_sndenabled_hook.create(game::snd::G_SndEnabled.get(), return_true);
   snd_shouldinit_hook.create(game::snd::SND_ShouldInit.get(), return_true);
 }
-
 } // namespace
 
 struct component final : server_component {
@@ -453,9 +443,13 @@ struct component final : server_component {
         game::sv::SV_Live_RemoveAllClientsFromAddress.get(),
         sv_live_removeallclientsfromaddress_stub);
 
-    // Enforce sv_cheats = 0 periodically
-    scheduler::loop([] { enforce_sv_cheats(); }, scheduler::pipeline::server,
-                    5000ms);
+    const game::dvar_t *sv_cheats = game::Dvar_FindVar("sv_cheats");
+    game::Dvar_SetBoolFromSource(sv_cheats, false, game::DVAR_SOURCE_INTERNAL);
+
+    // Enforce sv_cheats = 0
+    game::Dvar_SetModifiedCallback(
+        sv_cheats,
+        reinterpret_cast<game::modifiedCallback>(disable_sv_cheats_cb));
 
     if (!utils::flags::has_flag("noratelimit")) {
       // Cleanup old rate limit entries periodically

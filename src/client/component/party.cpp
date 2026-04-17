@@ -30,7 +30,7 @@ std::string cached_server_hostname;
 int cached_server_max_clients = 0;
 
 void update_dedi_dvar(bool on_dedi) {
-  game::dvar::Dvar_SetFromStringByName("cl_connected_to_dedi",
+  game::Dvar_SetFromStringByName("cl_connected_to_dedi",
                                        on_dedi ? "1" : "0", true);
 }
 
@@ -423,7 +423,7 @@ void join_session(const game::net::netadr_t &addr, const std::string &hostname,
 }
 
 uint16_t get_local_port() {
-  const auto *dvar = game::dvar::Dvar_FindVar("net_port");
+  const auto *dvar = game::Dvar_FindVar("net_port");
   if (dvar) {
     return static_cast<uint16_t>(dvar->current.value.integer);
   }

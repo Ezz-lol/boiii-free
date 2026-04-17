@@ -16,15 +16,15 @@ bool initial_config_read = false;
 utils::hook::detour dvar_set_variant_hook;
 
 void dvar_for_each_name_stub(void (*callback)(const char *)) {
-  for (int i = 0; i < *game::dvar::g_dvarCount; ++i) {
+  for (int i = 0; i < *game::g_dvarCount; ++i) {
     const auto offset = game::is_server() ? 136 : 160;
     const auto *dvar =
-        reinterpret_cast<game::dvar_t *>(&game::dvar::s_dvarPool[offset * i]);
+        reinterpret_cast<game::dvar_t *>(&game::s_dvarPool[offset * i]);
 
     if (dvar->debugName                //
         && (dvar->flags & 0x8000) == 0 //
         && (!game::com::Com_SessionMode_IsMode(game::MODE_COUNT) ||
-            !game::dvar::Dvar_IsSessionModeBaseDvar(dvar))) {
+            !game::Dvar_IsSessionModeBaseDvar(dvar))) {
       callback(dvar->debugName);
     }
   }
@@ -32,15 +32,15 @@ void dvar_for_each_name_stub(void (*callback)(const char *)) {
 
 void dvar_for_each_name_client_num_stub(int localClientNum,
                                         void (*callback)(int, const char *)) {
-  for (int i = 0; i < *game::dvar::g_dvarCount; ++i) {
+  for (int i = 0; i < *game::g_dvarCount; ++i) {
     const auto offset = game::is_server() ? 136 : 160;
     const auto *dvar =
-        reinterpret_cast<game::dvar_t *>(&game::dvar::s_dvarPool[offset * i]);
+        reinterpret_cast<game::dvar_t *>(&game::s_dvarPool[offset * i]);
 
     if (dvar->debugName                //
         && (dvar->flags & 0x8000) == 0 //
         && (!game::com::Com_SessionMode_IsMode(game::MODE_COUNT) ||
-            !game::dvar::Dvar_IsSessionModeBaseDvar(dvar))) {
+            !game::Dvar_IsSessionModeBaseDvar(dvar))) {
       callback(localClientNum, dvar->debugName);
     }
   }
@@ -69,7 +69,7 @@ void read_dvar_name_hashes_data(
     }
 
     if (!debug_name.empty()) {
-      map.emplace(game::dvar::Dvar_GenerateHash(debug_name.data()), debug_name);
+      map.emplace(game::Dvar_GenerateHash(debug_name.data()), debug_name);
     }
   }
 }
@@ -78,10 +78,10 @@ void copy_dvar_names_to_pool() {
   std::unordered_map<std::uint32_t, std::string> dvar_hash_name_map;
   read_dvar_name_hashes_data(dvar_hash_name_map);
 
-  for (int i = 0; i < *game::dvar::g_dvarCount; ++i) {
+  for (int i = 0; i < *game::g_dvarCount; ++i) {
     const auto offset = game::is_server() ? 136 : 160;
     auto *dvar =
-        reinterpret_cast<game::dvar_t *>(&game::dvar::s_dvarPool[offset * i]);
+        reinterpret_cast<game::dvar_t *>(&game::s_dvarPool[offset * i]);
 
     if (!dvar->debugName) {
       const auto it = dvar_hash_name_map.find(dvar->name);
@@ -107,16 +107,16 @@ void write_archive_dvars() {
 
   std::string config_buffer;
 
-  for (int i = 0; i < *game::dvar::g_dvarCount; ++i) {
-    const auto *dvar = reinterpret_cast<const game::dvar_t *>(
-        &game::dvar::s_dvarPool[160 * i]);
+  for (int i = 0; i < *game::g_dvarCount; ++i) {
+    const auto *dvar =
+        reinterpret_cast<const game::dvar_t *>(&game::s_dvarPool[160 * i]);
 
     if (!is_archive_dvar(dvar)) {
       continue;
     }
 
     const auto name = dvar->debugName;
-    const auto value = game::dvar::Dvar_DisplayableValue(dvar);
+    const auto value = game::Dvar_DisplayableValue(dvar);
 
     config_buffer.append(utils::string::va("set %s \"%s\"\n", name, value));
   }

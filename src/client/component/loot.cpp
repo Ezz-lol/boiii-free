@@ -236,18 +236,18 @@ struct component final : generic_component {
         return;
       }
       // Enable all unlock dvars (mode-independent)
-      game::dvar::Dvar_SetFromStringByName("cg_unlockall_loot", "1", true);
-      game::dvar::Dvar_SetFromStringByName("cg_unlockall_purchases", "1", true);
-      game::dvar::Dvar_SetFromStringByName("cg_unlockall_attachments", "1",
+      game::Dvar_SetFromStringByName("cg_unlockall_loot", "1", true);
+      game::Dvar_SetFromStringByName("cg_unlockall_purchases", "1", true);
+      game::Dvar_SetFromStringByName("cg_unlockall_attachments", "1",
                                            true);
-      game::dvar::Dvar_SetFromStringByName("cg_unlockall_camos_and_reticles",
+      game::Dvar_SetFromStringByName("cg_unlockall_camos_and_reticles",
                                            "1", true);
-      game::dvar::Dvar_SetFromStringByName("cg_unlockall_calling_cards", "1",
+      game::Dvar_SetFromStringByName("cg_unlockall_calling_cards", "1",
                                            true);
-      game::dvar::Dvar_SetFromStringByName("cg_unlockall_specialists_outfits",
+      game::Dvar_SetFromStringByName("cg_unlockall_specialists_outfits",
                                            "1", true);
-      game::dvar::Dvar_SetFromStringByName("cg_unlockall_cac_slots", "1", true);
-      game::dvar::Dvar_SetFromStringByName("ui_enableAllHeroes", "1", true);
+      game::Dvar_SetFromStringByName("cg_unlockall_cac_slots", "1", true);
+      game::Dvar_SetFromStringByName("ui_enableAllHeroes", "1", true);
 
       // Set master prestige for all 3 modes (eModes: ZM=0, MP=1, CP=2)
       game::cbuf::Cbuf_AddText(0, "PrestigeStatsMaster 0\n"); // ZM
@@ -334,7 +334,7 @@ struct component final : generic_component {
     scheduler::once(
         []() {
           if (dvar_cg_unlockall_loot->current.value.enabled) {
-            game::dvar::Dvar_SetFromStringByName("ui_enableAllHeroes", "1",
+            game::Dvar_SetFromStringByName("ui_enableAllHeroes", "1",
                                                  true);
           }
         },

@@ -96,7 +96,7 @@ void create_ip_socket() {
 
   const auto address = htonl(INADDR_ANY);
   auto port = static_cast<uint16_t>(
-      game::dvar::Dvar_FindVar("net_port")->current.value.integer);
+      game::Dvar_FindVar("net_port")->current.value.integer);
 
   sockaddr_in server_addr{};
   server_addr.sin_family = AF_INET;

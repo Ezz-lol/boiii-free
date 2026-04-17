@@ -1249,15 +1249,15 @@ public:
     scheduler::once(
         []() {
           game::dvar_t *dvar_callstack_ship =
-              game::dvar::Dvar_FindVar("ui_error_callstack_ship");
+              game::Dvar_FindVar("ui_error_callstack_ship");
           dvar_callstack_ship->flags = static_cast<game::dvarFlags_e>(0);
           game::dvar_t *dvar_report_delay =
-              game::dvar::Dvar_FindVar("ui_error_report_delay");
+              game::Dvar_FindVar("ui_error_report_delay");
           dvar_report_delay->flags = static_cast<game::dvarFlags_e>(0);
 
-          game::dvar::Dvar_SetFromStringByName("ui_error_callstack_ship", "1",
+          game::Dvar_SetFromStringByName("ui_error_callstack_ship", "1",
                                                true);
-          game::dvar::Dvar_SetFromStringByName("ui_error_report_delay", "0",
+          game::Dvar_SetFromStringByName("ui_error_report_delay", "0",
                                                true);
         },
         scheduler::pipeline::renderer);

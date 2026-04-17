@@ -15,12 +15,12 @@
 static __declspec(noinline) bool seh_dvar_string(const char *name, char *buf,
                                                  size_t sz) {
   __try {
-    const auto *dvar = game::dvar::Dvar_FindVar(name);
+    const auto *dvar = game::Dvar_FindVar(name);
     if (!dvar) {
       buf[0] = '\0';
       return true;
     }
-    const char *val = game::dvar::Dvar_GetString(dvar);
+    const char *val = game::Dvar_GetString(dvar);
     if (!val) {
       buf[0] = '\0';
       return true;
@@ -35,7 +35,7 @@ static __declspec(noinline) bool seh_dvar_string(const char *name, char *buf,
 
 static __declspec(noinline) bool seh_dvar_int(const char *name, int *out) {
   __try {
-    const auto *dvar = game::dvar::Dvar_FindVar(name);
+    const auto *dvar = game::Dvar_FindVar(name);
     if (!dvar) {
       *out = 0;
       return true;

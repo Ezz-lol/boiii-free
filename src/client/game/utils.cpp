@@ -3,7 +3,6 @@
 #include "game.hpp"
 #include "utils.hpp"
 
-using namespace game::dvar;
 using namespace game::com;
 using namespace game::sv;
 

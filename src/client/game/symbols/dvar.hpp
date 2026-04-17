@@ -5,7 +5,6 @@
 #include "macros.hpp"
 
 namespace game {
-namespace dvar {
 
 WEAK symbol<dvar_t *> com_maxclients{0x0, 0x14948EE70};
 
@@ -96,7 +95,6 @@ WEAK symbol<void(const dvar_t *dvar, int32_t val, DvarSetSource source)>
 WEAK symbol<void(const dvar_t *dvar, uint64_t val, DvarSetSource source)>
     Dvar_SetUInt64FromSource{0x1422C8AF0, 0x140579B60};
 
-} // namespace dvar
 } // namespace game
 
 #endif
