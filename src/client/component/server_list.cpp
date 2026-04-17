@@ -236,6 +236,10 @@ void read_recent_servers() {
   });
 }
 
+std::string get_master_servers_file_path() {
+  return "boiii_players/user/master_servers.txt";
+}
+
 std::string get_lan_servers_file_path() {
   return "boiii_players/user/lan_servers.txt";
 }
@@ -297,11 +301,46 @@ void add_lan_server_from_string(const std::string &in) {
 }
 } // namespace
 
+static std::vector<std::string> master_server_hosts{"master.ezz.lol:20810",
+                                                    "m.ezz.lol:20810"};
+
+inline void parse_master_server_hosts() {
+  std::string data;
+  if (utils::io::file_exists(get_master_servers_file_path()) &&
+      utils::io::read_file(get_master_servers_file_path(), &data)) {
+    const auto lines = utils::string::split(data, '\n');
+    bool read_first = false;
+    for (const auto &line : lines) {
+      const auto l = normalize_lan_input(line);
+      if (!l.empty()) {
+        if (!read_first) {
+          master_server_hosts.clear();
+          read_first = true;
+        }
+        master_server_hosts.emplace_back(l);
+      }
+    }
+  } else {
+    // Write defaults
+    std::string write;
+    for (const auto &host : master_server_hosts) {
+      write.append(host);
+      write.push_back('\n');
+    }
+    utils::io::write_file(get_master_servers_file_path(), write);
+  }
+}
+
+static std::atomic_bool parsed_master_servers{false};
 std::vector<game::net::netadr_t> get_master_servers() {
+
+  if (!parsed_master_servers.exchange(true)) {
+    parse_master_server_hosts();
+  }
+
   std::vector<game::net::netadr_t> servers;
-  const char *hosts[] = {"master.ezz.lol:20810", "m.ezz.lol:20810"};
-  for (const auto *host : hosts) {
-    auto addr = network::address_from_string(host);
+  for (const auto host : master_server_hosts) {
+    auto addr = network::address_from_string(host.c_str());
     if (addr.type != game::net::NA_BAD) {
       servers.push_back(addr);
     }
@@ -394,6 +433,7 @@ utils::concurrency::container<recent_list> &get_recent_servers() {
 
 struct component final : client_component {
   void post_unpack() override {
+
     network::on("getServersResponse", [](const game::net::netadr_t &target,
                                          const network::data_view &data) {
       master_state.access(
