@@ -17,8 +17,9 @@ struct SndPatch;
 namespace db {
 namespace xasset {
 /*
- Some known correct asset struct sizes as per DB_GetXAssetTypeSize:
-  - ASSET_TYPE_PHYSPRESET:
+ For future reference, some known-correct asset struct sizes as per
+ `DB_GetXAssetTypeSize`:
+  - ASSET_TYPE_PHYSPRESET: 120 or 0x78
   - ASSET_TYPE_XMODELMESH: 120 or 0x78
   - ASSET_TYPE_PHYSCONSTRAINTS: 1680 or 0x690
   - ASSET_TYPE_DESTRUCTIBLEDEF: 48 or 0x30
