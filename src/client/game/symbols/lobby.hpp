@@ -7,7 +7,6 @@
 namespace game {
 namespace lobby {
 WEAK symbol<lobby::Join> s_join{0x15574A640};
-
 WEAK symbol<int(LobbyType lobbyType, LobbyClientType clientType)>
     LobbyHost_GetClientCount{0x141ED8AC0, 0x14048A360};
 

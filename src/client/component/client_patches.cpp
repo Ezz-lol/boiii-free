@@ -5,6 +5,7 @@
 
 #include <game/game.hpp>
 #include <game/utils.hpp>
+#include "game/impl/snd/snd.hpp"
 
 #include <utils/hook.hpp>
 #include <utils/io.hpp>
@@ -141,6 +142,71 @@ void patch_players_folder_name() {
 
   utils::hook::call(0x1422A45A4_g, fs_add_game_directory_stub); // FS_Startup
 }
+
+void stub_func() { return; }
+
+utils::hook::detour sd_alloc_block_hook;
+
+utils::hook::detour sd_free_hook;
+
+utils::hook::detour sd_alloc_sanity_hook;
+
+/*
+  The sound driver's aligned allocation pool is well-optimized and generally
+  effective.
+
+  However, when a high quantity of sounds are loaded with tail padding,
+  allocation blocks can become highly fragmented. This can result in an
+  attempted allocation to fail where there is sufficient remaining capacity in
+  the pool, but not enough contiguous free space to satisfy the allocation
+  request.
+
+  To resolve this, the best approach would be to implement a defragmentation
+  routine that can be called when an allocation fails due to fragmentation. This
+  routine would consolidate free blocks in the pool to create larger contiguous
+  free spaces, allowing subsequent allocation attempts to succeed.
+
+  Unfortunately, this is not feasible with the the SD allocator pool, as
+  pointers to allocations are passed directly to the caller. Defragmentation
+  would therefore cause all existing pointers to become invalid, leading to
+  crashes and other undefined behavior.
+
+  The best way to have implemented the pool would have been to either:
+  1. Store the allocation pointers in an acting allocator struct, and instead
+     return `sd_byte**` to callers, allowing the allocator to defragment as
+  needed
+  2. To use an allocation ID-based system where unique identifiers are returned
+     to callers for a given allocation and can then be passed to the allocator
+  to receive the pointer to the _current_ allocation address
+  3. To implement a more traditional heap allocator with headers for each block
+  that could be moved around in memory as needed.
+
+  Because an allocator was not used in the engine which would allow
+  defragmentation, and manually re-implementing and patching a large portion of
+  the entire sound driver architecture to use e.g. `sd_byte**` allocation
+  pointers is infeasible outside of a full decompilation project, the
+  time-sensitive solution seems to be to replace the pool allocator entirely
+  with a standard heap allocator (malloc/free).
+*/
+void replace_sd_allocator() {
+  // Don't do sanity checks on the engine's sound allocation
+  // pool, as we are replacing the allocator entirely
+  sd_alloc_sanity_hook.create(game::snd::sd::SD_AllocSanity.get(), stub_func);
+  sd_alloc_block_hook.create(game::snd::sd::SD_Alloc.get(),
+                             game::snd::SD_Alloc_BasicImpl);
+  sd_free_hook.create(game::snd::sd::SD_Free.get(), game::snd::SD_Free_Impl);
+}
+
+utils::hook::detour live_delayed_com_error_hook;
+void live_delayed_com_error_stub(const char *comErrorString, int32_t code) {
+  uintptr_t return_address = reinterpret_cast<uintptr_t>(_ReturnAddress());
+  // Log caller and error message, but don't actually trigger the error
+  game::com::Com_Printf(
+      0, 0,
+      "Live_DelayedComError called from %p with message: %s and code: %d\n",
+      return_address, comErrorString, code);
+}
+
 } // namespace
 
 class component final : public client_component {
@@ -148,6 +214,13 @@ public:
   static_assert(offsetof(game::clientActive_t, viewangles) == 0xB8C8);
 
   void post_unpack() override {
+
+    // Log location of calller to allow straightforward debugging
+    live_delayed_com_error_hook.create(game::live::Live_DelayedComError.get(),
+                                       live_delayed_com_error_stub);
+
+    replace_sd_allocator();
+
     fix_amd_cpu_stuttering();
 
     // Don't modify process priority

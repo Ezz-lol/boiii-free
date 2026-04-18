@@ -7,6 +7,9 @@
 namespace game {
 namespace live {
 
+WEAK symbol<void(const char *comErrorString, int32_t code)>
+    Live_DelayedComError{0x141E0C140};
+
 // Live
 WEAK symbol<bool(uint64_t, int32_t *, bool)> Live_GetConnectivityInformation{
     0x141E0C380};

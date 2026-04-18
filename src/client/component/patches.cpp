@@ -98,6 +98,19 @@ std::string resolve_hashes_in_string(const std::string &input) {
 
 void com_error_stub(const char *file, int line, int code, const char *fmt,
                     ...) {
+  void *callerAddr = _ReturnAddress();
+  va_list ap;
+  va_start(ap, fmt);
+  int32_t len = vsprintf(nullptr, fmt, ap);
+  va_end(ap);
+  va_start(ap, fmt);
+  std::vector<char> infoBuf(len + 1);
+  vsprintf(infoBuf.data(), fmt, ap);
+  va_end(ap);
+  char *msg = infoBuf.data();
+  game::com::Com_Printf(
+      0, 0, "ComError called from 0x%p with message: %s and code: %d\n",
+      callerAddr, msg, code);
   static bool suppress_next_lua_error = false;
   static bool client_script_error_pending = false;
 
