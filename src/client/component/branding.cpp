@@ -6,6 +6,7 @@
 #include "scheduler.hpp"
 
 #include <utils/hook.hpp>
+#include <utils/flags.hpp>
 
 namespace branding {
 namespace {
@@ -34,13 +35,16 @@ const char *get_ingame_console_prefix_stub() { return "EZZ> "; }
 
 struct component final : client_component {
   void post_unpack() override {
-    scheduler::loop(draw_branding, scheduler::renderer);
+    if (!utils::flags::has_flag("nobranding")) {
 
-    // Change window title prefix
-    utils::hook::copy_string(0x14303F3D8_g, "EZZ");
+      scheduler::loop(draw_branding, scheduler::renderer);
 
-    // Change ingame console prefix
-    utils::hook::call(0x141339970_g, get_ingame_console_prefix_stub);
+      // Change window title prefix
+      utils::hook::copy_string(0x14303F3D8_g, "EZZ");
+
+      // Change ingame console prefix
+      utils::hook::call(0x141339970_g, get_ingame_console_prefix_stub);
+    }
   }
 };
 } // namespace branding

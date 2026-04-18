@@ -182,6 +182,7 @@ Launch BOIII with these arguments for extra features:
 | `-trimlogs` | Trim or rotate old log files on startup |
 | `-keep-launcher` | Keep the launcher process running after starting the game |
 | `-noconsole` | Suppress the external launcher console window |
+| `-nobranding` | Disable EZZ watermark and console prefix |
 | `-noratelimit` | Disable rate limiting in dedicated server |
 | `-mitigatepacketspam` | In dedicated server, attempt to reduce unnecessary reliable command packets sent by some custom maps' scripts. Fixes Kowloon and Daybreak client load-in failures. |
 | `-dump` | Dump game or server executable to file in containing directory after Arxan unpack |
