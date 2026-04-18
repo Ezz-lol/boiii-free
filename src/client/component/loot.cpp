@@ -238,14 +238,12 @@ struct component final : generic_component {
       // Enable all unlock dvars (mode-independent)
       game::Dvar_SetFromStringByName("cg_unlockall_loot", "1", true);
       game::Dvar_SetFromStringByName("cg_unlockall_purchases", "1", true);
-      game::Dvar_SetFromStringByName("cg_unlockall_attachments", "1",
-                                           true);
-      game::Dvar_SetFromStringByName("cg_unlockall_camos_and_reticles",
-                                           "1", true);
-      game::Dvar_SetFromStringByName("cg_unlockall_calling_cards", "1",
-                                           true);
-      game::Dvar_SetFromStringByName("cg_unlockall_specialists_outfits",
-                                           "1", true);
+      game::Dvar_SetFromStringByName("cg_unlockall_attachments", "1", true);
+      game::Dvar_SetFromStringByName("cg_unlockall_camos_and_reticles", "1",
+                                     true);
+      game::Dvar_SetFromStringByName("cg_unlockall_calling_cards", "1", true);
+      game::Dvar_SetFromStringByName("cg_unlockall_specialists_outfits", "1",
+                                     true);
       game::Dvar_SetFromStringByName("cg_unlockall_cac_slots", "1", true);
       game::Dvar_SetFromStringByName("ui_enableAllHeroes", "1", true);
 
@@ -334,8 +332,7 @@ struct component final : generic_component {
     scheduler::once(
         []() {
           if (dvar_cg_unlockall_loot->current.value.enabled) {
-            game::Dvar_SetFromStringByName("ui_enableAllHeroes", "1",
-                                                 true);
+            game::Dvar_SetFromStringByName("ui_enableAllHeroes", "1", true);
           }
         },
         scheduler::pipeline::dvars_loaded);

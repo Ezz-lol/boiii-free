@@ -30,8 +30,8 @@ std::string cached_server_hostname;
 int cached_server_max_clients = 0;
 
 void update_dedi_dvar(bool on_dedi) {
-  game::Dvar_SetFromStringByName("cl_connected_to_dedi",
-                                       on_dedi ? "1" : "0", true);
+  game::Dvar_SetFromStringByName("cl_connected_to_dedi", on_dedi ? "1" : "0",
+                                 true);
 }
 
 struct server_query {

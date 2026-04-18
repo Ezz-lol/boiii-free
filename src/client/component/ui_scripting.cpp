@@ -1255,10 +1255,8 @@ public:
               game::Dvar_FindVar("ui_error_report_delay");
           dvar_report_delay->flags = static_cast<game::dvarFlags_e>(0);
 
-          game::Dvar_SetFromStringByName("ui_error_callstack_ship", "1",
-                                               true);
-          game::Dvar_SetFromStringByName("ui_error_report_delay", "0",
-                                               true);
+          game::Dvar_SetFromStringByName("ui_error_callstack_ship", "1", true);
+          game::Dvar_SetFromStringByName("ui_error_report_delay", "0", true);
         },
         scheduler::pipeline::renderer);
 
