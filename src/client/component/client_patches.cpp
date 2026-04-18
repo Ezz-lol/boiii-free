@@ -200,11 +200,13 @@ void replace_sd_allocator() {
 utils::hook::detour live_delayed_com_error_hook;
 void live_delayed_com_error_stub(const char *comErrorString, int32_t code) {
   uintptr_t return_address = reinterpret_cast<uintptr_t>(_ReturnAddress());
-  // Log caller and error message, but don't actually trigger the error
+  // Log caller and error message
   game::com::Com_Printf(
       0, 0,
       "Live_DelayedComError called from %p with message: %s and code: %d\n",
       return_address, comErrorString, code);
+
+  live_delayed_com_error_hook.invoke(comErrorString, code);
 }
 
 } // namespace
