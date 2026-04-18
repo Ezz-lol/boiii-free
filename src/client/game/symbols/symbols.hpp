@@ -7,7 +7,7 @@
 #include "cl.hpp"              // IWYU pragma: export
 #include "cmd.hpp"             // IWYU pragma: export
 #include "com.hpp"             // IWYU pragma: export
-#include "cons.hpp"             // IWYU pragma: export
+#include "console.hpp"         // IWYU pragma: export
 #include "db/core.hpp"         // IWYU pragma: export
 #include "db/db.hpp"           // IWYU pragma: export
 #include "db/load.hpp"         // IWYU pragma: export
