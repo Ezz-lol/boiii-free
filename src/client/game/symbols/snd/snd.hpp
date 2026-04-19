@@ -408,7 +408,7 @@ WEAK symbol<void()> SND_Init{0x142584E20, 0x1406459B0};
 WEAK symbol<bool()> G_SNDEnabled{0x0, 0x140584DB0};
 WEAK symbol<void(game::level::gentity_s *ent, SndAliasId index,
                  game::scr::ScrString_t notifyString)>
-    G_RegisterSoundWait{0x1412EB1F0, 0x140308090};
+    G_RegisterSoundWait{0x141B80F40, 0x140308090};
 
 } // namespace snd
 } // namespace game
