@@ -11,7 +11,7 @@ struct netipv4_t {
   uint8_t d;
 };
 
-enum netadrtype_t {
+enum netadrtype_t : int32_t {
   NA_BOT = 0x0,
   NA_BAD = 0x1,
   NA_LOOPBACK = 0x2,
@@ -19,7 +19,7 @@ enum netadrtype_t {
   NA_IP = 0x4,
 };
 
-enum netsrc_t {
+enum netsrc_t : int32_t {
   NS_NULL = -1,
   NS_CLIENT1 = 0x0,
   NS_CLIENT2 = 0x1,

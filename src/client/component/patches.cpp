@@ -107,13 +107,16 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
   void *callerAddr = _ReturnAddress();
   va_list ap;
   va_start(ap, fmt);
-  int32_t len = vsprintf(nullptr, fmt, ap);
+  int32_t len = vsnprintf(nullptr, 0, fmt, ap);
   va_end(ap);
   va_start(ap, fmt);
   std::vector<char> infoBuf(len + 1);
-  vsprintf(infoBuf.data(), fmt, ap);
+  vsnprintf(infoBuf.data(), infoBuf.size(), fmt, ap);
   va_end(ap);
   char *msg = infoBuf.data();
+  if (msg == nullptr || msg[0] == '\0') {
+    msg = "No message provided!";
+  }
   printf("[Com_Error] Called from 0x%p with message: \"%s\", code: %d\n",
          callerAddr, msg, code);
   game::com::Com_Printf(
