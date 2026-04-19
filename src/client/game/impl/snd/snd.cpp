@@ -203,5 +203,174 @@ bool SND_StartTocRead_Impl(SndBankLoad *load, SndAssetBankLoad *assetBank,
   return entryCount;
 }
 
+uint32_t SND_AssetBankGetFrameRate_Impl(const SndAssetBankEntry *entry) {
+  uint32_t result = 0;
+
+  switch (entry->frameRateIndex) {
+  case 0u:
+    result = 8000;
+    break;
+  case 1u:
+    result = 12000;
+    break;
+  case 2u:
+    result = 16000;
+    break;
+  case 3u:
+    result = 24000;
+    break;
+  case 4u:
+    result = 32000;
+    break;
+  case 5u:
+    result = 44100;
+    break;
+  case 7u:
+    result = 96000;
+    break;
+  case 8u:
+    result = 192000;
+    break;
+  default:
+    result = 48000;
+    break;
+  }
+  return result;
+}
+
+inline uint32_t SND_AssetBankGetLengthMs_Impl(const SndAssetBankEntry *entry) {
+  return 1000 * (uint64_t)(entry->frameCount) /
+         SND_AssetBankGetFrameRate_Impl(entry);
+}
+
+/*
+  A reimplementation of the `SND_HashName` function seen in Black Ops 3.
+
+  Output values are identical defined by `SndAliasId` and `SndStringHash` in
+  the game. The hasher implements a variation of the sdbm hash algorithm
+  (using the constant 0x1003f) with a djb2 initial seed (0x1505).
+  It is case-insensitive and features a specific edge-case where a resulting
+  hash of 0 is promoted to 1.
+
+  - Constant: 0x1003f,
+  - Initial Seed: 0x1505
+*/
+
+static const SndStringHash SND_HASH_EMPTY_STRING = 0;
+static const SndStringHash SND_HASH_DJB2_INITIAL_SEED = 0x1505;
+static const SndStringHash SND_HASH_DJB2_CONSTANT = 0x1003f;
+SndStringHash SND_HashName_Impl(const char *name) {
+  if (!name || !*name)
+    return 0;
+
+  SndStringHash hash = SND_HASH_DJB2_INITIAL_SEED;
+  for (const char *c = name; *c; c++) {
+    hash = static_cast<SndStringHash>(
+               std::tolower(static_cast<unsigned char>(*c))) +
+           hash * SND_HASH_DJB2_CONSTANT;
+  }
+  return hash ? hash : 1;
+}
+
+static const int32_t PLAYBACK_TIME_NOT_FOUND = -1;
+static const uint32_t SOUND_ALIAS_LIST_MAX_COUNT = 0x40;
+
+int32_t SND_GetPlaybackTimeById(SndAliasId id) {
+  int32_t playbackTime = PLAYBACK_TIME_NOT_FOUND;
+  if (id) {
+    SndAliasList *list = game::snd::SND_BankAliasLookup(id);
+    if (list) {
+      uint32_t count = (std::min)(SOUND_ALIAS_LIST_MAX_COUNT, list->count);
+      for (uint32_t i = 0; i < count; i++) {
+        SndAlias *alias = &list->head[i];
+        if (alias) {
+          SndStringHash assetId = alias->assetId;
+          SndAssetBankEntry *entry = nullptr;
+          sd_byte *data = nullptr;
+          if (assetId) {
+            io::stream_fileid fid = 0;
+            if (SND_AssetBankFindEntry(assetId, &entry, &fid, 1)) {
+              playbackTime =
+                  (std::max)(static_cast<int32_t>(
+                                 SND_AssetBankGetLengthMs_Impl(entry)) +
+                                 500,
+                             playbackTime);
+            }
+          } else if (SND_AssetBankFindLoaded(
+                         alias->assetId, &entry,
+                         reinterpret_cast<void **>(&data))) {
+            playbackTime =
+                (std::max)(static_cast<int32_t>(
+                               SND_AssetBankGetLengthMs_Impl(entry)) +
+                               250,
+                           playbackTime);
+          }
+        } else {
+          return 0;
+        }
+      }
+    }
+  }
+
+  return playbackTime;
+}
+inline int32_t SND_GetPlaybackTime_Impl(const char *name) {
+  SndStringHash id = SND_HashName_Impl(name);
+  return SND_GetPlaybackTimeById(static_cast<SndAliasId>(id));
+}
+
+void G_RegisterSoundWait_Impl(game::level::gentity_s *ent, SndAliasId id,
+                              game::scr::ScrString_t notifyString) {
+
+  game::scr::ScrString_t tempNotifyString;
+  game::scr::Scr_SetString(&tempNotifyString, notifyString);
+
+  game::scr::ScrString_t currentPlaybackNotifyString =
+      ent->snd_wait.notifyString;
+  if (currentPlaybackNotifyString) {
+    game::scr::Scr_Notify_ScrString(ent, currentPlaybackNotifyString, 0);
+    if (!ent->snd_wait.stoppable) {
+      game::scr::Scr_SetString(&tempNotifyString, 0);
+      game::scr::ScrString_t targetname = ent->verified_1.targetname;
+
+      const char *targetDisplayStr;
+      if (targetname) {
+        targetDisplayStr = game::sl::SL_ConvertToString(targetname);
+      } else {
+        targetDisplayStr = "<undefined>";
+      }
+      const char *tempNotifyDisplayStr =
+          game::sl::SL_ConvertToString(tempNotifyString);
+      const char *notifyDisplayStr =
+          game::sl::SL_ConvertToString(ent->snd_wait.notifyString);
+      double z = ent->verified_0.r.currentOrigin.z;
+      double y = ent->verified_0.r.currentOrigin.y;
+      double x = ent->verified_0.r.currentOrigin.x;
+      const char *targetClassNameStr =
+          game::sl::SL_ConvertToString(ent->verified_1.classname);
+      const char *errorStr = utils::string::va(
+          "issued a second playsound with notification string before the "
+          "first finished on entity %i classname %s tar"
+          "getname %s location %g %g %g old string %s at time %i new "
+          "string %s at time %i\n",
+          ent->verified_0.s.number, targetClassNameStr, targetDisplayStr, x, y,
+          z, notifyDisplayStr, ent->snd_wait.basetime, tempNotifyDisplayStr,
+          *game::level::level_time);
+      game::scr::Scr_Error(scr::SCRIPTINSTANCE_SERVER, errorStr, 0);
+    }
+  }
+  game::scr::Scr_SetString(&ent->snd_wait.notifyString, tempNotifyString);
+  game::scr::Scr_SetString(&tempNotifyString, 0);
+  ent->snd_wait.index = static_cast<uint32_t>(id);
+  ent->snd_wait.basetime = *game::sv::svs_time;
+
+  // ORIGINAL:
+  //  ent->snd_wait.duration = -1;
+  // PATCH to use actual duration:
+  ent->snd_wait.duration = SND_GetPlaybackTimeById(id);
+
+  ent->snd_wait.stoppable = 1;
+}
+
 } // namespace snd
 } // namespace game

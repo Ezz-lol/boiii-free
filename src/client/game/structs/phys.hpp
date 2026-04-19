@@ -517,7 +517,6 @@ public:
 static_assert(sizeof(phys_gjk_geom) == 0x8,
               "phys_gjk_geom size must be 8 bytes");
 
-typedef uint32_t contents_t;
 typedef contents_t gjk_contents_t;
 
 typedef uint32_t phys_gjk_geom_id;

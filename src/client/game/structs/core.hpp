@@ -26,6 +26,7 @@ namespace game {
     uint8_t __raw_##InlineNum[FixedTotalSize];                                 \
   }
 
+typedef uint32_t contents_t;
 typedef const char *XString;
 typedef XString *XStringPtr;
 typedef const char ConstChar;

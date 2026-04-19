@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core.hpp"
+#include "snd.hpp"
 #include "vehicle.hpp"
 #include "user.hpp"
 #include "phys.hpp"
@@ -9,16 +10,54 @@
 
 namespace game {
 namespace level {
-struct EntityState {
-  int32_t number;
-}; // Incomplete
 
-struct gentity_s {
-  EntityState s;
-  unsigned char __pad0[0x24C];
-  gclient_s *client;
-  unsigned char __pad1[0x17C];
+static const uint32_t ENTITYSTATE_SIZE = 0x1f0;
+partial_def(ENTITYSTATE_SIZE, struct, EntityState,
+            { int32_t number; }); // Incomplete
+static_assert(sizeof(EntityState) == ENTITYSTATE_SIZE,
+              "EntityState size must be 0x1F0 bytes");
+static_assert(offsetof(EntityState, number) == 0,
+              "EntityState::number must be at offset 0");
 
+#pragma pack(push, 1)
+// sizeof = 0x60
+struct entityShared_t {
+  bool linked;
+  bool bmodel;
+  int16_t svFlags;
+  bool inuse;
+  uint8_t _padding05[3];
+  int32_t broadcastTime;
+  vec3_t mins;
+  vec3_t maxs;
+  contents_t contents;
+  vec3_t absmin;
+  vec3_t absmax;
+  vec3_t currentOrigin;
+  vec3_t currentAngles;
+  EntHandle ownerNum;
+  int32_t eventTime;
+};
+static_assert(sizeof(entityShared_t) == 0x60,
+              "entityShared_t size must be 0x60 bytes");
+#pragma pack(pop)
+
+static const uint32_t GENTITY_SIZE = 0x4F8;
+static const uint32_t GENTITY_CLASSNAME_OFFSET = 0x288;
+static const uint32_t GENTITY_SND_WAIT_OFFSET = 0x3D4;
+static const uint32_t GENTITY_VERIFIED2_SIZE =
+    GENTITY_SND_WAIT_OFFSET - GENTITY_CLASSNAME_OFFSET;
+partial_def(GENTITY_SIZE, struct, gentity_s, {
+  inline_partial_def(0, GENTITY_CLASSNAME_OFFSET, struct, {
+    EntityState s;
+    entityShared_t r;
+    gclient_s *client;
+  });
+  inline_partial_def(1, GENTITY_VERIFIED2_SIZE, struct, {
+    scr::ScrString_t classname;
+    scr::ScrString_t target;
+    scr::ScrString_t targetname;
+  });
   struct {
     uint32_t notifyString;
     uint32_t index;
@@ -26,12 +65,17 @@ struct gentity_s {
     int32_t basetime;
     int32_t duration;
   } snd_wait;
-
-  unsigned char __pad2[0x110];
-};
+});
 
 #ifdef __cplusplus
-static_assert(sizeof(gentity_s) == 0x4F8);
+static_assert(offsetof(gentity_s, verified_1) == GENTITY_CLASSNAME_OFFSET,
+              "GENTITY_CLASSNAME_OFFSET must be 0x288");
+static_assert(offsetof(gentity_s, snd_wait) == GENTITY_SND_WAIT_OFFSET,
+              "GENTITY_SND_WAIT_OFFSET must be 0x3D4");
+static_assert(offsetof(gentity_s, verified_0) == 0,
+              "gentity_s must start with EntityState");
+static_assert(sizeof(gentity_s) == GENTITY_SIZE,
+              "gentity_s size must be 0x4F8 bytes");
 #endif
 #pragma pack(push, 1)
 // sizeof=0x30

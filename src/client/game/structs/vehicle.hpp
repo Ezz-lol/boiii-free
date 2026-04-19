@@ -1365,7 +1365,7 @@ public:
   hybrid_vector m_delta;
   hybrid_vector m_rvec;
   float m_radius;
-  phys::contents_t m_mask;
+  contents_t m_mask;
   TraceThreadInfo *m_threadInfo;
 };
 

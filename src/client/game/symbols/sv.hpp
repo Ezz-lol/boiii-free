@@ -10,7 +10,7 @@ WEAK symbol<CmdArgs> sv_cmd_args{0x15689AE30, 0x14944C740};
 // Client and dedi struct size differs :(
 WEAK symbol<net::client_s_cl *> svs_clients_cl{0x1576F9318, 0};
 WEAK symbol<net::client_s *> svs_clients{0x0, 0x14A178E98};
-WEAK symbol<uint32_t> svs_time{0x0, 0x14A178E84};
+WEAK symbol<uint32_t> svs_time{0x1576f9304, 0x14A178E84};
 
 WEAK symbol<bool()> SV_Loaded{0x142252250, 0x140535460};
 WEAK symbol<void *()> SV_AddTestClient{0x142248F40, 0x14052E3E0};

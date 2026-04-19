@@ -7,6 +7,7 @@
 
 #include <string>
 #include <utils/hook.hpp>
+#include "game/impl/snd/snd.hpp"
 
 namespace script {
 std::string resolve_hash(uint32_t hash);
@@ -343,10 +344,15 @@ void sv_execute_client_messages_stub(game::net::client_s *client,
 
   game::sv::SV_ExecuteClientMessage(client, msg);
 }
+
+utils::hook::detour g_registersoundwait_hook;
 } // namespace
 
 struct component final : generic_component {
   void post_unpack() override {
+
+    g_registersoundwait_hook.create(game::snd::G_RegisterSoundWait.get(),
+                                    game::snd::G_RegisterSoundWait_Impl);
     // Clientfield Mismatch -> recoverable ERR_DROP
     com_error_hook.create(game::com::Com_Error_, com_error_stub);
 
