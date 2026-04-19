@@ -293,6 +293,29 @@ cross_env() {
   return "$exit_code"
 }
 
+flags_to_yaml_array_items() {
+  local flags_string="$1"
+  IFS=$' ' read -r -a flags_array <<<"$flags_string"
+  local num_flags="${#flags_array[@]}"
+  for ((i = 1; i < $((num_flags - 1)); i++)); do
+    if [ -n "${flags_array[i]}" ]; then
+      echo -n "${flags_array[i]},"
+    fi
+  done
+  echo -n "${flags_array[num_flags-1]}"
+
+}
+
+generate_clangd_config() {
+  local clangd_config_path
+  clangd_config_path="$(repo_dir)/.clangd"
+  cat >"$clangd_config_path" <<EOL
+CompileFlags:
+  Add: [$(flags_to_yaml_array_items "$TEMP_CXXFLAGS")]
+EOL
+  echo "Generated clangd config: '$clangd_config_path'"
+}
+
 # Arguments optional, can use them later if needed
 # shellcheck disable=SC2120
 premake() {
@@ -589,6 +612,8 @@ if tidy; then
   fi
 
 elif exec_arbitrary; then
+  # In case the command is opening an editor or an application that uses clangd otherwise
+  generate_clangd_config
   if ! cross_env \
     "${EXEC_ARGS[@]}"; then
     exit 1
