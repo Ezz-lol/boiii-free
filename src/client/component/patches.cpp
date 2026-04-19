@@ -5,6 +5,7 @@
 #include <game/game.hpp>
 #include <game/utils.hpp>
 
+#include <string>
 #include <utils/hook.hpp>
 
 namespace script {
@@ -95,6 +96,11 @@ std::string resolve_bare_hashes(const std::string &input) {
 std::string resolve_hashes_in_string(const std::string &input) {
   return resolve_bare_hashes(resolve_quoted_hashes(input));
 }
+
+#define MS 1ms
+#define SECOND 1000 * MS
+#define MINUTE 60 * SECOND
+#define HOUR 60 * MINUTE
 
 void com_error_stub(const char *file, int line, int code, const char *fmt,
                     ...) {
@@ -307,8 +313,8 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
   std::string error_msg =
       std::string("COM_Error called with message: \"") + buffer + "\"";
   game::ui::UI_OpenErrorPopupWithMessage(0, 0, error_msg.c_str());
-  std::this_thread::sleep_for(
-      1000 * 60 * 60); // Sleep for an hour to allow reading the error message
+  // Sleep for an hour to allow reading the error message
+  std::this_thread::sleep_for(HOUR);
 #endif
 
   // removing this will ruin stuff

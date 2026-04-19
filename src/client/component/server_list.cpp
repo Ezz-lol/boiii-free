@@ -339,7 +339,7 @@ std::vector<game::net::netadr_t> get_master_servers() {
   }
 
   std::vector<game::net::netadr_t> servers;
-  for (const auto host : master_server_hosts) {
+  for (const auto &host : master_server_hosts) {
     auto addr = network::address_from_string(host.c_str());
     if (addr.type != game::net::NA_BAD) {
       servers.push_back(addr);
