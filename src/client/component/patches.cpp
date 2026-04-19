@@ -312,14 +312,6 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
     return;
   }
 
-#ifndef NDEBUG
-  std::string error_msg =
-      std::string("COM_Error called with message: \"") + buffer + "\"";
-  game::ui::UI_OpenErrorPopupWithMessage(0, 0, error_msg.c_str());
-  // Sleep for an hour to allow reading the error message
-  std::this_thread::sleep_for(HOUR);
-#endif
-
   // removing this will ruin stuff
   com_error_hook.invoke<void>(file, line, code, "%s", buffer);
 }
