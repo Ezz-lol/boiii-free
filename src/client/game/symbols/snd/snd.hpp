@@ -166,9 +166,6 @@ WEAK symbol<void(float fadetime, bool setScriptValues, float scriptPitch,
     SND_SetVoiceStartFades{0x0, 0x140646F00};
 WEAK symbol<void(float *priority, int *channel, uint32_t start, uint32_t count)>
     Snd_GetLowestPriority{0x0, 0x140649B20};
-WEAK symbol<void(level::gentity_s *ent, snd::SndAliasId index,
-                 scr::ScrString_t notifyString)>
-    G_RegisterSoundWait{0x0, 0x140308090};
 WEAK symbol<void(SndEntHandle handle, const char *type, const char *value)>
     SND_SetEntContext{0x0, 0x140548D20};
 WEAK symbol<void(SndEntHandle sndEnt, const vec3_t *shotPosition,
@@ -409,6 +406,10 @@ WEAK symbol<void()> SND_Init{0x142584E20, 0x1406459B0};
    be server-specific in older CoD engines.
 */
 WEAK symbol<bool()> G_SNDEnabled{0x0, 0x140584DB0};
+WEAK symbol<void(game::level::gentity_s *ent, SndAliasId index,
+                 game::scr::ScrString_t notifyString)>
+    G_RegisterSoundWait{0x1412EB1F0, 0x140308090};
+
 } // namespace snd
 } // namespace game
 

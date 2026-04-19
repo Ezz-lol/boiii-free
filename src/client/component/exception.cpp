@@ -285,6 +285,19 @@ void reset_state() {
         },
         scheduler::pipeline::main);
 
+    game::com::Com_Printf(
+        0, 0,
+        "%s (0x%08X) at %s\n\n"
+        "A crash dump has been saved to:\n%s\n\n"
+        "Ezz has tried to recover your game, but it may be unstable.\n\n"
+        "Make sure to update your graphics card drivers and "
+        "install operating system updates!\n"
+        "Closing or restarting Steam might also help.\n\n"
+        "If this keeps happening, please report it on our Discord: "
+        "https://dc.ezz.lol",
+        exception_name, exception_data.code, location.c_str(),
+        (game::get_appdata_path() / "minidumps").string().c_str());
+
     game::com::Com_Error(
         game::ERR_DROP,
         "%s (0x%08X) at %s\n\n"
