@@ -108,8 +108,10 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
   vsprintf(infoBuf.data(), fmt, ap);
   va_end(ap);
   char *msg = infoBuf.data();
+  printf("[Com_Error] Called from 0x%p with message: \"%s\", code: %d\n",
+         callerAddr, msg, code);
   game::com::Com_Printf(
-      0, 0, "ComError called from 0x%p with message: %s and code: %d\n",
+      0, 0, "ComError called from 0x%p with message: \"%s\", code: %d\n",
       callerAddr, msg, code);
   static bool suppress_next_lua_error = false;
   static bool client_script_error_pending = false;
@@ -298,7 +300,16 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
           game::ui::UI_OpenErrorPopupWithMessage(0, 0, deferred_error.c_str());
         },
         scheduler::pipeline::main, 500ms);
+    return;
   }
+
+#ifndef NDEBUG
+  std::string error_msg =
+      std::string("COM_Error called with message: \"") + buffer + "\"";
+  game::ui::UI_OpenErrorPopupWithMessage(0, 0, error_msg.c_str());
+  std::this_thread::sleep_for(
+      1000 * 60 * 60); // Sleep for an hour to allow reading the error message
+#endif
 
   // removing this will ruin stuff
   com_error_hook.invoke<void>(file, line, code, "%s", buffer);
