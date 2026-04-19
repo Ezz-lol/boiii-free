@@ -302,8 +302,7 @@ void reset_state() {
         game::ERR_DROP,
         "%s (0x%08X) at %s\n\n"
         "A crash dump has been saved to:\n%s\n\n"
-        "Ezz has tried to recover your game, but it might not run "
-        "stable anymore.\n\n"
+        "Ezz has tried to recover your game, but it may be unstable.\n\n"
         "Make sure to update your graphics card drivers and "
         "install operating system updates!\n"
         "Closing or restarting Steam might also help.\n\n"
