@@ -309,7 +309,6 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
           game::ui::UI_OpenErrorPopupWithMessage(0, 0, deferred_error.c_str());
         },
         scheduler::pipeline::main, 500ms);
-    return;
   }
 
   // removing this will ruin stuff
