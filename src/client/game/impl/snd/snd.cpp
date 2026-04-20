@@ -246,9 +246,9 @@ inline uint32_t SND_AssetBankGetLengthMs_Impl(const SndAssetBankEntry *entry) {
 /*
   A reimplementation of the `SND_HashName` function seen in Black Ops 3.
 
-  Output values are identical defined by `SndAliasId` and `SndStringHash` in
-  the game. The hasher implements a variation of the sdbm hash algorithm
-  (using the constant 0x1003f) with a djb2 initial seed (0x1505).
+  Output values are identical to those defined with types `SndAliasId` and
+  `SndStringHash` in the game. The hasher implements a variation of the sdbm
+  hash algorithm (using the constant 0x1003f) with a djb2 initial seed (0x1505).
   It is case-insensitive and features a specific edge-case where a resulting
   hash of 0 is promoted to 1.
 
