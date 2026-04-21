@@ -1230,7 +1230,7 @@ public:
                                     ui_cod_lobbyui_init_stub);
     ui_shutdown_hook.create(game::select(0x14270DE00, 0x1404A1280),
                             ui_shutdown_stub);
-    lua_cod_getrawfile_hook.create(game::select(0x141F0EFE0, 0x1404BCB70),
+    lua_cod_getrawfile_hook.create(game::ui::lua::Lua_CoD_GetRawFile.get(),
                                    lua_cod_getrawfile_stub);
 
     hksi_lua_getinfo_detour.create(game::select(0x141D4D8D0, 0x1403F64B0),
