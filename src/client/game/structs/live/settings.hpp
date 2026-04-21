@@ -253,6 +253,9 @@ union CachedSettingsProfileKeys {
 
   const char *names[125];
 };
+static_assert(
+    sizeof(CachedSettingsProfileKeys) == 125 * sizeof(const char *),
+    "CachedSettingsProfileKeys must be a simple array of 125 const char*");
 
 union SettingsGlob {
   struct {
@@ -265,8 +268,5 @@ union SettingsGlob {
   bool glob[4];
 };
 
-static_assert(
-    sizeof(CachedSettingsProfileKeys) == 125 * sizeof(const char *),
-    "CachedSettingsProfileKeys must be a simple array of 125 const char*");
 } // namespace live
 } // namespace game
