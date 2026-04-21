@@ -13,6 +13,7 @@ namespace snd {
 */
 struct SndBank;
 struct SndPatch;
+struct SndDriverGlobals;
 } // namespace snd
 namespace db {
 namespace xasset {
@@ -166,6 +167,15 @@ struct XAssetPool {
   AssetLink *freeHead;
 };
 
+template <typename T> struct TypedXAssetPool {
+  T *pool;
+  uint32_t itemSize;
+  int32_t itemCount;
+  qboolean isSingleton;
+  int32_t itemAllocCount;
+  AssetLink *freeHead;
+};
+
 static_assert(sizeof(XAssetPool) == 0x20, "XAssetPool size must be 0x20 bytes");
 #pragma pack(push, 1)
 // sizeof=x10
@@ -233,7 +243,7 @@ union XAssetHeader {
   // WeaponCamo *weaponCamo;
   // CustomizationTable *customizationTable;
   // CustomizationColorInfo *customizationColorInfo;
-  // SndDriverGlobals *sndDriverGlobals;
+  snd::SndDriverGlobals *sndDriverGlobals;
   // FxEffectDefHandleRaw fx;
   // TagFxSet *tagFX;
   // FxLensFlareDefPtr newLensFlareDef;
@@ -352,16 +362,137 @@ union XAssetEntryPoolEntry {
 };
 static_assert(sizeof(XAssetEntryPoolEntry) == 0x20,
               "sizeof(XAssetEntryPoolEntry) must be 0x20");
-static inline const std::size_t XASSET_ENTRY_POOL_LENGTH = 156671;
+static const std::size_t XASSET_ENTRY_POOL_LENGTH = 156671;
 
 #pragma pack(push, 1)
 struct XAssetEntryPool {
   XAssetEntryPoolEntry pool[XASSET_ENTRY_POOL_LENGTH];
 };
 
-struct XAssetPools {
-  XAssetPool pools[static_cast<int>(XAssetType::ASSET_TYPE_COUNT)];
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+
+struct TypedXAssetPools {
+  XAssetPool physpreset;
+  XAssetPool physconstraints;
+  XAssetPool destructibledef;
+  XAssetPool xanimparts;
+  XAssetPool xmodel;
+  XAssetPool xmodelmesh;
+  XAssetPool material;
+  XAssetPool compute_shader_set;
+  XAssetPool technique_set;
+  XAssetPool image;
+  TypedXAssetPool<snd::SndBank> sound;
+  TypedXAssetPool<snd::SndPatch> sound_patch;
+  XAssetPool clipmap;
+  XAssetPool comworld;
+  XAssetPool gameworld;
+  XAssetPool map_ents;
+  XAssetPool gfxworld;
+  XAssetPool light_def;
+  XAssetPool lensflare_def;
+  XAssetPool ui_map;
+  XAssetPool font;
+  XAssetPool fonticon;
+  XAssetPool localize_entry;
+  XAssetPool weapon;
+  XAssetPool weapondef;
+  XAssetPool weapon_variant;
+  XAssetPool weapon_full;
+  XAssetPool cgmedia;
+  XAssetPool playersounds;
+  XAssetPool playerfx;
+  XAssetPool sharedweaponsounds;
+  XAssetPool attachment;
+  XAssetPool attachment_unique;
+  XAssetPool weapon_camo;
+  XAssetPool customization_table;
+  XAssetPool customization_table_fe_images;
+  XAssetPool customization_table_color;
+  TypedXAssetPool<snd::SndDriverGlobals> snddriver_globals;
+  XAssetPool fx;
+  XAssetPool tagfx;
+  XAssetPool new_lensflare_def;
+  XAssetPool impact_fx;
+  XAssetPool impact_sound;
+  XAssetPool player_character;
+  XAssetPool aitype;
+  XAssetPool character;
+  XAssetPool xmodelalias;
+  TypedXAssetPool<RawFile> rawfile;
+  XAssetPool stringtable;
+  XAssetPool structured_table;
+  XAssetPool leaderboard;
+  XAssetPool ddl;
+  XAssetPool glasses;
+  XAssetPool texturelist;
+  TypedXAssetPool<RawFile> scriptparsetree;
+  XAssetPool keyvaluepairs;
+  XAssetPool vehicledef;
+  XAssetPool addon_map_ents;
+  XAssetPool tracer;
+  XAssetPool slug;
+  XAssetPool surfacefx_table;
+  XAssetPool surfacesounddef;
+  XAssetPool footstep_table;
+  XAssetPool entityfximpacts;
+  XAssetPool entitysoundimpacts;
+  XAssetPool zbarrier;
+  XAssetPool vehiclefxdef;
+  XAssetPool vehiclesounddef;
+  XAssetPool typeinfo;
+  XAssetPool scriptbundle;
+  XAssetPool scriptbundlelist;
+  XAssetPool rumble;
+  XAssetPool bulletpenetration;
+  XAssetPool locdmgtable;
+  XAssetPool aimtable;
+  XAssetPool animselectortableset;
+  XAssetPool animmappingtable;
+  XAssetPool animstatemachine;
+  XAssetPool behaviortree;
+  XAssetPool behaviorstatemachine;
+  XAssetPool ttf;
+  XAssetPool sanim;
+  XAssetPool light_description;
+  XAssetPool shellshock;
+  XAssetPool xcam;
+  XAssetPool bg_cache;
+  XAssetPool texture_combo;
+  XAssetPool flametable;
+  XAssetPool bitfield;
+  XAssetPool attachment_cosmetic_variant;
+  XAssetPool maptable;
+  XAssetPool maptable_loading_images;
+  XAssetPool medal;
+  XAssetPool medaltable;
+  XAssetPool objective;
+  XAssetPool objective_list;
+  XAssetPool umbra_tome;
+  XAssetPool navmesh;
+  XAssetPool navvolume;
+  XAssetPool binaryhtml;
+  XAssetPool laser;
+  XAssetPool beam;
+  XAssetPool streamer_hint;
 };
+
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+
+union XAssetPools {
+  XAssetPool pools[static_cast<int>(XAssetType::ASSET_TYPE_COUNT)];
+  TypedXAssetPools typed;
+};
+static_assert(
+    sizeof(XAssetPools) ==
+        sizeof(XAssetPool) * static_cast<int>(XAssetType::ASSET_TYPE_COUNT),
+    "sizeof(XAssetPools) must be sizeof(XAssetPool) * ASSET_TYPE_COUNT");
+static_assert(sizeof(XAssetPools) == sizeof(TypedXAssetPools),
+              "sizeof(XAssetPools) must be equal to sizeof(TypedXAssetPools)");
 #pragma pack(pop)
 
 } // namespace xasset
