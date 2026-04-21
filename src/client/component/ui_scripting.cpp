@@ -721,7 +721,7 @@ xasset::XAssetHeader lua_cod_getrawfile_stub(char *filename) {
     globals.raw_script_name = target_script;
 
     return xasset::XAssetHeader{
-        .luaFile = reinterpret_cast<xasset::RawFile *>(1) //
+        .rawfile = reinterpret_cast<xasset::RawFile *>(1) //
     };
   }
 
@@ -910,9 +910,9 @@ const char *resolve_source_from_rawfiles(uintptr_t bytecode_header) {
         auto *c = static_cast<lookup_ctx *>(data);
         if (c->found)
           return;
-        if (header.luaFile && header.luaFile->name && header.luaFile->buffer) {
-          if (reinterpret_cast<uintptr_t>(header.luaFile->buffer) == c->target)
-            c->found = header.luaFile->name;
+        if (header.rawfile && header.rawfile->name && header.rawfile->buffer) {
+          if (reinterpret_cast<uintptr_t>(header.rawfile->buffer) == c->target)
+            c->found = header.rawfile->name;
         }
       },
       &ctx, false);

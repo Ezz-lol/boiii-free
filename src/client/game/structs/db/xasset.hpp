@@ -253,7 +253,10 @@ union XAssetHeader {
   // PlayerSoundsTable *playerSounds;
   // PlayerFXTable *playerFX;
   // SharedWeaponSounds *sharedWeaponSounds;
-  RawFile *luaFile;
+
+  // E.g. compiled lua scripts, game CFGs,
+  // some DDL files, vision and anim scripts
+  RawFile *rawfile;
   // StringTable *stringTable;
   // StructuredTable *structuredTable;
   // LeaderboardDef *leaderboardDef;
