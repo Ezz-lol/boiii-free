@@ -8,7 +8,8 @@ namespace db {
 namespace xasset {
 void reallocate_asset_pool(const XAssetType type, const unsigned int new_size);
 
-// Always inlined in engine, reimplemented here for use
+// The engine always inlines this function, so we reimplement it here for use
+// elsewhere.
 uint32_t DB_HashForName(const char *name, const XAssetType type);
 XAssetEntryPoolEntry *DB_GetAssetEntryPoolEntryByName(const char *name,
                                                       const XAssetType type);

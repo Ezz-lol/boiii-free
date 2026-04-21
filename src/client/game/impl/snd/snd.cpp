@@ -261,7 +261,7 @@ static const SndStringHash SND_HASH_DJB2_INITIAL_SEED = 0x1505;
 static const SndStringHash SND_HASH_DJB2_CONSTANT = 0x1003f;
 SndStringHash SND_HashName_Impl(const char *name) {
   if (!name || !*name)
-    return 0;
+    return SND_HASH_EMPTY_STRING;
 
   SndStringHash hash = SND_HASH_DJB2_INITIAL_SEED;
   for (const char *c = name; *c; c++) {

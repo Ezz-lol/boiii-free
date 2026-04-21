@@ -73,6 +73,7 @@ void reallocate_asset_pool(const XAssetType type, const unsigned int new_size) {
 
 uint32_t DB_HashForName(const char *name, const XAssetType type) {
   // The engine always inlines this function, so we reimplement it here for use
+  // elsewhere.
   uint32_t hash = static_cast<uint32_t>(type);
   while (*name) {
     char c = *name++;
@@ -96,10 +97,6 @@ XAssetEntryPoolEntry *DB_GetAssetEntryPoolEntryByName(const char *name,
   while (entry != nullptr) {
     if (entry->entry.asset.type == type &&
         strcmp(entry->entry.asset.header.named->name, name) == 0) {
-      break;
-    }
-
-    if (entry->next == nullptr) {
       break;
     }
 
