@@ -1,3 +1,4 @@
+aar_multiple_promo
 aar_single_promo
 aar_test
 accelspeed
@@ -7128,5 +7129,5 @@ zombie_debug
 zombie_devgui
 zombie_kills
 zombie_kill_timer
-zombiemode_debug_zombie_countaar_multiple_promo
+zombiemode_debug_zombie_count
 
