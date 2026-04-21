@@ -31,6 +31,28 @@ bool write_file(const std::string &file, const std::string &data,
 
   if (stream.is_open()) {
     stream.write(data.data(), static_cast<std::streamsize>(data.size()));
+    stream.flush();
+    stream.close();
+    return true;
+  }
+
+  return false;
+}
+
+bool write_file_bytes(const std::string &file, const uint8_t *data, size_t size,
+                      const bool append) {
+  const auto pos = file.find_last_of("/\\");
+  if (pos != std::string::npos) {
+    create_directory(file.substr(0, pos));
+  }
+
+  std::ofstream stream(file, std::ios::binary | std::ofstream::out |
+                                 (append ? std::ofstream::app : 0));
+
+  if (stream.is_open()) {
+    stream.write(reinterpret_cast<const char *>(data),
+                 static_cast<std::streamsize>(size));
+    stream.flush();
     stream.close();
     return true;
   }

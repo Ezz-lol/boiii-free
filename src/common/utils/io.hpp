@@ -11,6 +11,8 @@ bool move_file(const std::filesystem::path &src,
 bool file_exists(const std::string &file);
 bool write_file(const std::string &file, const std::string &data,
                 bool append = false);
+bool write_file_bytes(const std::string &file, const uint8_t *data, size_t size,
+                      const bool append = false);
 bool read_file(const std::string &file, std::string *data);
 std::string read_file(const std::string &file);
 size_t file_size(const std::string &file);
