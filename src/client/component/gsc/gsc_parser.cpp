@@ -1,5 +1,6 @@
 #include <std_include.hpp>
 #include "gsc_parser.hpp"
+#include "gsc_lexer.hpp"
 #include <algorithm>
 #include <stdexcept>
 
@@ -636,6 +637,15 @@ ast_ptr parse_expression(parser_state &s) {
     ternary->children.push_back(std::move(true_expr));
     ternary->children.push_back(std::move(false_expr));
     return ternary;
+  } else if (s.check(token_type::t_double_colon) ||
+             s.check(token_type::t_ampersand)) {
+    s.advance();
+    auto &func_tok =
+        s.expect(token_type::t_identifier, "Expected function name after '::'");
+    auto func_ref = make_node(node_type::n_func_ref, func_tok.value,
+                              func_tok.line, func_tok.column);
+    func_ref->children.push_back(std::move(expr));
+    return func_ref;
   }
 
   return expr;
@@ -1002,11 +1012,11 @@ ast_ptr parse_script(parser_state &s) {
       continue;
     }
 
-    if (s.check(token_type::t_using)) {
+    if (s.check(token_type::t_using) || s.check(token_type::t_include)) {
       auto &tok = s.advance();
       std::string path;
       while (s.check(token_type::t_identifier) ||
-             s.check(token_type::t_backslash)) {
+             s.check(token_type::t_backslash) || s.check(token_type::t_slash)) {
         path += s.advance().value;
       }
       s.expect(token_type::t_semicolon, "Expected ';'");

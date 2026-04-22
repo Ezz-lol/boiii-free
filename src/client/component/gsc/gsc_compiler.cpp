@@ -161,17 +161,6 @@ std::string preprocess_impl(const std::string &source,
         return rest.substr(start, i - start);
       };
 
-      // Allow using '/' script #include path delimiter in place of '\'
-      if (trimmed.substr(0, 8) == "#include" ||
-          trimmed.substr(0, 7) == "#insert" ||
-          trimmed.substr(0, 6) == "#using") {
-        for (char &c : trimmed) {
-          if (c == '/') {
-            c = '\\';
-          }
-        }
-      }
-
       // Conditional compilation directives must be processed even when skipping
       if (trimmed.substr(0, 6) == "#ifdef") {
         auto macro = extract_directive_arg(trimmed, 6);
@@ -310,9 +299,6 @@ std::string preprocess_impl(const std::string &source,
                (insert_path.back() == ';' || insert_path.back() == ' ' ||
                 insert_path.back() == '\t'))
           insert_path.pop_back();
-        for (char &c : insert_path)
-          if (c == '\\')
-            c = '/';
 
         auto [file_content, resolved_path] =
             resolve_insert_file(insert_path, filename);
