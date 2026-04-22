@@ -160,12 +160,17 @@ struct client_s {
 };
 
 #ifdef __cplusplus
-static_assert(sizeof(client_s) == 0xE5110);
+static_assert(sizeof(client_s) == 0xE5110,
+              "client_s size must be 0xE5110 bytes");
 
-static_assert(offsetof(client_s, address) == 0x2C);
-static_assert(offsetof(client_s, xuid) == 0x55C8);
-static_assert(offsetof(client_s, guid) == 0xBB354);
-static_assert(offsetof(client_s, bIsTestClient) == 0xBB360);
+static_assert(offsetof(client_s, address) == 0x2C,
+              "client_s::address offset must be 0x2C bytes");
+static_assert(offsetof(client_s, xuid) == 0x55C8,
+              "client_s::xuid offset must be 0x55C8 bytes");
+static_assert(offsetof(client_s, guid) == 0xBB354,
+              "client_s::guid offset must be 0xBB354 bytes");
+static_assert(offsetof(client_s, bIsTestClient) == 0xBB360,
+              "client_s::bIsTestClient offset must be 0xBB360 bytes");
 #endif
 
 struct client_s_cl : client_s {
@@ -173,8 +178,11 @@ struct client_s_cl : client_s {
 };
 
 #ifdef __cplusplus
-static_assert(sizeof(client_s_cl) == 0xE5170);
+static_assert(sizeof(client_s_cl) == 0xE5170,
+              "client_s_cl size must be 0xE5170 bytes");
 #endif
+
+typedef UNKNOWN_PTR_TYPE PacketQueuePtr;
 
 } // namespace net
 } // namespace game

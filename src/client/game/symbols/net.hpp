@@ -13,8 +13,12 @@ WEAK symbol<SOCKET> ip_socket{0x157E75818, 0x14A640988};
 WEAK symbol<uint8_t(msg_t *msg)> MSG_ReadByte{0x142155450, 0x14050D1B0};
 
 // NET
+
 WEAK symbol<bool(netsrc_t sock, netadr_t *adr, const void *data, int len)>
-    NET_OutOfBandData{0x142173600};
+    NET_OutOfBandData{0x142173600, 0x140515C80};
+WEAK symbol<bool(PacketQueuePtr queue, uint32_t flags, netsrc_t sock,
+                 const netadr_t *addr, int length, const void *data)>
+    NET_EnqueuePacket{0x0, 0x14051A570};
 WEAK symbol<bool(netsrc_t sock, int length, const void *data,
                  const netadr_t *to)>
     NET_SendPacket{0x1423323B0, 0x140596E40};
