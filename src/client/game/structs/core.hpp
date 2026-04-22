@@ -10,6 +10,8 @@
 
 namespace game {
 
+#define UNKNOWN_PTR_TYPE void *
+
 // Automatically pad a partially defined (reverse-engineered, in our case)
 // struct to a fixed, known-correct total length
 #define partial_def(TotalSize, PrimType, Fixed, Verified)                      \
@@ -958,14 +960,13 @@ enum connstate_t {
   CA_ACTIVE = 0xB,
 };
 
-struct clientUIActive_t {
-  int32_t flags;
-  int32_t keyCatchers;
-  connstate_t connectionState;
-  unsigned char __pad0[0x106C];
+enum class StanceState : int32_t {
+  CL_STANCE_STAND = 0x0,
+  CL_STANCE_CROUCH = 0x1,
+  CL_STANCE_PRONE = 0x2,
+  CL_STANCE_DIVE_TO_PRONE = 0x3,
+  CL_STANCE_SLIDE = 0x4,
 };
-
-static_assert(sizeof(clientUIActive_t) == 0x1078);
 
 struct clientActive_t {
   char __pad0[0xB8C8];
@@ -973,7 +974,8 @@ struct clientActive_t {
   char __pad1[0x18C15C];
 };
 
-static_assert(sizeof(clientActive_t) == 0x197A30);
+static_assert(sizeof(clientActive_t) == 0x197A30,
+              "clientActive_t size must be 0x197A30 bytes");
 
 using fileHandle_t = void *;
 
@@ -1013,7 +1015,8 @@ struct workshop_data {
 };
 
 #ifdef __cplusplus
-static_assert(sizeof(workshop_data) == 0x4C8);
+static_assert(sizeof(workshop_data) == 0x4C8,
+              "workshop_data size must be 0x4C8 bytes");
 #endif
 
 struct DDLMember {

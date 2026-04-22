@@ -26,3 +26,4 @@
 #include "cl.hpp"        // IWYU pragma: export
 #include "ui/ui.hpp"     // IWYU pragma: export
 #include "cmd.hpp"       // IWYU pragma: export
+#include "cg.hpp"
