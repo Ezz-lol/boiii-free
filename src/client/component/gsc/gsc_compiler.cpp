@@ -161,6 +161,17 @@ std::string preprocess_impl(const std::string &source,
         return rest.substr(start, i - start);
       };
 
+      // Allow using '/' script #include path delimiter in place of '\'
+      if (trimmed.substr(0, 8) == "#include" ||
+          trimmed.substr(0, 7) == "#insert" ||
+          trimmed.substr(0, 6) == "#using") {
+        for (char &c : trimmed) {
+          if (c == '/') {
+            c = '\\';
+          }
+        }
+      }
+
       // Conditional compilation directives must be processed even when skipping
       if (trimmed.substr(0, 6) == "#ifdef") {
         auto macro = extract_directive_arg(trimmed, 6);
