@@ -86,7 +86,8 @@ static __declspec(noinline) bool seh_get_client_count(int max_clients,
     char name_buf[64];
     for (int i = 0; i < max_clients; ++i) {
       name_buf[0] = '\0';
-      if (game::cl::CL_GetClientName(0, i, name_buf, sizeof(name_buf), false) &&
+      if (game::cl::CL_GetClientName(game::LOCAL_CLIENT_0, i, name_buf,
+                                     sizeof(name_buf), false) &&
           name_buf[0] != '\0')
         ++count;
     }

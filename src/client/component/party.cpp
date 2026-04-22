@@ -57,8 +57,9 @@ void connect_to_lobby(const game::net::netadr_t &addr,
   workshop::setup_same_mod_as_host(usermap_id, mod_id);
 
   game::net::XSESSION_INFO info{};
-  game::cl::CL_ConnectFromLobby(0, &info, &addr, 1, 0, mapname.data(),
-                                gamemode.data(), usermap_id.data());
+  game::cl::CL_ConnectFromLobby(game::CONTROLLER_INDEX_0, &info, &addr, 1, 0,
+                                mapname.data(), gamemode.data(),
+                                usermap_id.data());
 }
 
 void launch_mode(const game::eModes mode) {
