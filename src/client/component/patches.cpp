@@ -114,7 +114,7 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
   std::vector<char> infoBuf(len + 1);
   vsnprintf(infoBuf.data(), infoBuf.size(), fmt, ap);
   va_end(ap);
-  char *msg = infoBuf.data();
+  const char *msg = infoBuf.data();
   if (msg == nullptr || msg[0] == '\0') {
     msg = "No message provided!";
   }

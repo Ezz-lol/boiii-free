@@ -347,7 +347,7 @@ lexer_result tokenize(const std::string &source) {
 
     // &func_name is a function reference (same as ::func_name)
     // &namespace::func is a namespaced function reference
-    if ((c == '&' || c == ':' && s.peek_next() == ':') &&
+    if ((c == '&' || (c == ':' && s.peek_next() == ':')) &&
         is_ident_start(s.peek_next())) {
       s.advance();
       std::string word;
