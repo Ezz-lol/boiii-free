@@ -79,7 +79,6 @@ void SD_Free_Impl(sd_byte *ptr) {
   }
 }
 
-// Hidden C++ exception states: #wind=1
 void SND_EnqueueLoadedAssets_Impl(SndBankLoad *load) {
   SND_ErrorIfSoundGlobalsTrashed();
 
@@ -93,13 +92,7 @@ void SND_EnqueueLoadedAssets_Impl(SndBankLoad *load) {
   uint64_t entryOffset = 0;
   if (entryCount) {
     entryOffsetCursor = &load->loadAssetBank.entries->offset;
-    /*
-       The loop iterates through each entry in the
-       asset bank, and calculates the total size of the loaded data by finding
-       the lowest entry offset and the highest entry offset + entry size, and
-       subtracting the lowest entry offset from the highest entry offset + entry
-       size.
-    */
+
     for (uint32_t i = 0; i < entryCount; i++) {
       if (lowestEntryOffset) {
         if (lowestEntryOffset > *entryOffsetCursor) {
