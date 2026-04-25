@@ -12,6 +12,17 @@ bool remove_file(const std::filesystem::path &file) {
   return GetLastError() == ERROR_FILE_NOT_FOUND;
 }
 
+bool remove_directory(const std::filesystem::path &directory,
+                      const bool recursive) {
+  std::error_code e;
+  if (recursive) {
+    return std::filesystem::remove_all(directory, e) !=
+           static_cast<std::uintmax_t>(-1);
+  }
+
+  return std::filesystem::remove(directory, e);
+}
+
 bool move_file(const std::filesystem::path &src,
                const std::filesystem::path &target) {
   return MoveFileW(src.wstring().data(), target.wstring().data()) == TRUE;
@@ -26,8 +37,11 @@ bool write_file(const std::string &file, const std::string &data,
     create_directory(file.substr(0, pos));
   }
 
-  std::ofstream stream(file, std::ios::binary | std::ofstream::out |
-                                 (append ? std::ofstream::app : 0));
+  auto flags = std::ios::binary | std::ofstream::out;
+  if (append) {
+    flags |= std::ofstream::app;
+  }
+  std::ofstream stream(file, flags);
 
   if (stream.is_open()) {
     stream.write(data.data(), static_cast<std::streamsize>(data.size()));

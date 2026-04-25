@@ -6,6 +6,8 @@
 
 namespace utils::io {
 bool remove_file(const std::filesystem::path &file);
+bool remove_directory(const std::filesystem::path &directory,
+                      bool recursive = false);
 bool move_file(const std::filesystem::path &src,
                const std::filesystem::path &target);
 bool file_exists(const std::string &file);
