@@ -99,6 +99,8 @@ std::string replace(std::string str, const std::string &from,
 void trim(std::string &str);
 
 void copy(char *dest, size_t max_size, const char *src);
+std::string join(std::vector<std::string> strings,
+                 const std::string &separator);
 
 template <size_t Size> void copy(char (&dest)[Size], const char *src) {
   copy(dest, Size, src);

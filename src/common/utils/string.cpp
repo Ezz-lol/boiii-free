@@ -199,6 +199,20 @@ std::string &rtrim(std::string &str) {
   return str;
 }
 
+std::string join(std::vector<std::string> strings,
+                 const std::string &separator) {
+  std::string result;
+  for (size_t i = 0; i < strings.size(); ++i) {
+    if (i > 0) {
+      result += separator;
+    }
+
+    result += strings[i];
+  }
+
+  return result;
+}
+
 void trim(std::string &str) { ltrim(rtrim(str)); }
 
 void copy(char *dest, const size_t max_size, const char *src) {
