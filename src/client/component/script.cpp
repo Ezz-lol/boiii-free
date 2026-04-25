@@ -513,7 +513,6 @@ void load_scripts_folder(const std::string &script_dir, const bool load,
 
   std::vector<std::filesystem::path> scripts =
       utils::io::list_files(script_dir, true, false);
-  std::vector<std::vector<std::string>> script_deps;
   for (const auto &script : scripts) {
     std::string data;
     std::string script_path_str = script.generic_string();
