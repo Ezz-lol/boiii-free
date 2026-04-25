@@ -205,18 +205,21 @@ std::size_t file_size(const std::wstring &file) {
 }
 
 std::vector<std::filesystem::path>
-list_files(const std::filesystem::path &directory, const bool recursive) {
+list_files(const std::filesystem::path &directory, const bool recursive,
+           const bool include_directories) {
   std::error_code code{};
   std::vector<std::filesystem::path> files;
 
   if (recursive) {
     for (auto &file :
          std::filesystem::recursive_directory_iterator(directory, code)) {
-      files.push_back(file.path());
+      if (include_directories || !file.is_directory())
+        files.push_back(file.path());
     }
   } else {
     for (auto &file : std::filesystem::directory_iterator(directory, code)) {
-      files.push_back(file.path());
+      if (include_directories || !file.is_directory())
+        files.push_back(file.path());
     }
   }
 

@@ -32,7 +32,8 @@ std::string read_file(const std::wstring &file);
 std::size_t file_size(const std::wstring &file);
 
 std::vector<std::filesystem::path>
-list_files(const std::filesystem::path &directory, bool recursive = false);
+list_files(const std::filesystem::path &directory, bool recursive = false,
+           bool includeDirectories = true);
 
 bool write_file_executable(const std::filesystem::path &file,
                            const std::string &data);
