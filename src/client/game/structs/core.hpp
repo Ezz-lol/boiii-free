@@ -1017,16 +1017,6 @@ static_assert(sizeof(clientActive_t) == 0x197A30,
 
 using fileHandle_t = void *;
 
-using ScrVarCanonicalName_t = uint32_t;
-
-struct BuiltinFunctionDef {
-  ScrVarCanonicalName_t canonId;
-  uint32_t min_args;
-  uint32_t max_args;
-  void *actionFunc;
-  int32_t type;
-};
-
 struct gclient_s {
   char __pad0[0x8C];
   float velocity[3];

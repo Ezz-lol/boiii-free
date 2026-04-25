@@ -10,6 +10,63 @@ typedef uint32_t ScrString_t;
 typedef uint32_t ScrVarCanonicalName_t;
 typedef ScrString_t ScriptString;
 
+//
+// Reverse engineered and defined as enum further below, using the
+// var_typename table as reference.
+// typedef uint32_t ScrVarType_t;
+// Index on VM stack - normally used to access with `stack[-index]` - index from
+// top.
+typedef uint32_t ScrVarIndex_t;
+typedef uint32_t ScrVarNameType_t;
+typedef uint64_t ScrVarNameIndex_t;
+typedef intptr_t scr_funcptr_t;
+
+/*
+  There is no typed, defined enumeration in the engine -
+  ScrVarType_t is defined as `typedef uint32_t ScrVarType_t;`.
+
+  These type enumerations were extracted from the `var_typename` table in the
+  engine.
+
+  These can be easily verified by comparison to clear, inline type value
+  matching in the engine, e.g. in BGScr_GetArrayObject for the array type
+  value (0x19).
+*/
+enum class ScrVarType : uint32_t {
+  UNDEFINED = 0x00,
+  POINTER = 0x01,
+  STRING = 0x02,
+  LOCALIZED_STRING = 0x03,
+  VECTOR = 0x04,
+  HASH = 0x05,
+  FLOAT = 0x06,
+  TNI = 0x07, // ?
+  UINT64 = 0x08,
+  UINTPTR_T = 0x09,
+  ENTITY_OFFSET = 0x0A,
+  CODEPOS = 0x0B,
+  PRECODEPOS = 0x0C,
+  API_FUNCTION = 0x0D,
+  FUNCTION = 0x0E,
+  STACK = 0x0F,
+  ANIMATION = 0x10,
+  THREAD = 0x11,
+  NOTIFY_THREAD = 0x12,
+  TIME_THREAD = 0x13,
+  CHILD_THREAD = 0x14,
+  CLASS = 0x15,
+  STRUCT = 0x16,
+  REMOVED_ENTITY = 0x17,
+  ENTITY = 0x18,
+  ARRAY = 0x19,
+  REMOVED_THREAD = 0x1A,
+  FREE = 0x1B,
+  THREAD_LIST = 0x1C,
+  ENT_LIST = 0x1D,
+};
+
+typedef ScrVarType ScrVarType_t;
+
 #pragma pack(push, 1)
 
 enum class scriptBundleKVPType_t : int32_t {
@@ -1411,12 +1468,90 @@ struct scr_entref_t {
   LocalClientNum_t client;
 };
 
-static_assert(sizeof(scr_entref_t) == 0x10);
+static_assert(sizeof(scr_entref_t) == 0x10, "scr_entref_t has incorrect size");
 
 enum scriptInstance_t {
   SCRIPTINSTANCE_SERVER = 0x0,
   SCRIPTINSTANCE_CLIENT = 0x1,
   SCRIPTINSTANCE_MAX = 0x2,
+};
+
+using ScrVarCanonicalName_t = uint32_t;
+
+typedef void (*BuiltinFunction)(scriptInstance_t);
+
+struct BuiltinFunctionDef {
+  ScrVarCanonicalName_t canonId;
+  uint32_t min_args;
+  uint32_t max_args;
+  void *actionFunc;
+  int32_t type;
+};
+
+// Note: unverified as of initial addition
+// Verify before use.
+#pragma pack(push, 1)
+struct ScrVarStackBuffer_t {
+  uint8_t *pos;
+  uint8_t *creationPos;
+  int32_t waitTime;
+  uint16_t size;
+  uint16_t bufLen;
+  ScrVarIndex_t localId;
+  uint8_t buf[1];
+  uint8_t _padding[3];
+};
+static_assert(sizeof(ScrVarStackBuffer_t) == 0x20,
+              "ScrVarStackBuffer_t has incorrect size");
+#pragma pack(pop)
+
+// Note: unverified as of initial addition
+// Verify before use.
+union ScrVarValueUnion_t {
+  int32_t intValue;
+  uint32_t uintValue;
+  uint64_t uint64Value;
+  uintptr_t uintptrValue;
+  float floatValue;
+  ScrString_t stringValue;
+  const float *vectorValue;
+  uint8_t *codePosValue;
+  ScrVarIndex_t pointerValue;
+  ScrVarStackBuffer_t *stackValue;
+  struct {
+    ScrVarIndex_t firstChild;
+    ScrVarIndex_t lastChild;
+  };
+};
+static_assert(sizeof(ScrVarValueUnion_t) == 0x8,
+              "ScrVarValueUnion_t has incorrect size");
+
+// Note: unverified as of initial addition
+// Verify before use.
+#pragma pack(push, 1)
+struct ScrVarValue_t {
+  ScrVarValueUnion_t u;
+  ScrVarType_t type;
+  uint8_t _padding[4];
+};
+static_assert(sizeof(ScrVarValue_t) == 0x10,
+              "ScrVarValue_t has incorrect size");
+#pragma pack(pop)
+
+struct scr_anim_t {
+  union {
+    struct {
+      uint16_t index;
+      uint16_t tree;
+    };
+    const uint8_t *linkPointer;
+  };
+};
+static_assert(sizeof(scr_anim_t) == 0x8, "scr_anim_t has incorrect size");
+
+struct XAnim;
+struct scr_animtree_t {
+  XAnim *anims;
 };
 
 } // namespace scr
