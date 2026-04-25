@@ -159,10 +159,10 @@ std::string resolve_mod_workshop_id(const std::string &mod_name) {
 }
 
 uint32_t get_xzone_index_by_name(const char *zone_name) {
+  XZoneName *g_zoneNames =
+      reinterpret_cast<XZoneName *>(xzone::g_zoneNames.get());
   for (uint32_t zoneIdx = 0; zoneIdx < *(xzone::g_zoneCount.get()); zoneIdx++) {
-    XZoneName *zoneInfo =
-        reinterpret_cast<XZoneName *>(&xzone::g_zoneNames[zoneIdx]);
-
+    XZoneName *zoneInfo = &g_zoneNames[zoneIdx];
     if (std::strcmp(zoneInfo->name, zone_name) == 0) {
       return zoneIdx;
     }
@@ -194,18 +194,18 @@ void setup_server_map_stub(int localClientNum, const char *map,
   const char *loaded_mod_id = game::ugc::getPublisherIdFromLoadedMod();
   const bool is_usermap =
       utils::string::is_numeric(map) || !get_usermap_publisher_id(map).empty();
-  const bool is_mod_loaded = std::strlen(loaded_mod_id) > 0;
-  const bool is_usermaps_mod_loaded =
-      is_mod_loaded && std::strcmp(loaded_mod_id, "usermaps") == 0;
+  const bool mod_loaded = std::strlen(loaded_mod_id) > 0;
+  const bool usermaps_mod_loaded =
+      mod_loaded && std::strcmp(loaded_mod_id, "usermaps") == 0;
 
   if (is_usermap) {
-    if (!is_mod_loaded) {
+    if (!mod_loaded) {
       game::ugc::loadMod(game::LOCAL_CLIENT_0, "usermaps", false);
     }
   } else {
     clear_loaded_usermap();
 
-    if (is_usermaps_mod_loaded) {
+    if (usermaps_mod_loaded) {
       game::ugc::loadMod(game::LOCAL_CLIENT_0, "", false);
     }
 

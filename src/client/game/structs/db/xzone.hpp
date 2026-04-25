@@ -14,7 +14,7 @@ static inline const size_t ZONE_POOL_LENGTH = 64;
 // 64 slots allocated, but the engine will error if 64 are used
 static inline const size_t MAX_ZONE_COUNT = 63;
 
-template <typename T> using ZonePool = std::array<T, ZONE_POOL_LENGTH>;
+template <typename T> using ZonePool = array<T, ZONE_POOL_LENGTH>;
 enum class XZoneState : int32_t {
   XZONE_UNLOADING = -1,
   XZONE_EMPTY = 0x0,
@@ -85,7 +85,7 @@ struct XZoneName // Size must be 96 == 0x60
   uint8_t _gap54[4]; // probably padding
   XZoneState state;
   bool streamPreloaded;
-  char __padding[3];
+  uint8_t __padding[3];
 };
 static_assert(sizeof(XZoneName) == 0x60, "XZoneName size must be 0x60 bytes");
 #pragma pack(pop)
