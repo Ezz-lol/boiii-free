@@ -144,8 +144,8 @@ function track_played_time()
 
 function update_player_times()
 {
-	const minWait = 10.0;
-	const step = 1.0;
+	minWait = 10.0;
+	step = 1.0;
 	varWait = minWait;
 	
 	nextToUpdate = 0;
