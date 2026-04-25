@@ -7,6 +7,7 @@
 #include "gsc/gsc_compiler.hpp"
 #include "scheduler.hpp"
 
+#include <unordered_map>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/io.hpp>
@@ -186,6 +187,7 @@ void fixup_script_imports(char *buf, int len) {
       asset = db_find_x_asset_header_hook.invoke<RawFile *>(
           XAssetType::ASSET_TYPE_SCRIPTPARSETREE, (inc_path + ".csc").c_str(),
           false, 0);
+
     if (!asset || !asset->buffer)
       continue;
 
@@ -355,8 +357,10 @@ void print_loading_script(const std::string &name) {
   printf("Loading %s script '%s'\n", type, name.data());
 }
 
-void load_script(std::string &name, const std::string &data,
-                 const bool is_custom) {
+void load_script(const std::string &input_name, const std::string &data,
+                 const bool load) {
+
+  std::string name = std::string(input_name);
   const auto appdata_path =
       (game::get_appdata_path() / "data/").generic_string();
   const auto host_path =
@@ -386,15 +390,13 @@ void load_script(std::string &name, const std::string &data,
     return;
   }
 
-  if (is_custom) {
-    base_name = name.substr(0, name.size() - 4);
-    if (base_name.empty()) {
-      printf("Script '%s' failed to load due to invalid name.\n", name.data());
-      return;
-    }
+  base_name = name.substr(0, name.size() - 4);
+  if (base_name.empty()) {
+    printf("Script '%s' failed to load due to invalid name.\n", name.data());
+    return;
   }
 
-  auto *raw_file = allocator.allocate<RawFile>();
+  RawFile *raw_file = allocator.allocate<RawFile>();
   raw_file->name = allocator.duplicate_string(name);
   raw_file->buffer = allocator.duplicate_string(data);
   raw_file->len = static_cast<int>(data.length());
@@ -402,125 +404,123 @@ void load_script(std::string &name, const std::string &data,
   fixup_script_imports(const_cast<char *>(raw_file->buffer), raw_file->len);
 
   loaded_scripts[name] = raw_file;
+  printf("Loaded script '%s' (size %d bytes)\n", name.data(), raw_file->len);
 
-  if (is_custom) {
+  if (load) {
     const scriptInstance_t inst =
         is_csc ? SCRIPTINSTANCE_CLIENT : SCRIPTINSTANCE_SERVER;
     game::scr::Scr_LoadScript(inst, base_name.data());
   }
 }
 
-void load_scripts_folder(const std::string &script_dir, const bool is_custom) {
+void load_script_file(std::string &data, const std::string &script_file,
+                      const bool load) {
+  if (data.size() >= sizeof(GSC_MAGIC) &&
+      !std::memcmp(data.data(), &GSC_MAGIC, sizeof(GSC_MAGIC))) {
+    print_loading_script(script_file);
+    load_script(script_file, data, load);
+  } else if ((utils::string::ends_with(script_file, ".gsc") ||
+              utils::string::ends_with(script_file, ".csc")) &&
+             !data.empty()) {
+    const bool is_csc = utils::string::ends_with(script_file, ".csc");
+    const char *script_type = is_csc ? "CSC" : "GSC";
+
+    // Skip CSC on dedicated server
+    if (is_csc && game::is_server())
+      return;
+
+    // Strip devblocks before compilation
+    auto cleaned_source = strip_devblocks(data);
+
+    printf("Compiling %s script '%s'\n", script_type, script_file.data());
+    auto result = gsc_compiler::compile(cleaned_source, script_file);
+    if (result.success) {
+      std::string bytecode(result.bytecode.begin(), result.bytecode.end());
+
+      // Store hash-to-name+line map from this compilation
+      for (auto &hn : result.hash_names) {
+        script_hash_names[hn.hash].push_back({hn.name, hn.line, hn.params});
+      }
+
+      // Store original source text for this file
+      script_sources[script_file] = data;
+
+      print_loading_script(script_file);
+      load_script(script_file, bytecode, load);
+
+      // Register replacefunc entries as pending detours
+      if (!result.replacefuncs.empty()) {
+        std::string replace_base = script_file;
+        if (utils::string::ends_with(replace_base, ".gsc") ||
+            utils::string::ends_with(replace_base, ".csc"))
+          replace_base = replace_base.substr(0, replace_base.size() - 4);
+
+        for (auto &rf : result.replacefuncs) {
+
+          pending_detours.push_back({rf.target_script, gsc_hash(rf.target_func),
+                                     replace_base, gsc_hash(rf.replace_func)});
+        }
+      }
+    } else {
+      auto get_source_line = [](const std::string &src,
+                                int line_num) -> std::string {
+        if (line_num <= 0)
+          return "";
+        int current = 1;
+        size_t start = 0;
+        while (current < line_num && start < src.size()) {
+          if (src[start] == '\n')
+            current++;
+          start++;
+        }
+        if (current != line_num)
+          return "";
+        size_t end = src.find('\n', start);
+        if (end == std::string::npos)
+          end = src.size();
+        auto line = src.substr(start, end - start);
+        if (!line.empty() && line.back() == '\r')
+          line.pop_back();
+        return line;
+      };
+
+      printf("^1*********************%s COMPILE ERROR*********************\n",
+             script_type);
+      for (const auto &err : result.errors) {
+        printf("^1  File:    ^5%s\n", err.file.data());
+        if (err.line > 0) {
+          printf("^1  Line:    ^2%d^7, ^1Column: ^2%d\n", err.line, err.column);
+          auto src_line = get_source_line(data, err.line);
+          if (!src_line.empty()) {
+            printf("^1  Source:  ^7%s\n", src_line.data());
+          }
+        }
+        printf("^1  Error:   ^1%s\n", err.message.data());
+        printf("^1---------------------------------------------------------"
+               "---\n");
+      }
+      printf("^1***********************************************************"
+             "*\n");
+    }
+  }
+}
+
+void load_scripts_folder(const std::string &script_dir, const bool load,
+                         const bool recurse) {
   if (!utils::io::directory_exists(script_dir)) {
     return;
   }
 
-  const auto scripts = utils::io::list_files(script_dir);
-
-  std::error_code e;
+  std::vector<std::filesystem::path> scripts =
+      utils::io::list_files(script_dir, true, false);
+  std::vector<std::vector<std::string>> script_deps;
   for (const auto &script : scripts) {
     std::string data;
-    auto script_file = script.generic_string();
-    if (!std::filesystem::is_directory(script, e) &&
-        utils::io::read_file(script_file, &data)) {
-      if (data.size() >= sizeof(GSC_MAGIC) &&
-          !std::memcmp(data.data(), &GSC_MAGIC, sizeof(GSC_MAGIC))) {
-        print_loading_script(script_file);
-        load_script(script_file, data, is_custom);
-      } else if ((utils::string::ends_with(script_file, ".gsc") ||
-                  utils::string::ends_with(script_file, ".csc")) &&
-                 !data.empty()) {
-        const bool is_csc = utils::string::ends_with(script_file, ".csc");
-        const char *script_type = is_csc ? "CSC" : "GSC";
+    std::string script_path_str = script.generic_string();
+    if (!std::filesystem::is_directory(script) &&
+        utils::io::read_file(script_path_str, &data)) {
 
-        // Skip CSC on dedicated server
-        if (is_csc && game::is_server())
-          continue;
-
-        // Strip devblocks before compilation
-        auto cleaned_source = strip_devblocks(data);
-
-        printf("Compiling %s script '%s'\n", script_type, script_file.data());
-        auto result = gsc_compiler::compile(cleaned_source, script_file);
-        if (result.success) {
-          std::string bytecode(result.bytecode.begin(), result.bytecode.end());
-
-          // Store hash-to-name+line map from this compilation
-          for (auto &hn : result.hash_names) {
-            script_hash_names[hn.hash].push_back({hn.name, hn.line, hn.params});
-          }
-
-          // Store original source text for this file
-          script_sources[script_file] = data;
-
-          print_loading_script(script_file);
-          load_script(script_file, bytecode, is_custom);
-
-          // Register replacefunc entries as pending detours
-          if (!result.replacefuncs.empty()) {
-            std::string replace_base = script_file;
-            if (utils::string::ends_with(replace_base, ".gsc") ||
-                utils::string::ends_with(replace_base, ".csc"))
-              replace_base = replace_base.substr(0, replace_base.size() - 4);
-
-            for (auto &rf : result.replacefuncs) {
-
-              pending_detours.push_back({rf.target_script,
-                                         gsc_hash(rf.target_func), replace_base,
-                                         gsc_hash(rf.replace_func)});
-            }
-          }
-        } else {
-          auto get_source_line = [](const std::string &src,
-                                    int line_num) -> std::string {
-            if (line_num <= 0)
-              return "";
-            int current = 1;
-            size_t start = 0;
-            while (current < line_num && start < src.size()) {
-              if (src[start] == '\n')
-                current++;
-              start++;
-            }
-            if (current != line_num)
-              return "";
-            size_t end = src.find('\n', start);
-            if (end == std::string::npos)
-              end = src.size();
-            auto line = src.substr(start, end - start);
-            if (!line.empty() && line.back() == '\r')
-              line.pop_back();
-            return line;
-          };
-
-          printf(
-              "^1*********************%s COMPILE ERROR*********************\n",
-              script_type);
-          for (const auto &err : result.errors) {
-            printf("^1  File:    ^5%s\n", err.file.data());
-            if (err.line > 0) {
-              printf("^1  Line:    ^2%d^7, ^1Column: ^2%d\n", err.line,
-                     err.column);
-              auto src_line = get_source_line(data, err.line);
-              if (!src_line.empty()) {
-                printf("^1  Source:  ^7%s\n", src_line.data());
-              }
-            }
-            printf("^1  Error:   ^1%s\n", err.message.data());
-            printf("^1---------------------------------------------------------"
-                   "---\n");
-          }
-          printf("^1***********************************************************"
-                 "*\n");
-        }
-      }
-
-      continue;
-    }
-
-    // Do not traverse directories for custom scripts.
-    if (std::filesystem::is_directory(script, e) && !is_custom) {
-      load_scripts_folder(script_file, is_custom);
+      load_script_file(data, script_path_str, load);
     }
   }
 }
@@ -546,26 +546,33 @@ void load_scripts() {
 
   const auto load = [&data_folder,
                      &boiii_folder](const std::filesystem::path &folder,
-                                    const bool is_custom) {
-    load_scripts_folder((data_folder / folder).string(), is_custom);
-    load_scripts_folder((boiii_folder / folder).string(), is_custom);
+                                    const bool load, const bool recurse) {
+    load_scripts_folder((data_folder / folder).string(), load, recurse);
+    load_scripts_folder((boiii_folder / folder).string(), load, recurse);
   };
 
   // scripts folder is for overriding stock scripts the game uses
-  load("scripts", false);
+  load("scripts", false, true);
 
-  // custom_scripts is for loading completely custom scripts the game doesn't
-  // use
-  load("custom_scripts", true);
-
+  std::vector<std::filesystem::path> applicable_custom_script_paths = {
+      "custom_scripts/shared"};
   if (const auto game_type = get_game_type_specific_folder();
       game_type.has_value()) {
-    load("custom_scripts" / game_type.value(), true);
+    applicable_custom_script_paths.push_back("custom_scripts" /
+                                             game_type.value());
   }
 
-  const std::filesystem::path mapname = game::get_dvar_string("mapname");
-  if (!mapname.empty()) {
-    load("custom_scripts" / mapname, true);
+  /*
+    First, compile and load each script into our lookup table.
+    We must do this before loading any scripts into the VM to ensure all
+    dependencies are available for lookup upon first custom script load.
+  */
+  for (const auto &path : applicable_custom_script_paths) {
+    load(path, false, true);
+  }
+  // Now, load the custom scripts into the VM.
+  for (const auto &path : applicable_custom_script_paths) {
+    load(path, true, true);
   }
 }
 
