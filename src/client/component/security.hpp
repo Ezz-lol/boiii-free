@@ -62,8 +62,10 @@ struct LobbyMsg {
 // =====================================================================
 // Function pointer typedefs for LobbyMsgRW functions
 // =====================================================================
+#ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wignored-attributes"
+#endif
 using tLobbyMsgRW_PackageInt = bool(__fastcall *)(void *lobbyMsg,
                                                   const char *key,
                                                   int32_t *val);
@@ -102,7 +104,9 @@ using tMsgMutableClientInfo_Package = bool(__fastcall *)(void *outRequest,
                                                          void *lobbyMsg);
 using tLobbyMsgRW_PrepReadData = bool(__fastcall *)(LobbyMsg *, char *, int);
 using tMSG_ReadData = void(__fastcall *)(game::net::msg_t *, char *, int);
+#ifdef __clang__
 #pragma clang diagnostic pop
+#endif
 
 // =====================================================================
 // Lazy-initialized function pointers
