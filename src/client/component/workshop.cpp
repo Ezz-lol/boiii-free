@@ -12,6 +12,7 @@
 #include <utils/io.hpp>
 #include <utils/http.hpp>
 #include <utils/thread.hpp>
+#include <utils/flags.hpp>
 #include "steamcmd.hpp"
 #include "fastdl.hpp"
 #include "party.hpp"
@@ -1057,7 +1058,6 @@ public:
       utils::hook::set(game::select(0x1420F3CFB, 0x1404FD54B),
                        zero_return_reg_patch);
     }
-
   }
 
   void pre_destroy() override {
