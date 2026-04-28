@@ -126,6 +126,17 @@ struct CasterClientState {
 static_assert(sizeof(CasterClientState) == 0x54,
               "CasterClientState size must be 84 bytes");
 
+struct ArchivedMatchState {
+  int32_t matchUIVisibilityFlags;
+  int32_t bombTimer[2];
+  int32_t roundsPlayed;
+  int32_t worldFields[64];
+  int32_t worldUIModelFields[16];
+  int32_t activeSkiptos;
+  int32_t hiddentMiscModelGroups;
+  int32_t umbraGates;
+};
+
 // sizeof=0x290
 struct MatchState {
   uint32_t index;

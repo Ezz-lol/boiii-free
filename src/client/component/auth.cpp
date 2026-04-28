@@ -209,7 +209,7 @@ void distribute_player_xuid(const game::net::netadr_t &target,
   buffer.write(xuid);
 
   game::foreach_connected_client(
-      [&](const game::net::client_s &client, const size_t index) {
+      [&](const game::sv::client_s &client, const size_t index) {
         if (client.address.type != game::net::NA_BOT) {
           network::send(client.address, "playerXuid", buffer.get_buffer());
         }
@@ -235,7 +235,7 @@ void handle_new_player(const game::net::netadr_t &target) {
 
   size_t player_index = 18;
   game::foreach_connected_client(
-      [&](game::net::client_s &client, const size_t index) {
+      [&](game::sv::client_s &client, const size_t index) {
         if (client.address == target) {
           client.xuid = xuid;
           player_index = index;
@@ -382,7 +382,7 @@ uint64_t get_guid(const size_t client_num) {
   }
 
   uint64_t xuid = 0;
-  const auto callback = [&xuid](const game::net::client_s &client) {
+  const auto callback = [&xuid](const game::sv::client_s &client) {
     xuid = client.xuid;
   };
 

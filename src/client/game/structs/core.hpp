@@ -51,6 +51,8 @@ typedef int32_t cinematic_id;
 
 typedef float vec_t;
 
+static const uint32_t LOBBY_MAX_PLAYERS = 18;
+
 enum class StorageFileType : int32_t {
   STORAGE_COMMON_SETTINGS = 0,
   STORAGE_PROFILE_SHOUTCASTER = 1,
@@ -1254,17 +1256,6 @@ struct objective_t {
 };
 static_assert(sizeof(objective_t) == 0xD0,
               "objective_t size must be 208 bytes");
-
-struct ArchivedMatchState {
-  int32_t matchUIVisibilityFlags;
-  int32_t bombTimer[2];
-  int32_t roundsPlayed;
-  int32_t worldFields[64];
-  int32_t worldUIModelFields[16];
-  int32_t activeSkiptos;
-  int32_t hiddentMiscModelGroups;
-  int32_t umbraGates;
-};
 
 enum scoreboardColumnType_t : int32_t {
   SB_TYPE_INVALID = 0x0,

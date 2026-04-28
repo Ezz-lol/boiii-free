@@ -139,48 +139,32 @@ enum {
   CS_ACTIVE = 0x5,
 };
 
-struct client_s {
-  int32_t state;
-  char __pad0[0x28];
-  netadr_t address;
-  char __pad1[20468];
-  int32_t reliableSequence;
-  int32_t reliableAcknowledge;
-  char __pad2[4];
-  int32_t messageAcknowledge;
-  char gap_5040[1416];
-  XUID xuid;
-  char __pad3[0xB5D84];
-  int32_t guid;
-  char __pad4[0x8];
-  bool bIsTestClient;
-  char __pad5[3];
-  int32_t serverId;
-  char __pad6[171432];
+struct netProfilePacket_t {
+  int32_t iTime;
+  int32_t iSize;
+  int32_t bFragment;
 };
 
-#ifdef __cplusplus
-static_assert(sizeof(client_s) == 0xE5110,
-              "client_s size must be 0xE5110 bytes");
-
-static_assert(offsetof(client_s, address) == 0x2C,
-              "client_s::address offset must be 0x2C bytes");
-static_assert(offsetof(client_s, xuid) == 0x55C8,
-              "client_s::xuid offset must be 0x55C8 bytes");
-static_assert(offsetof(client_s, guid) == 0xBB354,
-              "client_s::guid offset must be 0xBB354 bytes");
-static_assert(offsetof(client_s, bIsTestClient) == 0xBB360,
-              "client_s::bIsTestClient offset must be 0xBB360 bytes");
-#endif
-
-struct client_s_cl : client_s {
-  char __pad1_0[0x60];
+struct netProfileStream_t {
+  netProfilePacket_t packets[60];
+  int32_t iCurrPacket;
+  int32_t iBytesPerSecond;
+  int32_t iLastBPSCalcTime;
+  int32_t iCountedPackets;
+  int32_t iCountedFragments;
+  int32_t iFragmentPercentage;
+  int32_t iLargestPacket;
+  int32_t iSmallestPacket;
 };
+static_assert(sizeof(netProfileStream_t) == 0x2f0,
+              "netProfileStream_t size must be 0x2f0 bytes");
 
-#ifdef __cplusplus
-static_assert(sizeof(client_s_cl) == 0xE5170,
-              "client_s_cl size must be 0xE5170 bytes");
-#endif
+struct netProfileInfo_t {
+  netProfileStream_t send;
+  netProfileStream_t recieve;
+};
+static_assert(sizeof(netProfileInfo_t) == 0x5e0,
+              "netProfileInfo_t size must be 0x5e0 bytes");
 
 typedef UNKNOWN_PTR_TYPE PacketQueuePtr;
 

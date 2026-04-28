@@ -59,7 +59,7 @@ void distribute_profile_info(const uint64_t user_id, const profile_info &info) {
 
   const std::string data = buffer.move_buffer();
 
-  game::foreach_connected_client([&](const game::net::client_s &client) {
+  game::foreach_connected_client([&](const game::sv::client_s &client) {
     send_profile_info(client.address, data);
   });
 }
@@ -68,7 +68,7 @@ std::unordered_set<uint64_t> get_connected_client_xuids() {
   std::unordered_set<uint64_t> connected_clients{};
   connected_clients.reserve(game::get_max_client_count());
 
-  game::foreach_connected_client([&](const game::net::client_s &client) {
+  game::foreach_connected_client([&](const game::sv::client_s &client) {
     connected_clients.emplace(client.xuid);
   });
 

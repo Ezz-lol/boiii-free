@@ -334,7 +334,7 @@ void scr_get_num_expected_players() {
   game::scr::Scr_AddInt(game::scr::SCRIPTINSTANCE_SERVER, num_expected_players);
 }
 
-void sv_execute_client_messages_stub(game::net::client_s *client,
+void sv_execute_client_messages_stub(game::sv::client_s *client,
                                      game::net::msg_t *msg) {
   if ((client->reliableSequence - client->reliableAcknowledge) < 0) {
     client->reliableAcknowledge = client->reliableSequence;

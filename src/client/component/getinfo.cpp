@@ -37,7 +37,7 @@ template <typename T> int get_client_count(T *client_states) {
 size_t get_client_count() {
   size_t count = 0;
   game::foreach_connected_client(
-      [&count](const game::net::client_s &) { ++count; });
+      [&count](const game::sv::client_s &) { ++count; });
 
   return count;
 }
@@ -46,7 +46,7 @@ size_t get_bot_count() {
   size_t count = 0;
 
   game::foreach_connected_client(
-      [&count](const game::net::client_s &, const size_t index) {
+      [&count](const game::sv::client_s &, const size_t index) {
         if (game::sv::SV_IsTestClient(static_cast<int>(index))) {
           ++count;
         }

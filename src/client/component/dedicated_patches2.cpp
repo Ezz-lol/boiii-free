@@ -141,7 +141,7 @@ void sv_direct_connect_stub(game::net::netadr_t adr) {
 }
 
 utils::hook::detour sv_removeallclientsfromaddress_hook;
-void sv_live_removeallclientsfromaddress_stub(game::net::client_s *client,
+void sv_live_removeallclientsfromaddress_stub(game::sv::client_s *client,
                                               const char *reason) {
   // Skip disconnecting other clients from the same IP -
   // just free the disconnected client's slot, and return.
@@ -176,7 +176,7 @@ void g_init_game_stub(uint32_t levelTime, uint32_t randomSeed,
 
 utils::hook::detour sv_addservercommand_hook;
 
-void sv_addservercommand_stub(game::net::client_s *client,
+void sv_addservercommand_stub(game::sv::client_s *client,
                               game::net::svscmd_type type, const char *cmd) {
 
   std::string cmd_str = cmd ? std::string(cmd) : "";
