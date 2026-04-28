@@ -257,9 +257,8 @@ static_assert(sizeof(rateBoostingStats_t) == 0x24,
 
 /*
   Verified correct on dedicated server - both total size (0x1500) and offsets of
-  fields, except for fields dataSentLastSec <= field <= rateBoostingenabled and
-  nextHeartbeatTime <= field <= tempBans. Unverified on client, but likely
-  either identical or very similar.
+  fields.
+  Unverified on client, but likely either identical or very similar.
 */
 #pragma pack(push, 1)
 struct serverStatic_t {
