@@ -554,7 +554,8 @@ void load_scripts() {
   load("scripts", false, true);
 
   std::vector<std::filesystem::path> applicable_custom_script_paths = {
-      "custom_scripts/shared", "custom_scripts/core", "custom_scripts/codescripts"};
+      "custom_scripts/shared", "custom_scripts/core",
+      "custom_scripts/codescripts"};
   if (const auto game_type = get_game_type_specific_folder();
       game_type.has_value()) {
     applicable_custom_script_paths.push_back("custom_scripts" /
