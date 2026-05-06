@@ -404,6 +404,16 @@ struct component final : server_component {
   void post_unpack() override {
 
     enable_sound();
+
+    /*
+     Disable purposely crashing application by
+     incrementing g_copyInfoCount by 16384 (over limit) on authload failure.
+     Newer engine versions (e.g. Bo4) throw an error properly (`Sys_Error`)
+     instead.
+    */
+    utils::hook::nop(0x1401A18E1_g, 10);
+    utils::hook::nop(0x1401A1B5D_g, 10);
+
     // Sanitize chat messages on server
     g_say_hook.create(game::G_Say.get(), g_say_stub);
 
