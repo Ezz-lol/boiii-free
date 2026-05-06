@@ -317,24 +317,6 @@ utils::hook::detour snd_starttocread_hook;
 
 inline void enable_sound() {
   /*
-   Disable usage of g_copyInfo - force using asset pools instead.
-   XAsset dependency graph linking handles this already, and more
-   effectively - this seems to be leftover from earlier engine versions with
-   hardcoded asset load ordering, and crashes server when sound is enabled
-   and g_copyInfo is used.
-  */
-  utils::hook::nop(0x1401D7C23_g, 9);
-  utils::hook::nop(0x1401DA103_g, 5);
-  /*
-     Disable purposely crashing application by
-     incrementing g_copyInfoCount by 16384 (over limit) on authload failure.
-     Newer engine versions (e.g. Bo4) throw an error properly (`Sys_Error`)
-     instead.
-  */
-  utils::hook::nop(0x1401A18E1_g, 10);
-  utils::hook::nop(0x1401A1B5D_g, 10);
-
-  /*
     In the lines of code where the client versions of SND_EnqueueLoadedAssets
     and SND_StartTocRead require usage of `SD_Alloc`, in dedicated server, a
     `nullptr` immediate value is used instead, causing these steps of bank
