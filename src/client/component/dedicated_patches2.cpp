@@ -279,6 +279,15 @@ game::qboolean snd_active_stub() {
   return active;
 }
 
+utils::hook::detour sndl_update_hook;
+void safe_sndl_update() {
+  if (game::snd::SND_GetDuckById(game::snd::g_snd->verified_0.defaultHash) &&
+      game::snd::SND_GetReverb(game::snd::g_snd->verified_0.defaultHash,
+                               "default")) {
+    sndl_update_hook.invoke();
+  }
+}
+
 utils::hook::detour g_sndenabled_hook;
 utils::hook::detour snd_shouldinit_hook;
 bool return_true() { return true; }
@@ -380,6 +389,14 @@ inline void enable_sound() {
   snd_init_hook.create(game::snd::SND_Init.get(), snd_init_stub);
   g_sndenabled_hook.create(game::snd::G_SndEnabled.get(), return_true);
   snd_shouldinit_hook.create(game::snd::SND_ShouldInit.get(), return_true);
+
+  /*
+     Gracefully skip sound update instead of crashing if default sound assets
+     not loaded.
+
+     Fixes crash on server shutdown or restart.
+  */
+  sndl_update_hook.create(game::snd::sndl::SNDL_Update.get(), safe_sndl_update);
 }
 } // namespace
 

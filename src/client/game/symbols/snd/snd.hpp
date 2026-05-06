@@ -410,6 +410,10 @@ WEAK symbol<void(game::level::gentity_s *ent, SndAliasId index,
                  game::scr::ScrString_t notifyString)>
     G_RegisterSoundWait{0x141B80F40, 0x140308090};
 
+WEAK symbol<SndDuck *(SndStringHash id)> SND_GetDuckById{0x0, 0x14064BF00};
+WEAK symbol<SndReverb *(SndStringHash id, const char *name)> SND_GetReverb{
+    0x0, 0x14064C320};
+
 } // namespace snd
 } // namespace game
 
