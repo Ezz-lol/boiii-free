@@ -13,6 +13,7 @@
 #include "db/load.hpp"         // IWYU pragma: export
 #include "db/xasset.hpp"       // IWYU pragma: export
 #include "db/xzone.hpp"        // IWYU pragma: export
+#include "demo.hpp"            // IWYU pragma: export
 #include "dvar.hpp"            // IWYU pragma: export
 #include "fs.hpp"              // IWYU pragma: export
 #include "game.hpp"            // IWYU pragma: export
