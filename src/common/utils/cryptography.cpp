@@ -176,6 +176,15 @@ void ecc::key::deserialize(const std::string &key) {
   }
 }
 
+void ecc::key::deserialize(const std::string *key) {
+  this->free();
+
+  if (ecc_import(cs(key->data()), ul(key->size()), &this->key_storage_) !=
+      CRYPT_OK) {
+    ZeroMemory(&this->key_storage_, sizeof(this->key_storage_));
+  }
+}
+
 std::string ecc::key::serialize(const int type) const {
   uint8_t buffer[4096] = {0};
   unsigned long length = sizeof(buffer);
