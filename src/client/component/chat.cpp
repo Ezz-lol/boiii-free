@@ -178,9 +178,6 @@ public:
           "Allow dead players to chat with living players");
       utils::hook::jump(0x140299051_g, utils::hook::assemble(g_say_to_stub));
     } else {
-      // Ignore some check that suppresses the chat
-      utils::hook::nop(0x141DEA9BD_g, 2);
-
       // Add chat history to the in-game console
       utils::hook::call(0x141DEAA0F_g, cl_handle_chat); // I_strcpy
     }
