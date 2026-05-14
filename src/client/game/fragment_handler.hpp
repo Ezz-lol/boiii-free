@@ -7,7 +7,7 @@
 #include <utils/concurrency.hpp>
 
 #include "../component/network.hpp"
-#include "structs/net.hpp"
+#include "structs/structs.hpp"
 
 namespace game::fragment_handler {
 bool handle(const net::netadr_t &target, utils::byte_buffer &buffer,
