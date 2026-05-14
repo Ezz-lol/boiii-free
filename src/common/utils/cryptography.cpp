@@ -189,8 +189,13 @@ std::string ecc::key::serialize(const int type) const {
   uint8_t buffer[4096] = {0};
   unsigned long length = sizeof(buffer);
 
-  if (ecc_export(buffer, &length, type, &this->key_storage_) == CRYPT_OK) {
+  int result = ecc_export(buffer, &length, type, &this->key_storage_);
+  if (result == CRYPT_OK) {
     return {cs(buffer), length};
+  } else {
+    printf("cryptography: ecc::key::serialize - ecc_export failed with error "
+           "code: %d\n",
+           result);
   }
 
   return {};
@@ -270,9 +275,13 @@ std::string ecc::sign_message(const key &key, const std::string &message) {
                                .wprng = prng_.get_id(),
                                .recid = nullptr,
                                .rfc6979_hash_alg = nullptr};
-  ecc_sign_hash_v2(cs(hash.data()), ul(hash.size()), buffer, &length, &sig_opts,
-                   &key.get());
+  int err = ecc_sign_hash_v2(cs(hash.data()), ul(hash.size()), buffer, &length,
+                             &sig_opts, &key.get());
 
+  if (err != CRYPT_OK) {
+    printf("Signature generation failed with error code: %d\n", err);
+    return {};
+  }
   return std::string(cs(buffer), length);
 }
 
