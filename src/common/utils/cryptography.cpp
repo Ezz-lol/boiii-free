@@ -265,8 +265,8 @@ std::string ecc::sign_message(const key &key, const std::string &message) {
   if (!key.is_valid())
     return {};
 
-  uint8_t buffer[512];
-  unsigned long length = sizeof(buffer);
+  unsigned long length = 256;
+  uint8_t buffer[length];
 
   const auto hash = sha512::compute(message);
 
@@ -287,23 +287,24 @@ std::string ecc::sign_message(const key &key, const std::string &message) {
 
 bool ecc::verify_message(const key &key, const std::string &message,
                          const std::string &signature) {
-  if (!key.is_valid())
+  if (!key.is_valid()) {
     return false;
+  }
 
   const auto hash = sha512::compute(message);
 
   auto result = 0;
   ltc_ecc_sig_opts opts = {.type = LTC_ECCSIG_ANSIX962,
-                           .prng = nullptr,
-                           .wprng = 0,
+                           .prng = prng_.get_state(),
+                           .wprng = prng_.get_id(),
                            .recid = nullptr,
                            .rfc6979_hash_alg = nullptr
 
   };
-  return ecc_verify_hash_v2(cs(signature.data()), ul(signature.size()),
-                            cs(hash.data()), ul(hash.size()), &opts, &result,
-                            &key.get()) == CRYPT_OK &&
-         result != 0;
+  auto status = ecc_verify_hash_v2(cs(signature.data()), ul(signature.size()),
+                                   cs(hash.data()), ul(hash.size()), &opts,
+                                   &result, &key.get());
+  return status == CRYPT_OK && result != 0;
 }
 
 bool ecc::encrypt(const key &key, std::string &data) {
