@@ -57,7 +57,7 @@ void push_int(scriptInstance_t inst, int val) {
   return_value_set.store(true);
 }
 
-void push_int(scriptInstance_t inst, uint32_t val) {
+[[maybe_unused]] void push_int(scriptInstance_t inst, uint32_t val) {
   Scr_AddInt(inst, static_cast<int32_t>(val));
   return_value_set.store(true);
 }
@@ -72,7 +72,8 @@ void push_array(scriptInstance_t inst, std::vector<std::string> &&arr) {
   return_value_set.store(true);
 }
 
-void push_array(scriptInstance_t inst, std::vector<float> &&arr) {
+[[maybe_unused]] void push_array(scriptInstance_t inst,
+                                 std::vector<float> &&arr) {
   Scr_MakeArray(inst);
   for (size_t i = 0; i < arr.size(); i++) {
     Scr_AddFloat(inst, arr[i]);
@@ -81,7 +82,8 @@ void push_array(scriptInstance_t inst, std::vector<float> &&arr) {
   return_value_set.store(true);
 }
 
-void push_array(scriptInstance_t inst, std::vector<const char *> &&arr) {
+[[maybe_unused]] void push_array(scriptInstance_t inst,
+                                 std::vector<const char *> &&arr) {
   Scr_MakeArray(inst);
   for (size_t i = 0; i < arr.size(); i++) {
     Scr_AddString(inst, arr[i]);
@@ -90,7 +92,8 @@ void push_array(scriptInstance_t inst, std::vector<const char *> &&arr) {
   return_value_set.store(true);
 }
 
-void push_array(scriptInstance_t inst, std::vector<bool> &&arr) {
+[[maybe_unused]] void push_array(scriptInstance_t inst,
+                                 std::vector<bool> &&arr) {
   Scr_MakeArray(inst);
   for (size_t i = 0; i < arr.size(); i++) {
     Scr_AddInt(inst, arr[i] ? 1 : 0);
@@ -99,7 +102,8 @@ void push_array(scriptInstance_t inst, std::vector<bool> &&arr) {
   return_value_set.store(true);
 }
 
-void push_array(scriptInstance_t inst, std::vector<uint32_t> &&arr) {
+[[maybe_unused]] void push_array(scriptInstance_t inst,
+                                 std::vector<uint32_t> &&arr) {
   Scr_MakeArray(inst);
   for (size_t i = 0; i < arr.size(); i++) {
     Scr_AddInt(inst, static_cast<int32_t>(arr[i]));
@@ -108,7 +112,8 @@ void push_array(scriptInstance_t inst, std::vector<uint32_t> &&arr) {
   return_value_set.store(true);
 }
 
-void push_array(scriptInstance_t inst, std::vector<int> &&arr) {
+[[maybe_unused]] void push_array(scriptInstance_t inst,
+                                 std::vector<int> &&arr) {
   Scr_MakeArray(inst);
   for (size_t i = 0; i < arr.size(); i++) {
     Scr_AddInt(inst, arr[i]);
