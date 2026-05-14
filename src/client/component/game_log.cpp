@@ -32,7 +32,10 @@ void g_scr_log_print() {
     strncat_s(string, psz_token, _TRUNCATE);
   }
 
-  game::G_LogPrintf("%s", string);
+  // Only print if string length > 0
+  if (i_string_len > 0) {
+    game::G_LogPrintf("%s", string);
+  }
 }
 
 void g_log_printf_stub(const char *fmt, ...) {
