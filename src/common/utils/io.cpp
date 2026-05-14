@@ -153,6 +153,7 @@ bool write_file(const std::wstring &file, const std::string &data,
 
   if (stream.is_open()) {
     stream.write(data.data(), static_cast<std::streamsize>(data.size()));
+    stream.flush();
     stream.close();
     return true;
   }
