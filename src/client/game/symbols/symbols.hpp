@@ -15,6 +15,7 @@
 #include "db/xzone.hpp"        // IWYU pragma: export
 #include "demo.hpp"            // IWYU pragma: export
 #include "dvar.hpp"            // IWYU pragma: export
+#include "dw/dw.hpp"           // IWYU pragma: export
 #include "fs.hpp"              // IWYU pragma: export
 #include "game.hpp"            // IWYU pragma: export
 #include "glasssv.hpp"         // IWYU pragma: export
