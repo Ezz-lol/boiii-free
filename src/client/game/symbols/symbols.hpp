@@ -27,7 +27,7 @@
 #include "macros.hpp"          // IWYU pragma: export
 #include "mantle.hpp"          // IWYU pragma: export
 #include "misc.hpp"            // IWYU pragma: export
-#include "net.hpp"             // IWYU pragma: export
+#include "net/net.hpp"         // IWYU pragma: export
 #include "pcache.hpp"          // IWYU pragma: export
 #include "pix.hpp"             // IWYU pragma: export
 #include "pmem.hpp"            // IWYU pragma: export
@@ -56,5 +56,4 @@
 #include "ui/hud.hpp"          // IWYU pragma: export
 #include "ui/ui.hpp"           // IWYU pragma: export
 #include "utils.hpp"           // IWYU pragma: export
-
 #endif
