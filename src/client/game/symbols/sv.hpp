@@ -6,7 +6,7 @@
 
 namespace game {
 namespace sv {
-WEAK symbol<void(net::netadr_t *from, net::msg_t *msg)> SV_AuthClient{
+WEAK symbol<void(net::netadr_t *from, net::msg::msg_t *msg)> SV_AuthClient{
     0x0, 0x140475BB0};
 WEAK symbol<CmdArgs> sv_cmd_args{0x15689AE30, 0x14944C740};
 // Client and dedi struct size differs :(
@@ -30,7 +30,7 @@ WEAK symbol<void(int controllerIndex, const char *server, MapPreload preload,
 WEAK symbol<void(const char *text_in)> SV_Cmd_TokenizeString{0x1420EF130,
                                                              0x1404FA6C0};
 WEAK symbol<void()> SV_Cmd_EndTokenizedString{0x1420EF0E0, 0x1404FA670};
-WEAK symbol<void(void *client, net::msg_t *msg)> SV_ExecuteClientMessage{
+WEAK symbol<void(void *client, net::msg::msg_t *msg)> SV_ExecuteClientMessage{
     0x14224A460, 0x14052F840};
 
 WEAK symbol<void(sv::client_s *drop, const char *reason, bool tellThem,

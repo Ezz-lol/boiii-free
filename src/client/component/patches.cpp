@@ -320,7 +320,7 @@ void scr_get_num_expected_players() {
   auto expected_players = game::lobby::LobbyHost_GetClientCount(
       game::lobby::LOBBY_TYPE_GAME, game::lobby::LOBBY_CLIENT_TYPE_ALL);
 
-  const auto mode = game::com::Com_SessionMode_GetMode();
+  const game::eModes mode = game::com::Com_SessionMode_GetMode();
   if ((mode == game::MODE_ZOMBIES || mode == game::MODE_CAMPAIGN)) {
     const auto min_players = lobby_min_players->current.value.integer;
     if (min_players > 0) {
@@ -335,7 +335,7 @@ void scr_get_num_expected_players() {
 }
 
 void sv_execute_client_messages_stub(game::sv::client_s *client,
-                                     game::net::msg_t *msg) {
+                                     game::net::msg::msg_t *msg) {
   if ((client->reliableSequence - client->reliableAcknowledge) < 0) {
     client->reliableAcknowledge = client->reliableSequence;
     game::sv::SV_DropClient(client, "EXE_LOSTRELIABLECOMMANDS", true, true);

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core.hpp"
-#include "net.hpp"
+#include "net/net.hpp"
 #include <cstdint>
 
 namespace game {
@@ -185,6 +185,17 @@ enum class JoinClientState : int32_t {
   JOIN_CLIENT_STATE_ENDING_HOST = 0x7,
   JOIN_CLIENT_STATE_CLEANUP = 0x8,
   JOIN_CLIENT_STATE_COUNT = 0x9,
+};
+
+// =====================================================================
+// LobbyMsg struct - matches in-memory layout at the point of inspection.
+// game::net::msg::msg_t is 0x38 bytes, followed by msgType at offset 0x38.
+// =====================================================================
+struct LobbyMsg {
+  game::net::msg::msg_t msg; // 0x00 - 0x37
+  int32_t msgType;           // 0x38
+  char encodeFlags;          // 0x3C
+  int32_t packageType;       // 0x40
 };
 
 } // namespace lobby

@@ -49,17 +49,6 @@ enum MsgType : int32_t {
 };
 
 // =====================================================================
-// LobbyMsg struct - matches in-memory layout at the point of inspection.
-// game::net::msg_t is 0x38 bytes, followed by msgType at offset 0x38.
-// =====================================================================
-struct LobbyMsg {
-  game::net::msg_t msg; // 0x00 - 0x37
-  int32_t msgType;      // 0x38
-  char encodeFlags;     // 0x3C
-  int32_t packageType;  // 0x40
-};
-
-// =====================================================================
 // Function pointer typedefs for LobbyMsgRW functions
 // =====================================================================
 #ifdef __clang__
@@ -102,8 +91,9 @@ using tLobbyMsgRW_PackageFloat = bool(__fastcall *)(void *lobbyMsg,
                                                     float *val);
 using tMsgMutableClientInfo_Package = bool(__fastcall *)(void *outRequest,
                                                          void *lobbyMsg);
-using tLobbyMsgRW_PrepReadData = bool(__fastcall *)(LobbyMsg *, char *, int);
-using tMSG_ReadData = void(__fastcall *)(game::net::msg_t *, char *, int);
+using tLobbyMsgRW_PrepReadData = bool(__fastcall *)(game::lobby::LobbyMsg *,
+                                                    char *, int);
+using tMSG_ReadData = void(__fastcall *)(game::net::msg::msg_t *, char *, int);
 #ifdef __clang__
 #pragma clang diagnostic pop
 #endif
@@ -959,7 +949,7 @@ inline std::unordered_map<uint8_t, packet_callback_t> &get_packet_callbacks() {
       memset(lobbyMsgCpy, 0, sizeof(lobbyMsgCpy));
       memcpy_s(lobbyMsgCpy, sizeof(lobbyMsgCpy), lobbyMsg, 0x44);
 
-      auto *lm = reinterpret_cast<LobbyMsg *>(lobbyMsgCpy);
+      auto *lm = reinterpret_cast<game::lobby::LobbyMsg *>(lobbyMsgCpy);
       // Check the underlying msg_t for overflow indicators
       if (lm->msg.overflowed || lm->msg.cursize > 0x4000) {
         *lobbyMsgTypePtr = 0xFF;
@@ -982,7 +972,7 @@ inline std::unordered_map<uint8_t, packet_callback_t> &get_packet_callbacks() {
 // Returns true if the packet should be DROPPED (malicious),
 // false if the packet is OK and should be processed normally.
 // =====================================================================
-inline bool InspectPacket(game::net::msg_t *msg) {
+inline bool InspectPacket(game::net::msg::msg_t *msg) {
   // Only run on client builds - offsets are client-only
   if (game::is_server()) {
     return false;
@@ -1012,8 +1002,8 @@ inline bool InspectPacket(game::net::msg_t *msg) {
                                 : static_cast<uint32_t>(sizeof(data));
 
   // Make a copy of msg so we don't disturb the original read position
-  game::net::msg_t msgCopy{};
-  memcpy(&msgCopy, msg, sizeof(game::net::msg_t));
+  game::net::msg::msg_t msgCopy{};
+  memcpy(&msgCopy, msg, sizeof(game::net::msg::msg_t));
 
   fn::MSG_ReadData(&msgCopy, data, static_cast<int>(readSize));
 
@@ -1022,7 +1012,7 @@ inline bool InspectPacket(game::net::msg_t *msg) {
   }
 
   // Try to parse as a lobby message
-  LobbyMsg lobbyMsg{};
+  game::lobby::LobbyMsg lobbyMsg{};
   if (!fn::LobbyMsgRW_PrepReadData(&lobbyMsg, data,
                                    static_cast<int>(readSize))) {
     return false; // not a lobby message or failed to parse

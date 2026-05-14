@@ -1,4 +1,6 @@
 #include <cstdint>
+#include <functional>
+#include <unordered_map>
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
@@ -11,6 +13,7 @@
 #include "scheduler.hpp"
 #include "security.hpp"
 
+#include <string>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/finally.hpp>
@@ -25,7 +28,9 @@ std::unordered_map<std::string, callback> &get_callbacks() {
 }
 
 int64_t handle_command(const game::net::netadr_t *address, const char *command,
-                       const game::net::msg_t *message) {
+                       const game::net::msg::msg_t *message,
+                       game::LocalClientNum_t localClientNum) {
+
   const auto cmd_string = utils::string::to_lower(command);
   auto &callbacks = get_callbacks();
   const auto handler = callbacks.find(cmd_string);
@@ -40,7 +45,7 @@ int64_t handle_command(const game::net::netadr_t *address, const char *command,
                                     message->cursize - offset);
 
   try {
-    handler->second(*address, data);
+    handler->second(*address, data, localClientNum);
   } catch (const std::exception &e) {
     printf("Error: %s\n", e.what());
   } catch (...) {
@@ -50,20 +55,22 @@ int64_t handle_command(const game::net::netadr_t *address, const char *command,
 }
 
 bool cl_dispatch_connectionless_packet_stub(
-    [[maybe_unused]] int local_client_num, game::net::netadr_t from,
-    game::net::msg_t *msg, [[maybe_unused]] int time) {
+    game::LocalClientNum_t local_client_num, game::net::netadr_t from,
+
+    game::net::msg::msg_t *msg, [[maybe_unused]] int time) {
   const command::params params;
   const auto *c = params.get(0);
 
-  return handle_command(&from, c, msg) == TRUE;
+  return handle_command(&from, c, msg, local_client_num) == TRUE;
 }
 
 void handle_command_stub(utils::hook::assembler &a) {
   a.pushad64();
 
-  a.mov(rdx, rcx); // command
-  a.mov(r8, r12);  // msg
-  a.mov(rcx, r15); // address
+  a.mov(rdx, rcx);  // command
+  a.mov(r8, r12);   // msg
+  a.mov(rcx, r15);  // address
+  a.mov(r9d, r14d); // localClientNum
 
   a.call_aligned(handle_command);
 
@@ -124,7 +131,7 @@ bool &socket_byte_missing() {
   return was_missing;
 }
 
-uint8_t read_socket_byte_stub(game::net::msg_t *msg) {
+uint8_t read_socket_byte_stub(game::net::msg::msg_t *msg) {
   auto &byte_missing = socket_byte_missing();
   byte_missing = msg->cursize >= 4 && *reinterpret_cast<int *>(msg->data) == -1;
   if (byte_missing) {
@@ -133,7 +140,7 @@ uint8_t read_socket_byte_stub(game::net::msg_t *msg) {
 
   const auto _ = utils::finally([msg] { ++msg->data; });
 
-  return game::net::MSG_ReadByte(msg);
+  return game::net::msg::MSG_ReadByte(msg);
 }
 
 int verify_checksum_stub(void * /*data*/, const int length) {
@@ -146,12 +153,11 @@ void con_restricted_execute_buf_stub(int local_client_num,
   game::cbuf::Cbuf_ExecuteBuffer(local_client_num, controller_index, buffer);
 }
 
-uint64_t
-handle_packet_internal_stub(const game::ControllerIndex_t controller_index,
-                            const game::net::netadr_t from_adr,
-                            const game::XUID from_xuid,
-                            const game::lobby::LobbyType lobby_type,
-                            const uint64_t dest_module, game::net::msg_t *msg) {
+uint64_t handle_packet_internal_stub(
+    const game::ControllerIndex_t controller_index,
+    const game::net::netadr_t from_adr, const game::XUID from_xuid,
+    const game::lobby::LobbyType lobby_type, const uint64_t dest_module,
+    game::net::msg::msg_t *msg) {
   if (from_adr.type != game::net::NA_LOOPBACK && game::is_server() &&
       !game::is_server_running()) {
     return 0;
@@ -175,10 +181,19 @@ int bind_stub(SOCKET /*s*/, const sockaddr * /*addr*/, int /*namelen*/) {
 
 void com_error_oob_stub(const char *file, int line, int code,
                         [[maybe_unused]] const char *fmt, const char *error) {
+
+  intptr_t callerAddr = reinterpret_cast<intptr_t>(_ReturnAddress());
   char buffer[1024]{};
 
   strncpy_s(buffer, error, _TRUNCATE);
 
+  std::string file_str = file ? file : "unknown";
+  std::string log_str =
+      utils::string::va("Com_Error_Oob called from 0x%p with file: \"%s\", "
+                        "line: %d, code: %d,  message: \"%s\"\n",
+                        callerAddr, file_str.c_str(), line, code, buffer, code);
+  game::com::Com_Printf(0, 0, "%s", log_str.c_str());
+  printf("%s", log_str.c_str());
   game::com::Com_Error_(file, line, code, "%s", buffer);
 }
 } // namespace
