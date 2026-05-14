@@ -33,8 +33,16 @@ WEAK symbol<bool(const ControllerIndex_t controllerIndex,
 WEAK symbol<bool(const ControllerIndex_t controllerIndex,
                  const StorageFileType fileType, StorageSlot slot)>
     Storage_IsFileReady{0x142276E30};
-WEAK symbol<game::XUID(game::ControllerIndex_t controllerIndex)>
-    LiveUser_GetXuid{0x141EC7310};
+
+WEAK symbol<LiveUserAuthPool> live_clientAuthPool{0x0, 0x14837F408};
+
+WEAK symbol<bool(game::ControllerIndex_t controllerIndex)>
+    Live_IsUserSignedInToDemonware{0x141E0D7A0};
+
+// DoubleXP
+WEAK symbol<uint32_t(ControllerIndex_t controllerIndex)>
+    Live_DoubleXPGetGroupMaskForController{0x141E110D0};
+WEAK symbol<uint32_t[2]> g_oldDoubleXPMask{0x1453D8BB0};
 
 } // namespace live
 } // namespace game
