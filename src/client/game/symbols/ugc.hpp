@@ -7,10 +7,10 @@
 namespace game {
 namespace ugc {
 WEAK symbol<unsigned int> modsCount{0x15678D170, 0x14933EAE0};
-WEAK symbol<workshop_data> modsPool{0x15678D178, 0x14933EAE8};
+WEAK symbol<WorkshopDataPool> modsPool{0x15678D178, 0x14933EAE8};
 
 WEAK symbol<unsigned int> usermapsCount{0x1567B3580, 0x149364EE8};
-WEAK symbol<workshop_data> usermapsPool{0x1567B3588, 0x149364EF0};
+WEAK symbol<WorkshopDataPool> usermapsPool{0x1567B3588, 0x149364EF0};
 
 WEAK symbol<bool()> isModLoaded{0x1420D5020};
 WEAK symbol<const char *()> getPublisherIdFromLoadedMod{0x1420D7680,

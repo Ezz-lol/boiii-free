@@ -1065,6 +1065,10 @@ static_assert(sizeof(workshop_data) == 0x4C8,
               "workshop_data size must be 0x4C8 bytes");
 #endif
 
+struct WorkshopDataPool {
+  workshop_data data[128];
+};
+
 struct DDLMember {
   const char *name;
   int32_t index;
