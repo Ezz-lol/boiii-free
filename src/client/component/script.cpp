@@ -540,8 +540,8 @@ std::optional<std::filesystem::path> get_game_type_specific_folder() {
 void load_scripts() {
   const utils::nt::library host{};
 
-  const auto data_folder = game::get_appdata_path() / "data";
-  const auto boiii_folder = host.get_folder() / "boiii";
+  const std::filesystem::path data_folder = game::get_appdata_path() / "data";
+  const std::filesystem::path boiii_folder = host.get_folder() / "boiii";
 
   const auto load = [&data_folder,
                      &boiii_folder](const std::filesystem::path &folder,
@@ -567,11 +567,11 @@ void load_scripts() {
     We must do this before loading any scripts into the VM to ensure all
     dependencies are available for lookup upon first custom script load.
   */
-  for (const auto &path : applicable_custom_script_paths) {
+  for (const std::filesystem::path &path : applicable_custom_script_paths) {
     load(path, false, true);
   }
   // Now, load the custom scripts into the VM.
-  for (const auto &path : applicable_custom_script_paths) {
+  for (const std::filesystem::path &path : applicable_custom_script_paths) {
     load(path, true, true);
   }
 }
@@ -593,7 +593,11 @@ XAssetHeader db_find_x_asset_header_stub(const XAssetType type,
       type, name, error_if_missing, wait_time);
 }
 
+static std::mutex script_load_lock;
+
 void clear_script_memory() {
+  std::lock_guard lock(script_load_lock);
+
   loaded_scripts.clear();
   script_hash_names.clear();
   script_sources.clear();
@@ -607,6 +611,8 @@ void clear_script_memory() {
 // The import ns_hash is gsc_hash("scripts/zm/_zm_score"), but the game
 // script's
 void begin_load_scripts_stub(scriptInstance_t inst, int user) {
+  std::lock_guard lock(script_load_lock);
+
   game::scr::Scr_BeginLoadScripts(inst, user);
 
   if (game::com::Com_IsInGame() && !game::com::Com_IsRunningUILevel()) {
