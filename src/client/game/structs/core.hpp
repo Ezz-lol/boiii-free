@@ -37,6 +37,19 @@ typedef uint64_t bdUInt64;
 typedef bdUInt64 bdEntityID;
 typedef bdEntityID bdOnlineUserID;
 typedef bdOnlineUserID XUID;
+typedef double bdFloat64;
+typedef float bdFloat32;
+typedef int64_t bdInt64;
+typedef short bdInt16;
+typedef char bdByte8;
+typedef uint8_t bdUByte8;
+typedef char bdNChar8;
+typedef uint32_t bdUInt;
+typedef int32_t bdInt;
+typedef uint32_t bdUInt32;
+typedef uint16_t bdUInt16;
+typedef bdUInt16 bdPort;
+typedef bool bdBool;
 
 typedef int16_t BoneIndex;
 typedef int32_t time32_t;
@@ -521,25 +534,21 @@ enum ClientNum_t : int32_t {
   CLIENT_INDEX_COUNT = 0x12,
 };
 
-enum ControllerIndex_t {
+enum ControllerIndex_t : int32_t {
   INVALID_CONTROLLER_PORT = -1,
   CONTROLLER_INDEX_FIRST = 0x0,
   CONTROLLER_INDEX_0 = 0x0,
   CONTROLLER_INDEX_1 = 0x1,
-  CONTROLLER_INDEX_2 = 0x2,
-  CONTROLLER_INDEX_3 = 0x3,
-  CONTROLLER_INDEX_COUNT = 0x4,
+  CONTROLLER_INDEX_COUNT = 0x2,
 };
 
-enum LocalClientNum_t {
+enum LocalClientNum_t : int32_t {
   INVALID_LOCAL_CLIENT = -1,
   LOCAL_CLIENT_0 = 0x0,
   LOCAL_CLIENT_FIRST = 0x0,
   LOCAL_CLIENT_KEYBOARD_AND_MOUSE = 0x0,
   LOCAL_CLIENT_1 = 0x1,
-  LOCAL_CLIENT_2 = 0x2,
-  LOCAL_CLIENT_3 = 0x3,
-  LOCAL_CLIENT_COUNT = 0x4,
+  LOCAL_CLIENT_COUNT = 0x2,
 };
 
 enum eGameModes {
@@ -985,7 +994,7 @@ struct TLSData {
   void *errorData;
 };
 
-enum connstate_t {
+enum connstate_t : int32_t {
   CA_DISCONNECTED = 0x0,
   CA_CINEMATIC = 0x1,
   CA_UICINEMATIC = 0x2,
@@ -995,9 +1004,16 @@ enum connstate_t {
   CA_CONFIRMLOADING = 0x6,
   CA_CONNECTED = 0x7,
   CA_SENDINGDATA = 0x8,
-  CA_LOADING = 0x9,
-  CA_PRIMED = 0xA,
+  /*
+     Note: standard loading order is
+     CA_LOADING -> CA_PRIMED
+     These two enumerations are out of order,
+     but all others are in order of state transition.
+  */
+  CA_PRIMED = 0x9,
+  CA_LOADING = 0xA,
   CA_ACTIVE = 0xB,
+  CA_COUNT = 0xD,
 };
 
 enum class StanceState : int32_t {
@@ -1363,5 +1379,44 @@ public:
 };
 static_assert(sizeof(EntHandle) == 0x4, "EntHandle size must be 4 bytes");
 #pragma pack(pop)
+
+struct Font_s; // TODO
+typedef Font_s Font;
+typedef Font *FontHandle;
+
+#pragma pack(push, 1)
+struct bdSockAddr {
+  union {
+    struct {
+      bdUByte8 m_b1;
+      bdUByte8 m_b2;
+      bdUByte8 m_b3;
+      bdUByte8 m_b4;
+    } m_caddr;
+    bdUInt32 m_iaddr;
+    struct {
+      bdUInt16 m_w1;
+      bdUInt16 m_w2;
+      bdUInt16 m_w3;
+      bdUInt16 m_w4;
+      bdUInt16 m_w5;
+      bdUInt16 m_w6;
+      bdUInt16 m_w7;
+      bdUInt16 m_w8;
+    } m_caddr6;
+    bdUByte8 m_iaddr6[16];
+    bdUByte8 m_sockaddr_storage[128];
+  } inUn;
+  bdUInt16 m_family;
+  uint8_t _padding82[2];
+};
+static_assert(sizeof(bdSockAddr) == 0x84, "sizeof(bdSockAddr) != 0x84");
+#pragma pack(pop)
+
+typedef struct bdSockAddr bdInAddr;
+
+struct bdInetAddr {
+  bdInAddr m_addr;
+};
 
 } // namespace game

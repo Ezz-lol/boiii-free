@@ -14,6 +14,7 @@
 #include "steam_proxy.hpp"
 #include "toast.hpp"
 
+#include <game/utils.hpp>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/info_string.hpp>
@@ -48,16 +49,33 @@ utils::concurrency::container<std::vector<server_query>> &get_server_queries() {
   return server_queries;
 }
 
-void connect_to_lobby(const game::net::netadr_t &addr,
+void connect_to_lobby(const game::ControllerIndex_t controllerIndex,
+                      const game::net::netadr_t &addr,
                       const std::string &mapname, const std::string &gamemode,
                       const std::string &usermap_id,
                       const std::string &mod_id) {
-  auth::clear_stored_guids();
 
-  workshop::setup_same_mod_as_host(usermap_id, mod_id);
+  auth::clear_stored_guids();
+  auth::clear_stored_challenge();
+  workshop::setup_same_mod_as_host(controllerIndex, usermap_id, mod_id);
 
   game::net::XSESSION_INFO info{};
-  game::cl::CL_ConnectFromLobby(game::CONTROLLER_INDEX_0, &info, &addr, 1, 0,
+
+  int32_t publicSlots = 0;
+  for (game::LocalClientNum_t localClientIdx = game::LOCAL_CLIENT_0;
+       localClientIdx < game::LOCAL_CLIENT_COUNT;
+       localClientIdx = static_cast<game::LocalClientNum_t>(
+           static_cast<int32_t>(localClientIdx) + 1)) {
+
+    if (game::com::Com_LocalClient_IsBeingUsed(localClientIdx)) {
+
+      publicSlots++;
+    }
+  }
+
+  // publicSlots is entirely unused within CL_ConnectFromLobby, but just
+  // for the sake of completeness, we will pass the correct value.
+  game::cl::CL_ConnectFromLobby(controllerIndex, &info, &addr, publicSlots, 0,
                                 mapname.data(), gamemode.data(),
                                 usermap_id.data());
 }
@@ -65,10 +83,9 @@ void connect_to_lobby(const game::net::netadr_t &addr,
 void launch_mode(const game::eModes mode) {
   scheduler::once(
       [=] {
-        const auto local_client = *reinterpret_cast<DWORD *>(0x14342155C_g);
-        const auto current_mode = game::com::Com_SessionMode_GetMode();
-        game::com::Com_SwitchMode(
-            local_client, static_cast<game::eModes>(current_mode), mode, 6);
+        const game::LocalClientNum_t local_client = game::INVALID_LOCAL_CLIENT;
+        const game::eModes current_mode = game::com::Com_SessionMode_GetMode();
+        game::com::Com_SwitchMode(local_client, current_mode, mode, 6);
       },
       scheduler::main);
 }
@@ -80,8 +97,13 @@ void connect_to_lobby_with_mode_internal(const game::net::netadr_t &addr,
                                          const std::string &usermap_id,
                                          const std::string &mod_id,
                                          const bool was_retried = false) {
+
   if (game::com::Com_SessionMode_IsMode(mode)) {
-    connect_to_lobby(addr, mapname, gametype, usermap_id, mod_id);
+
+    connect_to_lobby(
+        game::com::Com_LocalClient_GetControllerIndex(game::LOCAL_CLIENT_0),
+        addr, mapname, gametype, usermap_id, mod_id);
+
     return;
   }
 
@@ -322,7 +344,8 @@ void send_server_query(server_query &query) {
 }
 
 void handle_info_response(const game::net::netadr_t &target,
-                          const network::data_view &data) {
+                          const network::data_view &data,
+                          game::LocalClientNum_t clientNum) {
 
   bool found_query = false;
   server_query query{};

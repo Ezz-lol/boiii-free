@@ -2,7 +2,8 @@
 
 #include "core.hpp"
 #include "quake.hpp"
-#include "net.hpp"
+#include "net/net.hpp"
+#include "scr.hpp"
 #include <cstddef>
 #include <cstdint>
 
@@ -18,7 +19,8 @@ namespace level {
 struct MatchState;
 
 // TODO
-struct playerState_t;
+struct playerState_s;
+typedef playerState_s playerState_t;
 struct entityState_t;
 struct archivedEntity_t;
 
@@ -238,6 +240,7 @@ struct tempBanSlot_t {
   uint32_t banTime;
   uint8_t _padding[4];
 };
+static_assert(sizeof(tempBanSlot_t) == 16, "tempBanSlot_t must be 16 bytes");
 #pragma pack(pop)
 
 // Fields and types unverified, but size should be correct.
@@ -355,6 +358,169 @@ struct serverStatic_t {
 };
 static_assert(sizeof(serverStatic_t) == 0x1500,
               "serverStatic_t size must be 0x1500 bytes");
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct flashbackState_t {
+  vec3_t position;
+  vec3_t angles;
+  vec3_t velocity;
+  float playerEnergyRatio;
+  uint8_t psFlags;
+  bool valid;
+  uint8_t _padding2A[2];
+};
+#pragma pack(pop)
+
+struct clientsFlashbackArchive_t {
+  flashbackState_t clientsFlashbackStates[18];
+  int32_t time;
+};
+
+enum class serverState_t : uint32_t {
+  SS_DEAD = 0x0,
+  SS_LOADING = 0x1,
+  SS_GAME = 0x2,
+};
+
+struct recentFrame {
+  bool lagged;
+};
+static_assert(sizeof(recentFrame) == 0x1, "sizeof(recentFrame) == 0x1");
+
+struct animationNumber_t {
+  union {
+    struct {
+      uint16_t index : 14;
+      uint16_t toggle : 1;
+    };
+    uint16_t packed;
+  };
+};
+
+#pragma pack(push, 1)
+struct playerAnimState_t {
+  float fTorsoPitch;
+  float fWaistPitch;
+  animationNumber_t animNum[3];
+  union {
+    int8_t flags;
+    struct {
+      uint8_t motionMatchingEnabled : 1;
+      uint8_t mmTransitionBoost : 1;
+      uint8_t unused_slots : 6;
+    };
+  };
+  uint8_t _padding0F[1];
+};
+static_assert(sizeof(playerAnimState_t) == 0x10,
+              "sizeof(playerAnimState_t) must equal 0x10");
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct AntilagPlayerAnimState {
+  uint16_t notifyChild;
+  int16_t notifyIndex;
+  scr::ScrString_t notifyName;
+  uint16_t animIndex;
+  uint8_t goalTime;
+  uint8_t weight;
+  uint8_t goalWeight;
+  uint8_t time;
+  uint8_t oldTime;
+  uint8_t _padding0F[1];
+  float rate;
+};
+static_assert(sizeof(AntilagPlayerAnimState) == 0x14,
+              "sizeof(AntilagPlayerAnimState) != 0x14");
+#pragma pack(pop)
+
+struct clientControllers_t {
+  vec3_t angles[6];
+  vec3_t tag_origin_angles;
+  vec3_t tag_origin_offset;
+};
+static_assert(sizeof(clientControllers_t) == 0x60,
+              "sizeof(clientControllers_t) == 0x60");
+
+struct clientsPositionArchive_t {
+  int32_t time;
+  bool valid[18];
+  uint8_t flags[18];
+  vec3_t positions[18];
+  vec3_t angles[18];
+  vec3_t viewangles[18];
+  playerAnimState_t anim[18];
+  int32_t lerpFlags[18];
+  int32_t lerpFlags2[18];
+  int32_t locBlendTime[18];
+  AntilagPlayerAnimState animStates[200];
+  int32_t animStatesPos[18];
+  int32_t animStatesCount[18];
+  int32_t animStatesUsed;
+  clientControllers_t controllers[18];
+};
+static_assert(sizeof(clientsPositionArchive_t) == 0x1B9C,
+              "sizeof(clientsPositionArchive_t) must equal 0x1B9C");
+
+#pragma pack(push, 1)
+struct server_t {
+  serverState_t state;
+  int32_t physicsTime;
+  int32_t timeResidual;
+  int32_t lastTickMS;
+  int32_t lastMainTickMS;
+  int32_t levelTime;
+  bool isUILevel;
+  bool isRunnable;
+  bool allowSelfTick;
+  bool allowNetPackets;
+  qboolean restarting;
+  int32_t start_frameTime;
+  int32_t checksumFeed;
+  qboolean wroteConfigStrings;
+  scr::ScrString_t emptyConfigString;
+  scr::ScrString_t configstrings[3568];
+  svEntity_t svEntities[2048];
+  level::gentity_t *gentities;
+  int32_t gentitySize;
+  int32_t num_entities;
+  level::playerState_t *gameClients;
+  int32_t gameClientSize;
+  uint8_t _padding80C[4];
+  user::actor_t *gameActors;
+  int32_t gameActorSize;
+  int32_t checksum;
+  int32_t skelTimeStamp;
+  int32_t skelMemPos;
+  int32_t bpsWindow[20];
+  int32_t bpsWindowSteps;
+  int32_t bpsTotalBytes;
+  int32_t bpsMaxBytes;
+  int32_t ubpsWindow[20];
+  int32_t ubpsTotalBytes;
+  int32_t ubpsMaxBytes;
+  float ucompAve;
+  int32_t ucompNum;
+  volatile int32_t serverFrameTime;
+  volatile int32_t serverFrameTimeMin;
+  volatile int32_t serverFrameTimeMax;
+  recentFrame recentFrameInfo[200];
+  uint8_t _unknown139B8[36];
+  char gametype[64];
+  qboolean killServer;
+  const char *killReason;
+  int32_t currentFrameNum;
+  int32_t nextClientsPositionArchive;
+  clientsPositionArchive_t clientsPositionArchive[40];
+  int32_t nextClientsFlashbackArchive;
+  clientsFlashbackArchive_t clientsFlashBackArchive[512];
+  clientsFlashbackArchive_t clientsLatestFlashBack;
+  int32_t securityChecksum[3];
+  uint8_t _padding7BEFC[4];
+};
+static_assert(sizeof(server_t) == 0xBC5C0,
+              "sizeof(server_t) must equal 0xBC5C0");
 #pragma pack(pop)
 
 } // namespace sv

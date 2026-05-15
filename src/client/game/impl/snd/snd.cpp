@@ -355,7 +355,7 @@ void G_RegisterSoundWait_Impl(game::level::gentity_s *ent, SndAliasId id,
   game::scr::Scr_SetString(&ent->snd_wait.notifyString, tempNotifyString);
   game::scr::Scr_SetString(&tempNotifyString, 0);
   ent->snd_wait.index = static_cast<uint32_t>(id);
-  ent->snd_wait.basetime = *game::sv::svs_time;
+  ent->snd_wait.basetime = *game::level::level_time;
 
   // ORIGINAL:
   //  ent->snd_wait.duration = -1;

@@ -256,7 +256,7 @@ struct component final : generic_component {
       game::cbuf::Cbuf_AddText(0, "statsetbyname plevel 11\n");
       game::cbuf::Cbuf_AddText(0, "statsetbyname hasprestiged 1\n");
 
-      const auto mode = game::com::Com_SessionMode_GetMode();
+      const game::eModes mode = game::com::Com_SessionMode_GetMode();
       const char *mode_name = "";
 
       if (mode == game::eModes::MODE_MULTIPLAYER) {

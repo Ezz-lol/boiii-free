@@ -13,6 +13,8 @@ WEAK symbol<void(hks::lua_State *, const char *)> Lua_CoD_LoadLuaFile{
 
 WEAK symbol<game::db::xasset::XAssetHeader(const char *filename)>
     Lua_CoD_GetRawFile{0x141F0EFE0, 0x1404BCB70};
+WEAK symbol<hks::luaReturnCount_e(hks::lua_State *luaVM)>
+    Lua_CoD_LuaCall_ForceHUDRefresh{0x141F45740};
 } // namespace lua
 } // namespace ui
 } // namespace game

@@ -1,19 +1,23 @@
 #include <std_include.hpp>
+#include <cstdint>
 #include "loader/component_loader.hpp"
 
 #include "scheduler.hpp"
 
 #include <game/game.hpp>
 #include <game/utils.hpp>
-#include "game/impl/snd/snd.hpp"
+#include <game/impl/snd/snd.hpp>
+#include <game/impl/cl/cl.hpp>
 
 #include <utils/hook.hpp>
+#include <utils/string.hpp>
 #include <utils/io.hpp>
 
 #include <mmeapi.h>
 
 namespace client_patches {
 namespace {
+
 utils::hook::detour preload_map_hook;
 
 const game::dvar_t *cl_yaw_speed;
@@ -41,8 +45,8 @@ void stop_intro_if_needed() {
       scheduler::main, 15s);
 }
 
-void preload_map_stub(int local_client_num, const char *mapname,
-                      const char *gametype) {
+void preload_map_stub(game::LocalClientNum_t local_client_num,
+                      const char *mapname, const char *gametype) {
   game::com::Com_GametypeSettings_SetGametype(gametype, true);
   stop_intro_if_needed();
   preload_map_hook.invoke(local_client_num, mapname, gametype);
@@ -199,15 +203,20 @@ void replace_sd_allocator() {
 
 utils::hook::detour live_delayed_com_error_hook;
 void live_delayed_com_error_stub(const char *comErrorString, int32_t code) {
-  uintptr_t return_address = reinterpret_cast<uintptr_t>(_ReturnAddress());
+  void *return_address = _ReturnAddress();
   // Log caller and error message
   game::com::Com_Printf(
       0, 0,
-      "Live_DelayedComError called from %p with message: %s and code: %d\n",
+      "Live_DelayedComError called from 0x%p with message: %s and code: %d\n",
+      return_address, comErrorString, code);
+  printf(
+      "Live_DelayedComError called from 0x%p with message: %s and code: %d\n",
       return_address, comErrorString, code);
 
   live_delayed_com_error_hook.invoke(comErrorString, code);
 }
+
+utils::hook::detour CL_CheckForResendHook;
 
 } // namespace
 
@@ -217,13 +226,13 @@ public:
 
   void post_unpack() override {
 
-    // Log location of calller to allow straightforward debugging
-    live_delayed_com_error_hook.create(game::live::Live_DelayedComError.get(),
-                                       live_delayed_com_error_stub);
-
     replace_sd_allocator();
 
     fix_amd_cpu_stuttering();
+
+    // Log location of caller to allow straightforward debugging
+    live_delayed_com_error_hook.create(game::live::Live_DelayedComError.get(),
+                                       live_delayed_com_error_stub);
 
     // Don't modify process priority
     utils::hook::nop(0x142334C98_g, 6);
@@ -251,6 +260,7 @@ public:
         "cl_pitchspeed", 140.0f, std::numeric_limits<float>::min(),
         std::numeric_limits<float>::max(), game::DVAR_NONE,
         "Max pitch speed in degrees for game pad");
+
     // CL_AdjustAngles
     utils::hook::call(0x1412F3324_g,
                       cl_key_state_yaw_speed_stub); // cl_yawspeed
@@ -259,6 +269,51 @@ public:
     utils::hook::call(0x1412F3380_g,
                       cl_key_state_pitch_speed_stub); // cl_pitchspeed
     utils::hook::call(0x1412F33A1_g, cl_key_state_pitch_speed_stub); // ^^
+
+    /*
+      CL_CheckForResend inexplicably, inconsistently triggers a segmentation
+      fault when pushing its localClientNum argument onto the stack.
+
+      The root cause of the segmentation fault is presently unclear. In a dump
+      of the executable just after arxan unpack and subsequent integrity check
+      stub patches, all calls to the function are correct, as is the instruction
+      used by CL_CheckForResend to push the localClientNum argument onto the
+      stack. The analyzed binary would not trigger this segmentation fault.
+
+      As such, this instruction is almost certainly being mutated at runtime by
+      arxan.
+
+      This segmentation fault was previously resolved by patching the first byte
+      of the corresponding instruction (`mov [rsp-8+arg_18], rbx`) to be 0xC3
+      (retn). Likely as a result of some other arxan runtime binary mutation,
+      this does not trigger an immediate return, but instead causes normal
+      function execution, without the aforementioned segmentation fault.
+
+      This also causes the `localClientNum` argument to always be
+      set to 0, breaking server connection for non-primary, local clients.
+
+      This crash, as well as a few other patches required to be made to
+      CL_CheckForResend's internal logic, presented the need for total
+      replacement of the function.
+
+      Total replacement of a function can usually be performed by `hook`ing
+      the function and instead executing another function which does not invoke
+      the hooked function. In this case, the crash-triggering instruction would
+      still be executed, as hook invocation executes the hooked function's
+      prologue.
+
+      To resolve this, we instead replace all known calls to the original
+      function with its replacement function. We also hook and replace the
+      original function in case of unknown, obfuscated callers.
+    */
+    // CL_MapLoading call to CL_CheckForResend
+    // Note: crash inconsistently occurs when CL_CheckForResend is called here.
+    utils::hook::call(0x141359DB4_g, game::cl::CL_CheckForResend_Impl);
+    // CL_Frame call to CL_CheckForResend
+    utils::hook::call(0x1413514BE_g, game::cl::CL_CheckForResend_Impl);
+
+    CL_CheckForResendHook.create(game::cl::CL_CheckForResend.get(),
+                                 game::cl::CL_CheckForResend_Impl);
 
     patch_players_folder_name();
   }

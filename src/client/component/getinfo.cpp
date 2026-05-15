@@ -68,7 +68,8 @@ struct component final : generic_component {
     // get_assigned_team);
 
     network::on("getInfo", [](const game::net::netadr_t &target,
-                              const network::data_view &data) {
+                              const network::data_view &data,
+                              game::LocalClientNum_t clientNum) {
       utils::info_string info{};
       info.set("challenge", std::string{data.begin(), data.end()});
       info.set("gamename", "T7");
@@ -91,8 +92,8 @@ struct component final : generic_component {
       info.set("sv_maxclients", std::to_string(get_max_client_count()));
       info.set("protocol", std::to_string(PROTOCOL));
       info.set("sub_protocol", std::to_string(SUB_PROTOCOL));
-      info.set("playmode",
-               std::to_string(game::com::Com_SessionMode_GetMode()));
+      info.set("playmode", std::to_string(static_cast<int32_t>(
+                               game::com::Com_SessionMode_GetMode())));
       info.set("gamemode",
                std::to_string(game::com::Com_SessionMode_GetGameMode()));
       info.set("sv_running", std::to_string(game::is_server_running()));

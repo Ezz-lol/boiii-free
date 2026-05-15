@@ -66,6 +66,8 @@ struct FxEffectDef;
 struct Material;
 struct XModel;
 
+typedef Material *MaterialHandle;
+
 /* 4482 */
 typedef int32_t FxElemDefFlags;
 

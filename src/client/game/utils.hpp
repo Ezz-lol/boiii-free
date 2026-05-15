@@ -53,11 +53,18 @@ void dvar_remove_flags(const char *dvar_name, unsigned int flags);
 void foreach_client(
     const std::function<void(sv::client_s &, size_t index)> &callback);
 void foreach_client(const std::function<void(sv::client_s &)> &callback);
+void first_client(
+    const std::function<bool(sv::client_s &, size_t index)> &callback);
+void first_client(const std::function<bool(sv::client_s &)> &callback);
 
 void foreach_connected_client(
     const std::function<void(sv::client_s &, size_t index)> &callback);
 void foreach_connected_client(
     const std::function<void(sv::client_s &)> &callback);
+void first_connected_client(
+    const std::function<bool(sv::client_s &, size_t index)> &callback);
+void first_connected_client(
+    const std::function<bool(sv::client_s &)> &callback);
 
 bool access_connected_client(
     size_t index, const std::function<void(sv::client_s &)> &callback);

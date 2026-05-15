@@ -71,7 +71,8 @@ void rate_limit_cleanup(const int time) {
 }
 
 void rcon_handler(const game::net::netadr_t &target,
-                  const network::data_view &data) {
+                  const network::data_view &data,
+                  game::LocalClientNum_t clientNum) {
   const auto time = game::sys::Sys_Milliseconds();
   if (!rate_limit_check(target, time)) {
     return;

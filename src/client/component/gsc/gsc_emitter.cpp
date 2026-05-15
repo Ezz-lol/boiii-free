@@ -1330,13 +1330,14 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
     break;
 
   case node_type::n_expression_stmt: {
-    auto &expr = node->children[0];
+    std::shared_ptr<gsc_compiler::ast_node> &expr = node->children[0];
 
     if (expr->type == node_type::n_call) {
-      std::string call_name = expr->value;
+      std::string call_name = std::string(expr->value.c_str());
       std::transform(
           call_name.begin(), call_name.end(), call_name.begin(),
           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
       if (expr->children[0]->value.empty() && call_name == "replacefunc") {
         auto &args = expr->children[1]->children;
         if (args.size() == 2) {

@@ -3,7 +3,6 @@
 #include "loader/component_loader.hpp"
 #include "workshop.hpp"
 
-#include "game/game.hpp"
 #include "game/utils.hpp"
 #include "command.hpp"
 
@@ -190,8 +189,8 @@ void clear_loaded_usermap() {
   *(game::ugc::internal_usermap_id.get()) = 0; // e.g. zm_*
 }
 
-void setup_server_map_stub(int localClientNum, const char *map,
-                           const char *gametype) {
+void setup_server_map_stub(game::LocalClientNum_t localClientNum,
+                           const char *map, const char *gametype) {
   const char *loaded_mod_id = game::ugc::getPublisherIdFromLoadedMod();
   const bool is_usermap =
       utils::string::is_numeric(map) || !get_usermap_publisher_id(map).empty();
@@ -200,14 +199,15 @@ void setup_server_map_stub(int localClientNum, const char *map,
       mod_loaded && std::strcmp(loaded_mod_id, "usermaps") == 0;
 
   if (is_usermap) {
+
     if (!mod_loaded) {
-      game::ugc::loadMod(game::LOCAL_CLIENT_0, "usermaps", false);
+      game::ugc::loadMod(localClientNum, "usermaps", false);
     }
   } else {
     clear_loaded_usermap();
 
     if (usermaps_mod_loaded) {
-      game::ugc::loadMod(game::LOCAL_CLIENT_0, "", false);
+      game::ugc::loadMod(localClientNum, "", false);
     }
 
     unload_xzone_by_name("zm_levelcommon", false, false);
@@ -885,14 +885,16 @@ bool mod_switch_requires_fs_reinitialization(const std::string &current_mod,
          mod_load_requires_fs_reinitialization(new_mod);
 }
 
-void setup_same_mod_as_host(const std::string &usermap,
+void setup_same_mod_as_host(game::ControllerIndex_t controllerIndex,
+                            const std::string &usermap,
                             const std::string &mod) {
   const std::string loaded_mod = game::ugc::getPublisherIdFromLoadedMod();
   if (loaded_mod != mod) {
     if (!usermap.empty() || !mod.empty()) {
       bool fs_reinit_required =
           mod_switch_requires_fs_reinitialization(loaded_mod, mod);
-      game::ugc::loadMod(game::LOCAL_CLIENT_0, mod.data(), fs_reinit_required);
+      game::ugc::loadMod(static_cast<game::LocalClientNum_t>(controllerIndex),
+                         mod.data(), fs_reinit_required);
       if (fs_reinit_required) {
         while (game::ugc::isModLoading(game::LOCAL_CLIENT_0)) {
           std::this_thread::sleep_for(100ms);
@@ -901,7 +903,8 @@ void setup_same_mod_as_host(const std::string &usermap,
     } else if (game::ugc::isModLoaded()) {
       bool fs_reinit_required =
           mod_switch_requires_fs_reinitialization(loaded_mod, "");
-      game::ugc::loadMod(game::LOCAL_CLIENT_0, "", fs_reinit_required);
+      game::ugc::loadMod(static_cast<game::LocalClientNum_t>(controllerIndex),
+                         "", fs_reinit_required);
       if (fs_reinit_required) {
         while (game::ugc::isModLoading(game::LOCAL_CLIENT_0)) {
           std::this_thread::sleep_for(100ms);

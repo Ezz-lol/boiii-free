@@ -57,7 +57,7 @@ WEAK
 WEAK symbol<dvar_t *(dvar_t *dvar, eModes mode)>
     Dvar_GetSessionModeSpecificDvar{0x1422BF500, 0x140575D90};
 
-WEAK symbol<bool()> Dvar_GetBool{0x1422BCED0, 0x140575740};
+WEAK symbol<bool(const dvar_t *dvar)> Dvar_GetBool{0x1422BCED0, 0x140575740};
 WEAK symbol<int32_t(const dvar_t *dvar)> Dvar_GetDomainEnumStringCount{
     0x1422BD340, 0x140575900};
 WEAK symbol<float(const dvar_t *dvar)> Dvar_GetDomainFloatMax{0x1422BD3C0,
@@ -94,6 +94,12 @@ WEAK symbol<void(const dvar_t *dvar, int32_t val, DvarSetSource source)>
     Dvar_SetIntFromSource{0x1422C7ED0, 0x140579740};
 WEAK symbol<void(const dvar_t *dvar, uint64_t val, DvarSetSource source)>
     Dvar_SetUInt64FromSource{0x1422C8AF0, 0x140579B60};
+
+WEAK symbol<void(const dvar_t *dvar, int32_t value)> Dvar_SetInt{0x1422C7EC0};
+
+WEAK symbol<const dvar_t *> testmissingcontentpacks{0x1568EDDF0};
+WEAK symbol<const dvar_t *> splitscreen{0x1453D49F0, 0x1428AAEC8};
+WEAK symbol<const dvar_t *> splitscreen_playerCount{0x1453D4A00, 0x1428AAED8};
 
 } // namespace game
 

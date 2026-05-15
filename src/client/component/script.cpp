@@ -404,7 +404,7 @@ void load_script(const std::string &input_name, const std::string &data,
   fixup_script_imports(const_cast<char *>(raw_file->buffer), raw_file->len);
 
   loaded_scripts[name] = raw_file;
-  printf("Loaded script '%s' (size %d bytes)\n", name.data(), raw_file->len);
+  printf("Loaded script '%s' (size %llu bytes)\n", name.data(), raw_file->len);
 
   if (load) {
     const scriptInstance_t inst =

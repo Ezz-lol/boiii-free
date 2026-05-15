@@ -1,4 +1,6 @@
 #include <std_include.hpp>
+#include <random>
+#include <cstdint>
 #include "loader/component_loader.hpp"
 
 #include "auth.hpp"
@@ -8,9 +10,9 @@
 #include "scheduler.hpp"
 #include "profile_infos.hpp"
 
-#include <game/game.hpp>
 #include <game/utils.hpp>
 
+#include <string>
 #include <utils/nt.hpp>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -24,10 +26,9 @@
 #include <game/fragment_handler.hpp>
 
 namespace auth {
-namespace {
-const game::dvar_t *password;
-
+const game::dvar_t *password = nullptr;
 std::array<uint64_t, 18> client_xuids{};
+std::mutex client_xuids_mutex;
 
 std::string get_hdd_serial() {
   DWORD serial{};
@@ -66,7 +67,7 @@ std::string get_protected_data() {
   return result;
 }
 
-std::string get_key_entropy() {
+std::string get_key_entropy(game::ControllerIndex_t controllerIndex) {
   std::string entropy{};
   entropy.append(utils::smbios::get_uuid());
   entropy.append(get_hw_profile_guid());
@@ -78,15 +79,38 @@ std::string get_key_entropy() {
     utils::cryptography::random::get_data(entropy.data(), entropy.size());
   }
 
+  if (controllerIndex != game::ControllerIndex_t::CONTROLLER_INDEX_0) {
+    uint32_t index_raw = static_cast<uint32_t>(controllerIndex);
+    std::string index_str = utils::string::va("%X", index_raw);
+    entropy.append(std::move(index_str));
+  }
+
   return entropy;
 }
 
-bool load_key(utils::cryptography::ecc::key &key) {
+static std::mutex key_file_mutex;
+
+std::filesystem::path key_file_path(game::ControllerIndex_t controllerIndex,
+                                    bool isPublic = false) {
+  std::string key_filename;
+  std::string prefix = isPublic ? "ezz-public" : "ezz-private";
+  if (controllerIndex == game::ControllerIndex_t::CONTROLLER_INDEX_0) {
+    key_filename = prefix + ".key";
+  } else {
+    key_filename = prefix + "-" +
+                   std::to_string(static_cast<uint32_t>(controllerIndex)) +
+                   ".key";
+  }
+  return utils::properties::get_key_path() / key_filename;
+}
+
+bool load_key(utils::cryptography::ecc::key &key,
+              game::ControllerIndex_t controllerIndex) {
   std::string data{};
 
-  auto key_path =
-      (utils::properties::get_key_path() / "ezz-private.key").generic_string();
-  if (!utils::io::read_file(key_path, &data)) {
+  std::filesystem::path key_path = key_file_path(controllerIndex);
+  std::lock_guard lock(key_file_mutex);
+  if (!utils::io::read_file(key_path.generic_string(), &data)) {
     return false;
   }
 
@@ -99,71 +123,121 @@ bool load_key(utils::cryptography::ecc::key &key) {
   return true;
 }
 
-utils::cryptography::ecc::key generate_key() {
-  auto key = utils::cryptography::ecc::generate_key(512, get_key_entropy());
+utils::cryptography::ecc::key
+generate_key(game::ControllerIndex_t controllerIndex) {
+  utils::cryptography::ecc::key key = utils::cryptography::ecc::generate_key(
+      512, get_key_entropy(controllerIndex));
   if (!key.is_valid()) {
     throw std::runtime_error("Failed to generate cryptographic key!");
   }
 
-  auto key_path =
-      (utils::properties::get_key_path() / "ezz-private.key").generic_string();
-  if (!utils::io::write_file(key_path, key.serialize())) {
+  std::filesystem::path key_path = key_file_path(controllerIndex);
+  std::lock_guard lock(key_file_mutex);
+  if (!utils::io::write_file(key_path.generic_string(), key.serialize())) {
     printf("Failed to write cryptographic key!\n");
   }
 
-  printf("Generated cryptographic key: %llX\n", key.get_hash());
   return key;
 }
 
-utils::cryptography::ecc::key load_or_generate_key() {
+utils::cryptography::ecc::key
+load_or_generate_key(game::ControllerIndex_t controllerIndex) {
   utils::cryptography::ecc::key key{};
-  if (load_key(key)) {
-    printf("Loaded cryptographic key: %llX\n", key.get_hash());
+  if (load_key(key, controllerIndex)) {
     return key;
   }
 
-  return generate_key();
+  return generate_key(controllerIndex);
 }
 
-utils::cryptography::ecc::key get_key_internal() {
-  auto key = load_or_generate_key();
+utils::cryptography::ecc::key
+get_key_internal(game::ControllerIndex_t controllerIndex) {
+  auto key = load_or_generate_key(controllerIndex);
 
-  auto key_path =
-      (utils::properties::get_key_path() / "ezz-public.key").generic_string();
-  if (!utils::io::write_file(key_path, key.get_public_key())) {
+  std::filesystem::path key_path = key_file_path(controllerIndex, true);
+  std::lock_guard lock(key_file_mutex);
+  if (!utils::io::write_file(key_path.generic_string(), key.get_public_key())) {
     printf("Failed to write public key!\n");
   }
 
   return key;
 }
 
-utils::cryptography::ecc::key &get_key() {
-  static auto key = get_key_internal();
-  return key;
+utils::cryptography::ecc::key get_key(game::ControllerIndex_t controllerIndex) {
+  return get_key_internal(controllerIndex);
 }
 
-std::string serialize_connect_data(const char *data, const int length) {
-  utils::byte_buffer buffer{};
-  buffer.write_string(get_key().serialize(PK_PUBLIC));
+static const size_t CHALLENGE_LENGTH = 32;
+static std::mutex latest_challenge_mutex;
+static uint8_t latest_challenge[CHALLENGE_LENGTH] = {0};
 
-  const std::string challenge(reinterpret_cast<const char *>(0x15A8A7F10_g),
-                              32);
-  buffer.write_string(
-      utils::cryptography::ecc::sign_message(get_key(), challenge));
+void queue_challenge(const game::net::netadr_t &target,
+                     const network::data_view &data,
+                     game::LocalClientNum_t clientNum) {
+
+  {
+    std::lock_guard lock(latest_challenge_mutex);
+
+    // We probably do not need to bother zeroing the latest_challenge bytes
+    // first, as if an incomplete challenge has been received, this will cause
+    // an error either way, cleanly handling this exceptional case for us.
+    memcpy(reinterpret_cast<void *>(latest_challenge), data.data(),
+
+           (std::min)(CHALLENGE_LENGTH, data.size()));
+  }
+
+  for (game::LocalClientNum_t localClientIdx = game::LOCAL_CLIENT_0;
+       localClientIdx != game::LOCAL_CLIENT_COUNT;
+       localClientIdx = static_cast<game::LocalClientNum_t>(
+           (static_cast<int32_t>(localClientIdx) + 1))) {
+
+    if (game::com::Com_LocalClient_IsBeingUsed(localClientIdx)) {
+      game::connstate_t *clientConnectionState =
+          &game::cg::clientUIActives
+               ->actives[static_cast<uint32_t>(localClientIdx)]
+               .connectionState;
+      if (*clientConnectionState == game::CA_CONNECTING) {
+        *clientConnectionState = game::CA_CHALLENGING;
+      }
+    }
+  }
+}
+
+std::string serialize_connect_data(game::ControllerIndex_t controllerIndex,
+                                   const char *data, const int length) {
+
+  std::string challenge;
+
+  {
+    std::lock_guard lock(latest_challenge_mutex);
+    challenge = std::string(
+        const_cast<const char *>(reinterpret_cast<char *>(latest_challenge)),
+        CHALLENGE_LENGTH);
+  }
+
+  utils::byte_buffer buffer{};
+  buffer.write_string(get_key(controllerIndex).serialize(PK_PUBLIC));
+  std::string signature = utils::cryptography::ecc::sign_message(
+      get_key(controllerIndex), challenge);
+
+  buffer.write_string(std::move(signature));
 
   profile_infos::get_profile_info()
       .value_or(profile_infos::profile_info{})
       .serialize(buffer);
 
-  buffer.write_string(data, static_cast<size_t>(length));
+  buffer.write_string(data);
 
   return buffer.move_buffer();
 }
 
-void send_fragmented_connect_packet(const game::net::netsrc_t sock,
+bool send_fragmented_connect_packet(game::ControllerIndex_t controllerIndex,
+                                    const game::net::netsrc_t sock,
                                     game::net::netadr_t *adr, const char *data,
                                     const int length) {
-  const auto connect_data = serialize_connect_data(data, length);
+
+  const std::string connect_data =
+      serialize_connect_data(controllerIndex, data, length);
   game::fragment_handler::fragment_data //
       (connect_data.data(), connect_data.size(),
        [&](const utils::byte_buffer &buffer) {
@@ -177,115 +251,93 @@ void send_fragmented_connect_packet(const game::net::netsrc_t sock,
          game::net::NET_OutOfBandData(sock, adr, fragment_packet.data(),
                                       static_cast<int>(fragment_packet.size()));
        });
-}
-
-int send_connect_data_stub(const game::net::netsrc_t sock,
-                           game::net::netadr_t *adr, const char *data,
-                           const int len) {
-  try {
-    const auto is_connect_sequence =
-        len >= 7 && strncmp("connect", data, 7) == 0;
-    if (!is_connect_sequence) {
-      return game::net::NET_OutOfBandData(sock, adr, data, len);
-    }
-
-    send_fragmented_connect_packet(sock, adr, data, len);
-    return true;
-  } catch (std::exception &e) {
-    printf("Error: %s\n", e.what());
-  }
-
-  return 0;
+  return true;
 }
 
 void distribute_player_xuid(const game::net::netadr_t &target,
-                            const size_t player_index, const uint64_t xuid) {
-  if (player_index >= 18) {
-    return;
+                            const size_t player_index, const game::XUID xuid) {
+  if (player_index < 18) {
+    utils::byte_buffer buffer{};
+    buffer.write(static_cast<uint32_t>(player_index));
+    buffer.write(xuid);
+
+    game::XUID localXuid1 = get_guid(game::CONTROLLER_INDEX_0);
+    game::XUID localXuid2 = get_guid(game::CONTROLLER_INDEX_1);
+
+    game::foreach_connected_client(
+        [&](const game::sv::client_s &client, const size_t index) {
+          if (client.xuid != localXuid1 && client.xuid != localXuid2) {
+            if (client.address.type != game::net::NA_BOT) {
+              network::send(client.address, "playerXuid", buffer.get_buffer());
+            }
+
+            if (index != player_index && target.type != game::net::NA_BOT) {
+              utils::byte_buffer current_buffer{};
+              current_buffer.write(static_cast<uint32_t>(index));
+              current_buffer.write(client.xuid);
+
+              network::send(target, "playerXuid", current_buffer.get_buffer());
+            }
+          }
+        });
   }
-
-  utils::byte_buffer buffer{};
-  buffer.write(static_cast<uint32_t>(player_index));
-  buffer.write(xuid);
-
-  game::foreach_connected_client(
-      [&](const game::sv::client_s &client, const size_t index) {
-        if (client.address.type != game::net::NA_BOT) {
-          network::send(client.address, "playerXuid", buffer.get_buffer());
-        }
-
-        if (index != player_index && target.type != game::net::NA_BOT) {
-          utils::byte_buffer current_buffer{};
-          current_buffer.write(static_cast<uint32_t>(index));
-          current_buffer.write(client.xuid);
-
-          network::send(target, "playerXuid", current_buffer.get_buffer());
-        }
-      });
 }
 
 void handle_new_player(const game::net::netadr_t &target) {
   const command::params_sv params{};
-  if (params.size() < 2) {
-    return;
+
+  if (params.size() > 1) {
+    const utils::info_string info_string(params[1]);
+    const game::XUID xuid =
+        strtoull(info_string.get("xuid").data(), nullptr, 16);
+
+    size_t player_index = 18;
+    game::first_connected_client(
+        [&](game::sv::client_s &client, const size_t index) {
+          if (client.address == target && client.xuid == 0) {
+            client.xuid = xuid;
+            player_index = index;
+            return true;
+          }
+          return false;
+        });
+
+    distribute_player_xuid(target, player_index, xuid);
   }
-
-  const utils::info_string info_string(params[1]);
-  const auto xuid = strtoull(info_string.get("xuid").data(), nullptr, 16);
-
-  size_t player_index = 18;
-  game::foreach_connected_client(
-      [&](game::sv::client_s &client, const size_t index) {
-        if (client.address == target) {
-          client.xuid = xuid;
-          player_index = index;
-        }
-      });
-
-  distribute_player_xuid(target, player_index, xuid);
 }
 
-bool is_invalid_char(const int c) {
-  if (c == '%') {
-    return true;
-  }
-
-  if (c == '~') {
-    return true;
-  }
-
-  if (c < 32 || c > 126) {
-    return true;
-  }
-
-  return false;
+inline bool is_invalid_char(const int c) {
+  return c == '%' || c == '~' || c < 32 || c > 126;
 }
 
 void dispatch_connect_packet(const game::net::netadr_t &target,
-                             const std::string &data) {
+                             const std::string &data,
+                             game::LocalClientNum_t clientNum) {
   utils::byte_buffer buffer(data);
 
   utils::cryptography::ecc::key key{};
-  key.deserialize(buffer.read_string());
+  std::string key_ser = buffer.read_string();
+  std::string signature_serialized_str = buffer.read_string();
+  key.deserialize(&key_ser);
 
   std::string challenge{};
-  challenge.resize(32);
+  challenge.resize(CHALLENGE_LENGTH);
 
   const auto get_challenge =
       reinterpret_cast<void (*)(const game::net::netadr_t *, void *, size_t)>(
           game::select(0x1412E15E0, 0x14016DDC0));
   get_challenge(&target, challenge.data(), challenge.size());
 
-  if (!utils::cryptography::ecc::verify_message(key, challenge,
-                                                buffer.read_string()) &&
-      target.type != game::net::NA_LOOPBACK) {
+  if (!utils::cryptography::ecc::verify_message(
+          key, std::move(challenge), std::move(signature_serialized_str))) {
+
     network::send(target, "error", "Bad signature");
     return;
   }
 
   const profile_infos::profile_info info(buffer);
 
-  const auto connect_data = buffer.read_string();
+  const std::string connect_data = buffer.read_string();
   const command::params_sv params(connect_data);
 
   if (params.size() < 2) {
@@ -295,7 +347,7 @@ void dispatch_connect_packet(const game::net::netadr_t &target,
   const auto _ = profile_infos::acquire_profile_lock();
 
   const utils::info_string info_string(params[1]);
-  const auto xuid = strtoull(info_string.get("xuid").data(), nullptr, 16);
+  const game::XUID xuid = strtoull(info_string.get("xuid").data(), nullptr, 16);
   if (xuid != key.get_hash()) {
     network::send(target, "error", "Bad XUID");
     return;
@@ -320,36 +372,35 @@ void dispatch_connect_packet(const game::net::netadr_t &target,
 }
 
 void handle_connect_packet_fragment(const game::net::netadr_t &target,
-                                    const network::data_view &data) {
-  if (!game::is_server_running()) {
-    return;
-  }
+                                    const network::data_view &data,
+                                    game::LocalClientNum_t clientNum) {
+  if (game::is_server_running()) {
+    utils::byte_buffer buffer(data);
 
-  utils::byte_buffer buffer(data);
-
-  std::string final_packet{};
-  if (game::fragment_handler::handle(target, buffer, final_packet)) {
-    scheduler::once(
-        [t = target, p = std::move(final_packet)] {
-          dispatch_connect_packet(t, p);
-        },
-        scheduler::server);
+    std::string final_packet{};
+    if (game::fragment_handler::handle(target, buffer, final_packet)) {
+      scheduler::once(
+          [t = target, p = std::move(final_packet), clientNum = clientNum] {
+            dispatch_connect_packet(t, p, clientNum);
+          },
+          scheduler::server);
+    }
   }
 }
 
 void handle_player_xuid_packet(const game::net::netadr_t &target,
-                               const network::data_view &data) {
-  if (game::is_server_running() || !party::is_host(target)) {
-    return;
-  }
+                               const network::data_view &data,
+                               game::LocalClientNum_t clientNum) {
+  if (!game::is_server_running() && party::is_host(target)) {
+    utils::byte_buffer buffer(data);
 
-  utils::byte_buffer buffer(data);
+    const uint32_t player_id = buffer.read<uint32_t>();
+    const game::XUID xuid = buffer.read<game::XUID>();
 
-  const auto player_id = buffer.read<uint32_t>();
-  const auto xuid = buffer.read<uint64_t>();
-
-  if (player_id < client_xuids.size()) {
-    client_xuids[player_id] = xuid;
+    std::lock_guard lock(client_xuids_mutex);
+    if (player_id < client_xuids.size()) {
+      client_xuids[player_id] = xuid;
+    }
   }
 }
 
@@ -357,19 +408,22 @@ void direct_connect_bots_stub(const game::net::netadr_t address) {
   game::sv::SV_DirectConnect(address);
   handle_new_player(address);
 }
-} // namespace
 
-uint64_t get_guid() {
-  static const auto guid = []() -> uint64_t {
+game::XUID get_guid(game::ControllerIndex_t controllerIndex) {
+  static const std::array<game::XUID, 2> guids =
+      []() -> std::array<game::XUID, 2> {
     if (game::is_server()) {
-      return 0x110000100000000 |
-             (::utils::cryptography::random::get_integer() & ~0x80000000);
+      return {static_cast<game::XUID>(
+                  0x110000100000000 |
+                  (::utils::cryptography::random::get_integer() & ~0x80000000)),
+              0};
     }
 
-    return get_key().get_hash();
+    return {get_key(game::CONTROLLER_INDEX_0).get_hash(),
+            get_key(game::CONTROLLER_INDEX_1).get_hash()};
   }();
 
-  return guid;
+  return guids[static_cast<uint32_t>(controllerIndex)];
 }
 
 uint64_t get_guid(const size_t client_num) {
@@ -378,6 +432,7 @@ uint64_t get_guid(const size_t client_num) {
   }
 
   if (!game::is_server_running()) {
+    std::lock_guard lock(client_xuids_mutex);
     return client_xuids[client_num];
   }
 
@@ -394,31 +449,49 @@ uint64_t get_guid(const size_t client_num) {
 }
 
 void clear_stored_guids() {
+  std::lock_guard lock(client_xuids_mutex);
   for (auto &xuid : client_xuids) {
     xuid = 0;
   }
 }
 
-void info_set_value_for_key_stub(char *s, const char *key, const char *value) {
-  game::info::Info_SetValueForKey(s, key, value);
+void clear_stored_challenge() {
+  std::lock_guard lock(latest_challenge_mutex);
+  memset(latest_challenge, 0, CHALLENGE_LENGTH);
+}
 
-  if (password && *password->current.value.string) {
-    game::info::Info_SetValueForKey(s, "password",
-                                    password->current.value.string);
-  }
+utils::hook::detour LiveUser_UserGetXuid_hook;
+bool LiveUser_UserGetXuid_stub(int64_t controllerIndex, game::XUID *xuid) {
+  *xuid = get_guid(static_cast<game::ControllerIndex_t>(
+      static_cast<int32_t>(controllerIndex)));
+  return true;
+}
 
-  const auto *clan_abbrev = game::live::LiveStats_GetClanTagText(0);
-  if (*clan_abbrev) {
-    game::info::Info_SetValueForKey(s, "clanAbbrev", clan_abbrev);
+utils::hook::detour CL_DisconnectPacket_hook;
+void CL_DisconnectPacket_stub(game::LocalClientNum_t localClientNum,
+                              game::net::netadr_t *from, const char *reason) {
+  if (localClientNum == game::LOCAL_CLIENT_0) {
+    clear_stored_challenge();
   }
+  CL_DisconnectPacket_hook.invoke(localClientNum, from, reason);
+}
+utils::hook::detour CL_Disconnect_hook;
+void CL_Disconnect_stub(game::LocalClientNum_t localClientNum,
+                        bool deactivateClient) {
+  if (localClientNum == game::LOCAL_CLIENT_0) {
+    clear_stored_challenge();
+  }
+  CL_Disconnect_hook.invoke(localClientNum, deactivateClient);
 }
 
 struct component final : generic_component {
   void post_unpack() override {
+
     // Skip connect handler
     utils::hook::set<uint8_t>(game::select(0x142253EFA, 0x14053714A), 0xEB);
     network::on("connect", handle_connect_packet_fragment);
     network::on("playerXuid", handle_player_xuid_packet);
+    network::on("getChallengeResponse", queue_challenge);
 
     // Intercept SV_DirectConnect in SV_AddTestClient
     utils::hook::call(game::select(0x1422490DC, 0x14052E582),
@@ -472,12 +545,13 @@ struct component final : generic_component {
       p(0x141EB5992_g, 0x141EB59D5_g);
       p(0x141EB74D2_g, 0x141EB7515_g); // ?
 
-      utils::hook::call(0x14134BF7D_g, send_connect_data_stub);
-
-      utils::hook::call(0x14134BEFE_g, info_set_value_for_key_stub);
-
-      // Fix crash
-      utils::hook::set<uint8_t>(0x14134B970_g, 0xC3);
+      LiveUser_UserGetXuid_hook.create(
+          game::live::user::LiveUser_UserGetXuid.get(),
+          LiveUser_UserGetXuid_stub);
+      CL_DisconnectPacket_hook.create(game::cl::CL_DisconnectPacket.get(),
+                                      CL_DisconnectPacket_stub);
+      CL_Disconnect_hook.create(game::cl::CL_Disconnect.get(),
+                                CL_Disconnect_stub);
     }
 
     for (const auto &patch : patches) {

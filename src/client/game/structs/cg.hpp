@@ -52,5 +52,10 @@ struct clientUIActive_t {
 
 static_assert(sizeof(clientUIActive_t) == 0x1078,
               "clientUIActive_t size must be 0x1078 bytes");
+
+struct ClientUIActives {
+  clientUIActive_t actives[2];
+};
+
 } // namespace cg
 } // namespace game

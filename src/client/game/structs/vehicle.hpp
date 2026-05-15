@@ -241,7 +241,6 @@ struct VehicleFxDef {
 };
 
 typedef VehicleFxDef *VehicleFxDefPtr;
-typedef phys::Material *MaterialHandle;
 
 enum TractionType : int32_t {
   TRACTION_TYPE_FRONT = 0x0,
@@ -549,7 +548,7 @@ struct VehicleDef {
   qboolean addToCompassEnemyFiring;
   uint8_t _padding5F4[4];
   const char *compassIcon;
-  MaterialHandle compassIconMaterial;
+  phys::MaterialHandle compassIconMaterial;
   scr::ScrString_t compassIconTag;
   float compassScale;
   const char *steerAxisName;

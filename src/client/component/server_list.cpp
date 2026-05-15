@@ -435,7 +435,8 @@ struct component final : client_component {
   void post_unpack() override {
 
     network::on("getServersResponse", [](const game::net::netadr_t &target,
-                                         const network::data_view &data) {
+                                         const network::data_view &data,
+                                         game::LocalClientNum_t clientNum) {
       master_state.access(
           [&](state &s) { handle_server_list_response(target, data, s); });
     });

@@ -4,6 +4,7 @@
 #include <atomic>
 #include <cstdint>
 #include <filesystem>
+#include "game/game.hpp"
 
 namespace workshop {
 extern std::atomic<bool> downloading_workshop_item;
@@ -27,7 +28,8 @@ bool check_valid_mod_id(const std::string &pub_id,
 bool mod_switch_requires_fs_reinitialization(const std::string &current_mod,
                                              const std::string &new_mod);
 bool mod_load_requires_fs_reinitialization(std::string &mod_name);
-void setup_same_mod_as_host(const std::string &usermap, const std::string &mod);
+void setup_same_mod_as_host(game::ControllerIndex_t controllerIndex,
+                            const std::string &usermap, const std::string &mod);
 
 void set_pending_mod_reconnect(const std::string &address);
 std::string get_pending_mod_reconnect();

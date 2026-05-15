@@ -6,10 +6,25 @@ namespace game {
 namespace ui {
 namespace lua {
 namespace hks {
+
+enum class luaReturnCount_e : uint32_t {
+  LUA_RETURNCOUNT_NONE = 0x0,
+  LUA_RETURNCOUNT_ONE = 0x1,
+  LUA_RETURNCOUNT_TWO = 0x2,
+  LUA_RETURNCOUNT_THREE = 0x3,
+  LUA_RETURNCOUNT_FOUR = 0x4,
+  LUA_RETURNCOUNT_FIVE = 0x5,
+  LUA_RETURNCOUNT_SIX = 0x6,
+  LUA_RETURNCOUNT_SEVEN = 0x7,
+  LUA_RETURNCOUNT_EIGHT = 0x8,
+  LUA_RETURNCOUNT_NINE = 0x9,
+};
+
 struct lua_State;
 struct HashTable;
 struct StringTable;
 struct cclosure;
+
 using hksBool = int;
 using hksChar = char;
 using hksByte = uint8_t;

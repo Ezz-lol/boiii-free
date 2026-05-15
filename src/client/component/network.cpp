@@ -271,7 +271,7 @@ bool are_addresses_equal(const game::net::netadr_t &a,
     return true;
   }
 
-  return a.port == b.port && a.addr == b.addr;
+  return a.port == b.port && a.addr == b.addr && a.localNetID == b.localNetID;
 }
 
 int net_sendpacket_stub(const game::net::netsrc_t sock, const int length,
@@ -329,8 +329,9 @@ struct component final : generic_component {
     // utils::hook::jump(game::select(0x1423323B0, 0x140596E40),
     // net_sendpacket_stub);
 
-    // set initial connection state to challenging
-    utils::hook::set<uint32_t>(game::select(0x14134C6E0, 0x14018E574), 4);
+    // set initial connection state to connecting
+    utils::hook::set<uint32_t>(game::select(0x14134C6E0, 0x14018E574),
+                               game::CA_CONNECTING);
 
     // don't kick clients without dw handle
     utils::hook::set<uint8_t>(game::select(0x14224DEAD, 0x1405315F9), 0xEB);

@@ -210,7 +210,8 @@ struct component final : generic_component {
 
     if (game::is_client()) {
       network::on("profileInfo", [](const game::net::netadr_t &server,
-                                    const network::data_view &data) {
+                                    const network::data_view &data,
+                                    game::LocalClientNum_t clientNum) {
         if (!party::is_host(server)) {
           return;
         }

@@ -16,7 +16,7 @@ WEAK symbol<void(int channel, unsigned int label, const char *fmt, ...)>
 WEAK symbol<void(const char *file, int line, int code, const char *fmt, ...)>
     Com_Error_{0x1420F8170, 0x140501470};
 WEAK symbol<bool(eModes mode)> Com_SessionMode_IsMode{0x1420F7370, 0x140500940};
-WEAK symbol<int()> Com_SessionMode_GetMode{0x1420F6D30, 0x1405002D0};
+WEAK symbol<game::eModes()> Com_SessionMode_GetMode{0x1420F6D30, 0x1405002D0};
 WEAK symbol<int()> Com_SessionMode_GetGameMode{0x1420F68B0, 0x1404FFE50};
 WEAK symbol<void(eNetworkModes networkMode)> Com_SessionMode_SetNetworkMode{
     0x1420F75B0, 0x140500B80};
@@ -42,6 +42,13 @@ WEAK symbol<game::ControllerIndex_t(game::LocalClientNum_t localClientNum)>
 
 WEAK symbol<game::net::netsrc_t(game::LocalClientNum_t localClientNum)>
     Com_LocalClient_GetNetworkID{0x1420EF950};
+WEAK symbol<void *(live::LiveAllocTypes type, void *ptr, const size_t size)>
+    Com_LiveRealloc{0x14214BE50};
+WEAK symbol<void(live::LiveAllocTypes type, void *ptr)> Com_LiveDeallocate{
+    0x14214BD80};
+WEAK symbol<qboolean> com_errorEntered{0x1568ED8B8};
+WEAK symbol<const char *()> Com_SessionMode_GetAbbreviationForCurrentMode{
+    0x1420F6790};
 
 } // namespace com
 } // namespace game

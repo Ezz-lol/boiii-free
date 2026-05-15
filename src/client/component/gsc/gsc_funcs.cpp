@@ -138,7 +138,7 @@ std::deque<std::string> script_cmd_queue;
 
 void script_cmd_handler(const command::params &params) {
   std::string result;
-  for (uint32_t i = 0; i < params.size(); i++) {
+  for (int32_t i = 0; i < params.size(); i++) {
     if (i > 0)
       result += ' ';
     result += params.get(i);

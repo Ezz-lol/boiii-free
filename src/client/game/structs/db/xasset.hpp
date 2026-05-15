@@ -1,4 +1,5 @@
-#pragma once
+#ifndef GAME_STRUCTS_DB_XASSETS_HPP
+#define GAME_STRUCTS_DB_XASSETS_HPP
 
 #include <cstdint>
 #include "../quake.hpp"
@@ -206,8 +207,7 @@ static_assert(sizeof(NamedXAsset) == 0x8, "NamedXAsset size must be 8 bytes");
 
 #pragma pack(push, 1)
 struct RawFile : NamedXAsset {
-  int32_t len;
-  uint8_t _padding0C[4];
+  uint64_t len;
   const char *buffer;
 };
 static_assert(sizeof(RawFile) == 0x18, "RawFile size must be 0x18 bytes");
@@ -501,3 +501,4 @@ static_assert(sizeof(XAssetPools) == sizeof(TypedXAssetPools),
 } // namespace xasset
 } // namespace db
 } // namespace game
+#endif

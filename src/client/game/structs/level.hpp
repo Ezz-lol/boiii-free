@@ -1,7 +1,6 @@
 #pragma once
 
 #include "core.hpp"
-#include "snd.hpp"
 #include "vehicle.hpp"
 #include "user.hpp"
 #include "phys.hpp"
@@ -284,6 +283,12 @@ static_assert(sizeof(level_locals_t) == 0x23A10,
               "level_locals_t size must be 144,336 bytes");
 
 #pragma pack(pop)
+
+// TODO
+struct playerState_s;
+typedef playerState_s playerState_t;
+struct entityState_t;
+struct archivedEntity_t;
 
 } // namespace level
 } // namespace game

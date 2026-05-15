@@ -4,8 +4,8 @@
 
 namespace network {
 using data_view = std::basic_string_view<uint8_t>;
-using callback =
-    std::function<void(const game::net::netadr_t &, const data_view &)>;
+using callback = std::function<void(const game::net::netadr_t &,
+                                    const data_view &, game::LocalClientNum_t)>;
 
 void on(const std::string &command, const callback &callback);
 void send(const game::net::netadr_t &address, const std::string &command,
