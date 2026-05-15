@@ -21,11 +21,11 @@
 #include "level.hpp"     // IWYU pragma: export
 #include "weapon.hpp"    // IWYU pragma: export
 #include "user.hpp"      // IWYU pragma: export
-#include "io.hpp"        // IWYU pragma: export
 #include "live/live.hpp" // IWYU pragma: export
 #include "db/db.hpp"     // IWYU pragma: export
 #include "cl.hpp"        // IWYU pragma: export
 #include "ui/ui.hpp"     // IWYU pragma: export
 #include "cmd.hpp"       // IWYU pragma: export
 #include "cg.hpp"        // IWYU pragma: export
+#include "stream.hpp"    // IWYU pragma: export
 #include "sv.hpp"        // IWYU pragma: export

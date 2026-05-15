@@ -6,7 +6,7 @@
 #include "quake.hpp"
 #include "db/xasset.hpp"
 #include "scr.hpp"
-#include "io.hpp"
+#include "stream.hpp"
 
 namespace game {
 namespace snd {
@@ -244,7 +244,7 @@ struct SndAssetBankLoad {
   char filename[256];
   SndAssetBankEntry *entries;
   uint32_t entryCount;
-  io::stream_fileid fileHandle;
+  stream::stream_fileid fileHandle;
   qboolean indicesLoaded;
   qboolean indicesAllocated;
 };
@@ -1324,7 +1324,7 @@ struct SndBankLoad {
   uint32_t priority;
   qboolean patchZone;
   uint8_t _unknown[4];
-  io::stream_id streamRequestId;
+  stream::stream_id streamRequestId;
   qboolean pendingIo;
   qboolean ioError;
   SndBankState state;

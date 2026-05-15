@@ -2,7 +2,8 @@
 
 #include <cstdint>
 namespace game {
-namespace io {
+namespace stream {
+
 enum class stream_status : int32_t {
   STREAM_STATUS_INVALID = 0x0,
   STREAM_STATUS_QUEUED = 0x1,
@@ -19,6 +20,27 @@ enum class stream_status : int32_t {
 
 typedef int32_t stream_fileid;
 typedef int32_t stream_id;
+typedef stream_fileid stream_platform_handle;
 
-} // namespace io
+#pragma pack(push, 1)
+struct stream_fh {
+  char name[256];
+  stream_platform_handle h;
+  uint8_t unknown106[4];
+  bool shouldOpen;
+  uint8_t _unknown109[1];
+  bool shouldClose;
+  bool error;
+  int flags;
+  bool inUse;
+  bool synchronous;
+  uint8_t unknown[38];
+  int64_t readOffset;
+  int64_t easyOffset;
+  int64_t fileSize;
+  int64_t fakeGlobalOffset;
+};
+
+#pragma pack(pop)
+} // namespace stream
 } // namespace game

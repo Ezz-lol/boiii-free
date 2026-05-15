@@ -173,7 +173,7 @@ bool SND_StartTocRead_Impl(SndBankLoad *load, SndAssetBankLoad *assetBank,
         Com_Printf(CON_LABEL_LOBBYCLIENT, 28, "SOUND entry alloc %s %d\n",
                    assetBank->filename, entryCount);
         int64_t entryOffset = assetBank->header.entryOffset;
-        io::stream_fileid fileHandle = assetBank->fileHandle;
+        stream::stream_fileid fileHandle = assetBank->fileHandle;
         SndAssetBankEntry *data = assetBank->entries;
         assetBank->indicesAllocated = 1;
         SND_StreamRead(load, fileHandle, entryOffset, allocSize,
@@ -281,7 +281,7 @@ inline int32_t SND_GetPlaybackTimeById(SndAliasId id) {
           SndAssetBankEntry *entry = nullptr;
           sd_byte *data = nullptr;
           if (assetId) {
-            io::stream_fileid fid = 0;
+            stream::stream_fileid fid = 0;
             if (SND_AssetBankFindEntry(assetId, &entry, &fid, 1)) {
               playbackTime =
                   (std::max)(static_cast<int32_t>(

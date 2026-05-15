@@ -129,7 +129,7 @@ WEAK symbol<void(bool atStreamStart)> Load_SndBank{0x0, 0x1401BBBE0};
 
 WEAK symbol<void(bool stream, const char *zone, const char *language,
                  int pathBufferLength, char *path, qboolean isPatch,
-                 io::stream_id streamRequestId)>
+                 stream::stream_id streamRequestId)>
     SND_GetRuntimeAssetBankFileName{0x0, 0x14064C470};
 WEAK symbol<void(bool streamed, snd::SndAssetBankLoad *assetBank,
                  snd::SndBankLoad *load)>
@@ -205,7 +205,7 @@ WEAK symbol<void(int32_t id, float pitch)> SND_SetPlaybackPitch{0x0,
                                                                 0x140549290};
 WEAK symbol<void(int32_t id, float pitchRate)> SND_SetPlaybackPitchRate{
     0x0, 0x1405492F0};
-WEAK symbol<void(snd::SndBankLoad *bank, io::stream_fileid fileHandle,
+WEAK symbol<void(snd::SndBankLoad *bank, stream::stream_fileid fileHandle,
                  int64_t offset, size_t size, void *data)>
     SND_StreamRead{0x14258C820, 0x14064CC50};
 WEAK symbol<void()> SND_BankLoadedNotify{0x0, 0x140547BE0};
@@ -262,7 +262,7 @@ WEAK symbol<void(snd::SndVoice *voice, const snd::SndAlias *alias)>
     SND_SetVoiceStartSeeds{0x0, 0x140645780};
 WEAK symbol<void(snd::SndVoice *voice, vec3_t *player)> SND_SetVoiceStartFlux{
     0x0, 0x140647280};
-WEAK symbol<void(io::stream_id id, io::stream_status result,
+WEAK symbol<void(stream::stream_id id, stream::stream_status result,
                  uint32_t numBytesRead, uint8_t *b)>
     SND_BankReadCallback{0x0, 0x14064B970};
 WEAK symbol<void(const SndPlayState *state, SndPlayback *playback)>
@@ -377,8 +377,8 @@ WEAK symbol<uint32_t(const SndAssetBankEntry *entry)> SND_AssetBankGetFrameRate{
 WEAK symbol<uint32_t(const SndAssetBankEntry *entry)> SND_AssetBankGetLengthMs{
     0x142589890, 0x140649E20};
 WEAK symbol<bool(game::snd::SndStringHash id,
-                 game::snd::SndAssetBankEntry **entry, io::stream_fileid *fid,
-                 bool streamed)>
+                 game::snd::SndAssetBankEntry **entry,
+                 stream::stream_fileid *fid, bool streamed)>
     SND_AssetBankFindEntry{0x14258A6F0, 0x14064AC10};
 WEAK symbol<bool(game::snd::SndStringHash id,
                  game::snd::SndAssetBankEntry **entry, void **data)>

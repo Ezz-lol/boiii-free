@@ -50,6 +50,7 @@
 #include "snd/sndl.hpp"        // IWYU pragma: export
 #include "sv.hpp"              // IWYU pragma: export
 #include "s_wcd.hpp"           // IWYU pragma: export
+#include "stream.hpp"          // IWYU pragma: export
 #include "sys.hpp"             // IWYU pragma: export
 #include "ugc.hpp"             // IWYU pragma: export
 #include "ui/core.hpp"         // IWYU pragma: export
