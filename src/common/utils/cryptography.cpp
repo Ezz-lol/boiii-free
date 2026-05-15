@@ -261,7 +261,7 @@ ecc::key ecc::generate_key(const int bits, const std::string &entropy) {
   return key;
 }
 
-#define INITIAL_ECC_ANSIX962_BUFFER_LEN 256
+#define BASE_ECC_ANSIX962_BUFFER_LEN 256
 std::string ecc::sign_message(const key &key, const std::string &message) {
   if (!key.is_valid())
     return {};

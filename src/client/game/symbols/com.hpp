@@ -49,6 +49,8 @@ WEAK symbol<void(live::LiveAllocTypes type, void *ptr)> Com_LiveDeallocate{
 WEAK symbol<qboolean> com_errorEntered{0x1568ED8B8};
 WEAK symbol<const char *()> Com_SessionMode_GetAbbreviationForCurrentMode{
     0x1420F6790};
+WEAK symbol<LocalClientNum_t(ControllerIndex_t controllerIndex)>
+    Com_ControllerIndex_GetLocalClientNum{0x1420EF7C0};
 
 } // namespace com
 } // namespace game

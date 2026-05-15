@@ -885,7 +885,7 @@ bool mod_switch_requires_fs_reinitialization(const std::string &current_mod,
          mod_load_requires_fs_reinitialization(new_mod);
 }
 
-void setup_same_mod_as_host(game::ControllerIndex_t controllerIndex,
+void setup_same_mod_as_host(game::LocalClientNum_t localClientNum,
                             const std::string &usermap,
                             const std::string &mod) {
   const std::string loaded_mod = game::ugc::getPublisherIdFromLoadedMod();
@@ -893,20 +893,18 @@ void setup_same_mod_as_host(game::ControllerIndex_t controllerIndex,
     if (!usermap.empty() || !mod.empty()) {
       bool fs_reinit_required =
           mod_switch_requires_fs_reinitialization(loaded_mod, mod);
-      game::ugc::loadMod(static_cast<game::LocalClientNum_t>(controllerIndex),
-                         mod.data(), fs_reinit_required);
+      game::ugc::loadMod(localClientNum, mod.data(), fs_reinit_required);
       if (fs_reinit_required) {
-        while (game::ugc::isModLoading(game::LOCAL_CLIENT_0)) {
+        while (game::ugc::isModLoading(localClientNum)) {
           std::this_thread::sleep_for(100ms);
         }
       }
     } else if (game::ugc::isModLoaded()) {
       bool fs_reinit_required =
           mod_switch_requires_fs_reinitialization(loaded_mod, "");
-      game::ugc::loadMod(static_cast<game::LocalClientNum_t>(controllerIndex),
-                         "", fs_reinit_required);
+      game::ugc::loadMod(localClientNum, "", fs_reinit_required);
       if (fs_reinit_required) {
-        while (game::ugc::isModLoading(game::LOCAL_CLIENT_0)) {
+        while (game::ugc::isModLoading(localClientNum)) {
           std::this_thread::sleep_for(100ms);
         }
       }

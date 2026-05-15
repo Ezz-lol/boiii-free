@@ -57,7 +57,9 @@ void connect_to_lobby(const game::ControllerIndex_t controllerIndex,
 
   auth::clear_stored_guids();
   auth::clear_stored_challenge();
-  workshop::setup_same_mod_as_host(controllerIndex, usermap_id, mod_id);
+  workshop::setup_same_mod_as_host(
+      game::com::Com_ControllerIndex_GetLocalClientNum(controllerIndex),
+      usermap_id, mod_id);
 
   game::net::XSESSION_INFO info{};
 
