@@ -213,6 +213,9 @@ struct RawFile : NamedXAsset {
 static_assert(sizeof(RawFile) == 0x18, "RawFile size must be 0x18 bytes");
 #pragma pack(pop)
 
+struct MaterialTechniqueSet;
+typedef MaterialTechniqueSet *MaterialTechniqueSetPtr;
+
 union XAssetHeader {
   NamedXAsset *named;
   // PhysPreset *physPreset;
@@ -223,7 +226,7 @@ union XAssetHeader {
   // XModelMesh *modelMesh;
   // Material *material;
   // MaterialComputeShaderSet *computeShaderSet;
-  // MaterialTechniqueSet *techniqueSet;
+  MaterialTechniqueSet *techniqueSet;
   // GfxImage *image;
   snd::SndBank *sound;
   snd::SndPatch *soundPatch;

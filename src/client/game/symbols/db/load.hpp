@@ -29,6 +29,11 @@ WEAK symbol<bool(const char *path, DBFile f, xzone::XZoneBuffer *fileBuffer,
 WEAK symbol<void(int zoneIndex, bool createDefault, qboolean suppressSync)>
     DB_UnloadXZone{0x141425A70, 0x1401DA6C0};
 WEAK symbol<void()> DB_ReleaseXAssets{0x1414247C0, 0x1401D9870};
+WEAK symbol<void(xasset::MaterialTechniqueSetPtr *techniqueSet)>
+    Load_MaterialTechniqueSetAsset{0x0, 0x1401DB280};
+// Actual name is unknown - this is a new function
+WEAK symbol<void(xasset::MaterialTechniqueSetPtr techniqueSet)>
+    R_Stream_ClearTechniqueSetShaders{0x0, 0x14038EFC0};
 } // namespace load
 } // namespace db
 } // namespace game

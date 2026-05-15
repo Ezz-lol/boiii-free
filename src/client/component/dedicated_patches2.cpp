@@ -398,12 +398,40 @@ inline void enable_sound() {
   */
   sndl_update_hook.create(game::snd::sndl::SNDL_Update.get(), safe_sndl_update);
 }
+
+utils::hook::detour R_Stream_ClearTechniqueSetShaders_hook;
+void disable_unused_asset_loads() {
+  /*
+    In some cases of map switch between two usermaps, the dedicated server will
+    unexpectedly load material technique sets, despite being unused.
+
+    The below function takes a material technique set which is expected to be
+    initialized and zeroes its shader-related values. This is performed to
+    prepare the struct for subsequent copy of a loaded material technique set.
+
+    Some of these values require dereference of pointers stored as fields in the
+    material technique set. The material technique set is not actually
+    initialized as expected, because the dedicated server is not intended to
+    load or use these assets. As such, these pointer deferences result in a
+    memory access violation (null pointer dereference).
+
+    Stubbing this function could result in garbage data leftover in the
+    technique set after copy of the loaded technique set, but these are unused
+    on dedicated server, so this is inconsequential.
+  */
+  R_Stream_ClearTechniqueSetShaders_hook.create(
+      game::db::load::R_Stream_ClearTechniqueSetShaders,
+      reinterpret_cast<void (*)(
+          game::db::xasset::MaterialTechniqueSetPtr *techniqueSet)>(stub_func));
+}
+
 } // namespace
 
 struct component final : server_component {
   void post_unpack() override {
 
     enable_sound();
+    disable_unused_asset_loads();
 
     /*
      Disable purposely crashing application by
