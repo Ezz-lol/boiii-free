@@ -360,7 +360,7 @@ void request_servers(callback callback) {
     s.callback = std::move(callback);
     s.query_start = std::chrono::high_resolution_clock::now();
 
-    for (const auto &addr : masters) {
+    for (const game::net::netadr_t &addr : masters) {
       master_query mq{};
       mq.address = addr;
       s.masters.push_back(mq);

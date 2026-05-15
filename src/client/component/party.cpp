@@ -449,7 +449,7 @@ void join_session(const game::net::netadr_t &addr, const std::string &hostname,
 }
 
 uint16_t get_local_port() {
-  const auto *dvar = game::Dvar_FindVar("net_port");
+  const game::dvar_t *dvar = game::Dvar_FindVar("net_port");
   if (dvar) {
     return static_cast<uint16_t>(dvar->current.value.integer);
   }

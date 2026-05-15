@@ -271,7 +271,7 @@ bool are_addresses_equal(const game::net::netadr_t &a,
     return true;
   }
 
-  return a.port == b.port && a.addr == b.addr && a.localNetID == b.localNetID;
+  return a.port == b.port && a.addr == b.addr;
 }
 
 int net_sendpacket_stub(const game::net::netsrc_t sock, const int length,

@@ -7,10 +7,7 @@
 
 #include <string>
 #include <utils/hook.hpp>
-#include <utils/io.hpp>
-#include <utils/string.hpp>
 #include "game/impl/snd/snd.hpp"
-#include "command.hpp"
 
 namespace script {
 std::string resolve_hash(uint32_t hash);
