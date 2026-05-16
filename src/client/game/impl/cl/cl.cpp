@@ -1,16 +1,5 @@
+#include <std_include.hpp>
 #include "cl.hpp"
-
-#if defined(__clang__) || defined(__GNUC__)
-int32_t InterlockedDecrement(volatile int32_t *addend) {
-  // __sync_sub_and_fetch is a full memory barrier on most systems
-  return __sync_sub_and_fetch(addend, 1);
-}
-#elif defined(_MSC_VER)
-// InterlockedDecrement is defined in windows.h
-#include "windows.h"
-else
-#error "Unsupported compiler. Only MSVC, Clang and GCC are supported."
-#endif
 
 namespace game {
 namespace cl {
@@ -56,7 +45,7 @@ CL_GetLocalClientConnection(LocalClientNum_t LocalClientNum) {
   return clientConnection;
 }
 
-void CL_CheckForResend_Impl(LocalClientNum_t localClientNum) {
+void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
   clientConnection_t *clc = CL_GetLocalClientConnection(localClientNum);
 
   ControllerIndex_t controllerIndex =
