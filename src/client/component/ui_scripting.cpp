@@ -1401,8 +1401,8 @@ public:
 
       // Find the mod's content folder from the workshop pool
       std::string mod_content_path;
-      for (unsigned int i = 0; i < *game::ugc::modsCount; ++i) {
-        const game::workshop_data *mod_data = &game::ugc::modsPool->data[i];
+      for (unsigned int i = 0; i < game::ugc::modsPool->count; ++i) {
+        const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool->data[i];
         if (mod_data->publisherId == mod_id || mod_data->folderName == mod_id) {
           mod_content_path = mod_data->absolutePathContentFolder;
           break;
@@ -1417,11 +1417,7 @@ public:
         return;
       }
 
-      // const auto folder = game::is_server() ? "lobby_scripts" : "ui_scripts";
-      // const auto script_dir = (std::filesystem::path(mod_content_path) /
-      // folder).string();
-
-      const auto script_dir =
+      const std::string script_dir =
           (std::filesystem::path(mod_content_path) / "mods" / mod_id).string();
 
       scheduler::once(

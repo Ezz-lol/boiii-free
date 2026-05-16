@@ -96,8 +96,8 @@ void queue_dlc_popup(const std::string &mapname) {
 }
 
 bool has_mod(const std::string &pub_id) {
-  for (unsigned int i = 0; i < *game::ugc::modsCount; ++i) {
-    const game::workshop_data *mod_data = &game::ugc::modsPool->data[i];
+  for (unsigned int i = 0; i < game::ugc::modsPool->count; ++i) {
+    const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool->data[i];
     if (mod_data->publisherId == pub_id || mod_data->folderName == pub_id) {
       return true;
     }
@@ -107,8 +107,8 @@ bool has_mod(const std::string &pub_id) {
 }
 
 std::string resolve_mod_workshop_id(const std::string &mod_name) {
-  for (unsigned int i = 0; i < *game::ugc::modsCount; ++i) {
-    const game::workshop_data *mod_data = &game::ugc::modsPool->data[i];
+  for (unsigned int i = 0; i < game::ugc::modsPool->count; ++i) {
+    const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool->data[i];
     if (mod_data->folderName == mod_name &&
         utils::string::is_numeric(mod_data->publisherId)) {
       return mod_data->publisherId;
@@ -216,7 +216,7 @@ void setup_server_map_stub(game::LocalClientNum_t localClientNum,
   setup_server_map_hook.invoke(localClientNum, map, gametype);
 }
 
-void load_workshop_data(game::workshop_data *item) {
+void load_workshop_data(game::ugc::WorkshopData *item) {
   const auto base_path = item->absolutePathZoneFiles;
   const auto path = utils::string::va("%s/workshop.json", base_path);
   const auto json_str = utils::io::read_file(path);
@@ -249,14 +249,15 @@ void load_workshop_data(game::workshop_data *item) {
   item->publisherIdInteger = std::strtoul(item->publisherId, nullptr, 10);
 }
 
-void populate_workshop_paths(game::workshop_data *item,
+void populate_workshop_paths(game::ugc::WorkshopData *item,
                              const std::filesystem::path &content_folder,
-                             const game::workshop_type type) {
-  std::memset(item, 0, sizeof(game::workshop_data));
+                             const game::ugc::WorkshopType type) {
+  std::memset(item, 0, sizeof(game::ugc::WorkshopData));
 
-  const auto zone_path = content_folder / "zone";
-  const auto relative_zone_path =
-      std::filesystem::path(type == game::WORKSHOP_MOD ? "mods" : "usermaps") /
+  const std::filesystem::path zone_path = content_folder / "zone";
+  const std::filesystem::path relative_zone_path =
+      std::filesystem::path(
+          type == game::ugc::WorkshopType::WORKSHOP_MOD ? "mods" : "usermaps") /
       content_folder.filename() / "zone";
 
   utils::string::copy(item->contentPathToZoneFiles,
@@ -273,7 +274,7 @@ void populate_workshop_paths(game::workshop_data *item,
 }
 
 void supplement_mods_from_disk() {
-  if (*game::ugc::modsCount != 0) {
+  if (game::ugc::modsPool->count != 0) {
     return;
   }
 
@@ -296,14 +297,15 @@ void supplement_mods_from_disk() {
       continue;
     }
 
-    game::workshop_data *mod_data = &game::ugc::modsPool->data[count];
-    populate_workshop_paths(mod_data, entry.path(), game::WORKSHOP_MOD);
+    game::ugc::WorkshopData *mod_data = &game::ugc::modsPool->data[count];
+    populate_workshop_paths(mod_data, entry.path(),
+                            game::ugc::WorkshopType::WORKSHOP_MOD);
     load_workshop_data(mod_data);
     ++count;
   }
 
   if (count) {
-    *game::ugc::modsCount = count;
+    game::ugc::modsPool->count = count;
     printf("[ Workshop ] Supplemented %u mods from disk fallback\n", count);
   }
 }
@@ -312,8 +314,8 @@ void load_usermap_content_stub(int32_t *usermaps_count, int type) {
   utils::hook::invoke<void>(game::select(0x1420D6430, 0x1404E2360),
                             usermaps_count, type);
 
-  for (unsigned int i = 0; i < *game::ugc::usermapsCount; ++i) {
-    game::workshop_data *usermap_data = &game::ugc::usermapsPool->data[i];
+  for (unsigned int i = 0; i < game::ugc::usermapsPool->count; ++i) {
+    game::ugc::WorkshopData *usermap_data = &game::ugc::usermapsPool->data[i];
 
     if (std::strcmp(usermap_data->folderName, usermap_data->title) != 0) {
       continue;
@@ -328,8 +330,8 @@ void load_mod_content_stub(int32_t *mods_count, int type) {
                             type);
   supplement_mods_from_disk();
 
-  for (unsigned int i = 0; i < *game::ugc::modsCount; ++i) {
-    game::workshop_data *mod_data = &game::ugc::modsPool->data[i];
+  for (unsigned int i = 0; i < game::ugc::modsPool->count; ++i) {
+    game::ugc::WorkshopData *mod_data = &game::ugc::modsPool->data[i];
 
     if (std::strcmp(mod_data->folderName, mod_data->title) != 0) {
       continue;
@@ -339,13 +341,13 @@ void load_mod_content_stub(int32_t *mods_count, int type) {
   }
 }
 
-game::workshop_data *load_usermap_stub(const char *map_arg) {
+game::ugc::WorkshopData *load_usermap_stub(const char *map_arg) {
   std::string pub_id = map_arg;
   if (!utils::string::is_numeric(map_arg)) {
     pub_id = get_usermap_publisher_id(map_arg);
   }
 
-  return load_usermap_hook.invoke<game::workshop_data *>(pub_id.data());
+  return load_usermap_hook.invoke<game::ugc::WorkshopData *>(pub_id.data());
 }
 
 bool has_workshop_item_stub(int type, const char *map, int a3) {
@@ -390,8 +392,8 @@ std::string get_mod_resized_name() {
 
   std::string mod_name = loaded_mod_id;
 
-  for (unsigned int i = 0; i < *game::ugc::modsCount; ++i) {
-    const game::workshop_data *mod_data = &game::ugc::modsPool->data[i];
+  for (unsigned int i = 0; i < game::ugc::modsPool->count; ++i) {
+    const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool->data[i];
 
     if (mod_data->publisherId == loaded_mod_id) {
       mod_name = mod_data->title;
@@ -407,11 +409,12 @@ std::string get_mod_resized_name() {
 }
 
 std::string get_usermap_publisher_id(const std::string &zone_name) {
-  for (unsigned int i = 0; i < *game::ugc::usermapsCount; ++i) {
-    const game::workshop_data *usermap_data = &game::ugc::usermapsPool->data[i];
+  for (unsigned int i = 0; i < game::ugc::usermapsPool->count; ++i) {
+    const game::ugc::WorkshopData *usermap_data =
+        &game::ugc::usermapsPool->data[i];
     if (usermap_data->folderName == zone_name) {
       if (!utils::string::is_numeric(usermap_data->publisherId)) {
-        printf("[ Workshop ] WARNING: The publisherId is not numerical you "
+        printf("[ Workshop ] WARNING: The publisherId is not numerical. You "
                "might have set your usermap folder incorrectly!\n%s\n",
                usermap_data->absolutePathZoneFiles);
       }

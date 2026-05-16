@@ -1042,33 +1042,6 @@ struct gclient_s {
   char flags;
 };
 
-enum workshop_type { WORKSHOP_MOD = 0x1, WORKSHOP_USERMAP = 0x2 };
-
-struct workshop_data {
-  char title[100];
-  char folderName[32];
-  char publisherId[32];
-  char description[256];
-  char contentPathToZoneFiles[260];
-  char absolutePathContentFolder[260];
-  char absolutePathZoneFiles[260];
-  int32_t unk;  // 1
-  int32_t unk2; // 0
-  uint32_t publisherIdInteger;
-  int32_t unk3;
-  uint32_t unk4;
-  workshop_type type;
-};
-
-#ifdef __cplusplus
-static_assert(sizeof(workshop_data) == 0x4C8,
-              "workshop_data size must be 0x4C8 bytes");
-#endif
-
-struct WorkshopDataPool {
-  workshop_data data[128];
-};
-
 struct DDLMember {
   const char *name;
   int32_t index;
