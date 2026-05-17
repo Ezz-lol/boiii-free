@@ -6,9 +6,25 @@
 
 namespace game {
 namespace ugc {
-WEAK symbol<BuiltinWorkshopDataPool> modsPool{0x15678D178, 0x14933EAE8};
+WEAK symbol<BuiltinWorkshopDataPool> builtinModsPool{0x15678D170, 0x14933EAE0};
+static ExtendedWorkshopDataPool modsPool = {};
+static const ExtendedWorkshopDataPool *modsPoolPtr = &modsPool;
+static const WorkshopData (*modsPoolDataPtr)[EXTENDED_WORKSHOP_DATA_POOL_SIZE] =
+    &modsPool.data;
+static const str32_t *modsPoolDataPublisherIdPtr =
+    &modsPool.data[0].publisherId;
+static const uint32_t *modsPoolCountPtr = &modsPool.count;
 
-WEAK symbol<BuiltinWorkshopDataPool> usermapsPool{0x1567B3588, 0x149364EF0};
+WEAK symbol<BuiltinWorkshopDataPool> builtinUsermapsPool{0x1567B3580,
+                                                         0x149364EE8};
+static ExtendedWorkshopDataPool usermapsPool = {};
+static const ExtendedWorkshopDataPool *usermapsPoolPtr = &usermapsPool;
+static const WorkshopData (
+    *usermapsPoolDataPtr)[EXTENDED_WORKSHOP_DATA_POOL_SIZE] =
+    &usermapsPool.data;
+static const str32_t *usermapsPoolDataPublisherIdPtr =
+    &usermapsPool.data[0].publisherId;
+static const uint32_t *usermapsPoolCountPtr = &usermapsPool.count;
 
 WEAK symbol<bool()> isModLoaded{0x1420D5020};
 WEAK symbol<const char *()> getPublisherIdFromLoadedMod{0x1420D7680,

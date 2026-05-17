@@ -1401,8 +1401,8 @@ public:
 
       // Find the mod's content folder from the workshop pool
       std::string mod_content_path;
-      for (unsigned int i = 0; i < game::ugc::modsPool->count; ++i) {
-        const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool->data[i];
+      for (unsigned int i = 0; i < game::ugc::modsPool.count; ++i) {
+        const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool.data[i];
         if (mod_data->publisherId == mod_id || mod_data->folderName == mod_id) {
           mod_content_path = mod_data->absolutePathContentFolder;
           break;

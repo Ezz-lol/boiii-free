@@ -96,8 +96,8 @@ void queue_dlc_popup(const std::string &mapname) {
 }
 
 bool has_mod(const std::string &pub_id) {
-  for (unsigned int i = 0; i < game::ugc::modsPool->count; ++i) {
-    const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool->data[i];
+  for (unsigned int i = 0; i < game::ugc::modsPool.count; ++i) {
+    const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool.data[i];
     if (mod_data->publisherId == pub_id || mod_data->folderName == pub_id) {
       return true;
     }
@@ -107,8 +107,8 @@ bool has_mod(const std::string &pub_id) {
 }
 
 std::string resolve_mod_workshop_id(const std::string &mod_name) {
-  for (unsigned int i = 0; i < game::ugc::modsPool->count; ++i) {
-    const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool->data[i];
+  for (unsigned int i = 0; i < game::ugc::modsPool.count; ++i) {
+    const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool.data[i];
     if (mod_data->folderName == mod_name &&
         utils::string::is_numeric(mod_data->publisherId)) {
       return mod_data->publisherId;
@@ -251,13 +251,13 @@ void load_workshop_data(game::ugc::WorkshopData *item) {
 
 void populate_workshop_paths(game::ugc::WorkshopData *item,
                              const std::filesystem::path &content_folder,
-                             const game::ugc::WorkshopType type) {
+                             const game::ugc::ZoneType type) {
   std::memset(item, 0, sizeof(game::ugc::WorkshopData));
 
   const std::filesystem::path zone_path = content_folder / "zone";
   const std::filesystem::path relative_zone_path =
-      std::filesystem::path(
-          type == game::ugc::WorkshopType::WORKSHOP_MOD ? "mods" : "usermaps") /
+      std::filesystem::path(type == game::ugc::ZoneType::MOD ? "mods"
+                                                             : "usermaps") /
       content_folder.filename() / "zone";
 
   utils::string::copy(item->contentPathToZoneFiles,
@@ -274,7 +274,7 @@ void populate_workshop_paths(game::ugc::WorkshopData *item,
 }
 
 void supplement_mods_from_disk() {
-  if (game::ugc::modsPool->count != 0) {
+  if (game::ugc::modsPool.count != 0) {
     return;
   }
 
@@ -297,15 +297,14 @@ void supplement_mods_from_disk() {
       continue;
     }
 
-    game::ugc::WorkshopData *mod_data = &game::ugc::modsPool->data[count];
-    populate_workshop_paths(mod_data, entry.path(),
-                            game::ugc::WorkshopType::WORKSHOP_MOD);
+    game::ugc::WorkshopData *mod_data = &game::ugc::modsPool.data[count];
+    populate_workshop_paths(mod_data, entry.path(), game::ugc::ZoneType::MOD);
     load_workshop_data(mod_data);
     ++count;
   }
 
   if (count) {
-    game::ugc::modsPool->count = count;
+    game::ugc::modsPool.count = count;
     printf("[ Workshop ] Supplemented %u mods from disk fallback\n", count);
   }
 }
@@ -314,8 +313,8 @@ void load_usermap_content_stub(int32_t *usermaps_count, int type) {
   utils::hook::invoke<void>(game::select(0x1420D6430, 0x1404E2360),
                             usermaps_count, type);
 
-  for (unsigned int i = 0; i < game::ugc::usermapsPool->count; ++i) {
-    game::ugc::WorkshopData *usermap_data = &game::ugc::usermapsPool->data[i];
+  for (unsigned int i = 0; i < game::ugc::usermapsPool.count; ++i) {
+    game::ugc::WorkshopData *usermap_data = &game::ugc::usermapsPool.data[i];
 
     if (std::strcmp(usermap_data->folderName, usermap_data->title) != 0) {
       continue;
@@ -330,8 +329,8 @@ void load_mod_content_stub(int32_t *mods_count, int type) {
                             type);
   supplement_mods_from_disk();
 
-  for (unsigned int i = 0; i < game::ugc::modsPool->count; ++i) {
-    game::ugc::WorkshopData *mod_data = &game::ugc::modsPool->data[i];
+  for (unsigned int i = 0; i < game::ugc::modsPool.count; ++i) {
+    game::ugc::WorkshopData *mod_data = &game::ugc::modsPool.data[i];
 
     if (std::strcmp(mod_data->folderName, mod_data->title) != 0) {
       continue;
@@ -392,8 +391,8 @@ std::string get_mod_resized_name() {
 
   std::string mod_name = loaded_mod_id;
 
-  for (unsigned int i = 0; i < game::ugc::modsPool->count; ++i) {
-    const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool->data[i];
+  for (unsigned int i = 0; i < game::ugc::modsPool.count; ++i) {
+    const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool.data[i];
 
     if (mod_data->publisherId == loaded_mod_id) {
       mod_name = mod_data->title;
@@ -409,9 +408,9 @@ std::string get_mod_resized_name() {
 }
 
 std::string get_usermap_publisher_id(const std::string &zone_name) {
-  for (unsigned int i = 0; i < game::ugc::usermapsPool->count; ++i) {
+  for (unsigned int i = 0; i < game::ugc::usermapsPool.count; ++i) {
     const game::ugc::WorkshopData *usermap_data =
-        &game::ugc::usermapsPool->data[i];
+        &game::ugc::usermapsPool.data[i];
     if (usermap_data->folderName == zone_name) {
       if (!utils::string::is_numeric(usermap_data->publisherId)) {
         printf("[ Workshop ] WARNING: The publisherId is not numerical. You "
@@ -956,9 +955,209 @@ void com_error_missing_map_stub(const char *file, int line, int code,
   game::com::Com_Error_(file, line, code, "%s", "Missing map!");
 }
 
+inline constexpr uint32_t
+rip_relative_displacement(const uintptr_t instructionEndAddr,
+                          const uintptr_t addr) {
+  const uintptr_t displacement = addr - instructionEndAddr;
+  return static_cast<uint32_t>(displacement);
+}
+
+void patch_rip_relative_ptr(uintptr_t instrOffset, uint32_t instrPtrArgOffset,
+                            uint32_t instrLen, const auto *newAddr) {
+  uintptr_t instrPtrArgAddr = instrOffset + instrPtrArgOffset;
+  uintptr_t instrEndAddr = instrOffset + instrLen;
+  uintptr_t newAddrInt = reinterpret_cast<uintptr_t>(newAddr);
+  uint32_t newAddrRipRelative =
+      rip_relative_displacement(instrEndAddr, newAddrInt);
+  utils::hook::set<uint32_t>(
+      game::relocate(static_cast<size_t>(instrPtrArgAddr)), newAddrRipRelative);
+}
+
+void *memset_extended_workshop_data_pool(
+    const game::ugc::ExtendedWorkshopDataPool *pool, int32_t val) {
+  return memset(const_cast<void *>(static_cast<const void *>(pool)), val,
+                game::ugc::EXTENDED_WORKSHOP_DATA_POOL_STRUCT_SIZE);
+}
+
+void *memset_extended_mods_pool(
+    [[maybe_unused]] game::ugc::BuiltinWorkshopDataPool *pool, int32_t val,
+    [[maybe_unused]] size_t len) {
+  return memset_extended_workshop_data_pool(game::ugc::modsPoolPtr, val);
+}
+
+void *memset_extended_usermaps_pool(
+    [[maybe_unused]] game::ugc::BuiltinWorkshopDataPool *pool, int32_t val,
+    [[maybe_unused]] size_t len) {
+  return memset_extended_workshop_data_pool(game::ugc::usermapsPoolPtr, val);
+}
+
+inline void extend_usermaps_pool() {
+  // lea     rcx, usermapsPool
+  patch_rip_relative_ptr(game::select(0x1420D52BF, 0x1404E149F), 3, 7,
+                         game::ugc::usermapsPoolPtr);
+
+  //  cmp     cs:usermapsPool.count, ebx
+  patch_rip_relative_ptr(game::select(0x1420D5725, 0x1404E18D5), 2, 6,
+                         game::ugc::usermapsPoolCountPtr);
+  // lea     rbp, usermapsPool.data.publisherId
+  patch_rip_relative_ptr(game::select(0x1420D572D, 0x1404E18DD), 3, 7,
+                         game::ugc::usermapsPoolDataPublisherIdPtr);
+  // cmp     ebx, cs:usermapsPool.count
+  patch_rip_relative_ptr(game::select(0x1420D575B, 0x1404E190B), 2, 6,
+                         game::ugc::usermapsPoolCountPtr);
+  // lea     rax, usermapsPool.data
+  patch_rip_relative_ptr(game::select(0x1420D5768, 0x1404E1918), 3, 7,
+                         game::ugc::usermapsPoolDataPtr);
+
+  // lea     rdi, usermapsPool
+  patch_rip_relative_ptr(game::select(0x1420D6155, 0x1404E2205), 3, 7,
+                         game::ugc::usermapsPoolPtr);
+
+  // Lua function - client-specific
+  if (game::is_client()) {
+    // mov     ebx, cs:usermapsPool.count
+    patch_rip_relative_ptr(0x1420D6207, 2, 6, game::ugc::usermapsPoolCountPtr);
+    // lea     r14, usermapsPool
+    patch_rip_relative_ptr(0x1420D624F, 3, 7, game::ugc::usermapsPoolPtr);
+  }
+
+  // cmovz   eax, cs:usermapsPool.count
+  patch_rip_relative_ptr(game::select(0x1420D6371, 0x1404E22A1), 3, 7,
+                         game::ugc::usermapsPoolCountPtr);
+
+  // lea     rsi, usermapsPool
+  patch_rip_relative_ptr(game::select(0x1420D63AB, 0x1404E22DB), 3, 7,
+                         game::ugc::usermapsPoolPtr);
+
+  // Server-specific function - resets both mod and usermap data
+  if (game::is_server()) {
+    utils::hook::call(0x1404E25D3_g, memset_extended_usermaps_pool);
+    // lea     rcx, usermapsPool
+    patch_rip_relative_ptr(0x1404E25E6, 3, 7, game::ugc::usermapsPoolPtr);
+  }
+
+  // Set map laoding image - client-specific
+  if (game::is_client()) {
+    // cmp     cs:usermapsPool.count, ebx
+    patch_rip_relative_ptr(0x1420D720D, 2, 6, game::ugc::usermapsPoolCountPtr);
+    // lea     rbp, usermapsPool.data.publisherId
+    patch_rip_relative_ptr(0x1420D7224, 3, 7,
+                           game::ugc::usermapsPoolDataPublisherIdPtr);
+    // cmp     ebx, cs:usermapsPool.count
+    patch_rip_relative_ptr(0x1420D724F, 2, 6, game::ugc::usermapsPoolCountPtr);
+    // lea     rcx, usermapsPool.data
+    patch_rip_relative_ptr(0x1420D7333, 3, 7, game::ugc::usermapsPoolDataPtr);
+  }
+
+  utils::hook::call(game::select(0x1420D67DB_g, 0x1404E26A3_g),
+                    memset_extended_usermaps_pool);
+  // lea     rcx, usermapsPool
+  patch_rip_relative_ptr(game::select(0x1420D67E9, 0x1404E26B6), 3, 7,
+                         game::ugc::usermapsPoolPtr);
+
+  // Set map preview image
+  {
+    // cmp     cs:usermapsPool.count, ebx
+    patch_rip_relative_ptr(game::select(0x1420D7401, 0x1404E3011), 2, 6,
+                           game::ugc::usermapsPoolCountPtr);
+    // lea     rbp, usermapsPool.data.publisherId
+    patch_rip_relative_ptr(game::select(0x1420D7409, 0x1404E3019), 3, 7,
+                           game::ugc::usermapsPoolDataPublisherIdPtr);
+    // cmp     ebx, cs:usermapsPool.count
+    patch_rip_relative_ptr(game::select(0x1420D742F, 0x1404E303F), 2, 6,
+                           game::ugc::usermapsPoolCountPtr);
+    // lea     rcx, usermapsPool.data
+    patch_rip_relative_ptr(game::select(0x1420D7513, 0x1404E310B), 3, 7,
+                           game::ugc::usermapsPoolDataPtr);
+  }
+}
+
+inline void extend_mods_pool() {
+  // lea     rcx, modsPool.data
+  patch_rip_relative_ptr(game::select(0x1420D5315, 0x1404E14F5), 3, 7,
+                         game::ugc::modsPoolDataPtr);
+
+  // cmp     cs:modsPool.count, ebx
+  patch_rip_relative_ptr(game::select(0x1420D5A17, 0x1404E1BC7), 2, 6,
+                         game::ugc::modsPoolCountPtr);
+  // lea     rbp, modsPool.data.publisherId
+  patch_rip_relative_ptr(game::select(0x1420D5A2A, 0x1404E1BDA), 3, 7,
+                         game::ugc::modsPoolDataPublisherIdPtr);
+  // cmp     ebx, cs:modsPool.count
+  patch_rip_relative_ptr(game::select(0x1420D5A5F, 0x1404E1C0F), 2, 6,
+                         game::ugc::modsPoolCountPtr);
+  // lea     rcx, modsPool.data
+  patch_rip_relative_ptr(game::select(0x1420D5AED, 0x1404E1C9D), 3, 7,
+                         game::ugc::modsPoolDataPtr);
+
+  // lea     rdi, modsPool
+  patch_rip_relative_ptr(game::select(0x1420D614C, 0x1404E21FC), 3, 7,
+                         game::ugc::modsPoolPtr);
+
+  // Lua function - client-specific
+  if (game::is_client()) {
+    // mov     ebx, cs:modsPool.count
+    patch_rip_relative_ptr(0x1420D61F6, 2, 6, game::ugc::modsPoolCountPtr);
+    // lea     r14, modsPool
+    patch_rip_relative_ptr(0x1420D6244, 3, 7, game::ugc::modsPoolPtr);
+  }
+
+  // mov     eax, cs:modsPool.count
+  patch_rip_relative_ptr(game::select(0x1420D6365, 0x1404E2295), 2, 6,
+                         game::ugc::modsPoolCountPtr);
+
+  // lea     rsi, modsPool
+  patch_rip_relative_ptr(game::select(0x1420D63A2, 0x1404E22D2), 3, 7,
+                         game::ugc::modsPoolPtr);
+
+  // Server-specific function - resets both mod and usermap data
+  if (game::is_server()) {
+    utils::hook::call(0x1404E2606_g, memset_extended_mods_pool);
+    // lea     rcx, modsPool
+    patch_rip_relative_ptr(0x1404E2625, 3, 7, game::ugc::modsPoolPtr);
+  }
+
+  utils::hook::call(game::select(0x1420D672B_g, 0x1404E2653_g),
+                    memset_extended_mods_pool);
+  // lea     rcx, modsPool
+  patch_rip_relative_ptr(game::select(0x1420D6739, 0x1404E2672), 3, 7,
+                         game::ugc::modsPoolPtr);
+
+  // cmp     cs:modsPool.count, esi
+  patch_rip_relative_ptr(game::select(0x1420D6975, 0x1404E2800), 2, 6,
+                         game::ugc::modsPoolCountPtr);
+  // lea     r15, modsPool.data.publisherId
+  patch_rip_relative_ptr(game::select(0x1420D697F, 0x1404E280A), 3, 7,
+                         game::ugc::modsPoolDataPublisherIdPtr);
+  // cmp     edi, cs:modsPool.count
+  patch_rip_relative_ptr(game::select(0x1420D69AB, 0x1404E283B), 2, 6,
+                         game::ugc::modsPoolCountPtr);
+  // lea     rax, modsPool.data
+  patch_rip_relative_ptr(game::select(0x1420D69B8, 0x1404E2848), 3, 7,
+                         game::ugc::modsPoolDataPtr);
+}
+
+inline void extend_immediate_pool_length_checks() {
+  // cmp     rcx, 80h -> cmp     rcx, 2000h
+  utils::hook::set<uint32_t>(game::select(0x1420D6506_g, 0x1404E2436_g),
+                             game::ugc::EXTENDED_WORKSHOP_DATA_POOL_SIZE);
+  // cmp     rdx, 80h -> cmp     rdx, 2000h
+  utils::hook::set<uint32_t>(game::select(0x1420D5325_g, 0x1404E1505_g),
+                             game::ugc::EXTENDED_WORKSHOP_DATA_POOL_SIZE);
+}
+
+void extend_ugc_pools() {
+  extend_usermaps_pool();
+  extend_mods_pool();
+  extend_immediate_pool_length_checks();
+}
+
 class component final : public generic_component {
 public:
   void post_unpack() override {
+
+    extend_ugc_pools();
+
     [[maybe_unused]] const auto *dvar_retry = game::register_dvar_int(
         "workshop_retry_attempts", 30, 1, 1000, game::DVAR_ARCHIVE,
         "Number of connection retry attempts for workshop downloads (default "
