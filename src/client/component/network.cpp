@@ -329,9 +329,9 @@ struct component final : generic_component {
     // utils::hook::jump(game::select(0x1423323B0, 0x140596E40),
     // net_sendpacket_stub);
 
-    // set initial connection state to connecting
+    // set initial connection state to challenging
     utils::hook::set<uint32_t>(game::select(0x14134C6E0, 0x14018E574),
-                               game::CA_CONNECTING);
+                               game::CA_CHALLENGING);
 
     // don't kick clients without dw handle
     utils::hook::set<uint8_t>(game::select(0x14224DEAD, 0x1405315F9), 0xEB);

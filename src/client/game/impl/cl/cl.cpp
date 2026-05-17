@@ -158,7 +158,7 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
     return;
   }
 
-  case CA_CHALLENGING: {
+  case CA_CONNECTING: {
     const int32_t infoStrLen = 1024;
     char s[infoStrLen];
     std::memset(s, 0, sizeof(s));
@@ -263,7 +263,7 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
     return;
   }
 
-  case CA_CONNECTING: {
+  case CA_CHALLENGING: {
     if (dw::dwGetConnectionTaskStatus(&clc->serverAddress) !=
         dw::taskCompleteResults::TASK_NOTCOMPLETE) {
       net::netadr_t adr = clc->serverAddress;

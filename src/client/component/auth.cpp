@@ -171,9 +171,9 @@ static const size_t CHALLENGE_LENGTH = 32;
 static std::mutex latest_challenge_mutex;
 static uint8_t latest_challenge[CHALLENGE_LENGTH] = {0};
 
-void queue_challenge(const game::net::netadr_t &target,
-                     const network::data_view &data,
-                     game::LocalClientNum_t clientNum) {
+void set_challenge(const game::net::netadr_t &target,
+                   const network::data_view &data,
+                   game::LocalClientNum_t clientNum) {
 
   {
     std::lock_guard lock(latest_challenge_mutex);
@@ -196,8 +196,8 @@ void queue_challenge(const game::net::netadr_t &target,
           &game::cg::clientUIActives
                ->actives[static_cast<uint32_t>(localClientIdx)]
                .connectionState;
-      if (*clientConnectionState == game::CA_CONNECTING) {
-        *clientConnectionState = game::CA_CHALLENGING;
+      if (*clientConnectionState == game::CA_CHALLENGING) {
+        *clientConnectionState = game::CA_CONNECTING;
       }
     }
   }
@@ -457,7 +457,10 @@ void clear_stored_guids() {
 
 void clear_stored_challenge() {
   std::lock_guard lock(latest_challenge_mutex);
-  memset(latest_challenge, 0, CHALLENGE_LENGTH);
+  if (game::cg::clientUIActives->actives[0].connectionState !=
+      game::CA_CHALLENGING) {
+    memset(latest_challenge, 0, CHALLENGE_LENGTH);
+  }
 }
 
 utils::hook::detour LiveUser_UserGetXuid_hook;
@@ -491,7 +494,7 @@ struct component final : generic_component {
     utils::hook::set<uint8_t>(game::select(0x142253EFA, 0x14053714A), 0xEB);
     network::on("connect", handle_connect_packet_fragment);
     network::on("playerXuid", handle_player_xuid_packet);
-    network::on("getChallengeResponse", queue_challenge);
+    network::on("getChallengeResponse", set_challenge);
 
     // Intercept SV_DirectConnect in SV_AddTestClient
     utils::hook::call(game::select(0x1422490DC, 0x14052E582),
