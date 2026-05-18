@@ -15,7 +15,7 @@
 namespace chat {
 namespace {
 const game::dvar_t *g_deadChat;
-const game::dvar_t *sv_setname;
+const game::dvar_t *sv_sayname;
 
 void cmd_say_f(game::level::gentity_s *ent, const command::params_sv &params) {
   if (params.size() < 2) {
@@ -90,10 +90,10 @@ void cl_handle_chat(char *dest, size_t dest_size, const char *src) {
 } // namespace
 
 const char *get_client_name(const uint64_t xuid) {
-  if (xuid == 0xFFFFFFFF) {
-    if (sv_setname && sv_setname->current.value.string &&
-        sv_setname->current.value.string[0]) {
-      return sv_setname->current.value.string;
+  if (xuid == 0xFFFFFFFF || xuid == 0xFFFFFFFFFFFFFFFF) {
+    if (sv_sayname && sv_sayname->current.value.string &&
+        sv_sayname->current.value.string[0]) {
+      return sv_sayname->current.value.string;
     }
     return "Server";
   }
@@ -102,8 +102,11 @@ const char *get_client_name(const uint64_t xuid) {
     char buffer[256]{};
     game::cl::CL_GetClientName(game::LOCAL_CLIENT_0, static_cast<int>(xuid - 1),
                                buffer, sizeof(buffer), true);
-
-    return utils::string::va("%s", buffer);
+    std::string name(buffer);
+    auto pipe = name.find('|');
+    if (pipe != std::string::npos)
+      name = name.substr(0, pipe);
+    return utils::string::va("%s", name.c_str());
   }
 
   return "Unknown Soldier";
@@ -135,9 +138,9 @@ public:
             send_chat_message(-1, text);
 
             const char *say_prefix = "Server";
-            if (sv_setname && sv_setname->current.value.string &&
-                sv_setname->current.value.string[0]) {
-              say_prefix = sv_setname->current.value.string;
+            if (sv_sayname && sv_sayname->current.value.string &&
+                sv_sayname->current.value.string[0]) {
+              say_prefix = sv_sayname->current.value.string;
             }
             printf("%s: %s\n", say_prefix, text.data());
           });
@@ -167,9 +170,9 @@ public:
 
       scheduler::once(
           [] {
-            sv_setname = game::register_dvar_string(
-                "sv_setname", "Server", game::DVAR_NONE,
-                "Custom name for server chat messages. Defaults to server");
+            sv_sayname = game::register_dvar_string(
+                "sv_sayname", "", game::DVAR_SERVERINFO,
+                "Custom name for server chat messages");
           },
           scheduler::pipeline::main);
 
@@ -178,8 +181,15 @@ public:
           "Allow dead players to chat with living players");
       utils::hook::jump(0x140299051_g, utils::hook::assemble(g_say_to_stub));
     } else {
-      // Add chat history to the in-game console
-      utils::hook::call(0x141DEAA0F_g, cl_handle_chat); // I_strcpy
+      scheduler::once(
+          [] {
+            sv_sayname = game::register_dvar_string(
+                "sv_sayname", "", game::DVAR_SERVERINFO,
+                "Custom name for server chat messages");
+          },
+          scheduler::pipeline::main);
+
+      utils::hook::call(0x141DEAA0F_g, cl_handle_chat);
     }
   }
 };

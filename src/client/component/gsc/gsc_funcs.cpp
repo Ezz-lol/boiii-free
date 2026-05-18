@@ -6,7 +6,9 @@
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
 #include "../game_event.hpp"
+#include "../name.hpp"
 
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <utils/hook.hpp>
@@ -192,6 +194,96 @@ std::filesystem::path relative_path(const std::filesystem::path &full_path) {
   }
 
   return relative;
+}
+
+// =====================================================
+// HUD text state (server-only, safe setText hooks)
+// =====================================================
+
+utils::hook::detour hecmd_settext_hook;
+utils::hook::detour g_findcfgstr_hook;
+
+std::mutex hud_text_mutex;
+std::unordered_map<uint32_t, int> hudelem_cfgstr_map;
+int localized_cfgstr_base = -1;
+
+thread_local int last_cfgstr_result = -1;
+thread_local int last_cfgstr_start = -1;
+thread_local int last_cfgstr_max = -1;
+
+int g_findconfigstringindex_stub(const char *string, int start, int max,
+                                 int create, const char *errormsg) {
+  int result = g_findcfgstr_hook.invoke<int>(string, start, max, create,
+                                             errormsg);
+  last_cfgstr_start = start;
+  last_cfgstr_max = max;
+  last_cfgstr_result = result;
+  return result;
+}
+
+void hecmd_settext_stub(game::scr::scriptInstance_t inst,
+                        game::scr::scr_entref_t entref) {
+  const uint32_t he_idx = entref.u.hudElemIndex;
+
+  {
+    std::lock_guard lock(hud_text_mutex);
+    const auto it = hudelem_cfgstr_map.find(he_idx);
+    if (it != hudelem_cfgstr_map.end()) {
+      const char *text = game::scr::Scr_GetString(inst, 1);
+      if (text) {
+        const int cfg_idx = it->second;
+        const int start = last_cfgstr_start;
+        const int max = last_cfgstr_max;
+        const bool range_ok = (start >= 0 && max > 0 && cfg_idx >= start &&
+                               cfg_idx < (start + max));
+        if (cfg_idx >= 0 && range_ok && game::sv::SV_Loaded &&
+            game::sv::SV_Loaded()) {
+          game::sv::SV_SetConfigstring(cfg_idx, text);
+          return;
+        }
+      }
+    }
+  }
+
+  last_cfgstr_result = -1;
+  last_cfgstr_start = -1;
+  last_cfgstr_max = -1;
+  hecmd_settext_hook.invoke<void>(inst, entref);
+
+  {
+    std::lock_guard lock(hud_text_mutex);
+    if (last_cfgstr_result >= 0) {
+      hudelem_cfgstr_map[he_idx] = last_cfgstr_result;
+      if (last_cfgstr_start >= 0)
+        localized_cfgstr_base = last_cfgstr_start;
+    }
+  }
+}
+
+void clear_hud_text_state() {
+  std::lock_guard lock(hud_text_mutex);
+  hudelem_cfgstr_map.clear();
+  localized_cfgstr_base = -1;
+}
+
+bool settext_hooks_installed = false;
+
+void install_settext_hooks() {
+  if (settext_hooks_installed || !game::is_server()) {
+    return;
+  }
+  g_findcfgstr_hook.create(0x1403089D0_g, g_findconfigstringindex_stub);
+  hecmd_settext_hook.create(0x1402A0BA0_g, hecmd_settext_stub);
+  settext_hooks_installed = true;
+}
+
+void remove_settext_hooks() {
+  if (!settext_hooks_installed) {
+    return;
+  }
+  g_findcfgstr_hook.clear();
+  hecmd_settext_hook.clear();
+  settext_hooks_installed = false;
 }
 
 // =====================================================
@@ -913,6 +1005,147 @@ void gscr_getfunction(scriptInstance_t inst) {
   const int64_t addr = script::find_export_address(script_name, func_name);
   push_int(inst, addr ? 1 : 0);
 }
+
+// =====================================================
+// Player name/tag overrides (server-only)
+// =====================================================
+
+std::optional<int32_t> get_self_client_num(game::scr::scriptInstance_t inst) {
+  game::scr::scr_entref_t ref{};
+  if (!game::scr::Scr_GetEntityRef(&ref, inst, 0)) {
+    return std::nullopt;
+  }
+  const int32_t client_num = ref.u.entnum;
+  if (client_num < 0 || client_num >= 18) {
+    return std::nullopt;
+  }
+  return client_num;
+}
+
+void gscr_setname(game::scr::scriptInstance_t inst) {
+  int32_t client_num = -1;
+  const char *player_name = nullptr;
+
+  const auto argc = game::scr::Scr_GetNumParam(inst);
+  if (argc == 1) {
+    const auto self = get_self_client_num(inst);
+    player_name = game::scr::Scr_GetString(inst, 1);
+    if (!self.has_value() || !player_name) {
+      printf("^1[setname] Invalid arguments\n");
+      return;
+    }
+    client_num = self.value();
+  } else {
+    client_num = static_cast<int32_t>(game::scr::Scr_GetInt(inst, 1));
+    player_name = game::scr::Scr_GetString(inst, 2);
+    if (client_num < 0 || client_num >= 18 || !player_name) {
+      printf("^1[setname] Invalid arguments\n");
+      return;
+    }
+  }
+
+  name::set_name_override(client_num, player_name);
+  name::trigger_client_update(client_num);
+}
+
+void gscr_settag(game::scr::scriptInstance_t inst) {
+  int32_t client_num = -1;
+  const char *tag = nullptr;
+
+  const auto argc = game::scr::Scr_GetNumParam(inst);
+  if (argc == 1) {
+    const auto self = get_self_client_num(inst);
+    tag = game::scr::Scr_GetString(inst, 1);
+    if (!self.has_value() || !tag) {
+      printf("^1[settag] Invalid arguments\n");
+      return;
+    }
+    client_num = self.value();
+  } else {
+    client_num = static_cast<int32_t>(game::scr::Scr_GetInt(inst, 1));
+    tag = game::scr::Scr_GetString(inst, 2);
+    if (client_num < 0 || client_num >= 18 || !tag) {
+      printf("^1[settag] Invalid arguments\n");
+      return;
+    }
+  }
+
+  name::set_tag_override(client_num, tag);
+  name::trigger_client_update(client_num);
+}
+
+void gscr_resetname(game::scr::scriptInstance_t inst) {
+  int32_t client_num = -1;
+
+  const auto argc = game::scr::Scr_GetNumParam(inst);
+  if (argc == 0) {
+    const auto self = get_self_client_num(inst);
+    if (!self.has_value()) {
+      printf("^1[resetname] Invalid arguments\n");
+      return;
+    }
+    client_num = self.value();
+  } else {
+    client_num = static_cast<int32_t>(game::scr::Scr_GetInt(inst, 1));
+    if (client_num < 0 || client_num >= 18) {
+      printf("^1[resetname] Invalid arguments\n");
+      return;
+    }
+  }
+
+  name::clear_name_override(client_num);
+  name::trigger_client_update(client_num);
+}
+
+void gscr_resettag(game::scr::scriptInstance_t inst) {
+  int32_t client_num = -1;
+
+  const auto argc = game::scr::Scr_GetNumParam(inst);
+  if (argc == 0) {
+    const auto self = get_self_client_num(inst);
+    if (!self.has_value()) {
+      printf("^1[resettag] Invalid arguments\n");
+      return;
+    }
+    client_num = self.value();
+  } else {
+    client_num = static_cast<int32_t>(game::scr::Scr_GetInt(inst, 1));
+    if (client_num < 0 || client_num >= 18) {
+      printf("^1[resettag] Invalid arguments\n");
+      return;
+    }
+  }
+
+  name::clear_tag_override(client_num);
+  name::trigger_client_update(client_num);
+}
+
+void gscr_setclientdvar(game::scr::scriptInstance_t inst) {
+  int32_t client_num = -1;
+  const char *dvar_cmd = nullptr;
+
+  const auto argc = game::scr::Scr_GetNumParam(inst);
+  if (argc == 1) {
+    const auto self = get_self_client_num(inst);
+    dvar_cmd = game::scr::Scr_GetString(inst, 1);
+    if (!self.has_value() || !dvar_cmd) {
+      printf("^1[setclientdvar] Invalid arguments\n");
+      return;
+    }
+    client_num = self.value();
+  } else {
+    client_num = static_cast<int32_t>(game::scr::Scr_GetInt(inst, 1));
+    dvar_cmd = game::scr::Scr_GetString(inst, 2);
+    if (client_num < 0 || client_num >= 18 || !dvar_cmd) {
+      printf("^1[setclientdvar] Invalid arguments\n");
+      return;
+    }
+  }
+
+  game::sv::SV_GameSendServerCommand(
+      client_num, game::net::SV_CMD_CAN_IGNORE_0,
+      utils::string::va("c \"%s\"", dvar_cmd));
+}
 } // namespace
 
 void add_detour(int64_t target_addr, int64_t replacement_addr) {
@@ -974,6 +1207,13 @@ struct component final : generic_component {
     // Utility
     custom_builtins[fnv1a("clearreplacefuncs")] = gscr_clearreplacefuncs;
 
+    // Player name/tag overrides (server-only)
+    custom_builtins[fnv1a("setname")] = gscr_setname;
+    custom_builtins[fnv1a("settag")] = gscr_settag;
+    custom_builtins[fnv1a("resetname")] = gscr_resetname;
+    custom_builtins[fnv1a("resettag")] = gscr_resettag;
+    custom_builtins[fnv1a("setclientdvar")] = gscr_setclientdvar;
+
     auto *builtin_def = reinterpret_cast<BuiltinFunctionDef *>(
         game::select(0x1432D7D70, 0x14106DD70));
     builtin_def->max_args = 255;
@@ -990,6 +1230,9 @@ struct component final : generic_component {
       function_replacements.clear();
       detours_enabled = false;
       clear_script_commands();
+      clear_hud_text_state();
+      remove_settext_hooks();
+      name::clear_all_overrides();
     });
 
     game_event::on_g_init_game([] {
@@ -998,6 +1241,9 @@ struct component final : generic_component {
                function_replacements.size());
       function_replacements.clear();
       detours_enabled = false;
+      clear_hud_text_state();
+      install_settext_hooks();
+      name::clear_all_overrides();
     });
   }
 };

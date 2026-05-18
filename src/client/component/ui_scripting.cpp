@@ -51,6 +51,8 @@ utils::hook::detour hksi_lua_getinfo_detour;
 bool unsafe_function_called_message_shown = false;
 bool unsafe_lua_approved_for_session = false;
 
+std::unordered_map<uintptr_t, std::string> rawfile_source_cache{};
+
 using lua_function_t = int (*)(game::ui::lua::hks::lua_State *);
 std::unordered_map<size_t, utils::hook::detour> unsafe_function_detours;
 
@@ -152,6 +154,8 @@ int hot_reload_check_files() {
 
   game::com::Com_Printf(0, 0, "^2Hot Reload: Found %d file(s) to reload\n",
                         static_cast<int>(changed.size()));
+
+  rawfile_source_cache.clear();
 
   for (const auto &entry : changed) {
     const auto path_str = entry.path().string();
@@ -662,6 +666,7 @@ void cl_first_snapshot_stub(int a1) {
 
 void ui_shutdown_stub() {
   converted_functions.clear();
+  rawfile_source_cache.clear();
   globals = {};
   hot_reload_in_game = false;
   unsafe_function_called_message_shown = false;
@@ -898,6 +903,11 @@ const char *resolve_source_from_rawfiles(uintptr_t bytecode_header) {
   if (!bytecode_header)
     return nullptr;
 
+  auto it = rawfile_source_cache.find(bytecode_header);
+  if (it != rawfile_source_cache.end()) {
+    return it->second.empty() ? nullptr : it->second.c_str();
+  }
+
   struct lookup_ctx {
     uintptr_t target;
     const char *found;
@@ -917,6 +927,7 @@ const char *resolve_source_from_rawfiles(uintptr_t bytecode_header) {
       },
       &ctx, false);
 
+  rawfile_source_cache[bytecode_header] = ctx.found ? ctx.found : "";
   return ctx.found;
 }
 
@@ -1263,6 +1274,7 @@ public:
     command::add("luiReload", [] {
       if (game::com::Com_IsRunningUILevel()) {
         converted_functions.clear();
+        rawfile_source_cache.clear();
 
         globals.loaded_scripts.clear();
         globals.local_scripts.clear();
@@ -1280,6 +1292,7 @@ public:
       } else {
         // TODO: Find a way to do a full shutdown & restart like in frontend,
         // that opens up the loading screen that can't be easily closed
+        rawfile_source_cache.clear();
         game::cg::CG_LUIHUDRestart(0);
       }
     });
@@ -1347,6 +1360,8 @@ public:
                   }
                 }
               };
+
+              rawfile_source_cache.clear();
 
               reload_dir(dir);
 

@@ -53,8 +53,36 @@ void patch_color(const uint8_t r, const uint8_t g, const uint8_t b,
 bool cl_get_client_name_stub(const int local_client_num, const int index,
                              char *buf, const int size,
                              const bool add_clan_name) {
+  if (!buf || size <= 0) {
+    return cl_get_client_name_hook.invoke<bool>(local_client_num, index, buf,
+                                                size, add_clan_name);
+  }
+
   const auto res = cl_get_client_name_hook.invoke<bool>(
       local_client_num, index, buf, size, add_clan_name);
+
+  {
+    std::string name(buf);
+    auto pipe = name.find('|');
+    if (pipe != std::string::npos)
+      name = name.substr(0, pipe);
+    bool has_backtick = false;
+    std::string decoded;
+    for (size_t i = 0; i < name.size(); ++i) {
+      if (i + 1 < name.size() && name[i] == '`' && name[i + 1] >= '0' &&
+          name[i + 1] <= '9') {
+        decoded += '^';
+        decoded += name[i + 1];
+        ++i;
+        has_backtick = true;
+      } else {
+        decoded += name[i];
+      }
+    }
+    if (has_backtick)
+      decoded += "^7";
+    utils::string::copy(buf, size, decoded.c_str());
+  }
 
   if (_ReturnAddress() == reinterpret_cast<void *>(0x1406A7B56_g)) {
     return res;

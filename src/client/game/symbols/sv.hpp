@@ -14,6 +14,8 @@ WEAK symbol<sv::client_s_cl *> svs_clients_cl{0x1576F9318, 0};
 WEAK symbol<sv::client_s *> svs_clients{0x0, 0x14A178E98};
 WEAK symbol<uint32_t> svs_time{0x1576f9304, 0x14A178E84};
 
+WEAK symbol<void *(int clientNum)> G_GetClientState{0x0, 0x1402A7820};
+
 WEAK symbol<bool()> SV_Loaded{0x142252250, 0x140535460};
 WEAK symbol<void *()> SV_AddTestClient{0x142248F40, 0x14052E3E0};
 WEAK symbol<void(net::netadr_t from)> SV_DirectConnect{0x142249880,
@@ -32,6 +34,9 @@ WEAK symbol<void(const char *text_in)> SV_Cmd_TokenizeString{0x1420EF130,
 WEAK symbol<void()> SV_Cmd_EndTokenizedString{0x1420EF0E0, 0x1404FA670};
 WEAK symbol<void(void *client, net::msg::msg_t *msg)> SV_ExecuteClientMessage{
     0x14224A460, 0x14052F840};
+
+WEAK symbol<void(int index, const char *val)> SV_SetConfigstring{0x1422513A0,
+                                                                 0x1405355B0};
 
 WEAK symbol<void(sv::client_s *drop, const char *reason, bool tellThem,
                  bool removeFromLobby)>
