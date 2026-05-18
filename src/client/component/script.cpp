@@ -554,8 +554,11 @@ void load_scripts() {
   load("scripts", false, true);
 
   std::vector<std::filesystem::path> applicable_custom_script_paths = {
-      "custom_scripts/shared", "custom_scripts/core",
-      "custom_scripts/codescripts"};
+    "custom_scripts",
+    "custom_scripts/shared",
+    "custom_scripts/core",
+    "custom_scripts/codescripts"
+  };
   if (const auto game_type = get_game_type_specific_folder();
       game_type.has_value()) {
     applicable_custom_script_paths.push_back("custom_scripts" /
@@ -605,11 +608,6 @@ void clear_script_memory() {
   allocator.clear();
 }
 
-// Fix up imports that use full-path namespace hashes to match the actual
-// target script's #namespace hash. This allows full-path call syntax:
-//   scripts\zm\_zm_score::add_to_player_score(points)
-// The import ns_hash is gsc_hash("scripts/zm/_zm_score"), but the game
-// script's
 void begin_load_scripts_stub(scriptInstance_t inst, int user) {
   std::lock_guard lock(script_load_lock);
 

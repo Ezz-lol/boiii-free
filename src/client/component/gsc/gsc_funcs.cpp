@@ -34,6 +34,7 @@ using vm_opcode_handler_t = void(__fastcall *)(int32_t inst, int64_t *fs_0,
 static std::unordered_map<ScrVarCanonicalName_t, BuiltinFunction>
     custom_builtins;
 static std::unordered_map<int64_t, int64_t> function_replacements;
+static std::unordered_map<std::string, std::string> dvar_changes;
 static bool detours_enabled = false;
 
 static vm_opcode_handler_t orig_SafeCreateLocalVariables = nullptr;
@@ -1142,6 +1143,13 @@ void gscr_setclientdvar(game::scr::scriptInstance_t inst) {
     }
   }
 
+  if (dvar_changes.find(dvar_cmd) == dvar_changes.end()) {
+    auto* current_dvar = game::Dvar_FindVar(dvar_cmd);
+    if (current_dvar) {
+      dvar_changes[dvar_cmd] = game::Dvar_GetString(current_dvar);
+    }
+  }
+
   game::sv::SV_GameSendServerCommand(
       client_num, game::net::SV_CMD_CAN_IGNORE_0,
       utils::string::va("c \"%s\"", dvar_cmd));
@@ -1228,6 +1236,15 @@ struct component final : generic_component {
         printf("[gsc] Clearing %zu replacefunc(s) on map shutdown\n",
                function_replacements.size());
       function_replacements.clear();
+
+      if (!dvar_changes.empty()) {
+        for (const auto& [dvar_name, original_value] : dvar_changes) {
+          game::Dvar_SetFromStringByName(dvar_name.c_str(),
+                                         original_value.c_str(), false);
+        }
+      }
+      dvar_changes.clear();
+
       detours_enabled = false;
       clear_script_commands();
       clear_hud_text_state();
@@ -1236,10 +1253,8 @@ struct component final : generic_component {
     });
 
     game_event::on_g_init_game([] {
-      if (!function_replacements.empty())
-        printf("[gsc] Clearing %zu stale replacefunc(s) on map init\n",
-               function_replacements.size());
       function_replacements.clear();
+      dvar_changes.clear();
       detours_enabled = false;
       clear_hud_text_state();
       install_settext_hooks();
