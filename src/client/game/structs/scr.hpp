@@ -40,7 +40,7 @@ enum class ScrVarType : uint32_t {
   VECTOR = 0x04,
   HASH = 0x05,
   FLOAT = 0x06,
-  TNI = 0x07, // ?
+  INT = 0x07,
   UINT64 = 0x08,
   UINTPTR_T = 0x09,
   ENTITY_OFFSET = 0x0A,

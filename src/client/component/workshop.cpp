@@ -887,6 +887,14 @@ bool mod_switch_requires_fs_reinitialization(const std::string &current_mod,
          mod_load_requires_fs_reinitialization(new_mod);
 }
 
+void wait_for_mod_load() {
+  game::ugc::ModLoadState *mod_load_state = game::ugc::mod_load_state.get();
+
+  while (*mod_load_state == game::ugc::ModLoadState::LOADING) {
+    std::this_thread::sleep_for(100ms);
+  }
+}
+
 void setup_same_mod_as_host(game::LocalClientNum_t localClientNum,
                             const std::string &usermap,
                             const std::string &mod) {
@@ -897,18 +905,14 @@ void setup_same_mod_as_host(game::LocalClientNum_t localClientNum,
           mod_switch_requires_fs_reinitialization(loaded_mod, mod);
       game::ugc::loadMod(localClientNum, mod.data(), fs_reinit_required);
       if (fs_reinit_required) {
-        while (game::ugc::isModLoading(localClientNum)) {
-          std::this_thread::sleep_for(100ms);
-        }
+        wait_for_mod_load();
       }
     } else if (game::ugc::isModLoaded()) {
       bool fs_reinit_required =
           mod_switch_requires_fs_reinitialization(loaded_mod, "");
       game::ugc::loadMod(localClientNum, "", fs_reinit_required);
       if (fs_reinit_required) {
-        while (game::ugc::isModLoading(localClientNum)) {
-          std::this_thread::sleep_for(100ms);
-        }
+        wait_for_mod_load();
       }
     }
   }
@@ -1232,34 +1236,6 @@ public:
 
     if (game::is_client()) {
       utils::hook::call(0x14135CDA1_g, com_error_missing_map_stub);
-    }
-
-    if (!utils::flags::has_flag("legacyload")) {
-      /*
-      The game attempts to access the structured table "mod_game_types" each
-      time `isModLoading` is called if the mod is not yet loaded.
-
-      This table does not exist. As such, ~2-3s of load time is wasted searching
-      for the non-existent table each time either:
-              - A map switch or mod load is initiated, when the engine itself
-      checks if a mod is still loading
-              - We call `isModLoading`
-
-      The below code disables this attempt to access the "mod_game_types"
-      structured table.
-      */
-      // Nop out function call to attempt accessing table, as well as its
-      // argument register assignments
-      utils::hook::nop(game::select(0x1420F3CFD, 0x1404FD54D), 9);
-      // Make subsequent jz always jmp, causing failure return code `0`, and
-      // skipping attempt to access table entirely. Retains instructions which
-      // assign this return code to globals to be used later. Note: this is `xor
-      // rax, rax` - there is an unpatched 0x48 byte preceding. The full
-      // instruction should be 0x48, 0x31, 0xc0. This instruction is placed just
-      // before the `nop`s to take advantage of this pre-existing REX prefix.
-      uint8_t zero_return_reg_patch[2] = {0x31, 0xC0}; // xor rax, rax
-      utils::hook::set(game::select(0x1420F3CFB, 0x1404FD54B),
-                       zero_return_reg_patch);
     }
   }
 

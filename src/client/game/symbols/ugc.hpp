@@ -39,6 +39,9 @@ WEAK symbol<char> usermap_title{0x1567D99A0};
 // cp_* for a campaign map, zm_* for zombies map, or mp_* for multiplayer map
 WEAK symbol<char> internal_usermap_id{0x1567D9A04};
 WEAK symbol<void()> reloadUserContent{0x1420D66C0, 0x1404E25C0};
+
+WEAK symbol<ModLoadState> mod_load_state{0x15678D168, 0x14933EAD8};
+
 } // namespace ugc
 } // namespace game
 

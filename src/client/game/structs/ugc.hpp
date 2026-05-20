@@ -49,5 +49,12 @@ typedef ClientWorkshopDataPool<EXTENDED_WORKSHOP_DATA_POOL_SIZE>
     ExtendedWorkshopDataPool;
 static const uint32_t EXTENDED_WORKSHOP_DATA_POOL_STRUCT_SIZE =
     sizeof(ExtendedWorkshopDataPool);
+
+enum class ModLoadState : uint32_t {
+  IDLE = 0x0,
+  LOADING = 0x1,
+  COMPLETE = 0x2,
+};
+
 } // namespace ugc
 } // namespace game
