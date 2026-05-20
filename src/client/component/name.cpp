@@ -121,6 +121,7 @@ const char *get_player_name() {
 }
 
 void set_name_override(game::ClientNum_t client_num, const std::string &n) {
+  std::lock_guard lk(names_mutex);
   if (sv::valid_client_num(client_num)) {
     name_overrides[client_num] = n;
   }
@@ -128,6 +129,7 @@ void set_name_override(game::ClientNum_t client_num, const std::string &n) {
 
 void set_clan_abbrev_override(game::ClientNum_t client_num,
                               const std::string &t) {
+  std::lock_guard lk(names_mutex);
   if (!sv::valid_client_num(client_num))
     return;
   clan_abbrev_overrides[client_num] = t;
