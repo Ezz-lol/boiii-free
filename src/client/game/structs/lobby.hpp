@@ -3,6 +3,7 @@
 #include "core.hpp"
 #include "net/net.hpp"
 #include <cstdint>
+#include <optional>
 
 namespace game {
 namespace lobby {
@@ -197,6 +198,12 @@ struct LobbyMsg {
   char encodeFlags;          // 0x3C
   int32_t packageType;       // 0x40
 };
+
+static const uint32_t MIN_PLAYERS = 0;
+static const uint32_t MAX_PLAYERS = 18;
+template <typename T> using PerPlayer = array<T, MAX_PLAYERS>;
+template <typename T>
+using PerPlayerOptional = array<std::optional<T>, MAX_PLAYERS>;
 
 } // namespace lobby
 } // namespace game

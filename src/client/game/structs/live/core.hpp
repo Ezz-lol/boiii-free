@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include "../core.hpp"
+#include "../lobby.hpp"
 
 namespace game {
 namespace live {
@@ -77,7 +78,7 @@ static_assert(offsetof(LiveUserAuthData, liveAuthFlags) == 16,
 static_assert(offsetof(LiveUserAuthData, steamID) == 24,
               "steamID offset is wrong");
 
-typedef array<LiveUserAuthData, game::LOBBY_MAX_PLAYERS> LiveUserAuthPool;
+typedef array<LiveUserAuthData, game::lobby::MAX_PLAYERS> LiveUserAuthPool;
 #pragma pack(pop)
 
 enum class LiveAllocTypes : int32_t {

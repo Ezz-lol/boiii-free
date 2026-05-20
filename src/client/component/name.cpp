@@ -1,3 +1,4 @@
+#include <mutex>
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 
@@ -6,7 +7,6 @@
 #include "command.hpp"
 #include "toast.hpp"
 #include "scheduler.hpp"
-#include "game/game.hpp"
 #include "game/ui_scripting/execution.hpp"
 
 #include <utils/nt.hpp>
@@ -16,7 +16,6 @@
 #include <fstream>
 
 namespace name {
-namespace {
 
 utils::concurrency::container<std::string> player_name{};
 
@@ -53,9 +52,10 @@ void setup_player_name() {
 }
 
 void load_player_name() {
-  const auto stored_name = utils::properties::load("playerName");
-  if (stored_name) {
-    auto safe = sanitize_name(*stored_name);
+  const std::optional<std::string> stored_name =
+      utils::properties::load("playerName");
+  if (stored_name.has_value()) {
+    std::string safe = sanitize_name(*stored_name);
     if (safe.empty())
       safe = "Unknown Soldier";
     activate_player_name(safe);
@@ -64,23 +64,11 @@ void load_player_name() {
   }
 }
 
-std::mutex mtx;
-std::unordered_map<int, std::string> name_ov;
-std::unordered_map<int, std::string> tag_ov;
-std::unordered_map<int, std::string> orig_names;
-std::unordered_map<int, std::string> orig_tags;
-
-constexpr size_t CS_NAME = 0x2C;
-constexpr size_t CS_TAG = 0x25C;
-constexpr size_t NAME_MAX = 32;
-constexpr size_t TAG_MAX = 8;
-constexpr size_t GCLIENT_NAME = 0x55A0;
-constexpr size_t CLIENT_S_NAME = 0x55A0;
-constexpr size_t CLIENT_S_TAG = 0x55C0;
-
-std::unordered_set<int> pending_updates;
-
-bool valid(int c) { return c >= 0 && c < 18; }
+std::mutex names_mutex;
+game::lobby::PerPlayerOptional<std::string> name_overrides;
+game::lobby::PerPlayerOptional<std::string> clan_abbrev_overrides;
+game::lobby::PerPlayerOptional<std::string> orig_names;
+game::lobby::PerPlayerOptional<std::string> orig_clan_abbrevs;
 
 std::string encode_colors(const std::string &s) {
   std::string result;
@@ -109,10 +97,9 @@ std::string strip_color_codes(const std::string &s) {
 }
 
 bool execute_lua(const std::string &code) {
-  const auto state = *game::ui::lua::hks::lua_state;
-  if (!state) return false;
+  const game::ui::lua::hks::lua_State *state = *game::ui::lua::hks::lua_state;
   try {
-    const auto globals = state->globals.v.table;
+    game::ui::lua::hks::HashTable *globals = state->globals.v.table;
     const ui_scripting::table lua{globals};
     state->m_global->m_bytecodeSharingMode =
         game::ui::lua::hks::HKS_BYTECODE_SHARING_ON;
@@ -123,230 +110,261 @@ bool execute_lua(const std::string &code) {
       const auto results = lua["pcall"](load_results);
       return results[0].as<bool>();
     }
-  } catch (...) {}
+  } catch (...) {
+  }
   return false;
 }
 
-std::atomic<bool> scoreboard_refresh_installed{false};
+const char *get_player_name() {
+  const std::string n = player_name.copy();
+  return utils::string::va("%.*s", static_cast<int>(n.size()), n.data());
+}
 
-void trigger_client_update_internal(int client_num) {
-  auto *svs_clients_ptr = *game::sv::svs_clients;
-  if (!svs_clients_ptr) return;
-
-  auto &cl = svs_clients_ptr[client_num];
-  if (cl.state != game::CA_ACTIVE) return;
-
-  auto *cstate = game::sv::G_GetClientState(client_num);
-
-  if (!cstate) return;
-
-  auto *cs_b = reinterpret_cast<char *>(cstate);
-  auto *cl_b = reinterpret_cast<char *>(&cl);
-
-  game::gclient_s *gclient = nullptr;
-  auto *entities = game::level::g_entities.get();
-  if (entities) {
-    auto *ent = reinterpret_cast<game::level::gentity_s *>(
-        reinterpret_cast<uint8_t *>(entities) +
-        static_cast<size_t>(client_num) * sizeof(game::level::gentity_s));
-    gclient = *reinterpret_cast<game::gclient_s **>(reinterpret_cast<char *>(ent) + 0x250);
+void set_name_override(game::ClientNum_t client_num, const std::string &n) {
+  if (sv::valid_client_num(client_num)) {
+    name_overrides[client_num] = n;
   }
+}
 
-  std::lock_guard lk(mtx);
+void set_clan_abbrev_override(game::ClientNum_t client_num,
+                              const std::string &t) {
+  if (!sv::valid_client_num(client_num))
+    return;
+  clan_abbrev_overrides[client_num] = t;
+}
 
-  auto ni = name_ov.find(client_num);
-  auto ti = tag_ov.find(client_num);
-  bool has_name = ni != name_ov.end();
-  bool has_tag = ti != tag_ov.end();
+void clear_name_override(game::ClientNum_t client_num) {
+  name_overrides[client_num].reset();
+}
 
-  if ((has_name || has_tag) && orig_names.find(client_num) == orig_names.end())
-    orig_names[client_num] = std::string(cs_b + CS_NAME);
-  if ((has_name || has_tag) && orig_tags.find(client_num) == orig_tags.end())
-    orig_tags[client_num] = std::string(cs_b + CS_TAG);
+void clear_clan_abbrev_override(game::ClientNum_t client_num) {
+  clan_abbrev_overrides[client_num].reset();
+}
 
-  if (has_name || has_tag) {
-    std::string name_str = has_name ? ni->second :
-      (orig_names.count(client_num) ? orig_names[client_num] : std::string(cs_b + CS_NAME));
+template <typename T>
+void clear_perplayer_optional_array(game::lobby::PerPlayerOptional<T> &p) {
+  for (uint32_t i = game::lobby::MIN_PLAYERS; i < game::lobby::MAX_PLAYERS;
+       i++) {
+    p[i].reset();
+  }
+}
 
-    std::string packed = encode_colors(name_str);
-    if (has_tag) {
-      packed += "|" + encode_colors(ti->second);
-    }
-    strncpy_s(cs_b + CS_NAME, NAME_MAX, packed.c_str(), _TRUNCATE);
+void clear_all() {
+  std::lock_guard lk(names_mutex);
+  clear_perplayer_optional_array(name_overrides);
+  clear_perplayer_optional_array(clan_abbrev_overrides);
+  clear_perplayer_optional_array(orig_names);
+  clear_perplayer_optional_array(orig_clan_abbrevs);
+}
 
-    auto clean_name = strip_color_codes(name_str);
-    if (gclient)
-      strncpy_s(reinterpret_cast<char *>(gclient) + GCLIENT_NAME, NAME_MAX,
-                clean_name.c_str(), _TRUNCATE);
-    if (cl_b)
-      strncpy_s(cl_b + CLIENT_S_NAME, NAME_MAX, clean_name.c_str(), _TRUNCATE);
+void clear_name_slot(game::ClientNum_t slot) {
+  std::lock_guard lk(names_mutex);
+  name_overrides[slot].reset();
+  clan_abbrev_overrides[slot].reset();
+  orig_names[slot].reset();
+  orig_clan_abbrevs[slot].reset();
+}
 
-    auto clean_tag = has_tag ? strip_color_codes(ti->second) : "";
-    strncpy_s(cs_b + CS_TAG, TAG_MAX, clean_tag.c_str(), _TRUNCATE);
-    if (cl_b)
-      strncpy_s(cl_b + CLIENT_S_TAG, TAG_MAX, clean_tag.c_str(), _TRUNCATE);
-  } else {
-    auto orig_n = orig_names.find(client_num);
-    if (orig_n != orig_names.end()) {
-      strncpy_s(cs_b + CS_NAME, NAME_MAX, orig_n->second.c_str(), _TRUNCATE);
-      if (gclient)
-        strncpy_s(reinterpret_cast<char *>(gclient) + GCLIENT_NAME, NAME_MAX,
-                  orig_n->second.c_str(), _TRUNCATE);
-      if (cl_b)
-        strncpy_s(cl_b + CLIENT_S_NAME, NAME_MAX, orig_n->second.c_str(),
-                  _TRUNCATE);
-      orig_names.erase(orig_n);
-    }
-    auto orig_t = orig_tags.find(client_num);
-    if (orig_t != orig_tags.end()) {
-      strncpy_s(cs_b + CS_TAG, TAG_MAX, orig_t->second.c_str(), _TRUNCATE);
-      if (cl_b)
-        strncpy_s(cl_b + CLIENT_S_TAG, TAG_MAX, orig_t->second.c_str(),
-                  _TRUNCATE);
-      orig_tags.erase(orig_t);
+bool has_name_override(game::ClientNum_t client_num) {
+  return name_overrides[client_num].has_value();
+}
+
+std::optional<std::string> get_name_override(game::ClientNum_t client_num) {
+  return name_overrides[client_num];
+}
+
+bool has_clan_abbrev_override(game::ClientNum_t client_num) {
+  return clan_abbrev_overrides[client_num].has_value();
+}
+
+std::optional<std::string>
+get_clan_abbrev_override(game::ClientNum_t client_num) {
+  return clan_abbrev_overrides[client_num];
+}
+
+bool has_orig_name(game::ClientNum_t client_num) {
+  return orig_names[client_num].has_value();
+}
+
+bool has_orig_clan_abbrev(game::ClientNum_t client_num) {
+  return orig_clan_abbrevs[client_num].has_value();
+}
+
+std::optional<std::string> get_orig_name(game::ClientNum_t client_num) {
+  return orig_names[client_num];
+}
+
+std::optional<std::string> get_orig_clan_abbrev(game::ClientNum_t client_num) {
+  return orig_clan_abbrevs[client_num];
+}
+
+void remove_orig_name(game::ClientNum_t client_num) {
+  orig_names[client_num].reset();
+}
+
+void remove_orig_clan_abbrev(game::ClientNum_t client_num) {
+  orig_clan_abbrevs[client_num].reset();
+}
+
+void client_update(game::sv::client_s *cl) {
+  if (game::valid_ptr(cl)) {
+    game::level::gentity_t *ent = cl->gentity;
+    if (game::valid_ptr(ent)) {
+      game::level::gclient_t *gclient = ent->verified_0.client;
+      if (game::valid_ptr(gclient)) {
+        std::lock_guard lk(names_mutex);
+        game::level::clientState_t *client_state = &gclient->sess.cs;
+        game::ClientNum_t client_num = client_state->clientIndex;
+        if (sv::valid_client_num(client_num)) {
+
+          std::optional<std::string> name_override =
+              get_name_override(client_num);
+          std::optional<std::string> clan_abbrev_override =
+              get_clan_abbrev_override(client_num);
+
+          if ((name_override.has_value() || clan_abbrev_override.has_value())) {
+            if (!has_orig_name(client_num)) {
+              orig_names[client_num] = std::string(client_state->name);
+            }
+            if (!has_orig_clan_abbrev(client_num)) {
+              orig_clan_abbrevs[client_num] =
+                  std::string(client_state->clanAbbrev);
+            }
+
+            std::string name_str;
+            if (name_override.has_value()) {
+              name_str = *name_override;
+            } else if (has_orig_name(client_num)) {
+              name_str = *get_orig_name(client_num);
+            } else {
+              name_str = std::string(client_state->name);
+            }
+
+            std::string clean_name = strip_color_codes(name_str);
+            strncpy_s(client_state->name, game::PLAYER_NAME_MAX_LEN,
+                      clean_name.c_str(), _TRUNCATE);
+            strncpy_s(cl->name, game::PLAYER_NAME_MAX_LEN, clean_name.c_str(),
+                      _TRUNCATE);
+
+            std::string clean_clan_abbrev =
+                clan_abbrev_override.has_value()
+                    ? strip_color_codes(*clan_abbrev_override)
+                    : "";
+            strncpy_s(client_state->clanAbbrev,
+                      game::PLAYER_CLAN_ABBREV_MAX_LEN,
+                      clean_clan_abbrev.c_str(), _TRUNCATE);
+            strncpy_s(cl->clanAbbrev, game::PLAYER_CLAN_ABBREV_MAX_LEN,
+                      clean_clan_abbrev.c_str(), _TRUNCATE);
+          } else {
+            std::optional<std::string> orig_name = get_orig_name(client_num);
+            if (orig_name.has_value()) {
+              strncpy_s(client_state->name, game::PLAYER_NAME_MAX_LEN,
+                        orig_name->c_str(), _TRUNCATE);
+              strncpy_s(cl->name, game::PLAYER_NAME_MAX_LEN, orig_name->c_str(),
+                        _TRUNCATE);
+              remove_orig_name(client_num);
+            }
+            std::optional<std::string> orig_clan_abbrev =
+                get_orig_clan_abbrev(client_num);
+            if (orig_clan_abbrev.has_value()) {
+              strncpy_s(client_state->clanAbbrev,
+                        game::PLAYER_CLAN_ABBREV_MAX_LEN,
+                        orig_clan_abbrev->c_str(), _TRUNCATE);
+              strncpy_s(cl->clanAbbrev, game::PLAYER_CLAN_ABBREV_MAX_LEN,
+                        orig_clan_abbrev->c_str(), _TRUNCATE);
+              remove_orig_clan_abbrev(client_num);
+            }
+          }
+        }
+      }
     }
   }
 }
 
-void install_scoreboard_refresh() {
-  if (scoreboard_refresh_installed.exchange(true))
-    return;
+void client_update_post_enterworld(
+    game::sv::client_s *cl, [[maybe_unused]] game::user::usercmd_t *cmd) {
+  client_update(cl);
+}
 
-  scheduler::loop(
-      [] {
-        static bool was_in_game = false;
-        bool in_game = game::com::Com_IsInGame();
-        if (!in_game) {
-          was_in_game = false;
+void trigger_client_update(game::ClientNum_t client_num) {
+  if (sv::valid_client_num(client_num)) {
+    scheduler::once(
+        [client_num]() {
+          game::sv::client_s *cl;
+          if (game::is_client()) {
+            game::sv::client_s_cl *svs_clients = *game::sv::svs_clients_cl;
+            cl = &svs_clients[client_num];
+          } else {
+            game::sv::client_s *svs_clients = *game::sv::svs_clients;
+            cl = &svs_clients[client_num];
+          }
+
+          client_update(cl);
+        },
+        scheduler::server, 50ms);
+  }
+}
+
+void reset_client_name_slot(game::sv::client_s *client,
+                            [[maybe_unused]] const char *reason) {
+  if (client) {
+    game::ClientNum_t client_num = sv::get_client_num(client);
+    if (client_num != game::INVALID_CLIENT_INDEX) {
+      clear_name_slot(client_num);
+    }
+  }
+}
+
+void initialize() {
+  for (game::ClientNum_t i =
+           static_cast<game::ClientNum_t>(game::lobby::MIN_PLAYERS);
+       i < static_cast<game::ClientNum_t>(game::lobby::MAX_PLAYERS);
+       i = static_cast<game::ClientNum_t>(static_cast<int32_t>(i) + 1)) {
+    trigger_client_update(i);
+  }
+}
+
+struct component final : generic_component {
+  void post_load() override {
+    if (game::is_client()) {
+      load_player_name();
+    }
+  }
+
+  void post_unpack() override {
+    if (game::is_client()) {
+      command::add("name", [](const command::params &params) {
+        if (params.size() != 2)
           return;
-        }
-        if (!was_in_game) {
-          was_in_game = true;
-          std::ifstream file("data/ui_scripts/scoreboard/scoreboard_refresh.lua");
+        update_player_name(params[1]);
+        toast::success("Name Changed", params[1]);
+      });
+      com::on_level_load([](const char *level) {
+        if (strcmp(level, "core_frontend") != 0) {
+          std::ifstream file(
+              "data/ui_scripts/scoreboard/scoreboard_refresh.lua");
           if (file) {
-            std::string lua_code((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+            std::string lua_code((std::istreambuf_iterator<char>(file)),
+                                 std::istreambuf_iterator<char>());
             execute_lua(lua_code);
           }
         }
-      },
-      scheduler::main, 1000ms);
-}
+      });
+    }
+    sv::on_cliententerworld(client_update_post_enterworld);
+    sv::on_removeclient(reset_client_name_slot);
 
-} // namespace
-
-struct component final : client_component {
-  void post_load() override { load_player_name(); }
-
-  void post_unpack() override {
-    command::add("name", [](const command::params &params) {
-      if (params.size() != 2)
-        return;
-      update_player_name(params[1]);
-      toast::success("Name Changed", params[1]);
+    game_event::on_g_shutdown_game(clear_all);
+    game_event::on_g_init_game([] {
+      clear_all();
+      initialize();
     });
-
-    install_scoreboard_refresh();
-
-    scheduler::loop(
-        [] {
-          if (!game::is_server()) return;
-          auto *svs_clients_ptr = *game::sv::svs_clients;
-          if (!svs_clients_ptr) return;
-
-          std::vector<int> ready;
-          {
-            std::lock_guard lk(mtx);
-            for (auto it = pending_updates.begin(); it != pending_updates.end();) {
-              int cn = *it;
-              if (svs_clients_ptr[cn].state == game::CA_ACTIVE) {
-                ready.push_back(cn);
-                it = pending_updates.erase(it);
-              } else {
-                ++it;
-              }
-            }
-          }
-          for (int cn : ready) {
-            trigger_client_update_internal(cn);
-          }
-        },
-        scheduler::server, 500ms);
   }
 
   component_priority priority() const override {
     return component_priority::name;
   }
 };
-
-const char *get_player_name() {
-  const auto n = player_name.copy();
-  return utils::string::va("%.*s", static_cast<int>(n.size()), n.data());
-}
-
-void set_name_override(int client_num, const std::string &n) {
-  if (!valid(client_num)) return;
-  std::lock_guard lk(mtx);
-  name_ov[client_num] = n;
-}
-
-void set_tag_override(int client_num, const std::string &t) {
-  if (!valid(client_num)) return;
-  std::lock_guard lk(mtx);
-  tag_ov[client_num] = t;
-}
-
-void clear_name_override(int client_num) {
-  std::lock_guard lk(mtx);
-  name_ov.erase(client_num);
-}
-
-void clear_tag_override(int client_num) {
-  std::lock_guard lk(mtx);
-  tag_ov.erase(client_num);
-}
-
-void clear_all_overrides() {
-  std::lock_guard lk(mtx);
-  name_ov.clear();
-  tag_ov.clear();
-  orig_names.clear();
-  orig_tags.clear();
-}
-
-bool has_name_override(int client_num) {
-  std::lock_guard lk(mtx);
-  return name_ov.find(client_num) != name_ov.end();
-}
-
-std::string get_name_override(int client_num) {
-  std::lock_guard lk(mtx);
-  auto it = name_ov.find(client_num);
-  return it != name_ov.end() ? it->second : std::string{};
-}
-
-bool has_tag_override(int client_num) {
-  std::lock_guard lk(mtx);
-  return tag_ov.find(client_num) != tag_ov.end();
-}
-
-std::string get_tag_override(int client_num) {
-  std::lock_guard lk(mtx);
-  auto it = tag_ov.find(client_num);
-  return it != tag_ov.end() ? it->second : std::string{};
-}
-
-void trigger_client_update(int client_num) {
-  if (!valid(client_num) || !game::is_server()) return;
-
-  auto *svs_clients_ptr = *game::sv::svs_clients;
-  if (!svs_clients_ptr || svs_clients_ptr[client_num].state != game::CA_ACTIVE) {
-    std::lock_guard lk(mtx);
-    pending_updates.insert(client_num);
-    return;
-  }
-
-  trigger_client_update_internal(client_num);
-}
 
 } // namespace name
 

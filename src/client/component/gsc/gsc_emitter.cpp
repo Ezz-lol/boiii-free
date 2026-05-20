@@ -725,12 +725,7 @@ bool is_custom_function(const std::string &name) {
 // Custom methods dispatched via isprofilebuild
 bool is_custom_method(const std::string &name) {
   static const std::unordered_set<std::string> custom_meths = {
-      "tell",
-      "setname",
-      "settag",
-      "resetname",
-      "resettag",
-      "setclientdvar",
+      "tell", "setname", "settag", "resetname", "resettag", "setclientdvar",
   };
   return custom_meths.count(name) > 0;
 }

@@ -1493,8 +1493,16 @@ struct SndMusicAssetInstance {
 
   uint8_t _padding24[4];
 };
-static_assert(sizeof(SndMusicAssetInstance) == 0x28,
-              "SndMusicAssetInstance size must be 40 bytes");
+ASSERT_SIZE(SndMusicAssetInstance, 0x28);
+#pragma pack(pop)
+#pragma pack(push, 1)
+
+struct LoopSoundInfo {
+  SndAliasId id;
+  int16_t fade;
+  uint8_t _padding06[2];
+};
+ASSERT_SIZE(LoopSoundInfo, 0x8);
 #pragma pack(pop)
 
 } // namespace snd

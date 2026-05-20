@@ -2,6 +2,7 @@
 #define GAME_STRUCTS_DB_XASSETS_HPP
 
 #include <cstdint>
+#include "../core.hpp"
 #include "../quake.hpp"
 
 namespace game {
@@ -15,6 +16,7 @@ namespace snd {
 struct SndBank;
 struct SndPatch;
 struct SndDriverGlobals;
+typedef uint32_t SndAliasId;
 } // namespace snd
 namespace db {
 namespace xasset {
@@ -215,6 +217,606 @@ static_assert(sizeof(RawFile) == 0x18, "RawFile size must be 0x18 bytes");
 
 struct MaterialTechniqueSet;
 typedef MaterialTechniqueSet *MaterialTechniqueSetPtr;
+
+// TODO
+struct XModel;
+typedef XModel *XModelPtr;
+
+typedef const char *XString;
+
+struct Set;
+typedef Set *SetPtr;
+
+typedef int32_t FxUniqueHandle;
+struct TagFxSetHandles {
+  FxUniqueHandle handle[8];
+  int32_t count;
+  SetPtr tagFX;
+};
+
+struct FxFloatRange {
+  float base;
+  float amplitude;
+};
+
+typedef int FxElemDefFlags;
+typedef int FxElemDefExtraFlags;
+
+struct FxIntRange {
+  int base;
+  int amplitude;
+};
+
+// sizeof=0x10
+struct FxSpawnDefLooping {
+  int32_t intervalMsec;
+  int32_t count;
+  FxIntRange spawnCount;
+};
+static_assert(sizeof(FxSpawnDefLooping) == 0x10,
+              "FxSpawnDefLooping size must be 16 bytes");
+
+// sizeof=0x8
+struct FxSpawnDefOneShot {
+  FxIntRange count;
+};
+static_assert(sizeof(FxSpawnDefOneShot) == 0x8,
+              "FxSpawnDefOneShot size must be 8 bytes");
+
+// sizeof=0x10
+union FxSpawnDef {
+  FxSpawnDefLooping looping;
+  FxSpawnDefOneShot oneShot;
+};
+static_assert(sizeof(FxSpawnDef) == 0x10, "FxSpawnDef size must be 16 bytes");
+
+struct GfxDrawSurfFields {
+  uint64_t useSiegeTextures : 1;
+  uint64_t objectId : 18;
+  uint64_t lateDepthSort : 5;
+  uint64_t materialSortedIndex : 16;
+  uint64_t techniqueIndexPlusOne : 11;
+  uint64_t decalSurfSort : 6;
+  uint64_t earlyDepthSort : 7;
+};
+
+union GfxSortKey {
+  GfxDrawSurfFields fields;
+  uint64_t packed;
+};
+
+typedef uint32_t contents_t;
+
+struct __attribute__((aligned(8))) MaterialInfo_0 {
+  const char *name;
+  uint32_t namehash;
+  uint32_t gameFlags;
+  uint8_t layerSortDecal;
+  uint8_t pad2;
+  uint8_t textureAtlasRowCount;
+  uint8_t textureAtlasColumnCount;
+  GfxSortKey drawSurf;
+  uint32_t bindlessMaterialSortIndex;
+  int surfaceFlags;
+  contents_t contents;
+};
+
+enum class GfxCameraRegion : int8_t {
+  CAMERA_REGION_GBUFFER_DEPTH_HACK = 0x0,
+  CAMERA_REGION_GBUFFER_DEPTH_HACK_DECAL = 0x1,
+  CAMERA_REGION_GBUFFER = 0x2,
+  CAMERA_REGION_GBUFFER_DECAL = 0x3,
+  CAMERA_REGION_GBUFFER_NO_VOLUME_DECAL = 0x4,
+  CAMERA_REGION_LIT_OPAQUE = 0x5,
+  CAMERA_REGION_LIT_TRANS = 0x6,
+  CAMERA_REGION_LIT_TRANS_POST_RESOLVE = 0x7,
+  CAMERA_REGION_LIT_POST_RESOLVE = 0x8,
+  CAMERA_REGION_WATER = 0x9,
+  CAMERA_REGION_EMISSIVE_FX = 0xA,
+  CAMERA_REGION_DEPTH_HACK_SSS = 0xB,
+  CAMERA_REGION_FORWARD_SSS = 0xC,
+  CAMERA_REGION_DEPTH_HACK = 0xD,
+  CAMERA_REGION_DEPTH_HACK_TRANS = 0xE,
+  CAMERA_REGION_DEPTH_HACK_POST_BLUR = 0xF,
+  CAMERA_REGION_SONAR = 0x10,
+  CAMERA_REGION_OIT = 0x11,
+  CAMERA_REGION_DEPTH_PRIME = 0x12,
+  CAMERA_REGION_UNDERWATER = 0x13,
+  CAMERA_REGION_COUNT = 0x14,
+  CAMERA_REGION_NONE = 0x14,
+};
+
+struct FxLensFlareRootDef;
+struct FxSpotLightDef;
+struct FxTrailDef;
+struct GfxLightDescription;
+struct GfxLightDef;
+union FxElemVisuals;
+struct FxElemMarkVisuals;
+struct FxElemAttractorStateSample;
+struct FxElemVisStateSample;
+struct FxElemInheritStateSample;
+struct FxElemVelStateSample;
+struct FxEffectDef;
+struct Material;
+struct XModel;
+
+typedef Material *MaterialHandle;
+
+/* 4482 */
+typedef int32_t FxElemDefFlags;
+
+/* 4481 */
+typedef int32_t FxElemDefExtraFlags;
+
+// sizeof=0x7
+struct FxElemAtlas {
+  uint8_t behavior;
+  uint8_t index;
+  uint8_t fps;
+  uint8_t loopCount;
+  uint8_t colIndexBits;
+  uint8_t rowIndexBits;
+  uint8_t indexRange;
+};
+
+static_assert(sizeof(FxElemAtlas) == 0x7, "FxElemAtlas size must be 7 bytes");
+
+typedef uint8_t FxElemType;
+
+typedef Material FxMaterial;
+
+typedef FxMaterial *FxMaterialHandle;
+typedef MaterialHandle MaterialDeferredHandle;
+
+typedef XModel *FxModelHandle;
+
+typedef const FxEffectDef *FxEffectDefHandleRaw;
+
+// sizeof=0x8
+union FxEffectDefRef {
+  const char *name;
+  FxEffectDefHandleRaw handle;
+};
+static_assert(sizeof(FxEffectDefRef) == 0x8,
+              "FxEffectDefRef size must be 8 bytes");
+
+// sizeof=0x10
+struct FxElemSound {
+  const char *sound;
+  snd::SndAliasId soundAlias;
+  uint8_t _padding0C[4];
+};
+static_assert(sizeof(FxElemSound) == 0x10, "FxElemSound size must be 16 bytes");
+
+// sizeof=0x20
+struct FxLensFlareVisualDef {
+  uint32_t uuidData1;
+  uint16_t uuidData2;
+  uint16_t uuidData3;
+  uint8_t uuidData4[8];
+  vec3_t sourceDir;
+  float sourceSize;
+};
+static_assert(sizeof(FxLensFlareVisualDef) == 0x20,
+              "FxLensFlareVisualDef size must be 32 bytes");
+
+union FxElemVisuals {
+  const void *anonymous;
+  FxMaterialHandle material;
+  FxModelHandle model;
+  FxEffectDefRef effectDef;
+  FxElemSound soundName;
+  GfxLightDef *lightDef;
+  GfxLightDescription *lightDescription;
+  FxLensFlareVisualDef lensFlareVisualDef;
+  char editorEffectName[64];
+};
+
+// sizeof=0x40
+union FxElemDefVisuals {
+  FxElemMarkVisuals *markArray;
+  FxElemVisuals *array;
+  FxElemVisuals instance;
+};
+static_assert(sizeof(FxElemDefVisuals) == 0x40,
+              "FxElemDefVisuals size must be 64 bytes");
+
+// sizeof=0x8
+union FxElemExtendedDefPtr {
+  FxTrailDef *localTrailDef;
+  FxTrailDef *trailDef;
+  FxSpotLightDef *localSpotLightDef;
+  FxSpotLightDef *spotLightDef;
+  GfxLightDescription *dynamicLightDef;
+  const FxLensFlareRootDef *lensFlareDef;
+  void *unknownDef; // verbatim name of title in engine
+};
+static_assert(sizeof(FxElemExtendedDefPtr) == 0x8,
+              "FxElemExtendedDefPtr size must be 8 bytes");
+
+union FxElemDefUnion {
+  FxIntRange cloudDensityRange;
+};
+
+// sizeof=0x260
+struct FxElemDef {
+  FxElemDefFlags flags;
+  FxElemDefExtraFlags extraFlags;
+  FxSpawnDef spawn;
+  FxFloatRange spawnRange;
+  FxFloatRange fadeInRange;
+  FxFloatRange fadeOutRange;
+  float spawnFrustumCullRadius;
+  FxIntRange spawnDelayMsec;
+  FxIntRange lifeSpanMsec;
+  FxFloatRange spawnOrigin[3];
+  FxFloatRange spawnOffsetRadius;
+  FxFloatRange spawnOffsetHeight;
+  FxFloatRange spawnAngles[3];
+  FxFloatRange angularVelocity[3];
+  FxFloatRange initialRotation;
+  uint32_t rotationAxis;
+  FxFloatRange gravity;
+  FxFloatRange reflectionFactor;
+  FxElemAtlas atlas;
+  uint8_t _paddingBF[1];
+  float windInfluence;
+  FxElemType elemType;
+  uint8_t visualCount;
+  uint8_t velIntervalCount;
+  uint8_t inhIntervalCount;
+  uint8_t attIntervalCount;
+  uint8_t visStateIntervalCount;
+  uint8_t _paddingCA[6];
+  const FxElemVelStateSample *velSamples;
+  const FxElemInheritStateSample *inheritSamples;
+  const FxElemVisStateSample *visSamples;
+  const FxElemAttractorStateSample *attSamples;
+  FxElemDefVisuals visuals;
+  FxElemDefVisuals computeVisuals;
+  vec3_t collMins;
+  vec3_t collMaxs;
+  vec3_t attractorLocalPosition;
+  uint8_t _padding194[4];
+  FxEffectDefRef effectOnImpact;
+  FxEffectDefRef effectOnDeath;
+  FxEffectDefRef effectEmitted;
+  FxFloatRange emitDist;
+  FxFloatRange emitDistVariance;
+  FxFloatRange emitDensity;
+  float emitSizeForDensity;
+  uint8_t _padding1CC[4];
+  FxEffectDefRef effectAttached;
+  FxFloatRange attachedDensity;
+  float attachedSizeForDensity;
+  uint8_t _padding1E4[4];
+  FxElemExtendedDefPtr extended;
+  uint8_t displacement;
+  uint8_t lightingFrac;
+  uint8_t depthMultiplier;
+  uint8_t _padding1F3[1];
+  uint16_t alphaFadeTimeMsec;
+  uint16_t maxWindStrength;
+  uint16_t spawnIntervalAtMaxWind;
+  uint16_t lifespanAtMaxWind;
+  FxElemDefUnion u;
+  uint8_t _padding204[4];
+  FxElemSound spawnSound;
+  FxElemSound followSound;
+  vec2_t billboardPivot;
+  vec_t alphaDissolve;
+  vec_t zFeather;
+  uint32_t falloffBeginAngle;
+  uint32_t falloffEndAngle;
+  float hdrScale;
+  float levelsInputMin;
+  float levelsInputMax;
+  float levelsOutputMin;
+  float levelsOutputMax;
+  float desaturationAmount;
+  bool useOldHDRScale;
+  uint8_t _padding259[1];
+  uint16_t libDefIndex;
+  uint16_t libVisualIndex;
+  uint8_t _padding25E[2];
+};
+static_assert(sizeof(FxElemDef) == 0x260, "FxElemDef size must be 608 bytes");
+
+typedef int FxEffectDefFlags;
+typedef const FxEffectDef *FxEffectDefHandle;
+typedef uint8_t FxNormalsShape;
+
+// sizeof=0x98
+struct FxEffectDef {
+  const char *name;
+  FxEffectDefFlags flags;
+  uint8_t efPriority;
+  uint8_t _paddingB[1];
+  int16_t elemDefCountLooping;
+  int16_t elemDefCountOneShot;
+  int16_t elemDefCountEmission;
+  uint8_t _padding12[2];
+  int32_t totalSize;
+  int32_t msecLoopingLife;
+  int32_t msecNonLoopingLife;
+  const FxElemDef *elemDefs;
+  vec3_t boundingBoxDim;
+  vec3_t boundingBoxCentre;
+  float occlusionQueryDepthBias;
+  int32_t occlusionQueryFadeIn;
+  int32_t occlusionQueryFadeOut;
+  FxFloatRange occlusionQueryScaleRange;
+  uint8_t _padding54[4];
+  FxElemSound loopedSound;
+  FxNormalsShape normalsShape;
+  uint8_t _padding69[3];
+  vec3_t normalsOffset;
+  vec3_t normalsNormal;
+  int32_t gpuMsecLife;
+  uint16_t libDefIndex;
+  uint8_t _padding8A[6];
+};
+static_assert(sizeof(FxEffectDef) == 0x98,
+              "FxEffectDef size must be 144 bytes");
+
+struct FxElemDef;
+
+// sizeof=0x30
+struct EntityImpactPositionsFx {
+  FxEffectDefHandle entityImpactPositions[6];
+};
+static_assert(sizeof(EntityImpactPositionsFx) == 0x30,
+              "EntityImpactPositionsFx size must be 48 bytes");
+
+// sizeof=0x218
+struct EntityFxImpacts {
+  const char *name;
+  EntityImpactPositionsFx entityImpacts[11];
+};
+static_assert(sizeof(EntityFxImpacts) == 0x218,
+              "EntityFxImpacts size must be 536 bytes");
+
+// TODO
+struct SurfaceFXTableDef;
+
+typedef SurfaceFXTableDef *SurfaceFXTableDefPtr;
+
+typedef EntityFxImpacts *EntityFxImpactsPtr;
+
+struct FxImpactTable {
+  const char *name;
+  SurfaceFXTableDefPtr surfaceFX;
+  EntityFxImpactsPtr entityFXImpacts;
+};
+
+struct FxElemMarkVisuals {
+  FxMaterialHandle materials[3];
+};
+
+struct FxElemDef;
+
+typedef uint8_t FxNormalsShape;
+
+union GfxColor {
+  uint32_t packed;
+  struct {
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+    uint8_t a;
+  } rgba;
+  uint8_t array[4];
+};
+
+struct Objective;
+typedef Objective *ObjectivePtr;
+
+struct FxImpactTable;
+typedef FxImpactTable *FxImpactTablePtr;
+
+struct BeamDef;
+typedef BeamDef *BeamDefPtr;
+
+struct FlameTable;
+typedef FlameTable *FlameTablePtr;
+
+struct SoundsImpactTable;
+typedef SoundsImpactTable *SoundsImpactTablePtr;
+
+struct SharedWeaponSounds;
+typedef SharedWeaponSounds *SharedWeaponSoundsPtr;
+
+struct TaxFxSet;
+typedef TaxFxSet *TaxFxSetPtr;
+
+struct TracerDef;
+typedef TracerDef *TracerDefPtr;
+
+struct LaserDef;
+typedef LaserDef *LaserDefPtr;
+
+struct Material;
+typedef Material *MaterialHandle;
+
+enum class GfxPixelFormat : int32_t {
+  GFX_PF_INVALID = 0x0,
+  GFX_PF_UNKNOWN = 0x0,
+  GFX_PF_D24S8 = 0x1,
+  GFX_PF_D24FS8 = 0x2,
+  GFX_PF_A8 = 0x3,
+  GFX_PF_R8_UN = 0x4,
+  GFX_PF_R8_UI = 0x5,
+  GFX_PF_D16 = 0x6,
+  GFX_PF_R16_UN = 0x7,
+  GFX_PF_R16_UI = 0x8,
+  GFX_PF_R16F = 0x9,
+  GFX_PF_R8G8_UN = 0xA,
+  GFX_PF_R8G8_SNORM = 0xB,
+  GFX_PF_B5G6R5 = 0xC,
+  GFX_PF_B4G4R4A4 = 0xD,
+  GFX_PF_D32F = 0xE,
+  GFX_PF_R32F = 0xF,
+  GFX_PF_R16G16_UN = 0x10,
+  GFX_PF_R16G16_SNORM = 0x11,
+  GFX_PF_R16G16F = 0x12,
+  GFX_PF_R9G9B9E5 = 0x13,
+  GFX_PF_R8G8B8A8 = 0x14,
+  GFX_PF_R8G8B8A8_SNORM = 0x15,
+  GFX_PF_B8G8R8A8 = 0x16,
+  GFX_PF_R8G8B8A8_SRGB = 0x17,
+  GFX_PF_R10G10B10A2 = 0x18,
+  GFX_PF_B10G10R10A2 = 0x19,
+  GFX_PF_R11G11B10F = 0x1A,
+  GFX_PF_R32G32F = 0x1B,
+  GFX_PF_R16G16B16A16_UN = 0x1C,
+  GFX_PF_R16G16B16A16F = 0x1D,
+  GFX_PF_R32G32B32A32F = 0x1E,
+  GFX_PF_BC1 = 0x1F,
+  GFX_PF_BC1_SRGB = 0x20,
+  GFX_PF_BC2 = 0x21,
+  GFX_PF_BC2_SRGB = 0x22,
+  GFX_PF_BC3 = 0x23,
+  GFX_PF_BC3_SRGB = 0x24,
+  GFX_PF_BC4 = 0x25,
+  GFX_PF_BC5 = 0x26,
+  GFX_PF_BC6_UH = 0x27,
+  GFX_PF_BC6_SH = 0x28,
+  GFX_PF_BC7 = 0x29,
+  GFX_PF_BC7_SRGB = 0x2A,
+  GFX_PF_R32G32B32A32_UN = 0x2B,
+  GFX_PF_R32_UI = 0x2C,
+  GFX_PF_R32G32_UI = 0x2D,
+};
+
+struct XPakEntryInfo {
+  uint64_t key;
+  int64_t offset;
+  uint64_t size;
+  uint64_t xpakIndex : 5;
+  uint64_t compressed : 1;
+  uint64_t valid : 1;
+  uint64_t adjacentLeftType : 3;
+  uint64_t adjacentRightType : 3;
+  uint64_t adjacentLeft : 18;
+  uint64_t adjacentRight : 18;
+  uint64_t padding : 15;
+};
+
+struct GfxStreamedPartInfo {
+  XPakEntryInfo xpakEntry;
+  uint32_t levelCountAndSize;
+  uint16_t width;
+  uint16_t height;
+};
+
+namespace sce::Gnm {
+struct Texture {
+  uint32_t m_regs[8];
+};
+} // namespace sce::Gnm
+
+struct GfxTexture {
+  sce::Gnm::Texture basemap;
+};
+
+enum class MapType : uint8_t {
+  MAPTYPE_NONE = 0x0,
+  MAPTYPE_2D = 0x1,
+  MAPTYPE_2D_ARRAY = 0x2,
+  MAPTYPE_3D = 0x3,
+  MAPTYPE_CUBE = 0x4,
+  MAPTYPE_CUBE_ARRAY = 0x5,
+  MAPTYPE_COUNT = 0x6,
+};
+
+typedef uint8_t GfxImageCategory;
+
+enum class GfxImageSemantic : int8_t {
+  IMG_SEMANTIC_UNKNOWN = 0x0,
+  IMG_SEMANTIC_2D = 0x1,
+  IMG_SEMANTIC_DIFFUSE_MAP = 0x2,
+  IMG_SEMANTIC_EFFECT_MAP = 0x3,
+  IMG_SEMANTIC_NORMAL_MAP = 0x4,
+  IMG_SEMANTIC_SPECULAR_MASK = 0x5,
+  IMG_SEMANTIC_SPECULAR_MAP = 0x6,
+  IMG_SEMANTIC_GLOSS_MAP = 0x7,
+  IMG_SEMANTIC_OCCLUSION_MAP = 0x8,
+  IMG_SEMANTIC_REVEAL_MAP = 0x9,
+  IMG_SEMANTIC_MULTIPLE_MASK = 0xA,
+  IMG_SEMANTIC_THICKNESS_MAP = 0xB,
+  IMG_SEMANTIC_CAMO_MAP = 0xC,
+  IMG_SEMANTIC_ONE_CHANNEL = 0xD,
+  IMG_SEMANTIC_TWO_CHANNEL = 0xE,
+  IMG_SEMANTIC_EMBLEM = 0xF,
+  IMG_SEMANTIC_CUSTOM = 0x10,
+  IMG_SEMANTIC_LUT_TPAGE = 0x11,
+  IMG_SEMANTIC_LIGHT_COOKIE = 0x12,
+  IMG_SEMANTIC_HDR = 0x13,
+  IMG_SEMANTIC_EYE_CAUSTIC = 0x14,
+  IMG_SEMANTIC_COUNT = 0x15,
+};
+
+#pragma pack(push, 1)
+struct GfxImage {
+  uint8_t *pixels;
+  uint8_t *fallbackPixels;
+  const char *name;
+  GfxStreamedPartInfo streamedParts[4];
+  GfxTexture texture;
+  GfxTexture fallbackTexture;
+  uint32_t flags;
+  int32_t alignment;
+  uint32_t hash;
+  uint32_t totalSize;
+  uint32_t fallbackSize;
+  GfxPixelFormat format;
+  uint16_t width;
+  uint16_t height;
+  uint16_t depth;
+  GfxImageSemantic semantic;
+  MapType mapType;
+  GfxImageCategory category;
+  uint8_t levelCount;
+  uint8_t fallbackLevel;
+  uint8_t useFallback;
+  uint8_t streaming;
+  uint8_t streamedPartCount;
+  uint8_t _padding11E[2];
+};
+#pragma pack(pop)
+
+typedef GfxImage *GfxImageHandle;
+typedef GfxImage *GfxImagePtr;
+
+struct ScriptBundle;
+typedef ScriptBundle *ScriptBundlePtr;
+
+struct XModel;
+typedef XModel *XModelPtr;
+
+struct PlayerFXTable;
+typedef PlayerFXTable *PlayerFXTablePtr;
+
+struct XAnimParts;
+typedef XAnimParts *XAnimPartsPtr;
+
+struct XCam;
+typedef XCam *XCamPtr;
+
+struct PlayerSoundsTable;
+typedef PlayerSoundsTable *PlayerSoundsTablePtr;
+
+struct FootstepTableDef;
+typedef FootstepTableDef *FootstepTableDefPtr;
+
+struct ScriptBundleKVP;
+typedef ScriptBundleKVP *ScriptBundleKVPPtr;
+
+struct TagFxSet;
+typedef TagFxSet *TagFxSetPtr;
+
+struct XAnimTree;
 
 union XAssetHeader {
   NamedXAsset *named;

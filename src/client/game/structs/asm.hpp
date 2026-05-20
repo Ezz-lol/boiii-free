@@ -417,9 +417,9 @@ static_assert(sizeof(AnimSubState) == 0x40,
 // sizeof=0x18
 struct AnimState {
   scr::ScrString_t name;
-  int validationFlags;
-  int *subStatesIndices;
-  int numSubStates;
+  int32_t validationFlags;
+  int32_t *subStatesIndices;
+  int32_t numSubStates;
   uint8_t _padding14[4];
 };
 static_assert(sizeof(AnimState) == 0x18, "AnimState size must be 24 bytes");
@@ -428,9 +428,9 @@ static_assert(sizeof(AnimState) == 0x18, "AnimState size must be 24 bytes");
 struct AnimTransition {
   scr::ScrString_t name;
   scr::ScrString_t fullname;
-  int validationFlags;
-  int targetStateIndex;
-  int targetSubStateIndex;
+  int32_t validationFlags;
+  int32_t targetStateIndex;
+  int32_t targetSubStateIndex;
   scr::ScrString_t targetStateName;
   scr::ScrString_t targetSubStateName;
   scr::ScrString_t deltaSelector;
@@ -445,13 +445,13 @@ static_assert(sizeof(AnimTransition) == 0x2C,
 struct AnimStateMachine {
   const char *name;
   AnimState *asmStates;
-  int numStates;
+  int32_t numStates;
   uint8_t _padding14[4];
   AnimSubState *asmSubStates;
-  int numSubStates;
+  int32_t numSubStates;
   uint8_t _padding24[4];
   AnimTransition *asmTransitions;
-  int numTransitions;
+  int32_t numTransitions;
   uint8_t _padding34[4];
 };
 static_assert(sizeof(AnimStateMachine) == 0x38,
@@ -519,7 +519,7 @@ static_assert(sizeof(XAnimEntry) == 0x18, "XAnimEntry size must be 24 bytes");
 struct XAnim {
   scr::ScrString_t name;
   int32_t size;
-  unsigned int paramSize;
+  uint32_t paramSize;
   XAnimParam *params;
   scr::ScrString_t *animNames;
   XAnimSearchEntry *sortedSearchList;
@@ -529,11 +529,116 @@ struct XAnim {
 // sizeof=0x10
 struct XAnimTree {
   XAnim *anims;
-  unsigned int children;
+  uint32_t children;
   LocalClientNum_t localClientNum;
 };
 static_assert(sizeof(XAnimTree) == 0x10, "XAnimTree size must be 16 bytes");
 
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct PlayerAnimBodyPartState {
+  int32_t animStartTime;
+  int32_t animDuration;
+  animationNumber_t animNum;
+  uint8_t _padding0A[2];
+};
+ASSERT_SIZE(PlayerAnimBodyPartState, 0xC);
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct AnimScriptedState {
+  int32_t time;
+  float rate;
+  int32_t lerp;
+  float goalTime;
+  animationNumber_t anim;
+  uint8_t _padding12[2];
+};
+ASSERT_SIZE(AnimScriptedState, 0x14);
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct motionMatchingInfo_t {
+  qboolean active;
+  float legOffsetAngle;
+  int32_t kf_index;
+  qboolean transitionState;
+};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct locBlendInfo_t {
+  bool bPlayedBlendLastFrame;
+  bool bStraightenLegs;
+  uint8_t _padding02[2];
+  int32_t lastBlendCount;
+  int32_t lastBlendAnims[4];
+  int32_t lastStrideType;
+  float blendLerpTime;
+  animationNumber_t stopAnimNum;
+  uint8_t _padding22[2];
+  float stopBlendLerpTime;
+  int32_t lastLocBlendAnimNum;
+};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct animation_t {
+  char name[64];
+  int32_t initialLerp;
+  int32_t finalLerp;
+  float forceAnimRate;
+  float moveSpeed;
+  float rotSpeed;
+  int32_t duration;
+  int32_t nameHash;
+  int32_t flags;
+  int64_t movetype;
+  int32_t stance;
+  int32_t noteType;
+  int32_t locBlendIndex;
+  float locBlendAlignTime;
+  uint16_t localOverrideAnim;
+  uint8_t _padding7A[6];
+};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct LerpFrameAnimation {
+  animationNumber_t animationNumber;
+  uint8_t _padding02[6];
+  animation_t *animation;
+  int32_t animationTime;
+  vec3_t oldFramePos;
+  float animSpeedScale;
+  int32_t oldFrameSnapshotTime;
+  qboolean scriptAnimFinished;
+  int32_t syncAnimTime;
+};
+#pragma pack(pop)
+
+struct BGModelAttachmentName {
+  char model[64];
+  char tag[64];
+};
+
+#pragma pack(push, 1)
+struct LerpFrameAngles {
+  float yawAngle;
+  float yawAngleOld;
+  qboolean yawing;
+  float pitchAngle;
+  qboolean pitching;
+};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct ModelAttachmentIndex {
+  int16_t model;
+  uint8_t tag;
+  uint8_t _padding03[1];
+};
 #pragma pack(pop)
 } // namespace anim
 } // namespace game

@@ -9,7 +9,7 @@
 #include "core.hpp"
 #include "user.hpp"
 namespace game {
-namespace vechicle {
+namespace vehicle {
 struct gentity_s;
 #pragma pack(push, 1)
 
@@ -235,9 +235,9 @@ struct VehicleFxDef {
   const char *name;
   char *csvInclude;
   VehicleFxDefType type;
-  phys::FxEffectDefHandle treadFx[40];
-  phys::FxEffectDefHandle peelFx[40];
-  phys::FxEffectDefHandle skidFx[40];
+  db::xasset::FxEffectDefHandle treadFx[40];
+  db::xasset::FxEffectDefHandle peelFx[40];
+  db::xasset::FxEffectDefHandle skidFx[40];
 };
 
 typedef VehicleFxDef *VehicleFxDefPtr;
@@ -511,15 +511,15 @@ struct VehicleDef {
   XModelPtr enemyModel;
   float modelSwapDelay;
   uint8_t _padding524[4];
-  phys::FxEffectDefHandle exhaustFx;
+  db::xasset::FxEffectDefHandle exhaustFx;
   scr::ScrString_t exhaustFxTag1;
   scr::ScrString_t exhaustFxTag2;
   VehicleFxDefPtr surfaceFx;
-  phys::FxEffectDefHandle deathFx;
+  db::xasset::FxEffectDefHandle deathFx;
   scr::ScrString_t deathFxTag;
   uint8_t _padding54C[4];
   const char *deathFxSound;
-  phys::FxEffectDefHandle lightFx[4];
+  db::xasset::FxEffectDefHandle lightFx[4];
   scr::ScrString_t lightFxTag[4];
   float radiusDamageMin;
   float radiusDamageMax;
@@ -548,7 +548,7 @@ struct VehicleDef {
   qboolean addToCompassEnemyFiring;
   uint8_t _padding5F4[4];
   const char *compassIcon;
-  phys::MaterialHandle compassIconMaterial;
+  db::xasset::MaterialHandle compassIconMaterial;
   scr::ScrString_t compassIconTag;
   float compassScale;
   const char *steerAxisName;
@@ -681,7 +681,7 @@ struct VehicleDef {
   qboolean customBool1;
   qboolean customBool2;
   snd::SurfaceSoundDefPtr vehicleFootstepTable;
-  phys::SurfaceFXTableDefPtr vehicleFootstepFXTable;
+  db::xasset::SurfaceFXTableDefPtr vehicleFootstepFXTable;
   phys::DestructibleDefPtr destructibleDef;
   gfx::GfxImage *tacticalModeIcon;
   float tacticalModeHeight;
@@ -745,8 +745,7 @@ public:
   game_button_bits_t m_last_update_button_bits;
   uint8_t _padding104[12];
 };
-static_assert(sizeof(NitrousVehicleController) == 0x110,
-              "NitrousVehicleController size must be 272 bytes");
+ASSERT_SIZE(NitrousVehicleController, 0x120);
 
 // sizeof=0x1C
 class mover_record_t {
@@ -1522,9 +1521,7 @@ struct vehicleAntilagFrame_t {
   uint8_t inUse[64];
   int time;
 };
-static_assert(sizeof(vehicleAntilagFrame_t) == 0x684,
-              "vehicleAntilagFrame_t size must be 1668 bytes");
-
+ASSERT_SIZE(vehicleAntilagFrame_t, 0x684);
 #pragma pack(pop)
-} // namespace vechicle
+} // namespace vehicle
 } // namespace game

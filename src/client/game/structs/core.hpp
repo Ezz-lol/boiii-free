@@ -28,6 +28,11 @@ namespace game {
     uint8_t __raw_##InlineNum[FixedTotalSize];                                 \
   }
 
+#define STR(x) #x
+
+#define ASSERT_SIZE(type, size)                                                \
+  static_assert(sizeof(type) == (size), "sizeof(" #type ") != " STR(size))
+
 typedef uint32_t contents_t;
 typedef const char *XString;
 typedef XString *XStringPtr;
@@ -37,6 +42,7 @@ typedef uint64_t bdUInt64;
 typedef bdUInt64 bdEntityID;
 typedef bdEntityID bdOnlineUserID;
 typedef bdOnlineUserID XUID;
+
 typedef double bdFloat64;
 typedef float bdFloat32;
 typedef int64_t bdInt64;
@@ -64,7 +70,10 @@ typedef int32_t cinematic_id;
 
 typedef float vec_t;
 
-static const uint32_t LOBBY_MAX_PLAYERS = 18;
+struct netUInt64 {
+  uint32_t low;
+  uint32_t high;
+};
 
 enum class StorageFileType : int32_t {
   STORAGE_COMMON_SETTINGS = 0,
@@ -1035,13 +1044,6 @@ static_assert(sizeof(clientActive_t) == 0x197A30,
 
 using fileHandle_t = void *;
 
-struct gclient_s {
-  char __pad0[0x8C];
-  float velocity[3];
-  char __pad1[59504];
-  char flags;
-};
-
 struct DDLMember {
   const char *name;
   int32_t index;
@@ -1134,15 +1136,6 @@ template <typename T, size_t N> using array = T[N];
 template <typename T, size_t X, size_t Y>
 using matrix2d = array<array<T, Y>, X>;
 
-struct SpawnVar {
-  bool spawnVarsValid;
-  uint32_t numSpawnVars;
-  char *spawnVars[100][2];
-  uint32_t numSpawnVarChars;
-  char spawnVarChars[2048];
-  char spawnVarTypes[100];
-};
-
 namespace bitarray {
 
 #pragma pack(push, 1)
@@ -1212,7 +1205,7 @@ struct UIModelData {
     int32_t functionRef;
   };
 };
-static_assert(sizeof(UIModelData) == 0x10, "UIModelData size must be 16 bytes");
+ASSERT_SIZE(UIModelData, 0x10);
 
 // sizeof=0x20
 struct objectiveUIModel_t {
@@ -1221,7 +1214,8 @@ struct objectiveUIModel_t {
   uint8_t _padding14[12];
 };
 
-// sizeof=0xD0
+#pragma pack(push, 1)
+// sizeof=0xC0
 struct objective_t {
   objectiveState_t objState;
   vec3_t origin;
@@ -1230,25 +1224,19 @@ struct objective_t {
   int16_t colorSetColor;
   uint8_t _padding1A[2];
   vec2_t objIconSize;
-  int32_t icon;
   int32_t objOwnerNum;
   uint16_t name;
   int16_t teamMask;
-  uint8_t progress;
-  uint8_t _padding31[3];
-  int32_t clientUseMask[1];
+  uint32_t progress;
+  int clientUseMask[1];
   uint16_t gamemodeFlags;
   uint8_t objTeamNum;
-  uint8_t _padding3B[1];
-  objectiveDrawState_t drawState;
-  int32_t drawStateStartTime;
-  float alpha;
   bool syncFlag;
-  uint8_t _padding49[7];
+  uint8_t _padding38[8];
   objectiveUIModel_t uiModels[4];
 };
-static_assert(sizeof(objective_t) == 0xD0,
-              "objective_t size must be 208 bytes");
+ASSERT_SIZE(objective_t, 0xC0);
+#pragma pack(pop)
 
 enum scoreboardColumnType_t : int32_t {
   SB_TYPE_INVALID = 0x0,
@@ -1343,8 +1331,7 @@ struct renderOptions_t {
     uint128_t allPacked;
   };
 };
-static_assert(sizeof(renderOptions_t) == 0x10,
-              "renderOptions_t size must be 16 bytes");
+ASSERT_SIZE(renderOptions_t, 0x10);
 
 typedef uint16_t modelNameIndex_t;
 
@@ -1354,7 +1341,7 @@ public:
   uint16_t number;
   uint16_t infoIndex;
 };
-static_assert(sizeof(EntHandle) == 0x4, "EntHandle size must be 4 bytes");
+ASSERT_SIZE(EntHandle, 0x4);
 #pragma pack(pop)
 
 struct Font_s; // TODO
@@ -1396,4 +1383,15 @@ struct bdInetAddr {
   bdInAddr m_addr;
 };
 
+struct animationNumber_t {
+  union {
+    struct {
+      uint16_t index : 13;
+      uint16_t toggle : 1;
+    };
+    uint16_t packed;
+  };
+};
+static const uint32_t PLAYER_NAME_MAX_LEN = 32;
+static const uint32_t PLAYER_CLAN_ABBREV_MAX_LEN = 8;
 } // namespace game

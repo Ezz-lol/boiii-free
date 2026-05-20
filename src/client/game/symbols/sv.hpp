@@ -10,11 +10,9 @@ WEAK symbol<void(net::netadr_t *from, net::msg::msg_t *msg)> SV_AuthClient{
     0x0, 0x140475BB0};
 WEAK symbol<CmdArgs> sv_cmd_args{0x15689AE30, 0x14944C740};
 // Client and dedi struct size differs :(
-WEAK symbol<sv::client_s_cl *> svs_clients_cl{0x1576F9318, 0};
-WEAK symbol<sv::client_s *> svs_clients{0x0, 0x14A178E98};
+WEAK symbol<client_s_cl *> svs_clients_cl{0x1576F9318, 0};
+WEAK symbol<client_s *> svs_clients{0x0, 0x14A178E98};
 WEAK symbol<uint32_t> svs_time{0x1576f9304, 0x14A178E84};
-
-WEAK symbol<void *(int clientNum)> G_GetClientState{0x0, 0x1402A7820};
 
 WEAK symbol<bool()> SV_Loaded{0x142252250, 0x140535460};
 WEAK symbol<void *()> SV_AddTestClient{0x142248F40, 0x14052E3E0};
@@ -22,8 +20,7 @@ WEAK symbol<void(net::netadr_t from)> SV_DirectConnect{0x142249880,
                                                        0x14052EC60};
 WEAK symbol<void(int clientNum, net::svscmd_type type, const char *text)>
     SV_GameSendServerCommand{0x14224F580, 0x140532CA0};
-WEAK symbol<void(sv::client_s *cl_0, net::svscmd_type type, const char *fmt,
-                 ...)>
+WEAK symbol<void(client_s *cl_0, net::svscmd_type type, const char *fmt, ...)>
     SV_SendServerCommand{0x142254D30, 0x140537F10};
 WEAK symbol<bool(int clientNum)> SV_IsTestClient{0x14224AB60, 0x14052FF40};
 WEAK symbol<void(int controllerIndex, const char *server, MapPreload preload,
@@ -38,10 +35,10 @@ WEAK symbol<void(void *client, net::msg::msg_t *msg)> SV_ExecuteClientMessage{
 WEAK symbol<void(int index, const char *val)> SV_SetConfigstring{0x1422513A0,
                                                                  0x1405355B0};
 
-WEAK symbol<void(sv::client_s *drop, const char *reason, bool tellThem,
+WEAK symbol<void(client_s *drop, const char *reason, bool tellThem,
                  bool removeFromLobby)>
     SV_DropClient{0x14224A050, 0x14052F430};
-WEAK symbol<void(sv::client_s *cl_0, const char *reason)> SV_Live_RemoveClient{
+WEAK symbol<void(client_s *cl_0, const char *reason)> SV_Live_RemoveClient{
     0x142242510, 0x140527530};
 /*
   Server only. Function exists on client but requires accessing areas of memory
@@ -49,10 +46,13 @@ WEAK symbol<void(sv::client_s *cl_0, const char *reason)> SV_Live_RemoveClient{
   (?) take the second `reason` argument, but it is entirely unused anyway, so
   this is of no consequence.
 */
-WEAK symbol<void(sv::client_s *cl_0, const char *reason)>
+WEAK symbol<void(client_s *cl_0, const char *reason)>
     SV_Live_RemoveAllClientsFromAddress{0x142254630, 0x1405379E0};
-WEAK symbol<void(sv::client_s *client, net::svscmd_type type, const char *cmd)>
+WEAK symbol<void(client_s *client, net::svscmd_type type, const char *cmd)>
     SV_AddServerCommand{0x142253460, 0x140536660};
+
+WEAK symbol<void(client_s *client, user::usercmd_t *cmd)> SV_ClientEnterWorld{
+    0x142249370, 0x14052E810};
 } // namespace sv
 } // namespace game
 

@@ -49,6 +49,14 @@ inline size_t select(const void *client_val, const void *server_val) {
                 reinterpret_cast<size_t>(server_val));
 }
 
+inline bool valid_ptr(uintptr_t ptr) {
+  return ptr >= 0x140000000 && ptr < 0x170000000;
+}
+template <typename T> inline bool valid_ptr(T *ptr) {
+  uintptr_t ptr_int = reinterpret_cast<uintptr_t>(ptr);
+  return valid_ptr(ptr_int);
+}
+
 template <typename T> class base_symbol {
 public:
   base_symbol(const size_t address) : address_(address) {}

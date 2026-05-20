@@ -214,8 +214,8 @@ thread_local int last_cfgstr_max = -1;
 
 int g_findconfigstringindex_stub(const char *string, int start, int max,
                                  int create, const char *errormsg) {
-  int result = g_findcfgstr_hook.invoke<int>(string, start, max, create,
-                                             errormsg);
+  int result =
+      g_findcfgstr_hook.invoke<int>(string, start, max, create, errormsg);
   last_cfgstr_start = start;
   last_cfgstr_max = max;
   last_cfgstr_result = result;
@@ -1011,35 +1011,39 @@ void gscr_getfunction(scriptInstance_t inst) {
 // Player name/tag overrides (server-only)
 // =====================================================
 
-std::optional<int32_t> get_self_client_num(game::scr::scriptInstance_t inst) {
+std::optional<game::ClientNum_t>
+get_self_client_num(game::scr::scriptInstance_t inst) {
   game::scr::scr_entref_t ref{};
   if (!game::scr::Scr_GetEntityRef(&ref, inst, 0)) {
     return std::nullopt;
   }
   const int32_t client_num = ref.u.entnum;
-  if (client_num < 0 || client_num >= 18) {
+  if (client_num < static_cast<int32_t>(game::lobby::MIN_PLAYERS) ||
+      client_num >= static_cast<int32_t>(game::lobby::MAX_PLAYERS)) {
     return std::nullopt;
   }
-  return client_num;
+  return static_cast<game::ClientNum_t>(client_num);
 }
 
 void gscr_setname(game::scr::scriptInstance_t inst) {
-  int32_t client_num = -1;
+  game::ClientNum_t client_num = game::INVALID_CLIENT_INDEX;
   const char *player_name = nullptr;
 
-  const auto argc = game::scr::Scr_GetNumParam(inst);
+  const uint32_t argc = game::scr::Scr_GetNumParam(inst);
   if (argc == 1) {
-    const auto self = get_self_client_num(inst);
+    const std::optional<game::ClientNum_t> self = get_self_client_num(inst);
     player_name = game::scr::Scr_GetString(inst, 1);
     if (!self.has_value() || !player_name) {
       printf("^1[setname] Invalid arguments\n");
       return;
     }
-    client_num = self.value();
+    client_num = static_cast<game::ClientNum_t>(self.value());
   } else {
-    client_num = static_cast<int32_t>(game::scr::Scr_GetInt(inst, 1));
+    client_num = static_cast<game::ClientNum_t>(game::scr::Scr_GetInt(inst, 1));
     player_name = game::scr::Scr_GetString(inst, 2);
-    if (client_num < 0 || client_num >= 18 || !player_name) {
+    if (client_num < static_cast<int32_t>(game::lobby::MIN_PLAYERS) ||
+        client_num >= static_cast<int32_t>(game::lobby::MAX_PLAYERS) ||
+        !player_name) {
       printf("^1[setname] Invalid arguments\n");
       return;
     }
@@ -1050,45 +1054,47 @@ void gscr_setname(game::scr::scriptInstance_t inst) {
 }
 
 void gscr_settag(game::scr::scriptInstance_t inst) {
-  int32_t client_num = -1;
+  game::ClientNum_t client_num = game::INVALID_CLIENT_INDEX;
   const char *tag = nullptr;
 
-  const auto argc = game::scr::Scr_GetNumParam(inst);
+  const uint32_t argc = game::scr::Scr_GetNumParam(inst);
   if (argc == 1) {
-    const auto self = get_self_client_num(inst);
+    const std::optional<game::ClientNum_t> self = get_self_client_num(inst);
     tag = game::scr::Scr_GetString(inst, 1);
     if (!self.has_value() || !tag) {
       printf("^1[settag] Invalid arguments\n");
       return;
     }
-    client_num = self.value();
+    client_num = static_cast<game::ClientNum_t>(self.value());
   } else {
-    client_num = static_cast<int32_t>(game::scr::Scr_GetInt(inst, 1));
+    client_num = static_cast<game::ClientNum_t>(game::scr::Scr_GetInt(inst, 1));
     tag = game::scr::Scr_GetString(inst, 2);
-    if (client_num < 0 || client_num >= 18 || !tag) {
+    if (client_num < static_cast<int32_t>(game::lobby::MIN_PLAYERS) ||
+        client_num >= static_cast<int32_t>(game::lobby::MAX_PLAYERS) || !tag) {
       printf("^1[settag] Invalid arguments\n");
       return;
     }
   }
 
-  name::set_tag_override(client_num, tag);
+  name::set_clan_abbrev_override(client_num, tag);
   name::trigger_client_update(client_num);
 }
 
 void gscr_resetname(game::scr::scriptInstance_t inst) {
-  int32_t client_num = -1;
+  game::ClientNum_t client_num = game::INVALID_CLIENT_INDEX;
 
-  const auto argc = game::scr::Scr_GetNumParam(inst);
+  const uint32_t argc = game::scr::Scr_GetNumParam(inst);
   if (argc == 0) {
-    const auto self = get_self_client_num(inst);
+    const std::optional<game::ClientNum_t> self = get_self_client_num(inst);
     if (!self.has_value()) {
       printf("^1[resetname] Invalid arguments\n");
       return;
     }
-    client_num = self.value();
+    client_num = static_cast<game::ClientNum_t>(self.value());
   } else {
-    client_num = static_cast<int32_t>(game::scr::Scr_GetInt(inst, 1));
-    if (client_num < 0 || client_num >= 18) {
+    client_num = static_cast<game::ClientNum_t>(game::scr::Scr_GetInt(inst, 1));
+    if (client_num < static_cast<int32_t>(game::lobby::MIN_PLAYERS) ||
+        client_num >= static_cast<int32_t>(game::lobby::MAX_PLAYERS)) {
       printf("^1[resetname] Invalid arguments\n");
       return;
     }
@@ -1099,60 +1105,62 @@ void gscr_resetname(game::scr::scriptInstance_t inst) {
 }
 
 void gscr_resettag(game::scr::scriptInstance_t inst) {
-  int32_t client_num = -1;
+  game::ClientNum_t client_num = game::INVALID_CLIENT_INDEX;
 
-  const auto argc = game::scr::Scr_GetNumParam(inst);
+  const uint32_t argc = game::scr::Scr_GetNumParam(inst);
   if (argc == 0) {
-    const auto self = get_self_client_num(inst);
+    const std::optional<game::ClientNum_t> self = get_self_client_num(inst);
     if (!self.has_value()) {
       printf("^1[resettag] Invalid arguments\n");
       return;
     }
-    client_num = self.value();
+    client_num = static_cast<game::ClientNum_t>(self.value());
   } else {
-    client_num = static_cast<int32_t>(game::scr::Scr_GetInt(inst, 1));
-    if (client_num < 0 || client_num >= 18) {
+    client_num = static_cast<game::ClientNum_t>(game::scr::Scr_GetInt(inst, 1));
+    if (client_num < static_cast<int32_t>(game::lobby::MIN_PLAYERS) ||
+        client_num >= static_cast<int32_t>(game::lobby::MAX_PLAYERS)) {
       printf("^1[resettag] Invalid arguments\n");
       return;
     }
   }
 
-  name::clear_tag_override(client_num);
+  name::clear_clan_abbrev_override(client_num);
   name::trigger_client_update(client_num);
 }
 
 void gscr_setclientdvar(game::scr::scriptInstance_t inst) {
-  int32_t client_num = -1;
+  game::ClientNum_t client_num = game::INVALID_CLIENT_INDEX;
   const char *dvar_cmd = nullptr;
 
-  const auto argc = game::scr::Scr_GetNumParam(inst);
+  const uint32_t argc = game::scr::Scr_GetNumParam(inst);
   if (argc == 1) {
-    const auto self = get_self_client_num(inst);
+    const std::optional<game::ClientNum_t> self = get_self_client_num(inst);
     dvar_cmd = game::scr::Scr_GetString(inst, 1);
     if (!self.has_value() || !dvar_cmd) {
       printf("^1[setclientdvar] Invalid arguments\n");
       return;
     }
-    client_num = self.value();
+    client_num = static_cast<game::ClientNum_t>(self.value());
   } else {
-    client_num = static_cast<int32_t>(game::scr::Scr_GetInt(inst, 1));
+    client_num = static_cast<game::ClientNum_t>(game::scr::Scr_GetInt(inst, 1));
     dvar_cmd = game::scr::Scr_GetString(inst, 2);
-    if (client_num < 0 || client_num >= 18 || !dvar_cmd) {
+    if (client_num < static_cast<int32_t>(game::lobby::MIN_PLAYERS) ||
+        client_num >= static_cast<int32_t>(game::lobby::MAX_PLAYERS) ||
+        !dvar_cmd) {
       printf("^1[setclientdvar] Invalid arguments\n");
       return;
     }
   }
 
   if (dvar_changes.find(dvar_cmd) == dvar_changes.end()) {
-    auto* current_dvar = game::Dvar_FindVar(dvar_cmd);
+    game::dvar_t *current_dvar = game::Dvar_FindVar(dvar_cmd);
     if (current_dvar) {
       dvar_changes[dvar_cmd] = game::Dvar_GetString(current_dvar);
     }
   }
 
-  game::sv::SV_GameSendServerCommand(
-      client_num, game::net::SV_CMD_CAN_IGNORE_0,
-      utils::string::va("c \"%s\"", dvar_cmd));
+  game::sv::SV_GameSendServerCommand(client_num, game::net::SV_CMD_CAN_IGNORE_0,
+                                     utils::string::va("c \"%s\"", dvar_cmd));
 }
 } // namespace
 
@@ -1238,7 +1246,7 @@ struct component final : generic_component {
       function_replacements.clear();
 
       if (!dvar_changes.empty()) {
-        for (const auto& [dvar_name, original_value] : dvar_changes) {
+        for (const auto &[dvar_name, original_value] : dvar_changes) {
           game::Dvar_SetFromStringByName(dvar_name.c_str(),
                                          original_value.c_str(), false);
         }
@@ -1249,7 +1257,6 @@ struct component final : generic_component {
       clear_script_commands();
       clear_hud_text_state();
       remove_settext_hooks();
-      name::clear_all_overrides();
     });
 
     game_event::on_g_init_game([] {
@@ -1258,7 +1265,6 @@ struct component final : generic_component {
       detours_enabled = false;
       clear_hud_text_state();
       install_settext_hooks();
-      name::clear_all_overrides();
     });
   }
 };

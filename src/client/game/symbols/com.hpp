@@ -35,11 +35,15 @@ WEAK symbol<void(int localClientNum, eModes fromMode, eModes toMode,
     Com_SwitchMode{0x14214A4D0};
 WEAK symbol<const char *(const char *fullpath)> Com_LoadRawTextFile{
     0x1420F61B0};
+WEAK symbol<void(const char *level)> Com_LoadLevelFastFiles{0x1421484E0,
+                                                            0x140504C30};
+WEAK symbol<void()> Com_UnloadLevelFastFiles{0x14214AAC0, 0x140506E40};
+WEAK symbol<void()> Com_TryUnloadLevelFastFiles{0x14214BAC0, 0x140507CF0};
+
 WEAK symbol<bool(game::LocalClientNum_t localClientNum)>
     Com_LocalClient_IsBeingUsed{0x1420EF990};
 WEAK symbol<game::ControllerIndex_t(game::LocalClientNum_t localClientNum)>
     Com_LocalClient_GetControllerIndex{0x1420EF930};
-
 WEAK symbol<game::net::netsrc_t(game::LocalClientNum_t localClientNum)>
     Com_LocalClient_GetNetworkID{0x1420EF950};
 WEAK symbol<void *(live::LiveAllocTypes type, void *ptr, const size_t size)>

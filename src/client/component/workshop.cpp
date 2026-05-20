@@ -1036,7 +1036,7 @@ inline void extend_usermaps_pool() {
     patch_rip_relative_ptr(0x1404E25E6, 3, 7, game::ugc::usermapsPoolPtr);
   }
 
-  // Set map laoding image - client-specific
+  // Set map loading image - client-specific
   if (game::is_client()) {
     // cmp     cs:usermapsPool.count, ebx
     patch_rip_relative_ptr(0x1420D720D, 2, 6, game::ugc::usermapsPoolCountPtr);

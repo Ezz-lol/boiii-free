@@ -32,24 +32,31 @@ struct bot_look_t {
   vec3_t grenadeOrigin;
   int32_t grenadeTime;
 };
+ASSERT_SIZE(bot_look_t, 0x50);
 
 struct bot_move_t {
   vec_t angleDesired;
   vec_t magnitude;
 };
+ASSERT_SIZE(bot_move_t, 0x8);
 
 struct bot_goal_t {
   vec3_t position;
   int32_t radius;
   bot_goal_state state;
 };
+ASSERT_SIZE(bot_goal_t, 0x14);
 
-// Entirely unspecified in BO3, BO4, BO2 alpha engines. Just 0x10 empty bytes.
-// This is probably a marker class that's used with some kind of extension
-// methods, as there are `hkVector4dComparison` and similar classes existing.
-struct hkVector4f {
-  uint8_t unknown[0x10];
-};
+/* Entirely unspecified in BO3, BO4, BO2 alpha engines. Just 0x10 empty bytes.
+   This is probably a marker class that's used with some kind of extension
+   methods, as there are `hkVector4dComparison` and similar classes existing.
+
+   Given its name, I am assuming this is a vec4 of 4 floats. This matches
+   vec4_t's type, so we will define it as such.
+
+   Correct as needed.
+*/
+typedef vec4_t hkVector4f;
 
 typedef hkVector4f hkVector4;
 
@@ -66,44 +73,45 @@ struct bot_t {
   char goal_callStack[1025];
   uint8_t _padding4A5[11];
 };
+ASSERT_SIZE(bot_t, 0x4B0);
 #pragma pack(pop)
 
+typedef bitarray::bitarray<32> serverFieldBits_t;
 #pragma pack(push, 1)
-
-// sizeof=0x50
 struct usercmd_s {
   int32_t serverTime;
   game_button_bits_t button_bits;
+  serverFieldBits_t serverFields;
   int32_t angles[3];
-  uint8_t _padding1C[4];
+  uint16_t level;
+  uint8_t _padding22[6];
   weapon::Weapon weapon;
   weapon::Weapon offHandWeapon;
   weapon::Weapon lastWeaponAltModeSwitch;
-  char forwardmove;
-  char rightmove;
-  char upmove;
-  char pitchmove;
-  char yawmove;
-  uint8_t _padding3D[1];
+  int8_t forwardmove;
+  int8_t rightmove;
+  int8_t upmove;
+  int8_t pitchmove;
+  int8_t yawmove;
+  uint8_t _padding45[1];
   uint16_t meleeChargeEnt;
   uint16_t meleeChargeDist;
-  uint8_t _padding42[2];
-  union {
-    float rollmove;
-    int16_t damageKick[2];
-  };
-  char selectedLocation[2];
+  int16_t damageKick[2];
+  int8_t selectedLocation[2];
   uint8_t selectedYaw;
-  uint8_t _padding4B[1];
+  uint8_t _padding51[1];
   uint16_t lastInput;
   uint16_t streamerState;
+  uint8_t _padding56[2];
+  uint32_t kf_index;
+  qboolean transition;
 };
-static_assert(sizeof(usercmd_s) == 0x50, "usercmd_s size must be 80 bytes");
-
 typedef usercmd_s usercmd_t;
+static_assert(offsetof(usercmd_t, _padding45) == 0x45);
+static_assert(offsetof(usercmd_t, _padding56) == 0x56);
+ASSERT_SIZE(usercmd_t, 0x60);
 
-struct actor_t;     // TODO
-struct objective_t; // TODO
+struct actor_t; // TODO
 
 #pragma pack(pop)
 } // namespace user

@@ -1,17 +1,23 @@
 #pragma once
 #include <string>
+#include "com.hpp"
+#include "sv.hpp"
+#include "game_event.hpp"
+#include "game/game.hpp"
 
 namespace name {
 const char *get_player_name();
 
-void set_name_override(int client_num, const std::string &n);
-void set_tag_override(int client_num, const std::string &t);
-void clear_name_override(int client_num);
-void clear_tag_override(int client_num);
-void clear_all_overrides();
-bool has_name_override(int client_num);
-std::string get_name_override(int client_num);
-bool has_tag_override(int client_num);
-std::string get_tag_override(int client_num);
-void trigger_client_update(int client_num);
-}
+void set_name_override(game::ClientNum_t client_num, const std::string &n);
+void set_clan_abbrev_override(game::ClientNum_t client_num,
+                              const std::string &t);
+void clear_name_override(game::ClientNum_t client_num);
+void clear_clan_abbrev_override(game::ClientNum_t client_num);
+bool has_name_override(game::ClientNum_t client_num);
+std::optional<std::string> get_name_override(game::ClientNum_t client_num);
+bool has_clan_abbrev_override(game::ClientNum_t client_num);
+std::optional<std::string>
+get_clan_abbrev_override(game::ClientNum_t client_num);
+void client_update(game::sv::client_s *cl);
+void trigger_client_update(game::ClientNum_t client_num);
+} // namespace name

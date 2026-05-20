@@ -5,7 +5,9 @@ local _ok, _err = pcall(function()
   local _origGetClientClantag = GetClientClantag
 
   local function stripBrackets(s)
-    if not s or s == "" then return "" end
+    if not s or s == "" then
+      return ""
+    end
     return s:gsub("^%[", ""):gsub("%]$", "")
   end
 
@@ -50,7 +52,9 @@ local _ok, _err = pcall(function()
   end
 
   local root = LUI.roots.UIRootFull
-  if not root then return end
+  if not root then
+    return
+  end
 
   if root._nameRefreshTimer then
     root:removeElement(root._nameRefreshTimer)
@@ -60,8 +64,12 @@ local _ok, _err = pcall(function()
   _sbRows = {}
 
   local function findRows(element, results, depth)
-    if depth > 30 then return end
-    if not element then return end
+    if depth > 30 then
+      return
+    end
+    if not element then
+      return
+    end
     pcall(function()
       if element.id == "ScoreboardRowWidget" and element.Gamertag then
         table.insert(results, element)
@@ -72,7 +80,9 @@ local _ok, _err = pcall(function()
       if ok2 and n and n > 0 then
         for i = 0, n - 1 do
           local ok3, child = pcall(element.getChildAt, element, i)
-          if ok3 and child then findRows(child, results, depth + 1) end
+          if ok3 and child then
+            findRows(child, results, depth + 1)
+          end
         end
       end
     end
@@ -80,11 +90,15 @@ local _ok, _err = pcall(function()
 
   local timer = LUI.UITimer.newElementTimer(200, false, function()
     pcall(function()
-      if not Engine.IsInGame() then return end
+      if not Engine.IsInGame() then
+        return
+      end
 
       if not _sbRowsFound then
         findRows(root, _sbRows, 0)
-        if #_sbRows > 0 then _sbRowsFound = true end
+        if #_sbRows > 0 then
+          _sbRowsFound = true
+        end
       end
 
       if _scoreboardRowsNew then
@@ -95,17 +109,27 @@ local _ok, _err = pcall(function()
         _sbRowsFound = true
       end
 
-      if not _sbRows or #_sbRows == 0 then return end
+      if not _sbRows or #_sbRows == 0 then
+        return
+      end
 
       for _, row in ipairs(_sbRows) do
         pcall(function()
-          if not row or not row.Gamertag then return end
+          if not row or not row.Gamertag then
+            return
+          end
           local m = row:getModel()
-          if not m then return end
+          if not m then
+            return
+          end
           local cnModel = Engine.GetModel(m, "clientNum")
-          if not cnModel then return end
+          if not cnModel then
+            return
+          end
           local cn = Engine.GetModelValue(cnModel)
-          if cn == nil then return end
+          if cn == nil then
+            return
+          end
 
           local rawName = _origGetClientName(0, cn) or ""
           local namePart, tagPart = splitPacked(rawName)

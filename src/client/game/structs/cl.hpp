@@ -122,7 +122,7 @@ struct clientLogo_t {
   int32_t duration;
   int32_t fadein;
   int32_t fadeout;
-  phys::MaterialHandle material[2];
+  db::xasset::MaterialHandle material[2];
 };
 static_assert(sizeof(clientLogo_t) == 0x20, "sizeof(clientLogo_t) != 0x20");
 #pragma pack(pop)

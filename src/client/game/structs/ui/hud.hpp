@@ -14,6 +14,7 @@ union hudelem_color_t {
   };
   int32_t rgba;
 };
+ASSERT_SIZE(hudelem_color_t, 0x4);
 
 // sizeof=0x7C
 #pragma pack(push, 1)
@@ -65,7 +66,7 @@ struct hudelem_s {
   uint8_t soundID;
   uint8_t _padding[1];
 };
-static_assert(sizeof(hudelem_s) == 0x7C, "hudelem_s has wrong size");
+ASSERT_SIZE(hudelem_s, 0x7C);
 #pragma pack(pop)
 
 typedef hudelem_s hudelem_t;
@@ -76,7 +77,17 @@ struct game_hudelem_s {
   team_t team;
   qboolean archived;
 };
-static_assert(sizeof(game_hudelem_s) == 0x88, "game_hudelem_s has wrong size");
-
+ASSERT_SIZE(game_hudelem_s, 0x88);
 typedef game_hudelem_s game_hudelem_t;
+
+#pragma pack(push, 1)
+struct serverHudMenu_t {
+  UIModelData modelData[16];
+  int32_t menuNameIndex;
+  int32_t modelNames[16];
+  bool persistent;
+  uint8_t _padding145[11];
+};
+ASSERT_SIZE(serverHudMenu_t, 0x150);
+#pragma pack(pop)
 } // namespace game::ui::hud

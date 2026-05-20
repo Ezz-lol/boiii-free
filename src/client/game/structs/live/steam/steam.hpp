@@ -6,7 +6,7 @@ namespace game {
 namespace live {
 namespace steam {
 
-// Verified on client. Fields - their types andoffsets - and total size.
+// Verified on client. Fields - their types and offsets - and total size.
 // Not verified on dedicated server, but also may not exist there.
 #pragma pack(push, 1)
 struct LiveSteamClient {
