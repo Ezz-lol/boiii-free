@@ -573,11 +573,11 @@ void load_scripts() {
     load(path, false, true);
   }
   load("custom_scripts", false, false);
+
   // Now, load the custom scripts into the VM.
   for (const std::filesystem::path &path : applicable_custom_script_paths) {
     load(path, true, true);
   }
-
   load("custom_scripts", true, false);
 }
 
