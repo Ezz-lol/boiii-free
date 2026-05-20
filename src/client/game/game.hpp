@@ -3,7 +3,7 @@
 
 #include <filesystem>
 #include <string>
-#include <utils/nt.hpp>
+#include "../../common/utils/nt.hpp"
 
 namespace arxan::detail {
 void set_address_to_call(const void *address);

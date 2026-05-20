@@ -2,6 +2,7 @@
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
 #include "game/utils.hpp"
+#include "game/impl/scr/scr.hpp"
 
 #include "game_event.hpp"
 #include "gsc/gsc_compiler.hpp"
@@ -554,11 +555,8 @@ void load_scripts() {
   load("scripts", false, true);
 
   std::vector<std::filesystem::path> applicable_custom_script_paths = {
-    "custom_scripts",
-    "custom_scripts/shared",
-    "custom_scripts/core",
-    "custom_scripts/codescripts"
-  };
+      "custom_scripts", "custom_scripts/shared", "custom_scripts/core",
+      "custom_scripts/codescripts"};
   if (const auto game_type = get_game_type_specific_folder();
       game_type.has_value()) {
     applicable_custom_script_paths.push_back("custom_scripts" /
@@ -730,6 +728,9 @@ std::string get_source_line(const std::string &file, int line_num) {
   return {};
 }
 
+utils::hook::detour Scr_IsFloatTrue_hook;
+utils::hook::detour Scr_IsTrue_hook;
+
 struct component final : generic_component {
   void post_unpack() override {
 
@@ -752,6 +753,13 @@ struct component final : generic_component {
     gscr_get_bgb_tokens_remaining_hook.create(
         gscr::GScr_GetBGBTokensRemaining.get(),
         gscr_getbgbtokensremaining_stub);
+
+    // Fix common "cannot cast undefined to bool" error in flagsys.gsc on
+    // launching usermap in private match
+    Scr_IsFloatTrue_hook.create(game::scr::Scr_IsFloatTrue.get(),
+                                game::scr::Scr_IsTrue_Impl);
+    Scr_IsTrue_hook.create(game::scr::Scr_IsTrue.get(),
+                           game::scr::Scr_IsTrue_Impl);
   }
 };
 } // namespace script

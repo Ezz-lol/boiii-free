@@ -1510,6 +1510,7 @@ static_assert(sizeof(ScrVarStackBuffer_t) == 0x20,
 union ScrVarValueUnion_t {
   int32_t intValue;
   uint32_t uintValue;
+  int64_t int64Value;
   uint64_t uint64Value;
   uintptr_t uintptrValue;
   float floatValue;
@@ -1526,8 +1527,6 @@ union ScrVarValueUnion_t {
 static_assert(sizeof(ScrVarValueUnion_t) == 0x8,
               "ScrVarValueUnion_t has incorrect size");
 
-// Note: unverified as of initial addition
-// Verify before use.
 #pragma pack(push, 1)
 struct ScrVarValue_t {
   ScrVarValueUnion_t u;
