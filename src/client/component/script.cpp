@@ -555,7 +555,7 @@ void load_scripts() {
   load("scripts", false, true);
 
   std::vector<std::filesystem::path> applicable_custom_script_paths = {
-      "custom_scripts", "custom_scripts/shared", "custom_scripts/core",
+      "custom_scripts/shared", "custom_scripts/core",
       "custom_scripts/codescripts"};
   if (const auto game_type = get_game_type_specific_folder();
       game_type.has_value()) {
@@ -571,10 +571,13 @@ void load_scripts() {
   for (const std::filesystem::path &path : applicable_custom_script_paths) {
     load(path, false, true);
   }
+  load("custom_scripts", false, false);
   // Now, load the custom scripts into the VM.
   for (const std::filesystem::path &path : applicable_custom_script_paths) {
     load(path, true, true);
   }
+
+  load("custom_scripts", true, false);
 }
 
 XAssetHeader db_find_x_asset_header_stub(const XAssetType type,
