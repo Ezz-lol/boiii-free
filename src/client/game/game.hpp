@@ -49,9 +49,19 @@ inline size_t select(const void *client_val, const void *server_val) {
                 reinterpret_cast<size_t>(server_val));
 }
 
-inline bool valid_ptr(uintptr_t ptr) {
+inline bool valid_engine_ptr(uintptr_t ptr) {
   return ptr >= 0x140000000 && ptr < 0x170000000;
 }
+
+inline bool valid_ptr(uintptr_t ptr) {
+  return ptr >= 0x140000000 && ptr < 0x200000000;
+}
+
+template <typename T> inline bool valid_engine_ptr(T *ptr) {
+  uintptr_t ptr_int = reinterpret_cast<uintptr_t>(ptr);
+  return valid_engine_ptr(ptr_int);
+}
+
 template <typename T> inline bool valid_ptr(T *ptr) {
   uintptr_t ptr_int = reinterpret_cast<uintptr_t>(ptr);
   return valid_ptr(ptr_int);
