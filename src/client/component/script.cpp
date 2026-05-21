@@ -225,7 +225,8 @@ void fixup_script_imports(char *buf, int len) {
     std::memcpy(&exp_cnt, spt + 0x3A, 2);
 
     if (exp_cnt > 0) {
-      auto *exps = reinterpret_cast<const t7_export_entry *>(spt + exp_off);
+      const t7_export_entry *exps =
+          reinterpret_cast<const t7_export_entry *>(spt + exp_off);
       uint32_t actual_ns = exps[0].ns_name;
       if (actual_ns != path_hash)
         path_to_ns[path_hash] = actual_ns;
@@ -298,8 +299,8 @@ const uint8_t *get_spt_buffer(const std::string &name) {
 
   // Fall back to game's asset database (try .gsc, .csc, and without ext)
   std::string with_csc = without_ext + ".csc";
-  for (auto &lookup : {with_ext, with_csc, without_ext}) {
-    auto *asset = db_find_x_asset_header_hook.invoke<RawFile *>(
+  for (const std::string &lookup : {with_ext, with_csc, without_ext}) {
+    RawFile *asset = db_find_x_asset_header_hook.invoke<RawFile *>(
         XAssetType::ASSET_TYPE_SCRIPTPARSETREE, lookup.c_str(), false, 0);
     if (asset && asset->buffer)
       return reinterpret_cast<const uint8_t *>(asset->buffer);
@@ -311,30 +312,30 @@ const uint8_t *get_spt_buffer(const std::string &name) {
 int64_t find_export_address_internal(const std::string &script_name,
                                      uint32_t func_hash) {
   const uint8_t *buffer = get_spt_buffer(script_name);
-  if (!buffer)
-    return 0;
+  if (buffer) {
 
-  uint64_t magic = 0;
-  std::memcpy(&magic, buffer, sizeof(magic));
-  if (magic != GSC_MAGIC)
-    return 0;
+    uint64_t magic = 0;
+    std::memcpy(&magic, buffer, sizeof(magic));
+    if (magic != GSC_MAGIC) {
 
-  uint32_t export_offset = 0;
-  uint16_t export_count = 0;
-  std::memcpy(&export_offset, buffer + 0x20, sizeof(export_offset));
-  std::memcpy(&export_count, buffer + 0x3A, sizeof(export_count));
+      uint32_t export_offset = 0;
+      uint16_t export_count = 0;
+      std::memcpy(&export_offset, buffer + 0x20, sizeof(export_offset));
+      std::memcpy(&export_count, buffer + 0x3A, sizeof(export_count));
 
-  auto *exports =
-      reinterpret_cast<const t7_export_entry *>(buffer + export_offset);
-  for (uint16_t i = 0; i < export_count; i++) {
-    if (exports[i].func_name == func_hash)
-      return reinterpret_cast<int64_t>(buffer + exports[i].offset);
+      const t7_export_entry *exports =
+          reinterpret_cast<const t7_export_entry *>(buffer + export_offset);
+      for (uint16_t i = 0; i < export_count; i++) {
+        if (exports[i].func_name == func_hash)
+          return reinterpret_cast<int64_t>(buffer + exports[i].offset);
+      }
+    }
   }
   return 0;
 }
 
 void apply_pending_detours() {
-  for (auto &d : pending_detours) {
+  for (pending_detour &d : pending_detours) {
     int64_t target =
         find_export_address_internal(d.target_script, d.target_func_hash);
     int64_t replace =
@@ -452,15 +453,16 @@ void load_script_file(std::string &data, const std::string &script_file,
       return;
 
     // Strip devblocks before compilation
-    auto cleaned_source = strip_devblocks(data);
+    std::string cleaned_source = strip_devblocks(data);
 
     printf("Compiling %s script '%s'\n", script_type, script_file.data());
-    auto result = gsc_compiler::compile(cleaned_source, script_file);
+    gsc_compiler::compile_result result =
+        gsc_compiler::compile(cleaned_source, script_file);
     if (result.success) {
       std::string bytecode(result.bytecode.begin(), result.bytecode.end());
 
       // Store hash-to-name+line map from this compilation
-      for (auto &hn : result.hash_names) {
+      for (gsc_compiler::hash_name_pair &hn : result.hash_names) {
         script_hash_names[hn.hash].push_back({hn.name, hn.line, hn.params});
       }
 
@@ -477,7 +479,7 @@ void load_script_file(std::string &data, const std::string &script_file,
             utils::string::ends_with(replace_base, ".csc"))
           replace_base = replace_base.substr(0, replace_base.size() - 4);
 
-        for (auto &rf : result.replacefuncs) {
+        for (gsc_compiler::replacefunc_entry &rf : result.replacefuncs) {
 
           pending_detours.push_back({rf.target_script, gsc_hash(rf.target_func),
                                      replace_base, gsc_hash(rf.replace_func)});
@@ -500,7 +502,7 @@ void load_script_file(std::string &data, const std::string &script_file,
         size_t end = src.find('\n', start);
         if (end == std::string::npos)
           end = src.size();
-        auto line = src.substr(start, end - start);
+        std::string line = src.substr(start, end - start);
         if (!line.empty() && line.back() == '\r')
           line.pop_back();
         return line;
@@ -512,7 +514,7 @@ void load_script_file(std::string &data, const std::string &script_file,
         printf("^1  File:    ^5%s\n", err.file.data());
         if (err.line > 0) {
           printf("^1  Line:    ^2%d^7, ^1Column: ^2%d\n", err.line, err.column);
-          auto src_line = get_source_line(data, err.line);
+          std::string src_line = get_source_line(data, err.line);
           if (!src_line.empty()) {
             printf("^1  Source:  ^7%s\n", src_line.data());
           }
@@ -669,7 +671,7 @@ void load_global_hash_table() {
       while (std::getline(stream, line)) {
         if (line.empty())
           continue;
-        auto space = line.find(' ');
+        size_t space = line.find(' ');
         if (space == std::string::npos)
           continue;
         uint32_t hash = static_cast<uint32_t>(
@@ -683,12 +685,13 @@ void load_global_hash_table() {
     };
 
     // Try appdata path first, then exe-relative path
-    const auto appdata =
+    const std::filesystem::path appdata =
         game::get_appdata_path() / "data" / "lookup_tables" / "hash_names.txt";
     if (try_load(appdata))
       return;
-    const auto host = utils::nt::library{}.get_folder() / "boiii" / "data" /
-                      "lookup_tables" / "hash_names.txt";
+    const std::filesystem::path host = utils::nt::library{}.get_folder() /
+                                       "boiii" / "data" / "lookup_tables" /
+                                       "hash_names.txt";
     if (try_load(host))
       return;
   });

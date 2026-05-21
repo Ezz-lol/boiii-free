@@ -1050,7 +1050,7 @@ void gscr_setname(game::scr::scriptInstance_t inst) {
     const std::optional<game::ClientNum_t> self = get_self_client_num(inst);
     player_name = game::scr::Scr_GetString(inst, 1);
     if (!self.has_value() || !player_name) {
-      printf("^1[setname] Invalid arguments\n");
+      Scr_ParamError(inst, 1, "^1[setname] Invalid arguments\n");
       return;
     }
     client_num = static_cast<game::ClientNum_t>(self.value());
@@ -1060,7 +1060,7 @@ void gscr_setname(game::scr::scriptInstance_t inst) {
     if (client_num < static_cast<int32_t>(game::lobby::MIN_PLAYERS) ||
         client_num >= static_cast<int32_t>(game::lobby::MAX_PLAYERS) ||
         !player_name) {
-      printf("^1[setname] Invalid arguments\n");
+      Scr_ParamError(inst, 1, "^1[setname] Invalid arguments\n");
       return;
     }
   }
@@ -1078,7 +1078,7 @@ void gscr_settag(game::scr::scriptInstance_t inst) {
     const std::optional<game::ClientNum_t> self = get_self_client_num(inst);
     tag = game::scr::Scr_GetString(inst, 1);
     if (!self.has_value() || !tag) {
-      printf("^1[settag] Invalid arguments\n");
+      Scr_ParamError(inst, 1, "^1[settag] Invalid arguments\n");
       return;
     }
     client_num = static_cast<game::ClientNum_t>(self.value());
@@ -1087,7 +1087,7 @@ void gscr_settag(game::scr::scriptInstance_t inst) {
     tag = game::scr::Scr_GetString(inst, 2);
     if (client_num < static_cast<int32_t>(game::lobby::MIN_PLAYERS) ||
         client_num >= static_cast<int32_t>(game::lobby::MAX_PLAYERS) || !tag) {
-      printf("^1[settag] Invalid arguments\n");
+      Scr_ParamError(inst, 1, "^1[settag] Invalid arguments\n");
       return;
     }
   }
@@ -1103,7 +1103,7 @@ void gscr_resetname(game::scr::scriptInstance_t inst) {
   if (argc == 0) {
     const std::optional<game::ClientNum_t> self = get_self_client_num(inst);
     if (!self.has_value()) {
-      printf("^1[resetname] Invalid arguments\n");
+      Scr_ParamError(inst, 1, "^1[resetname] Invalid arguments\n");
       return;
     }
     client_num = static_cast<game::ClientNum_t>(self.value());
@@ -1111,7 +1111,7 @@ void gscr_resetname(game::scr::scriptInstance_t inst) {
     client_num = static_cast<game::ClientNum_t>(game::scr::Scr_GetInt(inst, 1));
     if (client_num < static_cast<int32_t>(game::lobby::MIN_PLAYERS) ||
         client_num >= static_cast<int32_t>(game::lobby::MAX_PLAYERS)) {
-      printf("^1[resetname] Invalid arguments\n");
+      Scr_ParamError(inst, 1, "^1[resetname] Invalid arguments\n");
       return;
     }
   }
@@ -1127,7 +1127,7 @@ void gscr_resettag(game::scr::scriptInstance_t inst) {
   if (argc == 0) {
     const std::optional<game::ClientNum_t> self = get_self_client_num(inst);
     if (!self.has_value()) {
-      printf("^1[resettag] Invalid arguments\n");
+      Scr_ParamError(inst, 1, "^1[resettag] Invalid arguments\n");
       return;
     }
     client_num = static_cast<game::ClientNum_t>(self.value());
@@ -1135,7 +1135,7 @@ void gscr_resettag(game::scr::scriptInstance_t inst) {
     client_num = static_cast<game::ClientNum_t>(game::scr::Scr_GetInt(inst, 1));
     if (client_num < static_cast<int32_t>(game::lobby::MIN_PLAYERS) ||
         client_num >= static_cast<int32_t>(game::lobby::MAX_PLAYERS)) {
-      printf("^1[resettag] Invalid arguments\n");
+      Scr_ParamError(inst, 1, "^1[resettag] Invalid arguments\n");
       return;
     }
   }
@@ -1153,7 +1153,7 @@ void gscr_setclientdvar(game::scr::scriptInstance_t inst) {
     const std::optional<game::ClientNum_t> self = get_self_client_num(inst);
     dvar_cmd = game::scr::Scr_GetString(inst, 1);
     if (!self.has_value() || !dvar_cmd) {
-      printf("^1[setclientdvar] Invalid arguments\n");
+      Scr_ParamError(inst, 1, "^1[setclientdvar] Invalid arguments\n");
       return;
     }
     client_num = static_cast<game::ClientNum_t>(self.value());
@@ -1163,7 +1163,7 @@ void gscr_setclientdvar(game::scr::scriptInstance_t inst) {
     if (client_num < static_cast<int32_t>(game::lobby::MIN_PLAYERS) ||
         client_num >= static_cast<int32_t>(game::lobby::MAX_PLAYERS) ||
         !dvar_cmd) {
-      printf("^1[setclientdvar] Invalid arguments\n");
+      Scr_ParamError(inst, 1, "^1[setclientdvar] Invalid arguments\n");
       return;
     }
   }

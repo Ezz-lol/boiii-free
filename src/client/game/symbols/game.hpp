@@ -22,17 +22,18 @@ WEAK symbol<void(level::gentity_s *ed)> G_FreeEntity{0x141B77950, 0x1403067A0};
 WEAK symbol<void()> G_PrintEntities{0x141B7BE40, 0x140307800};
 
 WEAK symbol<void()> G_ClearVehicleInputs{0x1423812E0, 0x1405C1200};
+
 WEAK symbol<level::gentity_s *(level::gentity_s *ent,
                                game::snd::SndAliasId alias,
                                scr::ScrString_t notifyString, BoneIndex bone)>
-    G_PlaySoundAlias{0x0, 0x140307480};
+    G_PlaySoundAlias{0x141B7BAC0, 0x140307480};
 WEAK symbol<level::gentity_s *(const vec3_t *origin,
                                game::snd::SndAliasId alias)>
-    G_PlaySoundAliasAtPoint{0x0, 0x1403075C0};
+    G_PlaySoundAliasAtPoint{0x141B7BC00, 0x1403075C0};
 WEAK symbol<level::gentity_s *(level::gentity_s *ent,
                                game::snd::SndAliasId alias,
                                scr::ScrString_t notifyString, uint32_t tag)>
-    G_PlaySoundAliasWithNotify{0x0, 0x1403076E0};
+    G_PlaySoundAliasWithNotify{0x141B7BD20, 0x1403076E0};
 WEAK symbol<level::clientState_t *(ClientNum_t clientNum)> G_GetClientState{
     0x1419B0970, 0x1402A7820};
 

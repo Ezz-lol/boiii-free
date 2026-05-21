@@ -287,7 +287,7 @@ union GfxSortKey {
 
 typedef uint32_t contents_t;
 
-struct __attribute__((aligned(8))) MaterialInfo_0 {
+struct __attribute__((aligned(8))) MaterialInfo {
   const char *name;
   uint32_t namehash;
   uint32_t gameFlags;

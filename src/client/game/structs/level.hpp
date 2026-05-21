@@ -45,6 +45,14 @@ static_assert(sizeof(entityShared_t) == 0x60,
               "entityShared_t size must be 0x60 bytes");
 #pragma pack(pop)
 
+struct gentity_snd_wait {
+  uint32_t notifyString;
+  uint32_t index;
+  qboolean stoppable;
+  int32_t basetime;
+  int32_t duration;
+};
+
 struct gclient_s;
 static const uint32_t GENTITY_SIZE = 0x4F8;
 static const uint32_t GENTITY_CLASSNAME_OFFSET = 0x288;
@@ -62,13 +70,7 @@ partial_def(GENTITY_SIZE, struct, gentity_s, {
     scr::ScrString_t target;
     scr::ScrString_t targetname;
   });
-  struct {
-    uint32_t notifyString;
-    uint32_t index;
-    bool stoppable;
-    int32_t basetime;
-    int32_t duration;
-  } snd_wait;
+  gentity_snd_wait snd_wait;
 });
 typedef gentity_s gentity_t;
 

@@ -193,7 +193,7 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
         if (wp != std::string::npos && pp != std::string::npos)
           params = err_line.substr(wp + 5, pp - wp - 5);
 
-        auto fq1 = err_line.find("in \"");
+        size_t fq1 = err_line.find("in \"");
         auto fq2 = (fq1 != std::string::npos) ? err_line.find('"', fq1 + 4)
                                               : std::string::npos;
         std::string script_file =
@@ -210,7 +210,7 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
           // func is still a raw hex hash - parse it directly
           func_hash =
               static_cast<uint32_t>(std::strtoul(func.c_str(), nullptr, 16));
-          auto resolved_name = script::resolve_hash(func_hash);
+          std::string resolved_name = script::resolve_hash(func_hash);
           if (!resolved_name.empty())
             func = resolved_name;
         } else {
@@ -238,7 +238,7 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
         if (src_line > 0) {
           printf("^1  Line:      ^2%d\n", src_line);
           formatted_error += "Line: " + std::to_string(src_line) + "\n";
-          auto src = script::get_source_line(script_file, src_line);
+          std::string src = script::get_source_line(script_file, src_line);
           if (!src.empty()) {
             printf("^1  Source:    ^7%s\n", src.c_str());
             formatted_error += "Source: " + src + "\n";
@@ -271,7 +271,7 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
       }
 
       client_script_error_pending = true;
-      auto deferred_error = formatted_error;
+      std::string deferred_error = formatted_error;
       scheduler::once(
           [deferred_error]() {
             client_script_error_pending = false;
@@ -304,7 +304,7 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
   }
 
   if (!game::is_server() && code == game::ERR_DROP) {
-    auto deferred_error = std::string(buffer);
+    std::string deferred_error = std::string(buffer);
     scheduler::once(
         [deferred_error]() {
           game::ui::UI_OpenErrorPopupWithMessage(0, 0, deferred_error.c_str());
