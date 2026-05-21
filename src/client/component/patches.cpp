@@ -288,8 +288,10 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
       return;
     }
   } else {
-    printf("[Com_Error] Code=%d, File=%s, Line=%d: %s\n", code,
-           file ? file : "unknown", line, buffer);
+    printf("[Com_Error] Code=%d, File=%s, Line=%d, Caller=0x%llX: %s\n", code,
+           file ? file : "unknown", line,
+           static_cast<unsigned long long>(game::derelocate(callerAddr)),
+           buffer);
   }
 
   // Suppress Clientfield Mismatch errors - convert to a recoverable ERR_DROP
