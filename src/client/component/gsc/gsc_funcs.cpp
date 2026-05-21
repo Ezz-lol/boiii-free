@@ -629,10 +629,11 @@ void gscr_readfile(scriptInstance_t inst) {
   }
   const std::filesystem::path full = resolve_path(path);
   std::string data;
-  if (utils::io::read_file(full.string(), &data))
+  if (utils::io::read_file(full.string(), &data)) {
     push_string(inst, data.c_str());
-  else
+  } else {
     push_string(inst, "");
+  }
 }
 
 void gscr_appendfile(scriptInstance_t inst) {
