@@ -679,6 +679,7 @@ bool is_custom_function(const std::string &name) {
       "addcommand",
       "appendfile",
       "clearreplacefuncs",
+      "conststring",
       "createdirectory",
       "directoryexists",
       "executecommand",

@@ -60,6 +60,11 @@ void push_int(scriptInstance_t inst, int val) {
   return_value_set.store(true);
 }
 
+void push_const_string(scriptInstance_t inst, ScrString_t hash) {
+  Scr_AddConstString(inst, hash);
+  return_value_set.store(true);
+}
+
 [[maybe_unused]] void push_int(scriptInstance_t inst, uint32_t val) {
   Scr_AddInt(inst, static_cast<int32_t>(val));
   return_value_set.store(true);
@@ -1007,6 +1012,16 @@ void gscr_getfunction(scriptInstance_t inst) {
   push_int(inst, addr ? 1 : 0);
 }
 
+void gscr_conststring(scriptInstance_t inst) {
+  const uint32_t argc = Scr_GetNumParam(inst);
+  if (argc == 0) {
+    Scr_ParamError(inst, 1, "No hash argument provided to conststring.");
+  } else {
+    const ScrString_t hash = static_cast<ScrString_t>(Scr_GetInt(inst, 1));
+    push_const_string(inst, hash);
+  }
+}
+
 // =====================================================
 // Player name/tag overrides (server-only)
 // =====================================================
@@ -1229,6 +1244,8 @@ struct component final : generic_component {
     custom_builtins[fnv1a("resetname")] = gscr_resetname;
     custom_builtins[fnv1a("resettag")] = gscr_resettag;
     custom_builtins[fnv1a("setclientdvar")] = gscr_setclientdvar;
+
+    custom_builtins[fnv1a("conststring")] = gscr_conststring;
 
     auto *builtin_def = reinterpret_cast<BuiltinFunctionDef *>(
         game::select(0x1432D7D70, 0x14106DD70));

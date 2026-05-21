@@ -84,6 +84,8 @@ WEAK symbol<void(scriptInstance_t inst, ScrVarValue_t *value)>
 WEAK symbol<void(scriptInstance_t inst, ScrVarValue_t *value)>
     ScrVar_ReleaseValue{0x1412E0010, 0x14016C7C0};
 WEAK symbol<void(scriptInstance_t inst)> Scr_AddArray{0x1412E9560, 0x14016EDE0};
+WEAK symbol<void(scriptInstance_t inst, ScrString_t hash)> Scr_AddConstString{
+    0x1412E96B0, 0x14016EEB0};
 WEAK symbol<void(scriptInstance_t inst, float value)> Scr_AddFloat{0x1412E9760,
                                                                    0x14016F050};
 
