@@ -199,8 +199,8 @@ struct LobbyMsg {
   int32_t packageType;       // 0x40
 };
 
-static const uint32_t MIN_PLAYERS = 0;
-static const uint32_t MAX_PLAYERS = 18;
+constexpr uint32_t MIN_PLAYERS = 0;
+constexpr uint32_t MAX_PLAYERS = 18;
 template <typename T> using PerPlayer = array<T, MAX_PLAYERS>;
 template <typename T>
 using PerPlayerOptional = array<std::optional<T>, MAX_PLAYERS>;

@@ -40,14 +40,14 @@ struct ClientWorkshopDataPool : WorkshopDataPool<POOL_SIZE> {
   ui::UIModelIndex lastListEntryIdx;
 };
 
-static const uint32_t BUILTIN_WORKSHOP_DATA_POOL_SIZE = 128;
+constexpr uint32_t BUILTIN_WORKSHOP_DATA_POOL_SIZE = 128;
 typedef WorkshopDataPool<BUILTIN_WORKSHOP_DATA_POOL_SIZE>
     BuiltinWorkshopDataPool;
 
-static const uint32_t EXTENDED_WORKSHOP_DATA_POOL_SIZE = 8192;
+constexpr uint32_t EXTENDED_WORKSHOP_DATA_POOL_SIZE = 8192;
 typedef ClientWorkshopDataPool<EXTENDED_WORKSHOP_DATA_POOL_SIZE>
     ExtendedWorkshopDataPool;
-static const uint32_t EXTENDED_WORKSHOP_DATA_POOL_STRUCT_SIZE =
+constexpr uint32_t EXTENDED_WORKSHOP_DATA_POOL_STRUCT_SIZE =
     sizeof(ExtendedWorkshopDataPool);
 
 enum class ModLoadState : uint32_t {

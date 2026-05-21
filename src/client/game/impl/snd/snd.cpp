@@ -249,9 +249,9 @@ inline uint32_t SND_AssetBankGetLengthMs_Impl(const SndAssetBankEntry *entry) {
   - Initial Seed: 0x1505
 */
 
-static const SndStringHash SND_HASH_EMPTY_STRING = 0;
-static const SndStringHash SND_HASH_DJB2_INITIAL_SEED = 0x1505;
-static const SndStringHash SND_HASH_DJB2_CONSTANT = 0x1003f;
+constexpr SndStringHash SND_HASH_EMPTY_STRING = 0;
+constexpr SndStringHash SND_HASH_DJB2_INITIAL_SEED = 0x1505;
+constexpr SndStringHash SND_HASH_DJB2_CONSTANT = 0x1003f;
 SndStringHash SND_HashName_Impl(const char *name) {
   if (!name || !*name)
     return SND_HASH_EMPTY_STRING;
@@ -265,8 +265,8 @@ SndStringHash SND_HashName_Impl(const char *name) {
   return hash ? hash : 1;
 }
 
-static const int32_t PLAYBACK_TIME_NOT_FOUND = -1;
-static const uint32_t SOUND_ALIAS_LIST_MAX_COUNT = 0x40;
+constexpr int32_t PLAYBACK_TIME_NOT_FOUND = -1;
+constexpr uint32_t SOUND_ALIAS_LIST_MAX_COUNT = 0x40;
 
 inline int32_t SND_GetPlaybackTimeById(SndAliasId id) {
   int32_t playbackTime = PLAYBACK_TIME_NOT_FOUND;

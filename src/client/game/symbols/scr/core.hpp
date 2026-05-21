@@ -119,6 +119,7 @@ WEAK symbol<uint64_t(scriptInstance_t inst, uint32_t index,
 WEAK symbol<void(scriptInstance_t inst, uint32_t index, vec3_t *vectorValue,
                  vec3_t *defaultValue)>
     Scr_GetVectorOptional{0x1412EC040, 0x140171A10};
+
 WEAK symbol<void()> Scr_UpdateScreen{0x1413E1550};
 
 WEAK symbol<array<const char *, 31>> var_typename{0x1432E6240, 0x14107C040};

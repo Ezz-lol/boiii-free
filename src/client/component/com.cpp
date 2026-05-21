@@ -36,7 +36,7 @@ void execute_unload_callbacks(const char *level) {
   }
 }
 
-static const uint32_t LEVEL_ZONE_ALLOC_FLAGS_MASK = 0x64;
+constexpr uint32_t LEVEL_ZONE_ALLOC_FLAGS_MASK = 0x64;
 utils::hook::detour DB_LoadXAssets_hook;
 void DB_LoadXAssets_stub(game::db::xzone::XZoneInfo *zoneInfo,
                          uint32_t zoneCount, game::qboolean sync,
