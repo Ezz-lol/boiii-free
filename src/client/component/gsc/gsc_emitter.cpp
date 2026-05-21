@@ -11,27 +11,49 @@ constexpr uint64_t T7_MAGIC = 0x1C000A0D43534780;
 constexpr uint32_t HASH_IV = 0x4B9ACE2F;
 constexpr uint32_t HASH_KEY = 0x1000193;
 
-bool try_parse_raw_hash(const std::string &input, uint32_t &out) {
-  auto underscore = input.find('_');
-  if (underscore == std::string::npos || underscore + 1 >= input.size())
-    return false;
+static constexpr std::array<std::string_view, 5> SCR_HASH_LITERAL_PREFIXES = {
+    "hash", "id", "function", "var", "namespace"};
 
-  auto prefix = input.substr(0, underscore);
-  if (prefix != "hash" && prefix != "function" && prefix != "var" &&
-      prefix != "namespace")
-    return false;
-
-  auto hex_part = input.substr(underscore + 1);
-  if (hex_part.size() != 8)
-    return false;
-
-  for (char c : hex_part) {
-    if (!std::isxdigit(static_cast<unsigned char>(c)))
-      return false;
+bool is_hash_literal_prefix(const std::string &s) {
+  for (uint32_t i = 0; i < SCR_HASH_LITERAL_PREFIXES.size(); i++) {
+    if (s == SCR_HASH_LITERAL_PREFIXES[i]) {
+      return true;
+    }
   }
 
-  out = static_cast<uint32_t>(std::stoul(hex_part, nullptr, 16));
-  return out != 0;
+  return false;
+}
+
+bool try_parse_raw_hash(const std::string &input, uint32_t &out) {
+
+  if (input.size() > 0) {
+    std::string inputSubstr = input;
+    if (inputSubstr[0] == '_') {
+      inputSubstr = inputSubstr.substr(1);
+    }
+    const size_t underscoreIdx = inputSubstr.find('_');
+    if (underscoreIdx != std::string::npos &&
+        underscoreIdx < inputSubstr.size()) {
+
+      const std::string prefix = inputSubstr.substr(0, underscoreIdx);
+      if (is_hash_literal_prefix(prefix)) {
+
+        const std::string hex_part = inputSubstr.substr(underscoreIdx + 1);
+        if (hex_part.size() == 8) {
+
+          for (char c : hex_part) {
+            if (!std::isxdigit(static_cast<unsigned char>(c)))
+              return false;
+          }
+
+          out = static_cast<uint32_t>(std::stoul(hex_part, nullptr, 16));
+          return out != 0;
+        }
+      }
+    }
+  }
+
+  return false;
 }
 
 uint32_t gsc_hash(const std::string &input) {
