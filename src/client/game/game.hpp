@@ -50,11 +50,11 @@ inline size_t select(const void *client_val, const void *server_val) {
 }
 
 inline bool valid_engine_ptr(uintptr_t ptr) {
-  return ptr >= 0x140000000 && ptr < 0x170000000;
+  return ptr >= get_base() && ptr < (get_base() + 0x030000000);
 }
 
 inline bool valid_ptr(uintptr_t ptr) {
-  return ptr >= 0x140000000 && ptr < 0x200000000;
+  return ptr >= get_base() && ptr < (get_base() + 0x060000000);
 }
 
 template <typename T> inline bool valid_engine_ptr(T *ptr) {
