@@ -316,11 +316,9 @@ void load_usermap_content_stub(int32_t *usermaps_count, int type) {
   for (unsigned int i = 0; i < game::ugc::usermapsPool.count; ++i) {
     game::ugc::WorkshopData *usermap_data = &game::ugc::usermapsPool.data[i];
 
-    if (std::strcmp(usermap_data->folderName, usermap_data->title) != 0) {
-      continue;
+    if (std::strcmp(usermap_data->folderName, usermap_data->title) == 0) {
+      load_workshop_data(usermap_data);
     }
-
-    load_workshop_data(usermap_data);
   }
 }
 
@@ -332,11 +330,9 @@ void load_mod_content_stub(int32_t *mods_count, int type) {
   for (unsigned int i = 0; i < game::ugc::modsPool.count; ++i) {
     game::ugc::WorkshopData *mod_data = &game::ugc::modsPool.data[i];
 
-    if (std::strcmp(mod_data->folderName, mod_data->title) != 0) {
-      continue;
+    if (std::strcmp(mod_data->folderName, mod_data->title) == 0) {
+      load_workshop_data(mod_data);
     }
-
-    load_workshop_data(mod_data);
   }
 }
 
@@ -969,8 +965,9 @@ rip_relative_displacement(const uintptr_t instructionEndAddr,
   return static_cast<int32_t>(displacement);
 }
 
+template <typename T>
 void patch_rip_relative_ptr(uintptr_t instrOffset, uint32_t instrPtrArgOffset,
-                            uint32_t instrLen, const auto *newAddr) {
+                            uint32_t instrLen, const T *newAddr) {
   uintptr_t relocatedInstrOffset = reinterpret_cast<uintptr_t>(
       game::relocate(static_cast<size_t>(instrOffset)));
   uintptr_t instrPtrArgAddr = relocatedInstrOffset + instrPtrArgOffset;
