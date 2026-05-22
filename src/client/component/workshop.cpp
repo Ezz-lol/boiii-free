@@ -959,11 +959,14 @@ void com_error_missing_map_stub(const char *file, int line, int code,
   game::com::Com_Error_(file, line, code, "%s", "Missing map!");
 }
 
-inline constexpr uint32_t
+inline constexpr int32_t
 rip_relative_displacement(const uintptr_t instructionEndAddr,
                           const uintptr_t addr) {
   const uintptr_t displacement = addr - instructionEndAddr;
-  return static_cast<uint32_t>(displacement);
+  if (displacement > 0xFFFFFFFF) {
+    throw std::runtime_error("Too far away to create 32bit relative address");
+  }
+  return static_cast<int32_t>(displacement);
 }
 
 void patch_rip_relative_ptr(uintptr_t instrOffset, uint32_t instrPtrArgOffset,
@@ -973,9 +976,9 @@ void patch_rip_relative_ptr(uintptr_t instrOffset, uint32_t instrPtrArgOffset,
   uintptr_t instrPtrArgAddr = relocatedInstrOffset + instrPtrArgOffset;
   uintptr_t instrEndAddr = relocatedInstrOffset + instrLen;
   uintptr_t newAddrInt = reinterpret_cast<uintptr_t>(newAddr);
-  uint32_t newAddrRipRelative =
+  int32_t newAddrRipRelative =
       rip_relative_displacement(instrEndAddr, newAddrInt);
-  utils::hook::set<uint32_t>(instrPtrArgAddr, newAddrRipRelative);
+  utils::hook::set<int32_t>(instrPtrArgAddr, newAddrRipRelative);
 }
 
 void *memset_extended_workshop_data_pool(
@@ -1054,7 +1057,7 @@ inline void extend_usermaps_pool() {
     patch_rip_relative_ptr(0x1420D7333, 3, 7, game::ugc::usermapsPoolDataPtr);
   }
 
-  utils::hook::call(game::select(0x1420D67DB_g, 0x1404E26A3_g),
+  utils::hook::call(game::select(0x1420D67DB, 0x1404E26A3),
                     memset_extended_usermaps_pool);
   // lea     rcx, usermapsPool
   patch_rip_relative_ptr(game::select(0x1420D67E9, 0x1404E26B6), 3, 7,
@@ -1122,7 +1125,7 @@ inline void extend_mods_pool() {
     patch_rip_relative_ptr(0x1404E2625, 3, 7, game::ugc::modsPoolPtr);
   }
 
-  utils::hook::call(game::select(0x1420D672B_g, 0x1404E2653_g),
+  utils::hook::call(game::select(0x1420D672B, 0x1404E2653),
                     memset_extended_mods_pool);
   // lea     rcx, modsPool
   patch_rip_relative_ptr(game::select(0x1420D6739, 0x1404E2672), 3, 7,
@@ -1144,10 +1147,10 @@ inline void extend_mods_pool() {
 
 inline void extend_immediate_pool_length_checks() {
   // cmp     rcx, 80h -> cmp     rcx, 2000h
-  utils::hook::set<uint32_t>(game::select(0x1420D6506_g, 0x1404E2436_g),
+  utils::hook::set<uint32_t>(game::select(0x1420D6506, 0x1404E2436),
                              game::ugc::EXTENDED_WORKSHOP_DATA_POOL_SIZE);
   // cmp     rdx, 80h -> cmp     rdx, 2000h
-  utils::hook::set<uint32_t>(game::select(0x1420D5325_g, 0x1404E1505_g),
+  utils::hook::set<uint32_t>(game::select(0x1420D5325, 0x1404E1505),
                              game::ugc::EXTENDED_WORKSHOP_DATA_POOL_SIZE);
 }
 
@@ -1232,7 +1235,7 @@ public:
 
     utils::hook::call(0x1420D6745_g, load_mod_content_stub);
     utils::hook::call(0x14135CD84_g, has_workshop_item_stub);
-    setup_server_map_hook.create(*game::cl::CL_SetupForNewServerMap,
+    setup_server_map_hook.create(game::cl::CL_SetupForNewServerMap.get(),
                                  setup_server_map_stub);
 
     if (game::is_client()) {
