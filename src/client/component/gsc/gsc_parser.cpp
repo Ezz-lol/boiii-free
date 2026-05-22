@@ -927,8 +927,14 @@ ast_ptr parse_statement(parser_state &s) {
 
   if (s.check(token_type::t_waittillframeend)) {
     auto &tok = s.advance();
+    auto node =
+        make_node(node_type::n_waittillframeend, "", tok.line, tok.column);
+    if (s.check(token_type::t_lparen)) {
+      s.advance();
+      s.expect(token_type::t_rparen, "Expected )");
+    }
     s.expect(token_type::t_semicolon, "Expected ';'");
-    return make_node(node_type::n_waittillframeend, "", tok.line, tok.column);
+    return node;
   }
 
   if (s.check(token_type::t_waitrealtime)) {
