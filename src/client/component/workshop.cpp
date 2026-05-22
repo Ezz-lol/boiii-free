@@ -968,13 +968,14 @@ rip_relative_displacement(const uintptr_t instructionEndAddr,
 
 void patch_rip_relative_ptr(uintptr_t instrOffset, uint32_t instrPtrArgOffset,
                             uint32_t instrLen, const auto *newAddr) {
-  uintptr_t instrPtrArgAddr = instrOffset + instrPtrArgOffset;
-  uintptr_t instrEndAddr = instrOffset + instrLen;
+  uintptr_t relocatedInstrOffset = reinterpret_cast<uintptr_t>(
+      game::relocate(static_cast<size_t>(instrOffset)));
+  uintptr_t instrPtrArgAddr = relocatedInstrOffset + instrPtrArgOffset;
+  uintptr_t instrEndAddr = relocatedInstrOffset + instrLen;
   uintptr_t newAddrInt = reinterpret_cast<uintptr_t>(newAddr);
   uint32_t newAddrRipRelative =
       rip_relative_displacement(instrEndAddr, newAddrInt);
-  utils::hook::set<uint32_t>(
-      game::relocate(static_cast<size_t>(instrPtrArgAddr)), newAddrRipRelative);
+  utils::hook::set<uint32_t>(instrPtrArgAddr, newAddrRipRelative);
 }
 
 void *memset_extended_workshop_data_pool(
