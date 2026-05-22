@@ -7,7 +7,7 @@
 namespace game {
 namespace ugc {
 WEAK symbol<BuiltinWorkshopDataPool> builtinModsPool{0x15678D170, 0x14933EAE0};
-static ExtendedWorkshopDataPool modsPool{};
+extern ExtendedWorkshopDataPool modsPool;
 constexpr ExtendedWorkshopDataPool *modsPoolPtr = &modsPool;
 constexpr WorkshopData (*modsPoolDataPtr)[EXTENDED_WORKSHOP_DATA_POOL_SIZE] =
     &modsPool.data;
@@ -16,7 +16,7 @@ constexpr uint32_t *modsPoolCountPtr = &modsPool.count;
 
 WEAK symbol<BuiltinWorkshopDataPool> builtinUsermapsPool{0x1567B3580,
                                                          0x149364EE8};
-static ExtendedWorkshopDataPool usermapsPool{};
+extern ExtendedWorkshopDataPool usermapsPool;
 constexpr ExtendedWorkshopDataPool *usermapsPoolPtr = &usermapsPool;
 constexpr WorkshopData (
     *usermapsPoolDataPtr)[EXTENDED_WORKSHOP_DATA_POOL_SIZE] =
