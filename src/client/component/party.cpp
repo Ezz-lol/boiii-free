@@ -186,6 +186,12 @@ void handle_connect_query_response(const bool success,
                                    const utils::info_string &info,
                                    uint32_t ping) {
   if (!success) {
+    const std::string msg = utils::string::va(
+        "No response from server %u.%u.%u.%u:%hu", target.ipv4.a,
+        target.ipv4.b, target.ipv4.c, target.ipv4.d, target.port);
+    printf("Connect failed: %s\n", msg.c_str());
+    toast::show("Connect failed", "No response from server",
+                "t7_icon_connect_overlays");
     return;
   }
 
@@ -201,22 +207,25 @@ void handle_connect_query_response(const bool success,
   }
 
   if (atoi(info.get("protocol").data()) != PROTOCOL) {
-    const auto str = "Invalid protocol.";
-    printf("%s\n", str);
+    const char *msg = "Invalid protocol.";
+    printf("Connect failed: %s\n", msg);
+    toast::show("Connect failed", msg, "t7_icon_connect_overlays");
     return;
   }
 
   const auto sub_protocol = atoi(info.get("sub_protocol").data());
   if (sub_protocol != SUB_PROTOCOL && sub_protocol != (SUB_PROTOCOL - 1)) {
-    const auto str = "Invalid sub-protocol.";
-    printf("%s\n", str);
+    const char *msg = "Invalid sub-protocol.";
+    printf("Connect failed: %s\n", msg);
+    toast::show("Connect failed", msg, "t7_icon_connect_overlays");
     return;
   }
 
   const auto gamename = info.get("gamename");
   if (gamename != "T7"s) {
-    const auto str = "Invalid gamename.";
-    printf("%s\n", str);
+    const char *msg = "Invalid gamename.";
+    printf("Connect failed: %s\n", msg);
+    toast::show("Connect failed", msg, "t7_icon_connect_overlays");
     return;
   }
 
@@ -224,13 +233,17 @@ void handle_connect_query_response(const bool success,
   const auto server_net_hash = info.get("net_password_hash");
   if (!server_net_hash.empty() && server_net_hash != "0") {
     if (!network_password::is_password_set()) {
-      printf("Server requires a network password.\n");
+      const char *msg = "Server requires a network password.";
+      printf("Connect failed: %s\n", msg);
+      toast::show("Connect failed", msg, "t7_icon_connect_overlays");
       return;
     }
 
     const auto client_hash = network_password::get_password_hash_string();
     if (client_hash != server_net_hash) {
-      printf("Network password mismatch.\n");
+      const char *msg = "Network password mismatch.";
+      printf("Connect failed: %s\n", msg);
+      toast::show("Connect failed", msg, "t7_icon_connect_overlays");
       return;
     }
   } else if (network_password::is_password_set()) {
@@ -240,15 +253,17 @@ void handle_connect_query_response(const bool success,
 
   const auto mapname = info.get("mapname");
   if (mapname.empty()) {
-    const auto str = "Invalid map.";
-    printf("%s\n", str);
+    const char *msg = "Invalid map.";
+    printf("Connect failed: %s\n", msg);
+    toast::show("Connect failed", msg, "t7_icon_connect_overlays");
     return;
   }
 
   const auto gametype = info.get("gametype");
   if (gametype.empty()) {
-    const auto str = "Invalid gametype.";
-    printf("%s\n", str);
+    const char *msg = "Invalid gametype.";
+    printf("Connect failed: %s\n", msg);
+    toast::show("Connect failed", msg, "t7_icon_connect_overlays");
     return;
   }
 
@@ -287,6 +302,14 @@ void handle_connect_query_response(const bool success,
           connect_to_lobby_with_mode_internal(target, mode, mapname, gametype,
                                               usermap_id, mod_id);
         } else {
+          const auto msg =
+              utils::string::va(
+                  "Missing or invalid workshop/map dependencies for server %s.",
+                  addr_str);
+          printf("Connect failed: %s\n", msg);
+          toast::show("Connect failed",
+                      "Missing workshop/map dependencies",
+                      "t7_icon_connect_overlays");
           // Save download reconnect
           workshop::set_pending_download_reconnect(addr_str);
         }
@@ -298,6 +321,9 @@ void connect_stub(const char *address) {
   if (address) {
     const auto target = network::address_from_string(address);
     if (target.type == game::net::NA_BAD) {
+      printf("Connect failed: invalid address \"%s\"\n", address);
+      toast::show("Connect failed", "Invalid address",
+                  "t7_icon_connect_overlays");
       return;
     }
 

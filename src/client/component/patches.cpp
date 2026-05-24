@@ -314,6 +314,25 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
         scheduler::pipeline::main, 500ms);
   }
 
+  if (strstr(buffer, "Couldn't find the bsp for this map") ||
+      strstr(buffer, "Couldn't find the bsp")) {
+    const char *message =
+        "Missing map BSP detected.\n"
+        "You are probably in the main menu or not currently playing a map.";
+
+    printf("[Com_Error] %s Connection error: %s\n", message, buffer);
+
+    auto msg = std::string(message);
+
+    scheduler::once(
+        [msg]() {
+          game::ui::UI_OpenErrorPopupWithMessage(0, 0, msg.c_str());
+        },
+        scheduler::pipeline::main, 500ms);
+
+    return;
+  }
+
   // removing this will ruin stuff
   com_error_hook.invoke<void>(file, line, code, "%s", buffer);
 }
