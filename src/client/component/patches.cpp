@@ -33,15 +33,15 @@ std::string resolve_quoted_hashes(const std::string &input) {
   std::string result = input;
   size_t pos = 0;
   while (pos < result.size()) {
-    auto q1 = result.find('"', pos);
+    size_t q1 = result.find('"', pos);
     if (q1 == std::string::npos)
       break;
-    auto q2 = result.find('"', q1 + 1);
+    size_t q2 = result.find('"', q1 + 1);
     if (q2 == std::string::npos)
       break;
 
-    auto token = result.substr(q1 + 1, q2 - q1 - 1);
-    auto name = try_resolve_hex_token(token);
+    std::string token = result.substr(q1 + 1, q2 - q1 - 1);
+    std::string name = try_resolve_hex_token(token);
     if (!name.empty()) {
       result.replace(q1 + 1, q2 - q1 - 1, name);
       pos = q1 + 1 + name.size() + 1;
@@ -57,7 +57,7 @@ std::string resolve_bare_hashes(const std::string &input) {
   size_t pos = 0;
   while (pos < result.size()) {
     if (result[pos] == '"') {
-      auto close = result.find('"', pos + 1);
+      size_t close = result.find('"', pos + 1);
       pos = (close != std::string::npos) ? close + 1 : pos + 1;
       continue;
     }
@@ -79,8 +79,8 @@ std::string resolve_bare_hashes(const std::string &input) {
             result[pos] == '_'));
 
       if (len >= 1 && len <= 8 && !preceded_by_alnum && !followed_by_alnum) {
-        auto token = result.substr(start, len);
-        auto name = try_resolve_hex_token(token);
+        std::string token = result.substr(start, len);
+        std::string name = try_resolve_hex_token(token);
         if (!name.empty()) {
           result.replace(start, len, name);
           pos = start + name.size();
@@ -179,23 +179,23 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
         continue;
 
       if (err_line.find("Unresolved external") != std::string::npos) {
-        auto q1 = err_line.find('"');
-        auto q2 = (q1 != std::string::npos) ? err_line.find('"', q1 + 1)
-                                            : std::string::npos;
+        size_t q1 = err_line.find('"');
+        size_t q2 = (q1 != std::string::npos) ? err_line.find('"', q1 + 1)
+                                              : std::string::npos;
         std::string func = (q1 != std::string::npos && q2 != std::string::npos)
                                ? err_line.substr(q1 + 1, q2 - q1 - 1)
                                : "?";
 
         std::string params;
-        auto wp = err_line.find("with ");
-        auto pp = (wp != std::string::npos) ? err_line.find(" parameters", wp)
-                                            : std::string::npos;
+        size_t wp = err_line.find("with ");
+        size_t pp = (wp != std::string::npos) ? err_line.find(" parameters", wp)
+                                              : std::string::npos;
         if (wp != std::string::npos && pp != std::string::npos)
           params = err_line.substr(wp + 5, pp - wp - 5);
 
         size_t fq1 = err_line.find("in \"");
-        auto fq2 = (fq1 != std::string::npos) ? err_line.find('"', fq1 + 4)
-                                              : std::string::npos;
+        size_t fq2 = (fq1 != std::string::npos) ? err_line.find('"', fq1 + 4)
+                                                : std::string::npos;
         std::string script_file =
             (fq1 != std::string::npos && fq2 != std::string::npos)
                 ? err_line.substr(fq1 + 4, fq2 - fq1 - 4)
@@ -322,28 +322,27 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
 
     printf("[Com_Error] %s Connection error: %s\n", message, buffer);
 
-    auto msg = std::string(message);
+    std::string msg = std::string(message);
 
     scheduler::once(
-        [msg]() {
-          game::ui::UI_OpenErrorPopupWithMessage(0, 0, msg.c_str());
-        },
+        [msg]() { game::ui::UI_OpenErrorPopupWithMessage(0, 0, msg.c_str()); },
         scheduler::pipeline::main, 500ms);
 
     return;
   }
 
-  // removing this will ruin stuff
+  // Removing this skips internal engine error handling,
+  // which is preferable to execute if the error is not fatal.
   com_error_hook.invoke<void>(file, line, code, "%s", buffer);
 }
 
 void scr_get_num_expected_players() {
-  auto expected_players = game::lobby::LobbyHost_GetClientCount(
+  int32_t expected_players = game::lobby::LobbyHost_GetClientCount(
       game::lobby::LOBBY_TYPE_GAME, game::lobby::LOBBY_CLIENT_TYPE_ALL);
 
   const game::eModes mode = game::com::Com_SessionMode_GetMode();
   if ((mode == game::MODE_ZOMBIES || mode == game::MODE_CAMPAIGN)) {
-    const auto min_players = lobby_min_players->current.value.integer;
+    const int32_t min_players = lobby_min_players->current.value.integer;
     if (min_players > 0) {
       expected_players = min_players;
     } else if (!game::is_server()) {
@@ -351,7 +350,7 @@ void scr_get_num_expected_players() {
     }
   }
 
-  const auto num_expected_players = std::max(1, expected_players);
+  const int32_t num_expected_players = std::max(1, expected_players);
   game::scr::Scr_AddInt(game::scr::SCRIPTINSTANCE_SERVER, num_expected_players);
 }
 

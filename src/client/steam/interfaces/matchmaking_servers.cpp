@@ -246,7 +246,8 @@ void *matchmaking_servers::RequestFriendsServerList(
     matchmaking_server_list_response *pRequestServersResponse) {
   friends_response = pRequestServersResponse;
 
-  auto friend_infos = ::friends::get_friend_server_addresses();
+  std::vector<::friends::friend_server_info> friend_infos =
+      ::friends::get_friend_server_addresses();
 
   const auto res = friends_response.load();
   if (!res) {
@@ -263,9 +264,9 @@ void *matchmaking_servers::RequestFriendsServerList(
   std::vector<int> offline_indices;
 
   int total_index = 0;
-  for (const auto &info : friend_infos) {
+  for (const ::friends::friend_server_info &info : friend_infos) {
     if (!info.address.empty()) {
-      auto addr = network::address_from_string(info.address);
+      game::net::netadr_t addr = network::address_from_string(info.address);
       if (addr.type != game::net::NA_BAD) {
         online_friends.emplace_back(addr, info.player_name);
         total_index++;
@@ -339,7 +340,7 @@ void *matchmaking_servers::RequestFriendsServerList(
   });
 
   // Defer callbacks so they fire AFTER RequestFriendsServerList returns
-  auto offline_copy = offline_indices;
+  std::vector<int> offline_copy = offline_indices;
   bool has_online = !online_friends.empty();
   scheduler::once(
       [offline_copy, has_online] {

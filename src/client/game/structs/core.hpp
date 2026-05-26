@@ -1394,4 +1394,6 @@ struct animationNumber_t {
 };
 static const uint32_t PLAYER_NAME_MAX_LEN = 32;
 static const uint32_t PLAYER_CLAN_ABBREV_MAX_LEN = 8;
+
+template <typename T> using LocalClientPool = array<T, LOCAL_CLIENT_COUNT>;
 } // namespace game

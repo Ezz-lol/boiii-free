@@ -129,6 +129,21 @@ std::optional<std::pair<void *, void *>> iat(const nt::library &library,
                                              const std::string &process,
                                              void *stub);
 
+void cmp(void *pointer, void *data);
+void cmp(const size_t pointer, void *data);
+void cmp(const size_t pointer, const size_t data);
+
+void lea(void *pointer, void *data);
+void lea(const size_t pointer, void *data);
+void lea(const size_t pointer, const size_t data);
+
+void cmovz(void *pointer, void *data);
+void cmovz(const size_t pointer, void *data);
+void cmovz(const size_t pointer, const size_t data);
+void mov(void *pointer, void *data);
+void mov(const size_t pointer, void *data);
+void mov(const size_t pointer, const size_t data);
+
 void nop(void *place, size_t length);
 void nop(size_t place, size_t length);
 

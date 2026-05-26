@@ -429,7 +429,7 @@ std::string get_friend_game_info_by_address(const std::string &address) {
   if (address.empty())
     return "";
 
-  auto target = network::address_from_string(address);
+  game::net::netadr_t target = network::address_from_string(address);
 
   std::vector<friend_entry> all_friends;
   friends_data.access(
@@ -455,7 +455,7 @@ std::string get_friend_game_info_by_address(const std::string &address) {
 
     // Also try matching resolved addresses
     if (target.type != game::net::NA_BAD) {
-      auto friend_addr = network::address_from_string(parts[0]);
+      game::net::netadr_t friend_addr = network::address_from_string(parts[0]);
       if (friend_addr.type != game::net::NA_BAD &&
           network::are_addresses_equal(friend_addr, target))
         return game_info;
@@ -510,7 +510,7 @@ bool connect_to_friend(uint64_t steam_id) {
       auto mode = static_cast<game::eModes>(std::atoi(parts[3].c_str()));
       std::string mod_id = parts.size() >= 5 ? parts[4] : "";
 
-      auto target = network::address_from_string(connect_addr);
+      game::net::netadr_t target = network::address_from_string(connect_addr);
       if (target.type != game::net::NA_BAD && !mapname.empty() &&
           !gametype.empty()) {
         game::com::Com_SessionMode_SetGameMode(
@@ -524,7 +524,8 @@ bool connect_to_friend(uint64_t steam_id) {
   }
 
   // Fallback: raw connect
-  const auto fallback_addr = network::address_from_string(addr_str);
+  const game::net::netadr_t fallback_addr =
+      network::address_from_string(addr_str);
   if (fallback_addr.type != game::net::NA_BAD) {
     const auto sanitized = utils::string::va(
         "%i.%i.%i.%i:%hu", fallback_addr.ipv4.a, fallback_addr.ipv4.b,
@@ -607,7 +608,7 @@ struct component final : client_component {
             auto mode = static_cast<game::eModes>(std::atoi(parts[3].c_str()));
             std::string mod_id = parts.size() >= 5 ? parts[4] : "";
 
-            auto target = network::address_from_string(addr_str);
+            game::net::netadr_t target = network::address_from_string(addr_str);
             if (target.type != game::net::NA_BAD && !mapname.empty() &&
                 !gametype.empty()) {
               game::com::Com_SessionMode_SetGameMode(
@@ -619,7 +620,8 @@ struct component final : client_component {
             }
           }
 
-          const auto fallback_addr = network::address_from_string(invite_data);
+          const game::net::netadr_t fallback_addr =
+              network::address_from_string(invite_data);
           if (fallback_addr.type != game::net::NA_BAD) {
             const auto sanitized = utils::string::va(
                 "%i.%i.%i.%i:%hu", fallback_addr.ipv4.a, fallback_addr.ipv4.b,

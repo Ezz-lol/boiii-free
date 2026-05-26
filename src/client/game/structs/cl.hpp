@@ -115,6 +115,10 @@ static_assert(sizeof(clientConnection_t) == 0x25780,
               "sizeof(clientConnection_t) != 0x25780");
 #pragma pack(pop)
 
+struct ClientConnections {
+  LocalClientPool<clientConnection_t> connections;
+};
+
 #pragma pack(push, 1)
 // Unverified
 struct clientLogo_t {

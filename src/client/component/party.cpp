@@ -148,9 +148,9 @@ void connect_to_session(const game::net::netadr_t &addr,
     return;
   }
 
-  auto &join = *game::lobby::s_join;
+  game::lobby::Join &join = *game::lobby::s_join;
 
-  auto &host = join.hostList[0];
+  game::lobby::JoinHost &host = join.hostList[0];
   memset(&host, 0, sizeof(host));
 
   host.info.netAdr = addr;
@@ -187,8 +187,8 @@ void handle_connect_query_response(const bool success,
                                    uint32_t ping) {
   if (!success) {
     const std::string msg = utils::string::va(
-        "No response from server %u.%u.%u.%u:%hu", target.ipv4.a,
-        target.ipv4.b, target.ipv4.c, target.ipv4.d, target.port);
+        "No response from server %u.%u.%u.%u:%hu", target.ipv4.a, target.ipv4.b,
+        target.ipv4.c, target.ipv4.d, target.port);
     printf("Connect failed: %s\n", msg.c_str());
     toast::show("Connect failed", "No response from server",
                 "t7_icon_connect_overlays");
@@ -201,7 +201,7 @@ void handle_connect_query_response(const bool success,
   {
     std::lock_guard lock(hostname_mutex);
     cached_server_hostname = info.get("hostname");
-    const auto max_clients_str = info.get("sv_maxclients");
+    const std::string max_clients_str = info.get("sv_maxclients");
     cached_server_max_clients =
         max_clients_str.empty() ? 0 : atoi(max_clients_str.data());
   }
@@ -213,7 +213,7 @@ void handle_connect_query_response(const bool success,
     return;
   }
 
-  const auto sub_protocol = atoi(info.get("sub_protocol").data());
+  const int32_t sub_protocol = atoi(info.get("sub_protocol").data());
   if (sub_protocol != SUB_PROTOCOL && sub_protocol != (SUB_PROTOCOL - 1)) {
     const char *msg = "Invalid sub-protocol.";
     printf("Connect failed: %s\n", msg);
@@ -221,7 +221,7 @@ void handle_connect_query_response(const bool success,
     return;
   }
 
-  const auto gamename = info.get("gamename");
+  const std::string gamename = info.get("gamename");
   if (gamename != "T7"s) {
     const char *msg = "Invalid gamename.";
     printf("Connect failed: %s\n", msg);
@@ -230,7 +230,7 @@ void handle_connect_query_response(const bool success,
   }
 
   // Verify network password
-  const auto server_net_hash = info.get("net_password_hash");
+  const std::string server_net_hash = info.get("net_password_hash");
   if (!server_net_hash.empty() && server_net_hash != "0") {
     if (!network_password::is_password_set()) {
       const char *msg = "Server requires a network password.";
@@ -239,7 +239,8 @@ void handle_connect_query_response(const bool success,
       return;
     }
 
-    const auto client_hash = network_password::get_password_hash_string();
+    const std::string client_hash =
+        network_password::get_password_hash_string();
     if (client_hash != server_net_hash) {
       const char *msg = "Network password mismatch.";
       printf("Connect failed: %s\n", msg);
@@ -251,7 +252,7 @@ void handle_connect_query_response(const bool success,
            "connection.\n");
   }
 
-  const auto mapname = info.get("mapname");
+  const std::string mapname = info.get("mapname");
   if (mapname.empty()) {
     const char *msg = "Invalid map.";
     printf("Connect failed: %s\n", msg);
@@ -259,7 +260,7 @@ void handle_connect_query_response(const bool success,
     return;
   }
 
-  const auto gametype = info.get("gametype");
+  const std::string gametype = info.get("gametype");
   if (gametype.empty()) {
     const char *msg = "Invalid gametype.";
     printf("Connect failed: %s\n", msg);
@@ -267,30 +268,32 @@ void handle_connect_query_response(const bool success,
     return;
   }
 
-  const auto mod_id = info.get("modId");
+  const std::string mod_id = info.get("modId");
 
-  const auto workshop_id = info.get("workshop_id").empty()
-                               ? info.get("usermapId")
-                               : info.get("workshop_id");
-  const auto base_url = info.get("sv_wwwBaseURL").empty()
-                            ? info.get("sv_wwwBaseUrl")
-                            : info.get("sv_wwwBaseURL");
+  const std::string workshop_id = info.get("workshop_id").empty()
+                                      ? info.get("usermapId")
+                                      : info.get("workshop_id");
+  const std::string base_url = info.get("sv_wwwBaseURL").empty()
+                                   ? info.get("sv_wwwBaseUrl")
+                                   : info.get("sv_wwwBaseURL");
 
-  // const auto hostname = info.get("sv_hostname");
-  const auto playmode = info.get("playmode");
-  const auto mode = static_cast<game::eModes>(std::atoi(playmode.data()));
-  // const auto xuid = strtoull(info.get("xuid").data(), nullptr, 16);
+  // const std::string hostname = info.get("sv_hostname");
+  const std::string playmode = info.get("playmode");
+  const game::eModes mode =
+      static_cast<game::eModes>(std::atoi(playmode.data()));
+  // const game::XUID xuid = strtoull(info.get("xuid").data(), nullptr, 16);
 
   scheduler::once(
       [=] {
-        const auto addr_str =
+        const char *addr_str =
             utils::string::va("%i.%i.%i.%i:%hu", target.ipv4.a, target.ipv4.b,
                               target.ipv4.c, target.ipv4.d, target.port);
 
         // Always save latest address for mod reconnect (mod unload/reload)
         workshop::set_pending_mod_reconnect(addr_str);
 
-        const auto usermap_id = workshop::get_usermap_publisher_id(mapname);
+        const std::string usermap_id =
+            workshop::get_usermap_publisher_id(mapname);
 
         if (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id,
                                              base_url) &&
@@ -302,13 +305,11 @@ void handle_connect_query_response(const bool success,
           connect_to_lobby_with_mode_internal(target, mode, mapname, gametype,
                                               usermap_id, mod_id);
         } else {
-          const auto msg =
-              utils::string::va(
-                  "Missing or invalid workshop/map dependencies for server %s.",
-                  addr_str);
+          const char *msg = utils::string::va(
+              "Missing or invalid workshop/map dependencies for server %s.",
+              addr_str);
           printf("Connect failed: %s\n", msg);
-          toast::show("Connect failed",
-                      "Missing workshop/map dependencies",
+          toast::show("Connect failed", "Missing workshop/map dependencies",
                       "t7_icon_connect_overlays");
           // Save download reconnect
           workshop::set_pending_download_reconnect(addr_str);
@@ -319,7 +320,7 @@ void handle_connect_query_response(const bool success,
 
 void connect_stub(const char *address) {
   if (address) {
-    const auto target = network::address_from_string(address);
+    const game::net::netadr_t target = network::address_from_string(address);
     if (target.type == game::net::NA_BAD) {
       printf("Connect failed: invalid address \"%s\"\n", address);
       toast::show("Connect failed", "Invalid address",
@@ -334,20 +335,22 @@ void connect_stub(const char *address) {
   profile_infos::clear_profile_infos();
 
   if (address) {
-    auto game_info = friends::get_friend_game_info_by_address(address);
+    std::string game_info = friends::get_friend_game_info_by_address(address);
     if (!game_info.empty()) {
-      auto parts = utils::string::split(game_info, '|');
+      std::vector<std::string> parts = utils::string::split(game_info, '|');
       if (parts.size() >= 4) {
-        auto mapname = parts[1];
-        auto gametype = parts[2];
-        auto mode = static_cast<game::eModes>(std::atoi(parts[3].c_str()));
+        std::string mapname = parts[1];
+        std::string gametype = parts[2];
+        game::eModes mode =
+            static_cast<game::eModes>(std::atoi(parts[3].c_str()));
         std::string mod_id = parts.size() >= 5 ? parts[4] : "";
 
         if (!mapname.empty() && !gametype.empty()) {
 
           scheduler::once(
               [=] {
-                auto usermap_id = workshop::get_usermap_publisher_id(mapname);
+                std::string usermap_id =
+                    workshop::get_usermap_publisher_id(mapname);
                 game::com::Com_SessionMode_SetGameMode(
                     game::MODE_GAME_MATCHMAKING_PLAYLIST);
                 connect_to_lobby_with_mode_internal(
@@ -381,7 +384,8 @@ void handle_info_response(const game::net::netadr_t &target,
   const utils::info_string info{data};
 
   get_server_queries().access([&](std::vector<server_query> &server_queries) {
-    for (auto i = server_queries.begin(); i != server_queries.end(); ++i) {
+    for (std::vector<server_query>::iterator i = server_queries.begin();
+         i != server_queries.end(); ++i) {
       if (i->host == target && i->challenge == info.get("challenge")) {
         found_query = true;
         query = std::move(*i);
@@ -392,9 +396,9 @@ void handle_info_response(const game::net::netadr_t &target,
   });
 
   if (found_query) {
-    const auto ping =
+    const std::chrono::nanoseconds ping =
         std::chrono::high_resolution_clock::now() - query.query_time;
-    const auto ping_ms =
+    const std::chrono::milliseconds::rep ping_ms =
         std::chrono::duration_cast<std::chrono::milliseconds>(ping).count();
 
     query.callback(true, query.host, info, static_cast<uint32_t>(ping_ms));
@@ -407,8 +411,10 @@ void cleanup_queried_servers() {
   get_server_queries().access([&](std::vector<server_query> &server_queries) {
     size_t sent_queries = 0;
 
-    const auto now = std::chrono::high_resolution_clock::now();
-    for (auto i = server_queries.begin(); i != server_queries.end();) {
+    const std::chrono::high_resolution_clock::time_point now =
+        std::chrono::high_resolution_clock::now();
+    for (std::vector<server_query>::iterator i = server_queries.begin();
+         i != server_queries.end();) {
       if (!i->sent) {
         if (++sent_queries < 40) {
           send_server_query(*i);
@@ -429,7 +435,7 @@ void cleanup_queried_servers() {
   });
 
   const utils::info_string empty{};
-  for (const auto &query : removed_queries) {
+  for (const server_query &query : removed_queries) {
     query.callback(false, query.host, empty, 0);
   }
 }
@@ -456,11 +462,9 @@ void connect_to_lobby_with_mode(const game::net::netadr_t &addr,
                                       mod_id, false);
 }
 
-game::net::netadr_t get_connected_server() {
-  constexpr auto local_client_num = 0ull;
-  const auto address = *reinterpret_cast<uint64_t *>(0x1453D8BB8_g) +
-                       (0x25780 * local_client_num) + 0x10;
-  return *reinterpret_cast<game::net::netadr_t *>(address);
+game::net::netadr_t
+get_connected_server(game::LocalClientNum_t localClientNum) {
+  return game::cl::clientConnections->connections[localClientNum].serverAddress;
 }
 
 game::net::netadr_t get_connect_host() { return connect_host; }

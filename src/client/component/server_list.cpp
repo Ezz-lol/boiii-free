@@ -185,7 +185,8 @@ void read_favorite_servers() {
         if (utils::io::read_file(path, &data)) {
           const auto srv = utils::string::split(data, '\n');
           for (const auto &server_address : srv) {
-            auto server = network::address_from_string(server_address);
+            game::net::netadr_t server =
+                network::address_from_string(server_address);
             servers.insert(server);
           }
         }
@@ -222,7 +223,8 @@ void read_recent_servers() {
           continue;
         }
 
-        auto server = network::address_from_string(server_address);
+        game::net::netadr_t server =
+            network::address_from_string(server_address);
         if (server.type == game::net::NA_BAD) {
           continue;
         }
@@ -264,7 +266,7 @@ void add_lan_server_from_string(const std::string &in) {
     return;
   }
 
-  const auto addr = network::address_from_string(normalized);
+  const game::net::netadr_t addr = network::address_from_string(normalized);
   if (addr.type == game::net::NA_BAD) {
     return;
   }
@@ -340,7 +342,7 @@ std::vector<game::net::netadr_t> get_master_servers() {
 
   std::vector<game::net::netadr_t> servers;
   for (const auto &host : master_server_hosts) {
-    auto addr = network::address_from_string(host.c_str());
+    game::net::netadr_t addr = network::address_from_string(host.c_str());
     if (addr.type != game::net::NA_BAD) {
       servers.push_back(addr);
     }

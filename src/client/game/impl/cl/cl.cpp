@@ -1,5 +1,14 @@
 #include <std_include.hpp>
 #include "cl.hpp"
+#include <cstring>
+#include <cstdio>
+#include <stdexcept>
+#include <atomic>
+
+#include "../../../game/utils.hpp"
+#include "../../../component/auth.hpp"
+
+#include "../../../../common/utils/string.hpp"
 
 namespace game {
 namespace cl {
@@ -36,13 +45,8 @@ int32_t CL_HighestPriorityStatPacket_Impl(clientConnection_t *clc,
 }
 
 inline clientConnection_t *
-CL_GetLocalClientConnection(LocalClientNum_t LocalClientNum) {
-  game::cl::clientConnection_t(*clientConnections)[2] =
-      *game::cl::clientConnections;
-  game::cl::clientConnection_t *clientConnection =
-      &(*clientConnections)[static_cast<int32_t>(LocalClientNum)];
-
-  return clientConnection;
+CL_GetLocalClientConnection(LocalClientNum_t localClientNum) {
+  return &cl::clientConnections->connections[localClientNum];
 }
 
 void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
@@ -159,7 +163,7 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
   }
 
   case CA_CONNECTING: {
-    const int32_t infoStrLen = 1024;
+    constexpr int32_t infoStrLen = 1024;
     char s[infoStrLen];
     std::memset(s, 0, sizeof(s));
 
@@ -200,25 +204,24 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
         s, "name",
         utils::string::va("%s",
                           live::user::LiveUser_GetClientName(controllerIndex)));
-    std::string protocolStr = utils::string::va("%i", 18532);
-    info::Info_SetValueForKey(s, "protocol", protocolStr.c_str());
-    std::string netfieldchkStr =
-        utils::string::va("%i", net::msgcrc::MsgCRC_NetFieldChecksum());
-    info::Info_SetValueForKey(s, "netfieldchk", netfieldchkStr.c_str());
+    info::Info_SetValueForKey(s, "protocol", utils::string::va("%i", 18532));
+    info::Info_SetValueForKey(
+        s, "netfieldchk",
+        utils::string::va("%i", net::msgcrc::MsgCRC_NetFieldChecksum()));
     const char *modeAbbrev =
         com::Com_SessionMode_GetAbbreviationForCurrentMode();
-    std::string sessionmodeStr =
-        modeAbbrev && *modeAbbrev ? utils::string::va("%s", modeAbbrev) : "";
-    info::Info_SetValueForKey(s, "sessionmode", sessionmodeStr.c_str());
-    std::string challengeStr = utils::string::va("%i", clc->challenge);
-    info::Info_SetValueForKey(s, "challenge", challengeStr.c_str());
-    std::string invitedStr = utils::string::va(
-        "%i", (cg::clientUIActives->actives[localClientNum].flags & 4) != 0);
-    info::Info_SetValueForKey(s, "invited", invitedStr.c_str());
+    info::Info_SetValueForKey(s, "sessionmode",
+                              modeAbbrev && *modeAbbrev ? modeAbbrev : "");
+    info::Info_SetValueForKey(s, "challenge",
+                              utils::string::va("%i", clc->challenge));
+    info::Info_SetValueForKey(
+        s, "invited",
+        utils::string::va(
+            "%i",
+            (cg::clientUIActives->actives[localClientNum].flags & 4) != 0));
     info::Info_SetValueForKey(
         s, "xuid", live::user::LiveUser_GetXuidString(controllerIndex));
-    std::string qportStr = utils::string::va("%i", clc->qport);
-    info::Info_SetValueForKey(s, "qport", qportStr.c_str());
+    info::Info_SetValueForKey(s, "qport", utils::string::va("%i", clc->qport));
     info::Info_SetValueForKey(
         s, "migrating",
         cg::clientUIActives->actives[localClientNum].migrationState ==
@@ -238,13 +241,13 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
     }
     // END boiii-specific fields
 
-    const int32_t connectPrefixLen = 8; // "connect "
-    const int32_t infoStrQuotesLen = 2;
+    constexpr int32_t connectPrefixLen = 8; // "connect "
+    constexpr int32_t infoStrQuotesLen = 2;
+    constexpr int32_t destLen =
+        infoStrLen + connectPrefixLen + infoStrQuotesLen;
+    char dest[destLen];
 
-    char dest[infoStrLen + connectPrefixLen + infoStrQuotesLen];
-
-    int32_t writtenLength =
-        std::snprintf(dest, sizeof(dest), "connect \"%s\"", s);
+    int32_t writtenLength = std::snprintf(dest, destLen, "connect \"%s\"", s);
 
     net::netadr_t serverAddress = clc->serverAddress;
     // ORIGINAL:

@@ -1,14 +1,7 @@
 #pragma once
 #include <cstdint>
-#include <cstring>
-#include <cstdio>
-#include <stdexcept>
-#include <atomic>
-#include <utils/string.hpp>
-#include "game/game.hpp"
-#include "game/structs/structs.hpp"
-#include "game/utils.hpp"
-#include "../../../component/auth.hpp"
+
+#include "../../../game/game.hpp"
 
 namespace game {
 namespace cl {

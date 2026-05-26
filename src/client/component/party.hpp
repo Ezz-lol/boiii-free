@@ -10,7 +10,8 @@ using query_callback = std::function<query_callback_func>;
 
 void query_server(const game::net::netadr_t &host, query_callback callback);
 
-game::net::netadr_t get_connected_server();
+game::net::netadr_t get_connected_server(
+    game::LocalClientNum_t localClientNum = game::LOCAL_CLIENT_0);
 
 bool is_host(const game::net::netadr_t &addr);
 
