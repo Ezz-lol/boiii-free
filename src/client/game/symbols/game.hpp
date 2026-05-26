@@ -34,9 +34,16 @@ WEAK symbol<level::gentity_s *(level::gentity_s *ent,
                                game::snd::SndAliasId alias,
                                scr::ScrString_t notifyString, uint32_t tag)>
     G_PlaySoundAliasWithNotify{0x141B7BD20, 0x1403076E0};
+WEAK symbol<void(game::level::gentity_s *ent, snd::SndAliasId index,
+                 game::scr::ScrString_t notifyString)>
+    G_RegisterSoundWait{0x141B80F40, 0x140308090};
+
 WEAK symbol<level::clientState_t *(ClientNum_t clientNum)> G_GetClientState{
     0x1419B0970, 0x1402A7820};
+WEAK symbol<int32_t(const char *name)> G_TagIndex{0x141B81890, 0x1403089D0};
 
+WEAK symbol<level::gentity_t *(const vec3_t *origin, snd::SndAliasId alias)>
+    G_TempEntity{0x141B819A0, 0x140308AF0};
 WEAK symbol<str64_t> g_mapname{0x1579DF840, 0x14A30C300};
 } // namespace game
 

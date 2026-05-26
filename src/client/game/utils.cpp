@@ -397,4 +397,39 @@ bool access_connected_client(
 
   return access_client(*svs_clients_cl, index, callback);
 }
+
+level::gentity_pool *gentity_pool() {
+  if (game::is_client()) {
+    /*
+      In the client, for each function where g_entities is accessed,
+      in each of its calling functions, prior to its callsite,
+      arxan will copy the pointer stored in g_entities into another
+      memory address or stack pointer and set g_entities to 0xFFFFFFFFFFFFFFFF.
+      In the called function, g_entities will then be accessed through the
+      pointer stored at the destination of the copy, using a series of highly
+      obfuscated operations. After the call is completed, arxan will copy the
+      g_entities pointer back into the global g_entities memory address through,
+      again, a series of highly obfuscated operations.
+
+      This obviously makes naive usage of the g_entities global impractical, as
+      it will often be set to 0xFFFFFFFFFFFFFFFF during or before access,
+      causing unexpected memory access exceptions.
+
+      To circumvent this, and to avoid having to find some way of
+      deterministically computing where the correct g_entities pointer was
+      copied, we can instead store the g_entities pointer at time of allocation
+      into our own global, and use this identically and reliably within boiii's
+      code.
+    */
+    game::level::gentity_pool *stored =
+        game::level::g_entities_cl_allocation.load();
+    if (stored) {
+      return stored;
+    }
+    return *(level::g_entities_cl.get());
+  }
+
+  return level::g_entities.get();
+}
+
 } // namespace game

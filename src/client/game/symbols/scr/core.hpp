@@ -104,9 +104,10 @@ WEAK symbol<bool(scriptInstance_t inst, uint32_t index, bool defaultValue)>
     Scr_GetBoolOptional{0x1412EAF20, 0x1401708E0};
 WEAK symbol<ScrString_t(scriptInstance_t inst, uint32_t index)>
     Scr_GetConstIString{0x1412EAF40, 0x140170900};
-WEAK symbol<scr_entref_t *(scr_entref_t *retstr, scriptInstance_t inst,
-                           uint32_t index)>
+WEAK symbol<scr_entref_t(scriptInstance_t inst, uint32_t index)>
     Scr_GetEntityRef{0x1412EB490, 0x140170E80};
+WEAK symbol<level::gentity_t *(uint32_t index)> Scr_GetEntity{0x141B3C000,
+                                                              0x1402F58A0};
 WEAK symbol<float(scriptInstance_t inst, uint32_t index, float defaultValue)>
     Scr_GetFloatOptional{0x1412EB680, 0x140171070};
 WEAK symbol<scr_funcptr_t(scriptInstance_t inst, uint32_t index)> Scr_GetFunc{
@@ -121,7 +122,8 @@ WEAK symbol<uint64_t(scriptInstance_t inst, uint32_t index,
 WEAK symbol<void(scriptInstance_t inst, uint32_t index, vec3_t *vectorValue,
                  vec3_t *defaultValue)>
     Scr_GetVectorOptional{0x1412EC040, 0x140171A10};
-
+WEAK symbol<ScrString_t(scriptInstance_t inst, uint32_t index)>
+    Scr_GetConstLowercaseString{0x1412EAFE0, 0x1401709A0};
 WEAK symbol<void()> Scr_UpdateScreen{0x1413E1550};
 
 WEAK symbol<array<const char *, 31>> var_typename{0x1432E6240, 0x14107C040};
@@ -130,6 +132,12 @@ WEAK symbol<bool(scriptInstance_t inst, ScrVarValue_t *value)> Scr_IsFloatTrue{
     0x1412DACF0, 0x140167170};
 WEAK symbol<bool(scriptInstance_t inst, ScrVarValue_t *value)> Scr_IsTrue{
     0x1412CCE10, 0x14015AEE0};
+WEAK symbol<void(scriptInstance_t inst)> Scr_PlaySoundAtPosition{0x141A7EA40,
+                                                                 0x1402CC960};
+
+WEAK symbol<void(scriptInstance_t inst, const char *error)> Scr_ObjectError{
+    0x1412ECBC0, 0x140172590};
+
 } // namespace scr
 } // namespace game
 

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdint>
-#include "core.hpp"
-#include "weapon.hpp"
+#include "../core.hpp"
+#include "../weapon.hpp"
 
 namespace game {
 namespace scr {

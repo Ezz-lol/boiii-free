@@ -1,6 +1,5 @@
 #pragma once
-#include "game/game.hpp"
-#include "game/structs/structs.hpp"
+#include "../../../game/game.hpp"
 #include <cstdint>
 
 namespace game {
@@ -19,7 +18,5 @@ uint32_t SND_AssetBankGetLengthMs_Impl(const SndAssetBankEntry *entry);
 SndStringHash SND_HashName_Impl(const char *name);
 int32_t SND_GetPlaybackTimeById(SndAliasId id);
 int32_t SND_GetPlaybackTime_Impl(const char *name);
-void G_RegisterSoundWait_Impl(game::level::gentity_s *ent, SndAliasId id,
-                              game::scr::ScrString_t notifyString);
 } // namespace snd
 } // namespace game

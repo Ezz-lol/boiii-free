@@ -1,7 +1,7 @@
 #pragma once
 #include "core.hpp"
 #include "quake.hpp"
-#include "scr.hpp"
+#include "scr/scr.hpp"
 
 namespace game {
 // asm reserved

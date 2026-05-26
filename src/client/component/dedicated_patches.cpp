@@ -33,8 +33,9 @@ void patch_is_mod_loaded_checks() {
   }
 }
 
-void spawn_server_stub(int controllerIndex, const char *server,
-                       game::MapPreload preload, bool savegame) {
+void spawn_server_stub(game::ControllerIndex_t controllerIndex,
+                       const char *server, game::MapPreload preload,
+                       bool savegame) {
   game::com::Com_SessionMode_SetNetworkMode(game::MODE_NETWORK_ONLINE);
   game::com::Com_SessionMode_SetGameMode(game::MODE_GAME_MATCHMAKING_PLAYLIST);
 

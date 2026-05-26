@@ -1,6 +1,6 @@
 #pragma once
 
-#include "scr.hpp"
+#include "scr/scr.hpp"
 #include "math.hpp"
 #include "snd.hpp"
 #include "core.hpp"

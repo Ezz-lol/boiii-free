@@ -1,0 +1,24 @@
+#pragma once
+#ifdef GAME_HPP
+
+#include "../macros.hpp"
+
+namespace game {
+namespace cg {
+namespace snd {
+WEAK symbol<void(game::snd::SndCommandBuffer *buffer)> SND_CommandCG{
+    0x142270780, 0x140545B60};
+WEAK symbol<void(game::snd::SndEntHandle ent, scr::ScrString_t xanimName)>
+    CG_PlayFacialAnimation{0x14102ED90, 0x14011E680};
+WEAK symbol<void(int32_t msec, int32_t lengthNotifyData)>
+    CG_ScriptSndLengthNotify{0x141039030, 0x14011F2D0};
+WEAK symbol<void(game::snd::SndEntHandle handle)> SND_SetEntState{0x142273800,
+                                                                  0x140548DC0};
+WEAK symbol<void(int32_t msec, const char *lengthNotifyData)>
+    CG_SubtitleSndLengthNotify{0x14104F8E0, 0x140120200};
+
+} // namespace snd
+} // namespace cg
+} // namespace game
+
+#endif

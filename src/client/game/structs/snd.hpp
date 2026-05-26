@@ -5,7 +5,7 @@
 #include "core.hpp"
 #include "quake.hpp"
 #include "db/xasset.hpp"
-#include "scr.hpp"
+#include "scr/scr.hpp"
 #include "stream.hpp"
 
 namespace game {
@@ -234,7 +234,7 @@ struct SndAssetBankEntry {
   uint16_t EnvelopeTime2;
 };
 static_assert(sizeof(SndAssetBankEntry) == 0x24,
-              "SndAssetBankEntry size must be 32 bytes");
+              "SndAssetBankEntry size must be 36 bytes");
 #pragma pack(pop)
 
 #pragma pack(push, 1)
@@ -832,7 +832,6 @@ struct SndDuckActive {
 };
 #pragma pack(pop)
 
-// Completely unknown if correct at this time.
 #pragma pack(push, 1)
 struct SndPlayState {
   SndEntHandle entHandle;
@@ -848,12 +847,12 @@ struct SndPlayState {
   float pitchRate;
   float attenuation;
   float attenuationRate;
+  uint32_t _unknown48;
   qboolean continueLoop;
   uint32_t magic;
   uint32_t fireTimeMs;
   SndCallLocation location;
   int32_t gpadFlags;
-  uint8_t _padding[4];
 };
 #pragma pack(pop)
 

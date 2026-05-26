@@ -2,7 +2,7 @@
 #ifdef GAME_HPP
 #include "bg.hpp"              // IWYU pragma: export
 #include "cbuf.hpp"            // IWYU pragma: export
-#include "cg.hpp"              // IWYU pragma: export
+#include "cg/cg.hpp"           // IWYU pragma: export
 #include "cinematic.hpp"       // IWYU pragma: export
 #include "cl.hpp"              // IWYU pragma: export
 #include "cmd.hpp"             // IWYU pragma: export

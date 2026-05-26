@@ -1,10 +1,28 @@
 #include "scr.hpp"
+
+#include "../../../../common/utils/string.hpp"
+#include "../../../game/utils.hpp"
+#include "../../utils.hpp"
+
 #include <string>
-#include <utils/string.hpp>
 #include <cstdint>
 
 namespace game {
 namespace scr {
+
+level::gentity_t *GetEntity_Impl(scr_entref_t entref) {
+  if (entref.classnum) {
+    Scr_ObjectError(SCRIPTINSTANCE_SERVER, "not an entity");
+    return nullptr;
+  }
+  return game::entity(entref.u.entnum);
+}
+
+level::gentity_t *Scr_GetEntity_Impl(uint32_t index) {
+  game::scr::scr_entref_t entref =
+      game::scr::Scr_GetEntityRef(SCRIPTINSTANCE_SERVER, index);
+  return GetEntity_Impl(entref);
+}
 
 const char *Scr_TypeName(ScrVarType type) {
   return (*var_typename)[static_cast<uint32_t>(type)];
@@ -72,6 +90,16 @@ bool Scr_IsTrue_Impl([[maybe_unused]] scriptInstance_t inst,
     return 0;
   }
   }
+}
+void Scr_PlaySoundAtPosition_Impl(scriptInstance_t inst) {
+  vec3_t origin;
+  Scr_GetVector(SCRIPTINSTANCE_SERVER, 1u, &origin);
+  if (!game::bg::BG_ValidateOrigin(&origin, &sv::svs->mapCenter)) {
+    Scr_NetworkOriginError("sound", &origin);
+  }
+  const char *alias = Scr_GetString(SCRIPTINSTANCE_SERVER, 0);
+  snd::SndAliasId alias_id = snd::SND_FindAliasId(alias);
+  G_PlaySoundAliasAtPoint(&origin, alias_id);
 }
 } // namespace scr
 } // namespace game

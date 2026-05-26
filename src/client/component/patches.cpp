@@ -1,3 +1,5 @@
+#include <cstdint>
+#include <sstream>
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "scheduler.hpp"
@@ -7,7 +9,7 @@
 
 #include <string>
 #include <utils/hook.hpp>
-#include "game/impl/snd/snd.hpp"
+#include "game/impl/game/game.hpp"
 
 namespace script {
 std::string resolve_hash(uint32_t hash);
@@ -371,8 +373,9 @@ utils::hook::detour g_registersoundwait_hook;
 struct component final : generic_component {
   void post_unpack() override {
 
-    g_registersoundwait_hook.create(game::snd::G_RegisterSoundWait.get(),
-                                    game::snd::G_RegisterSoundWait_Impl);
+    g_registersoundwait_hook.create(game::G_RegisterSoundWait.get(),
+                                    game::G_RegisterSoundWait_Impl);
+
     // Clientfield Mismatch -> recoverable ERR_DROP
     com_error_hook.create(game::com::Com_Error_, com_error_stub);
 

@@ -1,4 +1,5 @@
 #include <mutex>
+#include <sstream>
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
@@ -191,7 +192,7 @@ void sv_addservercommand_stub(game::sv::client_s *client,
     if (client_openmenu_cmd_last_sequence_time.contains(cmd_str) &&
         client_openmenu_cmd_last_sequence_time[cmd_str].contains(
             client->xuid) &&
-        *(game::sv::svs_time.get()) -
+        game::sv::svs->time -
                 client_openmenu_cmd_last_sequence_time[cmd_str][client->xuid] <
             1000) {
       return;
@@ -207,7 +208,7 @@ void sv_addservercommand_stub(game::sv::client_s *client,
   }
 
   client_openmenu_cmd_last_sequence_time[cmd_str][client->xuid] =
-      *(game::sv::svs_time.get());
+      game::sv::svs->time;
   client_last_cmd[client->xuid] = cmd_str;
 
   sv_addservercommand_hook.invoke(client, type, cmd);
@@ -268,7 +269,7 @@ utils::hook::detour snd_queueadd_hook;
 void snd_queueadd_stub(game::snd::SndQueue *queue,
                        game::snd::SndCommandType cmd, uint32_t size,
                        const void *data) {
-  game::snd::SND_CommandSND(cmd, static_cast<int64_t>(size),
+  game::snd::SND_CommandSND(cmd, static_cast<uint64_t>(size),
                             const_cast<void *>(data));
 }
 

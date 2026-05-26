@@ -68,4 +68,27 @@ void first_connected_client(
 
 bool access_connected_client(
     size_t index, const std::function<void(sv::client_s &)> &callback);
+
+level::gentity_pool *gentity_pool();
+
+template <typename T, typename = typename std::enable_if<std::is_convertible<
+                          T, game::ClientNum_t>::value>::type>
+inline level::gentity_t *client_ent(T index) {
+  level::gentity_pool *pool = gentity_pool();
+  return &pool->pool[static_cast<game::ClientNum_t>(index)];
+}
+
+template <typename T, typename = typename std::enable_if<
+                          std::is_convertible<T, uint32_t>::value>::type>
+inline level::gentity_t *entity(T input_index) {
+  uint32_t index = static_cast<uint32_t>(input_index);
+  if (index < level::GENTITY_POOL_COUNT) {
+    level::gentity_pool *pool = gentity_pool();
+    if (pool) {
+      return &pool->pool[index];
+    }
+  }
+  return nullptr;
+}
+
 } // namespace game

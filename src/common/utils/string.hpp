@@ -1,5 +1,8 @@
 #pragma once
 #include "memory.hpp"
+#include <cstdarg>
+#include <stdexcept>
+#include <string>
 
 template <class Type, size_t n> constexpr auto ARRAY_COUNT(Type (&)[n]) {
   return n;

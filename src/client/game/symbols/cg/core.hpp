@@ -1,7 +1,7 @@
 #pragma once
 #ifdef GAME_HPP
 
-#include "macros.hpp"
+#include "../macros.hpp"
 
 namespace game {
 namespace cg {

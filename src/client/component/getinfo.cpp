@@ -47,7 +47,7 @@ size_t get_bot_count() {
 
   game::foreach_connected_client(
       [&count](const game::sv::client_s &, const size_t index) {
-        if (game::sv::SV_IsTestClient(static_cast<int>(index))) {
+        if (game::sv::SV_IsTestClient(static_cast<game::ClientNum_t>(index))) {
           ++count;
         }
       });

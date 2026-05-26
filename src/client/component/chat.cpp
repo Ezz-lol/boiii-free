@@ -46,14 +46,15 @@ void cmd_chat_f(game::level::gentity_s *ent, const command::params_sv &params) {
   utils::hook::invoke<void>(0x140298E70_g, ent, p.data());
 }
 
-uint64_t *divert_xuid_to_client_num_stub(int, const int client_num, int) {
+uint64_t *
+divert_xuid_to_client_num_stub(int, const game::ClientNum_t client_num, int) {
   thread_local uint64_t value;
   // zero xuid is invalid, so increase the clientnum to prevent 0 values
   value = static_cast<uint64_t>(client_num) + 1;
   return &value;
 }
 
-void send_chat_message(int client_num, const std::string &text) {
+void send_chat_message(game::ClientNum_t client_num, const std::string &text) {
   game::sv::SV_GameSendServerCommand(
       client_num, game::net::SV_CMD_CAN_IGNORE_0,
       utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, text.data()));
@@ -133,9 +134,9 @@ public:
             }
 
             const command::params params{};
-            const auto text = params.join(1);
+            const std::string text = params.join(1);
 
-            send_chat_message(-1, text);
+            send_chat_message(game::INVALID_CLIENT_INDEX, text);
 
             const char *say_prefix = "Server";
             if (sv_sayname && sv_sayname->current.value.string &&
@@ -158,8 +159,9 @@ public:
               return;
             }
 
-            const auto client = atoi(params[1]);
-            const auto text = params.join(2);
+            const game::ClientNum_t client =
+                static_cast<game::ClientNum_t>(atoi(params[1]));
+            const std::string text = params.join(2);
 
             send_chat_message(client, text);
             printf("Server -> %i: %s\n", client, text.data());

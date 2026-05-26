@@ -217,10 +217,8 @@ WEAK symbol<void(snd::SndBankLoad *load)> SND_BankLoadUpdateState{0x0,
                                                                   0x14064B550};
 WEAK symbol<void(snd::SndBankPtr *sound)> Load_SndBankAsset{0x0, 0x1401DB2D0};
 WEAK symbol<void()> SND_CheckpointRestore{0x0, 0x140547D60};
-WEAK symbol<void(snd::SndCommandBuffer *buffer)> SND_CommandCG{0x0,
-                                                               0x140545B60};
-WEAK symbol<void(snd::SndCommandType command, int64_t cmdSize, void *cmdData)>
-    SND_CommandSND{0x0, 0x140545CB0};
+WEAK symbol<void(snd::SndCommandType command, uint64_t cmdSize, void *cmdData)>
+    SND_CommandSND{0x142270910, 0x140545CB0};
 WEAK symbol<void()> SND_DebugFini{0x0, 0x14064CE90};
 WEAK symbol<void(snd::SndDuckActive *duck)> SND_StopDuck{0x0, 0x1406480D0};
 WEAK symbol<void(snd::SndDuckCategoryType category, uint32_t duckId,
@@ -228,8 +226,8 @@ WEAK symbol<void(snd::SndDuckCategoryType category, uint32_t duckId,
     SND_SetDuckByCategory{0x0, 0x140646A50};
 WEAK symbol<void()> SND_DuckReset{0x0, 0x140643C20};
 WEAK symbol<void()> SND_EndFrame{0x0, 0x140547DF0};
-WEAK symbol<void(snd::SndEntHandle handle, scr::ScrString_t animation)>
-    SND_FacialAnimationNotify{0x0, 0x140547EA0};
+WEAK symbol<void(SndEntHandle handle, scr::ScrString_t animation)>
+    SND_FacialAnimationNotify{0x142272B60, 0x140547EA0};
 WEAK symbol<void(snd::SndEntHandle handle)> SND_EntStateRequest{0x0,
                                                                 0x140547E40};
 WEAK symbol<void(snd::SndEntHandle sndEnt, snd::SndStringHash name)>
@@ -246,16 +244,15 @@ WEAK symbol<void()> SND_LosOcclusionSync{0x0, 0x140650300};
 WEAK symbol<void()> SND_MusicUpdate{0x0, 0x140650650};
 WEAK symbol<void(snd::SndPlayback *playback)> SND_FreePlaybackNotify{
     0x0, 0x140548010};
-WEAK symbol<void()> SND_ProcessCLQueue{0x0, 0x1405466B0};
-WEAK symbol<void()> SND_ProcessSNDQueue{0x0, 0x140546720};
-WEAK symbol<void(snd::SndQueue *queue, snd::SndCommandType cmd, int size,
+WEAK symbol<void()> SND_ProcessCLQueue{0x142271410, 0x1405466B0};
+WEAK symbol<void()> SND_ProcessSNDQueue{0x142271480, 0x140546720};
+WEAK symbol<void(snd::SndQueue *queue, snd::SndCommandType cmd, uint32_t size,
                  const void *data)>
-    SND_QueueAdd{0x0, 0x140549A20};
+    SND_QueueAdd{0x1422740E0, 0x140549A20};
 WEAK symbol<void()> SND_RestartDriver{0x0, 0x140548BC0};
 WEAK symbol<void(snd::SndSpeakerMap *map)> Snd_SpeakerMapZero{0x0, 0x140652D60};
 WEAK symbol<void(snd::SndStringHash room)> SND_AmbientShockRoom{0x0,
                                                                 0x140545490};
-WEAK symbol<void()> SND_UpdateVoice_0{0x0, 0x1406496E0};
 WEAK symbol<void()> SND_UpdateWait{0x0, 0x1405498A0};
 WEAK symbol<void(SndVoice *voice, float dt)> SND_UpdateVoice{0x0, 0x1406484C0};
 WEAK symbol<void(snd::SndVoice *voice, const snd::SndAlias *alias)>
@@ -406,9 +403,6 @@ WEAK symbol<void()> SND_Init{0x142584E20, 0x1406459B0};
    be server-specific in older CoD engines.
 */
 WEAK symbol<bool()> G_SNDEnabled{0x0, 0x140584DB0};
-WEAK symbol<void(game::level::gentity_s *ent, SndAliasId index,
-                 game::scr::ScrString_t notifyString)>
-    G_RegisterSoundWait{0x141B80F40, 0x140308090};
 
 WEAK symbol<SndDuck *(SndStringHash id)> SND_GetDuckById{0x0, 0x14064BF00};
 WEAK symbol<SndReverb *(SndStringHash id, const char *name)> SND_GetReverb{

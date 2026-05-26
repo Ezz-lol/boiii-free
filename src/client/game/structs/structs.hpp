@@ -6,7 +6,7 @@
 #include "jq.hpp"        // IWYU pragma: export
 #include "quake.hpp"     // IWYU pragma: export
 #include "snd.hpp"       // IWYU pragma: export
-#include "scr.hpp"       // IWYU pragma: export
+#include "scr/scr.hpp"   // IWYU pragma: export
 #include "bg.hpp"        // IWYU pragma: export
 #include "math.hpp"      // IWYU pragma: export
 #include "gfx.hpp"       // IWYU pragma: export

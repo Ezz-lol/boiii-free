@@ -6,10 +6,10 @@
 
 namespace status {
 namespace {
-thread_local int g_client_num{0};
+thread_local game::ClientNum_t g_client_num{0};
 
 void print_client_num(const int channel, const int label, const char *fmt,
-                      const int client_num) {
+                      const game::ClientNum_t client_num) {
   g_client_num = client_num;
   game::com::Com_Printf(channel, label, fmt, client_num);
 }

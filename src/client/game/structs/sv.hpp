@@ -3,7 +3,7 @@
 #include "core.hpp"
 #include "quake.hpp"
 #include "net/net.hpp"
-#include "scr.hpp"
+#include "scr/scr.hpp"
 #include "snd.hpp"
 #include "asm.hpp"
 #include <cstddef>

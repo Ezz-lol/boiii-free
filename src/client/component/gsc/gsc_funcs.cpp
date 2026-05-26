@@ -582,16 +582,18 @@ void gscr_say(scriptInstance_t inst) {
   const char *msg = Scr_GetString(inst, 1);
   if (msg)
     game::sv::SV_GameSendServerCommand(
-        -1, game::net::SV_CMD_CAN_IGNORE_0,
+        game::INVALID_CLIENT_INDEX, game::net::SV_CMD_CAN_IGNORE_0,
         utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, msg));
 }
 
 // tell: send a private chat message to a specific client
 // GSC: player tell("Hello");
 void gscr_tell(scriptInstance_t inst) {
-  const int32_t client_num = Scr_GetInt(inst, 1);
+  const game::ClientNum_t client_num =
+      static_cast<game::ClientNum_t>(Scr_GetInt(inst, 1));
   const char *msg = Scr_GetString(inst, 2);
-  if (client_num >= 0 && client_num < 18 && msg)
+  if (static_cast<uint32_t>(client_num) >= game::lobby::MIN_PLAYERS &&
+      static_cast<uint32_t>(client_num) < game::lobby::MAX_PLAYERS && msg)
     game::sv::SV_GameSendServerCommand(
         client_num, game::net::SV_CMD_CAN_IGNORE_0,
         utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, msg));
@@ -1029,10 +1031,7 @@ void gscr_conststring(scriptInstance_t inst) {
 
 std::optional<game::ClientNum_t>
 get_self_client_num(game::scr::scriptInstance_t inst) {
-  game::scr::scr_entref_t ref{};
-  if (!game::scr::Scr_GetEntityRef(&ref, inst, 0)) {
-    return std::nullopt;
-  }
+  game::scr::scr_entref_t ref = game::scr::Scr_GetEntityRef(inst, 0);
   const int32_t client_num = ref.u.entnum;
   if (client_num < static_cast<int32_t>(game::lobby::MIN_PLAYERS) ||
       client_num >= static_cast<int32_t>(game::lobby::MAX_PLAYERS)) {

@@ -1,3 +1,4 @@
+#include <sstream>
 #include <std_include.hpp>
 #include <cstdint>
 #include "loader/component_loader.hpp"
@@ -162,7 +163,7 @@ utils::hook::detour sd_alloc_sanity_hook;
   However, when a high quantity of sounds are loaded with tail padding,
   allocation blocks can become highly fragmented. This can result in an
   attempted allocation to fail where there is sufficient remaining capacity in
-  the pool, but not enough contiguous free space to satisfy the allocation
+  the pool, but insufficient contiguous free space to satisfy the allocation
   request.
 
   To resolve this, the best approach would be to implement a defragmentation
@@ -217,6 +218,15 @@ void live_delayed_com_error_stub(const char *comErrorString, int32_t code) {
 }
 
 utils::hook::detour CL_CheckForResendHook;
+
+game::level::gentity_pool *store_g_entities_cl_allocation(size_t size) {
+  game::level::gentity_pool *result =
+      reinterpret_cast<game::level::gentity_pool *>(malloc(size));
+  game::level::g_entities_cl_allocation.store(result,
+                                              std::memory_order_seq_cst);
+
+  return result;
+}
 
 } // namespace
 
@@ -314,6 +324,7 @@ public:
 
     CL_CheckForResendHook.create(game::cl::CL_CheckForResend.get(),
                                  game::cl::CL_CheckForResend_Impl);
+    utils::hook::call(0x1419D7E22_g, store_g_entities_cl_allocation);
 
     patch_players_folder_name();
   }

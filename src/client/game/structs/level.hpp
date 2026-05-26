@@ -1,11 +1,12 @@
 #pragma once
 
 #include "core.hpp"
+#include "snd.hpp"
 #include "vehicle.hpp"
 #include "user.hpp"
 #include "phys.hpp"
 #include "ai.hpp"
-#include "scr.hpp"
+#include "scr/scr.hpp"
 #include "ui/ui.hpp"
 
 namespace game {
@@ -14,13 +15,53 @@ namespace level {
 
 typedef uint64_t EventParm_t;
 
-static const uint32_t ENTITYSTATE_SIZE = 0x1f0;
-partial_def(ENTITYSTATE_SIZE, struct, EntityState,
-            { int32_t number; }); // Incomplete
+#pragma pack(push, 1)
+struct clientLinkInfo_t {
+  int16_t parentEnt;
+  uint8_t tagIndex;
+  uint8_t flags;
+};
+#pragma pack(pop)
+
+constexpr uint32_t ENTITYSTATE_SIZE = 0x1f0;
+constexpr uint32_t ENTITYSTATE_LOOPSOUND_OFFSET = 0xDC;
+constexpr uint32_t ENTITYSTATE_UN3_OFFSET = 0x130;
+constexpr uint32_t ENTITYSTATE_CLIENTMASK_OFFSET = 0x168;
+constexpr uint32_t ENTITYSTATE_OTHERENTITYNUM_OFFSET = 0x1AE;
+#pragma pack(push, 1)
+partial_def(ENTITYSTATE_SIZE, struct, EntityState, {
+  inline_partial_def(0, ENTITYSTATE_LOOPSOUND_OFFSET, struct,
+                     { int32_t number; });
+  inline_partial_def(1, ENTITYSTATE_UN3_OFFSET - ENTITYSTATE_LOOPSOUND_OFFSET,
+                     struct, { snd::LoopSoundInfo loopSound; });
+  inline_partial_def(
+      2, ENTITYSTATE_OTHERENTITYNUM_OFFSET - ENTITYSTATE_UN3_OFFSET, struct, {
+        union {
+          int32_t hintString;
+          int32_t vehicleXModel;
+          uint32_t secondBcAlias;
+          uint32_t soundTag;
+        } un3;
+        uint32_t partBits[12];
+        clientLinkInfo_t clientLinkInfo;
+        int32_t clientMask[1];
+      });
+  int16_t otherEntityNum;
+}); // Incomplete
+#pragma pack(pop)
 static_assert(sizeof(EntityState) == ENTITYSTATE_SIZE,
               "EntityState size must be 0x1F0 bytes");
-static_assert(offsetof(EntityState, number) == 0,
+static_assert(offsetof(EntityState, verified_0.number) == 0,
               "EntityState::number must be at offset 0");
+static_assert(offsetof(EntityState, verified_1.loopSound) ==
+                  ENTITYSTATE_LOOPSOUND_OFFSET,
+              "EntityState::loopSound must be at offset 0xDC");
+static_assert(offsetof(EntityState, verified_2.clientMask) ==
+                  ENTITYSTATE_CLIENTMASK_OFFSET,
+              "EntityState::clientMask must be at offset 0x168");
+static_assert(offsetof(EntityState, otherEntityNum) ==
+                  ENTITYSTATE_OTHERENTITYNUM_OFFSET,
+              "EntityState::otherEntityNum must be at offset 0x1AE");
 
 #pragma pack(push, 1)
 // sizeof = 0x60
@@ -55,17 +96,24 @@ struct gentity_snd_wait {
 
 struct gclient_s;
 static const uint32_t GENTITY_SIZE = 0x4F8;
-static const uint32_t GENTITY_CLASSNAME_OFFSET = 0x288;
+static const uint32_t GENTITY_MODEL_OFFSET = 0x280;
 static const uint32_t GENTITY_SND_WAIT_OFFSET = 0x3D4;
 static const uint32_t GENTITY_VERIFIED2_SIZE =
-    GENTITY_SND_WAIT_OFFSET - GENTITY_CLASSNAME_OFFSET;
+    GENTITY_SND_WAIT_OFFSET - GENTITY_MODEL_OFFSET;
 partial_def(GENTITY_SIZE, struct, gentity_s, {
-  inline_partial_def(0, GENTITY_CLASSNAME_OFFSET, struct, {
+  inline_partial_def(0, GENTITY_MODEL_OFFSET, struct, {
     EntityState s;
     entityShared_t r;
     gclient_s *client;
   });
   inline_partial_def(1, GENTITY_VERIFIED2_SIZE, struct, {
+    modelNameIndex_t model;
+    bool physicsObject;
+    bool takedamage;
+    bool active;
+    bool nopickup;
+    bool handler;
+    bool avoidHandle;
     scr::ScrString_t classname;
     scr::ScrString_t target;
     scr::ScrString_t targetname;
@@ -74,9 +122,16 @@ partial_def(GENTITY_SIZE, struct, gentity_s, {
 });
 typedef gentity_s gentity_t;
 
+constexpr uint32_t GENTITY_POOL_COUNT = 2048;
+struct gentity_pool {
+  gentity_t pool[GENTITY_POOL_COUNT];
+};
+
 #ifdef __cplusplus
-static_assert(offsetof(gentity_s, verified_1) == GENTITY_CLASSNAME_OFFSET,
-              "GENTITY_CLASSNAME_OFFSET must be 0x288");
+static_assert(offsetof(gentity_s, verified_1.model) == GENTITY_MODEL_OFFSET,
+              "offset of gentity_s::model must be 0x280");
+static_assert(offsetof(gentity_s, verified_1.classname) == 0x288,
+              "offset of gentity_s::classname must be 0x288");
 static_assert(offsetof(gentity_s, snd_wait) == GENTITY_SND_WAIT_OFFSET,
               "GENTITY_SND_WAIT_OFFSET must be 0x3D4");
 static_assert(offsetof(gentity_s, verified_0) == 0,
@@ -792,14 +847,6 @@ static_assert(offsetof(playerState_s, _paddingB58) == 0xB58);
 static_assert(offsetof(playerState_s, _padding6BCB) == 0x6BCB);
 ASSERT_SIZE(playerState_s, 0xB566);
 typedef playerState_s playerState_t;
-#pragma pack(pop)
-
-#pragma pack(push, 1)
-struct clientLinkInfo_t {
-  int16_t parentEnt;
-  uint8_t tagIndex;
-  uint8_t flags;
-};
 #pragma pack(pop)
 
 struct score_t {
