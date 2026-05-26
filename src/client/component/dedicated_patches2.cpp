@@ -5,6 +5,7 @@
 #include "game/game.hpp"
 #include "game/utils.hpp"
 #include "game/impl/snd/snd.hpp"
+#include "game/impl/snd/sd/sd.hpp"
 
 #include <string>
 #include <unordered_map>
@@ -237,21 +238,21 @@ void free_bank_allocations_before_clearing_address_stub(
   game::snd::sd_byte *loadedEntries =
       reinterpret_cast<game::snd::sd_byte *>(load->loadedEntries);
   if (loadedEntries) {
-    game::snd::SD_Free_Impl(loadedEntries);
+    game::snd::sd::SD_HeapFree(loadedEntries);
   }
   game::snd::sd_byte *loadedData = load->loadedData;
   if (loadedData) {
-    game::snd::SD_Free_Impl(loadedData);
+    game::snd::sd::SD_HeapFree(loadedData);
   }
   game::snd::sd_byte *loadAssetBankEntries =
       reinterpret_cast<game::snd::sd_byte *>(load->loadAssetBank.entries);
   if (loadAssetBankEntries) {
-    game::snd::SD_Free_Impl(loadAssetBankEntries);
+    game::snd::sd::SD_HeapFree(loadAssetBankEntries);
   }
   game::snd::sd_byte *streamAssetBankEntries =
       reinterpret_cast<game::snd::sd_byte *>(load->streamAssetBank.entries);
   if (streamAssetBankEntries) {
-    game::snd::SD_Free_Impl(streamAssetBankEntries);
+    game::snd::sd::SD_HeapFree(streamAssetBankEntries);
   }
 
   memset(reinterpret_cast<void *>(load), offset, len);

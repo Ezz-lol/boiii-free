@@ -1,83 +1,15 @@
-#include <std_include.hpp>
-
-#include "snd.hpp"
 #include "stdlib.h"
 #include "stdint.h"
 #include <cstring>
-#include <mutex>
-#include <string>
-#include <utils/string.hpp>
 #include <cstdint>
-#include <unordered_map>
 
-using namespace game::com;
-using namespace game::sys;
+#include "snd.hpp"
+#include "sd/sd.hpp"
+
+#include "../../../../common/utils/string.hpp"
 
 namespace game {
 namespace snd {
-
-void *aligned_alloc(size_t alignment, size_t size) {
-  void *original = malloc(size + alignment + sizeof(void *));
-  if (!original)
-    return NULL;
-
-  // Calculate aligned address
-  uintptr_t raw_addr = (uintptr_t)original + sizeof(void *);
-  void *aligned = (void *)((raw_addr + (alignment - 1)) & ~(alignment - 1));
-
-  // Store original pointer before aligned address
-  *(void **)((uintptr_t)aligned - sizeof(void *)) = original;
-
-  return aligned;
-}
-
-void aligned_free(void *ptr) {
-  if (ptr) {
-    // Retrieve original pointer and free it
-    free(*(void **)((uintptr_t)ptr - sizeof(void *)));
-  }
-}
-
-static std::mutex sd_allocations_mutex;
-static std::unordered_map<std::string, sd_byte *> sd_allocations;
-sd_byte *SD_Alloc_BasicImpl(const char *name, uint32_t size, uint32_t align) {
-  std::lock_guard<std::mutex> lock(sd_allocations_mutex);
-  sd_byte *allocation = reinterpret_cast<sd_byte *>(
-      aligned_alloc(static_cast<size_t>(align), static_cast<size_t>(size)));
-  if (allocation) {
-    sd_allocations[name] = allocation;
-  } else {
-    Com_Printf(game::CON_LABEL_LOBBYHOST, 28,
-               "SOUND ERROR: unable to allocate %u bytes for %s\n", size, name);
-    sd_allocations[name] = nullptr;
-  }
-
-  return allocation;
-}
-
-sd_byte *SD_Alloc(const char *name, uint32_t size, uint32_t align) {
-  if (game::is_client()) {
-    return sd::SD_Alloc(name, size, align);
-  } else {
-    // Does not exist on server
-    return SD_Alloc_BasicImpl(name, size, align);
-  }
-}
-
-void SD_Free_Impl(sd_byte *ptr) {
-  std::lock_guard<std::mutex> lock(sd_allocations_mutex);
-  for (std::unordered_map<std::string, sd_byte *>::iterator it =
-           sd_allocations.begin();
-       it != sd_allocations.end();) {
-    if (it->second == ptr) {
-      aligned_free(ptr);
-      sd_allocations.erase(it);
-      return;
-    }
-
-    ++it;
-  }
-}
 
 void SND_EnqueueLoadedAssets_Impl(SndBankLoad *load) {
   SND_ErrorIfSoundGlobalsTrashed();
@@ -111,22 +43,23 @@ void SND_EnqueueLoadedAssets_Impl(SndBankLoad *load) {
 
   load->loadedDataSize = loadedDataSize;
   if (entryCount) {
-    Sys_EnterCriticalSection(CriticalSection::CRITSECT_SOUND_BANK);
+    sys::Sys_EnterCriticalSection(CriticalSection::CRITSECT_SOUND_BANK);
 
     uint32_t allocationSize =
         sizeof(SndAssetBankEntry) * load->loadedEntryCount;
     const char *loading_sd_alloc_name =
         utils::string::va("loads   %s", load->loadAssetBank.filename);
-    load->loadedEntries = (SndAssetBankEntry *)SD_Alloc_BasicImpl(
+    load->loadedEntries = (SndAssetBankEntry *)sd::SD_HeapAlloc(
         loading_sd_alloc_name, allocationSize, 0x100u);
     const char *loaded_sd_alloc_name =
         utils::string::va("loaded  %s", load->loadAssetBank.filename);
     sd_byte *allocation =
-        SD_Alloc_BasicImpl(loaded_sd_alloc_name, load->loadedDataSize, 0x1000u);
+        sd::SD_HeapAlloc(loaded_sd_alloc_name, load->loadedDataSize, 0x1000u);
     load->loadedData = allocation;
-    Com_Printf(CON_LABEL_LOBBYCLIENT, 28, "SOUND loaded alloc %s %p %p\n",
-               load->loadAssetBank.filename, load->loadedEntries, allocation);
-    Sys_LeaveCriticalSection(CriticalSection::CRITSECT_SOUND_BANK);
+    com::Com_Printf(CON_LABEL_LOBBYCLIENT, 28, "SOUND loaded alloc %s %p %p\n",
+                    load->loadAssetBank.filename, load->loadedEntries,
+                    allocation);
+    sys::Sys_LeaveCriticalSection(CriticalSection::CRITSECT_SOUND_BANK);
   } else {
     load->loadedEntries = 0;
     load->loadedData = 0;
@@ -165,12 +98,12 @@ bool SND_StartTocRead_Impl(SndBankLoad *load, SndAssetBankLoad *assetBank,
           entryCount * assetBank->header.entrySize;
       const char *entryName =
           utils::string::va("entries %s", assetBank->filename);
-      sd_byte *allocation = SD_Alloc_BasicImpl(entryName, allocSize, 0x800u);
+      sd_byte *allocation = sd::SD_HeapAlloc(entryName, allocSize, 0x800u);
       assetBank->entryCount = entryCount;
       assetBank->entries = (SndAssetBankEntry *)allocation;
       if (allocation) {
-        Com_Printf(CON_LABEL_LOBBYCLIENT, 28, "SOUND entry alloc %s %d\n",
-                   assetBank->filename, entryCount);
+        com::Com_Printf(CON_LABEL_LOBBYCLIENT, 28, "SOUND entry alloc %s %d\n",
+                        assetBank->filename, entryCount);
         int64_t entryOffset = assetBank->header.entryOffset;
         stream::stream_fileid fileHandle = assetBank->fileHandle;
         SndAssetBankEntry *data = assetBank->entries;
@@ -183,7 +116,7 @@ bool SND_StartTocRead_Impl(SndBankLoad *load, SndAssetBankLoad *assetBank,
         entryCount = 1;
       } else {
         SND_BankLoadError(load);
-        Com_Printf(
+        com::Com_Printf(
             CON_LABEL_LOBBYHOST, 28,
             "SOUND ERROR: unable to allocate sound bank entries for %s\n",
             assetBank->filename);

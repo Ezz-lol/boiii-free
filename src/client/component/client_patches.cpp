@@ -8,6 +8,7 @@
 #include <game/game.hpp>
 #include <game/utils.hpp>
 #include <game/impl/snd/snd.hpp>
+#include <game/impl/snd/sd/sd.hpp>
 #include <game/impl/cl/cl.hpp>
 
 #include <utils/hook.hpp>
@@ -198,8 +199,8 @@ void replace_sd_allocator() {
   // pool, as we are replacing the allocator entirely
   sd_alloc_sanity_hook.create(game::snd::sd::SD_AllocSanity.get(), stub_func);
   sd_alloc_block_hook.create(game::snd::sd::SD_Alloc.get(),
-                             game::snd::SD_Alloc_BasicImpl);
-  sd_free_hook.create(game::snd::sd::SD_Free.get(), game::snd::SD_Free_Impl);
+                             game::snd::sd::SD_HeapAlloc);
+  sd_free_hook.create(game::snd::sd::SD_Free.get(), game::snd::sd::SD_HeapFree);
 }
 
 utils::hook::detour live_delayed_com_error_hook;
