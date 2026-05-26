@@ -39,7 +39,7 @@ WEAK symbol<int32_t> g_qport{0x156E49AAC};
 WEAK symbol<void(int64_t localClientNum, int32_t msec)> CL_Frame{0x1413513E0};
 WEAK symbol<void(game::LocalClientNum_t localClientNum)> CL_CheckForResend{
     0x14134B970};
-WEAK symbol<ClientConnections> clientConnections{0x1453D8BB8};
+WEAK symbol<ClientConnections *> clientConnections{0x1453D8BB8};
 WEAK symbol<void(LocalClientNum_t localClientNum, bool checkStatus)>
     CL_LoadoutChanged{0x141359960};
 WEAK symbol<void(LocalClientNum_t localClientNum, bool deactivateClient)>

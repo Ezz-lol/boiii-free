@@ -21,6 +21,8 @@
 #include <utils/cryptography.hpp>
 #include <utils/concurrency.hpp>
 
+#include "game/impl/cl/cl.hpp"
+
 namespace party {
 namespace {
 std::atomic_bool is_connecting_to_dedi{false};
@@ -464,7 +466,7 @@ void connect_to_lobby_with_mode(const game::net::netadr_t &addr,
 
 game::net::netadr_t
 get_connected_server(game::LocalClientNum_t localClientNum) {
-  return game::cl::clientConnections->connections[localClientNum].serverAddress;
+  return game::cl::CL_GetLocalClientConnection(localClientNum)->serverAddress;
 }
 
 game::net::netadr_t get_connect_host() { return connect_host; }

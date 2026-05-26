@@ -44,9 +44,9 @@ int32_t CL_HighestPriorityStatPacket_Impl(clientConnection_t *clc,
   return oldestPacket;
 }
 
-inline clientConnection_t *
+clientConnection_t *
 CL_GetLocalClientConnection(LocalClientNum_t localClientNum) {
-  return &cl::clientConnections->connections[localClientNum];
+  return &(*cl::clientConnections)->connections[localClientNum];
 }
 
 void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
