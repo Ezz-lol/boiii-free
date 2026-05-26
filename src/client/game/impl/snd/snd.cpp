@@ -267,7 +267,7 @@ SndStringHash SND_HashName_Impl(const char *name) {
 constexpr int32_t PLAYBACK_TIME_NOT_FOUND = -1;
 constexpr uint32_t SOUND_ALIAS_LIST_MAX_COUNT = 0x40;
 
-inline int32_t SND_GetPlaybackTimeById(SndAliasId id) {
+int32_t SND_GetPlaybackTimeById(SndAliasId id) {
   int32_t playbackTime = PLAYBACK_TIME_NOT_FOUND;
   if (id) {
     SndAliasList *list = game::snd::SND_BankAliasLookup(id);

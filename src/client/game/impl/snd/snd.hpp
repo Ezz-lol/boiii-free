@@ -16,7 +16,7 @@ void SD_Free_Impl(sd_byte *ptr);
 uint32_t SND_AssetBankGetFrameRate_Impl(const SndAssetBankEntry *entry);
 uint32_t SND_AssetBankGetLengthMs_Impl(const SndAssetBankEntry *entry);
 SndStringHash SND_HashName_Impl(const char *name);
-int32_t SND_GetPlaybackTimeById(SndAliasId id);
+inline int32_t SND_GetPlaybackTimeById(SndAliasId id);
 int32_t SND_GetPlaybackTime_Impl(const char *name);
 } // namespace snd
 } // namespace game
