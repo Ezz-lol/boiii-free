@@ -4,13 +4,14 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+
 #include "db.hpp"
 
 namespace game {
 namespace db {
 namespace xasset {
 void reallocate_asset_pool(const XAssetType type, const unsigned int new_size) {
-  if (static_cast<int>(type) < 0 || type >= XAssetType::ASSET_TYPE_COUNT) {
+  if (static_cast<int>(type) < 0 || type >= XAssetType::COUNT) {
     printf("[AssetLimits] Invalid asset type %d\n", static_cast<int>(type));
     return;
   }

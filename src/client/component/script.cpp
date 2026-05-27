@@ -203,12 +203,10 @@ void fixup_script_imports(char *buf, int len) {
 
     // Look up the actual game SPT for this include path (try .gsc then .csc)
     auto *asset = db_find_x_asset_header_hook.invoke<RawFile *>(
-        XAssetType::ASSET_TYPE_SCRIPTPARSETREE, (inc_path + ".gsc").c_str(),
-        false, 0);
+        XAssetType::SCRIPTPARSETREE, (inc_path + ".gsc").c_str(), false, 0);
     if (!asset || !asset->buffer)
       asset = db_find_x_asset_header_hook.invoke<RawFile *>(
-          XAssetType::ASSET_TYPE_SCRIPTPARSETREE, (inc_path + ".csc").c_str(),
-          false, 0);
+          XAssetType::SCRIPTPARSETREE, (inc_path + ".csc").c_str(), false, 0);
 
     if (!asset || !asset->buffer)
       continue;
@@ -301,7 +299,7 @@ const uint8_t *get_spt_buffer(const std::string &name) {
   std::string with_csc = without_ext + ".csc";
   for (const std::string &lookup : {with_ext, with_csc, without_ext}) {
     RawFile *asset = db_find_x_asset_header_hook.invoke<RawFile *>(
-        XAssetType::ASSET_TYPE_SCRIPTPARSETREE, lookup.c_str(), false, 0);
+        XAssetType::SCRIPTPARSETREE, lookup.c_str(), false, 0);
     if (asset && asset->buffer)
       return reinterpret_cast<const uint8_t *>(asset->buffer);
   }
@@ -610,7 +608,7 @@ XAssetHeader db_find_x_asset_header_stub(const XAssetType type,
                                          const int wait_time) {
   // Check our loaded scripts FIRST to avoid "Could not find scriptparsetree"
   // spam
-  if (type == XAssetType::ASSET_TYPE_SCRIPTPARSETREE) {
+  if (type == XAssetType::SCRIPTPARSETREE) {
     RawFile *script = get_loaded_script(name);
     if (script != nullptr) {
       return static_cast<XAssetHeader>(script);

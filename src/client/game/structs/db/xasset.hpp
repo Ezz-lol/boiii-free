@@ -4,6 +4,7 @@
 #include <cstdint>
 #include "../core.hpp"
 #include "../quake.hpp"
+#include "../gfx.hpp"
 
 namespace game {
 
@@ -23,137 +24,137 @@ namespace xasset {
 /*
  For future reference, some known-correct asset struct sizes as per
  `DB_GetXAssetTypeSize`:
-  - ASSET_TYPE_PHYSPRESET: 120 or 0x78
-  - ASSET_TYPE_XMODELMESH: 120 or 0x78
-  - ASSET_TYPE_PHYSCONSTRAINTS: 1680 or 0x690
-  - ASSET_TYPE_DESTRUCTIBLEDEF: 48 or 0x30
-  - ASSET_TYPE_XANIMPARTS: 248 or 0xF8
-  - ASSET_TYPE_XMODEL: 392 or 0x188
-  - ASSET_TYPE_MATERIAL: 672 or 0x2A0
-  - ASSET_TYPE_COMPUTE_SHADER_SET: 24 or 0x18
-  - ASSET_TYPE_SOUND_PATCH: 24 or 0x18
-  - ASSET_TYPE_TECHNIQUE_SET: 112 or 0x70
-  - ASSET_TYPE_IMAGE: 264 or 0x108
-  - ASSET_TYPE_SOUND: 139440 or 0x220B0
-  - ASSET_TYPE_CLIPMAP: 720 or 0x2D0
-  - ASSET_TYPE_COMWORLD: 136 or 0x88
-  - ASSET_TYPE_GAMEWORLD: 80 or 0x50
-  - ASSET_TYPE_MAP_ENTS: 72 or 0x48
-  - ASSET_TYPE_GFXWORLD: 8256 or 0x2040
-  - ASSET_TYPE_LIGHT_DEF: 40 or 0x28
-  - ASSET_TYPE_LENSFLARE_DEF: 536 or 0x218
+  - PHYSPRESET: 120 or 0x78
+  - XMODELMESH: 120 or 0x78
+  - PHYSCONSTRAINTS: 1680 or 0x690
+  - DESTRUCTIBLEDEF: 48 or 0x30
+  - XANIMPARTS: 248 or 0xF8
+  - XMODEL: 392 or 0x188
+  - MATERIAL: 672 or 0x2A0
+  - COMPUTE_SHADER_SET: 24 or 0x18
+  - SOUND_PATCH: 24 or 0x18
+  - TECHNIQUE_SET: 112 or 0x70
+  - IMAGE: 264 or 0x108
+  - SOUND: 139440 or 0x220B0
+  - CLIPMAP: 720 or 0x2D0
+  - COMWORLD: 136 or 0x88
+  - GAMEWORLD: 80 or 0x50
+  - MAP_ENTS: 72 or 0x48
+  - GFXWORLD: 8256 or 0x2040
+  - LIGHT_DEF: 40 or 0x28
+  - LENSFLARE_DEF: 536 or 0x218
 */
 
 enum class XAssetType : int32_t {
-  ASSET_TYPE_PHYSPRESET = 0x0,
-  ASSET_TYPE_PHYSCONSTRAINTS = 0x1,
-  ASSET_TYPE_DESTRUCTIBLEDEF = 0x2,
-  ASSET_TYPE_XANIMPARTS = 0x3,
-  ASSET_TYPE_XMODEL = 0x4,
-  ASSET_TYPE_XMODELMESH = 0x5,
-  ASSET_TYPE_MATERIAL = 0x6,
-  ASSET_TYPE_COMPUTE_SHADER_SET = 0x7,
-  ASSET_TYPE_TECHNIQUE_SET = 0x8,
-  ASSET_TYPE_IMAGE = 0x9,
-  ASSET_TYPE_SOUND = 0xA,
-  ASSET_TYPE_SOUND_PATCH = 0xB,
-  ASSET_TYPE_CLIPMAP = 0xC,
-  ASSET_TYPE_COMWORLD = 0xD,
-  ASSET_TYPE_GAMEWORLD = 0xE,
-  ASSET_TYPE_MAP_ENTS = 0xF,
-  ASSET_TYPE_GFXWORLD = 0x10,
-  ASSET_TYPE_LIGHT_DEF = 0x11,
-  ASSET_TYPE_LENSFLARE_DEF = 0x12,
-  ASSET_TYPE_UI_MAP = 0x13,
-  ASSET_TYPE_FONT = 0x14,
-  ASSET_TYPE_FONTICON = 0x15,
-  ASSET_TYPE_LOCALIZE_ENTRY = 0x16,
-  ASSET_TYPE_WEAPON = 0x17,
-  ASSET_TYPE_WEAPONDEF = 0x18,
-  ASSET_TYPE_WEAPON_VARIANT = 0x19,
-  ASSET_TYPE_WEAPON_FULL = 0x1A,
-  ASSET_TYPE_CGMEDIA = 0x1B,
-  ASSET_TYPE_PLAYERSOUNDS = 0x1C,
-  ASSET_TYPE_PLAYERFX = 0x1D,
-  ASSET_TYPE_SHAREDWEAPONSOUNDS = 0x1E,
-  ASSET_TYPE_ATTACHMENT = 0x1F,
-  ASSET_TYPE_ATTACHMENT_UNIQUE = 0x20,
-  ASSET_TYPE_WEAPON_CAMO = 0x21,
-  ASSET_TYPE_CUSTOMIZATION_TABLE = 0x22,
-  ASSET_TYPE_CUSTOMIZATION_TABLE_FE_IMAGES = 0x23,
-  ASSET_TYPE_CUSTOMIZATION_TABLE_COLOR = 0x24,
-  ASSET_TYPE_SNDDRIVER_GLOBALS = 0x25,
-  ASSET_TYPE_FX = 0x26,
-  ASSET_TYPE_TAGFX = 0x27,
-  ASSET_TYPE_NEW_LENSFLARE_DEF = 0x28,
-  ASSET_TYPE_IMPACT_FX = 0x29,
-  ASSET_TYPE_IMPACT_SOUND = 0x2A,
-  ASSET_TYPE_PLAYER_CHARACTER = 0x2B,
-  ASSET_TYPE_AITYPE = 0x2C,
-  ASSET_TYPE_CHARACTER = 0x2D,
-  ASSET_TYPE_XMODELALIAS = 0x2E,
-  ASSET_TYPE_RAWFILE = 0x2F,
-  ASSET_TYPE_STRINGTABLE = 0x30,
-  ASSET_TYPE_STRUCTURED_TABLE = 0x31,
-  ASSET_TYPE_LEADERBOARD = 0x32,
-  ASSET_TYPE_DDL = 0x33,
-  ASSET_TYPE_GLASSES = 0x34,
-  ASSET_TYPE_TEXTURELIST = 0x35,
-  ASSET_TYPE_SCRIPTPARSETREE = 0x36,
-  ASSET_TYPE_KEYVALUEPAIRS = 0x37,
-  ASSET_TYPE_VEHICLEDEF = 0x38,
-  ASSET_TYPE_ADDON_MAP_ENTS = 0x39,
-  ASSET_TYPE_TRACER = 0x3A,
-  ASSET_TYPE_SLUG = 0x3B,
-  ASSET_TYPE_SURFACEFX_TABLE = 0x3C,
-  ASSET_TYPE_SURFACESOUNDDEF = 0x3D,
-  ASSET_TYPE_FOOTSTEP_TABLE = 0x3E,
-  ASSET_TYPE_ENTITYFXIMPACTS = 0x3F,
-  ASSET_TYPE_ENTITYSOUNDIMPACTS = 0x40,
-  ASSET_TYPE_ZBARRIER = 0x41,
-  ASSET_TYPE_VEHICLEFXDEF = 0x42,
-  ASSET_TYPE_VEHICLESOUNDDEF = 0x43,
-  ASSET_TYPE_TYPEINFO = 0x44,
-  ASSET_TYPE_SCRIPTBUNDLE = 0x45,
-  ASSET_TYPE_SCRIPTBUNDLELIST = 0x46,
-  ASSET_TYPE_RUMBLE = 0x47,
-  ASSET_TYPE_BULLETPENETRATION = 0x48,
-  ASSET_TYPE_LOCDMGTABLE = 0x49,
-  ASSET_TYPE_AIMTABLE = 0x4A,
-  ASSET_TYPE_ANIMSELECTORTABLESET = 0x4B,
-  ASSET_TYPE_ANIMMAPPINGTABLE = 0x4C,
-  ASSET_TYPE_ANIMSTATEMACHINE = 0x4D,
-  ASSET_TYPE_BEHAVIORTREE = 0x4E,
-  ASSET_TYPE_BEHAVIORSTATEMACHINE = 0x4F,
-  ASSET_TYPE_TTF = 0x50,
-  ASSET_TYPE_SANIM = 0x51,
-  ASSET_TYPE_LIGHT_DESCRIPTION = 0x52,
-  ASSET_TYPE_SHELLSHOCK = 0x53,
-  ASSET_TYPE_XCAM = 0x54,
-  ASSET_TYPE_BG_CACHE = 0x55,
-  ASSET_TYPE_TEXTURE_COMBO = 0x56,
-  ASSET_TYPE_FLAMETABLE = 0x57,
-  ASSET_TYPE_BITFIELD = 0x58,
-  ASSET_TYPE_ATTACHMENT_COSMETIC_VARIANT = 0x59,
-  ASSET_TYPE_MAPTABLE = 0x5A,
-  ASSET_TYPE_MAPTABLE_LOADING_IMAGES = 0x5B,
-  ASSET_TYPE_MEDAL = 0x5C,
-  ASSET_TYPE_MEDALTABLE = 0x5D,
-  ASSET_TYPE_OBJECTIVE = 0x5E,
-  ASSET_TYPE_OBJECTIVE_LIST = 0x5F,
-  ASSET_TYPE_UMBRA_TOME = 0x60,
-  ASSET_TYPE_NAVMESH = 0x61,
-  ASSET_TYPE_NAVVOLUME = 0x62,
-  ASSET_TYPE_BINARYHTML = 0x63,
-  ASSET_TYPE_LASER = 0x64,
-  ASSET_TYPE_BEAM = 0x65,
-  ASSET_TYPE_STREAMER_HINT = 0x66,
-  ASSET_TYPE_COUNT = 0x67,
-  ASSET_TYPE_STRING = 0x68,
-  ASSET_TYPE_ASSETLIST = 0x69,
-  ASSET_TYPE_REPORT = 0x6A,
-  ASSET_TYPE_DEPEND = 0x68,
-  ASSET_TYPE_FULL_COUNT = 0x6C,
+  PHYSPRESET = 0x0,
+  PHYSCONSTRAINTS = 0x1,
+  DESTRUCTIBLEDEF = 0x2,
+  XANIMPARTS = 0x3,
+  XMODEL = 0x4,
+  XMODELMESH = 0x5,
+  MATERIAL = 0x6,
+  COMPUTE_SHADER_SET = 0x7,
+  TECHNIQUE_SET = 0x8,
+  IMAGE = 0x9,
+  SOUND = 0xA,
+  SOUND_PATCH = 0xB,
+  CLIPMAP = 0xC,
+  COMWORLD = 0xD,
+  GAMEWORLD = 0xE,
+  MAP_ENTS = 0xF,
+  GFXWORLD = 0x10,
+  LIGHT_DEF = 0x11,
+  LENSFLARE_DEF = 0x12,
+  UI_MAP = 0x13,
+  FONT = 0x14,
+  FONTICON = 0x15,
+  LOCALIZE_ENTRY = 0x16,
+  WEAPON = 0x17,
+  WEAPONDEF = 0x18,
+  WEAPON_VARIANT = 0x19,
+  WEAPON_FULL = 0x1A,
+  CGMEDIA = 0x1B,
+  PLAYERSOUNDS = 0x1C,
+  PLAYERFX = 0x1D,
+  SHAREDWEAPONSOUNDS = 0x1E,
+  ATTACHMENT = 0x1F,
+  ATTACHMENT_UNIQUE = 0x20,
+  WEAPON_CAMO = 0x21,
+  CUSTOMIZATION_TABLE = 0x22,
+  CUSTOMIZATION_TABLE_FE_IMAGES = 0x23,
+  CUSTOMIZATION_TABLE_COLOR = 0x24,
+  SNDDRIVER_GLOBALS = 0x25,
+  FX = 0x26,
+  TAGFX = 0x27,
+  NEW_LENSFLARE_DEF = 0x28,
+  IMPACT_FX = 0x29,
+  IMPACT_SOUND = 0x2A,
+  PLAYER_CHARACTER = 0x2B,
+  AITYPE = 0x2C,
+  CHARACTER = 0x2D,
+  XMODELALIAS = 0x2E,
+  RAWFILE = 0x2F,
+  STRINGTABLE = 0x30,
+  STRUCTURED_TABLE = 0x31,
+  LEADERBOARD = 0x32,
+  DDL = 0x33,
+  GLASSES = 0x34,
+  TEXTURELIST = 0x35,
+  SCRIPTPARSETREE = 0x36,
+  KEYVALUEPAIRS = 0x37,
+  VEHICLEDEF = 0x38,
+  ADDON_MAP_ENTS = 0x39,
+  TRACER = 0x3A,
+  SLUG = 0x3B,
+  SURFACEFX_TABLE = 0x3C,
+  SURFACESOUNDDEF = 0x3D,
+  FOOTSTEP_TABLE = 0x3E,
+  ENTITYFXIMPACTS = 0x3F,
+  ENTITYSOUNDIMPACTS = 0x40,
+  ZBARRIER = 0x41,
+  VEHICLEFXDEF = 0x42,
+  VEHICLESOUNDDEF = 0x43,
+  TYPEINFO = 0x44,
+  SCRIPTBUNDLE = 0x45,
+  SCRIPTBUNDLELIST = 0x46,
+  RUMBLE = 0x47,
+  BULLETPENETRATION = 0x48,
+  LOCDMGTABLE = 0x49,
+  AIMTABLE = 0x4A,
+  ANIMSELECTORTABLESET = 0x4B,
+  ANIMMAPPINGTABLE = 0x4C,
+  ANIMSTATEMACHINE = 0x4D,
+  BEHAVIORTREE = 0x4E,
+  BEHAVIORSTATEMACHINE = 0x4F,
+  TTF = 0x50,
+  SANIM = 0x51,
+  LIGHT_DESCRIPTION = 0x52,
+  SHELLSHOCK = 0x53,
+  XCAM = 0x54,
+  BG_CACHE = 0x55,
+  TEXTURE_COMBO = 0x56,
+  FLAMETABLE = 0x57,
+  BITFIELD = 0x58,
+  ATTACHMENT_COSMETIC_VARIANT = 0x59,
+  MAPTABLE = 0x5A,
+  MAPTABLE_LOADING_IMAGES = 0x5B,
+  MEDAL = 0x5C,
+  MEDALTABLE = 0x5D,
+  OBJECTIVE = 0x5E,
+  OBJECTIVE_LIST = 0x5F,
+  UMBRA_TOME = 0x60,
+  NAVMESH = 0x61,
+  NAVVOLUME = 0x62,
+  BINARYHTML = 0x63,
+  LASER = 0x64,
+  BEAM = 0x65,
+  STREAMER_HINT = 0x66,
+  COUNT = 0x67,
+  STRING = 0x68,
+  ASSETLIST = 0x69,
+  REPORT = 0x6A,
+  DEPEND = 0x68,
+  FULL_COUNT = 0x6C,
 };
 
 struct AssetLink;
@@ -270,21 +271,6 @@ union FxSpawnDef {
 };
 static_assert(sizeof(FxSpawnDef) == 0x10, "FxSpawnDef size must be 16 bytes");
 
-struct GfxDrawSurfFields {
-  uint64_t useSiegeTextures : 1;
-  uint64_t objectId : 18;
-  uint64_t lateDepthSort : 5;
-  uint64_t materialSortedIndex : 16;
-  uint64_t techniqueIndexPlusOne : 11;
-  uint64_t decalSurfSort : 6;
-  uint64_t earlyDepthSort : 7;
-};
-
-union GfxSortKey {
-  GfxDrawSurfFields fields;
-  uint64_t packed;
-};
-
 typedef uint32_t contents_t;
 
 struct __attribute__((aligned(8))) MaterialInfo {
@@ -295,42 +281,15 @@ struct __attribute__((aligned(8))) MaterialInfo {
   uint8_t pad2;
   uint8_t textureAtlasRowCount;
   uint8_t textureAtlasColumnCount;
-  GfxSortKey drawSurf;
+  gfx::GfxSortKey drawSurf;
   uint32_t bindlessMaterialSortIndex;
   int surfaceFlags;
   contents_t contents;
 };
 
-enum class GfxCameraRegion : int8_t {
-  CAMERA_REGION_GBUFFER_DEPTH_HACK = 0x0,
-  CAMERA_REGION_GBUFFER_DEPTH_HACK_DECAL = 0x1,
-  CAMERA_REGION_GBUFFER = 0x2,
-  CAMERA_REGION_GBUFFER_DECAL = 0x3,
-  CAMERA_REGION_GBUFFER_NO_VOLUME_DECAL = 0x4,
-  CAMERA_REGION_LIT_OPAQUE = 0x5,
-  CAMERA_REGION_LIT_TRANS = 0x6,
-  CAMERA_REGION_LIT_TRANS_POST_RESOLVE = 0x7,
-  CAMERA_REGION_LIT_POST_RESOLVE = 0x8,
-  CAMERA_REGION_WATER = 0x9,
-  CAMERA_REGION_EMISSIVE_FX = 0xA,
-  CAMERA_REGION_DEPTH_HACK_SSS = 0xB,
-  CAMERA_REGION_FORWARD_SSS = 0xC,
-  CAMERA_REGION_DEPTH_HACK = 0xD,
-  CAMERA_REGION_DEPTH_HACK_TRANS = 0xE,
-  CAMERA_REGION_DEPTH_HACK_POST_BLUR = 0xF,
-  CAMERA_REGION_SONAR = 0x10,
-  CAMERA_REGION_OIT = 0x11,
-  CAMERA_REGION_DEPTH_PRIME = 0x12,
-  CAMERA_REGION_UNDERWATER = 0x13,
-  CAMERA_REGION_COUNT = 0x14,
-  CAMERA_REGION_NONE = 0x14,
-};
-
 struct FxLensFlareRootDef;
 struct FxSpotLightDef;
 struct FxTrailDef;
-struct GfxLightDescription;
-struct GfxLightDef;
 union FxElemVisuals;
 struct FxElemMarkVisuals;
 struct FxElemAttractorStateSample;
@@ -407,8 +366,8 @@ union FxElemVisuals {
   FxModelHandle model;
   FxEffectDefRef effectDef;
   FxElemSound soundName;
-  GfxLightDef *lightDef;
-  GfxLightDescription *lightDescription;
+  gfx::GfxLightDef *lightDef;
+  gfx::GfxLightDescription *lightDescription;
   FxLensFlareVisualDef lensFlareVisualDef;
   char editorEffectName[64];
 };
@@ -428,7 +387,7 @@ union FxElemExtendedDefPtr {
   FxTrailDef *trailDef;
   FxSpotLightDef *localSpotLightDef;
   FxSpotLightDef *spotLightDef;
-  GfxLightDescription *dynamicLightDef;
+  gfx::GfxLightDescription *dynamicLightDef;
   const FxLensFlareRootDef *lensFlareDef;
   void *unknownDef; // verbatim name of title in engine
 };
@@ -598,17 +557,6 @@ struct FxElemDef;
 
 typedef uint8_t FxNormalsShape;
 
-union GfxColor {
-  uint32_t packed;
-  struct {
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-    uint8_t a;
-  } rgba;
-  uint8_t array[4];
-};
-
 struct Objective;
 typedef Objective *ObjectivePtr;
 
@@ -710,16 +658,6 @@ struct GfxStreamedPartInfo {
   uint16_t height;
 };
 
-namespace sce::Gnm {
-struct Texture {
-  uint32_t m_regs[8];
-};
-} // namespace sce::Gnm
-
-struct GfxTexture {
-  sce::Gnm::Texture basemap;
-};
-
 enum class MapType : uint8_t {
   MAPTYPE_NONE = 0x0,
   MAPTYPE_2D = 0x1,
@@ -729,65 +667,6 @@ enum class MapType : uint8_t {
   MAPTYPE_CUBE_ARRAY = 0x5,
   MAPTYPE_COUNT = 0x6,
 };
-
-typedef uint8_t GfxImageCategory;
-
-enum class GfxImageSemantic : int8_t {
-  IMG_SEMANTIC_UNKNOWN = 0x0,
-  IMG_SEMANTIC_2D = 0x1,
-  IMG_SEMANTIC_DIFFUSE_MAP = 0x2,
-  IMG_SEMANTIC_EFFECT_MAP = 0x3,
-  IMG_SEMANTIC_NORMAL_MAP = 0x4,
-  IMG_SEMANTIC_SPECULAR_MASK = 0x5,
-  IMG_SEMANTIC_SPECULAR_MAP = 0x6,
-  IMG_SEMANTIC_GLOSS_MAP = 0x7,
-  IMG_SEMANTIC_OCCLUSION_MAP = 0x8,
-  IMG_SEMANTIC_REVEAL_MAP = 0x9,
-  IMG_SEMANTIC_MULTIPLE_MASK = 0xA,
-  IMG_SEMANTIC_THICKNESS_MAP = 0xB,
-  IMG_SEMANTIC_CAMO_MAP = 0xC,
-  IMG_SEMANTIC_ONE_CHANNEL = 0xD,
-  IMG_SEMANTIC_TWO_CHANNEL = 0xE,
-  IMG_SEMANTIC_EMBLEM = 0xF,
-  IMG_SEMANTIC_CUSTOM = 0x10,
-  IMG_SEMANTIC_LUT_TPAGE = 0x11,
-  IMG_SEMANTIC_LIGHT_COOKIE = 0x12,
-  IMG_SEMANTIC_HDR = 0x13,
-  IMG_SEMANTIC_EYE_CAUSTIC = 0x14,
-  IMG_SEMANTIC_COUNT = 0x15,
-};
-
-#pragma pack(push, 1)
-struct GfxImage {
-  uint8_t *pixels;
-  uint8_t *fallbackPixels;
-  const char *name;
-  GfxStreamedPartInfo streamedParts[4];
-  GfxTexture texture;
-  GfxTexture fallbackTexture;
-  uint32_t flags;
-  int32_t alignment;
-  uint32_t hash;
-  uint32_t totalSize;
-  uint32_t fallbackSize;
-  GfxPixelFormat format;
-  uint16_t width;
-  uint16_t height;
-  uint16_t depth;
-  GfxImageSemantic semantic;
-  MapType mapType;
-  GfxImageCategory category;
-  uint8_t levelCount;
-  uint8_t fallbackLevel;
-  uint8_t useFallback;
-  uint8_t streaming;
-  uint8_t streamedPartCount;
-  uint8_t _padding11E[2];
-};
-#pragma pack(pop)
-
-typedef GfxImage *GfxImageHandle;
-typedef GfxImage *GfxImagePtr;
 
 struct ScriptBundle;
 typedef ScriptBundle *ScriptBundlePtr;
@@ -829,7 +708,7 @@ union XAssetHeader {
   // Material *material;
   // MaterialComputeShaderSet *computeShaderSet;
   MaterialTechniqueSet *techniqueSet;
-  // GfxImage *image;
+  gfx::GfxImage *image;
   snd::SndBank *sound;
   snd::SndPatch *soundPatch;
   // clipMap_t *clipMap;
@@ -1092,13 +971,12 @@ struct TypedXAssetPools {
 #pragma pack(push, 1)
 
 union XAssetPools {
-  XAssetPool pools[static_cast<int>(XAssetType::ASSET_TYPE_COUNT)];
+  XAssetPool pools[static_cast<int>(XAssetType::COUNT)];
   TypedXAssetPools typed;
 };
-static_assert(
-    sizeof(XAssetPools) ==
-        sizeof(XAssetPool) * static_cast<int>(XAssetType::ASSET_TYPE_COUNT),
-    "sizeof(XAssetPools) must be sizeof(XAssetPool) * ASSET_TYPE_COUNT");
+static_assert(sizeof(XAssetPools) ==
+                  sizeof(XAssetPool) * static_cast<int>(XAssetType::COUNT),
+              "sizeof(XAssetPools) must be sizeof(XAssetPool) * COUNT");
 static_assert(sizeof(XAssetPools) == sizeof(TypedXAssetPools),
               "sizeof(XAssetPools) must be equal to sizeof(TypedXAssetPools)");
 #pragma pack(pop)

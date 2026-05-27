@@ -9,8 +9,8 @@
 #include "scr/scr.hpp"   // IWYU pragma: export
 #include "bg.hpp"        // IWYU pragma: export
 #include "math.hpp"      // IWYU pragma: export
+#include "fs.hpp"        // IWYU pragma: export
 #include "gfx.hpp"       // IWYU pragma: export
-#include "sce/sce.hpp"   // IWYU pragma: export
 #include "vehicle.hpp"   // IWYU pragma: export
 #include "phys.hpp"      // IWYU pragma: export
 #include "net/net.hpp"   // IWYU pragma: export
@@ -27,6 +27,7 @@
 #include "ui/ui.hpp"     // IWYU pragma: export
 #include "cmd.hpp"       // IWYU pragma: export
 #include "cg.hpp"        // IWYU pragma: export
+#include "steam.hpp"     // IWYU pragma: export
 #include "stream.hpp"    // IWYU pragma: export
 #include "sv.hpp"        // IWYU pragma: export
 #include "ugc.hpp"       // IWYU pragma: export

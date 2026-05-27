@@ -915,7 +915,7 @@ const char *resolve_source_from_rawfiles(uintptr_t bytecode_header) {
   lookup_ctx ctx{bytecode_header, nullptr};
 
   xasset::DB_EnumXAssets(
-      xasset::XAssetType::ASSET_TYPE_RAWFILE,
+      xasset::XAssetType::RAWFILE,
       [](xasset::XAssetHeader header, void *data) {
         lookup_ctx *c = static_cast<lookup_ctx *>(data);
         if (c->found)
@@ -1421,7 +1421,8 @@ public:
       std::string mod_content_path;
       for (unsigned int i = 0; i < game::ugc::modsPool.count; ++i) {
         const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool.data[i];
-        if (mod_data->publisherId == mod_id || mod_data->folderName == mod_id) {
+        if (mod_data->publisherId == mod_id ||
+            mod_data->internalName == mod_id) {
           mod_content_path = mod_data->absolutePathContentFolder;
           break;
         }

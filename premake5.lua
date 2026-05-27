@@ -360,9 +360,15 @@ targetname("boiii")
 pchheader("std_include.hpp")
 pchsource("src/client/std_include.cpp")
 
-files({ "./src/client/**.rc", "./src/client/**.hpp", "./src/client/**.cpp", "./src/client/resources/**.*" })
+files({
+  "./deps/SteamworkSDK/public/**.h",
+  "./src/client/**.rc",
+  "./src/client/**.hpp",
+  "./src/client/**.cpp",
+  "./src/client/resources/**.*",
+})
 
-includedirs({ "./src/client", "./src/common", "%{prj.location}/src" })
+includedirs({ "./deps/SteamWorksSDK/public", "./src/client", "./src/common", "%{prj.location}/src" })
 
 resincludedirs({ "$(ProjectDir)src" })
 

@@ -400,7 +400,7 @@ struct AttachmentCosmeticVariantSet {
   const char *displayNameShort;
   const char *displayNameLong;
   const char *description;
-  db::xasset::GfxImagePtr uiMaterial;
+  gfx::GfxImagePtr uiMaterial;
 };
 
 #pragma pack(push, 1)
@@ -421,7 +421,7 @@ struct WeaponAttachmentUniqueModelSet {
   const char *displayNameShort;
   const char *displayNameLong;
   const char *description;
-  db::xasset::GfxImageHandle uiMaterial;
+  gfx::GfxImageHandle uiMaterial;
 };
 
 #pragma pack(push, 1)
@@ -436,8 +436,8 @@ struct CamoMaterialChannel {
   float rotation;
   float normalBlend;
   float glossBlend;
-  db::xasset::GfxColor albedoTint;
-  db::xasset::GfxImage *detailMap;
+  gfx::GfxColor albedoTint;
+  gfx::GfxImage *detailMap;
   float detailHeight;
   vec2_t detailScale;
   uint8_t _padding44[4];
@@ -446,7 +446,7 @@ struct CamoMaterialChannel {
 
 struct CamoBaseMaterial {
   db::xasset::MaterialDeferredHandle material;
-  db::xasset::GfxImage *mask;
+  gfx::GfxImage *mask;
 };
 
 #pragma pack(push, 1)
@@ -482,8 +482,8 @@ struct WeaponAttachmentUnique {
   const char *szInternalName;
   const char *szDisplayName;
   const char *szDisplayDesc;
-  db::xasset::GfxImageHandle modHudIcon;
-  db::xasset::GfxImageHandle attachmentImage;
+  gfx::GfxImageHandle modHudIcon;
+  gfx::GfxImageHandle attachmentImage;
   eAttachment attachmentType;
   int32_t siblingLink;
   int32_t childLink;
@@ -513,8 +513,8 @@ struct WeaponAttachmentUnique {
   vec3_t viewModelOffsetBaseAttachment;
   vec3_t worldModelOffsetBaseAttachment;
   uint8_t _padding37C[4];
-  db::xasset::GfxImageHandle overlayMaterial;
-  db::xasset::GfxImageHandle overlayMaterialLowRes;
+  gfx::GfxImageHandle overlayMaterial;
+  gfx::GfxImageHandle overlayMaterialLowRes;
   weapOverlayReticle_t overlayReticle;
   int32_t iFirstRaiseTime;
   int32_t iAltRaiseTime;
@@ -1167,9 +1167,9 @@ struct WeaponDef {
   snd::SndAliasId gadgetMissSoundPlayer;
   db::xasset::TaxFxSetPtr tagFXSetFirstPerson[4];
   db::xasset::TaxFxSetPtr tagFXSetThirdPerson[4];
-  db::xasset::GfxImageHandle gadgetIconAvailable;
-  db::xasset::GfxImageHandle gadgetIconUnavailable;
-  db::xasset::GfxImageHandle gadgetEnemyTypeIcon;
+  gfx::GfxImageHandle gadgetIconAvailable;
+  gfx::GfxImageHandle gadgetIconUnavailable;
+  gfx::GfxImageHandle gadgetEnemyTypeIcon;
   const char *fireDelayStartSound;
   const char *fireDelayStartSoundPlayer;
   const char *rechamberSound;
@@ -1223,8 +1223,8 @@ struct WeaponDef {
   vec3_t vWorldShellEjectOffset;
   vec3_t vViewShellEjectRotation;
   vec3_t vWorldShellEjectRotation;
-  db::xasset::GfxImageHandle reticleCenter;
-  db::xasset::GfxImageHandle reticleSide;
+  gfx::GfxImageHandle reticleCenter;
+  gfx::GfxImageHandle reticleSide;
   int32_t iReticleCenterSize;
   int32_t iReticleSideSize;
   int32_t iReticleMinOfs;
@@ -1284,14 +1284,14 @@ struct WeaponDef {
   bool bShownRetrievable;
   bool bHideClipWhenNoAmmo;
   const char *fireTypeString;
-  db::xasset::GfxImageHandle hudIcon;
+  gfx::GfxImageHandle hudIcon;
   weaponIconRatioType_t hudIconRatio;
   const char *szAmmoDisplayName;
   const char *szAmmoName;
   int32_t iAmmoIndex;
   const char *szClipName;
   int32_t iClipIndex;
-  db::xasset::GfxImageHandle ammoCounterIcon;
+  gfx::GfxImageHandle ammoCounterIcon;
   weaponIconRatioType_t ammoCounterIconRatio;
   ammoCounterClipType_t ammoCounterClip;
   int32_t iStartAmmo;
@@ -1509,8 +1509,8 @@ struct WeaponDef {
   float targetLostHorzAng;
   float targetLostVertAng;
   const char *luigiReticleWidget;
-  db::xasset::GfxImageHandle reticleSeekingLockOn;
-  db::xasset::GfxImageHandle reticleLockOn;
+  gfx::GfxImageHandle reticleSeekingLockOn;
+  gfx::GfxImageHandle reticleLockOn;
   db::xasset::MaterialHandle reticlePivotLocked;
   db::xasset::MaterialHandle reticlePivotInvalid;
   db::xasset::MaterialHandle reticlePivotTarget;
@@ -1533,7 +1533,7 @@ struct WeaponDef {
   float grappleReelInDecelTime;
   float grappleMagnetTetherHorzAng;
   float grappleMagnetTetherVertAng;
-  db::xasset::GfxImageHandle reticleGrapple;
+  gfx::GfxImageHandle reticleGrapple;
   scr::ScrString_t grappleStartTag;
   int32_t grappleWobbleTime;
   float grappleWobbleMaxAng;
@@ -1749,11 +1749,11 @@ struct WeaponDef {
   float knockbackScaler;
   float weaponSwitchCancelTransitionTime;
   float teamKillPenaltyScale;
-  db::xasset::GfxImageHandle killIcon;
+  gfx::GfxImageHandle killIcon;
   weaponIconRatioType_t killIconRatio;
   bool flipKillIcon;
-  db::xasset::GfxImageHandle impactKillIcon;
-  db::xasset::GfxImageHandle indicatorIcon;
+  gfx::GfxImageHandle impactKillIcon;
+  gfx::GfxImageHandle indicatorIcon;
   weaponIconRatioType_t indicatorIconRatio;
   db::xasset::ObjectivePtr weaponHeadObjective;
   db::xasset::ObjectivePtr crateObjective;
@@ -2167,9 +2167,9 @@ struct WeaponDef {
   bool bTVGuided;
   uint32_t perks[4];
   bool bAntiQuickScope;
-  db::xasset::GfxImageHandle overlayMaterial;
-  db::xasset::GfxImageHandle overlayMaterialLowRes;
-  db::xasset::GfxImageHandle dpadIcon;
+  gfx::GfxImageHandle overlayMaterial;
+  gfx::GfxImageHandle overlayMaterialLowRes;
+  gfx::GfxImageHandle dpadIcon;
   weaponIconRatioType_t dpadIconRatio;
   bool noAmmoOnDpadIcon;
   vec3_t ikLeftHandIdlePos;

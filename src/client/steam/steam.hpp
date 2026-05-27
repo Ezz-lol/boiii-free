@@ -1,4 +1,11 @@
 #pragma once
+#include <cstdint>
+#include <string>
+#include <mutex>
+#include <thread>
+#include <atomic>
+#include <map>
+#include <vector>
 
 #define STEAM_EXPORT extern "C" __declspec(dllexport)
 

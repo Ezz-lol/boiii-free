@@ -42,6 +42,8 @@ using hksSize = size_t;
 using lua_Alloc = void *(*)(void *, void *, size_t, size_t);
 using lua_CFunction = hksInt32 (*)(lua_State *);
 
+typedef hksInt32 lua_Integer;
+
 struct GenericChunkHeader {
   hksSize m_flags;
 };

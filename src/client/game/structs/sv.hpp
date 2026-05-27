@@ -610,8 +610,8 @@ struct PMoveDef {
 struct CustomizationColorInfo {
   const char *name;
   XString displayName;
-  db::xasset::GfxColor uiColor;
-  db::xasset::GfxImageHandle icon;
+  gfx::GfxColor uiColor;
+  gfx::GfxImageHandle icon;
   uint32_t numCamoMaterials;
   weapon::CamoMaterial *camoMaterials;
 };
@@ -665,7 +665,7 @@ struct RagdollDef {
 struct CharacterItemInfo {
   const char *assetName;
   const char *displayName;
-  db::xasset::GfxImageHandle icon;
+  gfx::GfxImageHandle icon;
   db::xasset::XModelPtr models[11];
   uint32_t accentColorCount;
   ColorOptionSet *colorOptions;
@@ -697,20 +697,20 @@ struct CharacterBodyType {
   XString bodySoundContext;
   scr::ScriptBundlePtr mpDialog;
   XString chrName;
-  db::xasset::GfxImageHandle rewardIcon;
+  gfx::GfxImageHandle rewardIcon;
   XString background;
   XString backgroundWithCharacter;
   XString lockedImage;
   XString personalizeRender;
   XString frozenMomentRender;
   XString frozenMomentOverlay;
-  db::xasset::GfxImageHandle defaultHeroRender;
-  db::xasset::GfxImageHandle defaultHeroRenderAbility;
-  db::xasset::GfxImageHandle positionDraftPortrait;
-  db::xasset::GfxImageHandle positionDraftIcon;
+  gfx::GfxImageHandle defaultHeroRender;
+  gfx::GfxImageHandle defaultHeroRenderAbility;
+  gfx::GfxImageHandle positionDraftPortrait;
+  gfx::GfxImageHandle positionDraftIcon;
   XString equippedLoadoutIcons[2];
   XString unequippedLoadoutIcons[2];
-  db::xasset::GfxImageHandle zombiePlayerIcon;
+  gfx::GfxImageHandle zombiePlayerIcon;
   uint32_t numBodyInfos;
   CharacterItemInfo *bodyInfo;
   uint32_t numHelmetInfos;
@@ -753,7 +753,7 @@ struct PlayerRoleCategory {
   XString name;
   XString displayName;
   XString description;
-  db::xasset::GfxImageHandle icon;
+  gfx::GfxImageHandle icon;
   int32_t sortOrder;
   uint32_t kvpCount;
   scr::ScriptBundleKVP *kvpItems;
@@ -978,7 +978,7 @@ struct clientInfo_t {
   score_t score;
   uint8_t _paddingEC[4];
   db::xasset::MaterialHandle hStatusIcon;
-  db::xasset::GfxImage *hRankIcon;
+  gfx::GfxImage *hRankIcon;
   int32_t location;
   int32_t clientInfoHealth;
   int32_t clientInfoArmor;

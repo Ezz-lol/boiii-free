@@ -36,3 +36,6 @@
 [submodule "deps/imgui"]
 	path = deps/imgui
 	url = https://github.com/ocornut/imgui.git
+[submodule "deps/SteamworkSDK"]
+	path = deps/SteamworkSDK
+	url = https://github.com/rlabrecque/SteamworksSDK

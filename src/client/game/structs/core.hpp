@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <stdfloat>
 #include <csetjmp>
+#include <variant>
 
 #define PROTOCOL 8
 #define SUB_PROTOCOL 1
@@ -32,6 +33,38 @@ namespace game {
 
 #define ASSERT_SIZE(type, size)                                                \
   static_assert(sizeof(type) == (size), "sizeof(" #type ") != " STR(size))
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wignored-attributes"
+#endif
+template <typename T, typename... Args>
+using stdcall_t = T(__stdcall *)(Args...);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
+template <typename T, typename... Args> using cdecl_t = T(__cdecl *)(Args...);
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wignored-attributes"
+#endif
+template <typename T, typename This = void, typename... Args>
+using thiscall_t = T(__thiscall *)(This *, Args...);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
+
+#ifdef __clang__
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wignored-attributes"
+#endif
+template <typename T, typename... Args>
+using stdcall_t = T(__fastcall *)(Args...);
+#ifdef __clang__
+#pragma clang diagnostic pop
+#endif
 
 typedef uint32_t contents_t;
 typedef const char *XString;
@@ -1396,4 +1429,7 @@ static const uint32_t PLAYER_NAME_MAX_LEN = 32;
 static const uint32_t PLAYER_CLAN_ABBREV_MAX_LEN = 8;
 
 template <typename T> using LocalClientPool = array<T, LOCAL_CLIENT_COUNT>;
+
+template <typename ClientType, typename ServerType>
+using EngineDependent = std::variant<ClientType, ServerType>;
 } // namespace game

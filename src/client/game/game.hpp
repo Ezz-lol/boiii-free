@@ -11,6 +11,10 @@ extern void *callstack_proxy_addr;
 } // namespace arxan::detail
 
 namespace game {
+
+inline constexpr uint32_t APP_ID = 311210;
+inline constexpr const char *APP_ID_STR = "311210";
+
 size_t get_base();
 bool is_server();
 bool is_client();

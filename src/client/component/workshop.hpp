@@ -45,4 +45,12 @@ struct workshop_info {
   std::string title;
 };
 workshop_info get_steam_workshop_info(const std::string &workshop_id);
+void load_workshop_data(game::ugc::WorkshopData *item);
+void supplement_mods_from_disk();
+
+const char *va_mods_path(const char *fmt, const char *root_dir,
+                         const char *mods_dir, const char *dir_name);
+
+const char *va_user_content_path(const char *fmt, const char *root_dir,
+                                 const char *user_content_dir);
 } // namespace workshop

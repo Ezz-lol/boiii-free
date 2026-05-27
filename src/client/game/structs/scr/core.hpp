@@ -5,6 +5,12 @@
 #include "../weapon.hpp"
 
 namespace game {
+
+namespace gfx {
+struct GfxImage;
+typedef GfxImage *GfxImagePtr;
+
+} // namespace gfx
 namespace scr {
 typedef uint32_t ScrString_t;
 typedef uint32_t ScrVarCanonicalName_t;
@@ -99,12 +105,10 @@ enum class scriptBundleVMType_t : int32_t {
   SCRIPT_BUNDLE_VMTYPE_COUNT = 0x4,
 };
 
-struct GfxImage;
 struct XAnimParts;
 struct XCam;
 struct XModel;
 
-typedef GfxImage *GfxImagePtr;
 typedef XAnimParts *XAnimPartsPtr;
 typedef XCam *XCamPtr;
 typedef XModel *XModelPtr;
@@ -113,7 +117,7 @@ struct SurfaceFXTableDef;
 // sizeof=0x8
 union KVPItemUnion {
   uint64_t primitive;
-  GfxImagePtr image;
+  gfx::GfxImagePtr image;
   XAnimPartsPtr anim;
   XCamPtr xcam;
   XModelPtr xmodel;

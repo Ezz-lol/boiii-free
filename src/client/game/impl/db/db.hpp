@@ -1,7 +1,6 @@
 #pragma once
 #include <cstdint>
-#include "game/game.hpp"
-#include "game/structs/structs.hpp"
+#include "../../../game/game.hpp"
 
 namespace game {
 namespace db {

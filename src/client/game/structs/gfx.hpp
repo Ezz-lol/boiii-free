@@ -1,9 +1,50 @@
 #pragma once
 
 #include <cstdint>
-#include "sce/sce.hpp"
+#include "core.hpp"
+#include "quake.hpp"
 namespace game {
 namespace gfx {
+
+enum class GfxCameraRegion : int8_t {
+  CAMERA_REGION_GBUFFER_DEPTH_HACK = 0x0,
+  CAMERA_REGION_GBUFFER_DEPTH_HACK_DECAL = 0x1,
+  CAMERA_REGION_GBUFFER = 0x2,
+  CAMERA_REGION_GBUFFER_DECAL = 0x3,
+  CAMERA_REGION_GBUFFER_NO_VOLUME_DECAL = 0x4,
+  CAMERA_REGION_LIT_OPAQUE = 0x5,
+  CAMERA_REGION_LIT_TRANS = 0x6,
+  CAMERA_REGION_LIT_TRANS_POST_RESOLVE = 0x7,
+  CAMERA_REGION_LIT_POST_RESOLVE = 0x8,
+  CAMERA_REGION_WATER = 0x9,
+  CAMERA_REGION_EMISSIVE_FX = 0xA,
+  CAMERA_REGION_DEPTH_HACK_SSS = 0xB,
+  CAMERA_REGION_FORWARD_SSS = 0xC,
+  CAMERA_REGION_DEPTH_HACK = 0xD,
+  CAMERA_REGION_DEPTH_HACK_TRANS = 0xE,
+  CAMERA_REGION_DEPTH_HACK_POST_BLUR = 0xF,
+  CAMERA_REGION_SONAR = 0x10,
+  CAMERA_REGION_OIT = 0x11,
+  CAMERA_REGION_DEPTH_PRIME = 0x12,
+  CAMERA_REGION_UNDERWATER = 0x13,
+  CAMERA_REGION_COUNT = 0x14,
+  CAMERA_REGION_NONE = 0x14,
+};
+
+struct GfxDrawSurfFields {
+  uint64_t useSiegeTextures : 1;
+  uint64_t objectId : 18;
+  uint64_t lateDepthSort : 5;
+  uint64_t materialSortedIndex : 16;
+  uint64_t techniqueIndexPlusOne : 11;
+  uint64_t decalSurfSort : 6;
+  uint64_t earlyDepthSort : 7;
+};
+
+union GfxSortKey {
+  GfxDrawSurfFields fields;
+  uint64_t packed;
+};
 
 #pragma pack(push, 1)
 // sizeof=0x20
@@ -20,18 +61,70 @@ struct XPakEntryInfo {
   uint64_t adjacentRight : 18;
   uint64_t padding : 15;
 };
-static_assert(sizeof(XPakEntryInfo) == 0x20,
-              "XPakEntryInfo size must be 32 bytes");
+ASSERT_SIZE(XPakEntryInfo, 0x20);
+#pragma pack(pop)
 
+#pragma pack(push, 1)
 struct GfxStreamedPartInfo {
   uint32_t levelCountAndSize;
   uint16_t width;
   uint16_t height;
   XPakEntryInfo xpakEntry;
 };
+#pragma pack(pop)
 
-struct GfxTexture {
-  sce::gnm::Texture basemap;
+#pragma pack(push, 1)
+struct _GUID {
+  uint32_t Data1;
+  uint16_t Data2;
+  uint16_t Data3;
+  uint8_t Data4[8];
+};
+#pragma pack(pop)
+typedef struct _GUID GUID;
+typedef GUID IID;
+
+struct IUnknown;
+
+#pragma pack(push, 8)
+struct IUnknownVtbl {
+  stdcall_t<int32_t, IUnknown *, const IID *const, void **> QueryInterface;
+  stdcall_t<uint32_t, IUnknown *> AddRef;
+  stdcall_t<uint32_t, IUnknown *> Release;
+};
+ASSERT_SIZE(IUnknownVtbl, 0x18);
+#pragma pack(pop)
+
+#pragma pack(push, 8)
+struct IUnknown {
+  IUnknownVtbl *lpVtbl;
+};
+#pragma pack(pop)
+
+struct ID3D11DeviceChild : IUnknown {};
+
+struct ID3D11View : ID3D11DeviceChild {};
+
+struct ID3D11ShaderResourceView : ID3D11View {};
+
+// Unverified
+#pragma pack(push, 1)
+struct GfxImageLoadDef {
+  char levelCount;
+  char numElements;
+  char pad[2];
+  int flags;
+  int format;
+  int resourceSize;
+  char data[1];
+  uint8_t _padding011[3];
+};
+ASSERT_SIZE(GfxImageLoadDef, 0x14);
+#pragma pack(pop)
+
+union GfxTexture {
+  ID3D11ShaderResourceView *basemap;
+  GfxImageLoadDef *loadDef;
 };
 
 enum class GfxImageSemantic : int8_t {
@@ -111,39 +204,61 @@ enum class GfxPixelFormat : int32_t {
 
 typedef uint8_t MapType;
 typedef uint8_t GfxImageCategory;
-// sizeof=0x130
+#pragma pack(push, 1)
 struct GfxImage {
   GfxStreamedPartInfo streamedParts[4];
   uint8_t streamedPartCount;
   GfxImageSemantic semantic;
   MapType mapType;
   GfxImageCategory category;
-  uint8_t useFallback;
-  uint8_t _paddingA5[3];
+  qboolean useFallback;
   GfxTexture texture;
   GfxTexture fallbackTexture;
   uint32_t flags;
   bool delayLoadPixels;
-  uint8_t _paddingED[1];
+  uint8_t _paddingBD[1];
   uint16_t width;
   uint16_t height;
   uint16_t depth;
-  int32_t alignment;
+  int alignment;
   uint8_t levelCount;
   uint8_t fallbackLevel;
-  uint8_t streaming;
-  uint8_t _paddingFB[5];
+  bool streaming;
+  uint8_t _paddingCB[5];
   uint8_t *pixels;
   uint8_t *fallbackPixels;
   uint32_t totalSize;
   uint32_t fallbackSize;
   GfxPixelFormat format;
-  uint8_t _padding11C[4];
+  uint8_t _paddingEC[4];
   const char *name;
   uint32_t hash;
-  uint8_t _padding12C[4];
+  uint8_t _paddingFC[4];
+  // This might not be here, but the struct has size
+  // 0x100 otherwise - correct size is known to be 0x108.
+  uint8_t _unknown100[8];
 };
-static_assert(sizeof(GfxImage) == 0x130, "GfxImage size must be 304 bytes");
+ASSERT_SIZE(GfxImage, 0x108);
 #pragma pack(pop)
+
+typedef GfxImage *GfxImageHandle;
+typedef GfxImage *GfxImagePtr;
+
+typedef uint8_t GfxImageCategory;
+
+union GfxColor {
+  uint32_t packed;
+  struct {
+    uint8_t r;
+    uint8_t g;
+    uint8_t b;
+    uint8_t a;
+  } rgba;
+  uint8_t array[4];
+};
+
+// TODO
+struct GfxLightDescription;
+struct GfxLightDef;
 } // namespace gfx
 } // namespace game

@@ -3,7 +3,7 @@
 #include <cstdint>
 namespace game {
 namespace live {
-
+namespace settings {
 enum class ProfileSetting : uint32_t {
   PROFILE_SETTING_INVALID = 0xFFFFFFFF,
   PROFILE_LAST_PLAYED_MODE = 0x0,
@@ -267,6 +267,6 @@ union SettingsGlob {
 
   bool glob[4];
 };
-
+} // namespace settings
 } // namespace live
 } // namespace game
