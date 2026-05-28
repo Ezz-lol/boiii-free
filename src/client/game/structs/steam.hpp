@@ -53,8 +53,8 @@ struct SteamInterfaces : SteamInterfacesBase {
 /* Including steam_api.h overrides/conflicts with some of our steam_proxy types,
    classes, and defines, so it cannot be included.
 
-   The following classes are only defined steam_api.h, so their definitions were
-   moved here for usage.
+   The following classes are only defined in steam_api.h, so their definitions
+   were moved here for usage.
 */
 
 //-----------------------------------------------------------------------------

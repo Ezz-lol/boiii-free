@@ -247,7 +247,7 @@ void detour::create(void *place, void *target) {
 
   if (MH_CreateHook(this->place_, target, &this->original_) != MH_OK) {
     throw std::runtime_error(string::va("Unable to create hook at location: "
-                                        "(place: %p, target: %p, original: %p",
+                                        "(place: %p, target: %p, original: %p)",
                                         place, target, this->original_));
   }
 
