@@ -397,8 +397,7 @@ inline void *GetPrimaryHSteamPipe() {
 class ModsUGCDetailsCallback : steam::CCallbackBase {
 public:
   WorkshopData *result;
-  // Incomplete; at least 4 pointers in the class total, with at least 1 being a
-  // vftable;
+  // Incomplete
 };
 
 class ModsUGCDetailsCallbackResult
