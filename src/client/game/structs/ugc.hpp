@@ -20,7 +20,7 @@ struct WorkshopData {
   str32_t publisherId;
   char description[256];
   UGCPath contentPathToZoneFiles;
-  UGCPath absolutePathContentFolder;
+  UGCPath absolutePathContentDirectory;
   UGCPath absolutePathZoneFiles;
   /*
     Also used in engine to check if mod is installed

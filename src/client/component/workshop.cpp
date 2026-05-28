@@ -264,7 +264,7 @@ void populate_workshop_paths(game::ugc::WorkshopData *item,
 
   utils::string::copy(item->contentPathToZoneFiles,
                       relative_zone_path.generic_string().c_str());
-  utils::string::copy(item->absolutePathContentFolder,
+  utils::string::copy(item->absolutePathContentDirectory,
                       content_folder.generic_string().c_str());
   utils::string::copy(item->absolutePathZoneFiles,
                       zone_path.generic_string().c_str());

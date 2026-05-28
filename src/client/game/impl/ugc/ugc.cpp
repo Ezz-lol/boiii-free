@@ -172,8 +172,8 @@ void UGC_LoadPool_Impl(ExtendedWorkshopDataPool *pool, ZoneType zoneType) {
     strlcpy(entry->contentPathToZoneFiles,
             utils::string::va("%s/%s", "mods", ugcDirname),
             sizeof(entry->contentPathToZoneFiles));
-    strlcpy(entry->absolutePathContentFolder, cwd,
-            sizeof(entry->absolutePathContentFolder));
+    strlcpy(entry->absolutePathContentDirectory, cwd,
+            sizeof(entry->absolutePathContentDirectory));
     entry->publisherIdHash = UGC_Hash(ugcDirname);
     entry->version = 1;
     entry->publisherIdInteger = 0;
@@ -302,8 +302,8 @@ void UGC_LoadModByPublisherId_Impl(LocalClientNum_t localClientNum,
     snprintf(genMod.contentPathToZoneFiles,
              sizeof(genMod.contentPathToZoneFiles), "%s/%s", "mods",
              publisherId);
-    strlcpy(genMod.absolutePathContentFolder, sys::Sys_Cwd(),
-            sizeof(genMod.absolutePathContentFolder));
+    strlcpy(genMod.absolutePathContentDirectory, sys::Sys_Cwd(),
+            sizeof(genMod.absolutePathContentDirectory));
     strlcpy(genMod.absolutePathZoneFiles,
             // ORIGINAL:
             // utils::string::va("%s/%s/%s/zone", sys::Sys_Cwd(), "mods",
@@ -436,16 +436,15 @@ void UGC_LoadManifest_Impl(bool usermaps, bool mods,
           bool isBusy = (itemState & 0x38) != 0;
 
           if (isInstalled && !isBusy) {
-            char itemFolderPath[260] = {0};
+            char dirPath[260] = {0};
             uint64_t sizeOnDisk = 0;
             uint32_t punTimeStamp = 0;
 
-            if (pSteamUGC->GetItemInstallInfo(
-                    publisherId, &sizeOnDisk, itemFolderPath,
-                    sizeof(itemFolderPath), &punTimeStamp)) {
+            if (pSteamUGC->GetItemInstallInfo(publisherId, &sizeOnDisk, dirPath,
+                                              sizeof(dirPath), &punTimeStamp)) {
               char jsonPath[260];
               snprintf(jsonPath, sizeof(jsonPath), "%s\\workshop.json",
-                       itemFolderPath);
+                       dirPath);
 
               std::ifstream jsonFile(jsonPath,
                                      std::ios::binary | std::ios::ate);
@@ -508,31 +507,29 @@ void UGC_LoadManifest_Impl(bool usermaps, bool mods,
                           sizeof(newUgcEntry->description));
                 }
 
-                char publisherIdStr[32];
-                snprintf(publisherIdStr, sizeof(publisherIdStr), "%llu",
-                         publisherId);
+                snprintf(newUgcEntry->publisherId,
+                         sizeof(newUgcEntry->publisherId), "%llu",
+                         sizeof(newUgcEntry->publisherId));
 
-                strlcpy(newUgcEntry->publisherId, publisherIdStr,
-                        sizeof(newUgcEntry->publisherId));
-
-                strlcpy(newUgcEntry->absolutePathZoneFiles, itemFolderPath,
+                strlcpy(newUgcEntry->absolutePathZoneFiles, dirPath,
                         sizeof(newUgcEntry->absolutePathZoneFiles));
 
-                const char *appIdPos = strstr(itemFolderPath, APP_ID_STR);
+                const char *appIdPos = strstr(dirPath, APP_ID_STR);
                 if (appIdPos) {
-                  size_t baseLen = appIdPos - itemFolderPath - 1;
+                  size_t baseLen = appIdPos - dirPath - 1;
                   size_t maxContentLen =
-                      sizeof(newUgcEntry->absolutePathContentFolder);
+                      sizeof(newUgcEntry->absolutePathContentDirectory);
                   size_t copyLen = (std::min)(baseLen, maxContentLen);
 
-                  strlcpy(newUgcEntry->absolutePathContentFolder,
-                          itemFolderPath, copyLen);
+                  strlcpy(newUgcEntry->absolutePathContentDirectory, dirPath,
+                          copyLen);
 
                   strlcpy(newUgcEntry->contentPathToZoneFiles, appIdPos,
                           sizeof(newUgcEntry->contentPathToZoneFiles));
                 }
 
-                newUgcEntry->publisherIdHash = UGC_Hash(publisherIdStr);
+                newUgcEntry->publisherIdHash =
+                    UGC_Hash(newUgcEntry->publisherId);
                 newUgcEntry->version = 1;
                 newUgcEntry->publisherIdInteger = publisherId;
                 newUgcEntry->type = zoneType;

@@ -1423,7 +1423,7 @@ public:
         const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool.data[i];
         if (mod_data->publisherId == mod_id ||
             mod_data->internalName == mod_id) {
-          mod_content_path = mod_data->absolutePathContentFolder;
+          mod_content_path = mod_data->absolutePathContentDirectory;
           break;
         }
       }
