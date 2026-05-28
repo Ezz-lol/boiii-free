@@ -291,7 +291,7 @@ void UGC_LoadModByPublisherId_Impl(LocalClientNum_t localClientNum,
   UGC_LoadPools_Impl();
   WorkshopData genMod{};
   WorkshopData *mod = UGC_GetModByPublisherId(publisherId);
-  if (!mod) {
+  if (mod == nullptr) {
     if (UGC_DownloadModByPublisherId(publisherId)) {
       return;
     }
@@ -345,7 +345,7 @@ void UGC_SetMapPreviewImageByPublisherId_Impl(const char *publisherId) {
     }
     previewImage->texture.basemap->lpVtbl->Release(
         previewImage->texture.basemap);
-    if (!texture.basemap) {
+    if (texture.basemap == nullptr) {
       texture = (*gfx::loadedGfxImage.get())->texture;
       if (is_client) {
         gfx::Gfx_TexturePool_AddRef(texture, 0);
@@ -378,7 +378,7 @@ void UGC_SetMapLoadingImage_Impl() {
     gfx::Gfx_TexturePool_ReleaseRef(loadingImage->texture, 0);
     loadingImage->texture.basemap->lpVtbl->Release(
         loadingImage->texture.basemap);
-    if (!texture.basemap) {
+    if (texture.basemap == nullptr) {
       texture = (*gfx::loadedGfxImage.get())->texture;
       gfx::Gfx_TexturePool_AddRef(texture, 0);
       texture.basemap->lpVtbl->AddRef(texture.basemap);
@@ -423,19 +423,22 @@ void UGC_LoadManifest_Impl(bool usermaps, bool mods,
     std::visit(
         [publisherId, usermaps, mods](auto *g_steamInterfaces) {
           steam::ISteamUGC *pSteamUGC = g_steamInterfaces->pSteamUGC;
-          if (!pSteamUGC) {
+          if (pSteamUGC == nullptr) {
             InitPrimarySteamInterfaces(g_steamInterfaces);
             pSteamUGC = g_steamInterfaces->pSteamUGC;
-            if (!pSteamUGC) {
+            if (pSteamUGC == nullptr) {
               return;
             }
           }
 
           uint32_t itemState = pSteamUGC->GetItemState(publisherId);
           bool isInstalled = (itemState & steam::k_EItemStateInstalled) != 0;
-          bool isBusy = (itemState & 0x38) != 0;
+          bool isReady =
+              (itemState & (steam::k_EItemStateNeedsUpdate |
+                            steam::k_EItemStateDownloading |
+                            steam::k_EItemStateDownloadPending)) == 0;
 
-          if (isInstalled && !isBusy) {
+          if (isInstalled && isReady) {
             char dirPath[260] = {0};
             uint64_t sizeOnDisk = 0;
             uint32_t punTimeStamp = 0;
@@ -456,13 +459,11 @@ void UGC_LoadManifest_Impl(bool usermaps, bool mods,
                   (std::istreambuf_iterator<char>(jsonFile)),
                   std::istreambuf_iterator<char>());
 
-              // Execute RapidJSON DOM Parsing
               rapidjson::Document doc;
               if (doc.Parse(jsonContent.c_str()).HasParseError()) {
                 return;
               }
 
-              // Extract the Type string safely
               const char *typeString =
                   (doc.HasMember("Type") && doc["Type"].IsString())
                       ? doc["Type"].GetString()
