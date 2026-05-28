@@ -130,23 +130,23 @@ inline void UGC_LoadPool_Patches(ExtendedWorkshopDataPool *pool,
 void UGC_LoadPool_Impl(ExtendedWorkshopDataPool *pool, ZoneType zoneType) {
 
   const char *cwd = sys::Sys_Cwd();
-  const char *zoneDirname;
+  const char *ugcContentContainerDirname;
   switch (zoneType) {
   case ZoneType::MOD:
-    zoneDirname = "mods";
+    ugcContentContainerDirname = "mods";
     break;
   case ZoneType::USERMAP:
-    zoneDirname = "usermaps";
+    ugcContentContainerDirname = "usermaps";
     break;
   default:
-    zoneDirname = "";
+    ugcContentContainerDirname = "";
     break;
   }
 
   int32_t numfiles = 0;
   char ugcContentListContainerDir[256];
   snprintf(ugcContentListContainerDir, sizeof(ugcContentListContainerDir),
-           "%s/%s", cwd, zoneDirname);
+           "%s/%s", cwd, ugcContentContainerDirname);
   fs::PathList fileList = sys::Sys_ListFiles(ugcContentListContainerDir, "/",
                                              nullptr, &numfiles, 0);
 
