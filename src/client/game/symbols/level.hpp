@@ -9,8 +9,17 @@
 namespace game {
 namespace level {
 WEAK symbol<level::gentity_pool> g_entities{0x0, 0x1471031B0};
-// Statically allocated on server, heap allocated with `malloc(0x27C000u);` on
-// client.
+
+/*
+  Statically allocated on server, heap allocated with `malloc(0x27C000u);` on
+  client.
+
+   Notes:
+     - 0x27C000 == sizeof(level::gentity_t) * 2048
+     - **DO NOT** use `g_entities_cl` directly. Use `g_entities_cl_allocation`
+      instead. See note above `store_g_entities_cl_allocation` in
+      src/client/component/client_patches.cpp for context.
+*/
 WEAK symbol<level::gentity_pool *> g_entities_cl{0x14A5F25F8};
 extern std::atomic<level::gentity_pool *> g_entities_cl_allocation;
 
