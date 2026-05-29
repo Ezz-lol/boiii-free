@@ -8,6 +8,7 @@
 #include "toast.hpp"
 #include "scheduler.hpp"
 #include "game/ui_scripting/execution.hpp"
+#include "game/utils.hpp"
 
 #include <utils/nt.hpp>
 #include <utils/string.hpp>
@@ -21,8 +22,8 @@ utils::concurrency::container<std::string> player_name{};
 
 std::string sanitize_name(const std::string &name) {
   std::string result;
-  for (const auto c : name) {
-    const auto uc = static_cast<unsigned char>(c);
+  for (const char c : name) {
+    const unsigned char uc = static_cast<unsigned char>(c);
     if (uc >= 32 && uc <= 126)
       result += c;
   }
@@ -122,7 +123,7 @@ const char *get_player_name() {
 
 void set_name_override(game::ClientNum_t client_num, const std::string &n) {
   std::lock_guard lk(names_mutex);
-  if (sv::valid_client_num(client_num)) {
+  if (game::valid_client_num(client_num)) {
     name_overrides[client_num] = n;
   }
 }
@@ -130,7 +131,7 @@ void set_name_override(game::ClientNum_t client_num, const std::string &n) {
 void set_clan_abbrev_override(game::ClientNum_t client_num,
                               const std::string &t) {
   std::lock_guard lk(names_mutex);
-  if (!sv::valid_client_num(client_num))
+  if (!game::valid_client_num(client_num))
     return;
   clan_abbrev_overrides[client_num] = t;
 }
@@ -145,8 +146,8 @@ void clear_clan_abbrev_override(game::ClientNum_t client_num) {
 
 template <typename T>
 void clear_perplayer_optional_array(game::lobby::PerPlayerOptional<T> &p) {
-  for (uint32_t i = game::lobby::MIN_PLAYERS; i < game::lobby::MAX_PLAYERS;
-       i++) {
+  for (game::ClientNum_t i = game::lobby::MIN_PLAYERS;
+       i < game::lobby::MAX_PLAYERS; i++) {
     p[i].reset();
   }
 }
@@ -217,7 +218,7 @@ void client_update(game::sv::client_s *cl) {
         std::lock_guard lk(names_mutex);
         game::level::clientState_t *client_state = &gclient->sess.cs;
         game::ClientNum_t client_num = client_state->clientIndex;
-        if (sv::valid_client_num(client_num)) {
+        if (game::valid_client_num(client_num)) {
 
           std::optional<std::string> name_override =
               get_name_override(client_num);
@@ -289,18 +290,10 @@ void client_update_post_enterworld(
 }
 
 void trigger_client_update(game::ClientNum_t client_num) {
-  if (sv::valid_client_num(client_num)) {
+  if (game::valid_client_num(client_num)) {
     scheduler::once(
         [client_num]() {
-          game::sv::client_s *cl;
-          if (game::is_client()) {
-            game::sv::client_s_cl *svs_clients = *game::sv::svs_clients_cl;
-            cl = &svs_clients[client_num];
-          } else {
-            game::sv::client_s *svs_clients = *game::sv::svs_clients;
-            cl = &svs_clients[client_num];
-          }
-
+          game::sv::client_s *cl = sv::get_client(client_num);
           client_update(cl);
         },
         scheduler::server, 50ms);

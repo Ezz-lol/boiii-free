@@ -3,6 +3,7 @@
 #include "loader/component_loader.hpp"
 
 #include "sv.hpp"
+#include "game/utils.hpp"
 
 #include <utils/concurrency.hpp>
 #include <utils/hook.hpp>
@@ -46,11 +47,6 @@ void on_removeclient(const RemoveTask &callback) {
       [&callback](RemoveTasks &tasks) { tasks.emplace_back(callback); });
 }
 
-bool valid_client_num(game::ClientNum_t c) {
-  return static_cast<uint32_t>(c) >= game::lobby::MIN_PLAYERS &&
-         static_cast<uint32_t>(c) < game::lobby::MAX_PLAYERS;
-}
-
 /*
   All `client_s`s are stored in svs.clients.
   Thus, index of a given client can be calculated by findings its displacement
@@ -68,7 +64,7 @@ game::ClientNum_t get_client_num(game::sv::client_s *client) {
       if (client_displacement > 0) {
         const game::ClientNum_t client_num = static_cast<game::ClientNum_t>(
             client_displacement / sizeof(game::sv::client_s_cl));
-        if (valid_client_num(client_num)) {
+        if (game::valid_client_num(client_num)) {
           return client_num;
         }
       }
@@ -81,13 +77,25 @@ game::ClientNum_t get_client_num(game::sv::client_s *client) {
       if (client_displacement > 0) {
         const game::ClientNum_t client_num = static_cast<game::ClientNum_t>(
             client_displacement / sizeof(game::sv::client_s));
-        if (valid_client_num(client_num)) {
+        if (game::valid_client_num(client_num)) {
           return client_num;
         }
       }
     }
   }
   return game::INVALID_CLIENT_INDEX;
+}
+
+game::sv::client_s *get_client(game::ClientNum_t clientNum) {
+  if (game::valid_client_num(clientNum)) {
+    if (game::is_client()) {
+      game::sv::client_s_cl *svs_clients_cl = *game::sv::svs_clients_cl;
+      return &svs_clients_cl[clientNum];
+    }
+    game::sv::client_s *svs_clients = *game::sv::svs_clients;
+    return &svs_clients[clientNum];
+  }
+  return nullptr;
 }
 
 class component final : public generic_component {

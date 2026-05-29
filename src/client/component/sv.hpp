@@ -11,6 +11,6 @@ using RemoveTask =
 void on_cliententerworld(const EnterWorldTask &callback);
 void on_removeclient(const RemoveTask &callback);
 
-bool valid_client_num(game::ClientNum_t c);
 game::ClientNum_t get_client_num(game::sv::client_s *client);
+game::sv::client_s *get_client(game::ClientNum_t clientNum);
 } // namespace sv

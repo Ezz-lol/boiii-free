@@ -593,8 +593,7 @@ void gscr_tell(scriptInstance_t inst) {
   const game::ClientNum_t client_num =
       static_cast<game::ClientNum_t>(Scr_GetInt(inst, 1));
   const char *msg = Scr_GetString(inst, 2);
-  if (static_cast<uint32_t>(client_num) >= game::lobby::MIN_PLAYERS &&
-      static_cast<uint32_t>(client_num) < game::lobby::MAX_PLAYERS && msg)
+  if (game::valid_client_num(client_num) && msg)
     game::sv::SV_GameSendServerCommand(
         client_num, game::net::SV_CMD_CAN_IGNORE_0,
         utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, msg));
