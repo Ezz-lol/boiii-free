@@ -184,14 +184,7 @@ struct lua_Debug {
   int32_t is_tail_call;
 };
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wignored-attributes"
-#endif
-using lua_function = int(__fastcall *)(lua_State *);
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
+using lua_function = fastcall_t<int, lua_State *>;
 
 struct luaL_Reg {
   const char *name;

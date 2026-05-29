@@ -53,7 +53,6 @@ bool unsafe_lua_approved_for_session = false;
 
 std::unordered_map<uintptr_t, std::string> rawfile_source_cache{};
 
-using lua_function_t = int (*)(game::ui::lua::hks::lua_State *);
 std::unordered_map<size_t, utils::hook::detour> unsafe_function_detours;
 
 struct globals_t {
@@ -1000,8 +999,8 @@ int hksi_lua_getinfo_stub(game::ui::lua::hks::lua_State *s, const char *what,
 
       uintptr_t pc = 0;
       if (!game::is_server()) {
-        using getPC_t = uintptr_t(__fastcall *)(
-            game::ui::lua::hks::lua_State *, game::ui::lua::hks::lua_Debug *);
+        using getPC_t = fastcall_t<uintptr_t, game::ui::lua::hks::lua_State *,
+                                   game::ui::lua::hks::lua_Debug *>;
         getPC_t fn_getPC = reinterpret_cast<getPC_t>(0x141D46310_g);
         pc = fn_getPC(s, ar);
       }

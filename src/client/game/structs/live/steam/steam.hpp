@@ -1,7 +1,8 @@
 #pragma once
-#include "steamworks.hpp" // IWYU pragma: export
 
 #include <cstdint>
+
+#include "../../steam.hpp"
 namespace game {
 namespace live {
 namespace steam {
@@ -10,27 +11,28 @@ namespace steam {
 // Not verified on dedicated server, but also may not exist there.
 #pragma pack(push, 1)
 struct LiveSteamClient {
-  steamworks::EResult resultOnRequestEncryptedAppTicket;
+  game::steam::EResult resultOnRequestEncryptedAppTicket;
   int32_t ticketTime;
   int32_t numFriendsNotifications;
   uint8_t _padding0C[4];
-  steamworks::CCallResult<LiveSteamClient,
-                          steamworks::EncryptedAppTicketResponse_t>
+  game::steam::CCallResult<LiveSteamClient,
+                           game::steam::EncryptedAppTicketResponse_t>
       m_SteamCallResultEncryptedAppTicket;
-  steamworks::CCallback<LiveSteamClient, steamworks::GameOverlayActivated_t, 0>
+  game::steam::CCallback<LiveSteamClient, game::steam::GameOverlayActivated_t,
+                         0>
       m_CallbackOverlayActivated;
-  steamworks::CCallback<LiveSteamClient, steamworks::DlcInstalled_t, 0>
+  game::steam::CCallback<LiveSteamClient, game::steam::DlcInstalled_t, 0>
       m_CallbackDLCInstalled;
-  steamworks::CCallback<LiveSteamClient, steamworks::PersonaStateChange_t, 0>
+  game::steam::CCallback<LiveSteamClient, game::steam::PersonaStateChange_t, 0>
       m_CallbackSteamFriendsStatusChange;
-  steamworks::CCallback<LiveSteamClient,
-                        steamworks::GameRichPresenceJoinRequested_t, 0>
+  game::steam::CCallback<LiveSteamClient,
+                         game::steam::GameRichPresenceJoinRequested_t, 0>
       m_CallbackRichPresenceJoinRequested;
-  steamworks::CCallback<LiveSteamClient, steamworks::FriendRichPresenceUpdate_t,
-                        0>
+  game::steam::CCallback<LiveSteamClient,
+                         game::steam::FriendRichPresenceUpdate_t, 0>
       m_CallbackFriendRichPresenceUpdate;
-  steamworks::CCallback<LiveSteamClient,
-                        steamworks::MicroTxnAuthorizationResponse_t, 0>
+  game::steam::CCallback<LiveSteamClient,
+                         game::steam::MicroTxnAuthorizationResponse_t, 0>
       m_CallbackMicroTxnAuthorizationResponse;
 };
 static_assert(sizeof(LiveSteamClient) == 0xF8,

@@ -6,6 +6,7 @@ namespace steam {
 // TODO: why can't we use <steam/steam_api.h> syntax?
 #include "../../../../deps/SteamworkSDK/public/steam/isteamremotestorage.h"
 #include "../../../../deps/SteamworkSDK/public/steam/isteamugc.h"
+#include "../../../../deps/SteamworkSDK/public/steam/isteamuser.h"
 
 struct SteamInterfacesBase {
   ISteamClient *pSteamClient;
