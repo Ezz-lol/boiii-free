@@ -23,45 +23,430 @@ struct clientLinkInfo_t {
 };
 #pragma pack(pop)
 
+struct LerpEntityStateTurret {
+  union vec3_t gunAngles;
+  float heatVal;
+  int32_t overheating;
+  float pivotOffset;
+  int32_t flags;
+};
+struct LerpEntityStateLoopFx {
+  float cullDist;
+  int32_t period;
+};
+struct LerpEntityStateActor {
+  union {
+    int32_t actorNum;
+    int32_t corpseNum;
+  } index;
+  int32_t clonedFromActorNum;
+  int32_t species;
+  int32_t enemy;
+  uint8_t freeCameraLockOnAllowed;
+  uint8_t missingLegs;
+  uint8_t aiType;
+  uint8_t vehicleSeat;
+  uint8_t ikPriority;
+  uint8_t isAiClone;
+  struct {
+    int16_t fBodyPitch;
+  } proneInfo;
+  anim::ModelAttachmentIndex attachments[6];
+  uint16_t tmodeHealth;
+  uint8_t tmodeBehavior;
+  uint8_t tmodeVisibility;
+};
+struct LerpEntityStatePrimaryLight {
+  uint8_t colorAndExp[4];
+  float intensity;
+  float radius;
+  float cosHalfFovOuter;
+  uint32_t mixerIndex;
+};
+struct LerpEntityStateLensflare {
+  float intensity;
+  char name[64];
+};
+enum class PlayerCorpseDeathCamera : uint8_t {
+  PCDC_NORMAL = 0x0,
+  PCDC_FIXED_ORIGIN = 0x1,
+  PCDC_MAX = 0x2,
+};
+
+#pragma pack(push, 1)
+struct LerpEntityStatePlayer {
+  weapon::Weapon primaryWeapon;
+  weapon::Weapon stowedWeapon;
+  union {
+    weapon::Weapon offhandWeapon;
+    weapon::Weapon killedByWeapon;
+  };
+  weapon::Weapon meleeWeapon;
+  weapon::entityGadgetState_t entityGadgetState[3];
+  float leanf;
+  int16_t movementDir;
+  uint8_t moveType;
+  uint8_t velYaw;
+  uint8_t velSpeed;
+  union {
+    uint8_t locBlendTime;
+    uint8_t killedByTeam;
+  };
+  union {
+    uint8_t meleeWeaponCamo;
+    PlayerCorpseDeathCamera deathCamera;
+  };
+  uint8_t vehicleType;
+  uint8_t vehicleAnimBoneIndex;
+  uint8_t vehicleSeat;
+  uint8_t stowedWeaponCamo;
+  uint8_t weaponHeat;
+  uint8_t proneLegsAngle;
+  uint8_t _padding61[7];
+};
+#pragma pack(pop)
+
+struct LerpEntityStateVehicleGunnerAngles {
+  int16_t pitch;
+  int16_t yaw;
+  int16_t targetEnt;
+};
+
+#pragma pack(push, 1)
+struct LerpEntityStateVehicle {
+  float steerYaw;
+  float bodyRoll;
+  LerpEntityStateVehicleGunnerAngles gunnerAngles[4];
+  LerpEntityStateVehicleGunnerAngles turret;
+  union {
+    int16_t throttle;
+    int16_t bodyPitch;
+  };
+  int16_t clonedFromEntityNum;
+  uint8_t targetRotorSpeed;
+  uint8_t tmodeVehicleHealth;
+  uint8_t tmodeVehicleBehavior;
+  uint8_t tmodeVehicleVisibility;
+  uint8_t _padding2E[2];
+};
+#pragma pack(pop)
+
+enum class hitLocation_t : uint32_t {
+  NONE = 0x0,
+  HELMET = 0x1,
+  HEAD = 0x2,
+  NECK = 0x3,
+  TORSO_UPR = 0x4,
+  TORSO_MID = 0x5,
+  TORSO_LWR = 0x6,
+  R_ARM_UPR = 0x7,
+  L_ARM_UPR = 0x8,
+  R_ARM_LWR = 0x9,
+  L_ARM_LWR = 0xA,
+  R_HAND = 0xB,
+  L_HAND = 0xC,
+  R_LEG_UPR = 0xD,
+  L_LEG_UPR = 0xE,
+  R_LEG_LWR = 0xF,
+  L_LEG_LWR = 0x10,
+  R_FOOT = 0x11,
+  L_FOOT = 0x12,
+  GUN = 0x13,
+  SHIELD = 0x14,
+  COUNT = 0x15,
+};
+
+struct LerpEntityStateMissile {
+  int32_t launchTime;
+  int32_t parentClientNum;
+  int32_t fuseTime;
+  int32_t forcedDud;
+  float autoDetonateTime;
+  vec3_t passThrough;
+  int32_t targetEntnum;
+  hitLocation_t hitLocation;
+};
+struct LerpEntityStateScriptMover {
+  uint8_t attachTagIndex[4];
+  int16_t attachModelIndex[4];
+  int16_t exploderIndex;
+  uint16_t scale;
+  uint8_t flags;
+  uint8_t aiType;
+};
+struct LerpEntityStateBulletHit {
+  vec3_t start;
+};
+struct LerpEntityStateEarthquake {
+  float radius;
+  int32_t duration;
+  int16_t scalePitch;
+  int16_t scaleYaw;
+  int16_t scaleRoll;
+  int16_t freqPitch;
+  int16_t freqYaw;
+  int16_t freqRoll;
+  float durationFadeUp;
+  float durationFadeDown;
+};
+struct LerpEntityStateCustomExplode {
+  int32_t startTime;
+  int32_t effectIndex;
+};
+struct LerpEntityStateExplosion {
+  float innerRadius;
+  float magnitude;
+  float innerDamage;
+  int32_t dummy;
+  float outerDamage;
+};
+struct LerpEntityStateExplosionJolt {
+  float innerRadius;
+  vec3_t impulse;
+};
+struct LerpEntityStateJetThrust {
+  vec3_t thrustDir;
+  int32_t dummy;
+  float dotLimit;
+};
+struct LerpEntityStateStreamerHint {
+  float factor;
+  uint16_t flags;
+  int16_t lightStateIndex;
+};
+struct LerpEntityStateZBarrierPiece {
+  uint8_t flags;
+  uint8_t animTime;
+};
+
+struct LerpEntityStateZBarrier {
+  uint32_t barrierTypeIndex;
+  LerpEntityStateZBarrierPiece pieces[6];
+};
+struct LerpEntityStateAnonymous {
+  int32_t data[26];
+};
+
+#pragma pack(push, 1)
+struct playerAnimState_t {
+  float fTorsoPitch;
+  float fWaistPitch;
+  animationNumber_t animNum[3];
+  union {
+    uint8_t flags;
+    struct {
+      uint8_t motionMatchingEnabled : 1;
+      uint8_t mmTransitionBoost : 1;
+      uint8_t unused_slots : 6;
+    };
+  };
+  uint8_t _padding0F[1];
+};
+
+#pragma pack(push, 1)
+struct vehicleState_t {
+  int32_t flags;
+  int16_t animId;
+  int16_t attachModelIndex[2];
+  uint8_t attachTagIndex[2];
+  uint8_t vehicleDefIndex;
+  uint8_t _padding0D[3];
+};
+#pragma pack(pop)
+
+struct hardlineHint_t {
+  uint8_t team;
+  uint8_t perk;
+  uint8_t hint;
+};
+
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct scriptMoverState_t {
+  uint8_t fov;
+  uint8_t _padding01[1];
+  int16_t animId;
+};
+#pragma pack(pop)
+
+struct fxLightingState_t {
+  float primaryLightFraction;
+  int lightingOriginOffset;
+};
+
 constexpr uint32_t ENTITYSTATE_SIZE = 0x1f0;
 constexpr uint32_t ENTITYSTATE_LOOPSOUND_OFFSET = 0xDC;
 constexpr uint32_t ENTITYSTATE_UN3_OFFSET = 0x130;
 constexpr uint32_t ENTITYSTATE_CLIENTMASK_OFFSET = 0x168;
 constexpr uint32_t ENTITYSTATE_OTHERENTITYNUM_OFFSET = 0x1AE;
 #pragma pack(push, 1)
-partial_def(ENTITYSTATE_SIZE, struct, EntityState, {
-  inline_partial_def(0, ENTITYSTATE_LOOPSOUND_OFFSET, struct,
-                     { int32_t number; });
-  inline_partial_def(1, ENTITYSTATE_UN3_OFFSET - ENTITYSTATE_LOOPSOUND_OFFSET,
-                     struct, { snd::LoopSoundInfo loopSound; });
-  inline_partial_def(
-      2, ENTITYSTATE_OTHERENTITYNUM_OFFSET - ENTITYSTATE_UN3_OFFSET, struct, {
-        union {
-          int32_t hintString;
-          int32_t vehicleXModel;
-          uint32_t secondBcAlias;
-          uint32_t soundTag;
-        } un3;
-        uint32_t partBits[12];
-        clientLinkInfo_t clientLinkInfo;
-        int32_t clientMask[1];
-      });
-  int16_t otherEntityNum;
-}); // Incomplete
+
+union entityStateUn2 {
+  playerAnimState_t anim;
+  vehicleState_t vehicleState;
+  hardlineHint_t hardline;
+  scriptMoverState_t moverState;
+  fxLightingState_t fxState;
+};
+
+union entityStateUn3 {
+  int32_t hintString;
+  int32_t vehicleXModel;
+  uint32_t secondBcAlias;
+  uint32_t soundTag;
+};
+
+union entityStateIndex {
+  uint16_t brushmodel;
+  uint16_t triggerModel;
+  uint16_t xmodel;
+  uint16_t primaryLight;
+  uint16_t probe;
+  BoneIndex bone;
+};
+
+union entityStateUn1 {
+  uint8_t scale;
+  uint8_t eventParm2;
+  uint8_t helicopterStage;
+  uint8_t destructibleid;
+  uint8_t chainMeleeCounter;
+};
+
+#pragma pack(push, 1)
+struct trajectory_t {
+  uint8_t trType;
+  uint8_t _padding01[3];
+  int32_t trTime;
+  int32_t trDuration;
+  union vec3_t trBase;
+  union vec3_t trDelta;
+};
 #pragma pack(pop)
-static_assert(sizeof(EntityState) == ENTITYSTATE_SIZE,
-              "EntityState size must be 0x1F0 bytes");
-static_assert(offsetof(EntityState, verified_0.number) == 0,
-              "EntityState::number must be at offset 0");
-static_assert(offsetof(EntityState, verified_1.loopSound) ==
+
+union LerpEntityStateTypeUnion {
+  LerpEntityStateTurret turret;
+  LerpEntityStateLoopFx loopFx;
+  LerpEntityStateActor actor;
+  LerpEntityStatePrimaryLight primaryLight;
+  LerpEntityStateLensflare lensFlareDef;
+  LerpEntityStatePlayer player;
+  LerpEntityStateVehicle vehicle;
+  LerpEntityStateMissile missile;
+  LerpEntityStateScriptMover scriptMover;
+  LerpEntityStateBulletHit bulletHit;
+  LerpEntityStateEarthquake earthquake;
+  LerpEntityStateCustomExplode customExplode;
+  LerpEntityStateExplosion explosion;
+  LerpEntityStateExplosionJolt explosionJolt;
+  LerpEntityStateJetThrust jetThrust;
+  LerpEntityStateStreamerHint streamerHint;
+  LerpEntityStateZBarrier zbarrier;
+  LerpEntityStateAnonymous anonymous;
+};
+
+#pragma pack(push, 1)
+struct LerpEntityState {
+  int32_t eFlags;
+  int32_t eFlags2;
+  trajectory_t pos;
+  trajectory_t apos;
+  LerpEntityStateTypeUnion u;
+  int16_t useCount;
+  uint8_t _paddingBA[2];
+  uint32_t clientFields[4];
+  uint8_t _paddingCC[4];
+};
+#pragma pack(pop)
+
+enum class entityType_t : uint32_t {
+  GENERAL = 0x0,
+  PLAYER = 0x1,
+  PLAYER_CORPSE = 0x2,
+  ITEM = 0x3,
+  MISSILE = 0x4,
+  PLAYER_INVISIBLE = 0x5,
+  SCRIPTMOVER = 0x6,
+  SOUND_BLEND = 0x7,
+  FX = 0x8,
+  LOOP_FX = 0x9,
+  PRIMARY_LIGHT = 0xA,
+  LENSFLARE = 0xB,
+  REFLECTION_PROBE = 0xC,
+  HELICOPTER = 0xD,
+  PLANE = 0xE,
+  VEHICLE = 0xF,
+  VEHICLE_SPAWNER = 0x10,
+  VEHICLE_CORPSE = 0x11,
+  ACTOR = 0x12,
+  ACTOR_SPAWNER = 0x13,
+  ACTOR_CORPSE = 0x14,
+  STREAMER_HINT = 0x15,
+  ZBARRIER = 0x16,
+  TRIGGER = 0x17,
+  EVENTS = 0x18,
+};
+
+struct entityState_s {
+  int32_t number;
+  uint8_t _padding04[4];
+  LerpEntityState lerp;
+  int32_t time2;
+  snd::LoopSoundInfo loopSound;
+  int32_t solid;
+  renderOptions_t renderOptions;
+  weapon::AttachmentCosmeticVariantIndexes attachmentCosmeticVariantIndexes;
+  anim::animState_t animState;
+  entityStateUn2 un2;
+  entityStateUn3 un3;
+  uint32_t partBits[12];
+  clientLinkInfo_t clientLinkInfo;
+  int32_t clientMask[1];
+  uint8_t teamMask;
+  uint8_t events[4];
+  uint8_t _padding171[7];
+  EventParm_t eventParms[4];
+  EventParm_t eventParm;
+  entityType_t eType;
+  team_t team;
+  int16_t owner;
+  int16_t groundEntityNum;
+  entityStateIndex index;
+  int16_t otherEntityNum;
+  int16_t attackerEntityNum;
+  int16_t enemyModel;
+  uint8_t _padding1B4[4];
+  weapon::Weapon weapon;
+  weapon::Weapon lastStandPrevWeapon;
+  scr::ScrString_t targetname;
+  int16_t spawnVarIndex;
+  uint8_t animtreeIndex;
+  uint8_t _padding1CF[1];
+  anim::AnimScriptedState animScripted;
+  int16_t eventSequence;
+  uint8_t surfType;
+  uint8_t _padding1E7[1];
+  int16_t clientNum;
+  uint8_t iHeadIcon;
+  entityStateUn1 un1;
+  uint8_t _padding1EC[4];
+};
+typedef entityState_s entityState_t;
+#pragma pack(pop)
+static_assert(sizeof(entityState_t) == ENTITYSTATE_SIZE,
+              "entityState_t size must be 0x1F0 bytes");
+static_assert(offsetof(entityState_t, number) == 0,
+              "entityState_t::number must be at offset 0");
+static_assert(offsetof(entityState_t, loopSound) ==
                   ENTITYSTATE_LOOPSOUND_OFFSET,
-              "EntityState::loopSound must be at offset 0xDC");
-static_assert(offsetof(EntityState, verified_2.clientMask) ==
+              "entityState_t::loopSound must be at offset 0xDC");
+static_assert(offsetof(entityState_t, clientMask) ==
                   ENTITYSTATE_CLIENTMASK_OFFSET,
-              "EntityState::clientMask must be at offset 0x168");
-static_assert(offsetof(EntityState, otherEntityNum) ==
+              "entityState_t::clientMask must be at offset 0x168");
+static_assert(offsetof(entityState_t, otherEntityNum) ==
                   ENTITYSTATE_OTHERENTITYNUM_OFFSET,
-              "EntityState::otherEntityNum must be at offset 0x1AE");
+              "entityState_t::otherEntityNum must be at offset 0x1AE");
 
 #pragma pack(push, 1)
 // sizeof = 0x60
@@ -102,7 +487,7 @@ static const uint32_t GENTITY_VERIFIED2_SIZE =
     GENTITY_SND_WAIT_OFFSET - GENTITY_MODEL_OFFSET;
 partial_def(GENTITY_SIZE, struct, gentity_s, {
   inline_partial_def(0, GENTITY_MODEL_OFFSET, struct, {
-    EntityState s;
+    entityState_t s;
     entityShared_t r;
     gclient_s *client;
   });
@@ -134,8 +519,8 @@ static_assert(offsetof(gentity_s, verified_1.classname) == 0x288,
               "offset of gentity_s::classname must be 0x288");
 static_assert(offsetof(gentity_s, snd_wait) == GENTITY_SND_WAIT_OFFSET,
               "GENTITY_SND_WAIT_OFFSET must be 0x3D4");
-static_assert(offsetof(gentity_s, verified_0) == 0,
-              "gentity_s must start with EntityState");
+static_assert(offsetof(gentity_s, verified_0.s) == 0,
+              "gentity_s must start with entityState_t");
 static_assert(offsetof(gentity_s, verified_0.client) == 0x250);
 static_assert(sizeof(gentity_s) == GENTITY_SIZE,
               "gentity_s size must be 0x4F8 bytes");
@@ -1221,8 +1606,6 @@ struct level_locals_t {
 ASSERT_SIZE(level_locals_t, 0x23A10);
 #pragma pack(pop)
 
-// TODO
-struct entityState_t;
 struct archivedEntity_t;
 
 } // namespace level

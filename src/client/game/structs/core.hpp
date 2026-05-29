@@ -27,13 +27,12 @@ namespace game {
     uint8_t __raw_##InlineNum[FixedTotalSize];                                 \
   }
 
-typedef void* UnknownPtr;
+typedef void *UnknownPtr;
 
 #define STR(x) #x
 
 #define ASSERT_SIZE(type, size)                                                \
   static_assert(sizeof(type) == (size), "sizeof(" #type ") != " STR(size))
-
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -237,7 +236,7 @@ inline LocalClientNum_t operator++(LocalClientNum_t &s, int) {
   return temp;
 }
 
-enum eGameModes: uint32_t {
+enum eGameModes : uint32_t {
   MODE_GAME_MATCHMAKING_PLAYLIST = 0x0,
   MODE_GAME_MATCHMAKING_MANUAL = 0x1,
   MODE_GAME_DEFAULT = 0x2,
@@ -247,7 +246,7 @@ enum eGameModes: uint32_t {
   MODE_GAME_INVALID = 0x5,
 };
 
-enum eModes: uint32_t {
+enum eModes : uint32_t {
   MODE_ZOMBIES = 0x0,
   MODE_FIRST = 0x0,
   MODE_MULTIPLAYER = 0x1,
@@ -268,7 +267,7 @@ inline eModes operator++(eModes &s, int) {
   return temp;
 }
 
-enum eNetworkModes: uint32_t {
+enum eNetworkModes : uint32_t {
   MODE_NETWORK_OFFLINE = 0x0,
   MODE_NETWORK_SYSTEMLINK = 0x1,
   MODE_NETWORK_ONLINE = 0x2,
@@ -276,7 +275,7 @@ enum eNetworkModes: uint32_t {
   MODE_NETWORK_INVALID = 0x3,
 };
 
-enum MapPreload: uint32_t {
+enum MapPreload : uint32_t {
   MAP_PRELOAD_NONE = 0x0,
   MAP_PRELOAD_FRONTEND = 0x1,
   MAP_PRELOAD_IN_GAME = 0x2,
@@ -628,7 +627,7 @@ enum bdNATType : uint8_t {
   BD_NAT_STRICT = 0x3,
 };
 
-enum itemTextStyle: uint32_t {
+enum itemTextStyle : uint32_t {
   ITEM_TEXTSTYLE_NORMAL = 0,
   ITEM_TEXTSTYLE_SHADOWED = 3,
   ITEM_TEXTSTYLE_SHADOWEDMORE = 6,
@@ -638,7 +637,7 @@ enum itemTextStyle: uint32_t {
   ITEM_TEXTSTYLE_MONOSPACESHADOWED = 132,
 };
 
-enum errorParm: uint32_t {
+enum errorParm : uint32_t {
   ERR_FATAL = 0,
   ERR_DROP = 1,
   ERR_SERVERDISCONNECT = 2,
@@ -649,7 +648,7 @@ enum errorParm: uint32_t {
   ERR_MAPLOADERRORSUMMARY = 7,
 };
 
-enum errorCode: uint32_t {
+enum errorCode : uint32_t {
   ERROR_NONE = 0x0,
   ERROR_FATAL = 0x1,
   ERROR_DROP = 0x2,
@@ -665,7 +664,6 @@ enum errorCode: uint32_t {
   ERROR_SOFTRESTART_KEEPDW = 0x800,
 };
 
-
 template <typename T, size_t N> using array = T[N];
 
 template <typename T, size_t X, size_t Y>
@@ -679,8 +677,7 @@ template <typename T> using LocalClientPool = array<T, LOCAL_CLIENT_COUNT>;
 template <typename ClientType, typename ServerType>
 using EngineDependent = std::variant<ClientType, ServerType>;
 
-template<const auto T>
-using str =  array<char, T>;
+template <const auto T> using str = array<char, T>;
 
 typedef str<32> str32_t;
 typedef str<64> str64_t;
@@ -1086,7 +1083,6 @@ struct float128_t {
   int64_t HighPart;
 };
 #pragma pack(pop)
-
 
 struct CmdArgs {
   int32_t nesting;

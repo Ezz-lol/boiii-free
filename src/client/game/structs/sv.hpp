@@ -25,7 +25,8 @@ typedef clientState_s clientState_t;
 struct playerState_s;
 typedef playerState_s playerState_t;
 
-struct entityState_t;
+struct entityState_s;
+typedef entityState_s entityState_t;
 struct archivedEntity_t;
 
 struct gentity_s;

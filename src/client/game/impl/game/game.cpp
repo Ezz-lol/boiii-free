@@ -41,9 +41,9 @@ void G_RegisterSoundWait_Impl(level::gentity_s *ent, snd::SndAliasId id,
           "first finished on entity %i classname %s tar"
           "getname %s location %g %g %g old string %s at time %i new "
           "string %s at time %i\n",
-          ent->verified_0.s.verified_0.number, targetClassNameStr,
-          targetDisplayStr, x, y, z, notifyDisplayStr, ent->snd_wait.basetime,
-          tempNotifyDisplayStr, *level::level_time);
+          ent->verified_0.s.number, targetClassNameStr, targetDisplayStr, x, y,
+          z, notifyDisplayStr, ent->snd_wait.basetime, tempNotifyDisplayStr,
+          *level::level_time);
       scr::Scr_Error(scr::SCRIPTINSTANCE_SERVER, errorStr, 0);
     }
   }
@@ -66,7 +66,7 @@ level::gentity_t *G_PlaySoundAliasAtPoint_Impl(const vec3_t *origin,
   if (alias) {
     tmp = G_TempEntity(origin, TEMP_ENTITY_SOUND_EVENT);
     tmp->verified_0.r.svFlags |= 8u;
-    tmp->verified_0.s.verified_1.loopSound.id = alias;
+    tmp->verified_0.s.loopSound.id = alias;
     tmp->verified_0.s.otherEntityNum = 1022;
   }
   return tmp;
@@ -82,9 +82,9 @@ level::gentity_t *G_PlaySoundAliasWithNotify_Impl(level::gentity_t *ent,
     int32_t event =
         notifyString ? TEMP_ENTITY_SOUND_NOTIFY_EVENT : TEMP_ENTITY_SOUND_EVENT;
     tmp = G_TempEntity(&ent->verified_0.r.currentOrigin, event);
-    tmp->verified_0.s.verified_1.loopSound.id = alias;
-    tmp->verified_0.s.verified_2.un3.hintString = tag;
-    tmp->verified_0.s.otherEntityNum = ent->verified_0.s.verified_0.number;
+    tmp->verified_0.s.loopSound.id = alias;
+    tmp->verified_0.s.un3.hintString = tag;
+    tmp->verified_0.s.otherEntityNum = ent->verified_0.s.number;
   }
   if (notifyString) {
     G_RegisterSoundWait_Impl(ent, alias, notifyString);
@@ -101,11 +101,11 @@ level::gentity_t *G_PlaySoundAlias_Impl(level::gentity_t *ent,
   if (alias) {
     tmp = G_TempEntity(&ent->verified_0.r.currentOrigin, 4);
     tmp->verified_0.r.svFlags |= 8u;
-    if (ent->verified_0.s.verified_0.number < 0x400)
+    if (ent->verified_0.s.number < 0x400)
       ent->verified_0.r.svFlags &= ~1u;
-    tmp->verified_0.s.verified_1.loopSound.id = alias;
-    tmp->verified_0.s.otherEntityNum = ent->verified_0.s.verified_0.number;
-    tmp->verified_0.s.verified_2.un3.hintString = bone;
+    tmp->verified_0.s.loopSound.id = alias;
+    tmp->verified_0.s.otherEntityNum = ent->verified_0.s.number;
+    tmp->verified_0.s.un3.hintString = bone;
   }
   return tmp;
 }

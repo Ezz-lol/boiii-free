@@ -640,5 +640,23 @@ struct ModelAttachmentIndex {
   uint8_t _padding03[1];
 };
 #pragma pack(pop)
+
+#pragma pack(push, 1)
+struct animState_t {
+  int32_t deltaRequestTime;
+  uint8_t deltaSource;
+  uint8_t deltaRowLowBits;
+  uint8_t deltaRowHighBits;
+  uint8_t aimRow;
+  uint8_t shootRow;
+  uint8_t transdecActive;
+  uint8_t currentAnimMappingTableIndex;
+  uint8_t toggleCounter;
+  float fAnimationRate;
+  vec3_t traversalOrigin;
+  float traversalYaw;
+  int32_t traversalAnimIndex;
+};
+#pragma pack(pop)
 } // namespace anim
 } // namespace game

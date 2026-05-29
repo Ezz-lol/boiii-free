@@ -66,7 +66,7 @@ void ScrCmd_PlaySoundOnTag_Impl(scriptInstance_t inst, scr_entref_t *entref) {
       level::gentity_t *sound_ent =
           G_PlaySoundAlias_Impl(ent, alias_id, 0, tag_idx);
       if (Scr_GetNumParam(SCRIPTINSTANCE_SERVER) >= 3) {
-        sound_ent->verified_0.s.verified_2.clientMask[0] = -1;
+        sound_ent->verified_0.s.clientMask[0] = -1;
         // Should be ScrVarType::LOCALIZED_STRING - a conststring matched
         // internally in Scr_GetTeam to return the corresponding team_t
         // enumeration
@@ -81,24 +81,22 @@ void ScrCmd_PlaySoundOnTag_Impl(scriptInstance_t inst, scr_entref_t *entref) {
               level::gentity_t *mask_ent = &ent_pool->pool[clientEntIdx];
               if (mask_ent->verified_0.r.inuse) {
                 if (mask_ent->verified_0.client->sess.cs.team == team) {
-                  sound_ent->verified_0.s.verified_2
-                      .clientMask[mask_ent->verified_0.s.verified_0.number >>
-                                  5] &=
-                      ~(1 << (mask_ent->verified_0.s.verified_0.number & 0x1F));
+                  sound_ent->verified_0.s
+                      .clientMask[mask_ent->verified_0.s.number >> 5] &=
+                      ~(1 << (mask_ent->verified_0.s.number & 0x1F));
                 }
               }
             }
           } else {
-            sound_ent->verified_0.s.verified_2
-                .clientMask[ent->verified_0.s.verified_0.number >> 5] &=
-                ~(1 << (ent->verified_0.s.verified_0.number & 0x1F));
+            sound_ent->verified_0.s.clientMask[ent->verified_0.s.number >> 5] &=
+                ~(1 << (ent->verified_0.s.number & 0x1F));
           }
         }
         if (Scr_GetNumParam(SCRIPTINSTANCE_SERVER) >= 4) {
           level::gentity_t *extraEnt = Scr_GetEntity_Impl(3u);
-          sound_ent->verified_0.s.verified_2
-              .clientMask[extraEnt->verified_0.s.verified_0.number >> 5] &=
-              ~(1 << (extraEnt->verified_0.s.verified_0.number & 0x1F));
+          sound_ent->verified_0.s
+              .clientMask[extraEnt->verified_0.s.number >> 5] &=
+              ~(1 << (extraEnt->verified_0.s.number & 0x1F));
         }
       }
     }
@@ -108,8 +106,8 @@ void ScrCmd_PlaySoundToAllButPlayer_Impl(scriptInstance_t inst,
                                          scr_entref_t *entref) {
   level::gentity_t *ent = Scr_GetEntity_Impl(1u);
   if (!ent->verified_0.client) {
-    const char *error_str = utils::string::va(
-        "entity %i is not a player", ent->verified_0.s.verified_0.number);
+    const char *error_str = utils::string::va("entity %i is not a player",
+                                              ent->verified_0.s.number);
     Scr_ObjectError(SCRIPTINSTANCE_SERVER, error_str);
   }
   level::gentity_t *play_ent = GetEntity_Impl(*entref);
@@ -117,19 +115,17 @@ void ScrCmd_PlaySoundToAllButPlayer_Impl(scriptInstance_t inst,
   snd::SndAliasId alias_id = snd::SND_FindAliasId(alias);
   level::gentity_t *temp_ent = G_PlaySoundAlias_Impl(play_ent, alias_id, 0, 0);
   if (temp_ent) {
-    temp_ent->verified_0.s.verified_2.clientMask[0] = 0;
-    temp_ent->verified_0.s.verified_2
-        .clientMask[ent->verified_0.s.verified_0.number >> 5] |=
-        1 << (ent->verified_0.s.verified_0.number & 0x1F);
+    temp_ent->verified_0.s.clientMask[0] = 0;
+    temp_ent->verified_0.s.clientMask[ent->verified_0.s.number >> 5] |=
+        1 << (ent->verified_0.s.number & 0x1F);
   }
 }
 void ScrCmd_PlaySoundToPlayer_Impl(scriptInstance_t inst,
                                    scr_entref_t *entref) {
   level::gentity_t *client_ent = Scr_GetEntity_Impl(1u);
   if (!client_ent->verified_0.client) {
-    const char *error_str =
-        utils::string::va("client_entity %i is not a player",
-                          client_ent->verified_0.s.verified_0.number);
+    const char *error_str = utils::string::va(
+        "client_entity %i is not a player", client_ent->verified_0.s.number);
     Scr_ObjectError(SCRIPTINSTANCE_SERVER, error_str);
     return;
   }
@@ -145,10 +141,9 @@ void ScrCmd_PlaySoundToPlayer_Impl(scriptInstance_t inst,
   level::gentity_t *ent = GetEntity_Impl(*entref);
   level::gentity_t *temp_ent = G_PlaySoundAlias_Impl(ent, alias_id, 0, 0);
   if (temp_ent) {
-    temp_ent->verified_0.s.verified_2.clientMask[0] = -1;
-    temp_ent->verified_0.s.verified_2
-        .clientMask[client_ent->verified_0.s.verified_0.number >> 5] &=
-        ~(1 << (client_ent->verified_0.s.verified_0.number & 0x1F));
+    temp_ent->verified_0.s.clientMask[0] = -1;
+    temp_ent->verified_0.s.clientMask[client_ent->verified_0.s.number >> 5] &=
+        ~(1 << (client_ent->verified_0.s.number & 0x1F));
   }
 }
 void ScrCmd_PlaySoundToTeam_Impl(scriptInstance_t inst, scr_entref_t *entref) {
@@ -161,8 +156,8 @@ void ScrCmd_PlaySoundToTeam_Impl(scriptInstance_t inst, scr_entref_t *entref) {
     level::gentity_t *ent = Scr_GetEntity_Impl(2u);
     exclude_ent = ent;
     if (!ent->verified_0.client) {
-      const char *error_str = utils::string::va(
-          "entity %i is not a player", ent->verified_0.s.verified_0.number);
+      const char *error_str = utils::string::va("entity %i is not a player",
+                                                ent->verified_0.s.number);
       Scr_ObjectError(SCRIPTINSTANCE_SERVER, error_str);
     }
   } else {
@@ -173,7 +168,7 @@ void ScrCmd_PlaySoundToTeam_Impl(scriptInstance_t inst, scr_entref_t *entref) {
   level::gentity_t *play_ent = GetEntity_Impl(*entref);
   level::gentity_t *temp_ent = G_PlaySoundAlias_Impl(play_ent, alias_id, 0, 0);
   if (temp_ent) {
-    temp_ent->verified_0.s.verified_2.clientMask[0] = -1;
+    temp_ent->verified_0.s.clientMask[0] = -1;
     level::gentity_pool *ent_pool = gentity_pool();
     const uint32_t max_clients =
         static_cast<uint32_t>(Dvar_GetInt(*com_maxclients));
@@ -184,9 +179,9 @@ void ScrCmd_PlaySoundToTeam_Impl(scriptInstance_t inst, scr_entref_t *entref) {
       if (mask_ent->verified_0.r.inuse) {
         if (mask_ent != exclude_ent &&
             mask_ent->verified_0.client->sess.cs.team == team) {
-          temp_ent->verified_0.s.verified_2
-              .clientMask[mask_ent->verified_0.s.verified_0.number >> 5] &=
-              ~(1 << (mask_ent->verified_0.s.verified_0.number & 0x1F));
+          temp_ent->verified_0.s
+              .clientMask[mask_ent->verified_0.s.number >> 5] &=
+              ~(1 << (mask_ent->verified_0.s.number & 0x1F));
         }
       }
     }
