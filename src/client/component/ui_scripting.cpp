@@ -999,7 +999,7 @@ int hksi_lua_getinfo_stub(game::ui::lua::hks::lua_State *s, const char *what,
 
       uintptr_t pc = 0;
       if (!game::is_server()) {
-        using getPC_t = fastcall_t<uintptr_t, game::ui::lua::hks::lua_State *,
+        using getPC_t = game::fastcall_t<uintptr_t, game::ui::lua::hks::lua_State *,
                                    game::ui::lua::hks::lua_Debug *>;
         getPC_t fn_getPC = reinterpret_cast<getPC_t>(0x141D46310_g);
         pc = fn_getPC(s, ar);

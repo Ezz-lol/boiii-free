@@ -311,7 +311,7 @@ generate_clangd_config() {
   clangd_config_path="$(repo_dir)/.clangd"
   cat >"$clangd_config_path" <<EOL
 CompileFlags:
-  Add: [$(flags_to_yaml_array_items "$TEMP_CXXFLAGS")]
+  Add: [$(flags_to_yaml_array_items "$TEMP_CXXFLAGS"), -std=c++20]
 EOL
   echo "Generated clangd config: '$clangd_config_path'"
 }

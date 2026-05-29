@@ -182,9 +182,8 @@ void UGC_LoadPool_Impl(ExtendedWorkshopDataPool *pool, ZoneType zoneType) {
   fs::FS_FreePathList(fileList);
   if (game::is_client()) {
     for (ControllerIndex_t controllerIndex = game::CONTROLLER_INDEX_0;
-         controllerIndex != game::CONTROLLER_INDEX_COUNT;
-         controllerIndex = static_cast<game::ControllerIndex_t>(
-             static_cast<int32_t>(controllerIndex) + 1)) {
+         controllerIndex <= game::CONTROLLER_INDEX_COUNT;
+         controllerIndex++) {
 
       ui::UI_Model_ForceNotify(pool->listModels[controllerIndex]);
     }

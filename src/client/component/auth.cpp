@@ -187,15 +187,11 @@ void set_challenge(const game::net::netadr_t &target,
   }
 
   for (game::LocalClientNum_t localClientIdx = game::LOCAL_CLIENT_0;
-       localClientIdx != game::LOCAL_CLIENT_COUNT;
-       localClientIdx = static_cast<game::LocalClientNum_t>(
-           (static_cast<int32_t>(localClientIdx) + 1))) {
+       localClientIdx < game::LOCAL_CLIENT_COUNT; localClientIdx++) {
 
     if (game::com::Com_LocalClient_IsBeingUsed(localClientIdx)) {
       game::connstate_t *clientConnectionState =
-          &game::cg::clientUIActives
-               ->actives[static_cast<uint32_t>(localClientIdx)]
-               .connectionState;
+          &game::cg::clientUIActives->actives[localClientIdx].connectionState;
       if (*clientConnectionState == game::CA_CHALLENGING) {
         *clientConnectionState = game::CA_CONNECTING;
       }

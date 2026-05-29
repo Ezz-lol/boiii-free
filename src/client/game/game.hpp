@@ -57,18 +57,9 @@ inline bool valid_engine_ptr(uintptr_t ptr) {
   return ptr >= get_base() && ptr < (get_base() + 0x030000000);
 }
 
-inline bool valid_ptr(uintptr_t ptr) {
-  return ptr >= get_base() && ptr < (get_base() + 0x060000000);
-}
-
 template <typename T> inline bool valid_engine_ptr(T *ptr) {
   uintptr_t ptr_int = reinterpret_cast<uintptr_t>(ptr);
   return valid_engine_ptr(ptr_int);
-}
-
-template <typename T> inline bool valid_ptr(T *ptr) {
-  uintptr_t ptr_int = reinterpret_cast<uintptr_t>(ptr);
-  return valid_ptr(ptr_int);
 }
 
 template <typename T> class base_symbol {

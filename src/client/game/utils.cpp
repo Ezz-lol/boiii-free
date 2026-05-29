@@ -24,7 +24,7 @@ dvar_t *try_get_sessionmode_specific_dvar(dvar_t *dvar) {
     return nullptr;
   }
 
-  const auto mode = Com_SessionMode_GetMode();
+  const game::eModes mode = Com_SessionMode_GetMode();
   return Dvar_GetSessionModeSpecificDvar(dvar, static_cast<eModes>(mode));
 }
 } // namespace
@@ -149,17 +149,16 @@ const dvar_t *register_sessionmode_dvar_bool(const char *dvar_name,
                                              const unsigned int flags,
                                              const char *description,
                                              const eModes mode) {
-  const auto hash = Dvar_GenerateHash(dvar_name);
-  auto *registered_dvar =
+  const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
+  game::dvar_t *registered_dvar =
       Dvar_SessionModeRegisterBool(hash, dvar_name, value, flags, description);
 
   if (registered_dvar) {
     registered_dvar->debugName = dvar_name;
 
     if (mode == MODE_COUNT) {
-      for (int i = MODE_FIRST; i < MODE_COUNT; ++i) {
-        Dvar_SessionModeSetDefaultBool.call_safe(hash, value,
-                                                 static_cast<eModes>(i));
+      for (game::eModes i = MODE_FIRST; i < MODE_COUNT; i++) {
+        Dvar_SessionModeSetDefaultBool.call_safe(hash, value, i);
       }
     } else {
       Dvar_SessionModeSetDefaultBool.call_safe(hash, value, mode);
@@ -172,8 +171,8 @@ const dvar_t *register_sessionmode_dvar_bool(const char *dvar_name,
 const dvar_t *register_dvar_bool(const char *dvar_name, const bool value,
                                  const unsigned int flags,
                                  const char *description) {
-  const auto hash = Dvar_GenerateHash(dvar_name);
-  auto *registered_dvar =
+  const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
+  game::dvar_t *registered_dvar =
       Dvar_RegisterBool(hash, dvar_name, value, flags, description);
 
   if (registered_dvar) {
@@ -186,8 +185,8 @@ const dvar_t *register_dvar_bool(const char *dvar_name, const bool value,
 const dvar_t *register_dvar_int(const char *dvar_name, int value, int min,
                                 int max, const unsigned int flags,
                                 const char *description) {
-  const auto hash = Dvar_GenerateHash(dvar_name);
-  auto *registered_dvar =
+  const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
+  game::dvar_t *registered_dvar =
       Dvar_RegisterInt(hash, dvar_name, value, min, max, flags, description);
 
   if (registered_dvar) {
@@ -200,8 +199,8 @@ const dvar_t *register_dvar_int(const char *dvar_name, int value, int min,
 const dvar_t *register_dvar_float(const char *dvar_name, float value, float min,
                                   float max, const unsigned int flags,
                                   const char *description) {
-  const auto hash = Dvar_GenerateHash(dvar_name);
-  auto *registered_dvar =
+  const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
+  game::dvar_t *registered_dvar =
       Dvar_RegisterFloat(hash, dvar_name, value, min, max, flags, description);
 
   if (registered_dvar) {
@@ -214,8 +213,8 @@ const dvar_t *register_dvar_float(const char *dvar_name, float value, float min,
 const dvar_t *register_dvar_string(const char *dvar_name, const char *value,
                                    const unsigned int flags,
                                    const char *description) {
-  const auto hash = Dvar_GenerateHash(dvar_name);
-  auto *registered_dvar =
+  const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
+  game::dvar_t *registered_dvar =
       Dvar_RegisterString(hash, dvar_name, value, flags, description);
 
   if (registered_dvar) {
@@ -226,13 +225,13 @@ const dvar_t *register_dvar_string(const char *dvar_name, const char *value,
 }
 
 void dvar_add_flags(const char *dvar_name, const unsigned int flags) {
-  auto *dvar = Dvar_FindVar(dvar_name);
+  game::dvar_t *dvar = Dvar_FindVar(dvar_name);
 
   if (!dvar) {
     return;
   }
 
-  auto *dvar_to_change = dvar;
+  game::dvar_t *dvar_to_change = dvar;
   if (dvar_to_change->type == DVAR_TYPE_SESSIONMODE_BASE_DVAR) {
     dvar_to_change = try_get_sessionmode_specific_dvar(dvar_to_change);
     if (!dvar_to_change) {
@@ -244,13 +243,13 @@ void dvar_add_flags(const char *dvar_name, const unsigned int flags) {
 }
 
 void dvar_set_flags(const char *dvar_name, const unsigned int flags) {
-  auto *dvar = Dvar_FindVar(dvar_name);
+  game::dvar_t *dvar = Dvar_FindVar(dvar_name);
 
   if (!dvar) {
     return;
   }
 
-  auto *dvar_to_change = dvar;
+  game::dvar_t *dvar_to_change = dvar;
   if (dvar_to_change->type == DVAR_TYPE_SESSIONMODE_BASE_DVAR) {
     dvar_to_change = try_get_sessionmode_specific_dvar(dvar_to_change);
     if (!dvar_to_change) {
@@ -262,13 +261,13 @@ void dvar_set_flags(const char *dvar_name, const unsigned int flags) {
 }
 
 void dvar_remove_flags(const char *dvar_name, const unsigned int flags) {
-  auto *dvar = Dvar_FindVar(dvar_name);
+  game::dvar_t *dvar = Dvar_FindVar(dvar_name);
 
   if (!dvar) {
     return;
   }
 
-  auto *dvar_to_change = dvar;
+  game::dvar_t *dvar_to_change = dvar;
   if (dvar_to_change->type == DVAR_TYPE_SESSIONMODE_BASE_DVAR) {
     dvar_to_change = try_get_sessionmode_specific_dvar(dvar_to_change);
     if (!dvar_to_change) {
@@ -324,7 +323,7 @@ static bool access_client(T *client_states, const size_t index,
     return false;
   }
 
-  auto &client = client_states[index];
+  T &client = client_states[index];
   if (client.state == net::CS_FREE) {
     return false;
   }

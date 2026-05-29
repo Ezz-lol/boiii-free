@@ -13,6 +13,7 @@
 #else
 #define STEAM_EXPORT extern "C" __attribute__((visibility("default")))
 #endif
+#endif
 
 struct raw_steam_id final {
   unsigned int account_id : 32;

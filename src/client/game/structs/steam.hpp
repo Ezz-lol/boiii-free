@@ -7,6 +7,8 @@ namespace steam {
 #include "../../../../deps/SteamworkSDK/public/steam/isteamremotestorage.h"
 #include "../../../../deps/SteamworkSDK/public/steam/isteamugc.h"
 #include "../../../../deps/SteamworkSDK/public/steam/isteamuser.h"
+#include "../../../../deps/SteamworkSDK/public/steam/isteamfriends.h"
+#include "../../../../deps/SteamworkSDK/public/steam/isteamapps.h"
 
 struct SteamInterfacesBase {
   ISteamClient *pSteamClient;

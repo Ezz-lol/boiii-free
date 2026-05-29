@@ -209,11 +209,11 @@ void remove_orig_clan_abbrev(game::ClientNum_t client_num) {
 }
 
 void client_update(game::sv::client_s *cl) {
-  if (game::valid_ptr(cl)) {
+  if (game::valid_engine_ptr(cl)) {
     game::level::gentity_t *ent = cl->gentity;
-    if (game::valid_ptr(ent)) {
+    if (game::valid_engine_ptr(ent)) {
       game::level::gclient_t *gclient = ent->verified_0.client;
-      if (game::valid_ptr(gclient)) {
+      if (game::valid_engine_ptr(gclient)) {
         std::lock_guard lk(names_mutex);
         game::level::clientState_t *client_state = &gclient->sess.cs;
         game::ClientNum_t client_num = client_state->clientIndex;
@@ -318,11 +318,9 @@ void reset_client_name_slot(game::sv::client_s *client,
 }
 
 void initialize() {
-  for (game::ClientNum_t i =
-           static_cast<game::ClientNum_t>(game::lobby::MIN_PLAYERS);
-       i < static_cast<game::ClientNum_t>(game::lobby::MAX_PLAYERS);
-       i = static_cast<game::ClientNum_t>(static_cast<int32_t>(i) + 1)) {
-    trigger_client_update(i);
+  for (game::ClientNum_t clientNum = game::CLIENT_INDEX_0;
+       clientNum < game::CLIENT_INDEX_COUNT; clientNum++) {
+    trigger_client_update(clientNum);
   }
 }
 

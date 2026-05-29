@@ -150,7 +150,7 @@ struct netProfileInfo_t {
 static_assert(sizeof(netProfileInfo_t) == 0x5e0,
               "netProfileInfo_t size must be 0x5e0 bytes");
 
-typedef UNKNOWN_PTR_TYPE PacketQueuePtr;
+typedef UnknownPtr PacketQueuePtr;
 
 // Verified
 struct netchanOOBMessage_t {

@@ -7,7 +7,7 @@
 namespace game {
 namespace scr {
 
-uint32_t Scr_CanonHash(const char *str);
+game::CanonHash_t Scr_CanonHash(const char *str);
 
 WEAK symbol<scr_const_t> scr_const{0x14A7290F0, 0x147B91CE0};
 

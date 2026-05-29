@@ -1,7 +1,7 @@
-#include <std_include.hpp>
+#include "../std_include.hpp"
 #include "loader/component_loader.hpp"
-#include "game/game.hpp"
-#include "game/utils.hpp"
+#include "../game/game.hpp"
+#include "../game/utils.hpp"
 
 #include "party.hpp"
 #include "auth.hpp"
@@ -67,9 +67,7 @@ void connect_to_lobby(const game::ControllerIndex_t controllerIndex,
 
   int32_t publicSlots = 0;
   for (game::LocalClientNum_t localClientIdx = game::LOCAL_CLIENT_0;
-       localClientIdx < game::LOCAL_CLIENT_COUNT;
-       localClientIdx = static_cast<game::LocalClientNum_t>(
-           static_cast<int32_t>(localClientIdx) + 1)) {
+       localClientIdx < game::LOCAL_CLIENT_COUNT; localClientIdx++) {
 
     if (game::com::Com_LocalClient_IsBeingUsed(localClientIdx)) {
 

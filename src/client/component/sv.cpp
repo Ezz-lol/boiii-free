@@ -59,7 +59,7 @@ bool valid_client_num(game::ClientNum_t c) {
   The engine calculates index of a given client the same way.
 */
 game::ClientNum_t get_client_num(game::sv::client_s *client) {
-  if (game::valid_ptr(client)) {
+  if (game::valid_engine_ptr(client)) {
     if (game::is_client()) {
       const uint64_t svs_clients_addr =
           reinterpret_cast<uint64_t>(game::sv::svs_clients_cl.get());

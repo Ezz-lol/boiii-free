@@ -5,6 +5,7 @@
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
+#include "game/utils.hpp"
 #include "../game_event.hpp"
 #include "../name.hpp"
 
@@ -1032,12 +1033,12 @@ void gscr_conststring(scriptInstance_t inst) {
 std::optional<game::ClientNum_t>
 get_self_client_num(game::scr::scriptInstance_t inst) {
   game::scr::scr_entref_t ref = game::scr::Scr_GetEntityRef(inst, 0);
-  const int32_t client_num = ref.u.entnum;
-  if (client_num < static_cast<int32_t>(game::lobby::MIN_PLAYERS) ||
-      client_num >= static_cast<int32_t>(game::lobby::MAX_PLAYERS)) {
+  const game::ClientNum_t client_num =
+      static_cast<game::ClientNum_t>(ref.u.entnum);
+  if (!game::valid_client_num(client_num)) {
     return std::nullopt;
   }
-  return static_cast<game::ClientNum_t>(client_num);
+  return client_num;
 }
 
 void gscr_setname(game::scr::scriptInstance_t inst) {
@@ -1056,9 +1057,7 @@ void gscr_setname(game::scr::scriptInstance_t inst) {
   } else {
     client_num = static_cast<game::ClientNum_t>(game::scr::Scr_GetInt(inst, 1));
     player_name = game::scr::Scr_GetString(inst, 2);
-    if (client_num < static_cast<int32_t>(game::lobby::MIN_PLAYERS) ||
-        client_num >= static_cast<int32_t>(game::lobby::MAX_PLAYERS) ||
-        !player_name) {
+    if (!game::valid_client_num(client_num) || !player_name) {
       Scr_ParamError(inst, 1, "^1[setname] Invalid arguments\n");
       return;
     }
@@ -1084,8 +1083,7 @@ void gscr_settag(game::scr::scriptInstance_t inst) {
   } else {
     client_num = static_cast<game::ClientNum_t>(game::scr::Scr_GetInt(inst, 1));
     tag = game::scr::Scr_GetString(inst, 2);
-    if (client_num < static_cast<int32_t>(game::lobby::MIN_PLAYERS) ||
-        client_num >= static_cast<int32_t>(game::lobby::MAX_PLAYERS) || !tag) {
+    if (!game::valid_client_num(client_num) || !tag) {
       Scr_ParamError(inst, 1, "^1[settag] Invalid arguments\n");
       return;
     }
@@ -1108,8 +1106,7 @@ void gscr_resetname(game::scr::scriptInstance_t inst) {
     client_num = static_cast<game::ClientNum_t>(self.value());
   } else {
     client_num = static_cast<game::ClientNum_t>(game::scr::Scr_GetInt(inst, 1));
-    if (client_num < static_cast<int32_t>(game::lobby::MIN_PLAYERS) ||
-        client_num >= static_cast<int32_t>(game::lobby::MAX_PLAYERS)) {
+    if (!game::valid_client_num(client_num)) {
       Scr_ParamError(inst, 1, "^1[resetname] Invalid arguments\n");
       return;
     }
@@ -1132,8 +1129,7 @@ void gscr_resettag(game::scr::scriptInstance_t inst) {
     client_num = static_cast<game::ClientNum_t>(self.value());
   } else {
     client_num = static_cast<game::ClientNum_t>(game::scr::Scr_GetInt(inst, 1));
-    if (client_num < static_cast<int32_t>(game::lobby::MIN_PLAYERS) ||
-        client_num >= static_cast<int32_t>(game::lobby::MAX_PLAYERS)) {
+    if (!game::valid_client_num(client_num)) {
       Scr_ParamError(inst, 1, "^1[resettag] Invalid arguments\n");
       return;
     }
@@ -1159,9 +1155,7 @@ void gscr_setclientdvar(game::scr::scriptInstance_t inst) {
   } else {
     client_num = static_cast<game::ClientNum_t>(game::scr::Scr_GetInt(inst, 1));
     dvar_cmd = game::scr::Scr_GetString(inst, 2);
-    if (client_num < static_cast<int32_t>(game::lobby::MIN_PLAYERS) ||
-        client_num >= static_cast<int32_t>(game::lobby::MAX_PLAYERS) ||
-        !dvar_cmd) {
+    if (!game::valid_client_num(client_num) || !dvar_cmd) {
       Scr_ParamError(inst, 1, "^1[setclientdvar] Invalid arguments\n");
       return;
     }

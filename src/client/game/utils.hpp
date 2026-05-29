@@ -3,6 +3,7 @@
 #include "structs/structs.hpp"
 #include <functional>
 #include <string>
+#include <type_traits>
 
 namespace game {
 [[nodiscard]] std::string get_dvar_string(const char *dvar_name);
@@ -89,6 +90,31 @@ inline level::gentity_t *entity(T input_index) {
     }
   }
   return nullptr;
+}
+
+template <typename E>
+concept EnumType = std::is_enum_v<E>;
+
+template <EnumType T, const T MinValue, const T MaxValue>
+inline constexpr bool valid(T enum_val) {
+  uint32_t casted = static_cast<uint32_t>(enum_val);
+  return casted >= static_cast<uint32_t>(MinValue) &&
+         casted < static_cast<uint32_t>(MaxValue);
+}
+
+inline constexpr bool valid_client_num(ClientNum_t clientNum) {
+  return valid<ClientNum_t, CLIENT_INDEX_0, CLIENT_INDEX_COUNT>(clientNum);
+}
+
+inline constexpr bool
+valid_controller_index(ControllerIndex_t controllerIndex) {
+  return valid<ControllerIndex_t, CONTROLLER_INDEX_0, CONTROLLER_INDEX_COUNT>(
+      controllerIndex);
+}
+
+inline constexpr bool valid_local_client_num(LocalClientNum_t localClientNum) {
+  return valid<LocalClientNum_t, LOCAL_CLIENT_0, LOCAL_CLIENT_COUNT>(
+      localClientNum);
 }
 
 } // namespace game
