@@ -40,16 +40,6 @@ using thiscall_t = T(__thiscall *)(This *, Args...);
 #pragma clang diagnostic pop
 #endif
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wignored-attributes"
-#endif
-template <typename T, typename... Args>
-using stdcall_t = T(__fastcall *)(Args...);
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-
 class library final {
 public:
   static library load(const char *name);

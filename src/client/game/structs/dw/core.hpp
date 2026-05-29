@@ -90,12 +90,11 @@ template <typename T> struct bdReference {
 
 #pragma pack(push, 1)
 template <typename T> struct bdReferencable {
-  void(__fastcall **releaseFunc)(T *, int64_t);
+  fastcallPtr<void, T *, int64_t> releaseFunc;
   volatile bdInt m_refCount;
   uint8_t _padding[4];
 };
-static_assert(sizeof(bdReferencable<void>) == 0x10,
-              "sizeof(bdReferencable) != 0x10");
+ASSERT_SIZE(bdReferencable<void>, 0x10);
 #pragma pack(pop)
 
 #pragma pack(push, 1)
@@ -110,7 +109,7 @@ struct bdByteBuffer : bdReferencable<bdByteBuffer> {
   bdBool m_allocatedData;
   uint8_t _padding33[5];
 };
-static_assert(sizeof(bdByteBuffer) == 0x38, "sizeof(bdByteBuffer) != 0x38");
+ASSERT_SIZE(bdByteBuffer, 0x38);
 typedef bdReference<bdByteBuffer> bdByteBufferRef;
 #pragma pack(pop)
 
@@ -164,7 +163,7 @@ struct bdRemoteTask : bdTask {
   bdUByte8 m_taskId;
   uint8_t _padding62[6];
 };
-static_assert(sizeof(bdRemoteTask) == 0x68, "sizeof(bdRemoteTask) != 0x68");
+ASSERT_SIZE(bdRemoteTask, 0x68);
 typedef bdReference<bdRemoteTask> bdRemoteTaskRef;
 #pragma pack(pop)
 
