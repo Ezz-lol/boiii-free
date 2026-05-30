@@ -68,9 +68,9 @@ struct LerpEntityStateLensflare {
   char name[64];
 };
 enum class PlayerCorpseDeathCamera : uint8_t {
-  PCDC_NORMAL = 0x0,
-  PCDC_FIXED_ORIGIN = 0x1,
-  PCDC_MAX = 0x2,
+  NORMAL = 0x0,
+  FIXED_ORIGIN = 0x1,
+  MAX = 0x2,
 };
 
 #pragma pack(push, 1)
@@ -449,7 +449,6 @@ static_assert(offsetof(entityState_t, otherEntityNum) ==
               "entityState_t::otherEntityNum must be at offset 0x1AE");
 
 #pragma pack(push, 1)
-// sizeof = 0x60
 struct entityShared_t {
   bool linked;
   bool bmodel;
@@ -467,8 +466,7 @@ struct entityShared_t {
   EntHandle ownerNum;
   int32_t eventTime;
 };
-static_assert(sizeof(entityShared_t) == 0x60,
-              "entityShared_t size must be 0x60 bytes");
+ASSERT_SIZE(entityShared_t, 0x60);
 #pragma pack(pop)
 
 #pragma pack(push, 1)
@@ -583,10 +581,10 @@ struct viewClampState {
 };
 
 enum class EViewAngleEaseMode : uint32_t {
-  VAEM_LINEAR = 0x0,
-  VAEM_CUBIC = 0x1,
-  VAEM_QUADRATIC = 0x2,
-  VAEM_SINUSOIDAL = 0x3,
+  LINEAR = 0x0,
+  CUBIC = 0x1,
+  QUADRATIC = 0x2,
+  SINUSOIDAL = 0x3,
 };
 
 struct playerViewAngleState_s {
@@ -602,13 +600,13 @@ ASSERT_SIZE(playerViewAngleState_s, 0x24);
 typedef playerViewAngleState_s playerViewAngleState_t;
 
 enum class PlayerLensState : int32_t {
-  PlayerLensState_LENS_STATE_DEFAULT = 0x0,
-  PlayerLensState_LENS_STATE_WALK = 0x1,
-  PlayerLensState_LENS_STATE_SPRINT = 0x2,
-  PlayerLensState_LENS_STATE_SWIM = 0x3,
-  PlayerLensState_LENS_STATE_SWIMSPRINT = 0x4,
-  PlayerLensState_LENS_STATE_SLIDE = 0x5,
-  PlayerLensState_LENS_STATE_MAX = 0x6,
+  LENS_STATE_DEFAULT = 0x0,
+  LENS_STATE_WALK = 0x1,
+  LENS_STATE_SPRINT = 0x2,
+  LENS_STATE_SWIM = 0x3,
+  LENS_STATE_SWIMSPRINT = 0x4,
+  LENS_STATE_SLIDE = 0x5,
+  LENS_STATE_MAX = 0x6,
 };
 
 struct PlayerLens {
@@ -654,44 +652,44 @@ ASSERT_SIZE(PlayerVehicleState, 0xB4);
 #pragma pack(pop)
 
 enum class OffhandSecondaryClass : int32_t {
-  PLAYER_OFFHAND_SECONDARY_SMOKE = 0x0,
-  PLAYER_OFFHAND_SECONDARY_FLASH = 0x1,
-  PLAYER_OFFHAND_SECONDARIES_TOTAL = 0x2,
+  SMOKE = 0x0,
+  FLASH = 0x1,
+  COUNT = 0x2,
 };
 
 enum class OffhandPrimaryClass : int32_t {
-  PLAYER_OFFHAND_PRIMARY_FRAG = 0x0,
-  PLAYER_OFFHAND_PRIMARY_GEAR = 0x1,
-  PLAYER_OFFHAND_PRIMARIES_TOTAL = 0x2,
+  FRAG = 0x0,
+  GEAR = 0x1,
+  COUNT = 0x2,
 };
 
 enum class ViewHeightState : int32_t {
-  VHS_PRONE = 0x0,
-  VHS_CROUCH = 0x1,
-  VHS_STAND = 0x2,
-  VHS_SLIDE = 0x3,
-  VHS_SWIM = 0x4,
-  VHS_LASTSTAND = 0x5,
-  VHS_ASSASSINATION = 0x6,
-  VHS_DEAD = 0x7,
-  VHS_SPECTATOR = 0x8,
-  VHS_COUNT = 0x9,
+  PRONE = 0x0,
+  CROUCH = 0x1,
+  STAND = 0x2,
+  SLIDE = 0x3,
+  SWIM = 0x4,
+  LASTSTAND = 0x5,
+  ASSASSINATION = 0x6,
+  DEAD = 0x7,
+  SPECTATOR = 0x8,
+  COUNT = 0x9,
 };
 
 enum class ViewLockTypes : uint32_t {
-  PLAYERVIEWLOCK_NONE = 0x0,
-  PLAYERVIEWLOCK_FULL = 0x1,
-  PLAYERVIEWLOCK_WEAPONJITTER = 0x2,
-  PLAYERVIEWLOCKCOUNT = 0x3,
+  NONE = 0x0,
+  FULL = 0x1,
+  WEAPONJITTER = 0x2,
+  COUNT = 0x3,
 };
 
 enum class locSel_t : uint32_t {
-  LOC_SEL_NONE = 0x0,
-  LOC_SEL_ARTILLERY = 0x1,
-  LOC_SEL_AIRSTRIKE = 0x2,
-  LOC_SEL_MORTAR = 0x3,
-  LOC_SEL_NAPALM = 0x4,
-  LOC_SEL_COMLINK = 0x5,
+  NONE = 0x0,
+  ARTILLERY = 0x1,
+  AIRSTRIKE = 0x2,
+  MORTAR = 0x3,
+  NAPALM = 0x4,
+  COMLINK = 0x5,
 };
 
 #pragma pack(push, 1)
@@ -712,32 +710,32 @@ ASSERT_SIZE(SprintState, 0x28);
 #pragma pack(pop)
 
 enum class trmAnim_t : int32_t {
-  TRM_ROOT = 0x0,
-  TRM_STEP_F = 0x1,
-  TRM_STEP_B = 0x2,
-  TRM_STEP_L = 0x3,
-  TRM_STEP_R = 0x4,
-  TRM_ON_LOW_FORWARD_32 = 0x5,
-  TRM_ON_LOW_BACK_32 = 0x6,
-  TRM_ON_LOW_LEFT_32 = 0x7,
-  TRM_ON_LOW_RIGHT_32 = 0x8,
-  TRM_ON_MED_FORWARD_60 = 0x9,
-  TRM_ON_MED_LEFT_50 = 0xA,
-  TRM_ON_MED_RIGHT_50 = 0xB,
-  TRM_OVER_LOW_FORWARD_VAULT = 0xC,
-  TRM_OVER_LOW_FORWARD = 0xD,
-  TRM_OVER_LOW_BACK = 0xE,
-  TRM_OVER_LOW_LEFT = 0xF,
-  TRM_OVER_LOW_RIGHT = 0x10,
-  TRM_OVER_HIGH_75 = 0x11,
-  TRM_OVER_HIGH_100 = 0x12,
-  TRM_OVER_HIGH_140 = 0x13,
-  TRM_ON_HIGH_100 = 0x14,
-  TRM_ON_HIGH_140 = 0x15,
-  TRM_ANIM_COUNT = 0x16,
-  TRM_FIRST_OVER_ANIM = 0xC,
-  TRM_LAST_OVER_ANIM = 0x13,
-  TRM_FIRST_NONCOMBAT_ANIM = 0x12,
+  ROOT = 0x0,
+  STEP_F = 0x1,
+  STEP_B = 0x2,
+  STEP_L = 0x3,
+  STEP_R = 0x4,
+  ON_LOW_FORWARD_32 = 0x5,
+  ON_LOW_BACK_32 = 0x6,
+  ON_LOW_LEFT_32 = 0x7,
+  ON_LOW_RIGHT_32 = 0x8,
+  ON_MED_FORWARD_60 = 0x9,
+  ON_MED_LEFT_50 = 0xA,
+  ON_MED_RIGHT_50 = 0xB,
+  OVER_LOW_FORWARD_VAULT = 0xC,
+  OVER_LOW_FORWARD = 0xD,
+  OVER_LOW_BACK = 0xE,
+  OVER_LOW_LEFT = 0xF,
+  OVER_LOW_RIGHT = 0x10,
+  OVER_HIGH_75 = 0x11,
+  OVER_HIGH_100 = 0x12,
+  OVER_HIGH_140 = 0x13,
+  ON_HIGH_100 = 0x14,
+  ON_HIGH_140 = 0x15,
+  ANIM_COUNT = 0x16,
+  FIRST_OVER_ANIM = 0xC,
+  LAST_OVER_ANIM = 0x13,
+  FIRST_NONCOMBAT_ANIM = 0x12,
 };
 
 #pragma pack(push, 1)
@@ -775,10 +773,10 @@ struct SlamState {
 ASSERT_SIZE(SlamState, 0xC);
 
 enum class SlideType : uint32_t {
-  SlideType_SLIDE_TYPE_BOOST = 0x0,
-  SlideType_SLIDE_TYPE_REDUCED = 0x1,
-  SlideType_SLIDE_TYPE_BASE = 0x2,
-  SlideType_SLIDE_TYPE_COUNT = 0x3,
+  BOOST = 0x0,
+  REDUCED = 0x1,
+  BASE = 0x2,
+  COUNT = 0x3,
 };
 
 struct SlideState {
@@ -793,27 +791,27 @@ ASSERT_SIZE(SlideState, 0x20);
 #pragma pack(pop)
 
 enum class DoubleJumpStateType : int32_t {
-  DOUBLEJUMP_STATE_OFF = 0x0,
-  DOUBLEJUMP_STATE_FIRST_UP_BOOST = 0x1,
-  DOUBLEJUMP_STATE_UP_BOOST = 0x2,
-  DOUBLEJUMP_STATE_IN_AIR = 0x3,
-  NUM_DOUBLEJUMP_STATES = 0x4,
+  OFF = 0x0,
+  FIRST_UP_BOOST = 0x1,
+  UP_BOOST = 0x2,
+  IN_AIR = 0x3,
+  COUNT = 0x4,
 };
 enum class DoubleJumpBoostUpDirection : int32_t {
-  DOUBLEJUMP_BOOST_UP_NONE = 0x0,
-  DOUBLEJUMP_BOOST_UP_LEFT = 0x1,
-  DOUBLEJUMP_BOOST_UP_RIGHT = 0x2,
-  DOUBLEJUMP_BOOST_UP_FORWARD = 0x3,
-  DOUBLEJUMP_BOOST_UP_BACKWARD = 0x4,
-  NUM_DOUBLEJUMP_BOOST_UP = 0x5,
+  NONE = 0x0,
+  LEFT = 0x1,
+  RIGHT = 0x2,
+  FORWARD = 0x3,
+  BACKWARD = 0x4,
+  COUNT = 0x5,
 };
 
 enum class gadgetButtonInput_e : int32_t {
-  GADGET_BUTTON_NO_CHANGE = 0x0,
-  GADGET_BUTTON_PRESSED = 0x1,
-  GADGET_BUTTON_HELD = 0x2,
-  GADGET_BUTTON_RELEASED = 0x3,
-  GADGET_BUTTON_COUNT = 0x4,
+  NO_CHANGE = 0x0,
+  PRESSED = 0x1,
+  HELD = 0x2,
+  RELEASED = 0x3,
+  COUNT = 0x4,
 };
 
 struct playerGadgetState_t {
@@ -882,11 +880,11 @@ struct PlayerWeaponLock {
 ASSERT_SIZE(PlayerWeaponLock, 0xC);
 
 enum class ActionSlotType : int32_t {
-  ACTIONSLOTTYPE_DONOTHING = 0x0,
-  ACTIONSLOTTYPE_SPECIFYWEAPON = 0x1,
-  ACTIONSLOTTYPE_ALTWEAPONTOGGLE = 0x2,
-  ACTIONSLOTTYPE_BGB = 0x3,
-  ACTIONSLOTTYPECOUNT = 0x4,
+  DONOTHING = 0x0,
+  SPECIFYWEAPON = 0x1,
+  ALTWEAPONTOGGLE = 0x2,
+  BGB = 0x3,
+  COUNT = 0x4,
 };
 
 struct ActionSlotParam {
@@ -1198,10 +1196,10 @@ struct score_t {
 };
 
 enum class sessionState_t : int32_t {
-  SESS_STATE_PLAYING = 0x0,
-  SESS_STATE_DEAD = 0x1,
-  SESS_STATE_SPECTATOR = 0x2,
-  SESS_STATE_INTERMISSION = 0x3,
+  PLAYING = 0x0,
+  DEAD = 0x1,
+  SPECTATOR = 0x2,
+  INTERMISSION = 0x3,
 };
 
 /*
