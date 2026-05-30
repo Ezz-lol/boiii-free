@@ -1632,6 +1632,7 @@ struct HavokObj_t;
 
 typedef uintptr_t PosedEntity_PoseHandle;
 
+#pragma pack(push, 1)
 struct gentity_s {
   entityState_t s;
   entityShared_t r;
@@ -1667,6 +1668,7 @@ struct gentity_s {
   int32_t health;
   int32_t maxHealth;
   int32_t damage;
+  uint8_t _padding2D4[4];
   flame_timed_damage_t flame_timed_damage[4];
   int32_t last_timed_radius_damage;
   int32_t count;
@@ -1693,6 +1695,7 @@ struct gentity_s {
   EntityModelAttachment attachments[19];
   anim::XAnimTree *pAnimTree;
   uint16_t disconnectedLinks;
+  uint8_t _padding4A2[2];
   int32_t iDisconnectTime;
   phys::PhysObjId physObjId;
   gentity_t *nextFree;
@@ -1706,7 +1709,9 @@ struct gentity_s {
   int32_t teleportTime;
   int32_t debugRenderTime;
   char tmodeTimeOut;
+  uint8_t _padding4F1[7];
 };
+#pragma pack(pop)
 
 constexpr uint32_t GENTITY_POOL_COUNT = 2048;
 struct gentity_pool {
