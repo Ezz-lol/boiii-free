@@ -277,8 +277,7 @@ void snd_queueadd_stub(game::snd::SndQueue *queue,
 utils::hook::detour snd_active_hook;
 game::qboolean snd_active_stub() {
   game::snd::g_snd->verified_0.init = 1;
-  const game::qboolean active = snd_active_hook.invoke<game::qboolean>();
-  return active;
+  return snd_active_hook.invoke<game::qboolean>();
 }
 
 utils::hook::detour sndl_update_hook;

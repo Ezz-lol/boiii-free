@@ -53,7 +53,7 @@ void ScrCmd_PlaySoundOnTag_Impl(scriptInstance_t inst, scr_entref_t *entref) {
     } else {
       sv::SV_DObjDumpInfo(ent);
       const char *model_name = game::bg::BG_Cache_GetModelNameForIndex(
-          game::bg::BG_CACHE_INSTANCE_SERVER, ent->verified_1.model);
+          game::bg::BG_CACHE_INSTANCE_SERVER, ent->model);
       const char *tag_name_display_str = sl::SL_ConvertToString(tag_name);
       const char *error_str =
           utils::string::va("tag '%s' does not exist on entity with model '%s'",
@@ -66,7 +66,7 @@ void ScrCmd_PlaySoundOnTag_Impl(scriptInstance_t inst, scr_entref_t *entref) {
       level::gentity_t *sound_ent =
           G_PlaySoundAlias_Impl(ent, alias_id, 0, tag_idx);
       if (Scr_GetNumParam(SCRIPTINSTANCE_SERVER) >= 3) {
-        sound_ent->verified_0.s.clientMask[0] = -1;
+        sound_ent->s.clientMask[0] = -1;
         // Should be ScrVarType::LOCALIZED_STRING - a conststring matched
         // internally in Scr_GetTeam to return the corresponding team_t
         // enumeration
@@ -79,24 +79,22 @@ void ScrCmd_PlaySoundOnTag_Impl(scriptInstance_t inst, scr_entref_t *entref) {
             for (uint32_t clientEntIdx = 0; clientEntIdx < max_clients;
                  clientEntIdx++) {
               level::gentity_t *mask_ent = &ent_pool->pool[clientEntIdx];
-              if (mask_ent->verified_0.r.inuse) {
-                if (mask_ent->verified_0.client->sess.cs.team == team) {
-                  sound_ent->verified_0.s
-                      .clientMask[mask_ent->verified_0.s.number >> 5] &=
-                      ~(1 << (mask_ent->verified_0.s.number & 0x1F));
+              if (mask_ent->r.inuse) {
+                if (mask_ent->client->sess.cs.team == team) {
+                  sound_ent->s.clientMask[mask_ent->s.number >> 5] &=
+                      ~(1 << (mask_ent->s.number & 0x1F));
                 }
               }
             }
           } else {
-            sound_ent->verified_0.s.clientMask[ent->verified_0.s.number >> 5] &=
-                ~(1 << (ent->verified_0.s.number & 0x1F));
+            sound_ent->s.clientMask[ent->s.number >> 5] &=
+                ~(1 << (ent->s.number & 0x1F));
           }
         }
         if (Scr_GetNumParam(SCRIPTINSTANCE_SERVER) >= 4) {
           level::gentity_t *extraEnt = Scr_GetEntity_Impl(3u);
-          sound_ent->verified_0.s
-              .clientMask[extraEnt->verified_0.s.number >> 5] &=
-              ~(1 << (extraEnt->verified_0.s.number & 0x1F));
+          sound_ent->s.clientMask[extraEnt->s.number >> 5] &=
+              ~(1 << (extraEnt->s.number & 0x1F));
         }
       }
     }
@@ -105,9 +103,9 @@ void ScrCmd_PlaySoundOnTag_Impl(scriptInstance_t inst, scr_entref_t *entref) {
 void ScrCmd_PlaySoundToAllButPlayer_Impl(scriptInstance_t inst,
                                          scr_entref_t *entref) {
   level::gentity_t *ent = Scr_GetEntity_Impl(1u);
-  if (!ent->verified_0.client) {
-    const char *error_str = utils::string::va("entity %i is not a player",
-                                              ent->verified_0.s.number);
+  if (!ent->client) {
+    const char *error_str =
+        utils::string::va("entity %i is not a player", ent->s.number);
     Scr_ObjectError(SCRIPTINSTANCE_SERVER, error_str);
   }
   level::gentity_t *play_ent = GetEntity_Impl(*entref);
@@ -115,17 +113,16 @@ void ScrCmd_PlaySoundToAllButPlayer_Impl(scriptInstance_t inst,
   snd::SndAliasId alias_id = snd::SND_FindAliasId(alias);
   level::gentity_t *temp_ent = G_PlaySoundAlias_Impl(play_ent, alias_id, 0, 0);
   if (temp_ent) {
-    temp_ent->verified_0.s.clientMask[0] = 0;
-    temp_ent->verified_0.s.clientMask[ent->verified_0.s.number >> 5] |=
-        1 << (ent->verified_0.s.number & 0x1F);
+    temp_ent->s.clientMask[0] = 0;
+    temp_ent->s.clientMask[ent->s.number >> 5] |= 1 << (ent->s.number & 0x1F);
   }
 }
 void ScrCmd_PlaySoundToPlayer_Impl(scriptInstance_t inst,
                                    scr_entref_t *entref) {
   level::gentity_t *client_ent = Scr_GetEntity_Impl(1u);
-  if (!client_ent->verified_0.client) {
+  if (!client_ent->client) {
     const char *error_str = utils::string::va(
-        "client_entity %i is not a player", client_ent->verified_0.s.number);
+        "client_entity %i is not a player", client_ent->s.number);
     Scr_ObjectError(SCRIPTINSTANCE_SERVER, error_str);
     return;
   }
@@ -141,9 +138,9 @@ void ScrCmd_PlaySoundToPlayer_Impl(scriptInstance_t inst,
   level::gentity_t *ent = GetEntity_Impl(*entref);
   level::gentity_t *temp_ent = G_PlaySoundAlias_Impl(ent, alias_id, 0, 0);
   if (temp_ent) {
-    temp_ent->verified_0.s.clientMask[0] = -1;
-    temp_ent->verified_0.s.clientMask[client_ent->verified_0.s.number >> 5] &=
-        ~(1 << (client_ent->verified_0.s.number & 0x1F));
+    temp_ent->s.clientMask[0] = -1;
+    temp_ent->s.clientMask[client_ent->s.number >> 5] &=
+        ~(1 << (client_ent->s.number & 0x1F));
   }
 }
 void ScrCmd_PlaySoundToTeam_Impl(scriptInstance_t inst, scr_entref_t *entref) {
@@ -155,9 +152,9 @@ void ScrCmd_PlaySoundToTeam_Impl(scriptInstance_t inst, scr_entref_t *entref) {
   if (Scr_GetNumParam(SCRIPTINSTANCE_SERVER) >= 3) {
     level::gentity_t *ent = Scr_GetEntity_Impl(2u);
     exclude_ent = ent;
-    if (!ent->verified_0.client) {
-      const char *error_str = utils::string::va("entity %i is not a player",
-                                                ent->verified_0.s.number);
+    if (!ent->client) {
+      const char *error_str =
+          utils::string::va("entity %i is not a player", ent->s.number);
       Scr_ObjectError(SCRIPTINSTANCE_SERVER, error_str);
     }
   } else {
@@ -168,7 +165,7 @@ void ScrCmd_PlaySoundToTeam_Impl(scriptInstance_t inst, scr_entref_t *entref) {
   level::gentity_t *play_ent = GetEntity_Impl(*entref);
   level::gentity_t *temp_ent = G_PlaySoundAlias_Impl(play_ent, alias_id, 0, 0);
   if (temp_ent) {
-    temp_ent->verified_0.s.clientMask[0] = -1;
+    temp_ent->s.clientMask[0] = -1;
     level::gentity_pool *ent_pool = gentity_pool();
     const uint32_t max_clients =
         static_cast<uint32_t>(Dvar_GetInt(*com_maxclients));
@@ -176,12 +173,10 @@ void ScrCmd_PlaySoundToTeam_Impl(scriptInstance_t inst, scr_entref_t *entref) {
     for (uint32_t clientEntIdx = 0; clientEntIdx < max_clients;
          clientEntIdx++) {
       level::gentity_t *mask_ent = &ent_pool->pool[clientEntIdx];
-      if (mask_ent->verified_0.r.inuse) {
-        if (mask_ent != exclude_ent &&
-            mask_ent->verified_0.client->sess.cs.team == team) {
-          temp_ent->verified_0.s
-              .clientMask[mask_ent->verified_0.s.number >> 5] &=
-              ~(1 << (mask_ent->verified_0.s.number & 0x1F));
+      if (mask_ent->r.inuse) {
+        if (mask_ent != exclude_ent && mask_ent->client->sess.cs.team == team) {
+          temp_ent->s.clientMask[mask_ent->s.number >> 5] &=
+              ~(1 << (mask_ent->s.number & 0x1F));
         }
       }
     }
@@ -214,7 +209,7 @@ void ScrCmd_PlaySoundWithNotify_Impl(scriptInstance_t inst,
     } else {
       sv::SV_DObjDumpInfo(ent);
       const char *model_name = game::bg::BG_Cache_GetModelNameForIndex(
-          game::bg::BG_CACHE_INSTANCE_SERVER, ent->verified_1.model);
+          game::bg::BG_CACHE_INSTANCE_SERVER, ent->model);
       const char *tag_name = sl::SL_ConvertToString(tag_name_hash);
       const char *error_str =
           utils::string::va("tag '%s' does not exist on entity with model '%s'",

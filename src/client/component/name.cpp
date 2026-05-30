@@ -213,7 +213,7 @@ void client_update(game::sv::client_s *cl) {
   if (game::valid_engine_ptr(cl)) {
     game::level::gentity_t *ent = cl->gentity;
     if (game::valid_engine_ptr(ent)) {
-      game::level::gclient_t *gclient = ent->verified_0.client;
+      game::level::gclient_t *gclient = ent->client;
       if (game::valid_engine_ptr(gclient)) {
         std::lock_guard lk(names_mutex);
         game::level::clientState_t *client_state = &gclient->sess.cs;

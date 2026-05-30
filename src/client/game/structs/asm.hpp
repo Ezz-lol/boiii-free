@@ -658,5 +658,26 @@ struct animState_t {
   int32_t traversalAnimIndex;
 };
 #pragma pack(pop)
+
+#pragma pack(push, 1)
+struct animscripted_t {
+  vec3_t axis[4];
+  vec3_t originError;
+  vec3_t originErrorReduction;
+  vec3_t anglesError;
+  vec3_t anglesErrorReduction;
+  uint16_t anim;
+  uint16_t root;
+  uint8_t bStarted;
+  uint8_t mode;
+  uint8_t _padding66[2];
+  int startTime;
+  int lerpTime;
+  float fHeightOfs;
+  float fEndPitch;
+  float fEndRoll;
+  float fOrientLerp;
+};
+#pragma pack(pop)
 } // namespace anim
 } // namespace game

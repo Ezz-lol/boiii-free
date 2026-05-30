@@ -272,7 +272,7 @@ struct scriptMoverState_t {
 
 struct fxLightingState_t {
   float primaryLightFraction;
-  int lightingOriginOffset;
+  int32_t lightingOriginOffset;
 };
 
 constexpr uint32_t ENTITYSTATE_SIZE = 0x1f0;
@@ -471,60 +471,6 @@ static_assert(sizeof(entityShared_t) == 0x60,
               "entityShared_t size must be 0x60 bytes");
 #pragma pack(pop)
 
-struct gentity_snd_wait {
-  uint32_t notifyString;
-  uint32_t index;
-  qboolean stoppable;
-  int32_t basetime;
-  int32_t duration;
-};
-
-struct gclient_s;
-static const uint32_t GENTITY_SIZE = 0x4F8;
-static const uint32_t GENTITY_MODEL_OFFSET = 0x280;
-static const uint32_t GENTITY_SND_WAIT_OFFSET = 0x3D4;
-static const uint32_t GENTITY_VERIFIED2_SIZE =
-    GENTITY_SND_WAIT_OFFSET - GENTITY_MODEL_OFFSET;
-partial_def(GENTITY_SIZE, struct, gentity_s, {
-  inline_partial_def(0, GENTITY_MODEL_OFFSET, struct, {
-    entityState_t s;
-    entityShared_t r;
-    gclient_s *client;
-  });
-  inline_partial_def(1, GENTITY_VERIFIED2_SIZE, struct, {
-    modelNameIndex_t model;
-    bool physicsObject;
-    bool takedamage;
-    bool active;
-    bool nopickup;
-    bool handler;
-    bool avoidHandle;
-    scr::ScrString_t classname;
-    scr::ScrString_t target;
-    scr::ScrString_t targetname;
-  });
-  gentity_snd_wait snd_wait;
-});
-typedef gentity_s gentity_t;
-
-constexpr uint32_t GENTITY_POOL_COUNT = 2048;
-struct gentity_pool {
-  gentity_t pool[GENTITY_POOL_COUNT];
-};
-
-#ifdef __cplusplus
-static_assert(offsetof(gentity_s, verified_1.model) == GENTITY_MODEL_OFFSET,
-              "offset of gentity_s::model must be 0x280");
-static_assert(offsetof(gentity_s, verified_1.classname) == 0x288,
-              "offset of gentity_s::classname must be 0x288");
-static_assert(offsetof(gentity_s, snd_wait) == GENTITY_SND_WAIT_OFFSET,
-              "GENTITY_SND_WAIT_OFFSET must be 0x3D4");
-static_assert(offsetof(gentity_s, verified_0.s) == 0,
-              "gentity_s must start with entityState_t");
-static_assert(offsetof(gentity_s, verified_0.client) == 0x250);
-static_assert(sizeof(gentity_s) == GENTITY_SIZE,
-              "gentity_s size must be 0x4F8 bytes");
-#endif
 #pragma pack(push, 1)
 // sizeof=0x30
 struct TopScorer {
@@ -1488,6 +1434,299 @@ struct SpawnVar {
 ASSERT_SIZE(SpawnVar, 0xEB0);
 #pragma pack(pop)
 
+struct archivedEntity_t;
+
+struct gentity_snd_wait {
+  uint32_t notifyString;
+  uint32_t index;
+  qboolean stoppable;
+  int32_t basetime;
+  int32_t duration;
+};
+
+struct gclient_s;
+static const uint32_t GENTITY_SIZE = 0x4F8;
+static const uint32_t GENTITY_MODEL_OFFSET = 0x280;
+static const uint32_t GENTITY_SND_WAIT_OFFSET = 0x3D4;
+
+struct gentity_s;
+typedef gentity_s gentity_t;
+
+#pragma pack(push, 1)
+struct flame_timed_damage_t {
+  gentity_t *attacker;
+  int32_t damage;
+  float damageDuration;
+  float damageInterval;
+  int32_t start_timestamp;
+  int32_t end_timestamp;
+  int32_t lastupdate_timestamp;
+};
+ASSERT_SIZE(flame_timed_damage_t, 0x20);
+#pragma pack(pop)
+
+struct item_ent_t {
+  uint32_t ammoCount;
+  uint32_t clipAmmoCount;
+  weapon::Weapon weapon;
+};
+ASSERT_SIZE(item_ent_t, 0x10);
+
+#pragma pack(push, 1)
+struct trigger_ent_t {
+  int32_t threshold;
+  int32_t accumulate;
+  int32_t timestamp;
+  int32_t singleUserEntIndex;
+  uint8_t perk;
+  uint8_t _padding11[3];
+  int32_t exposureIndex;
+  float exposureLerpToLighter;
+  float exposureLerpToDarker;
+  vec3_t exposureFeather;
+  int16_t flags;
+  uint8_t playerPrompts[4];
+  bool requireAllPlayers;
+  uint8_t _padding33[1];
+};
+ASSERT_SIZE(trigger_ent_t, 0x34);
+#pragma pack(pop)
+
+struct mover_slidedata_t {
+  vec3_t mins;
+  vec3_t maxs;
+  vec3_t velocity;
+};
+
+struct mover_positions_t {
+  float decelTime;
+  float speed;
+  float midTime;
+  vec3_t pos1;
+  vec3_t pos2;
+  vec3_t pos3;
+};
+ASSERT_SIZE(mover_positions_t, 0x30);
+
+struct mover_ent_t {
+  union {
+    mover_positions_t pos;
+    mover_slidedata_t slide;
+  };
+  mover_positions_t angle;
+};
+
+struct corpse_ent_t {
+  int32_t deathAnimStartTime;
+};
+
+#pragma pack(push, 1)
+struct missile_ent_t {
+  vec3_t predictLandPos;
+  int32_t predictLandTime;
+  int32_t timestamp;
+  float time;
+  int32_t timeOfBirth;
+  float travelDist;
+  vec3_t surfaceNormal;
+  union {
+    struct {
+      uint8_t forcedDud : 1;
+      uint8_t rolling : 1;
+    };
+    uint8_t _raw;
+  };
+  uint8_t flags;
+  uint8_t _padding2E[2];
+  int32_t antilagTimeOffset;
+  int32_t timeAlive;
+  union {
+    struct {
+      vec3_t curvature;
+      vec3_t targetOffset;
+      union {
+        struct {
+          enum MissileStage stage;
+          enum MissileFlightMode flightMode;
+        } missile;
+        struct {
+          float pitch;
+          float yaw;
+          float frequency;
+        } grenade;
+      };
+    };
+
+    int32_t effectIndex;
+  };
+  float grenadeWobbleCycle;
+  float grenadeCurve;
+  int32_t destructibleBounceCount;
+};
+ASSERT_SIZE(missile_ent_t, 0x68);
+#pragma pack(pop)
+
+struct blend_ent_t {
+  vec3_t pos;
+  vec3_t vel;
+  vec4_t viewQuat;
+  bool changed;
+  float posAccelTime;
+  float posDecelTime;
+  float angleAccelTime;
+  float angleDecelTime;
+  float startTime;
+  float posTotalTime;
+  float angleTotalTime;
+};
+
+struct actor_ent_t {
+  int32_t spawnTime;
+};
+
+struct spawner_ent_t {
+  int32_t timestamp;
+};
+
+#pragma pack(push, 1)
+struct zbarrier_piece_t {
+  uint8_t state;
+  uint8_t scalar;
+  uint8_t nextState;
+  uint8_t _padding03[1];
+  int32_t startTime;
+};
+ASSERT_SIZE(zbarrier_piece_t, 0x8);
+#pragma pack(pop)
+
+struct zbarrier_ent_t {
+  zbarrier_piece_t pieces[6];
+};
+
+#pragma pack(push, 1)
+struct tagInfo_t {
+  gentity_t *parent;
+  gentity_t *next;
+  scr::ScrString_t name;
+  bool blendToParent;
+  bool blendOnlyYaw;
+  bool collisionPhysics;
+  uint8_t _padding17[1];
+  BoneIndex index;
+  uint8_t _padding1A[2];
+  vec3_t axis[4];
+  vec3_t parentInvAxis[4];
+  uint8_t _padding7C[4];
+};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct EntityModelAttachment {
+  modelNameIndex_t model;
+  uint8_t _padding02[2];
+  scr::ScrString_t tag;
+};
+#pragma pack(pop)
+
+struct HavokObj_t;
+
+typedef uintptr_t PosedEntity_PoseHandle;
+
+struct gentity_s {
+  entityState_t s;
+  entityShared_t r;
+  gclient_t *client;
+  user::actor_t *actor;
+  ai::sentient_t *sentient;
+  phys::Destructible *destructible;
+  vehicle::vehicle_t *vehicle;
+  user::bot_t *bot;
+  modelNameIndex_t model;
+  bool physicsObject;
+  bool takedamage;
+  bool active;
+  bool nopickup;
+  bool handler;
+  bool avoidHandle;
+  scr::ScrString_t classname;
+  scr::ScrString_t target;
+  scr::ScrString_t targetname;
+  scr::ScrString_t script_noteworthy;
+  scr::ScrString_t animname;
+  scr::ScrString_t script_animname;
+  uint32_t attachIgnoreCollision;
+  int32_t spawnflags;
+  int32_t flags;
+  int32_t eventTime;
+  qboolean freeAfterEvent;
+  qboolean unlinkAfterEvent;
+  contents_t clipmask;
+  int32_t processedFrame;
+  EntHandle parent;
+  int32_t nextthink;
+  int32_t health;
+  int32_t maxHealth;
+  int32_t damage;
+  flame_timed_damage_t flame_timed_damage[4];
+  int32_t last_timed_radius_damage;
+  int32_t count;
+  gentity_t *activator;
+  union {
+    item_ent_t item[2];
+    trigger_ent_t trigger;
+    mover_ent_t mover;
+    corpse_ent_t corpse;
+    missile_ent_t missile;
+    blend_ent_t blend;
+    actor_ent_t actorInfo;
+    spawner_ent_t spawner;
+    zbarrier_ent_t zbarrier;
+  };
+  union {
+    EntHandle missileTargetEnt;
+    EntHandle grenadeOriginalOwner;
+  };
+  gentity_snd_wait snd_wait;
+  tagInfo_t *tagInfo;
+  gentity_t *tagChildren;
+  anim::animscripted_t *scripted;
+  EntityModelAttachment attachments[19];
+  anim::XAnimTree *pAnimTree;
+  uint16_t disconnectedLinks;
+  int32_t iDisconnectTime;
+  phys::PhysObjId physObjId;
+  gentity_t *nextFree;
+  int32_t birthTime;
+  int32_t ikPlayerclipTerrainTime;
+  int32_t ikDisableTerrainMappingTime;
+  uint32_t shieldAttachmentIndex;
+  weapon::DelayedWeaponFire delayedFire;
+  HavokObj_t *havokObj;
+  PosedEntity_PoseHandle instancePoseHandle;
+  int32_t teleportTime;
+  int32_t debugRenderTime;
+  char tmodeTimeOut;
+};
+
+constexpr uint32_t GENTITY_POOL_COUNT = 2048;
+struct gentity_pool {
+  gentity_t pool[GENTITY_POOL_COUNT];
+};
+
+#ifdef __cplusplus
+static_assert(offsetof(gentity_s, model) == GENTITY_MODEL_OFFSET,
+              "offset of gentity_s::model must be 0x280");
+static_assert(offsetof(gentity_s, classname) == 0x288,
+              "offset of gentity_s::classname must be 0x288");
+static_assert(offsetof(gentity_s, snd_wait) == GENTITY_SND_WAIT_OFFSET,
+              "GENTITY_SND_WAIT_OFFSET must be 0x3D4");
+static_assert(offsetof(gentity_s, s) == 0,
+              "gentity_s must start with entityState_t");
+static_assert(offsetof(gentity_s, client) == 0x250);
+static_assert(sizeof(gentity_s) == GENTITY_SIZE,
+              "gentity_s size must be 0x4F8 bytes");
+#endif
+
 #pragma pack(push, 16)
 // Length of level_locals_t has size 0x23A10 on both client and server
 struct level_locals_t {
@@ -1605,8 +1844,6 @@ struct level_locals_t {
 };
 ASSERT_SIZE(level_locals_t, 0x23A10);
 #pragma pack(pop)
-
-struct archivedEntity_t;
 
 } // namespace level
 } // namespace game

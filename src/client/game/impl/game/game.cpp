@@ -19,7 +19,7 @@ void G_RegisterSoundWait_Impl(level::gentity_s *ent, snd::SndAliasId id,
     scr::Scr_Notify_ScrString(ent, currentPlaybackNotifyString, 0);
     if (!ent->snd_wait.stoppable) {
       scr::Scr_SetString(&tempNotifyString, 0);
-      scr::ScrString_t targetname = ent->verified_1.targetname;
+      scr::ScrString_t targetname = ent->targetname;
 
       const char *targetDisplayStr;
       if (targetname) {
@@ -31,18 +31,17 @@ void G_RegisterSoundWait_Impl(level::gentity_s *ent, snd::SndAliasId id,
           sl::SL_ConvertToString(tempNotifyString);
       const char *notifyDisplayStr =
           sl::SL_ConvertToString(ent->snd_wait.notifyString);
-      double z = ent->verified_0.r.currentOrigin.z;
-      double y = ent->verified_0.r.currentOrigin.y;
-      double x = ent->verified_0.r.currentOrigin.x;
-      const char *targetClassNameStr =
-          sl::SL_ConvertToString(ent->verified_1.classname);
+      double z = ent->r.currentOrigin.z;
+      double y = ent->r.currentOrigin.y;
+      double x = ent->r.currentOrigin.x;
+      const char *targetClassNameStr = sl::SL_ConvertToString(ent->classname);
       const char *errorStr = utils::string::va(
           "issued a second playsound with notification string before the "
           "first finished on entity %i classname %s tar"
           "getname %s location %g %g %g old string %s at time %i new "
           "string %s at time %i\n",
-          ent->verified_0.s.number, targetClassNameStr, targetDisplayStr, x, y,
-          z, notifyDisplayStr, ent->snd_wait.basetime, tempNotifyDisplayStr,
+          ent->s.number, targetClassNameStr, targetDisplayStr, x, y, z,
+          notifyDisplayStr, ent->snd_wait.basetime, tempNotifyDisplayStr,
           *level::level_time);
       scr::Scr_Error(scr::SCRIPTINSTANCE_SERVER, errorStr, 0);
     }
@@ -65,9 +64,9 @@ level::gentity_t *G_PlaySoundAliasAtPoint_Impl(const vec3_t *origin,
   level::gentity_t *tmp = 0;
   if (alias) {
     tmp = G_TempEntity(origin, TEMP_ENTITY_SOUND_EVENT);
-    tmp->verified_0.r.svFlags |= 8u;
-    tmp->verified_0.s.loopSound.id = alias;
-    tmp->verified_0.s.otherEntityNum = 1022;
+    tmp->r.svFlags |= 8u;
+    tmp->s.loopSound.id = alias;
+    tmp->s.otherEntityNum = 1022;
   }
   return tmp;
 }
@@ -81,10 +80,10 @@ level::gentity_t *G_PlaySoundAliasWithNotify_Impl(level::gentity_t *ent,
   if (alias) {
     int32_t event =
         notifyString ? TEMP_ENTITY_SOUND_NOTIFY_EVENT : TEMP_ENTITY_SOUND_EVENT;
-    tmp = G_TempEntity(&ent->verified_0.r.currentOrigin, event);
-    tmp->verified_0.s.loopSound.id = alias;
-    tmp->verified_0.s.un3.hintString = tag;
-    tmp->verified_0.s.otherEntityNum = ent->verified_0.s.number;
+    tmp = G_TempEntity(&ent->r.currentOrigin, event);
+    tmp->s.loopSound.id = alias;
+    tmp->s.un3.hintString = tag;
+    tmp->s.otherEntityNum = ent->s.number;
   }
   if (notifyString) {
     G_RegisterSoundWait_Impl(ent, alias, notifyString);
@@ -99,13 +98,13 @@ level::gentity_t *G_PlaySoundAlias_Impl(level::gentity_t *ent,
   level::gentity_t *tmp = nullptr;
 
   if (alias) {
-    tmp = G_TempEntity(&ent->verified_0.r.currentOrigin, 4);
-    tmp->verified_0.r.svFlags |= 8u;
-    if (ent->verified_0.s.number < 0x400)
-      ent->verified_0.r.svFlags &= ~1u;
-    tmp->verified_0.s.loopSound.id = alias;
-    tmp->verified_0.s.otherEntityNum = ent->verified_0.s.number;
-    tmp->verified_0.s.un3.hintString = bone;
+    tmp = G_TempEntity(&ent->r.currentOrigin, 4);
+    tmp->r.svFlags |= 8u;
+    if (ent->s.number < 0x400)
+      ent->r.svFlags &= ~1u;
+    tmp->s.loopSound.id = alias;
+    tmp->s.otherEntityNum = ent->s.number;
+    tmp->s.un3.hintString = bone;
   }
   return tmp;
 }

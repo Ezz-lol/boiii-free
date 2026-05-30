@@ -339,13 +339,13 @@ struct ZBarrierDef {
   float earthquakeMinDuration;
   float earthquakeMaxDuration;
   float earthquakeRadius;
-  int numBoardsInBarrier;
+  int32_t numBoardsInBarrier;
   uint32_t autoHideOpenPieces;
   uint32_t taunts;
   uint32_t reachThroughAttacks;
   scr::ScrString_t zombieTauntAnimState;
   scr::ScrString_t zombieReachThroughAnimState;
-  int numAttackSlots;
+  int32_t numAttackSlots;
   float attackSpotHorzOffset;
   db::xasset::XModel *pCollisionModel;
   ZBarrierBoard boards[6];
@@ -366,9 +366,9 @@ struct ZBarrierType {
   ZBarrierDef *zbarrierDef;
   ZBarrierPieceAnims clientAnims[6];
   ZBarrierPieceAnims serverAnims[6];
-  int boardModelIndex[6];
-  int upgradedBoardModelIndex[6];
-  int alternateBoardModelIndex[6];
+  int32_t boardModelIndex[6];
+  int32_t upgradedBoardModelIndex[6];
+  int32_t alternateBoardModelIndex[6];
 };
 ASSERT_SIZE(ZBarrierType, 0xB8);
 
@@ -404,8 +404,8 @@ struct actor_prone_info_t {
   bool orientPitch;
   bool prone;
   uint8_t _padding03[1];
-  int iProneTime;
-  int iProneTrans;
+  int32_t iProneTime;
+  int32_t iProneTrans;
   float fBodyHeight;
   union {
     float fTorsoPitch;
@@ -424,7 +424,7 @@ struct actorAntilagFrame_t {
   vec3_t angles[64];
   uint8_t useCount[64];
   uint8_t inUse[64];
-  int time;
+  int32_t time;
 };
 ASSERT_SIZE(actorAntilagFrame_t, 0x684);
 
@@ -435,5 +435,190 @@ enum class objcamState : uint32_t {
 };
 
 #pragma pack(pop)
+
+typedef int32_t FxUniqueHandle;
+
+struct DestructibleBurnData {
+  int32_t burnTime;
+  FxUniqueHandle fx;
+  snd::SndPlaybackId sndId;
+};
+
+struct DESTRUCTIBLE_PIECE_INFO {
+  int16_t health;
+  uint8_t _padding02[2];
+  int32_t xdollHandle;
+  FxUniqueHandle fx;
+  DestructibleBurnData burnData;
+};
+
+struct LerpEntityStateDestructibleHit {
+  uint32_t modelState[6];
+};
+
+struct DestructibleState {
+  LerpEntityStateDestructibleHit state;
+  int32_t time;
+};
+
+enum class AttachPointType : uint32_t {
+  ATTACH_POINT_WORLD = 0x0,
+  ATTACH_POINT_DYNENT = 0x1,
+  ATTACH_POINT_ENT = 0x2,
+  ATTACH_POINT_BONE = 0x3,
+};
+
+enum class ConstraintType : uint32_t {
+  CONSTRAINT_NONE = 0x0,
+  CONSTRAINT_POINT = 0x1,
+  CONSTRAINT_DISTANCE = 0x2,
+  CONSTRAINT_HINGE = 0x3,
+  CONSTRAINT_ACTUATOR = 0x4,
+  CONSTRAINT_FAKE_SHAKE = 0x5,
+  CONSTRAINT_LAUNCH = 0x6,
+  CONSTRAINT_ANTENNA = 0x7,
+  CONSTRAINT_ROPE = 0x8,
+  CONSTRAINT_LIGHT = 0x9,
+  NUM_CONSTRAINT_TYPES = 0xA,
+};
+
+#pragma pack(push, 1)
+struct PhysConstraint {
+  scr::ScrString_t targetname;
+  ConstraintType type;
+  AttachPointType attach_point_type1;
+  int32_t target_index1;
+  scr::ScrString_t target_ent1;
+  scr::ScrString_t target_bone1;
+  AttachPointType attach_point_type2;
+  int32_t target_index2;
+  scr::ScrString_t target_ent2;
+  scr::ScrString_t target_bone2;
+  vec3_t offset;
+  vec3_t pos;
+  vec3_t pos2;
+  vec3_t dir;
+  int32_t flags;
+  int32_t timeout;
+  int32_t min_health;
+  int32_t max_health;
+  float distance;
+  float damp;
+  float power;
+  vec3_t force_scale;
+  float misc_scale;
+  float minAngle;
+  float maxAngle;
+  float minAngleYaw;
+  float maxAngleYaw;
+  uint8_t _padding94[4];
+  db::xasset::MaterialHandle material;
+  int32_t model;
+  int32_t slice_count;
+  float gravity;
+  qboolean useAntennaXAxis;
+  intptr_t constraintHandle;
+  int32_t rope_index;
+  int32_t centity_num[5];
+};
+ASSERT_SIZE(PhysConstraint, 0xD0);
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct PhysConstraints {
+  const char *name;
+  uint32_t count;
+  uint8_t _padding0C[4];
+  PhysConstraint data[8];
+};
+ASSERT_SIZE(PhysConstraints, 0x690);
+typedef PhysConstraints *PhysConstraintsPtr;
+#pragma pack(pop)
+
+typedef int32_t XPartBits[12];
+
+#pragma pack(push, 1)
+struct DestructibleStage {
+  scr::ScrString_t showBone;
+  scr::ScrString_t cosmeticShowBones[4];
+  float breakHealth;
+  float maxTime;
+  uint32_t flags;
+  db::xasset::FxEffectDefHandle baseEffect;
+  scr::ScrString_t baseEffectTag;
+  scr::ScrString_t breakAnim;
+  db::xasset::FxEffectDefHandle breakEffect;
+  scr::ScrString_t breakEffectTag;
+  uint8_t _padding3C[4];
+  const char *breakSound;
+  const char *breakNotify;
+  const char *loopSound;
+  db::xasset::XModelPtr spawnModel[3];
+  PhysPreset *physPreset;
+};
+ASSERT_SIZE(DestructibleStage, 0x78);
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct DestructiblePiece {
+  DestructibleStage stages[7];
+  uint8_t parentPiece;
+  uint8_t _padding151[3];
+  float parentDamagePercent;
+  float bulletDamageScale;
+  float explosiveDamageScale;
+  float meleeDamageScale;
+  float impactDamageScale;
+  float entityDamageTransfer;
+  uint8_t _padding16C[4];
+  PhysConstraintsPtr physConstraints;
+  int32_t health;
+  uint8_t _padding17C[4];
+  const char *damageSound;
+  db::xasset::FxEffectDefHandle burnEffect;
+  const char *burnSound;
+  scr::ScrString_t enableLabel;
+  XPartBits hideBones;
+  uint8_t _padding1CC[4];
+};
+ASSERT_SIZE(DestructiblePiece, 0x3C8);
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct DestructibleDef {
+  const char *name;
+  db::xasset::XModelPtr model;
+  db::xasset::XModelPtr pristineModel;
+  int32_t numPieces;
+  uint8_t _padding1C[4];
+  DestructiblePiece *pieces;
+  qboolean clientOnly;
+  qboolean syncBaseHealthWithEntity;
+};
+ASSERT_SIZE(DestructibleDef, 0x30);
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct Destructible {
+  int32_t entNum;
+  uint8_t _padding04[4];
+  DESTRUCTIBLE_PIECE_INFO *pieceArray;
+  int32_t oldestBurnTime;
+  bool entDestroyed;
+  bool entDestroyedRespondedTo;
+  uint8_t _padding16[2];
+  int32_t pieceCount;
+  uint8_t _padding1C[4];
+  DestructibleDef *ddef;
+  uint32_t flags;
+  DestructibleState states[5];
+  bool bHasBeenHit;
+  uint8_t _paddingB9[7];
+};
+ASSERT_SIZE(Destructible, 0xC0);
+#pragma pack(pop)
+
+typedef intptr_t PhysObjId;
+
 } // namespace phys
 } // namespace game

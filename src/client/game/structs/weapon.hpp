@@ -2294,5 +2294,13 @@ struct visLoadOut_s {
   int32_t secondaryGadgetIdx;
 };
 
+#pragma pack(push, 1)
+struct DelayedWeaponFire {
+  int32_t time;
+  uint8_t _padding04[4];
+  Weapon weapon;
+};
+#pragma pack(pop)
+
 } // namespace weapon
 } // namespace game
