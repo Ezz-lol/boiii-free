@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core.hpp"        // IWYU pragma: export
+#include "fp16.hpp"        // IWYU pragma: export
 #include "dvar.hpp"        // IWYU pragma: export
 #include "dw/dw.hpp"       // IWYU pragma: export
 #include "jq.hpp"          // IWYU pragma: export
