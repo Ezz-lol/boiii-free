@@ -27,6 +27,11 @@ typedef uint32_t ScrVarNameType_t;
 typedef uint64_t ScrVarNameIndex_t;
 typedef intptr_t scr_funcptr_t;
 
+struct scr_func_t {
+  char funcinfo[260];
+  scr_funcptr_t func;
+};
+
 /*
   There is no typed, defined enumeration in the engine -
   ScrVarType_t is defined as `typedef uint32_t ScrVarType_t;`.
@@ -69,6 +74,7 @@ enum class ScrVarType : uint32_t {
   FREE = 0x1B,
   THREAD_LIST = 0x1C,
   ENT_LIST = 0x1D,
+  COUNT = 0x1E
 };
 
 typedef ScrVarType ScrVarType_t;
@@ -1555,6 +1561,208 @@ static_assert(sizeof(scr_anim_t) == 0x8, "scr_anim_t has incorrect size");
 struct XAnim;
 struct scr_animtree_t {
   XAnim *anims;
+};
+
+typedef void (*ClientFieldCodeCallbackFuncFloatVal)(LocalClientNum_t, uint32_t,
+                                                    float, float, bool, bool,
+                                                    ScrString_t, bool, bool);
+typedef void (*ClientFieldCodeCallbackFuncUintVal)(LocalClientNum_t, uint32_t,
+                                                   uint32_t, uint32_t, bool,
+                                                   bool, ScrString_t, bool,
+                                                   bool);
+
+struct clientFieldCodeCallback_t {
+  struct {
+    uint64_t bHasCodeCallback : 1;
+    uint64_t bCodeCallbackIsFloatVal : 1;
+  };
+  union {
+    ClientFieldCodeCallbackFuncFloatVal floatCallbackFunc;
+    ClientFieldCodeCallbackFuncUintVal uintCallbackFunc;
+  };
+};
+
+struct clientFieldUnionClient_t {
+  uint8_t bSplitscreenHostOnly;
+  uint8_t bCallbacksFor0WhenNew;
+};
+
+struct clientFieldUnionServer_t {
+  uint8_t gap0;
+};
+
+union clientFieldUnion_t {
+  clientFieldUnionClient_t client;
+  clientFieldUnionServer_t server;
+};
+
+struct __attribute__((aligned(8))) clientField_t {
+  scr::scr_func_t scriptCallbackFunc;
+  clientFieldCodeCallback_t codeCallbackFunc;
+  scr::ScrString_t nameHash;
+  uint32_t fieldOffset;
+  uint32_t accessMask;
+  uint8_t bitOffset;
+  uint8_t fieldType;
+  uint8_t obsolete;
+  uint8_t clientFieldSet;
+  uint32_t numBits;
+  uint32_t version;
+  clientFieldUnion_t u;
+};
+
+struct bgs_clientfieldapi_t {
+  void (*CompareHashToGameState)(uint32_t);
+  bool (*AllowVersionReRegistration)(void);
+  bool (*FieldVersionAllowsRegistration)(clientField_t *, uint32_t);
+  bool (*ServerVersionAllowsRegistration)(uint32_t);
+};
+
+struct clientFieldCallback_t {
+  clientField_t *pField;
+  union {
+    float oldFloat;
+    uint32_t oldInt;
+  };
+  union {
+    float newFloat;
+    uint32_t newInt;
+  };
+  uint32_t localClientNum;
+  uint32_t entNum;
+  struct {
+    uint64_t bInitialSnap : 1;
+    uint64_t bNewEnt : 1;
+    uint64_t bWasDemoJump : 1;
+    uint64_t bWasKillcamTransition : 1;
+  };
+};
+
+struct clientNetField_t {
+  int bitsUsed;
+  int netFieldOffset;
+};
+
+struct clientFieldSet_t {
+  int numFields;
+  clientField_t *pFields[2048];
+  int numNetFields;
+  clientNetField_t *pNetFields;
+};
+
+struct XCamFrame {
+  int32_t frameNum;
+  vec3_t origin;
+  vec4_t angleQuat;
+  float fov;
+  float focalLength;
+  float focalDistance;
+  float fStop;
+};
+
+struct XCamTargetModelFrame {
+  vec3_t offset;
+  vec4_t axisQuat;
+};
+
+class XCamData {
+public:
+  vec3_t xCamOrigin;
+  vec4_t xCamQuat;
+  int32_t currentXCam;
+  int32_t currentXCamStartTime;
+  int32_t xcamSubCamera;
+  int32_t xcamForcedFrame;
+  bool favorClientOverPlayerstate;
+  bool allowRightStickRotation;
+  bool ignoreProcessingInitialNotetracks;
+  int32_t targetModelEntnum;
+  vec3_t targetModelBaseOrigin;
+  vec4_t targetModelBaseQuat;
+  int32_t lastFrameXCamIndex;
+  int32_t lastXCamFrame;
+  int32_t lastXCamSubCamera;
+  int32_t lastXCamForcedFrame;
+  int32_t lastXCamStartTime;
+  XCamFrame lastXCamFrameInfo;
+  int32_t lastTargetModelEntnum;
+  XCamTargetModelFrame lastSetModelFrame;
+  int32_t xcamLerpEndTime;
+  XCamFrame lerpFrame;
+  XCamTargetModelFrame lerpModelFrame;
+};
+
+struct ScriptCamera {
+  int32_t flags;
+  vec3_t origin;
+  vec3_t angles;
+  vec3_t lookat;
+  int32_t originCent;
+  int32_t lookAtCent;
+  scr_func_t updateFunc;
+};
+
+struct ScriptExtraCamPerCamInfo {
+  vec3_t origin;
+  vec3_t angles;
+  bool debugCamera;
+  int32_t entNum;
+  float fov;
+  int32_t width;
+  int32_t height;
+  XCamData xCam;
+  XCamFrame lastExtraCamFrame;
+  const gfx::GfxImage *renderTarget;
+};
+
+struct __attribute__((aligned(4))) ScriptExtraCam {
+  ScriptExtraCamPerCamInfo camInfo[4];
+  int32_t curCameraIndex;
+  bool multiCamEnabled;
+};
+
+struct Camera {
+  vec3_t lastViewOrg;
+  vec3_t lastViewAngles;
+  float focalLength;
+  float focalDistance;
+  float fstop;
+  float xanimDrivenFocalLength;
+  float filmCropFactor;
+  float filmISO_min;
+  float filmISO_max;
+  float filmISO_noise;
+  float lastFocalLength;
+  float lastFocalDistance;
+  float lastFstop;
+  float lastFOV;
+  int32_t lastViewInputTime;
+  float lastSpringOffset;
+  float lastViewTraceFraction;
+  int32_t lastTime;
+  int32_t lastClientNum;
+  float smallestLookAtPosHeightScalar;
+  int32_t smallestLookAtPosHeightScalarSetTime;
+  vec3_t tweenStartOrg;
+  vec3_t tweenStartAngles;
+  float tweenStartFOV;
+  int32_t tweenStartTime;
+  float tweenDuration;
+  int32_t tweenFlags;
+  CameraMode lastCamMode;
+  XCamData xCam;
+  int32_t lastVehicleDefIndex;
+  int32_t lastVehicleSeatPos;
+  vec3_t missileViewAngles;
+  bool missileWasKillCam;
+  scr::ScriptCamera scriptCam;
+  scr::ScriptExtraCam scriptExtraCam;
+  bool useTagCamera;
+  bool bWasRemoteTurretCam;
+  uint8_t activeLensID;
+  bool tagCameraXformValid;
+  vec3_t tagCameraXform[4];
+  vec3_t lastTagCameraAngles;
 };
 
 } // namespace scr

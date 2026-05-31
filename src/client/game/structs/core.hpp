@@ -992,85 +992,109 @@ enum class InvalidCmdHintType : int32_t {
 
 enum class SettingTeamIndicator : int32_t {
 
-  SettingTeamIndicator_FULL = 0x0,
-  SettingTeamIndicator_ABBREVIATED = 0x1,
-  SettingTeamIndicator_ICON = 0x2,
-  SettingTeamIndicator_COUNT = 0x3,
+  FULL = 0x0,
+  ABBREVIATED = 0x1,
+  ICON = 0x2,
+  COUNT = 0x3,
 };
 
 enum class CubemapShot : int32_t {
 
-  CUBEMAPSHOT_NONE = 0x0,
-  CUBEMAPSHOT_RIGHT = 0x1,
-  CUBEMAPSHOT_LEFT = 0x2,
-  CUBEMAPSHOT_BACK = 0x3,
-  CUBEMAPSHOT_FRONT = 0x4,
-  CUBEMAPSHOT_UP = 0x5,
-  CUBEMAPSHOT_DOWN = 0x6,
-  CUBEMAPSHOT_COUNT = 0x7,
+  NONE = 0x0,
+  RIGHT = 0x1,
+  LEFT = 0x2,
+  BACK = 0x3,
+  FRONT = 0x4,
+  UP = 0x5,
+  DOWN = 0x6,
+  COUNT = 0x7,
 };
 
 enum class DemoType : int32_t {
 
-  DEMO_TYPE_NONE = 0x0,
-  DEMO_TYPE_CLIENT = 0x1,
-  DEMO_TYPE_SERVER = 0x2,
-  DEMO_TYPE_SERVER_SNAPSHOT = 0x3,
+  NONE = 0x0,
+  CLIENT = 0x1,
+  SERVER = 0x2,
+  SERVER_SNAPSHOT = 0x3,
 };
 
 enum class TraceHitType : int32_t {
 
-  TRACE_HITTYPE_NONE = 0x0,
-  TRACE_HITTYPE_ENTITY = 0x1,
-  TRACE_HITTYPE_DYNENT_MODEL = 0x2,
-  TRACE_HITTYPE_DYNENT_BRUSH = 0x3,
-  TRACE_HITTYPE_GLASS = 0x4,
+  NONE = 0x0,
+  ENTITY = 0x1,
+  DYNENT_MODEL = 0x2,
+  DYNENT_BRUSH = 0x3,
+  GLASS = 0x4,
 };
 
 enum class MissileFlightMode : int32_t {
-  MISSILEFLIGHTMODE_TOP = 0x0,
-  MISSILEFLIGHTMODE_DIRECT = 0x1,
+  TOP = 0x0,
+  DIRECT = 0x1,
 };
 
 enum class MissileStage : int32_t {
-  MISSILESTAGE_SOFTLAUNCH = 0x0,
-  MISSILESTAGE_ASCENT = 0x1,
-  MISSILESTAGE_DESCENT = 0x2,
+  SOFTLAUNCH = 0x0,
+  ASCENT = 0x1,
+  DESCENT = 0x2,
 };
 
-union vec2_t {
-  vec_t v[2];
-  struct {
-    vec_t x;
-    vec_t y;
-  };
+enum class CameraMode : int32_t {
+
+  CAM_NORMAL = 0x0,
+  CAM_LINKED = 0x1,
+  CAM_VEHICLE = 0x2,
+  CAM_VEHICLE_THIRDPERSON = 0x3,
+  CAM_VEHICLE_GUNNER = 0x4,
+  CAM_TURRET = 0x5,
+  CAM_MISSILE = 0x6,
+  CAM_SPIKECAMERA = 0x7,
+  CAM_SCRIPTED_EXTRACAM = 0x8,
+  CAM_SCOPE = 0x9,
+  CAM_PLAYER_BODY = 0xA,
+  CAM_XCAM = 0xB,
+  CAM_SCRIPTED = 0xC,
+  CAM_RADIANT = 0xD,
 };
 
-union vec3_t {
+template <typename T = vec_t> union vec2 {
+  T v[2];
   struct {
-    vec_t x;
-    vec_t y;
-    vec_t z;
+    T x;
+    T y;
   };
-  vec_t v[3];
+};
+typedef vec2<vec_t> vec2_t;
+
+template <typename T = vec_t> union vec3 {
+  struct {
+    T x;
+    T y;
+    T z;
+  };
+
+  T v[3];
 };
 
-union vec4_t {
-  vec_t v[4];
+typedef vec3<vec_t> vec3_t;
+
+template <typename T = vec_t> union vec4 {
+  T v[4];
   struct {
-    vec_t x;
-    vec_t y;
-    vec_t z;
-    vec_t w;
+    T x;
+    T y;
+    T z;
+    T w;
   };
   struct {
-    vec_t r;
-    vec_t g;
-    vec_t b;
-    vec_t a;
+    T r;
+    T g;
+    T b;
+    T a;
   };
   vec3_t xyz;
 };
+
+typedef vec4<vec_t> vec4_t;
 
 struct orientation_t {
   vec3_t origin;

@@ -4,9 +4,13 @@
 #include <cstdint>
 #include "../core.hpp"
 #include "../quake.hpp"
-#include "../gfx.hpp"
+#include "../gfx/gfx.hpp"
 
 namespace game {
+
+namespace scr {
+typedef uint32_t ScrString_t;
+}
 
 namespace snd {
 /*
@@ -980,6 +984,56 @@ static_assert(sizeof(XAssetPools) ==
 static_assert(sizeof(XAssetPools) == sizeof(TypedXAssetPools),
               "sizeof(XAssetPools) must be equal to sizeof(TypedXAssetPools)");
 #pragma pack(pop)
+
+struct ManagedNotetrack_t {
+  scr::ScrString_t elemType;
+  scr::ScrString_t param1;
+  scr::ScrString_t param2;
+  int32_t startTime;
+  union {
+    db::xasset::FxUniqueHandle fxHandle;
+    snd::SndAliasId alias;
+  };
+};
+
+struct ManagedNoteTrackList {
+  ManagedNotetrack_t notetracks[10];
+  db::xasset::TagFxSetHandles effectSetHandles;
+};
+
+#pragma pack(push, 1)
+struct XSurfaceShared {
+  uint32_t flags;
+  uint32_t vertCount;
+  uint32_t skinVertCount;
+  uint32_t indexCount;
+  uint32_t blendTargetVertCount;
+  uint32_t blendShapeVertCount;
+  uint8_t *data;
+  uint32_t dataSize;
+  uint32_t posOffset;
+  uint32_t vertsOffset;
+  uint32_t indicesOffset;
+  uint32_t skinWeightsOffset;
+  uint32_t blendShapeVertsOffset;
+  gfx::GfxVertexBuffer vbPos;
+  gfx::GfxVertexBuffer vbVerts;
+  gfx::GfxVertexBuffer vbSkinWeights;
+  gfx::GfxIndexBuffer ibIndices;
+  gfx::GfxBuffer bBlendTargets;
+  uint32_t blendTargetCount;
+  uint8_t _padding7C[4];
+  const scr::ScrString_t *blendTargetNames;
+  gfx::BlendTargetRemap *blendTargetRemap;
+};
+#pragma pack(pop)
+
+struct XModelAlias {
+  const char *name;
+  db::xasset::XModelPtr model[50];
+};
+
+typedef XModelAlias *XModelAliasPtr;
 
 } // namespace xasset
 } // namespace db

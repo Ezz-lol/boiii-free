@@ -90,4 +90,9 @@ struct serverHudMenu_t {
 };
 ASSERT_SIZE(serverHudMenu_t, 0x150);
 #pragma pack(pop)
+
+struct hudElemSoundInfo_t {
+  int lastPlayedTime;
+};
+
 } // namespace game::ui::hud

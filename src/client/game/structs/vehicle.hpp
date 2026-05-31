@@ -5,7 +5,7 @@
 #include "math.hpp"
 #include "phys.hpp"
 #include "snd.hpp"
-#include "gfx.hpp"
+#include "gfx/gfx.hpp"
 #include "core.hpp"
 #include "user.hpp"
 namespace game {
@@ -1272,24 +1272,6 @@ enum class ShockViewTypes : int32_t {
   SHELLSHOCK_VIEWTYPE_COUNT = 0x5,
 };
 
-enum class CameraMode : int32_t {
-
-  CAM_NORMAL = 0x0,
-  CAM_LINKED = 0x1,
-  CAM_VEHICLE = 0x2,
-  CAM_VEHICLE_THIRDPERSON = 0x3,
-  CAM_VEHICLE_GUNNER = 0x4,
-  CAM_TURRET = 0x5,
-  CAM_MISSILE = 0x6,
-  CAM_SPIKECAMERA = 0x7,
-  CAM_SCRIPTED_EXTRACAM = 0x8,
-  CAM_SCOPE = 0x9,
-  CAM_PLAYER_BODY = 0xA,
-  CAM_XCAM = 0xB,
-  CAM_SCRIPTED = 0xC,
-  CAM_RADIANT = 0xD,
-};
-
 enum class VehicleAnimState : int32_t {
   VEHICLEANIMSTATE_IDLE = 0x0,
   VEHICLEANIMSTATE_ENTRY = 0x1,
@@ -1300,87 +1282,10 @@ enum class VehicleAnimState : int32_t {
 
 #pragma pack(pop)
 
-#pragma pack(push, 1)
-
-// sizeof=0x4
-union CollisionAabbTreeIndex {
-  int32_t firstChildIndex;
-  int32_t partitionIndex;
-};
-static_assert(sizeof(CollisionAabbTreeIndex) == 0x4,
-              "CollisionAabbTreeIndex size must be 4 bytes");
-
-// sizeof=0x20
-struct CollisionAabbTree {
-  vec3_t origin;
-  uint16_t materialIndex;
-  uint16_t childCount;
-  vec3_t halfSize;
-  CollisionAabbTreeIndex u;
-};
-static_assert(sizeof(CollisionAabbTree) == 0x20,
-              "CollisionAabbTree size must be 32 bytes");
-struct cbrush_t; // TODO
-
-// sizeof=0x10
-struct col_prim_t {
-  int32_t type;
-  uint8_t _padding04[4];
-  union {
-    const CollisionAabbTree *tree;
-    const cbrush_t *brush;
-  };
-};
-static_assert(sizeof(col_prim_t) == 0x10, "col_prim_t size must be 16 bytes");
-
-class float4 {
-public:
-  uint8_t gap0[16];
-};
-
-// sizeof=10
-class hybrid_vector {
-public:
-  float4 vec;
-};
-static_assert(sizeof(hybrid_vector) == 0x10,
-              "hybrid_vector size must be 16 bytes");
-
-struct TraceThreadInfo; // TODO
-class visitor_base_t {
-public:
-  // int32_t (**_vptr$visitor_base_t)(void);
-  void *_vptr$visitor_base_t;
-};
-
-class colgeom_visitor_t : visitor_base_t {
-public:
-  uint8_t _padding0[0xF];
-  hybrid_vector m_mn;
-  hybrid_vector m_mx;
-  hybrid_vector m_p0;
-  hybrid_vector m_p1;
-  hybrid_vector m_delta;
-  hybrid_vector m_rvec;
-  float m_radius;
-  contents_t m_mask;
-  TraceThreadInfo *m_threadInfo;
-};
-
-#pragma pack(pop)
-#pragma pack(push, 16)
-template <size_t T> class colgeom_visitor_inlined_t : colgeom_visitor_t {
-  int32_t nprims;
-  bool overflow;
-  col_prim_t prims[T];
-};
-
 // sizeof=0x1350
-typedef colgeom_visitor_inlined_t<300> vehicle_proximity_data_t;
+typedef phys::colgeom_visitor_inlined_t<300> vehicle_proximity_data_t;
 static_assert(sizeof(vehicle_proximity_data_t) == 0x1350,
               "vehicle_proximity_data_t size must be 4944 bytes");
-
-#pragma pack(pop)
 
 #pragma pack(push, 1)
 // sizeof=0x1430
@@ -1408,27 +1313,6 @@ struct VehicleSeat {
   uint8_t _padding5[3];
 };
 static_assert(sizeof(VehicleSeat) == 0x8, "VehicleSeat size must be 8 bytes");
-
-// sizeof=0x690
-struct AIBody {
-  int32_t randSeed;
-  uint8_t _padding04[4];
-  anim::AnimStateMachineRuntime asmRuntime;
-  const anim::AnimSelectorTableSet *animTableSet;
-  const anim::AnimMappingTable *animMappingTables[3];
-  int32_t currentAnimMappingTableIndex;
-  uint8_t _padding35C[4];
-  const anim::AimTable *aimTable;
-  struct {
-    union {
-      anim::AnimSelectorTableCache animationSelectorCache;
-      anim::AnimSelectorTableCache transitionDecoratorCache;
-    };
-    anim::AnimSelectorTableCache caches[2];
-  };
-  uint8_t _padding68C[4];
-};
-static_assert(sizeof(AIBody) == 0x690, "AIBody size must be 1680 bytes");
 
 struct vehicle_t {
   vehicle_pathpos_t pathPos;
@@ -1507,7 +1391,7 @@ struct vehicle_t {
   float driveBySoundDelay[2];
   float driveBySoundTimeout[2];
   ai::sentient_t *sentient;
-  AIBody aiBody;
+  ai::AIBody aiBody;
   uint8_t tmodeVehicleVisibility;
   uint8_t _padding22A9[3];
   float predictedCollisionTime;

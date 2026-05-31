@@ -620,5 +620,151 @@ ASSERT_SIZE(Destructible, 0xC0);
 
 typedef intptr_t PhysObjId;
 
+#pragma pack(push, 1)
+// sizeof=0x4
+union CollisionAabbTreeIndex {
+  int32_t firstChildIndex;
+  int32_t partitionIndex;
+};
+static_assert(sizeof(CollisionAabbTreeIndex) == 0x4,
+              "CollisionAabbTreeIndex size must be 4 bytes");
+
+// sizeof=0x20
+struct CollisionAabbTree {
+  vec3_t origin;
+  uint16_t materialIndex;
+  uint16_t childCount;
+  vec3_t halfSize;
+  CollisionAabbTreeIndex u;
+};
+static_assert(sizeof(CollisionAabbTree) == 0x20,
+              "CollisionAabbTree size must be 32 bytes");
+struct cbrush_t; // TODO
+
+// sizeof=0x10
+struct col_prim_t {
+  int32_t type;
+  uint8_t _padding04[4];
+  union {
+    const CollisionAabbTree *tree;
+    const cbrush_t *brush;
+  };
+};
+static_assert(sizeof(col_prim_t) == 0x10, "col_prim_t size must be 16 bytes");
+
+class float4 {
+public:
+  uint8_t gap0[16];
+};
+
+// sizeof=10
+class hybrid_vector {
+public:
+  float4 vec;
+};
+static_assert(sizeof(hybrid_vector) == 0x10,
+              "hybrid_vector size must be 16 bytes");
+
+class visitor_base_t {
+public:
+  // int32_t (**_vptr$visitor_base_t)(void);
+  void *_vptr$visitor_base_t;
+};
+
+struct TraceThreadInfo; // TODO
+
+class colgeom_visitor_t : visitor_base_t {
+public:
+  uint8_t _padding0[0xF];
+  hybrid_vector m_mn;
+  hybrid_vector m_mx;
+  hybrid_vector m_p0;
+  hybrid_vector m_p1;
+  hybrid_vector m_delta;
+  hybrid_vector m_rvec;
+  float m_radius;
+  contents_t m_mask;
+  TraceThreadInfo *m_threadInfo;
+};
+
+#pragma pack(pop)
+#pragma pack(push, 16)
+template <size_t T> class colgeom_visitor_inlined_t : colgeom_visitor_t {
+  int32_t nprims;
+  bool overflow;
+  col_prim_t prims[T];
+};
+#pragma pack(pop)
+
+enum class JointType : int32_t {
+  NONE = 0x0,
+  HINGE = 0x1,
+  SWIVEL = 0x2,
+  COUNT = 0x3,
+};
+
+struct __attribute__((aligned(4))) SelfCollisionPair {
+  scr::ScrString_t boneNames[2];
+  uint8_t bonePair[2];
+};
+
+struct __attribute__((aligned(4))) RagdollBoneDef {
+  scr::ScrString_t ragdollBone;
+  scr::ScrString_t childBone;
+  float radius;
+  float mass;
+  float friction;
+  float damping;
+  float buoyancy;
+  int32_t geomType;
+  scr::ScrString_t parentBone;
+  JointType jointType;
+  float musclePowerOn;
+  float musclePowerCollide;
+  float musclePowerDown;
+  vec3_t minAngles;
+  vec3_t maxAngles;
+  vec3_t axisFriction;
+  bool mirror;
+  uint8_t parentIndex;
+};
+
+struct RagdollDef {
+  uint32_t numBoneDefs;
+  uint32_t numSelfCollisionPairs;
+  RagdollBoneDef boneDefs[14];
+  SelfCollisionPair selfCollisionPairs[33];
+  const char *name;
+};
+
+#pragma pack(push, 1)
+struct objcamCameraPoint {
+  phys::objcamState ocState;
+  scr::ScrString_t ocName;
+  int32_t ocIndex;
+  int32_t ocEntNum;
+  scr::ScrString_t ocEntTag;
+  team_t ocTeam;
+  vec3_t ocPos;
+  vec3_t ocAngles;
+  float ocMaxHorizAngle;
+  float ocMaxVertAngle;
+};
+ASSERT_SIZE(objcamCameraPoint, 0x38);
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct objcamCameraTable {
+  objcamCameraPoint cameraPoints[256];
+};
+ASSERT_SIZE(objcamCameraTable, 0x3800);
+#pragma pack(pop)
+
+struct objcamCameraState {
+  int32_t ocsLastCameraBase;
+  int32_t ocsLastCamera;
+  vec3_t ocsViewAngles;
+};
+
 } // namespace phys
 } // namespace game

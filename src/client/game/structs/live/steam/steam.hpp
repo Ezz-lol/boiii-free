@@ -35,8 +35,7 @@ struct LiveSteamClient {
                          game::steam::MicroTxnAuthorizationResponse_t, 0>
       m_CallbackMicroTxnAuthorizationResponse;
 };
-static_assert(sizeof(LiveSteamClient) == 0xF8,
-              "sizeof(LiveSteamClient) must equal 0xF8");
+ASSERT_SIZE(LiveSteamClient, 0xF8);
 #pragma pack(pop)
 } // namespace steam
 } // namespace live

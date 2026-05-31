@@ -2,6 +2,8 @@
 
 #include "core.hpp"
 #include "weapon.hpp"
+#include "ai.hpp"
+#include "asm.hpp"
 #include <cstdint>
 namespace game {
 namespace user {
@@ -112,7 +114,74 @@ static_assert(offsetof(usercmd_t, _padding56) == 0x56);
 ASSERT_SIZE(usercmd_t, 0x60);
 
 struct actor_t; // TODO
-
 #pragma pack(pop)
+
+enum class gadgetPulseShareType_e : uint32_t {
+  DEFAULT = 0x0,
+  NONE = 0x1,
+  MINIMAP = 0x2,
+  VIEWPORT = 0x3,
+  BOTH = 0x4,
+  COUNT = 0x5,
+};
+
+struct __attribute__((aligned(8))) visionPulse_t {
+  bool active;
+  int32_t startTime;
+  int32_t endTime;
+  float radius;
+  int32_t maxRadius;
+  float pulseSpeed;
+  gadgetPulseShareType_e revealShareType;
+  gadgetPulseShareType_e orbShareType;
+  vec3_t origin;
+  bool friendly;
+  int32_t ownerNum;
+  int32_t pulseFadeOut;
+  weapon::Weapon gadgetWeapon;
+  int32_t numberEntsHit;
+  snd::SndAliasId pulseSound;
+  snd::SndAliasId pulseMissSound;
+};
+
+struct SonarAttachmentInfo {
+  vec3_t prevOrigin;
+  float movementDistance[60];
+  int32_t nextMovementDistanceIndex;
+};
+
+struct __attribute__((aligned(4))) actorInfo_t {
+  bool infoValid;
+  bool nextValid;
+  int32_t actorNum;
+  int32_t entityNum;
+  char name[32];
+  uint32_t modelIndex;
+  anim::ModelAttachmentIndex attachments[6];
+  uint32_t attachIgnoreCollision;
+  uint16_t aiType;
+  ai::AIBody aiBody;
+  int32_t lookAtEntNum;
+  vec3_t lookAtPos;
+  vec3_t lastLookAtPos;
+  float lookAtBlend;
+  int32_t lookAtTime;
+  vec3_t lookAtAngles;
+  bool lookAtNoTorso;
+  struct {
+    uint64_t lookAtTracking : 1;
+    uint64_t lookAtAiming : 1;
+    uint64_t gibbed : 1;
+  };
+  SonarAttachmentInfo sonarAttachmentInfo;
+  weapon::WeaponDobjInfo weaponDobjInfo;
+  float infraredFadeOut;
+  bool dobjDirty;
+  bool animsDirty;
+  anim::XAnimTree *pXAnimTree;
+  weapon::Weapon DObjWeapon;
+  visionPulse_t revealPulse;
+  bool wasFiring[5];
+};
 } // namespace user
 } // namespace game

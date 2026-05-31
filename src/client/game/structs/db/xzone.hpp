@@ -1,8 +1,9 @@
 #pragma once
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
+
+#include "../core.hpp"
 #include "core.hpp"
 
 namespace game {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core.hpp"
+#include "phys.hpp"
 #include "quake.hpp"
 #include "net/net.hpp"
 #include "scr/scr.hpp"
@@ -622,47 +623,6 @@ struct ColorOptionSet {
   CustomizationColorInfo **colors;
 };
 
-enum class JointType : int32_t {
-  RAGDOLL_JOINT_NONE = 0x0,
-  RAGDOLL_JOINT_HINGE = 0x1,
-  RAGDOLL_JOINT_SWIVEL = 0x2,
-  NUM_RAGDOLL_JOINT_TYPES = 0x3,
-};
-
-struct __attribute__((aligned(4))) SelfCollisionPair {
-  scr::ScrString_t boneNames[2];
-  uint8_t bonePair[2];
-};
-
-struct __attribute__((aligned(4))) RagdollBoneDef {
-  scr::ScrString_t ragdollBone;
-  scr::ScrString_t childBone;
-  float radius;
-  float mass;
-  float friction;
-  float damping;
-  float buoyancy;
-  int32_t geomType;
-  scr::ScrString_t parentBone;
-  JointType jointType;
-  float musclePowerOn;
-  float musclePowerCollide;
-  float musclePowerDown;
-  vec3_t minAngles;
-  vec3_t maxAngles;
-  vec3_t axisFriction;
-  bool mirror;
-  uint8_t parentIndex;
-};
-
-struct RagdollDef {
-  uint32_t numBoneDefs;
-  uint32_t numSelfCollisionPairs;
-  RagdollBoneDef boneDefs[14];
-  SelfCollisionPair selfCollisionPairs[33];
-  const char *name;
-};
-
 struct CharacterItemInfo {
   const char *assetName;
   const char *displayName;
@@ -673,7 +633,7 @@ struct CharacterItemInfo {
   int32_t impactType[2];
   scr::ScriptBundlePtr gibDef;
   db::xasset::PlayerFXTablePtr characterMovementFx;
-  RagdollDef *ragdollDef;
+  phys::RagdollDef *ragdollDef;
   bool hideHead;
   uint32_t kvpCount;
   scr::ScriptBundleKVP *kvpItems;

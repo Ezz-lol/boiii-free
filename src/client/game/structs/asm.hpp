@@ -679,5 +679,99 @@ struct animscripted_t {
   float fOrientLerp;
 };
 #pragma pack(pop)
+
+struct TraversalAnim {
+  int32_t animIndex;
+  vec3_t origin;
+  float yaw;
+};
+
+struct TraversalState {
+  qboolean active;
+  TraversalAnim anims[3];
+  int32_t outroTimeLeft;
+  vec3_t outroOrigin;
+  vec3_t outroAngles;
+};
+
+struct ObjectiveAnimData {
+  bool obscuredLastCheck;
+  bool hiddenByGroupCulling;
+};
+
+struct DObjAnimMat {
+  vec4_t quat;
+  vec3_t trans;
+  float transWeight;
+};
+struct BaseAnimBoneMat {
+  BoneIndex boneIndex;
+  bool ignoreParentRelativeData;
+  bool primaryBone;
+  vec4_t baseQuat;
+  vec3_t baseTrans;
+};
+struct DSkelPartBits {
+  int anim[12];
+  int control[12];
+  int skel[12];
+  int worldQuat[12];
+  int constrained[12];
+};
+
+struct __attribute__((aligned(4))) DSkel {
+  DObjAnimMat *mat;
+  BaseAnimBoneMat *baseAnimMat;
+  float *blendTargetWeights;
+  DSkelPartBits partBits;
+  int timeStamp;
+  bool dirty;
+};
+
+struct __attribute__((aligned(8))) DObj {
+  XAnimTree *tree;
+  uint8_t *ikState;
+  gfx::GfxSiegeAnimState **siegeAnimations;
+  db::xasset::XModel **models;
+  volatile int64_t locked;
+  DSkel skel;
+  uint32_t hidePartBits[12];
+  uint32_t hideSubModelBits;
+  uint32_t hideSubModelShadowBits;
+  scr::ScrString_t duplicatePartsRef;
+  uint32_t ignoreCollision;
+  float radius;
+  float pitchAngle;
+  float scale;
+  uint16_t entnum;
+  uint16_t numCosmeticBones;
+  uint16_t numSiegeAnimations;
+  uint16_t duplicatePartsSize;
+  uint16_t flags;
+  BoneIndex numBones;
+  uint8_t numModels;
+  uint8_t numConstrainedBones;
+  char localClientIndex;
+  uint8_t numRootAdjustMats;
+};
+
+struct DObjModel {
+  db::xasset::XModel *model;
+  scr::ScrString_t boneName;
+  uint16_t parentModel;
+  bool ignoreCollision;
+  vec3_t trans;
+  vec3_t rot;
+};
+
+enum class link_type_e : uint32_t {
+  PITCH_CTRL = 0x0,
+  YAW_CTRL = 0x1,
+  ROLL_CTRL = 0x2,
+  SWIM_CTRL = 0x3,
+  FULL_CTRL = 0x4,
+  COMPASS_CTRL = 0x5,
+};
+
 } // namespace anim
 } // namespace game
