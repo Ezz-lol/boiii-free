@@ -134,20 +134,20 @@ arguments call_script_function(const function &function,
 }
 
 script_value get_field(const userdata &self, const script_value &key) {
-  return get_field(self.ptr, game::ui::lua::hks::TUSERDATA, key);
+  return get_field(self.ptr, game::ui::lua::hks::HksObjectType::TUSERDATA, key);
 }
 
 script_value get_field(const table &self, const script_value &key) {
-  return get_field(self.ptr, game::ui::lua::hks::TTABLE, key);
+  return get_field(self.ptr, game::ui::lua::hks::HksObjectType::TTABLE, key);
 }
 
 void set_field(const userdata &self, const script_value &key,
                const script_value &value) {
-  set_field(self.ptr, game::ui::lua::hks::TUSERDATA, key, value);
+  set_field(self.ptr, game::ui::lua::hks::HksObjectType::TUSERDATA, key, value);
 }
 
 void set_field(const table &self, const script_value &key,
                const script_value &value) {
-  set_field(self.ptr, game::ui::lua::hks::TTABLE, key, value);
+  set_field(self.ptr, game::ui::lua::hks::HksObjectType::TTABLE, key, value);
 }
 } // namespace ui_scripting

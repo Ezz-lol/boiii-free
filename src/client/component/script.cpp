@@ -548,11 +548,11 @@ void load_scripts_folder(const std::string &script_dir, const bool load,
 
 std::optional<std::filesystem::path> get_game_type_specific_folder() {
   switch (game::com::Com_SessionMode_GetMode()) {
-  case game::MODE_MULTIPLAYER:
+  case game::eModes::MULTIPLAYER:
     return "mp";
-  case game::MODE_ZOMBIES:
+  case game::eModes::ZOMBIES:
     return "zm";
-  case game::MODE_CAMPAIGN:
+  case game::eModes::CAMPAIGN:
     return "cp";
   default:
     return {};

@@ -84,8 +84,8 @@ gameserveritem_t create_server_item(const game::net::netadr_t &address,
       info.get("gametype").data(),
       info.get("dedicated") == "1" ? "true" : "false",
       info.get("hc") == "1" ? "true" : "false",
-      mode.has_value() && *mode == game::MODE_ZOMBIES ? "true" : "false",
-      mode.has_value() && *mode == game::MODE_CAMPAIGN ? "true" : "false",
+      mode.has_value() && *mode == game::eModes::ZOMBIES ? "true" : "false",
+      mode.has_value() && *mode == game::eModes::CAMPAIGN ? "true" : "false",
       server.m_nPlayers, atoi(info.get("bots").data()),
       atoi(info.get("rounds_played").data()), info.get("modName").data());
 

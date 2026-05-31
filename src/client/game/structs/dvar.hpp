@@ -9,24 +9,24 @@ namespace game {
 
 using dvarStrHash_t = uint32_t;
 
-enum dvarType_t {
-  DVAR_TYPE_INVALID = 0x0,
-  DVAR_TYPE_BOOL = 0x1,
-  DVAR_TYPE_FLOAT = 0x2,
-  DVAR_TYPE_FLOAT_2 = 0x3,
-  DVAR_TYPE_FLOAT_3 = 0x4,
-  DVAR_TYPE_FLOAT_4 = 0x5,
-  DVAR_TYPE_INT = 0x6,
-  DVAR_TYPE_ENUM = 0x7,
-  DVAR_TYPE_STRING = 0x8,
-  DVAR_TYPE_COLOR = 0x9,
-  DVAR_TYPE_INT64 = 0xA,
-  DVAR_TYPE_UINT64 = 0xB,
-  DVAR_TYPE_LINEAR_COLOR_RGB = 0xC, // RGBA
-  DVAR_TYPE_COLOR_XYZ = 0xD,        // CIE XYZ - unused, legacy
-  DVAR_TYPE_COLOR_LAB = 0xE,        // CIELAB - unused, legacy
-  DVAR_TYPE_SESSIONMODE_BASE_DVAR = 0xF,
-  DVAR_TYPE_COUNT = 0x10,
+enum class dvarType_t : uint32_t {
+  INVALID = 0x0,
+  BOOL = 0x1,
+  FLOAT = 0x2,
+  FLOAT_2 = 0x3,
+  FLOAT_3 = 0x4,
+  FLOAT_4 = 0x5,
+  INT = 0x6,
+  ENUM = 0x7,
+  STRING = 0x8,
+  COLOR = 0x9,
+  INT64 = 0xA,
+  UINT64 = 0xB,
+  LINEAR_COLOR_RGB = 0xC, // RGBA
+  COLOR_XYZ = 0xD,        // CIE XYZ - unused, legacy
+  COLOR_LAB = 0xE,        // CIELAB - unused, legacy
+  SESSIONMODE_BASE_DVAR = 0xF,
+  COUNT = 0x10,
 };
 
 enum dvarFlags_e : uint32_t {
@@ -222,10 +222,10 @@ union DvarColor {
 
 struct dvar_t;
 
-enum DvarSetSource : int32_t {
-  DVAR_SOURCE_INTERNAL = 0x0,
-  DVAR_SOURCE_EXTERNAL = 0x1,
-  DVAR_SOURCE_SCRIPT = 0x2,
+enum class DvarSetSource : uint32_t {
+  INTERNAL = 0x0,
+  EXTERNAL = 0x1,
+  SCRIPT = 0x2,
 };
 
 struct DvarValue {
@@ -293,21 +293,21 @@ struct dvar_t {
 
 typedef void (*modifiedCallback)(const dvar_t *);
 
-enum dvar_cmd_t : int32_t {
-  DVAR_CMD_CG_OBJECTIVE_TEXT = 0x0,
-  DVAR_CMD_COMPASS = 0x1,
-  DVAR_CMD_DRAW_TALK = 0x2,
-  DVAR_CMD_FOCAL_LENGTH = 0x3,
-  DVAR_CMD_HUD_HARDCORE = 0x4,
-  DVAR_CMD_PLAYER_SPRINT_TIME = 0x5,
-  DVAR_CMD_MINI_SCOREBOARD_HIDE = 0x6,
-  DVAR_CMD_NUM_LIVES = 0x7,
-  DVAR_CMD_PLAYER_PUSH_AMOUNT = 0x8,
-  DVAR_CMD_PLAYER_STEP_ON_ACTORS = 0x9,
-  DVAR_CMD_SCRIPT_MAIN_MENU = 0xA,
-  DVAR_CMD_THIRD_PERSON = 0xB,
-  DVAR_CMD_THIRD_PERSON_ANGLE = 0xC,
-  DVAR_CMD_COUNT = 0xD,
+enum class dvar_cmd_t : uint32_t {
+  CG_OBJECTIVE_TEXT = 0x0,
+  COMPASS = 0x1,
+  DRAW_TALK = 0x2,
+  FOCAL_LENGTH = 0x3,
+  HUD_HARDCORE = 0x4,
+  PLAYER_SPRINT_TIME = 0x5,
+  MINI_SCOREBOARD_HIDE = 0x6,
+  NUM_LIVES = 0x7,
+  PLAYER_PUSH_AMOUNT = 0x8,
+  PLAYER_STEP_ON_ACTORS = 0x9,
+  SCRIPT_MAIN_MENU = 0xA,
+  THIRD_PERSON = 0xB,
+  THIRD_PERSON_ANGLE = 0xC,
+  COUNT = 0xD,
 };
 
 } // namespace game

@@ -83,7 +83,7 @@ union HksValue {
   bool boolean;
 };
 
-enum HksObjectType {
+enum class HksObjectType : int32_t {
   TANY = -1,
   TNONE = -1,
   TNIL = 0x0,
@@ -102,7 +102,7 @@ enum HksObjectType {
   // C function
   TUI64 = 0xB,
   TSTRUCT = 0xC,
-  NUM_TYPE_OBJECTS = 0xE,
+  COUNT = 0xE,
 };
 
 struct HksObject {
@@ -149,22 +149,22 @@ struct CallSite {
   CallSite *m_prev;
 };
 
-enum Status {
+enum class Status : uint32_t {
   NEW = 0x1,
   RUNNING = 0x2,
   YIELDED = 0x3,
   DEAD_ERROR = 0x4,
 };
 
-enum HksError {
+enum class HksError : int32_t {
   HKS_NO_ERROR = 0,
-  HKS_ERRSYNTAX = -4,
-  HKS_ERRFILE = -5,
-  HKS_ERRRUN = -100,
-  HKS_ERRMEM = -200,
-  HKS_ERRERR = -300,
-  HKS_THROWING_ERROR = -500,
-  HKS_GC_YIELD = 1,
+  ERRSYNTAX = -4,
+  ERRFILE = -5,
+  ERRRUN = -100,
+  ERRMEM = -200,
+  ERRERR = -300,
+  THROWING_ERROR = -500,
+  GC_YIELD = 1,
 };
 
 struct lua_Debug {
@@ -237,13 +237,13 @@ struct cclosure : ChunkHeader {
   HksObject m_upvalues[1];
 };
 
-enum HksCompilerSettings_BytecodeSharingFormat {
-  BYTECODE_DEFAULT = 0x0,
-  BYTECODE_INPLACE = 0x1,
-  BYTECODE_REFERENCED = 0x2,
+enum class HksCompilerSettings_BytecodeSharingFormat : uint32_t {
+  DEFAULT = 0x0,
+  INPLACE = 0x1,
+  REFERENCED = 0x2,
 };
 
-enum HksCompilerSettings_IntLiteralOptions {
+enum class HksCompilerSettings_IntLiteralOptions : uint32_t {
   INT_LITERALS_NONE = 0x0,
   INT_LITERALS_LUD = 0x1,
   INT_LITERALS_32BIT = 0x1,
@@ -262,11 +262,7 @@ struct HksCompilerSettings {
   int32_t (*m_debugMap)(const char *, int);
 };
 
-enum HksBytecodeSharingMode : int64_t {
-  HKS_BYTECODE_SHARING_OFF = 0,
-  HKS_BYTECODE_SHARING_ON = 1,
-  HKS_BYTECODE_SHARING_SECURE = 2
-};
+enum class HksBytecodeSharingMode : int64_t { OFF = 0, ON = 1, SECURE = 2 };
 
 struct HksGcWeights {
   int32_t m_removeString;
@@ -364,19 +360,19 @@ struct GarbageCollector {
   UserData *m_activeUD;
 };
 
-enum MemoryManager_ChunkColor {
+enum class MemoryManager_ChunkColor : uint32_t {
   RED = 0x0,
   BLACK = 0x1,
 };
 
-enum Hks_DeleteCheckingMode {
-  HKS_DELETE_CHECKING_OFF = 0x0,
-  HKS_DELETE_CHECKING_ACCURATE = 0x1,
-  HKS_DELETE_CHECKING_SAFE = 0x2,
+enum class Hks_DeleteCheckingMode : uint32_t {
+  OFF = 0x0,
+  ACCURATE = 0x1,
+  SAFE = 0x2,
 };
 
 struct MemoryManager {
-  enum ChunkColor : int32_t {
+  enum class ChunkColor : int32_t {
     WHITE = 0x0,
     BLACK = 0x1,
   };
@@ -396,10 +392,10 @@ struct StaticStringCache {
   HksObject m_objects[41];
 };
 
-enum HksBytecodeEndianness {
-  HKS_BYTECODE_DEFAULT_ENDIAN = 0x0,
-  HKS_BYTECODE_BIG_ENDIAN = 0x1,
-  HKS_BYTECODE_LITTLE_ENDIAN = 0x2,
+enum class HksBytecodeEndianness : uint32_t {
+  DEFAULT = 0x0,
+  BIG = 0x1,
+  LITTLE = 0x2,
 };
 
 struct RuntimeProfileData_Stats {

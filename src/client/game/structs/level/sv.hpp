@@ -40,10 +40,10 @@ enum class sessionState_t : int32_t {
   INTERMISSION = 0x3,
 };
 
-enum clientConnected_t : uint32_t {
-  CON_DISCONNECTED = 0x0,
-  CON_CONNECTING = 0x1,
-  CON_CONNECTED = 0x2,
+enum class clientConnected_t : uint32_t {
+  DISCONNECTED = 0x0,
+  CONNECTING = 0x1,
+  CONNECTED = 0x2,
 };
 
 struct playerTeamState_t {
@@ -304,8 +304,8 @@ struct missile_ent_t {
       vec3_t targetOffset;
       union {
         struct {
-          enum MissileStage stage;
-          enum MissileFlightMode flightMode;
+          MissileStage stage;
+          MissileFlightMode flightMode;
         } missile;
         struct {
           float pitch;

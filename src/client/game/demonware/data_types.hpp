@@ -1,7 +1,7 @@
 #pragma once
 
 #include "byte_buffer.hpp"
-#include <game/structs/structs.hpp>
+#include "../structs/structs.hpp"
 
 namespace demonware {
 class bdTaskResult {
@@ -63,14 +63,14 @@ struct bdFileQueryResult final : bdTaskResult {
   std::uint64_t user_id;
   std::string platform;
   std::string filename;
-  std::uint32_t errorcode;
+  game::dw::bdLobbyErrorCode errorcode;
   std::string filedata;
 
   void serialize(byte_buffer *data) override {
     data->write_uint64(user_id);
     data->write_string(platform);
     data->write_string(filename);
-    data->write_uint32(errorcode);
+    data->write_uint32(static_cast<uint32_t>(errorcode));
     data->write_blob(filedata);
   }
 
@@ -78,7 +78,7 @@ struct bdFileQueryResult final : bdTaskResult {
     data->read_uint64(&user_id);
     data->read_string(&platform);
     data->read_string(&filename);
-    data->read_uint32(&errorcode);
+    data->read_uint32(reinterpret_cast<uint32_t *>(&errorcode));
     data->read_blob(&filedata);
   }
 };
@@ -353,7 +353,7 @@ struct bdAddr final : bdTaskResult {
 struct bdCommonAddr : bdTaskResult {
   bdAddr m_local_addrs[5];
   bdAddr m_public_addr;
-  game::bdNATType m_nat_type;
+  game::dw::net::bdNATType m_nat_type;
   unsigned int m_hash;
   bool m_is_loopback;
 
@@ -370,7 +370,7 @@ struct bdCommonAddr : bdTaskResult {
 
     if (valid) {
       this->m_public_addr.serialize(buffer);
-      buffer->write_byte(this->m_nat_type);
+      buffer->write_byte(static_cast<uint8_t>(this->m_nat_type));
     }
 
     buffer->set_use_data_types(data_types);

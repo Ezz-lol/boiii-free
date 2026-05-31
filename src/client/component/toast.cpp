@@ -43,10 +43,10 @@ bool execute_lua(const std::string &code) {
     const ui_scripting::table lua{globals};
 
     state->m_global->m_bytecodeSharingMode =
-        game::ui::lua::hks::HKS_BYTECODE_SHARING_ON;
+        game::ui::lua::hks::HksBytecodeSharingMode::ON;
     const auto load_results = lua["loadstring"](code, "toast");
     state->m_global->m_bytecodeSharingMode =
-        game::ui::lua::hks::HKS_BYTECODE_SHARING_SECURE;
+        game::ui::lua::hks::HksBytecodeSharingMode::SECURE;
 
     if (load_results[0].is<ui_scripting::function>()) {
       const auto results = lua["pcall"](load_results);

@@ -23,7 +23,7 @@ void dvar_for_each_name_stub(void (*callback)(const char *)) {
 
     if (dvar->debugName                //
         && (dvar->flags & 0x8000) == 0 //
-        && (!game::com::Com_SessionMode_IsMode(game::MODE_COUNT) ||
+        && (!game::com::Com_SessionMode_IsMode(game::eModes::COUNT) ||
             !game::Dvar_IsSessionModeBaseDvar(dvar))) {
       callback(dvar->debugName);
     }
@@ -39,7 +39,7 @@ void dvar_for_each_name_client_num_stub(int localClientNum,
 
     if (dvar->debugName                //
         && (dvar->flags & 0x8000) == 0 //
-        && (!game::com::Com_SessionMode_IsMode(game::MODE_COUNT) ||
+        && (!game::com::Com_SessionMode_IsMode(game::eModes::COUNT) ||
             !game::Dvar_IsSessionModeBaseDvar(dvar))) {
       callback(localClientNum, dvar->debugName);
     }

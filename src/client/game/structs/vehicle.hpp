@@ -21,15 +21,15 @@ struct WheelState {
 };
 static_assert(sizeof(WheelState) == 0x18, "WheelState size must be 24 bytes");
 
-enum VehicleCategory : int32_t {
-  VEHICLE_CATEGORY_NONE = 0x0,
-  VEHICLE_CATEGORY_QUAD_TANK = 0x1,
-  VEHICLE_CATEGORY_AMWS = 0x2,
-  VEHICLE_CATEGORY_WASP = 0x3,
-  VEHICLE_CATEGORY_ROCKET_WASP = 0x4,
-  VEHICLE_CATEGORY_HUNTER = 0x5,
-  VEHICLE_CATEGORY_SIEGE_BOT = 0x6,
-  VEHICLE_CATEGORY_COUNT = 0x7,
+enum class VehicleCategory : int32_t {
+  NONE = 0x0,
+  QUAD_TANK = 0x1,
+  AMWS = 0x2,
+  WASP = 0x3,
+  ROCKET_WASP = 0x4,
+  HUNTER = 0x5,
+  SIEGE_BOT = 0x6,
+  COUNT = 0x7,
 };
 
 // sizeof=0x20
@@ -118,13 +118,13 @@ static_assert(sizeof(VehicleEngine) == 0x2C0,
 
 struct DevGraph;
 
-enum DevEventType : int32_t {
-  EVENT_ACTIVATE = 0x0,
-  EVENT_DEACTIVATE = 0x1,
-  EVENT_ACCEPT = 0x2,
-  EVENT_UPDATE = 0x3,
-  EVENT_DRAW = 0x4,
-  EVENT_SAVE = 0x5,
+enum class DevEventType : int32_t {
+  ACTIVATE = 0x0,
+  DEACTIVATE = 0x1,
+  ACCEPT = 0x2,
+  UPDATE = 0x3,
+  DRAW = 0x4,
+  SAVE = 0x5,
 };
 
 typedef void (*DevGraphEventCallback)(const DevGraph *, DevEventType,
@@ -222,13 +222,13 @@ static_assert(sizeof(VehicleSoundDef) == 0x1000,
 
 typedef VehicleSoundDef *VehicleSoundDefPtr;
 
-enum VehicleFxDefType : int32_t {
-  VEHICLEFX_DEF_NITROUS = 0x0,
-  VEHICLEFX_DEF_GROUND = 0x1,
-  VEHICLEFX_DEF_AIRCRAFT = 0x2,
-  VEHICLEFX_DEF_BOAT = 0x3,
-  VEHICLEFX_DEF_TANK = 0x4,
-  NUM_VEHICLEFX_DEF_TYPES = 0x5,
+enum class VehicleFxDefType : int32_t {
+  NITROUS = 0x0,
+  GROUND = 0x1,
+  AIRCRAFT = 0x2,
+  BOAT = 0x3,
+  TANK = 0x4,
+  COUNT = 0x5,
 };
 
 struct VehicleFxDef {
@@ -242,11 +242,11 @@ struct VehicleFxDef {
 
 typedef VehicleFxDef *VehicleFxDefPtr;
 
-enum TractionType : int32_t {
-  TRACTION_TYPE_FRONT = 0x0,
-  TRACTION_TYPE_BACK = 0x1,
-  TRACTION_TYPE_ALL_WD = 0x2,
-  NUM_TRACTION_TYPES = 0x3,
+enum class TractionType : int32_t {
+  FRONT = 0x0,
+  BACK = 0x1,
+  ALL_WD = 0x2,
+  COUNT = 0x3,
 };
 
 // sizeof=0x178
@@ -895,11 +895,11 @@ struct vehicle_node_t {
 static_assert(sizeof(vehicle_node_t) == 0x5C,
               "vehicle_node_t size must be 92 bytes");
 
-enum path_type_e : int32_t {
-  PT_NONE = 0x0,
-  PT_OLD_SPLINE = 0x1,
-  PT_SPLINE = 0x2,
-  PT_AI_PATH = 0x3,
+enum class path_type_e : int32_t {
+  NONE = 0x0,
+  OLD_SPLINE = 0x1,
+  SPLINE = 0x2,
+  AI_PATH = 0x3,
 };
 
 // sizeof=0x164
@@ -1245,39 +1245,37 @@ static_assert(sizeof(VehicleTarget) == 0x2C,
               "VehicleTarget size must be 44 bytes");
 
 enum class ClientFallSpeed : int32_t {
-
-  FALL_SPEED_NONE = 0x0,
-  FALL_SPEED_DEFAULT = 0x0,
-  FALL_SPEED_SLOW = 0x1,
-  FALL_SPEED_MED = 0x2,
-  FALL_SPEED_FAST = 0x3,
-  FALL_SPEED_RAPID = 0x4,
-  FALL_SPEED_COUNT = 0x5,
+  NONE = 0x0,
+  DEFAULT = 0x0,
+  SLOW = 0x1,
+  MED = 0x2,
+  FAST = 0x3,
+  RAPID = 0x4,
+  COUNT = 0x5,
 };
 
 enum class ClientVisibleBodyMode : int32_t {
-
-  CLIENT_VISIBLEBODYMODE_UNKNOWN = 0x0,
-  CLIENT_VISIBLEBODYMODE_FULL = 0x1,
-  CLIENT_VISIBLEBODYMODE_FIRST_PERSON_CINEMATIC = 0x2,
-  CLIENT_VISIBLEBODYMODE_FIRST_PERSON_LEGS = 0x3,
+  UNKNOWN = 0x0,
+  FULL = 0x1,
+  FIRST_PERSON_CINEMATIC = 0x2,
+  FIRST_PERSON_LEGS = 0x3,
 };
 
 enum class ShockViewTypes : int32_t {
-  SHELLSHOCK_VIEWTYPE_BLURRED = 0x0,
-  SHELLSHOCK_VIEWTYPE_FLASHED = 0x1,
-  SHELLSHOCK_VIEWTYPE_CONCUSSED = 0x2,
-  SHELLSHOCK_VIEWTYPE_SHOCKED = 0x3,
-  SHELLSHOCK_VIEWTYPE_NONE = 0x4,
-  SHELLSHOCK_VIEWTYPE_COUNT = 0x5,
+  BLURRED = 0x0,
+  FLASHED = 0x1,
+  CONCUSSED = 0x2,
+  SHOCKED = 0x3,
+  NONE = 0x4,
+  COUNT = 0x5,
 };
 
 enum class VehicleAnimState : int32_t {
-  VEHICLEANIMSTATE_IDLE = 0x0,
-  VEHICLEANIMSTATE_ENTRY = 0x1,
-  VEHICLEANIMSTATE_CHANGEPOS = 0x2,
-  VEHICLEANIMSTATE_EXIT = 0x3,
-  VEHICLEANIMSTATECOUNT = 0x4,
+  IDLE = 0x0,
+  ENTRY = 0x1,
+  CHANGEPOS = 0x2,
+  EXIT = 0x3,
+  COUNT = 0x4,
 };
 
 #pragma pack(pop)

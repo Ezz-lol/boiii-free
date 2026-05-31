@@ -49,13 +49,13 @@ struct bdSecurityID {
   uint8_t ab[8];
 };
 
-using XNKID = bdSecurityID;
+typedef bdSecurityID XNKID;
 
 struct bdSecurityKey {
   uint8_t ab[16];
 };
 
-using XNKEY = bdSecurityKey;
+typedef bdSecurityKey XNKEY;
 
 struct SerializedAdr {
   uint8_t valid;
@@ -68,37 +68,35 @@ struct XSESSION_INFO {
   XNKEY keyExchangeKey;
 };
 
-enum PacketModeList {
-  PACKETDATA_FIRST = 0x0,
-  PACKETDATA_UNDEFINED = 0x0,
-  PACKETDATA_HEADER = 0x1,
-  PACKETDATA_OVERHEAD = 0x2,
-  PACKETDATA_DATA = 0x3,
-  PACKETDATA_RELIABLEDATA = 0x4,
-  PACKETDATA_ZEROFLOAT = 0x5,
-  PACKETDATA_SMALLFLOAT = 0x6,
-  PACKETDATA_LARGEFLOAT = 0x7,
-  PACKETDATA_ZEROINT = 0x8,
-  PACKETDATA_SMALLANGLE = 0x9,
-  PACKETDATA_ZEROANGLE = 0xA,
-  PACKETDATA_TIMEDELTA = 0xB,
-  PACKETDATA_TIME = 0xC,
-  PACKETDATA_24BITFLAGINDEX = 0xD,
-  PACKETDATA_GROUNDENTITY = 0xE,
-  PACKETDATA_ENTITYNUM = 0xF,
-  PACKETDATA_LASTFIELDCHANGED = 0x10,
-  PACKETDATA_NOTNETWORKDATA = 0x11,
-  PACKETDATA_ORIGINDELTA = 0x12,
-  PACKETDATA_ORIGIN = 0x13,
-  NUM_PACKETDATA_MODES = 0x14,
+enum class PacketModeList {
+  FIRST = 0x0,
+  UNDEFINED = 0x0,
+  HEADER = 0x1,
+  OVERHEAD = 0x2,
+  DATA = 0x3,
+  RELIABLEDATA = 0x4,
+  ZEROFLOAT = 0x5,
+  SMALLFLOAT = 0x6,
+  LARGEFLOAT = 0x7,
+  ZEROINT = 0x8,
+  SMALLANGLE = 0x9,
+  ZEROANGLE = 0xA,
+  TIMEDELTA = 0xB,
+  TIME = 0xC,
+  _24BITFLAGINDEX = 0xD,
+  GROUNDENTITY = 0xE,
+  ENTITYNUM = 0xF,
+  LASTFIELDCHANGED = 0x10,
+  NOTNETWORKDATA = 0x11,
+  ORIGINDELTA = 0x12,
+  ORIGIN = 0x13,
+  COUNT = 0x14,
 };
 
 struct PacketMode {
   uint32_t start;
   PacketModeList mode;
 };
-
-using bdCommonAddrRef = void *;
 
 struct HostInfo {
   XUID xuid;
@@ -114,13 +112,18 @@ enum svscmd_type {
   SV_CMD_RELIABLE_0 = 0x1,
 };
 
-enum {
-  CS_FREE = 0x0,
+enum clientState_t {
+  CS_FREE = 0x0, // can be used for a new connection
+  /*
+    Client has been disconnected, but don't use connection
+    for a new client for a couple seconds
+    (`sv_zombietime` dvar value) in case of reconnect
+  */
   CS_ZOMBIE = 0x1,
   CS_RECONNECTING = 0x2,
-  CS_CONNECTED = 0x3,
-  CS_CLIENTLOADING = 0x4,
-  CS_ACTIVE = 0x5,
+  CS_CONNECTED = 0x3, // has been assigned to a client_t, but no gamestate yet
+  CS_PRIMED = 0x4, // gamestate has been sent, but client hasn't sent a usercmd
+  CS_ACTIVE = 0x5, // client is fully in game
 };
 
 struct netProfilePacket_t {
@@ -140,15 +143,13 @@ struct netProfileStream_t {
   int32_t iLargestPacket;
   int32_t iSmallestPacket;
 };
-static_assert(sizeof(netProfileStream_t) == 0x2f0,
-              "netProfileStream_t size must be 0x2f0 bytes");
+ASSERT_SIZE(netProfileStream_t, 0x2f0);
 
 struct netProfileInfo_t {
   netProfileStream_t send;
   netProfileStream_t recieve;
 };
-static_assert(sizeof(netProfileInfo_t) == 0x5e0,
-              "netProfileInfo_t size must be 0x5e0 bytes");
+ASSERT_SIZE(netProfileInfo_t, 0x5e0);
 
 typedef UnknownPtr PacketQueuePtr;
 
@@ -159,8 +160,7 @@ struct netchanOOBMessage_t {
   uint8_t data[1256];
   int32_t dataLen;
 };
-static_assert(sizeof(netchanOOBMessage_t) == 0x500,
-              "netchanOOBMessage_t must be 0x500 bytes");
+ASSERT_SIZE(netchanOOBMessage_t, 0x500);
 
 struct EVENT_HANDLE {
   qboolean manualReset;
@@ -192,7 +192,7 @@ struct netchan_t {
   netProfileInfo_t prof;
   uint8_t _padding[4];
 };
-static_assert(sizeof(netchan_t) == 0x618, "sizeof(netchan_t) != 0x618");
+ASSERT_SIZE(netchan_t, 0x618);
 #pragma pack(pop)
 
 // Unverified
@@ -221,14 +221,14 @@ struct serverInfo_t {
   int16_t minPing;
   int16_t maxPing;
   int16_t ping;
-  char hostName[32];
-  char mapName[32];
-  char game[24];
-  char gameType[16];
-  uint8_t isInGame;
+  str32_t hostName;
+  str32_t mapName;
+  str24_t game;
+  str16_t gameType;
+  bool isInGame;
   uint8_t _padding0E1[7];
 };
-static_assert(sizeof(serverInfo_t) == 0xE8, "sizeof(serverInfo_t) != 0xE8");
+ASSERT_SIZE(serverInfo_t, 0xE8);
 #pragma pack(pop)
 
 } // namespace net

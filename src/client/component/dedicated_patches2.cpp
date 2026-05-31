@@ -113,7 +113,7 @@ std::string sanitize_chat_message(const std::string &msg) {
 
 void disable_sv_cheats_cb(game::dvar_t *sv_cheats) {
   if (sv_cheats->current.value.enabled) {
-    game::Dvar_SetBoolFromSource(sv_cheats, false, game::DVAR_SOURCE_INTERNAL);
+    game::Dvar_SetBoolFromSource(sv_cheats, false, game::DvarSetSource::INTERNAL);
   }
 }
 
@@ -487,7 +487,7 @@ struct component final : server_component {
         [] {
           const game::dvar_t *sv_cheats = game::Dvar_FindVar("sv_cheats");
           game::Dvar_SetBoolFromSource(sv_cheats, false,
-                                       game::DVAR_SOURCE_INTERNAL);
+                                       game::DvarSetSource::INTERNAL);
 
           // Enforce sv_cheats = 0
           game::Dvar_SetModifiedCallback(

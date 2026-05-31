@@ -269,9 +269,9 @@ void update_discord() {
     dp.startTimestamp = match_time;
 
     bool is_mp = false, is_zm = false, is_cp = false;
-    seh_SessionMode_IsMode(game::MODE_MULTIPLAYER, &is_mp);
-    seh_SessionMode_IsMode(game::MODE_ZOMBIES, &is_zm);
-    seh_SessionMode_IsMode(game::MODE_CAMPAIGN, &is_cp);
+    seh_SessionMode_IsMode(game::eModes::MULTIPLAYER, &is_mp);
+    seh_SessionMode_IsMode(game::eModes::ZOMBIES, &is_zm);
+    seh_SessionMode_IsMode(game::eModes::CAMPAIGN, &is_cp);
 
     auto mapname = safe_dvar_string("mapname");
     if (mapname == "core_frontend")

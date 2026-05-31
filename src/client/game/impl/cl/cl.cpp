@@ -56,7 +56,7 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
   connstate_t connectionState =
       cg::clientUIActives->actives[localClientNum].connectionState;
 
-  if (clc->transferBuffer && connectionState != CA_SENDINGDATA) {
+  if (clc->transferBuffer && connectionState != connstate_t::SENDINGDATA) {
     com::Com_LiveDeallocate(live::LiveAllocTypes::LIVE_ALLOC_STORAGE,
                             static_cast<void *>(clc->transferBuffer));
     clc->transferBuffer = nullptr;
@@ -70,12 +70,12 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
   // Determine if we need to throttle packet resends
   bool shouldWait = false;
   switch (connectionState) {
-  case CA_SENDINGDATA:
+  case connstate_t::SENDINGDATA:
     shouldWait = (cls->realtime - clc->lastPacketSentTime) < 100;
     break;
-  case CA_CONFIRMLOADING:
-  case CA_CHALLENGING:
-  case CA_CONNECTING:
+  case connstate_t::CONFIRMLOADING:
+  case connstate_t::CHALLENGING:
+  case connstate_t::CONNECTING:
     shouldWait = (cls->realtime - clc->connectTime) < 3000;
     break;
   default:
@@ -99,7 +99,7 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
   static net::msg::min_msg_buf msgBuffer;
 
   switch (connectionState) {
-  case CA_CONFIRMLOADING: {
+  case connstate_t::CONFIRMLOADING: {
     net::msg::msg_t sb;
     net::msg::MSG_Init(&sb, msgBuffer, sizeof(msgBuffer));
     net::msg::MSG_WriteString(&sb, "cfl");
@@ -110,14 +110,14 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
     net::netadr_t toAdr = clc->serverAddress;
     if (!net::NET_OutOfBandData(networkId, &toAdr, sb.data, sb.cursize)) {
       if (!*com::com_errorEntered) {
-        com::Com_Error_("q:\\t7\\pc\\code\\src\\client\\cl_main.cpp", 2305, 2,
-                        "EXE_DISCONNECTED");
+        com::Com_Error_("q:\\t7\\pc\\code\\src\\client\\cl_main.cpp", 2305,
+                        errorParm::SERVERDISCONNECT, "EXE_DISCONNECTED");
       }
     }
     return;
   }
 
-  case CA_SENDINGDATA: {
+  case connstate_t::SENDINGDATA: {
 
     net::msg::msg_t sb;
     net::msg::MSG_Init(&sb, msgBuffer, sizeof(msgBuffer));
@@ -154,14 +154,14 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
     if (!net::NET_OutOfBandData(networkId, &serverAddress, sb.data,
                                 sb.cursize)) {
       if (!*com::com_errorEntered) {
-        com::Com_Error_("q:\\t7\\pc\\code\\src\\client\\cl_main.cpp", 2434, 2,
-                        "EXE_DISCONNECTED");
+        com::Com_Error_("q:\\t7\\pc\\code\\src\\client\\cl_main.cpp", 2434,
+                        errorParm::SERVERDISCONNECT, "EXE_DISCONNECTED");
       }
     }
     return;
   }
 
-  case CA_CONNECTING: {
+  case connstate_t::CONNECTING: {
     constexpr int32_t infoStrLen = 1024;
     char s[infoStrLen];
     std::memset(s, 0, sizeof(s));
@@ -258,14 +258,14 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
             controllerIndex, networkId, &serverAddress,
             reinterpret_cast<const char *>(dest), writtenLength)) {
       if (!*com::com_errorEntered) {
-        com::Com_Error_("q:\\t7\\pc\\code\\src\\client\\cl_main.cpp", 2391, 2,
-                        "EXE_DISCONNECTED");
+        com::Com_Error_("q:\\t7\\pc\\code\\src\\client\\cl_main.cpp", 2391,
+                        errorParm::SERVERDISCONNECT, "EXE_DISCONNECTED");
       }
     }
     return;
   }
 
-  case CA_CHALLENGING: {
+  case connstate_t::CHALLENGING: {
     if (dw::dwGetConnectionTaskStatus(&clc->serverAddress) !=
         dw::taskCompleteResults::TASK_NOTCOMPLETE) {
       net::netadr_t adr = clc->serverAddress;
@@ -301,8 +301,8 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
   }
 
   default: {
-    com::Com_Error_("q:\\t7\\pc\\code\\src\\client\\cl_main.cpp", 2441, 1,
-                    "CL_CheckForResend: bad connstate");
+    com::Com_Error_("q:\\t7\\pc\\code\\src\\client\\cl_main.cpp", 2441,
+                    errorParm::DROP, "CL_CheckForResend: bad connstate");
     return;
   }
   }

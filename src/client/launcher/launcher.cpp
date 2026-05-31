@@ -345,7 +345,8 @@ void verify_game_thread(const std::string &modes_csv) {
       }
       return key;
     };
-    auto comps_it = manifest.FindMember("components");
+    auto comps_it =
+        manifest.FindMember("components");
     if (comps_it != manifest.MemberEnd() && comps_it->value.IsObject()) {
       for (auto it = comps_it->value.MemberBegin();
            it != comps_it->value.MemberEnd(); ++it) {
@@ -761,7 +762,8 @@ std::string get_steam_workshop_preview_url(const std::string &workshop_id) {
     auto resp_it = doc.FindMember("response");
     if (resp_it == doc.MemberEnd() || !resp_it->value.IsObject())
       return {};
-    auto details_it = resp_it->value.FindMember("publishedfiledetails");
+    auto details_it =
+        resp_it->value.FindMember("publishedfiledetails");
     if (details_it == resp_it->value.MemberEnd() ||
         !details_it->value.IsArray() || details_it->value.Empty())
       return {};
@@ -769,7 +771,8 @@ std::string get_steam_workshop_preview_url(const std::string &workshop_id) {
     const rapidjson::Value &first = details_it->value[0];
     if (!first.IsObject())
       return {};
-    auto consumer_it = first.FindMember("consumer_app_id");
+    auto consumer_it =
+        first.FindMember("consumer_app_id");
     if (consumer_it == first.MemberEnd())
       return {};
     int app_id = 0;
@@ -782,7 +785,8 @@ std::string get_steam_workshop_preview_url(const std::string &workshop_id) {
     if (app_id != BO3_APP_ID)
       return {};
 
-    auto preview_it = first.FindMember("preview_url");
+    auto preview_it =
+        first.FindMember("preview_url");
     if (preview_it == first.MemberEnd() || !preview_it->value.IsString())
       return {};
     return std::string(preview_it->value.GetString(),
@@ -2034,13 +2038,15 @@ bool run() {
           if (utils::io::read_file(settings_file.string(), &sdata)) {
             rapidjson::Document sdoc;
             if (!sdoc.Parse(sdata.c_str()).HasParseError() && sdoc.IsObject()) {
-              auto al = sdoc.FindMember("asset_limits_enabled");
+              auto al =
+                  sdoc.FindMember("asset_limits_enabled");
               if (al != sdoc.MemberEnd() && al->value.IsString()) {
                 w.Key("assetLimits");
                 w.String(al->value.GetString());
               }
 
-              auto fo = sdoc.FindMember("friends_only");
+              auto fo =
+                  sdoc.FindMember("friends_only");
               if (fo != sdoc.MemberEnd() && fo->value.IsString()) {
                 w.Key("friendsOnly");
                 w.String(fo->value.GetString());

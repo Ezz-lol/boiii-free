@@ -26,8 +26,8 @@ const game::dvar_t *cl_yaw_speed;
 const game::dvar_t *cl_pitch_speed;
 
 void stop_intro_if_needed() {
-  if (game::com::Com_SessionMode_GetMode() != game::MODE_ZOMBIES &&
-      game::com::Com_SessionMode_GetMode() != game::MODE_CAMPAIGN) {
+  if (game::com::Com_SessionMode_GetMode() != game::eModes::ZOMBIES &&
+      game::com::Com_SessionMode_GetMode() != game::eModes::CAMPAIGN) {
     return;
   }
 
@@ -208,7 +208,7 @@ void live_delayed_com_error_stub(const char *comErrorString, int32_t code) {
   void *return_address = _ReturnAddress();
   // Log caller and error message
   game::com::Com_Printf(
-      0, 0,
+      0, game::consoleLabel_e::DEFAULT,
       "Live_DelayedComError called from 0x%p with message: %s and code: %d\n",
       return_address, comErrorString, code);
   printf(

@@ -53,7 +53,7 @@ void ScrCmd_PlaySoundOnTag_Impl(scriptInstance_t inst, scr_entref_t *entref) {
     } else {
       sv::SV_DObjDumpInfo(ent);
       const char *model_name = game::bg::BG_Cache_GetModelNameForIndex(
-          game::bg::BG_CACHE_INSTANCE_SERVER, ent->model);
+          game::bg::bgCacheInstance::SERVER, ent->model);
       const char *tag_name_display_str = sl::SL_ConvertToString(tag_name);
       const char *error_str =
           utils::string::va("tag '%s' does not exist on entity with model '%s'",
@@ -209,7 +209,7 @@ void ScrCmd_PlaySoundWithNotify_Impl(scriptInstance_t inst,
     } else {
       sv::SV_DObjDumpInfo(ent);
       const char *model_name = game::bg::BG_Cache_GetModelNameForIndex(
-          game::bg::BG_CACHE_INSTANCE_SERVER, ent->model);
+          game::bg::bgCacheInstance::SERVER, ent->model);
       const char *tag_name = sl::SL_ConvertToString(tag_name_hash);
       const char *error_str =
           utils::string::va("tag '%s' does not exist on entity with model '%s'",

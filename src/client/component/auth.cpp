@@ -192,8 +192,8 @@ void set_challenge(const game::net::netadr_t &target,
     if (game::com::Com_LocalClient_IsBeingUsed(localClientIdx)) {
       game::connstate_t *clientConnectionState =
           &game::cg::clientUIActives->actives[localClientIdx].connectionState;
-      if (*clientConnectionState == game::CA_CHALLENGING) {
-        *clientConnectionState = game::CA_CONNECTING;
+      if (*clientConnectionState == game::connstate_t::CHALLENGING) {
+        *clientConnectionState = game::connstate_t::CONNECTING;
       }
     }
   }
@@ -454,7 +454,7 @@ void clear_stored_guids() {
 void clear_stored_challenge() {
   std::lock_guard lock(latest_challenge_mutex);
   if (game::cg::clientUIActives->actives[0].connectionState !=
-      game::CA_CHALLENGING) {
+      game::connstate_t::CHALLENGING) {
     memset(latest_challenge, 0, CHALLENGE_LENGTH);
   }
 }

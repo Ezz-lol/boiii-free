@@ -50,7 +50,7 @@ userdata &userdata::operator=(userdata &&other) noexcept {
 void userdata::add() {
   game::ui::lua::hks::HksObject value{};
   value.v.ptr = this->ptr;
-  value.t = game::ui::lua::hks::TUSERDATA;
+  value.t = game::ui::lua::hks::HksObjectType::TUSERDATA;
 
   const auto state = *game::ui::lua::hks::lua_state;
   if (state) {
@@ -143,7 +143,7 @@ table &table::operator=(table &&other) noexcept {
 void table::add() {
   game::ui::lua::hks::HksObject value{};
   value.v.table = this->ptr;
-  value.t = game::ui::lua::hks::TTABLE;
+  value.t = game::ui::lua::hks::HksObjectType::TTABLE;
 
   const auto state = *game::ui::lua::hks::lua_state;
   if (state) {

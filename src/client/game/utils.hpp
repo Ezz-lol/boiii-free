@@ -14,15 +14,15 @@ namespace game {
 [[nodiscard]] float get_dvar_float(const char *dvar_name);
 [[nodiscard]] bool get_dvar_bool(const char *dvar_name);
 int set_dvar_int(const char *dvar_name, int val,
-                 DvarSetSource source = DVAR_SOURCE_INTERNAL);
+                 DvarSetSource source = DvarSetSource::INTERNAL);
 int64_t set_dvar_int64(const char *dvar_name, int64_t val,
-                       DvarSetSource source = DVAR_SOURCE_INTERNAL);
+                       DvarSetSource source = DvarSetSource::INTERNAL);
 uint64_t set_dvar_uint64(const char *dvar_name, uint64_t val,
-                         DvarSetSource source = DVAR_SOURCE_INTERNAL);
+                         DvarSetSource source = DvarSetSource::INTERNAL);
 bool set_dvar_bool(const char *dvar_name, bool val,
-                   DvarSetSource source = DVAR_SOURCE_INTERNAL);
+                   DvarSetSource source = DvarSetSource::INTERNAL);
 float set_dvar_float(const char *dvar_name, float val,
-                     DvarSetSource source = DVAR_SOURCE_INTERNAL);
+                     DvarSetSource source = DvarSetSource::INTERNAL);
 
 [[nodiscard]] const dvar_t *register_dvar_bool(const char *dvar_name,
                                                bool value, unsigned int flags,
@@ -38,7 +38,7 @@ float set_dvar_float(const char *dvar_name, float val,
 [[nodiscard]] const dvar_t *
 register_sessionmode_dvar_bool(const char *dvar_name, bool value,
                                unsigned int flags, const char *description,
-                               eModes mode = MODE_COUNT);
+                               eModes mode = eModes::COUNT);
 [[nodiscard]] const dvar_t *register_dvar_string(const char *dvar_name,
                                                  const char *value,
                                                  unsigned int flags,

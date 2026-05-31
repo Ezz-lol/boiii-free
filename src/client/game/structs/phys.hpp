@@ -20,14 +20,14 @@ struct hitinfo_t {
   float intensity;
 };
 
-enum PhysicsOwnerType : int32_t {
-  PHYS_OWNER_DYNENT = 0x0,
-  PHYS_OWNER_ENTITY = 0x1,
-  PHYS_OWNER_GLASS = 0x2,
-  PHYS_OWNER_PARTICLE = 0x3,
-  PHYS_OWNER_RAGDOLL = 0x4,
-  PHYS_OWNER_XDOLL = 0x5,
-  PHYS_OWNER_COUNT = 0x6,
+enum class PhysicsOwnerType : int32_t {
+  DYNENT = 0x0,
+  ENTITY = 0x1,
+  GLASS = 0x2,
+  PARTICLE = 0x3,
+  RAGDOLL = 0x4,
+  XDOLL = 0x5,
+  COUNT = 0x6,
 };
 
 // sizeof=0x60

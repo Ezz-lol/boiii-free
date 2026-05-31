@@ -361,7 +361,8 @@ workshop_info get_steam_workshop_info(const std::string &workshop_id) {
     auto resp_it = doc.FindMember("response");
     if (resp_it == doc.MemberEnd() || !resp_it->value.IsObject())
       return info;
-    auto details_it = resp_it->value.FindMember("publishedfiledetails");
+    auto details_it =
+        resp_it->value.FindMember("publishedfiledetails");
     if (details_it == resp_it->value.MemberEnd() ||
         !details_it->value.IsArray() || details_it->value.Empty())
       return info;
@@ -850,7 +851,8 @@ std::string search_workshop_by_name(const std::string &search_text,
         auto resp_it = doc.FindMember("response");
         if (resp_it == doc.MemberEnd() || !resp_it->value.IsObject())
           continue;
-        auto details_it = resp_it->value.FindMember("publishedfiledetails");
+        auto details_it =
+            resp_it->value.FindMember("publishedfiledetails");
         if (details_it == resp_it->value.MemberEnd() ||
             !details_it->value.IsArray())
           continue;
@@ -858,7 +860,8 @@ std::string search_workshop_by_name(const std::string &search_text,
         for (auto &item : details_it->value.GetArray()) {
           if (!item.IsObject())
             continue;
-          auto app_it = item.FindMember("consumer_app_id");
+          auto app_it =
+              item.FindMember("consumer_app_id");
           if (app_it != item.MemberEnd()) {
             int app_id = 0;
             if (app_it->value.IsInt())
@@ -872,7 +875,8 @@ std::string search_workshop_by_name(const std::string &search_text,
           }
 
           std::string id, title, description, imageUrl;
-          auto id_it = item.FindMember("publishedfileid");
+          auto id_it =
+              item.FindMember("publishedfileid");
           if (id_it != item.MemberEnd() && id_it->value.IsString())
             id = id_it->value.GetString();
           if (id.empty())
@@ -882,24 +886,28 @@ std::string search_workshop_by_name(const std::string &search_text,
           if (title_it != item.MemberEnd() && title_it->value.IsString())
             title = html_decode(title_it->value.GetString());
 
-          auto desc_it = item.FindMember("description");
+          auto desc_it =
+              item.FindMember("description");
           if (desc_it != item.MemberEnd() && desc_it->value.IsString()) {
             description = desc_it->value.GetString();
             if (description.size() > 2000)
               description = description.substr(0, 2000) + "...";
           }
 
-          auto img_it = item.FindMember("preview_url");
+          auto img_it =
+              item.FindMember("preview_url");
           if (img_it != item.MemberEnd() && img_it->value.IsString())
             imageUrl = img_it->value.GetString();
           if (imageUrl.empty())
             imageUrl = extract_image_url_from_description(description);
 
           std::int64_t subs = 0, favorites = 0;
-          auto subs_it = item.FindMember("lifetime_subscriptions");
+          auto subs_it =
+              item.FindMember("lifetime_subscriptions");
           if (subs_it != item.MemberEnd())
             subs = parse_json_int64(subs_it->value);
-          auto fav_it = item.FindMember("lifetime_favorited");
+          auto fav_it =
+              item.FindMember("lifetime_favorited");
           if (fav_it != item.MemberEnd())
             favorites = parse_json_int64(fav_it->value);
 
@@ -1061,7 +1069,8 @@ std::string fetch_all_workshop_items(const std::uint64_t request_token) {
         if (resp_it == doc.MemberEnd() || !resp_it->value.IsObject())
           continue;
 
-        auto details_it = resp_it->value.FindMember("publishedfiledetails");
+        auto details_it =
+            resp_it->value.FindMember("publishedfiledetails");
         if (details_it == resp_it->value.MemberEnd() ||
             !details_it->value.IsArray())
           continue;
@@ -1070,7 +1079,8 @@ std::string fetch_all_workshop_items(const std::uint64_t request_token) {
           if (!item.IsObject())
             continue;
 
-          auto app_it = item.FindMember("consumer_app_id");
+          auto app_it =
+              item.FindMember("consumer_app_id");
           if (app_it != item.MemberEnd()) {
             int app_id = 0;
             if (app_it->value.IsInt())
@@ -1085,7 +1095,8 @@ std::string fetch_all_workshop_items(const std::uint64_t request_token) {
 
           std::string id, title, description, imageUrl;
 
-          auto id_it = item.FindMember("publishedfileid");
+          auto id_it =
+              item.FindMember("publishedfileid");
           if (id_it != item.MemberEnd() && id_it->value.IsString())
             id = id_it->value.GetString();
           if (id.empty())
@@ -1095,14 +1106,16 @@ std::string fetch_all_workshop_items(const std::uint64_t request_token) {
           if (title_it != item.MemberEnd() && title_it->value.IsString())
             title = html_decode(title_it->value.GetString());
 
-          auto desc_it = item.FindMember("description");
+          auto desc_it =
+              item.FindMember("description");
           if (desc_it != item.MemberEnd() && desc_it->value.IsString()) {
             description = desc_it->value.GetString();
             if (description.size() > 2000)
               description = description.substr(0, 2000) + "...";
           }
 
-          auto img_it = item.FindMember("preview_url");
+          auto img_it =
+              item.FindMember("preview_url");
           if (img_it != item.MemberEnd() && img_it->value.IsString())
             imageUrl = img_it->value.GetString();
 
@@ -1110,10 +1123,12 @@ std::string fetch_all_workshop_items(const std::uint64_t request_token) {
             imageUrl = extract_image_url_from_description(description);
 
           std::int64_t subs = 0, favorites = 0;
-          auto subs_it = item.FindMember("lifetime_subscriptions");
+          auto subs_it =
+              item.FindMember("lifetime_subscriptions");
           if (subs_it != item.MemberEnd())
             subs = parse_json_int64(subs_it->value);
-          auto fav_it = item.FindMember("lifetime_favorited");
+          auto fav_it =
+              item.FindMember("lifetime_favorited");
           if (fav_it != item.MemberEnd())
             favorites = parse_json_int64(fav_it->value);
 
@@ -1294,7 +1309,8 @@ std::string find_installed_workshop_item(const std::filesystem::path &game_path,
           api_doc.IsObject()) {
         auto ri = api_doc.FindMember("response");
         if (ri != api_doc.MemberEnd() && ri->value.IsObject()) {
-          auto di = ri->value.FindMember("publishedfiledetails");
+          auto di =
+              ri->value.FindMember("publishedfiledetails");
           if (di != ri->value.MemberEnd() && di->value.IsArray() &&
               !di->value.Empty()) {
             const auto &item = di->value[0];
@@ -1304,7 +1320,8 @@ std::string find_installed_workshop_item(const std::filesystem::path &game_path,
             if (ti != item.MemberEnd() && ti->value.IsArray()) {
               for (auto it = ti->value.Begin(); it != ti->value.End(); ++it) {
                 if (it->IsObject()) {
-                  auto tag_it = it->FindMember("tag");
+                  auto tag_it =
+                      it->FindMember("tag");
                   if (tag_it != it->MemberEnd() && tag_it->value.IsString()) {
                     std::string t = tag_it->value.GetString();
                     for (auto &c : t)
@@ -1322,7 +1339,8 @@ std::string find_installed_workshop_item(const std::filesystem::path &game_path,
 
             std::string folder_name = workshop_id;
 
-            auto title_it = item.FindMember("title");
+            auto title_it =
+                item.FindMember("title");
             if (title_it != item.MemberEnd() && title_it->value.IsString()) {
               std::string title = title_it->value.GetString();
               std::string safe_name;
@@ -2105,9 +2123,11 @@ void workshop_download_thread(std::string workshop_id) {
           rapidjson::Document api_doc;
           if (!api_doc.Parse(api_resp->c_str()).HasParseError() &&
               api_doc.IsObject()) {
-            auto ri = api_doc.FindMember("response");
+            auto ri =
+                api_doc.FindMember("response");
             if (ri != api_doc.MemberEnd() && ri->value.IsObject()) {
-              auto di = ri->value.FindMember("publishedfiledetails");
+              auto di =
+                  ri->value.FindMember("publishedfiledetails");
               if (di != ri->value.MemberEnd() && di->value.IsArray() &&
                   !di->value.Empty()) {
                 const auto &item = di->value[0];
@@ -2116,7 +2136,8 @@ void workshop_download_thread(std::string workshop_id) {
                   for (auto it = ti->value.Begin(); it != ti->value.End();
                        ++it) {
                     if (it->IsObject()) {
-                      auto tag_it = it->FindMember("tag");
+                      auto tag_it =
+                          it->FindMember("tag");
                       if (tag_it != it->MemberEnd() &&
                           tag_it->value.IsString()) {
                         std::string t = tag_it->value.GetString();
@@ -2134,7 +2155,8 @@ void workshop_download_thread(std::string workshop_id) {
                 }
 
                 if (mod_type != "map") {
-                  auto title_it = item.FindMember("title");
+                  auto title_it =
+                      item.FindMember("title");
                   if (title_it != item.MemberEnd() &&
                       title_it->value.IsString()) {
                     std::string title = title_it->value.GetString();
@@ -2252,7 +2274,8 @@ void workshop_download_thread(std::string workshop_id) {
           !ws_json_str.empty()) {
         if (!ws_doc.Parse(ws_json_str.c_str()).HasParseError() &&
             ws_doc.IsObject()) {
-          auto pfid = ws_doc.FindMember("PublishedFileId");
+          auto pfid =
+              ws_doc.FindMember("PublishedFileId");
           if (pfid == ws_doc.MemberEnd() || !pfid->value.IsString() ||
               std::string(pfid->value.GetString()) != workshop_id) {
             if (pfid != ws_doc.MemberEnd()) {
@@ -2392,7 +2415,8 @@ batch_get_time_updated(const std::vector<std::string> &ids) {
     auto resp_it = doc.FindMember("response");
     if (resp_it == doc.MemberEnd() || !resp_it->value.IsObject())
       return result;
-    auto details_it = resp_it->value.FindMember("publishedfiledetails");
+    auto details_it =
+        resp_it->value.FindMember("publishedfiledetails");
     if (details_it == resp_it->value.MemberEnd() ||
         !details_it->value.IsArray())
       return result;
@@ -2402,7 +2426,8 @@ batch_get_time_updated(const std::vector<std::string> &ids) {
       if (!item.IsObject())
         continue;
       std::string item_id;
-      auto id_it = item.FindMember("publishedfileid");
+      auto id_it =
+          item.FindMember("publishedfileid");
       if (id_it != item.MemberEnd() && id_it->value.IsString())
         item_id = id_it->value.GetString();
       if (item_id.empty())
@@ -2451,7 +2476,8 @@ batch_get_workshop_meta(const std::vector<std::string> &ids) {
     auto resp_it = doc.FindMember("response");
     if (resp_it == doc.MemberEnd() || !resp_it->value.IsObject())
       return result;
-    auto details_it = resp_it->value.FindMember("publishedfiledetails");
+    auto details_it =
+        resp_it->value.FindMember("publishedfiledetails");
     if (details_it == resp_it->value.MemberEnd() ||
         !details_it->value.IsArray())
       return result;
@@ -2461,7 +2487,8 @@ batch_get_workshop_meta(const std::vector<std::string> &ids) {
       if (!item.IsObject())
         continue;
       std::string item_id;
-      auto id_it = item.FindMember("publishedfileid");
+      auto id_it =
+          item.FindMember("publishedfileid");
       if (id_it != item.MemberEnd() && id_it->value.IsString())
         item_id = id_it->value.GetString();
       if (item_id.empty())
@@ -2495,7 +2522,8 @@ batch_get_workshop_meta(const std::vector<std::string> &ids) {
       if (prev_it != item.MemberEnd() && prev_it->value.IsString())
         meta.preview_url = prev_it->value.GetString();
 
-      auto subs_it = item.FindMember("subscriptions");
+      auto subs_it =
+          item.FindMember("subscriptions");
       if (subs_it != item.MemberEnd()) {
         if (subs_it->value.IsInt64())
           meta.subs = subs_it->value.GetInt64();

@@ -407,14 +407,15 @@ void gscr_clearreplacefuncs([[maybe_unused]] scriptInstance_t inst) {
 
 void gscr_println(scriptInstance_t inst) {
   const char *msg = Scr_GetString(inst, 1);
-  game::com::Com_Printf(0, 0, "%s\n", msg ? msg : "");
+  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s\n",
+                        msg ? msg : "");
   printf("%s\n", msg ? msg : "");
   fflush(stdout);
 }
 
 void gscr_print(scriptInstance_t inst) {
   const char *msg = Scr_GetString(inst, 1);
-  game::com::Com_Printf(0, 0, "%s", msg ? msg : "");
+  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s", msg ? msg : "");
   printf("%s", msg ? msg : "");
   fflush(stdout);
 }
@@ -531,7 +532,7 @@ void gscr_printf(scriptInstance_t inst) {
     }
   }
 
-  game::com::Com_Printf(0, 0, "%s", buffer.data());
+  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s", buffer.data());
   printf("%s", buffer.data());
   fflush(stdout);
 }

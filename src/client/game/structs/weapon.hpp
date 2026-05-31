@@ -171,15 +171,15 @@ enum class weapOverlayReticle_t : int32_t {
 };
 
 enum class WeapStickinessType : int32_t {
-  NONE = 0x0,
-  ALL = 0x1,
-  ALL_NO_SENTIENTS = 0x2,
-  ALL_NO_VEHICLES = 0x3,
-  GROUND = 0x4,
-  GROUND_WITH_YAW = 0x5,
-  FLESH = 0x6,
-  IGNORE = 0x7,
-  COUNT = 0x8,
+  WEAPSTICKINESS_NONE = 0x0,
+  WEAPSTICKINESS_ALL = 0x1,
+  WEAPSTICKINESS_ALL_NO_SENTIENTS = 0x2,
+  WEAPSTICKINESS_ALL_NO_VEHICLES = 0x3,
+  WEAPSTICKINESS_GROUND = 0x4,
+  WEAPSTICKINESS_GROUND_WITH_YAW = 0x5,
+  WEAPSTICKINESS_FLESH = 0x6,
+  WEAPSTICKINESS_IGNORE = 0x7,
+  WEAPSTICKINESS_COUNT = 0x8,
 };
 
 enum class eAttachment : int32_t {
@@ -2185,7 +2185,7 @@ struct WeaponDef {
 #pragma pack(push, 1)
 struct WeaponDobjInfo {
 
-  enum Slot : uint32_t {
+  enum class Slot : uint32_t {
     HELD = 0x0,
     STOWED = 0x1,
     MELEE = 0x2,

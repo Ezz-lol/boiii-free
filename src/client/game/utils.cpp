@@ -16,11 +16,11 @@ static_assert(offsetof(dvar_t, current) == 40);
 
 namespace {
 dvar_t *try_get_sessionmode_specific_dvar(dvar_t *dvar) {
-  if (!dvar || dvar->type != DVAR_TYPE_SESSIONMODE_BASE_DVAR) {
+  if (!dvar || dvar->type != dvarType_t::SESSIONMODE_BASE_DVAR) {
     return dvar;
   }
 
-  if (Com_SessionMode_IsMode(MODE_COUNT)) {
+  if (Com_SessionMode_IsMode(eModes::COUNT)) {
     return nullptr;
   }
 
@@ -156,8 +156,8 @@ const dvar_t *register_sessionmode_dvar_bool(const char *dvar_name,
   if (registered_dvar) {
     registered_dvar->debugName = dvar_name;
 
-    if (mode == MODE_COUNT) {
-      for (game::eModes i = MODE_FIRST; i < MODE_COUNT; i++) {
+    if (mode == eModes::COUNT) {
+      for (game::eModes i = eModes::FIRST; i < eModes::COUNT; i++) {
         Dvar_SessionModeSetDefaultBool.call_safe(hash, value, i);
       }
     } else {
@@ -232,7 +232,7 @@ void dvar_add_flags(const char *dvar_name, const unsigned int flags) {
   }
 
   game::dvar_t *dvar_to_change = dvar;
-  if (dvar_to_change->type == DVAR_TYPE_SESSIONMODE_BASE_DVAR) {
+  if (dvar_to_change->type == dvarType_t::SESSIONMODE_BASE_DVAR) {
     dvar_to_change = try_get_sessionmode_specific_dvar(dvar_to_change);
     if (!dvar_to_change) {
       return;
@@ -250,7 +250,7 @@ void dvar_set_flags(const char *dvar_name, const unsigned int flags) {
   }
 
   game::dvar_t *dvar_to_change = dvar;
-  if (dvar_to_change->type == DVAR_TYPE_SESSIONMODE_BASE_DVAR) {
+  if (dvar_to_change->type == dvarType_t::SESSIONMODE_BASE_DVAR) {
     dvar_to_change = try_get_sessionmode_specific_dvar(dvar_to_change);
     if (!dvar_to_change) {
       return;
@@ -268,7 +268,7 @@ void dvar_remove_flags(const char *dvar_name, const unsigned int flags) {
   }
 
   game::dvar_t *dvar_to_change = dvar;
-  if (dvar_to_change->type == DVAR_TYPE_SESSIONMODE_BASE_DVAR) {
+  if (dvar_to_change->type == dvarType_t::SESSIONMODE_BASE_DVAR) {
     dvar_to_change = try_get_sessionmode_specific_dvar(dvar_to_change);
     if (!dvar_to_change) {
       return;

@@ -431,7 +431,7 @@ struct GfxDuplicateRenderOption {
     eRenderCulling renderCulling;
   };
 
-  enum Type : int8_t {
+  enum class Type : int8_t {
     GLOBAL = 0x0,
     SUBMODEL = 0x1,
     ANY = 0x2,

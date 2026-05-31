@@ -202,7 +202,7 @@ public:
     // people can set the workshop_id dvar manually in zone/server_zm.cfg
 
     if (utils::flags::has_flag("dedicated") &&
-        game::com::Com_SessionMode_GetMode() == game::MODE_ZOMBIES) {
+        game::com::Com_SessionMode_GetMode() == game::eModes::ZOMBIES) {
       workshop_id_wait = utils::thread::create_named_thread(
           "workshop_id_wait", get_map_id_from_json);
       workshop_id_wait.detach();

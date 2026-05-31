@@ -43,7 +43,7 @@ void SND_EnqueueLoadedAssets_Impl(SndBankLoad *load) {
 
   load->loadedDataSize = loadedDataSize;
   if (entryCount) {
-    sys::Sys_EnterCriticalSection(CriticalSection::CRITSECT_SOUND_BANK);
+    sys::Sys_EnterCriticalSection(CriticalSection::SOUND_BANK);
 
     uint32_t allocationSize =
         sizeof(SndAssetBankEntry) * load->loadedEntryCount;
@@ -56,10 +56,10 @@ void SND_EnqueueLoadedAssets_Impl(SndBankLoad *load) {
     sd_byte *allocation =
         sd::SD_HeapAlloc(loaded_sd_alloc_name, load->loadedDataSize, 0x1000u);
     load->loadedData = allocation;
-    com::Com_Printf(CON_LABEL_LOBBYCLIENT, 28, "SOUND loaded alloc %s %p %p\n",
+    com::Com_Printf(0x9, consoleLabel_e::LUI, "SOUND loaded alloc %s %p %p\n",
                     load->loadAssetBank.filename, load->loadedEntries,
                     allocation);
-    sys::Sys_LeaveCriticalSection(CriticalSection::CRITSECT_SOUND_BANK);
+    sys::Sys_LeaveCriticalSection(CriticalSection::SOUND_BANK);
   } else {
     load->loadedEntries = 0;
     load->loadedData = 0;
@@ -102,7 +102,7 @@ bool SND_StartTocRead_Impl(SndBankLoad *load, SndAssetBankLoad *assetBank,
       assetBank->entryCount = entryCount;
       assetBank->entries = (SndAssetBankEntry *)allocation;
       if (allocation) {
-        com::Com_Printf(CON_LABEL_LOBBYCLIENT, 28, "SOUND entry alloc %s %d\n",
+        com::Com_Printf(0x9, consoleLabel_e::LUI, "SOUND entry alloc %s %d\n",
                         assetBank->filename, entryCount);
         int64_t entryOffset = assetBank->header.entryOffset;
         stream::stream_fileid fileHandle = assetBank->fileHandle;
@@ -117,7 +117,7 @@ bool SND_StartTocRead_Impl(SndBankLoad *load, SndAssetBankLoad *assetBank,
       } else {
         SND_BankLoadError(load);
         com::Com_Printf(
-            CON_LABEL_LOBBYHOST, 28,
+            0x9, consoleLabel_e::LUI,
             "SOUND ERROR: unable to allocate sound bank entries for %s\n",
             assetBank->filename);
         entryCount = 0;

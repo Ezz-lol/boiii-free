@@ -179,7 +179,7 @@ int bind_stub(SOCKET /*s*/, const sockaddr * /*addr*/, int /*namelen*/) {
   return 0;
 }
 
-void com_error_oob_stub(const char *file, int line, int code,
+void com_error_oob_stub(const char *file, int line, game::errorParm code,
                         [[maybe_unused]] const char *fmt, const char *error) {
 
   intptr_t callerAddr = reinterpret_cast<intptr_t>(_ReturnAddress());
@@ -191,8 +191,10 @@ void com_error_oob_stub(const char *file, int line, int code,
   std::string log_str =
       utils::string::va("Com_Error_Oob called from 0x%p with file: \"%s\", "
                         "line: %d, code: %d,  message: \"%s\"\n",
-                        callerAddr, file_str.c_str(), line, code, buffer, code);
-  game::com::Com_Printf(0, 0, "%s", log_str.c_str());
+                        callerAddr, file_str.c_str(), line,
+                        static_cast<int32_t>(code), buffer, code);
+  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s",
+                        log_str.c_str());
   printf("%s", log_str.c_str());
   game::com::Com_Error_(file, line, code, "%s", buffer);
 }
@@ -330,8 +332,9 @@ struct component final : generic_component {
     // net_sendpacket_stub);
 
     // set initial connection state to challenging
-    utils::hook::set<uint32_t>(game::select(0x14134C6E0, 0x14018E574),
-                               game::CA_CHALLENGING);
+    utils::hook::set<uint32_t>(
+        game::select(0x14134C6E0, 0x14018E574),
+        static_cast<uint32_t>(game::connstate_t::CHALLENGING));
 
     // don't kick clients without dw handle
     utils::hook::set<uint8_t>(game::select(0x14224DEAD, 0x1405315F9), 0xEB);

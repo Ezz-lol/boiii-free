@@ -123,14 +123,14 @@ void connect_to_lobby_with_mode_internal(const game::net::netadr_t &addr,
 
 game::lobby::LobbyMainMode convert_mode(const game::eModes mode) {
   switch (mode) {
-  case game::MODE_CAMPAIGN:
-    return game::lobby::LOBBY_MAINMODE_CP;
-  case game::MODE_MULTIPLAYER:
-    return game::lobby::LOBBY_MAINMODE_MP;
-  case game::MODE_ZOMBIES:
-    return game::lobby::LOBBY_MAINMODE_ZM;
+  case game::eModes::CAMPAIGN:
+    return game::lobby::LobbyMainMode::CP;
+  case game::eModes::MULTIPLAYER:
+    return game::lobby::LobbyMainMode::MP;
+  case game::eModes::ZOMBIES:
+    return game::lobby::LobbyMainMode::ZM;
   default:
-    return game::lobby::LOBBY_MAINMODE_INVALID;
+    return game::lobby::LobbyMainMode::INVALID;
   }
 }
 
@@ -143,8 +143,8 @@ void connect_to_session(const game::net::netadr_t &addr,
       game::lobby::LobbyType targetLobbyType)>(0x141ED94D0_g);
 
   if (!LobbyJoin_Begin(0, game::CONTROLLER_INDEX_FIRST,
-                       game::lobby::LOBBY_TYPE_PRIVATE,
-                       game::lobby::LOBBY_TYPE_PRIVATE)) {
+                       game::lobby::LobbyType::PRIVATE,
+                       game::lobby::LobbyType::PRIVATE)) {
     return;
   }
 
@@ -157,8 +157,8 @@ void connect_to_session(const game::net::netadr_t &addr,
   host.info.xuid = xuid;
   utils::string::copy(host.info.name, hostname.data());
 
-  host.lobbyType = game::lobby::LOBBY_TYPE_PRIVATE;
-  host.lobbyParams.networkMode = game::lobby::LOBBY_NETWORKMODE_LIVE;
+  host.lobbyType = game::lobby::LobbyType::PRIVATE;
+  host.lobbyParams.networkMode = game::lobby::LobbyNetworkMode::LIVE;
   host.lobbyParams.mainMode = convert_mode(mode);
 
   host.retryCount = 0;
@@ -167,11 +167,11 @@ void connect_to_session(const game::net::netadr_t &addr,
   join.potentialHost = host;
   join.hostCount = 1;
   join.processedCount = 1;
-  join.state = game::lobby::JOIN_SOURCE_STATE_ASSOCIATING;
+  join.state = game::lobby::JoinSourceState::ASSOCIATING;
   join.startTime = game::sys::Sys_Milliseconds();
 
-  /*join.targetLobbyType = game::lobby::LOBBY_TYPE_PRIVATE;
-  join.sourceLobbyType = game::lobby::LOBBY_TYPE_PRIVATE;
+  /*join.targetLobbyType = game::lobby::LobbyType::PRIVATE;
+  join.sourceLobbyType = game::lobby::LobbyType::PRIVATE;
   join.controllerIndex = game::CONTROLLER_INDEX_FIRST;
   join.joinType = game::lobby::JOIN_TYPE_NORMAL;
   join.joinResult = game::lobby::JOIN_RESULT_INVALID;
@@ -299,7 +299,7 @@ void handle_connect_query_response(const bool success,
                                              base_url) &&
             workshop::check_valid_mod_id(mod_id, workshop_id)) {
           game::com::Com_SessionMode_SetGameMode(
-              game::MODE_GAME_MATCHMAKING_PLAYLIST);
+              game::eGameModes::MATCHMAKING_PLAYLIST);
 
           // connect_to_session(target, hostname, xuid, mode);
           connect_to_lobby_with_mode_internal(target, mode, mapname, gametype,
@@ -352,7 +352,7 @@ void connect_stub(const char *address) {
                 std::string usermap_id =
                     workshop::get_usermap_publisher_id(mapname);
                 game::com::Com_SessionMode_SetGameMode(
-                    game::MODE_GAME_MATCHMAKING_PLAYLIST);
+                    game::eGameModes::MATCHMAKING_PLAYLIST);
                 connect_to_lobby_with_mode_internal(
                     connect_host, mode, mapname, gametype, usermap_id, mod_id);
               },

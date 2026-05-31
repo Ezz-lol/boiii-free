@@ -105,8 +105,8 @@ std::string resolve_hashes_in_string(const std::string &input) {
 #define MINUTE 60 * SECOND
 #define HOUR 60 * MINUTE
 
-void com_error_stub(const char *file, int line, int code, const char *fmt,
-                    ...) {
+void com_error_stub(const char *file, int line, game::errorParm code,
+                    const char *fmt, ...) {
   void *callerAddr = _ReturnAddress();
   va_list ap;
   va_start(ap, fmt);
@@ -121,10 +121,11 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
     msg = "No message provided!";
   }
   printf("[Com_Error] Called from 0x%p with message: \"%s\", code: %d\n",
-         callerAddr, msg, code);
+         callerAddr, msg, static_cast<int32_t>(code));
   game::com::Com_Printf(
-      0, 0, "ComError called from 0x%p with message: \"%s\", code: %d\n",
-      callerAddr, msg, code);
+      0, game::consoleLabel_e::DEFAULT,
+      "ComError called from 0x%p with message: \"%s\", code: %d\n", callerAddr,
+      msg, static_cast<int32_t>(code));
   static bool suppress_next_lua_error = false;
   static bool client_script_error_pending = false;
 
@@ -143,7 +144,7 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
   }
 
   // Suppress cascading Lua error (code 512) after a script error
-  if (suppress_next_lua_error && code == 512) {
+  if (suppress_next_lua_error && code == game::errorParm::LUA) {
     suppress_next_lua_error = false;
     return;
   }
@@ -282,7 +283,7 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
             scheduler::once(
                 [deferred_error]() {
                   game::ui::UI_OpenErrorPopupWithMessage(
-                      0, 0, deferred_error.c_str());
+                      0, game::errorCode::NONE, deferred_error.c_str());
                 },
                 scheduler::pipeline::main, 500ms);
           },
@@ -290,8 +291,8 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
       return;
     }
   } else {
-    printf("[Com_Error] Code=%d, File=%s, Line=%d, Caller=0x%llX: %s\n", code,
-           file ? file : "unknown", line,
+    printf("[Com_Error] Code=%d, File=%s, Line=%d, Caller=0x%llX: %s\n",
+           static_cast<int32_t>(code), file ? file : "unknown", line,
            static_cast<unsigned long long>(game::derelocate(callerAddr)),
            buffer);
   }
@@ -300,18 +301,19 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
   if (strstr(buffer, "Clientfield Mismatch")) {
     printf("[Com_Error] Suppressing Clientfield Mismatch error, converting to "
            "ERR_DROP\n");
-    com_error_hook.invoke<void>(file, line, game::ERR_DROP,
+    com_error_hook.invoke<void>(file, line, game::errorParm::DROP,
                                 "Mod compatibility issue: %s\nThis mod may "
                                 "require additional patches for boiii.",
                                 buffer);
     return;
   }
 
-  if (!game::is_server() && code == game::ERR_DROP) {
+  if (!game::is_server() && code == game::errorParm::DROP) {
     std::string deferred_error = std::string(buffer);
     scheduler::once(
         [deferred_error]() {
-          game::ui::UI_OpenErrorPopupWithMessage(0, 0, deferred_error.c_str());
+          game::ui::UI_OpenErrorPopupWithMessage(0, game::errorCode::NONE,
+                                                 deferred_error.c_str());
         },
         scheduler::pipeline::main, 500ms);
   }
@@ -327,7 +329,10 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
     std::string msg = std::string(message);
 
     scheduler::once(
-        [msg]() { game::ui::UI_OpenErrorPopupWithMessage(0, 0, msg.c_str()); },
+        [msg]() {
+          game::ui::UI_OpenErrorPopupWithMessage(0, game::errorCode::NONE,
+                                                 msg.c_str());
+        },
         scheduler::pipeline::main, 500ms);
 
     return;
@@ -340,10 +345,10 @@ void com_error_stub(const char *file, int line, int code, const char *fmt,
 
 void scr_get_num_expected_players() {
   int32_t expected_players = game::lobby::LobbyHost_GetClientCount(
-      game::lobby::LOBBY_TYPE_GAME, game::lobby::LOBBY_CLIENT_TYPE_ALL);
+      game::lobby::LobbyType::GAME, game::lobby::LobbyClientType::ALL);
 
   const game::eModes mode = game::com::Com_SessionMode_GetMode();
-  if ((mode == game::MODE_ZOMBIES || mode == game::MODE_CAMPAIGN)) {
+  if ((mode == game::eModes::ZOMBIES || mode == game::eModes::CAMPAIGN)) {
     const int32_t min_players = lobby_min_players->current.value.integer;
     if (min_players > 0) {
       expected_players = min_players;

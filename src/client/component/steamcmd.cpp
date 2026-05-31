@@ -373,7 +373,7 @@ void initialize_download(std::string workshop_id, std::string modtype) {
     scheduler::once(
         [] {
           game::ui::UI_OpenErrorPopupWithMessage(
-              0, game::ERROR_UI,
+              0, game::errorCode::UI,
               "A download is already in progress from the launcher. Wait for "
               "it to finish.");
         },
@@ -607,7 +607,7 @@ void initialize_download(std::string workshop_id, std::string modtype) {
   if (error_msg) {
     scheduler::once(
         [error_msg] {
-          game::ui::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI, error_msg);
+          game::ui::UI_OpenErrorPopupWithMessage(0, game::errorCode::UI, error_msg);
         },
         scheduler::main);
   } else if (result == 0) {
@@ -630,7 +630,7 @@ void initialize_download(std::string workshop_id, std::string modtype) {
       scheduler::once(
           [] {
             game::ui::UI_OpenErrorPopupWithMessage(
-                0, game::ERROR_UI, "Workshop item downloaded successfully!");
+                0, game::errorCode::UI, "Workshop item downloaded successfully!");
           },
           scheduler::main);
     }

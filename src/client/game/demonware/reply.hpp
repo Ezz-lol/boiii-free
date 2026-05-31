@@ -90,7 +90,7 @@ private:
 class service_reply final {
 public:
   service_reply(service_server *_server, const uint8_t _type,
-                const uint32_t _error)
+                const game::dw::bdLobbyErrorCode _error)
       : type_(_type), error_(_error), reply_(_server, 1) {}
 
   uint64_t send() {
@@ -99,10 +99,10 @@ public:
 
     byte_buffer buffer;
     buffer.write_uint64(transaction_id);
-    buffer.write_uint32(this->error_);
+    buffer.write_uint32(static_cast<uint32_t>(this->error_));
     buffer.write_ubyte(this->type_);
 
-    if (!this->error_) {
+    if (this->error_ == game::dw::bdLobbyErrorCode::BD_NO_ERROR) {
       buffer.write_uint32(static_cast<uint32_t>(this->objects_.size()));
       if (!this->objects_.empty()) {
         buffer.write_uint32(static_cast<uint32_t>(this->objects_.size()));
@@ -128,7 +128,7 @@ public:
 
 private:
   uint8_t type_;
-  uint32_t error_;
+  game::dw::bdLobbyErrorCode error_;
   remote_reply reply_;
   std::vector<std::unique_ptr<bdTaskResult>> objects_;
 };

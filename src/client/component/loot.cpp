@@ -41,7 +41,7 @@ int loot_getitemquantity_stub(const game::ControllerIndex_t controller_index,
                                                  item_id);
   }
 
-  if (mode == game::eModes::MODE_ZOMBIES) {
+  if (mode == game::eModes::ZOMBIES) {
     return 999;
   }
 
@@ -259,17 +259,17 @@ struct component final : generic_component {
       const game::eModes mode = game::com::Com_SessionMode_GetMode();
       const char *mode_name = "";
 
-      if (mode == game::eModes::MODE_MULTIPLAYER) {
+      if (mode == game::eModes::MULTIPLAYER) {
         game::cbuf::Cbuf_AddText(0, "statsetbyname rank 54\n");
         game::cbuf::Cbuf_AddText(0, "statsetbyname paragon_rank 944\n");
         game::cbuf::Cbuf_AddText(0, "statsetbyname paragon_rankxp 56800000\n");
         mode_name = " Multiplayer";
-      } else if (mode == game::eModes::MODE_ZOMBIES) {
+      } else if (mode == game::eModes::ZOMBIES) {
         game::cbuf::Cbuf_AddText(0, "statsetbyname rank 34\n");
         game::cbuf::Cbuf_AddText(0, "statsetbyname paragon_rank 999\n");
         game::cbuf::Cbuf_AddText(0, "statsetbyname paragon_rankxp 56800000\n");
         mode_name = " Zombies";
-      } else if (mode == game::eModes::MODE_CAMPAIGN) {
+      } else if (mode == game::eModes::CAMPAIGN) {
         game::cbuf::Cbuf_AddText(0, "statsetbyname rank 19\n");
         game::cbuf::Cbuf_AddText(0, "statsetbyname paragon_rank 999\n");
         game::cbuf::Cbuf_AddText(0, "statsetbyname paragon_rankxp 0\n");

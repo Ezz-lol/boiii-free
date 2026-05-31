@@ -8,13 +8,13 @@ namespace status {
 namespace {
 thread_local game::ClientNum_t g_client_num{0};
 
-void print_client_num(const int channel, const int label, const char *fmt,
-                      const game::ClientNum_t client_num) {
+void print_client_num(const int channel, const game::consoleLabel_e label,
+                      const char *fmt, const game::ClientNum_t client_num) {
   g_client_num = client_num;
   game::com::Com_Printf(channel, label, fmt, client_num);
 }
 
-void print_client_xuid(const int channel, const int label,
+void print_client_xuid(const int channel, const game::consoleLabel_e label,
                        [[maybe_unused]] const char *fmt, const uint64_t xuid) {
   if (game::sv::SV_IsTestClient(g_client_num)) {
     game::com::Com_Printf(channel, label, "%16s ", "bot0");

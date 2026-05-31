@@ -9,18 +9,18 @@ namespace game {
 namespace user {
 
 #pragma pack(push, 1)
-enum BotLookType : int32_t {
-  BOT_LOOK_NONE = 0x0,
-  BOT_LOOK_FORWARD = 0x1,
-  BOT_LOOK_POINT = 0x2,
-  BOT_LOOK_ANGLES = 0x3,
+enum class BotLookType : uint32_t {
+  NONE = 0x0,
+  FORWARD = 0x1,
+  POINT = 0x2,
+  ANGLES = 0x3,
 };
 
-enum bot_goal_state : int32_t {
-  BOT_GOAL_INVALID = 0x0,
-  BOT_GOAL_UNREACHABLE = 0x1,
-  BOT_GOAL_SET = 0x2,
-  BOT_GOAL_REACHED = 0x3,
+enum bot_goal_state : uint32_t {
+  INVALID = 0x0,
+  UNREACHABLE = 0x1,
+  SET = 0x2,
+  REACHED = 0x3,
 };
 
 struct bot_look_t {

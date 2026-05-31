@@ -3,6 +3,7 @@
 #include <cstdint>
 #include "../core.hpp"
 #include "../quake.hpp"
+#include "../dw/dw.hpp"
 
 namespace game {
 namespace live {
@@ -56,8 +57,8 @@ struct userData_t {
   XUSER_SIGNIN_STATE signInState;
   CONNECTION_STATE connectionState;
   qboolean onConnectCalled;
-  bdInetAddr authAddr;
-  bdInetAddr lsgAddr;
+  dw::net::bdInetAddr authAddr;
+  dw::net::bdInetAddr lsgAddr;
   int errorCount;
   int backoffRecoverTime;
   ControllerIndex_t controller;

@@ -99,7 +99,7 @@ public:
 
   template <typename F> function(F f) {
     this->ptr = ui_scripting::convert_function(f);
-    this->type = game::ui::lua::hks::TCFUNCTION;
+    this->type = game::ui::lua::hks::HksObjectType::TCFUNCTION;
   }
 
   function(const function &other);
@@ -161,8 +161,8 @@ template <typename T> std::string get_typename() {
 
 template <typename T> T script_value::as() const {
   if (!this->is<T>()) {
-    const auto hks_typename =
-        game::ui::lua::hks::s_compilerTypeName[this->get_raw().t + 2];
+    const auto hks_typename = game::ui::lua::hks::s_compilerTypeName
+        [static_cast<int32_t>(this->get_raw().t) + 2];
     const auto typename_ = get_typename<T>();
 
     throw std::runtime_error(utils::string::va("%s expected, got %s",
@@ -198,7 +198,7 @@ script_value::script_value(const C<T, std::allocator<T>> &container) {
   }
 
   game::ui::lua::hks::HksObject obj{};
-  obj.t = game::ui::lua::hks::TTABLE;
+  obj.t = game::ui::lua::hks::HksObjectType::TTABLE;
   obj.v.ptr = table_.ptr;
 
   this->value_ = obj;

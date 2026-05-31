@@ -7,9 +7,9 @@ namespace game {
 namespace ui {
 
 // UI
-WEAK
-    symbol<void(int localClientNumber, int errorcode, const char *errorMessage)>
-        UI_OpenErrorPopupWithMessage{0x14228DEE0};
+WEAK symbol<void(int localClientNumber, errorCode errorcode,
+                 const char *errorMessage)>
+    UI_OpenErrorPopupWithMessage{0x14228DEE0};
 WEAK symbol<void(bool frontend)> UI_CoD_Init{0x141F29010, 0x1404A0A50};
 WEAK symbol<void()> UI_CoD_LobbyUI_Init{0x141F2BD80, 0x1404A1F50};
 WEAK symbol<void()> UI_CoD_Shutdown{0x141F32E10, 0x0};

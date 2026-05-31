@@ -3,24 +3,24 @@
 #include <cstdint>
 #include "core.hpp"
 #include "net/net.hpp"
-#include "phys.hpp"
+#include "db/xasset.hpp"
 
 namespace game {
 namespace cl {
 
 enum class CLSwitchState : uint32_t {
-  CL_SWITCH_STATE_IDLE = 0x0,
-  CL_SWITCH_WAIT_FOR_CLIENTS_TO_CONNECT = 0x1,
-  CL_SWITCH_STATE_PRELOAD_RESERVE = 0x2,
-  CL_SWITCH_STATE_LOAD_FASTFILE = 0x3,
-  CL_SWITCH_STATE_PRIME_STREAMER = 0x4,
-  CL_SWITCH_STATE_SWITCH_MAPS = 0x5,
+  IDLE = 0x0,
+  WAIT_FOR_CLIENTS_TO_CONNECT = 0x1,
+  PRELOAD_RESERVE = 0x2,
+  LOAD_FASTFILE = 0x3,
+  PRIME_STREAMER = 0x4,
+  SWITCH_MAPS = 0x5,
 };
 
-enum CLSwitchMsg : uint32_t {
-  CL_SWITCH_MSG_LOAD_MAP = 0x0,
-  CL_SWITCH_MSG_SWITCH_MAPS = 0x1,
-  CL_SWITCH_MSG_IDLE = 0x2,
+enum class CLSwitchMsg : uint32_t {
+  LOAD_MAP = 0x0,
+  SWITCH_MAPS = 0x1,
+  IDLE = 0x2,
 };
 
 #pragma pack(push, 1)

@@ -28,8 +28,8 @@ void bdProfiles::getPublicInfos(service_server *server,
   }
 
   auto reply = server->create_reply(
-      this->task_id(), profile_infos.empty() ? game::BD_NO_PROFILE_INFO_EXISTS
-                                             : game::BD_NO_ERROR);
+      this->task_id(), profile_infos.empty() ? game::dw::bdLobbyErrorCode::NO_PROFILE_INFO_EXISTS
+                                             : game::dw::bdLobbyErrorCode::BD_NO_ERROR);
 
   for (auto &info : profile_infos) {
     auto result = std::make_unique<bdPublicProfileInfo>();

@@ -55,8 +55,8 @@ static const pool_config pool_configs[] = {
 
 rapidjson::Document load_settings_doc() {
   rapidjson::Document doc;
-  const auto path = std::filesystem::path("boiii_players") / "user" /
-                    "launcher_settings.json";
+  const std::filesystem::path path = std::filesystem::path("boiii_players") /
+                                     "user" / "launcher_settings.json";
   std::string data;
   if (utils::io::read_file(path.string(), &data) && !data.empty()) {
     if (doc.Parse(data.c_str()).HasParseError() || !doc.IsObject()) {
@@ -78,12 +78,12 @@ std::string get_setting(const rapidjson::Document &doc, const char *key) {
 
 bool is_enabled(const rapidjson::Document &doc) {
   // Check master enable flag
-  const auto val = get_setting(doc, "asset_limits_enabled");
+  const std::string val = get_setting(doc, "asset_limits_enabled");
   if (!val.empty() && val != "1")
     return false;
 
   // Check disable_asset_pools flag (inverted)
-  const auto disable_val = get_setting(doc, "disable_asset_pools");
+  const std::string disable_val = get_setting(doc, "disable_asset_pools");
   if (disable_val == "1")
     return false;
 
@@ -92,12 +92,12 @@ bool is_enabled(const rapidjson::Document &doc) {
 
 unsigned int get_pool_size(const rapidjson::Document &doc,
                            const pool_config &cfg) {
-  const auto val = get_setting(doc, cfg.setting_key);
+  const std::string val = get_setting(doc, cfg.setting_key);
   if (!val.empty()) {
     try {
-      const auto parsed = std::stoul(val);
+      const uint32_t parsed = std::stoul(val);
       if (parsed >= 32 && parsed <= 65536) {
-        return static_cast<unsigned int>(parsed);
+        return parsed;
       }
     } catch (...) {
     }
@@ -110,15 +110,15 @@ void apply_asset_limits() {
   if (applied)
     return;
 
-  const auto doc = load_settings_doc();
+  const rapidjson::Document doc = load_settings_doc();
 
   if (!is_enabled(doc)) {
     printf("Asset pool expansion disabled by user settings\n");
     return;
   }
 
-  for (const auto &cfg : pool_configs) {
-    const auto size = get_pool_size(doc, cfg);
+  for (const pool_config &cfg : pool_configs) {
+    const uint32_t size = get_pool_size(doc, cfg);
     reallocate_asset_pool(cfg.type, size);
   }
 
@@ -128,7 +128,8 @@ void apply_asset_limits() {
 utils::hook::detour com_sessionmode_setmode_hook;
 
 game::eModes com_sessionmode_setmode_stub(game::eModes mode) {
-  const auto result = com_sessionmode_setmode_hook.invoke<game::eModes>(mode);
+  const game::eModes result =
+      com_sessionmode_setmode_hook.invoke<game::eModes>(mode);
   apply_asset_limits();
   return result;
 }

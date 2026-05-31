@@ -23,7 +23,7 @@
 
 namespace friends {
 namespace {
-constexpr auto FRIENDS_FILE = "boiii_players/user/friends.json";
+constexpr const char *FRIENDS_FILE = "boiii_players/user/friends.json";
 constexpr int MAX_FRIENDS = 200;
 
 std::mutex public_ip_mutex;
@@ -54,7 +54,7 @@ std::string get_preferred_local_ip() {
 
   PIP_ADAPTER_INFO pAdapter = pAdapterInfo;
   while (pAdapter) {
-    std::string ip = pAdapter->IpAddressList.IpAddress.String;
+    const std::string ip = pAdapter->IpAddressList.IpAddress.String;
     if (ip != "0.0.0.0" && !ip.empty()) {
       // Radmin VPN usually uses 26.x.x.x
       if (ip.starts_with("26.")) {
@@ -79,7 +79,8 @@ std::string get_preferred_local_ip() {
 
 void fetch_public_ip() {
   try {
-    auto resp = utils::http::get_data("https://api.ipify.org", {}, {}, 1);
+    std::optional<std::string> resp =
+        utils::http::get_data("https://api.ipify.org", {}, {}, 1);
     if (resp.has_value() && !resp->empty()) {
       std::lock_guard lock(public_ip_mutex);
       cached_public_ip = *resp;
@@ -103,7 +104,7 @@ void save_friends() {
     rapidjson::StringBuffer buf;
     rapidjson::Writer<rapidjson::StringBuffer> w(buf);
     w.StartArray();
-    for (const auto &f : state.list) {
+    for (const friend_entry &f : state.list) {
       w.StartObject();
       w.Key("steam_id");
       w.Uint64(f.steam_id);
@@ -169,7 +170,7 @@ void load_friends() {
       entry.state = status::offline;
 
       bool exists = false;
-      for (const auto &e : state.list) {
+      for (const friend_entry &e : state.list) {
         if (e.steam_id == entry.steam_id) {
           exists = true;
           break;
@@ -183,8 +184,8 @@ void load_friends() {
 
 // Resolves the address other players can use to connect to us
 std::string get_own_connect_address() {
-  auto local_port = party::get_local_port();
-  auto vpn_ip = get_preferred_local_ip();
+  uint16_t local_port = party::get_local_port();
+  const std::string vpn_ip = get_preferred_local_ip();
 
   // If we found a Radmin/Hamachi IP, prioritize it immediately
   if (!vpn_ip.empty()) {
@@ -193,7 +194,7 @@ std::string get_own_connect_address() {
   }
 
   if (game::com::Com_IsInGame()) {
-    auto connected = party::get_connected_server();
+    game::net::netadr_t connected = party::get_connected_server();
 
     if (connected.type == game::net::NA_LOOPBACK) {
       if (public_ip_fetched.load()) {
@@ -261,7 +262,7 @@ std::string get_own_connect_address() {
 }
 } // namespace
 
-void add_friend(uint64_t steam_id, const std::string &fname) {
+void add_friend(game::XUID steam_id, const std::string &fname) {
   if (steam_id == 0)
     return;
 
@@ -285,7 +286,7 @@ void add_friend(uint64_t steam_id, const std::string &fname) {
   save_friends();
 }
 
-void remove_friend(uint64_t steam_id) {
+void remove_friend(game::XUID steam_id) {
   friends_data.access([&](friend_state &state) {
     std::erase_if(state.list, [steam_id](const friend_entry &e) {
       return e.steam_id == steam_id;
@@ -294,10 +295,10 @@ void remove_friend(uint64_t steam_id) {
   save_friends();
 }
 
-bool is_friend(uint64_t steam_id) {
+bool is_friend(game::XUID steam_id) {
   bool found = false;
   friends_data.access([&](const friend_state &state) {
-    for (const auto &e : state.list)
+    for (const friend_entry &e : state.list)
       if (e.steam_id == steam_id) {
         found = true;
         break;
@@ -329,22 +330,22 @@ std::vector<friend_entry> get_friends() {
   return result;
 }
 
-bool invite_to_game(uint64_t steam_id) {
-  auto connect_str = get_own_connect_address();
+bool invite_to_game(game::XUID steam_id) {
+  const std::string connect_str = get_own_connect_address();
   if (connect_str.empty())
     return false;
 
-  std::string mapname = game::get_dvar_string("mapname");
-  std::string gametype = game::get_dvar_string("g_gametype");
+  const std::string mapname = game::get_dvar_string("mapname");
+  const std::string gametype = game::get_dvar_string("g_gametype");
   game::eModes playmode = game::com::Com_SessionMode_GetMode();
-  std::string mod_id = workshop::get_mod_publisher_id();
-  uint64_t own_steam_id = steam_proxy::get_own_steam_id();
+  const std::string mod_id = workshop::get_mod_publisher_id();
+  game::XUID own_steam_id = steam_proxy::get_own_steam_id();
   std::string own_name = name::get_player_name();
   if (own_name.empty())
     own_name = "Player";
 
   // enriched format: addr|map|gametype|mode|mod|sender_id|sender_name
-  auto enriched = utils::string::va(
+  const char *enriched = utils::string::va(
       "%s|%s|%s|%d|%s|%llu|%s", connect_str.c_str(), mapname.c_str(),
       gametype.c_str(), static_cast<int32_t>(playmode), mod_id.c_str(),
       own_steam_id, own_name.c_str());
@@ -353,13 +354,14 @@ bool invite_to_game(uint64_t steam_id) {
   steam_proxy::set_rich_presence("boiii_game_info", enriched);
 
   if (!is_friend(steam_id)) {
-    auto target_name = steam_proxy::get_steam_friend_name(steam_id);
+    std::string target_name = steam_proxy::get_steam_friend_name(steam_id);
     if (target_name.empty())
       target_name = "Friend";
     add_friend(steam_id, target_name);
   } else {
     // Update name if we have a better one from Steam
-    auto target_name = steam_proxy::get_steam_friend_name(steam_id);
+    const std::string target_name =
+        steam_proxy::get_steam_friend_name(steam_id);
     if (!target_name.empty())
       add_friend(steam_id, target_name);
   }
@@ -372,10 +374,10 @@ bool invite_to_game(uint64_t steam_id) {
   return false;
 }
 
-std::string get_presence_server(uint64_t steam_id) {
+std::string get_presence_server(game::XUID steam_id) {
   std::string result;
   friends_data.access([&](const friend_state &state) {
-    for (const auto &e : state.list) {
+    for (const friend_entry &e : state.list) {
       if (e.steam_id == steam_id) {
         result = e.server_address;
         break;
@@ -392,33 +394,33 @@ bool has_pending_invite() {
 
 std::string consume_pending_invite() {
   std::lock_guard lock(invite_mutex);
-  auto result = std::move(pending_invite_connect);
+  const std::string result = std::move(pending_invite_connect);
   pending_invite_connect.clear();
   return result;
 }
 
 std::vector<friend_server_info> get_friend_server_addresses() {
   std::vector<friend_server_info> result;
-  std::unordered_set<uint64_t> seen_ids;
+  std::unordered_set<game::XUID> seen_ids;
 
   std::vector<friend_entry> all_friends;
   friends_data.access(
       [&](const friend_state &state) { all_friends = state.list; });
 
-  for (const auto &entry : all_friends) {
+  for (const friend_entry &entry : all_friends) {
     if (entry.steam_id == 0 || seen_ids.count(entry.steam_id))
       continue;
     seen_ids.insert(entry.steam_id);
 
     steam_proxy::request_friend_rich_presence(entry.steam_id);
-    auto addr =
+    std::string addr =
         steam_proxy::get_friend_rich_presence(entry.steam_id, "connect");
 
     if (addr.empty() && !entry.server_address.empty())
       addr = entry.server_address;
 
     // green online and red offline
-    std::string color_prefix = addr.empty() ? "^1" : "^3";
+    const std::string color_prefix = addr.empty() ? "^1" : "^3";
     result.push_back({entry.steam_id, addr, color_prefix + entry.name});
   }
 
@@ -435,17 +437,17 @@ std::string get_friend_game_info_by_address(const std::string &address) {
   friends_data.access(
       [&](const friend_state &state) { all_friends = state.list; });
 
-  for (const auto &entry : all_friends) {
+  for (const friend_entry &entry : all_friends) {
     if (entry.steam_id == 0)
       continue;
 
     steam_proxy::request_friend_rich_presence(entry.steam_id);
-    auto game_info = steam_proxy::get_friend_rich_presence(entry.steam_id,
-                                                           "boiii_game_info");
+    const std::string game_info = steam_proxy::get_friend_rich_presence(
+        entry.steam_id, "boiii_game_info");
     if (game_info.empty())
       continue;
 
-    auto parts = utils::string::split(game_info, '|');
+    const std::vector<std::string> parts = utils::string::split(game_info, '|');
     if (parts.empty())
       continue;
 
@@ -465,14 +467,14 @@ std::string get_friend_game_info_by_address(const std::string &address) {
   return "";
 }
 
-bool connect_to_friend(uint64_t steam_id) {
+bool connect_to_friend(game::XUID steam_id) {
   if (steam_id == 0)
     return false;
 
   // Check if friend is in our list and has a server address
   std::string addr_str;
   friends_data.access([&](const friend_state &state) {
-    for (const auto &e : state.list) {
+    for (const friend_entry &e : state.list) {
       if (e.steam_id == steam_id && !e.server_address.empty()) {
         addr_str = e.server_address;
         break;
@@ -491,7 +493,7 @@ bool connect_to_friend(uint64_t steam_id) {
     scheduler::once(
         [] {
           game::ui::UI_OpenErrorPopupWithMessage(
-              0, game::ERROR_UI,
+              0, game::errorCode::UI,
               "Friend is not online or not in a joinable game.");
         },
         scheduler::main);
@@ -499,23 +501,25 @@ bool connect_to_friend(uint64_t steam_id) {
   }
 
   // Try enriched game info for proper mode/map connection
-  auto game_info =
+  const std::string game_info =
       steam_proxy::get_friend_rich_presence(steam_id, "boiii_game_info");
   if (!game_info.empty()) {
-    auto parts = utils::string::split(game_info, '|');
+    const std::vector<std::string> parts = utils::string::split(game_info, '|');
     if (parts.size() >= 4) {
-      auto connect_addr = parts[0];
-      auto mapname = parts[1];
-      auto gametype = parts[2];
-      auto mode = static_cast<game::eModes>(std::atoi(parts[3].c_str()));
-      std::string mod_id = parts.size() >= 5 ? parts[4] : "";
+      const std::string connect_addr = parts[0];
+      const std::string mapname = parts[1];
+      const std::string gametype = parts[2];
+      game::eModes mode =
+          static_cast<game::eModes>(std::atoi(parts[3].c_str()));
+      const std::string mod_id = parts.size() >= 5 ? parts[4] : "";
 
       game::net::netadr_t target = network::address_from_string(connect_addr);
       if (target.type != game::net::NA_BAD && !mapname.empty() &&
           !gametype.empty()) {
         game::com::Com_SessionMode_SetGameMode(
-            game::MODE_GAME_MATCHMAKING_PLAYLIST);
-        auto usermap_id = workshop::get_usermap_publisher_id(mapname);
+            game::eGameModes::MATCHMAKING_PLAYLIST);
+        const std::string usermap_id =
+            workshop::get_usermap_publisher_id(mapname);
         party::connect_to_lobby_with_mode(target, mode, mapname, gametype,
                                           usermap_id, mod_id);
         return true;
@@ -527,7 +531,7 @@ bool connect_to_friend(uint64_t steam_id) {
   const game::net::netadr_t fallback_addr =
       network::address_from_string(addr_str);
   if (fallback_addr.type != game::net::NA_BAD) {
-    const auto sanitized = utils::string::va(
+    const char *sanitized = utils::string::va(
         "%i.%i.%i.%i:%hu", fallback_addr.ipv4.a, fallback_addr.ipv4.b,
         fallback_addr.ipv4.c, fallback_addr.ipv4.d, fallback_addr.port);
     game::cbuf::Cbuf_AddText(0, utils::string::va("connect %s\n", sanitized));
@@ -547,27 +551,31 @@ struct component final : client_component {
     scheduler::loop(
         [] {
           try {
-            uint64_t friend_id = 0;
-            auto invite = steam_proxy::get_pending_game_invite(&friend_id);
+            game::XUID friend_id = 0;
+            std::string invite =
+                steam_proxy::get_pending_game_invite(&friend_id);
             if (invite.empty())
               return;
 
             // Try to get enriched game info from sender's RP
             if (friend_id != 0) {
               steam_proxy::request_friend_rich_presence(friend_id);
-              auto game_info = steam_proxy::get_friend_rich_presence(
-                  friend_id, "boiii_game_info");
+              const std::string game_info =
+                  steam_proxy::get_friend_rich_presence(friend_id,
+                                                        "boiii_game_info");
               if (!game_info.empty())
                 invite = game_info;
             }
 
             // Auto-add sender as friend
-            uint64_t sender_steam_id = friend_id;
+            game::XUID sender_steam_id = friend_id;
             std::string sender_name;
 
-            auto parts = utils::string::split(invite, '|');
+            const std::vector<std::string> parts =
+                utils::string::split(invite, '|');
             if (parts.size() >= 7) {
-              auto parsed_id = std::strtoull(parts[5].c_str(), nullptr, 10);
+              game::XUID parsed_id =
+                  std::strtoull(parts[5].c_str(), nullptr, 10);
               if (parsed_id != 0)
                 sender_steam_id = parsed_id;
               sender_name = parts[6];
@@ -594,26 +602,29 @@ struct component final : client_component {
         [] {
           if (!has_pending_invite())
             return;
-          auto invite_data = consume_pending_invite();
+          const std::string invite_data = consume_pending_invite();
           if (invite_data.empty())
             return;
 
           steam_proxy::clear_invite_presence();
 
-          auto parts = utils::string::split(invite_data, '|');
+          const std::vector<std::string> parts =
+              utils::string::split(invite_data, '|');
           if (parts.size() >= 4) {
-            auto addr_str = parts[0];
-            auto mapname = parts[1];
-            auto gametype = parts[2];
-            auto mode = static_cast<game::eModes>(std::atoi(parts[3].c_str()));
-            std::string mod_id = parts.size() >= 5 ? parts[4] : "";
+            const std::string addr_str = parts[0];
+            const std::string mapname = parts[1];
+            const std::string gametype = parts[2];
+            game::eModes mode =
+                static_cast<game::eModes>(std::atoi(parts[3].c_str()));
+            const std::string mod_id = parts.size() >= 5 ? parts[4] : "";
 
             game::net::netadr_t target = network::address_from_string(addr_str);
             if (target.type != game::net::NA_BAD && !mapname.empty() &&
                 !gametype.empty()) {
               game::com::Com_SessionMode_SetGameMode(
-                  game::MODE_GAME_MATCHMAKING_PLAYLIST);
-              auto usermap_id = workshop::get_usermap_publisher_id(mapname);
+                  game::eGameModes::MATCHMAKING_PLAYLIST);
+              const std::string usermap_id =
+                  workshop::get_usermap_publisher_id(mapname);
               party::connect_to_lobby_with_mode(target, mode, mapname, gametype,
                                                 usermap_id, mod_id);
               return;
@@ -623,7 +634,7 @@ struct component final : client_component {
           const game::net::netadr_t fallback_addr =
               network::address_from_string(invite_data);
           if (fallback_addr.type != game::net::NA_BAD) {
-            const auto sanitized = utils::string::va(
+            const char *sanitized = utils::string::va(
                 "%i.%i.%i.%i:%hu", fallback_addr.ipv4.a, fallback_addr.ipv4.b,
                 fallback_addr.ipv4.c, fallback_addr.ipv4.d, fallback_addr.port);
             game::cbuf::Cbuf_AddText(
@@ -636,23 +647,23 @@ struct component final : client_component {
     scheduler::loop(
         [] {
           try {
-            auto addr = get_own_connect_address();
+            const std::string addr = get_own_connect_address();
             steam_proxy::set_rich_presence("connect", addr);
 
             if (!addr.empty() && game::com::Com_IsInGame()) {
-              std::string mapname = game::get_dvar_string("mapname");
-              std::string gametype = game::get_dvar_string("g_gametype");
-              int playmode = game::com::Com_SessionMode_GetMode();
-              std::string mod_id = workshop::get_mod_publisher_id();
-              uint64_t own_steam_id = steam_proxy::get_own_steam_id();
+              const std::string mapname = game::get_dvar_string("mapname");
+              const std::string gametype = game::get_dvar_string("g_gametype");
+              game::eModes playmode = game::com::Com_SessionMode_GetMode();
+              const std::string mod_id = workshop::get_mod_publisher_id();
+              game::XUID own_steam_id = steam_proxy::get_own_steam_id();
               std::string own_name = name::get_player_name();
               if (own_name.empty())
                 own_name = "Player";
 
-              auto enriched = utils::string::va(
+              const char *enriched = utils::string::va(
                   "%s|%s|%s|%d|%s|%llu|%s", addr.c_str(), mapname.c_str(),
-                  gametype.c_str(), playmode, mod_id.c_str(), own_steam_id,
-                  own_name.c_str());
+                  gametype.c_str(), static_cast<int32_t>(playmode),
+                  mod_id.c_str(), own_steam_id, own_name.c_str());
               steam_proxy::set_rich_presence("boiii_game_info", enriched);
             } else {
               steam_proxy::set_rich_presence("boiii_game_info", "");
@@ -672,16 +683,19 @@ struct component final : client_component {
             friends_data.access([](friend_state &state) {
               for (auto &f : state.list) {
                 steam_proxy::request_friend_rich_presence(f.steam_id);
-                auto connect_rp = steam_proxy::get_friend_rich_presence(
-                    f.steam_id, "connect");
-                auto status_rp =
+                const std::string connect_rp =
+                    steam_proxy::get_friend_rich_presence(f.steam_id,
+                                                          "connect");
+                const std::string status_rp =
                     steam_proxy::get_friend_rich_presence(f.steam_id, "status");
 
                 // Try to update friend's name from their enriched RP
-                auto game_info_rp = steam_proxy::get_friend_rich_presence(
-                    f.steam_id, "boiii_game_info");
+                const std::string game_info_rp =
+                    steam_proxy::get_friend_rich_presence(f.steam_id,
+                                                          "boiii_game_info");
                 if (!game_info_rp.empty()) {
-                  auto rp_parts = utils::string::split(game_info_rp, '|');
+                  const std::vector<std::string> rp_parts =
+                      utils::string::split(game_info_rp, '|');
                   if (rp_parts.size() >= 7 && !rp_parts[6].empty()) {
                     f.name = rp_parts[6];
                   }

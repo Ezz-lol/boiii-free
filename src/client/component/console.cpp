@@ -434,7 +434,7 @@ void print_message(const char *message) {
 #endif
 
   if (started && !terminate_runner) {
-    game::com::Com_Printf(0, 0, "%s", message);
+    game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s", message);
   }
 }
 
