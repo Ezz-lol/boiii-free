@@ -299,10 +299,10 @@ flags_to_yaml_array_items() {
   local num_flags="${#flags_array[@]}"
   for ((i = 1; i < $((num_flags - 1)); i++)); do
     if [ -n "${flags_array[i]}" ]; then
-      echo -n "${flags_array[i]},"
+      echo -ne "${flags_array[i]},\n"
     fi
   done
-  echo -n "${flags_array[num_flags-1]}"
+  echo -ne "${flags_array[num_flags-1]}"
 
 }
 
@@ -311,7 +311,10 @@ generate_clangd_config() {
   clangd_config_path="$(repo_dir)/.clangd"
   cat >"$clangd_config_path" <<EOL
 CompileFlags:
-  Add: [$(flags_to_yaml_array_items "$TEMP_CXXFLAGS"), -std=c++20]
+  Add: [
+$(flags_to_yaml_array_items "$TEMP_CXXFLAGS" | sed 's/^\s*/   /g'), 
+   -std=c++20
+  ]
 EOL
   echo "Generated clangd config: '$clangd_config_path'"
 }
