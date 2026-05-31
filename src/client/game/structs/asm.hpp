@@ -1,9 +1,15 @@
 #pragma once
 #include "core.hpp"
 #include "quake.hpp"
-#include "scr/scr.hpp"
+#include "scr/core.hpp"
+#include "fp16.hpp"
 
 namespace game {
+
+namespace snd {
+struct SndAliasList;
+}
+
 // asm reserved
 namespace anim {
 
@@ -72,8 +78,7 @@ struct RumbleGraph {
   vec2_t knots[16];
   uint8_t _padding8C[4];
 };
-static_assert(sizeof(RumbleGraph) == 0x90,
-              "RumbleGraph size must be 144 bytes");
+ASSERT_SIZE(RumbleGraph, 0x90);
 
 // sizeof=0x40
 struct RumbleInfo {
@@ -91,7 +96,7 @@ struct RumbleInfo {
   float pulseScale;
   scr::ScrString_t pulseBoneTag;
 };
-static_assert(sizeof(RumbleInfo) == 0x40, "RumbleInfo size must be 64 bytes");
+ASSERT_SIZE(RumbleInfo, 0x40);
 
 typedef RumbleInfo *RumbleInfoPtr;
 
@@ -103,8 +108,7 @@ struct AliasToAnimsEntry {
   int32_t numAnims;
   uint8_t _padding14[4];
 };
-static_assert(sizeof(AliasToAnimsEntry) == 0x18,
-              "AliasToAnimsEntry size must be 24 bytes");
+ASSERT_SIZE(AliasToAnimsEntry, 0x18);
 
 // sizeof=0x8
 struct AnimSelectorTableEntry {
@@ -115,8 +119,7 @@ struct AnimSelectorTableEntry {
     float v;
   };
 };
-static_assert(sizeof(AnimSelectorTableEntry) == 0x8,
-              "AnimSelectorTableEntry size must be 8 bytes");
+ASSERT_SIZE(AnimSelectorTableEntry, 0x8);
 
 // sizeof=0x18
 struct AnimMappingTable {
@@ -125,8 +128,7 @@ struct AnimMappingTable {
   int32_t numAnimAlias;
   uint8_t _padding14[4];
 };
-static_assert(sizeof(AnimMappingTable) == 0x18,
-              "AnimMappingTable size must be 24 bytes");
+ASSERT_SIZE(AnimMappingTable, 0x18);
 typedef AnimMappingTable *AnimMappingTablePtr;
 
 // sizeof=0x10C
@@ -136,8 +138,7 @@ struct AnimSelectorTableCache {
   AnimSelectorTableEntry searchCriteria[32];
   int32_t searchCriteriaSize;
 };
-static_assert(sizeof(AnimSelectorTableCache) == 0x10C,
-              "AnimSelectorTableCache size must be 268 bytes");
+ASSERT_SIZE(AnimSelectorTableCache, 0x10C);
 
 struct AnimSelectorOutParamsGroup1 {
   int32_t aliasColumn;
@@ -194,16 +195,13 @@ struct AnimSelectorTableColumn {
 
 struct AnimSelectorTableEntry;
 
-// sizeof=0x10
 struct AnimSelectorTableRow {
   AnimSelectorTableEntry *entries;
   int32_t numEntries;
   uint8_t _padding0C[4];
 };
-static_assert(sizeof(AnimSelectorTableRow) == 0x10,
-              "AnimSelectorTableRow size must be 16 bytes");
+ASSERT_SIZE(AnimSelectorTableRow, 0x10);
 
-// sizeof=0x50
 struct AnimSelectorTable {
   scr::ScrString_t name;
   uint8_t _padding04[4];
@@ -221,21 +219,18 @@ struct AnimSelectorTable {
   int32_t blendOutColumn;
   int32_t aimTableColumn;
 };
-static_assert(sizeof(AnimSelectorTable) == 0x50,
-              "AnimSelectorTable size must be 80 bytes");
+ASSERT_SIZE(AnimSelectorTable, 0x50);
 
-// sizeof=0x18
 struct AnimSelectorTableSet {
   const char *name;
   AnimSelectorTable *tables;
   int32_t numTables;
   uint8_t _padding14[4];
 };
-static_assert(sizeof(AnimSelectorTableSet) == 0x18,
-              "AnimSelectorTableSet size must be 24 bytes");
+ASSERT_SIZE(AnimSelectorTableSet, 0x18);
+
 typedef AnimSelectorTableSet *AnimSelectorTableSetPtr;
 
-// sizeof=0x20
 struct AimTableEntry {
   const char *name;
   scr::ScrString_t entryName;
@@ -245,16 +240,14 @@ struct AimTableEntry {
   int32_t down;
   uint8_t _padding1C[4];
 };
-static_assert(sizeof(AimTableEntry) == 0x20,
-              "AimTableEntry size must be 32 bytes");
+ASSERT_SIZE(AimTableEntry, 0x20);
 
 // sizeof=0x8
 struct PrimaryDeltaFootstep_t {
   float time;
   scr::ScrString_t notetrackName;
 };
-static_assert(sizeof(PrimaryDeltaFootstep_t) == 0x8,
-              "PrimaryDeltaFootstep_t size must be 8 bytes");
+ASSERT_SIZE(PrimaryDeltaFootstep_t, 0x8);
 
 typedef int32_t paramAnimIndexes[7];
 typedef scr::ScrString_t paramAnimAliases[7];
@@ -273,8 +266,7 @@ struct aimAnimations_t {
     aimAnimationsArray_t aimArray;
   };
 };
-static_assert(sizeof(aimAnimations_t) == 0x10,
-              "aimAnimations_t size must be 16 bytes");
+ASSERT_SIZE(aimAnimations_t, 0x10);
 
 // sizeof=0x98
 struct AimLayer {
@@ -298,7 +290,7 @@ struct AimLayer {
   uint8_t _padding8C[4];
   const AimTableEntry *aimTableEntry;
 };
-static_assert(sizeof(AimLayer) == 0x98, "AimLayer size must be 152 bytes");
+ASSERT_SIZE(AimLayer, 0x98);
 
 // sizeof=0x20C
 struct PrimaryDeltaLayer_t {
@@ -328,8 +320,7 @@ struct PrimaryDeltaLayer_t {
   uint8_t toggleCounter;
   uint8_t _padding209[3];
 };
-static_assert(sizeof(PrimaryDeltaLayer_t) == 0x20C,
-              "PrimaryDeltaLayer_t size must be 524 bytes");
+ASSERT_SIZE(PrimaryDeltaLayer_t, 0x20C);
 
 // sizeof=0x18
 struct shootAnimations_t {
@@ -337,8 +328,7 @@ struct shootAnimations_t {
   int32_t xanimSingleShotIndex;
   int32_t xanimBurstIndexes[4];
 };
-static_assert(sizeof(shootAnimations_t) == 0x18,
-              "shootAnimations_t size must be 24 bytes");
+ASSERT_SIZE(shootAnimations_t, 0x18);
 
 // sizeof=0x44
 struct ShootLayer {
@@ -357,7 +347,7 @@ struct ShootLayer {
   int32_t nextShootLayerStartTime;
   int32_t currentBurstCount;
 };
-static_assert(sizeof(ShootLayer) == 0x44, "ShootLayer size must be 68 bytes");
+ASSERT_SIZE(ShootLayer, 0x44);
 
 // sizeof=0x18
 struct TransDecLayer {
@@ -369,15 +359,14 @@ struct TransDecLayer {
   int32_t rowIndex;
   int32_t animIndex;
 };
-static_assert(sizeof(TransDecLayer) == 0x18,
-              "TransDecLayer size must be 24 bytes");
+ASSERT_SIZE(TransDecLayer, 0x18);
 
 struct MocompLayer {
   bool active;
   uint8_t _padding1[3];
   scr::ScrString_t mocompName;
 };
-static_assert(sizeof(MocompLayer) == 0x8, "MocompLayer size must be 8 bytes");
+ASSERT_SIZE(MocompLayer, 0x8);
 
 // sizeof=0x290
 struct AimTable {
@@ -386,7 +375,7 @@ struct AimTable {
   uint8_t _padding0C[4];
   AimTableEntry atEntries[20];
 };
-static_assert(sizeof(AimTable) == 0x290, "AimTable size must be 656 bytes");
+ASSERT_SIZE(AimTable, 0x290);
 
 typedef AimLayer AimLayer_t;
 typedef ShootLayer ShootLayer_t;
@@ -411,8 +400,7 @@ struct AnimSubState {
   int32_t numSubStateTransitions;
   uint8_t _padding3C[4];
 };
-static_assert(sizeof(AnimSubState) == 0x40,
-              "AnimSubState size must be 64 bytes");
+ASSERT_SIZE(AnimSubState, 0x40);
 
 // sizeof=0x18
 struct AnimState {
@@ -422,7 +410,7 @@ struct AnimState {
   int32_t numSubStates;
   uint8_t _padding14[4];
 };
-static_assert(sizeof(AnimState) == 0x18, "AnimState size must be 24 bytes");
+ASSERT_SIZE(AnimState, 0x18);
 
 // sizeof=0x2C
 struct AnimTransition {
@@ -438,8 +426,7 @@ struct AnimTransition {
   scr::ScrString_t shootSelector;
   scr::ScrString_t deltaSelectorEvaluator;
 };
-static_assert(sizeof(AnimTransition) == 0x2C,
-              "AnimTransition size must be 44 bytes");
+ASSERT_SIZE(AnimTransition, 0x2C);
 
 // sizeof=0x38
 struct AnimStateMachine {
@@ -454,8 +441,7 @@ struct AnimStateMachine {
   int32_t numTransitions;
   uint8_t _padding34[4];
 };
-static_assert(sizeof(AnimStateMachine) == 0x38,
-              "AnimStateMachine size must be 56 bytes");
+ASSERT_SIZE(AnimStateMachine, 0x38);
 typedef AnimStateMachine *AnimStateMachinePtr;
 
 // sizeof=0x330
@@ -475,15 +461,14 @@ struct AnimStateMachineRuntime {
   MocompLayer_t mocompLayer;
   uint8_t _padding32C[4];
 };
-static_assert(sizeof(AnimStateMachineRuntime) == 0x330,
-              "AnimStateMachineRuntime size must be 816 bytes");
+ASSERT_SIZE(AnimStateMachineRuntime, 0x330);
 
 // sizeof = 0x14
 struct XAnimParam {
   char strName[16];
   float fValue;
 };
-static_assert(sizeof(XAnimParam) == 0x14, "XAnimParam size must be 20 bytes");
+ASSERT_SIZE(XAnimParam, 0x14);
 
 // sizeof=0x8
 struct XAnimSearchEntry {
@@ -491,8 +476,7 @@ struct XAnimSearchEntry {
   uint16_t animIndex;
   uint8_t _padding06[2];
 };
-static_assert(sizeof(XAnimSearchEntry) == 0x8,
-              "XAnimSearchEntry size must be 8 bytes");
+ASSERT_SIZE(XAnimSearchEntry, 0x8);
 
 struct XAnimParent {
   uint16_t flags;
@@ -514,7 +498,7 @@ struct XAnimEntry {
     XAnimParent animParent;
   };
 };
-static_assert(sizeof(XAnimEntry) == 0x18, "XAnimEntry size must be 24 bytes");
+ASSERT_SIZE(XAnimEntry, 0x18);
 
 struct XAnim {
   scr::ScrString_t name;
@@ -532,7 +516,7 @@ struct XAnimTree {
   uint32_t children;
   LocalClientNum_t localClientNum;
 };
-static_assert(sizeof(XAnimTree) == 0x10, "XAnimTree size must be 16 bytes");
+ASSERT_SIZE(XAnimTree, 0x10);
 
 #pragma pack(pop)
 
@@ -771,6 +755,280 @@ enum class link_type_e : uint32_t {
   SWIM_CTRL = 0x3,
   FULL_CTRL = 0x4,
   COMPASS_CTRL = 0x5,
+};
+
+struct locBlendPairAnim_t {
+  int32_t animIndex;
+  float extent;
+};
+struct __attribute__((aligned(8))) locBlendPair_t {
+  locBlendPairAnim_t *start;
+  locBlendPairAnim_t *end;
+  int32_t strideType;
+};
+struct locBlendSet_t {
+  char name[64];
+  int32_t startIndex;
+  int32_t count;
+};
+
+enum class locBlendType_t : uint32_t {
+  DIRECTIONAL = 0x0,
+  TURN_LEAN = 0x1,
+  COUNT = 0x2,
+};
+
+struct __attribute__((aligned(8))) locBlend_t {
+  char name[64];
+  locBlendType_t type;
+  locBlendSet_t *sets[4];
+  int32_t numSets;
+};
+
+struct XAnimBlendTargetWeights {
+  uint16_t numKeys;
+  uint16_t *frames;
+  float *values;
+};
+
+typedef uint8_t ByteVec[3];
+typedef uint16_t uint16_tVec[3];
+
+union XAnimDynamicFrames {
+  ByteVec *_1;
+  uint16_tVec *_2;
+};
+union XAnimDynamicIndices {
+  uint8_t _1[1];
+  uint16_t _2[1];
+};
+
+struct __attribute__((aligned(8))) XAnimPartTransFrames {
+  vec3_t mins;
+  vec3_t size;
+  XAnimDynamicFrames frames;
+  XAnimDynamicIndices indices;
+};
+
+union XAnimPartTransData {
+  XAnimPartTransFrames frames;
+  vec3_t frame0;
+};
+
+struct XAnimPartTrans {
+  uint16_t size;
+  uint8_t smallTrans;
+  XAnimPartTransData u;
+};
+
+typedef fp16::half2_pack XQuat2;
+
+struct __attribute__((aligned(8))) XAnimDeltaPartQuatDataFrames2 {
+  XQuat2 *frames;
+  XAnimDynamicIndices indices;
+};
+
+union XAnimDeltaPartQuatData2 {
+  XAnimDeltaPartQuatDataFrames2 frames;
+  XQuat2 frame0;
+};
+
+struct XAnimDeltaPartQuat2 {
+  uint16_t size;
+  XAnimDeltaPartQuatData2 u;
+};
+
+typedef fp16::half4_pack XQuat;
+
+struct __attribute__((aligned(8))) XAnimDeltaPartQuatDataFrames {
+  XQuat *frames;
+  XAnimDynamicIndices indices;
+};
+
+union XAnimDeltaPartQuatData {
+  XAnimDeltaPartQuatDataFrames frames;
+  XQuat frame0;
+};
+
+struct XAnimDeltaPartQuat {
+  uint16_t size;
+  XAnimDeltaPartQuatData u;
+};
+
+struct XAnimDeltaPart {
+  XAnimPartTrans *trans;
+  XAnimDeltaPartQuat2 *quat2;
+  XAnimDeltaPartQuat *quat;
+};
+
+struct XAnimIKPitchBone {
+  uint16_t index;
+  vec3_t rotation;
+  vec3_t translation;
+};
+
+struct XAnimIKPitchLayer {
+  float angle;
+  uint16_t numBones;
+  uint16_t bonesStart;
+};
+
+struct XAnimMarkup {
+  scr::ScrString_t type;
+  float startTime;
+  float endTime;
+  uint8_t persistent;
+  scr::ScrString_t param1;
+  scr::ScrString_t param2;
+};
+
+struct XAnimNotifyInfo {
+  scr::ScrString_t type;
+  float time;
+  scr::ScrString_t param1;
+  scr::ScrString_t param2;
+  scr::ScrString_t param3;
+};
+
+struct __attribute__((aligned(4))) BlendTargetRemap {
+  scr::ScrString_t name;
+  uint16_t index;
+};
+
+union XAnimIndices {
+  uint8_t *_1;
+  uint16_t *_2;
+  void *data;
+};
+
+struct XAnimParts {
+  BlendTargetRemap *blendTargetRemap;
+  scr::ScrString_t *blendTargetNames;
+  scr::ScrString_t *names;
+  XAnimBlendTargetWeights *blendTargetWeights;
+  XAnimDeltaPart *deltaPart;
+  XAnimIKPitchBone *ikPitchBones;
+  XAnimIKPitchLayer *ikPitchLayers;
+  XAnimMarkup *markup;
+  XAnimNotifyInfo *notify;
+  XAnimNotifyInfo *shutdownNotify;
+  XAnimNotifyInfo *startupNotify;
+  uint8_t *dataByte;
+  uint8_t *extraChannelData;
+  uint8_t *randomDataByte;
+  const char *name;
+  int32_t *dataInt;
+  int32_t *randomDataInt;
+  int16_t *dataShort;
+  int16_t *randomDataShort;
+  XAnimIndices indices;
+  scr::ScrString_t branchName;
+  float framerate;
+  float frequency;
+  float loopEntryTime;
+  float primedLength;
+  uint32_t indexCount;
+  uint32_t numIKPitchBones;
+  uint32_t numIKPitchLayers;
+  uint32_t randomDataShortCount;
+  uint32_t streamedFileSize;
+  uint32_t dataByteCount;
+  uint32_t dataIntCount;
+  uint32_t dataShortCount;
+  uint32_t extraChannelDataCount;
+  uint32_t randomDataByteCount;
+  uint32_t randomDataIntCount;
+  uint16_t boneCount[10];
+  uint16_t numBones;
+  uint16_t numframes;
+  uint16_t numBlendTargets;
+  bool bDelta;
+  bool bDelta3D;
+  bool bExtraChannel;
+  bool bHasBoneMask;
+  bool bLeftHandGripIK;
+  bool bLoop;
+  bool bLoopSync;
+  uint8_t assetType;
+  uint8_t extraFlags;
+  uint8_t markupCount;
+  uint8_t notifyCount;
+  uint8_t shutdownNotifyCount;
+  uint8_t startupNotifyCount;
+  bool pad;
+};
+
+struct scr_animtree_t {
+  XAnim *anims;
+};
+
+struct animScriptCondition_t {
+  int32_t index;
+  uint32_t value;
+};
+
+enum class animBodyPart_t : uint32_t {
+  UNUSED = 0x0,
+  LEGS = 0x1,
+  TORSO = 0x2,
+  BOTH = 0x3,
+  TORSO_2 = 0x4,
+  TORSO_FULL = 0x5,
+  MOTION_MATCHING = 0x6,
+  COUNT = 0x7,
+};
+
+struct __attribute__((aligned(4))) animScriptCommand_t {
+  snd::SndAliasList *soundAlias;
+  scr::ScrString_t tagName;
+  animBodyPart_t bodyPart[2];
+  int16_t animIndex[2];
+  uint16_t animDuration[2];
+  union {
+    uint8_t flags;
+    struct {
+      uint8_t motionMatchingEnabled : 1;
+    };
+  };
+};
+
+struct animScriptItem_t {
+  int32_t numConditions;
+  animScriptCondition_t conditions[5];
+  int32_t numCommands;
+  animScriptCommand_t commands[8];
+};
+
+struct animScript_t {
+  int32_t numItems;
+  animScriptItem_t *items[192];
+};
+
+struct animScriptData_t {
+  animation_t animations[6000];
+  uint32_t numAnimations;
+  animScript_t scriptAnims[1][45];
+  animScript_t scriptCannedAnims[1][45];
+  animScript_t scriptStateChange[1][1];
+  animScript_t scriptEvents[101];
+  animScriptItem_t scriptItems[6272];
+  int32_t numScriptItems;
+  scr_animtree_t animTree;
+  uint16_t torsoAnim;
+  uint16_t torso2Anim;
+  uint16_t legsAnim;
+  uint16_t motionMatchingAnim;
+  uint16_t turningAnim;
+  locBlendPairAnim_t locBlendPairAnims[2048];
+  locBlendPair_t locBlendPairs[1024];
+  locBlendSet_t locBlendSets[256];
+  locBlend_t locBlends[128];
+  int32_t numLocBlendPairAnims;
+  int32_t numLocBlendPairs;
+  int32_t numLocBlendDirSets;
+  int32_t numLocBlends;
+  snd::SndAliasList *(*soundAlias)(const char *);
+  void (*playSoundAlias)(ClientNum_t, snd::SndAliasList *);
 };
 
 } // namespace anim
