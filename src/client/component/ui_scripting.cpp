@@ -102,8 +102,8 @@ bool execute_raw_lua(const std::string &code,
                             err.c_str());
     }
   } catch (const std::exception &ex) {
-    game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "^1Lua Error [%s]: %s\n",
-                          chunk_name, ex.what());
+    game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
+                          "^1Lua Error [%s]: %s\n", chunk_name, ex.what());
   }
 
   return false;
@@ -267,7 +267,8 @@ table get_globals() {
 void print_error(const std::string &error) {
   game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
                         "^1************** LUI script error **************\n");
-  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "^1%s\n", error.data());
+  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "^1%s\n",
+                        error.data());
   game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
                         "^1**********************************************\n");
 
@@ -472,12 +473,13 @@ void setup_functions() {
       game::ui::lua::hks::HksObjectType::TCFUNCTION);
 
   // Hot reload functions (callable from Lua timers)
-  lua["game"]["hotreloadcheck"] = function(convert_function([]() {
-                                             if (hot_reload_running) {
-                                               hot_reload_check_files();
-                                             }
-                                           }),
-                                           game::ui::lua::hks::HksObjectType::TCFUNCTION);
+  lua["game"]["hotreloadcheck"] =
+      function(convert_function([]() {
+                 if (hot_reload_running) {
+                   hot_reload_check_files();
+                 }
+               }),
+               game::ui::lua::hks::HksObjectType::TCFUNCTION);
 
   lua["game"]["hotreloadstart"] = function(
       convert_function([](const std::string &path) { start_hot_reload(path); }),
@@ -1130,7 +1132,8 @@ const char *safe_get_lua_error_stack(game::ui::lua::hks::lua_State *luaVM) {
 
     if (api_top && api_bottom && (api_top - 1) >= api_bottom) {
       auto *top_obj = api_top - 1;
-      if (top_obj->t == game::ui::lua::hks::HksObjectType::TSTRING && top_obj->v.str) {
+      if (top_obj->t == game::ui::lua::hks::HksObjectType::TSTRING &&
+          top_obj->v.str) {
         return top_obj->v.str->m_data;
       }
     }
@@ -1192,7 +1195,8 @@ void lua_cod_luastatemanager_error_stub(const char *error,
       stack_str.find("server_browser/") != std::string::npos) {
     const std::string colored =
         colorize_lua_error("LUI script (suppressed)", error_stack);
-    game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s", colored.c_str());
+    game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s",
+                          colored.c_str());
     return;
   }
 
@@ -1224,7 +1228,8 @@ void lua_cod_luastatemanager_error_stub(const char *error,
   } catch (...) {
   }
 
-  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s", colored.c_str());
+  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s",
+                        colored.c_str());
 
   // Show colored error popup with delay to ensure UI is ready
   std::string popup_text = colorize_lua_error(nullptr, resolved_stack);
@@ -1402,8 +1407,8 @@ public:
                     std::string("^1Lua Reload Errors:\n") + errors;
                 scheduler::once(
                     [popup_msg] {
-                      game::ui::UI_OpenErrorPopupWithMessage(0, game::errorCode::UI,
-                                                             popup_msg.c_str());
+                      game::ui::UI_OpenErrorPopupWithMessage(
+                          0, game::errorCode::UI, popup_msg.c_str());
                     },
                     scheduler::pipeline::renderer, 1s);
               }
@@ -1500,8 +1505,8 @@ public:
                     std::string("^1Lua Reload Mod Errors:\n") + errors;
                 scheduler::once(
                     [popup_msg] {
-                      game::ui::UI_OpenErrorPopupWithMessage(0, game::errorCode::UI,
-                                                             popup_msg.c_str());
+                      game::ui::UI_OpenErrorPopupWithMessage(
+                          0, game::errorCode::UI, popup_msg.c_str());
                     },
                     scheduler::pipeline::renderer, 1s);
               }

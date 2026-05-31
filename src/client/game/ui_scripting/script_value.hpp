@@ -38,7 +38,8 @@ private:
   void assign(const game::ui::lua::hks::HksObject &value);
   void release();
 
-  game::ui::lua::hks::HksObject value_{game::ui::lua::hks::HksObjectType::TNONE, {}};
+  game::ui::lua::hks::HksObject value_{game::ui::lua::hks::HksObjectType::TNONE,
+                                       {}};
   int ref_{};
 };
 

@@ -113,7 +113,8 @@ std::string sanitize_chat_message(const std::string &msg) {
 
 void disable_sv_cheats_cb(game::dvar_t *sv_cheats) {
   if (sv_cheats->current.value.enabled) {
-    game::Dvar_SetBoolFromSource(sv_cheats, false, game::DvarSetSource::INTERNAL);
+    game::Dvar_SetBoolFromSource(sv_cheats, false,
+                                 game::DvarSetSource::INTERNAL);
   }
 }
 

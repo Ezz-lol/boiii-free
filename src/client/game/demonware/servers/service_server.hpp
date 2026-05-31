@@ -11,9 +11,9 @@ public:
     return remote_reply{this, type};
   }
 
-  virtual service_reply create_reply(
-      uint8_t type,
-      game::dw::bdLobbyErrorCode error = game::dw::bdLobbyErrorCode::BD_NO_ERROR) {
+  virtual service_reply
+  create_reply(uint8_t type, game::dw::bdLobbyErrorCode error =
+                                 game::dw::bdLobbyErrorCode::BD_NO_ERROR) {
     return service_reply{this, type, error};
   }
 

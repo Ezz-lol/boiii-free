@@ -14,7 +14,9 @@ void scr_are_textures_loaded_stub() {
   game::scr::Scr_AddInt(game::scr::SCRIPTINSTANCE_SERVER, 1);
 }
 
-game::eNetworkModes get_online_mode_stub() { return game::eNetworkModes::ONLINE; }
+game::eNetworkModes get_online_mode_stub() {
+  return game::eNetworkModes::ONLINE;
+}
 
 bool is_online_stub() { return true; }
 
@@ -37,7 +39,8 @@ void spawn_server_stub(game::ControllerIndex_t controllerIndex,
                        const char *server, game::MapPreload preload,
                        bool savegame) {
   game::com::Com_SessionMode_SetNetworkMode(game::eNetworkModes::ONLINE);
-  game::com::Com_SessionMode_SetGameMode(game::eGameModes::MATCHMAKING_PLAYLIST);
+  game::com::Com_SessionMode_SetGameMode(
+      game::eGameModes::MATCHMAKING_PLAYLIST);
 
   spawn_server_hook.invoke(controllerIndex, server, preload, savegame);
 }
