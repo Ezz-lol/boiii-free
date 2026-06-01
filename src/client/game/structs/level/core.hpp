@@ -5,6 +5,7 @@
 #include "../snd.hpp"
 #include "../ui/ui.hpp"
 #include "../vehicle.hpp"
+#include "../lobby.hpp"
 
 namespace game {
 
@@ -2305,7 +2306,7 @@ struct clientState_s {
   int32_t clientUIVisibilityFlags;
   qboolean offhandWeaponVisible;
   clientLinkInfo_t clientLinkInfo;
-  int32_t lastUpdateIndex[18];
+  lobby::LobbyClientPool<int32_t> lastUpdateIndex;
   uint16_t paintshopDataSize;
   uint8_t _padding342[2];
   int32_t clientHealth;
@@ -2382,7 +2383,7 @@ struct CasterClientState {
   int32_t clientIndex;
   uint32_t gadgetPlayerStateFlags;
   float gadgetPowerRemaining;
-  int32_t lastUpdateIndex[18];
+  lobby::LobbyClientPool<int32_t> lastUpdateIndex;
 };
 ASSERT_SIZE(CasterClientState, 0x54);
 

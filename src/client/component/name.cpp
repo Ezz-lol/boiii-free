@@ -66,10 +66,10 @@ void load_player_name() {
 }
 
 std::mutex names_mutex;
-game::lobby::PerPlayerOptional<std::string> name_overrides;
-game::lobby::PerPlayerOptional<std::string> clan_abbrev_overrides;
-game::lobby::PerPlayerOptional<std::string> orig_names;
-game::lobby::PerPlayerOptional<std::string> orig_clan_abbrevs;
+game::lobby::LobbyClientOptionalPool<std::string> name_overrides;
+game::lobby::LobbyClientOptionalPool<std::string> clan_abbrev_overrides;
+game::lobby::LobbyClientOptionalPool<std::string> orig_names;
+game::lobby::LobbyClientOptionalPool<std::string> orig_clan_abbrevs;
 
 std::string encode_colors(const std::string &s) {
   std::string result;
@@ -145,7 +145,8 @@ void clear_clan_abbrev_override(game::ClientNum_t client_num) {
 }
 
 template <typename T>
-void clear_perplayer_optional_array(game::lobby::PerPlayerOptional<T> &p) {
+void clear_lobby_client_optional_pool(
+    game::lobby::LobbyClientOptionalPool<T> &p) {
   for (game::ClientNum_t i = game::lobby::MIN_PLAYERS;
        i < game::lobby::MAX_PLAYERS; i++) {
     p[i].reset();
@@ -154,10 +155,10 @@ void clear_perplayer_optional_array(game::lobby::PerPlayerOptional<T> &p) {
 
 void clear_all() {
   std::lock_guard lk(names_mutex);
-  clear_perplayer_optional_array(name_overrides);
-  clear_perplayer_optional_array(clan_abbrev_overrides);
-  clear_perplayer_optional_array(orig_names);
-  clear_perplayer_optional_array(orig_clan_abbrevs);
+  clear_lobby_client_optional_pool(name_overrides);
+  clear_lobby_client_optional_pool(clan_abbrev_overrides);
+  clear_lobby_client_optional_pool(orig_names);
+  clear_lobby_client_optional_pool(orig_clan_abbrevs);
 }
 
 void clear_name_slot(game::ClientNum_t slot) {

@@ -7,6 +7,8 @@
 #include "scr/scr.hpp"
 #include "snd.hpp"
 #include "asm.hpp"
+#include "lobby.hpp"
+
 #include <cstddef>
 #include <cstdint>
 
@@ -98,7 +100,7 @@ struct CasterClientState {
   int32_t clientIndex;
   uint32_t gadgetPlayerStateFlags;
   float gadgetPowerRemaining;
-  int32_t lastUpdateIndex[18];
+  lobby::LobbyClientPool<int32_t> lastUpdateIndex;
 };
 // As per G_GetCasterClientSize();
 ASSERT_SIZE(CasterClientState, 0x54);
@@ -223,7 +225,7 @@ typedef archivedEntity_s archivedEntity_t;
 #pragma pack(push, 1)
 // sizeof=0xB8
 struct serverSnapshot_t {
-  level::playerState_t *ps[18];
+  lobby::LobbyClientPool<level::playerState_t *> ps;
   int32_t entityCount;
   int32_t clientCount;
   int32_t actorCount;
@@ -350,7 +352,7 @@ struct serverStatic_t {
   */
   uint8_t _padding12D0[16];
   tempBanSlot_t tempBans[16];
-  XUID xuids[18];
+  lobby::LobbyClientPool<XUID> xuids;
   vec3_t mapCenter;
   vec3_t mapCenterBoundsMin;
   vec3_t mapCenterBoundsMax;
@@ -384,7 +386,7 @@ struct flashbackState_t {
 #pragma pack(pop)
 
 struct clientsFlashbackArchive_t {
-  flashbackState_t clientsFlashbackStates[18];
+  lobby::LobbyClientPool<flashbackState_t> clientsFlashbackStates;
   int32_t time;
 };
 
@@ -446,20 +448,20 @@ static_assert(sizeof(clientControllers_t) == 0x60,
 
 struct clientsPositionArchive_t {
   int32_t time;
-  bool valid[18];
-  uint8_t flags[18];
-  vec3_t positions[18];
-  vec3_t angles[18];
-  vec3_t viewangles[18];
-  playerAnimState_t anim[18];
-  int32_t lerpFlags[18];
-  int32_t lerpFlags2[18];
-  int32_t locBlendTime[18];
+  lobby::LobbyClientPool<bool> valid;
+  lobby::LobbyClientPool<uint8_t> flags;
+  lobby::LobbyClientPool<vec3_t> positions;
+  lobby::LobbyClientPool<vec3_t> angles;
+  lobby::LobbyClientPool<vec3_t> viewangles;
+  lobby::LobbyClientPool<playerAnimState_t> anim;
+  lobby::LobbyClientPool<int32_t> lerpFlags;
+  lobby::LobbyClientPool<int32_t> lerpFlags2;
+  lobby::LobbyClientPool<int32_t> locBlendTime;
   AntilagPlayerAnimState animStates[200];
-  int32_t animStatesPos[18];
-  int32_t animStatesCount[18];
+  lobby::LobbyClientPool<int32_t> animStatesPos;
+  lobby::LobbyClientPool<int32_t> animStatesCount;
   int32_t animStatesUsed;
-  clientControllers_t controllers[18];
+  lobby::LobbyClientPool<clientControllers_t> controllers;
 };
 static_assert(sizeof(clientsPositionArchive_t) == 0x1B9C,
               "sizeof(clientsPositionArchive_t) must equal 0x1B9C");

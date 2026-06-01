@@ -208,7 +208,7 @@ struct clientStatic_t {
   // vidConfig_t vidConfig;
   // vec3_t renderForward;
   // vec3_t renderPos;
-  // net::XNADDR xnaddrs[18];
+  // lobby::LobbyClientPool<net::XNADDR> xnaddrs;
   // uint8_t _padding3E7E[2];
   // volatile int32_t scriptError;
   // vec3_t debugRenderForward;

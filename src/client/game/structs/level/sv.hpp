@@ -7,6 +7,7 @@
 #include "../phys.hpp"
 #include "../ai.hpp"
 #include "../scr/scr.hpp"
+#include "../lobby.hpp"
 
 namespace game {
 
@@ -514,7 +515,7 @@ struct level_locals_t {
   bool clientIsSpawning;
   uint8_t _padding86[2];
   int32_t maxclients;
-  int32_t teamSortedClients[18];
+  lobby::LobbyClientPool<int32_t> teamSortedClients;
   uint8_t _paddingD4[12];
   objective_t objectives[128];
   int32_t objectivesClientMask[128][2];
@@ -565,7 +566,7 @@ struct level_locals_t {
   bool disable_grenade_suicide;
   uint8_t _paddingDE92[2];
   int32_t numConnectedClients;
-  ClientNum_t sortedClients[18];
+  lobby::LobbyClientPool<ClientNum_t> sortedClients;
   qboolean bUpdateScoresForIntermission;
   int32_t numVotingClients;
   uint8_t _paddingDEE8[8];

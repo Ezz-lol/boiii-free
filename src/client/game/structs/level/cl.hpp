@@ -658,11 +658,11 @@ struct __attribute__((aligned(16))) snapshot_s {
   int32_t numClients;
   int32_t numActors;
   entityState_t entities[1024];
-  clientState_t clients[18];
+  lobby::LobbyClientPool<clientState_t> clients;
   actorState_t actors[64];
   MatchState matchState;
   CasterState casterState;
-  CasterClientState casterClients[18];
+  lobby::LobbyClientPool<CasterClientState> casterClients;
   uint16_t entIndices[1024];
   int32_t serverCommandSequence;
 };
@@ -956,8 +956,8 @@ struct bgs_t {
   int32_t frametime;
   int32_t deltaTime;
   int32_t anim_user;
-  int32_t proneTime[18];
-  game::sv::clientInfo_t clientinfo[18];
+  lobby::LobbyClientPool<int32_t> proneTime;
+  lobby::LobbyClientPool<game::sv::clientInfo_t> clientinfo;
   user::actorInfo_t actorinfo[64];
   scr::bg::bgs_clientfieldapi_t clientFieldAPI;
   db::xasset::XModel *(*GetXModel)(const char *);
@@ -1397,7 +1397,7 @@ struct __attribute__((aligned(16))) cg_t {
   int32_t teamScores[21];
   int32_t teamPings[21];
   int32_t teamPlayers[21];
-  ClientNum_t scoreOrder[18];
+  lobby::LobbyClientPool<ClientNum_t> scoreOrder;
   scoreboardColumnType_t scoreboardColumnTypes[10];
   bool showScoreboard;
   HitMarker hitMarkers[20];
@@ -1538,7 +1538,7 @@ struct __attribute__((aligned(16))) cg_t {
   uint32_t priorStatusEffectsFlags;
   db::xasset::FxUniqueHandle viewPersistentEffectHandle;
   db::xasset::TagFxSetHandles viewPersistentEffectSetHandles;
-  db::xasset::FxUniqueHandle playerJukeEffects[18];
+  lobby::LobbyClientPool<db::xasset::FxUniqueHandle> playerJukeEffects;
   int32_t holdBreathTime;
   int32_t holdBreathInTime;
   int32_t holdBreathDelay;
@@ -1860,12 +1860,12 @@ struct __attribute__((aligned(16))) cg_t {
   ui::PlayerRoleModel clientRoleModel[19];
   anim::ObjectiveAnimData objectiveAnimData[128];
   int32_t activeSkiptos;
-  GrappleTargetInfo grappleInfo[18];
+  lobby::LobbyClientPool<GrappleTargetInfo> grappleInfo;
   SpeedBlur speedBlur;
   vec3_t AnimScriptStartOrigin;
   float AnimScriptStartYaw;
   float AnimScriptErrorYaw;
-  uint8_t wasPlayingAnimScript[18];
+  lobby::LobbyClientPool<bool> wasPlayingAnimScript;
   int32_t currentPlayerAnimScript;
   uint8_t SceneHolsterWeaponState;
   db::xasset::MaterialHandle zodBeastIconMaterial[4];

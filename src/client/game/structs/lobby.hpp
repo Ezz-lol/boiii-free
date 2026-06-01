@@ -7,6 +7,13 @@
 
 namespace game {
 namespace lobby {
+
+constexpr ClientNum_t MIN_PLAYERS = CLIENT_INDEX_0;
+constexpr ClientNum_t MAX_PLAYERS = ClientNum_t::CLIENT_INDEX_COUNT;
+template <typename T> using LobbyClientPool = array<T, MAX_PLAYERS>;
+template <typename T>
+using LobbyClientOptionalPool = array<std::optional<T>, MAX_PLAYERS>;
+
 enum class LobbyType : int32_t {
   INVALID = -1,
   PRIVATE = 0x0,
@@ -124,7 +131,7 @@ struct AgreementStatus {
 
 struct Agreement {
   int32_t nonce;
-  AgreementStatus status[18];
+  LobbyClientPool<AgreementStatus> status;
   int32_t requestCount;
   int32_t responseCount;
   int32_t agreeCount;
@@ -198,12 +205,6 @@ struct LobbyMsg {
   char encodeFlags;          // 0x3C
   int32_t packageType;       // 0x40
 };
-
-constexpr ClientNum_t MIN_PLAYERS = CLIENT_INDEX_0;
-constexpr ClientNum_t MAX_PLAYERS = ClientNum_t::CLIENT_INDEX_COUNT;
-template <typename T> using PerPlayer = array<T, MAX_PLAYERS>;
-template <typename T>
-using PerPlayerOptional = array<std::optional<T>, MAX_PLAYERS>;
 
 } // namespace lobby
 } // namespace game
