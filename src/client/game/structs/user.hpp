@@ -78,7 +78,7 @@ struct bot_t {
 ASSERT_SIZE(bot_t, 0x4B0);
 #pragma pack(pop)
 
-typedef bitarray::bitarray<32> serverFieldBits_t;
+typedef bitarray<32> serverFieldBits_t;
 #pragma pack(push, 1)
 struct usercmd_s {
   int32_t serverTime;

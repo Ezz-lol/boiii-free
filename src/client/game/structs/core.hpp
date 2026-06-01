@@ -842,8 +842,7 @@ struct clientActive_t {
   char __pad1[0x18C15C];
 };
 
-static_assert(sizeof(clientActive_t) == 0x197A30,
-              "clientActive_t size must be 0x197A30 bytes");
+ASSERT_SIZE(clientActive_t, 0x197A30);
 
 using fileHandle_t = void *;
 
@@ -934,31 +933,26 @@ enum class CharacterItemType : uint32_t {
 
 using BGEmblemBackgroundID = int16_t;
 
-namespace bitarray {
-
 #pragma pack(push, 1)
-template <size_t B> struct bitarray {
+template <const size_t B> struct bitarray {
   array<int32_t, (B + 31) / 32> data;
+
+  friend constexpr void set(bitarray<B> *b, size_t index) noexcept {
+    return b->data[index / 32] |= (1 << (index % 32));
+  }
+
+  friend constexpr void clear(bitarray<B> *b, size_t index) noexcept {
+    return b->data[index / 32] &= ~(1 << (index % 32));
+  }
+
+  friend constexpr bool get(bitarray<B> *b, size_t index) noexcept {
+    return (b->data[index / 32] & (1 << (index % 32))) != 0;
+  }
 };
 #pragma pack(pop)
 
-template <size_t B> void set(bitarray<B> *b, size_t index) {
-  return b->data[index / 32] |= (1 << (index % 32));
-}
-
-template <size_t B> void clear(bitarray<B> *b, size_t index) {
-  return b->data[index / 32] &= ~(1 << (index % 32));
-}
-
-template <size_t B> bool get(bitarray<B> *b, size_t index) {
-  return (b->data[index / 32] & (1 << (index % 32))) != 0;
-}
-} // namespace bitarray
-
-// sizeof=0xC
-typedef bitarray::bitarray<72> game_button_bits_t;
-static_assert(sizeof(game_button_bits_t) == 0xC,
-              "game_button_bits_t size must be 12 bytes");
+typedef bitarray<72> game_button_bits_t;
+ASSERT_SIZE(game_button_bits_t, 0xC);
 
 #pragma pack(push, 1)
 
@@ -988,7 +982,6 @@ enum class objectiveState_t : int32_t {
   NUMSTATES = 0x6,
 };
 
-// sizeof=0x10
 struct UIModelData {
   UIModelDataType dataType;
   uint8_t _padding04[4];
@@ -1003,7 +996,6 @@ struct UIModelData {
 };
 ASSERT_SIZE(UIModelData, 0x10);
 
-// sizeof=0x20
 struct objectiveUIModel_t {
   UIModelData modelData;
   int32_t modelName;
@@ -1011,7 +1003,6 @@ struct objectiveUIModel_t {
 };
 
 #pragma pack(push, 1)
-// sizeof=0xC0
 struct objective_t {
   objectiveState_t objState;
   vec3_t origin;
@@ -1074,14 +1065,12 @@ enum scoreboardColumnType_t : int32_t {
   NUM_SB_TYPES = 0x24,
 };
 
-// sizeof=0x10
 struct uint128_t {
   uint64_t low;
   uint64_t high;
 };
-static_assert(sizeof(uint128_t) == 0x10, "uint128_t size must be 16 bytes");
+ASSERT_SIZE(uint128_t, 0x10);
 
-// sizeof=0x10
 struct renderOptions_t {
   union {
     struct {
@@ -1131,7 +1120,6 @@ ASSERT_SIZE(renderOptions_t, 0x10);
 
 typedef uint16_t modelNameIndex_t;
 
-// sizeof=0x4
 class EntHandle {
 public:
   uint16_t number;

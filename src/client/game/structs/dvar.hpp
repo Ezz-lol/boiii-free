@@ -171,6 +171,7 @@ public:
     return static_cast<uint32_t>(lhs) != rhs._raw;
   }
 };
+ASSERT_SIZE(DvarFlags, sizeof(uint32_t));
 #pragma pack(pop)
 
 /*
