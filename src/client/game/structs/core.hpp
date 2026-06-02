@@ -240,6 +240,27 @@ inline LocalClientNum_t operator++(LocalClientNum_t &s, int) {
   return temp;
 }
 
+enum class LocalClientNum8_t : int8_t {
+  INVALID_LOCAL_CLIENT = -1,
+  LOCAL_CLIENT_0 = 0x0,
+  LOCAL_CLIENT_FIRST = 0x0,
+  LOCAL_CLIENT_KEYBOARD_AND_MOUSE = 0x0,
+  LOCAL_CLIENT_1 = 0x1,
+  LOCAL_CLIENT_COUNT = 0x2,
+};
+
+inline LocalClientNum8_t &operator++(LocalClientNum8_t &s) {
+  using underlying = std::underlying_type_t<LocalClientNum8_t>;
+  s = static_cast<LocalClientNum8_t>(static_cast<underlying>(s) + 1);
+  return s;
+}
+
+inline LocalClientNum8_t operator++(LocalClientNum8_t &s, int) {
+  LocalClientNum8_t temp = s;
+  ++s;
+  return temp;
+}
+
 enum class eGameModes : int32_t {
   MATCHMAKING_PLAYLIST = 0x0,
   MATCHMAKING_MANUAL = 0x1,

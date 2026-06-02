@@ -232,6 +232,7 @@ struct ClientLoopSoundInfo {
   snd::LoopSoundInfo loopSound;
   snd::SndPlaybackId handle;
 };
+ASSERT_SIZE(ClientLoopSoundInfo, 0xC);
 
 struct clientControllers_t {
   vec3_t angles[6];
@@ -249,6 +250,7 @@ struct CEntPlayerInfo {
   vec3_t viewangles;
   uint8_t _padding2C[4];
 };
+ASSERT_SIZE(CEntPlayerInfo, 0x30);
 #pragma pack(pop)
 
 struct CEntVehicleDefGround {
@@ -311,6 +313,7 @@ struct CEntVehicleDef {
     CEntVehicleDefAir air;
   };
 };
+ASSERT_SIZE(CEntVehicleDef, 0xD8);
 
 struct AimTargetCache {
   int32_t lastUpdateTime;
@@ -458,12 +461,14 @@ struct GfxEntityPreFrame {
   uint8_t _padding54[4];
   db::xasset::XSurfaceShared *blendShapeVertOffsetLastShared;
 };
+ASSERT_SIZE(GfxEntityPreFrame, 0x60);
 #pragma pack(pop)
 
 struct CEntFx {
   int32_t triggerTime;
   db::xasset::FxUniqueHandle effect;
 };
+ASSERT_SIZE(CEntFx, 0x8);
 #pragma pack(push, 1)
 struct CEntActorInfo {
   int32_t proneType;
@@ -482,6 +487,7 @@ struct CEntActorInfo {
   uint8_t lookAtFlags;
   uint8_t _padding25[3];
 };
+ASSERT_SIZE(CEntActorInfo, 0x28);
 #pragma pack(pop)
 
 struct CEntGeneral {
@@ -491,13 +497,14 @@ struct CEntGeneral {
   vec3_t maxs;
   int32_t triggerflags;
 };
+ASSERT_SIZE(CEntGeneral, 0x24);
 
 #pragma pack(push, 1)
 struct cpose_t {
-  uint8_t eType;
-  uint8_t eTypePrev;
-  uint8_t localClientNum;
-  uint8_t isRagdoll;
+  entityType8_t eType;
+  entityType8_t eTypePrev;
+  LocalClientNum8_t localClientNum;
+  bool isRagdoll;
   uint16_t sceneModelSeed;
   uint8_t _padding06[2];
   intptr_t ragdollHandle;
@@ -521,16 +528,19 @@ struct cpose_t {
     CEntGeneral general;
   };
   gfx::ShaderConstantSet constantSet;
-  uint8_t skipControllers;
-  uint8_t _padding221[7];
+  bool skipControllers;
+  uint8_t _padding221[3];
 };
+ASSERT_SIZE(cpose_t, 0x330);
 #pragma pack(pop)
 
+#pragma pack(push, 1)
 struct centity_t {
   cpose_t pose;
   LerpEntityState prevState;
   entityState_t nextState;
   int16_t previousEventSequence;
+  uint8_t _padding5EA[2];
   int32_t spawnTime;
   union {
     int32_t miscTime;
@@ -538,7 +548,7 @@ struct centity_t {
   };
   int32_t lastMuzzleFlash;
   int32_t numShotsFiredLast;
-  bool attachWeaponModel;
+  qboolean attachWeaponModel;
   anim::XAnimTree *tree;
   phys::Destructible *destructible;
   vehicle::NitrousVehicle *nitrousVeh;
@@ -554,6 +564,7 @@ struct centity_t {
   Character *character;
   CEntityModelAttachment attachments[8];
   db::xasset::FxUniqueHandle worldPersistentEffectHandle;
+  uint8_t _padding6AC[4];
   db::xasset::TagFxSetHandles worldPersistentEffectSetHandles;
   db::xasset::MaterialHandle compassMaterial;
   int32_t lastTrailTime;
@@ -561,9 +572,11 @@ struct centity_t {
   db::xasset::FxUniqueHandle fxProjExplosion;
   db::xasset::FxUniqueHandle fxHeartbeat;
   db::xasset::FxUniqueHandle fxLaserSight;
+  uint8_t _padding6FC[4];
   db::xasset::ManagedNoteTrackList managedNotetracks;
   vec3_t oldLinkOrigin;
   uint8_t tracerDrawRateCounter;
+  uint8_t _padding805[3];
   centity_t *updateDelayedNext;
   scr::ScrString_t classname;
   uint32_t stepSound;
@@ -575,14 +588,17 @@ struct centity_t {
   uint16_t duplicateRenderIndex;
   anim::AnimScriptedState animScripted;
   uint16_t animScriptedOverrideIndex;
+  uint8_t _padding83E[2];
   anim::TraversalState traversalState;
   uint8_t corpseIndex;
+  uint8_t _padding89D[3];
   centity_overheadName_t *overheadName;
   ArmPulse armPulse;
   IdentitySightState identitySight;
   ClientLoopSoundInfo loopSounds[4];
   int32_t lastAimTargetVisCheckTime;
   int32_t lastMeleeTargetClearanceCheckTime;
+  uint8_t _padding8F4[4];
   union {
     uint64_t packed_bits[2];
     struct {
@@ -636,6 +652,13 @@ struct centity_t {
     };
   };
 };
+ASSERT_SIZE(centity_t, 0x908);
+ASSERT_OFFSET(centity_t, tmodeVisibilityEntity, 0x821);
+ASSERT_OFFSET(centity_t, tmodeFlags, 0x822);
+ASSERT_OFFSET(centity_t, miscTime, 0x5F0);
+ASSERT_OFFSET(centity_t, loopSounds, 0x8BC);
+ASSERT_OFFSET(centity_t, lastAimTargetVisCheckTime, 0x8EC);
+#pragma pack(pop)
 
 struct ExtentBounds {
   vec3_t mins;

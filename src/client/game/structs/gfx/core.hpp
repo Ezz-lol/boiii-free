@@ -309,11 +309,13 @@ struct GpuShaderConstantSet {
   vec4_t characterParam6;
   vec4_t characterParam7;
 };
+ASSERT_SIZE(GpuShaderConstantSet, 0x180);
 
 struct ShaderConstantSet {
   GpuShaderConstantSet values;
   uint32_t used;
 };
+ASSERT_SIZE(ShaderConstantSet, 0x184);
 
 union GfxSimpleBuffer {
   struct {

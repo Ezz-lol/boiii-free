@@ -1308,7 +1308,7 @@ public:
         // TODO: Find a way to do a full shutdown & restart like in frontend,
         // that opens up the loading screen that can't be easily closed
         rawfile_source_cache.clear();
-        game::cg::CG_LUIHUDRestart(0);
+        game::cg::CG_LUIHUDRestart(game::LOCAL_CLIENT_0);
       }
     });
 

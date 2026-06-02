@@ -390,6 +390,7 @@ struct EntityModelAttachment {
 #pragma pack(push, 1)
 struct gentity_s {
   entityState_t s;
+  uint8_t _unknown1E8[8];
   entityShared_t r;
   gclient_t *client;
   user::actor_t *actor;

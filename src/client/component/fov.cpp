@@ -7,9 +7,9 @@
 
 namespace fov {
 namespace {
-void cg_calc_fov_stub(const int local_client_num, float *fov_x,
-                      float *dx_dz_at_default_aspect_ratio, float *dx_dz,
-                      float *dy_dz) {
+void cg_calc_fov_stub(const game::LocalClientNum_t local_client_num,
+                      float *fov_x, float *dx_dz_at_default_aspect_ratio,
+                      float *dx_dz, float *dy_dz) {
   game::cg::CG_CalcFOVfromLens.call_safe(
       local_client_num, fov_x, dx_dz_at_default_aspect_ratio, dx_dz, dy_dz);
 
