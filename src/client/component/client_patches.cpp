@@ -252,11 +252,11 @@ void Hunk_UserFree_ResetGlobal(game::hunk::HunkUser *user, T *ptr) {
 void store_obfuscated_alloc_ptrs() {
   utils::hook::call(0x140840929_g,
                     reinterpret_cast<void *>(
-                        Hunk_UserAlloc_StoreGlobal<game::level::cl::cg_t,
+                        Hunk_UserAlloc_StoreGlobal<game::level::cl::cgPool,
                                                    game::cg::cgArray_store>));
   utils::hook::call(0x1408421C3_g,
                     reinterpret_cast<void *>(
-                        Hunk_UserAlloc_StoreGlobal<game::level::cl::cgs_t,
+                        Hunk_UserAlloc_StoreGlobal<game::level::cl::cgsPool,
                                                    game::cg::cgsArray_store>));
   utils::hook::call(
       0x140843A4F_g,
@@ -281,11 +281,11 @@ void store_obfuscated_alloc_ptrs() {
                                     game::cg::cg_viewModelArray_store>));
   utils::hook::call(0x140855728_g,
                     reinterpret_cast<void *>(
-                        Hunk_UserFree_ResetGlobal<game::level::cl::cgs_t,
+                        Hunk_UserFree_ResetGlobal<game::level::cl::cgsPool,
                                                   game::cg::cgsArray_store>));
   utils::hook::call(0x140856EC3_g,
                     reinterpret_cast<void *>(
-                        Hunk_UserFree_ResetGlobal<game::level::cl::cg_t,
+                        Hunk_UserFree_ResetGlobal<game::level::cl::cgPool,
                                                   game::cg::cgArray_store>));
 
   utils::hook::call(0x1419D7E22_g,

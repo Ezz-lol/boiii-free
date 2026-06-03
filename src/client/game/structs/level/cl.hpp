@@ -1905,6 +1905,12 @@ struct __attribute__((aligned(16))) cg_t {
   phys::objcamCameraState objectiveCameraState;
   entityMinimapVisionInfo entityMinimapVision;
 };
+// TODO: Correct size is 0x342720. This struct needs corrected.
+// ASSERT_SIZE(cg_t, 0x342720);
+
+struct cgPool {
+  LocalClientPool<cg_t> pool;
+};
 
 struct __attribute__((aligned(8))) cgs_t {
   int viewX;
@@ -1942,6 +1948,9 @@ struct __attribute__((aligned(8))) cgs_t {
   sv::clientInfo_t corpseinfo[6];
   user::actorInfo_t actorCorpseInfo[32];
   bool entUpdateToggleContextKey;
+};
+struct cgsPool {
+  LocalClientPool<cgs_t> pool;
 };
 
 } // namespace cl

@@ -5,9 +5,9 @@
 
 namespace game {
 namespace cg {
-std::atomic<level::cl::cg_t *> cgArray_store = nullptr;
-level::cl::cg_t *get_cgArray() {
-  level::cl::cg_t *array = cgArray_store.load(std::memory_order_seq_cst);
+std::atomic<level::cl::cgPool *> cgArray_store = nullptr;
+level::cl::cgPool *get_cgArray() {
+  level::cl::cgPool *array = cgArray_store.load(std::memory_order_seq_cst);
 
 #ifdef GAME_HPP
   if (array == nullptr) {
@@ -18,9 +18,9 @@ level::cl::cg_t *get_cgArray() {
   return array;
 }
 
-std::atomic<level::cl::cgs_t *> cgsArray_store = nullptr;
-level::cl::cgs_t *get_cgsArray() {
-  level::cl::cgs_t *array = cgsArray_store.load(std::memory_order_seq_cst);
+std::atomic<level::cl::cgsPool *> cgsArray_store = nullptr;
+level::cl::cgsPool *get_cgsArray() {
+  level::cl::cgsPool *array = cgsArray_store.load(std::memory_order_seq_cst);
 
 #ifdef GAME_HPP
   if (array == nullptr) {
