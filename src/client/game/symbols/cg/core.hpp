@@ -13,8 +13,23 @@ WEAK symbol<void(LocalClientNum_t localClientNum, float *fov_x,
     CG_CalcFOVfromLens{0x1404D6230};
 
 WEAK symbol<void(LocalClientNum_t localClientNum, level::cl::centity_t *cent,
-                 level::entityEvent32_t event)>
+                 level::entityEvent_t event)>
     CG_EntityEvent{0x140776DA0, 0x1400CC160};
+
+extern std::atomic<level::cl::cg_t *> cgArray_store;
+level::cl::cg_t *get_cgArray();
+WEAK symbol<level::cl::cg_t *> cgArray{0x144D17C80};
+extern std::atomic<level::cl::cgs_t *> cgsArray_store;
+level::cl::cgs_t *get_cgsArray();
+WEAK symbol<level::cl::cgs_t *> cgsArray{0x144D17B70};
+
+extern std::atomic<anim::ViewModelInfo *> cg_viewModelArray_store;
+anim::ViewModelInfo *get_cg_viewModelArray();
+WEAK symbol<anim::ViewModelInfo *> cg_viewModelArray{0x1449D9428};
+extern std::atomic<ClientPlayerAttachmentInfo *> cg_attachmentsArray_store;
+ClientPlayerAttachmentInfo *get_cg_attachmentsArray();
+WEAK symbol<ClientPlayerAttachmentInfo *> cg_attachmentsArray{0x1449D9420};
+
 } // namespace cg
 } // namespace game
 

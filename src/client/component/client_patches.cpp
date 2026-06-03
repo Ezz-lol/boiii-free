@@ -220,15 +220,79 @@ void live_delayed_com_error_stub(const char *comErrorString, int32_t code) {
 
 utils::hook::detour CL_CheckForResendHook;
 
-game::level::gentity_pool *store_g_entities_cl_allocation(size_t size) {
-  game::level::gentity_pool *result =
-      reinterpret_cast<game::level::gentity_pool *>(malloc(size));
-  game::level::g_entities_cl_allocation.store(result,
-                                              std::memory_order_seq_cst);
+
+template <typename T, std::atomic<T *> &storage> T *malloc_store(size_t size) {
+  T *result = reinterpret_cast<T *>(malloc(size));
+  storage.store(result, std::memory_order_seq_cst);
 
   return result;
 }
 
+template <typename T, std::atomic<T *> &storage> void free_zero(T *ptr) {
+  free(ptr);
+  storage.store(nullptr, std::memory_order_seq_cst);
+}
+
+template <typename T, std::atomic<T *> &storage>
+T *Hunk_UserAlloc_StoreGlobal(game::hunk::HunkUser *user, size_t size,
+                              int32_t alignment, const char *name) {
+  T *result = reinterpret_cast<T *>(
+      game::hunk::Hunk_UserAlloc(user, size, alignment, name));
+  storage.store(result, std::memory_order_seq_cst);
+
+  return result;
+}
+
+template <typename T, std::atomic<T *> &storage>
+void Hunk_UserFree_ResetGlobal(game::hunk::HunkUser *user, T *ptr) {
+  game::hunk::Hunk_UserFree(user, reinterpret_cast<void *>(ptr));
+  storage.store(nullptr, std::memory_order_seq_cst);
+}
+
+void store_obfuscated_alloc_ptrs() {
+  utils::hook::call(0x140840929_g,
+                    reinterpret_cast<void *>(
+                        Hunk_UserAlloc_StoreGlobal<game::level::cl::cg_t,
+                                                   game::cg::cgArray_store>));
+  utils::hook::call(0x1408421C3_g,
+                    reinterpret_cast<void *>(
+                        Hunk_UserAlloc_StoreGlobal<game::level::cl::cgs_t,
+                                                   game::cg::cgsArray_store>));
+  utils::hook::call(
+      0x140843A4F_g,
+      reinterpret_cast<void *>(
+          Hunk_UserAlloc_StoreGlobal<game::anim::ViewModelInfo,
+                                     game::cg::cg_viewModelArray_store>));
+  utils::hook::call(
+      0x140843A70_g,
+      reinterpret_cast<void *>(
+          Hunk_UserAlloc_StoreGlobal<game::cg::ClientPlayerAttachmentInfo,
+                                     game::cg::cg_attachmentsArray_store>));
+
+  utils::hook::call(
+      0x140853E13_g,
+      reinterpret_cast<void *>(
+          Hunk_UserFree_ResetGlobal<game::cg::ClientPlayerAttachmentInfo,
+                                    game::cg::cg_attachmentsArray_store>));
+  utils::hook::call(
+      0x140853E22_g,
+      reinterpret_cast<void *>(
+          Hunk_UserFree_ResetGlobal<game::anim::ViewModelInfo,
+                                    game::cg::cg_viewModelArray_store>));
+  utils::hook::call(0x140855728_g,
+                    reinterpret_cast<void *>(
+                        Hunk_UserFree_ResetGlobal<game::level::cl::cgs_t,
+                                                  game::cg::cgsArray_store>));
+  utils::hook::call(0x140856EC3_g,
+                    reinterpret_cast<void *>(
+                        Hunk_UserFree_ResetGlobal<game::level::cl::cg_t,
+                                                  game::cg::cgArray_store>));
+
+  utils::hook::call(0x1419D7E22_g,
+                    reinterpret_cast<void *>(
+                        malloc_store<game::level::gentity_pool,
+                                     game::level::g_entities_cl_allocation>));
+}
 } // namespace
 
 class component final : public client_component {
@@ -237,6 +301,7 @@ public:
 
   void post_unpack() override {
 
+    store_obfuscated_alloc_ptrs();
     replace_sd_allocator();
 
     fix_amd_cpu_stuttering();
@@ -325,7 +390,6 @@ public:
 
     CL_CheckForResendHook.create(game::cl::CL_CheckForResend.get(),
                                  game::cl::CL_CheckForResend_Impl);
-    utils::hook::call(0x1419D7E22_g, store_g_entities_cl_allocation);
 
     patch_players_folder_name();
   }

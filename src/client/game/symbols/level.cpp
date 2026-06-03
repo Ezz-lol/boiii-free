@@ -1,5 +1,6 @@
 #include "level.hpp"
 #include "../structs/structs.hpp"
+#include <atomic>
 
 namespace game {
 namespace level {

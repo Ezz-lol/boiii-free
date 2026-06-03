@@ -1906,6 +1906,44 @@ struct __attribute__((aligned(16))) cg_t {
   entityMinimapVisionInfo entityMinimapVision;
 };
 
+struct __attribute__((aligned(8))) cgs_t {
+  int viewX;
+  int viewY;
+  int viewWidth;
+  int viewHeight;
+  float viewAspect;
+  float sceneViewportX;
+  float sceneViewportY;
+  float sceneViewportWidth;
+  float sceneViewportHeight;
+  int serverCommandSequence;
+  int processedSnapshotNum;
+  bool localServer;
+  char gametype[32];
+  char szHostName[256];
+  int maxclients;
+  int privateClients;
+  char mappath[64];
+  char mapname[32];
+  int gameEndTime;
+  int voteTime;
+  int voteYes;
+  int voteNo;
+  char voteString[256];
+  int redCrosshair;
+  db::xasset::FxEffectDefHandle fxs[1280];
+  db::xasset::FxEffectDefHandle killcamRewindFx[75];
+  int killcamRewindFxCount;
+  db::xasset::FxEffectDefHandle playerFireFx[3];
+  ShellshockParams *holdBreathParams;
+  float compassWidth;
+  float compassHeight;
+  float compassY;
+  sv::clientInfo_t corpseinfo[6];
+  user::actorInfo_t actorCorpseInfo[32];
+  bool entUpdateToggleContextKey;
+};
+
 } // namespace cl
 } // namespace level
 } // namespace game

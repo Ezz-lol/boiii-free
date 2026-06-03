@@ -16,6 +16,7 @@
 #include "game.hpp"      // IWYU pragma: export
 #include "gfx.hpp"       // IWYU pragma: export
 #include "glasssv.hpp"   // IWYU pragma: export
+#include "hunk.hpp"      // IWYU pragma: export
 #include "info.hpp"      // IWYU pragma: export
 #include "jq.hpp"        // IWYU pragma: export
 #include "level.hpp"     // IWYU pragma: export

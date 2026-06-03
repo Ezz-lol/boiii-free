@@ -1031,5 +1031,23 @@ struct animScriptData_t {
   void (*playSoundAlias)(ClientNum_t, snd::SndAliasList *);
 };
 
+struct __attribute__((aligned(4))) ViewModelHand {
+  int32_t iHandAnimIndex;
+  animationNumber_t iPrevAnim;
+};
+
+struct __attribute__((aligned(8))) ViewModelInfo {
+  DObj *viewModelDObj;
+  DObj *viewModelDObjLegs;
+  weapon::WeaponDobjInfo weaponDobjInfo;
+  bool hasAnimTree;
+  XAnimTree *tree;
+  XAnim *anims;
+  unsigned int partBits[12];
+  ViewModelHand hand[2];
+  db::xasset::XModelPtr altModels[4];
+  uint32_t numAltModels;
+};
+
 } // namespace anim
 } // namespace game

@@ -57,5 +57,9 @@ struct ClientUIActives {
   clientUIActive_t actives[2];
 };
 
+struct ClientPlayerAttachmentInfo {
+  const char *translatedDisplayName;
+};
+
 } // namespace cg
 } // namespace game
