@@ -61,5 +61,9 @@ struct ClientPlayerAttachmentInfo {
   const char *translatedDisplayName;
 };
 
+struct CGFakeEntitiesInuseBitArray {
+  LocalClientPool<bitarray<768>> inUse;
+};
+
 } // namespace cg
 } // namespace game

@@ -13,6 +13,10 @@ constexpr ClientNum_t MAX_PLAYERS = ClientNum_t::CLIENT_INDEX_COUNT;
 template <typename T> using LobbyClientPool = array<T, MAX_PLAYERS>;
 template <typename T>
 using LobbyClientOptionalPool = array<std::optional<T>, MAX_PLAYERS>;
+template <typename T> using AtomicLobbyClientPool = atomicarray<T, MAX_PLAYERS>;
+template <typename T>
+using AtomicLobbyClientOptionalPool =
+    atomicarray<std::optional<T>, MAX_PLAYERS>;
 
 enum class LobbyType : int32_t {
   INVALID = -1,

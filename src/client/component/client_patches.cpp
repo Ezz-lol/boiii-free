@@ -10,6 +10,7 @@
 #include <game/impl/snd/snd.hpp>
 #include <game/impl/snd/sd/sd.hpp>
 #include <game/impl/cl/cl.hpp>
+#include <game/impl/cg/cg.hpp>
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -220,7 +221,6 @@ void live_delayed_com_error_stub(const char *comErrorString, int32_t code) {
 
 utils::hook::detour CL_CheckForResendHook;
 
-
 template <typename T, std::atomic<T *> &storage> T *malloc_store(size_t size) {
   T *result = reinterpret_cast<T *>(malloc(size));
   storage.store(result, std::memory_order_seq_cst);
@@ -249,7 +249,20 @@ void Hunk_UserFree_ResetGlobal(game::hunk::HunkUser *user, T *ptr) {
   storage.store(nullptr, std::memory_order_seq_cst);
 }
 
+utils::hook::detour CG_InitAndAllocCGEntsArray_hook;
+utils::hook::detour CG_FreeCGEnts_hook;
+utils::hook::detour CG_ClearCGEnts_hook;
+
 void store_obfuscated_alloc_ptrs() {
+
+  CG_InitAndAllocCGEntsArray_hook.create(
+      game::cg::CG_InitAndAllocCGEntsArray.get(),
+      game::cg::CG_InitAndAllocCGEntsArray_Impl);
+  CG_FreeCGEnts_hook.create(game::cg::CG_FreeCGEnts.get(),
+                            game::cg::CG_FreeCGEnts_Impl);
+  CG_ClearCGEnts_hook.create(game::cg::CG_ClearCGEnts.get(),
+                             game::cg::CG_ClearCGEnts_Impl);
+
   utils::hook::call(0x140840929_g,
                     reinterpret_cast<void *>(
                         Hunk_UserAlloc_StoreGlobal<game::level::cl::cgPool,

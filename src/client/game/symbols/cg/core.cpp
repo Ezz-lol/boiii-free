@@ -58,5 +58,32 @@ ClientPlayerAttachmentInfo *get_cg_attachmentsArray() {
 
   return array;
 }
+
+level::cl::AtomicLocalClientCentityPools cg_entitiesArray_store = {nullptr,
+                                                                   nullptr};
+
+level::cl::LocalClientCentityPools get_cg_entitiesArray() {
+  level::cl::LocalClientCentityPools result = {nullptr, nullptr};
+
+  for (LocalClientNum_t idx = game::LOCAL_CLIENT_0;
+       idx < game::LOCAL_CLIENT_COUNT; idx++) {
+    result.pools[idx] =
+        cg_entitiesArray_store[idx].load(std::memory_order_seq_cst);
+#ifdef GAME_HPP
+    if (result[idx] == nullptr) {
+      result[idx] = cg_entitiesArray->pools[idx];
+    }
+#endif
+  }
+
+  return result;
+}
+
+void clear_cgEntitiesArray_store() {
+  for (LocalClientNum_t idx = game::LOCAL_CLIENT_0;
+       idx < game::LOCAL_CLIENT_COUNT; idx++) {
+    cg_entitiesArray_store[idx].store(nullptr, std::memory_order_seq_cst);
+  }
+}
 } // namespace cg
 } // namespace game

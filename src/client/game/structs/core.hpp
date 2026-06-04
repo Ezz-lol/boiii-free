@@ -5,6 +5,7 @@
 #include <stdfloat>
 #include <csetjmp>
 #include <variant>
+#include <atomic>
 
 #define PROTOCOL 8
 #define SUB_PROTOCOL 1
@@ -352,7 +353,8 @@ enum class errorCode : uint32_t {
 };
 
 template <typename T, const auto N> using array = T[N];
-
+template <typename T, const auto N>
+using atomicarray = array<std::atomic<T>, N>;
 template <typename T, const auto X, const auto Y>
 using matrix2d = array<array<T, Y>, X>;
 
@@ -360,6 +362,8 @@ constexpr uint32_t PLAYER_NAME_MAX_LEN = 32;
 constexpr uint32_t PLAYER_CLAN_ABBREV_MAX_LEN = 8;
 
 template <typename T> using LocalClientPool = array<T, LOCAL_CLIENT_COUNT>;
+template <typename T>
+using AtomicLocalClientPool = atomicarray<T, LOCAL_CLIENT_COUNT>;
 
 template <typename ClientType, typename ServerType>
 using EngineDependent = std::variant<ClientType, ServerType>;
@@ -968,6 +972,12 @@ template <const size_t B> struct bitarray {
 
   friend constexpr bool get(bitarray<B> *b, size_t index) noexcept {
     return (b->data[index / 32] & (1 << (index % 32))) != 0;
+  }
+
+  friend constexpr void reset(bitarray<B> *b) noexcept {
+    for (uint32_t i = 0; i < ARRAYSIZE(b->data); ++i) {
+      b->data[i] = 0;
+    }
   }
 };
 #pragma pack(pop)

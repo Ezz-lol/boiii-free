@@ -600,7 +600,7 @@ struct centity_t {
   int32_t lastMeleeTargetClearanceCheckTime;
   uint8_t _padding8F4[4];
   union {
-    uint64_t packed_bits[2];
+    uint64_t packed_bits;
     struct {
       uint64_t applyLeftHandIK : 1;
       uint64_t nextValid : 1;
@@ -652,7 +652,7 @@ struct centity_t {
     };
   };
 };
-ASSERT_SIZE(centity_t, 0x908);
+ASSERT_SIZE(centity_t, 0x900); // correct
 ASSERT_OFFSET(centity_t, tmodeVisibilityEntity, 0x821);
 ASSERT_OFFSET(centity_t, tmodeFlags, 0x822);
 ASSERT_OFFSET(centity_t, miscTime, 0x5F0);
@@ -1292,6 +1292,13 @@ struct CompassScrambler {
   int handle;
 };
 
+template <typename T> using CentityPool = array<T, 0x700>;
+
+struct centityPool_t {
+  CentityPool<centity_t> entities;
+};
+ASSERT_SIZE(centityPool_t, 0x3F0000);
+
 struct __attribute__((aligned(16))) cg_t {
 
   struct FogSettings {
@@ -1397,11 +1404,11 @@ struct __attribute__((aligned(16))) cg_t {
   vec3_t radiantCameraOrigin;
   vec3_t radiantCameraAngles;
   bool radiantCamInUse;
-  int32_t iEntityLastType[1792];
-  db::xasset::XModel *pEntityLastXModel[1792];
-  bool bEntityDObjDirty[1792];
+  CentityPool<int32_t> iEntityLastType;
+  CentityPool<db::xasset::XModel *> pEntityLastXModel;
+  CentityPool<bool> bEntityDObjDirty;
   bool anyClientDObjChanged;
-  int32_t iEntityLastAnimtree[1792];
+  CentityPool<int32_t> iEntityLastAnimtree;
   bool isLoading;
   char objectiveText[1024];
   SettingTeamIndicator teamIndicator;
@@ -1892,9 +1899,9 @@ struct __attribute__((aligned(16))) cg_t {
   int32_t currentPlayerAnimScript;
   uint8_t SceneHolsterWeaponState;
   db::xasset::MaterialHandle zodBeastIconMaterial[4];
-  int32_t zodBeastIconType[1792];
-  vec3_t zodBeastIconPos[1792];
-  int32_t zodBeastIconTime[1792];
+  CentityPool<int32_t> zodBeastIconType;
+  CentityPool<vec3_t> zodBeastIconPos;
+  CentityPool<int32_t> zodBeastIconTime;
   bool checkPointRestored;
   uint32_t centInCheckpointSnapshot[32];
   bool aggressiveCullAllowed;
@@ -1952,6 +1959,12 @@ struct __attribute__((aligned(8))) cgs_t {
 struct cgsPool {
   LocalClientPool<cgs_t> pool;
 };
+
+struct LocalClientCentityPools {
+  LocalClientPool<centityPool_t *> pools;
+};
+
+typedef AtomicLocalClientPool<centityPool_t *> AtomicLocalClientCentityPools;
 
 } // namespace cl
 } // namespace level
