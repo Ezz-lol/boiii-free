@@ -428,7 +428,6 @@ const std::string ZM_DLC_MAPS[] = {
     "zm_temple",     "zm_sumpf",   "zm_factory", "zm_asylum"};
 
 bool is_zm_dlc_map(const std::string &mapname) {
-
   for (const std::string &dlcMap : ZM_DLC_MAPS) {
     if (dlcMap == mapname) {
       return true;
