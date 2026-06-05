@@ -33,7 +33,6 @@ typedef void *UnknownPtr;
 template <std::size_t Actual, std::size_t Expected>
 concept ValueMatches = (Actual == Expected);
 
-// 2. Wrap your macros around the concept
 #define ASSERT_SIZE(type, size)                                                \
   static_assert(ValueMatches<sizeof(type), (size)>, "Size mismatch "           \
                                                     "for " #type)
