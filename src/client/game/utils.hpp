@@ -97,9 +97,11 @@ concept EnumType = std::is_enum_v<E>;
 
 template <EnumType T, const T MinValue, const T MaxValue>
 inline constexpr bool valid(T enum_val) {
-  uint32_t casted = static_cast<uint32_t>(enum_val);
-  return casted >= static_cast<uint32_t>(MinValue) &&
-         casted < static_cast<uint32_t>(MaxValue);
+  using Underlying = std::underlying_type_t<T>;
+
+  Underlying casted = static_cast<Underlying>(enum_val);
+  return casted >= static_cast<Underlying>(MinValue) &&
+         casted < static_cast<Underlying>(MaxValue);
 }
 
 inline constexpr bool valid_client_num(ClientNum_t clientNum) {
