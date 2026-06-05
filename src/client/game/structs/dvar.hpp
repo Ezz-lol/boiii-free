@@ -46,7 +46,6 @@ enum dvarFlags_e : uint32_t {
   DVAR_SESSIONMODE = 1 << 15,
   // Modvars have flags |= DVAR_MODVAR|DVAR_SESSIONMODE -
   // dvars specific to mod session
-
   DVAR_MODVAR = 1 << 17
 };
 
@@ -219,6 +218,7 @@ union DvarColor {
     return raw[index];
   }
 };
+ASSERT_SIZE(DvarColor, 4);
 #pragma pack(pop)
 
 struct dvar_t;
@@ -239,12 +239,13 @@ struct DvarValue {
     float value;
     vec4_t vector;
     const char *string;
-    DvarColor color[4];
+    DvarColor color;
     const dvar_t *indirect[3];
   } value;
 
   uint64_t encryptedValue;
 };
+ASSERT_SIZE(DvarValue, 0x20);
 
 union DvarLimits {
   struct {
