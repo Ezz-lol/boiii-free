@@ -405,10 +405,15 @@ void AllocatePerLocalClientMemory_Impl(LocalClientNum_t maxLocalClients,
                                        ClientNum_t maxClients,
                                        clientAllocFlags_t flags) {
 
+  // Free existing allocations
   fx::FX_ShutdownLensFlareSystem();
   CL_FreePerLocalClientMemory(true);
-  flags.dryRun = 1;
 
+  /*
+     Create empty allocations of required size
+     using initial dry-run allocations
+  */
+  flags.dryRun = 1;
   hunk::HunkUserNull nullUser;
   hunk::HunkUser *user = hunk::Hunk_UserCreateNull(&nullUser);
   cg::CG_AllocateClientMemory_Impl(user, maxLocalClients);
@@ -429,6 +434,8 @@ void AllocatePerLocalClientMemory_Impl(LocalClientNum_t maxLocalClients,
       hunk::HU_ALLOCATION_SCHEME::HU_SCHEME_DEFAULT, 8u, nullptr,
       "clientOnlyHunk", 0x1A);
   hunk::Hunk_UserDefaultReset(*hunk::s_localClientHunk);
+
+  // Populate/initialize empty allocations
   flags.dryRun = 0;
   cg::CG_AllocateClientMemory_Impl(*hunk::s_localClientHunk, maxLocalClients);
   fx::FX_AllocateClientMemory(*hunk::s_localClientHunk, maxLocalClients,
@@ -436,6 +443,8 @@ void AllocatePerLocalClientMemory_Impl(LocalClientNum_t maxLocalClients,
   CL_AllocateClientMemory_Impl(*hunk::s_localClientHunk, maxLocalClients,
                                maxClients, flags);
   Checkpoint_Init(*hunk::s_localClientHunk, flags);
+
+  // Store allocation params for reference later
   *cl_maxLocalClients = maxLocalClients;
   *cl_allocatedClients = maxClients;
   *cl_lastAllocFlags = flags;
