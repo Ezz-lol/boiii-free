@@ -70,16 +70,14 @@ void CG_AllocateClientMemory_Impl(hunk::HunkUser *hunk,
       reinterpret_cast<level::cl::cgPool *>(hunk::Hunk_UserAlloc(
           hunk, sizeof(level::cl::cg_t) * maxLocalClients, 0x10, "cgArray"));
   *cgArray = cgPoolAlloc;
-  // PATCH: store in our global isolated from Treyarch's anticheat (TAC) address
-  // encryption
+  // PATCH: store in our global isolated from TAC address encryption
   cgArray_store.store(cgPoolAlloc, std::memory_order_seq_cst);
 
   // cgsArray
   level::cl::cgsPool *cgsPoolAlloc = reinterpret_cast<level::cl::cgsPool *>(
       hunk::Hunk_UserAlloc(hunk, 0x1E940 * maxLocalClients, 8, "cgsArray"));
   *cgsArray = cgsPoolAlloc;
-  // PATCH: store in our global isolated from Treyarch's anticheat (TAC) address
-  // encryption
+  // PATCH: store in our global isolated from TAC address encryption
   cgsArray_store.store(cgsPoolAlloc, std::memory_order_seq_cst);
 
   // cg_viewModelArray
@@ -87,8 +85,7 @@ void CG_AllocateClientMemory_Impl(hunk::HunkUser *hunk,
       reinterpret_cast<anim::ViewModelInfo *>(hunk::Hunk_UserAlloc(
           hunk, 0x3A0 * maxLocalClients, 8, "cg_viewModelArray"));
   *cg_viewModelArray = cg_viewModelArrayAlloc;
-  // PATCH: store in our global isolated from Treyarch's anticheat (TAC) address
-  // encryption
+  // PATCH: store in our global isolated from TAC address encryption
   cg_viewModelArray_store.store(cg_viewModelArrayAlloc,
                                 std::memory_order_seq_cst);
 
@@ -97,8 +94,7 @@ void CG_AllocateClientMemory_Impl(hunk::HunkUser *hunk,
       reinterpret_cast<ClientPlayerAttachmentInfo *>(
           hunk::Hunk_UserAlloc(hunk, 0x200, 8, "cg_attachmentsArray"));
   *cg_attachmentsArray = cg_attachmentsArrayAlloc;
-  // PATCH: store in our global isolated from Treyarch's anticheat (TAC) address
-  // encryption
+  // PATCH: store in our global isolated from TAC address encryption
   cg_attachmentsArray_store.store(cg_attachmentsArrayAlloc,
                                   std::memory_order_seq_cst);
 
