@@ -84,9 +84,9 @@ bool Scr_IsTrue_Impl([[maybe_unused]] scriptInstance_t inst,
   }
   default: {
     ScrVar_ReleaseValue(inst, value);
-    std::string error_string =
-        utils::string::va("cannot cast %s to bool", Scr_TypeName(type));
-    Scr_Error(inst, error_string.c_str(), 0);
+    Scr_Error(inst,
+              utils::string::va("cannot cast %s to bool", Scr_TypeName(type)),
+              0);
     return 0;
   }
   }
