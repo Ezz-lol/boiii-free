@@ -434,7 +434,8 @@ void AllocatePerLocalClientMemory_Impl(LocalClientNum_t maxLocalClients,
                           EMemTrack::CLIENT);
     void *localClientHunkBuf = pmem::_PMem_Alloc(
         clientSize, clientAlignment, PMemPool::MAIN, PMemStack::GAME, 0,
-        EMemTrack::CLIENT, "q:\\t7\\code\\src\\client_mp\\cl_main_mp.cpp", 557);
+        EMemTrack::CLIENT, "q:\\t7\\pc\\code\\src\\client_mp\\cl_main_mp.cpp",
+        557);
     pmem::PMem_EndAlloc(*pmem::PerLocalClientMemoryName, PMemStack::GAME);
     *hunk::s_localClientHunk = hunk::Hunk_UserCreateFromBuffer(
         localClientHunkBuf, static_cast<size_t>(clientSize),
