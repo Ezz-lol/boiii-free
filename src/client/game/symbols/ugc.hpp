@@ -8,22 +8,10 @@ namespace game {
 namespace ugc {
 WEAK symbol<BuiltinWorkshopDataPool> builtinModsPool{0x15678D170, 0x14933EAE0};
 extern ExtendedWorkshopDataPool modsPool;
-constexpr ExtendedWorkshopDataPool *modsPoolPtr = &modsPool;
-constexpr WorkshopData (*modsPoolDataPtr)[EXTENDED_WORKSHOP_DATA_POOL_SIZE] =
-    &modsPool.data;
-constexpr str32_t *modsPoolDataPublisherIdPtr = &modsPool.data[0].publisherId;
-constexpr uint32_t *modsPoolCountPtr = &modsPool.count;
 
 WEAK symbol<BuiltinWorkshopDataPool> builtinUsermapsPool{0x1567B3580,
                                                          0x149364EE8};
 extern ExtendedWorkshopDataPool usermapsPool;
-constexpr ExtendedWorkshopDataPool *usermapsPoolPtr = &usermapsPool;
-constexpr WorkshopData (
-    *usermapsPoolDataPtr)[EXTENDED_WORKSHOP_DATA_POOL_SIZE] =
-    &usermapsPool.data;
-constexpr str32_t *usermapsPoolDataPublisherIdPtr =
-    &usermapsPool.data[0].publisherId;
-constexpr uint32_t *usermapsPoolCountPtr = &usermapsPool.count;
 
 WEAK symbol<bool()> isModLoaded{0x1420D5020};
 WEAK symbol<const char *()> getPublisherIdFromLoadedMod{0x1420D7680,

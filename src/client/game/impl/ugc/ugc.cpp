@@ -63,7 +63,7 @@ uint32_t UGC_GetCount_Impl(ZoneType zoneType) {
   }
 }
 
-bool UGC_VerifyModVersion(const char *publisherId, qboolean version) {
+bool UGC_VerifyModVersion(const char *publisherId, uint32_t version) {
   WorkshopData *mod = UGC_GetModByPublisherId(publisherId);
   if (mod) {
     return mod->version == version;
@@ -71,7 +71,7 @@ bool UGC_VerifyModVersion(const char *publisherId, qboolean version) {
 
   return false;
 }
-bool UGC_VerifyUsermapVersion(const char *publisherId, qboolean version) {
+bool UGC_VerifyUsermapVersion(const char *publisherId, uint32_t version) {
   WorkshopData *usermap = UGC_GetUsermapByPublisherId(publisherId);
   if (usermap) {
     return usermap->version == version;
@@ -81,7 +81,7 @@ bool UGC_VerifyUsermapVersion(const char *publisherId, qboolean version) {
 }
 
 bool UGC_VerifyVersion_Impl(ZoneType zoneType, const char *publisherId,
-                            qboolean version) {
+                            uint32_t version) {
   WorkshopData *ugc = UGC_GetByPublisherId_Impl(zoneType, publisherId);
   if (ugc) {
     return ugc->version == version;

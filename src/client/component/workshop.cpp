@@ -422,14 +422,19 @@ std::string get_mod_publisher_id() {
   return loaded_mod_id;
 }
 
-bool is_dlc_map(const std::string &mapname) {
-  return mapname == "zm_zod" || mapname == "zm_castle" ||
-         mapname == "zm_island" || mapname == "zm_stalingrad" ||
-         mapname == "zm_genesis" || mapname == "zm_cosmodrome" ||
-         mapname == "zm_theater" || mapname == "zm_moon" ||
-         mapname == "zm_prototype" || mapname == "zm_tomb" ||
-         mapname == "zm_temple" || mapname == "zm_sumpf" ||
-         mapname == "zm_factory" || mapname == "zm_asylum";
+const std::string ZM_DLC_MAPS[] = {
+    "zm_zod",        "zm_castle",  "zm_island",  "zm_stalingrad", "zm_genesis",
+    "zm_cosmodrome", "zm_theater", "zm_moon",    "zm_prototype",  "zm_tomb",
+    "zm_temple",     "zm_sumpf",   "zm_factory", "zm_asylum"};
+
+bool is_zm_dlc_map(const std::string &mapname) {
+
+  for (const std::string &dlcMap : ZM_DLC_MAPS) {
+    if (dlcMap == mapname) {
+      return true;
+    }
+  }
+  return false;
 }
 
 std::atomic<bool> downloading_workshop_item{false};
@@ -661,7 +666,7 @@ bool check_valid_usermap_id(const std::string &mapname,
                             const std::string &workshop_id,
                             const std::string &base_url) {
   if (!DB_FileExists(mapname.data(), 0) && pub_id.empty()) {
-    if (is_dlc_map(mapname.data())) {
+    if (is_zm_dlc_map(mapname.data())) {
       queue_dlc_popup(mapname);
       return false;
     }
@@ -944,57 +949,59 @@ utils::hook::detour UGC_LoadManifest_hook;
 utils::hook::detour Mods_Lists_GetInfoEntries_Slice_hook;
 utils::hook::detour UGC_SetMapLoadingImage_hook;
 
+/*
+  The hooks below re-implement and replace most UGC handling logic.
+  They are modified from the base engine implementation to:
+    - Increase max entry count of the usermaps and mods pools from 128 to
+  8192
+    - Handle UGC content stored in the game installation's mods and usermaps
+  directories
+    - Improve usermap internal ID handling and handle usermap directories
+  labelled with internal ID of the usermap, as opposed to its publisher ID.
+*/
+void extend_ugc_pools() {
+  DB_CheckModXFile_hook.create(game::db::xzone::DB_CheckModXFile.get(),
+                               game::db::xzone::DB_CheckModXFile_Impl);
+  UGC_GetByPublisherId_hook.create(game::ugc::UGC_GetByPublisherId.get(),
+                                   game::ugc::UGC_GetByPublisherId_Impl);
+  UGC_GetCount_hook.create(game::ugc::UGC_GetCount.get(),
+                           game::ugc::UGC_GetCount_Impl);
+  UGC_VerifyVersion_hook.create(game::ugc::UGC_VerifyVersion.get(),
+                                UGC_VerifyVersion_stub);
+  UGC_LoadPool_hook.create(game::ugc::UGC_LoadPool.get(),
+                           game::ugc::UGC_LoadPool_Impl);
+  UGC_LoadModsPool_hook.create(game::ugc::UGC_LoadModsPool.get(),
+                               game::ugc::UGC_LoadModsPool_Impl);
+  UGC_LoadUsermapsPool_hook.create(game::ugc::UGC_LoadUsermapsPool.get(),
+                                   game::ugc::UGC_LoadUsermapsPool_Impl);
+  UGC_LoadPools_hook.create(game::ugc::UGC_LoadPools.get(),
+                            game::ugc::UGC_LoadPools_Impl);
+  UGC_LoadModByPublisherId_hook.create(
+      game::ugc::UGC_LoadModByPublisherId.get(),
+      game::ugc::UGC_LoadModByPublisherId_Impl);
+  UGC_SetMapPreviewImageByPublisherId_hook.create(
+      game::ugc::UGC_SetMapPreviewImageByPublisherId.get(),
+      game::ugc::UGC_SetMapPreviewImageByPublisherId_Impl);
+  UGC_LoadManifest_hook.create(game::ugc::UGC_LoadManifest.get(),
+                               game::ugc::UGC_LoadManifest_Impl);
+  UGC_LoadUsermapByPublisherId_hook.create(
+      game::ugc::UGC_LoadUsermapByPublisherId.get(),
+      UGC_LoadUsermapByPublisherId_stub);
+
+  if (game::is_client()) {
+    Mods_Lists_GetInfoEntries_Slice_hook.create(
+        game::ui::lua::Mods_Lists_GetInfoEntries_Slice.get(),
+        game::ui::lua::Mods_Lists_GetInfoEntries_Slice_Impl);
+
+    UGC_SetMapLoadingImage_hook.create(game::ugc::UGC_SetMapLoadingImage.get(),
+                                       game::ugc::UGC_SetMapLoadingImage_Impl);
+  }
+}
+
 class component final : public generic_component {
 public:
   void post_unpack() override {
-
-    /*
-      The hooks below re-implement and replace most UGC handling logic.
-      They are modified from the base engine implementation to:
-        - Increase max entry count of the usermaps and mods pools from 128 to
-      8192
-        - Handle UGC content stored in the game installation's mods and usermaps
-      directories
-        - Improve usermap internal ID handling and handle usermap directories
-      labelled with internal ID of the usermap, as opposed to its publisher ID.
-    */
-    DB_CheckModXFile_hook.create(game::db::xzone::DB_CheckModXFile.get(),
-                                 game::db::xzone::DB_CheckModXFile_Impl);
-    UGC_GetByPublisherId_hook.create(game::ugc::UGC_GetByPublisherId.get(),
-                                     game::ugc::UGC_GetByPublisherId_Impl);
-    UGC_GetCount_hook.create(game::ugc::UGC_GetCount.get(),
-                             game::ugc::UGC_GetCount_Impl);
-    UGC_VerifyVersion_hook.create(game::ugc::UGC_VerifyVersion.get(),
-                                  UGC_VerifyVersion_stub);
-    UGC_LoadPool_hook.create(game::ugc::UGC_LoadPool.get(),
-                             game::ugc::UGC_LoadPool_Impl);
-    UGC_LoadModsPool_hook.create(game::ugc::UGC_LoadModsPool.get(),
-                                 game::ugc::UGC_LoadModsPool_Impl);
-    UGC_LoadUsermapsPool_hook.create(game::ugc::UGC_LoadUsermapsPool.get(),
-                                     game::ugc::UGC_LoadUsermapsPool_Impl);
-    UGC_LoadPools_hook.create(game::ugc::UGC_LoadPools.get(),
-                              game::ugc::UGC_LoadPools_Impl);
-    UGC_LoadModByPublisherId_hook.create(
-        game::ugc::UGC_LoadModByPublisherId.get(),
-        game::ugc::UGC_LoadModByPublisherId_Impl);
-    UGC_SetMapPreviewImageByPublisherId_hook.create(
-        game::ugc::UGC_SetMapPreviewImageByPublisherId.get(),
-        game::ugc::UGC_SetMapPreviewImageByPublisherId_Impl);
-    UGC_LoadManifest_hook.create(game::ugc::UGC_LoadManifest.get(),
-                                 game::ugc::UGC_LoadManifest_Impl);
-    UGC_LoadUsermapByPublisherId_hook.create(
-        game::ugc::UGC_LoadUsermapByPublisherId.get(),
-        UGC_LoadUsermapByPublisherId_stub);
-
-    if (game::is_client()) {
-      Mods_Lists_GetInfoEntries_Slice_hook.create(
-          game::ui::lua::Mods_Lists_GetInfoEntries_Slice.get(),
-          game::ui::lua::Mods_Lists_GetInfoEntries_Slice_Impl);
-
-      UGC_SetMapLoadingImage_hook.create(
-          game::ugc::UGC_SetMapLoadingImage.get(),
-          game::ugc::UGC_SetMapLoadingImage_Impl);
-    }
+    extend_ugc_pools();
 
     if (game::is_client()) {
       [[maybe_unused]] const auto *dvar_retry = game::register_dvar_int(
@@ -1057,13 +1064,15 @@ public:
   }
 
   void pre_destroy() override {
-    downloading_workshop_item = false;
-    dlc_thread_shutdown = true;
-    dlc_cv.notify_one();
-    if (dlc_popup_thread_obj.joinable())
-      dlc_popup_thread_obj.join();
-    if (download_thread.joinable())
-      download_thread.join();
+    if (game::is_client()) {
+      downloading_workshop_item = false;
+      dlc_thread_shutdown = true;
+      dlc_cv.notify_one();
+      if (dlc_popup_thread_obj.joinable())
+        dlc_popup_thread_obj.join();
+      if (download_thread.joinable())
+        download_thread.join();
+    }
   }
 };
 } // namespace workshop
