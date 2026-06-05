@@ -409,14 +409,14 @@ void AllocatePerLocalClientMemory_Impl(LocalClientNum_t maxLocalClients,
   CL_FreePerLocalClientMemory(true);
   flags.dryRun = 1;
 
-  hunk::HunkUserNull user;
-  hunk::HunkUser *nullUser = hunk::Hunk_UserCreateNull(&user);
-  cg::CG_AllocateClientMemory_Impl(nullUser, maxLocalClients);
-  fx::FX_AllocateClientMemory(nullUser, maxLocalClients, maxClients, flags);
-  CL_AllocateClientMemory_Impl(nullUser, maxLocalClients, maxClients, flags);
-  Checkpoint_Init(nullUser, flags);
-  int32_t clientAlignment = (std::max)(user.alignment, 4);
-  int32_t clientSize = user.size + 1024;
+  hunk::HunkUserNull nullUser;
+  hunk::HunkUser *user = hunk::Hunk_UserCreateNull(&nullUser);
+  cg::CG_AllocateClientMemory_Impl(user, maxLocalClients);
+  fx::FX_AllocateClientMemory(user, maxLocalClients, maxClients, flags);
+  CL_AllocateClientMemory_Impl(user, maxLocalClients, maxClients, flags);
+  Checkpoint_Init(user, flags);
+  int32_t clientAlignment = (std::max)(nullUser.alignment, 4);
+  int32_t clientSize = nullUser.size + 1024;
   pmem::PMem_BeginAlloc(*pmem::PerLocalClientMemoryName, PMemStack::GAME,
                         EMemTrack::CLIENT);
 
