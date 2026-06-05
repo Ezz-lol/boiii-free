@@ -30,14 +30,17 @@ namespace game {
 
 typedef void *UnknownPtr;
 
-#define STR(x) #x
+template <std::size_t Actual, std::size_t Expected>
+concept ValueMatches = (Actual == Expected);
 
+// 2. Wrap your macros around the concept
 #define ASSERT_SIZE(type, size)                                                \
-  static_assert(sizeof(type) == (size), "sizeof(" #type ") != " STR(size))
+  static_assert(ValueMatches<sizeof(type), (size)>, "Size mismatch "           \
+                                                    "for " #type)
 
 #define ASSERT_OFFSET(type, field, offset)                                     \
-  static_assert(offsetof(type, field) == (offset),                             \
-                "offsetof(" #type ", " #field ") != " STR(offset))
+  static_assert(ValueMatches<offsetof(type, field), (offset)>,                 \
+                "Offset mismatch for " #type "::" #field)
 
 #ifdef __clang__
 #pragma clang diagnostic push
@@ -358,9 +361,6 @@ using atomicarray = array<std::atomic<T>, N>;
 template <typename T, const auto X, const auto Y>
 using matrix2d = array<array<T, Y>, X>;
 
-constexpr uint32_t PLAYER_NAME_MAX_LEN = 32;
-constexpr uint32_t PLAYER_CLAN_ABBREV_MAX_LEN = 8;
-
 template <typename T> using LocalClientPool = array<T, LOCAL_CLIENT_COUNT>;
 template <typename T>
 using AtomicLocalClientPool = atomicarray<T, LOCAL_CLIENT_COUNT>;
@@ -370,11 +370,18 @@ using EngineDependent = std::variant<ClientType, ServerType>;
 
 template <const auto T> using str = array<char, T>;
 
+typedef str<8> str8_t;
 typedef str<16> str16_t;
 typedef str<24> str24_t;
 typedef str<32> str32_t;
 typedef str<64> str64_t;
 typedef str<128> str128_t;
+typedef str<256> str256_t;
+
+typedef str8_t clanAbbrev_t;
+typedef str32_t name_t;
+typedef name_t actorName_t;
+typedef name_t playerName_t;
 
 typedef int32_t cinematic_id;
 
@@ -621,6 +628,94 @@ enum class PMemStack : uint32_t {
   PHYS_ALLOC_COUNT = 0x8,
 };
 
+enum class PMemPool : uint32_t {
+  MAIN = 0x0,
+  GPU_PRIVATE = 0x1,
+  GPU_PRT = 0x2,
+  GPU_RENDER_TARGETS = 0x3,
+  MAIN_COHERENT = 0x4,
+  COUNT = 0x5,
+};
+
+enum class EMemTrack : uint32_t {
+  BINARIES = 0x0,
+  DEBUG = 0x1,
+  HUNK = 0x2,
+  MISC_SWAP = 0x3,
+  LOCALIZATION = 0x4,
+  TL = 0x5,
+  TEMP = 0x6,
+  RECORDER = 0x7,
+  DEMO = 0x8,
+  DVR = 0x9,
+  DVAR = 0xA,
+  ASSET_DATABASE = 0xB,
+  SAVEGAME = 0xC,
+  DELIMITER1 = 0xD,
+  COMSCORE = 0xE,
+  AI = 0xF,
+  AI_BOTS = 0x10,
+  AI_NODES = 0x11,
+  SCRIPT = 0x12,
+  SCRIPT_DEBUG = 0x13,
+  COLLISION_MISC = 0x14,
+  COLLISION_BRUSH = 0x15,
+  COLLISION_MODEL_TRI = 0x16,
+  COLLISION_TERRAIN = 0x17,
+  PHYSICS = 0x18,
+  MAP_ENTS = 0x19,
+  CLIENT = 0x1A,
+  SERVER = 0x1B,
+  DDL = 0x1C,
+  STORAGE = 0x1D,
+  ONLINE = 0x1E,
+  VEHICLEDEF = 0x1F,
+  DELIMITER2 = 0x20,
+  FASTFILE = 0x21,
+  NETWORK_ENTITY = 0x22,
+  MISC = 0x23,
+  ANIMATION = 0x24,
+  ANIMCACHE = 0x25,
+  CLIENT_ANIMSCRIPT = 0x26,
+  WORLD_GLOBALS = 0x27,
+  DELIMITER3 = 0x28,
+  EMBLEM = 0x29,
+  FX = 0x2A,
+  GLASS = 0x2B,
+  RENDERER_GLOBALS = 0x2C,
+  RENDERER_TARGETS = 0x2D,
+  RENDERER_IMAGES = 0x2E,
+  RENDERER_FX_IMAGES = 0x2F,
+  RENDERER_WORLD = 0x30,
+  RENDERER_MODELS = 0x31,
+  RENDERER_MISC = 0x32,
+  RENDERER_SIEGE = 0x33,
+  RENDERER_LIGHTS = 0x34,
+  RENDERER_LIGHT_EXPORT = 0x35,
+  RENDERER_UMBRA = 0x36,
+  RENDERER_OIT = 0x37,
+  RSTREAM = 0x38,
+  RENDERER_STREAMBUFFER = 0x39,
+  RENDERER_STREAMBUFFER_EXTRA = 0x3A,
+  GEOSTREAM = 0x3B,
+  CINEMATICS = 0x3C,
+  LUA = 0x3D,
+  UI = 0x3E,
+  FLAME = 0x3F,
+  FIREMANAGER = 0x40,
+  CONSOLE_IMAGES = 0x41,
+  CGMEDIA_TABLE = 0x42,
+  IMPACTS_FX_TABLE = 0x43,
+  DELIMITER4 = 0x44,
+  SOUND = 0x45,
+  SOUND_GLOBALS = 0x46,
+  MINSPEC_SOUND_GLOBALS = 0x47,
+  IMPACTS_SOUND_TABLE = 0x48,
+  DELIMITER5 = 0x49,
+  NONE = 0x4A,
+  COUNT = 0x4B,
+};
+
 enum class SwimStateType : int32_t {
   NONE = 0x0,
   SURFACE = 0x1,
@@ -749,7 +844,7 @@ template <typename T = vec_t> union vec2 {
 };
 typedef vec2<vec_t> vec2_t;
 
-template <typename T = vec_t> union vec3_main {
+template <typename T = vec_t> union vec3_core {
   struct {
     T x;
     T y;
@@ -787,7 +882,7 @@ template <typename T = vec_t> union vec4 {
     T a;
   };
   vec2<T> xy;
-  vec3_main<T> xyz;
+  vec3_core<T> xyz;
 };
 
 typedef vec4<vec_t> vec4_t;
@@ -860,14 +955,6 @@ enum class StanceState : int32_t {
   DIVE_TO_PRONE = 0x3,
   SLIDE = 0x4,
 };
-
-struct clientActive_t {
-  char __pad0[0xB8C8];
-  float viewangles[3];
-  char __pad1[0x18C15C];
-};
-
-ASSERT_SIZE(clientActive_t, 0x197A30);
 
 using fileHandle_t = void *;
 
@@ -958,34 +1045,57 @@ enum class CharacterItemType : uint32_t {
 
 using BGEmblemBackgroundID = int16_t;
 
+typedef int32_t BitArrayChunk;
+constexpr const size_t BITARRAY_CHUNK_SIZE = sizeof(BitArrayChunk);
+constexpr const size_t BITS_PER_BYTE = 8;
+constexpr const size_t BITARRAY_CHUNK_BITS =
+    BITARRAY_CHUNK_SIZE * BITS_PER_BYTE;
+
+#ifndef INLINE_MEMSET
+#if defined(__clang__) || defined(__GNUC__)
+#define INLINE_MEMSET(buf, val, count) __builtin_memset(buf, val, count)
+#elif defined(_MSC_VER)
+#pragma instrinsic(memset)
+#define INLINE_MEMSET(buf, val, count) memset(buf, val, count)
+#else
+#error "Unsupported compiler. Only MSVC, Clang and GCC are supported."
+#endif
+#endif
+
 #pragma pack(push, 1)
 template <const size_t B> struct bitarray {
-  array<int32_t, (B + 31) / 32> data;
+  array<BitArrayChunk, (B + BITARRAY_CHUNK_BITS - 1) / BITARRAY_CHUNK_BITS>
+      data;
 
-  friend constexpr void set(bitarray<B> *b, size_t index) noexcept {
-    return b->data[index / 32] |= (1 << (index % 32));
+  friend inline constexpr void set(bitarray<B> *b, size_t index) noexcept {
+    return b->data[index / BITARRAY_CHUNK_BITS] |=
+           (1 << (index % BITARRAY_CHUNK_BITS));
   }
 
-  friend constexpr void clear(bitarray<B> *b, size_t index) noexcept {
-    return b->data[index / 32] &= ~(1 << (index % 32));
+  friend inline constexpr void clear(bitarray<B> *b, size_t index) noexcept {
+    return b->data[index / BITARRAY_CHUNK_BITS] &=
+           ~(1 << (index % BITARRAY_CHUNK_BITS));
   }
 
-  friend constexpr bool get(bitarray<B> *b, size_t index) noexcept {
-    return (b->data[index / 32] & (1 << (index % 32))) != 0;
+  friend inline constexpr bool get(bitarray<B> *b, size_t index) noexcept {
+    return (b->data[index / BITARRAY_CHUNK_BITS] &
+            (1 << (index % BITARRAY_CHUNK_BITS))) != 0;
   }
 
-  friend constexpr void reset(bitarray<B> *b) noexcept {
-    for (uint32_t i = 0; i < ARRAYSIZE(b->data); ++i) {
-      b->data[i] = 0;
-    }
+  friend inline constexpr void reset(bitarray<B> *b) noexcept {
+    INLINE_MEMSET(&b->data, 0, sizeof(b->data));
+  }
+
+  // Function name used by engine
+  friend inline constexpr void resetAllBits(bitarray<B> *b) noexcept {
+    reset(b);
   }
 };
+ASSERT_SIZE(bitarray<32>, 0x4);
 #pragma pack(pop)
 
 typedef bitarray<72> game_button_bits_t;
 ASSERT_SIZE(game_button_bits_t, 0xC);
-
-#pragma pack(push, 1)
 
 enum class UIModelDataType : int32_t {
   INVALID = 0x0,
@@ -1157,7 +1267,6 @@ public:
   uint16_t infoIndex;
 };
 ASSERT_SIZE(EntHandle, 0x4);
-#pragma pack(pop)
 
 struct Font_s; // TODO
 typedef Font_s Font;
@@ -1171,6 +1280,12 @@ struct animationNumber_t {
     };
     uint16_t packed;
   };
+};
+
+struct outPacket_t {
+  int32_t p_cmdNumber;
+  int32_t p_serverTime;
+  int32_t p_realtime;
 };
 
 } // namespace game

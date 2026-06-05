@@ -100,7 +100,7 @@ struct PacketMode {
 
 struct HostInfo {
   XUID xuid;
-  char name[32];
+  name_t name;
   netadr_t netAdr;
   SerializedAdr serializedAdr;
   bdSecurityID secId;

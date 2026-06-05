@@ -1405,5 +1405,41 @@ struct vehicleAntilagFrame_t {
 };
 ASSERT_SIZE(vehicleAntilagFrame_t, 0x684);
 #pragma pack(pop)
+
+#pragma pack(push, 1)
+struct PlayerVehicleState {
+  vec3_t origin;
+  vec3_t angles;
+  vec3_t velocity;
+  vec3_t angVelocity;
+  vec2_t tilt;
+  vec2_t tiltVelocity;
+  float targetHeightDelta;
+  float lastGroundHeight;
+  int32_t entity;
+  int32_t flags;
+  bool fullPhysics;
+  uint8_t _padding51[3];
+  int32_t focusEntNum;
+  int32_t focusEntTime;
+  vec2_t focusAngleOffset;
+  uint32_t playerHeightMapsActive;
+  float boostTimeLeft;
+  vec3_t dogfightDesiredLocation;
+  vec3_t jitterEndTime;
+  vec3_t jitterAccel;
+  int32_t drivableDuration;
+  int32_t drivableEndTime;
+  bool weaponOverheating;
+  uint8_t _padding99[3];
+  float weaponHeatPercent;
+  float weaponLockonPercent;
+  float damageMeter;
+  int32_t lockedOnByEntNum;
+  int32_t weaponWaitDuration;
+  int32_t weaponWaitEndTime;
+};
+ASSERT_SIZE(PlayerVehicleState, 0xB4);
+#pragma pack(pop)
 } // namespace vehicle
 } // namespace game

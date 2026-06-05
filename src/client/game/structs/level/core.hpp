@@ -1580,7 +1580,7 @@ struct entityType_t {
 };
 ASSERT_SIZE(entityType_t, 0x4);
 
-constexpr uint32_t ENTITYSTATE_SIZE = 0x1E8;
+constexpr uint32_t ENTITYSTATE_SIZE = 0x1F0;
 constexpr uint32_t ENTITYSTATE_LOOPSOUND_OFFSET = 0xDC;
 constexpr uint32_t ENTITYSTATE_UN3_OFFSET = 0x130;
 constexpr uint32_t ENTITYSTATE_CLIENTMASK_OFFSET = 0x168;
@@ -1628,7 +1628,9 @@ struct entityState_s {
   int16_t clientNum;
   uint8_t iHeadIcon;
   entityStateUn1 un1;
-  uint8_t _padding1E4[4];
+  uint32_t _unknown1E4;
+  int16_t previousEventSequence;
+  uint8_t _padding1EA[6];
 };
 
 typedef entityState_s entityState_t;
@@ -1698,40 +1700,6 @@ struct PlayerLens {
   float fStop;
 };
 ASSERT_SIZE(PlayerLens, 0x10);
-
-#pragma pack(push, 1)
-struct PlayerVehicleState {
-  vec3_t origin;
-  vec3_t angles;
-  vec3_t velocity;
-  vec3_t angVelocity;
-  vec2_t tilt;
-  vec2_t tiltVelocity;
-  float targetHeightDelta;
-  float lastGroundHeight;
-  int32_t entity;
-  int32_t flags;
-  qboolean fullPhysics;
-  int32_t focusEntNum;
-  int32_t focusEntTime;
-  vec2_t focusAngleOffset;
-  uint32_t playerHeightMapsActive;
-  float boostTimeLeft;
-  vec3_t dogfightDesiredLocation;
-  vec3_t jitterEndTime;
-  vec3_t jitterAccel;
-  int32_t drivableDuration;
-  int32_t drivableEndTime;
-  qboolean weaponOverheating;
-  float weaponHeatPercent;
-  float weaponLockonPercent;
-  float damageMeter;
-  int32_t lockedOnByEntNum;
-  int32_t weaponWaitDuration;
-  int32_t weaponWaitEndTime;
-};
-ASSERT_SIZE(PlayerVehicleState, 0xB4);
-#pragma pack(pop)
 
 enum class OffhandSecondaryClass : int32_t {
   SMOKE = 0x0,
@@ -2051,7 +2019,7 @@ struct playerState_s {
   int32_t eFlags;
   int32_t eFlags2;
   PlayerLens playerLens;
-  PlayerVehicleState vehicleState;
+  vehicle::PlayerVehicleState vehicleState;
   int16_t predictableEventSequence;
   int16_t predictableEventSequenceOld;
   int32_t predictableEvents[4];
@@ -2252,15 +2220,15 @@ struct playerState_s {
   int32_t cmdAnglesHead;
   uint8_t _padding[51];
 };
-static_assert(offsetof(playerState_s, _paddingBB5) == 0xBB5);
-static_assert(offsetof(playerState_s, _paddingBBB) == 0xBBB);
-static_assert(offsetof(playerState_s, _paddingB58) == 0xB58);
-static_assert(offsetof(playerState_s, _padding6BCB) == 0x6BCB);
+ASSERT_OFFSET(playerState_s, _paddingBB5, 0xBB5);
+ASSERT_OFFSET(playerState_s, _paddingBBB, 0xBBB);
+ASSERT_OFFSET(playerState_s, _paddingB58, 0xB58);
+ASSERT_OFFSET(playerState_s, _padding6BCB, 0x6BCB);
 ASSERT_SIZE(playerState_s, 0xB566);
 typedef playerState_s playerState_t;
 #pragma pack(pop)
 
-struct score_t {
+struct score_s {
   int32_t ping;
   int32_t status_icon;
   int32_t place;
@@ -2268,14 +2236,15 @@ struct score_t {
   int32_t kills;
   int32_t assists;
   int32_t deaths;
-  int32_t scoreboardColumns[10];
+  int32_t scoreboardColumns[9];
   int32_t downs;
   int32_t revives;
   int32_t headshots;
   int32_t scoreMultiplier;
   int32_t currentStreak;
-  int32_t lastKillTime;
 };
+typedef score_s score_t;
+ASSERT_SIZE(score_t, 0x54);
 
 /*
   Almost entirely unverified as of initial definition, except for
@@ -2291,7 +2260,7 @@ struct clientState_s {
   int32_t modelindex;
   int32_t riotShieldNext;
   anim::ModelAttachmentIndex attachments[6];
-  char name[PLAYER_NAME_MAX_LEN]; // Verified
+  playerName_t name; // Verified
   float maxSprintTimeMultiplier;
   int32_t rank;
   int32_t paragonRank;
@@ -2324,7 +2293,7 @@ struct clientState_s {
   int32_t heroWeaponIdx;
   int32_t voiceConnectivityBits;
   uint8_t _unknown250[12];
-  char clanAbbrev[PLAYER_CLAN_ABBREV_MAX_LEN]; // Verified
+  clanAbbrev_t clanAbbrev; // Verified
   uint8_t _padding264[4];
   weapon::Weapon currentLoadoutPrimaryWeapon;
   weapon::Weapon currentLoadoutSecondaryWeapon;
@@ -2341,18 +2310,11 @@ struct clientState_s {
   qboolean offhandWeaponVisible;
   clientLinkInfo_t clientLinkInfo;
   lobby::LobbyClientPool<int32_t> lastUpdateIndex;
-  uint16_t paintshopDataSize;
-  uint8_t _padding342[2];
-  int32_t clientHealth;
-  int32_t clientArmor;
-  int32_t clientMaxArmor;
-  int32_t clientArmorTier;
-  int32_t currentWeaponKillCount;
 };
 typedef clientState_s clientState_t;
 static_assert(offsetof(clientState_t, name) == 0x2C);
 static_assert(offsetof(clientState_t, clanAbbrev) == 0x25C);
-ASSERT_SIZE(clientState_t, 0x358);
+ASSERT_SIZE(clientState_t, 0x338); // Correct
 #pragma pack(pop)
 
 #pragma pack(push, 1)
@@ -2361,15 +2323,15 @@ struct actorState_t {
   int32_t entityNum;
   int32_t modelindex;
   uint32_t attachIgnoreCollision;
-  char name[32];
+  actorName_t name;
   int32_t hudwarningType;
   int32_t lookAtEntNum;
   vec3_t lookAtPos;
-  bool lookAtAiming;
-  bool lookAtNoTorso;
-  bool gibbed;
-  uint8_t _padding47[1];
+  qboolean lookAtAiming;
+  qboolean lookAtNoTorso;
+  qboolean gibbed;
 };
+ASSERT_SIZE(actorState_t, 0x50); // Correct
 #pragma pack(pop)
 
 #pragma pack(push, 1)
@@ -2432,15 +2394,17 @@ struct ArchivedMatchState {
   int32_t umbraGates;
 };
 
-// sizeof=0x290
-struct MatchState {
+#pragma pack(push, 1)
+constexpr uint32_t MATCHSTATE_SIZE = 0x2A0;
+partial_def(MATCHSTATE_SIZE, struct, MatchState, {
   uint32_t index;
   uint8_t _padding004[12];
   UnarchivedMatchState unarchivedState;
   ArchivedMatchState archivedState;
   uint8_t _padding28C[4];
-};
-ASSERT_SIZE(MatchState, 0x290);
+});
+ASSERT_SIZE(MatchState, MATCHSTATE_SIZE); // Correct
+#pragma pack(pop)
 
 } // namespace level
 } // namespace game

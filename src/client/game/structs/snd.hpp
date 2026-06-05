@@ -256,8 +256,8 @@ static_assert(sizeof(SndAssetBankLoad) == 0x918,
 
 #pragma pack(push, 1)
 struct SndVolumeGroup {
-  char name[32];
-  char parentName[32];
+  name_t name;
+  name_t parentName;
   uint32_t id;
   int32_t parentIndex;
   SndMenuCategory category;
@@ -268,7 +268,7 @@ struct SndVolumeGroup {
 
 #pragma pack(push, 1)
 struct SndCurve {
-  char name[32];
+  name_t name;
   uint32_t id;
   game::vec2_t points[8];
 };
@@ -276,7 +276,7 @@ struct SndCurve {
 
 #pragma pack(push, 1)
 struct SndDuckGroup {
-  char name[32];
+  name_t name;
   uint32_t id;
 };
 #pragma pack(pop)
@@ -361,7 +361,7 @@ struct SndContext {
 
 #pragma pack(push, 1)
 struct SndPan {
-  char name[32];
+  name_t name;
   uint32_t id;
   float front;
   float back;
@@ -374,7 +374,7 @@ struct SndPan {
 
 #pragma pack(push, 1)
 struct SndFutz {
-  char name[32];
+  name_t name;
   uint32_t id;
   float bpfF;
   float bpfQ;
@@ -577,7 +577,7 @@ partial_def(SND_LOCAL_SIZE, struct, SndLocal, {
 static_assert(offsetof(SndLocal, CGQ) == SND_LOCAL_CGQ_OFFSET);
 static_assert(offsetof(SndLocal, SNDQ) ==
               SND_LOCAL_CGQ_OFFSET + sizeof(SndQueue));
-static_assert(sizeof(SndLocal) == SND_LOCAL_SIZE);
+ASSERT_SIZE(SndLocal, SND_LOCAL_SIZE);
 /*
   SndLocal has total size (0x1413568F0 - 0x141189800) == 0x1CD168.
   Confirmed by:
@@ -677,7 +677,7 @@ struct SndAliasList : db::xasset::NamedXAsset {
   qboolean spatial;
 };
 #pragma pack(pop)
-static_assert(sizeof(SndAliasList) == 0x28);
+ASSERT_SIZE(SndAliasList, 0x28);
 
 #pragma pack(push, 1)
 // Correct
@@ -685,7 +685,7 @@ struct SndPatch : db::xasset::NamedXAsset {
   uint64_t elementCount;
   uint32_t *elements;
 };
-static_assert(sizeof(SndPatch) == 0x18);
+ASSERT_SIZE(SndPatch, 0x18);
 #pragma pack(pop)
 
 #pragma pack(push, 1)
@@ -694,7 +694,7 @@ struct SndAliasLookupNode {
   uint8_t _padding04[4];
   SndAliasList *list;
 };
-static_assert(sizeof(SndAliasLookupNode) == 0x10);
+ASSERT_SIZE(SndAliasLookupNode, 0x10);
 #pragma pack(pop)
 
 #pragma pack(push, 1)
@@ -706,7 +706,7 @@ struct SndAliasLookupCache {
   uint8_t _padding0C[4];
   SndAliasLookupNode cache[4065];
 };
-static_assert(sizeof(SndAliasLookupCache) == 0xFE20);
+ASSERT_SIZE(SndAliasLookupCache, 0xFE20);
 #pragma pack(pop)
 
 enum class SndFileLoadingState : int32_t {
@@ -897,7 +897,7 @@ struct SndPlayback {
   SndEntHandle entHandle;
   SndPlayback *next;
 };
-static_assert(sizeof(SndPlayback) == 0x28);
+ASSERT_SIZE(SndPlayback, 0x28);
 #pragma pack(pop)
 
 #pragma pack(push, 1)

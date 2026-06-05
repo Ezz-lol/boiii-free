@@ -6,7 +6,7 @@ namespace cg {
 
 void CG_InitAndAllocCGEntsArray_Impl(
     hunk::HunkUser *hunk, LocalClientNum_t maxLocalClients,
-    [[maybe_unused]] int maxKillCamsInSplitScreen) {
+    [[maybe_unused]] int32_t maxKillCamsInSplitScreen) {
 
   for (LocalClientNum_t localClientNum = game::LOCAL_CLIENT_0;
        localClientNum < maxLocalClients; ++localClientNum) {
@@ -19,8 +19,8 @@ void CG_InitAndAllocCGEntsArray_Impl(
     /*
        ## PATCH
        Store allocation pointer in boiii's global atomic storage to allow safe
-       usage when arxan has temporarily moved and set the pointer to 0xFFFFFFFF
-       during (consistently) obfuscated access.
+       usage when Treyarch's anticheat (TAC) has temporarily moved and set the
+       pointer to 0xFFFFFFFF during (consistently) encrypted access.
     */
     cg_entitiesArray_store[localClientNum].store(alloc,
                                                  std::memory_order_seq_cst);
@@ -47,7 +47,8 @@ void CG_FreeCGEnts_Impl(hunk::HunkUser *hunk,
   for (LocalClientNum_t localClientNum = game::LOCAL_CLIENT_0;
        localClientNum < maxLocalClients; ++localClientNum) {
     hunk::Hunk_UserFree(hunk, reinterpret_cast<void *>(
-                                  cg_entitiesArray->pools[localClientNum]));
+                                  cg_entitiesArray_store[localClientNum].load(
+                                      std::memory_order_seq_cst)));
 
     /*
        ## Patch
@@ -59,6 +60,74 @@ void CG_FreeCGEnts_Impl(hunk::HunkUser *hunk,
     cg_entitiesArray_store[localClientNum].store(nullptr,
                                                  std::memory_order_seq_cst);
   }
+}
+
+void CG_AllocateClientMemory_Impl(hunk::HunkUser *hunk,
+                                  LocalClientNum_t maxLocalClients) {
+
+  // cgArray
+  level::cl::cgPool *cgPoolAlloc =
+      reinterpret_cast<level::cl::cgPool *>(hunk::Hunk_UserAlloc(
+          hunk, sizeof(level::cl::cg_t) * maxLocalClients, 0x10, "cgArray"));
+  *cgArray = cgPoolAlloc;
+  // PATCH: store in our global isolated from Treyarch's anticheat (TAC) address
+  // encryption
+  cgArray_store.store(cgPoolAlloc, std::memory_order_seq_cst);
+
+  // cgsArray
+  level::cl::cgsPool *cgsPoolAlloc = reinterpret_cast<level::cl::cgsPool *>(
+      hunk::Hunk_UserAlloc(hunk, 0x1E940 * maxLocalClients, 8, "cgsArray"));
+  *cgsArray = cgsPoolAlloc;
+  // PATCH: store in our global isolated from Treyarch's anticheat (TAC) address
+  // encryption
+  cgsArray_store.store(cgsPoolAlloc, std::memory_order_seq_cst);
+
+  // cg_viewModelArray
+  anim::ViewModelInfo *cg_viewModelArrayAlloc =
+      reinterpret_cast<anim::ViewModelInfo *>(hunk::Hunk_UserAlloc(
+          hunk, 0x3A0 * maxLocalClients, 8, "cg_viewModelArray"));
+  *cg_viewModelArray = cg_viewModelArrayAlloc;
+  // PATCH: store in our global isolated from Treyarch's anticheat (TAC) address
+  // encryption
+  cg_viewModelArray_store.store(cg_viewModelArrayAlloc,
+                                std::memory_order_seq_cst);
+
+  // cg_attachmentsArray
+  ClientPlayerAttachmentInfo *cg_attachmentsArrayAlloc =
+      reinterpret_cast<ClientPlayerAttachmentInfo *>(
+          hunk::Hunk_UserAlloc(hunk, 0x200, 8, "cg_attachmentsArray"));
+  *cg_attachmentsArray = cg_attachmentsArrayAlloc;
+  // PATCH: store in our global isolated from Treyarch's anticheat (TAC) address
+  // encryption
+  cg_attachmentsArray_store.store(cg_attachmentsArrayAlloc,
+                                  std::memory_order_seq_cst);
+
+  for (LocalClientNum_t localClientNum = game::LOCAL_CLIENT_0;
+       localClientNum < maxLocalClients; ++localClientNum) {
+    cg_weaponsArray->pools[localClientNum] =
+        reinterpret_cast<ClientPlayerWeaponInfo *>(
+            hunk::Hunk_UserAlloc(hunk, 0x7000u, 8, "cg_weaponsArray"));
+    cg_destructibles->pools[localClientNum] =
+        reinterpret_cast<phys::Destructible *>(
+            hunk::Hunk_UserAlloc(hunk, 0x11880u, 8, "cg_destrutibles"));
+    uint8_t *ikStatesArray = reinterpret_cast<uint8_t *>(
+        hunk::Hunk_UserAlloc(hunk, 0xDB7F0u, 0x10, "ikStatesArray"));
+    cg_ikBuf->bufs[localClientNum] = ikStatesArray;
+    ik::IK_AllocateLocalClientMemory(ikStatesArray, localClientNum);
+    reset(&cg_fakeEntitiesInuseBitArray->inUse[localClientNum]);
+  }
+
+  CG_InitAndAllocCGEntsArray_Impl(hunk, maxLocalClients, 0);
+}
+
+bool CG_IsFullyInitialized_Impl(LocalClientNum_t localClientNum) {
+  level::cl::cgPool *pools = get_cgArray();
+  if (pools) {
+    if (localClientNum < *cl::cl_maxLocalClients) {
+      return pools->pool[localClientNum].nextSnap != nullptr;
+    }
+  }
+  return false;
 }
 } // namespace cg
 } // namespace game

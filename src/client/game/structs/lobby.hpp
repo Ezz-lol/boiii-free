@@ -126,7 +126,7 @@ using joinCompleteCallback = void (*)(int, JoinResult);
 
 struct AgreementStatus {
   XUID xuid;
-  char name[32];
+  name_t name;
   bool responded;
   bool agrees;
   int32_t startTime;
@@ -167,10 +167,10 @@ struct ServerInfo {
   uint32_t m_unIP;
   int32_t m_nPing;
   uint8_t unk[0x22];
-  char mapname[32];
+  name_t mapname;
   char description[64];
   char gamemode[16];
-  char modname[32];
+  name_t modname;
   int32_t playerCount;
   int32_t maxPlayers;
   int32_t unk2;

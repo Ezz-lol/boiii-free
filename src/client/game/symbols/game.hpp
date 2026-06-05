@@ -41,6 +41,8 @@ WEAK symbol<void(game::level::gentity_s *ent, snd::SndAliasId index,
 WEAK symbol<level::clientState_t *(ClientNum_t clientNum)> G_GetClientState{
     0x1419B0970, 0x1402A7820};
 WEAK symbol<int32_t(const char *name)> G_TagIndex{0x141B81890, 0x1403089D0};
+WEAK symbol<void(hunk::HunkUser *hunk, cl::clientAllocFlags_t flags)>
+    Checkpoint_Init{0x1400B24C0};
 
 WEAK symbol<level::gentity_t *(const vec3_t *origin, snd::SndAliasId alias)>
     G_TempEntity{0x141B819A0, 0x140308AF0};

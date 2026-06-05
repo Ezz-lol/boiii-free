@@ -13,6 +13,7 @@
 #include "fs.hpp"          // IWYU pragma: export
 #include "gfx/gfx.hpp"     // IWYU pragma: export
 #include "hunk.hpp"        // IWYU pragma: export
+#include "ik.hpp"          // IWYU pragma: export
 #include "vehicle.hpp"     // IWYU pragma: export
 #include "phys.hpp"        // IWYU pragma: export
 #include "net/net.hpp"     // IWYU pragma: export

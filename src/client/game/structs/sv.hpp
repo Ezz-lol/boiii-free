@@ -49,8 +49,8 @@ struct client_s {
   int32_t messageAcknowledge;
   char gap_5040[1368];
   level::gentity_t *gentity;
-  char name[PLAYER_NAME_MAX_LEN];
-  char clanAbbrev[PLAYER_CLAN_ABBREV_MAX_LEN];
+  playerName_t name;
+  clanAbbrev_t clanAbbrev;
   XUID xuid;
   char __pad3[0xB5D84];
   int32_t guid;
@@ -916,7 +916,7 @@ struct clientInfo_t {
   qboolean infoValid;
   qboolean nextValid;
   ClientNum_t clientNum;
-  char name[PLAYER_NAME_MAX_LEN]; // Verified
+  playerName_t name; // Verified
   team_t team;
   team_t oldteam;
   qboolean clanAbbrev_IsEliteValidated;
@@ -936,7 +936,7 @@ struct clientInfo_t {
   uint32_t perks[4];
   uint32_t perksCache[4];
   uint8_t _unknown7C[4];
-  char clanAbbrev[PLAYER_CLAN_ABBREV_MAX_LEN]; // Verified
+  clanAbbrev_t clanAbbrev; // Verified
   uint64_t xuid;
   score_t score;
   uint8_t _paddingEC[4];

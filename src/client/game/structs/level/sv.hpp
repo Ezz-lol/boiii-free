@@ -59,6 +59,7 @@ ASSERT_SIZE(playerTeamState_t, 4);
   Verify and adjust as needed prior to usage.
 */
 #pragma pack(push, 1)
+constexpr uint32_t CLIENTSESSION_T_SIZE = 0x540;
 struct clientSession_t {
   sessionState_t sessionState;
   ClientNum_t forceSpectatorClient;
@@ -76,7 +77,7 @@ struct clientSession_t {
   user::usercmd_t oldcmd;
   bool localClient;
   bool predictItemPickup;
-  char newnetname[32];
+  name_t newnetname;
   uint8_t _padding116[2];
   int32_t maxHealth;
   int32_t enterTime;
@@ -88,14 +89,18 @@ struct clientSession_t {
   qboolean teamInfo;
   clientState_t cs; // Verified
   int32_t psOffsetTime;
-  int32_t scoreboardColumnCache[42];
-  uint8_t _padding53C[4];
+  /*
+     Unsure if this is the correct length. Array was expanded to ensure
+     correct total struct size (0x540) was met.
+     Correct as needed.
+  */
+  int32_t scoreboardColumnCache[51];
 };
-static_assert(offsetof(clientSession_t, localClient) == 0xF4);
-static_assert(offsetof(clientSession_t, _padding14) == 0x14);
-static_assert(offsetof(clientSession_t, _padding116) == 0x116);
-static_assert(offsetof(clientSession_t, cs) == 0x138);
-ASSERT_SIZE(clientSession_t, 0x540);
+ASSERT_OFFSET(clientSession_t, localClient, 0xF4);
+ASSERT_OFFSET(clientSession_t, _padding14, 0x14);
+ASSERT_OFFSET(clientSession_t, _padding116, 0x116);
+ASSERT_OFFSET(clientSession_t, cs, 0x138);
+ASSERT_SIZE(clientSession_t, CLIENTSESSION_T_SIZE);
 #pragma pack(pop)
 
 /*
@@ -390,7 +395,6 @@ struct EntityModelAttachment {
 #pragma pack(push, 1)
 struct gentity_s {
   entityState_t s;
-  uint8_t _unknown1E8[8];
   entityShared_t r;
   gclient_t *client;
   user::actor_t *actor;
@@ -483,7 +487,7 @@ static_assert(offsetof(gentity_s, snd_wait) == GENTITY_SND_WAIT_OFFSET,
               "GENTITY_SND_WAIT_OFFSET must be 0x3D4");
 static_assert(offsetof(gentity_s, s) == 0,
               "gentity_s must start with entityState_t");
-static_assert(offsetof(gentity_s, client) == 0x250);
+ASSERT_OFFSET(gentity_s, client, 0x250);
 static_assert(sizeof(gentity_s) == GENTITY_SIZE,
               "gentity_s size must be 0x4F8 bytes");
 #endif
@@ -601,7 +605,7 @@ struct level_locals_t {
   phys::ZBarrierType *zbarrierTypes[255];
   qboolean checkAnimChange;
   phys::objcamCameraTable objectiveCameras;
-  uint8_t _unknown[1980];
+  uint8_t _unknown[0x7AC];
 };
 ASSERT_SIZE(level_locals_t, 0x23A10);
 #pragma pack(pop)

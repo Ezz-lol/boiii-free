@@ -15,9 +15,13 @@ WEAK symbol<void(LocalClientNum_t localClientNum, float *fov_x,
 WEAK symbol<void(LocalClientNum_t localClientNum, level::cl::centity_t *cent,
                  level::entityEvent_t event)>
     CG_EntityEvent{0x140776DA0, 0x1400CC160};
+WEAK symbol<void(hunk::HunkUser *hunk, LocalClientNum_t maxLocalClients)>
+    CG_AllocateClientMemory{0x1408408F0};
 WEAK symbol<void(hunk::HunkUser *hunk, LocalClientNum_t maxLocalClients,
                  int32_t maxKillCamsInSplitscreen)>
     CG_InitAndAllocCGEntsArray{0x14085B990};
+WEAK symbol<bool(LocalClientNum_t localClientNum)> CG_IsFullyInitialized{
+    0x1400AB1A0};
 
 WEAK symbol<void(hunk::HunkUser *user, LocalClientNum_t maxLocalClients)>
     CG_FreeCGEnts{0x140873A30};
@@ -44,6 +48,10 @@ WEAK symbol<ClientPlayerAttachmentInfo *> cg_attachmentsArray{0x1449D9420};
 
 WEAK symbol<CGFakeEntitiesInuseBitArray> cg_fakeEntitiesInuseBitArray{
     0x144D17B80};
+
+WEAK symbol<LocalClientCgWeaponsPools> cg_weaponsArray{0x1449D9410};
+WEAK symbol<LocalClientCgDestructiblesPools> cg_destructibles{0x157F00FF0};
+WEAK symbol<LocalClientIkBufs> cg_ikBuf{0x144A315C0};
 
 } // namespace cg
 } // namespace game

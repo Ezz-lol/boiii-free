@@ -2,6 +2,8 @@
 
 #include "core.hpp"
 #include "weapon.hpp"
+#include "phys.hpp"
+#include "ik.hpp"
 
 namespace game {
 namespace cg {
@@ -61,8 +63,33 @@ struct ClientPlayerAttachmentInfo {
   const char *translatedDisplayName;
 };
 
+#pragma pack(push, 1)
+struct ClientPlayerWeaponInfo {
+  db::xasset::XModel *handModel;
+  db::xasset::XModel *rocketModel;
+  qboolean registered;
+  uint8_t _padding14[4];
+  weapon::Weapon weapon;
+  const char *translatedDisplayName;
+  const char *translatedModename;
+  const char *translatedAIOverlayDescription;
+};
+#pragma pack(pop)
+
 struct CGFakeEntitiesInuseBitArray {
   LocalClientPool<bitarray<768>> inUse;
+};
+
+struct LocalClientCgWeaponsPools {
+  LocalClientPool<ClientPlayerWeaponInfo *> pools;
+};
+
+struct LocalClientCgDestructiblesPools {
+  LocalClientPool<phys::Destructible *> pools;
+};
+
+struct LocalClientIkBufs {
+  LocalClientPool<ik::IkBuf> bufs;
 };
 
 } // namespace cg

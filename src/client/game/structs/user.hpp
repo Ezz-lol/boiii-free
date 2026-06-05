@@ -155,7 +155,7 @@ struct __attribute__((aligned(4))) actorInfo_t {
   bool nextValid;
   int32_t actorNum;
   int32_t entityNum;
-  char name[32];
+  name_t name;
   uint32_t modelIndex;
   anim::ModelAttachmentIndex attachments[6];
   uint32_t attachIgnoreCollision;

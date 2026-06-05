@@ -245,9 +245,9 @@ void client_update(game::sv::client_s *cl) {
             }
 
             std::string clean_name = strip_color_codes(name_str);
-            strncpy_s(client_state->name, game::PLAYER_NAME_MAX_LEN,
+            strncpy_s(client_state->name, ARRAYSIZE(client_state->name),
                       clean_name.c_str(), _TRUNCATE);
-            strncpy_s(cl->name, game::PLAYER_NAME_MAX_LEN, clean_name.c_str(),
+            strncpy_s(cl->name, ARRAYSIZE(cl->name), clean_name.c_str(),
                       _TRUNCATE);
 
             std::string clean_clan_abbrev =
@@ -255,16 +255,16 @@ void client_update(game::sv::client_s *cl) {
                     ? strip_color_codes(*clan_abbrev_override)
                     : "";
             strncpy_s(client_state->clanAbbrev,
-                      game::PLAYER_CLAN_ABBREV_MAX_LEN,
+                      ARRAYSIZE(client_state->clanAbbrev),
                       clean_clan_abbrev.c_str(), _TRUNCATE);
-            strncpy_s(cl->clanAbbrev, game::PLAYER_CLAN_ABBREV_MAX_LEN,
+            strncpy_s(cl->clanAbbrev, ARRAYSIZE(cl->clanAbbrev),
                       clean_clan_abbrev.c_str(), _TRUNCATE);
           } else {
             std::optional<std::string> orig_name = get_orig_name(client_num);
             if (orig_name.has_value()) {
-              strncpy_s(client_state->name, game::PLAYER_NAME_MAX_LEN,
+              strncpy_s(client_state->name, ARRAYSIZE(client_state->name),
                         orig_name->c_str(), _TRUNCATE);
-              strncpy_s(cl->name, game::PLAYER_NAME_MAX_LEN, orig_name->c_str(),
+              strncpy_s(cl->name, ARRAYSIZE(cl->name), orig_name->c_str(),
                         _TRUNCATE);
               remove_orig_name(client_num);
             }
@@ -272,9 +272,9 @@ void client_update(game::sv::client_s *cl) {
                 get_orig_clan_abbrev(client_num);
             if (orig_clan_abbrev.has_value()) {
               strncpy_s(client_state->clanAbbrev,
-                        game::PLAYER_CLAN_ABBREV_MAX_LEN,
+                        ARRAYSIZE(client_state->clanAbbrev),
                         orig_clan_abbrev->c_str(), _TRUNCATE);
-              strncpy_s(cl->clanAbbrev, game::PLAYER_CLAN_ABBREV_MAX_LEN,
+              strncpy_s(cl->clanAbbrev, ARRAYSIZE(cl->clanAbbrev),
                         orig_clan_abbrev->c_str(), _TRUNCATE);
               remove_orig_clan_abbrev(client_num);
             }

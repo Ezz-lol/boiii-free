@@ -13,5 +13,10 @@ void CG_InitAndAllocCGEntsArray_Impl(
 void CG_ClearCGEnts_Impl();
 void CG_FreeCGEnts_Impl(hunk::HunkUser *hunk, LocalClientNum_t maxLocalClients =
                                                   game::LOCAL_CLIENT_COUNT);
+void CG_AllocateClientMemory_Impl(
+    hunk::HunkUser *hunk,
+    LocalClientNum_t maxLocalClients = game::LOCAL_CLIENT_COUNT);
+
+bool CG_IsFullyInitialized_Impl(LocalClientNum_t localClientNum);
 } // namespace cg
 } // namespace game

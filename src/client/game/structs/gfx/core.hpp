@@ -606,7 +606,7 @@ struct GfxCOLORDATA {
   vec4_t vTrack2_MtrxFINAL_G;
   vec4_t vTrack2_MtrxFINAL_B;
   GfxANIMTRACK animDATA;
-  char fileNAME[32];
+  name_t fileNAME;
 };
 
 typedef vec3_t vec3x3[3];

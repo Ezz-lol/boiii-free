@@ -32,6 +32,9 @@ WEAK symbol<void(HunkUser *allocationScheme)> Hunk_UserDestroy{0x1422D3920,
                                                                0x14057DC20};
 WEAK symbol<void(HunkUser *user, void *ptr)> Hunk_UserFree{0x1422D3940};
 WEAK symbol<void(HunkUser *user)> Hunk_UserDefaultReset{0x1422D3960};
+WEAK symbol<HunkUser *(HunkUserNull *user)> Hunk_UserCreateNull{0x1422D38E0};
+
+WEAK symbol<HunkUser *> s_localClientHunk{0x14573B200};
 } // namespace hunk
 } // namespace game
 #endif

@@ -1,12 +1,10 @@
 #include "cl.hpp"
 #include <cstring>
 #include <cstdio>
-#include <stdexcept>
-#include <atomic>
 
-#include "../../../game/utils.hpp"
+#include "../../utils.hpp"
+#include "../cg/cg.hpp"
 #include "../../../component/auth.hpp"
-
 #include "../../../../common/utils/string.hpp"
 
 namespace game {
@@ -306,6 +304,141 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
     return;
   }
   }
+}
+
+void CL_AllocateClientMemory_Impl(hunk::HunkUser *hunk,
+                                  LocalClientNum_t maxLocalClients,
+                                  ClientNum_t maxClients,
+                                  clientAllocFlags_t flags) {
+  int32_t maxClientSnapshots = CL_SNAPSHOT_COUNT * maxClients;
+
+  *clients = reinterpret_cast<ClientActives *>(hunk::Hunk_UserAlloc(
+      hunk, sizeof(clientActive_t) * maxLocalClients, 0x10, "clients"));
+
+  *clientConnections = reinterpret_cast<ClientConnections *>(
+      hunk::Hunk_UserAlloc(hunk, sizeof(clientConnection_t) * maxLocalClients,
+                           0x10, "clientConnections"));
+
+  for (game::LocalClientNum_t localClientNum = game::LOCAL_CLIENT_0;
+       localClientNum < maxLocalClients; ++localClientNum) {
+    clOutPacketsPool_t *outPackets =
+        reinterpret_cast<clOutPacketsPool_t *>(hunk::Hunk_UserAlloc(
+            hunk, sizeof(clOutPacketsPool_t), 0x10, "clients.outPackets"));
+    clSnapshotPool_t *snapshots =
+        reinterpret_cast<clSnapshotPool_t *>(hunk::Hunk_UserAlloc(
+            hunk, sizeof(clSnapshotPool_t), 0x10, "clients.snapshots"));
+    clEntityStatePool_t *parseEntitiesBuf =
+        reinterpret_cast<clEntityStatePool_t *>(hunk::Hunk_UserAlloc(
+            hunk, sizeof(clEntityStatePool_t), 0x10, "clients.parseEntities"));
+    clClientStates_t *parseClientsBuf = reinterpret_cast<clClientStates_t *>(
+        hunk::Hunk_UserAlloc(hunk, sizeof(clClientStates_t) * maxClients, 0x10,
+                             "clients.parseClients"));
+    clActorStatePool_t *parseActorsBuf =
+        reinterpret_cast<clActorStatePool_t *>(hunk::Hunk_UserAlloc(
+            hunk, sizeof(clActorStatePool_t), 0x10, "clients.parseActors"));
+    clMatchStatePool_t *parseMatchStatesBuf =
+        reinterpret_cast<clMatchStatePool_t *>(
+            hunk::Hunk_UserAlloc(hunk, sizeof(clMatchStatePool_t), 0x10,
+                                 "clients.parseMatchStates"));
+    clCasterStatePool_t *parseCasterStatesBuf =
+        reinterpret_cast<clCasterStatePool_t *>(
+            hunk::Hunk_UserAlloc(hunk, sizeof(clCasterStatePool_t), 0x10,
+                                 "clients.parseCasterStates"));
+    clCasterClientStatePool_t *parseCasterClientsBuf =
+        reinterpret_cast<clCasterClientStatePool_t *>(
+            hunk::Hunk_UserAlloc(hunk, sizeof(clCasterClientStatePool_t), 0x10,
+                                 "clients.parseCasterClientStates"));
+
+    if (!flags.dryRun) {
+      clientActive_t *client = &(*clients)->actives[localClientNum];
+
+      // Assign buffers and capacities
+      client->parseCasterStatesBuf = parseCasterStatesBuf;
+      client->maxParseCasterStates = CL_SNAPSHOT_COUNT;
+      client->numParseCasterStates = CL_SNAPSHOT_COUNT;
+
+      client->parseActorsBuf = parseActorsBuf;
+      client->maxParseActors = CL_ACTOR_COUNT;
+      client->numParseActors = CL_ACTOR_COUNT;
+
+      client->outPackets = outPackets;
+      client->snapshots = snapshots;
+      client->packetBackupCount = CL_SNAPSHOT_COUNT;
+      client->packetBackupMask = PACKET_BACKUP_MASK;
+
+      client->parseEntitiesBuf = parseEntitiesBuf;
+      client->maxParseEntities = CL_ENTITY_COUNT;
+      client->numParseEntities = CL_ENTITY_COUNT;
+
+      client->parseClientsBuf = parseClientsBuf;
+      client->maxParseClients = maxClientSnapshots;
+      client->numParseClients = maxClientSnapshots;
+
+      client->parseMatchStatesBuf = parseMatchStatesBuf;
+      client->maxParseMatchStates = CL_SNAPSHOT_COUNT;
+      client->numParseMatchStates = CL_SNAPSHOT_COUNT;
+
+      client->parseCasterClientsBuf = parseCasterClientsBuf;
+      client->maxParseCasterClients = maxClientSnapshots;
+      client->numParseCasterClients = maxClientSnapshots;
+
+      // Initialize connection transfer buffers
+      clientConnection_t *connection =
+          CL_GetLocalClientConnection(localClientNum);
+      connection->transferBuffer = nullptr;
+      connection->transferBufferCompressedSize = 0;
+    }
+  }
+
+  if (!flags.dryRun) {
+    memset(cls_gamestate, 0, sizeof(gameState_t));
+    *cls_serverId = 0;
+    for (game::LocalClientNum_t localClientNum = game::LOCAL_CLIENT_0;
+         localClientNum < game::LOCAL_CLIENT_COUNT; ++localClientNum) {
+      cg::clientUIActives->actives[localClientNum].connectionState =
+          connstate_t::DISCONNECTED;
+    }
+  }
+}
+
+void AllocatePerLocalClientMemory_Impl(LocalClientNum_t maxLocalClients,
+                                       ClientNum_t maxClients,
+                                       clientAllocFlags_t flags) {
+
+  fx::FX_ShutdownLensFlareSystem();
+  CL_FreePerLocalClientMemory(true);
+  flags.dryRun = 1;
+
+  hunk::HunkUserNull user;
+  hunk::HunkUser *nullUser = hunk::Hunk_UserCreateNull(&user);
+  cg::CG_AllocateClientMemory_Impl(nullUser, maxLocalClients);
+  fx::FX_AllocateClientMemory(nullUser, maxLocalClients, maxClients, flags);
+  CL_AllocateClientMemory_Impl(nullUser, maxLocalClients, maxClients, flags);
+  Checkpoint_Init(nullUser, flags);
+  int32_t clientAlignment = (std::max)(user.alignment, 4);
+  int32_t clientSize = user.size + 1024;
+  pmem::PMem_BeginAlloc(*pmem::PerLocalClientMemoryName, PMemStack::GAME,
+                        EMemTrack::CLIENT);
+
+  void *localClientHunkBuf = pmem::_PMem_Alloc(
+      clientSize, clientAlignment, PMemPool::MAIN, PMemStack::GAME, 0,
+      EMemTrack::CLIENT, "q:\\t7\\code\\src\\client_mp\\cl_main_mp.cpp", 0);
+  pmem::PMem_EndAlloc(*pmem::PerLocalClientMemoryName, PMemStack::GAME);
+  *hunk::s_localClientHunk = hunk::Hunk_UserCreateFromBuffer(
+      localClientHunkBuf, static_cast<size_t>(clientSize),
+      hunk::HU_ALLOCATION_SCHEME::HU_SCHEME_DEFAULT, 8u, nullptr,
+      "clientOnlyHunk", 0x1A);
+  hunk::Hunk_UserDefaultReset(*hunk::s_localClientHunk);
+  flags.dryRun = 0;
+  cg::CG_AllocateClientMemory_Impl(*hunk::s_localClientHunk, maxLocalClients);
+  fx::FX_AllocateClientMemory(*hunk::s_localClientHunk, maxLocalClients,
+                              maxClients, flags);
+  CL_AllocateClientMemory_Impl(*hunk::s_localClientHunk, maxLocalClients,
+                               maxClients, flags);
+  Checkpoint_Init(*hunk::s_localClientHunk, flags);
+  *cl_maxLocalClients = maxLocalClients;
+  *cl_allocatedClients = maxClients;
+  *cl_lastAllocFlags = flags;
 }
 
 } // namespace cl

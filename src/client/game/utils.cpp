@@ -402,13 +402,13 @@ level::gentity_pool *gentity_pool() {
     /*
       In the client, for each function where g_entities is accessed,
       in each of its calling functions, prior to its callsite,
-      arxan will copy the pointer stored in g_entities into another
-      memory address or stack pointer and set g_entities to 0xFFFFFFFFFFFFFFFF.
-      In the called function, g_entities will then be accessed through the
-      pointer stored at the destination of the copy, using a series of highly
-      obfuscated operations. After the call is completed, arxan will copy the
-      g_entities pointer back into the global g_entities memory address through,
-      again, a series of highly obfuscated operations.
+      Treyarch's anticheat (TAC) will copy the pointer stored in g_entities into
+      another memory address or stack pointer and set g_entities to
+      0xFFFFFFFFFFFFFFFF. In the called function, g_entities will then be
+      accessed through the pointer stored at the destination of the copy, using
+      a series of highly obfuscated operations. After the call is completed, TAC
+      will copy the g_entities pointer back into the global g_entities memory
+      address through, again, a series of highly obfuscated operations.
 
       This obviously makes naive usage of the g_entities global impractical, as
       it will often be set to 0xFFFFFFFFFFFFFFFF during or before access,

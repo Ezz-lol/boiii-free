@@ -1,10 +1,12 @@
 #pragma once
 
 #include <cstdint>
+#include "core.hpp"
+
 namespace game {
 namespace hunk {
 
-typedef uint64_t HUNKUSER_FLAGS;
+typedef uint32_t HUNKUSER_FLAGS;
 
 enum class HU_ALLOCATION_SCHEME : uint32_t {
   HU_SCHEME_DEFAULT = 0x0,
@@ -20,12 +22,12 @@ enum class HU_ALLOCATION_SCHEME : uint32_t {
 #pragma pack(push, 1)
 struct HunkUser {
   HU_ALLOCATION_SCHEME scheme;
-  uint8_t _padding04[4];
   HUNKUSER_FLAGS flags;
   const char *name;
   int32_t type;
-  uint8_t _padding1C[4];
+  uint8_t _padding14[4];
 };
+ASSERT_SIZE(HunkUser, 0x18);
 #pragma pack(pop)
 
 #pragma pack(push, 1)
@@ -42,6 +44,14 @@ struct HunkUserDefault {
   uint8_t buf[1];
   uint8_t _padding51[7];
 };
+ASSERT_SIZE(HunkUserDefault, 0x50);
 #pragma pack(pop)
+
+struct HunkUserNull {
+  HunkUser hunkUser;
+  int32_t size;
+  int32_t alignment;
+};
+ASSERT_SIZE(HunkUserNull, 0x20);
 } // namespace hunk
 } // namespace game

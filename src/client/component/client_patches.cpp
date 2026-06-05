@@ -1,6 +1,7 @@
 #include <sstream>
 #include "../std_include.hpp"
 #include <cstdint>
+#include <atomic>
 #include "loader/component_loader.hpp"
 
 #include "scheduler.hpp"
@@ -243,78 +244,155 @@ T *Hunk_UserAlloc_StoreGlobal(game::hunk::HunkUser *user, size_t size,
   return result;
 }
 
+/*
+   `storage` must be a `game::atomicarray` with item type `T`.
+   Its length cannot be automatically derived in the template, so the array's
+   type is specified as `auto` to allow count (`N`) computation in the function,
+   with a proceeding assertion to ensure the passed `storage` type is a
+   `game::atomicarray<T, N>`.
+*/
+template <typename T, auto &storage>
+T *Hunk_UserAlloc_StoreGlobal_FirstNull(game::hunk::HunkUser *user, size_t size,
+                                        int32_t alignment, const char *name) {
+  constexpr uint32_t N = ARRAYSIZE(storage);
+
+  static_assert(std::is_same_v<std::remove_reference_t<decltype(storage)>,
+                               game::atomicarray<T *, N>>,
+                "Type Error: 'storage' MUST be a game::atomicarray<T*, N>");
+
+  T *result = reinterpret_cast<T *>(
+      game::hunk::Hunk_UserAlloc(user, size, alignment, name));
+  /*
+     compare_exchange_strong requires an lvalue - cannot use an inlined
+     `nullptr` rvalue
+  */
+  T *null = nullptr;
+  for (uint32_t i = 0; i < N && !storage[i].compare_exchange_strong(
+                                    null, result, std::memory_order_seq_cst,
+                                    std::memory_order_relaxed);
+       ++i) {
+  }
+
+  return result;
+}
+
 template <typename T, std::atomic<T *> &storage>
 void Hunk_UserFree_ResetGlobal(game::hunk::HunkUser *user, T *ptr) {
   game::hunk::Hunk_UserFree(user, reinterpret_cast<void *>(ptr));
   storage.store(nullptr, std::memory_order_seq_cst);
 }
 
-utils::hook::detour CG_InitAndAllocCGEntsArray_hook;
 utils::hook::detour CG_FreeCGEnts_hook;
 utils::hook::detour CG_ClearCGEnts_hook;
 
-void store_obfuscated_alloc_ptrs() {
+// TODO: use when TAC protection removed
+// utils::hook::detour AllocatePerLocalClientMemory_hook;
 
-  CG_InitAndAllocCGEntsArray_hook.create(
-      game::cg::CG_InitAndAllocCGEntsArray.get(),
-      game::cg::CG_InitAndAllocCGEntsArray_Impl);
+/*
+  Store allocation pointers protected by Treyarch's anticheat (TAC) in our own
+  globals.
+
+  Allocation pointers protected by TAC are stored on the stack with de/encrypted
+  stack offset computed with original, unprotected address where the allocation
+  pointer would usually be stored.
+
+  As such, and where de/encryption routines vary at each access and allocation,
+  and are dependent on access occurring in the specific location of
+  de/encryption, we cannot feasibly access these globals in boiii.
+
+  To circumvent this, we can instead get each global's allocation pointer at the
+  site of allocation, and store them in our own globals for use elsewhere.
+
+  We then clear each global's allocation pointer when freed by hooking its
+  corresponding free call in the engine.
+*/
+void store_tac_protected_allocs() {
+  /*
+     TODO: remove TAC protection and use this re-implementation
+    AllocatePerLocalClientMemory_hook.create(
+      game::cl::AllocatePerLocalClientMemory.get(),
+      game::cl::AllocatePerLocalClientMemory_Impl);
+  */
+
   CG_FreeCGEnts_hook.create(game::cg::CG_FreeCGEnts.get(),
                             game::cg::CG_FreeCGEnts_Impl);
   CG_ClearCGEnts_hook.create(game::cg::CG_ClearCGEnts.get(),
                              game::cg::CG_ClearCGEnts_Impl);
 
-  utils::hook::call(0x140840929_g,
-                    reinterpret_cast<void *>(
-                        Hunk_UserAlloc_StoreGlobal<game::level::cl::cgPool,
-                                                   game::cg::cgArray_store>));
-  utils::hook::call(0x1408421C3_g,
-                    reinterpret_cast<void *>(
-                        Hunk_UserAlloc_StoreGlobal<game::level::cl::cgsPool,
-                                                   game::cg::cgsArray_store>));
-  utils::hook::call(
-      0x140843A4F_g,
-      reinterpret_cast<void *>(
-          Hunk_UserAlloc_StoreGlobal<game::anim::ViewModelInfo,
-                                     game::cg::cg_viewModelArray_store>));
-  utils::hook::call(
-      0x140843A70_g,
-      reinterpret_cast<void *>(
-          Hunk_UserAlloc_StoreGlobal<game::cg::ClientPlayerAttachmentInfo,
-                                     game::cg::cg_attachmentsArray_store>));
+  /*
+     TODO: remove this block and the `Hunk_UserAlloc_StoreGlobal` and
+    `Hunk_UserAlloc_StoreGlobal_FirstNull` functions after TAC protection
+    removed
+  */
+  {
+    utils::hook::call(0x140840929_g,
+                      reinterpret_cast<void *>(
+                          Hunk_UserAlloc_StoreGlobal<game::level::cl::cgPool,
+                                                     game::cg::cgArray_store>));
+    utils::hook::call(
+        0x1408421C3_g,
+        reinterpret_cast<void *>(
+            Hunk_UserAlloc_StoreGlobal<game::level::cl::cgsPool,
+                                       game::cg::cgsArray_store>));
+    utils::hook::call(
+        0x140843A4F_g,
+        reinterpret_cast<void *>(
+            Hunk_UserAlloc_StoreGlobal<game::anim::ViewModelInfo,
+                                       game::cg::cg_viewModelArray_store>));
+    utils::hook::call(
+        0x140843A70_g,
+        reinterpret_cast<void *>(
+            Hunk_UserAlloc_StoreGlobal<game::cg::ClientPlayerAttachmentInfo,
+                                       game::cg::cg_attachmentsArray_store>));
+    utils::hook::call(
+        0x14085B9F5_g,
+        reinterpret_cast<void *>(Hunk_UserAlloc_StoreGlobal_FirstNull<
+                                 game::level::cl::centityPool_t,
+                                 game::cg::cg_entitiesArray_store>));
+  }
 
-  utils::hook::call(
-      0x140853E13_g,
-      reinterpret_cast<void *>(
-          Hunk_UserFree_ResetGlobal<game::cg::ClientPlayerAttachmentInfo,
-                                    game::cg::cg_attachmentsArray_store>));
-  utils::hook::call(
-      0x140853E22_g,
-      reinterpret_cast<void *>(
-          Hunk_UserFree_ResetGlobal<game::anim::ViewModelInfo,
-                                    game::cg::cg_viewModelArray_store>));
-  utils::hook::call(0x140855728_g,
-                    reinterpret_cast<void *>(
-                        Hunk_UserFree_ResetGlobal<game::level::cl::cgsPool,
-                                                  game::cg::cgsArray_store>));
-  utils::hook::call(0x140856EC3_g,
-                    reinterpret_cast<void *>(
-                        Hunk_UserFree_ResetGlobal<game::level::cl::cgPool,
-                                                  game::cg::cgArray_store>));
+  // CG global hunk frees
+  {
+    utils::hook::call(
+        0x140853E13_g,
+        reinterpret_cast<void *>(
+            Hunk_UserFree_ResetGlobal<game::cg::ClientPlayerAttachmentInfo,
+                                      game::cg::cg_attachmentsArray_store>));
+    utils::hook::call(
+        0x140853E22_g,
+        reinterpret_cast<void *>(
+            Hunk_UserFree_ResetGlobal<game::anim::ViewModelInfo,
+                                      game::cg::cg_viewModelArray_store>));
+    utils::hook::call(0x140855728_g,
+                      reinterpret_cast<void *>(
+                          Hunk_UserFree_ResetGlobal<game::level::cl::cgsPool,
+                                                    game::cg::cgsArray_store>));
+    utils::hook::call(0x140856EC3_g,
+                      reinterpret_cast<void *>(
+                          Hunk_UserFree_ResetGlobal<game::level::cl::cgPool,
+                                                    game::cg::cgArray_store>));
+  }
 
-  utils::hook::call(0x1419D7E22_g,
-                    reinterpret_cast<void *>(
-                        malloc_store<game::level::gentity_pool,
-                                     game::level::g_entities_cl_allocation>));
+  /*
+     SV game level allocations.
+     These never seem to be freed as far as I can tell. They would be
+     automatically freed on application exit, so most likely this is how they
+     are being freed.
+  */
+  {
+    utils::hook::call(0x1419D7E22_g,
+                      reinterpret_cast<void *>(
+                          malloc_store<game::level::gentity_pool,
+                                       game::level::g_entities_cl_allocation>));
+  }
 }
 } // namespace
 
 class component final : public client_component {
 public:
-  static_assert(offsetof(game::clientActive_t, viewangles) == 0xB8C8);
-
   void post_unpack() override {
 
-    store_obfuscated_alloc_ptrs();
+    store_tac_protected_allocs();
     replace_sd_allocator();
 
     fix_amd_cpu_stuttering();
