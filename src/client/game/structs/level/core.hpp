@@ -1573,7 +1573,7 @@ struct entityType_t {
    but always packed as a padded 32-bit value,
    even where alignment does not require it.
 
-   Union is therefore provided accordingly.
+   This struct is thus defined accordingly.
   */
   entityType type;
   uint8_t _pad[2];
@@ -2312,8 +2312,8 @@ struct clientState_s {
   lobby::LobbyClientPool<int32_t> lastUpdateIndex;
 };
 typedef clientState_s clientState_t;
-static_assert(offsetof(clientState_t, name) == 0x2C);
-static_assert(offsetof(clientState_t, clanAbbrev) == 0x25C);
+ASSERT_OFFSET(clientState_t, name, 0x2C);
+ASSERT_OFFSET(clientState_t, clanAbbrev, 0x25C);
 ASSERT_SIZE(clientState_t, 0x338); // Correct
 #pragma pack(pop)
 
