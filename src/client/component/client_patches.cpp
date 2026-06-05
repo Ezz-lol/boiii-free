@@ -314,11 +314,6 @@ void store_tac_protected_allocs() {
       game::cl::AllocatePerLocalClientMemory_Impl);
   */
 
-  CG_FreeCGEnts_hook.create(game::cg::CG_FreeCGEnts.get(),
-                            game::cg::CG_FreeCGEnts_Impl);
-  CG_ClearCGEnts_hook.create(game::cg::CG_ClearCGEnts.get(),
-                             game::cg::CG_ClearCGEnts_Impl);
-
   /*
      TODO: remove this block and the `Hunk_UserAlloc_StoreGlobal` and
     `Hunk_UserAlloc_StoreGlobal_FirstNull` functions after TAC protection
@@ -371,6 +366,11 @@ void store_tac_protected_allocs() {
                       reinterpret_cast<void *>(
                           Hunk_UserFree_ResetGlobal<game::level::cl::cgPool,
                                                     game::cg::cgArray_store>));
+
+    CG_FreeCGEnts_hook.create(game::cg::CG_FreeCGEnts.get(),
+                              game::cg::CG_FreeCGEnts_Impl);
+    CG_ClearCGEnts_hook.create(game::cg::CG_ClearCGEnts.get(),
+                               game::cg::CG_ClearCGEnts_Impl);
   }
 
   /*
