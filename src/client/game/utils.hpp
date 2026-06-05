@@ -83,7 +83,7 @@ template <typename T, typename = typename std::enable_if<
                           std::is_convertible<T, uint32_t>::value>::type>
 inline level::gentity_t *entity(T input_index) {
   uint32_t index = static_cast<uint32_t>(input_index);
-  if (index < level::GENTITY_POOL_COUNT) {
+  if (index < level::GENTITY_POOL_LEN) {
     level::gentity_pool *pool = gentity_pool();
     if (pool) {
       return &pool->pool[index];

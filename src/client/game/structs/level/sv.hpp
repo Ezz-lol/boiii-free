@@ -473,9 +473,9 @@ struct gentity_s {
 };
 #pragma pack(pop)
 
-constexpr uint32_t GENTITY_POOL_COUNT = 2048;
+constexpr uint32_t GENTITY_POOL_LEN = 2048;
 struct gentity_pool {
-  gentity_t pool[GENTITY_POOL_COUNT];
+  gentity_t pool[GENTITY_POOL_LEN];
 };
 
 #ifdef __cplusplus
