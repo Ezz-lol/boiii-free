@@ -411,29 +411,37 @@ void AllocatePerLocalClientMemory_Impl(LocalClientNum_t maxLocalClients,
 
   /*
      Create empty allocations of required size
-     using initial dry-run allocations
+     and alignment using initial dry-run allocations
   */
-  flags.dryRun = 1;
-  hunk::HunkUserNull nullUser;
-  hunk::HunkUser *user = hunk::Hunk_UserCreateNull(&nullUser);
-  cg::CG_AllocateClientMemory_Impl(user, maxLocalClients);
-  fx::FX_AllocateClientMemory(user, maxLocalClients, maxClients, flags);
-  CL_AllocateClientMemory_Impl(user, maxLocalClients, maxClients, flags);
-  Checkpoint_Init(user, flags);
-  int32_t clientAlignment = (std::max)(nullUser.alignment, 4);
-  int32_t clientSize = nullUser.size + 1024;
-  pmem::PMem_BeginAlloc(*pmem::PerLocalClientMemoryName, PMemStack::GAME,
-                        EMemTrack::CLIENT);
+  {
 
-  void *localClientHunkBuf = pmem::_PMem_Alloc(
-      clientSize, clientAlignment, PMemPool::MAIN, PMemStack::GAME, 0,
-      EMemTrack::CLIENT, "q:\\t7\\code\\src\\client_mp\\cl_main_mp.cpp", 0);
-  pmem::PMem_EndAlloc(*pmem::PerLocalClientMemoryName, PMemStack::GAME);
-  *hunk::s_localClientHunk = hunk::Hunk_UserCreateFromBuffer(
-      localClientHunkBuf, static_cast<size_t>(clientSize),
-      hunk::HU_ALLOCATION_SCHEME::HU_SCHEME_DEFAULT, 8u, nullptr,
-      "clientOnlyHunk", 0x1A);
-  hunk::Hunk_UserDefaultReset(*hunk::s_localClientHunk);
+    // Compute, store required allocation sizes
+    flags.dryRun = 1;
+    hunk::HunkUserNull nullUser;
+    hunk::HunkUser *user = hunk::Hunk_UserCreateNull(&nullUser);
+    cg::CG_AllocateClientMemory_Impl(user, maxLocalClients);
+    fx::FX_AllocateClientMemory(user, maxLocalClients, maxClients, flags);
+    CL_AllocateClientMemory_Impl(user, maxLocalClients, maxClients, flags);
+    Checkpoint_Init(user, flags);
+
+    /*
+       Create empty and aligned allocations with required
+       size computed in prior function calls
+    */
+    int32_t clientAlignment = (std::max)(nullUser.alignment, 4);
+    int32_t clientSize = nullUser.size + 1024;
+    pmem::PMem_BeginAlloc(*pmem::PerLocalClientMemoryName, PMemStack::GAME,
+                          EMemTrack::CLIENT);
+    void *localClientHunkBuf = pmem::_PMem_Alloc(
+        clientSize, clientAlignment, PMemPool::MAIN, PMemStack::GAME, 0,
+        EMemTrack::CLIENT, "q:\\t7\\code\\src\\client_mp\\cl_main_mp.cpp", 0);
+    pmem::PMem_EndAlloc(*pmem::PerLocalClientMemoryName, PMemStack::GAME);
+    *hunk::s_localClientHunk = hunk::Hunk_UserCreateFromBuffer(
+        localClientHunkBuf, static_cast<size_t>(clientSize),
+        hunk::HU_ALLOCATION_SCHEME::HU_SCHEME_DEFAULT, 8u, nullptr,
+        "clientOnlyHunk", 0x1A);
+    hunk::Hunk_UserDefaultReset(*hunk::s_localClientHunk);
+  }
 
   // Populate/initialize empty allocations
   flags.dryRun = 0;
