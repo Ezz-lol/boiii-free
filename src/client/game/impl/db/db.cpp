@@ -50,8 +50,9 @@ void reallocate_asset_pool(const XAssetType type, const unsigned int new_size) {
       reinterpret_cast<char *>(new_pool) +
       static_cast<size_t>(entry_size) * pool->itemAllocCount);
 
-  for (auto i = pool->itemAllocCount; i < static_cast<int>(new_size) - 1; i++) {
-    auto *current =
+  for (int32_t i = pool->itemAllocCount; i < static_cast<int>(new_size) - 1;
+       i++) {
+    AssetLink *current =
         reinterpret_cast<AssetLink *>(reinterpret_cast<char *>(new_pool) +
                                       static_cast<size_t>(entry_size) * i);
     current->next = reinterpret_cast<AssetLink *>(
@@ -60,7 +61,7 @@ void reallocate_asset_pool(const XAssetType type, const unsigned int new_size) {
   }
 
   // Last entry points to null
-  auto *last = reinterpret_cast<AssetLink *>(
+  AssetLink *last = reinterpret_cast<AssetLink *>(
       reinterpret_cast<char *>(new_pool) +
       static_cast<size_t>(entry_size) * (new_size - 1));
   last->next = nullptr;
@@ -72,9 +73,9 @@ void reallocate_asset_pool(const XAssetType type, const unsigned int new_size) {
          static_cast<int>(type), pool->itemCount, new_size);
 }
 
+// The engine always inlines this function, so we reimplement it here for use
+// elsewhere.
 uint32_t DB_HashForName(const char *name, const XAssetType type) {
-  // The engine always inlines this function, so we reimplement it here for use
-  // elsewhere.
   uint32_t hash = static_cast<uint32_t>(type);
   while (*name) {
     char c = *name++;
@@ -94,14 +95,12 @@ XAssetEntryPoolEntry *DB_GetAssetEntryPoolEntryByName(const char *name,
   xasset::XAssetEntryPoolEntry *entry =
       reinterpret_cast<xasset::XAssetEntryPoolEntry *>(
           &xasset::g_assetEntryPool->pool[index]);
-  // Find match in collision list
-  while (entry != nullptr) {
-    if (entry->entry.asset.type == type &&
-        strcmp(entry->entry.asset.header.named->name, name) == 0) {
-      break;
-    }
 
-    entry = entry->next;
+  // Find match in collision list
+  for (; entry != nullptr &&
+         (entry->entry.asset.type != type ||
+          strcmp(entry->entry.asset.header.named->name, name) != 0);
+       entry = entry->next) {
   }
 
   return entry;

@@ -10,15 +10,15 @@ namespace game {
 namespace ugc {
 enum class ZoneType : uint32_t { OFFICIAL = 0x0, MOD = 0x1, USERMAP = 0x2 };
 typedef uint32_t UGCHash;
-using UGCPath = array<char, 260>;
+using UGCPath = str<260>;
 
 struct WorkshopData {
   // Field is called "name" in lua table
   char title[100];
-  str32_t internalName;
+  name_t internalName;
   // Field is called "ugcName" in lua table
   str32_t publisherId;
-  char description[256];
+  str256_t description;
   UGCPath contentPathToZoneFiles;
   UGCPath absolutePathContentDirectory;
   UGCPath absolutePathZoneFiles;
