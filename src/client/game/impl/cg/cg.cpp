@@ -107,7 +107,7 @@ void CG_AllocateClientMemory_Impl(hunk::HunkUser *hunk,
     cg_destructibles->pools[localClientNum] =
         reinterpret_cast<phys::Destructible *>(
             hunk::Hunk_UserAlloc(hunk, 0x11880u, 8, "cg_destrutibles"));
-    uint8_t *ikStatesArray = reinterpret_cast<uint8_t *>(
+    ik::IkBuf ikStatesArray = reinterpret_cast<ik::IkBuf>(
         hunk::Hunk_UserAlloc(hunk, 0xDB7F0u, 0x10, "ikStatesArray"));
     cg_ikBuf->bufs[localClientNum] = ikStatesArray;
     ik::IK_AllocateLocalClientMemory(ikStatesArray, localClientNum);

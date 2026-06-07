@@ -10,24 +10,24 @@
 namespace game {
 namespace db {
 namespace xasset {
-void reallocate_asset_pool(const XAssetType type, const unsigned int new_size) {
-  if (static_cast<int>(type) < 0 || type >= XAssetType::COUNT) {
-    printf("[AssetLimits] Invalid asset type %d\n", static_cast<int>(type));
+void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
+  if (static_cast<int32_t>(type) < 0 || type >= XAssetType::COUNT) {
+    printf("[AssetLimits] Invalid asset type %d\n", static_cast<int32_t>(type));
     return;
   }
 
   const int32_t entry_size = DB_GetXAssetTypeSize(type);
   if (entry_size <= 0) {
     printf("[AssetLimits] Invalid entry size for type %d\n",
-           static_cast<int>(type));
+           static_cast<int32_t>(type));
     return;
   }
 
   XAssetPool *pool = reinterpret_cast<XAssetPool *>(
-      &s_assetPools->pools[static_cast<int>(type)]);
+      &s_assetPools->pools[static_cast<int32_t>(type)]);
 
   // Skip if pool already meets or exceeds requested size
-  if (pool->itemAllocCount >= static_cast<int>(new_size)) {
+  if (pool->itemAllocCount >= static_cast<int32_t>(new_size)) {
     return;
   }
 
@@ -35,7 +35,7 @@ void reallocate_asset_pool(const XAssetType type, const unsigned int new_size) {
       reinterpret_cast<XAssetPool *>(calloc(new_size, entry_size));
   if (!new_pool) {
     printf("Failed to allocate asset pool for type %d (size: %u)\n",
-           static_cast<int>(type), new_size);
+           static_cast<int32_t>(type), new_size);
     return;
   }
 
@@ -50,7 +50,7 @@ void reallocate_asset_pool(const XAssetType type, const unsigned int new_size) {
       reinterpret_cast<char *>(new_pool) +
       static_cast<size_t>(entry_size) * pool->itemAllocCount);
 
-  for (int32_t i = pool->itemAllocCount; i < static_cast<int>(new_size) - 1;
+  for (int32_t i = pool->itemAllocCount; i < static_cast<int32_t>(new_size) - 1;
        i++) {
     AssetLink *current =
         reinterpret_cast<AssetLink *>(reinterpret_cast<char *>(new_pool) +
@@ -67,10 +67,10 @@ void reallocate_asset_pool(const XAssetType type, const unsigned int new_size) {
   last->next = nullptr;
 
   pool->pool = new_pool;
-  pool->itemAllocCount = static_cast<int>(new_size);
+  pool->itemAllocCount = static_cast<int32_t>(new_size);
 
   printf("Reallocated asset pool type %d: %d -> %u entries\n",
-         static_cast<int>(type), pool->itemCount, new_size);
+         static_cast<int32_t>(type), pool->itemCount, new_size);
 }
 
 // The engine always inlines this function, so we reimplement it here for use
