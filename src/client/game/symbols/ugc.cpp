@@ -1,3 +1,4 @@
+#include <std_include.hpp>
 #include "ugc.hpp"
 #include "../game.hpp"
 namespace game {

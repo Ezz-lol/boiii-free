@@ -1,3 +1,4 @@
+#include <std_include.hpp>
 #include "lua.hpp"
 
 namespace game {
