@@ -432,7 +432,9 @@ void disable_unused_asset_loads() {
 struct component final : server_component {
   void post_unpack() override {
 
-    enable_sound();
+    if (!utils::flags::has_flag("nosnd")) {
+      enable_sound();
+    }
     disable_unused_asset_loads();
 
     /*
