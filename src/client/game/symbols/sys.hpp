@@ -14,6 +14,8 @@ WEAK symbol<void(CriticalSection)> Sys_EnterCriticalSection{0x140119190,
 WEAK symbol<void(CriticalSection)> Sys_LeaveCriticalSection{0x1401191E0,
                                                             0x140055280};
 WEAK symbol<const char *()> Sys_Cwd{0x1422A4800, 0x140564EB0};
+WEAK symbol<void(HANDLE *event)> Sys_WaitForSingleObject{0x142C7A8E0,
+                                                         0x140526DC0};
 
 WEAK symbol<fs::PathList(char *directory, const char *extension, char *filter,
                          int *numfiles, qboolean wantsubs)>

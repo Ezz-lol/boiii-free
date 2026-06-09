@@ -190,7 +190,7 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
     //       if (eventObj.m_ptr) {
     //
     //         if (InterlockedDecrement(&eventObj.m_ptr->m_refCount) == 1) {
-    //           (*eventObj.m_ptr->releaseFunc)(eventObj.m_ptr, 1);
+    //           eventObj.m_ptr->vtbl->releaseFunc(eventObj.m_ptr, 1);
     //         }
     //         eventObj.m_ptr = nullptr;
     //       }
@@ -432,11 +432,11 @@ void AllocatePerLocalClientMemory_Impl(LocalClientNum_t maxLocalClients,
     int32_t clientAlignment = (std::max)(nullUser.alignment, 4);
     int32_t clientSize = nullUser.size + 1024;
     pmem::PMem_BeginAlloc(*pmem::PerLocalClientMemoryName, PMemStack::GAME,
-                          EMemTrack::CLIENT);
+                          EMemTrack::TRACK_CLIENT);
     void *localClientHunkBuf = pmem::_PMem_Alloc(
         clientSize, clientAlignment, PMemPool::MAIN, PMemStack::GAME, 0,
-        EMemTrack::CLIENT, "q:\\t7\\pc\\code\\src\\client_mp\\cl_main_mp.cpp",
-        557);
+        EMemTrack::TRACK_CLIENT,
+        "q:\\t7\\pc\\code\\src\\client_mp\\cl_main_mp.cpp", 557);
     pmem::PMem_EndAlloc(*pmem::PerLocalClientMemoryName, PMemStack::GAME);
     *hunk::s_localClientHunk = hunk::Hunk_UserCreateFromBuffer(
         localClientHunkBuf, static_cast<size_t>(clientSize),

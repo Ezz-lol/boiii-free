@@ -33,3 +33,6 @@
 #include "stream.hpp"      // IWYU pragma: export
 #include "sv.hpp"          // IWYU pragma: export
 #include "ugc.hpp"         // IWYU pragma: export
+#include "dyn/dyn.hpp"     // IWYU pragma: export
+#include "rope.hpp"        // IWYU pragma: export
+#include "cm.hpp"          // IWYU pragma: export

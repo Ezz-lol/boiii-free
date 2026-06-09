@@ -372,6 +372,13 @@ void sv_execute_client_messages_stub(game::sv::client_s *client,
   game::sv::SV_ExecuteClientMessage(client, msg);
 }
 
+utils::hook::detour Sys_WaitForSingleObject_Safe_hook;
+void Sys_WaitForSingleObject_Safe(HANDLE *event) {
+  if (event != nullptr) {
+    Sys_WaitForSingleObject_Safe_hook.invoke(event);
+  }
+}
+
 utils::hook::detour g_registersoundwait_hook;
 } // namespace
 
@@ -383,6 +390,15 @@ struct component final : generic_component {
 
     // Clientfield Mismatch -> recoverable ERR_DROP
     com_error_hook.create(game::com::Com_Error_, com_error_stub);
+
+    /*
+       Fix memory access exception in Sys_WaitForSingleObject during mapswitch.
+       Root cause is difficult to narrow down due to a callstack obfuscated by
+       arxan. We circumvent this by ensuring the passed handle pointer is
+       non-null before calling the function.
+    */
+    Sys_WaitForSingleObject_Safe_hook.create(
+        game::sys::Sys_WaitForSingleObject.get(), Sys_WaitForSingleObject_Safe);
 
     // print hexadecimal xuids in chat game log command
     utils::hook::set<char>(game::select(0x142FD9362, 0x140E16FA2), 'x');

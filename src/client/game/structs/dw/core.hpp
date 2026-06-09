@@ -89,18 +89,25 @@ public:
   T *m_ptr;
 };
 
-#pragma pack(push, 1)
-class bdReferencable {
+class bdReferencable;
+class bdReferencableVTbl {
 public:
-  thiscallPtr<void, bdReferencable *, int64_t> releaseFunc;
+  thiscall_t<void, bdReferencable *, int64_t> releaseFunc;
+};
+
+#pragma pack(push, 1)
+template <typename VTbl = bdReferencableVTbl> class _bdReferencable {
+public:
+  VTbl *vtbl;
   volatile bdInt m_refCount;
   uint8_t _padding[4];
 };
+class bdReferencable : public _bdReferencable<bdReferencableVTbl> {};
 ASSERT_SIZE(bdReferencable, 0x10);
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-class bdByteBuffer : bdReferencable {
+class bdByteBuffer : public bdReferencable {
 public:
   bdUInt m_size;
   uint8_t _padding14[4];
@@ -124,7 +131,7 @@ public:
 #pragma pack(push, 1)
 class bdTaskResult {
 public:
-  int (**_vptr$bdTaskResult)(void);
+  int32_t (**_vptr$bdTaskResult)(void);
   uint8_t _padding[16];
 };
 #pragma pack(pop)
@@ -132,12 +139,13 @@ public:
 #pragma pack(push, 1)
 class bdTaskResultProcessor {
 public:
-  int (**_vptr$bdTaskResultProcessor)(void);
+  int32_t (**_vptr$bdTaskResultProcessor)(void);
 };
 
 #pragma pack(pop)
 
-class bdTask : bdReferencable {
+template <typename VTbl = bdReferencableVTbl>
+class bdTask : public _bdReferencable<VTbl> {
 public:
   enum class bdStatus : int32_t {
     EMPTY = 0x0,
@@ -489,12 +497,29 @@ enum class bdLobbyErrorCode : uint32_t {
   MAX_ERROR_CODE = 0x27E2,
 };
 
+class bdRemoteTask;
+class bdRemoteTaskVTbl : public bdReferencableVTbl {
+public:
+  thiscall_t<bdTask<bdRemoteTaskVTbl>::bdStatus, bdRemoteTask * /*this*/>
+      checkTimeout;
+  thiscall_t<void, bdRemoteTask * /*this*/, bdByteBufferRef * /*byteResults*/,
+             const bdNChar8 * /*file*/, const bdNChar8 * /*function*/,
+             const bdNChar8 * /*line*/
+             >
+      deserializeResult;
+  thiscall_t<void, bdRemoteTask * /*this*/, bdFloat32 /*timeout*/> start;
+  thiscall_t<bool, bdRemoteTask * /*this*/, bdByteBufferRef * /*byteResults*/,
+             const bdNChar8 * /*file*/, const bdNChar8 * /*function*/,
+             const bdNChar8 * /*line*/>
+      deserialize;
+};
+
 #pragma pack(push, 1)
-class bdRemoteTask : bdTask {
+class bdRemoteTask : public bdTask<bdRemoteTaskVTbl> {
 public:
   bdStopwatch m_timer;
   bdFloat32 m_timeout;
-  bdRemoteTask::bdStatus m_status;
+  bdTask::bdStatus m_status;
   bdByteBufferRef m_byteResults;
   bdTaskResult *m_taskResult;
   bdTaskResult **m_taskResultList;
@@ -520,6 +545,313 @@ public:
   bdUInt m_capacity;
   bdUInt m_size;
 };
+
+enum class TaskState : uint32_t {
+  INVALID = 0x0,
+  INIT = 0x1,
+  INPROGRESS = 0x2,
+  INCALLBACK = 0x3,
+  CHILDCOMPLETE = 0x4,
+  CHILDFAILED = 0x5,
+  COMPLETED = 0x6,
+  FAILED = 0x7,
+  CANCELLED = 0x8,
+};
+
+enum class TaskGroup : uint32_t {
+  TASK_GROUP_UNKNOWN = 0x0,
+  TASK_GROUP_XSESSION = 0x1,
+};
+
+enum class UserEvent : int32_t {
+  unknown = -1,
+  enetDown = 0x0,
+  enetUp = 0x1,
+  loggedIn = 0x2,
+  loggedOut = 0x3,
+  netInfoGotBandwidth = 0x4,
+  netInfoGotBasic = 0x5,
+  netInfoGotDetailed = 0x6,
+  netInfoError = 0x7,
+  netInfoDialogComplete = 0x8,
+  friendsGotFriendsList = 0x9,
+  friendsNoFriends = 0xA,
+  friendsListReady = 0xB,
+  friendsListUpdated = 0xC,
+  friendsPresenceUpdated = 0xD,
+  friendsGuiExited = 0xE,
+  blockListReady = 0xF,
+  blockListUpdated = 0x10,
+  blockListGotInformation = 0x11,
+  blockListNoUser = 0x12,
+  presenceSet = 0x13,
+  presenceSetFailed = 0x14,
+  presenceGotInformation = 0x15,
+  presenceGetFailed = 0x16,
+  presenceGameStatusUpdated = 0x17,
+  presenceGameDataUpdated = 0x18,
+  presenceGameTitleInfoUpdated = 0x19,
+  rankingRangeRetrieved = 0x1A,
+  rankingRangeRetrievedFail = 0x1B,
+  rankingFriendsRetrieved = 0x1C,
+  rankingFriendsRetrievedFail = 0x1D,
+  rankingFriendsRetrievedFailNoFriends = 0x1E,
+  rankingMatchingBoardFound = 0x1F,
+  rankingHighScore = 0x20,
+  rankingServerError = 0x21,
+  rankingCommunityError = 0x22,
+  rankingScoreRegistered = 0x23,
+  rankingScoreRegisteredFail = 0x24,
+  rankingScoreRegisteredFailNotBest = 0x25,
+  rankingUserRankRetrieved = 0x26,
+  rankingUserRankRetrievedFail = 0x27,
+  rankingUsersRanksRetrieved = 0x28,
+  rankingUsersRanksRetrievedFail = 0x29,
+  rankingInitFail = 0x2A,
+  rankingMemoryError = 0x2B,
+  rankingGameDataAborted = 0x2C,
+  rankingGameDataAbortedFail = 0x2D,
+  rankingGameDataObtained = 0x2E,
+  rankingGameDataObtainedFail = 0x2F,
+  rankingGameDataRegistered = 0x30,
+  rankingGameDataRegisteredFail = 0x31,
+  matchingSessionCreated = 0x32,
+  matchingSessionJoined = 0x33,
+  matchingSessionSearchCompleted = 0x34,
+  matchingSessionError = 0x35,
+  matchingSessionLeft = 0x36,
+  matchingSessionModified = 0x37,
+  matchingSessionUpdate = 0x38,
+  matchingSessionMessageSentError = 0x39,
+  matchingSessionMemberKicked = 0x3A,
+  matchingSessionInformation = 0x3B,
+  sessionCreateResult = 0x3C,
+  sessionJoinResult = 0x3D,
+  sessionError = 0x3E,
+  sessionLeaveResult = 0x3F,
+  sessionModified = 0x40,
+  sessionUpdateResult = 0x41,
+  sessionGetInfoResult = 0x42,
+  sessionGetInfoListResult = 0x43,
+  sessionGetSessionDataResult = 0x44,
+  sessionGetChangeableSessionDataResult = 0x45,
+  sessionSearchResult = 0x46,
+  sessionInviteNotification = 0x47,
+  sessionInviteGetInfoResult = 0x48,
+  sessionInviteGetInfoListResult = 0x49,
+  sessionInviteGetDataResult = 0x4A,
+  sessionInvitePostInvitationResult = 0x4B,
+  sessionInviteSetDataUsedResult = 0x4C,
+  messageSent = 0x4D,
+  messageError = 0x4E,
+  messageRetrieved = 0x4F,
+  messageDialogTerminated = 0x50,
+  messageInGameDataReceived = 0x51,
+  messageInGameDataRetrievalDone = 0x52,
+  messageAttachmentReceived = 0x53,
+  messageAttachmentOpened = 0x54,
+  messageInviteReceived = 0x55,
+  messageInviteAccepted = 0x56,
+  gameCustomDataItemListResult = 0x57,
+  gameCustomDataGameDataResult = 0x58,
+  gameCustomDataMessageResult = 0x59,
+  gameCustomDataSetUseFlagResult = 0x5A,
+  gameCustomDataGameThumbnailResult = 0x5B,
+  gameCustomDataNotification = 0x5C,
+  activityFeedPostPlayedWithResult = 0x5D,
+  activityFeedGetPlayedWithResult = 0x5E,
+  activityFeedGetTitleNewsResult = 0x5F,
+  activityFeedGetTitleFeedResult = 0x60,
+  activityFeedGetUserNewsResult = 0x61,
+  activityFeedGetUserFeedResult = 0x62,
+  activityFeedGetSharedVideosResult = 0x63,
+  activityFeedGetSharedScreenshotsResult = 0x64,
+  activityFeedPostInGameResult = 0x65,
+  activityFeedPostLikeResult = 0x66,
+  activityFeedPostDislikeResult = 0x67,
+  activityFeedGetWhoLikedResult = 0x68,
+  commerceSessionCreated = 0x69,
+  commerceSessionAborted = 0x6A,
+  commerceGotCategoryInfo = 0x6B,
+  commerceGotProductList = 0x6C,
+  commerceGotDetailedProductInfo = 0x6D,
+  commerceGotDetailedProductInfoList = 0x6E,
+  commerceCategoryBrowseStarted = 0x6F,
+  commerceCategoryBrowseFinished = 0x70,
+  commerceProductBrowseStarted = 0x71,
+  commerceProductBrowseSuccess = 0x72,
+  commerceProductBrowseAborted = 0x73,
+  commerceProductBrowseFinished = 0x74,
+  commerceNoEntitlements = 0x75,
+  commerceGotEntitlementList = 0x76,
+  commerceConsumedEntitlement = 0x77,
+  commerceCheckoutStarted = 0x78,
+  commerceCheckoutFinished = 0x79,
+  commerceJoinPlusStarted = 0x7A,
+  commerceJoinPlusFinished = 0x7B,
+  commerceDownloadListStarted = 0x7C,
+  commerceDownloadListFinished = 0x7D,
+  commerceVoucherInputStarted = 0x7E,
+  commerceVoucherInputFinished = 0x7F,
+  commerceInstallStarted = 0x80,
+  commerceInstallFinished = 0x81,
+  commerceError = 0x82,
+  authGotTicket = 0x83,
+  authGotCachedTicket = 0x84,
+  authGotAccessToken = 0x85,
+  authNewTicket = 0x86,
+  authError = 0x87,
+  tssGotData = 0x88,
+  tssGotDataFromSlot = 0x89,
+  tssGotDataStatus = 0x8A,
+  tssNoData = 0x8B,
+  tssError = 0x8C,
+  tusDataSet = 0x8D,
+  tusDataReceived = 0x8E,
+  tusVariablesSet = 0x8F,
+  tusVariablesReceived = 0x90,
+  tusAddedAndGotVariable = 0x91,
+  tusDataDeleted = 0x92,
+  tusError = 0x93,
+  snsMessagePosted = 0x94,
+  snsDialogStarted = 0x95,
+  snsDialogFinished = 0x96,
+  snsUserPermissionNotGiven = 0x97,
+  snsError = 0x98,
+  profileGotOnlineId = 0x99,
+  profileGotNpId = 0x9A,
+  profileGotOnlineName = 0x9B,
+  profileGotAvatarUrl = 0x9C,
+  profileGotMyLanguages = 0x9D,
+  profileGotCachedUserInfo = 0x9E,
+  profileGotCountryInfo = 0x9F,
+  profileGotParentalInfo = 0xA0,
+  profileGotPlatform = 0xA1,
+  profileError = 0xA2,
+  profileGotNpUserInformation = 0xA3,
+  profileGotNpUsersInformation = 0xA4,
+  profileGotPersonalDetailsAvailable = 0xA5,
+  trophyListRetrievalSuccess = 0xA6,
+  trophyListRetrievalFail = 0xA7,
+  trophyPlatinumUnlocked = 0xA8,
+  trophyUnlockSuccess = 0xA9,
+  trophyUnlockFail = 0xAA,
+  trophySetSetupSuccess = 0xAB,
+  trophySetSetupFail = 0xAC,
+  trophyGroupInfoRetrievalSuccess = 0xAD,
+  trophyGroupInfoRetrievalFail = 0xAE,
+  trophyGameInfoRetrievalSuccess = 0xAF,
+  trophyGameInfoRetrievalFail = 0xB0,
+  trophyProgressSuccess = 0xB1,
+  trophyProgressFail = 0xB2,
+  wordFilterSuccess = 0xB3,
+  wordFilterFail = 0xB4,
+  challengesRetrieveListResult = 0xB5,
+  challengesRetrieveResponsesResult = 0xB6,
+  challengesRetrieveChallengesResult = 0xB7,
+  challengesSendChallengeResult = 0xB8,
+  challengesNotifyChallengeResult = 0xB9,
+  challengesConsumeResult = 0xBA,
+  challengesInspectItemResult = 0xBB,
+  challengesDataRetrieveResult = 0xBC,
+  serviceTerminate = 0xBD,
+  serviceError = 0xBE,
+  libraryTerminated = 0xBF,
+};
+
+enum class ServiceType : uint32_t {
+  core = 0x0,
+  netInfo = 0x1,
+  matching = 0x2,
+  ranking = 0x3,
+  tus = 0x4,
+  tss = 0x5,
+  auth = 0x6,
+  friends = 0x7,
+  webApi = 0x8,
+  commerce = 0x9,
+  profile = 0xA,
+  presence = 0xB,
+  trophy = 0xC,
+  messaging = 0xD,
+  inGameMessage = 0xE,
+  sessions = 0xF,
+  wordFilter = 0x10,
+  gameCustomData = 0x11,
+  activityFeed = 0x12,
+  sns = 0x13,
+  challenges = 0x14,
+  size = 0x15,
+};
+
+enum class LocalTaskState : uint32_t {
+  LOCAL_TASK_STATE_INPROGRESS = 0x0,
+  LOCAL_TASK_STATE_COMPLETED = 0x1,
+  LOCAL_TASK_STATE_FAILED = 0x2,
+};
+
+struct TaskRecord;
+typedef fastcall_t<LocalTaskState, TaskRecord *> localTaskFunc;
+
+typedef fastcall_t<bool, TaskRecord *> task_callback;
+
+typedef uint64_t TaskCategory;
+
+#pragma pack(push, 1)
+struct TaskDefinition {
+  TaskCategory category;
+  const char *name;
+  int32_t payloadSize;
+  uint8_t _padding14[4];
+  task_callback completed_callback;
+  task_callback failure_callback;
+  localTaskFunc localTask;
+  ServiceType serviceType;
+  int32_t numUserEvents;
+  UserEvent userEvents[2];
+};
+#pragma pack(pop)
+
+struct Event {
+  ServiceType service;
+  UserEvent event;
+  int32_t returnCode;
+};
+
+#pragma pack(push, 1)
+template <typename T> struct _TaskRecord {
+  TaskRecord *next;
+  const TaskDefinition *definition;
+  TaskState state;
+  ControllerIndex_t controllerIndex;
+  uint32_t lastPoll;
+  uint32_t lastPollMS;
+  uint32_t id;
+  TaskGroup group;
+  int32_t startMS;
+  int32_t timeOut;
+  int32_t timeIn;
+  uint8_t _padding34[4];
+  bdRemoteTaskRef remoteTask;
+
+  /*
+    `eventInfo` might be PS4-specific - unsure currently.
+    SCE and NP toolkit namespaces were removed from the type name
+    to create a best-effort PC-equivalent definition, but it also may not be
+    used at all.
+  */
+  Event eventInfo;
+  uint8_t _padding4C[4];
+  TaskRecord *nestedTask;
+  T *payload;
+  bool isChildTask;
+  bool cancelImmediately;
+  bool skipAllCallbacksAfterComplete;
+  uint8_t _padding63[5];
+};
+struct TaskRecord : public _TaskRecord<void *> {};
+ASSERT_SIZE(TaskRecord, 0x68);
+#pragma pack(pop)
 
 } // namespace dw
 } // namespace game

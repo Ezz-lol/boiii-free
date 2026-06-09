@@ -44,8 +44,7 @@ struct broad_phase_base {
   uint32_t m_env_collision_flags;
   uint32_t m_my_collision_type_flags;
 };
-static_assert(sizeof(broad_phase_base) == 0x60,
-              "broad_phase_base size must be 96 bytes");
+ASSERT_SIZE(broad_phase_base, 0x60);
 
 template <typename Node> class phys_link_list_base {
 public:
@@ -71,8 +70,7 @@ public:
   uint8_t _padding64[4];
   rigid_body *m_rb;
 };
-static_assert(sizeof(pulse_sum_node) == 0x70,
-              "pulse_sum_node size must be 112 bytes");
+ASSERT_SIZE(pulse_sum_node, 0x70);
 
 typedef db::xasset::FxImpactTable *FxImpactTablePtr;
 
@@ -115,16 +113,14 @@ public:
   rigid_body *b2;
   rigid_body_constraint *m_next;
 };
-static_assert(sizeof(rigid_body_constraint) == 0x18,
-              "rigid_body_constraint size must be 24 bytes");
+ASSERT_SIZE(rigid_body_constraint, 0x18);
 
 // sizeof=0x4
 class pulse_sum_cache {
 public:
   float m_pulse_sum;
 };
-static_assert(sizeof(pulse_sum_cache) == 0x4,
-              "pulse_sum_cache size must be 4 bytes");
+ASSERT_SIZE(pulse_sum_cache, 0x4);
 
 // sizeof=0x60
 class rigid_body_constraint_point : rigid_body_constraint {
@@ -139,8 +135,7 @@ public:
   bool m_spring_enabled;
   uint8_t _padding59[7];
 };
-static_assert(sizeof(rigid_body_constraint_point) == 0x60,
-              "rigid_body_constraint_point size must be 96 bytes");
+ASSERT_SIZE(rigid_body_constraint_point, 0x60);
 
 class pulse_sum_node;
 class rigid_body;
@@ -164,8 +159,7 @@ struct rb_inplace_partition_node {
   int32_t m_partition_size;
   uint8_t _padding6C[4];
 };
-static_assert(sizeof(rb_inplace_partition_node) == 0x70,
-              "rb_inplace_partition_node size must be 112 bytes");
+ASSERT_SIZE(rb_inplace_partition_node, 0x70);
 
 // sizeof=0x1B0
 class rigid_body {
@@ -202,15 +196,14 @@ public:
   rb_inplace_partition_node m_partition_node;
   uint8_t _padding1A8[8];
 };
-static_assert(sizeof(rigid_body) == 0x1B0, "rigid_body size must be 432 bytes");
+ASSERT_SIZE(rigid_body, 0x1B0);
 
 // sizeof=0x10
 struct rigid_body_pair_key {
   rigid_body *m_b1;
   rigid_body *m_b2;
 };
-static_assert(sizeof(rigid_body_pair_key) == 0x10,
-              "rigid_body_pair_key size must be 16 bytes");
+ASSERT_SIZE(rigid_body_pair_key, 0x10);
 
 class NitrousVehicle;
 
@@ -220,8 +213,7 @@ public:
   // int32_t (**_vptr$phys_gjk_geom)(void);
   void *vtablePtr;
 };
-static_assert(sizeof(phys_gjk_geom) == 0x8,
-              "phys_gjk_geom size must be 8 bytes");
+ASSERT_SIZE(phys_gjk_geom, 0x8);
 
 typedef contents_t gjk_contents_t;
 
@@ -251,7 +243,7 @@ public:
   gjk_contents_t m_contents;
   uint8_t _padding54[12];
 };
-static_assert(sizeof(gjk_base_t) == 0x60, "gjk_base_t size must be 96 bytes");
+ASSERT_SIZE(gjk_base_t, 0x60);
 
 // sizeof=0x10
 class gjk_geom_list_t {
@@ -260,8 +252,7 @@ public:
   int32_t m_geom_count;
   uint8_t _padding0C[4];
 };
-static_assert(sizeof(gjk_geom_list_t) == 0x10,
-              "gjk_geom_list_t size must be 16 bytes");
+ASSERT_SIZE(gjk_geom_list_t, 0x10);
 // sizeof=0x160
 class PhysObjUserData {
 public:
@@ -298,8 +289,7 @@ public:
   hitinfo_t hitinfo;
   uint8_t _padding15C[4];
 };
-static_assert(sizeof(PhysObjUserData) == 0x160,
-              "PhysObjUserData size must be 352 bytes");
+ASSERT_SIZE(PhysObjUserData, 0x160);
 
 struct DestructibleDef; // TODO
 typedef DestructibleDef *DestructibleDefPtr;
@@ -350,8 +340,7 @@ struct ZBarrierDef {
   db::xasset::XModel *pCollisionModel;
   ZBarrierBoard boards[6];
 };
-static_assert(sizeof(ZBarrierDef) == 0x300,
-              "ZBarrierDef size must be 768 bytes");
+ASSERT_SIZE(ZBarrierDef, 0x300);
 
 // sizeof=0x8
 struct ZBarrierPieceAnims {
@@ -437,6 +426,11 @@ enum class objcamState : uint32_t {
 #pragma pack(pop)
 
 typedef int32_t FxUniqueHandle;
+
+struct LocalClientFxUniqueHandle {
+  LocalClientNum_t localClient;
+  FxUniqueHandle fxHandle;
+};
 
 struct DestructibleBurnData {
   int32_t burnTime;
@@ -621,15 +615,13 @@ ASSERT_SIZE(Destructible, 0xC0);
 typedef intptr_t PhysObjId;
 
 #pragma pack(push, 1)
-// sizeof=0x4
+
 union CollisionAabbTreeIndex {
   int32_t firstChildIndex;
   int32_t partitionIndex;
 };
-static_assert(sizeof(CollisionAabbTreeIndex) == 0x4,
-              "CollisionAabbTreeIndex size must be 4 bytes");
+ASSERT_SIZE(CollisionAabbTreeIndex, 0x4);
 
-// sizeof=0x20
 struct CollisionAabbTree {
   vec3_t origin;
   uint16_t materialIndex;
@@ -637,8 +629,19 @@ struct CollisionAabbTree {
   vec3_t halfSize;
   CollisionAabbTreeIndex u;
 };
-static_assert(sizeof(CollisionAabbTree) == 0x20,
-              "CollisionAabbTree size must be 32 bytes");
+ASSERT_SIZE(CollisionAabbTree, 0x20);
+
+#pragma pack(push, 1)
+struct CollisionPartition {
+  uint8_t triCount;
+  uint8_t _padding01[3];
+  int32_t firstTri;
+  int32_t nuinds;
+  int32_t fuind;
+};
+ASSERT_SIZE(CollisionPartition, 0x10);
+#pragma pack(pop)
+
 struct cbrush_t; // TODO
 
 // sizeof=0x10
@@ -650,7 +653,7 @@ struct col_prim_t {
     const cbrush_t *brush;
   };
 };
-static_assert(sizeof(col_prim_t) == 0x10, "col_prim_t size must be 16 bytes");
+ASSERT_SIZE(col_prim_t, 0x10);
 
 class float4 {
 public:
@@ -662,8 +665,7 @@ class hybrid_vector {
 public:
   float4 vec;
 };
-static_assert(sizeof(hybrid_vector) == 0x10,
-              "hybrid_vector size must be 16 bytes");
+ASSERT_SIZE(hybrid_vector, 0x10);
 
 class visitor_base_t {
 public:

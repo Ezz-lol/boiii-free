@@ -5,6 +5,7 @@
 #include "cg/cg.hpp"     // IWYU pragma: export
 #include "cinematic.hpp" // IWYU pragma: export
 #include "cl.hpp"        // IWYU pragma: export
+#include "cm.hpp"        // IWYU pragma: export
 #include "cmd.hpp"       // IWYU pragma: export
 #include "com.hpp"       // IWYU pragma: export
 #include "console.hpp"   // IWYU pragma: export

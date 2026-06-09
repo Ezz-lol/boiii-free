@@ -26,6 +26,9 @@ WEAK symbol<bool(LocalClientNum_t localClientNum)> CG_IsFullyInitialized{
 WEAK symbol<void(hunk::HunkUser *user, LocalClientNum_t maxLocalClients)>
     CG_FreeCGEnts{0x140873A30};
 WEAK symbol<void()> CG_ClearCGEnts{0x142D47490};
+WEAK symbol<bool(int32_t *hitNum, const vec3_t *start, const vec3_t *end,
+                 contents_t mask, cm::trace_t *trace)>
+    CG_SightTracePoint{0x1412B4380};
 
 extern std::atomic<level::cl::cgPool *> cgArray_store;
 level::cl::cgPool *get_cgArray();

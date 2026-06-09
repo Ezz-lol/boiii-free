@@ -4,6 +4,7 @@
 #include "../core.hpp"
 #include "../quake.hpp"
 #include "../db/xpak.hpp"
+
 #include "HLSL.hpp"
 namespace game {
 
@@ -16,6 +17,8 @@ namespace xasset {
 struct Material;
 struct XModel;
 typedef XModel *XModelPtr;
+
+struct XSurfaceShared;
 } // namespace xasset
 } // namespace db
 
@@ -668,7 +671,7 @@ struct GfxReflectionProbe {
   GfxConfig_Probe config;
   float exploderFade[4];
   bool exploderDisabled[4];
-  int umbraId;
+  int32_t umbraId;
 };
 
 struct GfxReflectionProbeArray {
@@ -682,8 +685,8 @@ struct GfxReflectionProbeArray {
 typedef GfxBuffer GfxStructuredBuffer;
 
 struct __attribute__((aligned(8))) GfxMinMaxTree {
-  int mip0Width;
-  int mip0Height;
+  int32_t mip0Width;
+  int32_t mip0Height;
   HLSL::float2 sstTexScale;
   uint32_t sstMinMaxCount;
   uint16_t *sstMaxCPU;
@@ -1053,7 +1056,7 @@ struct GfxGenericFilter {
   PostfxHeader *header;
   const char *bundleName;
   float time;
-  int stage;
+  int32_t stage;
 };
 
 struct GfxGenericFilters {
@@ -1154,7 +1157,7 @@ struct GfxConfig_Light {
   HLSL::float3 wldCullMax;
   uint32_t lightPriority;
   uint32_t shadowPriority;
-  int umbraId;
+  int32_t umbraId;
   vec3_t mAxisFromFx[3];
   bool exploderDisabled;
   float exploderFade;
@@ -1231,11 +1234,11 @@ struct __attribute__((aligned(4))) GfxCompositeFx {
   float blurRadius;
   float distortionMagnitude;
   float frameRate;
-  int lastUpdate;
-  int frame;
-  int startMSec;
-  int currentTime;
-  int duration;
+  int32_t lastUpdate;
+  int32_t frame;
+  int32_t startMSec;
+  int32_t currentTime;
+  int32_t duration;
   bool enabled;
   bool scriptEnabled;
 };
@@ -1246,15 +1249,15 @@ struct GfxPoison {
 };
 
 struct GfxViewport {
-  int x;
-  int y;
-  int width;
-  int height;
+  int32_t x;
+  int32_t y;
+  int32_t width;
+  int32_t height;
 };
 
 struct WaterFogDef {
-  int startTime;
-  int finishTime;
+  int32_t startTime;
+  int32_t finishTime;
   vec4_t color;
   float fogStart;
   float density;
@@ -1275,7 +1278,7 @@ struct GfxRippleWave {
   float waveInnerEnd;
   float waveOuterStart;
   float waveOuterEnd;
-  int waveTimeStamp;
+  int32_t waveTimeStamp;
 };
 
 struct __attribute__((aligned(4))) GfxDepthOfField {
@@ -1474,8 +1477,8 @@ struct GfxSiegeAnimState {
   };
 
   Anim anims[4];
-  int animNow;
-  int animPlay;
+  int32_t animNow;
+  int32_t animPlay;
   float tNow;
   float tNext;
   float timeScale;
@@ -1492,6 +1495,30 @@ struct GfxSiegeAnimState {
   } u;
   GfxSiegeAnimState *blendSource;
 };
+
+struct GfxPlacement {
+  vec4_t quat;
+  vec3_t origin;
+};
+
+#pragma pack(push, 1)
+struct GfxEntityPreFrame {
+  uint32_t activePartBits[12];
+  int32_t modelCount;
+  int32_t numBones;
+  int32_t numCosmeticBones;
+  int32_t boneArrayOffset;
+  uint32_t sanimIndex;
+  uint32_t sanimStateOffset;
+  uint32_t blendShapeFrame;
+  uint32_t blendShapeVertOffset;
+  uint32_t blendShapeVertOffsetLast;
+  uint8_t _padding54[4];
+  db::xasset::XSurfaceShared *blendShapeVertOffsetLastShared;
+};
+ASSERT_SIZE(GfxEntityPreFrame, 0x60);
+
+#pragma pack(pop)
 
 } // namespace gfx
 } // namespace game

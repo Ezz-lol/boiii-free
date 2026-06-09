@@ -229,6 +229,34 @@ template <typename T, std::atomic<T *> &storage> T *malloc_store(size_t size) {
   return result;
 }
 
+utils::hook::detour CG_SightTrace_Safe_hook;
+bool CG_SightTrace_Safe(int32_t *hitNum, const game::vec3_t *start,
+                        const game::vec3_t *end, game::contents_t mask,
+                        game::cm::trace_t *trace) {
+  game::cm::clipMap_t *cm = *game::cm::cm;
+  if (cm == nullptr) {
+    return *hitNum != 0;
+  }
+
+  return CG_SightTrace_Safe_hook.invoke<bool>(hitNum, start, end, mask, trace);
+}
+
+utils::hook::detour CM_SightTraceThroughTree_Safe_hook;
+int32_t CM_SightTraceThroughTree_Safe(const game::cm::traceWork_t *tw,
+                                      int32_t clipmapNodeNum,
+                                      const game::vec3_t *p1_,
+                                      const game::vec3_t *p2,
+                                      game::cm::trace_t *trace) {
+  game::cm::clipMap_t *cm = *game::cm::cm;
+  if (cm == nullptr || (clipmapNodeNum >= 0 && cm->nodes == nullptr) ||
+      static_cast<uint32_t>(clipmapNodeNum) > cm->numNodes) {
+    return 0;
+  }
+
+  return CM_SightTraceThroughTree_Safe_hook.invoke<int32_t>(tw, clipmapNodeNum,
+                                                            p1_, p2, trace);
+}
+
 template <typename T, std::atomic<T *> &storage> void free_zero(T *ptr) {
   free(ptr);
   storage.store(nullptr, std::memory_order_seq_cst);
@@ -386,6 +414,56 @@ void store_tac_protected_allocs() {
                                        game::level::g_entities_cl_allocation>));
   }
 }
+
+template <const int32_t NonZeroVal>
+int32_t Dvar_GetInt_NonZero(const game::dvar_t *dvar) {
+  static_assert(NonZeroVal != 0, "NonZeroVal == 0");
+
+  int32_t val = game::Dvar_GetInt(dvar);
+  if (val == 0) {
+    return NonZeroVal;
+  }
+  return val;
+}
+
+utils::hook::detour TaskManager2_ProcessDemonwareTask_Safe_hook;
+void TaskManager2_ProcessDemonwareTask_Safe(game::dw::TaskRecord *task) {
+  if (task != nullptr &&
+      (task->state != game::dw::TaskState::INPROGRESS ||
+       (task->remoteTask.m_ptr != nullptr &&
+        task->remoteTask.m_ptr->vtbl != nullptr &&
+        task->remoteTask.m_ptr->vtbl->checkTimeout != nullptr))) {
+    TaskManager2_ProcessDemonwareTask_Safe_hook.invoke(task);
+  }
+}
+
+void fix_mapswitch_crashes() {
+  /*
+   Ensure level clipmap nodes non-null prior to access attempt in trace.
+   Fixes rare crash on access attempt during map switch.
+ */
+  CM_SightTraceThroughTree_Safe_hook.create(
+      game::cm::CM_SightTraceThroughTree.get(), CM_SightTraceThroughTree_Safe);
+  /*
+    Ensure level clipmap non-null prior to access attempt in trace.
+    Fixes rare crash on access attempt during map switch.
+  */
+  CG_SightTrace_Safe_hook.create(game::cg::CG_SightTracePoint.get(),
+                                 CG_SightTrace_Safe);
+  /*
+    Fix divide by zero error triggered by `netchan_emergencyfreepercent` value
+    set to 0
+  */
+  constexpr const int32_t NETCHAN_EMERGENCYFREEPERCENT_DEFAULT_VAL = 10;
+  utils::hook::call(
+      0x1421739C1_g,
+      reinterpret_cast<void *>(
+          Dvar_GetInt_NonZero<NETCHAN_EMERGENCYFREEPERCENT_DEFAULT_VAL>));
+
+  TaskManager2_ProcessDemonwareTask_Safe_hook.create(
+      game::dw::task::TaskManager2_ProcessDemonwareTask.get(),
+      TaskManager2_ProcessDemonwareTask_Safe);
+}
 } // namespace
 
 class component final : public client_component {
@@ -394,6 +472,7 @@ public:
 
     store_tac_protected_allocs();
     replace_sd_allocator();
+    fix_mapswitch_crashes();
 
     fix_amd_cpu_stuttering();
 

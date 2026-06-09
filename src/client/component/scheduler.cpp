@@ -253,8 +253,7 @@ struct component final : generic_component {
       r_end_frame_hook.create(0x142272B00_g, r_end_frame_stub);
     }
 
-    // Com_Frame_Try_Block_Function
-    main_frame_hook.create(game::select(0x1420F8E00, 0x1405020E0),
+    main_frame_hook.create(game::com::Com_Frame_Try_Block_Function.get(),
                            main_frame_stub);
 
     utils::hook::call(game::select(0x14225522E, 0x140538427),
