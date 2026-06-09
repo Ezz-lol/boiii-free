@@ -179,25 +179,20 @@ bool unload_xzone_by_name(const char *zone_name, bool createDefault,
                           bool suppressSync) {
   uint32_t zoneIdx = get_xzone_index_by_name(zone_name);
   if (zoneIdx != 0xFFFFFFFF) {
-    load::DB_UnloadXZone(zoneIdx, createDefault, suppressSync ? 1 : 0);
+    load::DB_UnloadXZone(zoneIdx, createDefault,
+                         suppressSync ? game::qtrue : game::qfalse);
     return true;
   }
   return false; // Zone not found
 }
 
-void clear_loaded_usermap() {
-  memset(static_cast<void *>(game::ugc::active_usermap.get()), 0,
-         game::ugc::EXTENDED_WORKSHOP_DATA_POOL_STRUCT_SIZE);
-}
-
 void setup_server_map_stub(game::LocalClientNum_t localClientNum,
                            const char *map, const char *gametype) {
-  const char *loaded_mod_id = game::ugc::getPublisherIdFromLoadedMod();
+  const std::string loaded_mod_id = game::ugc::getPublisherIdFromLoadedMod();
   const bool is_usermap =
       utils::string::is_numeric(map) || !get_usermap_publisher_id(map).empty();
-  const bool mod_loaded = std::strlen(loaded_mod_id) > 0;
-  const bool usermaps_mod_loaded =
-      mod_loaded && std::strcmp(loaded_mod_id, "usermaps") == 0;
+  const bool mod_loaded = loaded_mod_id.size() > 0;
+  const bool usermaps_mod_loaded = mod_loaded && loaded_mod_id == "usermaps";
 
   if (is_usermap) {
 
@@ -206,8 +201,6 @@ void setup_server_map_stub(game::LocalClientNum_t localClientNum,
                                                false);
     }
   } else {
-    clear_loaded_usermap();
-
     if (usermaps_mod_loaded) {
       game::ugc::UGC_LoadModByPublisherId_Impl(localClientNum, "", false);
     }

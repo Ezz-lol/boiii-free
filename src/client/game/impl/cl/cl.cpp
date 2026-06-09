@@ -275,16 +275,16 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
 
           ## Problem Statement
 
-          Generated challenges are generated and stored per requesting IP
+          Challenges are generated and stored per requesting IP
          address, not per `netadr_t`. As such, if a local client requests a
          challenge, receives and stores the generated challenge, but does not
          attempt connection using this challenge prior to another local client
          requesting a new challenge, the challenge stored for the first local
          client's address will be overwritten server-side. When the first client
-         attempts connection with the signature generated with this challenge,
-         the server will attempt and fail verification of the signature, as it
-         is verifying against the challenge generated for the second local
-         client's request.
+         attempts connection with the signature generated with the first
+         challenge generated, the server will attempt and fail verification of
+         the signature, as it is verifying against the challenge generated for
+         the second local client's request.
 
           ## Solution
 
