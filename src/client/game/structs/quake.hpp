@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include <type_traits>
+#include "func.hpp"
 
 namespace game {
 
@@ -13,10 +13,21 @@ using qboolean = uint32_t;
 inline constexpr qboolean qfalse = 0;
 inline constexpr qboolean qtrue = 1;
 
-typedef int(__cdecl *_CoreCrtNonSecureSearchSortCompareFunction)(const void *,
-                                                                 const void *);
+// Type used by engine
+typedef cdecl_t<int32_t, const void *, const void *>
+    _CoreCrtNonSecureSearchSortCompareFunction;
 
-typedef int(__cdecl *_CoreCrtSecureSearchSortCompareFunction)(void *,
-                                                              const void *,
-                                                              const void *);
+// Can be used by boiii for more strict, specific argument typing
+template <typename T>
+using CoreCrtNonSecureSearchSortCompareFunction =
+    cdecl_t<int32_t, const T *, const T *>;
+
+// Type used by engine
+typedef cdecl_t<int32_t, void *, const void *, const void *>
+    _CoreCrtSecureSearchSortCompareFunction;
+
+// Can be used by boiii for more strict, specific argument typing
+template <typename T>
+using CoreCrtSecureSearchSortCompareFunction =
+    cdecl_t<int32_t, T *, const T *, const T *>;
 } // namespace game

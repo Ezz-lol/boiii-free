@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include "../core.hpp"
+#include "../func.hpp"
 
 namespace game {
 namespace dw {

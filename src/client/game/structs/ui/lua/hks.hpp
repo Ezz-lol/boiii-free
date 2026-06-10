@@ -1,6 +1,7 @@
 #pragma once
 
 #include "../../core.hpp"
+#include "../../func.hpp"
 
 namespace game {
 namespace ui {

@@ -42,7 +42,7 @@ enum dvarFlags_e : uint32_t {
   DVAR_CHEAT = 1 << 8,
   // DVAR_UNKNOWN = 1 << 9,
   DVAR_EXTERNAL = 1 << 10,
-  // DVAR_UNKNOWN3x = 1 << 11-13,
+  // DVAR_UNKNOWN3x = 1 << 11-14,
   DVAR_SESSIONMODE = 1 << 15,
   // Modvars have flags |= DVAR_MODVAR|DVAR_SESSIONMODE -
   // dvars specific to mod session
@@ -73,11 +73,11 @@ public:
     uint32_t cheat : 1;
     uint32_t unknown_9 : 1;
     uint32_t external : 1;
-    uint32_t unknown_11_13 : 3;
+    uint32_t unknown_11_14 : 4;
     uint32_t sessionmode : 1;
     uint32_t unknown_16 : 1;
     uint32_t modvar : 1;
-    uint32_t reserved : 15;
+    uint32_t reserved : 14;
   };
   uint32_t _raw;
 

@@ -415,18 +415,13 @@ std::string get_mod_publisher_id() {
   return loaded_mod_id;
 }
 
-const std::string ZM_DLC_MAPS[] = {
-    "zm_zod",        "zm_castle",  "zm_island",  "zm_stalingrad", "zm_genesis",
-    "zm_cosmodrome", "zm_theater", "zm_moon",    "zm_prototype",  "zm_tomb",
-    "zm_temple",     "zm_sumpf",   "zm_factory", "zm_asylum"};
-
-bool is_zm_dlc_map(const std::string &mapname) {
-  for (const std::string &dlcMap : ZM_DLC_MAPS) {
-    if (dlcMap == mapname) {
-      return true;
-    }
-  }
-  return false;
+constexpr bool is_zm_dlc_map(const std::string_view mapname) {
+  constexpr std::array<std::string_view, 14> ZM_DLC_MAPS = {
+      "zm_asylum", "zm_castle",  "zm_cosmodrome", "zm_factory",    "zm_genesis",
+      "zm_island", "zm_moon",    "zm_prototype",  "zm_stalingrad", "zm_sumpf",
+      "zm_temple", "zm_theater", "zm_tomb",       "zm_zod",
+  };
+  return std::binary_search(ZM_DLC_MAPS.begin(), ZM_DLC_MAPS.end(), mapname);
 }
 
 std::atomic<bool> downloading_workshop_item{false};
@@ -448,7 +443,7 @@ void set_pending_mod_reconnect(const std::string &address) {
 
 std::string get_pending_mod_reconnect() {
   std::lock_guard lock(reconnect_mutex);
-  auto addr = std::move(pending_mod_reconnect_address);
+  std::string addr = std::move(pending_mod_reconnect_address);
   pending_mod_reconnect_address.clear();
   return addr;
 }

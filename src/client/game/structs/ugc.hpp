@@ -7,7 +7,24 @@
 
 namespace game {
 namespace ugc {
-enum class ZoneType : uint32_t { OFFICIAL = 0x0, MOD = 0x1, USERMAP = 0x2 };
+enum class ZoneType : uint32_t {
+  /*
+     The `OFFICIAL` enumeration is almost never used, except in one function
+     which checks if a ZoneType enumeration value represents UGC content.
+
+     All other usage assumes value is either MOD or USERMAP, and
+     ZoneType is never assigned to OFFICIAL by the engine.
+
+     This enumeration was likely created with the intention of usage in
+     a consolidated zone handling architecture, which never came to be.
+  */
+  OFFICIAL = 0x0,
+
+  MOD = 0x1,
+  USERMAP = 0x2
+};
+IMPL_ENUM_OPERATORS(ZoneType);
+
 typedef uint32_t UGCHash;
 using UGCPath = str<260>;
 
@@ -34,16 +51,14 @@ struct WorkshopData {
   ZoneType type;
 };
 
-#ifdef __cplusplus
-static_assert(sizeof(WorkshopData) == 0x4C8,
-              "WorkshopData size must be 0x4C8 bytes");
-#endif
+ASSERT_SIZE(WorkshopData, 0x4C8);
 
 enum class ModLoadState : uint32_t {
   IDLE = 0x0,
   LOADING = 0x1,
   COMPLETE = 0x2,
 };
+IMPL_ENUM_OPERATORS(ModLoadState);
 
 struct ActiveMod : WorkshopData {
   ModLoadState loadState;

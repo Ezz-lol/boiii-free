@@ -11,6 +11,10 @@
 #include <utils/hook.hpp>
 #include "game/impl/game/game.hpp"
 
+#ifndef NDEBUG
+#include "game/impl/snd/snd.hpp"
+#endif
+
 namespace script {
 std::string resolve_hash(uint32_t hash);
 int resolve_hash_line(uint32_t hash, int num_params = -1);
@@ -18,7 +22,6 @@ std::string get_source_line(const std::string &file, int line_num);
 } // namespace script
 
 namespace patches {
-namespace {
 const game::dvar_t *lobby_min_players;
 utils::hook::detour com_error_hook;
 
@@ -379,15 +382,21 @@ void Sys_WaitForSingleObject_Safe(HANDLE *event) {
   }
 }
 
-utils::hook::detour g_registersoundwait_hook;
-} // namespace
+utils::hook::detour G_RegisterSoundWait_hook;
+#ifndef NDEBUG
+utils::hook::detour SND_HashName_hook;
+#endif
 
 struct component final : generic_component {
   void post_unpack() override {
 
-    g_registersoundwait_hook.create(game::G_RegisterSoundWait.get(),
+    G_RegisterSoundWait_hook.create(game::G_RegisterSoundWait.get(),
                                     game::G_RegisterSoundWait_Impl);
 
+#ifndef NDEBUG
+    SND_HashName_hook.create(game::snd::SND_HashName.get(),
+                             game::snd::SND_HashName_Impl);
+#endif
     // Clientfield Mismatch -> recoverable ERR_DROP
     com_error_hook.create(game::com::Com_Error_, com_error_stub);
 

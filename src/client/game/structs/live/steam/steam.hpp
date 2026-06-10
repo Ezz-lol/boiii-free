@@ -3,6 +3,8 @@
 #include <cstdint>
 
 #include "../../steam.hpp"
+#include "../../core.hpp"
+
 namespace game {
 namespace live {
 namespace steam {

@@ -2246,12 +2246,12 @@ ASSERT_SIZE(PlayerWeaponHandState, 0x1C);
 struct AmmoPool {
   int32_t count;
 };
-static_assert(sizeof(AmmoPool) == 0x4, "sizeof(AmmoPool) != 0x4");
+ASSERT_SIZE(AmmoPool, 0x4);
 
 struct AmmoClip {
   int32_t count;
 };
-static_assert(sizeof(AmmoClip) == 0x4, "sizeof(AmmoClip) != 0x4");
+ASSERT_SIZE(AmmoClip, 0x4);
 
 #pragma pack(push, 1)
 struct PlayerHeldWeapon {

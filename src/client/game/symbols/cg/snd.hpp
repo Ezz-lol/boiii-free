@@ -16,6 +16,10 @@ WEAK symbol<void(game::snd::SndEntHandle handle)> SND_SetEntState{0x142273800,
                                                                   0x140548DC0};
 WEAK symbol<void(int32_t msec, const char *lengthNotifyData)>
     CG_SubtitleSndLengthNotify{0x14104F8E0, 0x140120200};
+WEAK symbol<void(LocalClientNum_t localClientNum, int32_t entityNum,
+                 const vec3_t *origin, const vec3_t *direction, int32_t fadeMs,
+                 bool doNotify, float attenuation, game::snd::SndAliasId id)>
+    CG_PlaySound{0x1410324D0};
 
 } // namespace snd
 } // namespace cg

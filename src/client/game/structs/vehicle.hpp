@@ -19,7 +19,7 @@ struct WheelState {
   int32_t m_last_state;
   float m_rate[4];
 };
-static_assert(sizeof(WheelState) == 0x18, "WheelState size must be 24 bytes");
+ASSERT_SIZE(WheelState, 0x18);
 
 enum class VehicleCategory : int32_t {
   NONE = 0x0,
@@ -43,8 +43,7 @@ struct view_limits_t {
   float vertResistUp;
   float vertResistDown;
 };
-static_assert(sizeof(view_limits_t) == 0x20,
-              "view_limits_t size must be 32 bytes");
+ASSERT_SIZE(view_limits_t, 0x20);
 
 // sizeof=0xC
 struct VehicleGearData {
@@ -52,8 +51,7 @@ struct VehicleGearData {
   float maxRPM;
   float ratio;
 };
-static_assert(sizeof(VehicleGearData) == 0xC,
-              "VehicleGearData size must be 12 bytes");
+ASSERT_SIZE(VehicleGearData, 0xC);
 
 // sizeof=0x28
 struct VehicleEngineSound {
@@ -61,8 +59,7 @@ struct VehicleEngineSound {
   snd::SndAliasId alias;
   float params[7];
 };
-static_assert(sizeof(VehicleEngineSound) == 0x28,
-              "VehicleEngineSound size must be 40 bytes");
+ASSERT_SIZE(VehicleEngineSound, 0x28);
 
 struct XModel; // TODO
 typedef XModel *XModelPtr;
@@ -113,8 +110,7 @@ struct VehicleEngine {
   float eng_offload_end_pitch;
   uint8_t _padding2BC[4];
 };
-static_assert(sizeof(VehicleEngine) == 0x2C0,
-              "VehicleEngine size must be 704 bytes");
+ASSERT_SIZE(VehicleEngine, 0x2C0);
 
 struct DevGraph;
 
@@ -144,7 +140,7 @@ struct DevGraph {
   bool disableEditingEndPoints;
   uint8_t _padding31[7];
 };
-static_assert(sizeof(DevGraph) == 0x38, "DevGraph size must be 56 bytes");
+ASSERT_SIZE(DevGraph, 0x38);
 
 // sizeof=0x180
 struct GraphFloat {
@@ -154,7 +150,7 @@ struct GraphFloat {
   float scale;
   DevGraph devguiGraph; // TODO: is this used in release?
 };
-static_assert(sizeof(GraphFloat) == 0x180, "GraphFloat size must be 384 bytes");
+ASSERT_SIZE(GraphFloat, 0x180);
 
 // sizeof=0x28
 struct AircraftPreset {
@@ -170,8 +166,7 @@ struct AircraftPreset {
   bool zAxis;
   uint8_t _padding23[5];
 };
-static_assert(sizeof(AircraftPreset) == 0x28,
-              "AircraftPreset size must be 40 bytes");
+ASSERT_SIZE(AircraftPreset, 0x28);
 
 // sizeof=0x30
 struct AircraftSound {
@@ -184,8 +179,7 @@ struct AircraftSound {
   scr::ScrString_t tagScriptString;
   uint8_t _padding2C[4];
 };
-static_assert(sizeof(AircraftSound) == 0x30,
-              "AircraftSound size must be 48 bytes");
+ASSERT_SIZE(AircraftSound, 0x30);
 
 // sizeof=0x10
 struct VehicleSurfaceSound {
@@ -193,8 +187,7 @@ struct VehicleSurfaceSound {
   snd::SndAliasId alias;
   uint8_t _padding0C[4];
 };
-static_assert(sizeof(VehicleSurfaceSound) == 0x10,
-              "VehicleSurfaceSound size must be 16 bytes");
+ASSERT_SIZE(VehicleSurfaceSound, 0x10);
 
 // sizeof=0x18
 struct VehicleDriveBySound {
@@ -217,8 +210,7 @@ struct VehicleSoundDef {
   AircraftSound aircraftSounds[20];
   VehicleSurfaceSound surfaceSounds[40];
 };
-static_assert(sizeof(VehicleSoundDef) == 0x1000,
-              "VehicleSoundDef size must be 4096 bytes");
+ASSERT_SIZE(VehicleSoundDef, 0x1000);
 
 typedef VehicleSoundDef *VehicleSoundDefPtr;
 
@@ -334,8 +326,7 @@ struct VehicleParameter {
   float m_gravity_scale;
   uint8_t _padding174[4];
 };
-static_assert(sizeof(VehicleParameter) == 0x178,
-              "VehicleParameter size must be 376 bytes");
+ASSERT_SIZE(VehicleParameter, 0x178);
 
 // sizeof=0x14
 struct VehicleAntenna {
@@ -346,8 +337,7 @@ struct VehicleAntenna {
   bool useXAxis;
   uint8_t _padding11[3];
 };
-static_assert(sizeof(VehicleAntenna) == 0x14,
-              "VehicleAntenna size must be 20 bytes");
+ASSERT_SIZE(VehicleAntenna, 0x14);
 
 // sizeof=0xAA0
 struct VehicleDef {
@@ -687,8 +677,7 @@ struct VehicleDef {
   float tacticalModeHeight;
   uint8_t _paddingA9C[4];
 };
-static_assert(sizeof(VehicleDef) == 0xAA0,
-              "VehicleDef size must be 2720 bytes");
+ASSERT_SIZE(VehicleDef, 0xAA0);
 
 // sizeof=0x18
 struct VehicleStun {
@@ -700,7 +689,7 @@ struct VehicleStun {
   float m_last_brake;
   float m_brake_stun_time;
 };
-static_assert(sizeof(VehicleStun) == 0x18, "VehicleStun size must be 24 bytes");
+ASSERT_SIZE(VehicleStun, 0x18);
 
 // sizeof=0x110
 class NitrousVehicleController {
@@ -754,8 +743,7 @@ public:
   vec3_t m_angles;
   int32_t m_time;
 };
-static_assert(sizeof(mover_record_t) == 0x1C,
-              "mover_record_t size must be 28 bytes");
+ASSERT_SIZE(mover_record_t, 0x1C);
 
 class hkaiNavMeshInstance; // TODO
                            // sizeof=0x390
@@ -765,16 +753,14 @@ struct mover_info_t {
   uint8_t _padding384[4];
   hkaiNavMeshInstance *m_meshInstance;
 };
-static_assert(sizeof(mover_info_t) == 0x390,
-              "mover_info_t size must be 912 bytes");
+ASSERT_SIZE(mover_info_t, 0x390);
 
 // sizeof=0x4
 class minspec_mutex {
 public:
   volatile uint32_t m_token;
 };
-static_assert(sizeof(minspec_mutex) == 0x4,
-              "minspec_mutex size must be 4 bytes");
+ASSERT_SIZE(minspec_mutex, 0x4);
 
 struct NitrousVehicle {
   phys::PhysObjUserData *m_phys_user_data;
@@ -871,8 +857,7 @@ struct vehicle_spline_node_t {
   vec3_t dir;
   float t;
 };
-static_assert(sizeof(vehicle_spline_node_t) == 0x18,
-              "vehicle_spline_node_t size must be 24 bytes");
+ASSERT_SIZE(vehicle_spline_node_t, 0x18);
 
 // sizeof=0x5C
 struct vehicle_node_t {
@@ -892,8 +877,7 @@ struct vehicle_node_t {
   float tension;
   vehicle_spline_node_t splineNode;
 };
-static_assert(sizeof(vehicle_node_t) == 0x5C,
-              "vehicle_node_t size must be 92 bytes");
+ASSERT_SIZE(vehicle_node_t, 0x5C);
 
 enum class path_type_e : int32_t {
   NONE = 0x0,
@@ -966,8 +950,7 @@ struct vehicle_physic_t {
   float curveTime;
   float timeStep;
 };
-static_assert(sizeof(vehicle_physic_t) == 0x118,
-              "vehicle_physic_t size must be 280 bytes");
+ASSERT_SIZE(vehicle_physic_t, 0x118);
 
 enum class VehicleTargetType : int32_t {
 
@@ -1167,8 +1150,7 @@ struct VehicleTurret {
   float accuracy;
   VehicleTurretState turretState;
 };
-static_assert(sizeof(VehicleTurret) == 0x24,
-              "VehicleTurret size must be 36 bytes");
+ASSERT_SIZE(VehicleTurret, 0x24);
 
 // sizeof=0x3C
 struct VehicleJitter {
@@ -1180,8 +1162,7 @@ struct VehicleJitter {
   vec3_t jitterAccel;
   vec3_t jitterPos;
 };
-static_assert(sizeof(VehicleJitter) == 0x3C,
-              "VehicleJitter size must be 60 bytes");
+ASSERT_SIZE(VehicleJitter, 0x3C);
 
 // sizeof=0x1C
 struct VehicleHover {
@@ -1191,8 +1172,7 @@ struct VehicleHover {
   vec3_t hoverGoalPos;
   qboolean useHoverAccelForAngles;
 };
-static_assert(sizeof(VehicleHover) == 0x1C,
-              "VehicleHover size must be 28 bytes");
+ASSERT_SIZE(VehicleHover, 0x1C);
 
 // sizeof=0x10
 struct VehicleGunnerTags {
@@ -1202,8 +1182,7 @@ struct VehicleGunnerTags {
   BoneIndex aim;
   BoneIndex flash[4];
 };
-static_assert(sizeof(VehicleGunnerTags) == 0x10,
-              "VehicleGunnerTags size must be 16 bytes");
+ASSERT_SIZE(VehicleGunnerTags, 0x10);
 
 // sizeof=0x84
 struct VehicleTags {
@@ -1217,8 +1196,7 @@ struct VehicleTags {
   BoneIndex seats[11];
   BoneIndex entryPoints[5];
 };
-static_assert(sizeof(VehicleTags) == 0x84,
-              "VehicleTags size must be 132 bytes");
+ASSERT_SIZE(VehicleTags, 0x84);
 
 // sizeof=0x3C
 struct VehicleCornerCache {
@@ -1230,8 +1208,7 @@ struct VehicleCornerCache {
   int32_t startSlidingTime;
   float travelDistance;
 };
-static_assert(sizeof(VehicleCornerCache) == 0x3C,
-              "VehicleCornerCache size must be 60 bytes");
+ASSERT_SIZE(VehicleCornerCache, 0x3C);
 
 // sizeof=0x2C
 struct VehicleTarget {
@@ -1241,8 +1218,7 @@ struct VehicleTarget {
   vec3_t targetOffset;
   vec3_t targetRelativeAngles;
 };
-static_assert(sizeof(VehicleTarget) == 0x2C,
-              "VehicleTarget size must be 44 bytes");
+ASSERT_SIZE(VehicleTarget, 0x2C);
 
 enum class ClientFallSpeed : int32_t {
   NONE = 0x0,
@@ -1282,8 +1258,7 @@ enum class VehicleAnimState : int32_t {
 
 // sizeof=0x1350
 typedef phys::colgeom_visitor_inlined_t<300> vehicle_proximity_data_t;
-static_assert(sizeof(vehicle_proximity_data_t) == 0x1350,
-              "vehicle_proximity_data_t size must be 4944 bytes");
+ASSERT_SIZE(vehicle_proximity_data_t, 0x1350);
 
 #pragma pack(push, 1)
 // sizeof=0x1430
@@ -1301,8 +1276,7 @@ struct vehicle_cache_t {
   int32_t wheel_mask;
   uint8_t _padding1424[12];
 };
-static_assert(sizeof(vehicle_cache_t) == 0x1430,
-              "vehicle_cache_t size must be 5168 bytes");
+ASSERT_SIZE(vehicle_cache_t, 0x1430);
 
 // sizeof=0x8
 struct VehicleSeat {
@@ -1310,7 +1284,7 @@ struct VehicleSeat {
   bool scriptOccupied;
   uint8_t _padding5[3];
 };
-static_assert(sizeof(VehicleSeat) == 0x8, "VehicleSeat size must be 8 bytes");
+ASSERT_SIZE(VehicleSeat, 0x8);
 
 struct vehicle_t {
   vehicle_pathpos_t pathPos;

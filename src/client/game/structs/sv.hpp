@@ -9,7 +9,6 @@
 #include "asm.hpp"
 #include "lobby.hpp"
 
-#include <cstddef>
 #include <cstdint>
 
 namespace game {
@@ -62,20 +61,15 @@ struct client_s {
 };
 
 #ifdef __cplusplus
-static_assert(sizeof(client_s) == 0xE5110,
-              "client_s size must be 0xE5110 bytes");
+ASSERT_SIZE(client_s, 0xE5110);
 
-static_assert(offsetof(client_s, address) == 0x2C,
-              "client_s::address offset must be 0x2C bytes");
-static_assert(offsetof(client_s, xuid) == 0x55C8,
-              "client_s::xuid offset must be 0x55C8 bytes");
-static_assert(offsetof(client_s, guid) == 0xBB354,
-              "client_s::guid offset must be 0xBB354 bytes");
-static_assert(offsetof(client_s, bIsTestClient) == 0xBB360,
-              "client_s::bIsTestClient offset must be 0xBB360 bytes");
-static_assert(offsetof(client_s, name) == 0x55A0);
-static_assert(offsetof(client_s, gentity) == 0x5598);
-static_assert(offsetof(client_s, clanAbbrev) == 0x55C0);
+ASSERT_OFFSET(client_s, address, 0x2C);
+ASSERT_OFFSET(client_s, xuid, 0x55C8);
+ASSERT_OFFSET(client_s, guid, 0xBB354);
+ASSERT_OFFSET(client_s, bIsTestClient, 0xBB360);
+ASSERT_OFFSET(client_s, name, 0x55A0);
+ASSERT_OFFSET(client_s, gentity, 0x5598);
+ASSERT_OFFSET(client_s, clanAbbrev, 0x55C0);
 #endif
 
 struct client_s_cl : client_s {
@@ -83,8 +77,7 @@ struct client_s_cl : client_s {
 };
 
 #ifdef __cplusplus
-static_assert(sizeof(client_s_cl) == 0xE5170,
-              "client_s_cl size must be 0xE5170 bytes");
+ASSERT_SIZE(client_s_cl, 0xE5170);
 #endif
 
 struct svEntity_t {
@@ -94,7 +87,7 @@ struct svEntity_t {
   vec3_t linkmin;
   vec3_t linkmax;
 };
-static_assert(sizeof(svEntity_t) == 0x20, "svEntity_t size must be 32 bytes");
+ASSERT_SIZE(svEntity_t, 0x20);
 
 struct CasterClientState {
   int32_t clientIndex;
@@ -129,8 +122,7 @@ struct cachedSnapshot_t {
   int32_t usesDelta;
 };
 
-static_assert(sizeof(cachedSnapshot_t) == 0x38,
-              "cachedSnapshot_t size must be 56 bytes");
+ASSERT_SIZE(cachedSnapshot_t, 0x38);
 
 #pragma pack(push, 1)
 // Verified, 100% correct on dedicated server.
@@ -214,8 +206,7 @@ struct serverStaticHeader_t {
   uint8_t _padding1A4[4];
   const level::entityState_t *constBaselineEntities;
 };
-static_assert(sizeof(serverStaticHeader_t) == 0x1B0,
-              "serverStaticHeader_t size must be 0x1B0 bytes");
+ASSERT_SIZE(serverStaticHeader_t, 0x1B0);
 #pragma pack(pop)
 
 // TODO
@@ -237,8 +228,7 @@ struct serverSnapshot_t {
   int32_t firstCasterClientIndex;
   uint8_t _padding[4];
 };
-static_assert(sizeof(serverSnapshot_t) == 0xB8,
-              "serverSnapshot_t size must be 0xB8 bytes");
+ASSERT_SIZE(serverSnapshot_t, 0xB8);
 #pragma pack(pop)
 
 struct archivedSnapshot_s {
@@ -253,7 +243,7 @@ struct tempBanSlot_t {
   uint32_t banTime;
   uint8_t _padding[4];
 };
-static_assert(sizeof(tempBanSlot_t) == 16, "tempBanSlot_t must be 16 bytes");
+ASSERT_SIZE(tempBanSlot_t, 16);
 #pragma pack(pop)
 
 // Fields and types unverified, but size should be correct.
@@ -268,8 +258,7 @@ struct rateBoostingStats_t {
   int32_t numClientFrames;
   int32_t numFrames;
 };
-static_assert(sizeof(rateBoostingStats_t) == 0x24,
-              "rateBoostingStats_t size must be 0x24 bytes");
+ASSERT_SIZE(rateBoostingStats_t, 0x24);
 
 /*
   Verified correct on dedicated server - both total size (0x1500) and offsets of
@@ -369,8 +358,7 @@ struct serverStatic_t {
   const level::entityState_t *constBaselineEntities;
   uint8_t _padding14E0[0x20];
 };
-static_assert(sizeof(serverStatic_t) == 0x1500,
-              "serverStatic_t size must be 0x1500 bytes");
+ASSERT_SIZE(serverStatic_t, 0x1500);
 #pragma pack(pop)
 
 #pragma pack(push, 1)
@@ -399,7 +387,7 @@ enum class serverState_t : uint32_t {
 struct recentFrame {
   bool lagged;
 };
-static_assert(sizeof(recentFrame) == 0x1, "sizeof(recentFrame) == 0x1");
+ASSERT_SIZE(recentFrame, 0x1);
 
 #pragma pack(push, 1)
 struct playerAnimState_t {
@@ -416,8 +404,7 @@ struct playerAnimState_t {
   };
   uint8_t _padding0F[1];
 };
-static_assert(sizeof(playerAnimState_t) == 0x10,
-              "sizeof(playerAnimState_t) must equal 0x10");
+ASSERT_SIZE(playerAnimState_t, 0x10);
 #pragma pack(pop)
 
 #pragma pack(push, 1)
@@ -434,8 +421,7 @@ struct AntilagPlayerAnimState {
   uint8_t _padding0F[1];
   float rate;
 };
-static_assert(sizeof(AntilagPlayerAnimState) == 0x14,
-              "sizeof(AntilagPlayerAnimState) != 0x14");
+ASSERT_SIZE(AntilagPlayerAnimState, 0x14);
 #pragma pack(pop)
 
 struct clientControllers_t {
@@ -443,8 +429,7 @@ struct clientControllers_t {
   vec3_t tag_origin_angles;
   vec3_t tag_origin_offset;
 };
-static_assert(sizeof(clientControllers_t) == 0x60,
-              "sizeof(clientControllers_t) == 0x60");
+ASSERT_SIZE(clientControllers_t, 0x60);
 
 struct clientsPositionArchive_t {
   int32_t time;
@@ -463,8 +448,7 @@ struct clientsPositionArchive_t {
   int32_t animStatesUsed;
   lobby::LobbyClientPool<clientControllers_t> controllers;
 };
-static_assert(sizeof(clientsPositionArchive_t) == 0x1B9C,
-              "sizeof(clientsPositionArchive_t) must equal 0x1B9C");
+ASSERT_SIZE(clientsPositionArchive_t, 0x1B9C);
 
 #pragma pack(push, 1)
 struct server_t {
@@ -522,8 +506,7 @@ struct server_t {
   int32_t securityChecksum[3];
   uint8_t _padding7BEFC[4];
 };
-static_assert(sizeof(server_t) == 0xBC5C0,
-              "sizeof(server_t) must equal 0xBC5C0");
+ASSERT_SIZE(server_t, 0xBC5C0);
 #pragma pack(pop)
 
 enum class SwimStateType : int32_t {
@@ -875,8 +858,7 @@ struct animScriptItem_t {
   int32_t numCommands;
   animScriptCommand_t commands[8];
 };
-static_assert(sizeof(animScriptItem_t) == 0x130,
-              "sizeof(animScriptItem_t) != 0x130");
+ASSERT_SIZE(animScriptItem_t, 0x130);
 
 #pragma pack(push, 1)
 struct visionPulse_t {
@@ -1082,14 +1064,14 @@ struct clientInfo_t {
   CasterHUDInfo casterHUDInfo;
   uint8_t _paddingEDC[4];
 };
-static_assert(offsetof(clientInfo_t, _padding73D) == 0x73D);
-static_assert(offsetof(clientInfo_t, _padding9D4) == 0x9D4);
-static_assert(offsetof(clientInfo_t, _paddingEC4) == 0xEC4);
-static_assert(offsetof(clientInfo_t, _paddingED1) == 0xED1);
-static_assert(offsetof(clientInfo_t, _padding807) == 0x807);
-static_assert(offsetof(clientInfo_t, name) == 0x0C);
-static_assert(offsetof(clientInfo_t, clanAbbrev) == 0x80);
-static_assert(sizeof(clientInfo_t) == 0xEE0, "sizeof(clientInfo_t) != 0xEE0");
+ASSERT_OFFSET(clientInfo_t, _padding73D, 0x73D);
+ASSERT_OFFSET(clientInfo_t, _padding9D4, 0x9D4);
+ASSERT_OFFSET(clientInfo_t, _paddingEC4, 0xEC4);
+ASSERT_OFFSET(clientInfo_t, _paddingED1, 0xED1);
+ASSERT_OFFSET(clientInfo_t, _padding807, 0x807);
+ASSERT_OFFSET(clientInfo_t, name, 0x0C);
+ASSERT_OFFSET(clientInfo_t, clanAbbrev, 0x80);
+ASSERT_SIZE(clientInfo_t, 0xEE0);
 #pragma pack(pop)
 
 } // namespace sv

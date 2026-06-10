@@ -1,4 +1,4 @@
-#include <std_include.hpp>
+#include "../../../std_include.hpp"
 
 #include <cctype>
 #include <cstdint>
@@ -75,7 +75,7 @@ void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
 
 // The engine always inlines this function, so we reimplement it here for use
 // elsewhere.
-uint32_t DB_HashForName(const char *name, const XAssetType type) {
+inline_def uint32_t DB_HashForName(const char *name, const XAssetType type) {
   uint32_t hash = static_cast<uint32_t>(type);
   while (*name) {
     char c = *name++;

@@ -1,8 +1,13 @@
-#include <std_include.hpp>
+#include "../../../std_include.hpp"
 #include "stdlib.h"
 #include "stdint.h"
 #include <cstring>
 #include <cstdint>
+
+#ifndef NDEBUG
+#include <unordered_map>
+#include "../../../../common/strlcpy.hpp"
+#endif
 
 #include "snd.hpp"
 #include "sd/sd.hpp"
@@ -181,11 +186,15 @@ inline uint32_t SND_AssetBankGetLengthMs_Impl(const SndAssetBankEntry *entry) {
   - Constant: 0x1003f,
   - Initial Seed: 0x1505
 */
-
 constexpr SndStringHash SND_HASH_EMPTY_STRING = 0;
 constexpr SndStringHash SND_HASH_DJB2_INITIAL_SEED = 0x1505;
 constexpr SndStringHash SND_HASH_DJB2_CONSTANT = 0x1003f;
-SndStringHash SND_HashName_Impl(const char *name) {
+#ifndef NDEBUG
+static std::mutex aliasIdNameMapMutex;
+typedef str256_t AliasName;
+static std::unordered_map<SndAliasId, AliasName> aliasIdNameMap{};
+#endif
+inline_def SndStringHash SND_HashName_Impl(const char *name) {
   if (!name || !*name)
     return SND_HASH_EMPTY_STRING;
 
@@ -195,8 +204,35 @@ SndStringHash SND_HashName_Impl(const char *name) {
                std::tolower(static_cast<unsigned char>(*c))) +
            hash * SND_HASH_DJB2_CONSTANT;
   }
-  return hash ? hash : 1;
+  if (!hash) {
+    hash = 1;
+  }
+#ifndef NDEBUG
+  {
+    std::lock_guard lock(aliasIdNameMapMutex);
+    if (!aliasIdNameMap.contains(hash)) {
+      // Default value implicitly created and inserted
+      strlcpy(aliasIdNameMap[hash], name, sizeof(AliasName));
+    }
+  }
+#endif
+  return hash;
 }
+
+#ifndef NDEBUG
+inline_def const char *SND_AliasLookup(SndAliasId aliasId) {
+  bool mapped_alias;
+  {
+    std::lock_guard lock(aliasIdNameMapMutex);
+    mapped_alias = aliasIdNameMap.contains(aliasId);
+  }
+  if (mapped_alias) {
+    return aliasIdNameMap[aliasId];
+  }
+
+  return nullptr;
+}
+#endif
 
 constexpr int32_t PLAYBACK_TIME_NOT_FOUND = -1;
 constexpr uint32_t SOUND_ALIAS_LIST_MAX_COUNT = 0x40;

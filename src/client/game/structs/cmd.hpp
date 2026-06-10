@@ -1,10 +1,11 @@
 #pragma once
 
+#include "func.hpp"
 #include <cstdint>
 namespace game {
 namespace cmd {
 
-using xcommand_t = void (*)();
+typedef fastcall_t<void> xcommand_t;
 
 struct cmd_function_s {
   cmd_function_s *next;

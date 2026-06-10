@@ -28,6 +28,31 @@ namespace game {
     uint8_t __raw_##InlineNum[FixedTotalSize];                                 \
   }
 
+#define IMPL_ENUM_OPERATORS(name)                                              \
+  inline name &operator++(name &s) {                                           \
+    using underlying = std::underlying_type_t<name>;                           \
+    s = static_cast<name>(static_cast<underlying>(s) + 1);                     \
+    return s;                                                                  \
+  }                                                                            \
+                                                                               \
+  inline name operator++(name &s, int) {                                       \
+    name temp = s;                                                             \
+    ++s;                                                                       \
+    return temp;                                                               \
+  }                                                                            \
+                                                                               \
+  inline name &operator--(name &s) {                                           \
+    using underlying = std::underlying_type_t<name>;                           \
+    s = static_cast<name>(static_cast<underlying>(s) - 1);                     \
+    return s;                                                                  \
+  }                                                                            \
+                                                                               \
+  inline name operator--(name &s, int) {                                       \
+    name temp = s;                                                             \
+    --s;                                                                       \
+    return temp;                                                               \
+  }
+
 typedef void *UnknownPtr;
 
 template <std::size_t Actual, std::size_t Expected>
@@ -40,48 +65,6 @@ concept ValueMatches = (Actual == Expected);
 #define ASSERT_OFFSET(type, field, offset)                                     \
   static_assert(ValueMatches<offsetof(type, field), (offset)>,                 \
                 "Offset mismatch for " #type "::" #field)
-
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wignored-attributes"
-#endif
-template <typename T, typename... Args>
-using stdcall_t = T(__stdcall *)(Args...);
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-
-template <typename T, typename... Args>
-using stdcallPtr = stdcall_t<T, Args...> *;
-
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wignored-attributes"
-#endif
-template <typename T, typename... Args>
-using fastcall_t = T(__fastcall *)(Args...);
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-
-template <typename T, typename... Args>
-using fastcallPtr = fastcall_t<T, Args...> *;
-
-template <typename T, typename... Args> using cdecl_t = T(__cdecl *)(Args...);
-template <typename T, typename... Args> using cdeclPtr = cdecl_t<T, Args...> *;
-
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wignored-attributes"
-#endif
-template <typename T, typename This = void, typename... Args>
-using thiscall_t = T(__thiscall *)(This *, Args...);
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-
-template <typename T, typename This = void, typename... Args>
-using thiscallPtr = thiscall_t<T, This, Args...> *;
 
 typedef uint32_t contents_t;
 typedef const char *XString;
@@ -120,6 +103,7 @@ enum clientplatform_t : int32_t {
   CLIENT_PLATFORM_DURANGO = 0x2, // Xbox One
   MAX_CLIENT_PLATFORMS = 0x3,
 };
+IMPL_ENUM_OPERATORS(clientplatform_t);
 
 enum class team_t : uint32_t {
   TEAM_FREE = 0x0,
@@ -151,6 +135,7 @@ enum class team_t : uint32_t {
   TEAM_FIRST_PLAYING_TEAM = 0x1,
   TEAM_LAST_PLAYING_TEAM = 0x13,
 };
+IMPL_ENUM_OPERATORS(team_t);
 
 enum ClientNum_t : int32_t {
   INVALID_CLIENT_INDEX = -1,
@@ -189,18 +174,7 @@ enum ClientNum_t : int32_t {
   CLIENT_INDEX_31 = 0x1F,
   CLIENT_INDEX_COUNT = 0x12,
 };
-
-inline ClientNum_t &operator++(ClientNum_t &s) {
-  using underlying = std::underlying_type_t<ClientNum_t>;
-  s = static_cast<ClientNum_t>(static_cast<underlying>(s) + 1);
-  return s;
-}
-
-inline ClientNum_t operator++(ClientNum_t &s, int) {
-  ClientNum_t temp = s;
-  ++s;
-  return temp;
-}
+IMPL_ENUM_OPERATORS(ClientNum_t);
 
 enum ControllerIndex_t : int32_t {
   INVALID_CONTROLLER_PORT = -1,
@@ -209,18 +183,7 @@ enum ControllerIndex_t : int32_t {
   CONTROLLER_INDEX_1 = 0x1,
   CONTROLLER_INDEX_COUNT = 0x2,
 };
-
-inline ControllerIndex_t &operator++(ControllerIndex_t &s) {
-  using underlying = std::underlying_type_t<ControllerIndex_t>;
-  s = static_cast<ControllerIndex_t>(static_cast<underlying>(s) + 1);
-  return s;
-}
-
-inline ControllerIndex_t operator++(ControllerIndex_t &s, int) {
-  ControllerIndex_t temp = s;
-  ++s;
-  return temp;
-}
+IMPL_ENUM_OPERATORS(ControllerIndex_t);
 
 enum LocalClientNum_t : int32_t {
   INVALID_LOCAL_CLIENT = -1,
@@ -230,18 +193,7 @@ enum LocalClientNum_t : int32_t {
   LOCAL_CLIENT_1 = 0x1,
   LOCAL_CLIENT_COUNT = 0x2,
 };
-
-inline LocalClientNum_t &operator++(LocalClientNum_t &s) {
-  using underlying = std::underlying_type_t<LocalClientNum_t>;
-  s = static_cast<LocalClientNum_t>(static_cast<underlying>(s) + 1);
-  return s;
-}
-
-inline LocalClientNum_t operator++(LocalClientNum_t &s, int) {
-  LocalClientNum_t temp = s;
-  ++s;
-  return temp;
-}
+IMPL_ENUM_OPERATORS(LocalClientNum_t);
 
 enum class LocalClientNum8_t : int8_t {
   INVALID_LOCAL_CLIENT = -1,
@@ -251,18 +203,7 @@ enum class LocalClientNum8_t : int8_t {
   LOCAL_CLIENT_1 = 0x1,
   LOCAL_CLIENT_COUNT = 0x2,
 };
-
-inline LocalClientNum8_t &operator++(LocalClientNum8_t &s) {
-  using underlying = std::underlying_type_t<LocalClientNum8_t>;
-  s = static_cast<LocalClientNum8_t>(static_cast<underlying>(s) + 1);
-  return s;
-}
-
-inline LocalClientNum8_t operator++(LocalClientNum8_t &s, int) {
-  LocalClientNum8_t temp = s;
-  ++s;
-  return temp;
-}
+IMPL_ENUM_OPERATORS(LocalClientNum8_t);
 
 enum class eGameModes : int32_t {
   MATCHMAKING_PLAYLIST = 0x0,
@@ -276,6 +217,8 @@ enum class eGameModes : int32_t {
   COUNT = 0x8,
   INVALID = 0x8,
 };
+IMPL_ENUM_OPERATORS(eGameModes);
+
 enum class eModes : uint32_t {
   ZOMBIES = 0x0,
   FIRST = 0x0,
@@ -284,18 +227,7 @@ enum class eModes : uint32_t {
   COUNT = 0x3,
   INVALID = 0x3,
 };
-
-inline eModes &operator++(eModes &s) {
-  using underlying = std::underlying_type_t<eModes>;
-  s = static_cast<eModes>(static_cast<underlying>(s) + 1);
-  return s;
-}
-
-inline eModes operator++(eModes &s, int) {
-  eModes temp = s;
-  ++s;
-  return temp;
-}
+IMPL_ENUM_OPERATORS(eModes);
 
 enum class eNetworkModes : uint32_t {
   OFFLINE = 0x0,
@@ -304,12 +236,14 @@ enum class eNetworkModes : uint32_t {
   COUNT = 0x3,
   INVALID = 0x3,
 };
+IMPL_ENUM_OPERATORS(eNetworkModes);
 
 enum class MapPreload : uint32_t {
   NONE = 0x0,
   FRONTEND = 0x1,
   IN_GAME = 0x2,
 };
+IMPL_ENUM_OPERATORS(MapPreload);
 
 enum class itemTextStyle : uint32_t {
   NORMAL = 0x0,
@@ -320,6 +254,7 @@ enum class itemTextStyle : uint32_t {
   MONOSPACE = 0x80,
   MONOSPACESHADOWED = 0x84,
 };
+IMPL_ENUM_OPERATORS(itemTextStyle);
 
 enum class errorParm : uint32_t {
   FATAL = 0x0,
@@ -337,6 +272,7 @@ enum class errorParm : uint32_t {
   SOFTRESTART_KEEPDW = 0x800,
 
 };
+IMPL_ENUM_OPERATORS(errorParm);
 
 enum class errorCode : uint32_t {
   NONE = 0x0,
@@ -353,6 +289,7 @@ enum class errorCode : uint32_t {
   SOFTRESTART = 0x400,
   SOFTRESTART_KEEPDW = 0x800,
 };
+IMPL_ENUM_OPERATORS(errorCode);
 
 template <typename T, const auto N> using array = T[N];
 template <typename T, const auto N>
@@ -428,6 +365,7 @@ enum class StorageFileType : int32_t {
   FILE_FIRST = 0,
   FILE_INVALID = -1,
 };
+IMPL_ENUM_OPERATORS(StorageFileType);
 
 enum class CriticalSection : int32_t {
   ALLOC_MARK = 0x0,
@@ -558,6 +496,7 @@ enum class CriticalSection : int32_t {
   UMBRA_JOB = 0x7D,
   COUNT = 0x7E,
 };
+IMPL_ENUM_OPERATORS(CriticalSection);
 
 enum class consoleLabel_e : int32_t {
   DEFAULT = 0x0,
@@ -610,6 +549,7 @@ enum class consoleLabel_e : int32_t {
   TESTING = 0x2F,
   COUNT = 0x30,
 };
+IMPL_ENUM_OPERATORS(consoleLabel_e);
 
 enum class PMemStack : uint32_t {
   DB = 0x0,
@@ -626,6 +566,7 @@ enum class PMemStack : uint32_t {
   PHYS_ALLOC_HIGH = 0x2,
   PHYS_ALLOC_COUNT = 0x8,
 };
+IMPL_ENUM_OPERATORS(PMemStack);
 
 enum class PMemPool : uint32_t {
   MAIN = 0x0,
@@ -635,6 +576,7 @@ enum class PMemPool : uint32_t {
   MAIN_COHERENT = 0x4,
   COUNT = 0x5,
 };
+IMPL_ENUM_OPERATORS(PMemPool);
 
 enum class EMemTrack : uint32_t {
   TRACK_BINARIES = 0x0,
@@ -714,6 +656,7 @@ enum class EMemTrack : uint32_t {
   TRACK_NONE = 0x4A,
   TRACK_COUNT = 0x4B,
 };
+IMPL_ENUM_OPERATORS(EMemTrack);
 
 enum class SwimStateType : int32_t {
   NONE = 0x0,
@@ -721,6 +664,7 @@ enum class SwimStateType : int32_t {
   UNDERWATER = 0x2,
   COUNT = 0x3,
 };
+IMPL_ENUM_OPERATORS(SwimStateType);
 
 enum class KillCamEntityRestState : int32_t {
   MOVING = 0x0,
@@ -728,6 +672,7 @@ enum class KillCamEntityRestState : int32_t {
   STUCK_GROUND = 0x2,
   STUCK_WALL = 0x3,
 };
+IMPL_ENUM_OPERATORS(KillCamEntityRestState);
 
 enum class KillCamEntityType : int32_t {
   NO_ENTITY = 0x0,
@@ -738,11 +683,12 @@ enum class KillCamEntityType : int32_t {
   FAST_EXPLOSIVE = 0x5,
   ROCKET = 0x6,
   DRONE = 0x7,
-  DOG = 0x8,
+  DAG = 0x8,
   COMBAT_ROBOT = 0x9,
   ARTILLERY = 0xA,
   VEHICLE = 0xB,
 };
+IMPL_ENUM_OPERATORS(KillCamEntityType);
 
 enum class InvalidCmdHintType : uint32_t {
   NONE = 0x0,
@@ -772,6 +718,7 @@ enum class InvalidCmdHintType : uint32_t {
   TARGET_ALREADY_TARGETED = 0x18,
   SYSTEM_DISABLED = 0x19,
 };
+IMPL_ENUM_OPERATORS(InvalidCmdHintType);
 
 enum class SettingTeamIndicator : int32_t {
   FULL = 0x0,
@@ -779,6 +726,7 @@ enum class SettingTeamIndicator : int32_t {
   ICON = 0x2,
   COUNT = 0x3,
 };
+IMPL_ENUM_OPERATORS(SettingTeamIndicator);
 
 enum class CubemapShot : int32_t {
   NONE = 0x0,
@@ -790,6 +738,7 @@ enum class CubemapShot : int32_t {
   DOWN = 0x6,
   COUNT = 0x7,
 };
+IMPL_ENUM_OPERATORS(CubemapShot);
 
 enum class DemoType : int32_t {
   NONE = 0x0,
@@ -797,11 +746,13 @@ enum class DemoType : int32_t {
   SERVER = 0x2,
   SERVER_SNAPSHOT = 0x3,
 };
+IMPL_ENUM_OPERATORS(DemoType);
 
 enum class TraceBrushType : uint32_t {
   NONE = 0x0,
   BRUSH = 0x1,
 };
+IMPL_ENUM_OPERATORS(TraceBrushType);
 
 enum class TraceHitType : uint32_t {
   NONE = 0x0,
@@ -810,17 +761,20 @@ enum class TraceHitType : uint32_t {
   DYNENT_BRUSH = 0x3,
   GLASS = 0x4,
 };
+IMPL_ENUM_OPERATORS(TraceHitType);
 
 enum class MissileFlightMode : int32_t {
   TOP = 0x0,
   DIRECT = 0x1,
 };
+IMPL_ENUM_OPERATORS(MissileFlightMode);
 
 enum class MissileStage : int32_t {
   SOFTLAUNCH = 0x0,
   ASCENT = 0x1,
   DESCENT = 0x2,
 };
+IMPL_ENUM_OPERATORS(MissileStage);
 
 enum class CameraMode : int32_t {
   NORMAL = 0x0,
@@ -838,6 +792,7 @@ enum class CameraMode : int32_t {
   SCRIPTED = 0xC,
   RADIANT = 0xD,
 };
+IMPL_ENUM_OPERATORS(CameraMode);
 
 template <typename T = vec_t> union vec2 {
   T v[2];
@@ -951,6 +906,7 @@ enum class connstate_t : int32_t {
   ACTIVE = 0xB,
   COUNT = 0xD,
 };
+IMPL_ENUM_OPERATORS(connstate_t);
 
 enum class StanceState : int32_t {
   STAND = 0x0,
@@ -959,6 +915,7 @@ enum class StanceState : int32_t {
   DIVE_TO_PRONE = 0x3,
   SLIDE = 0x4,
 };
+IMPL_ENUM_OPERATORS(StanceState);
 
 using fileHandle_t = void *;
 
@@ -1046,6 +1003,7 @@ enum class CharacterItemType : uint32_t {
   HELMET = 0x1,
   COUNT = 0x2,
 };
+IMPL_ENUM_OPERATORS(CharacterItemType);
 
 using BGEmblemBackgroundID = int16_t;
 
@@ -1111,11 +1069,13 @@ enum class UIModelDataType : int32_t {
   FUNCTION = 0x6,
   COUNT = 0x7,
 };
+IMPL_ENUM_OPERATORS(UIModelDataType);
 
 enum class objectiveDrawState_t : int32_t {
   ONSCREEN = 0x0,
   OFFSCREEN = 0x1,
 };
+IMPL_ENUM_OPERATORS(objectiveDrawState_t);
 
 enum class objectiveState_t : int32_t {
   EMPTY = 0x0,
@@ -1126,6 +1086,7 @@ enum class objectiveState_t : int32_t {
   FAILED = 0x5,
   NUMSTATES = 0x6,
 };
+IMPL_ENUM_OPERATORS(objectiveState_t);
 
 struct UIModelData {
   UIModelDataType dataType;
@@ -1209,6 +1170,7 @@ enum scoreboardColumnType_t : int32_t {
   SB_TYPE_GEMS = 0x23,
   NUM_SB_TYPES = 0x24,
 };
+IMPL_ENUM_OPERATORS(scoreboardColumnType_t);
 
 struct uint128_t {
   uint64_t low;

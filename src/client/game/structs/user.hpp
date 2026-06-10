@@ -109,8 +109,8 @@ struct usercmd_s {
   qboolean transition;
 };
 typedef usercmd_s usercmd_t;
-static_assert(offsetof(usercmd_t, _padding45) == 0x45);
-static_assert(offsetof(usercmd_t, _padding56) == 0x56);
+ASSERT_OFFSET(usercmd_t, _padding45, 0x45);
+ASSERT_OFFSET(usercmd_t, _padding56, 0x56);
 ASSERT_SIZE(usercmd_t, 0x60);
 
 struct actor_t; // TODO
