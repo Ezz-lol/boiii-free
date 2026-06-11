@@ -359,9 +359,10 @@ link_capitalized_headers() {
       find_case_insensitive="$(find "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}" -iname "$header_lower")"
       if [ -n "$find_case_insensitive" ]; then
         find_dir="$(dirname "$find_case_insensitive")"
-        echo "Linking ${find_case_insensitive} -> ${find_dir}/${header}"
-        if ! ln -s "$find_case_insensitive" "${find_dir}/${header}"; then
-          echo "Error: Failed to link ${find_case_insensitive} to ${find_dir}/${header}" >&2
+        link_out="${find_dir}/${header}"
+        echo "Linking ${find_case_insensitive} -> ${link_out}"
+        if ! ln -s "$find_case_insensitive" "${link_out}"; then
+          echo "Error: Failed to link ${find_case_insensitive} to ${link_out}" >&2
           return 1
         fi
 
