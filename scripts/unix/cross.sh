@@ -196,7 +196,7 @@ get_llvm_addr2line() {
 }
 
 get_llvm_coverage() {
-  if ! first_in_dir "$(get_llvm_bin)" "llvm-cov" "llvm-cov"; then
+  if ! first_in_dir "$(get_llvm_bin)" "llvm-cov" "cov"; then
     echo "Error: Could not find llvm-cov in LLVM bin directory: \"$(get_llvm_bin)\"." >&2
     exit 1
   fi
@@ -287,7 +287,7 @@ cross_env() {
   fi
 
   if [ -d "$temp_windres_link_dir" ]; then
-    rm -rf "$temp_windres_link_dir" 2>&1 || true
+    rm -rf "$temp_windres_link_dir" >/dev/null 2>&1 || true
   fi
 
   return "$exit_code"
@@ -327,7 +327,7 @@ premake() {
   args=("--os=windows"
     "--cc=clang"
     "--shell=posix"
-    --arch="x86_64"
+    "--arch=x86_64"
     "--file=${REPO_DIR}/premake5.lua"
   )
   if [ -n "$OUTPUT_DIR" ]; then
@@ -345,17 +345,18 @@ premake() {
 
 link_capitalized_headers() {
 
-  local needs_capitalized
+  declare -A needs_capitalized
+  needs_capitalized=()
 
   # All others have been enforced to use lowercase search path in codebase, but imgui uses "Windows.h" explicitly.
   # This is the only case-sensitive header lookup in our dependencies.
-  needs_capitalized=("windows.h")
+  needs_capitalized["windows.h"]="Windows.h"
 
-  for header in "${needs_capitalized[@]}"; do
-
-    find_capitalized="$(find "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}")"
+  for header_lower in "${!needs_capitalized[@]}"; do
+    header="${needs_capitalized["$header_lower"]}"
+    find_capitalized="$(find "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}" -name "${header}")"
     if [ -z "$find_capitalized" ]; then
-      find_case_insensitive="$(find "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}" -iname "$header")"
+      find_case_insensitive="$(find "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}" -iname "$header_lower")"
       if [ -n "$find_case_insensitive" ]; then
         find_dir="$(dirname "$find_case_insensitive")"
         echo "Linking ${find_case_insensitive} -> ${find_dir}/${header}"
@@ -369,7 +370,6 @@ link_capitalized_headers() {
         return 1
       fi
     fi
-
   done
 
   return 0
@@ -379,7 +379,7 @@ print_usage() {
   echo "Cross-compilation build script for Windows using MSVC toolchain sysroot and LLVM toolchain on Unix-like systems."
   echo "Usage: $0 [OPTIONS]"
   echo "Options:"
-  echo "  --exec, -e [command]       Execute an arbitrary command instead of building. Example: --exec echo Hello, world!"
+  echo "  --exec, -e [command]       Execute an arbitrary command instead of building. Example: --exec echo 'Hello, world!'"
   echo "  --tidy, -t [tidy-args]     Run clang-tidy with all other arguments instead of building. Example: --tidy -checks='*' src/client/main.cpp"
   echo "  --clean, -c                Clean the build directory before building."
   echo "  --sysroot, -s              Specify the path to the MSVC toolchain sysroot."
@@ -571,6 +571,7 @@ for warning in "${disabled_warnings[@]}"; do
   cxxflags+=("-Wno-$warning" "-Wno-error=$warning" "-Wno-clang-diagnostic-$warning" "-Wno-error=clang-diagnostic-$warning")
   ldflags+=("-Wno-$warning" "-Wno-error=$warning" "-Wno-clang-diagnostic-$warning" "-Wno-error=clang-diagnostic-$warning")
 done
+
 TEMP_CFLAGS="${cflags[*]}"
 TEMP_CXXFLAGS="${cxxflags[*]}"
 TEMP_LDFLAGS="${ldflags[*]}"
