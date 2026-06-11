@@ -28,6 +28,7 @@ first_in_dir() {
     fi
   done
 
+  return 1
 }
 
 normalize_path() {
