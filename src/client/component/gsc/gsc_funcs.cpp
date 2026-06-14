@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <atomic>
 #include <cstdint>
 #include <deque>
@@ -12,6 +13,7 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
+#include <unordered_set>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/io.hpp>
@@ -24,7 +26,8 @@ using namespace game::scr;
 
 namespace script {
 int64_t find_export_address(const std::string &script_name,
-                            const std::string &func_name);
+                            const std::string &func_name,
+                            int expected_params = -1);
 }
 
 namespace gsc_funcs {
@@ -35,7 +38,8 @@ using vm_opcode_handler_t = void(__fastcall *)(int32_t inst, int64_t *fs_0,
 static std::unordered_map<ScrVarCanonicalName_t, BuiltinFunction>
     custom_builtins;
 static std::unordered_map<int64_t, int64_t> function_replacements;
-static std::unordered_map<std::string, std::string> dvar_changes;
+static std::unordered_map<game::ClientNum_t, std::unordered_set<std::string>>
+    client_dvar_changes;
 static bool detours_enabled = false;
 
 static vm_opcode_handler_t orig_SafeCreateLocalVariables = nullptr;
@@ -145,6 +149,25 @@ std::mutex script_cmd_mutex;
 std::vector<std::string> script_cmd_names;
 std::deque<std::string> script_cmd_queue;
 
+std::string normalize_command_name(std::string value) {
+  std::transform(value.begin(), value.end(), value.begin(),
+                 [](unsigned char c) {
+                   return static_cast<char>(std::tolower(c));
+                 });
+  return value;
+}
+
+std::string extract_command_name(const std::string &value) {
+  const auto start = value.find_first_not_of(" \t");
+  if (start == std::string::npos) {
+    return {};
+  }
+
+  const auto end = value.find_first_of(" \t", start);
+  const std::string name = value.substr(start, end - start);
+  return normalize_command_name(name);
+}
+
 void script_cmd_handler(const command::params &params) {
   std::string result;
   for (int32_t i = 0; i < params.size(); i++) {
@@ -161,6 +184,73 @@ void clear_script_commands() {
   std::lock_guard lock(script_cmd_mutex);
   script_cmd_queue.clear();
   script_cmd_names.clear();
+}
+
+std::string trim_copy(std::string value) {
+  const auto start = value.find_first_not_of(" \t");
+  if (start == std::string::npos) {
+    return {};
+  }
+
+  const auto end = value.find_last_not_of(" \t");
+  return value.substr(start, end - start + 1);
+}
+
+std::optional<std::string> extract_dvar_name(const char *dvar_cmd) {
+  if (!dvar_cmd || !dvar_cmd[0]) {
+    return {};
+  }
+
+  const std::string trimmed = trim_copy(dvar_cmd);
+  if (trimmed.empty()) {
+    return {};
+  }
+
+  auto next_token = [&](size_t &cursor) -> std::string {
+    while (cursor < trimmed.size() &&
+           (trimmed[cursor] == ' ' || trimmed[cursor] == '\t')) {
+      cursor++;
+    }
+
+    const size_t start = cursor;
+    while (cursor < trimmed.size() &&
+           trimmed[cursor] != ' ' && trimmed[cursor] != '\t') {
+      cursor++;
+    }
+
+    return trimmed.substr(start, cursor - start);
+  };
+
+  size_t cursor = 0;
+  std::string first = next_token(cursor);
+  if (first.empty()) {
+    return {};
+  }
+
+  const std::string lowered = normalize_command_name(first);
+  if (lowered == "set" || lowered == "seta" || lowered == "sets" ||
+      lowered == "reset") {
+    std::string second = next_token(cursor);
+    if (!second.empty()) {
+      return second;
+    }
+  }
+
+  return first;
+}
+
+void reset_tracked_client_dvars() {
+  for (const auto &[client_num, dvars] : client_dvar_changes) {
+    if (!game::valid_client_num(client_num)) {
+      continue;
+    }
+
+    for (const auto &dvar_name : dvars) {
+      game::sv::SV_GameSendServerCommand(
+          client_num, game::net::SV_CMD_CAN_IGNORE_0,
+          utils::string::va("c \"reset %s\"", dvar_name.c_str()));
+    }
+  }
 }
 
 // =====================================================
@@ -371,23 +461,25 @@ void gscr_replacefunc(scriptInstance_t inst) {
   const char *target_func = Scr_GetString(inst, 2);
   const char *replace_script = Scr_GetString(inst, 3);
   const char *replace_func = Scr_GetString(inst, 4);
+  const uint32_t argc = game::scr::Scr_GetNumParam(inst);
+  const int target_params = argc >= 6 ? Scr_GetInt(inst, 5) : -1;
+  const int replace_params = argc >= 7 ? Scr_GetInt(inst, 6) : -1;
 
   if (!target_script || !target_func || !replace_script || !replace_func) {
-    printf("^1[replacefunc] Missing parameter(s)\n");
     return;
   }
 
   const auto target_addr =
-      script::find_export_address(target_script, target_func);
+      script::find_export_address(target_script, target_func, target_params);
   const auto replace_addr =
-      script::find_export_address(replace_script, replace_func);
+      script::find_export_address(replace_script, replace_func, replace_params);
 
   if (target_addr && replace_addr) {
     function_replacements[target_addr] = replace_addr;
     detours_enabled = true;
   } else {
-    printf("^1[replacefunc] FAILED %s::%s -> %s::%s", target_script,
-           target_func, replace_script, replace_func);
+    printf("[replacefunc] failed %s::%s -> %s::%s", target_script, target_func,
+           replace_script, replace_func);
     if (!target_addr)
       printf(" (target not found)");
     if (!replace_addr)
@@ -398,9 +490,6 @@ void gscr_replacefunc(scriptInstance_t inst) {
 
 // clearreplacefuncs: remove all active function replacements
 void gscr_clearreplacefuncs([[maybe_unused]] scriptInstance_t inst) {
-  if (!function_replacements.empty())
-    printf("[clearreplacefuncs] Clearing %zu replacement(s)\n",
-           function_replacements.size());
   function_replacements.clear();
   detours_enabled = false;
 }
@@ -552,13 +641,14 @@ void gscr_addcommand(scriptInstance_t inst) {
     return;
 
   const std::string cmd_name(name);
+  const std::string cmd_key = normalize_command_name(cmd_name);
   {
     std::lock_guard lock(script_cmd_mutex);
     for (const auto &existing : script_cmd_names) {
-      if (existing == cmd_name)
+      if (existing == cmd_key)
         return; // Already registered
     }
-    script_cmd_names.push_back(cmd_name);
+    script_cmd_names.push_back(cmd_key);
   }
 
   command::add(cmd_name, [](const command::params &params) {
@@ -566,13 +656,37 @@ void gscr_addcommand(scriptInstance_t inst) {
   });
 }
 
-// getcommand() - returns the next queued command string, or "" if none
+// getcommand("name") - returns the next queued command for that name, or ""
+// getcommand() - returns the next queued command string regardless of name
 void gscr_getcommand(scriptInstance_t inst) {
   std::lock_guard lock(script_cmd_mutex);
+  const uint32_t argc = Scr_GetNumParam(inst);
+  if (argc >= 1) {
+    const char *requested = Scr_GetString(inst, 1);
+    const std::string requested_name =
+        requested ? normalize_command_name(requested) : std::string{};
+
+    if (!requested_name.empty()) {
+      for (auto it = script_cmd_queue.begin(); it != script_cmd_queue.end();
+           ++it) {
+        if (extract_command_name(*it) == requested_name) {
+          const std::string cmd = *it;
+          script_cmd_queue.erase(it);
+          push_string(inst, cmd.c_str());
+          return;
+        }
+      }
+
+      push_string(inst, "");
+      return;
+    }
+  }
+
   if (script_cmd_queue.empty()) {
     push_string(inst, "");
     return;
   }
+
   auto cmd = std::move(script_cmd_queue.front());
   script_cmd_queue.pop_front();
   push_string(inst, cmd.c_str());
@@ -1064,6 +1178,7 @@ void gscr_setname(game::scr::scriptInstance_t inst) {
   }
 
   name::set_name_override(client_num, player_name);
+  name::sync_name_override_to_clients(client_num);
   name::trigger_client_update(client_num);
 }
 
@@ -1090,6 +1205,7 @@ void gscr_settag(game::scr::scriptInstance_t inst) {
   }
 
   name::set_clan_abbrev_override(client_num, tag);
+  name::sync_clan_abbrev_override_to_clients(client_num);
   name::trigger_client_update(client_num);
 }
 
@@ -1113,6 +1229,7 @@ void gscr_resetname(game::scr::scriptInstance_t inst) {
   }
 
   name::clear_name_override(client_num);
+  name::sync_name_reset_to_clients(client_num);
   name::trigger_client_update(client_num);
 }
 
@@ -1136,6 +1253,7 @@ void gscr_resettag(game::scr::scriptInstance_t inst) {
   }
 
   name::clear_clan_abbrev_override(client_num);
+  name::sync_clan_abbrev_reset_to_clients(client_num);
   name::trigger_client_update(client_num);
 }
 
@@ -1161,11 +1279,8 @@ void gscr_setclientdvar(game::scr::scriptInstance_t inst) {
     }
   }
 
-  if (dvar_changes.find(dvar_cmd) == dvar_changes.end()) {
-    game::dvar_t *current_dvar = game::Dvar_FindVar(dvar_cmd);
-    if (current_dvar) {
-      dvar_changes[dvar_cmd] = game::Dvar_GetString(current_dvar);
-    }
+  if (const auto dvar_name = extract_dvar_name(dvar_cmd); dvar_name.has_value()) {
+    client_dvar_changes[client_num].insert(*dvar_name);
   }
 
   game::sv::SV_GameSendServerCommand(client_num, game::net::SV_CMD_CAN_IGNORE_0,
@@ -1251,18 +1366,10 @@ struct component final : generic_component {
     hook_opcode(0x000D, hk_CheckClearParams, &orig_CheckClearParams);
 
     game_event::on_g_shutdown_game([] {
-      if (!function_replacements.empty())
-        printf("[gsc] Clearing %zu replacefunc(s) on map shutdown\n",
-               function_replacements.size());
       function_replacements.clear();
 
-      if (!dvar_changes.empty()) {
-        for (const auto &[dvar_name, original_value] : dvar_changes) {
-          game::Dvar_SetFromStringByName(dvar_name.c_str(),
-                                         original_value.c_str(), false);
-        }
-      }
-      dvar_changes.clear();
+      reset_tracked_client_dvars();
+      client_dvar_changes.clear();
 
       detours_enabled = false;
       clear_script_commands();
@@ -1272,7 +1379,7 @@ struct component final : generic_component {
 
     game_event::on_g_init_game([] {
       function_replacements.clear();
-      dvar_changes.clear();
+      client_dvar_changes.clear();
       detours_enabled = false;
       clear_hud_text_state();
       install_settext_hooks();

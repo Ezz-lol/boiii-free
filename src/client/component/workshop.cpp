@@ -861,24 +861,21 @@ void setup_same_mod_as_host(game::LocalClientNum_t localClientNum,
                             const std::string &usermap,
                             const std::string &mod) {
   const std::string loaded_mod = game::ugc::getPublisherIdFromLoadedMod();
-  if (loaded_mod != mod) {
-    if (!usermap.empty() || !mod.empty()) {
-      bool fs_reinit_required =
-          mod_switch_requires_fs_reinitialization(loaded_mod, mod);
-      game::ugc::UGC_LoadModByPublisherId_Impl(localClientNum, mod.data(),
-                                               fs_reinit_required);
-      if (fs_reinit_required) {
-        wait_for_mod_load();
-      }
-    } else if (game::ugc::isModLoaded()) {
-      bool fs_reinit_required =
-          mod_switch_requires_fs_reinitialization(loaded_mod, "");
-      game::ugc::UGC_LoadModByPublisherId_Impl(localClientNum, "",
-                                               fs_reinit_required);
-      if (fs_reinit_required) {
-        wait_for_mod_load();
-      }
-    }
+  if (loaded_mod == mod) {
+    return;
+  }
+
+  // Keep the older behavior here: usermaps transitions still need a real
+  // mod reload so workshop assets are mounted before the join continues.
+  if (!usermap.empty() || mod != "usermaps") {
+    game::ugc::UGC_LoadModByPublisherId_Impl(localClientNum, mod.data(), true);
+    wait_for_mod_load();
+    return;
+  }
+
+  if (game::ugc::isModLoaded()) {
+    game::ugc::UGC_LoadModByPublisherId_Impl(localClientNum, "", true);
+    wait_for_mod_load();
   }
 }
 

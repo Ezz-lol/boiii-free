@@ -45,14 +45,17 @@
 
       <div id="mainPage" class="page active">
         <div class="main-page-top">
-          <button type="button" class="gear-btn" id="gearBtn" title="Launch Options" color="white"">&#128640;</button>
+          <button type="button" class="gear-btn" id="gearBtn" title="Launch Options">
+            <span class="gear-btn-icon">&#128640;</span>
+            <span class="gear-btn-label">Launch Options</span>
+          </button>
           <div class=" launch-dropdown" id="launchDropdown">
             <div class="launch-dropdown-header">Launch Options</div>
             <div class="launch-dropdown-list">
               <div class="launch-option-card" data-option="nointro" title="Skip the intro cinematic on startup"><span
                   class="launch-option-dot"></span><span class="launch-option-name">Skip Intro</span></div>
               <div class="launch-option-card" data-option="unsafe-lua" title="Allow loading of unsigned Lua scripts">
-                <span class="launch-option-dot"></span><span class="launch-option-name">Load Lua</span>
+                <span class="launch-option-dot"></span><span class="launch-option-name">Unsafe Lua</span>
               </div>
               <div class="launch-option-card" data-option="nosteam" title="Launch without connecting to Steam"><span
                   class="launch-option-dot"></span><span class="launch-option-name">No Steam</span></div>

@@ -11,6 +11,7 @@
 #include "friends.hpp"
 #include "discord.hpp"
 #include "network.hpp"
+#include "name.hpp"
 
 #include "../steam/steam.hpp"
 #include "../steam/interfaces/matchmaking_servers.hpp"
@@ -24,6 +25,7 @@
 #include <utils/finally.hpp>
 #include <utils/http.hpp>
 
+#include <cmath>
 #include <filesystem>
 #include <unordered_map>
 
@@ -264,6 +266,90 @@ table get_globals() {
   return state->globals.v.table;
 }
 
+const char *get_hks_type_name(const game::ui::lua::hks::HksObjectType type) {
+  const auto index = static_cast<int32_t>(type) + 2;
+  if (index < 0 ||
+      index >= static_cast<int32_t>(game::ui::lua::hks::HksObjectType::COUNT) +
+                   2) {
+    return "unknown";
+  }
+
+  const auto name = game::ui::lua::hks::s_compilerTypeName[index];
+  return name ? name : "unknown";
+}
+
+bool try_stringify_with_lua(const script_value &value, std::string &out) {
+  try {
+    const table lua = get_globals();
+    const auto tostring_fn = lua["tostring"];
+    if (!tostring_fn.is<function>()) {
+      return false;
+    }
+
+    const auto results = tostring_fn(value);
+    if (!results.empty() && results[0].is<std::string>()) {
+      out = results[0].as<std::string>();
+      return true;
+    }
+  } catch (...) {
+  }
+
+  return false;
+}
+
+std::string stringify_print_arg(const script_value &value) {
+  const auto &raw = value.get_raw();
+
+  switch (raw.t) {
+  case game::ui::lua::hks::HksObjectType::TNONE:
+  case game::ui::lua::hks::HksObjectType::TNIL:
+    return "nil";
+
+  case game::ui::lua::hks::HksObjectType::TBOOLEAN:
+    return raw.v.boolean ? "true" : "false";
+
+  case game::ui::lua::hks::HksObjectType::TNUMBER: {
+    const auto number = raw.v.number;
+    if (std::isfinite(number) && std::floor(number) == number) {
+      return utils::string::va("%.0f", number);
+    }
+
+    return utils::string::va("%g", number);
+  }
+
+  case game::ui::lua::hks::HksObjectType::TSTRING:
+    return value.as<std::string>();
+
+  default: {
+    std::string converted;
+    if (try_stringify_with_lua(value, converted)) {
+      return converted;
+    }
+
+    return utils::string::va("%s: %p", get_hks_type_name(raw.t), raw.v.ptr);
+  }
+  }
+}
+
+arguments lua_print(variadic_args args) {
+  std::string message;
+
+  for (size_t i = 0; i < args.size(); ++i) {
+    if (i > 0) {
+      message.push_back('\t');
+    }
+
+    message += stringify_print_arg(args[i]);
+  }
+
+  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s\n",
+                        message.c_str());
+  printf("%s\n", message.c_str());
+  fflush(stdout);
+
+  return {};
+}
+
 void print_error(const std::string &error) {
   game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
                         "^1************** LUI script error **************\n");
@@ -485,6 +571,35 @@ void setup_functions() {
       convert_function([](const std::string &path) { start_hot_reload(path); }),
       game::ui::lua::hks::HksObjectType::TCFUNCTION);
 
+  lua["game"]["getappdatapath"] = function(
+      convert_function(
+          []() -> std::string { return game::get_appdata_path().generic_string(); }),
+      game::ui::lua::hks::HksObjectType::TCFUNCTION);
+
+  lua["game"]["getclientoverridename"] =
+      function(convert_function([](const int client_num) -> std::string {
+                 const auto cn = static_cast<game::ClientNum_t>(client_num);
+                 if (!game::valid_client_num(cn) ||
+                     !name::has_name_override(cn)) {
+                   return "";
+                 }
+
+                 return name::get_name_override(cn).value_or("");
+               }),
+               game::ui::lua::hks::HksObjectType::TCFUNCTION);
+
+  lua["game"]["getclientoverridetag"] =
+      function(convert_function([](const int client_num) -> std::string {
+                 const auto cn = static_cast<game::ClientNum_t>(client_num);
+                 if (!game::valid_client_num(cn) ||
+                     !name::has_clan_abbrev_override(cn)) {
+                   return "";
+                 }
+
+                 return name::get_clan_abbrev_override(cn).value_or("");
+               }),
+               game::ui::lua::hks::HksObjectType::TCFUNCTION);
+
   lua["game"]["getrawservercount"] =
       function(convert_function([]() -> int {
                  return steam::get_raw_internet_server_count();
@@ -569,8 +684,8 @@ void setup_lua_globals() {
   setup_functions();
 
   if (!game::is_server()) {
-    lua["print"] = function(reinterpret_cast<game::ui::lua::hks::lua_function>(
-        0x141D30290_g)); // hks::base_print
+    lua["print"] = function(convert_function(lua_print),
+                            game::ui::lua::hks::HksObjectType::TCFUNCTION);
   }
   lua["table"]["unpack"] = lua["unpack"];
   lua["luiglobals"] = lua;

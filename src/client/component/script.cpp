@@ -87,6 +87,24 @@ uint32_t gsc_hash(const std::string &str) {
   return h;
 }
 
+std::string normalize_script_name(std::string script_name) {
+  auto start = script_name.find('<');
+  auto end = script_name.find('>');
+  if (start != std::string::npos && end != std::string::npos &&
+      end > start + 1) {
+    const std::string inner = script_name.substr(start + 1, end - start - 1);
+    if (inner.find('/') != std::string::npos ||
+        inner.find('\\') != std::string::npos) {
+      script_name = inner;
+    }
+  }
+  for (char &c : script_name) {
+    if (c == '\\')
+      c = '/';
+  }
+  return script_name;
+}
+
 // T7 export table entry layout (matches game binary, 20 bytes)
 #pragma pack(push, 1)
 struct t7_export_entry {
@@ -102,9 +120,13 @@ struct t7_export_entry {
 
 struct pending_detour {
   std::string target_script;
+  std::string target_func;
   uint32_t target_func_hash;
+  int target_params;
   std::string replace_script;
+  std::string replace_func;
   uint32_t replace_func_hash;
+  int replace_params;
 };
 std::vector<pending_detour> pending_detours;
 
@@ -256,22 +278,37 @@ void fixup_script_imports(char *buf, int len) {
 }
 
 const uint8_t *get_spt_buffer(const std::string &name) {
+  auto normalize_path = [](std::string path) {
+    for (char &c : path) {
+      if (c == '\\')
+        c = '/';
+    }
+    return path;
+  };
+
+  std::string normalized_name = normalize_script_name(name);
+
   // Try with extension first, then without
-  std::string with_ext = name;
+  std::string with_ext = normalized_name;
   const bool has_ext = utils::string::ends_with(with_ext, ".gsc") ||
                        utils::string::ends_with(with_ext, ".csc");
   if (!has_ext)
     with_ext += ".gsc";
-  std::string without_ext = name;
+  std::string without_ext = normalized_name;
   if (utils::string::ends_with(without_ext, ".gsc") ||
       utils::string::ends_with(without_ext, ".csc"))
     without_ext = without_ext.substr(0, without_ext.size() - 4);
 
+  std::string with_ext_norm = normalize_path(with_ext);
+  std::string without_ext_norm = normalize_path(without_ext);
+
   // Check our custom scripts (case-insensitive key search)
   for (auto &[key, rf] : loaded_scripts) {
-    if (rf && rf->buffer &&
-        (_stricmp(key.c_str(), with_ext.c_str()) == 0 ||
-         _stricmp(key.c_str(), without_ext.c_str()) == 0))
+    if (!rf || !rf->buffer)
+      continue;
+    std::string key_norm = normalize_path(key);
+    if (_stricmp(key_norm.c_str(), with_ext_norm.c_str()) == 0 ||
+        _stricmp(key_norm.c_str(), without_ext_norm.c_str()) == 0)
       return reinterpret_cast<const uint8_t *>(rf->buffer);
   }
 
@@ -285,12 +322,15 @@ const uint8_t *get_spt_buffer(const std::string &name) {
     if (utils::string::ends_with(key_no_ext, ".gsc") ||
         utils::string::ends_with(key_no_ext, ".csc"))
       key_no_ext = key_no_ext.substr(0, key_no_ext.size() - 4);
-    // Check if without_ext ends with /key_no_ext or \key_no_ext
-    if (without_ext.size() > key_no_ext.size()) {
-      char sep = without_ext[without_ext.size() - key_no_ext.size() - 1];
-      if ((sep == '/' || sep == '\\') &&
-          _stricmp(without_ext.c_str() + without_ext.size() - key_no_ext.size(),
-                   key_no_ext.c_str()) == 0)
+    std::string key_no_ext_norm = normalize_path(key_no_ext);
+
+    if (without_ext_norm.size() > key_no_ext_norm.size()) {
+      char sep =
+          without_ext_norm[without_ext_norm.size() - key_no_ext_norm.size() - 1];
+      if (sep == '/' &&
+          _stricmp(without_ext_norm.c_str() + without_ext_norm.size() -
+                       key_no_ext_norm.size(),
+                   key_no_ext_norm.c_str()) == 0)
         return reinterpret_cast<const uint8_t *>(rf->buffer);
     }
   }
@@ -307,56 +347,85 @@ const uint8_t *get_spt_buffer(const std::string &name) {
   return nullptr;
 }
 
-int64_t find_export_address_internal(const std::string &script_name,
-                                     uint32_t func_hash) {
+struct export_lookup_result {
+  int64_t address = 0;
+  bool script_loaded = false;
+};
+
+export_lookup_result resolve_export_address_internal(const std::string &script_name,
+                                                     uint32_t func_hash,
+                                                     int expected_params = -1) {
+  export_lookup_result result{};
+
   const uint8_t *buffer = get_spt_buffer(script_name);
-  if (buffer) {
+  result.script_loaded = (buffer != nullptr);
+  if (!buffer) {
+    return result;
+  }
 
-    uint64_t magic = 0;
-    std::memcpy(&magic, buffer, sizeof(magic));
-    if (magic != GSC_MAGIC) {
+  uint64_t magic = 0;
+  std::memcpy(&magic, buffer, sizeof(magic));
+  if (magic != GSC_MAGIC) {
+    return result;
+  }
 
-      uint32_t export_offset = 0;
-      uint16_t export_count = 0;
-      std::memcpy(&export_offset, buffer + 0x20, sizeof(export_offset));
-      std::memcpy(&export_count, buffer + 0x3A, sizeof(export_count));
+  uint32_t export_offset = 0;
+  std::memcpy(&export_offset, buffer + 0x20, sizeof(export_offset));
+  uint16_t export_count = 0;
+  std::memcpy(&export_count, buffer + 0x3A, sizeof(export_count));
 
-      const t7_export_entry *exports =
-          reinterpret_cast<const t7_export_entry *>(buffer + export_offset);
-      for (uint16_t i = 0; i < export_count; i++) {
-        if (exports[i].func_name == func_hash)
-          return reinterpret_cast<int64_t>(buffer + exports[i].offset);
+  const t7_export_entry *exports =
+      reinterpret_cast<const t7_export_entry *>(buffer + export_offset);
+  for (uint16_t i = 0; i < export_count; i++) {
+    if (exports[i].func_name == func_hash) {
+      if (expected_params >= 0 &&
+          exports[i].num_params != static_cast<uint8_t>(expected_params)) {
+        continue;
+      }
+
+      result.address = reinterpret_cast<int64_t>(buffer + exports[i].offset);
+      if (expected_params >= 0) {
+        break;
       }
     }
   }
-  return 0;
+
+  return result;
+}
+
+int64_t find_export_address_internal(const std::string &script_name,
+                                     uint32_t func_hash,
+                                     int expected_params = -1) {
+  return resolve_export_address_internal(script_name, func_hash, expected_params)
+      .address;
 }
 
 void apply_pending_detours() {
-  for (pending_detour &d : pending_detours) {
-    int64_t target =
-        find_export_address_internal(d.target_script, d.target_func_hash);
-    int64_t replace =
-        find_export_address_internal(d.replace_script, d.replace_func_hash);
-    if (target && replace) {
-      gsc_funcs::add_detour(target, replace);
-    } else {
-      printf("^1[replacefunc] FAILED: %s::0x%08X -> %s::0x%08X\n",
-             d.target_script.c_str(), d.target_func_hash,
-             d.replace_script.c_str(), d.replace_func_hash);
+  std::vector<pending_detour> remaining_detours;
+  remaining_detours.reserve(pending_detours.size());
 
-      if (!target)
-        printf("^1  Reason: target function not found in '%s' (script %s "
-               "loaded)\n",
-               d.target_script.c_str(),
-               get_spt_buffer(d.target_script) ? "IS" : "NOT");
-      if (!replace)
-        printf("^1  Reason: replacement function not found in '%s' (script %s "
-               "loaded)\n",
-               d.replace_script.c_str(),
-               get_spt_buffer(d.replace_script) ? "IS" : "NOT");
+  for (pending_detour &d : pending_detours) {
+    const auto target = resolve_export_address_internal(
+        d.target_script, d.target_func_hash, d.target_params);
+    const auto replace = resolve_export_address_internal(
+        d.replace_script, d.replace_func_hash, d.replace_params);
+
+    if (target.address && replace.address) {
+      gsc_funcs::add_detour(target.address, replace.address);
+    } else {
+      if (!target.script_loaded || !replace.script_loaded) {
+        remaining_detours.push_back(d);
+        continue;
+      }
+
+      printf("[gsc] detour bind failed %s::%s(%d) -> %s::%s(%d)\n",
+             d.target_script.c_str(), d.target_func.c_str(), d.target_params,
+             d.replace_script.c_str(), d.replace_func.c_str(),
+             d.replace_params);
     }
   }
+
+  pending_detours = std::move(remaining_detours);
 }
 
 struct hash_info {
@@ -478,9 +547,12 @@ void load_script_file(std::string &data, const std::string &script_file,
           replace_base = replace_base.substr(0, replace_base.size() - 4);
 
         for (gsc_compiler::replacefunc_entry &rf : result.replacefuncs) {
-
-          pending_detours.push_back({rf.target_script, gsc_hash(rf.target_func),
-                                     replace_base, gsc_hash(rf.replace_func)});
+          const std::string replace_script =
+              rf.replace_script.empty() ? replace_base : rf.replace_script;
+          pending_detours.push_back(
+              {rf.target_script, rf.target_func, gsc_hash(rf.target_func),
+               rf.target_params, replace_script,
+               rf.replace_func, gsc_hash(rf.replace_func), rf.replace_params});
         }
       }
     } else {
@@ -639,9 +711,8 @@ void begin_load_scripts_stub(scriptInstance_t inst, int user) {
   if (game::com::Com_IsInGame() && !game::com::Com_IsRunningUILevel()) {
     load_scripts();
 
-    if (!pending_detours.empty()) {
+    if (!pending_detours.empty())
       apply_pending_detours();
-    }
   }
 }
 
@@ -710,8 +781,10 @@ std::string resolve_hash(uint32_t hash) {
 }
 
 int64_t find_export_address(const std::string &script_name,
-                            const std::string &func_name) {
-  return find_export_address_internal(script_name, gsc_hash(func_name));
+                            const std::string &func_name,
+                            int expected_params) {
+  return find_export_address_internal(script_name, gsc_hash(func_name),
+                                      expected_params);
 }
 
 int resolve_hash_line(uint32_t hash, int num_params) {

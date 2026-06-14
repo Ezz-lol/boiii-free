@@ -25,6 +25,7 @@
   - [Port Forwarding Alternatives](#port-forwarding-alternatives)
 - [Zombies Server Setup](#zombies-server-setup)
 - [Compile from Source](#compile-from-source)
+- [GSC Scripting Additions](#gsc-scripting-additions)
 - [Credits](#credits)
 - [Disclaimer](#disclaimer)
 
@@ -359,6 +360,14 @@ Want to build Ezz BOIII yourself? Here's how! 🔨
 
 > [!TIP]
 > You can also use `build.bat` to compile directly from the command line!
+
+---
+
+## GSC Scripting Additions
+
+This project supports loading raw GSC code with a more relaxed syntax and adds extra utility functions to make scripting and mod development easier.
+
+For the full guide and examples, see [docs/gsc-scripting.md](docs/gsc-scripting.md).
 
 ---
 

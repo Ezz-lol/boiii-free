@@ -1004,6 +1004,67 @@ ast_ptr parse_function_def(parser_state &s, bool autoexec, bool is_private) {
   return func;
 }
 
+ast_ptr parse_detour_function(parser_state &s) {
+  auto &detour_tok = s.advance();
+
+  auto &ns_tok = s.expect(token_type::t_identifier,
+                          "Expected detour target namespace");
+  std::string target_ns = ns_tok.value;
+  while (s.check(token_type::t_backslash)) {
+    target_ns += "\\";
+    s.advance();
+    if (s.check(token_type::t_identifier))
+      target_ns += s.advance().value;
+  }
+
+  if (s.check(token_type::t_lt)) {
+    s.advance();
+    std::string target_path;
+    while (!s.check(token_type::t_gt) && !s.at_end()) {
+      const auto &tok = s.current();
+      if (tok.type == token_type::t_identifier ||
+          tok.type == token_type::t_number_int ||
+          tok.type == token_type::t_number_float)
+        target_path += tok.value;
+      else if (tok.type == token_type::t_backslash)
+        target_path += "\\";
+      else if (tok.type == token_type::t_slash)
+        target_path += "/";
+      else if (tok.type == token_type::t_dot)
+        target_path += ".";
+      else if (tok.type == token_type::t_colon)
+        target_path += ":";
+      else
+        throw std::runtime_error("Unexpected token in detour script path at line " +
+                                 std::to_string(tok.line) + ", column " +
+                                 std::to_string(tok.column));
+      s.advance();
+    }
+    s.expect(token_type::t_gt, "Expected '>' after detour script path");
+    target_ns += "<" + target_path + ">";
+  }
+
+  s.expect(token_type::t_double_colon,
+           "Expected '::' after detour target namespace");
+  auto &func_tok = s.expect(token_type::t_identifier,
+                            "Expected target function name after '::'");
+
+  auto target_ref = make_node(node_type::n_func_ref, func_tok.value,
+                              func_tok.line, func_tok.column);
+  target_ref->children.push_back(
+      make_node(node_type::n_identifier, target_ns, func_tok.line,
+                func_tok.column));
+
+  auto func = make_node(node_type::n_function_def, func_tok.value,
+                        func_tok.line, func_tok.column);
+  func->children.push_back(make_node(node_type::n_identifier, "",
+                                     func_tok.line, func_tok.column));
+  func->children.push_back(parse_parameters(s));
+  func->children.push_back(parse_block(s));
+  func->children.push_back(std::move(target_ref));
+  return func;
+}
+
 ast_ptr parse_script(parser_state &s) {
   auto root = make_node(node_type::n_script, "", 1, 1);
 
@@ -1081,6 +1142,12 @@ ast_ptr parse_script(parser_state &s) {
     }
 
     if (s.check(token_type::t_identifier)) {
+      if (s.current().value == "detour" &&
+          s.peek(2).type != token_type::t_lparen) {
+        root->children.push_back(parse_detour_function(s));
+        continue;
+      }
+
       if (s.peek(1).type == token_type::t_lparen) {
         root->children.push_back(parse_function_def(s, false, false));
         continue;

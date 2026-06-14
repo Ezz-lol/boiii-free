@@ -1697,11 +1697,13 @@ h1 {
 }
 
 .gear-btn {
-  width: 36px;
-  height: 36px;
+  min-width: 156px;
+  height: 40px;
+  padding: 0 14px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  gap: 8px;
   cursor: pointer;
   border: 1px solid rgba(68, 65, 63, 0.45);
   border-radius: 7px;
@@ -1717,6 +1719,16 @@ h1 {
   position: relative;
 }
 
+.gear-btn-icon {
+  flex: 0 0 auto;
+  font-size: 0.95rem;
+  margin-right: 2px;
+}
+
+.gear-btn-label {
+  white-space: nowrap;
+}
+
 .gear-btn:hover {
   border-color: rgba(249, 115, 22, 0.5);
   background: rgba(26, 24, 23, 0.95);
@@ -1729,7 +1741,7 @@ h1 {
 
 .launch-dropdown {
   position: absolute;
-  top: 44px;
+  top: 48px;
   right: 0;
   width: 160px;
   background: rgba(12, 11, 10, 0.98);

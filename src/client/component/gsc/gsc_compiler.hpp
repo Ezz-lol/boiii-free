@@ -22,7 +22,11 @@ struct hash_name_pair {
 struct replacefunc_entry {
   std::string target_script;
   std::string target_func;
+  std::string replace_script;
   std::string replace_func;
+  int target_params = -1;
+  int replace_params = -1;
+  bool is_detour = false;
 };
 
 struct compile_result {

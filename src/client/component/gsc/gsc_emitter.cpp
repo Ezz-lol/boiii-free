@@ -384,6 +384,7 @@ struct emitter_state {
   size_t current_export_index;
   uint32_t script_namespace;
   std::string script_name;
+  std::unordered_map<std::string, uint8_t> local_function_params;
 
   std::vector<string_entry> strings;
   std::unordered_map<std::string, size_t> string_map;
@@ -693,6 +694,37 @@ std::pair<std::string, std::string> extract_func_ref(const ast_ptr &arg) {
     return {ns, arg->value};
   }
   return {"", ""};
+}
+
+int infer_local_function_params(const emitter_state &s,
+                                const std::string &ref_ns,
+                                const std::string &func_name) {
+  if (func_name.empty()) {
+    return -1;
+  }
+
+  std::string normalized_ref = normalize_ns(ref_ns.empty() ? s.script_name : ref_ns);
+  std::string normalized_self = normalize_ns(s.script_name);
+  std::transform(normalized_ref.begin(), normalized_ref.end(), normalized_ref.begin(),
+                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  std::transform(normalized_self.begin(), normalized_self.end(),
+                 normalized_self.begin(),
+                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+  if (normalized_ref != normalized_self) {
+    return -1;
+  }
+
+  std::string lower_name = func_name;
+  std::transform(lower_name.begin(), lower_name.end(), lower_name.begin(),
+                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+
+  const auto it = s.local_function_params.find(lower_name);
+  if (it == s.local_function_params.end()) {
+    return -1;
+  }
+
+  return static_cast<int>(it->second);
 }
 
 bool is_custom_function(const std::string &name) {
@@ -1261,6 +1293,26 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
           lower_name.begin(), lower_name.end(), lower_name.begin(),
           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
+      if (is_custom_method(lower_name)) {
+        s.emit_op(script_opcode::OP_PreScriptCall);
+        for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0;
+             i--)
+          emit_expression(s, args_node->children[i]);
+
+        s.emit_op(script_opcode::OP_PreScriptCall);
+        emit_expression(s, obj);
+        s.emit_call(gsc_hash("getentitynumber"), s.script_namespace, 0, true,
+                    false, true);
+
+        uint32_t dispatch_hash = fnv1a(lower_name.c_str());
+        emit_get_number(
+            s, static_cast<int64_t>(static_cast<int32_t>(dispatch_hash)));
+
+        s.emit_call(gsc_hash("isprofilebuild"), s.script_namespace,
+                    static_cast<uint8_t>(num_params + 2), false, false, true);
+        break;
+      }
+
       s.emit_op(script_opcode::OP_PreScriptCall);
       for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0;
            i--)
@@ -1368,13 +1420,17 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
           call_name.begin(), call_name.end(), call_name.begin(),
           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-      if (expr->children[0]->value.empty() && call_name == "replacefunc") {
+      if (expr->children[0]->value.empty() &&
+          (call_name == "replacefunc" || call_name == "detour")) {
         auto &args = expr->children[1]->children;
         if (args.size() == 2) {
           auto [target_ns, target_fn] = extract_func_ref(args[0]);
           auto [replace_ns, replace_fn] = extract_func_ref(args[1]);
-          if (!target_fn.empty() && !replace_fn.empty() && !target_ns.empty()) {
-            std::string ts = normalize_ns(target_ns);
+          if (!target_fn.empty() && !replace_fn.empty()) {
+            std::string ts = normalize_ns(
+                target_ns.empty() ? s.script_name : target_ns);
+            std::string rs = normalize_ns(
+                replace_ns.empty() ? s.script_name : replace_ns);
             std::string tfn = target_fn;
             std::transform(tfn.begin(), tfn.end(), tfn.begin(),
                            [](unsigned char c) {
@@ -1386,31 +1442,45 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
                              return static_cast<char>(std::tolower(c));
                            });
 
-            // Compile-time metadata (applied before scripts execute)
-            s.replacefuncs.push_back({ts, tfn, rfn});
+            auto strip_script_ext = [](std::string script) {
+              for (char &c : script)
+                if (c == '\\')
+                  c = '/';
+              if (script.size() >= 4 &&
+                  (script.substr(script.size() - 4) == ".gsc" ||
+                   script.substr(script.size() - 4) == ".csc"))
+                script = script.substr(0, script.size() - 4);
+              return script;
+            };
 
-            // Runtime bytecode (supports wait between calls)
-            std::string replace_script = s.script_name;
-            for (char &c : replace_script) {
-              if (c == '\\')
-                c = '/';
+            std::string target_script = strip_script_ext(ts);
+            std::string replace_script = strip_script_ext(rs);
+            const int replace_params =
+                infer_local_function_params(s, replace_ns, replace_fn);
+            int target_params =
+                infer_local_function_params(s, target_ns, target_fn);
+            if (target_params < 0) {
+              target_params = replace_params;
             }
-            if (replace_script.size() >= 4 &&
-                replace_script.substr(replace_script.size() - 4) == ".gsc")
-              replace_script =
-                  replace_script.substr(0, replace_script.size() - 4);
 
-            s.emit_op(script_opcode::OP_PreScriptCall);
-            s.emit_string_ref(script_opcode::OP_GetString, rfn);
-            s.emit_string_ref(script_opcode::OP_GetString, replace_script);
-            s.emit_string_ref(script_opcode::OP_GetString, tfn);
-            s.emit_string_ref(script_opcode::OP_GetString, ts);
-            uint32_t dispatch_hash = fnv1a("replacefunc");
-            emit_get_number(
-                s, static_cast<int64_t>(static_cast<int32_t>(dispatch_hash)));
-            s.emit_call(gsc_hash("isprofilebuild"), s.script_namespace, 5,
-                        false, false, true);
-            s.emit_op(script_opcode::OP_DecTop);
+            if (call_name == "detour") {
+              s.replacefuncs.push_back({target_script, tfn, replace_script, rfn,
+                                        target_params, replace_params, true});
+            } else {
+              s.emit_op(script_opcode::OP_PreScriptCall);
+              emit_get_number(s, replace_params);
+              emit_get_number(s, target_params);
+              s.emit_string_ref(script_opcode::OP_GetString, rfn);
+              s.emit_string_ref(script_opcode::OP_GetString, replace_script);
+              s.emit_string_ref(script_opcode::OP_GetString, tfn);
+              s.emit_string_ref(script_opcode::OP_GetString, target_script);
+              uint32_t dispatch_hash = fnv1a("replacefunc");
+              emit_get_number(
+                  s, static_cast<int64_t>(static_cast<int32_t>(dispatch_hash)));
+              s.emit_call(gsc_hash("isprofilebuild"), s.script_namespace, 7,
+                          false, false, true);
+              s.emit_op(script_opcode::OP_DecTop);
+            }
             break;
           }
         }
@@ -2113,7 +2183,12 @@ emitter_result emit(const ast_ptr &root, const std::string &script_name) {
         std::transform(
             lower.begin(), lower.end(), lower.begin(),
             [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-        state.record_hash(lower);
+        const uint8_t param_count =
+            child->children.size() > 1
+                ? static_cast<uint8_t>(child->children[1]->children.size())
+                : 0;
+        state.local_function_params[lower] = param_count;
+        state.record_hash(lower, child->line, param_count);
       }
     }
 
@@ -2127,7 +2202,49 @@ emitter_result emit(const ast_ptr &root, const std::string &script_name) {
       } else if (child->type == node_type::n_include) {
         state.includes.push_back(child->value);
       } else if (child->type == node_type::n_function_def) {
-        emit_function(state, child);
+        if (child->children.size() == 4 &&
+            child->children[3]->type == node_type::n_func_ref) {
+          emit_function(state, child);
+          auto [target_ns, target_fn] = extract_func_ref(child->children[3]);
+          if (!target_fn.empty()) {
+            std::string replace_ns = state.script_name;
+            std::string replace_fn = child->value;
+            const int param_count =
+                child->children.size() > 1
+                    ? static_cast<int>(child->children[1]->children.size())
+                    : -1;
+            std::transform(replace_fn.begin(), replace_fn.end(),
+                           replace_fn.begin(),
+                           [](unsigned char c) {
+                             return static_cast<char>(std::tolower(c));
+                           });
+            std::string ts =
+                normalize_ns(target_ns.empty() ? state.script_name : target_ns);
+            std::string rs = normalize_ns(replace_ns);
+            std::string tfn = target_fn;
+            std::transform(tfn.begin(), tfn.end(), tfn.begin(),
+                           [](unsigned char c) {
+                             return static_cast<char>(std::tolower(c));
+                           });
+            auto strip_script_ext = [](std::string script) {
+              for (char &c : script)
+                if (c == '\\')
+                  c = '/';
+              if (script.size() >= 4 &&
+                  (script.substr(script.size() - 4) == ".gsc" ||
+                   script.substr(script.size() - 4) == ".csc"))
+                script = script.substr(0, script.size() - 4);
+              return script;
+            };
+            std::string target_script = strip_script_ext(ts);
+            std::string replace_script = strip_script_ext(rs);
+            state.replacefuncs.push_back(
+                {target_script, tfn, replace_script, replace_fn, param_count,
+                 param_count, true});
+          }
+        } else {
+          emit_function(state, child);
+        }
       }
     }
 
