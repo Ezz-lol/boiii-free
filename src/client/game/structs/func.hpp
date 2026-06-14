@@ -42,3 +42,6 @@ using thiscall_t = T(__thiscall *)(This *, Args...);
 
 template <typename T, typename This = void, typename... Args>
 using thiscallPtr = thiscall_t<T, This, Args...> *;
+
+template <typename T, typename... Args> using func_t = T (*)(Args...);
+template <typename T, typename... Args> using funcPtr = func_t<T, Args...> *;
