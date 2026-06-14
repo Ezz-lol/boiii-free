@@ -5,7 +5,7 @@
 #include "quake.hpp"
 #include "net/net.hpp"
 #include "scr/scr.hpp"
-#include "snd.hpp"
+#include "snd/snd.hpp"
 #include "asm.hpp"
 #include "lobby.hpp"
 

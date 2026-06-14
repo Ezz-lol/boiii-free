@@ -146,7 +146,7 @@ WEAK symbol<void(const char *stateName)> SND_SetMusicState2{
     0x0, 0x140549180}; // named `SND_SetMusicState`; overload
 WEAK symbol<void(const char *name)> SND_SetShockAmbientRoom{0x0, 0x1405493B0};
 WEAK symbol<void(const snd::SndBank *bank, int priority, bool patchZone,
-                 int unknown)>
+                 ZoneType zoneType)>
     SND_AddBank{0x0, 0x1405479E0};
 WEAK symbol<void(const snd::SndBank *bank)> SND_RemoveBank{0x0, 0x140548B00};
 WEAK symbol<void(const snd::SndDriverGlobals *globals)> SND_AddGlobals{
@@ -217,7 +217,8 @@ WEAK symbol<void(snd::SndBankLoad *load)> SND_BankLoadUpdateState{0x0,
                                                                   0x14064B550};
 WEAK symbol<void(snd::SndBankPtr *sound)> Load_SndBankAsset{0x0, 0x1401DB2D0};
 WEAK symbol<void()> SND_CheckpointRestore{0x0, 0x140547D60};
-WEAK symbol<void(snd::SndCommandType command, uint64_t cmdSize, void *cmdData)>
+WEAK symbol<void(snd::cmd::SndCommandType command, uint64_t cmdSize,
+                 snd::cmd::SndCommand cmdData)>
     SND_CommandSND{0x142270910, 0x140545CB0};
 WEAK symbol<void()> SND_DebugFini{0x0, 0x14064CE90};
 WEAK symbol<void(snd::SndDuckActive *duck)> SND_StopDuck{0x0, 0x1406480D0};
@@ -246,8 +247,8 @@ WEAK symbol<void(snd::SndPlayback *playback)> SND_FreePlaybackNotify{
     0x0, 0x140548010};
 WEAK symbol<void()> SND_ProcessCLQueue{0x142271410, 0x1405466B0};
 WEAK symbol<void()> SND_ProcessSNDQueue{0x142271480, 0x140546720};
-WEAK symbol<void(snd::SndQueue *queue, snd::SndCommandType cmd, uint32_t size,
-                 const void *data)>
+WEAK symbol<void(snd::SndQueue *queue, snd::cmd::SndCommandType cmd,
+                 uint32_t size, snd::cmd::SndCommand *data)>
     SND_QueueAdd{0x1422740E0, 0x140549A20};
 WEAK symbol<void()> SND_RestartDriver{0x0, 0x140548BC0};
 WEAK symbol<void(snd::SndSpeakerMap *map)> Snd_SpeakerMapZero{0x0, 0x140652D60};
@@ -265,13 +266,13 @@ WEAK symbol<void(stream::stream_id id, stream::stream_status result,
 WEAK symbol<void(const SndPlayState *state, SndPlayback *playback)>
     SND_PlayInternal{0x0, 0x140548470};
 WEAK symbol<void(const SndPlayState *state)> SND_Play2{0x0, 0x1405482D0};
-WEAK symbol<void(bool isMature, bool isPaused, float timescale, uint32_t cgTime,
-                 uint32_t seed, float voiceScale, float musicScale,
-                 float sfxScale, float masterScale, float cinematicScale,
-                 int masterPatch, bool hearingImpaired, SndGameMode mode,
-                 uint64_t unk1, uint64_t _unk2,
-                 uint64_t unk3)> // 3 new SndCommandSetGameState fields
-    SND_BeginFrame{0x0, 0x140547C20};
+WEAK symbol<void(bool isMature, bool isPaused, float timescale,
+                 unsigned int cgTime, unsigned int seed, float voiceScale,
+                 float musicScale, float sfxScale, float masterScale,
+                 float cinematicScale, int masterPatch, bool hearingImpaired,
+                 SndGameMode mode, bool muteMusic, bool muteVoice,
+                 bool gpadSounds)>
+    SND_BeginFrame{0x1422729B0, 0x140547C20};
 WEAK symbol<void(snd_weapon_shot *shot)> CG_SndWeaponFire{0x0, 0x140148F50};
 
 WEAK symbol<void(uint32_t table, char *asset, uint32_t fieldIndex,

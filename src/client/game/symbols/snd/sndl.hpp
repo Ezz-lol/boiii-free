@@ -25,7 +25,7 @@ WEAK
         SNDL_SetGameState{0x0, 0x14064E430};
 WEAK symbol<void(const char *zoneName)> SNDL_BankUpdateZone{0x0, 0x14064D500};
 WEAK symbol<void(const snd::SndBank *bank, int priority, bool patchZone,
-                 int32_t unknown)>
+                 ZoneType zoneType)>
     SNDL_AddBank{0x0, 0x14064A030};
 WEAK symbol<void(const snd::SndBank *bank)> SNDL_RemoveBank{0x0, 0x14064A3A0};
 WEAK symbol<void(const snd::SndDriverGlobals *globals)> SNDL_AddGlobals{

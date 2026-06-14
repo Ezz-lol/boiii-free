@@ -2,7 +2,7 @@
 #include <cstdint>
 #include "../core.hpp"
 #include "../asm.hpp"
-#include "../snd.hpp"
+#include "../snd/snd.hpp"
 #include "../ui/ui.hpp"
 #include "../vehicle.hpp"
 #include "../lobby.hpp"

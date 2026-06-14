@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include "../snd.hpp"
+#include "../snd/snd.hpp"
 #include "../scr/core.hpp"
 #include "../phys.hpp"
 #include "../gfx/core.hpp"

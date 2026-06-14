@@ -246,13 +246,12 @@ void load_workshop_data(game::ugc::WorkshopData *item) {
 
 void populate_workshop_paths(game::ugc::WorkshopData *item,
                              const std::filesystem::path &content_folder,
-                             const game::ugc::ZoneType type) {
+                             const game::ZoneType type) {
   std::memset(item, 0, sizeof(game::ugc::WorkshopData));
 
   const std::filesystem::path zone_path = content_folder / "zone";
   const std::filesystem::path relative_zone_path =
-      std::filesystem::path(type == game::ugc::ZoneType::MOD ? "mods"
-                                                             : "usermaps") /
+      std::filesystem::path(type == game::ZoneType::MOD ? "mods" : "usermaps") /
       content_folder.filename() / "zone";
 
   utils::string::copy(item->contentPathToZoneFiles,
@@ -291,7 +290,7 @@ void supplement_mods_from_disk() {
     }
 
     game::ugc::WorkshopData *mod_data = &game::ugc::modsPool.data[count];
-    populate_workshop_paths(mod_data, entry.path(), game::ugc::ZoneType::MOD);
+    populate_workshop_paths(mod_data, entry.path(), game::ZoneType::MOD);
     load_workshop_data(mod_data);
     ++count;
   }
@@ -314,11 +313,11 @@ UGC_LoadUsermapByPublisherId_stub(const char *maybePublisherId) {
 }
 
 utils::hook::detour UGC_VerifyVersion_hook;
-bool UGC_VerifyVersion_stub(game::ugc::ZoneType type,
-                            const char *maybePublisherId, uint32_t version) {
+bool UGC_VerifyVersion_stub(game::ZoneType type, const char *maybePublisherId,
+                            uint32_t version) {
   std::string publisherId = maybePublisherId;
   if (!utils::string::is_numeric(maybePublisherId) &&
-      type == game::ugc::ZoneType::USERMAP) {
+      type == game::ZoneType::USERMAP) {
     publisherId = get_usermap_publisher_id(maybePublisherId);
   }
   return game::ugc::UGC_VerifyVersion_Impl(type, publisherId.c_str(), version);

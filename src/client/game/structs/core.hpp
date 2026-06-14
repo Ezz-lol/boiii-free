@@ -328,6 +328,24 @@ struct netUInt64 {
   uint32_t high;
 };
 
+enum class ZoneType : uint32_t {
+  /*
+     The `OFFICIAL` enumeration is almost never used, except in one function
+     which checks if a ZoneType enumeration value represents UGC content.
+
+     All other usage assumes value is either MOD or USERMAP, and
+     ZoneType is never assigned to OFFICIAL by the engine.
+
+     This enumeration was likely created with the intention of usage in
+     a consolidated zone handling architecture, which never came to be.
+  */
+  OFFICIAL = 0x0,
+
+  MOD = 0x1,
+  USERMAP = 0x2
+};
+IMPL_ENUM_OPERATORS(ZoneType);
+
 enum class StorageFileType : int32_t {
   COMMON_SETTINGS = 0,
   PROFILE_SHOUTCASTER = 1,
@@ -1254,4 +1272,14 @@ struct outPacket_t {
   int32_t p_realtime;
 };
 
+#pragma pack(push, 1)
+class tlAtomicMutex {
+public:
+  uint64_t ThreadId;
+  int LockCount;
+  uint8_t _padding0C[4];
+  tlAtomicMutex *ThisPtr;
+};
+ASSERT_SIZE(tlAtomicMutex, 0x18);
+#pragma pack(pop)
 } // namespace game

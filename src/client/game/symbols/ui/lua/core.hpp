@@ -22,8 +22,8 @@ WEAK symbol<game::db::xasset::XAssetHeader(const char *filename)>
     Lua_CoD_GetRawFile{0x141F0EFE0, 0x1404BCB70};
 WEAK symbol<hks::luaReturnCount_e(hks::lua_State *luaVM)>
     Lua_CoD_LuaCall_ForceHUDRefresh{0x141F45740};
-WEAK symbol<uint32_t(ugc::ZoneType zoneType, int32_t sliceStart,
-                     int32_t sliceLen, hks::lua_State *luaState)>
+WEAK symbol<uint32_t(ZoneType zoneType, int32_t sliceStart, int32_t sliceLen,
+                     hks::lua_State *luaState)>
     Mods_Lists_GetInfoEntries_Slice{0x1420D61E0};
 } // namespace lua
 } // namespace ui

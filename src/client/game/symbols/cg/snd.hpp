@@ -6,7 +6,7 @@
 namespace game {
 namespace cg {
 namespace snd {
-WEAK symbol<void(game::snd::SndCommandBuffer *buffer)> SND_CommandCG{
+WEAK symbol<void(game::snd::cmd::SndCommandBuffer *buffer)> SND_CommandCG{
     0x142270780, 0x140545B60};
 WEAK symbol<void(game::snd::SndEntHandle ent, scr::ScrString_t xanimName)>
     CG_PlayFacialAnimation{0x14102ED90, 0x14011E680};

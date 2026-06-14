@@ -269,10 +269,9 @@ void snd_init_stub() {
 
 utils::hook::detour snd_queueadd_hook;
 void snd_queueadd_stub(game::snd::SndQueue *queue,
-                       game::snd::SndCommandType cmd, uint32_t size,
-                       const void *data) {
-  game::snd::SND_CommandSND(cmd, static_cast<uint64_t>(size),
-                            const_cast<void *>(data));
+                       game::snd::cmd::SndCommandType cmd, uint32_t size,
+                       game::snd::cmd::SndCommand data) {
+  game::snd::SND_CommandSND(cmd, static_cast<uint64_t>(size), data);
 }
 
 utils::hook::detour snd_active_hook;

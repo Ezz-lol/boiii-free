@@ -77,11 +77,8 @@ struct XZoneName // Size must be 96 == 0x60
   char name[64];
   int32_t flags;
   int32_t slot;
-  // Definitely value being set at _unknown[0]
-  // It might be related to whether it's loaded?
-  // No immediate indication of what this is for, and we do not currently need
-  // to know, so leaving it as unknown for now.
-  uint8_t _unknown[8];
+  ZoneType zoneType;
+  uint8_t _unknown4C[4];
   uint32_t fastfileChecksum;
   uint8_t _gap54[4]; // probably padding
   XZoneState state;

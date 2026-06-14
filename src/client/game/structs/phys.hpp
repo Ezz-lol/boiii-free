@@ -2,7 +2,7 @@
 
 #include "scr/scr.hpp"
 #include "math.hpp"
-#include "snd.hpp"
+#include "snd/snd.hpp"
 #include "core.hpp"
 #include "asm.hpp"
 

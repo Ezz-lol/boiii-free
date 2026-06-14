@@ -4,7 +4,7 @@
 #include "ai.hpp"
 #include "math.hpp"
 #include "phys.hpp"
-#include "snd.hpp"
+#include "snd/snd.hpp"
 #include "gfx/gfx.hpp"
 #include "core.hpp"
 #include "user.hpp"

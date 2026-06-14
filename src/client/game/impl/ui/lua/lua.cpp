@@ -4,18 +4,18 @@
 namespace game {
 namespace ui {
 namespace lua {
-uint32_t Mods_Lists_GetInfoEntries_Slice_Impl(ugc::ZoneType zoneType,
+uint32_t Mods_Lists_GetInfoEntries_Slice_Impl(ZoneType zoneType,
                                               int32_t sliceStart,
                                               int32_t sliceLen,
                                               hks::lua_State *luaState) {
   int32_t endIdx;
   ugc::ExtendedWorkshopDataPool *pool;
   switch (zoneType) {
-  case ugc::ZoneType::MOD:
+  case ZoneType::MOD:
     endIdx = ugc::modsPool.count;
     pool = &ugc::modsPool;
     break;
-  case ugc::ZoneType::USERMAP:
+  case ZoneType::USERMAP:
     endIdx = ugc::usermapsPool.count;
     pool = &ugc::usermapsPool;
     break;

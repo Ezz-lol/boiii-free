@@ -2,19 +2,25 @@
 #define STRUCTS_SND_HPP
 
 #include <cstdint>
-#include "core.hpp"
-#include "quake.hpp"
-#include "db/xasset.hpp"
-#include "scr/scr.hpp"
-#include "stream.hpp"
+#include "../core.hpp"
+#include "../quake.hpp"
+#include "../db/xasset.hpp"
+#include "../scr/scr.hpp"
+#include "../stream.hpp"
 
 namespace game {
 namespace snd {
+
+namespace cmd {
+struct SndCommandBuffer;
+struct SndQueueBuffers;
+}; // namespace cmd
 
 typedef uint32_t SndStringHash;
 typedef int32_t SndPlaybackId;
 typedef uint8_t sd_byte;
 typedef uint32_t SndAliasId;
+typedef int64_t SndPlaybackHandle;
 
 enum class SndGameMode : int32_t {
   SND_GAME_MODE_MULTIPLAYER = 0x0,
@@ -204,8 +210,7 @@ struct SndAssetBankHeader {
   uint32_t padding0;
   uint8_t padding[1366];
 };
-static_assert(sizeof(SndAssetBankHeader) == 0x800,
-              "SndAssetBankHeader size must be 0x800 bytes");
+ASSERT_SIZE(SndAssetBankHeader, 0x800);
 #pragma pack(pop)
 
 /*
@@ -233,8 +238,7 @@ struct SndAssetBankEntry {
   uint16_t EnvelopeTime1;
   uint16_t EnvelopeTime2;
 };
-static_assert(sizeof(SndAssetBankEntry) == 0x24,
-              "SndAssetBankEntry size must be 36 bytes");
+ASSERT_SIZE(SndAssetBankEntry, 0x24);
 #pragma pack(pop)
 
 #pragma pack(push, 1)
@@ -248,8 +252,7 @@ struct SndAssetBankLoad {
   qboolean indicesLoaded;
   qboolean indicesAllocated;
 };
-static_assert(sizeof(SndAssetBankLoad) == 0x918,
-              "SndAssetBankLoad size must be 0x918 bytes");
+ASSERT_SIZE(SndAssetBankLoad, 0x918);
 #pragma pack(pop)
 
 #define G_SND_INITIALIZED_MAGIC 0x23459876
@@ -436,63 +439,16 @@ struct SndOcclusionTrace {
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-
-// sizeof=0x18
-class tlAtomicMutex {
-public:
-  uint64_t ThreadId;
-  int LockCount;
-  uint8_t _padding0C[4];
-  tlAtomicMutex *ThisPtr;
-};
-static_assert(sizeof(tlAtomicMutex) == 0x18,
-              "tlAtomicMutex size must be 24 bytes");
-
-#pragma pack(pop)
-struct SndQueueBuffers;
-struct SndCommandBuffer;
-
-typedef void (*SND_QueueBufferProcess)(SndCommandBuffer *);
-
-#pragma pack(push, 1)
-// sizeof=0x8020
-struct SndCommandBuffer {
-  int32_t sequence;
-  int32_t used;
-  SND_QueueBufferProcess *process;
-  SndCommandBuffer *next;
-  SndQueueBuffers *buffers;
-  uint8_t data[32768];
-};
-static_assert(sizeof(SndCommandBuffer) == 0x8020,
-              "SndCommandBuffer size must be 32768 bytes plus header");
-#pragma pack(pop)
-
-#pragma pack(push, 1)
-// sizeof=0x80220
-struct SndQueueBuffers {
-  tlAtomicMutex mutex;
-  SndCommandBuffer buffers[16];
-  SndCommandBuffer *freeList;
-};
-static_assert(sizeof(SndQueueBuffers) == 0x80220,
-              "SndQueueBuffers size must be 16 times the size of "
-              "SndCommandBuffer plus header");
-#pragma pack(pop)
-
 struct SndQueue;
 typedef void (*SND_QueueCallback)(SndQueue *);
-
-#pragma pack(push, 1)
-// sizeof=0x38
 struct SndQueue {
   tlAtomicMutex mutex;
-  SndCommandBuffer *active;
-  SndCommandBuffer *submitted;
-  SndQueueBuffers *buffers;
+  cmd::SndCommandBuffer *active;
+  cmd::SndCommandBuffer *submitted;
+  cmd::SndQueueBuffers *buffers;
   SND_QueueCallback processNotify;
 };
-static_assert(sizeof(SndQueue) == 0x38, "SndQueue size must be 56 bytes");
+ASSERT_SIZE(SndQueue, 0x38);
 
 #pragma pack(pop)
 
@@ -515,7 +471,7 @@ static_assert(sizeof(SndQueue) == 0x38, "SndQueue size must be 56 bytes");
    - `SndBankLoad` exactly matches that used in the BO4 alpha, with only one
   unknown, additional field, and additional padding added along with it for
   alignment.
-  - `SndAssetBankHeader` matches that both that used in BO3 and BO4 alpha.
+  - `SndAssetBankHeader` matches that used in both BO3 and BO4 alpha.
    - `SndCommandType` matches the BO3 alpha exactly.
 
 
@@ -978,145 +934,6 @@ struct SndVoice {
   bool isSilent;
 };
 
-#pragma pack(pop)
-
-enum class SndCommandType : uint32_t {
-  SND_COMMAND_NOP = 0x0,
-  SND_COMMAND_ALIAS_NAME = 0x1,
-  SND_COMMAND_PLAY = 0x2,
-  SND_COMMAND_STOP_ALIAS = 0x3,
-  SND_COMMAND_STOP_ENT = 0x4,
-  SND_COMMAND_CINEMATIC_START = 0x5,
-  SND_COMMAND_CINEMATIC_END = 0x6,
-  SND_COMMAND_DISCONNECT_LISTENER = 0x7,
-  SND_COMMAND_SET_LISTENER = 0x8,
-  SND_COMMAND_STOP_SOUNDS = 0x9,
-  SND_COMMAND_FADE_IN = 0xA,
-  SND_COMMAND_FADE_OUT = 0xB,
-  SND_COMMAND_UNUSED1 = 0xC,
-  SND_COMMAND_UNUSED2 = 0xD,
-  SND_COMMAND_SET_PLAYBACK_ATTENUATION = 0xE,
-  SND_COMMAND_SET_PLAYBACK_ATTENUATION_RATE = 0xF,
-  SND_COMMAND_SET_PLAYBACK_PITCH = 0x10,
-  SND_COMMAND_SET_PLAYBACK_PITCH_RATE = 0x11,
-  SND_COMMAND_STOP_PLAYBACK = 0x12,
-  SND_COMMAND_SET_START_PAUSED = 0x13,
-  SND_COMMAND_DUCK = 0x14,
-  SND_COMMAND_SET_ENT_STATE = 0x15,
-  SND_COMMAND_SET_GAME_STATE = 0x16,
-  SND_COMMAND_PLAY_LOOP_AT = 0x17,
-  SND_COMMAND_STOP_LOOP_AT = 0x18,
-  SND_COMMAND_PLAY_LINE_AT = 0x19,
-  SND_COMMAND_STOP_LINE_AT = 0x1A,
-  SND_COMMAND_UPDATE_LINE_AT = 0x1B,
-  SND_COMMAND_GAME_RESET = 0x1C,
-  SND_COMMAND_SET_CONTEXT = 0x1D,
-  SND_COMMAND_SET_ENT_CONTEXT = 0x1E,
-  SND_COMMAND_SCRIPT_TIMESCALE = 0x1F,
-  SND_COMMAND_UPDATE_CG = 0x20,
-  SND_COMMAND_LOAD_BANK = 0x21,
-  SND_COMMAND_UNLOAD_BANK = 0x22,
-  SND_COMMAND_LOAD_PATCH = 0x23,
-  SND_COMMAND_UNLOAD_PATCH = 0x24,
-  SND_COMMAND_LOAD_GLOBALS = 0x25,
-  SND_COMMAND_UNLOAD_GLOBALS = 0x26,
-  SND_COMMAND_PRIME_ALIAS = 0x27,
-  SND_COMMAND_RESTART_DRIVER = 0x28,
-  SND_COMMAND_SET_MUSIC_STATE = 0x29,
-  SND_COMMAND_PREFETCH_LOADED_ALIAS = 0x2A,
-  SND_COMMAND_SET_GLOBAL_FUTZ = 0x2B,
-  SND_COMMAND_SET_FRONTEND_MUSIC = 0x2C,
-  SND_COMMAND_SET_LOOP_STATE = 0x2D,
-  SND_COMMAND_PLAY_LOOPS = 0x2E,
-  SND_COMMAND_SHUTDOWN = 0x2F,
-  SND_COMMAND_BANK_UPDATE_ZONE = 0x30,
-  SND_COMMAND_FORCE_AMBIENT_ROOM = 0x31,
-  SND_COMMAND_RATTLE_SETUP = 0x32,
-  SND_COMMAND_RATTLE = 0x33,
-  SND_COMMAND_ENT_UPDATE = 0x34,
-  SND_COMMAND_SUBTITLE = 0x35,
-  SND_COMMAND_LENGTH = 0x36,
-  SND_COMMAND_PLAYBACK_UPDATE = 0x37,
-  SND_COMMAND_PLAYBACK_FREE = 0x38,
-  SND_COMMAND_AMBIENT_STATE = 0x39,
-  SND_COMMAND_BANK_FREE = 0x3A,
-  SND_COMMAND_SET_SHOCK_AMBIENT_ROOM = 0x3B,
-  SND_COMMAND_CHECKPOINT = 0x3C,
-  SND_COMMAND_FACIAL_ANIMATION = 0x3D,
-  SND_COMMAND_COUNT = 0x3E,
-};
-/*
-  The engine will often handle sound command cases by first decrementing 1
-  from the command ID, then handling each case of the result. This enum serves
-  to strongly type this 'nopless' command ID handling.
-*/
-enum class NoplessSndCommandType : uint32_t {
-  NOPLESS_SND_COMMAND_ALIAS_NAME = 0x0,
-  NOPLESS_SND_COMMAND_PLAY = 0x1,
-  NOPLESS_SND_COMMAND_STOP_ALIAS = 0x2,
-  NOPLESS_SND_COMMAND_STOP_ENT = 0x3,
-  NOPLESS_SND_COMMAND_CINEMATIC_START = 0x4,
-  NOPLESS_SND_COMMAND_CINEMATIC_END = 0x5,
-  NOPLESS_SND_COMMAND_DISCONNECT_LISTENER = 0x6,
-  NOPLESS_SND_COMMAND_SET_LISTENER = 0x7,
-  NOPLESS_SND_COMMAND_STOP_SOUNDS = 0x8,
-  NOPLESS_SND_COMMAND_FADE_IN = 0x9,
-  NOPLESS_SND_COMMAND_FADE_OUT = 0xA,
-  NOPLESS_SND_COMMAND_UNUSED1 = 0xB,
-  NOPLESS_SND_COMMAND_UNUSED2 = 0xC,
-  NOPLESS_SND_COMMAND_SET_PLAYBACK_ATTENUATION = 0xD,
-  NOPLESS_SND_COMMAND_SET_PLAYBACK_ATTENUATION_RATE = 0xE,
-  NOPLESS_SND_COMMAND_SET_PLAYBACK_PITCH = 0xF,
-  NOPLESS_SND_COMMAND_SET_PLAYBACK_PITCH_RATE = 0x10,
-  NOPLESS_SND_COMMAND_STOP_PLAYBACK = 0x11,
-  NOPLESS_SND_COMMAND_SET_START_PAUSED = 0x12,
-  NOPLESS_SND_COMMAND_DUCK = 0x13,
-  NOPLESS_SND_COMMAND_SET_ENT_STATE = 0x14,
-  NOPLESS_SND_COMMAND_SET_GAME_STATE = 0x15,
-  NOPLESS_SND_COMMAND_PLAY_LOOP_AT = 0x16,
-  NOPLESS_SND_COMMAND_STOP_LOOP_AT = 0x17,
-  NOPLESS_SND_COMMAND_PLAY_LINE_AT = 0x18,
-  NOPLESS_SND_COMMAND_STOP_LINE_AT = 0x19,
-  NOPLESS_SND_COMMAND_UPDATE_LINE_AT = 0x1A,
-  NOPLESS_SND_COMMAND_GAME_RESET = 0x1B,
-  NOPLESS_SND_COMMAND_SET_CONTEXT = 0x1C,
-  NOPLESS_SND_COMMAND_SET_ENT_CONTEXT = 0x1D,
-  NOPLESS_SND_COMMAND_SCRIPT_TIMESCALE = 0x1E,
-  NOPLESS_SND_COMMAND_UPDATE_CG = 0x1F,
-  NOPLESS_SND_COMMAND_LOAD_BANK = 0x20,
-  NOPLESS_SND_COMMAND_UNLOAD_BANK = 0x21,
-  NOPLESS_SND_COMMAND_LOAD_PATCH = 0x22,
-  NOPLESS_SND_COMMAND_UNLOAD_PATCH = 0x23,
-  NOPLESS_SND_COMMAND_LOAD_GLOBALS = 0x24,
-  NOPLESS_SND_COMMAND_UNLOAD_GLOBALS = 0x25,
-  NOPLESS_SND_COMMAND_PRIME_ALIAS = 0x26,
-  NOPLESS_SND_COMMAND_RESTART_DRIVER = 0x27,
-  NOPLESS_SND_COMMAND_SET_MUSIC_STATE = 0x28,
-  NOPLESS_SND_COMMAND_PREFETCH_LOADED_ALIAS = 0x29,
-  NOPLESS_SND_COMMAND_SET_GLOBAL_FUTZ = 0x2A,
-  NOPLESS_SND_COMMAND_SET_FRONTEND_MUSIC = 0x2B,
-  NOPLESS_SND_COMMAND_SET_LOOP_STATE = 0x2C,
-  NOPLESS_SND_COMMAND_PLAY_LOOPS = 0x2D,
-  NOPLESS_SND_COMMAND_SHUTDOWN = 0x2E,
-  NOPLESS_SND_COMMAND_BANK_UPDATE_ZONE = 0x2F,
-  NOPLESS_SND_COMMAND_FORCE_AMBIENT_ROOM = 0x30,
-  NOPLESS_SND_COMMAND_RATTLE_SETUP = 0x31,
-  NOPLESS_SND_COMMAND_RATTLE = 0x32,
-  NOPLESS_SND_COMMAND_ENT_UPDATE = 0x33,
-  NOPLESS_SND_COMMAND_SUBTITLE = 0x34,
-  NOPLESS_SND_COMMAND_LENGTH = 0x35,
-  NOPLESS_SND_COMMAND_PLAYBACK_UPDATE = 0x36,
-  NOPLESS_SND_COMMAND_PLAYBACK_FREE = 0x37,
-  NOPLESS_SND_COMMAND_AMBIENT_STATE = 0x38,
-  NOPLESS_SND_COMMAND_BANK_FREE = 0x39,
-  NOPLESS_SND_COMMAND_SET_SHOCK_AMBIENT_ROOM = 0x3A,
-  NOPLESS_SND_COMMAND_CHECKPOINT = 0x3B,
-  NOPLESS_SND_COMMAND_FACIAL_ANIMATION = 0x3C,
-  NOPLESS_SND_COMMAND_COUNT = 0x3D,
-};
-
-#pragma pack(push, 1)
-
 // Correct
 enum class SndMusicStateStatus : uint32_t {
   SND_MUSIC_STATE_INACTIVE = 0x0,
@@ -1147,7 +964,7 @@ struct SndMusicAsset {
   int32_t startOffsetFrames;
   int32_t meter;
 };
-static_assert(sizeof(SndMusicAsset) == 0x8C, "SndMusicAsset size is incorrect");
+ASSERT_SIZE(SndMusicAsset, 0x8C);
 
 /*
   Mostly unverified.
@@ -1170,8 +987,7 @@ struct SndMusicState {
   SndMusicStateStatus status;
   uint8_t _padding174[4];
 };
-static_assert(sizeof(SndMusicState) == 0x178,
-              "SndMusicState size is incorrect");
+ASSERT_SIZE(SndMusicState, 0x178);
 
 // Unverified.
 struct SndMusicSet {
@@ -1180,7 +996,7 @@ struct SndMusicSet {
   uint32_t stateCount;
   SndMusicState *states;
 };
-static_assert(sizeof(SndMusicSet) == 0x50, "SndMusicSet size is incorrect");
+ASSERT_SIZE(SndMusicSet, 0x50);
 
 // Unverified.
 struct SndAmbientBspVolume {
@@ -1188,8 +1004,7 @@ struct SndAmbientBspVolume {
   int32_t planeIndex;
   int32_t planeCount;
 };
-static_assert(sizeof(SndAmbientBspVolume) == 0xC,
-              "SndAmbientBspVolume size is incorrect");
+ASSERT_SIZE(SndAmbientBspVolume, 0xC);
 
 // Unverified.
 struct SndAmbientBspTrigger {
@@ -1198,8 +1013,7 @@ struct SndAmbientBspTrigger {
   SndStringHash roomId;
   char roomName[64];
 };
-static_assert(sizeof(SndAmbientBspTrigger) == 0x4C,
-              "SndAmbientBspTrigger size is incorrect");
+ASSERT_SIZE(SndAmbientBspTrigger, 0x4C);
 
 // Unverified.
 // sizeof=0x20
@@ -1210,8 +1024,7 @@ struct SndAmbientBspNode {
   int32_t frontCount;
   int32_t backCount;
 };
-static_assert(sizeof(SndAmbientBspNode) == 0x20,
-              "SndAmbientBspNode size is incorrect");
+ASSERT_SIZE(SndAmbientBspNode, 0x20);
 
 // sizeof=0x22020
 struct SndAmbientBsp {
@@ -1226,8 +1039,7 @@ struct SndAmbientBsp {
   int32_t numTriggers;
   uint8_t __padding2201C[4];
 };
-static_assert(sizeof(SndAmbientBsp) == 0x22020,
-              "SndAmbientBsp size is incorrect");
+ASSERT_SIZE(SndAmbientBsp, 0x22020);
 
 // Unverified.
 struct SndReverbEarly {
@@ -1238,8 +1050,7 @@ struct SndReverbEarly {
   float baseDelayMs;
   float returnDB;
 };
-static_assert(sizeof(SndReverbEarly) == 0x18,
-              "SndReverbEarly size is incorrect");
+ASSERT_SIZE(SndReverbEarly, 0x18);
 
 // Unverified.
 struct SndReverbLate {
@@ -1252,7 +1063,7 @@ struct SndReverbLate {
   float smear;
   float preDelayMs;
 };
-static_assert(sizeof(SndReverbLate) == 0x20, "SndReverbLate size is incorrect");
+ASSERT_SIZE(SndReverbLate, 0x20);
 
 // Unverified.
 struct SndReverb {
@@ -1263,15 +1074,14 @@ struct SndReverb {
   SndReverbLate nearVerb;
   SndReverbLate farVerb;
 };
-static_assert(sizeof(SndReverb) == 0xA0, "SndReverb size is incorrect");
+ASSERT_SIZE(SndReverb, 0xA0);
 
 // Unverified. Most likely unchanged.
 struct SndDialogScriptIdLookup {
   SndStringHash scriptId;
   SndStringHash aliasId;
 };
-static_assert(sizeof(SndDialogScriptIdLookup) == 0x8,
-              "SndDialogScriptIdLookup size is incorrect");
+ASSERT_SIZE(SndDialogScriptIdLookup, 0x8);
 
 // Correct! Must be length 0x220B0.
 struct SndBank : db::xasset::NamedXAsset {
@@ -1300,7 +1110,7 @@ struct SndBank : db::xasset::NamedXAsset {
   uint8_t _padding220A4[4];
   SndMusicSet *musicSets;
 };
-static_assert(sizeof(SndBank) == 0x220B0, "SndBank size is incorrect");
+ASSERT_SIZE(SndBank, 0x220B0);
 typedef SndBank *SndBankPtr;
 
 #pragma pack(pop)
@@ -1335,7 +1145,7 @@ struct SndBankLoad {
   uint32_t pendingIoCount;
 };
 
-static_assert(sizeof(SndBankLoad) == 0x1278, "SndBankLoad size is incorrect");
+ASSERT_SIZE(SndBankLoad, 0x1278);
 #pragma pack(pop)
 
 #pragma pack(push, 1)
@@ -1358,8 +1168,7 @@ struct SndBankGlobals {
   float assetLoadPercent;
   uint8_t _padding317F8[8];
 };
-static_assert(sizeof(SndBankGlobals) == 0x39594,
-              "SndBankGlobals size is incorrect");
+ASSERT_SIZE(SndBankGlobals, 0x39594);
 #pragma pack(pop)
 
 // Not yet verified to be correct.
@@ -1371,8 +1180,7 @@ struct snd_fire_manager {
   int id;
 };
 #pragma pack(pop)
-static_assert(sizeof(snd_fire_manager) == 0x18,
-              "snd_fire_manager size is incorrect");
+ASSERT_SIZE(snd_fire_manager, 0x18);
 
 #pragma pack(push, 1)
 struct snd_weapon_shot {
@@ -1393,8 +1201,7 @@ struct snd_weapon_shot {
   bool fakeFire;
   bool firstShotOfBurst;
 };
-static_assert(sizeof(snd_weapon_shot) == 0x40,
-              "snd_weapon_shot size is incorrect");
+ASSERT_SIZE(snd_weapon_shot, 0x40);
 
 struct snd_autosim {
   snd_weapon_shot shot;
@@ -1406,38 +1213,34 @@ struct snd_autosim {
   int32_t used;
   int32_t isNew;
 };
-static_assert(sizeof(snd_autosim) == 0x58, "snd_autosim size is incorrect");
+ASSERT_SIZE(snd_autosim, 0x58);
 
 struct snd_autosim_play {
   uint32_t frame;
   uint8_t _padding04[4];
   snd_weapon_shot shot;
 };
-static_assert(sizeof(snd_autosim_play) == 0x48,
-              "snd_autosim_play size is incorrect");
+ASSERT_SIZE(snd_autosim_play, 0x48);
 
 // sizeof=0x18
 struct EntityImpactPositions {
   uint32_t entityImpactPositions[6];
 };
-static_assert(sizeof(EntityImpactPositions) == 0x18,
-              "EntityImpactPositions size must be 24 bytes");
+ASSERT_SIZE(EntityImpactPositions, 0x18);
 
 // sizeof=0x110
 struct EntitySoundImpacts {
   const char *name;
   EntityImpactPositions entityImpacts[11];
 };
-static_assert(sizeof(EntitySoundImpacts) == 0x110,
-              "EntitySoundImpacts size must be 272 bytes");
+ASSERT_SIZE(EntitySoundImpacts, 0x110);
 
 // sizeof=0xA8
 struct SurfaceSoundDef {
   const char *name;
   snd::SndAliasId surfaceSound[40];
 };
-static_assert(sizeof(SurfaceSoundDef) == 0xA8,
-              "SurfaceSoundDef size must be 168 bytes");
+ASSERT_SIZE(SurfaceSoundDef, 0xA8);
 
 typedef SurfaceSoundDef *SurfaceSoundDefPtr;
 typedef EntitySoundImpacts *EntitySoundImpactsPtr;
@@ -1448,8 +1251,7 @@ struct SoundsImpactTable {
   EntitySoundImpactsPtr entitySoundImpacts;
   EntitySoundImpactsPtr victimSoundImpacts;
 };
-static_assert(sizeof(SoundsImpactTable) == 0x20,
-              "SoundsImpactTable size must be 32 bytes");
+ASSERT_SIZE(SoundsImpactTable, 0x20);
 
 typedef SoundsImpactTable *SoundsImpactTablePtr;
 
@@ -1461,7 +1263,7 @@ struct SndEntLoop {
   vec3_t origin;
   int32_t fade;
 };
-static_assert(sizeof(SndEntLoop) == 0x20, "SndEntLoop size must be 32 bytes");
+ASSERT_SIZE(SndEntLoop, 0x20);
 
 // sizeof=0x14
 struct SndOcclusionStartCache {
@@ -1470,8 +1272,7 @@ struct SndOcclusionStartCache {
   bool valid;
   uint8_t _padding11[3];
 };
-static_assert(sizeof(SndOcclusionStartCache) == 0x14,
-              "SndOcclusionStartCache size must be 20 bytes");
+ASSERT_SIZE(SndOcclusionStartCache, 0x14);
 
 enum class SndMusicAssetPlaybackState : int32_t {
   SND_MUSIC_PLAYBACK_STOPPING = 0x0,

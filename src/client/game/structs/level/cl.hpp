@@ -2,7 +2,7 @@
 #include <cstdint>
 #include "../core.hpp"
 #include "../scr/scr.hpp"
-#include "../snd.hpp"
+#include "../snd/snd.hpp"
 #include "../vehicle.hpp"
 #include "../ui/ui.hpp"
 #include "../sv.hpp"
@@ -533,6 +533,22 @@ struct cpose_t {
 };
 ASSERT_SIZE(cpose_t, 0x330);
 #pragma pack(pop)
+
+enum class FaceNotifyEvent : uint64_t {
+  CASUAL = 0x0,
+  ALERT = 0x1,
+  CQB = 0x2,
+  RUNNING = 0x3,
+  SHOOT_SINGLE = 0x4,
+  SHOOT_BURST = 0x5,
+  MELEE = 0x6,
+  REACT = 0x7,
+  TALK = 0x8,
+  TALK_LONG = 0x9,
+  PAIN = 0xA,
+  DEATH = 0xB,
+  NONE = 0xC
+};
 
 #pragma pack(push, 1)
 struct centity_t {
