@@ -2,6 +2,48 @@
 
 This compiler is intentionally more relaxed than stock BO3. It accepts a hybrid of BO2-style and BO3-style syntax, so older scripts are easier to port and you can mix styles when it helps.
 
+## Quick links
+
+- [Where scripts can live](#where-scripts-can-live)
+- [Compiler and loader notes](#compiler-and-loader-notes)
+- [Hooks](#hooks)
+- [Commands and output](#commands-and-output)
+- [File and data helpers](#file-and-data-helpers)
+- [Player helpers](#player-helpers)
+- [HUD text](#hud-text)
+- [Small helpers](#small-helpers)
+
+## Where scripts can live
+
+The loader checks a few places, depending on what kind of script you are adding.
+
+```text
+%LOCALAPPDATA%/boiii/data/
+├── scripts/
+│   └── ... stock script overrides such as scripts/zm/... or scripts/mp/...
+├── custom_scripts/
+│   ├── shared/
+│   ├── core/
+│   ├── codescripts/
+│   ├── <mode-specific folder>
+│   └── your_script.gsc
+└── other files used by your scripts
+
+<game folder>/boiii/
+├── scripts/
+│   └── ... same override idea as above
+└── custom_scripts/
+    └── ... same custom script layout as above
+```
+
+Small notes:
+
+- `scripts/` is for overriding stock scripts the game already uses.
+- `custom_scripts/` is for your own extra scripts that BOIII compiles and loads for you.
+- `custom_scripts/shared`, `custom_scripts/core`, `custom_scripts/codescripts`, and the active mode folder are scanned recursively.
+- The top level `custom_scripts/` folder is also loaded, but only at that folder level.
+- For imports and inserted files, the compiler first checks paths near the current source file, then `%LOCALAPPDATA%/boiii/data`, `%LOCALAPPDATA%/boiii/data/scripts`, `<game folder>/boiii`, and `<game folder>/boiii/scripts`.
+
 ## Compiler and loader notes
 
 - The `function` keyword is optional for normal function definitions.
