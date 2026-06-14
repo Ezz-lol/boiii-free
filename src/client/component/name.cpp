@@ -80,15 +80,14 @@ void send_override_packet_to_client(
     return;
   }
 
-  game::access_connected_client(static_cast<size_t>(target_client),
-                                [&](game::sv::client_s &client) {
-                                  if (!is_syncable_address(client.address)) {
-                                    return;
-                                  }
+  game::access_connected_client(
+      static_cast<size_t>(target_client), [&](game::sv::client_s &client) {
+        if (!is_syncable_address(client.address)) {
+          return;
+        }
 
-                                  send_override_packet(client.address, type,
-                                                       client_num, value);
-                                });
+        send_override_packet(client.address, type, client_num, value);
+      });
 }
 
 } // namespace
@@ -433,8 +432,7 @@ void client_update_internal(game::sv::client_s *cl,
         get_orig_clan_abbrev(client_num);
     if (orig_clan_abbrev.has_value()) {
       const bool clan_changed =
-          std::strcmp(client_state->clanAbbrev, orig_clan_abbrev->c_str()) !=
-          0;
+          std::strcmp(client_state->clanAbbrev, orig_clan_abbrev->c_str()) != 0;
       strncpy_s(client_state->clanAbbrev, ARRAYSIZE(client_state->clanAbbrev),
                 orig_clan_abbrev->c_str(), _TRUNCATE);
       strncpy_s(cl->clanAbbrev, ARRAYSIZE(cl->clanAbbrev),
@@ -505,58 +503,57 @@ struct component final : generic_component {
         toast::success("Name Changed", params[1]);
       });
 
-      network::on(sync_packet_name,
-                  [](const game::net::netadr_t &server,
-                     const network::data_view &data,
-                     [[maybe_unused]] game::LocalClientNum_t local_client_num) {
-                    if (!is_trusted_sync_sender(server)) {
-                      return;
-                    }
+      network::on(
+          sync_packet_name,
+          [](const game::net::netadr_t &server, const network::data_view &data,
+             [[maybe_unused]] game::LocalClientNum_t local_client_num) {
+            if (!is_trusted_sync_sender(server)) {
+              return;
+            }
 
-                    try {
-                      utils::byte_buffer buffer(data);
-                      const auto type =
-                          static_cast<sync_message_type>(buffer.read<uint8_t>());
-                      const auto client_num =
-                          static_cast<game::ClientNum_t>(buffer.read<int32_t>());
+            try {
+              utils::byte_buffer buffer(data);
+              const auto type =
+                  static_cast<sync_message_type>(buffer.read<uint8_t>());
+              const auto client_num =
+                  static_cast<game::ClientNum_t>(buffer.read<int32_t>());
 
-                      switch (type) {
-                      case sync_message_type::clear_all:
-                        clear_all();
-                        break;
+              switch (type) {
+              case sync_message_type::clear_all:
+                clear_all();
+                break;
 
-                      case sync_message_type::set_name:
-                        if (!game::valid_client_num(client_num)) {
-                          return;
-                        }
-                        set_name_override(client_num, buffer.read_string());
-                        break;
+              case sync_message_type::set_name:
+                if (!game::valid_client_num(client_num)) {
+                  return;
+                }
+                set_name_override(client_num, buffer.read_string());
+                break;
 
-                      case sync_message_type::set_tag:
-                        if (!game::valid_client_num(client_num)) {
-                          return;
-                        }
-                        set_clan_abbrev_override(client_num,
-                                                 buffer.read_string());
-                        break;
+              case sync_message_type::set_tag:
+                if (!game::valid_client_num(client_num)) {
+                  return;
+                }
+                set_clan_abbrev_override(client_num, buffer.read_string());
+                break;
 
-                      case sync_message_type::clear_name:
-                        if (!game::valid_client_num(client_num)) {
-                          return;
-                        }
-                        clear_name_override(client_num);
-                        break;
+              case sync_message_type::clear_name:
+                if (!game::valid_client_num(client_num)) {
+                  return;
+                }
+                clear_name_override(client_num);
+                break;
 
-                      case sync_message_type::clear_tag:
-                        if (!game::valid_client_num(client_num)) {
-                          return;
-                        }
-                        clear_clan_abbrev_override(client_num);
-                        break;
-                      }
-                    } catch (...) {
-                    }
-                  });
+              case sync_message_type::clear_tag:
+                if (!game::valid_client_num(client_num)) {
+                  return;
+                }
+                clear_clan_abbrev_override(client_num);
+                break;
+              }
+            } catch (...) {
+            }
+          });
     }
     sv::on_cliententerworld(client_update_post_enterworld);
     sv::on_removeclient(reset_client_name_slot);

@@ -857,12 +857,13 @@ void wait_for_mod_load() {
 }
 
 void setup_same_mod_as_host(game::LocalClientNum_t localClientNum,
-                            const std::string &usermap,
-                            const std::string &mod) {
+                            const std::string &usermap, const std::string &mod,
+                            bool force_fs_reinit) {
   const std::string loaded_mod = game::ugc::getPublisherIdFromLoadedMod();
   if (loaded_mod != mod) {
     if (!usermap.empty() || !mod.empty()) {
       bool fs_reinit_required =
+          force_fs_reinit ||
           mod_switch_requires_fs_reinitialization(loaded_mod, mod);
       game::ugc::UGC_LoadModByPublisherId_Impl(localClientNum, mod.data(),
                                                fs_reinit_required);
@@ -871,6 +872,7 @@ void setup_same_mod_as_host(game::LocalClientNum_t localClientNum,
       }
     } else if (game::ugc::isModLoaded()) {
       bool fs_reinit_required =
+          force_fs_reinit ||
           mod_switch_requires_fs_reinitialization(loaded_mod, "");
       game::ugc::UGC_LoadModByPublisherId_Impl(localClientNum, "",
                                                fs_reinit_required);

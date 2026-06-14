@@ -325,8 +325,8 @@ const uint8_t *get_spt_buffer(const std::string &name) {
     std::string key_no_ext_norm = normalize_path(key_no_ext);
 
     if (without_ext_norm.size() > key_no_ext_norm.size()) {
-      char sep =
-          without_ext_norm[without_ext_norm.size() - key_no_ext_norm.size() - 1];
+      char sep = without_ext_norm[without_ext_norm.size() -
+                                  key_no_ext_norm.size() - 1];
       if (sep == '/' &&
           _stricmp(without_ext_norm.c_str() + without_ext_norm.size() -
                        key_no_ext_norm.size(),
@@ -352,9 +352,9 @@ struct export_lookup_result {
   bool script_loaded = false;
 };
 
-export_lookup_result resolve_export_address_internal(const std::string &script_name,
-                                                     uint32_t func_hash,
-                                                     int expected_params = -1) {
+export_lookup_result
+resolve_export_address_internal(const std::string &script_name,
+                                uint32_t func_hash, int expected_params = -1) {
   export_lookup_result result{};
 
   const uint8_t *buffer = get_spt_buffer(script_name);
@@ -396,7 +396,8 @@ export_lookup_result resolve_export_address_internal(const std::string &script_n
 int64_t find_export_address_internal(const std::string &script_name,
                                      uint32_t func_hash,
                                      int expected_params = -1) {
-  return resolve_export_address_internal(script_name, func_hash, expected_params)
+  return resolve_export_address_internal(script_name, func_hash,
+                                         expected_params)
       .address;
 }
 
@@ -551,8 +552,8 @@ void load_script_file(std::string &data, const std::string &script_file,
               rf.replace_script.empty() ? replace_base : rf.replace_script;
           pending_detours.push_back(
               {rf.target_script, rf.target_func, gsc_hash(rf.target_func),
-               rf.target_params, replace_script,
-               rf.replace_func, gsc_hash(rf.replace_func), rf.replace_params});
+               rf.target_params, replace_script, rf.replace_func,
+               gsc_hash(rf.replace_func), rf.replace_params});
         }
       }
     } else {
@@ -781,8 +782,7 @@ std::string resolve_hash(uint32_t hash) {
 }
 
 int64_t find_export_address(const std::string &script_name,
-                            const std::string &func_name,
-                            int expected_params) {
+                            const std::string &func_name, int expected_params) {
   return find_export_address_internal(script_name, gsc_hash(func_name),
                                       expected_params);
 }

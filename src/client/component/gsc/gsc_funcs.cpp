@@ -150,10 +150,9 @@ std::vector<std::string> script_cmd_names;
 std::deque<std::string> script_cmd_queue;
 
 std::string normalize_command_name(std::string value) {
-  std::transform(value.begin(), value.end(), value.begin(),
-                 [](unsigned char c) {
-                   return static_cast<char>(std::tolower(c));
-                 });
+  std::transform(
+      value.begin(), value.end(), value.begin(),
+      [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
   return value;
 }
 
@@ -213,8 +212,8 @@ std::optional<std::string> extract_dvar_name(const char *dvar_cmd) {
     }
 
     const size_t start = cursor;
-    while (cursor < trimmed.size() &&
-           trimmed[cursor] != ' ' && trimmed[cursor] != '\t') {
+    while (cursor < trimmed.size() && trimmed[cursor] != ' ' &&
+           trimmed[cursor] != '\t') {
       cursor++;
     }
 
@@ -1279,7 +1278,8 @@ void gscr_setclientdvar(game::scr::scriptInstance_t inst) {
     }
   }
 
-  if (const auto dvar_name = extract_dvar_name(dvar_cmd); dvar_name.has_value()) {
+  if (const auto dvar_name = extract_dvar_name(dvar_cmd);
+      dvar_name.has_value()) {
     client_dvar_changes[client_num].insert(*dvar_name);
   }
 

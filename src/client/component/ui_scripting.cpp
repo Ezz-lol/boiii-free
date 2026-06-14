@@ -269,8 +269,8 @@ table get_globals() {
 const char *get_hks_type_name(const game::ui::lua::hks::HksObjectType type) {
   const auto index = static_cast<int32_t>(type) + 2;
   if (index < 0 ||
-      index >= static_cast<int32_t>(game::ui::lua::hks::HksObjectType::COUNT) +
-                   2) {
+      index >=
+          static_cast<int32_t>(game::ui::lua::hks::HksObjectType::COUNT) + 2) {
     return "unknown";
   }
 
@@ -571,22 +571,22 @@ void setup_functions() {
       convert_function([](const std::string &path) { start_hot_reload(path); }),
       game::ui::lua::hks::HksObjectType::TCFUNCTION);
 
-  lua["game"]["getappdatapath"] = function(
-      convert_function(
-          []() -> std::string { return game::get_appdata_path().generic_string(); }),
-      game::ui::lua::hks::HksObjectType::TCFUNCTION);
-
-  lua["game"]["getclientoverridename"] =
-      function(convert_function([](const int client_num) -> std::string {
-                 const auto cn = static_cast<game::ClientNum_t>(client_num);
-                 if (!game::valid_client_num(cn) ||
-                     !name::has_name_override(cn)) {
-                   return "";
-                 }
-
-                 return name::get_name_override(cn).value_or("");
+  lua["game"]["getappdatapath"] =
+      function(convert_function([]() -> std::string {
+                 return game::get_appdata_path().generic_string();
                }),
                game::ui::lua::hks::HksObjectType::TCFUNCTION);
+
+  lua["game"]["getclientoverridename"] = function(
+      convert_function([](const int client_num) -> std::string {
+        const auto cn = static_cast<game::ClientNum_t>(client_num);
+        if (!game::valid_client_num(cn) || !name::has_name_override(cn)) {
+          return "";
+        }
+
+        return name::get_name_override(cn).value_or("");
+      }),
+      game::ui::lua::hks::HksObjectType::TCFUNCTION);
 
   lua["game"]["getclientoverridetag"] =
       function(convert_function([](const int client_num) -> std::string {

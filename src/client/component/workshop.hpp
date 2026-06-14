@@ -29,7 +29,8 @@ bool mod_switch_requires_fs_reinitialization(const std::string &current_mod,
                                              const std::string &new_mod);
 bool mod_load_requires_fs_reinitialization(std::string &mod_name);
 void setup_same_mod_as_host(game::LocalClientNum_t localClientNum,
-                            const std::string &usermap, const std::string &mod);
+                            const std::string &usermap, const std::string &mod,
+                            bool force_fs_reinit = false);
 
 void set_pending_mod_reconnect(const std::string &address);
 std::string get_pending_mod_reconnect();

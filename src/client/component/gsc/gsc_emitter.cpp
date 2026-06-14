@@ -703,21 +703,24 @@ int infer_local_function_params(const emitter_state &s,
     return -1;
   }
 
-  std::string normalized_ref = normalize_ns(ref_ns.empty() ? s.script_name : ref_ns);
+  std::string normalized_ref =
+      normalize_ns(ref_ns.empty() ? s.script_name : ref_ns);
   std::string normalized_self = normalize_ns(s.script_name);
-  std::transform(normalized_ref.begin(), normalized_ref.end(), normalized_ref.begin(),
-                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-  std::transform(normalized_self.begin(), normalized_self.end(),
-                 normalized_self.begin(),
-                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  std::transform(
+      normalized_ref.begin(), normalized_ref.end(), normalized_ref.begin(),
+      [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  std::transform(
+      normalized_self.begin(), normalized_self.end(), normalized_self.begin(),
+      [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
   if (normalized_ref != normalized_self) {
     return -1;
   }
 
   std::string lower_name = func_name;
-  std::transform(lower_name.begin(), lower_name.end(), lower_name.begin(),
-                 [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+  std::transform(
+      lower_name.begin(), lower_name.end(), lower_name.begin(),
+      [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
   const auto it = s.local_function_params.find(lower_name);
   if (it == s.local_function_params.end()) {
@@ -1427,10 +1430,10 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
           auto [target_ns, target_fn] = extract_func_ref(args[0]);
           auto [replace_ns, replace_fn] = extract_func_ref(args[1]);
           if (!target_fn.empty() && !replace_fn.empty()) {
-            std::string ts = normalize_ns(
-                target_ns.empty() ? s.script_name : target_ns);
-            std::string rs = normalize_ns(
-                replace_ns.empty() ? s.script_name : replace_ns);
+            std::string ts =
+                normalize_ns(target_ns.empty() ? s.script_name : target_ns);
+            std::string rs =
+                normalize_ns(replace_ns.empty() ? s.script_name : replace_ns);
             std::string tfn = target_fn;
             std::transform(tfn.begin(), tfn.end(), tfn.begin(),
                            [](unsigned char c) {
@@ -2214,8 +2217,7 @@ emitter_result emit(const ast_ptr &root, const std::string &script_name) {
                     ? static_cast<int>(child->children[1]->children.size())
                     : -1;
             std::transform(replace_fn.begin(), replace_fn.end(),
-                           replace_fn.begin(),
-                           [](unsigned char c) {
+                           replace_fn.begin(), [](unsigned char c) {
                              return static_cast<char>(std::tolower(c));
                            });
             std::string ts =
@@ -2238,9 +2240,9 @@ emitter_result emit(const ast_ptr &root, const std::string &script_name) {
             };
             std::string target_script = strip_script_ext(ts);
             std::string replace_script = strip_script_ext(rs);
-            state.replacefuncs.push_back(
-                {target_script, tfn, replace_script, replace_fn, param_count,
-                 param_count, true});
+            state.replacefuncs.push_back({target_script, tfn, replace_script,
+                                          replace_fn, param_count, param_count,
+                                          true});
           }
         } else {
           emit_function(state, child);

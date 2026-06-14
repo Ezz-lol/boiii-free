@@ -567,10 +567,9 @@ struct addcommand_callback_entry {
 };
 
 std::string to_lower_copy(std::string value) {
-  std::transform(value.begin(), value.end(), value.begin(),
-                 [](unsigned char c) {
-                   return static_cast<char>(std::tolower(c));
-                 });
+  std::transform(
+      value.begin(), value.end(), value.begin(),
+      [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
   return value;
 }
 
@@ -627,8 +626,7 @@ void collect_addcommand_callbacks(
 
   if (node->type == node_type::n_expression_stmt && !node->children.empty()) {
     const auto &expr = node->children[0];
-    if (expr && expr->type == node_type::n_call &&
-        expr->children.size() >= 2) {
+    if (expr && expr->type == node_type::n_call && expr->children.size() >= 2) {
       std::string call_name = to_lower_copy(expr->value);
       const bool is_local_call = expr->children[0]->value.empty();
       if (is_local_call && call_name == "addcommand") {
@@ -706,8 +704,8 @@ std::string build_addcommand_dispatch_source(
   source += "\n";
 
   for (const auto &entry : entries) {
-    source += "        cmd = getcommand(" + quote_gsc_string(entry.command_name) +
-              ");\n";
+    source += "        cmd = getcommand(" +
+              quote_gsc_string(entry.command_name) + ");\n";
     source += "        if (isdefined(cmd) && cmd != \"\")\n";
     source += "        {\n";
     source += "            tokens = strtok(cmd, \" \");\n";
