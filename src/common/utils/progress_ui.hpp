@@ -20,6 +20,7 @@ public:
 
   void show(bool marquee, HWND parent = nullptr) const;
 
+  void set_marquee(bool marquee) const;
   void set_progress(size_t current, size_t max) const;
   void set_line(int line, const std::string &text) const;
   void set_title(const std::string &title) const;
