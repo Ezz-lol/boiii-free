@@ -1,5 +1,6 @@
 #pragma once
 
+#include <functional>
 namespace ui_scripting {
 template <class... Args, std::size_t... I>
 auto wrap_function(const std::function<void(Args...)> &f,
@@ -32,5 +33,5 @@ template <class F> auto wrap_function(F f) {
   return wrap_function(std::function(f));
 }
 
-template <typename F> game::hks::cclosure *convert_function(F f);
+template <typename F> game::ui::lua::hks::cclosure *convert_function(F f);
 } // namespace ui_scripting

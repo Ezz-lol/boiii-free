@@ -3496,6 +3496,14 @@ function selectVersion(value, label) {
   }
   if (versionDropdown)
     versionDropdown.className = 'version-selector-container';
+
+  try {
+    var ex = getExternal();
+    if (ex && ex.setSelectedVersion) {
+      ex.setSelectedVersion(value);
+    }
+  } catch (e) {
+  }
 }
 
 function addVersionOption(value, label) {
@@ -3546,6 +3554,15 @@ document.addEventListener('click', function(e) {
   }
 });
 
+try {
+  var sv = getExternal() && getExternal().getSelectedVersion &&
+           getExternal().getSelectedVersion();
+  if (sv) {
+    _selectedVersion = sv;
+  }
+} catch (e) {
+}
+
 function fetchReleases() {
   if (!versionOptions)
     return;
@@ -3581,6 +3598,14 @@ function fetchReleases() {
             }
           }
         }
+        // After loading all versions, ensure UI reflects saved selection
+        var label = 'Latest (Auto-update)';
+        if (_selectedVersion === 'beta')
+          label = 'Beta (Experimental)';
+        else if (_selectedVersion !== 'latest' &&
+                 _versionsData[_selectedVersion])
+          label = _selectedVersion;
+        selectVersion(_selectedVersion, label);
       } catch (e) {
         console.error('Error parsing releases:', e);
       }
@@ -3593,10 +3618,26 @@ function fetchReleases() {
 
 fetchReleases();
 
-// Beta build - placeholder URL (update when R2 bucket is configured)
+// Beta build
 _versionsData['beta'] = {
-  url : 'https://cdn.ezz.lol/boiii/beta/boiii.exe',
+  url : 'https://r2.ezz.lol/boiii/beta/boiii.exe',
   name : 'boiii-beta.exe'
 };
 addVersionOption('beta', 'Beta (Experimental)');
+
+var creditsPopup = document.getElementById('creditsPopup');
+var versionDisplay = document.getElementById('versionDisplay');
+if (versionDisplay && creditsPopup) {
+  versionDisplay.onclick = function() { creditsPopup.classList.add('active'); };
+  var creditsClose = creditsPopup.querySelector('.popup-close');
+  if (creditsClose) {
+    creditsClose.onclick =
+        function() { creditsPopup.classList.remove('active'); };
+  }
+  creditsPopup.onclick = function(e) {
+    if (e.target === creditsPopup) {
+      creditsPopup.classList.remove('active');
+    }
+  };
+}
 })();

@@ -1697,11 +1697,13 @@ h1 {
 }
 
 .gear-btn {
-  width: 36px;
-  height: 36px;
+  min-width: 156px;
+  height: 40px;
+  padding: 0 14px;
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
+  gap: 8px;
   cursor: pointer;
   border: 1px solid rgba(68, 65, 63, 0.45);
   border-radius: 7px;
@@ -1717,6 +1719,16 @@ h1 {
   position: relative;
 }
 
+.gear-btn-icon {
+  flex: 0 0 auto;
+  font-size: 0.95rem;
+  margin-right: 2px;
+}
+
+.gear-btn-label {
+  white-space: nowrap;
+}
+
 .gear-btn:hover {
   border-color: rgba(249, 115, 22, 0.5);
   background: rgba(26, 24, 23, 0.95);
@@ -1729,7 +1741,7 @@ h1 {
 
 .launch-dropdown {
   position: absolute;
-  top: 44px;
+  top: 48px;
   right: 0;
   width: 160px;
   background: rgba(12, 11, 10, 0.98);
@@ -1956,6 +1968,73 @@ h1 {
   display: flex;
   gap: 8px;
   margin-left: 4px;
+}
+
+/* ═══ CREDITS MODAL ═══ */
+.credits-popup {
+  max-width: 480px;
+}
+
+.credits-section {
+  padding: 16px 4px;
+}
+
+.credits-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(244, 240, 235, 0.5);
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.maintainers-list {
+  display: flex;
+  justify-content: space-around;
+  gap: 16px;
+}
+
+.maintainer-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  flex: 1;
+}
+
+.maintainer-card:hover {
+  transform: translateY(-4px);
+}
+
+.maintainer-card:active {
+  transform: translateY(0);
+}
+
+.maintainer-avatar {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px solid rgba(249, 115, 22, 0.3);
+  background: rgba(0, 0, 0, 0.3);
+  transition: border-color 0.2s ease;
+}
+
+.maintainer-card:hover .maintainer-avatar {
+  border-color: rgba(249, 115, 22, 0.8);
+}
+
+.maintainer-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: rgba(244, 240, 235, 0.9);
+}
+
+.credits-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(249, 115, 22, 0.15), transparent);
+  margin: 8px 0;
 }
 
 .popup-backdrop {

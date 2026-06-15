@@ -16,9 +16,11 @@ void g_scr_log_print() {
   char string[1024]{};
   std::size_t i_string_len = 0;
 
-  const auto i_num_parms = game::Scr_GetNumParam(game::SCRIPTINSTANCE_SERVER);
+  const auto i_num_parms =
+      game::scr::Scr_GetNumParam(game::scr::SCRIPTINSTANCE_SERVER);
   for (std::uint32_t i = 0; i < i_num_parms; ++i) {
-    const auto *psz_token = game::Scr_GetString(game::SCRIPTINSTANCE_SERVER, i);
+    const auto *psz_token =
+        game::scr::Scr_GetString(game::scr::SCRIPTINSTANCE_SERVER, i);
     const auto i_token_len = std::strlen(psz_token);
 
     i_string_len += i_token_len;
@@ -30,7 +32,10 @@ void g_scr_log_print() {
     strncat_s(string, psz_token, _TRUNCATE);
   }
 
-  game::G_LogPrintf("%s", string);
+  // Only print if string length > 0
+  if (i_string_len > 0) {
+    game::G_LogPrintf("%s", string);
+  }
 }
 
 void g_log_printf_stub(const char *fmt, ...) {
@@ -42,7 +47,7 @@ void g_log_printf_stub(const char *fmt, ...) {
   va_end(ap);
 
   const auto *file = g_log ? g_log->current.value.string : "games_mp.log";
-  const auto time = *game::level_time / 1000;
+  const auto time = *game::level::level_time / 1000;
 
   utils::io::write_file(file,
                         utils::string::va("%3i:%i%i %s", time / 60,

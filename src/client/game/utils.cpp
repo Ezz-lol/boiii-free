@@ -1,8 +1,10 @@
 #include <std_include.hpp>
 
 #include "game.hpp"
-#include "structs.hpp"
 #include "utils.hpp"
+
+using namespace game::com;
+using namespace game::sv;
 
 namespace game {
 static_assert(offsetof(dvar_t, debugName) == 8);
@@ -14,21 +16,21 @@ static_assert(offsetof(dvar_t, current) == 40);
 
 namespace {
 dvar_t *try_get_sessionmode_specific_dvar(dvar_t *dvar) {
-  if (!dvar || dvar->type != DVAR_TYPE_SESSIONMODE_BASE_DVAR) {
+  if (!dvar || dvar->type != dvarType_t::SESSIONMODE_BASE_DVAR) {
     return dvar;
   }
 
-  if (Com_SessionMode_IsMode(MODE_COUNT)) {
+  if (Com_SessionMode_IsMode(eModes::COUNT)) {
     return nullptr;
   }
 
-  const auto mode = Com_SessionMode_GetMode();
+  const game::eModes mode = Com_SessionMode_GetMode();
   return Dvar_GetSessionModeSpecificDvar(dvar, static_cast<eModes>(mode));
 }
 } // namespace
 
 std::string get_dvar_string(const char *dvar_name) {
-  const auto *dvar = Dvar_FindVar(dvar_name);
+  const dvar_t *dvar = Dvar_FindVar(dvar_name);
   if (!dvar) {
     return {};
   }
@@ -37,7 +39,7 @@ std::string get_dvar_string(const char *dvar_name) {
 }
 
 int get_dvar_int(const char *dvar_name) {
-  const auto *dvar = Dvar_FindVar(dvar_name);
+  const dvar_t *dvar = Dvar_FindVar(dvar_name);
   if (!dvar) {
     return {};
   }
@@ -46,7 +48,7 @@ int get_dvar_int(const char *dvar_name) {
 }
 
 int set_dvar_int(const char *dvar_name, int val, DvarSetSource source) {
-  const auto *dvar = Dvar_FindVar(dvar_name);
+  const dvar_t *dvar = Dvar_FindVar(dvar_name);
   if (!dvar) {
     return {};
   }
@@ -56,7 +58,7 @@ int set_dvar_int(const char *dvar_name, int val, DvarSetSource source) {
 }
 
 uint32_t get_dvar_uint(const char *dvar_name) {
-  const auto *dvar = Dvar_FindVar(dvar_name);
+  const dvar_t *dvar = Dvar_FindVar(dvar_name);
   if (!dvar) {
     return {};
   }
@@ -65,7 +67,7 @@ uint32_t get_dvar_uint(const char *dvar_name) {
 }
 
 uint64_t get_dvar_uint64(const char *dvar_name) {
-  const auto *dvar = Dvar_FindVar(dvar_name);
+  const dvar_t *dvar = Dvar_FindVar(dvar_name);
   if (!dvar) {
     return {};
   }
@@ -75,7 +77,7 @@ uint64_t get_dvar_uint64(const char *dvar_name) {
 
 uint64_t set_dvar_uint64(const char *dvar_name, uint64_t val,
                          DvarSetSource source) {
-  const auto *dvar = Dvar_FindVar(dvar_name);
+  const dvar_t *dvar = Dvar_FindVar(dvar_name);
   if (!dvar) {
     return {};
   }
@@ -85,7 +87,7 @@ uint64_t set_dvar_uint64(const char *dvar_name, uint64_t val,
 }
 
 int64_t get_dvar_int64(const char *dvar_name) {
-  const auto *dvar = Dvar_FindVar(dvar_name);
+  const dvar_t *dvar = Dvar_FindVar(dvar_name);
   if (!dvar) {
     return {};
   }
@@ -95,7 +97,7 @@ int64_t get_dvar_int64(const char *dvar_name) {
 
 int64_t set_dvar_int64(const char *dvar_name, int64_t val,
                        DvarSetSource source) {
-  const auto *dvar = Dvar_FindVar(dvar_name);
+  const dvar_t *dvar = Dvar_FindVar(dvar_name);
   if (!dvar) {
     return {};
   }
@@ -105,7 +107,7 @@ int64_t set_dvar_int64(const char *dvar_name, int64_t val,
 }
 
 bool get_dvar_bool(const char *dvar_name) {
-  const auto *dvar = Dvar_FindVar(dvar_name);
+  const dvar_t *dvar = Dvar_FindVar(dvar_name);
   if (!dvar) {
     return {};
   }
@@ -114,7 +116,7 @@ bool get_dvar_bool(const char *dvar_name) {
 }
 
 bool set_dvar_bool(const char *dvar_name, bool val, DvarSetSource source) {
-  const auto *dvar = Dvar_FindVar(dvar_name);
+  const dvar_t *dvar = Dvar_FindVar(dvar_name);
   if (!dvar) {
     return {};
   }
@@ -124,7 +126,7 @@ bool set_dvar_bool(const char *dvar_name, bool val, DvarSetSource source) {
 }
 
 float get_dvar_float(const char *dvar_name) {
-  const auto *dvar = Dvar_FindVar(dvar_name);
+  const dvar_t *dvar = Dvar_FindVar(dvar_name);
   if (!dvar) {
     return {};
   }
@@ -133,7 +135,7 @@ float get_dvar_float(const char *dvar_name) {
 }
 
 float set_dvar_float(const char *dvar_name, float val, DvarSetSource source) {
-  const auto *dvar = Dvar_FindVar(dvar_name);
+  const dvar_t *dvar = Dvar_FindVar(dvar_name);
   if (!dvar) {
     return {};
   }
@@ -147,17 +149,16 @@ const dvar_t *register_sessionmode_dvar_bool(const char *dvar_name,
                                              const unsigned int flags,
                                              const char *description,
                                              const eModes mode) {
-  const auto hash = Dvar_GenerateHash(dvar_name);
-  auto *registered_dvar =
+  const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
+  game::dvar_t *registered_dvar =
       Dvar_SessionModeRegisterBool(hash, dvar_name, value, flags, description);
 
   if (registered_dvar) {
     registered_dvar->debugName = dvar_name;
 
-    if (mode == MODE_COUNT) {
-      for (int i = MODE_FIRST; i < MODE_COUNT; ++i) {
-        Dvar_SessionModeSetDefaultBool.call_safe(hash, value,
-                                                 static_cast<eModes>(i));
+    if (mode == eModes::COUNT) {
+      for (game::eModes i = eModes::FIRST; i < eModes::COUNT; i++) {
+        Dvar_SessionModeSetDefaultBool.call_safe(hash, value, i);
       }
     } else {
       Dvar_SessionModeSetDefaultBool.call_safe(hash, value, mode);
@@ -170,8 +171,8 @@ const dvar_t *register_sessionmode_dvar_bool(const char *dvar_name,
 const dvar_t *register_dvar_bool(const char *dvar_name, const bool value,
                                  const unsigned int flags,
                                  const char *description) {
-  const auto hash = Dvar_GenerateHash(dvar_name);
-  auto *registered_dvar =
+  const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
+  game::dvar_t *registered_dvar =
       Dvar_RegisterBool(hash, dvar_name, value, flags, description);
 
   if (registered_dvar) {
@@ -184,8 +185,8 @@ const dvar_t *register_dvar_bool(const char *dvar_name, const bool value,
 const dvar_t *register_dvar_int(const char *dvar_name, int value, int min,
                                 int max, const unsigned int flags,
                                 const char *description) {
-  const auto hash = Dvar_GenerateHash(dvar_name);
-  auto *registered_dvar =
+  const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
+  game::dvar_t *registered_dvar =
       Dvar_RegisterInt(hash, dvar_name, value, min, max, flags, description);
 
   if (registered_dvar) {
@@ -198,8 +199,8 @@ const dvar_t *register_dvar_int(const char *dvar_name, int value, int min,
 const dvar_t *register_dvar_float(const char *dvar_name, float value, float min,
                                   float max, const unsigned int flags,
                                   const char *description) {
-  const auto hash = Dvar_GenerateHash(dvar_name);
-  auto *registered_dvar =
+  const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
+  game::dvar_t *registered_dvar =
       Dvar_RegisterFloat(hash, dvar_name, value, min, max, flags, description);
 
   if (registered_dvar) {
@@ -212,8 +213,8 @@ const dvar_t *register_dvar_float(const char *dvar_name, float value, float min,
 const dvar_t *register_dvar_string(const char *dvar_name, const char *value,
                                    const unsigned int flags,
                                    const char *description) {
-  const auto hash = Dvar_GenerateHash(dvar_name);
-  auto *registered_dvar =
+  const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
+  game::dvar_t *registered_dvar =
       Dvar_RegisterString(hash, dvar_name, value, flags, description);
 
   if (registered_dvar) {
@@ -224,14 +225,14 @@ const dvar_t *register_dvar_string(const char *dvar_name, const char *value,
 }
 
 void dvar_add_flags(const char *dvar_name, const unsigned int flags) {
-  auto *dvar = Dvar_FindVar(dvar_name);
+  game::dvar_t *dvar = Dvar_FindVar(dvar_name);
 
   if (!dvar) {
     return;
   }
 
-  auto *dvar_to_change = dvar;
-  if (dvar_to_change->type == DVAR_TYPE_SESSIONMODE_BASE_DVAR) {
+  game::dvar_t *dvar_to_change = dvar;
+  if (dvar_to_change->type == dvarType_t::SESSIONMODE_BASE_DVAR) {
     dvar_to_change = try_get_sessionmode_specific_dvar(dvar_to_change);
     if (!dvar_to_change) {
       return;
@@ -242,14 +243,14 @@ void dvar_add_flags(const char *dvar_name, const unsigned int flags) {
 }
 
 void dvar_set_flags(const char *dvar_name, const unsigned int flags) {
-  auto *dvar = Dvar_FindVar(dvar_name);
+  game::dvar_t *dvar = Dvar_FindVar(dvar_name);
 
   if (!dvar) {
     return;
   }
 
-  auto *dvar_to_change = dvar;
-  if (dvar_to_change->type == DVAR_TYPE_SESSIONMODE_BASE_DVAR) {
+  game::dvar_t *dvar_to_change = dvar;
+  if (dvar_to_change->type == dvarType_t::SESSIONMODE_BASE_DVAR) {
     dvar_to_change = try_get_sessionmode_specific_dvar(dvar_to_change);
     if (!dvar_to_change) {
       return;
@@ -260,14 +261,14 @@ void dvar_set_flags(const char *dvar_name, const unsigned int flags) {
 }
 
 void dvar_remove_flags(const char *dvar_name, const unsigned int flags) {
-  auto *dvar = Dvar_FindVar(dvar_name);
+  game::dvar_t *dvar = Dvar_FindVar(dvar_name);
 
   if (!dvar) {
     return;
   }
 
-  auto *dvar_to_change = dvar;
-  if (dvar_to_change->type == DVAR_TYPE_SESSIONMODE_BASE_DVAR) {
+  game::dvar_t *dvar_to_change = dvar;
+  if (dvar_to_change->type == dvarType_t::SESSIONMODE_BASE_DVAR) {
     dvar_to_change = try_get_sessionmode_specific_dvar(dvar_to_change);
     if (!dvar_to_change) {
       return;
@@ -284,9 +285,9 @@ size_t get_max_client_count() {
 }
 
 template <typename T>
-static void
-foreach_client(T *client_states,
-               const std::function<void(client_s &, size_t index)> &callback) {
+static void foreach_client(
+    T *client_states,
+    const std::function<void(sv::client_s &, size_t index)> &callback) {
   if (!client_states || !callback) {
     return;
   }
@@ -297,8 +298,23 @@ foreach_client(T *client_states,
 }
 
 template <typename T>
+static void first_client(
+    T *client_states,
+    const std::function<bool(sv::client_s &, size_t index)> &callback) {
+  if (!client_states || !callback) {
+    return;
+  }
+
+  for (size_t i = 0; i < get_max_client_count(); ++i) {
+    if (callback(client_states[i], i)) {
+      break;
+    }
+  }
+}
+
+template <typename T>
 static bool access_client(T *client_states, const size_t index,
-                          const std::function<void(client_s &)> &callback) {
+                          const std::function<void(sv::client_s &)> &callback) {
   if (!client_states || !callback) {
     return false;
   }
@@ -307,8 +323,8 @@ static bool access_client(T *client_states, const size_t index,
     return false;
   }
 
-  auto &client = client_states[index];
-  if (client.state == CS_FREE) {
+  T &client = client_states[index];
+  if (client.state == net::CS_FREE) {
     return false;
   }
 
@@ -317,7 +333,7 @@ static bool access_client(T *client_states, const size_t index,
 }
 
 void foreach_client(
-    const std::function<void(client_s &, size_t index)> &callback) {
+    const std::function<void(sv::client_s &, size_t index)> &callback) {
   if (is_server()) {
     foreach_client(*svs_clients, callback);
   } else {
@@ -325,29 +341,94 @@ void foreach_client(
   }
 }
 
-void foreach_client(const std::function<void(client_s &)> &callback) {
-  foreach_client([&](client_s &client, size_t) { callback(client); });
+void first_client(
+    const std::function<bool(sv::client_s &, size_t index)> &callback) {
+  if (is_server()) {
+    first_client(*svs_clients, callback);
+  } else {
+    first_client(*svs_clients_cl, callback);
+  }
+}
+
+void foreach_client(const std::function<void(sv::client_s &)> &callback) {
+  foreach_client([&](sv::client_s &client, size_t) { callback(client); });
+}
+void first_client(const std::function<bool(sv::client_s &)> &callback) {
+  first_client([&](sv::client_s &client, size_t) { return callback(client); });
 }
 
 void foreach_connected_client(
-    const std::function<void(client_s &, size_t index)> &callback) {
-  foreach_client([&](client_s &client, const size_t index) {
-    if (client.state != CS_FREE) {
+    const std::function<void(sv::client_s &, size_t index)> &callback) {
+  foreach_client([&](sv::client_s &client, const size_t index) {
+    if (client.state != net::CS_FREE) {
       callback(client, index);
     }
   });
 }
 
-void foreach_connected_client(const std::function<void(client_s &)> &callback) {
-  foreach_connected_client([&](client_s &client, size_t) { callback(client); });
+void foreach_connected_client(
+    const std::function<void(sv::client_s &)> &callback) {
+  foreach_connected_client(
+      [&](sv::client_s &client, size_t) { callback(client); });
 }
 
-bool access_connected_client(const size_t index,
-                             const std::function<void(client_s &)> &callback) {
+void first_connected_client(
+    const std::function<bool(sv::client_s &, size_t index)> &callback) {
+  first_client([&](sv::client_s &client, const size_t index) {
+    if (client.state != net::CS_FREE) {
+      return callback(client, index);
+    }
+    return false;
+  });
+}
+
+void first_connected_client(
+    const std::function<bool(sv::client_s &)> &callback) {
+  first_connected_client(
+      [&](sv::client_s &client, size_t) { return callback(client); });
+}
+
+bool access_connected_client(
+    const size_t index, const std::function<void(sv::client_s &)> &callback) {
   if (is_server()) {
     return access_client(*svs_clients, index, callback);
   }
 
   return access_client(*svs_clients_cl, index, callback);
 }
+
+level::gentity_pool *gentity_pool() {
+  if (game::is_client()) {
+    /*
+      In the client, for each function where g_entities is accessed,
+      in each of its calling functions, prior to its callsite,
+      Treyarch's anticheat (TAC) will copy the pointer stored in g_entities into
+      another memory address or stack pointer and set g_entities to
+      0xFFFFFFFFFFFFFFFF. In the called function, g_entities will then be
+      accessed through the pointer stored at the destination of the copy, using
+      a series of highly obfuscated operations. After the call is completed, TAC
+      will copy the g_entities pointer back into the global g_entities memory
+      address through, again, a series of highly obfuscated operations.
+
+      This obviously makes naive usage of the g_entities global impractical, as
+      it will often be set to 0xFFFFFFFFFFFFFFFF during or before access,
+      causing unexpected memory access exceptions.
+
+      To circumvent this, and to avoid having to find some way of
+      deterministically computing where the correct g_entities pointer was
+      copied, we can instead store the g_entities pointer at time of allocation
+      into our own global, and use this identically and reliably within boiii's
+      code.
+    */
+    game::level::gentity_pool *stored =
+        game::level::g_entities_cl_allocation.load();
+    if (stored) {
+      return stored;
+    }
+    return *(level::g_entities_cl.get());
+  }
+
+  return level::g_entities.get();
+}
+
 } // namespace game

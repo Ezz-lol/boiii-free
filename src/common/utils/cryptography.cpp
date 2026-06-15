@@ -176,12 +176,26 @@ void ecc::key::deserialize(const std::string &key) {
   }
 }
 
+void ecc::key::deserialize(const std::string *key) {
+  this->free();
+
+  if (ecc_import(cs(key->data()), ul(key->size()), &this->key_storage_) !=
+      CRYPT_OK) {
+    ZeroMemory(&this->key_storage_, sizeof(this->key_storage_));
+  }
+}
+
 std::string ecc::key::serialize(const int type) const {
   uint8_t buffer[4096] = {0};
   unsigned long length = sizeof(buffer);
 
-  if (ecc_export(buffer, &length, type, &this->key_storage_) == CRYPT_OK) {
+  int result = ecc_export(buffer, &length, type, &this->key_storage_);
+  if (result == CRYPT_OK) {
     return {cs(buffer), length};
+  } else {
+    printf("cryptography: ecc::key::serialize - ecc_export failed with error "
+           "code: %d\n",
+           result);
   }
 
   return {};
@@ -247,33 +261,51 @@ ecc::key ecc::generate_key(const int bits, const std::string &entropy) {
   return key;
 }
 
+#define BASE_ECC_ANSIX962_BUFFER_LEN 256
 std::string ecc::sign_message(const key &key, const std::string &message) {
   if (!key.is_valid())
     return {};
 
-  uint8_t buffer[512];
-  unsigned long length = sizeof(buffer);
+  unsigned long length = BASE_ECC_ANSIX962_BUFFER_LEN;
+  uint8_t buffer[BASE_ECC_ANSIX962_BUFFER_LEN];
 
   const auto hash = sha512::compute(message);
 
-  ecc_sign_hash(cs(hash.data()), ul(hash.size()), buffer, &length,
-                prng_.get_state(), prng_.get_id(), &key.get());
+  ltc_ecc_sig_opts sig_opts = {.type = LTC_ECCSIG_ANSIX962,
+                               .prng = prng_.get_state(),
+                               .wprng = prng_.get_id(),
+                               .recid = nullptr,
+                               .rfc6979_hash_alg = nullptr};
+  int err = ecc_sign_hash_v2(cs(hash.data()), ul(hash.size()), buffer, &length,
+                             &sig_opts, &key.get());
 
+  if (err != CRYPT_OK) {
+    printf("Signature generation failed with error code: %d\n", err);
+    return {};
+  }
   return std::string(cs(buffer), length);
 }
 
 bool ecc::verify_message(const key &key, const std::string &message,
                          const std::string &signature) {
-  if (!key.is_valid())
+  if (!key.is_valid()) {
     return false;
+  }
 
   const auto hash = sha512::compute(message);
 
   auto result = 0;
-  return (ecc_verify_hash(cs(signature.data()), ul(signature.size()),
-                          cs(hash.data()), ul(hash.size()), &result,
-                          &key.get()) == CRYPT_OK &&
-          result != 0);
+  ltc_ecc_sig_opts opts = {.type = LTC_ECCSIG_ANSIX962,
+                           .prng = prng_.get_state(),
+                           .wprng = prng_.get_id(),
+                           .recid = nullptr,
+                           .rfc6979_hash_alg = nullptr
+
+  };
+  auto status = ecc_verify_hash_v2(cs(signature.data()), ul(signature.size()),
+                                   cs(hash.data()), ul(hash.size()), &opts,
+                                   &result, &key.get());
+  return status == CRYPT_OK && result != 0;
 }
 
 bool ecc::encrypt(const key &key, std::string &data) {

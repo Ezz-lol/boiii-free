@@ -20,7 +20,7 @@ void rope_init_ropes_stub() {
     }
   });
 
-  game::Rope_InitRopes();
+  game::rope::Rope_InitRopes();
 }
 
 void mantle_shutdown_anims_stub() {
@@ -30,7 +30,7 @@ void mantle_shutdown_anims_stub() {
     }
   });
 
-  game::Mantle_ShutdownAnims();
+  game::mantle::Mantle_ShutdownAnims();
 }
 } // namespace
 

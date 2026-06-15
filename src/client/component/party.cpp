@@ -1,7 +1,7 @@
-#include <std_include.hpp>
+#include "../std_include.hpp"
 #include "loader/component_loader.hpp"
-#include "game/game.hpp"
-#include "game/utils.hpp"
+#include "../game/game.hpp"
+#include "../game/utils.hpp"
 
 #include "party.hpp"
 #include "auth.hpp"
@@ -14,16 +14,19 @@
 #include "steam_proxy.hpp"
 #include "toast.hpp"
 
+#include <game/utils.hpp>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/info_string.hpp>
 #include <utils/cryptography.hpp>
 #include <utils/concurrency.hpp>
 
+#include "game/impl/cl/cl.hpp"
+
 namespace party {
 namespace {
 std::atomic_bool is_connecting_to_dedi{false};
-game::netadr_t connect_host{{}, {}, game::NA_BAD, {}};
+game::net::netadr_t connect_host{{}, {}, game::net::NA_BAD, {}};
 
 std::mutex hostname_mutex;
 std::string cached_server_hostname;
@@ -36,7 +39,7 @@ void update_dedi_dvar(bool on_dedi) {
 
 struct server_query {
   bool sent{false};
-  game::netadr_t host{};
+  game::net::netadr_t host{};
   std::string challenge{};
   query_callback callback{};
   std::chrono::high_resolution_clock::time_point query_time{};
@@ -48,39 +51,61 @@ utils::concurrency::container<std::vector<server_query>> &get_server_queries() {
   return server_queries;
 }
 
-void connect_to_lobby(const game::netadr_t &addr, const std::string &mapname,
-                      const std::string &gamemode,
+void connect_to_lobby(const game::ControllerIndex_t controllerIndex,
+                      const game::net::netadr_t &addr,
+                      const std::string &mapname, const std::string &gamemode,
                       const std::string &usermap_id,
                       const std::string &mod_id) {
+
   auth::clear_stored_guids();
+  auth::clear_stored_challenge();
+  workshop::setup_same_mod_as_host(
+      game::com::Com_ControllerIndex_GetLocalClientNum(controllerIndex),
+      usermap_id, mod_id, true);
 
-  workshop::setup_same_mod_as_host(usermap_id, mod_id);
+  game::net::XSESSION_INFO info{};
 
-  game::XSESSION_INFO info{};
-  game::CL_ConnectFromLobby(0, &info, &addr, 1, 0, mapname.data(),
-                            gamemode.data(), usermap_id.data());
+  int32_t publicSlots = 0;
+  for (game::LocalClientNum_t localClientIdx = game::LOCAL_CLIENT_0;
+       localClientIdx < game::LOCAL_CLIENT_COUNT; localClientIdx++) {
+
+    if (game::com::Com_LocalClient_IsBeingUsed(localClientIdx)) {
+
+      publicSlots++;
+    }
+  }
+
+  // publicSlots is entirely unused within CL_ConnectFromLobby, but just
+  // for the sake of completeness, we will pass the correct value.
+  game::cl::CL_ConnectFromLobby(controllerIndex, &info, &addr, publicSlots, 0,
+                                mapname.data(), gamemode.data(),
+                                usermap_id.data());
 }
 
 void launch_mode(const game::eModes mode) {
   scheduler::once(
       [=] {
-        const auto local_client = *reinterpret_cast<DWORD *>(0x14342155C_g);
-        const auto current_mode = game::Com_SessionMode_GetMode();
-        game::Com_SwitchMode(local_client,
-                             static_cast<game::eModes>(current_mode), mode, 6);
+        const game::LocalClientNum_t local_client = game::INVALID_LOCAL_CLIENT;
+        const game::eModes current_mode = game::com::Com_SessionMode_GetMode();
+        game::com::Com_SwitchMode(local_client, current_mode, mode, 6);
       },
       scheduler::main);
 }
 
-void connect_to_lobby_with_mode_internal(const game::netadr_t &addr,
+void connect_to_lobby_with_mode_internal(const game::net::netadr_t &addr,
                                          const game::eModes mode,
                                          const std::string &mapname,
                                          const std::string &gametype,
                                          const std::string &usermap_id,
                                          const std::string &mod_id,
                                          const bool was_retried = false) {
-  if (game::Com_SessionMode_IsMode(mode)) {
-    connect_to_lobby(addr, mapname, gametype, usermap_id, mod_id);
+
+  if (game::com::Com_SessionMode_IsMode(mode)) {
+
+    connect_to_lobby(
+        game::com::Com_LocalClient_GetControllerIndex(game::LOCAL_CLIENT_0),
+        addr, mapname, gametype, usermap_id, mod_id);
+
     return;
   }
 
@@ -96,58 +121,60 @@ void connect_to_lobby_with_mode_internal(const game::netadr_t &addr,
   }
 }
 
-game::LobbyMainMode convert_mode(const game::eModes mode) {
+game::lobby::LobbyMainMode convert_mode(const game::eModes mode) {
   switch (mode) {
-  case game::MODE_CAMPAIGN:
-    return game::LOBBY_MAINMODE_CP;
-  case game::MODE_MULTIPLAYER:
-    return game::LOBBY_MAINMODE_MP;
-  case game::MODE_ZOMBIES:
-    return game::LOBBY_MAINMODE_ZM;
+  case game::eModes::CAMPAIGN:
+    return game::lobby::LobbyMainMode::CP;
+  case game::eModes::MULTIPLAYER:
+    return game::lobby::LobbyMainMode::MP;
+  case game::eModes::ZOMBIES:
+    return game::lobby::LobbyMainMode::ZM;
   default:
-    return game::LOBBY_MAINMODE_INVALID;
+    return game::lobby::LobbyMainMode::INVALID;
   }
 }
 
-void connect_to_session(const game::netadr_t &addr, const std::string &hostname,
-                        const uint64_t xuid, const game::eModes mode) {
+void connect_to_session(const game::net::netadr_t &addr,
+                        const std::string &hostname, const uint64_t xuid,
+                        const game::eModes mode) {
   const auto LobbyJoin_Begin = reinterpret_cast<bool (*)(
       int actionId, game::ControllerIndex_t controllerIndex,
-      game::LobbyType sourceLobbyType, game::LobbyType targetLobbyType)>(
-      0x141ED94D0_g);
+      game::lobby::LobbyType sourceLobbyType,
+      game::lobby::LobbyType targetLobbyType)>(0x141ED94D0_g);
 
   if (!LobbyJoin_Begin(0, game::CONTROLLER_INDEX_FIRST,
-                       game::LOBBY_TYPE_PRIVATE, game::LOBBY_TYPE_PRIVATE)) {
+                       game::lobby::LobbyType::PRIVATE,
+                       game::lobby::LobbyType::PRIVATE)) {
     return;
   }
 
-  auto &join = *game::s_join;
+  game::lobby::Join &join = *game::lobby::s_join;
 
-  auto &host = join.hostList[0];
+  game::lobby::JoinHost &host = join.hostList[0];
   memset(&host, 0, sizeof(host));
 
   host.info.netAdr = addr;
   host.info.xuid = xuid;
   utils::string::copy(host.info.name, hostname.data());
 
-  host.lobbyType = game::LOBBY_TYPE_PRIVATE;
-  host.lobbyParams.networkMode = game::LOBBY_NETWORKMODE_LIVE;
+  host.lobbyType = game::lobby::LobbyType::PRIVATE;
+  host.lobbyParams.networkMode = game::lobby::LobbyNetworkMode::LIVE;
   host.lobbyParams.mainMode = convert_mode(mode);
 
   host.retryCount = 0;
-  host.retryTime = game::Sys_Milliseconds();
+  host.retryTime = game::sys::Sys_Milliseconds();
 
   join.potentialHost = host;
   join.hostCount = 1;
   join.processedCount = 1;
-  join.state = game::JOIN_SOURCE_STATE_ASSOCIATING;
-  join.startTime = game::Sys_Milliseconds();
+  join.state = game::lobby::JoinSourceState::ASSOCIATING;
+  join.startTime = game::sys::Sys_Milliseconds();
 
-  /*join.targetLobbyType = game::LOBBY_TYPE_PRIVATE;
-  join.sourceLobbyType = game::LOBBY_TYPE_PRIVATE;
+  /*join.targetLobbyType = game::lobby::LobbyType::PRIVATE;
+  join.sourceLobbyType = game::lobby::LobbyType::PRIVATE;
   join.controllerIndex = game::CONTROLLER_INDEX_FIRST;
-  join.joinType = game::JOIN_TYPE_NORMAL;
-  join.joinResult = game::JOIN_RESULT_INVALID;
+  join.joinType = game::lobby::JOIN_TYPE_NORMAL;
+  join.joinResult = game::lobby::JOIN_RESULT_INVALID;
   join.isFinalized = false;*/
 
   // LobbyJoinSource_Finalize
@@ -155,10 +182,16 @@ void connect_to_session(const game::netadr_t &addr, const std::string &hostname,
 }
 
 void handle_connect_query_response(const bool success,
-                                   const game::netadr_t &target,
+                                   const game::net::netadr_t &target,
                                    const utils::info_string &info,
                                    uint32_t ping) {
   if (!success) {
+    const std::string msg = utils::string::va(
+        "No response from server %u.%u.%u.%u:%hu", target.ipv4.a, target.ipv4.b,
+        target.ipv4.c, target.ipv4.d, target.port);
+    printf("Connect failed: %s\n", msg.c_str());
+    toast::show("Connect failed", "No response from server",
+                "t7_icon_connect_overlays");
     return;
   }
 
@@ -168,42 +201,50 @@ void handle_connect_query_response(const bool success,
   {
     std::lock_guard lock(hostname_mutex);
     cached_server_hostname = info.get("hostname");
-    const auto max_clients_str = info.get("sv_maxclients");
+    const std::string max_clients_str = info.get("sv_maxclients");
     cached_server_max_clients =
         max_clients_str.empty() ? 0 : atoi(max_clients_str.data());
   }
 
   if (atoi(info.get("protocol").data()) != PROTOCOL) {
-    const auto str = "Invalid protocol.";
-    printf("%s\n", str);
+    const char *msg = "Invalid protocol.";
+    printf("Connect failed: %s\n", msg);
+    toast::show("Connect failed", msg, "t7_icon_connect_overlays");
     return;
   }
 
-  const auto sub_protocol = atoi(info.get("sub_protocol").data());
+  const int32_t sub_protocol = atoi(info.get("sub_protocol").data());
   if (sub_protocol != SUB_PROTOCOL && sub_protocol != (SUB_PROTOCOL - 1)) {
-    const auto str = "Invalid sub-protocol.";
-    printf("%s\n", str);
+    const char *msg = "Invalid sub-protocol.";
+    printf("Connect failed: %s\n", msg);
+    toast::show("Connect failed", msg, "t7_icon_connect_overlays");
     return;
   }
 
-  const auto gamename = info.get("gamename");
+  const std::string gamename = info.get("gamename");
   if (gamename != "T7"s) {
-    const auto str = "Invalid gamename.";
-    printf("%s\n", str);
+    const char *msg = "Invalid gamename.";
+    printf("Connect failed: %s\n", msg);
+    toast::show("Connect failed", msg, "t7_icon_connect_overlays");
     return;
   }
 
   // Verify network password
-  const auto server_net_hash = info.get("net_password_hash");
+  const std::string server_net_hash = info.get("net_password_hash");
   if (!server_net_hash.empty() && server_net_hash != "0") {
     if (!network_password::is_password_set()) {
-      printf("Server requires a network password.\n");
+      const char *msg = "Server requires a network password.";
+      printf("Connect failed: %s\n", msg);
+      toast::show("Connect failed", msg, "t7_icon_connect_overlays");
       return;
     }
 
-    const auto client_hash = network_password::get_password_hash_string();
+    const std::string client_hash =
+        network_password::get_password_hash_string();
     if (client_hash != server_net_hash) {
-      printf("Network password mismatch.\n");
+      const char *msg = "Network password mismatch.";
+      printf("Connect failed: %s\n", msg);
+      toast::show("Connect failed", msg, "t7_icon_connect_overlays");
       return;
     }
   } else if (network_password::is_password_set()) {
@@ -211,55 +252,65 @@ void handle_connect_query_response(const bool success,
            "connection.\n");
   }
 
-  const auto mapname = info.get("mapname");
+  const std::string mapname = info.get("mapname");
   if (mapname.empty()) {
-    const auto str = "Invalid map.";
-    printf("%s\n", str);
+    const char *msg = "Invalid map.";
+    printf("Connect failed: %s\n", msg);
+    toast::show("Connect failed", msg, "t7_icon_connect_overlays");
     return;
   }
 
-  const auto gametype = info.get("gametype");
+  const std::string gametype = info.get("gametype");
   if (gametype.empty()) {
-    const auto str = "Invalid gametype.";
-    printf("%s\n", str);
+    const char *msg = "Invalid gametype.";
+    printf("Connect failed: %s\n", msg);
+    toast::show("Connect failed", msg, "t7_icon_connect_overlays");
     return;
   }
 
-  const auto mod_id = info.get("modId");
+  const std::string mod_id = info.get("modId");
 
-  const auto workshop_id = info.get("workshop_id").empty()
-                               ? info.get("usermapId")
-                               : info.get("workshop_id");
-  const auto base_url = info.get("sv_wwwBaseURL").empty()
-                            ? info.get("sv_wwwBaseUrl")
-                            : info.get("sv_wwwBaseURL");
+  const std::string workshop_id = info.get("workshop_id").empty()
+                                      ? info.get("usermapId")
+                                      : info.get("workshop_id");
+  const std::string base_url = info.get("sv_wwwBaseURL").empty()
+                                   ? info.get("sv_wwwBaseUrl")
+                                   : info.get("sv_wwwBaseURL");
 
-  // const auto hostname = info.get("sv_hostname");
-  const auto playmode = info.get("playmode");
-  const auto mode = static_cast<game::eModes>(std::atoi(playmode.data()));
-  // const auto xuid = strtoull(info.get("xuid").data(), nullptr, 16);
+  // const std::string hostname = info.get("sv_hostname");
+  const std::string playmode = info.get("playmode");
+  const game::eModes mode =
+      static_cast<game::eModes>(std::atoi(playmode.data()));
+  // const game::XUID xuid = strtoull(info.get("xuid").data(), nullptr, 16);
 
   scheduler::once(
       [=] {
-        const auto addr_str =
+        const char *addr_str =
             utils::string::va("%i.%i.%i.%i:%hu", target.ipv4.a, target.ipv4.b,
                               target.ipv4.c, target.ipv4.d, target.port);
 
         // Always save latest address for mod reconnect (mod unload/reload)
         workshop::set_pending_mod_reconnect(addr_str);
 
-        const auto usermap_id = workshop::get_usermap_publisher_id(mapname);
+        const std::string usermap_id =
+            workshop::get_usermap_publisher_id(mapname);
 
         if (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id,
                                              base_url) &&
             workshop::check_valid_mod_id(mod_id, workshop_id)) {
-          game::Com_SessionMode_SetGameMode(
-              game::MODE_GAME_MATCHMAKING_PLAYLIST);
+          game::com::Com_SessionMode_SetGameMode(
+              game::eGameModes::MATCHMAKING_PLAYLIST);
 
           // connect_to_session(target, hostname, xuid, mode);
           connect_to_lobby_with_mode_internal(target, mode, mapname, gametype,
                                               usermap_id, mod_id);
         } else {
+          const char *msg = utils::string::va(
+              "Missing or invalid workshop/map dependencies for server %s.",
+              addr_str);
+          printf("Connect failed: %s\n", msg);
+          toast::show("Connect failed", "Missing workshop/map dependencies",
+                      "t7_icon_connect_overlays");
           // Save download reconnect
           workshop::set_pending_download_reconnect(addr_str);
         }
@@ -269,8 +320,11 @@ void handle_connect_query_response(const bool success,
 
 void connect_stub(const char *address) {
   if (address) {
-    const auto target = network::address_from_string(address);
-    if (target.type == game::NA_BAD) {
+    const game::net::netadr_t target = network::address_from_string(address);
+    if (target.type == game::net::NA_BAD) {
+      printf("Connect failed: invalid address \"%s\"\n", address);
+      toast::show("Connect failed", "Invalid address",
+                  "t7_icon_connect_overlays");
       return;
     }
 
@@ -281,22 +335,24 @@ void connect_stub(const char *address) {
   profile_infos::clear_profile_infos();
 
   if (address) {
-    auto game_info = friends::get_friend_game_info_by_address(address);
+    std::string game_info = friends::get_friend_game_info_by_address(address);
     if (!game_info.empty()) {
-      auto parts = utils::string::split(game_info, '|');
+      std::vector<std::string> parts = utils::string::split(game_info, '|');
       if (parts.size() >= 4) {
-        auto mapname = parts[1];
-        auto gametype = parts[2];
-        auto mode = static_cast<game::eModes>(std::atoi(parts[3].c_str()));
+        std::string mapname = parts[1];
+        std::string gametype = parts[2];
+        game::eModes mode =
+            static_cast<game::eModes>(std::atoi(parts[3].c_str()));
         std::string mod_id = parts.size() >= 5 ? parts[4] : "";
 
         if (!mapname.empty() && !gametype.empty()) {
 
           scheduler::once(
               [=] {
-                auto usermap_id = workshop::get_usermap_publisher_id(mapname);
-                game::Com_SessionMode_SetGameMode(
-                    game::MODE_GAME_MATCHMAKING_PLAYLIST);
+                std::string usermap_id =
+                    workshop::get_usermap_publisher_id(mapname);
+                game::com::Com_SessionMode_SetGameMode(
+                    game::eGameModes::MATCHMAKING_PLAYLIST);
                 connect_to_lobby_with_mode_internal(
                     connect_host, mode, mapname, gametype, usermap_id, mod_id);
               },
@@ -318,8 +374,9 @@ void send_server_query(server_query &query) {
   network::send(query.host, "getInfo", query.challenge);
 }
 
-void handle_info_response(const game::netadr_t &target,
-                          const network::data_view &data) {
+void handle_info_response(const game::net::netadr_t &target,
+                          const network::data_view &data,
+                          game::LocalClientNum_t clientNum) {
 
   bool found_query = false;
   server_query query{};
@@ -327,7 +384,8 @@ void handle_info_response(const game::netadr_t &target,
   const utils::info_string info{data};
 
   get_server_queries().access([&](std::vector<server_query> &server_queries) {
-    for (auto i = server_queries.begin(); i != server_queries.end(); ++i) {
+    for (std::vector<server_query>::iterator i = server_queries.begin();
+         i != server_queries.end(); ++i) {
       if (i->host == target && i->challenge == info.get("challenge")) {
         found_query = true;
         query = std::move(*i);
@@ -338,9 +396,9 @@ void handle_info_response(const game::netadr_t &target,
   });
 
   if (found_query) {
-    const auto ping =
+    const std::chrono::nanoseconds ping =
         std::chrono::high_resolution_clock::now() - query.query_time;
-    const auto ping_ms =
+    const std::chrono::milliseconds::rep ping_ms =
         std::chrono::duration_cast<std::chrono::milliseconds>(ping).count();
 
     query.callback(true, query.host, info, static_cast<uint32_t>(ping_ms));
@@ -353,8 +411,10 @@ void cleanup_queried_servers() {
   get_server_queries().access([&](std::vector<server_query> &server_queries) {
     size_t sent_queries = 0;
 
-    const auto now = std::chrono::high_resolution_clock::now();
-    for (auto i = server_queries.begin(); i != server_queries.end();) {
+    const std::chrono::high_resolution_clock::time_point now =
+        std::chrono::high_resolution_clock::now();
+    for (std::vector<server_query>::iterator i = server_queries.begin();
+         i != server_queries.end();) {
       if (!i->sent) {
         if (++sent_queries < 40) {
           send_server_query(*i);
@@ -375,13 +435,13 @@ void cleanup_queried_servers() {
   });
 
   const utils::info_string empty{};
-  for (const auto &query : removed_queries) {
+  for (const server_query &query : removed_queries) {
     query.callback(false, query.host, empty, 0);
   }
 }
 } // namespace
 
-void query_server(const game::netadr_t &host, query_callback callback) {
+void query_server(const game::net::netadr_t &host, query_callback callback) {
   server_query query{};
   query.sent = false;
   query.host = host;
@@ -392,7 +452,7 @@ void query_server(const game::netadr_t &host, query_callback callback) {
   });
 }
 
-void connect_to_lobby_with_mode(const game::netadr_t &addr,
+void connect_to_lobby_with_mode(const game::net::netadr_t &addr,
                                 const game::eModes mode,
                                 const std::string &mapname,
                                 const std::string &gametype,
@@ -402,26 +462,24 @@ void connect_to_lobby_with_mode(const game::netadr_t &addr,
                                       mod_id, false);
 }
 
-game::netadr_t get_connected_server() {
-  constexpr auto local_client_num = 0ull;
-  const auto address = *reinterpret_cast<uint64_t *>(0x1453D8BB8_g) +
-                       (0x25780 * local_client_num) + 0x10;
-  return *reinterpret_cast<game::netadr_t *>(address);
+game::net::netadr_t
+get_connected_server(game::LocalClientNum_t localClientNum) {
+  return game::cl::CL_GetLocalClientConnection(localClientNum)->serverAddress;
 }
 
-game::netadr_t get_connect_host() { return connect_host; }
+game::net::netadr_t get_connect_host() { return connect_host; }
 
-bool is_host(const game::netadr_t &addr) {
+bool is_host(const game::net::netadr_t &addr) {
   return get_connected_server() == addr || connect_host == addr;
 }
 
-void join_session(const game::netadr_t &addr, const std::string &hostname,
+void join_session(const game::net::netadr_t &addr, const std::string &hostname,
                   const uint64_t xuid, const game::eModes mode) {
   connect_to_session(addr, hostname, xuid, mode);
 }
 
 uint16_t get_local_port() {
-  const auto *dvar = game::Dvar_FindVar("net_port");
+  const game::dvar_t *dvar = game::Dvar_FindVar("net_port");
   if (dvar) {
     return static_cast<uint16_t>(dvar->current.value.integer);
   }

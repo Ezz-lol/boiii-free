@@ -33,7 +33,7 @@ function asmjit.project()
   kind("StaticLib")
 
   filter("toolset:msc-clangcl or toolset:clang")
-    buildoptions({ "-Wno-enum-enum-conversion", "-Wno-deprecated-enum-enum-conversion" })
+  buildoptions({ "-Wno-enum-enum-conversion", "-Wno-deprecated-enum-enum-conversion" })
   filter({})
 end
 

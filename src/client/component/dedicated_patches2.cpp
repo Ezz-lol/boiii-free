@@ -1,8 +1,14 @@
+#include <mutex>
+#include <sstream>
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
 #include "game/utils.hpp"
+#include "game/impl/snd/snd.hpp"
+#include "game/impl/snd/sd/sd.hpp"
 
+#include <string>
+#include <unordered_map>
 #include <utils/flags.hpp>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -105,23 +111,18 @@ std::string sanitize_chat_message(const std::string &msg) {
   return result;
 }
 
-// sv_cheats enforcement
-void enforce_sv_cheats() {
-  if (game::is_server_running()) {
-    const bool sv_cheats_val = game::get_dvar_bool("sv_cheats");
-    if (sv_cheats_val) {
-      printf("[Security] sv_cheats was non-zero (%d), forcing to 0\n",
-             sv_cheats_val);
-      game::set_dvar_bool("sv_cheats", false);
-    }
+void disable_sv_cheats_cb(game::dvar_t *sv_cheats) {
+  if (sv_cheats->current.value.enabled) {
+    game::Dvar_SetBoolFromSource(sv_cheats, false,
+                                 game::DvarSetSource::INTERNAL);
   }
 }
 
 // Hook for G_Say to sanitize messages
 utils::hook::detour g_say_hook;
 
-void g_say_stub(game::gentity_s *ent, game::gentity_s *target, int mode,
-                const char *chatText) {
+void g_say_stub(game::level::gentity_s *ent, game::level::gentity_s *target,
+                int mode, const char *chatText) {
   if (chatText) {
     const auto sanitized = sanitize_chat_message(chatText);
     g_say_hook.invoke(ent, target, mode, sanitized.data());
@@ -133,7 +134,7 @@ void g_say_stub(game::gentity_s *ent, game::gentity_s *target, int mode,
 // Hook for SV_DirectConnect to rate limit connections
 utils::hook::detour sv_direct_connect_hook;
 
-void sv_direct_connect_stub(game::netadr_t adr) {
+void sv_direct_connect_stub(game::net::netadr_t adr) {
   if (is_rate_limited(adr.addr)) {
     printf("[Security] Rejected connection from rate-limited IP\n");
     return;
@@ -143,20 +144,20 @@ void sv_direct_connect_stub(game::netadr_t adr) {
 }
 
 utils::hook::detour sv_removeallclientsfromaddress_hook;
-void sv_live_removeallclientsfromaddress_stub(game::client_s *client,
+void sv_live_removeallclientsfromaddress_stub(game::sv::client_s *client,
                                               const char *reason) {
   // Skip disconnecting other clients from the same IP -
   // just free the disconnected client's slot, and return.
-  game::SV_Live_RemoveClient(client, reason);
+  game::sv::SV_Live_RemoveClient(client, reason);
   return;
 }
 
 std::mutex reliable_cmd_mutex;
 // Map of reliable command string -> Map of xuid -> svs->time of last sequencing
-std::unordered_map<std::string, std::unordered_map<uint64_t, uint32_t>>
+std::unordered_map<std::string, std::unordered_map<game::XUID, uint32_t>>
     client_openmenu_cmd_last_sequence_time;
 // Map of xuid -> last sequenced reliable command string
-std::unordered_map<uint64_t, std::string> client_last_cmd;
+std::unordered_map<game::XUID, std::string> client_last_cmd;
 
 utils::hook::detour g_init_game_hook;
 void g_init_game_stub(uint32_t levelTime, uint32_t randomSeed,
@@ -167,7 +168,6 @@ void g_init_game_stub(uint32_t levelTime, uint32_t randomSeed,
   // Reset tracked openmenu reliable cmds on starting a new game.
   for (auto &[cmd, client_map] : client_openmenu_cmd_last_sequence_time) {
     client_map.clear();
-    client_openmenu_cmd_last_sequence_time.erase(cmd);
   }
 
   client_openmenu_cmd_last_sequence_time.clear();
@@ -179,8 +179,8 @@ void g_init_game_stub(uint32_t levelTime, uint32_t randomSeed,
 
 utils::hook::detour sv_addservercommand_hook;
 
-void sv_addservercommand_stub(game::client_s *client, game::svscmd_type type,
-                              const char *cmd) {
+void sv_addservercommand_stub(game::sv::client_s *client,
+                              game::net::svscmd_type type, const char *cmd) {
 
   std::string cmd_str = cmd ? std::string(cmd) : "";
   std::lock_guard lock(reliable_cmd_mutex);
@@ -194,7 +194,7 @@ void sv_addservercommand_stub(game::client_s *client, game::svscmd_type type,
     if (client_openmenu_cmd_last_sequence_time.contains(cmd_str) &&
         client_openmenu_cmd_last_sequence_time[cmd_str].contains(
             client->xuid) &&
-        *(game::svs_time.get()) -
+        game::sv::svs->time -
                 client_openmenu_cmd_last_sequence_time[cmd_str][client->xuid] <
             1000) {
       return;
@@ -210,15 +210,241 @@ void sv_addservercommand_stub(game::client_s *client, game::svscmd_type type,
   }
 
   client_openmenu_cmd_last_sequence_time[cmd_str][client->xuid] =
-      *(game::svs_time.get());
+      game::sv::svs->time;
   client_last_cmd[client->xuid] = cmd_str;
 
   sv_addservercommand_hook.invoke(client, type, cmd);
 }
+
+utils::hook::detour db_loadxfile_hook;
+bool db_loadxfile_stub(const char *path, game::db::DBFile f,
+                       game::db::xzone::XZoneBuffer *fileBuffer,
+                       const char *filename, game::db::XBlock *blocks,
+                       game::db::DB_Interrupt *interrupt, uint8_t *buf,
+                       game::PMemStack side, int flags) {
+  bool succeeded = db_loadxfile_hook.invoke<bool>(
+      path, f, fileBuffer, filename, blocks, interrupt, buf, side, flags);
+
+  if (succeeded && (game::db::load::g_load->flags & 0x1000C00) != 0) {
+    game::snd::g_sb->loadGate = 0;
+    game::snd::SND_LoadSoundsWait();
+  }
+
+  return succeeded;
+}
+
+void free_bank_allocations_before_clearing_address_stub(
+    game::snd::SndBankLoad *load, int64_t offset, uint64_t len) {
+
+  game::snd::sd_byte *loadedEntries =
+      reinterpret_cast<game::snd::sd_byte *>(load->loadedEntries);
+  if (loadedEntries) {
+    game::snd::sd::SD_HeapFree(loadedEntries);
+  }
+  game::snd::sd_byte *loadedData = load->loadedData;
+  if (loadedData) {
+    game::snd::sd::SD_HeapFree(loadedData);
+  }
+  game::snd::sd_byte *loadAssetBankEntries =
+      reinterpret_cast<game::snd::sd_byte *>(load->loadAssetBank.entries);
+  if (loadAssetBankEntries) {
+    game::snd::sd::SD_HeapFree(loadAssetBankEntries);
+  }
+  game::snd::sd_byte *streamAssetBankEntries =
+      reinterpret_cast<game::snd::sd_byte *>(load->streamAssetBank.entries);
+  if (streamAssetBankEntries) {
+    game::snd::sd::SD_HeapFree(streamAssetBankEntries);
+  }
+
+  memset(reinterpret_cast<void *>(load), offset, len);
+}
+
+utils::hook::detour snd_init_hook;
+void snd_init_stub() {
+  snd_init_hook.invoke();
+  *(game::snd::g_pc_nosnd.get()) = 0;
+  game::snd::g_snd->verified_0.init = 1;
+  game::snd::g_sb->bankMagic = 0x12233445;
+}
+
+utils::hook::detour snd_queueadd_hook;
+void snd_queueadd_stub(game::snd::SndQueue *queue,
+                       game::snd::cmd::SndCommandType cmd, uint32_t size,
+                       game::snd::cmd::SndCommand data) {
+  game::snd::SND_CommandSND(cmd, static_cast<uint64_t>(size), data);
+}
+
+utils::hook::detour snd_active_hook;
+game::qboolean snd_active_stub() {
+  game::snd::g_snd->verified_0.init = 1;
+  return snd_active_hook.invoke<game::qboolean>();
+}
+
+utils::hook::detour sndl_update_hook;
+void safe_sndl_update() {
+  if (game::snd::SND_GetDuckById(game::snd::g_snd->verified_0.defaultHash) &&
+      game::snd::SND_GetReverb(game::snd::g_snd->verified_0.defaultHash,
+                               "default")) {
+    sndl_update_hook.invoke();
+  }
+}
+
+utils::hook::detour g_sndenabled_hook;
+utils::hook::detour snd_shouldinit_hook;
+bool return_true() { return true; }
+
+utils::hook::detour snd_queueflush_hook;
+utils::hook::detour snd_processsndqueue_hook;
+void stub_func() { return; }
+
+utils::hook::detour snd_enqueueloadedassets_hook;
+utils::hook::detour snd_starttocread_hook;
+
+/*
+  Sound load, processing, and data access functionality was consistently either
+  removed or disabled in dedicated server. This was a valid optimization for the
+  stated intent - a dedicated, multiplayer server using only Treyarch maps - as
+  Treyarch multiplayer maps never require server-side sound handling in any
+  form.
+
+  Treyarch zombies and custom maps for any gamemode, however, generally do
+  require server-side sound processing, and the lack of it causes a wide variety
+  of sound-related bugs. This function re-enables where possible and otherwise
+  re-implements sound functionality in the dedicated server engine.
+
+  This fixes most bugs related to server-side sound handling.
+
+  For example:
+  - Map music, sound effects, or voicelines not playing, playing on a loop,
+  playing at the wrong time, or all playing at the same time - occurs in most
+  zombies maps.
+  - Maps with manual sound loops crashing the server with `G_Spawn: no free
+  entities` error - Die Rise, for example.
+
+  Does not fix:
+  - Perk machine jingles inconsistently playing when player is in proximity.
+*/
+
+inline void enable_sound() {
+  /*
+    In the lines of code where the client versions of SND_EnqueueLoadedAssets
+    and SND_StartTocRead require usage of `SD_Alloc`, in dedicated server, a
+    `nullptr` immediate value is used instead, causing these steps of bank
+    load to immediately fail, and bank load to never occur.
+
+    Hook these functions and replace them with the client-equivalent
+    implementation.
+  */
+  snd_enqueueloadedassets_hook.create(game::snd::SND_EnqueueLoadedAssets.get(),
+                                      game::snd::SND_EnqueueLoadedAssets_Impl);
+  snd_starttocread_hook.create(game::snd::SND_StartTocRead.get(),
+                               game::snd::SND_StartTocRead_Impl);
+
+  /*
+    In client, in SNDL_RemoveBank, SD_Free is called to free the
+    heap-allocated bank data of a SndBankLoad, before clearing the
+    SndBankLoad with memset.
+
+    This obviously is not performed in server, as SD_Alloc is also not
+    used in the unmodified engine; it was reimplemented and used in the above
+    SND_EnqueueLoadedAssets_Impl.
+
+    This call hooks the memset call to instead first free these allocations,
+    if they are present, to prevent memory leak. The client frees these
+    allocations in the same location.
+  */
+  utils::hook::call(0x14064AB30_g,
+                    free_bank_allocations_before_clearing_address_stub);
+
+  /*
+    After loading level XPAK, block on loading its soundbanks, just as
+    client does.
+  */
+  db_loadxfile_hook.create(game::db::load::DB_LoadXFile.get(),
+                           db_loadxfile_stub);
+
+  /*
+    The dedicated server does not have an async sound queue, and the
+    initialization in client is heavily arxan obfuscated.
+    Suffice to say I have so far been unable (in a time-sensitive manner) to
+    verify accurate structure and values for async queue initialization.
+
+    Fortunately, the dedicated server actually doesn't need an async queue at
+    all. Sounds only need to be processed at initial load, but not afterwards,
+    except as requested by scripts.
+
+    The below hooks circumvent attempted usage of the (non-existent) async
+    sound queue, instead forwarding queue additions to the intended handler,
+    immediately.
+  */
+  snd_queueadd_hook.create(game::snd::SND_QueueAdd.get(), snd_queueadd_stub);
+  snd_processsndqueue_hook.create(game::snd::SND_ProcessSNDQueue.get(),
+                                  stub_func);
+  snd_queueflush_hook.create(game::snd::SND_QueueFlush.get(),
+                             reinterpret_cast<void (*)(int)>(stub_func));
+
+  /*
+    Enable sound
+  */
+  snd_active_hook.create(game::snd::SND_Active.get(), snd_active_stub);
+  snd_init_hook.create(game::snd::SND_Init.get(), snd_init_stub);
+  g_sndenabled_hook.create(game::snd::G_SndEnabled.get(), return_true);
+  snd_shouldinit_hook.create(game::snd::SND_ShouldInit.get(), return_true);
+
+  /*
+     Gracefully skip sound update instead of crashing if default sound assets
+     not loaded.
+
+     Fixes crash on server shutdown or restart.
+  */
+  sndl_update_hook.create(game::snd::sndl::SNDL_Update.get(), safe_sndl_update);
+}
+
+utils::hook::detour R_Stream_ClearTechniqueSetShaders_hook;
+void disable_unused_asset_loads() {
+  /*
+    In some cases of map switch between two usermaps, the dedicated server will
+    unexpectedly load material technique sets, despite being unused.
+
+    The below function takes a material technique set which is expected to be
+    initialized and zeroes its shader-related values. This is performed to
+    prepare the struct for subsequent copy of a loaded material technique set.
+
+    Some of these values require dereference of pointers stored as fields in the
+    material technique set. The material technique set is not actually
+    initialized as expected, because the dedicated server is not intended to
+    load or use these assets. As such, these pointer deferences result in a
+    memory access violation (null pointer dereference).
+
+    Stubbing this function could result in garbage data leftover in the
+    technique set after copy of the loaded technique set, but these are unused
+    on dedicated server, so this is inconsequential.
+  */
+  R_Stream_ClearTechniqueSetShaders_hook.create(
+      game::db::load::R_Stream_ClearTechniqueSetShaders,
+      reinterpret_cast<void (*)(
+          game::db::xasset::MaterialTechniqueSetPtr *techniqueSet)>(stub_func));
+}
+
 } // namespace
 
 struct component final : server_component {
   void post_unpack() override {
+
+    if (!utils::flags::has_flag("nosnd")) {
+      enable_sound();
+    }
+    disable_unused_asset_loads();
+
+    /*
+     Disable purposely crashing application by
+     incrementing g_copyInfoCount by 16384 (over limit) on authload failure.
+     Newer engine versions (e.g. Bo4) throw an error properly (`Sys_Error`)
+     instead.
+    */
+    utils::hook::nop(0x1401A18E1_g, 10);
+    utils::hook::nop(0x1401A1B5D_g, 10);
+
     // Sanitize chat messages on server
     g_say_hook.create(game::G_Say.get(), g_say_stub);
 
@@ -235,7 +461,7 @@ struct component final : server_component {
     */
     if (!utils::flags::has_flag("noratelimit")) {
       // Rate limit connections
-      sv_direct_connect_hook.create(game::SV_DirectConnect.get(),
+      sv_direct_connect_hook.create(game::sv::SV_DirectConnect.get(),
                                     sv_direct_connect_stub);
     }
 
@@ -256,12 +482,21 @@ struct component final : server_component {
       load balancer where multiple clients share the same IP.
     */
     sv_removeallclientsfromaddress_hook.create(
-        game::SV_Live_RemoveAllClientsFromAddress.get(),
+        game::sv::SV_Live_RemoveAllClientsFromAddress.get(),
         sv_live_removeallclientsfromaddress_stub);
 
-    // Enforce sv_cheats = 0 periodically
-    scheduler::loop([] { enforce_sv_cheats(); }, scheduler::pipeline::server,
-                    5000ms);
+    scheduler::once(
+        [] {
+          const game::dvar_t *sv_cheats = game::Dvar_FindVar("sv_cheats");
+          game::Dvar_SetBoolFromSource(sv_cheats, false,
+                                       game::DvarSetSource::INTERNAL);
+
+          // Enforce sv_cheats = 0
+          game::Dvar_SetModifiedCallback(
+              sv_cheats,
+              reinterpret_cast<game::modifiedCallback>(disable_sv_cheats_cb));
+        },
+        scheduler::pipeline::async, 30000ms);
 
     if (!utils::flags::has_flag("noratelimit")) {
       // Cleanup old rate limit entries periodically
@@ -301,7 +536,7 @@ struct component final : server_component {
     */
 
     if (utils::flags::has_flag("mitigatepacketspam")) {
-      sv_addservercommand_hook.create(game::SV_AddServerCommand.get(),
+      sv_addservercommand_hook.create(game::sv::SV_AddServerCommand.get(),
                                       sv_addservercommand_stub);
       g_init_game_hook.create(game::G_InitGame.get(), g_init_game_stub);
     }

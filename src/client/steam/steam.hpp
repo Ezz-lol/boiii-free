@@ -1,6 +1,19 @@
 #pragma once
+#include <cstdint>
+#include <string>
+#include <mutex>
+#include <thread>
+#include <atomic>
+#include <map>
+#include <vector>
 
+#ifndef STEAM_EXPORT
+#ifdef _WIN32
 #define STEAM_EXPORT extern "C" __declspec(dllexport)
+#else
+#define STEAM_EXPORT extern "C" __attribute__((visibility("default")))
+#endif
+#endif
 
 struct raw_steam_id final {
   unsigned int account_id : 32;

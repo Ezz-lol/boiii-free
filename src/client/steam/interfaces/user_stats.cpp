@@ -13,8 +13,6 @@ struct user_stats_received {
 } // namespace
 
 bool user_stats::RequestCurrentStats() {
-  static uint32_t ticket = 0;
-
   game_id game{};
   game.raw.mod_id = 0;
   game.raw.type = 0;

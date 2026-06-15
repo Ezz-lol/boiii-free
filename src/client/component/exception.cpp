@@ -280,23 +280,36 @@ void reset_state() {
 
     scheduler::once(
         [] {
-          if (game::Com_IsInGame())
-            game::Cbuf_AddText(0, "disconnect\n");
+          if (game::com::Com_IsInGame())
+            game::cbuf::Cbuf_AddText(0, "disconnect\n");
         },
         scheduler::pipeline::main);
 
-    game::Com_Error(game::ERR_DROP,
-                    "%s (0x%08X) at %s\n\n"
-                    "A crash dump has been saved to:\n%s\n\n"
-                    "Ezz has tried to recover your game, but it might not run "
-                    "stable anymore.\n\n"
-                    "Make sure to update your graphics card drivers and "
-                    "install operating system updates!\n"
-                    "Closing or restarting Steam might also help.\n\n"
-                    "If this keeps happening, please report it on our Discord: "
-                    "https://dc.ezz.lol",
-                    exception_name, exception_data.code, location.c_str(),
-                    (game::get_appdata_path() / "minidumps").string().c_str());
+    game::com::Com_Printf(
+        0, game::consoleLabel_e::DEFAULT,
+        "%s (0x%08X) at %s\n\n"
+        "A crash dump has been saved to:\n%s\n\n"
+        "Ezz has tried to recover your game, but it may be unstable.\n\n"
+        "Make sure to update your graphics card drivers and "
+        "install operating system updates!\n"
+        "Closing or restarting Steam might also help.\n\n"
+        "If this keeps happening, please report it on our Discord: "
+        "https://dc.ezz.lol",
+        exception_name, exception_data.code, location.c_str(),
+        (game::get_appdata_path() / "minidumps").string().c_str());
+
+    game::com::Com_Error(
+        game::errorParm::DROP,
+        "%s (0x%08X) at %s\n\n"
+        "A crash dump has been saved to:\n%s\n\n"
+        "Ezz has tried to recover your game, but it may be unstable.\n\n"
+        "Make sure to update your graphics card drivers and "
+        "install operating system updates!\n"
+        "Closing or restarting Steam might also help.\n\n"
+        "If this keeps happening, please report it on our Discord: "
+        "https://dc.ezz.lol",
+        exception_name, exception_data.code, location.c_str(),
+        (game::get_appdata_path() / "minidumps").string().c_str());
   } else {
     display_error_dialog();
   }
@@ -722,7 +735,7 @@ LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
 
   // Detailed console crash report
   printf("\n^1========== CRASH DETECTED ==========\n");
-  printf("^1  Exception:  %s (0x%08X)\n", exception_name,
+  printf("^1  Exception:  %s (0x%08lX)\n", exception_name,
          exceptioninfo->ExceptionRecord->ExceptionCode);
   printf("^1  Module:     %s + 0x%llX\n", crash_frame.module_name.c_str(),
          crash_frame.rva);

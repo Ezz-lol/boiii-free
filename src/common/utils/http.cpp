@@ -11,6 +11,11 @@ struct progress_helper {
   std::exception_ptr exception{};
 };
 
+struct stream_progress_helper {
+  const std::function<void(size_t, size_t)> *callback{};
+  std::exception_ptr exception{};
+};
+
 struct stream_helper {
   const std::function<void(const char *, size_t)> *callback{};
   std::exception_ptr exception{};
@@ -24,6 +29,25 @@ int progress_callback(void *clientp, const curl_off_t /*dltotal*/,
   try {
     if (*helper->callback) {
       (*helper->callback)(dlnow);
+    }
+  } catch (...) {
+    helper->exception = std::current_exception();
+    return -1;
+  }
+
+  return 0;
+}
+
+int stream_progress_callback(void *clientp, const curl_off_t dltotal,
+                             const curl_off_t dlnow,
+                             const curl_off_t /*ultotal*/,
+                             const curl_off_t /*ulnow*/) {
+  auto *helper = static_cast<stream_progress_helper *>(clientp);
+
+  try {
+    if (*helper->callback) {
+      (*helper->callback)(static_cast<size_t>(dlnow),
+                          static_cast<size_t>(dltotal));
     }
   } catch (...) {
     helper->exception = std::current_exception();
@@ -177,7 +201,7 @@ std::optional<std::string> post_data(const std::string &url,
 }
 
 int get_data_stream(const std::string &url, const headers &headers,
-                    const std::function<void(size_t)> &progress_cb,
+                    const std::function<void(size_t, size_t)> &progress_cb,
                     const std::function<void(const char *, size_t)> &write_cb,
                     const uint32_t retries) {
   auto *curl = curl_easy_init();
@@ -209,7 +233,7 @@ int get_data_stream(const std::string &url, const headers &headers,
   curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "identity");
 
   for (auto i = 0u; i < retries + 1; ++i) {
-    progress_helper progress_helper{};
+    stream_progress_helper progress_helper{};
     progress_helper.callback = &progress_cb;
 
     stream_helper write_helper{};
@@ -217,7 +241,7 @@ int get_data_stream(const std::string &url, const headers &headers,
 
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, write_callback_stream);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &write_helper);
-    curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, progress_callback);
+    curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, stream_progress_callback);
     curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &progress_helper);
     curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
 

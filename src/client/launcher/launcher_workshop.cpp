@@ -140,7 +140,7 @@ void monitor_initial_dump_phase(std::string workshop_id) {
 
 void try_refresh_workshop_content() {
   try {
-    game::Cbuf_AddText(0, "userContentReload\n");
+    game::cbuf::Cbuf_AddText(0, "userContentReload\n");
     printf("Workshop items refreshed in-game.\n");
   } catch (...) {
     // Game not running yet, nothing to refresh
@@ -241,12 +241,20 @@ constexpr const char *STEAM_WORKSHOP_API =
 constexpr int BO3_APP_ID = 311210;
 
 std::uint64_t parse_human_size_to_bytes(const std::string &text) {
-  std::smatch m;
-  std::regex re(R"((\d+(?:\.\d+)?)\s*(B|KB|MB|GB|TB))", std::regex::icase);
-  if (!std::regex_search(text, m, re) || m.size() < 3)
+  if (text.empty())
     return 0;
-  const double value = std::stod(m[1].str());
-  std::string unit = m[2].str();
+
+  double value = 0.0;
+  std::string unit;
+  std::istringstream ss(text);
+  if (!(ss >> value))
+    return 0;
+
+  if (!(ss >> unit)) {
+    // If no unit, assume bytes
+    return static_cast<std::uint64_t>(value);
+  }
+
   for (auto &c : unit)
     c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
 
@@ -394,23 +402,6 @@ workshop_info get_steam_workshop_info(const std::string &workshop_id) {
   }
 }
 
-std::uint64_t get_folder_mtime_epoch(const std::filesystem::path &folder) {
-  try {
-    std::error_code ec;
-    auto lwt = std::filesystem::last_write_time(folder, ec);
-    if (ec)
-      return 0;
-    auto sctp =
-        std::chrono::time_point_cast<std::chrono::system_clock::duration>(
-            lwt - std::filesystem::file_time_type::clock::now() +
-            std::chrono::system_clock::now());
-    return static_cast<std::uint64_t>(
-        std::chrono::system_clock::to_time_t(sctp));
-  } catch (...) {
-    return 0;
-  }
-}
-
 std::uint64_t compute_folder_size_bytes(const std::filesystem::path &folder) {
   std::error_code ec;
   if (!std::filesystem::exists(folder, ec))
@@ -428,44 +419,6 @@ std::uint64_t compute_folder_size_bytes(const std::filesystem::path &folder) {
       break;
   }
   return total;
-}
-
-bool copy_directory_recursive(const std::filesystem::path &from,
-                              const std::filesystem::path &to) {
-  std::error_code ec;
-  if (!std::filesystem::exists(from, ec))
-    return false;
-  std::filesystem::create_directories(to, ec);
-  if (ec)
-    return false;
-
-  for (const auto &entry :
-       std::filesystem::recursive_directory_iterator(from, ec)) {
-    if (ec)
-      return false;
-    const auto rel = std::filesystem::relative(entry.path(), from, ec);
-    if (ec)
-      return false;
-    const auto dest_path = to / rel;
-
-    if (entry.is_directory(ec)) {
-      std::filesystem::create_directories(dest_path, ec);
-      if (ec)
-        return false;
-      continue;
-    }
-    if (entry.is_regular_file(ec)) {
-      std::filesystem::create_directories(dest_path.parent_path(), ec);
-      if (ec)
-        return false;
-      std::filesystem::copy_file(
-          entry.path(), dest_path,
-          std::filesystem::copy_options::overwrite_existing, ec);
-      if (ec)
-        return false;
-    }
-  }
-  return true;
 }
 
 bool copy_directory_recursive_with_progress(

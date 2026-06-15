@@ -196,7 +196,7 @@ get_llvm_addr2line() {
 }
 
 get_llvm_coverage() {
-  if ! first_in_dir "$(get_llvm_bin)" "llvm-cov" "llvm-cov"; then
+  if ! first_in_dir "$(get_llvm_bin)" "llvm-cov" "cov"; then
     echo "Error: Could not find llvm-cov in LLVM bin directory: \"$(get_llvm_bin)\"." >&2
     exit 1
   fi
@@ -287,10 +287,36 @@ cross_env() {
   fi
 
   if [ -d "$temp_windres_link_dir" ]; then
-    rm -rf "$temp_windres_link_dir" 2>&1 || true
+    rm -rf "$temp_windres_link_dir" >/dev/null 2>&1 || true
   fi
 
   return "$exit_code"
+}
+
+flags_to_yaml_array_items() {
+  local flags_string="$1"
+  IFS=$' ' read -r -a flags_array <<<"$flags_string"
+  local num_flags="${#flags_array[@]}"
+  for ((i = 1; i < $((num_flags - 1)); i++)); do
+    if [ -n "${flags_array[i]}" ]; then
+      echo -ne "${flags_array[i]},\n"
+    fi
+  done
+  echo -ne "${flags_array[num_flags-1]}"
+
+}
+
+generate_clangd_config() {
+  local clangd_config_path
+  clangd_config_path="$(repo_dir)/.clangd"
+  cat >"$clangd_config_path" <<EOL
+CompileFlags:
+  Add: [
+$(flags_to_yaml_array_items "$TEMP_CXXFLAGS" | sed 's/^\s*/   /g'), 
+   -std=c++20
+  ]
+EOL
+  echo "Generated clangd config: '$clangd_config_path'"
 }
 
 # Arguments optional, can use them later if needed
@@ -301,7 +327,7 @@ premake() {
   args=("--os=windows"
     "--cc=clang"
     "--shell=posix"
-    --arch="x86_64"
+    "--arch=x86_64"
     "--file=${REPO_DIR}/premake5.lua"
   )
   if [ -n "$OUTPUT_DIR" ]; then
@@ -319,22 +345,24 @@ premake() {
 
 link_capitalized_headers() {
 
-  local needs_capitalized
+  declare -A needs_capitalized
+  needs_capitalized=()
 
   # All others have been enforced to use lowercase search path in codebase, but imgui uses "Windows.h" explicitly.
   # This is the only case-sensitive header lookup in our dependencies.
-  needs_capitalized=("windows.h")
+  needs_capitalized["windows.h"]="Windows.h"
 
-  for header in "${needs_capitalized[@]}"; do
-
-    find_capitalized="$(find "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}")"
+  for header_lower in "${!needs_capitalized[@]}"; do
+    header="${needs_capitalized["$header_lower"]}"
+    find_capitalized="$(find "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}" -name "${header}")"
     if [ -z "$find_capitalized" ]; then
-      find_case_insensitive="$(find "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}" -iname "$header")"
+      find_case_insensitive="$(find "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}" -iname "$header_lower")"
       if [ -n "$find_case_insensitive" ]; then
         find_dir="$(dirname "$find_case_insensitive")"
-        echo "Linking ${find_case_insensitive} -> ${find_dir}/${header}"
-        if ! ln -s "$find_case_insensitive" "${find_dir}/${header}"; then
-          echo "Error: Failed to link ${find_case_insensitive} to ${find_dir}/${header}" >&2
+        link_out="${find_dir}/${header}"
+        echo "Linking ${find_case_insensitive} -> ${link_out}"
+        if ! ln -s "$find_case_insensitive" "${link_out}"; then
+          echo "Error: Failed to link ${find_case_insensitive} to ${link_out}" >&2
           return 1
         fi
 
@@ -343,7 +371,6 @@ link_capitalized_headers() {
         return 1
       fi
     fi
-
   done
 
   return 0
@@ -353,7 +380,7 @@ print_usage() {
   echo "Cross-compilation build script for Windows using MSVC toolchain sysroot and LLVM toolchain on Unix-like systems."
   echo "Usage: $0 [OPTIONS]"
   echo "Options:"
-  echo "  --exec, -e [command]       Execute an arbitrary command instead of building. Example: --exec echo Hello, world!"
+  echo "  --exec, -e [command]       Execute an arbitrary command instead of building. Example: --exec echo 'Hello, world!'"
   echo "  --tidy, -t [tidy-args]     Run clang-tidy with all other arguments instead of building. Example: --tidy -checks='*' src/client/main.cpp"
   echo "  --clean, -c                Clean the build directory before building."
   echo "  --sysroot, -s              Specify the path to the MSVC toolchain sysroot."
@@ -490,7 +517,6 @@ cflags=(
   "-isystem" "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}"
   "-fms-extensions"
   "-fuse-ld=lld"
-  "--verbose"
   "--target=x86_64-windows-msvc"
   "-L${WINDOWS_MSVC_TOOLCHAIN_LIB_PATH}"
   "-L${WINDOWS_MSVC_TOOLCHAIN_BIN_PATH}"
@@ -503,7 +529,6 @@ cxxflags=(
   "-isystem" "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}"
   "-fms-extensions"
   "-fuse-ld=lld"
-  "--verbose"
   "--target=x86_64-windows-msvc"
   "-I${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}")
 ldflags=("-static"
@@ -514,7 +539,6 @@ ldflags=("-static"
   "-Wl,-libpath:${WINDOWS_MSVC_TOOLCHAIN_LIB_PATH}"
   "-Wl,-libpath:${WINDOWS_MSVC_TOOLCHAIN_BIN_PATH}"
   "-fuse-ld=lld"
-  "--verbose"
   "--target=x86_64-windows-msvc"
   "-L${WINDOWS_MSVC_TOOLCHAIN_LIB_PATH}"
   "-L${WINDOWS_MSVC_TOOLCHAIN_BIN_PATH}"
@@ -548,6 +572,7 @@ for warning in "${disabled_warnings[@]}"; do
   cxxflags+=("-Wno-$warning" "-Wno-error=$warning" "-Wno-clang-diagnostic-$warning" "-Wno-error=clang-diagnostic-$warning")
   ldflags+=("-Wno-$warning" "-Wno-error=$warning" "-Wno-clang-diagnostic-$warning" "-Wno-error=clang-diagnostic-$warning")
 done
+
 TEMP_CFLAGS="${cflags[*]}"
 TEMP_CXXFLAGS="${cxxflags[*]}"
 TEMP_LDFLAGS="${ldflags[*]}"
@@ -589,6 +614,8 @@ if tidy; then
   fi
 
 elif exec_arbitrary; then
+  # In case the command is opening an editor or an application that uses clangd otherwise
+  generate_clangd_config
   if ! cross_env \
     "${EXEC_ARGS[@]}"; then
     exit 1

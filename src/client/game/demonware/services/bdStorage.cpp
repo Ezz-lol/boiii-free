@@ -128,7 +128,8 @@ void bdStorage::get_publisher_file(service_server *server,
     reply.add(result);
     reply.send();
   } else {
-    server->create_reply(this->task_id(), game::BD_NO_FILE).send();
+    server->create_reply(this->task_id(), game::dw::bdLobbyErrorCode::NO_FILE)
+        .send();
   }
 }
 
@@ -293,7 +294,7 @@ void bdStorage::get_files(service_server *server, byte_buffer *buffer) const {
     entry->user_id = user_ctxs.at(i).first;
     entry->platform = user_ctxs.at(i).second;
     entry->filename = filenames.at(i);
-    entry->errorcode = 0;
+    entry->errorcode = game::dw::bdLobbyErrorCode::BD_NO_ERROR;
 
     auto &name = filenames.at(i);
     std::string filedata;
@@ -303,7 +304,7 @@ void bdStorage::get_files(service_server *server, byte_buffer *buffer) const {
       printf("[DW]: [bdStorage]: get user file: %s\n", name.data());
 #endif
     } else {
-      entry->errorcode = game::BD_NO_FILE;
+      entry->errorcode = game::dw::bdLobbyErrorCode::NO_FILE;
 #ifndef NDEBUG
       printf("[DW]: [bdStorage]: missing user file: %s\n", name.data());
 #endif

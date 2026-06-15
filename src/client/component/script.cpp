@@ -2,14 +2,18 @@
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
 #include "game/utils.hpp"
+#include "game/impl/scr/scr.hpp"
 
 #include "game_event.hpp"
 #include "gsc/gsc_compiler.hpp"
 #include "scheduler.hpp"
 
+#include <unordered_map>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/io.hpp>
+using namespace game::db::xasset;
+using namespace game::scr;
 
 namespace gsc_funcs {
 void add_detour(int64_t target_addr, int64_t replacement_addr);
@@ -20,32 +24,53 @@ namespace {
 constexpr size_t GSC_MAGIC = 0x1C000A0D43534780;
 
 utils::hook::detour db_find_x_asset_header_hook;
-utils::hook::detour gscr_get_bgb_remaining_hook;
+utils::hook::detour gscr_get_bgb_tokens_remaining_hook;
 
 utils::memory::allocator allocator;
-std::unordered_map<std::string, game::RawFile *> loaded_scripts;
+std::unordered_map<std::string, RawFile *> loaded_scripts;
+static constexpr std::array<std::string_view, 5> SCR_HASH_LITERAL_PREFIXES = {
+    "hash", "id", "function", "var", "namespace"};
 
-bool try_parse_raw_hash(const std::string &input, uint32_t &out) {
-  auto underscore = input.find('_');
-  if (underscore == std::string::npos || underscore + 1 >= input.size())
-    return false;
-
-  auto prefix = input.substr(0, underscore);
-  if (prefix != "hash" && prefix != "function" && prefix != "var" &&
-      prefix != "namespace")
-    return false;
-
-  auto hex_part = input.substr(underscore + 1);
-  if (hex_part.size() != 8)
-    return false;
-
-  for (char c : hex_part) {
-    if (!std::isxdigit(static_cast<unsigned char>(c)))
-      return false;
+bool is_hash_literal_prefix(const std::string &s) {
+  for (uint32_t i = 0; i < SCR_HASH_LITERAL_PREFIXES.size(); i++) {
+    if (s == SCR_HASH_LITERAL_PREFIXES[i]) {
+      return true;
+    }
   }
 
-  out = static_cast<uint32_t>(std::stoul(hex_part, nullptr, 16));
-  return out != 0;
+  return false;
+}
+
+bool try_parse_raw_hash(const std::string &input, uint32_t &out) {
+
+  if (input.size() > 0) {
+    std::string inputSubstr = input;
+    if (inputSubstr[0] == '_') {
+      inputSubstr = inputSubstr.substr(1);
+    }
+    const size_t underscoreIdx = inputSubstr.find('_');
+    if (underscoreIdx != std::string::npos &&
+        underscoreIdx < inputSubstr.size()) {
+
+      const std::string prefix = inputSubstr.substr(0, underscoreIdx);
+      if (is_hash_literal_prefix(prefix)) {
+
+        const std::string hex_part = inputSubstr.substr(underscoreIdx + 1);
+        if (hex_part.size() == 8) {
+
+          for (char c : hex_part) {
+            if (!std::isxdigit(static_cast<unsigned char>(c)))
+              return false;
+          }
+
+          out = static_cast<uint32_t>(std::stoul(hex_part, nullptr, 16));
+          return out != 0;
+        }
+      }
+    }
+  }
+
+  return false;
 }
 
 uint32_t gsc_hash(const std::string &str) {
@@ -60,6 +85,24 @@ uint32_t gsc_hash(const std::string &str) {
         0x1000193;
   h *= 0x1000193;
   return h;
+}
+
+std::string normalize_script_name(std::string script_name) {
+  auto start = script_name.find('<');
+  auto end = script_name.find('>');
+  if (start != std::string::npos && end != std::string::npos &&
+      end > start + 1) {
+    const std::string inner = script_name.substr(start + 1, end - start - 1);
+    if (inner.find('/') != std::string::npos ||
+        inner.find('\\') != std::string::npos) {
+      script_name = inner;
+    }
+  }
+  for (char &c : script_name) {
+    if (c == '\\')
+      c = '/';
+  }
+  return script_name;
 }
 
 // T7 export table entry layout (matches game binary, 20 bytes)
@@ -77,9 +120,13 @@ struct t7_export_entry {
 
 struct pending_detour {
   std::string target_script;
+  std::string target_func;
   uint32_t target_func_hash;
+  int target_params;
   std::string replace_script;
+  std::string replace_func;
   uint32_t replace_func_hash;
+  int replace_params;
 };
 std::vector<pending_detour> pending_detours;
 
@@ -177,13 +224,12 @@ void fixup_script_imports(char *buf, int len) {
     uint32_t path_hash = gsc_hash(inc_path);
 
     // Look up the actual game SPT for this include path (try .gsc then .csc)
-    auto *asset = db_find_x_asset_header_hook.invoke<game::RawFile *>(
-        game::ASSET_TYPE_SCRIPTPARSETREE, (inc_path + ".gsc").c_str(), false,
-        0);
+    auto *asset = db_find_x_asset_header_hook.invoke<RawFile *>(
+        XAssetType::SCRIPTPARSETREE, (inc_path + ".gsc").c_str(), false, 0);
     if (!asset || !asset->buffer)
-      asset = db_find_x_asset_header_hook.invoke<game::RawFile *>(
-          game::ASSET_TYPE_SCRIPTPARSETREE, (inc_path + ".csc").c_str(), false,
-          0);
+      asset = db_find_x_asset_header_hook.invoke<RawFile *>(
+          XAssetType::SCRIPTPARSETREE, (inc_path + ".csc").c_str(), false, 0);
+
     if (!asset || !asset->buffer)
       continue;
 
@@ -199,7 +245,8 @@ void fixup_script_imports(char *buf, int len) {
     std::memcpy(&exp_cnt, spt + 0x3A, 2);
 
     if (exp_cnt > 0) {
-      auto *exps = reinterpret_cast<const t7_export_entry *>(spt + exp_off);
+      const t7_export_entry *exps =
+          reinterpret_cast<const t7_export_entry *>(spt + exp_off);
       uint32_t actual_ns = exps[0].ns_name;
       if (actual_ns != path_hash)
         path_to_ns[path_hash] = actual_ns;
@@ -211,7 +258,6 @@ void fixup_script_imports(char *buf, int len) {
 
   // Walk import table and patch ns_hash where it matches a path hash
   size_t pos = import_offset;
-  int patched = 0;
   for (uint16_t i = 0; i < import_count; i++) {
     if (pos + 12 > static_cast<size_t>(len))
       break;
@@ -225,7 +271,6 @@ void fixup_script_imports(char *buf, int len) {
     auto it = path_to_ns.find(ns_hash);
     if (it != path_to_ns.end()) {
       std::memcpy(buf + pos + 4, &it->second, 4);
-      patched++;
     }
 
     pos += 12 + 4 * static_cast<size_t>(num_refs);
@@ -233,22 +278,37 @@ void fixup_script_imports(char *buf, int len) {
 }
 
 const uint8_t *get_spt_buffer(const std::string &name) {
+  auto normalize_path = [](std::string path) {
+    for (char &c : path) {
+      if (c == '\\')
+        c = '/';
+    }
+    return path;
+  };
+
+  std::string normalized_name = normalize_script_name(name);
+
   // Try with extension first, then without
-  std::string with_ext = name;
+  std::string with_ext = normalized_name;
   const bool has_ext = utils::string::ends_with(with_ext, ".gsc") ||
                        utils::string::ends_with(with_ext, ".csc");
   if (!has_ext)
     with_ext += ".gsc";
-  std::string without_ext = name;
+  std::string without_ext = normalized_name;
   if (utils::string::ends_with(without_ext, ".gsc") ||
       utils::string::ends_with(without_ext, ".csc"))
     without_ext = without_ext.substr(0, without_ext.size() - 4);
 
+  std::string with_ext_norm = normalize_path(with_ext);
+  std::string without_ext_norm = normalize_path(without_ext);
+
   // Check our custom scripts (case-insensitive key search)
   for (auto &[key, rf] : loaded_scripts) {
-    if (rf && rf->buffer &&
-        (_stricmp(key.c_str(), with_ext.c_str()) == 0 ||
-         _stricmp(key.c_str(), without_ext.c_str()) == 0))
+    if (!rf || !rf->buffer)
+      continue;
+    std::string key_norm = normalize_path(key);
+    if (_stricmp(key_norm.c_str(), with_ext_norm.c_str()) == 0 ||
+        _stricmp(key_norm.c_str(), without_ext_norm.c_str()) == 0)
       return reinterpret_cast<const uint8_t *>(rf->buffer);
   }
 
@@ -262,21 +322,24 @@ const uint8_t *get_spt_buffer(const std::string &name) {
     if (utils::string::ends_with(key_no_ext, ".gsc") ||
         utils::string::ends_with(key_no_ext, ".csc"))
       key_no_ext = key_no_ext.substr(0, key_no_ext.size() - 4);
-    // Check if without_ext ends with /key_no_ext or \key_no_ext
-    if (without_ext.size() > key_no_ext.size()) {
-      char sep = without_ext[without_ext.size() - key_no_ext.size() - 1];
-      if ((sep == '/' || sep == '\\') &&
-          _stricmp(without_ext.c_str() + without_ext.size() - key_no_ext.size(),
-                   key_no_ext.c_str()) == 0)
+    std::string key_no_ext_norm = normalize_path(key_no_ext);
+
+    if (without_ext_norm.size() > key_no_ext_norm.size()) {
+      char sep = without_ext_norm[without_ext_norm.size() -
+                                  key_no_ext_norm.size() - 1];
+      if (sep == '/' &&
+          _stricmp(without_ext_norm.c_str() + without_ext_norm.size() -
+                       key_no_ext_norm.size(),
+                   key_no_ext_norm.c_str()) == 0)
         return reinterpret_cast<const uint8_t *>(rf->buffer);
     }
   }
 
   // Fall back to game's asset database (try .gsc, .csc, and without ext)
   std::string with_csc = without_ext + ".csc";
-  for (auto &lookup : {with_ext, with_csc, without_ext}) {
-    auto *asset = db_find_x_asset_header_hook.invoke<game::RawFile *>(
-        game::ASSET_TYPE_SCRIPTPARSETREE, lookup.c_str(), false, 0);
+  for (const std::string &lookup : {with_ext, with_csc, without_ext}) {
+    RawFile *asset = db_find_x_asset_header_hook.invoke<RawFile *>(
+        XAssetType::SCRIPTPARSETREE, lookup.c_str(), false, 0);
     if (asset && asset->buffer)
       return reinterpret_cast<const uint8_t *>(asset->buffer);
   }
@@ -284,56 +347,86 @@ const uint8_t *get_spt_buffer(const std::string &name) {
   return nullptr;
 }
 
-int64_t find_export_address_internal(const std::string &script_name,
-                                     uint32_t func_hash) {
+struct export_lookup_result {
+  int64_t address = 0;
+  bool script_loaded = false;
+};
+
+export_lookup_result
+resolve_export_address_internal(const std::string &script_name,
+                                uint32_t func_hash, int expected_params = -1) {
+  export_lookup_result result{};
+
   const uint8_t *buffer = get_spt_buffer(script_name);
-  if (!buffer)
-    return 0;
+  result.script_loaded = (buffer != nullptr);
+  if (!buffer) {
+    return result;
+  }
 
   uint64_t magic = 0;
   std::memcpy(&magic, buffer, sizeof(magic));
-  if (magic != GSC_MAGIC)
-    return 0;
+  if (magic != GSC_MAGIC) {
+    return result;
+  }
 
   uint32_t export_offset = 0;
-  uint16_t export_count = 0;
   std::memcpy(&export_offset, buffer + 0x20, sizeof(export_offset));
+  uint16_t export_count = 0;
   std::memcpy(&export_count, buffer + 0x3A, sizeof(export_count));
 
-  auto *exports =
+  const t7_export_entry *exports =
       reinterpret_cast<const t7_export_entry *>(buffer + export_offset);
   for (uint16_t i = 0; i < export_count; i++) {
-    if (exports[i].func_name == func_hash)
-      return reinterpret_cast<int64_t>(buffer + exports[i].offset);
+    if (exports[i].func_name == func_hash) {
+      if (expected_params >= 0 &&
+          exports[i].num_params != static_cast<uint8_t>(expected_params)) {
+        continue;
+      }
+
+      result.address = reinterpret_cast<int64_t>(buffer + exports[i].offset);
+      if (expected_params >= 0) {
+        break;
+      }
+    }
   }
-  return 0;
+
+  return result;
+}
+
+int64_t find_export_address_internal(const std::string &script_name,
+                                     uint32_t func_hash,
+                                     int expected_params = -1) {
+  return resolve_export_address_internal(script_name, func_hash,
+                                         expected_params)
+      .address;
 }
 
 void apply_pending_detours() {
-  for (auto &d : pending_detours) {
-    int64_t target =
-        find_export_address_internal(d.target_script, d.target_func_hash);
-    int64_t replace =
-        find_export_address_internal(d.replace_script, d.replace_func_hash);
-    if (target && replace) {
-      gsc_funcs::add_detour(target, replace);
-    } else {
-      printf("^1[replacefunc] FAILED: %s::0x%08X -> %s::0x%08X\n",
-             d.target_script.c_str(), d.target_func_hash,
-             d.replace_script.c_str(), d.replace_func_hash);
+  std::vector<pending_detour> remaining_detours;
+  remaining_detours.reserve(pending_detours.size());
 
-      if (!target)
-        printf("^1  Reason: target function not found in '%s' (script %s "
-               "loaded)\n",
-               d.target_script.c_str(),
-               get_spt_buffer(d.target_script) ? "IS" : "NOT");
-      if (!replace)
-        printf("^1  Reason: replacement function not found in '%s' (script %s "
-               "loaded)\n",
-               d.replace_script.c_str(),
-               get_spt_buffer(d.replace_script) ? "IS" : "NOT");
+  for (pending_detour &d : pending_detours) {
+    const auto target = resolve_export_address_internal(
+        d.target_script, d.target_func_hash, d.target_params);
+    const auto replace = resolve_export_address_internal(
+        d.replace_script, d.replace_func_hash, d.replace_params);
+
+    if (target.address && replace.address) {
+      gsc_funcs::add_detour(target.address, replace.address);
+    } else {
+      if (!target.script_loaded || !replace.script_loaded) {
+        remaining_detours.push_back(d);
+        continue;
+      }
+
+      printf("[gsc] detour bind failed %s::%s(%d) -> %s::%s(%d)\n",
+             d.target_script.c_str(), d.target_func.c_str(), d.target_params,
+             d.replace_script.c_str(), d.replace_func.c_str(),
+             d.replace_params);
     }
   }
+
+  pending_detours = std::move(remaining_detours);
 }
 
 struct hash_info {
@@ -345,7 +438,7 @@ std::unordered_map<uint32_t, std::vector<hash_info>> script_hash_names;
 
 std::unordered_map<std::string, std::string> script_sources;
 
-game::RawFile *get_loaded_script(const std::string &name) {
+RawFile *get_loaded_script(const std::string &name) {
   const auto itr = loaded_scripts.find(name);
   return (itr == loaded_scripts.end()) ? nullptr : itr->second;
 }
@@ -355,8 +448,10 @@ void print_loading_script(const std::string &name) {
   printf("Loading %s script '%s'\n", type, name.data());
 }
 
-void load_script(std::string &name, const std::string &data,
-                 const bool is_custom) {
+void load_script(const std::string &input_name, const std::string &data,
+                 const bool load) {
+
+  std::string name = std::string(input_name);
   const auto appdata_path =
       (game::get_appdata_path() / "data/").generic_string();
   const auto host_path =
@@ -386,15 +481,13 @@ void load_script(std::string &name, const std::string &data,
     return;
   }
 
-  if (is_custom) {
-    base_name = name.substr(0, name.size() - 4);
-    if (base_name.empty()) {
-      printf("Script '%s' failed to load due to invalid name.\n", name.data());
-      return;
-    }
+  base_name = name.substr(0, name.size() - 4);
+  if (base_name.empty()) {
+    printf("Script '%s' failed to load due to invalid name.\n", name.data());
+    return;
   }
 
-  auto *raw_file = allocator.allocate<game::RawFile>();
+  RawFile *raw_file = allocator.allocate<RawFile>();
   raw_file->name = allocator.duplicate_string(name);
   raw_file->buffer = allocator.duplicate_string(data);
   raw_file->len = static_cast<int>(data.length());
@@ -402,136 +495,137 @@ void load_script(std::string &name, const std::string &data,
   fixup_script_imports(const_cast<char *>(raw_file->buffer), raw_file->len);
 
   loaded_scripts[name] = raw_file;
+  printf("Loaded script '%s' (size %llu bytes)\n", name.data(), raw_file->len);
 
-  if (is_custom) {
-    const auto inst =
-        is_csc ? game::SCRIPTINSTANCE_CLIENT : game::SCRIPTINSTANCE_SERVER;
-    game::Scr_LoadScript(inst, base_name.data());
+  if (load) {
+    const scriptInstance_t inst =
+        is_csc ? SCRIPTINSTANCE_CLIENT : SCRIPTINSTANCE_SERVER;
+    game::scr::Scr_LoadScript(inst, base_name.data());
   }
 }
 
-void load_scripts_folder(const std::string &script_dir, const bool is_custom) {
+void load_script_file(std::string &data, const std::string &script_file,
+                      const bool load) {
+  if (data.size() >= sizeof(GSC_MAGIC) &&
+      !std::memcmp(data.data(), &GSC_MAGIC, sizeof(GSC_MAGIC))) {
+    print_loading_script(script_file);
+    load_script(script_file, data, load);
+  } else if ((utils::string::ends_with(script_file, ".gsc") ||
+              utils::string::ends_with(script_file, ".csc")) &&
+             !data.empty()) {
+    const bool is_csc = utils::string::ends_with(script_file, ".csc");
+    const char *script_type = is_csc ? "CSC" : "GSC";
+
+    // Skip CSC on dedicated server
+    if (is_csc && game::is_server())
+      return;
+
+    // Strip devblocks before compilation
+    std::string cleaned_source = strip_devblocks(data);
+
+    printf("Compiling %s script '%s'\n", script_type, script_file.data());
+    gsc_compiler::compile_result result =
+        gsc_compiler::compile(cleaned_source, script_file);
+    if (result.success) {
+      std::string bytecode(result.bytecode.begin(), result.bytecode.end());
+
+      // Store hash-to-name+line map from this compilation
+      for (gsc_compiler::hash_name_pair &hn : result.hash_names) {
+        script_hash_names[hn.hash].push_back({hn.name, hn.line, hn.params});
+      }
+
+      // Store original source text for this file
+      script_sources[script_file] = data;
+
+      print_loading_script(script_file);
+      load_script(script_file, bytecode, load);
+
+      // Register replacefunc entries as pending detours
+      if (!result.replacefuncs.empty()) {
+        std::string replace_base = script_file;
+        if (utils::string::ends_with(replace_base, ".gsc") ||
+            utils::string::ends_with(replace_base, ".csc"))
+          replace_base = replace_base.substr(0, replace_base.size() - 4);
+
+        for (gsc_compiler::replacefunc_entry &rf : result.replacefuncs) {
+          const std::string replace_script =
+              rf.replace_script.empty() ? replace_base : rf.replace_script;
+          pending_detours.push_back(
+              {rf.target_script, rf.target_func, gsc_hash(rf.target_func),
+               rf.target_params, replace_script, rf.replace_func,
+               gsc_hash(rf.replace_func), rf.replace_params});
+        }
+      }
+    } else {
+      auto get_source_line = [](const std::string &src,
+                                int line_num) -> std::string {
+        if (line_num <= 0)
+          return "";
+        int current = 1;
+        size_t start = 0;
+        while (current < line_num && start < src.size()) {
+          if (src[start] == '\n')
+            current++;
+          start++;
+        }
+        if (current != line_num)
+          return "";
+        size_t end = src.find('\n', start);
+        if (end == std::string::npos)
+          end = src.size();
+        std::string line = src.substr(start, end - start);
+        if (!line.empty() && line.back() == '\r')
+          line.pop_back();
+        return line;
+      };
+
+      printf("^1*********************%s COMPILE ERROR*********************\n",
+             script_type);
+      for (const auto &err : result.errors) {
+        printf("^1  File:    ^5%s\n", err.file.data());
+        if (err.line > 0) {
+          printf("^1  Line:    ^2%d^7, ^1Column: ^2%d\n", err.line, err.column);
+          std::string src_line = get_source_line(data, err.line);
+          if (!src_line.empty()) {
+            printf("^1  Source:  ^7%s\n", src_line.data());
+          }
+        }
+        printf("^1  Error:   ^1%s\n", err.message.data());
+        printf("^1---------------------------------------------------------"
+               "---\n");
+      }
+      printf("^1***********************************************************"
+             "*\n");
+    }
+  }
+}
+
+void load_scripts_folder(const std::string &script_dir, const bool load,
+                         const bool recurse) {
   if (!utils::io::directory_exists(script_dir)) {
     return;
   }
 
-  const auto scripts = utils::io::list_files(script_dir);
-
-  std::error_code e;
+  std::vector<std::filesystem::path> scripts =
+      utils::io::list_files(script_dir, recurse, false);
   for (const auto &script : scripts) {
     std::string data;
-    auto script_file = script.generic_string();
-    if (!std::filesystem::is_directory(script, e) &&
-        utils::io::read_file(script_file, &data)) {
-      if (data.size() >= sizeof(GSC_MAGIC) &&
-          !std::memcmp(data.data(), &GSC_MAGIC, sizeof(GSC_MAGIC))) {
-        print_loading_script(script_file);
-        load_script(script_file, data, is_custom);
-      } else if ((utils::string::ends_with(script_file, ".gsc") ||
-                  utils::string::ends_with(script_file, ".csc")) &&
-                 !data.empty()) {
-        const bool is_csc = utils::string::ends_with(script_file, ".csc");
-        const char *script_type = is_csc ? "CSC" : "GSC";
+    std::string script_path_str = script.generic_string();
+    if (!std::filesystem::is_directory(script) &&
+        utils::io::read_file(script_path_str, &data)) {
 
-        // Skip CSC on dedicated server
-        if (is_csc && game::is_server())
-          continue;
-
-        // Strip devblocks before compilation
-        auto cleaned_source = strip_devblocks(data);
-
-        printf("Compiling %s script '%s'\n", script_type, script_file.data());
-        auto result = gsc_compiler::compile(cleaned_source, script_file);
-        if (result.success) {
-          std::string bytecode(result.bytecode.begin(), result.bytecode.end());
-
-          // Store hash-to-name+line map from this compilation
-          for (auto &hn : result.hash_names) {
-            script_hash_names[hn.hash].push_back({hn.name, hn.line, hn.params});
-          }
-
-          // Store original source text for this file
-          script_sources[script_file] = data;
-
-          print_loading_script(script_file);
-          load_script(script_file, bytecode, is_custom);
-
-          // Register replacefunc entries as pending detours
-          if (!result.replacefuncs.empty()) {
-            std::string replace_base = script_file;
-            if (utils::string::ends_with(replace_base, ".gsc") ||
-                utils::string::ends_with(replace_base, ".csc"))
-              replace_base = replace_base.substr(0, replace_base.size() - 4);
-
-            for (auto &rf : result.replacefuncs) {
-
-              pending_detours.push_back({rf.target_script,
-                                         gsc_hash(rf.target_func), replace_base,
-                                         gsc_hash(rf.replace_func)});
-            }
-          }
-        } else {
-          auto get_source_line = [](const std::string &src,
-                                    int line_num) -> std::string {
-            if (line_num <= 0)
-              return "";
-            int current = 1;
-            size_t start = 0;
-            while (current < line_num && start < src.size()) {
-              if (src[start] == '\n')
-                current++;
-              start++;
-            }
-            if (current != line_num)
-              return "";
-            size_t end = src.find('\n', start);
-            if (end == std::string::npos)
-              end = src.size();
-            auto line = src.substr(start, end - start);
-            if (!line.empty() && line.back() == '\r')
-              line.pop_back();
-            return line;
-          };
-
-          printf(
-              "^1*********************%s COMPILE ERROR*********************\n",
-              script_type);
-          for (const auto &err : result.errors) {
-            printf("^1  File:    ^5%s\n", err.file.data());
-            if (err.line > 0) {
-              printf("^1  Line:    ^2%d^7, ^1Column: ^2%d\n", err.line,
-                     err.column);
-              auto src_line = get_source_line(data, err.line);
-              if (!src_line.empty()) {
-                printf("^1  Source:  ^7%s\n", src_line.data());
-              }
-            }
-            printf("^1  Error:   ^1%s\n", err.message.data());
-            printf("^1---------------------------------------------------------"
-                   "---\n");
-          }
-          printf("^1***********************************************************"
-                 "*\n");
-        }
-      }
-
-      continue;
-    }
-
-    // Do not traverse directories for custom scripts.
-    if (std::filesystem::is_directory(script, e) && !is_custom) {
-      load_scripts_folder(script_file, is_custom);
+      load_script_file(data, script_path_str, load);
     }
   }
 }
 
 std::optional<std::filesystem::path> get_game_type_specific_folder() {
-  switch (game::Com_SessionMode_GetMode()) {
-  case game::MODE_MULTIPLAYER:
+  switch (game::com::Com_SessionMode_GetMode()) {
+  case game::eModes::MULTIPLAYER:
     return "mp";
-  case game::MODE_ZOMBIES:
+  case game::eModes::ZOMBIES:
     return "zm";
-  case game::MODE_CAMPAIGN:
+  case game::eModes::CAMPAIGN:
     return "cp";
   default:
     return {};
@@ -541,51 +635,68 @@ std::optional<std::filesystem::path> get_game_type_specific_folder() {
 void load_scripts() {
   const utils::nt::library host{};
 
-  const auto data_folder = game::get_appdata_path() / "data";
-  const auto boiii_folder = host.get_folder() / "boiii";
+  const std::filesystem::path data_folder = game::get_appdata_path() / "data";
+  const std::filesystem::path boiii_folder = host.get_folder() / "boiii";
 
   const auto load = [&data_folder,
                      &boiii_folder](const std::filesystem::path &folder,
-                                    const bool is_custom) {
-    load_scripts_folder((data_folder / folder).string(), is_custom);
-    load_scripts_folder((boiii_folder / folder).string(), is_custom);
+                                    const bool load, const bool recurse) {
+    load_scripts_folder((data_folder / folder).string(), load, recurse);
+    load_scripts_folder((boiii_folder / folder).string(), load, recurse);
   };
 
   // scripts folder is for overriding stock scripts the game uses
-  load("scripts", false);
+  load("scripts", false, true);
 
-  // custom_scripts is for loading completely custom scripts the game doesn't
-  // use
-  load("custom_scripts", true);
-
-  if (const auto game_type = get_game_type_specific_folder();
-      game_type.has_value()) {
-    load("custom_scripts" / game_type.value(), true);
+  std::vector<std::filesystem::path> applicable_custom_script_paths = {
+      "custom_scripts/shared", "custom_scripts/core",
+      "custom_scripts/codescripts"};
+  const std::optional<std::filesystem::path> game_type =
+      get_game_type_specific_folder();
+  if (game_type.has_value()) {
+    applicable_custom_script_paths.push_back("custom_scripts" /
+                                             game_type.value());
   }
 
-  const std::filesystem::path mapname = game::get_dvar_string("mapname");
-  if (!mapname.empty()) {
-    load("custom_scripts" / mapname, true);
+  /*
+    First, compile and load each script into our lookup table.
+    We must do this before loading any scripts into the VM to ensure all
+    dependencies are available for lookup upon first custom script load.
+  */
+  for (const std::filesystem::path &path : applicable_custom_script_paths) {
+    load(path, false, true);
   }
+  load("custom_scripts", false, false);
+
+  // Now, load the custom scripts into the VM.
+  for (const std::filesystem::path &path : applicable_custom_script_paths) {
+    load(path, true, true);
+  }
+  load("custom_scripts", true, false);
 }
 
-game::RawFile *db_find_x_asset_header_stub(const game::XAssetType type,
-                                           const char *name,
-                                           const bool error_if_missing,
-                                           const int wait_time) {
+XAssetHeader db_find_x_asset_header_stub(const XAssetType type,
+                                         const char *name,
+                                         const bool error_if_missing,
+                                         const int wait_time) {
   // Check our loaded scripts FIRST to avoid "Could not find scriptparsetree"
   // spam
-  if (type == game::ASSET_TYPE_SCRIPTPARSETREE) {
-    auto *script = get_loaded_script(name);
-    if (script)
-      return script;
+  if (type == XAssetType::SCRIPTPARSETREE) {
+    RawFile *script = get_loaded_script(name);
+    if (script != nullptr) {
+      return static_cast<XAssetHeader>(script);
+    }
   }
 
-  return db_find_x_asset_header_hook.invoke<game::RawFile *>(
+  return db_find_x_asset_header_hook.invoke<XAssetHeader>(
       type, name, error_if_missing, wait_time);
 }
 
+static std::mutex script_load_lock;
+
 void clear_script_memory() {
+  std::lock_guard lock(script_load_lock);
+
   loaded_scripts.clear();
   script_hash_names.clear();
   script_sources.clear();
@@ -593,27 +704,24 @@ void clear_script_memory() {
   allocator.clear();
 }
 
-// Fix up imports that use full-path namespace hashes to match the actual
-// target script's #namespace hash. This allows full-path call syntax:
-//   scripts\zm\_zm_score::add_to_player_score(points)
-// The import ns_hash is gsc_hash("scripts/zm/_zm_score"), but the game script's
-void begin_load_scripts_stub(game::scriptInstance_t inst, int user) {
-  game::Scr_BeginLoadScripts(inst, user);
+void begin_load_scripts_stub(scriptInstance_t inst, int user) {
+  std::lock_guard lock(script_load_lock);
 
-  if (game::Com_IsInGame() && !game::Com_IsRunningUILevel()) {
+  game::scr::Scr_BeginLoadScripts(inst, user);
+
+  if (game::com::Com_IsInGame() && !game::com::Com_IsRunningUILevel()) {
     load_scripts();
 
-    if (!pending_detours.empty()) {
+    if (!pending_detours.empty())
       apply_pending_detours();
-    }
   }
 }
 
 int server_script_checksum_stub() { return 1; }
 
-void scr_loot_get_item_quantity_stub(
-    game::scriptInstance_t inst, [[maybe_unused]] game::scr_entref_t entref) {
-  game::Scr_AddInt(inst, 255);
+void gscr_getbgbtokensremaining_stub(scriptInstance_t inst,
+                                     [[maybe_unused]] scr_entref_t entref) {
+  game::scr::Scr_AddInt(inst, 255);
 }
 } // namespace
 
@@ -633,7 +741,7 @@ void load_global_hash_table() {
       while (std::getline(stream, line)) {
         if (line.empty())
           continue;
-        auto space = line.find(' ');
+        size_t space = line.find(' ');
         if (space == std::string::npos)
           continue;
         uint32_t hash = static_cast<uint32_t>(
@@ -647,12 +755,13 @@ void load_global_hash_table() {
     };
 
     // Try appdata path first, then exe-relative path
-    const auto appdata =
+    const std::filesystem::path appdata =
         game::get_appdata_path() / "data" / "lookup_tables" / "hash_names.txt";
     if (try_load(appdata))
       return;
-    const auto host = utils::nt::library{}.get_folder() / "boiii" / "data" /
-                      "lookup_tables" / "hash_names.txt";
+    const std::filesystem::path host = utils::nt::library{}.get_folder() /
+                                       "boiii" / "data" / "lookup_tables" /
+                                       "hash_names.txt";
     if (try_load(host))
       return;
   });
@@ -673,8 +782,9 @@ std::string resolve_hash(uint32_t hash) {
 }
 
 int64_t find_export_address(const std::string &script_name,
-                            const std::string &func_name) {
-  return find_export_address_internal(script_name, gsc_hash(func_name));
+                            const std::string &func_name, int expected_params) {
+  return find_export_address_internal(script_name, gsc_hash(func_name),
+                                      expected_params);
 }
 
 int resolve_hash_line(uint32_t hash, int num_params) {
@@ -717,10 +827,14 @@ std::string get_source_line(const std::string &file, int line_num) {
   return {};
 }
 
+utils::hook::detour Scr_IsFloatTrue_hook;
+utils::hook::detour Scr_IsTrue_hook;
+
 struct component final : generic_component {
   void post_unpack() override {
+
     // Return custom or overrided scripts if found
-    db_find_x_asset_header_hook.create(game::select(0x141420ED0, 0x1401D5FB0),
+    db_find_x_asset_header_hook.create(DB_FindXAssetHeader.get(),
                                        db_find_x_asset_header_stub);
 
     // Free our scripts when the game ends
@@ -735,10 +849,18 @@ struct component final : generic_component {
                       server_script_checksum_stub);
 
     // Workaround for "Out of X" gobblegum
-    gscr_get_bgb_remaining_hook.create(game::select(0x141A8CAB0, 0x1402D2310),
-                                       scr_loot_get_item_quantity_stub);
+    gscr_get_bgb_tokens_remaining_hook.create(
+        gscr::GScr_GetBGBTokensRemaining.get(),
+        gscr_getbgbtokensremaining_stub);
+
+    // Fix common "cannot cast undefined to bool" error in flagsys.gsc on
+    // launching usermap in private match
+    Scr_IsFloatTrue_hook.create(game::scr::Scr_IsFloatTrue.get(),
+                                game::scr::Scr_IsTrue_Impl);
+    Scr_IsTrue_hook.create(game::scr::Scr_IsTrue.get(),
+                           game::scr::Scr_IsTrue_Impl);
   }
 };
-}; // namespace script
+} // namespace script
 
 REGISTER_COMPONENT(script::component)

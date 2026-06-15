@@ -15,7 +15,7 @@ struct fragmented_packet {
 };
 
 using id_fragment_map = std::unordered_map<uint64_t, fragmented_packet>;
-using address_fragment_map = std::unordered_map<netadr_t, id_fragment_map>;
+using address_fragment_map = std::unordered_map<net::netadr_t, id_fragment_map>;
 
 utils::concurrency::container<address_fragment_map> global_map{};
 
@@ -37,7 +37,7 @@ std::vector<std::string> construct_fragments(const void *data,
 }
 } // namespace
 
-bool handle(const netadr_t &target, utils::byte_buffer &buffer,
+bool handle(const net::netadr_t &target, utils::byte_buffer &buffer,
             std::string &final_packet) {
   const auto fragment_id = buffer.read<uint64_t>();
   const size_t fragment_count = buffer.read<uint32_t>();

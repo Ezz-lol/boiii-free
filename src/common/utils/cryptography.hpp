@@ -25,6 +25,7 @@ public:
   void set(const std::string &pub_key_buffer);
 
   void deserialize(const std::string &key);
+  void deserialize(const std::string *key);
 
   std::string serialize(int type = PK_PRIVATE) const;
 

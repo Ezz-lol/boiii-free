@@ -5,6 +5,7 @@
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
+#include "game/utils.hpp"
 
 #include "command.hpp"
 #include "client_command.hpp"
@@ -13,8 +14,8 @@ namespace client_command {
 namespace {
 std::unordered_map<std::string, callback> handlers;
 
-void client_command_stub(const int client_num) {
-  const auto ent = &game::g_entities[client_num];
+void client_command_stub(const game::ClientNum_t client_num) {
+  game::level::gentity_t *ent = game::client_ent(client_num);
 
   if (ent->client == nullptr) {
     // Client is not fully in game
@@ -34,7 +35,7 @@ void client_command_stub(const int client_num) {
 } // namespace
 
 void add(const std::string &name, const callback &cmd) {
-  const auto command = utils::string::to_lower(name);
+  const std::string command = utils::string::to_lower(name);
   handlers[command] = cmd;
 }
 

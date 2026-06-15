@@ -1,11 +1,15 @@
 #pragma once
 #include "memory.hpp"
+#include <cstdarg>
+#include <stdexcept>
+#include <string>
 
-template <class Type, size_t n> constexpr auto ARRAY_COUNT(Type (&)[n]) {
+template <class Type, size_t n> constexpr auto STATIC_ARRAY_COUNT(Type (&)[n]) {
   return n;
 }
 
 namespace utils::string {
+
 template <size_t Buffers, size_t MinBufferSize> class va_provider final {
 public:
   static_assert(Buffers != 0 && MinBufferSize != 0,
@@ -14,7 +18,7 @@ public:
   va_provider() : current_buffer_(0) {}
 
   char *get(const char *format, const va_list ap) {
-    ++this->current_buffer_ %= ARRAY_COUNT(this->string_pool_);
+    ++this->current_buffer_ %= STATIC_ARRAY_COUNT(this->string_pool_);
     auto entry = &this->string_pool_[this->current_buffer_];
 
     if (!entry->size || !entry->buffer) {
@@ -99,6 +103,8 @@ std::string replace(std::string str, const std::string &from,
 void trim(std::string &str);
 
 void copy(char *dest, size_t max_size, const char *src);
+std::string join(std::vector<std::string> strings,
+                 const std::string &separator);
 
 template <size_t Size> void copy(char (&dest)[Size], const char *src) {
   copy(dest, Size, src);

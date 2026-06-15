@@ -1,3 +1,4 @@
+#include <atomic>
 #include <std_include.hpp>
 #include "console.hpp"
 #include "loader/component_loader.hpp"
@@ -20,6 +21,7 @@
 #include <algorithm>
 #include <sstream>
 #include <unordered_set>
+#include <vector>
 
 #define CONSOLE_BUFFER_SIZE 16384
 #define WINDOW_WIDTH 608
@@ -432,7 +434,7 @@ void print_message(const char *message) {
 #endif
 
   if (started && !terminate_runner) {
-    game::Com_Printf(0, 0, "%s", message);
+    game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s", message);
   }
 }
 
@@ -547,7 +549,7 @@ LRESULT con_wnd_proc(const HWND hwnd, const UINT msg, const WPARAM wparam,
     return 0;
   }
   case WM_CLOSE:
-    game::Cbuf_AddText(0, "quit\n");
+    game::cbuf::Cbuf_AddText(0, "quit\n");
     [[fallthrough]];
   default:
     return utils::hook::invoke<LRESULT>(game::select(0x142332960, 0x1405973E0),
@@ -689,7 +691,8 @@ void sys_create_console_stub(const HINSTANCE h_instance) {
                reinterpret_cast<WPARAM>(*game::s_wcd::hfBufferFont), 0);
 
   SetFocus(*game::s_wcd::hwndInputLine);
-  game::Con_GetTextCopy(text, std::min(0x4000, static_cast<int>(sizeof(text))));
+  game::con::Con_GetTextCopy(text,
+                             std::min(0x4000, static_cast<int>(sizeof(text))));
   append_text_with_severity(*game::s_wcd::hwndBuffer, text);
   resize_console_controls(*game::s_wcd::hWnd);
 }
@@ -790,17 +793,17 @@ struct component final : generic_component {
         });
 
     this->console_runner_ =
-        utils::thread::create_named_thread("Console Window", [this] {
+        utils::thread::create_named_thread("Console Window", [] {
           {
             static utils::hook::detour sys_create_console_hook;
             sys_create_console_hook.create(
                 game::select(0x142332E00, 0x140597880),
                 sys_create_console_stub);
 
-            sys_show_console_hook.create(game::Sys_ShowConsole,
+            sys_show_console_hook.create(game::sys::Sys_ShowConsole,
                                          sys_show_console_stub);
 
-            game::Sys_ShowConsole();
+            game::sys::Sys_ShowConsole();
             started = true;
           }
 

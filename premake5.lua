@@ -311,7 +311,32 @@ filter({})
 
 filter("configurations:Debug")
 optimize("Debug")
-defines({ "DEBUG", "_DEBUG" })
+defines({ "DEBUG", "_DEBUG", "_CRT_DEBUG" })
+if os.host() == "windows" then
+  buildoptions({ "/MDd" })
+  linkoptions({
+    "/DEBUG",
+    "/NODEFAULTLIB:libcmt.lib",
+    "/NODEFAULTLIB:libucrt.lib",
+    "-l libcmtd.lib",
+    "/MTd",
+  })
+else
+  buildoptions({
+    "-Wl,/DEBUG",
+    "-Wl,/NODEFAULTLIB:libcmt.lib",
+    "-Wl,/NODEFAULTLIB:libucrt.lib",
+    "-l libcmtd.lib",
+  })
+  linkoptions({
+    "-fms-extensions",
+    "-fms-runtime-lib=static_dbg",
+    "-Wl,/DEBUG",
+    "-Wl,/NODEFAULTLIB:libcmt.lib",
+    "-Wl,/NODEFAULTLIB:libucrt.lib",
+    "-l libcmtd.lib",
+  })
+end
 filter({})
 
 project("common")
@@ -335,9 +360,15 @@ targetname("boiii")
 pchheader("std_include.hpp")
 pchsource("src/client/std_include.cpp")
 
-files({ "./src/client/**.rc", "./src/client/**.hpp", "./src/client/**.cpp", "./src/client/resources/**.*" })
+files({
+  "./deps/SteamworkSDK/public/**.h",
+  "./src/client/**.rc",
+  "./src/client/**.hpp",
+  "./src/client/**.cpp",
+  "./src/client/resources/**.*",
+})
 
-includedirs({ "./src/client", "./src/common", "%{prj.location}/src" })
+includedirs({ "./deps/SteamWorksSDK/public", "./src/client", "./src/common", "%{prj.location}/src" })
 
 resincludedirs({ "$(ProjectDir)src" })
 

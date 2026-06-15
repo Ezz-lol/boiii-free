@@ -11,19 +11,41 @@
 #include <utils/progress_ui.hpp>
 #include <utils/compression.hpp>
 #include <utils/string.hpp>
+#include <utils/properties.hpp>
 
 #define UPDATE_SERVER "https://r2.ezz.lol/"
 
 #define UPDATE_FILE_MAIN UPDATE_SERVER "boiii.json"
 #define UPDATE_FOLDER_MAIN UPDATE_SERVER "boiii/"
 
+#define UPDATE_FILE_BETA UPDATE_SERVER "boiii-beta.json"
+#define UPDATE_FOLDER_BETA UPDATE_SERVER "boiii/beta/"
+
 #define UPDATE_HOST_BINARY "boiii.exe"
 
 namespace updater {
 namespace {
-std::string get_update_file() { return UPDATE_FILE_MAIN; }
+std::string get_selected_version() {
+  const auto val = utils::properties::load("selectedVersion");
+  if (val) {
+    return *val;
+  }
+  return "latest";
+}
 
-std::string get_update_folder() { return UPDATE_FOLDER_MAIN; }
+std::string get_update_file() {
+  if (get_selected_version() == "beta") {
+    return UPDATE_FILE_BETA;
+  }
+  return UPDATE_FILE_MAIN;
+}
+
+std::string get_update_folder() {
+  if (get_selected_version() == "beta") {
+    return UPDATE_FOLDER_BETA;
+  }
+  return UPDATE_FOLDER_MAIN;
+}
 
 std::vector<file_info> parse_file_infos(const std::string &json) {
   rapidjson::Document doc{};

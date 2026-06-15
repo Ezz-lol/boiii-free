@@ -110,6 +110,19 @@ void progress_ui::show(const bool marquee, HWND /*parent*/) const {
   create_ui_thread();
 }
 
+void progress_ui::set_marquee(const bool marquee) const {
+  if (headless_)
+    return;
+
+  {
+    std::lock_guard<std::recursive_mutex> lock(state_mutex_);
+    state_.marquee = marquee;
+  }
+
+  if (hwnd_)
+    PostMessage(hwnd_, WM_UPDATE_UI, 0, 0);
+}
+
 void progress_ui::set_progress(const size_t current, const size_t max) const {
   if (headless_)
     return;

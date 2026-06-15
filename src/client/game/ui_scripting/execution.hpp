@@ -5,11 +5,11 @@
 
 namespace ui_scripting {
 void push_value(const script_value &value);
-void push_value(const game::hks::HksObject &value);
+void push_value(const game::ui::lua::hks::HksObject &value);
 
 script_value get_return_value(std::int64_t offset);
 arguments get_return_values();
-arguments get_return_values(game::hks::HksObject *base);
+arguments get_return_values(game::ui::lua::hks::HksObject *base);
 
 bool notify(const std::string &name, const event_arguments &arguments);
 

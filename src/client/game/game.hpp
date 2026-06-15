@@ -1,7 +1,9 @@
-#pragma once
+#ifndef GAME_HPP
+#define GAME_HPP
 
-#include "structs.hpp"
-#include <utils/nt.hpp>
+#include <filesystem>
+#include <string>
+#include "../../common/utils/nt.hpp"
 
 namespace arxan::detail {
 void set_address_to_call(const void *address);
@@ -9,6 +11,10 @@ extern void *callstack_proxy_addr;
 } // namespace arxan::detail
 
 namespace game {
+
+inline constexpr uint32_t APP_ID = 311210;
+inline constexpr const char *APP_ID_STR = "311210";
+
 size_t get_base();
 bool is_server();
 bool is_client();
@@ -45,6 +51,15 @@ inline size_t select(const size_t client_val, const size_t server_val) {
 inline size_t select(const void *client_val, const void *server_val) {
   return select(reinterpret_cast<size_t>(client_val),
                 reinterpret_cast<size_t>(server_val));
+}
+
+inline bool valid_engine_ptr(uintptr_t ptr) {
+  return ptr >= get_base() && ptr < (get_base() + 0x030000000);
+}
+
+template <typename T> inline bool valid_engine_ptr(T *ptr) {
+  uintptr_t ptr_int = reinterpret_cast<uintptr_t>(ptr);
+  return valid_engine_ptr(ptr_int);
 }
 
 template <typename T> class base_symbol {
@@ -90,5 +105,7 @@ std::filesystem::path get_game_path();
 
 inline size_t operator""_g(const size_t val) { return game::relocate(val); }
 
-#include "structs.hpp"
-#include "symbols.hpp"
+#include "structs/structs.hpp"
+#include "symbols/symbols.hpp"
+
+#endif

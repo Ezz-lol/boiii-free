@@ -1,7 +1,11 @@
 version: 2
 updates:
-- package-ecosystem: gitsubmodule
-  directory: "/"
-  schedule:
-    interval: daily
-  open-pull-requests-limit: 10
+  - package-ecosystem: gitsubmodule
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 10
+    exclude-paths:
+      # Purposely set to commit matching Steam API version
+      # used in the engine. Should not be updated.
+      - "deps/SteamworksSDK"

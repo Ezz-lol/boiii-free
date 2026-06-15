@@ -34,8 +34,8 @@ void bdContentStreaming::list_all_publisher_files(service_server *server,
 
   /*if(filename.empty())
   {
-    server->create_reply(this->task_id(), game::BD_NO_FILE).send();
-    return;
+    server->create_reply(this->task_id(),
+  game::dw::bdLobbyErrorCode::NO_FILE).send(); return;
   }*/
 
   auto reply = server->create_reply(this->task_id());

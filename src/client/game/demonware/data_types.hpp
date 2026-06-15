@@ -1,7 +1,7 @@
 #pragma once
 
 #include "byte_buffer.hpp"
-#include "game/structs.hpp"
+#include "../structs/structs.hpp"
 
 namespace demonware {
 class bdTaskResult {
@@ -63,14 +63,14 @@ struct bdFileQueryResult final : bdTaskResult {
   std::uint64_t user_id;
   std::string platform;
   std::string filename;
-  std::uint32_t errorcode;
+  game::dw::bdLobbyErrorCode errorcode;
   std::string filedata;
 
   void serialize(byte_buffer *data) override {
     data->write_uint64(user_id);
     data->write_string(platform);
     data->write_string(filename);
-    data->write_uint32(errorcode);
+    data->write_uint32(static_cast<uint32_t>(errorcode));
     data->write_blob(filedata);
   }
 
@@ -78,7 +78,7 @@ struct bdFileQueryResult final : bdTaskResult {
     data->read_uint64(&user_id);
     data->read_string(&platform);
     data->read_string(&filename);
-    data->read_uint32(&errorcode);
+    data->read_uint32(reinterpret_cast<uint32_t *>(&errorcode));
     data->read_blob(&filedata);
   }
 };
@@ -277,21 +277,21 @@ struct bdSockAddr final {
     unsigned int m_iaddr;
 
     struct {
-      unsigned __int16 m_w1;
-      unsigned __int16 m_w2;
-      unsigned __int16 m_w3;
-      unsigned __int16 m_w4;
-      unsigned __int16 m_w5;
-      unsigned __int16 m_w6;
-      unsigned __int16 m_w7;
-      unsigned __int16 m_w8;
+      uint16_t m_w1;
+      uint16_t m_w2;
+      uint16_t m_w3;
+      uint16_t m_w4;
+      uint16_t m_w5;
+      uint16_t m_w6;
+      uint16_t m_w7;
+      uint16_t m_w8;
     } m_caddr6;
 
     char m_iaddr6[16];
     char m_sockaddr_storage[128];
   } in_un;
 
-  unsigned __int16 m_family;
+  uint16_t m_family;
 };
 
 struct bdInetAddr final : bdTaskResult {
@@ -327,7 +327,7 @@ struct bdInetAddr final : bdTaskResult {
 
 struct bdAddr final : bdTaskResult {
   bdInetAddr m_address;
-  unsigned __int16 m_port{};
+  uint16_t m_port{};
 
   void serialize(byte_buffer *buffer) override {
     const bool data_types = buffer->is_using_data_types();
@@ -353,7 +353,7 @@ struct bdAddr final : bdTaskResult {
 struct bdCommonAddr : bdTaskResult {
   bdAddr m_local_addrs[5];
   bdAddr m_public_addr;
-  game::bdNATType m_nat_type;
+  game::dw::net::bdNATType m_nat_type;
   unsigned int m_hash;
   bool m_is_loopback;
 
@@ -370,7 +370,7 @@ struct bdCommonAddr : bdTaskResult {
 
     if (valid) {
       this->m_public_addr.serialize(buffer);
-      buffer->write_byte(this->m_nat_type);
+      buffer->write_byte(static_cast<uint8_t>(this->m_nat_type));
     }
 
     buffer->set_use_data_types(data_types);

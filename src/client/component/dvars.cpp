@@ -1,7 +1,8 @@
+#include <atomic>
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 
-#include "game/game.hpp"
+#include <game/game.hpp>
 #include "scheduler.hpp"
 
 #include <utils/hook.hpp>
@@ -22,7 +23,7 @@ void dvar_for_each_name_stub(void (*callback)(const char *)) {
 
     if (dvar->debugName                //
         && (dvar->flags & 0x8000) == 0 //
-        && (!game::Com_SessionMode_IsMode(game::MODE_COUNT) ||
+        && (!game::com::Com_SessionMode_IsMode(game::eModes::COUNT) ||
             !game::Dvar_IsSessionModeBaseDvar(dvar))) {
       callback(dvar->debugName);
     }
@@ -38,7 +39,7 @@ void dvar_for_each_name_client_num_stub(int localClientNum,
 
     if (dvar->debugName                //
         && (dvar->flags & 0x8000) == 0 //
-        && (!game::Com_SessionMode_IsMode(game::MODE_COUNT) ||
+        && (!game::com::Com_SessionMode_IsMode(game::eModes::COUNT) ||
             !game::Dvar_IsSessionModeBaseDvar(dvar))) {
       callback(localClientNum, dvar->debugName);
     }
@@ -160,8 +161,8 @@ void read_archive_dvars() {
   std::string filedata;
   utils::io::read_file(path, &filedata);
 
-  game::Cbuf_ExecuteBuffer(0, game::ControllerIndex_t::CONTROLLER_INDEX_0,
-                           filedata.c_str());
+  game::cbuf::Cbuf_ExecuteBuffer(0, game::ControllerIndex_t::CONTROLLER_INDEX_0,
+                                 filedata.c_str());
   initial_config_read = true;
   scheduler::execute(scheduler::pipeline::dvars_loaded);
 }

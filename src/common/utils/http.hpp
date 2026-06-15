@@ -22,7 +22,7 @@ std::optional<std::string> post_data(const std::string &url,
 // Returns CURLcode (CURLE_OK on success).
 int get_data_stream(
     const std::string &url, const headers &headers = {},
-    const std::function<void(size_t)> &progress_cb = {},
+    const std::function<void(size_t, size_t)> &progress_cb = {},
     const std::function<void(const char *, size_t)> &write_cb = {},
     uint32_t retries = 2);
 std::future<std::optional<std::string>>

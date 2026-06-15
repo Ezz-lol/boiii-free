@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 namespace steam {
 using matchmaking_server_response = enum EMatchMakingServerResponse {
   eServerResponded = 0,

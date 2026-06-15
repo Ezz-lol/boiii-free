@@ -26,8 +26,9 @@ class component final : public client_component {
 public:
   void post_unpack() override {
     if (utils::flags::has_flag("nointro")) {
-      cinematic_start_playback_hook.create(game::Cinematic_StartPlayback,
-                                           cinematic_start_playback_stub);
+      cinematic_start_playback_hook.create(
+          game::cinematic::Cinematic_StartPlayback,
+          cinematic_start_playback_stub);
     }
   }
 };

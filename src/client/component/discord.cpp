@@ -50,7 +50,7 @@ static __declspec(noinline) bool seh_dvar_int(const char *name, int *out) {
 
 static __declspec(noinline) bool seh_Com_IsInGame(bool *out) {
   __try {
-    *out = game::Com_IsInGame();
+    *out = game::com::Com_IsInGame();
     return true;
   } __except (EXCEPTION_EXECUTE_HANDLER) {
     *out = false;
@@ -60,7 +60,7 @@ static __declspec(noinline) bool seh_Com_IsInGame(bool *out) {
 
 static __declspec(noinline) bool seh_Com_IsRunningUILevel(bool *out) {
   __try {
-    *out = game::Com_IsRunningUILevel();
+    *out = game::com::Com_IsRunningUILevel();
     return true;
   } __except (EXCEPTION_EXECUTE_HANDLER) {
     *out = false;
@@ -71,7 +71,7 @@ static __declspec(noinline) bool seh_Com_IsRunningUILevel(bool *out) {
 static __declspec(noinline) bool seh_SessionMode_IsMode(game::eModes mode,
                                                         bool *out) {
   __try {
-    *out = game::Com_SessionMode_IsMode(mode);
+    *out = game::com::Com_SessionMode_IsMode(mode);
     return true;
   } __except (EXCEPTION_EXECUTE_HANDLER) {
     *out = false;
@@ -86,7 +86,8 @@ static __declspec(noinline) bool seh_get_client_count(int max_clients,
     char name_buf[64];
     for (int i = 0; i < max_clients; ++i) {
       name_buf[0] = '\0';
-      if (game::CL_GetClientName(0, i, name_buf, sizeof(name_buf), false) &&
+      if (game::cl::CL_GetClientName(game::LOCAL_CLIENT_0, i, name_buf,
+                                     sizeof(name_buf), false) &&
           name_buf[0] != '\0')
         ++count;
     }
@@ -268,9 +269,9 @@ void update_discord() {
     dp.startTimestamp = match_time;
 
     bool is_mp = false, is_zm = false, is_cp = false;
-    seh_SessionMode_IsMode(game::MODE_MULTIPLAYER, &is_mp);
-    seh_SessionMode_IsMode(game::MODE_ZOMBIES, &is_zm);
-    seh_SessionMode_IsMode(game::MODE_CAMPAIGN, &is_cp);
+    seh_SessionMode_IsMode(game::eModes::MULTIPLAYER, &is_mp);
+    seh_SessionMode_IsMode(game::eModes::ZOMBIES, &is_zm);
+    seh_SessionMode_IsMode(game::eModes::CAMPAIGN, &is_cp);
 
     auto mapname = safe_dvar_string("mapname");
     if (mapname == "core_frontend")

@@ -25,6 +25,7 @@
   - [Port Forwarding Alternatives](#port-forwarding-alternatives)
 - [Zombies Server Setup](#zombies-server-setup)
 - [Compile from Source](#compile-from-source)
+- [GSC Scripting Additions](#gsc-scripting-additions)
 - [Credits](#credits)
 - [Disclaimer](#disclaimer)
 
@@ -181,8 +182,10 @@ Launch BOIII with these arguments for extra features:
 | `-trimlogs` | Trim or rotate old log files on startup |
 | `-keep-launcher` | Keep the launcher process running after starting the game |
 | `-noconsole` | Suppress the external launcher console window |
+| `-nobranding` | Disable EZZ watermark and console prefix |
 | `-noratelimit` | Disable rate limiting in dedicated server |
 | `-mitigatepacketspam` | In dedicated server, attempt to reduce unnecessary reliable command packets sent by some custom maps' scripts. Fixes Kowloon and Daybreak client load-in failures. |
+| `-dump` | Dump game or server executable to file in containing directory after Arxan unpack |
 
 **Example:**
 ```bash
@@ -357,6 +360,14 @@ Want to build Ezz BOIII yourself? Here's how! 🔨
 
 > [!TIP]
 > You can also use `build.bat` to compile directly from the command line!
+
+---
+
+## GSC Scripting Additions
+
+This project supports loading raw GSC code with a more relaxed syntax and adds extra utility functions to make scripting and mod development easier.
+
+For the full guide and examples, see [docs/gsc-scripting.md](docs/gsc-scripting.md).
 
 ---
 

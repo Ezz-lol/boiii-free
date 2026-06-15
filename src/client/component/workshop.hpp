@@ -4,6 +4,7 @@
 #include <atomic>
 #include <cstdint>
 #include <filesystem>
+#include "game/game.hpp"
 
 namespace workshop {
 extern std::atomic<bool> downloading_workshop_item;
@@ -27,7 +28,9 @@ bool check_valid_mod_id(const std::string &pub_id,
 bool mod_switch_requires_fs_reinitialization(const std::string &current_mod,
                                              const std::string &new_mod);
 bool mod_load_requires_fs_reinitialization(std::string &mod_name);
-void setup_same_mod_as_host(const std::string &usermap, const std::string &mod);
+void setup_same_mod_as_host(game::LocalClientNum_t localClientNum,
+                            const std::string &usermap, const std::string &mod,
+                            bool force_fs_reinit = false);
 
 void set_pending_mod_reconnect(const std::string &address);
 std::string get_pending_mod_reconnect();
@@ -43,4 +46,12 @@ struct workshop_info {
   std::string title;
 };
 workshop_info get_steam_workshop_info(const std::string &workshop_id);
+void load_workshop_data(game::ugc::WorkshopData *item);
+void supplement_mods_from_disk();
+
+const char *va_mods_path(const char *fmt, const char *root_dir,
+                         const char *mods_dir, const char *dir_name);
+
+const char *va_user_content_path(const char *fmt, const char *root_dir,
+                                 const char *user_content_dir);
 } // namespace workshop

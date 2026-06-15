@@ -2,6 +2,8 @@
 #include "loader/component_loader.hpp"
 
 #include "game/game.hpp"
+#include "game/utils.hpp"
+#include "name.hpp"
 
 #include "auth.hpp"
 
@@ -11,6 +13,30 @@
 namespace colors {
 namespace {
 utils::hook::detour cl_get_client_name_hook;
+
+std::string decode_backtick_colors(const std::string &text) {
+  bool has_backtick = false;
+  std::string decoded;
+  decoded.reserve(text.size() + 2);
+
+  for (size_t i = 0; i < text.size(); ++i) {
+    if (i + 1 < text.size() && text[i] == '`' && text[i + 1] >= '0' &&
+        text[i + 1] <= '9') {
+      decoded += '^';
+      decoded += text[i + 1];
+      ++i;
+      has_backtick = true;
+    } else {
+      decoded += text[i];
+    }
+  }
+
+  if (has_backtick) {
+    decoded += "^7";
+  }
+
+  return decoded;
+}
 
 std::optional<int> get_color_for_xuid(const uint64_t xuid) {
   if (xuid == 0xCD02AF6448291209 || xuid == 0x10F0C433E08E1357 ||
@@ -53,8 +79,50 @@ void patch_color(const uint8_t r, const uint8_t g, const uint8_t b,
 bool cl_get_client_name_stub(const int local_client_num, const int index,
                              char *buf, const int size,
                              const bool add_clan_name) {
+  if (!buf || size <= 0) {
+    return cl_get_client_name_hook.invoke<bool>(local_client_num, index, buf,
+                                                size, add_clan_name);
+  }
+
   const auto res = cl_get_client_name_hook.invoke<bool>(
       local_client_num, index, buf, size, add_clan_name);
+
+  std::string packed_name(buf);
+  std::optional<std::string> override_name;
+  std::optional<std::string> override_tag;
+  const auto client_num = static_cast<game::ClientNum_t>(index);
+
+  if (game::valid_client_num(client_num)) {
+    if (name::has_name_override(client_num))
+      override_name = name::get_name_override(client_num);
+    if (name::has_clan_abbrev_override(client_num))
+      override_tag = name::get_clan_abbrev_override(client_num);
+  }
+
+  std::string name_part = packed_name;
+  std::string tag_part;
+  const auto pipe = packed_name.find('|');
+  if (pipe != std::string::npos) {
+    name_part = packed_name.substr(0, pipe);
+    tag_part = packed_name.substr(pipe + 1);
+  }
+
+  if (override_name.has_value()) {
+    name_part = *override_name;
+  }
+
+  if (override_tag.has_value()) {
+    tag_part = *override_tag;
+  }
+
+  std::string effective_name = name_part;
+  if (!tag_part.empty() && add_clan_name) {
+    effective_name += "|";
+    effective_name += tag_part;
+  }
+
+  const auto decoded = decode_backtick_colors(effective_name);
+  utils::string::copy(buf, size, decoded.c_str());
 
   if (_ReturnAddress() == reinterpret_cast<void *>(0x1406A7B56_g)) {
     return res;
@@ -96,7 +164,7 @@ struct component final : client_component {
     patch_color<6>(151, 80, 221); // 6  - Pink
 
     // Old addresses
-    cl_get_client_name_hook.create(game::CL_GetClientName,
+    cl_get_client_name_hook.create(game::cl::CL_GetClientName,
                                    cl_get_client_name_stub);
     // utils::hook::jump(0x141EC72E0_g, get_gamer_tag_stub);
   }

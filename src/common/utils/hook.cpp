@@ -246,8 +246,9 @@ void detour::create(void *place, void *target) {
   this->place_ = place;
 
   if (MH_CreateHook(this->place_, target, &this->original_) != MH_OK) {
-    throw std::runtime_error(
-        string::va("Unable to create hook at location: %p", this->place_));
+    throw std::runtime_error(string::va("Unable to create hook at location: "
+                                        "(place: %p, target: %p, original: %p)",
+                                        place, target, this->original_));
   }
 
   this->enable();
@@ -462,6 +463,203 @@ void inject(void *pointer, const void *data) {
 
 void inject(const size_t pointer, const void *data) {
   return inject(pointer, reinterpret_cast<size_t>(data));
+}
+
+void cmp(void *pointer, void *data) {
+  auto *ptr = static_cast<uint8_t *>(pointer);
+
+  // Skip instruction prefixes
+  while (*ptr == 0x66 || *ptr == 0x67 || (*ptr >= 0x40 && *ptr <= 0x4F) ||
+         *ptr == 0xF2 || *ptr == 0xF3 || *ptr == 0x2E || *ptr == 0x36 ||
+         *ptr == 0x3E || *ptr == 0x26 || *ptr == 0x64 || *ptr == 0x65) {
+    ptr++;
+  }
+
+  const auto opcode = *ptr++;
+  bool has_imm8 = false;
+  bool has_imm32 = false;
+
+  if (opcode >= 0x38 && opcode <= 0x3B) {
+    // cmp reg, r/m or r/m, reg
+  } else if (opcode == 0x80 || opcode == 0x83) {
+    has_imm8 = true; // cmp r/m, imm8
+  } else if (opcode == 0x81) {
+    has_imm32 = true; // cmp r/m, imm32
+  } else {
+    throw std::runtime_error("Not a CMP instruction");
+  }
+
+  // Ensure standard ModR/M for RIP-relative addressing (Mod = 00, R/M = 101)
+  if ((*ptr & 0xC7) != 0x05) {
+    throw std::runtime_error("Not a RIP-relative CMP instruction");
+  }
+
+  auto *disp_ptr = ptr + 1;
+  auto *rip_ptr = disp_ptr + 4;
+
+  if (has_imm8)
+    rip_ptr += 1;
+  if (has_imm32)
+    rip_ptr += 4;
+
+  if (is_relatively_far(reinterpret_cast<size_t>(rip_ptr),
+                        reinterpret_cast<size_t>(data), 0)) {
+    throw std::runtime_error("Too far away to create 32bit relative branch");
+  }
+
+  const auto relative_offset = static_cast<int32_t>(
+      reinterpret_cast<size_t>(data) - reinterpret_cast<size_t>(rip_ptr));
+
+  set<int32_t>(reinterpret_cast<size_t>(disp_ptr), relative_offset);
+}
+
+void cmp(const size_t pointer, void *data) {
+  cmp(reinterpret_cast<void *>(pointer), data);
+}
+
+void cmp(const size_t pointer, const size_t data) {
+  cmp(reinterpret_cast<void *>(pointer), reinterpret_cast<void *>(data));
+}
+
+void lea(void *pointer, void *data) {
+  auto *ptr = static_cast<uint8_t *>(pointer);
+
+  // Skip instruction prefixes
+  while (*ptr == 0x66 || *ptr == 0x67 || (*ptr >= 0x40 && *ptr <= 0x4F) ||
+         *ptr == 0xF2 || *ptr == 0xF3 || *ptr == 0x2E || *ptr == 0x36 ||
+         *ptr == 0x3E || *ptr == 0x26 || *ptr == 0x64 || *ptr == 0x65) {
+    ptr++;
+  }
+
+  if (*ptr != 0x8D) {
+    throw std::runtime_error("Not a LEA instruction");
+  }
+  ptr++;
+
+  // Ensure standard ModR/M for RIP-relative addressing
+  if ((*ptr & 0xC7) != 0x05) {
+    throw std::runtime_error("Not a RIP-relative LEA instruction");
+  }
+
+  auto *disp_ptr = ptr + 1;
+  auto *rip_ptr = disp_ptr + 4;
+
+  if (is_relatively_far(reinterpret_cast<size_t>(rip_ptr),
+                        reinterpret_cast<size_t>(data), 0)) {
+    throw std::runtime_error("Too far away to create 32bit relative branch");
+  }
+
+  const auto relative_offset = static_cast<int32_t>(
+      reinterpret_cast<size_t>(data) - reinterpret_cast<size_t>(rip_ptr));
+
+  set<int32_t>(reinterpret_cast<size_t>(disp_ptr), relative_offset);
+}
+
+void lea(const size_t pointer, void *data) {
+  lea(reinterpret_cast<void *>(pointer), data);
+}
+
+void lea(const size_t pointer, const size_t data) {
+  lea(reinterpret_cast<void *>(pointer), reinterpret_cast<void *>(data));
+}
+
+void cmovz(void *pointer, void *data) {
+  auto *ptr = static_cast<uint8_t *>(pointer);
+
+  // Skip instruction prefixes
+  while (*ptr == 0x66 || *ptr == 0x67 || (*ptr >= 0x40 && *ptr <= 0x4F) ||
+         *ptr == 0xF2 || *ptr == 0xF3 || *ptr == 0x2E || *ptr == 0x36 ||
+         *ptr == 0x3E || *ptr == 0x26 || *ptr == 0x64 || *ptr == 0x65) {
+    ptr++;
+  }
+
+  // CMOVZ / CMOVE is 0x0F 0x44
+  if (*ptr != 0x0F || *(ptr + 1) != 0x44) {
+    throw std::runtime_error("Not a CMOVZ instruction");
+  }
+  ptr += 2;
+
+  // Ensure standard ModR/M for RIP-relative addressing
+  if ((*ptr & 0xC7) != 0x05) {
+    throw std::runtime_error("Not a RIP-relative CMOVZ instruction");
+  }
+
+  auto *disp_ptr = ptr + 1;
+  auto *rip_ptr = disp_ptr + 4;
+
+  if (is_relatively_far(reinterpret_cast<size_t>(rip_ptr),
+                        reinterpret_cast<size_t>(data), 0)) {
+    throw std::runtime_error("Too far away to create 32bit relative branch");
+  }
+
+  const auto relative_offset = static_cast<int32_t>(
+      reinterpret_cast<size_t>(data) - reinterpret_cast<size_t>(rip_ptr));
+
+  set<int32_t>(reinterpret_cast<size_t>(disp_ptr), relative_offset);
+}
+
+void cmovz(const size_t pointer, void *data) {
+  cmovz(reinterpret_cast<void *>(pointer), data);
+}
+
+void cmovz(const size_t pointer, const size_t data) {
+  cmovz(reinterpret_cast<void *>(pointer), reinterpret_cast<void *>(data));
+}
+
+void mov(void *pointer, void *data) {
+  auto *ptr = static_cast<uint8_t *>(pointer);
+
+  // Skip instruction prefixes
+  while (*ptr == 0x66 || *ptr == 0x67 || (*ptr >= 0x40 && *ptr <= 0x4F) ||
+         *ptr == 0xF2 || *ptr == 0xF3 || *ptr == 0x2E || *ptr == 0x36 ||
+         *ptr == 0x3E || *ptr == 0x26 || *ptr == 0x64 || *ptr == 0x65) {
+    ptr++;
+  }
+
+  const auto opcode = *ptr++;
+  bool has_imm8 = false;
+  bool has_imm32 = false;
+
+  if (opcode >= 0x88 && opcode <= 0x8B) {
+    // mov r/m, reg OR mov reg, r/m (both 8-bit or 16/32/64-bit variants)
+  } else if (opcode == 0xC6) {
+    has_imm8 = true; // mov r/m, imm8
+  } else if (opcode == 0xC7) {
+    has_imm32 = true; // mov r/m, imm32
+  } else {
+    throw std::runtime_error("Not a MOV instruction");
+  }
+
+  // Ensure standard ModR/M for RIP-relative addressing
+  if ((*ptr & 0xC7) != 0x05) {
+    throw std::runtime_error("Not a RIP-relative MOV instruction");
+  }
+
+  auto *disp_ptr = ptr + 1;
+  auto *rip_ptr = disp_ptr + 4;
+
+  if (has_imm8)
+    rip_ptr += 1;
+  if (has_imm32)
+    rip_ptr += 4;
+
+  if (is_relatively_far(reinterpret_cast<size_t>(rip_ptr),
+                        reinterpret_cast<size_t>(data), 0)) {
+    throw std::runtime_error("Too far away to create 32bit relative branch");
+  }
+
+  const auto relative_offset = static_cast<int32_t>(
+      reinterpret_cast<size_t>(data) - reinterpret_cast<size_t>(rip_ptr));
+
+  set<int32_t>(reinterpret_cast<size_t>(disp_ptr), relative_offset);
+}
+
+void mov(const size_t pointer, void *data) {
+  mov(reinterpret_cast<void *>(pointer), data);
+}
+
+void mov(const size_t pointer, const size_t data) {
+  mov(reinterpret_cast<void *>(pointer), reinterpret_cast<void *>(data));
 }
 
 std::vector<uint8_t> move_hook(void *pointer) {

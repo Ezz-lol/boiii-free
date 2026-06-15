@@ -12,6 +12,17 @@ bool remove_file(const std::filesystem::path &file) {
   return GetLastError() == ERROR_FILE_NOT_FOUND;
 }
 
+bool remove_directory(const std::filesystem::path &directory,
+                      const bool recursive) {
+  std::error_code e;
+  if (recursive) {
+    return std::filesystem::remove_all(directory, e) !=
+           static_cast<std::uintmax_t>(-1);
+  }
+
+  return std::filesystem::remove(directory, e);
+}
+
 bool move_file(const std::filesystem::path &src,
                const std::filesystem::path &target) {
   return MoveFileW(src.wstring().data(), target.wstring().data()) == TRUE;
@@ -26,11 +37,36 @@ bool write_file(const std::string &file, const std::string &data,
     create_directory(file.substr(0, pos));
   }
 
+  auto flags = std::ios::binary | std::ofstream::out;
+  if (append) {
+    flags |= std::ofstream::app;
+  }
+  std::ofstream stream(file, flags);
+
+  if (stream.is_open()) {
+    stream.write(data.data(), static_cast<std::streamsize>(data.size()));
+    stream.flush();
+    stream.close();
+    return true;
+  }
+
+  return false;
+}
+
+bool write_file_bytes(const std::string &file, const uint8_t *data, size_t size,
+                      const bool append) {
+  const auto pos = file.find_last_of("/\\");
+  if (pos != std::string::npos) {
+    create_directory(file.substr(0, pos));
+  }
+
   std::ofstream stream(file, std::ios::binary | std::ofstream::out |
                                  (append ? std::ofstream::app : 0));
 
   if (stream.is_open()) {
-    stream.write(data.data(), static_cast<std::streamsize>(data.size()));
+    stream.write(reinterpret_cast<const char *>(data),
+                 static_cast<std::streamsize>(size));
+    stream.flush();
     stream.close();
     return true;
   }
@@ -117,6 +153,7 @@ bool write_file(const std::wstring &file, const std::string &data,
 
   if (stream.is_open()) {
     stream.write(data.data(), static_cast<std::streamsize>(data.size()));
+    stream.flush();
     stream.close();
     return true;
   }
@@ -169,18 +206,21 @@ std::size_t file_size(const std::wstring &file) {
 }
 
 std::vector<std::filesystem::path>
-list_files(const std::filesystem::path &directory, const bool recursive) {
+list_files(const std::filesystem::path &directory, const bool recursive,
+           const bool include_directories) {
   std::error_code code{};
   std::vector<std::filesystem::path> files;
 
   if (recursive) {
     for (auto &file :
          std::filesystem::recursive_directory_iterator(directory, code)) {
-      files.push_back(file.path());
+      if (include_directories || !file.is_directory())
+        files.push_back(file.path());
     }
   } else {
     for (auto &file : std::filesystem::directory_iterator(directory, code)) {
-      files.push_back(file.path());
+      if (include_directories || !file.is_directory())
+        files.push_back(file.path());
     }
   }
 

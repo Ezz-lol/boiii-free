@@ -83,10 +83,10 @@ int read_file_stub(const char *qpath, void **buffer) {
                        &gamesettings_data);
 
   if (!gamesettings_data.empty()) {
-    ++(*game::fs_loadStack);
+    ++(*game::fs::fs_loadStack);
 
     auto len = static_cast<int>(gamesettings_data.length());
-    auto buf = game::FS_AllocMem(len + 1);
+    auto buf = game::fs::FS_AllocMem(len + 1);
 
     *buffer = buf;
     gamesettings_data.copy(reinterpret_cast<char *>(*buffer), len);

@@ -8,8 +8,10 @@
 #include <utils/hook.hpp>
 #include <utils/nt.hpp>
 #include <utils/io.hpp>
+#include <utils/http.hpp>
 #include <utils/flags.hpp>
 #include <utils/com.hpp>
+#include <utils/progress_ui.hpp>
 
 #include <steam/steam.hpp>
 
@@ -19,6 +21,7 @@
 #include "component/updater.hpp"
 
 #include <shlobj.h>
+#include <tlhelp32.h>
 
 namespace {
 volatile bool g_call_tls_callbacks = false;
@@ -110,6 +113,394 @@ void remove_crash_file() {
   game_path.replace_extension(".start");
 
   utils::io::remove_file(game_path);
+}
+
+struct patch_install_cancelled {};
+
+constexpr uint32_t supported_client_checksum = 0x888C368;
+constexpr uint32_t supported_newsteamclient_checksum = 0x6517980;
+constexpr uint32_t legacy_client_checksum = 0x8880704;
+
+constexpr auto supported_client_patch_url =
+    "https://archive.org/download/t7_full_game/BlackOps3.exe";
+
+enum class client_binary_state {
+  supported,
+  legacy,
+  incompatible,
+  unreadable,
+};
+
+uint32_t get_expected_client_checksum() {
+  return utils::flags::has_flag("newsteamclient")
+             ? supported_newsteamclient_checksum
+             : supported_client_checksum;
+}
+
+std::optional<uint32_t> get_pe_checksum(const std::filesystem::path &file) {
+  std::ifstream stream(file, std::ios::binary);
+  if (!stream.is_open()) {
+    return std::nullopt;
+  }
+
+  IMAGE_DOS_HEADER dos_header{};
+  stream.read(reinterpret_cast<char *>(&dos_header), sizeof(dos_header));
+  if (!stream || dos_header.e_magic != IMAGE_DOS_SIGNATURE) {
+    return std::nullopt;
+  }
+
+  stream.seekg(dos_header.e_lfanew, std::ios::beg);
+
+  DWORD signature = 0;
+  stream.read(reinterpret_cast<char *>(&signature), sizeof(signature));
+  if (!stream || signature != IMAGE_NT_SIGNATURE) {
+    return std::nullopt;
+  }
+
+  IMAGE_FILE_HEADER file_header{};
+  stream.read(reinterpret_cast<char *>(&file_header), sizeof(file_header));
+  if (!stream) {
+    return std::nullopt;
+  }
+
+  WORD optional_magic = 0;
+  stream.read(reinterpret_cast<char *>(&optional_magic),
+              sizeof(optional_magic));
+  if (!stream) {
+    return std::nullopt;
+  }
+
+  stream.seekg(-static_cast<std::streamoff>(sizeof(optional_magic)),
+               std::ios::cur);
+
+  if (optional_magic == IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
+    IMAGE_OPTIONAL_HEADER64 optional_header{};
+    stream.read(reinterpret_cast<char *>(&optional_header),
+                sizeof(optional_header));
+    if (!stream) {
+      return std::nullopt;
+    }
+
+    return optional_header.CheckSum;
+  }
+
+  if (optional_magic == IMAGE_NT_OPTIONAL_HDR32_MAGIC) {
+    IMAGE_OPTIONAL_HEADER32 optional_header{};
+    stream.read(reinterpret_cast<char *>(&optional_header),
+                sizeof(optional_header));
+    if (!stream) {
+      return std::nullopt;
+    }
+
+    return optional_header.CheckSum;
+  }
+
+  return std::nullopt;
+}
+
+client_binary_state
+classify_client_binary(const std::filesystem::path &client_binary) {
+  const auto checksum = get_pe_checksum(client_binary);
+  if (!checksum) {
+    return client_binary_state::unreadable;
+  }
+
+  if (*checksum == get_expected_client_checksum()) {
+    return client_binary_state::supported;
+  }
+
+  if (*checksum == legacy_client_checksum) {
+    return client_binary_state::legacy;
+  }
+
+  return client_binary_state::incompatible;
+}
+
+std::vector<DWORD> get_running_client_binary_process_ids() {
+  std::vector<DWORD> pids{};
+  const HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+  if (snapshot == INVALID_HANDLE_VALUE) {
+    return pids;
+  }
+
+  auto _ = utils::finally([&]() { CloseHandle(snapshot); });
+
+  PROCESSENTRY32W process_entry{};
+  process_entry.dwSize = sizeof(process_entry);
+  const auto self_pid = GetCurrentProcessId();
+
+  if (!Process32FirstW(snapshot, &process_entry)) {
+    return pids;
+  }
+
+  do {
+    if (process_entry.th32ProcessID == self_pid) {
+      continue;
+    }
+
+    if (_wcsicmp(process_entry.szExeFile, L"BlackOps3.exe") == 0) {
+      pids.emplace_back(process_entry.th32ProcessID);
+    }
+  } while (Process32NextW(snapshot, &process_entry));
+
+  return pids;
+}
+
+bool is_client_binary_process_running() {
+  return !get_running_client_binary_process_ids().empty();
+}
+
+void close_running_client_binary_processes() {
+  const auto pids = get_running_client_binary_process_ids();
+  for (const auto pid : pids) {
+    const auto process =
+        OpenProcess(PROCESS_TERMINATE | SYNCHRONIZE, FALSE, pid);
+    if (!process) {
+      throw std::runtime_error(
+          "Failed to access the running BlackOps3.exe process before "
+          "installing the patch.");
+    }
+
+    auto _ = utils::finally([&]() { CloseHandle(process); });
+
+    if (!TerminateProcess(process, 0)) {
+      const auto error = GetLastError();
+      throw std::runtime_error(
+          std::string("Failed to close the running BlackOps3.exe process "
+                      "before installing the patch (error ") +
+          std::to_string(error) + ").");
+    }
+
+    const auto wait_result = WaitForSingleObject(process, 15000);
+    if (wait_result != WAIT_OBJECT_0) {
+      throw std::runtime_error(
+          "BlackOps3.exe did not close in time for the patch install.");
+    }
+  }
+}
+
+std::string
+get_manual_client_patch_message(const client_binary_state /*state*/) {
+  return "Incompatible game version detected:\n"
+         "The installed BlackOps3.exe version is not compatible with this "
+         "BOIII build.\n"
+         "This usually happens because Black Ops 3 was updated and BOIII "
+         "needs the older compatible BlackOps3.exe version.\n"
+         "To fix this, download the compatible BlackOps3.exe and replace the "
+         "one in your game directory.\n"
+         "You can find a download link under Settings => Patches.";
+}
+
+std::string get_client_patch_prompt_message(const client_binary_state /*state*/,
+                                            const bool close_running_game) {
+  const auto close_message =
+      close_running_game
+          ? "\n\nBlack Ops 3 is already running. BOIII will close it when "
+            "the patch is ready, then continue launch."
+          : "";
+
+  return std::string(
+             "The installed BlackOps3.exe version is not compatible with "
+             "this BOIII build.\n\n"
+             "This usually means Black Ops 3 was updated and BOIII needs "
+             "the older compatible BlackOps3.exe version.\n\n"
+             "BOIII can download and install that compatible version "
+             "automatically before launch.") +
+         close_message + "\n\nPress OK to continue or Cancel to stop.";
+}
+
+bool prompt_to_install_client_patch(const client_binary_state state,
+                                    const bool close_running_game) {
+  if (game::is_headless()) {
+    return false;
+  }
+
+  const auto result = MessageBoxA(
+      nullptr,
+      get_client_patch_prompt_message(state, close_running_game).c_str(),
+      "BOIII Patch Installer",
+      MB_OKCANCEL | MB_ICONQUESTION | MB_SETFOREGROUND | MB_TOPMOST);
+
+  return result == IDOK;
+}
+
+std::string format_download_size(const size_t bytes) {
+  const double kilobytes = static_cast<double>(bytes) / 1024.0;
+  const double megabytes = kilobytes / 1024.0;
+  const double gigabytes = megabytes / 1024.0;
+
+  char buffer[64] = {};
+  if (gigabytes >= 1.0) {
+    snprintf(buffer, sizeof(buffer), "%.2f GB", gigabytes);
+  } else if (megabytes >= 1.0) {
+    snprintf(buffer, sizeof(buffer), "%.2f MB", megabytes);
+  } else if (kilobytes >= 1.0) {
+    snprintf(buffer, sizeof(buffer), "%.2f KB", kilobytes);
+  } else {
+    snprintf(buffer, sizeof(buffer), "%zu B", bytes);
+  }
+
+  return buffer;
+}
+
+void install_supported_client_binary(
+    const std::filesystem::path &client_binary,
+    const bool allow_close_running_client_binary) {
+  utils::progress_ui progress(false);
+  progress.set_title("BOIII Patch Installer");
+  progress.set_line(1, "Downloading compatible BlackOps3.exe...");
+  progress.set_line(2, "Preparing download...");
+  progress.show(true);
+
+  const auto temp_binary =
+      std::filesystem::path(client_binary.string() + ".boiii_download");
+  const auto backup_binary =
+      std::filesystem::path(client_binary.string() + ".boiii_backup");
+
+  auto cleanup_temp =
+      utils::finally([&]() { utils::io::remove_file(temp_binary); });
+
+  std::ofstream temp_stream(temp_binary, std::ios::binary | std::ios::trunc);
+  if (!temp_stream.is_open()) {
+    throw std::runtime_error("Failed to create the temporary patch file in "
+                             "your game directory.");
+  }
+
+  auto last_progress_update = std::chrono::steady_clock::time_point{};
+  bool has_total_size = false;
+  size_t latest_total_size = 0;
+  const auto curl_code = utils::http::get_data_stream(
+      supported_client_patch_url, {},
+      [&](const size_t downloaded, const size_t total_size) {
+        if (progress.is_cancelled()) {
+          throw patch_install_cancelled{};
+        }
+
+        latest_total_size = total_size;
+
+        const auto now = std::chrono::steady_clock::now();
+        if (last_progress_update == std::chrono::steady_clock::time_point{} ||
+            (now - last_progress_update) >= 125ms) {
+          if (total_size > 0) {
+            if (!has_total_size) {
+              progress.set_marquee(false);
+              has_total_size = true;
+            }
+
+            progress.set_progress(downloaded, total_size);
+            progress.set_line(2, "Downloaded " +
+                                     format_download_size(downloaded) + " / " +
+                                     format_download_size(total_size));
+          } else {
+            progress.set_line(2,
+                              "Downloaded " + format_download_size(downloaded));
+          }
+
+          last_progress_update = now;
+        }
+      },
+      [&](const char *data, const size_t size) {
+        temp_stream.write(data, static_cast<std::streamsize>(size));
+        if (!temp_stream) {
+          throw std::runtime_error(
+              "Failed while writing the downloaded BlackOps3.exe patch.");
+        }
+      });
+
+  temp_stream.flush();
+  temp_stream.close();
+
+  if (progress.is_cancelled()) {
+    throw patch_install_cancelled{};
+  }
+
+  if (curl_code != CURLE_OK) {
+    throw std::runtime_error("Failed to download the compatible BlackOps3.exe "
+                             "patch. Please try again later.");
+  }
+
+  progress.set_marquee(false);
+  progress.set_progress(latest_total_size > 0 ? latest_total_size : 1,
+                        latest_total_size > 0 ? latest_total_size : 1);
+  progress.set_line(1, "Verifying downloaded BlackOps3.exe...");
+  progress.set_line(2, temp_binary.filename().string());
+
+  const auto downloaded_checksum = get_pe_checksum(temp_binary);
+  if (!downloaded_checksum ||
+      *downloaded_checksum != get_expected_client_checksum()) {
+    throw std::runtime_error(
+        "The downloaded BlackOps3.exe patch did not match the BOIII-"
+        "compatible version that this build expects.");
+  }
+
+  if (is_client_binary_process_running()) {
+    if (!allow_close_running_client_binary) {
+      throw std::runtime_error(
+          "Black Ops 3 is still running, so BOIII cannot replace "
+          "BlackOps3.exe.");
+    }
+
+    progress.set_line(1, "Closing running BlackOps3.exe...");
+    progress.set_line(2, "Waiting for Black Ops 3 to exit...");
+    close_running_client_binary_processes();
+  }
+
+  utils::io::remove_file(backup_binary);
+  const bool moved_original = MoveFileExW(
+      client_binary.wstring().c_str(), backup_binary.wstring().c_str(),
+      MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
+  if (!moved_original) {
+    throw std::runtime_error("Failed to move your current BlackOps3.exe out of "
+                             "the way before installing the patch.");
+  }
+
+  bool installed = false;
+  const auto restore_backup = utils::finally([&]() {
+    if (!installed) {
+      MoveFileExW(backup_binary.wstring().c_str(),
+                  client_binary.wstring().c_str(),
+                  MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH);
+    }
+  });
+
+  progress.set_line(1, "Replacing BlackOps3.exe...");
+  progress.set_line(2, client_binary.string());
+
+  if (!MoveFileExW(temp_binary.wstring().c_str(),
+                   client_binary.wstring().c_str(),
+                   MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+    throw std::runtime_error(
+        "Failed to replace BlackOps3.exe with the downloaded patch.");
+  }
+
+  const auto installed_state = classify_client_binary(client_binary);
+  if (installed_state != client_binary_state::supported) {
+    throw std::runtime_error("BlackOps3.exe was replaced, but the new file is "
+                             "still not compatible with this BOIII build.");
+  }
+
+  installed = true;
+  utils::io::remove_file(backup_binary);
+
+  progress.set_line(1, "BlackOps3.exe updated successfully.");
+  progress.set_line(2, "Continuing launch...");
+  std::this_thread::sleep_for(350ms);
+}
+
+void ensure_compatible_client_binary(
+    const std::filesystem::path &client_binary) {
+  const auto state = classify_client_binary(client_binary);
+  if (state == client_binary_state::supported ||
+      state == client_binary_state::unreadable) {
+    return;
+  }
+
+  const auto close_running_game = is_client_binary_process_running();
+  if (!prompt_to_install_client_patch(state, close_running_game)) {
+    throw patch_install_cancelled{};
+  }
+
+  install_supported_client_binary(client_binary, close_running_game);
 }
 
 PIMAGE_TLS_CALLBACK *get_tls_callbacks() {
@@ -209,7 +600,7 @@ void enable_dpi_awareness() {
 
 void trigger_high_performance_gpu_switch() {
   // Make sure to link D3D11, as this might trigger high performance GPU
-  static volatile auto _ = &D3D11CreateDevice;
+  [[maybe_unused]] static volatile auto _ = &D3D11CreateDevice;
 
   const auto key = utils::nt::open_or_create_registry_key(
       HKEY_CURRENT_USER, R"(Software\Microsoft\DirectX\UserGpuPreferences)");
@@ -530,14 +921,6 @@ int main() {
         return 0;
       }
 
-      updater::update();
-
-      if (!utils::io::file_exists(
-              launcher::get_launcher_ui_file().generic_wstring())) {
-        throw std::runtime_error("BOIII needs an active internet connection "
-                                 "for the first time you launch it.");
-      }
-
       const auto client_binary = "BlackOps3.exe"s;
       const auto server_binary = "BlackOps3_UnrankedDedicatedServer.exe"s;
 
@@ -555,6 +938,16 @@ int main() {
       const auto is_server =
           utils::flags::has_flag("dedicated") || (!has_client && has_server);
 
+      if (!is_server && !launcher::is_game_process_running()) {
+        updater::update();
+      }
+
+      if (!utils::io::file_exists(
+              launcher::get_launcher_ui_file().generic_wstring())) {
+        throw std::runtime_error("BOIII needs an active internet connection "
+                                 "for the first time you launch it.");
+      }
+
       if (!is_server) {
         trigger_high_performance_gpu_switch();
 
@@ -562,6 +955,8 @@ int main() {
         if (!launch && !utils::nt::is_wine() && !launcher::run()) {
           return 0;
         }
+
+        ensure_compatible_client_binary(client_binary);
       }
 
       if (!component_loader::activate(is_server)) {
@@ -575,27 +970,13 @@ int main() {
 
       if (is_server != game::is_server()) {
         throw std::runtime_error(
-            "Incompatible game version detected:\n"
-            "The latest Black Ops 3 update is not compatible with BOIII.\n"
-            "To fix this, download a previous version of BlackOps3.exe and "
-            "replace the updated file in your game directory.\n"
-            "You can find a download link under Settings => Patches.");
+            get_manual_client_patch_message(client_binary_state::incompatible));
       }
 
       if (!is_server && !game::is_client()) {
-        if (game::is_legacy_client()) {
-          throw std::runtime_error(
-              "You are using an outdated BlackOps3.exe. This version is no "
-              "longer supported.\n"
-              "Please use the binary provided under Settings => Patches.");
-        }
-
-        throw std::runtime_error(
-            "Incompatible game version detected:\n"
-            "The latest Black Ops 3 update is not compatible with BOIII.\n"
-            "To fix this, download a previous version of BlackOps3.exe and "
-            "replace the updated file in your game directory.\n"
-            "You can find a download link under Settings => Patches.");
+        throw std::runtime_error(get_manual_client_patch_message(
+            game::is_legacy_client() ? client_binary_state::legacy
+                                     : client_binary_state::incompatible));
       }
 
       patch_imports();
@@ -605,6 +986,8 @@ int main() {
       }
 
       premature_shutdown = false;
+    } catch (patch_install_cancelled &) {
+      return 0;
     } catch (std::exception &e) {
       game::show_error(e.what());
       return 1;

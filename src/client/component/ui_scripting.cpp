@@ -11,6 +11,7 @@
 #include "friends.hpp"
 #include "discord.hpp"
 #include "network.hpp"
+#include "name.hpp"
 
 #include "../steam/steam.hpp"
 #include "../steam/interfaces/matchmaking_servers.hpp"
@@ -24,12 +25,17 @@
 #include <utils/finally.hpp>
 #include <utils/http.hpp>
 
+#include <cmath>
 #include <filesystem>
 #include <unordered_map>
 
+using namespace game::db;
+using namespace game::db::xasset;
+using namespace game::ugc;
+
 namespace ui_scripting {
 namespace {
-std::unordered_map<game::hks::cclosure *,
+std::unordered_map<game::ui::lua::hks::cclosure *,
                    std::function<arguments(const function_arguments &args)>>
     converted_functions;
 
@@ -47,7 +53,8 @@ utils::hook::detour hksi_lua_getinfo_detour;
 bool unsafe_function_called_message_shown = false;
 bool unsafe_lua_approved_for_session = false;
 
-using lua_function_t = int (*)(game::hks::lua_State *);
+std::unordered_map<uintptr_t, std::string> rawfile_source_cache{};
+
 std::unordered_map<size_t, utils::hook::detour> unsafe_function_detours;
 
 struct globals_t {
@@ -68,33 +75,37 @@ bool hot_reload_in_game = false;
 
 bool execute_raw_lua(const std::string &code,
                      const char *chunk_name = "hot_reload") {
-  const auto state = *game::hks::lua_state;
+  game::ui::lua::hks::lua_State *state = *game::ui::lua::hks::lua_state;
   if (!state)
     return false;
 
   try {
     const table lua = state->globals.v.table;
-    state->m_global->m_bytecodeSharingMode = game::hks::HKS_BYTECODE_SHARING_ON;
+    state->m_global->m_bytecodeSharingMode =
+        game::ui::lua::hks::HksBytecodeSharingMode::ON;
     const auto load_results = lua["loadstring"](code, chunk_name);
     state->m_global->m_bytecodeSharingMode =
-        game::hks::HKS_BYTECODE_SHARING_SECURE;
+        game::ui::lua::hks::HksBytecodeSharingMode::SECURE;
 
     if (load_results[0].is<function>()) {
       const auto results = lua["pcall"](load_results);
       if (!results[0].as<bool>()) {
         auto err = results[1].as<std::string>();
-        game::Com_Printf(0, 0, "^1Lua Error [%s]: %s\n", chunk_name,
-                         err.c_str());
+        game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
+                              "^1Lua Error [%s]: %s\n", chunk_name,
+                              err.c_str());
         return false;
       }
       return true;
     } else if (load_results[1].is<std::string>()) {
       auto err = load_results[1].as<std::string>();
-      game::Com_Printf(0, 0, "^1Lua Compile Error [%s]: %s\n", chunk_name,
-                       err.c_str());
+      game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
+                            "^1Lua Compile Error [%s]: %s\n", chunk_name,
+                            err.c_str());
     }
   } catch (const std::exception &ex) {
-    game::Com_Printf(0, 0, "^1Lua Error [%s]: %s\n", chunk_name, ex.what());
+    game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
+                          "^1Lua Error [%s]: %s\n", chunk_name, ex.what());
   }
 
   return false;
@@ -136,15 +147,19 @@ int hot_reload_check_files() {
       }
     }
   } catch (const std::exception &ex) {
-    game::Com_Printf(0, 0, "^1Hot Reload: Error scanning: %s\n", ex.what());
+    game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
+                          "^1Hot Reload: Error scanning: %s\n", ex.what());
     return 0;
   }
 
   if (changed.empty())
     return 0;
 
-  game::Com_Printf(0, 0, "^2Hot Reload: Found %d file(s) to reload\n",
-                   static_cast<int>(changed.size()));
+  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
+                        "^2Hot Reload: Found %d file(s) to reload\n",
+                        static_cast<int>(changed.size()));
+
+  rawfile_source_cache.clear();
 
   for (const auto &entry : changed) {
     const auto path_str = entry.path().string();
@@ -159,10 +174,12 @@ int hot_reload_check_files() {
     }
 
     if (execute_raw_lua(data, chunk.c_str())) {
-      game::Com_Printf(0, 0, "^2Hot Reload: Reloaded %s\n", chunk.c_str());
+      game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
+                            "^2Hot Reload: Reloaded %s\n", chunk.c_str());
     } else {
-      game::Com_Printf(0, 0, "^1Hot Reload: Error reloading %s\n",
-                       chunk.c_str());
+      game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
+                            "^1Hot Reload: Error reloading %s\n",
+                            chunk.c_str());
     }
   }
 
@@ -198,12 +215,14 @@ void start_hot_reload(const std::string &path) {
       "end)";
 
   execute_raw_lua(lua_code, "HotReloadTimer");
-  game::Com_Printf(0, 0, "^2Hot Reload: Watching '%s'\n", path.c_str());
+  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
+                        "^2Hot Reload: Watching '%s'\n", path.c_str());
 }
 
 void stop_hot_reload() {
   if (!hot_reload_running) {
-    game::Com_Printf(0, 0, "^3Hot Reload: Not currently watching.\n");
+    game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
+                          "^3Hot Reload: Not currently watching.\n");
     return;
   }
 
@@ -221,7 +240,8 @@ void stop_hot_reload() {
       "end)";
   execute_raw_lua(lua_code, "HotReloadTimerStop");
 
-  game::Com_Printf(0, 0, "^2Hot Reload: Stopped watching.\n");
+  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
+                        "^2Hot Reload: Stopped watching.\n");
 }
 
 bool is_loaded_script(const std::string &name) {
@@ -242,20 +262,107 @@ std::string get_root_script(const std::string &name) {
 }
 
 table get_globals() {
-  const auto state = *game::hks::lua_state;
+  game::ui::lua::hks::lua_State *state = *game::ui::lua::hks::lua_state;
   return state->globals.v.table;
 }
 
+const char *get_hks_type_name(const game::ui::lua::hks::HksObjectType type) {
+  const auto index = static_cast<int32_t>(type) + 2;
+  if (index < 0 ||
+      index >=
+          static_cast<int32_t>(game::ui::lua::hks::HksObjectType::COUNT) + 2) {
+    return "unknown";
+  }
+
+  const auto name = game::ui::lua::hks::s_compilerTypeName[index];
+  return name ? name : "unknown";
+}
+
+bool try_stringify_with_lua(const script_value &value, std::string &out) {
+  try {
+    const table lua = get_globals();
+    const auto tostring_fn = lua["tostring"];
+    if (!tostring_fn.is<function>()) {
+      return false;
+    }
+
+    const auto results = tostring_fn(value);
+    if (!results.empty() && results[0].is<std::string>()) {
+      out = results[0].as<std::string>();
+      return true;
+    }
+  } catch (...) {
+  }
+
+  return false;
+}
+
+std::string stringify_print_arg(const script_value &value) {
+  const auto &raw = value.get_raw();
+
+  switch (raw.t) {
+  case game::ui::lua::hks::HksObjectType::TNONE:
+  case game::ui::lua::hks::HksObjectType::TNIL:
+    return "nil";
+
+  case game::ui::lua::hks::HksObjectType::TBOOLEAN:
+    return raw.v.boolean ? "true" : "false";
+
+  case game::ui::lua::hks::HksObjectType::TNUMBER: {
+    const auto number = raw.v.number;
+    if (std::isfinite(number) && std::floor(number) == number) {
+      return utils::string::va("%.0f", number);
+    }
+
+    return utils::string::va("%g", number);
+  }
+
+  case game::ui::lua::hks::HksObjectType::TSTRING:
+    return value.as<std::string>();
+
+  default: {
+    std::string converted;
+    if (try_stringify_with_lua(value, converted)) {
+      return converted;
+    }
+
+    return utils::string::va("%s: %p", get_hks_type_name(raw.t), raw.v.ptr);
+  }
+  }
+}
+
+arguments lua_print(variadic_args args) {
+  std::string message;
+
+  for (size_t i = 0; i < args.size(); ++i) {
+    if (i > 0) {
+      message.push_back('\t');
+    }
+
+    message += stringify_print_arg(args[i]);
+  }
+
+  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s\n",
+                        message.c_str());
+  printf("%s\n", message.c_str());
+  fflush(stdout);
+
+  return {};
+}
+
 void print_error(const std::string &error) {
-  game::Com_Printf(0, 0, "^1************** LUI script error **************\n");
-  game::Com_Printf(0, 0, "^1%s\n", error.data());
-  game::Com_Printf(0, 0, "^1**********************************************\n");
+  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
+                        "^1************** LUI script error **************\n");
+  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "^1%s\n",
+                        error.data());
+  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
+                        "^1**********************************************\n");
 
   auto popup_msg = error;
   scheduler::once(
       [popup_msg] {
-        game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI,
-                                           popup_msg.c_str());
+        game::ui::UI_OpenErrorPopupWithMessage(0, game::errorCode::UI,
+                                               popup_msg.c_str());
       },
       scheduler::main, 1s);
 }
@@ -264,24 +371,25 @@ void print_loading_script(const std::string &name) {
   printf("Loading LUI script '%s'\n", name.data());
 }
 
-std::string get_current_script(game::hks::lua_State *state) {
-  game::hks::lua_Debug info{};
-  game::hks::hksi_lua_getstack(state, 1, &info);
-  game::hks::hksi_lua_getinfo(state, "nSl", &info);
+std::string get_current_script(game::ui::lua::hks::lua_State *state) {
+  game::ui::lua::hks::lua_Debug info{};
+  game::ui::lua::hks::hksi_lua_getstack(state, 1, &info);
+  game::ui::lua::hks::hksi_lua_getinfo(state, "nSl", &info);
   return info.short_src;
 }
 
 int load_buffer(const std::string &name, const std::string &data) {
-  const auto state = *game::hks::lua_state;
+  game::ui::lua::hks::lua_State *state = *game::ui::lua::hks::lua_state;
   const auto sharing_mode = state->m_global->m_bytecodeSharingMode;
-  state->m_global->m_bytecodeSharingMode = game::hks::HKS_BYTECODE_SHARING_ON;
+  state->m_global->m_bytecodeSharingMode =
+      game::ui::lua::hks::HksBytecodeSharingMode::ON;
 
   const auto _0 = utils::finally(
       [&] { state->m_global->m_bytecodeSharingMode = sharing_mode; });
 
-  game::hks::HksCompilerSettings compiler_settings{};
-  return game::hks::hksi_hksL_loadbuffer(state, &compiler_settings, data.data(),
-                                         data.size(), name.data());
+  game::ui::lua::hks::HksCompilerSettings compiler_settings{};
+  return game::ui::lua::hks::hksi_hksL_loadbuffer(
+      state, &compiler_settings, data.data(), data.size(), name.data());
 }
 
 void load_script(const std::string &name, const std::string &data,
@@ -292,12 +400,13 @@ void load_script(const std::string &name, const std::string &data,
     globals.loaded_scripts[display_name] = name;
   }
 
-  const auto state = *game::hks::lua_state;
-  const auto lua = get_globals();
-  state->m_global->m_bytecodeSharingMode = game::hks::HKS_BYTECODE_SHARING_ON;
+  game::ui::lua::hks::lua_State *state = *game::ui::lua::hks::lua_state;
+  const table lua = get_globals();
+  state->m_global->m_bytecodeSharingMode =
+      game::ui::lua::hks::HksBytecodeSharingMode::ON;
   const auto load_results = lua["loadstring"](data, chunk);
   state->m_global->m_bytecodeSharingMode =
-      game::hks::HKS_BYTECODE_SHARING_SECURE;
+      game::ui::lua::hks::HksBytecodeSharingMode::SECURE;
 
   if (load_results[0].is<function>()) {
     const auto results = lua["pcall"](load_results);
@@ -353,12 +462,12 @@ void load_scripts(const std::string &script_dir) {
 }
 
 void setup_functions() {
-  const auto lua = get_globals();
+  const table lua = get_globals();
   lua["game"] = table();
 
   lua["game"]["getfriendcount"] = function(
       convert_function([]() -> int { return friends::get_friend_count(); }),
-      game::hks::TCFUNCTION);
+      game::ui::lua::hks::HksObjectType::TCFUNCTION);
 
   lua["game"]["getfriend"] =
       function(convert_function([](int index) -> table {
@@ -370,7 +479,7 @@ void setup_functions() {
                  t.set("server", std::string(f.server_address));
                  return t;
                }),
-               game::hks::TCFUNCTION);
+               game::ui::lua::hks::HksObjectType::TCFUNCTION);
 
   lua["game"]["addfriend"] =
       function(convert_function([](const std::string &steam_id_str,
@@ -383,7 +492,7 @@ void setup_functions() {
                  }
                  friends::add_friend(steam_id, name);
                }),
-               game::hks::TCFUNCTION);
+               game::ui::lua::hks::HksObjectType::TCFUNCTION);
 
   lua["game"]["removefriend"] =
       function(convert_function([](const std::string &steam_id_str) {
@@ -395,7 +504,7 @@ void setup_functions() {
                  }
                  friends::remove_friend(steam_id);
                }),
-               game::hks::TCFUNCTION);
+               game::ui::lua::hks::HksObjectType::TCFUNCTION);
 
   lua["game"]["invitefriend"] =
       function(convert_function([](const std::string &id_str) -> bool {
@@ -407,7 +516,7 @@ void setup_functions() {
                  }
                  return friends::invite_to_game(id);
                }),
-               game::hks::TCFUNCTION);
+               game::ui::lua::hks::HksObjectType::TCFUNCTION);
 
   lua["game"]["connecttofriend"] =
       function(convert_function([](const std::string &id_str) -> bool {
@@ -419,7 +528,7 @@ void setup_functions() {
                  }
                  return friends::connect_to_friend(id);
                }),
-               game::hks::TCFUNCTION);
+               game::ui::lua::hks::HksObjectType::TCFUNCTION);
 
   // HTTP functions
   lua["game"]["httpget"] =
@@ -427,7 +536,7 @@ void setup_functions() {
                  const auto result = utils::http::get_data(url);
                  return result.value_or("");
                }),
-               game::hks::TCFUNCTION);
+               game::ui::lua::hks::HksObjectType::TCFUNCTION);
 
   lua["game"]["httppost"] =
       function(convert_function([](const std::string &url,
@@ -435,42 +544,72 @@ void setup_functions() {
                  const auto result = utils::http::post_data(url, body);
                  return result.value_or("");
                }),
-               game::hks::TCFUNCTION);
+               game::ui::lua::hks::HksObjectType::TCFUNCTION);
 
   lua["game"]["setDiscordPlayerScore"] = function(
       convert_function([](int score) { discord::set_player_score(score); }),
-      game::hks::TCFUNCTION);
+      game::ui::lua::hks::HksObjectType::TCFUNCTION);
 
   lua["game"]["setDiscordEnemyScore"] = function(
       convert_function([](int score) { discord::set_enemy_score(score); }),
-      game::hks::TCFUNCTION);
+      game::ui::lua::hks::HksObjectType::TCFUNCTION);
 
   lua["game"]["setDiscordRoundsPlayed"] = function(
       convert_function([](int round) { discord::set_rounds_played(round); }),
-      game::hks::TCFUNCTION);
+      game::ui::lua::hks::HksObjectType::TCFUNCTION);
 
   // Hot reload functions (callable from Lua timers)
-  lua["game"]["hotreloadcheck"] = function(convert_function([]() {
-                                             if (hot_reload_running) {
-                                               hot_reload_check_files();
-                                             }
-                                           }),
-                                           game::hks::TCFUNCTION);
+  lua["game"]["hotreloadcheck"] =
+      function(convert_function([]() {
+                 if (hot_reload_running) {
+                   hot_reload_check_files();
+                 }
+               }),
+               game::ui::lua::hks::HksObjectType::TCFUNCTION);
 
   lua["game"]["hotreloadstart"] = function(
       convert_function([](const std::string &path) { start_hot_reload(path); }),
-      game::hks::TCFUNCTION);
+      game::ui::lua::hks::HksObjectType::TCFUNCTION);
+
+  lua["game"]["getappdatapath"] =
+      function(convert_function([]() -> std::string {
+                 return game::get_appdata_path().generic_string();
+               }),
+               game::ui::lua::hks::HksObjectType::TCFUNCTION);
+
+  lua["game"]["getclientoverridename"] = function(
+      convert_function([](const int client_num) -> std::string {
+        const auto cn = static_cast<game::ClientNum_t>(client_num);
+        if (!game::valid_client_num(cn) || !name::has_name_override(cn)) {
+          return "";
+        }
+
+        return name::get_name_override(cn).value_or("");
+      }),
+      game::ui::lua::hks::HksObjectType::TCFUNCTION);
+
+  lua["game"]["getclientoverridetag"] =
+      function(convert_function([](const int client_num) -> std::string {
+                 const auto cn = static_cast<game::ClientNum_t>(client_num);
+                 if (!game::valid_client_num(cn) ||
+                     !name::has_clan_abbrev_override(cn)) {
+                   return "";
+                 }
+
+                 return name::get_clan_abbrev_override(cn).value_or("");
+               }),
+               game::ui::lua::hks::HksObjectType::TCFUNCTION);
 
   lua["game"]["getrawservercount"] =
       function(convert_function([]() -> int {
                  return steam::get_raw_internet_server_count();
                }),
-               game::hks::TCFUNCTION);
+               game::ui::lua::hks::HksObjectType::TCFUNCTION);
 
   lua["game"]["isserverlistrefreshing"] =
       function(convert_function(
                    []() -> bool { return steam::is_server_list_refreshing(); }),
-               game::hks::TCFUNCTION);
+               game::ui::lua::hks::HksObjectType::TCFUNCTION);
 
   lua["game"]["getrawserverinfo"] =
       function(convert_function([](const int index) -> table {
@@ -492,7 +631,8 @@ void setup_functions() {
 
                  const auto tags = std::string(item->m_szGameTags);
                  const auto get_tag = [&](const char *key) -> std::string {
-                   const auto *val = game::Info_ValueForKey(tags.c_str(), key);
+                   const auto *val =
+                       game::info::Info_ValueForKey(tags.c_str(), key);
                    return val ? val : "";
                  };
 
@@ -515,11 +655,11 @@ void setup_functions() {
 
                  return t;
                }),
-               game::hks::TCFUNCTION);
+               game::ui::lua::hks::HksObjectType::TCFUNCTION);
 }
 
 void enable_globals() {
-  const auto lua = get_globals();
+  const table lua = get_globals();
   const std::string code = "local g = getmetatable(_G)\n"
                            "if not g then\n"
                            "g = {}\n"
@@ -527,24 +667,25 @@ void enable_globals() {
                            "end\n"
                            "g.__newindex = nil\n";
 
-  const auto state = *game::hks::lua_state;
-  state->m_global->m_bytecodeSharingMode = game::hks::HKS_BYTECODE_SHARING_ON;
+  game::ui::lua::hks::lua_State *state = *game::ui::lua::hks::lua_state;
+  state->m_global->m_bytecodeSharingMode =
+      game::ui::lua::hks::HksBytecodeSharingMode::ON;
   lua["loadstring"](code)[0]();
   state->m_global->m_bytecodeSharingMode =
-      game::hks::HKS_BYTECODE_SHARING_SECURE;
+      game::ui::lua::hks::HksBytecodeSharingMode::SECURE;
 }
 
 void setup_lua_globals() {
   globals = {};
 
-  const auto lua = get_globals();
+  const table lua = get_globals();
   enable_globals();
 
   setup_functions();
 
   if (!game::is_server()) {
-    lua["print"] = function(reinterpret_cast<game::hks::lua_function>(
-        0x141D30290_g)); // hks::base_print
+    lua["print"] = function(convert_function(lua_print),
+                            game::ui::lua::hks::HksObjectType::TCFUNCTION);
   }
   lua["table"]["unpack"] = lua["unpack"];
   lua["luiglobals"] = lua;
@@ -583,7 +724,7 @@ bool doneFirstSnapshot = false;
 void ui_cod_init_stub(const bool frontend) {
   ui_cod_init_hook.invoke(frontend);
 
-  if (!game::is_server() && game::Com_IsRunningUILevel()) {
+  if (!game::is_server() && game::com::Com_IsRunningUILevel()) {
     // Fetch the names of the local files so file overrides are already handled
     globals = {};
     const utils::nt::library host{};
@@ -634,7 +775,7 @@ void inject_discord_score_subscriptions() {
 void cl_first_snapshot_stub(int a1) {
   cl_first_snapshot_hook.invoke(a1);
 
-  if (game::Com_IsRunningUILevel() || doneFirstSnapshot) {
+  if (game::com::Com_IsRunningUILevel() || doneFirstSnapshot) {
     return;
   }
   doneFirstSnapshot = true;
@@ -649,6 +790,7 @@ void cl_first_snapshot_stub(int a1) {
 
 void ui_shutdown_stub() {
   converted_functions.clear();
+  rawfile_source_cache.clear();
   globals = {};
   hot_reload_in_game = false;
   unsafe_function_called_message_shown = false;
@@ -656,14 +798,14 @@ void ui_shutdown_stub() {
   return ui_shutdown_hook.invoke<void>();
 }
 
-void *hks_package_require_stub(game::hks::lua_State *state) {
+void *hks_package_require_stub(game::ui::lua::hks::lua_State *state) {
   const auto script = get_current_script(state);
   const auto root = get_root_script(script);
   globals.in_require_script = root;
   return hks_package_require_hook.invoke<void *>(state);
 }
 
-int hks_load_stub(game::hks::lua_State *state, void *compiler_options,
+int hks_load_stub(game::ui::lua::hks::lua_State *state, void *compiler_options,
                   void *reader, void *reader_data, void *debug_reader,
                   void *debug_reader_data, const char *chunk_name) {
   if (globals.load_raw_script) {
@@ -678,10 +820,10 @@ int hks_load_stub(game::hks::lua_State *state, void *compiler_options,
                                   debug_reader, debug_reader_data, chunk_name);
 }
 
-game::XAssetHeader lua_cod_getrawfile_stub(char *filename) {
+xasset::XAssetHeader lua_cod_getrawfile_stub(char *filename) {
   if (!is_loaded_script(globals.in_require_script) &&
       !is_local_script(filename)) {
-    return lua_cod_getrawfile_hook.invoke<game::XAssetHeader>(filename);
+    return lua_cod_getrawfile_hook.invoke<xasset::XAssetHeader>(filename);
   }
 
   const std::string name_ = filename;
@@ -707,15 +849,17 @@ game::XAssetHeader lua_cod_getrawfile_stub(char *filename) {
     globals.load_raw_script = true;
     globals.raw_script_name = target_script;
 
-    return game::XAssetHeader{
-        .luaFile = reinterpret_cast<game::RawFile *>(1) //
+    return xasset::XAssetHeader{
+        .rawfile = reinterpret_cast<xasset::RawFile *>(1) //
     };
   }
 
-  return lua_cod_getrawfile_hook.invoke<game::XAssetHeader>(filename);
+  return lua_cod_getrawfile_hook.invoke<xasset::XAssetHeader>(filename);
 }
 
-int luaopen_stub([[maybe_unused]] game::hks::lua_State *l) { return 0; }
+int luaopen_stub([[maybe_unused]] game::ui::lua::hks::lua_State *l) {
+  return 0;
+}
 
 void show_unsafe_lua_dialog() {
   if (unsafe_function_called_message_shown) {
@@ -753,7 +897,8 @@ void show_unsafe_lua_dialog() {
       scheduler::pipeline::main);
 }
 
-template <size_t Key> int lua_unsafe_function_stub(game::hks::lua_State *l) {
+template <size_t Key>
+int lua_unsafe_function_stub(game::ui::lua::hks::lua_State *l) {
   if (unsafe_lua_approved_for_session) {
     return unsafe_function_detours[Key].invoke<int>(l);
   }
@@ -825,9 +970,9 @@ void patch_unsafe_lua_functions() {
 }
 } // namespace
 
-int main_handler(game::hks::lua_State *state) {
+int main_handler(game::ui::lua::hks::lua_State *state) {
   const auto value = state->m_apistack.base[-1];
-  if (value.t != game::hks::TCFUNCTION) {
+  if (value.t != game::ui::lua::hks::HksObjectType::TCFUNCTION) {
     return 0;
   }
 
@@ -848,15 +993,16 @@ int main_handler(game::hks::lua_State *state) {
 
     return static_cast<int>(results.size());
   } catch (const std::exception &ex) {
-    game::hks::hksi_luaL_error(state, ex.what());
+    game::ui::lua::hks::hksi_luaL_error(state, ex.what());
   }
 
   return 0;
 }
 
-template <typename F> game::hks::cclosure *convert_function(F f) {
-  const auto state = *game::hks::lua_state;
-  const auto closure = game::hks::cclosure_Create(state, main_handler, 0, 0, 0);
+template <typename F> game::ui::lua::hks::cclosure *convert_function(F f) {
+  game::ui::lua::hks::lua_State *state = *game::ui::lua::hks::lua_state;
+  game::ui::lua::hks::cclosure *closure =
+      game::ui::lua::hks::cclosure_Create(state, main_handler, 0, 0, 0);
   converted_functions[closure] = wrap_function(f);
   return closure;
 }
@@ -868,7 +1014,7 @@ thread_local char getinfo_source_buf[512]{};
 const char *resolve_c_function_name(uintptr_t c_func_ptr) {
   if (!c_func_ptr || game::is_server())
     return nullptr;
-  auto list_head = *reinterpret_cast<uintptr_t *>(0x14365C5E0_g);
+  uintptr_t list_head = *reinterpret_cast<uintptr_t *>(0x14365C5E0_g);
   while (list_head) {
     if (*reinterpret_cast<uintptr_t *>(list_head + 0x8) == c_func_ptr)
       return *reinterpret_cast<const char **>(list_head);
@@ -881,52 +1027,59 @@ const char *resolve_source_from_rawfiles(uintptr_t bytecode_header) {
   if (!bytecode_header)
     return nullptr;
 
+  auto it = rawfile_source_cache.find(bytecode_header);
+  if (it != rawfile_source_cache.end()) {
+    return it->second.empty() ? nullptr : it->second.c_str();
+  }
+
   struct lookup_ctx {
     uintptr_t target;
     const char *found;
   };
   lookup_ctx ctx{bytecode_header, nullptr};
 
-  game::DB_EnumXAssets(
-      game::ASSET_TYPE_RAWFILE,
-      [](game::XAssetHeader header, void *data) {
-        auto *c = static_cast<lookup_ctx *>(data);
+  xasset::DB_EnumXAssets(
+      xasset::XAssetType::RAWFILE,
+      [](xasset::XAssetHeader header, void *data) {
+        lookup_ctx *c = static_cast<lookup_ctx *>(data);
         if (c->found)
           return;
-        if (header.luaFile && header.luaFile->name && header.luaFile->buffer) {
-          if (reinterpret_cast<uintptr_t>(header.luaFile->buffer) == c->target)
-            c->found = header.luaFile->name;
+        if (header.rawfile && header.rawfile->name && header.rawfile->buffer) {
+          if (reinterpret_cast<uintptr_t>(header.rawfile->buffer) == c->target)
+            c->found = header.rawfile->name;
         }
       },
       &ctx, false);
 
+  rawfile_source_cache[bytecode_header] = ctx.found ? ctx.found : "";
   return ctx.found;
 }
 
-int hksi_lua_getinfo_stub(game::hks::lua_State *s, const char *what,
-                          game::hks::lua_Debug *ar) {
-  const auto result = hksi_lua_getinfo_detour.invoke<int>(s, what, ar);
+int hksi_lua_getinfo_stub(game::ui::lua::hks::lua_State *s, const char *what,
+                          game::ui::lua::hks::lua_Debug *ar) {
+  const int32_t result = hksi_lua_getinfo_detour.invoke<int32_t>(s, what, ar);
   if (!result || !s || !ar)
     return result;
   if (!what || !strchr(what, 'n'))
     return result;
 
-  auto *callstack = &s->m_callStack;
+  game::ui::lua::hks::CallStack *callstack = &s->m_callStack;
   if (!callstack->m_records || !callstack->m_current)
     return result;
 
-  const int stack_level = ar->callstack_level;
-  const auto num_records =
-      static_cast<int>((reinterpret_cast<uintptr_t>(callstack->m_current) -
-                        reinterpret_cast<uintptr_t>(callstack->m_records)) /
-                       sizeof(game::hks::ActivationRecord));
+  const int32_t stack_level = ar->callstack_level;
+  const int32_t num_records =
+      static_cast<int32_t>((reinterpret_cast<uintptr_t>(callstack->m_current) -
+                            reinterpret_cast<uintptr_t>(callstack->m_records)) /
+                           sizeof(game::ui::lua::hks::ActivationRecord));
 
-  game::hks::HksObject *func_obj = nullptr;
+  game::ui::lua::hks::HksObject *func_obj = nullptr;
   if (stack_level >= num_records) {
     if (s->m_apistack.bottom)
       func_obj = s->m_apistack.bottom - 1;
   } else if (stack_level + 1 <= num_records) {
-    auto *next_record = &callstack->m_records[stack_level + 1];
+    game::ui::lua::hks::ActivationRecord *next_record =
+        &callstack->m_records[stack_level + 1];
     if (next_record->m_base)
       func_obj = next_record->m_base - 1;
   }
@@ -934,28 +1087,28 @@ int hksi_lua_getinfo_stub(game::hks::lua_State *s, const char *what,
   if (!func_obj)
     return result;
 
-  const auto obj_type = func_obj->t;
-  const auto obj_value = reinterpret_cast<uintptr_t>(func_obj->v.cClosure);
+  const game::ui::lua::hks::HksObjectType obj_type = func_obj->t;
+  const uintptr_t obj_value = reinterpret_cast<uintptr_t>(func_obj->v.cClosure);
   if (!obj_value)
     return result;
 
-  if (obj_type == game::hks::TCFUNCTION) {
-    auto c_func_ptr = *reinterpret_cast<uintptr_t *>(obj_value + 16);
-    auto resolved = resolve_c_function_name(c_func_ptr);
+  if (obj_type == game::ui::lua::hks::HksObjectType::TCFUNCTION) {
+    uintptr_t c_func_ptr = *reinterpret_cast<uintptr_t *>(obj_value + 16);
+    const char *resolved = resolve_c_function_name(c_func_ptr);
     if (resolved && resolved[0])
       ar->name = resolved;
     else if (!ar->name || !ar->name[0])
       ar->name = "(luaC_unknown)";
-  } else if (obj_type == game::hks::TIFUNCTION) {
-    auto proto = *reinterpret_cast<uintptr_t *>(obj_value + 16);
+  } else if (obj_type == game::ui::lua::hks::HksObjectType::TIFUNCTION) {
+    uintptr_t proto = *reinterpret_cast<uintptr_t *>(obj_value + 16);
     if (proto) {
-      auto m_hash = *reinterpret_cast<uint32_t *>(proto + 16);
-      auto m_numParams = *reinterpret_cast<uint8_t *>(proto + 0x18);
-      auto m_debug = *reinterpret_cast<uintptr_t *>(proto + 80);
+      uint32_t m_hash = *reinterpret_cast<uint32_t *>(proto + 16);
+      uint8_t m_numParams = *reinterpret_cast<uint8_t *>(proto + 0x18);
+      uintptr_t m_debug = *reinterpret_cast<uintptr_t *>(proto + 80);
 
       bool name_fixed = false;
       if (m_debug) {
-        auto debug_name_ptr = *reinterpret_cast<uintptr_t *>(m_debug + 48);
+        uintptr_t debug_name_ptr = *reinterpret_cast<uintptr_t *>(m_debug + 48);
         if (debug_name_ptr) {
           ar->name = reinterpret_cast<const char *>(debug_name_ptr + 20);
           name_fixed = true;
@@ -971,15 +1124,15 @@ int hksi_lua_getinfo_stub(game::hks::lua_State *s, const char *what,
 
       uintptr_t pc = 0;
       if (!game::is_server()) {
-        using getPC_t = uintptr_t(__fastcall *)(game::hks::lua_State *,
-                                                game::hks::lua_Debug *);
-        auto fn_getPC = reinterpret_cast<getPC_t>(0x141D46310_g);
+        using getPC_t = fastcall_t<uintptr_t, game::ui::lua::hks::lua_State *,
+                                   game::ui::lua::hks::lua_Debug *>;
+        getPC_t fn_getPC = reinterpret_cast<getPC_t>(0x141D46310_g);
         pc = fn_getPC(s, ar);
       }
 
       const char *resolved_source = nullptr;
       if (pc) {
-        auto scan = pc & ~static_cast<uintptr_t>(0xF);
+        uintptr_t scan = pc & ~static_cast<uintptr_t>(0xF);
         for (int i = 0; i < 0x10000; i++, scan -= 0x10) {
           if (*reinterpret_cast<uint32_t *>(scan) == 0x61754C1B) {
             resolved_source = resolve_source_from_rawfiles(scan);
@@ -1086,14 +1239,15 @@ std::string colorize_lua_error(const char *error_loc, const char *error_stack) {
   return result;
 }
 
-const char *safe_get_lua_error_stack(game::hks::lua_State *luaVM) {
+const char *safe_get_lua_error_stack(game::ui::lua::hks::lua_State *luaVM) {
   __try {
     auto *api_top = luaVM->m_apistack.top;
     auto *api_bottom = luaVM->m_apistack.bottom;
 
     if (api_top && api_bottom && (api_top - 1) >= api_bottom) {
       auto *top_obj = api_top - 1;
-      if (top_obj->t == game::hks::TSTRING && top_obj->v.str) {
+      if (top_obj->t == game::ui::lua::hks::HksObjectType::TSTRING &&
+          top_obj->v.str) {
         return top_obj->v.str->m_data;
       }
     }
@@ -1103,7 +1257,7 @@ const char *safe_get_lua_error_stack(game::hks::lua_State *luaVM) {
 }
 
 void lua_cod_luastatemanager_error_stub(const char *error,
-                                        game::hks::lua_State *luaVM) {
+                                        game::ui::lua::hks::lua_State *luaVM) {
   if (!error || !luaVM) {
     return;
   }
@@ -1153,23 +1307,25 @@ void lua_cod_luastatemanager_error_stub(const char *error,
   // Suppress known benign nil errors from server_browser scripts
   if (stack_str.find("Attempt to call a nil value") != std::string::npos &&
       stack_str.find("server_browser/") != std::string::npos) {
-    const auto colored =
+    const std::string colored =
         colorize_lua_error("LUI script (suppressed)", error_stack);
-    game::Com_Printf(0, 0, "%s", colored.c_str());
+    game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s",
+                          colored.c_str());
     return;
   }
 
-  const bool is_ui = (*game::hks::lua_state == luaVM);
+  const bool is_ui = (*game::ui::lua::hks::lua_state == luaVM);
   const char *error_loc =
       is_ui ? "LUI script execution error" : "LobbyVM script execution error";
 
-  const auto colored = colorize_lua_error(error_loc, resolved_stack);
+  const std::string colored = colorize_lua_error(error_loc, resolved_stack);
 
   try {
-    const auto root_path = utils::nt::library{}.get_path().parent_path();
-    const auto logs_dir = root_path / "logs";
+    const std::filesystem::path root_path =
+        utils::nt::library{}.get_path().parent_path();
+    const std::filesystem::path logs_dir = root_path / "logs";
     std::filesystem::create_directories(logs_dir);
-    const auto log_path = (logs_dir / "boiii_lua_errors.log").string();
+    const std::string log_path = (logs_dir / "boiii_lua_errors.log").string();
 
     auto now_sys = std::chrono::system_clock::now();
     auto time_t = std::chrono::system_clock::to_time_t(now_sys);
@@ -1186,14 +1342,15 @@ void lua_cod_luastatemanager_error_stub(const char *error,
   } catch (...) {
   }
 
-  game::Com_Printf(0, 0, "%s", colored.c_str());
+  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s",
+                        colored.c_str());
 
   // Show colored error popup with delay to ensure UI is ready
-  auto popup_text = colorize_lua_error(nullptr, resolved_stack);
+  std::string popup_text = colorize_lua_error(nullptr, resolved_stack);
   scheduler::once(
       [popup_text] {
-        game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI,
-                                           popup_text.c_str());
+        game::ui::UI_OpenErrorPopupWithMessage(0, game::errorCode::UI,
+                                               popup_text.c_str());
       },
       scheduler::main, 500ms);
 }
@@ -1208,12 +1365,12 @@ public:
 
     hks_package_require_hook.create(game::select(0x141D28EF0, 0x1403D7FC0),
                                     hks_package_require_stub);
-    ui_cod_init_hook.create(game::UI_CoD_Init, ui_cod_init_stub);
-    ui_cod_lobbyui_init_hook.create(game::UI_CoD_LobbyUI_Init,
+    ui_cod_init_hook.create(game::ui::UI_CoD_Init, ui_cod_init_stub);
+    ui_cod_lobbyui_init_hook.create(game::ui::UI_CoD_LobbyUI_Init,
                                     ui_cod_lobbyui_init_stub);
     ui_shutdown_hook.create(game::select(0x14270DE00, 0x1404A1280),
                             ui_shutdown_stub);
-    lua_cod_getrawfile_hook.create(game::select(0x141F0EFE0, 0x1404BCB70),
+    lua_cod_getrawfile_hook.create(game::ui::lua::Lua_CoD_GetRawFile.get(),
                                    lua_cod_getrawfile_stub);
 
     hksi_lua_getinfo_detour.create(game::select(0x141D4D8D0, 0x1403F64B0),
@@ -1244,25 +1401,28 @@ public:
         scheduler::pipeline::renderer);
 
     command::add("luiReload", [] {
-      if (game::Com_IsRunningUILevel()) {
+      if (game::com::Com_IsRunningUILevel()) {
         converted_functions.clear();
+        rawfile_source_cache.clear();
 
         globals.loaded_scripts.clear();
         globals.local_scripts.clear();
 
-        game::UI_CoD_Shutdown();
-        game::UI_CoD_Init(true);
+        game::ui::UI_CoD_Shutdown();
+        game::ui::UI_CoD_Init(true);
 
         // Com_LoadFrontEnd stripped
-        game::Lua_CoD_LoadLuaFile(*game::hks::lua_state, "ui_mp.T6.main");
-        game::UI_AddMenu(game::UI_CoD_GetRootNameForController(0), "main", -1,
-                         *game::hks::lua_state);
+        game::ui::lua::Lua_CoD_LoadLuaFile(*game::ui::lua::hks::lua_state,
+                                           "ui_mp.T6.main");
+        game::ui::UI_AddMenu(game::ui::UI_CoD_GetRootNameForController(0),
+                             "main", -1, *game::ui::lua::hks::lua_state);
 
-        game::UI_CoD_LobbyUI_Init();
+        game::ui::UI_CoD_LobbyUI_Init();
       } else {
         // TODO: Find a way to do a full shutdown & restart like in frontend,
         // that opens up the loading screen that can't be easily closed
-        game::CG_LUIHUDRestart(0);
+        rawfile_source_cache.clear();
+        game::cg::CG_LUIHUDRestart(game::LOCAL_CLIENT_0);
       }
     });
 
@@ -1309,7 +1469,7 @@ public:
               const auto reload_dir = [&](const std::string &script_dir) {
                 if (!utils::io::directory_exists(script_dir))
                   return;
-                for (const auto &entry :
+                for (const std::filesystem::directory_entry &entry :
                      std::filesystem::recursive_directory_iterator(
                          script_dir)) {
                   if (!entry.is_regular_file())
@@ -1319,7 +1479,7 @@ public:
 
                   std::string data;
                   if (utils::io::read_file(entry.path().string(), &data)) {
-                    auto chunk = entry.path().string();
+                    std::string chunk = entry.path().string();
                     if (chunk.starts_with(script_dir))
                       chunk = chunk.substr(script_dir.size());
                     if (execute_raw_lua(data, chunk.c_str()))
@@ -1330,13 +1490,16 @@ public:
                 }
               };
 
+              rawfile_source_cache.clear();
+
               reload_dir(dir);
 
               const utils::nt::library host{};
               reload_dir((host.get_folder() / "boiii" / "ui_scripts").string());
 
-              game::Com_Printf(0, 0, "^2Lua Reload: Reloaded %d file(s)\n",
-                               count);
+              game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
+                                    "^2Lua Reload: Reloaded %d file(s)\n",
+                                    count);
               const std::string toast_msg =
                   "Reloaded " + std::to_string(count) + " file(s)";
               scheduler::once(
@@ -1354,54 +1517,54 @@ public:
 
               // Show collected errors in one popup after reload is done
               if (!errors.empty()) {
-                auto popup_msg = std::string("^1Lua Reload Errors:\n") + errors;
+                std::string popup_msg =
+                    std::string("^1Lua Reload Errors:\n") + errors;
                 scheduler::once(
                     [popup_msg] {
-                      game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI,
-                                                         popup_msg.c_str());
+                      game::ui::UI_OpenErrorPopupWithMessage(
+                          0, game::errorCode::UI, popup_msg.c_str());
                     },
                     scheduler::pipeline::renderer, 1s);
               }
             } catch (const std::exception &ex) {
-              game::Com_Printf(0, 0, "^1Lua Reload: Error: %s\n", ex.what());
+              game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
+                                    "^1Lua Reload: Error: %s\n", ex.what());
             }
           },
           scheduler::pipeline::renderer);
     });
 
     command::add("lua_reload_mod", [](const command::params & /*params*/) {
-      const std::string mod_id = game::getPublisherIdFromLoadedMod();
+      const std::string mod_id = game::ugc::getPublisherIdFromLoadedMod();
       if (mod_id.empty() || mod_id == "usermaps") {
         scheduler::once(
             [] { toast::success("Lua Reload Mod", "No mod loaded"); },
             scheduler::pipeline::renderer, 2s);
-        game::Com_Printf(0, 0, "^3Lua Reload Mod: No mod currently loaded\n");
+        game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
+                              "^3Lua Reload Mod: No mod currently loaded\n");
         return;
       }
 
       // Find the mod's content folder from the workshop pool
       std::string mod_content_path;
-      for (unsigned int i = 0; i < *game::modsCount; ++i) {
-        const auto &mod_data = game::modsPool[i];
-        if (mod_data.publisherId == mod_id || mod_data.folderName == mod_id) {
-          mod_content_path = mod_data.absolutePathContentFolder;
+      for (unsigned int i = 0; i < game::ugc::modsPool.count; ++i) {
+        const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool.data[i];
+        if (mod_data->publisherId == mod_id ||
+            mod_data->internalName == mod_id) {
+          mod_content_path = mod_data->absolutePathContentDirectory;
           break;
         }
       }
 
       if (mod_content_path.empty()) {
-        game::Com_Printf(
-            0, 0,
+        game::com::Com_Printf(
+            0, game::consoleLabel_e::DEFAULT,
             "^3Lua Reload Mod: Could not find content folder for mod '%s'\n",
             mod_id.c_str());
         return;
       }
 
-      // const auto folder = game::is_server() ? "lobby_scripts" : "ui_scripts";
-      // const auto script_dir = (std::filesystem::path(mod_content_path) /
-      // folder).string();
-
-      const auto script_dir =
+      const std::string script_dir =
           (std::filesystem::path(mod_content_path) / "mods" / mod_id).string();
 
       scheduler::once(
@@ -1410,7 +1573,7 @@ public:
               int count = 0;
               std::string errors;
               if (utils::io::directory_exists(script_dir)) {
-                for (const auto &entry :
+                for (const std::filesystem::directory_entry &entry :
                      std::filesystem::recursive_directory_iterator(
                          script_dir)) {
                   if (!entry.is_regular_file())
@@ -1420,7 +1583,7 @@ public:
 
                   std::string data;
                   if (utils::io::read_file(entry.path().string(), &data)) {
-                    auto chunk = entry.path().string();
+                    std::string chunk = entry.path().string();
                     if (chunk.starts_with(script_dir))
                       chunk = chunk.substr(script_dir.size());
                     if (execute_raw_lua(data, chunk.c_str()))
@@ -1431,10 +1594,11 @@ public:
                 }
               }
 
-              game::Com_Printf(0, 0,
-                               "^2Lua Reload Mod: Reloaded %d file(s) for mod "
-                               "'%s' from %s\n",
-                               count, mod_id.c_str(), script_dir.c_str());
+              game::com::Com_Printf(
+                  0, game::consoleLabel_e::DEFAULT,
+                  "^2Lua Reload Mod: Reloaded %d file(s) for mod "
+                  "'%s' from %s\n",
+                  count, mod_id.c_str(), script_dir.c_str());
               const std::string toast_msg = std::string("Mod '") + mod_id +
                                             "': " + std::to_string(count) +
                                             " file(s)";
@@ -1451,18 +1615,18 @@ public:
               }
 
               if (!errors.empty()) {
-                auto popup_msg =
+                std::string popup_msg =
                     std::string("^1Lua Reload Mod Errors:\n") + errors;
                 scheduler::once(
                     [popup_msg] {
-                      game::UI_OpenErrorPopupWithMessage(0, game::ERROR_UI,
-                                                         popup_msg.c_str());
+                      game::ui::UI_OpenErrorPopupWithMessage(
+                          0, game::errorCode::UI, popup_msg.c_str());
                     },
                     scheduler::pipeline::renderer, 1s);
               }
             } catch (const std::exception &ex) {
-              game::Com_Printf(0, 0, "^1Lua Reload Mod: Error: %s\n",
-                               ex.what());
+              game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
+                                    "^1Lua Reload Mod: Error: %s\n", ex.what());
             }
           },
           scheduler::pipeline::renderer);
@@ -1470,22 +1634,26 @@ public:
 
     command::add("lua_exec", [](const command::params &params) {
       if (params.size() < 2) {
-        game::Com_Printf(0, 0, "Usage: lua_exec <file.lua>\n");
+        game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
+                              "Usage: lua_exec <file.lua>\n");
         return;
       }
 
       const std::string file = params.get(1);
       std::string data;
       if (!utils::io::read_file(file, &data)) {
-        game::Com_Printf(0, 0, "^1Failed to read file: %s\n", file.c_str());
+        game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
+                              "^1Failed to read file: %s\n", file.c_str());
         return;
       }
 
       scheduler::once(
           [data, file] {
-            const auto name = std::filesystem::path(file).filename().string();
+            const std::string name =
+                std::filesystem::path(file).filename().string();
             if (execute_raw_lua(data, file.c_str())) {
-              game::Com_Printf(0, 0, "^2Executed Lua file successfully\n");
+              game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
+                                    "^2Executed Lua file successfully\n");
               const std::string msg = "Executed " + name;
               scheduler::once([msg] { toast::success("Lua", msg.c_str()); },
                               scheduler::pipeline::renderer, 1s);
