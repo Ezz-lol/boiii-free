@@ -26,6 +26,7 @@ The loader checks a few places, depending on what kind of script you are adding.
 │   ├── core/
 │   ├── codescripts/
 │   ├── <mode-specific folder>
+│   ├── <mapname>/
 │   └── your_script.gsc
 └── other files used by your scripts
 
@@ -40,7 +41,7 @@ Small notes:
 
 - `scripts/` is for overriding stock scripts the game already uses.
 - `custom_scripts/` is for your own extra scripts that BOIII compiles and loads for you.
-- `custom_scripts/shared`, `custom_scripts/core`, `custom_scripts/codescripts`, and the active mode folder are scanned recursively.
+- `custom_scripts/shared`, `custom_scripts/core`, `custom_scripts/codescripts`, the active mode folder, and the active map folder are scanned recursively.
 - The top level `custom_scripts/` folder is also loaded, but only at that folder level.
 - For imports and inserted files, the compiler first checks paths near the current source file, then `%LOCALAPPDATA%/boiii/data`, `%LOCALAPPDATA%/boiii/data/scripts`, `<game folder>/boiii`, and `<game folder>/boiii/scripts`.
 

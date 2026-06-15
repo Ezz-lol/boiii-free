@@ -632,6 +632,15 @@ std::optional<std::filesystem::path> get_game_type_specific_folder() {
   }
 }
 
+std::optional<std::filesystem::path> get_map_specific_folder() {
+  const std::string mapname = game::get_dvar_string("mapname");
+  if (mapname.empty()) {
+    return {};
+  }
+
+  return mapname;
+}
+
 void load_scripts() {
   const utils::nt::library host{};
 
@@ -656,6 +665,13 @@ void load_scripts() {
   if (game_type.has_value()) {
     applicable_custom_script_paths.push_back("custom_scripts" /
                                              game_type.value());
+  }
+
+  const std::optional<std::filesystem::path> map_name =
+      get_map_specific_folder();
+  if (map_name.has_value()) {
+    applicable_custom_script_paths.push_back("custom_scripts" /
+                                             map_name.value());
   }
 
   /*
