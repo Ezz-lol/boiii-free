@@ -42,7 +42,10 @@ var workshopBrowseItems = [];
 var workshopBrowseCurrentPage = 1;
 var workshopBrowseItemsPerPage = 10;
 var workshopBrowseLoading = false;
+var workshopBrowseMode = 'browse';
 var workshopBrowseSearchTerm = '';
+var workshopBrowseError = '';
+var workshopBrowseSource = 'none';
 var workshopBrowseCacheKey = 'workshopBrowseCache';
 var _workshopBrowsePollInterval = null;
 
@@ -417,26 +420,24 @@ function setPage(targetPage) {
       !workshopBrowseLoading) {
     try {
       var exP = getExternal();
-      if (exP && exP.workshopGetBrowseData) {
-        var cachedD = exP.workshopGetBrowseData();
-        if (cachedD && cachedD !== '[]') {
-          var parsedD = JSON.parse(cachedD);
-          if (parsedD && Array.isArray(parsedD) && parsedD.length > 0) {
-            workshopBrowseItems = parsedD;
+      if (exP && exP.workshopGetBrowseState) {
+        var stateJson = exP.workshopGetBrowseState();
+        if (stateJson) {
+          var state =
+              typeof stateJson === 'string' ? JSON.parse(stateJson) : stateJson;
+          if (state && Array.isArray(state.items) && state.items.length > 0) {
+            workshopBrowseItems = state.items;
+            workshopBrowseMode = state.mode || 'browse';
+            workshopBrowseSearchTerm =
+                workshopBrowseMode === 'search' ? (state.query || '') : '';
+            workshopBrowseError = state.error || '';
             renderWorkshopBrowse();
           }
         }
       }
     } catch (e) {
     }
-    if (workshopBrowseItems.length === 0) {
-      var lcached = loadWorkshopCache();
-      if (lcached && lcached.length > 0) {
-        workshopBrowseItems = lcached;
-        renderWorkshopBrowse();
-      }
-    }
-    loadWorkshopBrowse(1, '');
+    loadWorkshopBrowse(1);
   }
 }
 
@@ -544,9 +545,42 @@ function cancelWorkshopPoll() {
   workshopBrowseLoading = false;
 }
 
-function loadWorkshopBrowse(page, searchTerm) {
+function getWorkshopBrowseState() {
+  try {
+    var ex = getExternal();
+    if (!ex || !ex.workshopGetBrowseState)
+      return null;
+    var stateJson = ex.workshopGetBrowseState();
+    if (!stateJson)
+      return null;
+    var state =
+        typeof stateJson === 'string' ? JSON.parse(stateJson) : stateJson;
+    if (!state || !Array.isArray(state.items))
+      return null;
+    return state;
+  } catch (e) {
+    return null;
+  }
+}
+
+function syncWorkshopBrowseState(state) {
+  if (!state)
+    return;
+  workshopBrowseLoading = !!state.loading;
+  workshopBrowseMode = state.mode || 'browse';
+  workshopBrowseSearchTerm =
+      workshopBrowseMode === 'search' ? (state.query || '') : '';
+  workshopBrowseError = state.error || '';
+  workshopBrowseSource = state.source || 'none';
+  workshopBrowseItems = Array.isArray(state.items) ? state.items : [];
+}
+
+function loadWorkshopBrowse(page) {
   cancelWorkshopPoll();
   workshopBrowseLoading = true;
+  workshopBrowseMode = 'browse';
+  workshopBrowseError = '';
+  workshopBrowseSource = 'none';
   workshopBrowseCurrentPage = page || 1;
   workshopBrowseSearchTerm = '';
   if (workshopBrowseItems.length === 0)
@@ -556,106 +590,93 @@ function loadWorkshopBrowse(page, searchTerm) {
     if (ex && ex.workshopBrowse) {
       ex.workshopBrowse(workshopBrowseCurrentPage);
       pollWorkshopBrowseResults();
+    } else {
+      workshopBrowseLoading = false;
+      showWorkshopEmpty('Workshop browsing is not available.');
     }
   } catch (e) {
     workshopBrowseLoading = false;
-    showErrorOrCache(
-        'Workshop browsing not available. Showing cached items...');
+    showWorkshopEmpty('Workshop browsing failed to start.');
   }
 }
 
 function loadWorkshopSearch(query) {
   if (!query || !query.replace(/^\s+|\s+$/g, ''))
     return;
+  var normalizedQuery = query.replace(/^\s+|\s+$/g, '');
   cancelWorkshopPoll();
   workshopBrowseLoading = true;
-  workshopBrowseSearchTerm = '';
+  workshopBrowseMode = 'search';
+  workshopBrowseError = '';
+  workshopBrowseSource = 'none';
+  workshopBrowseSearchTerm = normalizedQuery;
   workshopBrowseCurrentPage = 1;
   showWorkshopLoading();
   try {
     var ex = getExternal();
     if (ex && ex.workshopSearch) {
-      ex.workshopSearch(query.replace(/^\s+|\s+$/g, ''));
-      pollWorkshopBrowseResults(true);
+      ex.workshopSearch(normalizedQuery);
+      pollWorkshopBrowseResults();
     } else {
       workshopBrowseLoading = false;
-      workshopBrowseSearchTerm = query.replace(/^\s+|\s+$/g, '');
-      renderWorkshopBrowse();
+      showWorkshopEmpty('Workshop search is not available.');
     }
   } catch (e) {
     workshopBrowseLoading = false;
-    workshopBrowseSearchTerm = query.replace(/^\s+|\s+$/g, '');
-    renderWorkshopBrowse();
+    showWorkshopEmpty('Workshop search failed to start.');
   }
 }
 
-function pollWorkshopBrowseResults(isSearchMode) {
+function pollWorkshopBrowseResults() {
   if (_workshopBrowsePollInterval) {
     clearInterval(_workshopBrowsePollInterval);
     _workshopBrowsePollInterval = null;
   }
   var pollCount = 0;
-  var maxPolls = 600;
-  var hasShownCachedData = workshopBrowseItems.length > 0;
+  var maxPolls = 400;
+  var lastRenderKey = '';
+
   var pollInterval = setInterval(function() {
     pollCount++;
     _workshopBrowsePollInterval = pollInterval;
-    if (!isSearchMode && !hasShownCachedData && pollCount === 20) {
-      try {
-        var ex3 = getExternal();
-        if (ex3 && ex3.workshopGetBrowseData) {
-          var cj = ex3.workshopGetBrowseData();
-          if (cj && cj !== '[]') {
-            var cd = typeof cj === 'string' ? JSON.parse(cj) : cj;
-            if (cd && Array.isArray(cd) && cd.length > 0) {
-              workshopBrowseItems = cd;
-              hasShownCachedData = true;
-              workshopBrowseCurrentPage = 1;
-              renderWorkshopBrowse();
-            }
-          }
+
+    var state = getWorkshopBrowseState();
+    if (state) {
+      syncWorkshopBrowseState(state);
+
+      var renderKey = [
+        state.requestToken || 0, workshopBrowseLoading ? 1 : 0,
+        workshopBrowseMode, workshopBrowseSearchTerm, workshopBrowseSource,
+        workshopBrowseError, workshopBrowseItems.length
+      ].join('|');
+
+      if (renderKey !== lastRenderKey) {
+        lastRenderKey = renderKey;
+        if (workshopBrowseItems.length > 0 || !workshopBrowseLoading) {
+          renderWorkshopBrowse();
         }
-      } catch (e) {
+      }
+
+      if (!workshopBrowseLoading) {
+        clearInterval(pollInterval);
+        _workshopBrowsePollInterval = null;
+        renderWorkshopBrowse();
+        return;
       }
     }
+
     if (pollCount > maxPolls) {
       clearInterval(pollInterval);
+      _workshopBrowsePollInterval = null;
       workshopBrowseLoading = false;
-      if (workshopBrowseItems.length === 0)
-        showErrorOrCache('Loading took too long. Showing cached items...');
-      return;
-    }
-    try {
-      var ex2 = getExternal();
-      if (ex2 && ex2.workshopIsBrowseLoading) {
-        var isLoading = ex2.workshopIsBrowseLoading() === 'true';
-        if (!isLoading) {
-          var dataJson =
-              ex2.workshopGetBrowseData ? ex2.workshopGetBrowseData() : null;
-          clearInterval(pollInterval);
-          if (dataJson) {
-            var data =
-                typeof dataJson === 'string' ? JSON.parse(dataJson) : dataJson;
-            if (data && Array.isArray(data) && data.length > 0) {
-              workshopBrowseItems = data;
-              if (!isSearchMode)
-                saveWorkshopCache(workshopBrowseItems);
-              workshopBrowseCurrentPage = 1;
-              renderWorkshopBrowse();
-            } else if (workshopBrowseItems.length === 0) {
-              showErrorOrCache('No workshop items found.');
-            }
-          }
-          workshopBrowseLoading = false;
-        }
-      }
-    } catch (e) {
-      clearInterval(pollInterval);
-      workshopBrowseLoading = false;
-      if (workshopBrowseItems.length === 0)
-        showErrorOrCache('Error loading workshop data.');
+      workshopBrowseError = 'Loading workshop items took too long.';
+      if (workshopBrowseItems.length > 0)
+        renderWorkshopBrowse();
+      else
+        showWorkshopEmpty(workshopBrowseError);
     }
   }, 100);
+
   _workshopBrowsePollInterval = pollInterval;
 }
 
@@ -667,34 +688,17 @@ function showWorkshopLoading() {
 function showWorkshopEmpty(message) {
   workshopBrowseGrid.innerHTML =
       '<div class="workshop-browse-empty"><div class="workshop-browse-empty-icon">\u2715</div><div>' +
-      (message || 'No items found') + '</div></div>';
+      escapeHtml(message || 'No items found') + '</div></div>';
   if (workshopBrowsePagination)
     workshopBrowsePagination.style.display = 'none';
 }
 
 function showErrorOrCache(errorMessage) {
-  try {
-    var ex = getExternal();
-    if (ex && ex.workshopGetBrowseData) {
-      var fd = ex.workshopGetBrowseData();
-      if (fd && fd !== '[]') {
-        var parsed = JSON.parse(fd);
-        if (parsed && Array.isArray(parsed) && parsed.length > 0) {
-          workshopBrowseItems = parsed;
-          renderWorkshopBrowse();
-          return;
-        }
-      }
-    }
-  } catch (e) {
-  }
-  var cached = loadWorkshopCache();
-  if (cached && cached.length > 0) {
-    workshopBrowseItems = cached;
+  workshopBrowseError = errorMessage || '';
+  if (workshopBrowseItems.length > 0)
     renderWorkshopBrowse();
-  } else {
-    showWorkshopEmpty(errorMessage);
-  }
+  else
+    showWorkshopEmpty(workshopBrowseError);
 }
 
 function renderWorkshopBrowse() {
@@ -712,7 +716,7 @@ function renderWorkshopBrowse() {
   }
 
   var filteredItems = nonArchive;
-  if (workshopBrowseSearchTerm.length > 0) {
+  if (workshopBrowseMode !== 'search' && workshopBrowseSearchTerm.length > 0) {
     var term = workshopBrowseSearchTerm.toLowerCase().replace(/^\s+|\s+$/g, '');
     var searched = [];
     for (var si = 0; si < nonArchive.length; si++) {
@@ -748,8 +752,13 @@ function renderWorkshopBrowse() {
   }
 
   if (!filteredItems || filteredItems.length === 0) {
-    showWorkshopEmpty(workshopBrowseSearchTerm ? 'No items match your search'
-                                               : 'No workshop items available');
+    if (workshopBrowseError) {
+      showWorkshopEmpty(workshopBrowseError);
+      return;
+    }
+    showWorkshopEmpty(workshopBrowseMode === 'search'
+                          ? 'No items match your search'
+                          : 'No workshop items available');
     return;
   }
 
@@ -1169,12 +1178,8 @@ if (workshopSearchBtn) {
                  ? workshopSearchInput.value.replace(/^\s+|\s+$/g, '')
                  : '';
     if (!st) {
-      workshopBrowseSearchTerm = '';
       workshopBrowseCurrentPage = 1;
-      if (workshopBrowseItems.length > 0)
-        renderWorkshopBrowse();
-      else
-        loadWorkshopBrowse(1);
+      loadWorkshopBrowse(1);
       return;
     }
     loadWorkshopSearch(st);
