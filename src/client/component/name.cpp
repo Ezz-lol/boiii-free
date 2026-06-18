@@ -203,14 +203,14 @@ void send_snapshot_packet_to_client(const game::ClientNum_t target_client) {
     return;
   }
 
-  game::access_connected_client(
-      static_cast<size_t>(target_client), [&](game::sv::client_s &client) {
-        if (!is_syncable_client(client)) {
-          return;
-        }
+  game::access_connected_client(static_cast<size_t>(target_client),
+                                [&](game::sv::client_s &client) {
+                                  if (!is_syncable_client(client)) {
+                                    return;
+                                  }
 
-        send_snapshot_packet(client.address);
-      });
+                                  send_snapshot_packet(client.address);
+                                });
 }
 
 std::string encode_colors(const std::string &s) {

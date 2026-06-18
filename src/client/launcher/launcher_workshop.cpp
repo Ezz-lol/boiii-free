@@ -199,9 +199,9 @@ bool is_active_browse_request(const std::uint64_t token) {
 }
 
 void begin_browse_request(const std::uint64_t token, const std::string &mode,
-                         const std::string &query,
-                         const std::string &seed_items_json = "[]",
-                         const std::string &source = "none") {
+                          const std::string &query,
+                          const std::string &seed_items_json = "[]",
+                          const std::string &source = "none") {
   workshop_browse_loading = true;
 
   std::lock_guard lock(workshop_browse_mutex);
@@ -831,9 +831,8 @@ scrape_ids_and_ratings(const std::string &html) {
                                  : std::min(start + 8000, html.size());
     const std::string block = html.substr(start, block_end - start);
 
-    int stars = static_cast<int>(
-        std::min<size_t>(5, count_substring_occurrences(block,
-                                                        "SVGIcon_Star_Filled")));
+    int stars = static_cast<int>(std::min<size_t>(
+        5, count_substring_occurrences(block, "SVGIcon_Star_Filled")));
 
     if (stars == 0) {
       std::smatch star_match;
@@ -875,8 +874,8 @@ struct workshop_fetch_result {
   std::string error{};
 };
 
-std::string serialize_workshop_item_objects(
-    const std::vector<std::string> &item_objects) {
+std::string
+serialize_workshop_item_objects(const std::vector<std::string> &item_objects) {
   if (item_objects.empty()) {
     return "[]";
   }
@@ -912,9 +911,10 @@ utils::http::headers build_workshop_headers() {
   return h;
 }
 
-workshop_scrape_result scrape_workshop_listing_pages(
-    const std::function<std::string(int)> &build_url, const int max_pages,
-    const int page_delay_ms, const std::uint64_t request_token) {
+workshop_scrape_result
+scrape_workshop_listing_pages(const std::function<std::string(int)> &build_url,
+                              const int max_pages, const int page_delay_ms,
+                              const std::uint64_t request_token) {
   workshop_scrape_result result{};
   auto headers = build_workshop_headers();
   std::set<std::string> seen_ids{};
@@ -967,10 +967,11 @@ workshop_scrape_result scrape_workshop_listing_pages(
   return result;
 }
 
-workshop_fetch_result build_workshop_items_json(
-    const std::vector<std::string> &ids,
-    const std::map<std::string, int> &item_ratings,
-    const std::uint64_t request_token, const int batch_delay_ms) {
+workshop_fetch_result
+build_workshop_items_json(const std::vector<std::string> &ids,
+                          const std::map<std::string, int> &item_ratings,
+                          const std::uint64_t request_token,
+                          const int batch_delay_ms) {
   workshop_fetch_result result{};
 
   if (ids.empty()) {
@@ -992,11 +993,11 @@ workshop_fetch_result build_workshop_items_json(
 
       std::string body = "itemcount=" + std::to_string(count);
       for (int j = 0; j < count; ++j) {
-        body +=
-            "&publishedfileids[" + std::to_string(j) + "]=" + ids[i + j];
+        body += "&publishedfileids[" + std::to_string(j) + "]=" + ids[i + j];
       }
 
-      const auto api_resp = utils::http::post_data(STEAM_WORKSHOP_API, body, 15);
+      const auto api_resp =
+          utils::http::post_data(STEAM_WORKSHOP_API, body, 15);
       if (!api_resp || api_resp->empty()) {
         continue;
       }
@@ -1143,8 +1144,7 @@ workshop_fetch_result build_workshop_items_json(
       }
 
       if (i + batch_size < ids.size() && batch_delay_ms > 0) {
-        std::this_thread::sleep_for(
-            std::chrono::milliseconds(batch_delay_ms));
+        std::this_thread::sleep_for(std::chrono::milliseconds(batch_delay_ms));
       }
     } catch (...) {
     }
@@ -1162,8 +1162,9 @@ workshop_fetch_result build_workshop_items_json(
   return result;
 }
 
-workshop_fetch_result search_workshop_by_name(const std::string &search_text,
-                                              const std::uint64_t request_token) {
+workshop_fetch_result
+search_workshop_by_name(const std::string &search_text,
+                        const std::uint64_t request_token) {
   try {
     const std::string encoded_query = url_encode(search_text);
     const auto listing = scrape_workshop_listing_pages(
@@ -1200,19 +1201,19 @@ void workshop_search_fetch_thread(const std::string &search_text,
       store_cached_workshop_search(search_text, result.items_json);
       set_browse_request_items(request_token, result.items_json, "network");
     } else {
-      set_browse_request_error(
-          request_token,
-          result.error.empty() ? "Unable to load workshop search results."
-                               : result.error,
-          "error", true);
+      set_browse_request_error(request_token,
+                               result.error.empty()
+                                   ? "Unable to load workshop search results."
+                                   : result.error,
+                               "error", true);
     }
   }
 
   finish_browse_request(request_token);
 }
 
-workshop_fetch_result fetch_all_workshop_items(
-    const std::uint64_t request_token) {
+workshop_fetch_result
+fetch_all_workshop_items(const std::uint64_t request_token) {
   try {
     const auto listing = scrape_workshop_listing_pages(
         [&](const int page) {
@@ -1251,18 +1252,19 @@ void workshop_browse_fetch_thread(int /*page_num*/,
       bool has_seed_items = false;
       {
         std::lock_guard lock(workshop_browse_mutex);
-        has_seed_items = workshop_browse_state_data.request_token == request_token &&
-                         workshop_browse_state_data.items_json != "[]";
+        has_seed_items =
+            workshop_browse_state_data.request_token == request_token &&
+            workshop_browse_state_data.items_json != "[]";
       }
 
       if (has_seed_items) {
         set_browse_request_error(request_token, "", "cache-fallback");
       } else {
-        set_browse_request_error(
-            request_token,
-            result.error.empty() ? "Unable to load workshop browse results."
-                                 : result.error,
-            "error", true);
+        set_browse_request_error(request_token,
+                                 result.error.empty()
+                                     ? "Unable to load workshop browse results."
+                                     : result.error,
+                                 "error", true);
       }
     }
   }
@@ -2702,7 +2704,7 @@ void register_callbacks(html_frame *frame) {
             workshop_browse_request_token.fetch_add(1) + 1;
         const auto cached_items = load_workshop_backup();
         begin_browse_request(request_token, "browse", "", cached_items,
-                            cached_items.empty() ? "none" : "cache");
+                             cached_items.empty() ? "none" : "cache");
         std::thread(workshop_browse_fetch_thread, page, request_token).detach();
         return CComVariant("Fetching...");
       });
@@ -2723,7 +2725,7 @@ void register_callbacks(html_frame *frame) {
         std::string cached_items;
         if (try_get_cached_workshop_search(query, cached_items)) {
           begin_browse_request(request_token, "search", query, cached_items,
-                              "search-cache");
+                               "search-cache");
           finish_browse_request(request_token);
           return CComVariant("Loaded from cache");
         }
