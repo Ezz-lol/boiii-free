@@ -1,6 +1,8 @@
 # GSC scripting additions
 
-This compiler is intentionally more relaxed than stock BO3. It accepts a hybrid of BO2-style and BO3-style syntax, so older scripts are easier to port and you can mix styles when it helps.
+This compiler is intentionally more relaxed than stock BO3. It accepts a hybrid
+of BO2-style and BO3-style syntax, so older scripts are easier to port and you
+can mix styles when it helps.
 
 ## Quick links
 
@@ -40,19 +42,32 @@ The loader checks a few places, depending on what kind of script you are adding.
 Small notes:
 
 - `scripts/` is for overriding stock scripts the game already uses.
-- `custom_scripts/` is for your own extra scripts that BOIII compiles and loads for you.
-- `custom_scripts/shared`, `custom_scripts/core`, `custom_scripts/codescripts`, the active mode folder, and the active map folder are scanned recursively.
-- The top level `custom_scripts/` folder is also loaded, but only at that folder level.
-- For imports and inserted files, the compiler first checks paths near the current source file, then `%LOCALAPPDATA%/boiii/data`, `%LOCALAPPDATA%/boiii/data/scripts`, `<game folder>/boiii`, and `<game folder>/boiii/scripts`.
+- `custom_scripts/` is for your own extra scripts that BOIII compiles and loads
+  for you.
+- `custom_scripts/shared`, `custom_scripts/core`, `custom_scripts/codescripts`,
+  the active mode folder, and the active map folder are scanned recursively.
+- The top level `custom_scripts/` folder is also loaded, but only at that folder
+  level.
+- For imports and inserted files, the compiler first checks paths near the
+  current source file, then `%LOCALAPPDATA%/boiii/data`,
+  `%LOCALAPPDATA%/boiii/data/scripts`, `<game folder>/boiii`, and
+  `<game folder>/boiii/scripts`.
 
 ## Compiler and loader notes
 
 - The `function` keyword is optional for normal function definitions.
-- `#using` and `#include` are still accepted, but you do not need to import a file just to call one of its functions by full path.
-- Function references accept both `::func` and `&func`, plus namespaced forms like `&namespace::func`.
-- Direct path calls like `scripts\zm\_zm_score::get_points_multiplier(self)` are accepted and the compiler can resolve the path namespace for you.
-- Raw hash-style names are recognized when a namespace or function name is hashed. Supported prefixes are `hash_`, `id_`, `function_`, `var_`, and `namespace_`.
-- RawFile-backed custom scripts are accepted by the loader too, which helps custom scripts resolve cleanly instead of depending only on stock `scriptparsetree` lookups.
+- `#using` and `#include` are still accepted, but you do not need to import a
+  file just to call one of its functions by full path.
+- Function references accept both `::func` and `&func`, plus namespaced forms
+  like `&namespace::func`.
+- Direct path calls like `scripts\zm\_zm_score::get_points_multiplier(self)` are
+  accepted and the compiler can resolve the path namespace for you.
+- Raw hash-style names are recognized when a namespace or function name is
+  hashed. Supported prefixes are `hash_`, `id_`, `function_`, `var_`, and
+  `namespace_`.
+- RawFile-backed custom scripts are accepted by the loader too, which helps
+  custom scripts resolve cleanly instead of depending only on stock
+  `scriptparsetree` lookups.
 
 Example:
 
@@ -97,12 +112,14 @@ Notes:
 - First argument is the target function reference.
 - Second argument is the replacement function reference.
 - The replacement should use the same parameter list as the original.
-- `replacefunc` is registered at runtime, so call it from `main()` or another startup path before the target starts getting used.
+- `replacefunc` is registered at runtime, so call it from `main()` or another
+  startup path before the target starts getting used.
 - `clearreplacefuncs()` clears all active replacements.
 
 ## detour
 
-`detour` is the compile/load-time form. You write the replacement as the function body itself.
+`detour` is the compile/load-time form. You write the replacement as the
+function body itself.
 
 Simple form:
 
@@ -122,14 +139,18 @@ detour globallogic_score<scripts\mp\gametypes\_globallogic_score.gsc>::givePlaye
 }
 ```
 
-Use the second form when you want a custom namespace name or when the file path matters.
+Use the second form when you want a custom namespace name or when the file path
+matters.
 
 Notes:
 
-- `detour` is registered while scripts load, so it is ready before normal runtime code starts calling the target.
+- `detour` is registered while scripts load, so it is ready before normal
+  runtime code starts calling the target.
 - The detour body fully replaces the original export.
-- Just like `replacefunc`, keep the same parameter list as the original function.
-- `detour` and `replacefunc` both end up using the same redirect backend once they are active. The main difference is when they get registered.
+- Just like `replacefunc`, keep the same parameter list as the original
+  function.
+- `detour` and `replacefunc` both end up using the same redirect backend once
+  they are active. The main difference is when they get registered.
 
 # Commands and output
 
@@ -176,14 +197,16 @@ function cmd_testcmd(args)
 
 Notes:
 
-- In the 2-parameter form, the callback gets only the arguments after the command name.
+- In the 2-parameter form, the callback gets only the arguments after the
+  command name.
 - `testcmd hello world` becomes `args[0] = "hello"` and `args[1] = "world"`.
 - The compiler generates the small polling loop for the callback form for you.
 - `getcommand("name")` still works if you want the raw queued string yourself.
 
 ## executecommand
 
-Use `executecommand` when you want GSC to push a console command into the command buffer.
+Use `executecommand` when you want GSC to push a console command into the
+command buffer.
 
 ```gsc
 executecommand("status");
@@ -281,8 +304,10 @@ if (jsonvalid(json))
 
 Notes:
 
-- `jsonparse` reads one key from a JSON object and returns the value as a string.
-- `jsonset` tries to parse the value as JSON first. If that fails, it stores it as a string.
+- `jsonparse` reads one key from a JSON object and returns the value as a
+  string.
+- `jsonset` tries to parse the value as JSON first. If that fails, it stores it
+  as a string.
 
 ## Int64 helpers
 
@@ -356,11 +381,13 @@ player setclientdvar("cg_fov 120");
 Notes:
 
 - This is client-side. It does not change the server's own dvar value.
-- Sent dvars are tracked, and BOIII resets them when the script system shuts down so the client is not left with stale overrides from an old match.
+- Sent dvars are tracked, and BOIII resets them when the script system shuts
+  down so the client is not left with stale overrides from an old match.
 
 # HUD text
 
-The server-side HUD text path was patched so repeated text updates do not hit the old configstring overflow crash as easily.
+The server-side HUD text path was patched so repeated text updates do not hit
+the old configstring overflow crash as easily.
 
 You still use the normal HUD `setText` call. The fix is under the hood.
 
