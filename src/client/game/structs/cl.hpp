@@ -8,6 +8,7 @@
 #include "vehicle.hpp"
 #include "hunk.hpp"
 #include "level/core.hpp"
+#include "live/steam/steam.hpp"
 
 namespace game {
 
@@ -123,7 +124,10 @@ struct clientConnection_t {
   net::netchan_t netchan;
   uint64_t serverXUID;
   net::netProfileInfo_t OOBProf;
-  uint8_t _unknown25150[1032];
+  steam::HAuthTicket authTicket;
+  void *pTicket;
+  uint8_t _unknown25162[1016];
+  uint32_t pcbTicket;
   uint8_t *transferBuffer;
   int32_t transferBufferCompressedSize;
   uint8_t _padding25564[4];

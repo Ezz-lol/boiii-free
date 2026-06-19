@@ -83,6 +83,8 @@ WEAK symbol<void(scriptInstance_t inst, ScrVarValue_t *value)>
     ScrVar_AddRefValue{0x1412D9350, 0x1401657E0};
 WEAK symbol<void(scriptInstance_t inst, ScrVarValue_t *value)>
     ScrVar_ReleaseValue{0x1412E0010, 0x14016C7C0};
+WEAK symbol<uint32_t(scriptInstance_t inst, ScrVarIndex_t id)>
+    ScrVar_ReleaseVariable{0x1412E0170, 0x14016C950};
 WEAK symbol<void(scriptInstance_t inst)> Scr_AddArray{0x1412E9560, 0x14016EDE0};
 WEAK symbol<void(scriptInstance_t inst, ScrString_t hash)> Scr_AddConstString{
     0x1412E96B0, 0x14016EEB0};
@@ -137,6 +139,9 @@ WEAK symbol<void(scriptInstance_t inst)> Scr_PlaySoundAtPosition{0x141A7EA40,
 
 WEAK symbol<void(scriptInstance_t inst, const char *error)> Scr_ObjectError{
     0x1412ECBC0, 0x140172590};
+
+WEAK symbol<ScrVarGlobPool> gScrVarGlob{0x1451A3500, 0x1426BDE80};
+WEAK symbol<ScrVarPubPool> gScrVarPub{0x1451A3700, 0x1426BE080};
 
 } // namespace scr
 } // namespace game

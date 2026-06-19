@@ -1,6 +1,6 @@
 #pragma once
 
-#include "structs/structs.hpp"
+#include "game.hpp"
 #include <functional>
 #include <string>
 #include <type_traits>
@@ -95,6 +95,41 @@ valid_controller_index(ControllerIndex_t controllerIndex) {
 inline constexpr bool valid_local_client_num(LocalClientNum_t localClientNum) {
   return valid<LocalClientNum_t, LOCAL_CLIENT_0, LOCAL_CLIENT_COUNT>(
       localClientNum);
+}
+
+inline constexpr bool valid_scrvar_index(scr::scriptInstance_t inst,
+                                         scr::ScrVarIndex_t index) {
+  return index < scr::SCRIPTVARIABLE_POOL_SIZE.instance[inst];
+}
+
+inline scr::ScrVarIndex_t scrvar_index(scr::scriptInstance_t inst,
+                                       scr::ScrVar_t *var) {
+  uintptr_t scriptVariablesPtr = reinterpret_cast<uintptr_t>(
+      scr::gScrVarGlob->instance[inst].scriptVariables);
+  uintptr_t varPtr = reinterpret_cast<uintptr_t>(var);
+  return static_cast<scr::ScrVarIndex_t>((varPtr - scriptVariablesPtr) /
+                                         sizeof(scr::ScrVar_t));
+}
+
+inline bool valid_scrvar_ptr(scr::scriptInstance_t inst, scr::ScrVar_t *var) {
+  return valid_engine_ptr(var) // Static or stack allocation
+         ||
+         valid_scrvar_index(inst, scrvar_index(inst, var)); // Pool allocation
+}
+
+inline scr::ScrVarIndex_t scrvarvalue_index(scr::scriptInstance_t inst,
+                                            scr::ScrVarValue_t *val) {
+  uintptr_t valPtr = reinterpret_cast<uintptr_t>(val);
+  scr::ScrVar_t *varPtr = reinterpret_cast<scr::ScrVar_t *>(
+      valPtr - offsetof(scr::ScrVar_t, value) /* 0 */);
+  return scrvar_index(inst, varPtr);
+}
+
+inline bool valid_scrvarvalue_ptr(scr::scriptInstance_t inst,
+                                  scr::ScrVarValue_t *val) {
+  return valid_engine_ptr(val) // Static or stack allocation
+         || valid_scrvar_index(inst,
+                               scrvarvalue_index(inst, val)); // Pool allocation
 }
 
 level::gentity_pool *gentity_pool();
