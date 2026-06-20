@@ -121,19 +121,19 @@ bool cl_get_client_name_stub(const int local_client_num, const int index,
     effective_name += tag_part;
   }
 
-  const auto decoded = decode_backtick_colors(effective_name);
+  const std::string decoded = decode_backtick_colors(effective_name);
   utils::string::copy(buf, size, decoded.c_str());
 
   if (_ReturnAddress() == reinterpret_cast<void *>(0x1406A7B56_g)) {
     return res;
   }
 
-  const auto color = get_color_for_client(index);
+  const std::optional<int32_t> color = get_color_for_client(index);
   if (!color) {
     return res;
   }
 
-  const auto val = utils::string::va("^%d%s", *color, buf);
+  const char *val = utils::string::va("^%d%s", *color, buf);
   utils::string::copy(buf, size, val);
 
   return res;

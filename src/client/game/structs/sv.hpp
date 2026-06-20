@@ -4,6 +4,7 @@
 #include "phys.hpp"
 #include "quake.hpp"
 #include "net/net.hpp"
+#include "scr/core.hpp"
 #include "scr/scr.hpp"
 #include "snd/snd.hpp"
 #include "asm.hpp"
@@ -503,7 +504,9 @@ struct server_t {
   int32_t nextClientsFlashbackArchive;
   clientsFlashbackArchive_t clientsFlashBackArchive[512];
   clientsFlashbackArchive_t clientsLatestFlashBack;
-  int32_t securityChecksum[3];
+  // Each field XORed with client XUID to generate client gamestate security
+  // checksum
+  scr::scrChecksum_t securityChecksum;
   uint8_t _padding7BEFC[4];
 };
 ASSERT_SIZE(server_t, 0xBC5C0);

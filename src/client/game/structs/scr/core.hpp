@@ -1820,8 +1820,18 @@ ASSERT_OFFSET(scrVarGlob_t, scriptVariables, 0x80);
 
 typedef ScrPool<scrVarGlob_t> ScrVarGlobPool;
 
-#pragma pack(push, 1)
+union scrChecksum_t {
+  struct {
+    uint32_t loadedScriptsCumulativeCRC;
+    // Always zero except in gamestate packet, where it is XORed with XUID
+    uint32_t unknown1;
+    // Always zero except in gamestate packet, where it is XORed with XUID
+    uint32_t unknown2;
+  };
+  uint32_t raw[3];
+};
 
+#pragma pack(push, 1)
 struct scrVarPub_t {
   const char *fieldBuffer;
   bool developer;
@@ -1840,21 +1850,8 @@ struct scrVarPub_t {
   ScrVarIndex_t tempVariable;
   bool bInited;
   uint8_t _padding41[3];
-  uint32_t checksum;
-  /*
-   TODO: `numVarAllocations` and `numScriptThreads` are unused in
-   known, prior points of access.
-   These fields may not exist anymore.
-
-   Additionally, the four bytes of (probable) padding proceeding leads me to
-   believe that there is an 8-byte value here; a pointer or 8-byte struct or
-   primitive. This would replace the two four-byte `num...` fields below.
-
-   Update when needed or when further information is available.
-  */
-  uint32_t numVarAllocations; // ?
-  uint32_t numScriptThreads;  // ?
-  uint8_t _padding50[4];      // ?
+  uint32_t animChecksum;
+  scrChecksum_t checksum;
   uint32_t entId;
   ScrVarNameIndex_t entFieldNameIndex;
   hunk::HunkUser *programHunkUser;
@@ -1866,7 +1863,8 @@ ASSERT_SIZE(scrVarPub_t, 0x78);
 ASSERT_OFFSET(scrVarPub_t, programHunkUser, 0x60);
 ASSERT_OFFSET(scrVarPub_t, programBuffer, 0x68);
 ASSERT_OFFSET(scrVarPub_t, endScriptBuffer, 0x70);
-ASSERT_OFFSET(scrVarPub_t, checksum, 0x44);
+ASSERT_OFFSET(scrVarPub_t, animChecksum, 0x44);
+ASSERT_OFFSET(scrVarPub_t, checksum, 0x48);
 ASSERT_OFFSET(scrVarPub_t, entId, 0x54);
 ASSERT_OFFSET(scrVarPub_t, entFieldNameIndex, 0x58);
 ASSERT_OFFSET(scrVarPub_t, bInited, 0x40);

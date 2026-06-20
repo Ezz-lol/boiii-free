@@ -19,7 +19,7 @@
 
 namespace name {
 namespace {
-constexpr auto sync_packet_name = "nameoverride";
+constexpr std::string sync_packet_name = "nameoverride";
 
 enum class sync_message_type : uint8_t {
   clear_all = 0,
@@ -316,7 +316,7 @@ get_clan_abbrev_override(game::ClientNum_t client_num) {
 }
 
 void sync_name_override_to_clients(game::ClientNum_t client_num) {
-  const auto value = get_name_override(client_num);
+  const std::optional<std::string> value = get_name_override(client_num);
   if (!value.has_value()) {
     sync_name_reset_to_clients(client_num);
     return;
@@ -326,7 +326,7 @@ void sync_name_override_to_clients(game::ClientNum_t client_num) {
 }
 
 void sync_clan_abbrev_override_to_clients(game::ClientNum_t client_num) {
-  const auto value = get_clan_abbrev_override(client_num);
+  const std::optional<std::string> value = get_clan_abbrev_override(client_num);
   if (!value.has_value()) {
     sync_clan_abbrev_reset_to_clients(client_num);
     return;
@@ -487,7 +487,7 @@ void client_update_post_enterworld(
     game::sv::client_s *cl, [[maybe_unused]] game::user::usercmd_t *cmd) {
   client_update(cl);
 
-  const auto client_num = sv::get_client_num(cl);
+  const game::ClientNum_t client_num = sv::get_client_num(cl);
   if (game::valid_client_num(client_num)) {
     sync_all_overrides_to_client(client_num);
     scheduler::once(
@@ -552,9 +552,9 @@ struct component final : generic_component {
 
             try {
               utils::byte_buffer buffer(data);
-              const auto type =
+              const sync_message_type type =
                   static_cast<sync_message_type>(buffer.read<uint8_t>());
-              const auto client_num =
+              const game::ClientNum_t client_num =
                   static_cast<game::ClientNum_t>(buffer.read<int32_t>());
 
               switch (type) {
@@ -565,21 +565,21 @@ struct component final : generic_component {
               case sync_message_type::snapshot: {
                 clear_all();
 
-                const auto name_count = buffer.read<uint8_t>();
+                const uint8_t name_count = buffer.read<uint8_t>();
                 for (uint8_t i = 0; i < name_count; ++i) {
-                  const auto snapshot_client_num =
+                  const game::ClientNum_t snapshot_client_num =
                       static_cast<game::ClientNum_t>(buffer.read<int32_t>());
-                  const auto value = buffer.read_string();
+                  const std::string value = buffer.read_string();
                   if (game::valid_client_num(snapshot_client_num)) {
                     set_name_override(snapshot_client_num, value);
                   }
                 }
 
-                const auto tag_count = buffer.read<uint8_t>();
+                const uint8_t tag_count = buffer.read<uint8_t>();
                 for (uint8_t i = 0; i < tag_count; ++i) {
-                  const auto snapshot_client_num =
+                  const game::ClientNum_t snapshot_client_num =
                       static_cast<game::ClientNum_t>(buffer.read<int32_t>());
-                  const auto value = buffer.read_string();
+                  const std::string value = buffer.read_string();
                   if (game::valid_client_num(snapshot_client_num)) {
                     set_clan_abbrev_override(snapshot_client_num, value);
                   }
