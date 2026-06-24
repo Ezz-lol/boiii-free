@@ -47,11 +47,11 @@ WEAK symbol<const char *> s_compilerTypeName{0x140A18430};
 // `hks::execute<(HksBytecodeSharingMode)0>`
 WEAK symbol<hksInt32(lua_State *s, const hksInstruction *PC,
                      hksInt32 call_depth)>
-    execute0{0x142F82EB0, 140DC5EB0};
+    execute0{0x142F82EB0, 0x140DC5EB0};
 // `hks::execute<(HksBytecodeSharingMode)1>`
 WEAK symbol<hksInt32(lua_State *s, const hksInstruction *PC,
                      hksInt32 call_depth)>
-    execute1{0x142F7D000, 140DC0000};
+    execute1{0x142F7D000, 0x140DC0000};
 // `hks::execute<(HksBytecodeSharingMode)2>`
 WEAK symbol<hksInt32(lua_State *s, const hksInstruction *PC,
                      hksInt32 call_depth)>
