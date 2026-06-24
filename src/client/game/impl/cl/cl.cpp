@@ -106,8 +106,8 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
                              live::user::LiveUser_GetXuid(controllerIndex));
     net::msg::MSG_WriteShort(&sb, static_cast<int16_t>(clc->qport));
 
-    const net::netadr_t toAdr = clc->serverAddress;
-    if (!net::NET_OutOfBandData(networkId, &toAdr, sb.data, sb.cursize)) {
+    if (!net::NET_OutOfBandData(networkId, &clc->serverAddress, sb.data,
+                                sb.cursize)) {
       if (!*com::com_errorEntered) {
         com::Com_Error_("q:\\t7\\pc\\code\\src\\client\\cl_main.cpp", 2305,
                         errorParm::SERVERDISCONNECT, "EXE_DISCONNECTED");
@@ -150,8 +150,7 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
     clc->statPacketSendTime[oldestPacketIndex] = cls->realtime;
     clc->lastPacketSentTime = cls->realtime;
 
-    net::netadr_t serverAddress = clc->serverAddress;
-    if (!net::NET_OutOfBandData(networkId, &serverAddress, sb.data,
+    if (!net::NET_OutOfBandData(networkId, &clc->serverAddress, sb.data,
                                 sb.cursize)) {
       if (!*com::com_errorEntered) {
         com::Com_Error_("q:\\t7\\pc\\code\\src\\client\\cl_main.cpp", 2434,
@@ -249,14 +248,13 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
     const int32_t writtenLength =
         std::snprintf(dest, destLen, "connect \"%s\"", s);
 
-    net::netadr_t serverAddress = clc->serverAddress;
     // ORIGINAL:
-    // if (!net::NET_OutOfBandData(networkId, &serverAddress,
+    // if (!net::NET_OutOfBandData(networkId, &clc->serverAddress,
     //                             reinterpret_cast<const uint8_t *>(dest),
     //                             writtenLength)) {
     // PATCHED:
     if (!auth::send_fragmented_connect_packet(
-            controllerIndex, networkId, &serverAddress,
+            controllerIndex, networkId, &clc->serverAddress,
             reinterpret_cast<const char *>(dest), writtenLength)) {
       if (!*com::com_errorEntered) {
         com::Com_Error_("q:\\t7\\pc\\code\\src\\client\\cl_main.cpp", 2391,

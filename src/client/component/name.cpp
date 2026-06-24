@@ -78,25 +78,6 @@ void broadcast_override_packet(
     send_override_packet(client.address, type, client_num, value);
   });
 }
-
-void send_override_packet_to_client(
-    const game::ClientNum_t target_client, const SyncMessageType type,
-    const game::ClientNum_t client_num,
-    const std::optional<std::string> &value = std::nullopt) {
-  if (!game::valid_client_num(target_client) || !game::is_server_running()) {
-    return;
-  }
-
-  game::access_connected_client(
-      static_cast<size_t>(target_client), [&](game::sv::client_s &client) {
-        if (!is_syncable_client(client)) {
-          return;
-        }
-
-        send_override_packet(client.address, type, client_num, value);
-      });
-}
-
 } // namespace
 
 utils::concurrency::container<std::string> player_name{};

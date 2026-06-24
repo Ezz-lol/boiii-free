@@ -229,8 +229,8 @@ std::string serialize_connect_data(game::ControllerIndex_t controllerIndex,
 
 bool send_fragmented_connect_packet(game::ControllerIndex_t controllerIndex,
                                     const game::net::netsrc_t sock,
-                                    game::net::netadr_t *adr, const char *data,
-                                    const int length) {
+                                    const game::net::netadr_t *adr,
+                                    const char *data, const int length) {
 
   const std::string connect_data =
       serialize_connect_data(controllerIndex, data, length);

@@ -178,7 +178,7 @@ void g_init_game_stub(uint32_t levelTime, uint32_t randomSeed,
 }
 
 inline constexpr const game::str<2> LUI_NOTIFY_RELIABLE_CMD_PREFIX = {
-    game::sv::ReliableCommand::LUI_NOTIFY, ' '};
+    static_cast<char>(game::sv::ReliableCommand::LUI_NOTIFY), ' '};
 
 utils::hook::detour sv_addservercommand_hook;
 
