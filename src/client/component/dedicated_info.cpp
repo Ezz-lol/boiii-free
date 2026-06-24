@@ -24,7 +24,7 @@ void set_server_info_in_console_title() {
     return;
   }
 
-  const auto mapname = game::get_dvar_string("mapname");
+  const std::string_view mapname = game::get_dvar_string("mapname");
 
   const std::string window_text =
       utils::string::va("%s on %s [%zu/%zu] (%zu)", clean_server_name,

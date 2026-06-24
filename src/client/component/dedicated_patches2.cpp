@@ -148,13 +148,12 @@ void sv_live_removeallclientsfromaddress_stub(game::sv::client_s *client,
   // Skip disconnecting other clients from the same IP -
   // just free the disconnected client's slot, and return.
   game::sv::SV_Live_RemoveClient(client, reason);
-  return;
 }
 
 std::mutex reliable_cmd_mutex;
 // Map of reliable command string -> Map of xuid -> svs->time of last sequencing
 std::unordered_map<std::string, std::unordered_map<game::XUID, uint32_t>>
-    client_openmenu_cmd_last_sequence_time;
+    client_luinotify_cmd_last_sequence_time;
 // Map of xuid -> last sequenced reliable command string
 std::unordered_map<game::XUID, std::string> client_last_cmd;
 
@@ -164,12 +163,12 @@ void g_init_game_stub(uint32_t levelTime, uint32_t randomSeed,
                       game::qboolean savegame) {
   std::lock_guard lock(reliable_cmd_mutex);
 
-  // Reset tracked openmenu reliable cmds on starting a new game.
-  for (auto &[cmd, client_map] : client_openmenu_cmd_last_sequence_time) {
+  // Reset tracked luinotify reliable cmds on starting a new game.
+  for (auto &[cmd, client_map] : client_luinotify_cmd_last_sequence_time) {
     client_map.clear();
   }
 
-  client_openmenu_cmd_last_sequence_time.clear();
+  client_luinotify_cmd_last_sequence_time.clear();
   client_last_cmd.clear();
 
   g_init_game_hook.invoke(levelTime, randomSeed, restart, registerDvars,
@@ -193,11 +192,11 @@ void sv_addservercommand_stub(game::sv::client_s *client,
   */
   if (utils::string::starts_with(cmd_str, LUI_NOTIFY_RELIABLE_CMD_PREFIX)) {
     // If this command was sent less than 1000 ms ago, skip.
-    if (client_openmenu_cmd_last_sequence_time.contains(cmd_str) &&
-        client_openmenu_cmd_last_sequence_time[cmd_str].contains(
+    if (client_luinotify_cmd_last_sequence_time.contains(cmd_str) &&
+        client_luinotify_cmd_last_sequence_time[cmd_str].contains(
             client->xuid) &&
         game::sv::svs->time -
-                client_openmenu_cmd_last_sequence_time[cmd_str][client->xuid] <
+                client_luinotify_cmd_last_sequence_time[cmd_str][client->xuid] <
             1000) {
       return;
     }
@@ -211,7 +210,7 @@ void sv_addservercommand_stub(game::sv::client_s *client,
     }
   }
 
-  client_openmenu_cmd_last_sequence_time[cmd_str][client->xuid] =
+  client_luinotify_cmd_last_sequence_time[cmd_str][client->xuid] =
       game::sv::svs->time;
   client_last_cmd[client->xuid] = cmd_str;
 
@@ -270,7 +269,7 @@ void snd_init_stub() {
 }
 
 utils::hook::detour snd_queueadd_hook;
-void snd_queueadd_stub(game::snd::SndQueue *queue,
+void snd_queueadd_stub([[maybe_unused]] game::snd::SndQueue *queue,
                        game::snd::cmd::SndCommandType cmd, uint32_t size,
                        game::snd::cmd::SndCommand data) {
   game::snd::SND_CommandSND(cmd, static_cast<uint64_t>(size), data);
@@ -519,7 +518,7 @@ struct component final : server_component {
       each non-host client.
 
       In two tested cases - in the custom maps Kowloon and Daybreak - this
-      results in a constant, massive flood of redundant `openmenu` reliable
+      results in a constant, massive flood of redundant `luinotify` reliable
       commands being sent to each client. While inefficient, this is generally
       acceptable. However, when the client is completing load-in to the map, in
       the initial blackscreen before they begin playing, reliable commands are

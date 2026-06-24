@@ -1,3 +1,4 @@
+#include <cstdint>
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
@@ -5,6 +6,7 @@
 #include <utils/flags.hpp>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
+#include <vector>
 
 namespace dedicated_patches {
 namespace {
@@ -46,7 +48,7 @@ void spawn_server_stub(game::ControllerIndex_t controllerIndex,
 }
 
 uint64_t sv_get_player_xuid_stub(const int client_num) {
-  const auto *clients = *game::sv::svs_clients;
+  const game::sv::client_s *clients = *game::sv::svs_clients;
   if (!clients) {
     return 0;
   }
