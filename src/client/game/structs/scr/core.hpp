@@ -1495,15 +1495,122 @@ ASSERT_SIZE(scr_entref_t, 0x10);
 
 using ScrVarCanonicalName_t = uint32_t;
 
-typedef void (*BuiltinFunction)(scriptInstance_t);
+typedef fastcall_t<void, scriptInstance_t> BuiltinFunction;
+#pragma pack(push, 1)
+union BuiltinFunctionType {
+  enum Flag : uint32_t {
+    DEFAULT = 0x0,
+    DEVBLOCK_ONLY = 0x1,
+  };
 
+  struct {
+    uint32_t devblockOnly : 1;
+
+    uint32_t _unknownB1 : 1;
+    uint32_t _unknownB2 : 1;
+    uint32_t _unknownB3 : 1;
+    uint32_t _unknownB4 : 1;
+    uint32_t _unknownB5 : 1;
+    uint32_t _unknownB6 : 1;
+    uint32_t _unknownB7 : 1;
+    uint32_t _unknownB8 : 1;
+    uint32_t _unknownB9 : 1;
+    uint32_t _unknownB10 : 1;
+    uint32_t _unknownB11 : 1;
+    uint32_t _unknownB12 : 1;
+    uint32_t _unknownB13 : 1;
+    uint32_t _unknownB14 : 1;
+    uint32_t _unknownB15 : 1;
+    uint32_t _unknownB16 : 1;
+    uint32_t _unknownB17 : 1;
+    uint32_t _unknownB18 : 1;
+    uint32_t _unknownB19 : 1;
+    uint32_t _unknownB20 : 1;
+    uint32_t _unknownB21 : 1;
+    uint32_t _unknownB22 : 1;
+    uint32_t _unknownB23 : 1;
+    uint32_t _unknownB24 : 1;
+    uint32_t _unknownB25 : 1;
+    uint32_t _unknownB26 : 1;
+    uint32_t _unknownB27 : 1;
+    uint32_t _unknownB28 : 1;
+    uint32_t _unknownB29 : 1;
+    uint32_t _unknownB30 : 1;
+    uint32_t _unknownB31 : 1;
+  };
+  Flag flag;
+  uint32_t raw;
+
+  inline constexpr BuiltinFunctionType() : raw(0) {}
+  inline constexpr BuiltinFunctionType(uint32_t value) : raw(value) {}
+  inline constexpr BuiltinFunctionType(Flag value) : flag(value) {}
+
+  inline constexpr explicit operator bool() const noexcept { return raw != 0; }
+  inline constexpr bool has(BuiltinFunctionType mask) const noexcept {
+    return (raw & mask.raw) == mask.raw;
+  }
+  inline constexpr bool has_any(BuiltinFunctionType mask) const noexcept {
+    return (raw & mask.raw) != 0;
+  }
+
+  friend inline constexpr bool operator==(BuiltinFunctionType lhs,
+                                          BuiltinFunctionType rhs) noexcept {
+    return lhs.raw == rhs.raw;
+  }
+  friend inline constexpr bool operator!=(BuiltinFunctionType lhs,
+                                          BuiltinFunctionType rhs) noexcept {
+    return lhs.raw != rhs.raw;
+  }
+
+  friend inline constexpr BuiltinFunctionType
+  operator|(BuiltinFunctionType lhs, BuiltinFunctionType rhs) noexcept {
+    return BuiltinFunctionType(lhs.raw | rhs.raw);
+  }
+  friend inline constexpr BuiltinFunctionType
+  operator&(BuiltinFunctionType lhs, BuiltinFunctionType rhs) noexcept {
+    return BuiltinFunctionType(lhs.raw & rhs.raw);
+  }
+  friend inline constexpr BuiltinFunctionType
+  operator^(BuiltinFunctionType lhs, BuiltinFunctionType rhs) noexcept {
+    return BuiltinFunctionType(lhs.raw ^ rhs.raw);
+  }
+
+  inline constexpr BuiltinFunctionType &
+  operator|=(BuiltinFunctionType rhs) noexcept {
+    raw |= rhs.raw;
+    return *this;
+  }
+  inline constexpr BuiltinFunctionType &
+  operator&=(BuiltinFunctionType rhs) noexcept {
+    raw &= rhs.raw;
+    return *this;
+  }
+  inline constexpr BuiltinFunctionType &
+  operator^=(BuiltinFunctionType rhs) noexcept {
+    raw ^= rhs.raw;
+    return *this;
+  }
+
+  friend inline constexpr BuiltinFunctionType
+  operator~(BuiltinFunctionType val) noexcept {
+    return BuiltinFunctionType(~val.raw);
+  }
+};
+ASSERT_SIZE(BuiltinFunctionType, sizeof(uint32_t));
+#pragma pack(pop)
+
+#pragma pack(push, 1)
 struct BuiltinFunctionDef {
   ScrVarCanonicalName_t canonId;
   uint32_t min_args;
   uint32_t max_args;
-  void *actionFunc;
-  int32_t type;
+  uint8_t _padding0C[4];
+  BuiltinFunction actionFunc;
+  BuiltinFunctionType type;
+  uint8_t _padding1C[4];
 };
+ASSERT_SIZE(BuiltinFunctionDef, 0x20);
+#pragma pack(pop)
 
 // Note: unverified as of initial addition
 // Verify before use.
