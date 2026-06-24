@@ -28,12 +28,11 @@ void sv_con_tell_f_stub(game::sv::client_s *cl_0, game::net::svscmd_type type,
 }
 
 void send_heartbeat_packet() {
-  if (sv_lan_only->current.value.enabled) {
-    return;
-  }
-
-  for (const auto &target : server_list::get_master_servers()) {
-    network::send(target, "heartbeat", "T7");
+  if (!game::get_dvar_bool(sv_lan_only)) {
+    for (const game::net::netadr_t &target :
+         server_list::get_master_servers()) {
+      network::send(target, "heartbeat", "T7");
+    }
   }
 }
 

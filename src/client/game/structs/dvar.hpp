@@ -293,6 +293,13 @@ struct dvar_t {
   dvar_t *hashNext;
 };
 
+static_assert(offsetof(dvar_t, debugName) == 8);
+static_assert(offsetof(dvar_t, description) == 16);
+static_assert(offsetof(dvar_t, flags) == 24);
+static_assert(offsetof(dvar_t, type) == 28);
+static_assert(offsetof(dvar_t, modified) == 32);
+static_assert(offsetof(dvar_t, current) == 40);
+
 typedef void (*modifiedCallback)(const dvar_t *);
 
 enum class dvar_cmd_t : uint32_t {

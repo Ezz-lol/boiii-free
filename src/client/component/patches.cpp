@@ -352,7 +352,7 @@ void scr_get_num_expected_players() {
 
   const game::eModes mode = game::com::Com_SessionMode_GetMode();
   if ((mode == game::eModes::ZOMBIES || mode == game::eModes::CAMPAIGN)) {
-    const int32_t min_players = lobby_min_players->current.value.integer;
+    const int32_t min_players = game::get_dvar_int(lobby_min_players);
     if (min_players > 0) {
       expected_players = min_players;
     } else if (!game::is_server()) {

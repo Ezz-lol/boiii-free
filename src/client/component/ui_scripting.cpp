@@ -112,11 +112,11 @@ bool execute_raw_lua(const std::string &code,
 }
 
 void fire_debug_reload(const char *root_name) {
-  const auto mapname = game::get_dvar_string("mapname");
-  const auto code =
+  const std::string_view mapname = game::get_dvar_string("mapname");
+  const std::string code =
       utils::string::va("pcall(function() LUI.roots.%s:processEvent({ name = "
                         "'debug_reload', mapname = '%s' }) end)",
-                        root_name, mapname.c_str());
+                        root_name, mapname.data());
   execute_raw_lua(code, "DebugReload");
 }
 
@@ -1389,10 +1389,10 @@ public:
     scheduler::once(
         []() {
           game::dvar_t *dvar_callstack_ship =
-              game::Dvar_FindVar("ui_error_callstack_ship");
+              game::get_dvar("ui_error_callstack_ship");
           dvar_callstack_ship->flags = static_cast<game::dvarFlags_e>(0);
           game::dvar_t *dvar_report_delay =
-              game::Dvar_FindVar("ui_error_report_delay");
+              game::get_dvar("ui_error_report_delay");
           dvar_report_delay->flags = static_cast<game::dvarFlags_e>(0);
 
           game::Dvar_SetFromStringByName("ui_error_callstack_ship", "1", true);

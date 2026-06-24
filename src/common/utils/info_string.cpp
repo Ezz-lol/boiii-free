@@ -1,3 +1,4 @@
+#include "std_include.hpp"
 #include "info_string.hpp"
 #include "string.hpp"
 
@@ -14,8 +15,46 @@ info_string::info_string(const std::basic_string_view<uint8_t> &buffer)
     : info_string(std::string_view(
           reinterpret_cast<const char *>(buffer.data()), buffer.size())) {}
 
-void info_string::set(const std::string &key, const std::string &value) {
+inline_def void info_string::set(const std::string &key,
+                                 const std::string &value) {
   this->key_value_pairs_[key] = value;
+}
+
+inline_def void info_string::set(const std::string_view &key,
+                                 const std::string &value) {
+  this->set(std::string(key), value);
+}
+
+inline_def void info_string::set(const char *key, const std::string &value) {
+  this->set(std::string(key), value);
+}
+
+inline_def void info_string::set(const std::string &key,
+                                 const std::string_view &value) {
+  this->set(key, std::string(value));
+}
+
+inline_def void info_string::set(const std::string_view &key,
+                                 const std::string_view &value) {
+  this->set(std::string(key), std::string(value));
+}
+
+inline_def void info_string::set(const char *key,
+                                 const std::string_view &value) {
+  this->set(std::string(key), std::string(value));
+}
+
+inline_def void info_string::set(const std::string &key, const char *value) {
+  this->set(key, std::string(value));
+}
+
+inline_def void info_string::set(const std::string_view &key,
+                                 const char *value) {
+  this->set(std::string(key), std::string(value));
+}
+
+inline_def void info_string::set(const char *key, const char *value) {
+  this->set(std::string(key), std::string(value));
 }
 
 std::string info_string::get(const std::string &key) const {
@@ -25,6 +64,14 @@ std::string info_string::get(const std::string &key) const {
   }
 
   return {};
+}
+
+inline_def std::string info_string::get(const char *key) const {
+  return this->get(std::string(key));
+}
+
+inline_def std::string info_string::get(const std::string_view &key) const {
+  return this->get(std::string(key));
 }
 
 void info_string::parse(std::string buffer) {

@@ -106,8 +106,8 @@ void read_json_for_id(std::filesystem::path path) {
 }
 
 bool read_json_for_folder_name(std::filesystem::path path,
-                               std::string mapname) {
-  const auto json_str = utils::io::read_file(path);
+                               std::string_view mapname) {
+  const std::string json_str = utils::io::read_file(path);
 
   if (json_str.empty()) {
     printf("[ FolderName ] workshop.json has not been found in folder \n");
@@ -148,7 +148,7 @@ void get_map_id_from_json() {
   } else {
     const std::string &usermaps_path =
         std::filesystem::current_path().string() + "/usermaps";
-    std::string mapname = game::get_dvar_string("mapname");
+    std::string_view mapname = game::get_dvar_string("mapname");
 
     for (const auto &entry :
          std::filesystem::directory_iterator(usermaps_path)) {

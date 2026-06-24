@@ -853,7 +853,7 @@ union XAssetEntryPoolEntry {
 };
 static_assert(sizeof(XAssetEntryPoolEntry) == 0x20,
               "sizeof(XAssetEntryPoolEntry) must be 0x20");
-static const std::size_t XASSET_ENTRY_POOL_LENGTH = 156671;
+constexpr std::size_t XASSET_ENTRY_POOL_LENGTH = 156671;
 
 #pragma pack(push, 1)
 struct XAssetEntryPool {

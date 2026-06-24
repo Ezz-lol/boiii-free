@@ -1,4 +1,4 @@
-#include <std_include.hpp>
+#include "../std_include.hpp"
 
 #include "game.hpp"
 #include "utils.hpp"
@@ -7,12 +7,6 @@ using namespace game::com;
 using namespace game::sv;
 
 namespace game {
-static_assert(offsetof(dvar_t, debugName) == 8);
-static_assert(offsetof(dvar_t, description) == 16);
-static_assert(offsetof(dvar_t, flags) == 24);
-static_assert(offsetof(dvar_t, type) == 28);
-static_assert(offsetof(dvar_t, modified) == 32);
-static_assert(offsetof(dvar_t, current) == 40);
 
 namespace {
 dvar_t *try_get_sessionmode_specific_dvar(dvar_t *dvar) {
@@ -29,128 +23,181 @@ dvar_t *try_get_sessionmode_specific_dvar(dvar_t *dvar) {
 }
 } // namespace
 
-std::string get_dvar_string(const char *dvar_name) {
-  const dvar_t *dvar = Dvar_FindVar(dvar_name);
-  if (!dvar) {
-    return {};
-  }
+inline_def dvar_t *get_dvar(const char *name) { return Dvar_FindVar(name); }
 
+inline_def std::string_view get_dvar_string(const dvar_t *dvar) {
   return Dvar_GetString(dvar);
 }
 
-int get_dvar_int(const char *dvar_name) {
-  const dvar_t *dvar = Dvar_FindVar(dvar_name);
-  if (!dvar) {
-    return {};
+std::string_view get_dvar_string(const char *dvar_name) {
+  const dvar_t *dvar = get_dvar(dvar_name);
+
+  if (dvar) {
+    return get_dvar_string(dvar);
   }
 
+  return {};
+}
+
+inline_def int32_t get_dvar_int(const dvar_t *dvar) {
   return dvar->current.value.integer;
 }
 
-int set_dvar_int(const char *dvar_name, int val, DvarSetSource source) {
-  const dvar_t *dvar = Dvar_FindVar(dvar_name);
-  if (!dvar) {
-    return {};
+int32_t get_dvar_int(const char *dvar_name) {
+  const dvar_t *dvar = get_dvar(dvar_name);
+  if (dvar) {
+    return get_dvar_int(dvar);
   }
-  int prev_val = dvar->current.value.integer;
+
+  return {};
+}
+
+int32_t set_dvar_int(const dvar_t *dvar, int32_t val, DvarSetSource source) {
+  int32_t prev_val = get_dvar_int(dvar);
   Dvar_SetIntFromSource(dvar, val, source);
   return prev_val;
 }
 
-uint32_t get_dvar_uint(const char *dvar_name) {
-  const dvar_t *dvar = Dvar_FindVar(dvar_name);
-  if (!dvar) {
-    return {};
+int32_t set_dvar_int(const char *dvar_name, int32_t val, DvarSetSource source) {
+  const dvar_t *dvar = get_dvar(dvar_name);
+  if (dvar) {
+    return set_dvar_int(dvar, val, source);
   }
 
+  return {};
+}
+
+inline_def uint32_t get_dvar_uint(const dvar_t *dvar) {
   return dvar->current.value.unsignedInt;
 }
 
-uint64_t get_dvar_uint64(const char *dvar_name) {
-  const dvar_t *dvar = Dvar_FindVar(dvar_name);
-  if (!dvar) {
-    return {};
+uint32_t get_dvar_uint(const char *dvar_name) {
+  const dvar_t *dvar = get_dvar(dvar_name);
+  if (dvar) {
+    return get_dvar_uint(dvar);
   }
 
+  return {};
+}
+
+inline_def uint64_t get_dvar_uint64(const dvar_t *dvar) {
   return dvar->current.value.unsignedInt64;
 }
 
-uint64_t set_dvar_uint64(const char *dvar_name, uint64_t val,
-                         DvarSetSource source) {
-  const dvar_t *dvar = Dvar_FindVar(dvar_name);
-  if (!dvar) {
-    return {};
+uint64_t get_dvar_uint64(const char *dvar_name) {
+  const dvar_t *dvar = get_dvar(dvar_name);
+  if (dvar) {
+    return get_dvar_uint64(dvar);
   }
-  uint64_t prev_val = dvar->current.value.unsignedInt64;
+
+  return {};
+}
+
+uint64_t set_dvar_uint64(const dvar_t *dvar, uint64_t val,
+                         DvarSetSource source) {
+  const uint64_t prev_val = get_dvar_uint64(dvar);
   Dvar_SetUInt64FromSource(dvar, val, source);
   return prev_val;
 }
 
-int64_t get_dvar_int64(const char *dvar_name) {
-  const dvar_t *dvar = Dvar_FindVar(dvar_name);
-  if (!dvar) {
-    return {};
+uint64_t set_dvar_uint64(const char *dvar_name, uint64_t val,
+                         DvarSetSource source) {
+  const dvar_t *dvar = get_dvar(dvar_name);
+  if (dvar) {
+    return set_dvar_uint64(dvar, val, source);
   }
+  return {};
+}
 
+inline_def int64_t get_dvar_int64(const dvar_t *dvar) {
   return dvar->current.value.integer64;
 }
 
-int64_t set_dvar_int64(const char *dvar_name, int64_t val,
-                       DvarSetSource source) {
-  const dvar_t *dvar = Dvar_FindVar(dvar_name);
-  if (!dvar) {
-    return {};
+int64_t get_dvar_int64(const char *dvar_name) {
+  const dvar_t *dvar = get_dvar(dvar_name);
+  if (dvar) {
+    return get_dvar_int64(dvar);
   }
-  int64_t prev_val = dvar->current.value.integer64;
+
+  return {};
+}
+
+int64_t set_dvar_int64(const dvar_t *dvar, int64_t val, DvarSetSource source) {
+  const int64_t prev_val = get_dvar_int64(dvar);
   Dvar_SetInt64FromSource(dvar, val, source);
   return prev_val;
 }
 
-bool get_dvar_bool(const char *dvar_name) {
-  const dvar_t *dvar = Dvar_FindVar(dvar_name);
-  if (!dvar) {
-    return {};
+int64_t set_dvar_int64(const char *dvar_name, int64_t val,
+                       DvarSetSource source) {
+  const dvar_t *dvar = get_dvar(dvar_name);
+  if (dvar) {
+    return set_dvar_int64(dvar, val, source);
   }
+  return {};
+}
 
+inline_def bool get_dvar_bool(const dvar_t *dvar) {
   return dvar->current.value.enabled;
 }
 
-bool set_dvar_bool(const char *dvar_name, bool val, DvarSetSource source) {
-  const dvar_t *dvar = Dvar_FindVar(dvar_name);
-  if (!dvar) {
-    return {};
+bool get_dvar_bool(const char *dvar_name) {
+  const dvar_t *dvar = get_dvar(dvar_name);
+  if (dvar) {
+    return get_dvar_bool(dvar);
   }
-  bool prev_val = dvar->current.value.enabled;
+
+  return {};
+}
+
+bool set_dvar_bool(const dvar_t *dvar, bool val, DvarSetSource source) {
+  const bool prev_val = get_dvar_bool(dvar);
   Dvar_SetBoolFromSource(dvar, val, source);
   return prev_val;
 }
 
-float get_dvar_float(const char *dvar_name) {
-  const dvar_t *dvar = Dvar_FindVar(dvar_name);
-  if (!dvar) {
-    return {};
+bool set_dvar_bool(const char *dvar_name, bool val, DvarSetSource source) {
+  const dvar_t *dvar = get_dvar(dvar_name);
+  if (dvar) {
+    set_dvar_bool(dvar, val, source);
   }
+  return {};
+}
 
+inline_def float get_dvar_float(const dvar_t *dvar) {
   return dvar->current.value.value;
 }
 
-float set_dvar_float(const char *dvar_name, float val, DvarSetSource source) {
-  const dvar_t *dvar = Dvar_FindVar(dvar_name);
-  if (!dvar) {
-    return {};
+float get_dvar_float(const char *dvar_name) {
+  const dvar_t *dvar = get_dvar(dvar_name);
+  if (dvar) {
+    return get_dvar_float(dvar);
   }
-  float prev_val = dvar->current.value.value;
+
+  return {};
+}
+
+float set_dvar_float(const dvar_t *dvar, float val, DvarSetSource source) {
+  const float prev_val = get_dvar_float(dvar);
   Dvar_SetFloatFromSource(dvar, val, source);
   return prev_val;
 }
 
+float set_dvar_float(const char *dvar_name, float val, DvarSetSource source) {
+  const dvar_t *dvar = get_dvar(dvar_name);
+  if (dvar) {
+    return set_dvar_float(dvar, val, source);
+  }
+  return {};
+}
+
 const dvar_t *register_sessionmode_dvar_bool(const char *dvar_name,
                                              const bool value,
-                                             const unsigned int flags,
+                                             const uint32_t flags,
                                              const char *description,
                                              const eModes mode) {
   const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
-  game::dvar_t *registered_dvar =
+  dvar_t *registered_dvar =
       Dvar_SessionModeRegisterBool(hash, dvar_name, value, flags, description);
 
   if (registered_dvar) {
@@ -169,10 +216,10 @@ const dvar_t *register_sessionmode_dvar_bool(const char *dvar_name,
 }
 
 const dvar_t *register_dvar_bool(const char *dvar_name, const bool value,
-                                 const unsigned int flags,
+                                 const uint32_t flags,
                                  const char *description) {
   const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
-  game::dvar_t *registered_dvar =
+  dvar_t *registered_dvar =
       Dvar_RegisterBool(hash, dvar_name, value, flags, description);
 
   if (registered_dvar) {
@@ -182,11 +229,11 @@ const dvar_t *register_dvar_bool(const char *dvar_name, const bool value,
   return registered_dvar;
 }
 
-const dvar_t *register_dvar_int(const char *dvar_name, int value, int min,
-                                int max, const unsigned int flags,
+const dvar_t *register_dvar_int(const char *dvar_name, int32_t value,
+                                int32_t min, int32_t max, const uint32_t flags,
                                 const char *description) {
   const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
-  game::dvar_t *registered_dvar =
+  dvar_t *registered_dvar =
       Dvar_RegisterInt(hash, dvar_name, value, min, max, flags, description);
 
   if (registered_dvar) {
@@ -197,10 +244,10 @@ const dvar_t *register_dvar_int(const char *dvar_name, int value, int min,
 }
 
 const dvar_t *register_dvar_float(const char *dvar_name, float value, float min,
-                                  float max, const unsigned int flags,
+                                  float max, const uint32_t flags,
                                   const char *description) {
   const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
-  game::dvar_t *registered_dvar =
+  dvar_t *registered_dvar =
       Dvar_RegisterFloat(hash, dvar_name, value, min, max, flags, description);
 
   if (registered_dvar) {
@@ -211,10 +258,10 @@ const dvar_t *register_dvar_float(const char *dvar_name, float value, float min,
 }
 
 const dvar_t *register_dvar_string(const char *dvar_name, const char *value,
-                                   const unsigned int flags,
+                                   const uint32_t flags,
                                    const char *description) {
   const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
-  game::dvar_t *registered_dvar =
+  dvar_t *registered_dvar =
       Dvar_RegisterString(hash, dvar_name, value, flags, description);
 
   if (registered_dvar) {
@@ -224,14 +271,14 @@ const dvar_t *register_dvar_string(const char *dvar_name, const char *value,
   return registered_dvar;
 }
 
-void dvar_add_flags(const char *dvar_name, const unsigned int flags) {
-  game::dvar_t *dvar = Dvar_FindVar(dvar_name);
+void dvar_add_flags(const char *dvar_name, const uint32_t flags) {
+  dvar_t *dvar = get_dvar(dvar_name);
 
   if (!dvar) {
     return;
   }
 
-  game::dvar_t *dvar_to_change = dvar;
+  dvar_t *dvar_to_change = dvar;
   if (dvar_to_change->type == dvarType_t::SESSIONMODE_BASE_DVAR) {
     dvar_to_change = try_get_sessionmode_specific_dvar(dvar_to_change);
     if (!dvar_to_change) {
@@ -242,14 +289,14 @@ void dvar_add_flags(const char *dvar_name, const unsigned int flags) {
   dvar_to_change->flags |= flags;
 }
 
-void dvar_set_flags(const char *dvar_name, const unsigned int flags) {
-  game::dvar_t *dvar = Dvar_FindVar(dvar_name);
+void dvar_set_flags(const char *dvar_name, const uint32_t flags) {
+  dvar_t *dvar = get_dvar(dvar_name);
 
   if (!dvar) {
     return;
   }
 
-  game::dvar_t *dvar_to_change = dvar;
+  dvar_t *dvar_to_change = dvar;
   if (dvar_to_change->type == dvarType_t::SESSIONMODE_BASE_DVAR) {
     dvar_to_change = try_get_sessionmode_specific_dvar(dvar_to_change);
     if (!dvar_to_change) {
@@ -260,14 +307,14 @@ void dvar_set_flags(const char *dvar_name, const unsigned int flags) {
   dvar_to_change->flags = flags;
 }
 
-void dvar_remove_flags(const char *dvar_name, const unsigned int flags) {
-  game::dvar_t *dvar = Dvar_FindVar(dvar_name);
+void dvar_remove_flags(const char *dvar_name, const uint32_t flags) {
+  dvar_t *dvar = get_dvar(dvar_name);
 
   if (!dvar) {
     return;
   }
 
-  game::dvar_t *dvar_to_change = dvar;
+  dvar_t *dvar_to_change = dvar;
   if (dvar_to_change->type == dvarType_t::SESSIONMODE_BASE_DVAR) {
     dvar_to_change = try_get_sessionmode_specific_dvar(dvar_to_change);
     if (!dvar_to_change) {

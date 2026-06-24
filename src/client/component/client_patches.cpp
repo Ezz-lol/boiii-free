@@ -95,11 +95,11 @@ void patch_is_mod_loaded_checks() {
 }
 
 float cl_key_state_yaw_speed_stub(void *key) {
-  return game::cl::CL_KeyState(key) * cl_yaw_speed->current.value.value;
+  return game::cl::CL_KeyState(key) * game::get_dvar_float(cl_yaw_speed);
 }
 
 float cl_key_state_pitch_speed_stub(void *key) {
-  return game::cl::CL_KeyState(key) * cl_pitch_speed->current.value.value;
+  return game::cl::CL_KeyState(key) * game::get_dvar_float(cl_pitch_speed);
 }
 
 game::fileHandle_t
