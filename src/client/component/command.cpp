@@ -11,6 +11,11 @@
 
 namespace command {
 namespace {
+constexpr const char *compatibility_commands[] = {
+    "ffotdversion",  "bbdisable", "bbenable", "bitfieldBBPrints",
+    "bbstart",       "setliveevent"
+};
+
 std::unordered_map<std::string, command_param_function> &get_command_map() {
   static std::unordered_map<std::string, command_param_function> command_map{};
   return command_map;
@@ -52,6 +57,12 @@ void update_whitelist_stub() {
   while (current_function) {
     current_function->autoComplete = 1;
     current_function = current_function->next;
+  }
+}
+
+void register_client_compatibility_commands() {
+  for (const auto *command_name : compatibility_commands) {
+    add(command_name, [](const params &) {});
   }
 }
 } // namespace
@@ -188,6 +199,10 @@ struct component final : generic_component {
     // Disable whitelist
     utils::hook::jump(game::select(0x1420EE860, 0x1404F9CD0),
                       update_whitelist_stub);
+
+    if (!game::is_server()) {
+      register_client_compatibility_commands();
+    }
   }
 };
 } // namespace command

@@ -13,6 +13,11 @@
 
 namespace dedicated {
 namespace {
+constexpr const char *compatibility_commands[] = {
+    "ffotdversion",  "bbdisable", "bbenable", "bitfieldBBPrints",
+    "bbstart",       "setliveevent"
+};
+
 const game::dvar_t *sv_lan_only;
 
 void sv_con_tell_f_stub(game::sv::client_s *cl_0, game::net::svscmd_type type,
@@ -29,6 +34,12 @@ void send_heartbeat_packet() {
 
   for (const auto &target : server_list::get_master_servers()) {
     network::send(target, "heartbeat", "T7");
+  }
+}
+
+void register_server_compatibility_commands() {
+  for (const auto *command_name : compatibility_commands) {
+    command::add_sv(command_name, [](const command::params_sv &) {});
   }
 }
 } // namespace
@@ -64,6 +75,7 @@ struct component final : server_component {
     scheduler::once(send_heartbeat, scheduler::pipeline::main);
     scheduler::loop(send_heartbeat, scheduler::pipeline::main, 5min);
     command::add("heartbeat", send_heartbeat);
+    register_server_compatibility_commands();
 
     // Hook GScr_ExitLevel
     utils::hook::jump(0x1402D1AA0_g, trigger_map_rotation);
