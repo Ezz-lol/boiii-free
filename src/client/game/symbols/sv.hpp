@@ -13,9 +13,9 @@ WEAK symbol<CmdArgs> sv_cmd_args{0x15689AE30, 0x14944C740};
 WEAK symbol<client_s_cl *> svs_clients_cl{0x1576F9318, 0};
 WEAK symbol<client_s *> svs_clients{0x0, 0x14A178E98};
 
-WEAK symbol<server_t> sv{0x0, 0x14A0BC710};
+WEAK symbol<server_t> sv{0x1576F9C00, 0x14A0BC710};
 WEAK symbol<serverStatic_t> svs{0x1576F8700, 0x14A178280};
-WEAK symbol<serverStaticHeader_t> svsHeader{0x0, 0x14A2CE280};
+WEAK symbol<serverStaticHeader_t> svsHeader{0x157906580, 0x14A2CE280};
 
 WEAK symbol<bool()> SV_Loaded{0x142252250, 0x140535460};
 WEAK symbol<void *()> SV_AddTestClient{0x142248F40, 0x14052E3E0};

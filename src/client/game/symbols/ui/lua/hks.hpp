@@ -44,9 +44,15 @@ WEAK symbol<const char *(lua_State *s, int index, size_t *len)>
     hksi_lua_tolstring{0x141D4B6C0, 0x1403F42B0};
 WEAK symbol<const char *> s_compilerTypeName{0x140A18430};
 
-// Full name is:
-// `hks::execute<(HksBytecodeSharingMode)2>
-//  (lua_State *,hksInstruction const*,int)`
+// `hks::execute<(HksBytecodeSharingMode)0>`
+WEAK symbol<hksInt32(lua_State *s, const hksInstruction *PC,
+                     hksInt32 call_depth)>
+    execute0{0x142F82EB0, 140DC5EB0};
+// `hks::execute<(HksBytecodeSharingMode)1>`
+WEAK symbol<hksInt32(lua_State *s, const hksInstruction *PC,
+                     hksInt32 call_depth)>
+    execute1{0x142F7D000, 140DC0000};
+// `hks::execute<(HksBytecodeSharingMode)2>`
 WEAK symbol<hksInt32(lua_State *s, const hksInstruction *PC,
                      hksInt32 call_depth)>
     execute2{0x142F7FEB0, 0x140DC2EB0};

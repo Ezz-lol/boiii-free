@@ -38,6 +38,71 @@ typedef gentity_s gentity_t;
 
 namespace sv {
 
+enum class ReliableCommand : char {
+  NOP = '\0',             // 0x00: Empty command / return
+  GIVE_ACHIEVEMENT = '#', // 0x23: LiveAchievements_GiveAchievement
+  BLUR_SERVER_CMD = '(',  // 0x28: CG_BlurServerCommand
+  // 0x29: CG_TranslateHudElemMessage / CG_BoldGameMessage
+  ANNOUNCEMENT_MSG = ')',
+  CHAT_MSG = '+',                  // 0x2B: CG_ChatMessage
+  NITROUS_VEHICLE_TELEPPORT = '/', // 0x2F: NitrousVehicle::Teleport
+  SET_CLIENT_SYSTEM_STATE = '0',   // 0x30: CG_ParseClientSystemStateChange
+  CHECKPOINT_COMMIT = '1',         // 0x31: CL_Checkpoint_Commit
+  CONFIG_STRING_MODIFIED = '2',    // 0x32: CG_ConfigStringModified
+  DYN_ENT_DESTROY_EVENT = '7',     // 0x37: DynEntCl_DestroyEvent
+  EXPLODER = ':',                  // 0x3A: CG_ParseExploderCommand
+  GAME_MSG = ';',                  // 0x3B: CG_GameMessage
+  BOLD_GAME_MSG_CENTER = '<',      // 0x3C: CG_BoldGameMessageCenter
+  CHECKPOINT_SAVE = '=',           // 0x3D: CL_Checkpoint_Save
+  RESET_WEAPON_STATE = '>',        // 0x3E: PM_ResetWeaponState
+  CLOSE_IN_GAME_MENU = '@',        // 0x40: UI_CloseInGameMenu
+  LOCAL_SOUND = 'B',               // 0x42: LocalSound
+  LOCAL_SOUND_STOP = 'C',          // 0x43: LocalSoundStop
+  LUI_NOTIFY = 'D',                // 0x44: CG_ParseLUINotify
+  RADIANT_EXPLODER = 'E',          // 0x45: CG_ParseRadiantExploderCommand
+  MAP_RESTART = 'J',               // 0x4A: CG_MapRestart(..., 0)
+  HIT_MARKER = 'M',                // 0x4D: HitMarker
+  OPEN_SCRIPT_MENU = 'N',          // 0x4E: CG_OpenScriptMenu
+  // 0x4F: LiveTracker_WriteForAllLocalUsers / CG_GameMessage
+  TRACKER_GAME_MSG = 'O',
+  MAP_RESTART_FAST = 'U',       // 0x55: CG_MapRestart(..., 1)
+  AIRSUPPORT = 'V',             // 0x56: CG_ParseAirsupport
+  BURN = 'W',                   // 0x57: CG_BurnServerCommand
+  SCR_CAMERA = 'X',             // 0x58: CG_ScrCamera
+  ELECTRIFIED = 'Y',            // 0x59: CG_ElectrifiedServerCommand
+  SET_EQUIPPED_OFF_HAND = '\\', // 0x5C: CG_SetEquippedOffHand
+  SET_CLIENT_DVAR = '^',        // 0x5E: CG_SetClientDvarFromServer
+  // // 0x61: cgameGlob->hideViewModel = 0;
+  SHOW_VIEW_MODEL = 'a',
+  // 0x63: R_Stream_ProcessHintEntity (or CG_SpawnPrediction)
+  PROCESS_HINT_ENTITY = 'c',
+  START_FADING_BLUR = 'd', // 0x64: CG_StartFadingBlurServerCommand
+  // // 0x65: LiveStats_SetStatChanged / LiveStats_SetStatChangedNoCache
+  SET_STAT_CHANGED = 'e',
+  SET_CHECK_SUM = 'f',  // 0x66: LiveStats_SetCheckSumFromServer
+  SELECT_WEAPON = 'h',  // 0x68: CG_SwitchToLatestPrimary / CG_SelectWeaponIndex
+  SET_TEAM_SCORE = 'i', // 0x69: CG_SetTeamScore
+  /*
+    0x6A: Falls through to '+'; (CG_ChatMessage).
+    May be handled differently in CG_ChatMessage (?).
+    Unsure currentlywhy there are two commands for chat messages.
+  */
+  CHAT_MSG_ALT = 'j',
+  GET_USER_SPONSOR = 'm',        // 0x6D: Live_GetUserSponsor
+  UPLOAD_STATS = 'n',            // 0x6E: LiveStats_CompareStatsVsStableBuffer /
+                                 // LiveStorage_UploadStatsForController
+  VISION_SET_LERP_TO = 'o',      // 0x6F: CG_VisionSetStartLerp_To
+  WATER_DROPS = 'p',             // 0x70: CG_WaterDropsServerCommand
+  SET_WORLD_FOG_BANK = 'r',      // 0x72: CG_SetWorldFogActiveBank
+  UPDATE_FOV = 's',              // 0x73: CG_UpdateFov
+  TEAM_OPS = 't',                // 0x74: CG_TeamOpsSetID / Progress / ShowHUD
+  CHECKPOINT_RESTORE = 'u',      // 0x75: CL_Checkpoint_Restore
+  FRIEND_CHAT_MSG = 'v',         // 0x76: CG_FriendChatMessage
+  UPDATE_ZOMBIE_DOUBLE_XP = 'w', // 0x77: Live_DoubleXPUpdateZombieDoubleXP
+  INC_LOOT_CURRENCY = 'x',       // 0x78: Loot_IncCurrency (Vials or MP Loot XP)
+  CONSUME_INVENTORY_ITEM = 'y',  // 0x79: LiveInventory_ConsumeItem
+};
+
 struct client_s {
   int32_t state;
   char __pad0[0x28];

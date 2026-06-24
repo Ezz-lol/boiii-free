@@ -83,7 +83,7 @@ void auth3_server::handle(const std::string &packet) {
 
   // client_ticket
   auth_ticket ticket{};
-  std::memset(&ticket, 0x0, sizeof ticket);
+  std::memset(&ticket, 0x0, sizeof(ticket));
   ticket.m_magicNumber = 0x0EFBDADDE;
   ticket.m_type = 0;
   ticket.m_titleID = title_id;
@@ -105,7 +105,7 @@ void auth3_server::handle(const std::string &packet) {
 
   // server_ticket
   uint8_t auth_data[128];
-  std::memset(&auth_data, 0, sizeof auth_data);
+  std::memset(&auth_data, 0, sizeof(auth_data));
   std::memcpy(auth_data, session_key.data(), 24);
   const auto auth_data_b64 =
       utils::cryptography::base64::encode(auth_data, 128);

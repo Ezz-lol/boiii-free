@@ -19,15 +19,15 @@
 
 namespace name {
 namespace {
-constexpr std::string sync_packet_name = "nameoverride";
+constexpr const game::str<13> sync_packet_name = "nameoverride";
 
-enum class sync_message_type : uint8_t {
-  clear_all = 0,
-  set_name = 1,
-  set_tag = 2,
-  clear_name = 3,
-  clear_tag = 4,
-  snapshot = 5,
+enum class SyncMessageType : uint8_t {
+  CLEAR_ALL = 0x0,
+  SET_NAME = 0x1,
+  SET_TAG = 0x2,
+  CLEAR_NAME = 0x3,
+  CLEAR_TAG = 0x4,
+  SNAPSHOT = 0x5,
 };
 
 bool is_syncable_address(const game::net::netadr_t &address) {
@@ -45,7 +45,7 @@ bool is_syncable_client(const game::sv::client_s &client) {
 }
 
 void send_override_packet(
-    const game::net::netadr_t &target, const sync_message_type type,
+    const game::net::netadr_t &target, const SyncMessageType type,
     const game::ClientNum_t client_num,
     const std::optional<std::string> &value = std::nullopt) {
   if (!game::is_server_running() || !is_syncable_address(target)) {
@@ -64,7 +64,7 @@ void send_override_packet(
 }
 
 void broadcast_override_packet(
-    const sync_message_type type, const game::ClientNum_t client_num,
+    const SyncMessageType type, const game::ClientNum_t client_num,
     const std::optional<std::string> &value = std::nullopt) {
   if (!game::is_server_running()) {
     return;
@@ -80,7 +80,7 @@ void broadcast_override_packet(
 }
 
 void send_override_packet_to_client(
-    const game::ClientNum_t target_client, const sync_message_type type,
+    const game::ClientNum_t target_client, const SyncMessageType type,
     const game::ClientNum_t client_num,
     const std::optional<std::string> &value = std::nullopt) {
   if (!game::valid_client_num(target_client) || !game::is_server_running()) {
@@ -179,7 +179,7 @@ void send_snapshot_packet(const game::net::netadr_t &target) {
   collect_current_overrides(names, tags);
 
   utils::byte_buffer buffer{};
-  buffer.write(static_cast<uint8_t>(sync_message_type::snapshot));
+  buffer.write(static_cast<uint8_t>(SyncMessageType::SNAPSHOT));
   buffer.write(static_cast<int32_t>(game::INVALID_CLIENT_INDEX));
   buffer.write(static_cast<uint8_t>(names.size()));
 
@@ -322,7 +322,7 @@ void sync_name_override_to_clients(game::ClientNum_t client_num) {
     return;
   }
 
-  broadcast_override_packet(sync_message_type::set_name, client_num, *value);
+  broadcast_override_packet(SyncMessageType::SET_NAME, client_num, *value);
 }
 
 void sync_clan_abbrev_override_to_clients(game::ClientNum_t client_num) {
@@ -332,15 +332,15 @@ void sync_clan_abbrev_override_to_clients(game::ClientNum_t client_num) {
     return;
   }
 
-  broadcast_override_packet(sync_message_type::set_tag, client_num, *value);
+  broadcast_override_packet(SyncMessageType::SET_TAG, client_num, *value);
 }
 
 void sync_name_reset_to_clients(game::ClientNum_t client_num) {
-  broadcast_override_packet(sync_message_type::clear_name, client_num);
+  broadcast_override_packet(SyncMessageType::CLEAR_NAME, client_num);
 }
 
 void sync_clan_abbrev_reset_to_clients(game::ClientNum_t client_num) {
-  broadcast_override_packet(sync_message_type::clear_tag, client_num);
+  broadcast_override_packet(SyncMessageType::CLEAR_TAG, client_num);
 }
 
 void sync_all_overrides_to_client(game::ClientNum_t target_client) {
@@ -552,17 +552,17 @@ struct component final : generic_component {
 
             try {
               utils::byte_buffer buffer(data);
-              const sync_message_type type =
-                  static_cast<sync_message_type>(buffer.read<uint8_t>());
+              const SyncMessageType type =
+                  static_cast<SyncMessageType>(buffer.read<uint8_t>());
               const game::ClientNum_t client_num =
                   static_cast<game::ClientNum_t>(buffer.read<int32_t>());
 
               switch (type) {
-              case sync_message_type::clear_all:
+              case SyncMessageType::CLEAR_ALL:
                 clear_all();
                 break;
 
-              case sync_message_type::snapshot: {
+              case SyncMessageType::SNAPSHOT: {
                 clear_all();
 
                 const uint8_t name_count = buffer.read<uint8_t>();
@@ -587,28 +587,28 @@ struct component final : generic_component {
                 break;
               }
 
-              case sync_message_type::set_name:
+              case SyncMessageType::SET_NAME:
                 if (!game::valid_client_num(client_num)) {
                   return;
                 }
                 set_name_override(client_num, buffer.read_string());
                 break;
 
-              case sync_message_type::set_tag:
+              case SyncMessageType::SET_TAG:
                 if (!game::valid_client_num(client_num)) {
                   return;
                 }
                 set_clan_abbrev_override(client_num, buffer.read_string());
                 break;
 
-              case sync_message_type::clear_name:
+              case SyncMessageType::CLEAR_NAME:
                 if (!game::valid_client_num(client_num)) {
                   return;
                 }
                 clear_name_override(client_num);
                 break;
 
-              case sync_message_type::clear_tag:
+              case SyncMessageType::CLEAR_TAG:
                 if (!game::valid_client_num(client_num)) {
                   return;
                 }

@@ -177,6 +177,9 @@ void g_init_game_stub(uint32_t levelTime, uint32_t randomSeed,
                           savegame);
 }
 
+inline constexpr const game::str<2> LUI_NOTIFY_RELIABLE_CMD_PREFIX = {
+    game::sv::ReliableCommand::LUI_NOTIFY, ' '};
+
 utils::hook::detour sv_addservercommand_hook;
 
 void sv_addservercommand_stub(game::sv::client_s *client,
@@ -186,10 +189,10 @@ void sv_addservercommand_stub(game::sv::client_s *client,
   std::lock_guard lock(reliable_cmd_mutex);
 
   /*
-    `openmenu` reliable commands have format "D %d %d %d %d", or "D %d %d %d".
+    `luinotify` reliable commands have format "D %d %d %d %d", or "D %d %d %d".
     Note that the prefix "D " is its unique command type identifier.
   */
-  if (utils::string::starts_with(cmd_str, "D ")) {
+  if (utils::string::starts_with(cmd_str, LUI_NOTIFY_RELIABLE_CMD_PREFIX)) {
     // If this command was sent less than 1000 ms ago, skip.
     if (client_openmenu_cmd_last_sequence_time.contains(cmd_str) &&
         client_openmenu_cmd_last_sequence_time[cmd_str].contains(
@@ -200,7 +203,7 @@ void sv_addservercommand_stub(game::sv::client_s *client,
       return;
     }
 
-    // We also do not need to send a redundant openmenu command if it was the
+    // We also do not need to send a redundant luinotify command if it was the
     // last command sent, even if sent > 1 second ago. This is valid because we
     // can guarantee that menu state was not modified otherwise in the interim.
     if (client_last_cmd.contains(client->xuid) &&
