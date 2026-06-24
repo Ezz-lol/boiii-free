@@ -14,6 +14,7 @@
 #include <utils/string.hpp>
 
 #include "scheduler.hpp"
+#include "game_event.hpp"
 #include "command.hpp"
 
 namespace server_patches2 {
@@ -111,19 +112,33 @@ std::string sanitize_chat_message(const std::string &msg) {
   return result;
 }
 
-void disable_sv_cheats_cb(game::dvar_t *sv_cheats) {
-  if (game::get_dvar_bool(sv_cheats)) {
-    game::set_dvar_bool(sv_cheats, false);
+void dvar_disablebool_cb(const game::dvar_t *dvar) {
+  if (game::get_dvar_bool(dvar)) {
+    game::set_dvar_bool(dvar, false);
   }
+}
+
+const game::dvar_t *Dvar_RegisterDisable_Bool(game::dvarStrHash_t hash,
+                                              const char *dvarName, bool value,
+                                              game::DvarFlags flags,
+                                              const char *description) {
+  const game::dvar_t *dvar =
+      game::Dvar_RegisterBool(hash, dvarName, value, flags, description);
+
+  if (game::get_dvar_bool(dvar)) {
+    game::set_dvar_bool(dvar, false);
+  }
+  game::Dvar_SetModifiedCallback(dvar, dvar_disablebool_cb);
+
+  return dvar;
 }
 
 // Hook for G_Say to sanitize messages
 utils::hook::detour g_say_hook;
-
 void g_say_stub(game::level::gentity_s *ent, game::level::gentity_s *target,
                 int mode, const char *chatText) {
   if (chatText) {
-    const auto sanitized = sanitize_chat_message(chatText);
+    const std::string sanitized = sanitize_chat_message(chatText);
     g_say_hook.invoke(ent, target, mode, sanitized.data());
   } else {
     g_say_hook.invoke(ent, target, mode, chatText);
@@ -227,7 +242,7 @@ bool db_loadxfile_stub(const char *path, game::db::DBFile f,
       path, f, fileBuffer, filename, blocks, interrupt, buf, side, flags);
 
   if (succeeded && (game::db::load::g_load->flags & 0x1000C00) != 0) {
-    game::snd::g_sb->loadGate = 0;
+    game::snd::g_sb->loadGate = false;
     game::snd::SND_LoadSoundsWait();
   }
 
@@ -263,8 +278,8 @@ void free_bank_allocations_before_clearing_address_stub(
 utils::hook::detour snd_init_hook;
 void snd_init_stub() {
   snd_init_hook.invoke();
-  *(game::snd::g_pc_nosnd.get()) = 0;
-  game::snd::g_snd->verified_0.init = 1;
+  *(game::snd::g_pc_nosnd.get()) = true;
+  game::snd::g_snd->verified_0.init = true;
   game::snd::g_sb->bankMagic = 0x12233445;
 }
 
@@ -277,7 +292,7 @@ void snd_queueadd_stub([[maybe_unused]] game::snd::SndQueue *queue,
 
 utils::hook::detour snd_active_hook;
 game::qboolean snd_active_stub() {
-  game::snd::g_snd->verified_0.init = 1;
+  game::snd::g_snd->verified_0.init = true;
   return snd_active_hook.invoke<game::qboolean>();
 }
 
@@ -316,11 +331,12 @@ utils::hook::detour snd_starttocread_hook;
   This fixes most bugs related to server-side sound handling.
 
   For example:
-  - Map music, sound effects, or voicelines not playing, playing on a loop,
-  playing at the wrong time, or all playing at the same time - occurs in most
-  zombies maps.
-  - Maps with manual sound loops crashing the server with `G_Spawn: no free
-  entities` error - Die Rise, for example.
+  - Map music, sound effects, or voicelines not playing, erroneously playing in
+  a loop, playing at the wrong time, or all playing at the same time - occurs in
+  most zombies maps.
+  - Maps implementing manual sound loops with intermittent delay generated
+  by the `soundgetplaybacktime` GSC function crashing the server with `G_Spawn:
+  no free entities` error; Die Rise, for example.
 
   Does not fix:
   - Perk machine jingles inconsistently playing when player is in proximity.
@@ -350,7 +366,7 @@ inline void enable_sound() {
     used in the unmodified engine; it was reimplemented and used in the above
     SND_EnqueueLoadedAssets_Impl.
 
-    This call hooks the memset call to instead first free these allocations,
+    This hooks the memset call to instead first free these allocations,
     if they are present, to prevent memory leak. The client frees these
     allocations in the same location.
   */
@@ -476,8 +492,8 @@ struct component final : server_component {
     utils::hook::nop(0x1401155D5_g, 7);
 
     /*
-      Disable removal of all clients from an IP address if
-      one client from that IP address disconnects.
+      Disable removal of all clients from an IP address when
+      one client from the IP address disconnects.
 
       Useful if e.g. server is hosted behind a reverse proxy or
       load balancer where multiple clients share the same IP.
@@ -486,18 +502,8 @@ struct component final : server_component {
         game::sv::SV_Live_RemoveAllClientsFromAddress.get(),
         sv_live_removeallclientsfromaddress_stub);
 
-    scheduler::once(
-        [] {
-          const game::dvar_t *sv_cheats = game::get_dvar("sv_cheats");
-          game::Dvar_SetBoolFromSource(sv_cheats, false,
-                                       game::DvarSetSource::INTERNAL);
-
-          // Enforce sv_cheats = 0
-          game::Dvar_SetModifiedCallback(
-              sv_cheats,
-              reinterpret_cast<game::modifiedCallback>(disable_sv_cheats_cb));
-        },
-        scheduler::pipeline::async, 30000ms);
+    // Disable sv_cheats immediately after registration
+    utils::hook::call(0x140379E80_g, Dvar_RegisterDisable_Bool);
 
     if (!utils::flags::has_flag("noratelimit")) {
       // Cleanup old rate limit entries periodically

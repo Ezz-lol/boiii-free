@@ -101,6 +101,8 @@ WEAK symbol<const dvar_t *> testmissingcontentpacks{0x1568EDDF0};
 WEAK symbol<const dvar_t *> splitscreen{0x1453D49F0, 0x1428AAEC8};
 WEAK symbol<const dvar_t *> splitscreen_playerCount{0x1453D4A00, 0x1428AAED8};
 
+WEAK symbol<const dvar_t *> sv_cheats{0x1576F8698, 0x14A189A18};
+
 } // namespace game
 
 #endif
