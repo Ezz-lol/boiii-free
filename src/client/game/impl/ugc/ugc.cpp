@@ -211,8 +211,7 @@ void UGC_LoadModsPool_Impl() {
     }
   }
 
-  memset(static_cast<void *>(&modsPool), 0,
-         EXTENDED_WORKSHOP_DATA_POOL_STRUCT_SIZE);
+  clear(&modsPool);
 
   if (!is_client) {
     steam::PublishedFileId_t downloadedModPublisherId =
@@ -256,8 +255,7 @@ void UGC_LoadUsermapsPool_Impl() {
     }
   }
 
-  memset(static_cast<void *>(&usermapsPool), 0,
-         EXTENDED_WORKSHOP_DATA_POOL_STRUCT_SIZE);
+  clear(&usermapsPool);
 
   if (!is_client) {
     UGC_LoadPlaylistUsermapManifests();

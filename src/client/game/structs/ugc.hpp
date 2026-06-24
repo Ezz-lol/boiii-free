@@ -32,6 +32,10 @@ struct WorkshopData {
   steam::PublishedFileId_t publisherIdInteger;
   UGCHash publisherIdHash;
   ZoneType type;
+
+  friend inline constexpr void clear(WorkshopData *self) noexcept {
+    memset(static_cast<void *>(self), 0, sizeof(WorkshopData));
+  }
 };
 
 ASSERT_SIZE(WorkshopData, 0x4C8);
@@ -53,6 +57,11 @@ template <const uint32_t POOL_SIZE> struct WorkshopDataPool {
   uint32_t count;
   uint8_t _padding04[4];
   WorkshopData data[POOL_SIZE];
+
+  friend inline constexpr void
+  clear(WorkshopDataPool<POOL_SIZE> *self) noexcept {
+    memset(static_cast<void *>(self), 0, sizeof(WorkshopDataPool<POOL_SIZE>));
+  }
 };
 
 template <const uint32_t POOL_SIZE>

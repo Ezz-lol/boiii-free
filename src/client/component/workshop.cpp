@@ -247,7 +247,7 @@ void load_workshop_data(game::ugc::WorkshopData *item) {
 void populate_workshop_paths(game::ugc::WorkshopData *item,
                              const std::filesystem::path &content_folder,
                              const game::ZoneType type) {
-  std::memset(item, 0, sizeof(game::ugc::WorkshopData));
+  clear(item);
 
   const std::filesystem::path zone_path = content_folder / "zone";
   const std::filesystem::path relative_zone_path =
