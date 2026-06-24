@@ -188,7 +188,7 @@ bool unload_xzone_by_name(const char *zone_name, bool createDefault,
 
 void setup_server_map_stub(game::LocalClientNum_t localClientNum,
                            const char *map, const char *gametype) {
-  const std::string loaded_mod_id = game::ugc::getPublisherIdFromLoadedMod();
+  const std::string loaded_mod_id = game::ugc::UGC_ActiveMod_PublisherId();
   const bool is_usermap =
       utils::string::is_numeric(map) || !get_usermap_publisher_id(map).empty();
   const bool mod_loaded = loaded_mod_id.size() > 0;
@@ -347,7 +347,7 @@ const char *va_user_content_path(const char *fmt, const char *root_dir,
 }
 
 std::string get_mod_resized_name() {
-  const std::string loaded_mod_id = game::ugc::getPublisherIdFromLoadedMod();
+  const std::string loaded_mod_id = game::ugc::UGC_ActiveMod_PublisherId();
 
   if (loaded_mod_id == "usermaps" || loaded_mod_id.empty()) {
     return loaded_mod_id;
@@ -399,7 +399,7 @@ int get_workshop_retry_attempts() {
 }
 
 std::string get_mod_publisher_id() {
-  const std::string loaded_mod_id = game::ugc::getPublisherIdFromLoadedMod();
+  const std::string loaded_mod_id = game::ugc::UGC_ActiveMod_PublisherId();
 
   if (loaded_mod_id == "usermaps" || loaded_mod_id.empty()) {
     return loaded_mod_id;
@@ -859,7 +859,7 @@ void wait_for_mod_load() {
 void setup_same_mod_as_host(game::LocalClientNum_t localClientNum,
                             const std::string &usermap, const std::string &mod,
                             bool force_fs_reinit) {
-  const std::string loaded_mod = game::ugc::getPublisherIdFromLoadedMod();
+  const std::string loaded_mod = game::ugc::UGC_ActiveMod_PublisherId();
   if (loaded_mod != mod) {
     if (!usermap.empty() || !mod.empty()) {
       bool fs_reinit_required =
@@ -870,7 +870,7 @@ void setup_same_mod_as_host(game::LocalClientNum_t localClientNum,
       if (fs_reinit_required) {
         wait_for_mod_load();
       }
-    } else if (game::ugc::isModLoaded()) {
+    } else if (game::ugc::UGC_ActiveMod_Loaded()) {
       bool fs_reinit_required =
           force_fs_reinit ||
           mod_switch_requires_fs_reinitialization(loaded_mod, "");

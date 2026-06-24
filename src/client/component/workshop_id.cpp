@@ -141,7 +141,7 @@ void get_map_id_from_json() {
     return;
   }
 
-  const std::string loaded_mod_id = game::ugc::getPublisherIdFromLoadedMod();
+  const std::string loaded_mod_id = game::ugc::UGC_ActiveMod_PublisherId();
   if (utils::string::is_numeric(loaded_mod_id)) {
     printf("%s", loaded_mod_id.c_str());
     write_pubid_to_file(loaded_mod_id);

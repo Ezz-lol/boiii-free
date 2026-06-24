@@ -1535,7 +1535,7 @@ public:
     });
 
     command::add("lua_reload_mod", [](const command::params & /*params*/) {
-      const std::string mod_id = game::ugc::getPublisherIdFromLoadedMod();
+      const std::string mod_id = game::ugc::UGC_ActiveMod_PublisherId();
       if (mod_id.empty() || mod_id == "usermaps") {
         scheduler::once(
             [] { toast::success("Lua Reload Mod", "No mod loaded"); },
