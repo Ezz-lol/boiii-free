@@ -5,10 +5,15 @@
 #include <utils/flags.hpp>
 #include <utils/finally.hpp>
 
+#include <iostream>
+#include <random>
+#include <sstream>
+#include <iomanip>
+
 namespace game {
 namespace {
 const utils::nt::library &get_host_library() {
-  static const auto host_library = [] {
+  static const utils::nt::library host_library = [] {
     utils::nt::library host{};
     if (!host || host == utils::nt::library::get_by_address(get_base)) {
       throw std::runtime_error("Invalid host application - Make sure you place "
@@ -23,41 +28,48 @@ const utils::nt::library &get_host_library() {
 } // namespace
 
 size_t get_base() {
-  static const auto base =
+  static const size_t base =
       reinterpret_cast<size_t>(get_host_library().get_ptr());
   return base;
 }
 
 bool is_server() {
-  static const auto server =
+  static const bool server =
       get_host_library().get_optional_header()->CheckSum == 0x14C28B4;
   return server;
 }
 
 bool is_client() {
   if (utils::flags::has_flag("newsteamclient")) {
-    static const auto server =
+    static const bool server =
         get_host_library().get_optional_header()->CheckSum == 0x6517980;
     return server;
   }
-  static const auto server =
+  static const bool server =
       get_host_library().get_optional_header()->CheckSum == 0x888C368;
   return server;
 }
 
 bool is_legacy_client() {
-  static const auto server =
+  static const bool server =
       get_host_library().get_optional_header()->CheckSum == 0x8880704;
   return server;
 }
 
 bool is_headless() {
-  static const auto headless = utils::flags::has_flag("headless");
+  static const bool headless = utils::flags::has_flag("headless");
   return headless;
 }
 
 void show_error(const std::string &text, const std::string &title) {
-  if (is_headless()) {
+  if (utils::flags::has_flag("quiet-crash")) {
+    fflush(stdout);
+    fflush(stderr);
+
+    fprintf(stderr, "%s\n%s\n", title.c_str(), text.c_str());
+
+    fflush(stderr);
+  } else if (is_headless()) {
     puts(text.data());
   } else {
     MessageBoxA(nullptr, text.data(), title.data(),
@@ -66,7 +78,8 @@ void show_error(const std::string &text, const std::string &title) {
 }
 
 std::filesystem::path get_appdata_path() {
-  static const auto appdata_path = []() -> std::filesystem::path {
+  static const std::filesystem::path appdata_path =
+      []() -> std::filesystem::path {
     PWSTR path = nullptr;
     if (FAILED(
             SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &path))) {

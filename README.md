@@ -202,6 +202,7 @@ Launch BOIII with these arguments for extra features:
 | `-noconsole`          | Suppress the external launcher console window                                                                                                                      |
 | `-nobranding`         | Disable EZZ watermark and console prefix                                                                                                                           |
 | `-noratelimit`        | Disable rate limiting in dedicated server                                                                                                                          |
+| `-quiet-crash`        | On crash, disable message box and minidump directory popups.                                                                                                       |
 | `-mitigatepacketspam` | In dedicated server, attempt to reduce unnecessary reliable command packets sent by some custom maps' scripts. Fixes Kowloon and Daybreak client load-in failures. |
 | `-dump`               | Dump game or server executable to file in containing directory after Arxan unpack                                                                                  |
 
