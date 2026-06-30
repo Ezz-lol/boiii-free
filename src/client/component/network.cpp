@@ -17,6 +17,7 @@
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/finally.hpp>
+#include <str.hpp>
 
 namespace network {
 namespace {
@@ -184,7 +185,7 @@ void com_error_oob_stub(const char *file, int32_t line, game::errorParm code,
   intptr_t callerAddr = reinterpret_cast<intptr_t>(_ReturnAddress());
   char buffer[1024]{};
 
-  strncpy_s(buffer, error, _TRUNCATE);
+  strscpy(buffer, error);
 
   std::string file_str = file ? file : "unknown";
   std::string log_str =

@@ -1,4 +1,5 @@
 #include <mutex>
+#include <optional>
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 
@@ -421,9 +422,8 @@ void client_update_internal(game::sv::client_s *cl,
     }
 
     std::string clean_name = strip_color_codes(name_str);
-    strncpy_s(client_state->name, ARRAYSIZE(client_state->name),
-              clean_name.c_str(), _TRUNCATE);
-    strncpy_s(cl->name, ARRAYSIZE(cl->name), clean_name.c_str(), _TRUNCATE);
+    strscpy(client_state->name, clean_name.c_str());
+    strscpy(cl->name, clean_name.c_str());
 
     std::string clean_clan_abbrev =
         clan_abbrev_override.has_value()
@@ -431,17 +431,14 @@ void client_update_internal(game::sv::client_s *cl,
             : "";
     const bool clan_changed =
         std::strcmp(client_state->clanAbbrev, clean_clan_abbrev.c_str()) != 0;
-    strncpy_s(client_state->clanAbbrev, ARRAYSIZE(client_state->clanAbbrev),
-              clean_clan_abbrev.c_str(), _TRUNCATE);
-    strncpy_s(cl->clanAbbrev, ARRAYSIZE(cl->clanAbbrev),
-              clean_clan_abbrev.c_str(), _TRUNCATE);
+    strscpy(client_state->clanAbbrev, clean_clan_abbrev.c_str());
+    strscpy(cl->clanAbbrev, clean_clan_abbrev.c_str());
     client_state->clanAbbrevEV = clan_changed;
   } else {
     std::optional<std::string> orig_name = get_orig_name(client_num);
     if (orig_name.has_value()) {
-      strncpy_s(client_state->name, ARRAYSIZE(client_state->name),
-                orig_name->c_str(), _TRUNCATE);
-      strncpy_s(cl->name, ARRAYSIZE(cl->name), orig_name->c_str(), _TRUNCATE);
+      strscpy(client_state->name, orig_name->c_str());
+      strscpy(cl->name, orig_name->c_str());
       remove_orig_name(client_num);
     }
 
@@ -450,10 +447,8 @@ void client_update_internal(game::sv::client_s *cl,
     if (orig_clan_abbrev.has_value()) {
       const bool clan_changed =
           std::strcmp(client_state->clanAbbrev, orig_clan_abbrev->c_str()) != 0;
-      strncpy_s(client_state->clanAbbrev, ARRAYSIZE(client_state->clanAbbrev),
-                orig_clan_abbrev->c_str(), _TRUNCATE);
-      strncpy_s(cl->clanAbbrev, ARRAYSIZE(cl->clanAbbrev),
-                orig_clan_abbrev->c_str(), _TRUNCATE);
+      strscpy(client_state->clanAbbrev, orig_clan_abbrev->c_str());
+      strscpy(cl->clanAbbrev, orig_clan_abbrev->c_str());
       client_state->clanAbbrevEV = clan_changed;
       remove_orig_clan_abbrev(client_num);
     }

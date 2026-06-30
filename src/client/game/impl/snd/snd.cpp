@@ -6,7 +6,7 @@
 
 #ifndef NDEBUG
 #include <unordered_map>
-#include "../../../../common/strlcpy.hpp"
+#include "../../../../common/str.hpp"
 #endif
 
 #include "snd.hpp"
@@ -194,7 +194,7 @@ static std::mutex aliasIdNameMapMutex;
 typedef str256_t AliasName;
 static std::unordered_map<SndAliasId, AliasName> aliasIdNameMap{};
 #endif
-inline_def SndStringHash SND_HashName_Impl(const char *name) {
+__inline_def SndStringHash SND_HashName_Impl(const char *name) {
   if (!name || !*name)
     return SND_HASH_EMPTY_STRING;
 
@@ -212,7 +212,7 @@ inline_def SndStringHash SND_HashName_Impl(const char *name) {
     std::lock_guard lock(aliasIdNameMapMutex);
     if (!aliasIdNameMap.contains(hash)) {
       // Default value implicitly created and inserted
-      strlcpy(aliasIdNameMap[hash], name, sizeof(AliasName));
+      strscpy(aliasIdNameMap[hash], name, sizeof(AliasName));
     }
   }
 #endif
@@ -220,7 +220,7 @@ inline_def SndStringHash SND_HashName_Impl(const char *name) {
 }
 
 #ifndef NDEBUG
-inline_def const char *SND_AliasLookup(SndAliasId aliasId) {
+__inline_def const char *SND_AliasLookup(SndAliasId aliasId) {
   bool mapped_alias;
   {
     std::lock_guard lock(aliasIdNameMapMutex);

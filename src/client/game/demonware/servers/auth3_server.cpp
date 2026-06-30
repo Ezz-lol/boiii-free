@@ -6,6 +6,8 @@
 #include <utils/cryptography.hpp>
 #include <utils/string.hpp>
 
+#include <str.hpp>
+
 namespace demonware {
 namespace {
 #pragma pack(push, 1)
@@ -91,8 +93,7 @@ void auth3_server::handle(const std::string &packet) {
   ticket.m_timeExpires = ticket.m_timeIssued + 30000;
   ticket.m_licenseID = 0;
   ticket.m_userID = reinterpret_cast<uint64_t>(token.data() + 56);
-  strncpy_s(ticket.m_username, sizeof(ticket.m_username), token.data() + 64,
-            64);
+  strscpy(ticket.m_username, token.data());
   std::memcpy(ticket.m_sessionKey, session_key.data(), 24);
 
   const auto iv = utils::cryptography::tiger::compute(

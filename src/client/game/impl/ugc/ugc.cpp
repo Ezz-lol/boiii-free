@@ -1,7 +1,7 @@
 #include "../../../std_include.hpp"
+
 #include <cstdint>
 #include <cstring>
-
 #include <fstream>
 #include <cstdio>
 #include <algorithm>
@@ -9,11 +9,12 @@
 #include "rapidjson/document.h"
 
 #include "ugc.hpp"
+
 #include "../../../steam/steam.hpp"
 #include "../../../../common/utils/string.hpp"
-#include "../../../component/workshop.hpp"
+#include "../../../../common/str.hpp"
 
-#include <strlcpy.hpp>
+#include "../../../component/workshop.hpp"
 
 namespace game {
 namespace ugc {
@@ -145,7 +146,7 @@ void UGC_LoadPool_Impl(ExtendedWorkshopDataPool *pool, ZoneType zoneType) {
   }
 
   int32_t numfiles = 0;
-  char ugcContentListContainerDir[256];
+  str256_t ugcContentListContainerDir;
   snprintf(ugcContentListContainerDir, sizeof(ugcContentListContainerDir),
            "%s/%s", cwd, ugcContentContainerDirname);
   fs::PathList fileList = sys::Sys_ListFiles(ugcContentListContainerDir, "/",
@@ -158,10 +159,10 @@ void UGC_LoadPool_Impl(ExtendedWorkshopDataPool *pool, ZoneType zoneType) {
     fs::Path ugcDirname = fileList[fileIdx];
     WorkshopData *entry = &pool->data[pool->count];
 
-    strlcpy(entry->title, ugcDirname, sizeof(entry->title));
-    strlcpy(entry->internalName, ugcDirname, sizeof(entry->internalName));
-    strlcpy(entry->publisherId, ugcDirname, sizeof(entry->publisherId));
-    strlcpy(entry->absolutePathZoneFiles,
+    strscpy(entry->title, ugcDirname, sizeof(entry->title));
+    strscpy(entry->internalName, ugcDirname, sizeof(entry->internalName));
+    strscpy(entry->publisherId, ugcDirname, sizeof(entry->publisherId));
+    strscpy(entry->absolutePathZoneFiles,
             // ORIGINAL:
             // utils::string::va("%s/%s/zone", ugcContentListContainerDir,
             // ugcDirname)
@@ -170,10 +171,10 @@ void UGC_LoadPool_Impl(ExtendedWorkshopDataPool *pool, ZoneType zoneType) {
             workshop::va_user_content_path(
                 "%s/%s/zone", ugcContentListContainerDir, ugcDirname),
             sizeof(entry->absolutePathZoneFiles));
-    strlcpy(entry->contentPathToZoneFiles,
+    strscpy(entry->contentPathToZoneFiles,
             utils::string::va("%s/%s", "mods", ugcDirname),
             sizeof(entry->contentPathToZoneFiles));
-    strlcpy(entry->absolutePathContentDirectory, cwd,
+    strscpy(entry->absolutePathContentDirectory, cwd,
             sizeof(entry->absolutePathContentDirectory));
     entry->publisherIdHash = UGC_Hash(ugcDirname);
     entry->version = 1;
@@ -293,15 +294,15 @@ void UGC_LoadModByPublisherId_Impl(LocalClientNum_t localClientNum,
       return;
     }
 
-    strlcpy(genMod.title, publisherId, sizeof(genMod.title));
-    strlcpy(genMod.internalName, publisherId, sizeof(genMod.internalName));
-    strlcpy(genMod.publisherId, publisherId, sizeof(genMod.publisherId));
+    strscpy(genMod.title, publisherId, sizeof(genMod.title));
+    strscpy(genMod.internalName, publisherId, sizeof(genMod.internalName));
+    strscpy(genMod.publisherId, publisherId, sizeof(genMod.publisherId));
     snprintf(genMod.contentPathToZoneFiles,
              sizeof(genMod.contentPathToZoneFiles), "%s/%s", "mods",
              publisherId);
-    strlcpy(genMod.absolutePathContentDirectory, sys::Sys_Cwd(),
+    strscpy(genMod.absolutePathContentDirectory, sys::Sys_Cwd(),
             sizeof(genMod.absolutePathContentDirectory));
-    strlcpy(genMod.absolutePathZoneFiles,
+    strscpy(genMod.absolutePathZoneFiles,
             // ORIGINAL:
             // utils::string::va("%s/%s/%s/zone", sys::Sys_Cwd(), "mods",
             // publisherId),
@@ -402,9 +403,14 @@ class ModsUGCDetailsCallbackResult
                          steam::SteamUGCRequestUGCDetailsResult_t> {
 public:
   void Set(steam::SteamAPICall_t hApiCall, WorkshopData *result) {
-    auto setImpl = reinterpret_cast<void __thiscall (*)(
-        ModsUGCDetailsCallbackResult *, steam::SteamAPICall_t hApiCall,
-        WorkshopData *result)>(game::select(0x1420D4FC0, 0x1404e11a0));
+
+    typedef thiscall_t<void(ModsUGCDetailsCallbackResult * _this,
+                            steam::SteamAPICall_t hApiCall,
+                            WorkshopData * result)>
+        SetFunc;
+
+    SetFunc setImpl =
+        reinterpret_cast<SetFunc>(game::select(0x1420D4FC0, 0x1404e11a0));
     setImpl(this, hApiCall, result);
   };
   uint8_t _unknown[8];
@@ -487,20 +493,20 @@ void UGC_LoadManifest_Impl(bool usermaps, bool mods,
                 targetPool->count++;
 
                 if (doc.HasMember("Title") && doc["Title"].IsString()) {
-                  strlcpy(newUgcEntry->title, doc["Title"].GetString(),
+                  strscpy(newUgcEntry->title, doc["Title"].GetString(),
                           sizeof(newUgcEntry->title));
                 }
 
                 if (doc.HasMember("FolderName") &&
                     doc["FolderName"].IsString()) {
-                  strlcpy(newUgcEntry->internalName,
+                  strscpy(newUgcEntry->internalName,
                           doc["FolderName"].GetString(),
                           sizeof(newUgcEntry->internalName));
                 }
 
                 if (doc.HasMember("Description") &&
                     doc["Description"].IsString()) {
-                  strlcpy(newUgcEntry->description,
+                  strscpy(newUgcEntry->description,
                           doc["Description"].GetString(),
                           sizeof(newUgcEntry->description));
                 }
@@ -509,7 +515,7 @@ void UGC_LoadManifest_Impl(bool usermaps, bool mods,
                          sizeof(newUgcEntry->publisherId), "%llu",
                          sizeof(newUgcEntry->publisherId));
 
-                strlcpy(newUgcEntry->absolutePathZoneFiles, dirPath,
+                strscpy(newUgcEntry->absolutePathZoneFiles, dirPath,
                         sizeof(newUgcEntry->absolutePathZoneFiles));
 
                 const char *appIdPos = strstr(dirPath, APP_ID_STR);
@@ -519,10 +525,10 @@ void UGC_LoadManifest_Impl(bool usermaps, bool mods,
                       sizeof(newUgcEntry->absolutePathContentDirectory);
                   size_t copyLen = (std::min)(baseLen, maxContentLen);
 
-                  strlcpy(newUgcEntry->absolutePathContentDirectory, dirPath,
+                  strscpy(newUgcEntry->absolutePathContentDirectory, dirPath,
                           copyLen);
 
-                  strlcpy(newUgcEntry->contentPathToZoneFiles, appIdPos,
+                  strscpy(newUgcEntry->contentPathToZoneFiles, appIdPos,
                           sizeof(newUgcEntry->contentPathToZoneFiles));
                 }
 
