@@ -23,9 +23,9 @@ dvar_t *try_get_sessionmode_specific_dvar(dvar_t *dvar) {
 }
 } // namespace
 
-inline_def dvar_t *get_dvar(const char *name) { return Dvar_FindVar(name); }
+__inline_def dvar_t *get_dvar(const char *name) { return Dvar_FindVar(name); }
 
-inline_def std::string_view get_dvar_string(const dvar_t *dvar) {
+__inline_def std::string_view get_dvar_string(const dvar_t *dvar) {
   return Dvar_GetString(dvar);
 }
 
@@ -39,7 +39,7 @@ std::string_view get_dvar_string(const char *dvar_name) {
   return {};
 }
 
-inline_def int32_t get_dvar_int(const dvar_t *dvar) {
+__inline_def int32_t get_dvar_int(const dvar_t *dvar) {
   return dvar->current.value.integer;
 }
 
@@ -67,7 +67,7 @@ int32_t set_dvar_int(const char *dvar_name, int32_t val, DvarSetSource source) {
   return {};
 }
 
-inline_def uint32_t get_dvar_uint(const dvar_t *dvar) {
+__inline_def uint32_t get_dvar_uint(const dvar_t *dvar) {
   return dvar->current.value.unsignedInt;
 }
 
@@ -80,7 +80,7 @@ uint32_t get_dvar_uint(const char *dvar_name) {
   return {};
 }
 
-inline_def uint64_t get_dvar_uint64(const dvar_t *dvar) {
+__inline_def uint64_t get_dvar_uint64(const dvar_t *dvar) {
   return dvar->current.value.unsignedInt64;
 }
 
@@ -109,7 +109,7 @@ uint64_t set_dvar_uint64(const char *dvar_name, uint64_t val,
   return {};
 }
 
-inline_def int64_t get_dvar_int64(const dvar_t *dvar) {
+__inline_def int64_t get_dvar_int64(const dvar_t *dvar) {
   return dvar->current.value.integer64;
 }
 
@@ -137,7 +137,7 @@ int64_t set_dvar_int64(const char *dvar_name, int64_t val,
   return {};
 }
 
-inline_def bool get_dvar_bool(const dvar_t *dvar) {
+__inline_def bool get_dvar_bool(const dvar_t *dvar) {
   return dvar->current.value.enabled;
 }
 
@@ -164,7 +164,7 @@ bool set_dvar_bool(const char *dvar_name, bool val, DvarSetSource source) {
   return {};
 }
 
-inline_def float get_dvar_float(const dvar_t *dvar) {
+__inline_def float get_dvar_float(const dvar_t *dvar) {
   return dvar->current.value.value;
 }
 
