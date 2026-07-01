@@ -11,18 +11,18 @@
 namespace game {
 namespace scr {
 
-level::gentity_t *GetEntity_Impl(scr_entref_t entref) {
-  if (entref.classnum) {
+level::gentity_t *GetEntity_Impl(const scr_entref_t *entref) {
+  if (entref->classnum) {
     Scr_ObjectError(SCRIPTINSTANCE_SERVER, "not an entity");
     return nullptr;
   }
-  return game::entity(entref.u.entnum);
+  return game::entity(entref->u.entnum);
 }
 
 level::gentity_t *Scr_GetEntity_Impl(uint32_t index) {
-  game::scr::scr_entref_t entref =
-      game::scr::Scr_GetEntityRef(SCRIPTINSTANCE_SERVER, index);
-  return GetEntity_Impl(entref);
+  game::scr::scr_entref_t entref;
+  game::scr::Scr_GetEntityRef(&entref, SCRIPTINSTANCE_SERVER, index);
+  return GetEntity_Impl(&entref);
 }
 
 const char *Scr_TypeName(ScrVarType type) {

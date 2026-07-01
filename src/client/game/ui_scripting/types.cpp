@@ -3,6 +3,7 @@
 #include "execution.hpp"
 
 namespace ui_scripting {
+using namespace game::ui::lua::hks;
 /***************************************************************
  * Lightuserdata
  **************************************************************/
@@ -48,25 +49,25 @@ userdata &userdata::operator=(userdata &&other) noexcept {
 }
 
 void userdata::add() {
-  game::ui::lua::hks::HksObject value{};
+  HksObject value{};
   value.v.ptr = this->ptr;
-  value.t = game::ui::lua::hks::HksObjectType::TUSERDATA;
+  value.t = HksObjectType::TUSERDATA;
 
-  const auto state = *game::ui::lua::hks::lua_state;
+  lua_State *state = *primary_luaVM;
   if (state) {
     const auto top = state->m_apistack.top;
 
     push_value(value);
 
-    this->ref = game::ui::lua::hks::hksi_luaL_ref(state, -10000);
+    this->ref = hksi_luaL_ref(state, -10000);
     state->m_apistack.top = top;
   }
 }
 
 void userdata::release() {
-  const auto state = *game::ui::lua::hks::lua_state;
+  lua_State *state = *primary_luaVM;
   if (this->ref && state) {
-    game::ui::lua::hks::hksi_luaL_unref(state, -10000, this->ref);
+    hksi_luaL_unref(state, -10000, this->ref);
   }
 }
 
@@ -101,12 +102,12 @@ bool userdata_value::operator==(const script_value &value) {
  **************************************************************/
 
 table::table() {
-  const auto state = *game::ui::lua::hks::lua_state;
-  this->ptr = game::ui::lua::hks::Hashtable_Create(state, 0, 0);
+  lua_State *state = *primary_luaVM;
+  this->ptr = Hashtable_Create(state, 0, 0);
   this->add();
 }
 
-table::table(game::ui::lua::hks::HashTable *ptr_) : ptr(ptr_) { this->add(); }
+table::table(HashTable *ptr_) : ptr(ptr_) { this->add(); }
 
 table::table(const table &other) { this->operator=(other); }
 
@@ -141,30 +142,30 @@ table &table::operator=(table &&other) noexcept {
 }
 
 void table::add() {
-  game::ui::lua::hks::HksObject value{};
+  HksObject value{};
   value.v.table = this->ptr;
-  value.t = game::ui::lua::hks::HksObjectType::TTABLE;
+  value.t = HksObjectType::TTABLE;
 
-  const auto state = *game::ui::lua::hks::lua_state;
+  lua_State *state = *primary_luaVM;
   if (state) {
     const auto top = state->m_apistack.top;
 
     push_value(value);
 
-    this->ref = game::ui::lua::hks::hksi_luaL_ref(state, -10000);
+    this->ref = hksi_luaL_ref(state, -10000);
     state->m_apistack.top = top;
   }
 }
 
 void table::release() {
-  const auto state = *game::ui::lua::hks::lua_state;
+  lua_State *state = *primary_luaVM;
   if (this->ref && state) {
-    game::ui::lua::hks::hksi_luaL_unref(state, -10000, this->ref);
+    hksi_luaL_unref(state, -10000, this->ref);
   }
 }
 
 void table::set(const script_value &key, const script_value &value) const {
-  const auto state = *game::ui::lua::hks::lua_state;
+  lua_State *state = *primary_luaVM;
   if (state) {
     set_field(*this, key, value);
   }
@@ -175,7 +176,7 @@ table_value table::operator[](const script_value &key) const {
 }
 
 script_value table::get(const script_value &key) const {
-  const auto state = *game::ui::lua::hks::lua_state;
+  lua_State *state = *primary_luaVM;
   if (state) {
     return get_field(*this, key);
   }
@@ -185,7 +186,7 @@ script_value table::get(const script_value &key) const {
 
 table_value::table_value(const table &table, const script_value &key)
     : table_(table), key_(key) {
-  const auto state = *game::ui::lua::hks::lua_state;
+  lua_State *state = *primary_luaVM;
   if (state) {
     this->value_ = this->table_.get(key).get_raw();
   }
@@ -213,17 +214,16 @@ bool table_value::operator==(const table_value &value) {
  * Function
  **************************************************************/
 
-function::function(game::ui::lua::hks::lua_function func) {
-  const auto state = *game::ui::lua::hks::lua_state;
+function::function(lua_function func) {
+  lua_State *state = *primary_luaVM;
   if (state) {
-    this->ptr = game::ui::lua::hks::cclosure_Create(state, func, 0, 0, 0);
-    this->type = game::ui::lua::hks::HksObjectType::TCFUNCTION;
+    this->ptr = cclosure_Create(state, func, 0, 0, 0);
+    this->type = HksObjectType::TCFUNCTION;
     this->add();
   }
 }
 
-function::function(game::ui::lua::hks::cclosure *ptr_,
-                   game::ui::lua::hks::HksObjectType type_)
+function::function(cclosure *ptr_, HksObjectType type_)
     : ptr(ptr_), type(type_) {
   this->add();
 }
@@ -264,25 +264,25 @@ function &function::operator=(function &&other) noexcept {
 }
 
 void function::add() {
-  game::ui::lua::hks::HksObject value{};
+  HksObject value{};
   value.v.cClosure = this->ptr;
   value.t = this->type;
 
-  const auto state = *game::ui::lua::hks::lua_state;
+  lua_State *state = *primary_luaVM;
   if (state) {
     const auto top = state->m_apistack.top;
 
     push_value(value);
 
-    this->ref = game::ui::lua::hks::hksi_luaL_ref(state, -10000);
+    this->ref = hksi_luaL_ref(state, -10000);
     state->m_apistack.top = top;
   }
 }
 
 void function::release() {
-  const auto state = *game::ui::lua::hks::lua_state;
+  lua_State *state = *primary_luaVM;
   if (this->ref && state) {
-    game::ui::lua::hks::hksi_luaL_unref(state, -10000, this->ref);
+    hksi_luaL_unref(state, -10000, this->ref);
   }
 }
 

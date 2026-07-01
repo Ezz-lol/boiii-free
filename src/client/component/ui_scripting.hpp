@@ -1,7 +1,15 @@
 #pragma once
 
+#include <atomic>
 #include <functional>
+
+#include "../game/ui_scripting/script_value.hpp"
+
 namespace ui_scripting {
+using namespace game::ui::lua::hks;
+
+extern std::atomic<bool> ui_initialized;
+
 template <class... Args, std::size_t... I>
 auto wrap_function(const std::function<void(Args...)> &f,
                    std::index_sequence<I...>) {
@@ -33,5 +41,5 @@ template <class F> auto wrap_function(F f) {
   return wrap_function(std::function(f));
 }
 
-template <typename F> game::ui::lua::hks::cclosure *convert_function(F f);
+template <typename F> cclosure *convert_function(F f);
 } // namespace ui_scripting

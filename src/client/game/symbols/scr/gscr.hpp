@@ -14,6 +14,8 @@ WEAK symbol<void(scriptInstance_t inst, scr_entref_t entref)>
 WEAK symbol<void(scriptInstance_t inst)> GScr_PIXBeginEvent{0x0, 0x1402DA730};
 WEAK symbol<void(scriptInstance_t inst)> GScr_PIXEndEvent{0x0, 0x140515B60};
 WEAK symbol<void()> GScr_LoadConsts{0x141C353B0, 0x14032E640};
+// Client only
+WEAK symbol<void(scriptInstance_t inst)> GScr_BBPrint{0x1422A0940};
 
 } // namespace gscr
 } // namespace scr

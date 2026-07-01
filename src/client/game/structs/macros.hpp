@@ -1,4 +1,5 @@
 #pragma once
+#include <bit>
 
 // Automatically pad a partially defined (reverse-engineered, in our case)
 // struct to a fixed, known-correct total length
@@ -62,3 +63,23 @@ concept ValueMatches = (Actual == Expected);
 #error "Unsupported compiler. Only MSVC, Clang and GCC are supported."
 #endif
 #endif
+
+#define BITS(x) (8 * x)
+template <typename T, typename = typename std::enable_if<
+                          std::is_convertible<T, uint64_t>::value>::type>
+consteval int32_t min_bits_unsigned(T val_in) {
+  uint64_t val = static_cast<uint64_t>(val_in);
+  if (val == 0)
+    return 1; // 0 needs at least 1 bit
+
+  // Total bits (64) minus leading zeros gives the bits used
+  return BITS(sizeof(uint64_t)) - std::countl_zero(val);
+}
+
+template <typename T, typename = typename std::enable_if<
+                          std::is_convertible<T, uint64_t>::value>::type>
+consteval uint32_t min_bits_mask(T val_in) {
+  uint64_t val = static_cast<uint64_t>(val_in);
+  int32_t min_bits = min_bits_unsigned(val);
+  return (1 << min_bits) - 1;
+}

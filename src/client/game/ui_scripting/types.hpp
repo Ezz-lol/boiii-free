@@ -5,6 +5,7 @@
 #include "component/ui_scripting.hpp"
 
 namespace ui_scripting {
+using namespace game::ui::lua::hks;
 class lightuserdata {
 public:
   lightuserdata(void *);
@@ -55,7 +56,7 @@ class table_value;
 class table {
 public:
   table();
-  table(game::ui::lua::hks::HashTable *ptr_);
+  table(HashTable *ptr_);
 
   table(const table &other);
   table(table &&other) noexcept;
@@ -70,7 +71,7 @@ public:
 
   table_value operator[](const script_value &key) const;
 
-  game::ui::lua::hks::HashTable *ptr;
+  HashTable *ptr;
 
 private:
   void add();
@@ -94,12 +95,12 @@ private:
 
 class function {
 public:
-  function(game::ui::lua::hks::lua_function);
-  function(game::ui::lua::hks::cclosure *, game::ui::lua::hks::HksObjectType);
+  function(lua_function);
+  function(cclosure *, HksObjectType);
 
   template <typename F> function(F f) {
     this->ptr = ui_scripting::convert_function(f);
-    this->type = game::ui::lua::hks::HksObjectType::TCFUNCTION;
+    this->type = HksObjectType::TCFUNCTION;
   }
 
   function(const function &other);
@@ -120,8 +121,8 @@ public:
 
   arguments operator()() const;
 
-  game::ui::lua::hks::cclosure *ptr;
-  game::ui::lua::hks::HksObjectType type;
+  cclosure *ptr;
+  HksObjectType type;
 
 private:
   void add();
@@ -161,9 +162,9 @@ template <typename T> std::string get_typename() {
 
 template <typename T> T script_value::as() const {
   if (!this->is<T>()) {
-    const auto hks_typename = game::ui::lua::hks::s_compilerTypeName
-        [static_cast<int32_t>(this->get_raw().t) + 2];
-    const auto typename_ = get_typename<T>();
+    const char *hks_typename =
+        s_compilerTypeName->pool[static_cast<int32_t>(this->get_raw().t)];
+    const std::string typename_ = get_typename<T>();
 
     throw std::runtime_error(utils::string::va("%s expected, got %s",
                                                typename_.data(), hks_typename));
@@ -197,8 +198,8 @@ script_value::script_value(const C<T, std::allocator<T>> &container) {
     table_.set(index++, value);
   }
 
-  game::ui::lua::hks::HksObject obj{};
-  obj.t = game::ui::lua::hks::HksObjectType::TTABLE;
+  HksObject obj{};
+  obj.t = HksObjectType::TTABLE;
   obj.v.ptr = table_.ptr;
 
   this->value_ = obj;

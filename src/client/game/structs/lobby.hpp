@@ -127,8 +127,8 @@ enum class JoinResult : uint32_t {
   COULD_NOT_RESERVE = 0x1D,
   COUNT = 0x1E,
 };
-
-using joinCompleteCallback = void (*)(int, JoinResult);
+IMPL_ENUM_OPERATORS(JoinResult);
+typedef fastcall_t<void(int32_t, JoinResult result)> joinCompleteCallback;
 
 struct AgreementStatus {
   XUID xuid;

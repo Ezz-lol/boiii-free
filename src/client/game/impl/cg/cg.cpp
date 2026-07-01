@@ -16,7 +16,7 @@ void CG_InitAndAllocCGEntsArray_Impl(
         reinterpret_cast<level::cl::centityPool_t *>(hunk::Hunk_UserAlloc(
             hunk, sizeof(level::cl::centityPool_t), 8, "cg_entitiesArray"));
     cg_entitiesArray->pools[localClientNum] = alloc;
-    reset(&cg_fakeEntitiesInuseBitArray->inUse[localClientNum]);
+    cg_fakeEntitiesInuseBitArray->inUse[localClientNum].reset();
     /*
        ## PATCH
        Store allocation pointer in boiii's global atomic storage to allow safe
@@ -111,7 +111,7 @@ void CG_AllocateClientMemory_Impl(hunk::HunkUser *hunk,
         hunk::Hunk_UserAlloc(hunk, 0xDB7F0u, 0x10, "ikStatesArray"));
     cg_ikBuf->bufs[localClientNum] = ikStatesArray;
     ik::IK_AllocateLocalClientMemory(ikStatesArray, localClientNum);
-    reset(&cg_fakeEntitiesInuseBitArray->inUse[localClientNum]);
+    cg_fakeEntitiesInuseBitArray->inUse[localClientNum].reset();
   }
 
   CG_InitAndAllocCGEntsArray_Impl(hunk, maxLocalClients, 0);

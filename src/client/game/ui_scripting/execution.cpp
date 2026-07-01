@@ -2,57 +2,55 @@
 #include "execution.hpp"
 
 namespace ui_scripting {
+using namespace game::ui::lua::hks;
 namespace {
-script_value get_field(void *ptr, game::ui::lua::hks::HksObjectType type,
-                       const script_value &key) {
-  const auto state = *game::ui::lua::hks::lua_state;
+script_value get_field(void *ptr, HksObjectType type, const script_value &key) {
+  lua_State *state = *primary_luaVM;
   const auto top = state->m_apistack.top;
 
   push_value(key);
 
-  game::ui::lua::hks::HksObject value{};
-  game::ui::lua::hks::HksObject obj{};
+  HksObject value{};
+  HksObject obj{};
   obj.t = type;
   obj.v.ptr = ptr;
 
-  game::ui::lua::hks::hks_obj_gettable(&value, state, &obj,
-                                       &state->m_apistack.top[-1]);
+  hks_obj_gettable(&value, state, &obj, &state->m_apistack.top[-1]);
   state->m_apistack.top = top;
   return value;
 }
 
-void set_field(void *ptr, game::ui::lua::hks::HksObjectType type,
-               const script_value &key, const script_value &value) {
-  const auto state = *game::ui::lua::hks::lua_state;
+void set_field(void *ptr, HksObjectType type, const script_value &key,
+               const script_value &value) {
+  lua_State *state = *primary_luaVM;
 
-  game::ui::lua::hks::HksObject obj{};
+  HksObject obj{};
   obj.t = type;
   obj.v.ptr = ptr;
 
-  game::ui::lua::hks::hks_obj_settable(state, &obj, &key.get_raw(),
-                                       &value.get_raw());
+  hks_obj_settable(state, &obj, &key.get_raw(), &value.get_raw());
 }
 } // namespace
 
 void push_value(const script_value &value) {
-  const auto state = *game::ui::lua::hks::lua_state;
+  lua_State *state = *primary_luaVM;
   *state->m_apistack.top = value.get_raw();
   state->m_apistack.top++;
 }
 
-void push_value(const game::ui::lua::hks::HksObject &value) {
-  const auto state = *game::ui::lua::hks::lua_state;
+void push_value(const HksObject &value) {
+  lua_State *state = *primary_luaVM;
   *state->m_apistack.top = value;
   state->m_apistack.top++;
 }
 
 script_value get_return_value(std::int64_t offset) {
-  const auto state = *game::ui::lua::hks::lua_state;
+  lua_State *state = *primary_luaVM;
   return state->m_apistack.top[-1 - offset];
 }
 
 arguments get_return_values() {
-  const auto state = *game::ui::lua::hks::lua_state;
+  lua_State *state = *primary_luaVM;
   const auto count = state->m_apistack.top - state->m_apistack.base;
   arguments values;
 
@@ -67,8 +65,8 @@ arguments get_return_values() {
   return values;
 }
 
-arguments get_return_values(game::ui::lua::hks::HksObject *base) {
-  const auto state = *game::ui::lua::hks::lua_state;
+arguments get_return_values(HksObject *base) {
+  lua_State *state = *primary_luaVM;
   const auto count = state->m_apistack.top - base;
   arguments values;
 
@@ -84,7 +82,7 @@ arguments get_return_values(game::ui::lua::hks::HksObject *base) {
 }
 
 bool notify(const std::string &name, const event_arguments &arguments) {
-  const auto state = *game::ui::lua::hks::lua_state;
+  lua_State *state = *primary_luaVM;
   if (state == nullptr) {
     return false;
   }
@@ -93,8 +91,7 @@ bool notify(const std::string &name, const event_arguments &arguments) {
   // game::LUI_EnterCriticalSection();
 
   try {
-    const auto globals =
-        table((*game::ui::lua::hks::lua_state)->globals.v.table);
+    const auto globals = table((*primary_luaVM)->globals.v.table);
     const auto engine = globals.get("Engine").as<table>();
     const auto root = engine.get("GetLuiRoot")()[0].as<userdata>();
     const auto process_event = root.get("processEvent");
@@ -118,36 +115,35 @@ bool notify(const std::string &name, const event_arguments &arguments) {
 
 arguments call_script_function(const function &function,
                                const arguments &arguments) {
-  const auto state = *game::ui::lua::hks::lua_state;
-  const auto top = state->m_apistack.top;
+  lua_State *state = *primary_luaVM;
+  HksObject *top = state->m_apistack.top;
 
   push_value(function);
   for (auto i = arguments.begin(); i != arguments.end(); ++i) {
     push_value(*i);
   }
 
-  game::ui::lua::hks::vm_call_internal(
-      state, static_cast<int>(arguments.size()), -1, nullptr);
-  const auto args = get_return_values(top);
+  hksi_lua_call(state, static_cast<int>(arguments.size()), -1, nullptr);
+  const ::ui_scripting::arguments args = get_return_values(top);
   state->m_apistack.top = top;
   return args;
 }
 
 script_value get_field(const userdata &self, const script_value &key) {
-  return get_field(self.ptr, game::ui::lua::hks::HksObjectType::TUSERDATA, key);
+  return get_field(self.ptr, HksObjectType::TUSERDATA, key);
 }
 
 script_value get_field(const table &self, const script_value &key) {
-  return get_field(self.ptr, game::ui::lua::hks::HksObjectType::TTABLE, key);
+  return get_field(self.ptr, HksObjectType::TTABLE, key);
 }
 
 void set_field(const userdata &self, const script_value &key,
                const script_value &value) {
-  set_field(self.ptr, game::ui::lua::hks::HksObjectType::TUSERDATA, key, value);
+  set_field(self.ptr, HksObjectType::TUSERDATA, key, value);
 }
 
 void set_field(const table &self, const script_value &key,
                const script_value &value) {
-  set_field(self.ptr, game::ui::lua::hks::HksObjectType::TTABLE, key, value);
+  set_field(self.ptr, HksObjectType::TTABLE, key, value);
 }
 } // namespace ui_scripting

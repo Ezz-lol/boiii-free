@@ -34,4 +34,5 @@ void for_each_thread(const std::function<void(HANDLE)> &callback,
 
 void suspend_other_threads();
 void resume_other_threads();
+void terminate_other_threads(DWORD dwExitCode = ERROR_SUCCESS);
 } // namespace utils::thread

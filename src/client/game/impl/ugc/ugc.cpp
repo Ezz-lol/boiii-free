@@ -212,7 +212,7 @@ void UGC_LoadModsPool_Impl() {
     }
   }
 
-  clear(&modsPool);
+  modsPool.clear();
 
   if (!is_client) {
     steam::PublishedFileId_t downloadedModPublisherId =
@@ -256,7 +256,7 @@ void UGC_LoadUsermapsPool_Impl() {
     }
   }
 
-  clear(&usermapsPool);
+  usermapsPool.clear();
 
   if (!is_client) {
     UGC_LoadPlaylistUsermapManifests();

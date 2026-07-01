@@ -917,31 +917,34 @@ template <const size_t B> struct bitarray {
   array<BitArrayChunk, (B + BITARRAY_CHUNK_BITS - 1) / BITARRAY_CHUNK_BITS>
       data;
 
-  friend inline constexpr void set(bitarray<B> *b, size_t index) noexcept {
-    return b->data[index / BITARRAY_CHUNK_BITS] |=
+  inline constexpr void set(size_t index) noexcept {
+    return this->data[index / BITARRAY_CHUNK_BITS] |=
            (1 << (index % BITARRAY_CHUNK_BITS));
   }
 
-  friend inline constexpr void clear(bitarray<B> *b, size_t index) noexcept {
-    return b->data[index / BITARRAY_CHUNK_BITS] &=
+  inline constexpr void clear(size_t index) noexcept {
+    return this->data[index / BITARRAY_CHUNK_BITS] &=
            ~(1 << (index % BITARRAY_CHUNK_BITS));
   }
 
-  friend inline constexpr bool get(bitarray<B> *b, size_t index) noexcept {
-    return (b->data[index / BITARRAY_CHUNK_BITS] &
+  inline constexpr bool get(size_t index) const noexcept {
+    return (this->data[index / BITARRAY_CHUNK_BITS] &
             (1 << (index % BITARRAY_CHUNK_BITS))) != 0;
   }
 
-  friend inline constexpr void reset(bitarray<B> *b) noexcept {
-    INLINE_MEMSET(&b->data, 0, sizeof(b->data));
+  inline constexpr void reset() noexcept {
+    INLINE_MEMSET(&this->data, 0, sizeof(this->data));
   }
 
   // Function name used by engine
-  friend inline constexpr void resetAllBits(bitarray<B> *b) noexcept {
-    reset(b);
-  }
+  inline constexpr void resetAllBits() noexcept { reset(); }
 };
 ASSERT_SIZE(bitarray<32>, 0x4);
+static_assert(std::is_standard_layout_v<bitarray<32>>,
+              "bitarray must be standard layout!");
+static_assert(std::is_trivially_copyable_v<bitarray<32>>,
+              "bitarray must be trivially copyable!");
+
 #pragma pack(pop)
 
 typedef bitarray<72> game_button_bits_t;
@@ -1152,4 +1155,21 @@ public:
 };
 ASSERT_SIZE(tlAtomicMutex, 0x18);
 #pragma pack(pop)
+
+// Unverified.
+enum class consoleChannel_e : uint32_t {
+  CHANNEL_DONT_FILTER = 0x0,
+  CHANNEL_GAMENOTIFY = 0x1,
+  CHANNEL_BOLDGAME = 0x2,
+  CHANNEL_OBJNOTIFY = 0x3,
+  CHANNEL_SUBTITLE = 0x4,
+  CHANNEL_OBITUARY = 0x5,
+  CHANNEL_COOPINFO = 0x6,
+  CHANNEL_WARNING = 0x7,
+  CHANNEL_ERROR = 0x8,
+  CHANNEL_INFO = 0x9,
+  BUILTIN_CHANNEL_COUNT = 0xA,
+  FIRST_DEBUG_CHANNEL = 0x9,
+};
+
 } // namespace game

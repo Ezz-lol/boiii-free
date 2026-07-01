@@ -17,6 +17,7 @@
 #include <utils/string.hpp>
 #include <utils/properties.hpp>
 #include <utils/concurrency.hpp>
+#include <str.hpp>
 
 namespace name {
 namespace {

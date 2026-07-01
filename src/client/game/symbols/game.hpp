@@ -11,7 +11,7 @@ WEAK symbol<void(level::gentity_s *ent, level::gentity_s *target, int mode,
     G_Say{0x0, 0x140299170};
 WEAK symbol<void(const char *fmt, ...)> G_LogPrintf{0x0, 0x1402A7BB0};
 
-WEAK symbol<void(int32_t levelTime, int32_t randomSeed, game::qboolean restart,
+WEAK symbol<void(int32_t levelTime, int32_t randomSeed, qboolean restart,
                  qboolean registerDvars,
 
                  qboolean savegame)>

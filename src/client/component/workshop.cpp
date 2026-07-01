@@ -37,7 +37,7 @@ using XZoneName = xzone::XZoneName;
 namespace workshop {
 std::thread download_thread{};
 
-utils::hook::detour setup_server_map_hook;
+utils::hook::detour CL_SetupForNewServerMap_hook;
 
 static const std::unordered_map<std::string, std::string> dlc_links = {
     {"zm_zod", "https://forum.ezz.lol/topic/6/bo3-dlc"},
@@ -186,8 +186,8 @@ bool unload_xzone_by_name(const char *zone_name, bool createDefault,
   return false; // Zone not found
 }
 
-void setup_server_map_stub(game::LocalClientNum_t localClientNum,
-                           const char *map, const char *gametype) {
+void CL_SetupForNewServerMap_stub(game::LocalClientNum_t localClientNum,
+                                  const char *map, const char *gametype) {
   const std::string loaded_mod_id = game::ugc::UGC_ActiveMod_PublisherId();
   const bool is_usermap =
       utils::string::is_numeric(map) || !get_usermap_publisher_id(map).empty();
@@ -208,13 +208,13 @@ void setup_server_map_stub(game::LocalClientNum_t localClientNum,
     unload_xzone_by_name("zm_levelcommon", false, false);
   }
 
-  setup_server_map_hook.invoke(localClientNum, map, gametype);
+  CL_SetupForNewServerMap_hook.invoke(localClientNum, map, gametype);
 }
 
 void load_workshop_data(game::ugc::WorkshopData *item) {
-  const auto base_path = item->absolutePathZoneFiles;
-  const auto path = utils::string::va("%s/workshop.json", base_path);
-  const auto json_str = utils::io::read_file(path);
+  const char *base_path = item->absolutePathZoneFiles;
+  const char *path = utils::string::va("%s/workshop.json", base_path);
+  const std::string json_str = utils::io::read_file(path);
 
   if (json_str.empty()) {
     printf("[ Workshop ] workshop.json has not been found in folder:\n%s\n",
@@ -247,7 +247,7 @@ void load_workshop_data(game::ugc::WorkshopData *item) {
 void populate_workshop_paths(game::ugc::WorkshopData *item,
                              const std::filesystem::path &content_folder,
                              const game::ZoneType type) {
-  clear(item);
+  item->clear();
 
   const std::filesystem::path zone_path = content_folder / "zone";
   const std::filesystem::path relative_zone_path =
@@ -1046,8 +1046,9 @@ public:
         download_thread.detach();
       });
 
-      setup_server_map_hook.create(game::cl::CL_SetupForNewServerMap.get(),
-                                   setup_server_map_stub);
+      CL_SetupForNewServerMap_hook.create(
+          game::cl::CL_SetupForNewServerMap.get(),
+          CL_SetupForNewServerMap_stub);
 
       utils::hook::call(0x14135CDA1_g, com_error_missing_map_stub);
     }

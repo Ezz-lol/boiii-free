@@ -1,6 +1,9 @@
 #pragma once
 
 #include <cstdint>
+#include "hks.hpp"
+#include "../../core.hpp"
+
 namespace game {
 namespace ui {
 namespace lua {
@@ -1774,6 +1777,33 @@ enum class CharacterTauntTypes : int32_t {
   FIRST_PLACE = 0,
   COUNT = 1,
 };
+
+#pragma pack(push, 1)
+struct LuaStateContext {
+  hks::luaState_e stateType;
+  CriticalSection stateCritSec;
+  consoleChannel_e comChannel;
+  consoleLabel_e comLabel;
+  const char *stateName;
+  // This field is verified to exist.
+  hks::hksInt32 debuggerPort;
+  uint8_t _padding1C[4];
+  hks::lua_State *luaState;
+  hks::luaStateMem stateMem;
+};
+ASSERT_SIZE(LuaStateContext, 0x38); // Correct.
+#pragma pack(pop)
+
+template <typename T> union LuaStatePool {
+  struct {
+    T ui;
+    T lobby;
+  };
+
+  T pool[static_cast<size_t>(hks::luaState_e::COUNT)];
+};
+
+typedef LuaStatePool<LuaStateContext> CodLuaStates;
 
 } // namespace lua
 } // namespace ui

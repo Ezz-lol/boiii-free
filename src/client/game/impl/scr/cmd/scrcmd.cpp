@@ -21,7 +21,7 @@ void ScrCmd_PlaySound_Impl(scriptInstance_t inst, scr_entref_t *entref) {
     alias_id = Scr_GetInt(SCRIPTINSTANCE_SERVER, 0);
   }
 
-  level::gentity_t *entity = GetEntity_Impl(*entref);
+  level::gentity_t *entity = GetEntity_Impl(entref);
   G_PlaySoundAlias_Impl(entity, alias_id, 0, 0);
 }
 
@@ -31,7 +31,7 @@ void ScrCmd_PlaySoundOnTag_Impl(scriptInstance_t inst, scr_entref_t *entref) {
   const char *alias;
   snd::SndAliasId alias_id;
 
-  level::gentity_t *ent = GetEntity_Impl(*entref);
+  level::gentity_t *ent = GetEntity_Impl(entref);
   ScrVarType first_param_type = Scr_GetType(SCRIPTINSTANCE_SERVER, 0);
   if (first_param_type == ScrVarType::STRING) {
     alias = Scr_GetString(SCRIPTINSTANCE_SERVER, 0);
@@ -109,7 +109,7 @@ void ScrCmd_PlaySoundToAllButPlayer_Impl(scriptInstance_t inst,
         utils::string::va("entity %i is not a player", ent->s.number);
     Scr_ObjectError(SCRIPTINSTANCE_SERVER, error_str);
   }
-  level::gentity_t *play_ent = GetEntity_Impl(*entref);
+  level::gentity_t *play_ent = GetEntity_Impl(entref);
   const char *alias = Scr_GetString(SCRIPTINSTANCE_SERVER, 0);
   snd::SndAliasId alias_id = snd::SND_FindAliasId(alias);
   level::gentity_t *temp_ent = G_PlaySoundAlias_Impl(play_ent, alias_id, 0, 0);
@@ -136,7 +136,7 @@ void ScrCmd_PlaySoundToPlayer_Impl(scriptInstance_t inst,
 
     alias_id = Scr_GetInt(SCRIPTINSTANCE_SERVER, 0);
   }
-  level::gentity_t *ent = GetEntity_Impl(*entref);
+  level::gentity_t *ent = GetEntity_Impl(entref);
   level::gentity_t *temp_ent = G_PlaySoundAlias_Impl(ent, alias_id, 0, 0);
   if (temp_ent) {
     temp_ent->s.clientMask[0] = -1;
@@ -163,7 +163,7 @@ void ScrCmd_PlaySoundToTeam_Impl(scriptInstance_t inst, scr_entref_t *entref) {
   }
   const char *alias = Scr_GetString(SCRIPTINSTANCE_SERVER, 0);
   snd::SndAliasId alias_id = snd::SND_FindAliasId(alias);
-  level::gentity_t *play_ent = GetEntity_Impl(*entref);
+  level::gentity_t *play_ent = GetEntity_Impl(entref);
   level::gentity_t *temp_ent = G_PlaySoundAlias_Impl(play_ent, alias_id, 0, 0);
   if (temp_ent) {
     temp_ent->s.clientMask[0] = -1;
@@ -191,7 +191,7 @@ void ScrCmd_PlaySoundWithNotify_Impl(scriptInstance_t inst,
   const char *alias;
   snd::SndAliasId alias_id = 0;
   ScrString_t notify_str = 0;
-  level::gentity_t *ent = GetEntity_Impl(*entref);
+  level::gentity_t *ent = GetEntity_Impl(entref);
   int32_t tag_idx = 0;
   if (Scr_GetNumParam(SCRIPTINSTANCE_SERVER)) {
     alias = Scr_GetString(SCRIPTINSTANCE_SERVER, 0);

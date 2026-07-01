@@ -86,9 +86,9 @@ std::vector<DWORD> get_thread_ids() {
 
 void for_each_thread(const std::function<void(HANDLE)> &callback,
                      const DWORD access) {
-  const auto ids = get_thread_ids();
+  const std::vector<DWORD> ids = get_thread_ids();
 
-  for (const auto &id : ids) {
+  for (const DWORD &id : ids) {
     handle thread(id, access);
     if (thread) {
       callback(thread);
@@ -108,6 +108,14 @@ void resume_other_threads() {
   for_each_thread([](const HANDLE thread) {
     if (GetThreadId(thread) != GetCurrentThreadId()) {
       ResumeThread(thread);
+    }
+  });
+}
+
+void terminate_other_threads(DWORD dwExitCode) {
+  for_each_thread([dwExitCode](const HANDLE thread) {
+    if (GetThreadId(thread) != GetCurrentThreadId()) {
+      TerminateThread(thread, dwExitCode);
     }
   });
 }

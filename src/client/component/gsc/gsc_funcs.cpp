@@ -3,10 +3,10 @@
 #include <cstdint>
 #include <deque>
 #include <mutex>
-#include <std_include.hpp>
+#include "../../std_include.hpp"
 #include "loader/component_loader.hpp"
-#include "game/game.hpp"
-#include "game/utils.hpp"
+#include "../../game/game.hpp"
+#include "../../game/utils.hpp"
 #include "../game_event.hpp"
 #include "../name.hpp"
 
@@ -33,9 +33,8 @@ int64_t find_export_address(const std::string &script_name,
 
 namespace gsc_funcs {
 namespace {
-using vm_opcode_handler_t =
-    fastcall_t<void, scriptInstance_t /* inst */, int64_t * /* fs_0 */,
-               int64_t /* vmc */, bool * /* terminate*/>;
+using vm_opcode_handler_t = fastcall_t<void(
+    scriptInstance_t inst, int64_t *fs_0, int64_t vmc, bool *terminate)>;
 
 static std::unordered_map<ScrVarCanonicalName_t, BuiltinFunction>
     custom_builtins;
@@ -1157,7 +1156,8 @@ void gscr_conststring(scriptInstance_t inst) {
 
 std::optional<game::ClientNum_t>
 get_self_client_num(game::scr::scriptInstance_t inst) {
-  game::scr::scr_entref_t ref = game::scr::Scr_GetEntityRef(inst, 0);
+  game::scr::scr_entref_t ref;
+  game::scr::Scr_GetEntityRef(&ref, inst, 0);
   const game::ClientNum_t client_num =
       static_cast<game::ClientNum_t>(ref.u.entnum);
   if (!game::valid_client_num(client_num)) {

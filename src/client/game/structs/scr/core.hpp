@@ -1493,9 +1493,9 @@ struct scr_entref_t {
 
 ASSERT_SIZE(scr_entref_t, 0x10);
 
-using ScrVarCanonicalName_t = uint32_t;
+typedef uint32_t ScrVarCanonicalName_t;
 
-typedef fastcall_t<void, scriptInstance_t> BuiltinFunction;
+typedef fastcall_t<void(scriptInstance_t inst)> BuiltinFunction;
 #pragma pack(push, 1)
 union BuiltinFunctionType {
   enum Flag : uint32_t {

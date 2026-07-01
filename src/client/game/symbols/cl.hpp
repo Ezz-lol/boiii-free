@@ -66,6 +66,8 @@ WEAK symbol<int32_t> cls_serverId{0x14569B250};
 
 WEAK symbol<ClientNum_t> cl_allocatedClients{0x143326EE8};
 WEAK symbol<clientAllocFlags_t> cl_lastAllocFlags{0x1453D498C};
+WEAK symbol<void(LocalClientNum_t localClientNum)> CL_FirstSnapshot{
+    0x141320E60};
 } // namespace cl
 } // namespace game
 
