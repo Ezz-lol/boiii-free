@@ -20,7 +20,7 @@
 
 namespace name {
 namespace {
-constexpr const game::str<13> sync_packet_name = "nameoverride";
+constexpr const str<13> sync_packet_name = "nameoverride";
 
 enum class SyncMessageType : uint8_t {
   CLEAR_ALL = 0x0,

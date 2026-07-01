@@ -7,6 +7,7 @@
 #include <variant>
 #include <atomic>
 
+#include "str.hpp"
 #include "macros.hpp"
 #include "quake/vec.hpp"
 
@@ -254,16 +255,6 @@ using AtomicLocalClientPool = atomicarray<T, LOCAL_CLIENT_COUNT>;
 
 template <typename ClientType, typename ServerType>
 using EngineDependent = std::variant<ClientType, ServerType>;
-
-template <const auto T> using str = array<char, T>;
-
-typedef str<8> str8_t;
-typedef str<16> str16_t;
-typedef str<24> str24_t;
-typedef str<32> str32_t;
-typedef str<64> str64_t;
-typedef str<128> str128_t;
-typedef str<256> str256_t;
 
 typedef str8_t clanAbbrev_t;
 typedef str32_t name_t;

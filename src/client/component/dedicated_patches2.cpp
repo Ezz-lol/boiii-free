@@ -173,9 +173,8 @@ std::unordered_map<std::string, std::unordered_map<game::XUID, uint32_t>>
 std::unordered_map<game::XUID, std::string> client_last_cmd;
 
 utils::hook::detour g_init_game_hook;
-void g_init_game_stub(uint32_t levelTime, uint32_t randomSeed,
-                      game::qboolean restart, game::qboolean registerDvars,
-                      game::qboolean savegame) {
+void g_init_game_stub(uint32_t levelTime, uint32_t randomSeed, qboolean restart,
+                      qboolean registerDvars, qboolean savegame) {
   std::lock_guard lock(reliable_cmd_mutex);
 
   // Reset tracked luinotify reliable cmds on starting a new game.
@@ -190,7 +189,7 @@ void g_init_game_stub(uint32_t levelTime, uint32_t randomSeed,
                           savegame);
 }
 
-inline constexpr const game::str<2> LUI_NOTIFY_RELIABLE_CMD_PREFIX = {
+inline constexpr const str<2> LUI_NOTIFY_RELIABLE_CMD_PREFIX = {
     static_cast<char>(game::sv::ReliableCommand::LUI_NOTIFY), ' '};
 
 utils::hook::detour sv_addservercommand_hook;
@@ -291,9 +290,9 @@ void snd_queueadd_stub([[maybe_unused]] game::snd::SndQueue *queue,
 }
 
 utils::hook::detour snd_active_hook;
-game::qboolean snd_active_stub() {
+qboolean snd_active_stub() {
   game::snd::g_snd->verified_0.init = true;
-  return snd_active_hook.invoke<game::qboolean>();
+  return snd_active_hook.invoke<qboolean>();
 }
 
 utils::hook::detour sndl_update_hook;
