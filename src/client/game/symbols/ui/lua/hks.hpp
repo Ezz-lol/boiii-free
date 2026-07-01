@@ -17,7 +17,7 @@ WEAK symbol<lua_State *> s_lobbyLuaVM{0x1557588D0, 0x14858C408};
    Is typed as `char s_luaMem[0x400000]` in engine - never used as a `lua_State`
    directly, but `s_lobbyLuaVM` always contains a pointer to `s_luaMem`.
 */
-WEAK symbol<bytearray<0x40000>> s_luaMem{0x1557588F0, 0x14858C420};
+WEAK symbol<bytearray<0x400000>> s_luaMem{0x1557588F0, 0x14858C420};
 WEAK symbol<lua_State *> primary_luaVM{0x159C76D88, 0x14858C408};
 
 WEAK symbol<void(lua_State *s, const char *str, hksUint32 l)>
