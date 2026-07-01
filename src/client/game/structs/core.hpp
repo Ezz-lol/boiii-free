@@ -5,7 +5,6 @@
 #include <stdfloat>
 #include <csetjmp>
 #include <variant>
-#include <atomic>
 
 #include "str.hpp"
 #include "macros.hpp"
@@ -242,12 +241,6 @@ enum class errorCode : uint32_t {
   SOFTRESTART_KEEPDW = 0x800,
 };
 IMPL_ENUM_OPERATORS(errorCode);
-
-template <typename T, const auto N> using array = T[N];
-template <typename T, const auto N>
-using atomicarray = array<std::atomic<T>, N>;
-template <typename T, const auto X, const auto Y>
-using matrix2d = array<array<T, Y>, X>;
 
 template <typename T> using LocalClientPool = array<T, LOCAL_CLIENT_COUNT>;
 template <typename T>

@@ -273,11 +273,11 @@ T *Hunk_UserAlloc_StoreGlobal(game::hunk::HunkUser *user, size_t size,
 }
 
 /*
-   `storage` must be a `game::atomicarray` with item type `T`.
+   `storage` must be an `atomicarray` with item type `T`.
    Its length cannot be automatically derived in the template, so the array's
    type is specified as `auto` to allow count (`N`) computation in the function,
-   with a proceeding assertion to ensure the passed `storage` type is a
-   `game::atomicarray<T, N>`.
+   with a proceeding assertion to ensure the passed `storage` type is an
+   `atomicarray<T, N>`.
 */
 template <typename T, auto &storage>
 T *Hunk_UserAlloc_StoreGlobal_FirstNull(game::hunk::HunkUser *user, size_t size,
@@ -285,8 +285,8 @@ T *Hunk_UserAlloc_StoreGlobal_FirstNull(game::hunk::HunkUser *user, size_t size,
   constexpr uint32_t N = ARRAYSIZE(storage);
 
   static_assert(std::is_same_v<std::remove_reference_t<decltype(storage)>,
-                               game::atomicarray<T *, N>>,
-                "Type Error: 'storage' MUST be a game::atomicarray<T*, N>");
+                               atomicarray<T *, N>>,
+                "Type Error: 'storage' MUST be a atomicarray<T*, N>");
 
   T *result = reinterpret_cast<T *>(
       game::hunk::Hunk_UserAlloc(user, size, alignment, name));
