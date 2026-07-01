@@ -190,10 +190,10 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
 
     case Opcode::GETGLOBAL:
     case Opcode::GETGLOBAL_MEM: {
-
       HashTable *env = closure->m_env;
       HksRegister key = consts[opBx];
-      HashTable::getByString(&opReg, env, &key);
+      opReg.t = HksObjectType::TTABLE;
+      HashTable::getByString(env, &opReg, &key);
       opReg1 = opReg;
 
       if (opReg.type() != HksObjectType::TNIL) {
@@ -205,7 +205,6 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
         if (meta != nullptr) {
           HksRegister handler;
           HKS_METATABLE_GET(&handler, s, meta, Metamethod::M_INDEX);
-
           if (handler.type() != HksObjectType::TNIL) {
             HksRegister tableObj;
             tableObj.t = HksObjectType::TTABLE;
@@ -729,7 +728,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
       destReg[1] = *tableObj; // Store 'self' in R(A+1)
 
       if (tableObj->type() == HksObjectType::TTABLE) {
-        HashTable::getByString(&opReg, tableObj->v.table, keyObj);
+        HashTable::getByString(tableObj->v.table, &opReg, keyObj);
         if (opReg.type() == HksObjectType::TNIL) {
           gettable_event_string_outofline_table(&opReg, s, tableObj, keyObj, PC,
                                                 0x20);
@@ -763,7 +762,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
         HksObjectType keyType = keyObj->type();
 
         if (keyType == HksObjectType::TSTRING) {
-          HashTable::getByString(&m_value, tableObj->v.table, keyObj);
+          HashTable::getByString(tableObj->v.table, &m_value, keyObj);
         } else if (keyType == HksObjectType::TNUMBER) {
           HksNumber number = keyObj->v.number;
           if (std::floor(number) == number &&

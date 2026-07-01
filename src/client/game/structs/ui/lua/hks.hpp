@@ -642,14 +642,13 @@ struct HashTable : ChunkHeader {
   uint8_t _padding34[4];
   Node *m_freeNode;
 
-  static HksRegister *getByString(HksRegister *retstr,
-                                  const hks::HashTable *self,
+  static HksRegister *getByString(HashTable *self, HksRegister *retstr,
                                   const HksRegister *key) {
     using funcType = decltype(getByString);
     funcType *getByStringImpl =
         reinterpret_cast<funcType *>(game::select(0x141D45550, 0x1403EE160));
 
-    return getByStringImpl(retstr, self, key);
+    return getByStringImpl(self, retstr, key);
   }
 
   static void insertString(HashTable *self, lua_State *s, InternString *key,
