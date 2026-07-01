@@ -1,7 +1,8 @@
 #pragma once
 
-#include "core.hpp"
-#include "quake.hpp"
+#include "quake/core.hpp"
+#include "quake/vec.hpp"
+
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>

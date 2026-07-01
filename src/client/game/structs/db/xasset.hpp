@@ -3,7 +3,7 @@
 
 #include <cstdint>
 #include "../core.hpp"
-#include "../quake.hpp"
+#include "../quake/core.hpp"
 #include "../gfx/gfx.hpp"
 
 namespace game {

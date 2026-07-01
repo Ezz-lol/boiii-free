@@ -8,6 +8,7 @@
 #include <atomic>
 
 #include "macros.hpp"
+#include "quake/vec.hpp"
 
 #define PROTOCOL 8
 #define SUB_PROTOCOL 1
@@ -270,8 +271,6 @@ typedef name_t actorName_t;
 typedef name_t playerName_t;
 
 typedef int32_t cinematic_id;
-
-typedef float vec_t;
 
 struct netUInt64 {
   uint32_t low;
@@ -761,58 +760,6 @@ enum class CameraMode : int32_t {
   RADIANT = 0xD,
 };
 IMPL_ENUM_OPERATORS(CameraMode);
-
-template <typename T = vec_t> union vec2 {
-  T v[2];
-  struct {
-    T x;
-    T y;
-  };
-};
-typedef vec2<vec_t> vec2_t;
-
-template <typename T = vec_t> union vec3_core {
-  struct {
-    T x;
-    T y;
-    T z;
-  };
-
-  T v[3];
-};
-
-template <typename T = vec_t> union vec3 {
-  struct {
-    T x;
-    T y;
-    T z;
-  };
-
-  vec2<T> xy;
-  T v[3];
-};
-
-typedef vec3<vec_t> vec3_t;
-
-template <typename T = vec_t> union vec4 {
-  T v[4];
-  struct {
-    T x;
-    T y;
-    T z;
-    T w;
-  };
-  struct {
-    T r;
-    T g;
-    T b;
-    T a;
-  };
-  vec2<T> xy;
-  vec3_core<T> xyz;
-};
-
-typedef vec4<vec_t> vec4_t;
 
 struct orientation_t {
   vec3_t origin;

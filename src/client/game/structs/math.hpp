@@ -1,13 +1,11 @@
 #pragma once
 
+#include "quake/vec.hpp"
+
 namespace game {
 namespace math {
-struct Float4 {
-  float x;
-  float y;
-  float z;
-  float w;
-};
+
+typedef vec4<float> Float4;
 
 struct Dir3 {
   Float4 v;

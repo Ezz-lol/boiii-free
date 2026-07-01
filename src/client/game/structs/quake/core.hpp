@@ -3,8 +3,8 @@
 #include <cstdint>
 #include <type_traits>
 
-#include "macros.hpp"
-#include "func.hpp"
+#include "../macros.hpp"
+#include "../func.hpp"
 
 namespace game {
 
@@ -62,3 +62,7 @@ template <typename T>
 using CoreCrtSecureSearchSortCompareFunction =
     cdecl_t<int32_t, T *, const T *, const T *>;
 } // namespace game
+
+using game::qboolean;
+using game::qfalse;
+using game::qtrue;

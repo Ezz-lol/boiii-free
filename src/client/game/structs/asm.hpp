@@ -1,6 +1,6 @@
 #pragma once
 #include "core.hpp"
-#include "quake.hpp"
+#include "quake/core.hpp"
 #include "scr/core.hpp"
 #include "fp16.hpp"
 

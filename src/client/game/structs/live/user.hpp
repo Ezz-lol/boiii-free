@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include "../core.hpp"
-#include "../quake.hpp"
+#include "../quake/core.hpp"
 #include "../dw/dw.hpp"
 
 namespace game {

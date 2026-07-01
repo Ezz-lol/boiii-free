@@ -2,6 +2,7 @@
 
 #include "../../core.hpp"
 #include "../../func.hpp"
+#include "../../quake/core.hpp"
 
 namespace game {
 namespace ui {

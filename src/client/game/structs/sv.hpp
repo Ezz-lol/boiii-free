@@ -2,7 +2,7 @@
 
 #include "core.hpp"
 #include "phys.hpp"
-#include "quake.hpp"
+#include "quake/core.hpp"
 #include "net/net.hpp"
 #include "scr/core.hpp"
 #include "scr/scr.hpp"
