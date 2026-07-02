@@ -831,7 +831,7 @@ xasset::XAssetHeader lua_cod_getrawfile_stub(char *filename) {
   const std::string name_ = filename;
   std::string target_script;
   if (is_loaded_script(globals.in_require_script)) {
-    const auto folder = globals.in_require_script.substr(
+    const std::string folder = globals.in_require_script.substr(
         0, globals.in_require_script.find_last_of("/\\"));
     if (name_.ends_with(".lua")) {
       target_script = folder + "/" + name_;

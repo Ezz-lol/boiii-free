@@ -31,8 +31,7 @@ struct XZoneBuffer {
   const void *data;
   size_t dataSize;
 };
-static_assert(sizeof(XZoneBuffer) == 0x10,
-              "XZoneBuffer size must be 0x10 bytes");
+ASSERT_SIZE(XZoneBuffer, 0x10);
 #pragma pack(pop)
 
 struct XZoneInfoInternal {
@@ -51,8 +50,7 @@ struct XZoneInfoInternal {
   XZoneInfoInternal *prevMaybe;
 };
 // Correct size is 0x58
-static_assert(sizeof(XZoneInfoInternal) == 0x58,
-              "XZoneInfoInternal size must be 0x58 bytes");
+ASSERT_SIZE(XZoneInfoInternal, 0x58);
 
 /*
    Correct. allocFlags and freeFlags are verified, and
@@ -68,7 +66,7 @@ struct XZoneInfo {
   int32_t freeSlot;
   XZoneBuffer fileBuffer;
 };
-static_assert(sizeof(XZoneInfo) == 0x28, "XZoneInfo size must be 0x28 bytes");
+ASSERT_SIZE(XZoneInfo, 0x28);
 #pragma pack(pop)
 
 #pragma pack(push, 1)
@@ -78,14 +76,13 @@ struct XZoneName // Size must be 96 == 0x60
   int32_t flags;
   int32_t slot;
   ZoneType zoneType;
-  uint8_t _unknown4C[4];
-  uint32_t fastfileChecksum;
-  uint8_t _gap54[4]; // probably padding
+  uint8_t _padding4C[4];
+  size_t size;
   XZoneState state;
   bool streamPreloaded;
-  uint8_t __padding[3];
+  uint8_t _padding5d[3];
 };
-static_assert(sizeof(XZoneName) == 0x60, "XZoneName size must be 0x60 bytes");
+ASSERT_SIZE(XZoneName, 0x60);
 #pragma pack(pop)
 
 // Verified correct
@@ -98,7 +95,7 @@ struct XZone {
   uint8_t _padding0C[4];
   db::XBlock blocks[10];
 };
-static_assert(sizeof(XZone) == 0xB0, "XZone size must be 0xB0 bytes");
+ASSERT_SIZE(XZone, 0xB0);
 #pragma pack(pop)
 
 } // namespace xzone

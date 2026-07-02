@@ -1995,5 +1995,51 @@ typedef ScrPool<scrVarPub_t> ScrVarPubPool;
 
 constexpr ScrPool<ScrVarIndex_t> SCRIPTVARIABLE_POOL_SIZE = {.server = 130000,
                                                              .client = 65000};
+
+#pragma pack(push, 1)
+struct GSC_OBJ {
+  str8_t magic;
+  uint32_t source_crc;
+  uint32_t include_offset;
+  uint32_t animtree_offset;
+  uint32_t cseg_offset;
+  uint32_t stringtablefixup_offset;
+  uint32_t devblock_stringtablefixup_offset;
+  uint32_t exports_offset;
+  uint32_t imports_offset;
+  uint32_t fixup_offset;
+  uint32_t profile_offset;
+  uint32_t cseg_size;
+  uint32_t name;
+  uint16_t stringtablefixup_count;
+  uint16_t exports_count;
+  uint16_t imports_count;
+  uint16_t fixup_count;
+  uint16_t profile_count;
+  uint16_t devblock_stringtablefixup_count;
+  uint8_t include_count;
+  uint8_t animtree_count;
+  uint8_t flags;
+  uint8_t _padding47[1];
+};
+ASSERT_SIZE(GSC_OBJ, 0x48);
+#pragma pack(pop)
+
+struct GSC_ANIMTREE_ITEM {
+  uint32_t name;
+  uint16_t num_tree_address;
+  uint16_t num_node_address;
+};
+
+#pragma pack(push, 1)
+struct ScriptParseTree {
+  const char *name;
+  int32_t len;
+  uint8_t _padding0C[4];
+  GSC_OBJ *buffer;
+};
+ASSERT_SIZE(ScriptParseTree, 0x18);
+#pragma pack(pop)
+
 } // namespace scr
 } // namespace game

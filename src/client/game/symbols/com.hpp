@@ -21,10 +21,8 @@ WEAK symbol<game::eModes()> Com_SessionMode_GetMode{0x1420F6D30, 0x1405002D0};
 WEAK symbol<int()> Com_SessionMode_GetGameMode{0x1420F68B0, 0x1404FFE50};
 WEAK symbol<void(eNetworkModes networkMode)> Com_SessionMode_SetNetworkMode{
     0x1420F75B0, 0x140500B80};
-WEAK symbol<eGameModes(eGameModes gameMode)> Com_SessionMode_SetGameMode{
-    0x1420F7570, 0x140500B40};
-WEAK symbol<eModes(eModes mode)> Com_SessionMode_SetMode{0x1420F7570,
-                                                         0x140500B40};
+WEAK symbol<void(eGameModes mode)> Com_SessionMode_SetGameMode{0x1420F7570,
+                                                               0x140500B40};
 WEAK symbol<void(const char *gametype, bool loadDefaultSettings)>
     Com_GametypeSettings_SetGametype{0x1420F5980};
 WEAK symbol<unsigned int(const char *settingName, bool getDefault)>

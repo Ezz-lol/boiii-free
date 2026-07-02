@@ -10,7 +10,8 @@ namespace game {
 
 namespace scr {
 typedef uint32_t ScrString_t;
-}
+struct ScriptParseTree;
+} // namespace scr
 
 namespace snd {
 /*
@@ -751,7 +752,7 @@ union XAssetHeader {
   // DDLRoot *ddlRoot;
   // Glasses *glasses;
   // TextureList *textureList;
-  // ScriptParseTree *scriptParseTree;
+  scr::ScriptParseTree *scriptParseTree;
   // KeyValuePairs *keyValuePairs;
   // VehicleDef *vehicleDef;
   // AddonMapEnts *addonMapEnts;
