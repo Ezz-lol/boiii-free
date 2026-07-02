@@ -446,6 +446,7 @@ using namespace game;
 using namespace game::scr;
 using namespace game::scr::gscr;
 void GScr_BBPrint_StdoutRedirect(scriptInstance_t inst) {
+#ifndef NDEBUG
   int32_t numParam = Scr_GetNumParam(inst);
 
   // BB requires at least an event name and a format string
@@ -590,12 +591,14 @@ void GScr_BBPrint_StdoutRedirect(scriptInstance_t inst) {
 
   fprintf(stdout, "[BB][0] %s: %s\n", eventName, messageStream.str().c_str());
   fflush(stdout);
+#endif
 }
 } // namespace
 
 utils::hook::detour BB_Print_hook;
 void BB_Print_StdoutRedirect(game::ControllerIndex_t controllerIndex,
                              const char *name, const char *fmt, ...) {
+#ifndef NDEBUG
   std::string buffer;
 
   va_list args;
@@ -616,6 +619,7 @@ void BB_Print_StdoutRedirect(game::ControllerIndex_t controllerIndex,
             buffer.c_str());
     fflush(stdout);
   }
+#endif
 }
 
 void redirect_bb_logging_to_stdout() {
