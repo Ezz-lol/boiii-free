@@ -125,13 +125,6 @@ void apply_asset_limits() {
   applied = true;
 }
 
-utils::hook::detour com_sessionmode_setgamemode_hook;
-
-void com_sessionmode_setgamemode_stub(game::eGameModes mode) {
-  com_sessionmode_setgamemode_hook.invoke<game::eGameModes>(mode);
-  apply_asset_limits();
-}
-
 utils::hook::detour db_init_hook;
 void db_init_stub() {
   db_init_hook.invoke();
