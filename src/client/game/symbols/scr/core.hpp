@@ -144,6 +144,9 @@ WEAK symbol<void(scriptInstance_t inst, const char *error)> Scr_ObjectError{
 WEAK symbol<ScrVarGlobPool> gScrVarGlob{0x1451A3500, 0x1426BDE80};
 WEAK symbol<ScrVarPubPool> gScrVarPub{0x1451A3700, 0x1426BE080};
 
+WEAK symbol<VmOpJumpTable> gVmOpJumpTable1{0x143306350, 0x14109C150};
+WEAK symbol<VmOpJumpTable> gVmOpJumpTable2{0x1432E6350, 0x14107C150};
+
 } // namespace scr
 } // namespace game
 

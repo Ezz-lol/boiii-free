@@ -2041,5 +2041,35 @@ struct ScriptParseTree {
 ASSERT_SIZE(ScriptParseTree, 0x18);
 #pragma pack(pop)
 
+struct function_stack_t {
+  uint8_t *pos;
+  ScrVarValue_t *top;
+  ScrVarIndex_t threadId;
+  uint32_t localVarCount;
+  ScrVarValue_t *startTop;
+};
+
+#pragma pack(push, 1)
+struct ScrVmContext_t {
+  ScrVarIndex_t fieldValueId;
+  bool fieldValueRemoveOk;
+  uint8_t _padding05[3];
+  ScrVarIndex_t objectId;
+  uint8_t _padding0C[4];
+  uint8_t *lastGoodPos;
+  ScrVarValue_t *lastGoodTop;
+};
+ASSERT_SIZE(ScrVmContext_t, 0x20);
+#pragma pack(pop)
+
+typedef fastcall_t<void(scriptInstance_t inst, function_stack_t *fs,
+                        volatile ScrVmContext_t *vmc, bool *terminate)>
+    VM_OP_FUNC;
+
+struct VmOpJumpTable {
+  array<VM_OP_FUNC, 8192> ops;
+};
+
+typedef uint16_t OP_TYPE;
 } // namespace scr
 } // namespace game

@@ -26,25 +26,23 @@ using namespace game;
 using namespace game::scr;
 
 namespace script {
-int64_t find_export_address(const std::string &script_name,
-                            const std::string &func_name,
-                            int expected_params = -1);
+uint8_t *find_export_address(const std::string &script_name,
+                             const std::string &func_name,
+                             int expected_params = -1);
 }
 
 namespace gsc_funcs {
 namespace {
-using vm_opcode_handler_t = fastcall_t<void(
-    scriptInstance_t inst, int64_t *fs_0, int64_t vmc, bool *terminate)>;
 
 static std::unordered_map<ScrVarCanonicalName_t, BuiltinFunction>
     custom_builtins;
-static std::unordered_map<int64_t, int64_t> function_replacements;
+static std::unordered_map<uint8_t *, uint8_t *> function_replacements;
 static std::unordered_map<game::ClientNum_t, std::unordered_set<std::string>>
     client_dvar_changes;
 static std::atomic_bool detours_enabled = false;
 
-static vm_opcode_handler_t orig_SafeCreateLocalVariables = nullptr;
-static vm_opcode_handler_t orig_CheckClearParams = nullptr;
+static VM_OP_FUNC orig_SafeCreateLocalVariables = nullptr;
+static VM_OP_FUNC orig_CheckClearParams = nullptr;
 static std::atomic_bool return_value_set = std::atomic_bool(false);
 
 constexpr uint32_t fnv1a(const char *str) {
@@ -397,51 +395,47 @@ void remove_settext_hooks() {
 // Opcode hooks for replacefunc
 // =====================================================
 
-bool try_redirect(scriptInstance_t inst, int64_t *fs_0) {
+bool try_redirect(scriptInstance_t inst, function_stack_t *fs) {
   if (detours_enabled.load(std::memory_order_seq_cst) &&
       inst == SCRIPTINSTANCE_SERVER) {
-    const int64_t redirected = *fs_0 - 2;
+    uint8_t *redirected =
+        reinterpret_cast<uint8_t *>(reinterpret_cast<uintptr_t>(fs->pos) - 2);
     if (function_replacements.contains(redirected)) {
-      *fs_0 = function_replacements[redirected];
+      fs->pos = function_replacements[redirected];
       return true;
     }
   }
   return false;
 }
 
-void hk_SafeCreateLocalVariables(scriptInstance_t inst, int64_t *fs_0,
-                                 int64_t vmc, bool *terminate) {
-  if (!try_redirect(inst, fs_0) && orig_SafeCreateLocalVariables)
-    orig_SafeCreateLocalVariables(inst, fs_0, vmc, terminate);
+void hk_SafeCreateLocalVariables(scriptInstance_t inst, function_stack_t *fs,
+                                 volatile ScrVmContext_t *vmc,
+                                 bool *terminate) {
+  if (!try_redirect(inst, fs) && orig_SafeCreateLocalVariables)
+    orig_SafeCreateLocalVariables(inst, fs, vmc, terminate);
 }
 
-void hk_CheckClearParams(scriptInstance_t inst, int64_t *fs_0, int64_t vmc,
-                         bool *terminate) {
-  if (!try_redirect(inst, fs_0) && orig_CheckClearParams)
-    orig_CheckClearParams(inst, fs_0, vmc, terminate);
+void hk_CheckClearParams(scriptInstance_t inst, function_stack_t *fs,
+                         volatile ScrVmContext_t *vmc, bool *terminate) {
+  if (!try_redirect(inst, fs) && orig_CheckClearParams)
+    orig_CheckClearParams(inst, fs, vmc, terminate);
 }
 
-void hook_opcode(uint16_t opcode, vm_opcode_handler_t hook,
-                 vm_opcode_handler_t *out_orig) {
-  size_t tables[3] = {};
-  int count = 0;
+void hook_opcode(OP_TYPE opcode, VM_OP_FUNC hook, VM_OP_FUNC *out_orig) {
+  array<VmOpJumpTable *, 2> tables = {gVmOpJumpTable2.get(),
+                                      gVmOpJumpTable1.get()};
 
-  if (game::is_server()) {
-    tables[count++] = game::relocate(0x14107C150);
-  } else {
-    tables[count++] = game::relocate(0x1432E6350);
-    tables[count++] = game::relocate(0x143306350);
+  VmOpJumpTable *table = tables[1];
+  OP_TYPE entryIdxMask = 0xFFFF;
+  if ((opcode & 0x2000) != 0) {
+    entryIdxMask = 0xDFFF;
+    table = tables[0];
   }
-
-  for (int i = 0; i < count; i++) {
-    if (!tables[i])
-      continue;
-    int64_t *entry = reinterpret_cast<int64_t *>(tables[i] + opcode * 8);
-    if (!*out_orig)
-      *out_orig = reinterpret_cast<vm_opcode_handler_t>(*entry);
-    if (*entry == reinterpret_cast<int64_t>(*out_orig))
-      *entry = reinterpret_cast<int64_t>(hook);
-  }
+  VM_OP_FUNC entry = table->ops[opcode & entryIdxMask];
+  if (!*out_orig)
+    *out_orig = entry;
+  if (entry == *out_orig)
+    entry = hook;
 }
 
 void builtin_dispatcher(game::scr::scriptInstance_t inst) {
@@ -480,9 +474,9 @@ void gscr_replacefunc(scriptInstance_t inst) {
     return;
   }
 
-  const int64_t target_addr =
+  uint8_t *target_addr =
       script::find_export_address(target_script, target_func, target_params);
-  const int64_t replace_addr =
+  uint8_t *replace_addr =
       script::find_export_address(replace_script, replace_func, replace_params);
 
   if (target_addr && replace_addr) {
@@ -898,9 +892,11 @@ void gscr_ls(scriptInstance_t inst) {
 
   std::vector<std::string> str_entries;
   str_entries.reserve(entries.size());
-  std::transform(
-      entries.begin(), entries.end(), std::back_inserter(str_entries),
-      [](const std::filesystem::path &p) { return relative_path(p).string(); });
+  std::transform(entries.begin(), entries.end(),
+                 std::back_inserter(str_entries),
+                 [](const std::filesystem::path &p) -> std::string {
+                   return relative_path(p).string();
+                 });
   push_array(inst, std::move(str_entries));
 }
 
@@ -1136,8 +1132,8 @@ void gscr_getfunction(scriptInstance_t inst) {
     push_int(inst, 0);
     return;
   }
-  const int64_t addr = script::find_export_address(script_name, func_name);
-  push_int(inst, addr);
+  uint8_t *addr = script::find_export_address(script_name, func_name);
+  push_int(inst, reinterpret_cast<int64_t>(addr));
 }
 
 void gscr_conststring(scriptInstance_t inst) {
@@ -1300,7 +1296,7 @@ void gscr_setclientdvar(game::scr::scriptInstance_t inst) {
 }
 } // namespace
 
-void add_detour(int64_t target_addr, int64_t replacement_addr) {
+void add_detour(uint8_t *target_addr, uint8_t *replacement_addr) {
   function_replacements[target_addr] = replacement_addr;
   detours_enabled.store(true, std::memory_order_seq_cst);
 }
@@ -1368,11 +1364,11 @@ struct component final : generic_component {
 
     custom_builtins[fnv1a("conststring")] = gscr_conststring;
 
-    BuiltinFunctionDef *builtin_def = reinterpret_cast<BuiltinFunctionDef *>(
-        game::select(0x1432D7D70, 0x14106DD70));
-    builtin_def->max_args = 255;
-    builtin_def->actionFunc =
-        reinterpret_cast<BuiltinFunction>(builtin_dispatcher);
+    BuiltinFunctionDef *bgscr_isprofilebuild_def =
+        const_cast<BuiltinFunctionDef *>(
+            &game::scr::bg::util_functions->IsProfileBuild);
+    bgscr_isprofilebuild_def->max_args = 255;
+    bgscr_isprofilebuild_def->actionFunc = builtin_dispatcher;
 
     hook_opcode(0x01D2, hk_SafeCreateLocalVariables,
                 &orig_SafeCreateLocalVariables);
