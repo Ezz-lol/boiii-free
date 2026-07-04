@@ -125,6 +125,7 @@ struct client_s {
   int32_t serverId;
   char __pad6[171432];
 };
+typedef client_s client_t;
 
 #ifdef __cplusplus
 ASSERT_SIZE(client_s, 0xE5110);
@@ -141,6 +142,7 @@ ASSERT_OFFSET(client_s, clanAbbrev, 0x55C0);
 struct client_s_cl : client_s {
   char __pad1_0[0x60];
 };
+typedef client_s_cl client_t_cl;
 
 #ifdef __cplusplus
 ASSERT_SIZE(client_s_cl, 0xE5170);
@@ -1140,6 +1142,16 @@ ASSERT_OFFSET(clientInfo_t, _padding807, 0x807);
 ASSERT_OFFSET(clientInfo_t, name, 0x0C);
 ASSERT_OFFSET(clientInfo_t, clanAbbrev, 0x80);
 ASSERT_SIZE(clientInfo_t, 0xEE0);
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct ucmd_t {
+  const char *name;
+  fastcall_t<void(client_t *cl)> func;
+  qboolean fromOldServer;
+  uint8_t _padding14[4];
+};
+ASSERT_SIZE(ucmd_t, 0x18);
 #pragma pack(pop)
 
 } // namespace sv

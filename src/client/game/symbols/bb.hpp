@@ -32,7 +32,7 @@ WEAK symbol<void(const char *name, bool allowed)> BB_SetTypeAllowed{
 WEAK symbol<bool()> BB_ShouldSampleSession{0x14229ED70};
 WEAK symbol<void()> BB_InitDefinitions{0x1422A0DF0};
 WEAK symbol<int32_t(const char *name, const char *fmt, int *parameterCount,
-                    const byte **desc)>
+                    const uint8_t **desc)>
     BB_ParseAndCacheFormatString{0x1422A0E30};
 } // namespace bb
 } // namespace game
