@@ -1,12 +1,13 @@
-#include "hks.hpp"
 #include "../../../../../std_include.hpp"
+#include "hks.hpp"
+
+#include <cmath>
+#include <cstring>
+
 namespace game {
 namespace ui {
 namespace lua {
 namespace hks {
-
-#include <cmath>
-#include <cstring>
 
 constexpr hksSize HKS_STR_LEN_BITS_MASK =
     ((1ULL << 62ULL) - 1ULL) /* 0x3FFFFFFFFFFFFFFFLL - masks to first 62 bits*/;
