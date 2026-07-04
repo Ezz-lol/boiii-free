@@ -3,10 +3,10 @@
 #include <cstdint>
 #include <deque>
 #include <mutex>
-#include <std_include.hpp>
+#include "../../std_include.hpp"
 #include "loader/component_loader.hpp"
-#include "game/game.hpp"
-#include "game/utils.hpp"
+#include "../../game/game.hpp"
+#include "../../game/utils.hpp"
 #include "../game_event.hpp"
 #include "../name.hpp"
 
@@ -22,6 +22,7 @@
 
 #include "../command.hpp"
 
+using namespace game;
 using namespace game::scr;
 
 namespace script {
@@ -32,15 +33,15 @@ int64_t find_export_address(const std::string &script_name,
 
 namespace gsc_funcs {
 namespace {
-using vm_opcode_handler_t = void(__fastcall *)(int32_t inst, int64_t *fs_0,
-                                               int64_t vmc, bool *terminate);
+using vm_opcode_handler_t = fastcall_t<void(
+    scriptInstance_t inst, int64_t *fs_0, int64_t vmc, bool *terminate)>;
 
 static std::unordered_map<ScrVarCanonicalName_t, BuiltinFunction>
     custom_builtins;
 static std::unordered_map<int64_t, int64_t> function_replacements;
 static std::unordered_map<game::ClientNum_t, std::unordered_set<std::string>>
     client_dvar_changes;
-static bool detours_enabled = false;
+static std::atomic_bool detours_enabled = false;
 
 static vm_opcode_handler_t orig_SafeCreateLocalVariables = nullptr;
 static vm_opcode_handler_t orig_CheckClearParams = nullptr;
@@ -60,17 +61,14 @@ void push_string(scriptInstance_t inst, const char *val) {
   return_value_set.store(true);
 }
 
-void push_int(scriptInstance_t inst, int val) {
-  Scr_AddInt(inst, val);
-  return_value_set.store(true);
-}
-
-void push_const_string(scriptInstance_t inst, ScrString_t hash) {
+void push_conststring(scriptInstance_t inst, ScrString_t hash) {
   Scr_AddConstString(inst, hash);
   return_value_set.store(true);
 }
 
-[[maybe_unused]] void push_int(scriptInstance_t inst, uint32_t val) {
+template <typename T, typename = typename std::enable_if<
+                          std::is_convertible<T, int32_t>::value>::type>
+void push_int(scriptInstance_t inst, T val) {
   Scr_AddInt(inst, static_cast<int32_t>(val));
   return_value_set.store(true);
 }
@@ -109,7 +107,7 @@ void push_array(scriptInstance_t inst, std::vector<std::string> &&arr) {
                                  std::vector<bool> &&arr) {
   Scr_MakeArray(inst);
   for (size_t i = 0; i < arr.size(); i++) {
-    Scr_AddInt(inst, arr[i] ? 1 : 0);
+    Scr_AddInt(inst, static_cast<qboolean>((arr[i])));
     Scr_AddArray(inst);
   }
   return_value_set.store(true);
@@ -157,12 +155,12 @@ std::string normalize_command_name(std::string value) {
 }
 
 std::string extract_command_name(const std::string &value) {
-  const auto start = value.find_first_not_of(" \t");
+  const size_t start = value.find_first_not_of(" \t");
   if (start == std::string::npos) {
     return {};
   }
 
-  const auto end = value.find_first_of(" \t", start);
+  const size_t end = value.find_first_of(" \t", start);
   const std::string name = value.substr(start, end - start);
   return normalize_command_name(name);
 }
@@ -186,12 +184,12 @@ void clear_script_commands() {
 }
 
 std::string trim_copy(std::string value) {
-  const auto start = value.find_first_not_of(" \t");
+  const size_t start = value.find_first_not_of(" \t");
   if (start == std::string::npos) {
     return {};
   }
 
-  const auto end = value.find_last_not_of(" \t");
+  const size_t end = value.find_last_not_of(" \t");
   return value.substr(start, end - start + 1);
 }
 
@@ -205,7 +203,8 @@ std::optional<std::string> extract_dvar_name(const char *dvar_cmd) {
     return {};
   }
 
-  auto next_token = [&](size_t &cursor) -> std::string {
+  std::function<std::string(size_t &)> next_token =
+      [&](size_t &cursor) -> std::string {
     while (cursor < trimmed.size() &&
            (trimmed[cursor] == ' ' || trimmed[cursor] == '\t')) {
       cursor++;
@@ -239,15 +238,18 @@ std::optional<std::string> extract_dvar_name(const char *dvar_cmd) {
 }
 
 void reset_tracked_client_dvars() {
-  for (const auto &[client_num, dvars] : client_dvar_changes) {
-    if (!game::valid_client_num(client_num)) {
-      continue;
-    }
+  for (const std::pair<const game::ClientNum_t, std::unordered_set<std::string>>
+           &pair : client_dvar_changes) {
+    const game::ClientNum_t &client_num = pair.first;
+    const std::unordered_set<std::string> &dvars = pair.second;
 
-    for (const auto &dvar_name : dvars) {
-      game::sv::SV_GameSendServerCommand(
-          client_num, game::net::SV_CMD_CAN_IGNORE_0,
-          utils::string::va("c \"reset %s\"", dvar_name.c_str()));
+    if (game::valid_client_num(client_num)) {
+
+      for (const std::string &dvar_name : dvars) {
+        game::sv::SV_GameSendServerCommand(
+            client_num, game::net::SV_CMD_CAN_IGNORE_0,
+            utils::string::va("c \"reset %s\"", dvar_name.c_str()));
+      }
     }
   }
 }
@@ -278,7 +280,7 @@ std::filesystem::path resolve_path(const std::string &path) {
 }
 
 std::filesystem::path relative_path(const std::filesystem::path &full_path) {
-  const auto scriptdata = get_scriptdata_path();
+  const std::filesystem::path scriptdata = get_scriptdata_path();
   std::string relative = full_path.string();
   if (relative.find(scriptdata.string()) == 0) {
     relative.erase(0, scriptdata.string().length());
@@ -297,20 +299,20 @@ std::filesystem::path relative_path(const std::filesystem::path &full_path) {
 // =====================================================
 
 utils::hook::detour hecmd_settext_hook;
-utils::hook::detour g_findcfgstr_hook;
+utils::hook::detour g_tagindex_hook;
 
 std::mutex hud_text_mutex;
-std::unordered_map<uint32_t, int> hudelem_cfgstr_map;
+static std::unordered_map<uint32_t, int> hudelem_cfgstr_map;
 int localized_cfgstr_base = -1;
 
 thread_local int last_cfgstr_result = -1;
 thread_local int last_cfgstr_start = -1;
 thread_local int last_cfgstr_max = -1;
 
-int g_findconfigstringindex_stub(const char *string, int start, int max,
-                                 int create, const char *errormsg) {
+int g_tagindex_stub(const char *string, int start, int max, int create,
+                    const char *errormsg) {
   int result =
-      g_findcfgstr_hook.invoke<int>(string, start, max, create, errormsg);
+      g_tagindex_hook.invoke<int>(string, start, max, create, errormsg);
   last_cfgstr_start = start;
   last_cfgstr_max = max;
   last_cfgstr_result = result;
@@ -323,17 +325,15 @@ void hecmd_settext_stub(game::scr::scriptInstance_t inst,
 
   {
     std::lock_guard lock(hud_text_mutex);
-    const auto it = hudelem_cfgstr_map.find(he_idx);
-    if (it != hudelem_cfgstr_map.end()) {
+    if (hudelem_cfgstr_map.contains(he_idx)) {
       const char *text = game::scr::Scr_GetString(inst, 1);
       if (text) {
-        const int cfg_idx = it->second;
+        const int cfg_idx = hudelem_cfgstr_map[he_idx];
         const int start = last_cfgstr_start;
         const int max = last_cfgstr_max;
         const bool range_ok = (start >= 0 && max > 0 && cfg_idx >= start &&
                                cfg_idx < (start + max));
-        if (cfg_idx >= 0 && range_ok && game::sv::SV_Loaded &&
-            game::sv::SV_Loaded()) {
+        if (cfg_idx >= 0 && range_ok && game::sv::SV_Loaded()) {
           game::sv::SV_SetConfigstring(cfg_idx, text);
           return;
         }
@@ -362,49 +362,61 @@ void clear_hud_text_state() {
   localized_cfgstr_base = -1;
 }
 
-bool settext_hooks_installed = false;
+static std::atomic_bool settext_hooks_installed = false;
 
 void install_settext_hooks() {
-  if (settext_hooks_installed || !game::is_server()) {
-    return;
+  if (!settext_hooks_installed.load(std::memory_order_seq_cst) &&
+      game::is_server()) {
+
+    /*
+     TODO: this needs to be reviewed and fixed ASAP.
+
+     The function signature used in G_TagIndex's hook is incorrect.
+     G_TagIndex takes only one argument: `const char* name`.
+     It has been verified that no further arguments are used in the function.
+
+     Access and usage of the values of any further arguments should be
+     considered unsafe, undefined behaviour.
+    */
+    g_tagindex_hook.create(game::G_TagIndex.get(), g_tagindex_stub);
+    hecmd_settext_hook.create(game::scr::cmd::he::HECmd_SetText.get(),
+                              hecmd_settext_stub);
+    settext_hooks_installed.store(true, std::memory_order_seq_cst);
   }
-  g_findcfgstr_hook.create(0x1403089D0_g, g_findconfigstringindex_stub);
-  hecmd_settext_hook.create(0x1402A0BA0_g, hecmd_settext_stub);
-  settext_hooks_installed = true;
 }
 
 void remove_settext_hooks() {
-  if (!settext_hooks_installed) {
-    return;
+  if (settext_hooks_installed.load(std::memory_order_seq_cst)) {
+    g_tagindex_hook.clear();
+    hecmd_settext_hook.clear();
+    settext_hooks_installed.store(false, std::memory_order_seq_cst);
   }
-  g_findcfgstr_hook.clear();
-  hecmd_settext_hook.clear();
-  settext_hooks_installed = false;
 }
 
 // =====================================================
 // Opcode hooks for replacefunc
 // =====================================================
 
-bool try_redirect(int32_t inst, int64_t *fs_0) {
-  if (!detours_enabled || inst != 0)
-    return false;
-  const auto it = function_replacements.find(*fs_0 - 2);
-  if (it != function_replacements.end()) {
-    *fs_0 = it->second;
-    return true;
+bool try_redirect(scriptInstance_t inst, int64_t *fs_0) {
+  if (detours_enabled.load(std::memory_order_seq_cst) &&
+      inst == SCRIPTINSTANCE_SERVER) {
+    const int64_t redirected = *fs_0 - 2;
+    if (function_replacements.contains(redirected)) {
+      *fs_0 = function_replacements[redirected];
+      return true;
+    }
   }
   return false;
 }
 
-void __fastcall hk_SafeCreateLocalVariables(int32_t inst, int64_t *fs_0,
-                                            int64_t vmc, bool *terminate) {
+void hk_SafeCreateLocalVariables(scriptInstance_t inst, int64_t *fs_0,
+                                 int64_t vmc, bool *terminate) {
   if (!try_redirect(inst, fs_0) && orig_SafeCreateLocalVariables)
     orig_SafeCreateLocalVariables(inst, fs_0, vmc, terminate);
 }
 
-void __fastcall hk_CheckClearParams(int32_t inst, int64_t *fs_0, int64_t vmc,
-                                    bool *terminate) {
+void hk_CheckClearParams(scriptInstance_t inst, int64_t *fs_0, int64_t vmc,
+                         bool *terminate) {
   if (!try_redirect(inst, fs_0) && orig_CheckClearParams)
     orig_CheckClearParams(inst, fs_0, vmc, terminate);
 }
@@ -437,9 +449,9 @@ void builtin_dispatcher(game::scr::scriptInstance_t inst) {
 
   try {
     const int32_t hash = Scr_GetInt(inst, 0);
-    const auto it = custom_builtins.find(hash);
-    if (it != custom_builtins.end())
-      it->second(inst);
+    if (custom_builtins.contains(hash)) {
+      custom_builtins[hash](inst);
+    }
   } catch (const std::exception &e) {
     printf("^1[builtin] Exception: %s\n", e.what());
   } catch (...) {
@@ -468,14 +480,14 @@ void gscr_replacefunc(scriptInstance_t inst) {
     return;
   }
 
-  const auto target_addr =
+  const int64_t target_addr =
       script::find_export_address(target_script, target_func, target_params);
-  const auto replace_addr =
+  const int64_t replace_addr =
       script::find_export_address(replace_script, replace_func, replace_params);
 
   if (target_addr && replace_addr) {
     function_replacements[target_addr] = replace_addr;
-    detours_enabled = true;
+    detours_enabled.store(true, std::memory_order_seq_cst);
   } else {
     printf("[replacefunc] failed %s::%s -> %s::%s", target_script, target_func,
            replace_script, replace_func);
@@ -490,7 +502,7 @@ void gscr_replacefunc(scriptInstance_t inst) {
 // clearreplacefuncs: remove all active function replacements
 void gscr_clearreplacefuncs([[maybe_unused]] scriptInstance_t inst) {
   function_replacements.clear();
-  detours_enabled = false;
+  detours_enabled.store(false, std::memory_order_seq_cst);
 }
 
 void gscr_println(scriptInstance_t inst) {
@@ -643,7 +655,7 @@ void gscr_addcommand(scriptInstance_t inst) {
   const std::string cmd_key = normalize_command_name(cmd_name);
   {
     std::lock_guard lock(script_cmd_mutex);
-    for (const auto &existing : script_cmd_names) {
+    for (const std::string &existing : script_cmd_names) {
       if (existing == cmd_key)
         return; // Already registered
     }
@@ -686,7 +698,7 @@ void gscr_getcommand(scriptInstance_t inst) {
     return;
   }
 
-  auto cmd = std::move(script_cmd_queue.front());
+  std::string cmd = std::move(script_cmd_queue.front());
   script_cmd_queue.pop_front();
   push_string(inst, cmd.c_str());
 }
@@ -733,8 +745,8 @@ void gscr_writefile(scriptInstance_t inst) {
   }
   bool append = Scr_GetBoolOptional(inst, 3, false);
 
-  bool result = utils::io::write_file(full.string(), data, append);
-  push_int(inst, result ? 1 : 0);
+  qboolean result = utils::io::write_file(full.string(), data, append);
+  push_int(inst, result);
 }
 
 void gscr_readfile(scriptInstance_t inst) {
@@ -763,7 +775,7 @@ void gscr_appendfile(scriptInstance_t inst) {
   const std::filesystem::path parent = full.parent_path();
   if (!parent.empty())
     utils::io::create_directory(parent);
-  push_int(inst, utils::io::write_file(full.string(), data, true) ? 1 : 0);
+  push_int(inst, utils::io::write_file(full.string(), data, true));
 }
 
 void gscr_fileexists(scriptInstance_t inst) {
@@ -772,7 +784,7 @@ void gscr_fileexists(scriptInstance_t inst) {
     push_int(inst, 0);
     return;
   }
-  push_int(inst, utils::io::file_exists(resolve_path(path).string()) ? 1 : 0);
+  push_int(inst, utils::io::file_exists(resolve_path(path).string()));
 }
 
 void gscr_removefile(scriptInstance_t inst) {
@@ -781,7 +793,7 @@ void gscr_removefile(scriptInstance_t inst) {
     push_int(inst, 0);
     return;
   }
-  push_int(inst, utils::io::remove_file(resolve_path(path)) ? 1 : 0);
+  push_int(inst, utils::io::remove_file(resolve_path(path)));
 }
 
 void gscr_removedirectory(scriptInstance_t inst) {
@@ -790,7 +802,7 @@ void gscr_removedirectory(scriptInstance_t inst) {
     push_int(inst, 0);
     return;
   }
-  push_int(inst, utils::io::remove_directory(resolve_path(path), true) ? 1 : 0);
+  push_int(inst, utils::io::remove_directory(resolve_path(path), true));
 }
 
 void gscr_rm(scriptInstance_t inst) {
@@ -803,10 +815,9 @@ void gscr_rm(scriptInstance_t inst) {
   bool recurse = Scr_GetBoolOptional(inst, 2, false);
 
   if (utils::io::directory_exists(resolve_path(path))) {
-    push_int(inst,
-             utils::io::remove_directory(resolve_path(path), recurse) ? 1 : 0);
+    push_int(inst, utils::io::remove_directory(resolve_path(path), recurse));
   } else {
-    push_int(inst, utils::io::remove_file(resolve_path(path)) ? 1 : 0);
+    push_int(inst, utils::io::remove_file(resolve_path(path)));
   }
 }
 
@@ -828,7 +839,7 @@ void gscr_createdirectory(scriptInstance_t inst) {
   }
 
   bool result = utils::io::create_directory(resolve_path(path));
-  push_int(inst, result ? 1 : 0);
+  push_int(inst, result);
 }
 
 void gscr_directoryexists(scriptInstance_t inst) {
@@ -837,7 +848,7 @@ void gscr_directoryexists(scriptInstance_t inst) {
     push_int(inst, 0);
     return;
   }
-  push_int(inst, utils::io::directory_exists(resolve_path(path)) ? 1 : 0);
+  push_int(inst, utils::io::directory_exists(resolve_path(path)));
 }
 
 void gscr_listfiles(scriptInstance_t inst) {
@@ -853,7 +864,7 @@ void gscr_listfiles(scriptInstance_t inst) {
   }
   const std::vector<std::filesystem::path> files = utils::io::list_files(full);
   std::string result;
-  for (const auto &f : files) {
+  for (const std::filesystem::path &f : files) {
     if (!result.empty())
       result += ",";
     result += f.filename().string();
@@ -995,7 +1006,7 @@ void gscr_jsondump(scriptInstance_t inst) {
   const std::filesystem::path parent = full.parent_path();
   if (!parent.empty())
     utils::io::create_directory(parent);
-  push_int(inst, utils::io::write_file(full.string(), json_str) ? 1 : 0);
+  push_int(inst, utils::io::write_file(full.string(), json_str));
 }
 
 // =====================================================
@@ -1074,14 +1085,14 @@ void gscr_int64_op(scriptInstance_t inst) {
   }
 
   if (is_comparison)
-    push_int(inst, cmp_result ? 1 : 0);
+    push_int(inst, cmp_result);
   else
     push_string(inst, std::to_string(result).c_str());
 }
 
 void gscr_int64_isint(scriptInstance_t inst) {
   const int64_t val = parse_int64_arg(inst, 1);
-  push_int(inst, (val >= INT32_MIN && val <= INT32_MAX) ? 1 : 0);
+  push_int(inst, (val >= INT32_MIN && val <= INT32_MAX));
 }
 
 void gscr_int64_toint(scriptInstance_t inst) {
@@ -1126,7 +1137,7 @@ void gscr_getfunction(scriptInstance_t inst) {
     return;
   }
   const int64_t addr = script::find_export_address(script_name, func_name);
-  push_int(inst, addr ? 1 : 0);
+  push_int(inst, addr);
 }
 
 void gscr_conststring(scriptInstance_t inst) {
@@ -1135,7 +1146,7 @@ void gscr_conststring(scriptInstance_t inst) {
     Scr_ParamError(inst, 1, "No hash argument provided to conststring.");
   } else {
     const ScrString_t hash = static_cast<ScrString_t>(Scr_GetInt(inst, 1));
-    push_const_string(inst, hash);
+    push_conststring(inst, hash);
   }
 }
 
@@ -1145,7 +1156,8 @@ void gscr_conststring(scriptInstance_t inst) {
 
 std::optional<game::ClientNum_t>
 get_self_client_num(game::scr::scriptInstance_t inst) {
-  game::scr::scr_entref_t ref = game::scr::Scr_GetEntityRef(inst, 0);
+  game::scr::scr_entref_t ref;
+  game::scr::Scr_GetEntityRef(&ref, inst, 0);
   const game::ClientNum_t client_num =
       static_cast<game::ClientNum_t>(ref.u.entnum);
   if (!game::valid_client_num(client_num)) {
@@ -1278,8 +1290,8 @@ void gscr_setclientdvar(game::scr::scriptInstance_t inst) {
     }
   }
 
-  if (const auto dvar_name = extract_dvar_name(dvar_cmd);
-      dvar_name.has_value()) {
+  const std::optional<std::string> dvar_name = extract_dvar_name(dvar_cmd);
+  if (dvar_name.has_value()) {
     client_dvar_changes[client_num].insert(*dvar_name);
   }
 
@@ -1290,7 +1302,7 @@ void gscr_setclientdvar(game::scr::scriptInstance_t inst) {
 
 void add_detour(int64_t target_addr, int64_t replacement_addr) {
   function_replacements[target_addr] = replacement_addr;
-  detours_enabled = true;
+  detours_enabled.store(true, std::memory_order_seq_cst);
 }
 
 struct component final : generic_component {
@@ -1356,10 +1368,11 @@ struct component final : generic_component {
 
     custom_builtins[fnv1a("conststring")] = gscr_conststring;
 
-    auto *builtin_def = reinterpret_cast<BuiltinFunctionDef *>(
+    BuiltinFunctionDef *builtin_def = reinterpret_cast<BuiltinFunctionDef *>(
         game::select(0x1432D7D70, 0x14106DD70));
     builtin_def->max_args = 255;
-    builtin_def->actionFunc = reinterpret_cast<void *>(builtin_dispatcher);
+    builtin_def->actionFunc =
+        reinterpret_cast<BuiltinFunction>(builtin_dispatcher);
 
     hook_opcode(0x01D2, hk_SafeCreateLocalVariables,
                 &orig_SafeCreateLocalVariables);
@@ -1371,7 +1384,7 @@ struct component final : generic_component {
       reset_tracked_client_dvars();
       client_dvar_changes.clear();
 
-      detours_enabled = false;
+      detours_enabled.store(false, std::memory_order_seq_cst);
       clear_script_commands();
       clear_hud_text_state();
       remove_settext_hooks();
@@ -1380,7 +1393,7 @@ struct component final : generic_component {
     game_event::on_g_init_game([] {
       function_replacements.clear();
       client_dvar_changes.clear();
-      detours_enabled = false;
+      detours_enabled.store(false, std::memory_order_seq_cst);
       clear_hud_text_state();
       install_settext_hooks();
     });

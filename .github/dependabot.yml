@@ -8,4 +8,4 @@ updates:
     exclude-paths:
       # Purposely set to commit matching Steam API version
       # used in the engine. Should not be updated.
-      - "deps/SteamworksSDK"
+      - "deps/SteamworkSDK"

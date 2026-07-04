@@ -633,7 +633,7 @@ std::optional<std::filesystem::path> get_game_type_specific_folder() {
 }
 
 std::optional<std::filesystem::path> get_map_specific_folder() {
-  const std::string mapname = game::get_dvar_string("mapname");
+  const std::string_view mapname = game::get_dvar_string("mapname");
   if (mapname.empty()) {
     return {};
   }

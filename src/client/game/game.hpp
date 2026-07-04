@@ -53,51 +53,42 @@ inline size_t select(const void *client_val, const void *server_val) {
                 reinterpret_cast<size_t>(server_val));
 }
 
+/// @brief Checks if a pointer resides within the current thread's stack
+/// boundaries.
+inline bool valid_stack_ptr(uintptr_t ptr) {
+  if (!ptr) {
+    return false;
+  }
+
+  // In x64 Windows, GS:[0x08] holds the Stack Base (highest address)
+  // and GS:[0x10] holds the Stack Limit (lowest address).
+  // The stack grows downwards from the Base to the Limit.
+  uintptr_t stack_base = __readgsqword(0x08);
+  uintptr_t stack_limit = __readgsqword(0x10);
+
+  return (ptr >= stack_limit) && (ptr < stack_base);
+}
+
+template <typename T> inline bool valid_stack_ptr(T *ptr) {
+  return valid_stack_ptr(reinterpret_cast<uintptr_t>(ptr));
+}
+
+/// @brief Checks if a pointer's address points to the engine module address
+/// space or a location on the current thread's stack.
 inline bool valid_engine_ptr(uintptr_t ptr) {
-  return ptr >= get_base() && ptr < (get_base() + 0x030000000);
+  if (!ptr) {
+    return false;
+  }
+
+  bool in_module = (ptr >= get_base()) && (ptr < (get_base() + 0x030000000));
+  bool on_stack = valid_stack_ptr(ptr);
+
+  return in_module || on_stack;
 }
 
 template <typename T> inline bool valid_engine_ptr(T *ptr) {
-  uintptr_t ptr_int = reinterpret_cast<uintptr_t>(ptr);
-  return valid_engine_ptr(ptr_int);
+  return valid_engine_ptr(reinterpret_cast<uintptr_t>(ptr));
 }
-
-template <typename T> class base_symbol {
-public:
-  base_symbol(const size_t address) : address_(address) {}
-
-  base_symbol(const size_t address, const size_t server_address)
-      : address_(address), server_address_(server_address) {}
-
-  T *get() const {
-    return reinterpret_cast<T *>(select(this->address_, this->server_address_));
-  }
-
-  operator T *() const { return this->get(); }
-
-  T *operator->() const { return this->get(); }
-
-private:
-  size_t address_{};
-  size_t server_address_{};
-};
-
-template <typename T> struct symbol : base_symbol<T> {
-  using base_symbol<T>::base_symbol;
-};
-
-template <typename T, typename... Args>
-struct symbol<T(Args...)> : base_symbol<T(Args...)> {
-  using func_type = T(Args...);
-
-  using base_symbol<func_type>::base_symbol;
-
-  T call_safe(Args... args) {
-    arxan::detail::set_address_to_call(this->get());
-    return static_cast<func_type *>(arxan::detail::callstack_proxy_addr)(
-        args...);
-  }
-};
 
 std::filesystem::path get_appdata_path();
 std::filesystem::path get_game_path();
@@ -105,6 +96,7 @@ std::filesystem::path get_game_path();
 
 inline size_t operator""_g(const size_t val) { return game::relocate(val); }
 
+#include "symbol.hpp"
 #include "structs/structs.hpp"
 #include "symbols/symbols.hpp"
 

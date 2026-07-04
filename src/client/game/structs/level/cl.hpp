@@ -162,8 +162,10 @@ struct centity_t;
 struct cg_t;
 struct ZBarrierDef;
 struct LerpEntityStateZBarrierPiece;
-typedef fastcall_t<void, LocalClientNum_t, cg_t *, centity_t *, ZBarrierDef *,
-                   cgZBarrierPiece *, LerpEntityStateZBarrierPiece *, uint32_t>
+typedef fastcall_t<void(LocalClientNum_t localClientNum, cg_t *cGameGlob,
+                        centity_t *cent, ZBarrierDef *def,
+                        cgZBarrierPiece *piece,
+                        LerpEntityStateZBarrierPiece *lerp, uint32_t)>
     zbarrierPieceLogicPtr_t;
 
 #pragma pack(push, 1)

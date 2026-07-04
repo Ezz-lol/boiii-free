@@ -1,6 +1,7 @@
 .vs
 .vscode
 build/
+node_modules/
 usergenerate.bat
 nul
 .clangd

@@ -4,9 +4,9 @@ on:
   workflow_dispatch:
     inputs:
       branch:
-        description: 'Branch to build from (default: beta)'
+        description: "Branch to build from (default: beta)"
         required: false
-        default: 'beta'
+        default: "beta"
 
 concurrency:
   group: beta-build
@@ -130,7 +130,7 @@ jobs:
           rclone copy upload/${{ env.R2_FOLDER }}/ r2:${{ env.R2_BUCKET }}/${{ env.R2_FOLDER }}/ --progress --header-upload "Content-Type: application/octet-stream"
 
           # Upload beta manifest
-          rclone copy upload/${{ env.MANIFEST_FILE }} r2:${{ env.R2_BUCKET }}/ --progress --header-upload "Content-Type: application/octet-stream"  
+          rclone copy upload/${{ env.MANIFEST_FILE }} r2:${{ env.R2_BUCKET }}/ --progress --header-upload "Content-Type: application/octet-stream"
 
       - name: Verify upload
         run: |

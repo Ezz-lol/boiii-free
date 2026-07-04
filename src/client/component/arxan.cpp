@@ -397,16 +397,14 @@ void restore_debug_functions() {
 
   const utils::nt::library ntdll("ntdll.dll");
 
-  for (auto i = 0u; i < ARRAYSIZE(functions); ++i) {
-    const auto func = ntdll.get_proc<void *>(functions[i]);
-    if (!func) {
-      continue;
-    }
-
-    if (!loaded) {
-      memcpy(buffers[i], func, sizeof(buffer));
-    } else {
-      utils::hook::copy(func, buffers[i], sizeof(buffer));
+  for (uint8_t i = 0; i < ARRAYSIZE(functions); ++i) {
+    void *func = ntdll.get_proc<void *>(functions[i]);
+    if (func) {
+      if (!loaded) {
+        memcpy(buffers[i], func, sizeof(buffer));
+      } else {
+        utils::hook::copy(func, buffers[i], sizeof(buffer));
+      }
     }
   }
 
@@ -963,12 +961,12 @@ struct component final : generic_component {
     const utils::nt::library ntdll("ntdll.dll");
     nt_close_hook.create(ntdll.get_proc<void *>("NtClose"), nt_close_stub);
 
-    const auto nt_query_information_process =
+    void *nt_query_information_process =
         ntdll.get_proc<void *>("NtQueryInformationProcess");
     nt_query_information_process_hook.create(nt_query_information_process,
                                              nt_query_information_process_stub);
 
-    const auto nt_query_system_information =
+    void *nt_query_system_information =
         ntdll.get_proc<void *>("NtQuerySystemInformation");
     nt_query_system_information_hook.create(nt_query_system_information,
                                             nt_query_system_information_stub);
@@ -977,7 +975,7 @@ struct component final : generic_component {
     open_process_hook.create(OpenProcess, open_process_stub);
 
 #ifndef NDEBUG
-    auto *get_thread_context_func = utils::nt::library("kernelbase.dll")
+    void *get_thread_context_func = utils::nt::library("kernelbase.dll")
                                         .get_proc<void *>("GetThreadContext");
     get_thread_context_hook.create(get_thread_context_func,
                                    get_thread_context_stub);
@@ -990,7 +988,7 @@ struct component final : generic_component {
 
     AddVectoredExceptionHandler(1, exception_filter);
 
-    auto *sys_met_import =
+    void **sys_met_import =
         utils::nt::library{}.get_iat_entry("user32.dll", "GetSystemMetrics");
     if (sys_met_import)
       utils::hook::set(sys_met_import, get_system_metrics_stub);

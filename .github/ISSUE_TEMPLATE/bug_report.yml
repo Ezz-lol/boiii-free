@@ -71,13 +71,13 @@ body:
 
         1. 
         2. 
-        3. 
+        3.
       placeholder: |
         <!-- NOTE: If this bug occurs while running a mod, please specify the mod name and version number. If the bug occurs on a specific map(s) or gamemode(s), please indicate which ones. -->
-        
+
         1. 
         2. 
-        3. 
+        3.
     validations:
       required: true
   - type: textarea
@@ -102,7 +102,7 @@ body:
         Please provide full errors, console output, crashdumps/minidumps, screenshots, errors, or additional information.
 
         Files may be uploaded directly to this GitHub by dragging and dropping the attachment (or pasting them into this box). Please note that GitHub may reject certain file extensions, in which case it may be necessary to upload the files as a ZIP archive.
-        
+
         For large files and videos, please upload them and provide a link to Google Drive, MEGA, YouTube, etc.
   - type: dropdown
     id: severity

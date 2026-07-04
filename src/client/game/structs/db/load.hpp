@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include "../quake.hpp"
+#include "../quake/core.hpp"
 #include "../core.hpp"
 #include "core.hpp"
 #include "xfile.hpp"

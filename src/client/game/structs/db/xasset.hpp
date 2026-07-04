@@ -3,14 +3,15 @@
 
 #include <cstdint>
 #include "../core.hpp"
-#include "../quake.hpp"
+#include "../quake/core.hpp"
 #include "../gfx/gfx.hpp"
 
 namespace game {
 
 namespace scr {
 typedef uint32_t ScrString_t;
-}
+struct ScriptParseTree;
+} // namespace scr
 
 namespace snd {
 /*
@@ -751,7 +752,7 @@ union XAssetHeader {
   // DDLRoot *ddlRoot;
   // Glasses *glasses;
   // TextureList *textureList;
-  // ScriptParseTree *scriptParseTree;
+  scr::ScriptParseTree *scriptParseTree;
   // KeyValuePairs *keyValuePairs;
   // VehicleDef *vehicleDef;
   // AddonMapEnts *addonMapEnts;
@@ -853,7 +854,7 @@ union XAssetEntryPoolEntry {
 };
 static_assert(sizeof(XAssetEntryPoolEntry) == 0x20,
               "sizeof(XAssetEntryPoolEntry) must be 0x20");
-static const std::size_t XASSET_ENTRY_POOL_LENGTH = 156671;
+constexpr std::size_t XASSET_ENTRY_POOL_LENGTH = 156671;
 
 #pragma pack(push, 1)
 struct XAssetEntryPool {

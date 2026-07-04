@@ -10,8 +10,7 @@ namespace net {
 WEAK symbol<SOCKET> ip_socket{0x157E75818, 0x14A640988};
 
 // NET
-
-WEAK symbol<bool(netsrc_t sock, netadr_t *adr, const void *data, int len)>
+WEAK symbol<bool(netsrc_t sock, const netadr_t *adr, const void *data, int len)>
     NET_OutOfBandData{0x142173600, 0x140515C80};
 WEAK symbol<bool(PacketQueuePtr queue, uint32_t flags, netsrc_t sock,
                  const netadr_t *addr, int length, const void *data)>

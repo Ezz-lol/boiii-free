@@ -335,8 +335,8 @@ bool invite_to_game(game::XUID steam_id) {
   if (connect_str.empty())
     return false;
 
-  const std::string mapname = game::get_dvar_string("mapname");
-  const std::string gametype = game::get_dvar_string("g_gametype");
+  const std::string_view mapname = game::get_dvar_string("mapname");
+  const std::string_view gametype = game::get_dvar_string("g_gametype");
   game::eModes playmode = game::com::Com_SessionMode_GetMode();
   const std::string mod_id = workshop::get_mod_publisher_id();
   game::XUID own_steam_id = steam_proxy::get_own_steam_id();
@@ -346,8 +346,8 @@ bool invite_to_game(game::XUID steam_id) {
 
   // enriched format: addr|map|gametype|mode|mod|sender_id|sender_name
   const char *enriched = utils::string::va(
-      "%s|%s|%s|%d|%s|%llu|%s", connect_str.c_str(), mapname.c_str(),
-      gametype.c_str(), static_cast<int32_t>(playmode), mod_id.c_str(),
+      "%s|%s|%s|%d|%s|%llu|%s", connect_str.c_str(), mapname.data(),
+      gametype.data(), static_cast<int32_t>(playmode), mod_id.c_str(),
       own_steam_id, own_name.c_str());
 
   steam_proxy::set_rich_presence("connect", connect_str);
@@ -651,8 +651,9 @@ struct component final : client_component {
             steam_proxy::set_rich_presence("connect", addr);
 
             if (!addr.empty() && game::com::Com_IsInGame()) {
-              const std::string mapname = game::get_dvar_string("mapname");
-              const std::string gametype = game::get_dvar_string("g_gametype");
+              const std::string_view mapname = game::get_dvar_string("mapname");
+              const std::string_view gametype =
+                  game::get_dvar_string("g_gametype");
               game::eModes playmode = game::com::Com_SessionMode_GetMode();
               const std::string mod_id = workshop::get_mod_publisher_id();
               game::XUID own_steam_id = steam_proxy::get_own_steam_id();
@@ -661,8 +662,8 @@ struct component final : client_component {
                 own_name = "Player";
 
               const char *enriched = utils::string::va(
-                  "%s|%s|%s|%d|%s|%llu|%s", addr.c_str(), mapname.c_str(),
-                  gametype.c_str(), static_cast<int32_t>(playmode),
+                  "%s|%s|%s|%d|%s|%llu|%s", addr.c_str(), mapname.data(),
+                  gametype.data(), static_cast<int32_t>(playmode),
                   mod_id.c_str(), own_steam_id, own_name.c_str());
               steam_proxy::set_rich_presence("boiii_game_info", enriched);
             } else {

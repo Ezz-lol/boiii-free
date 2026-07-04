@@ -11,18 +11,18 @@
 namespace game {
 namespace scr {
 
-level::gentity_t *GetEntity_Impl(scr_entref_t entref) {
-  if (entref.classnum) {
+level::gentity_t *GetEntity_Impl(const scr_entref_t *entref) {
+  if (entref->classnum) {
     Scr_ObjectError(SCRIPTINSTANCE_SERVER, "not an entity");
     return nullptr;
   }
-  return game::entity(entref.u.entnum);
+  return game::entity(entref->u.entnum);
 }
 
 level::gentity_t *Scr_GetEntity_Impl(uint32_t index) {
-  game::scr::scr_entref_t entref =
-      game::scr::Scr_GetEntityRef(SCRIPTINSTANCE_SERVER, index);
-  return GetEntity_Impl(entref);
+  game::scr::scr_entref_t entref;
+  game::scr::Scr_GetEntityRef(&entref, SCRIPTINSTANCE_SERVER, index);
+  return GetEntity_Impl(&entref);
 }
 
 const char *Scr_TypeName(ScrVarType type) {
@@ -36,62 +36,62 @@ bool Scr_IsTrue_Impl([[maybe_unused]] scriptInstance_t inst,
   ScrVarType_t type = value->type;
 
   switch (type) {
-
   case ScrVarType::FLOAT: {
     if (value->u.floatValue == 0.0) {
       value->type = ScrVarType::INT;
       value->u.uintValue = qfalse;
-      return 0;
+      return false;
     }
     value->type = ScrVarType::INT;
     value->u.uintValue = qtrue;
-    return 1;
+    return true;
   }
 
   case ScrVarType::INT: {
     if (value->u.uintValue == 0) {
       value->type = ScrVarType::INT;
       value->u.uintValue = qfalse;
-      return 0;
+      return false;
     }
     value->type = ScrVarType::INT;
     value->u.uintValue = qtrue;
-    return 1;
+    return true;
   }
   case ScrVarType::UINT64: {
     if (value->u.uint64Value == 0) {
       value->type = ScrVarType::INT;
       value->u.uintValue = qfalse;
-      return 0;
+      return false;
     }
     value->type = ScrVarType::INT;
     value->u.uintValue = qtrue;
-    return 1;
+    return true;
   }
   case ScrVarType::UINTPTR_T: {
     if (value->u.uintptrValue == 0) {
       value->type = ScrVarType::INT;
       value->u.uintValue = qfalse;
-      return 0;
+      return false;
     }
     value->type = ScrVarType::INT;
     value->u.uintValue = qtrue;
-    return 1;
+    return true;
   }
   case ScrVarType::UNDEFINED: {
     value->type = ScrVarType::INT;
     value->u.uintValue = qfalse;
-    return 0;
+    return false;
   }
   default: {
     ScrVar_ReleaseValue(inst, value);
     Scr_Error(inst,
               utils::string::va("cannot cast %s to bool", Scr_TypeName(type)),
               0);
-    return 0;
+    return false;
   }
   }
 }
+
 void Scr_PlaySoundAtPosition_Impl(scriptInstance_t inst) {
   vec3_t origin;
   Scr_GetVector(SCRIPTINSTANCE_SERVER, 1u, &origin);

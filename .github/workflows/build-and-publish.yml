@@ -4,13 +4,13 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - 'v*'
+      - "v*"
     # branches:
     #   - main
     paths-ignore:
-      - '**.md'
-      - '.github/workflows/*.yml'
-      - '.github/workflows/*.yaml'
+      - "**.md"
+      - ".github/workflows/*.yml"
+      - ".github/workflows/*.yaml"
 
 concurrency:
   group: ${{ github.ref }}

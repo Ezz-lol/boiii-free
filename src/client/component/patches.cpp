@@ -352,7 +352,7 @@ void scr_get_num_expected_players() {
 
   const game::eModes mode = game::com::Com_SessionMode_GetMode();
   if ((mode == game::eModes::ZOMBIES || mode == game::eModes::CAMPAIGN)) {
-    const int32_t min_players = lobby_min_players->current.value.integer;
+    const int32_t min_players = game::get_dvar_int(lobby_min_players);
     if (min_players > 0) {
       expected_players = min_players;
     } else if (!game::is_server()) {
@@ -382,6 +382,25 @@ void Sys_WaitForSingleObject_Safe(HANDLE *event) {
   }
 }
 
+utils::hook::detour ScrVar_ReleaseVariable_hook;
+uint32_t ScrVar_ReleaseVariable_Safe(game::scr::scriptInstance_t inst,
+                                     game::scr::ScrVarIndex_t id) {
+  if (game::valid_scrvar_index(inst, id)) {
+    return ScrVar_ReleaseVariable_hook.invoke<uint32_t>(inst, id);
+  }
+
+  // Return 0 refcount for non-existent ScrVar
+  return 0;
+}
+
+utils::hook::detour ScrVar_ReleaseValue_hook;
+void ScrVar_ReleaseValue_Safe(game::scr::scriptInstance_t inst,
+                              game::scr::ScrVarValue_t *value) {
+  if (game::valid_scrvarvalue_ptr(inst, value)) {
+    ScrVar_ReleaseValue_hook.invoke(inst, value);
+  }
+}
+
 utils::hook::detour G_RegisterSoundWait_hook;
 #ifndef NDEBUG
 utils::hook::detour SND_HashName_hook;
@@ -392,6 +411,10 @@ struct component final : generic_component {
 
     G_RegisterSoundWait_hook.create(game::G_RegisterSoundWait.get(),
                                     game::G_RegisterSoundWait_Impl);
+    ScrVar_ReleaseVariable_hook.create(game::scr::ScrVar_ReleaseVariable.get(),
+                                       ScrVar_ReleaseVariable_Safe);
+    ScrVar_ReleaseValue_hook.create(game::scr::ScrVar_ReleaseValue.get(),
+                                    ScrVar_ReleaseValue_Safe);
 
 #ifndef NDEBUG
     SND_HashName_hook.create(game::snd::SND_HashName.get(),

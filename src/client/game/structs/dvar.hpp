@@ -1,7 +1,8 @@
 #pragma once
 
-#include "core.hpp"
-#include "quake.hpp"
+#include "quake/core.hpp"
+#include "quake/vec.hpp"
+
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
@@ -292,6 +293,13 @@ struct dvar_t {
   DvarLimits domain;
   dvar_t *hashNext;
 };
+
+static_assert(offsetof(dvar_t, debugName) == 8);
+static_assert(offsetof(dvar_t, description) == 16);
+static_assert(offsetof(dvar_t, flags) == 24);
+static_assert(offsetof(dvar_t, type) == 28);
+static_assert(offsetof(dvar_t, modified) == 32);
+static_assert(offsetof(dvar_t, current) == 40);
 
 typedef void (*modifiedCallback)(const dvar_t *);
 

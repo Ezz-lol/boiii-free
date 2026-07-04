@@ -9,12 +9,29 @@ namespace game {
 namespace gfx {
 struct GfxImage;
 typedef GfxImage *GfxImagePtr;
-
 } // namespace gfx
+
+namespace hunk {
+struct HunkUser;
+}
 namespace scr {
 typedef uint32_t ScrString_t;
 typedef uint32_t ScrVarCanonicalName_t;
 typedef ScrString_t ScriptString;
+
+enum scriptInstance_t {
+  SCRIPTINSTANCE_SERVER = 0x0,
+  SCRIPTINSTANCE_CLIENT = 0x1,
+  SCRIPTINSTANCE_MAX = 0x2,
+};
+
+template <typename T> union ScrPool {
+  struct {
+    T server;
+    T client;
+  };
+  array<T, SCRIPTINSTANCE_MAX> instance;
+};
 
 //
 // Reverse engineered and defined as enum further below, using the
@@ -130,15 +147,14 @@ union KVPItemUnion {
   intptr_t pointer;
   SurfaceFXTableDef *surfaceTable;
 };
-static_assert(sizeof(KVPItemUnion) == 8, "KVPItemUnion size must be 8 bytes");
+ASSERT_SIZE(KVPItemUnion, 8);
 
 union ScriptBundleKVPData {
   uint32_t _data;
   int integer;
   float v;
 };
-static_assert(sizeof(ScriptBundleKVPData) == 4,
-              "ScriptBundleKVPData size must be 4 bytes");
+ASSERT_SIZE(ScriptBundleKVPData, 4);
 
 // sizeof=0x18
 struct ScriptBundleKVP {
@@ -148,8 +164,7 @@ struct ScriptBundleKVP {
   ScriptBundleKVPData data;
   KVPItemUnion itemPtr;
 };
-static_assert(sizeof(ScriptBundleKVP) == 0x18,
-              "ScriptBundleKVP size must be 24 bytes");
+ASSERT_SIZE(ScriptBundleKVP, 0x18);
 
 // sizeof=0x10
 struct ScriptBundleObject {
@@ -157,8 +172,7 @@ struct ScriptBundleObject {
   uint8_t _padding04[4];
   ScriptBundleKVP *kvps;
 };
-static_assert(sizeof(ScriptBundleObject) == 0x10,
-              "ScriptBundleObject size must be 16 bytes");
+ASSERT_SIZE(ScriptBundleObject, 0x10);
 
 // sizeof=0x30
 struct ScriptBundle {
@@ -172,8 +186,7 @@ struct ScriptBundle {
   uint8_t _padding24[4];
   ScriptBundleObject *bundleObjects;
 };
-static_assert(sizeof(ScriptBundle) == 0x30,
-              "ScriptBundle size must be 48 bytes");
+ASSERT_SIZE(ScriptBundle, 0x30);
 #pragma pack(pop)
 
 struct scr_const_t {
@@ -1478,25 +1491,126 @@ struct scr_entref_t {
   LocalClientNum_t client;
 };
 
-static_assert(sizeof(scr_entref_t) == 0x10, "scr_entref_t has incorrect size");
+ASSERT_SIZE(scr_entref_t, 0x10);
 
-enum scriptInstance_t {
-  SCRIPTINSTANCE_SERVER = 0x0,
-  SCRIPTINSTANCE_CLIENT = 0x1,
-  SCRIPTINSTANCE_MAX = 0x2,
+typedef uint32_t ScrVarCanonicalName_t;
+
+typedef fastcall_t<void(scriptInstance_t inst)> BuiltinFunction;
+#pragma pack(push, 1)
+union BuiltinFunctionType {
+  enum Flag : uint32_t {
+    DEFAULT = 0x0,
+    DEVBLOCK_ONLY = 0x1,
+  };
+
+  struct {
+    uint32_t devblockOnly : 1;
+
+    uint32_t _unknownB1 : 1;
+    uint32_t _unknownB2 : 1;
+    uint32_t _unknownB3 : 1;
+    uint32_t _unknownB4 : 1;
+    uint32_t _unknownB5 : 1;
+    uint32_t _unknownB6 : 1;
+    uint32_t _unknownB7 : 1;
+    uint32_t _unknownB8 : 1;
+    uint32_t _unknownB9 : 1;
+    uint32_t _unknownB10 : 1;
+    uint32_t _unknownB11 : 1;
+    uint32_t _unknownB12 : 1;
+    uint32_t _unknownB13 : 1;
+    uint32_t _unknownB14 : 1;
+    uint32_t _unknownB15 : 1;
+    uint32_t _unknownB16 : 1;
+    uint32_t _unknownB17 : 1;
+    uint32_t _unknownB18 : 1;
+    uint32_t _unknownB19 : 1;
+    uint32_t _unknownB20 : 1;
+    uint32_t _unknownB21 : 1;
+    uint32_t _unknownB22 : 1;
+    uint32_t _unknownB23 : 1;
+    uint32_t _unknownB24 : 1;
+    uint32_t _unknownB25 : 1;
+    uint32_t _unknownB26 : 1;
+    uint32_t _unknownB27 : 1;
+    uint32_t _unknownB28 : 1;
+    uint32_t _unknownB29 : 1;
+    uint32_t _unknownB30 : 1;
+    uint32_t _unknownB31 : 1;
+  };
+  Flag flag;
+  uint32_t raw;
+
+  inline constexpr BuiltinFunctionType() : raw(0) {}
+  inline constexpr BuiltinFunctionType(uint32_t value) : raw(value) {}
+  inline constexpr BuiltinFunctionType(Flag value) : flag(value) {}
+
+  inline constexpr explicit operator bool() const noexcept { return raw != 0; }
+  inline constexpr bool has(BuiltinFunctionType mask) const noexcept {
+    return (raw & mask.raw) == mask.raw;
+  }
+  inline constexpr bool has_any(BuiltinFunctionType mask) const noexcept {
+    return (raw & mask.raw) != 0;
+  }
+
+  friend inline constexpr bool operator==(BuiltinFunctionType lhs,
+                                          BuiltinFunctionType rhs) noexcept {
+    return lhs.raw == rhs.raw;
+  }
+  friend inline constexpr bool operator!=(BuiltinFunctionType lhs,
+                                          BuiltinFunctionType rhs) noexcept {
+    return lhs.raw != rhs.raw;
+  }
+
+  friend inline constexpr BuiltinFunctionType
+  operator|(BuiltinFunctionType lhs, BuiltinFunctionType rhs) noexcept {
+    return BuiltinFunctionType(lhs.raw | rhs.raw);
+  }
+  friend inline constexpr BuiltinFunctionType
+  operator&(BuiltinFunctionType lhs, BuiltinFunctionType rhs) noexcept {
+    return BuiltinFunctionType(lhs.raw & rhs.raw);
+  }
+  friend inline constexpr BuiltinFunctionType
+  operator^(BuiltinFunctionType lhs, BuiltinFunctionType rhs) noexcept {
+    return BuiltinFunctionType(lhs.raw ^ rhs.raw);
+  }
+
+  inline constexpr BuiltinFunctionType &
+  operator|=(BuiltinFunctionType rhs) noexcept {
+    raw |= rhs.raw;
+    return *this;
+  }
+  inline constexpr BuiltinFunctionType &
+  operator&=(BuiltinFunctionType rhs) noexcept {
+    raw &= rhs.raw;
+    return *this;
+  }
+  inline constexpr BuiltinFunctionType &
+  operator^=(BuiltinFunctionType rhs) noexcept {
+    raw ^= rhs.raw;
+    return *this;
+  }
+
+  friend inline constexpr BuiltinFunctionType
+  operator~(BuiltinFunctionType val) noexcept {
+    return BuiltinFunctionType(~val.raw);
+  }
 };
+ASSERT_SIZE(BuiltinFunctionType, sizeof(uint32_t));
+#pragma pack(pop)
 
-using ScrVarCanonicalName_t = uint32_t;
-
-typedef void (*BuiltinFunction)(scriptInstance_t);
-
+#pragma pack(push, 1)
 struct BuiltinFunctionDef {
   ScrVarCanonicalName_t canonId;
   uint32_t min_args;
   uint32_t max_args;
-  void *actionFunc;
-  int32_t type;
+  uint8_t _padding0C[4];
+  BuiltinFunction actionFunc;
+  BuiltinFunctionType type;
+  uint8_t _padding1C[4];
 };
+ASSERT_SIZE(BuiltinFunctionDef, 0x20);
+#pragma pack(pop)
 
 // Note: unverified as of initial addition
 // Verify before use.
@@ -1511,8 +1625,7 @@ struct ScrVarStackBuffer_t {
   uint8_t buf[1];
   uint8_t _padding[3];
 };
-static_assert(sizeof(ScrVarStackBuffer_t) == 0x20,
-              "ScrVarStackBuffer_t has incorrect size");
+ASSERT_SIZE(ScrVarStackBuffer_t, 0x20);
 #pragma pack(pop)
 
 // Note: unverified as of initial addition
@@ -1534,8 +1647,7 @@ union ScrVarValueUnion_t {
     ScrVarIndex_t lastChild;
   };
 };
-static_assert(sizeof(ScrVarValueUnion_t) == 0x8,
-              "ScrVarValueUnion_t has incorrect size");
+ASSERT_SIZE(ScrVarValueUnion_t, 0x8);
 
 #pragma pack(push, 1)
 struct ScrVarValue_t {
@@ -1543,8 +1655,7 @@ struct ScrVarValue_t {
   ScrVarType_t type;
   uint8_t _padding[4];
 };
-static_assert(sizeof(ScrVarValue_t) == 0x10,
-              "ScrVarValue_t has incorrect size");
+ASSERT_SIZE(ScrVarValue_t, 0x10);
 #pragma pack(pop)
 
 struct scr_anim_t {
@@ -1556,7 +1667,7 @@ struct scr_anim_t {
     const uint8_t *linkPointer;
   };
 };
-static_assert(sizeof(scr_anim_t) == 0x8, "scr_anim_t has incorrect size");
+ASSERT_SIZE(scr_anim_t, 0x8);
 
 struct XAnim;
 struct scr_animtree_t {
@@ -1764,6 +1875,171 @@ struct Camera {
   vec3_t tagCameraXform[4];
   vec3_t lastTagCameraAngles;
 };
+
+struct ScrVarEntityInfo_t {
+  uint16_t classnum;
+  uint16_t clientNum;
+};
+
+#pragma pack(push, 1)
+struct ScrVar_t {
+  ScrVarValue_t value;
+  struct {
+    int32_t nameType : 3;
+    uint32_t flags : 5;
+    uint32_t refCount : 24;
+  };
+  uint8_t _padding14[4];
+  union {
+    uint64_t object_o;
+    uint32_t size;
+    EntRefUnion entRefUnion;
+    ScrVarIndex_t nextEntId;
+    ScrVarIndex_t self;
+    ScrVarIndex_t free;
+  } o;
+  union {
+    uint32_t object_w;
+    ScrVarEntityInfo_t varEntityInfo;
+    ScrVarCanonicalName_t notifyName;
+    uint32_t waitTime;
+  } w;
+  uint8_t _padding24[4];
+  ScrVarNameIndex_t nameIndex;
+  ScrVarIndex_t nextSibling;
+  ScrVarIndex_t prevSibling;
+  ScrVarIndex_t parentId;
+  ScrVarIndex_t nameSearchHashList;
+};
+ASSERT_SIZE(ScrVar_t, 0x40);
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+struct scrVarGlob_t {
+  ScrVarIndex_t *scriptNameSearchHashList;
+  uint8_t _padding08[0x78];
+  ScrVar_t *scriptVariables;
+  uint8_t _padding88[0x78];
+};
+ASSERT_SIZE(scrVarGlob_t, 0x100);
+ASSERT_OFFSET(scrVarGlob_t, scriptVariables, 0x80);
+#pragma pack(pop)
+
+typedef ScrPool<scrVarGlob_t> ScrVarGlobPool;
+
+union scrChecksum_t {
+  struct {
+    uint32_t loadedScriptsCumulativeCRC;
+    // Always zero except in gamestate packet, where it is XORed with XUID
+    uint32_t unknown1;
+    // Always zero except in gamestate packet, where it is XORed with XUID
+    uint32_t unknown2;
+  };
+  uint32_t raw[3];
+};
+
+#pragma pack(push, 1)
+struct scrVarPub_t {
+  const char *fieldBuffer;
+  bool developer;
+  bool evaluate;
+  uint8_t _padding0A[6];
+  const char *error_message;
+  uint32_t time;
+  ScrVarIndex_t timeArrayId;
+  ScrVarIndex_t pauseArrayId;
+  ScrVarIndex_t worldId;
+  ScrVarIndex_t classesId;
+  ScrVarIndex_t levelId;
+  ScrVarIndex_t gameId;
+  ScrVarIndex_t animId;
+  ScrVarIndex_t freeEntList;
+  ScrVarIndex_t tempVariable;
+  bool bInited;
+  uint8_t _padding41[3];
+  uint32_t animChecksum;
+  scrChecksum_t checksum;
+  uint32_t entId;
+  ScrVarNameIndex_t entFieldNameIndex;
+  hunk::HunkUser *programHunkUser;
+  uint8_t *programBuffer;
+  uint8_t *endScriptBuffer;
+};
+
+ASSERT_SIZE(scrVarPub_t, 0x78);
+ASSERT_OFFSET(scrVarPub_t, programHunkUser, 0x60);
+ASSERT_OFFSET(scrVarPub_t, programBuffer, 0x68);
+ASSERT_OFFSET(scrVarPub_t, endScriptBuffer, 0x70);
+ASSERT_OFFSET(scrVarPub_t, animChecksum, 0x44);
+ASSERT_OFFSET(scrVarPub_t, checksum, 0x48);
+ASSERT_OFFSET(scrVarPub_t, entId, 0x54);
+ASSERT_OFFSET(scrVarPub_t, entFieldNameIndex, 0x58);
+ASSERT_OFFSET(scrVarPub_t, bInited, 0x40);
+ASSERT_OFFSET(scrVarPub_t, error_message, 0x10);
+ASSERT_OFFSET(scrVarPub_t, timeArrayId, 0x1C);
+ASSERT_OFFSET(scrVarPub_t, pauseArrayId, 0x20);
+ASSERT_OFFSET(scrVarPub_t, worldId, 0x24);
+ASSERT_OFFSET(scrVarPub_t, classesId, 0x28);
+ASSERT_OFFSET(scrVarPub_t, levelId, 0x2C);
+ASSERT_OFFSET(scrVarPub_t, gameId, 0x30);
+ASSERT_OFFSET(scrVarPub_t, animId, 0x34);
+ASSERT_OFFSET(scrVarPub_t, freeEntList, 0x38);
+ASSERT_OFFSET(scrVarPub_t, tempVariable, 0x3C);
+ASSERT_OFFSET(scrVarPub_t, fieldBuffer, 0x00);
+ASSERT_OFFSET(scrVarPub_t, developer, 0x08);
+ASSERT_OFFSET(scrVarPub_t, evaluate, 0x09);
+ASSERT_OFFSET(scrVarPub_t, time, 0x18);
+#pragma pack(pop)
+
+typedef ScrPool<scrVarPub_t> ScrVarPubPool;
+
+constexpr ScrPool<ScrVarIndex_t> SCRIPTVARIABLE_POOL_SIZE = {.server = 130000,
+                                                             .client = 65000};
+
+#pragma pack(push, 1)
+struct GSC_OBJ {
+  str8_t magic;
+  uint32_t source_crc;
+  uint32_t include_offset;
+  uint32_t animtree_offset;
+  uint32_t cseg_offset;
+  uint32_t stringtablefixup_offset;
+  uint32_t devblock_stringtablefixup_offset;
+  uint32_t exports_offset;
+  uint32_t imports_offset;
+  uint32_t fixup_offset;
+  uint32_t profile_offset;
+  uint32_t cseg_size;
+  uint32_t name;
+  uint16_t stringtablefixup_count;
+  uint16_t exports_count;
+  uint16_t imports_count;
+  uint16_t fixup_count;
+  uint16_t profile_count;
+  uint16_t devblock_stringtablefixup_count;
+  uint8_t include_count;
+  uint8_t animtree_count;
+  uint8_t flags;
+  uint8_t _padding47[1];
+};
+ASSERT_SIZE(GSC_OBJ, 0x48);
+#pragma pack(pop)
+
+struct GSC_ANIMTREE_ITEM {
+  uint32_t name;
+  uint16_t num_tree_address;
+  uint16_t num_node_address;
+};
+
+#pragma pack(push, 1)
+struct ScriptParseTree {
+  const char *name;
+  int32_t len;
+  uint8_t _padding0C[4];
+  GSC_OBJ *buffer;
+};
+ASSERT_SIZE(ScriptParseTree, 0x18);
+#pragma pack(pop)
 
 } // namespace scr
 } // namespace game

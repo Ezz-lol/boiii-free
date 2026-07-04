@@ -8,6 +8,7 @@
 #include <utils/string.hpp>
 
 namespace toast {
+using namespace game::ui::lua::hks;
 namespace {
 std::string escape_lua_string(const std::string &s) {
   std::string result;
@@ -34,19 +35,17 @@ std::string escape_lua_string(const std::string &s) {
 }
 
 bool execute_lua(const std::string &code) {
-  const auto state = *game::ui::lua::hks::lua_state;
+  lua_State *state = *primary_luaVM;
   if (!state)
     return false;
 
   try {
-    const auto globals = state->globals.v.table;
+    HashTable *globals = state->globals.v.table;
     const ui_scripting::table lua{globals};
 
-    state->m_global->m_bytecodeSharingMode =
-        game::ui::lua::hks::HksBytecodeSharingMode::ON;
+    state->m_global->m_bytecodeSharingMode = HksBytecodeSharingMode::ON;
     const auto load_results = lua["loadstring"](code, "toast");
-    state->m_global->m_bytecodeSharingMode =
-        game::ui::lua::hks::HksBytecodeSharingMode::SECURE;
+    state->m_global->m_bytecodeSharingMode = HksBytecodeSharingMode::SECURE;
 
     if (load_results[0].is<ui_scripting::function>()) {
       const auto results = lua["pcall"](load_results);

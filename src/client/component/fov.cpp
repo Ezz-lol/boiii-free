@@ -2,6 +2,7 @@
 #include "loader/component_loader.hpp"
 
 #include "game/game.hpp"
+#include "game/utils.hpp"
 
 #include <utils/hook.hpp>
 
@@ -16,7 +17,7 @@ void cg_calc_fov_stub(const game::LocalClientNum_t local_client_num,
   const game::dvar_t *cg_fovScale =
       *reinterpret_cast<game::dvar_t **>(0x144A31A88_g);
   if (cg_fovScale && !game::com::Com_IsRunningUILevel()) {
-    const auto scale = cg_fovScale->current.value.value;
+    const float scale = game::get_dvar_float(cg_fovScale);
 
     *fov_x *= scale;
     *dx_dz *= scale;

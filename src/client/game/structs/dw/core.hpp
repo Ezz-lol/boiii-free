@@ -93,7 +93,7 @@ public:
 class bdReferencable;
 class bdReferencableVTbl {
 public:
-  thiscall_t<void, bdReferencable *, int64_t> releaseFunc;
+  thiscall_t<void(bdReferencable *_this, int64_t)> releaseFunc;
 };
 
 #pragma pack(push, 1)
@@ -501,17 +501,16 @@ enum class bdLobbyErrorCode : uint32_t {
 class bdRemoteTask;
 class bdRemoteTaskVTbl : public bdReferencableVTbl {
 public:
-  thiscall_t<bdTask<bdRemoteTaskVTbl>::bdStatus, bdRemoteTask * /*this*/>
+  thiscall_t<bdTask<bdRemoteTaskVTbl>::bdStatus(bdRemoteTask *_this)>
       checkTimeout;
-  thiscall_t<void, bdRemoteTask * /*this*/, bdByteBufferRef * /*byteResults*/,
-             const bdNChar8 * /*file*/, const bdNChar8 * /*function*/,
-             const bdNChar8 * /*line*/
-             >
+  thiscall_t<void(bdRemoteTask *_this, bdByteBufferRef *byteResults,
+                  const bdNChar8 *file, const bdNChar8 *function,
+                  const bdNChar8 *line)>
       deserializeResult;
-  thiscall_t<void, bdRemoteTask * /*this*/, bdFloat32 /*timeout*/> start;
-  thiscall_t<bool, bdRemoteTask * /*this*/, bdByteBufferRef * /*byteResults*/,
-             const bdNChar8 * /*file*/, const bdNChar8 * /*function*/,
-             const bdNChar8 * /*line*/>
+  thiscall_t<void(bdRemoteTask *_this, bdFloat32 timeout)> start;
+  thiscall_t<bool(bdRemoteTask *_this, bdByteBufferRef *byteResults,
+                  const bdNChar8 *file, const bdNChar8 *function,
+                  const bdNChar8 *line)>
       deserialize;
 };
 
@@ -792,9 +791,9 @@ enum class LocalTaskState : uint32_t {
 };
 
 struct TaskRecord;
-typedef fastcall_t<LocalTaskState, TaskRecord *> localTaskFunc;
+typedef fastcall_t<LocalTaskState(TaskRecord *task)> localTaskFunc;
 
-typedef fastcall_t<bool, TaskRecord *> task_callback;
+typedef fastcall_t<bool(TaskRecord *task)> task_callback;
 
 typedef uint64_t TaskCategory;
 

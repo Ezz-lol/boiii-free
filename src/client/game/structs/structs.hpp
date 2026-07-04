@@ -6,7 +6,7 @@
 #include "dvar.hpp"        // IWYU pragma: export
 #include "dw/dw.hpp"       // IWYU pragma: export
 #include "jq.hpp"          // IWYU pragma: export
-#include "quake.hpp"       // IWYU pragma: export
+#include "quake/quake.hpp" // IWYU pragma: export
 #include "snd/snd.hpp"     // IWYU pragma: export
 #include "scr/scr.hpp"     // IWYU pragma: export
 #include "bg.hpp"          // IWYU pragma: export
@@ -32,6 +32,9 @@
 #include "cg.hpp"          // IWYU pragma: export
 #include "steam.hpp"       // IWYU pragma: export
 #include "stream.hpp"      // IWYU pragma: export
+#include "array.hpp"       // IWYU pragma: export
+#include "str.hpp"         // IWYU pragma: export
+#include "macros.hpp"      // IWYU pragma: export
 #include "sv.hpp"          // IWYU pragma: export
 #include "ugc.hpp"         // IWYU pragma: export
 #include "dyn/dyn.hpp"     // IWYU pragma: export

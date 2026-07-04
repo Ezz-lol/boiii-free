@@ -3,7 +3,7 @@
 #include <cstdint>
 #include "../core.hpp"
 #include "../func.hpp"
-#include "../quake.hpp"
+#include "../quake/core.hpp"
 #include "../db/xpak.hpp"
 
 #include "HLSL.hpp"

@@ -13,7 +13,20 @@ public:
   info_string(const std::basic_string_view<uint8_t> &buffer);
 
   void set(const std::string &key, const std::string &value);
+  void set(const std::string_view &key, const std::string &value);
+  void set(const char *key, const std::string &value);
+
+  void set(const std::string &key, const std::string_view &value);
+  void set(const std::string_view &key, const std::string_view &value);
+  void set(const char *key, const std::string_view &value);
+
+  void set(const std::string &key, const char *value);
+  void set(const std::string_view &key, const char *value);
+  void set(const char *key, const char *value);
+
   std::string get(const std::string &key) const;
+  std::string get(const std::string_view &key) const;
+  std::string get(const char *key) const;
   std::string build() const;
 
 private:

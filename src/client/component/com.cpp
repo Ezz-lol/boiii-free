@@ -39,8 +39,8 @@ void execute_unload_callbacks(const char *level) {
 constexpr uint32_t LEVEL_ZONE_ALLOC_FLAGS_MASK = 0x64;
 utils::hook::detour DB_LoadXAssets_hook;
 void DB_LoadXAssets_stub(game::db::xzone::XZoneInfo *zoneInfo,
-                         uint32_t zoneCount, game::qboolean sync,
-                         game::qboolean suppressSync) {
+                         uint32_t zoneCount, qboolean sync,
+                         qboolean suppressSync) {
   bool is_level_fastfile_unload = false;
   if (zoneInfo) {
     bool alloc_flags_include_level_zone =

@@ -5,66 +5,17 @@
 #include <stdfloat>
 #include <csetjmp>
 #include <variant>
-#include <atomic>
+
+#include "str.hpp"
+#include "macros.hpp"
+#include "quake/vec.hpp"
 
 #define PROTOCOL 8
 #define SUB_PROTOCOL 1
 
 namespace game {
 
-// Automatically pad a partially defined (reverse-engineered, in our case)
-// struct to a fixed, known-correct total length
-#define partial_def(TotalSize, PrimType, Fixed, Verified)                      \
-  PrimType Fixed {                                                             \
-    union {                                                                    \
-      PrimType Verified;                                                       \
-      uint8_t __raw[TotalSize];                                                \
-    };                                                                         \
-  }
-
-#define inline_partial_def(InlineNum, FixedTotalSize, PrimType, Verified)      \
-  union {                                                                      \
-    PrimType Verified verified_##InlineNum;                                    \
-    uint8_t __raw_##InlineNum[FixedTotalSize];                                 \
-  }
-
-#define IMPL_ENUM_OPERATORS(name)                                              \
-  inline name &operator++(name &s) {                                           \
-    using underlying = std::underlying_type_t<name>;                           \
-    s = static_cast<name>(static_cast<underlying>(s) + 1);                     \
-    return s;                                                                  \
-  }                                                                            \
-                                                                               \
-  inline name operator++(name &s, int) {                                       \
-    name temp = s;                                                             \
-    ++s;                                                                       \
-    return temp;                                                               \
-  }                                                                            \
-                                                                               \
-  inline name &operator--(name &s) {                                           \
-    using underlying = std::underlying_type_t<name>;                           \
-    s = static_cast<name>(static_cast<underlying>(s) - 1);                     \
-    return s;                                                                  \
-  }                                                                            \
-                                                                               \
-  inline name operator--(name &s, int) {                                       \
-    name temp = s;                                                             \
-    --s;                                                                       \
-    return temp;                                                               \
-  }
-
 typedef void *UnknownPtr;
-
-template <std::size_t Actual, std::size_t Expected>
-concept ValueMatches = (Actual == Expected);
-
-#define ASSERT_SIZE(type, size)                                                \
-  static_assert(ValueMatches<sizeof(type), (size)>, "Size mismatch "           \
-                                                    "for " #type)
-
-#define ASSERT_OFFSET(type, field, offset)                                     \
-  static_assert(ValueMatches<offsetof(type, field), (offset)>,                 \
-                "Offset mismatch for " #type "::" #field)
 
 typedef uint32_t contents_t;
 typedef const char *XString;
@@ -291,12 +242,6 @@ enum class errorCode : uint32_t {
 };
 IMPL_ENUM_OPERATORS(errorCode);
 
-template <typename T, const auto N> using array = T[N];
-template <typename T, const auto N>
-using atomicarray = array<std::atomic<T>, N>;
-template <typename T, const auto X, const auto Y>
-using matrix2d = array<array<T, Y>, X>;
-
 template <typename T> using LocalClientPool = array<T, LOCAL_CLIENT_COUNT>;
 template <typename T>
 using AtomicLocalClientPool = atomicarray<T, LOCAL_CLIENT_COUNT>;
@@ -304,24 +249,12 @@ using AtomicLocalClientPool = atomicarray<T, LOCAL_CLIENT_COUNT>;
 template <typename ClientType, typename ServerType>
 using EngineDependent = std::variant<ClientType, ServerType>;
 
-template <const auto T> using str = array<char, T>;
-
-typedef str<8> str8_t;
-typedef str<16> str16_t;
-typedef str<24> str24_t;
-typedef str<32> str32_t;
-typedef str<64> str64_t;
-typedef str<128> str128_t;
-typedef str<256> str256_t;
-
 typedef str8_t clanAbbrev_t;
 typedef str32_t name_t;
 typedef name_t actorName_t;
 typedef name_t playerName_t;
 
 typedef int32_t cinematic_id;
-
-typedef float vec_t;
 
 struct netUInt64 {
   uint32_t low;
@@ -812,58 +745,6 @@ enum class CameraMode : int32_t {
 };
 IMPL_ENUM_OPERATORS(CameraMode);
 
-template <typename T = vec_t> union vec2 {
-  T v[2];
-  struct {
-    T x;
-    T y;
-  };
-};
-typedef vec2<vec_t> vec2_t;
-
-template <typename T = vec_t> union vec3_core {
-  struct {
-    T x;
-    T y;
-    T z;
-  };
-
-  T v[3];
-};
-
-template <typename T = vec_t> union vec3 {
-  struct {
-    T x;
-    T y;
-    T z;
-  };
-
-  vec2<T> xy;
-  T v[3];
-};
-
-typedef vec3<vec_t> vec3_t;
-
-template <typename T = vec_t> union vec4 {
-  T v[4];
-  struct {
-    T x;
-    T y;
-    T z;
-    T w;
-  };
-  struct {
-    T r;
-    T g;
-    T b;
-    T a;
-  };
-  vec2<T> xy;
-  vec3_core<T> xyz;
-};
-
-typedef vec4<vec_t> vec4_t;
-
 struct orientation_t {
   vec3_t origin;
   vec3_t axis[3];
@@ -1031,47 +912,39 @@ constexpr const size_t BITS_PER_BYTE = 8;
 constexpr const size_t BITARRAY_CHUNK_BITS =
     BITARRAY_CHUNK_SIZE * BITS_PER_BYTE;
 
-#ifndef INLINE_MEMSET
-#if defined(__clang__) || defined(__GNUC__)
-#define INLINE_MEMSET(buf, val, count) __builtin_memset(buf, val, count)
-#elif defined(_MSC_VER)
-#pragma instrinsic(memset)
-#define INLINE_MEMSET(buf, val, count) memset(buf, val, count)
-#else
-#error "Unsupported compiler. Only MSVC, Clang and GCC are supported."
-#endif
-#endif
-
 #pragma pack(push, 1)
 template <const size_t B> struct bitarray {
   array<BitArrayChunk, (B + BITARRAY_CHUNK_BITS - 1) / BITARRAY_CHUNK_BITS>
       data;
 
-  friend inline constexpr void set(bitarray<B> *b, size_t index) noexcept {
-    return b->data[index / BITARRAY_CHUNK_BITS] |=
+  inline constexpr void set(size_t index) noexcept {
+    return this->data[index / BITARRAY_CHUNK_BITS] |=
            (1 << (index % BITARRAY_CHUNK_BITS));
   }
 
-  friend inline constexpr void clear(bitarray<B> *b, size_t index) noexcept {
-    return b->data[index / BITARRAY_CHUNK_BITS] &=
+  inline constexpr void clear(size_t index) noexcept {
+    return this->data[index / BITARRAY_CHUNK_BITS] &=
            ~(1 << (index % BITARRAY_CHUNK_BITS));
   }
 
-  friend inline constexpr bool get(bitarray<B> *b, size_t index) noexcept {
-    return (b->data[index / BITARRAY_CHUNK_BITS] &
+  inline constexpr bool get(size_t index) const noexcept {
+    return (this->data[index / BITARRAY_CHUNK_BITS] &
             (1 << (index % BITARRAY_CHUNK_BITS))) != 0;
   }
 
-  friend inline constexpr void reset(bitarray<B> *b) noexcept {
-    INLINE_MEMSET(&b->data, 0, sizeof(b->data));
+  inline constexpr void reset() noexcept {
+    INLINE_MEMSET(&this->data, 0, sizeof(this->data));
   }
 
   // Function name used by engine
-  friend inline constexpr void resetAllBits(bitarray<B> *b) noexcept {
-    reset(b);
-  }
+  inline constexpr void resetAllBits() noexcept { reset(); }
 };
 ASSERT_SIZE(bitarray<32>, 0x4);
+static_assert(std::is_standard_layout_v<bitarray<32>>,
+              "bitarray must be standard layout!");
+static_assert(std::is_trivially_copyable_v<bitarray<32>>,
+              "bitarray must be trivially copyable!");
+
 #pragma pack(pop)
 
 typedef bitarray<72> game_button_bits_t;
@@ -1282,4 +1155,21 @@ public:
 };
 ASSERT_SIZE(tlAtomicMutex, 0x18);
 #pragma pack(pop)
+
+// Unverified.
+enum class consoleChannel_e : uint32_t {
+  CHANNEL_DONT_FILTER = 0x0,
+  CHANNEL_GAMENOTIFY = 0x1,
+  CHANNEL_BOLDGAME = 0x2,
+  CHANNEL_OBJNOTIFY = 0x3,
+  CHANNEL_SUBTITLE = 0x4,
+  CHANNEL_OBITUARY = 0x5,
+  CHANNEL_COOPINFO = 0x6,
+  CHANNEL_WARNING = 0x7,
+  CHANNEL_ERROR = 0x8,
+  CHANNEL_INFO = 0x9,
+  BUILTIN_CHANNEL_COUNT = 0xA,
+  FIRST_DEBUG_CHANNEL = 0x9,
+};
+
 } // namespace game

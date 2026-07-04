@@ -1,52 +1,71 @@
 #pragma once
 
-#include "structs/structs.hpp"
+#include "game.hpp"
 #include <functional>
 #include <string>
 #include <type_traits>
 
 namespace game {
-[[nodiscard]] std::string get_dvar_string(const char *dvar_name);
-[[nodiscard]] int get_dvar_int(const char *dvar_name);
+[[nodiscard]] dvar_t *get_dvar(const char *name);
+[[nodiscard]] std::string_view get_dvar_string(const dvar_t *dvar);
+[[nodiscard]] std::string_view get_dvar_string(const char *dvar_name);
+[[nodiscard]] int32_t get_dvar_int(const dvar_t *dvar);
+[[nodiscard]] int32_t get_dvar_int(const char *dvar_name);
+[[nodiscard]] uint32_t get_dvar_uint(const dvar_t *dvar);
 [[nodiscard]] uint32_t get_dvar_uint(const char *dvar_name);
+[[nodiscard]] int64_t get_dvar_int64(const dvar_t *dvar);
 [[nodiscard]] int64_t get_dvar_int64(const char *dvar_name);
+[[nodiscard]] uint64_t get_dvar_uint64(const dvar_t *dvar);
 [[nodiscard]] uint64_t get_dvar_uint64(const char *dvar_name);
+[[nodiscard]] float get_dvar_float(const dvar_t *dvar);
 [[nodiscard]] float get_dvar_float(const char *dvar_name);
+[[nodiscard]] bool get_dvar_bool(const dvar_t *dvar);
 [[nodiscard]] bool get_dvar_bool(const char *dvar_name);
-int set_dvar_int(const char *dvar_name, int val,
+
+int set_dvar_int(const dvar_t *dvar, int32_t val,
                  DvarSetSource source = DvarSetSource::INTERNAL);
+int set_dvar_int(const char *dvar_name, int32_t val,
+                 DvarSetSource source = DvarSetSource::INTERNAL);
+int64_t set_dvar_int64(const dvar_t *dvar, int64_t val,
+                       DvarSetSource source = DvarSetSource::INTERNAL);
 int64_t set_dvar_int64(const char *dvar_name, int64_t val,
                        DvarSetSource source = DvarSetSource::INTERNAL);
+uint64_t set_dvar_uint64(const dvar_t *dvar, uint64_t val,
+                         DvarSetSource source = DvarSetSource::INTERNAL);
 uint64_t set_dvar_uint64(const char *dvar_name, uint64_t val,
                          DvarSetSource source = DvarSetSource::INTERNAL);
+bool set_dvar_bool(const dvar_t *dvar, bool val,
+                   DvarSetSource source = DvarSetSource::INTERNAL);
 bool set_dvar_bool(const char *dvar_name, bool val,
                    DvarSetSource source = DvarSetSource::INTERNAL);
+float set_dvar_float(const dvar_t *dvar, float val,
+                     DvarSetSource source = DvarSetSource::INTERNAL);
 float set_dvar_float(const char *dvar_name, float val,
                      DvarSetSource source = DvarSetSource::INTERNAL);
 
 [[nodiscard]] const dvar_t *register_dvar_bool(const char *dvar_name,
-                                               bool value, unsigned int flags,
+                                               bool value, uint32_t flags,
                                                const char *description);
-[[nodiscard]] const dvar_t *register_dvar_int(const char *dvar_name, int value,
-                                              int min, int max,
-                                              unsigned int flags,
+[[nodiscard]] const dvar_t *register_dvar_int(const char *dvar_name,
+                                              int32_t value, int32_t min,
+                                              int32_t max, uint32_t flags,
                                               const char *description);
 [[nodiscard]] const dvar_t *register_dvar_float(const char *dvar_name,
                                                 float value, float min,
-                                                float max, unsigned int flags,
+                                                float max, uint32_t flags,
                                                 const char *description);
 [[nodiscard]] const dvar_t *
 register_sessionmode_dvar_bool(const char *dvar_name, bool value,
-                               unsigned int flags, const char *description,
+                               uint32_t flags, const char *description,
                                eModes mode = eModes::COUNT);
 [[nodiscard]] const dvar_t *register_dvar_string(const char *dvar_name,
                                                  const char *value,
-                                                 unsigned int flags,
+                                                 uint32_t flags,
                                                  const char *description);
 
-void dvar_add_flags(const char *dvar, unsigned int flags);
-void dvar_set_flags(const char *dvar_name, unsigned int flags);
-void dvar_remove_flags(const char *dvar_name, unsigned int flags);
+void dvar_add_flags(const char *dvar_name, uint32_t flags);
+void dvar_set_flags(const char *dvar_name, uint32_t flags);
+void dvar_remove_flags(const char *dvar_name, uint32_t flags);
 
 [[nodiscard]] bool is_server_running();
 [[nodiscard]] size_t get_max_client_count();
@@ -95,6 +114,41 @@ valid_controller_index(ControllerIndex_t controllerIndex) {
 inline constexpr bool valid_local_client_num(LocalClientNum_t localClientNum) {
   return valid<LocalClientNum_t, LOCAL_CLIENT_0, LOCAL_CLIENT_COUNT>(
       localClientNum);
+}
+
+inline constexpr bool valid_scrvar_index(scr::scriptInstance_t inst,
+                                         scr::ScrVarIndex_t index) {
+  return index < scr::SCRIPTVARIABLE_POOL_SIZE.instance[inst];
+}
+
+inline scr::ScrVarIndex_t scrvar_index(scr::scriptInstance_t inst,
+                                       scr::ScrVar_t *var) {
+  uintptr_t scriptVariablesPtr = reinterpret_cast<uintptr_t>(
+      scr::gScrVarGlob->instance[inst].scriptVariables);
+  uintptr_t varPtr = reinterpret_cast<uintptr_t>(var);
+  return static_cast<scr::ScrVarIndex_t>((varPtr - scriptVariablesPtr) /
+                                         sizeof(scr::ScrVar_t));
+}
+
+inline bool valid_scrvar_ptr(scr::scriptInstance_t inst, scr::ScrVar_t *var) {
+  return valid_engine_ptr(var) // Static or stack allocation
+         ||
+         valid_scrvar_index(inst, scrvar_index(inst, var)); // Pool allocation
+}
+
+inline scr::ScrVarIndex_t scrvarvalue_index(scr::scriptInstance_t inst,
+                                            scr::ScrVarValue_t *val) {
+  uintptr_t valPtr = reinterpret_cast<uintptr_t>(val);
+  scr::ScrVar_t *varPtr = reinterpret_cast<scr::ScrVar_t *>(
+      valPtr - offsetof(scr::ScrVar_t, value) /* 0 */);
+  return scrvar_index(inst, varPtr);
+}
+
+inline bool valid_scrvarvalue_ptr(scr::scriptInstance_t inst,
+                                  scr::ScrVarValue_t *val) {
+  return valid_engine_ptr(val) // Static or stack allocation
+         || valid_scrvar_index(inst,
+                               scrvarvalue_index(inst, val)); // Pool allocation
 }
 
 level::gentity_pool *gentity_pool();

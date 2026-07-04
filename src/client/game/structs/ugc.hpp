@@ -32,8 +32,15 @@ struct WorkshopData {
   steam::PublishedFileId_t publisherIdInteger;
   UGCHash publisherIdHash;
   ZoneType type;
-};
 
+  inline void clear() {
+    memset(static_cast<void *>(this), 0, sizeof(WorkshopData));
+  }
+};
+static_assert(std::is_standard_layout_v<WorkshopData>,
+              "WorkshopData must be standard layout!");
+static_assert(std::is_trivially_copyable_v<WorkshopData>,
+              "WorkshopData must be trivially copyable!");
 ASSERT_SIZE(WorkshopData, 0x4C8);
 
 enum class ModLoadState : uint32_t {
@@ -53,6 +60,10 @@ template <const uint32_t POOL_SIZE> struct WorkshopDataPool {
   uint32_t count;
   uint8_t _padding04[4];
   WorkshopData data[POOL_SIZE];
+
+  inline void clear() {
+    memset(static_cast<void *>(this), 0, sizeof(WorkshopDataPool<POOL_SIZE>));
+  }
 };
 
 template <const uint32_t POOL_SIZE>

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core.hpp"
-#include "quake.hpp"
+#include "quake/core.hpp"
 #include "db/xasset.hpp"
 #include "dyn/ent.hpp"
 #include "asm.hpp"

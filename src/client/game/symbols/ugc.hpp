@@ -13,16 +13,16 @@ WEAK symbol<BuiltinWorkshopDataPool> builtinUsermapsPool{0x1567B3580,
                                                          0x149364EE8};
 extern ExtendedWorkshopDataPool usermapsPool;
 
-WEAK symbol<bool()> isModLoaded{0x1420D5020};
-WEAK symbol<const char *()> getPublisherIdFromLoadedMod{0x1420D7680,
-                                                        0x1404E3230};
+WEAK symbol<bool()> UGC_ActiveMod_Loaded{0x1420D5020};
+WEAK symbol<const char *()> UGC_ActiveMod_PublisherId{0x1420D7680, 0x1404E3230};
 WEAK symbol<void(LocalClientNum_t localClientNum, WorkshopData *mod,
                  bool reloadFS)>
     UGC_LoadMod{0x1420D6B50, 0x1404E29E0};
 WEAK symbol<void(LocalClientNum_t localClientNum, const char *publisherId,
                  bool reloadFS)>
     UGC_LoadModByPublisherId{0x1420D6930, 0x1404E27C0};
-WEAK symbol<bool(LocalClientNum_t localClientNum)> isModLoading{0x1420D6DE0};
+WEAK symbol<bool(LocalClientNum_t localClientNum)> UGC_ModLoad_TryComplete{
+    0x1420D6DE0};
 
 WEAK symbol<WorkshopData> active_usermap{0x1567D99A0, 0x14938B2F0};
 WEAK symbol<ActiveMod> active_mod{0x15678CCA0, 0x14933E610};

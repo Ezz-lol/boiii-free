@@ -1027,7 +1027,7 @@ ast_ptr parse_function_def(parser_state &s, bool autoexec, bool is_private) {
 }
 
 ast_ptr parse_detour_function(parser_state &s) {
-  const token &detour_tok = s.advance();
+  s.advance(); // "detour"
 
   const token &ns_tok =
       s.expect(token_type::t_identifier, "Expected detour target namespace");

@@ -37,7 +37,7 @@ using XZoneName = xzone::XZoneName;
 namespace workshop {
 std::thread download_thread{};
 
-utils::hook::detour setup_server_map_hook;
+utils::hook::detour CL_SetupForNewServerMap_hook;
 
 static const std::unordered_map<std::string, std::string> dlc_links = {
     {"zm_zod", "https://forum.ezz.lol/topic/6/bo3-dlc"},
@@ -186,9 +186,9 @@ bool unload_xzone_by_name(const char *zone_name, bool createDefault,
   return false; // Zone not found
 }
 
-void setup_server_map_stub(game::LocalClientNum_t localClientNum,
-                           const char *map, const char *gametype) {
-  const std::string loaded_mod_id = game::ugc::getPublisherIdFromLoadedMod();
+void CL_SetupForNewServerMap_stub(game::LocalClientNum_t localClientNum,
+                                  const char *map, const char *gametype) {
+  const std::string loaded_mod_id = game::ugc::UGC_ActiveMod_PublisherId();
   const bool is_usermap =
       utils::string::is_numeric(map) || !get_usermap_publisher_id(map).empty();
   const bool mod_loaded = loaded_mod_id.size() > 0;
@@ -208,13 +208,13 @@ void setup_server_map_stub(game::LocalClientNum_t localClientNum,
     unload_xzone_by_name("zm_levelcommon", false, false);
   }
 
-  setup_server_map_hook.invoke(localClientNum, map, gametype);
+  CL_SetupForNewServerMap_hook.invoke(localClientNum, map, gametype);
 }
 
 void load_workshop_data(game::ugc::WorkshopData *item) {
-  const auto base_path = item->absolutePathZoneFiles;
-  const auto path = utils::string::va("%s/workshop.json", base_path);
-  const auto json_str = utils::io::read_file(path);
+  const char *base_path = item->absolutePathZoneFiles;
+  const char *path = utils::string::va("%s/workshop.json", base_path);
+  const std::string json_str = utils::io::read_file(path);
 
   if (json_str.empty()) {
     printf("[ Workshop ] workshop.json has not been found in folder:\n%s\n",
@@ -247,7 +247,7 @@ void load_workshop_data(game::ugc::WorkshopData *item) {
 void populate_workshop_paths(game::ugc::WorkshopData *item,
                              const std::filesystem::path &content_folder,
                              const game::ZoneType type) {
-  std::memset(item, 0, sizeof(game::ugc::WorkshopData));
+  item->clear();
 
   const std::filesystem::path zone_path = content_folder / "zone";
   const std::filesystem::path relative_zone_path =
@@ -347,7 +347,7 @@ const char *va_user_content_path(const char *fmt, const char *root_dir,
 }
 
 std::string get_mod_resized_name() {
-  const std::string loaded_mod_id = game::ugc::getPublisherIdFromLoadedMod();
+  const std::string loaded_mod_id = game::ugc::UGC_ActiveMod_PublisherId();
 
   if (loaded_mod_id == "usermaps" || loaded_mod_id.empty()) {
     return loaded_mod_id;
@@ -399,7 +399,7 @@ int get_workshop_retry_attempts() {
 }
 
 std::string get_mod_publisher_id() {
-  const std::string loaded_mod_id = game::ugc::getPublisherIdFromLoadedMod();
+  const std::string loaded_mod_id = game::ugc::UGC_ActiveMod_PublisherId();
 
   if (loaded_mod_id == "usermaps" || loaded_mod_id.empty()) {
     return loaded_mod_id;
@@ -859,7 +859,7 @@ void wait_for_mod_load() {
 void setup_same_mod_as_host(game::LocalClientNum_t localClientNum,
                             const std::string &usermap, const std::string &mod,
                             bool force_fs_reinit) {
-  const std::string loaded_mod = game::ugc::getPublisherIdFromLoadedMod();
+  const std::string loaded_mod = game::ugc::UGC_ActiveMod_PublisherId();
   if (loaded_mod != mod) {
     if (!usermap.empty() || !mod.empty()) {
       bool fs_reinit_required =
@@ -870,7 +870,7 @@ void setup_same_mod_as_host(game::LocalClientNum_t localClientNum,
       if (fs_reinit_required) {
         wait_for_mod_load();
       }
-    } else if (game::ugc::isModLoaded()) {
+    } else if (game::ugc::UGC_ActiveMod_Loaded()) {
       bool fs_reinit_required =
           force_fs_reinit ||
           mod_switch_requires_fs_reinitialization(loaded_mod, "");
@@ -1046,8 +1046,9 @@ public:
         download_thread.detach();
       });
 
-      setup_server_map_hook.create(game::cl::CL_SetupForNewServerMap.get(),
-                                   setup_server_map_stub);
+      CL_SetupForNewServerMap_hook.create(
+          game::cl::CL_SetupForNewServerMap.get(),
+          CL_SetupForNewServerMap_stub);
 
       utils::hook::call(0x14135CDA1_g, com_error_missing_map_stub);
     }

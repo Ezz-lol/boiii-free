@@ -28,6 +28,7 @@ enum class LobbyType : int32_t {
   LAST = 0x2,
   AUTO = 0x3,
 };
+IMPL_ENUM_OPERATORS(LobbyType);
 
 enum class LobbyClientType : int32_t {
   INVALID = -1,
@@ -35,6 +36,7 @@ enum class LobbyClientType : int32_t {
   LOCAL = 0x1,
   REMOTE = 0x2,
 };
+IMPL_ENUM_OPERATORS(LobbyClientType);
 
 enum class LobbyNetworkMode : int32_t {
   INVALID = -1,
@@ -43,6 +45,7 @@ enum class LobbyNetworkMode : int32_t {
   LIVE = 0x2,
   COUNT = 0x3,
 };
+IMPL_ENUM_OPERATORS(LobbyNetworkMode);
 
 enum class LobbyMainMode {
   INVALID = -1,
@@ -51,6 +54,7 @@ enum class LobbyMainMode {
   ZM = 0x2,
   COUNT = 0x3,
 };
+IMPL_ENUM_OPERATORS(LobbyMainMode);
 
 struct LobbyParams {
   LobbyNetworkMode networkMode;
@@ -65,6 +69,7 @@ enum class JoinType : uint32_t {
   PARTY = 0x4,
   COUNT = 0x5,
 };
+IMPL_ENUM_OPERATORS(JoinType);
 
 struct JoinHost {
   net::HostInfo info;
@@ -87,6 +92,7 @@ enum class JoinSourceState : uint32_t {
   CLEANUP = 0x8,
   COUNT = 0x9,
 };
+IMPL_ENUM_OPERATORS(JoinSourceState);
 
 enum class JoinResult : uint32_t {
   INVALID = 0x0,
@@ -121,8 +127,8 @@ enum class JoinResult : uint32_t {
   COULD_NOT_RESERVE = 0x1D,
   COUNT = 0x1E,
 };
-
-using joinCompleteCallback = void (*)(int, JoinResult);
+IMPL_ENUM_OPERATORS(JoinResult);
+typedef fastcall_t<void(int32_t, JoinResult result)> joinCompleteCallback;
 
 struct AgreementStatus {
   XUID xuid;
@@ -198,6 +204,7 @@ enum class JoinClientState : int32_t {
   JOIN_CLIENT_STATE_CLEANUP = 0x8,
   JOIN_CLIENT_STATE_COUNT = 0x9,
 };
+IMPL_ENUM_OPERATORS(JoinClientState);
 
 // =====================================================================
 // LobbyMsg struct - matches in-memory layout at the point of inspection.

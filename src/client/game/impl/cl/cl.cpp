@@ -106,8 +106,8 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
                              live::user::LiveUser_GetXuid(controllerIndex));
     net::msg::MSG_WriteShort(&sb, static_cast<int16_t>(clc->qport));
 
-    net::netadr_t toAdr = clc->serverAddress;
-    if (!net::NET_OutOfBandData(networkId, &toAdr, sb.data, sb.cursize)) {
+    if (!net::NET_OutOfBandData(networkId, &clc->serverAddress, sb.data,
+                                sb.cursize)) {
       if (!*com::com_errorEntered) {
         com::Com_Error_("q:\\t7\\pc\\code\\src\\client\\cl_main.cpp", 2305,
                         errorParm::SERVERDISCONNECT, "EXE_DISCONNECTED");
@@ -131,26 +131,26 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
               controllerIndex, clc->transferBuffer, 0x25800);
     }
 
-    int32_t numPackets = (clc->transferBufferCompressedSize + 1216) / 1216;
-    int32_t oldestPacketIndex =
+    const int32_t numPackets =
+        (clc->transferBufferCompressedSize + 0x4C0) / 0x4C0;
+    const int32_t oldestPacketIndex =
         CL_HighestPriorityStatPacket_Impl(clc, numPackets);
 
-    uint8_t *packetData = &clc->transferBuffer[1216 * oldestPacketIndex];
+    uint8_t *packetData = &clc->transferBuffer[0x4C0 * oldestPacketIndex];
     net::msg::MSG_WriteShort(&sb, static_cast<int16_t>(clc->qport));
     net::msg::MSG_WriteByte(&sb, static_cast<int8_t>(oldestPacketIndex));
     net::msg::MSG_WriteByte(&sb, static_cast<int8_t>(numPackets));
 
-    int32_t sizeToWrite = 1216;
-    if (0x25800 - (1216 * oldestPacketIndex) <= 1216) {
-      sizeToWrite = 0x25800 - (1216 * oldestPacketIndex);
+    int32_t sizeToWrite = 0x4C0;
+    if (0x25800 - (0x4C0 * oldestPacketIndex) <= 0x4C0) {
+      sizeToWrite = 0x25800 - (0x4C0 * oldestPacketIndex);
     }
     net::msg::MSG_WriteData(&sb, packetData, sizeToWrite);
 
     clc->statPacketSendTime[oldestPacketIndex] = cls->realtime;
     clc->lastPacketSentTime = cls->realtime;
 
-    net::netadr_t serverAddress = clc->serverAddress;
-    if (!net::NET_OutOfBandData(networkId, &serverAddress, sb.data,
+    if (!net::NET_OutOfBandData(networkId, &clc->serverAddress, sb.data,
                                 sb.cursize)) {
       if (!*com::com_errorEntered) {
         com::Com_Error_("q:\\t7\\pc\\code\\src\\client\\cl_main.cpp", 2434,
@@ -163,7 +163,7 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
   case connstate_t::CONNECTING: {
     constexpr int32_t infoStrLen = 1024;
     char s[infoStrLen];
-    std::memset(s, 0, sizeof(s));
+    std::memset(s, 0, infoStrLen);
 
     /*
        TODO: why does this case cause the function to hang indefinitely?
@@ -245,16 +245,16 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
         infoStrLen + connectPrefixLen + infoStrQuotesLen;
     char dest[destLen];
 
-    int32_t writtenLength = std::snprintf(dest, destLen, "connect \"%s\"", s);
+    const int32_t writtenLength =
+        std::snprintf(dest, destLen, "connect \"%s\"", s);
 
-    net::netadr_t serverAddress = clc->serverAddress;
     // ORIGINAL:
-    // if (!net::NET_OutOfBandData(networkId, &serverAddress,
+    // if (!net::NET_OutOfBandData(networkId, &clc->serverAddress,
     //                             reinterpret_cast<const uint8_t *>(dest),
     //                             writtenLength)) {
     // PATCHED:
     if (!auth::send_fragmented_connect_packet(
-            controllerIndex, networkId, &serverAddress,
+            controllerIndex, networkId, &clc->serverAddress,
             reinterpret_cast<const char *>(dest), writtenLength)) {
       if (!*com::com_errorEntered) {
         com::Com_Error_("q:\\t7\\pc\\code\\src\\client\\cl_main.cpp", 2391,

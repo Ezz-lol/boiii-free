@@ -69,6 +69,7 @@
 #include <cassert>
 #include <cctype>
 #include <climits>
+#include <cstdint>
 #include <cstring>
 
 #include <array>
@@ -119,14 +120,39 @@
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
 
-#ifndef inline_def
+#ifndef __inline_def
 #if defined(__clang__) || defined(__GNUC__)
-#define inline_def __attribute__((always_inline))
+#define __inline_def __attribute__((always_inline))
 #elif defined(_MSC_VER)
-#define inline_def __forceinline
+#define __inline_def __forceinline
 #define TEMPLATE_INVALID_HANDLE_VALUE -1
 #else
 #error "Unsupported compiler. Only MSVC, Clang and GCC are supported."
+#endif
+#endif
+
+#ifndef __optimize
+#if defined(__clang__) || defined(__GNUC__)
+#define __optimize __attribute__((hot))
+#elif defined(_MSC_VER)
+// No equivalent that I can find. Add if found or known otherwise.
+#define __optimize
+#else
+#error "Unsupported compiler. Only MSVC, Clang and GCC are supported."
+#endif
+#endif
+
+#ifndef unreachable
+#ifdef NDEBUG
+#if defined(__GNUC__) || defined(__clang__)
+#define unreachable() __builtin_unreachable()
+#elif defined(_MSC_VER)
+#define unreachable() __assume(false)
+#else
+#error "Unsupported compiler. Only MSVC, Clang and GCC are supported."
+#endif
+#else
+#define unreachable() assert(false && "This code should be unreachable.")
 #endif
 #endif
 

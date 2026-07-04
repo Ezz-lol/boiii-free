@@ -12,7 +12,7 @@ body:
       label: Duplicate Issue Check
       description: "Please double-check the [current list of open and closed issues](../issues?q=is%3Aissue) to ensure that this has not been submitted before."
       options:
-      - label: I have searched the list of issues on this repository. I confirm that this is not a duplicate of any open or closed issue(s).
+        - label: I have searched the list of issues on this repository. I confirm that this is not a duplicate of any open or closed issue(s).
     validations:
       required: true
   - type: textarea

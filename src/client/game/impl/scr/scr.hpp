@@ -4,7 +4,7 @@
 namespace game {
 namespace scr {
 
-level::gentity_t *GetEntity_Impl(scr_entref_t entref);
+level::gentity_t *GetEntity_Impl(const scr_entref_t *entref);
 level::gentity_t *Scr_GetEntity_Impl(uint32_t index);
 const char *Scr_TypeName(ScrVarType type);
 bool Scr_IsTrue_Impl(scriptInstance_t inst, ScrVarValue_t *value);

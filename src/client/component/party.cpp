@@ -479,9 +479,9 @@ void join_session(const game::net::netadr_t &addr, const std::string &hostname,
 }
 
 uint16_t get_local_port() {
-  const game::dvar_t *dvar = game::Dvar_FindVar("net_port");
-  if (dvar) {
-    return static_cast<uint16_t>(dvar->current.value.integer);
+  const game::dvar_t *net_port = game::get_dvar("net_port");
+  if (net_port) {
+    return static_cast<uint16_t>(game::get_dvar_uint(net_port));
   }
   return 3074; // BO3 default
 }

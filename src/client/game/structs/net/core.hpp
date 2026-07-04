@@ -1,7 +1,7 @@
 #pragma once
 
 #include "../core.hpp"
-#include "../quake.hpp"
+#include "../quake/core.hpp"
 namespace game {
 namespace net {
 struct netipv4_t {

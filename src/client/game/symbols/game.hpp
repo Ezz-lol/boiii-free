@@ -11,7 +11,7 @@ WEAK symbol<void(level::gentity_s *ent, level::gentity_s *target, int mode,
     G_Say{0x0, 0x140299170};
 WEAK symbol<void(const char *fmt, ...)> G_LogPrintf{0x0, 0x1402A7BB0};
 
-WEAK symbol<void(int32_t levelTime, int32_t randomSeed, game::qboolean restart,
+WEAK symbol<void(int32_t levelTime, int32_t randomSeed, qboolean restart,
                  qboolean registerDvars,
 
                  qboolean savegame)>
@@ -38,9 +38,10 @@ WEAK symbol<void(game::level::gentity_s *ent, snd::SndAliasId index,
                  game::scr::ScrString_t notifyString)>
     G_RegisterSoundWait{0x141B80F40, 0x140308090};
 
+WEAK symbol<int32_t(const char *name)> G_TagIndex{0x141B81890, 0x1403089D0};
+
 WEAK symbol<level::clientState_t *(ClientNum_t clientNum)> G_GetClientState{
     0x1419B0970, 0x1402A7820};
-WEAK symbol<int32_t(const char *name)> G_TagIndex{0x141B81890, 0x1403089D0};
 WEAK symbol<void(hunk::HunkUser *hunk, cl::clientAllocFlags_t flags)>
     Checkpoint_Init{0x1400B24C0};
 

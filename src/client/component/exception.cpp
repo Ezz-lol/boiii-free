@@ -1,9 +1,13 @@
-#include <std_include.hpp>
+#include "../std_include.hpp"
+#include <cstdint>
+
 #include "loader/component_loader.hpp"
 
 #include "game/game.hpp"
 #include "scheduler.hpp"
 
+#include <errhandlingapi.h>
+#include <utils/flags.hpp>
 #include <utils/hook.hpp>
 #include <utils/io.hpp>
 #include <utils/string.hpp>
@@ -19,7 +23,7 @@
 
 namespace exception {
 namespace {
-DWORD main_thread_id{};
+uint32_t main_thread_id{};
 std::once_flag sym_init_flag{};
 
 void ensure_symbols_initialized() {
@@ -36,14 +40,14 @@ struct resolved_frame {
   uint64_t address = 0;
   uint64_t module_base = 0;
   uint64_t rva = 0;
-  DWORD line_number = 0;
+  uint32_t line_number = 0;
 };
 
 resolved_frame resolve_address(void *addr) {
   resolved_frame frame{};
   frame.address = reinterpret_cast<uint64_t>(addr);
 
-  const auto mod = utils::nt::library::get_by_address(addr);
+  const utils::nt::library mod = utils::nt::library::get_by_address(addr);
   if (mod) {
     frame.module_name = mod.get_name();
     frame.module_base = reinterpret_cast<uint64_t>(mod.get_ptr());
@@ -60,11 +64,11 @@ resolved_frame resolve_address(void *addr) {
 
   // Try to resolve function name from PDB symbols
   alignas(SYMBOL_INFO) char sym_buffer[sizeof(SYMBOL_INFO) + MAX_SYM_NAME]{};
-  auto *sym = reinterpret_cast<SYMBOL_INFO *>(sym_buffer);
+  SYMBOL_INFO *sym = reinterpret_cast<SYMBOL_INFO *>(sym_buffer);
   sym->SizeOfStruct = sizeof(SYMBOL_INFO);
   sym->MaxNameLen = MAX_SYM_NAME;
 
-  DWORD64 displacement = 0;
+  uint64_t displacement = 0;
   if (SymFromAddr(GetCurrentProcess(), frame.address, &displacement, sym)) {
     frame.function_name = sym->Name;
     if (displacement > 0)
@@ -74,7 +78,7 @@ resolved_frame resolve_address(void *addr) {
   // Try to resolve source file and line
   IMAGEHLP_LINE64 line_info{};
   line_info.SizeOfStruct = sizeof(IMAGEHLP_LINE64);
-  DWORD line_displacement = 0;
+  unsigned long line_displacement = 0;
   if (SymGetLineFromAddr64(GetCurrentProcess(), frame.address,
                            &line_displacement, &line_info)) {
     frame.file_name = line_info.FileName;
@@ -100,7 +104,7 @@ std::string format_frame(const resolved_frame &f, size_t index) {
 
 std::vector<resolved_frame>
 capture_stackwalk(const LPEXCEPTION_POINTERS exceptioninfo,
-                  int max_frames = 48) {
+                  int32_t max_frames = 48) {
   std::vector<resolved_frame> frames;
 
   if (!exceptioninfo || !exceptioninfo->ContextRecord)
@@ -118,8 +122,8 @@ capture_stackwalk(const LPEXCEPTION_POINTERS exceptioninfo,
   stack_frame.AddrStack.Offset = ctx.Rsp;
   stack_frame.AddrStack.Mode = AddrModeFlat;
 
-  const auto process = GetCurrentProcess();
-  const auto thread = GetCurrentThread();
+  const HANDLE process = GetCurrentProcess();
+  const HANDLE thread = GetCurrentThread();
 
   for (int i = 0; i < max_frames; ++i) {
     if (!StackWalk64(IMAGE_FILE_MACHINE_AMD64, process, thread, &stack_frame,
@@ -138,7 +142,7 @@ capture_stackwalk(const LPEXCEPTION_POINTERS exceptioninfo,
 }
 
 std::string get_crash_module_info(void *address) {
-  auto frame = resolve_address(address);
+  resolved_frame frame = resolve_address(address);
   std::string info =
       frame.module_name + utils::string::va("+0x%llX", frame.rva);
   if (!frame.function_name.empty())
@@ -148,8 +152,8 @@ std::string get_crash_module_info(void *address) {
 
 utils::hook::detour mini_dump_write_dump_hook;
 
-BOOL WINAPI mini_dump_write_dump_stub(
-    const HANDLE h_process, const DWORD process_id, const HANDLE h_file,
+qboolean WINAPI mini_dump_write_dump_stub(
+    const HANDLE h_process, const uint32_t process_id, const HANDLE h_file,
     const MINIDUMP_TYPE dump_type,
     const PMINIDUMP_EXCEPTION_INFORMATION exception_param,
     const PMINIDUMP_USER_STREAM_INFORMATION user_stream_param,
@@ -164,16 +168,17 @@ BOOL WINAPI mini_dump_write_dump_stub(
 
     const std::filesystem::path p(path);
     if (p.extension() == L".dmp") {
-      const auto minidumps_path = game::get_appdata_path() / "minidumps";
+      const std::filesystem::path minidumps_path =
+          game::get_appdata_path() / "minidumps";
       std::filesystem::create_directories(minidumps_path);
 
-      const auto new_path = minidumps_path / p.filename();
-      const auto new_handle =
+      const std::filesystem::path new_path = minidumps_path / p.filename();
+      const HANDLE new_handle =
           CreateFileW(new_path.c_str(), GENERIC_WRITE, FILE_SHARE_READ, nullptr,
                       CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
 
       if (new_handle != INVALID_HANDLE_VALUE) {
-        const auto result = mini_dump_write_dump_hook.invoke<BOOL>(
+        const qboolean result = mini_dump_write_dump_hook.invoke<qboolean>(
             h_process, process_id, new_handle, dump_type, exception_param,
             user_stream_param, callback_param);
         CloseHandle(new_handle);
@@ -182,25 +187,25 @@ BOOL WINAPI mini_dump_write_dump_stub(
     }
   }
 
-  return mini_dump_write_dump_hook.invoke<BOOL>(
+  return mini_dump_write_dump_hook.invoke<qboolean>(
       h_process, process_id, h_file, dump_type, exception_param,
       user_stream_param, callback_param);
 }
 
 thread_local struct {
-  DWORD code = 0;
-  PVOID address = nullptr;
+  uint32_t code = 0;
+  void *address = nullptr;
 } exception_data{};
 
 struct {
   std::chrono::time_point<std::chrono::high_resolution_clock> last_recovery{};
-  std::atomic<int> recovery_counts = {0};
+  std::atomic<int32_t> recovery_counts = {0};
 } recovery_data{};
 
 bool is_game_thread() { return main_thread_id == GetCurrentThreadId(); }
 
 bool is_exception_interval_too_short() {
-  const auto delta =
+  const std::chrono::nanoseconds delta =
       std::chrono::high_resolution_clock::now() - recovery_data.last_recovery;
   return delta < 1min;
 }
@@ -224,12 +229,12 @@ void show_mouse_cursor() {
     ;
 }
 
-const char *get_exception_string(DWORD exception);
+const char *get_exception_string(uint32_t exception);
 
 void display_error_dialog() {
-  const auto frame = resolve_address(exception_data.address);
-  const auto exception_name = get_exception_string(exception_data.code);
-  const auto location = get_crash_module_info(exception_data.address);
+  const resolved_frame frame = resolve_address(exception_data.address);
+  const char *exception_name = get_exception_string(exception_data.code);
+  const std::string location = get_crash_module_info(exception_data.address);
 
   const std::string error_str = utils::string::va(
       "%s (0x%08X) at %s\n\n"
@@ -250,9 +255,13 @@ void display_error_dialog() {
 
   game::show_error(error_str.data(), "Ezz ERROR");
 
-  ShellExecuteA(nullptr, "open",
-                (game::get_appdata_path() / "minidumps").string().c_str(),
-                nullptr, nullptr, SW_SHOWNORMAL);
+  if (utils::flags::has_flag("quiet-crash")) {
+    utils::thread::terminate_other_threads(exception_data.code);
+  } else {
+    ShellExecuteA(nullptr, "open",
+                  (game::get_appdata_path() / "minidumps").string().c_str(),
+                  nullptr, nullptr, SW_SHOWNORMAL);
+  }
 
   TerminateProcess(GetCurrentProcess(), exception_data.code);
 }
@@ -272,8 +281,8 @@ void reset_state() {
   }
 
   if (is_recoverable()) {
-    const auto location = get_crash_module_info(exception_data.address);
-    const auto exception_name = get_exception_string(exception_data.code);
+    const std::string location = get_crash_module_info(exception_data.address);
+    const char *exception_name = get_exception_string(exception_data.code);
 
     recovery_data.last_recovery = std::chrono::high_resolution_clock::now();
     ++recovery_data.recovery_counts;
@@ -316,7 +325,7 @@ void reset_state() {
 }
 
 size_t get_reset_state_stub() {
-  static auto *stub = utils::hook::assemble([](utils::hook::assembler &a) {
+  static void *stub = utils::hook::assemble([](utils::hook::assembler &a) {
     a.sub(rsp, 0x10);
     a.or_(rsp, 0x8);
     a.jmp(reset_state);
@@ -328,7 +337,7 @@ size_t get_reset_state_stub() {
 std::string get_timestamp() {
   tm ltime{};
   char timestamp[MAX_PATH] = {0};
-  const auto time = _time64(nullptr);
+  const __time64_t time = _time64(nullptr);
 
   _localtime64_s(&ltime, &time);
   strftime(timestamp, sizeof(timestamp) - 1, "%Y-%m-%d-%H-%M-%S", &ltime);
@@ -336,7 +345,7 @@ std::string get_timestamp() {
   return timestamp;
 }
 
-const char *get_exception_string(const DWORD exception) {
+const char *get_exception_string(const uint32_t exception) {
 #define EXCEPTION_CASE(code)                                                   \
   case EXCEPTION_##code:                                                       \
     return "EXCEPTION_" #code
@@ -374,12 +383,13 @@ std::string get_memory_registers(const LPEXCEPTION_POINTERS exceptioninfo) {
     return {};
   }
 
-  const auto *ctx = exceptioninfo->ContextRecord;
+  const PCONTEXT ctx = exceptioninfo->ContextRecord;
   std::string info{"registers:\r\n{\r\n"};
 
-  const auto reg = [&info](const char *key, const DWORD64 value) {
-    info.append(utils::string::va("\t%s = 0x%llX\r\n", key, value));
-  };
+  const std::function<void(const char *key, const uint64_t value)> reg =
+      [&info](const char *key, const uint64_t value) {
+        info.append(utils::string::va("\t%s = 0x%llX\r\n", key, value));
+      };
 
   reg("rax", ctx->Rax);
   reg("rbx", ctx->Rbx);
@@ -404,18 +414,19 @@ std::string get_memory_registers(const LPEXCEPTION_POINTERS exceptioninfo) {
 }
 
 std::string get_callstack_summary(const LPEXCEPTION_POINTERS exceptioninfo,
-                                  int trace_depth = 48) {
+                                  int32_t trace_depth = 48) {
   std::string info{"callstack:\r\n{\r\n"};
 
-  auto frames = capture_stackwalk(exceptioninfo, trace_depth);
+  std::vector<resolved_frame> frames =
+      capture_stackwalk(exceptioninfo, trace_depth);
 
   if (frames.empty()) {
     // Fallback to RtlCaptureStackBackTrace if StackWalk64 fails
     void *backtrace_stack[32]{};
-    const auto count =
+    const uint16_t count =
         RtlCaptureStackBackTrace(0, 32, backtrace_stack, nullptr);
-    for (USHORT i = 0; i < count; ++i) {
-      auto f = resolve_address(backtrace_stack[i]);
+    for (uint16_t i = 0; i < count; ++i) {
+      resolved_frame f = resolve_address(backtrace_stack[i]);
       info.append(format_frame(f, i));
       info.append("\r\n");
     }
@@ -432,12 +443,13 @@ std::string get_callstack_summary(const LPEXCEPTION_POINTERS exceptioninfo,
 
 std::string generate_crash_info(const LPEXCEPTION_POINTERS exceptioninfo) {
   std::string info{};
-  const auto line = [&info](const std::string &text) {
-    info.append(text);
-    info.append("\r\n");
-  };
+  const std::function<void(const std::string &text)> line =
+      [&info](const std::string &text) {
+        info.append(text);
+        info.append("\r\n");
+      };
 
-  const auto crash_frame =
+  const resolved_frame crash_frame =
       resolve_address(exceptioninfo->ExceptionRecord->ExceptionAddress);
 
   line("Ezz Crash Dump");
@@ -465,7 +477,7 @@ std::string generate_crash_info(const LPEXCEPTION_POINTERS exceptioninfo) {
         exceptioninfo->ExceptionRecord->ExceptionInformation[0] == 1
             ? "write to"
             : "read from";
-    auto target = exceptioninfo->ExceptionRecord->ExceptionInformation[1];
+    uintptr_t target = exceptioninfo->ExceptionRecord->ExceptionInformation[1];
     line(utils::string::va(
         "Access Violation: Attempted to %s 0x%012llX%s", op, target,
         target < 0x10000 ? " (NULL pointer dereference)" : ""));
@@ -483,7 +495,7 @@ std::string generate_crash_info(const LPEXCEPTION_POINTERS exceptioninfo) {
                          version_info.dwMinorVersion));
   line(std::string{});
   line(get_callstack_summary(exceptioninfo));
-  const auto registers = get_memory_registers(exceptioninfo);
+  const std::string registers = get_memory_registers(exceptioninfo);
   if (!registers.empty()) {
     line(std::string{});
     line(registers);
@@ -493,7 +505,7 @@ std::string generate_crash_info(const LPEXCEPTION_POINTERS exceptioninfo) {
 }
 
 void write_minidump(const LPEXCEPTION_POINTERS exceptioninfo) {
-  const auto crash_name =
+  const std::string crash_name =
       (game::get_appdata_path() / "minidumps" /
        utils::string::va("ezz-crash-%s.zip", get_timestamp().data()))
           .string();
@@ -510,17 +522,17 @@ void write_minidump(const LPEXCEPTION_POINTERS exceptioninfo) {
 char ui_localize_fallback[4] = "";
 
 LONG WINAPI crash_fix_exception_handler(PEXCEPTION_POINTERS exception_info) {
-  const auto *record = exception_info->ExceptionRecord;
-  auto *context = exception_info->ContextRecord;
+  const PEXCEPTION_RECORD record = exception_info->ExceptionRecord;
+  PCONTEXT context = exception_info->ContextRecord;
 
   if (record->ExceptionCode != EXCEPTION_ACCESS_VIOLATION &&
       record->ExceptionCode != STATUS_ILLEGAL_INSTRUCTION) {
     return EXCEPTION_CONTINUE_SEARCH;
   }
 
-  const auto addr = reinterpret_cast<uintptr_t>(record->ExceptionAddress);
-  const auto base = game::get_base();
-  const auto offset = addr - base;
+  const uintptr_t addr = reinterpret_cast<uintptr_t>(record->ExceptionAddress);
+  const uintptr_t base = game::get_base();
+  const uintptr_t offset = addr - base;
   const char *patch_name = nullptr;
 
   switch (offset) {
@@ -634,7 +646,7 @@ LONG WINAPI crash_fix_exception_handler(PEXCEPTION_POINTERS exception_info) {
     // Server restart recovery: skip crashes using udis86 instruction decode
     if (game::is_server() && server_restart::restart_recovery_active.load() &&
         record->ExceptionCode == EXCEPTION_ACCESS_VIOLATION) {
-      const int skips = server_restart::recovery_skip_count.fetch_add(1);
+      const int32_t skips = server_restart::recovery_skip_count.fetch_add(1);
       if (skips < 20) // Max 20 instruction skips per recovery cycle
       {
         ud_t ud;
@@ -643,7 +655,7 @@ LONG WINAPI crash_fix_exception_handler(PEXCEPTION_POINTERS exception_info) {
         ud_set_pc(&ud, addr);
         ud_set_input_buffer(&ud, reinterpret_cast<const uint8_t *>(addr), 15);
         if (ud_decode(&ud)) {
-          const auto len = ud_insn_len(&ud);
+          const uint32_t len = ud_insn_len(&ud);
 
           context->Rip += len;
           context->Rax = 0;
@@ -666,7 +678,7 @@ LONG WINAPI crash_fix_exception_handler(PEXCEPTION_POINTERS exception_info) {
 }
 
 bool is_harmless_error(const LPEXCEPTION_POINTERS exceptioninfo) {
-  const auto code = exceptioninfo->ExceptionRecord->ExceptionCode;
+  const uint32_t code = exceptioninfo->ExceptionRecord->ExceptionCode;
   return code == STATUS_INTEGER_OVERFLOW || code == STATUS_FLOAT_OVERFLOW ||
          code == STATUS_SINGLE_STEP;
 }
@@ -677,7 +689,7 @@ void handle_server_script_vm_crash() {
 }
 
 size_t get_script_error_stub() {
-  static auto *stub = utils::hook::assemble([](utils::hook::assembler &a) {
+  static void *stub = utils::hook::assemble([](utils::hook::assembler &a) {
     a.sub(rsp, 0x10);
     a.or_(rsp, 0x8);
     a.jmp(handle_server_script_vm_crash);
@@ -686,7 +698,7 @@ size_t get_script_error_stub() {
   return reinterpret_cast<size_t>(stub);
 }
 
-bool is_server_script_vm_crash(uint64_t offset, DWORD exception_code,
+bool is_server_script_vm_crash(uint64_t offset, uint32_t exception_code,
                                const EXCEPTION_RECORD *record) {
   if (exception_code != EXCEPTION_ACCESS_VIOLATION)
     return false;
@@ -710,10 +722,10 @@ LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
     return EXCEPTION_CONTINUE_EXECUTION;
   }
 
-  const auto addr = reinterpret_cast<uintptr_t>(
+  const uintptr_t addr = reinterpret_cast<uintptr_t>(
       exceptioninfo->ExceptionRecord->ExceptionAddress);
-  const auto base = game::get_base();
-  const auto filter_offset = addr - base;
+  const uintptr_t base = game::get_base();
+  const uintptr_t filter_offset = addr - base;
 
   // Handle known server script VM crashes on ANY thread
   if (game::is_server() &&
@@ -728,9 +740,9 @@ LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
     }
   }
 
-  const auto crash_frame =
+  const resolved_frame crash_frame =
       resolve_address(exceptioninfo->ExceptionRecord->ExceptionAddress);
-  const auto exception_name =
+  const char *exception_name =
       get_exception_string(exceptioninfo->ExceptionRecord->ExceptionCode);
 
   // Detailed console crash report
@@ -742,7 +754,7 @@ LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
   if (!crash_frame.function_name.empty())
     printf("^1  Function:   %s\n", crash_frame.function_name.c_str());
   if (!crash_frame.file_name.empty() && crash_frame.line_number > 0)
-    printf("^1  Source:     %s:%lu\n", crash_frame.file_name.c_str(),
+    printf("^1  Source:     %s:%u\n", crash_frame.file_name.c_str(),
            crash_frame.line_number);
   printf("^1  Address:    0x%llX\n", crash_frame.address);
   printf("^1  Thread:     %lu (%s)\n", GetCurrentThreadId(),
@@ -754,28 +766,31 @@ LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
         exceptioninfo->ExceptionRecord->ExceptionInformation[0] == 1
             ? "write to"
             : "read from";
-    auto target = exceptioninfo->ExceptionRecord->ExceptionInformation[1];
+    uintptr_t target = exceptioninfo->ExceptionRecord->ExceptionInformation[1];
     printf("^1  Details:    Attempted to %s 0x%012llX%s\n", op, target,
            target < 0x10000 ? " (NULL pointer dereference)" : "");
   }
 
   // Print condensed callstack to console
-  auto frames = capture_stackwalk(exceptioninfo, 16);
+  std::vector<resolved_frame> frames = capture_stackwalk(exceptioninfo, 16);
   if (!frames.empty()) {
     printf("^1  Callstack:\n");
     for (size_t i = 0; i < frames.size(); ++i) {
-      const auto &f = frames[i];
-      if (!f.function_name.empty())
-        printf("^1    [%zu] %s!%s\n", i, f.module_name.c_str(),
-               f.function_name.c_str());
-      else
-        printf("^1    [%zu] %s + 0x%llX\n", i, f.module_name.c_str(), f.rva);
+      const resolved_frame &f = frames[i];
+
+      if (!f.function_name.empty()) {
+        printf("^1    [%zu] 0x%llX - %s!%s\n", i, f.address,
+               f.module_name.c_str(), f.function_name.c_str());
+      } else {
+        printf("^1    [%zu] 0x%llX - %s + 0x%llX\n", i, f.address,
+               f.module_name.c_str(), f.rva);
+      }
     }
   }
   printf("^1=====================================\n\n");
 
   if (!game::is_server()) {
-    const auto crash_info = generate_crash_info(exceptioninfo);
+    const std::string crash_info = generate_crash_info(exceptioninfo);
     write_minidump(exceptioninfo);
   }
 
@@ -801,13 +816,14 @@ struct component final : generic_component {
 
   void post_load() override {
     const utils::nt::library ntdll("ntdll.dll");
-    auto *set_filter = ntdll.get_proc<void (*)(LPTOP_LEVEL_EXCEPTION_FILTER)>(
-        "RtlSetUnhandledExceptionFilter");
+    using SetFilterFunc = fastcall_t<void(LPTOP_LEVEL_EXCEPTION_FILTER filter)>;
+    SetFilterFunc set_filter =
+        ntdll.get_proc<SetFilterFunc>("RtlSetUnhandledExceptionFilter");
 
     set_filter(exception_filter);
     utils::hook::jump(set_filter, set_unhandled_exception_filter_stub);
 
-    const auto dbghelp = utils::nt::library::load("dbghelp.dll");
+    const utils::nt::library dbghelp = utils::nt::library::load("dbghelp.dll");
     if (dbghelp) {
       mini_dump_write_dump_hook.create(
           dbghelp.get_proc<void *>("MiniDumpWriteDump"),

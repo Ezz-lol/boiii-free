@@ -4,10 +4,12 @@
 #include "core.hpp"
 #include "net/net.hpp"
 #include "db/xasset.hpp"
+#include "scr/core.hpp"
 #include "weapon.hpp"
 #include "vehicle.hpp"
 #include "hunk.hpp"
 #include "level/core.hpp"
+#include "live/steam/steam.hpp"
 
 namespace game {
 
@@ -100,6 +102,14 @@ struct ReliableCommands {
 #pragma pack(pop)
 
 #pragma pack(push, 1)
+struct ClientSteamAuth {
+  steam::HAuthTicket authTicket;
+  uint8_t pTicket[1024];
+  uint32_t pcbTicket;
+};
+#pragma pack(pop)
+
+#pragma pack(push, 1)
 struct clientConnection_t {
   int32_t qport;
   ClientNum_t clientNum;
@@ -123,7 +133,7 @@ struct clientConnection_t {
   net::netchan_t netchan;
   uint64_t serverXUID;
   net::netProfileInfo_t OOBProf;
-  uint8_t _unknown25150[1032];
+  ClientSteamAuth steamAuth;
   uint8_t *transferBuffer;
   int32_t transferBufferCompressedSize;
   uint8_t _padding25564[4];
@@ -218,7 +228,7 @@ partial_def(GAMESTATE_T_SIZE, struct, gameState_t, {
   int32_t dataCount;
   int32_t stringUpdateFrameNumber;
   int32_t matchUIVisibilityFlags;
-  int32_t scr_checksum[3];
+  scr::scrChecksum_t scr_checksum;
   uint32_t clientfield_hash;
   uint32_t server_highest_clientfield_version;
 });

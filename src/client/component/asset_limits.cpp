@@ -125,15 +125,6 @@ void apply_asset_limits() {
   applied = true;
 }
 
-utils::hook::detour com_sessionmode_setmode_hook;
-
-game::eModes com_sessionmode_setmode_stub(game::eModes mode) {
-  const game::eModes result =
-      com_sessionmode_setmode_hook.invoke<game::eModes>(mode);
-  apply_asset_limits();
-  return result;
-}
-
 utils::hook::detour db_init_hook;
 void db_init_stub() {
   db_init_hook.invoke();
@@ -144,8 +135,6 @@ void db_init_stub() {
 class component final : public generic_component {
 public:
   void post_unpack() override {
-    com_sessionmode_setmode_hook.create(
-        game::com::Com_SessionMode_SetMode.get(), com_sessionmode_setmode_stub);
     db_init_hook.create(game::db::DB_Init.get(), db_init_stub);
     apply_asset_limits();
   }

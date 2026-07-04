@@ -1,4 +1,5 @@
 #include <mutex>
+#include <optional>
 #include <std_include.hpp>
 #include "loader/component_loader.hpp"
 
@@ -16,17 +17,19 @@
 #include <utils/string.hpp>
 #include <utils/properties.hpp>
 #include <utils/concurrency.hpp>
+#include <str.hpp>
 
 namespace name {
 namespace {
-constexpr auto sync_packet_name = "nameoverride";
+constexpr const str<13> sync_packet_name = "nameoverride";
 
-enum class sync_message_type : uint8_t {
-  clear_all = 0,
-  set_name = 1,
-  set_tag = 2,
-  clear_name = 3,
-  clear_tag = 4,
+enum class SyncMessageType : uint8_t {
+  CLEAR_ALL = 0x0,
+  SET_NAME = 0x1,
+  SET_TAG = 0x2,
+  CLEAR_NAME = 0x3,
+  CLEAR_TAG = 0x4,
+  SNAPSHOT = 0x5,
 };
 
 bool is_syncable_address(const game::net::netadr_t &address) {
@@ -37,8 +40,14 @@ bool is_trusted_sync_sender(const game::net::netadr_t &address) {
   return address.type == game::net::NA_LOOPBACK || party::is_host(address);
 }
 
+bool is_syncable_client(const game::sv::client_s &client) {
+  return client.state != game::net::CS_FREE &&
+         client.state != game::net::CS_ZOMBIE &&
+         is_syncable_address(client.address);
+}
+
 void send_override_packet(
-    const game::net::netadr_t &target, const sync_message_type type,
+    const game::net::netadr_t &target, const SyncMessageType type,
     const game::ClientNum_t client_num,
     const std::optional<std::string> &value = std::nullopt) {
   if (!game::is_server_running() || !is_syncable_address(target)) {
@@ -57,39 +66,20 @@ void send_override_packet(
 }
 
 void broadcast_override_packet(
-    const sync_message_type type, const game::ClientNum_t client_num,
+    const SyncMessageType type, const game::ClientNum_t client_num,
     const std::optional<std::string> &value = std::nullopt) {
   if (!game::is_server_running()) {
     return;
   }
 
   game::foreach_connected_client([&](game::sv::client_s &client, size_t) {
-    if (!is_syncable_address(client.address)) {
+    if (!is_syncable_client(client)) {
       return;
     }
 
     send_override_packet(client.address, type, client_num, value);
   });
 }
-
-void send_override_packet_to_client(
-    const game::ClientNum_t target_client, const sync_message_type type,
-    const game::ClientNum_t client_num,
-    const std::optional<std::string> &value = std::nullopt) {
-  if (!game::valid_client_num(target_client) || !game::is_server_running()) {
-    return;
-  }
-
-  game::access_connected_client(
-      static_cast<size_t>(target_client), [&](game::sv::client_s &client) {
-        if (!is_syncable_address(client.address)) {
-          return;
-        }
-
-        send_override_packet(client.address, type, client_num, value);
-      });
-}
-
 } // namespace
 
 utils::concurrency::container<std::string> player_name{};
@@ -145,34 +135,65 @@ game::lobby::LobbyClientOptionalPool<std::string> clan_abbrev_overrides;
 game::lobby::LobbyClientOptionalPool<std::string> orig_names;
 game::lobby::LobbyClientOptionalPool<std::string> orig_clan_abbrevs;
 
-void sync_current_overrides_to_target(const game::ClientNum_t target_client) {
-  std::vector<std::pair<game::ClientNum_t, std::string>> names{};
-  std::vector<std::pair<game::ClientNum_t, std::string>> tags{};
+void collect_current_overrides(
+    std::vector<std::pair<game::ClientNum_t, std::string>> &names,
+    std::vector<std::pair<game::ClientNum_t, std::string>> &tags) {
+  std::lock_guard lk(names_mutex);
 
-  {
-    std::lock_guard lk(names_mutex);
+  for (game::ClientNum_t client_num = game::CLIENT_INDEX_0;
+       client_num < game::CLIENT_INDEX_COUNT; client_num++) {
+    if (name_overrides[client_num].has_value()) {
+      names.emplace_back(client_num, *name_overrides[client_num]);
+    }
 
-    for (game::ClientNum_t client_num = game::CLIENT_INDEX_0;
-         client_num < game::CLIENT_INDEX_COUNT; client_num++) {
-      if (name_overrides[client_num].has_value()) {
-        names.emplace_back(client_num, *name_overrides[client_num]);
-      }
-
-      if (clan_abbrev_overrides[client_num].has_value()) {
-        tags.emplace_back(client_num, *clan_abbrev_overrides[client_num]);
-      }
+    if (clan_abbrev_overrides[client_num].has_value()) {
+      tags.emplace_back(client_num, *clan_abbrev_overrides[client_num]);
     }
   }
+}
+
+void send_snapshot_packet(const game::net::netadr_t &target) {
+  if (!game::is_server_running() || !is_syncable_address(target)) {
+    return;
+  }
+
+  std::vector<std::pair<game::ClientNum_t, std::string>> names{};
+  std::vector<std::pair<game::ClientNum_t, std::string>> tags{};
+  collect_current_overrides(names, tags);
+
+  utils::byte_buffer buffer{};
+  buffer.write(static_cast<uint8_t>(SyncMessageType::SNAPSHOT));
+  buffer.write(static_cast<int32_t>(game::INVALID_CLIENT_INDEX));
+  buffer.write(static_cast<uint8_t>(names.size()));
 
   for (const auto &[client_num, value] : names) {
-    send_override_packet_to_client(target_client, sync_message_type::set_name,
-                                   client_num, value);
+    buffer.write(static_cast<int32_t>(client_num));
+    buffer.write_string(value);
   }
 
+  buffer.write(static_cast<uint8_t>(tags.size()));
+
   for (const auto &[client_num, value] : tags) {
-    send_override_packet_to_client(target_client, sync_message_type::set_tag,
-                                   client_num, value);
+    buffer.write(static_cast<int32_t>(client_num));
+    buffer.write_string(value);
   }
+
+  network::send(target, sync_packet_name, buffer.get_buffer());
+}
+
+void send_snapshot_packet_to_client(const game::ClientNum_t target_client) {
+  if (!game::valid_client_num(target_client) || !game::is_server_running()) {
+    return;
+  }
+
+  game::access_connected_client(static_cast<size_t>(target_client),
+                                [&](game::sv::client_s &client) {
+                                  if (!is_syncable_client(client)) {
+                                    return;
+                                  }
+
+                                  send_snapshot_packet(client.address);
+                                });
 }
 
 std::string encode_colors(const std::string &s) {
@@ -278,31 +299,31 @@ get_clan_abbrev_override(game::ClientNum_t client_num) {
 }
 
 void sync_name_override_to_clients(game::ClientNum_t client_num) {
-  const auto value = get_name_override(client_num);
+  const std::optional<std::string> value = get_name_override(client_num);
   if (!value.has_value()) {
     sync_name_reset_to_clients(client_num);
     return;
   }
 
-  broadcast_override_packet(sync_message_type::set_name, client_num, *value);
+  broadcast_override_packet(SyncMessageType::SET_NAME, client_num, *value);
 }
 
 void sync_clan_abbrev_override_to_clients(game::ClientNum_t client_num) {
-  const auto value = get_clan_abbrev_override(client_num);
+  const std::optional<std::string> value = get_clan_abbrev_override(client_num);
   if (!value.has_value()) {
     sync_clan_abbrev_reset_to_clients(client_num);
     return;
   }
 
-  broadcast_override_packet(sync_message_type::set_tag, client_num, *value);
+  broadcast_override_packet(SyncMessageType::SET_TAG, client_num, *value);
 }
 
 void sync_name_reset_to_clients(game::ClientNum_t client_num) {
-  broadcast_override_packet(sync_message_type::clear_name, client_num);
+  broadcast_override_packet(SyncMessageType::CLEAR_NAME, client_num);
 }
 
 void sync_clan_abbrev_reset_to_clients(game::ClientNum_t client_num) {
-  broadcast_override_packet(sync_message_type::clear_tag, client_num);
+  broadcast_override_packet(SyncMessageType::CLEAR_TAG, client_num);
 }
 
 void sync_all_overrides_to_client(game::ClientNum_t target_client) {
@@ -310,9 +331,7 @@ void sync_all_overrides_to_client(game::ClientNum_t target_client) {
     return;
   }
 
-  send_override_packet_to_client(target_client, sync_message_type::clear_all,
-                                 game::INVALID_CLIENT_INDEX);
-  sync_current_overrides_to_target(target_client);
+  send_snapshot_packet_to_client(target_client);
 }
 
 bool has_orig_name(game::ClientNum_t client_num) {
@@ -404,9 +423,8 @@ void client_update_internal(game::sv::client_s *cl,
     }
 
     std::string clean_name = strip_color_codes(name_str);
-    strncpy_s(client_state->name, ARRAYSIZE(client_state->name),
-              clean_name.c_str(), _TRUNCATE);
-    strncpy_s(cl->name, ARRAYSIZE(cl->name), clean_name.c_str(), _TRUNCATE);
+    strscpy(client_state->name, clean_name.c_str());
+    strscpy(cl->name, clean_name.c_str());
 
     std::string clean_clan_abbrev =
         clan_abbrev_override.has_value()
@@ -414,17 +432,14 @@ void client_update_internal(game::sv::client_s *cl,
             : "";
     const bool clan_changed =
         std::strcmp(client_state->clanAbbrev, clean_clan_abbrev.c_str()) != 0;
-    strncpy_s(client_state->clanAbbrev, ARRAYSIZE(client_state->clanAbbrev),
-              clean_clan_abbrev.c_str(), _TRUNCATE);
-    strncpy_s(cl->clanAbbrev, ARRAYSIZE(cl->clanAbbrev),
-              clean_clan_abbrev.c_str(), _TRUNCATE);
+    strscpy(client_state->clanAbbrev, clean_clan_abbrev.c_str());
+    strscpy(cl->clanAbbrev, clean_clan_abbrev.c_str());
     client_state->clanAbbrevEV = clan_changed;
   } else {
     std::optional<std::string> orig_name = get_orig_name(client_num);
     if (orig_name.has_value()) {
-      strncpy_s(client_state->name, ARRAYSIZE(client_state->name),
-                orig_name->c_str(), _TRUNCATE);
-      strncpy_s(cl->name, ARRAYSIZE(cl->name), orig_name->c_str(), _TRUNCATE);
+      strscpy(client_state->name, orig_name->c_str());
+      strscpy(cl->name, orig_name->c_str());
       remove_orig_name(client_num);
     }
 
@@ -433,10 +448,8 @@ void client_update_internal(game::sv::client_s *cl,
     if (orig_clan_abbrev.has_value()) {
       const bool clan_changed =
           std::strcmp(client_state->clanAbbrev, orig_clan_abbrev->c_str()) != 0;
-      strncpy_s(client_state->clanAbbrev, ARRAYSIZE(client_state->clanAbbrev),
-                orig_clan_abbrev->c_str(), _TRUNCATE);
-      strncpy_s(cl->clanAbbrev, ARRAYSIZE(cl->clanAbbrev),
-                orig_clan_abbrev->c_str(), _TRUNCATE);
+      strscpy(client_state->clanAbbrev, orig_clan_abbrev->c_str());
+      strscpy(cl->clanAbbrev, orig_clan_abbrev->c_str());
       client_state->clanAbbrevEV = clan_changed;
       remove_orig_clan_abbrev(client_num);
     }
@@ -451,9 +464,12 @@ void client_update_post_enterworld(
     game::sv::client_s *cl, [[maybe_unused]] game::user::usercmd_t *cmd) {
   client_update(cl);
 
-  const auto client_num = sv::get_client_num(cl);
+  const game::ClientNum_t client_num = sv::get_client_num(cl);
   if (game::valid_client_num(client_num)) {
     sync_all_overrides_to_client(client_num);
+    scheduler::once(
+        [client_num]() { sync_all_overrides_to_client(client_num); },
+        scheduler::server, 250ms);
   }
 }
 
@@ -513,38 +529,63 @@ struct component final : generic_component {
 
             try {
               utils::byte_buffer buffer(data);
-              const auto type =
-                  static_cast<sync_message_type>(buffer.read<uint8_t>());
-              const auto client_num =
+              const SyncMessageType type =
+                  static_cast<SyncMessageType>(buffer.read<uint8_t>());
+              const game::ClientNum_t client_num =
                   static_cast<game::ClientNum_t>(buffer.read<int32_t>());
 
               switch (type) {
-              case sync_message_type::clear_all:
+              case SyncMessageType::CLEAR_ALL:
                 clear_all();
                 break;
 
-              case sync_message_type::set_name:
+              case SyncMessageType::SNAPSHOT: {
+                clear_all();
+
+                const uint8_t name_count = buffer.read<uint8_t>();
+                for (uint8_t i = 0; i < name_count; ++i) {
+                  const game::ClientNum_t snapshot_client_num =
+                      static_cast<game::ClientNum_t>(buffer.read<int32_t>());
+                  const std::string value = buffer.read_string();
+                  if (game::valid_client_num(snapshot_client_num)) {
+                    set_name_override(snapshot_client_num, value);
+                  }
+                }
+
+                const uint8_t tag_count = buffer.read<uint8_t>();
+                for (uint8_t i = 0; i < tag_count; ++i) {
+                  const game::ClientNum_t snapshot_client_num =
+                      static_cast<game::ClientNum_t>(buffer.read<int32_t>());
+                  const std::string value = buffer.read_string();
+                  if (game::valid_client_num(snapshot_client_num)) {
+                    set_clan_abbrev_override(snapshot_client_num, value);
+                  }
+                }
+                break;
+              }
+
+              case SyncMessageType::SET_NAME:
                 if (!game::valid_client_num(client_num)) {
                   return;
                 }
                 set_name_override(client_num, buffer.read_string());
                 break;
 
-              case sync_message_type::set_tag:
+              case SyncMessageType::SET_TAG:
                 if (!game::valid_client_num(client_num)) {
                   return;
                 }
                 set_clan_abbrev_override(client_num, buffer.read_string());
                 break;
 
-              case sync_message_type::clear_name:
+              case SyncMessageType::CLEAR_NAME:
                 if (!game::valid_client_num(client_num)) {
                   return;
                 }
                 clear_name_override(client_num);
                 break;
 
-              case sync_message_type::clear_tag:
+              case SyncMessageType::CLEAR_TAG:
                 if (!game::valid_client_num(client_num)) {
                   return;
                 }

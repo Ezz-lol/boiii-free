@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include "../core.hpp"
-#include "../quake.hpp"
+#include "../quake/core.hpp"
 
 namespace game::ui::hud {
 union hudelem_color_t {

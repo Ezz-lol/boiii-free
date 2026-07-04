@@ -4,9 +4,9 @@
 #include "script_value.hpp"
 
 namespace ui_scripting {
-hks_object::hks_object(const game::ui::lua::hks::HksObject &value) {
-  this->assign(value);
-}
+using namespace game::ui::lua::hks;
+
+hks_object::hks_object(const HksObject &value) { this->assign(value); }
 
 hks_object::hks_object(const hks_object &other) noexcept {
   this->operator=(other);
@@ -29,7 +29,7 @@ hks_object &hks_object::operator=(hks_object &&other) noexcept {
   if (this != &other) {
     this->release();
     this->value_ = other.value_;
-    other.value_.t = game::ui::lua::hks::HksObjectType::TNONE;
+    other.value_.t = HksObjectType::TNONE;
   }
 
   return *this;
@@ -37,28 +37,26 @@ hks_object &hks_object::operator=(hks_object &&other) noexcept {
 
 hks_object::~hks_object() { this->release(); }
 
-const game::ui::lua::hks::HksObject &hks_object::get() const {
-  return this->value_;
-}
+const HksObject &hks_object::get() const { return this->value_; }
 
-void hks_object::assign(const game::ui::lua::hks::HksObject &value) {
+void hks_object::assign(const HksObject &value) {
   this->value_ = value;
 
-  const auto state = *game::ui::lua::hks::lua_state;
+  lua_State *state = *primary_luaVM;
   if (state) {
     const auto top = state->m_apistack.top;
 
     push_value(this->value_);
-    this->ref_ = game::ui::lua::hks::hksi_luaL_ref(state, -10000);
+    this->ref_ = hksi_luaL_ref(state, -10000);
     state->m_apistack.top = top;
   }
 }
 
 void hks_object::release() {
-  const auto state = *game::ui::lua::hks::lua_state;
+  lua_State *state = *primary_luaVM;
   if (this->ref_ && state) {
-    game::ui::lua::hks::hksi_luaL_unref(state, -10000, this->ref_);
-    this->value_.t = game::ui::lua::hks::HksObjectType::TNONE;
+    hksi_luaL_unref(state, -10000, this->ref_);
+    this->value_.t = HksObjectType::TNONE;
   }
 }
 
@@ -66,36 +64,35 @@ void hks_object::release() {
  * Constructors
  **************************************************************/
 
-script_value::script_value(const game::ui::lua::hks::HksObject &value)
-    : value_(value) {}
+script_value::script_value(const HksObject &value) : value_(value) {}
 
 script_value::script_value(const int value) {
-  game::ui::lua::hks::HksObject obj{};
-  obj.t = game::ui::lua::hks::HksObjectType::TNUMBER;
+  HksObject obj{};
+  obj.t = HksObjectType::TNUMBER;
   obj.v.number = static_cast<float>(value);
 
   this->value_ = hks_object(obj);
 }
 
 script_value::script_value(const unsigned int value) {
-  game::ui::lua::hks::HksObject obj{};
-  obj.t = game::ui::lua::hks::HksObjectType::TNUMBER;
+  HksObject obj{};
+  obj.t = HksObjectType::TNUMBER;
   obj.v.number = static_cast<float>(value);
 
   this->value_ = hks_object(obj);
 }
 
 script_value::script_value(const bool value) {
-  game::ui::lua::hks::HksObject obj{};
-  obj.t = game::ui::lua::hks::HksObjectType::TBOOLEAN;
+  HksObject obj{};
+  obj.t = HksObjectType::TBOOLEAN;
   obj.v.boolean = value;
 
   this->value_ = hks_object(obj);
 }
 
 script_value::script_value(const float value) {
-  game::ui::lua::hks::HksObject obj{};
-  obj.t = game::ui::lua::hks::HksObjectType::TNUMBER;
+  HksObject obj{};
+  obj.t = HksObjectType::TNUMBER;
   obj.v.number = static_cast<float>(value);
 
   this->value_ = hks_object(obj);
@@ -105,14 +102,13 @@ script_value::script_value(const double value)
     : script_value(static_cast<float>(value)) {}
 
 script_value::script_value(const char *value, const std::size_t len) {
-  const auto state = *game::ui::lua::hks::lua_state;
+  lua_State *state = *primary_luaVM;
   if (state == nullptr) {
     return;
   }
 
-  const auto top = state->m_apistack.top;
-  game::ui::lua::hks::hksi_lua_pushlstring(state, value,
-                                           static_cast<std::uint32_t>(len));
+  HksObject *top = state->m_apistack.top;
+  hksi_lua_pushlstring(state, value, static_cast<std::uint32_t>(len));
   this->value_ = hks_object(state->m_apistack.top[-1]);
   state->m_apistack.top = top;
 }
@@ -124,31 +120,31 @@ script_value::script_value(const std::string &value)
     : script_value(value.data(), value.size()) {}
 
 script_value::script_value(const lightuserdata &value) {
-  game::ui::lua::hks::HksObject obj{};
-  obj.t = game::ui::lua::hks::HksObjectType::TLIGHTUSERDATA;
+  HksObject obj{};
+  obj.t = HksObjectType::TLIGHTUSERDATA;
   obj.v.ptr = value.ptr;
 
   this->value_ = obj;
 }
 
 script_value::script_value(const userdata &value) {
-  game::ui::lua::hks::HksObject obj{};
-  obj.t = game::ui::lua::hks::HksObjectType::TUSERDATA;
+  HksObject obj{};
+  obj.t = HksObjectType::TUSERDATA;
   obj.v.ptr = value.ptr;
 
   this->value_ = obj;
 }
 
 script_value::script_value(const table &value) {
-  game::ui::lua::hks::HksObject obj{};
-  obj.t = game::ui::lua::hks::HksObjectType::TTABLE;
+  HksObject obj{};
+  obj.t = HksObjectType::TTABLE;
   obj.v.ptr = value.ptr;
 
   this->value_ = obj;
 }
 
 script_value::script_value(const function &value) {
-  game::ui::lua::hks::HksObject obj{};
+  HksObject obj{};
   obj.t = value.type;
   obj.v.ptr = value.ptr;
 
@@ -161,7 +157,7 @@ script_value::script_value(const function &value) {
 
 template <> bool script_value::is<int>() const {
   const auto number = this->get_raw().v.number;
-  return this->get_raw().t == game::ui::lua::hks::HksObjectType::TNUMBER &&
+  return this->get_raw().t == HksObjectType::TNUMBER &&
          static_cast<int>(number) == number;
 }
 
@@ -182,7 +178,7 @@ template <> unsigned int script_value::get() const {
  **************************************************************/
 
 template <> bool script_value::is<bool>() const {
-  return this->get_raw().t == game::ui::lua::hks::HksObjectType::TBOOLEAN;
+  return this->get_raw().t == HksObjectType::TBOOLEAN;
 }
 
 template <> bool script_value::get() const { return this->get_raw().v.boolean; }
@@ -192,7 +188,7 @@ template <> bool script_value::get() const { return this->get_raw().v.boolean; }
  **************************************************************/
 
 template <> bool script_value::is<float>() const {
-  return this->get_raw().t == game::ui::lua::hks::HksObjectType::TNUMBER;
+  return this->get_raw().t == HksObjectType::TNUMBER;
 }
 
 template <> bool script_value::is<double>() const { return this->is<float>(); }
@@ -208,7 +204,7 @@ template <> double script_value::get() const {
  **************************************************************/
 
 template <> bool script_value::is<const char *>() const {
-  return this->get_raw().t == game::ui::lua::hks::HksObjectType::TSTRING;
+  return this->get_raw().t == HksObjectType::TSTRING;
 }
 
 template <> bool script_value::is<std::string>() const {
@@ -228,7 +224,7 @@ template <> std::string script_value::get() const {
  **************************************************************/
 
 template <> bool script_value::is<lightuserdata>() const {
-  return this->get_raw().t == game::ui::lua::hks::HksObjectType::TLIGHTUSERDATA;
+  return this->get_raw().t == HksObjectType::TLIGHTUSERDATA;
 }
 
 template <> lightuserdata script_value::get() const {
@@ -240,7 +236,7 @@ template <> lightuserdata script_value::get() const {
  **************************************************************/
 
 template <> bool script_value::is<userdata>() const {
-  return this->get_raw().t == game::ui::lua::hks::HksObjectType::TUSERDATA;
+  return this->get_raw().t == HksObjectType::TUSERDATA;
 }
 
 template <> userdata script_value::get() const { return this->get_raw().v.ptr; }
@@ -250,7 +246,7 @@ template <> userdata script_value::get() const { return this->get_raw().v.ptr; }
  **************************************************************/
 
 template <> bool script_value::is<table>() const {
-  return this->get_raw().t == game::ui::lua::hks::HksObjectType::TTABLE;
+  return this->get_raw().t == HksObjectType::TTABLE;
 }
 
 template <> table script_value::get() const { return this->get_raw().v.table; }
@@ -260,8 +256,8 @@ template <> table script_value::get() const { return this->get_raw().v.table; }
  **************************************************************/
 
 template <> bool script_value::is<function>() const {
-  return this->get_raw().t == game::ui::lua::hks::HksObjectType::TIFUNCTION ||
-         this->get_raw().t == game::ui::lua::hks::HksObjectType::TCFUNCTION;
+  return this->get_raw().t == HksObjectType::TIFUNCTION ||
+         this->get_raw().t == HksObjectType::TCFUNCTION;
 }
 
 template <> function script_value::get() const {
@@ -272,16 +268,14 @@ template <> function script_value::get() const {
  *
  **************************************************************/
 
-const game::ui::lua::hks::HksObject &script_value::get_raw() const {
-  return this->value_.get();
-}
+const HksObject &script_value::get_raw() const { return this->value_.get(); }
 
 bool script_value::operator==(const script_value &other) const {
   if (this->get_raw().t != other.get_raw().t) {
     return false;
   }
 
-  if (this->get_raw().t == game::ui::lua::hks::HksObjectType::TSTRING) {
+  if (this->get_raw().t == HksObjectType::TSTRING) {
     return this->get<std::string>() == other.get<std::string>();
   }
 

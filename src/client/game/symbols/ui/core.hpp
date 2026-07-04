@@ -41,6 +41,13 @@ WEAK symbol<bool(const UIModelIndex nodeIndex, const char *newValue)>
 WEAK symbol<bool(const UIModelIndex nodeIndex, uint64_t newValue)>
     UI_Model_SetUInt64{0x142019EB0};
 
+WEAK symbol<void(const char *rootName)> UI_CoD_ProcessEvents{0x141F2DDA0};
+WEAK symbol<void(bool frontend)> UI_CoD_ShutdownAndInit{0x141F32F80};
+WEAK symbol<void(lua::hks::lua_Alloc allocFunction, void *outOfMemoryFunction)>
+    UI_Init{0x142704FF0};
+
+WEAK symbol<void(LocalClientNum_t localClientNum)> UI_CoD_Layout{0x141F29EF0};
+WEAK symbol<void(LocalClientNum_t localClientNum)> UI_CoD_Render{0x141F2E140};
 } // namespace ui
 } // namespace game
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core.hpp"
-#include "quake.hpp"
+#include "quake/vec.hpp"
+#include "quake/core.hpp"
 #include "db/xasset.hpp"
 
 namespace game {

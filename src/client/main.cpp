@@ -36,13 +36,13 @@ std::pair<void **, void *> patch_steam_import(const std::string &func,
                                               void *function) {
   static const utils::nt::library game{};
 
-  const auto game_entry = game.get_iat_entry("steam_api64.dll", func);
+  void **game_entry = game.get_iat_entry("steam_api64.dll", func);
   if (!game_entry) {
     // throw std::runtime_error("Import '" + func + "' not found!");
     return {nullptr, nullptr};
   }
 
-  const auto original_import = game_entry;
+  void *original_import = reinterpret_cast<void *>(game_entry);
   utils::hook::set(game_entry, function);
   return {game_entry, original_import};
 }

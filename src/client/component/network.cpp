@@ -17,6 +17,7 @@
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/finally.hpp>
+#include <str.hpp>
 
 namespace network {
 namespace {
@@ -31,37 +32,36 @@ int64_t handle_command(const game::net::netadr_t *address, const char *command,
                        const game::net::msg::msg_t *message,
                        game::LocalClientNum_t localClientNum) {
 
-  const auto cmd_string = utils::string::to_lower(command);
-  auto &callbacks = get_callbacks();
-  const auto handler = callbacks.find(cmd_string);
-  const auto offset = cmd_string.size() + 5;
+  const std::string cmd_string = utils::string::to_lower(command);
+  std::unordered_map<std::string, callback> &callbacks = get_callbacks();
+  const size_t offset = cmd_string.size() + 5;
 
   if (message->cursize < 0 || static_cast<size_t>(message->cursize) < offset ||
-      handler == callbacks.end()) {
-    return TRUE;
+      !callbacks.contains(cmd_string)) {
+    return true;
   }
 
   const std::basic_string_view data(message->data + offset,
                                     message->cursize - offset);
 
   try {
-    handler->second(*address, data, localClientNum);
+    callbacks[cmd_string](*address, data, localClientNum);
   } catch (const std::exception &e) {
     printf("Error: %s\n", e.what());
   } catch (...) {
   }
 
-  return FALSE;
+  return false;
 }
 
 bool cl_dispatch_connectionless_packet_stub(
     game::LocalClientNum_t local_client_num, game::net::netadr_t from,
 
-    game::net::msg::msg_t *msg, [[maybe_unused]] int time) {
+    game::net::msg::msg_t *msg, [[maybe_unused]] int32_t time) {
   const command::params params;
-  const auto *c = params.get(0);
+  const char *c = params.get(0);
 
-  return handle_command(&from, c, msg, local_client_num) == TRUE;
+  return handle_command(&from, c, msg, local_client_num) == true;
 }
 
 void handle_command_stub(utils::hook::assembler &a) {
@@ -87,7 +87,7 @@ bool socket_set_blocking(const SOCKET s, const bool blocking) {
 }
 
 void create_ip_socket() {
-  auto &s = *game::net::ip_socket;
+  SOCKET &s = *game::net::ip_socket;
   if (s) {
     return;
   }
@@ -102,15 +102,14 @@ void create_ip_socket() {
 
   socket_set_blocking(s, false);
 
-  const auto address = htonl(INADDR_ANY);
-  auto port = static_cast<uint16_t>(
-      game::Dvar_FindVar("net_port")->current.value.integer);
+  const uint32_t address = htonl(INADDR_ANY);
+  uint16_t port = static_cast<uint16_t>(game::get_dvar_uint("net_port"));
 
   sockaddr_in server_addr{};
   server_addr.sin_family = AF_INET;
   server_addr.sin_addr.s_addr = address;
 
-  int retries = 0;
+  int32_t retries = 0;
   do {
     server_addr.sin_port = htons(port++);
     if (++retries > 10)
@@ -118,10 +117,10 @@ void create_ip_socket() {
   } while (bind(s, reinterpret_cast<sockaddr *>(&server_addr),
                 sizeof(server_addr)) == SOCKET_ERROR);
 
-  printf("[NET] Socket bound on port %u\n", static_cast<unsigned>(port - 1));
+  printf("[NET] Socket bound on port %u\n", static_cast<uint32_t>(port - 1));
 
   if (!game::is_server()) {
-    auto *server_socket = reinterpret_cast<SOCKET *>(0x14A640988_g);
+    SOCKET *server_socket = reinterpret_cast<SOCKET *>(0x14A640988_g);
     *server_socket = s;
   }
 }
@@ -132,7 +131,7 @@ bool &socket_byte_missing() {
 }
 
 uint8_t read_socket_byte_stub(game::net::msg::msg_t *msg) {
-  auto &byte_missing = socket_byte_missing();
+  bool &byte_missing = socket_byte_missing();
   byte_missing = msg->cursize >= 4 && *reinterpret_cast<int *>(msg->data) == -1;
   if (byte_missing) {
     return game::net::NS_SERVER | (game::net::NS_SERVER << 4);
@@ -143,7 +142,7 @@ uint8_t read_socket_byte_stub(game::net::msg::msg_t *msg) {
   return game::net::msg::MSG_ReadByte(msg);
 }
 
-int verify_checksum_stub(void * /*data*/, const int length) {
+int32_t verify_checksum_stub(void * /*data*/, const int32_t length) {
   return length + (socket_byte_missing() ? 1 : 0);
 }
 
@@ -175,17 +174,18 @@ uint64_t handle_packet_internal_stub(
              : 0;
 }
 
-int bind_stub(SOCKET /*s*/, const sockaddr * /*addr*/, int /*namelen*/) {
+int32_t bind_stub(SOCKET /*s*/, const sockaddr * /*addr*/,
+                  int32_t /*namelen*/) {
   return 0;
 }
 
-void com_error_oob_stub(const char *file, int line, game::errorParm code,
+void com_error_oob_stub(const char *file, int32_t line, game::errorParm code,
                         [[maybe_unused]] const char *fmt, const char *error) {
 
   intptr_t callerAddr = reinterpret_cast<intptr_t>(_ReturnAddress());
   char buffer[1024]{};
 
-  strncpy_s(buffer, error, _TRUNCATE);
+  strscpy(buffer, error);
 
   std::string file_str = file ? file : "unknown";
   std::string log_str =
@@ -227,7 +227,7 @@ void send_data(const game::net::netadr_t &address, const void *data,
   // game::net::NET_SendPacket(game::net::NS_CLIENT1, static_cast<int>(size),
   // data, &address);
 
-  const auto to = convert_to_sockaddr(address);
+  const sockaddr_in to = convert_to_sockaddr(address);
   sendto(*game::net::ip_socket, static_cast<const char *>(data),
          static_cast<int>(length), 0, reinterpret_cast<const sockaddr *>(&to),
          sizeof(to));
@@ -276,8 +276,9 @@ bool are_addresses_equal(const game::net::netadr_t &a,
   return a.port == b.port && a.addr == b.addr;
 }
 
-int net_sendpacket_stub(const game::net::netsrc_t sock, const int length,
-                        const char *data, const game::net::netadr_t *to) {
+int32_t net_sendpacket_stub(const game::net::netsrc_t sock,
+                            const int32_t length, const char *data,
+                            const game::net::netadr_t *to) {
   // printf("Sending packet of size: %X\n", length);
 
   if (to->type != game::net::NA_RAWIP) {
@@ -285,7 +286,7 @@ int net_sendpacket_stub(const game::net::netsrc_t sock, const int length,
     return 0;
   }
 
-  const auto s = *game::net::ip_socket;
+  const SOCKET s = *game::net::ip_socket;
   if (!s || sock > game::net::NS_MAXCLIENTS) {
     return 0;
   }
@@ -297,7 +298,7 @@ int net_sendpacket_stub(const game::net::netsrc_t sock, const int length,
       htonl(((to->ipv4.c | ((to->ipv4.b | (to->ipv4.a << 8)) << 8)) << 8) |
             to->ipv4.d);
 
-  const auto size = static_cast<size_t>(length);
+  const size_t size = static_cast<size_t>(length);
 
   std::vector<char> buffer{};
   buffer.resize(size + 1);

@@ -4,12 +4,13 @@
 #include "script_value.hpp"
 
 namespace ui_scripting {
+using namespace game::ui::lua::hks;
 void push_value(const script_value &value);
-void push_value(const game::ui::lua::hks::HksObject &value);
+void push_value(const HksObject &value);
 
 script_value get_return_value(std::int64_t offset);
 arguments get_return_values();
-arguments get_return_values(game::ui::lua::hks::HksObject *base);
+arguments get_return_values(HksObject *base);
 
 bool notify(const std::string &name, const event_arguments &arguments);
 

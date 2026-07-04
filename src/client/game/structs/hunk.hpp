@@ -1,7 +1,8 @@
 #pragma once
 
 #include <cstdint>
-#include "core.hpp"
+#include "func.hpp"
+#include "macros.hpp"
 
 namespace game {
 namespace hunk {
@@ -53,5 +54,34 @@ struct HunkUserNull {
   int32_t alignment;
 };
 ASSERT_SIZE(HunkUserNull, 0x20);
+
+struct ALLOCATION_SCHEME_FUNCTIONS {
+  fastcall_t<HunkUser *(HunkUserDefault *defaultUser, uint64_t size,
+                        HU_ALLOCATION_SCHEME scheme, HUNKUSER_FLAGS flags,
+                        void *scheme_specific_data, const char *name,
+                        int32_t type)>
+      Init;
+  fastcall_t<void(HunkUser *user)> Reset;
+  fastcall_t<void(HunkUser *user)> Destroy;
+  fastcall_t<void *(HunkUser *user, uint64_t size, int32_t alignment,
+                    const char *name)>
+      Alloc;
+  fastcall_t<void(HunkUser *user, void *alloc)> Free;
+};
+
+union HunkUserAllocationSchemeMap {
+  struct {
+    ALLOCATION_SCHEME_FUNCTIONS _default;
+    ALLOCATION_SCHEME_FUNCTIONS debug;
+    ALLOCATION_SCHEME_FUNCTIONS firstFit;
+    ALLOCATION_SCHEME_FUNCTIONS fixed;
+    ALLOCATION_SCHEME_FUNCTIONS null;
+    ALLOCATION_SCHEME_FUNCTIONS dlMalloc;
+    ALLOCATION_SCHEME_FUNCTIONS mt;
+  };
+  ALLOCATION_SCHEME_FUNCTIONS
+  functions[static_cast<size_t>(HU_ALLOCATION_SCHEME::HU_SCHEME_COUNT)];
+};
+ASSERT_SIZE(HunkUserAllocationSchemeMap, 0x118);
 } // namespace hunk
 } // namespace game

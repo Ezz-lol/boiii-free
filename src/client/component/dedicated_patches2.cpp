@@ -14,6 +14,7 @@
 #include <utils/string.hpp>
 
 #include "scheduler.hpp"
+#include "game_event.hpp"
 #include "command.hpp"
 
 namespace server_patches2 {
@@ -111,20 +112,33 @@ std::string sanitize_chat_message(const std::string &msg) {
   return result;
 }
 
-void disable_sv_cheats_cb(game::dvar_t *sv_cheats) {
-  if (sv_cheats->current.value.enabled) {
-    game::Dvar_SetBoolFromSource(sv_cheats, false,
-                                 game::DvarSetSource::INTERNAL);
+void dvar_disablebool_cb(const game::dvar_t *dvar) {
+  if (game::get_dvar_bool(dvar)) {
+    game::set_dvar_bool(dvar, false);
   }
+}
+
+const game::dvar_t *Dvar_RegisterDisable_Bool(game::dvarStrHash_t hash,
+                                              const char *dvarName, bool value,
+                                              game::DvarFlags flags,
+                                              const char *description) {
+  const game::dvar_t *dvar =
+      game::Dvar_RegisterBool(hash, dvarName, value, flags, description);
+
+  if (game::get_dvar_bool(dvar)) {
+    game::set_dvar_bool(dvar, false);
+  }
+  game::Dvar_SetModifiedCallback(dvar, dvar_disablebool_cb);
+
+  return dvar;
 }
 
 // Hook for G_Say to sanitize messages
 utils::hook::detour g_say_hook;
-
 void g_say_stub(game::level::gentity_s *ent, game::level::gentity_s *target,
                 int mode, const char *chatText) {
   if (chatText) {
-    const auto sanitized = sanitize_chat_message(chatText);
+    const std::string sanitized = sanitize_chat_message(chatText);
     g_say_hook.invoke(ent, target, mode, sanitized.data());
   } else {
     g_say_hook.invoke(ent, target, mode, chatText);
@@ -149,33 +163,34 @@ void sv_live_removeallclientsfromaddress_stub(game::sv::client_s *client,
   // Skip disconnecting other clients from the same IP -
   // just free the disconnected client's slot, and return.
   game::sv::SV_Live_RemoveClient(client, reason);
-  return;
 }
 
 std::mutex reliable_cmd_mutex;
 // Map of reliable command string -> Map of xuid -> svs->time of last sequencing
 std::unordered_map<std::string, std::unordered_map<game::XUID, uint32_t>>
-    client_openmenu_cmd_last_sequence_time;
+    client_luinotify_cmd_last_sequence_time;
 // Map of xuid -> last sequenced reliable command string
 std::unordered_map<game::XUID, std::string> client_last_cmd;
 
 utils::hook::detour g_init_game_hook;
-void g_init_game_stub(uint32_t levelTime, uint32_t randomSeed,
-                      game::qboolean restart, game::qboolean registerDvars,
-                      game::qboolean savegame) {
+void g_init_game_stub(uint32_t levelTime, uint32_t randomSeed, qboolean restart,
+                      qboolean registerDvars, qboolean savegame) {
   std::lock_guard lock(reliable_cmd_mutex);
 
-  // Reset tracked openmenu reliable cmds on starting a new game.
-  for (auto &[cmd, client_map] : client_openmenu_cmd_last_sequence_time) {
+  // Reset tracked luinotify reliable cmds on starting a new game.
+  for (auto &[cmd, client_map] : client_luinotify_cmd_last_sequence_time) {
     client_map.clear();
   }
 
-  client_openmenu_cmd_last_sequence_time.clear();
+  client_luinotify_cmd_last_sequence_time.clear();
   client_last_cmd.clear();
 
   g_init_game_hook.invoke(levelTime, randomSeed, restart, registerDvars,
                           savegame);
 }
+
+inline constexpr const str<2> LUI_NOTIFY_RELIABLE_CMD_PREFIX = {
+    static_cast<char>(game::sv::ReliableCommand::LUI_NOTIFY), ' '};
 
 utils::hook::detour sv_addservercommand_hook;
 
@@ -186,21 +201,21 @@ void sv_addservercommand_stub(game::sv::client_s *client,
   std::lock_guard lock(reliable_cmd_mutex);
 
   /*
-    `openmenu` reliable commands have format "D %d %d %d %d", or "D %d %d %d".
+    `luinotify` reliable commands have format "D %d %d %d %d", or "D %d %d %d".
     Note that the prefix "D " is its unique command type identifier.
   */
-  if (utils::string::starts_with(cmd_str, "D ")) {
+  if (utils::string::starts_with(cmd_str, LUI_NOTIFY_RELIABLE_CMD_PREFIX)) {
     // If this command was sent less than 1000 ms ago, skip.
-    if (client_openmenu_cmd_last_sequence_time.contains(cmd_str) &&
-        client_openmenu_cmd_last_sequence_time[cmd_str].contains(
+    if (client_luinotify_cmd_last_sequence_time.contains(cmd_str) &&
+        client_luinotify_cmd_last_sequence_time[cmd_str].contains(
             client->xuid) &&
         game::sv::svs->time -
-                client_openmenu_cmd_last_sequence_time[cmd_str][client->xuid] <
+                client_luinotify_cmd_last_sequence_time[cmd_str][client->xuid] <
             1000) {
       return;
     }
 
-    // We also do not need to send a redundant openmenu command if it was the
+    // We also do not need to send a redundant luinotify command if it was the
     // last command sent, even if sent > 1 second ago. This is valid because we
     // can guarantee that menu state was not modified otherwise in the interim.
     if (client_last_cmd.contains(client->xuid) &&
@@ -209,7 +224,7 @@ void sv_addservercommand_stub(game::sv::client_s *client,
     }
   }
 
-  client_openmenu_cmd_last_sequence_time[cmd_str][client->xuid] =
+  client_luinotify_cmd_last_sequence_time[cmd_str][client->xuid] =
       game::sv::svs->time;
   client_last_cmd[client->xuid] = cmd_str;
 
@@ -226,7 +241,7 @@ bool db_loadxfile_stub(const char *path, game::db::DBFile f,
       path, f, fileBuffer, filename, blocks, interrupt, buf, side, flags);
 
   if (succeeded && (game::db::load::g_load->flags & 0x1000C00) != 0) {
-    game::snd::g_sb->loadGate = 0;
+    game::snd::g_sb->loadGate = false;
     game::snd::SND_LoadSoundsWait();
   }
 
@@ -262,22 +277,22 @@ void free_bank_allocations_before_clearing_address_stub(
 utils::hook::detour snd_init_hook;
 void snd_init_stub() {
   snd_init_hook.invoke();
-  *(game::snd::g_pc_nosnd.get()) = 0;
-  game::snd::g_snd->verified_0.init = 1;
+  *(game::snd::g_pc_nosnd.get()) = true;
+  game::snd::g_snd->verified_0.init = true;
   game::snd::g_sb->bankMagic = 0x12233445;
 }
 
 utils::hook::detour snd_queueadd_hook;
-void snd_queueadd_stub(game::snd::SndQueue *queue,
+void snd_queueadd_stub([[maybe_unused]] game::snd::SndQueue *queue,
                        game::snd::cmd::SndCommandType cmd, uint32_t size,
                        game::snd::cmd::SndCommand data) {
   game::snd::SND_CommandSND(cmd, static_cast<uint64_t>(size), data);
 }
 
 utils::hook::detour snd_active_hook;
-game::qboolean snd_active_stub() {
-  game::snd::g_snd->verified_0.init = 1;
-  return snd_active_hook.invoke<game::qboolean>();
+qboolean snd_active_stub() {
+  game::snd::g_snd->verified_0.init = true;
+  return snd_active_hook.invoke<qboolean>();
 }
 
 utils::hook::detour sndl_update_hook;
@@ -315,11 +330,12 @@ utils::hook::detour snd_starttocread_hook;
   This fixes most bugs related to server-side sound handling.
 
   For example:
-  - Map music, sound effects, or voicelines not playing, playing on a loop,
-  playing at the wrong time, or all playing at the same time - occurs in most
-  zombies maps.
-  - Maps with manual sound loops crashing the server with `G_Spawn: no free
-  entities` error - Die Rise, for example.
+  - Map music, sound effects, or voicelines not playing, erroneously playing in
+  a loop, playing at the wrong time, or all playing at the same time - occurs in
+  most zombies maps.
+  - Maps implementing manual sound loops with intermittent delay generated
+  by the `soundgetplaybacktime` GSC function crashing the server with `G_Spawn:
+  no free entities` error; Die Rise, for example.
 
   Does not fix:
   - Perk machine jingles inconsistently playing when player is in proximity.
@@ -349,7 +365,7 @@ inline void enable_sound() {
     used in the unmodified engine; it was reimplemented and used in the above
     SND_EnqueueLoadedAssets_Impl.
 
-    This call hooks the memset call to instead first free these allocations,
+    This hooks the memset call to instead first free these allocations,
     if they are present, to prevent memory leak. The client frees these
     allocations in the same location.
   */
@@ -475,8 +491,8 @@ struct component final : server_component {
     utils::hook::nop(0x1401155D5_g, 7);
 
     /*
-      Disable removal of all clients from an IP address if
-      one client from that IP address disconnects.
+      Disable removal of all clients from an IP address when
+      one client from the IP address disconnects.
 
       Useful if e.g. server is hosted behind a reverse proxy or
       load balancer where multiple clients share the same IP.
@@ -485,18 +501,8 @@ struct component final : server_component {
         game::sv::SV_Live_RemoveAllClientsFromAddress.get(),
         sv_live_removeallclientsfromaddress_stub);
 
-    scheduler::once(
-        [] {
-          const game::dvar_t *sv_cheats = game::Dvar_FindVar("sv_cheats");
-          game::Dvar_SetBoolFromSource(sv_cheats, false,
-                                       game::DvarSetSource::INTERNAL);
-
-          // Enforce sv_cheats = 0
-          game::Dvar_SetModifiedCallback(
-              sv_cheats,
-              reinterpret_cast<game::modifiedCallback>(disable_sv_cheats_cb));
-        },
-        scheduler::pipeline::async, 30000ms);
+    // Disable sv_cheats immediately after registration
+    utils::hook::call(0x140379E80_g, Dvar_RegisterDisable_Bool);
 
     if (!utils::flags::has_flag("noratelimit")) {
       // Cleanup old rate limit entries periodically
@@ -517,7 +523,7 @@ struct component final : server_component {
       each non-host client.
 
       In two tested cases - in the custom maps Kowloon and Daybreak - this
-      results in a constant, massive flood of redundant `openmenu` reliable
+      results in a constant, massive flood of redundant `luinotify` reliable
       commands being sent to each client. While inefficient, this is generally
       acceptable. However, when the client is completing load-in to the map, in
       the initial blackscreen before they begin playing, reliable commands are

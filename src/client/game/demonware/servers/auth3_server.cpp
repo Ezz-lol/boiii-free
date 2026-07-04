@@ -6,6 +6,8 @@
 #include <utils/cryptography.hpp>
 #include <utils/string.hpp>
 
+#include <str.hpp>
+
 namespace demonware {
 namespace {
 #pragma pack(push, 1)
@@ -83,7 +85,7 @@ void auth3_server::handle(const std::string &packet) {
 
   // client_ticket
   auth_ticket ticket{};
-  std::memset(&ticket, 0x0, sizeof ticket);
+  std::memset(&ticket, 0x0, sizeof(ticket));
   ticket.m_magicNumber = 0x0EFBDADDE;
   ticket.m_type = 0;
   ticket.m_titleID = title_id;
@@ -91,8 +93,7 @@ void auth3_server::handle(const std::string &packet) {
   ticket.m_timeExpires = ticket.m_timeIssued + 30000;
   ticket.m_licenseID = 0;
   ticket.m_userID = reinterpret_cast<uint64_t>(token.data() + 56);
-  strncpy_s(ticket.m_username, sizeof(ticket.m_username), token.data() + 64,
-            64);
+  strscpy(ticket.m_username, token.data());
   std::memcpy(ticket.m_sessionKey, session_key.data(), 24);
 
   const auto iv = utils::cryptography::tiger::compute(
@@ -105,7 +106,7 @@ void auth3_server::handle(const std::string &packet) {
 
   // server_ticket
   uint8_t auth_data[128];
-  std::memset(&auth_data, 0, sizeof auth_data);
+  std::memset(&auth_data, 0, sizeof(auth_data));
   std::memcpy(auth_data, session_key.data(), 24);
   const auto auth_data_b64 =
       utils::cryptography::base64::encode(auth_data, 128);
