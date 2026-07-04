@@ -12,9 +12,8 @@
 namespace command {
 namespace {
 constexpr const char *compatibility_commands[] = {
-    "ffotdversion",  "bbdisable", "bbenable", "bitfieldBBPrints",
-    "bbstart",       "setliveevent"
-};
+    "ffotdversion",     "bbdisable", "bbenable",
+    "bitfieldBBPrints", "bbstart",   "setliveevent"};
 
 std::unordered_map<std::string, command_param_function> &get_command_map() {
   static std::unordered_map<std::string, command_param_function> command_map{};

@@ -14,9 +14,8 @@
 namespace dedicated {
 namespace {
 constexpr const char *compatibility_commands[] = {
-    "ffotdversion",  "bbdisable", "bbenable", "bitfieldBBPrints",
-    "bbstart",       "setliveevent"
-};
+    "ffotdversion",     "bbdisable", "bbenable",
+    "bitfieldBBPrints", "bbstart",   "setliveevent"};
 
 const game::dvar_t *sv_lan_only;
 
