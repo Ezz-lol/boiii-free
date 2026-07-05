@@ -2,6 +2,7 @@
 #ifdef GAME_HPP
 
 #include <cstdint>
+#include <winsock2.h>
 #include "../macros.hpp"
 
 namespace game {

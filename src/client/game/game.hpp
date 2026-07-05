@@ -3,7 +3,7 @@
 
 #include <filesystem>
 #include <string>
-#include "../../common/utils/nt.hpp"
+#include "../../common/utils/nt.hpp" // IWYU pragma: export
 
 namespace arxan::detail {
 void set_address_to_call(const void *address);
@@ -96,8 +96,8 @@ std::filesystem::path get_game_path();
 
 inline size_t operator""_g(const size_t val) { return game::relocate(val); }
 
-#include "symbol.hpp"
-#include "structs/structs.hpp"
-#include "symbols/symbols.hpp"
+#include "symbol.hpp"          // IWYU pragma: export
+#include "structs/structs.hpp" // IWYU pragma: export
+#include "symbols/symbols.hpp" // IWYU pragma: export
 
 #endif

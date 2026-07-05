@@ -1,14 +1,11 @@
-#include <std_include.hpp>
+#include "std_include.hpp"
 
 #include "game.hpp"
 
-#include <utils/flags.hpp>
-#include <utils/finally.hpp>
+#include "../../common/utils/flags.hpp"
+#include "../../common/utils/finally.hpp"
 
-#include <iostream>
-#include <random>
-#include <sstream>
-#include <iomanip>
+#include <combaseapi.h>
 
 namespace game {
 namespace {

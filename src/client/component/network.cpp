@@ -1,7 +1,7 @@
 #include <cstdint>
 #include <functional>
 #include <unordered_map>
-#include <std_include.hpp>
+#include "../std_include.hpp"
 #include "loader/component_loader.hpp"
 #include "game/game.hpp"
 #include "game/fragment_handler.hpp"

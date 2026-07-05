@@ -2,32 +2,9 @@
 #include "scr.hpp"
 
 #include "../../../../common/utils/string.hpp"
-#include "../../../game/utils.hpp"
-#include "../../utils.hpp"
-
-#include <string>
-#include <cstdint>
 
 namespace game {
 namespace scr {
-
-level::gentity_t *GetEntity_Impl(const scr_entref_t *entref) {
-  if (entref->classnum) {
-    Scr_ObjectError(SCRIPTINSTANCE_SERVER, "not an entity");
-    return nullptr;
-  }
-  return game::entity(entref->u.entnum);
-}
-
-level::gentity_t *Scr_GetEntity_Impl(uint32_t index) {
-  game::scr::scr_entref_t entref;
-  game::scr::Scr_GetEntityRef(&entref, SCRIPTINSTANCE_SERVER, index);
-  return GetEntity_Impl(&entref);
-}
-
-const char *Scr_TypeName(ScrVarType type) {
-  return (*var_typename)[static_cast<uint32_t>(type)];
-}
 
 // Scr_IsTrue impl with added support for undefined, uintptr_t, uint64 types
 // to allow graceful handling without error

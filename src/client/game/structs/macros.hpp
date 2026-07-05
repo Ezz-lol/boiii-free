@@ -18,28 +18,31 @@
   }
 
 #define IMPL_ENUM_OPERATORS(name)                                              \
-  inline name &operator++(name &s) {                                           \
+  inline constexpr name &operator++(name &s) {                                 \
     using underlying = std::underlying_type_t<name>;                           \
     s = static_cast<name>(static_cast<underlying>(s) + 1);                     \
     return s;                                                                  \
   }                                                                            \
                                                                                \
-  inline name operator++(name &s, int) {                                       \
+  inline constexpr name operator++(name &s, int) {                             \
     name temp = s;                                                             \
     ++s;                                                                       \
     return temp;                                                               \
   }                                                                            \
                                                                                \
-  inline name &operator--(name &s) {                                           \
+  inline constexpr name &operator--(name &s) {                                 \
     using underlying = std::underlying_type_t<name>;                           \
     s = static_cast<name>(static_cast<underlying>(s) - 1);                     \
     return s;                                                                  \
   }                                                                            \
                                                                                \
-  inline name operator--(name &s, int) {                                       \
+  inline constexpr name operator--(name &s, int) {                             \
     name temp = s;                                                             \
     --s;                                                                       \
     return temp;                                                               \
+  }                                                                            \
+  inline constexpr std::underlying_type_t<name> operator+(name s) {            \
+    return static_cast<std::underlying_type_t<name>>(s);                       \
   }
 
 template <size_t Actual, size_t Expected>

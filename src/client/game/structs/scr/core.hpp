@@ -93,10 +93,48 @@ enum class ScrVarType : uint32_t {
   ENT_LIST = 0x1D,
   COUNT = 0x1E
 };
+IMPL_ENUM_OPERATORS(ScrVarType);
 
 typedef ScrVarType ScrVarType_t;
 
 #pragma pack(push, 1)
+
+template <typename T> union ScrVarTypePool {
+  struct {
+    T undefined;
+    T pointer;
+    T string;
+    T localized_string;
+    T vector;
+    T hash;
+    T _float;
+    T _int;
+    T uint64;
+    T uintptr_t;
+    T entity_offset;
+    T codepos;
+    T precodepos;
+    T api_function;
+    T function;
+    T stack;
+    T animation;
+    T thread;
+    T notify_thread;
+    T time_thread;
+    T child_thread;
+    T _class;
+    T _struct;
+    T removed_entity;
+    T entity;
+    T array;
+    T removed_thread;
+    T free;
+    T thread_list;
+    T ent_list;
+    T count;
+  };
+  T pool[static_cast<size_t>(ScrVarType::COUNT)];
+};
 
 enum class scriptBundleKVPType_t : int32_t {
   KVP_STRING = 0x0,
@@ -2065,11 +2103,15 @@ ASSERT_SIZE(ScrVmContext_t, 0x20);
 typedef fastcall_t<void(scriptInstance_t inst, function_stack_t *fs,
                         volatile ScrVmContext_t *vmc, bool *terminate)>
     VM_OP_FUNC;
+typedef uint16_t OP_TYPE;
 
+constexpr OP_TYPE VM_OP_JUMP_TABLE_LEN = 0x2000;
 struct VmOpJumpTable {
-  array<VM_OP_FUNC, 8192> ops;
+  array<VM_OP_FUNC, VM_OP_JUMP_TABLE_LEN> ops;
 };
 
-typedef uint16_t OP_TYPE;
+constexpr OP_TYPE VM_OP_TABLE_1_IDX_MASK =
+    static_cast<OP_TYPE>(-(static_cast<int16_t>(VM_OP_JUMP_TABLE_LEN)));
+
 } // namespace scr
 } // namespace game

@@ -41,8 +41,8 @@ static std::unordered_map<game::ClientNum_t, std::unordered_set<std::string>>
     client_dvar_changes;
 static std::atomic_bool detours_enabled = false;
 
-static VM_OP_FUNC orig_SafeCreateLocalVariables = nullptr;
-static VM_OP_FUNC orig_CheckClearParams = nullptr;
+static VM_OP_FUNC VM_OP_SafeCreateLocalVariables_Handler_orig = nullptr;
+static VM_OP_FUNC VM_OP_CheckClearParams_Handler_orig = nullptr;
 static std::atomic_bool return_value_set = std::atomic_bool(false);
 
 constexpr uint32_t fnv1a(const char *str) {
@@ -408,34 +408,28 @@ bool try_redirect(scriptInstance_t inst, function_stack_t *fs) {
   return false;
 }
 
-void hk_SafeCreateLocalVariables(scriptInstance_t inst, function_stack_t *fs,
-                                 volatile ScrVmContext_t *vmc,
-                                 bool *terminate) {
-  if (!try_redirect(inst, fs) && orig_SafeCreateLocalVariables)
-    orig_SafeCreateLocalVariables(inst, fs, vmc, terminate);
+void VM_OP_SafeCreateLocalVariables_Handler_stub(scriptInstance_t inst,
+                                                 function_stack_t *fs,
+                                                 volatile ScrVmContext_t *vmc,
+                                                 bool *terminate) {
+  if (!try_redirect(inst, fs) && VM_OP_SafeCreateLocalVariables_Handler_orig)
+    VM_OP_SafeCreateLocalVariables_Handler_orig(inst, fs, vmc, terminate);
 }
 
-void hk_CheckClearParams(scriptInstance_t inst, function_stack_t *fs,
-                         volatile ScrVmContext_t *vmc, bool *terminate) {
-  if (!try_redirect(inst, fs) && orig_CheckClearParams)
-    orig_CheckClearParams(inst, fs, vmc, terminate);
+void VM_OP_CheckClearParams_Handler_stub(scriptInstance_t inst,
+                                         function_stack_t *fs,
+                                         volatile ScrVmContext_t *vmc,
+                                         bool *terminate) {
+  if (!try_redirect(inst, fs) && VM_OP_CheckClearParams_Handler_orig)
+    VM_OP_CheckClearParams_Handler_orig(inst, fs, vmc, terminate);
 }
 
 void hook_opcode(OP_TYPE opcode, VM_OP_FUNC hook, VM_OP_FUNC *out_orig) {
-  array<VmOpJumpTable *, 2> tables = {gVmOpJumpTable2.get(),
-                                      gVmOpJumpTable1.get()};
-
-  VmOpJumpTable *table = tables[1];
-  OP_TYPE entryIdxMask = 0xFFFF;
-  if ((opcode & 0x2000) != 0) {
-    entryIdxMask = 0xDFFF;
-    table = tables[0];
-  }
-  VM_OP_FUNC entry = table->ops[opcode & entryIdxMask];
+  VM_OP_FUNC *handler = op_handler(opcode);
   if (!*out_orig)
-    *out_orig = entry;
-  if (entry == *out_orig)
-    entry = hook;
+    *out_orig = *handler;
+  if (*handler == *out_orig)
+    *handler = hook;
 }
 
 void builtin_dispatcher(game::scr::scriptInstance_t inst) {
@@ -1370,9 +1364,10 @@ struct component final : generic_component {
     bgscr_isprofilebuild_def->max_args = 255;
     bgscr_isprofilebuild_def->actionFunc = builtin_dispatcher;
 
-    hook_opcode(0x01D2, hk_SafeCreateLocalVariables,
-                &orig_SafeCreateLocalVariables);
-    hook_opcode(0x000D, hk_CheckClearParams, &orig_CheckClearParams);
+    hook_opcode(0x01D2, VM_OP_SafeCreateLocalVariables_Handler_stub,
+                &VM_OP_SafeCreateLocalVariables_Handler_orig);
+    hook_opcode(0x000D, VM_OP_CheckClearParams_Handler_stub,
+                &VM_OP_CheckClearParams_Handler_orig);
 
     game_event::on_g_shutdown_game([] {
       function_replacements.clear();
