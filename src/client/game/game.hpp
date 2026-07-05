@@ -20,6 +20,7 @@ bool is_server();
 bool is_client();
 bool is_legacy_client();
 
+bool quiet_crash();
 bool is_headless();
 
 void show_error(const std::string &text, const std::string &title = "Error");

@@ -398,8 +398,7 @@ void remove_settext_hooks() {
 bool try_redirect(scriptInstance_t inst, function_stack_t *fs) {
   if (detours_enabled.load(std::memory_order_seq_cst) &&
       inst == SCRIPTINSTANCE_SERVER) {
-    uint8_t *redirected =
-        reinterpret_cast<uint8_t *>(reinterpret_cast<uintptr_t>(fs->pos) - 2);
+    uint8_t *redirected = fs->pos - 2;
     if (function_replacements.contains(redirected)) {
       fs->pos = function_replacements[redirected];
       return true;
