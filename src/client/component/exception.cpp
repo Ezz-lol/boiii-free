@@ -235,8 +235,10 @@ void display_error_dialog() {
   const resolved_frame frame = resolve_address(exception_data.address);
   const char *exception_name = get_exception_string(exception_data.code);
   const std::string location = get_crash_module_info(exception_data.address);
+  const std::string minidumps_out =
+      (game::get_appdata_path() / "minidumps").string();
 
-  const std::string error_str = utils::string::va(
+  const char *error_str = utils::string::va(
       "%s (0x%08X) at %s\n\n"
       "Address: 0x%p (RVA: 0x%llX)\n"
       "Module: %s\n"
@@ -248,19 +250,18 @@ void display_error_dialog() {
       exception_data.address, frame.rva, frame.module_name.c_str(),
       frame.function_name.empty() ? "" : "Function: ",
       frame.function_name.empty() ? "" : (frame.function_name + "\n").c_str(),
-      (game::get_appdata_path() / "minidumps").string().c_str());
+      minidumps_out.c_str());
 
   utils::thread::suspend_other_threads();
   show_mouse_cursor();
 
-  game::show_error(error_str.data(), "Ezz ERROR");
+  game::show_error(error_str, "Ezz ERROR");
 
   if (game::quiet_crash()) {
     utils::thread::terminate_other_threads(exception_data.code);
   } else {
-    ShellExecuteA(nullptr, "open",
-                  (game::get_appdata_path() / "minidumps").string().c_str(),
-                  nullptr, nullptr, SW_SHOWNORMAL);
+    ShellExecuteA(nullptr, "open", minidumps_out.c_str(), nullptr, nullptr,
+                  SW_SHOWNORMAL);
   }
 
   TerminateProcess(GetCurrentProcess(), exception_data.code);
@@ -746,18 +747,18 @@ LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
       get_exception_string(exceptioninfo->ExceptionRecord->ExceptionCode);
 
   // Detailed console crash report
-  fprintf(stderr, "\n^1========== CRASH DETECTED ==========\n");
-  fprintf(stderr, "^1  Exception:  %s (0x%08lX)\n", exception_name,
+  fprintf(stderr, "\n========== CRASH DETECTED ==========\n");
+  fprintf(stderr, "  Exception:  %s (0x%08lX)\n", exception_name,
           exceptioninfo->ExceptionRecord->ExceptionCode);
-  fprintf(stderr, "^1  Module:     %s + 0x%llX\n",
+  fprintf(stderr, "  Module:     %s + 0x%llX\n",
           crash_frame.module_name.c_str(), crash_frame.rva);
   if (!crash_frame.function_name.empty())
-    fprintf(stderr, "^1  Function:   %s\n", crash_frame.function_name.c_str());
+    fprintf(stderr, "  Function:   %s\n", crash_frame.function_name.c_str());
   if (!crash_frame.file_name.empty() && crash_frame.line_number > 0)
-    fprintf(stderr, "^1  Source:     %s:%u\n", crash_frame.file_name.c_str(),
+    fprintf(stderr, "  Source:     %s:%u\n", crash_frame.file_name.c_str(),
             crash_frame.line_number);
-  fprintf(stderr, "^1  Address:    0x%llX\n", crash_frame.address);
-  fprintf(stderr, "^1  Thread:     %lu (%s)\n", GetCurrentThreadId(),
+  fprintf(stderr, "  Address:    0x%llX\n", crash_frame.address);
+  fprintf(stderr, "  Thread:     %lu (%s)\n", GetCurrentThreadId(),
           is_game_thread() ? "main" : "auxiliary");
 
   if (exceptioninfo->ExceptionRecord->ExceptionCode ==
@@ -767,7 +768,7 @@ LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
             ? "write to"
             : "read from";
     uintptr_t target = exceptioninfo->ExceptionRecord->ExceptionInformation[1];
-    fprintf(stderr, "^1  Details:    Attempted to %s 0x%012llX%s\n", op, target,
+    fprintf(stderr, "  Details:    Attempted to %s 0x%012llX%s\n", op, target,
             target < 0x10000 ? " (NULL pointer dereference)" : "");
   }
 
@@ -776,22 +777,22 @@ LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
   // Print condensed callstack to console
   std::vector<resolved_frame> frames = capture_stackwalk(exceptioninfo, 16);
   if (!frames.empty()) {
-    fprintf(stderr, "^1  Callstack:\n");
+    fprintf(stderr, "  Callstack:\n");
     fflush(stderr);
     for (size_t i = 0; i < frames.size(); ++i) {
       const resolved_frame *f = &frames[i];
 
       if (!f->function_name.empty()) {
-        fprintf(stderr, "^1    [%zu] 0x%llX - %s!%s\n", i, f->address,
+        fprintf(stderr, "    [%zu] 0x%llX - %s!%s\n", i, f->address,
                 f->module_name.c_str(), f->function_name.c_str());
       } else {
-        fprintf(stderr, "^1    [%zu] 0x%llX - %s + 0x%llX\n", i, f->address,
+        fprintf(stderr, "    [%zu] 0x%llX - %s + 0x%llX\n", i, f->address,
                 f->module_name.c_str(), f->rva);
       }
       fflush(stderr);
     }
   }
-  fprintf(stderr, "^1=====================================\n\n");
+  fprintf(stderr, "=====================================\n\n");
   fflush(stderr);
 
   if (!game::is_server()) {
