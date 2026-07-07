@@ -449,7 +449,7 @@ void GScr_BBPrint_StdoutRedirect(scriptInstance_t inst) {
 #ifndef NDEBUG
   int32_t numParam = Scr_GetNumParam(inst);
 
-  // BB requires at least an event name and a format string
+  // BBPrint requires at least an event name and a format string
   if (numParam < 2) {
     return;
   }

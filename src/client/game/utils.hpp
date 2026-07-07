@@ -2,7 +2,6 @@
 
 #include "game.hpp"
 #include <functional>
-#include <string>
 #include <type_traits>
 
 namespace game {

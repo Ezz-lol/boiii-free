@@ -98,7 +98,7 @@ constexpr UGCHash UGC_HASH_DJB2_CONSTANT = 33;
 UGCHash UGC_Hash(const char *str) {
   if (str) {
     UGCHash hash = UGC_HASH_DJB2_INITIAL_SEED;
-    for (const char *c = str; *c; c++) {
+    for (const char *c = str; *c; ++c) {
       hash =
           static_cast<UGCHash>(std::tolower(static_cast<unsigned char>(*c))) +
           hash * UGC_HASH_DJB2_CONSTANT;
@@ -117,7 +117,7 @@ inline void UGC_LoadPool_Patches(ExtendedWorkshopDataPool *pool,
     workshop::supplement_mods_from_disk();
   }
 
-  for (uint32_t i = 0; i < pool->count; i++) {
+  for (uint32_t i = 0; i < pool->count; ++i) {
     game::ugc::WorkshopData *ugc = &pool->data[i];
 
     if (ugc->internalName[0] &&
@@ -377,7 +377,7 @@ void UGC_SetMapLoadingImage_Impl() {
     loadingImage->texture.basemap->lpVtbl->Release(
         loadingImage->texture.basemap);
     if (texture.basemap == nullptr) {
-      texture = (*gfx::loadedGfxImage.get())->texture;
+      texture = (*gfx::loadedGfxImage)->texture;
       gfx::Gfx_TexturePool_AddRef(texture, 0);
       texture.basemap->lpVtbl->AddRef(texture.basemap);
     }
@@ -512,8 +512,7 @@ void UGC_LoadManifest_Impl(bool usermaps, bool mods,
                 }
 
                 snprintf(newUgcEntry->publisherId,
-                         sizeof(newUgcEntry->publisherId), "%llu",
-                         sizeof(newUgcEntry->publisherId));
+                         sizeof(newUgcEntry->publisherId), "%llu", publisherId);
 
                 strscpy(newUgcEntry->absolutePathZoneFiles, dirPath,
                         sizeof(newUgcEntry->absolutePathZoneFiles));

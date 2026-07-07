@@ -203,7 +203,8 @@ struct archivedEntity_t;
 struct gentity_snd_wait {
   uint32_t notifyString;
   uint32_t index;
-  qboolean stoppable;
+  bool stoppable;
+  uint8_t _padding09[3];
   int32_t basetime;
   int32_t duration;
 };

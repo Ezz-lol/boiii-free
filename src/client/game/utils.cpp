@@ -445,7 +445,7 @@ bool access_connected_client(
 }
 
 level::gentity_pool *gentity_pool() {
-  if (game::is_client()) {
+  if (is_client()) {
     /*
       In the client, for each function where g_entities is accessed,
       in each of its calling functions, prior to its callsite,
@@ -467,8 +467,7 @@ level::gentity_pool *gentity_pool() {
       into our own global, and use this identically and reliably within boiii's
       code.
     */
-    game::level::gentity_pool *stored =
-        game::level::g_entities_cl_allocation.load();
+    level::gentity_pool *stored = level::g_entities_cl_allocation.load();
     if (stored) {
       return stored;
     }

@@ -67,7 +67,10 @@ concept ValueMatches = (Actual == Expected);
 #endif
 #endif
 
-#define BITS(x) (8 * x)
+template <typename T> constexpr size_t bits() noexcept {
+  return sizeof(T) * CHAR_BIT;
+}
+
 template <typename T, typename = typename std::enable_if<
                           std::is_convertible<T, uint64_t>::value>::type>
 consteval int32_t min_bits_unsigned(T val_in) {
@@ -76,7 +79,7 @@ consteval int32_t min_bits_unsigned(T val_in) {
     return 1; // 0 needs at least 1 bit
 
   // Total bits (64) minus leading zeros gives the bits used
-  return BITS(sizeof(uint64_t)) - std::countl_zero(val);
+  return bits<uint64_t>() - std::countl_zero(val);
 }
 
 template <typename T, typename = typename std::enable_if<
