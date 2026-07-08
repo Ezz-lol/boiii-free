@@ -44,9 +44,9 @@ function dependencies.load()
   dir = path.join(dependencies.basePath, "premake/*.lua")
   deps = os.matchfiles(dir)
 
-  for i, dep in pairs(deps) do
+  for _, dep in pairs(deps) do
     dep = dep:gsub(".lua", "")
-    require(dep)
+    include(dep)
   end
 end
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "quake/core.hpp"
+#include "macros.hpp"
 #include "quake/vec.hpp"
 
 #include <cstddef>
@@ -55,11 +55,7 @@ union DvarFlags {
 private:
   template <typename T>
   static constexpr bool is_allowed_flag_v =
-      std::is_same_v<std::decay_t<T>, int32_t> ||
-      std::is_same_v<std::decay_t<T>, uint32_t> ||
-      std::is_same_v<std::decay_t<T>, dvarFlags_e> ||
-      std::is_same_v<std::decay_t<T>, qboolean> ||
-      std::is_same_v<std::decay_t<T>, DvarFlags>;
+      std::is_convertible<T, uint32_t>::value;
 
 public:
   struct {

@@ -12,8 +12,8 @@ extern void *callstack_proxy_addr;
 
 namespace game {
 
-inline constexpr uint32_t APP_ID = 311210;
-inline constexpr const char *APP_ID_STR = "311210";
+constexpr uint32_t APP_ID = 311210;
+constexpr const char *APP_ID_STR = "311210";
 
 size_t get_base();
 bool is_server();
