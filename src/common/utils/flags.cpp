@@ -163,6 +163,10 @@ int32_t parse_flags(int argc, char *argv[]) {
       .help("Disable console buffer size limit.")
       .default_value(false)
       .implicit_value(true);
+  program.add_argument("-nosnd", "--nosnd")
+      .help("Disable attempt to load and use sound assets in dedicated server.")
+      .default_value(false)
+      .implicit_value(true);
 
   try {
     program.parse_known_args(filtered_args);
