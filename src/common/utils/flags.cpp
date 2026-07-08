@@ -49,93 +49,93 @@ std::vector<std::string> remove_engine_args(int32_t argc, char *argv[]) {
 
 int32_t parse_flags(int argc, char *argv[]) {
   const std::vector<std::string> filtered_args = remove_engine_args(argc, argv);
-  program.add_argument("-unsafe-lua")
+  program.add_argument("unsafe-lua")
       .help("Allow mods to use unsafe Lua functions (required for some mods "
             "like All-Around Enhancement)")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-dedicated")
+  program.add_argument("dedicated")
       .help("Launch as a dedicated server")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-nosteam")
+  program.add_argument("nosteam")
       .help("Bypass Steam entirely")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-nointro")
+  program.add_argument("nointro")
       .help("Skip intro videos")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-windowed")
+  program.add_argument("windowed")
       .help("Launch in windowed mode")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-safe")
+  program.add_argument("safe")
       .help("Launch in safe mode (disable mods)")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-console")
+  program.add_argument("console")
       .help("Enable developer console")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-port")
+  program.add_argument("port")
       .help("XXXX Set server port (default: 27017)")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-launch")
+  program.add_argument("launch")
       .help("Start the game immediately, skipping some launcher UI and "
             "pre-checks")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-noupdate")
+  program.add_argument("noupdate")
       .help("Disable automatic updates (not recommended)")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-update")
+  program.add_argument("update")
       .help("Force enable updates (including host binary in debug builds)")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-norelaunch")
+  program.add_argument("norelaunch")
       .help("Skip automatic relaunch after updates")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-headless")
+  program.add_argument("headless")
       .help("Run in headless mode (no GUI)")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-nopatch")
+  program.add_argument("nopatch")
       .help("Disable selected runtime patches")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-plugins")
+  program.add_argument("plugins")
       .help("Load additional plugins from the `plugins/` directory")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-trimlogs")
+  program.add_argument("trimlogs")
       .help("Trim or rotate old log files on startup")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-keep-launcher")
+  program.add_argument("keep-launcher")
       .help("Keep the launcher process running after starting the game")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-noconsole")
+  program.add_argument("noconsole")
       .help("Suppress the external launcher console window")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-nobranding")
+  program.add_argument("nobranding")
       .help("Disable EZZ watermark and console prefix")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-noratelimit")
+  program.add_argument("noratelimit")
       .help("Disable rate limiting in dedicated server")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-quiet-crash")
+  program.add_argument("quiet-crash")
       .help("On crash, disable message box and minidump directory popups.")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-mitigatepacketspam")
+  program.add_argument("mitigatepacketspam")
       .help("In dedicated server, attempt to reduce unnecessary reliable "
             "command packets sent by some custom maps' scripts. Fixes Kowloon "
             "and Daybreak client load-in failures.")
@@ -147,9 +147,13 @@ int32_t parse_flags(int argc, char *argv[]) {
       .default_value(false)
       .implicit_value(true);
 
-  program.add_argument("-dump")
+  program.add_argument("dump")
       .help("Dump game or server executable to file in containing directory "
             "after Arxan unpack")
+      .default_value(false)
+      .implicit_value(true);
+  program.add_argument("noplugins")
+      .help("Disable plugin load.")
       .default_value(false)
       .implicit_value(true);
 
