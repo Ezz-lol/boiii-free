@@ -898,7 +898,7 @@ function doSelect() {
 }
 } // namespace
 
-int parse_flags(int argc, char *argv[]) {
+int main(int argc, char *argv[]) {
   if (handle_process_runner()) {
     return 0;
   }
@@ -1007,4 +1007,6 @@ int parse_flags(int argc, char *argv[]) {
   return static_cast<int>(entry_point());
 }
 
-int __stdcall WinMain(HINSTANCE, HINSTANCE, PSTR, int) { return main(); }
+int __stdcall WinMain(HINSTANCE, HINSTANCE, PSTR, int) {
+  return main(__argc, __argv);
+}

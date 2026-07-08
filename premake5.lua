@@ -345,7 +345,7 @@ language("C++")
 
 files({ "./src/common/**.hpp", "./src/common/**.cpp" })
 
-includedirs({ "./src/common", "%{prj.location}/src" })
+includedirs({ "./deps/argparse/include", "./src/common", "%{prj.location}/src" })
 
 resincludedirs({ "$(ProjectDir)src" })
 
@@ -368,7 +368,13 @@ files({
   "./src/client/resources/**.*",
 })
 
-includedirs({ "./deps/SteamWorksSDK/public", "./src/client", "./src/common", "%{prj.location}/src" })
+includedirs({
+  "./deps/argparse/include",
+  "./deps/SteamWorksSDK/public",
+  "./src/client",
+  "./src/common",
+  "%{prj.location}/src",
+})
 
 resincludedirs({ "$(ProjectDir)src" })
 

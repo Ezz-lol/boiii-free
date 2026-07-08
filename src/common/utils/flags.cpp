@@ -1,9 +1,54 @@
 #include "flags.hpp"
+#include <unordered_map>
 
 namespace utils::flags {
-argparse::ArgumentParser program("boiii");
-int32_t parse_flags(int argc, char *argv[]) {
 
+static std::unordered_map<std::string_view, int32_t> ARG_SKIPS = {
+    {"+set", 2},         {"+connect_lobby", 1}, {"+nosnd", 0},
+    {"+showconsole", 0}, {"+7fvi9jt5", 0},      {"+bigdump", 0},
+    {"+megadump", 0},    {"+autodump", 0},      {"+minidump", 0},
+    {"+nodump", 0},
+
+};
+argparse::ArgumentParser program("boiii");
+
+/*
+  TODO: this should also filter out commands.
+
+  This will be difficult because we add new commands in boiii and it would be
+  best to not need to add each additional command to the skipped args here.
+
+  We also cannot use the list of commands stored in the engine to automatically
+  skip all command arguments because we need to check arguments before we've
+  initialized the engine.
+
+  If/when commands _are_ filtered out here somehow, we can then use `parse_args`
+  instead of `parse_known_args` below, and be able to automatically generate a
+  help message if an incorrect argument is passed to boiiii, rather than simply
+  ignore the argument.
+*/
+std::vector<std::string> remove_engine_args(int32_t argc, char *argv[]) {
+  std::vector<std::string> result = {};
+  for (int32_t i = 0; i < argc; ++i) {
+    std::string_view arg = argv[i];
+
+    if (ARG_SKIPS.contains(arg)) {
+      i += ARG_SKIPS[arg];
+    } else {
+      std::string arg_plus_prefixed = "+" + std::string(arg);
+      if (ARG_SKIPS.contains(arg_plus_prefixed)) {
+        i += ARG_SKIPS[arg_plus_prefixed];
+      } else {
+        result.push_back(std::string(arg));
+      }
+    }
+  }
+
+  return result;
+}
+
+int32_t parse_flags(int argc, char *argv[]) {
+  const std::vector<std::string> filtered_args = remove_engine_args(argc, argv);
   program.add_argument("-unsafe-lua")
       .help("Allow mods to use unsafe Lua functions (required for some mods "
             "like All-Around Enhancement)")
@@ -109,7 +154,7 @@ int32_t parse_flags(int argc, char *argv[]) {
       .implicit_value(true);
 
   try {
-    program.parse_args(argc, argv);
+    program.parse_known_args(filtered_args);
   } catch (const std::runtime_error &err) {
     std::cerr << err.what() << std::endl;
     std::cerr << program;

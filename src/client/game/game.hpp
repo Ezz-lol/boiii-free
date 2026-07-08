@@ -29,7 +29,7 @@ inline size_t relocate(const size_t val) {
   if (!val)
     return 0;
 
-  const auto base = get_base();
+  const size_t base = get_base();
   return base + (val - 0x140000000);
 }
 
@@ -37,7 +37,7 @@ inline size_t derelocate(const size_t val) {
   if (!val)
     return 0;
 
-  const auto base = get_base();
+  const size_t base = get_base();
   return (val - base) + 0x140000000;
 }
 
