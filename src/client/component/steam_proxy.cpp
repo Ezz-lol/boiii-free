@@ -117,7 +117,7 @@ enum class ownership_state {
 };
 
 bool is_disabled() {
-  static const auto disabled = utils::flags::has_flag("nosteam");
+  static const bool disabled = utils::flags::has_flag("nosteam");
   return disabled;
 }
 

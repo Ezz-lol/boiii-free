@@ -146,7 +146,6 @@ int32_t parse_flags(int argc, char *argv[]) {
             "steam client.")
       .default_value(false)
       .implicit_value(true);
-
   program.add_argument("-dump", "--dump")
       .help("Dump game or server executable to file in containing directory "
             "after Arxan unpack")
@@ -156,6 +155,15 @@ int32_t parse_flags(int argc, char *argv[]) {
       .help("Disable plugin load.")
       .default_value(false)
       .implicit_value(true);
+  program.add_argument("-nologs", "--nologs")
+      .help("Disable all patches to developer console.")
+      .default_value(false)
+      .implicit_value(true);
+  program.add_argument("-fulllogs", "--fulllogs")
+      .help("Disable console buffer size limit.")
+      .default_value(false)
+      .implicit_value(true);
+
   try {
     program.parse_known_args(filtered_args);
   } catch (const std::runtime_error &err) {
