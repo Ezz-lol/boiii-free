@@ -93,6 +93,8 @@ template <typename T> inline bool valid_engine_ptr(T *ptr) {
 
 std::filesystem::path get_appdata_path();
 std::filesystem::path get_game_path();
+std::vector<std::string> get_registered_dvar_names();
+size_t get_registered_dvar_name_count();
 } // namespace game
 
 inline size_t operator""_g(const size_t val) { return game::relocate(val); }

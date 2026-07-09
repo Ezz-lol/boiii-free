@@ -59,4 +59,7 @@ void add(const std::string &command, command_function function);
 void add(const std::string &command, command_param_function function);
 
 void add_sv(const std::string &command, sv_command_param_function function);
+
+std::vector<std::string> get_registered_command_names();
+size_t get_registered_command_count();
 } // namespace command

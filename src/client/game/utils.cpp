@@ -3,12 +3,27 @@
 #include "game.hpp"
 #include "utils.hpp"
 
+#include "../../common/utils/concurrency.hpp"
+
 using namespace game::com;
 using namespace game::sv;
 
 namespace game {
 
 namespace {
+utils::concurrency::container<std::vector<std::string>> registered_dvar_names_{};
+std::atomic_size_t registered_dvar_name_count_{0};
+
+void record_registered_dvar_name(const char *dvar_name) {
+  if (!dvar_name || !dvar_name[0]) {
+    return;
+  }
+  registered_dvar_names_.access([dvar_name](std::vector<std::string> &names) {
+    names.emplace_back(dvar_name);
+  });
+  ++registered_dvar_name_count_;
+}
+
 dvar_t *try_get_sessionmode_specific_dvar(dvar_t *dvar) {
   if (!dvar || dvar->type != dvarType_t::SESSIONMODE_BASE_DVAR) {
     return dvar;
@@ -202,6 +217,7 @@ const dvar_t *register_sessionmode_dvar_bool(const char *dvar_name,
 
   if (registered_dvar) {
     registered_dvar->debugName = dvar_name;
+    record_registered_dvar_name(dvar_name);
 
     if (mode == eModes::COUNT) {
       for (game::eModes i = eModes::FIRST; i < eModes::COUNT; i++) {
@@ -224,6 +240,7 @@ const dvar_t *register_dvar_bool(const char *dvar_name, const bool value,
 
   if (registered_dvar) {
     registered_dvar->debugName = dvar_name;
+    record_registered_dvar_name(dvar_name);
   }
 
   return registered_dvar;
@@ -238,6 +255,7 @@ const dvar_t *register_dvar_int(const char *dvar_name, int32_t value,
 
   if (registered_dvar) {
     registered_dvar->debugName = dvar_name;
+    record_registered_dvar_name(dvar_name);
   }
 
   return registered_dvar;
@@ -252,6 +270,7 @@ const dvar_t *register_dvar_float(const char *dvar_name, float value, float min,
 
   if (registered_dvar) {
     registered_dvar->debugName = dvar_name;
+    record_registered_dvar_name(dvar_name);
   }
 
   return registered_dvar;
@@ -266,6 +285,7 @@ const dvar_t *register_dvar_string(const char *dvar_name, const char *value,
 
   if (registered_dvar) {
     registered_dvar->debugName = dvar_name;
+    record_registered_dvar_name(dvar_name);
   }
 
   return registered_dvar;
@@ -445,7 +465,7 @@ bool access_connected_client(
 }
 
 level::gentity_pool *gentity_pool() {
-  if (is_client()) {
+  if (game::is_client()) {
     /*
       In the client, for each function where g_entities is accessed,
       in each of its calling functions, prior to its callsite,
@@ -467,7 +487,8 @@ level::gentity_pool *gentity_pool() {
       into our own global, and use this identically and reliably within boiii's
       code.
     */
-    level::gentity_pool *stored = level::g_entities_cl_allocation.load();
+    game::level::gentity_pool *stored =
+        game::level::g_entities_cl_allocation.load();
     if (stored) {
       return stored;
     }
@@ -475,6 +496,18 @@ level::gentity_pool *gentity_pool() {
   }
 
   return level::g_entities.get();
+}
+
+std::vector<std::string> get_registered_dvar_names() {
+  std::vector<std::string> result;
+  registered_dvar_names_.access([&result](const std::vector<std::string> &names) {
+    result = names;
+  });
+  return result;
+}
+
+size_t get_registered_dvar_name_count() {
+  return registered_dvar_name_count_.load();
 }
 
 } // namespace game

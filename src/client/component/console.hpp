@@ -4,6 +4,7 @@ namespace console {
 void set_title(const std::string &title);
 void set_interceptor(std::function<void(const std::string &message)> callback);
 void remove_interceptor();
+bool is_ready();
 
 struct scoped_interceptor {
   scoped_interceptor(std::function<void(const std::string &message)> callback) {

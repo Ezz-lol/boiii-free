@@ -9,11 +9,18 @@
 #include <game/game.hpp>
 #include <steam/steam.hpp>
 
+#include <mutex>
+
 namespace command {
 namespace {
 constexpr const char *compatibility_commands[] = {
     "ffotdversion",     "bbdisable", "bbenable",
     "bitfieldBBPrints", "bbstart",   "setliveevent"};
+
+std::mutex &get_command_map_mutex() {
+  static std::mutex mutex;
+  return mutex;
+}
 
 std::unordered_map<std::string, command_param_function> &get_command_map() {
   static std::unordered_map<std::string, command_param_function> command_map{};
@@ -152,10 +159,13 @@ void add(const std::string &command, command_function function) {
 void add(const std::string &command, command_param_function function) {
   auto lower_command = utils::string::to_lower(command);
 
-  auto &map = get_command_map();
-  const auto is_registered = map.contains(lower_command);
-
-  map[std::move(lower_command)] = std::move(function);
+  bool is_registered;
+  {
+    std::lock_guard lock(get_command_map_mutex());
+    auto &map = get_command_map();
+    is_registered = map.contains(lower_command);
+    map[lower_command] = std::move(function);
+  }
 
   if (is_registered) {
     return;
@@ -191,6 +201,23 @@ void add_sv(const std::string &command, sv_command_param_function function) {
   game::cmd::Cmd_AddServerCommandInternal(
       cmd_string, execute_custom_sv_command,
       allocator.allocate<game::cmd::cmd_function_s>());
+}
+
+std::vector<std::string> get_registered_command_names() {
+  std::lock_guard lock(get_command_map_mutex());
+
+  std::vector<std::string> names;
+  auto &map = get_command_map();
+  names.reserve(map.size());
+  for (const auto &entry : map) {
+    names.push_back(entry.first);
+  }
+  return names;
+}
+
+size_t get_registered_command_count() {
+  std::lock_guard lock(get_command_map_mutex());
+  return get_command_map().size();
 }
 
 struct component final : generic_component {
