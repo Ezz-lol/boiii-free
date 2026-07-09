@@ -115,6 +115,8 @@ inline void UGC_LoadPool_Patches(ExtendedWorkshopDataPool *pool,
 
   if (zoneType == ZoneType::MOD) {
     workshop::supplement_mods_from_disk();
+  } else if (zoneType == ZoneType::USERMAP) {
+    workshop::supplement_usermaps_from_workshop();
   }
 
   for (uint32_t i = 0; i < pool->count; ++i) {
@@ -173,7 +175,7 @@ void UGC_LoadPool_Impl(ExtendedWorkshopDataPool *pool, ZoneType zoneType) {
                 "%s/%s/zone", ugcContentListContainerDir, ugcDirname),
             sizeof(entry->absolutePathZoneFiles));
     strscpy(entry->contentPathToZoneFiles,
-            utils::string::va("%s/%s", "mods", ugcDirname),
+            utils::string::va("%s/%s", ugcContentContainerDirname, ugcDirname),
             sizeof(entry->contentPathToZoneFiles));
     strscpy(entry->absolutePathContentDirectory, cwd,
             sizeof(entry->absolutePathContentDirectory));

@@ -301,6 +301,86 @@ void supplement_mods_from_disk() {
   }
 }
 
+void supplement_usermaps_from_workshop() {
+  if (game::ugc::usermapsPool.count >= game::ugc::EXTENDED_WORKSHOP_DATA_POOL_SIZE) {
+    return;
+  }
+
+  std::error_code ec;
+  const auto current_dir = std::filesystem::current_path();
+  const auto steamapps = current_dir.parent_path().parent_path();
+  const auto workshop_path = steamapps / "workshop" / "content" / "311210";
+  
+  if (!std::filesystem::exists(workshop_path, ec)) {
+    return;
+  }
+
+  unsigned int count = game::ugc::usermapsPool.count;
+  for (const auto &entry : std::filesystem::directory_iterator(workshop_path, ec)) {
+    if (ec || !entry.is_directory(ec)) {
+      continue;
+    }
+
+    const auto workshop_json = entry.path() / "workshop.json";
+    if (!std::filesystem::exists(workshop_json, ec)) {
+      continue;
+    }
+
+    const auto json_data = utils::io::read_file(workshop_json.string());
+    if (json_data.find("\"Type\": \"map\"") == std::string::npos &&
+        json_data.find("\"Type\" : \"map\"") == std::string::npos &&
+        json_data.find("\"type\": \"map\"") == std::string::npos &&
+        json_data.find("\"type\":\"map\"") == std::string::npos) {
+      continue;
+    }
+
+    if (count >= game::ugc::EXTENDED_WORKSHOP_DATA_POOL_SIZE) {
+      break;
+    }
+
+    game::ugc::WorkshopData *usermap_data = &game::ugc::usermapsPool.data[count];
+    
+    usermap_data->clear();
+    utils::string::copy(usermap_data->absolutePathContentDirectory,
+                        entry.path().generic_string().c_str());
+    utils::string::copy(usermap_data->absolutePathZoneFiles,
+                        entry.path().generic_string().c_str());
+    
+    const std::filesystem::path relative_path =
+        std::filesystem::path("usermaps") / entry.path().filename();
+    utils::string::copy(usermap_data->contentPathToZoneFiles,
+                        relative_path.generic_string().c_str());
+    
+    usermap_data->version = 1;
+    usermap_data->publisherIdHash = 0;
+    usermap_data->type = game::ZoneType::USERMAP;
+
+    rapidjson::Document doc;
+    if (!doc.Parse(json_data.c_str()).HasParseError() && doc.IsObject()) {
+      if (doc.HasMember("Title") && doc["Title"].IsString()) {
+        utils::string::copy(usermap_data->title, doc["Title"].GetString());
+      }
+      if (doc.HasMember("Description") && doc["Description"].IsString()) {
+        utils::string::copy(usermap_data->description, doc["Description"].GetString());
+      }
+      if (doc.HasMember("FolderName") && doc["FolderName"].IsString()) {
+        utils::string::copy(usermap_data->internalName, doc["FolderName"].GetString());
+      }
+      if (doc.HasMember("PublisherID") && doc["PublisherID"].IsString()) {
+        utils::string::copy(usermap_data->publisherId, doc["PublisherID"].GetString());
+        usermap_data->publisherIdInteger = std::strtoull(usermap_data->publisherId, nullptr, 10);
+      }
+    }
+    ++count;
+  }
+
+  const auto added = count - game::ugc::usermapsPool.count;
+  if (added) {
+    game::ugc::usermapsPool.count = count;
+    printf("[ Workshop ] Supplemented %u usermaps from Steam workshop\n", added);
+  }
+}
+
 utils::hook::detour UGC_LoadUsermapByPublisherId_hook;
 game::ugc::WorkshopData *
 UGC_LoadUsermapByPublisherId_stub(const char *maybePublisherId) {
