@@ -301,6 +301,86 @@ void supplement_mods_from_disk() {
   }
 }
 
+void supplement_mods_from_workshop() {
+  if (game::ugc::modsPool.count >= game::ugc::EXTENDED_WORKSHOP_DATA_POOL_SIZE) {
+    return;
+  }
+
+  std::error_code ec;
+  const auto current_dir = std::filesystem::current_path();
+  const auto steamapps = current_dir.parent_path().parent_path();
+  const auto workshop_path = steamapps / "workshop" / "content" / "311210";
+  
+  if (!std::filesystem::exists(workshop_path, ec)) {
+    return;
+  }
+
+  unsigned int count = game::ugc::modsPool.count;
+  for (const auto &entry : std::filesystem::directory_iterator(workshop_path, ec)) {
+    if (ec || !entry.is_directory(ec)) {
+      continue;
+    }
+
+    const auto workshop_json = entry.path() / "workshop.json";
+    if (!std::filesystem::exists(workshop_json, ec)) {
+      continue;
+    }
+
+    const auto json_data = utils::io::read_file(workshop_json.string());
+    if (json_data.find("\"Type\": \"mod\"") == std::string::npos &&
+        json_data.find("\"Type\" : \"mod\"") == std::string::npos &&
+        json_data.find("\"type\": \"mod\"") == std::string::npos &&
+        json_data.find("\"type\":\"mod\"") == std::string::npos) {
+      continue;
+    }
+
+    if (count >= game::ugc::EXTENDED_WORKSHOP_DATA_POOL_SIZE) {
+      break;
+    }
+
+    game::ugc::WorkshopData *mod_data = &game::ugc::modsPool.data[count];
+    
+    mod_data->clear();
+    utils::string::copy(mod_data->absolutePathContentDirectory,
+                        entry.path().generic_string().c_str());
+    utils::string::copy(mod_data->absolutePathZoneFiles,
+                        entry.path().generic_string().c_str());
+    
+    const std::filesystem::path relative_path =
+        std::filesystem::path("mods") / entry.path().filename();
+    utils::string::copy(mod_data->contentPathToZoneFiles,
+                        relative_path.generic_string().c_str());
+    
+    mod_data->version = 1;
+    mod_data->publisherIdHash = 0;
+    mod_data->type = game::ZoneType::MOD;
+
+    rapidjson::Document doc;
+    if (!doc.Parse(json_data.c_str()).HasParseError() && doc.IsObject()) {
+      if (doc.HasMember("Title") && doc["Title"].IsString()) {
+        utils::string::copy(mod_data->title, doc["Title"].GetString());
+      }
+      if (doc.HasMember("Description") && doc["Description"].IsString()) {
+        utils::string::copy(mod_data->description, doc["Description"].GetString());
+      }
+      if (doc.HasMember("FolderName") && doc["FolderName"].IsString()) {
+        utils::string::copy(mod_data->internalName, doc["FolderName"].GetString());
+      }
+      if (doc.HasMember("PublisherID") && doc["PublisherID"].IsString()) {
+        utils::string::copy(mod_data->publisherId, doc["PublisherID"].GetString());
+        mod_data->publisherIdInteger = std::strtoull(mod_data->publisherId, nullptr, 10);
+      }
+    }
+    ++count;
+  }
+
+  const auto added = count - game::ugc::modsPool.count;
+  if (added) {
+    game::ugc::modsPool.count = count;
+    printf("[ Workshop ] Supplemented %u mods from Steam workshop\n", added);
+  }
+}
+
 void supplement_usermaps_from_workshop() {
   if (game::ugc::usermapsPool.count >= game::ugc::EXTENDED_WORKSHOP_DATA_POOL_SIZE) {
     return;
