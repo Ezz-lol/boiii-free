@@ -108,13 +108,12 @@ UGCHash UGC_Hash(const char *str) {
   return UGC_HASH_NULLPTR;
 }
 
-// Post-invocation patches used in boiii which were originally applied as hooks,
-// carried over to our impl
 inline void UGC_LoadPool_Patches(ExtendedWorkshopDataPool *pool,
                                  ZoneType zoneType) {
 
   if (zoneType == ZoneType::MOD) {
     workshop::supplement_mods_from_disk();
+    workshop::supplement_mods_from_workshop();
   } else if (zoneType == ZoneType::USERMAP) {
     workshop::supplement_usermaps_from_workshop();
   }
