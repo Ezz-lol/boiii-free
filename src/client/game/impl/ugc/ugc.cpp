@@ -113,10 +113,9 @@ inline void UGC_LoadPool_Patches(ExtendedWorkshopDataPool *pool,
 
   if (zoneType == ZoneType::MOD) {
     workshop::supplement_mods_from_disk();
-    workshop::supplement_mods_from_workshop();
-  } else if (zoneType == ZoneType::USERMAP) {
-    workshop::supplement_usermaps_from_workshop();
   }
+
+  workshop::supplement_ugc_from_workshop(zoneType);
 
   for (uint32_t i = 0; i < pool->count; ++i) {
     game::ugc::WorkshopData *ugc = &pool->data[i];

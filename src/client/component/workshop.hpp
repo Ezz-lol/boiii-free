@@ -48,8 +48,7 @@ struct workshop_info {
 workshop_info get_steam_workshop_info(const std::string &workshop_id);
 void load_workshop_data(game::ugc::WorkshopData *item);
 void supplement_mods_from_disk();
-void supplement_mods_from_workshop();
-void supplement_usermaps_from_workshop();
+void supplement_ugc_from_workshop(game::ZoneType zoneType);
 
 const char *va_mods_path(const char *fmt, const char *root_dir,
                          const char *mods_dir, const char *dir_name);

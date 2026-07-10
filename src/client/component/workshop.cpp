@@ -100,7 +100,7 @@ void queue_dlc_popup(const std::string &mapname) {
 }
 
 bool has_mod(const std::string &pub_id) {
-  for (unsigned int i = 0; i < game::ugc::modsPool.count; ++i) {
+  for (uint32_t i = 0; i < game::ugc::modsPool.count; ++i) {
     const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool.data[i];
     if (mod_data->publisherId == pub_id || mod_data->internalName == pub_id) {
       return true;
@@ -111,7 +111,7 @@ bool has_mod(const std::string &pub_id) {
 }
 
 std::string resolve_mod_workshop_id(const std::string &mod_name) {
-  for (unsigned int i = 0; i < game::ugc::modsPool.count; ++i) {
+  for (uint32_t i = 0; i < game::ugc::modsPool.count; ++i) {
     const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool.data[i];
     if (mod_data->internalName == mod_name &&
         utils::string::is_numeric(mod_data->publisherId)) {
@@ -127,11 +127,11 @@ std::string resolve_mod_workshop_id(const std::string &mod_name) {
       if (!entry.is_directory(ec))
         continue;
 
-      auto ws_json = entry.path() / "zone" / "workshop.json";
+      std::filesystem::path ws_json = entry.path() / "zone" / "workshop.json";
       if (!std::filesystem::exists(ws_json, ec))
         continue;
 
-      const auto json_str = utils::io::read_file(ws_json.string());
+      const std::string json_str = utils::io::read_file(ws_json.string());
       if (json_str.empty())
         continue;
 
@@ -271,19 +271,20 @@ void supplement_mods_from_disk() {
   }
 
   std::error_code ec;
-  const auto mods_dir = std::filesystem::current_path() / "mods";
+  const std::filesystem::path mods_dir =
+      std::filesystem::current_path() / "mods";
   if (!std::filesystem::exists(mods_dir, ec)) {
     return;
   }
 
-  unsigned int count = 0;
+  uint32_t count = 0;
   for (const auto &entry : std::filesystem::directory_iterator(mods_dir, ec)) {
     if (ec || !entry.is_directory(ec)) {
       continue;
     }
 
-    const auto zone_dir = entry.path() / "zone";
-    const auto workshop_json = zone_dir / "workshop.json";
+    const std::filesystem::path zone_dir = entry.path() / "zone";
+    const std::filesystem::path workshop_json = zone_dir / "workshop.json";
     if (!std::filesystem::exists(zone_dir, ec) ||
         !std::filesystem::exists(workshop_json, ec)) {
       continue;
@@ -301,169 +302,114 @@ void supplement_mods_from_disk() {
   }
 }
 
-void supplement_mods_from_workshop() {
-  if (game::ugc::modsPool.count >= game::ugc::EXTENDED_WORKSHOP_DATA_POOL_SIZE) {
+void supplement_ugc_from_workshop(game::ZoneType zoneType) {
+  if (game::ugc::usermapsPool.count >=
+      game::ugc::EXTENDED_WORKSHOP_DATA_POOL_SIZE) {
     return;
   }
 
   std::error_code ec;
-  const auto current_dir = std::filesystem::current_path();
-  const auto steamapps = current_dir.parent_path().parent_path();
-  const auto workshop_path = steamapps / "workshop" / "content" / "311210";
-  
+  const std::filesystem::path current_dir = std::filesystem::current_path();
+  const std::filesystem::path steamapps =
+      current_dir.parent_path().parent_path();
+  const std::filesystem::path workshop_path =
+      steamapps / "workshop" / "content" / "311210";
+
   if (!std::filesystem::exists(workshop_path, ec)) {
     return;
   }
 
-  unsigned int count = game::ugc::modsPool.count;
-  for (const auto &entry : std::filesystem::directory_iterator(workshop_path, ec)) {
+  const char *ugc_dirname;
+  const char *ugc_type_str;
+  ;
+  game::ugc::ExtendedWorkshopDataPool *pool;
+  switch (zoneType) {
+  case game::ZoneType::USERMAP:
+    ugc_dirname = "usermaps";
+    ugc_type_str = "map";
+    pool = &game::ugc::usermapsPool;
+    break;
+  case game::ZoneType::MOD:
+    ugc_dirname = "mods";
+    ugc_type_str = "mod";
+    pool = &game::ugc::modsPool;
+    break;
+  default:
+    return;
+  }
+
+  uint32_t count = pool->count;
+  for (const std::filesystem::directory_entry &entry :
+       std::filesystem::directory_iterator(workshop_path, ec)) {
     if (ec || !entry.is_directory(ec)) {
       continue;
     }
 
-    const auto workshop_json = entry.path() / "workshop.json";
+    const std::filesystem::path workshop_json = entry.path() / "workshop.json";
     if (!std::filesystem::exists(workshop_json, ec)) {
       continue;
     }
 
-    const auto json_data = utils::io::read_file(workshop_json.string());
-    
+    const std::string json_data = utils::io::read_file(workshop_json.string());
+
     rapidjson::Document doc;
     const rapidjson::ParseResult parse_result = doc.Parse(json_data.c_str());
-    
+
     if (parse_result.IsError() || !doc.IsObject()) {
       continue;
     }
-    
+
     if (!doc.HasMember("Type") || !doc["Type"].IsString() ||
-        strcmp(doc["Type"].GetString(), "mods") != 0) {
+        strcmp(doc["Type"].GetString(), ugc_type_str) != 0) {
       continue;
     }
+
+    game::ugc::WorkshopData *ugc_data = &pool->data[count];
+
+    ugc_data->clear();
+    utils::string::copy(ugc_data->absolutePathContentDirectory,
+                        entry.path().generic_string().c_str());
+    utils::string::copy(ugc_data->absolutePathZoneFiles,
+                        entry.path().generic_string().c_str());
+
+    const std::filesystem::path relative_path =
+        std::filesystem::path(ugc_dirname) / entry.path().filename();
+    utils::string::copy(ugc_data->contentPathToZoneFiles,
+                        relative_path.generic_string().c_str());
+
+    ugc_data->version = 1;
+    ugc_data->type = zoneType;
+
+    if (doc.HasMember("Title") && doc["Title"].IsString()) {
+      utils::string::copy(ugc_data->title, doc["Title"].GetString());
+    }
+    if (doc.HasMember("Description") && doc["Description"].IsString()) {
+      utils::string::copy(ugc_data->description,
+                          doc["Description"].GetString());
+    }
+    if (doc.HasMember("FolderName") && doc["FolderName"].IsString()) {
+      utils::string::copy(ugc_data->internalName,
+                          doc["FolderName"].GetString());
+    }
+    if (doc.HasMember("PublisherID") && doc["PublisherID"].IsString()) {
+      utils::string::copy(ugc_data->publisherId,
+                          doc["PublisherID"].GetString());
+      ugc_data->publisherIdInteger =
+          std::strtoull(ugc_data->publisherId, nullptr, 10);
+      ugc_data->publisherIdHash = game::ugc::UGC_Hash(ugc_data->publisherId);
+    }
+    ++count;
 
     if (count >= game::ugc::EXTENDED_WORKSHOP_DATA_POOL_SIZE) {
       break;
     }
-
-    game::ugc::WorkshopData *mod_data = &game::ugc::modsPool.data[count];
-    
-    mod_data->clear();
-    utils::string::copy(mod_data->absolutePathContentDirectory,
-                        entry.path().generic_string().c_str());
-    utils::string::copy(mod_data->absolutePathZoneFiles,
-                        entry.path().generic_string().c_str());
-    
-    const std::filesystem::path relative_path =
-        std::filesystem::path("mods") / entry.path().filename();
-    utils::string::copy(mod_data->contentPathToZoneFiles,
-                        relative_path.generic_string().c_str());
-    
-    mod_data->version = 1;
-    mod_data->publisherIdHash = 0;
-    mod_data->type = game::ZoneType::MOD;
-
-    if (doc.HasMember("Title") && doc["Title"].IsString()) {
-      utils::string::copy(mod_data->title, doc["Title"].GetString());
-    }
-    if (doc.HasMember("Description") && doc["Description"].IsString()) {
-      utils::string::copy(mod_data->description, doc["Description"].GetString());
-    }
-    if (doc.HasMember("FolderName") && doc["FolderName"].IsString()) {
-      utils::string::copy(mod_data->internalName, doc["FolderName"].GetString());
-    }
-    if (doc.HasMember("PublisherID") && doc["PublisherID"].IsString()) {
-      utils::string::copy(mod_data->publisherId, doc["PublisherID"].GetString());
-      mod_data->publisherIdInteger = std::strtoull(mod_data->publisherId, nullptr, 10);
-    }
-    ++count;
   }
 
-  const auto added = count - game::ugc::modsPool.count;
+  const uint32_t added = count - pool->count;
   if (added) {
-    game::ugc::modsPool.count = count;
-    printf("[ Workshop ] Supplemented %u mods from Steam workshop\n", added);
-  }
-}
-
-void supplement_usermaps_from_workshop() {
-  if (game::ugc::usermapsPool.count >= game::ugc::EXTENDED_WORKSHOP_DATA_POOL_SIZE) {
-    return;
-  }
-
-  std::error_code ec;
-  const auto current_dir = std::filesystem::current_path();
-  const auto steamapps = current_dir.parent_path().parent_path();
-  const auto workshop_path = steamapps / "workshop" / "content" / "311210";
-  
-  if (!std::filesystem::exists(workshop_path, ec)) {
-    return;
-  }
-
-  unsigned int count = game::ugc::usermapsPool.count;
-  for (const auto &entry : std::filesystem::directory_iterator(workshop_path, ec)) {
-    if (ec || !entry.is_directory(ec)) {
-      continue;
-    }
-
-    const auto workshop_json = entry.path() / "workshop.json";
-    if (!std::filesystem::exists(workshop_json, ec)) {
-      continue;
-    }
-
-    const auto json_data = utils::io::read_file(workshop_json.string());
-    
-    rapidjson::Document doc;
-    const rapidjson::ParseResult parse_result = doc.Parse(json_data.c_str());
-    
-    if (parse_result.IsError() || !doc.IsObject()) {
-      continue;
-    }
-    
-    if (!doc.HasMember("Type") || !doc["Type"].IsString() ||
-        strcmp(doc["Type"].GetString(), "map") != 0) {
-      continue;
-    }
-
-    if (count >= game::ugc::EXTENDED_WORKSHOP_DATA_POOL_SIZE) {
-      break;
-    }
-
-    game::ugc::WorkshopData *usermap_data = &game::ugc::usermapsPool.data[count];
-    
-    usermap_data->clear();
-    utils::string::copy(usermap_data->absolutePathContentDirectory,
-                        entry.path().generic_string().c_str());
-    utils::string::copy(usermap_data->absolutePathZoneFiles,
-                        entry.path().generic_string().c_str());
-    
-    const std::filesystem::path relative_path =
-        std::filesystem::path("usermaps") / entry.path().filename();
-    utils::string::copy(usermap_data->contentPathToZoneFiles,
-                        relative_path.generic_string().c_str());
-    
-    usermap_data->version = 1;
-    usermap_data->publisherIdHash = 0;
-    usermap_data->type = game::ZoneType::USERMAP;
-
-    if (doc.HasMember("Title") && doc["Title"].IsString()) {
-      utils::string::copy(usermap_data->title, doc["Title"].GetString());
-    }
-    if (doc.HasMember("Description") && doc["Description"].IsString()) {
-      utils::string::copy(usermap_data->description, doc["Description"].GetString());
-    }
-    if (doc.HasMember("FolderName") && doc["FolderName"].IsString()) {
-      utils::string::copy(usermap_data->internalName, doc["FolderName"].GetString());
-    }
-    if (doc.HasMember("PublisherID") && doc["PublisherID"].IsString()) {
-      utils::string::copy(usermap_data->publisherId, doc["PublisherID"].GetString());
-      usermap_data->publisherIdInteger = std::strtoull(usermap_data->publisherId, nullptr, 10);
-    }
-    ++count;
-  }
-
-  const auto added = count - game::ugc::usermapsPool.count;
-  if (added) {
-    game::ugc::usermapsPool.count = count;
-    printf("[ Workshop ] Supplemented %u usermaps from Steam workshop\n", added);
+    pool->count = count;
+    printf("[ Workshop ] Supplemented %u %s from Steam workshop\n", added,
+           ugc_dirname);
   }
 }
 
@@ -521,7 +467,7 @@ std::string get_mod_resized_name() {
 
   std::string mod_name = loaded_mod_id;
 
-  for (unsigned int i = 0; i < game::ugc::modsPool.count; ++i) {
+  for (uint32_t i = 0; i < game::ugc::modsPool.count; ++i) {
     const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool.data[i];
 
     if (mod_data->publisherId == loaded_mod_id) {
@@ -538,7 +484,7 @@ std::string get_mod_resized_name() {
 }
 
 std::string get_usermap_publisher_id(const std::string &zone_name) {
-  for (unsigned int i = 0; i < game::ugc::usermapsPool.count; ++i) {
+  for (uint32_t i = 0; i < game::ugc::usermapsPool.count; ++i) {
     const game::ugc::WorkshopData *usermap_data =
         &game::ugc::usermapsPool.data[i];
     if (usermap_data->internalName == zone_name) {
