@@ -11,7 +11,8 @@ using namespace game::sv;
 namespace game {
 
 namespace {
-utils::concurrency::container<std::vector<std::string>> registered_dvar_names_{};
+utils::concurrency::container<std::vector<std::string>>
+    registered_dvar_names_{};
 std::atomic_size_t registered_dvar_name_count_{0};
 
 void record_registered_dvar_name(const char *dvar_name) {
@@ -500,9 +501,8 @@ level::gentity_pool *gentity_pool() {
 
 std::vector<std::string> get_registered_dvar_names() {
   std::vector<std::string> result;
-  registered_dvar_names_.access([&result](const std::vector<std::string> &names) {
-    result = names;
-  });
+  registered_dvar_names_.access(
+      [&result](const std::vector<std::string> &names) { result = names; });
   return result;
 }
 
