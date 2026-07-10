@@ -60,7 +60,7 @@ std::string get_protected_data() {
     return {};
   }
 
-  const auto size = std::min(data_out.cbData, 52ul);
+  const uint32_t size = std::min(data_out.cbData, 52ul);
   std::string result{reinterpret_cast<char *>(data_out.pbData), size};
   LocalFree(data_out.pbData);
 

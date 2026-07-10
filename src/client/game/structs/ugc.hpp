@@ -9,7 +9,7 @@ namespace game {
 namespace ugc {
 
 typedef uint32_t UGCHash;
-using UGCPath = str<260>;
+typedef str<260> UGCPath;
 
 struct WorkshopData {
   // Field is called "name" in lua table

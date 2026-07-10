@@ -133,6 +133,7 @@ void UGC_LoadPool_Impl(ExtendedWorkshopDataPool *pool, ZoneType zoneType) {
 
   const char *cwd = sys::Sys_Cwd();
   const char *ugcContentContainerDirname;
+
   switch (zoneType) {
   case ZoneType::MOD:
     ugcContentContainerDirname = "mods";
