@@ -1973,7 +1973,17 @@ union scrChecksum_t {
     uint32_t unknown2;
   };
   uint32_t raw[3];
+
+  inline constexpr const uint32_t &operator[](size_t index) const {
+    return raw[index];
+  }
+  inline constexpr uint32_t &operator[](size_t index) { return raw[index]; }
 };
+ASSERT_SIZE(scrChecksum_t, sizeof(uint32_t) * 3);
+static_assert(std::is_standard_layout_v<scrChecksum_t>,
+              "scrChecksum_t must be standard layout!");
+static_assert(std::is_trivially_copyable_v<scrChecksum_t>,
+              "scrChecksum_t must be trivially copyable!");
 
 #pragma pack(push, 1)
 struct scrVarPub_t {

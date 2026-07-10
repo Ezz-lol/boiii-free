@@ -13,7 +13,6 @@ namespace vehicle {
 struct gentity_s;
 #pragma pack(push, 1)
 
-// sizeof=0x18
 struct WheelState {
   int32_t m_state;
   int32_t m_last_state;
@@ -32,7 +31,6 @@ enum class VehicleCategory : int32_t {
   COUNT = 0x7,
 };
 
-// sizeof=0x20
 struct view_limits_t {
   float horizSpanLeft;
   float horizSpanRight;
@@ -45,7 +43,6 @@ struct view_limits_t {
 };
 ASSERT_SIZE(view_limits_t, 0x20);
 
-// sizeof=0xC
 struct VehicleGearData {
   float minRPM;
   float maxRPM;
@@ -53,7 +50,6 @@ struct VehicleGearData {
 };
 ASSERT_SIZE(VehicleGearData, 0xC);
 
-// sizeof=0x28
 struct VehicleEngineSound {
   const char *name;
   snd::SndAliasId alias;
@@ -64,7 +60,6 @@ ASSERT_SIZE(VehicleEngineSound, 0x28);
 struct XModel; // TODO
 typedef XModel *XModelPtr;
 
-// sizeof=0x2C0
 struct VehicleEngine {
   bool simpleEngine;
   uint8_t _padding01[3];
@@ -128,7 +123,6 @@ typedef void (*DevGraphEventCallback)(const DevGraph *, DevEventType,
 typedef void (*DevGraphTextCallback)(const DevGraph *, const float, const float,
                                      char *, const int);
 
-// sizeof=0x38
 struct DevGraph {
   vec2_t *knots;
   int32_t *knotCount;
@@ -142,7 +136,6 @@ struct DevGraph {
 };
 ASSERT_SIZE(DevGraph, 0x38);
 
-// sizeof=0x180
 struct GraphFloat {
   char name[64];
   vec2_t knots[32];
@@ -152,7 +145,6 @@ struct GraphFloat {
 };
 ASSERT_SIZE(GraphFloat, 0x180);
 
-// sizeof=0x28
 struct AircraftPreset {
   const char *presetName;
   int32_t maxSpeedVol;
@@ -168,7 +160,6 @@ struct AircraftPreset {
 };
 ASSERT_SIZE(AircraftPreset, 0x28);
 
-// sizeof=0x30
 struct AircraftSound {
   const char *presetName;
   AircraftPreset *preset;
@@ -181,7 +172,6 @@ struct AircraftSound {
 };
 ASSERT_SIZE(AircraftSound, 0x30);
 
-// sizeof=0x10
 struct VehicleSurfaceSound {
   const char *surfaceSoundName;
   snd::SndAliasId alias;
@@ -189,7 +179,6 @@ struct VehicleSurfaceSound {
 };
 ASSERT_SIZE(VehicleSurfaceSound, 0x10);
 
-// sizeof=0x18
 struct VehicleDriveBySound {
   int32_t apex;
   uint8_t _padding04[4];
@@ -198,7 +187,6 @@ struct VehicleDriveBySound {
   uint8_t _padding14[4];
 };
 
-// sizeof=0x1000
 struct VehicleSoundDef {
   const char *name;
   VehicleEngine engine;
@@ -241,7 +229,6 @@ enum class TractionType : int32_t {
   COUNT = 0x3,
 };
 
-// sizeof=0x178
 struct VehicleParameter {
   float m_speed_max;
   float m_accel_max;
@@ -328,7 +315,6 @@ struct VehicleParameter {
 };
 ASSERT_SIZE(VehicleParameter, 0x178);
 
-// sizeof=0x14
 struct VehicleAntenna {
   float springK;
   float damp;
@@ -339,7 +325,6 @@ struct VehicleAntenna {
 };
 ASSERT_SIZE(VehicleAntenna, 0x14);
 
-// sizeof=0xAA0
 struct VehicleDef {
   const char *name;
   int16_t type;
@@ -679,7 +664,6 @@ struct VehicleDef {
 };
 ASSERT_SIZE(VehicleDef, 0xAA0);
 
-// sizeof=0x18
 struct VehicleStun {
   bool m_changed_this_frame;
   uint8_t _padding01[3];
@@ -691,7 +675,6 @@ struct VehicleStun {
 };
 ASSERT_SIZE(VehicleStun, 0x18);
 
-// sizeof=0x110
 class NitrousVehicleController {
 public:
   enum class VehicleHorseControlState : int32_t {
@@ -736,7 +719,6 @@ public:
 };
 ASSERT_SIZE(NitrousVehicleController, 0x120);
 
-// sizeof=0x1C
 class mover_record_t {
 public:
   vec3_t m_origin;
@@ -746,7 +728,6 @@ public:
 ASSERT_SIZE(mover_record_t, 0x1C);
 
 class hkaiNavMeshInstance; // TODO
-                           // sizeof=0x390
 struct mover_info_t {
   mover_record_t m_records[32];
   int32_t m_last_record;
@@ -755,7 +736,6 @@ struct mover_info_t {
 };
 ASSERT_SIZE(mover_info_t, 0x390);
 
-// sizeof=0x4
 class minspec_mutex {
 public:
   volatile uint32_t m_token;
@@ -849,7 +829,6 @@ struct NitrousVehicle {
   uint8_t _padding90C[4];
 };
 
-// sizeof=0x18
 struct vehicle_spline_node_t {
   int16_t nextIdx;
   int16_t prevIdx;
@@ -859,7 +838,6 @@ struct vehicle_spline_node_t {
 };
 ASSERT_SIZE(vehicle_spline_node_t, 0x18);
 
-// sizeof=0x5C
 struct vehicle_node_t {
   scr::ScrString_t name;
   scr::ScrString_t target;
@@ -886,7 +864,6 @@ enum class path_type_e : int32_t {
   AI_PATH = 0x3,
 };
 
-// sizeof=0x164
 class vehicle_pathpos_t {
 public:
   int16_t nodeIdx;
@@ -920,7 +897,6 @@ public:
   float tot_time;
 };
 
-// sizeof=0x118
 struct vehicle_physic_t {
   vec3_t origin;
   vec3_t prevOrigin;
@@ -1138,7 +1114,6 @@ enum class AISpecies : int32_t {
   AI_SPECIES_ALL = 0x5,
 };
 
-// sizeof=0x24
 struct VehicleTurret {
   int32_t fireTime;
   int32_t fireBarrel;
@@ -1152,7 +1127,6 @@ struct VehicleTurret {
 };
 ASSERT_SIZE(VehicleTurret, 0x24);
 
-// sizeof=0x3C
 struct VehicleJitter {
   int32_t jitterPeriodMin;
   int32_t jitterPeriodMax;
@@ -1164,7 +1138,6 @@ struct VehicleJitter {
 };
 ASSERT_SIZE(VehicleJitter, 0x3C);
 
-// sizeof=0x1C
 struct VehicleHover {
   float hoverRadius;
   float hoverSpeed;
@@ -1174,7 +1147,6 @@ struct VehicleHover {
 };
 ASSERT_SIZE(VehicleHover, 0x1C);
 
-// sizeof=0x10
 struct VehicleGunnerTags {
   BoneIndex turretParent;
   BoneIndex turret;
@@ -1184,7 +1156,6 @@ struct VehicleGunnerTags {
 };
 ASSERT_SIZE(VehicleGunnerTags, 0x10);
 
-// sizeof=0x84
 struct VehicleTags {
   BoneIndex player;
   BoneIndex popout;
@@ -1198,7 +1169,6 @@ struct VehicleTags {
 };
 ASSERT_SIZE(VehicleTags, 0x84);
 
-// sizeof=0x3C
 struct VehicleCornerCache {
   vec3_t start;
   vec3_t end;
@@ -1210,7 +1180,6 @@ struct VehicleCornerCache {
 };
 ASSERT_SIZE(VehicleCornerCache, 0x3C);
 
-// sizeof=0x2C
 struct VehicleTarget {
   VehicleTargetType targetType;
   int32_t targetEnt;
@@ -1256,12 +1225,10 @@ enum class VehicleAnimState : int32_t {
 
 #pragma pack(pop)
 
-// sizeof=0x1350
 typedef phys::colgeom_visitor_inlined_t<300> vehicle_proximity_data_t;
 ASSERT_SIZE(vehicle_proximity_data_t, 0x1350);
 
 #pragma pack(push, 1)
-// sizeof=0x1430
 struct vehicle_cache_t {
   vec3_t lastOrigin;
   vec3_t lastAngles;
@@ -1278,7 +1245,6 @@ struct vehicle_cache_t {
 };
 ASSERT_SIZE(vehicle_cache_t, 0x1430);
 
-// sizeof=0x8
 struct VehicleSeat {
   int32_t occupantEntNum;
   bool scriptOccupied;
@@ -1369,7 +1335,6 @@ struct vehicle_t {
   float predictedCollisionTime;
 };
 
-// sizeof=0x684
 struct vehicleAntilagFrame_t {
   vec3_t position[64];
   vec3_t angles[64];
