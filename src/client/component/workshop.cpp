@@ -327,10 +327,16 @@ void supplement_mods_from_workshop() {
     }
 
     const auto json_data = utils::io::read_file(workshop_json.string());
-    if (json_data.find("\"Type\": \"mod\"") == std::string::npos &&
-        json_data.find("\"Type\" : \"mod\"") == std::string::npos &&
-        json_data.find("\"type\": \"mod\"") == std::string::npos &&
-        json_data.find("\"type\":\"mod\"") == std::string::npos) {
+    
+    rapidjson::Document doc;
+    const rapidjson::ParseResult parse_result = doc.Parse(json_data.c_str());
+    
+    if (parse_result.IsError() || !doc.IsObject()) {
+      continue;
+    }
+    
+    if (!doc.HasMember("Type") || !doc["Type"].IsString() ||
+        strcmp(doc["Type"].GetString(), "mods") != 0) {
       continue;
     }
 
@@ -355,21 +361,18 @@ void supplement_mods_from_workshop() {
     mod_data->publisherIdHash = 0;
     mod_data->type = game::ZoneType::MOD;
 
-    rapidjson::Document doc;
-    if (!doc.Parse(json_data.c_str()).HasParseError() && doc.IsObject()) {
-      if (doc.HasMember("Title") && doc["Title"].IsString()) {
-        utils::string::copy(mod_data->title, doc["Title"].GetString());
-      }
-      if (doc.HasMember("Description") && doc["Description"].IsString()) {
-        utils::string::copy(mod_data->description, doc["Description"].GetString());
-      }
-      if (doc.HasMember("FolderName") && doc["FolderName"].IsString()) {
-        utils::string::copy(mod_data->internalName, doc["FolderName"].GetString());
-      }
-      if (doc.HasMember("PublisherID") && doc["PublisherID"].IsString()) {
-        utils::string::copy(mod_data->publisherId, doc["PublisherID"].GetString());
-        mod_data->publisherIdInteger = std::strtoull(mod_data->publisherId, nullptr, 10);
-      }
+    if (doc.HasMember("Title") && doc["Title"].IsString()) {
+      utils::string::copy(mod_data->title, doc["Title"].GetString());
+    }
+    if (doc.HasMember("Description") && doc["Description"].IsString()) {
+      utils::string::copy(mod_data->description, doc["Description"].GetString());
+    }
+    if (doc.HasMember("FolderName") && doc["FolderName"].IsString()) {
+      utils::string::copy(mod_data->internalName, doc["FolderName"].GetString());
+    }
+    if (doc.HasMember("PublisherID") && doc["PublisherID"].IsString()) {
+      utils::string::copy(mod_data->publisherId, doc["PublisherID"].GetString());
+      mod_data->publisherIdInteger = std::strtoull(mod_data->publisherId, nullptr, 10);
     }
     ++count;
   }
@@ -407,10 +410,16 @@ void supplement_usermaps_from_workshop() {
     }
 
     const auto json_data = utils::io::read_file(workshop_json.string());
-    if (json_data.find("\"Type\": \"map\"") == std::string::npos &&
-        json_data.find("\"Type\" : \"map\"") == std::string::npos &&
-        json_data.find("\"type\": \"map\"") == std::string::npos &&
-        json_data.find("\"type\":\"map\"") == std::string::npos) {
+    
+    rapidjson::Document doc;
+    const rapidjson::ParseResult parse_result = doc.Parse(json_data.c_str());
+    
+    if (parse_result.IsError() || !doc.IsObject()) {
+      continue;
+    }
+    
+    if (!doc.HasMember("Type") || !doc["Type"].IsString() ||
+        strcmp(doc["Type"].GetString(), "map") != 0) {
       continue;
     }
 
@@ -435,21 +444,18 @@ void supplement_usermaps_from_workshop() {
     usermap_data->publisherIdHash = 0;
     usermap_data->type = game::ZoneType::USERMAP;
 
-    rapidjson::Document doc;
-    if (!doc.Parse(json_data.c_str()).HasParseError() && doc.IsObject()) {
-      if (doc.HasMember("Title") && doc["Title"].IsString()) {
-        utils::string::copy(usermap_data->title, doc["Title"].GetString());
-      }
-      if (doc.HasMember("Description") && doc["Description"].IsString()) {
-        utils::string::copy(usermap_data->description, doc["Description"].GetString());
-      }
-      if (doc.HasMember("FolderName") && doc["FolderName"].IsString()) {
-        utils::string::copy(usermap_data->internalName, doc["FolderName"].GetString());
-      }
-      if (doc.HasMember("PublisherID") && doc["PublisherID"].IsString()) {
-        utils::string::copy(usermap_data->publisherId, doc["PublisherID"].GetString());
-        usermap_data->publisherIdInteger = std::strtoull(usermap_data->publisherId, nullptr, 10);
-      }
+    if (doc.HasMember("Title") && doc["Title"].IsString()) {
+      utils::string::copy(usermap_data->title, doc["Title"].GetString());
+    }
+    if (doc.HasMember("Description") && doc["Description"].IsString()) {
+      utils::string::copy(usermap_data->description, doc["Description"].GetString());
+    }
+    if (doc.HasMember("FolderName") && doc["FolderName"].IsString()) {
+      utils::string::copy(usermap_data->internalName, doc["FolderName"].GetString());
+    }
+    if (doc.HasMember("PublisherID") && doc["PublisherID"].IsString()) {
+      utils::string::copy(usermap_data->publisherId, doc["PublisherID"].GetString());
+      usermap_data->publisherIdInteger = std::strtoull(usermap_data->publisherId, nullptr, 10);
     }
     ++count;
   }
