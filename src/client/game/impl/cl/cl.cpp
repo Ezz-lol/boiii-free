@@ -267,9 +267,9 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
   case connstate_t::CHALLENGING: {
     if (dw::dwGetConnectionTaskStatus(&clc->serverAddress) !=
         dw::taskCompleteResults::TASK_NOTCOMPLETE) {
-      net::netadr_t adr = clc->serverAddress;
       // ORIGINAL:
-      // net::NET_OutOfBandPrint(networkId, &adr, "getchallenge");
+      // net::NET_OutOfBandPrint(networkId, &clc->serverAddress,
+      // "getchallenge");
       /*
           # PATCH
 
@@ -293,7 +293,7 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
       */
 
       if (localClientNum == game::LOCAL_CLIENT_0) {
-        net::NET_OutOfBandPrint(networkId, &adr, "getchallenge");
+        net::NET_OutOfBandPrint(networkId, &clc->serverAddress, "getchallenge");
       }
     }
     return;
