@@ -15,7 +15,7 @@ struct component final : generic_component {
 
     clear_log();
 
-    const auto is_server = utils::flags::has_flag("dedicated");
+    const bool is_server = utils::flags::has_flag("dedicated");
 
     if (!is_server && utils::flags::has_flag("noplugins")) {
       log("Plugin loading is disabled via -noplugins launch flag.");

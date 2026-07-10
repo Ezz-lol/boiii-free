@@ -4,14 +4,14 @@
 #include "loader/component_loader.hpp"
 #include "loader/loader.hpp"
 
-#include <utils/finally.hpp>
-#include <utils/hook.hpp>
-#include <utils/nt.hpp>
-#include <utils/io.hpp>
-#include <utils/http.hpp>
-#include <utils/flags.hpp>
-#include <utils/com.hpp>
-#include <utils/progress_ui.hpp>
+#include "../common/utils/finally.hpp"
+#include "../common/utils/hook.hpp"
+#include "../common/utils/nt.hpp"
+#include "../common/utils/io.hpp"
+#include "../common/utils/http.hpp"
+#include "../common/utils/flags.hpp"
+#include "../common/utils/com.hpp"
+#include "../common/utils/progress_ui.hpp"
 
 #include <steam/steam.hpp>
 
@@ -121,7 +121,7 @@ constexpr uint32_t supported_client_checksum = 0x888C368;
 constexpr uint32_t supported_newsteamclient_checksum = 0x6517980;
 constexpr uint32_t legacy_client_checksum = 0x8880704;
 
-constexpr auto supported_client_patch_url =
+constexpr const char *supported_client_patch_url =
     "https://archive.org/download/t7_full_game/BlackOps3.exe";
 
 enum class client_binary_state {
@@ -151,7 +151,7 @@ std::optional<uint32_t> get_pe_checksum(const std::filesystem::path &file) {
 
   stream.seekg(dos_header.e_lfanew, std::ios::beg);
 
-  DWORD signature = 0;
+  unsigned long signature = 0;
   stream.read(reinterpret_cast<char *>(&signature), sizeof(signature));
   if (!stream || signature != IMAGE_NT_SIGNATURE) {
     return std::nullopt;
@@ -200,7 +200,7 @@ std::optional<uint32_t> get_pe_checksum(const std::filesystem::path &file) {
 
 client_binary_state
 classify_client_binary(const std::filesystem::path &client_binary) {
-  const auto checksum = get_pe_checksum(client_binary);
+  const std::optional<uint32_t> checksum = get_pe_checksum(client_binary);
   if (!checksum) {
     return client_binary_state::unreadable;
   }
@@ -216,8 +216,8 @@ classify_client_binary(const std::filesystem::path &client_binary) {
   return client_binary_state::incompatible;
 }
 
-std::vector<DWORD> get_running_client_binary_process_ids() {
-  std::vector<DWORD> pids{};
+std::vector<unsigned long> get_running_client_binary_process_ids() {
+  std::vector<unsigned long> pids{};
   const HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
   if (snapshot == INVALID_HANDLE_VALUE) {
     return pids;
@@ -251,7 +251,8 @@ bool is_client_binary_process_running() {
 }
 
 void close_running_client_binary_processes() {
-  const auto pids = get_running_client_binary_process_ids();
+  const std::vector<unsigned long> pids =
+      get_running_client_binary_process_ids();
   for (const auto pid : pids) {
     const auto process =
         OpenProcess(PROCESS_TERMINATE | SYNCHRONIZE, FALSE, pid);
@@ -516,7 +517,7 @@ PIMAGE_TLS_CALLBACK *get_tls_callbacks() {
   return reinterpret_cast<PIMAGE_TLS_CALLBACK *>(tls_dir->AddressOfCallBacks);
 }
 
-void run_tls_callbacks(const DWORD reason) {
+void run_tls_callbacks(const unsigned long reason) {
   if (!g_call_tls_callbacks) {
     return;
   }
@@ -545,14 +546,15 @@ FARPROC load_process(const std::string &procname) {
 }
 
 bool handle_process_runner() {
-  const auto *const command = "-proc ";
+  const char *const command = "-proc ";
   const char *parent_proc = strstr(GetCommandLineA(), command);
 
   if (!parent_proc) {
     return false;
   }
 
-  const auto pid = static_cast<DWORD>(atoi(parent_proc + strlen(command)));
+  const unsigned long pid =
+      static_cast<unsigned long>(atoi(parent_proc + strlen(command)));
   const utils::nt::handle<> process_handle =
       OpenProcess(SYNCHRONIZE, FALSE, pid);
   if (process_handle) {
@@ -566,7 +568,7 @@ void enable_dpi_awareness() {
   const utils::nt::library user32{"user32.dll"};
 
   {
-    const auto set_dpi =
+    BOOL(WINAPI * set_dpi)(DPI_AWARENESS_CONTEXT) =
         user32 ? user32.get_proc<BOOL(WINAPI *)(DPI_AWARENESS_CONTEXT)>(
                      "SetProcessDpiAwarenessContext")
                : nullptr;
@@ -578,7 +580,7 @@ void enable_dpi_awareness() {
 
   {
     const utils::nt::library shcore{"shcore.dll"};
-    const auto set_dpi =
+    HRESULT(WINAPI * set_dpi)(PROCESS_DPI_AWARENESS) =
         shcore ? shcore.get_proc<HRESULT(WINAPI *)(PROCESS_DPI_AWARENESS)>(
                      "SetProcessDpiAwareness")
                : nullptr;
@@ -589,7 +591,7 @@ void enable_dpi_awareness() {
   }
 
   {
-    const auto set_dpi =
+    BOOL(WINAPI * set_dpi)() =
         user32 ? user32.get_proc<BOOL(WINAPI *)()>("SetProcessDPIAware")
                : nullptr;
     if (set_dpi) {
@@ -602,15 +604,15 @@ void trigger_high_performance_gpu_switch() {
   // Make sure to link D3D11, as this might trigger high performance GPU
   [[maybe_unused]] static volatile auto _ = &D3D11CreateDevice;
 
-  const auto key = utils::nt::open_or_create_registry_key(
+  const utils::nt::registry_key key = utils::nt::open_or_create_registry_key(
       HKEY_CURRENT_USER, R"(Software\Microsoft\DirectX\UserGpuPreferences)");
   if (!key) {
     return;
   }
 
-  const auto self =
+  const utils::nt::library self =
       utils::nt::library::get_by_address(&trigger_high_performance_gpu_switch);
-  const auto path = self.get_path().make_preferred().wstring();
+  const std::wstring path = self.get_path().make_preferred().wstring();
 
   if (RegQueryValueExW(key, path.data(), nullptr, nullptr, nullptr, nullptr) !=
       ERROR_FILE_NOT_FOUND) {
@@ -620,14 +622,14 @@ void trigger_high_performance_gpu_switch() {
   const std::wstring data = L"GpuPreference=2;";
   RegSetValueExW(key, self.get_path().make_preferred().wstring().data(), 0,
                  REG_SZ, reinterpret_cast<const BYTE *>(data.data()),
-                 static_cast<DWORD>((data.size() + 1u) * 2));
+                 static_cast<unsigned long>((data.size() + 1u) * 2));
 }
 
 void validate_non_network_share() {
-  const auto self =
+  const utils::nt::library self =
       utils::nt::library::get_by_address(&validate_non_network_share);
-  const auto path = self.get_path().make_preferred();
-  const auto wpath = path.wstring();
+  const std::filesystem::path path = self.get_path().make_preferred();
+  const std::wstring wpath = path.wstring();
   if (wpath.size() >= 2 && wpath[0] == L'\\' && wpath[1] == L'\\') {
     throw std::runtime_error("You seem to be using a network share:\n\n" +
                              path.string() +
@@ -657,34 +659,36 @@ std::string find_steam_game_path() {
   if (steam_path.empty())
     return {};
 
-  auto steamapps = std::filesystem::path(steam_path) / "steamapps" / "common" /
-                   "Call of Duty Black Ops III";
+  const std::filesystem::path steamapps = std::filesystem::path(steam_path) /
+                                          "steamapps" / "common" /
+                                          "Call of Duty Black Ops III";
   if (is_valid_game_folder(steamapps)) {
     return steamapps.string();
   }
 
-  auto vdf_path =
+  std::filesystem::path vdf_path =
       std::filesystem::path(steam_path) / "steamapps" / "libraryfolders.vdf";
   std::string vdf_data;
   if (utils::io::read_file(vdf_path.string(), &vdf_data)) {
     std::istringstream stream(vdf_data);
     std::string line;
     while (std::getline(stream, line)) {
-      auto pos = line.find("\"path\"");
-      if (pos == std::string::npos)
-        continue;
+      size_t pos = line.find("\"path\"");
+      if (pos != std::string::npos) {
 
-      auto first_quote = line.find('"', pos + 6);
-      auto last_quote = line.rfind('"');
-      if (first_quote == std::string::npos || last_quote <= first_quote)
-        continue;
+        size_t first_quote = line.find('"', pos + 6);
+        size_t last_quote = line.rfind('"');
+        if (first_quote != std::string::npos && last_quote > first_quote) {
 
-      auto lib_path =
-          line.substr(first_quote + 1, last_quote - first_quote - 1);
-      auto game_folder = std::filesystem::path(lib_path) / "steamapps" /
-                         "common" / "Call of Duty Black Ops III";
-      if (is_valid_game_folder(game_folder)) {
-        return game_folder.string();
+          std::string lib_path =
+              line.substr(first_quote + 1, last_quote - first_quote - 1);
+          const std::filesystem::path game_folder =
+              std::filesystem::path(lib_path) / "steamapps" / "common" /
+              "Call of Duty Black Ops III";
+          if (is_valid_game_folder(game_folder)) {
+            return game_folder.string();
+          }
+        }
       }
     }
   }
@@ -693,7 +697,7 @@ std::string find_steam_game_path() {
 }
 
 bool resolve_game_path() {
-  const auto path_file = get_game_path_file();
+  const std::filesystem::path path_file = get_game_path_file();
 
   if (is_valid_game_folder(".")) {
     char cwd[MAX_PATH];
@@ -722,7 +726,7 @@ bool resolve_game_path() {
   }
 
   {
-    auto steam_game = find_steam_game_path();
+    std::string steam_game = find_steam_game_path();
     if (!steam_game.empty()) {
       std::error_code ec;
       std::filesystem::create_directories(path_file.parent_path(), ec);
@@ -765,7 +769,7 @@ bool resolve_game_path() {
                 CoCreateInstance(CLSID_FileOpenDialog, nullptr,
                                  CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&pfd));
             if (SUCCEEDED(hr) && pfd) {
-              DWORD opts = 0;
+              unsigned long opts = 0;
               pfd->GetOptions(&opts);
               pfd->SetOptions(opts | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM);
               pfd->SetTitle(L"Select your Black Ops 3 installation folder");
@@ -894,7 +898,7 @@ function doSelect() {
 }
 } // namespace
 
-int main() {
+int main(int argc, char *argv[]) {
   if (handle_process_runner()) {
     return 0;
   }
@@ -902,6 +906,10 @@ int main() {
   FARPROC entry_point{};
   srand(static_cast<uint32_t>(time(nullptr)) ^
         ~(GetTickCount() * GetCurrentProcessId()));
+
+  if (utils::flags::parse_flags(argc, argv)) {
+    return 1;
+  }
 
   enable_dpi_awareness();
 
@@ -921,11 +929,12 @@ int main() {
         return 0;
       }
 
-      const auto client_binary = "BlackOps3.exe"s;
-      const auto server_binary = "BlackOps3_UnrankedDedicatedServer.exe"s;
+      const std::string client_binary = "BlackOps3.exe"s;
+      const std::string server_binary =
+          "BlackOps3_UnrankedDedicatedServer.exe"s;
 
-      auto has_client = utils::io::file_exists(client_binary);
-      auto has_server = utils::io::file_exists(server_binary);
+      bool has_client = utils::io::file_exists(client_binary);
+      bool has_server = utils::io::file_exists(server_binary);
 
       while (!has_client && !has_server) {
         if (!resolve_game_path()) {
@@ -935,7 +944,7 @@ int main() {
         has_server = utils::io::file_exists(server_binary);
       }
 
-      const auto is_server =
+      const bool is_server =
           utils::flags::has_flag("dedicated") || (!has_client && has_server);
 
       if (!is_server && !launcher::is_game_process_running()) {
@@ -951,7 +960,7 @@ int main() {
       if (!is_server) {
         trigger_high_performance_gpu_switch();
 
-        const auto launch = utils::flags::has_flag("launch");
+        const bool launch = utils::flags::has_flag("launch");
         if (!launch && !utils::nt::is_wine() && !launcher::run()) {
           return 0;
         }
@@ -998,4 +1007,6 @@ int main() {
   return static_cast<int>(entry_point());
 }
 
-int __stdcall WinMain(HINSTANCE, HINSTANCE, PSTR, int) { return main(); }
+int __stdcall WinMain(HINSTANCE, HINSTANCE, PSTR, int) {
+  return main(__argc, __argv);
+}

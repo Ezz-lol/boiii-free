@@ -1,8 +1,7 @@
-#include <std_include.hpp>
+#include "../../std_include.hpp"
 #include "gsc_emitter.hpp"
 #include <algorithm>
 #include <cstring>
-#include <numeric>
 #include <unordered_set>
 
 namespace gsc_compiler {
@@ -2162,10 +2161,10 @@ emitter_result emit(const ast_ptr &root, const std::string &script_name) {
 
   {
     std::string ns_fallback = script_name;
-    auto slash = ns_fallback.find_last_of("/\\");
+    size_t slash = ns_fallback.find_last_of("/\\");
     if (slash != std::string::npos)
       ns_fallback = ns_fallback.substr(slash + 1);
-    auto dot = ns_fallback.find_last_of('.');
+    size_t dot = ns_fallback.find_last_of('.');
     if (dot != std::string::npos)
       ns_fallback = ns_fallback.substr(0, dot);
     std::transform(
@@ -2178,7 +2177,7 @@ emitter_result emit(const ast_ptr &root, const std::string &script_name) {
 
   try {
     // First pass: collect namespace and local function hashes
-    for (auto &child : root->children) {
+    for (std::shared_ptr<ast_node> &child : root->children) {
       if (child->type == node_type::n_namespace)
         state.script_namespace = gsc_hash(child->value);
       else if (child->type == node_type::n_function_def) {
@@ -2199,7 +2198,7 @@ emitter_result emit(const ast_ptr &root, const std::string &script_name) {
     state.script_namespace = default_namespace;
 
     // Second pass: process directives and emit functions
-    for (auto &child : root->children) {
+    for (std::shared_ptr<ast_node> &child : root->children) {
       if (child->type == node_type::n_namespace) {
         state.script_namespace = gsc_hash(child->value);
       } else if (child->type == node_type::n_include) {
@@ -2228,7 +2227,8 @@ emitter_result emit(const ast_ptr &root, const std::string &script_name) {
                            [](unsigned char c) {
                              return static_cast<char>(std::tolower(c));
                            });
-            auto strip_script_ext = [](std::string script) {
+            std::function<std::string(std::string script)> strip_script_ext =
+                [](std::string script) -> std::string {
               for (char &c : script)
                 if (c == '\\')
                   c = '/';

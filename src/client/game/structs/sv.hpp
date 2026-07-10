@@ -77,7 +77,7 @@ enum class ReliableCommand : char {
   // 0x63: R_Stream_ProcessHintEntity (or CG_SpawnPrediction)
   PROCESS_HINT_ENTITY = 'c',
   START_FADING_BLUR = 'd', // 0x64: CG_StartFadingBlurServerCommand
-  // // 0x65: LiveStats_SetStatChanged / LiveStats_SetStatChangedNoCache
+  // 0x65: LiveStats_SetStatChanged / LiveStats_SetStatChangedNoCache
   SET_STAT_CHANGED = 'e',
   SET_CHECK_SUM = 'f',  // 0x66: LiveStats_SetCheckSumFromServer
   SELECT_WEAPON = 'h',  // 0x68: CG_SwitchToLatestPrimary / CG_SelectWeaponIndex
@@ -85,7 +85,7 @@ enum class ReliableCommand : char {
   /*
     0x6A: Falls through to '+'; (CG_ChatMessage).
     May be handled differently in CG_ChatMessage (?).
-    Unsure currentlywhy there are two commands for chat messages.
+    Unsure currently why there are two commands for chat messages.
   */
   CHAT_MSG_ALT = 'j',
   GET_USER_SPONSOR = 'm',        // 0x6D: Live_GetUserSponsor
@@ -282,7 +282,6 @@ struct archivedEntity_s;
 typedef archivedEntity_s archivedEntity_t;
 
 #pragma pack(push, 1)
-// sizeof=0xB8
 struct serverSnapshot_t {
   lobby::LobbyClientPool<level::playerState_t *> ps;
   int32_t entityCount;
@@ -404,7 +403,7 @@ struct serverStatic_t {
     _padding12D0 but the offset is always accessed with a constant +1 increment,
     which is likely a compiler optimization.
 
-    The compiler would likely not optimize this way unless this field was
+    The compiler would not be likely to optimize this way unless this field was
     padding.
   */
   uint8_t _padding12D0[16];

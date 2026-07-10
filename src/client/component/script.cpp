@@ -1,8 +1,8 @@
-#include <std_include.hpp>
+#include "../std_include.hpp"
 #include "loader/component_loader.hpp"
-#include "game/game.hpp"
-#include "game/utils.hpp"
-#include "game/impl/scr/scr.hpp"
+#include "../game/game.hpp"
+#include "../game/utils.hpp"
+#include "../game/impl/scr/scr.hpp"
 
 #include "game_event.hpp"
 #include "gsc/gsc_compiler.hpp"
@@ -16,7 +16,7 @@ using namespace game::db::xasset;
 using namespace game::scr;
 
 namespace gsc_funcs {
-void add_detour(int64_t target_addr, int64_t replacement_addr);
+void add_detour(uint8_t *target_addr, uint8_t *replacement_addr);
 }
 
 namespace script {
@@ -122,11 +122,11 @@ struct pending_detour {
   std::string target_script;
   std::string target_func;
   uint32_t target_func_hash;
-  int target_params;
+  int32_t target_params;
   std::string replace_script;
   std::string replace_func;
   uint32_t replace_func_hash;
-  int replace_params;
+  int32_t replace_params;
 };
 std::vector<pending_detour> pending_detours;
 
@@ -186,7 +186,7 @@ std::string strip_devblocks(const std::string &source) {
   return result;
 }
 
-void fixup_script_imports(char *buf, int len) {
+void fixup_script_imports(char *buf, int32_t len) {
   if (len < 0x48)
     return;
 
@@ -348,13 +348,14 @@ const uint8_t *get_spt_buffer(const std::string &name) {
 }
 
 struct export_lookup_result {
-  int64_t address = 0;
+  uint8_t *address = nullptr;
   bool script_loaded = false;
 };
 
 export_lookup_result
 resolve_export_address_internal(const std::string &script_name,
-                                uint32_t func_hash, int expected_params = -1) {
+                                uint32_t func_hash,
+                                int32_t expected_params = -1) {
   export_lookup_result result{};
 
   const uint8_t *buffer = get_spt_buffer(script_name);
@@ -383,7 +384,8 @@ resolve_export_address_internal(const std::string &script_name,
         continue;
       }
 
-      result.address = reinterpret_cast<int64_t>(buffer + exports[i].offset);
+      result.address = reinterpret_cast<uint8_t *>(
+          reinterpret_cast<uintptr_t>(buffer) + exports[i].offset);
       if (expected_params >= 0) {
         break;
       }
@@ -393,9 +395,9 @@ resolve_export_address_internal(const std::string &script_name,
   return result;
 }
 
-int64_t find_export_address_internal(const std::string &script_name,
-                                     uint32_t func_hash,
-                                     int expected_params = -1) {
+uint8_t *find_export_address_internal(const std::string &script_name,
+                                      uint32_t func_hash,
+                                      int32_t expected_params = -1) {
   return resolve_export_address_internal(script_name, func_hash,
                                          expected_params)
       .address;
@@ -431,7 +433,7 @@ void apply_pending_detours() {
 
 struct hash_info {
   std::string name;
-  int line;
+  int32_t line;
   uint8_t params;
 };
 std::unordered_map<uint32_t, std::vector<hash_info>> script_hash_names;
@@ -452,12 +454,12 @@ void load_script(const std::string &input_name, const std::string &data,
                  const bool load) {
 
   std::string name = std::string(input_name);
-  const auto appdata_path =
+  const std::string appdata_path =
       (game::get_appdata_path() / "data/").generic_string();
-  const auto host_path =
+  const std::string host_path =
       (utils::nt::library{}.get_folder() / "boiii/").generic_string();
 
-  auto i = name.find(appdata_path);
+  size_t i = name.find(appdata_path);
   if (i != std::string::npos) {
     name.erase(i, appdata_path.length());
   }
@@ -470,7 +472,7 @@ void load_script(const std::string &input_name, const std::string &data,
   const bool is_csc = utils::string::ends_with(name, ".csc");
   const bool is_gsc = utils::string::ends_with(name, ".gsc");
 
-  auto base_name = name;
+  std::string base_name = name;
   if (!is_gsc && !is_csc) {
     printf("Script '%s' failed to load due to invalid suffix.\n", name.data());
     return;
@@ -558,10 +560,10 @@ void load_script_file(std::string &data, const std::string &script_file,
       }
     } else {
       auto get_source_line = [](const std::string &src,
-                                int line_num) -> std::string {
+                                int32_t line_num) -> std::string {
         if (line_num <= 0)
           return "";
-        int current = 1;
+        int32_t current = 1;
         size_t start = 0;
         while (current < line_num && start < src.size()) {
           if (src[start] == '\n')
@@ -694,7 +696,7 @@ void load_scripts() {
 XAssetHeader db_find_x_asset_header_stub(const XAssetType type,
                                          const char *name,
                                          const bool error_if_missing,
-                                         const int wait_time) {
+                                         const int32_t wait_time) {
   // Check our loaded scripts FIRST to avoid "Could not find scriptparsetree"
   // spam
   if (type == XAssetType::SCRIPTPARSETREE) {
@@ -720,7 +722,7 @@ void clear_script_memory() {
   allocator.clear();
 }
 
-void begin_load_scripts_stub(scriptInstance_t inst, int user) {
+void begin_load_scripts_stub(scriptInstance_t inst, int32_t user) {
   std::lock_guard lock(script_load_lock);
 
   game::scr::Scr_BeginLoadScripts(inst, user);
@@ -784,36 +786,34 @@ void load_global_hash_table() {
 }
 
 std::string resolve_hash(uint32_t hash) {
-  auto it = script_hash_names.find(hash);
-  if (it != script_hash_names.end() && !it->second.empty())
-    return it->second[0].name;
+  if (script_hash_names.contains(hash) && !script_hash_names[hash].empty())
+    return script_hash_names[hash][0].name;
 
   // Fallback: global hash table from data file
   load_global_hash_table();
-  auto git = global_hash_table.find(hash);
-  if (git != global_hash_table.end())
-    return git->second;
+  if (global_hash_table.contains(hash))
+    return global_hash_table[hash];
 
   return {};
 }
 
-int64_t find_export_address(const std::string &script_name,
-                            const std::string &func_name, int expected_params) {
+uint8_t *find_export_address(const std::string &script_name,
+                             const std::string &func_name,
+                             int32_t expected_params) {
   return find_export_address_internal(script_name, gsc_hash(func_name),
                                       expected_params);
 }
 
-int resolve_hash_line(uint32_t hash, int num_params) {
-  auto it = script_hash_names.find(hash);
-  if (it != script_hash_names.end()) {
-    for (auto &entry : it->second)
+int resolve_hash_line(uint32_t hash, int32_t num_params) {
+  if (script_hash_names.contains(hash)) {
+    for (hash_info &entry : script_hash_names[hash])
       if (entry.params == static_cast<uint8_t>(num_params) && entry.line > 0)
         return entry.line;
   }
   return 0;
 }
 
-std::string get_source_line(const std::string &file, int line_num) {
+std::string get_source_line(const std::string &file, int32_t line_num) {
   // Try to find source by matching file path suffix
   for (auto &[path, src] : script_sources) {
     if (file.find(path) != std::string::npos ||
@@ -822,7 +822,7 @@ std::string get_source_line(const std::string &file, int line_num) {
             std::string::npos) {
       if (line_num <= 0)
         return {};
-      int current = 1;
+      int32_t current = 1;
       size_t start = 0;
       while (current < line_num && start < src.size()) {
         if (src[start] == '\n')
@@ -834,7 +834,7 @@ std::string get_source_line(const std::string &file, int line_num) {
       size_t end = src.find('\n', start);
       if (end == std::string::npos)
         end = src.size();
-      auto line = src.substr(start, end - start);
+      std::string line = src.substr(start, end - start);
       if (!line.empty() && line.back() == '\r')
         line.pop_back();
       return line;

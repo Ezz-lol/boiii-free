@@ -2,6 +2,11 @@
 
 #include "base_server.hpp"
 #include <utils/concurrency.hpp>
+#include <unordered_map>
+#include <queue>
+#include <stdexcept>
+#include <string>
+#include <winsock2.h>
 
 namespace demonware {
 class udp_server : public base_server {
@@ -18,7 +23,7 @@ public:
       }
 
       this->socket = sock;
-      std::memcpy(&this->address, addr, sizeof(this->address));
+      memcpy(&this->address, addr, sizeof(this->address));
     }
   };
 

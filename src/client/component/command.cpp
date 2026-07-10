@@ -9,43 +9,52 @@
 #include <game/game.hpp>
 #include <steam/steam.hpp>
 
+#include <mutex>
+
 namespace command {
 namespace {
 constexpr const char *compatibility_commands[] = {
     "ffotdversion",     "bbdisable", "bbenable",
     "bitfieldBBPrints", "bbstart",   "setliveevent"};
 
-std::unordered_map<std::string, command_param_function> &get_command_map() {
-  static std::unordered_map<std::string, command_param_function> command_map{};
+std::mutex &get_command_map_mutex() {
+  static std::mutex mutex;
+  return mutex;
+}
+
+using command_map = std::unordered_map<std::string, command_param_function>;
+using sv_command_map =
+    std::unordered_map<std::string, sv_command_param_function>;
+
+command_map &get_command_map() {
+  static command_map command_map{};
   return command_map;
 }
 
-std::unordered_map<std::string, sv_command_param_function> &
-get_sv_command_map() {
-  static std::unordered_map<std::string, sv_command_param_function>
-      command_map{};
+sv_command_map &get_sv_command_map() {
+  static sv_command_map command_map{};
   return command_map;
 }
 
 void execute_custom_command() {
   const params params{};
-  const auto command = utils::string::to_lower(params[0]);
+  const std::string command = utils::string::to_lower(params[0]);
 
-  auto &map = get_command_map();
-  const auto entry = map.find(command);
-  if (entry != map.end()) {
-    entry->second(params);
+  command_map &map = get_command_map();
+
+  if (map.contains(command)) {
+    map[command](params);
   }
 }
 
 void execute_custom_sv_command() {
   const params_sv params{};
-  const auto command = utils::string::to_lower(params[0]);
+  const std::string command = utils::string::to_lower(params[0]);
 
-  auto &map = get_sv_command_map();
-  const auto entry = map.find(command);
-  if (entry != map.end()) {
-    entry->second(params);
+  sv_command_map &map = get_sv_command_map();
+
+  if (map.contains(command)) {
+    map[command](params);
   }
 }
 
@@ -60,7 +69,7 @@ void update_whitelist_stub() {
 }
 
 void register_client_compatibility_commands() {
-  for (const auto *command_name : compatibility_commands) {
+  for (const char *command_name : compatibility_commands) {
     add(command_name, [](const params &) {});
   }
 }
@@ -71,7 +80,7 @@ params::params() : nesting_(get_cmd_args()->nesting) {
 }
 
 params::params(const std::string &text) : needs_end_(true) {
-  auto *cmd_args = get_cmd_args();
+  game::CmdArgs *cmd_args = get_cmd_args();
   game::cmd::Cmd_TokenizeStringKernel(
       0, game::CONTROLLER_INDEX_FIRST, text.data(),
       512 - cmd_args->totalUsedArgvPool, false, cmd_args);
@@ -150,20 +159,24 @@ void add(const std::string &command, command_function function) {
 }
 
 void add(const std::string &command, command_param_function function) {
-  auto lower_command = utils::string::to_lower(command);
+  const std::string lower_command = utils::string::to_lower(command);
 
-  auto &map = get_command_map();
-  const auto is_registered = map.contains(lower_command);
-
-  map[std::move(lower_command)] = std::move(function);
+  bool is_registered;
+  {
+    std::lock_guard lock(get_command_map_mutex());
+    command_map &map = get_command_map();
+    is_registered = map.contains(lower_command);
+    map[lower_command] = std::move(function);
+  }
 
   if (is_registered) {
     return;
   }
 
-  auto &allocator = *utils::memory::get_allocator();
-  auto *cmd_function = allocator.allocate<game::cmd::cmd_function_s>();
-  const auto *cmd_string = allocator.duplicate_string(command);
+  utils::memory::allocator &allocator = *utils::memory::get_allocator();
+  game::cmd::cmd_function_s *cmd_function =
+      allocator.allocate<game::cmd::cmd_function_s>();
+  const char *cmd_string = allocator.duplicate_string(command);
 
   game::cmd::Cmd_AddCommandInternal(cmd_string, execute_custom_command,
                                     cmd_function);
@@ -171,10 +184,10 @@ void add(const std::string &command, command_param_function function) {
 }
 
 void add_sv(const std::string &command, sv_command_param_function function) {
-  auto lower_command = utils::string::to_lower(command);
+  const std::string lower_command = utils::string::to_lower(command);
 
-  auto &map = get_sv_command_map();
-  const auto is_registered = map.contains(lower_command);
+  sv_command_map &map = get_sv_command_map();
+  const bool is_registered = map.contains(lower_command);
 
   map[std::move(lower_command)] = std::move(function);
 
@@ -182,8 +195,8 @@ void add_sv(const std::string &command, sv_command_param_function function) {
     return;
   }
 
-  auto &allocator = *utils::memory::get_allocator();
-  const auto *cmd_string = allocator.duplicate_string(command);
+  utils::memory::allocator &allocator = *utils::memory::get_allocator();
+  const char *cmd_string = allocator.duplicate_string(command);
 
   game::cmd::Cmd_AddCommandInternal(
       cmd_string, game::cmd::Stub,
@@ -191,6 +204,23 @@ void add_sv(const std::string &command, sv_command_param_function function) {
   game::cmd::Cmd_AddServerCommandInternal(
       cmd_string, execute_custom_sv_command,
       allocator.allocate<game::cmd::cmd_function_s>());
+}
+
+std::vector<std::string> get_registered_command_names() {
+  std::lock_guard lock(get_command_map_mutex());
+
+  std::vector<std::string> names;
+  command_map &map = get_command_map();
+  names.reserve(map.size());
+  for (const auto &entry : map) {
+    names.push_back(entry.first);
+  }
+  return names;
+}
+
+size_t get_registered_command_count() {
+  std::lock_guard lock(get_command_map_mutex());
+  return get_command_map().size();
 }
 
 struct component final : generic_component {

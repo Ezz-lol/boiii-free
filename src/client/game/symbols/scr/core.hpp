@@ -129,7 +129,8 @@ WEAK symbol<ScrString_t(scriptInstance_t inst, uint32_t index)>
     Scr_GetConstLowercaseString{0x1412EAFE0, 0x1401709A0};
 WEAK symbol<void()> Scr_UpdateScreen{0x1413E1550};
 
-WEAK symbol<array<const char *, 31>> var_typename{0x1432E6240, 0x14107C040};
+WEAK symbol<ScrVarTypePool<const char *>> var_typename{0x1432E6240,
+                                                       0x14107C040};
 
 WEAK symbol<bool(scriptInstance_t inst, ScrVarValue_t *value)> Scr_IsFloatTrue{
     0x1412DACF0, 0x140167170};
@@ -143,6 +144,28 @@ WEAK symbol<void(scriptInstance_t inst, const char *error)> Scr_ObjectError{
 
 WEAK symbol<ScrVarGlobPool> gScrVarGlob{0x1451A3500, 0x1426BDE80};
 WEAK symbol<ScrVarPubPool> gScrVarPub{0x1451A3700, 0x1426BE080};
+
+WEAK symbol<VmOpJumpTable> gVmOpJumpTable1{0x143306350, 0x14109C150};
+WEAK symbol<VmOpJumpTable> gVmOpJumpTable2{0x1432E6350, 0x14107C150};
+
+inline VM_OP_FUNC *op_handler(OP_TYPE op) {
+  if ((op & VM_OP_JUMP_TABLE_LEN) != 0) {
+    return &gVmOpJumpTable1->ops[op & VM_OP_TABLE_1_IDX_MASK];
+  }
+
+  return &gVmOpJumpTable2->ops[op];
+}
+
+WEAK symbol<VmOpJumpTable> gVmErrRecoveryJumpTable1{0x143316350, 0x1410AC150};
+WEAK symbol<VmOpJumpTable> gVmErrRecoveryJumpTable2{0x1432F6350, 0x14108C150};
+
+inline VM_OP_FUNC *op_err_handler(OP_TYPE op) {
+  if ((op & VM_OP_JUMP_TABLE_LEN) != 0) {
+    return &gVmErrRecoveryJumpTable1->ops[op & VM_OP_TABLE_1_IDX_MASK];
+  }
+
+  return &gVmErrRecoveryJumpTable2->ops[op];
+}
 
 } // namespace scr
 } // namespace game

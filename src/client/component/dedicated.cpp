@@ -19,10 +19,10 @@ constexpr const char *compatibility_commands[] = {
 
 const game::dvar_t *sv_lan_only;
 
-void sv_con_tell_f_stub(game::sv::client_s *cl_0, game::net::svscmd_type type,
+void sv_con_tell_f_stub(game::sv::client_s *cl, game::net::svscmd_type type,
                         [[maybe_unused]] const char *fmt,
                         [[maybe_unused]] int c, char *text) {
-  game::sv::SV_SendServerCommand(cl_0, type, "%c \"GAME_SERVER\x15: %s\"", 79,
+  game::sv::SV_SendServerCommand(cl, type, "%c \"GAME_SERVER\x15: %s\"", 79,
                                  text);
 }
 
@@ -36,18 +36,16 @@ void send_heartbeat_packet() {
 }
 
 void register_server_compatibility_commands() {
-  for (const auto *command_name : compatibility_commands) {
+  for (const char *command_name : compatibility_commands) {
     command::add_sv(command_name, [](const command::params_sv &) {});
   }
 }
 } // namespace
 
 void send_heartbeat() {
-  if (!game::is_server()) {
-    return;
+  if (game::is_server()) {
+    scheduler::once(send_heartbeat_packet, scheduler::pipeline::main, 5s);
   }
-
-  scheduler::once(send_heartbeat_packet, scheduler::pipeline::main, 5s);
 }
 
 void trigger_map_rotation() {

@@ -182,7 +182,7 @@ struct gclient_s {
   int32_t lastStandTime;
 };
 typedef gclient_s gclient_t;
-static_assert(sizeof(gclient_s) == 0x17200, "sizeof(gclient_s) != 0x17200");
+ASSERT_SIZE(gclient_s, 0x17200);
 
 #pragma pack(pop)
 
@@ -203,7 +203,8 @@ struct archivedEntity_t;
 struct gentity_snd_wait {
   uint32_t notifyString;
   uint32_t index;
-  qboolean stoppable;
+  bool stoppable;
+  uint8_t _padding09[3];
   int32_t basetime;
   int32_t duration;
 };
@@ -479,21 +480,16 @@ struct gentity_pool {
 };
 
 #ifdef __cplusplus
-static_assert(offsetof(gentity_s, model) == GENTITY_MODEL_OFFSET,
-              "offset of gentity_s::model must be 0x280");
-static_assert(offsetof(gentity_s, classname) == 0x288,
-              "offset of gentity_s::classname must be 0x288");
-static_assert(offsetof(gentity_s, snd_wait) == GENTITY_SND_WAIT_OFFSET,
-              "GENTITY_SND_WAIT_OFFSET must be 0x3D4");
-static_assert(offsetof(gentity_s, s) == 0,
-              "gentity_s must start with entityState_t");
+ASSERT_OFFSET(gentity_s, model, GENTITY_MODEL_OFFSET);
+ASSERT_OFFSET(gentity_s, classname, 0x288);
+ASSERT_OFFSET(gentity_s, snd_wait, GENTITY_SND_WAIT_OFFSET);
+ASSERT_OFFSET(gentity_s, s, 0);
 ASSERT_OFFSET(gentity_s, client, 0x250);
-static_assert(sizeof(gentity_s) == GENTITY_SIZE,
-              "gentity_s size must be 0x4F8 bytes");
+ASSERT_SIZE(gentity_s, GENTITY_SIZE);
 #endif
 
 #pragma pack(push, 16)
-// Length of level_locals_t has size 0x23A10 on both client and server
+// level_locals_t has size 0x23A10 on both client and server
 struct level_locals_t {
   gclient_s *clients;
   gentity_t *gentities;

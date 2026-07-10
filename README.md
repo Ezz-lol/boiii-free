@@ -182,29 +182,33 @@ Launch BOIII with these arguments for extra features:
 
 | Argument              | Description                                                                                                                                                        |
 | :-------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `-unsafe-lua`         | Allow mods to use unsafe Lua functions (required for some mods like All-Around Enhancement)                                                                        |
-| `-dedicated`          | Launch as a dedicated server                                                                                                                                       |
-| `-nosteam`            | Bypass Steam entirely                                                                                                                                              |
-| `-nointro`            | Skip intro videos                                                                                                                                                  |
-| `-windowed`           | Launch in windowed mode                                                                                                                                            |
-| `-safe`               | Launch in safe mode (disable mods)                                                                                                                                 |
-| `-console`            | Enable developer console                                                                                                                                           |
-| `-port XXXX`          | Set server port (default: 27017)                                                                                                                                   |
-| `-launch`             | Start the game immediately, skipping some launcher UI and pre-checks                                                                                               |
-| `-noupdate`           | Disable automatic updates (not recommended)                                                                                                                        |
-| `-update`             | Force enable updates (including host binary in debug builds)                                                                                                       |
-| `-norelaunch`         | Skip automatic relaunch after updates                                                                                                                              |
-| `-headless`           | Run in headless mode (no GUI)                                                                                                                                      |
-| `-nopatch`            | Disable selected runtime patches                                                                                                                                   |
-| `-plugins`            | Load additional plugins from the `plugins/` directory                                                                                                              |
-| `-trimlogs`           | Trim or rotate old log files on startup                                                                                                                            |
-| `-keep-launcher`      | Keep the launcher process running after starting the game                                                                                                          |
-| `-noconsole`          | Suppress the external launcher console window                                                                                                                      |
-| `-nobranding`         | Disable EZZ watermark and console prefix                                                                                                                           |
-| `-noratelimit`        | Disable rate limiting in dedicated server                                                                                                                          |
+| `-unsafe-lua`         | Allow mods to use unsafe Lua functions (required for some mods like All-Around Enhancement).                                                                       |
+| `-dedicated`          | Launch as a dedicated server.                                                                                                                                      |
+| `-nosteam`            | Bypass Steam entirely.                                                                                                                                             |
+| `-nointro`            | Skip intro videos.                                                                                                                                                 |
+| `-windowed`           | Launch in windowed mode.                                                                                                                                           |
+| `-safe`               | Launch in safe mode (disable mods).                                                                                                                                |
+| `-console`            | Enable developer console.                                                                                                                                          |
+| `-nologs`             | Disable all patches to developer console.                                                                                                                          |
+| `-fulllogs`           | Disable console buffer size limit.                                                                                                                                 |
+| `-port XXXX`          | Set server port (default: 27017).                                                                                                                                  |
+| `-launch`             | Start the game immediately, skipping some launcher UI and pre-checks.                                                                                              |
+| `-noupdate`           | Disable automatic updates (not recommended).                                                                                                                       |
+| `-update`             | Force enable updates (including host binary in debug builds).                                                                                                      |
+| `-norelaunch`         | Skip automatic relaunch after updates.                                                                                                                             |
+| `-headless`           | Run in headless mode (no GUI).                                                                                                                                     |
+| `-nopatch`            | Disable selected runtime patches.                                                                                                                                  |
+| `-noplugins`          | Disable plugin load.                                                                                                                                               |
+| `-plugins`            | Load additional plugins from the `plugins/` directory.                                                                                                             |
+| `-trimlogs`           | Trim or rotate old log files on startup.                                                                                                                           |
+| `-keep-launcher`      | Keep the launcher process running after starting the game.                                                                                                         |
+| `-noconsole`          | Suppress the external launcher console window.                                                                                                                     |
+| `-nobranding`         | Disable EZZ watermark and console prefix.                                                                                                                          |
+| `-noratelimit`        | Disable rate limiting in dedicated server.                                                                                                                         |
 | `-quiet-crash`        | On crash, disable message box and minidump directory popups.                                                                                                       |
 | `-mitigatepacketspam` | In dedicated server, attempt to reduce unnecessary reliable command packets sent by some custom maps' scripts. Fixes Kowloon and Daybreak client load-in failures. |
-| `-dump`               | Dump game or server executable to file in containing directory after Arxan unpack                                                                                  |
+| `-nosnd`              | Disable attempt to load and use sound assets in dedicated server.                                                                                                  |
+| `-dump`               | Dump game or server executable to file in containing directory after Arxan unpack.                                                                                 |
 
 **Example:**
 

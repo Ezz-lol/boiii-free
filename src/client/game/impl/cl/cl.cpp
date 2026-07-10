@@ -163,7 +163,7 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
   case connstate_t::CONNECTING: {
     constexpr int32_t infoStrLen = 1024;
     char s[infoStrLen];
-    std::memset(s, 0, infoStrLen);
+    memset(s, 0, infoStrLen);
 
     /*
        TODO: why does this case cause the function to hang indefinitely?
@@ -245,8 +245,7 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
         infoStrLen + connectPrefixLen + infoStrQuotesLen;
     char dest[destLen];
 
-    const int32_t writtenLength =
-        std::snprintf(dest, destLen, "connect \"%s\"", s);
+    const int32_t writtenLength = snprintf(dest, destLen, "connect \"%s\"", s);
 
     // ORIGINAL:
     // if (!net::NET_OutOfBandData(networkId, &clc->serverAddress,
@@ -267,9 +266,9 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
   case connstate_t::CHALLENGING: {
     if (dw::dwGetConnectionTaskStatus(&clc->serverAddress) !=
         dw::taskCompleteResults::TASK_NOTCOMPLETE) {
-      net::netadr_t adr = clc->serverAddress;
       // ORIGINAL:
-      // net::NET_OutOfBandPrint(networkId, &adr, "getchallenge");
+      // net::NET_OutOfBandPrint(networkId, &clc->serverAddress,
+      // "getchallenge");
       /*
           # PATCH
 
@@ -293,7 +292,7 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
       */
 
       if (localClientNum == game::LOCAL_CLIENT_0) {
-        net::NET_OutOfBandPrint(networkId, &adr, "getchallenge");
+        net::NET_OutOfBandPrint(networkId, &clc->serverAddress, "getchallenge");
       }
     }
     return;

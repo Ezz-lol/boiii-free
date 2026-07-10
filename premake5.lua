@@ -44,9 +44,9 @@ function dependencies.load()
   dir = path.join(dependencies.basePath, "premake/*.lua")
   deps = os.matchfiles(dir)
 
-  for i, dep in pairs(deps) do
+  for _, dep in pairs(deps) do
     dep = dep:gsub(".lua", "")
-    require(dep)
+    include(dep)
   end
 end
 
@@ -345,7 +345,7 @@ language("C++")
 
 files({ "./src/common/**.hpp", "./src/common/**.cpp" })
 
-includedirs({ "./src/common", "%{prj.location}/src" })
+includedirs({ "./deps/argparse/include", "./src/common", "%{prj.location}/src" })
 
 resincludedirs({ "$(ProjectDir)src" })
 
@@ -368,7 +368,13 @@ files({
   "./src/client/resources/**.*",
 })
 
-includedirs({ "./deps/SteamWorksSDK/public", "./src/client", "./src/common", "%{prj.location}/src" })
+includedirs({
+  "./deps/argparse/include",
+  "./deps/SteamWorksSDK/public",
+  "./src/client",
+  "./src/common",
+  "%{prj.location}/src",
+})
 
 resincludedirs({ "$(ProjectDir)src" })
 

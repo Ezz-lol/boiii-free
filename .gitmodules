@@ -39,3 +39,6 @@
 [submodule "deps/SteamworkSDK"]
 	path = deps/SteamworkSDK
 	url = https://github.com/rlabrecque/SteamworksSDK
+[submodule "deps/argparse"]
+	path = deps/argparse
+	url = git@github.com:p-ranav/argparse.git

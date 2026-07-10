@@ -3,7 +3,7 @@
 
 #include <filesystem>
 #include <string>
-#include "../../common/utils/nt.hpp"
+#include "../../common/utils/nt.hpp" // IWYU pragma: export
 
 namespace arxan::detail {
 void set_address_to_call(const void *address);
@@ -12,14 +12,15 @@ extern void *callstack_proxy_addr;
 
 namespace game {
 
-inline constexpr uint32_t APP_ID = 311210;
-inline constexpr const char *APP_ID_STR = "311210";
+constexpr uint32_t APP_ID = 311210;
+constexpr const char *APP_ID_STR = "311210";
 
 size_t get_base();
 bool is_server();
 bool is_client();
 bool is_legacy_client();
 
+bool quiet_crash();
 bool is_headless();
 
 void show_error(const std::string &text, const std::string &title = "Error");
@@ -28,7 +29,7 @@ inline size_t relocate(const size_t val) {
   if (!val)
     return 0;
 
-  const auto base = get_base();
+  const size_t base = get_base();
   return base + (val - 0x140000000);
 }
 
@@ -36,7 +37,7 @@ inline size_t derelocate(const size_t val) {
   if (!val)
     return 0;
 
-  const auto base = get_base();
+  const size_t base = get_base();
   return (val - base) + 0x140000000;
 }
 
@@ -92,12 +93,14 @@ template <typename T> inline bool valid_engine_ptr(T *ptr) {
 
 std::filesystem::path get_appdata_path();
 std::filesystem::path get_game_path();
+std::vector<std::string> get_registered_dvar_names();
+size_t get_registered_dvar_name_count();
 } // namespace game
 
 inline size_t operator""_g(const size_t val) { return game::relocate(val); }
 
-#include "symbol.hpp"
-#include "structs/structs.hpp"
-#include "symbols/symbols.hpp"
+#include "symbol.hpp"          // IWYU pragma: export
+#include "structs/structs.hpp" // IWYU pragma: export
+#include "symbols/symbols.hpp" // IWYU pragma: export
 
 #endif

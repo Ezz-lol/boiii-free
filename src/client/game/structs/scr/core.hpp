@@ -93,10 +93,47 @@ enum class ScrVarType : uint32_t {
   ENT_LIST = 0x1D,
   COUNT = 0x1E
 };
+IMPL_ENUM_OPERATORS(ScrVarType);
 
 typedef ScrVarType ScrVarType_t;
 
 #pragma pack(push, 1)
+
+template <typename T> union ScrVarTypePool {
+  struct {
+    T t_undefined;
+    T t_pointer;
+    T t_string;
+    T t_localized_string;
+    T t_vector;
+    T t_hash;
+    T t_float;
+    T t_int;
+    T t_uint64;
+    T t_uintptr_t;
+    T t_entity_offset;
+    T t_codepos;
+    T t_precodepos;
+    T t_api_function;
+    T t_function;
+    T t_stack;
+    T t_animation;
+    T t_thread;
+    T t_notify_thread;
+    T t_time_thread;
+    T t_child_thread;
+    T t_class;
+    T t_struct;
+    T t_removed_entity;
+    T t_entity;
+    T t_array;
+    T t_removed_thread;
+    T t_free;
+    T t_thread_list;
+    T t_ent_list;
+  };
+  T pool[static_cast<size_t>(ScrVarType::COUNT)];
+};
 
 enum class scriptBundleKVPType_t : int32_t {
   KVP_STRING = 0x0,
@@ -1936,7 +1973,17 @@ union scrChecksum_t {
     uint32_t unknown2;
   };
   uint32_t raw[3];
+
+  inline constexpr const uint32_t &operator[](size_t index) const {
+    return raw[index];
+  }
+  inline constexpr uint32_t &operator[](size_t index) { return raw[index]; }
 };
+ASSERT_SIZE(scrChecksum_t, sizeof(uint32_t) * 3);
+static_assert(std::is_standard_layout_v<scrChecksum_t>,
+              "scrChecksum_t must be standard layout!");
+static_assert(std::is_trivially_copyable_v<scrChecksum_t>,
+              "scrChecksum_t must be trivially copyable!");
 
 #pragma pack(push, 1)
 struct scrVarPub_t {
@@ -2040,6 +2087,40 @@ struct ScriptParseTree {
 };
 ASSERT_SIZE(ScriptParseTree, 0x18);
 #pragma pack(pop)
+
+struct function_stack_t {
+  uint8_t *pos;
+  ScrVarValue_t *top;
+  ScrVarIndex_t threadId;
+  uint32_t localVarCount;
+  ScrVarValue_t *startTop;
+};
+
+#pragma pack(push, 1)
+struct ScrVmContext_t {
+  ScrVarIndex_t fieldValueId;
+  bool fieldValueRemoveOk;
+  uint8_t _padding05[3];
+  ScrVarIndex_t objectId;
+  uint8_t _padding0C[4];
+  uint8_t *lastGoodPos;
+  ScrVarValue_t *lastGoodTop;
+};
+ASSERT_SIZE(ScrVmContext_t, 0x20);
+#pragma pack(pop)
+
+typedef fastcall_t<void(scriptInstance_t inst, function_stack_t *fs,
+                        volatile ScrVmContext_t *vmc, bool *terminate)>
+    VM_OP_FUNC;
+typedef uint16_t OP_TYPE;
+
+constexpr OP_TYPE VM_OP_JUMP_TABLE_LEN = 0x2000;
+struct VmOpJumpTable {
+  array<VM_OP_FUNC, VM_OP_JUMP_TABLE_LEN> ops;
+};
+
+constexpr OP_TYPE VM_OP_TABLE_1_IDX_MASK =
+    static_cast<OP_TYPE>(-(static_cast<int16_t>(VM_OP_JUMP_TABLE_LEN)));
 
 } // namespace scr
 } // namespace game

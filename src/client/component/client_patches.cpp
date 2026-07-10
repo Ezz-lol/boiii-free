@@ -174,7 +174,7 @@ utils::hook::detour sd_alloc_sanity_hook;
   routine would consolidate free blocks in the pool to create larger contiguous
   free spaces, allowing subsequent allocation attempts to succeed.
 
-  Unfortunately, this is not feasible with the the SD allocator pool, as
+  Unfortunately, this is not feasible with the SD allocator pool, as
   pointers to allocations are passed directly to the caller. Defragmentation
   would therefore cause all existing pointers to become invalid, leading to
   crashes and other undefined behavior.
@@ -449,7 +449,7 @@ void GScr_BBPrint_StdoutRedirect(scriptInstance_t inst) {
 #ifndef NDEBUG
   int32_t numParam = Scr_GetNumParam(inst);
 
-  // BB requires at least an event name and a format string
+  // BBPrint requires at least an event name and a format string
   if (numParam < 2) {
     return;
   }

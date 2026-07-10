@@ -157,3 +157,12 @@
 #endif
 
 using namespace std::literals;
+
+template <typename T>
+concept ScopedEnum =
+    std::is_enum_v<T> && !std::is_convertible_v<T, std::underlying_type_t<T>>;
+
+template <ScopedEnum T>
+inline constexpr std::underlying_type_t<T> to_underlying(T e) noexcept {
+  return static_cast<std::underlying_type_t<T>>(e);
+}

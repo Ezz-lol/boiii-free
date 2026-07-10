@@ -125,7 +125,7 @@ capture_stackwalk(const LPEXCEPTION_POINTERS exceptioninfo,
   const HANDLE process = GetCurrentProcess();
   const HANDLE thread = GetCurrentThread();
 
-  for (int i = 0; i < max_frames; ++i) {
+  for (int32_t i = 0; i < max_frames; ++i) {
     if (!StackWalk64(IMAGE_FILE_MACHINE_AMD64, process, thread, &stack_frame,
                      &ctx, nullptr, SymFunctionTableAccess64,
                      SymGetModuleBase64, nullptr))
@@ -235,8 +235,10 @@ void display_error_dialog() {
   const resolved_frame frame = resolve_address(exception_data.address);
   const char *exception_name = get_exception_string(exception_data.code);
   const std::string location = get_crash_module_info(exception_data.address);
+  const std::string minidumps_out =
+      (game::get_appdata_path() / "minidumps").string();
 
-  const std::string error_str = utils::string::va(
+  const char *error_str = utils::string::va(
       "%s (0x%08X) at %s\n\n"
       "Address: 0x%p (RVA: 0x%llX)\n"
       "Module: %s\n"
@@ -248,19 +250,18 @@ void display_error_dialog() {
       exception_data.address, frame.rva, frame.module_name.c_str(),
       frame.function_name.empty() ? "" : "Function: ",
       frame.function_name.empty() ? "" : (frame.function_name + "\n").c_str(),
-      (game::get_appdata_path() / "minidumps").string().c_str());
+      minidumps_out.c_str());
 
   utils::thread::suspend_other_threads();
   show_mouse_cursor();
 
-  game::show_error(error_str.data(), "Ezz ERROR");
+  game::show_error(error_str, "Ezz ERROR");
 
-  if (utils::flags::has_flag("quiet-crash")) {
+  if (game::quiet_crash()) {
     utils::thread::terminate_other_threads(exception_data.code);
   } else {
-    ShellExecuteA(nullptr, "open",
-                  (game::get_appdata_path() / "minidumps").string().c_str(),
-                  nullptr, nullptr, SW_SHOWNORMAL);
+    ShellExecuteA(nullptr, "open", minidumps_out.c_str(), nullptr, nullptr,
+                  SW_SHOWNORMAL);
   }
 
   TerminateProcess(GetCurrentProcess(), exception_data.code);
@@ -670,8 +671,8 @@ LONG WINAPI crash_fix_exception_handler(PEXCEPTION_POINTERS exception_info) {
   }
 
   if (patch_name) {
-    printf("^3[Exception] Known crash patched: %s (base+0x%llX)\n", patch_name,
-           offset);
+    fprintf(stderr, "^3[Exception] Known crash patched: %s (base+0x%llX)\n",
+            patch_name, offset);
   }
 
   return EXCEPTION_CONTINUE_EXECUTION;
@@ -746,19 +747,19 @@ LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
       get_exception_string(exceptioninfo->ExceptionRecord->ExceptionCode);
 
   // Detailed console crash report
-  printf("\n^1========== CRASH DETECTED ==========\n");
-  printf("^1  Exception:  %s (0x%08lX)\n", exception_name,
-         exceptioninfo->ExceptionRecord->ExceptionCode);
-  printf("^1  Module:     %s + 0x%llX\n", crash_frame.module_name.c_str(),
-         crash_frame.rva);
+  fprintf(stderr, "\n========== CRASH DETECTED ==========\n");
+  fprintf(stderr, "  Exception:  %s (0x%08lX)\n", exception_name,
+          exceptioninfo->ExceptionRecord->ExceptionCode);
+  fprintf(stderr, "  Module:     %s + 0x%llX\n",
+          crash_frame.module_name.c_str(), crash_frame.rva);
   if (!crash_frame.function_name.empty())
-    printf("^1  Function:   %s\n", crash_frame.function_name.c_str());
+    fprintf(stderr, "  Function:   %s\n", crash_frame.function_name.c_str());
   if (!crash_frame.file_name.empty() && crash_frame.line_number > 0)
-    printf("^1  Source:     %s:%u\n", crash_frame.file_name.c_str(),
-           crash_frame.line_number);
-  printf("^1  Address:    0x%llX\n", crash_frame.address);
-  printf("^1  Thread:     %lu (%s)\n", GetCurrentThreadId(),
-         is_game_thread() ? "main" : "auxiliary");
+    fprintf(stderr, "  Source:     %s:%u\n", crash_frame.file_name.c_str(),
+            crash_frame.line_number);
+  fprintf(stderr, "  Address:    0x%llX\n", crash_frame.address);
+  fprintf(stderr, "  Thread:     %lu (%s)\n", GetCurrentThreadId(),
+          is_game_thread() ? "main" : "auxiliary");
 
   if (exceptioninfo->ExceptionRecord->ExceptionCode ==
       EXCEPTION_ACCESS_VIOLATION) {
@@ -767,27 +768,32 @@ LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
             ? "write to"
             : "read from";
     uintptr_t target = exceptioninfo->ExceptionRecord->ExceptionInformation[1];
-    printf("^1  Details:    Attempted to %s 0x%012llX%s\n", op, target,
-           target < 0x10000 ? " (NULL pointer dereference)" : "");
+    fprintf(stderr, "  Details:    Attempted to %s 0x%012llX%s\n", op, target,
+            target < 0x10000 ? " (NULL pointer dereference)" : "");
   }
+
+  fflush(stderr);
 
   // Print condensed callstack to console
   std::vector<resolved_frame> frames = capture_stackwalk(exceptioninfo, 16);
   if (!frames.empty()) {
-    printf("^1  Callstack:\n");
+    fprintf(stderr, "  Callstack:\n");
+    fflush(stderr);
     for (size_t i = 0; i < frames.size(); ++i) {
-      const resolved_frame &f = frames[i];
+      const resolved_frame *f = &frames[i];
 
-      if (!f.function_name.empty()) {
-        printf("^1    [%zu] 0x%llX - %s!%s\n", i, f.address,
-               f.module_name.c_str(), f.function_name.c_str());
+      if (!f->function_name.empty()) {
+        fprintf(stderr, "    [%zu] 0x%llX - %s!%s\n", i, f->address,
+                f->module_name.c_str(), f->function_name.c_str());
       } else {
-        printf("^1    [%zu] 0x%llX - %s + 0x%llX\n", i, f.address,
-               f.module_name.c_str(), f.rva);
+        fprintf(stderr, "    [%zu] 0x%llX - %s + 0x%llX\n", i, f->address,
+                f->module_name.c_str(), f->rva);
       }
+      fflush(stderr);
     }
   }
-  printf("^1=====================================\n\n");
+  fprintf(stderr, "=====================================\n\n");
+  fflush(stderr);
 
   if (!game::is_server()) {
     const std::string crash_info = generate_crash_info(exceptioninfo);
@@ -826,7 +832,8 @@ struct component final : generic_component {
     const utils::nt::library dbghelp = utils::nt::library::load("dbghelp.dll");
     if (dbghelp) {
       mini_dump_write_dump_hook.create(
-          dbghelp.get_proc<void *>("MiniDumpWriteDump"),
+          dbghelp.get_proc<decltype(mini_dump_write_dump_stub) *>(
+              "MiniDumpWriteDump"),
           mini_dump_write_dump_stub);
     }
 

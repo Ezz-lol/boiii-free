@@ -18,28 +18,31 @@
   }
 
 #define IMPL_ENUM_OPERATORS(name)                                              \
-  inline name &operator++(name &s) {                                           \
+  inline constexpr name &operator++(name &s) {                                 \
     using underlying = std::underlying_type_t<name>;                           \
     s = static_cast<name>(static_cast<underlying>(s) + 1);                     \
     return s;                                                                  \
   }                                                                            \
                                                                                \
-  inline name operator++(name &s, int) {                                       \
+  inline constexpr name operator++(name &s, int) {                             \
     name temp = s;                                                             \
     ++s;                                                                       \
     return temp;                                                               \
   }                                                                            \
                                                                                \
-  inline name &operator--(name &s) {                                           \
+  inline constexpr name &operator--(name &s) {                                 \
     using underlying = std::underlying_type_t<name>;                           \
     s = static_cast<name>(static_cast<underlying>(s) - 1);                     \
     return s;                                                                  \
   }                                                                            \
                                                                                \
-  inline name operator--(name &s, int) {                                       \
+  inline constexpr name operator--(name &s, int) {                             \
     name temp = s;                                                             \
     --s;                                                                       \
     return temp;                                                               \
+  }                                                                            \
+  inline constexpr std::underlying_type_t<name> operator+(name s) {            \
+    return static_cast<std::underlying_type_t<name>>(s);                       \
   }
 
 template <size_t Actual, size_t Expected>
@@ -64,7 +67,10 @@ concept ValueMatches = (Actual == Expected);
 #endif
 #endif
 
-#define BITS(x) (8 * x)
+template <typename T> constexpr size_t bits() noexcept {
+  return sizeof(T) * CHAR_BIT;
+}
+
 template <typename T, typename = typename std::enable_if<
                           std::is_convertible<T, uint64_t>::value>::type>
 consteval int32_t min_bits_unsigned(T val_in) {
@@ -73,7 +79,7 @@ consteval int32_t min_bits_unsigned(T val_in) {
     return 1; // 0 needs at least 1 bit
 
   // Total bits (64) minus leading zeros gives the bits used
-  return BITS(sizeof(uint64_t)) - std::countl_zero(val);
+  return bits<uint64_t>() - std::countl_zero(val);
 }
 
 template <typename T, typename = typename std::enable_if<

@@ -184,7 +184,7 @@ ast_ptr parse_primary(parser_state &s) {
     std::string ns_name = name_tok.value;
 
     // Support &path\to\namespace::function syntax
-    while (s.check(token_type::t_backslash)) {
+    while (s.check(token_type::t_backslash) || s.check(token_type::t_slash)) {
       ns_name += "\\";
       s.advance();
       if (s.check(token_type::t_identifier))
@@ -211,7 +211,26 @@ ast_ptr parse_primary(parser_state &s) {
     const token &tok = s.advance();
     std::string name = tok.value;
 
-    while (s.check(token_type::t_backslash)) {
+    bool is_full_ns_func = false;
+    bool should_loop = true;
+    for (uint32_t peekOfs = 1; should_loop; ++peekOfs) {
+      switch (s.peek(peekOfs).type) {
+      case token_type::t_backslash:
+      case token_type::t_identifier:
+      case token_type::t_slash:
+        break;
+      case token_type::t_double_colon:
+        is_full_ns_func = true;
+        should_loop = false;
+        break;
+      default:
+        should_loop = false;
+        break;
+      }
+    }
+
+    while ((s.check(token_type::t_backslash) ||
+            (is_full_ns_func && s.check(token_type::t_slash)))) {
       name += "\\";
       s.advance();
       if (s.check(token_type::t_identifier)) {

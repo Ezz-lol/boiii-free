@@ -20,7 +20,7 @@ void G_RegisterSoundWait_Impl(level::gentity_s *ent, snd::SndAliasId id,
     scr::Scr_Notify_ScrString(ent, currentPlaybackNotifyString, 0);
     if (!ent->snd_wait.stoppable) {
       scr::Scr_SetString(&tempNotifyString, 0);
-      scr::ScrString_t targetname = ent->targetname;
+      const scr::ScrString_t targetname = ent->targetname;
 
       const char *targetDisplayStr;
       if (targetname) {
@@ -32,9 +32,9 @@ void G_RegisterSoundWait_Impl(level::gentity_s *ent, snd::SndAliasId id,
           sl::SL_ConvertToString(tempNotifyString);
       const char *notifyDisplayStr =
           sl::SL_ConvertToString(ent->snd_wait.notifyString);
-      double z = ent->r.currentOrigin.z;
-      double y = ent->r.currentOrigin.y;
-      double x = ent->r.currentOrigin.x;
+      const double z = ent->r.currentOrigin.z;
+      const double y = ent->r.currentOrigin.y;
+      const double x = ent->r.currentOrigin.x;
       const char *targetClassNameStr = sl::SL_ConvertToString(ent->classname);
       const char *errorStr = utils::string::va(
           "issued a second playsound with notification string before the "
@@ -57,13 +57,13 @@ void G_RegisterSoundWait_Impl(level::gentity_s *ent, snd::SndAliasId id,
   // PATCH to use actual duration:
   ent->snd_wait.duration = snd::SND_GetPlaybackTimeById(id);
 
-  ent->snd_wait.stoppable = 1;
+  ent->snd_wait.stoppable = true;
 }
 
 level::gentity_t *G_PlaySoundAliasAtPoint_Impl(const vec3_t *origin,
                                                snd::SndAliasId alias) {
   level::gentity_t *tmp = 0;
-  if (alias) {
+  if (alias != 0) {
     tmp = G_TempEntity(origin, TEMP_ENTITY_SOUND_EVENT);
     tmp->r.svFlags |= 8u;
     tmp->s.loopSound.id = alias;
@@ -78,7 +78,7 @@ level::gentity_t *G_PlaySoundAliasWithNotify_Impl(level::gentity_t *ent,
                                                   uint32_t tag) {
 
   level::gentity_t *tmp = nullptr;
-  if (alias) {
+  if (alias != 0) {
     int32_t event =
         notifyString ? TEMP_ENTITY_SOUND_NOTIFY_EVENT : TEMP_ENTITY_SOUND_EVENT;
     tmp = G_TempEntity(&ent->r.currentOrigin, event);
@@ -86,7 +86,7 @@ level::gentity_t *G_PlaySoundAliasWithNotify_Impl(level::gentity_t *ent,
     tmp->s.un3.hintString = tag;
     tmp->s.otherEntityNum = ent->s.number;
   }
-  if (notifyString) {
+  if (notifyString != 0) {
     G_RegisterSoundWait_Impl(ent, alias, notifyString);
   }
   return tmp;
@@ -101,8 +101,9 @@ level::gentity_t *G_PlaySoundAlias_Impl(level::gentity_t *ent,
   if (alias) {
     tmp = G_TempEntity(&ent->r.currentOrigin, 4);
     tmp->r.svFlags |= 8u;
-    if (ent->s.number < 0x400)
+    if (ent->s.number < 0x400) {
       ent->r.svFlags &= ~1u;
+    }
     tmp->s.loopSound.id = alias;
     tmp->s.otherEntityNum = ent->s.number;
     tmp->s.un3.hintString = bone;

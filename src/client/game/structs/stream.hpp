@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include "str.hpp"
+
 namespace game {
 namespace stream {
 
@@ -24,9 +26,9 @@ typedef stream_fileid stream_platform_handle;
 
 #pragma pack(push, 1)
 struct stream_fh {
-  char name[256];
+  str256_t name;
   stream_platform_handle h;
-  uint8_t unknown106[4];
+  uint8_t _unknown106[4];
   bool shouldOpen;
   uint8_t _unknown109[1];
   bool shouldClose;
@@ -40,7 +42,6 @@ struct stream_fh {
   int64_t fileSize;
   int64_t fakeGlobalOffset;
 };
-
 #pragma pack(pop)
 } // namespace stream
 } // namespace game

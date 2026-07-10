@@ -1,14 +1,11 @@
-#include <std_include.hpp>
+#include "std_include.hpp"
 
 #include "game.hpp"
 
-#include <utils/flags.hpp>
-#include <utils/finally.hpp>
+#include "../../common/utils/flags.hpp"
+#include "../../common/utils/finally.hpp"
 
-#include <iostream>
-#include <random>
-#include <sstream>
-#include <iomanip>
+#include <combaseapi.h>
 
 namespace game {
 namespace {
@@ -56,13 +53,18 @@ bool is_legacy_client() {
   return server;
 }
 
+bool quiet_crash() {
+  static const bool quiet_crash = utils::flags::has_flag("quiet-crash");
+  return quiet_crash;
+}
+
 bool is_headless() {
   static const bool headless = utils::flags::has_flag("headless");
   return headless;
 }
 
 void show_error(const std::string &text, const std::string &title) {
-  if (utils::flags::has_flag("quiet-crash")) {
+  if (quiet_crash()) {
     fflush(stdout);
     fflush(stderr);
 
