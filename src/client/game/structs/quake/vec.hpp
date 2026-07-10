@@ -607,7 +607,7 @@ inline constexpr T dot(const vec4<T> &a, const vec4<T> &b) {
   return a.dot(b);
 }
 template <typename T> inline constexpr T length_sq(const vec4<T> &v) {
-  return v.length_squared();
+  return v.length_sq();
 }
 template <typename T> inline constexpr T length(const vec4<T> &v) {
   return v.length();
