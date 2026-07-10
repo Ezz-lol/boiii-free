@@ -1282,7 +1282,7 @@ bool has_zone_content(const std::filesystem::path &dir) {
 std::filesystem::path
 get_steam_workshop_content_path(const std::filesystem::path &game_path) {
   auto steamapps = game_path.parent_path().parent_path();
-  auto ws_path = steamapps / "workshop" / "content" / "311210";
+  auto ws_path = steamapps / "workshop" / "content" / game::APP_ID_STR;
   std::error_code ec;
   if (std::filesystem::exists(ws_path, ec))
     return ws_path;
@@ -1587,17 +1587,17 @@ void workshop_download_thread(std::string workshop_id) {
     }
 
     std::filesystem::path content_path = steamcmd_dir / "steamapps" /
-                                         "workshop" / "content" / "311210" /
-                                         workshop_id;
+                                         "workshop" / "content" /
+                                         game::APP_ID_STR / workshop_id;
     std::filesystem::path download_path = steamcmd_dir / "steamapps" /
-                                          "workshop" / "downloads" / "311210" /
-                                          workshop_id;
+                                          "workshop" / "downloads" /
+                                          game::APP_ID_STR / workshop_id;
     std::filesystem::path alt_content_path = game_path / "steamapps" /
-                                             "workshop" / "content" / "311210" /
-                                             workshop_id;
+                                             "workshop" / "content" /
+                                             game::APP_ID_STR / workshop_id;
     std::filesystem::path alt_download_path = game_path / "steamapps" /
                                               "workshop" / "downloads" /
-                                              "311210" / workshop_id;
+                                              game::APP_ID_STR / workshop_id;
 
     std::string steamapps_folder = "./steamcmd/steamapps";
 

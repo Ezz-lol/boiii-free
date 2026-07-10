@@ -813,7 +813,7 @@ std::filesystem::path get_steam_workshop_path() {
   std::filesystem::path base(cwd);
 
   auto steamapps = base.parent_path().parent_path();
-  auto workshop_path = steamapps / "workshop" / "content" / "311210";
+  auto workshop_path = steamapps / "workshop" / "content" / game::APP_ID_STR;
   if (std::filesystem::exists(workshop_path)) {
     return workshop_path;
   }

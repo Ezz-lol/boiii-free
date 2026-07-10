@@ -313,7 +313,7 @@ void supplement_ugc_from_workshop(game::ZoneType zoneType) {
   const std::filesystem::path steamapps =
       current_dir.parent_path().parent_path();
   const std::filesystem::path workshop_path =
-      steamapps / "workshop" / "content" / "311210";
+      steamapps / "workshop" / "content" / game::APP_ID_STR;
 
   if (!std::filesystem::exists(workshop_path, ec)) {
     return;
@@ -321,7 +321,6 @@ void supplement_ugc_from_workshop(game::ZoneType zoneType) {
 
   const char *ugc_dirname;
   const char *ugc_type_str;
-  ;
   game::ugc::ExtendedWorkshopDataPool *pool;
   switch (zoneType) {
   case game::ZoneType::USERMAP:

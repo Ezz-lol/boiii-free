@@ -137,8 +137,8 @@ std::vector<std::filesystem::path> get_bo3_workshop_content_paths() {
   std::error_code ec;
 
   const auto game_path = game::get_game_path();
-  const auto game_workshop_path =
-      game_path.parent_path().parent_path() / "workshop" / "content" / "311210";
+  const auto game_workshop_path = game_path.parent_path().parent_path() /
+                                  "workshop" / "content" / game::APP_ID_STR;
   if (std::filesystem::exists(game_workshop_path, ec)) {
     result.push_back(game_workshop_path);
   }
@@ -147,7 +147,7 @@ std::vector<std::filesystem::path> get_bo3_workshop_content_paths() {
       steam::SteamAPI_GetSteamInstallPath();
   if (!steam_path.empty()) {
     const auto steam_workshop_path =
-        steam_path / "steamapps" / "workshop" / "content" / "311210";
+        steam_path / "steamapps" / "workshop" / "content" / game::APP_ID_STR;
     if (std::filesystem::exists(steam_workshop_path, ec) &&
         std::find(result.begin(), result.end(), steam_workshop_path) ==
             result.end()) {
@@ -205,7 +205,7 @@ void load_client() {
   if (is_disabled())
     return;
 
-  SetEnvironmentVariableA("SteamAppId", "311210");
+  SetEnvironmentVariableA("SteamAppId", game::APP_ID_STR);
 
   const std::filesystem::path steam_path =
       steam::SteamAPI_GetSteamInstallPath();
