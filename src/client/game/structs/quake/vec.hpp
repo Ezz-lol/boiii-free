@@ -275,7 +275,7 @@ static_assert(std::is_trivially_copyable_v<vec4_t>,
               "vec4_t must be trivially copyable!");
 
 /*
-  vec2: non-member operators
+  vec2: non-member operators and functions
 */
 
 // Unary
@@ -360,8 +360,27 @@ inline constexpr bool operator!=(const vec2<T> &a, const vec2<T> &b) {
   return !(a == b);
 }
 
+// Math utility functions
+template <typename T>
+inline constexpr T dot(const vec2<T> &a, const vec2<T> &b) {
+  return a.dot(b);
+}
+template <typename T> inline constexpr T length_sq(const vec2<T> &v) {
+  return v.length_sq();
+}
+template <typename T> inline constexpr T length(const vec2<T> &v) {
+  return v.length();
+}
+template <typename T> inline constexpr vec2<T> normalize(const vec2<T> &v) {
+  return v.normalize();
+}
+template <typename T>
+inline constexpr vec2<T> lerp(const vec2<T> &a, const vec2<T> &b, T t) {
+  return a.lerp(b, t);
+}
+
 /*
-  vec3: non-member operators
+  vec3: non-member operators and functions
 */
 
 // Unary
@@ -455,8 +474,31 @@ inline constexpr bool operator!=(const vec3<T> &a, const vec3<T> &b) {
   return !(a == b);
 }
 
+// Math utility functions
+template <typename T>
+inline constexpr T dot(const vec3<T> &a, const vec3<T> &b) {
+  return a.dot(b);
+}
+template <typename T>
+inline constexpr vec3<T> cross(const vec3<T> &a, const vec3<T> &b) {
+  return a.cross(b);
+}
+template <typename T> inline constexpr T length_sq(const vec3<T> &v) {
+  return v.length_sq();
+}
+template <typename T> inline constexpr T length(const vec3<T> &v) {
+  return v.length();
+}
+template <typename T> inline constexpr vec3<T> normalize(const vec3<T> &v) {
+  return v.normalize();
+}
+template <typename T>
+inline constexpr vec3<T> lerp(const vec3<T> &a, const vec3<T> &b, T t) {
+  return a.lerp(b, t);
+}
+
 /*
-  vec4: non-member operators
+  vec4: non-member operators and functions
 */
 
 // Unary
@@ -557,5 +599,24 @@ inline constexpr bool operator==(const vec4<T> &a, const vec4<T> &b) {
 template <typename T>
 inline constexpr bool operator!=(const vec4<T> &a, const vec4<T> &b) {
   return !(a == b);
+}
+
+// Math utility functions
+template <typename T>
+inline constexpr T dot(const vec4<T> &a, const vec4<T> &b) {
+  return a.dot(b);
+}
+template <typename T> inline constexpr T length_sq(const vec4<T> &v) {
+  return v.length_squared();
+}
+template <typename T> inline constexpr T length(const vec4<T> &v) {
+  return v.length();
+}
+template <typename T> inline constexpr vec4<T> normalize(const vec4<T> &v) {
+  return v.normalize();
+}
+template <typename T>
+inline constexpr vec4<T> lerp(const vec4<T> &a, const vec4<T> &b, T t) {
+  return a.lerp(b, t);
 }
 } // namespace game
