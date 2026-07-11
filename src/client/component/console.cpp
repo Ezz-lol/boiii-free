@@ -62,20 +62,20 @@ std::mutex dvar_list_mutex;
 std::atomic_bool dvar_list_loaded{false};
 std::atomic_bool dvar_list_loading{false};
 std::atomic_size_t dynamic_name_count{0};
-std::atomic<int64_t> buffer_char_count{0};
 std::atomic_bool close_requested{false};
+bool buffer_ends_with_newline{true};
 HWND completion_hint_hwnd{nullptr};
 std::vector<std::string> tab_cycle_matches{};
 std::string tab_cycle_partial{};
 size_t tab_cycle_index{0};
 
-// Command history navigation (Up/Down in the input line).
 std::vector<std::string> command_history{};
 size_t history_index{0};
 std::string history_draft{};
 
 constexpr UINT WM_APPEND_CONSOLE_TEXT = WM_APP + 0x1337;
 constexpr size_t MAX_CONSOLE_CHARS = 1'000'000;
+constexpr size_t MAX_CONSOLE_LINES = 20'000;
 constexpr int COMPLETION_HINT_CONTROL_ID = 0x66;
 
 bool full_logs_enabled() {
@@ -126,7 +126,8 @@ void reset_tab_cycle() {
 
 int compare_dvar_names_ci(const std::string &a, const std::string &b) {
   const size_t min_len = std::min(a.size(), b.size());
-  const int cmp = min_len ? _strnicmp(a.c_str(), b.c_str(), min_len) : 0;
+  const int cmp =
+      min_len ? _strnicmp(a.c_str(), b.c_str(), min_len) : 0;
   if (cmp != 0) {
     return cmp;
   }
@@ -153,8 +154,7 @@ std::string to_lower_copy(const std::string_view s) {
   return out;
 }
 
-bool ci_contains(const std::string_view haystack,
-                 const std::string_view needle) {
+bool ci_contains(const std::string_view haystack, const std::string_view needle) {
   if (needle.empty()) {
     return true;
   }
@@ -261,30 +261,52 @@ void append_colored_text(const HWND richedit, const char *text, size_t len,
                reinterpret_cast<LPARAM>(&cf));
   SendMessageW(richedit, EM_REPLACESEL, FALSE,
                reinterpret_cast<LPARAM>(wbuf.data()));
-
-  buffer_char_count.fetch_add(wlen, std::memory_order_relaxed);
 }
 
 void trim_console_buffer(const HWND richedit) {
   if (full_logs_enabled())
     return;
 
-  const int64_t text_len = buffer_char_count.load(std::memory_order_relaxed);
-  if (text_len > static_cast<int64_t>(MAX_CONSOLE_CHARS)) {
-    const auto to_remove = static_cast<LONG>(text_len - MAX_CONSOLE_CHARS / 2);
-    CHARRANGE cr;
-    cr.cpMin = 0;
-    cr.cpMax = to_remove;
-    SendMessageW(richedit, EM_EXSETSEL, 0, reinterpret_cast<LPARAM>(&cr));
-    SendMessageW(richedit, EM_REPLACESEL, FALSE, reinterpret_cast<LPARAM>(L""));
+  const auto line_count =
+      static_cast<LONG>(SendMessageW(richedit, EM_GETLINECOUNT, 0, 0));
+  const auto text_len =
+      static_cast<LONG>(SendMessageW(richedit, WM_GETTEXTLENGTH, 0, 0));
 
-    CHARRANGE cr_end;
-    cr_end.cpMin = -1;
-    cr_end.cpMax = -1;
-    SendMessageW(richedit, EM_EXSETSEL, 0, reinterpret_cast<LPARAM>(&cr_end));
+  const bool too_many_lines = line_count > static_cast<LONG>(MAX_CONSOLE_LINES);
+  const bool too_many_chars = text_len > static_cast<LONG>(MAX_CONSOLE_CHARS);
 
-    buffer_char_count.fetch_sub(to_remove, std::memory_order_relaxed);
+  if (!too_many_lines && !too_many_chars) {
+    return;
   }
+
+  LONG cut_at = 0;
+
+  if (too_many_lines) {
+    const auto target_line =
+        line_count - static_cast<LONG>(MAX_CONSOLE_LINES / 2);
+    cut_at = (std::max)(
+        cut_at, static_cast<LONG>(
+                    SendMessageW(richedit, EM_LINEINDEX, target_line, 0)));
+  }
+
+  if (too_many_chars) {
+    cut_at = (std::max)(cut_at, text_len - static_cast<LONG>(MAX_CONSOLE_CHARS / 2));
+  }
+
+  if (cut_at <= 0 || cut_at >= text_len) {
+    return;
+  }
+
+  CHARRANGE cr;
+  cr.cpMin = 0;
+  cr.cpMax = cut_at;
+  SendMessageW(richedit, EM_EXSETSEL, 0, reinterpret_cast<LPARAM>(&cr));
+  SendMessageW(richedit, EM_REPLACESEL, FALSE, reinterpret_cast<LPARAM>(L""));
+
+  CHARRANGE cr_end;
+  cr_end.cpMin = -1;
+  cr_end.cpMax = -1;
+  SendMessageW(richedit, EM_EXSETSEL, 0, reinterpret_cast<LPARAM>(&cr_end));
 }
 
 struct run_accumulator {
@@ -311,8 +333,7 @@ struct run_accumulator {
 
   void flush() {
     if (!buffer.empty()) {
-      append_colored_text(richedit, buffer.data(), buffer.size(),
-                          current_color);
+      append_colored_text(richedit, buffer.data(), buffer.size(), current_color);
       buffer.clear();
     }
     has_color = false;
@@ -381,6 +402,10 @@ void append_text_with_severity(const HWND richedit, const std::string &text) {
 
   run_accumulator acc(richedit, run_buffer);
 
+  if (!buffer_ends_with_newline) {
+    acc.add("\n", get_default_console_color());
+  }
+
   std::string_view remaining(text);
   while (!remaining.empty()) {
     const auto nl = remaining.find('\n');
@@ -398,6 +423,8 @@ void append_text_with_severity(const HWND richedit, const std::string &text) {
   }
 
   acc.flush();
+
+  buffer_ends_with_newline = text.back() == '\n';
 
   if (was_at_bottom) {
     SendMessageW(richedit, WM_VSCROLL, SB_BOTTOM, 0);
@@ -435,12 +462,12 @@ void restore_input_caret() {
   DWORD sel_start = 0;
   DWORD sel_end = 0;
   SendMessageA(*game::s_wcd::hwndInputLine, EM_GETSEL,
-               reinterpret_cast<WPARAM>(&sel_start),
-               reinterpret_cast<LPARAM>(&sel_end));
+              reinterpret_cast<WPARAM>(&sel_start),
+              reinterpret_cast<LPARAM>(&sel_end));
   SendMessageA(*game::s_wcd::hwndInputLine, EM_SETSEL, sel_start, sel_end);
 
   CreateCaret(*game::s_wcd::hwndInputLine, nullptr, 0,
-              CONSOLE_INPUT_HEIGHT - 6);
+             CONSOLE_INPUT_HEIGHT - 6);
   ShowCaret(*game::s_wcd::hwndInputLine);
 }
 
@@ -448,7 +475,8 @@ std::string format_hint_text(const std::string &text) {
   std::string formatted;
   formatted.reserve(text.size());
   for (size_t i = 0; i < text.size(); ++i) {
-    if (text[i] == '\n' && (i == 0 || text[i - 1] != '\r')) {
+    if (text[i] == '\n' &&
+        (i == 0 || text[i - 1] != '\r')) {
       formatted += '\r';
     }
     formatted += text[i];
@@ -471,9 +499,12 @@ void reposition_completion_hint(const int popup_height_requested) {
       (std::max)(0, static_cast<int>(console_rect.right - console_rect.left));
   const int client_height =
       (std::max)(0, static_cast<int>(console_rect.bottom - console_rect.top));
-  const int input_y = client_height - CONSOLE_INPUT_HEIGHT - CONSOLE_MARGIN;
-  const int hint_y = (std::max)(CONSOLE_MARGIN, input_y - popup_height - 4);
-  const int popup_width = (std::max)(320, client_width - CONSOLE_MARGIN * 2);
+  const int input_y =
+      client_height - CONSOLE_INPUT_HEIGHT - CONSOLE_MARGIN;
+  const int hint_y =
+      (std::max)(CONSOLE_MARGIN, input_y - popup_height - 4);
+  const int popup_width =
+      (std::max)(320, client_width - CONSOLE_MARGIN * 2);
 
   SetWindowPos(completion_hint_hwnd, HWND_TOP, CONSOLE_MARGIN, hint_y,
                popup_width, popup_height, SWP_SHOWWINDOW | SWP_NOACTIVATE);
@@ -522,8 +553,8 @@ void load_dvar_list() {
     std::vector<std::string> loaded;
     std::string data;
 
-    const auto path =
-        game::get_appdata_path() / "data/lookup_tables/dvar_list.txt";
+    const auto path = game::get_appdata_path() /
+                      "data/lookup_tables/dvar_list.txt";
     if (utils::io::read_file(path.string(), &data)) {
       std::istringstream iss(data);
       std::string line;
@@ -541,10 +572,10 @@ void load_dvar_list() {
     if (!loaded.empty()) {
       std::sort(loaded.begin(), loaded.end(), dvar_name_less);
       loaded.erase(std::unique(loaded.begin(), loaded.end(),
-                               [](const std::string &a, const std::string &b) {
-                                 return _stricmp(a.c_str(), b.c_str()) == 0;
-                               }),
-                   loaded.end());
+                              [](const std::string &a, const std::string &b) {
+                                return _stricmp(a.c_str(), b.c_str()) == 0;
+                              }),
+                  loaded.end());
       {
         std::lock_guard lock(dvar_list_mutex);
         dvar_name_list = std::move(loaded);
@@ -584,10 +615,10 @@ void merge_dynamic_names() {
 
   std::sort(merged.begin(), merged.end(), dvar_name_less);
   merged.erase(std::unique(merged.begin(), merged.end(),
-                           [](const std::string &a, const std::string &b) {
-                             return _stricmp(a.c_str(), b.c_str()) == 0;
-                           }),
-               merged.end());
+                          [](const std::string &a, const std::string &b) {
+                            return _stricmp(a.c_str(), b.c_str()) == 0;
+                          }),
+              merged.end());
 
   {
     std::lock_guard lock(dvar_list_mutex);
@@ -614,8 +645,8 @@ bool collect_dvar_matches(const std::string &current,
 
   const auto last_semicolon = current.find_last_of(';');
   const std::string command_part = (last_semicolon == std::string::npos)
-                                       ? current
-                                       : current.substr(last_semicolon + 1);
+      ? current
+      : current.substr(last_semicolon + 1);
 
   size_t first_non_space = command_part.find_first_not_of(" \t");
   if (first_non_space == std::string::npos) {
@@ -627,9 +658,7 @@ bool collect_dvar_matches(const std::string &current,
     return false;
   }
 
-  prefix = (last_semicolon == std::string::npos)
-               ? ""
-               : current.substr(0, last_semicolon + 1);
+  prefix = (last_semicolon == std::string::npos) ? "" : current.substr(0, last_semicolon + 1);
   prefix += command_part.substr(0, first_non_space);
 
   partial = trimmed_command;
@@ -650,11 +679,11 @@ bool collect_dvar_matches(const std::string &current,
   constexpr size_t max_matches = 50;
   matches.clear();
 
-  const auto begin_it =
-      std::lower_bound(snapshot.begin(), snapshot.end(), partial,
-                       [](const std::string &s, const std::string &p) {
-                         return compare_dvar_names_ci(s, p) < 0;
-                       });
+  const auto begin_it = std::lower_bound(
+      snapshot.begin(), snapshot.end(), partial,
+      [](const std::string &s, const std::string &p) {
+        return compare_dvar_names_ci(s, p) < 0;
+      });
 
   auto end_it = begin_it;
   while (end_it != snapshot.end() && starts_with_ci(*end_it, partial)) {
@@ -686,12 +715,12 @@ bool collect_dvar_matches(const std::string &current,
     }
 
     std::sort(substring_hits.begin(), substring_hits.end(),
-              [](const auto &a, const auto &b) {
-                if (a.first != b.first) {
-                  return a.first < b.first;
-                }
-                return dvar_name_less(*a.second, *b.second);
-              });
+             [](const auto &a, const auto &b) {
+               if (a.first != b.first) {
+                 return a.first < b.first;
+               }
+               return dvar_name_less(*a.second, *b.second);
+             });
 
     for (const auto &hit : substring_hits) {
       if (matches.size() >= max_matches) {
@@ -797,10 +826,9 @@ bool try_autocomplete_dvar(const HWND input_hwnd) {
     return true;
   }
 
-  const bool all_prefix_matches =
-      std::all_of(matches.begin(), matches.end(), [&](const std::string &m) {
-        return starts_with_ci(m, partial);
-      });
+  const bool all_prefix_matches = std::all_of(
+      matches.begin(), matches.end(),
+      [&](const std::string &m) { return starts_with_ci(m, partial); });
 
   if (all_prefix_matches) {
     size_t common_len = partial.size();
@@ -811,8 +839,7 @@ bool try_autocomplete_dvar(const HWND input_hwnd) {
         if (common_len >= matches[i].size() ||
             static_cast<char>(std::tolower(
                 static_cast<unsigned char>(matches[i][common_len]))) !=
-                static_cast<char>(
-                    std::tolower(static_cast<unsigned char>(c)))) {
+                static_cast<char>(std::tolower(static_cast<unsigned char>(c)))) {
           all_match = false;
           break;
         }
@@ -869,8 +896,9 @@ void queue_message(const char *message) {
         }
       });
 
-  message_queue.access(
-      [&msg](std::queue<std::string> &queue) { queue.push(std::move(msg)); });
+  message_queue.access([&msg](std::queue<std::string> &queue) {
+    queue.push(std::move(msg));
+  });
 }
 
 std::queue<std::string> empty_message_queue() {
@@ -888,23 +916,18 @@ void print_stub(const char *fmt, ...) {
   va_list ap;
   va_start(ap, fmt);
 
-  if (full_logs_enabled()) {
-    va_list ap_copy;
-    va_copy(ap_copy, ap);
-    const int needed = _vscprintf(fmt, ap_copy);
-    va_end(ap_copy);
+  va_list ap_copy;
+  va_copy(ap_copy, ap);
+  const int needed = _vscprintf(fmt, ap_copy);
+  va_end(ap_copy);
 
-    if (needed > 0) {
-      std::string buffer(static_cast<size_t>(needed) + 1, '\0');
-      vsnprintf_s(buffer.data(), buffer.size(), _TRUNCATE, fmt, ap);
-      buffer.resize(static_cast<size_t>(needed));
-      print_message(buffer.c_str());
-    }
-  } else {
-    char buffer[1024]{0};
-    const int res = vsnprintf_s(buffer, sizeof(buffer), _TRUNCATE, fmt, ap);
-    (void)res;
-    print_message(buffer);
+  if (needed > 0) {
+    constexpr size_t max_print_len = 1 << 20;
+    const auto len = (std::min)(static_cast<size_t>(needed), max_print_len);
+    std::string buffer(len + 1, '\0');
+    vsnprintf_s(buffer.data(), buffer.size(), _TRUNCATE, fmt, ap);
+    buffer.resize(len);
+    print_message(buffer.c_str());
   }
 
   va_end(ap);
@@ -1004,8 +1027,8 @@ void resize_console_controls(const HWND hwnd) {
 
   const int top_offset = (std::max)(CONSOLE_HEADER_HEIGHT, logo_height + 12);
 
-  const int buffer_height =
-      (std::max)(0, client_height - top_offset - input_height - margin * 2);
+  const int buffer_height = (std::max)(
+      0, client_height - top_offset - input_height - margin * 2);
   const int input_y = client_height - input_height - margin;
 
   MoveWindow(*game::s_wcd::hwndBuffer, margin, top_offset, client_width,
@@ -1020,20 +1043,16 @@ void resize_console_controls(const HWND hwnd) {
         hint_text[0] == '\0'
             ? 0
             : 1 + std::count(std::begin(hint_text), std::end(hint_text), '\n');
-    const int popup_height =
-        (std::max)(COMPLETION_HINT_HEIGHT,
-                   static_cast<int>((std::max)(line_count, size_t{4}) * 14 +
-                                    8));
+    const int popup_height = (std::max)(
+        COMPLETION_HINT_HEIGHT, static_cast<int>((std::max)(line_count, size_t{4}) * 14 + 8));
     reposition_completion_hint(popup_height);
-  } else if (completion_hint_hwnd) {
-    reposition_completion_hint((std::max)(COMPLETION_HINT_HEIGHT, 80));
   }
 
   if (*game::s_wcd::codLogo && logo_width > 0) {
     const int x = (std::max)(margin, margin + (client_width - logo_width) / 2);
     constexpr int y = 6;
-    SetWindowPos(*game::s_wcd::codLogo, HWND_TOP, x, y, logo_width, logo_height,
-                 SWP_NOACTIVATE);
+    SetWindowPos(*game::s_wcd::codLogo, HWND_TOP, x, y, logo_width,
+                 logo_height, SWP_NOACTIVATE);
   }
 
   restore_input_caret();
@@ -1069,11 +1088,27 @@ LRESULT con_wnd_proc(const HWND hwnd, const UINT msg, const WPARAM wparam,
     }
     break;
   case WM_APPEND_CONSOLE_TEXT: {
-    const auto *text = reinterpret_cast<std::string *>(lparam);
+    auto *text = reinterpret_cast<std::string *>(lparam);
+    std::string combined;
     if (text) {
-      append_text_with_severity(*game::s_wcd::hwndBuffer, *text);
+      combined = std::move(*text);
       delete text;
     }
+
+    MSG next_msg{};
+    while (PeekMessageA(&next_msg, hwnd, WM_APPEND_CONSOLE_TEXT,
+                        WM_APPEND_CONSOLE_TEXT, PM_REMOVE)) {
+      auto *more = reinterpret_cast<std::string *>(next_msg.lParam);
+      if (more) {
+        combined += *more;
+        delete more;
+      }
+    }
+
+    if (!combined.empty()) {
+      append_text_with_severity(*game::s_wcd::hwndBuffer, combined);
+    }
+
     if (completion_hint_hwnd && IsWindowVisible(completion_hint_hwnd)) {
       SetWindowPos(completion_hint_hwnd, HWND_TOP, 0, 0, 0, 0,
                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
@@ -1163,9 +1198,9 @@ LRESULT input_line_wnd_proc(const HWND hwnd, const UINT msg,
   }
 
   if (msg == WM_CHAR || msg == WM_KEYDOWN || msg == WM_PASTE) {
-    if (msg == WM_KEYDOWN &&
-        (wparam == VK_RETURN || wparam == VK_ESCAPE || wparam == VK_UP ||
-         wparam == VK_DOWN || wparam == VK_LEFT || wparam == VK_RIGHT)) {
+    if (msg == WM_KEYDOWN && (wparam == VK_RETURN || wparam == VK_ESCAPE ||
+                             wparam == VK_UP || wparam == VK_DOWN ||
+                             wparam == VK_LEFT || wparam == VK_RIGHT)) {
       restore_input_caret();
       return result;
     }
@@ -1241,21 +1276,21 @@ void sys_create_console_stub(const HINSTANCE h_instance) {
   const auto sheight = GetDeviceCaps(dc, 10);
   ReleaseDC(GetDesktopWindow(), dc);
 
-  const int window_width =
-      (std::min)(std::max(CONSOLE_MIN_WIDTH, swidth * 3 / 4), 1400);
-  const int window_height =
-      (std::min)(std::max(CONSOLE_MIN_HEIGHT, sheight * 3 / 4), 900);
+  const int window_width = (std::min)(
+      std::max(CONSOLE_MIN_WIDTH, swidth * 3 / 4), 1400);
+  const int window_height = (std::min)(
+      std::max(CONSOLE_MIN_HEIGHT, sheight * 3 / 4), 900);
   const int window_x = (swidth - window_width) / 2;
   const int window_y = (sheight - window_height) / 2;
 
   utils::hook::set<int>(game::s_wcd::windowWidth, window_width);
   utils::hook::set<int>(game::s_wcd::windowHeight, window_height);
 
-  utils::hook::set<HWND>(game::s_wcd::hWnd,
-                         CreateWindowExA(0, class_name, window_name,
-                                         window_style, window_x, window_y,
-                                         window_width, window_height, nullptr,
-                                         nullptr, h_instance, nullptr));
+  utils::hook::set<HWND>(
+      game::s_wcd::hWnd,
+      CreateWindowExA(0, class_name, window_name, window_style, window_x,
+                      window_y, window_width, window_height, nullptr,
+                      nullptr, h_instance, nullptr));
 
   if (!*game::s_wcd::hWnd) {
     return;
@@ -1287,8 +1322,8 @@ void sys_create_console_stub(const HINSTANCE h_instance) {
 
   utils::hook::set<HWND>(
       game::s_wcd::hwndInputLine,
-      CreateWindowExA(0, "edit", nullptr, 0x50800080u, CONSOLE_MARGIN, 500, 0,
-                      CONSOLE_INPUT_HEIGHT, *game::s_wcd::hWnd,
+      CreateWindowExA(0, "edit", nullptr, 0x50800080u, CONSOLE_MARGIN,
+                      500, 0, CONSOLE_INPUT_HEIGHT, *game::s_wcd::hWnd,
                       reinterpret_cast<HMENU>(0x65), h_instance, nullptr));
 
   completion_hint_hwnd = CreateWindowExA(
@@ -1306,21 +1341,24 @@ void sys_create_console_stub(const HINSTANCE h_instance) {
   }
   utils::hook::set<HWND>(
       game::s_wcd::hwndBuffer,
-      CreateWindowExW(
-          0, L"RICHEDIT50W", nullptr,
-          WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_CLIPSIBLINGS | ES_MULTILINE |
-              ES_AUTOVSCROLL | ES_READONLY | ES_NOHIDESEL,
-          CONSOLE_MARGIN, CONSOLE_HEADER_HEIGHT, 0, 0, *game::s_wcd::hWnd,
-          reinterpret_cast<HMENU>(0x64), h_instance, nullptr));
+      CreateWindowExW(0, L"RICHEDIT50W", nullptr,
+                      WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_CLIPSIBLINGS |
+                          ES_MULTILINE | ES_AUTOVSCROLL | ES_READONLY |
+                          ES_NOHIDESEL,
+                      CONSOLE_MARGIN, CONSOLE_HEADER_HEIGHT, 0, 0,
+                      *game::s_wcd::hWnd, reinterpret_cast<HMENU>(0x64),
+                      h_instance, nullptr));
   SendMessageA(*game::s_wcd::hwndBuffer, WM_SETFONT,
                reinterpret_cast<WPARAM>(*game::s_wcd::hfBufferFont), 0);
   SendMessageA(*game::s_wcd::hwndBuffer, EM_SETBKGNDCOLOR, 0,
                get_background_color());
   SendMessageA(*game::s_wcd::hwndBuffer, EM_SETLIMITTEXT, 0, 0);
   SendMessageW(*game::s_wcd::hwndBuffer, EM_EXLIMITTEXT, 0,
-               full_logs_enabled()
-                   ? 0x7FFFFFFF
-                   : static_cast<LPARAM>(MAX_CONSOLE_CHARS * 2));
+               full_logs_enabled() ? 0x7FFFFFFF
+                                   : static_cast<LPARAM>(MAX_CONSOLE_CHARS * 2));
+  SendMessageW(*game::s_wcd::hwndBuffer, EM_SETUNDOLIMIT, 0, 0);
+  SendMessageW(*game::s_wcd::hwndBuffer, EM_SETEVENTMASK, 0, 0);
+  SendMessageW(*game::s_wcd::hwndBuffer, EM_AUTOURLDETECT, FALSE, 0);
 
   utils::hook::set<WNDPROC>(
       game::s_wcd::SysInputLineWndProc,
@@ -1411,7 +1449,12 @@ struct component final : generic_component {
 
             while (!current_queue.empty()) {
               const auto &msg = current_queue.front();
-              message_buffer.append(msg);
+              if (!msg.empty()) {
+                if (!message_buffer.empty() && message_buffer.back() != '\n') {
+                  message_buffer.push_back('\n');
+                }
+                message_buffer.append(msg);
+              }
               current_queue.pop();
             }
 
@@ -1420,8 +1463,8 @@ struct component final : generic_component {
                 fputs(message_buffer.data(), stdout);
               } else if (*game::s_wcd::hWnd) {
                 auto *payload = new std::string(message_buffer);
-                if (!PostMessageA(*game::s_wcd::hWnd, WM_APPEND_CONSOLE_TEXT, 0,
-                                  reinterpret_cast<LPARAM>(payload))) {
+                if (!PostMessageA(*game::s_wcd::hWnd, WM_APPEND_CONSOLE_TEXT,
+                                  0, reinterpret_cast<LPARAM>(payload))) {
                   delete payload;
                 }
               }
