@@ -97,10 +97,6 @@ std::filesystem::path get_appdata_path();
 std::filesystem::path get_game_path();
 std::vector<std::string> get_registered_dvar_names();
 size_t get_registered_dvar_name_count();
-
-uint64_t rdseed();
-std::string seedstr();
-void printfdebug(const char *format, ...);
 } // namespace game
 
 inline size_t operator""_g(const size_t val) { return game::relocate(val); }

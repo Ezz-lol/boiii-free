@@ -43,7 +43,7 @@ __inline_def dvar_t *get_dvar(const char *name) { return Dvar_FindVar(name); }
 
 __inline_def std::optional<std::string_view>
 get_dvar_string(const dvar_t *dvar) {
-  const char *str = Dvar_GetString(dvar);
+  const char *str = dvar->current.value.string;
   return str ? std::optional(std::string_view(str)) : std::nullopt;
 }
 

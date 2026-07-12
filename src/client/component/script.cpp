@@ -721,7 +721,7 @@ XAssetHeader db_find_x_asset_header_stub(const XAssetType type,
                                          const int32_t wait_time) {
   // Check our loaded scripts FIRST to avoid "Could not find scriptparsetree"
   // spam
-  if (type == XAssetType::SCRIPTPARSETREE) {
+  if (name && name[0] && type == XAssetType::SCRIPTPARSETREE) {
     RawFile *script = get_loaded_script(name);
     if (script != nullptr) {
       return static_cast<XAssetHeader>(script);
