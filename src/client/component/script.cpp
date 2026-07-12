@@ -693,6 +693,26 @@ void load_scripts() {
   load("custom_scripts", true, false);
 }
 
+RawFile *get_loaded_map_script(const char *name) {
+  // "scripts/${mapname}/${scripts_sub_path}"
+  const std::optional<std::string_view> mapname = game::get_mapname();
+  if (mapname.has_value() && !mapname.value().empty()) {
+    const std::string_view search_name = name;
+    // Replace "scripts" prefix with "scripts/${mapname}"
+    size_t first_sep = search_name.find('/');
+    if (first_sep != std::string::npos) {
+      const std::string override_path =
+          std::string(search_name.substr(0, first_sep + 1)) /* "scripts/" */ +
+          std::string(mapname.value()) +
+          std::string(search_name.substr(
+              first_sep)) /* relative path under "scripts" tree */;
+      return get_loaded_script(override_path);
+    }
+  }
+
+  return nullptr;
+}
+
 XAssetHeader db_find_x_asset_header_stub(const XAssetType type,
                                          const char *name,
                                          const bool error_if_missing,
@@ -705,24 +725,10 @@ XAssetHeader db_find_x_asset_header_stub(const XAssetType type,
       return static_cast<XAssetHeader>(script);
     }
 
-    // Check for map-specific override script under
-    // "scripts/${mapname}/${scripts_sub_path}"
-    const std::optional<std::string_view> mapname = game::get_mapname();
-    if (mapname.has_value() && !mapname.value().empty()) {
-      const std::string_view search_name = name;
-      // Replace "scripts" prefix with "scripts/${mapname}"
-      size_t first_sep = search_name.find('/');
-      if (first_sep != std::string::npos) {
-        const std::string override_path =
-            std::string(search_name.substr(0, first_sep + 1)) /* "scripts/" */ +
-            std::string(mapname.value()) +
-            std::string(search_name.substr(
-                first_sep)) /* relative path under "scripts" tree */;
-        script = get_loaded_script(override_path);
-        if (script != nullptr) {
-          return static_cast<XAssetHeader>(script);
-        }
-      }
+    // Try to get map-specific script override
+    script = get_loaded_map_script(name);
+    if (script != nullptr) {
+      return static_cast<XAssetHeader>(script);
     }
   }
 
