@@ -193,7 +193,10 @@ get_live_steam_server_password() {
   return static_cast<size_t>(get_com_maxclients());
 }
 [[nodiscard]] inline std::optional<std::string_view> get_workshop_id() {
-  return get_dvar_string(workshop_id);
+  if (workshop_id) {
+    return get_dvar_string(workshop_id);
+  }
+  return std::nullopt;
 }
 
 void foreach_client(
