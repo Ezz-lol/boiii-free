@@ -21,7 +21,7 @@ const game::dvar_t *sv_lan_only;
 
 void sv_con_tell_f_stub(game::sv::client_s *cl, game::net::svscmd_type type,
                         [[maybe_unused]] const char *fmt,
-                        [[maybe_unused]] int c, char *text) {
+                        [[maybe_unused]] int32_t c, char *text) {
   game::sv::SV_SendServerCommand(cl, type, "%c \"GAME_SERVER\x15: %s\"", 79,
                                  text);
 }

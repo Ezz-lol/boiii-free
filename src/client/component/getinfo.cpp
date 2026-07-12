@@ -7,6 +7,7 @@
 #include "network.hpp"
 #include "network_password.hpp"
 #include "workshop.hpp"
+#include "scheduler.hpp"
 
 #include "../../common/utils/string.hpp"
 #include "../../common/utils/info_string.hpp"
@@ -61,19 +62,24 @@ bool is_host() {
 
 struct component final : generic_component {
   void post_unpack() override {
-    game::sv_wwwDownload = game::register_dvar_bool(
-        "sv_wwwDownload", false, game::DVAR_NONE, "Enable http downloads");
-    game::sv_wwwBaseURL = game::register_dvar_string(
-        "sv_wwwBaseURL", "", game::DVAR_NONE,
-        "The base url for files downloaded via http");
-    game::workshop_id =
-        game::register_dvar_string("workshop_id", "", game::DVAR_NONE,
-                                   "Steam workshop ID of loaded mod, if any, "
-                                   "or loaded usermap otherwise.");
+    scheduler::once(
+        []() {
+          game::sv_wwwDownload =
+              game::register_dvar_bool("sv_wwwDownload", false, game::DVAR_NONE,
+                                       "Enable http downloads");
+          game::sv_wwwBaseURL = game::register_dvar_string(
+              "sv_wwwBaseURL", "", game::DVAR_NONE,
+              "The base url for files downloaded via http");
 
-    game::sv_wwwDlDisconnected = game::register_dvar_bool(
-        "sv_wwwDlDisconnected", true, game::DVAR_NONE,
-        "Should clients stay connected while downloading?");
+          game::sv_wwwDlDisconnected = game::register_dvar_bool(
+              "sv_wwwDlDisconnected", true, game::DVAR_NONE,
+              "Should clients stay connected while downloading?");
+          game::workshop_id = game::register_dvar_string(
+              "workshop_id", "", game::DVAR_NONE,
+              "Steam workshop ID of loaded mod, if any, "
+              "or loaded usermap otherwise.");
+        },
+        scheduler::pipeline::main);
 
     // utils::hook::jump(game::select(0x142254EF0, 0x140537730),
     // get_assigned_team);
