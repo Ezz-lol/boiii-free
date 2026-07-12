@@ -3,10 +3,10 @@
 
 namespace game {
 
-extern const dvar_t *sv_wwwBaseURL;
-extern const dvar_t *sv_wwwDownload;
-extern const dvar_t *sv_wwwDlDisconnected;
-extern const dvar_t *workshop_id;
+extern EngineDependentDvar sv_wwwBaseURL;
+extern EngineDependentDvar sv_wwwDownload;
+extern EngineDependentDvar sv_wwwDlDisconnected;
+extern EngineDependentDvar workshop_id;
 
 dvarStrHash_t Dvar_GenerateHash_Impl(const char *str);
 } // namespace game

@@ -1,13 +1,15 @@
-#include <atomic>
-#include <std_include.hpp>
-#include "loader/component_loader.hpp"
+#include "../std_include.hpp"
+#include "../loader/component_loader.hpp"
 
-#include <game/game.hpp>
+#include "../game/game.hpp"
+#include "../game/utils.hpp"
 #include "scheduler.hpp"
 
-#include <utils/hook.hpp>
-#include <utils/io.hpp>
-#include <utils/string.hpp>
+#include "../../common/utils/hook.hpp"
+#include "../../common/utils/io.hpp"
+#include "../../common/utils/string.hpp"
+#include <variant>
+#include <atomic>
 
 namespace dvars {
 namespace {
@@ -15,40 +17,46 @@ std::atomic_bool dvar_write_scheduled{false};
 bool initial_config_read = false;
 utils::hook::detour dvar_set_variant_hook;
 
-void dvar_for_each_name_stub(void (*callback)(const char *)) {
+void dvar_for_each_name_stub(void (*callback)(const char *debugName)) {
   for (int i = 0; i < *game::g_dvarCount; ++i) {
-    const auto offset = game::is_server() ? 136 : 160;
-    const auto *dvar =
-        reinterpret_cast<game::dvar_t *>(&game::s_dvarPool[offset * i]);
+    std::visit(
+        [&callback, i](auto *dvar_pool) -> void {
+          const auto *dvar = &dvar_pool->pool[i];
 
-    if (dvar->debugName                //
-        && (dvar->flags & 0x8000) == 0 //
-        && (!game::com::Com_SessionMode_IsMode(game::eModes::COUNT) ||
-            !game::Dvar_IsSessionModeBaseDvar(dvar))) {
-      callback(dvar->debugName);
-    }
+          if (dvar->debugName && (dvar->flags & 0x8000) == 0 &&
+              (!game::com::Com_SessionMode_IsMode(game::eModes::COUNT) ||
+               !game::Dvar_IsSessionModeBaseDvar(
+                   reinterpret_cast<const game::dvar_t *>(dvar)))) {
+            callback(dvar->debugName);
+          }
+        },
+        game::dvar_pool());
   }
 }
 
-void dvar_for_each_name_client_num_stub(int localClientNum,
-                                        void (*callback)(int, const char *)) {
+void dvar_for_each_name_client_num_stub(
+    game::LocalClientNum_t localClientNum,
+    void (*callback)(game::LocalClientNum_t localClientNum,
+                     const char *debugName)) {
   for (int i = 0; i < *game::g_dvarCount; ++i) {
-    const auto offset = game::is_server() ? 136 : 160;
-    const auto *dvar =
-        reinterpret_cast<game::dvar_t *>(&game::s_dvarPool[offset * i]);
+    std::visit(
+        [&callback, localClientNum, i](auto *dvar_pool) -> void {
+          const auto *dvar = &dvar_pool->pool[i];
 
-    if (dvar->debugName                //
-        && (dvar->flags & 0x8000) == 0 //
-        && (!game::com::Com_SessionMode_IsMode(game::eModes::COUNT) ||
-            !game::Dvar_IsSessionModeBaseDvar(dvar))) {
-      callback(localClientNum, dvar->debugName);
-    }
+          if (dvar->debugName && (dvar->flags & 0x8000) == 0 &&
+              (!game::com::Com_SessionMode_IsMode(game::eModes::COUNT) ||
+               !game::Dvar_IsSessionModeBaseDvar(
+                   reinterpret_cast<const game::dvar_t *>(dvar)))) {
+            callback(localClientNum, dvar->debugName);
+          }
+        },
+        game::dvar_pool());
   }
 }
 
 void read_dvar_name_hashes_data(
     std::unordered_map<std::uint32_t, std::string> &map) {
-  const auto path =
+  const std::filesystem::path path =
       game::get_appdata_path() / "data/lookup_tables/dvar_list.txt";
   std::string data;
 
@@ -79,46 +87,55 @@ void copy_dvar_names_to_pool() {
   read_dvar_name_hashes_data(dvar_hash_name_map);
 
   for (int i = 0; i < *game::g_dvarCount; ++i) {
-    const auto offset = game::is_server() ? 136 : 160;
-    auto *dvar =
-        reinterpret_cast<game::dvar_t *>(&game::s_dvarPool[offset * i]);
+    std::visit(
+        [&dvar_hash_name_map, i](auto *dvar_pool) -> void {
+          auto *dvar = &dvar_pool->pool[i];
 
-    if (!dvar->debugName) {
-      const auto it = dvar_hash_name_map.find(dvar->name);
-      if (it != dvar_hash_name_map.end()) {
-        dvar->debugName = game::CopyString(it->second.data());
-      }
-    }
+          if (!dvar->debugName) {
+            if (dvar_hash_name_map.contains(dvar->name)) {
+              dvar->debugName =
+                  game::CopyString(dvar_hash_name_map[dvar->name].data());
+            }
+          }
+        },
+        game::dvar_pool());
   }
 }
 
 std::string get_config_file_path() { return "boiii_players/user/config.cfg"; }
 
-bool is_archive_dvar(const game::dvar_t *dvar) {
-  if (!dvar->debugName) {
-    return false;
-  }
+bool is_archive_dvar(game::EngineDependentDvar dvar) {
+  return std::visit(
+      [](const auto *resolved) -> bool {
+        if (!resolved->debugName) {
+          return false;
+        }
 
-  return (dvar->flags & game::DVAR_ARCHIVE);
+        return (resolved->flags & game::DVAR_ARCHIVE) != 0;
+      },
+      dvar);
 }
 
 void write_archive_dvars() {
-  const auto path = get_config_file_path();
+  const std::string path = get_config_file_path();
 
   std::string config_buffer;
 
   for (int i = 0; i < *game::g_dvarCount; ++i) {
-    const auto *dvar =
-        reinterpret_cast<const game::dvar_t *>(&game::s_dvarPool[160 * i]);
+    std::visit(
+        [&config_buffer, i](auto *dvar_pool) -> void {
+          const auto *dvar = &dvar_pool->pool[i];
+          if (is_archive_dvar(dvar)) {
 
-    if (!is_archive_dvar(dvar)) {
-      continue;
-    }
+            const char *name = dvar->debugName;
+            const char *value = game::Dvar_DisplayableValue(
+                reinterpret_cast<const game::dvar_t *>(dvar));
 
-    const auto name = dvar->debugName;
-    const auto value = game::Dvar_DisplayableValue(dvar);
-
-    config_buffer.append(utils::string::va("set %s \"%s\"\n", name, value));
+            config_buffer.append(
+                utils::string::va("set %s \"%s\"\n", name, value));
+          }
+        },
+        game::dvar_pool());
   }
 
   if (config_buffer.empty()) {
@@ -141,11 +158,11 @@ void schedule_dvar_write() {
       scheduler::main, 10s);
 }
 
-void dvar_set_variant_stub(game::dvar_t *dvar, game::DvarValue *value,
-                           unsigned int source) {
+void dvar_set_variant_stub(const game::dvar_t *dvar, game::DvarValue *value,
+                           uint32_t source) {
   dvar_set_variant_hook.invoke(dvar, value, source);
 
-  if (initial_config_read && is_archive_dvar(dvar)) {
+  if (initial_config_read && is_archive_dvar(game::dvar_variant(dvar))) {
     schedule_dvar_write();
   }
 }

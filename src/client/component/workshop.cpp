@@ -1,18 +1,18 @@
 #include <cstddef>
 #include <cstring>
-#include <std_include.hpp>
+#include "../std_include.hpp"
 #include "loader/component_loader.hpp"
 #include "workshop.hpp"
 
-#include "game/utils.hpp"
+#include "../game/utils.hpp"
 #include "command.hpp"
 
-#include <utils/hook.hpp>
-#include <utils/string.hpp>
-#include <utils/io.hpp>
-#include <utils/http.hpp>
-#include <utils/thread.hpp>
-#include <utils/flags.hpp>
+#include "../../common/utils/hook.hpp"
+#include "../../common/utils/string.hpp"
+#include "../../common/utils/io.hpp"
+#include "../../common/utils/http.hpp"
+#include "../../common/utils/thread.hpp"
+#include "../../common/utils/flags.hpp"
 
 #include "steamcmd.hpp"
 #include "fastdl.hpp"
@@ -21,9 +21,9 @@
 #include "download_overlay.hpp"
 #include "toast.hpp"
 
-#include "game/impl/db/xzone/xzone.hpp"
-#include "game/impl/ui/lua/lua.hpp"
-#include "game/impl/ugc/ugc.hpp"
+#include "../game/impl/db/xzone/xzone.hpp"
+#include "../game/impl/ui/lua/lua.hpp"
+#include "../game/impl/ugc/ugc.hpp"
 
 #include <condition_variable>
 #include <mutex>
@@ -35,8 +35,8 @@ using namespace game::db;
 using XZoneName = xzone::XZoneName;
 
 namespace workshop {
-const game::dvar_t *workshop_timeout;
-const game::dvar_t *workshop_retry_attempts;
+game::EngineDependentDvar workshop_timeout;
+game::EngineDependentDvar workshop_retry_attempts;
 std::thread download_thread{};
 
 utils::hook::detour CL_SetupForNewServerMap_hook;

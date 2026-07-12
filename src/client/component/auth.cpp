@@ -26,7 +26,7 @@
 #include <game/fragment_handler.hpp>
 
 namespace auth {
-const game::dvar_t *password = nullptr;
+game::EngineDependentDvar password;
 std::array<uint64_t, 18> client_xuids{};
 std::mutex client_xuids_mutex;
 

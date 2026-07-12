@@ -228,9 +228,12 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
             : "1");
 
     // BEGIN boiii-specific fields
-    if (auth::password && *auth::password->current.value.string) {
-      info::Info_SetValueForKey(s, "password",
-                                auth::password->current.value.string);
+    if (game::engine_dependent_nonnull(auth::password)) {
+      std::optional<std::string_view> password_val =
+          game::get_dvar_string(auth::password);
+      if (password_val.has_value()) {
+        info::Info_SetValueForKey(s, "password", password_val.value().data());
+      }
     }
 
     const char *clan_abbrev = game::live::LiveStats_GetClanTagText(0);

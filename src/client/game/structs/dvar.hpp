@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core.hpp"
 #include "macros.hpp"
 #include "func.hpp"
 #include "quake/vec.hpp"
@@ -223,6 +224,7 @@ ASSERT_SIZE(DvarColor, 4);
 #pragma pack(pop)
 
 struct dvar_t;
+struct dvar_t_cl;
 
 enum class DvarSetSource : uint32_t {
   INTERNAL = 0x0,
@@ -230,23 +232,65 @@ enum class DvarSetSource : uint32_t {
   SCRIPT = 0x2,
 };
 
-struct DvarValue {
-  union {
-    bool enabled;
-    int32_t integer;
-    uint32_t unsignedInt;
-    int64_t integer64;
-    uint64_t unsignedInt64;
-    float value;
-    vec4_t vector;
-    const char *string;
-    DvarColor color;
-    const dvar_t *indirect[3];
-  } value;
+#pragma pack(push, 1)
+template <typename T_Dvar> union TemplateDvarValue {
+  bool _enabled;
+  int32_t _integer;
+  uint32_t _unsignedInt;
+  int64_t _integer64;
+  uint64_t _unsignedInt64;
+  float _value;
+  vec4_t _vector;
+  const char *_string;
+  DvarColor _color;
+  const T_Dvar *indirect[3];
 
-  uint64_t encryptedValue;
+  inline constexpr bool enabled() const { return _enabled; }
+
+  inline constexpr int32_t integer() const { return _integer; }
+
+  inline constexpr uint32_t unsignedInt() const { return _unsignedInt; }
+
+  inline constexpr int64_t integer64() const { return _integer64; }
+
+  inline constexpr uint64_t unsignedInt64() const { return _unsignedInt64; }
+
+  inline constexpr float value() const { return _value; }
+
+  inline constexpr vec4_t vector() const { return _vector; }
+  inline constexpr const char *string() const { return _string; }
+  inline constexpr DvarColor color() const { return _color; }
 };
-ASSERT_SIZE(DvarValue, 0x20);
+typedef TemplateDvarValue<dvar_t> DvarValue;
+struct EncryptionCapableDvarValue {
+  TemplateDvarValue<dvar_t_cl> _value;
+  uint64_t encryptedValue;
+
+  // Fields renamed with "_" prefix in favor of consolidated method interface
+  // to allow identical usage of both Dvarvalue and EncryptionCapableDvarValue.
+  // Otherwise, field accesses differ, and we cannot use the same std::visit
+  // callbacks to access them identically.
+  inline constexpr bool enabled() const { return _value._enabled; }
+
+  inline constexpr int32_t integer() const { return _value._integer; }
+
+  inline constexpr uint32_t unsignedInt() const { return _value._unsignedInt; }
+
+  inline constexpr int64_t integer64() const { return _value._integer64; }
+
+  inline constexpr uint64_t unsignedInt64() const {
+    return _value._unsignedInt64;
+  }
+
+  inline constexpr float value() const { return _value._value; }
+
+  inline constexpr vec4_t vector() const { return _value._vector; }
+  inline constexpr const char *string() const { return _value._string; }
+  inline constexpr DvarColor color() const { return _value._color; }
+};
+ASSERT_SIZE(DvarValue, 0x18);
+ASSERT_SIZE(EncryptionCapableDvarValue, 0x20);
+#pragma pack(pop)
 
 union DvarLimits {
   struct {
@@ -279,69 +323,135 @@ union DvarLimits {
     vec_t max;
   } vector;
 };
+ASSERT_SIZE(DvarLimits, 0x10);
 
+#pragma pack(push, 1)
 struct dvar_t {
+public:
   dvarStrHash_t name;
+  uint8_t _padding04[4];
   const char *debugName;
   const char *description;
   DvarFlags flags;
   dvarType_t type;
   bool modified;
+  uint8_t _padding21[7];
   DvarValue current;
   DvarValue latched;
   DvarValue reset;
   DvarLimits domain;
   dvar_t *hashNext;
 };
+#pragma pack(pop)
+
 ASSERT_OFFSET(dvar_t, debugName, 0x8);
 ASSERT_OFFSET(dvar_t, description, 0x10);
 ASSERT_OFFSET(dvar_t, flags, 0x18);
 ASSERT_OFFSET(dvar_t, type, 0x1C);
 ASSERT_OFFSET(dvar_t, modified, 0x20);
 ASSERT_OFFSET(dvar_t, current, 0x28);
-ASSERT_SIZE(dvar_t, 0xA0);
+ASSERT_SIZE(dvar_t, 0x88);
 
-struct DvarPool {
-  dvar_t pool[0x2000];
+#pragma pack(push, 1)
+struct dvar_t_cl {
+public:
+  dvarStrHash_t name;
+  uint8_t _padding04[4];
+  const char *debugName;
+  const char *description;
+  DvarFlags flags;
+  dvarType_t type;
+  bool modified;
+  uint8_t _padding21[7];
+  EncryptionCapableDvarValue current;
+  EncryptionCapableDvarValue latched;
+  EncryptionCapableDvarValue reset;
+  DvarLimits domain;
+  dvar_t_cl *hashNext;
+};
+#pragma pack(pop)
+ASSERT_OFFSET(dvar_t_cl, debugName, 0x8);
+ASSERT_OFFSET(dvar_t_cl, description, 0x10);
+ASSERT_OFFSET(dvar_t_cl, flags, 0x18);
+ASSERT_OFFSET(dvar_t_cl, type, 0x1C);
+ASSERT_OFFSET(dvar_t_cl, modified, 0x20);
+ASSERT_OFFSET(dvar_t_cl, current, 0x28);
+ASSERT_SIZE(dvar_t_cl, 0xA0);
 
-  inline constexpr const dvar_t &operator[](size_t index) const {
+/*
+  TODO:
+  Change this to:
+  ```cpp
+  union EngineDependentDvar {
+    const dvar_t *dvar;
+    const dvar_t_cl* dvar_cl;
+  };
+  ```
+
+  Provide an interface of `inline constexpr` methods
+  to allow an identical field API and `operator`s to
+  allow implicit cast to/from the corresponding pointer where needed.
+
+  This should already be done, but refactoring from the current `std::visit`-
+  based API consolidation will be substantial, so this is left for the
+  future.
+*/
+typedef EngineDependent<const dvar_t_cl *, const dvar_t *> EngineDependentDvar;
+typedef EngineDependent<dvar_t_cl *, dvar_t *> EngineDependentDvarMut;
+
+template <typename T_Dvar> struct TemplateDvarPool {
+  T_Dvar pool[0x2000];
+
+  inline constexpr const T_Dvar &operator[](size_t index) const {
     return pool[index];
   }
-  inline constexpr dvar_t &operator[](size_t index) { return pool[index]; }
+  inline constexpr T_Dvar &operator[](size_t index) { return pool[index]; }
 };
-ASSERT_SIZE(DvarPool, 0x140000);
+typedef TemplateDvarPool<dvar_t> DvarPool;
+ASSERT_SIZE(DvarPool, 0x110000);
+
+typedef TemplateDvarPool<dvar_t_cl> DvarPool_cl;
+ASSERT_SIZE(DvarPool_cl, 0x140000);
 
 typedef fastcall_t<void(const dvar_t *dvar)> modifiedCallback;
 
 #pragma pack(push, 1)
-struct dvarCallBack_t {
+template <typename T_Dvar> struct TemplateDvarCallBack {
   bool needsCallback;
   uint8_t _padding01[7];
   modifiedCallback callback;
-  const dvar_t *dvar;
+  const T_Dvar *dvar;
 };
-ASSERT_SIZE(dvarCallBack_t, 0x18);
 #pragma pack(pop)
 
-struct DvarCallbackPool {
-  dvarCallBack_t pool[0x100];
+typedef TemplateDvarCallBack<dvar_t> dvarCallBack_t;
+ASSERT_SIZE(dvarCallBack_t, 0x18);
 
-  inline constexpr const dvarCallBack_t &operator[](size_t index) const {
+typedef TemplateDvarCallBack<dvar_t_cl> dvarCallBack_t_cl;
+ASSERT_SIZE(dvarCallBack_t_cl, 0x18);
+
+template <typename T_Dvar> struct _DvarCallbackPool {
+  using T_Cb = TemplateDvarCallBack<T_Dvar>;
+  T_Cb pool[0x100];
+
+  inline constexpr const T_Cb &operator[](size_t index) const {
     return pool[index];
   }
-  inline constexpr dvarCallBack_t &operator[](size_t index) {
-    return pool[index];
-  }
+  inline constexpr T_Cb &operator[](size_t index) { return pool[index]; }
 };
+typedef _DvarCallbackPool<dvar_t> DvarCallbackPool;
 ASSERT_SIZE(DvarCallbackPool, 0x1800);
+
+typedef _DvarCallbackPool<dvar_t_cl> DvarCallbackPool_cl;
+ASSERT_SIZE(DvarCallbackPool_cl, 0x1800);
 
 constexpr dvarStrHash_t DVAR_HASH_TABLE_LEN = 0x800;
 constexpr dvarStrHash_t DVAR_HASH_MASK = DVAR_HASH_TABLE_LEN - 1;
-struct DvarHashTable {
-  dvar_t *table[0x800];
+template <typename T_Dvar> struct TemplateDvarHashTable {
+  T_Dvar *table[0x800];
 
-  inline constexpr dvar_t *get(dvarStrHash_t hash) const {
-    dvar_t *entry = table[hash & DVAR_HASH_MASK];
+  inline constexpr T_Dvar *get(dvarStrHash_t hash) const {
+    T_Dvar *entry = table[hash & DVAR_HASH_MASK];
     while (entry && entry->name != hash) {
       entry = entry->hashNext;
     }
@@ -349,7 +459,7 @@ struct DvarHashTable {
   }
 
   inline constexpr bool contains(dvarStrHash_t hash) const {
-    dvar_t *entry = get(hash);
+    T_Dvar *entry = get(hash);
     return entry != nullptr;
   }
 
@@ -357,22 +467,25 @@ struct DvarHashTable {
     return contains(Dvar_GenerateHash_Impl(name));
   }
 
-  inline constexpr dvar_t *get(const char *name) const {
+  inline constexpr T_Dvar *get(const char *name) const {
     return get(Dvar_GenerateHash_Impl(name));
   }
 
-  inline constexpr dvar_t *operator[](dvarStrHash_t hash) const {
+  inline constexpr T_Dvar *operator[](dvarStrHash_t hash) const {
     return get(hash);
   }
-  inline constexpr dvar_t *operator[](dvarStrHash_t hash) { return get(hash); }
+  inline constexpr T_Dvar *operator[](dvarStrHash_t hash) { return get(hash); }
 
-  inline constexpr dvar_t *operator[](const char *name) const {
+  inline constexpr T_Dvar *operator[](const char *name) const {
     return get(name);
   }
 
-  inline constexpr dvar_t *operator[](const char *name) { return get(name); }
+  inline constexpr T_Dvar *operator[](const char *name) { return get(name); }
 };
+typedef TemplateDvarHashTable<dvar_t> DvarHashTable;
+typedef TemplateDvarHashTable<dvar_t_cl> DvarHashTable_cl;
 ASSERT_SIZE(DvarHashTable, 0x4000);
+ASSERT_SIZE(DvarHashTable_cl, 0x4000);
 
 enum class dvar_cmd_t : uint32_t {
   CG_OBJECTIVE_TEXT = 0x0,

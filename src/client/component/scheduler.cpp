@@ -119,19 +119,16 @@ void invoke_server_main_frame_seh() {
     if (!server_restart::restart_pending.load()) {
       if (server_restart::consecutive_crash_count.fetch_add(1) < 3) {
         server_restart::schedule("Game frame crash");
-      } else {
       }
     }
   }
 }
 
 void safe_invoke_main_frame() {
-  if (game::is_server() && server_restart::restart_pending.load()) {
-    return;
-  }
-
   if (game::is_server()) {
-    invoke_server_main_frame_seh();
+    if (!server_restart::restart_pending.load(std::memory_order_seq_cst)) {
+      invoke_server_main_frame_seh();
+    }
   } else {
     main_frame_hook.invoke<void>();
   }
@@ -191,11 +188,13 @@ void once(const std::function<void()> &callback, const pipeline type,
 } // namespace scheduler
 
 namespace server_restart {
-bool schedule(const char * /*reason*/, std::chrono::seconds delay) {
-  if (!game::is_server())
-    return false;
+bool schedule([[maybe_unused]] const char *reason, std::chrono::seconds delay) {
+#ifndef NDEBUG
+  fprintf(stderr, "server_restart::schedule called with reason %s\n", reason);
+  fflush(stderr);
+#endif
 
-  if (restart_pending.exchange(true)) {
+  if (!game::is_server() || restart_pending.exchange(true)) {
     return false;
   }
 
@@ -226,6 +225,8 @@ void check_and_execute() {
   restart_execute_time.store(0);
   restart_recovery_active.store(true);
   recovery_skip_count.store(0);
+  fprintf(stdout, "check_and_execute: map_restart\n");
+  fflush(stdout);
   game::cbuf::Cbuf_AddText(0, "map_restart\n");
 }
 

@@ -24,8 +24,8 @@ namespace {
 
 utils::hook::detour preload_map_hook;
 
-const game::dvar_t *cl_yaw_speed;
-const game::dvar_t *cl_pitch_speed;
+game::EngineDependentDvar cl_yaw_speed;
+game::EngineDependentDvar cl_pitch_speed;
 
 void stop_intro_if_needed() {
   if (game::com::Com_SessionMode_GetMode() != game::eModes::ZOMBIES &&

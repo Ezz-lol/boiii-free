@@ -12,7 +12,7 @@
 
 namespace rcon {
 namespace {
-const game::dvar_t *rcon_timeout;
+game::EngineDependentDvar rcon_timeout;
 
 std::unordered_map<game::net::netadr_t, int> rate_limit_map;
 

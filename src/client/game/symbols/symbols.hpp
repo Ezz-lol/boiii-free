@@ -12,7 +12,7 @@
 #include "console.hpp"   // IWYU pragma: export
 #include "db/db.hpp"     // IWYU pragma: export
 #include "demo.hpp"      // IWYU pragma: export
-#include "dvar.hpp"      // IWYU pragma: export
+#include "dvar/dvar.hpp" // IWYU pragma: export
 #include "dw/dw.hpp"     // IWYU pragma: export
 #include "fs.hpp"        // IWYU pragma: export
 #include "fx.hpp"        // IWYU pragma: export

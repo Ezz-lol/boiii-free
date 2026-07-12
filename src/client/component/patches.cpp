@@ -22,7 +22,7 @@ std::string get_source_line(const std::string &file, int line_num);
 } // namespace script
 
 namespace patches {
-const game::dvar_t *lobby_min_players;
+game::EngineDependentDvar lobby_min_players;
 utils::hook::detour com_error_hook;
 
 std::string try_resolve_hex_token(const std::string &token) {

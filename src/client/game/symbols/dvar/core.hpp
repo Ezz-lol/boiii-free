@@ -2,61 +2,85 @@
 #ifdef GAME_HPP
 
 #include <cstdint>
+#include "../macros.hpp"
 #include "macros.hpp"
 
 namespace game {
 
-WEAK symbol<dvar_t *> com_maxclients{0x1568ED850, 0x14948EE70};
+DVAR_SYMBOL(com_maxclients, 0x1568ED850, 0x14948EE70);
 // "sv_running" is name of dvar. com_sv_running is name used internally by
 // engine to label dvar global
-WEAK symbol<dvar_t *> com_sv_running{0x1568ED848, 0x14948EE68};
+DVAR_SYMBOL(com_sv_running, 0x1568ED848, 0x14948EE68);
 
-WEAK symbol<dvar_t *> g_gametype{0x14A399348, 0x147836878};
-WEAK symbol<dvar_t *> g_password{0x14A399350, 0x147836880};
+DVAR_SYMBOL(g_gametype, 0x14A399348, 0x147836878);
+DVAR_SYMBOL(g_password, 0x14A399350, 0x147836880);
 
-WEAK symbol<dvar_t *> sv_hostname{0x1577C5790, 0x14A1797A8};
-WEAK symbol<dvar_t *> sv_maprotation{0x1577C5888, 0x14A179948};
-WEAK symbol<dvar_t *> sv_maprotationcurrent{0x1577C5890, 0x14A189980};
-WEAK symbol<dvar_t *> sv_cheats{0x1576F8698, 0x14A189A18};
+DVAR_SYMBOL(sv_hostname, 0x1577C5790, 0x14A1797A8);
+DVAR_SYMBOL(sv_maprotation, 0x1577C5888, 0x14A179948);
+DVAR_SYMBOL(sv_maprotationcurrent, 0x1577C5890, 0x14A189980);
+DVAR_SYMBOL(sv_cheats, 0x1576F8698, 0x14A189A18);
+DVAR_SYMBOL(sv_gametype, 0x1577C57F0, 0x14A179888);
 WEAK symbol<qboolean> sv_running{0x1457D9928, 0x142CE04A8};
 
-WEAK symbol<dvar_t *> mapname{0x1577C57C8, 0x14A179858};
+DVAR_SYMBOL(mapname, 0x1577C57C8, 0x14A179858);
 
-WEAK symbol<dvar_t *> live_steam_server_name{0x15142E120, 0x14837F770};
-WEAK symbol<dvar_t *> live_steam_server_description{0x15142E128, 0x14837F778};
-WEAK symbol<dvar_t *> live_steam_server_password{0x15142E130, 0x14837F780};
+DVAR_SYMBOL(live_steam_server_name, 0x15142E120, 0x14837F770);
+DVAR_SYMBOL(live_steam_server_description, 0x15142E128, 0x14837F778);
+DVAR_SYMBOL(live_steam_server_password, 0x15142E130, 0x14837F780);
 
-WEAK symbol<dvar_t *> net_port{0x157E75320, 0x14A640490};
-WEAK symbol<dvar_t *> net_ip{0x157E75318, 0x14A640488};
+DVAR_SYMBOL(net_port, 0x157E75320, 0x14A640490);
+DVAR_SYMBOL(net_ip, 0x157E75318, 0x14A640488);
 
-WEAK symbol<dvar_t *> rcon_password{0x1577B5768, 0x14A178278};
+DVAR_SYMBOL(rcon_password, 0x1577B5768, 0x14A178278);
 
-WEAK symbol<dvar_t *> ui_checksum_enabled{0x1568EDC98, 0x14948DC18};
-WEAK symbol<dvar_t *> ui_error_report{0x1568EEEA8, 0x14948DC20};
-WEAK symbol<dvar_t *> ui_error_report_delay{0x1568EEEB0, 0x14948DC28};
-WEAK symbol<dvar_t *> ui_error_callstack_ship{0x1568EDCA0, 0x14948DC30};
-WEAK symbol<dvar_t *> ui_enableAllHeroes{0x1579DF948, 0x14A30C408};
+DVAR_SYMBOL(ui_checksum_enabled, 0x1568EDC98, 0x14948DC18);
+DVAR_SYMBOL(ui_error_report, 0x1568EEEA8, 0x14948DC20);
+DVAR_SYMBOL(ui_error_report_delay, 0x1568EEEB0, 0x14948DC28);
+DVAR_SYMBOL(ui_error_callstack_ship, 0x1568EDCA0, 0x14948DC30);
+DVAR_SYMBOL(ui_enableAllHeroes, 0x1579DF948, 0x14A30C408);
 
-WEAK symbol<dvar_t *> g_motd{0x14A3D15D0, 0x147836998};
-WEAK symbol<dvar_t *> live_motdEnabled{0x15163FC70, 0x148382988};
-WEAK symbol<dvar_t *> motd_enabled{0x15120C780, 0x1482DED80};
-WEAK symbol<dvar_t *> motddelay{0x15120C778, 0x1482DED78};
+DVAR_SYMBOL(g_motd, 0x14A3D15D0, 0x147836998);
+DVAR_SYMBOL(live_motdEnabled, 0x15163FC70, 0x148382988);
+DVAR_SYMBOL(motd_enabled, 0x15120C780, 0x1482DED80);
+DVAR_SYMBOL(motddelay, 0x15120C778, 0x1482DED78);
 
-WEAK symbol<dvar_t *> testmissingcontentpacks{0x1568EDDF0, 0x14948DD90};
+DVAR_SYMBOL(testmissingcontentpacks, 0x1568EDDF0, 0x14948DD90);
 
-WEAK symbol<dvar_t *> splitscreen{0x1453D49F0, 0x1428AAEC8};
-WEAK symbol<dvar_t *> splitscreen_playerCount{0x1453D4A00, 0x1428AAED8};
+DVAR_SYMBOL(splitscreen, 0x1453D49F0, 0x1428AAEC8);
+DVAR_SYMBOL(splitscreen_playerCount, 0x1453D4A00, 0x1428AAED8);
 
-WEAK symbol<dvar_t *> r_vsync{0x14AE95098, 0x147CBC1E0};
-WEAK symbol<dvar_t *> r_fullscreen{0x14AE94DF8, 0x147CBBF48};
+DVAR_SYMBOL(r_vsync, 0x14AE95098, 0x147CBC1E0);
+DVAR_SYMBOL(r_fullscreen, 0x14AE94DF8, 0x147CBBF48);
 
 WEAK symbol<int32_t> g_dvarCount{0x157AC61CC, 0x14A3CB5FC};
-WEAK symbol<DvarPool> s_dvarPool{0x157AC6220, 0x14A3CB620};
+WEAK symbol<DvarPool> s_dvarPool{0x0, 0x14A3CB620};
+WEAK symbol<DvarPool_cl> s_dvarPool_cl{0x157AC6220};
+inline EngineDependent<DvarPool_cl *, DvarPool *> dvar_pool() {
+  if (is_server()) {
+    return s_dvarPool.get();
+  }
+  return s_dvarPool_cl.get();
+}
 
 WEAK symbol<int32_t> s_nextFreeCallback{0x157AC620C, 0x14A3CB60C};
-WEAK symbol<DvarCallbackPool> s_dvarCallbackPool{0x157C06220, 0x14A4DB620};
+WEAK symbol<DvarCallbackPool> s_dvarCallbackPool{0x0, 0x14A4DB620};
+WEAK symbol<DvarCallbackPool_cl> s_dvarCallbackPool_cl{0x157C06220};
+inline EngineDependent<DvarCallbackPool_cl *, DvarCallbackPool *>
+dvar_callbackPool() {
+  if (is_server()) {
+    return s_dvarCallbackPool.get();
+  }
+  return s_dvarCallbackPool_cl.get();
+}
 
-WEAK symbol<DvarHashTable> s_dvarHashTable{0x157C07A20, 0x14A4DCE20};
+WEAK symbol<DvarHashTable> s_dvarHashTable{0x0, 0x14A4DCE20};
+WEAK symbol<DvarHashTable_cl> s_dvarHashTable_cl{0x157C07A20};
+inline EngineDependent<DvarHashTable_cl *, DvarHashTable *> dvar_hashTable() {
+  if (is_server()) {
+    return s_dvarHashTable.get();
+  }
+  return s_dvarHashTable_cl.get();
+}
 
 WEAK symbol<bool> s_canSetConfigDvars{0x0, 0x14A3CB5D8};
 

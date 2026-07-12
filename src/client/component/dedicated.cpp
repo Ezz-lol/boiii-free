@@ -17,7 +17,7 @@ constexpr const char *compatibility_commands[] = {
     "ffotdversion",     "bbdisable", "bbenable",
     "bitfieldBBPrints", "bbstart",   "setliveevent"};
 
-const game::dvar_t *sv_lan_only;
+game::EngineDependentDvar sv_lan_only;
 
 void sv_con_tell_f_stub(game::sv::client_s *cl, game::net::svscmd_type type,
                         [[maybe_unused]] const char *fmt,

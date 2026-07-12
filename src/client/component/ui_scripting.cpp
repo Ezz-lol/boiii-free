@@ -19,12 +19,12 @@
 #include "getinfo.hpp"
 #include "toast.hpp"
 
-#include <utils/io.hpp>
-#include <utils/hook.hpp>
-#include <utils/flags.hpp>
-#include <utils/string.hpp>
-#include <utils/finally.hpp>
-#include <utils/http.hpp>
+#include "../../common/utils/io.hpp"
+#include "../../common/utils/hook.hpp"
+#include "../../common/utils/flags.hpp"
+#include "../../common/utils/string.hpp"
+#include "../../common/utils/finally.hpp"
+#include "../../common/utils/http.hpp"
 
 #include <cmath>
 #include <filesystem>
@@ -1383,13 +1383,19 @@ public:
 
     scheduler::once(
         []() {
-          game::dvar_t *dvar_callstack_ship = *game::ui_error_callstack_ship;
-          dvar_callstack_ship->flags = static_cast<game::dvarFlags_e>(0);
-          game::dvar_t *dvar_report_delay = *game::ui_error_report_delay;
-          dvar_report_delay->flags = static_cast<game::dvarFlags_e>(0);
+          std::visit(
+              [](auto *resolved) -> void {
+                resolved->flags = static_cast<game::dvarFlags_e>(0);
+              },
+              engine_dependent_toggle_const(game::ui_error_callstack_ship()));
+          std::visit(
+              [](auto *resolved) -> void {
+                resolved->flags = static_cast<game::dvarFlags_e>(0);
+              },
+              engine_dependent_toggle_const(game::ui_error_report_delay()));
 
-          game::set_dvar_bool(dvar_callstack_ship, true);
-          game::set_dvar_int(dvar_report_delay, 0);
+          game::set_dvar_bool(game::ui_error_callstack_ship(), true);
+          game::set_dvar_int(game::ui_error_report_delay(), 0);
         },
         scheduler::pipeline::renderer);
 

@@ -1,9 +1,9 @@
 #pragma once
 
 #include <cstdint>
-#include <game/game.hpp>
+#include "../game/game.hpp"
 namespace auth {
-extern const game::dvar_t *password;
+extern game::EngineDependentDvar password;
 
 uint64_t
 get_guid(game::ControllerIndex_t controllerIndex = game::CONTROLLER_INDEX_0);

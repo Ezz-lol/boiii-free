@@ -11,7 +11,7 @@
 
 namespace network_password {
 namespace {
-const game::dvar_t *net_password_dvar = nullptr;
+game::EngineDependentDvar net_password_dvar;
 }
 
 // FNV1a-64 hash

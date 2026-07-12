@@ -1,5 +1,5 @@
-#include <std_include.hpp>
-#include "loader/component_loader.hpp"
+#include "../std_include.hpp"
+#include "../loader/component_loader.hpp"
 #include "chat.hpp"
 
 #include "game/game.hpp"
@@ -7,8 +7,8 @@
 
 #include "../game/impl/game/game.hpp"
 
-#include <utils/hook.hpp>
-#include <utils/string.hpp>
+#include "../../common/utils/hook.hpp"
+#include "../../common/utils/string.hpp"
 
 #include "command.hpp"
 #include "client_command.hpp"
@@ -16,8 +16,8 @@
 
 namespace chat {
 namespace {
-const game::dvar_t *g_deadChat;
-const game::dvar_t *sv_sayname;
+game::EngineDependentDvar g_deadChat;
+game::EngineDependentDvar sv_sayname;
 
 void cmd_say_f(game::level::gentity_s *ent, const command::params_sv &params) {
   if (params.size() < 2) {
@@ -90,15 +90,24 @@ void cl_handle_chat(char *dest, size_t dest_size, const char *src) {
   game::I_strcpy(dest, dest_size, src);
   printf("%s\n", dest);
 }
+
+const char *sv_sayname_val() {
+  if (game::engine_dependent_nonnull(sv_sayname)) {
+    std::optional<std::string_view> sv_sayname_val =
+        game::get_dvar_string(sv_sayname);
+    if (sv_sayname_val.has_value() && !sv_sayname_val.value().empty()) {
+      return sv_sayname_val.value().data();
+    }
+  }
+
+  return nullptr;
+}
 } // namespace
 
 const char *get_client_name(const uint64_t xuid) {
   if (xuid == 0xFFFFFFFF || xuid == 0xFFFFFFFFFFFFFFFF) {
-    if (sv_sayname && sv_sayname->current.value.string &&
-        sv_sayname->current.value.string[0]) {
-      return sv_sayname->current.value.string;
-    }
-    return "Server";
+    const char *val = sv_sayname_val();
+    return val ? val : "Server";
   }
 
   if (xuid > 0 && xuid < 19 && !game::is_server()) {
@@ -140,11 +149,8 @@ public:
 
             send_chat_message(game::INVALID_CLIENT_INDEX, text);
 
-            const char *say_prefix = "Server";
-            if (sv_sayname && sv_sayname->current.value.string &&
-                sv_sayname->current.value.string[0]) {
-              say_prefix = sv_sayname->current.value.string;
-            }
+            const char *val = sv_sayname_val();
+            const char *say_prefix = val ? val : "Server";
             printf("%s: %s\n", say_prefix, text.data());
           });
 

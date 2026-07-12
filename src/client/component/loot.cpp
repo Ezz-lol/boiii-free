@@ -1,23 +1,23 @@
-#include <std_include.hpp>
-#include "loader/component_loader.hpp"
+#include "../std_include.hpp"
+#include "../loader/component_loader.hpp"
 
-#include <utils/hook.hpp>
+#include "../../common/utils/hook.hpp"
 
 #include "command.hpp"
 #include "scheduler.hpp"
 #include "toast.hpp"
-#include "game/game.hpp"
-#include "game/utils.hpp"
+#include "../game/game.hpp"
+#include "../game/utils.hpp"
 
 namespace loot {
 namespace {
-const game::dvar_t *dvar_cg_unlockall_loot;
-const game::dvar_t *dvar_cg_unlockall_purchases;
-const game::dvar_t *dvar_cg_unlockall_attachments;
-const game::dvar_t *dvar_cg_unlockall_camos_and_reticles;
-const game::dvar_t *dvar_cg_unlockall_calling_cards;
-const game::dvar_t *dvar_cg_unlockall_specialists_outfits;
-const game::dvar_t *dvar_cg_unlockall_cac_slots;
+game::EngineDependentDvar dvar_cg_unlockall_loot;
+game::EngineDependentDvar dvar_cg_unlockall_purchases;
+game::EngineDependentDvar dvar_cg_unlockall_attachments;
+game::EngineDependentDvar dvar_cg_unlockall_camos_and_reticles;
+game::EngineDependentDvar dvar_cg_unlockall_calling_cards;
+game::EngineDependentDvar dvar_cg_unlockall_specialists_outfits;
+game::EngineDependentDvar dvar_cg_unlockall_cac_slots;
 
 utils::hook::detour loot_getitemquantity_hook;
 utils::hook::detour liveinventory_getitemquantity_hook;
@@ -247,7 +247,7 @@ struct component final : generic_component {
       game::set_dvar_bool(dvar_cg_unlockall_calling_cards, true);
       game::set_dvar_bool(dvar_cg_unlockall_specialists_outfits, true);
       game::set_dvar_bool(dvar_cg_unlockall_cac_slots, true);
-      game::set_dvar_bool(*game::ui_enableAllHeroes, true);
+      game::set_dvar_bool(game::ui_enableAllHeroes(), true);
 
       // Set master prestige for all 3 modes (eModes: ZM=0, MP=1, CP=2)
       game::cbuf::Cbuf_AddText(0, "PrestigeStatsMaster 0\n"); // ZM
@@ -334,7 +334,7 @@ struct component final : generic_component {
     scheduler::once(
         []() {
           if (game::get_dvar_bool(dvar_cg_unlockall_loot)) {
-            game::set_dvar_bool(*game::ui_enableAllHeroes, true);
+            game::set_dvar_bool(game::ui_enableAllHeroes(), true);
           }
         },
         scheduler::pipeline::dvars_loaded);

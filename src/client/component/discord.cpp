@@ -1,14 +1,14 @@
-#include <std_include.hpp>
-#include "loader/component_loader.hpp"
+#include "../std_include.hpp"
+#include "../loader/component_loader.hpp"
 
-#include "game/game.hpp"
-#include "game/utils.hpp"
+#include "../game/game.hpp"
+#include "../game/utils.hpp"
 #include "scheduler.hpp"
 #include "discord.hpp"
 #include "party.hpp"
 
 #include <discord_rpc.h>
-#include <utils/string.hpp>
+#include "../../common/utils/string.hpp"
 
 #include <ctime>
 #include <unordered_map>
@@ -16,17 +16,18 @@
 static __declspec(noinline) bool seh_dvar_string(const char *name, char *buf,
                                                  size_t sz) {
   __try {
-    const game::dvar_t *dvar = game::get_dvar(name);
-    if (!dvar) {
+    game::EngineDependentDvar dvar =
+        engine_dependent_toggle_const(game::get_dvar(name));
+    if (!game::engine_dependent_nonnull(dvar)) {
       buf[0] = '\0';
       return true;
     }
-    const char *val = game::Dvar_GetString(dvar);
-    if (!val) {
+    const std::string_view val = game::get_dvar_string(dvar).value_or("");
+    if (val.empty()) {
       buf[0] = '\0';
       return true;
     }
-    strncpy_s(buf, sz, val, _TRUNCATE);
+    strncpy_s(buf, sz, val.data(), _TRUNCATE);
     return true;
   } __except (EXCEPTION_EXECUTE_HANDLER) {
     buf[0] = '\0';
@@ -36,8 +37,9 @@ static __declspec(noinline) bool seh_dvar_string(const char *name, char *buf,
 
 static __declspec(noinline) bool seh_dvar_int(const char *name, int *out) {
   __try {
-    const game::dvar_t *dvar = game::get_dvar(name);
-    if (!dvar) {
+    game::EngineDependentDvar dvar =
+        engine_dependent_toggle_const(game::get_dvar(name));
+    if (!game::engine_dependent_nonnull(dvar)) {
       *out = 0;
       return true;
     }

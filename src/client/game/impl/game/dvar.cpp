@@ -3,10 +3,10 @@
 #include "game.hpp"
 
 namespace game {
-const dvar_t *sv_wwwBaseURL;
-const dvar_t *sv_wwwDownload;
-const dvar_t *sv_wwwDlDisconnected;
-const dvar_t *workshop_id;
+EngineDependentDvar sv_wwwBaseURL;
+EngineDependentDvar sv_wwwDownload;
+EngineDependentDvar sv_wwwDlDisconnected;
+EngineDependentDvar workshop_id;
 
 dvarStrHash_t Dvar_GenerateHash_Impl(const char *str) {
   if (str == nullptr) {

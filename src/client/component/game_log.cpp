@@ -1,18 +1,18 @@
 #include <cstdarg>
 #include <cstdint>
-#include <std_include.hpp>
-#include "loader/component_loader.hpp"
+#include "../std_include.hpp"
+#include "../loader/component_loader.hpp"
 
-#include "game/game.hpp"
-#include "game/utils.hpp"
+#include "../game/game.hpp"
+#include "../game/utils.hpp"
 
-#include <utils/hook.hpp>
-#include <utils/string.hpp>
-#include <utils/io.hpp>
+#include "../../common/utils/hook.hpp"
+#include "../../common/utils/string.hpp"
+#include "../../common/utils/io.hpp"
 
 namespace game_log {
 namespace {
-const game::dvar_t *g_log;
+game::EngineDependentDvar g_log;
 
 void g_scr_log_print() {
   char string[1024]{};
@@ -40,6 +40,17 @@ void g_scr_log_print() {
   }
 }
 
+const char *get_g_log_val() {
+  if (game::engine_dependent_nonnull(g_log)) {
+    std::optional<std::string_view> val = game::get_dvar_string(g_log);
+    if (val.has_value()) {
+      return val.value().data();
+    }
+  }
+
+  return nullptr;
+}
+
 void g_log_printf_stub(const char *fmt, ...) {
   char va_buffer[0x400] = {0};
 
@@ -48,7 +59,8 @@ void g_log_printf_stub(const char *fmt, ...) {
   vsnprintf_s(va_buffer, _TRUNCATE, fmt, ap);
   va_end(ap);
 
-  const char *file = g_log ? g_log->current.value.string : "games_mp.log";
+  const char *g_log_val = get_g_log_val();
+  const char *file = g_log_val ? g_log_val : "games_mp.log";
   const int32_t time = *game::level::level_time / 1000;
 
   utils::io::write_file(file,
@@ -61,7 +73,11 @@ void g_log_printf_stub(const char *fmt, ...) {
 const game::dvar_t *register_g_log_stub() {
   g_log = game::register_dvar_string("g_log", "games_mp.log", game::DVAR_NONE,
                                      "Log file path");
-  return g_log;
+  return std::visit(
+      [](const auto *resolved) -> const game::dvar_t * {
+        return reinterpret_cast<const game::dvar_t *>(resolved);
+      },
+      g_log);
 }
 } // namespace
 
