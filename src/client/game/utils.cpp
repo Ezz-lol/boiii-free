@@ -212,14 +212,20 @@ std::optional<float> set_dvar_float(const char *dvar_name, float val,
   return std::nullopt;
 }
 
-std::optional<std::string_view>
-set_dvar_string(const dvar_t *dvar, const char *val, DvarSetSource source) {
+std::optional<std::string> set_dvar_string(const dvar_t *dvar, const char *val,
+                                           DvarSetSource source) {
   const std::optional<std::string_view> prev_val = get_dvar_string(dvar);
+  std::optional<std::string> prev_val_copy;
+  if (prev_val.has_value()) {
+    prev_val_copy = std::optional(std::string(prev_val.value()));
+  } else {
+    prev_val_copy = std::nullopt;
+  }
   Dvar_SetStringFromSource(dvar, val, source);
-  return prev_val;
+  return prev_val_copy;
 }
 
-std::optional<std::string_view>
+std::optional<std::string>
 set_dvar_string(const char *dvar_name, const char *val, DvarSetSource source) {
   const dvar_t *dvar = get_dvar(dvar_name);
   if (dvar) {

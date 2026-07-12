@@ -47,10 +47,10 @@ float set_dvar_float(const dvar_t *dvar, float val,
 std::optional<float>
 set_dvar_float(const char *dvar_name, float val,
                DvarSetSource source = DvarSetSource::INTERNAL);
-std::optional<std::string_view>
+std::optional<std::string>
 set_dvar_string(const dvar_t *dvar, const char *val,
                 DvarSetSource source = DvarSetSource::INTERNAL);
-std::optional<std::string_view>
+std::optional<std::string>
 set_dvar_string(const char *dvar_name, const char *val,
                 DvarSetSource source = DvarSetSource::INTERNAL);
 
