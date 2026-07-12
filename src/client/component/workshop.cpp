@@ -197,7 +197,6 @@ void CL_SetupForNewServerMap_stub(game::LocalClientNum_t localClientNum,
   const bool usermaps_mod_loaded = mod_loaded && loaded_mod_id == "usermaps";
 
   if (is_usermap) {
-
     if (!mod_loaded) {
       game::ugc::UGC_LoadModByPublisherId_Impl(localClientNum, "usermaps",
                                                false);
@@ -244,6 +243,7 @@ void load_workshop_data(game::ugc::WorkshopData *item) {
   utils::string::copy(item->internalName, doc["FolderName"].GetString());
   utils::string::copy(item->publisherId, doc["PublisherID"].GetString());
   item->publisherIdInteger = std::strtoull(item->publisherId, nullptr, 10);
+  item->publisherIdHash = game::ugc::UGCHash(item->publisherId);
 }
 
 void populate_workshop_paths(game::ugc::WorkshopData *item,
