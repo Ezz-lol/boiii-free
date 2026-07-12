@@ -243,7 +243,7 @@ void load_workshop_data(game::ugc::WorkshopData *item) {
   utils::string::copy(item->internalName, doc["FolderName"].GetString());
   utils::string::copy(item->publisherId, doc["PublisherID"].GetString());
   item->publisherIdInteger = std::strtoull(item->publisherId, nullptr, 10);
-  item->publisherIdHash = game::ugc::UGCHash(item->publisherId);
+  item->publisherIdHash = game::ugc::UGC_Hash(item->publisherId);
 }
 
 void populate_workshop_paths(game::ugc::WorkshopData *item,
