@@ -4,8 +4,6 @@
 #include <filesystem>
 #include <string>
 #include "../../common/utils/nt.hpp" // IWYU pragma: export
-#include "symbol.hpp"                // IWYU pragma: export
-#include "structs/structs.hpp"       // IWYU pragma: export
 
 namespace arxan::detail {
 void set_address_to_call(const void *address);
@@ -101,6 +99,8 @@ size_t get_registered_dvar_name_count();
 
 inline size_t operator""_g(const size_t val) { return game::relocate(val); }
 
+#include "symbol.hpp"          // IWYU pragma: export
+#include "structs/structs.hpp" // IWYU pragma: export
 #include "symbols/symbols.hpp" // IWYU pragma: export
 #include "impl/game/dvar.hpp"  // IWYU pragma: export
 #endif
