@@ -5,6 +5,8 @@
 #include "game/game.hpp"
 #include "game/utils.hpp"
 
+#include "../game/impl/game/game.hpp"
+
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 
@@ -30,7 +32,7 @@ void cmd_say_f(game::level::gentity_s *ent, const command::params_sv &params) {
   const auto p = params.join(1);
   game::scr::Scr_AddString(game::scr::SCRIPTINSTANCE_SERVER,
                            p.data() + 1); // Skip special char
-  game::scr::Scr_Notify_Canon(ent, game::scr::Scr_CanonHash(params[0]), 1);
+  game::scr::Scr_Notify_Canon(ent, game::CanonHash(params[0]), 1);
 
   game::G_Say(ent, nullptr, mode, p.data());
 }
@@ -41,7 +43,7 @@ void cmd_chat_f(game::level::gentity_s *ent, const command::params_sv &params) {
   // Not a mistake! + 2 is necessary for the GSC script to receive only the
   // actual chat text
   game::scr::Scr_AddString(game::scr::SCRIPTINSTANCE_SERVER, p.data() + 2);
-  game::scr::Scr_Notify_Canon(ent, game::scr::Scr_CanonHash(params[0]), 1);
+  game::scr::Scr_Notify_Canon(ent, game::CanonHash(params[0]), 1);
 
   utils::hook::invoke<void>(0x140298E70_g, ent, p.data());
 }
@@ -128,7 +130,7 @@ public:
       // Overwrite say command
       utils::hook::jump(
           0x14052A6C0_g, +[] {
-            if (!game::is_server_running()) {
+            if (!game::server_running()) {
               printf("Server is not running\n");
               return;
             }
@@ -149,7 +151,7 @@ public:
       // Overwrite tell command
       utils::hook::jump(
           0x14052A7E0_g, +[] {
-            if (!game::is_server_running()) {
+            if (!game::server_running()) {
               printf("Server is not running\n");
               return;
             }

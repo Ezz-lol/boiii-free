@@ -6,6 +6,25 @@
 
 namespace game {
 
+CanonHash_t CanonHash(const char *str) {
+  constexpr CanonHash_t FNV_OFFSET_VAL = 0x4B9ACE2F;
+  constexpr CanonHash_t FNV_PRIME_VAL = 0x1000193;
+
+  const char *s = str;
+  const CanonHash_t first_char =
+      static_cast<CanonHash_t>(tolower(static_cast<unsigned char>(*s)));
+
+  CanonHash_t hash = FNV_PRIME_VAL * (first_char ^ FNV_OFFSET_VAL);
+  while (*s) {
+    hash =
+        FNV_PRIME_VAL *
+        (static_cast<CanonHash_t>(tolower(static_cast<unsigned char>(*++s))) ^
+         hash);
+  }
+
+  return hash;
+}
+
 constexpr int32_t TEMP_ENTITY_SOUND_EVENT = 0b100;
 constexpr int32_t TEMP_ENTITY_SOUND_NOTIFY_EVENT =
     TEMP_ENTITY_SOUND_EVENT | 0b001;

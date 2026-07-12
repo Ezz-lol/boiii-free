@@ -1,14 +1,18 @@
 #pragma once
 
 #include "macros.hpp"
+#include "func.hpp"
 #include "quake/vec.hpp"
 
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
+
 namespace game {
 
-using dvarStrHash_t = uint32_t;
+typedef uint32_t dvarStrHash_t;
+
+dvarStrHash_t Dvar_GenerateHash_Impl(const char *str);
 
 enum class dvarType_t : uint32_t {
   INVALID = 0x0,
@@ -289,15 +293,86 @@ struct dvar_t {
   DvarLimits domain;
   dvar_t *hashNext;
 };
+ASSERT_OFFSET(dvar_t, debugName, 0x8);
+ASSERT_OFFSET(dvar_t, description, 0x10);
+ASSERT_OFFSET(dvar_t, flags, 0x18);
+ASSERT_OFFSET(dvar_t, type, 0x1C);
+ASSERT_OFFSET(dvar_t, modified, 0x20);
+ASSERT_OFFSET(dvar_t, current, 0x28);
+ASSERT_SIZE(dvar_t, 0xA0);
 
-static_assert(offsetof(dvar_t, debugName) == 8);
-static_assert(offsetof(dvar_t, description) == 16);
-static_assert(offsetof(dvar_t, flags) == 24);
-static_assert(offsetof(dvar_t, type) == 28);
-static_assert(offsetof(dvar_t, modified) == 32);
-static_assert(offsetof(dvar_t, current) == 40);
+struct DvarPool {
+  dvar_t pool[0x2000];
 
-typedef void (*modifiedCallback)(const dvar_t *);
+  inline constexpr const dvar_t &operator[](size_t index) const {
+    return pool[index];
+  }
+  inline constexpr dvar_t &operator[](size_t index) { return pool[index]; }
+};
+ASSERT_SIZE(DvarPool, 0x140000);
+
+typedef fastcall_t<void(const dvar_t *dvar)> modifiedCallback;
+
+#pragma pack(push, 1)
+struct dvarCallBack_t {
+  bool needsCallback;
+  uint8_t _padding01[7];
+  modifiedCallback callback;
+  const dvar_t *dvar;
+};
+ASSERT_SIZE(dvarCallBack_t, 0x18);
+#pragma pack(pop)
+
+struct DvarCallbackPool {
+  dvarCallBack_t pool[0x100];
+
+  inline constexpr const dvarCallBack_t &operator[](size_t index) const {
+    return pool[index];
+  }
+  inline constexpr dvarCallBack_t &operator[](size_t index) {
+    return pool[index];
+  }
+};
+ASSERT_SIZE(DvarCallbackPool, 0x1800);
+
+constexpr dvarStrHash_t DVAR_HASH_TABLE_LEN = 0x800;
+constexpr dvarStrHash_t DVAR_HASH_MASK = DVAR_HASH_TABLE_LEN - 1;
+struct DvarHashTable {
+  dvar_t *table[0x800];
+
+  inline constexpr dvar_t *get(dvarStrHash_t hash) const {
+    dvar_t *entry = table[hash & DVAR_HASH_MASK];
+    while (entry && entry->name != hash) {
+      entry = entry->hashNext;
+    }
+    return entry;
+  }
+
+  inline constexpr bool contains(dvarStrHash_t hash) const {
+    dvar_t *entry = get(hash);
+    return entry != nullptr;
+  }
+
+  inline constexpr bool contains(const char *name) const {
+    return contains(Dvar_GenerateHash_Impl(name));
+  }
+
+  inline constexpr dvar_t *get(const char *name) const {
+    return get(Dvar_GenerateHash_Impl(name));
+  }
+
+  inline constexpr dvar_t *operator[](dvarStrHash_t hash) const {
+    return get(hash);
+  }
+  inline constexpr dvar_t *operator[](dvarStrHash_t hash) { return get(hash); }
+
+  inline constexpr dvar_t *operator[](const char *name) const {
+    return get(name);
+  }
+
+  inline constexpr dvar_t *operator[](const char *name) { return get(name); }
+};
+ASSERT_SIZE(DvarHashTable, 0x4000);
 
 enum class dvar_cmd_t : uint32_t {
   CG_OBJECTIVE_TEXT = 0x0,

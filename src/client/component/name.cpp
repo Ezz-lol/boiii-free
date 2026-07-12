@@ -50,7 +50,7 @@ void send_override_packet(
     const game::net::netadr_t &target, const SyncMessageType type,
     const game::ClientNum_t client_num,
     const std::optional<std::string> &value = std::nullopt) {
-  if (!game::is_server_running() || !is_syncable_address(target)) {
+  if (!game::server_running() || !is_syncable_address(target)) {
     return;
   }
 
@@ -68,7 +68,7 @@ void send_override_packet(
 void broadcast_override_packet(
     const SyncMessageType type, const game::ClientNum_t client_num,
     const std::optional<std::string> &value = std::nullopt) {
-  if (!game::is_server_running()) {
+  if (!game::server_running()) {
     return;
   }
 
@@ -153,7 +153,7 @@ void collect_current_overrides(
 }
 
 void send_snapshot_packet(const game::net::netadr_t &target) {
-  if (!game::is_server_running() || !is_syncable_address(target)) {
+  if (!game::server_running() || !is_syncable_address(target)) {
     return;
   }
 
@@ -182,7 +182,7 @@ void send_snapshot_packet(const game::net::netadr_t &target) {
 }
 
 void send_snapshot_packet_to_client(const game::ClientNum_t target_client) {
-  if (!game::valid_client_num(target_client) || !game::is_server_running()) {
+  if (!game::valid_client_num(target_client) || !game::server_running()) {
     return;
   }
 

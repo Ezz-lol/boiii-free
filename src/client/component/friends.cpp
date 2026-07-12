@@ -335,8 +335,8 @@ bool invite_to_game(game::XUID steam_id) {
   if (connect_str.empty())
     return false;
 
-  const std::string_view mapname = game::get_dvar_string("mapname");
-  const std::string_view gametype = game::get_dvar_string("g_gametype");
+  const std::string_view mapname = game::get_mapname().value_or("");
+  const std::string_view gametype = game::get_g_gametype().value_or("");
   game::eModes playmode = game::com::Com_SessionMode_GetMode();
   const std::string mod_id = workshop::get_mod_publisher_id();
   game::XUID own_steam_id = steam_proxy::get_own_steam_id();
@@ -651,9 +651,9 @@ struct component final : client_component {
             steam_proxy::set_rich_presence("connect", addr);
 
             if (!addr.empty() && game::com::Com_IsInGame()) {
-              const std::string_view mapname = game::get_dvar_string("mapname");
+              const std::string_view mapname = game::get_mapname().value_or("");
               const std::string_view gametype =
-                  game::get_dvar_string("g_gametype");
+                  game::get_g_gametype().value_or("");
               game::eModes playmode = game::com::Com_SessionMode_GetMode();
               const std::string mod_id = workshop::get_mod_publisher_id();
               game::XUID own_steam_id = steam_proxy::get_own_steam_id();

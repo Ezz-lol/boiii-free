@@ -5,6 +5,7 @@
 #include <sstream>
 
 #include "nt.hpp"
+#include "../str.hpp"
 
 namespace utils::string {
 const char *va(const char *fmt, ...) {
@@ -216,21 +217,6 @@ std::string join(std::vector<std::string> strings,
 void trim(std::string &str) { ltrim(rtrim(str)); }
 
 void copy(char *dest, const size_t max_size, const char *src) {
-  if (!max_size) {
-    return;
-  }
-
-  for (size_t i = 0;; ++i) {
-    if (i + 1 == max_size) {
-      dest[i] = 0;
-      break;
-    }
-
-    dest[i] = src[i];
-
-    if (!src[i]) {
-      break;
-    }
-  }
+  strscpy(dest, src, max_size);
 }
 } // namespace utils::string

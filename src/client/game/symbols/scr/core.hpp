@@ -6,9 +6,6 @@
 
 namespace game {
 namespace scr {
-
-game::CanonHash_t Scr_CanonHash(const char *str);
-
 WEAK symbol<scr_const_t> scr_const{0x14A7290F0, 0x147B91CE0};
 
 WEAK symbol<void(scriptInstance_t inst, int value)> Scr_AddInt{0x1412E9870,

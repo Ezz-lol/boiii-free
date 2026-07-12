@@ -6,51 +6,95 @@
 
 namespace game {
 
-WEAK symbol<dvar_t *> com_maxclients{0x0, 0x14948EE70};
+WEAK symbol<dvar_t *> com_maxclients{0x1568ED850, 0x14948EE70};
+// "sv_running" is name of dvar. com_sv_running is name used internally by
+// engine to label dvar global
+WEAK symbol<dvar_t *> com_sv_running{0x1568ED848, 0x14948EE68};
 
-WEAK symbol<char> s_dvarPool{0x157AC6220, 0x14A3CB620};
+WEAK symbol<dvar_t *> g_gametype{0x14A399348, 0x147836878};
+WEAK symbol<dvar_t *> g_password{0x14A399350, 0x147836880};
+
+WEAK symbol<dvar_t *> sv_hostname{0x1577C5790, 0x14A1797A8};
+WEAK symbol<dvar_t *> sv_maprotation{0x1577C5888, 0x14A179948};
+WEAK symbol<dvar_t *> sv_maprotationcurrent{0x1577C5890, 0x14A189980};
+WEAK symbol<dvar_t *> sv_cheats{0x1576F8698, 0x14A189A18};
+WEAK symbol<qboolean> sv_running{0x1457D9928, 0x142CE04A8};
+
+WEAK symbol<dvar_t *> mapname{0x1577C57C8, 0x14A179858};
+
+WEAK symbol<dvar_t *> live_steam_server_name{0x15142E120, 0x14837F770};
+WEAK symbol<dvar_t *> live_steam_server_description{0x15142E128, 0x14837F778};
+WEAK symbol<dvar_t *> live_steam_server_password{0x15142E130, 0x14837F780};
+
+WEAK symbol<dvar_t *> net_port{0x157E75320, 0x14A640490};
+WEAK symbol<dvar_t *> net_ip{0x157E75318, 0x14A640488};
+
+WEAK symbol<dvar_t *> rcon_password{0x1577B5768, 0x14A178278};
+
+WEAK symbol<dvar_t *> ui_checksum_enabled{0x1568EDC98, 0x14948DC18};
+WEAK symbol<dvar_t *> ui_error_report{0x1568EEEA8, 0x14948DC20};
+WEAK symbol<dvar_t *> ui_error_report_delay{0x1568EEEB0, 0x14948DC28};
+WEAK symbol<dvar_t *> ui_error_callstack_ship{0x1568EDCA0, 0x14948DC30};
+
+WEAK symbol<dvar_t *> g_motd{0x14A3D15D0, 0x147836998};
+WEAK symbol<dvar_t *> live_motdEnabled{0x15163FC70, 0x148382988};
+WEAK symbol<dvar_t *> motd_enabled{0x15120C780, 0x1482DED80};
+WEAK symbol<dvar_t *> motddelay{0x15120C778, 0x1482DED78};
+
+WEAK symbol<dvar_t *> testmissingcontentpacks{0x1568EDDF0, 0x14948DD90};
+
+WEAK symbol<dvar_t *> splitscreen{0x1453D49F0, 0x1428AAEC8};
+WEAK symbol<dvar_t *> splitscreen_playerCount{0x1453D4A00, 0x1428AAED8};
+
+WEAK symbol<int32_t> g_dvarCount{0x157AC61CC, 0x14A3CB5FC};
+WEAK symbol<DvarPool> s_dvarPool{0x157AC6220, 0x14A3CB620};
+
+WEAK symbol<int32_t> s_nextFreeCallback{0x157AC620C, 0x14A3CB60C};
+WEAK symbol<DvarCallbackPool> s_dvarCallbackPool{0x157C06220, 0x14A4DB620};
+
+WEAK symbol<DvarHashTable> s_dvarHashTable{0x157C07A20, 0x14A4DCE20};
+
 WEAK symbol<bool> s_canSetConfigDvars{0x0, 0x14A3CB5D8};
-
-WEAK symbol<int> g_dvarCount{0x157AC61CC, 0x14A3CB5FC};
 
 // Used for e.g. changing in-game client FOV when `cg_fov` is changed,
 // queueing mod load when `fs_game` is changed.
 WEAK symbol<void(const dvar_t *dvar, modifiedCallback callback)>
     Dvar_SetModifiedCallback{0x1422C8650, 0x140579990};
-WEAK symbol<void(const dvar_t *dvar, int flags)> Dvar_AddFlags{0x1422B8260,
-                                                               0x140574880};
+WEAK symbol<void(const dvar_t *dvar, int32_t flags)> Dvar_AddFlags{0x1422B8260,
+                                                                   0x140574880};
 WEAK symbol<bool(const dvar_t *dvar)> Dvar_IsSessionModeBaseDvar{0x1422C23A0,
                                                                  0x140576890};
 WEAK symbol<dvar_t *(const char *dvarName)> Dvar_FindVar{0x1422BCCD0,
                                                          0x140575540};
 WEAK symbol<game::CanonHash_t(const char *str)> Dvar_GenerateHash{0x14133DBF0,
                                                                   0x140185800};
-WEAK symbol<dvar_t *(unsigned int hash)> Dvar_FindMalleableVar{0x1422BCC40,
-                                                               0x1405754B0};
+WEAK symbol<dvar_t *(uint32_t hash)> Dvar_FindMalleableVar{0x1422BCC40,
+                                                           0x1405754B0};
 WEAK symbol<const char *(const dvar_t *dvar)> Dvar_GetDebugName{0x1422BD250};
 WEAK symbol<const char *(const dvar_t *dvar)> Dvar_DisplayableValue{
-    0x1422BC080};
+    0x1422BC080, 0x140574F40};
 WEAK symbol<dvar_t *(dvarStrHash_t hash, const char *dvarName, bool value,
-                     int flags, const char *description)>
+                     int32_t flags, const char *description)>
     Dvar_RegisterBool{0x1422D0900, 0x14057B500};
-WEAK symbol<dvar_t *(dvarStrHash_t hash, const char *dvarName, int value,
-                     int min, int max, unsigned int flags,
+WEAK symbol<dvar_t *(dvarStrHash_t hash, const char *dvarName, int32_t value,
+                     int32_t min, int32_t max, uint32_t flags,
                      const char *description)>
     Dvar_RegisterInt{0x1422D0AE0, 0x14057B7B0};
 WEAK symbol<dvar_t *(dvarStrHash_t hash, const char *dvarName, float value,
-                     float min, float max, unsigned int flags,
+                     float min, float max, uint32_t flags,
                      const char *description)>
     Dvar_RegisterFloat{0x1422D0A60, 0x14057B6B0};
 WEAK symbol<dvar_t *(dvarStrHash_t hash, const char *dvarName, bool value,
-                     int flags, const char *description)>
+                     int32_t flags, const char *description)>
     Dvar_SessionModeRegisterBool{0x1422D0D40, 0x14057BAA0};
 WEAK symbol<void(dvarStrHash_t hash, bool value, eModes mode)>
     Dvar_SessionModeSetDefaultBool{0x1422D0E90, 0x14057BCE0};
 WEAK symbol<dvar_t *(dvarStrHash_t hash, const char *dvarName,
-                     const char *value, int flags, const char *description)>
+                     const char *value, int32_t flags, const char *description)>
     Dvar_RegisterString{0x1422D0B70, 0x14057B890};
-WEAK symbol<void(void (*callback)(const dvar_t *, void *), void *userData)>
-    Dvar_ForEach{0x1422BCD00};
+WEAK symbol<void(fastcall_t<void(const dvar_t *dvar, void *userData)> callback,
+                 void *userData)>
+    Dvar_ForEach{0x1422BCD00, 0x140575570};
 WEAK
     symbol<void(const char *dvarName, const char *string, bool createIfMissing)>
         Dvar_SetFromStringByName{0x1422C7500, 0x140579290};
@@ -94,15 +138,12 @@ WEAK symbol<void(const dvar_t *dvar, int32_t val, DvarSetSource source)>
     Dvar_SetIntFromSource{0x1422C7ED0, 0x140579740};
 WEAK symbol<void(const dvar_t *dvar, uint64_t val, DvarSetSource source)>
     Dvar_SetUInt64FromSource{0x1422C8AF0, 0x140579B60};
-
-WEAK symbol<void(const dvar_t *dvar, int32_t value)> Dvar_SetInt{0x1422C7EC0};
-
-WEAK symbol<const dvar_t *> testmissingcontentpacks{0x1568EDDF0};
-WEAK symbol<const dvar_t *> splitscreen{0x1453D49F0, 0x1428AAEC8};
-WEAK symbol<const dvar_t *> splitscreen_playerCount{0x1453D4A00, 0x1428AAED8};
-
-WEAK symbol<const dvar_t *> sv_cheats{0x1576F8698, 0x14A189A18};
-
+WEAK symbol<void(const dvar_t *dvar, const char *string, DvarSetSource source)>
+    Dvar_SetStringFromSource{0x1422C8770, 0x140579AB0};
+WEAK symbol<void(const dvar_t *dvar, const char *string)> Dvar_SetString{
+    0x1422C8720, 0x140579A60};
+WEAK symbol<void(const dvar_t *dvar, int32_t value)> Dvar_SetInt{0x1422C7EC0,
+                                                                 0x140579730};
 } // namespace game
 
 #endif

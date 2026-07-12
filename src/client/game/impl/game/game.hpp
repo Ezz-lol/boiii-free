@@ -3,7 +3,7 @@
 #include <cstdint>
 
 namespace game {
-
+game::CanonHash_t CanonHash(const char *str);
 void G_RegisterSoundWait_Impl(level::gentity_s *ent, snd::SndAliasId id,
                               scr::ScrString_t notifyString);
 level::gentity_t *G_PlaySoundAliasWithNotify_Impl(level::gentity_t *ent,

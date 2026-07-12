@@ -1,30 +1,30 @@
-#include <std_include.hpp>
-#include "loader/component_loader.hpp"
-#include <game/game.hpp>
-#include <game/utils.hpp>
+#include "../std_include.hpp"
+#include "../loader/component_loader.hpp"
+#include "../game/game.hpp"
+#include "../game/utils.hpp"
 
 #include "scheduler.hpp"
 #include "getinfo.hpp"
 #include "console.hpp"
 
 #include <string>
-#include <utils/string.hpp>
+#include "../../common/utils/string.hpp"
 
 namespace dedicated_info {
 namespace {
 void set_server_info_in_console_title() {
-  const game::dvar_t *sv_running = game::get_dvar("sv_running");
+  const bool sv_running = game::get_sv_running();
   std::string server_name =
-      std::string(game::get_dvar_string("live_steam_server_name"));
+      std::string(game::get_live_steam_server_name().value_or(""));
   const char *clean_server_name = game::I_CleanStr(server_name.data());
 
-  if (!sv_running || !sv_running->current.value.enabled) {
+  if (!sv_running) {
     console::set_title(
         utils::string::va("%s - not running", clean_server_name));
     return;
   }
 
-  const std::string_view mapname = game::get_dvar_string("mapname");
+  const std::string_view mapname = game::get_mapname().value_or("");
 
   const std::string window_text =
       utils::string::va("%s on %s [%zu/%zu] (%zu)", clean_server_name,

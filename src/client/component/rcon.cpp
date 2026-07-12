@@ -8,7 +8,7 @@
 
 #include <utils/finally.hpp>
 
-#include <game/utils.hpp>
+#include "../game/utils.hpp"
 
 namespace rcon {
 namespace {
@@ -24,7 +24,7 @@ get_and_validate_rcon_command(const std::string &data) {
     return {};
   }
 
-  if (params[0] != game::get_dvar_string("rcon_password")) {
+  if (params[0] != game::get_rcon_password().value_or("")) {
     return {};
   }
 
@@ -32,7 +32,8 @@ get_and_validate_rcon_command(const std::string &data) {
 }
 
 void rcon_executer(const game::net::netadr_t &target, const std::string &data) {
-  const auto command = get_and_validate_rcon_command(data);
+  const std::optional<std::string> command =
+      get_and_validate_rcon_command(data);
   if (!command) {
     return;
   }

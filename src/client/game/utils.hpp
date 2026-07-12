@@ -6,41 +6,53 @@
 
 namespace game {
 [[nodiscard]] dvar_t *get_dvar(const char *name);
-[[nodiscard]] std::string_view get_dvar_string(const dvar_t *dvar);
-[[nodiscard]] std::string_view get_dvar_string(const char *dvar_name);
+[[nodiscard]] std::optional<std::string_view>
+get_dvar_string(const dvar_t *dvar);
+[[nodiscard]] std::optional<std::string_view>
+get_dvar_string(const char *dvar_name);
 [[nodiscard]] int32_t get_dvar_int(const dvar_t *dvar);
-[[nodiscard]] int32_t get_dvar_int(const char *dvar_name);
+[[nodiscard]] std::optional<int32_t> get_dvar_int(const char *dvar_name);
 [[nodiscard]] uint32_t get_dvar_uint(const dvar_t *dvar);
-[[nodiscard]] uint32_t get_dvar_uint(const char *dvar_name);
+[[nodiscard]] std::optional<uint32_t> get_dvar_uint(const char *dvar_name);
 [[nodiscard]] int64_t get_dvar_int64(const dvar_t *dvar);
-[[nodiscard]] int64_t get_dvar_int64(const char *dvar_name);
+[[nodiscard]] std::optional<int64_t> get_dvar_int64(const char *dvar_name);
 [[nodiscard]] uint64_t get_dvar_uint64(const dvar_t *dvar);
-[[nodiscard]] uint64_t get_dvar_uint64(const char *dvar_name);
+[[nodiscard]] std::optional<uint64_t> get_dvar_uint64(const char *dvar_name);
 [[nodiscard]] float get_dvar_float(const dvar_t *dvar);
-[[nodiscard]] float get_dvar_float(const char *dvar_name);
+[[nodiscard]] std::optional<float> get_dvar_float(const char *dvar_name);
 [[nodiscard]] bool get_dvar_bool(const dvar_t *dvar);
-[[nodiscard]] bool get_dvar_bool(const char *dvar_name);
+[[nodiscard]] std::optional<bool> get_dvar_bool(const char *dvar_name);
 
 int set_dvar_int(const dvar_t *dvar, int32_t val,
                  DvarSetSource source = DvarSetSource::INTERNAL);
-int set_dvar_int(const char *dvar_name, int32_t val,
-                 DvarSetSource source = DvarSetSource::INTERNAL);
+std::optional<int> set_dvar_int(const char *dvar_name, int32_t val,
+                                DvarSetSource source = DvarSetSource::INTERNAL);
 int64_t set_dvar_int64(const dvar_t *dvar, int64_t val,
                        DvarSetSource source = DvarSetSource::INTERNAL);
-int64_t set_dvar_int64(const char *dvar_name, int64_t val,
-                       DvarSetSource source = DvarSetSource::INTERNAL);
+std::optional<int64_t>
+set_dvar_int64(const char *dvar_name, int64_t val,
+               DvarSetSource source = DvarSetSource::INTERNAL);
 uint64_t set_dvar_uint64(const dvar_t *dvar, uint64_t val,
                          DvarSetSource source = DvarSetSource::INTERNAL);
-uint64_t set_dvar_uint64(const char *dvar_name, uint64_t val,
-                         DvarSetSource source = DvarSetSource::INTERNAL);
+std::optional<uint64_t>
+set_dvar_uint64(const char *dvar_name, uint64_t val,
+                DvarSetSource source = DvarSetSource::INTERNAL);
 bool set_dvar_bool(const dvar_t *dvar, bool val,
                    DvarSetSource source = DvarSetSource::INTERNAL);
-bool set_dvar_bool(const char *dvar_name, bool val,
-                   DvarSetSource source = DvarSetSource::INTERNAL);
+std::optional<bool>
+set_dvar_bool(const char *dvar_name, bool val,
+              DvarSetSource source = DvarSetSource::INTERNAL);
 float set_dvar_float(const dvar_t *dvar, float val,
                      DvarSetSource source = DvarSetSource::INTERNAL);
-float set_dvar_float(const char *dvar_name, float val,
-                     DvarSetSource source = DvarSetSource::INTERNAL);
+std::optional<float>
+set_dvar_float(const char *dvar_name, float val,
+               DvarSetSource source = DvarSetSource::INTERNAL);
+std::optional<std::string_view>
+set_dvar_string(const dvar_t *dvar, const char *val,
+                DvarSetSource source = DvarSetSource::INTERNAL);
+std::optional<std::string_view>
+set_dvar_string(const char *dvar_name, const char *val,
+                DvarSetSource source = DvarSetSource::INTERNAL);
 
 [[nodiscard]] const dvar_t *register_dvar_bool(const char *dvar_name,
                                                bool value, uint32_t flags,
@@ -66,8 +78,123 @@ void dvar_add_flags(const char *dvar_name, uint32_t flags);
 void dvar_set_flags(const char *dvar_name, uint32_t flags);
 void dvar_remove_flags(const char *dvar_name, uint32_t flags);
 
-[[nodiscard]] bool is_server_running();
-[[nodiscard]] size_t get_max_client_count();
+[[nodiscard]] inline std::optional<std::string_view> get_mapname() {
+  return get_dvar_string(*mapname);
+}
+[[nodiscard]] inline std::optional<std::string_view> get_g_gametype() {
+  return get_dvar_string(*g_gametype);
+}
+[[nodiscard]] inline std::optional<std::string_view> gametype() {
+  return get_dvar_string(*g_gametype);
+}
+[[nodiscard]] inline std::optional<std::string_view> get_g_password() {
+  return get_dvar_string(*g_password);
+}
+[[nodiscard]] inline std::optional<std::string_view> password() {
+  return get_dvar_string(*g_password);
+}
+
+[[nodiscard]] inline std::optional<std::string_view> get_sv_maprotation() {
+  return get_dvar_string(*sv_maprotation);
+}
+[[nodiscard]] inline std::optional<std::string_view> maprotation() {
+  return get_dvar_string(*sv_maprotation);
+}
+[[nodiscard]] inline std::optional<std::string_view>
+get_sv_maprotationcurrent() {
+  return get_dvar_string(*sv_maprotationcurrent);
+}
+[[nodiscard]] inline std::optional<std::string_view> maprotationcurrent() {
+  return get_dvar_string(*sv_maprotationcurrent);
+}
+[[nodiscard]] inline std::optional<std::string_view>
+get_live_steam_server_name() {
+  return get_dvar_string(*live_steam_server_name);
+}
+[[nodiscard]] inline std::optional<std::string_view> server_name() {
+  return get_live_steam_server_name();
+}
+[[nodiscard]] inline std::optional<std::string_view> get_sv_hostname() {
+  return get_dvar_string(*sv_hostname);
+}
+[[nodiscard]] inline std::optional<std::string_view> hostname() {
+  if (game::is_server()) {
+    return get_live_steam_server_name();
+  }
+  return get_sv_hostname();
+}
+[[nodiscard]] inline std::optional<std::string_view>
+get_live_steam_server_description() {
+  return get_dvar_string(*live_steam_server_description);
+}
+[[nodiscard]] inline std::optional<std::string_view> server_description() {
+  return get_live_steam_server_description();
+}
+[[nodiscard]] inline std::optional<std::string_view>
+get_live_steam_server_password() {
+  return get_dvar_string(*live_steam_server_password);
+}
+[[nodiscard]] inline std::optional<std::string_view> server_password() {
+  return get_live_steam_server_password();
+}
+[[nodiscard]] inline std::optional<std::string_view> get_rcon_password() {
+  return get_dvar_string(*rcon_password);
+}
+[[nodiscard]] inline uint32_t get_net_port() {
+  return get_dvar_uint(*net_port);
+}
+[[nodiscard]] inline uint16_t port() {
+  return static_cast<uint16_t>(get_net_port());
+}
+[[nodiscard]] inline std::optional<std::string_view> get_sv_wwwBaseURL() {
+  if (sv_wwwBaseURL) {
+    return get_dvar_string(sv_wwwBaseURL);
+  }
+  return std::nullopt;
+}
+[[nodiscard]] inline std::optional<std::string_view> wwwBaseURL() {
+  return get_sv_wwwBaseURL();
+}
+[[nodiscard]] inline std::optional<std::string_view> fastdl_uri() {
+  return get_sv_wwwBaseURL();
+}
+[[nodiscard]] inline std::optional<bool> get_sv_wwwDownload() {
+  if (sv_wwwDownload) {
+    return get_dvar_bool(sv_wwwDownload);
+  }
+  return std::nullopt;
+}
+[[nodiscard]] inline std::optional<bool> wwwDownload() {
+  return get_sv_wwwDownload();
+}
+[[nodiscard]] inline std::optional<bool> fastdl_enabled() {
+  return get_sv_wwwDownload();
+}
+[[nodiscard]] inline std::optional<bool> get_sv_wwwDlDisconnected() {
+  if (sv_wwwDlDisconnected) {
+    return get_dvar_bool(sv_wwwDlDisconnected);
+  }
+  return std::nullopt;
+}
+[[nodiscard]] inline std::optional<bool> wwwDlDisconnected() {
+  return get_sv_wwwDlDisconnected();
+}
+[[nodiscard]] inline std::optional<bool> fastdl_disconnected() {
+  return get_sv_wwwDlDisconnected();
+}
+[[nodiscard]] inline bool get_sv_running() {
+  return get_dvar_bool(*com_sv_running);
+}
+[[nodiscard]] inline bool server_running() { return get_sv_running(); }
+[[nodiscard]] inline int32_t get_com_maxclients() {
+  return get_dvar_int(*com_maxclients);
+}
+[[nodiscard]] inline size_t get_max_client_count() {
+  return static_cast<size_t>(get_com_maxclients());
+}
+[[nodiscard]] inline std::optional<std::string_view> get_workshop_id() {
+  return get_dvar_string(workshop_id);
+}
 
 void foreach_client(
     const std::function<void(sv::client_s &, size_t index)> &callback);

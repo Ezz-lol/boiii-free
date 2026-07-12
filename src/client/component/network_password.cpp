@@ -1,14 +1,13 @@
-#include <cstdint>
-#include <std_include.hpp>
+#include "../std_include.hpp"
 #include "loader/component_loader.hpp"
-#include "game/game.hpp"
-#include "game/utils.hpp"
+#include "../game/game.hpp"
+#include "../game/utils.hpp"
 
 #include "network_password.hpp"
 #include "scheduler.hpp"
 
-#include <utils/hook.hpp>
-#include <utils/string.hpp>
+#include "../../common/utils/hook.hpp"
+#include "../../common/utils/string.hpp"
 
 namespace network_password {
 namespace {
@@ -34,13 +33,15 @@ std::string get_password_hash_string() {
     return "0";
   }
 
-  const std::string_view password = game::get_dvar_string("net_password");
+  const std::string_view password =
+      game::get_dvar_string(net_password_dvar).value_or("");
   const uint64_t hash = hash_password(password);
   return utils::string::va("%llu", hash);
 }
 
 bool is_password_set() {
-  const std::string_view password = game::get_dvar_string("net_password");
+  const std::string_view password =
+      game::get_dvar_string(net_password_dvar).value_or("");
   return !password.empty();
 }
 

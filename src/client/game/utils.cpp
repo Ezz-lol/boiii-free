@@ -41,31 +41,33 @@ dvar_t *try_get_sessionmode_specific_dvar(dvar_t *dvar) {
 
 __inline_def dvar_t *get_dvar(const char *name) { return Dvar_FindVar(name); }
 
-__inline_def std::string_view get_dvar_string(const dvar_t *dvar) {
-  return Dvar_GetString(dvar);
+__inline_def std::optional<std::string_view>
+get_dvar_string(const dvar_t *dvar) {
+  const char *str = Dvar_GetString(dvar);
+  return str ? std::optional(std::string_view(str)) : std::nullopt;
 }
 
-std::string_view get_dvar_string(const char *dvar_name) {
+std::optional<std::string_view> get_dvar_string(const char *dvar_name) {
   const dvar_t *dvar = get_dvar(dvar_name);
 
   if (dvar) {
     return get_dvar_string(dvar);
   }
 
-  return {};
+  return std::nullopt;
 }
 
 __inline_def int32_t get_dvar_int(const dvar_t *dvar) {
   return dvar->current.value.integer;
 }
 
-int32_t get_dvar_int(const char *dvar_name) {
+std::optional<int32_t> get_dvar_int(const char *dvar_name) {
   const dvar_t *dvar = get_dvar(dvar_name);
   if (dvar) {
     return get_dvar_int(dvar);
   }
 
-  return {};
+  return std::nullopt;
 }
 
 int32_t set_dvar_int(const dvar_t *dvar, int32_t val, DvarSetSource source) {
@@ -74,39 +76,40 @@ int32_t set_dvar_int(const dvar_t *dvar, int32_t val, DvarSetSource source) {
   return prev_val;
 }
 
-int32_t set_dvar_int(const char *dvar_name, int32_t val, DvarSetSource source) {
+std::optional<int32_t> set_dvar_int(const char *dvar_name, int32_t val,
+                                    DvarSetSource source) {
   const dvar_t *dvar = get_dvar(dvar_name);
   if (dvar) {
     return set_dvar_int(dvar, val, source);
   }
 
-  return {};
+  return std::nullopt;
 }
 
 __inline_def uint32_t get_dvar_uint(const dvar_t *dvar) {
   return dvar->current.value.unsignedInt;
 }
 
-uint32_t get_dvar_uint(const char *dvar_name) {
+std::optional<uint32_t> get_dvar_uint(const char *dvar_name) {
   const dvar_t *dvar = get_dvar(dvar_name);
   if (dvar) {
     return get_dvar_uint(dvar);
   }
 
-  return {};
+  return std::nullopt;
 }
 
 __inline_def uint64_t get_dvar_uint64(const dvar_t *dvar) {
   return dvar->current.value.unsignedInt64;
 }
 
-uint64_t get_dvar_uint64(const char *dvar_name) {
+std::optional<uint64_t> get_dvar_uint64(const char *dvar_name) {
   const dvar_t *dvar = get_dvar(dvar_name);
   if (dvar) {
     return get_dvar_uint64(dvar);
   }
 
-  return {};
+  return std::nullopt;
 }
 
 uint64_t set_dvar_uint64(const dvar_t *dvar, uint64_t val,
@@ -116,26 +119,26 @@ uint64_t set_dvar_uint64(const dvar_t *dvar, uint64_t val,
   return prev_val;
 }
 
-uint64_t set_dvar_uint64(const char *dvar_name, uint64_t val,
-                         DvarSetSource source) {
+std::optional<uint64_t> set_dvar_uint64(const char *dvar_name, uint64_t val,
+                                        DvarSetSource source) {
   const dvar_t *dvar = get_dvar(dvar_name);
   if (dvar) {
     return set_dvar_uint64(dvar, val, source);
   }
-  return {};
+  return std::nullopt;
 }
 
 __inline_def int64_t get_dvar_int64(const dvar_t *dvar) {
   return dvar->current.value.integer64;
 }
 
-int64_t get_dvar_int64(const char *dvar_name) {
+std::optional<int64_t> get_dvar_int64(const char *dvar_name) {
   const dvar_t *dvar = get_dvar(dvar_name);
   if (dvar) {
     return get_dvar_int64(dvar);
   }
 
-  return {};
+  return std::nullopt;
 }
 
 int64_t set_dvar_int64(const dvar_t *dvar, int64_t val, DvarSetSource source) {
@@ -144,26 +147,26 @@ int64_t set_dvar_int64(const dvar_t *dvar, int64_t val, DvarSetSource source) {
   return prev_val;
 }
 
-int64_t set_dvar_int64(const char *dvar_name, int64_t val,
-                       DvarSetSource source) {
+std::optional<int64_t> set_dvar_int64(const char *dvar_name, int64_t val,
+                                      DvarSetSource source) {
   const dvar_t *dvar = get_dvar(dvar_name);
   if (dvar) {
     return set_dvar_int64(dvar, val, source);
   }
-  return {};
+  return std::nullopt;
 }
 
 __inline_def bool get_dvar_bool(const dvar_t *dvar) {
   return dvar->current.value.enabled;
 }
 
-bool get_dvar_bool(const char *dvar_name) {
+std::optional<bool> get_dvar_bool(const char *dvar_name) {
   const dvar_t *dvar = get_dvar(dvar_name);
   if (dvar) {
     return get_dvar_bool(dvar);
   }
 
-  return {};
+  return std::nullopt;
 }
 
 bool set_dvar_bool(const dvar_t *dvar, bool val, DvarSetSource source) {
@@ -172,25 +175,26 @@ bool set_dvar_bool(const dvar_t *dvar, bool val, DvarSetSource source) {
   return prev_val;
 }
 
-bool set_dvar_bool(const char *dvar_name, bool val, DvarSetSource source) {
+std::optional<bool> set_dvar_bool(const char *dvar_name, bool val,
+                                  DvarSetSource source) {
   const dvar_t *dvar = get_dvar(dvar_name);
   if (dvar) {
     set_dvar_bool(dvar, val, source);
   }
-  return {};
+  return std::nullopt;
 }
 
 __inline_def float get_dvar_float(const dvar_t *dvar) {
   return dvar->current.value.value;
 }
 
-float get_dvar_float(const char *dvar_name) {
+std::optional<float> get_dvar_float(const char *dvar_name) {
   const dvar_t *dvar = get_dvar(dvar_name);
   if (dvar) {
     return get_dvar_float(dvar);
   }
 
-  return {};
+  return std::nullopt;
 }
 
 float set_dvar_float(const dvar_t *dvar, float val, DvarSetSource source) {
@@ -199,12 +203,29 @@ float set_dvar_float(const dvar_t *dvar, float val, DvarSetSource source) {
   return prev_val;
 }
 
-float set_dvar_float(const char *dvar_name, float val, DvarSetSource source) {
+std::optional<float> set_dvar_float(const char *dvar_name, float val,
+                                    DvarSetSource source) {
   const dvar_t *dvar = get_dvar(dvar_name);
   if (dvar) {
     return set_dvar_float(dvar, val, source);
   }
-  return {};
+  return std::nullopt;
+}
+
+std::optional<std::string_view>
+set_dvar_string(const dvar_t *dvar, const char *val, DvarSetSource source) {
+  const std::optional<std::string_view> prev_val = get_dvar_string(dvar);
+  Dvar_SetStringFromSource(dvar, val, source);
+  return prev_val;
+}
+
+std::optional<std::string_view>
+set_dvar_string(const char *dvar_name, const char *val, DvarSetSource source) {
+  const dvar_t *dvar = get_dvar(dvar_name);
+  if (dvar) {
+    return set_dvar_string(dvar, val, source);
+  }
+  return std::nullopt;
 }
 
 const dvar_t *register_sessionmode_dvar_bool(const char *dvar_name,
@@ -344,12 +365,6 @@ void dvar_remove_flags(const char *dvar_name, const uint32_t flags) {
   }
 
   dvar_to_change->flags &= ~flags;
-}
-
-bool is_server_running() { return get_dvar_bool("sv_running"); }
-
-size_t get_max_client_count() {
-  return static_cast<size_t>(get_dvar_int("com_maxclients"));
 }
 
 template <typename T>

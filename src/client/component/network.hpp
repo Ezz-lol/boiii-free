@@ -1,6 +1,6 @@
 #pragma once
 
-#include <game/game.hpp>
+#include "../game/game.hpp"
 
 namespace network {
 using data_view = std::basic_string_view<uint8_t>;

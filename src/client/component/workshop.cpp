@@ -35,6 +35,8 @@ using namespace game::db;
 using XZoneName = xzone::XZoneName;
 
 namespace workshop {
+const game::dvar_t *workshop_timeout;
+const game::dvar_t *workshop_retry_attempts;
 std::thread download_thread{};
 
 utils::hook::detour CL_SetupForNewServerMap_hook;
@@ -501,7 +503,7 @@ std::string get_usermap_publisher_id(const std::string &zone_name) {
 }
 
 int get_workshop_retry_attempts() {
-  const int val = game::get_dvar_int("workshop_retry_attempts");
+  const int val = game::get_dvar_int(workshop_retry_attempts);
   if (val < 1)
     return 1;
   if (val > 1000)
@@ -1103,12 +1105,12 @@ public:
     extend_ugc_pools();
 
     if (game::is_client()) {
-      [[maybe_unused]] const auto *dvar_retry = game::register_dvar_int(
+      workshop_retry_attempts = game::register_dvar_int(
           "workshop_retry_attempts", 30, 1, 1000, game::DVAR_ARCHIVE,
           "Number of connection retry attempts for workshop downloads "
           "(default "
           "15, increase for slow connections)");
-      [[maybe_unused]] const auto *dvar_timeout = game::register_dvar_int(
+      workshop_timeout = game::register_dvar_int(
           "workshop_timeout", 300, 60, 3600, game::DVAR_ARCHIVE,
           "Download timeout in seconds for workshop items (reserved for "
           "future "
@@ -1126,7 +1128,7 @@ public:
                "config)\n",
                get_workshop_retry_attempts());
         printf("[ Workshop ] workshop_timeout: %d\n",
-               game::get_dvar_int("workshop_timeout"));
+               game::get_dvar_int(workshop_timeout));
       });
       command::add("workshop_download", [](const command::params &params) {
         if (params.size() < 2) {

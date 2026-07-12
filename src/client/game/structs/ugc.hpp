@@ -13,7 +13,7 @@ typedef str<260> UGCPath;
 
 struct WorkshopData {
   // Field is called "name" in lua table
-  char title[100];
+  str<100> title;
   name_t internalName;
   // Field is called "ugcName" in lua table
   str32_t publisherId;

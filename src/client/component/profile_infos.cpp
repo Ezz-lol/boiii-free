@@ -76,7 +76,7 @@ std::unordered_set<uint64_t> get_connected_client_xuids() {
 }
 
 void clean_cached_profile_infos() {
-  if (!game::is_server_running()) {
+  if (!game::server_running()) {
     return;
   }
 

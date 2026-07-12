@@ -370,7 +370,7 @@ void dispatch_connect_packet(const game::net::netadr_t &target,
 void handle_connect_packet_fragment(const game::net::netadr_t &target,
                                     const network::data_view &data,
                                     game::LocalClientNum_t clientNum) {
-  if (game::is_server_running()) {
+  if (game::server_running()) {
     utils::byte_buffer buffer(data);
 
     std::string final_packet{};
@@ -387,7 +387,7 @@ void handle_connect_packet_fragment(const game::net::netadr_t &target,
 void handle_player_xuid_packet(const game::net::netadr_t &target,
                                const network::data_view &data,
                                game::LocalClientNum_t clientNum) {
-  if (!game::is_server_running() && party::is_host(target)) {
+  if (!game::server_running() && party::is_host(target)) {
     utils::byte_buffer buffer(data);
 
     const uint32_t player_id = buffer.read<uint32_t>();
@@ -427,7 +427,7 @@ uint64_t get_guid(const size_t client_num) {
     return 0;
   }
 
-  if (!game::is_server_running()) {
+  if (!game::server_running()) {
     std::lock_guard lock(client_xuids_mutex);
     return client_xuids[client_num];
   }
