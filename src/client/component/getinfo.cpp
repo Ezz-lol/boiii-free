@@ -98,9 +98,13 @@ struct component final : generic_component {
               - `cl_motdstring` - unused after initial registration
               - `motd_enabled` - used for the `LiveStats` MOTD
               - `live_motdEnabled` - used to check if LiveStorage should fetch
-                latest pub online data MOTD. This may be the same MOTD
-                conditionally used later conditionally upon the
-                potentially duplicitous `motd_enabled` dvar. Unsure currently.
+                latest pub online data MOTD.
+
+                This may be the same MOTD used later,
+                conditionally upon the potentially duplicitous
+                `motd_enabled` dvar.
+
+                Unsure currently.
               - `motddelay` - used for the `LiveStats` MOTD
 
         TL;DR: this should either be set with the value of `g_motd` or

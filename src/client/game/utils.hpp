@@ -118,7 +118,7 @@ get_live_steam_server_name() {
   return get_dvar_string(*sv_hostname);
 }
 [[nodiscard]] inline std::optional<std::string_view> hostname() {
-  if (game::is_server()) {
+  if (is_server()) {
     return get_live_steam_server_name();
   }
   return get_sv_hostname();
