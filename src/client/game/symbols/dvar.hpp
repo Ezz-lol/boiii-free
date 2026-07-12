@@ -47,6 +47,9 @@ WEAK symbol<dvar_t *> testmissingcontentpacks{0x1568EDDF0, 0x14948DD90};
 WEAK symbol<dvar_t *> splitscreen{0x1453D49F0, 0x1428AAEC8};
 WEAK symbol<dvar_t *> splitscreen_playerCount{0x1453D4A00, 0x1428AAED8};
 
+WEAK symbol<dvar_t *> r_vsync{0x14AE95098, 0x147CBC1E0};
+WEAK symbol<dvar_t *> r_fullscreen{0x14AE94DF8, 0x147CBBF48};
+
 WEAK symbol<int32_t> g_dvarCount{0x157AC61CC, 0x14A3CB5FC};
 WEAK symbol<DvarPool> s_dvarPool{0x157AC6220, 0x14A3CB620};
 
