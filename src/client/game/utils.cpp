@@ -412,10 +412,7 @@ EngineDependentDvar register_dvar_string(const char *dvar_name,
       },
       registered_dvar);
 }
-
-void dvar_add_flags(const char *dvar_name, const uint32_t flags) {
-  EngineDependentDvarMut dvar = get_dvar(dvar_name);
-
+void dvar_add_flags(EngineDependentDvarMut dvar, const uint32_t flags) {
   std::visit(
       [flags](auto *resolved) -> void {
         if (!resolved) {
@@ -436,9 +433,12 @@ void dvar_add_flags(const char *dvar_name, const uint32_t flags) {
       },
       dvar);
 }
-
-void dvar_set_flags(const char *dvar_name, const uint32_t flags) {
+void dvar_add_flags(const char *dvar_name, const uint32_t flags) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
+  dvar_add_flags(dvar, flags);
+}
+
+void dvar_set_flags(EngineDependentDvarMut dvar, const uint32_t flags) {
   std::visit(
       [flags](auto *resolved) -> void {
         if (!resolved) {
@@ -460,8 +460,12 @@ void dvar_set_flags(const char *dvar_name, const uint32_t flags) {
       dvar);
 }
 
-void dvar_remove_flags(const char *dvar_name, const uint32_t flags) {
+void dvar_set_flags(const char *dvar_name, const uint32_t flags) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
+  dvar_set_flags(dvar, flags);
+}
+
+void dvar_remove_flags(EngineDependentDvarMut dvar, const uint32_t flags) {
   std::visit(
       [flags](auto *resolved) -> void {
         if (!resolved) {
@@ -481,6 +485,11 @@ void dvar_remove_flags(const char *dvar_name, const uint32_t flags) {
         dvar_to_change->flags &= ~flags;
       },
       dvar);
+}
+
+void dvar_remove_flags(const char *dvar_name, const uint32_t flags) {
+  EngineDependentDvarMut dvar = get_dvar(dvar_name);
+  dvar_remove_flags(dvar, flags);
 }
 
 template <typename T>

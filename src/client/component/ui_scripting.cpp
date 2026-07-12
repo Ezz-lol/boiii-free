@@ -1385,17 +1385,30 @@ public:
         []() {
           std::visit(
               [](auto *resolved) -> void {
-                resolved->flags = static_cast<game::dvarFlags_e>(0);
+                if (resolved) {
+                  resolved->flags = static_cast<game::dvarFlags_e>(0);
+                  // TODO: why does setting the dvar directly here cause
+                  // the game to freeze?
+                  // Why do we have to use Dvar_SetFromStringByName?
+                  // game::set_dvar_bool(resolved, true);
+                  game::Dvar_SetFromStringByName("ui_error_callstack_ship", "1",
+                                                 true);
+                }
               },
               engine_dependent_toggle_const(game::ui_error_callstack_ship()));
           std::visit(
               [](auto *resolved) -> void {
-                resolved->flags = static_cast<game::dvarFlags_e>(0);
+                if (resolved) {
+                  resolved->flags = static_cast<game::dvarFlags_e>(0);
+                  // TODO: why does setting the dvar directly here cause
+                  // the game to freeze?
+                  // Why do we have to use Dvar_SetFromStringByName?
+                  // game::set_dvar_int(resolved, 0);
+                  game::Dvar_SetFromStringByName("ui_error_report_delay", "0",
+                                                 true);
+                }
               },
               engine_dependent_toggle_const(game::ui_error_report_delay()));
-
-          game::set_dvar_bool(game::ui_error_callstack_ship(), true);
-          game::set_dvar_int(game::ui_error_report_delay(), 0);
         },
         scheduler::pipeline::renderer);
 

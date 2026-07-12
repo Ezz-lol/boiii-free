@@ -206,31 +206,27 @@ struct component final : generic_component {
       return;
     }
 
-    scheduler::once(
-        []() {
-          dvar_cg_unlockall_loot = game::register_dvar_bool(
-              "cg_unlockall_loot", false, game::DVAR_ARCHIVE,
-              "Unlocks blackmarket loot");
-          dvar_cg_unlockall_purchases = game::register_dvar_bool(
-              "cg_unlockall_purchases", false, game::DVAR_ARCHIVE,
-              "Unlock all purchases with tokens");
-          dvar_cg_unlockall_attachments = game::register_dvar_bool(
-              "cg_unlockall_attachments", false, game::DVAR_ARCHIVE,
-              "Unlocks all attachments");
-          dvar_cg_unlockall_camos_and_reticles = game::register_dvar_bool(
-              "cg_unlockall_camos_and_reticles", false, game::DVAR_ARCHIVE,
-              "Unlocks all camos and reticles");
-          dvar_cg_unlockall_calling_cards = game::register_dvar_bool(
-              "cg_unlockall_calling_cards", false, game::DVAR_ARCHIVE,
-              "Unlocks all calling cards");
-          dvar_cg_unlockall_specialists_outfits = game::register_dvar_bool(
-              "cg_unlockall_specialists_outfits", false, game::DVAR_ARCHIVE,
-              "Unlocks all specialists outfits");
-          dvar_cg_unlockall_cac_slots = game::register_dvar_bool(
-              "cg_unlockall_cac_slots", false, game::DVAR_ARCHIVE,
-              "Unlocks all Create a Class Slots");
-        },
-        scheduler::pipeline::main);
+    dvar_cg_unlockall_loot =
+        game::register_dvar_bool("cg_unlockall_loot", false, game::DVAR_ARCHIVE,
+                                 "Unlocks blackmarket loot");
+    dvar_cg_unlockall_purchases = game::register_dvar_bool(
+        "cg_unlockall_purchases", false, game::DVAR_ARCHIVE,
+        "Unlock all purchases with tokens");
+    dvar_cg_unlockall_attachments =
+        game::register_dvar_bool("cg_unlockall_attachments", false,
+                                 game::DVAR_ARCHIVE, "Unlocks all attachments");
+    dvar_cg_unlockall_camos_and_reticles = game::register_dvar_bool(
+        "cg_unlockall_camos_and_reticles", false, game::DVAR_ARCHIVE,
+        "Unlocks all camos and reticles");
+    dvar_cg_unlockall_calling_cards = game::register_dvar_bool(
+        "cg_unlockall_calling_cards", false, game::DVAR_ARCHIVE,
+        "Unlocks all calling cards");
+    dvar_cg_unlockall_specialists_outfits = game::register_dvar_bool(
+        "cg_unlockall_specialists_outfits", false, game::DVAR_ARCHIVE,
+        "Unlocks all specialists outfits");
+    dvar_cg_unlockall_cac_slots = game::register_dvar_bool(
+        "cg_unlockall_cac_slots", false, game::DVAR_ARCHIVE,
+        "Unlocks all Create a Class Slots");
 
     command::add("unlockall", [](const command::params &) {
       if (game::com::Com_IsInGame()) {
@@ -334,7 +330,11 @@ struct component final : generic_component {
     scheduler::once(
         []() {
           if (game::get_dvar_bool(dvar_cg_unlockall_loot)) {
-            game::set_dvar_bool(game::ui_enableAllHeroes(), true);
+            // TODO: why does setting the dvar directly here cause
+            // the game to freeze?
+            // Why do we have to use Dvar_SetFromStringByName?
+            // game::set_dvar_bool(game::ui_enableAllHeroes(), true);
+            game::Dvar_SetFromStringByName("ui_enableAllHeroes", "1", true);
           }
         },
         scheduler::pipeline::dvars_loaded);

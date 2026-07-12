@@ -70,7 +70,6 @@ struct component final : generic_component {
           game::sv_wwwBaseURL = game::register_dvar_string(
               "sv_wwwBaseURL", "", game::DVAR_NONE,
               "The base url for files downloaded via http");
-
           game::sv_wwwDlDisconnected = game::register_dvar_bool(
               "sv_wwwDlDisconnected", true, game::DVAR_NONE,
               "Should clients stay connected while downloading?");

@@ -92,13 +92,8 @@ void rcon_handler(const game::net::netadr_t &target,
 struct component final : server_component {
   void post_unpack() override {
     network::on("rcon", rcon_handler);
-
-    scheduler::once(
-        []() {
-          rcon_timeout = game::register_dvar_int("rcon_timeout", 500, 100,
-                                                 10000, game::DVAR_NONE, "");
-        },
-        scheduler::pipeline::main);
+    rcon_timeout = game::register_dvar_int("rcon_timeout", 500, 100, 10000,
+                                           game::DVAR_NONE, "");
   }
 };
 } // namespace rcon

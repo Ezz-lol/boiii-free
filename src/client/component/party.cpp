@@ -24,6 +24,7 @@
 #include "game/impl/cl/cl.hpp"
 
 namespace party {
+game::EngineDependentDvar cl_connected_to_dedi;
 namespace {
 std::atomic_bool is_connecting_to_dedi{false};
 game::net::netadr_t connect_host{{}, {}, game::net::NA_BAD, {}};
@@ -498,13 +499,9 @@ void clear_server_info() {
 
 struct component final : client_component {
   void post_unpack() override {
-    scheduler::once(
-        []() {
-          (void)game::register_dvar_bool(
-              "cl_connected_to_dedi", false, game::DVAR_NONE,
-              "True when connected to a dedicated server");
-        },
-        scheduler::pipeline::main);
+    cl_connected_to_dedi =
+        game::register_dvar_bool("cl_connected_to_dedi", false, game::DVAR_NONE,
+                                 "True when connected to a dedicated server");
 
     utils::hook::jump(0x141EE5FE0_g, &connect_stub);
 

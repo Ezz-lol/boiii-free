@@ -14,9 +14,10 @@ void cg_calc_fov_stub(const game::LocalClientNum_t local_client_num,
   game::cg::CG_CalcFOVfromLens.call_safe(
       local_client_num, fov_x, dx_dz_at_default_aspect_ratio, dx_dz, dy_dz);
 
-  const game::dvar_t *cg_fovScale =
-      *reinterpret_cast<game::dvar_t **>(0x144A31A88_g);
-  if (cg_fovScale && !game::com::Com_IsRunningUILevel()) {
+  game::EngineDependentDvar cg_fovScale = game::dvar_variant(
+      *reinterpret_cast<const game::dvar_t **>(0x144A31A88_g));
+  if (game::engine_dependent_nonnull(cg_fovScale) &&
+      !game::com::Com_IsRunningUILevel()) {
     const float scale = game::get_dvar_float(cg_fovScale);
 
     *fov_x *= scale;

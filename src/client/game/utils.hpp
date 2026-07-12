@@ -144,6 +144,9 @@ register_sessionmode_dvar_bool(const char *dvar_name, bool value,
                                                        const char *value,
                                                        uint32_t flags,
                                                        const char *description);
+void dvar_add_flags(EngineDependentDvarMut dvar, uint32_t flags);
+void dvar_set_flags(EngineDependentDvarMut dvar, uint32_t flags);
+void dvar_remove_flags(EngineDependentDvarMut dvar, uint32_t flags);
 
 void dvar_add_flags(const char *dvar_name, uint32_t flags);
 void dvar_set_flags(const char *dvar_name, uint32_t flags);

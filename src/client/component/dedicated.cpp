@@ -76,12 +76,8 @@ struct component final : server_component {
     // Hook GScr_ExitLevel
     utils::hook::jump(0x1402D1AA0_g, trigger_map_rotation);
 
-    scheduler::once(
-        []() {
-          sv_lan_only = game::register_dvar_bool(
-              "sv_lanOnly", false, game::DVAR_NONE, "Don't send heartbeats");
-        },
-        scheduler::pipeline::main);
+    sv_lan_only = game::register_dvar_bool("sv_lanOnly", false, game::DVAR_NONE,
+                                           "Don't send heartbeats");
   }
 };
 } // namespace dedicated
