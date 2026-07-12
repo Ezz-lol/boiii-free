@@ -697,14 +697,18 @@ public:
     // Always get loadscreen gametype from s_gametype
     utils::hook::set<uint8_t>(0x14228F5DC_g, 0xEB);
 
-    cl_yaw_speed = game::register_dvar_float(
-        "cl_yawspeed", 140.0f, std::numeric_limits<float>::min(),
-        std::numeric_limits<float>::max(), game::DVAR_NONE,
-        "Max yaw speed in degrees for game pad and keyboard");
-    cl_pitch_speed = game::register_dvar_float(
-        "cl_pitchspeed", 140.0f, std::numeric_limits<float>::min(),
-        std::numeric_limits<float>::max(), game::DVAR_NONE,
-        "Max pitch speed in degrees for game pad");
+    scheduler::once(
+        []() {
+          cl_yaw_speed = game::register_dvar_float(
+              "cl_yawspeed", 140.0f, std::numeric_limits<float>::min(),
+              std::numeric_limits<float>::max(), game::DVAR_NONE,
+              "Max yaw speed in degrees for game pad and keyboard");
+          cl_pitch_speed = game::register_dvar_float(
+              "cl_pitchspeed", 140.0f, std::numeric_limits<float>::min(),
+              std::numeric_limits<float>::max(), game::DVAR_NONE,
+              "Max pitch speed in degrees for game pad");
+        },
+        scheduler::pipeline::main);
 
     // CL_AdjustAngles
     utils::hook::call(0x1412F3324_g,

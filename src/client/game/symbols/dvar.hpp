@@ -35,6 +35,7 @@ WEAK symbol<dvar_t *> ui_checksum_enabled{0x1568EDC98, 0x14948DC18};
 WEAK symbol<dvar_t *> ui_error_report{0x1568EEEA8, 0x14948DC20};
 WEAK symbol<dvar_t *> ui_error_report_delay{0x1568EEEB0, 0x14948DC28};
 WEAK symbol<dvar_t *> ui_error_callstack_ship{0x1568EDCA0, 0x14948DC30};
+WEAK symbol<dvar_t *> ui_enableAllHeroes{0x1579DF948, 0x14A30C408};
 
 WEAK symbol<dvar_t *> g_motd{0x14A3D15D0, 0x147836998};
 WEAK symbol<dvar_t *> live_motdEnabled{0x15163FC70, 0x148382988};

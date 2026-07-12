@@ -74,14 +74,14 @@ void rate_limit_cleanup(const int time) {
 void rcon_handler(const game::net::netadr_t &target,
                   const network::data_view &data,
                   game::LocalClientNum_t clientNum) {
-  const auto time = game::sys::Sys_Milliseconds();
+  const int32_t time = game::sys::Sys_Milliseconds();
   if (!rate_limit_check(target, time)) {
     return;
   }
 
   rate_limit_cleanup(time);
 
-  auto str_data =
+  const std::string str_data =
       std::string(reinterpret_cast<const char *>(data.data()), data.size());
   scheduler::once(
       [target, s = std::move(str_data)] { rcon_executer(target, s); },
@@ -93,8 +93,12 @@ struct component final : server_component {
   void post_unpack() override {
     network::on("rcon", rcon_handler);
 
-    rcon_timeout = game::register_dvar_int("rcon_timeout", 500, 100, 10000,
-                                           game::DVAR_NONE, "");
+    scheduler::once(
+        []() {
+          rcon_timeout = game::register_dvar_int("rcon_timeout", 500, 100,
+                                                 10000, game::DVAR_NONE, "");
+        },
+        scheduler::pipeline::main);
   }
 };
 } // namespace rcon

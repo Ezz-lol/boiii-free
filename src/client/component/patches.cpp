@@ -444,8 +444,12 @@ struct component final : generic_component {
     utils::hook::call(game::select(0x14225489C, 0x140537C4C),
                       sv_execute_client_messages_stub);
 
-    lobby_min_players = game::register_dvar_int("lobby_min_players", 0, 0, 8,
-                                                game::DVAR_NONE, "");
+    scheduler::once(
+        []() {
+          lobby_min_players = game::register_dvar_int("lobby_min_players", 0, 0,
+                                                      8, game::DVAR_NONE, "");
+        },
+        scheduler::pipeline::main);
     utils::hook::jump(game::select(0x141A7BCF0, 0x1402CB900),
                       scr_get_num_expected_players, true);
   }

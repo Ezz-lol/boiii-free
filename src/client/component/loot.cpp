@@ -206,27 +206,31 @@ struct component final : generic_component {
       return;
     }
 
-    dvar_cg_unlockall_loot =
-        game::register_dvar_bool("cg_unlockall_loot", false, game::DVAR_ARCHIVE,
-                                 "Unlocks blackmarket loot");
-    dvar_cg_unlockall_purchases = game::register_dvar_bool(
-        "cg_unlockall_purchases", false, game::DVAR_ARCHIVE,
-        "Unlock all purchases with tokens");
-    dvar_cg_unlockall_attachments =
-        game::register_dvar_bool("cg_unlockall_attachments", false,
-                                 game::DVAR_ARCHIVE, "Unlocks all attachments");
-    dvar_cg_unlockall_camos_and_reticles = game::register_dvar_bool(
-        "cg_unlockall_camos_and_reticles", false, game::DVAR_ARCHIVE,
-        "Unlocks all camos and reticles");
-    dvar_cg_unlockall_calling_cards = game::register_dvar_bool(
-        "cg_unlockall_calling_cards", false, game::DVAR_ARCHIVE,
-        "Unlocks all calling cards");
-    dvar_cg_unlockall_specialists_outfits = game::register_dvar_bool(
-        "cg_unlockall_specialists_outfits", false, game::DVAR_ARCHIVE,
-        "Unlocks all specialists outfits");
-    dvar_cg_unlockall_cac_slots = game::register_dvar_bool(
-        "cg_unlockall_cac_slots", false, game::DVAR_ARCHIVE,
-        "Unlocks all Create a Class Slots");
+    scheduler::once(
+        []() {
+          dvar_cg_unlockall_loot = game::register_dvar_bool(
+              "cg_unlockall_loot", false, game::DVAR_ARCHIVE,
+              "Unlocks blackmarket loot");
+          dvar_cg_unlockall_purchases = game::register_dvar_bool(
+              "cg_unlockall_purchases", false, game::DVAR_ARCHIVE,
+              "Unlock all purchases with tokens");
+          dvar_cg_unlockall_attachments = game::register_dvar_bool(
+              "cg_unlockall_attachments", false, game::DVAR_ARCHIVE,
+              "Unlocks all attachments");
+          dvar_cg_unlockall_camos_and_reticles = game::register_dvar_bool(
+              "cg_unlockall_camos_and_reticles", false, game::DVAR_ARCHIVE,
+              "Unlocks all camos and reticles");
+          dvar_cg_unlockall_calling_cards = game::register_dvar_bool(
+              "cg_unlockall_calling_cards", false, game::DVAR_ARCHIVE,
+              "Unlocks all calling cards");
+          dvar_cg_unlockall_specialists_outfits = game::register_dvar_bool(
+              "cg_unlockall_specialists_outfits", false, game::DVAR_ARCHIVE,
+              "Unlocks all specialists outfits");
+          dvar_cg_unlockall_cac_slots = game::register_dvar_bool(
+              "cg_unlockall_cac_slots", false, game::DVAR_ARCHIVE,
+              "Unlocks all Create a Class Slots");
+        },
+        scheduler::pipeline::main);
 
     command::add("unlockall", [](const command::params &) {
       if (game::com::Com_IsInGame()) {
@@ -236,16 +240,14 @@ struct component final : generic_component {
         return;
       }
       // Enable all unlock dvars (mode-independent)
-      game::Dvar_SetFromStringByName("cg_unlockall_loot", "1", true);
-      game::Dvar_SetFromStringByName("cg_unlockall_purchases", "1", true);
-      game::Dvar_SetFromStringByName("cg_unlockall_attachments", "1", true);
-      game::Dvar_SetFromStringByName("cg_unlockall_camos_and_reticles", "1",
-                                     true);
-      game::Dvar_SetFromStringByName("cg_unlockall_calling_cards", "1", true);
-      game::Dvar_SetFromStringByName("cg_unlockall_specialists_outfits", "1",
-                                     true);
-      game::Dvar_SetFromStringByName("cg_unlockall_cac_slots", "1", true);
-      game::Dvar_SetFromStringByName("ui_enableAllHeroes", "1", true);
+      game::set_dvar_bool(dvar_cg_unlockall_loot, true);
+      game::set_dvar_bool(dvar_cg_unlockall_purchases, true);
+      game::set_dvar_bool(dvar_cg_unlockall_attachments, true);
+      game::set_dvar_bool(dvar_cg_unlockall_camos_and_reticles, true);
+      game::set_dvar_bool(dvar_cg_unlockall_calling_cards, true);
+      game::set_dvar_bool(dvar_cg_unlockall_specialists_outfits, true);
+      game::set_dvar_bool(dvar_cg_unlockall_cac_slots, true);
+      game::set_dvar_bool(*game::ui_enableAllHeroes, true);
 
       // Set master prestige for all 3 modes (eModes: ZM=0, MP=1, CP=2)
       game::cbuf::Cbuf_AddText(0, "PrestigeStatsMaster 0\n"); // ZM
@@ -332,7 +334,7 @@ struct component final : generic_component {
     scheduler::once(
         []() {
           if (game::get_dvar_bool(dvar_cg_unlockall_loot)) {
-            game::Dvar_SetFromStringByName("ui_enableAllHeroes", "1", true);
+            game::set_dvar_bool(*game::ui_enableAllHeroes, true);
           }
         },
         scheduler::pipeline::dvars_loaded);

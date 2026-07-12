@@ -498,9 +498,13 @@ void clear_server_info() {
 
 struct component final : client_component {
   void post_unpack() override {
-    (void)game::register_dvar_bool("cl_connected_to_dedi", false,
-                                   game::DVAR_NONE,
-                                   "True when connected to a dedicated server");
+    scheduler::once(
+        []() {
+          (void)game::register_dvar_bool(
+              "cl_connected_to_dedi", false, game::DVAR_NONE,
+              "True when connected to a dedicated server");
+        },
+        scheduler::pipeline::main);
 
     utils::hook::jump(0x141EE5FE0_g, &connect_stub);
 
