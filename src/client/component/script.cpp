@@ -701,12 +701,15 @@ RawFile *get_loaded_map_script(const char *name) {
     // Replace "scripts" prefix with "scripts/${mapname}"
     size_t first_sep = search_name.find('/');
     if (first_sep != std::string::npos) {
-      const std::string override_path =
-          std::string(search_name.substr(0, first_sep + 1)) /* "scripts/" */ +
-          std::string(mapname.value()) +
-          std::string(search_name.substr(
-              first_sep)) /* relative path under "scripts" tree */;
-      return get_loaded_script(override_path);
+      const std::string_view prefix = search_name.substr(0, first_sep + 1);
+      if (prefix == "scripts/") {
+        const std::string override_path =
+            std::string(prefix) /* "scripts/" */ +
+            std::string(mapname.value()) +
+            std::string(search_name.substr(
+                first_sep)) /* relative path under "scripts" tree */;
+        return get_loaded_script(override_path);
+      }
     }
   }
 
