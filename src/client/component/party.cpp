@@ -319,19 +319,9 @@ void handle_connect_query_response(const bool success,
       scheduler::main);
 }
 
-void connect_stub(const char *address) {
-  if (address) {
-    const game::net::netadr_t target = network::address_from_string(address);
-    if (target.type == game::net::NA_BAD) {
-      printf("Connect failed: invalid address \"%s\"\n", address);
-      toast::show("Connect failed", "Invalid address",
-                  "t7_icon_connect_overlays");
-      return;
-    }
-
-    connect_host = target;
-    toast::show("Connecting", address, "t7_icon_connect_overlays");
-  }
+void connect_finish(const game::net::netadr_t &target,
+                     const char *address) {
+  connect_host = target;
 
   profile_infos::clear_profile_infos();
 
@@ -347,17 +337,12 @@ void connect_stub(const char *address) {
         std::string mod_id = parts.size() >= 5 ? parts[4] : "";
 
         if (!mapname.empty() && !gametype.empty()) {
-
-          scheduler::once(
-              [=] {
-                std::string usermap_id =
-                    workshop::get_usermap_publisher_id(mapname);
-                game::com::Com_SessionMode_SetGameMode(
-                    game::eGameModes::MATCHMAKING_PLAYLIST);
-                connect_to_lobby_with_mode_internal(
-                    connect_host, mode, mapname, gametype, usermap_id, mod_id);
-              },
-              scheduler::main);
+          std::string usermap_id =
+              workshop::get_usermap_publisher_id(mapname);
+          game::com::Com_SessionMode_SetGameMode(
+              game::eGameModes::MATCHMAKING_PLAYLIST);
+          connect_to_lobby_with_mode_internal(
+              connect_host, mode, mapname, gametype, usermap_id, mod_id);
           return;
         }
       }
@@ -365,6 +350,40 @@ void connect_stub(const char *address) {
   }
 
   query_server(connect_host, handle_connect_query_response);
+}
+
+void connect_stub(const char *address) {
+  if (address) {
+    const std::string address_copy = address;
+
+    toast::show("Connecting", address, "t7_icon_connect_overlays");
+
+    // Resolve the address on a background thread.
+    scheduler::once(
+        [address_copy] {
+          const game::net::netadr_t target =
+              network::address_from_string(address_copy);
+
+          // Hop back to the main thread before touching any game state.
+          scheduler::once(
+              [address_copy, target] {
+                if (target.type == game::net::NA_BAD) {
+                  printf("Connect failed: invalid address \"%s\"\n",
+                         address_copy.c_str());
+                  toast::show("Connect failed", "Invalid address",
+                              "t7_icon_connect_overlays");
+                  return;
+                }
+
+                connect_finish(target, address_copy.c_str());
+              },
+              scheduler::main);
+        },
+        scheduler::async);
+
+    return;
+  }
+  connect_finish(connect_host, nullptr);
 }
 
 void send_server_query(server_query &query) {
