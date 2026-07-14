@@ -1,7 +1,7 @@
-#include "../std_include.hpp"
-#include "loader/component_loader.hpp"
-#include "../game/game.hpp"
-#include "../game/utils.hpp"
+#include <std_include.hpp>
+#include <loader/component_loader.hpp>
+#include <game/game.hpp>
+#include <game/utils.hpp>
 
 #include "party.hpp"
 #include "auth.hpp"
@@ -21,7 +21,7 @@
 #include <utils/cryptography.hpp>
 #include <utils/concurrency.hpp>
 
-#include "game/impl/cl/cl.hpp"
+#include <game/impl/cl/cl.hpp>
 
 namespace party {
 game::EngineDependentDvar cl_connected_to_dedi;

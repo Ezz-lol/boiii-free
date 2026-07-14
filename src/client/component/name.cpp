@@ -1,7 +1,5 @@
-#include <mutex>
-#include <optional>
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 
 #include "name.hpp"
 #include "steam_proxy.hpp"
@@ -10,7 +8,7 @@
 #include "party.hpp"
 #include "toast.hpp"
 #include "scheduler.hpp"
-#include "game/utils.hpp"
+#include <game/utils.hpp>
 
 #include <utils/byte_buffer.hpp>
 #include <utils/nt.hpp>
@@ -18,6 +16,12 @@
 #include <utils/properties.hpp>
 #include <utils/concurrency.hpp>
 #include <str.hpp>
+
+#include "sv.hpp"
+#include "game_event.hpp"
+
+#include <mutex>
+#include <optional>
 
 namespace name {
 namespace {

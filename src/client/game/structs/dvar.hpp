@@ -1,15 +1,33 @@
 #pragma once
 
-#include "core.hpp"
+#include <macros.hpp>
 #include "macros.hpp"
 #include "func.hpp"
 #include "quake/vec.hpp"
+#include "core.hpp"
 
 #include <cstddef>
 #include <cstdint>
 #include <type_traits>
+#include <optional>
+#include <string>
 
 namespace game {
+
+template <typename T>
+concept PtrLike = std::is_convertible_v<T, uintptr_t>;
+
+struct dvar_t;
+struct encryptedDvar_t;
+
+enum class DvarSetSource : uint32_t {
+  INTERNAL = 0x0,
+  EXTERNAL = 0x1,
+  SCRIPT = 0x2,
+};
+
+bool is_server();
+bool is_client();
 
 typedef uint32_t dvarStrHash_t;
 
@@ -57,12 +75,8 @@ enum dvarFlags_e : uint32_t {
 
 #pragma pack(push, 1)
 union DvarFlags {
-private:
-  template <typename T>
-  static constexpr bool is_allowed_flag_v =
-      std::is_convertible<T, uint32_t>::value;
+  uint32_t _raw;
 
-public:
   struct {
     uint32_t archive : 1;
     uint32_t userinfo : 1;
@@ -81,99 +95,164 @@ public:
     uint32_t modvar : 1;
     uint32_t reserved : 14;
   };
-  uint32_t _raw;
 
-  constexpr DvarFlags() noexcept : _raw(0) {}
+  inline constexpr operator uint32_t() const noexcept { return _raw; }
 
-  template <typename T, typename = std::enable_if_t<is_allowed_flag_v<T>>>
-  constexpr DvarFlags(T raw) noexcept : _raw(static_cast<uint32_t>(raw)) {}
+  template <typename T, bool IsEnum = std::is_enum_v<T>>
+  struct is_allowed_flag_helper {
+    static constexpr bool value = std::is_convertible_v<T, uint32_t>;
+  };
 
-  constexpr operator uint32_t() const noexcept { return _raw; }
+  template <typename T> struct is_allowed_flag_helper<T, true> {
+    static constexpr bool value =
+        std::is_same_v<T, uint32_t> || std::is_convertible_v<T, uint32_t> ||
+        std::is_convertible_v<std::underlying_type_t<T>, uint32_t> ||
+        std::is_convertible_v<std::underlying_type_t<T>, int32_t>;
+  };
 
-  constexpr DvarFlags operator~() const noexcept { return DvarFlags(~_raw); }
+  template <typename T>
+  static constexpr bool is_allowed_flag_v =
+      ScopedUnderlying<T, int32_t> || ScopedUnderlying<T, uint32_t> ||
+      std::is_convertible_v<T, uint32_t>;
 
-  template <typename T, typename = std::enable_if_t<is_allowed_flag_v<T>>>
-  constexpr DvarFlags &operator|=(T rhs) noexcept {
-    _raw |= static_cast<uint32_t>(rhs);
-    return *this;
+  template <typename T,
+            typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+  static constexpr DvarFlags from(T val) noexcept {
+    return DvarFlags{static_cast<uint32_t>(val)};
+  }
+  template <typename T,
+            typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+  inline constexpr void add(T flags) noexcept {
+    _raw |= static_cast<uint32_t>(flags);
   }
 
-  template <typename T, typename = std::enable_if_t<is_allowed_flag_v<T>>>
-  constexpr DvarFlags &operator&=(T rhs) noexcept {
-    _raw &= static_cast<uint32_t>(rhs);
-    return *this;
+  template <typename T,
+            typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+  inline constexpr void remove(T flags) noexcept {
+    _raw &= static_cast<uint32_t>(~flags);
   }
 
-  template <typename T, typename = std::enable_if_t<is_allowed_flag_v<T>>>
-  constexpr DvarFlags &operator^=(T rhs) noexcept {
-    _raw ^= static_cast<uint32_t>(rhs);
-    return *this;
+  inline constexpr void clear() noexcept { _raw = 0; }
+
+  template <typename T,
+            typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+  inline constexpr void set(T flags) noexcept {
+    _raw = static_cast<uint32_t>(flags);
   }
 
-  // DvarFlags [op] T
-  template <typename T, typename = std::enable_if_t<is_allowed_flag_v<T>>>
-  friend constexpr DvarFlags operator|(DvarFlags lhs, T rhs) noexcept {
-    return DvarFlags(lhs._raw | static_cast<uint32_t>(rhs));
+  template <typename T,
+            typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+  inline constexpr DvarFlags add(T flags) const noexcept {
+    return DvarFlags{_raw | static_cast<uint32_t>(flags)};
   }
 
-  // T [op] DvarFlags (DvarFlags == T excluded - prevents ambiguity)
-  template <typename T, typename = std::enable_if_t<
-                            is_allowed_flag_v<T> &&
-                            !std::is_same_v<std::decay_t<T>, DvarFlags>>>
-  friend constexpr DvarFlags operator|(T lhs, DvarFlags rhs) noexcept {
-    return DvarFlags(static_cast<uint32_t>(lhs) | rhs._raw);
+  template <typename T,
+            typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+  inline constexpr DvarFlags remove(T flags) const noexcept {
+    return DvarFlags{_raw & static_cast<uint32_t>(~flags)};
   }
 
-  template <typename T, typename = std::enable_if_t<is_allowed_flag_v<T>>>
-  friend constexpr DvarFlags operator&(DvarFlags lhs, T rhs) noexcept {
-    return DvarFlags(lhs._raw & static_cast<uint32_t>(rhs));
-  }
+  inline constexpr DvarFlags clear() const noexcept { return DvarFlags{0}; }
 
-  template <typename T, typename = std::enable_if_t<
-                            is_allowed_flag_v<T> &&
-                            !std::is_same_v<std::decay_t<T>, DvarFlags>>>
-  friend constexpr DvarFlags operator&(T lhs, DvarFlags rhs) noexcept {
-    return DvarFlags(static_cast<uint32_t>(lhs) & rhs._raw);
-  }
-
-  template <typename T, typename = std::enable_if_t<is_allowed_flag_v<T>>>
-  friend constexpr DvarFlags operator^(DvarFlags lhs, T rhs) noexcept {
-    return DvarFlags(lhs._raw ^ static_cast<uint32_t>(rhs));
-  }
-
-  template <typename T, typename = std::enable_if_t<
-                            is_allowed_flag_v<T> &&
-                            !std::is_same_v<std::decay_t<T>, DvarFlags>>>
-  friend constexpr DvarFlags operator^(T lhs, DvarFlags rhs) noexcept {
-    return DvarFlags(static_cast<uint32_t>(lhs) ^ rhs._raw);
-  }
-
-  template <typename T, typename = std::enable_if_t<is_allowed_flag_v<T>>>
-  friend constexpr bool operator==(DvarFlags lhs, T rhs) noexcept {
-    return lhs._raw == static_cast<uint32_t>(rhs);
-  }
-
-  template <typename T, typename = std::enable_if_t<
-                            is_allowed_flag_v<T> &&
-                            !std::is_same_v<std::decay_t<T>, DvarFlags>>>
-  friend constexpr bool operator==(T lhs, DvarFlags rhs) noexcept {
-    return static_cast<uint32_t>(lhs) == rhs._raw;
-  }
-
-  template <typename T, typename = std::enable_if_t<is_allowed_flag_v<T>>>
-  friend constexpr bool operator!=(DvarFlags lhs, T rhs) noexcept {
-    return lhs._raw != static_cast<uint32_t>(rhs);
-  }
-
-  template <typename T, typename = std::enable_if_t<
-                            is_allowed_flag_v<T> &&
-                            !std::is_same_v<std::decay_t<T>, DvarFlags>>>
-  friend constexpr bool operator!=(T lhs, DvarFlags rhs) noexcept {
-    return static_cast<uint32_t>(lhs) != rhs._raw;
+  template <typename T,
+            typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+  inline constexpr DvarFlags set(T flags) const noexcept {
+    return DvarFlags{static_cast<uint32_t>(flags)};
   }
 };
-ASSERT_SIZE(DvarFlags, sizeof(uint32_t));
 #pragma pack(pop)
+
+inline constexpr DvarFlags operator~(DvarFlags flag) noexcept {
+  return DvarFlags{~flag._raw};
+}
+
+template <typename T,
+          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+inline constexpr DvarFlags &operator|=(DvarFlags &lhs, T rhs) noexcept {
+  lhs._raw |= static_cast<uint32_t>(rhs);
+  return lhs;
+}
+
+template <typename T,
+          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+inline constexpr DvarFlags &operator&=(DvarFlags &lhs, T rhs) noexcept {
+  lhs._raw &= static_cast<uint32_t>(rhs);
+  return lhs;
+}
+
+template <typename T,
+          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+inline constexpr DvarFlags &operator^=(DvarFlags &lhs, T rhs) noexcept {
+  lhs._raw ^= static_cast<uint32_t>(rhs);
+  return lhs;
+}
+
+template <typename T,
+          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+inline constexpr DvarFlags operator|(DvarFlags lhs, T rhs) noexcept {
+  return DvarFlags{lhs._raw | static_cast<uint32_t>(rhs)};
+}
+
+template <typename T, typename = std::enable_if_t<
+                          DvarFlags::is_allowed_flag_v<T> &&
+                          !std::is_same_v<std::decay_t<T>, DvarFlags>>>
+inline constexpr DvarFlags operator|(T lhs, DvarFlags rhs) noexcept {
+  return DvarFlags{static_cast<uint32_t>(lhs) | rhs._raw};
+}
+
+template <typename T,
+          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+inline constexpr DvarFlags operator&(DvarFlags lhs, T rhs) noexcept {
+  return DvarFlags{lhs._raw & static_cast<uint32_t>(rhs)};
+}
+
+template <typename T, typename = std::enable_if_t<
+                          DvarFlags::is_allowed_flag_v<T> &&
+                          !std::is_same_v<std::decay_t<T>, DvarFlags>>>
+inline constexpr DvarFlags operator&(T lhs, DvarFlags rhs) noexcept {
+  return DvarFlags{static_cast<uint32_t>(lhs) & rhs._raw};
+}
+
+template <typename T,
+          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+inline constexpr DvarFlags operator^(DvarFlags lhs, T rhs) noexcept {
+  return DvarFlags{lhs._raw ^ static_cast<uint32_t>(rhs)};
+}
+
+template <typename T, typename = std::enable_if_t<
+                          DvarFlags::is_allowed_flag_v<T> &&
+                          !std::is_same_v<std::decay_t<T>, DvarFlags>>>
+inline constexpr DvarFlags operator^(T lhs, DvarFlags rhs) noexcept {
+  return DvarFlags{static_cast<uint32_t>(lhs) ^ rhs._raw};
+}
+
+template <typename T,
+          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+inline constexpr bool operator==(DvarFlags lhs, T rhs) noexcept {
+  return lhs._raw == static_cast<uint32_t>(rhs);
+}
+
+template <typename T, typename = std::enable_if_t<
+                          DvarFlags::is_allowed_flag_v<T> &&
+                          !std::is_same_v<std::decay_t<T>, DvarFlags>>>
+inline constexpr bool operator==(T lhs, DvarFlags rhs) noexcept {
+  return static_cast<uint32_t>(lhs) == rhs._raw;
+}
+
+template <typename T,
+          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+inline constexpr bool operator!=(DvarFlags lhs, T rhs) noexcept {
+  return lhs._raw != static_cast<uint32_t>(rhs);
+}
+
+template <typename T, typename = std::enable_if_t<
+                          DvarFlags::is_allowed_flag_v<T> &&
+                          !std::is_same_v<std::decay_t<T>, DvarFlags>>>
+inline constexpr bool operator!=(T lhs, DvarFlags rhs) noexcept {
+  return static_cast<uint32_t>(lhs) != rhs._raw;
+};
+ASSERT_SIZE(DvarFlags, sizeof(uint32_t));
+ASSERT_POD(DvarFlags);
 
 /*
   Labeled as rgba in engine.
@@ -206,31 +285,30 @@ union DvarColor {
 
   uint8_t raw[4];
 
-  constexpr DvarColor() noexcept : raw{0, 0, 0, 0} {}
-  constexpr DvarColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) noexcept
+  inline constexpr DvarColor() noexcept = default;
+  inline constexpr DvarColor(uint8_t r, uint8_t g, uint8_t b,
+                             uint8_t a) noexcept
       : r(r), g(g), b(b), a(a) {}
-  constexpr DvarColor(uint8_t x, uint8_t y, uint8_t z) noexcept
+  inline constexpr DvarColor(uint8_t x, uint8_t y, uint8_t z) noexcept
       : xyz{x, y, z} {}
 
   // operators for implicit conversion to uint8_t[4], array semantics
-  constexpr operator uint8_t *() noexcept { return raw; }
-  constexpr operator const uint8_t *() const noexcept { return raw; }
-  constexpr uint8_t &operator[](size_t index) noexcept { return raw[index]; }
-  constexpr const uint8_t &operator[](size_t index) const noexcept {
+  inline constexpr operator uint8_t *() noexcept { return raw; }
+  inline constexpr operator const uint8_t *() const noexcept { return raw; }
+  inline constexpr uint8_t &operator[](size_t index) noexcept {
+    return raw[index];
+  }
+  inline constexpr const uint8_t &operator[](size_t index) const noexcept {
     return raw[index];
   }
 };
+ASSERT_POD(DvarColor);
 ASSERT_SIZE(DvarColor, 4);
 #pragma pack(pop)
 
-struct dvar_t;
-struct dvar_t_cl;
-
-enum class DvarSetSource : uint32_t {
-  INTERNAL = 0x0,
-  EXTERNAL = 0x1,
-  SCRIPT = 0x2,
-};
+namespace com {
+eModes Com_SessionMode_GetMode();
+}
 
 #pragma pack(push, 1)
 template <typename T_Dvar> union TemplateDvarValue {
@@ -243,7 +321,7 @@ template <typename T_Dvar> union TemplateDvarValue {
   vec4_t _vector;
   const char *_string;
   DvarColor _color;
-  const T_Dvar *indirect[3];
+  SessionModePool<const T_Dvar *> _indirect;
 
   inline constexpr bool enabled() const { return _enabled; }
 
@@ -260,36 +338,95 @@ template <typename T_Dvar> union TemplateDvarValue {
   inline constexpr vec4_t vector() const { return _vector; }
   inline constexpr const char *string() const { return _string; }
   inline constexpr DvarColor color() const { return _color; }
+
+  inline constexpr bool &enabled() { return _enabled; }
+
+  inline constexpr int32_t &integer() { return _integer; }
+
+  inline constexpr uint32_t &unsignedInt() { return _unsignedInt; }
+
+  inline constexpr int64_t &integer64() { return _integer64; }
+
+  inline constexpr uint64_t &unsignedInt64() { return _unsignedInt64; }
+
+  inline constexpr float &value() { return _value; }
+
+  inline constexpr vec4_t &vector() { return _vector; }
+  inline constexpr const char *&string() { return _string; }
+  inline constexpr DvarColor &color() { return _color; }
+
+  inline const T_Dvar *indirect(eModes mode) const {
+    return valid_mode(mode) ? _indirect[mode] : nullptr;
+  }
+  inline const T_Dvar *indirect() const {
+    return indirect(com::Com_SessionMode_GetMode());
+  }
+  inline const T_Dvar *sessionModeSpecific(eModes mode) const {
+    return indirect(mode);
+  }
+  inline const T_Dvar *sessionModeSpecific() const { return indirect(); }
 };
+ASSERT_POD(TemplateDvarValue<void>);
+
 typedef TemplateDvarValue<dvar_t> DvarValue;
+ASSERT_SIZE(DvarValue, 0x18);
+ASSERT_POD(DvarValue);
+
 struct EncryptionCapableDvarValue {
-  TemplateDvarValue<dvar_t_cl> _value;
+  TemplateDvarValue<encryptedDvar_t> _value;
   uint64_t encryptedValue;
 
+  inline constexpr EncryptionCapableDvarValue() noexcept = default;
   // Fields renamed with "_" prefix in favor of consolidated method interface
-  // to allow identical usage of both Dvarvalue and EncryptionCapableDvarValue.
-  // Otherwise, field accesses differ, and we cannot use the same std::visit
-  // callbacks to access them identically.
-  inline constexpr bool enabled() const { return _value._enabled; }
+  // to allow identical usage of both DvarValue and EncryptionCapableDvarValue.
+  // in the `EngineDependentDvar` methods
+  inline constexpr bool enabled() const { return _value.enabled(); }
 
-  inline constexpr int32_t integer() const { return _value._integer; }
+  inline constexpr int32_t integer() const { return _value.integer(); }
 
-  inline constexpr uint32_t unsignedInt() const { return _value._unsignedInt; }
+  inline constexpr uint32_t unsignedInt() const { return _value.unsignedInt(); }
 
-  inline constexpr int64_t integer64() const { return _value._integer64; }
+  inline constexpr int64_t integer64() const { return _value.integer64(); }
 
   inline constexpr uint64_t unsignedInt64() const {
-    return _value._unsignedInt64;
+    return _value.unsignedInt64();
   }
 
-  inline constexpr float value() const { return _value._value; }
+  inline constexpr float value() const { return _value.value(); }
 
-  inline constexpr vec4_t vector() const { return _value._vector; }
-  inline constexpr const char *string() const { return _value._string; }
-  inline constexpr DvarColor color() const { return _value._color; }
+  inline constexpr vec4_t vector() const { return _value.vector(); }
+  inline constexpr const char *string() const { return _value.string(); }
+  inline constexpr DvarColor color() const { return _value.color(); }
+
+  inline constexpr bool &enabled() { return _value.enabled(); }
+
+  inline constexpr int32_t &integer() { return _value.integer(); }
+
+  inline constexpr uint32_t &unsignedInt() { return _value.unsignedInt(); }
+
+  inline constexpr int64_t &integer64() { return _value.integer64(); }
+
+  inline constexpr uint64_t &unsignedInt64() { return _value.unsignedInt64(); }
+
+  inline constexpr float &value() { return _value.value(); }
+
+  inline constexpr vec4_t &vector() { return _value.vector(); }
+  inline constexpr const char *&string() { return _value.string(); }
+  inline constexpr DvarColor &color() { return _value.color(); }
+
+  inline const encryptedDvar_t *indirect(eModes mode) const {
+    return _value.indirect(mode);
+  }
+  inline const encryptedDvar_t *indirect() const { return _value.indirect(); }
+  inline const encryptedDvar_t *sessionModeSpecific(eModes mode) const {
+    return _value.sessionModeSpecific(mode);
+  }
+  inline const encryptedDvar_t *sessionModeSpecific() const {
+    return _value.sessionModeSpecific();
+  }
 };
-ASSERT_SIZE(DvarValue, 0x18);
 ASSERT_SIZE(EncryptionCapableDvarValue, 0x20);
+ASSERT_POD(EncryptionCapableDvarValue);
 #pragma pack(pop)
 
 union DvarLimits {
@@ -326,7 +463,7 @@ union DvarLimits {
 ASSERT_SIZE(DvarLimits, 0x10);
 
 #pragma pack(push, 1)
-struct dvar_t {
+template <typename T_DvarValue> struct dvar {
 public:
   dvarStrHash_t name;
   uint8_t _padding04[4];
@@ -336,14 +473,174 @@ public:
   dvarType_t type;
   bool modified;
   uint8_t _padding21[7];
-  DvarValue current;
-  DvarValue latched;
-  DvarValue reset;
+  T_DvarValue current;
+  T_DvarValue latched;
+  T_DvarValue reset;
   DvarLimits domain;
-  dvar_t *hashNext;
+  dvar<T_DvarValue> *hashNext;
+
+  std::optional<std::string>
+  set(const char *val, DvarSetSource source = DvarSetSource::INTERNAL) const;
+  float set(float val, DvarSetSource source = DvarSetSource::INTERNAL) const;
+  uint64_t set(uint64_t val,
+               DvarSetSource source = DvarSetSource::INTERNAL) const;
+  int64_t set(int64_t val,
+              DvarSetSource source = DvarSetSource::INTERNAL) const;
+  int32_t set(int32_t val,
+              DvarSetSource source = DvarSetSource::INTERNAL) const;
+  inline uint32_t set(uint32_t val, DvarSetSource source) const {
+    return static_cast<uint32_t>(set(static_cast<int32_t>(val), source));
+  }
+  bool set(bool val, DvarSetSource source = DvarSetSource::INTERNAL) const;
+
+  inline int32_t get_int() const {
+    if (type == dvarType_t::SESSIONMODE_BASE_DVAR) {
+      const dvar<T_DvarValue> *sessionModeSpecific =
+          current.sessionModeSpecific();
+      if (sessionModeSpecific) {
+        return sessionModeSpecific->get_int();
+      }
+    }
+
+    return current.integer();
+  }
+  inline constexpr uint32_t get_uint() const {
+
+    if (type == dvarType_t::SESSIONMODE_BASE_DVAR) {
+      const dvar<T_DvarValue> *sessionModeSpecific =
+          current.sessionModeSpecific();
+      if (sessionModeSpecific) {
+        return sessionModeSpecific->get_uint();
+      }
+    }
+    return current.unsignedInt();
+  }
+  inline int64_t get_int64() const {
+    if (type == dvarType_t::SESSIONMODE_BASE_DVAR) {
+      const dvar<T_DvarValue> *sessionModeSpecific =
+          current.sessionModeSpecific();
+      if (sessionModeSpecific) {
+        return sessionModeSpecific->get_int64();
+      }
+    }
+    return current.integer64();
+  }
+  inline uint64_t get_uint64() const {
+    if (type == dvarType_t::SESSIONMODE_BASE_DVAR) {
+      const dvar<T_DvarValue> *sessionModeSpecific =
+          current.sessionModeSpecific();
+      if (sessionModeSpecific) {
+        return sessionModeSpecific->get_uint64();
+      }
+    }
+    return current.unsignedInt64();
+  }
+  inline bool get_bool() const {
+
+    if (type == dvarType_t::SESSIONMODE_BASE_DVAR) {
+      const dvar<T_DvarValue> *sessionModeSpecific =
+          current.sessionModeSpecific();
+      if (sessionModeSpecific) {
+        return sessionModeSpecific->get_bool();
+      }
+    }
+    return current.enabled();
+  }
+  inline float get_float() const {
+
+    if (type == dvarType_t::SESSIONMODE_BASE_DVAR) {
+      const dvar<T_DvarValue> *sessionModeSpecific =
+          current.sessionModeSpecific();
+      if (sessionModeSpecific) {
+        return sessionModeSpecific->get_float();
+      }
+    }
+    return current.value();
+  }
+  inline std::optional<std::string_view> get_string() const {
+    if (type == dvarType_t::SESSIONMODE_BASE_DVAR) {
+      const dvar<T_DvarValue> *sessionModeSpecific =
+          current.sessionModeSpecific();
+      if (sessionModeSpecific) {
+        return sessionModeSpecific->get_string();
+      }
+    }
+
+    const char *str = current.string();
+    return str ? std::optional(std::string_view(str)) : std::nullopt;
+  }
+  inline const char *get_cstring() const {
+
+    if (type == dvarType_t::SESSIONMODE_BASE_DVAR) {
+      const dvar<T_DvarValue> *sessionModeSpecific =
+          current.sessionModeSpecific();
+      if (sessionModeSpecific) {
+        return sessionModeSpecific->get_cstring();
+      }
+    }
+    return current.string();
+  }
+  template <typename T> inline constexpr T get() const {
+    if (type == dvarType_t::SESSIONMODE_BASE_DVAR) {
+      const dvar<T_DvarValue> *sessionModeSpecific =
+          current.sessionModeSpecific();
+      if (sessionModeSpecific) {
+        return sessionModeSpecific->get<T>();
+      }
+    }
+
+    constexpr size_t T_Size = sizeof(T);
+    if constexpr (std::is_same_v<T, int32_t>) {
+      return get_int();
+    }
+    if constexpr (std::is_same_v<T, uint32_t>) {
+      return get_uint();
+    }
+    if constexpr (std::is_same_v<T, int64_t>) {
+      return get_int64();
+    }
+    if constexpr (std::is_same_v<T, uint64_t>) {
+      return get_uint64();
+    }
+    if constexpr (std::is_same_v<T, bool>) {
+      return get_bool();
+    }
+    if constexpr (std::is_same_v<T, const char *>) {
+      return get_cstring();
+    }
+    if constexpr (std::is_same_v<T, std::optional<std::string_view>>) {
+      return get_string();
+    }
+    if constexpr (std::is_same_v<T, std::string>) {
+      return get_string().value_or("");
+    }
+    if constexpr (std::is_same_v<T, std::string_view>) {
+      return get_string().value_or("");
+    }
+
+    if constexpr (T_Size <= sizeof(uint64_t)) {
+      T result;
+
+      if constexpr (T_Size > sizeof(uint32_t)) {
+        memcpy(result, get_uint64(), T_Size);
+        return result;
+      } else if constexpr (T_Size > sizeof(uint16_t)) {
+        memcpy(result, get_uint32(), T_Size);
+      } else if constexpr (T_Size > sizeof(uint8_t)) {
+        memcpy(result, get_uint16(), T_Size);
+      } else {
+        memcpy(result, get_bool(), T_Size /* 1 */);
+      }
+      return result;
+    }
+
+    unreachable();
+    return {};
+  }
 };
 #pragma pack(pop)
 
+struct dvar_t : public dvar<DvarValue> {};
 ASSERT_OFFSET(dvar_t, debugName, 0x8);
 ASSERT_OFFSET(dvar_t, description, 0x10);
 ASSERT_OFFSET(dvar_t, flags, 0x18);
@@ -351,141 +648,809 @@ ASSERT_OFFSET(dvar_t, type, 0x1C);
 ASSERT_OFFSET(dvar_t, modified, 0x20);
 ASSERT_OFFSET(dvar_t, current, 0x28);
 ASSERT_SIZE(dvar_t, 0x88);
+ASSERT_POD(dvar_t);
 
-#pragma pack(push, 1)
-struct dvar_t_cl {
-public:
-  dvarStrHash_t name;
-  uint8_t _padding04[4];
-  const char *debugName;
-  const char *description;
-  DvarFlags flags;
-  dvarType_t type;
-  bool modified;
-  uint8_t _padding21[7];
-  EncryptionCapableDvarValue current;
-  EncryptionCapableDvarValue latched;
-  EncryptionCapableDvarValue reset;
-  DvarLimits domain;
-  dvar_t_cl *hashNext;
+struct encryptedDvar_t : public dvar<EncryptionCapableDvarValue> {};
+ASSERT_OFFSET(encryptedDvar_t, debugName, 0x8);
+ASSERT_OFFSET(encryptedDvar_t, description, 0x10);
+ASSERT_OFFSET(encryptedDvar_t, flags, 0x18);
+ASSERT_OFFSET(encryptedDvar_t, type, 0x1C);
+ASSERT_OFFSET(encryptedDvar_t, modified, 0x20);
+ASSERT_OFFSET(encryptedDvar_t, current, 0x28);
+ASSERT_SIZE(encryptedDvar_t, 0xA0);
+ASSERT_POD(encryptedDvar_t);
+
+union EngineDependentDvar;
+union EngineDependentDvarMut {
+  dvar_t *sv;
+  encryptedDvar_t *cl;
+
+  inline std::optional<std::string>
+  set(const char *val, DvarSetSource source = DvarSetSource::INTERNAL) const {
+    if (is_server()) {
+      return sv->set(val, source);
+    }
+    return cl->set(val, source);
+  }
+  inline float set(float val,
+                   DvarSetSource source = DvarSetSource::INTERNAL) const {
+    if (is_server()) {
+      return sv->set(val, source);
+    }
+    return cl->set(val, source);
+  }
+  inline uint64_t set(uint64_t val,
+                      DvarSetSource source = DvarSetSource::INTERNAL) const {
+    if (is_server()) {
+      return sv->set(val, source);
+    }
+    return cl->set(val, source);
+  }
+  inline int64_t set(int64_t val,
+                     DvarSetSource source = DvarSetSource::INTERNAL) const {
+    if (is_server()) {
+      return sv->set(val, source);
+    }
+    return cl->set(val, source);
+  }
+  inline int32_t set(int32_t val,
+                     DvarSetSource source = DvarSetSource::INTERNAL) const {
+    if (is_server()) {
+      return sv->set(val, source);
+    }
+    return cl->set(val, source);
+  }
+  inline uint32_t set(uint32_t val,
+                      DvarSetSource source = DvarSetSource::INTERNAL) const {
+    if (is_server()) {
+      return sv->set(val, source);
+    }
+    return cl->set(val, source);
+  }
+  inline bool set(bool val,
+                  DvarSetSource source = DvarSetSource::INTERNAL) const {
+    if (is_server()) {
+      return sv->set(val, source);
+    }
+    return cl->set(val, source);
+  }
+  inline int32_t get_int() const {
+    if (is_server()) {
+      return sv->get_int();
+    }
+    return cl->get_int();
+  }
+  inline uint32_t get_uint() const {
+    if (is_server()) {
+      return sv->get_uint();
+    }
+    return cl->get_uint();
+  }
+  inline int64_t get_int64() const {
+    if (is_server()) {
+      return sv->get_int64();
+    }
+    return cl->get_int64();
+  }
+  inline uint64_t get_uint64() const {
+    if (is_server()) {
+      return sv->get_uint64();
+    }
+    return cl->get_uint64();
+  }
+  inline bool get_bool() const {
+    if (is_server()) {
+      return sv->get_bool();
+    }
+    return cl->get_bool();
+  }
+  inline float get_float() const {
+    if (is_server()) {
+      return sv->get_float();
+    }
+    return cl->get_float();
+  }
+  inline std::optional<std::string_view> get_string() const {
+    if (is_server()) {
+      return sv->get_string();
+    }
+    return cl->get_string();
+  }
+  inline const char *get_cstring() const noexcept {
+    if (is_server()) {
+      return sv->get_cstring();
+    }
+    return cl->get_cstring();
+  }
+  template <typename T> inline T get() const {
+    if (is_server()) {
+      return sv->get<T>();
+    }
+    return cl->get<T>();
+  }
+
+  inline dvarStrHash_t &name() noexcept {
+    if (is_server()) {
+      return sv->name;
+    }
+    return cl->name;
+  }
+  inline dvarStrHash_t name() const noexcept {
+    if (is_server()) {
+      return sv->name;
+    }
+    return cl->name;
+  }
+  inline void setDebugName(const char *name) noexcept {
+    if (is_server()) {
+      sv->debugName = name;
+    } else {
+      cl->debugName = name;
+    }
+  }
+  inline const char *&debugName() noexcept {
+    if (is_server()) {
+      return sv->debugName;
+    }
+    return cl->debugName;
+  }
+  inline const char *debugName() const noexcept {
+    if (is_server()) {
+      return sv->debugName;
+    }
+    return cl->debugName;
+  }
+  inline const char *&description() noexcept {
+    if (is_server()) {
+      return sv->description;
+    }
+    return cl->description;
+  }
+  inline const char *description() const noexcept {
+    if (is_server()) {
+      return sv->description;
+    }
+    return cl->description;
+  }
+  inline DvarFlags &flags() noexcept {
+    if (is_server()) {
+      return sv->flags;
+    }
+    return cl->flags;
+  }
+
+  template <typename T,
+            typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+  inline void removeFlags(T flags) noexcept {
+    flags().remove(flags);
+  }
+
+  template <typename T,
+            typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+  inline void addFlags(T flags) noexcept {
+    flags().add(flags);
+  }
+  template <typename T,
+            typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+  inline void setFlags(const T flags) noexcept {
+    flags().set(flags);
+  }
+
+  inline void clearFlags() noexcept { flags().set(0); }
+  inline DvarFlags flags() const noexcept {
+    if (is_server()) {
+      return sv->flags;
+    }
+    return cl->flags;
+  }
+  inline dvarType_t &type() noexcept {
+    if (is_server()) {
+      return sv->type;
+    }
+    return cl->type;
+  }
+  inline dvarType_t type() const noexcept {
+    if (is_server()) {
+      return sv->type;
+    }
+    return cl->type;
+  }
+  inline bool &modified() noexcept {
+    if (is_server()) {
+      return sv->modified;
+    }
+    return cl->modified;
+  }
+  inline bool modified() const noexcept {
+    if (is_server()) {
+      return sv->modified;
+    }
+    return cl->modified;
+  }
+  inline DvarLimits &domain() noexcept {
+    if (is_server()) {
+      return sv->domain;
+    }
+    return cl->domain;
+  }
+  inline DvarLimits &domain() const noexcept {
+    if (is_server()) {
+      return sv->domain;
+    }
+    return cl->domain;
+  }
+  inline EngineDependentDvarMut setHashNext(dvar_t *next) {
+    EngineDependentDvarMut result = hashNext();
+    if (is_server()) {
+      sv->hashNext = next;
+    } else {
+      cl->hashNext = reinterpret_cast<encryptedDvar_t *>(next);
+    }
+    return result;
+  }
+  inline EngineDependentDvarMut setHashNext(encryptedDvar_t *next) {
+    EngineDependentDvarMut result = hashNext();
+    if (is_server()) {
+      sv->hashNext = reinterpret_cast<dvar_t *>(next);
+    } else {
+      cl->hashNext = next;
+    }
+    return result;
+  }
+  inline EngineDependentDvarMut setHashNext(EngineDependentDvarMut next) {
+    EngineDependentDvarMut result = hashNext();
+    if (is_server()) {
+      sv->hashNext = next.sv;
+    } else {
+      cl->hashNext = next.cl;
+    }
+    return result;
+  }
+  inline EngineDependentDvarMut hashNext() const {
+    EngineDependentDvarMut result{};
+    if (is_server()) {
+      result.sv = reinterpret_cast<dvar_t *>(sv->hashNext);
+    } else {
+      result.cl = reinterpret_cast<encryptedDvar_t *>(cl->hashNext);
+    }
+    return result;
+  }
+
+  inline constexpr bool nonnull() const noexcept { return sv != nullptr; }
+  inline constexpr bool null() const noexcept { return sv == nullptr; }
+
+  inline constexpr EngineDependentDvarMut() noexcept = default;
+  inline constexpr EngineDependentDvarMut(
+      const EngineDependentDvarMut &) noexcept = default;
+  inline constexpr EngineDependentDvarMut &
+  operator=(const EngineDependentDvarMut &) noexcept = default;
+  inline constexpr EngineDependentDvarMut(EngineDependentDvarMut &&) noexcept =
+      default;
+  inline constexpr EngineDependentDvarMut &
+  operator=(EngineDependentDvarMut &&) noexcept = default;
+  inline constexpr EngineDependentDvarMut(dvar_t *dvar) noexcept : sv(dvar) {}
+  inline constexpr EngineDependentDvarMut(encryptedDvar_t *dvar) noexcept
+      : cl(dvar) {}
+  inline constexpr EngineDependentDvarMut(std::nullptr_t dvar) noexcept
+      : cl(dvar) {}
+
+  inline constexpr bool operator!() const noexcept { return null(); }
+  inline constexpr bool
+  operator>(const EngineDependentDvarMut &rhs) const noexcept {
+    return sv > rhs.sv;
+  }
+  inline constexpr bool
+  operator<(const EngineDependentDvarMut &rhs) const noexcept {
+    return sv < rhs.sv;
+  }
+  inline constexpr operator bool() const noexcept { return nonnull(); }
+  inline constexpr operator dvar_t *() const noexcept { return sv; }
+  inline constexpr operator encryptedDvar_t *() const noexcept { return cl; }
+  inline constexpr operator const dvar_t *() const noexcept { return sv; }
+  inline constexpr operator const encryptedDvar_t *() const noexcept {
+    return cl;
+  }
+  template <typename T_Dvar>
+  inline constexpr EngineDependentDvarMut(dvar<T_Dvar> *dvar) noexcept
+      : sv(reinterpret_cast<dvar_t *>(dvar)) {}
+
+  template <typename T_Dvar>
+  inline constexpr operator const dvar<T_Dvar> *() const noexcept {
+    return reinterpret_cast<dvar<T_Dvar>>(sv);
+  }
+  template <typename T_Dvar>
+  inline constexpr operator dvar<T_Dvar> *() const noexcept {
+    return reinterpret_cast<dvar<T_Dvar>>(sv);
+  }
+  friend inline constexpr bool
+  operator==(const EngineDependentDvarMut &lhs,
+             const EngineDependentDvarMut &rhs) noexcept {
+    return lhs.sv == rhs.sv;
+  }
+  friend constexpr bool operator==(const EngineDependentDvarMut &lhs,
+                                   const EngineDependentDvar &rhs) noexcept;
+  template <typename T>
+  friend inline constexpr bool operator==(const EngineDependentDvarMut &lhs,
+                                          const T *&rhs) noexcept {
+    return lhs.cl == rhs;
+  }
+  template <PtrLike T>
+  friend inline constexpr bool operator==(const EngineDependentDvarMut &lhs,
+                                          const T &rhs) noexcept {
+    return reinterpret_cast<uintptr_t>(lhs.cl) == static_cast<uintptr_t>(rhs);
+  }
+
+  friend inline constexpr bool operator==(const EngineDependentDvarMut &lhs,
+                                          const std::nullptr_t &rhs) noexcept {
+    return lhs.sv == rhs;
+  }
 };
-#pragma pack(pop)
-ASSERT_OFFSET(dvar_t_cl, debugName, 0x8);
-ASSERT_OFFSET(dvar_t_cl, description, 0x10);
-ASSERT_OFFSET(dvar_t_cl, flags, 0x18);
-ASSERT_OFFSET(dvar_t_cl, type, 0x1C);
-ASSERT_OFFSET(dvar_t_cl, modified, 0x20);
-ASSERT_OFFSET(dvar_t_cl, current, 0x28);
-ASSERT_SIZE(dvar_t_cl, 0xA0);
 
-/*
-  TODO:
-  Change this to:
-  ```cpp
-  union EngineDependentDvar {
-    const dvar_t *dvar;
-    const dvar_t_cl* dvar_cl;
-  };
-  ```
+ASSERT_SIZE(EngineDependentDvarMut, 8);
+ASSERT_POD(EngineDependentDvarMut);
 
-  Provide an interface of `inline constexpr` methods
-  to allow an identical field API and `operator`s to
-  allow implicit cast to/from the corresponding pointer where needed.
+union EngineDependentDvar {
+  const dvar_t *sv;
+  const encryptedDvar_t *cl;
 
-  This should already be done, but refactoring from the current `std::visit`-
-  based API consolidation will be substantial, so this is left for the
-  future.
-*/
-typedef EngineDependent<const dvar_t_cl *, const dvar_t *> EngineDependentDvar;
-typedef EngineDependent<dvar_t_cl *, dvar_t *> EngineDependentDvarMut;
+  inline std::optional<std::string>
+  set(const char *val, DvarSetSource source = DvarSetSource::INTERNAL) const {
+    if (is_server()) {
+      return sv->set(val, source);
+    }
+    return cl->set(val, source);
+  }
+  inline float set(float val,
+                   DvarSetSource source = DvarSetSource::INTERNAL) const {
+    if (is_server()) {
+      return sv->set(val, source);
+    }
+    return cl->set(val, source);
+  }
+  inline uint64_t set(uint64_t val,
+                      DvarSetSource source = DvarSetSource::INTERNAL) const {
+    if (is_server()) {
+      return sv->set(val, source);
+    }
+    return cl->set(val, source);
+  }
+  inline int64_t set(int64_t val,
+                     DvarSetSource source = DvarSetSource::INTERNAL) const {
+    if (is_server()) {
+      return sv->set(val, source);
+    }
+    return cl->set(val, source);
+  }
+  inline int32_t set(int32_t val,
+                     DvarSetSource source = DvarSetSource::INTERNAL) const {
+    if (is_server()) {
+      return sv->set(val, source);
+    }
+    return cl->set(val, source);
+  }
+  inline uint32_t set(uint32_t val,
+                      DvarSetSource source = DvarSetSource::INTERNAL) const {
+    if (is_server()) {
+      return sv->set(val, source);
+    }
+    return cl->set(val, source);
+  }
+  inline bool set(bool val,
+                  DvarSetSource source = DvarSetSource::INTERNAL) const {
+    if (is_server()) {
+      return sv->set(val, source);
+    }
+    return cl->set(val, source);
+  }
+  inline int32_t get_int() const {
+    if (is_server()) {
+      return sv->get_int();
+    }
+    return cl->get_int();
+  }
+  inline uint32_t get_uint() const {
+    if (is_server()) {
+      return sv->get_uint();
+    }
+    return cl->get_uint();
+  }
+  inline int64_t get_int64() const {
+    if (is_server()) {
+      return sv->get_int64();
+    }
+    return cl->get_int64();
+  }
+  inline uint64_t get_uint64() const {
+    if (is_server()) {
+      return sv->get_uint64();
+    }
+    return cl->get_uint64();
+  }
+  inline bool get_bool() const {
+    if (is_server()) {
+      return sv->get_bool();
+    }
+    return cl->get_bool();
+  }
+  inline float get_float() const {
+    if (is_server()) {
+      return sv->get_float();
+    }
+    return cl->get_float();
+  }
+  inline std::optional<std::string_view> get_string() const {
+    if (is_server()) {
+      return sv->get_string();
+    }
+    return cl->get_string();
+  }
+  inline const char *get_cstring() const {
+    if (is_server()) {
+      return sv->get_cstring();
+    }
+    return cl->get_cstring();
+  }
+  template <typename T> inline T get() const {
+    if (is_server()) {
+      return sv->get<T>();
+    }
+    return cl->get<T>();
+  }
 
+  inline dvarStrHash_t name() const {
+    if (is_server()) {
+      return sv->name;
+    }
+    return cl->name;
+  }
+
+  inline const char *debugName() const {
+    if (is_server()) {
+      return sv->debugName;
+    }
+    return cl->debugName;
+  }
+  inline const char *description() const {
+    if (is_server()) {
+      return sv->description;
+    }
+    return cl->description;
+  }
+  inline DvarFlags flags() const {
+    if (is_server()) {
+      return sv->flags;
+    }
+    return cl->flags;
+  }
+  inline dvarType_t type() const {
+    if (is_server()) {
+      return sv->type;
+    }
+    return cl->type;
+  }
+  inline bool modified() const {
+    if (is_server()) {
+      return sv->modified;
+    }
+    return cl->modified;
+  }
+  inline DvarLimits domain() const {
+    if (is_server()) {
+      return sv->domain;
+    }
+    return cl->domain;
+  }
+  inline EngineDependentDvar hashNext() const {
+    EngineDependentDvar result{};
+    if (is_server()) {
+      result.sv =
+          const_cast<const dvar_t *>(reinterpret_cast<dvar_t *>(sv->hashNext));
+    } else {
+      result.cl = const_cast<const encryptedDvar_t *>(
+          reinterpret_cast<encryptedDvar_t *>(cl->hashNext));
+    }
+    return result;
+  }
+
+  inline constexpr bool nonnull() const { return sv != nullptr; }
+  inline constexpr bool null() const { return sv == nullptr; }
+
+  inline constexpr EngineDependentDvar() noexcept = default;
+  inline constexpr EngineDependentDvar(const EngineDependentDvar &) noexcept =
+      default;
+  inline constexpr EngineDependentDvar &
+  operator=(const EngineDependentDvar &) noexcept = default;
+  inline constexpr EngineDependentDvar(EngineDependentDvar &&) noexcept =
+      default;
+  inline constexpr EngineDependentDvar &
+  operator=(EngineDependentDvar &&) noexcept = default;
+  inline constexpr EngineDependentDvar(const dvar_t *dvar) noexcept
+      : sv(dvar) {}
+  inline constexpr EngineDependentDvar(const encryptedDvar_t *dvar) noexcept
+      : cl(dvar) {}
+  inline constexpr EngineDependentDvar(dvar_t *dvar) noexcept : sv(dvar) {}
+  inline constexpr EngineDependentDvar(encryptedDvar_t *dvar) noexcept
+      : cl(dvar) {}
+  inline constexpr EngineDependentDvar(EngineDependentDvarMut dvar) noexcept
+      : sv(dvar.sv) {}
+  inline constexpr EngineDependentDvar(std::nullptr_t dvar) noexcept
+      : cl(dvar) {}
+  template <typename T_Dvar>
+  inline constexpr EngineDependentDvar(dvar<T_Dvar> *dvar) noexcept
+      : sv(reinterpret_cast<dvar_t *>(dvar)) {}
+  template <typename T_Dvar>
+  inline constexpr EngineDependentDvar(const dvar<T_Dvar> *dvar) noexcept
+      : sv(reinterpret_cast<const dvar_t *>(dvar)) {}
+
+  inline constexpr bool operator!() const noexcept { return null(); }
+  inline constexpr bool
+  operator>(const EngineDependentDvar &rhs) const noexcept {
+    return sv > rhs.sv;
+  }
+  inline constexpr bool
+  operator<(const EngineDependentDvar &rhs) const noexcept {
+    return sv < rhs.sv;
+  }
+  inline constexpr operator bool() const noexcept { return nonnull(); }
+  inline constexpr operator const dvar_t *() const noexcept { return sv; }
+  inline constexpr operator const encryptedDvar_t *() const noexcept {
+    return cl;
+  }
+  template <typename T_Dvar>
+  inline constexpr operator const dvar<T_Dvar> *() const noexcept {
+    return reinterpret_cast<dvar<T_Dvar>>(sv);
+  }
+  friend inline constexpr bool operator==(const EngineDependentDvar &lhs,
+                                          const EngineDependentDvar &rhs) {
+    return lhs.sv == rhs.sv;
+  }
+  friend constexpr bool operator==(const EngineDependentDvarMut &lhs,
+                                   const EngineDependentDvar &rhs) noexcept;
+  template <typename T>
+  friend inline constexpr bool operator==(const EngineDependentDvar &lhs,
+                                          const T *&rhs) {
+    return lhs.cl == rhs;
+  }
+  template <PtrLike T>
+  friend inline constexpr bool operator==(const EngineDependentDvar &lhs,
+                                          const T &rhs) {
+    return reinterpret_cast<uintptr_t>(lhs.cl) == static_cast<uintptr_t>(rhs);
+  }
+
+  friend inline constexpr bool operator==(const EngineDependentDvar &lhs,
+                                          const std::nullptr_t &rhs) {
+    return lhs.sv == rhs;
+  }
+};
+
+ASSERT_SIZE(EngineDependentDvar, 8);
+ASSERT_POD(EngineDependentDvar);
+
+inline constexpr bool operator==(const EngineDependentDvarMut &lhs,
+                                 const EngineDependentDvar &rhs) noexcept {
+  return lhs.sv == rhs.sv;
+}
+
+void Dvar_SetStringFromSource(EngineDependentDvar dvar, const char *val,
+                              DvarSetSource source);
+void Dvar_SetIntFromSource(EngineDependentDvar dvar, int32_t val,
+                           DvarSetSource source);
+void Dvar_SetInt64FromSource(EngineDependentDvar dvar, int64_t val,
+                             DvarSetSource source);
+void Dvar_SetUInt64FromSource(EngineDependentDvar dvar, uint64_t val,
+                              DvarSetSource source);
+void Dvar_SetBoolFromSource(EngineDependentDvar dvar, bool val,
+                            DvarSetSource source);
+void Dvar_SetFloatFromSource(EngineDependentDvar dvar, float val,
+                             DvarSetSource source);
+
+template <typename T_Dvar>
+inline std::optional<std::string>
+dvar<T_Dvar>::set(const char *val, DvarSetSource source) const {
+  const std::optional<std::string_view> prev_val = get_string();
+  std::optional<std::string> prev_val_copy;
+  if (prev_val.has_value()) {
+    prev_val_copy = std::optional(std::string(prev_val.value()));
+  } else {
+    prev_val_copy = std::nullopt;
+  }
+
+  Dvar_SetStringFromSource(this, val, source);
+  return prev_val_copy;
+}
+template <typename T_Dvar>
+inline float dvar<T_Dvar>::set(float val, DvarSetSource source) const {
+  const float prev_val = get_float();
+  Dvar_SetFloatFromSource(this, val, source);
+  return prev_val;
+}
+template <typename T_Dvar>
+inline uint64_t dvar<T_Dvar>::set(uint64_t val, DvarSetSource source) const {
+  const uint64_t prev_val = get_uint64();
+  Dvar_SetUInt64FromSource(this, val, source);
+  return prev_val;
+}
+template <typename T_Dvar>
+inline int64_t dvar<T_Dvar>::set(int64_t val, DvarSetSource source) const {
+  const int64_t prev_val = get_int64();
+  Dvar_SetInt64FromSource(this, val, source);
+  return prev_val;
+}
+template <typename T_Dvar>
+inline int32_t dvar<T_Dvar>::set(int32_t val, DvarSetSource source) const {
+  const int32_t prev_val = get_int();
+  Dvar_SetIntFromSource(this, val, source);
+  return prev_val;
+}
+
+template <typename T_Dvar>
+inline bool dvar<T_Dvar>::set(bool val, DvarSetSource source) const {
+  const bool prev_val = get_bool();
+  Dvar_SetBoolFromSource(this, val, source);
+  return prev_val;
+}
+
+constexpr size_t DVAR_POOL_LEN = 0x2000;
 template <typename T_Dvar> struct TemplateDvarPool {
-  T_Dvar pool[0x2000];
+  T_Dvar pool[DVAR_POOL_LEN];
 
   inline constexpr const T_Dvar &operator[](size_t index) const {
     return pool[index];
   }
   inline constexpr T_Dvar &operator[](size_t index) { return pool[index]; }
+
+  inline constexpr const T_Dvar *base() const { return &pool[0]; }
+  inline constexpr const T_Dvar *end() const { return &pool[DVAR_POOL_LEN]; }
+  inline bool contains(const T_Dvar *dvar) const {
+    return dvar >= base() && dvar < end();
+  }
 };
 typedef TemplateDvarPool<dvar_t> DvarPool;
 ASSERT_SIZE(DvarPool, 0x110000);
 
-typedef TemplateDvarPool<dvar_t_cl> DvarPool_cl;
-ASSERT_SIZE(DvarPool_cl, 0x140000);
+typedef TemplateDvarPool<encryptedDvar_t> EncryptedDvarPool;
+ASSERT_SIZE(EncryptedDvarPool, 0x140000);
+
+union EngineDependentDvarPool {
+  DvarPool *sv;
+  EncryptedDvarPool *cl;
+
+  inline const EngineDependentDvar operator[](size_t index) const {
+    EngineDependentDvar result{};
+    if (is_server()) {
+      result.sv = &sv->pool[index];
+    } else {
+      result.cl = &cl->pool[index];
+    }
+    return result;
+  }
+  inline EngineDependentDvarMut operator[](size_t index) {
+    EngineDependentDvarMut result{};
+    if (is_server()) {
+      result.sv = &sv->pool[index];
+    } else {
+      result.cl = &cl->pool[index];
+    }
+    return result;
+  }
+
+  inline EngineDependentDvar base() const {
+    if (is_server()) {
+      return sv->base();
+    }
+
+    return cl->base();
+  }
+  inline EngineDependentDvar end() const {
+    if (is_server()) {
+      return sv->end();
+    }
+
+    return cl->end();
+  }
+
+  inline bool contains(EngineDependentDvar dvar) const noexcept {
+    if (is_server()) {
+      return sv->contains(dvar.sv);
+    }
+    return cl->contains(dvar.cl);
+  }
+
+  inline constexpr bool null() const noexcept { return sv == nullptr; }
+  inline constexpr bool nonnull() const noexcept { return sv != nullptr; }
+
+  inline constexpr EngineDependentDvarPool() noexcept = default;
+  inline constexpr EngineDependentDvarPool(DvarPool *pool) noexcept
+      : sv(pool) {}
+  inline constexpr EngineDependentDvarPool(EncryptedDvarPool *pool) noexcept
+      : cl(pool) {}
+  inline constexpr EngineDependentDvarPool(std::nullptr_t pool) noexcept
+      : cl(pool) {}
+
+  inline constexpr bool operator!() const noexcept { return null(); }
+  inline constexpr operator bool() const noexcept { return nonnull(); }
+  template <typename T>
+  friend inline constexpr bool operator==(const EngineDependentDvarPool &lhs,
+                                          const T *&rhs) {
+    return lhs.cl == rhs;
+  }
+  template <PtrLike T>
+  friend inline constexpr bool operator==(const EngineDependentDvarPool &lhs,
+                                          const T &rhs) {
+    return reinterpret_cast<uintptr_t>(lhs.cl) == static_cast<uintptr_t>(rhs);
+  }
+
+  friend inline constexpr bool operator==(const EngineDependentDvarPool &lhs,
+                                          const std::nullptr_t &rhs) {
+    return lhs.sv == rhs;
+  }
+};
 
 typedef fastcall_t<void(const dvar_t *dvar)> modifiedCallback;
 
 #pragma pack(push, 1)
-template <typename T_Dvar> struct TemplateDvarCallBack {
+struct dvarCallBack_t {
   bool needsCallback;
   uint8_t _padding01[7];
   modifiedCallback callback;
-  const T_Dvar *dvar;
+  EngineDependentDvar dvar;
 };
 #pragma pack(pop)
 
-typedef TemplateDvarCallBack<dvar_t> dvarCallBack_t;
-ASSERT_SIZE(dvarCallBack_t, 0x18);
+struct DvarCallbackPool {
+  dvarCallBack_t pool[0x100];
 
-typedef TemplateDvarCallBack<dvar_t_cl> dvarCallBack_t_cl;
-ASSERT_SIZE(dvarCallBack_t_cl, 0x18);
-
-template <typename T_Dvar> struct _DvarCallbackPool {
-  using T_Cb = TemplateDvarCallBack<T_Dvar>;
-  T_Cb pool[0x100];
-
-  inline constexpr const T_Cb &operator[](size_t index) const {
+  inline constexpr const dvarCallBack_t &operator[](size_t index) const {
     return pool[index];
   }
-  inline constexpr T_Cb &operator[](size_t index) { return pool[index]; }
+  inline constexpr dvarCallBack_t &operator[](size_t index) {
+    return pool[index];
+  }
 };
-typedef _DvarCallbackPool<dvar_t> DvarCallbackPool;
 ASSERT_SIZE(DvarCallbackPool, 0x1800);
-
-typedef _DvarCallbackPool<dvar_t_cl> DvarCallbackPool_cl;
-ASSERT_SIZE(DvarCallbackPool_cl, 0x1800);
 
 constexpr dvarStrHash_t DVAR_HASH_TABLE_LEN = 0x800;
 constexpr dvarStrHash_t DVAR_HASH_MASK = DVAR_HASH_TABLE_LEN - 1;
-template <typename T_Dvar> struct TemplateDvarHashTable {
-  T_Dvar *table[0x800];
+struct DvarHashTable {
+  EngineDependentDvarMut table[0x800];
 
-  inline constexpr T_Dvar *get(dvarStrHash_t hash) const {
-    T_Dvar *entry = table[hash & DVAR_HASH_MASK];
-    while (entry && entry->name != hash) {
-      entry = entry->hashNext;
+  inline EngineDependentDvarMut get(dvarStrHash_t hash) const {
+    EngineDependentDvarMut entry = table[hash & DVAR_HASH_MASK];
+    while (entry && entry.name() != hash) {
+      entry = entry.hashNext();
     }
     return entry;
   }
 
-  inline constexpr bool contains(dvarStrHash_t hash) const {
-    T_Dvar *entry = get(hash);
-    return entry != nullptr;
+  inline bool contains(dvarStrHash_t hash) const {
+    EngineDependentDvarMut entry = get(hash);
+    return entry;
   }
 
-  inline constexpr bool contains(const char *name) const {
+  inline bool contains(const char *name) const {
     return contains(Dvar_GenerateHash_Impl(name));
   }
 
-  inline constexpr T_Dvar *get(const char *name) const {
+  inline EngineDependentDvarMut get(const char *name) const {
     return get(Dvar_GenerateHash_Impl(name));
   }
 
-  inline constexpr T_Dvar *operator[](dvarStrHash_t hash) const {
+  inline EngineDependentDvarMut operator[](dvarStrHash_t hash) const {
     return get(hash);
   }
-  inline constexpr T_Dvar *operator[](dvarStrHash_t hash) { return get(hash); }
+  inline EngineDependentDvarMut operator[](dvarStrHash_t hash) {
+    return get(hash);
+  }
 
-  inline constexpr T_Dvar *operator[](const char *name) const {
+  inline EngineDependentDvarMut operator[](const char *name) const {
     return get(name);
   }
 
-  inline constexpr T_Dvar *operator[](const char *name) { return get(name); }
+  inline EngineDependentDvarMut operator[](const char *name) {
+    return get(name);
+  }
 };
-typedef TemplateDvarHashTable<dvar_t> DvarHashTable;
-typedef TemplateDvarHashTable<dvar_t_cl> DvarHashTable_cl;
 ASSERT_SIZE(DvarHashTable, 0x4000);
-ASSERT_SIZE(DvarHashTable_cl, 0x4000);
 
 enum class dvar_cmd_t : uint32_t {
   CG_OBJECTIVE_TEXT = 0x0,
@@ -503,5 +1468,9 @@ enum class dvar_cmd_t : uint32_t {
   THIRD_PERSON_ANGLE = 0xC,
   COUNT = 0xD,
 };
+
+typedef fastcall_t<void(const dvar_t *dvar, void *userData)> forEachCallback;
+typedef fastcall_t<void(EngineDependentDvar dvar, void *userData)>
+    engineDependentForEachCallback;
 
 } // namespace game

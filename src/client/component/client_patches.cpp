@@ -1,8 +1,7 @@
-#include <sstream>
-#include "../std_include.hpp"
+#include <std_include.hpp>
 #include <cstdint>
 #include <atomic>
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 
 #include "scheduler.hpp"
 
@@ -14,10 +13,9 @@
 #include <game/impl/cg/cg.hpp>
 
 #include <utils/hook.hpp>
-#include <utils/string.hpp>
-#include <utils/io.hpp>
 
 #include <mmeapi.h>
+#include <sstream>
 
 namespace client_patches {
 namespace {
@@ -95,11 +93,11 @@ void patch_is_mod_loaded_checks() {
 }
 
 float cl_key_state_yaw_speed_stub(void *key) {
-  return game::cl::CL_KeyState(key) * game::get_dvar_float(cl_yaw_speed);
+  return game::cl::CL_KeyState(key) * cl_yaw_speed.get_float();
 }
 
 float cl_key_state_pitch_speed_stub(void *key) {
-  return game::cl::CL_KeyState(key) * game::get_dvar_float(cl_pitch_speed);
+  return game::cl::CL_KeyState(key) * cl_pitch_speed.get_float();
 }
 
 game::fileHandle_t

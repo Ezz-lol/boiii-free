@@ -1,8 +1,8 @@
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 #include "server_list.hpp"
 
-#include "game/game.hpp"
+#include <game/game.hpp>
 
 #include "command.hpp"
 
@@ -144,7 +144,7 @@ void lua_server_info_to_table_stub(game::ui::lua::hks::lua_State *state,
     const char *campaign_str =
         game::info::Info_ValueForKey(server_info.tags, "campaign");
     const qboolean is_campaign =
-        campaign_str && std::strcmp(campaign_str, "true") == 0;
+        qboolean::from(campaign_str && std::strcmp(campaign_str, "true") == 0);
     game::ui::lua::Lua_SetTableInt("campaign", is_campaign, state);
   }
 }

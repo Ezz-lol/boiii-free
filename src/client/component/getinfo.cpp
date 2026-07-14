@@ -1,20 +1,30 @@
-#include "../std_include.hpp"
-#include "loader/component_loader.hpp"
+#include <std_include.hpp>
+#include <loader/component_loader.hpp>
 
-#include "../game/game.hpp"
-#include "../steam/steam.hpp"
+#include <game/game.hpp>
+#include <steam/steam.hpp>
 
 #include "network.hpp"
 #include "network_password.hpp"
 #include "workshop.hpp"
 #include "scheduler.hpp"
 
-#include "../../common/utils/string.hpp"
-#include "../../common/utils/info_string.hpp"
+#include <utils/string.hpp>
+#include <utils/info_string.hpp>
 
-#include <version.hpp>
+// In case of clangd compilation
+#if __has_include("version.hpp")
+#include "version.hpp"
+#else
+#ifndef VERSION
+#define VERSION "0"
+#endif
+#ifndef SHORTVERSION
+#define SHORTVERSION "0"
+#endif
+#endif
 
-#include "../game/utils.hpp"
+#include <game/utils.hpp>
 
 namespace getinfo {
 template <typename T> int get_client_count(T *client_states) {
@@ -62,17 +72,17 @@ bool is_host() {
 
 struct component final : generic_component {
   void post_unpack() override {
+
+    game::sv_wwwDownload = game::register_dvar_bool(
+        "sv_wwwDownload", false, game::DVAR_NONE, "Enable http downloads");
+    game::sv_wwwDlDisconnected = game::register_dvar_bool(
+        "sv_wwwDlDisconnected", true, game::DVAR_NONE,
+        "Should clients stay connected while downloading?");
     scheduler::once(
         []() {
-          game::sv_wwwDownload =
-              game::register_dvar_bool("sv_wwwDownload", false, game::DVAR_NONE,
-                                       "Enable http downloads");
           game::sv_wwwBaseURL = game::register_dvar_string(
               "sv_wwwBaseURL", "", game::DVAR_NONE,
               "The base url for files downloaded via http");
-          game::sv_wwwDlDisconnected = game::register_dvar_bool(
-              "sv_wwwDlDisconnected", true, game::DVAR_NONE,
-              "Should clients stay connected while downloading?");
           game::workshop_id = game::register_dvar_string(
               "workshop_id", "", game::DVAR_NONE,
               "Steam workshop ID of loaded mod, if any, "

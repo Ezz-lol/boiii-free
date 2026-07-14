@@ -1,5 +1,8 @@
 #pragma once
 
+#include <game/game.hpp>
+#include "command.hpp"
+
 #include <functional>
 #include <string>
 namespace client_command {

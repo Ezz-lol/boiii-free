@@ -1,5 +1,7 @@
 #pragma once
 
+#include <std_include.hpp>
+
 namespace toast {
 void patch_hud();
 

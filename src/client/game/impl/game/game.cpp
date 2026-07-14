@@ -1,8 +1,8 @@
-#include "../../../std_include.hpp"
+#include <std_include.hpp>
 #include "game.hpp"
 #include "../snd/snd.hpp"
 
-#include "../../../../common/utils/string.hpp"
+#include <utils/string.hpp>
 
 namespace game {
 

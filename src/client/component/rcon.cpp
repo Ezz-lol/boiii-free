@@ -1,14 +1,12 @@
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 
 #include "network.hpp"
 #include "console.hpp"
 #include "command.hpp"
 #include "scheduler.hpp"
 
-#include <utils/finally.hpp>
-
-#include "../game/utils.hpp"
+#include <game/utils.hpp>
 
 namespace rcon {
 namespace {
@@ -52,7 +50,7 @@ void rcon_executer(const game::net::netadr_t &target, const std::string &data) {
 bool rate_limit_check(const game::net::netadr_t &address, const int time) {
   const auto last_time = rate_limit_map[address];
 
-  if (last_time && (time - last_time) < game::get_dvar_int(rcon_timeout)) {
+  if (last_time && (time - last_time) < rcon_timeout.get_int()) {
     return false; // Flooding
   }
 
@@ -63,7 +61,7 @@ bool rate_limit_check(const game::net::netadr_t &address, const int time) {
 void rate_limit_cleanup(const int time) {
   for (auto i = rate_limit_map.begin(); i != rate_limit_map.end();) {
     // No longer at risk of flooding, remove
-    if ((time - i->second) > game::get_dvar_int(rcon_timeout)) {
+    if ((time - i->second) > rcon_timeout.get_int()) {
       i = rate_limit_map.erase(i);
     } else {
       ++i;

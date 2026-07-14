@@ -3,7 +3,7 @@
 
 #include "component/network.hpp"
 #include "component/server_list.hpp"
-#include "game/game.hpp"
+#include <game/game.hpp>
 
 namespace steam {
 namespace {

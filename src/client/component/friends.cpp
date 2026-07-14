@@ -1,13 +1,12 @@
-#include "../std_include.hpp"
-#include "loader/component_loader.hpp"
+#include <std_include.hpp>
+#include <loader/component_loader.hpp>
 #include "friends.hpp"
 
-#include "../game/game.hpp"
-#include "../game/utils.hpp"
+#include <game/game.hpp>
+#include <game/utils.hpp>
 #include "network.hpp"
 #include "party.hpp"
 #include "scheduler.hpp"
-#include "steam/steam.hpp"
 #include "steam_proxy.hpp"
 #include "workshop.hpp"
 #include "name.hpp"

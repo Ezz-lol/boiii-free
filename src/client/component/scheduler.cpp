@@ -1,16 +1,11 @@
-#include <std_include.hpp>
-#include "loader/component_loader.hpp"
-
 #include "scheduler.hpp"
+#include <loader/component_loader.hpp>
 
-#include "game/game.hpp"
+#include <game/game.hpp>
 
 #include <utils/hook.hpp>
 #include <utils/concurrency.hpp>
 #include <utils/thread.hpp>
-#include <utils/string.hpp>
-
-#include "game/utils.hpp"
 
 namespace scheduler {
 namespace {
@@ -225,8 +220,10 @@ void check_and_execute() {
   restart_execute_time.store(0);
   restart_recovery_active.store(true);
   recovery_skip_count.store(0);
-  fprintf(stdout, "check_and_execute: map_restart\n");
-  fflush(stdout);
+#ifndef NDEBUG
+  fprintf(stderr, "check_and_execute: map_restart\n");
+  fflush(stderr);
+#endif
   game::cbuf::Cbuf_AddText(0, "map_restart\n");
 }
 

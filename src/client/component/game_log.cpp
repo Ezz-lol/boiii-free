@@ -1,14 +1,15 @@
+#include <std_include.hpp>
+
 #include <cstdarg>
 #include <cstdint>
-#include "../std_include.hpp"
-#include "../loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 
-#include "../game/game.hpp"
-#include "../game/utils.hpp"
+#include <game/game.hpp>
+#include <game/utils.hpp>
 
-#include "../../common/utils/hook.hpp"
-#include "../../common/utils/string.hpp"
-#include "../../common/utils/io.hpp"
+#include <utils/hook.hpp>
+#include <utils/string.hpp>
+#include <utils/io.hpp>
 
 namespace game_log {
 namespace {
@@ -40,12 +41,9 @@ void g_scr_log_print() {
   }
 }
 
-const char *get_g_log_val() {
-  if (game::engine_dependent_nonnull(g_log)) {
-    std::optional<std::string_view> val = game::get_dvar_string(g_log);
-    if (val.has_value()) {
-      return val.value().data();
-    }
+inline const char *get_g_log_val() {
+  if (g_log) {
+    return g_log.get_cstring();
   }
 
   return nullptr;
@@ -71,13 +69,8 @@ void g_log_printf_stub(const char *fmt, ...) {
 }
 
 const game::dvar_t *register_g_log_stub() {
-  g_log = game::register_dvar_string("g_log", "games_mp.log", game::DVAR_NONE,
-                                     "Log file path");
-  return std::visit(
-      [](const auto *resolved) -> const game::dvar_t * {
-        return reinterpret_cast<const game::dvar_t *>(resolved);
-      },
-      g_log);
+  return game::register_dvar_string("g_log", "games_mp.log", game::DVAR_NONE,
+                                    "Log file path");
 }
 } // namespace
 

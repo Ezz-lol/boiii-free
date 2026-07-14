@@ -1,15 +1,15 @@
-#include "../std_include.hpp"
+#include <std_include.hpp>
 #include "dedicated.hpp"
-#include "../loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 
-#include "../game/game.hpp"
-#include "../game/utils.hpp"
+#include <game/game.hpp>
+#include <game/utils.hpp>
 #include "command.hpp"
 #include "network.hpp"
 #include "scheduler.hpp"
 #include "server_list.hpp"
 
-#include "../../common/utils/hook.hpp"
+#include <utils/hook.hpp>
 
 namespace dedicated {
 namespace {

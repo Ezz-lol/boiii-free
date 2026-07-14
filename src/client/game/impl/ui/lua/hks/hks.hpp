@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include "../../../../../game/game.hpp"
+#include <game/game.hpp>
 
 namespace game {
 namespace ui {
@@ -15,29 +15,40 @@ inline HksRegister *operator_outofline(HksRegister *retstr, lua_State *s,
 
   if constexpr (std::is_same_v<Op, OpcodeAdd>) {
     return op::OpcodeAdd(retstr, s, left, right, PC);
-  } else if constexpr (std::is_same_v<Op, OpcodeBitAnd>) {
+  }
+  if constexpr (std::is_same_v<Op, OpcodeBitAnd>) {
     return op::OpcodeBitAnd(retstr, s, left, right, PC);
-  } else if constexpr (std::is_same_v<Op, OpcodeBitOr>) {
+  }
+  if constexpr (std::is_same_v<Op, OpcodeBitOr>) {
     return op::OpcodeBitOr(retstr, s, left, right, PC);
-  } else if constexpr (std::is_same_v<Op, OpcodeDiv>) {
+  }
+  if constexpr (std::is_same_v<Op, OpcodeDiv>) {
     return op::OpcodeDiv(retstr, s, left, right, PC);
-  } else if constexpr (std::is_same_v<Op, OpcodeLShift>) {
+  }
+  if constexpr (std::is_same_v<Op, OpcodeLShift>) {
     return op::OpcodeLShift(retstr, s, left, right, PC);
-  } else if constexpr (std::is_same_v<Op, OpcodeMod>) {
+  }
+  if constexpr (std::is_same_v<Op, OpcodeMod>) {
     return op::OpcodeMod(retstr, s, left, right, PC);
-  } else if constexpr (std::is_same_v<Op, OpcodeMul>) {
+  }
+  if constexpr (std::is_same_v<Op, OpcodeMul>) {
     return op::OpcodeMul(retstr, s, left, right, PC);
-  } else if constexpr (std::is_same_v<Op, OpcodePow>) {
+  }
+  if constexpr (std::is_same_v<Op, OpcodePow>) {
     return op::OpcodePow(retstr, s, left, right, PC);
-  } else if constexpr (std::is_same_v<Op, OpcodeRShift>) {
+  }
+  if constexpr (std::is_same_v<Op, OpcodeRShift>) {
     return op::OpcodeRShift(retstr, s, left, right, PC);
-  } else if constexpr (std::is_same_v<Op, OpcodeSub>) {
+  }
+  if constexpr (std::is_same_v<Op, OpcodeSub>) {
     return op::OpcodeSub(retstr, s, left, right, PC);
-  } else if constexpr (std::is_same_v<Op, OpcodeUnm>) {
+  }
+  if constexpr (std::is_same_v<Op, OpcodeUnm>) {
     return op::OpcodeUnm(retstr, s, left, right, PC);
   }
 
   unreachable();
+  return {};
 }
 
 luaReturnCount_e executeSharedSecure(lua_State *s, const hksInstruction *PC,

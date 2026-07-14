@@ -1,13 +1,11 @@
 #pragma once
 #include <utils/info_string.hpp>
 
-#include "game/game.hpp"
+#include <game/game.hpp>
 
 namespace party {
 
 extern game::EngineDependentDvar cl_connected_to_dedi;
-
-constexpr uint16_t DEFAULT_PORT = 3074;
 
 using query_callback_func = void(bool success, const game::net::netadr_t &host,
                                  const utils::info_string &info, uint32_t ping);

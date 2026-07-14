@@ -1,7 +1,7 @@
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 #include "updater.hpp"
-#include "game/game.hpp"
+#include <game/game.hpp>
 
 #include <utils/flags.hpp>
 #include <utils/progress_ui.hpp>

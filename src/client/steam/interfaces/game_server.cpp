@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 #include "../steam.hpp"
-#include "../../component/dedicated.hpp"
+#include <component/dedicated.hpp>
 
 namespace steam {
 bool game_server::InitGameServer(unsigned int unGameIP,

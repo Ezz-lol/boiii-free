@@ -1,6 +1,6 @@
 #pragma once
-#include "../../../game/game.hpp"
-#include "../../../game/utils.hpp"
+#include <game/game.hpp>
+#include <game/utils.hpp>
 
 namespace game {
 namespace scr {

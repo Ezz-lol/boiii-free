@@ -1,11 +1,11 @@
 #include <cstdint>
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 
 #include <utils/hook.hpp>
 
-#include "game/game.hpp"
-#include "game/utils.hpp"
+#include <game/game.hpp>
+#include <game/utils.hpp>
 
 namespace live_presence_patch {
 namespace {

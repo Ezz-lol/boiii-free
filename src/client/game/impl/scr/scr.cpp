@@ -1,7 +1,7 @@
-#include "../../../std_include.hpp"
+#include <std_include.hpp>
 #include "scr.hpp"
 
-#include "../../../../common/utils/string.hpp"
+#include <utils/string.hpp>
 
 namespace game {
 namespace scr {

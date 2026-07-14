@@ -1,8 +1,8 @@
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 
-#include "game/game.hpp"
-#include "game/utils.hpp"
+#include <game/game.hpp>
+#include <game/utils.hpp>
 #include "scheduler.hpp"
 
 #include <utils/hook.hpp>
@@ -10,7 +10,7 @@
 namespace dvars_patches {
 namespace {
 void patch_dvars() {
-  (void)game::register_sessionmode_dvar_bool(
+  game::com_pauseSupported = game::register_sessionmode_dvar_bool(
       "com_pauseSupported", !game::is_server(), game::DVAR_SERVERINFO,
       "Whether pause is supported by the game mode");
 }

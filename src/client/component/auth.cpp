@@ -1,7 +1,5 @@
 #include <std_include.hpp>
-#include <random>
-#include <cstdint>
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 
 #include "auth.hpp"
 #include "party.hpp"
@@ -12,8 +10,6 @@
 
 #include <game/utils.hpp>
 
-#include <string>
-#include <utils/nt.hpp>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/smbios.hpp>
@@ -27,7 +23,7 @@
 
 namespace auth {
 game::EngineDependentDvar password;
-std::array<uint64_t, 18> client_xuids{};
+std::array<game::XUID, 18> client_xuids{};
 std::mutex client_xuids_mutex;
 
 std::string get_hdd_serial() {

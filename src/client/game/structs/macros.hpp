@@ -1,5 +1,6 @@
 #pragma once
 #include <bit>
+#include <type_traits>
 
 // Automatically pad a partially defined (reverse-engineered, in our case)
 // struct to a fixed, known-correct total length
@@ -45,16 +46,76 @@
     return static_cast<std::underlying_type_t<name>>(s);                       \
   }
 
-template <size_t Actual, size_t Expected>
+template <typename T, T Actual, T Expected>
 concept ValueMatches = (Actual == Expected);
 
 #define ASSERT_SIZE(type, size)                                                \
-  static_assert(ValueMatches<sizeof(type), (size)>, "Size mismatch "           \
-                                                    "for " #type)
+  static_assert(ValueMatches<size_t, sizeof(type), (size)>, "Size mismatch "   \
+                                                            "for " #type)
 
 #define ASSERT_OFFSET(type, field, offset)                                     \
-  static_assert(ValueMatches<offsetof(type, field), (offset)>,                 \
+  static_assert(ValueMatches<size_t, offsetof(type, field), (offset)>,         \
                 "Offset mismatch for " #type "::" #field)
+
+template <typename T>
+concept PoD = std::is_standard_layout_v<T> && std::is_trivially_copyable_v<T> &&
+              std::is_trivially_constructible_v<T> &&
+              std::is_trivially_destructible_v<T> &&
+              std::is_trivially_copy_constructible_v<T> &&
+              std::is_trivially_assignable_v<T, T> &&
+              std::is_trivially_copy_assignable_v<T> &&
+              std::is_trivially_move_assignable_v<T> &&
+              std::is_trivially_default_constructible_v<T> &&
+              std::is_trivially_move_constructible_v<T>;
+
+/*
+  `std::is_pod` is deprecated and does not sufficiently
+  constrain the type to the criteria used to determine whether
+  a given type is PoD in the LLVM IR generation backend. Specifically,
+  `std::is_pod<T>::value` can be `true` for a type that can also fit within
+  a 64-bit register, but the type can still sometimes be returned
+  from (and implicitly passed to) a function using a hidden return struct,
+  breaking expected ABI behaviour.
+
+  The above `PoD` concept is a best-effort set of criteria to match that used
+  by the LLVM IR generation backend.
+*/
+template <typename T> consteval bool is_pod() { return PoD<T>; }
+
+#define ASSERT_POD(name)                                                       \
+  static_assert(ValueMatches<bool, std::is_standard_layout_v<name>, true>,     \
+                #name " must be standard layout!");                            \
+  static_assert(ValueMatches<bool, std::is_trivially_copyable_v<name>, true>,  \
+                #name " must be trivially copyable!");                         \
+  static_assert(                                                               \
+      ValueMatches<bool, std::is_trivially_constructible_v<name>, true>,       \
+      #name " must be trivially constructible!");                              \
+  static_assert(                                                               \
+      ValueMatches<bool, std::is_trivially_destructible_v<name>, true>,        \
+      #name " must be trivially destructible!");                               \
+  static_assert(                                                               \
+      ValueMatches<bool, std::is_trivially_copy_constructible_v<name>, true>,  \
+      #name " must be trivially copy constructible!");                         \
+  static_assert(                                                               \
+      ValueMatches<bool, std::is_trivially_assignable_v<name, name>, true>,    \
+      #name " must be trivially assignable!");                                 \
+  static_assert(                                                               \
+      ValueMatches<bool, std::is_trivially_assignable_v<name &, const name>,   \
+                   true>,                                                      \
+      #name " must be trivially assignable!");                                 \
+  static_assert(                                                               \
+      ValueMatches<bool, std::is_trivially_copy_assignable_v<name>, true>,     \
+      #name " must be trivially copy assignable!");                            \
+  static_assert(                                                               \
+      ValueMatches<bool, std::is_trivially_move_assignable_v<name>, true>,     \
+      #name " must be trivially move assignable!");                            \
+  static_assert(                                                               \
+      ValueMatches<bool, std::is_trivially_default_constructible_v<name>,      \
+                   true>,                                                      \
+      #name " must be trivially default constructible!");                      \
+  static_assert(                                                               \
+      ValueMatches<bool, std::is_trivially_move_constructible_v<name>, true>,  \
+      #name " must be trivially move constructible!");
 
 #ifndef INLINE_MEMSET
 #if defined(__clang__) || defined(__GNUC__)

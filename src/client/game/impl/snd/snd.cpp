@@ -1,4 +1,4 @@
-#include "../../../std_include.hpp"
+#include <std_include.hpp>
 #include "stdlib.h"
 #include "stdint.h"
 #include <cstring>
@@ -6,13 +6,13 @@
 
 #ifndef NDEBUG
 #include <unordered_map>
-#include "../../../../common/str.hpp"
+#include <str.hpp>
 #endif
 
 #include "snd.hpp"
 #include "sd/sd.hpp"
 
-#include "../../../../common/utils/string.hpp"
+#include <utils/string.hpp>
 
 namespace game {
 namespace snd {
@@ -113,7 +113,7 @@ bool SND_StartTocRead_Impl(SndBankLoad *load, SndAssetBankLoad *assetBank,
         int64_t entryOffset = assetBank->header.entryOffset;
         stream::stream_fileid fileHandle = assetBank->fileHandle;
         SndAssetBankEntry *data = assetBank->entries;
-        assetBank->indicesAllocated = 1;
+        assetBank->indicesAllocated = qtrue;
         SND_StreamRead(load, fileHandle, entryOffset, allocSize,
                        reinterpret_cast<void *>(data));
 

@@ -2,7 +2,6 @@
 
 #include "gsc_lexer.hpp"
 #include <memory>
-#include <variant>
 
 namespace gsc_compiler {
 // AST node types

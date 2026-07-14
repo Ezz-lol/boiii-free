@@ -1,5 +1,5 @@
 #pragma once
-#include "../../../game/game.hpp"
+#include <game/game.hpp>
 #include <cstdint>
 
 namespace game {

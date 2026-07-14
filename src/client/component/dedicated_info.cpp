@@ -1,14 +1,14 @@
-#include "../std_include.hpp"
-#include "../loader/component_loader.hpp"
-#include "../game/game.hpp"
-#include "../game/utils.hpp"
+#include <std_include.hpp>
+#include <loader/component_loader.hpp>
+#include <game/game.hpp>
+#include <game/utils.hpp>
 
 #include "scheduler.hpp"
 #include "getinfo.hpp"
 #include "console.hpp"
 
 #include <string>
-#include "../../common/utils/string.hpp"
+#include <utils/string.hpp>
 
 namespace dedicated_info {
 namespace {

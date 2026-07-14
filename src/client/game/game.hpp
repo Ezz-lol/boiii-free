@@ -3,7 +3,7 @@
 
 #include <filesystem>
 #include <string>
-#include "../../common/utils/nt.hpp" // IWYU pragma: export
+#include <utils/nt.hpp> // IWYU pragma: export
 
 namespace arxan::detail {
 void set_address_to_call(const void *address);

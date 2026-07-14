@@ -1,5 +1,5 @@
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 
 #include "profile_infos.hpp"
 #include "network.hpp"
@@ -9,11 +9,11 @@
 #include <utils/properties.hpp>
 #include <utils/concurrency.hpp>
 
-#include "../steam/steam.hpp"
+#include <steam/steam.hpp>
 #include <utils/io.hpp>
 
-#include "game/utils.hpp"
-#include "game/fragment_handler.hpp"
+#include <game/utils.hpp>
+#include <game/fragment_handler.hpp>
 
 namespace profile_infos {
 namespace {

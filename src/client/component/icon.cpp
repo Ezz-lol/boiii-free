@@ -1,5 +1,5 @@
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 #include "resource.hpp"
 
 #include <utils/nt.hpp>

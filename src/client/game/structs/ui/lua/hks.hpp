@@ -268,7 +268,7 @@ struct GenericChunkHeader {
   hksSize m_flags;
 };
 
-struct ChunkHeader : GenericChunkHeader {
+struct ChunkHeader : public GenericChunkHeader {
   ChunkHeader *m_next;
 };
 ASSERT_SIZE(ChunkHeader, 0x10);
@@ -475,10 +475,7 @@ union hksInstruction {
   constexpr bool operator!() const noexcept { return code == 0; }
 };
 ASSERT_SIZE(hksInstruction, sizeof(hksUint32));
-static_assert(std::is_standard_layout_v<hksInstruction>,
-              "hksInstruction must be standard layout!");
-static_assert(std::is_trivially_copyable_v<hksInstruction>,
-              "hksInstruction must be trivially copyable!");
+ASSERT_POD(hksInstruction);
 #pragma pack(push, 1)
 struct CallStack {
   struct ActivationRecord {
@@ -626,7 +623,7 @@ struct MetaTable {
 };
 
 #pragma pack(push, 1)
-struct HashTable : ChunkHeader {
+struct HashTable : public ChunkHeader {
   struct Node {
     HksObject m_key;
     HksObject m_value;
@@ -642,6 +639,7 @@ struct HashTable : ChunkHeader {
   uint8_t _padding34[4];
   Node *m_freeNode;
 
+  inline constexpr HashTable() noexcept = default;
   static HksRegister *getByString(HashTable *self, HksRegister *retstr,
                                   const HksRegister *key) {
     using funcType = decltype(getByString);
@@ -723,7 +721,12 @@ struct HashTable : ChunkHeader {
 ASSERT_SIZE(HashTable, 0x40);
 static_assert(std::is_trivially_copyable_v<HashTable>,
               "HashTable must be trivially copyable!");
-
+static_assert(std::is_trivially_constructible_v<HashTable>,
+              "HashTable must be trivially constructible!");
+static_assert(std::is_trivially_destructible_v<HashTable>,
+              "HashTable must be trivially destructible!");
+static_assert(std::is_trivially_copy_constructible_v<HashTable>,
+              "HashTable must be trivially copy constructible!");
 #pragma pack(pop)
 
 struct cclosure : ChunkHeader {

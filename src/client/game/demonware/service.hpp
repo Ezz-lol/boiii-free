@@ -1,7 +1,7 @@
 #pragma once
-#include <utils/string.hpp>
 #include "servers/service_server.hpp"
 
+#include <functional>
 namespace demonware {
 class service {
   using callback_t = std::function<void(service_server *, byte_buffer *)>;

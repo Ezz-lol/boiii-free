@@ -1,7 +1,7 @@
 #include <std_include.hpp>
 #include "../steam.hpp"
 
-#include "game/game.hpp"
+#include <game/game.hpp>
 
 #include "component/party.hpp"
 #include "component/network.hpp"

@@ -17,7 +17,10 @@ WEAK symbol<void(const char *file, int line, errorParm code, const char *fmt,
                  ...)>
     Com_Error_{0x1420F8170, 0x140501470};
 WEAK symbol<bool(eModes mode)> Com_SessionMode_IsMode{0x1420F7370, 0x140500940};
-WEAK symbol<game::eModes()> Com_SessionMode_GetMode{0x1420F6D30, 0x1405002D0};
+
+WEAK symbol<game::eModes()> _Com_SessionMode_GetMode{0x1420F6D30, 0x1405002D0};
+// To allow for forward declaration for use in struct methods
+inline eModes Com_SessionMode_GetMode() { return _Com_SessionMode_GetMode(); }
 WEAK symbol<int()> Com_SessionMode_GetGameMode{0x1420F68B0, 0x1404FFE50};
 WEAK symbol<void(eNetworkModes networkMode)> Com_SessionMode_SetNetworkMode{
     0x1420F75B0, 0x140500B80};

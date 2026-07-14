@@ -1,14 +1,14 @@
-#include "../std_include.hpp"
-#include "../loader/component_loader.hpp"
+#include <std_include.hpp>
+#include <loader/component_loader.hpp>
 #include "chat.hpp"
 
-#include "game/game.hpp"
-#include "game/utils.hpp"
+#include <game/game.hpp>
+#include <game/utils.hpp>
 
-#include "../game/impl/game/game.hpp"
+#include <game/impl/game/game.hpp>
 
-#include "../../common/utils/hook.hpp"
-#include "../../common/utils/string.hpp"
+#include <utils/hook.hpp>
+#include <utils/string.hpp>
 
 #include "command.hpp"
 #include "client_command.hpp"
@@ -91,13 +91,9 @@ void cl_handle_chat(char *dest, size_t dest_size, const char *src) {
   printf("%s\n", dest);
 }
 
-const char *sv_sayname_val() {
-  if (game::engine_dependent_nonnull(sv_sayname)) {
-    std::optional<std::string_view> sv_sayname_val =
-        game::get_dvar_string(sv_sayname);
-    if (sv_sayname_val.has_value() && !sv_sayname_val.value().empty()) {
-      return sv_sayname_val.value().data();
-    }
+inline const char *sv_sayname_val() {
+  if (sv_sayname) {
+    return sv_sayname.get_cstring();
   }
 
   return nullptr;

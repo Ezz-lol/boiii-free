@@ -1,4 +1,4 @@
-#include "../../std_include.hpp"
+#include <std_include.hpp>
 #include "gsc_emitter.hpp"
 #include <algorithm>
 #include <cstring>

@@ -1,9 +1,6 @@
 #pragma once
 #include <string>
-#include "com.hpp"
-#include "sv.hpp"
-#include "game_event.hpp"
-#include "game/game.hpp"
+#include <game/game.hpp>
 
 namespace name {
 const char *get_player_name();

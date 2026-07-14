@@ -1,7 +1,7 @@
 #include <cstdint>
 #include <sstream>
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 #include "scheduler.hpp"
 
 #include <game/game.hpp>
@@ -9,10 +9,10 @@
 
 #include <string>
 #include <utils/hook.hpp>
-#include "game/impl/game/game.hpp"
+#include <game/impl/game/game.hpp>
 
 #ifndef NDEBUG
-#include "game/impl/snd/snd.hpp"
+#include <game/impl/snd/snd.hpp>
 #endif
 
 namespace script {

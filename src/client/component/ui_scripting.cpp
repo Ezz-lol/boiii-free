@@ -1,34 +1,32 @@
-#include <atomic>
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
-#include "game/game.hpp"
-#include "game/utils.hpp"
+#include <loader/component_loader.hpp>
+#include <game/game.hpp>
+#include <game/utils.hpp>
 
-#include "game/ui_scripting/execution.hpp"
+#include <game/ui_scripting/execution.hpp>
 
 #include "command.hpp"
 #include "ui_scripting.hpp"
 #include "scheduler.hpp"
 #include "friends.hpp"
 #include "discord.hpp"
-#include "network.hpp"
 #include "name.hpp"
 
-#include "../steam/steam.hpp"
-#include "../steam/interfaces/matchmaking_servers.hpp"
-#include "getinfo.hpp"
+#include <steam/steam.hpp>
+#include <steam/interfaces/matchmaking_servers.hpp>
 #include "toast.hpp"
 
-#include "../../common/utils/io.hpp"
-#include "../../common/utils/hook.hpp"
-#include "../../common/utils/flags.hpp"
-#include "../../common/utils/string.hpp"
-#include "../../common/utils/finally.hpp"
-#include "../../common/utils/http.hpp"
+#include <utils/io.hpp>
+#include <utils/hook.hpp>
+#include <utils/flags.hpp>
+#include <utils/string.hpp>
+#include <utils/finally.hpp>
+#include <utils/http.hpp>
 
 #include <cmath>
 #include <filesystem>
 #include <unordered_map>
+#include <atomic>
 
 using namespace game::db;
 using namespace game::db::xasset;
@@ -467,7 +465,7 @@ void setup_functions() {
   lua["game"] = table();
 
   lua["game"]["getfriendcount"] = function(
-      convert_function([]() -> int { return friends::get_friend_count(); }),
+      convert_function([]() -> int32_t { return friends::get_friend_count(); }),
       HksObjectType::TCFUNCTION);
 
   lua["game"]["getfriend"] =
@@ -579,7 +577,7 @@ void setup_functions() {
                HksObjectType::TCFUNCTION);
 
   lua["game"]["getclientoverridename"] = function(
-      convert_function([](const int client_num) -> std::string {
+      convert_function([](const int32_t client_num) -> std::string {
         const auto cn = static_cast<game::ClientNum_t>(client_num);
         if (!game::valid_client_num(cn) || !name::has_name_override(cn)) {
           return "";
@@ -590,7 +588,7 @@ void setup_functions() {
       HksObjectType::TCFUNCTION);
 
   lua["game"]["getclientoverridetag"] =
-      function(convert_function([](const int client_num) -> std::string {
+      function(convert_function([](const int32_t client_num) -> std::string {
                  const auto cn = static_cast<game::ClientNum_t>(client_num);
                  if (!game::valid_client_num(cn) ||
                      !name::has_clan_abbrev_override(cn)) {
@@ -602,7 +600,7 @@ void setup_functions() {
                HksObjectType::TCFUNCTION);
 
   lua["game"]["getrawservercount"] =
-      function(convert_function([]() -> int {
+      function(convert_function([]() -> int32_t {
                  return steam::get_raw_internet_server_count();
                }),
                HksObjectType::TCFUNCTION);
@@ -613,7 +611,7 @@ void setup_functions() {
                HksObjectType::TCFUNCTION);
 
   lua["game"]["getrawserverinfo"] =
-      function(convert_function([](const int index) -> table {
+      function(convert_function([](const int32_t index) -> table {
                  auto t = table();
                  const auto *item = steam::get_raw_internet_server_item(index);
                  if (!item) {
@@ -872,7 +870,7 @@ void show_unsafe_lua_dialog() {
 
   scheduler::once(
       [] {
-        const int result = MessageBoxA(
+        const int32_t result = MessageBoxA(
             nullptr,
             "The map/mod you are playing tried to run code that can be "
             "unsafe.\n\n"
@@ -900,7 +898,7 @@ void show_unsafe_lua_dialog() {
       scheduler::pipeline::main);
 }
 
-template <size_t Key> int lua_unsafe_function_stub(lua_State *l) {
+template <size_t Key> int32_t lua_unsafe_function_stub(lua_State *l) {
   if (unsafe_lua_approved_for_session) {
     return unsafe_function_detours[Key].invoke<int>(l);
   }
@@ -1239,11 +1237,11 @@ std::string colorize_lua_error(const char *error_loc, const char *error_stack) {
 
 const char *safe_get_lua_error_stack(lua_State *luaVM) {
   __try {
-    auto *api_top = luaVM->m_apistack.top;
-    auto *api_bottom = luaVM->m_apistack.bottom;
+    HksObject *api_top = luaVM->m_apistack.top;
+    HksObject *api_bottom = luaVM->m_apistack.bottom;
 
     if (api_top && api_bottom && (api_top - 1) >= api_bottom) {
-      auto *top_obj = api_top - 1;
+      HksObject *top_obj = api_top - 1;
       if (top_obj->t == HksObjectType::TSTRING && top_obj->v.str) {
         return top_obj->v.str->m_data;
       }
@@ -1324,9 +1322,9 @@ void lua_cod_luastatemanager_error_stub(const char *error, lua_State *luaVM) {
     const std::string log_path = (logs_dir / "boiii_lua_errors.log").string();
 
     auto now_sys = std::chrono::system_clock::now();
-    auto time_t = std::chrono::system_clock::to_time_t(now_sys);
+    time_t now = std::chrono::system_clock::to_time_t(now_sys);
     tm ltime{};
-    localtime_s(&ltime, &time_t);
+    localtime_s(&ltime, &now);
     char timestamp[64]{};
     strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &ltime);
 
@@ -1385,32 +1383,19 @@ public:
 
     scheduler::once(
         []() {
-          std::visit(
-              [](auto *resolved) -> void {
-                if (resolved) {
-                  resolved->flags = static_cast<game::dvarFlags_e>(0);
-                  // TODO: why does setting the dvar directly here cause
-                  // the game to freeze?
-                  // Why do we have to use Dvar_SetFromStringByName?
-                  // game::set_dvar_bool(resolved, true);
-                  game::Dvar_SetFromStringByName("ui_error_callstack_ship", "1",
-                                                 true);
-                }
-              },
-              engine_dependent_toggle_const(game::ui_error_callstack_ship()));
-          std::visit(
-              [](auto *resolved) -> void {
-                if (resolved) {
-                  resolved->flags = static_cast<game::dvarFlags_e>(0);
-                  // TODO: why does setting the dvar directly here cause
-                  // the game to freeze?
-                  // Why do we have to use Dvar_SetFromStringByName?
-                  // game::set_dvar_int(resolved, 0);
-                  game::Dvar_SetFromStringByName("ui_error_report_delay", "0",
-                                                 true);
-                }
-              },
-              engine_dependent_toggle_const(game::ui_error_report_delay()));
+          game::ui_error_callstack_ship->flags().clear();
+          // TODO: why does setting the dvar directly here cause
+          // the game to freeze?
+          // Why do we have to use Dvar_SetFromStringByName?
+          // game::set_dvar_bool(ui_error_callstack_ship, true);
+          game::Dvar_SetFromStringByName("ui_error_callstack_ship", "1", true);
+
+          game::ui_error_report_delay->flags().clear();
+          // TODO: why does setting the dvar directly here cause
+          // the game to freeze?
+          // Why do we have to use Dvar_SetFromStringByName?
+          // game::set_dvar_bool(ui_error_report_delay, true);
+          game::Dvar_SetFromStringByName("ui_error_report_delay", "1", true);
         },
         scheduler::pipeline::renderer);
 
@@ -1477,31 +1462,32 @@ public:
       scheduler::once(
           [dir] {
             try {
-              int count = 0;
+              int32_t count = 0;
               std::string errors;
-              const auto reload_dir = [&](const std::string &script_dir) {
-                if (!utils::io::directory_exists(script_dir))
-                  return;
-                for (const std::filesystem::directory_entry &entry :
-                     std::filesystem::recursive_directory_iterator(
-                         script_dir)) {
-                  if (!entry.is_regular_file())
-                    continue;
-                  if (entry.path().extension() != ".lua")
-                    continue;
+              const std::function<void(const std::string &script_dir)>
+                  reload_dir = [&](const std::string &script_dir) {
+                    if (!utils::io::directory_exists(script_dir))
+                      return;
+                    for (const std::filesystem::directory_entry &entry :
+                         std::filesystem::recursive_directory_iterator(
+                             script_dir)) {
+                      if (!entry.is_regular_file())
+                        continue;
+                      if (entry.path().extension() != ".lua")
+                        continue;
 
-                  std::string data;
-                  if (utils::io::read_file(entry.path().string(), &data)) {
-                    std::string chunk = entry.path().string();
-                    if (chunk.starts_with(script_dir))
-                      chunk = chunk.substr(script_dir.size());
-                    if (execute_raw_lua(data, chunk.c_str()))
-                      count++;
-                    else
-                      errors += chunk + "\n";
-                  }
-                }
-              };
+                      std::string data;
+                      if (utils::io::read_file(entry.path().string(), &data)) {
+                        std::string chunk = entry.path().string();
+                        if (chunk.starts_with(script_dir))
+                          chunk = chunk.substr(script_dir.size());
+                        if (execute_raw_lua(data, chunk.c_str()))
+                          count++;
+                        else
+                          errors += chunk + "\n";
+                      }
+                    }
+                  };
 
               rawfile_source_cache.clear();
 
@@ -1560,7 +1546,7 @@ public:
 
       // Find the mod's content folder from the workshop pool
       std::string mod_content_path;
-      for (unsigned int i = 0; i < game::ugc::modsPool.count; ++i) {
+      for (uint32_t i = 0; i < game::ugc::modsPool.count; ++i) {
         const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool.data[i];
         if (mod_data->publisherId == mod_id ||
             mod_data->internalName == mod_id) {
@@ -1583,7 +1569,7 @@ public:
       scheduler::once(
           [script_dir, mod_id] {
             try {
-              int count = 0;
+              int32_t count = 0;
               std::string errors;
               if (utils::io::directory_exists(script_dir)) {
                 for (const std::filesystem::directory_entry &entry :

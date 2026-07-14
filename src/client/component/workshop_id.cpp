@@ -1,6 +1,6 @@
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
-#include "game/utils.hpp"
+#include <loader/component_loader.hpp>
+#include <game/utils.hpp>
 #include <utils/io.hpp>
 #include <utils/string.hpp>
 #include <utils/thread.hpp>

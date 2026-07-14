@@ -1,4 +1,4 @@
-#include "../../../std_include.hpp"
+#include <std_include.hpp>
 #include "cl.hpp"
 #include <cstring>
 #include <cstdio>
@@ -6,7 +6,7 @@
 #include "../../utils.hpp"
 #include "../cg/cg.hpp"
 #include "../../../component/auth.hpp"
-#include "../../../../common/utils/string.hpp"
+#include <utils/string.hpp>
 
 namespace game {
 namespace cl {
@@ -228,9 +228,9 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
             : "1");
 
     // BEGIN boiii-specific fields
-    if (game::engine_dependent_nonnull(auth::password)) {
+    if (auth::password) {
       std::optional<std::string_view> password_val =
-          game::get_dvar_string(auth::password);
+          auth::password.get_string();
       if (password_val.has_value()) {
         info::Info_SetValueForKey(s, "password", password_val.value().data());
       }

@@ -1,4 +1,4 @@
-#include "../../../std_include.hpp"
+#include <std_include.hpp>
 
 #include <cstdint>
 #include <cstring>
@@ -10,9 +10,9 @@
 
 #include "ugc.hpp"
 
-#include "../../../steam/steam.hpp"
-#include "../../../../common/utils/string.hpp"
-#include "../../../../common/str.hpp"
+#include <steam/steam.hpp>
+#include <utils/string.hpp>
+#include <str.hpp>
 
 #include "../../../component/workshop.hpp"
 
@@ -151,7 +151,7 @@ void UGC_LoadPool_Impl(ExtendedWorkshopDataPool *pool, ZoneType zoneType) {
   snprintf(ugcContentListContainerDir, sizeof(ugcContentListContainerDir),
            "%s/%s", cwd, ugcContentContainerDirname);
   fs::PathList fileList = sys::Sys_ListFiles(ugcContentListContainerDir, "/",
-                                             nullptr, &numfiles, 0);
+                                             nullptr, &numfiles, qfalse);
 
   for (int32_t fileIdx = 0;
        fileIdx < numfiles && pool->count < EXTENDED_WORKSHOP_DATA_POOL_SIZE &&

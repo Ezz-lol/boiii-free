@@ -1,9 +1,9 @@
-#include "std_include.hpp"
+#include <std_include.hpp>
 
 #include "game.hpp"
 
-#include "../../common/utils/flags.hpp"
-#include "../../common/utils/finally.hpp"
+#include <utils/flags.hpp>
+#include <utils/finally.hpp>
 
 #include <combaseapi.h>
 

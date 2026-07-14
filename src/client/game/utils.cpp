@@ -1,9 +1,7 @@
-#include "../std_include.hpp"
+#include <std_include.hpp>
 
-#include "game.hpp"
 #include "utils.hpp"
-
-#include "../../common/utils/concurrency.hpp"
+#include <utils/concurrency.hpp>
 
 using namespace game::com;
 using namespace game::sv;
@@ -14,6 +12,7 @@ namespace {
 utils::concurrency::container<std::vector<std::string>>
     registered_dvar_names_{};
 std::atomic_size_t registered_dvar_name_count_{0};
+} // namespace
 
 void record_registered_dvar_name(const char *dvar_name) {
   if (!dvar_name || !dvar_name[0]) {
@@ -22,70 +21,52 @@ void record_registered_dvar_name(const char *dvar_name) {
   registered_dvar_names_.access([dvar_name](std::vector<std::string> &names) {
     names.emplace_back(dvar_name);
   });
-  ++registered_dvar_name_count_;
-}
+  registered_dvar_name_count_.fetch_add(1, std::memory_order_seq_cst);
+} // namespace
 
 EngineDependentDvarMut
 try_get_sessionmode_specific_dvar(EngineDependentDvarMut dvar) {
-  return std::visit(
-      [](auto *resolved) -> EngineDependentDvarMut {
-        if (!resolved || resolved->type != dvarType_t::SESSIONMODE_BASE_DVAR) {
-          return resolved;
-        }
 
-        if (Com_SessionMode_IsMode(eModes::COUNT)) {
-          return static_cast<decltype(resolved)>(nullptr);
-        }
+  if (dvar || dvar.type() != dvarType_t::SESSIONMODE_BASE_DVAR) {
+    return dvar;
+  }
 
-        const game::eModes mode = Com_SessionMode_GetMode();
-        return reinterpret_cast<decltype(resolved)>(
-            Dvar_GetSessionModeSpecificDvar(
-                reinterpret_cast<dvar_t *>(resolved),
-                static_cast<eModes>(mode)));
-      },
-      dvar);
+  if (Com_SessionMode_IsMode(eModes::COUNT)) {
+    return nullptr;
+  }
+
+  const game::eModes mode = Com_SessionMode_GetMode();
+  return Dvar_GetSessionModeSpecificDvar(dvar.sv, static_cast<eModes>(mode));
 }
-} // namespace
 
 __inline_def EngineDependentDvarMut get_dvar(const char *name) {
-  return dvar_variant(Dvar_FindVar(name));
+  return Dvar_FindVar(name);
 }
 
 __inline_def std::optional<std::string_view>
 get_dvar_string(EngineDependentDvar dvar) {
-  return std::visit(
-      [](const auto *resolved) -> std::optional<std::string_view> {
-        const char *str = resolved->current.string();
-        return str ? std::optional(std::string_view(str)) : std::nullopt;
-      },
-      dvar);
+  return dvar.get_string();
 }
 
 std::optional<std::string_view> get_dvar_string(const char *dvar_name) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
 
-  return std::visit(
-      [](const auto *resolved) -> std::optional<std::string_view> {
-        if (resolved) {
-          return get_dvar_string(engine_dependent_toggle_const(resolved));
-        }
+  if (dvar) {
+    return dvar.get_string();
+  }
 
-        return std::nullopt;
-      },
-      dvar);
+  return std::nullopt;
 }
 
 __inline_def int32_t get_dvar_int(EngineDependentDvar dvar) {
-  return std::visit(
-      [](auto *resolved) -> int32_t { return resolved->current.integer(); },
-      dvar);
+  return dvar.get_int();
 }
 
 std::optional<int32_t> get_dvar_int(const char *dvar_name) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
 
-  if (engine_dependent_nonnull(dvar)) {
-    return get_dvar_int(engine_dependent_toggle_const(dvar));
+  if (dvar) {
+    return dvar.get_int();
   }
 
   return std::nullopt;
@@ -93,56 +74,41 @@ std::optional<int32_t> get_dvar_int(const char *dvar_name) {
 
 int32_t set_dvar_int(EngineDependentDvar dvar, int32_t val,
                      DvarSetSource source) {
-  int32_t prev_val = get_dvar_int(dvar);
-  std::visit(
-      [val, source](const auto *resolved) -> void {
-        Dvar_SetIntFromSource(reinterpret_cast<const dvar_t *>(resolved), val,
-                              source);
-      },
-      dvar);
-  return prev_val;
+  return dvar.set(val, source);
 }
 
 std::optional<int32_t> set_dvar_int(const char *dvar_name, int32_t val,
                                     DvarSetSource source) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
-  if (engine_dependent_nonnull(dvar)) {
+  if (dvar) {
 
-    return set_dvar_int(engine_dependent_toggle_const(dvar), val, source);
+    return dvar.get_int();
   }
 
   return std::nullopt;
 }
 
 __inline_def uint32_t get_dvar_uint(EngineDependentDvar dvar) {
-  return std::visit(
-      [](const auto *resolved) -> uint32_t {
-        return resolved->current.unsignedInt();
-      },
-      dvar);
+  return dvar.get_uint();
 }
 
 std::optional<uint32_t> get_dvar_uint(const char *dvar_name) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
-  if (engine_dependent_nonnull(dvar)) {
-    return get_dvar_uint(engine_dependent_toggle_const(dvar));
+  if (dvar) {
+    return dvar.get_uint();
   }
 
   return std::nullopt;
 }
 
 __inline_def uint64_t get_dvar_uint64(EngineDependentDvar dvar) {
-  return std::visit(
-      [](const auto *resolved) -> uint64_t {
-        return resolved->current.unsignedInt64();
-      },
-      dvar);
+  return dvar.get_uint64();
 }
 
 std::optional<uint64_t> get_dvar_uint64(const char *dvar_name) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
-  if (engine_dependent_nonnull(dvar)) {
-    return get_dvar_uint64(engine_dependent_toggle_const(dvar));
+  if (dvar) {
+    return dvar.get_uint64();
   }
 
   return std::nullopt;
@@ -150,37 +116,26 @@ std::optional<uint64_t> get_dvar_uint64(const char *dvar_name) {
 
 uint64_t set_dvar_uint64(EngineDependentDvar dvar, uint64_t val,
                          DvarSetSource source) {
-  const uint64_t prev_val = get_dvar_uint64(dvar);
-  std::visit(
-      [val, source](const auto *resolved) -> void {
-        Dvar_SetUInt64FromSource(reinterpret_cast<const dvar_t *>(resolved),
-                                 val, source);
-      },
-      dvar);
-  return prev_val;
+  return dvar.set(val, source);
 }
 
 std::optional<uint64_t> set_dvar_uint64(const char *dvar_name, uint64_t val,
                                         DvarSetSource source) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
-  if (engine_dependent_nonnull(dvar)) {
-    return set_dvar_uint64(engine_dependent_toggle_const(dvar), val, source);
+  if (dvar) {
+    return dvar.set(val, source);
   }
   return std::nullopt;
 }
 
 __inline_def int64_t get_dvar_int64(EngineDependentDvar dvar) {
-  return std::visit(
-      [](const auto *resolved) -> int64_t {
-        return resolved->current.integer64();
-      },
-      dvar);
+  return dvar.get_int64();
 }
 
 std::optional<int64_t> get_dvar_int64(const char *dvar_name) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
-  if (engine_dependent_nonnull(dvar)) {
-    return get_dvar_int64(engine_dependent_toggle_const(dvar));
+  if (dvar) {
+    return dvar.get_int64();
   }
 
   return std::nullopt;
@@ -188,70 +143,52 @@ std::optional<int64_t> get_dvar_int64(const char *dvar_name) {
 
 int64_t set_dvar_int64(EngineDependentDvar dvar, int64_t val,
                        DvarSetSource source) {
-  const int64_t prev_val = get_dvar_int64(dvar);
-  std::visit(
-      [val, source](const auto *resolved) -> void {
-        Dvar_SetInt64FromSource(reinterpret_cast<const dvar_t *>(resolved), val,
-                                source);
-      },
-      dvar);
-  return prev_val;
+  return dvar.set(val, source);
 }
 
 std::optional<int64_t> set_dvar_int64(const char *dvar_name, int64_t val,
                                       DvarSetSource source) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
-  if (engine_dependent_nonnull(dvar)) {
-    return set_dvar_int64(engine_dependent_toggle_const(dvar), val, source);
+  if (dvar) {
+    return dvar.set(val, source);
   }
   return std::nullopt;
 }
 
 __inline_def bool get_dvar_bool(EngineDependentDvar dvar) {
-  return std::visit(
-      [](const auto *resolved) -> bool { return resolved->current.enabled(); },
-      dvar);
+  return dvar.get_bool();
 }
 
 std::optional<bool> get_dvar_bool(const char *dvar_name) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
-  if (engine_dependent_nonnull(dvar)) {
-    return get_dvar_bool(engine_dependent_toggle_const(dvar));
+  if (dvar) {
+    return dvar.get_bool();
   }
 
   return std::nullopt;
 }
 
 bool set_dvar_bool(EngineDependentDvar dvar, bool val, DvarSetSource source) {
-  const bool prev_val = get_dvar_bool(dvar);
-  std::visit(
-      [val, source](const auto *resolved) -> void {
-        Dvar_SetBoolFromSource(reinterpret_cast<const dvar_t *>(resolved), val,
-                               source);
-      },
-      dvar);
-  return prev_val;
+  return dvar.set(val, source);
 }
 
 std::optional<bool> set_dvar_bool(const char *dvar_name, bool val,
                                   DvarSetSource source) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
-  if (engine_dependent_nonnull(dvar)) {
-    set_dvar_bool(engine_dependent_toggle_const(dvar), val, source);
+  if (dvar) {
+    return dvar.set(val, source);
   }
   return std::nullopt;
 }
 
 __inline_def float get_dvar_float(EngineDependentDvar dvar) {
-  return std::visit(
-      [](const auto *resolved) -> float { return resolved->current.value(); },
-      dvar);
+  return dvar.get_float();
 }
 
 std::optional<float> get_dvar_float(const char *dvar_name) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
-  if (engine_dependent_nonnull(dvar)) {
-    return get_dvar_float(engine_dependent_toggle_const(dvar));
+  if (dvar) {
+    return dvar.get_float();
   }
 
   return std::nullopt;
@@ -259,21 +196,14 @@ std::optional<float> get_dvar_float(const char *dvar_name) {
 
 float set_dvar_float(EngineDependentDvar dvar, float val,
                      DvarSetSource source) {
-  const float prev_val = get_dvar_float(dvar);
-  std::visit(
-      [val, source](const auto *resolved) -> void {
-        Dvar_SetFloatFromSource(reinterpret_cast<const dvar_t *>(resolved), val,
-                                source);
-      },
-      dvar);
-  return prev_val;
+  return dvar.set(val, source);
 }
 
 std::optional<float> set_dvar_float(const char *dvar_name, float val,
                                     DvarSetSource source) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
-  if (engine_dependent_nonnull(dvar)) {
-    return set_dvar_float(engine_dependent_toggle_const(dvar), val, source);
+  if (dvar) {
+    return dvar.set(val, source);
   }
   return std::nullopt;
 }
@@ -281,215 +211,16 @@ std::optional<float> set_dvar_float(const char *dvar_name, float val,
 std::optional<std::string> set_dvar_string(EngineDependentDvar dvar,
                                            const char *val,
                                            DvarSetSource source) {
-  const std::optional<std::string_view> prev_val = get_dvar_string(dvar);
-  std::optional<std::string> prev_val_copy;
-  if (prev_val.has_value()) {
-    prev_val_copy = std::optional(std::string(prev_val.value()));
-  } else {
-    prev_val_copy = std::nullopt;
-  }
-  std::visit(
-      [val, source](const auto *resolved) -> void {
-        Dvar_SetStringFromSource(reinterpret_cast<const dvar_t *>(resolved),
-                                 val, source);
-      },
-      dvar);
-  return prev_val_copy;
+  return dvar.set(val, source);
 }
 
 std::optional<std::string>
 set_dvar_string(const char *dvar_name, const char *val, DvarSetSource source) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
-  if (engine_dependent_nonnull(dvar)) {
-    return set_dvar_string(engine_dependent_toggle_const(dvar), val, source);
+  if (dvar) {
+    return dvar.set(val, source);
   }
   return std::nullopt;
-}
-
-EngineDependentDvar register_sessionmode_dvar_bool(const char *dvar_name,
-                                                   const bool value,
-                                                   const uint32_t flags,
-                                                   const char *description,
-                                                   const eModes mode) {
-  const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
-  EngineDependentDvarMut registered_dvar = dvar_variant(
-      Dvar_SessionModeRegisterBool(hash, dvar_name, value, flags, description));
-
-  return std::visit(
-      [dvar_name, value, mode, hash](auto *resolved) -> EngineDependentDvar {
-        if (resolved) {
-          resolved->debugName = dvar_name;
-          record_registered_dvar_name(dvar_name);
-
-          if (mode == eModes::COUNT) {
-            for (game::eModes i = eModes::FIRST; i < eModes::COUNT; i++) {
-              Dvar_SessionModeSetDefaultBool.call_safe(hash, value, i);
-            }
-          } else {
-            Dvar_SessionModeSetDefaultBool.call_safe(hash, value, mode);
-          }
-        }
-
-        return engine_dependent_toggle_const(resolved);
-      },
-      registered_dvar);
-}
-
-EngineDependentDvar register_dvar_bool(const char *dvar_name, const bool value,
-                                       const uint32_t flags,
-                                       const char *description) {
-  const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
-  EngineDependentDvarMut registered_dvar = dvar_variant(
-      Dvar_RegisterBool(hash, dvar_name, value, flags, description));
-
-  return std::visit(
-      [dvar_name](auto *resolved) -> EngineDependentDvar {
-        if (resolved) {
-          resolved->debugName = dvar_name;
-          record_registered_dvar_name(dvar_name);
-        }
-
-        return engine_dependent_toggle_const(resolved);
-      },
-      registered_dvar);
-}
-
-EngineDependentDvar register_dvar_int(const char *dvar_name, int32_t value,
-                                      int32_t min, int32_t max,
-                                      const uint32_t flags,
-                                      const char *description) {
-  const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
-  EngineDependentDvarMut registered_dvar = dvar_variant(
-      Dvar_RegisterInt(hash, dvar_name, value, min, max, flags, description));
-
-  return std::visit(
-      [dvar_name](auto *resolved) -> EngineDependentDvar {
-        if (resolved) {
-          resolved->debugName = dvar_name;
-          record_registered_dvar_name(dvar_name);
-        }
-
-        return engine_dependent_toggle_const(resolved);
-      },
-      registered_dvar);
-}
-
-EngineDependentDvar register_dvar_float(const char *dvar_name, float value,
-                                        float min, float max,
-                                        const uint32_t flags,
-                                        const char *description) {
-  const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
-  EngineDependentDvarMut registered_dvar = dvar_variant(
-      Dvar_RegisterFloat(hash, dvar_name, value, min, max, flags, description));
-  return std::visit(
-      [dvar_name](auto *resolved) -> EngineDependentDvar {
-        if (resolved) {
-          resolved->debugName = dvar_name;
-          record_registered_dvar_name(dvar_name);
-        }
-
-        return engine_dependent_toggle_const(resolved);
-      },
-      registered_dvar);
-}
-
-EngineDependentDvar register_dvar_string(const char *dvar_name,
-                                         const char *value,
-                                         const uint32_t flags,
-                                         const char *description) {
-  const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
-  EngineDependentDvarMut registered_dvar = dvar_variant(
-      Dvar_RegisterString(hash, dvar_name, value, flags, description));
-
-  return std::visit(
-      [dvar_name](auto *resolved) -> EngineDependentDvar {
-        if (resolved) {
-          resolved->debugName = dvar_name;
-          record_registered_dvar_name(dvar_name);
-        }
-
-        return engine_dependent_toggle_const(resolved);
-      },
-      registered_dvar);
-}
-void dvar_add_flags(EngineDependentDvarMut dvar, const uint32_t flags) {
-  std::visit(
-      [flags](auto *resolved) -> void {
-        if (!resolved) {
-          return;
-        }
-
-        using Resolved = decltype(resolved);
-        Resolved dvar_to_change = resolved;
-        if (dvar_to_change->type == dvarType_t::SESSIONMODE_BASE_DVAR) {
-          dvar_to_change = std::get<Resolved>(
-              try_get_sessionmode_specific_dvar(dvar_to_change));
-          if (!dvar_to_change) {
-            return;
-          }
-        }
-
-        dvar_to_change->flags |= flags;
-      },
-      dvar);
-}
-void dvar_add_flags(const char *dvar_name, const uint32_t flags) {
-  EngineDependentDvarMut dvar = get_dvar(dvar_name);
-  dvar_add_flags(dvar, flags);
-}
-
-void dvar_set_flags(EngineDependentDvarMut dvar, const uint32_t flags) {
-  std::visit(
-      [flags](auto *resolved) -> void {
-        if (!resolved) {
-          return;
-        }
-
-        using Resolved = decltype(resolved);
-        Resolved dvar_to_change = resolved;
-        if (dvar_to_change->type == dvarType_t::SESSIONMODE_BASE_DVAR) {
-          dvar_to_change = std::get<Resolved>(
-              try_get_sessionmode_specific_dvar(dvar_to_change));
-          if (!dvar_to_change) {
-            return;
-          }
-        }
-
-        dvar_to_change->flags = flags;
-      },
-      dvar);
-}
-
-void dvar_set_flags(const char *dvar_name, const uint32_t flags) {
-  EngineDependentDvarMut dvar = get_dvar(dvar_name);
-  dvar_set_flags(dvar, flags);
-}
-
-void dvar_remove_flags(EngineDependentDvarMut dvar, const uint32_t flags) {
-  std::visit(
-      [flags](auto *resolved) -> void {
-        if (!resolved) {
-          return;
-        }
-
-        using Resolved = decltype(resolved);
-        Resolved dvar_to_change = resolved;
-        if (dvar_to_change->type == dvarType_t::SESSIONMODE_BASE_DVAR) {
-          dvar_to_change = std::get<Resolved>(
-              try_get_sessionmode_specific_dvar(dvar_to_change));
-          if (!dvar_to_change) {
-            return;
-          }
-        }
-
-        dvar_to_change->flags &= ~flags;
-      },
-      dvar);
-}
-
-void dvar_remove_flags(const char *dvar_name, const uint32_t flags) {
-  EngineDependentDvarMut dvar = get_dvar(dvar_name);
-  dvar_remove_flags(dvar, flags);
 }
 
 template <typename T>

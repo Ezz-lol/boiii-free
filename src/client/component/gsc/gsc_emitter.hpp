@@ -2,7 +2,6 @@
 
 #include "gsc_parser.hpp"
 #include "gsc_compiler.hpp"
-#include <unordered_map>
 
 namespace gsc_compiler {
 // T7 PC Script OpCodes (logical values)

@@ -6,76 +6,6 @@
 
 namespace game {
 
-template <typename T> inline EngineDependentDvarMut dvar_variant(T *dvar) {
-  if (game::is_server()) {
-    return reinterpret_cast<dvar_t *>(dvar);
-  }
-
-  return reinterpret_cast<dvar_t_cl *>(dvar);
-}
-template <typename T> inline EngineDependentDvar dvar_variant(const T *dvar) {
-  if (game::is_server()) {
-    return reinterpret_cast<const dvar_t *>(dvar);
-  }
-
-  return reinterpret_cast<const dvar_t_cl *>(dvar);
-}
-
-template <typename T> inline EngineDependentDvarMut dvar_variant_mut(T *dvar) {
-  if (game::is_server()) {
-    return reinterpret_cast<dvar_t *>(dvar);
-  }
-
-  return reinterpret_cast<dvar_t_cl *>(dvar);
-}
-
-template <typename Client, typename Server>
-inline bool engine_dependent_nonnull(EngineDependent<Client *, Server *> v) {
-  return std::visit([](auto *resolved) -> bool { return resolved != nullptr; },
-                    v);
-}
-
-template <typename Client, typename Server>
-inline bool
-engine_dependent_nonnull(EngineDependent<const Client *, const Server *> v) {
-  return std::visit([](auto *resolved) -> bool { return resolved != nullptr; },
-                    v);
-}
-
-template <typename Client, typename Server>
-inline EngineDependent<const Client *, const Server *>
-engine_dependent_toggle_const(EngineDependent<Client *, Server *> v) {
-  return std::visit(
-      [](auto *resolved) -> EngineDependent<const Client *, const Server *> {
-        // Isolate the base type (Client or Server) and add const to it
-        using Pointee = std::remove_pointer_t<decltype(resolved)>;
-        return const_cast<const Pointee *>(resolved);
-      },
-      v);
-}
-
-template <typename Client, typename Server>
-inline EngineDependent<Client *, Server *> engine_dependent_toggle_const(
-    EngineDependent<const Client *, const Server *> v) {
-  return std::visit(
-      [](auto *resolved) -> EngineDependent<Client *, Server *> {
-        // Isolate the base type (const Client or const Server) and remove const
-        using Pointee = std::remove_pointer_t<decltype(resolved)>;
-        return const_cast<std::remove_const_t<Pointee> *>(resolved);
-      },
-      v);
-}
-
-// In case of casting resolved type, which cannot be used or defined easily at
-// point of cast
-template <typename T> inline const T *engine_dependent_toggle_const(T *v) {
-  return const_cast<const T *>(v);
-}
-
-template <typename T> inline T *engine_dependent_toggle_const(const T *v) {
-  return const_cast<T *>(v);
-}
-
 [[nodiscard]] EngineDependentDvarMut get_dvar(const char *name);
 [[nodiscard]] std::optional<std::string_view>
 get_dvar_string(EngineDependentDvar dvar);
@@ -125,71 +55,226 @@ std::optional<std::string>
 set_dvar_string(const char *dvar_name, const char *val,
                 DvarSetSource source = DvarSetSource::INTERNAL);
 
-[[nodiscard]] EngineDependentDvar register_dvar_bool(const char *dvar_name,
-                                                     bool value, uint32_t flags,
-                                                     const char *description);
-[[nodiscard]] EngineDependentDvar register_dvar_int(const char *dvar_name,
-                                                    int32_t value, int32_t min,
-                                                    int32_t max, uint32_t flags,
-                                                    const char *description);
-[[nodiscard]] EngineDependentDvar register_dvar_float(const char *dvar_name,
-                                                      float value, float min,
-                                                      float max, uint32_t flags,
-                                                      const char *description);
-[[nodiscard]] EngineDependentDvar
-register_sessionmode_dvar_bool(const char *dvar_name, bool value,
-                               uint32_t flags, const char *description,
-                               eModes mode = eModes::COUNT);
-[[nodiscard]] EngineDependentDvar register_dvar_string(const char *dvar_name,
-                                                       const char *value,
-                                                       uint32_t flags,
-                                                       const char *description);
-void dvar_add_flags(EngineDependentDvarMut dvar, uint32_t flags);
-void dvar_set_flags(EngineDependentDvarMut dvar, uint32_t flags);
-void dvar_remove_flags(EngineDependentDvarMut dvar, uint32_t flags);
+void record_registered_dvar_name(const char *dvar_name);
 
-void dvar_add_flags(const char *dvar_name, uint32_t flags);
-void dvar_set_flags(const char *dvar_name, uint32_t flags);
-void dvar_remove_flags(const char *dvar_name, uint32_t flags);
+template <typename T,
+          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+EngineDependentDvar
+register_sessionmode_dvar_bool(const char *dvar_name, const bool value, T flags,
+                               const char *description,
+                               const eModes mode = eModes::COUNT) {
+  const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
+  EngineDependentDvarMut registered_dvar = Dvar_SessionModeRegisterBool(
+      hash, dvar_name, value, DvarFlags::from(flags), description);
+
+  if (registered_dvar) {
+    registered_dvar.debugName() = dvar_name;
+    record_registered_dvar_name(dvar_name);
+
+    if (mode == eModes::COUNT) {
+      for (game::eModes i = eModes::FIRST; i < eModes::COUNT; i++) {
+        Dvar_SessionModeSetDefaultBool.call_safe(hash, value, i);
+      }
+    } else {
+      Dvar_SessionModeSetDefaultBool.call_safe(hash, value, mode);
+    }
+  }
+
+  return registered_dvar;
+}
+
+template <typename T,
+          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+EngineDependentDvar register_dvar_bool(const char *dvar_name, const bool value,
+                                       T flags, const char *description) {
+  const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
+  EngineDependentDvarMut registered_dvar = Dvar_RegisterBool(
+      hash, dvar_name, value, DvarFlags::from(flags), description);
+
+  if (registered_dvar) {
+    registered_dvar.debugName() = dvar_name;
+    record_registered_dvar_name(dvar_name);
+  }
+
+  return registered_dvar;
+}
+
+template <typename T,
+          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+EngineDependentDvar register_dvar_int(const char *dvar_name, int32_t value,
+                                      int32_t min, int32_t max, T flags,
+                                      const char *description) {
+  const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
+  EngineDependentDvarMut registered_dvar = Dvar_RegisterInt(
+      hash, dvar_name, value, min, max, DvarFlags::from(flags), description);
+
+  if (registered_dvar) {
+    registered_dvar.debugName() = dvar_name;
+    record_registered_dvar_name(dvar_name);
+  }
+
+  return registered_dvar;
+}
+
+template <typename T,
+          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+EngineDependentDvar register_dvar_float(const char *dvar_name, float value,
+                                        float min, float max, T flags,
+                                        const char *description) {
+  const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
+  EngineDependentDvarMut registered_dvar = Dvar_RegisterFloat(
+      hash, dvar_name, value, min, max, DvarFlags::from(flags), description);
+
+  if (registered_dvar) {
+    registered_dvar.debugName() = dvar_name;
+    record_registered_dvar_name(dvar_name);
+  }
+
+  return registered_dvar;
+}
+
+template <typename T,
+          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+EngineDependentDvar register_dvar_string(const char *dvar_name,
+                                         const char *value, T flags,
+                                         const char *description) {
+  const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
+  EngineDependentDvarMut registered_dvar = Dvar_RegisterString(
+      hash, dvar_name, value, DvarFlags::from(flags), description);
+
+  if (registered_dvar) {
+    registered_dvar.debugName() = dvar_name;
+    record_registered_dvar_name(dvar_name);
+  }
+
+  return registered_dvar;
+}
+EngineDependentDvarMut
+try_get_sessionmode_specific_dvar(EngineDependentDvarMut dvar);
+
+template <typename T,
+          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+void dvar_add_flags(EngineDependentDvarMut dvar, const T flags) {
+  if (!dvar) {
+    return;
+  }
+
+  EngineDependentDvarMut dvar_to_change = dvar;
+  if (dvar_to_change.type() == dvarType_t::SESSIONMODE_BASE_DVAR) {
+    dvar_to_change = try_get_sessionmode_specific_dvar(dvar_to_change);
+    if (dvar_to_change) {
+      return;
+    }
+  }
+
+  dvar_to_change.flags() |= flags;
+}
+template <typename T,
+          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+void dvar_add_flags(const char *dvar_name, const T flags) {
+  EngineDependentDvarMut dvar = get_dvar(dvar_name);
+
+  if (dvar) {
+    dvar_add_flags(dvar, flags);
+  }
+}
+
+template <typename T,
+          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+void dvar_set_flags(EngineDependentDvarMut dvar, const T flags) {
+  if (!dvar) {
+    return;
+  }
+
+  EngineDependentDvarMut dvar_to_change = dvar;
+  if (dvar_to_change.type() == dvarType_t::SESSIONMODE_BASE_DVAR) {
+    dvar_to_change = try_get_sessionmode_specific_dvar(dvar_to_change);
+    if (!dvar_to_change) {
+      return;
+    }
+  }
+
+  dvar_to_change.flags() = DvarFlags::from(flags);
+}
+
+template <typename T,
+          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+void dvar_set_flags(const char *dvar_name, const T flags) {
+  EngineDependentDvarMut dvar = get_dvar(dvar_name);
+
+  if (dvar) {
+    dvar_set_flags(dvar, flags);
+  }
+}
+
+template <typename T,
+          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+void dvar_remove_flags(EngineDependentDvarMut dvar, const T flags) {
+  if (!dvar) {
+    return;
+  }
+
+  EngineDependentDvarMut dvar_to_change = dvar;
+  if (dvar_to_change.type() == dvarType_t::SESSIONMODE_BASE_DVAR) {
+    dvar_to_change = try_get_sessionmode_specific_dvar(dvar_to_change);
+    if (!dvar_to_change) {
+      return;
+    }
+  }
+
+  dvar_to_change.flags() &= ~flags;
+}
+
+template <typename T,
+          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+void dvar_remove_flags(const char *dvar_name, const T flags) {
+  EngineDependentDvarMut dvar = get_dvar(dvar_name);
+
+  if (dvar) {
+    dvar_remove_flags(dvar, flags);
+  }
+}
 
 [[nodiscard]] inline std::optional<std::string_view> get_mapname() {
-  return get_dvar_string(mapname());
+  return *mapname ? mapname->get_string() : std::nullopt;
 }
 [[nodiscard]] inline std::optional<std::string_view> get_g_gametype() {
-  return get_dvar_string(g_gametype());
+  return *g_gametype ? g_gametype->get_string() : std::nullopt;
 }
 [[nodiscard]] inline std::optional<std::string_view> gametype() {
-  return get_dvar_string(g_gametype());
+  return get_g_gametype();
 }
 [[nodiscard]] inline std::optional<std::string_view> get_g_password() {
-  return get_dvar_string(g_password());
+  return *g_password ? g_password->get_string() : std::nullopt;
 }
 [[nodiscard]] inline std::optional<std::string_view> password() {
-  return get_dvar_string(g_password());
+  return get_g_password();
 }
 
 [[nodiscard]] inline std::optional<std::string_view> get_sv_maprotation() {
-  return get_dvar_string(sv_maprotation());
+  return *sv_maprotation ? sv_maprotation->get_string() : std::nullopt;
 }
 [[nodiscard]] inline std::optional<std::string_view> maprotation() {
-  return get_dvar_string(sv_maprotation());
+  return get_sv_maprotation();
 }
 [[nodiscard]] inline std::optional<std::string_view>
 get_sv_maprotationcurrent() {
-  return get_dvar_string(sv_maprotationcurrent());
+  return *sv_maprotationcurrent ? sv_maprotationcurrent->get_string()
+                                : std::nullopt;
 }
 [[nodiscard]] inline std::optional<std::string_view> maprotationcurrent() {
-  return get_dvar_string(sv_maprotationcurrent());
+  return get_sv_maprotationcurrent();
 }
 [[nodiscard]] inline std::optional<std::string_view>
 get_live_steam_server_name() {
-  return get_dvar_string(live_steam_server_name());
+  return *live_steam_server_name ? live_steam_server_name->get_string()
+                                 : std::nullopt;
 }
 [[nodiscard]] inline std::optional<std::string_view> server_name() {
   return get_live_steam_server_name();
 }
 [[nodiscard]] inline std::optional<std::string_view> get_sv_hostname() {
-  return get_dvar_string(sv_hostname());
+  return *sv_hostname ? sv_hostname->get_string() : std::nullopt;
 }
 [[nodiscard]] inline std::optional<std::string_view> hostname() {
   if (is_server()) {
@@ -199,32 +284,34 @@ get_live_steam_server_name() {
 }
 [[nodiscard]] inline std::optional<std::string_view>
 get_live_steam_server_description() {
-  return get_dvar_string(live_steam_server_description());
+  return *get_live_steam_server_description
+             ? live_steam_server_description->get_string()
+             : std::nullopt;
 }
 [[nodiscard]] inline std::optional<std::string_view> server_description() {
   return get_live_steam_server_description();
 }
 [[nodiscard]] inline std::optional<std::string_view>
 get_live_steam_server_password() {
-  return get_dvar_string(live_steam_server_password());
+  return *get_live_steam_server_password
+             ? live_steam_server_password->get_string()
+             : std::nullopt;
 }
 [[nodiscard]] inline std::optional<std::string_view> server_password() {
   return get_live_steam_server_password();
 }
 [[nodiscard]] inline std::optional<std::string_view> get_rcon_password() {
-  return get_dvar_string(rcon_password());
+  return *rcon_password ? rcon_password->get_string() : std::nullopt;
 }
+constexpr uint16_t DEFAULT_PORT = 3074;
 [[nodiscard]] inline uint32_t get_net_port() {
-  return get_dvar_uint(net_port());
+  return *net_port ? net_port->get_uint() : DEFAULT_PORT;
 }
 [[nodiscard]] inline uint16_t port() {
   return static_cast<uint16_t>(get_net_port());
 }
 [[nodiscard]] inline std::optional<std::string_view> get_sv_wwwBaseURL() {
-  if (engine_dependent_nonnull(sv_wwwBaseURL)) {
-    return get_dvar_string(sv_wwwBaseURL);
-  }
-  return std::nullopt;
+  return sv_wwwBaseURL ? sv_wwwBaseURL.get_string() : std::nullopt;
 }
 [[nodiscard]] inline std::optional<std::string_view> wwwBaseURL() {
   return get_sv_wwwBaseURL();
@@ -233,10 +320,8 @@ get_live_steam_server_password() {
   return get_sv_wwwBaseURL();
 }
 [[nodiscard]] inline std::optional<bool> get_sv_wwwDownload() {
-  if (engine_dependent_nonnull(sv_wwwDownload)) {
-    return get_dvar_bool(sv_wwwDownload);
-  }
-  return std::nullopt;
+  return sv_wwwDownload ? std::optional(sv_wwwDownload.get_bool())
+                        : std::nullopt;
 }
 [[nodiscard]] inline std::optional<bool> wwwDownload() {
   return get_sv_wwwDownload();
@@ -245,10 +330,8 @@ get_live_steam_server_password() {
   return get_sv_wwwDownload();
 }
 [[nodiscard]] inline std::optional<bool> get_sv_wwwDlDisconnected() {
-  if (engine_dependent_nonnull(sv_wwwDlDisconnected)) {
-    return get_dvar_bool(sv_wwwDlDisconnected);
-  }
-  return std::nullopt;
+  return sv_wwwDlDisconnected ? std::optional(sv_wwwDlDisconnected.get_bool())
+                              : std::nullopt;
 }
 [[nodiscard]] inline std::optional<bool> wwwDlDisconnected() {
   return get_sv_wwwDlDisconnected();
@@ -257,20 +340,18 @@ get_live_steam_server_password() {
   return get_sv_wwwDlDisconnected();
 }
 [[nodiscard]] inline bool get_sv_running() {
-  return get_dvar_bool(com_sv_running());
+  return *com_sv_running ? com_sv_running->get_bool() : false;
 }
 [[nodiscard]] inline bool server_running() { return get_sv_running(); }
-[[nodiscard]] inline int32_t get_com_maxclients() {
-  return get_dvar_int(com_maxclients());
+[[nodiscard]] inline ClientNum_t get_com_maxclients() {
+  return *com_maxclients ? static_cast<ClientNum_t>(com_maxclients->get_int())
+                         : lobby::MAX_PLAYERS;
 }
 [[nodiscard]] inline size_t get_max_client_count() {
   return static_cast<size_t>(get_com_maxclients());
 }
 [[nodiscard]] inline std::optional<std::string_view> get_workshop_id() {
-  if (engine_dependent_nonnull(workshop_id)) {
-    return get_dvar_string(workshop_id);
-  }
-  return std::nullopt;
+  return workshop_id ? workshop_id.get_string() : std::nullopt;
 }
 
 void foreach_client(
@@ -352,6 +433,11 @@ inline bool valid_scrvarvalue_ptr(scr::scriptInstance_t inst,
   return valid_engine_ptr(val) // Static or stack allocation
          || valid_scrvar_index(inst,
                                scrvarvalue_index(inst, val)); // Pool allocation
+}
+
+inline bool valid_dvar(const EngineDependentDvar dvar) {
+  const EngineDependentDvarPool pool = dvar_pool();
+  return pool.contains(dvar);
 }
 
 level::gentity_pool *gentity_pool();

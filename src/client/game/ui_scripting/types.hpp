@@ -1,8 +1,9 @@
 #pragma once
-#include "game/game.hpp"
+#include <game/game.hpp>
+#include <utils/string.hpp>
 #include "script_value.hpp"
 
-#include "component/ui_scripting.hpp"
+#include "../../component/ui_scripting.hpp"
 
 namespace ui_scripting {
 using namespace game::ui::lua::hks;

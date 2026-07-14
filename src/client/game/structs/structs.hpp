@@ -1,4 +1,5 @@
-#pragma once
+#ifndef STRUCTS_HPP
+#define STRUCTS_HPP
 
 #include "func.hpp"        // IWYU pragma: export
 #include "core.hpp"        // IWYU pragma: export
@@ -40,3 +41,5 @@
 #include "dyn/dyn.hpp"     // IWYU pragma: export
 #include "rope.hpp"        // IWYU pragma: export
 #include "cm.hpp"          // IWYU pragma: export
+
+#endif

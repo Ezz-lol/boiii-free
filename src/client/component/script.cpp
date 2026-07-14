@@ -1,14 +1,14 @@
-#include "../std_include.hpp"
-#include "loader/component_loader.hpp"
-#include "../game/game.hpp"
-#include "../game/utils.hpp"
-#include "../game/impl/scr/scr.hpp"
+#include <std_include.hpp>
+#include <loader/component_loader.hpp>
+#include <game/game.hpp>
+#include <game/utils.hpp>
+#include <game/impl/scr/scr.hpp>
 
 #include "game_event.hpp"
 #include "gsc/gsc_compiler.hpp"
-#include "scheduler.hpp"
 
 #include <unordered_map>
+#include <utils/memory.hpp>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/io.hpp>

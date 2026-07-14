@@ -1,10 +1,9 @@
-#include <atomic>
 #include <std_include.hpp>
 #include "console.hpp"
-#include "loader/component_loader.hpp"
-#include "resource.hpp"
+#include <loader/component_loader.hpp>
+#include <resource.hpp>
 
-#include "game/game.hpp"
+#include <game/game.hpp>
 #include "command.hpp"
 
 #include <utils/thread.hpp>
@@ -21,6 +20,7 @@
 #include <richedit.h>
 #include <dwmapi.h>
 
+#include <atomic>
 #include <algorithm>
 #include <chrono>
 #include <filesystem>

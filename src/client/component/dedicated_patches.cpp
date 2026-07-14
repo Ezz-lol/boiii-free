@@ -1,7 +1,7 @@
 #include <cstdint>
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
-#include "game/game.hpp"
+#include <loader/component_loader.hpp>
+#include <game/game.hpp>
 
 #include <utils/flags.hpp>
 #include <utils/hook.hpp>

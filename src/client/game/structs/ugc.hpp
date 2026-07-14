@@ -37,10 +37,7 @@ struct WorkshopData {
     memset(static_cast<void *>(this), 0, sizeof(WorkshopData));
   }
 };
-static_assert(std::is_standard_layout_v<WorkshopData>,
-              "WorkshopData must be standard layout!");
-static_assert(std::is_trivially_copyable_v<WorkshopData>,
-              "WorkshopData must be trivially copyable!");
+ASSERT_POD(WorkshopData);
 ASSERT_SIZE(WorkshopData, 0x4C8);
 
 enum class ModLoadState : uint32_t {

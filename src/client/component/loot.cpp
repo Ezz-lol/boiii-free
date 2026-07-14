@@ -1,13 +1,13 @@
-#include "../std_include.hpp"
-#include "../loader/component_loader.hpp"
+#include <std_include.hpp>
+#include <loader/component_loader.hpp>
 
-#include "../../common/utils/hook.hpp"
+#include <utils/hook.hpp>
 
 #include "command.hpp"
 #include "scheduler.hpp"
 #include "toast.hpp"
-#include "../game/game.hpp"
-#include "../game/utils.hpp"
+#include <game/game.hpp>
+#include <game/utils.hpp>
 
 namespace loot {
 namespace {
@@ -36,7 +36,7 @@ utils::hook::detour gscr_isitempurchasedforclientnum_hook;
 
 int loot_getitemquantity_stub(const game::ControllerIndex_t controller_index,
                               const game::eModes mode, const int item_id) {
-  if (!game::get_dvar_bool(dvar_cg_unlockall_loot)) {
+  if (!dvar_cg_unlockall_loot.get_bool()) {
     return loot_getitemquantity_hook.invoke<int>(controller_index, mode,
                                                  item_id);
   }
@@ -51,14 +51,14 @@ int loot_getitemquantity_stub(const game::ControllerIndex_t controller_index,
 int liveinventory_getitemquantity_stub(
     const game::ControllerIndex_t controller_index, const int item_id) {
   // Item id's for CWL camo's and paid specialist outfits
-  if (game::get_dvar_bool(dvar_cg_unlockall_loot) &&
+  if (dvar_cg_unlockall_loot.get_bool() &&
       (item_id == 99003 || (item_id >= 99018 && item_id <= 99021) ||
        item_id == 99025 || (item_id >= 90047 && item_id <= 90064))) {
     return 1;
   }
 
   // Item id for extra CaC slots
-  if (game::get_dvar_bool(dvar_cg_unlockall_cac_slots) && item_id == 99003) {
+  if (dvar_cg_unlockall_cac_slots.get_bool() && item_id == 99003) {
     return 1;
   }
 
@@ -68,7 +68,7 @@ int liveinventory_getitemquantity_stub(
 
 bool liveinventory_areextraslotspurchased_stub(
     const game::ControllerIndex_t controller_index) {
-  if (game::get_dvar_bool(dvar_cg_unlockall_cac_slots)) {
+  if (dvar_cg_unlockall_cac_slots.get_bool()) {
     return true;
   }
 
@@ -79,7 +79,7 @@ bool liveinventory_areextraslotspurchased_stub(
 bool bg_unlockablesisitempurchased_stub(
     game::eModes mode, const game::ControllerIndex_t controller_index,
     int item_index) {
-  if (game::get_dvar_bool(dvar_cg_unlockall_purchases)) {
+  if (dvar_cg_unlockall_purchases.get_bool()) {
     return true;
   }
 
@@ -90,7 +90,7 @@ bool bg_unlockablesisitempurchased_stub(
 bool bg_unlockablesisitemattachmentlocked_stub(
     game::eModes mode, const game::ControllerIndex_t controller_index,
     int item_index, int attachment_num) {
-  if (game::get_dvar_bool(dvar_cg_unlockall_attachments)) {
+  if (dvar_cg_unlockall_attachments.get_bool()) {
     return false;
   }
 
@@ -101,7 +101,7 @@ bool bg_unlockablesisitemattachmentlocked_stub(
 bool bg_unlockablesisattachmentslotlocked_stub(
     game::eModes mode, const game::ControllerIndex_t controller_index,
     int item_index, int attachment_slot_index) {
-  if (game::get_dvar_bool(dvar_cg_unlockall_attachments)) {
+  if (dvar_cg_unlockall_attachments.get_bool()) {
     return false;
   }
 
@@ -112,7 +112,7 @@ bool bg_unlockablesisattachmentslotlocked_stub(
 bool bg_unlockablesitemoptionlocked_stub(
     game::eModes mode, const game::ControllerIndex_t controllerIndex,
     int itemIndex, int optionIndex) {
-  if (game::get_dvar_bool(dvar_cg_unlockall_camos_and_reticles)) {
+  if (dvar_cg_unlockall_camos_and_reticles.get_bool()) {
     return false;
   }
 
@@ -123,7 +123,7 @@ bool bg_unlockablesitemoptionlocked_stub(
 bool bg_unlockablesemblemorbackinglockedbychallenge_stub(
     game::eModes mode, const game::ControllerIndex_t controllerIndex,
     game::emblemChallengeLookup_t *challengeLookup, bool otherPlayer) {
-  if (game::get_dvar_bool(dvar_cg_unlockall_calling_cards)) {
+  if (dvar_cg_unlockall_calling_cards.get_bool()) {
     return false;
   }
 
@@ -134,7 +134,7 @@ bool bg_unlockablesemblemorbackinglockedbychallenge_stub(
 bool bg_unlockedgetchallengeunlockedforindex_stub(
     game::eModes mode, const game::ControllerIndex_t controllerIndex,
     unsigned __int16 index, int itemIndex) {
-  if (game::get_dvar_bool(dvar_cg_unlockall_camos_and_reticles)) {
+  if (dvar_cg_unlockall_camos_and_reticles.get_bool()) {
     return true;
   }
 
@@ -145,7 +145,7 @@ bool bg_unlockedgetchallengeunlockedforindex_stub(
 bool bg_unlockablescharactercustomizationitemlocked_stub(
     game::eModes mode, const game::ControllerIndex_t controllerIndex,
     uint32_t characterIndex, game::CharacterItemType itemType, int itemIndex) {
-  if (game::get_dvar_bool(dvar_cg_unlockall_specialists_outfits)) {
+  if (dvar_cg_unlockall_specialists_outfits.get_bool()) {
     return false;
   }
 
@@ -157,7 +157,7 @@ bool bg_emblemisentitlementbackgroundgranted_stub(
     const game::ControllerIndex_t controllerIndex,
     game::BGEmblemBackgroundID backgroundId) {
   // backgroundId's for blank CWL calling cards
-  if (game::get_dvar_bool(dvar_cg_unlockall_calling_cards) &&
+  if (dvar_cg_unlockall_calling_cards.get_bool() &&
       (backgroundId != 684 && backgroundId != 685 && backgroundId != 687 &&
        backgroundId != 693 && backgroundId != 695 && backgroundId != 701 &&
        backgroundId != 703 && backgroundId != 707 && backgroundId != 708)) {
@@ -171,8 +171,7 @@ bool bg_emblemisentitlementbackgroundgranted_stub(
 bool liveentitlements_isentitlementactiveforcontroller_stub(
     const game::ControllerIndex_t controllerIndex, int incentiveId) {
   // incentiveId for unavailable incentive
-  if (game::get_dvar_bool(dvar_cg_unlockall_calling_cards) &&
-      incentiveId != 29) {
+  if (dvar_cg_unlockall_calling_cards.get_bool() && incentiveId != 29) {
     return true;
   }
 
@@ -182,7 +181,7 @@ bool liveentitlements_isentitlementactiveforcontroller_stub(
 
 int bg_unlockablesgetcustomclasscount_stub(
     game::eModes mode, const game::ControllerIndex_t controllerIndex) {
-  if (game::get_dvar_bool(dvar_cg_unlockall_cac_slots)) {
+  if (dvar_cg_unlockall_cac_slots.get_bool()) {
     return 10;
   }
 
@@ -243,7 +242,7 @@ struct component final : generic_component {
       game::set_dvar_bool(dvar_cg_unlockall_calling_cards, true);
       game::set_dvar_bool(dvar_cg_unlockall_specialists_outfits, true);
       game::set_dvar_bool(dvar_cg_unlockall_cac_slots, true);
-      game::set_dvar_bool(game::ui_enableAllHeroes(), true);
+      game::set_dvar_bool(*game::ui_enableAllHeroes, true);
 
       // Set master prestige for all 3 modes (eModes: ZM=0, MP=1, CP=2)
       game::cbuf::Cbuf_AddText(0, "PrestigeStatsMaster 0\n"); // ZM
@@ -329,7 +328,7 @@ struct component final : generic_component {
 
     scheduler::once(
         []() {
-          if (game::get_dvar_bool(dvar_cg_unlockall_loot)) {
+          if (dvar_cg_unlockall_loot.get_bool()) {
             // TODO: why does setting the dvar directly here cause
             // the game to freeze?
             // Why do we have to use Dvar_SetFromStringByName?

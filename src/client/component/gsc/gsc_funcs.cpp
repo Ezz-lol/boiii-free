@@ -1,19 +1,12 @@
-#include <algorithm>
-#include <atomic>
-#include <cstdint>
-#include <deque>
-#include <mutex>
-#include "../../std_include.hpp"
-#include "loader/component_loader.hpp"
-#include "../../game/game.hpp"
-#include "../../game/utils.hpp"
+#include <std_include.hpp>
+#include <loader/component_loader.hpp>
+#include <game/game.hpp>
+#include <game/utils.hpp>
 #include "../game_event.hpp"
 #include "../name.hpp"
 
 #include <optional>
 #include <string>
-#include <unordered_map>
-#include <unordered_set>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/io.hpp>
@@ -732,7 +725,8 @@ void gscr_writefile(scriptInstance_t inst) {
   }
   bool append = Scr_GetBoolOptional(inst, 3, false);
 
-  qboolean result = utils::io::write_file(full.string(), data, append);
+  qboolean result =
+      qboolean::from(utils::io::write_file(full.string(), data, append));
   push_int(inst, result);
 }
 

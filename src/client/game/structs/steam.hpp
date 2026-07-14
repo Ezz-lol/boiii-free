@@ -1,5 +1,5 @@
 #pragma once
-#include "../../steam/steam.hpp"
+#include <steam/steam.hpp>
 namespace game {
 namespace steam {
 

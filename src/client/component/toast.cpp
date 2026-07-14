@@ -1,8 +1,7 @@
-#include <std_include.hpp>
-#include "loader/component_loader.hpp"
-#include "game/game.hpp"
-#include "game/ui_scripting/execution.hpp"
 #include "toast.hpp"
+#include <loader/component_loader.hpp>
+#include <game/game.hpp>
+#include <game/ui_scripting/execution.hpp>
 #include "scheduler.hpp"
 
 #include <utils/string.hpp>

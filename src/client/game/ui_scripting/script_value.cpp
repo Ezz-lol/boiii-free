@@ -85,6 +85,14 @@ script_value::script_value(const unsigned int value) {
 script_value::script_value(const bool value) {
   HksObject obj{};
   obj.t = HksObjectType::TBOOLEAN;
+  obj.v.boolean = hksBool::from(value);
+
+  this->value_ = hks_object(obj);
+}
+
+script_value::script_value(const hksBool value) {
+  HksObject obj{};
+  obj.t = HksObjectType::TBOOLEAN;
   obj.v.boolean = value;
 
   this->value_ = hks_object(obj);

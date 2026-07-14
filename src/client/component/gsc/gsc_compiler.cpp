@@ -3,13 +3,12 @@
 #include "gsc_lexer.hpp"
 #include "gsc_parser.hpp"
 #include "gsc_emitter.hpp"
-#include "game/game.hpp"
+#include <game/game.hpp>
 #include <utils/nt.hpp>
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
 #include <sstream>
-#include <regex>
 #include <unordered_map>
 #include <unordered_set>
 

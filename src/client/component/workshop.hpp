@@ -4,7 +4,7 @@
 #include <atomic>
 #include <cstdint>
 #include <filesystem>
-#include "game/game.hpp"
+#include <game/game.hpp>
 
 namespace workshop {
 extern std::atomic<bool> downloading_workshop_item;

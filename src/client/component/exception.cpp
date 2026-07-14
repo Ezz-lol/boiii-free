@@ -1,13 +1,12 @@
-#include "../std_include.hpp"
+#include <std_include.hpp>
 #include <cstdint>
 
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 
-#include "game/game.hpp"
+#include <game/game.hpp>
 #include "scheduler.hpp"
 
 #include <errhandlingapi.h>
-#include <utils/flags.hpp>
 #include <utils/hook.hpp>
 #include <utils/io.hpp>
 #include <utils/string.hpp>
@@ -16,7 +15,17 @@
 
 #include <exception/minidump.hpp>
 
-#include <version.hpp>
+// In case of clangd compilation
+#if __has_include("version.hpp")
+#include "version.hpp"
+#else
+#ifndef VERSION
+#define VERSION "0"
+#endif
+#ifndef SHORTVERSION
+#define SHORTVERSION "0"
+#endif
+#endif
 
 #include <dbghelp.h>
 #pragma comment(lib, "dbghelp.lib")

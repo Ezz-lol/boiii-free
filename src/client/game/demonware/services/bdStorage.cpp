@@ -5,9 +5,10 @@
 #include <utils/io.hpp>
 #include <utils/cryptography.hpp>
 #include <utils/compression.hpp>
+#include <utils/string.hpp>
 
 #include "resource.hpp"
-#include "game/game.hpp"
+#include <game/game.hpp>
 
 namespace demonware {
 bdStorage::bdStorage() : service(10, "bdStorage") {

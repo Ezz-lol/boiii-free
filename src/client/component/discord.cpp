@@ -1,14 +1,13 @@
-#include "../std_include.hpp"
-#include "../loader/component_loader.hpp"
+#include <std_include.hpp>
+#include <loader/component_loader.hpp>
 
-#include "../game/game.hpp"
-#include "../game/utils.hpp"
+#include <game/game.hpp>
+#include <game/utils.hpp>
 #include "scheduler.hpp"
 #include "discord.hpp"
 #include "party.hpp"
 
 #include <discord_rpc.h>
-#include "../../common/utils/string.hpp"
 
 #include <ctime>
 #include <unordered_map>
@@ -16,13 +15,12 @@
 static __declspec(noinline) bool seh_dvar_string(const char *name, char *buf,
                                                  size_t sz) {
   __try {
-    game::EngineDependentDvar dvar =
-        engine_dependent_toggle_const(game::get_dvar(name));
-    if (!game::engine_dependent_nonnull(dvar)) {
+    game::EngineDependentDvar dvar = game::get_dvar(name);
+    if (!dvar) {
       buf[0] = '\0';
       return true;
     }
-    const std::string_view val = game::get_dvar_string(dvar).value_or("");
+    const std::string_view val = dvar.get_string().value_or("");
     if (val.empty()) {
       buf[0] = '\0';
       return true;
@@ -37,13 +35,12 @@ static __declspec(noinline) bool seh_dvar_string(const char *name, char *buf,
 
 static __declspec(noinline) bool seh_dvar_int(const char *name, int *out) {
   __try {
-    game::EngineDependentDvar dvar =
-        engine_dependent_toggle_const(game::get_dvar(name));
-    if (!game::engine_dependent_nonnull(dvar)) {
+    game::EngineDependentDvar dvar = game::get_dvar(name);
+    if (!dvar) {
       *out = 0;
       return true;
     }
-    *out = game::get_dvar_int(dvar);
+    *out = dvar.get_int();
     return true;
   } __except (EXCEPTION_EXECUTE_HANDLER) {
     *out = 0;

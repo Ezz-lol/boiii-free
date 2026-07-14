@@ -1,12 +1,11 @@
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
-#include "game/game.hpp"
+#include <loader/component_loader.hpp>
+#include <game/game.hpp>
 
 #include "fastdl.hpp"
 #include "scheduler.hpp"
 #include "download_overlay.hpp"
 
-#include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/io.hpp>
 #include <utils/http.hpp>

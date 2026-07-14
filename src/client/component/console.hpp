@@ -1,5 +1,7 @@
 #pragma once
 
+#include <functional>
+#include <string>
 namespace console {
 void set_title(const std::string &title);
 void set_interceptor(std::function<void(const std::string &message)> callback);

@@ -1,9 +1,8 @@
 #pragma once
 
-#include "updater/file_info.hpp"
-#include "updater/progress_listener.hpp"
+#include <updater/file_info.hpp>
+#include <updater/progress_listener.hpp>
 
-#include <utils/info_string.hpp>
 #include <utils/progress_ui.hpp>
 
 #include <chrono>

@@ -1,9 +1,8 @@
-#include <std_include.hpp>
 #include "component_loader.hpp"
 
 #include <utils/nt.hpp>
 
-#include "game/game.hpp"
+#include <game/game.hpp>
 
 namespace component_loader {
 namespace {

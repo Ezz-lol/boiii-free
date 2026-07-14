@@ -1,8 +1,19 @@
 #include <cstdint>
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
-#include "game/game.hpp"
+#include <loader/component_loader.hpp>
+#include <game/game.hpp>
+
+// In case of clangd compilation
+#if __has_include("version.hpp")
 #include "version.hpp"
+#else
+#ifndef VERSION
+#define VERSION "0"
+#endif
+#ifndef SHORTVERSION
+#define SHORTVERSION "0"
+#endif
+#endif
 
 #include "scheduler.hpp"
 
