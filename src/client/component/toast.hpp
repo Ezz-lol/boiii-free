@@ -1,6 +1,8 @@
 #pragma once
 
 namespace toast {
+void patch_hud();
+
 // Thread-safe: schedules onto main thread automatically.
 void show(const std::string &title, const std::string &description,
           const std::string &icon = "blacktransparent");

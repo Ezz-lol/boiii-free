@@ -782,6 +782,8 @@ void cl_first_snapshot_stub(game::LocalClientNum_t localClientNum) {
   hot_reload_in_game.store(true, std::memory_order_seq_cst);
   try_start();
 
+  toast::patch_hud();
+
   try {
     inject_discord_score_subscriptions();
   } catch (...) {
