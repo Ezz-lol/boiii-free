@@ -137,9 +137,7 @@ void dvar_add_flags(EngineDependentDvarMut dvar, const T flags) {
     return;
   }
 
-  EngineDependentDvarMut dvar_to_change = dvar.type() == dvarType_t::SESSIONMODE_BASE_DVAR ? dvar.sessionModeSpecific() : dvar;
-
-  dvar_to_change.flags() |= flags;
+  dvar.resolve().flags() |= flags;
 }
 template <typename T,
           typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
@@ -158,10 +156,7 @@ void dvar_set_flags(EngineDependentDvarMut dvar, const T flags) {
     return;
   }
 
-  EngineDependentDvarMut dvar_to_change = dvar.type() == dvarType_t::SESSIONMODE_BASE_DVAR ? dvar.sessionModeSpecific() : dvar;
-
-
-  dvar_to_change.flags() = DvarFlags::from(flags);
+  dvar.resolve().flags().set(flags);
 }
 
 template <typename T,
@@ -177,13 +172,12 @@ void dvar_set_flags(const char *dvar_name, const T flags) {
 template <typename T,
           typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
 void dvar_remove_flags(EngineDependentDvarMut dvar, const T flags) {
+
   if (!dvar) {
     return;
   }
 
-  EngineDependentDvarMut dvar_to_change = dvar.type() == dvarType_t::SESSIONMODE_BASE_DVAR ? dvar.sessionModeSpecific() : dvar;
-
-  dvar_to_change.flags() &= ~flags;
+  dvar.resolve().flags() &= ~flags;
 }
 
 template <typename T,
@@ -401,25 +395,11 @@ inline bool valid_dvar(const EngineDependentDvar dvar) {
   return pool.contains(dvar);
 }
 
-level::gentity_pool *gentity_pool();
-
-template <typename T, typename = typename std::enable_if<
-                          std::is_convertible<T, uint32_t>::value>::type>
-inline level::gentity_t *entity(T input_index) {
-  uint32_t index = static_cast<uint32_t>(input_index);
-  if (index < level::GENTITY_POOL_LEN) {
-    level::gentity_pool *pool = gentity_pool();
-    if (pool) {
-      return &pool->pool[index];
-    }
-  }
-  return nullptr;
-}
-
+namespace level {
 template <typename T, typename = typename std::enable_if<std::is_convertible<
                           T, game::ClientNum_t>::value>::type>
 inline level::gentity_t *client_ent(T index) {
-  level::gentity_pool *pool = gentity_pool();
+  level::gentity_pool *pool = get_g_entities();
   ClientNum_t clientNum = static_cast<game::ClientNum_t>(index);
   if (valid_client_num(clientNum)) {
     return &pool->pool[clientNum];
@@ -427,4 +407,5 @@ inline level::gentity_t *client_ent(T index) {
 
   return nullptr;
 }
+} // namespace level
 } // namespace game

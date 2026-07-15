@@ -255,15 +255,32 @@ int32_t CM_SightTraceThroughTree_Safe(const game::cm::traceWork_t *tw,
                                                             p1_, p2, trace);
 }
 
-template <typename T, std::atomic<T *> &storage> void free_zero(T *ptr) {
+template <auto &storage>
+using StoredPtr =
+    typename std::remove_reference_t<decltype(storage)>::value_type;
+template <auto &storage> using StoredArrayPtr = StoredPtr<storage[0]>;
+
+template <auto &storage> StoredPtr<storage> malloc_store(size_t size) {
+  using Stored = StoredPtr<storage>;
+  Stored result = reinterpret_cast<Stored>(malloc(size));
+  storage.store(result, std::memory_order_seq_cst);
+
+  return result;
+}
+
+template <auto &storage> void free_zero(StoredPtr<storage> ptr) {
   free(ptr);
   storage.store(nullptr, std::memory_order_seq_cst);
 }
 
-template <typename T, std::atomic<T *> &storage>
-T *Hunk_UserAlloc_StoreGlobal(game::hunk::HunkUser *user, size_t size,
-                              int32_t alignment, const char *name) {
-  T *result = reinterpret_cast<T *>(
+template <auto &storage>
+StoredPtr<storage> Hunk_UserAlloc_StoreGlobal(game::hunk::HunkUser *user,
+                                              size_t size, int32_t alignment,
+                                              const char *name) {
+  static_assert(
+      std::is_same_v<std::atomic<StoredPtr<storage>> &, decltype(storage)>,
+      "storage must be a std::atomic<StoredPtr<storage>>!");
+  StoredPtr<storage> result = reinterpret_cast<StoredPtr<storage>>(
       game::hunk::Hunk_UserAlloc(user, size, alignment, name));
   storage.store(result, std::memory_order_seq_cst);
 
@@ -277,22 +294,24 @@ T *Hunk_UserAlloc_StoreGlobal(game::hunk::HunkUser *user, size_t size,
    with a proceeding assertion to ensure the passed `storage` type is an
    `atomicarray<T, N>`.
 */
-template <typename T, auto &storage>
-T *Hunk_UserAlloc_StoreGlobal_FirstNull(game::hunk::HunkUser *user, size_t size,
-                                        int32_t alignment, const char *name) {
+template <auto &storage>
+StoredArrayPtr<storage>
+Hunk_UserAlloc_StoreGlobal_FirstNull(game::hunk::HunkUser *user, size_t size,
+                                     int32_t alignment, const char *name) {
+  using Stored = StoredArrayPtr<storage>;
   constexpr uint32_t N = ARRAYSIZE(storage);
+  static_assert(
+      std::is_same_v<std::remove_reference_t<decltype(storage)>,
+                     atomicarray<Stored, N>>,
+      "Type Error: 'storage' MUST be a atomicarray<StoredPtr<storage>, N>");
 
-  static_assert(std::is_same_v<std::remove_reference_t<decltype(storage)>,
-                               atomicarray<T *, N>>,
-                "Type Error: 'storage' MUST be a atomicarray<T*, N>");
-
-  T *result = reinterpret_cast<T *>(
+  Stored result = reinterpret_cast<Stored>(
       game::hunk::Hunk_UserAlloc(user, size, alignment, name));
   /*
      compare_exchange_strong requires an lvalue - cannot use an inlined
      `nullptr` rvalue
   */
-  T *null = nullptr;
+  Stored null = nullptr;
   for (uint32_t i = 0; i < N && !storage[i].compare_exchange_strong(
                                     null, result, std::memory_order_seq_cst,
                                     std::memory_order_relaxed);
@@ -302,8 +321,12 @@ T *Hunk_UserAlloc_StoreGlobal_FirstNull(game::hunk::HunkUser *user, size_t size,
   return result;
 }
 
-template <typename T, std::atomic<T *> &storage>
-void Hunk_UserFree_ResetGlobal(game::hunk::HunkUser *user, T *ptr) {
+template <auto &storage>
+void Hunk_UserFree_ResetGlobal(game::hunk::HunkUser *user,
+                               StoredPtr<storage> ptr) {
+  static_assert(
+      std::is_same_v<std::atomic<StoredPtr<storage>> &, decltype(storage)>,
+      "storage must be a std::atomic<StoredPtr<storage>>!");
   game::hunk::Hunk_UserFree(user, reinterpret_cast<void *>(ptr));
   storage.store(nullptr, std::memory_order_seq_cst);
 }
@@ -348,27 +371,22 @@ void store_tac_protected_allocs() {
   {
     utils::hook::call(0x140840929_g,
                       reinterpret_cast<void *>(
-                          Hunk_UserAlloc_StoreGlobal<game::level::cl::cgPool,
-                                                     game::cg::cgArray_store>));
+                          Hunk_UserAlloc_StoreGlobal<game::cg::cgArray_store>));
     utils::hook::call(
         0x1408421C3_g,
         reinterpret_cast<void *>(
-            Hunk_UserAlloc_StoreGlobal<game::level::cl::cgsPool,
-                                       game::cg::cgsArray_store>));
+            Hunk_UserAlloc_StoreGlobal<game::cg::cgsArray_store>));
     utils::hook::call(
         0x140843A4F_g,
         reinterpret_cast<void *>(
-            Hunk_UserAlloc_StoreGlobal<game::anim::ViewModelInfo,
-                                       game::cg::cg_viewModelArray_store>));
+            Hunk_UserAlloc_StoreGlobal<game::cg::cg_viewModelArray_store>));
     utils::hook::call(
         0x140843A70_g,
         reinterpret_cast<void *>(
-            Hunk_UserAlloc_StoreGlobal<game::cg::ClientPlayerAttachmentInfo,
-                                       game::cg::cg_attachmentsArray_store>));
+            Hunk_UserAlloc_StoreGlobal<game::cg::cg_attachmentsArray_store>));
     utils::hook::call(
         0x14085B9F5_g,
         reinterpret_cast<void *>(Hunk_UserAlloc_StoreGlobal_FirstNull<
-                                 game::level::cl::centityPool_t,
                                  game::cg::cg_entitiesArray_store>));
   }
 
@@ -377,21 +395,17 @@ void store_tac_protected_allocs() {
     utils::hook::call(
         0x140853E13_g,
         reinterpret_cast<void *>(
-            Hunk_UserFree_ResetGlobal<game::cg::ClientPlayerAttachmentInfo,
-                                      game::cg::cg_attachmentsArray_store>));
+            Hunk_UserFree_ResetGlobal<game::cg::cg_attachmentsArray_store>));
     utils::hook::call(
         0x140853E22_g,
         reinterpret_cast<void *>(
-            Hunk_UserFree_ResetGlobal<game::anim::ViewModelInfo,
-                                      game::cg::cg_viewModelArray_store>));
+            Hunk_UserFree_ResetGlobal<game::cg::cg_viewModelArray_store>));
     utils::hook::call(0x140855728_g,
                       reinterpret_cast<void *>(
-                          Hunk_UserFree_ResetGlobal<game::level::cl::cgsPool,
-                                                    game::cg::cgsArray_store>));
+                          Hunk_UserFree_ResetGlobal<game::cg::cgsArray_store>));
     utils::hook::call(0x140856EC3_g,
                       reinterpret_cast<void *>(
-                          Hunk_UserFree_ResetGlobal<game::level::cl::cgPool,
-                                                    game::cg::cgArray_store>));
+                          Hunk_UserFree_ResetGlobal<game::cg::cgArray_store>));
 
     CG_FreeCGEnts_hook.create(game::cg::CG_FreeCGEnts.get(),
                               game::cg::CG_FreeCGEnts_Impl);
@@ -408,8 +422,7 @@ void store_tac_protected_allocs() {
   {
     utils::hook::call(0x1419D7E22_g,
                       reinterpret_cast<void *>(
-                          malloc_store<game::level::gentity_pool,
-                                       game::level::g_entities_cl_allocation>));
+                          malloc_store<game::level::g_entities_cl_allocation>));
   }
 }
 

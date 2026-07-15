@@ -7,15 +7,15 @@ namespace scr {
 
 inline level::gentity_t *GetEntity_Impl(const scr_entref_t *entref) {
   if (entref->classnum == 0) {
-    return game::entity(entref->u.entnum);
+    return level::entity(entref->u.entnum);
   }
   Scr_ObjectError(SCRIPTINSTANCE_SERVER, "not an entity");
   return nullptr;
 }
 
 inline level::gentity_t *Scr_GetEntity_Impl(uint32_t index) {
-  game::scr::scr_entref_t entref;
-  game::scr::Scr_GetEntityRef(&entref, SCRIPTINSTANCE_SERVER, index);
+  scr_entref_t entref;
+  Scr_GetEntityRef(&entref, SCRIPTINSTANCE_SERVER, index);
   return GetEntity_Impl(&entref);
 }
 

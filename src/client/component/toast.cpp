@@ -121,16 +121,16 @@ void patch_hud() {
 
 void precache_icon(const std::string &material) {
   const auto escaped = escape_lua_string(material);
-  const std::string code = utils::string::va(
-      "pcall(function()\n"
-      "  if Engine.PrecacheImage then\n"
-      "    Engine.PrecacheImage(\"%s\")\n"
-      "  end\n"
-      "end)\n",
-      escaped.c_str());
+  const std::string code =
+      utils::string::va("pcall(function()\n"
+                        "  if Engine.PrecacheImage then\n"
+                        "    Engine.PrecacheImage(\"%s\")\n"
+                        "  end\n"
+                        "end)\n",
+                        escaped.c_str());
   scheduler::once([code] { execute_lua(code); }, scheduler::main);
 }
- 
+
 void show(const std::string &title, const std::string &description,
           const std::string &icon) {
   if (game::is_server())
@@ -143,14 +143,12 @@ void show(const std::string &title, const std::string &description,
   const auto escaped_icon = escape_lua_string(icon);
 
   const std::string code = utils::string::va(
-    "pcall(function()\n"
-    "  if CoD and CoD.OverlayUtility and CoD.OverlayUtility.ShowToast then\n"
-    "    CoD.OverlayUtility.ShowToast(\"Notice\", \"%s\", \"%s\", \"%s\")\n"
-    "  end\n"
-    "end)\n",
-    escaped_title.c_str(),
-    escaped_description.c_str(),
-    escaped_icon.c_str());
+      "pcall(function()\n"
+      "  if CoD and CoD.OverlayUtility and CoD.OverlayUtility.ShowToast then\n"
+      "    CoD.OverlayUtility.ShowToast(\"Notice\", \"%s\", \"%s\", \"%s\")\n"
+      "  end\n"
+      "end)\n",
+      escaped_title.c_str(), escaped_description.c_str(), escaped_icon.c_str());
 
   scheduler::once([code] { execute_lua(code); }, scheduler::main);
 }

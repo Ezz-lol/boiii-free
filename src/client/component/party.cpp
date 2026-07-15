@@ -319,8 +319,7 @@ void handle_connect_query_response(const bool success,
       scheduler::main);
 }
 
-void connect_finish(const game::net::netadr_t &target,
-                     const char *address) {
+void connect_finish(const game::net::netadr_t &target, const char *address) {
   connect_host = target;
 
   profile_infos::clear_profile_infos();
@@ -337,12 +336,11 @@ void connect_finish(const game::net::netadr_t &target,
         std::string mod_id = parts.size() >= 5 ? parts[4] : "";
 
         if (!mapname.empty() && !gametype.empty()) {
-          std::string usermap_id =
-              workshop::get_usermap_publisher_id(mapname);
+          std::string usermap_id = workshop::get_usermap_publisher_id(mapname);
           game::com::Com_SessionMode_SetGameMode(
               game::eGameModes::MATCHMAKING_PLAYLIST);
-          connect_to_lobby_with_mode_internal(
-              connect_host, mode, mapname, gametype, usermap_id, mod_id);
+          connect_to_lobby_with_mode_internal(connect_host, mode, mapname,
+                                              gametype, usermap_id, mod_id);
           return;
         }
       }

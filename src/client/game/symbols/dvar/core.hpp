@@ -207,7 +207,8 @@ inline void Dvar_SetUInt64FromSource(EngineDependentDvar dvar, uint64_t val,
                                      DvarSetSource source) {
   return _Dvar_SetUInt64FromSource(dvar, val, source);
 }
-WEAK symbol<void(EngineDependentDvar dvar, const char *string, DvarSetSource source)>
+WEAK symbol<void(EngineDependentDvar dvar, const char *string,
+                 DvarSetSource source)>
     _Dvar_SetStringFromSource{0x1422C8770, 0x140579AB0};
 // To allow forward declaration for use in struct methods
 inline void Dvar_SetStringFromSource(EngineDependentDvar dvar, const char *val,
@@ -221,8 +222,8 @@ WEAK symbol<void(EngineDependentDvar dvar, const char *val)> _Dvar_SetString{
 inline void Dvar_SetString(EngineDependentDvar dvar, const char *val) {
   return _Dvar_SetString(dvar, val);
 }
-WEAK symbol<void(EngineDependentDvar dvar, int32_t value)> _Dvar_SetInt{0x1422C7EC0,
-                                                                  0x140579730};
+WEAK symbol<void(EngineDependentDvar dvar, int32_t value)> _Dvar_SetInt{
+    0x1422C7EC0, 0x140579730};
 // To allow forward declaration for use in struct methods
 inline void Dvar_SetInt(EngineDependentDvar dvar, int32_t value) {
   return _Dvar_SetInt(dvar, value);
