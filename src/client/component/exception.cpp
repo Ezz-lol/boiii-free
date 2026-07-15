@@ -543,7 +543,7 @@ LONG WINAPI crash_fix_exception_handler(PEXCEPTION_POINTERS exception_info) {
   const uintptr_t addr = reinterpret_cast<uintptr_t>(record->ExceptionAddress);
   const uintptr_t base = game::get_base();
   const uintptr_t offset = addr - base;
-  const char *patch_name = nullptr;
+  [[maybe_unused]] const char *patch_name = nullptr;
 
   switch (offset) {
   // Killcam animation crash - invalid anim data access
