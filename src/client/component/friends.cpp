@@ -2,7 +2,6 @@
 #include <loader/component_loader.hpp>
 #include "friends.hpp"
 
-#include <game/game.hpp>
 #include <game/utils.hpp>
 #include "network.hpp"
 #include "party.hpp"
@@ -426,12 +425,7 @@ std::vector<friend_server_info> get_friend_server_addresses() {
   return result;
 }
 
-std::string get_friend_game_info_by_address(const std::string &address) {
-  if (address.empty())
-    return "";
-
-  game::net::netadr_t target = network::address_from_string(address);
-
+std::string get_friend_game_info_by_address(const game::net::netadr_t target) {
   std::vector<friend_entry> all_friends;
   friends_data.access(
       [&](const friend_state &state) { all_friends = state.list; });
@@ -451,7 +445,7 @@ std::string get_friend_game_info_by_address(const std::string &address) {
       continue;
 
     // Check if the address in the RP data matches the requested address
-    if (parts[0] == address)
+    if (parts[0] == std::string_view(target.toString()))
       return game_info;
 
     // Also try matching resolved addresses
@@ -464,6 +458,14 @@ std::string get_friend_game_info_by_address(const std::string &address) {
   }
 
   return "";
+}
+
+std::string get_friend_game_info_by_address(const std::string &address) {
+  if (address.empty())
+    return "";
+
+  game::net::netadr_t target = network::address_from_string(address);
+  return get_friend_game_info_by_address(target);
 }
 
 bool connect_to_friend(game::XUID steam_id) {

@@ -251,6 +251,14 @@ game::net::netadr_t address_from_string(const std::string &address) {
   return addr;
 }
 
+void address_from_string_async(const std::string &address,
+                               resolvedAddrCallback_t &cb) {
+  std::thread([address, cb]() {
+    const game::net::netadr_t resolved = address_from_string(address);
+    cb(resolved);
+  }).detach();
+}
+
 game::net::netadr_t address_from_ip(const uint32_t ip, const uint16_t port) {
   game::net::netadr_t addr{};
   addr.localNetID = game::net::NS_SERVER;

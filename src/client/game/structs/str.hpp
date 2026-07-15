@@ -12,3 +12,10 @@ typedef str<64> str64_t;
 typedef str<128> str128_t;
 typedef str<256> str256_t;
 typedef str<512> str512_t;
+
+struct ToStringResult {
+  char *buf;
+  char *ptr;
+
+  inline constexpr operator char *() const noexcept { return buf; }
+};

@@ -16,8 +16,12 @@ void send_data(const game::net::netadr_t &address, const void *data,
                size_t length);
 void send_data(const game::net::netadr_t &address, const std::string &data);
 
+typedef std::function<void(game::net::netadr_t address)> resolvedAddrCallback_t;
 game::net::netadr_t address_from_string(const std::string &address);
 game::net::netadr_t address_from_ip(uint32_t ip, uint16_t port);
+
+void address_from_string_async(const std::string &address,
+                               resolvedAddrCallback_t &cb);
 
 bool are_addresses_equal(const game::net::netadr_t &a,
                          const game::net::netadr_t &b);

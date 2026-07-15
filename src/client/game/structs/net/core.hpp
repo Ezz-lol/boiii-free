@@ -2,13 +2,44 @@
 
 #include "../core.hpp"
 #include "../quake/core.hpp"
+#include <charconv>
 namespace game {
 namespace net {
-struct netipv4_t {
-  uint8_t a;
-  uint8_t b;
-  uint8_t c;
-  uint8_t d;
+
+constexpr size_t UINT8_STR_BUF_LEN = 3;
+constexpr size_t UINT16_STR_BUF_LEN = sizeof(uint16_t) * UINT8_STR_BUF_LEN;
+constexpr size_t NET_IPV4_STR_BUF_LEN =
+    4 /* a, b, c, d */ * UINT8_STR_BUF_LEN + 3 /* periods */;
+typedef str<NET_IPV4_STR_BUF_LEN> netipv4_str_t;
+
+union netipv4_t {
+  struct {
+    uint8_t a;
+    uint8_t b;
+    uint8_t c;
+    uint8_t d;
+  };
+  uint8_t parts[4];
+
+  inline constexpr ToStringResult
+  toString(netipv4_str_t buf = {}) const noexcept {
+    // a
+    char *ptr = std::to_chars(buf, buf + UINT8_STR_BUF_LEN, a).ptr;
+
+    // b
+    ptr[0] = '.';
+    ptr = std::to_chars(ptr + 1, ptr + 1 + UINT8_STR_BUF_LEN, b).ptr;
+
+    // c
+    ptr[0] = '.';
+    ptr = std::to_chars(ptr + 1, ptr + 1 + UINT8_STR_BUF_LEN, c).ptr;
+
+    // d
+    ptr[0] = '.';
+    ptr = std::to_chars(ptr + 1, ptr + 1 + UINT8_STR_BUF_LEN, d).ptr;
+
+    return ToStringResult{buf, ptr};
+  }
 };
 
 enum netadrtype_t : int32_t {
@@ -30,6 +61,10 @@ enum netsrc_t : int32_t {
   NS_PACKET = 0x5,
 };
 
+constexpr size_t NETADR_STR_BUF_LEN =
+    NET_IPV4_STR_BUF_LEN + UINT16_STR_BUF_LEN /*port*/ + 1 /*colon*/;
+typedef str<NETADR_STR_BUF_LEN> netadr_str_t;
+
 struct netadr_t {
   union {
     netipv4_t ipv4;
@@ -39,6 +74,16 @@ struct netadr_t {
   uint16_t port;
   netadrtype_t type;
   netsrc_t localNetID;
+
+  inline constexpr ToStringResult
+  toString(netadr_str_t buf = {}) const noexcept {
+    char *ptr = ipv4.toString(&buf[0]).ptr;
+
+    ptr[0] = ':';
+    ptr = std::to_chars(ptr + 1, ptr + 1 + UINT16_STR_BUF_LEN, port).ptr;
+
+    return {buf, ptr};
+  }
 };
 
 struct XNADDR {
