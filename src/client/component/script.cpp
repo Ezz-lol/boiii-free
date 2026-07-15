@@ -643,7 +643,7 @@ std::optional<std::filesystem::path> get_map_specific_folder() {
   return mapname;
 }
 
-void load_scripts() {
+void load_tree(std::filesystem::path tree, bool execImmediate = false) {
   const utils::nt::library host{};
 
   const std::filesystem::path data_folder = game::get_appdata_path() / "data";
@@ -656,24 +656,18 @@ void load_scripts() {
     load_scripts_folder((boiii_folder / folder).string(), load, recurse);
   };
 
-  // scripts folder is for overriding stock scripts the game uses
-  load("scripts", false, true);
-
   std::vector<std::filesystem::path> applicable_custom_script_paths = {
-      "custom_scripts/shared", "custom_scripts/core",
-      "custom_scripts/codescripts"};
+      tree / "shared", tree / "core", tree / "codescripts"};
   const std::optional<std::filesystem::path> game_type =
       get_game_type_specific_folder();
   if (game_type.has_value()) {
-    applicable_custom_script_paths.push_back("custom_scripts" /
-                                             game_type.value());
+    applicable_custom_script_paths.push_back(tree / game_type.value());
   }
 
   const std::optional<std::filesystem::path> map_name =
       get_map_specific_folder();
   if (map_name.has_value()) {
-    applicable_custom_script_paths.push_back("custom_scripts" /
-                                             map_name.value());
+    applicable_custom_script_paths.push_back(tree / map_name.value());
   }
 
   /*
@@ -684,13 +678,22 @@ void load_scripts() {
   for (const std::filesystem::path &path : applicable_custom_script_paths) {
     load(path, false, true);
   }
-  load("custom_scripts", false, false);
+  load(tree, false, false);
 
-  // Now, load the custom scripts into the VM.
-  for (const std::filesystem::path &path : applicable_custom_script_paths) {
-    load(path, true, true);
+  if (execImmediate) {
+    // Now, load the custom scripts into the VM.
+    for (const std::filesystem::path &path : applicable_custom_script_paths) {
+      load(path, true, true);
+    }
+    load(tree, true, false);
   }
-  load("custom_scripts", true, false);
+}
+
+void load_scripts() {
+  // scripts tree is for overriding stock scripts the game uses
+  load_tree("scripts", false);
+  // Custom scripts is for new scripts we must execute
+  load_tree("custom_scripts", true);
 }
 
 RawFile *get_loaded_map_script(const char *name) {
