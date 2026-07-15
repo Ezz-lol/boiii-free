@@ -20,6 +20,7 @@ bool is_server();
 bool is_client();
 bool is_legacy_client();
 
+bool alias();
 bool quiet_crash();
 bool is_headless();
 

@@ -79,6 +79,9 @@ concept PoD = std::is_standard_layout_v<T> && std::is_trivially_copyable_v<T> &&
 
   The above `PoD` concept is a best-effort set of criteria to match that used
   by the LLVM IR generation backend.
+
+  Note that the struct also must not have any user-defined constructors, but
+  this is difficult to check for with assertions.
 */
 template <typename T> consteval bool is_pod() { return PoD<T>; }
 

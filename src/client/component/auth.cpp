@@ -17,6 +17,7 @@
 #include <utils/info_string.hpp>
 #include <utils/cryptography.hpp>
 #include <utils/io.hpp>
+#include <utils/flags.hpp>
 #include <utils/properties.hpp>
 
 #include <game/fragment_handler.hpp>
@@ -46,7 +47,7 @@ std::string get_hw_profile_guid() {
 }
 
 std::string get_protected_data() {
-  std::string input = "ezz-boiii-auth";
+  std::string input = game::alias() ? "ezz-boiii-auth-alias" : "ezz-boiii-auth";
 
   DATA_BLOB data_in{}, data_out{};
   data_in.pbData = reinterpret_cast<uint8_t *>(input.data());
@@ -88,15 +89,14 @@ static std::mutex key_file_mutex;
 
 std::filesystem::path key_file_path(game::ControllerIndex_t controllerIndex,
                                     bool isPublic = false) {
-  std::string key_filename;
   std::string prefix = isPublic ? "ezz-public" : "ezz-private";
-  if (controllerIndex == game::ControllerIndex_t::CONTROLLER_INDEX_0) {
-    key_filename = prefix + ".key";
-  } else {
-    key_filename = prefix + "-" +
-                   std::to_string(static_cast<uint32_t>(controllerIndex)) +
-                   ".key";
+  if (game::alias()) {
+    prefix += "-alias";
   }
+  if (controllerIndex != game::CONTROLLER_INDEX_0) {
+    prefix += "-" + std::to_string(static_cast<uint32_t>(controllerIndex));
+  }
+  std::string key_filename = prefix + ".key";
   return utils::properties::get_key_path() / key_filename;
 }
 

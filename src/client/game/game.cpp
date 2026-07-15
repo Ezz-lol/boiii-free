@@ -58,6 +58,11 @@ bool quiet_crash() {
   return quiet_crash;
 }
 
+bool alias() {
+  static const bool alias = utils::flags::has_flag("alias");
+  return alias;
+}
+
 bool is_headless() {
   static const bool headless = utils::flags::has_flag("headless");
   return headless;
