@@ -20,7 +20,11 @@ bool is_server();
 bool is_client();
 bool is_legacy_client();
 
+#ifdef NDEBUG
+inline bool alias() { return false; }
+#else
 bool alias();
+#endif
 bool quiet_crash();
 bool is_headless();
 

@@ -58,10 +58,12 @@ bool quiet_crash() {
   return quiet_crash;
 }
 
+#ifndef NDEBUG
 bool alias() {
   static const bool alias = utils::flags::has_flag("alias");
   return alias;
 }
+#endif
 
 bool is_headless() {
   static const bool headless = utils::flags::has_flag("headless");

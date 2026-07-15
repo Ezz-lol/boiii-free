@@ -167,10 +167,14 @@ int32_t parse_flags(int argc, char *argv[]) {
       .help("Disable attempt to load and use sound assets in dedicated server.")
       .default_value(false)
       .implicit_value(true);
+#ifndef NDEBUG
   program.add_argument("-alias", "--alias")
       .help("For development: use a different key for XUID generation, "
             "allowing two local clients (the first launched without this flag) "
-            "to connect to the same server.");
+            "to connect to the same server.")
+      .default_value(false)
+      .implicit_value(true);
+#endif
 
   try {
     program.parse_known_args(filtered_args);
