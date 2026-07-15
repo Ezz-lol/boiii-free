@@ -24,28 +24,8 @@ void record_registered_dvar_name(const char *dvar_name) {
   registered_dvar_name_count_.fetch_add(1, std::memory_order_seq_cst);
 } // namespace
 
-EngineDependentDvarMut
-try_get_sessionmode_specific_dvar(EngineDependentDvarMut dvar) {
-
-  if (dvar || dvar.type() != dvarType_t::SESSIONMODE_BASE_DVAR) {
-    return dvar;
-  }
-
-  if (Com_SessionMode_IsMode(eModes::COUNT)) {
-    return nullptr;
-  }
-
-  const game::eModes mode = Com_SessionMode_GetMode();
-  return Dvar_GetSessionModeSpecificDvar(dvar.sv, static_cast<eModes>(mode));
-}
-
 __inline_def EngineDependentDvarMut get_dvar(const char *name) {
   return Dvar_FindVar(name);
-}
-
-__inline_def std::optional<std::string_view>
-get_dvar_string(EngineDependentDvar dvar) {
-  return dvar.get_string();
 }
 
 std::optional<std::string_view> get_dvar_string(const char *dvar_name) {
@@ -58,10 +38,6 @@ std::optional<std::string_view> get_dvar_string(const char *dvar_name) {
   return std::nullopt;
 }
 
-__inline_def int32_t get_dvar_int(EngineDependentDvar dvar) {
-  return dvar.get_int();
-}
-
 std::optional<int32_t> get_dvar_int(const char *dvar_name) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
 
@@ -72,24 +48,14 @@ std::optional<int32_t> get_dvar_int(const char *dvar_name) {
   return std::nullopt;
 }
 
-int32_t set_dvar_int(EngineDependentDvar dvar, int32_t val,
-                     DvarSetSource source) {
-  return dvar.set(val, source);
-}
-
 std::optional<int32_t> set_dvar_int(const char *dvar_name, int32_t val,
                                     DvarSetSource source) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
   if (dvar) {
-
-    return dvar.get_int();
+    return dvar.set(val, source);
   }
 
   return std::nullopt;
-}
-
-__inline_def uint32_t get_dvar_uint(EngineDependentDvar dvar) {
-  return dvar.get_uint();
 }
 
 std::optional<uint32_t> get_dvar_uint(const char *dvar_name) {
@@ -101,10 +67,6 @@ std::optional<uint32_t> get_dvar_uint(const char *dvar_name) {
   return std::nullopt;
 }
 
-__inline_def uint64_t get_dvar_uint64(EngineDependentDvar dvar) {
-  return dvar.get_uint64();
-}
-
 std::optional<uint64_t> get_dvar_uint64(const char *dvar_name) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
   if (dvar) {
@@ -112,11 +74,6 @@ std::optional<uint64_t> get_dvar_uint64(const char *dvar_name) {
   }
 
   return std::nullopt;
-}
-
-uint64_t set_dvar_uint64(EngineDependentDvar dvar, uint64_t val,
-                         DvarSetSource source) {
-  return dvar.set(val, source);
 }
 
 std::optional<uint64_t> set_dvar_uint64(const char *dvar_name, uint64_t val,
@@ -128,10 +85,6 @@ std::optional<uint64_t> set_dvar_uint64(const char *dvar_name, uint64_t val,
   return std::nullopt;
 }
 
-__inline_def int64_t get_dvar_int64(EngineDependentDvar dvar) {
-  return dvar.get_int64();
-}
-
 std::optional<int64_t> get_dvar_int64(const char *dvar_name) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
   if (dvar) {
@@ -139,11 +92,6 @@ std::optional<int64_t> get_dvar_int64(const char *dvar_name) {
   }
 
   return std::nullopt;
-}
-
-int64_t set_dvar_int64(EngineDependentDvar dvar, int64_t val,
-                       DvarSetSource source) {
-  return dvar.set(val, source);
 }
 
 std::optional<int64_t> set_dvar_int64(const char *dvar_name, int64_t val,
@@ -155,10 +103,6 @@ std::optional<int64_t> set_dvar_int64(const char *dvar_name, int64_t val,
   return std::nullopt;
 }
 
-__inline_def bool get_dvar_bool(EngineDependentDvar dvar) {
-  return dvar.get_bool();
-}
-
 std::optional<bool> get_dvar_bool(const char *dvar_name) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
   if (dvar) {
@@ -166,10 +110,6 @@ std::optional<bool> get_dvar_bool(const char *dvar_name) {
   }
 
   return std::nullopt;
-}
-
-bool set_dvar_bool(EngineDependentDvar dvar, bool val, DvarSetSource source) {
-  return dvar.set(val, source);
 }
 
 std::optional<bool> set_dvar_bool(const char *dvar_name, bool val,
@@ -181,10 +121,6 @@ std::optional<bool> set_dvar_bool(const char *dvar_name, bool val,
   return std::nullopt;
 }
 
-__inline_def float get_dvar_float(EngineDependentDvar dvar) {
-  return dvar.get_float();
-}
-
 std::optional<float> get_dvar_float(const char *dvar_name) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
   if (dvar) {
@@ -194,11 +130,6 @@ std::optional<float> get_dvar_float(const char *dvar_name) {
   return std::nullopt;
 }
 
-float set_dvar_float(EngineDependentDvar dvar, float val,
-                     DvarSetSource source) {
-  return dvar.set(val, source);
-}
-
 std::optional<float> set_dvar_float(const char *dvar_name, float val,
                                     DvarSetSource source) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
@@ -206,12 +137,6 @@ std::optional<float> set_dvar_float(const char *dvar_name, float val,
     return dvar.set(val, source);
   }
   return std::nullopt;
-}
-
-std::optional<std::string> set_dvar_string(EngineDependentDvar dvar,
-                                           const char *val,
-                                           DvarSetSource source) {
-  return dvar.set(val, source);
 }
 
 std::optional<std::string>

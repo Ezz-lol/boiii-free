@@ -1387,14 +1387,14 @@ public:
           // TODO: why does setting the dvar directly here cause
           // the game to freeze?
           // Why do we have to use Dvar_SetFromStringByName?
-          // game::set_dvar_bool(ui_error_callstack_ship, true);
+          // ui_error_callstack_ship->set(true);
           game::Dvar_SetFromStringByName("ui_error_callstack_ship", "1", true);
 
           game::ui_error_report_delay->flags().clear();
           // TODO: why does setting the dvar directly here cause
           // the game to freeze?
           // Why do we have to use Dvar_SetFromStringByName?
-          // game::set_dvar_bool(ui_error_report_delay, true);
+          // ui_error_report_delay->set(true);
           game::Dvar_SetFromStringByName("ui_error_report_delay", "1", true);
         },
         scheduler::pipeline::renderer);

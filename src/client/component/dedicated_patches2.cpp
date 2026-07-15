@@ -109,36 +109,6 @@ std::string sanitize_chat_message(const std::string &msg) {
   return result;
 }
 
-void dvar_disablebool_cb(const game::dvar_t *dvar) {
-  if (dvar->get_bool()) {
-    game::set_dvar_bool(dvar, false);
-  }
-}
-
-game::dvar_t *Dvar_RegisterDisable_Bool(game::dvarStrHash_t hash,
-                                        const char *dvarName,
-                                        [[maybe_unused]] bool value,
-                                        game::DvarFlags flags,
-                                        const char *description) {
-  game::dvar_t *dvar =
-      game::_Dvar_RegisterBool(hash, dvarName, false, flags, description);
-
-  game::_Dvar_SetModifiedCallback(dvar, dvar_disablebool_cb);
-
-  return dvar;
-}
-game::dvar_t *Dvar_RegisterDisable_Bool_Inlined(
-    game::dvarStrHash_t hash, const char *dvarName, game::dvarType_t type,
-    game::DvarFlags flags, game::DvarValue *value, game::DvarLimits *domain,
-    const char *description, bool isSessionModeDvar) {
-  value->enabled() = false;
-  game::dvar_t *dvar =
-      game::_Dvar_RegisterVariant(hash, dvarName, type, flags, value, domain,
-                                  description, isSessionModeDvar);
-  game::_Dvar_SetModifiedCallback(dvar, dvar_disablebool_cb);
-  return dvar;
-}
-
 // Hook for G_Say to sanitize messages
 utils::hook::detour g_say_hook;
 void g_say_stub(game::level::gentity_s *ent, game::level::gentity_s *target,
@@ -448,30 +418,6 @@ void disable_unused_asset_loads() {
           game::db::xasset::MaterialTechniqueSetPtr *techniqueSet)>(stub_func));
 }
 
-inline void disable_sv_cheats() {
-  /*
-     1. sv_cheats used to enable/disable cheat commands - both in console
-     and in SV commands.
-  */
-  {
-    // R_RegisterDvars
-    utils::hook::call(0x140379E80_g, Dvar_RegisterDisable_Bool);
-    // SV_Init
-    utils::hook::call(0x140534DF2_g, Dvar_RegisterDisable_Bool);
-  }
-  /*
-     2. sv_cheats used to enable/disable cheat dvars - controls whether cheat
-     protection on a dvar to be modified is checked and respected in internal
-     setters.
-     Global is named `dvar_cheats` in engine.
-     This is the one that GSC scripts can modify. If not for this hook, anyway.
-  */
-  {
-    // Dvar_Init
-    utils::hook::call(0x1405767F5_g, Dvar_RegisterDisable_Bool_Inlined);
-  }
-}
-
 } // namespace
 
 struct component final : server_component {
@@ -530,9 +476,6 @@ struct component final : server_component {
     sv_removeallclientsfromaddress_hook.create(
         game::sv::SV_Live_RemoveAllClientsFromAddress.get(),
         sv_live_removeallclientsfromaddress_stub);
-
-    // Disable both (??) sv_cheats dvars immediately after registration
-    disable_sv_cheats();
 
     if (!utils::flags::has_flag("noratelimit")) {
       // Cleanup old rate limit entries periodically

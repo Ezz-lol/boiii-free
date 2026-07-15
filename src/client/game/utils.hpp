@@ -8,33 +8,19 @@ namespace game {
 
 [[nodiscard]] EngineDependentDvarMut get_dvar(const char *name);
 [[nodiscard]] std::optional<std::string_view>
-get_dvar_string(EngineDependentDvar dvar);
-[[nodiscard]] std::optional<std::string_view>
 get_dvar_string(const char *dvar_name);
-[[nodiscard]] int32_t get_dvar_int(EngineDependentDvar dvar);
 [[nodiscard]] std::optional<int32_t> get_dvar_int(const char *dvar_name);
-[[nodiscard]] uint32_t get_dvar_uint(EngineDependentDvar dvar);
 [[nodiscard]] std::optional<uint32_t> get_dvar_uint(const char *dvar_name);
-[[nodiscard]] int64_t get_dvar_int64(EngineDependentDvar dvar);
 [[nodiscard]] std::optional<int64_t> get_dvar_int64(const char *dvar_name);
-[[nodiscard]] uint64_t get_dvar_uint64(EngineDependentDvar dvar);
 [[nodiscard]] std::optional<uint64_t> get_dvar_uint64(const char *dvar_name);
-[[nodiscard]] float get_dvar_float(EngineDependentDvar dvar);
 [[nodiscard]] std::optional<float> get_dvar_float(const char *dvar_name);
-[[nodiscard]] bool get_dvar_bool(EngineDependentDvar dvar);
 [[nodiscard]] std::optional<bool> get_dvar_bool(const char *dvar_name);
 
-int set_dvar_int(EngineDependentDvar dvar, int32_t val,
-                 DvarSetSource source = DvarSetSource::INTERNAL);
 std::optional<int> set_dvar_int(const char *dvar_name, int32_t val,
                                 DvarSetSource source = DvarSetSource::INTERNAL);
-int64_t set_dvar_int64(EngineDependentDvar dvar, int64_t val,
-                       DvarSetSource source = DvarSetSource::INTERNAL);
 std::optional<int64_t>
 set_dvar_int64(const char *dvar_name, int64_t val,
                DvarSetSource source = DvarSetSource::INTERNAL);
-uint64_t set_dvar_uint64(EngineDependentDvar dvar, uint64_t val,
-                         DvarSetSource source = DvarSetSource::INTERNAL);
 std::optional<uint64_t>
 set_dvar_uint64(const char *dvar_name, uint64_t val,
                 DvarSetSource source = DvarSetSource::INTERNAL);
@@ -43,14 +29,9 @@ bool set_dvar_bool(EngineDependentDvar dvar, bool val,
 std::optional<bool>
 set_dvar_bool(const char *dvar_name, bool val,
               DvarSetSource source = DvarSetSource::INTERNAL);
-float set_dvar_float(EngineDependentDvar dvar, float val,
-                     DvarSetSource source = DvarSetSource::INTERNAL);
 std::optional<float>
 set_dvar_float(const char *dvar_name, float val,
                DvarSetSource source = DvarSetSource::INTERNAL);
-std::optional<std::string>
-set_dvar_string(EngineDependentDvar dvar, const char *val,
-                DvarSetSource source = DvarSetSource::INTERNAL);
 std::optional<std::string>
 set_dvar_string(const char *dvar_name, const char *val,
                 DvarSetSource source = DvarSetSource::INTERNAL);
@@ -149,9 +130,6 @@ EngineDependentDvar register_dvar_string(const char *dvar_name,
 
   return registered_dvar;
 }
-EngineDependentDvarMut
-try_get_sessionmode_specific_dvar(EngineDependentDvarMut dvar);
-
 template <typename T,
           typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
 void dvar_add_flags(EngineDependentDvarMut dvar, const T flags) {
@@ -159,13 +137,7 @@ void dvar_add_flags(EngineDependentDvarMut dvar, const T flags) {
     return;
   }
 
-  EngineDependentDvarMut dvar_to_change = dvar;
-  if (dvar_to_change.type() == dvarType_t::SESSIONMODE_BASE_DVAR) {
-    dvar_to_change = try_get_sessionmode_specific_dvar(dvar_to_change);
-    if (dvar_to_change) {
-      return;
-    }
-  }
+  EngineDependentDvarMut dvar_to_change = dvar.type() == dvarType_t::SESSIONMODE_BASE_DVAR ? dvar.sessionModeSpecific() : dvar;
 
   dvar_to_change.flags() |= flags;
 }
@@ -186,13 +158,8 @@ void dvar_set_flags(EngineDependentDvarMut dvar, const T flags) {
     return;
   }
 
-  EngineDependentDvarMut dvar_to_change = dvar;
-  if (dvar_to_change.type() == dvarType_t::SESSIONMODE_BASE_DVAR) {
-    dvar_to_change = try_get_sessionmode_specific_dvar(dvar_to_change);
-    if (!dvar_to_change) {
-      return;
-    }
-  }
+  EngineDependentDvarMut dvar_to_change = dvar.type() == dvarType_t::SESSIONMODE_BASE_DVAR ? dvar.sessionModeSpecific() : dvar;
+
 
   dvar_to_change.flags() = DvarFlags::from(flags);
 }
@@ -214,13 +181,7 @@ void dvar_remove_flags(EngineDependentDvarMut dvar, const T flags) {
     return;
   }
 
-  EngineDependentDvarMut dvar_to_change = dvar;
-  if (dvar_to_change.type() == dvarType_t::SESSIONMODE_BASE_DVAR) {
-    dvar_to_change = try_get_sessionmode_specific_dvar(dvar_to_change);
-    if (!dvar_to_change) {
-      return;
-    }
-  }
+  EngineDependentDvarMut dvar_to_change = dvar.type() == dvarType_t::SESSIONMODE_BASE_DVAR ? dvar.sessionModeSpecific() : dvar;
 
   dvar_to_change.flags() &= ~flags;
 }

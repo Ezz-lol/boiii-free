@@ -27,7 +27,7 @@ void sv_con_tell_f_stub(game::sv::client_s *cl, game::net::svscmd_type type,
 }
 
 void send_heartbeat_packet() {
-  if (!game::get_dvar_bool(sv_lan_only)) {
+  if (!sv_lan_only.get_bool()) {
     for (const game::net::netadr_t &target :
          server_list::get_master_servers()) {
       network::send(target, "heartbeat", "T7");

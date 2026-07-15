@@ -33,15 +33,13 @@ std::string get_password_hash_string() {
     return "0";
   }
 
-  const std::string_view password =
-      game::get_dvar_string(net_password_dvar).value_or("");
+  const std::string_view password = net_password_dvar.get_string().value_or("");
   const uint64_t hash = hash_password(password);
   return utils::string::va("%llu", hash);
 }
 
 bool is_password_set() {
-  const std::string_view password =
-      game::get_dvar_string(net_password_dvar).value_or("");
+  const std::string_view password = net_password_dvar.get_string().value_or("");
   return !password.empty();
 }
 

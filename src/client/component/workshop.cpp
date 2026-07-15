@@ -502,7 +502,7 @@ std::string get_usermap_publisher_id(const std::string &zone_name) {
 }
 
 int get_workshop_retry_attempts() {
-  const int val = game::get_dvar_int(workshop_retry_attempts);
+  const int val = workshop_retry_attempts.get_int();
   if (val < 1)
     return 1;
   if (val > 1000)
@@ -1127,7 +1127,7 @@ public:
                "config)\n",
                get_workshop_retry_attempts());
         printf("[ Workshop ] workshop_timeout: %d\n",
-               game::get_dvar_int(workshop_timeout));
+               workshop_timeout.get_int());
       });
       command::add("workshop_download", [](const command::params &params) {
         if (params.size() < 2) {

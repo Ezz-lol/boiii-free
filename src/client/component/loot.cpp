@@ -235,14 +235,14 @@ struct component final : generic_component {
         return;
       }
       // Enable all unlock dvars (mode-independent)
-      game::set_dvar_bool(dvar_cg_unlockall_loot, true);
-      game::set_dvar_bool(dvar_cg_unlockall_purchases, true);
-      game::set_dvar_bool(dvar_cg_unlockall_attachments, true);
-      game::set_dvar_bool(dvar_cg_unlockall_camos_and_reticles, true);
-      game::set_dvar_bool(dvar_cg_unlockall_calling_cards, true);
-      game::set_dvar_bool(dvar_cg_unlockall_specialists_outfits, true);
-      game::set_dvar_bool(dvar_cg_unlockall_cac_slots, true);
-      game::set_dvar_bool(*game::ui_enableAllHeroes, true);
+      dvar_cg_unlockall_loot.set(true);
+      dvar_cg_unlockall_purchases.set(true);
+      dvar_cg_unlockall_attachments.set(true);
+      dvar_cg_unlockall_camos_and_reticles.set(true);
+      dvar_cg_unlockall_calling_cards.set(true);
+      dvar_cg_unlockall_specialists_outfits.set(true);
+      dvar_cg_unlockall_cac_slots.set(true);
+      game::ui_enableAllHeroes->set(true);
 
       // Set master prestige for all 3 modes (eModes: ZM=0, MP=1, CP=2)
       game::cbuf::Cbuf_AddText(0, "PrestigeStatsMaster 0\n"); // ZM
@@ -332,7 +332,7 @@ struct component final : generic_component {
             // TODO: why does setting the dvar directly here cause
             // the game to freeze?
             // Why do we have to use Dvar_SetFromStringByName?
-            // game::set_dvar_bool(game::ui_enableAllHeroes(), true);
+            // game::ui_enableAllHeroes->set(true);
             game::Dvar_SetFromStringByName("ui_enableAllHeroes", "1", true);
           }
         },
