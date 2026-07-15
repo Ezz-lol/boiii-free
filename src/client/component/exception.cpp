@@ -679,10 +679,13 @@ LONG WINAPI crash_fix_exception_handler(PEXCEPTION_POINTERS exception_info) {
     return EXCEPTION_CONTINUE_SEARCH;
   }
 
+#ifndef NDEBUG
   if (patch_name) {
     fprintf(stderr, "^3[Exception] Known crash patched: %s (base+0x%llX)\n",
             patch_name, offset);
+    fflush(stderr);
   }
+#endif
 
   return EXCEPTION_CONTINUE_EXECUTION;
 }
