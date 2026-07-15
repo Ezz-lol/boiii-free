@@ -137,7 +137,7 @@ void dvar_add_flags(EngineDependentDvarMut dvar, const T flags) {
     return;
   }
 
-  dvar.resolve().flags() |= flags;
+  dvar.flags() |= flags;
 }
 template <typename T,
           typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
@@ -156,7 +156,7 @@ void dvar_set_flags(EngineDependentDvarMut dvar, const T flags) {
     return;
   }
 
-  dvar.resolve().flags().set(flags);
+  dvar.flags().set(flags);
 }
 
 template <typename T,
@@ -177,7 +177,7 @@ void dvar_remove_flags(EngineDependentDvarMut dvar, const T flags) {
     return;
   }
 
-  dvar.resolve().flags() &= ~flags;
+  dvar.flags() &= ~flags;
 }
 
 template <typename T,

@@ -311,7 +311,7 @@ eModes Com_SessionMode_GetMode();
 }
 
 #pragma pack(push, 1)
-template <typename T_Dvar> union TemplateDvarValue {
+template <typename T_DvarValue> union TemplateDvarValue {
   bool _enabled;
   int32_t _integer;
   uint32_t _unsignedInt;
@@ -321,7 +321,7 @@ template <typename T_Dvar> union TemplateDvarValue {
   vec4_t _vector;
   const char *_string;
   DvarColor _color;
-  SessionModePool<T_Dvar *> _indirect;
+  SessionModePool<T_DvarValue *> _indirect;
 
   inline constexpr bool enabled() const { return _enabled; }
 
@@ -355,23 +355,27 @@ template <typename T_Dvar> union TemplateDvarValue {
   inline constexpr const char *&string() { return _string; }
   inline constexpr DvarColor &color() { return _color; }
 
-  inline const T_Dvar *indirect(eModes mode) const {
+  inline const T_DvarValue *indirect(eModes mode) const {
     return valid_mode(mode) ? _indirect[mode] : nullptr;
   }
-  inline const T_Dvar *indirect() const {
+  inline const T_DvarValue *indirect() const {
     return indirect(com::Com_SessionMode_GetMode());
   }
-  inline const T_Dvar *sessionModeSpecific(eModes mode) const {
+  inline const T_DvarValue *sessionModeSpecific(eModes mode) const {
     return indirect(mode);
   }
-  inline const T_Dvar *sessionModeSpecific() const { return indirect(); }
+  inline const T_DvarValue *sessionModeSpecific() const { return indirect(); }
 
-  inline T_Dvar *indirect(eModes mode) {
+  inline T_DvarValue *indirect(eModes mode) {
     return valid_mode(mode) ? _indirect[mode] : nullptr;
   }
-  inline T_Dvar *indirect() { return indirect(com::Com_SessionMode_GetMode()); }
-  inline T_Dvar *sessionModeSpecific(eModes mode) { return indirect(mode); }
-  inline T_Dvar *sessionModeSpecific() { return indirect(); }
+  inline T_DvarValue *indirect() {
+    return indirect(com::Com_SessionMode_GetMode());
+  }
+  inline T_DvarValue *sessionModeSpecific(eModes mode) {
+    return indirect(mode);
+  }
+  inline T_DvarValue *sessionModeSpecific() { return indirect(); }
 };
 ASSERT_POD(TemplateDvarValue<void>);
 
@@ -472,19 +476,19 @@ union EngineDependentDvarMut;
 #pragma pack(push, 1)
 template <typename T_DvarValue> struct dvar {
 public:
-  dvarStrHash_t name;
+  dvarStrHash_t _name;
   uint8_t _padding04[4];
-  const char *debugName;
-  const char *description;
-  DvarFlags flags;
-  dvarType_t type;
-  bool modified;
+  const char *_debugName;
+  const char *_description;
+  DvarFlags _flags;
+  dvarType_t _type;
+  bool _modified;
   uint8_t _padding21[7];
-  T_DvarValue current;
-  T_DvarValue latched;
-  T_DvarValue reset;
-  DvarLimits domain;
-  dvar<T_DvarValue> *hashNext;
+  T_DvarValue _current;
+  T_DvarValue _latched;
+  T_DvarValue _reset;
+  DvarLimits _domain;
+  dvar<T_DvarValue> *_hashNext;
 
   std::optional<std::string>
   set(const char *val, DvarSetSource source = DvarSetSource::INTERNAL) const;
@@ -499,102 +503,94 @@ public:
     return static_cast<uint32_t>(set(static_cast<int32_t>(val), source));
   }
   bool set(bool val, DvarSetSource source = DvarSetSource::INTERNAL) const;
+  inline dvarType_t type() const noexcept { return _type; }
+  inline dvarType_t &type() noexcept { return _type; }
 
-  inline int32_t get_int() const {
-    if (type == dvarType_t::SESSIONMODE_BASE_DVAR) {
-      const dvar<T_DvarValue> *sessionModeSpecific =
-          current.sessionModeSpecific();
-      if (sessionModeSpecific) {
-        return sessionModeSpecific->get_int();
-      }
+  inline bool modified() const noexcept { return _modified; }
+  inline bool &modified() noexcept { return _modified; }
+
+  inline const T_DvarValue &current() const noexcept { return _current; }
+  inline T_DvarValue &current() noexcept { return _current; }
+
+  inline const T_DvarValue &latched() const noexcept { return _latched; }
+  inline T_DvarValue &latched() noexcept { return _latched; }
+
+  inline const T_DvarValue &reset() const noexcept { return _reset; }
+  inline T_DvarValue &reset() noexcept { return _reset; }
+
+  inline DvarLimits domain() const noexcept { return _domain; }
+  inline DvarLimits &domain() noexcept { return _domain; }
+
+  inline dvarStrHash_t name() const noexcept { return _name; }
+  inline dvarStrHash_t &name() noexcept { return _name; }
+
+  inline const char *debugName() const noexcept { return _debugName; }
+  inline ConstCharPtr &debugName() noexcept { return _debugName; }
+
+  inline const char *description() const noexcept { return _description; }
+  inline ConstCharPtr &description() noexcept { return _description; }
+
+  inline dvar<T_DvarValue> *hashNext() const noexcept { return _hashNext; }
+  inline dvar<T_DvarValue> *&hashNext() noexcept { return _hashNext; }
+
+  inline dvar<T_DvarValue> *sessionModeSpecific() noexcept {
+    if (type() == dvarType_t::SESSIONMODE_BASE_DVAR) {
+      return _current.sessionModeSpecific();
+    }
+    return nullptr;
+  }
+  inline const dvar<T_DvarValue> *sessionModeSpecific() const noexcept {
+    if (type() == dvarType_t::SESSIONMODE_BASE_DVAR) {
+      return _current.sessionModeSpecific();
+    }
+    return nullptr;
+  }
+
+  inline dvar<T_DvarValue> *sessionModeSpecific(eModes mode) noexcept {
+    if (type() == dvarType_t::SESSIONMODE_BASE_DVAR) {
+      return _current.sessionModeSpecific(mode);
     }
 
-    return current.integer();
+    return nullptr;
   }
+  inline const dvar<T_DvarValue> *
+  sessionModeSpecific(eModes mode) const noexcept {
+    if (type() == dvarType_t::SESSIONMODE_BASE_DVAR) {
+      return _current.sessionModeSpecific(mode);
+    }
+    return nullptr;
+  }
+
+  inline const dvar<T_DvarValue> *resolve() const noexcept {
+    const dvar<T_DvarValue> *sessionModeSpecificDvar = sessionModeSpecific();
+    return sessionModeSpecificDvar ? sessionModeSpecificDvar : this;
+  }
+  inline dvar<T_DvarValue> *resolve() noexcept {
+    dvar<T_DvarValue> *sessionModeSpecificDvar = sessionModeSpecific();
+    return sessionModeSpecificDvar ? sessionModeSpecificDvar : this;
+  }
+
+  inline DvarFlags flags() const noexcept { return resolve()->_flags; }
+  inline DvarFlags &flags() noexcept { return resolve()->_flags; }
+
+  inline int32_t get_int() const { return resolve()->current().integer(); }
   inline constexpr uint32_t get_uint() const {
-
-    if (type == dvarType_t::SESSIONMODE_BASE_DVAR) {
-      const dvar<T_DvarValue> *sessionModeSpecific =
-          current.sessionModeSpecific();
-      if (sessionModeSpecific) {
-        return sessionModeSpecific->get_uint();
-      }
-    }
-    return current.unsignedInt();
+    return resolve()->current().unsignedInt();
   }
-  inline int64_t get_int64() const {
-    if (type == dvarType_t::SESSIONMODE_BASE_DVAR) {
-      const dvar<T_DvarValue> *sessionModeSpecific =
-          current.sessionModeSpecific();
-      if (sessionModeSpecific) {
-        return sessionModeSpecific->get_int64();
-      }
-    }
-    return current.integer64();
-  }
+  inline int64_t get_int64() const { return resolve()->current().integer64(); }
   inline uint64_t get_uint64() const {
-    if (type == dvarType_t::SESSIONMODE_BASE_DVAR) {
-      const dvar<T_DvarValue> *sessionModeSpecific =
-          current.sessionModeSpecific();
-      if (sessionModeSpecific) {
-        return sessionModeSpecific->get_uint64();
-      }
-    }
-    return current.unsignedInt64();
+    return resolve()->current().unsignedInt64();
   }
-  inline bool get_bool() const {
-
-    if (type == dvarType_t::SESSIONMODE_BASE_DVAR) {
-      const dvar<T_DvarValue> *sessionModeSpecific =
-          current.sessionModeSpecific();
-      if (sessionModeSpecific) {
-        return sessionModeSpecific->get_bool();
-      }
-    }
-    return current.enabled();
-  }
-  inline float get_float() const {
-
-    if (type == dvarType_t::SESSIONMODE_BASE_DVAR) {
-      const dvar<T_DvarValue> *sessionModeSpecific =
-          current.sessionModeSpecific();
-      if (sessionModeSpecific) {
-        return sessionModeSpecific->get_float();
-      }
-    }
-    return current.value();
+  inline bool get_bool() const { return resolve()->current().enabled(); }
+  inline float get_float() const { return resolve()->current().value(); }
+  inline const char *get_cstring() const {
+    return resolve()->current().string();
   }
   inline std::optional<std::string_view> get_string() const {
-    if (type == dvarType_t::SESSIONMODE_BASE_DVAR) {
-      const dvar<T_DvarValue> *sessionModeSpecific =
-          current.sessionModeSpecific();
-      if (sessionModeSpecific) {
-        return sessionModeSpecific->get_string();
-      }
-    }
-
-    const char *str = current.string();
+    const char *str = get_cstring();
     return str ? std::optional(std::string_view(str)) : std::nullopt;
   }
-  inline const char *get_cstring() const {
-    if (type == dvarType_t::SESSIONMODE_BASE_DVAR) {
-      const dvar<T_DvarValue> *sessionModeSpecific =
-          current.sessionModeSpecific();
-      if (sessionModeSpecific) {
-        return sessionModeSpecific->get_cstring();
-      }
-    }
-    return current.string();
-  }
   template <typename T> inline constexpr T get() const {
-    if (type == dvarType_t::SESSIONMODE_BASE_DVAR) {
-      const dvar<T_DvarValue> *sessionModeSpecific =
-          current.sessionModeSpecific();
-      if (sessionModeSpecific) {
-        return sessionModeSpecific->get<T>();
-      }
-    }
-
     constexpr size_t T_Size = sizeof(T);
     if constexpr (std::is_same_v<T, int32_t>) {
       return get_int();
@@ -644,21 +640,6 @@ public:
     return {};
   }
 
-  inline dvar<T_DvarValue> *sessionModeSpecific() noexcept {
-    return current.sessionModeSpecific();
-  }
-  inline const dvar<T_DvarValue> *sessionModeSpecific() const noexcept {
-    return current.sessionModeSpecific();
-  }
-
-  inline dvar<T_DvarValue> *sessionModeSpecific(eModes mode) noexcept {
-    return current.sessionModeSpecific(mode);
-  }
-  inline const dvar<T_DvarValue> *
-  sessionModeSpecific(eModes mode) const noexcept {
-    return current.sessionModeSpecific(mode);
-  }
-
   constexpr operator EngineDependentDvar() const noexcept;
   constexpr operator EngineDependentDvarMut() const noexcept;
   constexpr operator EngineDependentDvarMut() noexcept;
@@ -666,22 +647,22 @@ public:
 #pragma pack(pop)
 
 struct dvar_t : public dvar<DvarValue> {};
-ASSERT_OFFSET(dvar_t, debugName, 0x8);
-ASSERT_OFFSET(dvar_t, description, 0x10);
-ASSERT_OFFSET(dvar_t, flags, 0x18);
-ASSERT_OFFSET(dvar_t, type, 0x1C);
-ASSERT_OFFSET(dvar_t, modified, 0x20);
-ASSERT_OFFSET(dvar_t, current, 0x28);
+ASSERT_OFFSET(dvar_t, _debugName, 0x8);
+ASSERT_OFFSET(dvar_t, _description, 0x10);
+ASSERT_OFFSET(dvar_t, _flags, 0x18);
+ASSERT_OFFSET(dvar_t, _type, 0x1C);
+ASSERT_OFFSET(dvar_t, _modified, 0x20);
+ASSERT_OFFSET(dvar_t, _current, 0x28);
 ASSERT_SIZE(dvar_t, 0x88);
 ASSERT_POD(dvar_t);
 
 struct encryptedDvar_t : public dvar<EncryptionCapableDvarValue> {};
-ASSERT_OFFSET(encryptedDvar_t, debugName, 0x8);
-ASSERT_OFFSET(encryptedDvar_t, description, 0x10);
-ASSERT_OFFSET(encryptedDvar_t, flags, 0x18);
-ASSERT_OFFSET(encryptedDvar_t, type, 0x1C);
-ASSERT_OFFSET(encryptedDvar_t, modified, 0x20);
-ASSERT_OFFSET(encryptedDvar_t, current, 0x28);
+ASSERT_OFFSET(encryptedDvar_t, _debugName, 0x8);
+ASSERT_OFFSET(encryptedDvar_t, _description, 0x10);
+ASSERT_OFFSET(encryptedDvar_t, _flags, 0x18);
+ASSERT_OFFSET(encryptedDvar_t, _type, 0x1C);
+ASSERT_OFFSET(encryptedDvar_t, _modified, 0x20);
+ASSERT_OFFSET(encryptedDvar_t, _current, 0x28);
 ASSERT_SIZE(encryptedDvar_t, 0xA0);
 ASSERT_POD(encryptedDvar_t);
 
@@ -795,52 +776,52 @@ union EngineDependentDvarMut {
 
   inline dvarStrHash_t &name() noexcept {
     if (is_server()) {
-      return sv->name;
+      return sv->name();
     }
-    return cl->name;
+    return cl->name();
   }
   inline dvarStrHash_t name() const noexcept {
     if (is_server()) {
-      return sv->name;
+      return sv->name();
     }
-    return cl->name;
+    return cl->name();
   }
   inline void setDebugName(const char *name) noexcept {
     if (is_server()) {
-      sv->debugName = name;
+      sv->debugName() = name;
     } else {
-      cl->debugName = name;
+      cl->debugName() = name;
     }
   }
   inline const char *&debugName() noexcept {
     if (is_server()) {
-      return sv->debugName;
+      return sv->debugName();
     }
-    return cl->debugName;
+    return cl->debugName();
   }
   inline const char *debugName() const noexcept {
     if (is_server()) {
-      return sv->debugName;
+      return sv->debugName();
     }
-    return cl->debugName;
+    return cl->debugName();
   }
   inline const char *&description() noexcept {
     if (is_server()) {
-      return sv->description;
+      return sv->description();
     }
-    return cl->description;
+    return cl->description();
   }
   inline const char *description() const noexcept {
     if (is_server()) {
-      return sv->description;
+      return sv->description();
     }
-    return cl->description;
+    return cl->description();
   }
   inline DvarFlags &flags() noexcept {
     if (is_server()) {
-      return sv->flags;
+      return sv->flags();
     }
-    return cl->flags;
+    return cl->flags();
   }
 
   template <typename T,
@@ -863,98 +844,100 @@ union EngineDependentDvarMut {
   inline void clearFlags() noexcept { flags().set(0); }
   inline DvarFlags flags() const noexcept {
     if (is_server()) {
-      return sv->flags;
+      return sv->flags();
     }
-    return cl->flags;
+    return cl->flags();
   }
   inline dvarType_t &type() noexcept {
     if (is_server()) {
-      return sv->type;
+      return sv->type();
     }
-    return cl->type;
+    return cl->type();
   }
   inline dvarType_t type() const noexcept {
     if (is_server()) {
-      return sv->type;
+      return sv->type();
     }
-    return cl->type;
+    return cl->type();
   }
   inline EngineDependentDvarMut sessionModeSpecific() const {
     EngineDependentDvarMut result{nullptr};
-    if (type() == dvarType_t::SESSIONMODE_BASE_DVAR) {
-      if (is_server()) {
-        result.sv = reinterpret_cast<dvar_t *>(sv->sessionModeSpecific());
-      } else {
-        result.cl =
-            reinterpret_cast<encryptedDvar_t *>(cl->sessionModeSpecific());
-      }
+    if (is_server()) {
+      result.sv = reinterpret_cast<dvar_t *>(sv->sessionModeSpecific());
+    } else {
+      result.cl =
+          reinterpret_cast<encryptedDvar_t *>(cl->sessionModeSpecific());
     }
     return result;
   }
 
   inline EngineDependentDvarMut resolve() const {
-    EngineDependentDvarMut sessionModeSpecificDvar = sessionModeSpecific();
-    return sessionModeSpecificDvar ? sessionModeSpecificDvar
-                                   : EngineDependentDvarMut{sv};
+    EngineDependentDvarMut result{};
+    if (is_server()) {
+      result.sv = reinterpret_cast<dvar_t *>(sv->resolve());
+    } else {
+      result.cl = reinterpret_cast<encryptedDvar_t *>(cl->resolve());
+    }
+    return result;
   }
 
   inline bool &modified() noexcept {
     if (is_server()) {
-      return sv->modified;
+      return sv->modified();
     }
-    return cl->modified;
+    return cl->modified();
   }
   inline bool modified() const noexcept {
     if (is_server()) {
-      return sv->modified;
+      return sv->modified();
     }
-    return cl->modified;
+    return cl->modified();
   }
   inline DvarLimits &domain() noexcept {
     if (is_server()) {
-      return sv->domain;
+      return sv->domain();
     }
-    return cl->domain;
+    return cl->domain();
   }
   inline DvarLimits &domain() const noexcept {
     if (is_server()) {
-      return sv->domain;
+      return sv->domain();
     }
-    return cl->domain;
+    return cl->domain();
   }
   inline EngineDependentDvarMut setHashNext(dvar_t *next) {
     EngineDependentDvarMut result = hashNext();
     if (is_server()) {
-      sv->hashNext = next;
+      sv->hashNext() = next;
     } else {
-      cl->hashNext = reinterpret_cast<encryptedDvar_t *>(next);
+      cl->hashNext() = reinterpret_cast<encryptedDvar_t *>(next);
     }
     return result;
   }
   inline EngineDependentDvarMut setHashNext(encryptedDvar_t *next) {
     EngineDependentDvarMut result = hashNext();
     if (is_server()) {
-      sv->hashNext = reinterpret_cast<dvar_t *>(next);
+      sv->hashNext() = reinterpret_cast<dvar_t *>(next);
     } else {
-      cl->hashNext = next;
+      cl->hashNext() = next;
     }
     return result;
   }
   inline EngineDependentDvarMut setHashNext(EngineDependentDvarMut next) {
     EngineDependentDvarMut result = hashNext();
     if (is_server()) {
-      sv->hashNext = next.sv;
+      sv->hashNext() = next.sv;
     } else {
-      cl->hashNext = next.cl;
+      cl->hashNext() = next.cl;
     }
     return result;
   }
   inline EngineDependentDvarMut hashNext() const {
     EngineDependentDvarMut result{};
     if (is_server()) {
-      result.sv = reinterpret_cast<dvar_t *>(sv->hashNext);
+      result.sv = reinterpret_cast<dvar_t *>(sv->hashNext());
     } else {
-      result.cl = reinterpret_cast<encryptedDvar_t *>(cl->hashNext);
+      result.cl = reinterpret_cast<encryptedDvar_t *>(cl->hashNext());
     }
     return result;
   }
@@ -979,14 +962,14 @@ union EngineDependentDvarMut {
     return cl;
   }
 
-  template <typename T_Dvar>
-  inline constexpr operator const dvar<T_Dvar> *() const noexcept {
-    return reinterpret_cast<const dvar<T_Dvar> *>(sv);
+  template <typename T_DvarValue>
+  inline constexpr operator const dvar<T_DvarValue> *() const noexcept {
+    return reinterpret_cast<const dvar<T_DvarValue> *>(sv);
   }
 
-  template <typename T_Dvar>
-  inline constexpr operator dvar<T_Dvar> *() const noexcept {
-    return reinterpret_cast<dvar<T_Dvar> *>(sv);
+  template <typename T_DvarValue>
+  inline constexpr operator dvar<T_DvarValue> *() const noexcept {
+    return reinterpret_cast<dvar<T_DvarValue> *>(sv);
   }
 
   constexpr operator EngineDependentDvar() const noexcept;
@@ -1129,76 +1112,77 @@ union EngineDependentDvar {
 
   inline dvarStrHash_t name() const {
     if (is_server()) {
-      return sv->name;
+      return sv->name();
     }
-    return cl->name;
+    return cl->name();
   }
 
   inline const char *debugName() const {
     if (is_server()) {
-      return sv->debugName;
+      return sv->debugName();
     }
-    return cl->debugName;
+    return cl->debugName();
   }
   inline const char *description() const {
     if (is_server()) {
-      return sv->description;
+      return sv->description();
     }
-    return cl->description;
+    return cl->description();
   }
   inline DvarFlags flags() const {
     if (is_server()) {
-      return sv->flags;
+      return sv->flags();
     }
-    return cl->flags;
+    return cl->flags();
   }
   inline dvarType_t type() const {
     if (is_server()) {
-      return sv->type;
+      return sv->type();
     }
-    return cl->type;
+    return cl->type();
   }
 
   inline EngineDependentDvar sessionModeSpecific() const {
     EngineDependentDvar result{nullptr};
-
-    if (type() == dvarType_t::SESSIONMODE_BASE_DVAR) {
-      if (is_server()) {
-        result.sv = reinterpret_cast<const dvar_t *>(sv->sessionModeSpecific());
-      } else {
-        result.cl = reinterpret_cast<const encryptedDvar_t *>(
-            cl->sessionModeSpecific());
-      }
+    if (is_server()) {
+      result.sv = reinterpret_cast<const dvar_t *>(sv->sessionModeSpecific());
+    } else {
+      result.cl =
+          reinterpret_cast<const encryptedDvar_t *>(cl->sessionModeSpecific());
     }
     return result;
   }
 
   inline EngineDependentDvar resolve() const {
-    const EngineDependentDvar sessionModeSpecificDvar = sessionModeSpecific();
-    return sessionModeSpecificDvar ? sessionModeSpecificDvar
-                                   : EngineDependentDvar{sv};
+    EngineDependentDvar result{};
+    if (is_server()) {
+      result.sv = reinterpret_cast<const dvar_t *>(sv->resolve());
+    } else {
+      result.cl = reinterpret_cast<const encryptedDvar_t *>(cl->resolve());
+    }
+    return result;
   }
 
   inline bool modified() const {
     if (is_server()) {
-      return sv->modified;
+      return sv->modified();
     }
-    return cl->modified;
+    return cl->modified();
   }
   inline DvarLimits domain() const {
     if (is_server()) {
-      return sv->domain;
+      return sv->domain();
     }
-    return cl->domain;
+    return cl->domain();
   }
   inline EngineDependentDvar hashNext() const {
     EngineDependentDvar result{};
     if (is_server()) {
-      result.sv =
-          const_cast<const dvar_t *>(reinterpret_cast<dvar_t *>(sv->hashNext));
+      result.sv = const_cast<const dvar_t *>(
+          reinterpret_cast<dvar_t *>(sv->hashNext()));
     } else {
       result.cl = const_cast<const encryptedDvar_t *>(
-          reinterpret_cast<encryptedDvar_t *>(cl->hashNext));
+          reinterpret_cast<encryptedDvar_t *>(cl->hashNext()));
     }
     return result;
   }
@@ -1220,9 +1204,9 @@ union EngineDependentDvar {
   inline constexpr operator const encryptedDvar_t *() const noexcept {
     return cl;
   }
-  template <typename T_Dvar>
-  inline constexpr operator const dvar<T_Dvar> *() const noexcept {
-    return reinterpret_cast<dvar<T_Dvar>>(sv);
+  template <typename T_DvarValue>
+  inline constexpr operator const dvar<T_DvarValue> *() const noexcept {
+    return reinterpret_cast<dvar<T_DvarValue>>(sv);
   }
   friend inline constexpr bool operator==(const EngineDependentDvar &lhs,
                                           const EngineDependentDvar &rhs) {
@@ -1268,9 +1252,9 @@ void Dvar_SetBoolFromSource(EngineDependentDvar dvar, bool val,
 void Dvar_SetFloatFromSource(EngineDependentDvar dvar, float val,
                              DvarSetSource source);
 
-template <typename T_Dvar>
+template <typename T_DvarValue>
 inline std::optional<std::string>
-dvar<T_Dvar>::set(const char *val, DvarSetSource source) const {
+dvar<T_DvarValue>::set(const char *val, DvarSetSource source) const {
   const std::optional<std::string_view> prev_val = get_string();
   std::optional<std::string> prev_val_copy;
   if (prev_val.has_value()) {
@@ -1280,58 +1264,66 @@ dvar<T_Dvar>::set(const char *val, DvarSetSource source) const {
   }
 
   Dvar_SetStringFromSource(
-      EngineDependentDvar{reinterpret_cast<const dvar_t *>(this)}, val, source);
+      EngineDependentDvar{reinterpret_cast<const dvar_t *>(resolve())}, val,
+      source);
   return prev_val_copy;
 }
-template <typename T_Dvar>
-inline float dvar<T_Dvar>::set(float val, DvarSetSource source) const {
+template <typename T_DvarValue>
+inline float dvar<T_DvarValue>::set(float val, DvarSetSource source) const {
   const float prev_val = get_float();
   Dvar_SetFloatFromSource(
-      EngineDependentDvar{reinterpret_cast<const dvar_t *>(this)}, val, source);
+      EngineDependentDvar{reinterpret_cast<const dvar_t *>(resolve())}, val,
+      source);
   return prev_val;
 }
-template <typename T_Dvar>
-inline uint64_t dvar<T_Dvar>::set(uint64_t val, DvarSetSource source) const {
+template <typename T_DvarValue>
+inline uint64_t dvar<T_DvarValue>::set(uint64_t val,
+                                       DvarSetSource source) const {
   const uint64_t prev_val = get_uint64();
   Dvar_SetUInt64FromSource(
-      EngineDependentDvar{reinterpret_cast<const dvar_t *>(this)}, val, source);
+      EngineDependentDvar{reinterpret_cast<const dvar_t *>(resolve())}, val,
+      source);
   return prev_val;
 }
-template <typename T_Dvar>
-inline int64_t dvar<T_Dvar>::set(int64_t val, DvarSetSource source) const {
+template <typename T_DvarValue>
+inline int64_t dvar<T_DvarValue>::set(int64_t val, DvarSetSource source) const {
   const int64_t prev_val = get_int64();
   Dvar_SetInt64FromSource(
-      EngineDependentDvar{reinterpret_cast<const dvar_t *>(this)}, val, source);
+      EngineDependentDvar{reinterpret_cast<const dvar_t *>(resolve())}, val,
+      source);
   return prev_val;
 }
-template <typename T_Dvar>
-inline int32_t dvar<T_Dvar>::set(int32_t val, DvarSetSource source) const {
+template <typename T_DvarValue>
+inline int32_t dvar<T_DvarValue>::set(int32_t val, DvarSetSource source) const {
   const int32_t prev_val = get_int();
   Dvar_SetIntFromSource(
-      EngineDependentDvar{reinterpret_cast<const dvar_t *>(this)}, val, source);
+      EngineDependentDvar{reinterpret_cast<const dvar_t *>(resolve())}, val,
+      source);
   return prev_val;
 }
 
-template <typename T_Dvar>
-inline bool dvar<T_Dvar>::set(bool val, DvarSetSource source) const {
+template <typename T_DvarValue>
+inline bool dvar<T_DvarValue>::set(bool val, DvarSetSource source) const {
   const bool prev_val = get_bool();
   Dvar_SetBoolFromSource(
-      EngineDependentDvar{reinterpret_cast<const dvar_t *>(this)}, val, source);
+      EngineDependentDvar{reinterpret_cast<const dvar_t *>(resolve())}, val,
+      source);
   return prev_val;
 }
-template <typename T_Dvar>
+template <typename T_DvarValue>
 
-inline constexpr dvar<T_Dvar>::operator EngineDependentDvar() const noexcept {
-  return EngineDependentDvar{reinterpret_cast<const dvar_t *>(this)};
-}
-template <typename T_Dvar>
-inline constexpr dvar<T_Dvar>::operator EngineDependentDvarMut()
+inline constexpr dvar<T_DvarValue>::operator EngineDependentDvar()
     const noexcept {
-  return EngineDependentDvarMut{reinterpret_cast<dvar_t *>(this)};
+  return EngineDependentDvar{reinterpret_cast<const dvar_t *>(resolve())};
 }
-template <typename T_Dvar>
-inline constexpr dvar<T_Dvar>::operator EngineDependentDvarMut() noexcept {
-  return EngineDependentDvarMut{reinterpret_cast<dvar_t *>(this)};
+template <typename T_DvarValue>
+inline constexpr dvar<T_DvarValue>::operator EngineDependentDvarMut()
+    const noexcept {
+  return EngineDependentDvarMut{reinterpret_cast<dvar_t *>(resolve())};
+}
+template <typename T_DvarValue>
+inline constexpr dvar<T_DvarValue>::operator EngineDependentDvarMut() noexcept {
+  return EngineDependentDvarMut{reinterpret_cast<dvar_t *>(resolve())};
 }
 inline constexpr EngineDependentDvarMut::operator EngineDependentDvar()
     const noexcept {
@@ -1343,17 +1335,19 @@ operator EngineDependentDvar() noexcept {
 }
 
 constexpr size_t DVAR_POOL_LEN = 0x2000;
-template <typename T_Dvar> struct TemplateDvarPool {
-  T_Dvar pool[DVAR_POOL_LEN];
+template <typename T_DvarValue> struct TemplateDvarPool {
+  T_DvarValue pool[DVAR_POOL_LEN];
 
-  inline constexpr const T_Dvar &operator[](size_t index) const {
+  inline constexpr const T_DvarValue &operator[](size_t index) const {
     return pool[index];
   }
-  inline constexpr T_Dvar &operator[](size_t index) { return pool[index]; }
+  inline constexpr T_DvarValue &operator[](size_t index) { return pool[index]; }
 
-  inline constexpr const T_Dvar *base() const { return &pool[0]; }
-  inline constexpr const T_Dvar *end() const { return &pool[DVAR_POOL_LEN]; }
-  inline bool contains(const T_Dvar *dvar) const {
+  inline constexpr const T_DvarValue *base() const { return &pool[0]; }
+  inline constexpr const T_DvarValue *end() const {
+    return &pool[DVAR_POOL_LEN];
+  }
+  inline bool contains(const T_DvarValue *dvar) const {
     return dvar >= base() && dvar < end();
   }
 };
