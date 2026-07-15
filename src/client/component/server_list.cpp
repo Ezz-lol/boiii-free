@@ -303,10 +303,11 @@ void add_lan_server_from_string(const std::string &in) {
 }
 } // namespace
 
-static std::vector<std::string> master_server_hosts{"master.ezz.lol:20810",
-                                                    "m.ezz.lol:20810"};
-
+static std::vector<game::net::netadr_t> master_server_hosts{};
+constexpr const char *default_hosts[] = {"master.ezz.lol:20810",
+                                         "m.ezz.lol:20810"};
 inline void parse_master_server_hosts() {
+
   std::string data;
   if (utils::io::file_exists(get_master_servers_file_path()) &&
       utils::io::read_file(get_master_servers_file_path(), &data)) {
@@ -319,13 +320,22 @@ inline void parse_master_server_hosts() {
           master_server_hosts.clear();
           read_first = true;
         }
-        master_server_hosts.emplace_back(l);
+        const game::net::netadr_t addr =
+            network::address_from_string(l.c_str());
+        if (addr.type != game::net::NA_BAD) {
+          master_server_hosts.emplace_back(addr);
+        }
       }
     }
   } else {
     // Write defaults
     std::string write;
-    for (const std::string &host : master_server_hosts) {
+    for (const std::string &host : default_hosts) {
+      const game::net::netadr_t addr =
+          network::address_from_string(host.c_str());
+      if (addr.type != game::net::NA_BAD) {
+        master_server_hosts.emplace_back(addr);
+      }
       write.append(host);
       write.push_back('\n');
     }
@@ -339,15 +349,7 @@ std::vector<game::net::netadr_t> get_master_servers() {
   if (!parsed_master_servers.exchange(true)) {
     parse_master_server_hosts();
   }
-
-  std::vector<game::net::netadr_t> servers;
-  for (const std::string &host : master_server_hosts) {
-    game::net::netadr_t addr = network::address_from_string(host.c_str());
-    if (addr.type != game::net::NA_BAD) {
-      servers.push_back(addr);
-    }
-  }
-  return servers;
+  return master_server_hosts;
 }
 
 void request_servers(callback callback) {
