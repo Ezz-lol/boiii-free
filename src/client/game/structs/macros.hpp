@@ -139,8 +139,9 @@ template <typename T, typename = typename std::enable_if<
                           std::is_convertible<T, uint64_t>::value>::type>
 consteval int32_t min_bits_unsigned(T val_in) {
   uint64_t val = static_cast<uint64_t>(val_in);
-  if (val == 0)
+  if (val == 0) {
     return 1; // 0 needs at least 1 bit
+  }
 
   // Total bits (64) minus leading zeros gives the bits used
   return bits<uint64_t>() - std::countl_zero(val);
@@ -152,13 +153,4 @@ consteval uint32_t min_bits_mask(T val_in) {
   uint64_t val = static_cast<uint64_t>(val_in);
   int32_t min_bits = min_bits_unsigned(val);
   return (1 << min_bits) - 1;
-}
-
-template <size_t SubArrayLen, size_t StartIdx, typename T, size_t TotalLen>
-constexpr auto &get_slice(T (&arr)[TotalLen]) {
-  static_assert(StartIdx + SubArrayLen <= TotalLen,
-                "Slice goes out of bounds!");
-
-  // Cast the address of the start index to a reference of the new array size
-  return reinterpret_cast<T(&)[SubArrayLen]>(arr[StartIdx]);
 }

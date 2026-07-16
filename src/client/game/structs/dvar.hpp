@@ -73,6 +73,9 @@ enum dvarFlags_e : uint32_t {
   DVAR_MODVAR = 1 << 17
 };
 
+template <typename T>
+concept DvarFlagLike = IntegralLike<T, uint32_t>;
+
 #pragma pack(push, 1)
 union DvarFlags {
   uint32_t _raw;
@@ -98,64 +101,36 @@ union DvarFlags {
 
   inline constexpr operator uint32_t() const noexcept { return _raw; }
 
-  template <typename T, bool IsEnum = std::is_enum_v<T>>
-  struct is_allowed_flag_helper {
-    static constexpr bool value = std::is_convertible_v<T, uint32_t>;
-  };
-
-  template <typename T> struct is_allowed_flag_helper<T, true> {
-    static constexpr bool value =
-        std::is_same_v<T, uint32_t> || std::is_convertible_v<T, uint32_t> ||
-        std::is_convertible_v<std::underlying_type_t<T>, uint32_t> ||
-        std::is_convertible_v<std::underlying_type_t<T>, int32_t>;
-  };
-
-  template <typename T>
-  static constexpr bool is_allowed_flag_v =
-      ScopedUnderlying<T, int32_t> || ScopedUnderlying<T, uint32_t> ||
-      std::is_convertible_v<T, uint32_t>;
-
-  template <typename T,
-            typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
-  static constexpr DvarFlags from(T val) noexcept {
+  template <DvarFlagLike T> static constexpr DvarFlags from(T val) noexcept {
     return DvarFlags{static_cast<uint32_t>(val)};
   }
-  template <typename T,
-            typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
-  inline constexpr void add(T flags) noexcept {
+  template <DvarFlagLike T> inline constexpr void add(T flags) noexcept {
     _raw |= static_cast<uint32_t>(flags);
   }
 
-  template <typename T,
-            typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
-  inline constexpr void remove(T flags) noexcept {
+  template <DvarFlagLike T> inline constexpr void remove(T flags) noexcept {
     _raw &= static_cast<uint32_t>(~flags);
   }
 
   inline constexpr void clear() noexcept { _raw = 0; }
 
-  template <typename T,
-            typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
-  inline constexpr void set(T flags) noexcept {
+  template <DvarFlagLike T> inline constexpr void set(T flags) noexcept {
     _raw = static_cast<uint32_t>(flags);
   }
 
-  template <typename T,
-            typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+  template <DvarFlagLike T>
   inline constexpr DvarFlags add(T flags) const noexcept {
     return DvarFlags{_raw | static_cast<uint32_t>(flags)};
   }
 
-  template <typename T,
-            typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+  template <DvarFlagLike T>
   inline constexpr DvarFlags remove(T flags) const noexcept {
     return DvarFlags{_raw & static_cast<uint32_t>(~flags)};
   }
 
   inline constexpr DvarFlags clear() const noexcept { return DvarFlags{0}; }
 
-  template <typename T,
-            typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+  template <DvarFlagLike T>
   inline constexpr DvarFlags set(T flags) const noexcept {
     return DvarFlags{static_cast<uint32_t>(flags)};
   }
@@ -166,88 +141,74 @@ inline constexpr DvarFlags operator~(DvarFlags flag) noexcept {
   return DvarFlags{~flag._raw};
 }
 
-template <typename T,
-          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+template <DvarFlagLike T>
 inline constexpr DvarFlags &operator|=(DvarFlags &lhs, T rhs) noexcept {
   lhs._raw |= static_cast<uint32_t>(rhs);
   return lhs;
 }
 
-template <typename T,
-          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+template <DvarFlagLike T>
 inline constexpr DvarFlags &operator&=(DvarFlags &lhs, T rhs) noexcept {
   lhs._raw &= static_cast<uint32_t>(rhs);
   return lhs;
 }
 
-template <typename T,
-          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+template <DvarFlagLike T>
 inline constexpr DvarFlags &operator^=(DvarFlags &lhs, T rhs) noexcept {
   lhs._raw ^= static_cast<uint32_t>(rhs);
   return lhs;
 }
 
-template <typename T,
-          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+template <DvarFlagLike T>
 inline constexpr DvarFlags operator|(DvarFlags lhs, T rhs) noexcept {
   return DvarFlags{lhs._raw | static_cast<uint32_t>(rhs)};
 }
 
-template <typename T, typename = std::enable_if_t<
-                          DvarFlags::is_allowed_flag_v<T> &&
-                          !std::is_same_v<std::decay_t<T>, DvarFlags>>>
+template <DvarFlagLike T, typename = std::enable_if_t<
+                              !std::is_same_v<std::decay_t<T>, DvarFlags>>>
 inline constexpr DvarFlags operator|(T lhs, DvarFlags rhs) noexcept {
   return DvarFlags{static_cast<uint32_t>(lhs) | rhs._raw};
 }
 
-template <typename T,
-          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+template <DvarFlagLike T>
 inline constexpr DvarFlags operator&(DvarFlags lhs, T rhs) noexcept {
   return DvarFlags{lhs._raw & static_cast<uint32_t>(rhs)};
 }
 
-template <typename T, typename = std::enable_if_t<
-                          DvarFlags::is_allowed_flag_v<T> &&
-                          !std::is_same_v<std::decay_t<T>, DvarFlags>>>
+template <DvarFlagLike T, typename = std::enable_if_t<
+                              !std::is_same_v<std::decay_t<T>, DvarFlags>>>
 inline constexpr DvarFlags operator&(T lhs, DvarFlags rhs) noexcept {
   return DvarFlags{static_cast<uint32_t>(lhs) & rhs._raw};
 }
 
-template <typename T,
-          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+template <DvarFlagLike T>
 inline constexpr DvarFlags operator^(DvarFlags lhs, T rhs) noexcept {
   return DvarFlags{lhs._raw ^ static_cast<uint32_t>(rhs)};
 }
-
-template <typename T, typename = std::enable_if_t<
-                          DvarFlags::is_allowed_flag_v<T> &&
-                          !std::is_same_v<std::decay_t<T>, DvarFlags>>>
+template <DvarFlagLike T, typename = std::enable_if_t<
+                              !std::is_same_v<std::decay_t<T>, DvarFlags>>>
 inline constexpr DvarFlags operator^(T lhs, DvarFlags rhs) noexcept {
   return DvarFlags{static_cast<uint32_t>(lhs) ^ rhs._raw};
 }
 
-template <typename T,
-          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+template <DvarFlagLike T>
 inline constexpr bool operator==(DvarFlags lhs, T rhs) noexcept {
   return lhs._raw == static_cast<uint32_t>(rhs);
 }
 
-template <typename T, typename = std::enable_if_t<
-                          DvarFlags::is_allowed_flag_v<T> &&
-                          !std::is_same_v<std::decay_t<T>, DvarFlags>>>
+template <DvarFlagLike T, typename = std::enable_if_t<
+                              !std::is_same_v<std::decay_t<T>, DvarFlags>>>
 inline constexpr bool operator==(T lhs, DvarFlags rhs) noexcept {
   return static_cast<uint32_t>(lhs) == rhs._raw;
 }
 
-template <typename T,
-          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+template <DvarFlagLike T>
 inline constexpr bool operator!=(DvarFlags lhs, T rhs) noexcept {
   return lhs._raw != static_cast<uint32_t>(rhs);
 }
 
-template <typename T, typename = std::enable_if_t<
-                          DvarFlags::is_allowed_flag_v<T> &&
-                          !std::is_same_v<std::decay_t<T>, DvarFlags>>>
+template <DvarFlagLike T, typename = std::enable_if_t<
+                              !std::is_same_v<std::decay_t<T>, DvarFlags>>>
 inline constexpr bool operator!=(T lhs, DvarFlags rhs) noexcept {
   return static_cast<uint32_t>(lhs) != rhs._raw;
 };
@@ -824,20 +785,14 @@ union EngineDependentDvarMut {
     return cl->flags();
   }
 
-  template <typename T,
-            typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
-  inline void removeFlags(T flags) noexcept {
+  template <DvarFlagLike T> inline void removeFlags(T flags) noexcept {
     flags().remove(flags);
   }
 
-  template <typename T,
-            typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
-  inline void addFlags(T flags) noexcept {
+  template <DvarFlagLike T> inline void addFlags(T flags) noexcept {
     flags().add(flags);
   }
-  template <typename T,
-            typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
-  inline void setFlags(const T flags) noexcept {
+  template <DvarFlagLike T> inline void setFlags(const T flags) noexcept {
     flags().set(flags);
   }
 

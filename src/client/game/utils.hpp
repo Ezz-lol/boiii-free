@@ -38,8 +38,7 @@ set_dvar_string(const char *dvar_name, const char *val,
 
 void record_registered_dvar_name(const char *dvar_name);
 
-template <typename T,
-          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+template <DvarFlagLike T>
 EngineDependentDvar
 register_sessionmode_dvar_bool(const char *dvar_name, const bool value, T flags,
                                const char *description,
@@ -64,8 +63,7 @@ register_sessionmode_dvar_bool(const char *dvar_name, const bool value, T flags,
   return registered_dvar;
 }
 
-template <typename T,
-          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+template <DvarFlagLike T>
 EngineDependentDvar register_dvar_bool(const char *dvar_name, const bool value,
                                        T flags, const char *description) {
   const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
@@ -80,8 +78,7 @@ EngineDependentDvar register_dvar_bool(const char *dvar_name, const bool value,
   return registered_dvar;
 }
 
-template <typename T,
-          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+template <DvarFlagLike T>
 EngineDependentDvar register_dvar_int(const char *dvar_name, int32_t value,
                                       int32_t min, int32_t max, T flags,
                                       const char *description) {
@@ -97,8 +94,7 @@ EngineDependentDvar register_dvar_int(const char *dvar_name, int32_t value,
   return registered_dvar;
 }
 
-template <typename T,
-          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+template <DvarFlagLike T>
 EngineDependentDvar register_dvar_float(const char *dvar_name, float value,
                                         float min, float max, T flags,
                                         const char *description) {
@@ -114,8 +110,7 @@ EngineDependentDvar register_dvar_float(const char *dvar_name, float value,
   return registered_dvar;
 }
 
-template <typename T,
-          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+template <DvarFlagLike T>
 EngineDependentDvar register_dvar_string(const char *dvar_name,
                                          const char *value, T flags,
                                          const char *description) {
@@ -130,8 +125,7 @@ EngineDependentDvar register_dvar_string(const char *dvar_name,
 
   return registered_dvar;
 }
-template <typename T,
-          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+template <DvarFlagLike T>
 void dvar_add_flags(EngineDependentDvarMut dvar, const T flags) {
   if (!dvar) {
     return;
@@ -139,8 +133,7 @@ void dvar_add_flags(EngineDependentDvarMut dvar, const T flags) {
 
   dvar.flags() |= flags;
 }
-template <typename T,
-          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+template <DvarFlagLike T>
 void dvar_add_flags(const char *dvar_name, const T flags) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
 
@@ -149,8 +142,7 @@ void dvar_add_flags(const char *dvar_name, const T flags) {
   }
 }
 
-template <typename T,
-          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+template <DvarFlagLike T>
 void dvar_set_flags(EngineDependentDvarMut dvar, const T flags) {
   if (!dvar) {
     return;
@@ -159,8 +151,7 @@ void dvar_set_flags(EngineDependentDvarMut dvar, const T flags) {
   dvar.flags().set(flags);
 }
 
-template <typename T,
-          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+template <DvarFlagLike T>
 void dvar_set_flags(const char *dvar_name, const T flags) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
 
@@ -169,8 +160,7 @@ void dvar_set_flags(const char *dvar_name, const T flags) {
   }
 }
 
-template <typename T,
-          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+template <DvarFlagLike T>
 void dvar_remove_flags(EngineDependentDvarMut dvar, const T flags) {
 
   if (!dvar) {
@@ -180,8 +170,7 @@ void dvar_remove_flags(EngineDependentDvarMut dvar, const T flags) {
   dvar.flags() &= ~flags;
 }
 
-template <typename T,
-          typename = std::enable_if_t<DvarFlags::is_allowed_flag_v<T>>>
+template <DvarFlagLike T>
 void dvar_remove_flags(const char *dvar_name, const T flags) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
 
