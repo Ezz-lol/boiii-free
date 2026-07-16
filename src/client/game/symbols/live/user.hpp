@@ -17,6 +17,9 @@ WEAK symbol<const char *(ControllerIndex_t controllerIndex)>
 // Initial XUID generation. Value is later fetched by LiveUser_GetXuid
 WEAK symbol<bool(int64_t controllerIndex, XUID *xuid)> LiveUser_UserGetXuid{
     0x141EC7650};
+WEAK symbol<bool(ControllerIndex_t controllerIndex, char *buf,
+                 const int bufsize)>
+    LiveUser_UserGetName{0x141EC75D0, 0x14047F4B0};
 WEAK symbol<UserDataForControllerMap> s_userDataForControllerMap{0x14340F180};
 
 WEAK symbol<ControllerIndex_t(const XUID xuid)> LiveUser_GetControllerFromXUID{

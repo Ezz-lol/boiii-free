@@ -4,6 +4,7 @@
 #include <game/game.hpp>
 
 #include <utils/hook.hpp>
+#include <utils/string.hpp>
 
 #include <mmeapi.h>
 
@@ -56,6 +57,34 @@ userDataRef LiveUser_GetUserDataForController_Patched(
   return data;
 }
 
+constexpr const char *GUEST_PLAYER_NAME_SUFFIX_FMT = "(%d)";
+constexpr uint32_t MAX_USERNAME_LEN = 17;
+bool LiveUser_UserGetName_ConsoleSuffix(ControllerIndex_t controllerIndex,
+                                        char *username, const int bufsize) {
+  memset(reinterpret_cast<void *>(username), 0,
+         // ORIGINAL:
+         // 8 * bufsize
+         // PATCH:
+         24 /* passed buffer always has length 24 */);
+  uint32_t usernameBufLen =
+      (std::min)(static_cast<uint32_t>(bufsize), MAX_USERNAME_LEN);
+
+  steam::LiveSteam_GetUserName(username, usernameBufLen, true);
+  if (controllerIndex != CONTROLLER_INDEX_0) {
+    const char *guestSuffix = utils::string::va(
+        // ORIGINAL:
+        // " %d",
+        // PATCH:
+        GUEST_PLAYER_NAME_SUFFIX_FMT,
+        // ORIGINAL:
+        // controllerIndex);
+        // PATCH:
+        controllerIndex + 1);
+    I_strcat(username, bufsize, guestSuffix);
+  }
+  return true;
+}
+
 } // namespace user
 } // namespace live
 } // namespace game
@@ -77,6 +106,7 @@ utils::hook::detour LiveUser_IsUserSignedInToLive_hook;
 utils::hook::detour LiveUser_GetSignInState_hook;
 utils::hook::detour LiveUser_GetSignedInControllerFromXUID_hook;
 utils::hook::detour LiveUser_GetUserDataForController_hook;
+utils::hook::detour LiveUser_UserGetName_hook;
 
 class component final : public client_component {
 public:
@@ -111,6 +141,10 @@ public:
     LiveUser_GetUserDataForController_hook.create(
         game::live::user::LiveUser_GetUserDataForController.get(),
         game::live::user::LiveUser_GetUserDataForController_Patched);
+
+    LiveUser_UserGetName_hook.create(
+        game::live::user::LiveUser_UserGetName.get(),
+        game::live::user::LiveUser_UserGetName_ConsoleSuffix);
   }
 };
 } // namespace liveuser
