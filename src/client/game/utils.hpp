@@ -344,6 +344,26 @@ inline constexpr bool valid_local_client_num(LocalClientNum_t localClientNum) {
       localClientNum);
 }
 
+inline bool valid_dvar(const EngineDependentDvar dvar) {
+  const EngineDependentDvarPool pool = dvar_pool();
+  return pool.contains(dvar);
+}
+
+namespace level {
+template <typename T, typename = typename std::enable_if<std::is_convertible<
+                          T, game::ClientNum_t>::value>::type>
+inline level::gentity_t *client_ent(T index) {
+  level::gentity_pool *pool = get_g_entities();
+  ClientNum_t clientNum = static_cast<game::ClientNum_t>(index);
+  if (valid_client_num(clientNum)) {
+    return &pool->pool[clientNum];
+  }
+
+  return nullptr;
+}
+} // namespace level
+
+namespace scr {
 inline constexpr bool valid_scrvar_index(scr::scriptInstance_t inst,
                                          scr::ScrVarIndex_t index) {
   return index < scr::SCRIPTVARIABLE_POOL_SIZE.instance[inst];
@@ -378,23 +398,5 @@ inline bool valid_scrvarvalue_ptr(scr::scriptInstance_t inst,
          || valid_scrvar_index(inst,
                                scrvarvalue_index(inst, val)); // Pool allocation
 }
-
-inline bool valid_dvar(const EngineDependentDvar dvar) {
-  const EngineDependentDvarPool pool = dvar_pool();
-  return pool.contains(dvar);
-}
-
-namespace level {
-template <typename T, typename = typename std::enable_if<std::is_convertible<
-                          T, game::ClientNum_t>::value>::type>
-inline level::gentity_t *client_ent(T index) {
-  level::gentity_pool *pool = get_g_entities();
-  ClientNum_t clientNum = static_cast<game::ClientNum_t>(index);
-  if (valid_client_num(clientNum)) {
-    return &pool->pool[clientNum];
-  }
-
-  return nullptr;
-}
-} // namespace level
+} // namespace scr
 } // namespace game
