@@ -76,6 +76,9 @@ WEAK symbol<void(level::gentity_s *ent, ScrString_t stringValue,
                  uint32_t paramcount)>
     Scr_Notify_ScrString{0x141B46510, 0x1402F6000};
 
+WEAK symbol<ScrVarValue_t *(ScrVarValue_t *retstr, scriptInstance_t inst,
+                            ScrVarIndex_t id)>
+    ScrVar_EvalVariable{0x1412DDF30, 0x14016A5B0};
 WEAK symbol<void(scriptInstance_t inst, ScrVarValue_t *value)>
     ScrVar_AddRefValue{0x1412D9350, 0x1401657E0};
 WEAK symbol<void(scriptInstance_t inst, ScrVarValue_t *value)>

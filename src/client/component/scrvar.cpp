@@ -36,6 +36,19 @@ void ScrVar_ReleaseValue_Safe(scriptInstance_t inst, ScrVarValue_t *value) {
   }
 }
 
+utils::hook::detour ScrVar_EvalVariable_hook;
+ScrVarValue_t *ScrVar_EvalVariable_safe(ScrVarValue_t *retstr,
+                                        scriptInstance_t inst,
+                                        ScrVarIndex_t id) {
+  if (id == 0 /* entity field */ ||
+      valid_scrvar_index(inst,
+                         id) /* index of variable to return as reference */) {
+    return ScrVar_EvalVariable_hook.invoke<ScrVarValue_t *>(retstr, inst, id);
+  }
+
+  return retstr;
+}
+
 void stub_func() { return; }
 
 inline void handle_invalid_scrvars() {
@@ -45,9 +58,11 @@ inline void handle_invalid_scrvars() {
                                   ScrVar_ReleaseValue_Safe);
   ScrVar_AddRefValue_hook.create(game::scr::ScrVar_AddRefValue.get(),
                                  ScrVar_AddRefValue_safe);
+  ScrVar_EvalVariable_hook.create(game::scr::ScrVar_EvalVariable.get(),
+                                  ScrVar_EvalVariable_safe);
 }
 
-class component final : public client_component {
+class component final : public generic_component {
 public:
   void post_unpack() override { handle_invalid_scrvars(); }
 };
