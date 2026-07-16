@@ -14,6 +14,7 @@
 #include <rapidjson/writer.h>
 
 #include "../command.hpp"
+#include "game/impl/hash.hpp"
 
 using namespace game;
 using namespace game::scr;
@@ -37,15 +38,6 @@ static std::atomic_bool detours_enabled = false;
 static VM_OP_FUNC VM_OP_SafeCreateLocalVariables_Handler_orig = nullptr;
 static VM_OP_FUNC VM_OP_CheckClearParams_Handler_orig = nullptr;
 static std::atomic_bool return_value_set = std::atomic_bool(false);
-
-constexpr uint32_t fnv1a(const char *str) {
-  uint32_t hash = 0x811c9dc5;
-  while (*str) {
-    hash ^= static_cast<uint8_t>(*str++);
-    hash *= 0x01000193;
-  }
-  return hash;
-}
 
 void push_string(scriptInstance_t inst, const char *val) {
   Scr_AddString(inst, val);

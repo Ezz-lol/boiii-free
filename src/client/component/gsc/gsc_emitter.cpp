@@ -1,5 +1,6 @@
 #include <std_include.hpp>
 #include "gsc_emitter.hpp"
+#include "game/impl/hash.hpp"
 #include <algorithm>
 #include <cstring>
 #include <unordered_set>
@@ -648,15 +649,6 @@ std::string normalize_ns(const std::string &ns) {
 bool is_path_namespace(const std::string &ns) {
   return ns.find('/') != std::string::npos ||
          ns.find('\\') != std::string::npos;
-}
-
-constexpr uint32_t fnv1a(const char *str) {
-  uint32_t hash = 0x811c9dc5;
-  while (*str) {
-    hash ^= static_cast<uint8_t>(*str++);
-    hash *= 0x01000193;
-  }
-  return hash;
 }
 
 void auto_include_path(emitter_state &s, const std::string &ns) {

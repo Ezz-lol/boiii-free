@@ -4,6 +4,7 @@
 #include <game/utils.hpp>
 
 #include "network_password.hpp"
+#include "game/impl/hash.hpp"
 #include "scheduler.hpp"
 
 #include <utils/hook.hpp>
@@ -16,15 +17,9 @@ game::EngineDependentDvar net_password_dvar;
 
 // FNV1a-64 hash
 uint64_t hash_password(const std::string_view &password) {
-  uint64_t hash = 14695981039346656037ULL;
-  constexpr uint64_t prime = 1099511628211ULL;
 
-  for (const char c : password) {
-    hash ^= static_cast<uint64_t>(static_cast<unsigned char>(tolower(c)));
-    hash *= prime;
-  }
-
-  return hash & 0x7FFFFFFFFFFFFFFFULL;
+  return ::fnv1a64<14695981039346656037ULL, 1099511628211ULL>(password.data()) &
+         0x7FFFFFFFFFFFFFFFULL;
 }
 
 std::string get_password_hash_string() {

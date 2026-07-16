@@ -6,6 +6,7 @@
 #include <cstdio>
 #include <algorithm>
 
+#include "game/impl/hash.hpp"
 #include "rapidjson/document.h"
 
 #include "ugc.hpp"
@@ -94,16 +95,10 @@ bool UGC_VerifyVersion_Impl(ZoneType zoneType, const char *publisherId,
 
 constexpr UGCHash UGC_HASH_NULLPTR = 0;
 constexpr UGCHash UGC_HASH_DJB2_INITIAL_SEED = 0x1505;
-constexpr UGCHash UGC_HASH_DJB2_CONSTANT = 33;
+constexpr UGCHash UGC_HASH_DJB2_CONSTANT = 0x21;
 UGCHash UGC_Hash(const char *str) {
   if (str) {
-    UGCHash hash = UGC_HASH_DJB2_INITIAL_SEED;
-    for (const char *c = str; *c; ++c) {
-      hash =
-          static_cast<UGCHash>(std::tolower(static_cast<unsigned char>(*c))) +
-          hash * UGC_HASH_DJB2_CONSTANT;
-    }
-    return hash;
+    return djb2<UGC_HASH_DJB2_INITIAL_SEED, UGC_HASH_DJB2_CONSTANT>(str);
   }
   return UGC_HASH_NULLPTR;
 }

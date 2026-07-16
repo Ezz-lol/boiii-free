@@ -1,4 +1,5 @@
 #include <std_include.hpp>
+#include "game/impl/hash.hpp"
 #include "stdlib.h"
 #include "stdint.h"
 #include <cstring>
@@ -198,12 +199,8 @@ __inline_def SndStringHash SND_HashName_Impl(const char *name) {
   if (!name || !*name)
     return SND_HASH_EMPTY_STRING;
 
-  SndStringHash hash = SND_HASH_DJB2_INITIAL_SEED;
-  for (const char *c = name; *c; c++) {
-    hash = static_cast<SndStringHash>(
-               std::tolower(static_cast<unsigned char>(*c))) +
-           hash * SND_HASH_DJB2_CONSTANT;
-  }
+  SndStringHash hash =
+      djb2<SND_HASH_DJB2_INITIAL_SEED, SND_HASH_DJB2_CONSTANT>(name);
   if (!hash) {
     hash = 1;
   }

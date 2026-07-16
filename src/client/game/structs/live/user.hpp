@@ -24,21 +24,31 @@ enum class XUSER_SIGNIN_STATE : int32_t {
   SignedInToLive = 0x2,
 };
 
+/*
+  These are probably mostly incorrect.
+
+  In the version of the engine this was generated from,
+  CONNECTED was 0x4, as opposed to the drastically different value
+  of 0xA seen in the latest version of the engine.
+
+  All enumerations other than CONNECTED should be assumed to be incorrect
+  unless updated to be otherwise.
+*/
 enum class CONNECTION_STATE : int32_t {
   CONNECTION_STATE_ERROR = 0x0,
-  CONNECTION_STATE_NOT_CONNECTED = 0x1,
-  CONNECTION_STATE_AUTHORIZING = 0x2,
-  CONNECTION_STATE_CONNECTING = 0x3,
+  NOT_CONNECTED = 0x1,
+  AUTHORIZING = 0x2,
+  CONNECTING = 0x3,
   // Verified
-  CONNECTION_STATE_CONNECTED = 0xA,
-  CONNECTION_STATE_IN_BACKOFF = 0x5,
-  CONNECTION_STATE_DNS_RESOLVED = 0x6,
-  CONNECTION_STATE_DW_CROSS_AUTH_BEGIN = 0x7,
-  CONNECTION_STATE_DISABLE_CONNECT = 0x8,
-  CONNECTION_STATE_ANTICHEAT_DISABLE_CONNECT_NO_AUTO_RECONNECT = 0x9,
+  CONNECTED = 0xA,
+  IN_BACKOFF = 0x5,
+  DNS_RESOLVED = 0x6,
+  DW_CROSS_AUTH_BEGIN = 0x7,
+  DISABLE_CONNECT = 0x8,
+  ANTICHEAT_DISABLE_CONNECT_NO_AUTO_RECONNECT = 0x9,
   // TODO: what is this now? CONNECTED is verified to be 0xA
   // ABORTED_QUEUE = 0xA,
-  CONNECTION_STATE_QUEUED = 0xB,
+  QUEUED = 0xB,
 };
 
 #pragma pack(push, 1)

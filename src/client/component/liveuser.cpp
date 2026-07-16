@@ -48,7 +48,7 @@ userDataRef LiveUser_GetUserDataForController_Patched(
   data->isContentRestricted = false;
   data->isChatRestricted = false;
   if (data->isActive) {
-    data->connectionState = CONNECTION_STATE::CONNECTION_STATE_CONNECTED;
+    data->connectionState = CONNECTION_STATE::CONNECTED;
     data->signInState =
         controllerIndex == com::Com_ControllerIndexes_GetPrimary()
             ? XUSER_SIGNIN_STATE::SignedInToLive
