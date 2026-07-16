@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 #include "gsc_emitter.hpp"
-#include "game/impl/hash.hpp"
+#include "hash.hpp"
 #include <algorithm>
 #include <cstring>
 #include <unordered_set>

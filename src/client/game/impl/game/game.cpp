@@ -1,7 +1,7 @@
 #include <std_include.hpp>
 #include "game.hpp"
 #include "../snd/snd.hpp"
-#include "game/impl/hash.hpp"
+#include "hash.hpp"
 
 #include <utils/string.hpp>
 

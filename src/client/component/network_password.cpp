@@ -4,7 +4,7 @@
 #include <game/utils.hpp>
 
 #include "network_password.hpp"
-#include "game/impl/hash.hpp"
+#include "hash.hpp"
 #include "scheduler.hpp"
 
 #include <utils/hook.hpp>

@@ -1,5 +1,5 @@
 #include <std_include.hpp>
-#include "game/impl/hash.hpp"
+#include "hash.hpp"
 #include "stdlib.h"
 #include "stdint.h"
 #include <cstring>

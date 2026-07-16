@@ -14,7 +14,7 @@
 #include <rapidjson/writer.h>
 
 #include "../command.hpp"
-#include "game/impl/hash.hpp"
+#include "hash.hpp"
 
 using namespace game;
 using namespace game::scr;

@@ -6,7 +6,7 @@
 #include <cstdio>
 #include <algorithm>
 
-#include "game/impl/hash.hpp"
+#include "hash.hpp"
 #include "rapidjson/document.h"
 
 #include "ugc.hpp"
