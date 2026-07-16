@@ -58,6 +58,7 @@ WEAK symbol<const char *()> Com_SessionMode_GetAbbreviationForCurrentMode{
 WEAK symbol<LocalClientNum_t(ControllerIndex_t controllerIndex)>
     Com_ControllerIndex_GetLocalClientNum{0x1420EF7C0};
 WEAK symbol<void()> Com_Frame_Try_Block_Function{0x1420F8E00, 0x1405020E0};
+WEAK symbol<ControllerIndex_t()> Com_ControllerIndexes_GetPrimary{0x1420EF880};
 
 } // namespace com
 } // namespace game
