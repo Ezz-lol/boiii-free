@@ -1,5 +1,11 @@
 #pragma once
 
+#include <functional>
+#include <regex>
+#include <windows.h>
+
+#include "game/demonware/service.hpp"
+
 namespace demonware {
 class bdStorage final : public service {
 public:
