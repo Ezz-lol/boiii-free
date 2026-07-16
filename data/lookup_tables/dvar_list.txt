@@ -7141,6 +7141,7 @@ xblive_mappacks
 xblive_matchEndingSoon
 xblive_privatematch
 xblive_rankedmatch
+xblive_rta_enabled
 xblive_theater
 xblive_wagermatch
 xenonGame
