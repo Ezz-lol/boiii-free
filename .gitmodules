@@ -45,3 +45,6 @@
 [submodule "deps/zstd"]
 	path = deps/zstd
 	url = https://github.com/facebook/zstd
+[submodule "deps/brotli"]
+	path = deps/brotli
+	url = https://github.com/google/brotli
