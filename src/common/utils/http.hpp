@@ -7,6 +7,10 @@
 #include <functional>
 
 namespace utils::http {
+
+constexpr const char *PREFERRED_ACCEPT_ENCODING_HEADER =
+    "zstd;q=1.0,gzip;q=0.9,br;q=0.8,deflate;q=0.7,identity;q=0.5";
+
 using headers = std::unordered_map<std::string, std::string>;
 
 std::optional<std::string>

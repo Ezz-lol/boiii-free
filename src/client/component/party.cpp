@@ -274,7 +274,7 @@ void handle_connect_query_response(const bool success,
   const std::string workshop_id = info.get("workshop_id").empty()
                                       ? info.get("usermapId")
                                       : info.get("workshop_id");
-  const std::string base_url = info.get("sv_wwwBaseURL").empty()
+  const std::string base_uri = info.get("sv_wwwBaseURL").empty()
                                    ? info.get("sv_wwwBaseUrl")
                                    : info.get("sv_wwwBaseURL");
 
@@ -297,7 +297,7 @@ void handle_connect_query_response(const bool success,
             workshop::get_usermap_publisher_id(mapname);
 
         if (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id,
-                                             base_url) &&
+                                             base_uri) &&
             workshop::check_valid_mod_id(mod_id, workshop_id)) {
           game::com::Com_SessionMode_SetGameMode(
               game::eGameModes::MATCHMAKING_PLAYLIST);

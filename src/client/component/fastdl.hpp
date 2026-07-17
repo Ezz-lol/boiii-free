@@ -37,8 +37,8 @@ struct speed_tracker {
 struct download_context {
   std::string mapname;
   std::string pub_id;
-  std::string map_path;
-  std::string base_url;
+  std::filesystem::path map_path;
+  std::string map_tree_uri;
   std::function<void()> success_callback;
 };
 

@@ -762,7 +762,7 @@ workshop_info get_steam_workshop_info(const std::string &workshop_id) {
 bool check_valid_usermap_id(const std::string &mapname,
                             const std::string &pub_id,
                             const std::string &workshop_id,
-                            const std::string &base_url) {
+                            const std::string &base_uri) {
   if (!DB_FileExists(mapname.data(), 0) && pub_id.empty()) {
     if (is_zm_dlc_map(mapname.data())) {
       queue_dlc_popup(mapname);
@@ -782,19 +782,21 @@ bool check_valid_usermap_id(const std::string &mapname,
       return false;
     }
 
-    if (!base_url.empty()) {
+    if (!base_uri.empty()) {
+      const std::filesystem::path map_path = "./usermaps/" + mapname;
+      const std::string map_tree_uri = base_uri + "/usermaps/" + mapname;
       fastdl::download_context context{};
       context.mapname = mapname;
       context.pub_id = workshop_id.empty() ? mapname : workshop_id;
-      context.map_path = "./usermaps/" + mapname;
-      context.base_url = base_url;
+      context.map_path = map_path;
+      context.map_tree_uri = map_tree_uri;
       context.success_callback = []() {
         scheduler::once([] { game::ugc::reloadUserContent(); },
                         scheduler::main);
       };
       printf("[ Workshop ] Server has FastDL, attempting download for %s from "
              "%s\n",
-             mapname.data(), base_url.data());
+             mapname.data(), base_uri.data());
       fastdl::start_map_download(context);
       return false;
     }

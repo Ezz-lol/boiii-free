@@ -126,7 +126,8 @@ std::optional<std::string> get_data(const std::string &url,
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
   // Request raw data without encoding modifications
-  curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "identity");
+  curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING,
+                   PREFERRED_ACCEPT_ENCODING_HEADER);
 
   for (auto i = 0u; i < retries + 1; ++i) {
     // Due to CURLOPT_FAILONERROR, CURLE_OK will not be met when the server
@@ -230,7 +231,8 @@ int get_data_stream(const std::string &url, const headers &headers,
   curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
   curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-  curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "identity");
+  curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING,
+                   PREFERRED_ACCEPT_ENCODING_HEADER);
 
   for (auto i = 0u; i < retries + 1; ++i) {
     stream_progress_helper progress_helper{};

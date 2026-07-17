@@ -513,6 +513,38 @@ std::string sha1::compute(const uint8_t *data, const size_t length,
   return string::dump_hex(hash, "");
 }
 
+std::string sha1::compute(std::ifstream &stream, const bool hex) {
+  uint8_t buffer[20] = {0};
+
+  hash_state state;
+  sha1_init(&state);
+
+  // Use an 8KB buffer for streaming the file chunks
+  constexpr size_t chunk_size = 8192;
+  uint8_t chunk[chunk_size];
+
+  // Read from the stream until EOF is reached
+  while (stream) {
+    // read() requires a char*, so we cast our uint8_t chunk
+    stream.read(reinterpret_cast<char *>(chunk), chunk_size);
+
+    // gcount() tells us exactly how many bytes were actually read
+    std::streamsize bytes_read = stream.gcount();
+
+    if (bytes_read > 0) {
+      sha1_process(&state, chunk, ul(bytes_read));
+    }
+  }
+
+  sha1_done(&state, buffer);
+
+  std::string hash(cs(buffer), sizeof(buffer));
+  if (!hex)
+    return hash;
+
+  return string::dump_hex(hash, "");
+}
+
 std::string sha256::compute(const std::string &data, const bool hex) {
   return compute(cs(data.data()), data.size(), hex);
 }

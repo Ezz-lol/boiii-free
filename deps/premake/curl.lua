@@ -79,7 +79,7 @@ function curl.project()
 
   filter({})
 
-  warnings("On")
+  warnings("Off")
   kind("StaticLib")
 
   links({ "zstd" })
