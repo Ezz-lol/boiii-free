@@ -3887,6 +3887,7 @@ playlist_excludeMap
 playlist_forceEvent
 playlist_linearMapCycle
 playlist_linearMapCycleRandom
+playlist_load
 popInLetterFXTime
 printCACValidationErrors
 printCACValidationSuccesses
@@ -6304,6 +6305,7 @@ sv_packet_info
 sv_padPackets
 sv_paused
 sv_penetrationCount
+sv_playlist
 sv_playlistFetchInterval
 sv_potm_debug
 sv_printMessageSize
