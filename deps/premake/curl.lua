@@ -17,6 +17,7 @@ function curl.includes()
   })
 
   defines({
+    "CURL_DISABLE_ALTSVC",
     "CURL_STRICTER",
     "CURL_STATICLIB",
     "CURL_DISABLE_DICT",
@@ -33,6 +34,8 @@ function curl.includes()
     "CURL_DISABLE_SMB",
     "CURL_DISABLE_TELNET",
     "CURL_DISABLE_TFTP",
+    "CURL_ZSTD",
+    "CURL_BROTLI",
   })
   filter({})
 end
@@ -60,6 +63,8 @@ function curl.project()
     "USE_SCHANNEL",
     "USE_WINDOWS_SSPI",
     "USE_THREADS_WIN32",
+    "CURL_ZSTD",
+    "CURL_BROTLI",
   })
 
   filter({})

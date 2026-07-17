@@ -42,3 +42,6 @@
 [submodule "deps/argparse"]
 	path = deps/argparse
 	url = git@github.com:p-ranav/argparse.git
+[submodule "deps/zstd"]
+	path = deps/zstd
+	url = https://github.com/facebook/zstd

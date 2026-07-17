@@ -98,6 +98,7 @@
 #include <MinHook.h>                 // IWYU pragma: export
 #include <udis86.h>                  // IWYU pragma: export
 #include <macros.hpp>                // IWYU pragma: export
+#include <zstd.h>                    // IWYU pragma: export
 
 #define RAPIDJSON_NOEXCEPT
 #define RAPIDJSON_ASSERT(cond)                                                 \

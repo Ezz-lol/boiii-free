@@ -98,9 +98,9 @@ newaction({
     if gitCurrentBranchSuccess then
       -- We got a branch name, check if it is a feature branch
       if
-        gitCurrentBranchOutput ~= "develop"
-        and gitCurrentBranchOutput ~= "master"
-        and gitCurrentBranchOutput ~= "main"
+          gitCurrentBranchOutput ~= "develop"
+          and gitCurrentBranchOutput ~= "master"
+          and gitCurrentBranchOutput ~= "main"
       then
         version = version .. "-" .. gitCurrentBranchOutput
       end
@@ -297,6 +297,7 @@ if os.host() == "windows" then
     "-Wno-sign-compare",
     "/clang:-msse4.2",
     "/clang:-maes",
+    "/clang:-mbmi2",
   })
   linkoptions({ "/IGNORE:4702", "/LTCG" })
 else

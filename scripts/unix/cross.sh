@@ -345,6 +345,7 @@ DEP_INCLUDE_PATHS=(
 	"deps/zlib/contrib/iostream3"
 	"deps/zlib/contrib/minizip"
 	"deps/zlib/contrib/puff"
+	"deps/zstd/lib"
 )
 
 NUM_DEP_INCLUDES="${#DEP_INCLUDE_PATHS[@]}"
@@ -580,7 +581,7 @@ WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH="${msvc_toolchain_sysroot}/include"
 
 cflags=(
 	"-Oz"
-	"-msse" "-msse2" "-msse3" "-mssse3" "-msse4.1" "-msse4.2" "-mavx" "-mavx2" "-maes"
+	"-msse" "-msse2" "-msse3" "-mssse3" "-msse4.1" "-msse4.2" "-mavx" "-mavx2" "-maes" "-mbmi2"
 	"-march=${MARCH}" "-m64"
 	"-isystem" "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}"
 	"-fms-extensions"
@@ -591,7 +592,7 @@ cflags=(
 	"-I${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}")
 cxxflags=(
 	"-Oz"
-	"-msse" "-msse2" "-msse3" "-mssse3" "-msse4.1" "-msse4.2" "-mavx" "-mavx2" "-maes"
+	"-msse" "-msse2" "-msse3" "-mssse3" "-msse4.1" "-msse4.2" "-mavx" "-mavx2" "-maes" "-mbmi2"
 	"-march=${MARCH}" "-m64"
 	"-isystem" "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}/c++/msstl/"
 	"-isystem" "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}"
