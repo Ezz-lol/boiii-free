@@ -34,8 +34,9 @@ function curl.includes()
     "CURL_DISABLE_SMB",
     "CURL_DISABLE_TELNET",
     "CURL_DISABLE_TFTP",
-    "CURL_ZSTD",
-    "CURL_BROTLI",
+    "HAVE_LIBZ",
+    "HAVE_BROTLI",
+    "HAVE_ZSTD",
   })
   filter({})
 end
@@ -48,11 +49,20 @@ function curl.project()
 
   includedirs({
     path.join(curl.source, "lib"),
+    path.join(dependencies.basePath, "zstd", "lib"),
+    path.join(dependencies.basePath, "zlib"),
+    path.join(dependencies.basePath, "brotli", "c", "include"),
   })
 
   files({
     path.join(curl.source, "lib/**.c"),
     path.join(curl.source, "lib/**.h"),
+    path.join(dependencies.basePath, "zstd", "lib/**.h"),
+    path.join(dependencies.basePath, "zlib", "*.h"),
+    path.join(dependencies.basePath, "brotli", "c", "common/**.h"),
+    path.join(dependencies.basePath, "brotli", "c", "dec/**.h"),
+    path.join(dependencies.basePath, "brotli", "c", "enc/**.h"),
+    path.join(dependencies.basePath, "brotli", "c", "include/**.h"),
   })
 
   defines({
@@ -63,14 +73,21 @@ function curl.project()
     "USE_SCHANNEL",
     "USE_WINDOWS_SSPI",
     "USE_THREADS_WIN32",
-    "CURL_ZSTD",
-    "CURL_BROTLI",
+    "CURL_ZSTD=ON",
+    "CURL_BROTLI=ON",
   })
 
   filter({})
 
-  warnings("Off")
+  warnings("On")
   kind("StaticLib")
+
+  links({ "zstd" })
+  links({ "zlib" })
+  links({ "brotli" })
+  dependson({ "zstd" })
+  dependson({ "zlib" })
+  dependson({ "brotli" })
 end
 
 table.insert(dependencies, curl)

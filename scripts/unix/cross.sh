@@ -346,6 +346,7 @@ DEP_INCLUDE_PATHS=(
 	"deps/zlib/contrib/minizip"
 	"deps/zlib/contrib/puff"
 	"deps/zstd/lib"
+	"deps/brotli/c/include"
 )
 
 NUM_DEP_INCLUDES="${#DEP_INCLUDE_PATHS[@]}"

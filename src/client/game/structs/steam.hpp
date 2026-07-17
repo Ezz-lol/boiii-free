@@ -4,11 +4,11 @@ namespace game {
 namespace steam {
 
 // TODO: why can't we use <steam/steam_api.h> syntax?
-#include "../../../../deps/SteamworkSDK/public/steam/isteamremotestorage.h"
-#include "../../../../deps/SteamworkSDK/public/steam/isteamugc.h"
-#include "../../../../deps/SteamworkSDK/public/steam/isteamuser.h"
-#include "../../../../deps/SteamworkSDK/public/steam/isteamfriends.h"
-#include "../../../../deps/SteamworkSDK/public/steam/isteamapps.h"
+#include <steam/isteamremotestorage.h>
+#include <steam/isteamugc.h>
+#include <steam/isteamuser.h>
+#include <steam/isteamfriends.h>
+#include <steam/isteamapps.h>
 
 struct SteamInterfacesBase {
   ISteamClient *pSteamClient;

@@ -362,7 +362,6 @@ pchheader("std_include.hpp")
 pchsource("src/client/std_include.cpp")
 
 files({
-  "./deps/SteamworkSDK/public/**.h",
   "./src/client/**.rc",
   "./src/client/**.hpp",
   "./src/client/**.cpp",
@@ -371,7 +370,7 @@ files({
 
 includedirs({
   "./deps/argparse/include",
-  "./deps/SteamWorksSDK/public",
+  "./deps/SteamworkSDK/public",
   "./src/client",
   "./src/common",
   "%{prj.location}/src",
