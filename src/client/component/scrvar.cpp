@@ -13,7 +13,7 @@ using namespace game;
 using namespace game::scr;
 
 utils::hook::detour ScrVar_AddRefValue_hook;
-void ScrVar_AddRefValue_safe(scriptInstance_t inst, ScrVarValue_t *value) {
+void ScrVar_AddRefValue_Safe(scriptInstance_t inst, ScrVarValue_t *value) {
   if (valid_scrvarvalue_ptr(inst, value)) {
     return ScrVar_AddRefValue_hook.invoke<void>(inst, value);
   }
@@ -37,7 +37,7 @@ void ScrVar_ReleaseValue_Safe(scriptInstance_t inst, ScrVarValue_t *value) {
 }
 
 utils::hook::detour ScrVar_EvalVariable_hook;
-ScrVarValue_t *ScrVar_EvalVariable_safe(ScrVarValue_t *retstr,
+ScrVarValue_t *ScrVar_EvalVariable_Safe(ScrVarValue_t *retstr,
                                         scriptInstance_t inst,
                                         ScrVarIndex_t id) {
   if (id == 0 /* entity field */ ||
@@ -57,9 +57,9 @@ inline void handle_invalid_scrvars() {
   ScrVar_ReleaseValue_hook.create(game::scr::ScrVar_ReleaseValue.get(),
                                   ScrVar_ReleaseValue_Safe);
   ScrVar_AddRefValue_hook.create(game::scr::ScrVar_AddRefValue.get(),
-                                 ScrVar_AddRefValue_safe);
+                                 ScrVar_AddRefValue_Safe);
   ScrVar_EvalVariable_hook.create(game::scr::ScrVar_EvalVariable.get(),
-                                  ScrVar_EvalVariable_safe);
+                                  ScrVar_EvalVariable_Safe);
 }
 
 class component final : public generic_component {
