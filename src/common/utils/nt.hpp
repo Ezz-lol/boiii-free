@@ -76,7 +76,31 @@ public:
 private:
   template <typename Fn> static Fn cast_proc(FARPROC proc) {
     static_assert(std::is_pointer_v<Fn>, "Fn must be function pointer");
+
+// Clang/GCC warnings with -Weverything
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored                                               \
+    "-Wcast-function-type" // warning: cast between incompatible function types
+                           // (for loader)
+#endif
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored                                                 \
+    "-Wpragmas" // warning: unknown option after '#pragma GCC diagnostic' kind
+#pragma GCC diagnostic ignored                                                 \
+    "-Wcast-function-type" // warning: cst between incompatible function types
+                           // (for loader)
+#endif
+
     return reinterpret_cast<Fn>(proc);
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
   }
 
 public:
