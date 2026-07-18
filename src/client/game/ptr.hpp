@@ -73,3 +73,5 @@ template <typename T> inline bool valid_engine_ptr(T *ptr) {
   return valid_engine_ptr(reinterpret_cast<uintptr_t>(ptr));
 }
 } // namespace game
+
+inline size_t operator""_g(const size_t val) { return game::relocate(val); }

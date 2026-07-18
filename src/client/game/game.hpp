@@ -34,8 +34,6 @@ std::vector<std::string> get_registered_dvar_names();
 size_t get_registered_dvar_name_count();
 } // namespace game
 
-inline size_t operator""_g(const size_t val) { return game::relocate(val); }
-
 #include "symbol.hpp"          // IWYU pragma: export
 #include "structs/structs.hpp" // IWYU pragma: export
 #include "symbols/symbols.hpp" // IWYU pragma: export
