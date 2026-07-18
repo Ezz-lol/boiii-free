@@ -8,7 +8,6 @@
 namespace game {
 namespace user {
 
-#pragma pack(push, 1)
 enum class BotLookType : uint32_t {
   NONE = 0x0,
   FORWARD = 0x1,
@@ -23,6 +22,7 @@ enum bot_goal_state : uint32_t {
   REACHED = 0x3,
 };
 
+#pragma pack(push, 1)
 struct bot_look_t {
   vec2_t anglesDesired;
   vec2_t anglesCurrent;
@@ -35,18 +35,23 @@ struct bot_look_t {
   int32_t grenadeTime;
 };
 ASSERT_SIZE(bot_look_t, 0x50);
+#pragma pack(pop)
 
+#pragma pack(push, 1)
 struct bot_move_t {
   vec_t angleDesired;
   vec_t magnitude;
 };
 ASSERT_SIZE(bot_move_t, 0x8);
+#pragma pack(pop)
 
+#pragma pack(push, 1)
 struct bot_goal_t {
   vec3_t position;
   int32_t radius;
   bot_goal_state state;
 };
+#pragma pack(pop)
 ASSERT_SIZE(bot_goal_t, 0x14);
 
 /* Entirely unspecified in BO3, BO4, BO2 alpha engines. Just 0x10 empty bytes.
@@ -61,7 +66,7 @@ ASSERT_SIZE(bot_goal_t, 0x14);
 typedef vec4_t hkVector4f;
 
 typedef hkVector4f hkVector4;
-
+#pragma pack(push, 1)
 struct bot_t {
   bot_look_t look;
   bot_move_t move;
@@ -108,13 +113,13 @@ struct usercmd_s {
   uint32_t kf_index;
   qboolean transition;
 };
+#pragma pack(pop)
 typedef usercmd_s usercmd_t;
 ASSERT_OFFSET(usercmd_t, _padding45, 0x45);
 ASSERT_OFFSET(usercmd_t, _padding56, 0x56);
 ASSERT_SIZE(usercmd_t, 0x60);
 
 struct actor_t; // TODO
-#pragma pack(pop)
 
 enum class gadgetPulseShareType_e : uint32_t {
   DEFAULT = 0x0,

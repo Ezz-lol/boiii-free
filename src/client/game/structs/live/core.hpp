@@ -36,7 +36,7 @@ struct CSteamID // sizeof=0x8
 {
   SteamID_t m_steamid;
 };
-static_assert(sizeof(CSteamID) == 8, "CSteamID size must be 8 bytes");
+ASSERT_SIZE(CSteamID, 8);
 
 union LiveAuthFlags {
   struct {
@@ -64,19 +64,13 @@ struct LiveUserAuthData {
   CSteamID steamID;
 };
 
-static_assert(sizeof(LiveUserAuthData) == 32,
-              "LiveUserAuthData has wrong size");
+ASSERT_SIZE(LiveUserAuthData, 32);
 
-static_assert(offsetof(LiveUserAuthData, liveUserID) == 0,
-              "liveUserID offset is wrong");
-static_assert(offsetof(LiveUserAuthData, isStarterPack) == 12,
-              "isStarterPack offset is wrong");
-static_assert(offsetof(LiveUserAuthData, liveAuthorized) == 13,
-              "liveAuthorized offset is wrong");
-static_assert(offsetof(LiveUserAuthData, liveAuthFlags) == 16,
-              "liveAuthFlags offset is wrong");
-static_assert(offsetof(LiveUserAuthData, steamID) == 24,
-              "steamID offset is wrong");
+ASSERT_OFFSET(LiveUserAuthData, liveUserID, 0);
+ASSERT_OFFSET(LiveUserAuthData, isStarterPack, 12);
+ASSERT_OFFSET(LiveUserAuthData, liveAuthorized, 13);
+ASSERT_OFFSET(LiveUserAuthData, liveAuthFlags, 16);
+ASSERT_OFFSET(LiveUserAuthData, steamID, 24);
 
 typedef array<LiveUserAuthData, game::lobby::MAX_PLAYERS> LiveUserAuthPool;
 #pragma pack(pop)

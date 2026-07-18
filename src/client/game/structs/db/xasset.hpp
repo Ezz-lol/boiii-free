@@ -185,7 +185,7 @@ template <typename T> struct TypedXAssetPool {
   AssetLink *freeHead;
 };
 
-static_assert(sizeof(XAssetPool) == 0x20, "XAssetPool size must be 0x20 bytes");
+ASSERT_SIZE(XAssetPool, 0x20);
 #pragma pack(push, 1)
 // sizeof=x10
 struct ScriptStringList {
@@ -193,8 +193,7 @@ struct ScriptStringList {
   uint8_t _padding04[4];
   const char **strings;
 };
-static_assert(sizeof(ScriptStringList) == 0x10,
-              "ScriptStringList size must be 0x10 bytes");
+ASSERT_SIZE(ScriptStringList, 0x10);
 #pragma pack(pop)
 
 /*
@@ -210,7 +209,7 @@ static_assert(sizeof(ScriptStringList) == 0x10,
 struct NamedXAsset {
   const char *name;
 };
-static_assert(sizeof(NamedXAsset) == 0x8, "NamedXAsset size must be 8 bytes");
+ASSERT_SIZE(NamedXAsset, 0x8);
 #pragma pack(pop)
 
 #pragma pack(push, 1)
@@ -218,7 +217,7 @@ struct RawFile : NamedXAsset {
   uint64_t len;
   const char *buffer;
 };
-static_assert(sizeof(RawFile) == 0x18, "RawFile size must be 0x18 bytes");
+ASSERT_SIZE(RawFile, 0x18);
 #pragma pack(pop)
 
 struct MaterialTechniqueSet;
@@ -259,22 +258,20 @@ struct FxSpawnDefLooping {
   int32_t count;
   FxIntRange spawnCount;
 };
-static_assert(sizeof(FxSpawnDefLooping) == 0x10,
-              "FxSpawnDefLooping size must be 16 bytes");
+ASSERT_SIZE(FxSpawnDefLooping, 0x10);
 
 // sizeof=0x8
 struct FxSpawnDefOneShot {
   FxIntRange count;
 };
-static_assert(sizeof(FxSpawnDefOneShot) == 0x8,
-              "FxSpawnDefOneShot size must be 8 bytes");
+ASSERT_SIZE(FxSpawnDefOneShot, 0x8);
 
 // sizeof=0x10
 union FxSpawnDef {
   FxSpawnDefLooping looping;
   FxSpawnDefOneShot oneShot;
 };
-static_assert(sizeof(FxSpawnDef) == 0x10, "FxSpawnDef size must be 16 bytes");
+ASSERT_SIZE(FxSpawnDef, 0x10);
 
 typedef uint32_t contents_t;
 
@@ -324,7 +321,7 @@ struct FxElemAtlas {
   uint8_t indexRange;
 };
 
-static_assert(sizeof(FxElemAtlas) == 0x7, "FxElemAtlas size must be 7 bytes");
+ASSERT_SIZE(FxElemAtlas, 0x7);
 
 typedef uint8_t FxElemType;
 
@@ -342,8 +339,7 @@ union FxEffectDefRef {
   const char *name;
   FxEffectDefHandleRaw handle;
 };
-static_assert(sizeof(FxEffectDefRef) == 0x8,
-              "FxEffectDefRef size must be 8 bytes");
+ASSERT_SIZE(FxEffectDefRef, 0x8);
 
 // sizeof=0x10
 struct FxElemSound {
@@ -351,7 +347,7 @@ struct FxElemSound {
   snd::SndAliasId soundAlias;
   uint8_t _padding0C[4];
 };
-static_assert(sizeof(FxElemSound) == 0x10, "FxElemSound size must be 16 bytes");
+ASSERT_SIZE(FxElemSound, 0x10);
 
 // sizeof=0x20
 struct FxLensFlareVisualDef {
@@ -362,8 +358,7 @@ struct FxLensFlareVisualDef {
   vec3_t sourceDir;
   float sourceSize;
 };
-static_assert(sizeof(FxLensFlareVisualDef) == 0x20,
-              "FxLensFlareVisualDef size must be 32 bytes");
+ASSERT_SIZE(FxLensFlareVisualDef, 0x20);
 
 union FxElemVisuals {
   const void *anonymous;
@@ -383,8 +378,7 @@ union FxElemDefVisuals {
   FxElemVisuals *array;
   FxElemVisuals instance;
 };
-static_assert(sizeof(FxElemDefVisuals) == 0x40,
-              "FxElemDefVisuals size must be 64 bytes");
+ASSERT_SIZE(FxElemDefVisuals, 0x40);
 
 // sizeof=0x8
 union FxElemExtendedDefPtr {
@@ -396,8 +390,7 @@ union FxElemExtendedDefPtr {
   const FxLensFlareRootDef *lensFlareDef;
   void *unknownDef; // verbatim name of title in engine
 };
-static_assert(sizeof(FxElemExtendedDefPtr) == 0x8,
-              "FxElemExtendedDefPtr size must be 8 bytes");
+ASSERT_SIZE(FxElemExtendedDefPtr, 0x8);
 
 union FxElemDefUnion {
   FxIntRange cloudDensityRange;
@@ -485,7 +478,7 @@ struct FxElemDef {
   uint16_t libVisualIndex;
   uint8_t _padding25E[2];
 };
-static_assert(sizeof(FxElemDef) == 0x260, "FxElemDef size must be 608 bytes");
+ASSERT_SIZE(FxElemDef, 0x260);
 
 typedef int FxEffectDefFlags;
 typedef const FxEffectDef *FxEffectDefHandle;
@@ -521,8 +514,7 @@ struct FxEffectDef {
   uint16_t libDefIndex;
   uint8_t _padding8A[6];
 };
-static_assert(sizeof(FxEffectDef) == 0x98,
-              "FxEffectDef size must be 144 bytes");
+ASSERT_SIZE(FxEffectDef, 0x98);
 
 struct FxElemDef;
 
@@ -530,16 +522,14 @@ struct FxElemDef;
 struct EntityImpactPositionsFx {
   FxEffectDefHandle entityImpactPositions[6];
 };
-static_assert(sizeof(EntityImpactPositionsFx) == 0x30,
-              "EntityImpactPositionsFx size must be 48 bytes");
+ASSERT_SIZE(EntityImpactPositionsFx, 0x30);
 
 // sizeof=0x218
 struct EntityFxImpacts {
   const char *name;
   EntityImpactPositionsFx entityImpacts[11];
 };
-static_assert(sizeof(EntityFxImpacts) == 0x218,
-              "EntityFxImpacts size must be 536 bytes");
+ASSERT_SIZE(EntityFxImpacts, 0x218);
 
 // TODO
 struct SurfaceFXTableDef;
@@ -806,8 +796,7 @@ union XAssetHeader {
   // StreamerHint *streamerHint;
   void *data;
 };
-static_assert(sizeof(XAssetHeader) == 0x8,
-              "XAssetHeader size must be 0x8 bytes");
+ASSERT_SIZE(XAssetHeader, 0x8);
 
 // sizeof=0x10
 #pragma pack(push, 1)
@@ -816,7 +805,7 @@ struct XAsset {
   uint8_t _padding04[4];
   XAssetHeader header;
 };
-static_assert(sizeof(XAsset) == 0x10, "XAsset size must be 0x10 bytes");
+ASSERT_SIZE(XAsset, 0x10);
 #pragma pack(pop)
 
 using XAssetEnum = void(XAssetHeader, void *);
@@ -829,7 +818,7 @@ struct XAssetList {
   uint8_t _padding14[4];
   XAsset *assets;
 };
-static_assert(sizeof(XAssetList) == 0x20, "XAssetList size must be 0x20 bytes");
+ASSERT_SIZE(XAssetList, 0x20);
 #pragma pack(pop)
 
 #pragma pack(push, 1)
@@ -843,7 +832,7 @@ struct XAssetEntry {
   uint32_t nextType;
   uint32_t nextOverride;
 };
-static_assert(sizeof(XAssetEntry) == 0x20, "sizeof(XAssetEntry) must be 0x20");
+ASSERT_SIZE(XAssetEntry, 0x20);
 typedef XAssetEntry *XAssetEntryPtr;
 #pragma pack(pop)
 
@@ -852,8 +841,7 @@ union XAssetEntryPoolEntry {
   XAssetEntry entry;
   XAssetEntryPoolEntry *next;
 };
-static_assert(sizeof(XAssetEntryPoolEntry) == 0x20,
-              "sizeof(XAssetEntryPoolEntry) must be 0x20");
+ASSERT_SIZE(XAssetEntryPoolEntry, 0x20);
 constexpr std::size_t XASSET_ENTRY_POOL_LENGTH = 156671;
 
 #pragma pack(push, 1)
@@ -982,8 +970,7 @@ union XAssetPools {
 static_assert(sizeof(XAssetPools) ==
                   sizeof(XAssetPool) * static_cast<int>(XAssetType::COUNT),
               "sizeof(XAssetPools) must be sizeof(XAssetPool) * COUNT");
-static_assert(sizeof(XAssetPools) == sizeof(TypedXAssetPools),
-              "sizeof(XAssetPools) must be equal to sizeof(TypedXAssetPools)");
+ASSERT_SIZE(XAssetPools, sizeof(TypedXAssetPools));
 #pragma pack(pop)
 
 struct ManagedNotetrack_t {

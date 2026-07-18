@@ -6,7 +6,6 @@ namespace game {
 namespace ai {
 struct sentient_t; // TODO
 
-// sizeof=0x690
 struct AIBody {
   int32_t randSeed;
   uint8_t _padding04[4];
@@ -25,7 +24,7 @@ struct AIBody {
   };
   uint8_t _padding68C[4];
 };
-static_assert(sizeof(AIBody) == 0x690, "AIBody size must be 1680 bytes");
+ASSERT_SIZE(AIBody, 0x690);
 
 enum class AICategory : int32_t {
   NONE = 0x0,

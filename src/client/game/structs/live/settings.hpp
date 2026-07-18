@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include "../macros.hpp"
+
 namespace game {
 namespace live {
 namespace settings {
@@ -253,9 +255,7 @@ union CachedSettingsProfileKeys {
 
   const char *names[125];
 };
-static_assert(
-    sizeof(CachedSettingsProfileKeys) == 125 * sizeof(const char *),
-    "CachedSettingsProfileKeys must be a simple array of 125 const char*");
+ASSERT_SIZE(CachedSettingsProfileKeys, 125 * sizeof(const char *));
 
 union SettingsGlob {
   struct {

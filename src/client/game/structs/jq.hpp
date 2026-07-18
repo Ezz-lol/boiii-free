@@ -1,13 +1,16 @@
 #pragma once
 
 #include <cstdint>
+
+#include "func.hpp"
+
 namespace game {
 namespace jq {
-#pragma pack(push, 1)
 
 struct jqBatch;
-typedef int32_t (*jqModuleCallback)(jqBatch *);
+typedef fastcall_t<int32_t(jqBatch *batch)> jqModuleCallback;
 
+#pragma pack(push, 1)
 struct jqBatchGroup {
   union {
     struct {
@@ -17,7 +20,9 @@ struct jqBatchGroup {
     uint64_t BatchCount;
   };
 };
+#pragma pack(pop)
 
+#pragma pack(push, 1)
 struct jqModule {
   const char *Name;
   jqModuleCallback Code;
@@ -28,7 +33,9 @@ struct jqModule {
   uint8_t _padding24[4];
   jqBatchGroup *Dependencies[4];
 };
+#pragma pack(pop)
 
+#pragma pack(push, 1)
 struct jqBatch {
   void *p3x_info;
   void *Input;
@@ -39,7 +46,6 @@ struct jqBatch {
   uint32_t ConditionalValue;
   uint32_t ParamData[55];
 };
-
 #pragma pack(pop)
 } // namespace jq
 } // namespace game

@@ -30,7 +30,6 @@ enum class PhysicsOwnerType : int32_t {
   COUNT = 0x6,
 };
 
-// sizeof=0x60
 struct broad_phase_base {
   math::Dir3 m_trace_aabb_min_whace;
   math::Dir3 m_trace_aabb_max_whace;
@@ -59,7 +58,6 @@ struct phys_mat33 {
 
 class rigid_body;
 
-// sizeof=0x70
 class pulse_sum_node : phys_link_list_base<pulse_sum_node> {
 public:
   phys_mat33 m_world_inv_inertia;
@@ -106,7 +104,6 @@ struct rigid_body_constraint_hinge;
 
 class rigid_body_constraint;
 
-// sizeof=0x18
 class rigid_body_constraint {
 public:
   rigid_body *b1;
@@ -115,14 +112,12 @@ public:
 };
 ASSERT_SIZE(rigid_body_constraint, 0x18);
 
-// sizeof=0x4
 class pulse_sum_cache {
 public:
   float m_pulse_sum;
 };
 ASSERT_SIZE(pulse_sum_cache, 0x4);
 
-// sizeof=0x60
 class rigid_body_constraint_point : rigid_body_constraint {
 public:
   uint8_t _padding00[8];
@@ -141,7 +136,6 @@ class pulse_sum_node;
 class rigid_body;
 class rigid_body_constraint_wheel;
 
-// sizeof=0x70
 struct rb_inplace_partition_node {
   rigid_body_constraint_point *m_rbc_point_first;
   rigid_body_constraint_hinge *m_rbc_hinge_first;
@@ -161,7 +155,6 @@ struct rb_inplace_partition_node {
 };
 ASSERT_SIZE(rb_inplace_partition_node, 0x70);
 
-// sizeof=0x1B0
 class rigid_body {
 public:
   math::Dir3 m_last_position;
@@ -198,7 +191,6 @@ public:
 };
 ASSERT_SIZE(rigid_body, 0x1B0);
 
-// sizeof=0x10
 struct rigid_body_pair_key {
   rigid_body *m_b1;
   rigid_body *m_b2;
@@ -207,7 +199,6 @@ ASSERT_SIZE(rigid_body_pair_key, 0x10);
 
 class NitrousVehicle;
 
-// sizeof=0x8
 class phys_gjk_geom {
 public:
   // int32_t (**_vptr$phys_gjk_geom)(void);
@@ -228,7 +219,6 @@ public:
 
 } // namespace gjk_unique_id_database_t
 
-// sizeof=0x60
 class gjk_base_t : phys_gjk_geom {
 public:
   uint8_t _padding00[8];
@@ -245,7 +235,6 @@ public:
 };
 ASSERT_SIZE(gjk_base_t, 0x60);
 
-// sizeof=0x10
 class gjk_geom_list_t {
 public:
   gjk_base_t *m_first_geom;
@@ -253,7 +242,6 @@ public:
   uint8_t _padding0C[4];
 };
 ASSERT_SIZE(gjk_geom_list_t, 0x10);
-// sizeof=0x160
 class PhysObjUserData {
 public:
   const PhysPreset *physPreset;
@@ -314,7 +302,6 @@ struct ZBarrierBoard {
   uint32_t numRepsToPullProBoard;
 };
 
-// sizeof=0x300
 struct ZBarrierDef {
   const char *name;
   uint32_t generalRepairSound1;
@@ -342,12 +329,10 @@ struct ZBarrierDef {
 };
 ASSERT_SIZE(ZBarrierDef, 0x300);
 
-// sizeof=0x8
 struct ZBarrierPieceAnims {
   anim::XAnimTree *pAnimTree;
 };
 
-// sizeof=0xB8
 struct ZBarrierType {
   uint8_t serverIndex;
   uint8_t clientIndex;
@@ -361,7 +346,6 @@ struct ZBarrierType {
 };
 ASSERT_SIZE(ZBarrierType, 0xB8);
 
-// sizeof=0x3C
 struct cached_tag_mat_t {
   int32_t time;
   int32_t entnum;
@@ -370,7 +354,6 @@ struct cached_tag_mat_t {
 };
 ASSERT_SIZE(cached_tag_mat_t, 0x3C);
 
-// sizeof=0xC
 struct trigger_info_t {
   uint16_t entnum;
   uint16_t otherEntnum;
@@ -379,7 +362,6 @@ struct trigger_info_t {
 };
 ASSERT_SIZE(trigger_info_t, 0xC);
 
-// sizeof=0x10
 struct sv_FxVisBlock_t {
   const gentity_s *fxEnt;
   float radius;
@@ -387,7 +369,6 @@ struct sv_FxVisBlock_t {
 };
 ASSERT_SIZE(sv_FxVisBlock_t, 0x10);
 
-// sizeof=0x18
 struct actor_prone_info_t {
   bool bCorpseOrientation;
   bool orientPitch;
@@ -407,7 +388,6 @@ struct actor_prone_info_t {
 };
 ASSERT_SIZE(actor_prone_info_t, 0x18);
 
-// sizeof=0x684
 struct actorAntilagFrame_t {
   vec3_t position[64];
   vec3_t angles[64];
@@ -644,7 +624,6 @@ ASSERT_SIZE(CollisionPartition, 0x10);
 
 struct cbrush_t; // TODO
 
-// sizeof=0x10
 struct col_prim_t {
   int32_t type;
   uint8_t _padding04[4];
@@ -660,7 +639,6 @@ public:
   uint8_t gap0[16];
 };
 
-// sizeof=10
 class hybrid_vector {
 public:
   float4 vec;
@@ -669,8 +647,7 @@ ASSERT_SIZE(hybrid_vector, 0x10);
 
 class visitor_base_t {
 public:
-  // int32_t (**_vptr$visitor_base_t)(void);
-  void *_vptr$visitor_base_t;
+  int32_t (**_vptr$visitor_base_t)(void);
 };
 
 struct TraceThreadInfo; // TODO

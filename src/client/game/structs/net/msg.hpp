@@ -20,7 +20,7 @@ struct msg_t {
   qboolean flush;
   netsrc_t targetLocalNetID;
 };
-static_assert(sizeof(msg_t) == 0x38, "sizeof(msg_t) != 0x38");
+ASSERT_SIZE(msg_t, 0x38);
 typedef uint8_t min_msg_buf[2048];
 
 } // namespace msg

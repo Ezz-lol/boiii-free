@@ -49,6 +49,24 @@
 template <typename T, T Actual, T Expected>
 concept ValueMatches = (Actual == Expected);
 
+#ifndef PACKED
+#if defined(_MSC_VER) || defined(__clang__) || defined(__GNUC__)
+#define PACKED(...) __pragma(pack(push, 1)) __VA_ARGS__ __pragma(pack(pop))
+#else
+#error "Unsupported compiler. Only MSVC, Clang and GCC are supported."
+#endif
+#endif
+
+#ifndef ASSERT_ALIGNMENT
+#define ASSERT_ALIGNMENT(type, align)                                          \
+  static_assert(ValueMatches<size_t, alignof(type), align>,                    \
+                "Alignment mismatch for " #type)
+#endif
+
+#ifndef ASSERT_PACKED
+#define ASSERT_PACKED(type) ASSERT_ALIGNMENT(type, 1)
+#endif
+
 #define ASSERT_SIZE(type, size)                                                \
   static_assert(ValueMatches<size_t, sizeof(type), (size)>, "Size mismatch "   \
                                                             "for " #type)

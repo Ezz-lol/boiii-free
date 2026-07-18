@@ -357,7 +357,7 @@ inc_path_flag() {
 
 	abs_path="${REPO_DIR}/${path}"
 	echo "\"-I${abs_path}\",
-\"isystem=${abs_path}\"" | clangd_flag_indent
+\"-isystem=${abs_path}\"" | clangd_flag_indent
 }
 
 clangd_include_flags() {

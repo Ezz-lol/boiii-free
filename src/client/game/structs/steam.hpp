@@ -3,12 +3,11 @@
 namespace game {
 namespace steam {
 
-// TODO: why can't we use <steam/steam_api.h> syntax?
-#include <steam/isteamremotestorage.h>
-#include <steam/isteamugc.h>
-#include <steam/isteamuser.h>
-#include <steam/isteamfriends.h>
-#include <steam/isteamapps.h>
+#include <steam/isteamremotestorage.h> // IWYU pragma: export
+#include <steam/isteamugc.h>           // IWYU pragma: export
+#include <steam/isteamuser.h>          // IWYU pragma: export
+#include <steam/isteamfriends.h>       // IWYU pragma: export
+#include <steam/isteamapps.h>          // IWYU pragma: export
 
 struct SteamInterfacesBase {
   ISteamClient *pSteamClient;

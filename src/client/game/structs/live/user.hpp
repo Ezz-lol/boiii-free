@@ -81,7 +81,7 @@ struct userData_t {
   uint8_t _padding183[1];
   userDataPlatform_t platform;
 };
-static_assert(sizeof(userData_t) == 0x1D0, "sizeof(userData_t) != 0x1D0");
+ASSERT_SIZE(userData_t, 0x1D0);
 #pragma pack(pop)
 
 typedef userData_t *userDataRef;

@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
-#include "../core.hpp"
+#include "../quake/vec.hpp"
+
 namespace game {
 namespace gfx {
 namespace HLSL {

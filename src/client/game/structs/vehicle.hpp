@@ -11,14 +11,15 @@
 namespace game {
 namespace vehicle {
 struct gentity_s;
-#pragma pack(push, 1)
 
+#pragma pack(push, 1)
 struct WheelState {
   int32_t m_state;
   int32_t m_last_state;
   float m_rate[4];
 };
 ASSERT_SIZE(WheelState, 0x18);
+#pragma pack(pop)
 
 enum class VehicleCategory : int32_t {
   NONE = 0x0,
@@ -31,6 +32,7 @@ enum class VehicleCategory : int32_t {
   COUNT = 0x7,
 };
 
+#pragma pack(push, 1)
 struct view_limits_t {
   float horizSpanLeft;
   float horizSpanRight;
@@ -41,25 +43,31 @@ struct view_limits_t {
   float vertResistUp;
   float vertResistDown;
 };
+#pragma pack(pop)
 ASSERT_SIZE(view_limits_t, 0x20);
 
+#pragma pack(push, 1)
 struct VehicleGearData {
   float minRPM;
   float maxRPM;
   float ratio;
 };
+#pragma pack(pop)
 ASSERT_SIZE(VehicleGearData, 0xC);
 
+#pragma pack(push, 1)
 struct VehicleEngineSound {
   const char *name;
   snd::SndAliasId alias;
   float params[7];
 };
+#pragma pack(pop)
 ASSERT_SIZE(VehicleEngineSound, 0x28);
 
 struct XModel; // TODO
 typedef XModel *XModelPtr;
 
+#pragma pack(push, 1)
 struct VehicleEngine {
   bool simpleEngine;
   uint8_t _padding01[3];
@@ -105,6 +113,7 @@ struct VehicleEngine {
   float eng_offload_end_pitch;
   uint8_t _padding2BC[4];
 };
+#pragma pack(pop)
 ASSERT_SIZE(VehicleEngine, 0x2C0);
 
 struct DevGraph;
@@ -123,6 +132,7 @@ typedef void (*DevGraphEventCallback)(const DevGraph *, DevEventType,
 typedef void (*DevGraphTextCallback)(const DevGraph *, const float, const float,
                                      char *, const int);
 
+#pragma pack(push, 1)
 struct DevGraph {
   vec2_t *knots;
   int32_t *knotCount;
@@ -134,8 +144,10 @@ struct DevGraph {
   bool disableEditingEndPoints;
   uint8_t _padding31[7];
 };
+#pragma pack(pop)
 ASSERT_SIZE(DevGraph, 0x38);
 
+#pragma pack(push, 1)
 struct GraphFloat {
   char name[64];
   vec2_t knots[32];
@@ -143,8 +155,10 @@ struct GraphFloat {
   float scale;
   DevGraph devguiGraph; // TODO: is this used in release?
 };
+#pragma pack(pop)
 ASSERT_SIZE(GraphFloat, 0x180);
 
+#pragma pack(push, 1)
 struct AircraftPreset {
   const char *presetName;
   int32_t maxSpeedVol;
@@ -158,8 +172,10 @@ struct AircraftPreset {
   bool zAxis;
   uint8_t _padding23[5];
 };
+#pragma pack(pop)
 ASSERT_SIZE(AircraftPreset, 0x28);
 
+#pragma pack(push, 1)
 struct AircraftSound {
   const char *presetName;
   AircraftPreset *preset;
@@ -170,15 +186,19 @@ struct AircraftSound {
   scr::ScrString_t tagScriptString;
   uint8_t _padding2C[4];
 };
+#pragma pack(pop)
 ASSERT_SIZE(AircraftSound, 0x30);
 
+#pragma pack(push, 1)
 struct VehicleSurfaceSound {
   const char *surfaceSoundName;
   snd::SndAliasId alias;
   uint8_t _padding0C[4];
 };
+#pragma pack(pop)
 ASSERT_SIZE(VehicleSurfaceSound, 0x10);
 
+#pragma pack(push, 1)
 struct VehicleDriveBySound {
   int32_t apex;
   uint8_t _padding04[4];
@@ -186,7 +206,9 @@ struct VehicleDriveBySound {
   snd::SndAliasId alias;
   uint8_t _padding14[4];
 };
+#pragma pack(pop)
 
+#pragma pack(push, 1)
 struct VehicleSoundDef {
   const char *name;
   VehicleEngine engine;
@@ -198,6 +220,7 @@ struct VehicleSoundDef {
   AircraftSound aircraftSounds[20];
   VehicleSurfaceSound surfaceSounds[40];
 };
+#pragma pack(pop)
 ASSERT_SIZE(VehicleSoundDef, 0x1000);
 
 typedef VehicleSoundDef *VehicleSoundDefPtr;
@@ -211,6 +234,7 @@ enum class VehicleFxDefType : int32_t {
   COUNT = 0x5,
 };
 
+#pragma pack(push, 1)
 struct VehicleFxDef {
   const char *name;
   char *csvInclude;
@@ -219,6 +243,7 @@ struct VehicleFxDef {
   db::xasset::FxEffectDefHandle peelFx[40];
   db::xasset::FxEffectDefHandle skidFx[40];
 };
+#pragma pack(pop)
 
 typedef VehicleFxDef *VehicleFxDefPtr;
 
@@ -229,7 +254,7 @@ enum class TractionType : int32_t {
   COUNT = 0x3,
 };
 
-struct VehicleParameter {
+PACKED(struct VehicleParameter {
   float m_speed_max;
   float m_accel_max;
   float m_reverse_scale;
@@ -312,9 +337,11 @@ struct VehicleParameter {
   float m_angular_drag_scale;
   float m_gravity_scale;
   uint8_t _padding174[4];
-};
+});
+ASSERT_PACKED(VehicleParameter);
 ASSERT_SIZE(VehicleParameter, 0x178);
 
+#pragma pack(push, 1)
 struct VehicleAntenna {
   float springK;
   float damp;
@@ -323,8 +350,10 @@ struct VehicleAntenna {
   bool useXAxis;
   uint8_t _padding11[3];
 };
+#pragma pack(pop)
 ASSERT_SIZE(VehicleAntenna, 0x14);
 
+#pragma pack(push, 1)
 struct VehicleDef {
   const char *name;
   int16_t type;
@@ -662,8 +691,10 @@ struct VehicleDef {
   float tacticalModeHeight;
   uint8_t _paddingA9C[4];
 };
+#pragma pack(pop)
 ASSERT_SIZE(VehicleDef, 0xAA0);
 
+#pragma pack(push, 1)
 struct VehicleStun {
   bool m_changed_this_frame;
   uint8_t _padding01[3];
@@ -673,8 +704,10 @@ struct VehicleStun {
   float m_last_brake;
   float m_brake_stun_time;
 };
+#pragma pack(pop)
 ASSERT_SIZE(VehicleStun, 0x18);
 
+#pragma pack(push, 1)
 class NitrousVehicleController {
 public:
   enum class VehicleHorseControlState : int32_t {
@@ -717,31 +750,39 @@ public:
   game_button_bits_t m_last_update_button_bits;
   uint8_t _padding104[12];
 };
+#pragma pack(pop)
 ASSERT_SIZE(NitrousVehicleController, 0x120);
 
+#pragma pack(push, 1)
 class mover_record_t {
 public:
   vec3_t m_origin;
   vec3_t m_angles;
   int32_t m_time;
 };
+#pragma pack(pop)
 ASSERT_SIZE(mover_record_t, 0x1C);
 
 class hkaiNavMeshInstance; // TODO
+#pragma pack(push, 1)
 struct mover_info_t {
   mover_record_t m_records[32];
   int32_t m_last_record;
   uint8_t _padding384[4];
   hkaiNavMeshInstance *m_meshInstance;
 };
+#pragma pack(pop)
 ASSERT_SIZE(mover_info_t, 0x390);
 
+#pragma pack(push, 1)
 class minspec_mutex {
 public:
   volatile uint32_t m_token;
 };
+#pragma pack(pop)
 ASSERT_SIZE(minspec_mutex, 0x4);
 
+#pragma pack(push, 1)
 struct NitrousVehicle {
   phys::PhysObjUserData *m_phys_user_data;
   WheelState m_wheel_state[6];
@@ -828,7 +869,9 @@ struct NitrousVehicle {
   uint32_t m_state_flags;
   uint8_t _padding90C[4];
 };
+#pragma pack(pop)
 
+#pragma pack(push, 1)
 struct vehicle_spline_node_t {
   int16_t nextIdx;
   int16_t prevIdx;
@@ -836,8 +879,10 @@ struct vehicle_spline_node_t {
   vec3_t dir;
   float t;
 };
+#pragma pack(pop)
 ASSERT_SIZE(vehicle_spline_node_t, 0x18);
 
+#pragma pack(push, 1)
 struct vehicle_node_t {
   scr::ScrString_t name;
   scr::ScrString_t target;
@@ -855,6 +900,7 @@ struct vehicle_node_t {
   float tension;
   vehicle_spline_node_t splineNode;
 };
+#pragma pack(pop)
 ASSERT_SIZE(vehicle_node_t, 0x5C);
 
 enum class path_type_e : int32_t {
@@ -864,6 +910,7 @@ enum class path_type_e : int32_t {
   AI_PATH = 0x3,
 };
 
+#pragma pack(push, 1)
 class vehicle_pathpos_t {
 public:
   int16_t nodeIdx;
@@ -896,7 +943,9 @@ public:
   float tot_len;
   float tot_time;
 };
+#pragma pack(pop)
 
+#pragma pack(push, 1)
 struct vehicle_physic_t {
   vec3_t origin;
   vec3_t prevOrigin;
@@ -926,6 +975,7 @@ struct vehicle_physic_t {
   float curveTime;
   float timeStep;
 };
+#pragma pack(pop)
 ASSERT_SIZE(vehicle_physic_t, 0x118);
 
 enum class VehicleTargetType : int32_t {
@@ -1055,13 +1105,9 @@ enum class ai_orient_mode_t : int32_t {
 };
 
 enum class ai_state_transition_t : uint32_t {
-
   AIS_TRANSITION_CANONICAL = 0xFFFFFFFF,
-
   AIS_TRANSITION_NONE = 0x0,
-
   AIS_TRANSITION_SET = 0x1,
-
   AIS_TRANSITION_PUSH = 0x2,
   AIS_TRANSITION_POP = 0x3,
 
@@ -1114,6 +1160,7 @@ enum class AISpecies : int32_t {
   AI_SPECIES_ALL = 0x5,
 };
 
+#pragma pack(push, 1)
 struct VehicleTurret {
   int32_t fireTime;
   int32_t fireBarrel;
@@ -1125,8 +1172,10 @@ struct VehicleTurret {
   float accuracy;
   VehicleTurretState turretState;
 };
+#pragma pack(pop)
 ASSERT_SIZE(VehicleTurret, 0x24);
 
+#pragma pack(push, 1)
 struct VehicleJitter {
   int32_t jitterPeriodMin;
   int32_t jitterPeriodMax;
@@ -1136,8 +1185,10 @@ struct VehicleJitter {
   vec3_t jitterAccel;
   vec3_t jitterPos;
 };
+#pragma pack(pop)
 ASSERT_SIZE(VehicleJitter, 0x3C);
 
+#pragma pack(push, 1)
 struct VehicleHover {
   float hoverRadius;
   float hoverSpeed;
@@ -1145,8 +1196,10 @@ struct VehicleHover {
   vec3_t hoverGoalPos;
   qboolean useHoverAccelForAngles;
 };
+#pragma pack(pop)
 ASSERT_SIZE(VehicleHover, 0x1C);
 
+#pragma pack(push, 1)
 struct VehicleGunnerTags {
   BoneIndex turretParent;
   BoneIndex turret;
@@ -1154,8 +1207,10 @@ struct VehicleGunnerTags {
   BoneIndex aim;
   BoneIndex flash[4];
 };
+#pragma pack(pop)
 ASSERT_SIZE(VehicleGunnerTags, 0x10);
 
+#pragma pack(push, 1)
 struct VehicleTags {
   BoneIndex player;
   BoneIndex popout;
@@ -1167,8 +1222,10 @@ struct VehicleTags {
   BoneIndex seats[11];
   BoneIndex entryPoints[5];
 };
+#pragma pack(pop)
 ASSERT_SIZE(VehicleTags, 0x84);
 
+#pragma pack(push, 1)
 struct VehicleCornerCache {
   vec3_t start;
   vec3_t end;
@@ -1178,8 +1235,10 @@ struct VehicleCornerCache {
   int32_t startSlidingTime;
   float travelDistance;
 };
+#pragma pack(pop)
 ASSERT_SIZE(VehicleCornerCache, 0x3C);
 
+#pragma pack(push, 1)
 struct VehicleTarget {
   VehicleTargetType targetType;
   int32_t targetEnt;
@@ -1187,6 +1246,7 @@ struct VehicleTarget {
   vec3_t targetOffset;
   vec3_t targetRelativeAngles;
 };
+#pragma pack(pop)
 ASSERT_SIZE(VehicleTarget, 0x2C);
 
 enum class ClientFallSpeed : int32_t {
@@ -1222,8 +1282,6 @@ enum class VehicleAnimState : int32_t {
   EXIT = 0x3,
   COUNT = 0x4,
 };
-
-#pragma pack(pop)
 
 typedef phys::colgeom_visitor_inlined_t<300> vehicle_proximity_data_t;
 ASSERT_SIZE(vehicle_proximity_data_t, 0x1350);
