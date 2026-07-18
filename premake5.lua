@@ -448,7 +448,7 @@ dependencies.projects()
 -- It's also easier than finding some way of sycnhronizing the generation of the version header between the two projects.
 if not os.isfile("%{_MAIN_SCRIPT_DIR}/src/version.h") then
   if os.host() == "windows" then
-    prebuildcommands({ "pushd %{_MAIN_SCRIPT_DIR}", "tools\\premake5.exe generate-buildinfo", "popd" })
+    prebuildcommands({ "pushd %{_MAIN_SCRIPT_DIR}", "premake5.exe generate-buildinfo", "popd" })
   else
     prebuildcommands({ "cd %{_MAIN_SCRIPT_DIR} && premake5 generate-buildinfo" })
   end
