@@ -180,4 +180,3 @@ WEAK symbol<ScrVarCanonicalName_t(BuiltinMethod *method)>
 
 } // namespace scr
 } // namespace game
-

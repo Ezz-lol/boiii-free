@@ -2,7 +2,6 @@
 
 #include <game/symbols/sym_include.hpp>
 
-
 namespace game {
 namespace steam {
 

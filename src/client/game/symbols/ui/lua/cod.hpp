@@ -2,7 +2,6 @@
 
 #include <game/symbols/sym_include.hpp>
 
-
 namespace game {
 namespace ui {
 namespace lua {
@@ -31,4 +30,3 @@ WEAK symbol<CodLuaStates> s_codLuaStates{0x1434100A0, 0x141122FB0};
 } // namespace lua
 } // namespace ui
 } // namespace game
-

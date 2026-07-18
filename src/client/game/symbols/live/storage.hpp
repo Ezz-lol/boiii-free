@@ -2,7 +2,6 @@
 
 #include <game/symbols/sym_include.hpp>
 
-
 #include <cstdint>
 
 namespace game {
@@ -16,4 +15,3 @@ WEAK symbol<int32_t(const ControllerIndex_t controllerIndex,
 
 } // namespace live
 } // namespace game
-

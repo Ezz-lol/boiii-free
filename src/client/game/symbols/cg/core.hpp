@@ -2,7 +2,6 @@
 
 #include <game/symbols/sym_include.hpp>
 
-
 namespace game {
 namespace cg {
 WEAK symbol<void(LocalClientNum_t localClientNum)> CG_LUIHUDRestart{
@@ -58,4 +57,3 @@ WEAK symbol<LocalClientIkBufs> cg_ikBuf{0x144A315C0};
 
 } // namespace cg
 } // namespace game
-

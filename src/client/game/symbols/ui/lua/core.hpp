@@ -2,7 +2,6 @@
 
 #include <game/symbols/sym_include.hpp>
 
-
 namespace game {
 namespace ui {
 namespace lua {
@@ -22,4 +21,3 @@ WEAK symbol<uint32_t(ZoneType zoneType, int32_t sliceStart, int32_t sliceLen,
 } // namespace lua
 } // namespace ui
 } // namespace game
-

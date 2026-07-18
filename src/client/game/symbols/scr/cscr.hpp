@@ -2,7 +2,6 @@
 
 #include <game/symbols/sym_include.hpp>
 
-
 namespace game {
 namespace scr {
 namespace cscr {
@@ -18,4 +17,3 @@ WEAK symbol<void(scriptInstance_t inst)> CScr_SetWorldFogActiveBank{
 } // namespace cscr
 } // namespace scr
 } // namespace game
-

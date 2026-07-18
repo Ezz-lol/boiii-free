@@ -11,4 +11,3 @@ WEAK symbol<qboolean(void *ent)> StuckInClient{0x1415A8360, 0x14023BFE0};
 WEAK symbol<const char *(const char *name)> CopyString{0x1422AC220,
                                                        0x14056BD70};
 } // namespace game
-

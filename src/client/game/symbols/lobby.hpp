@@ -14,4 +14,3 @@ WEAK symbol<int(int64_t lobbySession, LobbyClientType clientType)>
     LobbySession_GetClientCount{0x141ED8B30, 0x0};
 } // namespace lobby
 } // namespace game
-

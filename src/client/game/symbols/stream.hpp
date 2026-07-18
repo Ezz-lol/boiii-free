@@ -2,7 +2,6 @@
 
 #include <game/symbols/sym_include.hpp>
 
-
 namespace game {
 namespace stream {
 WEAK symbol<int32_t(stream_fh *fh)> Stream_OpenInternal{0x14217BD34,

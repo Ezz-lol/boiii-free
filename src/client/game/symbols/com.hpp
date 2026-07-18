@@ -2,7 +2,6 @@
 
 #include <game/symbols/sym_include.hpp>
 
-
 namespace game {
 namespace com {
 
@@ -62,4 +61,3 @@ WEAK symbol<ControllerIndex_t()> Com_ControllerIndexes_GetPrimary{0x1420EF880};
 
 } // namespace com
 } // namespace game
-

@@ -2,7 +2,6 @@
 
 #include <game/symbols/sym_include.hpp>
 
-
 #include <cstdint>
 
 namespace game {
@@ -13,4 +12,3 @@ WEAK symbol<char *(char *username, uint32_t length, bool asciionly)>
 } // namespace steam
 } // namespace live
 } // namespace game
-

@@ -2,7 +2,6 @@
 
 #include <game/symbols/sym_include.hpp>
 
-
 namespace game {
 namespace scr {
 namespace cg {
@@ -10,4 +9,3 @@ namespace cg {
 } // namespace cg
 } // namespace scr
 } // namespace game
-

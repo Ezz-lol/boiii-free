@@ -2,7 +2,6 @@
 
 #include <game/symbols/sym_include.hpp>
 
-
 namespace game {
 namespace cg {
 namespace snd {
@@ -24,4 +23,3 @@ WEAK symbol<void(LocalClientNum_t localClientNum, int32_t entityNum,
 } // namespace snd
 } // namespace cg
 } // namespace game
-

@@ -2,7 +2,6 @@
 
 #include <game/symbols/sym_include.hpp>
 
-
 namespace game {
 namespace pmem {
 #define PMem_Alloc(size, alignment, pool, stack, asyncCommit, memTrack)        \
@@ -22,4 +21,3 @@ WEAK symbol<void *(size_t size, size_t alignment, PMemPool pool,
 WEAK symbol<const char *> PerLocalClientMemoryName{0x143326EE0};
 } // namespace pmem
 } // namespace game
-

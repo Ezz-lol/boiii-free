@@ -2,7 +2,6 @@
 
 #include <game/symbols/sym_include.hpp>
 
-
 namespace game {
 namespace cl {
 WEAK symbol<void(game::LocalClientNum_t localClientNum)>
@@ -70,4 +69,3 @@ WEAK symbol<void(LocalClientNum_t localClientNum)> CL_FirstSnapshot{
     0x141320E60};
 } // namespace cl
 } // namespace game
-

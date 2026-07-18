@@ -46,4 +46,3 @@ WEAK symbol<uint32_t[2]> g_oldDoubleXPMask{0x1453D8BB0};
 
 } // namespace live
 } // namespace game
-

@@ -2,7 +2,6 @@
 
 #include <game/symbols/sym_include.hpp>
 
-
 namespace game {
 namespace scr {
 namespace sentient {
@@ -10,4 +9,3 @@ namespace sentient {
 } // namespace sentient
 } // namespace scr
 } // namespace game
-

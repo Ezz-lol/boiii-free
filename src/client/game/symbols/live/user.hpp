@@ -2,7 +2,6 @@
 
 #include <game/symbols/sym_include.hpp>
 
-
 #include <cstdint>
 
 namespace game {
@@ -66,4 +65,3 @@ WEAK symbol<void(const ControllerIndex_t controllerIndex, EUserTier tier)>
 
 } // namespace live
 } // namespace game
-

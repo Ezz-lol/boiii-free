@@ -2,7 +2,6 @@
 
 #include <game/symbols/sym_include.hpp>
 
-
 namespace game {
 // Quake functions
 WEAK symbol<void(void *Base, size_t NumOfElements, size_t SizeOfElements,
@@ -13,4 +12,3 @@ WEAK symbol<void(void *Base, size_t NumOfElements, size_t SizeOfElements,
 WEAK symbol<void(char *dest, size_t destsize, const char *src)> I_strcat{
     0x1422E9340, 140581110};
 } // namespace game
-

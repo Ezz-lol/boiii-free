@@ -18,4 +18,3 @@ WEAK symbol<void(sd_byte *ptr)> SD_Free{0x142265CB0};
 } // namespace sd
 } // namespace snd
 } // namespace game
-

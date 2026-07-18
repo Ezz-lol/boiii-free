@@ -2,7 +2,6 @@
 
 #include <game/symbols/sym_include.hpp>
 
-
 namespace game {
 namespace scr {
 namespace cmd {
@@ -21,4 +20,3 @@ WEAK symbol<void(scriptInstance_t inst, scr_entref_t *entref)>
 } // namespace cmd
 } // namespace scr
 } // namespace game
-

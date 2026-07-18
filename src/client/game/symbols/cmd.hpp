@@ -2,7 +2,6 @@
 
 #include <game/symbols/sym_include.hpp>
 
-
 namespace game {
 namespace cmd {
 
@@ -30,4 +29,3 @@ WEAK symbol<void(int localClientNum, ControllerIndex_t localControllerIndex,
 WEAK symbol<void()> Cmd_EndTokenizedString{0x1420ECED0, 0x1404F8420};
 } // namespace cmd
 } // namespace game
-

@@ -411,4 +411,3 @@ WEAK symbol<SndReverb *(SndStringHash id, const char *name)> SND_GetReverb{
 
 } // namespace snd
 } // namespace game
-

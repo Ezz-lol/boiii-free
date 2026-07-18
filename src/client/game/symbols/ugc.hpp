@@ -68,4 +68,3 @@ WEAK symbol<ui::UIModelIndex> ugc_last_created_persistent_model{0x1567D9990};
 
 } // namespace ugc
 } // namespace game
-

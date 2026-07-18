@@ -2,7 +2,6 @@
 
 #include <game/symbols/sym_include.hpp>
 
-
 namespace game {
 namespace fx {
 WEAK symbol<void()> FX_ShutdownLensFlareSystem{0x1414ED6A0};
@@ -11,4 +10,3 @@ WEAK symbol<void(hunk::HunkUser *hunk, LocalClientNum_t maxLocalClients,
     FX_AllocateClientMemory{0x1414D4700};
 } // namespace fx
 } // namespace game
-

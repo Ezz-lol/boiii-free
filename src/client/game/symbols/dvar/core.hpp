@@ -230,4 +230,3 @@ inline void Dvar_SetInt(EngineDependentDvar dvar, int32_t value) {
 }
 
 } // namespace game
-

@@ -193,4 +193,3 @@ WEAK symbol<HksRegister *(HksRegister *retstr, lua_State *s, HksObject *left,
 } // namespace lua
 } // namespace ui
 } // namespace game
-
