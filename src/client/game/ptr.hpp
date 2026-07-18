@@ -109,10 +109,10 @@ template <typename T> inline bool valid_engine_ptr(const T *ptr) {
 
 /// @brief Rapidly checks if a memory address is committed and readable.
 /// Safe to use in high-frequency loops.
-bool is_readable_ptr(uintptr_t ptr);
+bool readable_ptr(uintptr_t ptr);
 
-template <typename T> inline bool is_readable_ptr(const T *ptr) {
-  return is_readable_ptr(reinterpret_cast<uintptr_t>(ptr));
+template <typename T> inline bool readable_ptr(const T *ptr) {
+  return readable_ptr(reinterpret_cast<uintptr_t>(ptr));
 }
 } // namespace game
 

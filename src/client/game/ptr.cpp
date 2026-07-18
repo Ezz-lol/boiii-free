@@ -60,7 +60,7 @@ bool valid_heap_ptr(uintptr_t ptr) {
 
 /// @brief Rapidly checks if a memory address is committed and readable.
 /// Safe to use in high-frequency loops.
-bool is_readable_ptr(uintptr_t ptr) {
+bool readable_ptr(uintptr_t ptr) {
   if (!ptr) {
     return false;
   }
