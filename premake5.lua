@@ -278,7 +278,10 @@ if os.getenv("CI") then
   defines({ "CI" })
 end
 
-flags({ "NoIncrementalLink", "NoMinimalRebuild", "MultiProcessorCompile", "No64BitChecks" })
+incrementallink("Off")
+minimalrebuild("Off")
+multiprocessorcompile("On")
+enable64bitchecks("Off")
 
 filter("platforms:x64")
 defines({ "_WINDOWS", "WIN32" })
@@ -385,7 +388,7 @@ links({ "common" })
 
 if not os.isfile("%{_MAIN_SCRIPT_DIR}/src/version.h") then
   if os.host() == "windows" then
-    prebuildcommands({ "pushd %{_MAIN_SCRIPT_DIR}", "tools\\premake5.exe generate-buildinfo", "popd" })
+    prebuildcommands({ "pushd %{_MAIN_SCRIPT_DIR}", "premake5.exe generate-buildinfo", "popd" })
   else
     prebuildcommands({ "cd %{_MAIN_SCRIPT_DIR} && premake5 generate-buildinfo" })
   end
@@ -410,7 +413,9 @@ language("C++")
 symbols("Off")
 exceptionhandling("Off")
 
-flags({ "NoRuntimeChecks", "NoBufferSecurityCheck", "OmitDefaultLibrary" })
+runtimechecks("Off")
+buffersecuritycheck("Off")
+nodefaultlib("On")
 
 -- check if CXX is cl, use /Zc:threadSafeInit- if so
 -- If g++ or clang++ is used, skip this, as this is the default; they can only disable it using -fno-threadsafe-statics, but we don't want that
