@@ -3,8 +3,8 @@
 #include <cassert>
 #include <cstdarg>
 #include <sstream>
+#include <windows.h>
 
-#include "nt.hpp"
 #include "../str.hpp"
 
 namespace utils::string {
