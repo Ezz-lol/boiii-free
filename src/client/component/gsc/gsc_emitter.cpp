@@ -445,9 +445,9 @@ struct emitter_state {
                  bool same_namespace, bool builtin = false) {
 
     if (!builtin && same_namespace) {
-      if (is_method && script::custom_builtin_method(func_hash)) {
+      if (is_method && gsc::custom_builtin_method(func_hash)) {
         builtin = true;
-      } else if (script::custom_builtin_function(func_hash)) {
+      } else if (gsc::custom_builtin_function(func_hash)) {
         builtin = true;
       }
     }

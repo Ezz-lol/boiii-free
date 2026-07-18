@@ -14,82 +14,23 @@
 
 #include "../command.hpp"
 #include "gsc_funcs.hpp"
-#include "gsc.hpp"
 
 using namespace game;
 using namespace game::scr;
 
+namespace gsc::custom_builtins {
+CustomBuiltinMap<BuiltinFunctionDef> functions;
+CustomBuiltinMap<BuiltinMethodDef> methods;
+} // namespace gsc::custom_builtins
+
 namespace script {
-
-template <typename Def> struct CustomBuiltinMap {
-  std::unordered_map<ScrVarCanonicalName_t, Def> map;
-  std::unordered_map<decltype(Def::actionFunc), ScrVarCanonicalName_t> reverse;
-};
-
-static CustomBuiltinMap<BuiltinFunctionDef> custom_builtin_functions;
-static CustomBuiltinMap<BuiltinMethodDef> custom_builtin_methods;
-
-__inline_def void register_builtin(BuiltinFunctionDef def) {
-  custom_builtin_functions.map[def.canonId] = def;
-  custom_builtin_functions.reverse[def.actionFunc] = def.canonId;
-}
-
-__inline_def void register_builtin(const char *name, BuiltinFunction func,
-                                   BuiltinType type, uint32_t min_args,
-                                   uint32_t max_args) {
-  ScrVarCanonicalName_t hash = gsc::fnv1a(name);
-  BuiltinFunctionDef def = {.canonId = hash,
-                            .min_args = min_args,
-                            .max_args = max_args,
-                            ._padding0C = {0},
-                            .actionFunc = func,
-                            .type = type,
-                            ._padding1C = {0}};
-
-  return register_builtin(def);
-}
-
-__inline_def void register_builtin(BuiltinMethodDef def) {
-  custom_builtin_methods.map[def.canonId] = def;
-  custom_builtin_methods.reverse[def.actionFunc] = def.canonId;
-}
-
-__inline_def void register_builtin(const char *name, BuiltinMethod method,
-                                   BuiltinType type, uint32_t min_args,
-                                   uint32_t max_args) {
-  ScrVarCanonicalName_t hash = gsc::fnv1a(name);
-
-  BuiltinMethodDef def = {.canonId = hash,
-                          .min_args = min_args,
-                          .max_args = max_args,
-                          ._padding0C = {0},
-                          .actionFunc = method,
-                          .type = type,
-                          ._padding1C = {0}};
-  return register_builtin(def);
-}
-
-__inline_def bool custom_builtin_function(ScrVarCanonicalName_t name) {
-  return custom_builtin_functions.map.contains(name);
-}
-__inline_def bool custom_builtin_function(const char *name) {
-  return custom_builtin_function(gsc::fnv1a(name));
-}
-
-__inline_def bool custom_builtin_method(ScrVarCanonicalName_t name) {
-  return custom_builtin_methods.map.contains(name);
-}
-__inline_def bool custom_builtin_method(const char *name) {
-  return custom_builtin_method(gsc::fnv1a(name));
-}
-
 uint8_t *find_export_address(const std::string &script_name,
                              const std::string &func_name,
                              int expected_params = -1);
 } // namespace script
 
 namespace gsc_funcs {
-using namespace script;
+using namespace gsc;
 namespace {
 
 static std::unordered_map<uint8_t *, uint8_t *> function_replacements;
@@ -1297,8 +1238,8 @@ BuiltinFunction Scr_GetFunction_SearchCustom(ScrVarCanonicalName_t canonId,
                                              BuiltinType *type,
                                              int32_t *min_args,
                                              int32_t *max_args) {
-  if (custom_builtin_functions.map.contains(canonId)) {
-    const BuiltinFunctionDef *def = &custom_builtin_functions.map[canonId];
+  if (custom_builtins::functions.map.contains(canonId)) {
+    const BuiltinFunctionDef *def = &custom_builtins::functions.map[canonId];
 
     *type = def->type;
     *min_args = def->min_args;
@@ -1315,8 +1256,8 @@ utils::hook::detour Scr_GetMethod_hook;
 BuiltinMethod Scr_GetMethod_SearchCustom(ScrVarCanonicalName_t canonId,
                                          BuiltinType *type, int32_t *min_args,
                                          int32_t *max_args) {
-  if (custom_builtin_methods.map.contains(canonId)) {
-    const BuiltinMethodDef *def = &custom_builtin_methods.map[canonId];
+  if (custom_builtins::methods.map.contains(canonId)) {
+    const BuiltinMethodDef *def = &custom_builtins::methods.map[canonId];
 
     *type = def->type;
     *min_args = def->min_args;
@@ -1332,8 +1273,8 @@ BuiltinMethod Scr_GetMethod_SearchCustom(ScrVarCanonicalName_t canonId,
 utils::hook::detour Scr_GetFunctionReverseLookup_hook;
 ScrVarCanonicalName_t
 Scr_GetFunctionReverseLookup_SearchCustom(BuiltinFunction func) {
-  if (custom_builtin_functions.reverse.contains(func)) {
-    return custom_builtin_functions.reverse[func];
+  if (custom_builtins::functions.reverse.contains(func)) {
+    return custom_builtins::functions.reverse[func];
   }
   return Scr_GetFunctionReverseLookup_hook.invoke<ScrVarCanonicalName_t>(func);
 }
@@ -1341,8 +1282,8 @@ Scr_GetFunctionReverseLookup_SearchCustom(BuiltinFunction func) {
 utils::hook::detour Scr_GetMethodReverseLookup_hook;
 ScrVarCanonicalName_t
 Scr_GetMethodReverseLookup_SearchCustom(BuiltinMethod method) {
-  if (custom_builtin_methods.reverse.contains(method)) {
-    return custom_builtin_methods.reverse[method];
+  if (custom_builtins::methods.reverse.contains(method)) {
+    return custom_builtins::methods.reverse[method];
   }
   return Scr_GetMethodReverseLookup_hook.invoke<ScrVarCanonicalName_t>(method);
 }
