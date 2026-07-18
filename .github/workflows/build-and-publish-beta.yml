@@ -42,7 +42,7 @@ jobs:
           msdev: vs2022
 
       - name: Generate project files
-        run: tools/premake5 vs2022
+        run: premake5 vs2022
 
       - name: Set up problem matching
         uses: ammaraskar/msvc-problem-matcher@master

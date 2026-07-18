@@ -37,7 +37,7 @@ jobs:
           msdev: vs2022
 
       - name: Generate project files
-        run: tools/premake5 vs2022
+        run: premake5 vs2022
 
       - name: Get version from git tag
         id: get-version
