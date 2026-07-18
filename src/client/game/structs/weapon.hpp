@@ -28,7 +28,6 @@ enum class gadgetPulseShareType_e : int32_t {
   COUNT = 0x5,
 };
 
-// sizeof=0x8
 union Weapon {
   struct {
     uint64_t weaponIdx : 9;
@@ -47,7 +46,6 @@ union Weapon {
 };
 ASSERT_SIZE(Weapon, 0x8);
 
-// sizeof=0x4
 union AttachmentCosmeticVariantIndexes {
   struct {
     uint32_t attachmentCosmeticVariantIndex1 : 4;

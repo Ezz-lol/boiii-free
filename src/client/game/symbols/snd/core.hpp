@@ -1,8 +1,8 @@
 #pragma once
-#ifdef GAME_HPP
+
+#include <game/symbols/sym_include.hpp>
 
 #include <cstdint>
-#include "../macros.hpp"
 
 namespace game {
 
@@ -411,5 +411,3 @@ WEAK symbol<SndReverb *(SndStringHash id, const char *name)> SND_GetReverb{
 
 } // namespace snd
 } // namespace game
-
-#endif

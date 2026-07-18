@@ -1,7 +1,6 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "../macros.hpp"
+#include <game/symbols/sym_include.hpp>
 
 namespace game {
 namespace cg {
@@ -32,7 +31,7 @@ WEAK symbol<bool(int32_t *hitNum, const vec3_t *start, const vec3_t *end,
 
 extern std::atomic<level::cl::cgPool *> cgArray_store;
 level::cl::cgPool *get_cgArray();
-WEAK symbol<level::cl::cgPool *> cgArray{0x144D17C80};
+WEAK symbol<level::cl::cgPool *> cgArray{0x144D17C80, 0x14222BCB0};
 extern std::atomic<level::cl::cgsPool *> cgsArray_store;
 level::cl::cgsPool *get_cgsArray();
 WEAK symbol<level::cl::cgsPool *> cgsArray{0x144D17B70};
@@ -58,5 +57,3 @@ WEAK symbol<LocalClientIkBufs> cg_ikBuf{0x144A315C0};
 
 } // namespace cg
 } // namespace game
-
-#endif

@@ -1,13 +1,11 @@
-#include "../std_include.hpp"
-#include "loader/component_loader.hpp"
+#include <std_include.hpp>
+#include <loader/component_loader.hpp>
 #include "friends.hpp"
 
-#include "../game/game.hpp"
-#include "../game/utils.hpp"
+#include <game/utils.hpp>
 #include "network.hpp"
 #include "party.hpp"
 #include "scheduler.hpp"
-#include "steam/steam.hpp"
 #include "steam_proxy.hpp"
 #include "workshop.hpp"
 #include "name.hpp"
@@ -335,8 +333,8 @@ bool invite_to_game(game::XUID steam_id) {
   if (connect_str.empty())
     return false;
 
-  const std::string_view mapname = game::get_dvar_string("mapname");
-  const std::string_view gametype = game::get_dvar_string("g_gametype");
+  const std::string_view mapname = game::get_mapname().value_or("");
+  const std::string_view gametype = game::get_g_gametype().value_or("");
   game::eModes playmode = game::com::Com_SessionMode_GetMode();
   const std::string mod_id = workshop::get_mod_publisher_id();
   game::XUID own_steam_id = steam_proxy::get_own_steam_id();
@@ -427,12 +425,7 @@ std::vector<friend_server_info> get_friend_server_addresses() {
   return result;
 }
 
-std::string get_friend_game_info_by_address(const std::string &address) {
-  if (address.empty())
-    return "";
-
-  game::net::netadr_t target = network::address_from_string(address);
-
+std::string get_friend_game_info_by_address(const game::net::netadr_t target) {
   std::vector<friend_entry> all_friends;
   friends_data.access(
       [&](const friend_state &state) { all_friends = state.list; });
@@ -452,7 +445,7 @@ std::string get_friend_game_info_by_address(const std::string &address) {
       continue;
 
     // Check if the address in the RP data matches the requested address
-    if (parts[0] == address)
+    if (parts[0] == std::string_view(target.toString()))
       return game_info;
 
     // Also try matching resolved addresses
@@ -465,6 +458,14 @@ std::string get_friend_game_info_by_address(const std::string &address) {
   }
 
   return "";
+}
+
+std::string get_friend_game_info_by_address(const std::string &address) {
+  if (address.empty())
+    return "";
+
+  game::net::netadr_t target = network::address_from_string(address);
+  return get_friend_game_info_by_address(target);
 }
 
 bool connect_to_friend(game::XUID steam_id) {
@@ -651,9 +652,9 @@ struct component final : client_component {
             steam_proxy::set_rich_presence("connect", addr);
 
             if (!addr.empty() && game::com::Com_IsInGame()) {
-              const std::string_view mapname = game::get_dvar_string("mapname");
+              const std::string_view mapname = game::get_mapname().value_or("");
               const std::string_view gametype =
-                  game::get_dvar_string("g_gametype");
+                  game::get_g_gametype().value_or("");
               game::eModes playmode = game::com::Com_SessionMode_GetMode();
               const std::string mod_id = workshop::get_mod_publisher_id();
               game::XUID own_steam_id = steam_proxy::get_own_steam_id();

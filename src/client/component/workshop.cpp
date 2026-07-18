@@ -1,10 +1,8 @@
-#include <cstddef>
-#include <cstring>
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 #include "workshop.hpp"
 
-#include "game/utils.hpp"
+#include <game/utils.hpp>
 #include "command.hpp"
 
 #include <utils/hook.hpp>
@@ -21,9 +19,9 @@
 #include "download_overlay.hpp"
 #include "toast.hpp"
 
-#include "game/impl/db/xzone/xzone.hpp"
-#include "game/impl/ui/lua/lua.hpp"
-#include "game/impl/ugc/ugc.hpp"
+#include <game/impl/db/xzone/xzone.hpp>
+#include <game/impl/ui/lua/lua.hpp>
+#include <game/impl/ugc/ugc.hpp>
 
 #include <condition_variable>
 #include <mutex>
@@ -35,6 +33,8 @@ using namespace game::db;
 using XZoneName = xzone::XZoneName;
 
 namespace workshop {
+game::EngineDependentDvar workshop_timeout;
+game::EngineDependentDvar workshop_retry_attempts;
 std::thread download_thread{};
 
 utils::hook::detour CL_SetupForNewServerMap_hook;
@@ -195,7 +195,6 @@ void CL_SetupForNewServerMap_stub(game::LocalClientNum_t localClientNum,
   const bool usermaps_mod_loaded = mod_loaded && loaded_mod_id == "usermaps";
 
   if (is_usermap) {
-
     if (!mod_loaded) {
       game::ugc::UGC_LoadModByPublisherId_Impl(localClientNum, "usermaps",
                                                false);
@@ -242,6 +241,7 @@ void load_workshop_data(game::ugc::WorkshopData *item) {
   utils::string::copy(item->internalName, doc["FolderName"].GetString());
   utils::string::copy(item->publisherId, doc["PublisherID"].GetString());
   item->publisherIdInteger = std::strtoull(item->publisherId, nullptr, 10);
+  item->publisherIdHash = game::ugc::UGC_Hash(item->publisherId);
 }
 
 void populate_workshop_paths(game::ugc::WorkshopData *item,
@@ -501,7 +501,7 @@ std::string get_usermap_publisher_id(const std::string &zone_name) {
 }
 
 int get_workshop_retry_attempts() {
-  const int val = game::get_dvar_int("workshop_retry_attempts");
+  const int val = workshop_retry_attempts.get_int();
   if (val < 1)
     return 1;
   if (val > 1000)
@@ -761,7 +761,7 @@ workshop_info get_steam_workshop_info(const std::string &workshop_id) {
 bool check_valid_usermap_id(const std::string &mapname,
                             const std::string &pub_id,
                             const std::string &workshop_id,
-                            const std::string &base_url) {
+                            const std::string &base_uri) {
   if (!DB_FileExists(mapname.data(), 0) && pub_id.empty()) {
     if (is_zm_dlc_map(mapname.data())) {
       queue_dlc_popup(mapname);
@@ -781,19 +781,21 @@ bool check_valid_usermap_id(const std::string &mapname,
       return false;
     }
 
-    if (!base_url.empty()) {
+    if (!base_uri.empty()) {
+      const std::filesystem::path map_path = "./usermaps/" + mapname;
+      const std::string map_tree_uri = base_uri + "/usermaps/" + mapname;
       fastdl::download_context context{};
       context.mapname = mapname;
       context.pub_id = workshop_id.empty() ? mapname : workshop_id;
-      context.map_path = "./usermaps/" + mapname;
-      context.base_url = base_url;
+      context.map_path = map_path;
+      context.map_tree_uri = map_tree_uri;
       context.success_callback = []() {
         scheduler::once([] { game::ugc::reloadUserContent(); },
                         scheduler::main);
       };
       printf("[ Workshop ] Server has FastDL, attempting download for %s from "
              "%s\n",
-             mapname.data(), base_url.data());
+             mapname.data(), base_uri.data());
       fastdl::start_map_download(context);
       return false;
     }
@@ -1103,12 +1105,12 @@ public:
     extend_ugc_pools();
 
     if (game::is_client()) {
-      [[maybe_unused]] const auto *dvar_retry = game::register_dvar_int(
+      workshop_retry_attempts = game::register_dvar_int(
           "workshop_retry_attempts", 30, 1, 1000, game::DVAR_ARCHIVE,
           "Number of connection retry attempts for workshop downloads "
           "(default "
           "15, increase for slow connections)");
-      [[maybe_unused]] const auto *dvar_timeout = game::register_dvar_int(
+      workshop_timeout = game::register_dvar_int(
           "workshop_timeout", 300, 60, 3600, game::DVAR_ARCHIVE,
           "Download timeout in seconds for workshop items (reserved for "
           "future "
@@ -1126,7 +1128,7 @@ public:
                "config)\n",
                get_workshop_retry_attempts());
         printf("[ Workshop ] workshop_timeout: %d\n",
-               game::get_dvar_int("workshop_timeout"));
+               workshop_timeout.get_int());
       });
       command::add("workshop_download", [](const command::params &params) {
         if (params.size() < 2) {

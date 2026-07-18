@@ -2,7 +2,6 @@
 
 #include <string>
 #include <vector>
-#include <cstdint>
 
 namespace gsc_compiler {
 enum class token_type {

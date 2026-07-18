@@ -1,9 +1,6 @@
 #pragma once
 #include <cstdint>
-#include <string>
 #include <mutex>
-#include <thread>
-#include <atomic>
 #include <map>
 #include <vector>
 
@@ -40,23 +37,23 @@ using game_id = union {
 };
 #pragma pack(pop)
 
-#include "interfaces/apps.hpp"
-#include "interfaces/user.hpp"
-#include "interfaces/utils.hpp"
-#include "interfaces/friends.hpp"
-#include "interfaces/user_stats.hpp"
-#include "interfaces/game_server.hpp"
-#include "interfaces/networking.hpp"
-#include "interfaces/matchmaking.hpp"
-#include "interfaces/matchmaking_servers.hpp"
-#include "interfaces/remote_storage.hpp"
-#include "interfaces/screenshots.hpp"
-#include "interfaces/game_server_stats.hpp"
-#include "interfaces/http.hpp"
-#include "interfaces/unified_messages.hpp"
-#include "interfaces/controller.hpp"
-#include "interfaces/client.hpp"
-#include "interfaces/ugc.hpp"
+#include "interfaces/apps.hpp"                // IWYU pragma: export
+#include "interfaces/user.hpp"                // IWYU pragma: export
+#include "interfaces/utils.hpp"               // IWYU pragma: export
+#include "interfaces/friends.hpp"             // IWYU pragma: export
+#include "interfaces/user_stats.hpp"          // IWYU pragma: export
+#include "interfaces/game_server.hpp"         // IWYU pragma: export
+#include "interfaces/networking.hpp"          // IWYU pragma: export
+#include "interfaces/matchmaking.hpp"         // IWYU pragma: export
+#include "interfaces/matchmaking_servers.hpp" // IWYU pragma: export
+#include "interfaces/remote_storage.hpp"      // IWYU pragma: export
+#include "interfaces/screenshots.hpp"         // IWYU pragma: export
+#include "interfaces/game_server_stats.hpp"   // IWYU pragma: export
+#include "interfaces/http.hpp"                // IWYU pragma: export
+#include "interfaces/unified_messages.hpp"    // IWYU pragma: export
+#include "interfaces/controller.hpp"          // IWYU pragma: export
+#include "interfaces/client.hpp"              // IWYU pragma: export
+#include "interfaces/ugc.hpp"                 // IWYU pragma: export
 
 namespace steam {
 class callbacks {

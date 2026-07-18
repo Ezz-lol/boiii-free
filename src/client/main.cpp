@@ -1,21 +1,21 @@
 #include <std_include.hpp>
 #include <curl/curl.h>
 
-#include "loader/component_loader.hpp"
-#include "loader/loader.hpp"
+#include <loader/component_loader.hpp>
+#include <loader/loader.hpp>
 
-#include "../common/utils/finally.hpp"
-#include "../common/utils/hook.hpp"
-#include "../common/utils/nt.hpp"
-#include "../common/utils/io.hpp"
-#include "../common/utils/http.hpp"
-#include "../common/utils/flags.hpp"
-#include "../common/utils/com.hpp"
-#include "../common/utils/progress_ui.hpp"
+#include <utils/finally.hpp>
+#include <utils/hook.hpp>
+#include <utils/nt.hpp>
+#include <utils/io.hpp>
+#include <utils/http.hpp>
+#include <utils/flags.hpp>
+#include <utils/com.hpp>
+#include <utils/progress_ui.hpp>
 
 #include <steam/steam.hpp>
 
-#include "game/game.hpp"
+#include <game/game.hpp>
 #include "launcher/launcher.hpp"
 #include "launcher/html/html_window.hpp"
 #include "component/updater.hpp"

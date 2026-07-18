@@ -1,10 +1,10 @@
 #include <std_include.hpp>
 #include "tls.hpp"
 
-#include "../../common/utils/nt.hpp"
-#include "../../common/utils/binary_resource.hpp"
+#include <utils/nt.hpp>
+#include <utils/binary_resource.hpp>
 
-#include "../resource.hpp"
+#include <resource.hpp>
 
 namespace tls {
 namespace {

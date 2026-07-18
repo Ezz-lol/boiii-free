@@ -1,11 +1,9 @@
-#include <mutex>
-#include <sstream>
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
-#include "game/game.hpp"
-#include "game/utils.hpp"
-#include "game/impl/snd/snd.hpp"
-#include "game/impl/snd/sd/sd.hpp"
+#include <loader/component_loader.hpp>
+#include <game/game.hpp>
+#include <game/utils.hpp>
+#include <game/impl/snd/snd.hpp>
+#include <game/impl/snd/sd/sd.hpp>
 
 #include <string>
 #include <unordered_map>
@@ -14,8 +12,6 @@
 #include <utils/string.hpp>
 
 #include "scheduler.hpp"
-#include "game_event.hpp"
-#include "command.hpp"
 
 namespace server_patches2 {
 namespace {
@@ -110,27 +106,6 @@ std::string sanitize_chat_message(const std::string &msg) {
     result.resize(512);
 
   return result;
-}
-
-void dvar_disablebool_cb(const game::dvar_t *dvar) {
-  if (game::get_dvar_bool(dvar)) {
-    game::set_dvar_bool(dvar, false);
-  }
-}
-
-const game::dvar_t *Dvar_RegisterDisable_Bool(game::dvarStrHash_t hash,
-                                              const char *dvarName, bool value,
-                                              game::DvarFlags flags,
-                                              const char *description) {
-  const game::dvar_t *dvar =
-      game::Dvar_RegisterBool(hash, dvarName, value, flags, description);
-
-  if (game::get_dvar_bool(dvar)) {
-    game::set_dvar_bool(dvar, false);
-  }
-  game::Dvar_SetModifiedCallback(dvar, dvar_disablebool_cb);
-
-  return dvar;
 }
 
 // Hook for G_Say to sanitize messages
@@ -241,7 +216,7 @@ bool db_loadxfile_stub(const char *path, game::db::DBFile f,
       path, f, fileBuffer, filename, blocks, interrupt, buf, side, flags);
 
   if (succeeded && (game::db::load::g_load->flags & 0x1000C00) != 0) {
-    game::snd::g_sb->loadGate = false;
+    game::snd::g_sb->loadGate = qfalse;
     game::snd::SND_LoadSoundsWait();
   }
 
@@ -277,8 +252,8 @@ void free_bank_allocations_before_clearing_address_stub(
 utils::hook::detour snd_init_hook;
 void snd_init_stub() {
   snd_init_hook.invoke();
-  *(game::snd::g_pc_nosnd.get()) = true;
-  game::snd::g_snd->verified_0.init = true;
+  *(game::snd::g_pc_nosnd.get()) = qtrue;
+  game::snd::g_snd->verified_0.init = qtrue;
   game::snd::g_sb->bankMagic = 0x12233445;
 }
 
@@ -291,7 +266,7 @@ void snd_queueadd_stub([[maybe_unused]] game::snd::SndQueue *queue,
 
 utils::hook::detour snd_active_hook;
 qboolean snd_active_stub() {
-  game::snd::g_snd->verified_0.init = true;
+  game::snd::g_snd->verified_0.init = qtrue;
   return snd_active_hook.invoke<qboolean>();
 }
 
@@ -500,9 +475,6 @@ struct component final : server_component {
     sv_removeallclientsfromaddress_hook.create(
         game::sv::SV_Live_RemoveAllClientsFromAddress.get(),
         sv_live_removeallclientsfromaddress_stub);
-
-    // Disable sv_cheats immediately after registration
-    utils::hook::call(0x140379E80_g, Dvar_RegisterDisable_Bool);
 
     if (!utils::flags::has_flag("noratelimit")) {
       // Cleanup old rate limit entries periodically

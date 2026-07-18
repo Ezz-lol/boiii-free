@@ -26,7 +26,6 @@ struct alignas(128) DB_LOAD_STREAM {
 };
 
 #pragma pack(push, 1)
-// sizeof=0x28
 struct DBDecompressCmd_t {
   int32_t which;
   qboolean isEncrypted;
@@ -36,8 +35,7 @@ struct DBDecompressCmd_t {
   uint8_t *ioBuffer;
   int64_t numBytesDecrypted;
 };
-static_assert(sizeof(DBDecompressCmd_t) == 0x28,
-              "DBDecompressCmd_t size must be 0x28 bytes");
+ASSERT_SIZE(DBDecompressCmd_t, 0x28);
 #pragma pack(pop)
 
 #ifdef STRUCTS_DB_XFILE_HPP

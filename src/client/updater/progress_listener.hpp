@@ -1,7 +1,7 @@
 #pragma once
 
 #include "file_info.hpp"
-
+#include <vector>
 namespace updater {
 struct progress_listener {
   virtual ~progress_listener() = default;

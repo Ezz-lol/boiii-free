@@ -1,12 +1,11 @@
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 
-#include "game/game.hpp"
+#include <game/game.hpp>
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 
-#include "command.hpp"
 #include "console_command.hpp"
 
 namespace console_command {

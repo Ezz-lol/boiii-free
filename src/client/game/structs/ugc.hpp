@@ -13,7 +13,7 @@ typedef str<260> UGCPath;
 
 struct WorkshopData {
   // Field is called "name" in lua table
-  char title[100];
+  str<100> title;
   name_t internalName;
   // Field is called "ugcName" in lua table
   str32_t publisherId;
@@ -37,10 +37,7 @@ struct WorkshopData {
     memset(static_cast<void *>(this), 0, sizeof(WorkshopData));
   }
 };
-static_assert(std::is_standard_layout_v<WorkshopData>,
-              "WorkshopData must be standard layout!");
-static_assert(std::is_trivially_copyable_v<WorkshopData>,
-              "WorkshopData must be trivially copyable!");
+ASSERT_POD(WorkshopData);
 ASSERT_SIZE(WorkshopData, 0x4C8);
 
 enum class ModLoadState : uint32_t {

@@ -3,11 +3,10 @@
 #include <utils/io.hpp>
 #include <utils/http.hpp>
 #include <utils/string.hpp>
-#include "game/game.hpp"
+#include <game/game.hpp>
 #include "workshop.hpp"
 #include "steamcmd.hpp"
 #include "download_overlay.hpp"
-#include "fastdl.hpp"
 #include "scheduler.hpp"
 #include <curl/curl.h>
 #include "unzip.h"

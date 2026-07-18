@@ -1,7 +1,6 @@
 #include <std_include.hpp>
 #include "gsc_parser.hpp"
 #include "gsc_lexer.hpp"
-#include <algorithm>
 #include <stdexcept>
 
 namespace gsc_compiler {

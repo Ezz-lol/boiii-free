@@ -4,15 +4,24 @@
 #include <utils/io.hpp>
 #include <utils/string.hpp>
 #include <utils/http.hpp>
-#include <utils/flags.hpp>
-#include <utils/com.hpp>
 
 #include "launcher.hpp"
 #include "launcher_workshop.hpp"
 #include "html/html_window.hpp"
 
 #include <game/game.hpp>
-#include <version.hpp>
+
+// In case of clangd compilation
+#if __has_include("version.hpp")
+#include "version.hpp"
+#else
+#ifndef VERSION
+#define VERSION "0"
+#endif
+#ifndef SHORTVERSION
+#define SHORTVERSION "0"
+#endif
+#endif
 
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>

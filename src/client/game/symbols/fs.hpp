@@ -1,7 +1,6 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "macros.hpp"
+#include <game/symbols/sym_include.hpp>
 
 namespace game {
 namespace fs {
@@ -18,5 +17,3 @@ WEAK symbol<void(PathList list)> FS_FreePathList{0x1422EA960, 0x140582720};
 
 } // namespace fs
 } // namespace game
-
-#endif

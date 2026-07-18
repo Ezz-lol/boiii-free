@@ -1,9 +1,11 @@
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 #include "chat.hpp"
 
-#include "game/game.hpp"
-#include "game/utils.hpp"
+#include <game/game.hpp>
+#include <game/utils.hpp>
+
+#include <game/impl/game/game.hpp>
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
@@ -14,8 +16,8 @@
 
 namespace chat {
 namespace {
-const game::dvar_t *g_deadChat;
-const game::dvar_t *sv_sayname;
+game::EngineDependentDvar g_deadChat;
+game::EngineDependentDvar sv_sayname;
 
 void cmd_say_f(game::level::gentity_s *ent, const command::params_sv &params) {
   if (params.size() < 2) {
@@ -30,7 +32,7 @@ void cmd_say_f(game::level::gentity_s *ent, const command::params_sv &params) {
   const auto p = params.join(1);
   game::scr::Scr_AddString(game::scr::SCRIPTINSTANCE_SERVER,
                            p.data() + 1); // Skip special char
-  game::scr::Scr_Notify_Canon(ent, game::scr::Scr_CanonHash(params[0]), 1);
+  game::scr::Scr_Notify_Canon(ent, game::CanonHash(params[0]), 1);
 
   game::G_Say(ent, nullptr, mode, p.data());
 }
@@ -41,7 +43,7 @@ void cmd_chat_f(game::level::gentity_s *ent, const command::params_sv &params) {
   // Not a mistake! + 2 is necessary for the GSC script to receive only the
   // actual chat text
   game::scr::Scr_AddString(game::scr::SCRIPTINSTANCE_SERVER, p.data() + 2);
-  game::scr::Scr_Notify_Canon(ent, game::scr::Scr_CanonHash(params[0]), 1);
+  game::scr::Scr_Notify_Canon(ent, game::CanonHash(params[0]), 1);
 
   utils::hook::invoke<void>(0x140298E70_g, ent, p.data());
 }
@@ -88,15 +90,20 @@ void cl_handle_chat(char *dest, size_t dest_size, const char *src) {
   game::I_strcpy(dest, dest_size, src);
   printf("%s\n", dest);
 }
+
+inline const char *sv_sayname_val() {
+  if (sv_sayname) {
+    return sv_sayname.get_cstring();
+  }
+
+  return nullptr;
+}
 } // namespace
 
 const char *get_client_name(const uint64_t xuid) {
   if (xuid == 0xFFFFFFFF || xuid == 0xFFFFFFFFFFFFFFFF) {
-    if (sv_sayname && sv_sayname->current.value.string &&
-        sv_sayname->current.value.string[0]) {
-      return sv_sayname->current.value.string;
-    }
-    return "Server";
+    const char *val = sv_sayname_val();
+    return val ? val : "Server";
   }
 
   if (xuid > 0 && xuid < 19 && !game::is_server()) {
@@ -128,7 +135,7 @@ public:
       // Overwrite say command
       utils::hook::jump(
           0x14052A6C0_g, +[] {
-            if (!game::is_server_running()) {
+            if (!game::server_running()) {
               printf("Server is not running\n");
               return;
             }
@@ -138,18 +145,15 @@ public:
 
             send_chat_message(game::INVALID_CLIENT_INDEX, text);
 
-            const char *say_prefix = "Server";
-            if (sv_sayname && sv_sayname->current.value.string &&
-                sv_sayname->current.value.string[0]) {
-              say_prefix = sv_sayname->current.value.string;
-            }
+            const char *val = sv_sayname_val();
+            const char *say_prefix = val ? val : "Server";
             printf("%s: %s\n", say_prefix, text.data());
           });
 
       // Overwrite tell command
       utils::hook::jump(
           0x14052A7E0_g, +[] {
-            if (!game::is_server_running()) {
+            if (!game::server_running()) {
               printf("Server is not running\n");
               return;
             }
@@ -181,6 +185,7 @@ public:
       g_deadChat = game::register_dvar_bool(
           "g_deadChat", false, game::DVAR_NONE,
           "Allow dead players to chat with living players");
+
       utils::hook::jump(0x140299051_g, utils::hook::assemble(g_say_to_stub));
     } else {
       scheduler::once(

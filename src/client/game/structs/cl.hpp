@@ -9,7 +9,7 @@
 #include "vehicle.hpp"
 #include "hunk.hpp"
 #include "level/core.hpp"
-#include "live/steam/steam.hpp"
+#include "steam.hpp" // IWYU pragma: keep
 
 namespace game {
 
@@ -48,7 +48,6 @@ enum class CLSwitchMsg : uint32_t {
 };
 
 #pragma pack(push, 1)
-// sizeof=0x10
 struct CLSwitchMessage {
   CLSwitchMsg id;
   uint8_t _padding04[4];
@@ -59,11 +58,9 @@ struct CLSwitchMessage {
     float real;
   } p;
 };
-static_assert(sizeof(CLSwitchMessage) == 0x10,
-              "CLSwitchMessage size must be 0x10 bytes");
+ASSERT_SIZE(CLSwitchMessage, 0x10);
 #pragma pack(pop)
 
-// sizeof=0x7B0
 #pragma pack(push, 1)
 struct CLMapSwitch {
   CLSwitchState state;
@@ -85,8 +82,7 @@ struct CLMapSwitch {
   int32_t timeFastfileLoadStarted;
   int32_t timeTextureStreamingStarted;
 };
-static_assert(sizeof(CLMapSwitch) == 0x7B0,
-              "CLMapSwitch size must be 0x7B0 bytes");
+ASSERT_SIZE(CLMapSwitch, 0x7B0);
 #pragma pack(pop)
 
 #pragma pack(push, 1)
@@ -161,7 +157,7 @@ struct clientLogo_t {
   int32_t fadeout;
   db::xasset::MaterialHandle material[2];
 };
-static_assert(sizeof(clientLogo_t) == 0x20, "sizeof(clientLogo_t) != 0x20");
+ASSERT_SIZE(clientLogo_t, 0x20);
 #pragma pack(pop)
 
 #pragma pack(push, 1)
@@ -181,7 +177,7 @@ struct vidConfig_t {
   uint32_t maxTextureSize;
   qboolean deviceSupportsGamma;
 };
-static_assert(sizeof(vidConfig_t) == 0x34, "sizeof(vidConfig_t) != 0x34");
+ASSERT_SIZE(vidConfig_t, 0x34);
 #pragma pack(pop)
 
 #pragma pack(push, 1)

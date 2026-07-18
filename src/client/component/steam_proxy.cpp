@@ -1,7 +1,7 @@
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 
-#include "game/game.hpp"
+#include <game/game.hpp>
 
 #include <utils/nt.hpp>
 #include <utils/flags.hpp>
@@ -10,8 +10,8 @@
 #include <utils/finally.hpp>
 #include <utils/concurrency.hpp>
 
-#include "steam/interface.hpp"
-#include "steam/steam.hpp"
+#include <steam/interface.hpp>
+#include <steam/steam.hpp>
 
 #include "steam_proxy.hpp"
 

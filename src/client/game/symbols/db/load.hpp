@@ -1,8 +1,8 @@
 #pragma once
-#ifdef GAME_HPP
+
+#include <game/symbols/sym_include.hpp>
 
 #include <cstdint>
-#include "../macros.hpp"
 
 namespace game {
 namespace db {
@@ -37,4 +37,3 @@ WEAK symbol<void(xasset::MaterialTechniqueSetPtr techniqueSet)>
 } // namespace load
 } // namespace db
 } // namespace game
-#endif

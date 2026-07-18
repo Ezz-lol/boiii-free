@@ -11,38 +11,23 @@ namespace game {
 struct qboolean {
   int32_t value;
 
-  constexpr qboolean() noexcept = default;
-  constexpr qboolean(const qboolean &) noexcept = default;
-  constexpr qboolean(qboolean &&) noexcept = default;
-
-  constexpr qboolean(bool b) noexcept : value(b ? 1 : 0) {}
-
-  // Implicit conversion from all standard integer types
-  template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
-  constexpr qboolean(T val) noexcept : value(static_cast<int32_t>(val)) {}
-
   constexpr operator bool() const noexcept { return value != 0; }
-
-  template <typename T, typename = std::enable_if_t<std::is_integral_v<T> &&
-                                                    !std::is_same_v<T, bool>>>
+  template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
   constexpr operator T() const noexcept {
     return static_cast<T>(value);
   }
-
-  constexpr qboolean &operator=(const qboolean &) noexcept = default;
-  constexpr qboolean &operator=(qboolean &&) noexcept = default;
-
   constexpr bool operator!() const noexcept { return value == 0; }
+
+  template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
+  static constexpr qboolean from(T val) noexcept {
+    return qboolean{.value = static_cast<int32_t>(val)};
+  }
 };
 
 ASSERT_SIZE(qboolean, sizeof(int32_t));
-static_assert(std::is_standard_layout_v<qboolean>,
-              "qboolean must be standard layout!");
-static_assert(std::is_trivially_copyable_v<qboolean>,
-              "qboolean must be trivially copyable!");
-
-constexpr qboolean qtrue = true;
-constexpr qboolean qfalse = false;
+ASSERT_POD(qboolean);
+constexpr qboolean qtrue = qboolean::from(true);
+constexpr qboolean qfalse = qboolean::from(false);
 
 // Type used by engine
 typedef cdecl_t<int32_t, const void *, const void *>

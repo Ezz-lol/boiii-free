@@ -1,7 +1,6 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "../macros.hpp"
+#include <game/symbols/sym_include.hpp>
 
 namespace game {
 namespace scr {
@@ -10,5 +9,3 @@ namespace cg {
 } // namespace cg
 } // namespace scr
 } // namespace game
-
-#endif

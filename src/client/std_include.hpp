@@ -31,29 +31,29 @@
 
 #define WIN32_LEAN_AND_MEAN
 
-#include <windows.h>
-#include <mshtml.h>
-#include <mshtmhst.h>
-#include <exdisp.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#include <corecrt_io.h>
-#include <fcntl.h>
-#include <shellapi.h>
-#include <csetjmp>
-#include <shlobj.h>
-#include <winternl.h>
-#include <versionhelpers.h>
-#include <psapi.h>
-#include <urlmon.h>
-#include <atlbase.h>
-#include <atlsafe.h>
-#include <iphlpapi.h>
-#include <wincrypt.h>
-#include <dwmapi.h>
-#include <shellscalingapi.h>
-#include <d3d11.h>
-#include <dxgi1_6.h>
+#include <windows.h>         // IWYU pragma: export
+#include <mshtml.h>          // IWYU pragma: export
+#include <mshtmhst.h>        // IWYU pragma: export
+#include <exdisp.h>          // IWYU pragma: export
+#include <winsock2.h>        // IWYU pragma: export
+#include <ws2tcpip.h>        // IWYU pragma: export
+#include <corecrt_io.h>      // IWYU pragma: export
+#include <fcntl.h>           // IWYU pragma: export
+#include <shellapi.h>        // IWYU pragma: export
+#include <csetjmp>           // IWYU pragma: export
+#include <shlobj.h>          // IWYU pragma: export
+#include <winternl.h>        // IWYU pragma: export
+#include <versionhelpers.h>  // IWYU pragma: export
+#include <psapi.h>           // IWYU pragma: export
+#include <urlmon.h>          // IWYU pragma: export
+#include <atlbase.h>         // IWYU pragma: export
+#include <atlsafe.h>         // IWYU pragma: export
+#include <iphlpapi.h>        // IWYU pragma: export
+#include <wincrypt.h>        // IWYU pragma: export
+#include <dwmapi.h>          // IWYU pragma: export
+#include <shellscalingapi.h> // IWYU pragma: export
+#include <d3d11.h>           // IWYU pragma: export
+#include <dxgi1_6.h>         // IWYU pragma: export
 
 // min and max is required by gdi, therefore NOMINMAX won't work
 #ifdef max
@@ -66,37 +66,38 @@
 
 #undef GetObject
 
-#include <cassert>
-#include <cctype>
-#include <climits>
-#include <cstdint>
-#include <cstring>
+#include <cassert> // IWYU pragma: export
+#include <cctype>  // IWYU pragma: export
+#include <climits> // IWYU pragma: export
+#include <cstdint> // IWYU pragma: export
+#include <cstring> // IWYU pragma: export
 
-#include <array>
-#include <atomic>
-#include <chrono>
-#include <filesystem>
-#include <fstream>
-#include <functional>
-#include <iostream>
-#include <limits>
-#include <map>
-#include <mutex>
-#include <optional>
-#include <queue>
-#include <random>
-#include <regex>
-#include <sstream>
-#include <thread>
-#include <unordered_set>
-#include <utility>
-#include <variant>
-#include <vector>
+#include <array>         // IWYU pragma: export
+#include <atomic>        // IWYU pragma: export
+#include <chrono>        // IWYU pragma: export
+#include <filesystem>    // IWYU pragma: export
+#include <fstream>       // IWYU pragma: export
+#include <functional>    // IWYU pragma: export
+#include <iostream>      // IWYU pragma: export
+#include <limits>        // IWYU pragma: export
+#include <map>           // IWYU pragma: export
+#include <mutex>         // IWYU pragma: export
+#include <optional>      // IWYU pragma: export
+#include <queue>         // IWYU pragma: export
+#include <random>        // IWYU pragma: export
+#include <regex>         // IWYU pragma: export
+#include <sstream>       // IWYU pragma: export
+#include <thread>        // IWYU pragma: export
+#include <unordered_set> // IWYU pragma: export
+#include <utility>       // IWYU pragma: export
+#include <variant>       // IWYU pragma: export
+#include <vector>        // IWYU pragma: export
 
-#include <asmjit/core/jitruntime.h>
-#include <asmjit/x86/x86assembler.h>
-#include <MinHook.h>
-#include <udis86.h>
+#include <asmjit/core/jitruntime.h>  // IWYU pragma: export
+#include <asmjit/x86/x86assembler.h> // IWYU pragma: export
+#include <MinHook.h>                 // IWYU pragma: export
+#include <udis86.h>                  // IWYU pragma: export
+#include <macros.hpp>                // IWYU pragma: export
 
 #define RAPIDJSON_NOEXCEPT
 #define RAPIDJSON_ASSERT(cond)                                                 \
@@ -105,12 +106,14 @@
   else                                                                         \
     throw std::runtime_error("rapidjson assert fail");
 
-#include <rapidjson/document.h>
-#include <rapidjson/prettywriter.h>
-#include <rapidjson/stringbuffer.h>
+#include <rapidjson/document.h>     // IWYU pragma: export
+#include <rapidjson/prettywriter.h> // IWYU pragma: export
+#include <rapidjson/stringbuffer.h> // IWYU pragma: export
 
 #pragma warning(pop)
 #pragma warning(disable : 4100)
+
+using namespace std::literals;
 
 #pragma comment(lib, "ntdll.lib")
 #pragma comment(lib, "ws2_32.lib")
@@ -119,50 +122,3 @@
 #pragma comment(lib, "Crypt32.lib")
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
-
-#ifndef __inline_def
-#if defined(__clang__) || defined(__GNUC__)
-#define __inline_def __attribute__((always_inline))
-#elif defined(_MSC_VER)
-#define __inline_def __forceinline
-#define TEMPLATE_INVALID_HANDLE_VALUE -1
-#else
-#error "Unsupported compiler. Only MSVC, Clang and GCC are supported."
-#endif
-#endif
-
-#ifndef __optimize
-#if defined(__clang__) || defined(__GNUC__)
-#define __optimize __attribute__((hot))
-#elif defined(_MSC_VER)
-// No equivalent that I can find. Add if found or known otherwise.
-#define __optimize
-#else
-#error "Unsupported compiler. Only MSVC, Clang and GCC are supported."
-#endif
-#endif
-
-#ifndef unreachable
-#ifdef NDEBUG
-#if defined(__GNUC__) || defined(__clang__)
-#define unreachable() __builtin_unreachable()
-#elif defined(_MSC_VER)
-#define unreachable() __assume(false)
-#else
-#error "Unsupported compiler. Only MSVC, Clang and GCC are supported."
-#endif
-#else
-#define unreachable() assert(false && "This code should be unreachable.")
-#endif
-#endif
-
-using namespace std::literals;
-
-template <typename T>
-concept ScopedEnum =
-    std::is_enum_v<T> && !std::is_convertible_v<T, std::underlying_type_t<T>>;
-
-template <ScopedEnum T>
-inline constexpr std::underlying_type_t<T> to_underlying(T e) noexcept {
-  return static_cast<std::underlying_type_t<T>>(e);
-}

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string>
 namespace demonware {
 class bit_buffer final {
 public:

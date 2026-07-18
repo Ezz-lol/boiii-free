@@ -1,7 +1,6 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "macros.hpp"
+#include <game/symbols/sym_include.hpp>
 
 namespace game {
 namespace fx {
@@ -11,5 +10,3 @@ WEAK symbol<void(hunk::HunkUser *hunk, LocalClientNum_t maxLocalClients,
     FX_AllocateClientMemory{0x1414D4700};
 } // namespace fx
 } // namespace game
-
-#endif

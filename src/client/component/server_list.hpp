@@ -1,8 +1,8 @@
 #pragma once
 #include <game/game.hpp>
-
 #include <utils/concurrency.hpp>
 
+#include <unordered_set>
 namespace server_list {
 std::vector<game::net::netadr_t> get_master_servers();
 

@@ -1,8 +1,8 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "macros.hpp"
-#include <cstdint>
+#include <game/symbols/sym_include.hpp>
+
+#include "sym_include.hpp"
 
 namespace game {
 namespace sv {
@@ -64,5 +64,3 @@ WEAK symbol<BoneIndex(const level::gentity_t *ent, scr::ScrString_t boneName)>
     SV_DObjGetBoneIndex{0x14224E9E0, 0x140532120};
 } // namespace sv
 } // namespace game
-
-#endif

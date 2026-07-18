@@ -1,6 +1,6 @@
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
-#include "game/utils.hpp"
+#include <loader/component_loader.hpp>
+#include <game/utils.hpp>
 #include <utils/io.hpp>
 #include <utils/string.hpp>
 #include <utils/thread.hpp>
@@ -148,7 +148,7 @@ void get_map_id_from_json() {
   } else {
     const std::string &usermaps_path =
         std::filesystem::current_path().string() + "/usermaps";
-    std::string_view mapname = game::get_dvar_string("mapname");
+    std::string_view mapname = game::get_mapname().value_or("");
 
     for (const auto &entry :
          std::filesystem::directory_iterator(usermaps_path)) {

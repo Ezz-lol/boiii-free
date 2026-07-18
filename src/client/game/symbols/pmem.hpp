@@ -1,7 +1,6 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "macros.hpp"
+#include <game/symbols/sym_include.hpp>
 
 namespace game {
 namespace pmem {
@@ -22,5 +21,3 @@ WEAK symbol<void *(size_t size, size_t alignment, PMemPool pool,
 WEAK symbol<const char *> PerLocalClientMemoryName{0x143326EE0};
 } // namespace pmem
 } // namespace game
-
-#endif

@@ -1,8 +1,6 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include <cstdint>
-#include "macros.hpp"
+#include <game/symbols/sym_include.hpp>
 
 namespace game {
 namespace info {
@@ -13,5 +11,3 @@ WEAK symbol<void(char *s, const char *key, const char *value)>
 
 } // namespace info
 } // namespace game
-
-#endif

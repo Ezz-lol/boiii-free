@@ -1,10 +1,17 @@
-#include "../../../std_include.hpp"
+#include <std_include.hpp>
 #include "game.hpp"
 #include "../snd/snd.hpp"
+#include "hash.hpp"
 
-#include "../../../../common/utils/string.hpp"
+#include <utils/string.hpp>
 
 namespace game {
+
+CanonHash_t CanonHash(const char *str) {
+  constexpr CanonHash_t FNV_OFFSET_VAL = 0x4B9ACE2F;
+  constexpr CanonHash_t FNV_PRIME_VAL = 0x1000193;
+  return fnv1a_null<FNV_OFFSET_VAL, FNV_PRIME_VAL>(str);
+}
 
 constexpr int32_t TEMP_ENTITY_SOUND_EVENT = 0b100;
 constexpr int32_t TEMP_ENTITY_SOUND_NOTIFY_EVENT =

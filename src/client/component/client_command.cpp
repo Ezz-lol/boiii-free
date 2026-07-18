@@ -1,13 +1,10 @@
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
-
-#include "game/game.hpp"
+#include <loader/component_loader.hpp>
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
-#include "game/utils.hpp"
+#include <game/utils.hpp>
 
-#include "command.hpp"
 #include "client_command.hpp"
 
 namespace client_command {
@@ -15,7 +12,7 @@ namespace {
 std::unordered_map<std::string, callback> handlers;
 
 void client_command_stub(const game::ClientNum_t client_num) {
-  game::level::gentity_t *ent = game::client_ent(client_num);
+  game::level::gentity_t *ent = game::level::client_ent(client_num);
 
   if (ent->client == nullptr) {
     // Client is not fully in game

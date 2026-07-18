@@ -1,7 +1,7 @@
-#include "../std_include.hpp"
-#include "loader/component_loader.hpp"
-#include "../game/game.hpp"
-#include "../game/utils.hpp"
+#include <std_include.hpp>
+#include <loader/component_loader.hpp>
+#include <game/game.hpp>
+#include <game/utils.hpp>
 
 #include "party.hpp"
 #include "auth.hpp"
@@ -21,9 +21,10 @@
 #include <utils/cryptography.hpp>
 #include <utils/concurrency.hpp>
 
-#include "game/impl/cl/cl.hpp"
+#include <game/impl/cl/cl.hpp>
 
 namespace party {
+game::EngineDependentDvar cl_connected_to_dedi;
 namespace {
 std::atomic_bool is_connecting_to_dedi{false};
 game::net::netadr_t connect_host{{}, {}, game::net::NA_BAD, {}};
@@ -273,7 +274,7 @@ void handle_connect_query_response(const bool success,
   const std::string workshop_id = info.get("workshop_id").empty()
                                       ? info.get("usermapId")
                                       : info.get("workshop_id");
-  const std::string base_url = info.get("sv_wwwBaseURL").empty()
+  const std::string base_uri = info.get("sv_wwwBaseURL").empty()
                                    ? info.get("sv_wwwBaseUrl")
                                    : info.get("sv_wwwBaseURL");
 
@@ -296,7 +297,7 @@ void handle_connect_query_response(const bool success,
             workshop::get_usermap_publisher_id(mapname);
 
         if (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id,
-                                             base_url) &&
+                                             base_uri) &&
             workshop::check_valid_mod_id(mod_id, workshop_id)) {
           game::com::Com_SessionMode_SetGameMode(
               game::eGameModes::MATCHMAKING_PLAYLIST);
@@ -318,24 +319,13 @@ void handle_connect_query_response(const bool success,
       scheduler::main);
 }
 
-void connect_stub(const char *address) {
-  if (address) {
-    const game::net::netadr_t target = network::address_from_string(address);
-    if (target.type == game::net::NA_BAD) {
-      printf("Connect failed: invalid address \"%s\"\n", address);
-      toast::show("Connect failed", "Invalid address",
-                  "t7_icon_connect_overlays");
-      return;
-    }
-
-    connect_host = target;
-    toast::show("Connecting", address, "t7_icon_connect_overlays");
-  }
+void connect_finish(const game::net::netadr_t &target, const char *address) {
+  connect_host = target;
 
   profile_infos::clear_profile_infos();
 
   if (address) {
-    std::string game_info = friends::get_friend_game_info_by_address(address);
+    std::string game_info = friends::get_friend_game_info_by_address(target);
     if (!game_info.empty()) {
       std::vector<std::string> parts = utils::string::split(game_info, '|');
       if (parts.size() >= 4) {
@@ -346,9 +336,8 @@ void connect_stub(const char *address) {
         std::string mod_id = parts.size() >= 5 ? parts[4] : "";
 
         if (!mapname.empty() && !gametype.empty()) {
-
           scheduler::once(
-              [=] {
+              [=]() {
                 std::string usermap_id =
                     workshop::get_usermap_publisher_id(mapname);
                 game::com::Com_SessionMode_SetGameMode(
@@ -356,7 +345,7 @@ void connect_stub(const char *address) {
                 connect_to_lobby_with_mode_internal(
                     connect_host, mode, mapname, gametype, usermap_id, mod_id);
               },
-              scheduler::main);
+              scheduler::pipeline::main);
           return;
         }
       }
@@ -364,6 +353,31 @@ void connect_stub(const char *address) {
   }
 
   query_server(connect_host, handle_connect_query_response);
+}
+
+void connect_stub(const char *address) {
+  if (address) {
+    const std::string address_copy = address;
+
+    toast::show("Connecting", address, "t7_icon_connect_overlays");
+
+    network::resolvedAddrCallback_t resolveCb =
+        [address_copy](const game::net::netadr_t target) -> void {
+      if (target.type == game::net::NA_BAD) {
+        printf("Connect failed: invalid address \"%s\"\n",
+               address_copy.c_str());
+        toast::show("Connect failed", "Invalid address",
+                    "t7_icon_connect_overlays");
+        return;
+      }
+
+      connect_finish(target, address_copy.c_str());
+    };
+    // Resolve the address on a background thread.
+    network::address_from_string_async(address_copy, resolveCb);
+  } else {
+    connect_finish(connect_host, nullptr);
+  }
 }
 
 void send_server_query(server_query &query) {
@@ -478,13 +492,7 @@ void join_session(const game::net::netadr_t &addr, const std::string &hostname,
   connect_to_session(addr, hostname, xuid, mode);
 }
 
-uint16_t get_local_port() {
-  const game::dvar_t *net_port = game::get_dvar("net_port");
-  if (net_port) {
-    return static_cast<uint16_t>(game::get_dvar_uint(net_port));
-  }
-  return 3074; // BO3 default
-}
+uint16_t get_local_port() { return game::port(); }
 
 std::string get_server_hostname() {
   std::lock_guard lock(hostname_mutex);
@@ -504,9 +512,9 @@ void clear_server_info() {
 
 struct component final : client_component {
   void post_unpack() override {
-    (void)game::register_dvar_bool("cl_connected_to_dedi", false,
-                                   game::DVAR_NONE,
-                                   "True when connected to a dedicated server");
+    cl_connected_to_dedi =
+        game::register_dvar_bool("cl_connected_to_dedi", false, game::DVAR_NONE,
+                                 "True when connected to a dedicated server");
 
     utils::hook::jump(0x141EE5FE0_g, &connect_stub);
 

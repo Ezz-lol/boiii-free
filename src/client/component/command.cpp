@@ -1,5 +1,5 @@
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 
 #include "command.hpp"
 #include <utils/hook.hpp>
@@ -7,7 +7,6 @@
 #include <utils/memory.hpp>
 
 #include <game/game.hpp>
-#include <steam/steam.hpp>
 
 #include <mutex>
 

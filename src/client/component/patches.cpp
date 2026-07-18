@@ -1,7 +1,5 @@
-#include <cstdint>
-#include <sstream>
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 #include "scheduler.hpp"
 
 #include <game/game.hpp>
@@ -9,10 +7,10 @@
 
 #include <string>
 #include <utils/hook.hpp>
-#include "game/impl/game/game.hpp"
+#include <game/impl/game/game.hpp>
 
 #ifndef NDEBUG
-#include "game/impl/snd/snd.hpp"
+#include <game/impl/snd/snd.hpp>
 #endif
 
 namespace script {
@@ -22,7 +20,7 @@ std::string get_source_line(const std::string &file, int line_num);
 } // namespace script
 
 namespace patches {
-const game::dvar_t *lobby_min_players;
+game::EngineDependentDvar lobby_min_players;
 utils::hook::detour com_error_hook;
 
 std::string try_resolve_hex_token(const std::string &token) {
@@ -296,7 +294,7 @@ void com_error_stub(const char *file, int line, game::errorParm code,
   } else {
     printf("[Com_Error] Code=%d, File=%s, Line=%d, Caller=0x%llX: %s\n",
            static_cast<int32_t>(code), file ? file : "unknown", line,
-           static_cast<unsigned long long>(game::derelocate(callerAddr)),
+           reinterpret_cast<unsigned long long>(game::derelocate(callerAddr)),
            buffer);
   }
 
@@ -352,7 +350,7 @@ void scr_get_num_expected_players() {
 
   const game::eModes mode = game::com::Com_SessionMode_GetMode();
   if ((mode == game::eModes::ZOMBIES || mode == game::eModes::CAMPAIGN)) {
-    const int32_t min_players = game::get_dvar_int(lobby_min_players);
+    const int32_t min_players = lobby_min_players.get_int();
     if (min_players > 0) {
       expected_players = min_players;
     } else if (!game::is_server()) {
@@ -382,25 +380,6 @@ void Sys_WaitForSingleObject_Safe(HANDLE *event) {
   }
 }
 
-utils::hook::detour ScrVar_ReleaseVariable_hook;
-uint32_t ScrVar_ReleaseVariable_Safe(game::scr::scriptInstance_t inst,
-                                     game::scr::ScrVarIndex_t id) {
-  if (game::valid_scrvar_index(inst, id)) {
-    return ScrVar_ReleaseVariable_hook.invoke<uint32_t>(inst, id);
-  }
-
-  // Return 0 refcount for non-existent ScrVar
-  return 0;
-}
-
-utils::hook::detour ScrVar_ReleaseValue_hook;
-void ScrVar_ReleaseValue_Safe(game::scr::scriptInstance_t inst,
-                              game::scr::ScrVarValue_t *value) {
-  if (game::valid_scrvarvalue_ptr(inst, value)) {
-    ScrVar_ReleaseValue_hook.invoke(inst, value);
-  }
-}
-
 utils::hook::detour G_RegisterSoundWait_hook;
 #ifndef NDEBUG
 utils::hook::detour SND_HashName_hook;
@@ -411,11 +390,6 @@ struct component final : generic_component {
 
     G_RegisterSoundWait_hook.create(game::G_RegisterSoundWait.get(),
                                     game::G_RegisterSoundWait_Impl);
-    ScrVar_ReleaseVariable_hook.create(game::scr::ScrVar_ReleaseVariable.get(),
-                                       ScrVar_ReleaseVariable_Safe);
-    ScrVar_ReleaseValue_hook.create(game::scr::ScrVar_ReleaseValue.get(),
-                                    ScrVar_ReleaseValue_Safe);
-
 #ifndef NDEBUG
     SND_HashName_hook.create(game::snd::SND_HashName.get(),
                              game::snd::SND_HashName_Impl);
@@ -446,6 +420,7 @@ struct component final : generic_component {
 
     lobby_min_players = game::register_dvar_int("lobby_min_players", 0, 0, 8,
                                                 game::DVAR_NONE, "");
+
     utils::hook::jump(game::select(0x141A7BCF0, 0x1402CB900),
                       scr_get_num_expected_players, true);
   }

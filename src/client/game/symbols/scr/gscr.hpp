@@ -1,7 +1,6 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "../macros.hpp"
+#include <game/symbols/sym_include.hpp>
 
 namespace game {
 namespace scr {
@@ -20,5 +19,3 @@ WEAK symbol<void(scriptInstance_t inst)> GScr_BBPrint{0x1422A0940};
 } // namespace gscr
 } // namespace scr
 } // namespace game
-
-#endif

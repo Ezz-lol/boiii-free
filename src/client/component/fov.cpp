@@ -1,8 +1,7 @@
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 
-#include "game/game.hpp"
-#include "game/utils.hpp"
+#include <game/game.hpp>
 
 #include <utils/hook.hpp>
 
@@ -14,10 +13,10 @@ void cg_calc_fov_stub(const game::LocalClientNum_t local_client_num,
   game::cg::CG_CalcFOVfromLens.call_safe(
       local_client_num, fov_x, dx_dz_at_default_aspect_ratio, dx_dz, dy_dz);
 
-  const game::dvar_t *cg_fovScale =
-      *reinterpret_cast<game::dvar_t **>(0x144A31A88_g);
+  game::EngineDependentDvar cg_fovScale =
+      *reinterpret_cast<const game::EngineDependentDvar *>(0x144A31A88_g);
   if (cg_fovScale && !game::com::Com_IsRunningUILevel()) {
-    const float scale = game::get_dvar_float(cg_fovScale);
+    const float scale = cg_fovScale.get_float();
 
     *fov_x *= scale;
     *dx_dz *= scale;

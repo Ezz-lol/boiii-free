@@ -1,4 +1,6 @@
 #pragma once
+#include <functional>
+#include <string>
 
 namespace command {
 class params {

@@ -1,8 +1,8 @@
 #pragma once
-#ifdef GAME_HPP
+
+#include <game/symbols/sym_include.hpp>
 
 #include <cstdint>
-#include "../macros.hpp"
 
 namespace game {
 namespace net {
@@ -56,5 +56,3 @@ WEAK symbol<void(level::playerState_s *ps, user::usercmd_t *cmd)>
 } // namespace msg
 } // namespace net
 } // namespace game
-
-#endif

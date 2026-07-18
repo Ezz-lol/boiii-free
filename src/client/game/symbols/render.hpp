@@ -1,7 +1,6 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "macros.hpp"
+#include <game/symbols/sym_include.hpp>
 
 namespace game {
 namespace render {
@@ -12,5 +11,3 @@ WEAK symbol<void(const char *text, int, const uint32_t *font, float x, float y,
     R_AddCmdDrawText{0x141CD98D0};
 } // namespace render
 } // namespace game
-
-#endif

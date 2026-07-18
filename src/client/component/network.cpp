@@ -1,23 +1,21 @@
-#include <cstdint>
-#include <functional>
-#include <unordered_map>
-#include "../std_include.hpp"
-#include "loader/component_loader.hpp"
-#include "game/game.hpp"
-#include "game/fragment_handler.hpp"
-#include "game/utils.hpp"
+#include <std_include.hpp>
+#include <loader/component_loader.hpp>
+#include <game/game.hpp>
+#include <game/fragment_handler.hpp>
+#include <game/utils.hpp>
 
 #include "command.hpp"
 #include "network.hpp"
-#include "party.hpp"
 #include "scheduler.hpp"
-#include "security.hpp"
 
-#include <string>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/finally.hpp>
 #include <str.hpp>
+#include <string>
+#include <cstdint>
+#include <functional>
+#include <unordered_map>
 
 namespace network {
 namespace {
@@ -103,7 +101,7 @@ void create_ip_socket() {
   socket_set_blocking(s, false);
 
   const uint32_t address = htonl(INADDR_ANY);
-  uint16_t port = static_cast<uint16_t>(game::get_dvar_uint("net_port"));
+  uint16_t port = game::port();
 
   sockaddr_in server_addr{};
   server_addr.sin_family = AF_INET;
@@ -158,7 +156,7 @@ uint64_t handle_packet_internal_stub(
     const game::lobby::LobbyType lobby_type, const uint64_t dest_module,
     game::net::msg::msg_t *msg) {
   if (from_adr.type != game::net::NA_LOOPBACK && game::is_server() &&
-      !game::is_server_running()) {
+      !game::server_running()) {
     return 0;
   }
 
@@ -251,6 +249,14 @@ game::net::netadr_t address_from_string(const std::string &address) {
   }
 
   return addr;
+}
+
+void address_from_string_async(const std::string &address,
+                               resolvedAddrCallback_t &cb) {
+  std::thread([address, cb]() {
+    const game::net::netadr_t resolved = address_from_string(address);
+    cb(resolved);
+  }).detach();
 }
 
 game::net::netadr_t address_from_ip(const uint32_t ip, const uint16_t port) {

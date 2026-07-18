@@ -1,8 +1,8 @@
 #pragma once
-#ifdef GAME_HPP
+
+#include <game/symbols/sym_include.hpp>
 
 #include <cstdint>
-#include "macros.hpp"
 
 namespace game {
 namespace ugc {
@@ -68,5 +68,3 @@ WEAK symbol<ui::UIModelIndex> ugc_last_created_persistent_model{0x1567D9990};
 
 } // namespace ugc
 } // namespace game
-
-#endif

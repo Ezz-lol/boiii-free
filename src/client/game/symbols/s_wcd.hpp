@@ -1,7 +1,8 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "macros.hpp"
+#include <game/symbols/sym_include.hpp>
+
+#include <windows.h>
 
 namespace game {
 
@@ -16,5 +17,3 @@ WEAK symbol<int> windowWidth{0x157E76068, 0x14A6411D8};
 WEAK symbol<WNDPROC> SysInputLineWndProc{0x157E76070, 0x14A6411E0};
 } // namespace s_wcd
 } // namespace game
-
-#endif

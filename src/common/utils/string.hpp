@@ -3,10 +3,7 @@
 #include <cstdarg>
 #include <stdexcept>
 #include <string>
-
-template <class Type, size_t n> constexpr auto STATIC_ARRAY_COUNT(Type (&)[n]) {
-  return n;
-}
+#include <macros.hpp>
 
 namespace utils::string {
 
@@ -18,7 +15,7 @@ public:
   va_provider() : current_buffer_(0) {}
 
   char *get(const char *format, const va_list ap) {
-    ++this->current_buffer_ %= STATIC_ARRAY_COUNT(this->string_pool_);
+    ++this->current_buffer_ %= ARRAYSIZE(this->string_pool_);
     auto entry = &this->string_pool_[this->current_buffer_];
 
     if (!entry->size || !entry->buffer) {

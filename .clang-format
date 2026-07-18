@@ -1,4 +1,3 @@
-
 Language: C
 # The style this configuration is based on.
 # Options: LLVM, Google, Chromium, Mozilla, WebKit, Microsoft, GNU
@@ -387,6 +386,8 @@ UseCRLF: false
 UseTab: Never
 
 TabWidth: 2
+
+StatementMacros: ["PACKED"]
 
 ...
 Language: CSharp
@@ -4287,5 +4288,4 @@ UseCRLF: false
 UseTab: Never
 
 TabWidth: 2
-
 ...

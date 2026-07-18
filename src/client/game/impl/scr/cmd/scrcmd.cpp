@@ -1,10 +1,10 @@
-#include "../../../../std_include.hpp"
-#include <cstdint>
-#include "../../../../../common/utils/string.hpp"
-#include "../../../utils.hpp"
+#include <std_include.hpp>
 
-#include "../../game/game.hpp"
-#include "../scr.hpp"
+#include <utils/string.hpp>
+
+#include <game/utils.hpp>
+#include <game/impl/game/game.hpp>
+#include <game/impl/scr/scr.hpp>
 
 #include "scrcmd.hpp"
 
@@ -74,9 +74,8 @@ void ScrCmd_PlaySoundOnTag_Impl(scriptInstance_t inst, scr_entref_t *entref) {
         if (Scr_GetType(SCRIPTINSTANCE_SERVER, 2u) != ScrVarType::UNDEFINED) {
           game::team_t team = Scr_GetTeam(SCRIPTINSTANCE_SERVER, 2u);
           if (team != team_t::TEAM_FREE) {
-            level::gentity_pool *ent_pool = gentity_pool();
-            const uint32_t max_clients =
-                static_cast<uint32_t>(Dvar_GetInt(*com_maxclients));
+            level::gentity_pool *ent_pool = level::get_g_entities();
+            const uint32_t max_clients = com_maxclients->get_uint();
             for (uint32_t clientEntIdx = 0; clientEntIdx < max_clients;
                  clientEntIdx++) {
               level::gentity_t *mask_ent = &ent_pool->pool[clientEntIdx];
@@ -177,9 +176,8 @@ void ScrCmd_PlaySoundToTeam_Impl(scriptInstance_t inst, scr_entref_t *entref) {
   level::gentity_t *temp_ent = G_PlaySoundAlias_Impl(play_ent, alias_id, 0, 0);
   if (temp_ent) {
     temp_ent->s.clientMask[0] = -1;
-    level::gentity_pool *ent_pool = gentity_pool();
-    const uint32_t max_clients =
-        static_cast<uint32_t>(Dvar_GetInt(*com_maxclients));
+    level::gentity_pool *ent_pool = level::get_g_entities();
+    const uint32_t max_clients = com_maxclients->get_uint();
 
     for (uint32_t clientEntIdx = 0; clientEntIdx < max_clients;
          ++clientEntIdx) {

@@ -1,11 +1,13 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "macros.hpp"
+#include <game/symbols/sym_include.hpp>
+#include <windows.h>
 
 namespace game {
 namespace sys {
 WEAK symbol<int()> Sys_Milliseconds{0x142332870, 0x1405972F0};
+WEAK symbol<void(HINSTANCE h_instance)> Sys_CreateConsole{0x142332E00,
+                                                          0x140597880};
 WEAK symbol<void()> Sys_ShowConsole{0x1423333C0, 0x140597E40};
 WEAK symbol<TLSData *()> Sys_GetTLS{0x1421837B0, 0x140525EB0};
 WEAK symbol<TLSData *()> Sys_IsDatabaseReady{0x142183A60};
@@ -22,5 +24,3 @@ WEAK symbol<fs::PathList(char *directory, const char *extension, char *filter,
     Sys_ListFiles{0x1422EAA10, 0x1405827C0};
 } // namespace sys
 } // namespace game
-
-#endif

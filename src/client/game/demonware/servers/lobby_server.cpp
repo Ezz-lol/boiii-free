@@ -5,6 +5,7 @@
 #include "../keys.hpp"
 
 #include <utils/cryptography.hpp>
+#include <utils/string.hpp>
 
 namespace demonware {
 lobby_server::lobby_server(std::string name) : tcp_server(std::move(name)) {

@@ -1,4 +1,5 @@
-#include "../../../std_include.hpp"
+#include <std_include.hpp>
+#include "hash.hpp"
 #include "stdlib.h"
 #include "stdint.h"
 #include <cstring>
@@ -6,13 +7,13 @@
 
 #ifndef NDEBUG
 #include <unordered_map>
-#include "../../../../common/str.hpp"
+#include <str.hpp>
 #endif
 
 #include "snd.hpp"
 #include "sd/sd.hpp"
 
-#include "../../../../common/utils/string.hpp"
+#include <utils/string.hpp>
 
 namespace game {
 namespace snd {
@@ -113,7 +114,7 @@ bool SND_StartTocRead_Impl(SndBankLoad *load, SndAssetBankLoad *assetBank,
         int64_t entryOffset = assetBank->header.entryOffset;
         stream::stream_fileid fileHandle = assetBank->fileHandle;
         SndAssetBankEntry *data = assetBank->entries;
-        assetBank->indicesAllocated = 1;
+        assetBank->indicesAllocated = qtrue;
         SND_StreamRead(load, fileHandle, entryOffset, allocSize,
                        reinterpret_cast<void *>(data));
 
@@ -198,12 +199,8 @@ __inline_def SndStringHash SND_HashName_Impl(const char *name) {
   if (!name || !*name)
     return SND_HASH_EMPTY_STRING;
 
-  SndStringHash hash = SND_HASH_DJB2_INITIAL_SEED;
-  for (const char *c = name; *c; c++) {
-    hash = static_cast<SndStringHash>(
-               std::tolower(static_cast<unsigned char>(*c))) +
-           hash * SND_HASH_DJB2_CONSTANT;
-  }
+  SndStringHash hash =
+      djb2<SND_HASH_DJB2_INITIAL_SEED, SND_HASH_DJB2_CONSTANT>(name);
   if (!hash) {
     hash = 1;
   }

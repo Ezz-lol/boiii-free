@@ -1,9 +1,9 @@
 #include <std_include.hpp>
 #include "dedicated.hpp"
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 
-#include "game/game.hpp"
-#include "game/utils.hpp"
+#include <game/game.hpp>
+#include <game/utils.hpp>
 #include "command.hpp"
 #include "network.hpp"
 #include "scheduler.hpp"
@@ -17,17 +17,17 @@ constexpr const char *compatibility_commands[] = {
     "ffotdversion",     "bbdisable", "bbenable",
     "bitfieldBBPrints", "bbstart",   "setliveevent"};
 
-const game::dvar_t *sv_lan_only;
+game::EngineDependentDvar sv_lan_only;
 
 void sv_con_tell_f_stub(game::sv::client_s *cl, game::net::svscmd_type type,
                         [[maybe_unused]] const char *fmt,
-                        [[maybe_unused]] int c, char *text) {
+                        [[maybe_unused]] int32_t c, char *text) {
   game::sv::SV_SendServerCommand(cl, type, "%c \"GAME_SERVER\x15: %s\"", 79,
                                  text);
 }
 
 void send_heartbeat_packet() {
-  if (!game::get_dvar_bool(sv_lan_only)) {
+  if (!sv_lan_only.get_bool()) {
     for (const game::net::netadr_t &target :
          server_list::get_master_servers()) {
       network::send(target, "heartbeat", "T7");
@@ -51,7 +51,7 @@ void send_heartbeat() {
 void trigger_map_rotation() {
   scheduler::once(
       [] {
-        if (!game::get_dvar_string("sv_maprotation").empty()) {
+        if (!game::maprotation().value_or("").empty()) {
           game::cbuf::Cbuf_AddText(0, "map_rotate\n");
           send_heartbeat();
         }

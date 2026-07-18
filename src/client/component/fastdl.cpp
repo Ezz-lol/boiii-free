@@ -1,12 +1,11 @@
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
-#include "game/game.hpp"
+#include <loader/component_loader.hpp>
+#include <game/game.hpp>
 
 #include "fastdl.hpp"
 #include "scheduler.hpp"
 #include "download_overlay.hpp"
 
-#include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/io.hpp>
 #include <utils/http.hpp>
@@ -22,13 +21,6 @@ namespace {
 std::atomic_bool download_active{false};
 std::atomic_bool download_cancelled{false};
 
-std::string get_cache_buster() {
-  return "?" +
-         std::to_string(std::chrono::duration_cast<std::chrono::nanoseconds>(
-                            std::chrono::system_clock::now().time_since_epoch())
-                            .count());
-}
-
 struct download_stream_context {
   fastdl_ui *ui{};
   updater::file_info file{};
@@ -38,7 +30,8 @@ struct download_stream_context {
 int download_progress_cb(void *clientp, const curl_off_t /*dltotal*/,
                          const curl_off_t dlnow, const curl_off_t /*ultotal*/,
                          const curl_off_t /*ulnow*/) {
-  auto *ctx = static_cast<download_stream_context *>(clientp);
+  download_stream_context *ctx =
+      static_cast<download_stream_context *>(clientp);
   if (download_cancelled.load()) {
     return 1;
   }
@@ -58,11 +51,12 @@ size_t download_write_cb(void *contents, const size_t size, const size_t nmemb,
   if (download_cancelled.load()) {
     return 0;
   }
-  const auto total_size = size * nmemb;
-  auto *ctx = static_cast<download_stream_context *>(userp);
+  const size_t total_size = size * nmemb;
+  download_stream_context *ctx = static_cast<download_stream_context *>(userp);
   if (ctx && ctx->stream && contents && total_size > 0) {
     ctx->stream->write(static_cast<const char *>(contents),
                        static_cast<std::streamsize>(total_size));
+    ctx->stream->flush();
     if (!*ctx->stream) {
       return 0;
     }
@@ -70,12 +64,24 @@ size_t download_write_cb(void *contents, const size_t size, const size_t nmemb,
   return total_size;
 }
 
+std::string get_hash(std::ifstream &data) {
+  return utils::cryptography::sha1::compute(data, true);
+}
+
 std::string get_hash(const std::string &data) {
   return utils::cryptography::sha1::compute(data, true);
 }
 
 bool is_map_file(const std::string &file_name) {
-  return (file_name.ends_with(".xpak") || file_name.ends_with(".ff"));
+  constexpr const char *asset_file_exts[] = {".dll",  ".xpak", ".ff",
+                                             ".json", ".sabs", ".sabl"};
+  const std::string file_name_lower = utils::string::to_lower(file_name);
+  for (const char *ext : asset_file_exts) {
+    if (file_name_lower.ends_with(ext)) {
+      return true;
+    }
+  }
+  return false;
 }
 
 bool is_safe_relative_path(const std::string &path_string) {
@@ -142,21 +148,25 @@ std::vector<updater::file_info> parse_manifest(const std::string &json) {
 }
 
 std::pair<std::vector<updater::file_info>, updater::file_info>
-get_manifest_files(const std::string &base_url, const std::string &mapname) {
-  const auto manifest_url =
-      base_url + "/usermaps/" + mapname + "/manifest.json" + get_cache_buster();
-  const auto json = utils::http::get_data(manifest_url);
+get_manifest_files(const download_context &context) {
+  const std::string manifest_json_uri = context.map_tree_uri + "/manifest.json";
+
+  const std::optional<std::string> json =
+      utils::http::get_data(manifest_json_uri);
   if (!json) {
     return {};
   }
 
-  auto all_files = parse_manifest(*json);
+  std::vector<updater::file_info> all_files = parse_manifest(*json);
   std::vector<updater::file_info> other_files;
   updater::file_info workshop_json;
   bool found_workshop_json = false;
 
-  for (const auto &file : all_files) {
+  for (const updater::file_info &file : all_files) {
     if (file.name == "workshop.json") {
+      workshop_json = file;
+      found_workshop_json = true;
+    } else if (file.name == "zone/workshop.json") {
       workshop_json = file;
       found_workshop_json = true;
     } else {
@@ -179,23 +189,27 @@ void download_file(const updater::file_info &file,
     throw std::runtime_error("Invalid download path");
   }
 
-  const auto file_url =
-      context.base_url + "/usermaps/" + context.mapname + "/" + file.name;
-  const auto local_path =
-      (std::filesystem::path(context.map_path) / file.name).string();
+  const std::string file_url = context.map_tree_uri + "/" + file.name;
+  const std::string out_relative =
+      file.name.starts_with("zone/") ? file.name : ("zone/" + file.name);
+  const std::filesystem::path local_path =
+      std::filesystem::path(context.map_path) / file.name;
   bool completed = false;
 
   try {
     std::string empty{};
+    if (!utils::io::directory_exists(local_path.parent_path())) {
+      utils::io::create_directory(local_path.parent_path());
+    }
     if (!utils::io::write_file(local_path, empty, false)) {
       throw std::runtime_error(
-          utils::string::va("Failed to write file: %s", local_path.data()));
+          utils::string::va("Failed to write file: %s", local_path.c_str()));
     }
 
     std::ofstream ofs(local_path, std::ios::binary);
     if (!ofs) {
       throw std::runtime_error(
-          utils::string::va("Failed to open file: %s", local_path.data()));
+          utils::string::va("Failed to open file: %s", local_path.c_str()));
     }
 
     auto *curl = curl_easy_init();
@@ -207,19 +221,20 @@ void download_file(const updater::file_info &file,
 
     curl_easy_setopt(curl, CURLOPT_URL, file_url.data());
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
-    curl_easy_setopt(curl, CURLOPT_USERAGENT, "ezz-updater/1.0");
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, "fastdl/1.0");
     curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
     curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
-    curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "identity");
+    curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING,
+                     utils::http::PREFERRED_ACCEPT_ENCODING_HEADER);
     download_stream_context stream_ctx{&ui, file, &ofs};
     curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, download_write_cb);
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, &stream_ctx);
     curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, download_progress_cb);
     curl_easy_setopt(curl, CURLOPT_XFERINFODATA, &stream_ctx);
     curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
-    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 30L);
-    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 15L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 0L);
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 0L);
 
     const auto result_code = curl_easy_perform(curl);
 
@@ -237,19 +252,18 @@ void download_file(const updater::file_info &file,
 
     if (utils::io::file_size(local_path) != file.size) {
       throw std::runtime_error(utils::string::va(
-          "Downloaded file size mismatch: %s", local_path.data()));
+          "Downloaded file size mismatch: %s", local_path.c_str()));
     }
 
     {
-      std::string data{};
-      if (!utils::io::read_file(local_path, &data)) {
-        throw std::runtime_error(utils::string::va(
-            "Failed to read downloaded file: %s", local_path.data()));
-      }
+      std::ifstream ifs(local_path, std::ios::binary);
+      const std::string hash = get_hash(ifs);
+      ifs.close();
 
-      if (get_hash(data) != file.hash) {
+      if (utils::string::to_lower(hash) != utils::string::to_lower(file.hash)) {
         throw std::runtime_error(utils::string::va(
-            "Downloaded file hash mismatch: %s", local_path.data()));
+            "Downloaded file hash mismatch for %s:\n %s != %s",
+            local_path.c_str(), hash.c_str(), file.hash.c_str()));
       }
     }
 
@@ -273,77 +287,49 @@ void download_workshop_file(const updater::file_info &file,
     throw std::runtime_error("Invalid download path");
   }
 
-  const auto file_url =
-      context.base_url + "/usermaps/" + context.mapname + "/" + file.name;
-  const auto data = utils::http::get_data(file_url);
+  const std::string file_url = context.map_tree_uri + "/" + file.name;
+  const std::optional<std::string> data = utils::http::get_data(file_url);
 
-  if (!data || (data->size() != file.size || get_hash(*data) != file.hash)) {
+  if (!data ||
+      (data->size() != file.size || utils::string::to_lower(get_hash(*data)) !=
+                                        utils::string::to_lower(file.hash))) {
     throw std::runtime_error(
         utils::string::va("Failed to download: %s", file_url.data()));
   }
 
-  const auto local_path =
-      (std::filesystem::path(context.map_path) / file.name).string();
+  const std::string out_relative =
+      file.name.starts_with("zone/") ? file.name : ("zone/" + file.name);
+  const std::filesystem::path local_path =
+      std::filesystem::path(context.map_path) / file.name;
   if (!utils::io::write_file(local_path, *data, false)) {
     throw std::runtime_error(
-        utils::string::va("Failed to write: %s", local_path.data()));
+        utils::string::va("Failed to write: %s", local_path.c_str()));
   }
-}
-
-size_t get_optimal_concurrent_download_count(const size_t file_count) {
-  size_t cores = std::thread::hardware_concurrency();
-  cores = (cores * 2) / 3;
-  return std::max(1ull, std::min(cores, file_count));
 }
 
 void download_files(const std::vector<updater::file_info> &files,
                     const download_context &context, fastdl_ui &ui) {
-  const auto thread_count = get_optimal_concurrent_download_count(files.size());
+  /* Note: don't multi-thread these downloads.
+     For large usermaps, in combination with a slow hard drive (writes buffered
+     in memory for extended period), this results in catastrophically massive
+     memory overhead.
 
-  std::vector<std::thread> threads{};
-  std::atomic<size_t> current_index{0};
-  utils::concurrency::container<std::exception_ptr> exception{};
+     It will also throttle the dedicated server's available network
+     bandwidth if the fastDL HTTP server is hosted on the same machine,
+     especially if more than one player is concurrently downloading the map.
+  */
 
-  for (size_t i = 0; i < thread_count; ++i) {
-    threads.emplace_back([&]() {
-      while (!exception.access<bool>([](const std::exception_ptr &ptr) {
-        return static_cast<bool>(ptr);
-      })) {
-        const auto index = current_index++;
-        if (index >= files.size()) {
-          break;
-        }
-
-        try {
-          const auto &file = files[index];
-          ui.begin_file(file);
-          download_file(file, context, ui);
-          ui.end_file(file);
-        } catch (...) {
-          exception.access(
-              [](std::exception_ptr &ptr) { ptr = std::current_exception(); });
-          return;
-        }
-      }
-    });
+  for (size_t index = 0; index < files.size(); ++index) {
+    const updater::file_info &file = files[index];
+    ui.begin_file(file);
+    download_file(file, context, ui);
+    ui.end_file(file);
   }
-
-  for (auto &thread : threads) {
-    if (thread.joinable()) {
-      thread.join();
-    }
-  }
-
-  exception.access([](const std::exception_ptr &ptr) {
-    if (ptr) {
-      std::rethrow_exception(ptr);
-    }
-  });
 }
 
 bool is_file_outdated(const updater::file_info &file,
-                      const std::string &map_path) {
-  const auto local_path = map_path + "/" + file.name;
+                      const std::filesystem::path &map_path) {
+  const std::filesystem::path local_path = map_path / file.name;
 
   if (!utils::io::file_exists(local_path)) {
     return true;
@@ -354,12 +340,11 @@ bool is_file_outdated(const updater::file_info &file,
   }
 
   if (!is_map_file(file.name)) {
-    std::string data{};
-    if (!utils::io::read_file(local_path, &data)) {
-      return true;
-    }
+    std::ifstream ifs(local_path, std::ios::binary);
+    const std::string hash = get_hash(ifs);
+    ifs.close();
 
-    if (get_hash(data) != file.hash) {
+    if (utils::string::to_lower(hash) != utils::string::to_lower(file.hash)) {
       return true;
     }
   }
@@ -369,10 +354,10 @@ bool is_file_outdated(const updater::file_info &file,
 
 std::vector<updater::file_info>
 get_outdated_files(const std::vector<updater::file_info> &files,
-                   const std::string &map_path) {
+                   const std::filesystem::path &map_path) {
   std::vector<updater::file_info> outdated_files{};
 
-  for (const auto &file : files) {
+  for (const updater::file_info &file : files) {
     if (is_file_outdated(file, map_path)) {
       outdated_files.emplace_back(file);
     }
@@ -386,8 +371,7 @@ void perform_download(const download_context &context) {
     download_active = true;
     download_cancelled.store(false);
 
-    const auto [files, workshop_json] =
-        get_manifest_files(context.base_url, context.mapname);
+    const auto [files, workshop_json] = get_manifest_files(context);
     if (files.empty() || workshop_json.name.empty()) {
       download_active = false;
       show_ingame_error(
@@ -395,7 +379,8 @@ void perform_download(const download_context &context) {
       return;
     }
 
-    const auto outdated_files = get_outdated_files(files, context.map_path);
+    const std::vector<updater::file_info> outdated_files =
+        get_outdated_files(files, context.map_path);
     if (outdated_files.empty()) {
       download_workshop_file(workshop_json, context);
       download_active = false;
@@ -456,7 +441,7 @@ void start_map_download(const download_context &context) {
     return;
   }
 
-  scheduler::once([=]() { perform_download(context); }, scheduler::async);
+  scheduler::once([context]() { perform_download(context); }, scheduler::async);
 }
 
 void cancel_download() { download_cancelled.store(true); }

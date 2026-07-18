@@ -1,7 +1,5 @@
 #include <std_include.hpp>
-#include <random>
-#include <cstdint>
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 
 #include "auth.hpp"
 #include "party.hpp"
@@ -12,8 +10,6 @@
 
 #include <game/utils.hpp>
 
-#include <string>
-#include <utils/nt.hpp>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/smbios.hpp>
@@ -21,13 +17,14 @@
 #include <utils/info_string.hpp>
 #include <utils/cryptography.hpp>
 #include <utils/io.hpp>
+#include <utils/flags.hpp>
 #include <utils/properties.hpp>
 
 #include <game/fragment_handler.hpp>
 
 namespace auth {
-const game::dvar_t *password = nullptr;
-std::array<uint64_t, 18> client_xuids{};
+game::EngineDependentDvar password;
+std::array<game::XUID, 18> client_xuids{};
 std::mutex client_xuids_mutex;
 
 std::string get_hdd_serial() {
@@ -50,7 +47,7 @@ std::string get_hw_profile_guid() {
 }
 
 std::string get_protected_data() {
-  std::string input = "ezz-boiii-auth";
+  std::string input = game::alias() ? "ezz-boiii-auth-alias" : "ezz-boiii-auth";
 
   DATA_BLOB data_in{}, data_out{};
   data_in.pbData = reinterpret_cast<uint8_t *>(input.data());
@@ -92,15 +89,14 @@ static std::mutex key_file_mutex;
 
 std::filesystem::path key_file_path(game::ControllerIndex_t controllerIndex,
                                     bool isPublic = false) {
-  std::string key_filename;
   std::string prefix = isPublic ? "ezz-public" : "ezz-private";
-  if (controllerIndex == game::ControllerIndex_t::CONTROLLER_INDEX_0) {
-    key_filename = prefix + ".key";
-  } else {
-    key_filename = prefix + "-" +
-                   std::to_string(static_cast<uint32_t>(controllerIndex)) +
-                   ".key";
+  if (game::alias()) {
+    prefix += "-alias";
   }
+  if (controllerIndex != game::CONTROLLER_INDEX_0) {
+    prefix += "-" + std::to_string(static_cast<uint32_t>(controllerIndex));
+  }
+  std::string key_filename = prefix + ".key";
   return utils::properties::get_key_path() / key_filename;
 }
 
@@ -370,7 +366,7 @@ void dispatch_connect_packet(const game::net::netadr_t &target,
 void handle_connect_packet_fragment(const game::net::netadr_t &target,
                                     const network::data_view &data,
                                     game::LocalClientNum_t clientNum) {
-  if (game::is_server_running()) {
+  if (game::server_running()) {
     utils::byte_buffer buffer(data);
 
     std::string final_packet{};
@@ -387,7 +383,7 @@ void handle_connect_packet_fragment(const game::net::netadr_t &target,
 void handle_player_xuid_packet(const game::net::netadr_t &target,
                                const network::data_view &data,
                                game::LocalClientNum_t clientNum) {
-  if (!game::is_server_running() && party::is_host(target)) {
+  if (!game::server_running() && party::is_host(target)) {
     utils::byte_buffer buffer(data);
 
     const uint32_t player_id = buffer.read<uint32_t>();
@@ -427,7 +423,7 @@ uint64_t get_guid(const size_t client_num) {
     return 0;
   }
 
-  if (!game::is_server_running()) {
+  if (!game::server_running()) {
     std::lock_guard lock(client_xuids_mutex);
     return client_xuids[client_num];
   }

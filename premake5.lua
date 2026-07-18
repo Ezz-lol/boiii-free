@@ -297,6 +297,8 @@ if os.host() == "windows" then
     "-Wno-sign-compare",
     "/clang:-msse4.2",
     "/clang:-maes",
+    "/clang:-mbmi2",
+    "/clang:-mlzcnt",
   })
   linkoptions({ "/IGNORE:4702", "/LTCG" })
 else
@@ -361,7 +363,6 @@ pchheader("std_include.hpp")
 pchsource("src/client/std_include.cpp")
 
 files({
-  "./deps/SteamworkSDK/public/**.h",
   "./src/client/**.rc",
   "./src/client/**.hpp",
   "./src/client/**.cpp",
@@ -370,7 +371,7 @@ files({
 
 includedirs({
   "./deps/argparse/include",
-  "./deps/SteamWorksSDK/public",
+  "./deps/SteamworkSDK/public",
   "./src/client",
   "./src/common",
   "%{prj.location}/src",

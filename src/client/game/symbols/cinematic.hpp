@@ -1,7 +1,6 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "macros.hpp"
+#include <game/symbols/sym_include.hpp>
 
 namespace game {
 namespace cinematic {
@@ -12,5 +11,3 @@ WEAK symbol<void(uint64_t id, bool cancelAll)> Cinematic_StopPlayback{
     0x1412BEA70};
 } // namespace cinematic
 } // namespace game
-
-#endif

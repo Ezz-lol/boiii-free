@@ -1,8 +1,8 @@
 #pragma once
-#ifdef GAME_HPP
+
+#include <game/symbols/sym_include.hpp>
 
 #include <cstdint>
-#include "macros.hpp"
 
 namespace game {
 namespace bb {
@@ -36,5 +36,3 @@ WEAK symbol<int32_t(const char *name, const char *fmt, int *parameterCount,
     BB_ParseAndCacheFormatString{0x1422A0E30};
 } // namespace bb
 } // namespace game
-
-#endif

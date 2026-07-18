@@ -1,14 +1,13 @@
 #pragma once
-#include "../../steam/steam.hpp"
+#include <steam/steam.hpp>
 namespace game {
 namespace steam {
 
-// TODO: why can't we use <steam/steam_api.h> syntax?
-#include "../../../../deps/SteamworkSDK/public/steam/isteamremotestorage.h"
-#include "../../../../deps/SteamworkSDK/public/steam/isteamugc.h"
-#include "../../../../deps/SteamworkSDK/public/steam/isteamuser.h"
-#include "../../../../deps/SteamworkSDK/public/steam/isteamfriends.h"
-#include "../../../../deps/SteamworkSDK/public/steam/isteamapps.h"
+#include <steam/isteamremotestorage.h> // IWYU pragma: export
+#include <steam/isteamugc.h>           // IWYU pragma: export
+#include <steam/isteamuser.h>          // IWYU pragma: export
+#include <steam/isteamfriends.h>       // IWYU pragma: export
+#include <steam/isteamapps.h>          // IWYU pragma: export
 
 struct SteamInterfacesBase {
   ISteamClient *pSteamClient;

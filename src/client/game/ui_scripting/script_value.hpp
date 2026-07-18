@@ -1,13 +1,9 @@
 #pragma once
-#include "game/game.hpp"
-#include <utils/string.hpp>
+#include <game/game.hpp>
 
 #include <vector>
 #include <unordered_map>
 #include <string>
-#include <stdexcept>
-#include <typeinfo>
-#include <type_traits>
 
 namespace ui_scripting {
 using namespace game::ui::lua::hks;
@@ -55,6 +51,7 @@ public:
   script_value(int value);
   script_value(unsigned int value);
   script_value(bool value);
+  script_value(hksBool value);
 
   script_value(float value);
   script_value(double value);

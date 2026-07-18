@@ -1,22 +1,14 @@
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 #include "scheduler.hpp"
 
-#include "game/game.hpp"
-#include "steam/steam.hpp"
+#include <game/game.hpp>
+#include <steam/steam.hpp>
 
-#include <utils/io.hpp>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
-#include <utils/thread.hpp>
 #include <utils/pe.hpp>
 #include <utils/flags.hpp>
-#include <windows.h>
-#include <cstdint>
-#include <vector>
-#include <string>
-#include <sstream>
-#include <stdexcept>
 
 #include "integrity.hpp"
 
@@ -93,8 +85,8 @@ void callstack_stub(utils::hook::assembler &a) {
   a.jmp(qword_ptr(rsp, -8));
 }
 
-constexpr auto pseudo_steam_id = 0x1337;
-const auto pseudo_steam_handle = reinterpret_cast<HANDLE>(
+constexpr uint64_t pseudo_steam_id = 0x1337;
+const HANDLE pseudo_steam_handle = reinterpret_cast<HANDLE>(
     reinterpret_cast<uint64_t>(INVALID_HANDLE_VALUE) - pseudo_steam_id);
 
 utils::hook::detour nt_close_hook;

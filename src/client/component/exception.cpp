@@ -1,13 +1,12 @@
-#include "../std_include.hpp"
+#include <std_include.hpp>
 #include <cstdint>
 
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 
-#include "game/game.hpp"
+#include <game/game.hpp>
 #include "scheduler.hpp"
 
 #include <errhandlingapi.h>
-#include <utils/flags.hpp>
 #include <utils/hook.hpp>
 #include <utils/io.hpp>
 #include <utils/string.hpp>
@@ -16,7 +15,17 @@
 
 #include <exception/minidump.hpp>
 
-#include <version.hpp>
+// In case of clangd compilation
+#if __has_include("version.hpp")
+#include "version.hpp"
+#else
+#ifndef VERSION
+#define VERSION "0"
+#endif
+#ifndef SHORTVERSION
+#define SHORTVERSION "0"
+#endif
+#endif
 
 #include <dbghelp.h>
 #pragma comment(lib, "dbghelp.lib")
@@ -534,66 +543,88 @@ LONG WINAPI crash_fix_exception_handler(PEXCEPTION_POINTERS exception_info) {
   const uintptr_t addr = reinterpret_cast<uintptr_t>(record->ExceptionAddress);
   const uintptr_t base = game::get_base();
   const uintptr_t offset = addr - base;
+#ifndef NDEBUG
   const char *patch_name = nullptr;
+#endif
 
   switch (offset) {
   // Killcam animation crash - invalid anim data access
   case 0x234B9BD:
+#ifndef NDEBUG
     patch_name = "Killcam animation (invalid anim data)";
+#endif
     context->Rax = 0;
     context->Rip = base + 0x234D14B;
     break;
 
   // CG_ZBarrierAttachWeapon - null weapon pointer in zombie barriers
   case 0x464FEF:
+#ifndef NDEBUG
     patch_name = "ZBarrier weapon attach (null weapon)";
+#endif
     context->Rax = 0;
     context->Rip = base + 0x4651A2;
     break;
 
   // asmsetanimationrate - bad entity reference
   case 0x15E4B5A:
+#ifndef NDEBUG
     patch_name = "asmsetanimationrate (bad entity ref)";
+#endif
     context->Rip = base + 0x15E4B83;
     break;
 
   // Orphaned thread crash
   case 0x12EE4CC:
+#ifndef NDEBUG
     patch_name = "Orphaned thread";
+#endif
     context->Rip = base + 0x12EE5C8;
     break;
 
   // Character index out-of-bounds crash
   case 0x234210C:
+#ifndef NDEBUG
     patch_name = "Character index out-of-bounds";
+#endif
     context->Rip = base + 0x2342136;
     break;
 
   // HKS internal crash
   case 0x1CAB4F1:
+#ifndef NDEBUG
     patch_name = "HKS/Lua internal error";
+#endif
     context->Rip = base + 0x1CAB69E;
     break;
 
   // Null localization string crashes
   case 0x2279323:
+#ifndef NDEBUG
     patch_name = "Null localization string (UI)";
+#endif
     context->Rdx = reinterpret_cast<uintptr_t>(ui_localize_fallback);
     break;
 
   case 0x2278B96:
+#ifndef NDEBUG
     patch_name = "Null localization string (UI)";
+#endif
     context->Rsi = reinterpret_cast<uintptr_t>(ui_localize_fallback);
     break;
 
   case 0x228ED56:
+#ifndef NDEBUG
     patch_name = "Null localization string (UI)";
+#endif
     context->Rcx = reinterpret_cast<uintptr_t>(ui_localize_fallback);
     break;
 
   // Unknown UI crash
   case 0x1EAAA27:
+#ifndef NDEBUG
     patch_name = "UI crash (unknown)";
+#endif
     context->Rip = base + 0x1EAABB3;
     break;
 
@@ -601,7 +632,9 @@ LONG WINAPI crash_fix_exception_handler(PEXCEPTION_POINTERS exception_info) {
   case 0xC15B80:
   case 0xC15C50:
   case 0xC18CF5:
+#ifndef NDEBUG
     patch_name = "Non-existent clientfield (CSC)";
+#endif
     context->Rcx = 1; // CSC instance
     context->Rdx = reinterpret_cast<uintptr_t>("Clientfield does not exist");
     context->R8 = 0;
@@ -618,7 +651,9 @@ LONG WINAPI crash_fix_exception_handler(PEXCEPTION_POINTERS exception_info) {
   case 0x1A6C40D:
   case 0x1A6C697:
   case 0x1A6C894:
+#ifndef NDEBUG
     patch_name = "Non-existent clientfield (GSC)";
+#endif
     context->Rcx = 0; // GSC instance
     context->Rdx = reinterpret_cast<uintptr_t>("Clientfield does not exist");
     context->R8 = 0;
@@ -628,18 +663,24 @@ LONG WINAPI crash_fix_exception_handler(PEXCEPTION_POINTERS exception_info) {
   // Non-existent clientfield (additional crash sites)
   case 0x133EC1:
   case 0x133EEB:
+#ifndef NDEBUG
     patch_name = "Non-existent clientfield (additional)";
+#endif
     context->Rip = base + 0x133F12;
     break;
 
   case 0x133F31:
+#ifndef NDEBUG
     patch_name = "Non-existent clientfield (additional)";
+#endif
     context->Rip = base + 0x133F42;
     break;
 
   // Random crash on Zetsubou No Shima
   case 0x13591D3:
+#ifndef NDEBUG
     patch_name = "Zetsubou No Shima map bug";
+#endif
     context->Rip = base + 0x13591DA;
     break;
 
@@ -670,10 +711,13 @@ LONG WINAPI crash_fix_exception_handler(PEXCEPTION_POINTERS exception_info) {
     return EXCEPTION_CONTINUE_SEARCH;
   }
 
+#ifndef NDEBUG
   if (patch_name) {
     fprintf(stderr, "^3[Exception] Known crash patched: %s (base+0x%llX)\n",
             patch_name, offset);
+    fflush(stderr);
   }
+#endif
 
   return EXCEPTION_CONTINUE_EXECUTION;
 }

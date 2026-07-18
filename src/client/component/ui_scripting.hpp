@@ -3,7 +3,7 @@
 #include <atomic>
 #include <functional>
 
-#include "../game/ui_scripting/script_value.hpp"
+#include <game/ui_scripting/script_value.hpp>
 
 namespace ui_scripting {
 using namespace game::ui::lua::hks;

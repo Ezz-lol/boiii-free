@@ -176,9 +176,35 @@ enum class eModes : uint32_t {
   MULTIPLAYER = 0x1,
   CAMPAIGN = 0x2,
   COUNT = 0x3,
-  INVALID = 0x3,
+  INVALID = 0x3
 };
 IMPL_ENUM_OPERATORS(eModes);
+
+inline constexpr bool valid_mode(eModes mode) noexcept {
+  return +mode < +eModes::INVALID && +mode >= +eModes::ZOMBIES;
+}
+
+namespace com {
+eModes Com_SessionMode_GetMode();
+}
+
+template <typename T> union SessionModePool {
+  T pool[+eModes::COUNT];
+  struct {
+    T zombies;
+    T multiplayer;
+    T campaign;
+  };
+
+  inline T &get(eModes mode) noexcept { return pool[+mode]; }
+  inline const T &get(eModes mode) const noexcept { return pool[+mode]; }
+  inline T &get() noexcept { return get(com::Com_SessionMode_GetMode()); }
+  inline const T &get() const noexcept {
+    return get(com::Com_SessionMode_GetMode());
+  }
+  inline T &operator[](eModes index) noexcept { return get(index); }
+  inline const T &operator[](eModes index) const noexcept { return get(index); }
+};
 
 enum class eNetworkModes : uint32_t {
   OFFLINE = 0x0,
@@ -940,10 +966,7 @@ template <const size_t B> struct bitarray {
   inline constexpr void resetAllBits() noexcept { reset(); }
 };
 ASSERT_SIZE(bitarray<32>, 0x4);
-static_assert(std::is_standard_layout_v<bitarray<32>>,
-              "bitarray must be standard layout!");
-static_assert(std::is_trivially_copyable_v<bitarray<32>>,
-              "bitarray must be trivially copyable!");
+ASSERT_POD(bitarray<32>);
 
 #pragma pack(pop)
 

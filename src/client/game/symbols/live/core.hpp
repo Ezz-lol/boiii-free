@@ -1,8 +1,8 @@
 #pragma once
-#ifdef GAME_HPP
+
+#include <game/symbols/sym_include.hpp>
 
 #include <cstdint>
-#include "../macros.hpp"
 
 namespace game {
 namespace live {
@@ -46,5 +46,3 @@ WEAK symbol<uint32_t[2]> g_oldDoubleXPMask{0x1453D8BB0};
 
 } // namespace live
 } // namespace game
-
-#endif

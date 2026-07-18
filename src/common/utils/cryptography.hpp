@@ -1,5 +1,6 @@
 #pragma once
 
+#include <fstream>
 #include <string>
 #include <tomcrypt.h>
 
@@ -83,6 +84,9 @@ std::string compute(const std::string &data, const std::string &key);
 namespace sha1 {
 std::string compute(const std::string &data, bool hex = false);
 std::string compute(const uint8_t *data, size_t length, bool hex = false);
+
+std::string compute(std::ifstream &data, bool hex = false);
+
 } // namespace sha1
 
 namespace sha256 {

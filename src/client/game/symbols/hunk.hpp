@@ -1,7 +1,6 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "macros.hpp"
+#include <game/symbols/sym_include.hpp>
 
 namespace game {
 namespace hunk {
@@ -42,4 +41,3 @@ WEAK symbol<HunkUserAllocationSchemeMap> g_HunkUserAllocationSchemeMap{
     0x1434418D0, 0x14114BC40};
 } // namespace hunk
 } // namespace game
-#endif

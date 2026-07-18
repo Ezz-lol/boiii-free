@@ -1,8 +1,8 @@
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 
-#include "game/game.hpp"
-#include "game/utils.hpp"
+#include <game/game.hpp>
+#include <game/utils.hpp>
 #include "scheduler.hpp"
 
 #include <utils/hook.hpp>
@@ -10,7 +10,7 @@
 namespace dvars_patches {
 namespace {
 void patch_dvars() {
-  (void)game::register_sessionmode_dvar_bool(
+  game::com_pauseSupported = game::register_sessionmode_dvar_bool(
       "com_pauseSupported", !game::is_server(), game::DVAR_SERVERINFO,
       "Whether pause is supported by the game mode");
 }
@@ -57,6 +57,59 @@ void dof_enabled_stub(utils::hook::assembler &a) {
   a.lea(rdx, ptr(rbx, 0x131EB4));
   a.jmp(0x141116EC2_g); // CG_UpdateAdsDof
 }
+
+void dvar_disablebool_cb(game::EngineDependentDvar dvar) {
+  if (dvar.get_bool()) {
+    dvar.set(false);
+  }
+}
+
+game::EngineDependentDvarMut
+Dvar_RegisterDisable_Bool(game::dvarStrHash_t hash, const char *dvarName,
+                          [[maybe_unused]] bool value, game::DvarFlags flags,
+                          const char *description) {
+  const game::EngineDependentDvarMut dvar =
+      game::Dvar_RegisterBool(hash, dvarName, false, flags, description);
+
+  game::Dvar_SetModifiedCallback(dvar, dvar_disablebool_cb);
+
+  return dvar;
+}
+game::EngineDependentDvarMut Dvar_RegisterDisable_Bool_Inlined(
+    game::dvarStrHash_t hash, const char *dvarName, game::dvarType_t type,
+    game::DvarFlags flags, game::DvarValue *value, game::DvarLimits *domain,
+    const char *description, bool isSessionModeDvar) {
+  value->enabled() = false;
+  const game::EngineDependentDvarMut dvar =
+      game::Dvar_RegisterVariant(hash, dvarName, type, flags, value, domain,
+                                 description, isSessionModeDvar);
+  game::Dvar_SetModifiedCallback(dvar, dvar_disablebool_cb);
+  return dvar;
+}
+
+inline void disable_sv_cheats() {
+  /*
+     1. sv_cheats used to enable/disable cheat commands - both in console
+     and in SV commands.
+  */
+  {
+    // R_RegisterDvars
+    utils::hook::call(0x140379E80_g, Dvar_RegisterDisable_Bool);
+    // SV_Init
+    utils::hook::call(0x140534DF2_g, Dvar_RegisterDisable_Bool);
+  }
+  /*
+     2. sv_cheats used to enable/disable cheat dvars - controls whether cheat
+     protection on a dvar to be modified is checked and respected in internal
+     setters.
+     Global is named `dvar_cheats` in engine.
+     This is the one that GSC scripts can modify. If not for this hook, anyway.
+  */
+  {
+    // Dvar_Init
+    utils::hook::call(0x1405767F5_g, Dvar_RegisterDisable_Bool_Inlined);
+  }
+}
 } // namespace
 
 class component final : public generic_component {
@@ -83,6 +136,9 @@ public:
 
     // Set the flag of 'sv_network_fps'
     utils::hook::set<uint32_t>(0x140534FD8_g, game::DVAR_NONE);
+
+    // Disable both (??) sv_cheats dvars immediately after registration
+    disable_sv_cheats();
   }
 };
 } // namespace dvars_patches

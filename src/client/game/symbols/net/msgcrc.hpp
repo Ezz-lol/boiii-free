@@ -1,8 +1,8 @@
 #pragma once
-#ifdef GAME_HPP
+
+#include <game/symbols/sym_include.hpp>
 
 #include <cstdint>
-#include "../macros.hpp"
 
 namespace game {
 namespace net {
@@ -12,5 +12,3 @@ WEAK symbol<uint32_t()> MsgCRC_NetFieldChecksum{0x142158E50};
 } // namespace msgcrc
 } // namespace net
 } // namespace game
-
-#endif

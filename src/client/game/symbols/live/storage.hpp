@@ -1,9 +1,8 @@
 #pragma once
 
-#ifdef GAME_HPP
+#include <game/symbols/sym_include.hpp>
 
 #include <cstdint>
-#include "../macros.hpp"
 
 namespace game {
 namespace live {
@@ -16,5 +15,3 @@ WEAK symbol<int32_t(const ControllerIndex_t controllerIndex,
 
 } // namespace live
 } // namespace game
-
-#endif

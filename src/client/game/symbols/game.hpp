@@ -1,8 +1,8 @@
 #pragma once
-#ifdef GAME_HPP
+
+#include <game/symbols/sym_include.hpp>
 
 #include <cstdint>
-#include "macros.hpp"
 
 namespace game {
 
@@ -49,5 +49,3 @@ WEAK symbol<level::gentity_t *(const vec3_t *origin, snd::SndAliasId alias)>
     G_TempEntity{0x141B819A0, 0x140308AF0};
 WEAK symbol<str64_t> g_mapname{0x1579DF840, 0x14A30C300};
 } // namespace game
-
-#endif

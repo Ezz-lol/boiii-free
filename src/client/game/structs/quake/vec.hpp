@@ -75,10 +75,7 @@ template <typename T = vec_t> union vec2 {
 
 typedef vec2<vec_t> vec2_t;
 ASSERT_SIZE(vec2_t, sizeof(vec_t) * 2);
-static_assert(std::is_standard_layout_v<vec2_t>,
-              "vec2_t must be standard layout!");
-static_assert(std::is_trivially_copyable_v<vec2_t>,
-              "vec2_t must be trivially copyable!");
+ASSERT_POD(vec2_t);
 
 template <typename T = vec_t> union vec3 {
   struct {
@@ -168,10 +165,7 @@ template <typename T = vec_t> union vec3 {
 
 typedef vec3<vec_t> vec3_t;
 ASSERT_SIZE(vec3_t, sizeof(vec_t) * 3);
-static_assert(std::is_standard_layout_v<vec3_t>,
-              "vec3_t must be standard layout!");
-static_assert(std::is_trivially_copyable_v<vec3_t>,
-              "vec3_t must be trivially copyable!");
+ASSERT_POD(vec3_t);
 
 template <typename T = vec_t> union vec4 {
   T v[4];
@@ -269,10 +263,7 @@ template <typename T = vec_t> union vec4 {
 
 typedef vec4<vec_t> vec4_t;
 ASSERT_SIZE(vec4_t, sizeof(vec_t) * 4);
-static_assert(std::is_standard_layout_v<vec4_t>,
-              "vec4_t must be standard layout!");
-static_assert(std::is_trivially_copyable_v<vec4_t>,
-              "vec4_t must be trivially copyable!");
+ASSERT_POD(vec4_t);
 
 /*
   vec2: non-member operators and functions

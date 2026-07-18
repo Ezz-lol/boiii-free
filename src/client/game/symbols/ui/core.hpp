@@ -1,7 +1,6 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "../macros.hpp"
+#include <game/symbols/sym_include.hpp>
 
 namespace game {
 namespace ui {
@@ -50,5 +49,3 @@ WEAK symbol<void(LocalClientNum_t localClientNum)> UI_CoD_Layout{0x141F29EF0};
 WEAK symbol<void(LocalClientNum_t localClientNum)> UI_CoD_Render{0x141F2E140};
 } // namespace ui
 } // namespace game
-
-#endif

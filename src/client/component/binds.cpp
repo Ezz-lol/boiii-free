@@ -1,6 +1,6 @@
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
-#include "game/game.hpp"
+#include <loader/component_loader.hpp>
+#include <game/game.hpp>
 #include "command.hpp"
 #include "scheduler.hpp"
 #include "toast.hpp"

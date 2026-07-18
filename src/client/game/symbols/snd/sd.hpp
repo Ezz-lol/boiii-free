@@ -1,8 +1,8 @@
 #pragma once
-#ifdef GAME_HPP
+
+#include <game/symbols/sym_include.hpp>
 
 #include <cstdint>
-#include "../macros.hpp"
 
 namespace game {
 namespace snd {
@@ -18,5 +18,3 @@ WEAK symbol<void(sd_byte *ptr)> SD_Free{0x142265CB0};
 } // namespace sd
 } // namespace snd
 } // namespace game
-
-#endif

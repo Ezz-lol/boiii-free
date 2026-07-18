@@ -1,14 +1,15 @@
-#include "../std_include.hpp"
-#include "loader/component_loader.hpp"
-#include "../game/game.hpp"
-#include "../game/utils.hpp"
-#include "../game/impl/scr/scr.hpp"
+#include <std_include.hpp>
+#include <loader/component_loader.hpp>
+#include <game/game.hpp>
+#include <game/utils.hpp>
+#include <game/impl/scr/scr.hpp>
 
 #include "game_event.hpp"
 #include "gsc/gsc_compiler.hpp"
-#include "scheduler.hpp"
+#include "gsc/gsc.hpp"
 
 #include <unordered_map>
+#include <utils/memory.hpp>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/io.hpp>
@@ -28,64 +29,6 @@ utils::hook::detour gscr_get_bgb_tokens_remaining_hook;
 
 utils::memory::allocator allocator;
 std::unordered_map<std::string, RawFile *> loaded_scripts;
-static constexpr std::array<std::string_view, 5> SCR_HASH_LITERAL_PREFIXES = {
-    "hash", "id", "function", "var", "namespace"};
-
-bool is_hash_literal_prefix(const std::string &s) {
-  for (uint32_t i = 0; i < SCR_HASH_LITERAL_PREFIXES.size(); i++) {
-    if (s == SCR_HASH_LITERAL_PREFIXES[i]) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-bool try_parse_raw_hash(const std::string &input, uint32_t &out) {
-
-  if (input.size() > 0) {
-    std::string inputSubstr = input;
-    if (inputSubstr[0] == '_') {
-      inputSubstr = inputSubstr.substr(1);
-    }
-    const size_t underscoreIdx = inputSubstr.find('_');
-    if (underscoreIdx != std::string::npos &&
-        underscoreIdx < inputSubstr.size()) {
-
-      const std::string prefix = inputSubstr.substr(0, underscoreIdx);
-      if (is_hash_literal_prefix(prefix)) {
-
-        const std::string hex_part = inputSubstr.substr(underscoreIdx + 1);
-        if (hex_part.size() == 8) {
-
-          for (char c : hex_part) {
-            if (!std::isxdigit(static_cast<unsigned char>(c)))
-              return false;
-          }
-
-          out = static_cast<uint32_t>(std::stoul(hex_part, nullptr, 16));
-          return out != 0;
-        }
-      }
-    }
-  }
-
-  return false;
-}
-
-uint32_t gsc_hash(const std::string &str) {
-  uint32_t raw = 0;
-  if (try_parse_raw_hash(str, raw))
-    return raw;
-
-  uint32_t h = 0x4B9ACE2F;
-  for (char c : str)
-    h = (static_cast<uint32_t>(std::tolower(static_cast<unsigned char>(c))) ^
-         h) *
-        0x1000193;
-  h *= 0x1000193;
-  return h;
-}
 
 std::string normalize_script_name(std::string script_name) {
   auto start = script_name.find('<');
@@ -221,7 +164,7 @@ void fixup_script_imports(char *buf, int32_t len) {
         c = '/';
       c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     }
-    uint32_t path_hash = gsc_hash(inc_path);
+    uint32_t path_hash = gsc::gsc_hash(inc_path);
 
     // Look up the actual game SPT for this include path (try .gsc then .csc)
     auto *asset = db_find_x_asset_header_hook.invoke<RawFile *>(
@@ -553,9 +496,9 @@ void load_script_file(std::string &data, const std::string &script_file,
           const std::string replace_script =
               rf.replace_script.empty() ? replace_base : rf.replace_script;
           pending_detours.push_back(
-              {rf.target_script, rf.target_func, gsc_hash(rf.target_func),
+              {rf.target_script, rf.target_func, gsc::gsc_hash(rf.target_func),
                rf.target_params, replace_script, rf.replace_func,
-               gsc_hash(rf.replace_func), rf.replace_params});
+               gsc::gsc_hash(rf.replace_func), rf.replace_params});
         }
       }
     } else {
@@ -635,7 +578,7 @@ std::optional<std::filesystem::path> get_game_type_specific_folder() {
 }
 
 std::optional<std::filesystem::path> get_map_specific_folder() {
-  const std::string_view mapname = game::get_dvar_string("mapname");
+  const std::string_view mapname = game::get_mapname().value_or("");
   if (mapname.empty()) {
     return {};
   }
@@ -643,7 +586,7 @@ std::optional<std::filesystem::path> get_map_specific_folder() {
   return mapname;
 }
 
-void load_scripts() {
+void load_tree(std::filesystem::path tree, bool execImmediate = false) {
   const utils::nt::library host{};
 
   const std::filesystem::path data_folder = game::get_appdata_path() / "data";
@@ -656,24 +599,18 @@ void load_scripts() {
     load_scripts_folder((boiii_folder / folder).string(), load, recurse);
   };
 
-  // scripts folder is for overriding stock scripts the game uses
-  load("scripts", false, true);
-
   std::vector<std::filesystem::path> applicable_custom_script_paths = {
-      "custom_scripts/shared", "custom_scripts/core",
-      "custom_scripts/codescripts"};
+      tree / "shared", tree / "core", tree / "codescripts"};
   const std::optional<std::filesystem::path> game_type =
       get_game_type_specific_folder();
   if (game_type.has_value()) {
-    applicable_custom_script_paths.push_back("custom_scripts" /
-                                             game_type.value());
+    applicable_custom_script_paths.push_back(tree / game_type.value());
   }
 
   const std::optional<std::filesystem::path> map_name =
       get_map_specific_folder();
   if (map_name.has_value()) {
-    applicable_custom_script_paths.push_back("custom_scripts" /
-                                             map_name.value());
+    applicable_custom_script_paths.push_back(tree / map_name.value());
   }
 
   /*
@@ -684,13 +621,44 @@ void load_scripts() {
   for (const std::filesystem::path &path : applicable_custom_script_paths) {
     load(path, false, true);
   }
-  load("custom_scripts", false, false);
+  load(tree, false, false);
 
-  // Now, load the custom scripts into the VM.
-  for (const std::filesystem::path &path : applicable_custom_script_paths) {
-    load(path, true, true);
+  if (execImmediate) {
+    // Now, load the custom scripts into the VM.
+    for (const std::filesystem::path &path : applicable_custom_script_paths) {
+      load(path, true, true);
+    }
+    load(tree, true, false);
   }
-  load("custom_scripts", true, false);
+}
+
+void load_scripts() {
+  // scripts tree is for overriding stock scripts the game uses
+  load_tree("scripts", false);
+  // Custom scripts is for new scripts we must execute
+  load_tree("custom_scripts", true);
+}
+
+RawFile *get_loaded_map_script(const char *name) {
+  // "scripts/${mapname}/${scripts_sub_path}"
+  const std::optional<std::string_view> mapname = game::get_mapname();
+  if (mapname.has_value() && !mapname.value().empty()) {
+    const std::string_view search_name = name;
+    // Replace "scripts/" tree name with "scripts/${mapname}/"
+    size_t first_sep = search_name.find('/');
+    if (first_sep != std::string::npos) {
+      const std::string_view tree = search_name.substr(0, first_sep + 1);
+      if (tree == "scripts/") {
+        const std::string override_path =
+            std::string(tree) /* "scripts/" */ + std::string(mapname.value()) +
+            std::string(search_name.substr(
+                first_sep)) /* "/" + relative path under "scripts" tree */;
+        return get_loaded_script(override_path);
+      }
+    }
+  }
+
+  return nullptr;
 }
 
 XAssetHeader db_find_x_asset_header_stub(const XAssetType type,
@@ -699,8 +667,14 @@ XAssetHeader db_find_x_asset_header_stub(const XAssetType type,
                                          const int32_t wait_time) {
   // Check our loaded scripts FIRST to avoid "Could not find scriptparsetree"
   // spam
-  if (type == XAssetType::SCRIPTPARSETREE) {
+  if (name && name[0] && type == XAssetType::SCRIPTPARSETREE) {
     RawFile *script = get_loaded_script(name);
+    if (script != nullptr) {
+      return static_cast<XAssetHeader>(script);
+    }
+
+    // Try to get map-specific script override
+    script = get_loaded_map_script(name);
     if (script != nullptr) {
       return static_cast<XAssetHeader>(script);
     }
@@ -800,7 +774,7 @@ std::string resolve_hash(uint32_t hash) {
 uint8_t *find_export_address(const std::string &script_name,
                              const std::string &func_name,
                              int32_t expected_params) {
-  return find_export_address_internal(script_name, gsc_hash(func_name),
+  return find_export_address_internal(script_name, gsc::gsc_hash(func_name),
                                       expected_params);
 }
 

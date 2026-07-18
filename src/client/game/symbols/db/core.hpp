@@ -1,8 +1,8 @@
 #pragma once
-#ifdef GAME_HPP
+
+#include <game/symbols/sym_include.hpp>
 
 #include <cstdint>
-#include "../macros.hpp"
 
 namespace game {
 namespace db {
@@ -16,4 +16,3 @@ WEAK symbol<float()> DB_GetLoadedFraction{0x1413EF490};
 
 } // namespace db
 } // namespace game
-#endif

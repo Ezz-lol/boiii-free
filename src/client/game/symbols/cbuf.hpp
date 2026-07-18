@@ -1,7 +1,6 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "macros.hpp"
+#include <game/symbols/sym_include.hpp>
 
 namespace game {
 namespace cbuf {
@@ -12,5 +11,3 @@ WEAK symbol<void(int localClientNum, ControllerIndex_t controllerIndex,
     Cbuf_ExecuteBuffer{0x14133BE10, 0x1404F78D0};
 } // namespace cbuf
 } // namespace game
-
-#endif

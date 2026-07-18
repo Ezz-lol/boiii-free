@@ -1,8 +1,8 @@
 #pragma once
-#ifdef GAME_HPP
+
+#include <game/symbols/sym_include.hpp>
 
 #include <cstdint>
-#include "../macros.hpp"
 
 namespace game {
 namespace db {
@@ -25,4 +25,3 @@ WEAK symbol<int(XAssetType type)> DB_GetXAssetTypeSize{0x1413E9DD0,
 } // namespace xasset
 } // namespace db
 } // namespace game
-#endif

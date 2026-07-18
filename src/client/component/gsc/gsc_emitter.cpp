@@ -1,73 +1,15 @@
-#include "../../std_include.hpp"
+#include <std_include.hpp>
 #include "gsc_emitter.hpp"
+#include "component/gsc/gsc_funcs.hpp"
 #include <algorithm>
 #include <cstring>
-#include <unordered_set>
+
+#include "gsc.hpp"
 
 namespace gsc_compiler {
 namespace {
-constexpr uint64_t T7_MAGIC = 0x1C000A0D43534780;
-constexpr uint32_t HASH_IV = 0x4B9ACE2F;
-constexpr uint32_t HASH_KEY = 0x1000193;
-
-static constexpr std::array<std::string_view, 5> SCR_HASH_LITERAL_PREFIXES = {
-    "hash", "id", "function", "var", "namespace"};
-
-bool is_hash_literal_prefix(const std::string &s) {
-  for (uint32_t i = 0; i < SCR_HASH_LITERAL_PREFIXES.size(); i++) {
-    if (s == SCR_HASH_LITERAL_PREFIXES[i]) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-bool try_parse_raw_hash(const std::string &input, uint32_t &out) {
-
-  if (input.size() > 0) {
-    std::string inputSubstr = input;
-    if (inputSubstr[0] == '_') {
-      inputSubstr = inputSubstr.substr(1);
-    }
-    const size_t underscoreIdx = inputSubstr.find('_');
-    if (underscoreIdx != std::string::npos &&
-        underscoreIdx < inputSubstr.size()) {
-
-      const std::string prefix = inputSubstr.substr(0, underscoreIdx);
-      if (is_hash_literal_prefix(prefix)) {
-
-        const std::string hex_part = inputSubstr.substr(underscoreIdx + 1);
-        if (hex_part.size() == 8) {
-
-          for (char c : hex_part) {
-            if (!std::isxdigit(static_cast<unsigned char>(c)))
-              return false;
-          }
-
-          out = static_cast<uint32_t>(std::stoul(hex_part, nullptr, 16));
-          return out != 0;
-        }
-      }
-    }
-  }
-
-  return false;
-}
-
-uint32_t gsc_hash(const std::string &input) {
-  uint32_t raw = 0;
-  if (try_parse_raw_hash(input, raw))
-    return raw;
-
-  uint32_t hash = HASH_IV;
-  for (char c : input)
-    hash = (static_cast<uint32_t>(std::tolower(static_cast<unsigned char>(c))) ^
-            hash) *
-           HASH_KEY;
-  hash *= HASH_KEY;
-  return hash;
-}
+using namespace game;
+using namespace game::scr;
 
 uint32_t align_value(uint32_t val, uint32_t alignment) {
   return (val + alignment - 1) & ~(alignment - 1);
@@ -411,7 +353,7 @@ struct emitter_state {
     std::transform(
         lower.begin(), lower.end(), lower.begin(),
         [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-    uint32_t h = gsc_hash(lower);
+    uint32_t h = gsc::gsc_hash(lower);
     hash_names.push_back({h, lower, line, params});
   }
 
@@ -485,7 +427,8 @@ struct emitter_state {
            (static_cast<uint64_t>(params) << 8) | flags;
   }
 
-  size_t add_import(uint32_t func_hash, uint32_t ns_hash, uint8_t num_params,
+  size_t add_import(ScrVarCanonicalName_t func_hash,
+                    ScrVarCanonicalName_t ns_hash, uint8_t num_params,
                     uint8_t flags) {
     for (size_t i = 0; i < imports.size(); i++) {
       if (imports[i].function_hash == func_hash &&
@@ -497,8 +440,23 @@ struct emitter_state {
     return imports.size() - 1;
   }
 
-  void emit_call(uint32_t func_hash, uint32_t ns_hash, uint8_t num_params,
-                 bool is_method, bool is_thread, bool same_namespace) {
+  void emit_call(ScrVarCanonicalName_t func_hash, ScrVarCanonicalName_t ns_hash,
+                 uint8_t num_params, bool is_method, bool is_thread,
+                 bool same_namespace, bool builtin = false) {
+
+    if (!builtin && same_namespace) {
+      if (is_method && gsc::custom_builtin_method(func_hash)) {
+        builtin = true;
+      } else if (gsc::custom_builtin_function(func_hash)) {
+        builtin = true;
+      }
+    }
+
+    if (builtin) {
+      ns_hash = gsc::GSCR_SYS_NS_HASH;
+      same_namespace = false;
+    }
+
     uint8_t flags = 0;
     if (is_method)
       flags = is_thread ? IMPORT_FUNC_METHOD_THREAD : IMPORT_FUNC_METHOD;
@@ -515,12 +473,14 @@ struct emitter_state {
       op = is_thread ? script_opcode::OP_ScriptThreadCall
                      : script_opcode::OP_ScriptFunctionCall;
 
-    size_t import_idx = add_import(func_hash, ns_hash, num_params, flags);
-
     uint32_t opcode_pos = static_cast<uint32_t>(current_func->bytecode.size());
     emit_op(op);
-    imports[import_idx].references.push_back(
-        {current_export_index, opcode_pos});
+
+    if (!builtin) {
+      size_t import_idx = add_import(func_hash, ns_hash, num_params, flags);
+      imports[import_idx].references.push_back(
+          {current_export_index, opcode_pos});
+    }
 
     emit_u8(num_params);
     // QWord align
@@ -563,16 +523,16 @@ void pre_register_temps(emitter_state &s, const ast_ptr &node) {
 
   if (node->type == node_type::n_foreach) {
     std::string array_temp = s.temp_var_name();
-    s.current_func->add_local(gsc_hash(array_temp));
+    s.current_func->add_local(gsc::gsc_hash(array_temp));
 
     std::string key_name = node->children[0]->value;
     if (key_name.empty()) {
       key_name = s.temp_var_name();
-      s.current_func->add_local(gsc_hash(key_name));
+      s.current_func->add_local(gsc::gsc_hash(key_name));
     }
   } else if (node->type == node_type::n_switch) {
     std::string switch_temp = s.temp_var_name();
-    s.current_func->add_local(gsc_hash(switch_temp));
+    s.current_func->add_local(gsc::gsc_hash(switch_temp));
   }
 
   for (auto &child : node->children)
@@ -650,15 +610,6 @@ bool is_path_namespace(const std::string &ns) {
          ns.find('\\') != std::string::npos;
 }
 
-constexpr uint32_t fnv1a(const char *str) {
-  uint32_t hash = 0x811c9dc5;
-  while (*str) {
-    hash ^= static_cast<uint8_t>(*str++);
-    hash *= 0x01000193;
-  }
-  return hash;
-}
-
 void auto_include_path(emitter_state &s, const std::string &ns) {
   std::string normalized = ns;
   for (char &c : normalized) {
@@ -727,64 +678,6 @@ int infer_local_function_params(const emitter_state &s,
   }
 
   return static_cast<int>(it->second);
-}
-
-bool is_custom_function(const std::string &name) {
-  static const std::unordered_set<std::string> custom_funcs = {
-
-      "addcommand",
-      "appendfile",
-      "clearreplacefuncs",
-      "conststring",
-      "createdirectory",
-      "directoryexists",
-      "executecommand",
-      "fileexists",
-      "filesize",
-      "getcommand",
-      "getfunction",
-      "int64_abs",
-      "int64_clamp",
-      "int64_isint",
-      "int64_max",
-      "int64_min",
-      "int64_op",
-      "int64_toint",
-      "int64_tostring",
-      "jsondump",
-      "jsonparse",
-      "jsonset",
-      "jsonvalid",
-      "listfiles",
-      "ls",
-      "mkdir",
-      "print",
-      "printf",
-      "println",
-      "readfile",
-      "removedirectory",
-      "removefile",
-      "replacefunc",
-      "resetname",
-      "resettag",
-      "rm",
-      "rmdir",
-      "say",
-      "setclientdvar",
-      "setname",
-      "settag",
-      "tell",
-      "writefile",
-  };
-  return custom_funcs.count(name) > 0;
-}
-
-// Custom methods dispatched via isprofilebuild
-bool is_custom_method(const std::string &name) {
-  static const std::unordered_set<std::string> custom_meths = {
-      "tell", "setname", "settag", "resetname", "resettag", "setclientdvar",
-  };
-  return custom_meths.count(name) > 0;
 }
 
 bool is_builtin(const std::string &name) {
@@ -856,7 +749,7 @@ void emit_eval_local(emitter_state &s, const std::string &name, bool is_ref,
       lower.begin(), lower.end(), lower.begin(),
       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-  uint32_t hash = gsc_hash(lower);
+  uint32_t hash = gsc::gsc_hash(lower);
   uint8_t idx = s.current_func->get_local_index(hash);
   if (idx == 0xFF) {
     idx = s.current_func->add_local(hash);
@@ -933,7 +826,7 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
     s.emit_string_ref(script_opcode::OP_GetIString, node->value);
     break;
   case node_type::n_hash_string: {
-    uint32_t hash = gsc_hash(node->value);
+    uint32_t hash = gsc::gsc_hash(node->value);
     s.emit_op(script_opcode::OP_GetHash);
     s.emit_u32_aligned();
     s.emit_u32(hash);
@@ -979,7 +872,7 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
   case node_type::n_field_access: {
     // children[0] = object
     emit_object(s, node->children[0]);
-    uint32_t field_hash = gsc_hash(node->value);
+    uint32_t field_hash = gsc::gsc_hash(node->value);
     s.emit_op(script_opcode::OP_EvalFieldVariable);
     s.emit_u32_aligned();
     s.emit_u32(field_hash);
@@ -1097,10 +990,10 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
   }
 
   case node_type::n_func_ref: {
-    uint32_t func_hash = gsc_hash(node->value);
-    uint32_t ns_hash = s.script_namespace;
+    ScrVarCanonicalName_t func_hash = gsc::gsc_hash(node->value);
+    ScrVarCanonicalName_t ns_hash = s.script_namespace;
     if (!node->children.empty() && !node->children[0]->value.empty()) {
-      ns_hash = gsc_hash(normalize_ns(node->children[0]->value));
+      ns_hash = gsc::gsc_hash(normalize_ns(node->children[0]->value));
       if (is_path_namespace(node->children[0]->value))
         auto_include_path(s, node->children[0]->value);
     }
@@ -1145,29 +1038,16 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
       break;
     }
 
-    // Custom functions via isprofilebuild dispatch
-    if (ns_node->value.empty() && is_custom_function(lower_name)) {
-      s.emit_op(script_opcode::OP_PreScriptCall);
-      for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0;
-           i--)
-        emit_expression(s, args_node->children[i]);
-      uint32_t dispatch_hash = fnv1a(lower_name.c_str());
-      emit_get_number(
-          s, static_cast<int64_t>(static_cast<int32_t>(dispatch_hash)));
-      s.emit_call(gsc_hash("isprofilebuild"), s.script_namespace,
-                  static_cast<uint8_t>(num_params + 1), false, false, true);
-      break;
-    }
-
     s.emit_op(script_opcode::OP_PreScriptCall);
 
     for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0; i--)
       emit_expression(s, args_node->children[i]);
 
-    uint32_t func_hash = gsc_hash(lower_name);
+    ScrVarCanonicalName_t func_hash = gsc::gsc_hash(lower_name);
     bool has_explicit_ns = !ns_node->value.empty();
-    uint32_t ns_hash = has_explicit_ns ? gsc_hash(normalize_ns(ns_node->value))
-                                       : s.script_namespace;
+    ScrVarCanonicalName_t ns_hash =
+        has_explicit_ns ? gsc::gsc_hash(normalize_ns(ns_node->value))
+                        : s.script_namespace;
 
     // Auto-include for path namespaces
     if (has_explicit_ns && is_path_namespace(ns_node->value))
@@ -1191,30 +1071,6 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
         lower_name.begin(), lower_name.end(), lower_name.begin(),
         [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-    // Custom methods: entity.tell("msg")
-    if (is_custom_method(lower_name)) {
-      s.emit_op(script_opcode::OP_PreScriptCall);
-
-      // Push regular args in reverse
-      for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0;
-           i--)
-        emit_expression(s, args_node->children[i]);
-
-      // entity.getEntityNumber() to get entity as int
-      s.emit_op(script_opcode::OP_PreScriptCall);
-      emit_expression(s, obj);
-      s.emit_call(gsc_hash("getentitynumber"), s.script_namespace, 0, true,
-                  false, true);
-
-      uint32_t dispatch_hash = fnv1a(lower_name.c_str());
-      emit_get_number(
-          s, static_cast<int64_t>(static_cast<int32_t>(dispatch_hash)));
-
-      s.emit_call(gsc_hash("isprofilebuild"), s.script_namespace,
-                  static_cast<uint8_t>(num_params + 2), false, false, true);
-      break;
-    }
-
     s.emit_op(script_opcode::OP_PreScriptCall);
 
     for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0; i--)
@@ -1222,12 +1078,12 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
 
     emit_expression(s, obj);
 
-    uint32_t func_hash = gsc_hash(lower_name);
+    ScrVarCanonicalName_t func_hash = gsc::gsc_hash(lower_name);
     bool has_explicit_ns =
         (node->children.size() > 2 && !node->children[2]->value.empty());
-    uint32_t ns_hash = has_explicit_ns
-                           ? gsc_hash(normalize_ns(node->children[2]->value))
-                           : s.script_namespace;
+    ScrVarCanonicalName_t ns_hash =
+        has_explicit_ns ? gsc::gsc_hash(normalize_ns(node->children[2]->value))
+                        : s.script_namespace;
 
     // Auto-include for path namespaces
     if (has_explicit_ns && is_path_namespace(node->children[2]->value))
@@ -1275,11 +1131,11 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
            i--)
         emit_expression(s, args_node->children[i]);
 
-      uint32_t func_hash = gsc_hash(lower_name);
+      ScrVarCanonicalName_t func_hash = gsc::gsc_hash(lower_name);
       bool has_explicit_ns = !ns_node->value.empty();
-      uint32_t ns_hash = has_explicit_ns
-                             ? gsc_hash(normalize_ns(ns_node->value))
-                             : s.script_namespace;
+      ScrVarCanonicalName_t ns_hash =
+          has_explicit_ns ? gsc::gsc_hash(normalize_ns(ns_node->value))
+                          : s.script_namespace;
       if (has_explicit_ns && is_path_namespace(ns_node->value))
         auto_include_path(s, ns_node->value);
       bool is_local = !has_explicit_ns;
@@ -1295,26 +1151,6 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
           lower_name.begin(), lower_name.end(), lower_name.begin(),
           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-      if (is_custom_method(lower_name)) {
-        s.emit_op(script_opcode::OP_PreScriptCall);
-        for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0;
-             i--)
-          emit_expression(s, args_node->children[i]);
-
-        s.emit_op(script_opcode::OP_PreScriptCall);
-        emit_expression(s, obj);
-        s.emit_call(gsc_hash("getentitynumber"), s.script_namespace, 0, true,
-                    false, true);
-
-        uint32_t dispatch_hash = fnv1a(lower_name.c_str());
-        emit_get_number(
-            s, static_cast<int64_t>(static_cast<int32_t>(dispatch_hash)));
-
-        s.emit_call(gsc_hash("isprofilebuild"), s.script_namespace,
-                    static_cast<uint8_t>(num_params + 2), false, false, true);
-        break;
-      }
-
       s.emit_op(script_opcode::OP_PreScriptCall);
       for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0;
            i--)
@@ -1322,12 +1158,12 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
 
       emit_expression(s, obj);
 
-      uint32_t func_hash = gsc_hash(lower_name);
+      ScrVarCanonicalName_t func_hash = gsc::gsc_hash(lower_name);
       bool has_ns =
           (inner->children.size() > 2 && !inner->children[2]->value.empty());
-      uint32_t ns_hash = has_ns
-                             ? gsc_hash(normalize_ns(inner->children[2]->value))
-                             : s.script_namespace;
+      ScrVarCanonicalName_t ns_hash =
+          has_ns ? gsc::gsc_hash(normalize_ns(inner->children[2]->value))
+                 : s.script_namespace;
       if (has_ns && is_path_namespace(inner->children[2]->value))
         auto_include_path(s, inner->children[2]->value);
       bool is_local = !has_ns;
@@ -1380,7 +1216,7 @@ void emit_lvalue(emitter_state &s, const ast_ptr &node, bool is_ref) {
   }
   case node_type::n_field_access: {
     emit_object(s, node->children[0]);
-    uint32_t field_hash = gsc_hash(node->value);
+    uint32_t field_hash = gsc::gsc_hash(node->value);
     if (is_ref) {
       s.emit_op(script_opcode::OP_EvalFieldVariableRef);
       s.emit_u32_aligned();
@@ -1476,10 +1312,7 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
               s.emit_string_ref(script_opcode::OP_GetString, replace_script);
               s.emit_string_ref(script_opcode::OP_GetString, tfn);
               s.emit_string_ref(script_opcode::OP_GetString, target_script);
-              uint32_t dispatch_hash = fnv1a("replacefunc");
-              emit_get_number(
-                  s, static_cast<int64_t>(static_cast<int32_t>(dispatch_hash)));
-              s.emit_call(gsc_hash("isprofilebuild"), s.script_namespace, 7,
+              s.emit_call(gsc::gsc_hash("replacefunc"), s.script_namespace, 7,
                           false, false, true);
               s.emit_op(script_opcode::OP_DecTop);
             }
@@ -1675,9 +1508,9 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
     if (!has_key)
       key_name = s.temp_var_name();
 
-    s.current_func->add_local(gsc_hash(array_temp));
-    s.current_func->add_local(gsc_hash(key_name));
-    s.current_func->add_local(gsc_hash(val_name));
+    s.current_func->add_local(gsc::gsc_hash(array_temp));
+    s.current_func->add_local(gsc::gsc_hash(key_name));
+    s.current_func->add_local(gsc::gsc_hash(val_name));
 
     // array_temp = <array_expr>
     emit_expression(s, node->children[1]);
@@ -1731,7 +1564,7 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
   case node_type::n_switch: {
     // children[0] = expr, children[1..] = cases
     std::string switch_temp = s.temp_var_name();
-    s.current_func->add_local(gsc_hash(switch_temp));
+    s.current_func->add_local(gsc::gsc_hash(switch_temp));
 
     emit_expression(s, node->children[0]);
     emit_eval_local(s, switch_temp, true);
@@ -1886,7 +1719,7 @@ void emit_function(emitter_state &s, const ast_ptr &node) {
   auto &body_node = node->children[2];
 
   export_entry exp{};
-  exp.function_hash = gsc_hash(lower_name);
+  exp.function_hash = gsc::gsc_hash(lower_name);
   exp.namespace_hash = s.script_namespace;
   exp.num_params = static_cast<uint8_t>(params_node->children.size());
   exp.flags = EXPORT_NONE;
@@ -1910,7 +1743,7 @@ void emit_function(emitter_state &s, const ast_ptr &node) {
     std::transform(
         pname.begin(), pname.end(), pname.begin(),
         [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-    s.current_func->add_local(gsc_hash(pname));
+    s.current_func->add_local(gsc::gsc_hash(pname));
     param_names.push_back(pname);
   }
 
@@ -1922,7 +1755,7 @@ void emit_function(emitter_state &s, const ast_ptr &node) {
     std::transform(
         lower.begin(), lower.end(), lower.begin(),
         [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-    s.current_func->add_local(gsc_hash(lower));
+    s.current_func->add_local(gsc::gsc_hash(lower));
   }
 
   int saved_temp = s.temp_var_counter;
@@ -2125,7 +1958,7 @@ std::vector<uint8_t> assemble(emitter_state &s) {
 
   // Header
   t7_script_header header{};
-  header.magic = T7_MAGIC;
+  header.magic = gsc::T7_MAGIC;
   header.source_crc = 0x4C492053;
   header.include_offset = include_offset;
   header.animtree_offset = animtree_offset;
@@ -2170,8 +2003,8 @@ emitter_result emit(const ast_ptr &root, const std::string &script_name) {
     std::transform(
         ns_fallback.begin(), ns_fallback.end(), ns_fallback.begin(),
         [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-    state.script_namespace =
-        ns_fallback.empty() ? gsc_hash("ilcustom") : gsc_hash(ns_fallback);
+    state.script_namespace = ns_fallback.empty() ? gsc::gsc_hash("ilcustom")
+                                                 : gsc::gsc_hash(ns_fallback);
   }
   uint32_t default_namespace = state.script_namespace;
 
@@ -2179,7 +2012,7 @@ emitter_result emit(const ast_ptr &root, const std::string &script_name) {
     // First pass: collect namespace and local function hashes
     for (std::shared_ptr<ast_node> &child : root->children) {
       if (child->type == node_type::n_namespace)
-        state.script_namespace = gsc_hash(child->value);
+        state.script_namespace = gsc::gsc_hash(child->value);
       else if (child->type == node_type::n_function_def) {
         std::string lower = child->value;
         std::transform(
@@ -2200,7 +2033,7 @@ emitter_result emit(const ast_ptr &root, const std::string &script_name) {
     // Second pass: process directives and emit functions
     for (std::shared_ptr<ast_node> &child : root->children) {
       if (child->type == node_type::n_namespace) {
-        state.script_namespace = gsc_hash(child->value);
+        state.script_namespace = gsc::gsc_hash(child->value);
       } else if (child->type == node_type::n_include) {
         state.includes.push_back(child->value);
       } else if (child->type == node_type::n_function_def) {

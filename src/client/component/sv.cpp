@@ -1,9 +1,8 @@
-#include <cstdint>
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
+#include <loader/component_loader.hpp>
 
 #include "sv.hpp"
-#include "game/utils.hpp"
+#include <game/utils.hpp>
 
 #include <utils/concurrency.hpp>
 #include <utils/hook.hpp>
