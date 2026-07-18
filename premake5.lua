@@ -298,6 +298,7 @@ if os.host() == "windows" then
     "/clang:-msse4.2",
     "/clang:-maes",
     "/clang:-mbmi2",
+    "/clang:-mlzcnt",
   })
   linkoptions({ "/IGNORE:4702", "/LTCG" })
 else
