@@ -106,5 +106,8 @@ concept IntegralLike =
 #endif // WITH_DIAG_DISABLED
 
 #ifndef ARRAYSIZE
-#define ARRAYSIZE(A) (sizeof(A) / sizeof((A)[0]))
+template <typename Element, size_t Count>
+inline constexpr auto ARRAYSIZE(Element (&)[Count]) {
+  return Count;
+}
 #endif
