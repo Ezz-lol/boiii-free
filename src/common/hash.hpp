@@ -14,56 +14,41 @@ inline constexpr unsigned char tolower(unsigned char c) noexcept {
 typedef uint32_t hash32_t;
 typedef uint64_t hash64_t;
 
+typedef hash32_t fnv1aHash_t;
+
+template <const fnv1aHash_t IV = 0x811c9dc5,
+          const fnv1aHash_t PRIME = 0x01000193>
+inline constexpr fnv1aHash_t fnv1a(const char *str) noexcept {
+  fnv1aHash_t hash = IV;
+  for (const char *c = str; *c; ++c) {
+    hash = PRIME *
+           (static_cast<fnv1aHash_t>(tolower(static_cast<unsigned char>(*c))) ^
+            hash);
+  }
+  return hash;
+}
+
 typedef hash32_t fnv1aHashNull_t;
 
 // Same as fnv1a, but also hashes null terminator.
 // Used in e.g. `Dvar_GenerateHash`.
-template <const fnv1aHashNull_t OFFSET = 0x811c9dc5,
+template <const fnv1aHashNull_t IV = 0x811c9dc5,
           const fnv1aHashNull_t PRIME = 0x01000193>
 inline constexpr fnv1aHashNull_t fnv1a_null(const char *str) noexcept {
-  const char *s = str;
-  const fnv1aHashNull_t first_char =
-      static_cast<fnv1aHashNull_t>(tolower(static_cast<unsigned char>(*s)));
-
-  fnv1aHashNull_t hash = PRIME * (first_char ^ OFFSET);
-  while (*s) {
-    hash = PRIME * (static_cast<fnv1aHashNull_t>(
-                        tolower(static_cast<unsigned char>(*++s))) ^
-                    hash);
-  }
-
-  return hash;
-}
-
-typedef hash32_t fnv1aHash_t;
-
-// Same as fnv1a, but also hashes null terminator.
-// Used in e.g. `Dvar_GenerateHash`.
-template <const fnv1aHash_t OFFSET = 0x811c9dc5,
-          const fnv1aHash_t PRIME = 0x01000193>
-inline constexpr fnv1aHash_t fnv1a(const char *str) noexcept {
-  fnv1aHash_t hash = OFFSET;
-  while (*str) {
-    hash =
-        PRIME *
-        (static_cast<fnv1aHash_t>(tolower(static_cast<unsigned char>(*++str))) ^
-         hash);
-  }
-  return hash;
+  return PRIME * fnv1a<IV, PRIME>(str);
 }
 
 typedef hash64_t fnv1aHash64_t;
 
-// Same as fnv1a, but also hashes null terminator.
-// Used in e.g. `Dvar_GenerateHash`.
-template <const fnv1aHash64_t OFFSET = 0xcbf29ce484222325,
-          const fnv1aHash64_t PRIME = 0x100000001b3>
+template <const fnv1aHash64_t IV = 0x811c9dc5,
+          const fnv1aHash64_t PRIME = 0x01000193>
 inline constexpr fnv1aHash64_t fnv1a64(const char *str) noexcept {
-  fnv1aHash64_t hash = OFFSET;
-  while (*str) {
-    hash = PRIME * (static_cast<fnv1aHash64_t>(
-                        tolower(static_cast<unsigned char>(*++str))) ^
-                    hash);
+  fnv1aHash64_t hash = IV;
+  for (const char *c = str; *c; ++c) {
+    hash =
+        PRIME *
+        (static_cast<fnv1aHash64_t>(tolower(static_cast<unsigned char>(*c))) ^
+         hash);
   }
   return hash;
 }

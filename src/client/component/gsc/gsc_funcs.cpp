@@ -1,6 +1,5 @@
 #include <std_include.hpp>
 #include <loader/component_loader.hpp>
-#include <game/game.hpp>
 #include <game/utils.hpp>
 #include "../game_event.hpp"
 #include "../name.hpp"
@@ -14,22 +13,85 @@
 #include <rapidjson/writer.h>
 
 #include "../command.hpp"
-#include "hash.hpp"
+#include "gsc_funcs.hpp"
+#include "gsc.hpp"
 
 using namespace game;
 using namespace game::scr;
 
 namespace script {
+
+template <typename Def> struct CustomBuiltinMap {
+  std::unordered_map<ScrVarCanonicalName_t, Def> map;
+  std::unordered_map<decltype(Def::actionFunc), ScrVarCanonicalName_t> reverse;
+};
+
+static CustomBuiltinMap<BuiltinFunctionDef> custom_builtin_functions;
+static CustomBuiltinMap<BuiltinMethodDef> custom_builtin_methods;
+
+__inline_def void register_builtin(BuiltinFunctionDef def) {
+  custom_builtin_functions.map[def.canonId] = def;
+  custom_builtin_functions.reverse[def.actionFunc] = def.canonId;
+}
+
+__inline_def void register_builtin(const char *name, BuiltinFunction func,
+                                   BuiltinType type, uint32_t min_args,
+                                   uint32_t max_args) {
+  ScrVarCanonicalName_t hash = gsc::fnv1a(name);
+  BuiltinFunctionDef def = {.canonId = hash,
+                            .min_args = min_args,
+                            .max_args = max_args,
+                            ._padding0C = {0},
+                            .actionFunc = func,
+                            .type = type,
+                            ._padding1C = {0}};
+
+  return register_builtin(def);
+}
+
+__inline_def void register_builtin(BuiltinMethodDef def) {
+  custom_builtin_methods.map[def.canonId] = def;
+  custom_builtin_methods.reverse[def.actionFunc] = def.canonId;
+}
+
+__inline_def void register_builtin(const char *name, BuiltinMethod method,
+                                   BuiltinType type, uint32_t min_args,
+                                   uint32_t max_args) {
+  ScrVarCanonicalName_t hash = gsc::fnv1a(name);
+
+  BuiltinMethodDef def = {.canonId = hash,
+                          .min_args = min_args,
+                          .max_args = max_args,
+                          ._padding0C = {0},
+                          .actionFunc = method,
+                          .type = type,
+                          ._padding1C = {0}};
+  return register_builtin(def);
+}
+
+__inline_def bool custom_builtin_function(ScrVarCanonicalName_t name) {
+  return custom_builtin_functions.map.contains(name);
+}
+__inline_def bool custom_builtin_function(const char *name) {
+  return custom_builtin_function(gsc::fnv1a(name));
+}
+
+__inline_def bool custom_builtin_method(ScrVarCanonicalName_t name) {
+  return custom_builtin_methods.map.contains(name);
+}
+__inline_def bool custom_builtin_method(const char *name) {
+  return custom_builtin_method(gsc::fnv1a(name));
+}
+
 uint8_t *find_export_address(const std::string &script_name,
                              const std::string &func_name,
                              int expected_params = -1);
-}
+} // namespace script
 
 namespace gsc_funcs {
+using namespace script;
 namespace {
 
-static std::unordered_map<ScrVarCanonicalName_t, BuiltinFunction>
-    custom_builtins;
 static std::unordered_map<uint8_t *, uint8_t *> function_replacements;
 static std::unordered_map<game::ClientNum_t, std::unordered_set<std::string>>
     client_dvar_changes;
@@ -37,90 +99,6 @@ static std::atomic_bool detours_enabled = false;
 
 static VM_OP_FUNC VM_OP_SafeCreateLocalVariables_Handler_orig = nullptr;
 static VM_OP_FUNC VM_OP_CheckClearParams_Handler_orig = nullptr;
-static std::atomic_bool return_value_set = std::atomic_bool(false);
-
-void push_string(scriptInstance_t inst, const char *val) {
-  Scr_AddString(inst, val);
-  return_value_set.store(true);
-}
-
-void push_conststring(scriptInstance_t inst, ScrString_t hash) {
-  Scr_AddConstString(inst, hash);
-  return_value_set.store(true);
-}
-
-template <typename T, typename = typename std::enable_if<
-                          std::is_convertible<T, int32_t>::value>::type>
-void push_int(scriptInstance_t inst, T val) {
-  Scr_AddInt(inst, static_cast<int32_t>(val));
-  return_value_set.store(true);
-}
-
-void push_array(scriptInstance_t inst, std::vector<std::string> &&arr) {
-  Scr_MakeArray(inst);
-  for (size_t i = 0; i < arr.size(); i++) {
-    const char *str = arr[i].c_str();
-    Scr_AddString(inst, str);
-    Scr_AddArray(inst);
-  }
-  return_value_set.store(true);
-}
-
-[[maybe_unused]] void push_array(scriptInstance_t inst,
-                                 std::vector<float> &&arr) {
-  Scr_MakeArray(inst);
-  for (size_t i = 0; i < arr.size(); i++) {
-    Scr_AddFloat(inst, arr[i]);
-    Scr_AddArray(inst);
-  }
-  return_value_set.store(true);
-}
-
-[[maybe_unused]] void push_array(scriptInstance_t inst,
-                                 std::vector<const char *> &&arr) {
-  Scr_MakeArray(inst);
-  for (size_t i = 0; i < arr.size(); i++) {
-    Scr_AddString(inst, arr[i]);
-    Scr_AddArray(inst);
-  }
-  return_value_set.store(true);
-}
-
-[[maybe_unused]] void push_array(scriptInstance_t inst,
-                                 std::vector<bool> &&arr) {
-  Scr_MakeArray(inst);
-  for (size_t i = 0; i < arr.size(); i++) {
-    Scr_AddInt(inst, static_cast<qboolean>((arr[i])));
-    Scr_AddArray(inst);
-  }
-  return_value_set.store(true);
-}
-
-[[maybe_unused]] void push_array(scriptInstance_t inst,
-                                 std::vector<uint32_t> &&arr) {
-  Scr_MakeArray(inst);
-  for (size_t i = 0; i < arr.size(); i++) {
-    Scr_AddInt(inst, static_cast<int32_t>(arr[i]));
-    Scr_AddArray(inst);
-  }
-  return_value_set.store(true);
-}
-
-[[maybe_unused]] void push_array(scriptInstance_t inst,
-                                 std::vector<int> &&arr) {
-  Scr_MakeArray(inst);
-  for (size_t i = 0; i < arr.size(); i++) {
-    Scr_AddInt(inst, arr[i]);
-    Scr_AddArray(inst);
-  }
-  return_value_set.store(true);
-}
-
-// Push empty array
-void push_array(scriptInstance_t inst) {
-  Scr_MakeArray(inst);
-  return_value_set.store(true);
-}
 
 // =====================================================
 // Script console commands (addcommand/getcommand)
@@ -416,24 +394,6 @@ void hook_opcode(OP_TYPE opcode, VM_OP_FUNC hook, VM_OP_FUNC *out_orig) {
     *handler = hook;
 }
 
-void builtin_dispatcher(game::scr::scriptInstance_t inst) {
-  return_value_set.store(false);
-
-  try {
-    const int32_t hash = Scr_GetInt(inst, 0);
-    if (custom_builtins.contains(hash)) {
-      custom_builtins[hash](inst);
-    }
-  } catch (const std::exception &e) {
-    printf("^1[builtin] Exception: %s\n", e.what());
-  } catch (...) {
-    printf("^1[builtin] Unknown exception\n");
-  }
-
-  if (!return_value_set.load())
-    game::scr::Scr_AddInt(inst, 0);
-}
-
 // =====================================================
 // Core builtins
 // =====================================================
@@ -461,13 +421,17 @@ void gscr_replacefunc(scriptInstance_t inst) {
     function_replacements[target_addr] = replace_addr;
     detours_enabled.store(true, std::memory_order_seq_cst);
   } else {
-    printf("[replacefunc] failed %s::%s -> %s::%s", target_script, target_func,
-           replace_script, replace_func);
-    if (!target_addr)
-      printf(" (target not found)");
-    if (!replace_addr)
-      printf(" (replacement not found)");
-    printf("\n");
+    fprintf(stderr, "[replacefunc] failed %s::%s -> %s::%s", target_script,
+            target_func, replace_script, replace_func);
+    if (!target_addr) {
+      fprintf(stderr, " (target not found)\n");
+    }
+
+    if (!replace_addr) {
+      fprintf(stderr, " (replacement not found)\n");
+    }
+    fprintf(stderr, "\n");
+    fflush(stderr);
   }
 }
 
@@ -481,14 +445,14 @@ void gscr_println(scriptInstance_t inst) {
   const char *msg = Scr_GetString(inst, 1);
   game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s\n",
                         msg ? msg : "");
-  printf("%s\n", msg ? msg : "");
+  fprintf(stdout, "%s\n", msg ? msg : "");
   fflush(stdout);
 }
 
 void gscr_print(scriptInstance_t inst) {
   const char *msg = Scr_GetString(inst, 1);
   game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s", msg ? msg : "");
-  printf("%s", msg ? msg : "");
+  fprintf(stdout, "%s", msg ? msg : "");
   fflush(stdout);
 }
 
@@ -605,7 +569,7 @@ void gscr_printf(scriptInstance_t inst) {
   }
 
   game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s", buffer.data());
-  printf("%s", buffer.data());
+  fprintf(stdout, "%s", buffer.data());
   fflush(stdout);
 }
 
@@ -685,9 +649,11 @@ void gscr_say(scriptInstance_t inst) {
         utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, msg));
 }
 
+namespace gscr_tell {
+
 // tell: send a private chat message to a specific client
 // GSC: player tell("Hello");
-void gscr_tell(scriptInstance_t inst) {
+void method(scriptInstance_t inst, scr_entref_t *entref) {
   const game::ClientNum_t client_num =
       static_cast<game::ClientNum_t>(Scr_GetInt(inst, 1));
   const char *msg = Scr_GetString(inst, 2);
@@ -696,6 +662,15 @@ void gscr_tell(scriptInstance_t inst) {
         client_num, game::net::SV_CMD_CAN_IGNORE_0,
         utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, msg));
 }
+
+// tell: send a private chat message to a specific client
+// GSC: player tell("Hello");
+void func(scriptInstance_t inst) {
+  scr_entref_t entref;
+  Scr_GetEntityRef(&entref, inst, 0);
+  method(inst, &entref);
+}
+} // namespace gscr_tell
 
 // =====================================================
 // File I/O builtins, paths relative to boiii/scriptdata/
@@ -1130,24 +1105,24 @@ void gscr_conststring(scriptInstance_t inst) {
 // =====================================================
 
 std::optional<game::ClientNum_t>
-get_self_client_num(game::scr::scriptInstance_t inst) {
-  game::scr::scr_entref_t ref;
-  game::scr::Scr_GetEntityRef(&ref, inst, 0);
+get_self_client_num(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
   const game::ClientNum_t client_num =
-      static_cast<game::ClientNum_t>(ref.u.entnum);
+      static_cast<game::ClientNum_t>(entref->u.entnum);
   if (!game::valid_client_num(client_num)) {
     return std::nullopt;
   }
   return client_num;
 }
 
-void gscr_setname(game::scr::scriptInstance_t inst) {
+namespace gscr_setname {
+void method(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
   game::ClientNum_t client_num = game::INVALID_CLIENT_INDEX;
   const char *player_name = nullptr;
 
   const uint32_t argc = game::scr::Scr_GetNumParam(inst);
   if (argc == 1) {
-    const std::optional<game::ClientNum_t> self = get_self_client_num(inst);
+    const std::optional<game::ClientNum_t> self =
+        get_self_client_num(inst, entref);
     player_name = game::scr::Scr_GetString(inst, 1);
     if (!self.has_value() || !player_name) {
       Scr_ParamError(inst, 1, "^1[setname] Invalid arguments\n");
@@ -1168,13 +1143,22 @@ void gscr_setname(game::scr::scriptInstance_t inst) {
   name::trigger_client_update(client_num);
 }
 
-void gscr_settag(game::scr::scriptInstance_t inst) {
+void func(scriptInstance_t inst) {
+  scr_entref_t entref;
+  Scr_GetEntityRef(&entref, inst, 0);
+  method(inst, &entref);
+}
+} // namespace gscr_setname
+
+namespace gscr_settag {
+void method(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
   game::ClientNum_t client_num = game::INVALID_CLIENT_INDEX;
   const char *tag = nullptr;
 
   const uint32_t argc = game::scr::Scr_GetNumParam(inst);
   if (argc == 1) {
-    const std::optional<game::ClientNum_t> self = get_self_client_num(inst);
+    const std::optional<game::ClientNum_t> self =
+        get_self_client_num(inst, entref);
     tag = game::scr::Scr_GetString(inst, 1);
     if (!self.has_value() || !tag) {
       Scr_ParamError(inst, 1, "^1[settag] Invalid arguments\n");
@@ -1195,12 +1179,21 @@ void gscr_settag(game::scr::scriptInstance_t inst) {
   name::trigger_client_update(client_num);
 }
 
-void gscr_resetname(game::scr::scriptInstance_t inst) {
+void func(scriptInstance_t inst) {
+  scr_entref_t entref;
+  Scr_GetEntityRef(&entref, inst, 0);
+  method(inst, &entref);
+}
+} // namespace gscr_settag
+
+namespace gscr_resetname {
+void method(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
   game::ClientNum_t client_num = game::INVALID_CLIENT_INDEX;
 
   const uint32_t argc = game::scr::Scr_GetNumParam(inst);
   if (argc == 0) {
-    const std::optional<game::ClientNum_t> self = get_self_client_num(inst);
+    const std::optional<game::ClientNum_t> self =
+        get_self_client_num(inst, entref);
     if (!self.has_value()) {
       Scr_ParamError(inst, 1, "^1[resetname] Invalid arguments\n");
       return;
@@ -1219,12 +1212,21 @@ void gscr_resetname(game::scr::scriptInstance_t inst) {
   name::trigger_client_update(client_num);
 }
 
-void gscr_resettag(game::scr::scriptInstance_t inst) {
+void func(scriptInstance_t inst) {
+  scr_entref_t entref;
+  Scr_GetEntityRef(&entref, inst, 0);
+  method(inst, &entref);
+}
+} // namespace gscr_resetname
+
+namespace gscr_resettag {
+void method(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
   game::ClientNum_t client_num = game::INVALID_CLIENT_INDEX;
 
   const uint32_t argc = game::scr::Scr_GetNumParam(inst);
   if (argc == 0) {
-    const std::optional<game::ClientNum_t> self = get_self_client_num(inst);
+    const std::optional<game::ClientNum_t> self =
+        get_self_client_num(inst, entref);
     if (!self.has_value()) {
       Scr_ParamError(inst, 1, "^1[resettag] Invalid arguments\n");
       return;
@@ -1243,13 +1245,22 @@ void gscr_resettag(game::scr::scriptInstance_t inst) {
   name::trigger_client_update(client_num);
 }
 
-void gscr_setclientdvar(game::scr::scriptInstance_t inst) {
+void func(scriptInstance_t inst) {
+  scr_entref_t entref;
+  Scr_GetEntityRef(&entref, inst, 0);
+  method(inst, &entref);
+}
+} // namespace gscr_resettag
+
+namespace gscr_setclientdvar {
+void method(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
   game::ClientNum_t client_num = game::INVALID_CLIENT_INDEX;
   const char *dvar_cmd = nullptr;
 
   const uint32_t argc = game::scr::Scr_GetNumParam(inst);
   if (argc == 1) {
-    const std::optional<game::ClientNum_t> self = get_self_client_num(inst);
+    const std::optional<game::ClientNum_t> self =
+        get_self_client_num(inst, entref);
     dvar_cmd = game::scr::Scr_GetString(inst, 1);
     if (!self.has_value() || !dvar_cmd) {
       Scr_ParamError(inst, 1, "^1[setclientdvar] Invalid arguments\n");
@@ -1273,6 +1284,68 @@ void gscr_setclientdvar(game::scr::scriptInstance_t inst) {
   game::sv::SV_GameSendServerCommand(client_num, game::net::SV_CMD_CAN_IGNORE_0,
                                      utils::string::va("c \"%s\"", dvar_cmd));
 }
+
+void func(scriptInstance_t inst) {
+  scr_entref_t entref;
+  Scr_GetEntityRef(&entref, inst, 0);
+  method(inst, &entref);
+}
+} // namespace gscr_setclientdvar
+
+utils::hook::detour Scr_GetFunction_hook;
+BuiltinFunction Scr_GetFunction_SearchCustom(ScrVarCanonicalName_t canonId,
+                                             BuiltinType *type,
+                                             int32_t *min_args,
+                                             int32_t *max_args) {
+  if (custom_builtin_functions.map.contains(canonId)) {
+    const BuiltinFunctionDef *def = &custom_builtin_functions.map[canonId];
+
+    *type = def->type;
+    *min_args = def->min_args;
+    *max_args = def->max_args;
+
+    return def->actionFunc;
+  }
+
+  return Scr_GetFunction_hook.invoke<BuiltinFunction>(canonId, type, min_args,
+                                                      max_args);
+}
+
+utils::hook::detour Scr_GetMethod_hook;
+BuiltinMethod Scr_GetMethod_SearchCustom(ScrVarCanonicalName_t canonId,
+                                         BuiltinType *type, int32_t *min_args,
+                                         int32_t *max_args) {
+  if (custom_builtin_methods.map.contains(canonId)) {
+    const BuiltinMethodDef *def = &custom_builtin_methods.map[canonId];
+
+    *type = def->type;
+    *min_args = def->min_args;
+    *max_args = def->max_args;
+
+    return def->actionFunc;
+  }
+
+  return Scr_GetMethod_hook.invoke<BuiltinMethod>(canonId, type, min_args,
+                                                  max_args);
+}
+
+utils::hook::detour Scr_GetFunctionReverseLookup_hook;
+ScrVarCanonicalName_t
+Scr_GetFunctionReverseLookup_SearchCustom(BuiltinFunction func) {
+  if (custom_builtin_functions.reverse.contains(func)) {
+    return custom_builtin_functions.reverse[func];
+  }
+  return Scr_GetFunctionReverseLookup_hook.invoke<ScrVarCanonicalName_t>(func);
+}
+
+utils::hook::detour Scr_GetMethodReverseLookup_hook;
+ScrVarCanonicalName_t
+Scr_GetMethodReverseLookup_SearchCustom(BuiltinMethod method) {
+  if (custom_builtin_methods.reverse.contains(method)) {
+    return custom_builtin_methods.reverse[method];
+  }
+  return Scr_GetMethodReverseLookup_hook.invoke<ScrVarCanonicalName_t>(method);
+}
 } // namespace
 
 void add_detour(uint8_t *target_addr, uint8_t *replacement_addr) {
@@ -1283,71 +1356,83 @@ void add_detour(uint8_t *target_addr, uint8_t *replacement_addr) {
 struct component final : generic_component {
   void post_unpack() override {
 
+    Scr_GetFunctionReverseLookup_hook.create(
+        game::scr::Scr_GetFunctionReverseLookup.get(),
+        Scr_GetFunctionReverseLookup_SearchCustom);
+    Scr_GetMethodReverseLookup_hook.create(
+        game::scr::Scr_GetMethodReverseLookup.get(),
+        Scr_GetMethodReverseLookup_SearchCustom);
+
+    Scr_GetFunction_hook.create(game::scr::Scr_GetFunction.get(),
+                                Scr_GetFunction_SearchCustom);
+    Scr_GetMethod_hook.create(game::scr::Scr_GetMethod.get(),
+                              Scr_GetMethod_SearchCustom);
+
     // Core
-    custom_builtins[fnv1a("replacefunc")] = gscr_replacefunc;
-    custom_builtins[fnv1a("executecommand")] = gscr_executecommand;
-    custom_builtins[fnv1a("say")] = gscr_say;
-    custom_builtins[fnv1a("tell")] = gscr_tell;
-    custom_builtins[fnv1a("println")] = gscr_println;
-    custom_builtins[fnv1a("print")] = gscr_print;
-    custom_builtins[fnv1a("printf")] = gscr_printf;
+    register_builtin("replacefunc", gscr_replacefunc);
+    register_builtin("executecommand", gscr_executecommand);
+    register_builtin("say", gscr_say);
+    register_builtin("tell", gscr_tell::func);
+    register_builtin("tell", gscr_tell::method);
+    register_builtin("println", gscr_println);
+    register_builtin("print", gscr_print);
+    register_builtin("printf", gscr_printf);
 
     // File I/O
-    custom_builtins[fnv1a("writefile")] = gscr_writefile;
-    custom_builtins[fnv1a("readfile")] = gscr_readfile;
-    custom_builtins[fnv1a("appendfile")] = gscr_appendfile;
-    custom_builtins[fnv1a("fileexists")] = gscr_fileexists;
-    custom_builtins[fnv1a("removefile")] = gscr_removefile;
-    custom_builtins[fnv1a("removedirectory")] = gscr_removedirectory;
-    custom_builtins[fnv1a("rmdir")] = gscr_removedirectory;
-    custom_builtins[fnv1a("rm")] = gscr_rm;
-    custom_builtins[fnv1a("filesize")] = gscr_filesize;
-    custom_builtins[fnv1a("createdirectory")] = gscr_createdirectory;
-    custom_builtins[fnv1a("mkdir")] = gscr_createdirectory;
-    custom_builtins[fnv1a("directoryexists")] = gscr_directoryexists;
-    custom_builtins[fnv1a("listfiles")] = gscr_listfiles;
-    custom_builtins[fnv1a("ls")] = gscr_ls;
+    register_builtin("writefile", gscr_writefile);
+    register_builtin("readfile", gscr_readfile);
+    register_builtin("appendfile", gscr_appendfile);
+    register_builtin("fileexists", gscr_fileexists);
+    register_builtin("removefile", gscr_removefile);
+    register_builtin("removedirectory", gscr_removedirectory);
+    register_builtin("rmdir", gscr_removedirectory);
+    register_builtin("rm", gscr_rm);
+    register_builtin("filesize", gscr_filesize);
+    register_builtin("createdirectory", gscr_createdirectory);
+    register_builtin("mkdir", gscr_createdirectory);
+    register_builtin("directoryexists", gscr_directoryexists);
+    register_builtin("listfiles", gscr_listfiles);
+    register_builtin("ls", gscr_ls);
 
     // JSON
-    custom_builtins[fnv1a("jsonvalid")] = gscr_jsonvalid;
-    custom_builtins[fnv1a("jsonparse")] = gscr_jsonparse;
-    custom_builtins[fnv1a("jsonset")] = gscr_jsonset;
-    custom_builtins[fnv1a("jsondump")] = gscr_jsondump;
+    register_builtin("jsonvalid", gscr_jsonvalid);
+    register_builtin("jsonparse", gscr_jsonparse);
+    register_builtin("jsonset", gscr_jsonset);
+    register_builtin("jsondump", gscr_jsondump);
 
     // Int64
-    custom_builtins[fnv1a("int64_op")] = gscr_int64_op;
-    custom_builtins[fnv1a("int64_isint")] = gscr_int64_isint;
-    custom_builtins[fnv1a("int64_toint")] = gscr_int64_toint;
-    custom_builtins[fnv1a("int64_min")] = gscr_int64_min;
-    custom_builtins[fnv1a("int64_max")] = gscr_int64_max;
-    custom_builtins[fnv1a("int64_abs")] = gscr_int64_abs;
-    custom_builtins[fnv1a("int64_clamp")] = gscr_int64_clamp;
-    custom_builtins[fnv1a("int64_tostring")] = gscr_int64_tostring;
+    register_builtin("int64_op", gscr_int64_op);
+    register_builtin("int64_isint", gscr_int64_isint);
+    register_builtin("int64_toint", gscr_int64_toint);
+    register_builtin("int64_min", gscr_int64_min);
+    register_builtin("int64_max", gscr_int64_max);
+    register_builtin("int64_abs", gscr_int64_abs);
+    register_builtin("int64_clamp", gscr_int64_clamp);
+    register_builtin("int64_tostring", gscr_int64_tostring);
 
     // Function lookup
-    custom_builtins[fnv1a("getfunction")] = gscr_getfunction;
+    register_builtin("getfunction", gscr_getfunction);
 
     // Console commands
-    custom_builtins[fnv1a("addcommand")] = gscr_addcommand;
-    custom_builtins[fnv1a("getcommand")] = gscr_getcommand;
+    register_builtin("addcommand", gscr_addcommand);
+    register_builtin("getcommand", gscr_getcommand);
 
     // Utility
-    custom_builtins[fnv1a("clearreplacefuncs")] = gscr_clearreplacefuncs;
+    register_builtin("clearreplacefuncs", gscr_clearreplacefuncs);
 
     // Player name/tag overrides (server-only)
-    custom_builtins[fnv1a("setname")] = gscr_setname;
-    custom_builtins[fnv1a("settag")] = gscr_settag;
-    custom_builtins[fnv1a("resetname")] = gscr_resetname;
-    custom_builtins[fnv1a("resettag")] = gscr_resettag;
-    custom_builtins[fnv1a("setclientdvar")] = gscr_setclientdvar;
+    register_builtin("setname", gscr_setname::func);
+    register_builtin("setname", gscr_setname::method);
+    register_builtin("settag", gscr_settag::func);
+    register_builtin("settag", gscr_settag::method);
+    register_builtin("resetname", gscr_resetname::func);
+    register_builtin("resetname", gscr_resetname::method);
+    register_builtin("resettag", gscr_resettag::func);
+    register_builtin("resettag", gscr_resettag::method);
+    register_builtin("setclientdvar", gscr_setclientdvar::func);
+    register_builtin("setclientdvar", gscr_setclientdvar::method);
 
-    custom_builtins[fnv1a("conststring")] = gscr_conststring;
-
-    BuiltinFunctionDef *bgscr_isprofilebuild_def =
-        const_cast<BuiltinFunctionDef *>(
-            &game::scr::bg::util_functions->IsProfileBuild);
-    bgscr_isprofilebuild_def->max_args = 255;
-    bgscr_isprofilebuild_def->actionFunc = builtin_dispatcher;
+    register_builtin("conststring", gscr_conststring);
 
     hook_opcode(0x01D2, VM_OP_SafeCreateLocalVariables_Handler_stub,
                 &VM_OP_SafeCreateLocalVariables_Handler_orig);

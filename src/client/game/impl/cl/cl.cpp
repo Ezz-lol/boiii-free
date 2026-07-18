@@ -3,7 +3,6 @@
 #include <cstring>
 #include <cstdio>
 
-#include "../../utils.hpp"
 #include "../cg/cg.hpp"
 #include "../../../component/auth.hpp"
 #include <utils/string.hpp>

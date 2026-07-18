@@ -6,6 +6,7 @@
 
 #include "game_event.hpp"
 #include "gsc/gsc_compiler.hpp"
+#include "gsc/gsc.hpp"
 
 #include <unordered_map>
 #include <utils/memory.hpp>
@@ -28,64 +29,6 @@ utils::hook::detour gscr_get_bgb_tokens_remaining_hook;
 
 utils::memory::allocator allocator;
 std::unordered_map<std::string, RawFile *> loaded_scripts;
-static constexpr std::array<std::string_view, 5> SCR_HASH_LITERAL_PREFIXES = {
-    "hash", "id", "function", "var", "namespace"};
-
-bool is_hash_literal_prefix(const std::string &s) {
-  for (uint32_t i = 0; i < SCR_HASH_LITERAL_PREFIXES.size(); i++) {
-    if (s == SCR_HASH_LITERAL_PREFIXES[i]) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
-bool try_parse_raw_hash(const std::string &input, uint32_t &out) {
-
-  if (input.size() > 0) {
-    std::string inputSubstr = input;
-    if (inputSubstr[0] == '_') {
-      inputSubstr = inputSubstr.substr(1);
-    }
-    const size_t underscoreIdx = inputSubstr.find('_');
-    if (underscoreIdx != std::string::npos &&
-        underscoreIdx < inputSubstr.size()) {
-
-      const std::string prefix = inputSubstr.substr(0, underscoreIdx);
-      if (is_hash_literal_prefix(prefix)) {
-
-        const std::string hex_part = inputSubstr.substr(underscoreIdx + 1);
-        if (hex_part.size() == 8) {
-
-          for (char c : hex_part) {
-            if (!std::isxdigit(static_cast<unsigned char>(c)))
-              return false;
-          }
-
-          out = static_cast<uint32_t>(std::stoul(hex_part, nullptr, 16));
-          return out != 0;
-        }
-      }
-    }
-  }
-
-  return false;
-}
-
-uint32_t gsc_hash(const std::string &str) {
-  uint32_t raw = 0;
-  if (try_parse_raw_hash(str, raw))
-    return raw;
-
-  uint32_t h = 0x4B9ACE2F;
-  for (char c : str)
-    h = (static_cast<uint32_t>(std::tolower(static_cast<unsigned char>(c))) ^
-         h) *
-        0x1000193;
-  h *= 0x1000193;
-  return h;
-}
 
 std::string normalize_script_name(std::string script_name) {
   auto start = script_name.find('<');
@@ -221,7 +164,7 @@ void fixup_script_imports(char *buf, int32_t len) {
         c = '/';
       c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
     }
-    uint32_t path_hash = gsc_hash(inc_path);
+    uint32_t path_hash = gsc::gsc_hash(inc_path);
 
     // Look up the actual game SPT for this include path (try .gsc then .csc)
     auto *asset = db_find_x_asset_header_hook.invoke<RawFile *>(
@@ -553,9 +496,9 @@ void load_script_file(std::string &data, const std::string &script_file,
           const std::string replace_script =
               rf.replace_script.empty() ? replace_base : rf.replace_script;
           pending_detours.push_back(
-              {rf.target_script, rf.target_func, gsc_hash(rf.target_func),
+              {rf.target_script, rf.target_func, gsc::gsc_hash(rf.target_func),
                rf.target_params, replace_script, rf.replace_func,
-               gsc_hash(rf.replace_func), rf.replace_params});
+               gsc::gsc_hash(rf.replace_func), rf.replace_params});
         }
       }
     } else {
@@ -831,7 +774,7 @@ std::string resolve_hash(uint32_t hash) {
 uint8_t *find_export_address(const std::string &script_name,
                              const std::string &func_name,
                              int32_t expected_params) {
-  return find_export_address_internal(script_name, gsc_hash(func_name),
+  return find_export_address_internal(script_name, gsc::gsc_hash(func_name),
                                       expected_params);
 }
 

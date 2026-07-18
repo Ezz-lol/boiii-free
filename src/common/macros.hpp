@@ -104,3 +104,7 @@ concept IntegralLike =
 
 #endif
 #endif // WITH_DIAG_DISABLED
+
+#ifndef ARRAYSIZE
+#define ARRAYSIZE(A) (sizeof(A) / sizeof((A)[0]))
+#endif
