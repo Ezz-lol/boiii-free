@@ -22,7 +22,15 @@ The loader checks a few places, depending on what kind of script you are adding.
 ```text
 %LOCALAPPDATA%/boiii/data/
 ├── scripts/
-│   └── ... stock script overrides such as scripts/zm/... or scripts/mp/...
+│   ├── shared/
+│   ├── core/
+│   ├── codescripts/
+│   ├── <mode-specific folder>
+│   └── <mapname>/
+│       ├── shared/
+│       ├── core/
+│       ├── codescripts/
+│       └── <mode-specific folder>
 ├── custom_scripts/
 │   ├── shared/
 │   ├── core/
@@ -41,7 +49,16 @@ The loader checks a few places, depending on what kind of script you are adding.
 
 Small notes:
 
-- `scripts/` is for overriding stock scripts the game already uses.
+- `scripts/shared`, `scripts/core`, `scripts/codescripts`, and the mode-specific
+  script trees - `scripts/cp`, `scripts/mp`, and `scripts/zm` - are for
+  overriding stock scripts the game already uses.
+- `scripts/<mapname>` is for scripts which should override a script in a
+  specific map only - they are not loaded when any other map is loaded.
+
+  For example, to replace the script "zm/zm_example.gsc" in the map
+  "zm_example", its replacement script must be stored in
+  `scripts/zm_example/zm/zm_example.gsc`.
+
 - `custom_scripts/` is for your own extra scripts that BOIII compiles and loads
   for you.
 - `custom_scripts/shared`, `custom_scripts/core`, `custom_scripts/codescripts`,
