@@ -1,5 +1,6 @@
 #pragma once
-#ifdef GAME_HPP
+
+#include <game/symbols/sym_include.hpp>
 
 namespace game {
 
@@ -11,4 +12,3 @@ WEAK symbol<const char *(const char *name)> CopyString{0x1422AC220,
                                                        0x14056BD70};
 } // namespace game
 
-#endif

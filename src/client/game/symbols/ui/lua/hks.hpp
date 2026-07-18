@@ -1,8 +1,8 @@
 #pragma once
-#ifdef GAME_HPP
+
+#include <game/symbols/sym_include.hpp>
 
 #include <cstdint>
-#include "../../macros.hpp"
 
 namespace game {
 namespace ui {
@@ -194,4 +194,3 @@ WEAK symbol<HksRegister *(HksRegister *retstr, lua_State *s, HksObject *left,
 } // namespace ui
 } // namespace game
 
-#endif

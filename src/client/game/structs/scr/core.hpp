@@ -1717,13 +1717,12 @@ struct scr_animtree_t {
   XAnim *anims;
 };
 
-typedef void (*ClientFieldCodeCallbackFuncFloatVal)(LocalClientNum_t, uint32_t,
-                                                    float, float, bool, bool,
-                                                    ScrString_t, bool, bool);
-typedef void (*ClientFieldCodeCallbackFuncUintVal)(LocalClientNum_t, uint32_t,
-                                                   uint32_t, uint32_t, bool,
-                                                   bool, ScrString_t, bool,
-                                                   bool);
+typedef fastcall_t<void(LocalClientNum_t, uint32_t, float, float, bool, bool,
+                        ScrString_t, bool, bool)>
+    ClientFieldCodeCallbackFuncFloatVal;
+typedef fastcall_t<void(LocalClientNum_t, uint32_t, uint32_t, uint32_t, bool,
+                        bool, ScrString_t, bool, bool)>
+    ClientFieldCodeCallbackFuncUintVal;
 
 struct clientFieldCodeCallback_t {
   struct {

@@ -1,15 +1,15 @@
 #pragma once
-#ifdef GAME_HPP
+
+#include <game/symbols/sym_include.hpp>
 
 #include <cstdint>
-#include "../macros.hpp"
 
 namespace game {
 namespace scr {
 WEAK symbol<scr_const_t> scr_const{0x14A7290F0, 0x147B91CE0};
 
-WEAK symbol<void(scriptInstance_t inst, int value)> Scr_AddInt{0x1412E9870,
-                                                               0x14016F160};
+WEAK symbol<void(scriptInstance_t inst, int32_t value)> Scr_AddInt{0x1412E9870,
+                                                                   0x14016F160};
 WEAK symbol<const char *(scriptInstance_t inst, uint32_t index)> Scr_GetString{
     0x1412EBAA0, 0x140171490};
 WEAK symbol<void(scriptInstance_t inst, const char *value)> Scr_AddString{
@@ -66,7 +66,7 @@ WEAK symbol<void(level::gentity_s *ent, ScrVarCanonicalName_t stringValue,
     Scr_Notify_Canon{0x0, 0x1402F5FF0};
 WEAK symbol<uint32_t(scriptInstance_t inst, const char *filename)>
     Scr_LoadScript{0x1412C83F0, 0x140156610};
-WEAK symbol<void(scriptInstance_t inst, int user)> Scr_BeginLoadScripts{
+WEAK symbol<void(scriptInstance_t inst, int32_t user)> Scr_BeginLoadScripts{
     0x1412C7DF0, 0x140156010};
 WEAK symbol<void(ScrString_t *to, ScrString_t from)> Scr_SetString{0x1412D8490,
                                                                    0x140164750};
@@ -115,7 +115,7 @@ WEAK symbol<float(scriptInstance_t inst, uint32_t index, float defaultValue)>
     Scr_GetFloatOptional{0x1412EB680, 0x140171070};
 WEAK symbol<scr_funcptr_t(scriptInstance_t inst, uint32_t index)> Scr_GetFunc{
     0x1412EB730, 0x140171120};
-WEAK symbol<int(scriptInstance_t inst, uint32_t index, int defaultValue)>
+WEAK symbol<int(scriptInstance_t inst, uint32_t index, int32_t defaultValue)>
     Scr_GetIntOptional{0x1412EB8A0, 0x140171290};
 WEAK symbol<uint64_t(scriptInstance_t inst, uint32_t index)> Scr_GetUint64{
     0x1412EBE00, 0x1401717D0};
@@ -167,7 +167,17 @@ inline VM_OP_FUNC *op_err_handler(OP_TYPE op) {
   return &gVmErrRecoveryJumpTable2->ops[op];
 }
 
+WEAK symbol<BuiltinFunction(ScrVarCanonicalName_t canonId, int32_t *type,
+                            int32_t *min_args, int32_t *max_args)>
+    Scr_GetFunction{0x141AF7820, 0x1402E9850};
+WEAK symbol<ScrVarCanonicalName_t(BuiltinFunction *func)>
+    Scr_GetFunctionReverseLookup{0x141AF78D0, 0x1402E9900};
+WEAK symbol<BuiltinMethod(ScrVarCanonicalName_t canonId, int32_t *type,
+                          int32_t *min_args, int32_t *max_args)>
+    Scr_GetMethod{0x141AF79B0, 0x1402E99E0};
+WEAK symbol<ScrVarCanonicalName_t(BuiltinMethod *method)>
+    Scr_GetMethodReverseLookup{0x141AF7AF0, 0x1402E9B20};
+
 } // namespace scr
 } // namespace game
 
-#endif

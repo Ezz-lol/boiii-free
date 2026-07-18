@@ -1,10 +1,10 @@
 #pragma once
-#ifdef GAME_HPP
+
+#include <game/symbols/sym_include.hpp>
 
 #include <cstdint>
 #include <atomic>
 
-#include "macros.hpp"
 
 namespace game {
 namespace level {
@@ -74,4 +74,3 @@ WEAK symbol<int32_t> level_rounds_played{0x14A55BDEC, 0x1475097BC};
 } // namespace level
 } // namespace game
 
-#endif

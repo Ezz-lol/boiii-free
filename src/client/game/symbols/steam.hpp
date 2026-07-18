@@ -1,8 +1,7 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include <cstdint>
-#include "macros.hpp"
+#include <game/symbols/sym_include.hpp>
+
 
 namespace game {
 namespace steam {
@@ -46,5 +45,3 @@ inline bool InitPrimarySteamInterfaces(SteamInterfacesBase *interfaces) {
 
 } // namespace steam
 } // namespace game
-
-#endif

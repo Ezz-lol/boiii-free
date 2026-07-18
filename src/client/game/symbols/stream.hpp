@@ -1,7 +1,7 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "macros.hpp"
+#include <game/symbols/sym_include.hpp>
+
 
 namespace game {
 namespace stream {
@@ -12,5 +12,3 @@ WEAK symbol<stream_fileid(const char *path, int32_t flags)> Stream_OpenFile{
 WEAK symbol<void(stream_fileid fh)> Stream_CloseFile{0x142179810, 0x14051C020};
 } // namespace stream
 } // namespace game
-
-#endif

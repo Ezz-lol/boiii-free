@@ -1,7 +1,7 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "../macros.hpp"
+#include <game/symbols/sym_include.hpp>
+
 
 namespace game {
 namespace cg {
@@ -25,4 +25,3 @@ WEAK symbol<void(LocalClientNum_t localClientNum, int32_t entityNum,
 } // namespace cg
 } // namespace game
 
-#endif

@@ -1,7 +1,6 @@
+#pragma once
+#include <macros.hpp>
+
 #ifndef WEAK
-#ifdef _MSC_VER
-#define WEAK __declspec(selectany)
-#else
-#define WEAK __attribute__((weak))
-#endif
+#define WEAK static constexpr
 #endif

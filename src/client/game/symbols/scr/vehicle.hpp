@@ -1,7 +1,7 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "../macros.hpp"
+#include <game/symbols/sym_include.hpp>
+
 
 namespace game {
 namespace scr {
@@ -11,4 +11,3 @@ namespace vehicle {
 } // namespace scr
 } // namespace game
 
-#endif

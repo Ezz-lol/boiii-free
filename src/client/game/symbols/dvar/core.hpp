@@ -1,8 +1,8 @@
 #pragma once
-#ifdef GAME_HPP
+
+#include <game/symbols/sym_include.hpp>
 
 #include <cstdint>
-#include "../macros.hpp"
 
 namespace game {
 
@@ -231,4 +231,3 @@ inline void Dvar_SetInt(EngineDependentDvar dvar, int32_t value) {
 
 } // namespace game
 
-#endif

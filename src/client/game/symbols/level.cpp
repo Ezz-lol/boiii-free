@@ -1,6 +1,9 @@
 #include <std_include.hpp>
+
 #include "level.hpp"
-#include "../structs/structs.hpp"
+
+#include <game/structs/structs.hpp>
+
 #include <atomic>
 
 namespace game {

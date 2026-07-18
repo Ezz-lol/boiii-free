@@ -1,12 +1,11 @@
 #pragma once
 
-#include "../../core.hpp"
-#include "../../func.hpp"
-#include "../../quake/core.hpp"
+#include <game/structs/core.hpp>
+#include <game/structs/func.hpp>
+#include <game/structs/quake/core.hpp>
+#include <game/ptr.hpp>
 
 namespace game {
-size_t select(const size_t client_val, const size_t server_val);
-size_t select(const void *client_val, const void *server_val);
 
 namespace ui {
 namespace lua {
@@ -494,10 +493,11 @@ struct CallStack {
   hksInt32 m_hook_level;
   uint8_t _padding2C[4];
 
-  static HksRegister *functionCall(hks::CallStack *callstack, lua_State *s,
-                                   hksInt32 nresults, HksObject *arg_end,
-                                   HksObject *stackTop,
-                                   const hksInstruction *instruction) {
+  static inline HksRegister *functionCall(hks::CallStack *callstack,
+                                          lua_State *s, hksInt32 nresults,
+                                          HksObject *arg_end,
+                                          HksObject *stackTop,
+                                          const hksInstruction *instruction) {
     using funcType = decltype(functionCall);
     funcType *functionCallImpl =
         reinterpret_cast<funcType *>(game::select(0x141D362A0, 0x1403DF640));

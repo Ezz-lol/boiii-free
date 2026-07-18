@@ -1,9 +1,6 @@
 #pragma once
 
-#ifdef GAME_HPP
-
-#include <cstdint>
-#include "../macros.hpp"
+#include <game/symbols/sym_include.hpp>
 
 namespace game {
 namespace live {
@@ -14,5 +11,3 @@ WEAK symbol<SettingsGlob> s_settingsGlob{0x14A08A5CC};
 } // namespace settings
 } // namespace live
 } // namespace game
-
-#endif

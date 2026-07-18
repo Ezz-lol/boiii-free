@@ -1,7 +1,7 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "../../macros.hpp"
+#include <game/symbols/sym_include.hpp>
+
 
 namespace game {
 namespace ui {
@@ -32,4 +32,3 @@ WEAK symbol<CodLuaStates> s_codLuaStates{0x1434100A0, 0x141122FB0};
 } // namespace ui
 } // namespace game
 
-#endif

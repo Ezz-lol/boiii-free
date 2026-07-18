@@ -1,8 +1,8 @@
 #pragma once
-#ifdef GAME_HPP
+
+#include <game/symbols/sym_include.hpp>
 
 #include <cstdint>
-#include "../macros.hpp"
 
 namespace game {
 namespace snd {
@@ -113,4 +113,3 @@ WEAK symbol<void(qboolean force)> SNDL_ForceAmbientRoom{0x0, 0x140545290};
 } // namespace snd
 } // namespace game
 
-#endif

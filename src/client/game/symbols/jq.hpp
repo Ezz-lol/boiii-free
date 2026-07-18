@@ -1,7 +1,6 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "macros.hpp"
+#include <game/symbols/sym_include.hpp>
 
 namespace game {
 
@@ -13,5 +12,3 @@ WEAK symbol<void(void *data)> jqFreeBatchData{
     0x0, 0x14000A350}; // arg usually passed as batch->p3x_info
 } // namespace jq
 } // namespace game
-
-#endif

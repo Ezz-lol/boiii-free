@@ -1,7 +1,7 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "macros.hpp"
+#include <game/symbols/sym_include.hpp>
+
 
 namespace game {
 namespace sl {
@@ -14,4 +14,3 @@ WEAK symbol<scr::ScrString_t(const char *str, uint32_t user, int32_t type)>
 } // namespace sl
 } // namespace game
 
-#endif

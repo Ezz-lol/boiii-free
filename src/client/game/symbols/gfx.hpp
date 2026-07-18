@@ -1,7 +1,7 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "macros.hpp"
+#include <game/symbols/sym_include.hpp>
+
 
 namespace game {
 namespace gfx {
@@ -16,4 +16,3 @@ WEAK symbol<GfxTexture(const char *path)> Gfx_LoadTextureFromPng{0x1420D6E60,
 } // namespace gfx
 } // namespace game
 
-#endif

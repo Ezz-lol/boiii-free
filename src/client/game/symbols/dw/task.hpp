@@ -1,8 +1,6 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include <cstdint>
-#include "../macros.hpp"
+#include <game/symbols/sym_include.hpp>
 
 namespace game {
 namespace dw {
@@ -12,5 +10,3 @@ WEAK symbol<void(TaskRecord *task)> TaskManager2_ProcessDemonwareTask{
 }
 } // namespace dw
 } // namespace game
-
-#endif

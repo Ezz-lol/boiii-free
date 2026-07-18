@@ -1,5 +1,5 @@
 #pragma once
-#ifdef GAME_HPP
+
 #include "bb.hpp"        // IWYU pragma: export
 #include "bg.hpp"        // IWYU pragma: export
 #include "cbuf.hpp"      // IWYU pragma: export
@@ -48,4 +48,3 @@
 #include "ugc.hpp"       // IWYU pragma: export
 #include "ui/ui.hpp"     // IWYU pragma: export
 #include "utils.hpp"     // IWYU pragma: export
-#endif

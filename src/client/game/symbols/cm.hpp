@@ -1,7 +1,7 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "macros.hpp"
+#include <game/symbols/sym_include.hpp>
+
 
 namespace game {
 namespace cm {
@@ -14,4 +14,3 @@ WEAK symbol<clipMap_t *> cm{0x156817F88};
 } // namespace cm
 } // namespace game
 
-#endif

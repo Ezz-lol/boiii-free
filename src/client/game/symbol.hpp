@@ -12,9 +12,9 @@ inline size_t select(const void *client_val, const void *server_val);
 
 template <typename T> class base_symbol {
 public:
-  base_symbol(const size_t address) : address_(address) {}
+  constexpr base_symbol(const size_t address) : address_(address) {}
 
-  base_symbol(const size_t address, const size_t server_address)
+  constexpr base_symbol(const size_t address, const size_t server_address)
       : address_(address), server_address_(server_address) {}
 
   T *get() const {
@@ -40,7 +40,7 @@ struct symbol<T(Args...)> : base_symbol<T(Args...)> {
 
   using base_symbol<func_type>::base_symbol;
 
-  T call_safe(Args... args) {
+  T call_safe(Args... args) const {
     arxan::detail::set_address_to_call(this->get());
     return static_cast<func_type *>(arxan::detail::callstack_proxy_addr)(
         args...);

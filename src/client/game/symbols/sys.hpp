@@ -1,7 +1,7 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "macros.hpp"
+#include <game/symbols/sym_include.hpp>
+#include <windows.h>
 
 namespace game {
 namespace sys {
@@ -24,5 +24,3 @@ WEAK symbol<fs::PathList(char *directory, const char *extension, char *filter,
     Sys_ListFiles{0x1422EAA10, 0x1405827C0};
 } // namespace sys
 } // namespace game
-
-#endif

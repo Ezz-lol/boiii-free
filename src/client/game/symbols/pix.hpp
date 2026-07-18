@@ -1,8 +1,8 @@
 #pragma once
-#ifdef GAME_HPP
+
+#include <game/symbols/sym_include.hpp>
 
 #include <cstdint>
-#include "macros.hpp"
 
 namespace game {
 namespace pix {
@@ -12,4 +12,3 @@ WEAK symbol<void()> PIXEndNamedEvent{0x0, 0x14050C280};
 } // namespace pix
 } // namespace game
 
-#endif

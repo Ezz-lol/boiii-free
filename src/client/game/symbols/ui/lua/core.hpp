@@ -1,7 +1,7 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "../../macros.hpp"
+#include <game/symbols/sym_include.hpp>
+
 
 namespace game {
 namespace ui {
@@ -23,4 +23,3 @@ WEAK symbol<uint32_t(ZoneType zoneType, int32_t sliceStart, int32_t sliceLen,
 } // namespace ui
 } // namespace game
 
-#endif

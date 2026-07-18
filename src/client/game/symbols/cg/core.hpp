@@ -1,7 +1,7 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "../macros.hpp"
+#include <game/symbols/sym_include.hpp>
+
 
 namespace game {
 namespace cg {
@@ -59,4 +59,3 @@ WEAK symbol<LocalClientIkBufs> cg_ikBuf{0x144A315C0};
 } // namespace cg
 } // namespace game
 
-#endif

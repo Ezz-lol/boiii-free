@@ -1,7 +1,7 @@
 #pragma once
-#ifdef GAME_HPP
 
-#include "../macros.hpp"
+#include <game/symbols/sym_include.hpp>
+
 #include <cstdint>
 
 namespace game {
@@ -23,4 +23,3 @@ WEAK symbol<bool(const char *fastfileName)> DB_CheckModXFile{0x1420D59E0,
 } // namespace xzone
 } // namespace db
 } // namespace game
-#endif
