@@ -444,19 +444,6 @@ struct emitter_state {
                  uint8_t num_params, bool is_method, bool is_thread,
                  bool same_namespace, bool builtin = false) {
 
-    if (!builtin && same_namespace) {
-      if (is_method && gsc::custom_builtin_method(func_hash)) {
-        builtin = true;
-      } else if (gsc::custom_builtin_function(func_hash)) {
-        builtin = true;
-      }
-    }
-
-    if (builtin) {
-      ns_hash = gsc::GSCR_SYS_NS_HASH;
-      same_namespace = false;
-    }
-
     uint8_t flags = 0;
     if (is_method)
       flags = is_thread ? IMPORT_FUNC_METHOD_THREAD : IMPORT_FUNC_METHOD;
@@ -476,11 +463,9 @@ struct emitter_state {
     uint32_t opcode_pos = static_cast<uint32_t>(current_func->bytecode.size());
     emit_op(op);
 
-    if (!builtin) {
-      size_t import_idx = add_import(func_hash, ns_hash, num_params, flags);
-      imports[import_idx].references.push_back(
-          {current_export_index, opcode_pos});
-    }
+    size_t import_idx = add_import(func_hash, ns_hash, num_params, flags);
+    imports[import_idx].references.push_back(
+        {current_export_index, opcode_pos});
 
     emit_u8(num_params);
     // QWord align
