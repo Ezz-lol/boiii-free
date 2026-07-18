@@ -21,8 +21,7 @@ bdStorage::bdStorage() : service(10, "bdStorage") {
   this->register_task(13, &bdStorage::get_user_file_list);
   this->register_task(10, &bdStorage::set_user_file);
 
-  this->map_publisher_resource("(^experiments_tu32.gz$)|(motd-.*\\.gz)",
-                               DW_MOTD);
+  this->map_publisher_resource("motd-.*\\.gz", DW_MOTD);
   this->map_publisher_resource("playlists(_.+)?\\.gz", DW_PLAYLISTS);
   this->map_publisher_resource("featured_cards(.+)?\\.gz", DW_CARDS);
   this->map_publisher_resource(".*ffotd.*\\.ff", DW_FASTFILE);
