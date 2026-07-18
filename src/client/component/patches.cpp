@@ -296,7 +296,7 @@ void com_error_stub(const char *file, int line, game::errorParm code,
   } else {
     printf("[Com_Error] Code=%d, File=%s, Line=%d, Caller=0x%llX: %s\n",
            static_cast<int32_t>(code), file ? file : "unknown", line,
-           static_cast<unsigned long long>(game::derelocate(callerAddr)),
+           reinterpret_cast<unsigned long long>(game::derelocate(callerAddr)),
            buffer);
   }
 

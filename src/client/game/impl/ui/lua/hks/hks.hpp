@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include <game/game.hpp>
 
 namespace game {
