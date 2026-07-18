@@ -442,7 +442,7 @@ struct emitter_state {
 
   void emit_call(ScrVarCanonicalName_t func_hash, ScrVarCanonicalName_t ns_hash,
                  uint8_t num_params, bool is_method, bool is_thread,
-                 bool same_namespace, bool builtin = false) {
+                 bool same_namespace) {
 
     uint8_t flags = 0;
     if (is_method)
