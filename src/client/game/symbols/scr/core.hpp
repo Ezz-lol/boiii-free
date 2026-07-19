@@ -14,15 +14,6 @@ WEAK symbol<const char *(scriptInstance_t inst, uint32_t index)> Scr_GetString{
     0x1412EBAA0, 0x140171490};
 WEAK symbol<void(scriptInstance_t inst, const char *value)> Scr_AddString{
     0x1412E9A30, 0x14016F320};
-WEAK symbol<ScrVarIndex_t(scriptInstance_t inst)> ScrVar_AllocStruct{
-    0x1412D9840, 0x140165D00};
-WEAK symbol<ScrVarIndex_t(scriptInstance_t inst, ScrVarNameType_t nameType,
-                          ScrVarNameIndex_t nameIndex, ScrVarIndex_t parentId)>
-    ScrVar_AllocVariable{0x1412D9A60, 0x140165E00};
-WEAK symbol<void(scriptInstance_t inst, ScrString_t stringValue)>
-    Scr_AddArrayStringIndexed{0x1412E95D0, 0x14016EE50};
-WEAK symbol<void(scriptInstance_t inst, uint32_t id)> Scr_AddObject{
-    0x1412E99A0, 0x14016F290};
 // Return value is location of allocation as index of VM stack - returned by
 // ScrVar_AllocVariable internally.
 WEAK symbol<ScrVarIndex_t(scriptInstance_t inst)> Scr_AddStruct{0x1412E9AC0,
@@ -76,15 +67,6 @@ WEAK symbol<void(level::gentity_s *ent, ScrString_t stringValue,
                  uint32_t paramcount)>
     Scr_Notify_ScrString{0x141B46510, 0x1402F6000};
 
-WEAK symbol<ScrVarValue_t *(ScrVarValue_t *retstr, scriptInstance_t inst,
-                            ScrVarIndex_t id)>
-    ScrVar_EvalVariable{0x1412DDF30, 0x14016A5B0};
-WEAK symbol<void(scriptInstance_t inst, ScrVarValue_t *value)>
-    ScrVar_AddRefValue{0x1412D9350, 0x1401657E0};
-WEAK symbol<void(scriptInstance_t inst, ScrVarValue_t *value)>
-    ScrVar_ReleaseValue{0x1412E0010, 0x14016C7C0};
-WEAK symbol<uint32_t(scriptInstance_t inst, ScrVarIndex_t id)>
-    ScrVar_ReleaseVariable{0x1412E0170, 0x14016C950};
 WEAK symbol<void(scriptInstance_t inst)> Scr_AddArray{0x1412E9560, 0x14016EDE0};
 WEAK symbol<void(scriptInstance_t inst, ScrString_t hash)> Scr_AddConstString{
     0x1412E96B0, 0x14016EEB0};
@@ -94,8 +76,6 @@ WEAK symbol<void(scriptInstance_t inst, float value)> Scr_AddFloat{0x1412E9760,
 WEAK symbol<void(scriptInstance_t inst, ScrVarValue_t *value)> Scr_AddValue{
     0x1412E9E00, 0x14016F6F0};
 
-WEAK symbol<void(scriptInstance_t inst, ScrVarValue_t *value)>
-    ScrVar_CastVector{0x1412DAFA0, 0x140167420};
 WEAK symbol<scr_anim_t(scriptInstance_t inst, uint32_t index,
                        anim::XAnimTree *tree)>
     Scr_GetAnim{0x1412EAB60, 0x140170520};

@@ -41,5 +41,5 @@
 #include "dyn/dyn.hpp"     // IWYU pragma: export
 #include "rope.hpp"        // IWYU pragma: export
 #include "cm.hpp"          // IWYU pragma: export
-
+#include "sl.hpp"          // IWYU pragma: export
 #endif

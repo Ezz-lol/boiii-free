@@ -3,6 +3,7 @@
 
 #include <game/game.hpp>
 #include <game/utils.hpp>
+#include <game/impl/scr/var.hpp>
 #include <utils/hook.hpp>
 
 #include <mmeapi.h>
@@ -11,6 +12,7 @@ namespace scrvar {
 
 using namespace game;
 using namespace game::scr;
+using namespace game::scr::var;
 
 utils::hook::detour ScrVar_AddRefValue_hook;
 void ScrVar_AddRefValue_Safe(scriptInstance_t inst, ScrVarValue_t *value) {
@@ -29,9 +31,22 @@ uint32_t ScrVar_ReleaseVariable_Safe(scriptInstance_t inst, ScrVarIndex_t id) {
   return 0;
 }
 
+inline constexpr bool valid_scrvarvalue(ScrVarValue_t *value) {
+  switch (value->type) {
+  case ScrVarType::VECTOR: {
+    return value->u.vectorValue != nullptr;
+  }
+  case ScrVarType::LOCALIZED_STRING:
+  case ScrVarType::STRING:
+    return sl::valid_refstring_index(value->u.string);
+  default:
+    return true;
+  }
+}
+
 utils::hook::detour ScrVar_ReleaseValue_hook;
 void ScrVar_ReleaseValue_Safe(scriptInstance_t inst, ScrVarValue_t *value) {
-  if (valid_scrvarvalue_ptr(inst, value)) {
+  if (valid_scrvarvalue_ptr(inst, value) && valid_scrvarvalue(value)) {
     ScrVar_ReleaseValue_hook.invoke(inst, value);
   }
 }
@@ -49,17 +64,39 @@ ScrVarValue_t *ScrVar_EvalVariable_Safe(ScrVarValue_t *retstr,
   return retstr;
 }
 
+utils::hook::detour ScrVar_EvalArray_hook;
+void ScrVar_EvalArray_DefaultEmpty(scriptInstance_t inst, ScrVarValue_t *value,
+                                   ScrVarValue_t *index) {
+  if (valid_scrvarvalue_ptr(inst, value) &&
+      valid_scrvarvalue_ptr(inst, index)) {
+    if (ScrVar_ArrayLike(inst, value) &&
+        ScrVar_ValidIndex(inst, value, index)) {
+
+      return ScrVar_EvalArray_hook.invoke<void>(inst, value, index);
+    } else {
+      index->u.pointerValue = 0;
+      index->type = ScrVarType::INT;
+
+      const ScrVarIndex_t allocated = ScrVar_AllocArray(inst);
+      value->type = ScrVarType::POINTER;
+      value->u.pointerValue = allocated;
+    }
+  }
+}
+
 void stub_func() { return; }
 
 inline void handle_invalid_scrvars() {
-  ScrVar_ReleaseVariable_hook.create(game::scr::ScrVar_ReleaseVariable.get(),
+  ScrVar_ReleaseVariable_hook.create(ScrVar_ReleaseVariable.get(),
                                      ScrVar_ReleaseVariable_Safe);
-  ScrVar_ReleaseValue_hook.create(game::scr::ScrVar_ReleaseValue.get(),
+  ScrVar_ReleaseValue_hook.create(ScrVar_ReleaseValue.get(),
                                   ScrVar_ReleaseValue_Safe);
-  ScrVar_AddRefValue_hook.create(game::scr::ScrVar_AddRefValue.get(),
+  ScrVar_AddRefValue_hook.create(ScrVar_AddRefValue.get(),
                                  ScrVar_AddRefValue_Safe);
-  ScrVar_EvalVariable_hook.create(game::scr::ScrVar_EvalVariable.get(),
+  ScrVar_EvalVariable_hook.create(ScrVar_EvalVariable.get(),
                                   ScrVar_EvalVariable_Safe);
+  ScrVar_EvalArray_hook.create(ScrVar_EvalArray.get(),
+                               ScrVar_EvalArray_DefaultEmpty);
 }
 
 class component final : public generic_component {

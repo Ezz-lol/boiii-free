@@ -8,5 +8,7 @@
 #include "cscr.hpp"     // IWYU pragma: export
 #include "gscr.hpp"     // IWYU pragma: export
 #include "sentient.hpp" // IWYU pragma: export
+#include "var.hpp"      // IWYU pragma: export
 #include "vehicle.hpp"  // IWYU pragma: export
 #include "vm/vm.hpp"    // IWYU pragma: export
+#include "mt.hpp"       // IWYU pragma: export
