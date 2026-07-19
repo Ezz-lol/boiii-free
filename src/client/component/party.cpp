@@ -373,10 +373,6 @@ void connect_stub(const char *address) {
         return;
       }
 
-      if (target.port == 0) {
-        target.port = 27017;
-      }
-
       connect_finish(target, address_copy.c_str());
     };
     // Resolve the address on a background thread.
