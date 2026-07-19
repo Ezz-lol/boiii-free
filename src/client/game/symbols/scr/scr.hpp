@@ -9,3 +9,4 @@
 #include "gscr.hpp"     // IWYU pragma: export
 #include "sentient.hpp" // IWYU pragma: export
 #include "vehicle.hpp"  // IWYU pragma: export
+#include "vm/vm.hpp"    // IWYU pragma: export

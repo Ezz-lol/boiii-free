@@ -74,6 +74,7 @@ enum class ScrVarType : uint32_t {
   ENTITY_OFFSET = 0x0A,
   CODEPOS = 0x0B,
   PRECODEPOS = 0x0C,
+  // Builtin function
   API_FUNCTION = 0x0D,
   FUNCTION = 0x0E,
   STACK = 0x0F,

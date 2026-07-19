@@ -622,7 +622,7 @@ void gscr_writefile(scriptInstance_t inst) {
   const char *data = Scr_GetString(inst, 2);
 
   if (!path || !data || !is_safe_path(path)) {
-    push_int(inst, 0);
+    push(inst, 0);
     return;
   }
 
@@ -635,7 +635,7 @@ void gscr_writefile(scriptInstance_t inst) {
 
   qboolean result =
       qboolean::from(utils::io::write_file(full.string(), data, append));
-  push_int(inst, result);
+  push(inst, result);
 }
 
 void gscr_readfile(scriptInstance_t inst) {
@@ -657,87 +657,87 @@ void gscr_appendfile(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 1);
   const char *data = Scr_GetString(inst, 2);
   if (!path || !data || !is_safe_path(path)) {
-    push_int(inst, 0);
+    push(inst, 0);
     return;
   }
   const std::filesystem::path full = resolve_path(path);
   const std::filesystem::path parent = full.parent_path();
   if (!parent.empty())
     utils::io::create_directory(parent);
-  push_int(inst, utils::io::write_file(full.string(), data, true));
+  push(inst, utils::io::write_file(full.string(), data, true));
 }
 
 void gscr_fileexists(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 1);
   if (!path || !is_safe_path(path)) {
-    push_int(inst, 0);
+    push(inst, 0);
     return;
   }
-  push_int(inst, utils::io::file_exists(resolve_path(path).string()));
+  push(inst, utils::io::file_exists(resolve_path(path).string()));
 }
 
 void gscr_removefile(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 1);
   if (!path || !is_safe_path(path)) {
-    push_int(inst, 0);
+    push(inst, 0);
     return;
   }
-  push_int(inst, utils::io::remove_file(resolve_path(path)));
+  push(inst, utils::io::remove_file(resolve_path(path)));
 }
 
 void gscr_removedirectory(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 1);
   if (!path || !is_safe_path(path)) {
-    push_int(inst, 0);
+    push(inst, 0);
     return;
   }
-  push_int(inst, utils::io::remove_directory(resolve_path(path), true));
+  push(inst, utils::io::remove_directory(resolve_path(path), true));
 }
 
 void gscr_rm(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 1);
   if (!path || !is_safe_path(path)) {
-    push_int(inst, 0);
+    push(inst, 0);
     return;
   }
 
   bool recurse = Scr_GetBoolOptional(inst, 2, false);
 
   if (utils::io::directory_exists(resolve_path(path))) {
-    push_int(inst, utils::io::remove_directory(resolve_path(path), recurse));
+    push(inst, utils::io::remove_directory(resolve_path(path), recurse));
   } else {
-    push_int(inst, utils::io::remove_file(resolve_path(path)));
+    push(inst, utils::io::remove_file(resolve_path(path)));
   }
 }
 
 void gscr_filesize(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 1);
   if (!path || !is_safe_path(path)) {
-    push_int(inst, 0);
+    push(inst, 0);
     return;
   }
-  push_int(inst,
-           static_cast<int>(utils::io::file_size(resolve_path(path).string())));
+  push(inst,
+       static_cast<int>(utils::io::file_size(resolve_path(path).string())));
 }
 
 void gscr_createdirectory(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 1);
   if (!path || !is_safe_path(path)) {
-    push_int(inst, 0);
+    push(inst, 0);
     return;
   }
 
   bool result = utils::io::create_directory(resolve_path(path));
-  push_int(inst, result);
+  push(inst, result);
 }
 
 void gscr_directoryexists(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 1);
   if (!path || !is_safe_path(path)) {
-    push_int(inst, 0);
+    push(inst, 0);
     return;
   }
-  push_int(inst, utils::io::directory_exists(resolve_path(path)));
+  push(inst, utils::io::directory_exists(resolve_path(path)));
 }
 
 void gscr_listfiles(scriptInstance_t inst) {
@@ -802,12 +802,12 @@ void gscr_ls(scriptInstance_t inst) {
 void gscr_jsonvalid(scriptInstance_t inst) {
   const char *json_str = Scr_GetString(inst, 1);
   if (!json_str) {
-    push_int(inst, 0);
+    push(inst, 0);
     return;
   }
   rapidjson::Document doc;
   doc.Parse(json_str);
-  push_int(inst, doc.HasParseError() ? 0 : 1);
+  push(inst, doc.HasParseError() ? 0 : 1);
 }
 
 // jsonparse(json_string, key), returns value as string
@@ -890,14 +890,14 @@ void gscr_jsondump(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 1);
   const char *json_str = Scr_GetString(inst, 2);
   if (!path || !json_str || !is_safe_path(path)) {
-    push_int(inst, 0);
+    push(inst, 0);
     return;
   }
   const std::filesystem::path full = resolve_path(path);
   const std::filesystem::path parent = full.parent_path();
   if (!parent.empty())
     utils::io::create_directory(parent);
-  push_int(inst, utils::io::write_file(full.string(), json_str));
+  push(inst, utils::io::write_file(full.string(), json_str));
 }
 
 // =====================================================
@@ -976,19 +976,19 @@ void gscr_int64_op(scriptInstance_t inst) {
   }
 
   if (is_comparison)
-    push_int(inst, cmp_result);
+    push(inst, cmp_result);
   else
     push_string(inst, std::to_string(result).c_str());
 }
 
 void gscr_int64_isint(scriptInstance_t inst) {
   const int64_t val = parse_int64_arg(inst, 1);
-  push_int(inst, (val >= INT32_MIN && val <= INT32_MAX));
+  push(inst, (val >= INT32_MIN && val <= INT32_MAX));
 }
 
 void gscr_int64_toint(scriptInstance_t inst) {
   const int64_t val = parse_int64_arg(inst, 1);
-  push_int(inst, static_cast<int>(val));
+  push(inst, static_cast<int>(val));
 }
 
 void gscr_int64_min(scriptInstance_t inst) {
@@ -1024,11 +1024,11 @@ void gscr_getfunction(scriptInstance_t inst) {
   const char *script_name = Scr_GetString(inst, 1);
   const char *func_name = Scr_GetString(inst, 2);
   if (!script_name || !func_name) {
-    push_int(inst, 0);
+    push(inst, 0);
     return;
   }
   uint8_t *addr = script::find_export_address(script_name, func_name);
-  push_int(inst, reinterpret_cast<int64_t>(addr));
+  push(inst, reinterpret_cast<int64_t>(addr));
 }
 
 void gscr_conststring(scriptInstance_t inst) {
@@ -1287,6 +1287,17 @@ Scr_GetMethodReverseLookup_SearchCustom(BuiltinMethod method) {
   }
   return Scr_GetMethodReverseLookup_hook.invoke<ScrVarCanonicalName_t>(method);
 }
+
+void builtin_dispatcher(game::scr::scriptInstance_t inst) {
+
+  const int32_t hash = Scr_GetInt(inst, 0);
+  if (custom_builtins::functions.map.contains(hash)) {
+    custom_builtins::functions.map[hash].actionFunc(inst);
+  } else {
+    push(inst, false);
+  }
+}
+
 } // namespace
 
 void add_detour(uint8_t *target_addr, uint8_t *replacement_addr) {
@@ -1374,6 +1385,12 @@ struct component final : generic_component {
     register_builtin("setclientdvar", gscr_setclientdvar::method);
 
     register_builtin("conststring", gscr_conststring);
+
+    BuiltinFunctionDef *bgscr_isprofilebuild_def =
+        const_cast<BuiltinFunctionDef *>(
+            &game::scr::bg::util_functions->IsProfileBuild);
+    bgscr_isprofilebuild_def->max_args = 255;
+    bgscr_isprofilebuild_def->actionFunc = builtin_dispatcher;
 
     hook_opcode(0x01D2, VM_OP_SafeCreateLocalVariables_Handler_stub,
                 &VM_OP_SafeCreateLocalVariables_Handler_orig);
