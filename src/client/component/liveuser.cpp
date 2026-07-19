@@ -5,8 +5,9 @@
 
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
-
+#include "auth.hpp"
 #include <mmeapi.h>
+#include <str.hpp>
 
 namespace game {
 namespace live {
@@ -41,22 +42,6 @@ LiveUser_GetSignedInControllerFromXUID_IgnoreSignInState(const XUID xuid) {
   return ControllerIndex_t::INVALID_CONTROLLER_PORT;
 }
 
-userDataRef LiveUser_GetUserDataForController_Patched(
-    const ControllerIndex_t controllerIndex) {
-  userDataRef data = s_userDataForControllerMap->data[controllerIndex];
-  data->isUnderAge = false;
-  data->isContentRestricted = false;
-  data->isChatRestricted = false;
-  if (data->isActive) {
-    data->connectionState = CONNECTION_STATE::CONNECTED;
-    data->signInState =
-        controllerIndex == com::Com_ControllerIndexes_GetPrimary()
-            ? XUSER_SIGNIN_STATE::SignedInToLive
-            : XUSER_SIGNIN_STATE::SignedInLocally;
-  }
-  return data;
-}
-
 constexpr const char *GUEST_PLAYER_NAME_SUFFIX_FMT = "(%d)";
 constexpr uint32_t MAX_USERNAME_LEN = 17;
 bool LiveUser_UserGetName_ConsoleSuffix(ControllerIndex_t controllerIndex,
@@ -85,6 +70,31 @@ bool LiveUser_UserGetName_ConsoleSuffix(ControllerIndex_t controllerIndex,
   return true;
 }
 
+userDataRef LiveUser_GetUserDataForController_Patched(
+    const ControllerIndex_t controllerIndex) {
+  userDataRef data = s_userDataForControllerMap->data[controllerIndex];
+  data->xuid = auth::get_guid(data->controller);
+  LiveUser_UserGetName_ConsoleSuffix(data->controller, data->gamertag,
+                                     ARRAYSIZE(data->gamertag));
+  data->isUnderAge = false;
+  data->isContentRestricted = false;
+  data->isChatRestricted = false;
+  data->isActive |=
+      (controllerIndex == com::Com_ControllerIndexes_GetPrimary());
+  if (data->isActive) {
+    data->connectionState = CONNECTION_STATE::CONNECTED;
+    data->signInState =
+        controllerIndex == com::Com_ControllerIndexes_GetPrimary()
+            ? XUSER_SIGNIN_STATE::SignedInToLive
+            : XUSER_SIGNIN_STATE::SignedInLocally;
+  }
+  return data;
+}
+
+XUID LiveUser_GetLocalXuid_UseAuthGuid(const userData_t *userdata) {
+  return auth::get_guid(userdata->controller);
+}
+
 } // namespace user
 } // namespace live
 } // namespace game
@@ -94,6 +104,7 @@ void stub_func() { return; }
 
 bool return_true() { return true; }
 bool return_false() { return false; }
+uint32_t return_zero() { return 0; }
 
 utils::hook::detour LiveUser_IsAnyLocalUserContentRestricted_hook;
 utils::hook::detour LiveUser_IsChatRestricted_hook;
@@ -107,7 +118,15 @@ utils::hook::detour LiveUser_GetSignInState_hook;
 utils::hook::detour LiveUser_GetSignedInControllerFromXUID_hook;
 utils::hook::detour LiveUser_GetUserDataForController_hook;
 utils::hook::detour LiveUser_UserGetName_hook;
+utils::hook::detour LiveUser_GetLocalXuid_hook;
 
+utils::hook::detour LiveConnect_WasPlayerQueueSuccessful_hook;
+utils::hook::detour LiveConnect_GetPlayerQueuePosition_hook;
+utils::hook::detour LiveConnect_GetPlayerQueueTimeEstimate_hook;
+utils::hook::detour LiveConnect_IsPlayerQueued_hook;
+
+utils::hook::detour Live_IsUserSignedInToDemonware_hook;
+utils::hook::detour Live_IsDemonwareFetchingDone_hook;
 class component final : public client_component {
 public:
   void post_unpack() override {
@@ -141,10 +160,28 @@ public:
     LiveUser_GetUserDataForController_hook.create(
         game::live::user::LiveUser_GetUserDataForController.get(),
         game::live::user::LiveUser_GetUserDataForController_Patched);
-
     LiveUser_UserGetName_hook.create(
         game::live::user::LiveUser_UserGetName.get(),
         game::live::user::LiveUser_UserGetName_ConsoleSuffix);
+
+    LiveConnect_GetPlayerQueueTimeEstimate_hook.create(
+        game::live::connect::LiveConnect_GetPlayerQueueTimeEstimate.get(),
+        return_zero);
+    LiveConnect_GetPlayerQueuePosition_hook.create(
+        game::live::connect::LiveConnect_GetPlayerQueuePosition.get(),
+        return_zero);
+    LiveConnect_WasPlayerQueueSuccessful_hook.create(
+        game::live::connect::LiveConnect_WasPlayerQueueSuccessful.get(),
+        return_true);
+    LiveConnect_IsPlayerQueued_hook.create(
+        game::live::connect::LiveConnect_IsPlayerQueued.get(), return_false);
+    Live_IsUserSignedInToDemonware_hook.create(
+        game::live::Live_IsUserSignedInToDemonware.get(), return_true);
+    LiveUser_GetLocalXuid_hook.create(
+        game::live::user::LiveUser_GetLocalXuid.get(),
+        game::live::user::LiveUser_GetLocalXuid_UseAuthGuid);
+    Live_IsDemonwareFetchingDone_hook.create(
+        game::live::Live_IsDemonwareFetchingDone.get(), return_true);
   }
 };
 } // namespace liveuser

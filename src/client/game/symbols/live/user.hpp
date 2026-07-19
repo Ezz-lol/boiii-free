@@ -60,6 +60,8 @@ WEAK symbol<bool(const XUID xuid)> LiveUser_IsXUIDLocalPlayer{0x141EC7130};
 WEAK symbol<void()> LiveUser_SetPrimaryActive{0x141EC6DC0};
 WEAK symbol<void(const ControllerIndex_t controllerIndex, EUserTier tier)>
     LiveUser_SetTier{0x141EC7160};
+WEAK symbol<XUID(const userData_t *userdata)> LiveUser_GetLocalXuid{
+    0x14214ADD0};
 
 } // namespace user
 

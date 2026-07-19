@@ -44,11 +44,10 @@ enum class CONNECTION_STATE : int32_t {
   IN_BACKOFF = 0x5,
   DNS_RESOLVED = 0x6,
   DW_CROSS_AUTH_BEGIN = 0x7,
-  DISABLE_CONNECT = 0x8,
+  QUEUED = 0x8,
+  // DISABLE_CONNECT = 0x8,
   ANTICHEAT_DISABLE_CONNECT_NO_AUTO_RECONNECT = 0x9,
-  // TODO: what is this now? CONNECTED is verified to be 0xA
-  // ABORTED_QUEUE = 0xA,
-  QUEUED = 0xB,
+  ABORTED_QUEUE = 0xE,
 };
 
 #pragma pack(push, 1)
