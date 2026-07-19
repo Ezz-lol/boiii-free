@@ -102,6 +102,8 @@ void connect_to_lobby_with_mode_internal(const game::net::netadr_t &addr,
                                          const bool was_retried = false) {
 
   if (game::com::Com_SessionMode_IsMode(mode)) {
+    game::com::Com_SessionMode_SetGameMode(
+        game::eGameModes::MATCHMAKING_PLAYLIST);
 
     connect_to_lobby(
         game::com::Com_LocalClient_GetControllerIndex(game::LOCAL_CLIENT_0),
@@ -299,9 +301,6 @@ void handle_connect_query_response(const bool success,
         if (workshop::check_valid_usermap_id(mapname, usermap_id, workshop_id,
                                              base_uri) &&
             workshop::check_valid_mod_id(mod_id, workshop_id)) {
-          game::com::Com_SessionMode_SetGameMode(
-              game::eGameModes::MATCHMAKING_PLAYLIST);
-
           // connect_to_session(target, hostname, xuid, mode);
           connect_to_lobby_with_mode_internal(target, mode, mapname, gametype,
                                               usermap_id, mod_id);
@@ -340,8 +339,6 @@ void connect_finish(const game::net::netadr_t &target, const char *address) {
               [=]() {
                 std::string usermap_id =
                     workshop::get_usermap_publisher_id(mapname);
-                game::com::Com_SessionMode_SetGameMode(
-                    game::eGameModes::MATCHMAKING_PLAYLIST);
                 connect_to_lobby_with_mode_internal(
                     connect_host, mode, mapname, gametype, usermap_id, mod_id);
               },
@@ -357,18 +354,27 @@ void connect_finish(const game::net::netadr_t &target, const char *address) {
 
 void connect_stub(const char *address) {
   if (address) {
-    const std::string address_copy = address;
+    std::string address_copy = address;
+    if (address_copy == "localhost") {
+      address_copy = "127.0.0.1:27017";
+    } else if (address_copy.find(':') == std::string::npos) {
+      address_copy.append(":27017");
+    }
 
     toast::show("Connecting", address, "t7_icon_connect_overlays");
 
     network::resolvedAddrCallback_t resolveCb =
-        [address_copy](const game::net::netadr_t target) -> void {
+        [address_copy](game::net::netadr_t target) -> void {
       if (target.type == game::net::NA_BAD) {
         printf("Connect failed: invalid address \"%s\"\n",
                address_copy.c_str());
         toast::show("Connect failed", "Invalid address",
                     "t7_icon_connect_overlays");
         return;
+      }
+
+      if (target.port == 0) {
+        target.port = 27017;
       }
 
       connect_finish(target, address_copy.c_str());
