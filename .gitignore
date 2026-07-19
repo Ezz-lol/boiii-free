@@ -5,3 +5,4 @@ node_modules/
 usergenerate.bat
 nul
 .clangd
+premake5.exe
