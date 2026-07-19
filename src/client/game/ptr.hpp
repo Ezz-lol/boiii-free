@@ -114,6 +114,14 @@ bool readable_ptr(uintptr_t ptr);
 template <typename T> inline bool readable_ptr(const T *ptr) {
   return readable_ptr(reinterpret_cast<uintptr_t>(ptr));
 }
+
+inline constexpr bool nonnull(uintptr_t ptr) {
+  return ptr > 0x000000100000000 && ptr < 0x00007FFFFFFFFFFF;
+}
+
+template <typename T> inline constexpr bool nonnull(const T *ptr) {
+  return nonnull(reinterpret_cast<uintptr_t>(ptr));
+}
 } // namespace game
 
 inline size_t operator""_g(const size_t val) { return game::relocate(val); }

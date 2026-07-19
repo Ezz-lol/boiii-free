@@ -61,29 +61,32 @@ bool valid_heap_ptr(uintptr_t ptr) {
 /// @brief Rapidly checks if a memory address is committed and readable.
 /// Safe to use in high-frequency loops.
 bool readable_ptr(uintptr_t ptr) {
-  if (!ptr) {
-    return false;
-  }
+  if (ptr) {
 
-  MEMORY_BASIC_INFORMATION mbi;
-  if (VirtualQuery(reinterpret_cast<LPCVOID>(ptr), &mbi, sizeof(mbi))) {
-    // Check if the memory page is committed (actually exists in physical
-    // memory/pagefile)
-    if (mbi.State != MEM_COMMIT) {
-      return false;
+    if (valid_engine_ptr(ptr)) {
+      return true;
     }
 
-    // Check if the page has guard or no-access protections
-    if (mbi.Protect & (PAGE_GUARD | PAGE_NOACCESS)) {
-      return false;
+    MEMORY_BASIC_INFORMATION mbi;
+    if (VirtualQuery(reinterpret_cast<LPCVOID>(ptr), &mbi, sizeof(mbi))) {
+      // Check if the memory page is committed (actually exists in physical
+      // memory/pagefile)
+      if (mbi.State != MEM_COMMIT) {
+        return false;
+      }
+
+      // Check if the page has guard or no-access protections
+      if (mbi.Protect & (PAGE_GUARD | PAGE_NOACCESS)) {
+        return false;
+      }
+
+      // Check if we have some form of read access
+      const DWORD read_flags = PAGE_READONLY | PAGE_READWRITE | PAGE_WRITECOPY |
+                               PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE |
+                               PAGE_EXECUTE_WRITECOPY;
+
+      return (mbi.Protect & read_flags) != 0;
     }
-
-    // Check if we have some form of read access
-    const DWORD read_flags = PAGE_READONLY | PAGE_READWRITE | PAGE_WRITECOPY |
-                             PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE |
-                             PAGE_EXECUTE_WRITECOPY;
-
-    return (mbi.Protect & read_flags) != 0;
   }
 
   return false;

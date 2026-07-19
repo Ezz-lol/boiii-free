@@ -2,7 +2,6 @@
 #define GAME_STRUCTS_DB_XASSETS_HPP
 
 #include <cstdint>
-#include "../core.hpp"
 #include "../quake/core.hpp"
 #include "../gfx/gfx.hpp"
 
@@ -22,7 +21,9 @@ namespace snd {
 struct SndBank;
 struct SndPatch;
 struct SndDriverGlobals;
+
 typedef uint32_t SndAliasId;
+
 } // namespace snd
 namespace db {
 namespace xasset {
@@ -215,7 +216,7 @@ ASSERT_SIZE(NamedXAsset, 0x8);
 #pragma pack(push, 1)
 struct RawFile : NamedXAsset {
   uint64_t len;
-  const char *buffer;
+  const uint8_t *buffer;
 };
 ASSERT_SIZE(RawFile, 0x18);
 #pragma pack(pop)
@@ -692,6 +693,8 @@ typedef TagFxSet *TagFxSetPtr;
 
 struct XAnimTree;
 
+struct LocalizeEntry;
+
 union XAssetHeader {
   NamedXAsset *named;
   // PhysPreset *physPreset;
@@ -715,7 +718,7 @@ union XAssetHeader {
   // GfxLensFlareDef *lensFlareDef;
   // Font *font;
   // FontIcon *fontIcon;
-  // LocalizeEntry *localize;
+  LocalizeEntry *localize;
   // WeaponVariantDef *weapon;
   // WeaponAttachment *attachment;
   // WeaponAttachmentUnique *attachmentUnique;
@@ -1022,6 +1025,12 @@ struct XModelAlias {
 };
 
 typedef XModelAlias *XModelAliasPtr;
+
+PACKED(struct LocalizeEntry {
+  const char *value;
+  const char *name;
+});
+ASSERT_SIZE(LocalizeEntry, 16);
 
 } // namespace xasset
 } // namespace db
