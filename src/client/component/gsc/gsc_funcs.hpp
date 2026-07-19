@@ -65,15 +65,25 @@ inline bool custom_builtin_function(ScrVarCanonicalName_t name) {
 inline bool custom_builtin_function(const char *name) {
   return custom_builtin_function(gsc::fnv1a(name));
 }
+inline bool custom_builtin_function(const std::string_view &name) {
+  return custom_builtin_function(gsc::fnv1a(name.data()));
+}
 
 inline bool custom_builtin_method(ScrVarCanonicalName_t name) {
   return custom_builtins::methods.map.contains(name);
+}
+inline bool custom_builtin_method(const std::string_view &name) {
+  return custom_builtin_method(gsc::fnv1a(name.data()));
 }
 inline bool custom_builtin_method(const char *name) {
   return custom_builtin_method(gsc::fnv1a(name));
 }
 
 inline bool custom_builtin(const char *name) {
+  return custom_builtin_function(name) || custom_builtin_method(name);
+}
+
+inline bool custom_builtin(const std::string_view &name) {
   return custom_builtin_function(name) || custom_builtin_method(name);
 }
 
@@ -95,11 +105,33 @@ inline void push_int(scriptInstance_t inst, T val) {
   Scr_AddInt(inst, static_cast<int32_t>(val));
 }
 
+inline void push(scriptInstance_t inst, bool val) { push_int(inst, val); }
+inline void push(scriptInstance_t inst, uint32_t val) { push_int(inst, val); }
+inline void push(scriptInstance_t inst, qboolean val) { push_int(inst, val); }
+inline void push(scriptInstance_t inst, int32_t val) { push_int(inst, val); }
+inline void push(scriptInstance_t inst, uint64_t val) {
+  push_int(inst, static_cast<uint32_t>(val));
+}
+inline void push(scriptInstance_t inst, int64_t val) {
+  push_int(inst, static_cast<int32_t>(val));
+}
+
 inline void push_array(scriptInstance_t inst, std::vector<std::string> &&arr) {
   Scr_MakeArray(inst);
   for (size_t i = 0; i < arr.size(); ++i) {
     const char *str = arr[i].c_str();
     Scr_AddString(inst, str);
+    Scr_AddArray(inst);
+  }
+}
+
+inline void push_array(scriptInstance_t inst,
+                       std::vector<std::filesystem::path> &&arr) {
+  Scr_MakeArray(inst);
+  for (size_t i = 0; i < arr.size(); ++i) {
+    std::string str = arr[i].string();
+    const char *cstr = str.c_str();
+    Scr_AddString(inst, cstr);
     Scr_AddArray(inst);
   }
 }
