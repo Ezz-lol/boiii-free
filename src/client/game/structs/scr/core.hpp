@@ -1677,12 +1677,20 @@ ASSERT_SIZE(ScrVarStackBuffer_t, 0x20);
 union ScrVarValueUnion_t {
   int32_t intValue;
   uint32_t uintValue;
+  ScrString_t string;
   int64_t int64Value;
   uint64_t uint64Value;
+  BuiltinFunction func;
+  BuiltinMethod method;
   uintptr_t uintptrValue;
   float floatValue;
   ScrString_t stringValue;
-  const float *vectorValue;
+  union {
+    const vec_t *vectorValue;
+    const vec3_t *vec3;
+    const vec2_t *vec2;
+    const vec4_t *vec4;
+  };
   uint8_t *codePosValue;
   ScrVarIndex_t pointerValue;
   ScrVarStackBuffer_t *stackValue;
@@ -1693,11 +1701,18 @@ union ScrVarValueUnion_t {
 };
 ASSERT_SIZE(ScrVarValueUnion_t, 0x8);
 
+struct ScrVar_t;
+
 #pragma pack(push, 1)
 struct ScrVarValue_t {
   ScrVarValueUnion_t u;
   ScrVarType_t type;
   uint8_t _padding[4];
+
+  const ScrVar_t *var() const noexcept;
+  ScrVar_t *var() noexcept;
+  operator const ScrVar_t *() const noexcept { return var(); }
+  operator ScrVar_t *() noexcept { return var(); }
 };
 ASSERT_SIZE(ScrVarValue_t, 0x10);
 #pragma pack(pop)
@@ -1956,6 +1971,16 @@ struct ScrVar_t {
 };
 ASSERT_SIZE(ScrVar_t, 0x40);
 #pragma pack(pop)
+
+inline const ScrVar_t *ScrVarValue_t::var() const noexcept {
+  return reinterpret_cast<const ScrVar_t *>(reinterpret_cast<uintptr_t>(this) -
+                                            offsetof(ScrVar_t, value) /* 0 */);
+}
+
+inline ScrVar_t *ScrVarValue_t::var() noexcept {
+  return reinterpret_cast<ScrVar_t *>(reinterpret_cast<uintptr_t>(this) -
+                                      offsetof(ScrVar_t, value) /* 0 */);
+}
 
 #pragma pack(push, 1)
 struct scrVarGlob_t {

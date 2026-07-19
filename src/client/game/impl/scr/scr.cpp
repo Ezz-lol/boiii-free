@@ -60,7 +60,7 @@ bool Scr_IsTrue_Impl([[maybe_unused]] scriptInstance_t inst,
     return false;
   }
   default: {
-    ScrVar_ReleaseValue(inst, value);
+    var::ScrVar_ReleaseValue(inst, value);
     Scr_Error(inst,
               utils::string::va("cannot cast %s to bool", Scr_TypeName(type)),
               0);

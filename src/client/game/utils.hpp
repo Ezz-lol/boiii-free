@@ -364,39 +364,45 @@ inline level::gentity_t *client_ent(T index) {
 } // namespace level
 
 namespace scr {
-inline constexpr bool valid_scrvar_index(scr::scriptInstance_t inst,
-                                         scr::ScrVarIndex_t index) {
-  return index < scr::SCRIPTVARIABLE_POOL_SIZE.instance[inst];
+inline constexpr bool valid_scrvar_index(scriptInstance_t inst,
+                                         ScrVarIndex_t index) {
+  return index < SCRIPTVARIABLE_POOL_SIZE.instance[inst];
 }
 
-inline scr::ScrVarIndex_t scrvar_index(scr::scriptInstance_t inst,
-                                       scr::ScrVar_t *var) {
-  uintptr_t scriptVariablesPtr = reinterpret_cast<uintptr_t>(
-      scr::gScrVarGlob->instance[inst].scriptVariables);
+inline ScrVarIndex_t scrvar_index(scriptInstance_t inst, ScrVar_t *var) {
+  uintptr_t scriptVariablesPtr =
+      reinterpret_cast<uintptr_t>(gScrVarGlob->instance[inst].scriptVariables);
   uintptr_t varPtr = reinterpret_cast<uintptr_t>(var);
-  return static_cast<scr::ScrVarIndex_t>((varPtr - scriptVariablesPtr) /
-                                         sizeof(scr::ScrVar_t));
+  return static_cast<ScrVarIndex_t>((varPtr - scriptVariablesPtr) /
+                                    sizeof(ScrVar_t));
 }
 
-inline bool valid_scrvar_ptr(scr::scriptInstance_t inst, scr::ScrVar_t *var) {
+inline bool valid_scrvar_ptr(scriptInstance_t inst, ScrVar_t *var) {
   return valid_engine_ptr(var) // Static or stack allocation
          ||
          valid_scrvar_index(inst, scrvar_index(inst, var)); // Pool allocation
 }
 
-inline scr::ScrVarIndex_t scrvarvalue_index(scr::scriptInstance_t inst,
-                                            scr::ScrVarValue_t *val) {
-  uintptr_t valPtr = reinterpret_cast<uintptr_t>(val);
-  scr::ScrVar_t *varPtr = reinterpret_cast<scr::ScrVar_t *>(
-      valPtr - offsetof(scr::ScrVar_t, value) /* 0 */);
-  return scrvar_index(inst, varPtr);
+inline ScrVarIndex_t scrvarvalue_index(scriptInstance_t inst,
+                                       ScrVarValue_t *val) {
+  return scrvar_index(inst, val->var());
 }
 
-inline bool valid_scrvarvalue_ptr(scr::scriptInstance_t inst,
-                                  scr::ScrVarValue_t *val) {
+inline bool valid_scrvarvalue_ptr(scriptInstance_t inst, ScrVarValue_t *val) {
   return valid_engine_ptr(val) // Static or stack allocation
          || valid_scrvar_index(inst,
                                scrvarvalue_index(inst, val)); // Pool allocation
 }
 } // namespace scr
+namespace sl {
+inline bool valid_refstring_ptr(RefString *ref) {
+  return valid_stack_ptr(ref) ||
+         (scr::mt::gScrMemTreePub->mt_buffer &&
+          scr::mt::gScrMemTreePub->mt_buffer->contains(ref));
+}
+
+inline bool valid_refstring_index(scr::ScrString_t index) {
+  return scr::mt::GScrMemoryTreeServerNodePool::valid_index(index);
+}
+} // namespace sl
 } // namespace game
