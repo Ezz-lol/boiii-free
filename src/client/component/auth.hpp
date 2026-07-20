@@ -1,13 +1,12 @@
 #pragma once
 
-#include <cstdint>
 #include <game/game.hpp>
 namespace auth {
 extern game::EngineDependentDvar password;
 
-uint64_t
+game::XUID
 get_guid(game::ControllerIndex_t controllerIndex = game::CONTROLLER_INDEX_0);
-uint64_t get_guid(size_t client_num);
+game::XUID get_guid(size_t client_num);
 void clear_stored_guids();
 void clear_stored_challenge();
 bool send_fragmented_connect_packet(game::ControllerIndex_t controllerIndex,

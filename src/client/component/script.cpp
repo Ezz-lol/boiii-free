@@ -7,6 +7,7 @@
 #include "game_event.hpp"
 #include "gsc/gsc_compiler.hpp"
 #include "gsc/gsc.hpp"
+#include "dump.hpp"
 
 #include <unordered_map>
 #include <utils/memory.hpp>
@@ -129,7 +130,7 @@ std::string strip_devblocks(const std::string &source) {
   return result;
 }
 
-void fixup_script_imports(char *buf, int32_t len) {
+void fixup_script_imports(uint8_t *buf, int32_t len) {
   if (len < 0x48)
     return;
 
@@ -157,7 +158,7 @@ void fixup_script_imports(char *buf, int32_t len) {
     if (str_off >= static_cast<uint32_t>(len))
       continue;
 
-    std::string inc_path(buf + str_off);
+    std::string inc_path(reinterpret_cast<char *>(buf) + str_off);
     // Normalize include path (forward slashes, lowercase) before hashing
     for (char &c : inc_path) {
       if (c == '\\')
@@ -434,10 +435,11 @@ void load_script(const std::string &input_name, const std::string &data,
 
   RawFile *raw_file = allocator.allocate<RawFile>();
   raw_file->name = allocator.duplicate_string(name);
-  raw_file->buffer = allocator.duplicate_string(data);
+  raw_file->buffer =
+      reinterpret_cast<uint8_t *>(allocator.duplicate_string(data));
   raw_file->len = static_cast<int>(data.length());
 
-  fixup_script_imports(const_cast<char *>(raw_file->buffer), raw_file->len);
+  fixup_script_imports(const_cast<uint8_t *>(raw_file->buffer), raw_file->len);
 
   loaded_scripts[name] = raw_file;
   printf("Loaded script '%s' (size %llu bytes)\n", name.data(), raw_file->len);
@@ -665,23 +667,28 @@ XAssetHeader db_find_x_asset_header_stub(const XAssetType type,
                                          const char *name,
                                          const bool error_if_missing,
                                          const int32_t wait_time) {
+  XAssetHeader result;
   // Check our loaded scripts FIRST to avoid "Could not find scriptparsetree"
   // spam
   if (name && name[0] && type == XAssetType::SCRIPTPARSETREE) {
     RawFile *script = get_loaded_script(name);
     if (script != nullptr) {
-      return static_cast<XAssetHeader>(script);
+      result = static_cast<XAssetHeader>(script);
     }
 
     // Try to get map-specific script override
     script = get_loaded_map_script(name);
     if (script != nullptr) {
-      return static_cast<XAssetHeader>(script);
+      result = static_cast<XAssetHeader>(script);
     }
   }
 
-  return db_find_x_asset_header_hook.invoke<XAssetHeader>(
+  result = db_find_x_asset_header_hook.invoke<XAssetHeader>(
       type, name, error_if_missing, wait_time);
+
+  dump::dump_requested_assets(type, name, result);
+
+  return result;
 }
 
 static std::mutex script_load_lock;

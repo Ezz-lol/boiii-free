@@ -4,4 +4,5 @@
 #include "settings.hpp" // IWYU pragma: export
 #include "storage.hpp"  // IWYU pragma: export
 #include "user.hpp"     // IWYU pragma: export
+#include "connect.hpp"  // IWYU pragma: export
 #include "steam.hpp"    // IWYU pragma: export

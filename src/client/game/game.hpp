@@ -4,9 +4,10 @@
 #include <filesystem>
 #include <string>
 
-#include <utils/nt.hpp>  // IWYU pragma: export
-#include <game/base.hpp> // IWYU pragma: export
-#include <game/ptr.hpp>  // IWYU pragma: export
+#include <utils/nt.hpp>   // IWYU pragma: export
+#include <game/base.hpp>  // IWYU pragma: export
+#include <game/flags.hpp> // IWYU pragma: export
+#include <game/ptr.hpp>   // IWYU pragma: export
 
 namespace arxan::detail {
 void set_address_to_call(const void *address);

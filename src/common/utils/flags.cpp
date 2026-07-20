@@ -175,6 +175,14 @@ int32_t parse_flags(int argc, char *argv[]) {
       .default_value(false)
       .implicit_value(true);
 #endif
+  program.add_argument("-e", "-extract-assets", "--extract-assets")
+      .help("Dump assets with name matching the provided pattern when loaded "
+            "to output directory specified by the -o/--output flag")
+      .default_value(std::string(""))
+      .implicit_value(std::string("^.*$"));
+  program.add_argument("-o", "-output", "--output")
+      .help("Output directory for dumped assets")
+      .default_value(std::string("assets"));
 
   try {
     program.parse_known_args(filtered_args);
@@ -186,16 +194,35 @@ int32_t parse_flags(int argc, char *argv[]) {
 
   return 0;
 }
-bool has_flag(const char *flag) {
-  if (program.get<bool>(flag)) {
-    return true;
-  }
-  std::string hyphen_prefixed = std::string("-") + flag;
-  if (program.get<bool>(hyphen_prefixed)) {
-    return true;
+
+std::optional<std::string> find_variant(const std::string_view &flag) {
+  try {
+    if (program.is_used(flag)) {
+      return std::string(flag);
+    }
+  } catch (...) {
   }
 
-  hyphen_prefixed = "-" + hyphen_prefixed;
-  return program.get<bool>(hyphen_prefixed);
+  std::string hyphen_prefixed = std::string("-") + flag.data();
+  try {
+    if (program.is_used(hyphen_prefixed)) {
+      return hyphen_prefixed;
+    }
+  } catch (...) {
+  }
+
+  try {
+    hyphen_prefixed = "-" + hyphen_prefixed;
+    if (program.is_used(hyphen_prefixed)) {
+      return hyphen_prefixed;
+    }
+  } catch (...) {
+  }
+
+  return std::nullopt;
+}
+
+bool has_flag(const std::string_view &flag) {
+  return find_variant(flag).has_value();
 }
 } // namespace utils::flags

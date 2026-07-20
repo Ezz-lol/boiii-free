@@ -49,4 +49,8 @@ bool is_legacy_client() {
   return server;
 }
 
+std::filesystem::path game_directory() {
+  return get_host_library().get_path().parent_path();
+}
+
 } // namespace game

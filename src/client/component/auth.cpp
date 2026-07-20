@@ -415,6 +415,9 @@ game::XUID get_guid(game::ControllerIndex_t controllerIndex) {
             get_key(game::CONTROLLER_INDEX_1).get_hash()};
   }();
 
+  controllerIndex = game::valid_controller_index(controllerIndex)
+                        ? controllerIndex
+                        : game::CONTROLLER_INDEX_0;
   return guids[static_cast<uint32_t>(controllerIndex)];
 }
 
