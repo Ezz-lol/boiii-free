@@ -676,15 +676,19 @@ XAssetHeader db_find_x_asset_header_stub(const XAssetType type,
       result = static_cast<XAssetHeader>(script);
     }
 
-    // Try to get map-specific script override
-    script = get_loaded_map_script(name);
-    if (script != nullptr) {
-      result = static_cast<XAssetHeader>(script);
+    if (script == nullptr) {
+      // Try to get map-specific script override
+      script = get_loaded_map_script(name);
+      if (script != nullptr) {
+        result = static_cast<XAssetHeader>(script);
+      }
     }
   }
 
-  result = db_find_x_asset_header_hook.invoke<XAssetHeader>(
-      type, name, error_if_missing, wait_time);
+  if (result.rawfile == nullptr) {
+    result = db_find_x_asset_header_hook.invoke<XAssetHeader>(
+        type, name, error_if_missing, wait_time);
+  }
 
   dump::dump_requested_assets(type, name, result);
 
