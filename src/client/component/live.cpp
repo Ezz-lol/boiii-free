@@ -55,7 +55,7 @@ bool LiveUser_UserGetName_ConsoleSuffix(ControllerIndex_t controllerIndex,
       (std::min)(static_cast<uint32_t>(bufsize), MAX_USERNAME_LEN);
 
   steam::LiveSteam_GetUserName(username, usernameBufLen, true);
-  if (controllerIndex != CONTROLLER_INDEX_0) {
+  if (controllerIndex != game::com::Com_ControllerIndexes_GetPrimary()) {
     const char *guestSuffix = utils::string::va(
         // ORIGINAL:
         // " %d",
@@ -81,14 +81,15 @@ userDataRef LiveUser_GetUserDataForController_Patched(
   data->isUnderAge = false;
   data->isContentRestricted = false;
   data->isChatRestricted = false;
-  data->isActive |=
-      (controllerIndex == com::Com_ControllerIndexes_GetPrimary());
+  data->controller = controllerIndex;
+
+  bool isPrimary = controllerIndex == com::Com_ControllerIndexes_GetPrimary();
+  data->isGuest = !isPrimary;
+  data->isActive |= isPrimary;
   if (data->isActive) {
     data->connectionState = CONNECTION_STATE::CONNECTED;
-    data->signInState =
-        controllerIndex == com::Com_ControllerIndexes_GetPrimary()
-            ? XUSER_SIGNIN_STATE::SignedInToLive
-            : XUSER_SIGNIN_STATE::SignedInLocally;
+    data->signInState = isPrimary ? XUSER_SIGNIN_STATE::SignedInToLive
+                                  : XUSER_SIGNIN_STATE::SignedInLocally;
   }
   return data;
 }
@@ -152,6 +153,17 @@ bool Live_IsDemonwareFetchingDone_FetchIncomplete(
   return true;
 }
 
+utils::hook::detour Live_LocalClient_StorageAndStats_Ready_hook;
+bool Live_LocalClient_StorageAndStats_Ready_PumpRequired(
+    ControllerIndex_t controllerIndex) {
+  bool result =
+      Live_LocalClient_StorageAndStats_Ready_hook.invoke<bool>(controllerIndex);
+  if (!result) {
+    storage::Storage_Pump(controllerIndex);
+  }
+  return result;
+}
+
 } // namespace live
 } // namespace game
 
@@ -180,11 +192,13 @@ utils::hook::detour LiveConnect_WasPlayerQueueSuccessful_hook;
 utils::hook::detour LiveConnect_GetPlayerQueuePosition_hook;
 utils::hook::detour LiveConnect_GetPlayerQueueTimeEstimate_hook;
 utils::hook::detour LiveConnect_IsPlayerQueued_hook;
+utils::hook::detour LiveConnect_DisableDemonwareConnect_hook;
 
 utils::hook::detour Live_IsUserSignedInToDemonware_hook;
 utils::hook::detour Live_IsDemonwareFetchingDone_hook;
-utils::hook::detour LiveConnect_DisableDemonwareConnect_hook;
 utils::hook::detour Live_OnDWDisconnect_hook;
+utils::hook::detour Live_BlockUntilSignedInToDemonware_hook;
+
 utils::hook::detour LiveAntiCheat_ConsoleDetailsReported_hook;
 
 utils::hook::detour LiveSteam_NotVacBanned_hook;
@@ -261,6 +275,11 @@ public:
         game::live::storage::Storage_Pump_Threadsafe);
     LiveSteam_NotVacBanned_hook.create(
         game::live::steam::LiveSteam_NotVacBanned.get(), return_true);
+    Live_BlockUntilSignedInToDemonware_hook.create(
+        game::live::Live_BlockUntilSignedInToDemonware.get(), return_true);
+    game::live::Live_LocalClient_StorageAndStats_Ready_hook.create(
+        game::live::Live_LocalClient_StorageAndStats_Ready.get(),
+        game::live::Live_LocalClient_StorageAndStats_Ready_PumpRequired);
   }
 };
 } // namespace live

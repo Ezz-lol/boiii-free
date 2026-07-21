@@ -6,7 +6,6 @@
 #include <csetjmp>
 #include <variant>
 
-#include "game/structs/func.hpp"
 #include "str.hpp"
 #include "macros.hpp"
 #include "quake/vec.hpp"
@@ -224,14 +223,18 @@ template <typename T> union SessionModePool {
     T campaign;
   };
 
-  inline T &get(eModes mode) noexcept { return pool[+mode]; }
-  inline const T &get(eModes mode) const noexcept { return pool[+mode]; }
+  inline constexpr T &get(eModes mode) noexcept { return pool[+mode]; }
+  inline constexpr const T &get(eModes mode) const noexcept {
+    return pool[+mode];
+  }
   inline T &get() noexcept { return get(com::Com_SessionMode_GetMode()); }
   inline const T &get() const noexcept {
     return get(com::Com_SessionMode_GetMode());
   }
-  inline T &operator[](eModes index) noexcept { return get(index); }
-  inline const T &operator[](eModes index) const noexcept { return get(index); }
+  inline constexpr T &operator[](eModes index) noexcept { return get(index); }
+  inline constexpr const T &operator[](eModes index) const noexcept {
+    return get(index);
+  }
 };
 
 enum class eNetworkModes : uint32_t {
@@ -870,7 +873,7 @@ enum class StanceState : int32_t {
 };
 IMPL_ENUM_OPERATORS(StanceState);
 
-using fileHandle_t = void *;
+typedef void *fileHandle_t;
 
 struct emblemChallengeLookup_t {
   int16_t challengeIndex;

@@ -17,7 +17,7 @@ inline int32_t Cmd_Argc() {
 }
 inline CmdArgs *Cmd_Argv() { return Sys_GetTLS()->cmdArgs; }
 
-WEAK symbol<TLSData *()> Sys_IsDatabaseReady{0x142183A60};
+WEAK symbol<qboolean()> Sys_IsDatabaseReady{0x142183A60};
 WEAK symbol<void(CriticalSection)> Sys_EnterCriticalSection{0x140119190,
                                                             0x140055230};
 WEAK symbol<void(CriticalSection)> Sys_LeaveCriticalSection{0x1401191E0,
