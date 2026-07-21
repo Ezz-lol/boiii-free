@@ -1980,6 +1980,7 @@ fakeEmblemCount
 fastfile_allowNoAuth
 fastfile_warnMeWhenOutOfSync
 fast_restart
+fbEnabled
 ffotdtempfixHostLaunchPump
 fileshareAllowDownload
 fileshareAllowDownloadingOthersFiles
@@ -6331,6 +6332,7 @@ sv_referencedIwdNames
 sv_referencedIwds
 sv_restrictedTempEnts
 sv_running
+sv_saveDeviceAvailable
 sv_saveGameSkipto
 sv_sendCmdAngles
 sv_serverLogClientPings
@@ -7107,6 +7109,17 @@ weaponrest_enabled
 weaponrest_removepitch
 weaponrest_updatemsec
 webm_encAllowCamera
+webm_encStreamEnabled
+webm_highActivityThreshold
+webm_httpAuthMode
+webm_httpAuthToken
+webm_httpUploadUrl
+webm_httpUploadUrlTwitch
+webm_httpUploadUrlYouTube
+webm_lq_bandwidth
+webm_twitchLasterror
+webm_usersStreaming
+webm_usersWaitingToStream
 weekly_contract_blackjack_contract_reward_count
 weekly_contract_cryptokey_reward_count
 welcome_shown
@@ -7154,6 +7167,8 @@ xPGroups
 xuid
 yawAccelerationTime
 yawDecelerationThreshold
+YouTube_minViewersToStartStream
+YouTube_slateImageUrl
 zero_idle_movement
 zero_stats_check
 zlobbySearchPingBand
