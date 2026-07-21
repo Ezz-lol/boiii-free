@@ -319,24 +319,26 @@ template <typename T_DvarValue> union TemplateDvarValue {
   inline const T_DvarValue *indirect(eModes mode) const {
     return valid_mode(mode) ? _indirect[mode] : nullptr;
   }
-  inline const T_DvarValue *indirect() const {
-    return indirect(com::Com_SessionMode_GetMode());
+  inline const SessionModePool<T_DvarValue *> &indirect() const {
+    return _indirect;
   }
   inline const T_DvarValue *sessionModeSpecific(eModes mode) const {
     return indirect(mode);
   }
-  inline const T_DvarValue *sessionModeSpecific() const { return indirect(); }
+  inline const T_DvarValue *sessionModeSpecific() const {
+    return indirect(com::Com_SessionMode_GetMode());
+  }
 
   inline T_DvarValue *indirect(eModes mode) {
     return valid_mode(mode) ? _indirect[mode] : nullptr;
   }
-  inline T_DvarValue *indirect() {
-    return indirect(com::Com_SessionMode_GetMode());
-  }
+  inline SessionModePool<T_DvarValue *> &indirect() { return _indirect; }
   inline T_DvarValue *sessionModeSpecific(eModes mode) {
     return indirect(mode);
   }
-  inline T_DvarValue *sessionModeSpecific() { return indirect(); }
+  inline T_DvarValue *sessionModeSpecific() {
+    return indirect(com::Com_SessionMode_GetMode());
+  }
 };
 ASSERT_POD(TemplateDvarValue<void>);
 
@@ -352,23 +354,29 @@ struct EncryptionCapableDvarValue {
   // Fields renamed with "_" prefix in favor of consolidated method interface
   // to allow identical usage of both DvarValue and EncryptionCapableDvarValue.
   // in the `EngineDependentDvar` methods
-  inline constexpr bool enabled() const { return _value.enabled(); }
+  inline constexpr bool enabled() const noexcept { return _value.enabled(); }
 
-  inline constexpr int32_t integer() const { return _value.integer(); }
+  inline constexpr int32_t integer() const noexcept { return _value.integer(); }
 
-  inline constexpr uint32_t unsignedInt() const { return _value.unsignedInt(); }
+  inline constexpr uint32_t unsignedInt() const noexcept {
+    return _value.unsignedInt();
+  }
 
-  inline constexpr int64_t integer64() const { return _value.integer64(); }
+  inline constexpr int64_t integer64() const noexcept {
+    return _value.integer64();
+  }
 
-  inline constexpr uint64_t unsignedInt64() const {
+  inline constexpr uint64_t unsignedInt64() const noexcept {
     return _value.unsignedInt64();
   }
 
-  inline constexpr float value() const { return _value.value(); }
+  inline constexpr float value() const noexcept { return _value.value(); }
 
-  inline constexpr vec4_t vector() const { return _value.vector(); }
-  inline constexpr const char *string() const { return _value.string(); }
-  inline constexpr DvarColor color() const { return _value.color(); }
+  inline constexpr vec4_t vector() const noexcept { return _value.vector(); }
+  inline constexpr const char *string() const noexcept {
+    return _value.string();
+  }
+  inline constexpr DvarColor color() const noexcept { return _value.color(); }
 
   inline constexpr bool &enabled() { return _value.enabled(); }
 
@@ -386,19 +394,25 @@ struct EncryptionCapableDvarValue {
   inline constexpr const char *&string() { return _value.string(); }
   inline constexpr DvarColor &color() { return _value.color(); }
 
-  inline const encryptedDvar_t *indirect(eModes mode) const {
+  inline constexpr const encryptedDvar_t *indirect(eModes mode) const noexcept {
     return _value.indirect(mode);
   }
-  inline const encryptedDvar_t *indirect() const { return _value.indirect(); }
-  inline encryptedDvar_t *indirect(eModes mode) {
+  inline constexpr const SessionModePool<encryptedDvar_t *> &
+  indirect() const noexcept {
+    return _value.indirect();
+  }
+  inline constexpr encryptedDvar_t *indirect(eModes mode) {
     return _value.indirect(mode);
   }
-  inline encryptedDvar_t *indirect() { return _value.indirect(); }
+  inline SessionModePool<encryptedDvar_t *> &indirect() {
+    return _value.indirect();
+  }
 
-  inline const encryptedDvar_t *sessionModeSpecific(eModes mode) const {
+  inline const encryptedDvar_t *
+  sessionModeSpecific(eModes mode) const noexcept {
     return _value.sessionModeSpecific(mode);
   }
-  inline const encryptedDvar_t *sessionModeSpecific() const {
+  inline const encryptedDvar_t *sessionModeSpecific() const noexcept {
     return _value.sessionModeSpecific();
   }
   inline encryptedDvar_t *sessionModeSpecific(eModes mode) {
@@ -460,7 +474,7 @@ public:
               DvarSetSource source = DvarSetSource::INTERNAL) const;
   int32_t set(int32_t val,
               DvarSetSource source = DvarSetSource::INTERNAL) const;
-  inline uint32_t set(uint32_t val, DvarSetSource source) const {
+  inline uint32_t set(uint32_t val, DvarSetSource source) const noexcept {
     return static_cast<uint32_t>(set(static_cast<int32_t>(val), source));
   }
   bool set(bool val, DvarSetSource source = DvarSetSource::INTERNAL) const;
@@ -493,6 +507,17 @@ public:
 
   inline dvar<T_DvarValue> *hashNext() const noexcept { return _hashNext; }
   inline dvar<T_DvarValue> *&hashNext() noexcept { return _hashNext; }
+
+  inline constexpr const SessionModePool<dvar<T_DvarValue> *> &
+  indirect() const noexcept {
+    return reinterpret_cast<const SessionModePool<dvar<T_DvarValue> *> &>(
+        _current.indirect());
+  }
+
+  inline constexpr SessionModePool<dvar<T_DvarValue> *> &indirect() noexcept {
+    return reinterpret_cast<SessionModePool<dvar<T_DvarValue> *> &>(
+        _current.indirect());
+  }
 
   inline dvar<T_DvarValue> *sessionModeSpecific() noexcept {
     if (type() == dvarType_t::SESSIONMODE_BASE_DVAR) {
@@ -534,24 +559,32 @@ public:
   inline DvarFlags flags() const noexcept { return resolve()->_flags; }
   inline DvarFlags &flags() noexcept { return resolve()->_flags; }
 
-  inline int32_t get_int() const { return resolve()->current().integer(); }
-  inline constexpr uint32_t get_uint() const {
+  inline int32_t get_int() const noexcept {
+    return resolve()->current().integer();
+  }
+  inline constexpr uint32_t get_uint() const noexcept {
     return resolve()->current().unsignedInt();
   }
-  inline int64_t get_int64() const { return resolve()->current().integer64(); }
-  inline uint64_t get_uint64() const {
+  inline int64_t get_int64() const noexcept {
+    return resolve()->current().integer64();
+  }
+  inline uint64_t get_uint64() const noexcept {
     return resolve()->current().unsignedInt64();
   }
-  inline bool get_bool() const { return resolve()->current().enabled(); }
-  inline float get_float() const { return resolve()->current().value(); }
-  inline const char *get_cstring() const {
+  inline bool get_bool() const noexcept {
+    return resolve()->current().enabled();
+  }
+  inline float get_float() const noexcept {
+    return resolve()->current().value();
+  }
+  inline const char *get_cstring() const noexcept {
     return resolve()->current().string();
   }
-  inline std::optional<std::string_view> get_string() const {
+  inline std::optional<std::string_view> get_string() const noexcept {
     const char *str = get_cstring();
     return str ? std::optional(std::string_view(str)) : std::nullopt;
   }
-  template <typename T> inline constexpr T get() const {
+  template <typename T> inline constexpr T get() const noexcept {
     constexpr size_t T_Size = sizeof(T);
     if constexpr (std::is_same_v<T, int32_t>) {
       return get_int();
@@ -962,142 +995,157 @@ union EngineDependentDvar {
   const encryptedDvar_t *cl;
 
   inline std::optional<std::string>
-  set(const char *val, DvarSetSource source = DvarSetSource::INTERNAL) const {
+  set(const char *val,
+      DvarSetSource source = DvarSetSource::INTERNAL) const noexcept {
     if (is_server()) {
       return sv->set(val, source);
     }
     return cl->set(val, source);
   }
-  inline float set(float val,
-                   DvarSetSource source = DvarSetSource::INTERNAL) const {
+  inline float
+  set(float val,
+      DvarSetSource source = DvarSetSource::INTERNAL) const noexcept {
     if (is_server()) {
       return sv->set(val, source);
     }
     return cl->set(val, source);
   }
-  inline uint64_t set(uint64_t val,
-                      DvarSetSource source = DvarSetSource::INTERNAL) const {
+  inline uint64_t
+  set(uint64_t val,
+      DvarSetSource source = DvarSetSource::INTERNAL) const noexcept {
     if (is_server()) {
       return sv->set(val, source);
     }
     return cl->set(val, source);
   }
-  inline int64_t set(int64_t val,
-                     DvarSetSource source = DvarSetSource::INTERNAL) const {
+  inline int64_t
+  set(int64_t val,
+      DvarSetSource source = DvarSetSource::INTERNAL) const noexcept {
     if (is_server()) {
       return sv->set(val, source);
     }
     return cl->set(val, source);
   }
-  inline int32_t set(int32_t val,
-                     DvarSetSource source = DvarSetSource::INTERNAL) const {
+  inline int32_t
+  set(int32_t val,
+      DvarSetSource source = DvarSetSource::INTERNAL) const noexcept {
     if (is_server()) {
       return sv->set(val, source);
     }
     return cl->set(val, source);
   }
-  inline uint32_t set(uint32_t val,
-                      DvarSetSource source = DvarSetSource::INTERNAL) const {
+  inline uint32_t
+  set(uint32_t val,
+      DvarSetSource source = DvarSetSource::INTERNAL) const noexcept {
     if (is_server()) {
       return sv->set(val, source);
     }
     return cl->set(val, source);
   }
-  inline bool set(bool val,
-                  DvarSetSource source = DvarSetSource::INTERNAL) const {
+  inline bool
+  set(bool val, DvarSetSource source = DvarSetSource::INTERNAL) const noexcept {
     if (is_server()) {
       return sv->set(val, source);
     }
     return cl->set(val, source);
   }
-  inline int32_t get_int() const {
+  inline int32_t get_int() const noexcept {
     if (is_server()) {
       return sv->get_int();
     }
     return cl->get_int();
   }
-  inline uint32_t get_uint() const {
+  inline uint32_t get_uint() const noexcept {
     if (is_server()) {
       return sv->get_uint();
     }
     return cl->get_uint();
   }
-  inline int64_t get_int64() const {
+  inline int64_t get_int64() const noexcept {
     if (is_server()) {
       return sv->get_int64();
     }
     return cl->get_int64();
   }
-  inline uint64_t get_uint64() const {
+  inline uint64_t get_uint64() const noexcept {
     if (is_server()) {
       return sv->get_uint64();
     }
     return cl->get_uint64();
   }
-  inline bool get_bool() const {
+  inline bool get_bool() const noexcept {
     if (is_server()) {
       return sv->get_bool();
     }
     return cl->get_bool();
   }
-  inline float get_float() const {
+  inline float get_float() const noexcept {
     if (is_server()) {
       return sv->get_float();
     }
     return cl->get_float();
   }
-  inline std::optional<std::string_view> get_string() const {
+  inline std::optional<std::string_view> get_string() const noexcept {
     if (is_server()) {
       return sv->get_string();
     }
     return cl->get_string();
   }
-  inline const char *get_cstring() const {
+  inline const char *get_cstring() const noexcept {
     if (is_server()) {
       return sv->get_cstring();
     }
     return cl->get_cstring();
   }
-  template <typename T> inline T get() const {
+  template <typename T> inline T get() const noexcept {
     if (is_server()) {
       return sv->get<T>();
     }
     return cl->get<T>();
   }
 
-  inline dvarStrHash_t name() const {
+  inline dvarStrHash_t name() const noexcept {
     if (is_server()) {
       return sv->name();
     }
     return cl->name();
   }
 
-  inline const char *debugName() const {
+  inline const char *debugName() const noexcept {
     if (is_server()) {
       return sv->debugName();
     }
     return cl->debugName();
   }
-  inline const char *description() const {
+  inline const char *description() const noexcept {
     if (is_server()) {
       return sv->description();
     }
     return cl->description();
   }
-  inline DvarFlags flags() const {
+  inline DvarFlags flags() const noexcept {
     if (is_server()) {
       return sv->flags();
     }
     return cl->flags();
   }
-  inline dvarType_t type() const {
+  inline dvarType_t type() const noexcept {
     if (is_server()) {
       return sv->type();
     }
     return cl->type();
   }
 
-  inline EngineDependentDvar sessionModeSpecific() const {
+  inline const SessionModePool<EngineDependentDvar> &indirect() const noexcept {
+    if (is_server()) {
+      return reinterpret_cast<const SessionModePool<EngineDependentDvar> &>(
+          sv->indirect());
+    }
+    return reinterpret_cast<const SessionModePool<EngineDependentDvar> &>(
+        cl->indirect());
+  }
+
+  inline EngineDependentDvar sessionModeSpecific() const noexcept {
     EngineDependentDvar result{nullptr};
     if (is_server()) {
       result.sv = reinterpret_cast<const dvar_t *>(sv->sessionModeSpecific());
@@ -1108,7 +1156,19 @@ union EngineDependentDvar {
     return result;
   }
 
-  inline EngineDependentDvar resolve() const {
+  inline EngineDependentDvar sessionModeSpecific(eModes mode) const noexcept {
+    EngineDependentDvar result{nullptr};
+    if (is_server()) {
+      result.sv =
+          reinterpret_cast<const dvar_t *>(sv->sessionModeSpecific(mode));
+    } else {
+      result.cl = reinterpret_cast<const encryptedDvar_t *>(
+          cl->sessionModeSpecific(mode));
+    }
+    return result;
+  }
+
+  inline EngineDependentDvar resolve() const noexcept {
     EngineDependentDvar result{};
     if (is_server()) {
       result.sv = reinterpret_cast<const dvar_t *>(sv->resolve());
@@ -1118,19 +1178,19 @@ union EngineDependentDvar {
     return result;
   }
 
-  inline bool modified() const {
+  inline bool modified() const noexcept {
     if (is_server()) {
       return sv->modified();
     }
     return cl->modified();
   }
-  inline DvarLimits domain() const {
+  inline DvarLimits domain() const noexcept {
     if (is_server()) {
       return sv->domain();
     }
     return cl->domain();
   }
-  inline EngineDependentDvar hashNext() const {
+  inline EngineDependentDvar hashNext() const noexcept {
     EngineDependentDvar result{};
     if (is_server()) {
       result.sv = const_cast<const dvar_t *>(

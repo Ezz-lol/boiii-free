@@ -113,6 +113,73 @@ inline void disable_sv_cheats() {
     utils::hook::call(0x1405767F5_g, Dvar_RegisterDisable_Bool_Inlined);
   }
 }
+
+inline constexpr const char *serialize(eModes mode) {
+  switch (mode) {
+  case eModes::ZOMBIES:
+    return "MODE_ZOMBIES";
+  case eModes::MULTIPLAYER:
+    return "MODE_MULTIPLAYER";
+  case eModes::CAMPAIGN:
+    return "MODE_CAMPAIGN";
+  default:
+    return "MODE_INVALID";
+  }
+}
+
+utils::hook::detour Dvar_GetSessionModeSpecificDvarInternal_hook;
+EngineDependentDvar Dvar_GetSessionModeSpecificDvarInternal_FallbackDefault(
+    EngineDependentDvar base, eModes modeArg) {
+
+  eModes mode = modeArg;
+  if (mode == eModes::INVALID && com::Com_IsRunningUILevel()) {
+    mode = eModes::MULTIPLAYER;
+  }
+  switch (mode) {
+  case eModes::ZOMBIES:
+  case eModes::MULTIPLAYER:
+  case eModes::CAMPAIGN: {
+    EngineDependentDvar resolved = base.sessionModeSpecific(mode);
+
+    // Try to get sessionmode-specific dvar for _current_ mode.
+    // Internally, this falls back to the base dvar if the sessionmode-specific
+    // dvar for the current mode is a nullptr - just as the engine does.
+    if (!resolved) {
+      resolved = base.resolve();
+    }
+
+    return resolved;
+  }
+  default: {
+    const char *debugName = base.debugName();
+    const char *name =
+        debugName ? debugName
+                  : utils::string::va("UNKNOWN(hash: 0x%X)", base.name());
+    com::Com_Printf(0, consoleLabel_e::DEFAULT,
+                    "Warning: Sessionmode not set while attempting to get "
+                    "sessionmode specific dvar for mode: %s from base dvar : "
+                    "\"%s\". Falling back to "
+                    "first available sessionmode-specific dvar.",
+                    serialize(mode), name);
+    const SessionModePool<EngineDependentDvar> &sessionModeSpecificDvars =
+        base.indirect();
+    for (eModes sessionMode = eModes::FIRST; sessionMode < eModes::COUNT;
+         ++sessionMode) {
+      if (sessionModeSpecificDvars[sessionMode]) {
+        return sessionModeSpecificDvars[sessionMode];
+      }
+    }
+    com::Com_Printf(
+        0, consoleLabel_e::DEFAULT,
+        "Warning: Sessionmode not set while attempting to get "
+        "sessionmode specific dvar for mode: %s from base dvar : \"%s\", and "
+        "none of the "
+        "sessionmode-specific dvars were available. Returning base dvar.",
+        serialize(mode), name);
+    return base.resolve();
+  }
+  }
+}
 } // namespace
 
 class component final : public generic_component {
@@ -121,6 +188,9 @@ public:
     scheduler::once(patch_dvars, scheduler::pipeline::main);
     scheduler::once(patch_flags, scheduler::pipeline::main);
     scheduler::loop(strip_cheat_flags, scheduler::pipeline::main, 5s);
+    Dvar_GetSessionModeSpecificDvarInternal_hook.create(
+        game::Dvar_GetSessionModeSpecificDvarInternal.get(),
+        Dvar_GetSessionModeSpecificDvarInternal_FallbackDefault);
 
     if (game::is_client())
       this->patch_client();
