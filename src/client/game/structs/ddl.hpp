@@ -77,5 +77,5 @@ struct DDLContext {
   void *userData;
 };
 
-}
-}
+} // namespace ddl
+} // namespace game
