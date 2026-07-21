@@ -52,6 +52,7 @@ WEAK symbol<EngineDependentDvarMut> ui_error_callstack_ship{0x1568EDCA0,
 WEAK symbol<EngineDependentDvarMut> ui_enableAllHeroes{0x1579DF948,
                                                        0x14A30C408};
 
+WEAK symbol<EngineDependentDvar> g_log{0x14A3D15E0, 0x147102FA0};
 WEAK symbol<EngineDependentDvar> g_motd{0x14A3D15D0, 0x147836998};
 WEAK symbol<EngineDependentDvar> live_motdEnabled{0x15163FC70, 0x148382988};
 WEAK symbol<EngineDependentDvar> motd_enabled{0x15120C780, 0x1482DED80};
