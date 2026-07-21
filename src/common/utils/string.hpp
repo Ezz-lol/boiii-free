@@ -78,8 +78,10 @@ std::vector<std::string> split(const std::string &s, char delim);
 
 std::string to_lower(std::string text);
 std::string to_upper(std::string text);
-bool starts_with(const std::string &text, const std::string &substring);
-bool ends_with(const std::string &text, const std::string &substring);
+bool contains(const std::string_view &text, const std::string_view &substring);
+bool starts_with(const std::string_view &text,
+                 const std::string_view &substring);
+bool ends_with(const std::string_view &text, const std::string_view &substring);
 
 bool is_numeric(const std::string &text);
 

@@ -15,7 +15,6 @@
 #include <utils/hook.hpp>
 
 #include <mmeapi.h>
-#include <sstream>
 
 namespace client_patches {
 namespace {
@@ -49,7 +48,7 @@ void stop_intro_if_needed() {
 
 void preload_map_stub(game::LocalClientNum_t local_client_num,
                       const char *mapname, const char *gametype) {
-  game::com::Com_GametypeSettings_SetGametype(gametype, true);
+  game::com::gts::Com_GametypeSettings_SetGametype(gametype, true);
   stop_intro_if_needed();
   preload_map_hook.invoke(local_client_num, mapname, gametype);
 }

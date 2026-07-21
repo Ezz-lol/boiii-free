@@ -20,45 +20,118 @@ using AtomicLobbyClientOptionalPool =
 
 enum class LobbyType : int32_t {
   INVALID = -1,
-  PRIVATE = 0x0,
-  GAME = 0x1,
-  TRANSITION = 0x2,
-  COUNT = 0x3,
-  FIRST = 0x0,
-  LAST = 0x2,
-  AUTO = 0x3,
+  PRIVATE = 0,
+  GAME = 1,
+  COUNT = 2,
+  FIRST = 0,
+  LAST = 1,
 };
 IMPL_ENUM_OPERATORS(LobbyType);
 
 enum class LobbyClientType : int32_t {
   INVALID = -1,
-  ALL = 0x0,
-  LOCAL = 0x1,
-  REMOTE = 0x2,
+  ALL = 0,
+  LOCAL = 1,
+  REMOTE = 2,
+  SPLITSCREEN_ALL = 3,
+  SPLITSCREEN_REMOTE = 4,
+  GUEST = 5,
 };
 IMPL_ENUM_OPERATORS(LobbyClientType);
 
 enum class LobbyNetworkMode : int32_t {
   INVALID = -1,
-  LOCAL = 0x0,
-  LAN = 0x1,
-  LIVE = 0x2,
-  COUNT = 0x3,
+  UNKNOWN = 0,
+  LAN = 1,
+  LIVE = 2,
+  COUNT = 3,
+  LOCAL = 1,
 };
 IMPL_ENUM_OPERATORS(LobbyNetworkMode);
 
-enum class LobbyMainMode {
+enum class LobbyMainMode : int32_t {
   INVALID = -1,
-  CP = 0x0,
-  MP = 0x1,
-  ZM = 0x2,
-  COUNT = 0x3,
+  CP = 0,
+  MP = 1,
+  ZM = 2,
+  COUNT = 3,
 };
 IMPL_ENUM_OPERATORS(LobbyMainMode);
 
 struct LobbyParams {
   LobbyNetworkMode networkMode;
   LobbyMainMode mainMode;
+};
+
+enum class LobbyModule : int32_t {
+  INVALID = -1,
+  HOST = 0,
+  CLIENT = 1,
+  COUNT = 2,
+  FIRST = 0,
+  LAST = 1,
+  PEER_TO_PEER = 3,
+};
+enum class LobbyMode : int32_t {
+  INVALID = -1,
+  PUBLIC = 0,
+  CUSTOM = 1,
+  THEATER = 2,
+  ARENA = 3,
+  FREERUN = 4,
+  COUNT = 5,
+};
+enum class PartyPrivacy : int32_t {
+  OPEN = 0,
+  FRIENDS_ONLY = 1,
+  INVITE_ONLY = 2,
+  CLOSED = 3,
+  COUNT = 4,
+};
+enum class LobbyJoinable : int32_t {
+  NO_NOT_IN_LOBBY = 0,
+  YES = 1,
+  YES_FRIENDS_ONLY = 2,
+  NO_PARTY_PRIVACY_INVITE_ONLY = 3,
+  NO_PARTY_PRIVACY_CLOSED = 4,
+  NO_PARTY_FULL = 5,
+  NO_GAME_FULL = 6,
+  NO_PLAYING_LOCAL = 7,
+  NO_GAME_PAUSED = 8,
+  NO = 9,
+  NO_YOU_NEED_DLC = 10,
+  COUNT = 11,
+};
+
+enum class LobbyHostType : int32_t {
+  INVALID = -1,
+  P2P = 0,
+  DEDICATED = 1,
+  COUNT = 2,
+};
+enum class LobbyMapVote : int32_t {
+  INVALID = -1,
+  NONE = 0,
+  NEXT = 1,
+  PREVIOUS = 2,
+  RANDOM = 3,
+};
+enum class LobbyProcessComplete : int32_t {
+  INVALID = -1,
+  SUCCESS = 0,
+  FAILURE = 1,
+  LOBBY_PROCESS_COMPLETE_ERROR = 2,
+};
+enum class LobbyDisconnectClient : int32_t {
+  INVALID = -1,
+  DROP = 0,
+  KICK = 1,
+  BADDLC = 2,
+  KICK_PARTY = 3,
+  HOSTRELOAD = 4,
+  NOPARTYCHAT = 5,
+  LOBBY_DISCONNECT_CLIENT_ERROR = 6,
+  MISSING_CONTENT = 7,
 };
 
 enum class JoinType : uint32_t {

@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
+
 #include "../core.hpp"
 #include "../func.hpp"
 
@@ -852,6 +854,101 @@ template <typename T> struct _TaskRecord {
 struct TaskRecord : public _TaskRecord<void *> {};
 ASSERT_SIZE(TaskRecord, 0x68);
 #pragma pack(pop)
+
+class bdFileData : bdTaskResult {
+public:
+  void *m_fileData;
+  bdUInt m_fileSize;
+};
+
+class bdFileInfo : bdTaskResult {
+public:
+  enum class bdVisibility : uint32_t {
+    PUBLIC = 0x0,
+    PRIVATE = 0x1,
+    COUNT = 0x2,
+  };
+  bdUInt64 m_fileID;
+  bdUInt32 m_createTime;
+  bdUInt32 m_modifedTime;
+  bdFileInfo::bdVisibility m_visibility;
+  bdOnlineUserID m_ownerID;
+  bdNChar8 m_fileName[128];
+  bdUInt32 m_fileSize;
+};
+
+class bdUserAccountID {
+public:
+  int32_t (**_vptr$bdUserAccountID)(void);
+  bdNChar8 m_accountType[10];
+  bdOnlineUserID m_userID;
+};
+
+typedef bdUserAccountID bdUserID;
+
+class bdContextUserStorageFileInfo : bdTaskResult {
+public:
+  bdUInt32 m_createTime;
+  bdUInt32 m_modifedTime;
+  bdFileInfo::bdVisibility m_visibility;
+  bdUserID m_ownerID;
+  bdNChar8 m_fileName[128];
+  bdUInt32 m_fileSize;
+};
+
+typedef bdContextUserStorageFileInfo bdUserStorageFileInfo;
+
+class __declspec(align(8)) dwFileTask {
+public:
+  std::string m_filename;
+  bdFileData m_fileData;
+  bdLobbyErrorCode m_error;
+  bdUInt64 m_fileID;
+  bdUInt m_fileSize;
+  bdUInt m_bufferSize;
+  bdUserStorageFileInfo m_fileInfo;
+  void *m_buffer;
+  bool m_optional;
+  bool m_lsgOnly;
+  bool m_lpcFile;
+};
+
+struct fileRetryInfo {
+  int32_t lastAttemptTime;
+  int32_t lastAttemptInterval;
+  int32_t retryCount;
+};
+
+enum class dwFileOpResult : __int32 {
+  SUCCESS = 0x0,
+  NOT_FOUND = 0x1,
+  FAILURE = 0x2,
+};
+
+struct dwFileOperationInfo {
+  dwFileTask fileTask;
+  fileRetryInfo retryInfo;
+  int32_t taskType;
+  bool fetchCompleted;
+  bool writeCompleted;
+  bool isUserFile;
+  bool isCompressedFile;
+  uint8_t *fileBuffer;
+  int32_t bufferSize;
+  int32_t decompressedSize;
+  dwFileOpResult result;
+  fastcall_t<void(const ControllerIndex_t controllerIndex, void *)>
+      fnCallbackSuccess;
+  fastcall_t<taskCompleteResults(const ControllerIndex_t controllerIndex,
+                                 void *)>
+      fnCallbackNotFound;
+  fastcall_t<taskCompleteResults(const ControllerIndex_t controllerIndex,
+                                 void *)>
+      fnCallbackFailure;
+  bool *alreadyUploaded;
+  uint8_t *parityBits;
+  void *userData;
+};
 
 } // namespace dw
 } // namespace game

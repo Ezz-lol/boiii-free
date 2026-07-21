@@ -667,21 +667,15 @@ XAssetHeader db_find_x_asset_header_stub(const XAssetType type,
                                          const char *name,
                                          const bool error_if_missing,
                                          const int32_t wait_time) {
-  XAssetHeader result;
+  XAssetHeader result{.rawfile = nullptr};
   // Check our loaded scripts FIRST to avoid "Could not find scriptparsetree"
   // spam
   if (name && name[0] && type == XAssetType::SCRIPTPARSETREE) {
-    RawFile *script = get_loaded_script(name);
-    if (script != nullptr) {
-      result = static_cast<XAssetHeader>(script);
-    }
+    result.rawfile = get_loaded_script(name);
 
-    if (script == nullptr) {
-      // Try to get map-specific script override
-      script = get_loaded_map_script(name);
-      if (script != nullptr) {
-        result = static_cast<XAssetHeader>(script);
-      }
+    // Try to get map-specific script override
+    if (result.rawfile == nullptr) {
+      result.rawfile = get_loaded_map_script(name);
     }
   }
 
@@ -689,8 +683,9 @@ XAssetHeader db_find_x_asset_header_stub(const XAssetType type,
     result = db_find_x_asset_header_hook.invoke<XAssetHeader>(
         type, name, error_if_missing, wait_time);
   }
-
-  dump::dump_requested_assets(type, name, result);
+  if (game::nonnull(result.rawfile)) {
+    dump::dump_requested_assets(type, name, result);
+  }
 
   return result;
 }

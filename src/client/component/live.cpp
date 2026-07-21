@@ -74,8 +74,10 @@ userDataRef LiveUser_GetUserDataForController_Patched(
     const ControllerIndex_t controllerIndex) {
   userDataRef data = s_userDataForControllerMap->data[controllerIndex];
   data->xuid = auth::get_guid(data->controller);
-  LiveUser_UserGetName_ConsoleSuffix(data->controller, data->gamertag,
-                                     ARRAYSIZE(data->gamertag));
+  if (!data->gamertag[0]) {
+    LiveUser_UserGetName_ConsoleSuffix(data->controller, data->gamertag,
+                                       ARRAYSIZE(data->gamertag));
+  }
   data->isUnderAge = false;
   data->isContentRestricted = false;
   data->isChatRestricted = false;
@@ -94,12 +96,66 @@ userDataRef LiveUser_GetUserDataForController_Patched(
 XUID LiveUser_GetLocalXuid_UseAuthGuid(const userData_t *userdata) {
   return auth::get_guid(userdata->controller);
 }
-
 } // namespace user
+
+namespace storage {
+std::recursive_mutex Storage_Pump_Lock;
+utils::hook::detour Storage_Pump_hook;
+void Storage_Pump_Threadsafe(const ControllerIndex_t controllerIndex) {
+  std::lock_guard<std::recursive_mutex> lock(Storage_Pump_Lock);
+  Storage_Pump_hook.invoke(controllerIndex);
+}
+
+std::recursive_mutex LiveStorage_FetchRequiredFiles_Lock;
+utils::hook::detour LiveStorage_FetchRequiredFiles_hook;
+void LiveStorage_FetchRequiredFiles_Threadsafe(
+    const ControllerIndex_t controllerIndex) {
+  std::lock_guard<std::recursive_mutex> lock(
+      LiveStorage_FetchRequiredFiles_Lock);
+  LiveStorage_FetchRequiredFiles_hook.invoke(controllerIndex);
+}
+} // namespace storage
+
+inline bool
+Live_IsMinimalDemonwareFetchingDone(ControllerIndex_t controllerIndex) {
+  bool ddls_synced =
+      !*inventory::inventory_blocking ||
+      !inventory::inventory_blocking->get_bool() ||
+      (*live_insyncddlsrequired && !live_insyncddlsrequired->get_bool()) ||
+      storage::LiveStorage_AreDDLsInSync();
+
+  return storage::LiveStorage_DoWeHaveFFOTD() &&
+         storage::LiveStorage_ValidateFFOTD() &&
+         stats::LiveStats_Core_Ready(controllerIndex, eNetworkModes::ONLINE) &&
+         stats::LiveStats_Loadouts_Ready(controllerIndex,
+                                         eNetworkModes::ONLINE) &&
+         storage::LiveStorage_IsTimeSynced() &&
+         game::savegame::SaveGame_IsDataReady(controllerIndex,
+                                              eNetworkModes::ONLINE) &&
+         ddls_synced && storage::LiveStorage_DoWeHavePlaylists() &&
+         publisher::variables::LivePublisherVariables_AreVariablesAvailable();
+}
+
+bool Live_IsDemonwareFetchingDone_FetchIncomplete(
+    ControllerIndex_t controllerIndex) {
+
+  if (!Live_IsMinimalDemonwareFetchingDone(controllerIndex)) {
+    game::live::storage::Storage_Pump(controllerIndex);
+    if (!storage::LiveStorage_DoWeHavePlaylists() ||
+        !storage::LiveStorage_DoWeHaveFFOTD()) {
+      game::live::storage::LiveStorage_FetchRequiredFiles(controllerIndex);
+    }
+    game::live::storage::Storage_Pump(controllerIndex);
+
+    return false;
+  }
+  return true;
+}
+
 } // namespace live
 } // namespace game
-namespace liveuser {
 
+namespace live {
 void stub_func() { return; }
 
 bool return_true() { return true; }
@@ -127,6 +183,12 @@ utils::hook::detour LiveConnect_IsPlayerQueued_hook;
 
 utils::hook::detour Live_IsUserSignedInToDemonware_hook;
 utils::hook::detour Live_IsDemonwareFetchingDone_hook;
+utils::hook::detour LiveConnect_DisableDemonwareConnect_hook;
+utils::hook::detour Live_OnDWDisconnect_hook;
+utils::hook::detour LiveAntiCheat_ConsoleDetailsReported_hook;
+
+utils::hook::detour LiveSteam_NotVacBanned_hook;
+
 class component final : public client_component {
 public:
   void post_unpack() override {
@@ -181,8 +243,25 @@ public:
         game::live::user::LiveUser_GetLocalXuid.get(),
         game::live::user::LiveUser_GetLocalXuid_UseAuthGuid);
     Live_IsDemonwareFetchingDone_hook.create(
-        game::live::Live_IsDemonwareFetchingDone.get(), return_true);
+        game::live::Live_IsDemonwareFetchingDone.get(),
+        game::live::Live_IsDemonwareFetchingDone_FetchIncomplete);
+    LiveConnect_DisableDemonwareConnect_hook.create(
+        game::live::connect::LiveConnect_DisableDemonwareConnect.get(),
+        stub_func);
+    Live_OnDWDisconnect_hook.create(game::live::Live_OnDWDisconnect.get(),
+                                    stub_func);
+    LiveAntiCheat_ConsoleDetailsReported_hook.create(
+        game::live::anticheat::LiveAntiCheat_ConsoleDetailsReported.get(),
+        return_true);
+    game::live::storage::LiveStorage_FetchRequiredFiles_hook.create(
+        game::live::storage::LiveStorage_FetchRequiredFiles.get(),
+        game::live::storage::LiveStorage_FetchRequiredFiles_Threadsafe);
+    game::live::storage::Storage_Pump_hook.create(
+        game::live::storage::Storage_Pump.get(),
+        game::live::storage::Storage_Pump_Threadsafe);
+    LiveSteam_NotVacBanned_hook.create(
+        game::live::steam::LiveSteam_NotVacBanned.get(), return_true);
   }
 };
-} // namespace liveuser
-REGISTER_COMPONENT(liveuser::component);
+} // namespace live
+REGISTER_COMPONENT(live::component);

@@ -2,7 +2,7 @@
 
 #include "core.hpp"
 #include "quake/core.hpp"
-#include "db/xasset.hpp"
+#include "db/xasset/core.hpp"
 #include "dyn/ent.hpp"
 #include "asm.hpp"
 #include "rope.hpp"

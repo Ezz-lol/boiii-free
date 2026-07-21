@@ -9,6 +9,7 @@
 #include <utils/string.hpp>
 #include <utils/pe.hpp>
 #include <utils/flags.hpp>
+#include <utils/signature.hpp>
 
 #include "integrity.hpp"
 
