@@ -21,6 +21,8 @@ WEAK symbol<const char *(const XAsset *asset)> DB_GetXAssetName{0x1413E9DA0,
                                                                 0x14019F080};
 WEAK symbol<int(XAssetType type)> DB_GetXAssetTypeSize{0x1413E9DD0,
                                                        0x14019F0B0};
+WEAK symbol<bool(XAssetType type, const char *name)> DB_IsXAssetDefault{
+    0x141422140, 0x1401D7260};
 
 } // namespace xasset
 } // namespace db

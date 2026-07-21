@@ -8,7 +8,7 @@ namespace game {
 namespace live {
 namespace user {
 WEAK symbol<game::XUID(game::ControllerIndex_t controllerIndex)>
-    LiveUser_GetXuid{0x141EC7310};
+    LiveUser_GetXuid{0x141EC7310, 0x14047F350};
 WEAK symbol<const char *(ControllerIndex_t controllerIndex)>
     LiveUser_GetXuidString{0x141EC6E90};
 WEAK symbol<const char *(ControllerIndex_t controllerIndex)>
@@ -62,6 +62,10 @@ WEAK symbol<void(const ControllerIndex_t controllerIndex, EUserTier tier)>
     LiveUser_SetTier{0x141EC7160};
 WEAK symbol<XUID(const userData_t *userdata)> LiveUser_GetLocalXuid{
     0x14214ADD0};
+
+WEAK symbol<bool(ControllerIndex_t controllerIndex,
+                 const char **disconnectMessage)>
+    Live_UserSignedInToLive{0x141E7EFC0};
 
 } // namespace user
 

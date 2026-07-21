@@ -2,7 +2,7 @@
 
 #include "quake/vec.hpp"
 #include "quake/core.hpp"
-#include "db/xasset.hpp"
+#include "db/xasset/core.hpp"
 
 namespace game {
 namespace rope {

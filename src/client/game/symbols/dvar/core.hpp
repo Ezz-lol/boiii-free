@@ -229,4 +229,6 @@ inline void Dvar_SetInt(EngineDependentDvar dvar, int32_t value) {
   return _Dvar_SetInt(dvar, value);
 }
 
+WEAK symbol<EngineDependentDvar(EngineDependentDvar base, eModes mode)>
+    Dvar_GetSessionModeSpecificDvarInternal{0x1422BF500, 0x140575D90};
 } // namespace game

@@ -145,8 +145,9 @@ struct component final : generic_component {
                                game::com::Com_SessionMode_GetGameMode())));
       info.set("sv_running", std::to_string(game::server_running()));
       info.set("dedicated", game::is_server() ? "1" : "0");
-      info.set("hc", std::to_string(game::com::Com_GametypeSettings_GetUInt(
-                         "hardcoremode", false)));
+      info.set("hc",
+               std::to_string(game::com::gts::Com_GametypeSettings_GetUInt(
+                   "hardcoremode", false)));
       info.set("modName", workshop::get_mod_resized_name());
       info.set("modId", workshop::get_mod_publisher_id());
       info.set("rounds_played",

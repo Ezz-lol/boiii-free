@@ -2,8 +2,8 @@
 #define GAME_STRUCTS_DB_XASSETS_HPP
 
 #include <cstdint>
-#include "../quake/core.hpp"
-#include "../gfx/gfx.hpp"
+#include "../../quake/core.hpp"
+#include "../../gfx/gfx.hpp"
 
 namespace game {
 
@@ -27,6 +27,11 @@ typedef uint32_t SndAliasId;
 } // namespace snd
 namespace db {
 namespace xasset {
+
+namespace maptable {
+struct MapTable;
+}
+
 /*
  For future reference, some known-correct asset struct sizes as per
  `DB_GetXAssetTypeSize`:
@@ -685,6 +690,12 @@ typedef PlayerSoundsTable *PlayerSoundsTablePtr;
 struct FootstepTableDef;
 typedef FootstepTableDef *FootstepTableDefPtr;
 
+struct ScriptBundleList;
+typedef ScriptBundleList *ScriptBundleListPtr;
+
+struct ObjectiveList;
+typedef ObjectiveList *ObjectiveListPtr;
+
 struct ScriptBundleKVP;
 typedef ScriptBundleKVP *ScriptBundleKVPPtr;
 
@@ -786,7 +797,7 @@ union XAssetHeader {
   // FlameTable *flameTable;
   // Bitfield *bitfield;
   // AttachmentCosmeticVariant *attachmentCosmeticVariant;
-  // MapTable *mapTable;
+  maptable::MapTable *mapTable;
   // Medal *medal;
   // MedalTable *medalTable;
   // Objective *objective;
@@ -1031,6 +1042,25 @@ PACKED(struct LocalizeEntry {
   const char *name;
 });
 ASSERT_SIZE(LocalizeEntry, 16);
+
+struct accoladeCache {
+  uint8_t accoladeIndex;
+};
+
+PACKED(struct mapTableEntryCache {
+  accoladeCache accoladesWithUnlocks[32];
+  const char *rootMapName;
+  uint8_t numAccoladesWithUnlocks;
+  uint8_t _padding29[7];
+});
+ASSERT_SIZE(mapTableEntryCache, 0x30);
+
+PACKED(struct mapTableCache {
+  mapTableEntryCache missionsWithAccolades[128];
+  uint8_t numMissionsWithAccolades;
+  uint8_t _padding1801[7];
+});
+ASSERT_SIZE(mapTableCache, 0x1808);
 
 } // namespace xasset
 } // namespace db

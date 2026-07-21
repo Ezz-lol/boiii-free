@@ -3,7 +3,7 @@
 #include <cstdint>
 #include "core.hpp"
 #include "net/net.hpp"
-#include "db/xasset.hpp"
+#include "db/xasset/core.hpp"
 #include "scr/core.hpp"
 #include "weapon.hpp"
 #include "vehicle.hpp"

@@ -38,13 +38,17 @@ WEAK symbol<LiveUserAuthPool> live_clientAuthPool{0x0, 0x14837F408};
 
 WEAK symbol<bool(game::ControllerIndex_t controllerIndex)>
     Live_IsUserSignedInToDemonware{0x141E0D7A0};
+WEAK symbol<bool(const ControllerIndex_t controllerIndex)>
+    Live_IsDemonwareFetchingDone{0x141E0D710};
+WEAK symbol<void(const ControllerIndex_t controllerIndex)> Live_OnDWDisconnect{
+    0x141E7E600};
 
 // DoubleXP
 WEAK symbol<uint32_t(ControllerIndex_t controllerIndex)>
     Live_DoubleXPGetGroupMaskForController{0x141E110D0};
 WEAK symbol<uint32_t[2]> g_oldDoubleXPMask{0x1453D8BB0};
-WEAK symbol<bool(const ControllerIndex_t controllerIndex)>
-    Live_IsDemonwareFetchingDone{0x141E0D710};
+
+WEAK symbol<EngineDependentDvar> live_insyncddlsrequired{0x15120C798};
 
 } // namespace live
 } // namespace game

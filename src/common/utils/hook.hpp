@@ -1,8 +1,11 @@
 #pragma once
-#include "signature.hpp"
 
 #include <asmjit/core/jitruntime.h>
 #include <asmjit/x86/x86assembler.h>
+#include <optional>
+#include <vector>
+#include <string>
+#include <utils/nt.hpp>
 
 using namespace asmjit::x86;
 
@@ -100,6 +103,10 @@ public:
 
   void create(void *place, void *target);
   void create(size_t place, void *target);
+  template <typename T> inline void create(T *place, T *target) {
+    return create(reinterpret_cast<void *>(place),
+                  reinterpret_cast<void *>(target));
+  }
   void clear();
 
   void move();

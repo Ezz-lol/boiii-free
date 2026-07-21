@@ -8,9 +8,10 @@
 #include "cl.hpp"        // IWYU pragma: export
 #include "cm.hpp"        // IWYU pragma: export
 #include "cmd.hpp"       // IWYU pragma: export
-#include "com.hpp"       // IWYU pragma: export
+#include "com/com.hpp"   // IWYU pragma: export
 #include "console.hpp"   // IWYU pragma: export
 #include "db/db.hpp"     // IWYU pragma: export
+#include "ddl.hpp"       // IWYU pragma: export
 #include "demo.hpp"      // IWYU pragma: export
 #include "dvar/dvar.hpp" // IWYU pragma: export
 #include "dw/dw.hpp"     // IWYU pragma: export
@@ -36,6 +37,7 @@
 #include "quake.hpp"     // IWYU pragma: export
 #include "render.hpp"    // IWYU pragma: export
 #include "rope.hpp"      // IWYU pragma: export
+#include "savegame.hpp"  // IWYU pragma: export
 #include "scr/scr.hpp"   // IWYU pragma: export
 #include "seh.hpp"       // IWYU pragma: export
 #include "sl.hpp"        // IWYU pragma: export

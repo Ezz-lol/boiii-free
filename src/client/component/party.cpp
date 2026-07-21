@@ -11,7 +11,6 @@
 #include "workshop.hpp"
 #include "profile_infos.hpp"
 #include "friends.hpp"
-#include "steam_proxy.hpp"
 #include "toast.hpp"
 
 #include <game/utils.hpp>
@@ -93,6 +92,27 @@ void launch_mode(const game::eModes mode) {
       scheduler::main);
 }
 
+bool ensure_networkmode_online() {
+  using namespace game;
+  using namespace game::lobby;
+  switch (com::Com_SessionMode_GetNetworkMode()) {
+  case eNetworkModes::ONLINE:
+  case eNetworkModes::SYSTEMLINK:
+    switch (LobbyBase_GetNetworkMode()) {
+    case LobbyNetworkMode::LAN:
+    case LobbyNetworkMode::LIVE:
+      return true;
+    default:
+      break;
+    }
+  default:
+    break;
+  }
+
+  LobbyBase_SetNetworkMode(LobbyNetworkMode::LIVE);
+  return false;
+}
+
 void connect_to_lobby_with_mode_internal(const game::net::netadr_t &addr,
                                          const game::eModes mode,
                                          const std::string &mapname,
@@ -101,7 +121,8 @@ void connect_to_lobby_with_mode_internal(const game::net::netadr_t &addr,
                                          const std::string &mod_id,
                                          const bool was_retried = false) {
 
-  if (game::com::Com_SessionMode_IsMode(mode)) {
+  const bool was_online = ensure_networkmode_online();
+  if (was_online && game::com::Com_SessionMode_IsMode(mode)) {
     game::com::Com_SessionMode_SetGameMode(
         game::eGameModes::MATCHMAKING_PLAYLIST);
 

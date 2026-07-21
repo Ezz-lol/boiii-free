@@ -421,7 +421,7 @@ game::XUID get_guid(game::ControllerIndex_t controllerIndex) {
   return guids[static_cast<uint32_t>(controllerIndex)];
 }
 
-uint64_t get_guid(const size_t client_num) {
+game::XUID get_guid(const size_t client_num) {
   if (client_num >= 18) {
     return 0;
   }
@@ -431,7 +431,7 @@ uint64_t get_guid(const size_t client_num) {
     return client_xuids[client_num];
   }
 
-  uint64_t xuid = 0;
+  game::XUID xuid = 0;
   const auto callback = [&xuid](const game::sv::client_s &client) {
     xuid = client.xuid;
   };
@@ -481,6 +481,8 @@ void CL_Disconnect_stub(game::LocalClientNum_t localClientNum,
   }
   CL_Disconnect_hook.invoke(localClientNum, deactivateClient);
 }
+
+utils::hook::detour LiveUser_GetXuid_hook;
 
 struct component final : generic_component {
   void post_unpack() override {
@@ -546,6 +548,8 @@ struct component final : generic_component {
       LiveUser_UserGetXuid_hook.create(
           game::live::user::LiveUser_UserGetXuid.get(),
           LiveUser_UserGetXuid_stub);
+      LiveUser_GetXuid_hook.create(game::live::user::LiveUser_GetXuid.get(),
+                                   get_guid);
       CL_DisconnectPacket_hook.create(game::cl::CL_DisconnectPacket.get(),
                                       CL_DisconnectPacket_stub);
       CL_Disconnect_hook.create(game::cl::CL_Disconnect.get(),

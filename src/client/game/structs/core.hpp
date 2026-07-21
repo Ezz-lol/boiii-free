@@ -6,6 +6,7 @@
 #include <csetjmp>
 #include <variant>
 
+#include "game/structs/func.hpp"
 #include "str.hpp"
 #include "macros.hpp"
 #include "quake/vec.hpp"
@@ -47,6 +48,33 @@ typedef int64_t time64_t;
 typedef time64_t time_t;
 
 typedef uint32_t CanonHash_t;
+
+enum class CampaignMode : int32_t {
+  DEFAULT = 0,
+  ZOMBIES = 1,
+  COUNT = 2,
+  INVALID = 3,
+};
+
+enum class dlcIndex_t : int32_t {
+  DEV_MAP_INDEX = -1,
+  ORIGINAL_MAP_INDEX = 0,
+  DLC0ZM_INDEX = 1,
+  DLC0MP_INDEX = 2,
+  DLC1_INDEX = 3,
+  DLC2_INDEX = 4,
+  DLC3_INDEX = 5,
+  DLC4_INDEX = 6,
+  DLC5_INDEX = 7,
+  DLC1ZM_INDEX = 8,
+  DLC2ZM_INDEX = 9,
+  DLC3ZM_INDEX = 10,
+  DLC4ZM_INDEX = 11,
+  DLC6_INDEX = 12,
+  DLCPC_INDEX = 13,
+  DLC_INDEX_COUNT = 14,
+  USERMAP_INDEX = 15,
+};
 
 enum clientplatform_t : int32_t {
   CLIENT_PLATFORM_PC = 0x0,      // PC
@@ -843,80 +871,6 @@ enum class StanceState : int32_t {
 IMPL_ENUM_OPERATORS(StanceState);
 
 using fileHandle_t = void *;
-
-struct DDLMember {
-  const char *name;
-  int32_t index;
-  void *parent;
-  int32_t bitSize;
-  int32_t limitSize;
-  int32_t offset;
-  int32_t type;
-  int32_t externalIndex;
-  uint32_t rangeLimit;
-  uint32_t serverDelta;
-  uint32_t clientDelta;
-  int32_t arraySize;
-  int32_t enumIndex;
-  int32_t permission;
-};
-
-struct DDLHash {
-  int32_t hash;
-  int32_t index;
-};
-
-struct DDLHashTable {
-  DDLHash *list;
-  int32_t count;
-  int32_t max;
-};
-
-struct DDLStruct {
-  const char *name;
-  int32_t bitSize;
-  int32_t memberCount;
-  DDLMember *members;
-  DDLHashTable hashTableUpper;
-  DDLHashTable hashTableLower;
-};
-
-struct DDLEnum {
-  const char *name;
-  int32_t memberCount;
-  const char **members;
-  DDLHashTable hashTable;
-};
-
-struct DDLDef {
-  char *name;
-  uint16_t version;
-  uint32_t checksum;
-  uint8_t flags;
-  int32_t bitSize;
-  int32_t byteSize;
-  DDLStruct *structList;
-  int32_t structCount;
-  DDLEnum *enumList;
-  int32_t enumCount;
-  DDLDef *next;
-  int32_t headerBitSize;
-  int32_t headerByteSize;
-  int32_t reserveSize;
-  int32_t userFlagsSize;
-  bool paddingUsed;
-};
-
-struct DDLContext;
-using DDLWriteCB = void (*)(DDLContext *, void *);
-
-struct DDLContext {
-  void *buff;
-  int32_t len;
-  const DDLDef *def;
-  DDLWriteCB writeCB;
-  void *userData;
-};
 
 struct emblemChallengeLookup_t {
   int16_t challengeIndex;

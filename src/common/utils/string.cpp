@@ -51,11 +51,17 @@ std::string to_upper(std::string text) {
   return text;
 }
 
-bool starts_with(const std::string &text, const std::string &substring) {
+bool starts_with(const std::string_view &text,
+                 const std::string_view &substring) {
   return text.find(substring) == 0;
 }
 
-bool ends_with(const std::string &text, const std::string &substring) {
+bool contains(const std::string_view &text, const std::string_view &substr) {
+  return text.find(substr) != std::string::npos;
+}
+
+bool ends_with(const std::string_view &text,
+               const std::string_view &substring) {
   if (substring.size() > text.size())
     return false;
   return std::equal(substring.rbegin(), substring.rend(), text.rbegin());
