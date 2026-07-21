@@ -14,7 +14,7 @@ using namespace game::db::xasset;
 
 utils::hook::detour DB_IsXAssetDefault_hook;
 bool DB_IsXAssetDefault_Safe(XAssetType type, const char *name) {
-  if (readable_ptr(name) && name[0]) {
+  if (nonnull(name) && name[0]) {
     return DB_IsXAssetDefault_hook.invoke<bool>(type, name);
   }
   return false;
@@ -25,7 +25,7 @@ bool DDL_Buffer_ResetContext_Safe(void *buff, int32_t len,
                                   const ddl::DDLDef *ddlDef,
                                   ddl::DDLContext *const ddlContext,
                                   ddl::DDLWriteCB writeCB, void *userData) {
-  if (readable_ptr(buff) && readable_ptr(ddlDef) && readable_ptr(ddlContext)) {
+  if (nonnull(buff) && nonnull(ddlDef) && nonnull(ddlContext)) {
     return DDL_Buffer_ResetContext_hook.invoke<bool>(
         buff, len, ddlDef, ddlContext, writeCB, userData);
   }
@@ -35,7 +35,7 @@ bool DDL_Buffer_ResetContext_Safe(void *buff, int32_t len,
 
 static std::atomic_bool Com_GametypeSettings_Initialised = false;
 inline bool Com_GametypeSettings_ShouldInit() {
-  return !readable_ptr(*com::gts::s_gametypeSettingsDDL) ||
+  return !nonnull(*com::gts::s_gametypeSettingsDDL) ||
          !Com_GametypeSettings_Initialised.load(std::memory_order_seq_cst);
 }
 
@@ -87,7 +87,7 @@ maptable::MapTable *Com_GetMapTable_Safe(const char *mapTableName) {
   maptable::MapTable *mapTable =
       DB_FindXAssetHeader(XAssetType::MAPTABLE, mapTableName, true, -1)
           .mapTable;
-  if (!readable_ptr(mapTable) || !readable_ptr(mapTable->name) ||
+  if (!nonnull(mapTable) || !nonnull(mapTable->name) ||
       DB_IsXAssetDefault(XAssetType::MAPTABLE, mapTable->name)) {
     return const_cast<maptable::MapTable *>(&DEFAULT_MAPTABLE);
   }
