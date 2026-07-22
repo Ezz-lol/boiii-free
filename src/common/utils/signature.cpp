@@ -2,7 +2,17 @@
 #include <thread>
 #include <mutex>
 
-#if defined(__SSE4_1__) && defined(__SSE4_2__)
+#ifndef USE_SSE_TARGET_ATTRIBUTE
+#if (defined(__SSE4_1__) && defined(__SSE4_2__)) || defined(__clang__) ||      \
+    defined(__GNUC__) /*`__attribute__((target(...)))` is a language           \
+                         extension only supported by clang and G++*/
+#define USE_SSE_TARGET_ATTRIBUTE 1
+#else
+#define USE_SSE_TARGET_ATTRIBUTE 0
+#endif
+#endif
+
+#if USE_SSE_TARGET_ATTRIBUTE
 #ifdef __clang__
 #include <intrin.h>
 #elif defined(_MSC_VER)
@@ -107,8 +117,8 @@ signature::process_range_linear(uint8_t *start, const size_t length) const {
   return result;
 }
 
-#if defined(__SSE4_1__) && defined(__SSE4_2__)
-signature::signature_result
+#if USE_SSE_TARGET_ATTRIBUTE
+__attribute__((target("sse4.2"))) signature::signature_result
 signature::process_range_vectorized(uint8_t *start, const size_t length) const {
   std::vector<uint8_t *> result;
   __declspec(align(16)) char desired_mask[16] = {0};
