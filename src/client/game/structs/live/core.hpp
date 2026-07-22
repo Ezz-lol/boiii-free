@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include "../core.hpp"
-#include "../lobby.hpp"
+#include "../lobby/core.hpp"
 
 namespace game {
 namespace live {

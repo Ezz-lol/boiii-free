@@ -40,8 +40,8 @@ inline constexpr fnv1aHashNull_t fnv1a_null(const char *str) noexcept {
 
 typedef hash64_t fnv1aHash64_t;
 
-template <const fnv1aHash64_t IV = 0x811c9dc5,
-          const fnv1aHash64_t PRIME = 0x01000193>
+template <const fnv1aHash64_t IV = 0xcbf29ce484222325,
+          const fnv1aHash64_t PRIME = 0x100000001b3>
 inline constexpr fnv1aHash64_t fnv1a64(const char *str) noexcept {
   fnv1aHash64_t hash = IV;
   for (const char *c = str; *c; ++c) {
@@ -49,6 +49,17 @@ inline constexpr fnv1aHash64_t fnv1a64(const char *str) noexcept {
         PRIME *
         (static_cast<fnv1aHash64_t>(tolower(static_cast<unsigned char>(*c))) ^
          hash);
+  }
+  return hash;
+}
+
+template <const fnv1aHash64_t IV = 0xcbf29ce484222325,
+          const fnv1aHash64_t PRIME = 0x100000001b3>
+inline constexpr fnv1aHash64_t fnv1a64(const uint8_t *buf,
+                                       size_t len) noexcept {
+  fnv1aHash64_t hash = IV;
+  for (size_t idx = 0; idx < len; ++idx) {
+    hash = PRIME * (static_cast<fnv1aHash64_t>(buf[idx]) ^ hash);
   }
   return hash;
 }

@@ -5,7 +5,7 @@
 #include "../snd/snd.hpp"
 #include "../ui/ui.hpp"
 #include "../vehicle.hpp"
-#include "../lobby.hpp"
+#include "../lobby/core.hpp"
 
 namespace game {
 

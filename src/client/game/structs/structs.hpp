@@ -23,7 +23,7 @@
 #include "level/level.hpp" // IWYU pragma: export
 #include "asm.hpp"         // IWYU pragma: export
 #include "ai.hpp"          // IWYU pragma: export
-#include "lobby.hpp"       // IWYU pragma: export
+#include "lobby/lobby.hpp" // IWYU pragma: export
 #include "weapon.hpp"      // IWYU pragma: export
 #include "user.hpp"        // IWYU pragma: export
 #include "live/live.hpp"   // IWYU pragma: export

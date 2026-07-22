@@ -58,6 +58,8 @@ bool valid_heap_ptr(uintptr_t ptr) {
   return false;
 }
 
+/// NOTE: DO NOT USE ON WINDOWS. Wine performs this check very quickly, but
+/// using this on Windows _throttles_ performance.
 /// @brief Rapidly checks if a memory address is committed and readable.
 /// Safe to use in high-frequency loops.
 bool readable_ptr(uintptr_t ptr) {

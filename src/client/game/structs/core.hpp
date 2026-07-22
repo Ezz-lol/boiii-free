@@ -6,7 +6,6 @@
 #include <csetjmp>
 #include <variant>
 
-#include "game/structs/func.hpp"
 #include "str.hpp"
 #include "macros.hpp"
 #include "quake/vec.hpp"
@@ -54,6 +53,116 @@ enum class CampaignMode : int32_t {
   ZOMBIES = 1,
   COUNT = 2,
   INVALID = 3,
+};
+
+enum class ContentFlagBits : uint32_t {
+  UNKNOWN = 0x1,
+  ORIGINALMAPS = 0x2,
+  DLC0ZM = 0x4,
+  DLC0MP = 0x8,
+  DLC1 = 0x10,
+  DLC2 = 0x20,
+  DLC3 = 0x40,
+  DLC4 = 0x80,
+  DLC5 = 0x100,
+  DLC1ZM = 0x200,
+  DLC2ZM = 0x400,
+  DLC3ZM = 0x800,
+  DLC4ZM = 0x1000,
+  DLC6 = 0x2000,
+  DLCPC = 0x4000,
+};
+IMPL_ENUM_OPERATORS(ContentFlagBits);
+
+union ContentFlags {
+  uint32_t mask;
+
+  struct {
+    uint32_t unknown : 1;      // 0x1
+    uint32_t originalMaps : 1; // 0x2
+    uint32_t dlc0zm : 1;       // 0x4
+    uint32_t dlc0mp : 1;       // 0x8
+    uint32_t dlc1 : 1;         // 0x10
+    uint32_t dlc2 : 1;         // 0x20
+    uint32_t dlc3 : 1;         // 0x40
+    uint32_t dlc4 : 1;         // 0x80
+    uint32_t dlc5 : 1;         // 0x100
+    uint32_t dlc1zm : 1;       // 0x200
+    uint32_t dlc2zm : 1;       // 0x400
+    uint32_t dlc3zm : 1;       // 0x800
+    uint32_t dlc4zm : 1;       // 0x1000
+    uint32_t dlc6 : 1;         // 0x2000
+    uint32_t dlcPC : 1;        // 0x4000
+
+    uint32_t reserved : 17;
+  } bits;
+
+  template <IntegralLike T> inline constexpr operator T() const noexcept {
+    return static_cast<T>(mask);
+  }
+
+  inline constexpr void set(ContentFlagBits bits) noexcept { mask |= +bits; }
+
+  inline constexpr ContentFlags set(ContentFlagBits bits) const noexcept {
+    return ContentFlags{mask | +bits};
+  }
+
+  inline constexpr void remove(ContentFlagBits bits) noexcept {
+    mask &= ~+bits;
+  }
+
+  inline constexpr ContentFlags remove(ContentFlagBits bits) const noexcept {
+    return ContentFlags{mask & ~+bits};
+  }
+
+  inline constexpr void clear() noexcept { mask = 0; }
+
+  inline constexpr ContentFlags remove() const noexcept {
+    return ContentFlags{0};
+  }
+
+  template <IntegralLike T> inline constexpr void operator|=(T rhs) noexcept {
+    set(rhs);
+  }
+  template <IntegralLike T>
+  inline constexpr ContentFlags operator|(T rhs) const noexcept {
+    return set(rhs);
+  }
+
+  template <IntegralLike T> inline constexpr void operator&=(T rhs) noexcept {
+    mask &= +rhs;
+  }
+  template <IntegralLike T>
+  inline constexpr ContentFlags operator&(T rhs) const noexcept {
+    return ContentFlags{mask & +rhs};
+  }
+
+  template <IntegralLike T> inline constexpr void operator^=(T rhs) noexcept {
+    mask ^= +rhs;
+  }
+  template <IntegralLike T>
+  inline constexpr ContentFlags operator^(T rhs) const noexcept {
+    return ContentFlags{mask ^ +rhs};
+  }
+
+  static inline constexpr ContentFlags allContent() noexcept {
+    return ContentFlags{.bits = {.unknown = 0,
+                                 .originalMaps = 1,
+                                 .dlc0zm = 1,
+                                 .dlc0mp = 1,
+                                 .dlc1 = 1,
+                                 .dlc2 = 1,
+                                 .dlc3 = 1,
+                                 .dlc4 = 1,
+                                 .dlc5 = 1,
+                                 .dlc1zm = 1,
+                                 .dlc2zm = 1,
+                                 .dlc3zm = 1,
+                                 .dlc4zm = 1,
+                                 .dlc6 = 1,
+                                 .dlcPC = 1,
+                                 .reserved = 0}};
+  }
 };
 
 enum class dlcIndex_t : int32_t {
@@ -224,14 +333,18 @@ template <typename T> union SessionModePool {
     T campaign;
   };
 
-  inline T &get(eModes mode) noexcept { return pool[+mode]; }
-  inline const T &get(eModes mode) const noexcept { return pool[+mode]; }
+  inline constexpr T &get(eModes mode) noexcept { return pool[+mode]; }
+  inline constexpr const T &get(eModes mode) const noexcept {
+    return pool[+mode];
+  }
   inline T &get() noexcept { return get(com::Com_SessionMode_GetMode()); }
   inline const T &get() const noexcept {
     return get(com::Com_SessionMode_GetMode());
   }
-  inline T &operator[](eModes index) noexcept { return get(index); }
-  inline const T &operator[](eModes index) const noexcept { return get(index); }
+  inline constexpr T &operator[](eModes index) noexcept { return get(index); }
+  inline constexpr const T &operator[](eModes index) const noexcept {
+    return get(index);
+  }
 };
 
 enum class eNetworkModes : uint32_t {
@@ -870,7 +983,7 @@ enum class StanceState : int32_t {
 };
 IMPL_ENUM_OPERATORS(StanceState);
 
-using fileHandle_t = void *;
+typedef void *fileHandle_t;
 
 struct emblemChallengeLookup_t {
   int16_t challengeIndex;

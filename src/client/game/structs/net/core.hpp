@@ -6,6 +6,12 @@
 namespace game {
 namespace net {
 
+enum class connectionType_e : uint32_t {
+  UNKNOWN = 0x0,
+  WIRED = 0x1,
+  WIRELESS = 0x2,
+};
+
 constexpr size_t UINT8_STR_BUF_LEN = 3;
 constexpr size_t UINT16_STR_BUF_LEN = sizeof(uint16_t) * UINT8_STR_BUF_LEN;
 constexpr size_t NET_IPV4_STR_BUF_LEN =

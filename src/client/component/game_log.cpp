@@ -13,8 +13,6 @@
 
 namespace game_log {
 namespace {
-game::EngineDependentDvar g_log;
-
 void g_scr_log_print() {
   char string[1024]{};
   std::size_t i_string_len = 0;
@@ -42,8 +40,8 @@ void g_scr_log_print() {
 }
 
 inline const char *get_g_log_val() {
-  if (g_log) {
-    return g_log.get_cstring();
+  if (*game::g_log) {
+    return game::g_log->get_cstring();
   }
 
   return nullptr;

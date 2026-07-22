@@ -42,6 +42,8 @@ WEAK symbol<bool(const ControllerIndex_t controllerIndex)>
     Live_IsDemonwareFetchingDone{0x141E0D710};
 WEAK symbol<void(const ControllerIndex_t controllerIndex)> Live_OnDWDisconnect{
     0x141E7E600};
+WEAK symbol<bool(const ControllerIndex_t controllerIndex)>
+    Live_BlockUntilSignedInToDemonware{0x141E0B640};
 
 // DoubleXP
 WEAK symbol<uint32_t(ControllerIndex_t controllerIndex)>

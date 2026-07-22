@@ -185,11 +185,7 @@ enum class GroupUpdatePrivacyType : int32_t {
   GROUP_MEMBERS = 1,
   COUNT = 2,
 };
-enum class connectionType_e : int32_t {
-  UNKNOWN = 0,
-  WIRED = 1,
-  WIRELESS = 2,
-};
+
 enum class XONLINE_NAT_TYPE : int32_t {
   UNKNOWN = 0,
   OPEN = 1,
@@ -325,16 +321,6 @@ enum class LiveUserState : int32_t {
   SIGNED_OUT = 1,
   COUNT = 2,
 };
-enum class SessionStatus : int32_t {
-  INVALID = -1,
-  IDLE = 0,
-  JOIN = 1,
-  MERGE = 2,
-  MIGRATE = 3,
-  PAUSED = 4,
-  SESSION_STATUS_ERROR = 5,
-  COUNT = 6,
-};
 enum class QueryID : int32_t {
   SESSIONS_INVALID = 0,
   SESSIONS_BY_PLAYLIST_VERSION = 1,
@@ -366,16 +352,6 @@ enum class LobbyOnlineUpdateEventType : int32_t {
   PUMP = 0,
   SUCCESS = 1,
   LOBBY_ONLINE_UPDATE_ERROR = 2,
-};
-enum class SessionActive : int32_t {
-  INACTIVE = 0,
-  KEEP_ALIVE = 1,
-  ACTIVE = 2,
-};
-enum class SessionDirty : int32_t {
-  STATE = 1,
-  UI = 2,
-  CLIENT_LIST = 4,
 };
 enum class PlatformSessions : int32_t {
   OFF = 0,
@@ -464,14 +440,7 @@ enum class LobbyListComparisonType : int32_t {
   EQUAL_TO_OR_GREATER_THAN = 2,
   NOT_EQUAL = 3,
 };
-enum class GameServerStatus : int32_t {
-  IDLE = 0,
-  PRELOADING = 1,
-  STARTING_SERVER = 2,
-  MIGRATING = 3,
-  RUNNING = 4,
-  RUNNING_DEMO = 5,
-};
+
 enum class JoinType : int32_t {
   NORMAL = 0,
   PLAYLIST = 1,
@@ -969,39 +938,7 @@ enum class eGameType : int32_t {
   COUNT = 3,
   INVALID = 3,
 };
-enum class LobbyPregameState : int32_t {
-  IDLE = 0,
-  ITEM_VOTE = 1,
-  CHARACTER_DRAFT = 2,
-  CAC_EDIT = 3,
-  SCORESTREAK_EDIT = 4,
-  LAUNCH_GAME = 5,
-  COUNT = 6,
-};
-enum class LobbyClientPregameState : int32_t {
-  IDLE = 0,
-  SELECTING = 1,
-  SELECTED = 2,
-  SELECTION_FORCED = 3,
-  SELECTION_COMPLETE = 4,
-  RESET = 5,
-  END = 6,
-  COUNT = 7,
-};
-enum class VoteType : int32_t {
-  INVALID = 0,
-  BAN = 1,
-  PROTECT = 2,
-  COUNT = 3,
-};
-enum class VoteItemType : int32_t {
-  INVALID = 0,
-  ITEM = 1,
-  ATTACHMENT = 2,
-  ITEM_ATTACHMENT = 3,
-  ATTACHMENT_GROUP = 4,
-  COUNT = 5,
-};
+
 enum class PregameSortType : int32_t {
   RANDOM = 0,
   CLIENTNUM = 1,
@@ -1026,13 +963,6 @@ enum class ProbationMode : int32_t {
   ARENA = 1,
   COUNT = 2,
 };
-enum class heroLoadoutTypes_e : int32_t {
-  INVALID = -1,
-  FIRST = 0,
-  WEAPON = 0,
-  GADGET = 1,
-  COUNT = 2,
-};
 enum class HeroState : int32_t {
   CHARGING = 0,
   READY = 1,
@@ -1054,39 +984,7 @@ enum class eWeaponOptionGroup : int32_t {
   COUNT = 7,
   INVALID = 7,
 };
-enum class itemGroup_t : int32_t {
-  SMG = 0,
-  FIRST = 0,
-  ASSAULT = 1,
-  CQB = 2,
-  LMG = 3,
-  SNIPER = 4,
-  PISTOL = 5,
-  LAUNCHER = 6,
-  KNIFE = 7,
-  SPECIAL = 8,
-  SHOTGUN = 9,
-  EXPLOSIVE = 10,
-  GRENADE = 11,
-  MASTERKEY = 12,
-  GRENADELAUNCHER = 13,
-  FLAMETHROWER = 14,
-  SPECIALTY = 15,
-  SPECIALGRENADE = 16,
-  MISCWEAPON = 17,
-  FEATURE = 18,
-  BONUSCARD = 19,
-  CYBERCOM_TACRIG = 20,
-  GLOBAL_ITEMS_START = 21,
-  KILLSTREAK = 21,
-  HERO = 22,
-  BUBBLEGUM = 23,
-  BUBBLEGUM_CONSUMABLE = 24,
-  CYBERCOM_CORE = 25,
-  CYBERCOM_ABILITIES = 26,
-  COUNT = 27,
-  INVALID = -1,
-};
+
 enum class prestigeTokenType_e : int32_t {
   RESPEC = 0,
   RESET_STATS = 1,
@@ -1499,23 +1397,7 @@ enum class LootBurnDupeState : int32_t {
   DONE = 3,
   FAILED = 4,
 };
-enum class ContentFlagBits : int32_t {
-  UNKNOWN = 1,
-  ORIGINALMAPS = 2,
-  DLC0ZM = 4,
-  DLC0MP = 8,
-  DLC1 = 16,
-  DLC2 = 32,
-  DLC3 = 64,
-  DLC4 = 128,
-  DLC5 = 256,
-  DLC1ZM = 512,
-  DLC2ZM = 1024,
-  DLC3ZM = 2048,
-  DLC4ZM = 4096,
-  DLC6 = 0x2000,
-  DLCPC = 0x4000,
-};
+
 enum class GPadButtonConfigs : int32_t {
   DEFAULT = 0,
   EXPERIMENTAL = 1,

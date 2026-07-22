@@ -8,7 +8,7 @@
 #include "scr/scr.hpp"
 #include "snd/snd.hpp"
 #include "asm.hpp"
-#include "lobby.hpp"
+#include "lobby/core.hpp"
 
 #include <cstdint>
 

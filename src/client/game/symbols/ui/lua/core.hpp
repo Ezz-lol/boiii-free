@@ -7,6 +7,8 @@ namespace ui {
 namespace lua {
 WEAK symbol<void(const char *key, int value, lua::hks::lua_State *luaVM)>
     Lua_SetTableInt{0x141F066E0};
+WEAK symbol<void(const char *key, bool value, lua::hks::lua_State *luaVM)>
+    Lua_SetTableBool{0x141F064E0};
 WEAK symbol<void(const char *key, const char *value, hks::lua_State *luaVM)>
     Lua_SetTableString{0x141F06800};
 WEAK symbol<void(hks::lua_State *s, int32_t narr, int32_t nrec)>
