@@ -38,8 +38,8 @@ function curl.includes()
     "HAVE_BROTLI",
     "HAVE_ZSTD",
     "ZSTD_BUILD_STATIC=ON",
-    "DYNAMIC_BMI2=0",
-    "STATIC_BMI2=0",
+    "DYNAMIC_BMI2=1",
+    "STATIC_BMI2=1",
   })
   filter({})
 end
@@ -79,8 +79,8 @@ function curl.project()
     "CURL_ZSTD=ON",
     "CURL_BROTLI=ON",
     "ZSTD_BUILD_STATIC=ON",
-    "DYNAMIC_BMI2=0",
-    "STATIC_BMI2=0",
+    "DYNAMIC_BMI2=1",
+    "STATIC_BMI2=1",
   })
 
   filter({})
