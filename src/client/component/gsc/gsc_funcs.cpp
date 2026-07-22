@@ -38,8 +38,9 @@ static std::unordered_map<game::ClientNum_t, std::unordered_set<std::string>>
     client_dvar_changes;
 static std::atomic_bool detours_enabled = false;
 
-static vm::VM_OP_FUNC_PTR VM_OP_SafeCreateLocalVariables_Handler_orig = nullptr;
-static vm::VM_OP_FUNC_PTR VM_OP_CheckClearParams_Handler_orig = nullptr;
+static vm::op::VM_OP_FUNC_PTR VM_OP_SafeCreateLocalVariables_Handler_orig =
+    nullptr;
+static vm::op::VM_OP_FUNC_PTR VM_OP_CheckClearParams_Handler_orig = nullptr;
 
 // =====================================================
 // Script console commands (addcommand/getcommand)
@@ -326,9 +327,9 @@ void VM_OP_CheckClearParams_Handler_stub(scriptInstance_t inst,
     VM_OP_CheckClearParams_Handler_orig(inst, fs, vmc, terminate);
 }
 
-void hook_opcode(vm::OP_TYPE opcode, vm::VM_OP_FUNC_PTR hook,
-                 vm::VM_OP_FUNC_PTR *out_orig) {
-  vm::VM_OP_FUNC_PTR *handler = vm::op_handler(opcode);
+void hook_opcode(vm::op::OP_TYPE opcode, vm::op::VM_OP_FUNC_PTR hook,
+                 vm::op::VM_OP_FUNC_PTR *out_orig) {
+  vm::op::VM_OP_FUNC_PTR *handler = vm::op::op_handler(opcode);
   if (!*out_orig)
     *out_orig = *handler;
   if (*handler == *out_orig)
