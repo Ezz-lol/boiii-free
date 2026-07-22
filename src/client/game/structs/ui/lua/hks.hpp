@@ -245,19 +245,21 @@ typedef uint64_t hksSize;
 typedef int32_t HksGcCost;
 typedef void *hks_fixedheap;
 
-typedef fastcall_t<void *(void *userData, void *ptr, size_t osize,
-                          size_t nsize)>
+typedef fastcallPtr_t<void *(void *userData, void *ptr, size_t osize,
+                             size_t nsize)>
     lua_Alloc;
 typedef fastcall_t<hksInt32(lua_State *s)> lua_CFunction;
-typedef fastcall_t<char *(lua_State *s, void *data, size_t *size)> lua_Reader;
-typedef fastcall_t<void(lua_State *s, const char *fmt, ...)> HksLogFunc;
-typedef fastcall_t<void(lua_State *s, size_t requestSize)>
+typedef fastcallPtr_t<char *(lua_State *s, void *data, size_t *size)>
+    lua_Reader;
+typedef fastcallPtr_t<void(lua_State *s, const char *fmt, ...)> HksLogFunc;
+typedef fastcallPtr_t<void(lua_State *s, size_t requestSize)>
     HksEmergencyGCFailFunc;
-typedef fastcall_t<size_t(hks_fixedheap heap, size_t request)> hks_outofmemory;
-typedef fastcall_t<int32_t(const char *filename, int32_t lua_line)>
+typedef fastcallPtr_t<size_t(hks_fixedheap heap, size_t request)>
+    hks_outofmemory;
+typedef fastcallPtr_t<int32_t(const char *filename, int32_t lua_line)>
     hks_debug_map;
-typedef fastcall_t<void(lua_State *s, int64_t nargs, int32_t nresults,
-                        const hksInstruction *pc)>
+typedef fastcallPtr_t<void(lua_State *s, int64_t nargs, int32_t nresults,
+                           const hksInstruction *pc)>
     Hkslua_Caller;
 
 typedef hksInt32 lua_Integer;
@@ -590,7 +592,7 @@ struct lua_Debug {
   hksInt32 is_tail_call;
 };
 
-using lua_function = fastcall_t<hksInt32(lua_State *s)>;
+using lua_function = fastcallPtr_t<hksInt32(lua_State *s)>;
 
 struct luaL_Reg {
   const char *name;
@@ -934,7 +936,7 @@ struct GarbageCollector {
   hksSize m_emergencyMemorySize;
   bool m_stopped;
   uint8_t _padding131[7];
-  lua_CFunction m_gcPolicy;
+  lua_CFunction *m_gcPolicy;
   hksSize m_pauseTriggerMemoryUsage;
   hksInt32 m_stepTriggerCountdown;
   hksUint32 m_stringTableIndex;
@@ -1134,7 +1136,7 @@ struct HksGlobal {
   RuntimeProfileData m_runProfilerData;
   uint8_t _unknown558[16];
   HksCompilerSettings m_compilerSettings;
-  lua_CFunction m_panicFunction;
+  lua_CFunction *m_panicFunction;
   plus::LuaObject *m_luaplusObjectList;
   int32_t m_heapAssertionFrequency;
   int32_t m_heapAssertionCount;
@@ -1221,7 +1223,7 @@ struct HksStateSettings {
   HksEmergencyGCFailFunc m_emergencyGCFailFunction;
   lua_Alloc m_allocator;
   void *m_allocatorData;
-  lua_CFunction m_panicFunction;
+  lua_CFunction *m_panicFunction;
   HksLogFunc m_logFunction;
   const char *m_name;
   hksUint32 m_initialRegistrySize;
@@ -1233,7 +1235,7 @@ struct HksStateSettings {
   hks::Debugger *m_debugObject;
   int32_t m_heapAssertionFrequency;
   uint8_t _padding7C[4];
-  lua_CFunction m_gcPolicy;
+  lua_CFunction *m_gcPolicy;
   HksBytecodeSharingMode m_bytecodeSharingMode;
   HksBytecodeEndianness m_bytecodeDumpEndianness;
   hksUint32 m_gcWeakStackSize;

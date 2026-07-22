@@ -77,8 +77,7 @@ WEAK symbol<hksInt32(lua_State *s, const HksCompilerSettings *options,
     Compiler{0x141D3AFB0, 0x1403E4090};
 
 WEAK symbol<HksRegister> NilValue{0x150BBCC40, 0x14820D720};
-WEAK symbol<std::remove_pointer<lua_CFunction>::type> hks_next_placeholder{
-    0x141D4A710, 0x1404C6450};
+WEAK symbol<lua_CFunction> hks_next_placeholder{0x141D4A710, 0x1404C6450};
 
 WEAK symbol<Libs> libs{0x143001340, 0x140E420E0};
 WEAK symbol<PkgLoaders> pkg_loaders{0x143000990, 0x140E42590};
@@ -149,10 +148,8 @@ WEAK symbol<HksClosure *(lua_State *s, Method *method, HashTable *globals)>
 WEAK symbol<void *(lua_State *s, hksSize size, AllocTypes allocType)> getMemory{
     0x141D364C0, 0x1403DF860};
 
-WEAK symbol<std::remove_pointer<lua_CFunction>::type> vm_intern_inext{
-    0x141D712E0, 0x140419140};
-WEAK symbol<std::remove_pointer<lua_CFunction>::type> vm_intern_next{
-    0x141D713A0, 0x140419200};
+WEAK symbol<lua_CFunction> vm_intern_inext{0x141D712E0, 0x140419140};
+WEAK symbol<lua_CFunction> vm_intern_next{0x141D713A0, 0x140419200};
 
 namespace op {
 WEAK symbol<HksRegister *(HksRegister *retstr, lua_State *s, HksObject *left,

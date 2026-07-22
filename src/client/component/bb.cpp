@@ -62,14 +62,14 @@ void GScr_BBPrint_StdoutRedirect(scriptInstance_t inst) {
         i = j; // Advance main loop index past the specifier
 
         if (paramIndex < numParam) {
-          ScrVarType type = Scr_GetType(inst, paramIndex);
+          var::ScrVarType type = Scr_GetType(inst, paramIndex);
           str512_t tempBuffer;
 
           // 1. Handle String Formats
           if (specChar == 's') {
             const char *strVal = "";
-            if (type == ScrVarType::STRING ||
-                type == ScrVarType::LOCALIZED_STRING) {
+            if (type == var::ScrVarType::STRING ||
+                type == var::ScrVarType::LOCALIZED_STRING) {
               strVal = Scr_GetString(inst, paramIndex);
             }
             snprintf(tempBuffer, sizeof(tempBuffer), specifier.c_str(), strVal);
@@ -80,13 +80,13 @@ void GScr_BBPrint_StdoutRedirect(scriptInstance_t inst) {
           else if (specChar == 'f' || specChar == 'F' || specChar == 'e' ||
                    specChar == 'E' || specChar == 'g' || specChar == 'G') {
             double floatVal = 0.0;
-            if (type == ScrVarType::FLOAT) {
+            if (type == var::ScrVarType::FLOAT) {
               floatVal = static_cast<double>(Scr_GetFloat(inst, paramIndex));
               paramIndex++;
-            } else if (type == ScrVarType::INT) {
+            } else if (type == var::ScrVarType::INT) {
               floatVal = static_cast<double>(Scr_GetInt(inst, paramIndex));
               paramIndex++;
-            } else if (type == ScrVarType::VECTOR) {
+            } else if (type == var::ScrVarType::VECTOR) {
               vec3_t vectorValue;
               Scr_GetVector(inst, paramIndex, &vectorValue);
 
@@ -112,13 +112,13 @@ void GScr_BBPrint_StdoutRedirect(scriptInstance_t inst) {
           // 3. Handle Integer Formats
           else {
             int32_t intVal = 0;
-            if (type == ScrVarType::INT) {
+            if (type == var::ScrVarType::INT) {
               intVal = Scr_GetInt(inst, paramIndex);
               paramIndex++;
-            } else if (type == ScrVarType::FLOAT) {
+            } else if (type == var::ScrVarType::FLOAT) {
               intVal = static_cast<int32_t>(Scr_GetFloat(inst, paramIndex));
               paramIndex++;
-            } else if (type == ScrVarType::VECTOR) {
+            } else if (type == var::ScrVarType::VECTOR) {
               vec3_t vectorValue;
               Scr_GetVector(inst, paramIndex, &vectorValue);
 
@@ -205,11 +205,12 @@ utils::hook::detour GScr_BBPrint_hook;
 void redirect_bb_logging_to_stdout() {
   BB_Send_hook.create(
       game::bb::BB_Send.get(),
-      reinterpret_cast<fastcall_t<void(game::ControllerIndex_t, bool)>>(
+      reinterpret_cast<fastcallPtr_t<void(game::ControllerIndex_t, bool)>>(
           stub_func));
   BB_CheckSend_hook.create(
       game::bb::BB_CheckSend.get(),
-      reinterpret_cast<fastcall_t<void(game::ControllerIndex_t)>>(stub_func));
+      reinterpret_cast<fastcallPtr_t<void(game::ControllerIndex_t)>>(
+          stub_func));
   GScr_BBPrint_hook.create(game::scr::gscr::GScr_BBPrint.get(),
                            game::scr::gscr::GScr_BBPrint_StdoutRedirect);
   BB_Print_hook.create(game::bb::BB_Print.get(),

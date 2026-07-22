@@ -866,7 +866,8 @@ struct component final : generic_component {
 
   void post_load() override {
     const utils::nt::library ntdll("ntdll.dll");
-    using SetFilterFunc = fastcall_t<void(LPTOP_LEVEL_EXCEPTION_FILTER filter)>;
+    using SetFilterFunc =
+        fastcallPtr_t<void(LPTOP_LEVEL_EXCEPTION_FILTER filter)>;
     SetFilterFunc set_filter =
         ntdll.get_proc<SetFilterFunc>("RtlSetUnhandledExceptionFilter");
 

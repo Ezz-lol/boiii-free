@@ -2,7 +2,6 @@
 #include <loader/component_loader.hpp>
 #include <game/game.hpp>
 #include <game/utils.hpp>
-#include <game/impl/scr/scr.hpp>
 
 #include "game_event.hpp"
 #include "gsc/gsc_compiler.hpp"
@@ -823,9 +822,6 @@ std::string get_source_line(const std::string &file, int32_t line_num) {
   return {};
 }
 
-utils::hook::detour Scr_IsFloatTrue_hook;
-utils::hook::detour Scr_IsTrue_hook;
-
 struct component final : generic_component {
   void post_unpack() override {
 
@@ -848,13 +844,6 @@ struct component final : generic_component {
     gscr_get_bgb_tokens_remaining_hook.create(
         gscr::GScr_GetBGBTokensRemaining.get(),
         gscr_getbgbtokensremaining_stub);
-
-    // Fix common "cannot cast undefined to bool" error in flagsys.gsc on
-    // launching usermap in private match
-    Scr_IsFloatTrue_hook.create(game::scr::Scr_IsFloatTrue.get(),
-                                game::scr::Scr_IsTrue_Impl);
-    Scr_IsTrue_hook.create(game::scr::Scr_IsTrue.get(),
-                           game::scr::Scr_IsTrue_Impl);
   }
 };
 } // namespace script

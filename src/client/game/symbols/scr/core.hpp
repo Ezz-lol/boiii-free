@@ -16,8 +16,8 @@ WEAK symbol<void(scriptInstance_t inst, const char *value)> Scr_AddString{
     0x1412E9A30, 0x14016F320};
 // Return value is location of allocation as index of VM stack - returned by
 // ScrVar_AllocVariable internally.
-WEAK symbol<ScrVarIndex_t(scriptInstance_t inst)> Scr_AddStruct{0x1412E9AC0,
-                                                                0x14016F3B0};
+WEAK symbol<var::ScrVarIndex_t(scriptInstance_t inst)> Scr_AddStruct{
+    0x1412E9AC0, 0x14016F3B0};
 WEAK symbol<void(scriptInstance_t inst, const vec3_t *value)> Scr_AddVector{
     0x1412E9E90, 0x14016F780};
 WEAK symbol<ScrString_t(scriptInstance_t inst, uint32_t index)>
@@ -34,11 +34,11 @@ WEAK symbol<int(scriptInstance_t inst, uint32_t index)> Scr_GetPointerType{
     0x1412EB9F0, 0x1401713E0};
 WEAK symbol<team_t(scriptInstance_t inst, uint32_t index)> Scr_GetTeam{
     0x1412EBB60, 0x140171530};
-WEAK symbol<ScrVarType_t(scriptInstance_t inst, uint32_t index)> Scr_GetType{
-    0x1412EBD30, 0x140171700};
+WEAK symbol<var::ScrVarType_t(scriptInstance_t inst, uint32_t index)>
+    Scr_GetType{0x1412EBD30, 0x140171700};
 WEAK symbol<const char *(scriptInstance_t inst, uint32_t index)>
     Scr_GetTypeName{0x1412EBD90, 0x140171760};
-WEAK symbol<ScrVarValue_t *(scriptInstance_t inst, uint32_t index)>
+WEAK symbol<var::ScrVarValue_t *(scriptInstance_t inst, uint32_t index)>
     Scr_GetValue{0x1412EBF30, 0x140171900};
 WEAK symbol<void(scriptInstance_t inst, uint32_t index, vec3_t *vectorValue)>
     Scr_GetVector{0x1412EBF90, 0x140171960};
@@ -73,8 +73,8 @@ WEAK symbol<void(scriptInstance_t inst, ScrString_t hash)> Scr_AddConstString{
 WEAK symbol<void(scriptInstance_t inst, float value)> Scr_AddFloat{0x1412E9760,
                                                                    0x14016F050};
 
-WEAK symbol<void(scriptInstance_t inst, ScrVarValue_t *value)> Scr_AddValue{
-    0x1412E9E00, 0x14016F6F0};
+WEAK symbol<void(scriptInstance_t inst, var::ScrVarValue_t *value)>
+    Scr_AddValue{0x1412E9E00, 0x14016F6F0};
 
 WEAK symbol<scr_anim_t(scriptInstance_t inst, uint32_t index,
                        anim::XAnimTree *tree)>
@@ -109,54 +109,11 @@ WEAK symbol<ScrString_t(scriptInstance_t inst, uint32_t index)>
     Scr_GetConstLowercaseString{0x1412EAFE0, 0x1401709A0};
 WEAK symbol<void()> Scr_UpdateScreen{0x1413E1550};
 
-WEAK symbol<ScrVarTypePool<const char *>> var_typename{0x1432E6240,
-                                                       0x14107C040};
-
-WEAK symbol<bool(scriptInstance_t inst, ScrVarValue_t *value)> Scr_IsFloatTrue{
-    0x1412DACF0, 0x140167170};
-WEAK symbol<bool(scriptInstance_t inst, ScrVarValue_t *value)> Scr_IsTrue{
-    0x1412CCE10, 0x14015AEE0};
 WEAK symbol<void(scriptInstance_t inst)> Scr_PlaySoundAtPosition{0x141A7EA40,
                                                                  0x1402CC960};
 
 WEAK symbol<void(scriptInstance_t inst, const char *error)> Scr_ObjectError{
     0x1412ECBC0, 0x140172590};
-
-WEAK symbol<ScrVarGlobPool> gScrVarGlob{0x1451A3500, 0x1426BDE80};
-WEAK symbol<ScrVarPubPool> gScrVarPub{0x1451A3700, 0x1426BE080};
-
-WEAK symbol<VmOpJumpTable> gVmOpJumpTable1{0x143306350, 0x14109C150};
-WEAK symbol<VmOpJumpTable> gVmOpJumpTable2{0x1432E6350, 0x14107C150};
-
-inline VM_OP_FUNC *op_handler(OP_TYPE op) {
-  if ((op & VM_OP_JUMP_TABLE_LEN) != 0) {
-    return &gVmOpJumpTable1->ops[op & VM_OP_TABLE_1_IDX_MASK];
-  }
-
-  return &gVmOpJumpTable2->ops[op];
-}
-
-WEAK symbol<VmOpJumpTable> gVmErrRecoveryJumpTable1{0x143316350, 0x1410AC150};
-WEAK symbol<VmOpJumpTable> gVmErrRecoveryJumpTable2{0x1432F6350, 0x14108C150};
-
-inline VM_OP_FUNC *op_err_handler(OP_TYPE op) {
-  if ((op & VM_OP_JUMP_TABLE_LEN) != 0) {
-    return &gVmErrRecoveryJumpTable1->ops[op & VM_OP_TABLE_1_IDX_MASK];
-  }
-
-  return &gVmErrRecoveryJumpTable2->ops[op];
-}
-
-WEAK symbol<BuiltinFunction(ScrVarCanonicalName_t canonId, int32_t *type,
-                            int32_t *min_args, int32_t *max_args)>
-    Scr_GetFunction{0x141AF7820, 0x1402E9850};
-WEAK symbol<ScrVarCanonicalName_t(BuiltinFunction *func)>
-    Scr_GetFunctionReverseLookup{0x141AF78D0, 0x1402E9900};
-WEAK symbol<BuiltinMethod(ScrVarCanonicalName_t canonId, int32_t *type,
-                          int32_t *min_args, int32_t *max_args)>
-    Scr_GetMethod{0x141AF79B0, 0x1402E99E0};
-WEAK symbol<ScrVarCanonicalName_t(BuiltinMethod *method)>
-    Scr_GetMethodReverseLookup{0x141AF7AF0, 0x1402E9B20};
 
 } // namespace scr
 } // namespace game

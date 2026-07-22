@@ -1146,7 +1146,7 @@ ASSERT_SIZE(clientInfo_t, 0xEE0);
 #pragma pack(push, 1)
 struct ucmd_t {
   const char *name;
-  fastcall_t<void(client_t *cl)> func;
+  fastcallPtr_t<void(client_t *cl)> func;
   qboolean fromOldServer;
   uint8_t _padding14[4];
 };

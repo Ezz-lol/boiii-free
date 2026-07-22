@@ -95,7 +95,7 @@ public:
 class bdReferencable;
 class bdReferencableVTbl {
 public:
-  thiscall_t<void(bdReferencable *_this, int64_t)> releaseFunc;
+  thiscallPtr_t<void(bdReferencable *_this, int64_t)> releaseFunc;
 };
 
 #pragma pack(push, 1)
@@ -503,16 +503,16 @@ enum class bdLobbyErrorCode : uint32_t {
 class bdRemoteTask;
 class bdRemoteTaskVTbl : public bdReferencableVTbl {
 public:
-  thiscall_t<bdTask<bdRemoteTaskVTbl>::bdStatus(bdRemoteTask *_this)>
+  thiscallPtr_t<bdTask<bdRemoteTaskVTbl>::bdStatus(bdRemoteTask *_this)>
       checkTimeout;
-  thiscall_t<void(bdRemoteTask *_this, bdByteBufferRef *byteResults,
-                  const bdNChar8 *file, const bdNChar8 *function,
-                  const bdNChar8 *line)>
+  thiscallPtr_t<void(bdRemoteTask *_this, bdByteBufferRef *byteResults,
+                     const bdNChar8 *file, const bdNChar8 *function,
+                     const bdNChar8 *line)>
       deserializeResult;
-  thiscall_t<void(bdRemoteTask *_this, bdFloat32 timeout)> start;
-  thiscall_t<bool(bdRemoteTask *_this, bdByteBufferRef *byteResults,
-                  const bdNChar8 *file, const bdNChar8 *function,
-                  const bdNChar8 *line)>
+  thiscallPtr_t<void(bdRemoteTask *_this, bdFloat32 timeout)> start;
+  thiscallPtr_t<bool(bdRemoteTask *_this, bdByteBufferRef *byteResults,
+                     const bdNChar8 *file, const bdNChar8 *function,
+                     const bdNChar8 *line)>
       deserialize;
 };
 
@@ -793,9 +793,9 @@ enum class LocalTaskState : uint32_t {
 };
 
 struct TaskRecord;
-typedef fastcall_t<LocalTaskState(TaskRecord *task)> localTaskFunc;
+typedef fastcallPtr_t<LocalTaskState(TaskRecord *task)> localTaskFunc;
 
-typedef fastcall_t<bool(TaskRecord *task)> task_callback;
+typedef fastcallPtr_t<bool(TaskRecord *task)> task_callback;
 
 typedef uint64_t TaskCategory;
 
@@ -937,13 +937,13 @@ struct dwFileOperationInfo {
   int32_t bufferSize;
   int32_t decompressedSize;
   dwFileOpResult result;
-  fastcall_t<void(const ControllerIndex_t controllerIndex, void *)>
+  fastcallPtr_t<void(const ControllerIndex_t controllerIndex, void *)>
       fnCallbackSuccess;
-  fastcall_t<taskCompleteResults(const ControllerIndex_t controllerIndex,
-                                 void *)>
+  fastcallPtr_t<taskCompleteResults(const ControllerIndex_t controllerIndex,
+                                    void *)>
       fnCallbackNotFound;
-  fastcall_t<taskCompleteResults(const ControllerIndex_t controllerIndex,
-                                 void *)>
+  fastcallPtr_t<taskCompleteResults(const ControllerIndex_t controllerIndex,
+                                    void *)>
       fnCallbackFailure;
   bool *alreadyUploaded;
   uint8_t *parityBits;

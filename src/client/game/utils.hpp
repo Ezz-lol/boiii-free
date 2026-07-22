@@ -364,14 +364,15 @@ inline level::gentity_t *client_ent(T index) {
 } // namespace level
 
 namespace scr {
+namespace var {
 inline constexpr bool valid_scrvar_index(scriptInstance_t inst,
                                          ScrVarIndex_t index) {
   return index < SCRIPTVARIABLE_POOL_SIZE.instance[inst];
 }
 
 inline ScrVarIndex_t scrvar_index(scriptInstance_t inst, ScrVar_t *var) {
-  uintptr_t scriptVariablesPtr =
-      reinterpret_cast<uintptr_t>(gScrVarGlob->instance[inst].scriptVariables);
+  uintptr_t scriptVariablesPtr = reinterpret_cast<uintptr_t>(
+      vm::gScrVarGlob->instance[inst].scriptVariables);
   uintptr_t varPtr = reinterpret_cast<uintptr_t>(var);
   return static_cast<ScrVarIndex_t>((varPtr - scriptVariablesPtr) /
                                     sizeof(ScrVar_t));
@@ -393,6 +394,7 @@ inline bool valid_scrvarvalue_ptr(scriptInstance_t inst, ScrVarValue_t *val) {
          || valid_scrvar_index(inst,
                                scrvarvalue_index(inst, val)); // Pool allocation
 }
+} // namespace var
 } // namespace scr
 namespace sl {
 inline bool valid_refstring_ptr(RefString *ref) {

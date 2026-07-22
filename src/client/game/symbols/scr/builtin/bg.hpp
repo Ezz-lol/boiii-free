@@ -4,10 +4,11 @@
 
 namespace game {
 namespace scr {
+namespace builtin {
 namespace bg {
-WEAK symbol<BGScrUtilFunctionTable> util_functions{0x1432D7530, 0x14106D530};
 WEAK symbol<void(scriptInstance_t inst)> BGScr_IsProfileBuild{0x1401660E0,
                                                               0x140099230};
-} // namespace bg
+}
+} // namespace builtin
 } // namespace scr
 } // namespace game

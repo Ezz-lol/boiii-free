@@ -56,17 +56,17 @@ struct HunkUserNull {
 ASSERT_SIZE(HunkUserNull, 0x20);
 
 struct ALLOCATION_SCHEME_FUNCTIONS {
-  fastcall_t<HunkUser *(HunkUserDefault *defaultUser, uint64_t size,
-                        HU_ALLOCATION_SCHEME scheme, HUNKUSER_FLAGS flags,
-                        void *scheme_specific_data, const char *name,
-                        int32_t type)>
+  fastcallPtr_t<HunkUser *(HunkUserDefault *defaultUser, uint64_t size,
+                           HU_ALLOCATION_SCHEME scheme, HUNKUSER_FLAGS flags,
+                           void *scheme_specific_data, const char *name,
+                           int32_t type)>
       Init;
-  fastcall_t<void(HunkUser *user)> Reset;
-  fastcall_t<void(HunkUser *user)> Destroy;
-  fastcall_t<void *(HunkUser *user, uint64_t size, int32_t alignment,
-                    const char *name)>
+  fastcallPtr_t<void(HunkUser *user)> Reset;
+  fastcallPtr_t<void(HunkUser *user)> Destroy;
+  fastcallPtr_t<void *(HunkUser *user, uint64_t size, int32_t alignment,
+                       const char *name)>
       Alloc;
-  fastcall_t<void(HunkUser *user, void *alloc)> Free;
+  fastcallPtr_t<void(HunkUser *user, void *alloc)> Free;
 };
 
 union HunkUserAllocationSchemeMap {

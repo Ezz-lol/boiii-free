@@ -17,13 +17,13 @@ WEAK symbol<bool> s_luaInitialized{0x159C76D90};
 
 // If generating a `lua_State` in boiii, call this function.
 WEAK symbol<hks::lua_State *(hks::luaState_e luaState, void *memoryLocation,
-                             int32_t memSize, hks::lua_CFunction panicFn)>
+                             int32_t memSize, hks::lua_CFunction *panicFn)>
     Lua_CoD_GenerateLuaState{0x141F117B0, 0x1404BE010};
 // Also named `Lua_CoD_GenerateLuaState` in the engine. Override called by the
 // other function of same name.
 WEAK symbol<hks::lua_State *(hks::luaState_e luaState,
                              hks::HksStateSettings *settings,
-                             hks::lua_CFunction panicFn)>
+                             hks::lua_CFunction *panicFn)>
     Lua_CoD_GenerateLuaState_Internal{0x141F115D0, 0x1404BDE40};
 WEAK symbol<CodLuaStates> s_codLuaStates{0x1434100A0, 0x141122FB0};
 } // namespace cod

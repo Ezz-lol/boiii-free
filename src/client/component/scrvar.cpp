@@ -83,8 +83,10 @@ void ScrVar_EvalArray_DefaultEmpty(scriptInstance_t inst, ScrVarValue_t *value,
     }
   }
 }
-
 void stub_func() { return; }
+
+utils::hook::detour ScrVar_EvalFloatBool_hook;
+utils::hook::detour ScrVar_EvalBool_hook;
 
 inline void handle_invalid_scrvars() {
   ScrVar_ReleaseVariable_hook.create(ScrVar_ReleaseVariable.get(),
@@ -97,6 +99,12 @@ inline void handle_invalid_scrvars() {
                                   ScrVar_EvalVariable_Safe);
   ScrVar_EvalArray_hook.create(ScrVar_EvalArray.get(),
                                ScrVar_EvalArray_DefaultEmpty);
+  // Fix common "cannot cast undefined to bool" error in flagsys.gsc on
+  // launching usermap in private match
+  ScrVar_EvalFloatBool_hook.create(game::scr::var::ScrVar_EvalFloatBool.get(),
+                                   game::scr::var::ScrVar_EvalBool_Impl);
+  ScrVar_EvalBool_hook.create(game::scr::var::ScrVar_EvalBool.get(),
+                              game::scr::var::ScrVar_EvalBool_Impl);
 }
 
 class component final : public generic_component {

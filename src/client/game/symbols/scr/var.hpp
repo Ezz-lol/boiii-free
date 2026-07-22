@@ -38,6 +38,13 @@ WEAK symbol<ScrVarValue_t *(ScrVarValue_t *retstr, scriptInstance_t inst,
                             ScrVarIndex_t entId,
                             ScrVarNameIndex_t fieldNameIndex)>
     ScrVar_EvalEntityField{0x1412DCB30, 0x140168FC0};
+WEAK symbol<bool(scriptInstance_t inst, ScrVarValue_t *value)> ScrVar_EvalBool{
+    0x1412CCE10, 0x14015AEE0};
+WEAK symbol<bool(scriptInstance_t inst, ScrVarValue_t *value)>
+    ScrVar_EvalFloatBool{0x1412DACF0, 0x140167170};
+
+WEAK symbol<ScrVarTypePool<const char *>> var_typename{0x1432E6240,
+                                                       0x14107C040};
 } // namespace var
 } // namespace scr
 } // namespace game

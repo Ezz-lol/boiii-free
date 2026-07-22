@@ -1451,7 +1451,7 @@ union EngineDependentDvarPool {
   }
 };
 
-typedef fastcall_t<void(EngineDependentDvar dvar)> modifiedCallback;
+typedef fastcallPtr_t<void(EngineDependentDvar dvar)> modifiedCallback;
 
 #pragma pack(push, 1)
 struct dvarCallBack_t {
@@ -1535,6 +1535,6 @@ enum class dvar_cmd_t : uint32_t {
   COUNT = 0xD,
 };
 
-typedef fastcall_t<void(EngineDependentDvar dvar, void *userData)>
+typedef fastcallPtr_t<void(EngineDependentDvar dvar, void *userData)>
     forEachCallback;
 } // namespace game
