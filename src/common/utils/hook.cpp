@@ -1,6 +1,5 @@
 #include "hook.hpp"
 
-#include <map>
 #include <MinHook.h>
 
 #include "concurrency.hpp"

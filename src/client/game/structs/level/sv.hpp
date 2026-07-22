@@ -7,7 +7,7 @@
 #include "../phys.hpp"
 #include "../ai.hpp"
 #include "../scr/scr.hpp"
-#include "../lobby.hpp"
+#include "../lobby/core.hpp"
 
 namespace game {
 

@@ -98,7 +98,7 @@ bool ensure_networkmode_online() {
   switch (com::Com_SessionMode_GetNetworkMode()) {
   case eNetworkModes::ONLINE:
   case eNetworkModes::SYSTEMLINK:
-    switch (LobbyBase_GetNetworkMode()) {
+    switch (base::LobbyBase_GetNetworkMode()) {
     case LobbyNetworkMode::LAN:
     case LobbyNetworkMode::LIVE:
       return true;
@@ -109,7 +109,7 @@ bool ensure_networkmode_online() {
     break;
   }
 
-  LobbyBase_SetNetworkMode(LobbyNetworkMode::LIVE);
+  base::LobbyBase_SetNetworkMode(LobbyNetworkMode::LIVE);
   return false;
 }
 
@@ -172,7 +172,7 @@ void connect_to_session(const game::net::netadr_t &addr,
     return;
   }
 
-  game::lobby::Join &join = *game::lobby::s_join;
+  game::lobby::Join &join = *game::lobby::session::s_join;
 
   game::lobby::JoinHost &host = join.hostList[0];
   memset(&host, 0, sizeof(host));
