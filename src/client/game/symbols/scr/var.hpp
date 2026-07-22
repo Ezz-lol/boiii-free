@@ -67,8 +67,8 @@ WEAK symbol<const float *(scriptInstance_t inst, const vec3_t *v)>
 WEAK symbol<void(scriptInstance_t inst, ScrVarIndex_t parentId,
                  ScrVarIndex_t id)>
     ScrVar_AppendChild{0x1412D9BD0, 0x1401660B0};
-WEAK symbol<uint32_t(scriptInstance_t inst, ScrVarIndex_t id)>
-    ScrVar_ArraySize{0x1412DAA70};
+WEAK symbol<uint32_t(scriptInstance_t inst, ScrVarIndex_t id)> ScrVar_ArraySize{
+    0x1412DAA70};
 WEAK symbol<scr_funcptr_t(scriptInstance_t inst, ScrVarIndex_t classInstance,
                           ScrVarCanonicalName_t functionName)>
     ScrVar_ClassVtableLookup{0x1412DB0B0, 0x140167530};
@@ -82,7 +82,7 @@ WEAK symbol<ScrVarIndex_t(scriptInstance_t inst, EntRefUnion entRefUnion,
                           uint32_t classnum, LocalClientNum_t clientNum)>
     ScrVar_FindEntityId{0x1412DE1B0};
 WEAK symbol<uint32_t(scriptInstance_t inst, ScrVarCanonicalName_t canonId,
-                         ScrVarType_t *type)>
+                     ScrVarType_t *type)>
     ScrVar_FindField{0x1412DE250};
 WEAK symbol<ScrVarIndex_t(scriptInstance_t inst, ScrVarIndex_t parentId,
                           ScrVarNameIndex_t nameIndex)>
@@ -176,9 +176,8 @@ WEAK symbol<void(scriptInstance_t inst, ScrVarIndex_t entId,
     ScrVar_SetEntityFieldValue{0x1412E0920, 0x14016D110};
 WEAK symbol<void(scriptInstance_t inst, ScrVarIndex_t id, ScrVarValue_t *value)>
     ScrVar_SetValue{0x1412E0B70, 0x14016D360};
-WEAK
-    symbol<void(scriptInstance_t inst, ScrVarIndex_t id, uint32_t waitTime)>
-        ScrVar_SetWaitTime{0x1412E0C00};
+WEAK symbol<void(scriptInstance_t inst, ScrVarIndex_t id, uint32_t waitTime)>
+    ScrVar_SetWaitTime{0x1412E0C00};
 WEAK symbol<ScrVarType_t(scriptInstance_t inst, ScrVarIndex_t id)> ScrVar_Type{
     0x1412E0CF0, 0x14016D4D0};
 WEAK symbol<ScrVarValue_t *(ScrVarValue_t *retstr, scriptInstance_t inst,
