@@ -298,16 +298,16 @@ if os.host() == "windows" then
     "-Wno-unused",
     "-Wno-format",
     "-Wno-sign-compare",
-    "/clang:-msse4.2",
-    "/clang:-maes",
-    "/clang:-mbmi2",
-    "/clang:-mlzcnt",
+    "/clang:-march=x86-64",
   })
   linkoptions({ "/IGNORE:4702", "/LTCG" })
 else
   -- incompatible with LTCG, and Windows libraries are not released with LTO
   -- None of full, fat, or thin LTO work - tested.
-  buildoptions({ "-fno-lto" })
+  buildoptions({
+    "-march=x86-64",
+    "-fno-lto",
+  })
   linkoptions({ "-fno-lto" })
 end
 defines({ "NDEBUG" })

@@ -582,7 +582,6 @@ WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH="${msvc_toolchain_sysroot}/include"
 
 cflags=(
 	"-Oz"
-	"-msse" "-msse2" "-msse3" "-mssse3" "-msse4.1" "-msse4.2" "-mavx" "-mavx2" "-maes" "-mbmi2" "-mlzcnt"
 	"-march=${MARCH}" "-m64"
 	"-isystem" "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}"
 	"-fms-extensions"
@@ -593,7 +592,6 @@ cflags=(
 	"-I${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}")
 cxxflags=(
 	"-Oz"
-	"-msse" "-msse2" "-msse3" "-mssse3" "-msse4.1" "-msse4.2" "-mavx" "-mavx2" "-maes" "-mbmi2" "-mlzcnt"
 	"-march=${MARCH}" "-m64"
 	"-isystem" "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}/c++/msstl/"
 	"-isystem" "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}"
