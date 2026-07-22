@@ -37,6 +37,9 @@ function curl.includes()
     "HAVE_LIBZ",
     "HAVE_BROTLI",
     "HAVE_ZSTD",
+    "ZSTD_BUILD_STATIC=ON",
+    "DYNAMIC_BMI2=1",
+    "STATIC_BMI2=1",
   })
   filter({})
 end
@@ -75,6 +78,9 @@ function curl.project()
     "USE_THREADS_WIN32",
     "CURL_ZSTD=ON",
     "CURL_BROTLI=ON",
+    "ZSTD_BUILD_STATIC=ON",
+    "DYNAMIC_BMI2=1",
+    "STATIC_BMI2=1",
   })
 
   filter({})

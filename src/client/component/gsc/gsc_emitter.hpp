@@ -131,6 +131,7 @@ enum class script_opcode : uint8_t {
   OP_EvalSelfFieldVariableRef = 0x8C,
   OP_SuperEqual = 0x8D,
   OP_SuperNotEqual = 0x8E,
+  OP_Count = 0x8F
 };
 
 // T7 script header (0x48 bytes, little-endian PC)

@@ -71,7 +71,7 @@ struct clientSession_t {
   int32_t killCamMod;
   int32_t killCamFlag;
   int32_t archiveTime;
-  scr::ScrVarIndex_t scriptPersId;
+  scr::var::ScrVarIndex_t scriptPersId;
   clientConnected_t connected;
   user::usercmd_t cmd;
   user::usercmd_t oldcmd;

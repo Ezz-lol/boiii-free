@@ -6,6 +6,8 @@
 namespace gsc {
 using namespace game;
 using namespace game::scr;
+using namespace game::scr::var;
+using namespace game::scr::builtin;
 
 namespace custom_builtins {
 template <typename Def> struct CustomBuiltinMap {

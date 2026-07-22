@@ -94,6 +94,17 @@ maptable::MapTable *Com_GetMapTable_Safe(const char *mapTableName) {
   return mapTable;
 }
 
+utils::hook::detour Image_AssignDefaultTexture_hook;
+bool Image_AssignDefaultTexture_AssignEmptyVTable(gfx::GfxImage *to,
+                                                  gfx::GfxImage *from) {
+  if (nonnull(to) && nonnull(from) && nonnull(from->texture.basemap) &&
+      nonnull(to->texture.basemap) && nonnull(to->texture.basemap->lpVtbl)) {
+    return Image_AssignDefaultTexture_hook.invoke<bool>(to, from);
+  }
+
+  return false;
+}
+
 class component final : public generic_component {
 public:
   void post_unpack() override {
@@ -112,6 +123,10 @@ public:
     Com_GametypeSettings_SetGametype_hook.create(
         game::com::gts::Com_GametypeSettings_SetGametype.get(),
         Com_GametypeSettings_SetGametype_GetOrInitGameTypeSettingsDDL);
+
+    Image_AssignDefaultTexture_hook.create(
+        game::gfx::Image_AssignDefaultTexture.get(),
+        Image_AssignDefaultTexture_AssignEmptyVTable);
   }
 };
 } // namespace db

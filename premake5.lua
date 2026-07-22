@@ -298,16 +298,20 @@ if os.host() == "windows" then
     "-Wno-unused",
     "-Wno-format",
     "-Wno-sign-compare",
+    "/clang:-march=x86-64",
+    -- Only used after positive test for support at runtime.
+    -- We need to compile with these CPU features regardless of end-user
+    -- support to ensure that SSE4.2 and AES ISA extension ASM instructions
+    -- can be emitted at all.
     "/clang:-msse4.2",
     "/clang:-maes",
     "/clang:-mbmi2",
-    "/clang:-mlzcnt",
   })
   linkoptions({ "/IGNORE:4702", "/LTCG" })
 else
   -- incompatible with LTCG, and Windows libraries are not released with LTO
   -- None of full, fat, or thin LTO work - tested.
-  buildoptions({ "-fno-lto" })
+  buildoptions({ "-march=x86-64", "-msse4.2", "-maes", "-mbmi2", "-fno-lto" })
   linkoptions({ "-fno-lto" })
 end
 defines({ "NDEBUG" })

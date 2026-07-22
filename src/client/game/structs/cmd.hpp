@@ -5,7 +5,7 @@
 namespace game {
 namespace cmd {
 
-typedef fastcall_t<void()> xcommand_t;
+typedef fastcallPtr_t<void()> xcommand_t;
 
 struct cmd_function_s {
   cmd_function_s *next;

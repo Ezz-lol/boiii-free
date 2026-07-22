@@ -171,11 +171,6 @@ game::ContentFlags return_all_content() {
   return game::ContentFlags::allContent();
 }
 
-utils::hook::detour Content_GetAvailableContentPacks_hook;
-
-utils::hook::detour LobbyActiveList_GetDLCBits_hook;
-utils::hook::detour LobbyActiveList_IsStarterPack_hook;
-
 utils::hook::detour LiveUser_UserGetName_hook;
 utils::hook::detour LiveUser_GetLocalXuid_hook;
 utils::hook::detour LiveUser_GetClientName_hook;

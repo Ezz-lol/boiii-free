@@ -14,7 +14,7 @@ namespace cmd {
 
 void ScrCmd_PlaySound_Impl(scriptInstance_t inst, scr_entref_t *entref) {
   snd::SndAliasId alias_id;
-  if (Scr_GetType(SCRIPTINSTANCE_SERVER, 0) == ScrVarType::STRING) {
+  if (Scr_GetType(SCRIPTINSTANCE_SERVER, 0) == var::ScrVarType::STRING) {
     const char *alias = Scr_GetString(SCRIPTINSTANCE_SERVER, 0);
     alias_id = snd::SND_FindAliasId(alias);
   } else {
@@ -32,12 +32,12 @@ void ScrCmd_PlaySoundOnTag_Impl(scriptInstance_t inst, scr_entref_t *entref) {
   snd::SndAliasId alias_id;
 
   level::gentity_t *ent = GetEntity_Impl(entref);
-  ScrVarType first_param_type = Scr_GetType(SCRIPTINSTANCE_SERVER, 0);
-  if (first_param_type == ScrVarType::STRING) {
+  var::ScrVarType first_param_type = Scr_GetType(SCRIPTINSTANCE_SERVER, 0);
+  if (first_param_type == var::ScrVarType::STRING) {
     alias = Scr_GetString(SCRIPTINSTANCE_SERVER, 0);
     alias_id = snd::SND_FindAliasId(alias);
   } else {
-    if (first_param_type != ScrVarType::INT) {
+    if (first_param_type != var::ScrVarType::INT) {
       Scr_ParamError(SCRIPTINSTANCE_SERVER, 0,
                      "Parameter is not a string or integer");
       return;
@@ -68,10 +68,11 @@ void ScrCmd_PlaySoundOnTag_Impl(scriptInstance_t inst, scr_entref_t *entref) {
           G_PlaySoundAlias_Impl(ent, alias_id, 0, tag_idx);
       if (Scr_GetNumParam(SCRIPTINSTANCE_SERVER) >= 3) {
         sound_ent->s.clientMask[0] = -1;
-        // Should be ScrVarType::LOCALIZED_STRING - a conststring matched
+        // Should be var::ScrVarType::LOCALIZED_STRING - a conststring matched
         // internally in Scr_GetTeam to return the corresponding team_t
         // enumeration
-        if (Scr_GetType(SCRIPTINSTANCE_SERVER, 2u) != ScrVarType::UNDEFINED) {
+        if (Scr_GetType(SCRIPTINSTANCE_SERVER, 2u) !=
+            var::ScrVarType::UNDEFINED) {
           game::team_t team = Scr_GetTeam(SCRIPTINSTANCE_SERVER, 2u);
           if (team != team_t::TEAM_FREE) {
             level::gentity_pool *ent_pool = level::get_g_entities();
@@ -136,7 +137,7 @@ void ScrCmd_PlaySoundToPlayer_Impl(scriptInstance_t inst,
   }
   const char *alias;
   snd::SndAliasId alias_id;
-  if (Scr_GetType(SCRIPTINSTANCE_SERVER, 0) == ScrVarType::STRING) {
+  if (Scr_GetType(SCRIPTINSTANCE_SERVER, 0) == var::ScrVarType::STRING) {
     alias = Scr_GetString(SCRIPTINSTANCE_SERVER, 0);
     alias_id = snd::SND_FindAliasId(alias);
   } else {

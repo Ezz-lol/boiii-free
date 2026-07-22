@@ -25,10 +25,10 @@ struct onlinePubData {
   dw::dwFileOperationInfo *fileOps;
   bool dataFetchCompleted;
   bool multipleLanguages;
-  fastcall_t<void(const ControllerIndex_t controllerIndex, void *)>
+  fastcallPtr_t<void(const ControllerIndex_t controllerIndex, void *)>
       successCallback;
-  fastcall_t<dw::taskCompleteResults(const ControllerIndex_t controllerIndex,
-                                     void *)>
+  fastcallPtr_t<dw::taskCompleteResults(const ControllerIndex_t controllerIndex,
+                                        void *)>
       failureCallback;
 };
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <type_traits>
+
 #ifdef __clang__
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wignored-attributes"
@@ -72,24 +74,26 @@ template <typename Ret, typename... Args> struct func_helper {
 
 // Consolidated API
 template <typename T, typename... Args>
-using stdcall_t = typename stdcall_helper<T, Args...>::type;
+using stdcallPtr_t = typename stdcall_helper<T, Args...>::type;
 template <typename T, typename... Args>
-using fastcall_t = typename fastcall_helper<T, Args...>::type;
+using fastcallPtr_t = typename fastcall_helper<T, Args...>::type;
 template <typename T, typename... Args>
-using cdecl_t = typename cdecl_helper<T, Args...>::type;
+using cdeclPtr_t = typename cdecl_helper<T, Args...>::type;
 template <typename T, typename... Args>
-using thiscall_t = typename thiscall_helper<T, Args...>::type;
+using thiscallPtr_t = typename thiscall_helper<T, Args...>::type;
 template <typename T, typename... Args>
-using func_t = typename func_helper<T, Args...>::type;
+using funcPtr_t = typename func_helper<T, Args...>::type;
 
 template <typename T, typename... Args>
-using stdcallPtr = stdcall_t<T, Args...> *;
+using stdcall_t = std::remove_pointer_t<stdcallPtr_t<T, Args...>>;
 template <typename T, typename... Args>
-using fastcallPtr = fastcall_t<T, Args...> *;
-template <typename T, typename... Args> using cdeclPtr = cdecl_t<T, Args...> *;
+using fastcall_t = std::remove_pointer_t<fastcallPtr_t<T, Args...>>;
 template <typename T, typename... Args>
-using thiscallPtr = thiscall_t<T, Args...> *;
-template <typename T, typename... Args> using funcPtr = func_t<T, Args...> *;
+using cdecl_t = std::remove_pointer_t<cdeclPtr_t<T, Args...>>;
+template <typename T, typename... Args>
+using thiscall_t = std::remove_pointer_t<thiscallPtr_t<T, Args...>>;
+template <typename T, typename... Args>
+using func_t = std::remove_pointer_t<funcPtr_t<T, Args...>>;
 
 #ifdef __clang__
 #pragma clang diagnostic pop

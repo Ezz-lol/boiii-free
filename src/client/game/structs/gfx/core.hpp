@@ -107,9 +107,9 @@ struct IUnknown;
 
 #pragma pack(push, 8)
 struct IUnknownVtbl {
-  stdcall_t<int32_t, IUnknown *, const IID *const, void **> QueryInterface;
-  stdcall_t<uint32_t, IUnknown *> AddRef;
-  stdcall_t<uint32_t, IUnknown *> Release;
+  stdcallPtr_t<int32_t, IUnknown *, const IID *const, void **> QueryInterface;
+  stdcallPtr_t<uint32_t, IUnknown *> AddRef;
+  stdcallPtr_t<uint32_t, IUnknown *> Release;
 };
 ASSERT_SIZE(IUnknownVtbl, 0x18);
 #pragma pack(pop)

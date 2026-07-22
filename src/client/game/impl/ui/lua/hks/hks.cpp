@@ -460,7 +460,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
 
         cclosure *cClosure = destReg->v.cClosure;
         CallStack::push(&s->m_callStack, s, expectedReturns, destReg, top, PC);
-        lua_CFunction m_function = cClosure->m_function;
+        lua_CFunction *m_function = cClosure->m_function;
 
         if (++s->m_numberOfCCalls > 128) {
           hksi_luaL_error(
@@ -549,7 +549,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
 
         cclosure *cClosure = destReg->v.cClosure;
         CallStack::push(&s->m_callStack, s, -1, destReg, top, PC);
-        lua_CFunction m_function = cClosure->m_function;
+        lua_CFunction *m_function = cClosure->m_function;
 
         if (++s->m_numberOfCCalls > 128) {
           hksi_luaL_error(

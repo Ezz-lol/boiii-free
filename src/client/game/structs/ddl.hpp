@@ -1,5 +1,9 @@
 #pragma once
 
+#include <cstdint>
+
+#include "func.hpp"
+
 namespace game {
 
 namespace ddl {
@@ -67,7 +71,7 @@ struct DDLDef {
 };
 
 struct DDLContext;
-typedef fastcall_t<void(DDLContext *ctx, void *data)> DDLWriteCB;
+typedef fastcallPtr_t<void(DDLContext *ctx, void *data)> DDLWriteCB;
 
 struct DDLContext {
   void *buff;

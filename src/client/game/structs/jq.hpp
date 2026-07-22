@@ -8,7 +8,7 @@ namespace game {
 namespace jq {
 
 struct jqBatch;
-typedef fastcall_t<int32_t(jqBatch *batch)> jqModuleCallback;
+typedef fastcallPtr_t<int32_t(jqBatch *batch)> jqModuleCallback;
 
 #pragma pack(push, 1)
 struct jqBatchGroup {

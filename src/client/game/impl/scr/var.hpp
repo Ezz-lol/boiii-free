@@ -6,12 +6,17 @@ namespace game {
 namespace scr {
 namespace var {
 
+inline const char *Scr_TypeName(ScrVarType type) {
+  return var_typename->pool[+type];
+}
+bool ScrVar_EvalBool_Impl(scriptInstance_t inst, ScrVarValue_t *value);
+
 inline ScrVar_t *ScrVar_Dereference(scriptInstance_t inst,
                                     const ScrVar_t *ptr) {
   switch (ptr->value.type) {
   case ScrVarType::POINTER:
     if (valid_scrvar_index(inst, ptr->value.u.pointerValue)) {
-      return &gScrVarGlob->instance[inst]
+      return &vm::gScrVarGlob->instance[inst]
                   .scriptVariables[ptr->value.u.pointerValue];
     }
     break;
@@ -63,8 +68,8 @@ inline bool ScrVar_ValidIndex(scriptInstance_t inst, ScrVarValue_t *array,
   }
 }
 
-inline uint32_t ScrVar_ArraySize(scriptInstance_t inst,
-                                 const ScrVarValue_t *array) {
+inline uint32_t ScrVar_ArrayLike_Size(scriptInstance_t inst,
+                                      const ScrVarValue_t *array) {
   return ScrVar_Dereference(inst, array)->var()->o.size;
 }
 } // namespace var

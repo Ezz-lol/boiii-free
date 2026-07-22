@@ -258,7 +258,7 @@ struct JoinHost {
   int32_t retryCount;
 };
 
-typedef fastcall_t<void(int32_t, JoinResult result)> joinCompleteCallback;
+typedef fastcallPtr_t<void(int32_t, JoinResult result)> joinCompleteCallback;
 
 struct AgreementStatus {
   XUID xuid;

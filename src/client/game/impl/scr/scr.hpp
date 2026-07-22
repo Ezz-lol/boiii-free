@@ -19,11 +19,6 @@ inline level::gentity_t *Scr_GetEntity_Impl(uint32_t index) {
   return GetEntity_Impl(&entref);
 }
 
-inline const char *Scr_TypeName(ScrVarType type) {
-  return var_typename->pool[+type];
-}
-bool Scr_IsTrue_Impl(scriptInstance_t inst, ScrVarValue_t *value);
 void Scr_PlaySoundAtPosition_Impl(scriptInstance_t inst);
-
 } // namespace scr
 } // namespace game

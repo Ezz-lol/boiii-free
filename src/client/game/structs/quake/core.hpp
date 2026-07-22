@@ -30,22 +30,22 @@ constexpr qboolean qtrue = qboolean::from(true);
 constexpr qboolean qfalse = qboolean::from(false);
 
 // Type used by engine
-typedef cdecl_t<int32_t, const void *, const void *>
+typedef cdeclPtr_t<int32_t, const void *, const void *>
     _CoreCrtNonSecureSearchSortCompareFunction;
 
 // Can be used by boiii for more strict, specific argument typing
 template <typename T>
 using CoreCrtNonSecureSearchSortCompareFunction =
-    cdecl_t<int32_t, const T *, const T *>;
+    cdeclPtr_t<int32_t, const T *, const T *>;
 
 // Type used by engine
-typedef cdecl_t<int32_t, void *, const void *, const void *>
+typedef cdeclPtr_t<int32_t, void *, const void *, const void *>
     _CoreCrtSecureSearchSortCompareFunction;
 
 // Can be used by boiii for more strict, specific argument typing
 template <typename T>
 using CoreCrtSecureSearchSortCompareFunction =
-    cdecl_t<int32_t, T *, const T *, const T *>;
+    cdeclPtr_t<int32_t, T *, const T *, const T *>;
 } // namespace game
 
 using game::qboolean;

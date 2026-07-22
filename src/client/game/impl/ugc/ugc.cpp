@@ -393,9 +393,9 @@ class ModsUGCDetailsCallbackResult
 public:
   void Set(steam::SteamAPICall_t hApiCall, WorkshopData *result) {
 
-    typedef thiscall_t<void(ModsUGCDetailsCallbackResult * _this,
-                            steam::SteamAPICall_t hApiCall,
-                            WorkshopData * result)>
+    typedef thiscallPtr_t<void(ModsUGCDetailsCallbackResult * _this,
+                               steam::SteamAPICall_t hApiCall,
+                               WorkshopData * result)>
         SetFunc;
 
     SetFunc setImpl =
