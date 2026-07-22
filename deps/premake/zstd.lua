@@ -19,7 +19,7 @@ function zstd.project()
 
   zstd.includes()
 
-  defines({ "DYNAMIC_BMI2=1", "ZSTD_BUILD_STATIC=ON", "STATIC_BMI2=1" })
+  defines({ "DYNAMIC_BMI2=0", "ZSTD_BUILD_STATIC=ON", "STATIC_BMI2=0" })
 
   files({
     path.join(zstd.source, "**.h"),
