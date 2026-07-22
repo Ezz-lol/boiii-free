@@ -303,14 +303,14 @@ if os.host() == "windows" then
     -- We need to compile with these CPU features regardless of end-user
     -- support to ensure that SSE4.2 and AES ISA extension ASM instructions
     -- can be emitted at all.
-    "/clang:-msse4.1",
-    "/clang:-msse4.2",
+    "/clang:-mno-sse4.1",
+    "/clang:-mno-sse4.2",
   })
   linkoptions({ "/IGNORE:4702", "/LTCG" })
 else
   -- incompatible with LTCG, and Windows libraries are not released with LTO
   -- None of full, fat, or thin LTO work - tested.
-  buildoptions({ "-march=x86-64", "-msse4.1", "-msse4.2", "-fno-lto" })
+  buildoptions({ "-march=x86-64", "-mno-sse4.1", "-mno-sse4.2", "-fno-lto" })
   linkoptions({ "-fno-lto" })
 end
 defines({ "NDEBUG" })
