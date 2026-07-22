@@ -394,6 +394,16 @@ inline bool valid_scrvarvalue_ptr(scriptInstance_t inst, ScrVarValue_t *val) {
          || valid_scrvar_index(inst,
                                scrvarvalue_index(inst, val)); // Pool allocation
 }
+
+inline bool valid_val_allocation_ptr(uintptr_t ptr) {
+  return valid_stack_ptr(ptr) ||
+         (scr::mt::gScrMemTreePub->mt_buffer &&
+          scr::mt::gScrMemTreePub->mt_buffer->contains(ptr));
+}
+
+template <typename T> inline bool valid_val_allocation_ptr(const T *ptr) {
+  return valid_val_allocation_ptr(reinterpret_cast<uintptr_t>(ptr));
+}
 } // namespace var
 } // namespace scr
 namespace sl {

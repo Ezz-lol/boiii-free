@@ -34,7 +34,8 @@ uint32_t ScrVar_ReleaseVariable_Safe(scriptInstance_t inst, ScrVarIndex_t id) {
 inline constexpr bool valid_scrvarvalue(ScrVarValue_t *value) {
   switch (value->type) {
   case ScrVarType::VECTOR: {
-    return value->u.vectorValue != nullptr;
+    return valid_val_allocation_ptr(
+        reinterpret_cast<uintptr_t>(value->u.vectorValue) - 1);
   }
   case ScrVarType::LOCALIZED_STRING:
   case ScrVarType::STRING:
@@ -46,8 +47,13 @@ inline constexpr bool valid_scrvarvalue(ScrVarValue_t *value) {
 
 utils::hook::detour ScrVar_ReleaseValue_hook;
 void ScrVar_ReleaseValue_Safe(scriptInstance_t inst, ScrVarValue_t *value) {
-  if (valid_scrvarvalue_ptr(inst, value) && valid_scrvarvalue(value)) {
-    ScrVar_ReleaseValue_hook.invoke(inst, value);
+  if (valid_scrvarvalue_ptr(inst, value)) {
+    if (valid_scrvarvalue(value)) {
+      ScrVar_ReleaseValue_hook.invoke(inst, value);
+    } else {
+      value->type = ScrVarType::UNDEFINED;
+      value->u.pointerValue = 0;
+    }
   }
 }
 
