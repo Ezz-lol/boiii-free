@@ -124,11 +124,9 @@ public:
         game::com::gts::Com_GametypeSettings_SetGametype.get(),
         Com_GametypeSettings_SetGametype_GetOrInitGameTypeSettingsDDL);
 
-    if (game::is_client()) {
-      Image_AssignDefaultTexture_hook.create(
-          game::gfx::Image_AssignDefaultTexture.get(),
-          Image_AssignDefaultTexture_AssignEmptyVTable);
-    }
+    Image_AssignDefaultTexture_hook.create(
+        game::gfx::Image_AssignDefaultTexture.get(),
+        Image_AssignDefaultTexture_AssignEmptyVTable);
   }
 };
 } // namespace db

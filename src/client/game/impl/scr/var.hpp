@@ -68,7 +68,7 @@ inline bool ScrVar_ValidIndex(scriptInstance_t inst, ScrVarValue_t *array,
   }
 }
 
-inline uint32_t ScrVar_ArraySize(scriptInstance_t inst,
+inline uint32_t ScrVar_ArrayLike_Size(scriptInstance_t inst,
                                  const ScrVarValue_t *array) {
   return ScrVar_Dereference(inst, array)->var()->o.size;
 }
