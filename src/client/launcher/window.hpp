@@ -1,6 +1,8 @@
 #pragma once
 #pragma comment(lib, "dwmapi.lib")
 
+#include <std_include.hpp>
+
 class window {
 public:
   window(const std::string &title, int width, int height,
