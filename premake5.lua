@@ -288,62 +288,65 @@ filter({})
 
 filter("configurations:Release")
 optimize("Size")
-if os.host() == "windows" then
-  -- buildoptions({ "/GL" })
-  buildoptions({
-    "-Wno-unused-command-line-argument",
-    "-Wno-microsoft-cast",
-    "-Wno-dangling-else",
-    "-Wno-unused",
-    "-Wno-format",
-    "-Wno-sign-compare",
-    "/clang:-march=x86-64",
-    -- Only used after positive test for support at runtime.
-    -- We need to compile with these CPU features regardless of end-user
-    -- support to ensure that SSE4.2 and AES ISA extension ASM instructions
-    -- can be emitted at all.
-    "/clang:-mno-sse4.1",
-    "/clang:-mno-sse4.2",
-  })
-  linkoptions({ "/IGNORE:4702", "/LTCG" })
-else
-  -- incompatible with LTCG, and Windows libraries are not released with LTO
-  -- None of full, fat, or thin LTO work - tested.
-  buildoptions({ "-march=x86-64", "-mno-sse4.1", "-mno-sse4.2", "-fno-lto" })
-  linkoptions({ "-fno-lto" })
-end
 defines({ "NDEBUG" })
 -- flags({ "FatalCompileWarnings" })
+filter({})
+
+filter({ "configurations:Release", "toolset:msc*" })
+-- buildoptions({ "/GL" })
+buildoptions({
+  "-Wno-unused-command-line-argument",
+  "-Wno-microsoft-cast",
+  "-Wno-dangling-else",
+  "-Wno-unused",
+  "-Wno-format",
+  "-Wno-sign-compare",
+  "/clang:-march=x86-64",
+  -- Only used after positive test for support at runtime.
+  -- We need to compile with these CPU features regardless of end-user
+  -- support to ensure that SSE4.2 and AES ISA extension ASM instructions
+  -- can be emitted at all.
+  "/clang:-mno-sse4.1",
+  "/clang:-mno-sse4.2",
+})
+linkoptions({ "/IGNORE:4702", "/LTCG" })
+filter({})
+filter({ "configurations:Release", "toolset:not msc*" })
+-- incompatible with LTCG, and Windows libraries are not released with LTO
+-- None of full, fat, or thin LTO work - tested.
+buildoptions({ "-march=x86-64", "-mno-sse4.1", "-mno-sse4.2", "-fno-lto" })
+linkoptions({ "-fno-lto" })
 filter({})
 
 filter("configurations:Debug")
 optimize("Debug")
 defines({ "DEBUG", "_DEBUG", "_CRT_DEBUG" })
-if os.host() == "windows" then
-  buildoptions({ "/MDd" })
-  linkoptions({
-    "/DEBUG",
-    "/NODEFAULTLIB:libcmt.lib",
-    "/NODEFAULTLIB:libucrt.lib",
-    "-l libcmtd.lib",
-    "/MTd",
-  })
-else
-  buildoptions({
-    "-Wl,/DEBUG",
-    "-Wl,/NODEFAULTLIB:libcmt.lib",
-    "-Wl,/NODEFAULTLIB:libucrt.lib",
-    "-l libcmtd.lib",
-  })
-  linkoptions({
-    "-fms-extensions",
-    "-fms-runtime-lib=static_dbg",
-    "-Wl,/DEBUG",
-    "-Wl,/NODEFAULTLIB:libcmt.lib",
-    "-Wl,/NODEFAULTLIB:libucrt.lib",
-    "-l libcmtd.lib",
-  })
-end
+filter({})
+filter({ "configurations:Debug", "toolset:msc*" })
+buildoptions({ "/MDd" })
+linkoptions({
+  "/DEBUG",
+  "/NODEFAULTLIB:libcmt.lib",
+  "/NODEFAULTLIB:libucrt.lib",
+  "-l libcmtd.lib",
+  "/MTd",
+})
+filter({})
+filter({ "configurations:Debug", "toolset:not msc*" })
+buildoptions({
+  "-Wl,/DEBUG",
+  "-Wl,/NODEFAULTLIB:libcmt.lib",
+  "-Wl,/NODEFAULTLIB:libucrt.lib",
+  "-l libcmtd.lib",
+})
+linkoptions({
+  "-fms-extensions",
+  "-fms-runtime-lib=static_dbg",
+  "-Wl,/DEBUG",
+  "-Wl,/NODEFAULTLIB:libcmt.lib",
+  "-Wl,/NODEFAULTLIB:libucrt.lib",
+  "-l libcmtd.lib",
+})
 filter({})
 
 project("common")
