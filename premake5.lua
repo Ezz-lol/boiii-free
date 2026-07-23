@@ -372,9 +372,9 @@ files({
   "./src/client/**.rc",
   "./src/client/**.hpp",
   "./src/client/**.cpp",
+  "./deps/Microsoft.Web.WebView2/build/native/include/*.h",
   "./src/client/resources/**.*",
 })
-
 includedirs({
   "./deps/argparse/include",
   "./deps/SteamworkSDK/public",
@@ -384,6 +384,8 @@ includedirs({
   "./src/common",
   "./src",
 })
+
+syslibdirs({ "./deps/Microsoft.Web.WebView2/build/native/x64" })
 libdirs({ "./deps/Microsoft.Web.WebView2/build/native/x64" })
 
 resincludedirs({ "$(ProjectDir)src" })
