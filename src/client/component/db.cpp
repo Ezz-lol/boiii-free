@@ -14,7 +14,7 @@ using namespace game::db::xasset;
 
 utils::hook::detour DB_IsXAssetDefault_hook;
 bool DB_IsXAssetDefault_Safe(XAssetType type, const char *name) {
-  if (nonnull(name) && name[0]) {
+  if ((nonnull(name) || valid_stack_ptr(name)) && name[0]) {
     return DB_IsXAssetDefault_hook.invoke<bool>(type, name);
   }
   return false;
@@ -25,7 +25,9 @@ bool DDL_Buffer_ResetContext_Safe(void *buff, int32_t len,
                                   const ddl::DDLDef *ddlDef,
                                   ddl::DDLContext *const ddlContext,
                                   ddl::DDLWriteCB writeCB, void *userData) {
-  if (nonnull(buff) && nonnull(ddlDef) && nonnull(ddlContext)) {
+  if ((nonnull(buff) || valid_stack_ptr(buff)) &&
+      (nonnull(ddlDef) || valid_stack_ptr(ddlDef)) &&
+      (nonnull(ddlContext) || valid_stack_ptr(ddlContext))) {
     return DDL_Buffer_ResetContext_hook.invoke<bool>(
         buff, len, ddlDef, ddlContext, writeCB, userData);
   }
@@ -95,10 +97,12 @@ maptable::MapTable *Com_GetMapTable_Safe(const char *mapTableName) {
 }
 
 utils::hook::detour Image_AssignDefaultTexture_hook;
-bool Image_AssignDefaultTexture_AssignEmptyVTable(gfx::GfxImage *to,
+bool Image_AssignDefaultTexture_SkipMissingVTable(gfx::GfxImage *to,
                                                   gfx::GfxImage *from) {
-  if (nonnull(to) && nonnull(from) && nonnull(from->texture.basemap) &&
-      nonnull(to->texture.basemap) && nonnull(to->texture.basemap->lpVtbl)) {
+  if (nonnull(to) && nonnull(from) &&
+      (!s_assetPools->typed.image.contains(to) ||
+       (nonnull(to->texture.basemap) &&
+        nonnull(to->texture.basemap->lpVtbl)))) {
     return Image_AssignDefaultTexture_hook.invoke<bool>(to, from);
   }
 
@@ -126,7 +130,7 @@ public:
 
     Image_AssignDefaultTexture_hook.create(
         game::gfx::Image_AssignDefaultTexture.get(),
-        Image_AssignDefaultTexture_AssignEmptyVTable);
+        Image_AssignDefaultTexture_SkipMissingVTable);
   }
 };
 } // namespace db

@@ -180,6 +180,15 @@ struct XAssetPool {
   qboolean isSingleton;
   int32_t itemAllocCount;
   AssetLink *freeHead;
+
+  inline bool contains(uintptr_t ptr) const noexcept {
+    const uintptr_t pool_ptr = reinterpret_cast<uintptr_t>(pool);
+    return ptr >= pool_ptr && ptr < pool_ptr + itemSize * itemCount;
+  }
+
+  template <typename P> inline bool contains(const P *ptr) const noexcept {
+    return contains(reinterpret_cast<uintptr_t>(ptr));
+  }
 };
 
 template <typename T> struct TypedXAssetPool {
@@ -189,6 +198,15 @@ template <typename T> struct TypedXAssetPool {
   qboolean isSingleton;
   int32_t itemAllocCount;
   AssetLink *freeHead;
+
+  inline bool contains(uintptr_t ptr) const noexcept {
+    const uintptr_t pool_ptr = reinterpret_cast<uintptr_t>(pool);
+    return ptr >= pool_ptr && ptr < pool_ptr + itemSize * itemCount;
+  }
+
+  template <typename P> inline bool contains(const P *ptr) const noexcept {
+    return contains(reinterpret_cast<uintptr_t>(ptr));
+  }
 };
 
 ASSERT_SIZE(XAssetPool, 0x20);
@@ -877,7 +895,7 @@ struct TypedXAssetPools {
   XAssetPool material;
   XAssetPool compute_shader_set;
   XAssetPool technique_set;
-  XAssetPool image;
+  TypedXAssetPool<gfx::GfxImage> image;
   TypedXAssetPool<snd::SndBank> sound;
   TypedXAssetPool<snd::SndPatch> sound_patch;
   XAssetPool clipmap;
@@ -958,7 +976,7 @@ struct TypedXAssetPools {
   XAssetPool flametable;
   XAssetPool bitfield;
   XAssetPool attachment_cosmetic_variant;
-  XAssetPool maptable;
+  TypedXAssetPool<maptable::MapTable> maptable;
   XAssetPool maptable_loading_images;
   XAssetPool medal;
   XAssetPool medaltable;
@@ -980,6 +998,15 @@ struct TypedXAssetPools {
 union XAssetPools {
   XAssetPool pools[static_cast<int>(XAssetType::COUNT)];
   TypedXAssetPools typed;
+
+  inline bool contains(uintptr_t ptr) const noexcept {
+    const uintptr_t this_ptr = reinterpret_cast<uintptr_t>(this);
+    return ptr >= this_ptr && ptr < (this_ptr + sizeof(XAssetPools));
+  }
+
+  template <typename P> inline bool contains(const P *ptr) const noexcept {
+    return contains(reinterpret_cast<uintptr_t>(ptr));
+  }
 };
 static_assert(sizeof(XAssetPools) ==
                   sizeof(XAssetPool) * static_cast<int>(XAssetType::COUNT),
