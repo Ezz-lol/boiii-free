@@ -1,4 +1,112 @@
 (function () {
+  var emberCanvas = document.getElementById("emberCanvas");
+  if (emberCanvas && emberCanvas.getContext) {
+    var emberContext = emberCanvas.getContext("2d", { alpha: true });
+    var embers = [];
+    var nextEmber = 0;
+
+    function createEmberSprite(gold) {
+      var sprite = document.createElement("canvas");
+      sprite.width = 18;
+      sprite.height = 32;
+      var context = sprite.getContext("2d", { alpha: true });
+      var glow = context.createRadialGradient(9, 17, 0, 9, 17, 9);
+      glow.addColorStop(
+        0,
+        gold ? "rgba(255,194,92,.3)" : "rgba(249,94,18,.26)"
+      );
+      glow.addColorStop(0.48, "rgba(249,115,22,.1)");
+      glow.addColorStop(1, "rgba(249,115,22,0)");
+      context.fillStyle = glow;
+      context.beginPath();
+      context.ellipse(9, 17, 8, 13, 0, 0, Math.PI * 2);
+      context.fill();
+
+      var flame = context.createLinearGradient(9, 5, 9, 27);
+      flame.addColorStop(0, "rgba(255,230,170,0)");
+      flame.addColorStop(
+        0.34,
+        gold ? "rgba(255,213,128,.96)" : "rgba(255,151,57,.92)"
+      );
+      flame.addColorStop(
+        0.72,
+        gold ? "rgba(255,161,47,.72)" : "rgba(240,69,12,.7)"
+      );
+      flame.addColorStop(1, "rgba(210,38,5,0)");
+      context.fillStyle = flame;
+      context.beginPath();
+      context.moveTo(9, 4);
+      context.bezierCurveTo(13, 11, 12, 20, 9, 28);
+      context.bezierCurveTo(6, 21, 5, 12, 9, 4);
+      context.fill();
+      return sprite;
+    }
+
+    var orangeEmber = createEmberSprite(false);
+    var goldEmber = createEmberSprite(true);
+
+    function addEmber(initial) {
+      var life = 105 + Math.random() * 70;
+      embers.push({
+        x: Math.random() * emberCanvas.width,
+        y: emberCanvas.height *
+          (initial ? 0.18 + Math.random() * 0.76 : 0.55 + Math.random() * 0.45),
+        vx: (Math.random() - 0.5) * 0.34,
+        vy: 0.32 + Math.random() * 0.44,
+        scale: 0.48 + Math.random() * 0.34,
+        life: life,
+        maxLife: life,
+        gold: Math.random() > 0.72,
+      });
+    }
+
+    function resizeEmbers() {
+      emberCanvas.width = window.innerWidth;
+      emberCanvas.height = window.innerHeight;
+    }
+
+    function animateEmbers() {
+      if (document.body.classList.contains("reduced-motion")) {
+        embers.length = 0;
+        emberContext.clearRect(0, 0, emberCanvas.width, emberCanvas.height);
+        setTimeout(animateEmbers, 500);
+        return;
+      }
+
+      var now = Date.now();
+      if (now >= nextEmber && embers.length < 26) {
+        addEmber(false);
+        nextEmber = now + 260 + Math.random() * 280;
+      }
+
+      emberContext.clearRect(0, 0, emberCanvas.width, emberCanvas.height);
+      for (var i = embers.length - 1; i >= 0; i--) {
+        var ember = embers[i];
+        ember.x += ember.vx;
+        ember.y -= ember.vy;
+        ember.life--;
+        if (ember.life <= 0) {
+          embers.splice(i, 1);
+          continue;
+        }
+        var alpha = Math.min(0.76, (ember.life / ember.maxLife) * 0.76);
+        emberContext.save();
+        emberContext.globalAlpha = alpha;
+        emberContext.translate(ember.x, ember.y);
+        emberContext.rotate(ember.vx * 0.7);
+        emberContext.scale(ember.scale, ember.scale);
+        emberContext.drawImage(ember.gold ? goldEmber : orangeEmber, -9, -16);
+        emberContext.restore();
+      }
+      setTimeout(animateEmbers, 50);
+    }
+
+    resizeEmbers();
+    for (var ei = 0; ei < 16; ei++) addEmber(true);
+    window.addEventListener("resize", resizeEmbers);
+    animateEmbers();
+  }
+
   var playerName = document.getElementById("playerName");
   var workshopId = document.getElementById("workshopId");
   var workshopStatus = document.getElementById("workshopStatus");
@@ -23,6 +131,7 @@
   var modsItemsCache = [];
   var modsPage = 1;
   var modsPageSize = 12;
+  var modsInitialized = false;
 
   var versionDropdown = document.getElementById("versionDropdown");
   var verDropDisplay = document.getElementById("verDropDisplay");
@@ -173,11 +282,11 @@
     // Links
     s = s.replace(
       /\[url=(.*?)\]([\s\S]*?)\[\/url\]/gi,
-      '<a href="$1" class="bb-link" onclick="try{window.external.openUrl(this.href)}catch(e){};return false;">$2</a>'
+      '<a href="$1" class="bb-link" onclick="try{window.getExternal().openUrl(this.href)}catch(e){};return false;">$2</a>'
     );
     s = s.replace(
       /\[url\](.*?)\[\/url\]/gi,
-      '<a href="$1" class="bb-link" onclick="try{window.external.openUrl(this.href)}catch(e){};return false;">$1</a>'
+      '<a href="$1" class="bb-link" onclick="try{window.getExternal().openUrl(this.href)}catch(e){};return false;">$1</a>'
     );
     // Images
     s = s.replace(
@@ -197,7 +306,7 @@
     s = s.replace(/\[noparse\]([\s\S]*?)\[\/noparse\]/gi, "$1");
     s = s.replace(
       /\[previewyoutube=(\w+)[^\]]*\][\s\S]*?\[\/previewyoutube\]/gi,
-      '<a href="https://youtube.com/watch?v=$1" class="bb-link" onclick="try{window.external.openUrl(this.href)}catch(e){};return false;">[YouTube Video]</a>'
+      '<a href="https://youtube.com/watch?v=$1" class="bb-link" onclick="try{window.getExternal().openUrl(this.href)}catch(e){};return false;">[YouTube Video]</a>'
     );
     // Color & size tags
     s = s.replace(
@@ -257,13 +366,41 @@
     }
   }
 
+  var externalBridge = null;
   function getExternal() {
+    if (externalBridge) return externalBridge;
     try {
-      return window.external;
+      if (
+        window.chrome &&
+        window.chrome.webview &&
+        window.chrome.webview.hostObjects
+      ) {
+        var rawBridge = window.chrome.webview.hostObjects.sync.external;
+        externalBridge = new Proxy(
+          {},
+          {
+            get: function (_, name) {
+              return function () {
+                var args = [];
+                for (var i = 0; i < arguments.length; i++)
+                  args.push(arguments[i]);
+                rawBridge.__request = JSON.stringify({
+                  name: String(name),
+                  args: args,
+                });
+                return rawBridge.__response;
+              };
+            },
+          }
+        );
+        return externalBridge;
+      }
     } catch (e) {
       return null;
     }
+    return null;
   }
+  window.getExternal = getExternal;
 
   enableClipboard(playerName);
   enableClipboard(workshopId);
@@ -367,7 +504,7 @@
       var name = (playerName.value || "").replace(/^\s+|\s+$/g, "");
       if (name) {
         try {
-          window.external.savePlayerName(name);
+          getExternal().savePlayerName(name);
         } catch (e) {}
       }
     }
@@ -408,8 +545,10 @@
 
   var navBtns = document.querySelectorAll(".nav-btn");
   var pages = document.querySelectorAll(".page");
+  var activePage = "main";
 
   function setPage(targetPage) {
+    activePage = targetPage;
     for (var j = 0; j < navBtns.length; j++) {
       navBtns[j].classList.remove("active");
       if (navBtns[j].getAttribute("data-page") === targetPage)
@@ -422,7 +561,7 @@
     if (targetEl) targetEl.classList.add("active");
 
     if (targetPage === "library") {
-      refreshModsGrid();
+      if (!modsInitialized) refreshModsGrid();
     }
 
     if (
@@ -794,7 +933,7 @@
       var imageHtml = it.imageUrl
         ? '<div class="workshop-item-image"><img src="' +
           escapeHtml(it.imageUrl) +
-          '" alt=""></div>'
+          '" alt="" loading="lazy" decoding="async"></div>'
         : '<div class="workshop-item-image"><div class="no-image">No Image</div></div>';
 
       var rawDesc = stripBBCode(
@@ -837,27 +976,27 @@
 
       var contentHtml =
         '<div class="workshop-item-content">' +
-        '<div style="flex:1;min-width:0;">' +
+        '<div class="workshop-item-main">' +
         '<div class="workshop-item-title">' +
         escapeHtml(it.title || "Untitled") +
         ratingHtml +
         "</div>" +
         (desc
-          ? '<div style="font-size:0.75rem;color:rgba(200,196,192,0.55);margin-top:2px;line-height:1.3;">' +
+          ? '<div class="workshop-item-description">' +
             escapeHtml(desc) +
             "</div>"
           : "") +
-        '<div style="font-size:0.7rem;color:rgba(200,196,192,0.35);margin-top:3px;font-family:Consolas,monospace;">ID: ' +
+        '<div class="workshop-item-id">ID: ' +
         escapeHtml(it.id) +
         "</div>" +
         "</div>" +
-        '<div style="display:flex;flex-direction:column;align-items:center;flex-shrink:0;margin-left:10px;gap:3px;">' +
+        '<div class="workshop-item-actions">' +
+        '<span class="workshop-item-size">' +
+        fStr +
+        "</span>" +
         '<button type="button" class="workshop-item-button" data-workshop-id="' +
         escapeHtml(it.id) +
         '">Download</button>' +
-        '<span style="font-size:0.65rem;color:rgba(200,196,192,0.35);">' +
-        fStr +
-        "</span>" +
         "</div>" +
         "</div>";
 
@@ -1063,7 +1202,7 @@
     );
     workshopModalViewBtn.onclick = function () {
       try {
-        window.external.openUrl(
+        getExternal().openUrl(
           "https://steamcommunity.com/sharedfiles/filedetails/?id=" + item.id
         );
       } catch (e) {}
@@ -1194,7 +1333,7 @@
       libraryModalViewBtn.style.display = "";
       libraryModalViewBtn.onclick = function () {
         try {
-          window.external.openUrl(
+          getExternal().openUrl(
             "https://steamcommunity.com/sharedfiles/filedetails/?id=" + item.id
           );
         } catch (e) {}
@@ -1206,7 +1345,7 @@
     libraryModalOpenBtn.onclick = function () {
       if (item.path) {
         try {
-          window.external.openUrl(item.path);
+          getExternal().openUrl(item.path);
         } catch (e) {}
       }
     };
@@ -1671,7 +1810,7 @@
   progressOpenFolder.onclick = function () {
     if (_workshopDownloadFolder && _workshopDownloadFolder.length > 0) {
       try {
-        window.external.openUrl(_workshopDownloadFolder);
+        getExternal().openUrl(_workshopDownloadFolder);
       } catch (e) {}
     }
   };
@@ -1742,6 +1881,7 @@
     try {
       var ex = getExternal();
       if (!ex) {
+        modsInitialized = true;
         modsItemsCache = [];
         modsGrid.innerHTML =
           '<div class="empty-state"><div class="empty-state-icon">&#128230;</div><div class="empty-state-text">No workshop items installed yet</div></div>';
@@ -1749,6 +1889,7 @@
         return;
       }
       if (ex.workshopList) {
+        modsInitialized = true;
         var cached = ex.workshopList();
         if (cached && cached !== "[]") {
           var ci = typeof cached === "string" ? JSON.parse(cached) : cached;
@@ -1825,6 +1966,7 @@
     if (modsPage > totalPages) modsPage = totalPages;
     var start = (modsPage - 1) * modsPageSize;
     var end = Math.min(start + modsPageSize, modsItemsCache.length);
+    var fragment = document.createDocumentFragment();
     for (var i = start; i < end; i++) {
       var item = modsItemsCache[i];
       var card = document.createElement("div");
@@ -2043,6 +2185,8 @@
         var img = document.createElement("img");
         img.src = item.image;
         img.alt = "";
+        img.loading = "lazy";
+        img.decoding = "async";
         img.onerror = (function (wrap) {
           return function () {
             if (wrap && wrap.parentNode) wrap.parentNode.removeChild(wrap);
@@ -2059,8 +2203,9 @@
           showLibraryModModal(it);
         };
       })(item);
-      modsGrid.appendChild(card);
+      fragment.appendChild(card);
     }
+    modsGrid.appendChild(fragment);
 
     if (modsPagination) {
       if (totalPages > 1) {
@@ -2083,7 +2228,7 @@
         e.preventDefault();
         e.stopPropagation();
         try {
-          window.external.openUrl(url);
+          getExternal().openUrl(url);
         } catch (err) {}
         return;
       }
@@ -2686,14 +2831,14 @@
           function () {
             try {
               if (exeName && exeUrl) {
-                window.external.launchGame(
+                getExternal().launchGame(
                   window.getPlayerName(),
                   opts,
                   exeName,
                   exeUrl
                 );
               } else {
-                window.external.launchGame(window.getPlayerName(), opts);
+                getExternal().launchGame(window.getPlayerName(), opts);
               }
             } catch (e2) {}
           }
@@ -2703,22 +2848,22 @@
 
       if (hasKeepLauncher) {
         if (exeName && exeUrl) {
-          window.external.launchGame(
+          getExternal().launchGame(
             window.getPlayerName(),
             opts,
             exeName,
             exeUrl
           );
         } else {
-          window.external.launchGame(window.getPlayerName(), opts);
+          getExternal().launchGame(window.getPlayerName(), opts);
         }
         return;
       }
 
       if (exeName && exeUrl) {
-        window.external.runGame(window.getPlayerName(), opts, exeName, exeUrl);
+        getExternal().runGame(window.getPlayerName(), opts, exeName, exeUrl);
       } else {
-        window.external.runGame(window.getPlayerName(), opts);
+        getExternal().runGame(window.getPlayerName(), opts);
       }
     } catch (e) {}
   };
@@ -2818,6 +2963,7 @@
     closeLauncher: true,
     autoUpdate: true,
     autoRefresh: true,
+    reducedMotion: false,
     assetLimits: true,
     disableAssetPools: false,
     reduceStutter: false,
@@ -2900,6 +3046,10 @@
 
   function applySettingsToUI() {
     var s = loadAllSettings();
+    if (document.body) {
+      if (s.reducedMotion) document.body.classList.add("reduced-motion");
+      else document.body.classList.remove("reduced-motion");
+    }
     var allToggles = document.querySelectorAll(
       ".settings-toggle[data-setting]"
     );
@@ -2929,6 +3079,10 @@
   }
 
   function onSettingChanged(key, value) {
+    if (key === "reducedMotion" && document.body) {
+      if (value) document.body.classList.add("reduced-motion");
+      else document.body.classList.remove("reduced-motion");
+    }
     try {
       var ex = getExternal();
       if (!ex) return;
@@ -3386,7 +3540,7 @@
     workshopProgressFolder.onclick = function () {
       if (_workshopDownloadFolder && _workshopDownloadFolder.length > 0) {
         try {
-          window.external.openUrl(_workshopDownloadFolder);
+          getExternal().openUrl(_workshopDownloadFolder);
         } catch (e) {}
       }
     };
@@ -3395,6 +3549,24 @@
   refreshModsGrid();
 
   var _friendsData = [];
+
+  function loadFriendIdentity() {
+    try {
+      var ex = getExternal();
+      if (!ex || !ex.readFriendIdentity) return;
+      var identity = JSON.parse(ex.readFriendIdentity() || "{}");
+      var code = identity.steam_id ? String(identity.steam_id) : "";
+      var nameEl = document.getElementById("friendIdentityName");
+      var codeEl = document.getElementById("friendIdentityCode");
+      var copyBtn = document.getElementById("friendCodeCopyBtn");
+      if (nameEl && identity.name) nameEl.textContent = identity.name;
+      if (codeEl) codeEl.textContent = code || "Unavailable";
+      if (copyBtn) {
+        copyBtn.disabled = !code;
+        copyBtn.setAttribute("data-code", code);
+      }
+    } catch (e) {}
+  }
 
   function loadFriendsList() {
     try {
@@ -3527,6 +3699,18 @@
     };
   }
 
+  var friendCodeCopyBtn = document.getElementById("friendCodeCopyBtn");
+  if (friendCodeCopyBtn) {
+    friendCodeCopyBtn.onclick = function () {
+      var code = friendCodeCopyBtn.getAttribute("data-code") || "";
+      if (!code) return;
+      try {
+        if (window.clipboardData) window.clipboardData.setData("Text", code);
+        else if (navigator.clipboard) navigator.clipboard.writeText(code);
+      } catch (e) {}
+    };
+  }
+
   var origSetPage = setPage;
   setPage = function (targetPage) {
     origSetPage(targetPage);
@@ -3536,6 +3720,13 @@
   };
 
   loadFriendsList();
+  loadFriendIdentity();
+  setInterval(function () {
+    if (activePage === "friends" && !document.hidden) {
+      loadFriendsList();
+      loadFriendIdentity();
+    }
+  }, 5000);
 
   function selectVersion(value, label) {
     _selectedVersion = value;

@@ -29,7 +29,16 @@ std::string html_argument::get_string() const {
   if (!this->is_string())
     return {};
   std::wstring wide_string(this->value_.bstrVal);
-  return std::string(wide_string.begin(), wide_string.end());
+  if (wide_string.empty())
+    return {};
+  const auto size = WideCharToMultiByte(
+      CP_UTF8, 0, wide_string.data(), static_cast<int>(wide_string.size()),
+      nullptr, 0, nullptr, nullptr);
+  std::string result(size, '\0');
+  WideCharToMultiByte(CP_UTF8, 0, wide_string.data(),
+                      static_cast<int>(wide_string.size()), result.data(), size,
+                      nullptr, nullptr);
+  return result;
 }
 
 int html_argument::get_number() const {

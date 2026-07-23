@@ -36,20 +36,6 @@ std::optional<LRESULT> html_window::processor(const UINT message,
 
   if (message == WM_CREATE) {
     this->frame_.initialize(this->window_);
-
-    // Forward keyboard messages to the browser's IOleInPlaceActiveObject
-    // so that Ctrl+A/C/V/X/Z work in text inputs
-    auto *frame = &this->frame_;
-    window::set_message_filter([frame](MSG *msg) -> bool {
-      if (msg->message >= WM_KEYFIRST && msg->message <= WM_KEYLAST) {
-        auto *active = frame->get_active_object();
-        if (active && active->TranslateAccelerator(msg) == S_OK) {
-          return true;
-        }
-      }
-      return false;
-    });
-
     return 0;
   }
 

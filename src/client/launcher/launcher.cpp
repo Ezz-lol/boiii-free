@@ -58,6 +58,27 @@ std::string sanitize_player_name(const std::string &name) {
   return result;
 }
 
+std::uint64_t get_active_steam_id() {
+  HKEY key{};
+  if (RegOpenKeyExW(HKEY_CURRENT_USER,
+                    L"Software\\Valve\\Steam\\ActiveProcess", 0, KEY_READ,
+                    &key) != ERROR_SUCCESS)
+    return 0;
+
+  DWORD account_id{};
+  DWORD type{};
+  DWORD size = sizeof(account_id);
+  const auto result =
+      RegQueryValueExW(key, L"ActiveUser", nullptr, &type,
+                       reinterpret_cast<BYTE *>(&account_id), &size);
+  RegCloseKey(key);
+
+  if (result != ERROR_SUCCESS || type != REG_DWORD || account_id == 0)
+    return 0;
+
+  return 76561197960265728ULL + account_id;
+}
+
 std::mutex library_list_mutex;
 std::string library_list_cache;
 std::atomic<bool> library_list_loading{false};
@@ -1747,6 +1768,29 @@ bool run() {
       std::filesystem::path("boiii_players") / "user" / "friends.json";
 
   window.get_html_frame()->register_callback(
+      "readFriendIdentity",
+      [](const std::vector<html_argument> & /*params*/) -> CComVariant {
+        const auto steam_id = get_active_steam_id();
+        if (steam_id == 0)
+          return CComVariant("{}");
+
+        rapidjson::Document doc(rapidjson::kObjectType);
+        auto &allocator = doc.GetAllocator();
+        const auto steam_id_string = std::to_string(steam_id);
+        doc.AddMember("steam_id",
+                      rapidjson::Value(steam_id_string.c_str(), allocator),
+                      allocator);
+        doc.AddMember("name",
+                      rapidjson::Value("Signed-in Steam account", allocator),
+                      allocator);
+
+        rapidjson::StringBuffer buffer;
+        rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+        doc.Accept(writer);
+        return CComVariant(buffer.GetString());
+      });
+
+  window.get_html_frame()->register_callback(
       "readFriends",
       [friends_file](
           const std::vector<html_argument> & /*params*/) -> CComVariant {
@@ -1754,8 +1798,6 @@ bool run() {
         if (!utils::io::read_file(friends_file.string(), &data) || data.empty())
           return CComVariant("[]");
 
-        // Normalize: ensure all steam_id values are JSON strings so JS
-        // doesn't lose precision on large uint64 values.
         rapidjson::Document doc;
         if (doc.Parse(data.c_str()).HasParseError() || !doc.IsArray())
           return CComVariant(data.c_str());
@@ -1781,7 +1823,6 @@ bool run() {
         }
 
         if (modified) {
-          // Write back the normalized JSON so future reads are clean
           rapidjson::StringBuffer sb;
           rapidjson::Writer<rapidjson::StringBuffer> w(sb);
           doc.Accept(w);

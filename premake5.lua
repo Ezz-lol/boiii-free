@@ -387,6 +387,8 @@ resincludedirs({ "$(ProjectDir)src" })
 
 dependson({ "tlsdll" })
 
+nuget({ "Microsoft.Web.WebView2:1.0.4078.44" })
+
 links({ "common" })
 
 if not os.isfile("%{_MAIN_SCRIPT_DIR}/src/version.h") then
