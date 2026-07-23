@@ -38,9 +38,8 @@ static std::unordered_map<game::ClientNum_t, std::unordered_set<std::string>>
     client_dvar_changes;
 static std::atomic_bool detours_enabled = false;
 
-static vm::op::VM_OP_FUNC_PTR VM_OP_SafeCreateLocalVariables_Handler_orig =
-    nullptr;
-static vm::op::VM_OP_FUNC_PTR VM_OP_CheckClearParams_Handler_orig = nullptr;
+static VM_OP_FUNC VM_OP_SafeCreateLocalVariables_Handler_orig = nullptr;
+static VM_OP_FUNC VM_OP_CheckClearParams_Handler_orig = nullptr;
 
 // =====================================================
 // Script console commands (addcommand/getcommand)
@@ -223,8 +222,8 @@ int g_tagindex_stub(const char *string, int start, int max, int create,
 }
 
 void hecmd_settext_stub(game::scr::scriptInstance_t inst,
-                        game::scr::scr_entref_t *entref) {
-  const uint32_t he_idx = entref->u.hudElemIndex;
+                        game::scr::scr_entref_t entref) {
+  const uint32_t he_idx = entref.u.hudElemIndex;
 
   {
     std::lock_guard lock(hud_text_mutex);
@@ -300,7 +299,7 @@ void remove_settext_hooks() {
 // Opcode hooks for replacefunc
 // =====================================================
 
-bool try_redirect(scriptInstance_t inst, vm::function_stack_t *fs) {
+bool try_redirect(scriptInstance_t inst, function_stack_t *fs) {
   if (detours_enabled.load(std::memory_order_seq_cst) &&
       inst == SCRIPTINSTANCE_SERVER) {
     uint8_t *redirected = fs->pos - 2;
@@ -312,24 +311,24 @@ bool try_redirect(scriptInstance_t inst, vm::function_stack_t *fs) {
   return false;
 }
 
-void VM_OP_SafeCreateLocalVariables_Handler_stub(
-    scriptInstance_t inst, vm::function_stack_t *fs,
-    volatile vm::ScrVmContext_t *vmc, bool *terminate) {
+void VM_OP_SafeCreateLocalVariables_Handler_stub(scriptInstance_t inst,
+                                                 function_stack_t *fs,
+                                                 volatile ScrVmContext_t *vmc,
+                                                 bool *terminate) {
   if (!try_redirect(inst, fs) && VM_OP_SafeCreateLocalVariables_Handler_orig)
     VM_OP_SafeCreateLocalVariables_Handler_orig(inst, fs, vmc, terminate);
 }
 
 void VM_OP_CheckClearParams_Handler_stub(scriptInstance_t inst,
-                                         vm::function_stack_t *fs,
-                                         volatile vm::ScrVmContext_t *vmc,
+                                         function_stack_t *fs,
+                                         volatile ScrVmContext_t *vmc,
                                          bool *terminate) {
   if (!try_redirect(inst, fs) && VM_OP_CheckClearParams_Handler_orig)
     VM_OP_CheckClearParams_Handler_orig(inst, fs, vmc, terminate);
 }
 
-void hook_opcode(vm::op::OP_TYPE opcode, vm::op::VM_OP_FUNC_PTR hook,
-                 vm::op::VM_OP_FUNC_PTR *out_orig) {
-  vm::op::VM_OP_FUNC_PTR *handler = vm::op::op_handler(opcode);
+void hook_opcode(OP_TYPE opcode, VM_OP_FUNC hook, VM_OP_FUNC *out_orig) {
+  VM_OP_FUNC *handler = op_handler(opcode);
   if (!*out_orig)
     *out_orig = *handler;
   if (*handler == *out_orig)
@@ -342,39 +341,16 @@ void hook_opcode(vm::op::OP_TYPE opcode, vm::op::VM_OP_FUNC_PTR hook,
 
 // replacefunc: redirect all calls to target_func to replacement_func
 void gscr_replacefunc(scriptInstance_t inst) {
-  const char *target_script = Scr_GetString(inst, 1);
-  const char *target_func = Scr_GetString(inst, 2);
-  const char *replace_script = Scr_GetString(inst, 3);
-  const char *replace_func = Scr_GetString(inst, 4);
-  const uint32_t argc = game::scr::Scr_GetNumParam(inst);
-  const int target_params = argc >= 6 ? Scr_GetInt(inst, 5) : -1;
-  const int replace_params = argc >= 7 ? Scr_GetInt(inst, 6) : -1;
+  auto *target_addr =
+      reinterpret_cast<uint8_t *>(game::scr::Scr_GetFunc(inst, 1));
+  auto *replacement_addr =
+      reinterpret_cast<uint8_t *>(game::scr::Scr_GetFunc(inst, 2));
 
-  if (!target_script || !target_func || !replace_script || !replace_func) {
+  if (!target_addr || !replacement_addr)
     return;
-  }
 
-  uint8_t *target_addr =
-      script::find_export_address(target_script, target_func, target_params);
-  uint8_t *replace_addr =
-      script::find_export_address(replace_script, replace_func, replace_params);
-
-  if (target_addr && replace_addr) {
-    function_replacements[target_addr] = replace_addr;
-    detours_enabled.store(true, std::memory_order_seq_cst);
-  } else {
-    fprintf(stderr, "[replacefunc] failed %s::%s -> %s::%s", target_script,
-            target_func, replace_script, replace_func);
-    if (!target_addr) {
-      fprintf(stderr, " (target not found)");
-    }
-
-    if (!replace_addr) {
-      fprintf(stderr, " (replacement not found)");
-    }
-    fprintf(stderr, "\n");
-    fflush(stderr);
-  }
+  function_replacements[target_addr] = replacement_addr;
+  detours_enabled.store(true, std::memory_order_seq_cst);
 }
 
 // clearreplacefuncs: remove all active function replacements
@@ -1273,7 +1249,7 @@ BuiltinMethod Scr_GetMethod_SearchCustom(ScrVarCanonicalName_t canonId,
 
 utils::hook::detour Scr_GetFunctionReverseLookup_hook;
 ScrVarCanonicalName_t
-Scr_GetFunctionReverseLookup_SearchCustom(builtin::BuiltinFunction func) {
+Scr_GetFunctionReverseLookup_SearchCustom(BuiltinFunction func) {
   if (custom_builtins::functions.reverse.contains(func)) {
     return custom_builtins::functions.reverse[func];
   }
@@ -1282,7 +1258,7 @@ Scr_GetFunctionReverseLookup_SearchCustom(builtin::BuiltinFunction func) {
 
 utils::hook::detour Scr_GetMethodReverseLookup_hook;
 ScrVarCanonicalName_t
-Scr_GetMethodReverseLookup_SearchCustom(builtin::BuiltinMethod method) {
+Scr_GetMethodReverseLookup_SearchCustom(BuiltinMethod method) {
   if (custom_builtins::methods.reverse.contains(method)) {
     return custom_builtins::methods.reverse[method];
   }
@@ -1310,15 +1286,15 @@ struct component final : generic_component {
   void post_unpack() override {
 
     Scr_GetFunctionReverseLookup_hook.create(
-        game::scr::builtin::Scr_GetFunctionReverseLookup.get(),
+        game::scr::Scr_GetFunctionReverseLookup.get(),
         Scr_GetFunctionReverseLookup_SearchCustom);
     Scr_GetMethodReverseLookup_hook.create(
-        game::scr::builtin::Scr_GetMethodReverseLookup.get(),
+        game::scr::Scr_GetMethodReverseLookup.get(),
         Scr_GetMethodReverseLookup_SearchCustom);
 
-    Scr_GetFunction_hook.create(game::scr::builtin::Scr_GetFunction.get(),
+    Scr_GetFunction_hook.create(game::scr::Scr_GetFunction.get(),
                                 Scr_GetFunction_SearchCustom);
-    Scr_GetMethod_hook.create(game::scr::builtin::Scr_GetMethod.get(),
+    Scr_GetMethod_hook.create(game::scr::Scr_GetMethod.get(),
                               Scr_GetMethod_SearchCustom);
 
     // Core
@@ -1387,9 +1363,9 @@ struct component final : generic_component {
 
     register_builtin("conststring", gscr_conststring);
 
-    builtin::BuiltinFunctionDef *bgscr_isprofilebuild_def =
-        const_cast<builtin::BuiltinFunctionDef *>(
-            &builtin::table::bg::util_functions->IsProfileBuild);
+    BuiltinFunctionDef *bgscr_isprofilebuild_def =
+        const_cast<BuiltinFunctionDef *>(
+            &game::scr::bg::util_functions->IsProfileBuild);
     bgscr_isprofilebuild_def->max_args = 255;
     bgscr_isprofilebuild_def->actionFunc = builtin_dispatcher;
 

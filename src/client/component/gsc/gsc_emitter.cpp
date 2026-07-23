@@ -1301,8 +1301,7 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
           call_name.begin(), call_name.end(), call_name.begin(),
           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-      if (expr->children[0]->value.empty() &&
-          (call_name == "replacefunc" || call_name == "detour")) {
+      if (expr->children[0]->value.empty() && call_name == "detour") {
         auto &args = expr->children[1]->children;
         if (args.size() == 2) {
           auto [target_ns, target_fn] = extract_func_ref(args[0]);
@@ -1344,21 +1343,8 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
               target_params = replace_params;
             }
 
-            if (call_name == "detour") {
-              s.replacefuncs.push_back({target_script, tfn, replace_script, rfn,
-                                        target_params, replace_params, true});
-            } else {
-              s.emit_op(script_opcode::OP_PreScriptCall);
-              emit_get_number(s, replace_params);
-              emit_get_number(s, target_params);
-              s.emit_string_ref(script_opcode::OP_GetString, rfn);
-              s.emit_string_ref(script_opcode::OP_GetString, replace_script);
-              s.emit_string_ref(script_opcode::OP_GetString, tfn);
-              s.emit_string_ref(script_opcode::OP_GetString, target_script);
-              s.emit_call(gsc::gsc_hash("replacefunc"), s.script_namespace, 7,
-                          false, false, true);
-              s.emit_op(script_opcode::OP_DecTop);
-            }
+            s.replacefuncs.push_back({target_script, tfn, replace_script, rfn,
+                                      target_params, replace_params, true});
             break;
           }
         }
