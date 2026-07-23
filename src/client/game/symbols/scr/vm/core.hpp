@@ -7,6 +7,7 @@ namespace scr {
 namespace vm {
 WEAK symbol<var::ScrVarGlobPool> gScrVarGlob{0x1451A3500, 0x1426BDE80};
 WEAK symbol<var::ScrVarPubPool> gScrVarPub{0x1451A3700, 0x1426BE080};
+WEAK symbol<ScrVmPubPool> gScrVmPub{0x1451A3840, 0x1426BE190};
 
 WEAK symbol<void(scriptInstance_t inst, function_stack_t *fs_0,
                  volatile ScrVmContext_t *vmc, bool *terminate,
