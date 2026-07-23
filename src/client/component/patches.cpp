@@ -380,6 +380,66 @@ void Sys_WaitForSingleObject_Safe(HANDLE *event) {
   }
 }
 
+LONG vm_op_call_seh_filter(LPEXCEPTION_POINTERS info) {
+  if (info && info->ExceptionRecord &&
+      info->ExceptionRecord->ExceptionCode == EXCEPTION_ACCESS_VIOLATION) {
+    return EXCEPTION_EXECUTE_HANDLER;
+  }
+  return EXCEPTION_CONTINUE_SEARCH;
+}
+
+utils::hook::detour VM_OP_ScriptFunctionCall_Handler_hook;
+void VM_OP_ScriptFunctionCall_Handler_Safe(
+    game::scr::scriptInstance_t inst, game::scr::vm::function_stack_t *fs,
+    volatile game::scr::vm::ScrVmContext_t *vmc, bool *terminate) {
+  __try {
+    VM_OP_ScriptFunctionCall_Handler_hook.invoke(inst, fs, vmc, terminate);
+  } __except (vm_op_call_seh_filter(GetExceptionInformation())) {
+    game::scr::Scr_Error(
+        inst, "script stack overflow (too many embedded function calls)",
+        false);
+  }
+}
+
+utils::hook::detour VM_OP_ScriptMethodCall_Handler_hook;
+void VM_OP_ScriptMethodCall_Handler_Safe(
+    game::scr::scriptInstance_t inst, game::scr::vm::function_stack_t *fs,
+    volatile game::scr::vm::ScrVmContext_t *vmc, bool *terminate) {
+  __try {
+    VM_OP_ScriptMethodCall_Handler_hook.invoke(inst, fs, vmc, terminate);
+  } __except (vm_op_call_seh_filter(GetExceptionInformation())) {
+    game::scr::Scr_Error(
+        inst, "script stack overflow (too many embedded function calls)",
+        false);
+  }
+}
+
+utils::hook::detour VM_OP_ScriptMethodThreadCall_Handler_hook;
+void VM_OP_ScriptMethodThreadCall_Handler_Safe(
+    game::scr::scriptInstance_t inst, game::scr::vm::function_stack_t *fs,
+    volatile game::scr::vm::ScrVmContext_t *vmc, bool *terminate) {
+  __try {
+    VM_OP_ScriptMethodThreadCall_Handler_hook.invoke(inst, fs, vmc, terminate);
+  } __except (vm_op_call_seh_filter(GetExceptionInformation())) {
+    game::scr::Scr_Error(
+        inst, "script stack overflow (too many embedded function calls)",
+        false);
+  }
+}
+
+utils::hook::detour VM_OP_ScriptThreadCall_Handler_hook;
+void VM_OP_ScriptThreadCall_Handler_Safe(
+    game::scr::scriptInstance_t inst, game::scr::vm::function_stack_t *fs,
+    volatile game::scr::vm::ScrVmContext_t *vmc, bool *terminate) {
+  __try {
+    VM_OP_ScriptThreadCall_Handler_hook.invoke(inst, fs, vmc, terminate);
+  } __except (vm_op_call_seh_filter(GetExceptionInformation())) {
+    game::scr::Scr_Error(
+        inst, "script stack overflow (too many embedded function calls)",
+        false);
+  }
+}
+
 utils::hook::detour G_RegisterSoundWait_hook;
 #ifndef NDEBUG
 utils::hook::detour SND_HashName_hook;
@@ -405,6 +465,30 @@ struct component final : generic_component {
     */
     Sys_WaitForSingleObject_Safe_hook.create(
         game::sys::Sys_WaitForSingleObject.get(), Sys_WaitForSingleObject_Safe);
+
+    /*
+       Fix memory access exception in the VM_OP_Script*Call_Handler opcode
+       handlers, observed crashing during zombies round transitions (e.g.
+       Der Eisendrache). Root cause is difficult to narrow down due to a
+       callstack obfuscated by arxan: the embedded-call-count guard already
+       present in these handlers is intact and unmodified, but the
+       function_frame pointer they index into is sometimes invalid despite
+       the guard passing. We circumvent this by catching the resulting
+       access violation and falling back to the same script-stack-overflow
+       error these handlers already raise deliberately when the guard trips.
+    */
+    VM_OP_ScriptFunctionCall_Handler_hook.create(
+        game::scr::vm::op::VM_OP_ScriptFunctionCall_Handler.get(),
+        VM_OP_ScriptFunctionCall_Handler_Safe);
+    VM_OP_ScriptMethodCall_Handler_hook.create(
+        game::scr::vm::op::VM_OP_ScriptMethodCall_Handler.get(),
+        VM_OP_ScriptMethodCall_Handler_Safe);
+    VM_OP_ScriptMethodThreadCall_Handler_hook.create(
+        game::scr::vm::op::VM_OP_ScriptMethodThreadCall_Handler.get(),
+        VM_OP_ScriptMethodThreadCall_Handler_Safe);
+    VM_OP_ScriptThreadCall_Handler_hook.create(
+        game::scr::vm::op::VM_OP_ScriptThreadCall_Handler.get(),
+        VM_OP_ScriptThreadCall_Handler_Safe);
 
     // print hexadecimal xuids in chat game log command
     utils::hook::set<char>(game::select(0x142FD9362, 0x140E16FA2), 'x');
