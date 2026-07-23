@@ -33,6 +33,11 @@ std::string get_selected_version() {
   return "latest";
 }
 
+bool is_pinned_to_specific_version() {
+  const auto version = get_selected_version();
+  return version != "latest" && version != "beta";
+}
+
 std::string get_update_file() {
   if (get_selected_version() == "beta") {
     return UPDATE_FILE_BETA;
@@ -49,7 +54,7 @@ std::string get_update_folder() {
 
 std::vector<file_info> parse_file_infos(const std::string &json) {
   rapidjson::Document doc{};
-  doc.Parse(json.data(), json.size());
+  doc.Parse<rapidjson::kParseIterativeFlag>(json.data(), json.size());
 
   if (!doc.IsArray()) {
     return {};
@@ -168,6 +173,11 @@ void file_updater::create_config_file_if_not_exists() const {
 
 void file_updater::run() const {
   this->create_config_file_if_not_exists();
+
+  if (is_pinned_to_specific_version()) {
+    return;
+  }
+
   const auto files = get_file_infos();
 
   OutputDebugStringA(
