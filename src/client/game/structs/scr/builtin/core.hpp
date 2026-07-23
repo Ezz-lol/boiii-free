@@ -1,9 +1,36 @@
 #pragma once
 
 #include "game/structs/scr/core.hpp"
+#include "hash.hpp"
+#include <frozen/unordered_set.h>
+#include <tuple>
+
 namespace game {
 namespace scr {
 namespace builtin {
+
+constexpr fnv1aHash_t FNV1A_IV = 0x4B9ACE2F;
+constexpr fnv1aHash_t FNV1A_PRIME = 0x1000193;
+
+inline constexpr fnv1aHashNull_t fnv1a(const char *s) {
+  return ::fnv1a_null<FNV1A_IV, FNV1A_PRIME>(s);
+}
+
+template <typename T, std::size_t N>
+inline constexpr auto make_frozen_set(const std::array<T, N> &arr) {
+  return std::apply(
+      [](const auto &...elems) {
+        return frozen::make_unordered_set({elems...});
+      },
+      arr);
+}
+
+template <IntegralLike auto ArraySize>
+inline constexpr std::array<fnv1aHash_t, ArraySize>
+fnv1a(const array<const char *, ArraySize> &strings) {
+  return ::fnv1a_null<ArraySize, FNV1A_IV, FNV1A_PRIME>(strings);
+}
+
 typedef uint32_t ScrVarCanonicalName_t;
 
 typedef fastcallPtr_t<void(scriptInstance_t inst)> BuiltinFunction;

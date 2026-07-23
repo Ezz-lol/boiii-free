@@ -325,6 +325,7 @@ SRC_INCLUDE_PATHS=(
 DEP_INCLUDE_PATHS=(
 	"deps/SteamworkSDK/public"
 	"deps/argparse/include"
+	"deps/frozen/include"
 	"deps/curl/include"
 	"deps/asmjit/src/asmjit"
 	"deps/imgui"

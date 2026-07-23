@@ -1,9 +1,9 @@
 #include <std_include.hpp>
 #include "gsc_emitter.hpp"
-#include "component/gsc/gsc_funcs.hpp"
 #include <algorithm>
 #include <cstring>
 
+#include "component/gsc/gsc_funcs.hpp"
 #include "gsc.hpp"
 
 namespace gsc_compiler {
@@ -442,23 +442,48 @@ struct emitter_state {
 
   void emit_call(ScrVarCanonicalName_t func_hash, ScrVarCanonicalName_t ns_hash,
                  uint8_t num_params, bool is_method, bool is_thread,
-                 bool same_namespace) {
+                 bool same_namespace, bool builtin = false) {
+
+    if (!builtin && same_namespace) {
+      if (is_method) {
+        if (gsc::builtin_method(func_hash)) {
+          builtin = true;
+        }
+      } else if (gsc::builtin_function(func_hash)) {
+        builtin = true;
+      }
+    }
+
+    if (builtin) {
+      ns_hash = gsc::GSCR_SYS_NS_HASH;
+      is_thread = false;
+    }
 
     uint8_t flags = 0;
-    if (is_method)
+
+    if (builtin) {
+      flags = is_method ? IMPORT_FUNC_METHOD : IMPORT_FUNC_CALL;
+    } else if (is_method) {
       flags = is_thread ? IMPORT_FUNC_METHOD_THREAD : IMPORT_FUNC_METHOD;
-    else
+    } else {
       flags = is_thread ? IMPORT_FUNC_THREAD : IMPORT_FUNC_CALL;
-    if (same_namespace)
+    }
+
+    if (builtin || same_namespace) {
       flags |= IMPORT_CALL_LOCAL;
+    }
 
     script_opcode op;
-    if (is_method)
+    if (builtin) {
+      op = is_method ? script_opcode::OP_CallBuiltinMethod
+                     : script_opcode::OP_CallBuiltin;
+    } else if (is_method) {
       op = is_thread ? script_opcode::OP_ScriptMethodThreadCall
                      : script_opcode::OP_ScriptMethodCall;
-    else
+    } else {
       op = is_thread ? script_opcode::OP_ScriptThreadCall
                      : script_opcode::OP_ScriptFunctionCall;
+    }
 
     uint32_t opcode_pos = static_cast<uint32_t>(current_func->bytecode.size());
     emit_op(op);
@@ -1023,20 +1048,6 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
       break;
     }
 
-    // Custom functions via isprofilebuild dispatch
-    if (ns_node->value.empty() && gsc::custom_builtin(lower_name)) {
-      s.emit_op(script_opcode::OP_PreScriptCall);
-      for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0;
-           i--)
-        emit_expression(s, args_node->children[i]);
-      uint32_t dispatch_hash = gsc::fnv1a(lower_name.c_str());
-      emit_get_number(
-          s, static_cast<int64_t>(static_cast<int32_t>(dispatch_hash)));
-      s.emit_call(gsc::gsc_hash("isprofilebuild"), s.script_namespace,
-                  static_cast<uint8_t>(num_params + 1), false, false, true);
-      break;
-    }
-
     s.emit_op(script_opcode::OP_PreScriptCall);
 
     for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0; i--)
@@ -1069,30 +1080,6 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
     std::transform(
         lower_name.begin(), lower_name.end(), lower_name.begin(),
         [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-
-    // Custom methods, e.g.: entity.tell("msg")
-    if (gsc::custom_builtin_method(lower_name)) {
-      s.emit_op(script_opcode::OP_PreScriptCall);
-
-      // Push regular args in reverse
-      for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0;
-           i--)
-        emit_expression(s, args_node->children[i]);
-
-      // entity.getEntityNumber() to get entity as int
-      s.emit_op(script_opcode::OP_PreScriptCall);
-      emit_expression(s, obj);
-      s.emit_call(gsc::gsc_hash("getentitynumber"), s.script_namespace, 0, true,
-                  false, true);
-
-      uint32_t dispatch_hash = gsc::fnv1a(lower_name.c_str());
-      emit_get_number(
-          s, static_cast<int64_t>(static_cast<int32_t>(dispatch_hash)));
-
-      s.emit_call(gsc::gsc_hash("isprofilebuild"), s.script_namespace,
-                  static_cast<uint8_t>(num_params + 2), false, false, true);
-      break;
-    }
 
     s.emit_op(script_opcode::OP_PreScriptCall);
 
@@ -1173,26 +1160,6 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
       std::transform(
           lower_name.begin(), lower_name.end(), lower_name.begin(),
           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-
-      if (gsc::custom_builtin_method(lower_name)) {
-        s.emit_op(script_opcode::OP_PreScriptCall);
-        for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0;
-             i--)
-          emit_expression(s, args_node->children[i]);
-
-        s.emit_op(script_opcode::OP_PreScriptCall);
-        emit_expression(s, obj);
-        s.emit_call(gsc::gsc_hash("getentitynumber"), s.script_namespace, 0,
-                    true, false, true);
-
-        uint32_t dispatch_hash = gsc::fnv1a(lower_name.c_str());
-        emit_get_number(
-            s, static_cast<int64_t>(static_cast<int32_t>(dispatch_hash)));
-
-        s.emit_call(gsc::gsc_hash("isprofilebuild"), s.script_namespace,
-                    static_cast<uint8_t>(num_params + 2), false, false, true);
-        break;
-      }
 
       s.emit_op(script_opcode::OP_PreScriptCall);
       for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0;

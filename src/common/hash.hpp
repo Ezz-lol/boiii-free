@@ -1,6 +1,11 @@
 #pragma once
 
+#include "macros.hpp"
 #include <cstdint>
+#include <array>
+
+template <typename T, const IntegralLike auto N>
+using array = T[static_cast<size_t>(N)];
 
 // std::tolower is not a constexpr
 inline constexpr char tolower(char c) noexcept {
@@ -36,6 +41,17 @@ template <const fnv1aHashNull_t IV = 0x811c9dc5,
           const fnv1aHashNull_t PRIME = 0x01000193>
 inline constexpr fnv1aHashNull_t fnv1a_null(const char *str) noexcept {
   return PRIME * fnv1a<IV, PRIME>(str);
+}
+
+template <IntegralLike auto ArraySize, const fnv1aHashNull_t IV = 0x811c9dc5,
+          const fnv1aHashNull_t PRIME = 0x01000193>
+inline constexpr std::array<fnv1aHashNull_t, ArraySize>
+fnv1a_null(const array<const char *, ArraySize> strings) noexcept {
+  std::array<fnv1aHashNull_t, ArraySize> result = {0};
+  for (size_t i = 0; i < static_cast<size_t>(ArraySize); ++i) {
+    result[i] = fnv1a_null(strings[i]);
+  }
+  return result;
 }
 
 typedef hash64_t fnv1aHash64_t;

@@ -74,6 +74,14 @@ template <typename From, typename To = uint64_t>
 concept IntegralLike =
     std::is_convertible_v<From, To> || ScopedIntegralLike<From, To>;
 
+template <typename T, std::size_t N>
+concept SizeGreaterThan = sizeof(T) > N;
+
+template <typename From, typename To>
+concept SizedIntegralLike =
+    (std::is_convertible_v<From, To> || ScopedIntegralLike<From, To>) &&
+    !SizeGreaterThan<From, sizeof(To)>;
+
 #ifndef WITH_DIAG_DISABLED
 
 // Helper macro to properly evaluate and stringify arguments for standard
