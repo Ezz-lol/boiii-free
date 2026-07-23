@@ -49,7 +49,8 @@
       var life = 105 + Math.random() * 70;
       embers.push({
         x: Math.random() * emberCanvas.width,
-        y: emberCanvas.height *
+        y:
+          emberCanvas.height *
           (initial ? 0.18 + Math.random() * 0.76 : 0.55 + Math.random() * 0.45),
         vx: (Math.random() - 0.5) * 0.34,
         vy: 0.32 + Math.random() * 0.44,

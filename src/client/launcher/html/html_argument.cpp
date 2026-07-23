@@ -31,9 +31,9 @@ std::string html_argument::get_string() const {
   std::wstring wide_string(this->value_.bstrVal);
   if (wide_string.empty())
     return {};
-  const auto size = WideCharToMultiByte(
-      CP_UTF8, 0, wide_string.data(), static_cast<int>(wide_string.size()),
-      nullptr, 0, nullptr, nullptr);
+  const auto size = WideCharToMultiByte(CP_UTF8, 0, wide_string.data(),
+                                        static_cast<int>(wide_string.size()),
+                                        nullptr, 0, nullptr, nullptr);
   std::string result(size, '\0');
   WideCharToMultiByte(CP_UTF8, 0, wide_string.data(),
                       static_cast<int>(wide_string.size()), result.data(), size,

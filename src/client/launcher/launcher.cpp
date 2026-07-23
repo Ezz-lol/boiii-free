@@ -60,9 +60,8 @@ std::string sanitize_player_name(const std::string &name) {
 
 std::uint64_t get_active_steam_id() {
   HKEY key{};
-  if (RegOpenKeyExW(HKEY_CURRENT_USER,
-                    L"Software\\Valve\\Steam\\ActiveProcess", 0, KEY_READ,
-                    &key) != ERROR_SUCCESS)
+  if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Valve\\Steam\\ActiveProcess",
+                    0, KEY_READ, &key) != ERROR_SUCCESS)
     return 0;
 
   DWORD account_id{};

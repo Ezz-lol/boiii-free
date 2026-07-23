@@ -379,18 +379,18 @@ includedirs({
   "./deps/argparse/include",
   "./deps/SteamworkSDK/public",
   "./deps/frozen/include",
+  "./deps/Microsoft.Web.WebView2/build/native/include",
   "./src/client",
   "./src/common",
-  "%{prj.location}/src",
+  "./src",
 })
+libdirs({ "./deps/Microsoft.Web.WebView2/build/native/x64" })
 
 resincludedirs({ "$(ProjectDir)src" })
 
 dependson({ "tlsdll" })
 
-nuget({ "Microsoft.Web.WebView2:1.0.4078.44" })
-
-links({ "common" })
+links({ "common", "WebView2LoaderStatic" })
 
 if not os.isfile("%{_MAIN_SCRIPT_DIR}/src/version.h") then
   if os.host() == "windows" then

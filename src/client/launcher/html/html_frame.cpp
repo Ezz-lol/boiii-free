@@ -22,9 +22,8 @@ std::wstring to_wide(const std::string &value) {
     return {};
   }
 
-  const auto size = MultiByteToWideChar(CP_UTF8, 0, value.data(),
-                                        static_cast<int>(value.size()), nullptr,
-                                        0);
+  const auto size = MultiByteToWideChar(
+      CP_UTF8, 0, value.data(), static_cast<int>(value.size()), nullptr, 0);
   std::wstring result(size, L'\0');
   MultiByteToWideChar(CP_UTF8, 0, value.data(), static_cast<int>(value.size()),
                       result.data(), size);
@@ -134,7 +133,8 @@ public:
       if (request.HasMember("args") && request["args"].IsArray()) {
         for (const auto &argument : request["args"].GetArray()) {
           if (argument.IsString()) {
-            arguments.emplace_back(CComVariant(to_wide(argument.GetString()).c_str()));
+            arguments.emplace_back(
+                CComVariant(to_wide(argument.GetString()).c_str()));
           } else if (argument.IsBool()) {
             arguments.emplace_back(CComVariant(argument.GetBool()));
           } else if (argument.IsInt()) {
@@ -182,7 +182,7 @@ private:
   html_frame *frame_;
   CComVariant response_;
 };
-}
+} // namespace
 
 html_frame::html_frame() { setup_com(); }
 
@@ -203,43 +203,44 @@ void html_frame::initialize(const HWND window) {
 
   using Microsoft::WRL::Callback;
   const auto user_data_path = get_webview_data_path();
-  const auto environment_handler =
-      Callback<ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
-          [this](const HRESULT result,
-                 ICoreWebView2Environment *environment) -> HRESULT {
-            if (FAILED(result) || !environment) {
-              this->show_webview_error(result);
-              return S_OK;
-            }
+  const auto environment_handler = Callback<
+      ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler>(
+      [this](const HRESULT result,
+             ICoreWebView2Environment *environment) -> HRESULT {
+        if (FAILED(result) || !environment) {
+          this->show_webview_error(result);
+          return S_OK;
+        }
 
-            const auto controller_handler =
-                Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
-                    [this](const HRESULT controller_result,
-                           ICoreWebView2Controller *controller) -> HRESULT {
-                      if (FAILED(controller_result) || !controller) {
-                        this->show_webview_error(controller_result);
-                        return S_OK;
-                      }
+        const auto controller_handler =
+            Callback<ICoreWebView2CreateCoreWebView2ControllerCompletedHandler>(
+                [this](const HRESULT controller_result,
+                       ICoreWebView2Controller *controller) -> HRESULT {
+                  if (FAILED(controller_result) || !controller) {
+                    this->show_webview_error(controller_result);
+                    return S_OK;
+                  }
 
-                      this->webview_controller_ = controller;
-                      const auto view_result =
-                          controller->get_CoreWebView2(&this->webview_);
-                      if (FAILED(view_result) || !this->webview_) {
-                        this->show_webview_error(view_result);
-                        return S_OK;
-                      }
+                  this->webview_controller_ = controller;
+                  const auto view_result =
+                      controller->get_CoreWebView2(&this->webview_);
+                  if (FAILED(view_result) || !this->webview_) {
+                    this->show_webview_error(view_result);
+                    return S_OK;
+                  }
 
-                      this->configure_webview2();
-                      return S_OK;
-                    });
+                  this->configure_webview2();
+                  return S_OK;
+                });
 
-            const auto controller_result = environment->CreateCoreWebView2Controller(
-                this->window_, controller_handler.Get());
-            if (FAILED(controller_result)) {
-              this->show_webview_error(controller_result);
-            }
-            return S_OK;
-          });
+        const auto controller_result =
+            environment->CreateCoreWebView2Controller(this->window_,
+                                                      controller_handler.Get());
+        if (FAILED(controller_result)) {
+          this->show_webview_error(controller_result);
+        }
+        return S_OK;
+      });
 
   const auto result = CreateCoreWebView2EnvironmentWithOptions(
       nullptr, user_data_path.empty() ? nullptr : user_data_path.c_str(),
@@ -289,7 +290,8 @@ void html_frame::show_webview_error(const HRESULT result) const {
       L"The Microsoft Edge WebView2 launcher could not start.\n\nError: "
       L"0x{:08X}",
       static_cast<unsigned long>(result));
-  MessageBoxW(this->window_, message.c_str(), L"EZZ BOIII", MB_OK | MB_ICONERROR);
+  MessageBoxW(this->window_, message.c_str(), L"EZZ BOIII",
+              MB_OK | MB_ICONERROR);
   PostMessageW(this->window_, WM_CLOSE, 0, 0);
 }
 
