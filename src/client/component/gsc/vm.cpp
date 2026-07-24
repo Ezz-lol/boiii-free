@@ -176,7 +176,7 @@ inline constexpr void flush_exec_all() {
   HOOK_FLUSH_EXEC(PreScriptCall);
   HOOK_FLUSH_EXEC(ProfileStart);
   HOOK_FLUSH_EXEC(ProfileStop);
-  HOOK_FLUSH_EXEC(RealWait);
+  HOOK_FLUSH_EXEC(WaitRealTime);
   HOOK_FLUSH_EXEC(RemoveLocalVariables);
   HOOK_FLUSH_EXEC(Return);
   HOOK_FLUSH_EXEC(SafeDecTop);
