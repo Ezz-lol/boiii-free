@@ -1191,7 +1191,6 @@ bool handle_version_launch(const std::string &exe_name,
     }
   }
 
-  utils::properties::store("selectedVersion", exe_name);
   relaunch_exe_with_launch_options(exe_name, options);
   return true;
 }

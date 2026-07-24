@@ -140,6 +140,7 @@
   var versionOptions = document.getElementById("versionOptions");
   var _versionsData = {};
   var _selectedVersion = "latest";
+  var _latestVersionTag = "";
 
   var workshopBrowseGrid = document.getElementById("workshopBrowseGrid");
   var workshopSearchInput = document.getElementById("workshopSearchInput");
@@ -3729,6 +3730,14 @@
     }
   }, 5000);
 
+  function versionTagFromStored(value) {
+    if (!value) return value;
+    var tag = value;
+    if (tag.indexOf("boiii-") === 0) tag = tag.substring("boiii-".length);
+    if (tag.slice(-4) === ".exe") tag = tag.slice(0, -4);
+    return tag;
+  }
+
   function selectVersion(value, label) {
     _selectedVersion = value;
     if (verDropText) verDropText.textContent = label;
@@ -3753,7 +3762,7 @@
     } catch (e) {}
   }
 
-  function addVersionOption(value, label) {
+  function addVersionOption(value, label, prepend) {
     if (!versionOptions) return;
     var div = document.createElement("div");
     div.className = "version-selector-option";
@@ -3762,7 +3771,11 @@
     div.onclick = function () {
       selectVersion(value, label);
     };
-    versionOptions.appendChild(div);
+    if (prepend && versionOptions.firstChild) {
+      versionOptions.insertBefore(div, versionOptions.firstChild);
+    } else {
+      versionOptions.appendChild(div);
+    }
   }
 
   if (verDropDisplay) {
@@ -3776,11 +3789,17 @@
     };
   }
 
+  function getLatestLabel() {
+    return _latestVersionTag
+      ? _latestVersionTag + " (Latest)"
+      : "Latest (Auto-update)";
+  }
+
   if (versionOptions) {
     var defaultOpt = versionOptions.querySelector(".version-selector-option");
     if (defaultOpt) {
       defaultOpt.onclick = function () {
-        selectVersion("latest", "Latest (Auto-update)");
+        selectVersion("latest", getLatestLabel());
       };
     }
   }
@@ -3808,7 +3827,12 @@
       getExternal().getSelectedVersion &&
       getExternal().getSelectedVersion();
     if (sv) {
-      _selectedVersion = sv;
+      _selectedVersion = versionTagFromStored(sv);
+
+      var initialLabel = getLatestLabel();
+      if (_selectedVersion === "beta") initialLabel = "Beta (Experimental)";
+      else if (_selectedVersion !== "latest") initialLabel = _selectedVersion;
+      selectVersion(_selectedVersion, initialLabel);
     }
   } catch (e) {}
 
@@ -3824,6 +3848,15 @@
       if (xhr.status === 200) {
         try {
           var releases = JSON.parse(xhr.responseText);
+          if (releases && Array.isArray(releases) && releases.length) {
+            _latestVersionTag = releases[0].tag_name;
+            var defaultOptEl = versionOptions.querySelector(
+              '.version-selector-option[data-value="latest"]'
+            );
+            if (defaultOptEl) {
+              defaultOptEl.textContent = getLatestLabel();
+            }
+          }
           if (releases && Array.isArray(releases)) {
             for (var i = 0; i < releases.length; i++) {
               var rel = releases[i];
@@ -3841,18 +3874,18 @@
                   url: boiiiAsset.browser_download_url,
                   name: "boiii-" + tagName + ".exe",
                 };
-                addVersionOption(tagName, tagName);
+                // The newest release is already represented by the Latest
+                // entry, so skip adding it a second time as its own row.
+                if (tagName !== _latestVersionTag) {
+                  addVersionOption(tagName, tagName);
+                }
               }
             }
           }
           // After loading all versions, ensure UI reflects saved selection
-          var label = "Latest (Auto-update)";
+          var label = getLatestLabel();
           if (_selectedVersion === "beta") label = "Beta (Experimental)";
-          else if (
-            _selectedVersion !== "latest" &&
-            _versionsData[_selectedVersion]
-          )
-            label = _selectedVersion;
+          else if (_selectedVersion !== "latest") label = _selectedVersion;
           selectVersion(_selectedVersion, label);
         } catch (e) {
           console.error("Error parsing releases:", e);
@@ -3864,14 +3897,15 @@
     xhr.send();
   }
 
-  fetchReleases();
-
-  // Beta build
+  // Beta build - added first and prepended so it stays pinned at the top
+  // of the list regardless of when the releases fetch below resolves.
   _versionsData["beta"] = {
     url: "https://r2.ezz.lol/boiii/beta/boiii.exe",
     name: "boiii-beta.exe",
   };
-  addVersionOption("beta", "Beta (Experimental)");
+  addVersionOption("beta", "Beta (Experimental)", true);
+
+  fetchReleases();
 
   var creditsPopup = document.getElementById("creditsPopup");
   var versionDisplay = document.getElementById("versionDisplay");
