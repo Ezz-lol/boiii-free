@@ -15,9 +15,10 @@ using namespace game::scr;
 using namespace game::scr::var;
 
 utils::hook::detour ScrVar_AddRefValue_hook;
-void ScrVar_AddRefValue_Safe(scriptInstance_t inst, ScrVarValue_t *value) {
+void ScrVar_AddRefValue_Safe(scriptInstance_t inst,
+                             volatile ScrVarValue_t *value) {
   if (valid_scrvarvalue_ptr(inst, value)) {
-    return ScrVar_AddRefValue_hook.invoke<void>(inst, value);
+    ScrVar_AddRefValue_hook.invoke<void>(inst, value);
   }
 }
 
@@ -31,7 +32,7 @@ uint32_t ScrVar_ReleaseVariable_Safe(scriptInstance_t inst, ScrVarIndex_t id) {
   return 0;
 }
 
-inline constexpr bool valid_scrvarvalue(ScrVarValue_t *value) {
+inline constexpr bool valid_scrvarvalue(volatile ScrVarValue_t *value) {
   switch (value->type) {
   case ScrVarType::VECTOR: {
     return valid_val_allocation_ptr(
@@ -46,7 +47,8 @@ inline constexpr bool valid_scrvarvalue(ScrVarValue_t *value) {
 }
 
 utils::hook::detour ScrVar_ReleaseValue_hook;
-void ScrVar_ReleaseValue_Safe(scriptInstance_t inst, ScrVarValue_t *value) {
+void ScrVar_ReleaseValue_Safe(scriptInstance_t inst,
+                              volatile ScrVarValue_t *value) {
   if (valid_scrvarvalue_ptr(inst, value)) {
     if (valid_scrvarvalue(value)) {
       ScrVar_ReleaseValue_hook.invoke(inst, value);
@@ -58,9 +60,9 @@ void ScrVar_ReleaseValue_Safe(scriptInstance_t inst, ScrVarValue_t *value) {
 }
 
 utils::hook::detour ScrVar_EvalVariable_hook;
-ScrVarValue_t *ScrVar_EvalVariable_Safe(ScrVarValue_t *retstr,
-                                        scriptInstance_t inst,
-                                        ScrVarIndex_t id) {
+volatile ScrVarValue_t *ScrVar_EvalVariable_Safe(volatile ScrVarValue_t *retstr,
+                                                 scriptInstance_t inst,
+                                                 ScrVarIndex_t id) {
   if (id == 0 /* entity field */ ||
       valid_scrvar_index(inst,
                          id) /* index of variable to return as reference */) {
@@ -71,8 +73,9 @@ ScrVarValue_t *ScrVar_EvalVariable_Safe(ScrVarValue_t *retstr,
 }
 
 utils::hook::detour ScrVar_EvalArray_hook;
-void ScrVar_EvalArray_DefaultEmpty(scriptInstance_t inst, ScrVarValue_t *value,
-                                   ScrVarValue_t *index) {
+void ScrVar_EvalArray_DefaultEmpty(scriptInstance_t inst,
+                                   volatile ScrVarValue_t *value,
+                                   volatile ScrVarValue_t *index) {
   if (valid_scrvarvalue_ptr(inst, value) &&
       valid_scrvarvalue_ptr(inst, index)) {
     if (ScrVar_ArrayLike(inst, value) &&

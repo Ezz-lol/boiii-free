@@ -370,7 +370,8 @@ inline constexpr bool valid_scrvar_index(scriptInstance_t inst,
   return index < SCRIPTVARIABLE_POOL_SIZE.instance[inst];
 }
 
-inline ScrVarIndex_t scrvar_index(scriptInstance_t inst, ScrVar_t *var) {
+inline ScrVarIndex_t scrvar_index(scriptInstance_t inst,
+                                  volatile ScrVar_t *var) {
   uintptr_t scriptVariablesPtr = reinterpret_cast<uintptr_t>(
       vm::gScrVarGlob->instance[inst].scriptVariables);
   uintptr_t varPtr = reinterpret_cast<uintptr_t>(var);
@@ -378,18 +379,19 @@ inline ScrVarIndex_t scrvar_index(scriptInstance_t inst, ScrVar_t *var) {
                                     sizeof(ScrVar_t));
 }
 
-inline bool valid_scrvar_ptr(scriptInstance_t inst, ScrVar_t *var) {
+inline bool valid_scrvar_ptr(scriptInstance_t inst, volatile ScrVar_t *var) {
   return valid_engine_ptr(var) // Static or stack allocation
          ||
          valid_scrvar_index(inst, scrvar_index(inst, var)); // Pool allocation
 }
 
 inline ScrVarIndex_t scrvarvalue_index(scriptInstance_t inst,
-                                       ScrVarValue_t *val) {
+                                       volatile ScrVarValue_t *val) {
   return scrvar_index(inst, val->var());
 }
 
-inline bool valid_scrvarvalue_ptr(scriptInstance_t inst, ScrVarValue_t *val) {
+inline bool valid_scrvarvalue_ptr(scriptInstance_t inst,
+                                  volatile ScrVarValue_t *val) {
   return valid_engine_ptr(val) // Static or stack allocation
          || valid_scrvar_index(inst,
                                scrvarvalue_index(inst, val)); // Pool allocation
@@ -401,13 +403,13 @@ inline bool valid_val_allocation_ptr(uintptr_t ptr) {
           scr::mt::gScrMemTreePub->mt_buffer->contains(ptr));
 }
 
-template <typename T> inline bool valid_val_allocation_ptr(const T *ptr) {
+template <typename T> inline bool valid_val_allocation_ptr(volatile T *ptr) {
   return valid_val_allocation_ptr(reinterpret_cast<uintptr_t>(ptr));
 }
 } // namespace var
 } // namespace scr
 namespace sl {
-inline bool valid_refstring_ptr(RefString *ref) {
+inline bool valid_refstring_ptr(volatile RefString *ref) {
   return valid_stack_ptr(ref) ||
          (scr::mt::gScrMemTreePub->mt_buffer &&
           scr::mt::gScrMemTreePub->mt_buffer->contains(ref));

@@ -29,18 +29,16 @@ uint8_t *find_export_address(const std::string &script_name,
                              int expected_params = -1);
 } // namespace script
 
+namespace gsc {
+std::unordered_map<uint8_t *, uint8_t *> function_replacements;
+std::unordered_map<game::ClientNum_t, std::unordered_set<std::string>>
+    client_dvar_changes;
+std::atomic_bool detours_enabled = false;
+} // namespace gsc
+
 namespace gsc_funcs {
 using namespace gsc;
 namespace {
-
-static std::unordered_map<uint8_t *, uint8_t *> function_replacements;
-static std::unordered_map<game::ClientNum_t, std::unordered_set<std::string>>
-    client_dvar_changes;
-static std::atomic_bool detours_enabled = false;
-
-static vm::op::VM_OP_FUNC_PTR VM_OP_SafeCreateLocalVariables_Handler_orig =
-    nullptr;
-static vm::op::VM_OP_FUNC_PTR VM_OP_CheckClearParams_Handler_orig = nullptr;
 
 // =====================================================
 // Script console commands (addcommand/getcommand)
@@ -297,49 +295,6 @@ void remove_settext_hooks() {
 }
 
 // =====================================================
-// Opcode hooks for replacefunc
-// =====================================================
-
-bool try_redirect(scriptInstance_t inst, vm::function_stack_t *fs) {
-  if (detours_enabled.load(std::memory_order_seq_cst) &&
-      inst == SCRIPTINSTANCE_SERVER) {
-    uint8_t *redirected = fs->pos - 2;
-    if (function_replacements.contains(redirected)) {
-      fs->pos = function_replacements[redirected];
-      return true;
-    }
-  }
-  return false;
-}
-
-void VM_OP_SafeCreateLocalVariables_Handler_stub(
-    scriptInstance_t inst, vm::function_stack_t *fs,
-    volatile vm::ScrVmContext_t *vmc, bool *terminate) {
-  if (!try_redirect(inst, fs) && VM_OP_SafeCreateLocalVariables_Handler_orig)
-    VM_OP_SafeCreateLocalVariables_Handler_orig(inst, fs, vmc, terminate);
-}
-
-void VM_OP_CheckClearParams_Handler_stub(scriptInstance_t inst,
-                                         vm::function_stack_t *fs,
-                                         volatile vm::ScrVmContext_t *vmc,
-                                         bool *terminate) {
-  if (!try_redirect(inst, fs) && VM_OP_CheckClearParams_Handler_orig)
-    VM_OP_CheckClearParams_Handler_orig(inst, fs, vmc, terminate);
-}
-
-void hook_opcode(vm::op::Opcode opcode, vm::op::VM_OP_FUNC_PTR hook,
-                 vm::op::VM_OP_FUNC_PTR *out_orig) {
-  if (vm::op::OPCODE_BYTECODE_MAP.contains(opcode)) {
-    vm::op::VM_OP_FUNC_PTR *handler =
-        vm::op::op_handler(vm::op::OPCODE_BYTECODE_MAP.at(opcode)[0]);
-    if (!*out_orig)
-      *out_orig = *handler;
-    if (*handler == *out_orig)
-      *handler = hook;
-  }
-}
-
-// =====================================================
 // Core builtins
 // =====================================================
 
@@ -475,20 +430,21 @@ void gscr_printf(scriptInstance_t inst) {
          - %p - is this even possible to support?
          - %n - is this possible?
          - length modifiers for floats (e.g. %Lf)
-            - Scr_GetFloat only returns 32-bit float, so we would need to add a
-              new function Scr_GetDouble to retrieve 64-bit double arguments
+            - Scr_GetFloat only returns 32-bit float, so we would need to
+         add a new function Scr_GetDouble to retrieve 64-bit double
+         arguments
          - length modifiers for integers (e.g. %lld, %hhd)
-             1. Scr_GetInt only returns 32-bit int, so we would need to add new
-                functions Scr_GetInt64 and Scr_GetInt8 to retrieve 64-bit and
+             1. Scr_GetInt only returns 32-bit int, so we would need to add
+         new functions Scr_GetInt64 and Scr_GetInt8 to retrieve 64-bit and
                 8-bit integer arguments, respectively
               2. We would also need to modify the argument parsing logic to
-                 determine which Scr_Get function to call based on the length
-                 modifier in the format string
+                 determine which Scr_Get function to call based on the
+         length modifier in the format string
           - handle %% for literal % character
         */
 
-        // Either not a specifier or unsupported. Just treat it as a normal %
-        // character and continue.
+        // Either not a specifier or unsupported. Just treat it as a normal
+        // % character and continue.
       default:
         buffer.push_back('%');
         buffer.push_back(specifier);
@@ -581,7 +537,6 @@ void gscr_say(scriptInstance_t inst) {
 }
 
 namespace gscr_tell {
-
 template <const uint32_t FIRST_ARG_IDX = 0>
 inline void impl(scriptInstance_t inst, scr_entref_t *entref) {
   const game::ClientNum_t client_num =
@@ -748,8 +703,8 @@ void gscr_listfiles(scriptInstance_t inst) {
 
 /*
  ls(path, recurse = false, include_directories = false)
- Lists files in a directory, optionally recursively and including directories.
- Returns an array of file/directory paths.
+ Lists files in a directory, optionally recursively and including
+ directories. Returns an array of file/directory paths.
 */
 void gscr_ls(scriptInstance_t inst) {
   const char *path = Scr_GetString(inst, 0);
@@ -1043,7 +998,6 @@ get_self_client_num(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
 }
 
 namespace gscr_setname {
-
 template <const int32_t FIRST_ARG_IDX>
 inline void impl(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
   game::ClientNum_t client_num = game::INVALID_CLIENT_INDEX;
@@ -1086,7 +1040,6 @@ void func(scriptInstance_t inst) {
 } // namespace gscr_setname
 
 namespace gscr_settag {
-
 template <const int32_t FIRST_ARG_IDX>
 inline void impl(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
   game::ClientNum_t client_num = game::INVALID_CLIENT_INDEX;
@@ -1129,7 +1082,6 @@ void func(scriptInstance_t inst) {
 } // namespace gscr_settag
 
 namespace gscr_resetname {
-
 template <const int32_t FIRST_ARG_IDX>
 void impl(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
   game::ClientNum_t client_num = game::INVALID_CLIENT_INDEX;
@@ -1169,7 +1121,6 @@ void func(scriptInstance_t inst) {
 } // namespace gscr_resetname
 
 namespace gscr_resettag {
-
 template <const int32_t FIRST_ARG_IDX>
 inline void impl(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
   game::ClientNum_t client_num = game::INVALID_CLIENT_INDEX;
@@ -1209,7 +1160,6 @@ void func(scriptInstance_t inst) {
 } // namespace gscr_resettag
 
 namespace gscr_setclientdvar {
-
 template <const int32_t FIRST_ARG_IDX>
 inline void impl(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
   game::ClientNum_t client_num = game::INVALID_CLIENT_INDEX;
@@ -1335,11 +1285,11 @@ struct component final : generic_component {
                               Scr_GetMethod_SearchCustom);
 
     // Core
-    register_builtin("replacefunc", gscr_replacefunc, 4, 6);
+    register_builtin("replacefunc", gscr_replacefunc, 2);
     register_builtin("executecommand", gscr_executecommand, 1);
     register_builtin("say", gscr_say, 1);
-    register_builtin("tell", gscr_tell::func, 3);
-    register_builtin("tell", gscr_tell::method, 2);
+    register_builtin("tell", gscr_tell::func, 2);
+    register_builtin("tell", gscr_tell::method, 1);
     register_variadic_builtin("println", gscr_println, 0);
     register_variadic_builtin("print", gscr_print, 0);
     register_variadic_builtin("printf", gscr_printf, 1);
@@ -1396,13 +1346,6 @@ struct component final : generic_component {
     register_builtin("setclientdvar", gscr_setclientdvar::method, 2);
 
     register_builtin("conststring", gscr_conststring, 1);
-
-    hook_opcode(game::scr::vm::op::Opcode::SafeCreateLocalVariables,
-                VM_OP_SafeCreateLocalVariables_Handler_stub,
-                &VM_OP_SafeCreateLocalVariables_Handler_orig);
-    hook_opcode(game::scr::vm::op::Opcode::CheckClearParams,
-                VM_OP_CheckClearParams_Handler_stub,
-                &VM_OP_CheckClearParams_Handler_orig);
 
     game_event::on_g_shutdown_game([] {
       function_replacements.clear();

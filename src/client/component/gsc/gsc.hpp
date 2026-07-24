@@ -22,10 +22,11 @@ constexpr ScrVarCanonicalName_t GSCR_SYS_NS_HASH =
     game::scr::builtin::fnv1a(GSCR_SYS_NS);
 
 inline constexpr std::string_view SCR_HASH_LITERAL_PREFIXES[] = {
-    "hash", "id", "function", "var", "namespace"};
+    "hash", "var",  "variable", "id",        "function",
+    "fn",   "func", "var",      "namespace", "ns"};
 
 inline constexpr bool hash_literal_prefix(const std::string_view &s) {
-  for (uint32_t i = 0; i < ARRAYSIZE(SCR_HASH_LITERAL_PREFIXES); i++) {
+  for (uint32_t i = 0; i < ARRAYSIZE(SCR_HASH_LITERAL_PREFIXES); ++i) {
     if (s == SCR_HASH_LITERAL_PREFIXES[i]) {
       return true;
     }

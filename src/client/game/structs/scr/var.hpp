@@ -162,8 +162,10 @@ struct ScrVarValue_t {
 
   const ScrVar_t *var() const noexcept;
   ScrVar_t *var() noexcept;
+  volatile ScrVar_t *var() volatile noexcept;
   operator const ScrVar_t *() const noexcept { return var(); }
   operator ScrVar_t *() noexcept { return var(); }
+  operator volatile ScrVar_t *() volatile noexcept { return var(); }
 };
 ASSERT_SIZE(ScrVarValue_t, 0x10);
 #pragma pack(pop)
@@ -209,6 +211,11 @@ ASSERT_SIZE(ScrVar_t, 0x40);
 inline const ScrVar_t *ScrVarValue_t::var() const noexcept {
   return reinterpret_cast<const ScrVar_t *>(reinterpret_cast<uintptr_t>(this) -
                                             offsetof(ScrVar_t, value) /* 0 */);
+}
+
+inline volatile ScrVar_t *ScrVarValue_t::var() volatile noexcept {
+  return reinterpret_cast<volatile ScrVar_t *>(
+      reinterpret_cast<uintptr_t>(this) - offsetof(ScrVar_t, value) /* 0 */);
 }
 
 inline ScrVar_t *ScrVarValue_t::var() noexcept {

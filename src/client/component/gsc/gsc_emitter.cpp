@@ -58,7 +58,12 @@ inline OP_TYPE map_opcode(Opcode op) {
     return OPCODE_BYTECODE_MAP.at(op)[0];
   }
 
-  return OPCODE_BYTECODE_MAP.at(Opcode::Nop)[0];
+  fprintf(stderr,
+          "Warning: could not find valid bytecode value for opcode: "
+          "0x%02X. Emitting a no-op opcode.\n",
+          static_cast<uint8_t>(op));
+  fflush(stderr);
+  return OPCODE_BYTECODE_MAP.at(Opcode::UnknownOrInvalid)[0];
 }
 
 struct string_entry {
@@ -576,7 +581,7 @@ void emit_eval_local(emitter_state &s, const std::string &name, bool is_ref,
   }
 
   if (is_waittill) {
-    s.emit_op(Opcode::SetWaittillVariableFieldCached);
+    s.emit_op(Opcode::SafeSetWaittillVariableFieldCached);
     s.emit_u16(static_cast<uint16_t>(idx));
   } else if (is_ref) {
     s.emit_op(Opcode::EvalLocalVariableRefCached);

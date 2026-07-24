@@ -1027,8 +1027,8 @@ struct animScriptData_t {
   int32_t numLocBlendPairs;
   int32_t numLocBlendDirSets;
   int32_t numLocBlends;
-  snd::SndAliasList *(*soundAlias)(const char *);
-  void (*playSoundAlias)(ClientNum_t, snd::SndAliasList *);
+  fastcallPtr_t<snd::SndAliasList *(const char *)> soundAlias;
+  fastcallPtr_t<void(ClientNum_t, snd::SndAliasList *)> playSoundAlias;
 };
 
 struct __attribute__((aligned(4))) ViewModelHand {

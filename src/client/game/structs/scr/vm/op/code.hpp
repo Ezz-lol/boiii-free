@@ -6,6 +6,7 @@
   other data structures.
 */
 
+#include "game/structs/macros.hpp"
 #include <frozen/unordered_map.h>
 
 namespace game {
@@ -141,34 +142,33 @@ enum class Opcode : uint8_t {
   ScriptThreadCallClass = 0x6B,
   ScriptThreadCallPointer = 0x6C,
   SetVariableField = 0x6D,
-  SetWaittillVariableFieldCached = 0x6E,
-  ShiftLeft = 0x6F,
-  ShiftRight = 0x70,
-  SizeOf = 0x71,
-  Switch = 0x72,
-  Vector = 0x73,
-  VectorConstant = 0x74,
-  VectorScale = 0x75,
-  VectorToAngles = 0x76,
-  VoidCodePos = 0x77,
-  Wait = 0x78,
-  WaitTill = 0x79,
-  WaitTillFrameEnd = 0x7A,
-  WaitTillMatch = 0x7B,
+  ShiftLeft = 0x6E,
+  ShiftRight = 0x6F,
+  SizeOf = 0x70,
+  Switch = 0x71,
+  Vector = 0x72,
+  VectorConstant = 0x73,
+  VectorScale = 0x74,
+  VectorToAngles = 0x75,
+  VoidCodePos = 0x76,
+  Wait = 0x77,
+  WaitTill = 0x78,
+  WaitTillFrameEnd = 0x79,
+  WaitTillMatch = 0x7A,
 
   // Extended opcodes (T7 PC)
-  Bit_Not = 0x7C,
-  DevblockBegin = 0x7D,
-  DevblockEnd = 0x7E,
-  EvalLevelFieldVariable = 0x7F,
-  EvalLevelFieldVariableRef = 0x80,
-  EvalSelfFieldVariable = 0x81,
-  EvalSelfFieldVariableRef = 0x82,
-  GetWorld = 0x83,
-  GetWorldObject = 0x84,
-  SuperEqual = 0x85,
-  SuperNotEqual = 0x86,
-  WaitRealTime = 0x87,
+  Bit_Not = 0x7B,
+  DevblockBegin = 0x7C,
+  DevblockEnd = 0x7D,
+  EvalLevelFieldVariable = 0x7E,
+  EvalLevelFieldVariableRef = 0x7F,
+  EvalSelfFieldVariable = 0x80,
+  EvalSelfFieldVariableRef = 0x81,
+  GetWorld = 0x82,
+  GetWorldObject = 0x83,
+  SuperEqual = 0x84,
+  SuperNotEqual = 0x85,
+  WaitRealTime = 0x86,
 
   /*
    This is an all-emcompassing enumeration for opcodes which have
@@ -192,8 +192,9 @@ enum class Opcode : uint8_t {
 */
   UnknownOrInvalid = 0xFF,
 
-  Count = 0x88,
+  Count = 0x87,
 };
+IMPL_ENUM_OPERATORS(Opcode);
 
 // Map of unique opcode type to all the possible (usually duplicitous)
 // bytecode representations of the opcode.

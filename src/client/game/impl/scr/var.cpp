@@ -9,7 +9,7 @@ namespace var {
 // ScrVar_EvalBool impl with added support for undefined, uintptr_t, uint64
 // types to allow graceful handling without error
 bool ScrVar_EvalBool_Impl([[maybe_unused]] scriptInstance_t inst,
-                          ScrVarValue_t *value) {
+                          volatile ScrVarValue_t *value) {
   ScrVarType_t type = value->type;
 
   switch (type) {

@@ -8,8 +8,8 @@ namespace scr {
 namespace vm {
 namespace op {
 
-typedef fastcall_t<void(scriptInstance_t inst, function_stack_t *fs,
-                        volatile ScrVmContext_t *vmc, bool *terminate)>
+typedef fastcall_t<void(scriptInstance_t inst, volatile function_stack_t *fs,
+                        volatile ScrVmContext_t *vmc, volatile bool *terminate)>
     VM_OP_FUNC;
 typedef VM_OP_FUNC *VM_OP_FUNC_PTR;
 
