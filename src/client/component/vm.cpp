@@ -7,24 +7,30 @@
 
 namespace vm {
 inline bool vm_op_call_state_valid(game::scr::scriptInstance_t inst) {
-  const auto *frame = game::scr::vm::gScrVmPub->instance[inst].function_frame;
-  return game::nonnull(frame) && game::nonnull(frame->fs.startTop) &&
-        game::nonnull(frame->fs.top);
+  const game::scr::vm::function_frame_t *frame =
+      game::scr::vm::gScrVmPub->instance[inst].function_frame;
+  return game::nonnull(frame) && ((frame->fs.startTop == nullptr &&
+                                   frame->fs.top == nullptr) /* Not in a game */
+                                  || (game::nonnull(frame->fs.startTop) &&
+                                      game::nonnull(frame->fs.top)));
 }
 
-void log_invalid_vm_state(const char *handler_name) {
-  fprintf(stderr, "[vm] skipped %s: invalid function_frame state\n",
-         handler_name);
-  game::com::Com_Printf(
-      0, game::consoleLabel_e::DEFAULT,
-      "[vm] skipped %s: invalid function_frame state\n", handler_name);
+inline void log_invalid_vm_state(const char *handler_name) {
+  fprintf(stderr, "[ScrVm] skipped %s: invalid function_frame state\n",
+          handler_name);
+  fflush(stderr);
+
+  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
+                        "[ScrVM] skipped %s: invalid function_frame state\n",
+                        handler_name);
 }
 
 utils::hook::detour VM_OP_ScriptFunctionCall_Handler_hook;
 void VM_OP_ScriptFunctionCall_Handler_Safe(
     game::scr::scriptInstance_t inst, game::scr::vm::function_stack_t *fs,
     volatile game::scr::vm::ScrVmContext_t *vmc, bool *terminate) {
-  if (vm_op_call_state_valid(inst)) {
+  if (game::com::Com_SessionMode_IsMode(game::eModes::COUNT) ||
+      (vm_op_call_state_valid(inst))) {
     VM_OP_ScriptFunctionCall_Handler_hook.invoke(inst, fs, vmc, terminate);
   } else {
     log_invalid_vm_state("VM_OP_ScriptFunctionCall_Handler");
@@ -35,7 +41,8 @@ utils::hook::detour VM_OP_ScriptMethodCall_Handler_hook;
 void VM_OP_ScriptMethodCall_Handler_Safe(
     game::scr::scriptInstance_t inst, game::scr::vm::function_stack_t *fs,
     volatile game::scr::vm::ScrVmContext_t *vmc, bool *terminate) {
-  if (vm_op_call_state_valid(inst)) {
+  if (game::com::Com_SessionMode_IsMode(game::eModes::COUNT) ||
+      (vm_op_call_state_valid(inst))) {
     VM_OP_ScriptMethodCall_Handler_hook.invoke(inst, fs, vmc, terminate);
   } else {
     log_invalid_vm_state("VM_OP_ScriptMethodCall_Handler");
@@ -46,7 +53,8 @@ utils::hook::detour VM_OP_ScriptMethodThreadCall_Handler_hook;
 void VM_OP_ScriptMethodThreadCall_Handler_Safe(
     game::scr::scriptInstance_t inst, game::scr::vm::function_stack_t *fs,
     volatile game::scr::vm::ScrVmContext_t *vmc, bool *terminate) {
-  if (vm_op_call_state_valid(inst)) {
+  if (game::com::Com_SessionMode_IsMode(game::eModes::COUNT) ||
+      (vm_op_call_state_valid(inst))) {
     VM_OP_ScriptMethodThreadCall_Handler_hook.invoke(inst, fs, vmc, terminate);
   } else {
     log_invalid_vm_state("VM_OP_ScriptMethodThreadCall_Handler");
@@ -57,7 +65,8 @@ utils::hook::detour VM_OP_ScriptThreadCall_Handler_hook;
 void VM_OP_ScriptThreadCall_Handler_Safe(
     game::scr::scriptInstance_t inst, game::scr::vm::function_stack_t *fs,
     volatile game::scr::vm::ScrVmContext_t *vmc, bool *terminate) {
-  if (vm_op_call_state_valid(inst)) {
+  if (game::com::Com_SessionMode_IsMode(game::eModes::COUNT) ||
+      (vm_op_call_state_valid(inst))) {
     VM_OP_ScriptThreadCall_Handler_hook.invoke(inst, fs, vmc, terminate);
   } else {
     log_invalid_vm_state("VM_OP_ScriptThreadCall_Handler");
