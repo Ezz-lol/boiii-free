@@ -1136,10 +1136,10 @@ std::string normalize_option_token(std::string token) {
   return token;
 }
 
-void relaunch_with_launch_options(const std::vector<std::string> &options);
+bool relaunch_with_launch_options(const std::vector<std::string> &options);
 
-void relaunch_exe_with_launch_options(const std::string &exe_path,
-                                      const std::vector<std::string> &options) {
+bool relaunch_exe_with_launch_options(
+    const std::string &exe_path, const std::vector<std::string> &options) {
   STARTUPINFOA startup_info;
   PROCESS_INFORMATION process_info;
   ZeroMemory(&startup_info, sizeof(startup_info));
@@ -1150,6 +1150,7 @@ void relaunch_exe_with_launch_options(const std::string &exe_path,
   GetCurrentDirectoryA(sizeof(current_dir), current_dir);
 
   std::string command_line = "\"" + exe_path + "\"";
+  command_line += " \"-launch\"";
 
   for (const auto &option : options) {
     command_line += " -";
@@ -1161,8 +1162,10 @@ void relaunch_exe_with_launch_options(const std::string &exe_path,
                      &startup_info, &process_info)) {
     CloseHandle(process_info.hProcess);
     CloseHandle(process_info.hThread);
-    TerminateProcess(GetCurrentProcess(), 0);
+    return true;
   }
+
+  return false;
 }
 
 bool handle_version_launch(const std::string &exe_name,
@@ -1172,18 +1175,27 @@ bool handle_version_launch(const std::string &exe_name,
     return false;
   }
 
-  // Beta is handled by the main updater upon restart
-  if (exe_name == "boiii-beta.exe") {
-    utils::properties::store("selectedVersion", "beta");
-    relaunch_with_launch_options(options);
-    return true;
+  const auto executable_name = std::filesystem::path(exe_name).filename();
+  if (executable_name.empty() || executable_name.extension() != ".exe") {
+    return false;
   }
 
-  // Specific version download
-  if (!utils::io::file_exists(exe_name)) {
+  const auto game_path = game::get_game_path();
+  const auto executable_path = game_path / "versions" / executable_name;
+  const auto refresh_beta =
+      executable_path.filename().string() == "boiii-beta.exe";
+  if (!utils::io::file_exists(executable_path)) {
+    const auto legacy_path = game_path / executable_name;
+    if (utils::io::file_exists(legacy_path)) {
+      utils::io::create_directory(executable_path.parent_path());
+      utils::io::move_file(legacy_path, executable_path);
+    }
+  }
+
+  if (refresh_beta || !utils::io::file_exists(executable_path)) {
     const auto data = utils::http::get_data(exe_url);
     if (data) {
-      utils::io::write_file(exe_name, *data);
+      utils::io::write_file(executable_path, *data);
     } else {
       game::show_error(utils::string::va("Failed to download version: %s",
                                          exe_name.c_str()));
@@ -1191,12 +1203,10 @@ bool handle_version_launch(const std::string &exe_name,
     }
   }
 
-  utils::properties::store("selectedVersion", exe_name);
-  relaunch_exe_with_launch_options(exe_name, options);
-  return true;
+  return relaunch_exe_with_launch_options(executable_path.string(), options);
 }
 
-void relaunch_with_launch_options(const std::vector<std::string> &options) {
+bool relaunch_with_launch_options(const std::vector<std::string> &options) {
   const auto self =
       utils::nt::library::get_by_address(relaunch_with_launch_options);
   const auto exe_path = self.get_path().generic_string();
@@ -1251,7 +1261,11 @@ void relaunch_with_launch_options(const std::vector<std::string> &options) {
         process_info.hProcess != INVALID_HANDLE_VALUE) {
       CloseHandle(process_info.hProcess);
     }
+
+    return true;
   }
+
+  return false;
 }
 } // namespace
 
@@ -1298,7 +1312,10 @@ bool run() {
   // exit
   auto run_game = std::make_shared<bool>(false);
   auto launch_options = std::make_shared<std::vector<std::string>>();
+  auto pending_exe_name = std::make_shared<std::string>();
+  auto pending_exe_url = std::make_shared<std::string>();
 
+  {
   html_window window("EZZ BOIII", 1260, 680);
 
   window.get_html_frame()->register_callback(
@@ -2515,9 +2532,11 @@ bool run() {
         }
 
         if (!exe_name.empty() && !exe_url.empty()) {
-          if (handle_version_launch(exe_name, exe_url, *launch_options)) {
-            return {};
-          }
+          *pending_exe_name = exe_name;
+          *pending_exe_url = exe_url;
+          *run_game = false;
+          window.get_window()->close();
+          return {};
         }
 
         if (!launch_options->empty()) {
@@ -2535,6 +2554,13 @@ bool run() {
       "file:///%ls", get_launcher_ui_file().wstring().c_str()));
 
   window::run();
+  }
+
+  if (!pending_exe_name->empty() && !pending_exe_url->empty()) {
+    handle_version_launch(*pending_exe_name, *pending_exe_url, *launch_options);
+    return false;
+  }
+
   if (!launch_options->empty()) {
     relaunch_with_launch_options(*launch_options);
     return false;

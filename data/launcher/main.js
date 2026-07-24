@@ -3808,6 +3808,9 @@
       getExternal().getSelectedVersion &&
       getExternal().getSelectedVersion();
     if (sv) {
+      if (/^boiii-.+\.exe$/i.test(sv)) {
+        sv = sv.substring(6, sv.length - 4);
+      }
       _selectedVersion = sv;
     }
   } catch (e) {}
@@ -3839,7 +3842,7 @@
               if (boiiiAsset) {
                 _versionsData[tagName] = {
                   url: boiiiAsset.browser_download_url,
-                  name: "boiii-" + tagName + ".exe",
+                  name: "versions/boiii-" + tagName + ".exe",
                 };
                 addVersionOption(tagName, tagName);
               }
@@ -3869,7 +3872,7 @@
   // Beta build
   _versionsData["beta"] = {
     url: "https://r2.ezz.lol/boiii/beta/boiii.exe",
-    name: "boiii-beta.exe",
+    name: "versions/boiii-beta.exe",
   };
   addVersionOption("beta", "Beta (Experimental)");
 

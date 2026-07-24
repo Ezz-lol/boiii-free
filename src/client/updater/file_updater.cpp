@@ -33,9 +33,8 @@ std::string get_selected_version() {
   return "latest";
 }
 
-bool is_pinned_to_specific_version() {
-  const auto version = get_selected_version();
-  return version != "latest" && version != "beta";
+bool should_skip_host_update() {
+  return get_selected_version() != "latest";
 }
 
 std::string get_update_file() {
@@ -174,10 +173,6 @@ void file_updater::create_config_file_if_not_exists() const {
 void file_updater::run() const {
   this->create_config_file_if_not_exists();
 
-  if (is_pinned_to_specific_version()) {
-    return;
-  }
-
   const auto files = get_file_infos();
 
   OutputDebugStringA(
@@ -199,7 +194,9 @@ void file_updater::run() const {
   }
 
 #ifndef NDEBUG
-  const auto *host_file = find_host_file_info(files);
+  const auto *host_file = should_skip_host_update()
+                              ? nullptr
+                              : find_host_file_info(files);
   if (host_file) {
     std::string data{};
     const auto drive_name = this->get_drive_filename(*host_file);
@@ -453,6 +450,11 @@ void file_updater::update_files(
 }
 
 bool file_updater::is_outdated_file(const file_info &file) const {
+  if (file.name == UPDATE_HOST_BINARY && should_skip_host_update()) {
+    OutputDebugStringA("Skipping host binary update for selected version\n");
+    return false;
+  }
+
 #ifndef NDEBUG
   if (file.name == UPDATE_HOST_BINARY && !utils::flags::has_flag("update")) {
     OutputDebugStringA("Skipping host binary update in debug build (use "

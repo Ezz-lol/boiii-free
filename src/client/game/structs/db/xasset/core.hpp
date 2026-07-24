@@ -940,7 +940,7 @@ struct TypedXAssetPools {
   XAssetPool ddl;
   XAssetPool glasses;
   XAssetPool texturelist;
-  TypedXAssetPool<RawFile> scriptparsetree;
+  TypedXAssetPool<scr::ScriptParseTree> scriptparsetree;
   XAssetPool keyvaluepairs;
   XAssetPool vehicledef;
   XAssetPool addon_map_ents;
