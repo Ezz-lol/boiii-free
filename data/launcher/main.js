@@ -3617,6 +3617,11 @@
       getExternal().getSelectedVersion();
     if (sv) {
       _selectedVersion = sv;
+
+      var initialLabel = "Latest (Auto-update)";
+      if (_selectedVersion === "beta") initialLabel = "Beta (Experimental)";
+      else if (_selectedVersion !== "latest") initialLabel = _selectedVersion;
+      selectVersion(_selectedVersion, initialLabel);
     }
   } catch (e) {}
 
@@ -3656,11 +3661,7 @@
           // After loading all versions, ensure UI reflects saved selection
           var label = "Latest (Auto-update)";
           if (_selectedVersion === "beta") label = "Beta (Experimental)";
-          else if (
-            _selectedVersion !== "latest" &&
-            _versionsData[_selectedVersion]
-          )
-            label = _selectedVersion;
+          else if (_selectedVersion !== "latest") label = _selectedVersion;
           selectVersion(_selectedVersion, label);
         } catch (e) {
           console.error("Error parsing releases:", e);
