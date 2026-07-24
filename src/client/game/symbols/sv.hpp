@@ -9,6 +9,9 @@ namespace sv {
 WEAK symbol<void(net::netadr_t *from, net::msg::msg_t *msg)> SV_AuthClient{
     0x0, 0x140475BB0};
 WEAK symbol<CmdArgs> sv_cmd_args{0x15689AE30, 0x14944C740};
+inline CmdArgs *SV_Cmd_Argv() { return sv_cmd_args.get(); }
+
+inline int32_t SV_Cmd_Argc() { return sv_cmd_args->argc[sv_cmd_args->nesting]; }
 // Client and dedi struct size differs :(
 WEAK symbol<client_s_cl *> svs_clients_cl{0x1576F9318, 0};
 WEAK symbol<client_s *> svs_clients{0x0, 0x14A178E98};
@@ -62,5 +65,6 @@ WEAK symbol<void(level::gentity_t *ent)> SV_DObjDumpInfo{0x14224E980,
                                                          0x1405320C0};
 WEAK symbol<BoneIndex(const level::gentity_t *ent, scr::ScrString_t boneName)>
     SV_DObjGetBoneIndex{0x14224E9E0, 0x140532120};
+
 } // namespace sv
 } // namespace game
