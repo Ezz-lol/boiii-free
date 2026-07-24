@@ -1,7 +1,6 @@
 <!doctype html>
 <html lang="en" style="background: #0a0a0a">
   <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <title>BOIII</title>
     <link rel="stylesheet" href="main.css" />
@@ -9,6 +8,7 @@
 
   <body>
     <div class="main-container">
+      <canvas id="emberCanvas" aria-hidden="true"></canvas>
       <nav class="nav-sidebar">
         <div class="nav-logo">
           <span class="nav-logo-text">BO<em>3</em></span>
@@ -20,7 +20,7 @@
             data-page="main"
             title="Home"
           >
-            <span class="nav-icon">&#127968;</span>
+            <span class="nav-icon">&#8962;</span>
             <span class="nav-label">Home</span>
           </button>
           <button
@@ -29,7 +29,7 @@
             data-page="workshop"
             title="Workshop"
           >
-            <span class="nav-icon">&#128230;</span>
+            <span class="nav-icon">&#9638;</span>
             <span class="nav-label">Workshop</span>
           </button>
           <button
@@ -38,7 +38,7 @@
             data-page="library"
             title="Library"
           >
-            <span class="nav-icon">&#128218;</span>
+            <span class="nav-icon">&#9776;</span>
             <span class="nav-label">Library</span>
           </button>
           <button
@@ -47,7 +47,17 @@
             data-page="friends"
             title="Friends"
           >
-            <span class="nav-icon">&#128101;</span>
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path
+                  d="M16 20v-1.7c0-2-1.8-3.7-4-3.7H7c-2.2 0-4 1.7-4 3.7V20"
+                />
+                <circle cx="9.5" cy="7.6" r="3.4" />
+                <path
+                  d="M17 11.2c1.8-.4 3-1.8 3-3.6S18.8 4.4 17 4M18.5 14.8c1.6.7 2.5 2 2.5 3.5V20"
+                />
+              </svg>
+            </span>
             <span class="nav-label">Friends</span>
           </button>
           <button
@@ -56,7 +66,14 @@
             data-page="settings"
             title="Settings"
           >
-            <span class="nav-icon">&#9881;</span>
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 6h7M15 6h5M4 12h3M11 12h9M4 18h10M18 18h2" />
+                <circle cx="13" cy="6" r="2" />
+                <circle cx="9" cy="12" r="2" />
+                <circle cx="16" cy="18" r="2" />
+              </svg>
+            </span>
             <span class="nav-label">Settings</span>
           </button>
         </div>
@@ -80,7 +97,7 @@
               id="gearBtn"
               title="Launch Options"
             >
-              <span class="gear-btn-icon">&#128640;</span>
+              <span class="gear-btn-icon">&#9655;</span>
               <span class="gear-btn-label">Launch Options</span>
             </button>
             <div class="launch-dropdown" id="launchDropdown">
@@ -185,90 +202,99 @@
               </div>
             </div>
           </div>
-          <h1>
-            <span class="title-white title-big">E</span
-            ><span class="title-white">ZZ</span>
-            <span class="title-gap"></span>
-            <span class="title-orange">BOIII</span>
-          </h1>
-          <p class="description">
-            Call of Duty: Black Ops 3 enhanced with our modifications.
-            Experience the full campaign, multiplayer, and zombies modes with
-            improved stability and additional features.
-          </p>
-          <div class="main-content">
-            <div class="play-section">
-              <button type="button" class="btn-play-large" id="playBtn">
-                &#9654; PLAY
-              </button>
-              <div class="version-selector-wrap">
-                <span class="version-selector-label">Version:</span>
-                <div class="version-selector-container" id="versionDropdown">
-                  <button
-                    type="button"
-                    class="version-selector-display"
-                    id="verDropDisplay"
-                  >
-                    <span class="version-selector-text" id="verDropText"
-                      >Latest (Auto-update)</span
+          <div class="home-panel">
+            <h1>
+              <span class="title-white title-big">E</span
+              ><span class="title-white">ZZ</span>
+              <span class="title-gap"></span>
+              <span class="title-orange">BOIII</span>
+            </h1>
+            <p class="description">
+              Call of Duty: Black Ops 3 enhanced with our modifications.
+              Experience the full campaign, multiplayer, and zombies modes with
+              improved stability and additional features.
+            </p>
+            <div class="home-badges" aria-label="Launcher features">
+              <span>Auto updates</span>
+              <span>Workshop ready</span>
+              <span>Community client</span>
+            </div>
+            <div class="main-content">
+              <div class="play-section">
+                <button type="button" class="btn-play-large" id="playBtn">
+                  &#9654; PLAY
+                </button>
+                <div class="version-selector-wrap">
+                  <span class="version-selector-label">Version:</span>
+                  <div class="version-selector-container" id="versionDropdown">
+                    <button
+                      type="button"
+                      class="version-selector-display"
+                      id="verDropDisplay"
                     >
-                    <span class="version-selector-arrow">&#9660;</span>
-                  </button>
-                  <div class="version-selector-options" id="versionOptions">
-                    <div
-                      class="version-selector-option selected"
-                      data-value="latest"
-                    >
-                      Latest (Auto-update)
+                      <span class="version-selector-text" id="verDropText"
+                        >Latest (Auto-update)</span
+                      >
+                      <span class="version-selector-arrow">&#9660;</span>
+                    </button>
+                    <div class="version-selector-options" id="versionOptions">
+                      <div
+                        class="version-selector-option selected"
+                        data-value="latest"
+                      >
+                        Latest (Auto-update)
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
-            </div>
-            <div class="player-section">
-              <div class="player-label">Player Name</div>
-              <div class="input-wrap">
-                <div class="corner-bl"></div>
-                <div class="corner-br"></div>
-                <input
-                  type="text"
-                  class="player-input"
-                  id="playerName"
-                  placeholder="Enter your name..."
-                  maxlength="16"
-                  autocomplete="off"
-                  spellcheck="false"
-                />
+              <div class="player-section">
+                <div class="player-label">Player Name</div>
+                <div class="input-wrap">
+                  <div class="corner-bl"></div>
+                  <div class="corner-br"></div>
+                  <input
+                    type="text"
+                    class="player-input"
+                    id="playerName"
+                    placeholder="Enter your name..."
+                    maxlength="16"
+                    autocomplete="off"
+                    spellcheck="false"
+                  />
+                </div>
               </div>
-            </div>
-            <div class="action-buttons">
-              <button
-                type="button"
-                class="btn btn-discord"
-                id="discordBtn"
-                onclick="window.external.openUrl('https://discord.gg/ezz')"
-              >
-                Discord
-              </button>
-              <button
-                type="button"
-                class="btn btn-forum"
-                onclick="window.external.openUrl('https://ezz.lol')"
-              >
-                Forum
-              </button>
-              <button type="button" class="btn" id="manageInstallBtn">
-                Manage
-              </button>
-            </div>
-            <div class="main-lower-group">
-              <button type="button" class="btn btn-full" id="verifyBtn">
-                Verify Game Files
-              </button>
-              <button type="button" class="btn btn-full" id="setPathBtn">
-                Change Game Path
-              </button>
-              <div id="currentPathDisplay" class="path-display"></div>
+              <div class="action-buttons">
+                <button
+                  type="button"
+                  class="btn btn-discord"
+                  id="discordBtn"
+                  onclick="
+                    window.getExternal().openUrl('https://discord.gg/ezz')
+                  "
+                >
+                  Discord
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-forum"
+                  onclick="window.getExternal().openUrl('https://ezz.lol')"
+                >
+                  Forum
+                </button>
+                <button type="button" class="btn" id="manageInstallBtn">
+                  Manage
+                </button>
+              </div>
+              <div class="main-lower-group">
+                <button type="button" class="btn btn-full" id="verifyBtn">
+                  Verify Game Files
+                </button>
+                <button type="button" class="btn btn-full" id="setPathBtn">
+                  Change Game Path
+                </button>
+                <div id="currentPathDisplay" class="path-display"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -467,9 +493,11 @@
                   class="btn btn-steam"
                   id="workshopLinkBtn"
                   onclick="
-                    window.external.openUrl(
-                      'https://steamcommunity.com/app/311210/workshop/'
-                    )
+                    window
+                      .getExternal()
+                      .openUrl(
+                        'https://steamcommunity.com/app/311210/workshop/'
+                      )
                   "
                 >
                   Workshop
@@ -563,6 +591,21 @@
                 Manage your friends list. Add friends by their Steam ID to see
                 them here.
               </p>
+            </div>
+
+            <div class="friend-identity-card">
+              <div>
+                <div class="friends-add-label">Your Steam ID</div>
+                <div class="friend-identity-name" id="friendIdentityName">
+                  Start Steam to show your account
+                </div>
+                <div class="friend-identity-code" id="friendIdentityCode">
+                  Unavailable
+                </div>
+              </div>
+              <button type="button" class="btn" id="friendCodeCopyBtn" disabled>
+                Copy Steam ID
+              </button>
             </div>
 
             <div class="friends-add-card">
@@ -695,6 +738,20 @@
                       class="settings-toggle active"
                       id="settingsAutoUpdate"
                       data-setting="autoUpdate"
+                    ></button>
+                  </div>
+                  <div class="settings-row">
+                    <div>
+                      <div class="settings-row-label">Reduced UI motion</div>
+                      <div class="settings-row-desc">
+                        Disable page and hover movement for slower systems
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      class="settings-toggle"
+                      id="settingsReducedMotion"
+                      data-setting="reducedMotion"
                     ></button>
                   </div>
                 </div>
@@ -833,7 +890,7 @@
                       type="button"
                       class="btn btn-discord"
                       onclick="
-                        window.external.openUrl('https://discord.gg/ezz')
+                        window.getExternal().openUrl('https://discord.gg/ezz')
                       "
                     >
                       Discord
@@ -841,7 +898,7 @@
                     <button
                       type="button"
                       class="btn btn-forum"
-                      onclick="window.external.openUrl('https://ezz.lol')"
+                      onclick="window.getExternal().openUrl('https://ezz.lol')"
                     >
                       Forum
                     </button>
@@ -849,9 +906,11 @@
                       type="button"
                       class="btn btn-steam"
                       onclick="
-                        window.external.openUrl(
-                          'https://steamcommunity.com/app/311210/workshop/'
-                        )
+                        window
+                          .getExternal()
+                          .openUrl(
+                            'https://steamcommunity.com/app/311210/workshop/'
+                          )
                       "
                     >
                       Workshop
@@ -1632,9 +1691,11 @@
                       class="btn btn-primary"
                       style="margin-top: 20px"
                       onclick="
-                        window.external.openUrl(
-                          'https://archive.org/download/t7_full_game/BlackOps3.exe'
-                        )
+                        window
+                          .getExternal()
+                          .openUrl(
+                            'https://archive.org/download/t7_full_game/BlackOps3.exe'
+                          )
                       "
                     >
                       Download Previous BlackOps3.exe
@@ -2038,7 +2099,9 @@
             <div class="maintainers-list">
               <div
                 class="maintainer-card"
-                onclick="window.external.openUrl('https://github.com/Skwll')"
+                onclick="
+                  window.getExternal().openUrl('https://github.com/Skwll')
+                "
               >
                 <img
                   src="https://github.com/Skwll.png"
@@ -2049,7 +2112,9 @@
               </div>
               <div
                 class="maintainer-card"
-                onclick="window.external.openUrl('https://github.com/Frozedy')"
+                onclick="
+                  window.getExternal().openUrl('https://github.com/Frozedy')
+                "
               >
                 <img
                   src="https://github.com/Frozedy.png"
@@ -2060,7 +2125,9 @@
               </div>
               <div
                 class="maintainer-card"
-                onclick="window.external.openUrl('https://github.com/amkillam')"
+                onclick="
+                  window.getExternal().openUrl('https://github.com/amkillam')
+                "
               >
                 <img
                   src="https://github.com/amkillam.png"
@@ -2077,9 +2144,11 @@
               type="button"
               class="btn btn-full"
               onclick="
-                window.external.openUrl(
-                  'https://github.com/Ezz-lol/boiii-free/graphs/contributors'
-                )
+                window
+                  .getExternal()
+                  .openUrl(
+                    'https://github.com/Ezz-lol/boiii-free/graphs/contributors'
+                  )
               "
             >
               View All Contributors

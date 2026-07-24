@@ -169,13 +169,13 @@ struct workshop_browse_state {
   std::string error;
   bool loading = false;
   bool complete = false;
-  std::uint64_t request_token = 0;
+  uint64_t request_token = 0;
 };
 
 std::mutex workshop_browse_mutex;
 workshop_browse_state workshop_browse_state_data{};
 std::atomic<bool> workshop_browse_loading{false};
-std::atomic<std::uint64_t> workshop_browse_request_token{0};
+std::atomic<uint64_t> workshop_browse_request_token{0};
 
 struct workshop_search_cache_entry {
   std::string items_json = "[]";
@@ -190,15 +190,15 @@ constexpr int workshop_search_item_batch_delay_ms = 0;
 std::mutex workshop_search_cache_mutex;
 std::map<std::string, workshop_search_cache_entry> workshop_search_cache{};
 
-bool is_current_browse_request(const std::uint64_t token) {
+bool is_current_browse_request(const uint64_t token) {
   return workshop_browse_request_token.load() == token;
 }
 
-bool is_active_browse_request(const std::uint64_t token) {
+bool is_active_browse_request(const uint64_t token) {
   return workshop_browse_loading.load() && is_current_browse_request(token);
 }
 
-void begin_browse_request(const std::uint64_t token, const std::string &mode,
+void begin_browse_request(const uint64_t token, const std::string &mode,
                           const std::string &query,
                           const std::string &seed_items_json = "[]",
                           const std::string &source = "none") {
@@ -216,7 +216,7 @@ void begin_browse_request(const std::uint64_t token, const std::string &mode,
   workshop_browse_state_data.request_token = token;
 }
 
-void set_browse_request_items(const std::uint64_t token, std::string items_json,
+void set_browse_request_items(const uint64_t token, std::string items_json,
                               const std::string &source) {
   if (!is_current_browse_request(token)) {
     return;
@@ -233,7 +233,7 @@ void set_browse_request_items(const std::uint64_t token, std::string items_json,
   workshop_browse_state_data.error.clear();
 }
 
-void set_browse_request_error(const std::uint64_t token, std::string error,
+void set_browse_request_error(const uint64_t token, std::string error,
                               const std::string &source,
                               const bool replace_items = false) {
   if (!is_current_browse_request(token)) {
@@ -253,7 +253,7 @@ void set_browse_request_error(const std::uint64_t token, std::string error,
   workshop_browse_state_data.error = std::move(error);
 }
 
-void finish_browse_request(const std::uint64_t token) {
+void finish_browse_request(const uint64_t token) {
   if (is_current_browse_request(token)) {
     workshop_browse_loading = false;
   }
@@ -331,7 +331,7 @@ void store_cached_workshop_search(const std::string &query,
   workshop_search_cache[normalized_query] = {items_json, now};
 }
 
-std::string human_readable_size(std::uint64_t bytes);
+std::string human_readable_size(uint64_t bytes);
 void save_workshop_backup(const std::string &json_data);
 
 std::string extract_workshop_id(const std::string &input) {
@@ -394,7 +394,7 @@ constexpr const char *STEAM_WORKSHOP_API =
     "v1/";
 constexpr int BO3_APP_ID = 311210;
 
-std::uint64_t parse_human_size_to_bytes(const std::string &text) {
+uint64_t parse_human_size_to_bytes(const std::string &text) {
   if (text.empty())
     return 0;
 
@@ -406,7 +406,7 @@ std::uint64_t parse_human_size_to_bytes(const std::string &text) {
 
   if (!(ss >> unit)) {
     // If no unit, assume bytes
-    return static_cast<std::uint64_t>(value);
+    return static_cast<uint64_t>(value);
   }
 
   for (auto &c : unit)
@@ -425,10 +425,10 @@ std::uint64_t parse_human_size_to_bytes(const std::string &text) {
   const auto bytes = value * mul;
   if (bytes <= 0.0)
     return 0;
-  return static_cast<std::uint64_t>(bytes);
+  return static_cast<uint64_t>(bytes);
 }
 
-std::uint64_t scrape_workshop_file_size_bytes(const std::string &workshop_id) {
+uint64_t scrape_workshop_file_size_bytes(const std::string &workshop_id) {
   try {
     utils::http::headers h;
     h["User-Agent"] =
@@ -494,7 +494,7 @@ std::uint64_t scrape_workshop_file_size_bytes(const std::string &workshop_id) {
 }
 
 struct workshop_info {
-  std::uint64_t file_size = 0;
+  uint64_t file_size = 0;
   std::string title;
 };
 
@@ -532,13 +532,13 @@ workshop_info get_steam_workshop_info(const std::string &workshop_id) {
       if (size_it->value.IsUint64())
         info.file_size = size_it->value.GetUint64();
       else if (size_it->value.IsInt64())
-        info.file_size = static_cast<std::uint64_t>(size_it->value.GetInt64());
+        info.file_size = static_cast<uint64_t>(size_it->value.GetInt64());
       else if (size_it->value.IsUint())
         info.file_size = size_it->value.GetUint();
       else if (size_it->value.IsInt())
-        info.file_size = static_cast<std::uint64_t>(size_it->value.GetInt());
+        info.file_size = static_cast<uint64_t>(size_it->value.GetInt());
       else if (size_it->value.IsString())
-        info.file_size = static_cast<std::uint64_t>(
+        info.file_size = static_cast<uint64_t>(
             std::strtoull(size_it->value.GetString(), nullptr, 10));
     }
 
@@ -556,19 +556,19 @@ workshop_info get_steam_workshop_info(const std::string &workshop_id) {
   }
 }
 
-std::uint64_t compute_folder_size_bytes(const std::filesystem::path &folder) {
+uint64_t compute_folder_size_bytes(const std::filesystem::path &folder) {
   std::error_code ec;
   if (!std::filesystem::exists(folder, ec))
     return 0;
-  std::uint64_t total = 0;
+  uint64_t total = 0;
   for (const auto &entry :
        std::filesystem::recursive_directory_iterator(folder, ec)) {
     if (ec)
       break;
     if (!entry.is_regular_file(ec))
       continue;
-    total += static_cast<std::uint64_t>(
-        std::filesystem::file_size(entry.path(), ec));
+    total +=
+        static_cast<uint64_t>(std::filesystem::file_size(entry.path(), ec));
     if (ec)
       break;
   }
@@ -577,8 +577,8 @@ std::uint64_t compute_folder_size_bytes(const std::filesystem::path &folder) {
 
 bool copy_directory_recursive_with_progress(
     const std::filesystem::path &from, const std::filesystem::path &to,
-    const std::uint64_t total_bytes,
-    const std::function<void(std::uint64_t)> &on_bytes_copied) {
+    const uint64_t total_bytes,
+    const std::function<void(uint64_t)> &on_bytes_copied) {
   std::error_code ec;
   if (!std::filesystem::exists(from, ec))
     return false;
@@ -592,7 +592,7 @@ bool copy_directory_recursive_with_progress(
     return false;
   }
 
-  std::uint64_t copied_bytes = 0;
+  uint64_t copied_bytes = 0;
   auto last_update = std::chrono::steady_clock::now();
   for (const auto &entry :
        std::filesystem::recursive_directory_iterator(from, ec)) {
@@ -617,8 +617,8 @@ bool copy_directory_recursive_with_progress(
       if (ec)
         return false;
 
-      const auto file_size = static_cast<std::uint64_t>(
-          std::filesystem::file_size(entry.path(), ec));
+      const auto file_size =
+          static_cast<uint64_t>(std::filesystem::file_size(entry.path(), ec));
       if (ec)
         return false;
       std::filesystem::copy_file(
@@ -647,7 +647,7 @@ bool copy_directory_recursive_with_progress(
   return true;
 }
 
-std::string human_readable_size(std::uint64_t bytes) {
+std::string human_readable_size(uint64_t bytes) {
   const char *suffixes[] = {"B", "KB", "MB", "GB", "TB"};
   double value = static_cast<double>(bytes);
   int idx = 0;
@@ -847,17 +847,17 @@ scrape_ids_and_ratings(const std::string &html) {
   return items;
 }
 
-std::int64_t parse_json_int64(const rapidjson::Value &v) {
+int64_t parse_json_int64(const rapidjson::Value &v) {
   if (v.IsInt64())
     return v.GetInt64();
   if (v.IsInt())
     return v.GetInt();
   if (v.IsUint64())
-    return static_cast<std::int64_t>(v.GetUint64());
+    return static_cast<int64_t>(v.GetUint64());
   if (v.IsUint())
     return v.GetUint();
   if (v.IsString())
-    return static_cast<std::int64_t>(std::atoll(v.GetString()));
+    return static_cast<int64_t>(std::atoll(v.GetString()));
   return 0;
 }
 
@@ -914,7 +914,7 @@ utils::http::headers build_workshop_headers() {
 workshop_scrape_result
 scrape_workshop_listing_pages(const std::function<std::string(int)> &build_url,
                               const int max_pages, const int page_delay_ms,
-                              const std::uint64_t request_token) {
+                              const uint64_t request_token) {
   workshop_scrape_result result{};
   auto headers = build_workshop_headers();
   std::set<std::string> seen_ids{};
@@ -970,7 +970,7 @@ scrape_workshop_listing_pages(const std::function<std::string(int)> &build_url,
 workshop_fetch_result
 build_workshop_items_json(const std::vector<std::string> &ids,
                           const std::map<std::string, int> &item_ratings,
-                          const std::uint64_t request_token,
+                          const uint64_t request_token,
                           const int batch_delay_ms) {
   workshop_fetch_result result{};
 
@@ -1073,8 +1073,8 @@ build_workshop_items_json(const std::vector<std::string> &ids,
           image_url = extract_image_url_from_description(description);
         }
 
-        std::int64_t subs = 0;
-        std::int64_t favorites = 0;
+        int64_t subs = 0;
+        int64_t favorites = 0;
 
         const auto subs_it = item.FindMember("lifetime_subscriptions");
         if (subs_it != item.MemberEnd()) {
@@ -1096,7 +1096,7 @@ build_workshop_items_json(const std::vector<std::string> &ids,
           }
         }
 
-        std::uint64_t file_size = 0;
+        uint64_t file_size = 0;
         const auto fs_it = item.FindMember("file_size");
         if (fs_it != item.MemberEnd()) {
           if (fs_it->value.IsUint64()) {
@@ -1162,9 +1162,8 @@ build_workshop_items_json(const std::vector<std::string> &ids,
   return result;
 }
 
-workshop_fetch_result
-search_workshop_by_name(const std::string &search_text,
-                        const std::uint64_t request_token) {
+workshop_fetch_result search_workshop_by_name(const std::string &search_text,
+                                              const uint64_t request_token) {
   try {
     const std::string encoded_query = url_encode(search_text);
     const auto listing = scrape_workshop_listing_pages(
@@ -1193,7 +1192,7 @@ search_workshop_by_name(const std::string &search_text,
 }
 
 void workshop_search_fetch_thread(const std::string &search_text,
-                                  const std::uint64_t request_token) {
+                                  const uint64_t request_token) {
   const auto result = search_workshop_by_name(search_text, request_token);
 
   if (is_current_browse_request(request_token)) {
@@ -1212,8 +1211,7 @@ void workshop_search_fetch_thread(const std::string &search_text,
   finish_browse_request(request_token);
 }
 
-workshop_fetch_result
-fetch_all_workshop_items(const std::uint64_t request_token) {
+workshop_fetch_result fetch_all_workshop_items(const uint64_t request_token) {
   try {
     const auto listing = scrape_workshop_listing_pages(
         [&](const int page) {
@@ -1239,7 +1237,7 @@ fetch_all_workshop_items(const std::uint64_t request_token) {
 }
 
 void workshop_browse_fetch_thread(int /*page_num*/,
-                                  const std::uint64_t request_token) {
+                                  const uint64_t request_token) {
   const auto result = fetch_all_workshop_items(request_token);
 
   if (is_current_browse_request(request_token)) {
@@ -1562,7 +1560,7 @@ void workshop_download_thread(std::string workshop_id) {
     set_workshop_status("Fetching file info...", -1.0,
                         "Workshop ID: " + workshop_id);
     const auto ws_info = get_steam_workshop_info(workshop_id);
-    const std::uint64_t expected_size = ws_info.file_size;
+    const uint64_t expected_size = ws_info.file_size;
     const std::string workshop_title =
         ws_info.title.empty() ? ("Workshop #" + workshop_id) : ws_info.title;
 
@@ -1570,7 +1568,7 @@ void workshop_download_thread(std::string workshop_id) {
       ULARGE_INTEGER free_bytes_available{};
       ULARGE_INTEGER total_bytes{};
       ULARGE_INTEGER total_free_bytes{};
-      const std::uint64_t required_space =
+      const uint64_t required_space =
           expected_size * 2 + (512ULL * 1024 * 1024);
       if (GetDiskFreeSpaceExA(cwd, &free_bytes_available, &total_bytes,
                               &total_free_bytes)) {
@@ -1715,7 +1713,7 @@ void workshop_download_thread(std::string workshop_id) {
       auto last_tick = std::chrono::steady_clock::now();
       std::string last_speed_str;
 
-      std::uint64_t net_bytes_prev = 0;
+      uint64_t net_bytes_prev = 0;
       bool net_baseline_set = false;
       auto download_phase_start = std::chrono::steady_clock::time_point{};
       bool warmup_phase = true;
@@ -1805,7 +1803,7 @@ void workshop_download_thread(std::string workshop_id) {
           }
 
           if (!is_downloading) {
-            std::uint64_t early_bytes = 0;
+            uint64_t early_bytes = 0;
             try {
               std::error_code fec;
               if (std::filesystem::exists(download_path, fec))
@@ -1847,7 +1845,7 @@ void workshop_download_thread(std::string workshop_id) {
             download_phase_start = std::chrono::steady_clock::now();
           }
 
-          std::uint64_t current_size = 0;
+          uint64_t current_size = 0;
           std::string active_folder;
           {
             std::error_code fec;
@@ -1892,7 +1890,7 @@ void workshop_download_thread(std::string workshop_id) {
             }
           }
 
-          std::uint64_t net_bytes_now = 0;
+          uint64_t net_bytes_now = 0;
           {
             MIB_IF_TABLE2 *if_table = nullptr;
             if (GetIfTable2(&if_table) == NO_ERROR && if_table) {
@@ -1908,7 +1906,7 @@ void workshop_download_thread(std::string workshop_id) {
             net_baseline_set = true;
           }
 
-          std::uint64_t net_delta = 0;
+          uint64_t net_delta = 0;
           if (net_bytes_now >= net_bytes_prev) {
             net_delta = net_bytes_now - net_bytes_prev;
           }
@@ -1923,8 +1921,8 @@ void workshop_download_thread(std::string workshop_id) {
             warmup_phase = false;
 
           double percent = -1.0;
-          std::uint64_t display_size = current_size;
-          const std::uint64_t effective_expected =
+          uint64_t display_size = current_size;
+          const uint64_t effective_expected =
               expected_size > 0 ? expected_size : 0;
 
           if (effective_expected > 0 && display_size > effective_expected)
@@ -1962,9 +1960,9 @@ void workshop_download_thread(std::string workshop_id) {
                 smoothed_speed = bytes_per_sec;
               else
                 smoothed_speed = 0.3 * bytes_per_sec + 0.7 * smoothed_speed;
-              last_speed_str = human_readable_size(
-                                   static_cast<std::uint64_t>(smoothed_speed)) +
-                               "/s";
+              last_speed_str =
+                  human_readable_size(static_cast<uint64_t>(smoothed_speed)) +
+                  "/s";
             }
           }
           last_tick = now;
@@ -2258,13 +2256,13 @@ void workshop_download_thread(std::string workshop_id) {
       return;
     }
 
-    const std::uint64_t install_total = compute_folder_size_bytes(content_path);
+    const uint64_t install_total = compute_folder_size_bytes(content_path);
     set_workshop_status("Copying files...", 99.0,
                         install_total > 0
                             ? ("0 / " + human_readable_size(install_total))
                             : std::string("Preparing..."));
     const bool copied = copy_directory_recursive_with_progress(
-        content_path, dest, install_total, [&](std::uint64_t copied_bytes) {
+        content_path, dest, install_total, [&](uint64_t copied_bytes) {
           if (install_total > 0) {
             double p = 99.0 + (static_cast<double>(copied_bytes) /
                                static_cast<double>(install_total)) *
@@ -2396,7 +2394,7 @@ void workshop_download_thread(std::string workshop_id) {
         }
       }
       if (!has_zone_files) {
-        std::uint64_t dest_size = compute_folder_size_bytes(dest);
+        uint64_t dest_size = compute_folder_size_bytes(dest);
         if (dest_size < 1024) {
           set_workshop_status("Error: No game files found in download.", 0.0,
                               "The workshop item downloaded but contained no "
@@ -2417,7 +2415,7 @@ void workshop_download_thread(std::string workshop_id) {
     }
 
     {
-      std::uint64_t final_size = compute_folder_size_bytes(dest);
+      uint64_t final_size = compute_folder_size_bytes(dest);
       set_workshop_status("Done! Download complete.", 100.0,
                           folder_name + " is ready to use (" +
                               human_readable_size(final_size) + ").");
@@ -2444,9 +2442,9 @@ void workshop_download_thread(std::string workshop_id) {
 }
 } // namespace
 
-std::map<std::string, std::uint64_t>
+std::map<std::string, uint64_t>
 batch_get_time_updated(const std::vector<std::string> &ids) {
-  std::map<std::string, std::uint64_t> result;
+  std::map<std::string, uint64_t> result;
   if (ids.empty())
     return result;
   try {
@@ -2485,15 +2483,15 @@ batch_get_time_updated(const std::vector<std::string> &ids) {
 
       auto tu_it = item.FindMember("time_updated");
       if (tu_it != item.MemberEnd()) {
-        std::uint64_t ts = 0;
+        uint64_t ts = 0;
         if (tu_it->value.IsUint64())
           ts = tu_it->value.GetUint64();
         else if (tu_it->value.IsInt64())
-          ts = static_cast<std::uint64_t>(tu_it->value.GetInt64());
+          ts = static_cast<uint64_t>(tu_it->value.GetInt64());
         else if (tu_it->value.IsUint())
           ts = tu_it->value.GetUint();
         else if (tu_it->value.IsInt())
-          ts = static_cast<std::uint64_t>(tu_it->value.GetInt());
+          ts = static_cast<uint64_t>(tu_it->value.GetInt());
         if (ts > 0)
           result[item_id] = ts;
       }

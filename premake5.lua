@@ -1,12 +1,12 @@
-gitVersioningCommand = "git describe --tags --always"
-gitCurrentBranchCommand = "git symbolic-ref -q --short HEAD"
+GIT_VERSIONING_COMMAND = "git describe --tags --always"
+GIT_CURRENT_BRANCH_COMMAND = "git symbolic-ref -q --short HEAD"
 
 -- Quote the given string input as a C string
 function cstrquote(value)
   if value == nil then
     return '""'
   end
-  result = value:gsub("\\", "\\\\")
+  local result = value:gsub("\\", "\\\\")
   result = result:gsub('"', '\\"')
   result = result:gsub("\n", "\\n")
   result = result:gsub("\t", "\\t")
@@ -21,7 +21,7 @@ end
 -- In the case where the format does not work fall back to padding with zeroes and just ending with the revision number.
 -- partscount can be either 3 or 4.
 function vertonumarr(value, vernumber, partscount)
-  vernum = {}
+  local vernum = {}
   for num in string.gmatch(value or "", "%d+") do
     if #vernum < 3 then
       table.insert(vernum, tonumber(num))
@@ -41,8 +41,8 @@ dependencies = {
 }
 
 function dependencies.load()
-  dir = path.join(dependencies.basePath, "premake/*.lua")
-  deps = os.matchfiles(dir)
+  local dir = path.join(dependencies.basePath, "premake/*.lua")
+  local deps = os.matchfiles(dir)
 
   for _, dep in pairs(deps) do
     dep = dep:gsub(".lua", "")
@@ -85,14 +85,14 @@ newoption({
 newaction({
   trigger = "version",
   description = "Returns the version string for the current commit of the source code.",
-  onWorkspace = function(wks)
+  onWorkspace = function(_)
     -- get current version via git
-    local proc = assert(io.popen(gitVersioningCommand, "r"))
+    local proc = assert(io.popen(GIT_VERSIONING_COMMAND, "r"))
     local gitDescribeOutput = assert(proc:read("*a")):gsub("%s+", "")
     proc:close()
     local version = gitDescribeOutput
 
-    proc = assert(io.popen(gitCurrentBranchCommand, "r"))
+    proc = assert(io.popen(GIT_CURRENT_BRANCH_COMMAND, "r"))
     local gitCurrentBranchOutput = assert(proc:read("*a")):gsub("%s+", "")
     local gitCurrentBranchSuccess = proc:close()
     if gitCurrentBranchSuccess then
@@ -121,7 +121,7 @@ newaction({
     if oldVersionHeader ~= nil then
       local oldVersionHeaderContent = assert(oldVersionHeader:read("*l"))
       while oldVersionHeaderContent do
-        m = string.match(oldVersionHeaderContent, "#define GIT_DESCRIBE (.+)%s*$")
+        local m = string.match(oldVersionHeaderContent, "#define GIT_DESCRIBE (.+)%s*$")
         if m ~= nil then
           oldVersion = m
         end
@@ -131,12 +131,12 @@ newaction({
     end
 
     -- get current version via git
-    local proc = assert(io.popen(gitVersioningCommand, "r"))
+    local proc = assert(io.popen(GIT_VERSIONING_COMMAND, "r"))
     local gitDescribeOutput = assert(proc:read("*a")):gsub("%s+", "")
     proc:close()
 
     -- generate version.hpp with a revision number if not equal
-    gitDescribeOutputQuoted = cstrquote(gitDescribeOutput)
+    local gitDescribeOutputQuoted = cstrquote(gitDescribeOutput)
     if oldVersion ~= gitDescribeOutputQuoted then
       -- get current git hash and write to version.txt (used by the preliminary updater)
       -- TODO - remove once proper updater and release versioning exists
@@ -146,11 +146,10 @@ newaction({
 
       -- get whether this is a clean revision (no uncommitted changes)
       proc = assert(io.popen("git status --porcelain", "r"))
-      local revDirty = (assert(proc:read("*a")) ~= "")
-      if revDirty then
+      ---@type integer
+      local revDirty = 0
+      if assert(proc:read("*a")) ~= "" then
         revDirty = 1
-      else
-        revDirty = 0
       end
       proc:close()
 
@@ -166,7 +165,7 @@ newaction({
       if branchName == nil or branchName == "" then
         proc = assert(io.popen("git show -s --pretty=%d HEAD"))
         local branchInfo = proc:read("*l")
-        m = string.match(branchInfo, ".+,.+, ([^)]+)")
+        local m = string.match(branchInfo, ".+,.+, ([^)]+)")
         if m ~= nil then
           branchName = m
         end
@@ -289,62 +288,65 @@ filter({})
 
 filter("configurations:Release")
 optimize("Size")
-if os.host() == "windows" then
-  -- buildoptions({ "/GL" })
-  buildoptions({
-    "-Wno-unused-command-line-argument",
-    "-Wno-microsoft-cast",
-    "-Wno-dangling-else",
-    "-Wno-unused",
-    "-Wno-format",
-    "-Wno-sign-compare",
-    "/clang:-march=x86-64",
-    -- Only used after positive test for support at runtime.
-    -- We need to compile with these CPU features regardless of end-user
-    -- support to ensure that SSE4.2 and AES ISA extension ASM instructions
-    -- can be emitted at all.
-    "/clang:-mno-sse4.1",
-    "/clang:-mno-sse4.2",
-  })
-  linkoptions({ "/IGNORE:4702", "/LTCG" })
-else
-  -- incompatible with LTCG, and Windows libraries are not released with LTO
-  -- None of full, fat, or thin LTO work - tested.
-  buildoptions({ "-march=x86-64", "-mno-sse4.1", "-mno-sse4.2", "-fno-lto" })
-  linkoptions({ "-fno-lto" })
-end
 defines({ "NDEBUG" })
 -- flags({ "FatalCompileWarnings" })
+filter({})
+
+filter({ "configurations:Release", "toolset:msc*" })
+-- buildoptions({ "/GL" })
+buildoptions({
+  "-Wno-unused-command-line-argument",
+  "-Wno-microsoft-cast",
+  "-Wno-dangling-else",
+  "-Wno-unused",
+  "-Wno-format",
+  "-Wno-sign-compare",
+  "/clang:-march=x86-64",
+  -- Only used after positive test for support at runtime.
+  -- We need to compile with these CPU features regardless of end-user
+  -- support to ensure that SSE4.2 and AES ISA extension ASM instructions
+  -- can be emitted at all.
+  "/clang:-mno-sse4.1",
+  "/clang:-mno-sse4.2",
+})
+linkoptions({ "/IGNORE:4702", "/LTCG" })
+filter({})
+filter({ "configurations:Release", "toolset:not msc*" })
+-- incompatible with LTCG, and Windows libraries are not released with LTO
+-- None of full, fat, or thin LTO work - tested.
+buildoptions({ "-march=x86-64", "-mno-sse4.1", "-mno-sse4.2", "-fno-lto" })
+linkoptions({ "-fno-lto" })
 filter({})
 
 filter("configurations:Debug")
 optimize("Debug")
 defines({ "DEBUG", "_DEBUG", "_CRT_DEBUG" })
-if os.host() == "windows" then
-  buildoptions({ "/MDd" })
-  linkoptions({
-    "/DEBUG",
-    "/NODEFAULTLIB:libcmt.lib",
-    "/NODEFAULTLIB:libucrt.lib",
-    "-l libcmtd.lib",
-    "/MTd",
-  })
-else
-  buildoptions({
-    "-Wl,/DEBUG",
-    "-Wl,/NODEFAULTLIB:libcmt.lib",
-    "-Wl,/NODEFAULTLIB:libucrt.lib",
-    "-l libcmtd.lib",
-  })
-  linkoptions({
-    "-fms-extensions",
-    "-fms-runtime-lib=static_dbg",
-    "-Wl,/DEBUG",
-    "-Wl,/NODEFAULTLIB:libcmt.lib",
-    "-Wl,/NODEFAULTLIB:libucrt.lib",
-    "-l libcmtd.lib",
-  })
-end
+filter({})
+filter({ "configurations:Debug", "toolset:msc*" })
+buildoptions({ "/MDd" })
+linkoptions({
+  "/DEBUG",
+  "/NODEFAULTLIB:libcmt.lib",
+  "/NODEFAULTLIB:libucrt.lib",
+  "-l libcmtd.lib",
+  "/MTd",
+})
+filter({})
+filter({ "configurations:Debug", "toolset:not msc*" })
+buildoptions({
+  "-Wl,/DEBUG",
+  "-Wl,/NODEFAULTLIB:libcmt.lib",
+  "-Wl,/NODEFAULTLIB:libucrt.lib",
+  "-l libcmtd.lib",
+})
+linkoptions({
+  "-fms-extensions",
+  "-fms-runtime-lib=static_dbg",
+  "-Wl,/DEBUG",
+  "-Wl,/NODEFAULTLIB:libcmt.lib",
+  "-Wl,/NODEFAULTLIB:libucrt.lib",
+  "-l libcmtd.lib",
+})
 filter({})
 
 project("common")
@@ -372,22 +374,27 @@ files({
   "./src/client/**.rc",
   "./src/client/**.hpp",
   "./src/client/**.cpp",
+  "./deps/Microsoft.Web.WebView2/build/native/include/*.h",
   "./src/client/resources/**.*",
 })
-
 includedirs({
   "./deps/argparse/include",
   "./deps/SteamworkSDK/public",
+  "./deps/frozen/include",
+  "./deps/Microsoft.Web.WebView2/build/native/include",
   "./src/client",
   "./src/common",
-  "%{prj.location}/src",
+  "./src",
 })
+
+syslibdirs({ "./deps/Microsoft.Web.WebView2/build/native/x64" })
+libdirs({ "./deps/Microsoft.Web.WebView2/build/native/x64" })
 
 resincludedirs({ "$(ProjectDir)src" })
 
 dependson({ "tlsdll" })
 
-links({ "common" })
+links({ "common", "WebView2LoaderStatic" })
 
 if not os.isfile("%{_MAIN_SCRIPT_DIR}/src/version.h") then
   if os.host() == "windows" then

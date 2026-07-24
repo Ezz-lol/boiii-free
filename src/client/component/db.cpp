@@ -127,7 +127,6 @@ public:
     Com_GametypeSettings_SetGametype_hook.create(
         game::com::gts::Com_GametypeSettings_SetGametype.get(),
         Com_GametypeSettings_SetGametype_GetOrInitGameTypeSettingsDDL);
-
     Image_AssignDefaultTexture_hook.create(
         game::gfx::Image_AssignDefaultTexture.get(),
         Image_AssignDefaultTexture_SkipMissingVTable);

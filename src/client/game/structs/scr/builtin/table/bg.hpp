@@ -45,6 +45,46 @@ union CommonFunctionTable {
     const BuiltinFunctionDef IsArchetypeLoaded;
   };
   const BuiltinFunctionDef functions[34];
+
+  static constexpr const char *names[34] = {
+      "ClearAllCharacterTables",
+      "GetCharacterBodyStyleIndex",
+      "GetAllCharacterBodies",
+      "GetAllCharacterHeads",
+      "GetCharacterBodyModelCount",
+      "GetCharacterBodyModelColorCount",
+      "GetCharacterHelmetModelCount",
+      "GetCharacterHelmetModelColorCount",
+      "GetAnimForCharacter",
+      "GetXCamForCharacter",
+      "GetSpawnStructForCharacter",
+      "GetWeaponModelForCharacter",
+      "GetWeaponForCharacter",
+      "GetCharacterFields",
+      "GetCharacterDisplayName",
+      "GetCharacterAssetName",
+      "GetCharacterBodyModel",
+      "GetCharacterHelmetModel",
+      "GetCharacterHelmetHidesHead",
+      "GetCharacterHeadModel",
+      "GetCharacterBodyRenderOptions",
+      "GetCharacterHelmetRenderOptions",
+      "GetCharacterHeadRenderOptions",
+      "GetCharacterModeRenderOptions",
+      "GetXModelCenterOffset",
+      "GetNextMap",
+      "GetMapOrder",
+      "GetMapAtIndex",
+      "GetMapIntroMovie",
+      "GetMapOutroMovie",
+      "GetMapFields",
+      "SetupFieldOpsKitLoadouts",
+      "SessionModeIsCampaignZombiesGame",
+      "IsArchetypeLoaded",
+  };
+  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
+                                               ARRAYSIZE(names)>
+      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
 };
 ASSERT_SIZE(CommonFunctionTable, sizeof(CommonFunctionTable::functions));
 
@@ -101,6 +141,61 @@ union MathFunctionTable {
     const BuiltinFunctionDef RotatePointAroundAxis;
   };
   const BuiltinFunctionDef functions[49];
+
+  static constexpr const char *names[49] = {
+      "Log",
+      "Sin",
+      "Cos",
+      "Tan",
+      "Asin",
+      "Acos",
+      "Atan",
+      "Abs",
+      "Min",
+      "Max",
+      "Floor",
+      "Ceil",
+      "Sqrt",
+      "Pow",
+      "LerpFloat",
+      "LerpVector",
+      "GetMinBitCountForNum",
+      "MapFloat",
+      "DiffTrack",
+      "DiffTrackAngle",
+      "PackRgba",
+      "Int",
+      "CastFloat",
+      "Distance2DSquared",
+      "AngleLerp",
+      "RotatePoint",
+      "VectorFromLineToPoint",
+      "PointOnSegmentNearestToPoint",
+      "Distance",
+      "Distance2D",
+      "DistanceSquared",
+      "Length",
+      "LengthSquared",
+      "Closer",
+      "VectorDot",
+      "VectorCross",
+      "VectorNormalize",
+      "VectorProjection",
+      "VectorToAngles",
+      "VectorLerp",
+      "AnglesToUp",
+      "AnglesToRight",
+      "AnglesToForward",
+      "CombineAngles",
+      "AngleClamp180",
+      "AbsAngleClamp180",
+      "AbsAngleClamp360",
+      "ForwardRotateAroundUpByAngle",
+      "RotatePointAroundAxis",
+  };
+  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
+                                               ARRAYSIZE(names)>
+      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
 };
 ASSERT_SIZE(MathFunctionTable, sizeof(MathFunctionTable::functions));
 
@@ -109,6 +204,11 @@ union WeaponFunctionTable {
     const BuiltinFunctionDef EnumerateWeapons;
   };
   const BuiltinFunctionDef functions[1];
+
+  static constexpr const char *names[1] = {"EnumerateWeapons"};
+  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
+                                               ARRAYSIZE(names)>
+      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
 };
 ASSERT_SIZE(WeaponFunctionTable, sizeof(WeaponFunctionTable::functions));
 
@@ -185,9 +285,83 @@ union UtilFunctionTable {
     const BuiltinFunctionDef Modvar;
   };
   const BuiltinFunctionDef functions[69];
+
+  static constexpr const char *names[69] = {"GetDvarString",
+                                            "GetDvarInt",
+                                            "GetDvarFloat",
+                                            "GetDvarVector",
+                                            "Throw",
+                                            "Array",
+                                            "AssociativeArray",
+                                            "ArrayRemoveValue",
+                                            "ArrayRemoveIndex",
+                                            "ArrayInsert",
+                                            "ArrayCombine",
+                                            "ArrayCopy",
+                                            "IsInArray",
+                                            "GetArrayKeys",
+                                            "GetFirstArrayKey",
+                                            "GetNextArrayKey",
+                                            "GetLastArrayKey",
+                                            "GetPrevArrayKey",
+                                            "ArrayIntersect",
+                                            "ArrayGetClosest",
+                                            "ArrayGetFarthest",
+                                            "GetStructField",
+                                            "IsFunctionPtr",
+                                            "IsString",
+                                            "IsArray",
+                                            "IsWeapon",
+                                            "IsInt",
+                                            "IsFloat",
+                                            "IsVec",
+                                            "IsClass",
+                                            "IString",
+                                            "IsSubStr",
+                                            "GetSubStr",
+                                            "ToLower",
+                                            "ToUpper",
+                                            "StrTok",
+                                            "StrTok2",
+                                            "StrStartsWith",
+                                            "StrEndsWith",
+                                            "StrIsNumber",
+                                            "StrIsFloat",
+                                            "StrIsInt",
+                                            "StrStrip",
+                                            "MakeLocalizedString",
+                                            "Sprintf",
+                                            "TableLookup",
+                                            "TableLookupIString",
+                                            "TableLookupRowNum",
+                                            "TableLookupColumnForRow",
+                                            "TableLookupFindCoreAsset",
+                                            "TableLookupRowCount",
+                                            "TableLookupColumnCount",
+                                            "TableLookupRow",
+                                            "GetItemIndexFromRef",
+                                            "GetAttachmentTableIndex",
+                                            "OpenFile",
+                                            "CloseFile",
+                                            "FPrintln",
+                                            "FPrintFields",
+                                            "FReadLn",
+                                            "FGetArg",
+                                            "DebugBreak",
+                                            "Assert",
+                                            "AssertMsg",
+                                            "ErrorMsg",
+                                            "IsPC",
+                                            "IsProfileBuild",
+                                            "IsUsingMods",
+                                            "Modvar"};
+  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
+                                               ARRAYSIZE(names)>
+      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
 };
 ASSERT_SIZE(UtilFunctionTable, sizeof(UtilFunctionTable::functions));
 ASSERT_SIZE(UtilFunctionTable, 0x8A0);
+
 } // namespace bg
 } // namespace table
 } // namespace builtin

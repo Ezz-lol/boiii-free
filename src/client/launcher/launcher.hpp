@@ -1,5 +1,7 @@
 #pragma once
 
+#include <std_include.hpp>
+
 namespace launcher {
 bool run();
 bool is_game_process_running();

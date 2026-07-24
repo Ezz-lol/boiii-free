@@ -1,6 +1,6 @@
 #pragma once
 
-#pragma once
+#include <std_include.hpp>
 
 class html_argument final {
 public:
@@ -18,7 +18,7 @@ public:
   int get_number() const;
   bool get_bool() const;
 
-  const CComVariant &get() const { return this->value_; }
+  inline const CComVariant &get() const { return this->value_; }
 
   void copy_to(VARIANT &var) const;
   void move_to(VARIANT *var);

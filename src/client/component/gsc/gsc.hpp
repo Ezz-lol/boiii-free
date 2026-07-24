@@ -1,24 +1,18 @@
 #pragma once
 
 #include <std_include.hpp>
-#include "hash.hpp"
 #include <game/structs/scr/scr.hpp>
 
 namespace gsc {
 using namespace game::scr;
 
 constexpr uint64_t T7_MAGIC = 0x1C000A0D43534780;
-constexpr fnv1aHash_t FNV1A_IV = 0x4B9ACE2F;
-constexpr fnv1aHash_t FNV1A_PRIME = 0x1000193;
-
-inline constexpr fnv1aHash_t fnv1a(const char *s) {
-  return ::fnv1a_null<FNV1A_IV, FNV1A_PRIME>(s);
-}
 
 // Special namespace that immediately indicates to engine's linker that this is
 // a builtin function
 constexpr const char *GSCR_SYS_NS = "sys";
-constexpr ScrVarCanonicalName_t GSCR_SYS_NS_HASH = fnv1a(GSCR_SYS_NS);
+constexpr ScrVarCanonicalName_t GSCR_SYS_NS_HASH =
+    game::scr::builtin::fnv1a(GSCR_SYS_NS);
 
 inline constexpr std::string_view SCR_HASH_LITERAL_PREFIXES[] = {
     "hash", "id", "function", "var", "namespace"};
@@ -72,6 +66,7 @@ try_parse_raw_hash(const std::string_view &input) {
 
 inline constexpr game::scr::ScrVarCanonicalName_t
 gsc_hash(const std::string &input) {
-  return try_parse_raw_hash(input).value_or(gsc::fnv1a(input.c_str()));
+  return try_parse_raw_hash(input).value_or(
+      game::scr::builtin::fnv1a(input.c_str()));
 }
 } // namespace gsc

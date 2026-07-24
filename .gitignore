@@ -1,6 +1,6 @@
 .vs
 .vscode
-build/
+/build/
 node_modules/
 usergenerate.bat
 nul

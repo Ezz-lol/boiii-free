@@ -48,3 +48,6 @@
 [submodule "deps/brotli"]
 	path = deps/brotli
 	url = https://github.com/google/brotli
+[submodule "deps/frozen"]
+	path = deps/frozen
+	url = https://github.com/serge-sans-paille/frozen
