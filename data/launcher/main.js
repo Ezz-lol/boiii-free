@@ -3842,7 +3842,7 @@
               if (boiiiAsset) {
                 _versionsData[tagName] = {
                   url: boiiiAsset.browser_download_url,
-                  name: "boiii-" + tagName + ".exe",
+                  name: "versions/boiii-" + tagName + ".exe",
                 };
                 addVersionOption(tagName, tagName);
               }
@@ -3872,7 +3872,7 @@
   // Beta build
   _versionsData["beta"] = {
     url: "https://r2.ezz.lol/boiii/beta/boiii.exe",
-    name: "boiii-beta.exe",
+    name: "versions/boiii-beta.exe",
   };
   addVersionOption("beta", "Beta (Experimental)");
 
