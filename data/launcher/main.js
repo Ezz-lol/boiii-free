@@ -3537,6 +3537,14 @@
 
   loadFriendsList();
 
+  function versionTagFromStored(value) {
+    if (!value) return value;
+    var tag = value;
+    if (tag.indexOf("boiii-") === 0) tag = tag.substring("boiii-".length);
+    if (tag.slice(-4) === ".exe") tag = tag.slice(0, -4);
+    return tag;
+  }
+
   function selectVersion(value, label) {
     _selectedVersion = value;
     if (verDropText) verDropText.textContent = label;
@@ -3616,7 +3624,7 @@
       getExternal().getSelectedVersion &&
       getExternal().getSelectedVersion();
     if (sv) {
-      _selectedVersion = sv;
+      _selectedVersion = versionTagFromStored(sv);
 
       var initialLabel = "Latest (Auto-update)";
       if (_selectedVersion === "beta") initialLabel = "Beta (Experimental)";
