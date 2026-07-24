@@ -30,7 +30,6 @@
   var versionOptions = document.getElementById("versionOptions");
   var _versionsData = {};
   var _selectedVersion = "latest";
-  var _currentRunningVersion = "";
   var _latestVersionTag = "";
 
   var workshopBrowseGrid = document.getElementById("workshopBrowseGrid");
@@ -302,7 +301,6 @@
     var ver =
       getExternal() && getExternal().getVersion && getExternal().getVersion();
     if (ver) {
-      _currentRunningVersion = "v" + ver;
       var vd = document.getElementById("versionDisplay");
       if (vd) vd.textContent = "v" + ver;
       var sv = document.getElementById("settingsVersion");
@@ -3577,10 +3575,7 @@
     var div = document.createElement("div");
     div.className = "version-selector-option";
     div.setAttribute("data-value", value);
-    div.textContent =
-      _currentRunningVersion && value === _currentRunningVersion
-        ? label + " (installed)"
-        : label;
+    div.textContent = label;
     div.onclick = function () {
       selectVersion(value, label);
     };
@@ -3687,7 +3682,11 @@
                   url: boiiiAsset.browser_download_url,
                   name: "boiii-" + tagName + ".exe",
                 };
-                addVersionOption(tagName, tagName);
+                // The newest release is already represented by the Latest
+                // entry, so skip adding it a second time as its own row.
+                if (tagName !== _latestVersionTag) {
+                  addVersionOption(tagName, tagName);
+                }
               }
             }
           }
