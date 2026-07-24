@@ -166,6 +166,14 @@ bool is_relatively_far(size_t pointer, size_t data, int offset = 5);
 void call(void *pointer, void *data);
 void call(size_t pointer, void *data);
 void call(size_t pointer, size_t data);
+template <typename F, typename H> inline void call(F *pointer, H *data) {
+  return call(reinterpret_cast<void *>(pointer),
+              reinterpret_cast<void *>(data));
+}
+
+template <typename H> inline void call(size_t pointer, H *data) {
+  return call(pointer, reinterpret_cast<void *>(data));
+}
 
 void jump(void *pointer, void *data, bool use_far = false,
           bool use_safe = false);

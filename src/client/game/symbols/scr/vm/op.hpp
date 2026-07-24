@@ -11,22 +11,34 @@ WEAK symbol<VmOpJumpTable> gVmOpJumpTable1{0x143306350, 0x14109C150};
 WEAK symbol<VmOpJumpTable> gVmOpJumpTable2{0x1432E6350, 0x14107C150};
 
 inline VM_OP_FUNC_PTR *op_handler(OP_TYPE op) {
-  if ((op & VM_OP_JUMP_TABLE_LEN) != 0) {
-    return &gVmOpJumpTable1->ops[op & VM_OP_TABLE_1_IDX_MASK];
+  return op < VM_OP_JUMP_TABLE_LEN
+             ? &gVmOpJumpTable2->ops[op]
+             : &gVmOpJumpTable1->ops[op % VM_OP_JUMP_TABLE_LEN];
+}
+
+inline VM_OP_FUNC_PTR *op_handler(Opcode op) {
+  if (OPCODE_BYTECODE_MAP.contains(op)) {
+    op_handler(OPCODE_BYTECODE_MAP.at(op)[0]);
   }
 
-  return &gVmOpJumpTable2->ops[op];
+  return nullptr;
 }
 
 WEAK symbol<VmOpJumpTable> gVmErrRecoveryJumpTable1{0x143316350, 0x1410AC150};
 WEAK symbol<VmOpJumpTable> gVmErrRecoveryJumpTable2{0x1432F6350, 0x14108C150};
 
 inline VM_OP_FUNC_PTR *op_err_handler(OP_TYPE op) {
-  if ((op & VM_OP_JUMP_TABLE_LEN) != 0) {
-    return &gVmErrRecoveryJumpTable1->ops[op & VM_OP_TABLE_1_IDX_MASK];
+  return op < VM_OP_JUMP_TABLE_LEN
+             ? &gVmErrRecoveryJumpTable2->ops[op]
+             : &gVmErrRecoveryJumpTable1->ops[op % VM_OP_JUMP_TABLE_LEN];
+}
+
+inline VM_OP_FUNC_PTR *op_err_handler(Opcode op) {
+  if (OPCODE_BYTECODE_MAP.contains(op)) {
+    op_err_handler(OPCODE_BYTECODE_MAP.at(op)[0]);
   }
 
-  return &gVmErrRecoveryJumpTable2->ops[op];
+  return nullptr;
 }
 
 WEAK symbol<VM_OP_FUNC> VM_OP_CallBuiltin_Handler{0x1412CE460, 0x14015C3C0};

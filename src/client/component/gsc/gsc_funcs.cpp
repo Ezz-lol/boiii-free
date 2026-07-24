@@ -327,13 +327,16 @@ void VM_OP_CheckClearParams_Handler_stub(scriptInstance_t inst,
     VM_OP_CheckClearParams_Handler_orig(inst, fs, vmc, terminate);
 }
 
-void hook_opcode(vm::op::OP_TYPE opcode, vm::op::VM_OP_FUNC_PTR hook,
+void hook_opcode(vm::op::Opcode opcode, vm::op::VM_OP_FUNC_PTR hook,
                  vm::op::VM_OP_FUNC_PTR *out_orig) {
-  vm::op::VM_OP_FUNC_PTR *handler = vm::op::op_handler(opcode);
-  if (!*out_orig)
-    *out_orig = *handler;
-  if (*handler == *out_orig)
-    *handler = hook;
+  if (vm::op::OPCODE_BYTECODE_MAP.contains(opcode)) {
+    vm::op::VM_OP_FUNC_PTR *handler =
+        vm::op::op_handler(vm::op::OPCODE_BYTECODE_MAP.at(opcode)[0]);
+    if (!*out_orig)
+      *out_orig = *handler;
+    if (*handler == *out_orig)
+      *handler = hook;
+  }
 }
 
 // =====================================================
@@ -1394,9 +1397,11 @@ struct component final : generic_component {
 
     register_builtin("conststring", gscr_conststring, 1);
 
-    hook_opcode(0x01D2, VM_OP_SafeCreateLocalVariables_Handler_stub,
+    hook_opcode(game::scr::vm::op::Opcode::SafeCreateLocalVariables,
+                VM_OP_SafeCreateLocalVariables_Handler_stub,
                 &VM_OP_SafeCreateLocalVariables_Handler_orig);
-    hook_opcode(0x000D, VM_OP_CheckClearParams_Handler_stub,
+    hook_opcode(game::scr::vm::op::Opcode::CheckClearParams,
+                VM_OP_CheckClearParams_Handler_stub,
                 &VM_OP_CheckClearParams_Handler_orig);
 
     game_event::on_g_shutdown_game([] {

@@ -8,6 +8,13 @@ using namespace game::scr;
 
 constexpr uint64_t T7_MAGIC = 0x1C000A0D43534780;
 
+struct hash_name_pair {
+  uint32_t hash;
+  std::string name;
+  int line;
+  uint8_t params;
+};
+
 // Special namespace that immediately indicates to engine's linker that this is
 // a builtin function
 constexpr const char *GSCR_SYS_NS = "sys";

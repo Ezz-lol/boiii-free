@@ -114,16 +114,16 @@ WEAK symbol<EngineDependentDvarMut(
     bool isSessionModeDvar)>
     Dvar_RegisterVariant{0x1422C4EA0, 0x140577A90};
 WEAK symbol<EngineDependentDvarMut(dvarStrHash_t hash, const char *dvarName,
-                                   bool value, uint32_t flags,
+                                   bool value, DvarFlags flags,
                                    const char *description)>
     Dvar_RegisterBool{0x1422D0900, 0x14057B500};
 WEAK symbol<EngineDependentDvarMut(dvarStrHash_t hash, const char *dvarName,
                                    int32_t value, int32_t min, int32_t max,
-                                   uint32_t flags, const char *description)>
+                                   DvarFlags flags, const char *description)>
     Dvar_RegisterInt{0x1422D0AE0, 0x14057B7B0};
 WEAK symbol<EngineDependentDvarMut(dvarStrHash_t hash, const char *dvarName,
                                    float value, float min, float max,
-                                   uint32_t flags, const char *description)>
+                                   DvarFlags flags, const char *description)>
     Dvar_RegisterFloat{0x1422D0A60, 0x14057B6B0};
 WEAK symbol<EngineDependentDvarMut(dvarStrHash_t hash, const char *dvarName,
                                    bool value, DvarFlags flags,

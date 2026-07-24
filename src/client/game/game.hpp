@@ -33,6 +33,12 @@ std::filesystem::path get_appdata_path();
 std::filesystem::path get_game_path();
 std::vector<std::string> get_registered_dvar_names();
 size_t get_registered_dvar_name_count();
+
+#ifdef NDEBUG
+inline void printfdebug([[maybe_unused]] const char *format, ...) { return; }
+#else
+void printfdebug(const char *format, ...);
+#endif
 } // namespace game
 
 #include "symbol.hpp"          // IWYU pragma: export

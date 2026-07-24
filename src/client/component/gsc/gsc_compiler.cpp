@@ -624,7 +624,7 @@ void collect_addcommand_callbacks(
   }
 
   if (node->type == node_type::n_expression_stmt && !node->children.empty()) {
-    const auto &expr = node->children[0];
+    const std::shared_ptr<ast_node> &expr = node->children[0];
     if (expr && expr->type == node_type::n_call && expr->children.size() >= 2) {
       std::string call_name = to_lower_copy(expr->value);
       const bool is_local_call = expr->children[0]->value.empty();
@@ -667,7 +667,7 @@ void collect_addcommand_callbacks(
     }
   }
 
-  for (const auto &child : node->children) {
+  for (const std::shared_ptr<ast_node> &child : node->children) {
     collect_addcommand_callbacks(child, entries, error);
   }
 }
@@ -747,7 +747,8 @@ bool append_generated_addcommand_dispatch(const ast_ptr &root,
   }
 
   std::sort(entries.begin(), entries.end(),
-            [](const auto &lhs, const auto &rhs) {
+            [](const addcommand_callback_entry &lhs,
+               const addcommand_callback_entry &rhs) {
               return lhs.command_name < rhs.command_name;
             });
 
@@ -757,7 +758,7 @@ bool append_generated_addcommand_dispatch(const ast_ptr &root,
     return true;
   }
 
-  auto generated_lex = tokenize(generated_source);
+  const lexer_result generated_lex = tokenize(generated_source);
   if (!generated_lex.success) {
     error = "internal addcommand callback generation failed while tokenizing "
             "for '" +
@@ -765,7 +766,7 @@ bool append_generated_addcommand_dispatch(const ast_ptr &root,
     return false;
   }
 
-  auto generated_parse = parse(generated_lex.tokens);
+  const parse_result generated_parse = parse(generated_lex.tokens);
   if (!generated_parse.success) {
     error =
         "internal addcommand callback generation failed while parsing for '" +
@@ -802,7 +803,7 @@ compile_result compile(const std::string &source, const std::string &filename) {
   }
 
   // Step 1: Tokenize
-  auto lex_result = tokenize(preprocessed);
+  const lexer_result lex_result = tokenize(preprocessed);
   if (!lex_result.success) {
     result.errors.push_back({lex_result.error, filename, lex_result.error_line,
                              lex_result.error_column});
@@ -810,7 +811,7 @@ compile_result compile(const std::string &source, const std::string &filename) {
   }
 
   // Step 2: Parse
-  auto parse_res = parse(lex_result.tokens);
+  const parse_result parse_res = parse(lex_result.tokens);
   if (!parse_res.success) {
     result.errors.push_back({parse_res.error, filename, parse_res.error_line,
                              parse_res.error_column});
@@ -834,7 +835,7 @@ compile_result compile(const std::string &source, const std::string &filename) {
 
   result.success = true;
   result.bytecode = std::move(emit_result.data);
-  for (auto &hn : emit_result.hash_names)
+  for (const gsc::hash_name_pair &hn : emit_result.hash_names)
     result.hash_names.push_back(
         {hn.hash, std::move(hn.name), hn.line, hn.params});
   result.replacefuncs = std::move(emit_result.replacefuncs);
