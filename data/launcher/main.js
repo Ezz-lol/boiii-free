@@ -3808,6 +3808,9 @@
       getExternal().getSelectedVersion &&
       getExternal().getSelectedVersion();
     if (sv) {
+      if (/^boiii-.+\.exe$/i.test(sv)) {
+        sv = sv.substring(6, sv.length - 4);
+      }
       _selectedVersion = sv;
     }
   } catch (e) {}
