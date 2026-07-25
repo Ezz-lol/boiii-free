@@ -19,7 +19,7 @@ constexpr int32_t TEMP_ENTITY_SOUND_NOTIFY_EVENT =
 void G_RegisterSoundWait_Impl(level::gentity_s *ent, snd::SndAliasId id,
                               scr::ScrString_t notifyString) {
 
-  scr::ScrString_t tempNotifyString;
+  scr::ScrString_t tempNotifyString = 0;
   scr::Scr_SetString(&tempNotifyString, notifyString);
 
   scr::ScrString_t currentPlaybackNotifyString = ent->snd_wait.notifyString;

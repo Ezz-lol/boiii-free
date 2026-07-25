@@ -1,6 +1,28 @@
 #include <std_include.hpp>
+#include <functional>
 
 #include "dump.hpp"
+
+struct DumpEntry {
+  game::db::xasset::XAssetType type;
+  std::string name;
+
+  bool operator==(const DumpEntry &other) const {
+    return type == other.type && name == other.name;
+  }
+};
+
+namespace std {
+template <> struct hash<DumpEntry> {
+  std::size_t operator()(const DumpEntry &p) const noexcept {
+    // Compute individual hashes
+    std::size_t h1 = std::hash<int32_t>{}(static_cast<int32_t>(p.type));
+    std::size_t h2 = std::hash<std::string>{}(p.name);
+
+    return h1 ^ (h2 << 1);
+  }
+};
+} // namespace std
 
 namespace dump {
 using namespace game;
@@ -47,12 +69,22 @@ AssetBytes asset_bytes(const XAssetType type, const char *name,
   return result;
 }
 
+static std::unordered_set<DumpEntry> dumped;
+std::recursive_mutex dump_lock;
+
 void dump_requested_assets(const XAssetType type, const char *name,
                            XAssetHeader header) {
 
   if (extract_assets() && readable_ptr(name) && name[0] &&
       readable_ptr(header.named) && readable_ptr(header.named->name) &&
       header.named->name[0] && std::regex_match(name, extract_pattern())) {
+    std::lock_guard<std::recursive_mutex> lock(dump_lock);
+    const DumpEntry map_entry = {type, std::string(name)};
+    if (dumped.contains(map_entry)) {
+      return;
+    }
+
+    dumped.insert(map_entry);
     const std::filesystem::path output_tree_root = asset_output();
     if (!std::filesystem::exists(output_tree_root)) {
       std::filesystem::create_directories(output_tree_root);

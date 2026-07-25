@@ -1,111 +1,123 @@
 (function () {
-  var emberCanvas = document.getElementById("emberCanvas");
-  if (emberCanvas && emberCanvas.getContext) {
-    var emberContext = emberCanvas.getContext("2d", { alpha: true });
-    var embers = [];
-    var nextEmber = 0;
+  try {
+    var emberCanvas = document.getElementById("emberCanvas");
+    if (emberCanvas && emberCanvas.getContext) {
+      var emberContext = emberCanvas.getContext("2d", { alpha: true });
+      var embers = [];
+      var nextEmber = 0;
 
-    function createEmberSprite(gold) {
-      var sprite = document.createElement("canvas");
-      sprite.width = 18;
-      sprite.height = 32;
-      var context = sprite.getContext("2d", { alpha: true });
-      var glow = context.createRadialGradient(9, 17, 0, 9, 17, 9);
-      glow.addColorStop(
-        0,
-        gold ? "rgba(255,194,92,.3)" : "rgba(249,94,18,.26)"
-      );
-      glow.addColorStop(0.48, "rgba(249,115,22,.1)");
-      glow.addColorStop(1, "rgba(249,115,22,0)");
-      context.fillStyle = glow;
-      context.beginPath();
-      context.ellipse(9, 17, 8, 13, 0, 0, Math.PI * 2);
-      context.fill();
-
-      var flame = context.createLinearGradient(9, 5, 9, 27);
-      flame.addColorStop(0, "rgba(255,230,170,0)");
-      flame.addColorStop(
-        0.34,
-        gold ? "rgba(255,213,128,.96)" : "rgba(255,151,57,.92)"
-      );
-      flame.addColorStop(
-        0.72,
-        gold ? "rgba(255,161,47,.72)" : "rgba(240,69,12,.7)"
-      );
-      flame.addColorStop(1, "rgba(210,38,5,0)");
-      context.fillStyle = flame;
-      context.beginPath();
-      context.moveTo(9, 4);
-      context.bezierCurveTo(13, 11, 12, 20, 9, 28);
-      context.bezierCurveTo(6, 21, 5, 12, 9, 4);
-      context.fill();
-      return sprite;
-    }
-
-    var orangeEmber = createEmberSprite(false);
-    var goldEmber = createEmberSprite(true);
-
-    function addEmber(initial) {
-      var life = 105 + Math.random() * 70;
-      embers.push({
-        x: Math.random() * emberCanvas.width,
-        y:
-          emberCanvas.height *
-          (initial ? 0.18 + Math.random() * 0.76 : 0.55 + Math.random() * 0.45),
-        vx: (Math.random() - 0.5) * 0.34,
-        vy: 0.32 + Math.random() * 0.44,
-        scale: 0.48 + Math.random() * 0.34,
-        life: life,
-        maxLife: life,
-        gold: Math.random() > 0.72,
-      });
-    }
-
-    function resizeEmbers() {
-      emberCanvas.width = window.innerWidth;
-      emberCanvas.height = window.innerHeight;
-    }
-
-    function animateEmbers() {
-      if (document.body.classList.contains("reduced-motion")) {
-        embers.length = 0;
-        emberContext.clearRect(0, 0, emberCanvas.width, emberCanvas.height);
-        setTimeout(animateEmbers, 500);
-        return;
-      }
-
-      var now = Date.now();
-      if (now >= nextEmber && embers.length < 26) {
-        addEmber(false);
-        nextEmber = now + 260 + Math.random() * 280;
-      }
-
-      emberContext.clearRect(0, 0, emberCanvas.width, emberCanvas.height);
-      for (var i = embers.length - 1; i >= 0; i--) {
-        var ember = embers[i];
-        ember.x += ember.vx;
-        ember.y -= ember.vy;
-        ember.life--;
-        if (ember.life <= 0) {
-          embers.splice(i, 1);
-          continue;
+      function createEmberSprite(gold) {
+        var sprite = document.createElement("canvas");
+        sprite.width = 18;
+        sprite.height = 32;
+        var context = sprite.getContext("2d", { alpha: true });
+        var glow = context.createRadialGradient(9, 17, 0, 9, 17, 9);
+        glow.addColorStop(
+          0,
+          gold ? "rgba(255,194,92,.3)" : "rgba(249,94,18,.26)"
+        );
+        glow.addColorStop(0.48, "rgba(249,115,22,.1)");
+        glow.addColorStop(1, "rgba(249,115,22,0)");
+        context.fillStyle = glow;
+        context.beginPath();
+        if (context.ellipse) {
+          context.ellipse(9, 17, 8, 13, 0, 0, Math.PI * 2);
+        } else {
+          context.save();
+          context.translate(9, 17);
+          context.scale(1, 1.625);
+          context.arc(0, 0, 8, 0, Math.PI * 2);
+          context.restore();
         }
-        var alpha = Math.min(0.76, (ember.life / ember.maxLife) * 0.76);
-        emberContext.save();
-        emberContext.globalAlpha = alpha;
-        emberContext.translate(ember.x, ember.y);
-        emberContext.rotate(ember.vx * 0.7);
-        emberContext.scale(ember.scale, ember.scale);
-        emberContext.drawImage(ember.gold ? goldEmber : orangeEmber, -9, -16);
-        emberContext.restore();
-      }
-      setTimeout(animateEmbers, 50);
-    }
+        context.fill();
 
-    resizeEmbers();
-    for (var ei = 0; ei < 16; ei++) addEmber(true);
-    window.addEventListener("resize", resizeEmbers);
-    animateEmbers();
+        var flame = context.createLinearGradient(9, 5, 9, 27);
+        flame.addColorStop(0, "rgba(255,230,170,0)");
+        flame.addColorStop(
+          0.34,
+          gold ? "rgba(255,213,128,.96)" : "rgba(255,151,57,.92)"
+        );
+        flame.addColorStop(
+          0.72,
+          gold ? "rgba(255,161,47,.72)" : "rgba(240,69,12,.7)"
+        );
+        flame.addColorStop(1, "rgba(210,38,5,0)");
+        context.fillStyle = flame;
+        context.beginPath();
+        context.moveTo(9, 4);
+        context.bezierCurveTo(13, 11, 12, 20, 9, 28);
+        context.bezierCurveTo(6, 21, 5, 12, 9, 4);
+        context.fill();
+        return sprite;
+      }
+
+      var orangeEmber = createEmberSprite(false);
+      var goldEmber = createEmberSprite(true);
+
+      function addEmber(initial) {
+        var life = 105 + Math.random() * 70;
+        embers.push({
+          x: Math.random() * emberCanvas.width,
+          y:
+            emberCanvas.height *
+            (initial ? 0.18 + Math.random() * 0.76 : 0.55 + Math.random() * 0.45),
+          vx: (Math.random() - 0.5) * 0.34,
+          vy: 0.32 + Math.random() * 0.44,
+          scale: 0.48 + Math.random() * 0.34,
+          life: life,
+          maxLife: life,
+          gold: Math.random() > 0.72
+        });
+      }
+
+      function resizeEmbers() {
+        emberCanvas.width = window.innerWidth;
+        emberCanvas.height = window.innerHeight;
+      }
+
+      function animateEmbers() {
+        if (document.body.classList.contains("reduced-motion")) {
+          embers.length = 0;
+          emberContext.clearRect(0, 0, emberCanvas.width, emberCanvas.height);
+          setTimeout(animateEmbers, 500);
+          return;
+        }
+
+        var now = Date.now();
+        if (now >= nextEmber && embers.length < 26) {
+          addEmber(false);
+          nextEmber = now + 260 + Math.random() * 280;
+        }
+
+        emberContext.clearRect(0, 0, emberCanvas.width, emberCanvas.height);
+        for (var i = embers.length - 1; i >= 0; i--) {
+          var ember = embers[i];
+          ember.x += ember.vx;
+          ember.y -= ember.vy;
+          ember.life--;
+          if (ember.life <= 0) {
+            embers.splice(i, 1);
+            continue;
+          }
+          var alpha = Math.min(0.76, (ember.life / ember.maxLife) * 0.76);
+          emberContext.save();
+          emberContext.globalAlpha = alpha;
+          emberContext.translate(ember.x, ember.y);
+          emberContext.rotate(ember.vx * 0.7);
+          emberContext.scale(ember.scale, ember.scale);
+          emberContext.drawImage(ember.gold ? goldEmber : orangeEmber, -9, -16);
+          emberContext.restore();
+        }
+        setTimeout(animateEmbers, 50);
+      }
+
+      resizeEmbers();
+      for (var ei = 0; ei < 16; ei++) addEmber(true);
+      window.addEventListener("resize", resizeEmbers);
+      animateEmbers();
+    }
+  } catch (e) {
+    if (emberCanvas) emberCanvas.style.display = "none";
   }
 
   var playerName = document.getElementById("playerName");
@@ -140,6 +152,7 @@
   var versionOptions = document.getElementById("versionOptions");
   var _versionsData = {};
   var _selectedVersion = "latest";
+  var _latestVersionTag = "";
 
   var workshopBrowseGrid = document.getElementById("workshopBrowseGrid");
   var workshopSearchInput = document.getElementById("workshopSearchInput");
@@ -207,7 +220,7 @@
     };
   }
 
-  if (!Element.prototype.closest) {
+  if (window.Element && !Element.prototype.closest) {
     Element.prototype.closest = function (selector) {
       var el = this;
       while (el && el.nodeType === 1) {
@@ -217,24 +230,6 @@
       }
       return null;
     };
-  }
-
-  function enableClipboard(element) {
-    if (!element) return;
-    element.oncopy = null;
-    element.oncut = null;
-    element.onpaste = null;
-    element.setAttribute("unselectable", "off");
-    element.onselectstart = function () {
-      return true;
-    };
-    element.style.userSelect = "text";
-    element.style.webkitUserSelect = "text";
-    element.style.MozUserSelect = "text";
-    element.style.msUserSelect = "text";
-    element.style.cursor = "text";
-    if (!element.hasAttribute("tabindex"))
-      element.setAttribute("tabindex", "0");
   }
 
   function escapeHtml(str) {
@@ -387,13 +382,19 @@
                   args.push(arguments[i]);
                 rawBridge.__request = JSON.stringify({
                   name: String(name),
-                  args: args,
+                  args: args
                 });
                 return rawBridge.__response;
               };
-            },
+            }
           }
         );
+        return externalBridge;
+      }
+    } catch (e) {}
+    try {
+      if (window.external) {
+        externalBridge = window.external;
         return externalBridge;
       }
     } catch (e) {
@@ -402,10 +403,6 @@
     return null;
   }
   window.getExternal = getExternal;
-
-  enableClipboard(playerName);
-  enableClipboard(workshopId);
-  enableClipboard(workshopSearchInput);
 
   var gearBtn = document.getElementById("gearBtn");
   var launchDropdown = document.getElementById("launchDropdown");
@@ -547,6 +544,19 @@
   var navBtns = document.querySelectorAll(".nav-btn");
   var pages = document.querySelectorAll(".page");
   var activePage = "main";
+  var isWine = false;
+  var wineWorkshopNoticeShown = false;
+
+  try {
+    isWine = getExternal().isWine() === true;
+  } catch (e) {}
+
+  function showWineWorkshopNotice() {
+    showMessage(
+      "Workshop on Wine",
+      "You can browse the Workshop on Wine, but downloads are currently unavailable because SteamCMD does not work through Wine. You can still open item pages on Steam."
+    );
+  }
 
   function setPage(targetPage) {
     activePage = targetPage;
@@ -560,6 +570,11 @@
     }
     var targetEl = document.getElementById(targetPage + "Page");
     if (targetEl) targetEl.classList.add("active");
+
+    if (targetPage === "workshop" && isWine && !wineWorkshopNoticeShown) {
+      wineWorkshopNoticeShown = true;
+      showWineWorkshopNotice();
+    }
 
     if (targetPage === "library") {
       if (!modsInitialized) refreshModsGrid();
@@ -790,7 +805,7 @@
           workshopBrowseSearchTerm,
           workshopBrowseSource,
           workshopBrowseError,
-          workshopBrowseItems.length,
+          workshopBrowseItems.length
         ].join("|");
 
         if (renderKey !== lastRenderKey) {
@@ -1519,6 +1534,10 @@
   }
 
   function doStartWorkshopDownload(id, displayName) {
+    if (isWine) {
+      showWineWorkshopNotice();
+      return;
+    }
     try {
       var ex = getExternal();
       if (ex && ex.workshopDownload) {
@@ -2084,6 +2103,10 @@
         (function (itemId, itemName) {
           updateBtn.onclick = function (e) {
             e.stopPropagation();
+            if (isWine) {
+              showWineWorkshopNotice();
+              return;
+            }
             try {
               var ex = getExternal();
               if (ex && ex.workshopDownload) {
@@ -2316,6 +2339,10 @@
   };
 
   document.getElementById("checkUpdatesBtn").onclick = function () {
+    if (isWine) {
+      showWineWorkshopNotice();
+      return;
+    }
     var wsStatus = document.getElementById("workshopStatus");
     try {
       var ex = getExternal();
@@ -2426,7 +2453,7 @@
   var componentSelection = {
     campaign: false,
     multiplayer: false,
-    zombies: false,
+    zombies: false
   };
   var modeFilesInfo = {};
 
@@ -2437,7 +2464,7 @@
     componentSelection = {
       campaign: false,
       multiplayer: false,
-      zombies: false,
+      zombies: false
     };
     try {
       var ex = getExternal();
@@ -2453,7 +2480,7 @@
     var items = [
       { id: "campaign", name: "Campaign", prefix: "cp_" },
       { id: "multiplayer", name: "Multiplayer", prefix: "mp_" },
-      { id: "zombies", name: "Zombies", prefix: "zm_" },
+      { id: "zombies", name: "Zombies", prefix: "zm_" }
     ];
     list.innerHTML = "";
     for (var i = 0; i < items.length; i++) {
@@ -2461,7 +2488,7 @@
       var info = modeFilesInfo[it.id] || {
         count: 0,
         size: 0,
-        sizeHuman: "0 B",
+        sizeHuman: "0 B"
       };
       var installed = info.count > 0;
       var sizeText = installed
@@ -2512,7 +2539,7 @@
     var nameMap = {
       campaign: "Campaign",
       multiplayer: "Multiplayer",
-      zombies: "Zombies",
+      zombies: "Zombies"
     };
     for (var key in componentSelection) {
       if (
@@ -2938,7 +2965,7 @@
   setupPathBtn("setPathBtn", ["currentPathDisplay", "settingsPathDisplay"]);
   setupPathBtn("settingsChangePathBtn", [
     "currentPathDisplay",
-    "settingsPathDisplay",
+    "settingsPathDisplay"
   ]);
 
   var settingsTabs = document.querySelectorAll(".settings-tab");
@@ -2975,7 +3002,7 @@
     drawFps: false,
     smoothFramerate: false,
     unlockGfx: false,
-    fullVram: false,
+    fullVram: false
   };
 
   var ASSET_POOL_DEFAULTS = {
@@ -3010,7 +3037,7 @@
     ap_xcam: 256,
     ap_tracer: 128,
     ap_vehicledef: 128,
-    ap_ttf: 64,
+    ap_ttf: 64
   };
 
   function loadAllSettings() {
@@ -3729,6 +3756,14 @@
     }
   }, 5000);
 
+  function versionTagFromStored(value) {
+    if (!value) return value;
+    var tag = value;
+    if (tag.indexOf("boiii-") === 0) tag = tag.substring("boiii-".length);
+    if (tag.slice(-4) === ".exe") tag = tag.slice(0, -4);
+    return tag;
+  }
+
   function selectVersion(value, label) {
     _selectedVersion = value;
     if (verDropText) verDropText.textContent = label;
@@ -3753,7 +3788,7 @@
     } catch (e) {}
   }
 
-  function addVersionOption(value, label) {
+  function addVersionOption(value, label, prepend) {
     if (!versionOptions) return;
     var div = document.createElement("div");
     div.className = "version-selector-option";
@@ -3762,7 +3797,11 @@
     div.onclick = function () {
       selectVersion(value, label);
     };
-    versionOptions.appendChild(div);
+    if (prepend && versionOptions.firstChild) {
+      versionOptions.insertBefore(div, versionOptions.firstChild);
+    } else {
+      versionOptions.appendChild(div);
+    }
   }
 
   if (verDropDisplay) {
@@ -3776,11 +3815,17 @@
     };
   }
 
+  function getLatestLabel() {
+    return _latestVersionTag
+      ? _latestVersionTag + " (Latest)"
+      : "Latest (Auto-update)";
+  }
+
   if (versionOptions) {
     var defaultOpt = versionOptions.querySelector(".version-selector-option");
     if (defaultOpt) {
       defaultOpt.onclick = function () {
-        selectVersion("latest", "Latest (Auto-update)");
+        selectVersion("latest", getLatestLabel());
       };
     }
   }
@@ -3808,10 +3853,12 @@
       getExternal().getSelectedVersion &&
       getExternal().getSelectedVersion();
     if (sv) {
-      if (/^boiii-.+\.exe$/i.test(sv)) {
-        sv = sv.substring(6, sv.length - 4);
-      }
-      _selectedVersion = sv;
+      _selectedVersion = versionTagFromStored(sv);
+
+      var initialLabel = getLatestLabel();
+      if (_selectedVersion === "beta") initialLabel = "Beta (Experimental)";
+      else if (_selectedVersion !== "latest") initialLabel = _selectedVersion;
+      selectVersion(_selectedVersion, initialLabel);
     }
   } catch (e) {}
 
@@ -3827,6 +3874,15 @@
       if (xhr.status === 200) {
         try {
           var releases = JSON.parse(xhr.responseText);
+          if (releases && Array.isArray(releases) && releases.length) {
+            _latestVersionTag = releases[0].tag_name;
+            var defaultOptEl = versionOptions.querySelector(
+              '.version-selector-option[data-value="latest"]'
+            );
+            if (defaultOptEl) {
+              defaultOptEl.textContent = getLatestLabel();
+            }
+          }
           if (releases && Array.isArray(releases)) {
             for (var i = 0; i < releases.length; i++) {
               var rel = releases[i];
@@ -3842,20 +3898,20 @@
               if (boiiiAsset) {
                 _versionsData[tagName] = {
                   url: boiiiAsset.browser_download_url,
-                  name: "versions/boiii-" + tagName + ".exe",
+                  name: "versions/boiii-" + tagName + ".exe"
                 };
-                addVersionOption(tagName, tagName);
+                // The newest release is already represented by the Latest
+                // entry, so skip adding it a second time as its own row.
+                if (tagName !== _latestVersionTag) {
+                  addVersionOption(tagName, tagName);
+                }
               }
             }
           }
           // After loading all versions, ensure UI reflects saved selection
-          var label = "Latest (Auto-update)";
+          var label = getLatestLabel();
           if (_selectedVersion === "beta") label = "Beta (Experimental)";
-          else if (
-            _selectedVersion !== "latest" &&
-            _versionsData[_selectedVersion]
-          )
-            label = _selectedVersion;
+          else if (_selectedVersion !== "latest") label = _selectedVersion;
           selectVersion(_selectedVersion, label);
         } catch (e) {
           console.error("Error parsing releases:", e);
@@ -3867,14 +3923,15 @@
     xhr.send();
   }
 
-  fetchReleases();
-
-  // Beta build
+  // Beta build - added first and prepended so it stays pinned at the top
+  // of the list regardless of when the releases fetch below resolves.
   _versionsData["beta"] = {
     url: "https://r2.ezz.lol/boiii/beta/boiii.exe",
-    name: "versions/boiii-beta.exe",
+    name: "versions/boiii-beta.exe"
   };
-  addVersionOption("beta", "Beta (Experimental)");
+  addVersionOption("beta", "Beta (Experimental)", true);
+
+  fetchReleases();
 
   var creditsPopup = document.getElementById("creditsPopup");
   var versionDisplay = document.getElementById("versionDisplay");

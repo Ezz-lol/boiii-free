@@ -8,6 +8,11 @@ using namespace game::scr;
 using namespace game::scr::var;
 using namespace game::scr::builtin;
 
+extern std::unordered_map<uint8_t *, uint8_t *> function_replacements;
+extern std::unordered_map<game::ClientNum_t, std::unordered_set<std::string>>
+    client_dvar_changes;
+extern std::atomic_bool detours_enabled;
+
 namespace custom_builtins {
 template <typename Def> struct CustomBuiltinMap {
   std::unordered_map<ScrVarCanonicalName_t, Def> map;

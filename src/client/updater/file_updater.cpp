@@ -33,9 +33,7 @@ std::string get_selected_version() {
   return "latest";
 }
 
-bool should_skip_host_update() {
-  return get_selected_version() != "latest";
-}
+bool should_skip_host_update() { return get_selected_version() != "latest"; }
 
 std::string get_update_file() {
   if (get_selected_version() == "beta") {
@@ -194,9 +192,8 @@ void file_updater::run() const {
   }
 
 #ifndef NDEBUG
-  const auto *host_file = should_skip_host_update()
-                              ? nullptr
-                              : find_host_file_info(files);
+  const auto *host_file =
+      should_skip_host_update() ? nullptr : find_host_file_info(files);
   if (host_file) {
     std::string data{};
     const auto drive_name = this->get_drive_filename(*host_file);

@@ -7,13 +7,13 @@ namespace scr {
 namespace var {
 WEAK symbol<ScrVarIndex_t(scriptInstance_t inst)> ScrVar_AllocArray{
     0x1412D9480, 0x140165A50};
-WEAK symbol<void(scriptInstance_t inst, ScrVarValue_t *value)>
+WEAK symbol<void(scriptInstance_t inst, volatile ScrVarValue_t *value)>
     ScrVar_AddRefValue{0x1412D9350, 0x1401657E0};
-WEAK symbol<void(scriptInstance_t inst, ScrVarValue_t *value)>
+WEAK symbol<void(scriptInstance_t inst, volatile ScrVarValue_t *value)>
     ScrVar_ReleaseValue{0x1412E0010, 0x14016C7C0};
 WEAK symbol<uint32_t(scriptInstance_t inst, ScrVarIndex_t id)>
     ScrVar_ReleaseVariable{0x1412E0170, 0x14016C950};
-WEAK symbol<void(scriptInstance_t inst, ScrVarValue_t *value)>
+WEAK symbol<void(scriptInstance_t inst, volatile ScrVarValue_t *value)>
     ScrVar_CastVector{0x1412DAFA0, 0x140167420};
 WEAK symbol<ScrVarIndex_t(scriptInstance_t inst)> ScrVar_AllocStruct{
     0x1412D9840, 0x140165D00};
@@ -28,19 +28,19 @@ WEAK symbol<ScrVarValue_t *(ScrVarValue_t *retstr, scriptInstance_t inst,
                             ScrVarIndex_t id)>
     ScrVar_EvalVariable{0x1412DDF30, 0x14016A5B0};
 
-WEAK symbol<void(scriptInstance_t inst, ScrVarValue_t *value,
-                 ScrVarValue_t *index)>
+WEAK symbol<void(scriptInstance_t inst, volatile ScrVarValue_t *value,
+                 volatile ScrVarValue_t *index)>
     ScrVar_EvalArray{0x1412DBED0, 0x1401682E0};
 WEAK symbol<ScrVarIndex_t(scriptInstance_t inst, ScrVarIndex_t parentId,
-                          ScrVarValue_t *index)>
+                          volatile ScrVarValue_t *index)>
     ScrVar_EvalArrayIndex{0x1412DC1D0, 0x140168610};
 WEAK symbol<ScrVarValue_t *(ScrVarValue_t *retstr, scriptInstance_t inst,
                             ScrVarIndex_t entId,
                             ScrVarNameIndex_t fieldNameIndex)>
     ScrVar_EvalEntityField{0x1412DCB30, 0x140168FC0};
-WEAK symbol<bool(scriptInstance_t inst, ScrVarValue_t *value)> ScrVar_EvalBool{
-    0x1412CCE10, 0x14015AEE0};
-WEAK symbol<bool(scriptInstance_t inst, ScrVarValue_t *value)>
+WEAK symbol<bool(scriptInstance_t inst, volatile ScrVarValue_t *value)>
+    ScrVar_EvalBool{0x1412CCE10, 0x14015AEE0};
+WEAK symbol<bool(scriptInstance_t inst, volatile ScrVarValue_t *value)>
     ScrVar_EvalFloatBool{0x1412DACF0, 0x140167170};
 
 WEAK symbol<void(scriptInstance_t inst, uint32_t classnum,
@@ -72,7 +72,8 @@ WEAK symbol<uint32_t(scriptInstance_t inst, ScrVarIndex_t id)> ScrVar_ArraySize{
 WEAK symbol<scr_funcptr_t(scriptInstance_t inst, ScrVarIndex_t classInstance,
                           ScrVarCanonicalName_t functionName)>
     ScrVar_ClassVtableLookup{0x1412DB0B0, 0x140167530};
-WEAK symbol<void(scriptInstance_t inst, ScrVarIndex_t id, ScrVarValue_t *value)>
+WEAK symbol<void(scriptInstance_t inst, ScrVarIndex_t id,
+                 volatile ScrVarValue_t *value)>
     ScrVar_ClearArray{0x0, 0x140168A00};
 WEAK symbol<void(scriptInstance_t inst, ScrVarIndex_t id)> ScrVar_ClearVariable{
     0x1412DB690};
@@ -151,7 +152,7 @@ WEAK symbol<ScrVarIndex_t(scriptInstance_t inst, ScrVarIndex_t id)>
 WEAK symbol<void(scriptInstance_t inst, ScrVarIndex_t id)> ScrVar_Prune{
     0x1412DFBF0};
 WEAK symbol<void(scriptInstance_t inst, mem::MemoryFile *memFile,
-                 ScrVarValue_t *value)>
+                 volatile ScrVarValue_t *value)>
     ScrVar_ReadValue{0x1412D6F30};
 WEAK symbol<void(scriptInstance_t inst)> ScrVar_ReleaseTheFreeEntityList{
     0x1412DE3E0};
@@ -172,9 +173,11 @@ WEAK symbol<void(scriptInstance_t inst, mem::MemoryFile *memFile,
 WEAK symbol<ScrVarIndex_t(scriptInstance_t inst, ScrVarIndex_t id)> ScrVar_Self{
     0x1412E0900, 0x14016D0F0};
 WEAK symbol<void(scriptInstance_t inst, ScrVarIndex_t entId,
-                 ScrVarNameIndex_t fieldNameIndex, ScrVarValue_t *value)>
+                 ScrVarNameIndex_t fieldNameIndex,
+                 volatile ScrVarValue_t *value)>
     ScrVar_SetEntityFieldValue{0x1412E0920, 0x14016D110};
-WEAK symbol<void(scriptInstance_t inst, ScrVarIndex_t id, ScrVarValue_t *value)>
+WEAK symbol<void(scriptInstance_t inst, ScrVarIndex_t id,
+                 volatile ScrVarValue_t *value)>
     ScrVar_SetValue{0x1412E0B70, 0x14016D360};
 WEAK symbol<void(scriptInstance_t inst, ScrVarIndex_t id, uint32_t waitTime)>
     ScrVar_SetWaitTime{0x1412E0C00};

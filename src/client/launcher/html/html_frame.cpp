@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 
 #include "html_frame.hpp"
+#include "utils/nt.hpp"
 #include <wrl.h>
 
 namespace {
@@ -188,6 +189,10 @@ private:
 html_frame::html_frame() { setup_com(); }
 
 html_frame::~html_frame() {
+  if (this->browser_object_) {
+    this->browser_object_->Close(OLECLOSE_NOSAVE);
+    this->browser_object_.Release();
+  }
   this->host_object_.Release();
   this->webview_.Release();
   if (this->webview_controller_) {
@@ -202,6 +207,12 @@ void html_frame::initialize(const HWND window) {
   }
   this->window_ = window;
 
+  if (utils::nt::is_wine()) {
+    this->use_legacy_browser_ = true;
+    this->initialize_legacy_browser();
+    return;
+  }
+
   using Microsoft::WRL::Callback;
   const auto user_data_path = get_webview_data_path();
   const auto environment_handler = Callback<
@@ -209,7 +220,7 @@ void html_frame::initialize(const HWND window) {
       [this](const HRESULT result,
              ICoreWebView2Environment *environment) -> HRESULT {
         if (FAILED(result) || !environment) {
-          this->show_webview_error(result);
+          this->handle_webview_error(result);
           return S_OK;
         }
 
@@ -218,7 +229,7 @@ void html_frame::initialize(const HWND window) {
                 [this](const HRESULT controller_result,
                        ICoreWebView2Controller *controller) -> HRESULT {
                   if (FAILED(controller_result) || !controller) {
-                    this->show_webview_error(controller_result);
+                    this->handle_webview_error(controller_result);
                     return S_OK;
                   }
 
@@ -226,7 +237,7 @@ void html_frame::initialize(const HWND window) {
                   const auto view_result =
                       controller->get_CoreWebView2(&this->webview_);
                   if (FAILED(view_result) || !this->webview_) {
-                    this->show_webview_error(view_result);
+                    this->handle_webview_error(view_result);
                     return S_OK;
                   }
 
@@ -238,7 +249,7 @@ void html_frame::initialize(const HWND window) {
             environment->CreateCoreWebView2Controller(this->window_,
                                                       controller_handler.Get());
         if (FAILED(controller_result)) {
-          this->show_webview_error(controller_result);
+          this->handle_webview_error(controller_result);
         }
         return S_OK;
       });
@@ -247,7 +258,7 @@ void html_frame::initialize(const HWND window) {
       nullptr, user_data_path.empty() ? nullptr : user_data_path.c_str(),
       nullptr, environment_handler.Get());
   if (FAILED(result)) {
-    this->show_webview_error(result);
+    this->handle_webview_error(result);
   }
 }
 
@@ -273,7 +284,7 @@ void html_frame::configure_webview2() {
   const auto host_result =
       this->webview_->AddHostObjectToScript(L"external", &host);
   if (FAILED(host_result)) {
-    this->show_webview_error(host_result);
+    this->handle_webview_error(host_result);
     return;
   }
 
@@ -296,7 +307,47 @@ void html_frame::show_webview_error(const HRESULT result) const {
   PostMessageW(this->window_, WM_CLOSE, 0, 0);
 }
 
+void html_frame::handle_webview_error(const HRESULT result) {
+  if (!this->use_legacy_browser_ &&
+      (result == E_NOTIMPL || utils::nt::is_wine())) {
+    this->host_object_.Release();
+    this->webview_.Release();
+    if (this->webview_controller_) {
+      this->webview_controller_->Close();
+      this->webview_controller_.Release();
+    }
+
+    this->use_legacy_browser_ = true;
+    this->initialize_legacy_browser();
+    if (!this->browser_object_) {
+      return;
+    }
+
+    if (!this->pending_html_.empty()) {
+      const auto html = this->pending_html_;
+      this->load_html(html);
+    } else if (!this->pending_url_.empty()) {
+      const auto url = this->pending_url_;
+      this->load_url(url);
+    }
+    return;
+  }
+
+  this->show_webview_error(result);
+}
+
 void html_frame::resize(const DWORD width, const DWORD height) const {
+  if (this->use_legacy_browser_) {
+    const auto browser = this->get_legacy_browser();
+    if (browser) {
+      browser->put_Left(0);
+      browser->put_Top(0);
+      browser->put_Width(static_cast<LONG>(width));
+      browser->put_Height(static_cast<LONG>(height));
+    }
+    return;
+  }
+
   if (!this->webview_controller_) {
     return;
   }
@@ -307,6 +358,15 @@ void html_frame::resize(const DWORD width, const DWORD height) const {
 bool html_frame::load_url(const std::string &url) {
   this->pending_html_.clear();
   this->pending_url_ = url;
+  if (this->use_legacy_browser_) {
+    const auto browser = this->get_legacy_browser();
+    if (!browser) {
+      return false;
+    }
+    CComVariant address(to_wide(url).c_str());
+    return SUCCEEDED(
+        browser->Navigate2(&address, nullptr, nullptr, nullptr, nullptr));
+  }
   if (!this->webview_) {
     return true;
   }
@@ -317,6 +377,24 @@ bool html_frame::load_url(const std::string &url) {
 bool html_frame::load_html(const std::string &html) {
   this->pending_url_.clear();
   this->pending_html_ = html;
+  if (this->use_legacy_browser_) {
+    if (!this->load_url("about:blank")) {
+      return false;
+    }
+    CComPtr<IHTMLDocument2> document;
+    const auto dispatch = this->get_legacy_dispatch();
+    if (!dispatch || FAILED(dispatch.QueryInterface(&document)) || !document) {
+      return false;
+    }
+    CComSafeArrayBound bound;
+    bound.SetCount(1);
+    bound.SetLowerBound(0);
+    CComSafeArray<VARIANT> content(&bound, 1);
+    content[0] = CComVariant(to_wide(html).c_str());
+    document->write(content);
+    document->close();
+    return true;
+  }
   if (!this->webview_) {
     return true;
   }
@@ -347,4 +425,153 @@ void html_frame::register_callback(
     const std::function<CComVariant(const std::vector<html_argument> &)>
         &callback) {
   this->callbacks_.emplace_back(name, callback);
+}
+
+void html_frame::initialize_legacy_browser() {
+  CComPtr<IClassFactory> factory;
+  auto result = CoGetClassObject(
+      CLSID_WebBrowser, CLSCTX_INPROC_SERVER | CLSCTX_INPROC_HANDLER, nullptr,
+      IID_IClassFactory, reinterpret_cast<void **>(&factory));
+  if (SUCCEEDED(result) && factory) {
+    result = factory->CreateInstance(
+        nullptr, IID_IOleObject,
+        reinterpret_cast<void **>(&this->browser_object_));
+  }
+
+  if (FAILED(result) || !this->browser_object_) {
+    MessageBoxW(this->window_,
+                L"The Wine launcher browser could not start. Install the "
+                L"Wine Gecko package for this Wine prefix and try again.",
+                L"EZZ BOIII", MB_OK | MB_ICONERROR);
+    PostMessageW(this->window_, WM_CLOSE, 0, 0);
+    return;
+  }
+
+  this->browser_object_->SetClientSite(this);
+  this->browser_object_->SetHostNames(L"EZZ BOIII", nullptr);
+  RECT bounds{};
+  GetClientRect(this->window_, &bounds);
+  OleSetContainedObject(this->browser_object_, TRUE);
+  result = this->browser_object_->DoVerb(OLEIVERB_SHOW, nullptr, this, -1,
+                                         this->window_, &bounds);
+  if (FAILED(result)) {
+    MessageBoxW(this->window_,
+                L"Wine Gecko was found but the launcher browser could not "
+                L"be displayed.",
+                L"EZZ BOIII", MB_OK | MB_ICONERROR);
+    PostMessageW(this->window_, WM_CLOSE, 0, 0);
+    return;
+  }
+  this->resize(bounds.right - bounds.left, bounds.bottom - bounds.top);
+}
+
+CComPtr<IWebBrowser2> html_frame::get_legacy_browser() const {
+  CComPtr<IWebBrowser2> browser;
+  if (this->browser_object_) {
+    this->browser_object_.QueryInterface(&browser);
+  }
+  return browser;
+}
+
+CComPtr<IDispatch> html_frame::get_legacy_dispatch() const {
+  const auto browser = this->get_legacy_browser();
+  CComPtr<IDispatch> result;
+  if (browser) {
+    browser->get_Document(&result);
+  }
+  return result;
+}
+
+HRESULT html_frame::QueryInterface(REFIID interface_id, void **object) {
+  if (!object) {
+    return E_POINTER;
+  }
+  *object = nullptr;
+
+  if (IsEqualGUID(interface_id, IID_IUnknown) ||
+      IsEqualGUID(interface_id, IID_IOleClientSite)) {
+    *object = static_cast<IOleClientSite *>(this);
+  } else if (IsEqualGUID(interface_id, IID_IDispatch)) {
+    *object = static_cast<IDispatch *>(this);
+  } else if (IsEqualGUID(interface_id, IID_IServiceProvider)) {
+    *object = static_cast<IServiceProvider *>(this);
+  } else if (IsEqualGUID(interface_id, IID_IInternetSecurityManager)) {
+    *object = static_cast<IInternetSecurityManager *>(this);
+  } else if (IsEqualGUID(interface_id, IID_IOleInPlaceSite)) {
+    *object = static_cast<IOleInPlaceSite *>(this);
+  } else if (IsEqualGUID(interface_id, IID_IOleInPlaceFrame)) {
+    *object = static_cast<IOleInPlaceFrame *>(this);
+  } else if (IsEqualGUID(interface_id, IID_IDocHostUIHandler)) {
+    *object = static_cast<IDocHostUIHandler *>(this);
+  } else if (IsEqualGUID(interface_id, IID_IOleInPlaceObject) &&
+             this->browser_object_) {
+    return this->browser_object_->QueryInterface(interface_id, object);
+  } else {
+    return E_NOINTERFACE;
+  }
+
+  AddRef();
+  return S_OK;
+}
+
+HRESULT html_frame::GetHostInfo(DOCHOSTUIINFO *info) {
+  if (!info) {
+    return E_POINTER;
+  }
+  info->cbSize = sizeof(*info);
+  info->dwFlags = DOCHOSTUIFLAG_NO3DBORDER | DOCHOSTUIFLAG_DPI_AWARE |
+                  DOCHOSTUIFLAG_SCROLL_NO;
+  info->dwDoubleClick = DOCHOSTUIDBLCLK_DEFAULT;
+  return S_OK;
+}
+
+HRESULT html_frame::GetWindow(HWND *window) {
+  if (!window) {
+    return E_POINTER;
+  }
+  *window = this->window_;
+  return S_OK;
+}
+
+HRESULT html_frame::GetIDsOfNames(REFIID, LPOLESTR *names, const UINT count,
+                                  LCID, DISPID *ids) {
+  if (!names || !ids) {
+    return E_POINTER;
+  }
+  for (UINT i = 0; i < count; ++i) {
+    const auto id = this->get_callback_id(to_narrow(names[i]));
+    if (id < 0) {
+      ids[i] = DISPID_UNKNOWN;
+      return DISP_E_UNKNOWNNAME;
+    }
+    ids[i] = id;
+  }
+  return S_OK;
+}
+
+HRESULT html_frame::Invoke(const DISPID id, REFIID, LCID, WORD,
+                           DISPPARAMS *parameters, VARIANT *result, EXCEPINFO *,
+                           UINT *) {
+  if (id < 0) {
+    return DISP_E_MEMBERNOTFOUND;
+  }
+  std::vector<html_argument> arguments;
+  if (parameters) {
+    arguments.reserve(parameters->cArgs);
+    for (auto i = parameters->cArgs; i > 0; --i) {
+      arguments.emplace_back(parameters->rgvarg[i - 1]);
+    }
+  }
+  auto value = this->invoke_callback(id, arguments);
+  value.move_to(result);
+  return S_OK;
+}
+
+HRESULT html_frame::GetExternal(IDispatch **external) {
+  if (!external) {
+    return E_POINTER;
+  }
+  *external = static_cast<IDispatch *>(this);
+  AddRef();
+  return S_OK;
 }

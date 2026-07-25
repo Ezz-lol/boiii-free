@@ -476,7 +476,7 @@ void load_script_file(std::string &data, const std::string &script_file,
       std::string bytecode(result.bytecode.begin(), result.bytecode.end());
 
       // Store hash-to-name+line map from this compilation
-      for (gsc_compiler::hash_name_pair &hn : result.hash_names) {
+      for (gsc::hash_name_pair &hn : result.hash_names) {
         script_hash_names[hn.hash].push_back({hn.name, hn.line, hn.params});
       }
 

@@ -8,6 +8,13 @@ using namespace game::scr;
 
 constexpr uint64_t T7_MAGIC = 0x1C000A0D43534780;
 
+struct hash_name_pair {
+  uint32_t hash;
+  std::string name;
+  int line;
+  uint8_t params;
+};
+
 // Special namespace that immediately indicates to engine's linker that this is
 // a builtin function
 constexpr const char *GSCR_SYS_NS = "sys";
@@ -15,10 +22,11 @@ constexpr ScrVarCanonicalName_t GSCR_SYS_NS_HASH =
     game::scr::builtin::fnv1a(GSCR_SYS_NS);
 
 inline constexpr std::string_view SCR_HASH_LITERAL_PREFIXES[] = {
-    "hash", "id", "function", "var", "namespace"};
+    "hash", "var",  "variable", "id",        "function",
+    "fn",   "func", "var",      "namespace", "ns"};
 
 inline constexpr bool hash_literal_prefix(const std::string_view &s) {
-  for (uint32_t i = 0; i < ARRAYSIZE(SCR_HASH_LITERAL_PREFIXES); i++) {
+  for (uint32_t i = 0; i < ARRAYSIZE(SCR_HASH_LITERAL_PREFIXES); ++i) {
     if (s == SCR_HASH_LITERAL_PREFIXES[i]) {
       return true;
     }
