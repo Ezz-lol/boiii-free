@@ -189,6 +189,18 @@ newaction({
       versionFile:write(gitCommitHash)
       versionFile:close()
 
+      local defines = {
+        "GIT_DESCRIBE",
+        "GIT_DIRTY",
+        "GIT_HASH",
+        "GIT_TAG",
+        "GIT_BRANCH",
+        "VERSION_PRODUCT_RC",
+        "VERSION_PRODUCT",
+        "VERSION_FILE",
+        "VERSION GIT_DESCRIBE",
+      }
+
       -- write version header
       local versionHeader = assert(io.open(wks.location .. "/src/version.h", "w"))
       versionHeader:write("/*\n")
@@ -196,6 +208,9 @@ newaction({
       versionHeader:write(" * Do not touch!\n")
       versionHeader:write(" */\n")
       versionHeader:write("\n")
+      for _, def in ipairs(defines) do
+        versionHeader:write("#ifdef " .. def .. "\n" .. "#undef " .. def .. "\n" .. "#endif\n")
+      end
       versionHeader:write("#define GIT_DESCRIBE " .. gitDescribeOutputQuoted .. "\n")
       versionHeader:write("#define GIT_DIRTY " .. revDirty .. "\n")
       versionHeader:write("#define GIT_HASH " .. cstrquote(gitCommitHash) .. "\n")
@@ -215,6 +230,7 @@ newaction({
       )
       versionHeader:write("\n")
       versionHeader:write("// Alias definitions\n")
+
       versionHeader:write("#define VERSION GIT_DESCRIBE\n")
       versionHeader:write("#define SHORTVERSION VERSION_PRODUCT\n")
       versionHeader:close()
