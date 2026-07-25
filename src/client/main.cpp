@@ -961,7 +961,7 @@ int main(int argc, char *argv[]) {
         trigger_high_performance_gpu_switch();
 
         const bool launch = utils::flags::has_flag("launch");
-        if (!launch && !utils::nt::is_wine() && !launcher::run()) {
+        if (!launch && !launcher::run()) {
           return 0;
         }
 

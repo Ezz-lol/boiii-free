@@ -1325,6 +1325,16 @@ bool run() {
         });
 
     window.get_html_frame()->register_callback(
+        "isWine",
+        [](const std::vector<html_argument> & /*params*/) -> CComVariant {
+          CComVariant result;
+          result.vt = VT_BOOL;
+          result.boolVal =
+              utils::nt::is_wine() ? VARIANT_TRUE : VARIANT_FALSE;
+          return result;
+        });
+
+    window.get_html_frame()->register_callback(
         "openUrl", [](const std::vector<html_argument> &params) -> CComVariant {
           if (params.empty())
             return {};

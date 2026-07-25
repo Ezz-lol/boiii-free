@@ -60,7 +60,7 @@ textarea {
 
 html,
 body {
-  font-family: "Segoe UI", "Segoe UI Symbol", "Segoe UI Emoji", Tahoma, Arial, sans-serif;
+  font-family: "Segoe UI", "Liberation Sans", "DejaVu Sans", "Segoe UI Symbol", "Segoe UI Emoji", Tahoma, Arial, sans-serif;
   height: 100%;
   min-height: 100vh;
   display: flex;
@@ -182,7 +182,7 @@ body.reduced-motion #emberCanvas { display: none; }
   font-weight: 800;
   color: rgba(244, 240, 235, 0.85);
   letter-spacing: 0.06em;
-  font-family: 'Segoe UI Black', 'Segoe UI Bold', 'Segoe UI', Tahoma, Arial, sans-serif;
+  font-family: "Segoe UI Black", "Segoe UI Bold", "Segoe UI", "Liberation Sans", "DejaVu Sans", Tahoma, Arial, sans-serif;
 }
 
 .nav-logo-text em {
@@ -1375,7 +1375,7 @@ h1 {
   overflow-y: auto;
   flex: 1;
   white-space: pre-wrap;
-  font-family: "Segoe UI", "Segoe UI Symbol", "Segoe UI Emoji", Tahoma, Arial, sans-serif;
+  font-family: "Segoe UI", "Liberation Sans", "DejaVu Sans", "Segoe UI Symbol", "Segoe UI Emoji", Tahoma, Arial, sans-serif;
 }
 
 .workshop-modal-footer {
