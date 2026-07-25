@@ -123,8 +123,8 @@ std::optional<std::string> get_data(const std::string &url,
   curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
   curl_easy_setopt(curl, CURLOPT_USERAGENT, "ezz-updater/1.0");
   curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
   // Request raw data without encoding modifications
   curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING,
                    PREFERRED_ACCEPT_ENCODING_HEADER);
@@ -183,8 +183,8 @@ std::optional<std::string> post_data(const std::string &url,
   curl_easy_setopt(curl, CURLOPT_TIMEOUT, static_cast<long>(timeout_sec));
   curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
   curl_easy_setopt(curl, CURLOPT_USERAGENT, "ezz-updater/1.0");
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, header_list);
 
   const auto code = curl_easy_perform(curl);
@@ -229,8 +229,8 @@ int get_data_stream(const std::string &url, const headers &headers,
   curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
   curl_easy_setopt(curl, CURLOPT_USERAGENT, "ezz-updater/1.0");
   curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
-  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 1L);
+  curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 2L);
   curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING,
                    PREFERRED_ACCEPT_ENCODING_HEADER);
 

@@ -11,6 +11,7 @@
 #include <utils/http.hpp>
 #include <utils/flags.hpp>
 #include <utils/com.hpp>
+#include <utils/cryptography.hpp>
 #include <utils/progress_ui.hpp>
 
 #include <steam/steam.hpp>
@@ -123,6 +124,8 @@ constexpr uint32_t legacy_client_checksum = 0x8880704;
 
 constexpr const char *supported_client_patch_url =
     "https://archive.org/download/t7_full_game/BlackOps3.exe";
+constexpr const char *supported_client_patch_sha1 =
+    "9082c9fb766caec756c7b6409127f47aec0c9e51";
 
 enum class client_binary_state {
   supported,
@@ -196,6 +199,12 @@ std::optional<uint32_t> get_pe_checksum(const std::filesystem::path &file) {
   }
 
   return std::nullopt;
+}
+
+bool has_expected_client_patch_hash(const std::filesystem::path &file) {
+  std::ifstream stream(file, std::ios::binary);
+  return stream.is_open() && utils::cryptography::sha1::compute(stream, true) ==
+                                 supported_client_patch_sha1;
 }
 
 client_binary_state
@@ -427,7 +436,7 @@ void install_supported_client_binary(
   progress.set_line(2, temp_binary.filename().string());
 
   const auto downloaded_checksum = get_pe_checksum(temp_binary);
-  if (!downloaded_checksum ||
+  if (!has_expected_client_patch_hash(temp_binary) || !downloaded_checksum ||
       *downloaded_checksum != get_expected_client_checksum()) {
     throw std::runtime_error(
         "The downloaded BlackOps3.exe patch did not match the BOIII-"
