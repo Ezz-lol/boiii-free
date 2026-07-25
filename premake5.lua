@@ -198,7 +198,7 @@ newaction({
         "VERSION_PRODUCT_RC",
         "VERSION_PRODUCT",
         "VERSION_FILE",
-        "VERSION GIT_DESCRIBE",
+        "VERSION",
       }
 
       -- write version header
@@ -373,7 +373,13 @@ language("C++")
 
 files({ "./src/common/**.hpp", "./src/common/**.cpp" })
 
-includedirs({ "./deps/argparse/include", "./src/common", "%{prj.location}/src" })
+includedirs({
+  "./deps/argparse/include",
+  "./src/common",
+  "./src",
+  -- version.h and version.hpp headers
+  "%{prj.location}/src",
+})
 
 resincludedirs({ "$(ProjectDir)src" })
 
@@ -403,6 +409,8 @@ includedirs({
   "./src/client",
   "./src/common",
   "./src",
+  -- version.h and version.hpp headers
+  "%{prj.location}/src",
 })
 
 syslibdirs({ "./deps/Microsoft.Web.WebView2/build/native/x64" })
@@ -465,7 +473,7 @@ removelinkoptions({ "/LTCG" })
 
 files({ "./src/tlsdll/**.rc", "./src/tlsdll/**.hpp", "./src/tlsdll/**.cpp", "./src/tlsdll/resources/**.*" })
 
-includedirs({ "./src/tlsdll", "%{prj.location}/src" })
+includedirs({ "%{prj.location}/src/tlsdll", "%{prj.location}/src" })
 
 links({ "common" })
 

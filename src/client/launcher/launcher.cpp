@@ -12,8 +12,8 @@
 #include <game/game.hpp>
 
 // In case of clangd compilation
-#if __has_include("version.hpp")
-#include "version.hpp"
+#if __has_include(<version.h>)
+#include "version.h"
 #else
 #ifndef VERSION
 #define VERSION "0"
@@ -1329,8 +1329,7 @@ bool run() {
         [](const std::vector<html_argument> & /*params*/) -> CComVariant {
           CComVariant result;
           result.vt = VT_BOOL;
-          result.boolVal =
-              utils::nt::is_wine() ? VARIANT_TRUE : VARIANT_FALSE;
+          result.boolVal = utils::nt::is_wine() ? VARIANT_TRUE : VARIANT_FALSE;
           return result;
         });
 
