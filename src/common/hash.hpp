@@ -54,6 +54,46 @@ fnv1a_null(const array<const char *, ArraySize> strings) noexcept {
   return result;
 }
 
+template <IntegralLike auto ArraySize, const fnv1aHashNull_t IV = 0x811c9dc5,
+          const fnv1aHashNull_t PRIME = 0x01000193>
+inline constexpr std::array<fnv1aHashNull_t, ArraySize>
+fnv1a_null(const std::array<const char *, ArraySize> strings) noexcept {
+  std::array<fnv1aHashNull_t, ArraySize> result = {0};
+  for (size_t i = 0; i < static_cast<size_t>(ArraySize); ++i) {
+    result[i] = fnv1a_null(strings[i]);
+  }
+  return result;
+}
+
+template <const fnv1aHashNull_t IV = 0x811c9dc5,
+          const fnv1aHashNull_t PRIME = 0x01000193>
+inline constexpr std::pair<const fnv1aHashNull_t, const char *>
+fnv1a_null_pair(const char *str) noexcept {
+  return {PRIME * fnv1a<IV, PRIME>(str), str};
+}
+
+template <IntegralLike auto ArraySize, const fnv1aHashNull_t IV = 0x811c9dc5,
+          const fnv1aHashNull_t PRIME = 0x01000193>
+inline constexpr std::array<std::pair<fnv1aHashNull_t, const char *>, ArraySize>
+fnv1a_null_pair(const array<const char *, ArraySize> strings) noexcept {
+  std::array<std::pair<fnv1aHashNull_t, const char *>, ArraySize> result = {};
+  for (size_t i = 0; i < static_cast<size_t>(ArraySize); ++i) {
+    result[i] = fnv1a_null_pair(strings[i]);
+  }
+  return result;
+}
+
+template <IntegralLike auto ArraySize, const fnv1aHashNull_t IV = 0x811c9dc5,
+          const fnv1aHashNull_t PRIME = 0x01000193>
+inline constexpr std::array<std::pair<fnv1aHashNull_t, const char *>, ArraySize>
+fnv1a_null_pair(const std::array<const char *, ArraySize> strings) noexcept {
+  std::array<std::pair<fnv1aHashNull_t, const char *>, ArraySize> result = {};
+  for (size_t i = 0; i < static_cast<size_t>(ArraySize); ++i) {
+    result[i] = fnv1a_null_pair(strings[i]);
+  }
+  return result;
+}
+
 typedef hash64_t fnv1aHash64_t;
 
 template <const fnv1aHash64_t IV = 0xcbf29ce484222325,

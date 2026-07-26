@@ -1,6 +1,7 @@
 #pragma once
 
 #include "game/structs/scr/builtin/core.hpp"
+#include "game/structs/scr/builtin/table/macros.hpp"
 
 namespace game {
 namespace scr {
@@ -261,9 +262,11 @@ union BuiltinFunctionTable {
     const BuiltinFunctionDef AddDebugCommand;
     const BuiltinFunctionDef EnableVR;
   };
-  const BuiltinFunctionDef functions[251];
 
-  static constexpr const char *names[] = {
+  static inline constexpr size_t COUNT = 251;
+  const BuiltinFunctionDef functions[COUNT];
+
+  static constexpr std::array<const char *, COUNT> names = {
       "SpawnStruct",
       "BulletTrace",
       "BeamTrace",
@@ -515,9 +518,14 @@ union BuiltinFunctionTable {
       "GetRoundsPlayed",
       "AddDebugCommand",
       "EnableVR"};
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+  // Ensure array size was correct - no elements implicitly instantiated
+  ASSERT_ALL_NONEMPTY(names);
+
+  DEFINE_NAME_MAP(names, hashes);
+  static_assert(hashes.size() == names.size(),
+                "name hashmap does not include all names!");
+
+  IMPL_TABLE_OPERATORS(functions);
 };
 ASSERT_SIZE(BuiltinFunctionTable, sizeof(BuiltinFunctionTable::functions));
 
@@ -778,9 +786,11 @@ union BuiltinMethodTable {
     const BuiltinMethodDef HideViewLegs;
     const BuiltinMethodDef SuppressRagdollSelfCollision;
   };
-  const BuiltinMethodDef methods[246];
 
-  static constexpr const char *names[246] = {
+  static inline constexpr size_t COUNT = 246;
+  const BuiltinMethodDef methods[COUNT];
+
+  static constexpr std::array<const char *, COUNT> names = {
       "Delete",
       "ForceDelete",
       "GetEntNum",
@@ -1028,9 +1038,14 @@ union BuiltinMethodTable {
       "HideViewLegs",
       "SuppressRagdollSelfCollision",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+  // Ensure array size was correct - no elements implicitly instantiated
+  ASSERT_ALL_NONEMPTY(names);
+
+  DEFINE_NAME_MAP(names, hashes);
+  static_assert(hashes.size() == names.size(),
+                "name hashmap does not include all names!");
+
+  IMPL_TABLE_OPERATORS(methods);
 };
 ASSERT_SIZE(BuiltinMethodTable, sizeof(BuiltinMethodTable::methods));
 
@@ -1143,9 +1158,11 @@ union GfxFunctionTable {
     const BuiltinFunctionDef Umbra_SetTomeTriggerOnce;
     const BuiltinFunctionDef Umbra_ClearPersistentTomeTrigger;
   };
-  const BuiltinFunctionDef functions[106];
 
-  static constexpr const char *names[106] = {
+  static inline constexpr size_t COUNT = 106;
+  const BuiltinFunctionDef functions[COUNT];
+
+  static constexpr std::array<const char *, COUNT> names = {
       "PlayFX",
       "PlayFXOnTag",
       "PlayTagFXSet",
@@ -1253,9 +1270,14 @@ union GfxFunctionTable {
       "Umbra_SetTomeTriggerOnce",
       "Umbra_ClearPersistentTomeTrigger",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+  // Ensure array size was correct - no elements implicitly instantiated
+  ASSERT_ALL_NONEMPTY(names);
+
+  DEFINE_NAME_MAP(names, hashes);
+  static_assert(hashes.size() == names.size(),
+                "name hashmap does not include all names!");
+
+  IMPL_TABLE_OPERATORS(functions);
 };
 ASSERT_SIZE(GfxFunctionTable, sizeof(GfxFunctionTable::functions));
 
@@ -1304,8 +1326,10 @@ union GfxMethodTable {
     const BuiltinMethodDef TmodeSetFlag;
     const BuiltinMethodDef TmodeClearFlag;
   };
-  const BuiltinMethodDef methods[42];
-  static constexpr const char *names[42] = {
+  static inline constexpr size_t COUNT = 42;
+
+  const BuiltinMethodDef methods[COUNT];
+  static constexpr std::array<const char *, COUNT> names = {
       "OED_Nightvision_Reset",
       "OED_Nightvision_SetTextureLevel",
       "OED_Nightvision_Enable",
@@ -1349,9 +1373,14 @@ union GfxMethodTable {
       "TmodeSetFlag",
       "TmodeClearFlag",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+  // Ensure array size was correct - no elements implicitly instantiated
+  ASSERT_ALL_NONEMPTY(names);
+
+  DEFINE_NAME_MAP(names, hashes);
+  static_assert(hashes.size() == names.size(),
+                "name hashmap does not include all names!");
+
+  IMPL_TABLE_OPERATORS(methods);
 };
 ASSERT_SIZE(GfxMethodTable, sizeof(GfxMethodTable::methods));
 
@@ -1367,16 +1396,22 @@ union MathFunctionTable {
     const BuiltinFunctionDef GetAngleFromBits;
     const BuiltinFunctionDef GetBitsForAngle;
   };
-  const BuiltinFunctionDef functions[9];
 
-  static constexpr const char *names[9] = {
+  static inline constexpr size_t COUNT = 9;
+  const BuiltinFunctionDef functions[COUNT];
+
+  static constexpr std::array<const char *, COUNT> names = {
       "RandomInt",        "RandomFloat",      "RandomIntRange",
       "RandomFloatRange", "Project2DTo3D",    "Project3DTo2D",
       "ViewAspect",       "GetAngleFromBits", "GetBitsForAngle",
-  };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+  }; // Ensure array size was correct - no elements implicitly instantiated
+  ASSERT_ALL_NONEMPTY(names);
+
+  DEFINE_NAME_MAP(names, hashes);
+  static_assert(hashes.size() == names.size(),
+                "name hashmap does not include all names!");
+
+  IMPL_TABLE_OPERATORS(functions);
 };
 ASSERT_SIZE(MathFunctionTable, sizeof(MathFunctionTable::functions));
 
@@ -1414,9 +1449,11 @@ union SoundFunctionTable {
     const BuiltinFunctionDef CreateSoundRandom;
     const BuiltinFunctionDef ForceAmbientRoom;
   };
-  const BuiltinFunctionDef functions[31];
 
-  static constexpr const char *names[31] = {
+  static inline constexpr size_t COUNT = 31;
+  const BuiltinFunctionDef functions[COUNT];
+
+  static constexpr std::array<const char *, COUNT> names = {
       "PlaySound",
       "GetSoundFromSurfaceTable",
       "SoundPlaying",
@@ -1449,9 +1486,14 @@ union SoundFunctionTable {
       "CreateSoundRandom",
       "ForceAmbientRoom",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+  // Ensure array size was correct - no elements implicitly instantiated
+  ASSERT_ALL_NONEMPTY(names);
+
+  DEFINE_NAME_MAP(names, hashes);
+  static_assert(hashes.size() == names.size(),
+                "name hashmap does not include all names!");
+
+  IMPL_TABLE_OPERATORS(functions);
 };
 ASSERT_SIZE(SoundFunctionTable, sizeof(SoundFunctionTable::functions));
 
@@ -1466,16 +1508,23 @@ union SoundMethodTable {
     const BuiltinMethodDef SetSoundEntContext;
     const BuiltinMethodDef SetLoopState;
   };
-  const BuiltinMethodDef methods[8];
 
-  static constexpr const char *names[8] = {
+  static inline constexpr size_t COUNT = 8;
+  const BuiltinMethodDef methods[COUNT];
+
+  static constexpr std::array<const char *, COUNT> names = {
       "PlaySound",          "StopSounds",        "PlayLoopSound",
       "StopLoopSound",      "StopAllLoopSounds", "IsPlayingLoopSound",
       "SetSoundEntContext", "SetLoopState",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+  // Ensure array size was correct - no elements implicitly instantiated
+  ASSERT_ALL_NONEMPTY(names);
+
+  DEFINE_NAME_MAP(names, hashes);
+  static_assert(hashes.size() == names.size(),
+                "name hashmap does not include all names!");
+
+  IMPL_TABLE_OPERATORS(methods);
 };
 ASSERT_SIZE(SoundMethodTable, sizeof(SoundMethodTable::methods));
 
@@ -1502,9 +1551,11 @@ union UIFunctionTable {
     const BuiltinFunctionDef SetUIModelValue;
     const BuiltinFunctionDef StopSound;
   };
-  const BuiltinFunctionDef functions[20];
 
-  static constexpr const char *names[20] = {
+  static inline constexpr size_t COUNT = 20;
+  const BuiltinFunctionDef functions[COUNT];
+
+  static constexpr std::array<const char *, COUNT> names = {
       "LUILoad",
       "LUIEnable",
       "LUIDisable",
@@ -1526,9 +1577,14 @@ union UIFunctionTable {
       "SetUIModelValue",
       "StopSound",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+  // Ensure array size was correct - no elements implicitly instantiated
+  ASSERT_ALL_NONEMPTY(names);
+
+  DEFINE_NAME_MAP(names, hashes);
+  static_assert(hashes.size() == names.size(),
+                "name hashmap does not include all names!");
+
+  IMPL_TABLE_OPERATORS(functions);
 };
 ASSERT_SIZE(UIFunctionTable, sizeof(UIFunctionTable::functions));
 
@@ -1554,9 +1610,11 @@ union UtilFunctionTable {
     const BuiltinFunctionDef SetSavedDvar;
     const BuiltinFunctionDef GetLightingState;
   };
-  const BuiltinFunctionDef functions[19];
 
-  static constexpr const char *names[19] = {
+  static inline constexpr size_t COUNT = 19;
+  const BuiltinFunctionDef functions[COUNT];
+
+  static constexpr std::array<const char *, COUNT> names = {
       "ReportStubUsage",
       "PIXBeginEvent",
       "PIXEndEvent",
@@ -1577,9 +1635,14 @@ union UtilFunctionTable {
       "SetSavedDvar",
       "GetLightingState",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+  // Ensure array size was correct - no elements implicitly instantiated
+  ASSERT_ALL_NONEMPTY(names);
+
+  DEFINE_NAME_MAP(names, hashes);
+  static_assert(hashes.size() == names.size(),
+                "name hashmap does not include all names!");
+
+  IMPL_TABLE_OPERATORS(functions);
 };
 ASSERT_SIZE(BuiltinFunctionTable, sizeof(BuiltinFunctionTable::functions));
 
@@ -1589,14 +1652,20 @@ union UtilMethodTable {
     // `PlayerCmd` variant of the method of same name in `BuiltinMethodTable`
     const BuiltinMethodDef GetControllerPosition;
   };
-  const BuiltinMethodDef methods[2];
-  static constexpr const char *names[2] = {
+
+  static inline constexpr size_t COUNT = 2;
+  const BuiltinMethodDef methods[COUNT];
+  static constexpr std::array<const char *, COUNT> names = {
       "ButtonPressed",
       "GetControllerPosition",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+  // Ensure array size was correct - no elements implicitly instantiated
+  ASSERT_ALL_NONEMPTY(names);
+
+  DEFINE_NAME_MAP(names, hashes);
+  static_assert(hashes.size() == names.size(),
+                "name hashmap does not include all names!");
+  IMPL_TABLE_OPERATORS(methods);
 };
 ASSERT_SIZE(UtilMethodTable, sizeof(UtilMethodTable::methods));
 

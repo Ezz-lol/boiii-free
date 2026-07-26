@@ -6,3 +6,4 @@
 #include "builtin/builtin.hpp" // IWYU pragma: export
 #include "var.hpp"             // IWYU pragma: export
 #include "vm/vm.hpp"           // IWYU pragma: export
+#include "weapon.hpp"          // IWYU pragma: export

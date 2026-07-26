@@ -2,8 +2,6 @@
 
 #include "game/structs/scr/core.hpp"
 #include "hash.hpp"
-#include <frozen/unordered_set.h>
-#include <tuple>
 
 namespace game {
 namespace scr {
@@ -16,19 +14,28 @@ inline constexpr fnv1aHashNull_t fnv1a(const char *s) {
   return ::fnv1a_null<FNV1A_IV, FNV1A_PRIME>(s);
 }
 
-template <typename T, std::size_t N>
-inline constexpr auto make_frozen_set(const std::array<T, N> &arr) {
-  return std::apply(
-      [](const auto &...elems) {
-        return frozen::make_unordered_set({elems...});
-      },
-      arr);
-}
-
-template <IntegralLike auto ArraySize>
+template <const IntegralLike auto ArraySize>
 inline constexpr std::array<fnv1aHash_t, ArraySize>
 fnv1a(const array<const char *, ArraySize> &strings) {
   return ::fnv1a_null<ArraySize, FNV1A_IV, FNV1A_PRIME>(strings);
+}
+
+template <const IntegralLike auto ArraySize>
+inline constexpr std::array<std::pair<fnv1aHash_t, const char *>, ArraySize>
+fnv1a_pair(const array<const char *, ArraySize> &strings) {
+  return ::fnv1a_null_pair<ArraySize, FNV1A_IV, FNV1A_PRIME>(strings);
+}
+
+template <const IntegralLike auto ArraySize>
+inline constexpr std::array<fnv1aHash_t, ArraySize>
+fnv1a(const std::array<const char *, ArraySize> &strings) {
+  return ::fnv1a_null<ArraySize, FNV1A_IV, FNV1A_PRIME>(strings);
+}
+
+template <const IntegralLike auto ArraySize>
+inline constexpr std::array<std::pair<fnv1aHash_t, const char *>, ArraySize>
+fnv1a_pair(const std::array<const char *, ArraySize> &strings) {
+  return ::fnv1a_null_pair<ArraySize, FNV1A_IV, FNV1A_PRIME>(strings);
 }
 
 typedef uint32_t ScrVarCanonicalName_t;

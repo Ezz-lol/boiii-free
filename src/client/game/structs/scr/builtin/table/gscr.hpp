@@ -347,9 +347,10 @@ union BuiltinFunctionTable {
     const BuiltinFunctionDef PROTECTED(SetBGBUnlocked);
     const BuiltinFunctionDef PROTECTED(GetBGBUnlocked);
   };
-  const BuiltinFunctionDef functions[336];
+  static inline constexpr size_t COUNT = 336;
+  const BuiltinFunctionDef functions[COUNT];
 
-  static constexpr const char *names[336] = {
+  static constexpr std::array<const char *, COUNT> names = {
       "Spawn",
       "SpawnCollision",
       "SpawnTimedFX",
@@ -684,12 +685,14 @@ union BuiltinFunctionTable {
       "HkaiSetTimerTestEnt",
       "GetTotalServerPauseTime",
       "HashString",
-      "__protected__SetBGBUnlocked",
-      "__protected__GetBGBUnlocked",
+      PROTECTED_STR(SetBGBUnlocked),
+      PROTECTED_STR(GetBGBUnlocked),
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+  // Ensure array size was correct - no elements implicitly instantiated
+  ASSERT_ALL_NONEMPTY(names);
+
+  DEFINE_NAME_MAP(names, hashes);
+  IMPL_TABLE_OPERATORS(functions);
 };
 ASSERT_SIZE(BuiltinFunctionTable, sizeof(BuiltinFunctionTable::functions));
 
@@ -1041,9 +1044,10 @@ union BuiltinMethodTable {
     const BuiltinMethodDef QueueMeleeActionState;
     const BuiltinMethodDef StopJukeMove;
   };
-  const BuiltinMethodDef methods[345];
+  static inline constexpr size_t COUNT = 345;
+  const BuiltinMethodDef methods[COUNT];
 
-  static constexpr const char *names[345] = {
+  static constexpr std::array<const char *, COUNT> names = {
       "SetStowedWeapon",
       "GetStowedWeapon",
       "ClearStowedWeapon",
@@ -1390,9 +1394,14 @@ union BuiltinMethodTable {
       "QueueMeleeActionState",
       "StopJukeMove",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+  // Ensure array size was correct - no elements implicitly instantiated
+  ASSERT_ALL_NONEMPTY(names);
+
+  DEFINE_NAME_MAP(names, hashes);
+  static_assert(hashes.size() == names.size(),
+                "name hashmap does not include all names!");
+
+  IMPL_TABLE_OPERATORS(methods);
 };
 ASSERT_SIZE(BuiltinMethodTable, sizeof(BuiltinMethodTable::methods));
 

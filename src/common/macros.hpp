@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <type_traits>
 
 #ifndef __inline_def
@@ -82,6 +83,8 @@ concept SizedIntegralLike =
     (std::is_convertible_v<From, To> || ScopedIntegralLike<From, To>) &&
     !SizeGreaterThan<From, sizeof(To)>;
 
+template <typename T> using element_of = std::remove_all_extents_t<T>;
+
 #ifndef WITH_DIAG_DISABLED
 
 // Helper macro to properly evaluate and stringify arguments for standard
@@ -114,8 +117,13 @@ concept SizedIntegralLike =
 #endif // WITH_DIAG_DISABLED
 
 #ifndef ARRAYSIZE
-template <typename Element, size_t Count>
-inline constexpr auto ARRAYSIZE(Element (&)[Count]) {
+template <typename Element, const size_t Count>
+inline constexpr auto ARRAYSIZE(const Element (&)[Count]) {
   return Count;
+}
+
+template <typename Element, const size_t Count>
+inline constexpr auto ARRAYSIZE(const std::array<Element, Count> &arr) {
+  return arr.size();
 }
 #endif
