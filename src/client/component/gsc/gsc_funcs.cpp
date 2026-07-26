@@ -537,28 +537,24 @@ void gscr_say(scriptInstance_t inst) {
 }
 
 namespace gscr_tell {
-template <const uint32_t FIRST_ARG_IDX = 0>
-inline void impl(scriptInstance_t inst, scr_entref_t *entref) {
-  const game::ClientNum_t client_num =
-      static_cast<game::ClientNum_t>(Scr_GetInt(inst, FIRST_ARG_IDX));
-  const char *msg = Scr_GetString(inst, FIRST_ARG_IDX + 1);
-  if (game::valid_client_num(client_num) && msg)
+void send(scriptInstance_t inst, game::ClientNum_t client_num,
+          uint32_t message_index) {
+  const char *msg = Scr_GetString(inst, message_index);
+  if (game::valid_client_num(client_num) && msg) {
     game::sv::SV_GameSendServerCommand(
         client_num, game::net::SV_CMD_CAN_IGNORE_0,
         utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, msg));
-}
-// tell: send a private chat message to a specific client
-// GSC: player tell("Hello");
-void method(scriptInstance_t inst, scr_entref_t *entref) {
-  return impl<0>(inst, entref);
+  }
 }
 
-// tell: send a private chat message to a specific client
-// GSC: player tell("Hello");
+// Method form: player tell("Hello");
+void method(scriptInstance_t inst, scr_entref_t *entref) {
+  send(inst, static_cast<game::ClientNum_t>(entref->u.entnum), 0);
+}
+
+// Function form: tell(client_num, "Hello");
 void func(scriptInstance_t inst) {
-  scr_entref_t entref;
-  Scr_GetEntityRef(&entref, inst, 0);
-  return impl<1>(inst, &entref);
+  send(inst, static_cast<game::ClientNum_t>(Scr_GetInt(inst, 0)), 1);
 }
 } // namespace gscr_tell
 
@@ -987,204 +983,106 @@ void gscr_conststring(scriptInstance_t inst) {
 // Player name/tag overrides (server-only)
 // =====================================================
 
-std::optional<game::ClientNum_t>
-get_self_client_num(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
-  const game::ClientNum_t client_num =
-      static_cast<game::ClientNum_t>(entref->u.entnum);
-  if (!game::valid_client_num(client_num)) {
-    return std::nullopt;
-  }
-  return client_num;
-}
-
 namespace gscr_setname {
-template <const int32_t FIRST_ARG_IDX>
-inline void impl(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
-  game::ClientNum_t client_num = game::INVALID_CLIENT_INDEX;
-  const char *player_name = nullptr;
-
-  const uint32_t argc = game::scr::Scr_GetNumParam(inst) - FIRST_ARG_IDX;
-  if (argc == 1) {
-    const std::optional<game::ClientNum_t> self =
-        get_self_client_num(inst, entref);
-    player_name = game::scr::Scr_GetString(inst, FIRST_ARG_IDX);
-    if (!self.has_value() || !player_name) {
-      Scr_ParamError(inst, FIRST_ARG_IDX, "^1[setname] Invalid arguments\n");
-      return;
-    }
-    client_num = static_cast<game::ClientNum_t>(self.value());
-  } else {
-    client_num = static_cast<game::ClientNum_t>(
-        game::scr::Scr_GetInt(inst, FIRST_ARG_IDX));
-    player_name = game::scr::Scr_GetString(inst, FIRST_ARG_IDX + 1);
-    if (!game::valid_client_num(client_num) || !player_name) {
-      Scr_ParamError(inst, FIRST_ARG_IDX, "^1[setname] Invalid arguments\n");
-      return;
-    }
+void set(scriptInstance_t inst, game::ClientNum_t client_num,
+         uint32_t name_index) {
+  const char *player_name = game::scr::Scr_GetString(inst, name_index);
+  if (!game::valid_client_num(client_num) || !player_name) {
+    Scr_ParamError(inst, name_index, "^1[setname] Invalid arguments\n");
+    return;
   }
-
   name::set_name_override(client_num, player_name);
   name::sync_name_override_to_clients(client_num);
   name::trigger_client_update(client_num);
 }
 
 void method(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
-  return impl<0>(inst, entref);
+  // player setname("PlayerOne");
+  set(inst, static_cast<game::ClientNum_t>(entref->u.entnum), 0);
 }
 
 void func(scriptInstance_t inst) {
-  scr_entref_t entref;
-  Scr_GetEntityRef(&entref, inst, 0);
-  return impl<1>(inst, &entref);
+  // setname(client_num, "PlayerOne");
+  set(inst, static_cast<game::ClientNum_t>(Scr_GetInt(inst, 0)), 1);
 }
 } // namespace gscr_setname
 
 namespace gscr_settag {
-template <const int32_t FIRST_ARG_IDX>
-inline void impl(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
-  game::ClientNum_t client_num = game::INVALID_CLIENT_INDEX;
-  const char *tag = nullptr;
-
-  const uint32_t argc = game::scr::Scr_GetNumParam(inst) - FIRST_ARG_IDX;
-  if (argc == 1) {
-    const std::optional<game::ClientNum_t> self =
-        get_self_client_num(inst, entref);
-    tag = game::scr::Scr_GetString(inst, FIRST_ARG_IDX);
-    if (!self.has_value() || !tag) {
-      Scr_ParamError(inst, FIRST_ARG_IDX, "^1[settag] Invalid arguments\n");
-      return;
-    }
-    client_num = static_cast<game::ClientNum_t>(self.value());
-  } else {
-    client_num = static_cast<game::ClientNum_t>(
-        game::scr::Scr_GetInt(inst, FIRST_ARG_IDX));
-    tag = game::scr::Scr_GetString(inst, FIRST_ARG_IDX + 1);
-    if (!game::valid_client_num(client_num) || !tag) {
-      Scr_ParamError(inst, FIRST_ARG_IDX, "^1[settag] Invalid arguments\n");
-      return;
-    }
+void set(scriptInstance_t inst, game::ClientNum_t client_num,
+         uint32_t tag_index) {
+  const char *tag = game::scr::Scr_GetString(inst, tag_index);
+  if (!game::valid_client_num(client_num) || !tag) {
+    Scr_ParamError(inst, tag_index, "^1[settag] Invalid arguments\n");
+    return;
   }
-
   name::set_clan_abbrev_override(client_num, tag);
   name::sync_clan_abbrev_override_to_clients(client_num);
   name::trigger_client_update(client_num);
 }
 
 void method(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
-  return impl<0>(inst, entref);
+  // player settag("DEV");
+  set(inst, static_cast<game::ClientNum_t>(entref->u.entnum), 0);
 }
 
 void func(scriptInstance_t inst) {
-  scr_entref_t entref;
-  Scr_GetEntityRef(&entref, inst, 0);
-  return impl<1>(inst, &entref);
+  // settag(client_num, "DEV");
+  set(inst, static_cast<game::ClientNum_t>(Scr_GetInt(inst, 0)), 1);
 }
 } // namespace gscr_settag
 
 namespace gscr_resetname {
-template <const int32_t FIRST_ARG_IDX>
-void impl(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
-  game::ClientNum_t client_num = game::INVALID_CLIENT_INDEX;
-
-  const uint32_t argc = game::scr::Scr_GetNumParam(inst) - FIRST_ARG_IDX;
-  if (argc == 0) {
-    const std::optional<game::ClientNum_t> self =
-        get_self_client_num(inst, entref);
-    if (!self.has_value()) {
-      Scr_ParamError(inst, FIRST_ARG_IDX, "^1[resetname] Invalid arguments\n");
-      return;
-    }
-    client_num = static_cast<game::ClientNum_t>(self.value());
-  } else {
-    client_num = static_cast<game::ClientNum_t>(
-        game::scr::Scr_GetInt(inst, FIRST_ARG_IDX));
-    if (!game::valid_client_num(client_num)) {
-      Scr_ParamError(inst, FIRST_ARG_IDX, "^1[resetname] Invalid arguments\n");
-      return;
-    }
+void reset(scriptInstance_t inst, game::ClientNum_t client_num) {
+  if (!game::valid_client_num(client_num)) {
+    Scr_ParamError(inst, 0, "^1[resetname] Invalid arguments\n");
+    return;
   }
-
   name::clear_name_override(client_num);
   name::sync_name_reset_to_clients(client_num);
   name::trigger_client_update(client_num);
 }
 
 void method(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
-  return impl<0>(inst, entref);
+  // player resetname();
+  reset(inst, static_cast<game::ClientNum_t>(entref->u.entnum));
 }
 
 void func(scriptInstance_t inst) {
-  scr_entref_t entref;
-  Scr_GetEntityRef(&entref, inst, 0);
-  return impl<1>(inst, &entref);
+  // resetname(client_num);
+  reset(inst, static_cast<game::ClientNum_t>(Scr_GetInt(inst, 0)));
 }
 } // namespace gscr_resetname
 
 namespace gscr_resettag {
-template <const int32_t FIRST_ARG_IDX>
-inline void impl(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
-  game::ClientNum_t client_num = game::INVALID_CLIENT_INDEX;
-
-  const uint32_t argc = game::scr::Scr_GetNumParam(inst) - FIRST_ARG_IDX;
-  if (argc == 0) {
-    const std::optional<game::ClientNum_t> self =
-        get_self_client_num(inst, entref);
-    if (!self.has_value()) {
-      Scr_ParamError(inst, FIRST_ARG_IDX, "^1[resettag] Invalid arguments\n");
-      return;
-    }
-    client_num = static_cast<game::ClientNum_t>(self.value());
-  } else {
-    client_num = static_cast<game::ClientNum_t>(
-        game::scr::Scr_GetInt(inst, FIRST_ARG_IDX));
-    if (!game::valid_client_num(client_num)) {
-      Scr_ParamError(inst, FIRST_ARG_IDX, "^1[resettag] Invalid arguments\n");
-      return;
-    }
+void reset(scriptInstance_t inst, game::ClientNum_t client_num) {
+  if (!game::valid_client_num(client_num)) {
+    Scr_ParamError(inst, 0, "^1[resettag] Invalid arguments\n");
+    return;
   }
-
   name::clear_clan_abbrev_override(client_num);
   name::sync_clan_abbrev_reset_to_clients(client_num);
   name::trigger_client_update(client_num);
 }
 
 void method(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
-  return impl<0>(inst, entref);
+  // player resettag();
+  reset(inst, static_cast<game::ClientNum_t>(entref->u.entnum));
 }
 
 void func(scriptInstance_t inst) {
-  scr_entref_t entref;
-  Scr_GetEntityRef(&entref, inst, 0);
-  return impl<1>(inst, &entref);
+  // resettag(client_num);
+  reset(inst, static_cast<game::ClientNum_t>(Scr_GetInt(inst, 0)));
 }
 } // namespace gscr_resettag
 
 namespace gscr_setclientdvar {
-template <const int32_t FIRST_ARG_IDX>
-inline void impl(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
-  game::ClientNum_t client_num = game::INVALID_CLIENT_INDEX;
-  const char *dvar_cmd = nullptr;
-
-  const uint32_t argc = game::scr::Scr_GetNumParam(inst) - FIRST_ARG_IDX;
-  if (argc == 1) {
-    const std::optional<game::ClientNum_t> self =
-        get_self_client_num(inst, entref);
-    dvar_cmd = game::scr::Scr_GetString(inst, FIRST_ARG_IDX);
-    if (!self.has_value() || !dvar_cmd) {
-      Scr_ParamError(inst, FIRST_ARG_IDX,
-                     "^1[setclientdvar] Invalid arguments\n");
-      return;
-    }
-    client_num = static_cast<game::ClientNum_t>(self.value());
-  } else {
-    client_num = static_cast<game::ClientNum_t>(
-        game::scr::Scr_GetInt(inst, FIRST_ARG_IDX));
-    dvar_cmd = game::scr::Scr_GetString(inst, FIRST_ARG_IDX + 1);
-    if (!game::valid_client_num(client_num) || !dvar_cmd) {
-      Scr_ParamError(inst, FIRST_ARG_IDX,
-                     "^1[setclientdvar] Invalid arguments\n");
-      return;
-    }
+void set(scriptInstance_t inst, game::ClientNum_t client_num,
+         uint32_t command_index) {
+  const char *dvar_cmd = game::scr::Scr_GetString(inst, command_index);
+  if (!game::valid_client_num(client_num) || !dvar_cmd) {
+    Scr_ParamError(inst, command_index,
+                   "^1[setclientdvar] Invalid arguments\n");
+    return;
   }
 
   const std::optional<std::string> dvar_name = extract_dvar_name(dvar_cmd);
@@ -1197,13 +1095,13 @@ inline void impl(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
 }
 
 void method(game::scr::scriptInstance_t inst, scr_entref_t *entref) {
-  return impl<0>(inst, entref);
+  // player setclientdvar("cg_fov 120");
+  set(inst, static_cast<game::ClientNum_t>(entref->u.entnum), 0);
 }
 
 void func(scriptInstance_t inst) {
-  scr_entref_t entref;
-  Scr_GetEntityRef(&entref, inst, 0);
-  return impl<1>(inst, &entref);
+  // setclientdvar(client_num, "cg_fov 120");
+  set(inst, static_cast<game::ClientNum_t>(Scr_GetInt(inst, 0)), 1);
 }
 } // namespace gscr_setclientdvar
 
@@ -1299,10 +1197,13 @@ struct component final : generic_component {
     register_builtin("readfile", gscr_readfile, 1);
     register_builtin("appendfile", gscr_appendfile, 2);
     register_builtin("fileexists", gscr_fileexists, 1);
-    register_builtin({"removefile", "rm"}, gscr_rm, 1, 2);
-    register_builtin({"removedirectory", "rmdir"}, gscr_removedirectory, 1);
+    register_builtin("removefile", gscr_rm, 1);
+    register_builtin("rm", gscr_rm, 1, 2);
+    register_builtin("removedirectory", gscr_removedirectory, 1);
+    register_builtin("rmdir", gscr_removedirectory, 1);
     register_builtin("filesize", gscr_filesize, 1);
-    register_builtin({"mkdir", "createdirectory"}, gscr_createdirectory, 1);
+    register_builtin("mkdir", gscr_createdirectory, 1);
+    register_builtin("createdirectory", gscr_createdirectory, 1);
     register_builtin("directoryexists", gscr_directoryexists, 1);
     register_builtin("listfiles", gscr_listfiles, 1);
     register_builtin("ls", gscr_ls, 1, 3);
@@ -1327,23 +1228,23 @@ struct component final : generic_component {
     register_builtin("getfunction", gscr_getfunction, 2);
 
     // Console commands
-    register_builtin("addcommand", gscr_addcommand, 1);
+    register_builtin("addcommand", gscr_addcommand, 1, 2);
     register_builtin("getcommand", gscr_getcommand, 0, 1);
 
     // Utility
     register_builtin("clearreplacefuncs", gscr_clearreplacefuncs, 0);
 
     // Player name/tag overrides (server-only)
-    register_builtin("setname", gscr_setname::func, 2, 3);
-    register_builtin("setname", gscr_setname::method, 1, 2);
-    register_builtin("settag", gscr_settag::func, 2, 3);
-    register_builtin("settag", gscr_settag::method, 1, 2);
+    register_builtin("setname", gscr_setname::func, 2);
+    register_builtin("setname", gscr_setname::method, 1);
+    register_builtin("settag", gscr_settag::func, 2);
+    register_builtin("settag", gscr_settag::method, 1);
     register_builtin("resetname", gscr_resetname::func, 1);
     register_builtin("resetname", gscr_resetname::method, 0);
     register_builtin("resettag", gscr_resettag::func, 1);
     register_builtin("resettag", gscr_resettag::method, 0);
-    register_builtin("setclientdvar", gscr_setclientdvar::func, 3);
-    register_builtin("setclientdvar", gscr_setclientdvar::method, 2);
+    register_builtin("setclientdvar", gscr_setclientdvar::func, 2);
+    register_builtin("setclientdvar", gscr_setclientdvar::method, 1);
 
     register_builtin("conststring", gscr_conststring, 1);
 

@@ -612,7 +612,7 @@ std::string func_ref_to_source(const ast_ptr &node) {
     return node->children[0]->value + "::" + node->value;
   }
 
-  return "::" + node->value;
+  return node->value;
 }
 
 void collect_addcommand_callbacks(
@@ -709,7 +709,7 @@ std::string build_addcommand_dispatch_source(
     source += "        {\n";
     source += "            tokens = strtok(cmd, \" \");\n";
     source += "            args = __codex_addcommand_build_args(tokens);\n";
-    source += "            [[" + entry.callback_expr + "]](args);\n";
+    source += "            " + entry.callback_expr + "(args);\n";
     source += "            handled = true;\n";
     source += "        }\n";
     source += "\n";

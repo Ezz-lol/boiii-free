@@ -18,7 +18,7 @@ inline VM_OP_FUNC_PTR *op_handler(OP_TYPE op) {
 
 inline VM_OP_FUNC_PTR *op_handler(Opcode op) {
   if (OPCODE_BYTECODE_MAP.contains(op)) {
-    op_handler(OPCODE_BYTECODE_MAP.at(op)[0]);
+    return op_handler(OPCODE_BYTECODE_MAP.at(op)[0]);
   }
 
   return nullptr;
@@ -35,7 +35,7 @@ inline VM_OP_FUNC_PTR *op_err_handler(OP_TYPE op) {
 
 inline VM_OP_FUNC_PTR *op_err_handler(Opcode op) {
   if (OPCODE_BYTECODE_MAP.contains(op)) {
-    op_err_handler(OPCODE_BYTECODE_MAP.at(op)[0]);
+    return op_err_handler(OPCODE_BYTECODE_MAP.at(op)[0]);
   }
 
   return nullptr;
