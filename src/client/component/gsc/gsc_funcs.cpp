@@ -1300,8 +1300,8 @@ struct component final : generic_component {
     register_builtin("appendfile", gscr_appendfile, 2);
     register_builtin("fileexists", gscr_fileexists, 1);
     register_builtin({"removefile", "rm"}, gscr_rm, 1, 2);
-    register_builtin({"removedirectory", "rmdir"}, gscr_removedirectory);
-    register_builtin("filesize", gscr_filesize);
+    register_builtin({"removedirectory", "rmdir"}, gscr_removedirectory, 1);
+    register_builtin("filesize", gscr_filesize, 1);
     register_builtin({"mkdir", "createdirectory"}, gscr_createdirectory, 1);
     register_builtin("directoryexists", gscr_directoryexists, 1);
     register_builtin("listfiles", gscr_listfiles, 1);
@@ -1338,10 +1338,10 @@ struct component final : generic_component {
     register_builtin("setname", gscr_setname::method, 1, 2);
     register_builtin("settag", gscr_settag::func, 2, 3);
     register_builtin("settag", gscr_settag::method, 1, 2);
-    register_builtin("resetname", gscr_resetname::func, 2);
-    register_builtin("resetname", gscr_resetname::method, 1);
-    register_builtin("resettag", gscr_resettag::func, 2);
-    register_builtin("resettag", gscr_resettag::method, 1);
+    register_builtin("resetname", gscr_resetname::func, 1);
+    register_builtin("resetname", gscr_resetname::method, 0);
+    register_builtin("resettag", gscr_resettag::func, 1);
+    register_builtin("resettag", gscr_resettag::method, 0);
     register_builtin("setclientdvar", gscr_setclientdvar::func, 3);
     register_builtin("setclientdvar", gscr_setclientdvar::method, 2);
 
