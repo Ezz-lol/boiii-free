@@ -90,6 +90,12 @@ void hook_opcode(vm::op::Opcode opcode, const vm::op::VM_OP_FUNC_PTR hook,
       *out_orig = *handler;
     if (*handler == *out_orig)
       *handler = hook;
+  } else {
+    fprintf(stderr,
+            "Warning: could not find valid bytecode value for opcode: "
+            "0x%02X. Hook will not be applied.\n",
+            static_cast<uint8_t>(opcode));
+    fflush(stderr);
   }
 }
 
@@ -107,11 +113,6 @@ void hook_opcode(vm::op::Opcode opcode, const vm::op::VM_OP_FUNC_PTR hook,
 #endif
 
 inline constexpr void flush_exec_all() {
-  HOOK_FLUSH_EXEC(Abs);
-  HOOK_FLUSH_EXEC(AngleClamp180);
-  HOOK_FLUSH_EXEC(AnglesToForward);
-  HOOK_FLUSH_EXEC(AnglesToRight);
-  HOOK_FLUSH_EXEC(AnglesToUp);
   HOOK_FLUSH_EXEC(Bit_And);
   HOOK_FLUSH_EXEC(Bit_Or);
   HOOK_FLUSH_EXEC(Bit_Xor);
@@ -135,7 +136,6 @@ inline constexpr void flush_exec_all() {
   HOOK_FLUSH_EXEC(EvalArrayRef);
   HOOK_FLUSH_EXEC(EvalFieldVariable);
   HOOK_FLUSH_EXEC(EvalFieldVariableRef);
-  HOOK_FLUSH_EXEC(EvalLocalArrayRefCached);
   HOOK_FLUSH_EXEC(EvalLocalVariableCached);
   HOOK_FLUSH_EXEC(EvalLocalVariableCachedDebug);
   HOOK_FLUSH_EXEC(EvalLocalVariableRefCached);
@@ -157,7 +157,6 @@ inline constexpr void flush_exec_all() {
   HOOK_FLUSH_EXEC(Inc);
   HOOK_FLUSH_EXEC(IsDefined);
   HOOK_FLUSH_EXEC(Jump);
-  HOOK_FLUSH_EXEC(JumpBack);
   HOOK_FLUSH_EXEC(JumpOnFalse);
   HOOK_FLUSH_EXEC(JumpOnFalseExpr);
   HOOK_FLUSH_EXEC(JumpOnTrue);
@@ -169,7 +168,6 @@ inline constexpr void flush_exec_all() {
   HOOK_FLUSH_EXEC(Multiply);
   HOOK_FLUSH_EXEC(New);
   HOOK_FLUSH_EXEC(NextArrayKey);
-  HOOK_FLUSH_EXEC(Nop);
   HOOK_FLUSH_EXEC(NotEqual);
   HOOK_FLUSH_EXEC(Notify);
   HOOK_FLUSH_EXEC(Plus);
@@ -177,14 +175,12 @@ inline constexpr void flush_exec_all() {
   HOOK_FLUSH_EXEC(ProfileStart);
   HOOK_FLUSH_EXEC(ProfileStop);
   HOOK_FLUSH_EXEC(WaitRealTime);
-  HOOK_FLUSH_EXEC(RemoveLocalVariables);
   HOOK_FLUSH_EXEC(Return);
   HOOK_FLUSH_EXEC(SafeDecTop);
   HOOK_FLUSH_EXEC(SafeSetVariableFieldCached);
   HOOK_FLUSH_EXEC(SafeSetWaittillVariableFieldCached);
   HOOK_FLUSH_EXEC(ScriptFunctionCall);
   HOOK_FLUSH_EXEC(ScriptFunctionCallClass);
-  HOOK_FLUSH_EXEC(ScriptFunctionCallClassPointer);
   HOOK_FLUSH_EXEC(ScriptFunctionCallPointer);
   HOOK_FLUSH_EXEC(ScriptMethodCall);
   HOOK_FLUSH_EXEC(ScriptMethodCallPointer);
@@ -201,15 +197,11 @@ inline constexpr void flush_exec_all() {
   HOOK_FLUSH_EXEC(Vector);
   HOOK_FLUSH_EXEC(VectorConstant);
   HOOK_FLUSH_EXEC(VectorScale);
-  HOOK_FLUSH_EXEC(VectorToAngles);
-  HOOK_FLUSH_EXEC(VoidCodePos);
   HOOK_FLUSH_EXEC(Wait);
   HOOK_FLUSH_EXEC(WaitTill);
   HOOK_FLUSH_EXEC(WaitTillFrameEnd);
   HOOK_FLUSH_EXEC(WaitTillMatch);
-  HOOK_FLUSH_EXEC(Bit_Not);
   HOOK_FLUSH_EXEC(DevblockBegin);
-  HOOK_FLUSH_EXEC(DevblockEnd);
   HOOK_FLUSH_EXEC(EvalLevelFieldVariable);
   HOOK_FLUSH_EXEC(EvalLevelFieldVariableRef);
   HOOK_FLUSH_EXEC(EvalSelfFieldVariable);
