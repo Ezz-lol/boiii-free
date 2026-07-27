@@ -121,6 +121,12 @@ bool is_inside_folder(const std::filesystem::path &file,
   const auto start = relative.begin();
   return start != relative.end() && start->string() != "..";
 }
+
+bool is_dedicated_server() {
+  return utils::flags::has_flag("dedicated") ||
+         (!utils::io::file_exists("BlackOps3.exe") &&
+          utils::io::file_exists("BlackOps3_UnrankedDedicatedServer.exe"));
+}
 } // namespace
 
 file_updater::file_updater(progress_listener &listener,
@@ -216,7 +222,16 @@ void file_updater::run() const {
   }
 
   this->update_host_binary(outdated_files);
-  this->update_files(outdated_files);
+
+  std::vector<file_info> remaining_files;
+  remaining_files.reserve(outdated_files.size());
+  for (const auto &file : outdated_files) {
+    if (file.name != UPDATE_HOST_BINARY) {
+      remaining_files.emplace_back(file);
+    }
+  }
+
+  this->update_files(remaining_files);
 
   std::this_thread::sleep_for(1s);
 }
@@ -380,9 +395,20 @@ void file_updater::update_host_binary(
       }
     }
   } catch (...) {
+    const auto update_error = std::current_exception();
     OutputDebugStringA("Exe update failed, restoring old file...\n");
-    this->restore_current_process_file();
-    throw;
+    if (utils::io::file_exists(this->dead_process_file_)) {
+      this->restore_current_process_file();
+    }
+
+    if (is_dedicated_server() &&
+        utils::io::file_exists(this->process_file_)) {
+      OutputDebugStringA(
+          "Dedicated server exe update skipped; using existing binary\n");
+      return;
+    }
+
+    std::rethrow_exception(update_error);
   }
 
   OutputDebugStringA("Exe update complete, preparing to relaunch...\n");
@@ -519,6 +545,11 @@ void file_updater::move_current_process_file() const {
     OutputDebugStringA(("Failed to move exe, attempt " + std::to_string(i + 1) +
                         "/5, error: " + std::to_string(error) + "\n")
                            .c_str());
+
+    if (is_dedicated_server() &&
+        (error == ERROR_SHARING_VIOLATION || error == ERROR_ACCESS_DENIED)) {
+      throw std::runtime_error("Dedicated server executable is in use");
+    }
 
     if (i < 4) {
       std::this_thread::sleep_for(500ms);
