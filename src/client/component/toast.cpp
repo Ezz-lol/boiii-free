@@ -70,8 +70,6 @@ bool execute_lua(const std::string &code) {
 
 const char *zombie_toast_patch = R"lua(
 if not CoD.isZombie then return end
-if CoD.__toastPatched then return end
-CoD.__toastPatched = true
 
 local function ensureToast(hud)
 	if hud == nil or hud.toastNotification ~= nil or CoD.ToastNotification == nil then
@@ -88,12 +86,14 @@ local function ensureToast(hud)
 	end
 end
 
-if HUD_FirstSnapshot_Zombie ~= nil then
+if HUD_FirstSnapshot_Zombie ~= nil and HUD_FirstSnapshot_Zombie ~= CoD.__boiiiToastFirstSnapshot then
 	local oldZombieFirstSnapshot = HUD_FirstSnapshot_Zombie
-	HUD_FirstSnapshot_Zombie = function(hud, event)
+	local patchedZombieFirstSnapshot = function(hud, event)
 		oldZombieFirstSnapshot(hud, event)
 		ensureToast(hud)
 	end
+	CoD.__boiiiToastFirstSnapshot = patchedZombieFirstSnapshot
+	HUD_FirstSnapshot_Zombie = patchedZombieFirstSnapshot
 end
 
 if LUI ~= nil and LUI.roots ~= nil then
@@ -114,11 +114,7 @@ end
 } // namespace
 
 void patch_hud() {
-  static bool patched = false;
-  if (patched)
-    return;
-  if (execute_lua(zombie_toast_patch))
-    patched = true;
+  execute_lua(zombie_toast_patch);
 }
 
 void precache_icon(const std::string &material) {
@@ -138,8 +134,6 @@ void show(const std::string &title, const std::string &description,
   if (game::is_server())
     return;
 
-  patch_hud();
-
   const auto escaped_title = escape_lua_string(title);
   const auto escaped_description = escape_lua_string(description);
   const auto escaped_icon = escape_lua_string(icon);
@@ -147,28 +141,33 @@ void show(const std::string &title, const std::string &description,
   const std::string code = utils::string::va(
       "pcall(function()\n"
       "  if CoD and CoD.OverlayUtility and CoD.OverlayUtility.ShowToast then\n"
-      "    CoD.OverlayUtility.ShowToast(\"Notice\", \"%s\", \"%s\", \"%s\")\n"
+      "    CoD.OverlayUtility.ShowToast(\"Invite\", \"%s\", \"%s\", \"%s\")\n"
       "  end\n"
       "end)\n",
       escaped_title.c_str(), escaped_description.c_str(), escaped_icon.c_str());
 
-  scheduler::once([code] { execute_lua(code); }, scheduler::main);
+  scheduler::once(
+      [code] {
+        patch_hud();
+        execute_lua(code);
+      },
+      scheduler::main);
 }
 
 void success(const std::string &title, const std::string &description) {
-  show(title, description, "t7_icon_save_overlays");
+  show(title, description, "uie_t7_icon_menu_invite_sent");
 }
 
 void warn(const std::string &title, const std::string &description) {
-  show(title, description, "t7_icon_notice_overlays_bkg");
+  show(title, description, "uie_t7_icon_menu_invite_fail");
 }
 
 void error(const std::string &title, const std::string &description) {
-  show(title, description, "t7_icon_error_overlays");
+  show(title, description, "uie_t7_icon_menu_invite_fail");
 }
 
 void info(const std::string &title, const std::string &description) {
-  show(title, description, "t7_icon_info_overlays_bkg");
+  show(title, description, "uie_t7_icon_menu_invite_sent");
 }
 
 } // namespace toast

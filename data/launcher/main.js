@@ -60,15 +60,13 @@
           x: Math.random() * emberCanvas.width,
           y:
             emberCanvas.height *
-            (initial
-              ? 0.18 + Math.random() * 0.76
-              : 0.55 + Math.random() * 0.45),
+            (initial ? 0.18 + Math.random() * 0.76 : 0.55 + Math.random() * 0.45),
           vx: (Math.random() - 0.5) * 0.34,
           vy: 0.32 + Math.random() * 0.44,
           scale: 0.48 + Math.random() * 0.34,
           life: life,
           maxLife: life,
-          gold: Math.random() > 0.72,
+          gold: Math.random() > 0.72
         });
       }
 
@@ -384,11 +382,11 @@
                   args.push(arguments[i]);
                 rawBridge.__request = JSON.stringify({
                   name: String(name),
-                  args: args,
+                  args: args
                 });
                 return rawBridge.__response;
               };
-            },
+            }
           }
         );
         return externalBridge;
@@ -807,7 +805,7 @@
           workshopBrowseSearchTerm,
           workshopBrowseSource,
           workshopBrowseError,
-          workshopBrowseItems.length,
+          workshopBrowseItems.length
         ].join("|");
 
         if (renderKey !== lastRenderKey) {
@@ -2455,7 +2453,7 @@
   var componentSelection = {
     campaign: false,
     multiplayer: false,
-    zombies: false,
+    zombies: false
   };
   var modeFilesInfo = {};
 
@@ -2466,7 +2464,7 @@
     componentSelection = {
       campaign: false,
       multiplayer: false,
-      zombies: false,
+      zombies: false
     };
     try {
       var ex = getExternal();
@@ -2482,7 +2480,7 @@
     var items = [
       { id: "campaign", name: "Campaign", prefix: "cp_" },
       { id: "multiplayer", name: "Multiplayer", prefix: "mp_" },
-      { id: "zombies", name: "Zombies", prefix: "zm_" },
+      { id: "zombies", name: "Zombies", prefix: "zm_" }
     ];
     list.innerHTML = "";
     for (var i = 0; i < items.length; i++) {
@@ -2490,7 +2488,7 @@
       var info = modeFilesInfo[it.id] || {
         count: 0,
         size: 0,
-        sizeHuman: "0 B",
+        sizeHuman: "0 B"
       };
       var installed = info.count > 0;
       var sizeText = installed
@@ -2541,7 +2539,7 @@
     var nameMap = {
       campaign: "Campaign",
       multiplayer: "Multiplayer",
-      zombies: "Zombies",
+      zombies: "Zombies"
     };
     for (var key in componentSelection) {
       if (
@@ -2967,7 +2965,7 @@
   setupPathBtn("setPathBtn", ["currentPathDisplay", "settingsPathDisplay"]);
   setupPathBtn("settingsChangePathBtn", [
     "currentPathDisplay",
-    "settingsPathDisplay",
+    "settingsPathDisplay"
   ]);
 
   var settingsTabs = document.querySelectorAll(".settings-tab");
@@ -3004,7 +3002,7 @@
     drawFps: false,
     smoothFramerate: false,
     unlockGfx: false,
-    fullVram: false,
+    fullVram: false
   };
 
   var ASSET_POOL_DEFAULTS = {
@@ -3039,7 +3037,7 @@
     ap_xcam: 256,
     ap_tracer: 128,
     ap_vehicledef: 128,
-    ap_ttf: 64,
+    ap_ttf: 64
   };
 
   function loadAllSettings() {
@@ -3585,7 +3583,7 @@
       var ex = getExternal();
       if (!ex || !ex.readFriendIdentity) return;
       var identity = JSON.parse(ex.readFriendIdentity() || "{}");
-      var code = identity.steam_id ? String(identity.steam_id) : "";
+      var code = identity.friend_code ? String(identity.friend_code) : "";
       var nameEl = document.getElementById("friendIdentityName");
       var codeEl = document.getElementById("friendIdentityCode");
       var copyBtn = document.getElementById("friendCodeCopyBtn");
@@ -3679,7 +3677,7 @@
   if (friendAddBtn) {
     friendAddBtn.onclick = function () {
       var nameInput = document.getElementById("friendNameInput");
-      var sidInput = document.getElementById("friendSteamIdInput");
+      var sidInput = document.getElementById("friendCodeInput");
       if (!nameInput || !sidInput) return;
 
       var name = nameInput.value.replace(/^\s+|\s+$/g, "");
@@ -3688,14 +3686,14 @@
       if (!name || !sid) {
         showMessage(
           "Add Friend",
-          "Please enter both a display name and a Steam ID."
+          "Please enter both a display name and a BOIII Friend Code."
         );
         return;
       }
       if (!/^\d{5,20}$/.test(sid)) {
         showMessage(
           "Add Friend",
-          "Steam ID must be a numeric value (e.g. 76561198...)."
+          "BOIII Friend Code must be a numeric value."
         );
         return;
       }
@@ -3707,7 +3705,7 @@
           if (result === "duplicate") {
             showMessage(
               "Add Friend",
-              "This Steam ID is already in your friends list."
+              "This BOIII Friend Code is already in your friends list."
             );
             return;
           } else if (result === "error") {
@@ -3900,7 +3898,7 @@
               if (boiiiAsset) {
                 _versionsData[tagName] = {
                   url: boiiiAsset.browser_download_url,
-                  name: "versions/boiii-" + tagName + ".exe",
+                  name: "versions/boiii-" + tagName + ".exe"
                 };
                 // The newest release is already represented by the Latest
                 // entry, so skip adding it a second time as its own row.
@@ -3929,7 +3927,7 @@
   // of the list regardless of when the releases fetch below resolves.
   _versionsData["beta"] = {
     url: "https://r2.ezz.lol/boiii/beta/boiii.exe",
-    name: "versions/boiii-beta.exe",
+    name: "versions/boiii-beta.exe"
   };
   addVersionOption("beta", "Beta (Experimental)", true);
 

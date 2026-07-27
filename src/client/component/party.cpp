@@ -376,25 +376,52 @@ void connect_finish(const game::net::netadr_t &target, const char *address) {
 void connect_stub(const char *address) {
   if (address) {
     std::string address_copy = address;
+
+    if (const auto friend_id = friends::take_browser_route(address_copy)) {
+      if (!friends::connect_to_friend(friend_id))
+        toast::show("Friend unavailable", "No joinable match was found",
+                    "t7_icon_connect_overlays");
+      return;
+    }
+
     if (address_copy == "localhost") {
       address_copy = "127.0.0.1:27017";
     } else if (address_copy.find(':') == std::string::npos) {
       address_copy.append(":27017");
     }
 
+    if (address_copy == "0.0.0.0" || address_copy.starts_with("0.0.0.0:")) {
+      toast::show("Friend unavailable", "Friend is offline or their party is closed",
+                  "t7_icon_connect_overlays");
+      return;
+    }
+
     toast::show("Connecting", address, "t7_icon_connect_overlays");
 
     network::resolvedAddrCallback_t resolveCb =
         [address_copy](game::net::netadr_t target) -> void {
-      if (target.type == game::net::NA_BAD) {
-        printf("Connect failed: invalid address \"%s\"\n",
-               address_copy.c_str());
-        toast::show("Connect failed", "Invalid address",
-                    "t7_icon_connect_overlays");
-        return;
-      }
+      scheduler::once(
+          [address_copy, target] {
+            if (target.type == game::net::NA_BAD) {
+              printf("Connect failed: invalid address \"%s\"\n",
+                     address_copy.c_str());
+              toast::show("Connect failed", "Invalid address",
+                          "t7_icon_connect_overlays");
+              return;
+            }
 
-      connect_finish(target, address_copy.c_str());
+            if (network::is_ip_address(target) &&
+                (target.addr == 0 || target.port == 0)) {
+              toast::show(
+                  "Friend unavailable",
+                  "Friend is offline or their party is closed",
+                  "t7_icon_connect_overlays");
+              return;
+            }
+
+            connect_finish(target, address_copy.c_str());
+          },
+          scheduler::main);
     };
     // Resolve the address on a background thread.
     network::address_from_string_async(address_copy, resolveCb);
@@ -477,6 +504,10 @@ void cleanup_queried_servers() {
   }
 }
 } // namespace
+
+void connect(const game::net::netadr_t &target) {
+  connect_finish(target, nullptr);
+}
 
 void query_server(const game::net::netadr_t &host, query_callback callback) {
   server_query query{};

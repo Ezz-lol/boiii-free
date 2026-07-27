@@ -1,9 +1,43 @@
+local function addFriendsAccessOption(options, controller)
+  local connectedToDedicated = false
+  pcall(function()
+    connectedToDedicated = Dvar.cl_connected_to_dedi and Dvar.cl_connected_to_dedi:get()
+  end)
+
+  if connectedToDedicated or not Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_GAME) then
+    return
+  end
+
+  local friendsCanJoin = Engine.DvarBool(controller, "friends_open")
+  table.insert(options, {
+    models = {
+      displayText = friendsCanJoin and "CLOSE FRIEND JOINING" or "OPEN TO FRIENDS",
+      action = function(self, element, actionController, param, menu)
+        Engine.Exec(actionController, "friends_open")
+        StartMenuGoBack_ListElement(self, element, actionController, param, menu)
+      end,
+    },
+  })
+end
+
+local function restartGame(self, element, controller, param, menu)
+  Engine.Exec(controller, "boiii_prepare_menu_restart")
+  return RestartGame(self, element, controller, param, menu)
+end
+
 DataSources.StartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOptions", function(controller)
   local options = {}
   local currentMode = Engine.CurrentSessionMode()
   local isMP = currentMode == Enum.eModes.MODE_MULTIPLAYER
   local isZM = currentMode == Enum.eModes.MODE_ZOMBIES
   local isCP = currentMode == Enum.eModes.MODE_CAMPAIGN
+  local endGameOption = nil
+  local restartGameOption = nil
+  local connectedToDedicated = false
+  pcall(function()
+    connectedToDedicated = Dvar.cl_connected_to_dedi and Dvar.cl_connected_to_dedi:get()
+  end)
+  local isLocalHost = Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_GAME) and not connectedToDedicated
   if Engine.IsDemoPlaying() then
     if not IsDemoRestrictedBasicMode() then
       table.insert(options, {
@@ -88,32 +122,30 @@ DataSources.StartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOpti
     then
       table.insert(options, { models = { displayText = "MPUI_CHANGE_TEAM_BUTTON_CAPS", action = ChooseTeam } })
     end
-    if controller == 0 then
-      local endGameText = "MENU_QUIT_GAME_CAPS"
-      if Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_GAME) and not Dvar.cl_connected_to_dedi:get() then
-        endGameText = "MENU_END_GAME_CAPS"
-      end
-      table.insert(options, { models = { displayText = endGameText, action = QuitGame_MP } })
+    local endGameText = isLocalHost and "MAIN MENU" or "MENU_QUIT_GAME_CAPS"
+    endGameOption = { models = { displayText = endGameText, action = QuitGame_MP } }
+    if isLocalHost then
+      restartGameOption = {
+        models = {
+          displayText = "RESTART GAME",
+          action = restartGame,
+        },
+      }
     end
   elseif isZM then
     table.insert(options, { models = { displayText = "MENU_RESUMEGAME_CAPS", action = StartMenuGoBack_ListElement } })
-    if
-      Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_GAME)
-      and not Dvar.cl_connected_to_dedi:get()
-      and (
-        not Engine.SessionModeIsMode(CoD.SESSIONMODE_SYSTEMLINK) or Engine.SessionModeIsMode(CoD.SESSIONMODE_OFFLINE)
-      )
-    then
-      table.insert(options, { models = { displayText = "MENU_RESTART_LEVEL_CAPS", action = RestartGame } })
-    end
-    if controller == 0 then
-      local endGameText = "MENU_QUIT_GAME_CAPS"
-      if Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_GAME) and not Dvar.cl_connected_to_dedi:get() then
-        endGameText = "MENU_END_GAME_CAPS"
-      end
-      table.insert(options, { models = { displayText = endGameText, action = QuitGame_MP } })
+    local endGameText = isLocalHost and "MAIN MENU" or "MENU_QUIT_GAME_CAPS"
+    endGameOption = { models = { displayText = endGameText, action = QuitGame_MP } }
+    if isLocalHost then
+      restartGameOption = {
+        models = {
+          displayText = "RESTART GAME",
+          action = restartGame,
+        },
+      }
     end
   end
+  addFriendsAccessOption(options, controller)
   local isLocalGame = true
   pcall(function()
     if Dvar.cl_connected_to_dedi and Dvar.cl_connected_to_dedi:get() then
@@ -133,6 +165,12 @@ DataSources.StartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOpti
         end,
       },
     })
+  end
+  if restartGameOption then
+    table.insert(options, restartGameOption)
+  end
+  if endGameOption then
+    table.insert(options, endGameOption)
   end
   table.insert(options, { models = { displayText = "QUIT TO DESKTOP", action = OpenPCQuit } })
   return options

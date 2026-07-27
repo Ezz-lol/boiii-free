@@ -710,6 +710,36 @@ void try_start() {
   }
 }
 
+void reload_ingame_menu_scripts() {
+  const utils::nt::library host{};
+  const std::filesystem::path roots[] = {
+      game::get_appdata_path() / "data/ui_scripts",
+      host.get_folder() / "boiii/ui_scripts",
+  };
+  const char *files[] = {
+      "party/datasources_start_menu_game_options.lua",
+      "tweaks/__init__.lua",
+  };
+
+  for (const auto &root : roots) {
+    if (!utils::io::directory_exists(root.string())) {
+      continue;
+    }
+
+    load_local_script_files((root / "party").string());
+    load_local_script_files((root / "tweaks").string());
+    for (const auto *file : files) {
+      const auto path = root / file;
+      std::string data;
+      if (!utils::io::read_file(path.string(), &data)) {
+        continue;
+      }
+
+      load_script(path.generic_string(), data, file);
+    }
+  }
+}
+
 void ui_init_stub(lua_Alloc allocFunction, void *outOfMemoryFunction) {
   ui_init_hook.invoke(allocFunction, outOfMemoryFunction);
 
@@ -717,6 +747,7 @@ void ui_init_stub(lua_Alloc allocFunction, void *outOfMemoryFunction) {
 }
 
 std::atomic<bool> doneFirstSnapshot = false;
+std::atomic<bool> reloadIngameMenusAfterRestart = false;
 
 void ui_cod_init_stub(const bool frontend) {
   ui_cod_init_hook.invoke(frontend);
@@ -726,6 +757,7 @@ void ui_cod_init_stub(const bool frontend) {
     globals = {};
     const utils::nt::library host{};
     doneFirstSnapshot.store(false, std::memory_order_seq_cst);
+    reloadIngameMenusAfterRestart.store(false, std::memory_order_seq_cst);
 
     load_local_script_files(
         (game::get_appdata_path() / "data/ui_scripts/").string());
@@ -772,11 +804,24 @@ void inject_discord_score_subscriptions() {
 
 void cl_first_snapshot_stub(game::LocalClientNum_t localClientNum) {
   cl_first_snapshot_hook.invoke(localClientNum);
-  if (game::com::Com_IsRunningUILevel() ||
-      doneFirstSnapshot.load(std::memory_order_seq_cst)) {
+  if (game::com::Com_IsRunningUILevel()) {
     return;
   }
-  doneFirstSnapshot.store(true, std::memory_order_seq_cst);
+
+  if (doneFirstSnapshot.exchange(true, std::memory_order_seq_cst)) {
+    if (!reloadIngameMenusAfterRestart.exchange(false,
+                                                 std::memory_order_seq_cst)) {
+      return;
+    }
+
+    try {
+      reload_ingame_menu_scripts();
+      toast::patch_hud();
+    } catch (...) {
+    }
+    return;
+  }
+
   hot_reload_in_game.store(true, std::memory_order_seq_cst);
   try_start();
 
@@ -1398,6 +1443,10 @@ public:
           game::Dvar_SetFromStringByName("ui_error_report_delay", "1", true);
         },
         scheduler::pipeline::renderer);
+
+    command::add("boiii_prepare_menu_restart", [](const command::params &) {
+      reloadIngameMenusAfterRestart.store(true, std::memory_order_seq_cst);
+    });
 
     command::add("luiReload", [] {
       if (game::com::Com_IsRunningUILevel()) {

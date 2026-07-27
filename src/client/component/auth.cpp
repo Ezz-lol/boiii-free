@@ -401,24 +401,24 @@ void direct_connect_bots_stub(const game::net::netadr_t address) {
   handle_new_player(address);
 }
 
-game::XUID get_guid(game::ControllerIndex_t controllerIndex) {
-  static const std::array<game::XUID, 2> guids =
-      []() -> std::array<game::XUID, 2> {
-    if (game::is_server()) {
-      return {static_cast<game::XUID>(
-                  0x110000100000000 |
-                  (::utils::cryptography::random::get_integer() & ~0x80000000)),
-              0};
-    }
-
-    return {get_key(game::CONTROLLER_INDEX_0).get_hash(),
-            get_key(game::CONTROLLER_INDEX_1).get_hash()};
-  }();
-
+game::XUID get_client_guid(game::ControllerIndex_t controllerIndex) {
+  static const std::array<game::XUID, 2> guids = {
+      get_key(game::CONTROLLER_INDEX_0).get_hash(),
+      get_key(game::CONTROLLER_INDEX_1).get_hash()};
   controllerIndex = game::valid_controller_index(controllerIndex)
                         ? controllerIndex
                         : game::CONTROLLER_INDEX_0;
   return guids[static_cast<uint32_t>(controllerIndex)];
+}
+
+game::XUID get_guid(game::ControllerIndex_t controllerIndex) {
+  if (!game::is_server())
+    return get_client_guid(controllerIndex);
+
+  static const game::XUID server_guid = static_cast<game::XUID>(
+      0x110000100000000 |
+      (::utils::cryptography::random::get_integer() & ~0x80000000));
+  return controllerIndex == game::CONTROLLER_INDEX_0 ? server_guid : 0;
 }
 
 game::XUID get_guid(const size_t client_num) {

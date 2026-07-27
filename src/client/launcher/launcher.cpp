@@ -8,6 +8,7 @@
 #include "launcher.hpp"
 #include "launcher_workshop.hpp"
 #include "html/html_window.hpp"
+#include "component/auth.hpp"
 
 #include <game/game.hpp>
 
@@ -56,26 +57,6 @@ std::string sanitize_player_name(const std::string &name) {
       result += c;
   }
   return result;
-}
-
-std::uint64_t get_active_steam_id() {
-  HKEY key{};
-  if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Valve\\Steam\\ActiveProcess",
-                    0, KEY_READ, &key) != ERROR_SUCCESS)
-    return 0;
-
-  DWORD account_id{};
-  DWORD type{};
-  DWORD size = sizeof(account_id);
-  const auto result =
-      RegQueryValueExW(key, L"ActiveUser", nullptr, &type,
-                       reinterpret_cast<BYTE *>(&account_id), &size);
-  RegCloseKey(key);
-
-  if (result != ERROR_SUCCESS || type != REG_DWORD || account_id == 0)
-    return 0;
-
-  return 76561197960265728ULL + account_id;
 }
 
 std::mutex library_list_mutex;
@@ -1799,18 +1780,18 @@ bool run() {
     window.get_html_frame()->register_callback(
         "readFriendIdentity",
         [](const std::vector<html_argument> & /*params*/) -> CComVariant {
-          const auto steam_id = get_active_steam_id();
-          if (steam_id == 0)
+          const auto friend_code = auth::get_client_guid();
+          if (friend_code == 0)
             return CComVariant("{}");
 
           rapidjson::Document doc(rapidjson::kObjectType);
           auto &allocator = doc.GetAllocator();
-          const auto steam_id_string = std::to_string(steam_id);
-          doc.AddMember("steam_id",
-                        rapidjson::Value(steam_id_string.c_str(), allocator),
+          const auto friend_code_string = std::to_string(friend_code);
+          doc.AddMember("friend_code",
+                        rapidjson::Value(friend_code_string.c_str(), allocator),
                         allocator);
           doc.AddMember("name",
-                        rapidjson::Value("Signed-in Steam account", allocator),
+                        rapidjson::Value("Your BOIII identity", allocator),
                         allocator);
 
           rapidjson::StringBuffer buffer;

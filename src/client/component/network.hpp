@@ -25,6 +25,9 @@ void address_from_string_async(const std::string &address,
 
 bool are_addresses_equal(const game::net::netadr_t &a,
                          const game::net::netadr_t &b);
+bool is_ip_address(const game::net::netadr_t &addr);
+bool is_connectable_address(const game::net::netadr_t &addr);
+std::string address_to_string(const game::net::netadr_t &addr);
 } // namespace network
 
 inline bool operator==(const game::net::netadr_t &a,

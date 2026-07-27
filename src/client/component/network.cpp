@@ -282,6 +282,22 @@ bool are_addresses_equal(const game::net::netadr_t &a,
   return a.port == b.port && a.addr == b.addr;
 }
 
+bool is_ip_address(const game::net::netadr_t &addr) {
+  return addr.type == game::net::NA_IP || addr.type == game::net::NA_RAWIP;
+}
+
+bool is_connectable_address(const game::net::netadr_t &addr) {
+  return is_ip_address(addr) && addr.addr != 0 && addr.ipv4.a != 0 &&
+         addr.ipv4.a != 127 && addr.ipv4.a < 224 && addr.port >= 1024;
+}
+
+std::string address_to_string(const game::net::netadr_t &addr) {
+  if (!is_ip_address(addr))
+    return {};
+  return utils::string::va("%u.%u.%u.%u:%hu", addr.ipv4.a, addr.ipv4.b,
+                           addr.ipv4.c, addr.ipv4.d, addr.port);
+}
+
 int32_t net_sendpacket_stub(const game::net::netsrc_t sock,
                             const int32_t length, const char *data,
                             const game::net::netadr_t *to) {
