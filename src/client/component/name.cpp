@@ -26,6 +26,8 @@
 namespace name {
 namespace {
 constexpr const str<13> sync_packet_name = "nameoverride";
+constexpr const str<16> sync_request_packet_name = "nameoverridereq";
+constexpr size_t max_override_length = 256;
 
 enum class SyncMessageType : uint8_t {
   CLEAR_ALL = 0x0,
@@ -48,6 +50,18 @@ bool is_syncable_client(const game::sv::client_s &client) {
   return client.state != game::net::CS_FREE &&
          client.state != game::net::CS_ZOMBIE &&
          is_syncable_address(client.address);
+}
+
+bool is_connected_client_address(const game::net::netadr_t &address) {
+  bool found = false;
+
+  game::foreach_connected_client([&](game::sv::client_s &client, size_t) {
+    if (!found && is_syncable_client(client) && client.address == address) {
+      found = true;
+    }
+  });
+
+  return found;
 }
 
 void send_override_packet(
@@ -185,19 +199,39 @@ void send_snapshot_packet(const game::net::netadr_t &target) {
   network::send(target, sync_packet_name, buffer.get_buffer());
 }
 
-void send_snapshot_packet_to_client(const game::ClientNum_t target_client) {
-  if (!game::valid_client_num(target_client) || !game::server_running()) {
+std::mutex snapshot_status_mutex;
+bool snapshot_received = false;
+std::optional<game::net::netadr_t> snapshot_server{};
+
+void mark_snapshot_received(const game::net::netadr_t &server) {
+  std::lock_guard lock(snapshot_status_mutex);
+  snapshot_server = server;
+  snapshot_received = true;
+}
+
+void request_snapshot_if_needed() {
+  if (game::cg::clientUIActives->actives[0].connectionState !=
+      game::connstate_t::ACTIVE) {
+    std::lock_guard lock(snapshot_status_mutex);
+    snapshot_server.reset();
+    snapshot_received = false;
     return;
   }
 
-  game::access_connected_client(static_cast<size_t>(target_client),
-                                [&](game::sv::client_s &client) {
-                                  if (!is_syncable_client(client)) {
-                                    return;
-                                  }
+  const game::net::netadr_t server = party::get_connected_server();
+  if (!is_syncable_address(server)) {
+    return;
+  }
 
-                                  send_snapshot_packet(client.address);
-                                });
+  {
+    std::lock_guard lock(snapshot_status_mutex);
+    if (snapshot_received && snapshot_server.has_value() &&
+        *snapshot_server == server) {
+      return;
+    }
+  }
+
+  network::send(server, sync_request_packet_name);
 }
 
 std::string encode_colors(const std::string &s) {
@@ -273,6 +307,25 @@ void clear_all() {
   clear_lobby_client_optional_pool(orig_clan_abbrevs);
 }
 
+void apply_snapshot(
+    const std::vector<std::pair<game::ClientNum_t, std::string>> &names,
+    const std::vector<std::pair<game::ClientNum_t, std::string>> &tags) {
+  std::lock_guard lk(names_mutex);
+
+  clear_lobby_client_optional_pool(name_overrides);
+  clear_lobby_client_optional_pool(clan_abbrev_overrides);
+  clear_lobby_client_optional_pool(orig_names);
+  clear_lobby_client_optional_pool(orig_clan_abbrevs);
+
+  for (const auto &[client_num, value] : names) {
+    name_overrides[client_num] = value;
+  }
+
+  for (const auto &[client_num, value] : tags) {
+    clan_abbrev_overrides[client_num] = value;
+  }
+}
+
 void clear_name_slot(game::ClientNum_t slot) {
   std::lock_guard lk(names_mutex);
   name_overrides[slot].reset();
@@ -328,14 +381,6 @@ void sync_name_reset_to_clients(game::ClientNum_t client_num) {
 
 void sync_clan_abbrev_reset_to_clients(game::ClientNum_t client_num) {
   broadcast_override_packet(SyncMessageType::CLEAR_TAG, client_num);
-}
-
-void sync_all_overrides_to_client(game::ClientNum_t target_client) {
-  if (!game::valid_client_num(target_client)) {
-    return;
-  }
-
-  send_snapshot_packet_to_client(target_client);
 }
 
 bool has_orig_name(game::ClientNum_t client_num) {
@@ -467,14 +512,6 @@ void client_update(game::sv::client_s *cl) {
 void client_update_post_enterworld(
     game::sv::client_s *cl, [[maybe_unused]] game::user::usercmd_t *cmd) {
   client_update(cl);
-
-  const game::ClientNum_t client_num = sv::get_client_num(cl);
-  if (game::valid_client_num(client_num)) {
-    sync_all_overrides_to_client(client_num);
-    scheduler::once(
-        [client_num]() { sync_all_overrides_to_client(client_num); },
-        scheduler::server, 250ms);
-  }
 }
 
 void trigger_client_update(game::ClientNum_t client_num) {
@@ -544,27 +581,49 @@ struct component final : generic_component {
                 break;
 
               case SyncMessageType::SNAPSHOT: {
-                clear_all();
-
                 const uint8_t name_count = buffer.read<uint8_t>();
+                if (name_count > game::CLIENT_INDEX_COUNT) {
+                  return;
+                }
+
+                std::vector<std::pair<game::ClientNum_t, std::string>> names{};
+                std::vector<std::pair<game::ClientNum_t, std::string>> tags{};
+                names.reserve(name_count);
+
                 for (uint8_t i = 0; i < name_count; ++i) {
                   const game::ClientNum_t snapshot_client_num =
                       static_cast<game::ClientNum_t>(buffer.read<int32_t>());
                   const std::string value = buffer.read_string();
-                  if (game::valid_client_num(snapshot_client_num)) {
-                    set_name_override(snapshot_client_num, value);
+                  if (!game::valid_client_num(snapshot_client_num) ||
+                      value.size() > max_override_length) {
+                    return;
                   }
+                  names.emplace_back(snapshot_client_num, value);
                 }
 
                 const uint8_t tag_count = buffer.read<uint8_t>();
+                if (tag_count > game::CLIENT_INDEX_COUNT) {
+                  return;
+                }
+                tags.reserve(tag_count);
+
                 for (uint8_t i = 0; i < tag_count; ++i) {
                   const game::ClientNum_t snapshot_client_num =
                       static_cast<game::ClientNum_t>(buffer.read<int32_t>());
                   const std::string value = buffer.read_string();
-                  if (game::valid_client_num(snapshot_client_num)) {
-                    set_clan_abbrev_override(snapshot_client_num, value);
+                  if (!game::valid_client_num(snapshot_client_num) ||
+                      value.size() > max_override_length) {
+                    return;
                   }
+                  tags.emplace_back(snapshot_client_num, value);
                 }
+
+                if (buffer.get_remaining_size() != 0) {
+                  return;
+                }
+
+                apply_snapshot(names, tags);
+                mark_snapshot_received(server);
                 break;
               }
 
@@ -572,14 +631,26 @@ struct component final : generic_component {
                 if (!game::valid_client_num(client_num)) {
                   return;
                 }
-                set_name_override(client_num, buffer.read_string());
+                {
+                  const std::string value = buffer.read_string();
+                  if (value.size() > max_override_length) {
+                    return;
+                  }
+                  set_name_override(client_num, value);
+                }
                 break;
 
               case SyncMessageType::SET_TAG:
                 if (!game::valid_client_num(client_num)) {
                   return;
                 }
-                set_clan_abbrev_override(client_num, buffer.read_string());
+                {
+                  const std::string value = buffer.read_string();
+                  if (value.size() > max_override_length) {
+                    return;
+                  }
+                  set_clan_abbrev_override(client_num, value);
+                }
                 break;
 
               case SyncMessageType::CLEAR_NAME:
@@ -599,7 +670,23 @@ struct component final : generic_component {
             } catch (...) {
             }
           });
+
+      scheduler::loop(request_snapshot_if_needed, scheduler::main, 1s);
     }
+
+    network::on(
+        sync_request_packet_name,
+        [](const game::net::netadr_t &client,
+           [[maybe_unused]] const network::data_view &data,
+           [[maybe_unused]] game::LocalClientNum_t local_client_num) {
+          if (!game::server_running() ||
+              !is_connected_client_address(client)) {
+            return;
+          }
+
+          send_snapshot_packet(client);
+        });
+
     sv::on_cliententerworld(client_update_post_enterworld);
     sv::on_removeclient(reset_client_name_slot);
 
