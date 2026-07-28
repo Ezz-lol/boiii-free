@@ -2846,7 +2846,10 @@
       if (selectedVersion !== "latest" && _versionsData[selectedVersion]) {
         exeName = _versionsData[selectedVersion].name;
         exeUrl = _versionsData[selectedVersion].url;
-        if (opts.toLowerCase().indexOf("-noupdate") === -1) {
+        if (
+          selectedVersion !== "beta" &&
+          opts.toLowerCase().indexOf("-noupdate") === -1
+        ) {
           opts = (opts + " -noupdate").trim();
         }
       }
