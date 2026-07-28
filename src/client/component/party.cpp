@@ -377,7 +377,7 @@ void connect_stub(const char *address) {
   if (address) {
     std::string address_copy = address;
 
-    if (const auto friend_id = friends::take_browser_route(address_copy)) {
+    if (const auto friend_id = friends::find_browser_route(address_copy)) {
       if (!friends::connect_to_friend(friend_id))
         toast::show("Friend unavailable", "No joinable match was found",
                     "t7_icon_connect_overlays");

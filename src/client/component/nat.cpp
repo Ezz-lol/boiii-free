@@ -397,6 +397,9 @@ void begin_join(const std::string &token,
     return;
   }
 
+  if (joining.active && joining.token == token)
+    return;
+
   joining = {};
   joining.active = true;
   joining.token = token;

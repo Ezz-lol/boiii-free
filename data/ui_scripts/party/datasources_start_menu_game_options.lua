@@ -1,10 +1,14 @@
-local function addFriendsAccessOption(options, controller)
+local function isLocalGameHost()
   local connectedToDedicated = false
   pcall(function()
     connectedToDedicated = Dvar.cl_connected_to_dedi and Dvar.cl_connected_to_dedi:get()
   end)
 
-  if connectedToDedicated or not Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_GAME) then
+  return Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_GAME) and not connectedToDedicated
+end
+
+local function addFriendsAccessOption(options, controller)
+  if not isLocalGameHost() then
     return
   end
 
@@ -33,11 +37,7 @@ DataSources.StartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOpti
   local isCP = currentMode == Enum.eModes.MODE_CAMPAIGN
   local endGameOption = nil
   local restartGameOption = nil
-  local connectedToDedicated = false
-  pcall(function()
-    connectedToDedicated = Dvar.cl_connected_to_dedi and Dvar.cl_connected_to_dedi:get()
-  end)
-  local isLocalHost = Engine.IsLobbyHost(Enum.LobbyType.LOBBY_TYPE_GAME) and not connectedToDedicated
+  local isLocalHost = isLocalGameHost()
   if Engine.IsDemoPlaying() then
     if not IsDemoRestrictedBasicMode() then
       table.insert(options, {
@@ -146,13 +146,7 @@ DataSources.StartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOpti
     end
   end
   addFriendsAccessOption(options, controller)
-  local isLocalGame = true
-  pcall(function()
-    if Dvar.cl_connected_to_dedi and Dvar.cl_connected_to_dedi:get() then
-      isLocalGame = false
-    end
-  end)
-  if isLocalGame then
+  if isLocalHost then
     table.insert(options, {
       models = {
         displayText = "GAME TWEAKS",

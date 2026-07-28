@@ -595,7 +595,7 @@ void remember_browser_route(const game::XUID steam_id,
   browser_routes[network::address_to_string(parsed)] = steam_id;
 }
 
-game::XUID take_browser_route(const std::string &address) {
+game::XUID find_browser_route(const std::string &address) {
   const auto parsed = network::address_from_string(address);
   if (!network::is_ip_address(parsed))
     return 0;
@@ -604,9 +604,7 @@ game::XUID take_browser_route(const std::string &address) {
   const auto found = browser_routes.find(normalized);
   if (found == browser_routes.end())
     return 0;
-  const auto steam_id = found->second;
-  browser_routes.erase(found);
-  return steam_id;
+  return found->second;
 }
 
 struct component final : client_component {

@@ -50,7 +50,7 @@ void set_master_presence(uint64_t steam_id, const std::string &address,
 void clear_browser_routes();
 void forget_browser_routes(uint64_t steam_id);
 void remember_browser_route(uint64_t steam_id, const std::string &address);
-uint64_t take_browser_route(const std::string &address);
+uint64_t find_browser_route(const std::string &address);
 
 std::string get_presence_server(uint64_t steam_id);
 std::vector<friend_server_info> get_friend_server_addresses();
