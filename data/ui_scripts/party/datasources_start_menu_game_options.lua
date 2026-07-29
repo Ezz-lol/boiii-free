@@ -1,4 +1,8 @@
 local function isLocalGameHost()
+  if game and game.ishost then
+    return game.ishost()
+  end
+
   local connectedToDedicated = false
   pcall(function()
     connectedToDedicated = Dvar.cl_connected_to_dedi and Dvar.cl_connected_to_dedi:get()
@@ -29,7 +33,7 @@ local function restartGame(self, element, controller, param, menu)
   return RestartGame(self, element, controller, param, menu)
 end
 
-DataSources.StartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOptions", function(controller)
+local customStartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOptions", function(controller)
   local options = {}
   local currentMode = Engine.CurrentSessionMode()
   local isMP = currentMode == Enum.eModes.MODE_MULTIPLAYER
@@ -159,6 +163,18 @@ DataSources.StartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOpti
         end,
       },
     })
+    table.insert(options, {
+      models = {
+        displayText = "KICK PLAYER",
+        action = function(self, element, controller, param, menu)
+          if menu and menu.openPopup then
+            menu:openPopup("BoiiiKickPlayersMenu", controller)
+          else
+            OpenPopup(self, "BoiiiKickPlayersMenu", controller)
+          end
+        end,
+      },
+    })
   end
   if restartGameOption then
     table.insert(options, restartGameOption)
@@ -169,3 +185,9 @@ DataSources.StartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOpti
   table.insert(options, { models = { displayText = "QUIT TO DESKTOP", action = OpenPCQuit } })
   return options
 end, true)
+
+-- Keep a stable reference for the pause-menu constructor. BO3 may replace the
+-- table entry while transitioning maps, so the constructor restores it at the
+-- exact point where the menu is created.
+BoiiiStartMenuGameOptions = customStartMenuGameOptions
+DataSources.StartMenuGameOptions = BoiiiStartMenuGameOptions

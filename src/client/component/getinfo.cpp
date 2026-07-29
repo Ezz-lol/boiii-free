@@ -67,8 +67,7 @@ size_t get_bot_count() {
 int get_assigned_team() { return (rand() % 2) + 1; }
 
 bool is_host() {
-  return game::sv::SV_Loaded() &&
-         (game::is_server() || !game::com::Com_IsRunningUILevel());
+  return game::server_running();
 }
 
 struct component final : generic_component {

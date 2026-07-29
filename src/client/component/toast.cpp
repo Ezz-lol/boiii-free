@@ -148,7 +148,6 @@ void show(const std::string &title, const std::string &description,
 
   scheduler::once(
       [code] {
-        patch_hud();
         execute_lua(code);
       },
       scheduler::main);
