@@ -234,70 +234,75 @@ struct component final : generic_component {
             "Cannot use unlockall while in-game. Return to main menu first.");
         return;
       }
-      // Enable all unlock dvars (mode-independent)
-      dvar_cg_unlockall_loot.set(true);
-      dvar_cg_unlockall_purchases.set(true);
-      dvar_cg_unlockall_attachments.set(true);
-      dvar_cg_unlockall_camos_and_reticles.set(true);
-      dvar_cg_unlockall_calling_cards.set(true);
-      dvar_cg_unlockall_specialists_outfits.set(true);
-      dvar_cg_unlockall_cac_slots.set(true);
-      game::ui_enableAllHeroes->set(true);
-
-      // Set master prestige for all 3 modes (eModes: ZM=0, MP=1, CP=2)
-      game::cbuf::Cbuf_AddText(0, "PrestigeStatsMaster 0\n"); // ZM
-      game::cbuf::Cbuf_AddText(0, "PrestigeStatsMaster 1\n"); // MP
-      game::cbuf::Cbuf_AddText(0, "PrestigeStatsMaster 2\n"); // CP
-
-      // statsetbyname only affects the current session mode
-      game::cbuf::Cbuf_AddText(0, "statsetbyname plevel 11\n");
-      game::cbuf::Cbuf_AddText(0, "statsetbyname hasprestiged 1\n");
 
       const game::eModes mode = game::com::Com_SessionMode_GetMode();
-      const char *mode_name = "";
+      if (mode != game::eModes::MULTIPLAYER &&
+          mode != game::eModes::ZOMBIES &&
+          mode != game::eModes::CAMPAIGN) {
+        toast::error(
+            "Unlock All",
+            "Open Multiplayer, Zombies, or Campaign before using unlockall.");
+        return;
+      }
+
+      // Directly writing ui_enableAllHeroes can freeze the game. Use the
+      // engine's string setter for this group so its normal dvar path runs.
+      game::Dvar_SetFromStringByName("cg_unlockall_loot", "1", true);
+      game::Dvar_SetFromStringByName("cg_unlockall_purchases", "1", true);
+      game::Dvar_SetFromStringByName("cg_unlockall_attachments", "1", true);
+      game::Dvar_SetFromStringByName("cg_unlockall_camos_and_reticles", "1",
+                                     true);
+      game::Dvar_SetFromStringByName("cg_unlockall_calling_cards", "1", true);
+      game::Dvar_SetFromStringByName("cg_unlockall_specialists_outfits", "1",
+                                     true);
+      game::Dvar_SetFromStringByName("cg_unlockall_cac_slots", "1", true);
+      game::Dvar_SetFromStringByName("ui_enableAllHeroes", "1", true);
+
+      const char *mode_name = nullptr;
 
       if (mode == game::eModes::MULTIPLAYER) {
+        game::cbuf::Cbuf_AddText(0, "PrestigeStatsMaster 1\n");
+        game::cbuf::Cbuf_AddText(0, "statsetbyname plevel 11\n");
+        game::cbuf::Cbuf_AddText(0, "statsetbyname hasprestiged 1\n");
         game::cbuf::Cbuf_AddText(0, "statsetbyname rank 54\n");
         game::cbuf::Cbuf_AddText(0, "statsetbyname paragon_rank 944\n");
         game::cbuf::Cbuf_AddText(0, "statsetbyname paragon_rankxp 56800000\n");
-        mode_name = " Multiplayer";
+        game::cbuf::Cbuf_AddText(0, "uploadstats 1\n");
+        mode_name = "Multiplayer";
       } else if (mode == game::eModes::ZOMBIES) {
+        game::cbuf::Cbuf_AddText(0, "PrestigeStatsMaster 0\n");
+        game::cbuf::Cbuf_AddText(0, "statsetbyname plevel 11\n");
+        game::cbuf::Cbuf_AddText(0, "statsetbyname hasprestiged 1\n");
         game::cbuf::Cbuf_AddText(0, "statsetbyname rank 34\n");
         game::cbuf::Cbuf_AddText(0, "statsetbyname paragon_rank 999\n");
         game::cbuf::Cbuf_AddText(0, "statsetbyname paragon_rankxp 56800000\n");
-        mode_name = " Zombies";
-      } else if (mode == game::eModes::CAMPAIGN) {
+        game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_zod_ee 1\n");
+        game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_zod_super_ee 1\n");
+        game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_factory_ee 1\n");
+        game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_factory_super_ee 1\n");
+        game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_castle_ee 1\n");
+        game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_castle_super_ee 1\n");
+        game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_island_ee 1\n");
+        game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_island_super_ee 1\n");
+        game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_stalingrad_ee 1\n");
+        game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_stalingrad_super_ee 1\n");
+        game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_genesis_ee 1\n");
+        game::cbuf::Cbuf_AddText(0, "statsetbyname DARKOPS_GENESIS_SUPER_EE 1\n");
+        game::cbuf::Cbuf_AddText(0, "uploadstats 0\n");
+        mode_name = "Zombies";
+      } else {
+        game::cbuf::Cbuf_AddText(0, "PrestigeStatsMaster 2\n");
+        game::cbuf::Cbuf_AddText(0, "statsetbyname plevel 11\n");
+        game::cbuf::Cbuf_AddText(0, "statsetbyname hasprestiged 1\n");
         game::cbuf::Cbuf_AddText(0, "statsetbyname rank 19\n");
         game::cbuf::Cbuf_AddText(0, "statsetbyname paragon_rank 999\n");
         game::cbuf::Cbuf_AddText(0, "statsetbyname paragon_rankxp 0\n");
-        mode_name = " Campaign";
+        game::cbuf::Cbuf_AddText(0, "uploadstats 2\n");
+        mode_name = "Campaign";
       }
 
-      // Unlock all easter eggs (zombie darkops)
-      game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_zod_ee 1\n");
-      game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_zod_super_ee 1\n");
-      game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_factory_ee 1\n");
-      game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_factory_super_ee 1\n");
-      game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_castle_ee 1\n");
-      game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_castle_super_ee 1\n");
-      game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_island_ee 1\n");
-      game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_island_super_ee 1\n");
-      game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_stalingrad_ee 1\n");
-      game::cbuf::Cbuf_AddText(0,
-                               "statsetbyname darkops_stalingrad_super_ee 1\n");
-      game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_genesis_ee 1\n");
-      game::cbuf::Cbuf_AddText(0, "statsetbyname DARKOPS_GENESIS_SUPER_EE 1\n");
-
-      // Upload stats for all modes (eModes: ZM=0, MP=1, CP=2)
-      game::cbuf::Cbuf_AddText(0, "uploadstats 0\n"); // ZM
-      game::cbuf::Cbuf_AddText(0, "uploadstats 1\n"); // MP
-      game::cbuf::Cbuf_AddText(0, "uploadstats 2\n"); // CP
-
-      printf("[Loot] Unlock All (%s): all items, master prestige (all modes), "
-             "max rank (%s), easter eggs\n",
-             mode_name, mode_name);
       toast::success("Unlock All",
-                     std::string("Unlocked all") + mode_name + " stats!");
+                     std::string(mode_name) + " unlocks applied.");
     });
 
     loot_getitemquantity_hook.create(0x141E82C00_g, loot_getitemquantity_stub);
