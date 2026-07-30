@@ -364,8 +364,8 @@ Want to build Ezz BOIII yourself? Here's how! 🔨
 
 ### Prerequisites
 
-- [Visual Studio 2022](https://visualstudio.microsoft.com/downloads/) (Community
-  Edition is free)
+- [Visual Studio 2022 or newer](https://visualstudio.microsoft.com/downloads/)
+  (Community Edition is free), with the **Desktop development with C++** workload
 - [Git](https://git-scm.com/downloads)
 - Windows 10/11 SDK
 - [clang-format](https://releases.llvm.org/) (for C/C++ formatting — install via
@@ -384,27 +384,22 @@ Want to build Ezz BOIII yourself? Here's how! 🔨
    cd boiii-free
    ```
 
-2. **Initialize submodules:**
-
-   ```bash
-   git submodule update --init --recursive
-   ```
-
-3. **Generate project files:**
+2. **Generate project files:**
 
    ```bash
    generate.bat
    ```
 
-4. **Open in Visual Studio:**
-   - Open `boiii.sln`
+   This initializes all Git submodules and downloads the pinned Premake version
+   automatically.
+
+3. **Open in Visual Studio:**
+   - Open `build/boiii.sln`
    - Set configuration to `Release` and platform to `x64`
    - Build the solution (Ctrl+Shift+B)
 
-5. **Find your build:**
+4. **Find your build:**
    - Output will be in `build/bin/x64/Release/`
-
-> [!TIP] You can also use `build.bat` to compile directly from the command line!
 
 ---
 
