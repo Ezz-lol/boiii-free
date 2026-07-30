@@ -68,7 +68,7 @@ std::filesystem::path get_game_path() {
   std::chrono::system_clock::time_point(std::chrono::seconds(0))
 static std::chrono::system_clock::time_point last_log_time = UNIX_EPOCH;
 static std::recursive_mutex log_mutex;
-void printfdebug(const char *format, ...) {
+void trace(const char *format, ...) {
 
   // Get current time for timestamp
   std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
