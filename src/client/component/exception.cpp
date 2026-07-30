@@ -495,12 +495,11 @@ std::string generate_crash_info(const LPEXCEPTION_POINTERS exceptioninfo) {
 
   RTL_OSVERSIONINFOW version_info{};
   version_info.dwOSVersionInfoSize = sizeof(version_info);
-  const auto rtl_get_version = reinterpret_cast<
-      NTSTATUS(NTAPI *)(PRTL_OSVERSIONINFOW)>(
-      GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlGetVersion"));
+  const auto rtl_get_version =
+      reinterpret_cast<NTSTATUS(NTAPI *)(PRTL_OSVERSIONINFOW)>(
+          GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlGetVersion"));
   if (rtl_get_version && NT_SUCCESS(rtl_get_version(&version_info))) {
-    line(utils::string::va("OS Version: %u.%u.%u",
-                           version_info.dwMajorVersion,
+    line(utils::string::va("OS Version: %u.%u.%u", version_info.dwMajorVersion,
                            version_info.dwMinorVersion,
                            version_info.dwBuildNumber));
   } else {
