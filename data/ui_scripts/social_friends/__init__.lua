@@ -13,7 +13,7 @@ local friendEmblems = {
   "uie_t7_codcaster_faction1",
   "uie_t7_codcaster_faction2",
   "uie_t7_icons_classification_specialists",
-  "uie_t7_callingcard_prestige_skull"
+  "uie_t7_callingcard_prestige_skull",
 }
 
 local function stableIndex(value, count)
@@ -113,9 +113,7 @@ local function presenceForStatus(status)
       Enum.PresenceActivity.PRESENCE_ACTIVITY_ONLINE_NOT_IN_TITLE,
       "Online"
   end
-  return Enum.PresencePrimary.PRESENCE_PRIMARY_OFFLINE,
-    Enum.PresenceActivity.PRESENCE_ACTIVITY_OFFLINE,
-    "Offline"
+  return Enum.PresencePrimary.PRESENCE_PRIMARY_OFFLINE, Enum.PresenceActivity.PRESENCE_ACTIVITY_OFFLINE, "Offline"
 end
 
 local function createPlayerSlot(parent, index)
@@ -152,7 +150,7 @@ local function createPlayerSlot(parent, index)
     zmRankIcon = "",
     zmPrestige = 0,
     partySize = 1,
-    partyMax = 18
+    partyMax = 18,
   }
   for key, value in pairs(fields) do
     Engine.SetModelValue(Engine.CreateModel(model, key), value)
@@ -167,8 +165,8 @@ local function createPlayerSlot(parent, index)
       mapid = 0,
       difficulty = 0,
       playlist = 1,
-      party = { members = {}, total = 1, available = 1, leader = "" }
-    }
+      party = { members = {}, total = 1, available = 1, leader = "" },
+    },
   }
 end
 
@@ -185,7 +183,7 @@ local function updatePlayerSlot(controller, slot, friend)
     activity = activity,
     titlePresence = presence,
     platformPresence = presence,
-    joinable = friend.server ~= "" and 1 or 0
+    joinable = friend.server ~= "" and 1 or 0,
   }
   for key, value in pairs(values) do
     Engine.SetModelValue(Engine.GetModel(slot.model, key), value)
@@ -241,7 +239,7 @@ local customSocialPlayers = {
       return list.players[(index - 1) % list.numElementsInList + 1].properties
     end
     return nativeSocialPlayers.getCustomPropertiesForItem(list, index)
-  end
+  end,
 }
 
 BoiiiSocialPlayersList = customSocialPlayers
