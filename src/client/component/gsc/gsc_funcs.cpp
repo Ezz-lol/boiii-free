@@ -979,6 +979,40 @@ void gscr_conststring(scriptInstance_t inst) {
   }
 }
 
+void gscr_isstruct(scriptInstance_t inst) {
+  const uint32_t argc = Scr_GetNumParam(inst);
+  if (argc == 0) {
+    Scr_ParamError(inst, 0,
+                   "No argument provided to isstruct. syntax: isstruct(var)");
+  } else {
+    push(inst, Scr_GetType(inst, 0) == var::ScrVarType::POINTER &&
+                   Scr_GetPointerType(inst, 0) == var::ScrVarType::STRUCT);
+  }
+}
+
+void gscr_ismenucached(scriptInstance_t inst) {
+  const uint32_t argc = Scr_GetNumParam(inst);
+  if (argc == 0) {
+    Scr_ParamError(inst, 0,
+                   "No argument provided to ismenucached. syntax: "
+                   "ismenucached(\"MenuName\")");
+  } else {
+    const var::ScrVarType_t type = Scr_GetType(inst, 0);
+    if (var::ScrVar_StringLike(type)) {
+      using namespace game::bg::cache;
+      push(inst,
+           BG_Cache_IsCachedScriptMenuIndex(static_cast<bgCacheInstance>(inst),
+                                            Scr_GetString(inst, 0)));
+    } else {
+      Scr_ParamError(
+          inst, 0,
+          "Argument of type %s provided to ismenucached is not a string or "
+          "localized string.",
+          Scr_TypeName(type));
+    }
+  }
+}
+
 // =====================================================
 // Player name/tag overrides (server-only)
 // =====================================================
@@ -1197,13 +1231,10 @@ struct component final : generic_component {
     register_builtin("readfile", gscr_readfile, 1);
     register_builtin("appendfile", gscr_appendfile, 2);
     register_builtin("fileexists", gscr_fileexists, 1);
-    register_builtin("removefile", gscr_rm, 1);
-    register_builtin("rm", gscr_rm, 1, 2);
-    register_builtin("removedirectory", gscr_removedirectory, 1);
-    register_builtin("rmdir", gscr_removedirectory, 1);
+    register_builtin({"removefile", "rm"}, gscr_rm, 1, 2);
+    register_builtin({"rmdir", "removedirectory"}, gscr_removedirectory, 1);
     register_builtin("filesize", gscr_filesize, 1);
-    register_builtin("mkdir", gscr_createdirectory, 1);
-    register_builtin("createdirectory", gscr_createdirectory, 1);
+    register_builtin({"mkdir", "createdirectory"}, gscr_createdirectory, 1);
     register_builtin("directoryexists", gscr_directoryexists, 1);
     register_builtin("listfiles", gscr_listfiles, 1);
     register_builtin("ls", gscr_ls, 1, 3);
@@ -1247,6 +1278,8 @@ struct component final : generic_component {
     register_builtin("setclientdvar", gscr_setclientdvar::method, 1);
 
     register_builtin("conststring", gscr_conststring, 1);
+    register_builtin("isstruct", gscr_isstruct, 1);
+    register_builtin("ismenucached", gscr_ismenucached, 1);
 
     game_event::on_g_shutdown_game([] {
       function_replacements.clear();
