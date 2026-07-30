@@ -46,3 +46,4 @@
 #include "sl.hpp"              // IWYU pragma: export
 #include "mem.hpp"             // IWYU pragma: export
 #include "sys.hpp"             // IWYU pragma: export
+#include "r.hpp"               // IWYU pragma: export
