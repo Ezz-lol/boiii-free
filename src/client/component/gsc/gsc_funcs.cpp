@@ -1,3 +1,4 @@
+#include <atomic>
 #include <std_include.hpp>
 #include <loader/component_loader.hpp>
 #include <game/utils.hpp>
@@ -7,12 +8,13 @@
 #include <optional>
 #include <string>
 #include <utils/hook.hpp>
-#include <utils/string.hpp>
 #include <utils/io.hpp>
 
 #include <rapidjson/writer.h>
 
 #include "../command.hpp"
+#include "game/impl/scr/var.hpp"
+#include "game/impl/sv/sv.hpp"
 #include "gsc_funcs.hpp"
 
 using namespace game;
@@ -74,12 +76,12 @@ void script_cmd_handler(const command::params &params) {
     result += params.get(i);
   }
 
-  std::lock_guard lock(script_cmd_mutex);
+  std::scoped_lock lock(script_cmd_mutex);
   script_cmd_queue.push_back(std::move(result));
 }
 
 void clear_script_commands() {
-  std::lock_guard lock(script_cmd_mutex);
+  std::scoped_lock lock(script_cmd_mutex);
   script_cmd_queue.clear();
   script_cmd_names.clear();
 }
@@ -148,7 +150,7 @@ void reset_tracked_client_dvars() {
 
       for (const std::string &dvar_name : dvars) {
         game::sv::SV_GameSendServerCommand(
-            client_num, game::net::SV_CMD_CAN_IGNORE_0,
+            client_num, game::net::SV_CMD_CAN_IGNORE,
             utils::string::va("c \"reset %s\"", dvar_name.c_str()));
       }
     }
@@ -195,104 +197,246 @@ std::filesystem::path relative_path(const std::filesystem::path &full_path) {
   return relative;
 }
 
-// =====================================================
-// HUD text state (server-only, safe setText hooks)
-// =====================================================
+/*
+  Ensure HECmd_SetText reuses config strings where possible, rather than
+  registering a new config string each time `SetText` is called,
+  quickly overflowing registered config string limit.
+*/
 
-utils::hook::detour hecmd_settext_hook;
-utils::hook::detour g_tagindex_hook;
+// Generating BG_Cache name entry table at compile time
+namespace {
+using namespace game::bg::cache;
+using namespace game::ui::he;
+using namespace game::scr::he;
+constexpr char hudelem_cfgstr_pool_entry_name_prefix[] =
+    "__hudelem_cfgstr_pool_entry_";
+constexpr uint8_t hudelem_cfgstr_pool_entry_name_number_max_suffix_len =
+    sizeof(uint16_t) * 2 /* characters per byte */;
+constexpr uint8_t hudelem_cfgstr_pool_entry_name_len =
+    ARRAYSIZE(hudelem_cfgstr_pool_entry_name_prefix) +
+    hudelem_cfgstr_pool_entry_name_number_max_suffix_len;
+typedef str<hudelem_cfgstr_pool_entry_name_len> HudElemCfgStrPoolEntryName;
+constexpr ui::he::HudElementPool<HudElemCfgStrPoolEntryName>
+build_hudelem_cfgstr_name_pool(
+    ui::he::HudElementPool<HudElemCfgStrPoolEntryName> pool = {}) {
+  for (uint16_t i = 0; i < pool.size(); ++i) {
+    append_hex<ARRAYSIZE(hudelem_cfgstr_pool_entry_name_prefix), uint16_t>(
+        hudelem_cfgstr_pool_entry_name_prefix, i, pool.pool[i]);
+  }
+  return pool;
+}
+/*
+   Note: 0xE2D is the config string count limit in the engine, so <=1 config
+   string per hud element should be fine, given loaded mod and map do not
+   collectively register a truly degenerate number of config strings.
+*/
+static constexpr ui::he::HudElementPool<HudElemCfgStrPoolEntryName>
+    HUDELEM_CFGSTR_POOL_ENTRY_NAMES = build_hudelem_cfgstr_name_pool({});
 
-std::mutex hud_text_mutex;
-static std::unordered_map<uint32_t, int> hudelem_cfgstr_map;
-int localized_cfgstr_base = -1;
+typedef str<ui::he::MAX_HUDELEM_MESSAGE_LEN> HudElemMessage;
+struct RegisteredCfgString {
+  atomic_optional<int32_t> idx;
 
-thread_local int last_cfgstr_result = -1;
-thread_local int last_cfgstr_start = -1;
-thread_local int last_cfgstr_max = -1;
+  static constexpr BGCacheTypes CACHE_TYPE = BGCacheTypes::LOCSTRING;
 
-int g_tagindex_stub(const char *string, int start, int max, int create,
-                    const char *errormsg) {
-  int result =
-      g_tagindex_hook.invoke<int>(string, start, max, create, errormsg);
-  last_cfgstr_start = start;
-  last_cfgstr_max = max;
-  last_cfgstr_result = result;
-  return result;
+  inline void clear() noexcept {
+    idx.store(std::nullopt, std::memory_order_release);
+  }
+
+  inline void set(int32_t loc_cfgstr_idx) {
+    idx.store(loc_cfgstr_idx, std::memory_order_release);
+  }
+
+  inline bool has_value() {
+    return idx.load(std::memory_order_acquire).has_value();
+  }
+
+  // Caller needs to have checked if idx has value prior to call
+  inline int32_t get_idx() {
+    return idx.load(std::memory_order_acquire).value();
+  }
+
+  /*
+     Gets config string index relative to complete config string pool - not
+     just the subsection allocated for localized strings.
+
+     Safety: Caller needs to have checked if `idx` has value prior to call
+  */
+  inline int32_t abs_idx() {
+    return s_bgCacheTypeInfo->get(CACHE_TYPE).configStringStart + get_idx();
+  }
+};
+static ui::he::HudElementPool<RegisteredCfgString> hudelem_cfgstr_pool = {};
+
+void unregister_clear_hudelem_cfgstr(uint16_t hudElemIdx) {
+  RegisteredCfgString *entry = &hudelem_cfgstr_pool[hudElemIdx];
+  if (entry->has_value()) {
+    ui::he::g_hudelems->get(hudElemIdx).elem.text = 0;
+    // TAC-protected on client, so we use a re-implementation to circumvent.
+    sv::SV_SetConfigString_Impl(entry->abs_idx(), "");
+
+    s_bgCache->server.dataSet.localizedStrings[entry->get_idx()].reset();
+
+    hudelem_cfgstr_pool[hudElemIdx].clear();
+  }
 }
 
-void hecmd_settext_stub(game::scr::scriptInstance_t inst,
-                        game::scr::scr_entref_t *entref) {
-  const uint32_t he_idx = entref->u.hudElemIndex;
+namespace hecmd_settext {
+static HudElemMessage message_buf = {0};
+static HudElemMessage cleaned_message_buf = {0};
+inline void clear_message_bufs() {
+  memset(message_buf, 0, ARRAYSIZE(message_buf));
+  memset(cleaned_message_buf, 0, ARRAYSIZE(cleaned_message_buf));
+}
 
-  {
-    std::lock_guard lock(hud_text_mutex);
-    if (hudelem_cfgstr_map.contains(he_idx)) {
-      const char *text = game::scr::Scr_GetString(inst, 0);
-      if (text) {
-        const int cfg_idx = hudelem_cfgstr_map[he_idx];
-        const int start = last_cfgstr_start;
-        const int max = last_cfgstr_max;
-        const bool range_ok = (start >= 0 && max > 0 && cfg_idx >= start &&
-                               cfg_idx < (start + max));
-        if (cfg_idx >= 0 && range_ok && game::sv::SV_Loaded()) {
-          game::sv::SV_SetConfigstring(cfg_idx, text);
-          return;
-        }
+void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
+  if (entref->is_hudelem()) [[likely]] {
+    game_hudelem_t *elem = &g_hudelems->get(entref->u.hudElemIndex);
+
+    elem->reset_value();
+    const uint32_t argc = Scr_GetNumParam(inst);
+
+    Scr_ConstructMessageString(0, argc - 1, "Hud Elem String", message_buf,
+                               MAX_HUDELEM_MESSAGE_LEN);
+    com::Com_CleanStringForNetwork(message_buf, cleaned_message_buf,
+                                   MAX_HUDELEM_MESSAGE_LEN);
+
+    elem->elem.type = he_type_field_t::TEXT;
+    const uint16_t hudElemIdx = entref->u.hudElemIndex;
+    RegisteredCfgString *pool_entry = &hudelem_cfgstr_pool[hudElemIdx];
+
+    const bgCacheInstance cache_inst = static_cast<bgCacheInstance>(inst);
+    const int32_t localized_cfgstring_index =
+        BG_Cache_GetLocStringIndex(cache_inst, cleaned_message_buf);
+    if (localized_cfgstring_index > 0) {
+      elem->elem.text = localized_cfgstring_index;
+    }
+    // Not a localized string. Need to register and/or modify the config string
+    // value.
+    else if (get_sv_running()) {
+      if (!pool_entry->has_value()) {
+        // Register new config string
+        pool_entry->set(
+            s_bgCacheTypeInfo->get(BGCacheTypes::LOCSTRING)
+                .registerFunc(cache_inst,
+                              HUDELEM_CFGSTR_POOL_ENTRY_NAMES[hudElemIdx]));
+#ifndef NDEBUG
+        game::trace("[Scr] [HECmd_SetText] Registered localized string "
+                    "configstring for "
+                    "hudelement 0x%03X with "
+                    "index 0x%lX",
+                    hudElemIdx, pool_entry->get_idx());
+#endif
       }
+
+      volatile bgCachedGenericData *data =
+          &s_bgCache->server.dataSet.localizedStrings[pool_entry->get_idx()];
+      data->setName(cleaned_message_buf);
+      if (!data->refCount) {
+        data->add_ref();
+      }
+
+#ifndef NDEBUG
+      game::trace("[Scr][HECmd_SetText] Localized config string entry with "
+                  "index 0x%lX, "
+                  "absolute config string index 0x%lX: setting value to \"%s\"",
+                  pool_entry->get_idx(), pool_entry->abs_idx(),
+                  cleaned_message_buf);
+#endif
+      // TAC-protected on client, so we use a re-implementation to circumvent.
+      sv::SV_SetConfigString_Impl(pool_entry->abs_idx(), cleaned_message_buf);
+      elem->elem.text = pool_entry->get_idx();
     }
+    clear_message_bufs();
+  } else [[unlikely]] {
+    Scr_ObjectError(inst, "not a hud element");
   }
+}
+} // namespace hecmd_settext
 
-  last_cfgstr_result = -1;
-  last_cfgstr_start = -1;
-  last_cfgstr_max = -1;
-  hecmd_settext_hook.invoke<void>(inst, entref);
-
-  {
-    std::lock_guard lock(hud_text_mutex);
-    if (last_cfgstr_result >= 0) {
-      hudelem_cfgstr_map[he_idx] = last_cfgstr_result;
-      if (last_cfgstr_start >= 0)
-        localized_cfgstr_base = last_cfgstr_start;
+void unregister_clear_hudelem_cfgstr_pool() {
+  if (sv::sv->running()) {
+    for (uint16_t hudElemIdx = 0; hudElemIdx < ui::he::HUD_ELEMENT_POOL_SIZE;
+         ++hudElemIdx) {
+      unregister_clear_hudelem_cfgstr(hudElemIdx);
     }
   }
 }
 
-void clear_hud_text_state() {
-  std::lock_guard lock(hud_text_mutex);
-  hudelem_cfgstr_map.clear();
-  localized_cfgstr_base = -1;
+utils::hook::detour HudElem_DestroyAll_hook;
+
+// Unregister and clear all hudelem_cfgstr_pool entries before destroying all
+// pool entries
+void HudElem_DestroyAll_ClearCfgStrEntry_Invoke() {
+  unregister_clear_hudelem_cfgstr_pool();
+  return HudElem_DestroyAll_hook.invoke();
 }
 
-static std::atomic_bool settext_hooks_installed = false;
+utils::hook::detour BG_Cache_HandleConfigStringChange_hook;
+void BG_Cache_HandleConfigStringChange_ReuseExisting(
+    [[maybe_unused]] LocalClientNum_t localClientNum, int32_t index) {
+  const char *name = cl::CL_GetConfigString(index);
+#ifndef NDEBUG
+  trace("[BGCache][%u][%d] Received config string change with index: 0x%lX, "
+        "name: \"%s\"",
+        +bgCacheInstance::CLIENT, +localClientNum, index,
+        readable_ptr(name) ? name : "");
+#endif
+  const bool is_localized_string =
+      index >= s_bgCacheTypeInfo->locstring.configStringStart &&
+      index < s_bgCacheTypeInfo->locstring.configStringStart +
+                  static_cast<int32_t>(
+                      ARRAYSIZE(s_bgCache->client.dataSet.localizedStrings));
 
-void install_settext_hooks() {
-  if (!settext_hooks_installed.load(std::memory_order_seq_cst) &&
-      game::is_server()) {
+  if (is_localized_string) {
+    volatile bgCachedGenericData *data =
+        &s_bgCache->client.dataSet
+             .localizedStrings[index -
+                               s_bgCacheTypeInfo->locstring.configStringStart];
+    data->setName(name);
+    if (!data->refCount) {
+      data->add_ref();
+    }
 
     /*
-     TODO: this needs to be reviewed and fixed ASAP.
+      Registration or modification of a config string with this index causes the
+     client to recompute its BG Cache checksum and validate it against the
+     server's - this is not a true config string modification.
 
-     The function signature used in G_TagIndex's hook is incorrect.
-     G_TagIndex takes only one argument: `const char* name`.
-     It has been verified that no further arguments are used in the function.
-
-     Access and usage of the values of any further arguments should be
-     considered unsafe, undefined behaviour.
+     In a release profile build (ours), an invalid checksum does not trigger an
+     error or corrective behaviour otherwise - it simply logs the mismatch to
+     BB, re-computes the checksum, and continues. This recomputation of the
+     checksum causes a noticeable, slight drop in performance for the ~1/2 a
+     second it is occurring, so it seems preferable to skip this.
     */
-    g_tagindex_hook.create(game::G_TagIndex.get(), g_tagindex_stub);
-    hecmd_settext_hook.create(game::scr::cmd::he::HECmd_SetText.get(),
-                              hecmd_settext_stub);
-    settext_hooks_installed.store(true, std::memory_order_seq_cst);
+  } else if (index != s_bgCacheTypeInfo->debugstring.configStringStart +
+                          static_cast<int32_t>(ARRAYSIZE(
+                              s_bgCache->client.dataSet.debugStrings))) {
+    BG_Cache_HandleConfigStringChange_hook.invoke(localClientNum, index);
   }
 }
 
-void remove_settext_hooks() {
-  if (settext_hooks_installed.load(std::memory_order_seq_cst)) {
-    g_tagindex_hook.clear();
-    hecmd_settext_hook.clear();
-    settext_hooks_installed.store(false, std::memory_order_seq_cst);
-  }
+// HECmd script VM method hooks
+inline void apply_hecmd_hooks() {
+  BuiltinMethodDef *HECmd_SetText_def = const_cast<BuiltinMethodDef *>(
+      &game::scr::builtin::table::hudElem_methods->SetText);
+  HECmd_SetText_def->actionFunc = &hecmd_settext::HECmd_SetText_ReuseCfgString;
 }
+
+inline void apply_hudelem_hooks() {
+
+  HudElem_DestroyAll_hook.create(game::ui::he::HudElem_DestroyAll,
+                                 HudElem_DestroyAll_ClearCfgStrEntry_Invoke);
+
+  // Client-side: don't unnecessarily re-register an entry on value change if
+  // the given index was previously registered
+  BG_Cache_HandleConfigStringChange_hook.create(
+      game::bg::cache::BG_Cache_HandleConfigStringChange,
+      BG_Cache_HandleConfigStringChange_ReuseExisting);
+
+  apply_hecmd_hooks();
+}
+} // namespace
 
 // =====================================================
 // Core builtins
@@ -309,37 +453,49 @@ void gscr_replacefunc(scriptInstance_t inst) {
     return;
 
   function_replacements[target_addr] = replacement_addr;
-  detours_enabled.store(true, std::memory_order_seq_cst);
+  detours_enabled.store(true, std::memory_order_release);
 }
 
 // clearreplacefuncs: remove all active function replacements
 void gscr_clearreplacefuncs([[maybe_unused]] scriptInstance_t inst) {
   function_replacements.clear();
-  detours_enabled.store(false, std::memory_order_seq_cst);
+  detours_enabled.store(false, std::memory_order_release);
 }
 
 void gscr_println(scriptInstance_t inst) {
   uint32_t argc = Scr_GetNumParam(inst);
+  std::string out = "";
   for (uint32_t idx = 0; idx < argc; ++idx) {
     const char *msg = Scr_GetString(inst, idx);
-    game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s",
-                          msg ? msg : "");
-    fprintf(stdout, "%s", msg ? msg : "");
+    if (msg && msg[0]) {
+      out += msg;
+    }
   }
-  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "\n");
-  fprintf(stdout, "\n");
+  fprintf(stdout, "[Scr] %s\n", out.c_str());
   fflush(stdout);
+  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s\n", out.c_str());
+
+#ifndef NDEBUG
+  game::trace("[Scr] %s", out.c_str());
+#endif
 }
 
 void gscr_print(scriptInstance_t inst) {
   uint32_t argc = Scr_GetNumParam(inst);
+  std::string out = "";
   for (uint32_t idx = 0; idx < argc; ++idx) {
     const char *msg = Scr_GetString(inst, idx);
-    game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s",
-                          msg ? msg : "");
-    fprintf(stdout, "%s", msg ? msg : "");
+    if (msg && msg[0]) {
+      out += msg;
+    }
   }
+  fprintf(stdout, "[Scr] %s", out.c_str());
   fflush(stdout);
+  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s", out.c_str());
+
+#ifndef NDEBUG
+  game::trace("[Scr] %s", out.c_str());
+#endif
 }
 
 void gscr_printf(scriptInstance_t inst) {
@@ -458,12 +614,17 @@ void gscr_printf(scriptInstance_t inst) {
   game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s", buffer.data());
   fprintf(stdout, "%s", buffer.data());
   fflush(stdout);
+
+#ifndef NDEBUG
+  game::trace("[Scr] %s", buffer.data());
+#endif
 }
 
 void gscr_executecommand(scriptInstance_t inst) {
   const char *cmd = Scr_GetString(inst, 0);
-  if (cmd)
+  if (cmd) {
     game::cbuf::Cbuf_AddText(0, utils::string::va("%s\n", cmd));
+  }
 }
 
 // addcommand("name") - registers a console command that GSC can read via
@@ -477,7 +638,7 @@ void gscr_addcommand(scriptInstance_t inst) {
   const std::string cmd_name(name);
   const std::string cmd_key = normalize_command_name(cmd_name);
   {
-    std::lock_guard lock(script_cmd_mutex);
+    std::scoped_lock lock(script_cmd_mutex);
     for (const std::string &existing : script_cmd_names) {
       if (existing == cmd_key)
         return; // Already registered
@@ -493,7 +654,7 @@ void gscr_addcommand(scriptInstance_t inst) {
 // getcommand("name") - returns the next queued command for that name, or ""
 // getcommand() - returns the next queued command string regardless of name
 void gscr_getcommand(scriptInstance_t inst) {
-  std::lock_guard lock(script_cmd_mutex);
+  std::scoped_lock lock(script_cmd_mutex);
   const uint32_t argc = Scr_GetNumParam(inst);
   if (argc > 0) {
     const char *requested = Scr_GetString(inst, 0);
@@ -532,7 +693,7 @@ void gscr_say(scriptInstance_t inst) {
   const char *msg = Scr_GetString(inst, 0);
   if (msg)
     game::sv::SV_GameSendServerCommand(
-        game::INVALID_CLIENT_INDEX, game::net::SV_CMD_CAN_IGNORE_0,
+        game::INVALID_CLIENT_INDEX, game::net::SV_CMD_CAN_IGNORE,
         utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, msg));
 }
 
@@ -542,7 +703,7 @@ void send(scriptInstance_t inst, game::ClientNum_t client_num,
   const char *msg = Scr_GetString(inst, message_index);
   if (game::valid_client_num(client_num) && msg) {
     game::sv::SV_GameSendServerCommand(
-        client_num, game::net::SV_CMD_CAN_IGNORE_0,
+        client_num, game::net::SV_CMD_CAN_IGNORE,
         utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, msg));
   }
 }
@@ -1119,12 +1280,13 @@ void set(scriptInstance_t inst, game::ClientNum_t client_num,
     return;
   }
 
-  const std::optional<std::string> dvar_name = extract_dvar_name(dvar_cmd);
+  const std::optional<std::string> dvar_name =
+      dvar_cmd ? extract_dvar_name(dvar_cmd) : std::nullopt;
   if (dvar_name.has_value()) {
     client_dvar_changes[client_num].insert(*dvar_name);
   }
 
-  game::sv::SV_GameSendServerCommand(client_num, game::net::SV_CMD_CAN_IGNORE_0,
+  game::sv::SV_GameSendServerCommand(client_num, game::net::SV_CMD_CAN_IGNORE,
                                      utils::string::va("c \"%s\"", dvar_cmd));
 }
 
@@ -1198,7 +1360,7 @@ Scr_GetMethodReverseLookup_SearchCustom(BuiltinMethod method) {
 
 void add_detour(uint8_t *target_addr, uint8_t *replacement_addr) {
   function_replacements[target_addr] = replacement_addr;
-  detours_enabled.store(true, std::memory_order_seq_cst);
+  detours_enabled.store(true, std::memory_order_release);
 }
 
 struct component final : generic_component {
@@ -1288,23 +1450,21 @@ struct component final : generic_component {
     register_builtin("isstruct", gscr_isstruct, 1);
     register_builtin("ismenucached", gscr_ismenucached, 1);
 
+    apply_hudelem_hooks();
+
     game_event::on_g_shutdown_game([] {
       function_replacements.clear();
       reset_tracked_client_dvars();
       client_dvar_changes.clear();
-
-      detours_enabled.store(false, std::memory_order_seq_cst);
+      detours_enabled.store(false, std::memory_order_release);
       clear_script_commands();
-      clear_hud_text_state();
-      remove_settext_hooks();
     });
 
     game_event::on_g_init_game([] {
       function_replacements.clear();
       client_dvar_changes.clear();
-      detours_enabled.store(false, std::memory_order_seq_cst);
-      clear_hud_text_state();
-      install_settext_hooks();
+      detours_enabled.store(false, std::memory_order_release);
+      unregister_clear_hudelem_cfgstr_pool();
     });
   }
 };
