@@ -6,13 +6,15 @@
 namespace exception {
 namespace {
 constexpr MINIDUMP_TYPE get_minidump_type() {
-  constexpr auto type = MiniDumpIgnoreInaccessibleMemory //
-                        | MiniDumpWithHandleData         //
-                        | MiniDumpScanMemory             //
-                        | MiniDumpWithProcessThreadData  //
-                        | MiniDumpWithFullMemoryInfo     //
-                        | MiniDumpWithThreadInfo         //
-                        | MiniDumpWithUnloadedModules;
+  constexpr auto type = MiniDumpIgnoreInaccessibleMemory |
+                        MiniDumpWithHandleData |
+                        MiniDumpScanMemory |
+                        MiniDumpWithProcessThreadData |
+                        MiniDumpWithFullMemoryInfo |
+                        MiniDumpWithThreadInfo |
+                        MiniDumpWithUnloadedModules |
+                        MiniDumpWithDataSegs |
+                        MiniDumpWithIndirectlyReferencedMemory;
 
   return static_cast<MINIDUMP_TYPE>(type);
 }
