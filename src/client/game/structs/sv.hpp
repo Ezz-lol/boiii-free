@@ -57,9 +57,10 @@ enum class ReliableCommand : char {
      0x3FD.
 
      BCS command sequences begin with a `BCS_INIT` command,
-     followed by the required number of `BCS_APPEND` commands required to send
-     all (0x3FD - serialized index string length)-sized partitions of the
-     configstring, and are terminated with a `BCS_FINALIZE` command.
+     followed by the required number of `BCS_APPEND` commands to send
+     remaining (0x3FD - serialized index string length)-sized partitions of the
+     configstring aside from the final, then terminated with a `BCS_FINALIZE`
+     command.
 
      Total BCS sequence joined config string length limit is 0x5000
    */
@@ -74,9 +75,9 @@ enum class ReliableCommand : char {
   NITROUS_VEHICLE_TELEPPORT = '/', // 0x2F: NitrousVehicle::Teleport
   SET_CLIENT_SYSTEM_STATE = '0',   // 0x30: CG_ParseClientSystemStateChange
   CHECKPOINT_COMMIT = '1',         // 0x31: CL_Checkpoint_Commit
-  // Inline config string length limit of 0x3FC.
+  // Inline config string length limit of 0x3FD.
   // Must use a `BCS` (BigConfigString) reliable command sequence for
-  // config strings with length > 0x3FC.
+  // config strings with length > 0x3FD.
   CONFIG_STRING_MODIFIED = '2', // 0x32: CG_ConfigStringModified
   // 0x35: LiveStats_GameHistory_FinishMatch, then unconditional
   // EXE_SERVER_DISCONNECTED error
