@@ -1236,7 +1236,14 @@ struct component final : generic_component {
     register_builtin("filesize", gscr_filesize, 1);
     register_builtin({"mkdir", "createdirectory"}, gscr_createdirectory, 1);
     register_builtin("directoryexists", gscr_directoryexists, 1);
-    register_builtin("listfiles", gscr_listfiles, 1);
+
+    register_builtin(
+        "listfiles",
+        deprecate<gscr_listfiles, "listfiles", "ls",
+                  "is being phased out in favor of `ls`. `ls` returns an "
+                  "array of paths rather than a line-delimited "
+                  "list of paths, returned as one string.">,
+        1);
     register_builtin("ls", gscr_ls, 1, 3);
 
     // JSON
@@ -1283,7 +1290,6 @@ struct component final : generic_component {
 
     game_event::on_g_shutdown_game([] {
       function_replacements.clear();
-
       reset_tracked_client_dvars();
       client_dvar_changes.clear();
 

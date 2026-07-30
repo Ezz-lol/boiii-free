@@ -1,6 +1,8 @@
 #pragma once
 
 #include <game/game.hpp>
+#include <utils/string.hpp>
+#include <macros.hpp>
 
 namespace gsc {
 using namespace game;
@@ -22,6 +24,21 @@ template <typename Def> struct CustomBuiltinMap {
 extern CustomBuiltinMap<BuiltinFunctionDef> functions;
 extern CustomBuiltinMap<BuiltinMethodDef> methods;
 } // namespace custom_builtins
+
+template <std::remove_pointer_t<BuiltinFunction> Fn, ConstString APIName,
+          ConstString ReplacementAPIName, ConstString InfoMsg>
+void deprecate(scriptInstance_t inst) {
+  const char *deprecation_warning = utils::string::va(
+      "Warning: %s has been deprecated, and will be removed in the next minor "
+      "version - update your scripts to use %s instead. %s %s",
+      APIName, ReplacementAPIName, ReplacementAPIName, InfoMsg);
+  fprintf(stderr, "%s\n", deprecation_warning);
+  fflush(stderr);
+  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s\n",
+                        deprecation_warning);
+
+  Fn(inst);
+}
 
 inline void register_builtin(BuiltinFunctionDef def) {
   custom_builtins::functions.map[def.canonId] = def;
