@@ -24,7 +24,8 @@ std::string local_ipv4() {
   inet_pton(AF_INET, "1.1.1.1", &route.sin_addr);
 
   std::string result;
-  if (connect(handle, reinterpret_cast<sockaddr *>(&route), sizeof(route)) == 0) {
+  if (connect(handle, reinterpret_cast<sockaddr *>(&route), sizeof(route)) ==
+      0) {
     sockaddr_in local{};
     int size = sizeof(local);
     if (getsockname(handle, reinterpret_cast<sockaddr *>(&local), &size) == 0) {
@@ -37,7 +38,9 @@ std::string local_ipv4() {
   return result;
 }
 
-std::wstring widen(const std::string &text) { return {text.begin(), text.end()}; }
+std::wstring widen(const std::string &text) {
+  return {text.begin(), text.end()};
+}
 
 bool create_nat(CComPtr<IUPnPNAT> &nat,
                 CComPtr<IStaticPortMappingCollection> &mappings) {
@@ -68,7 +71,8 @@ void map_port(const uint16_t port) {
                                     description, &mapping);
   if (SUCCEEDED(result) && mapping) {
     BSTR external_raw{};
-    if (SUCCEEDED(mapping->get_ExternalIPAddress(&external_raw)) && external_raw) {
+    if (SUCCEEDED(mapping->get_ExternalIPAddress(&external_raw)) &&
+        external_raw) {
       char external[INET_ADDRSTRLEN]{};
       WideCharToMultiByte(CP_ACP, 0, external_raw, -1, external,
                           sizeof(external), nullptr, nullptr);

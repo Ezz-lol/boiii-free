@@ -382,8 +382,8 @@ game::cmd::xcommand_t original_fast_restart{};
 game::cmd::xcommand_t original_map_restart{};
 
 game::cmd::cmd_function_s *find_command(const char *name) {
-  auto *command = static_cast<game::cmd::cmd_function_s *>(
-      game::cmd::cmd_functions);
+  auto *command =
+      static_cast<game::cmd::cmd_function_s *>(game::cmd::cmd_functions);
   for (size_t i = 0; command && i < 2000; ++i, command = command->next) {
     if (command->name && _stricmp(command->name, name) == 0)
       return command;

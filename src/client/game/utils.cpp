@@ -188,7 +188,7 @@ static bool access_client(T *client_states, const size_t index,
   }
 
   T &client = client_states[index];
-  if (client.state == net::CS_FREE) {
+  if (client.state == net::clientState_t::FREE) {
     return false;
   }
 
@@ -224,7 +224,7 @@ void first_client(const std::function<bool(sv::client_s &)> &callback) {
 void foreach_connected_client(
     const std::function<void(sv::client_s &, size_t index)> &callback) {
   foreach_client([&](sv::client_s &client, const size_t index) {
-    if (client.state != net::CS_FREE) {
+    if (client.state != net::clientState_t::FREE) {
       callback(client, index);
     }
   });
@@ -239,7 +239,7 @@ void foreach_connected_client(
 void first_connected_client(
     const std::function<bool(sv::client_s &, size_t index)> &callback) {
   first_client([&](sv::client_s &client, const size_t index) {
-    if (client.state != net::CS_FREE) {
+    if (client.state != net::clientState_t::FREE) {
       return callback(client, index);
     }
     return false;
@@ -254,6 +254,45 @@ void first_connected_client(
 
 bool access_connected_client(
     const size_t index, const std::function<void(sv::client_s &)> &callback) {
+  if (is_server()) {
+    return access_client(*svs_clients, index, callback);
+  }
+
+  return access_client(*svs_clients_cl, index, callback);
+}
+
+void foreach_active_client(
+    const std::function<void(sv::client_s &, size_t index)> &callback) {
+  foreach_client([&](sv::client_s &client, const size_t index) {
+    if (client.state > net::clientState_t::CONNECTED) {
+      callback(client, index);
+    }
+  });
+}
+
+void foreach_active_client(
+    const std::function<void(sv::client_s &)> &callback) {
+  foreach_active_client(
+      [&](sv::client_s &client, size_t) { callback(client); });
+}
+
+void first_active_client(
+    const std::function<bool(sv::client_s &, size_t index)> &callback) {
+  first_client([&](sv::client_s &client, const size_t index) {
+    if (client.state > net::clientState_t::CONNECTED) {
+      return callback(client, index);
+    }
+    return false;
+  });
+}
+
+void first_active_client(const std::function<bool(sv::client_s &)> &callback) {
+  first_active_client(
+      [&](sv::client_s &client, size_t) { return callback(client); });
+}
+
+bool access_active_client(const size_t index,
+                          const std::function<void(sv::client_s &)> &callback) {
   if (is_server()) {
     return access_client(*svs_clients, index, callback);
   }

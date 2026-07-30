@@ -35,9 +35,9 @@ std::vector<std::string> get_registered_dvar_names();
 size_t get_registered_dvar_name_count();
 
 #ifdef NDEBUG
-inline void printfdebug([[maybe_unused]] const char *format, ...) { return; }
+inline void trace([[maybe_unused]] const char *format, ...) {}
 #else
-void printfdebug(const char *format, ...);
+void trace(const char *format, ...);
 #endif
 } // namespace game
 

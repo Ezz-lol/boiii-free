@@ -89,6 +89,7 @@ void printfdebug(const char *format, ...) {
   va_list args;
   va_start(args, format);
   int32_t buf_len = vsnprintf(nullptr, 0, format, args);
+
   std::string buffer;
   buffer.resize(buf_len + 1);
   va_start(args, format);
@@ -96,25 +97,30 @@ void printfdebug(const char *format, ...) {
 
   va_end(args);
 
-  // strip newline characters from buffer
-  for (size_t i = 0; i < buffer.size() - 1; ++i) {
-    if (buffer[i] == '\n' || buffer[i] == '\r') {
-      buffer[i] = ' ';
-    }
-  }
-  const char *buf_str = const_cast<const char *>(buffer.data());
-
   std::lock_guard<std::recursive_mutex> lock(log_mutex);
-  std::ofstream debug_log = std::ofstream(
-      game::is_client() ? "debug.log" : "debug-server.log", std::ios_base::app);
+  std::ofstream debug_log =
+      std::ofstream(tracing_logfile(), std::ios_base::app);
   if (!debug_log.is_open()) {
     return;
   }
 
   debug_log << "[" << now_str << "." << std::setfill('0') << std::setw(3)
-            << now_ms.count() << "] [Debug] ";
+            << now_ms.count() << "] [Debug]";
+  // Trace location/category formatting
+  if (buffer[0] != '[') {
+    debug_log << " ";
+  }
+  for (const char c : buffer) {
+    if (c == '\n') {
+      debug_log << "\\n";
+    } else if (c == '\r') {
+      debug_log << "\\r";
+    } else {
+      debug_log << c;
+    }
+  }
+  debug_log << std::endl;
 
-  debug_log << buf_str << std::endl;
   debug_log.flush();
   debug_log.close();
   last_log_time = (std::max)(last_log_time, now);

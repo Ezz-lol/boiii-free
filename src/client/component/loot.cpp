@@ -236,8 +236,7 @@ struct component final : generic_component {
       }
 
       const game::eModes mode = game::com::Com_SessionMode_GetMode();
-      if (mode != game::eModes::MULTIPLAYER &&
-          mode != game::eModes::ZOMBIES &&
+      if (mode != game::eModes::MULTIPLAYER && mode != game::eModes::ZOMBIES &&
           mode != game::eModes::CAMPAIGN) {
         toast::error(
             "Unlock All",
@@ -279,15 +278,20 @@ struct component final : generic_component {
         game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_zod_ee 1\n");
         game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_zod_super_ee 1\n");
         game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_factory_ee 1\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_factory_super_ee 1\n");
+        game::cbuf::Cbuf_AddText(0,
+                                 "statsetbyname darkops_factory_super_ee 1\n");
         game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_castle_ee 1\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_castle_super_ee 1\n");
+        game::cbuf::Cbuf_AddText(0,
+                                 "statsetbyname darkops_castle_super_ee 1\n");
         game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_island_ee 1\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_island_super_ee 1\n");
+        game::cbuf::Cbuf_AddText(0,
+                                 "statsetbyname darkops_island_super_ee 1\n");
         game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_stalingrad_ee 1\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_stalingrad_super_ee 1\n");
+        game::cbuf::Cbuf_AddText(
+            0, "statsetbyname darkops_stalingrad_super_ee 1\n");
         game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_genesis_ee 1\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname DARKOPS_GENESIS_SUPER_EE 1\n");
+        game::cbuf::Cbuf_AddText(0,
+                                 "statsetbyname DARKOPS_GENESIS_SUPER_EE 1\n");
         game::cbuf::Cbuf_AddText(0, "uploadstats 0\n");
         mode_name = "Zombies";
       } else {

@@ -159,7 +159,7 @@ EngineDependentDvar Dvar_GetSessionModeSpecificDvarInternal_FallbackDefault(
                     "Warning: Sessionmode not set while attempting to get "
                     "sessionmode specific dvar for mode: %s from base dvar : "
                     "\"%s\". Falling back to "
-                    "first available sessionmode-specific dvar.",
+                    "first available sessionmode-specific dvar.\n",
                     serialize(mode), name);
     const SessionModePool<EngineDependentDvar> &sessionModeSpecificDvars =
         base.indirect();
@@ -174,7 +174,7 @@ EngineDependentDvar Dvar_GetSessionModeSpecificDvarInternal_FallbackDefault(
         "Warning: Sessionmode not set while attempting to get "
         "sessionmode specific dvar for mode: %s from base dvar : \"%s\", and "
         "none of the "
-        "sessionmode-specific dvars were available. Returning base dvar.",
+        "sessionmode-specific dvars were available. Returning base dvar.\n",
         serialize(mode), name);
     return base.resolve();
   }

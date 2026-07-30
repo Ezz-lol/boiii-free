@@ -66,9 +66,7 @@ size_t get_bot_count() {
 
 int get_assigned_team() { return (rand() % 2) + 1; }
 
-bool is_host() {
-  return game::server_running();
-}
+bool is_host() { return game::server_running(); }
 
 struct component final : generic_component {
   void post_unpack() override {

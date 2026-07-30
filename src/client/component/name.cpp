@@ -47,8 +47,8 @@ bool is_trusted_sync_sender(const game::net::netadr_t &address) {
 }
 
 bool is_syncable_client(const game::sv::client_s &client) {
-  return client.state != game::net::CS_FREE &&
-         client.state != game::net::CS_ZOMBIE &&
+  return client.state != game::net::clientState_t::FREE &&
+         client.state != game::net::clientState_t::ZOMBIE &&
          is_syncable_address(client.address);
 }
 
@@ -674,18 +674,17 @@ struct component final : generic_component {
       scheduler::loop(request_snapshot_if_needed, scheduler::main, 1s);
     }
 
-    network::on(
-        sync_request_packet_name,
-        [](const game::net::netadr_t &client,
-           [[maybe_unused]] const network::data_view &data,
-           [[maybe_unused]] game::LocalClientNum_t local_client_num) {
-          if (!game::server_running() ||
-              !is_connected_client_address(client)) {
-            return;
-          }
+    network::on(sync_request_packet_name,
+                [](const game::net::netadr_t &client,
+                   [[maybe_unused]] const network::data_view &data,
+                   [[maybe_unused]] game::LocalClientNum_t local_client_num) {
+                  if (!game::server_running() ||
+                      !is_connected_client_address(client)) {
+                    return;
+                  }
 
-          send_snapshot_packet(client);
-        });
+                  send_snapshot_packet(client);
+                });
 
     sv::on_cliententerworld(client_update_post_enterworld);
     sv::on_removeclient(reset_client_name_slot);

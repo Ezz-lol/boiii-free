@@ -313,9 +313,7 @@ bool is_friend(game::XUID steam_id) {
   return found;
 }
 
-int get_friend_count() {
-  return static_cast<int>(get_friends().size());
-}
+int get_friend_count() { return static_cast<int>(get_friends().size()); }
 
 friend_entry get_friend_by_index(int index) {
   const auto entries = get_friends();
@@ -543,8 +541,8 @@ void reset_master_presence() {
 
 void clear_master_presence(const game::XUID steam_id) {
   friends_data.access([steam_id](friend_state &state) {
-    const auto found = std::ranges::find(state.list, steam_id,
-                                         &friend_entry::steam_id);
+    const auto found =
+        std::ranges::find(state.list, steam_id, &friend_entry::steam_id);
     if (found == state.list.end())
       return;
     found->state = status::offline;
@@ -553,8 +551,7 @@ void clear_master_presence(const game::XUID steam_id) {
   });
 }
 
-void set_master_presence(const game::XUID steam_id,
-                         const std::string &address,
+void set_master_presence(const game::XUID steam_id, const std::string &address,
                          const std::string &join_token) {
   const auto parsed = network::address_from_string(address);
   if (!steam_id || !network::is_connectable_address(parsed)) {
@@ -562,8 +559,8 @@ void set_master_presence(const game::XUID steam_id,
   }
 
   friends_data.access([&](friend_state &state) {
-    const auto found = std::ranges::find(state.list, steam_id,
-                                         &friend_entry::steam_id);
+    const auto found =
+        std::ranges::find(state.list, steam_id, &friend_entry::steam_id);
     if (found == state.list.end())
       return;
     found->state = status::in_game;
@@ -624,11 +621,11 @@ struct component final : client_component {
       }
 
       const bool enabled = !currently_open;
-      game::Dvar_SetFromStringByName("friends_open", enabled ? "1" : "0",
-                                     true);
+      game::Dvar_SetFromStringByName("friends_open", enabled ? "1" : "0", true);
       if (!nat::set_open_to_friends(enabled)) {
         game::Dvar_SetFromStringByName("friends_open", "0", true);
-        toast::warn("Friends", "Start a private match before opening the party.");
+        toast::warn("Friends",
+                    "Start a private match before opening the party.");
       } else if (enabled) {
         toast::success("FRIENDS", "Friends can now join.");
       } else {
@@ -636,9 +633,7 @@ struct component final : client_component {
       }
     });
     scheduler::once([] { fetch_public_ip(); }, scheduler::async, 2000ms);
-
   }
-
 };
 } // namespace friends
 

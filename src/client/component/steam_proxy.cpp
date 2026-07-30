@@ -60,7 +60,7 @@ struct callback_msg_t {
 
 // Callback IDs we care about
 constexpr int k_GameRichPresenceJoinRequested =
-    337;                                      // k_iSteamFriendsCallbacks + 37
+    337; // k_iSteamFriendsCallbacks + 37
 
 struct game_rich_presence_join_requested_t {
   uint64_t steam_id_friend;
@@ -340,7 +340,6 @@ struct component final : client_component {
                                steam::SteamUtils()->GetAppID());
     evaluate_ownership_state(res);
     clean_up_on_error();
-
   }
 
   void pre_destroy() override {
@@ -688,15 +687,14 @@ uint64_t get_own_steam_id() {
   // launcher as the Friend Code. It is safer than accepting an arbitrary
   // value returned by a mismatched Steam interface revision.
   HKEY key{};
-  if (RegOpenKeyExW(HKEY_CURRENT_USER,
-                    L"Software\\Valve\\Steam\\ActiveProcess", 0, KEY_READ,
-                    &key) == ERROR_SUCCESS) {
+  if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Valve\\Steam\\ActiveProcess",
+                    0, KEY_READ, &key) == ERROR_SUCCESS) {
     DWORD account_id{};
     DWORD type{};
     DWORD size = sizeof(account_id);
-    const auto result = RegQueryValueExW(
-        key, L"ActiveUser", nullptr, &type,
-        reinterpret_cast<BYTE *>(&account_id), &size);
+    const auto result =
+        RegQueryValueExW(key, L"ActiveUser", nullptr, &type,
+                         reinterpret_cast<BYTE *>(&account_id), &size);
     RegCloseKey(key);
     if (result == ERROR_SUCCESS && type == REG_DWORD && account_id != 0) {
       const auto id = 76561197960265728ULL + account_id;
@@ -707,18 +705,19 @@ uint64_t get_own_steam_id() {
 
   // ActiveUser can be zero while Steam is starting or in offline mode.
   try {
-    const auto path = std::filesystem::path(steam::SteamAPI_GetSteamInstallPath()) /
-                      "config" / "loginusers.vdf";
+    const auto path =
+        std::filesystem::path(steam::SteamAPI_GetSteamInstallPath()) /
+        "config" / "loginusers.vdf";
     std::ifstream file(path, std::ios::binary);
     if (file) {
       const std::string data((std::istreambuf_iterator<char>(file)), {});
       const std::regex account_block(
-          R"steam("([0-9]{17})"\s*\{([\s\S]*?)\})steam",
-          std::regex::icase);
+          R"steam("([0-9]{17})"\s*\{([\s\S]*?)\})steam", std::regex::icase);
       const std::regex most_recent(R"steam("MostRecent"\s*"1")steam",
                                    std::regex::icase);
       uint64_t first_valid{};
-      for (auto it = std::sregex_iterator(data.begin(), data.end(), account_block);
+      for (auto it =
+               std::sregex_iterator(data.begin(), data.end(), account_block);
            it != std::sregex_iterator(); ++it) {
         const auto id = std::strtoull((*it)[1].str().c_str(), nullptr, 10);
         if (!valid_individual_id(id))

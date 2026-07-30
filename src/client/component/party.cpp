@@ -391,7 +391,8 @@ void connect_stub(const char *address) {
     }
 
     if (address_copy == "0.0.0.0" || address_copy.starts_with("0.0.0.0:")) {
-      toast::show("Friend unavailable", "Friend is offline or their party is closed",
+      toast::show("Friend unavailable",
+                  "Friend is offline or their party is closed",
                   "t7_icon_connect_overlays");
       return;
     }
@@ -412,10 +413,9 @@ void connect_stub(const char *address) {
 
             if (network::is_ip_address(target) &&
                 (target.addr == 0 || target.port == 0)) {
-              toast::show(
-                  "Friend unavailable",
-                  "Friend is offline or their party is closed",
-                  "t7_icon_connect_overlays");
+              toast::show("Friend unavailable",
+                          "Friend is offline or their party is closed",
+                          "t7_icon_connect_overlays");
               return;
             }
 

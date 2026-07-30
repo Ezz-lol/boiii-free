@@ -113,9 +113,7 @@ end
 
 } // namespace
 
-void patch_hud() {
-  execute_lua(zombie_toast_patch);
-}
+void patch_hud() { execute_lua(zombie_toast_patch); }
 
 void precache_icon(const std::string &material) {
   const auto escaped = escape_lua_string(material);
@@ -146,11 +144,7 @@ void show(const std::string &title, const std::string &description,
       "end)\n",
       escaped_title.c_str(), escaped_description.c_str(), escaped_icon.c_str());
 
-  scheduler::once(
-      [code] {
-        execute_lua(code);
-      },
-      scheduler::main);
+  scheduler::once([code] { execute_lua(code); }, scheduler::main);
 }
 
 void success(const std::string &title, const std::string &description) {

@@ -149,14 +149,15 @@ void send_friend_publish() {
   if (!friend_code) {
     if (!identity_warning_shown) {
       identity_warning_shown = true;
-      toast::error("Friends unavailable", "BOIII Friend Code could not be generated.");
+      toast::error("Friends unavailable",
+                   "BOIII Friend Code could not be generated.");
     }
     return;
   }
   if (hosting_token.empty())
     return;
-  const auto payload = utils::string::va("1 %llu %s", friend_code,
-                                         hosting_token.c_str());
+  const auto payload =
+      utils::string::va("1 %llu %s", friend_code, hosting_token.c_str());
   send_rendezvous("friendPublish", payload);
 }
 
@@ -203,8 +204,7 @@ void update_punching() {
 
   if (joining.active) {
     if (now >= joining.expires) {
-      const auto fallback =
-          network::address_from_string(joining.fallback);
+      const auto fallback = network::address_from_string(joining.fallback);
       joining.active = false;
       if (network::is_connectable_address(fallback))
         connect_to(fallback);
@@ -298,11 +298,11 @@ void receive_peer(const game::net::netadr_t &sender,
     const auto candidate = network::address_from_string(parts[i]);
     if (!network::is_connectable_address(candidate))
       continue;
-    const auto duplicate = std::any_of(
-        host_probes.begin(), host_probes.end(),
-        [&candidate](const host_probe &probe) {
-          return network::are_addresses_equal(probe.candidate, candidate);
-        });
+    const auto duplicate = std::any_of(host_probes.begin(), host_probes.end(),
+                                       [&candidate](const host_probe &probe) {
+                                         return network::are_addresses_equal(
+                                             probe.candidate, candidate);
+                                       });
     if (!duplicate)
       host_probes.push_back(
           {token, candidate, std::chrono::steady_clock::now() + 10s});
@@ -310,8 +310,7 @@ void receive_peer(const game::net::netadr_t &sender,
 }
 
 void receive_rejection(const game::net::netadr_t &sender,
-                       const network::data_view &,
-                       game::LocalClientNum_t) {
+                       const network::data_view &, game::LocalClientNum_t) {
   if (!from_rendezvous(sender) || !joining.active)
     return;
   joining.expires = std::chrono::steady_clock::now();
@@ -322,8 +321,7 @@ void receive_punch(const game::net::netadr_t &sender,
   const auto token = payload_string(data);
   const bool valid_join = joining.active && token == joining.token;
   const bool valid_host = !hosting_token.empty() && token == hosting_token;
-  if ((!valid_join && !valid_host) ||
-      !network::is_connectable_address(sender))
+  if ((!valid_join && !valid_host) || !network::is_connectable_address(sender))
     return;
 
   network::send(sender, "punchAck", token);
@@ -332,8 +330,7 @@ void receive_punch(const game::net::netadr_t &sender,
 }
 
 void receive_punch_ack(const game::net::netadr_t &sender,
-                       const network::data_view &data,
-                       game::LocalClientNum_t) {
+                       const network::data_view &data, game::LocalClientNum_t) {
   const auto token = payload_string(data);
   if (joining.active && token == joining.token &&
       network::is_connectable_address(sender))
@@ -390,8 +387,7 @@ std::string get_host_endpoint() {
   return local_endpoint();
 }
 
-void begin_join(const std::string &token,
-                const std::string &fallback_address) {
+void begin_join(const std::string &token, const std::string &fallback_address) {
   if (!valid_token(token)) {
     show_join_failure();
     return;
@@ -431,23 +427,25 @@ void refresh_friends(const std::vector<uint64_t> &steam_ids,
     lookup_done = std::move(callback);
   }
   for (const auto steam_id : steam_ids)
-    send_rendezvous("friendLookup", utils::string::va("1 %s %llu",
-                    request.c_str(), steam_id));
+    send_rendezvous("friendLookup",
+                    utils::string::va("1 %s %llu", request.c_str(), steam_id));
 
-  scheduler::once([generation] {
-    lookup_callback done;
-    std::vector<friend_presence> results;
-    {
-      std::lock_guard lock(lookup_mutex);
-      if (generation != lookup_generation)
-        return;
-      results = lookup_results;
-      done = std::move(lookup_done);
-      lookup_pending.clear();
-    }
-    if (done)
-      done(std::move(results));
-  }, scheduler::main, 2s);
+  scheduler::once(
+      [generation] {
+        lookup_callback done;
+        std::vector<friend_presence> results;
+        {
+          std::lock_guard lock(lookup_mutex);
+          if (generation != lookup_generation)
+            return;
+          results = lookup_results;
+          done = std::move(lookup_done);
+          lookup_pending.clear();
+        }
+        if (done)
+          done(std::move(results));
+      },
+      scheduler::main, 2s);
 }
 
 class component final : public client_component {
@@ -470,7 +468,6 @@ public:
 
     scheduler::loop(update_punching, scheduler::main, 250ms);
     scheduler::loop(update_hosting, scheduler::main, REGISTER_INTERVAL);
-
   }
 };
 } // namespace nat

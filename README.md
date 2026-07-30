@@ -204,6 +204,7 @@ Launch BOIII with these arguments for extra features:
 | `-keep-launcher`      | Keep the launcher process running after starting the game.                                                                                                         |
 | `-noconsole`          | Suppress the external launcher console window.                                                                                                                     |
 | `-nobranding`         | Disable EZZ watermark and console prefix.                                                                                                                          |
+| `-nocinematics`       | Disable playing all cinematics.                                                                                                                                    |
 | `-noratelimit`        | Disable rate limiting in dedicated server.                                                                                                                         |
 | `-quiet-crash`        | On crash, disable message box and minidump directory popups.                                                                                                       |
 | `-mitigatepacketspam` | In dedicated server, attempt to reduce unnecessary reliable command packets sent by some custom maps' scripts. Fixes Kowloon and Daybreak client load-in failures. |
@@ -365,7 +366,8 @@ Want to build Ezz BOIII yourself? Here's how! 🔨
 ### Prerequisites
 
 - [Visual Studio 2022 or newer](https://visualstudio.microsoft.com/downloads/)
-  (Community Edition is free), with the **Desktop development with C++** workload
+  (Community Edition is free), with the **Desktop development with C++**
+  workload
 - [Git](https://git-scm.com/downloads)
 - Windows 10/11 SDK
 - [clang-format](https://releases.llvm.org/) (for C/C++ formatting — install via

@@ -540,54 +540,53 @@ void setup_functions() {
                }),
                HksObjectType::TCFUNCTION);
 
-  lua["game"]["connectsocialfriend"] =
-      function(convert_function([](const std::string &id_hex) -> bool {
-                 try {
-                   return friends::connect_to_friend(
-                       std::stoull(id_hex, nullptr, 16));
-                 } catch (...) {
-                   return false;
-                 }
-               }),
-               HksObjectType::TCFUNCTION);
-
-  lua["game"]["getkickableplayers"] = function(
-      convert_function([]() -> table {
-        table players{};
-        if (!getinfo::is_host())
-          return players;
-
-        int list_index = 1;
-        game::foreach_connected_client(
-            [&players, &list_index](game::sv::client_s &client,
-                                    const size_t client_index) {
-              if (client_index == 0 ||
-                  game::sv::SV_IsTestClient(
-                      static_cast<game::ClientNum_t>(client_index))) {
-                return;
-              }
-
-              char name_buffer[64]{};
-              std::string display_name;
-              if (game::cl::CL_GetClientName(
-                      game::LOCAL_CLIENT_0, static_cast<int>(client_index),
-                      name_buffer, sizeof(name_buffer), false) &&
-                  name_buffer[0]) {
-                display_name = name_buffer;
-              } else if (client.name[0]) {
-                display_name = client.name;
-              } else {
-                display_name = "Player " + std::to_string(client_index);
-              }
-
-              table player{};
-              player.set("client_num", static_cast<int>(client_index));
-              player.set("name", display_name);
-              players.set(list_index++, player);
-            });
-        return players;
+  lua["game"]["connectsocialfriend"] = function(
+      convert_function([](const std::string &id_hex) -> bool {
+        try {
+          return friends::connect_to_friend(std::stoull(id_hex, nullptr, 16));
+        } catch (...) {
+          return false;
+        }
       }),
       HksObjectType::TCFUNCTION);
+
+  lua["game"]["getkickableplayers"] =
+      function(convert_function([]() -> table {
+                 table players{};
+                 if (!getinfo::is_host())
+                   return players;
+
+                 int list_index = 1;
+                 game::foreach_connected_client([&players, &list_index](
+                                                    game::sv::client_s &client,
+                                                    const size_t client_index) {
+                   if (client_index == 0 ||
+                       game::sv::SV_IsTestClient(
+                           static_cast<game::ClientNum_t>(client_index))) {
+                     return;
+                   }
+
+                   char name_buffer[64]{};
+                   std::string display_name;
+                   if (game::cl::CL_GetClientName(
+                           game::LOCAL_CLIENT_0, static_cast<int>(client_index),
+                           name_buffer, sizeof(name_buffer), false) &&
+                       name_buffer[0]) {
+                     display_name = name_buffer;
+                   } else if (client.name[0]) {
+                     display_name = client.name;
+                   } else {
+                     display_name = "Player " + std::to_string(client_index);
+                   }
+
+                   table player{};
+                   player.set("client_num", static_cast<int>(client_index));
+                   player.set("name", display_name);
+                   players.set(list_index++, player);
+                 });
+                 return players;
+               }),
+               HksObjectType::TCFUNCTION);
 
   lua["game"]["ishost"] =
       function(convert_function([]() -> bool { return getinfo::is_host(); }),
@@ -601,8 +600,7 @@ void setup_functions() {
         bool kicked = false;
         std::string player_name;
         game::access_connected_client(
-            static_cast<size_t>(client_num),
-            [&](game::sv::client_s &client) {
+            static_cast<size_t>(client_num), [&](game::sv::client_s &client) {
               if (game::sv::SV_IsTestClient(
                       static_cast<game::ClientNum_t>(client_num))) {
                 return;
@@ -916,7 +914,7 @@ void cl_first_snapshot_stub(game::LocalClientNum_t localClientNum) {
 
   if (doneFirstSnapshot.exchange(true, std::memory_order_seq_cst)) {
     if (!reloadIngameMenusAfterRestart.exchange(false,
-                                                 std::memory_order_seq_cst)) {
+                                                std::memory_order_seq_cst)) {
       return;
     }
 
