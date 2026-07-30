@@ -341,7 +341,16 @@ optimize("Debug")
 defines({ "DEBUG", "_DEBUG", "_CRT_DEBUG" })
 filter({})
 filter({ "configurations:Debug", "toolset:msc*" })
-buildoptions({ "/MDd" })
+buildoptions({
+  "/MDd",
+  "/clang:-march=x86-64",
+  -- Only used after positive test for support at runtime.
+  -- We need to compile with these CPU features regardless of end-user
+  -- support to ensure that SSE4.2 and AES ISA extension ASM instructions
+  -- can be emitted at all.
+  "/clang:-mno-sse4.1",
+  "/clang:-mno-sse4.2",
+})
 linkoptions({
   "/DEBUG",
   "/NODEFAULTLIB:libcmt.lib",
@@ -352,6 +361,9 @@ linkoptions({
 filter({})
 filter({ "configurations:Debug", "toolset:not msc*" })
 buildoptions({
+  "-march=x86-64",
+  "-mno-sse4.1",
+  "-mno-sse4.2",
   "-Wl,/DEBUG",
   "-Wl,/NODEFAULTLIB:libcmt.lib",
   "-Wl,/NODEFAULTLIB:libucrt.lib",

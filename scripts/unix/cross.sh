@@ -26,7 +26,7 @@ OUTPUT_DIR=""
 TIDY=0
 EXEC_ARBITRARY=0
 EXEC_ARGS=()
-MARCH="x86-64-v2"
+MARCH="x86-64"
 NUM_THREADS="$(nproc)"
 BOIII_EXE="boiii.exe"
 TLS_DLL="tlsdll.dll"
@@ -247,17 +247,17 @@ cross_env() {
 	# compile the resources.
 	# On most unix-like systems, this will not be LLVM windres, but GNU windres, which
 	# does not support COFF relocations, and thus fails to compile the resources with errors.
-	# By putting LLVM bin path first, we ensure that premake5 finds the correct windres, and thus can compile the resources successfully.
+	# By placing the LLVM bin directory path first, we ensure that premake5 finds the correct windres, and thus can compile the resources successfully.
 	TEMP_PATH="$(get_llvm_bin):${PATH}"
-	# ensure literal "windres" file for LLVM windres exists on path, somewhere.
+	# ensure LLVM windres with "windres" basename exists on path, somewhere.
 	temp_windres_link_dir="$(mktemp -d)"
 	resolved_windres="$(env PATH="$TEMP_PATH" which windres 2>/dev/null | normalize_path)"
 
 	if ! windres_is_llvm "$resolved_windres"; then
 		ln -s "$(get_llvm_windres)" "${temp_windres_link_dir}/windres"
 		TEMP_PATH="${temp_windres_link_dir}:${TEMP_PATH}"
-
 	fi
+
 	exit_code=0
 	if ! env --chdir="${REPO_DIR}" \
 		env PATH="${TEMP_PATH}" \
@@ -282,6 +282,8 @@ cross_env() {
 		LDFLAGS="$TEMP_LDFLAGS" \
 		RESFLAGS="$TEMP_RESFLAGS" \
 		RCFLAGS="$TEMP_RCFLAGS" \
+		CMAKE_BUILD_PARALLEL_LEVEL="$NUM_THREADS" \
+		MAKEOPTS="-j${NUM_THREADS}" \
 		"${args[@]}"; then
 		exit_code=1
 	fi
@@ -297,7 +299,7 @@ flags_to_yaml_array_items() {
 	local flags_string="$1"
 	IFS=$' ' read -r -a flags_array <<<"$flags_string"
 	local num_flags="${#flags_array[@]}"
-	for ((i = 1; i < $((num_flags - 1)); i++)); do
+	for ((i = 0; i < $((num_flags - 1)); i++)); do
 		if [ -n "${flags_array[i]}" ]; then
 			echo -ne "${flags_array[i]},\n"
 		fi
@@ -384,8 +386,7 @@ generate_clangd_config() {
 CompileFlags:
   Add: [
 $(flags_to_yaml_array_items "$TEMP_CXXFLAGS" | clangd_flag_indent), 
-$(clangd_include_flags),
-   -std=c++20
+$(clangd_include_flags)
   ]
 EOL
 	echo "Generated clangd config: '$clangd_config_path'"
@@ -507,6 +508,14 @@ while [ "$#" -gt 0 ]; do
 		NUM_THREADS="$2"
 		shift 2
 		;;
+	-j[0-9]*)
+		NUM_THREADS="${1:2}"
+		shift
+		;;
+	-threads=[0-9]* | --threads=[0-9]*)
+		NUM_THREADS="$(cut -d '=' -f2 <<<"$1")"
+		shift
+		;;
 	--tidy | -tidy | -t)
 		TIDY=1
 		shift
@@ -593,6 +602,7 @@ cflags=(
 	"-L${WINDOWS_MSVC_TOOLCHAIN_BIN_PATH}"
 	"-I${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}")
 cxxflags=(
+	"-std=c++20"
 	"-Oz"
 	"-march=${MARCH}" "-m64" "-mno-sse4.1" "-mno-sse4.2"
 	"-isystem" "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}/c++/msstl/"
@@ -714,6 +724,7 @@ else
 		config="$(build_type)" \
 		-Cbuild \
 		-j"$NUM_THREADS" \
+		-l"$NUM_THREADS" \
 		-e; then
 
 		echo "Build completed successfully."
