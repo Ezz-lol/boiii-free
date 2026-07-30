@@ -12,6 +12,25 @@ static std::unordered_map<std::string_view, int32_t> ARG_SKIPS = {
 };
 argparse::ArgumentParser program("boiii");
 
+#ifndef NDEBUG
+inline void add_debug_profile_arguments() {
+  program.add_argument("-alias", "--alias")
+      .help("For development: use a different key for XUID generation, "
+            "allowing two local clients (the first launched without this flag) "
+            "to connect to the same server.")
+      .default_value(false)
+      .implicit_value(true);
+  program
+      .add_argument("-d", "-debug", "--debug", "-t", "-trace", "--trace",
+                    "-tracing", "--tracing")
+      .help("Output path for debug tracing. Client tracing will use this path "
+            "verbatim, and server tracing will append a \"-server\" suffix "
+            "before the file extension, if any, or the end of the file name "
+            "otherwise.")
+      .default_value(std::string("debug.log"));
+}
+#endif
+
 /*
   TODO: this should also filter out commands.
 
@@ -167,14 +186,6 @@ int32_t parse_flags(int argc, char *argv[]) {
       .help("Disable attempt to load and use sound assets in dedicated server.")
       .default_value(false)
       .implicit_value(true);
-#ifndef NDEBUG
-  program.add_argument("-alias", "--alias")
-      .help("For development: use a different key for XUID generation, "
-            "allowing two local clients (the first launched without this flag) "
-            "to connect to the same server.")
-      .default_value(false)
-      .implicit_value(true);
-#endif
   program.add_argument("-e", "-extract-assets", "--extract-assets")
       .help("Dump assets with name matching the provided pattern when loaded "
             "to output directory specified by the -o/--output flag")
@@ -183,6 +194,13 @@ int32_t parse_flags(int argc, char *argv[]) {
   program.add_argument("-o", "-output", "--output")
       .help("Output directory for dumped assets")
       .default_value(std::string("assets"));
+  program.add_argument("-nc", "-nocinematics", "--nocinematics")
+      .help("Skip playing all cinematics.")
+      .implicit_value(true)
+      .default_value(false);
+#ifndef NDEBUG
+  add_debug_profile_arguments();
+#endif
 
   try {
     program.parse_known_args(filtered_args);
