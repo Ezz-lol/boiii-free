@@ -321,7 +321,7 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
                 .registerFunc(cache_inst,
                               HUDELEM_CFGSTR_POOL_ENTRY_NAMES[hudElemIdx]));
 #ifndef NDEBUG
-        game::trace("[Scr] [HECmd_SetText] Registered localized string "
+        game::trace("[Scr][HECmd_SetText] Registered localized string "
                     "configstring for "
                     "hudelement 0x%03X with "
                     "index 0x%lX",
