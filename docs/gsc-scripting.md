@@ -447,7 +447,7 @@ value = conststring(hash);
 
 ## isstruct
 
-`isstruct(val)` returns a boolean value representing whether they given `val` is
+`isstruct(val)` returns a boolean value representing whether the given `val` is
 a `struct`
 
 ```
