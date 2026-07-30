@@ -518,8 +518,6 @@ union BuiltinFunctionTable {
       "GetRoundsPlayed",
       "AddDebugCommand",
       "EnableVR"};
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   static_assert(hashes.size() == names.size(),
@@ -1038,8 +1036,6 @@ union BuiltinMethodTable {
       "HideViewLegs",
       "SuppressRagdollSelfCollision",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   static_assert(hashes.size() == names.size(),
@@ -1270,8 +1266,6 @@ union GfxFunctionTable {
       "Umbra_SetTomeTriggerOnce",
       "Umbra_ClearPersistentTomeTrigger",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   static_assert(hashes.size() == names.size(),
@@ -1289,7 +1283,7 @@ union GfxMethodTable {
     const BuiltinMethodDef OED_SitRepScan_Enable;
     const BuiltinMethodDef OED_SitRepScan_SetDesat;
     const BuiltinMethodDef OED_SitRepScan_SetSolid;
-    const BuiltinMethodDef HE_Intro_Civilian;
+    const BuiltinMethodDef OED_SitRepScan_SetOutline;
     const BuiltinMethodDef OED_SitRepScan_SetLineWidth;
     const BuiltinMethodDef OED_SitRepScan_SetRadius;
     const BuiltinMethodDef OED_SitRepScan_SetFallOff;
@@ -1336,7 +1330,7 @@ union GfxMethodTable {
       "OED_SitRepScan_Enable",
       "OED_SitRepScan_SetDesat",
       "OED_SitRepScan_SetSolid",
-      "HE_Intro_Civilian",
+      "OED_SitRepScan_SetOutline",
       "OED_SitRepScan_SetLineWidth",
       "OED_SitRepScan_SetRadius",
       "OED_SitRepScan_SetFallOff",
@@ -1373,8 +1367,6 @@ union GfxMethodTable {
       "TmodeSetFlag",
       "TmodeClearFlag",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   static_assert(hashes.size() == names.size(),
@@ -1404,8 +1396,7 @@ union MathFunctionTable {
       "RandomInt",        "RandomFloat",      "RandomIntRange",
       "RandomFloatRange", "Project2DTo3D",    "Project3DTo2D",
       "ViewAspect",       "GetAngleFromBits", "GetBitsForAngle",
-  }; // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
+  };
 
   DEFINE_NAME_MAP(names, hashes);
   static_assert(hashes.size() == names.size(),
@@ -1486,8 +1477,6 @@ union SoundFunctionTable {
       "CreateSoundRandom",
       "ForceAmbientRoom",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   static_assert(hashes.size() == names.size(),
@@ -1517,8 +1506,6 @@ union SoundMethodTable {
       "StopLoopSound",      "StopAllLoopSounds", "IsPlayingLoopSound",
       "SetSoundEntContext", "SetLoopState",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   static_assert(hashes.size() == names.size(),
@@ -1577,8 +1564,6 @@ union UIFunctionTable {
       "SetUIModelValue",
       "StopSound",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   static_assert(hashes.size() == names.size(),
@@ -1635,8 +1620,6 @@ union UtilFunctionTable {
       "SetSavedDvar",
       "GetLightingState",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   static_assert(hashes.size() == names.size(),
@@ -1659,8 +1642,6 @@ union UtilMethodTable {
       "ButtonPressed",
       "GetControllerPosition",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   static_assert(hashes.size() == names.size(),

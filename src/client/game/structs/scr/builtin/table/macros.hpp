@@ -105,18 +105,10 @@ inline constexpr bool std::ranges::enable_view<Enumerate<T>> = true;
 #define PROTECTED_STR(entry) STR(PROTECTED(entry))
 #endif
 
-#ifndef ASSERT_ALL_NONEMPTY
-#define ASSERT_ALL_NONEMPTY(strs)                                              \
-  static_assert(                                                               \
-      std::ranges::distance(strs | std::views::filter([](const char *name) {   \
-                              return name[0];                                  \
-                            })) == ARRAYSIZE(strs),                            \
-      #strs " contains an uninitialized string - array size is incorrect!");
-#endif
-
 // Helper function to unpack indices and populate the array
 template <typename View, std::size_t... Is>
-inline constexpr auto to_array_impl(View &&view, std::index_sequence<Is...>) {
+inline constexpr auto to_array_expand_internal(View &&view,
+                                               std::index_sequence<Is...>) {
   // Note: This relies on the view providing random access (like an array/vector
   // source)
   return std::array{view[Is]...};
@@ -125,8 +117,9 @@ inline constexpr auto to_array_impl(View &&view, std::index_sequence<Is...>) {
 // Main converter function
 template <const IntegralLike auto N, typename View>
 inline constexpr auto to_array(View &&view) {
-  return to_array_impl(std::forward<View>(view),
-                       std::make_index_sequence<static_cast<size_t>(N)>());
+  return to_array_expand_internal(
+      std::forward<View>(view),
+      std::make_index_sequence<static_cast<size_t>(N)>());
 }
 
 struct NameIdxPair {

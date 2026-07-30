@@ -5,7 +5,6 @@
 
 #include "game_event.hpp"
 #include "gsc/gsc_compiler.hpp"
-#include "gsc/gsc.hpp"
 #include "dump.hpp"
 
 #include <unordered_map>
@@ -167,7 +166,7 @@ void fixup_script_imports(uint8_t *buf, int32_t len) {
     uint32_t path_hash = gsc::gsc_hash(inc_path);
 
     // Look up the actual game SPT for this include path (try .gsc then .csc)
-    auto *asset = db_find_x_asset_header_hook.invoke<RawFile *>(
+    RawFile *asset = db_find_x_asset_header_hook.invoke<RawFile *>(
         XAssetType::SCRIPTPARSETREE, (inc_path + ".gsc").c_str(), false, 0);
     if (!asset || !asset->buffer)
       asset = db_find_x_asset_header_hook.invoke<RawFile *>(
@@ -176,7 +175,7 @@ void fixup_script_imports(uint8_t *buf, int32_t len) {
     if (!asset || !asset->buffer)
       continue;
 
-    auto *spt = reinterpret_cast<const uint8_t *>(asset->buffer);
+    const uint8_t *spt = reinterpret_cast<const uint8_t *>(asset->buffer);
     uint64_t spt_magic;
     std::memcpy(&spt_magic, spt, sizeof(spt_magic));
     if (spt_magic != GSC_MAGIC)
@@ -351,9 +350,9 @@ void apply_pending_detours() {
   remaining_detours.reserve(pending_detours.size());
 
   for (pending_detour &d : pending_detours) {
-    const auto target = resolve_export_address_internal(
+    const export_lookup_result target = resolve_export_address_internal(
         d.target_script, d.target_func_hash, d.target_params);
-    const auto replace = resolve_export_address_internal(
+    const export_lookup_result replace = resolve_export_address_internal(
         d.replace_script, d.replace_func_hash, d.replace_params);
 
     if (target.address && replace.address) {

@@ -27,7 +27,7 @@ WEAK symbol<void(net::netadr_t from)> SV_DirectConnect{0x142249880,
 WEAK
     symbol<void(ClientNum_t clientNum, net::svscmd_type type, const char *text)>
         SV_GameSendServerCommand{0x14224F580, 0x140532CA0};
-WEAK symbol<void(client_s *cl_0, net::svscmd_type type, const char *fmt, ...)>
+WEAK symbol<void(client_s *cl, net::svscmd_type type, const char *fmt, ...)>
     SV_SendServerCommand{0x142254D30, 0x140537F10};
 WEAK symbol<bool(ClientNum_t clientNum)> SV_IsTestClient{0x14224AB60,
                                                          0x14052FF40};
@@ -40,8 +40,8 @@ WEAK symbol<void()> SV_Cmd_EndTokenizedString{0x1420EF0E0, 0x1404FA670};
 WEAK symbol<void(client_s *client, net::msg::msg_t *msg)>
     SV_ExecuteClientMessage{0x14224A460, 0x14052F840};
 
-WEAK symbol<void(int index, const char *val)> SV_SetConfigstring{0x1422513A0,
-                                                                 0x1405355B0};
+WEAK symbol<void(int32_t index, const char *val)> SV_SetConfigString{
+    0x1422513A0, 0x1405355B0};
 
 WEAK symbol<void(client_s *drop, const char *reason, bool tellThem,
                  bool removeFromLobby)>

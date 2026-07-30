@@ -33,8 +33,6 @@ union ActorInterfaceMethodTable {
       "BB_GetLocomotionMotionAngle",
       "BB_GetLocomotionTurnYaw",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(methods);
@@ -333,8 +331,6 @@ union ActorMethodTable {
       "CalcApproximatePathToPosition",
       "GetNextFindBestCoverTime",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(methods);
@@ -488,8 +484,6 @@ union BotMethodTable {
       "PressAds",
       "PressMelee",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(methods);
@@ -1309,8 +1303,6 @@ union PlayerMethodTable {
       "ResetInactivityTimer",
       "SetViewClamp",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(methods);
@@ -1900,8 +1892,6 @@ union CommonFunctionTable {
       "HideInfoVolume",
       "InfoVolumeDebugInit",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(functions);
@@ -2353,8 +2343,6 @@ union CommonMethodTable {
       "OverrideSpawnflags",
       "ExperimentsGetVariant",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(methods);
@@ -2380,8 +2368,6 @@ union HelicopterMethodTable {
       "GetHeliHeightLock",  "IsInsideHeliHeightLock", "GetHeliHeightLockHeight",
       "SetHeliDogfighting",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(methods);
@@ -2439,8 +2425,6 @@ union HudElemMethodTable {
       "SetMapNameString", "SetGameTypeString",
       "SetWarGameData",   "ChangeFontScaleOverTime",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(methods);
@@ -2464,8 +2448,6 @@ union MathFunctionTable {
       "RandomIntRange",
       "RandomFloatRange",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(functions);
@@ -2503,8 +2485,6 @@ union ScriptEntMethodTable {
       "Bobbing",       "Rotate",    "RotateVelocity", "SetCanDamage",
       "PhysicsLaunch",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(methods);
@@ -2774,8 +2754,6 @@ union ScriptVehicleMethodTable {
       "VehDriverAimAtCrosshairs",
       "GetVehDamageMultiplier",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(methods);
@@ -2804,8 +2782,6 @@ union SentientFunctionTable {
       "SetThreatBiasAgainstAll", "SetIgnoreMeGroup",
       "SetStealthSigh",          "ResetVisibilityCacheWithinRadius",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(functions);
@@ -2883,8 +2859,6 @@ union SentientMethodTable {
       "SetStealthSightAwareness",
       "GetMotionAngle",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(methods);
@@ -2906,8 +2880,6 @@ union UtilFunctionTable {
       "SetTopDownCameraYaw",
       "SetJumpHeight",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(functions);

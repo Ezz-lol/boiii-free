@@ -55,6 +55,13 @@ template <typename T> inline T *select(T *client_val, T *server_val) {
                                       reinterpret_cast<uintptr_t>(server_val)));
 }
 
+template <typename T>
+inline volatile T *select(volatile T *client_val, volatile T *server_val) {
+  return reinterpret_cast<volatile T *>(
+      select(reinterpret_cast<uintptr_t>(client_val),
+             reinterpret_cast<uintptr_t>(server_val)));
+}
+
 /// @brief Checks if a pointer resides within any of the process's allocated
 /// heap blocks.
 /// @warning Walking the heap is extremely slow and blocks other threads. Do not

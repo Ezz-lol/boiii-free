@@ -53,8 +53,8 @@ void ScrCmd_PlaySoundOnTag_Impl(scriptInstance_t inst, scr_entref_t *entref) {
       tag_idx = G_TagIndex(tagName);
     } else {
       sv::SV_DObjDumpInfo(ent);
-      const char *model_name = game::bg::BG_Cache_GetModelNameForIndex(
-          game::bg::bgCacheInstance::SERVER, ent->model);
+      const char *model_name = game::bg::cache::BG_Cache_GetModelNameForIndex(
+          game::bg::cache::bgCacheInstance::SERVER, ent->model);
       const char *tag_name_display_str = sl::SL_ConvertToString(tag_name);
       Scr_ParamError(
           SCRIPTINSTANCE_SERVER, 1u,
@@ -220,8 +220,8 @@ void ScrCmd_PlaySoundWithNotify_Impl(scriptInstance_t inst,
       tag_idx = G_TagIndex(tag_name);
     } else {
       sv::SV_DObjDumpInfo(ent);
-      const char *model_name = game::bg::BG_Cache_GetModelNameForIndex(
-          game::bg::bgCacheInstance::SERVER, ent->model);
+      const char *model_name = game::bg::cache::BG_Cache_GetModelNameForIndex(
+          game::bg::cache::bgCacheInstance::SERVER, ent->model);
       const char *tag_name = sl::SL_ConvertToString(tag_name_hash);
       Scr_ParamError(
           SCRIPTINSTANCE_SERVER, 2u,

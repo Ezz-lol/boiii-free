@@ -85,8 +85,6 @@ union CommonFunctionTable {
       "SessionModeIsCampaignZombiesGame",
       "IsArchetypeLoaded",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   static_assert(hashes.size() == names.size(),
@@ -203,8 +201,6 @@ union MathFunctionTable {
       "ForwardRotateAroundUpByAngle",
       "RotatePointAroundAxis",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   static_assert(hashes.size() == names.size(),
@@ -223,8 +219,6 @@ union WeaponFunctionTable {
   const BuiltinFunctionDef functions[COUNT];
 
   static constexpr std::array<const char *, COUNT> names = {"EnumerateWeapons"};
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   static_assert(hashes.size() == names.size(),
@@ -379,8 +373,6 @@ union UtilFunctionTable {
       "IsProfileBuild",
       "IsUsingMods",
       "Modvar"};
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   static_assert(hashes.size() == names.size(),

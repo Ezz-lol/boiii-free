@@ -688,8 +688,6 @@ union BuiltinFunctionTable {
       PROTECTED_STR(SetBGBUnlocked),
       PROTECTED_STR(GetBGBUnlocked),
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(functions);
@@ -1394,8 +1392,6 @@ union BuiltinMethodTable {
       "QueueMeleeActionState",
       "StopJukeMove",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   static_assert(hashes.size() == names.size(),

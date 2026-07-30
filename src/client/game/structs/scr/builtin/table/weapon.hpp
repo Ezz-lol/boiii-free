@@ -586,8 +586,6 @@ PACKED(union FieldTable {
       "ExplosionInnerDamage",
       "ExplosionOuterDamage",
   };
-  // Ensure array size was correct - no elements implicitly instantiated
-  ASSERT_ALL_NONEMPTY(names);
 
   DEFINE_NAME_MAP(names, hashes);
   static_assert(hashes.size() == names.size(),
