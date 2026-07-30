@@ -27,9 +27,9 @@ struct vidConfig_t {
   uint32_t sceneWidth;
   uint32_t sceneHeight;
   float sceneAspectRatio;
-  float displayWidth;       // ? This is new
-  float displayHeight;      // ? This is new
-  float displayAspectRatio; // ? This is new
+  float displayWidth;
+  float displayHeight;
+  float displayAspectRatio;
   qboolean isFullscreen;
   qboolean isWideScreen;
   float viewAspectRatioPx; // Real aspect ratio of displayed UI view
