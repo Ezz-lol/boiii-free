@@ -2,7 +2,7 @@
 
 #include <macros.hpp>
 #include "macros.hpp"
-#include "func.hpp"
+#include <structs/func.hpp>
 #include "quake/vec.hpp"
 #include "core.hpp"
 
@@ -213,7 +213,7 @@ inline constexpr bool operator!=(T lhs, DvarFlags rhs) noexcept {
   return static_cast<uint32_t>(lhs) != rhs._raw;
 };
 ASSERT_SIZE(DvarFlags, sizeof(uint32_t));
-ASSERT_POD(DvarFlags);
+ASSERT_CPP03_POD(DvarFlags);
 
 /*
   Labeled as rgba in engine.
@@ -246,13 +246,6 @@ union DvarColor {
 
   uint8_t raw[4];
 
-  inline constexpr DvarColor() noexcept = default;
-  inline constexpr DvarColor(uint8_t r, uint8_t g, uint8_t b,
-                             uint8_t a) noexcept
-      : r(r), g(g), b(b), a(a) {}
-  inline constexpr DvarColor(uint8_t x, uint8_t y, uint8_t z) noexcept
-      : xyz{x, y, z} {}
-
   // operators for implicit conversion to uint8_t[4], array semantics
   inline constexpr operator uint8_t *() noexcept { return raw; }
   inline constexpr operator const uint8_t *() const noexcept { return raw; }
@@ -263,7 +256,7 @@ union DvarColor {
     return raw[index];
   }
 };
-ASSERT_POD(DvarColor);
+ASSERT_CPP03_POD(DvarColor);
 ASSERT_SIZE(DvarColor, 4);
 #pragma pack(pop)
 
@@ -340,17 +333,16 @@ template <typename T_DvarValue> union TemplateDvarValue {
     return indirect(com::Com_SessionMode_GetMode());
   }
 };
-ASSERT_POD(TemplateDvarValue<void>);
+ASSERT_CPP03_POD(TemplateDvarValue<void>);
 
 typedef TemplateDvarValue<dvar_t> DvarValue;
 ASSERT_SIZE(DvarValue, 0x18);
-ASSERT_POD(DvarValue);
+ASSERT_CPP03_POD(DvarValue);
 
 struct EncryptionCapableDvarValue {
   TemplateDvarValue<encryptedDvar_t> _value;
   uint64_t encryptedValue;
 
-  inline constexpr EncryptionCapableDvarValue() noexcept = default;
   // Fields renamed with "_" prefix in favor of consolidated method interface
   // to allow identical usage of both DvarValue and EncryptionCapableDvarValue.
   // in the `EngineDependentDvar` methods
@@ -422,8 +414,8 @@ struct EncryptionCapableDvarValue {
     return _value.sessionModeSpecific();
   }
 };
+ASSERT_CPP03_POD(EncryptionCapableDvarValue);
 ASSERT_SIZE(EncryptionCapableDvarValue, 0x20);
-ASSERT_POD(EncryptionCapableDvarValue);
 #pragma pack(pop)
 
 template <typename T> struct PrimitiveLimit {
@@ -443,6 +435,7 @@ union DvarLimits {
   PrimitiveLimit<float> value;
   PrimitiveLimit<vec_t> vector;
 };
+ASSERT_CPP03_POD(DvarLimits);
 ASSERT_SIZE(DvarLimits, 0x10);
 
 union EngineDependentDvar;
@@ -648,7 +641,7 @@ ASSERT_OFFSET(dvar_t, _type, 0x1C);
 ASSERT_OFFSET(dvar_t, _modified, 0x20);
 ASSERT_OFFSET(dvar_t, _current, 0x28);
 ASSERT_SIZE(dvar_t, 0x88);
-ASSERT_POD(dvar_t);
+ASSERT_CPP03_POD(dvar_t);
 
 struct encryptedDvar_t : public dvar<EncryptionCapableDvarValue> {};
 ASSERT_OFFSET(encryptedDvar_t, _debugName, 0x8);
@@ -658,7 +651,7 @@ ASSERT_OFFSET(encryptedDvar_t, _type, 0x1C);
 ASSERT_OFFSET(encryptedDvar_t, _modified, 0x20);
 ASSERT_OFFSET(encryptedDvar_t, _current, 0x28);
 ASSERT_SIZE(encryptedDvar_t, 0xA0);
-ASSERT_POD(encryptedDvar_t);
+ASSERT_CPP03_POD(encryptedDvar_t);
 
 union EngineDependentDvarMut {
   dvar_t *sv;
@@ -988,7 +981,7 @@ union EngineDependentDvarMut {
 };
 
 ASSERT_SIZE(EngineDependentDvarMut, 8);
-ASSERT_POD(EngineDependentDvarMut);
+ASSERT_CPP03_POD(EngineDependentDvarMut);
 
 union EngineDependentDvar {
   const dvar_t *sv;
@@ -1247,7 +1240,7 @@ union EngineDependentDvar {
 };
 
 ASSERT_SIZE(EngineDependentDvar, 8);
-ASSERT_POD(EngineDependentDvar);
+ASSERT_CPP03_POD(EngineDependentDvar);
 
 inline constexpr bool operator==(const EngineDependentDvarMut &lhs,
                                  const EngineDependentDvar &rhs) noexcept {

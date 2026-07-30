@@ -15,10 +15,5 @@ enum class AsmDebugLevel : uint32_t {
   AI_PROGRAMMER = 0x2
 };
 
-enum class bgCacheInstance : uint32_t {
-  SERVER = 0x0,
-  CLIENT = 0x1,
-  COUNT = 0x2,
-};
 } // namespace bg
 } // namespace game

@@ -12,33 +12,13 @@
 #undef min
 #endif
 
+#include <structs/func.hpp>
 #include <string>
 #include <functional>
 #include <filesystem>
 
-namespace utils::nt {
-
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wignored-attributes"
-#endif
-template <typename T, typename... Args>
-using stdcall_t = T(__stdcall *)(Args...);
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-
-template <typename T, typename... Args> using cdecl_t = T(__cdecl *)(Args...);
-
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wignored-attributes"
-#endif
-template <typename T, typename This = void, typename... Args>
-using thiscall_t = T(__thiscall *)(This *, Args...);
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
+namespace utils {
+namespace nt {
 
 class library final {
 public:
@@ -128,16 +108,16 @@ public:
 
   template <typename T, typename... Args>
   T invoke(const std::string &name, Args... args) const {
-    auto f = get_proc<cdecl_t<T, Args...>>(name);
+    cdeclPtr_t<T(Args...)> f = get_proc<cdeclPtr_t<T(Args...)>>(name);
     if (!f)
-      return T();
+      return T{};
 
     return f(args...);
   }
 
   template <typename T, typename... Args>
   T invoke_pascal(const std::string &name, Args... args) const {
-    auto f = get_proc<stdcall_t<T, Args...>>(name);
+    stdcallPtr_t<T(Args...)> f = get_proc<stdcallPtr_t<T(Args...)>>(name);
     if (!f)
       return T();
 
@@ -146,9 +126,10 @@ public:
 
   template <typename T, typename... Args>
   T invoke_this(const std::string &name, void *this_ptr, Args... args) const {
-    auto f = get_proc<thiscall_t<T, void, Args...>>(name);
+    thiscallPtr_t<T(void *__this, Args...)> f =
+        get_proc<thiscallPtr_t<T(void *__this, Args...)>>(name);
     if (!f)
-      return T();
+      return T{};
 
     return f(this_ptr, args...);
   }
@@ -266,4 +247,5 @@ void relaunch_self();
 __declspec(noreturn) void terminate(uint32_t code = 0);
 
 std::string get_user_name();
-} // namespace utils::nt
+} // namespace nt
+} // namespace utils

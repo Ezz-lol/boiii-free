@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-#include "func.hpp"
+#include <structs/func.hpp>
 
 namespace game {
 

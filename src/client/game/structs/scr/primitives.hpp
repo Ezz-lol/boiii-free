@@ -12,5 +12,16 @@ enum scriptInstance_t {
   SCRIPTINSTANCE_CLIENT = 0x1,
   SCRIPTINSTANCE_MAX = 0x2,
 };
+
+inline constexpr const char *serialize(scriptInstance_t inst) {
+  switch (inst) {
+  case SCRIPTINSTANCE_SERVER:
+    return "SCRIPTINSTANCE_SERVER";
+  case SCRIPTINSTANCE_CLIENT:
+    return "SCRIPTINSTANCE_CLIENT";
+  default:
+    return "SCRIPTINSTANCE_INVALID";
+  }
+}
 } // namespace scr
 } // namespace game

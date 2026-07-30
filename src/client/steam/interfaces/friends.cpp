@@ -20,9 +20,7 @@ steam_id friends::GetFriendByIndex(int iFriend, int iFriendFlags) {
   return steam_id{};
 }
 
-int friends::GetFriendRelationship(steam_id steamIDFriend) {
-  return 0;
-}
+int friends::GetFriendRelationship(steam_id steamIDFriend) { return 0; }
 
 int friends::GetFriendPersonaState(steam_id steamIDFriend) { return 0; }
 

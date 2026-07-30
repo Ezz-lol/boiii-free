@@ -28,6 +28,8 @@ WEAK symbol<EngineDependentDvar> sv_cheats{0x1576F8698, 0x14A189A18};
 WEAK symbol<EngineDependentDvar> dvar_cheats{0x157AC6210, 0x14A3CB610};
 WEAK symbol<EngineDependentDvar> sv_gametype{0x1577C57F0, 0x14A179888};
 WEAK symbol<qboolean> sv_running{0x1457D9928, 0x142CE04A8};
+// Specific to dedicated server
+WEAK symbol<EngineDependentDvar> sv_detailedScriptErrors{0x0, 0x14A1797D0};
 
 WEAK symbol<EngineDependentDvar> mapname{0x1577C57C8, 0x14A179858};
 

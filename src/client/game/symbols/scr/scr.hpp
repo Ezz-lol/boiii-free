@@ -6,6 +6,7 @@
 #include "core.hpp"            // IWYU pragma: export
 #include "cscr.hpp"            // IWYU pragma: export
 #include "gscr.hpp"            // IWYU pragma: export
+#include "he.hpp"              // IWYU pragma: export
 #include "sentient.hpp"        // IWYU pragma: export
 #include "var.hpp"             // IWYU pragma: export
 #include "vehicle.hpp"         // IWYU pragma: export

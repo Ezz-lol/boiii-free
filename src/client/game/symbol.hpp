@@ -1,20 +1,25 @@
 #pragma once
 
+#include <cstdint>
+#include "ptr.hpp"
 namespace arxan::detail {
 void set_address_to_call(const void *address);
 extern void *callstack_proxy_addr;
 } // namespace arxan::detail
 
 namespace game {
-inline size_t select(const size_t client_val, const size_t server_val);
-
-inline size_t select(const void *client_val, const void *server_val);
-
 template <typename T> class base_symbol {
 public:
-  constexpr base_symbol(const size_t address) : address_(address) {}
+  inline constexpr base_symbol(const uintptr_t address) : address_(address) {}
 
-  constexpr base_symbol(const size_t address, const size_t server_address)
+  inline constexpr base_symbol(const uintptr_t address,
+                               const uintptr_t server_address)
+      : address_(address), server_address_(server_address) {}
+
+  inline constexpr base_symbol(const intptr_t address) : address_(address) {}
+
+  inline constexpr base_symbol(const intptr_t address,
+                               const intptr_t server_address)
       : address_(address), server_address_(server_address) {}
 
   T *get() const {
@@ -26,8 +31,8 @@ public:
   T *operator->() const { return this->get(); }
 
 private:
-  size_t address_{};
-  size_t server_address_{};
+  uintptr_t address_{};
+  uintptr_t server_address_{};
 };
 
 template <typename T> struct symbol : base_symbol<T> {

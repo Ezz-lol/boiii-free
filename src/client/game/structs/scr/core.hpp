@@ -18,11 +18,43 @@ struct HunkUser;
 namespace scr {
 
 template <typename T> union ScrPool {
+  array<T, SCRIPTINSTANCE_MAX> instance;
   struct {
     T server;
     T client;
   };
-  array<T, SCRIPTINSTANCE_MAX> instance;
+
+  // Minimum, optimized primitive for indexing the pool that can contain all
+  // values 0 < index < BGCachecTypes::COUNT
+  using index_t = uint8_t;
+
+  inline constexpr void assert_range(size_t index) const {
+    assert(index < +SCRIPTINSTANCE_MAX &&
+           "index to ScrPool must be within range SCRIPTINSTANCE_SERVER <= "
+           "index < SCRIPTINSTANCE_MAX");
+  }
+
+  template <IntegralLike Index>
+  inline constexpr const T &get(Index index_arg) const {
+    const index_t index = static_cast<index_t>(index_arg);
+    assert_range(index);
+    return instance[index];
+  }
+  template <IntegralLike Index>
+  inline constexpr const T &operator[](Index index) const {
+    return get(index);
+  }
+
+  template <IntegralLike Index> inline constexpr T &get(Index index_arg) {
+    const index_t index = static_cast<index_t>(index_arg);
+    assert_range(index);
+    return instance[index];
+  }
+  template <IntegralLike Index> inline constexpr T &operator[](Index index) {
+    return get(index);
+  }
+
+  inline constexpr auto size() const noexcept { return SCRIPTINSTANCE_MAX; }
 };
 
 enum class scriptBundleKVPType_t : int32_t {
@@ -1415,6 +1447,7 @@ struct scr_entref_t {
   EntRefUnion u;
   uint16_t classnum;
   LocalClientNum_t client;
+  inline constexpr bool is_hudelem() const noexcept;
 };
 
 ASSERT_SIZE(scr_entref_t, 0x10);
@@ -1703,7 +1736,7 @@ union scrChecksum_t {
   inline constexpr uint32_t &operator[](size_t index) { return raw[index]; }
 };
 ASSERT_SIZE(scrChecksum_t, sizeof(uint32_t) * 3);
-ASSERT_POD(scrChecksum_t);
+ASSERT_CPP03_POD(scrChecksum_t);
 
 } // namespace scr
 } // namespace game

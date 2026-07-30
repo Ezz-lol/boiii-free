@@ -20,11 +20,11 @@ WEAK symbol<float(void *key)> CL_KeyState{0x1412FF860};
 WEAK symbol<void(LocalClientNum_t localClientNum, const char *pszMapName,
                  const char *pszGametype)>
     CL_SetupForNewServerMap{0x14135CD20};
-WEAK symbol<LocalClientNum_t> cl_maxLocalClients{0x1453A2720};
-WEAK symbol<bool> cl_serverLoadingMap{0x1453A273F};
 WEAK symbol<void(game::LocalClientNum_t localClientNum, bool active)>
     CL_LocalClient_SetActive{0x14283AAB0};
 
+WEAK symbol<const char *(int32_t configStringIndex)> CL_GetConfigString{
+    0x141321110, 0x14017CCC0};
 WEAK symbol<int64_t(LocalClientNum_t localClientNum)> CL_ClearClientThinkPacket{
     0x1412F33D0};
 WEAK symbol<bool(const char *map)> CL_MapSwitch_IsMapPreloaded{0x14131E9F0};
@@ -67,5 +67,9 @@ WEAK symbol<ClientNum_t> cl_allocatedClients{0x143326EE8};
 WEAK symbol<clientAllocFlags_t> cl_lastAllocFlags{0x1453D498C};
 WEAK symbol<void(LocalClientNum_t localClientNum)> CL_FirstSnapshot{
     0x141320E60};
+
+WEAK symbol<LocalClientNum_t> primaryLocalClientNum{0x14342155C};
+WEAK symbol<LocalClientNum_t> cl_maxLocalClients{0x1453A2720};
+WEAK symbol<bool> cl_serverLoadingMap{0x1453A273F};
 } // namespace cl
 } // namespace game

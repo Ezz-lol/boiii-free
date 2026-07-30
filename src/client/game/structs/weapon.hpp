@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core.hpp"
-#include "db/db.hpp"
+#include "db/xasset/core.hpp"
 #include <cstdint>
 namespace game {
 namespace scr {

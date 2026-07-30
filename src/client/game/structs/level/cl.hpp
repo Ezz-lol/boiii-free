@@ -1363,6 +1363,7 @@ partial_def(CG_T_SIZE, struct __attribute__((aligned(16))), cg_t, {
   snapshot_t *snap;
   snapshot_t *nextSnap;
   snapshot_t activeSnapshots[2];
+  uint8_t _unknown[32];
   bool slowMotionModified;
   float frameInterpolation;
   int32_t frametime;
@@ -1929,6 +1930,7 @@ partial_def(CG_T_SIZE, struct __attribute__((aligned(16))), cg_t, {
 });
 // TODO: Correct size is 0x342720. This struct needs corrected.
 ASSERT_SIZE(cg_t, CG_T_SIZE);
+ASSERT_OFFSET(cg_t, time, 0x11A88C);
 
 struct cgPool {
   LocalClientPool<cg_t> pool;

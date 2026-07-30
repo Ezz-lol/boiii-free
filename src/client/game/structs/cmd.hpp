@@ -1,6 +1,6 @@
 #pragma once
 
-#include "func.hpp"
+#include <structs/func.hpp>
 #include <cstdint>
 namespace game {
 namespace cmd {

@@ -4,7 +4,7 @@
 #include <string>
 
 #include "../core.hpp"
-#include "../func.hpp"
+#include <structs/func.hpp>
 
 namespace game {
 namespace dw {

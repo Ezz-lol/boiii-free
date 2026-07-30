@@ -237,9 +237,9 @@ void finish_friend_scan(const uint64_t generation) {
     return;
   for (int i = 0; i < static_cast<int>(entries.size()); ++i)
     response->ServerResponded(friends_request, i);
-  response->RefreshComplete(
-      friends_request, entries.empty() ? eNoServersListedOnMasterServer
-                                       : eServerResponded);
+  response->RefreshComplete(friends_request,
+                            entries.empty() ? eNoServersListedOnMasterServer
+                                            : eServerResponded);
 }
 
 } // namespace
@@ -318,7 +318,8 @@ void *matchmaking_servers::RequestFriendsServerList(
   for (const auto &entry : saved)
     ids.push_back(entry.steam_id);
 
-  nat::refresh_friends(ids, [generation](std::vector<nat::friend_presence> live) {
+  nat::refresh_friends(ids, [generation](
+                                std::vector<nat::friend_presence> live) {
     {
       std::lock_guard lock(friend_scan_mutex);
       if (generation != friend_scan_generation)
@@ -513,8 +514,8 @@ void matchmaking_servers::RefreshServer(void *hRequest, const int iServer) {
 
     nat::refresh_friends(
         {steam_id}, [steam_id](std::vector<nat::friend_presence> live) {
-          const auto presence = std::ranges::find(live, steam_id,
-                                                   &nat::friend_presence::steam_id);
+          const auto presence = std::ranges::find(
+              live, steam_id, &nat::friend_presence::steam_id);
           const bool online = presence != live.end();
           if (online)
             ::friends::set_master_presence(steam_id, presence->endpoint,
@@ -523,8 +524,8 @@ void matchmaking_servers::RefreshServer(void *hRequest, const int iServer) {
             ::friends::clear_master_presence(steam_id);
 
           const auto saved = ::friends::get_friend_server_addresses();
-          const auto entry = std::ranges::find(saved, steam_id,
-                                                &::friends::friend_server_info::steam_id);
+          const auto entry = std::ranges::find(
+              saved, steam_id, &::friends::friend_server_info::steam_id);
           if (entry == saved.end())
             return;
 
@@ -587,11 +588,10 @@ void matchmaking_servers::RefreshServer(void *hRequest, const int iServer) {
   });
 
   if (address) {
-    auto callback = hRequest == favorites_request
-                        ? handle_favorites_server_response
-                    : hRequest == history_request
-                        ? handle_history_server_response
-                        : handle_internet_server_response;
+    auto callback =
+        hRequest == favorites_request ? handle_favorites_server_response
+        : hRequest == history_request ? handle_history_server_response
+                                      : handle_internet_server_response;
     ping_server(*address, callback);
   }
 }

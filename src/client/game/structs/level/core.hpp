@@ -2209,11 +2209,11 @@ struct playerState_s {
   int32_t killCamFlag;
   int32_t introShotsFired;
   struct {
-    ui::hud::hudelem_t current[31];
-    ui::hud::hudelem_t archival[31];
+    ui::he::hudelem_t current[31];
+    ui::he::hudelem_t archival[31];
   } hud;
   uint8_t _padding89EC[4];
-  ui::hud::serverHudMenu_t hudMenus[32];
+  ui::he::serverHudMenu_t hudMenus[32];
   struct {
     UIModelData modelData[8];
     int32_t modelNames[8];

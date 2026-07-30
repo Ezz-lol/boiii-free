@@ -21,27 +21,28 @@ PACKED(struct MemoryNode {
 });
 ASSERT_PACKED(MemoryNode);
 ASSERT_SIZE(MemoryNode, 0x1C);
-ASSERT_POD(MemoryNode);
+ASSERT_CPP03_POD(MemoryNode);
 
 constexpr size_t GSCR_MEMORY_TREE_SERVER_NODE_POOL_LEN = 0x20000;
 // Verified
 struct GScrMemoryTreeServerNodePool {
-  MemoryNode nodes[GSCR_MEMORY_TREE_SERVER_NODE_POOL_LEN];
+  volatile MemoryNode nodes[GSCR_MEMORY_TREE_SERVER_NODE_POOL_LEN];
 
   template <IntegralLike Index>
-  inline constexpr MemoryNode &get(Index index) noexcept {
+  inline constexpr volatile MemoryNode &get(Index index) noexcept {
     return nodes[static_cast<size_t>(index)];
   }
   template <IntegralLike Index>
-  inline constexpr const MemoryNode &get(Index index) const noexcept {
+  inline constexpr const volatile MemoryNode &get(Index index) const noexcept {
     return nodes[static_cast<size_t>(index)];
   }
   template <IntegralLike Index>
-  inline constexpr MemoryNode &operator[](Index index) noexcept {
+  inline constexpr volatile MemoryNode &operator[](Index index) noexcept {
     return get(index);
   }
   template <IntegralLike Index>
-  inline constexpr const MemoryNode &operator[](Index index) const noexcept {
+  inline constexpr const volatile MemoryNode &
+  operator[](Index index) const noexcept {
     return get(index);
   }
 
@@ -51,37 +52,38 @@ struct GScrMemoryTreeServerNodePool {
     return index >= 0 && index < GSCR_MEMORY_TREE_SERVER_NODE_POOL_LEN;
   }
 
-  inline bool contains(uintptr_t entry) const noexcept {
+  inline bool contains(uintptr_t entry) volatile noexcept {
     const uintptr_t this_ptr = reinterpret_cast<uintptr_t>(this);
     return entry >= this_ptr &&
            entry < (this_ptr + sizeof(std::remove_pointer_t<decltype(this)>));
   }
-  template <typename T> inline bool contains(T *entry) const noexcept {
+
+  template <typename T> inline bool contains(T *entry) volatile noexcept {
     return contains(reinterpret_cast<uintptr_t>(entry));
   }
 };
 ASSERT_PACKED(GScrMemoryTreeServerNodePool);
 ASSERT_SIZE(GScrMemoryTreeServerNodePool, 0x380000);
-ASSERT_POD(GScrMemoryTreeServerNodePool);
 
 constexpr size_t GSCR_MEMORY_TREE_SERVER_HEAD_POOL_LEN = 18;
 struct GScrMemoryTreeServerHeadPool {
-  ScrMTID_t head[GSCR_MEMORY_TREE_SERVER_HEAD_POOL_LEN];
+  volatile ScrMTID_t head[GSCR_MEMORY_TREE_SERVER_HEAD_POOL_LEN];
 
   template <IntegralLike Index>
-  inline constexpr ScrMTID_t &get(Index index) noexcept {
+  inline constexpr volatile ScrMTID_t &get(Index index) noexcept {
     return head[static_cast<size_t>(index)];
   }
   template <IntegralLike Index>
-  inline constexpr const ScrMTID_t &get(Index index) const noexcept {
+  inline constexpr const volatile ScrMTID_t &get(Index index) const noexcept {
     return head[static_cast<size_t>(index)];
   }
   template <IntegralLike Index>
-  inline constexpr ScrMTID_t &operator[](Index index) noexcept {
+  inline constexpr volatile ScrMTID_t &operator[](Index index) noexcept {
     return get(index);
   }
   template <IntegralLike Index>
-  inline constexpr const ScrMTID_t &operator[](Index index) const noexcept {
+  inline constexpr const volatile ScrMTID_t &
+  operator[](Index index) const noexcept {
     return get(index);
   }
 
@@ -107,8 +109,8 @@ struct scrMemTreePub_t {
     // This is always a pointer to the
     // `GScrMemoryTreeServerNodePool gScrMemTreeServerNodes` static allocation,
     // but the engine defines this field type as `char *`, so both are provided.
-    char *buf;
-    GScrMemoryTreeServerNodePool *mt_buffer;
+    volatile char *buf;
+    volatile GScrMemoryTreeServerNodePool *mt_buffer;
   };
 };
 ASSERT_SIZE(scrMemTreePub_t, 0x8);
@@ -130,7 +132,7 @@ PACKED(struct scrMemTreeGlob_t {
   uint8_t _padding398[0x68];
 });
 ASSERT_PACKED(scrMemTreeGlob_t);
-ASSERT_POD(scrMemTreeGlob_t);
+ASSERT_CPP03_POD(scrMemTreeGlob_t);
 ASSERT_SIZE(scrMemTreeGlob_t, 0x400);
 
 } // namespace mt

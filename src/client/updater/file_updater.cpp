@@ -401,8 +401,7 @@ void file_updater::update_host_binary(
       this->restore_current_process_file();
     }
 
-    if (is_dedicated_server() &&
-        utils::io::file_exists(this->process_file_)) {
+    if (is_dedicated_server() && utils::io::file_exists(this->process_file_)) {
       OutputDebugStringA(
           "Dedicated server exe update skipped; using existing binary\n");
       return;

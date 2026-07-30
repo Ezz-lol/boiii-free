@@ -1,5 +1,6 @@
 #pragma once
 #include <bit>
+#include <cassert>
 #include <type_traits>
 
 // Automatically pad a partially defined (reverse-engineered, in our case)
@@ -76,34 +77,31 @@ concept ValueMatches = (Actual == Expected);
                 "Offset mismatch for " #type "::" #field)
 
 template <typename T>
-concept PoD = std::is_standard_layout_v<T> && std::is_trivially_copyable_v<T> &&
-              std::is_trivially_constructible_v<T> &&
-              std::is_trivially_destructible_v<T> &&
-              std::is_trivially_copy_constructible_v<T> &&
-              std::is_trivially_assignable_v<T, T> &&
-              std::is_trivially_copy_assignable_v<T> &&
-              std::is_trivially_move_assignable_v<T> &&
-              std::is_trivially_default_constructible_v<T> &&
-              std::is_trivially_move_constructible_v<T>;
+concept CPP03PoD =
+    std::is_standard_layout_v<T> && std::is_trivially_copyable_v<T> &&
+    std::is_trivially_constructible_v<T> &&
+    std::is_trivially_destructible_v<T> &&
+    std::is_trivially_copy_constructible_v<T> &&
+    std::is_trivially_assignable_v<T, T> &&
+    std::is_trivially_copy_assignable_v<T> &&
+    std::is_trivially_move_assignable_v<T> &&
+    std::is_trivially_default_constructible_v<T> &&
+    std::is_trivially_move_constructible_v<T> &&
+    (std::is_aggregate_v<T> || std::is_scalar_v<T>);
 
 /*
-  `std::is_pod` is deprecated and does not sufficiently
-  constrain the type to the criteria used to determine whether
-  a given type is PoD in the LLVM IR generation backend. Specifically,
-  `std::is_pod<T>::value` can be `true` for a type that can also fit within
-  a 64-bit register, but the type can still sometimes be returned
-  from (and implicitly passed to) a function using a hidden return struct,
-  breaking expected ABI behaviour.
+  The above `CPP03PoD` concept is a best-effort set of criteria to match that
+  used by the LLVM and Microsoft CL IR generation backends for the x86-64
+  Windows MSVC target.
 
-  The above `PoD` concept is a best-effort set of criteria to match that used
-  by the LLVM IR generation backend.
+  See the "Return values" section of Microsoft's x86-64 MSVC calling
+  convention documentation [1] for more information.
 
-  Note that the struct also must not have any user-defined constructors, but
-  this is difficult to check for with assertions.
+  [1] https://learn.microsoft.com/cpp/build/x64-calling-convention#return-values
 */
-template <typename T> consteval bool is_pod() { return PoD<T>; }
+template <typename T> consteval bool is_cpp03_pod() { return CPP03PoD<T>; }
 
-#define ASSERT_POD(name)                                                       \
+#define ASSERT_CPP03_POD(name)                                                 \
   static_assert(ValueMatches<bool, std::is_standard_layout_v<name>, true>,     \
                 #name " must be standard layout!");                            \
   static_assert(ValueMatches<bool, std::is_trivially_copyable_v<name>, true>,  \
@@ -136,7 +134,11 @@ template <typename T> consteval bool is_pod() { return PoD<T>; }
       #name " must be trivially default constructible!");                      \
   static_assert(                                                               \
       ValueMatches<bool, std::is_trivially_move_constructible_v<name>, true>,  \
-      #name " must be trivially move constructible!");
+      #name " must be trivially move constructible!");                         \
+  static_assert(                                                               \
+      ValueMatches<                                                            \
+          bool, (std::is_scalar_v<name> || std::is_aggregate_v<name>), true>,  \
+      #name " must be an aggregate or scalar type!");
 
 #ifndef INLINE_MEMSET
 #if defined(__clang__) || defined(__GNUC__)

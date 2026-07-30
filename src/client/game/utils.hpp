@@ -317,6 +317,16 @@ void first_connected_client(
 bool access_connected_client(
     size_t index, const std::function<void(sv::client_s &)> &callback);
 
+void foreach_active_client(
+    const std::function<void(sv::client_s &, size_t index)> &callback);
+void foreach_active_client(const std::function<void(sv::client_s &)> &callback);
+void first_active_client(
+    const std::function<bool(sv::client_s &, size_t index)> &callback);
+void first_active_client(const std::function<bool(sv::client_s &)> &callback);
+
+bool access_active_client(size_t index,
+                          const std::function<void(sv::client_s &)> &callback);
+
 template <typename E>
 concept EnumType = std::is_enum_v<E>;
 

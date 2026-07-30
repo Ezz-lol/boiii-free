@@ -3,6 +3,7 @@
 #include <cstdint>
 #include "hks.hpp"
 #include "../../core.hpp"
+#include "../../sys.hpp"
 
 namespace game {
 namespace ui {
@@ -1539,7 +1540,7 @@ enum class CharacterTauntTypes : int32_t {
 #pragma pack(push, 1)
 struct LuaStateContext {
   hks::luaState_e stateType;
-  CriticalSection stateCritSec;
+  sys::CriticalSection stateCritSec;
   consoleChannel_e comChannel;
   consoleLabel_e comLabel;
   const char *stateName;
