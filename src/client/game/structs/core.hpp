@@ -1132,4 +1132,11 @@ enum class consoleChannel_e : uint32_t {
   FIRST_DEBUG_CHANNEL = 0x9,
 };
 
+enum class RestartMethod_t : uint32_t {
+  FULL = 0x0,
+  ROUND = 0x1,
+  MYCHANGES = 0x2,
+};
+IMPL_ENUM_OPERATORS(RestartMethod_t);
+
 } // namespace game

@@ -321,11 +321,11 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
                 .registerFunc(cache_inst,
                               HUDELEM_CFGSTR_POOL_ENTRY_NAMES[hudElemIdx]));
 #ifndef NDEBUG
-        game::trace("[Scr][HECmd_SetText] Registered localized string "
-                    "configstring for "
-                    "hudelement 0x%03X with "
-                    "index 0x%lX",
-                    hudElemIdx, pool_entry->get_idx());
+        trace("[Scr][HECmd_SetText] Registered localized string "
+              "configstring for "
+              "hudelement 0x%03X with "
+              "index 0x%lX",
+              hudElemIdx, pool_entry->get_idx());
 #endif
       }
 
@@ -337,11 +337,10 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
       }
 
 #ifndef NDEBUG
-      game::trace("[Scr][HECmd_SetText] Localized config string entry with "
-                  "index 0x%lX, "
-                  "absolute config string index 0x%lX: setting value to \"%s\"",
-                  pool_entry->get_idx(), pool_entry->abs_idx(),
-                  cleaned_message_buf);
+      trace("[Scr][HECmd_SetText] Localized config string entry with "
+            "index 0x%lX, "
+            "absolute config string index 0x%lX: setting value to \"%s\"",
+            pool_entry->get_idx(), pool_entry->abs_idx(), cleaned_message_buf);
 #endif
       // TAC-protected on client, so we use a re-implementation to circumvent.
       sv::SV_SetConfigString_Impl(pool_entry->abs_idx(), cleaned_message_buf);
@@ -476,7 +475,7 @@ void gscr_println(scriptInstance_t inst) {
   game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s\n", out.c_str());
 
 #ifndef NDEBUG
-  game::trace("[Scr] %s", out.c_str());
+  trace("[Scr] %s", out.c_str());
 #endif
 }
 
@@ -494,7 +493,7 @@ void gscr_print(scriptInstance_t inst) {
   game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s", out.c_str());
 
 #ifndef NDEBUG
-  game::trace("[Scr] %s", out.c_str());
+  trace("[Scr] %s", out.c_str());
 #endif
 }
 
@@ -616,7 +615,7 @@ void gscr_printf(scriptInstance_t inst) {
   fflush(stdout);
 
 #ifndef NDEBUG
-  game::trace("[Scr] %s", buffer.data());
+  trace("[Scr] %s", buffer.data());
 #endif
 }
 

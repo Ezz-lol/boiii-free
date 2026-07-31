@@ -382,8 +382,7 @@ game::cmd::xcommand_t original_fast_restart{};
 game::cmd::xcommand_t original_map_restart{};
 
 game::cmd::cmd_function_s *find_command(const char *name) {
-  auto *command =
-      static_cast<game::cmd::cmd_function_s *>(game::cmd::cmd_functions);
+  game::cmd::cmd_function_s *command = game::cmd::cmd_functions.get();
   for (size_t i = 0; command && i < 2000; ++i, command = command->next) {
     if (command->name && _stricmp(command->name, name) == 0)
       return command;
@@ -391,29 +390,18 @@ game::cmd::cmd_function_s *find_command(const char *name) {
   return nullptr;
 }
 
-void restart_or_rotate(const game::cmd::xcommand_t original) {
+template <const game::RestartMethod_t RestartMethod>
+void SV_RestartCmd_RotateOrDefault() {
   if (game::get_sv_running() &&
-      !game::com::Com_SessionMode_IsMode(game::eModes::COUNT)) {
+      !game::com::Com_SessionMode_IsMode(game::eModes::COUNT) /* main menu */) {
     game::cbuf::Cbuf_AddText(0, "map_rotate\n");
-    return;
-  }
-  if (original)
-    original();
-}
-
-void fast_restart_stub() { restart_or_rotate(original_fast_restart); }
-void map_restart_stub() { restart_or_rotate(original_map_restart); }
-
-void patch_restart_commands() {
-  if (auto *command = find_command("fast_restart")) {
-    original_fast_restart = command->function;
-    command->function = fast_restart_stub;
-  }
-  if (auto *command = find_command("map_restart")) {
-    original_map_restart = command->function;
-    command->function = map_restart_stub;
+  } else {
+    game::sv::SV_MapRestart(RestartMethod);
   }
 }
+
+utils::hook::detour SV_FastRestart_f_hook;
+utils::hook::detour SV_MapRestart_f_hook;
 
 utils::hook::detour G_RegisterSoundWait_hook;
 #ifndef NDEBUG
@@ -459,8 +447,13 @@ struct component final : generic_component {
     utils::hook::jump(game::select(0x141A7BCF0, 0x1402CB900),
                       scr_get_num_expected_players, true);
 
-    scheduler::once(patch_restart_commands, scheduler::main, 1s);
-  }
+    SV_MapRestart_f_hook.create(
+        game::sv::SV_MapRestart_f.get(),
+        SV_RestartCmd_RotateOrDefault<game::RestartMethod_t::FULL>);
+    SV_FastRestart_f_hook.create(
+        game::sv::SV_FastRestart_f.get(),
+        SV_RestartCmd_RotateOrDefault<game::RestartMethod_t::ROUND>);
+  } // namespace patches
 };
 } // namespace patches
 
