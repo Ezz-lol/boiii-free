@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 #include "types.hpp"
 #include "execution.hpp"
+#include "stack_guard.hpp"
 
 namespace ui_scripting {
 using namespace game::ui::lua::hks;
@@ -55,12 +56,11 @@ void userdata::add() {
 
   lua_State *state = *primary_luaVM;
   if (state) {
-    const auto top = state->m_apistack.top;
+    const detail::api_stack_guard stack_guard{state};
 
     push_value(value);
 
     this->ref = hksi_luaL_ref(state, -10000);
-    state->m_apistack.top = top;
   }
 }
 
@@ -68,6 +68,7 @@ void userdata::release() {
   lua_State *state = *primary_luaVM;
   if (this->ref && state) {
     hksi_luaL_unref(state, -10000, this->ref);
+    this->ref = 0;
   }
 }
 
@@ -148,12 +149,11 @@ void table::add() {
 
   lua_State *state = *primary_luaVM;
   if (state) {
-    const auto top = state->m_apistack.top;
+    const detail::api_stack_guard stack_guard{state};
 
     push_value(value);
 
     this->ref = hksi_luaL_ref(state, -10000);
-    state->m_apistack.top = top;
   }
 }
 
@@ -161,6 +161,7 @@ void table::release() {
   lua_State *state = *primary_luaVM;
   if (this->ref && state) {
     hksi_luaL_unref(state, -10000, this->ref);
+    this->ref = 0;
   }
 }
 
@@ -270,12 +271,11 @@ void function::add() {
 
   lua_State *state = *primary_luaVM;
   if (state) {
-    const auto top = state->m_apistack.top;
+    const detail::api_stack_guard stack_guard{state};
 
     push_value(value);
 
     this->ref = hksi_luaL_ref(state, -10000);
-    state->m_apistack.top = top;
   }
 }
 
@@ -283,6 +283,7 @@ void function::release() {
   lua_State *state = *primary_luaVM;
   if (this->ref && state) {
     hksi_luaL_unref(state, -10000, this->ref);
+    this->ref = 0;
   }
 }
 
