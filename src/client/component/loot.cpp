@@ -246,13 +246,15 @@ struct component final : generic_component {
 
       // Directly writing ui_enableAllHeroes can freeze the game. Use the
       // engine's string setter for this group so its normal dvar path runs.
-      dvar_cg_unlockall_loot.set(true);
-      dvar_cg_unlockall_purchases.set(true);
-      dvar_cg_unlockall_attachments.set(true);
-      dvar_cg_unlockall_camos_and_reticles.set(true);
-      dvar_cg_unlockall_calling_cards.set(true);
-      dvar_cg_unlockall_specialists_outfits.set(true);
-      dvar_cg_unlockall_cac_slots.set(true);
+      game::Dvar_SetFromStringByName("cg_unlockall_loot", "1", true);
+      game::Dvar_SetFromStringByName("cg_unlockall_purchases", "1", true);
+      game::Dvar_SetFromStringByName("cg_unlockall_attachments", "1", true);
+      game::Dvar_SetFromStringByName("cg_unlockall_camos_and_reticles", "1",
+                                     true);
+      game::Dvar_SetFromStringByName("cg_unlockall_calling_cards", "1", true);
+      game::Dvar_SetFromStringByName("cg_unlockall_specialists_outfits", "1",
+                                     true);
+      game::Dvar_SetFromStringByName("cg_unlockall_cac_slots", "1", true);
       game::Dvar_SetFromStringByName("ui_enableAllHeroes", "1", true);
 
       const char *mode_name = nullptr;
