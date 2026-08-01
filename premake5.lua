@@ -434,7 +434,9 @@ dependson({ "tlsdll" })
 
 links({ "common", "WebView2LoaderStatic" })
 
-local hasVersion = (os.isfile("%{_MAIN_SCRIPT_DIR}/src/version.h") or os.isfile("%{_MAIN_SCRIPT_DIR}/build/src/version.h")) and (os.isfile("%{_MAIN_SCRIPT_DIR}/src/version.hpp") or os.isfile("%{_MAIN_SCRIPT_DIR}/build/src/version.hpp"))
+local hasVersion = (
+  os.isfile("%{_MAIN_SCRIPT_DIR}/src/version.h") or os.isfile("%{_MAIN_SCRIPT_DIR}/build/src/version.h")
+) and (os.isfile("%{_MAIN_SCRIPT_DIR}/src/version.hpp") or os.isfile("%{_MAIN_SCRIPT_DIR}/build/src/version.hpp"))
 if not hasVersion then
   if os.host() == "windows" then
     if os.isfile("%{_MAIN_SCRIPT_DIR}/tools/premake5.exe") then

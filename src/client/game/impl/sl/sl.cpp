@@ -1,7 +1,6 @@
 #include <std_include.hpp>
 #include "sl.hpp"
 
-
 namespace game {
 namespace sl {
 void SL_RemoveRefToStringFree_ThreadSafe(scr::ScrString_t stringValue) {
