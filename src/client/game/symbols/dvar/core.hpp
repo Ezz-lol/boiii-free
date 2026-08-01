@@ -337,12 +337,12 @@ dvar<T_DvarValue>::set(const char *val) noexcept {
       *g_dvar_modifiedFlags |= flags();
       const char *new_alloc = sl::CopyString(val);
       const char *prev_alloc = current().set(new_alloc);
+      prev = prev_alloc;
+      if (prev_alloc != reset().string()) {
+        sl::FreeString(prev_alloc);
+      }
       if (new_alloc != latched().string()) {
         latched().string() = new_alloc;
-      }
-      prev = prev_alloc;
-      if (prev_alloc != latched().string() && prev_alloc != reset().string()) {
-        sl::FreeString(prev_alloc);
       }
       modified() = true;
 
