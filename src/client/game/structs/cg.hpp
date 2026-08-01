@@ -2,7 +2,7 @@
 
 #include "core.hpp"
 #include "weapon.hpp"
-#include "phys.hpp"
+#include "phys/core.hpp"
 #include "ik.hpp"
 
 namespace game {

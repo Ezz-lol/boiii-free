@@ -18,7 +18,8 @@
 #include "hunk.hpp"            // IWYU pragma: export
 #include "ik.hpp"              // IWYU pragma: export
 #include "vehicle.hpp"         // IWYU pragma: export
-#include "phys.hpp"            // IWYU pragma: export
+#include "hk/hk.hpp"           // IWYU pragma: export
+#include "phys/phys.hpp"       // IWYU pragma: export
 #include "net/net.hpp"         // IWYU pragma: export
 #include "level/level.hpp"     // IWYU pragma: export
 #include "asm.hpp"             // IWYU pragma: export

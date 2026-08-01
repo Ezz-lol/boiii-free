@@ -4,7 +4,7 @@
 #include "../core.hpp"
 #include "../vehicle.hpp"
 #include "../user.hpp"
-#include "../phys.hpp"
+#include "../phys/core.hpp"
 #include "../ai.hpp"
 #include "../scr/scr.hpp"
 #include "../lobby/core.hpp"

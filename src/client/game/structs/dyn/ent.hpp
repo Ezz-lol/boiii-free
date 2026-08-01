@@ -3,7 +3,7 @@
 #include <cstdint>
 #include "../snd/snd.hpp"
 #include "../scr/core.hpp"
-#include "../phys.hpp"
+#include "../phys/core.hpp"
 #include "../gfx/core.hpp"
 
 namespace game {
