@@ -139,8 +139,8 @@ struct NameIdxPair {
 
 #ifndef DEFINE_NAME_MAP
 #define DEFINE_NAME_MAP(names, map)                                            \
-  static constexpr frozen::unordered_map<fnv1aHashNull_t, NameIdxPair,         \
-                                         names.size()>                         \
+  static inline constexpr frozen::unordered_map<fnv1aHashNull_t, NameIdxPair,  \
+                                                names.size()>                  \
       map = NAME_MAP(names);
 #endif
 

@@ -15,6 +15,10 @@ WEAK symbol<scr::ScrString_t(const char *str, uint32_t user, int32_t type)>
 WEAK symbol<void(scr::ScrString_t stringValue, volatile RefString *refStr)>
     SL_RemoveRefToStringFree{0x1412D7E90, 0x140164100};
 
+WEAK symbol<const char *(const char *name)> CopyString{0x1422AC220,
+                                                       0x14056BD70};
+WEAK symbol<void(const char *str)> FreeString{0x1422AC240, 0x14056BD90};
+
 /*
   No clue what this is. It does not exist in the client, nor in any prior server
   or client engine versions. It is also never instantiated at runtime.

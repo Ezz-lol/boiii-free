@@ -350,7 +350,7 @@ union BuiltinFunctionTable {
   static inline constexpr size_t COUNT = 336;
   const BuiltinFunctionDef functions[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "Spawn",
       "SpawnCollision",
       "SpawnTimedFX",
@@ -1045,7 +1045,7 @@ union BuiltinMethodTable {
   static inline constexpr size_t COUNT = 345;
   const BuiltinMethodDef methods[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "SetStowedWeapon",
       "GetStowedWeapon",
       "ClearStowedWeapon",

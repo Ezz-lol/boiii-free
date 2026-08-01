@@ -1,51 +1,53 @@
 #pragma once
 
+#include "game/symbols/sl.hpp"
 #include <game/symbols/sym_include.hpp>
 
 #include <cstdint>
 
 namespace game {
 
-WEAK symbol<EngineDependentDvar> com_maxclients{0x1568ED850, 0x14948EE70};
+WEAK symbol<EngineDependentDvarMut> com_maxclients{0x1568ED850, 0x14948EE70};
 // "sv_running" is name of dvar. com_sv_running is name used internally by
 // engine to label dvar global
-WEAK symbol<EngineDependentDvar> com_sv_running{0x1568ED848, 0x14948EE68};
+WEAK symbol<EngineDependentDvarMut> com_sv_running{0x1568ED848, 0x14948EE68};
 
-WEAK symbol<EngineDependentDvar> g_gametype{0x14A399348, 0x147836878};
-WEAK symbol<EngineDependentDvar> g_password{0x14A399350, 0x147836880};
+WEAK symbol<EngineDependentDvarMut> g_gametype{0x14A399348, 0x147836878};
+WEAK symbol<EngineDependentDvarMut> g_password{0x14A399350, 0x147836880};
 
-WEAK symbol<EngineDependentDvar> sv_hostname{0x1577C5790, 0x14A1797A8};
-WEAK symbol<EngineDependentDvar> sv_maprotation{0x1577C5888, 0x14A179948};
-WEAK symbol<EngineDependentDvar> sv_maprotationcurrent{0x1577C5890,
-                                                       0x14A189980};
+WEAK symbol<EngineDependentDvarMut> sv_hostname{0x1577C5790, 0x14A1797A8};
+WEAK symbol<EngineDependentDvarMut> sv_maprotation{0x1577C5888, 0x14A179948};
+WEAK symbol<EngineDependentDvarMut> sv_maprotationcurrent{0x1577C5890,
+                                                          0x14A189980};
 // sv_cheats used to enable/disable cheat commands - both in console
 // and in SV commands
-WEAK symbol<EngineDependentDvar> sv_cheats{0x1576F8698, 0x14A189A18};
+WEAK symbol<EngineDependentDvarMut> sv_cheats{0x1576F8698, 0x14A189A18};
 // Also named sv_cheats, but global is called "dvar_cheats" in engine.
 // Used to enable/disable cheat dvars - controls whether cheat
 // protection on a dvar to be modified is checked and respected in internal
 // setters. Dvar_Init
-WEAK symbol<EngineDependentDvar> dvar_cheats{0x157AC6210, 0x14A3CB610};
-WEAK symbol<EngineDependentDvar> sv_gametype{0x1577C57F0, 0x14A179888};
+WEAK symbol<EngineDependentDvarMut> dvar_cheats{0x157AC6210, 0x14A3CB610};
+WEAK symbol<EngineDependentDvarMut> sv_gametype{0x1577C57F0, 0x14A179888};
 WEAK symbol<qboolean> sv_running{0x1457D9928, 0x142CE04A8};
 // Specific to dedicated server
-WEAK symbol<EngineDependentDvar> sv_detailedScriptErrors{0x0, 0x14A1797D0};
+WEAK symbol<EngineDependentDvarMut> sv_detailedScriptErrors{0x0, 0x14A1797D0};
 
-WEAK symbol<EngineDependentDvar> mapname{0x1577C57C8, 0x14A179858};
+WEAK symbol<EngineDependentDvarMut> mapname{0x1577C57C8, 0x14A179858};
 
-WEAK symbol<EngineDependentDvar> live_steam_server_name{0x15142E120,
-                                                        0x14837F770};
-WEAK symbol<EngineDependentDvar> live_steam_server_description{0x15142E128,
-                                                               0x14837F778};
-WEAK symbol<EngineDependentDvar> live_steam_server_password{0x15142E130,
-                                                            0x14837F780};
+WEAK symbol<EngineDependentDvarMut> live_steam_server_name{0x15142E120,
+                                                           0x14837F770};
+WEAK symbol<EngineDependentDvarMut> live_steam_server_description{0x15142E128,
+                                                                  0x14837F778};
+WEAK symbol<EngineDependentDvarMut> live_steam_server_password{0x15142E130,
+                                                               0x14837F780};
 
-WEAK symbol<EngineDependentDvar> net_port{0x157E75320, 0x14A640490};
-WEAK symbol<EngineDependentDvar> net_ip{0x157E75318, 0x14A640488};
+WEAK symbol<EngineDependentDvarMut> net_port{0x157E75320, 0x14A640490};
+WEAK symbol<EngineDependentDvarMut> net_ip{0x157E75318, 0x14A640488};
 
-WEAK symbol<EngineDependentDvar> rcon_password{0x1577B5768, 0x14A178278};
+WEAK symbol<EngineDependentDvarMut> rcon_password{0x1577B5768, 0x14A178278};
 
-WEAK symbol<EngineDependentDvar> ui_checksum_enabled{0x1568EDC98, 0x14948DC18};
+WEAK symbol<EngineDependentDvarMut> ui_checksum_enabled{0x1568EDC98,
+                                                        0x14948DC18};
 WEAK symbol<EngineDependentDvarMut> ui_error_report{0x1568EEEA8, 0x14948DC20};
 WEAK symbol<EngineDependentDvarMut> ui_error_report_delay{0x1568EEEB0,
                                                           0x14948DC28};
@@ -54,21 +56,21 @@ WEAK symbol<EngineDependentDvarMut> ui_error_callstack_ship{0x1568EDCA0,
 WEAK symbol<EngineDependentDvarMut> ui_enableAllHeroes{0x1579DF948,
                                                        0x14A30C408};
 
-WEAK symbol<EngineDependentDvar> g_log{0x14A3D15E0, 0x147102FA0};
-WEAK symbol<EngineDependentDvar> g_motd{0x14A3D15D0, 0x147836998};
-WEAK symbol<EngineDependentDvar> live_motdEnabled{0x15163FC70, 0x148382988};
-WEAK symbol<EngineDependentDvar> motd_enabled{0x15120C780, 0x1482DED80};
-WEAK symbol<EngineDependentDvar> motddelay{0x15120C778, 0x1482DED78};
+WEAK symbol<EngineDependentDvarMut> g_log{0x14A3D15E0, 0x147102FA0};
+WEAK symbol<EngineDependentDvarMut> g_motd{0x14A3D15D0, 0x147836998};
+WEAK symbol<EngineDependentDvarMut> live_motdEnabled{0x15163FC70, 0x148382988};
+WEAK symbol<EngineDependentDvarMut> motd_enabled{0x15120C780, 0x1482DED80};
+WEAK symbol<EngineDependentDvarMut> motddelay{0x15120C778, 0x1482DED78};
 
-WEAK symbol<EngineDependentDvar> testmissingcontentpacks{0x1568EDDF0,
-                                                         0x14948DD90};
+WEAK symbol<EngineDependentDvarMut> testmissingcontentpacks{0x1568EDDF0,
+                                                            0x14948DD90};
 
-WEAK symbol<EngineDependentDvar> splitscreen{0x1453D49F0, 0x1428AAEC8};
-WEAK symbol<EngineDependentDvar> splitscreen_playerCount{0x1453D4A00,
-                                                         0x1428AAED8};
+WEAK symbol<EngineDependentDvarMut> splitscreen{0x1453D49F0, 0x1428AAEC8};
+WEAK symbol<EngineDependentDvarMut> splitscreen_playerCount{0x1453D4A00,
+                                                            0x1428AAED8};
 
-WEAK symbol<EngineDependentDvar> r_vsync{0x14AE95098, 0x147CBC1E0};
-WEAK symbol<EngineDependentDvar> r_fullscreen{0x14AE94DF8, 0x147CBBF48};
+WEAK symbol<EngineDependentDvarMut> r_vsync{0x14AE95098, 0x147CBC1E0};
+WEAK symbol<EngineDependentDvarMut> r_fullscreen{0x14AE94DF8, 0x147CBBF48};
 
 WEAK symbol<int32_t> g_dvarCount{0x157AC61CC, 0x14A3CB5FC};
 WEAK symbol<DvarPool> s_dvarPool{0x0, 0x14A3CB620};
@@ -234,4 +236,132 @@ inline void Dvar_SetInt(EngineDependentDvar dvar, int32_t value) {
 
 WEAK symbol<EngineDependentDvar(EngineDependentDvar base, eModes mode)>
     Dvar_GetSessionModeSpecificDvarInternal{0x1422BF500, 0x140575D90};
+
+WEAK symbol<DvarFlags> g_dvar_modifiedFlags{0x157AC61C8, 0x14A3CB5F8};
+
+template <typename T_DvarValue>
+inline dvarCallBack_t *dvar<T_DvarValue>::modifiedCallback() noexcept {
+  if (*s_nextFreeCallback > 0) {
+    for (int32_t i = 0; i < *s_nextFreeCallback; ++i) {
+      dvarCallBack_t *cb = &s_dvarCallbackPool->pool[i];
+      if (cb->dvar.name() == name()) {
+        return cb;
+      }
+    }
+  }
+
+  return nullptr;
+}
+
+template <typename T_DvarValue>
+template <typename T>
+  requires(!std::same_as<T, const char *>)
+inline std::optional<T> dvar<T_DvarValue>::set(T val) noexcept {
+  dvar<T_DvarValue> *sessionModeSpecificDvar = sessionModeSpecific();
+  if (sessionModeSpecificDvar) {
+    return sessionModeSpecificDvar->set(val);
+  }
+
+  if (domain().contains(val)) {
+    T prev;
+    if (flags().latch) {
+      prev = latched().set(val);
+    } else {
+      *g_dvar_modifiedFlags |= flags();
+      prev = current().set(val);
+      (void)latched().set(val);
+      modified() = true;
+
+      if (flags().modifiedCallback) {
+        dvarCallBack_t *cb = modifiedCallback();
+        if (cb) {
+          cb->needsCallback = true;
+        }
+      }
+    }
+
+    return prev;
+  }
+
+  return std::nullopt;
+}
+
+template <typename T_DvarValue>
+inline std::optional<std::string>
+dvar<T_DvarValue>::set(const char *val) noexcept {
+  dvar<T_DvarValue> *sessionModeSpecificDvar = sessionModeSpecific();
+  if (sessionModeSpecificDvar) {
+    return sessionModeSpecificDvar->set(val);
+  }
+
+  switch (type()) {
+  case dvarType_t::ENUM: {
+    if (domain().contains(val)) {
+      const char *prev;
+      if (flags().latch) {
+        prev = latched().set(val);
+      } else {
+        (void)latched().set(val);
+        prev = current().set(val);
+        *g_dvar_modifiedFlags |= flags();
+        modified() = true;
+
+        if (flags().modifiedCallback) {
+          dvarCallBack_t *cb = modifiedCallback();
+          if (cb) {
+            cb->needsCallback = true;
+          }
+        }
+      }
+
+      return prev;
+    }
+    break;
+  }
+  case dvarType_t::STRING: {
+    std::string prev;
+    if (flags().latch) {
+      if (val != latched().string()) {
+        const char *prev_alloc = latched().set(sl::CopyString(val), false);
+        prev = prev_alloc;
+        if (prev_alloc != current().string() &&
+            prev_alloc != reset().string()) {
+          sl::FreeString(prev_alloc);
+        }
+      } else {
+        break;
+      }
+    } else if (val != current().string()) {
+      *g_dvar_modifiedFlags |= flags();
+      const char *new_alloc = sl::CopyString(val);
+      const char *prev_alloc = current().set(new_alloc);
+      if (new_alloc != latched().string()) {
+        latched().string() = new_alloc;
+      }
+      prev = prev_alloc;
+      if (prev_alloc != latched().string() && prev_alloc != reset().string()) {
+        sl::FreeString(prev_alloc);
+      }
+      modified() = true;
+
+      if (flags().modifiedCallback) {
+        dvarCallBack_t *cb = modifiedCallback();
+        if (cb) {
+          cb->needsCallback = true;
+        }
+      }
+    } else {
+      break;
+    }
+
+    return prev;
+  }
+  default: {
+    break;
+  }
+  }
+
+  return std::nullopt;
+}
+
 } // namespace game

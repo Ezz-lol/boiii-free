@@ -421,7 +421,7 @@ inline const char *serialize(vm::op::Opcode opcode) {
 
 // Map of unique opcode type to all the possible (usually duplicitous)
 // bytecode representations of the opcode.
-static constexpr const frozen::unordered_map<Opcode, std::array<OP_TYPE, 0x86>,
+inline constexpr const frozen::unordered_map<Opcode, std::array<OP_TYPE, 0x86>,
                                              +Opcode::Count +
                                                  1 /* UnknownOrInvalid */>
     OPCODE_BYTECODE_MAP = frozen::make_unordered_map<
@@ -3336,7 +3336,7 @@ static constexpr const frozen::unordered_map<Opcode, std::array<OP_TYPE, 0x86>,
    indexed by any of the opcode's bytecode representation values to get its
    handler.
 */
-static constexpr std::array<std::array<Opcode, 0x2000>, 2>
+inline constexpr std::array<std::array<Opcode, 0x2000>, 2>
     OPCODE_JUMPTABLE_ENTRY_MAP = {
         // Jump table 2. Bytecode values 0x0000-0x1FFF
         std::to_array<Opcode, 0x2000>(

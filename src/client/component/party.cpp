@@ -23,7 +23,7 @@
 #include <game/impl/cl/cl.hpp>
 
 namespace party {
-game::EngineDependentDvar cl_connected_to_dedi;
+game::EngineDependentDvarMut cl_connected_to_dedi;
 namespace {
 std::atomic_bool is_connecting_to_dedi{false};
 game::net::netadr_t connect_host{{}, {}, game::net::NA_BAD, {}};
@@ -32,10 +32,7 @@ std::mutex hostname_mutex;
 std::string cached_server_hostname;
 int cached_server_max_clients = 0;
 
-void update_dedi_dvar(bool on_dedi) {
-  game::Dvar_SetFromStringByName("cl_connected_to_dedi", on_dedi ? "1" : "0",
-                                 true);
-}
+void update_dedi_dvar(bool on_dedi) { cl_connected_to_dedi.set(on_dedi); }
 
 struct server_query {
   bool sent{false};

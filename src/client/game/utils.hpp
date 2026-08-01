@@ -16,30 +16,19 @@ get_dvar_string(const char *dvar_name);
 [[nodiscard]] std::optional<float> get_dvar_float(const char *dvar_name);
 [[nodiscard]] std::optional<bool> get_dvar_bool(const char *dvar_name);
 
-std::optional<int> set_dvar_int(const char *dvar_name, int32_t val,
-                                DvarSetSource source = DvarSetSource::INTERNAL);
-std::optional<int64_t>
-set_dvar_int64(const char *dvar_name, int64_t val,
-               DvarSetSource source = DvarSetSource::INTERNAL);
-std::optional<uint64_t>
-set_dvar_uint64(const char *dvar_name, uint64_t val,
-                DvarSetSource source = DvarSetSource::INTERNAL);
-bool set_dvar_bool(EngineDependentDvar dvar, bool val,
-                   DvarSetSource source = DvarSetSource::INTERNAL);
-std::optional<bool>
-set_dvar_bool(const char *dvar_name, bool val,
-              DvarSetSource source = DvarSetSource::INTERNAL);
-std::optional<float>
-set_dvar_float(const char *dvar_name, float val,
-               DvarSetSource source = DvarSetSource::INTERNAL);
-std::optional<std::string>
-set_dvar_string(const char *dvar_name, const char *val,
-                DvarSetSource source = DvarSetSource::INTERNAL);
+std::optional<int> set_dvar_int(const char *dvar_name, int32_t val);
+std::optional<int64_t> set_dvar_int64(const char *dvar_name, int64_t val);
+std::optional<uint64_t> set_dvar_uint64(const char *dvar_name, uint64_t val);
+bool set_dvar_bool(EngineDependentDvar dvar, bool val);
+std::optional<bool> set_dvar_bool(const char *dvar_name, bool val);
+std::optional<float> set_dvar_float(const char *dvar_name, float val);
+std::optional<std::string> set_dvar_string(const char *dvar_name,
+                                           const char *val);
 
 void record_registered_dvar_name(const char *dvar_name);
 
 template <DvarFlagLike T>
-EngineDependentDvar
+EngineDependentDvarMut
 register_sessionmode_dvar_bool(const char *dvar_name, const bool value, T flags,
                                const char *description,
                                const eModes mode = eModes::COUNT) {
@@ -64,8 +53,9 @@ register_sessionmode_dvar_bool(const char *dvar_name, const bool value, T flags,
 }
 
 template <DvarFlagLike T>
-EngineDependentDvar register_dvar_bool(const char *dvar_name, const bool value,
-                                       T flags, const char *description) {
+EngineDependentDvarMut register_dvar_bool(const char *dvar_name,
+                                          const bool value, T flags,
+                                          const char *description) {
   const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
   EngineDependentDvarMut registered_dvar = Dvar_RegisterBool(
       hash, dvar_name, value, DvarFlags::from(flags), description);
@@ -79,9 +69,9 @@ EngineDependentDvar register_dvar_bool(const char *dvar_name, const bool value,
 }
 
 template <DvarFlagLike T>
-EngineDependentDvar register_dvar_int(const char *dvar_name, int32_t value,
-                                      int32_t min, int32_t max, T flags,
-                                      const char *description) {
+EngineDependentDvarMut register_dvar_int(const char *dvar_name, int32_t value,
+                                         int32_t min, int32_t max, T flags,
+                                         const char *description) {
   const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
   EngineDependentDvarMut registered_dvar = Dvar_RegisterInt(
       hash, dvar_name, value, min, max, DvarFlags::from(flags), description);
@@ -95,9 +85,9 @@ EngineDependentDvar register_dvar_int(const char *dvar_name, int32_t value,
 }
 
 template <DvarFlagLike T>
-EngineDependentDvar register_dvar_float(const char *dvar_name, float value,
-                                        float min, float max, T flags,
-                                        const char *description) {
+EngineDependentDvarMut register_dvar_float(const char *dvar_name, float value,
+                                           float min, float max, T flags,
+                                           const char *description) {
   const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
   EngineDependentDvarMut registered_dvar = Dvar_RegisterFloat(
       hash, dvar_name, value, min, max, DvarFlags::from(flags), description);
@@ -111,9 +101,9 @@ EngineDependentDvar register_dvar_float(const char *dvar_name, float value,
 }
 
 template <DvarFlagLike T>
-EngineDependentDvar register_dvar_string(const char *dvar_name,
-                                         const char *value, T flags,
-                                         const char *description) {
+EngineDependentDvarMut register_dvar_string(const char *dvar_name,
+                                            const char *value, T flags,
+                                            const char *description) {
   const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
   EngineDependentDvarMut registered_dvar = Dvar_RegisterString(
       hash, dvar_name, value, DvarFlags::from(flags), description);

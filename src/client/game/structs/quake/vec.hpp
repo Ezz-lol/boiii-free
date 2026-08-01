@@ -78,6 +78,7 @@ ASSERT_SIZE(vec2_t, sizeof(vec_t) * 2);
 ASSERT_CPP03_POD(vec2_t);
 
 template <typename T = vec_t> union vec3 {
+  T v[3];
   struct {
     T x;
     T y;
@@ -85,7 +86,6 @@ template <typename T = vec_t> union vec3 {
   };
 
   vec2<T> xy;
-  T v[3];
 
   inline constexpr const T &operator[](size_t index) const { return v[index]; }
   inline constexpr T &operator[](size_t index) { return v[index]; }

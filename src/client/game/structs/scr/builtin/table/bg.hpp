@@ -49,7 +49,7 @@ union CommonFunctionTable {
   static inline constexpr size_t COUNT = 34;
   const BuiltinFunctionDef functions[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "ClearAllCharacterTables",
       "GetCharacterBodyStyleIndex",
       "GetAllCharacterBodies",
@@ -150,7 +150,7 @@ union MathFunctionTable {
   static inline constexpr size_t COUNT = 49;
   const BuiltinFunctionDef functions[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "Log",
       "Sin",
       "Cos",
@@ -218,7 +218,8 @@ union WeaponFunctionTable {
   static inline constexpr size_t COUNT = 1;
   const BuiltinFunctionDef functions[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {"EnumerateWeapons"};
+  static inline constexpr std::array<const char *, COUNT> names = {
+      "EnumerateWeapons"};
 
   DEFINE_NAME_MAP(names, hashes);
   static_assert(hashes.size() == names.size(),
@@ -303,7 +304,7 @@ union UtilFunctionTable {
   static inline constexpr size_t COUNT = 69;
   const BuiltinFunctionDef functions[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "GetDvarString",
       "GetDvarInt",
       "GetDvarFloat",

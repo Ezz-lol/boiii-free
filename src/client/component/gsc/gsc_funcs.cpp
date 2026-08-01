@@ -216,7 +216,7 @@ constexpr uint8_t hudelem_cfgstr_pool_entry_name_len =
     ARRAYSIZE(hudelem_cfgstr_pool_entry_name_prefix) +
     hudelem_cfgstr_pool_entry_name_number_max_suffix_len;
 typedef str<hudelem_cfgstr_pool_entry_name_len> HudElemCfgStrPoolEntryName;
-constexpr ui::he::HudElementPool<HudElemCfgStrPoolEntryName>
+consteval ui::he::HudElementPool<HudElemCfgStrPoolEntryName>
 build_hudelem_cfgstr_name_pool(
     ui::he::HudElementPool<HudElemCfgStrPoolEntryName> pool = {}) {
   for (uint16_t i = 0; i < pool.size(); ++i) {

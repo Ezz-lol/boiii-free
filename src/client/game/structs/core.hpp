@@ -335,14 +335,24 @@ template <typename T> union SessionModePool {
   };
 
   inline constexpr T &get(eModes mode) noexcept { return pool[+mode]; }
+  inline constexpr volatile T &get(eModes mode) volatile noexcept {
+    return pool[+mode];
+  }
+
   inline constexpr const T &get(eModes mode) const noexcept {
     return pool[+mode];
   }
   inline T &get() noexcept { return get(com::Com_SessionMode_GetMode()); }
+  inline volatile T &get() volatile noexcept {
+    return get(com::Com_SessionMode_GetMode());
+  }
   inline const T &get() const noexcept {
     return get(com::Com_SessionMode_GetMode());
   }
   inline constexpr T &operator[](eModes index) noexcept { return get(index); }
+  inline constexpr volatile T &operator[](eModes index) volatile noexcept {
+    return get(index);
+  }
   inline constexpr const T &operator[](eModes index) const noexcept {
     return get(index);
   }

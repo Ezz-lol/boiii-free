@@ -2,5 +2,5 @@
 #include <macros.hpp>
 
 #ifndef WEAK
-#define WEAK static constexpr
+#define WEAK inline constexpr
 #endif

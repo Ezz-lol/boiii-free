@@ -85,7 +85,7 @@ void copy_dvar_names_to_pool() {
     if (!dvar.debugName()) {
       if (dvar_hash_name_map.contains(dvar.name())) {
         dvar.debugName() =
-            game::CopyString(dvar_hash_name_map[dvar.name()].data());
+            game::sl::CopyString(dvar_hash_name_map[dvar.name()].data());
       }
     }
   }

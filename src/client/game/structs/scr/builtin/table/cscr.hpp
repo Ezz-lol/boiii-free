@@ -266,7 +266,7 @@ union BuiltinFunctionTable {
   static inline constexpr size_t COUNT = 251;
   const BuiltinFunctionDef functions[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "SpawnStruct",
       "BulletTrace",
       "BeamTrace",
@@ -788,7 +788,7 @@ union BuiltinMethodTable {
   static inline constexpr size_t COUNT = 246;
   const BuiltinMethodDef methods[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "Delete",
       "ForceDelete",
       "GetEntNum",
@@ -1158,7 +1158,7 @@ union GfxFunctionTable {
   static inline constexpr size_t COUNT = 106;
   const BuiltinFunctionDef functions[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "PlayFX",
       "PlayFXOnTag",
       "PlayTagFXSet",
@@ -1323,7 +1323,7 @@ union GfxMethodTable {
   static inline constexpr size_t COUNT = 42;
 
   const BuiltinMethodDef methods[COUNT];
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "OED_Nightvision_Reset",
       "OED_Nightvision_SetTextureLevel",
       "OED_Nightvision_Enable",
@@ -1392,7 +1392,7 @@ union MathFunctionTable {
   static inline constexpr size_t COUNT = 9;
   const BuiltinFunctionDef functions[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "RandomInt",        "RandomFloat",      "RandomIntRange",
       "RandomFloatRange", "Project2DTo3D",    "Project3DTo2D",
       "ViewAspect",       "GetAngleFromBits", "GetBitsForAngle",
@@ -1444,7 +1444,7 @@ union SoundFunctionTable {
   static inline constexpr size_t COUNT = 31;
   const BuiltinFunctionDef functions[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "PlaySound",
       "GetSoundFromSurfaceTable",
       "SoundPlaying",
@@ -1501,7 +1501,7 @@ union SoundMethodTable {
   static inline constexpr size_t COUNT = 8;
   const BuiltinMethodDef methods[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "PlaySound",          "StopSounds",        "PlayLoopSound",
       "StopLoopSound",      "StopAllLoopSounds", "IsPlayingLoopSound",
       "SetSoundEntContext", "SetLoopState",
@@ -1542,7 +1542,7 @@ union UIFunctionTable {
   static inline constexpr size_t COUNT = 20;
   const BuiltinFunctionDef functions[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "LUILoad",
       "LUIEnable",
       "LUIDisable",
@@ -1599,7 +1599,7 @@ union UtilFunctionTable {
   static inline constexpr size_t COUNT = 19;
   const BuiltinFunctionDef functions[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "ReportStubUsage",
       "PIXBeginEvent",
       "PIXEndEvent",
@@ -1638,7 +1638,7 @@ union UtilMethodTable {
 
   static inline constexpr size_t COUNT = 2;
   const BuiltinMethodDef methods[COUNT];
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "ButtonPressed",
       "GetControllerPosition",
   };

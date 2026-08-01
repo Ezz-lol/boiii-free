@@ -23,7 +23,7 @@ union ActorInterfaceMethodTable {
   static inline constexpr size_t COUNT = 8;
   const BuiltinMethodDef methods[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "ChooseBetterCoverNode",
       "GetFireMode",
       "BB_GetArrivalStance",
@@ -188,7 +188,7 @@ union ActorMethodTable {
   static inline constexpr size_t COUNT = 141;
   const BuiltinMethodDef methods[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "StartCoverArrival",
       "Melee",
       "ReacquireStep",
@@ -413,7 +413,7 @@ union BotMethodTable {
   static inline constexpr size_t COUNT = 69;
   const BuiltinMethodDef methods[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "BotDropClient",
       "BotInLastStand",
       "BotInLowReady",
@@ -899,7 +899,7 @@ union PlayerMethodTable {
   static inline constexpr size_t COUNT = 402;
   const BuiltinMethodDef methods[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "GiveWeapon",
       "HasMaxPrimaryWeapons",
       "UpdateWeaponOptions",
@@ -1603,7 +1603,7 @@ union CommonFunctionTable {
   static inline constexpr size_t COUNT = 287;
   const BuiltinFunctionDef functions[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "ReportStubUsage",
       "Record3DText",
       "RecordEntText",
@@ -2123,7 +2123,7 @@ union CommonMethodTable {
   static inline constexpr size_t COUNT = 218;
   const BuiltinMethodDef methods[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "Attach",
       "Detach",
       "DetachAll",
@@ -2363,7 +2363,7 @@ union HelicopterMethodTable {
   static inline constexpr size_t COUNT = 7;
   const BuiltinMethodDef methods[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "SetDamageStage",     "SetHeliHeightLock",      "SetHeliHeightCap",
       "GetHeliHeightLock",  "IsInsideHeliHeightLock", "GetHeliHeightLockHeight",
       "SetHeliDogfighting",
@@ -2409,7 +2409,7 @@ union HudElemMethodTable {
   static inline constexpr size_t COUNT = 28;
   const BuiltinMethodDef methods[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "SetText",          "SetShader",
       "SetTargetEnt",     "ClearTargetEnt",
       "SetTimer",         "SetTimerUp",
@@ -2442,7 +2442,7 @@ union MathFunctionTable {
   static inline constexpr size_t COUNT = 4;
   const BuiltinFunctionDef functions[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "RandomInt",
       "RandomFloat",
       "RandomIntRange",
@@ -2478,7 +2478,7 @@ union ScriptEntMethodTable {
   static inline constexpr size_t COUNT = 17;
   const BuiltinMethodDef methods[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "MoveTo",        "MoveX",     "MoveY",          "MoveZ",
       "MoveGravity",   "MoveSlide", "StopMoveSlide",  "RotateTo",
       "RotatePitch",   "RotateYaw", "RotateRoll",     "Vibrate",
@@ -2625,7 +2625,7 @@ union ScriptVehicleMethodTable {
   static inline constexpr size_t COUNT = 127;
   const BuiltinMethodDef methods[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "AttachPath",
       "GetAttachPos",
       "StartPath",
@@ -2776,7 +2776,7 @@ union SentientFunctionTable {
   static inline constexpr size_t COUNT = 8;
   const BuiltinFunctionDef functions[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "CreateThreatBiasGroup",   "ThreatBiasGroupExists",
       "GetThreatBias",           "SetThreatBias",
       "SetThreatBiasAgainstAll", "SetIgnoreMeGroup",
@@ -2826,7 +2826,7 @@ union SentientMethodTable {
   static inline constexpr size_t COUNT = 31;
   const BuiltinMethodDef methods[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "GetClosestEnemySqDist",
       "SetThreatBiasGroup",
       "GetThreatBiasGroup",
@@ -2875,7 +2875,7 @@ union UtilFunctionTable {
   static inline constexpr size_t COUNT = 3;
   const BuiltinFunctionDef functions[COUNT];
 
-  static constexpr std::array<const char *, COUNT> names = {
+  static inline constexpr std::array<const char *, COUNT> names = {
       "SetSharedViewPort",
       "SetTopDownCameraYaw",
       "SetJumpHeight",

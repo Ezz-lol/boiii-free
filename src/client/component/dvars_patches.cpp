@@ -60,7 +60,7 @@ void dof_enabled_stub(utils::hook::assembler &a) {
   a.jmp(0x141116EC2_g); // CG_UpdateAdsDof
 }
 
-void dvar_disablebool_cb(EngineDependentDvar dvar) {
+void dvar_disablebool_cb(EngineDependentDvarMut dvar) {
   if (dvar.get_bool()) {
     dvar.set(false);
   }

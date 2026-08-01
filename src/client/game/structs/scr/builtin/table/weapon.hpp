@@ -344,7 +344,7 @@ PACKED(union FieldTable {
   // Does not include `__reserve_unused`, which is a name defined here only -
   // the `__reserved_unused` field has no `canonId` (0), and thus no name.
   static inline constexpr size_t DEFINED_COUNT = 0xF0;
-  static constexpr std::array<const char *, DEFINED_COUNT> names = {
+  static inline constexpr std::array<const char *, DEFINED_COUNT> names = {
       "AIFuseTime",
       "ProjExplosionSound",
       "ProjExplosionSoundPlayer",

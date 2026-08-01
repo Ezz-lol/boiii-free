@@ -12,7 +12,7 @@ namespace he {
 constexpr uint32_t MAX_HUDELEM_MESSAGE_LEN = 0x400;
 constexpr auto HUD_ELEMENT_POOL_SIZE = 0x45C;
 template <typename T> struct HudElementPool {
-  static constexpr auto SIZE = HUD_ELEMENT_POOL_SIZE;
+  static inline constexpr auto SIZE = HUD_ELEMENT_POOL_SIZE;
   // Minimum, optimized primitive for indexing the pool that can contain all
   // values 0 < index < SIZE
   using index_t = uint16_t;
