@@ -618,8 +618,8 @@ struct EncryptionCapableDvarValue {
   static inline uint64_t encrypt(uint32_t val) noexcept {
     int32_t peb = PEB32();
 
-    uint32_t result = (uint32_t)val; // ebx
-    uint32_t y = 0;                  // edx
+    uint32_t result = val; // ebx
+    uint32_t y = 0;        // edx
 
     // 1) key == 0x9CF31C5
     y = static_cast<uint16_t>((peb ^ 0x7C35u) - result * 0x565Bu);
