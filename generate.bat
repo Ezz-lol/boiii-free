@@ -10,7 +10,7 @@ if errorlevel 1 goto :error
 
 where premake5 >null 2>null
 if %ERRORLEVEL%==1 (
-  echo Premake 5 was not found. You must install premake5 to compile boiii.
+  echo Premake5 was not found. You must install premake5 to compile boiii.
   goto :error
 )
 
