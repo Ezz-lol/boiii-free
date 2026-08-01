@@ -255,7 +255,9 @@ inline dvarCallBack_t *dvar<T_DvarValue>::modifiedCallback() noexcept {
 
 template <typename T_DvarValue>
 template <typename T>
-  requires(!std::same_as<T, const char *>)
+  requires(!std::same_as<T, const char *> &&
+           !std::same_as<T, const std::string_view &> &&
+           !std::same_as<T, const std::string &>)
 inline std::optional<T> dvar<T_DvarValue>::set(T val) noexcept {
   dvar<T_DvarValue> *sessionModeSpecificDvar = sessionModeSpecific();
   if (sessionModeSpecificDvar) {
@@ -363,5 +365,15 @@ dvar<T_DvarValue>::set(const char *val) noexcept {
 
   return std::nullopt;
 }
+template <typename T_DvarValue>
+inline std::optional<std::string>
+dvar<T_DvarValue>::set(const std::string_view &val) noexcept {
+  return set(val.data());
+}
 
+template <typename T_DvarValue>
+inline std::optional<std::string>
+dvar<T_DvarValue>::set(const std::string &val) noexcept {
+  return set(val.c_str());
+}
 } // namespace game

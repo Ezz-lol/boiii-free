@@ -428,6 +428,20 @@ template <typename T_DvarValue> union TemplateDvarValue {
     string() = val;
     return prev;
   }
+  inline constexpr const char *
+  set(const std::string_view &val,
+      /* added for API compatbility with `EncryptionCapableDvarValue`.
+          Should be optimized away by compiler. */
+      bool shouldEncrypt = true) {
+    return set(val.data(), shouldEncrypt);
+  }
+  inline constexpr const char *
+  set(const std::string &val,
+      /* added for API compatbility with `EncryptionCapableDvarValue`.
+          Should be optimized away by compiler. */
+      bool shouldEncrypt = true) {
+    return set(val.c_str(), shouldEncrypt);
+  }
   inline constexpr DvarColor
   set(DvarColor val,
       /* added for API compatbility with `EncryptionCapableDvarValue`.
@@ -811,6 +825,14 @@ struct EncryptionCapableDvarValue {
     }
     return _value.set(val);
   }
+  inline constexpr const char *set(const std::string_view &val,
+                                   bool shouldEncrypt) {
+    return set(val.data(), shouldEncrypt);
+  }
+  inline constexpr const char *set(const std::string &val,
+                                   bool shouldEncrypt = true) {
+    return set(val.c_str(), shouldEncrypt);
+  }
   inline constexpr DvarColor set(DvarColor val,
                                  bool shouldEncrypt = true) noexcept {
     if (shouldEncrypt) {
@@ -854,7 +876,9 @@ union DvarLimits {
     return false;
   }
 
-  inline constexpr bool contains(bool val) noexcept { return true; }
+  inline constexpr bool contains([[maybe_unused]] bool val) noexcept {
+    return true;
+  }
 
   inline constexpr bool contains(int32_t val) noexcept {
     assert(integer.min <= integer.max &&
@@ -1096,10 +1120,14 @@ public:
   dvarCallBack_t *modifiedCallback() noexcept;
 
   template <typename T>
-    requires(!std::same_as<T, const char *>)
+    requires(!std::same_as<T, const char *> &&
+             !std::same_as<T, const std::string_view &> &&
+             !std::same_as<T, const std::string &>)
   std::optional<T> set(T val) noexcept;
 
   std::optional<std::string> set(const char *val) noexcept;
+  std::optional<std::string> set(const std::string_view &val) noexcept;
+  std::optional<std::string> set(const std::string &val) noexcept;
 
   inline int32_t get_int() noexcept { return resolve()->current().integer(); }
   inline constexpr uint32_t get_uint() noexcept {
