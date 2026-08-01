@@ -395,6 +395,10 @@ Want to build Ezz BOIII yourself? Here's how! 🔨
    This initializes all Git submodules and downloads the pinned Premake version
    automatically.
 
+   To generate the project and build `Release|x64` entirely from the command
+   line, run `build.bat` instead. The script pauses at the end so you can review
+   the build result.
+
 3. **Open in Visual Studio:**
    - Open `build/boiii.sln`
    - Set configuration to `Release` and platform to `x64`

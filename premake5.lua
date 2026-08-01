@@ -435,17 +435,15 @@ dependson({ "tlsdll" })
 links({ "common", "WebView2LoaderStatic" })
 
 local hasVersion = (
-  os.isfile("%{_MAIN_SCRIPT_DIR}/src/version.h") or os.isfile("%{_MAIN_SCRIPT_DIR}/build/src/version.h")
-) and (os.isfile("%{_MAIN_SCRIPT_DIR}/src/version.hpp") or os.isfile("%{_MAIN_SCRIPT_DIR}/build/src/version.hpp"))
+  os.isfile(path.join(_MAIN_SCRIPT_DIR, "src/version.h"))
+  or os.isfile(path.join(_MAIN_SCRIPT_DIR, "build/src/version.h"))
+) and (
+  os.isfile(path.join(_MAIN_SCRIPT_DIR, "src/version.hpp"))
+  or os.isfile(path.join(_MAIN_SCRIPT_DIR, "build/src/version.hpp"))
+)
 if not hasVersion then
   if os.host() == "windows" then
-    if os.isfile("%{_MAIN_SCRIPT_DIR}/tools/premake5.exe") then
-      prebuildcommands({ "pushd %{_MAIN_SCRIPT_DIR}", "tools\\premake5.exe generate-buildinfo", "popd" })
-    elseif os.isfile("%{_MAIN_SCRIPT_DIR}/premake5.exe") then
-      prebuildcommands({ "pushd %{_MAIN_SCRIPT_DIR}", "premake5.exe generate-buildinfo", "popd" })
-    else
-      prebuildcommands({ "pushd %{_MAIN_SCRIPT_DIR}", "premake5 generate-buildinfo", "popd" })
-    end
+    prebuildcommands({ "pushd %{_MAIN_SCRIPT_DIR}", "tools\\premake5.exe generate-buildinfo", "popd" })
   else
     prebuildcommands({ "cd %{_MAIN_SCRIPT_DIR} && premake5 generate-buildinfo" })
   end
@@ -510,13 +508,7 @@ dependencies.projects()
 -- It's also easier than finding some way of sycnhronizing the generation of the version header between the two projects.
 if not hasVersion then
   if os.host() == "windows" then
-    if os.isfile("%{_MAIN_SCRIPT_DIR}/tools/premake5.exe") then
-      prebuildcommands({ "pushd %{_MAIN_SCRIPT_DIR}", "tools\\premake5.exe generate-buildinfo", "popd" })
-    elseif os.isfile("%{_MAIN_SCRIPT_DIR}/premake5.exe") then
-      prebuildcommands({ "pushd %{_MAIN_SCRIPT_DIR}", "premake5.exe generate-buildinfo", "popd" })
-    else
-      prebuildcommands({ "pushd %{_MAIN_SCRIPT_DIR}", "premake5 generate-buildinfo", "popd" })
-    end
+    prebuildcommands({ "pushd %{_MAIN_SCRIPT_DIR}", "tools\\premake5.exe generate-buildinfo", "popd" })
   else
     prebuildcommands({ "cd %{_MAIN_SCRIPT_DIR} && premake5 generate-buildinfo" })
   end
