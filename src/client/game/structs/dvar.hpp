@@ -609,46 +609,46 @@ struct EncryptionCapableDvarValue {
 
     // 1) key = 0x9CF31C5
     y = static_cast<uint16_t>((peb ^ 0x7C35u) - result * 0x565Bu);
-    // hash ^= 0xA6B5A745 -> new hash = 0xAF7A9680
+    // key ^= 0xA6B5A745 == new key = 0xAF7A9680
 
     // 2) key = 0xAF7A9680 (break)
     result = std::rotl(result, 16);
-    // hash ^= 0x0F78FD3E -> new hash = 0xA0026BBE
+    // key ^= 0x0F78FD3E == new key = 0xA0026BBE
 
     // 3) key = 0xA0026BBE
     uint32_t temp = result ^ y; // ebx ^ edx
     y = static_cast<uint16_t>((peb ^ 0x6BFAu) + temp * 0x54F1u);
     result = std::rotr(temp, 16) ^ y;
-    // hash ^= 0x9521BEB4 -> 0x3523D50A
+    // key ^= 0x9521BEB4 == 0x3523D50A
 
     // 4) key = 0x3523D50A
     y = static_cast<uint16_t>(result); // movzx edx, bx
-    // hash ^= 0xD7A4E0B7 -> 0xE28735BD
+    // key ^= 0xD7A4E0B7 == 0xE28735BD
 
     // 5) key = 0xE28735BD
     y = static_cast<uint16_t>((peb ^ 0x0FFFF9674u) - y * 0x5534u);
-    // hash ^= 0x08E45694 -> 0xEA636329
+    // key ^= 0x08E45694 == 0xEA636329
 
     // 6) key = 0xEA636329
     result = std::rotl(result, 16);
-    // hash ^= 0x02A35792 -> 0xE8C034BB
+    // key ^= 0x02A35792 == 0xE8C034BB
 
     // 7) key = 0xE8C034BB
     result ^= y;
     y = static_cast<uint16_t>(result);
-    // hash ^= 0xB69644E4 -> 0x5E56705F
+    // key ^= 0xB69644E4 == 0x5E56705F
 
     // 8) key = 0x5E56705F
     y = static_cast<uint16_t>((peb ^ 0x6A32u) + y * 0x1757u);
-    // hash ^= 0x79E6DDA5 -> 0x27B0ADFA
+    // key ^= 0x79E6DDA5 == 0x27B0ADFA
 
     // 9) key = 0x27B0ADFA
     result = std::rotr(result, 16) ^ y;
-    // hash ^= 0x8CC787D4 -> 0xAB772A2E
+    // key ^= 0x8CC787D4 == 0xAB772A2E
 
     // 10) key = 0xAB772A2E
     result = std::rotl(result, 16);
-    // hash ^= 0x0D0BAF21 -> terminal 0xA67C850F
+    // key ^= 0x0D0BAF21 == terminal 0xA67C850F
 
     return result; // zero‑extended to 64 bits
   }
@@ -748,13 +748,7 @@ struct EncryptionCapableDvarValue {
   inline constexpr int32_t set(int32_t val,
                                bool shouldEncrypt = true) noexcept {
     if (shouldEncrypt) {
-      fprintf(stderr, "encryptedValue before assign: 0x%08llx",
-              encryptedValue());
-      fflush(stderr);
       encryptedValue() = encrypt(val);
-      fprintf(stderr, "encryptedValue after assign: 0x%08llx",
-              encryptedValue());
-      fflush(stderr);
     }
 
     return _value.set(val);
