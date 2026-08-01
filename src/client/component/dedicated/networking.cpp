@@ -11,9 +11,10 @@
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 
-#include "scheduler.hpp"
+#include "../scheduler.hpp"
 
-namespace server_patches2 {
+namespace dedicated {
+namespace networking {
 namespace {
 // Connection rate limiting per IP
 struct connect_attempt {
@@ -520,6 +521,6 @@ struct component final : server_component {
     }
   }
 };
-} // namespace server_patches2
-
-REGISTER_COMPONENT(server_patches2::component)
+} // namespace networking
+} // namespace dedicated
+REGISTER_COMPONENT(dedicated::networking::component)

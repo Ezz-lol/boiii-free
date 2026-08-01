@@ -1,30 +1,18 @@
 #include <std_include.hpp>
-#include "dedicated.hpp"
+#include "command.hpp"
 #include <loader/component_loader.hpp>
 
 #include <game/game.hpp>
 #include <game/utils.hpp>
-#include "command.hpp"
-#include "network.hpp"
-#include "scheduler.hpp"
-#include "server_list.hpp"
+#include "../command.hpp"
+#include "../network.hpp"
+#include "../scheduler.hpp"
+#include "../server_list.hpp"
 
 #include <utils/hook.hpp>
 
 namespace dedicated {
-namespace {
-constexpr const char *compatibility_commands[] = {
-    "ffotdversion",     "bbdisable", "bbenable",
-    "bitfieldBBPrints", "bbstart",   "setliveevent"};
-
 game::EngineDependentDvar sv_lan_only;
-
-void sv_con_tell_f_stub(game::sv::client_s *cl, game::net::svscmd_type type,
-                        [[maybe_unused]] const char *fmt,
-                        [[maybe_unused]] int32_t c, char *text) {
-  game::sv::SV_SendServerCommand(cl, type, "%c \"GAME_SERVER\x15: %s\"", 79,
-                                 text);
-}
 
 void send_heartbeat_packet() {
   if (!sv_lan_only.get_bool()) {
@@ -34,19 +22,31 @@ void send_heartbeat_packet() {
     }
   }
 }
-
-void register_server_compatibility_commands() {
-  for (const char *command_name : compatibility_commands) {
-    command::add_sv(command_name, [](const command::params_sv &) {});
-  }
-}
-} // namespace
-
 void send_heartbeat() {
   if (game::is_server()) {
     scheduler::once(send_heartbeat_packet, scheduler::pipeline::main, 5s);
   }
 }
+
+namespace command {
+namespace {
+constexpr const char *compatibility_commands[] = {
+    "ffotdversion",     "bbdisable", "bbenable",
+    "bitfieldBBPrints", "bbstart",   "setliveevent"};
+
+void sv_con_tell_f_stub(game::sv::client_s *cl, game::net::svscmd_type type,
+                        [[maybe_unused]] const char *fmt,
+                        [[maybe_unused]] int32_t c, char *text) {
+  game::sv::SV_SendServerCommand(cl, type, "%c \"GAME_SERVER\x15: %s\"", 79,
+                                 text);
+}
+
+void register_server_compatibility_commands() {
+  for (const char *command_name : compatibility_commands) {
+    ::command::add_sv(command_name, [](const ::command::params_sv &) {});
+  }
+}
+} // namespace
 
 void trigger_map_rotation() {
   scheduler::once(
@@ -70,7 +70,7 @@ struct component final : server_component {
 
     scheduler::once(send_heartbeat, scheduler::pipeline::main);
     scheduler::loop(send_heartbeat, scheduler::pipeline::main, 5min);
-    command::add("heartbeat", send_heartbeat);
+    ::command::add("heartbeat", send_heartbeat);
     register_server_compatibility_commands();
 
     // Hook GScr_ExitLevel
@@ -80,6 +80,6 @@ struct component final : server_component {
                                            "Don't send heartbeats");
   }
 };
+} // namespace command
 } // namespace dedicated
-
-REGISTER_COMPONENT(dedicated::component)
+REGISTER_COMPONENT(dedicated::command::component)

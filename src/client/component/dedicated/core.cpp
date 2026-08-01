@@ -7,7 +7,7 @@
 #include <utils/string.hpp>
 #include <vector>
 
-namespace dedicated_patches {
+namespace dedicated {
 namespace {
 utils::hook::detour spawn_server_hook;
 
@@ -112,6 +112,6 @@ struct component final : server_component {
     utils::hook::call(0x140531227_g, va_stub);
   }
 };
-} // namespace dedicated_patches
+} // namespace dedicated
 
-REGISTER_COMPONENT(dedicated_patches::component)
+REGISTER_COMPONENT(dedicated::component)

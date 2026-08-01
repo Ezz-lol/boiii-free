@@ -3,14 +3,15 @@
 #include <game/game.hpp>
 #include <game/utils.hpp>
 
-#include "scheduler.hpp"
-#include "getinfo.hpp"
-#include "console.hpp"
+#include "../scheduler.hpp"
+#include "../getinfo.hpp"
+#include "../console.hpp"
 
 #include <string>
 #include <utils/string.hpp>
 
-namespace dedicated_info {
+namespace dedicated {
+namespace info {
 namespace {
 void set_server_info_in_console_title() {
   const bool sv_running = game::get_sv_running();
@@ -42,6 +43,6 @@ public:
                     scheduler::pipeline::main, 1s);
   }
 };
-} // namespace dedicated_info
-
-REGISTER_COMPONENT(dedicated_info::component)
+} // namespace info
+} // namespace dedicated
+REGISTER_COMPONENT(dedicated::info::component)
