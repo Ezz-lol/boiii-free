@@ -544,31 +544,31 @@ struct EncryptionCapableDvarValue {
     uint32_t x = val ? 1 : 0;
     uint32_t z = 0;
 
-    // 1) key = 0x4F48F38
+    // 1) key == 0x4F48F38
     z = static_cast<uint16_t>((peb ^ 0xC8C0u) - x * 0x56DDu);
     x = std::rotr(x, 16);
 
-    // 2) key = 0xCAE3A886
+    // 2) key == 0xCAE3A886
     x ^= z;
 
-    // 3) key = 0x6250C961
+    // 3) key == 0x6250C961
     uint32_t t = std::rotr(x, 16);
     uint16_t u = static_cast<uint16_t>((peb ^ 0xC3ECu) - x * 0xC67u);
     x = u ^ t;
     z = static_cast<uint16_t>(x);
 
-    // 4) key = 0x5C395230
+    // 4) key == 0x5C395230
     z = static_cast<uint16_t>((peb ^ 0xBC84u) - z * 0x1C72u);
 
-    // 5) key = 0x6AAA441D
+    // 5) key == 0x6AAA441D
     uint32_t tmp = z ^ std::rotl(x, 16);
     z = static_cast<uint16_t>((peb ^ 0xC8ADu) + tmp * 0x5C92u);
     x = std::rotl(tmp, 16);
 
-    // 6) key = 0x62078B4F
+    // 6) key == 0x62078B4F
     x ^= z;
 
-    // 7) key = 0x69456FAD
+    // 7) key == 0x69456FAD
     x = std::rotr(x, 16);
 
     return x;
@@ -579,37 +579,37 @@ struct EncryptionCapableDvarValue {
     uint32_t result = std::bit_cast<uint32_t>(val);
     uint32_t s = 0;
 
-    // 1) key = 0x3546219F
+    // 1) key == 0x3546219F
     s = static_cast<uint16_t>(result);
 
-    // 2) key = 0xD96A6946
+    // 2) key == 0xD96A6946
     result = std::rotl(result, 16);
     uint32_t t = static_cast<uint16_t>((peb ^ 0xAE44u) + s * 450u);
     result ^= t;
     s = static_cast<uint16_t>(result);
 
-    // 3) key = 0x2E207F95
+    // 3) key == 0x2E207F95
     s = static_cast<uint16_t>((peb ^ 0x8065u) - s * 0x760Bu);
 
-    // 4) key = 0x3C08BA56
+    // 4) key == 0x3C08BA56
     result = std::rotl(result, 16);
 
-    // 5) key = 0xB5A9DE39
+    // 5) key == 0xB5A9DE39
     result ^= s;
     s = static_cast<uint16_t>(result);
 
-    // 6) key = 0xB1242083
+    // 6) key == 0xB1242083
     result = std::rotl(result, 16);
     s = static_cast<uint16_t>((peb ^ 0x252u) + s * 0x78F8u);
 
-    // 7) key = 0x1CD815D5
+    // 7) key == 0x1CD815D5
     result ^= s;
     s = static_cast<uint16_t>(result);
 
-    // 8) key = 0xC65161C4
+    // 8) key == 0xC65161C4
     s = static_cast<uint16_t>((peb ^ 0x9FFAu) + s * 0x2C23u);
 
-    // 9) key = 0xFF6FF984 -> terminal 0x4843D1BC
+    // 9) key == 0xFF6FF984 -> terminal 0x4843D1BC
     result = std::rotl(s ^ std::rotl(result, 16), 16);
 
     return result; // zero‑extend to 64 bits when stored
@@ -621,46 +621,46 @@ struct EncryptionCapableDvarValue {
     uint32_t result = (uint32_t)val; // ebx
     uint32_t y = 0;                  // edx
 
-    // 1) key = 0x9CF31C5
+    // 1) key == 0x9CF31C5
     y = static_cast<uint16_t>((peb ^ 0x7C35u) - result * 0x565Bu);
     // key ^= 0xA6B5A745 == new key = 0xAF7A9680
 
-    // 2) key = 0xAF7A9680 (break)
+    // 2) key == 0xAF7A9680 (break)
     result = std::rotl(result, 16);
     // key ^= 0x0F78FD3E == new key = 0xA0026BBE
 
-    // 3) key = 0xA0026BBE
+    // 3) key == 0xA0026BBE
     uint32_t temp = result ^ y; // ebx ^ edx
     y = static_cast<uint16_t>((peb ^ 0x6BFAu) + temp * 0x54F1u);
     result = std::rotr(temp, 16) ^ y;
     // key ^= 0x9521BEB4 == 0x3523D50A
 
-    // 4) key = 0x3523D50A
+    // 4) key == 0x3523D50A
     y = static_cast<uint16_t>(result); // movzx edx, bx
     // key ^= 0xD7A4E0B7 == 0xE28735BD
 
-    // 5) key = 0xE28735BD
+    // 5) key == 0xE28735BD
     y = static_cast<uint16_t>((peb ^ 0x0FFFF9674u) - y * 0x5534u);
     // key ^= 0x08E45694 == 0xEA636329
 
-    // 6) key = 0xEA636329
+    // 6) key == 0xEA636329
     result = std::rotl(result, 16);
     // key ^= 0x02A35792 == 0xE8C034BB
 
-    // 7) key = 0xE8C034BB
+    // 7) key == 0xE8C034BB
     result ^= y;
     y = static_cast<uint16_t>(result);
     // key ^= 0xB69644E4 == 0x5E56705F
 
-    // 8) key = 0x5E56705F
+    // 8) key == 0x5E56705F
     y = static_cast<uint16_t>((peb ^ 0x6A32u) + y * 0x1757u);
     // key ^= 0x79E6DDA5 == 0x27B0ADFA
 
-    // 9) key = 0x27B0ADFA
+    // 9) key == 0x27B0ADFA
     result = std::rotr(result, 16) ^ y;
     // key ^= 0x8CC787D4 == 0xAB772A2E
 
-    // 10) key = 0xAB772A2E
+    // 10) key == 0xAB772A2E
     result = std::rotl(result, 16);
     // key ^= 0x0D0BAF21 == terminal 0xA67C850F
 
@@ -688,28 +688,28 @@ struct EncryptionCapableDvarValue {
     uint64_t enc = value;
     uint64_t t = 0;
 
-    // 1) key 0x1EC7CB6
+    // 1) key == 0x1EC7CB6
     int64_t c1 = static_cast<int64_t>(0xFFFFFFFF836D435AULL);
     uint64_t p1 = peb ^ 0xFFFFFFFF8131F8BEULL;
     uint64_t prod1 = static_cast<uint64_t>(static_cast<int64_t>(enc) * c1);
     t = static_cast<uint32_t>(p1 + prod1);
 
-    // 2) key 0xFD2C81D
+    // 2) key == 0xFD2C81D
     enc = std::rotr(enc, 32) ^ t;
 
-    // 3) key 0xD02E43C5
+    // 3) key == 0xD02E43C5
     t = static_cast<uint32_t>(enc);
 
-    // 4) key 0x567C7575
+    // 4) key == 0x567C7575
     int64_t c4 = static_cast<int64_t>(0xFFFFFFFFAD28AB13ULL);
     uint64_t p4 = peb ^ 0x6BD3B7D9ULL; // zero‑extended 32‑bit constant
     uint64_t prod4 = static_cast<uint64_t>(static_cast<int64_t>(t) * c4);
     t = static_cast<uint32_t>(p4 + prod4);
 
-    // 5) key 0x5208D556
+    // 5) key == 0x5208D556
     enc = std::rotr(enc, 32) ^ t;
 
-    // 6) key 0x4EB19C7F
+    // 6) key == 0x4EB19C7F
     uint64_t original = enc;
     int64_t c6 = static_cast<int64_t>(0xFFFFFFFFE6A38132ULL);
     uint64_t p6 = peb ^ 0xFFFFFFFF8671D5D2ULL;
@@ -718,16 +718,16 @@ struct EncryptionCapableDvarValue {
     enc = std::rotl(original, 32) ^ trunc6;
     t = static_cast<uint32_t>(enc);
 
-    // 7) key 0x4279D8C4
+    // 7) key == 0x4279D8C4
     int64_t c7 = 0x4075B22; // positive, sign‑extended to 64 bits
     uint64_t p7 = peb ^ 0x4D3B7FF4ULL;
     uint64_t prod7 = static_cast<uint64_t>(static_cast<int64_t>(t) * c7);
     t = static_cast<uint32_t>(p7 + prod7);
 
-    // 8) key 0xE70F62A0
+    // 8) key == 0xE70F62A0
     enc = std::rotr(enc, 32) ^ t;
 
-    // 9) key 0x3B923398 -> terminal 0x9B48C62B
+    // 9) key == 0x3B923398 -> terminal 0x9B48C62B
     enc = std::rotr(enc, 32);
 
     return enc;
