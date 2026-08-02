@@ -6,6 +6,7 @@ namespace game {
 namespace math {
 
 typedef vec4_t Float4;
+typedef Float4 float4;
 
 struct Dir3 {
   Float4 v;

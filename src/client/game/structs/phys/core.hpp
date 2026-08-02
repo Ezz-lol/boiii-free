@@ -4,6 +4,7 @@
 #include "../snd/snd.hpp"
 #include "../core.hpp"
 #include "../asm.hpp"
+#include "game/symbol.hpp"
 #include <cstdint>
 
 namespace game {
@@ -36,6 +37,17 @@ enum class PhysicsOwnerType : int32_t {
   RAGDOLL = 0x4,
   XDOLL = 0x5,
   COUNT = 0x6,
+};
+
+class broad_phase_memory_info {
+public:
+  static constexpr symbol<thiscall_t<void(broad_phase_memory_info *)>>
+      constructor{0x0, 0x14000EEC0};
+
+  inline broad_phase_memory_info() { constructor(this); }
+  int32_t m_max_num_gjk_ci;
+  int32_t m_max_num_sap_active_pairs;
+  int32_t m_max_num_surface_types;
 };
 
 struct broad_phase_base {
@@ -160,6 +172,15 @@ ASSERT_SIZE(rb_inplace_partition_node, 0x70);
 
 class rigid_body {
 public:
+  static constexpr symbol<thiscall_t<void(
+      rigid_body *, const float mass, const math::Dir3 *inertia,
+      const math::RotTranMat43 *mat, const math::Dir3 *t_vel,
+      const math::Dir3 *a_vel, const int32_t stable_min_contact_count)>>
+      set{0x0, 0x14002C840};
+  static constexpr symbol<
+      thiscall_t<void(rigid_body *, const math::Dir3 *inertia)>>
+      set_inertia{0x0, 0x14002CDA0};
+
   math::Dir3 m_last_position;
   math::Dir3 m_moved_vec;
   float m_smallest_lambda;
@@ -915,6 +936,20 @@ public:
 class __attribute__((aligned(8))) rigid_body_constraint_wheel
     : rigid_body_constraint {
 public:
+  static constexpr symbol<thiscall_t<void(rigid_body_constraint_wheel *,
+                                          float torque, float delta_t)>>
+      add_wheel_torque{0x0, 0x14002A710};
+  static constexpr symbol<thiscall_t<void(rigid_body_constraint_wheel *)>>
+      set_no_collision{0x0, 0x14002B110};
+  static constexpr symbol<thiscall_t<void(
+      const rigid_body_constraint_wheel *, const math::RotTranMat43 *b1_mat,
+      math::Dir3 *const p0, math::Dir3 *const p1)>>
+      get_wheel_collide_segment{0x0, 0x14002AB70};
+  static constexpr symbol<
+      thiscall_t<void(rigid_body_constraint_wheel *, rigid_body *const rb,
+                      const math::Dir3 *hitp_loc, const math::Dir3 *hitn_loc)>>
+      set_collision{0x0, 0x14002B0B0};
+
   pulse_sum_cache m_ps_cache_list[4];
   pulse_sum_normal *m_ps_suspension;
   pulse_sum_normal *m_ps_side_fric;
@@ -1008,6 +1043,73 @@ public:
   int32_t m_timestamp;
   float m_spring_scale;
   pulse_sum_cache m_list_psc[4];
+};
+
+struct BodyState {
+  vec3_t position;
+  vec3_t rotation[3];
+  vec3_t velocity;
+  vec3_t angVelocity;
+  vec3_t centerOfMassOffset;
+  vec3_t buoyancyBoxMin;
+  vec3_t buoyancyBoxMax;
+  float mass;
+  float friction;
+  float bounce;
+  int timeLastAsleep;
+  int id;
+  int buoyancy;
+  int underwater;
+  int owner;
+  PhysicsOwnerType owner_type;
+};
+
+class environment_rigid_body : public rigid_body {
+public:
+};
+
+typedef fastcallPtr_t<void()> phys_collision_callback_t;
+
+typedef fastcallPtr_t<bool(const broad_phase_base *b1,
+                           const broad_phase_base *b2)>
+    phys_should_collide_callback_t;
+
+typedef fastcallPtr_t<void(void *)> phys_debug_callback_t;
+
+class phys_sys {
+public:
+  static constexpr symbol<rigid_body_constraint_custom_orientation *(
+      rigid_body *const b1, rigid_body *const b2, const int no_error)>
+      create_rbc_custom_orientation{0x0, 0x14000B810};
+  static constexpr symbol<rigid_body *(const int no_error)> create_rigid_body{
+      0x0, 0x14000BC90};
+  static inline void destroy(rigid_body *const rb) {
+    static constexpr symbol<void(rigid_body *const rb)> sym{0x0, 0x14000BD50};
+    return sym(rb);
+  }
+
+  static inline void destroy(user_rigid_body *const rb) {
+    static constexpr symbol<void(user_rigid_body *const rb)> sym{0x0,
+                                                                 0x14000BEE0};
+    return sym(rb);
+  }
+  static constexpr symbol<void(rigid_body *const rb)> destroy_all_constraint{
+      0x0, 0x14000BF30};
+  static constexpr symbol<void(rigid_body *const rb)> fixup_wheel_constraints{
+      0x0, 0x14000C460};
+  static constexpr symbol<environment_rigid_body *()>
+      get_environment_rigid_body{0x0, 0x14000C4D0};
+  static constexpr symbol<void(phys_collision_callback_t collision_callback)>
+      set_collision_callback{0x0, 0x14000C500};
+  static constexpr symbol<void(const float max_delta_t)> set_max_delta_t{
+      0x0, 0x14000C510};
+  static constexpr symbol<void(const int max_v_iters)> set_v_tol{0x0,
+                                                                 0x14000C520};
+};
+
+enum TraceBrushType : int32_t {
+  TRACE_BRUSHTYPE_NONE = 0x0,
+  TRACE_BRUSHTYPE_BRUSH = 0x1,
 };
 
 } // namespace phys

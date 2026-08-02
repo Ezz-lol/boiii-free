@@ -17,7 +17,7 @@
 #include "dw/dw.hpp"       // IWYU pragma: export
 #include "fs.hpp"          // IWYU pragma: export
 #include "fx.hpp"          // IWYU pragma: export
-#include "game.hpp"        // IWYU pragma: export
+#include "game/game.hpp"   // IWYU pragma: export
 #include "gfx.hpp"         // IWYU pragma: export
 #include "glasssv.hpp"     // IWYU pragma: export
 #include "hunk.hpp"        // IWYU pragma: export
@@ -52,3 +52,4 @@
 #include "utils.hpp"       // IWYU pragma: export
 #include "r.hpp"           // IWYU pragma: export
 #include "vehicle.hpp"     // IWYU pragma: export
+#include "phys.hpp"        // IWYU pragma: export

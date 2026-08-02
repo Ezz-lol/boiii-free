@@ -1149,4 +1149,19 @@ enum class RestartMethod_t : uint32_t {
 };
 IMPL_ENUM_OPERATORS(RestartMethod_t);
 
+struct viewClamp {
+  vec2_t start;
+  vec2_t current;
+  vec2_t goal;
+};
+
+struct viewClampState {
+  viewClamp min;
+  viewClamp max;
+  float accelTime;
+  float decelTime;
+  float totalTime;
+  float startTime;
+};
+
 } // namespace game
