@@ -26,6 +26,7 @@ struct hkHalf {
   hkHalf::Storage m_value;
 };
 class hkBaseObject {
+public:
   int32_t (**_vptr$hkBaseObject)(void);
 };
 

@@ -20,6 +20,7 @@ typedef hkInt32 hkaiNavMeshFaceIndex;
 typedef hkInt32 hkaiNavMeshCellIndex;
 
 class hkaiReferenceFrame {
+public:
   hkTransform m_transform;
   hkVector4 m_linearVelocity;
   hkVector4 m_angularVelocity;
@@ -90,6 +91,7 @@ public:
   };
 
   class Edge {
+  public:
     hkaiNavMesh::VertexIndex m_a;
     hkaiNavMesh::VertexIndex m_b;
     hkaiPackedKey m_oppositeEdge;
@@ -132,11 +134,13 @@ public:
 };
 
 class hkaiNavMeshClearanceCache : hkReferencedObject {
+public:
   typedef hkUint8 ClearanceIntegerType;
   typedef ClearanceIntegerType NodeData;
   typedef hkUint8 McpInterpolantIntegerType;
 
   class McpDataInteger {
+  public:
     hkaiNavMeshClearanceCache::McpInterpolantIntegerType m_interpolant;
     hkaiNavMeshClearanceCache::ClearanceIntegerType m_clearance;
   };

@@ -51,3 +51,4 @@
 #include "ui/ui.hpp"       // IWYU pragma: export
 #include "utils.hpp"       // IWYU pragma: export
 #include "r.hpp"           // IWYU pragma: export
+#include "vehicle.hpp"     // IWYU pragma: export

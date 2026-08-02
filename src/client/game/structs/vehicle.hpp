@@ -9,6 +9,9 @@
 #include "core.hpp"
 #include "user.hpp"
 #include "hk/ai.hpp"
+#include <game/symbols/macros.hpp>
+#include <game/symbol.hpp>
+
 namespace game {
 namespace level {
 struct gentity_s;
@@ -331,9 +334,20 @@ PACKED(struct VehicleAntenna {
 });
 ASSERT_SIZE(VehicleAntenna, 0x14);
 
+enum class VehicleType : uint16_t {
+  WHEELS_4 = 0x0,
+  MOTORCYCLE = 0x1,
+  TANK = 0x2,
+  PLANE = 0x3,
+  BOAT = 0x4,
+  ARTILLERY = 0x5,
+  HELICOPTER = 0x6,
+  COUNT = 0x7,
+};
+
 PACKED(struct VehicleDef {
   const char *name;
-  int16_t type;
+  VehicleType type;
   uint8_t _padding0A[2];
   scr::ScrString_t scriptVehicleType;
   scr::ScrString_t archeType;
@@ -748,6 +762,85 @@ public:
 ASSERT_SIZE(minspec_mutex, 0x4);
 
 PACKED(struct NitrousVehicle {
+  enum class NitrousVehicleFlags : uint32_t {
+    PAUSED = 0x1,
+    INITIALIZED = 0x2,
+    SCRIPT_CONTROL = 0x4,
+    DEBUG_RENDER = 0x8,
+    PLAYERS_VEHICLE = 0x40,
+    ATTACHED_PATH = 0x80,
+    DRIVING_PATH = 0x100,
+    ACTUATOR_DISABLED = 0x200,
+    IN_WATER = 0x400,
+    DISABLE_STABILIZERS = 0x800,
+    STUNNED = 0x1000,
+    NEEDS_UNPAUSE = 0x2000,
+    NEEDS_ENTITIES_WHEELS_COLLISION = 0x4000,
+    NEEDS_WHEEL_SETUP = 0x8000,
+    BOOSTING = 0x10000,
+    ANIMSCRIPTED = 0x20000,
+  };
+
+  static constexpr symbol<thiscall_t<void(NitrousVehicle *, float throttle)>>
+      set_throttle{0x0, 0x140321840};
+  static constexpr symbol<thiscall_t<float(NitrousVehicle *, float delta_t)>>
+      get_stuck_accel_factor{0x0, 0x1405C2030};
+  static constexpr symbol<
+      thiscall_t<void(NitrousVehicle *, LocalClientNum_t localClientNum)>>
+      setup_wheels{0x0, 0x1405C2180};
+  static constexpr symbol<
+      thiscall_t<void(NitrousVehicle *, const float delta_t)>>
+      update_boost{0x0, 0x1405C26D0};
+  static constexpr symbol<
+      thiscall_t<void(NitrousVehicle *, float inTq, float spinVel0,
+                      float spinVel1, float *outTq0, float *outTq1)>>
+      update_differential{0x0, 0x1405C27C0};
+  static constexpr symbol<
+      thiscall_t<void(NitrousVehicle *, const float delta_t)>>
+      update_fakey_stuff{0x0, 0x1405C2AA0};
+  static constexpr symbol<
+      thiscall_t<void(NitrousVehicle *, const float delta_t)>>
+      update_gravity{0x0, 0x1405C3090};
+  static constexpr symbol<thiscall_t<void(NitrousVehicle *)>>
+      update_orientation_constraint{0x0, 0x1405C3D20};
+  static constexpr symbol<thiscall_t<void(NitrousVehicle *)>> update_pause{
+      0x0, 0x1405C3EF0};
+  static constexpr symbol<
+      thiscall_t<void(NitrousVehicle *, const float delta_t)>>
+      update_prolog{0x0, 0x1405C4050};
+  static constexpr symbol<fastcall_t<NitrousVehicle *(int32_t id)>> add_vehicle{
+      0x0, 0x1405C4510};
+  static constexpr symbol<fastcall_t<void(float delta_t)>>
+      frame_Epilog_All_Systems{0x0, 0x1405C55A0};
+  static constexpr symbol<fastcall_t<void(const float delta_t)>>
+      frame_prolog_all_systems{0x0, 0x1405C5610};
+  static constexpr symbol<thiscall_t<float(const NitrousVehicle *)>>
+      get_throttle{0x0, 0x1405C58B0};
+  static constexpr symbol<
+      thiscall_t<void(NitrousVehicle *, level::gentity_t * owner,
+                      const VehicleParameter *parameter)>>
+      init{0x0, 0x1405C5980};
+  static constexpr symbol<thiscall_t<bool(NitrousVehicle *)>> is_path_moving{
+      0x0, 0x1405C5D60};
+  static constexpr symbol<thiscall_t<void(NitrousVehicle *, bool shutdown)>>
+      pause_physics{0x0, 0x1405C5EF0};
+  static constexpr symbol<thiscall_t<void(NitrousVehicle *const v)>>
+      remove_vehicle{0x0, 0x1405C6240};
+  static constexpr symbol<
+      thiscall_t<void(NitrousVehicle *, int32_t attach_mode)>>
+      start_path{0x0, 0x1405C6470};
+  static constexpr symbol<thiscall_t<void(NitrousVehicle *)>> unpause_physics{
+      0x0, 0x1405C65F0};
+  static constexpr symbol<
+      thiscall_t<void(NitrousVehicle *, const float desired_speed_factor)>>
+      update_braking_and_acceleration{0x0, 0x1405C69D0};
+  static constexpr symbol<thiscall_t<void(
+      NitrousVehicle *, const VehicleDef *vehicleDef, bool initialization)>>
+      update_parms{0x0, 0x1405C7860};
+  static constexpr symbol<
+      thiscall_t<void(NitrousVehicle *, const float acceleration_factor)>>
+      update_steering{0x0, 0x1405C82B0};
+
   phys::PhysObjUserData *m_phys_user_data;
   WheelState m_wheel_state[6];
   math::RotTranMat43 m_wheel_orig_relpo[6];
@@ -777,7 +870,7 @@ PACKED(struct NitrousVehicle {
   XModel *m_xmodel;
   phys::rigid_body_constraint_custom_orientation *m_orientation_constraint;
   phys::rigid_body_constraint_custom_path *m_vpc;
-  int32_t m_flags;
+  NitrousVehicleFlags m_flags;
   int32_t m_notify_flags;
   int32_t m_server_notify_flags;
   vec3_t m_collision_hitp;
@@ -787,11 +880,11 @@ PACKED(struct NitrousVehicle {
   int32_t m_collision_entnum;
   uint8_t _padding328[8];
   math::RotTranMat43 m_mat;
-  NitrousVehicleController mVehicleController;
   float m_fake_rpm;
   int32_t m_num_colliding_wheels;
   float m_current_side_fric_scale;
   float m_current_fwd_fric_scale;
+  NitrousVehicleController mVehicleController;
   float m_stuck_time;
   int32_t m_lastNetworkTime;
   int32_t m_lastErrorReductionTime;

@@ -5,7 +5,7 @@
 namespace game {
 namespace math {
 
-typedef vec4<float> Float4;
+typedef vec4_t Float4;
 
 struct Dir3 {
   Float4 v;
@@ -25,6 +25,5 @@ struct Mat43 {
 };
 
 typedef Mat43 RotTranMat43;
-typedef vec4_t Float4;
 } // namespace math
 } // namespace game

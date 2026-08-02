@@ -97,14 +97,14 @@ struct PhysPreset {
   snd::SoundsImpactTablePtr impactSounds;
 };
 
-struct rigid_body_constraint_contact;
-struct rigid_body_constraint_custom_path;
-struct rigid_body_constraint_custom_orientation;
-struct rigid_body_constraint_upright;
-struct rigid_body_constraint_angular_actuator;
-struct rigid_body_constraint_ragdoll;
-struct rigid_body_constraint_distance;
-struct rigid_body_constraint_hinge;
+class rigid_body_constraint_contact;
+class rigid_body_constraint_custom_path;
+class rigid_body_constraint_custom_orientation;
+class rigid_body_constraint_upright;
+class rigid_body_constraint_angular_actuator;
+class rigid_body_constraint_ragdoll;
+class rigid_body_constraint_distance;
+class rigid_body_constraint_hinge;
 
 class rigid_body_constraint;
 
@@ -760,8 +760,8 @@ template <typename T> struct phys_inplace_avl_tree_node {
 
 class pulse_sum_node;
 
-struct PhysObjUserData;
-struct rigid_body;
+class PhysObjUserData;
+class rigid_body;
 
 struct WheelState {
   int32_t m_state;
@@ -771,7 +771,7 @@ struct WheelState {
 
 typedef uint32_t phys_gjk_geom_id;
 
-class broad_phase_info : broad_phase_base {
+class broad_phase_info : public broad_phase_base {
 public:
   rigid_body *m_rb;
   const math::RotTranMat43 *m_rb_to_world_xform;
@@ -808,8 +808,6 @@ public:
   float m_hit_time;
   phys_gjk_cache_info *m_gjk_ci;
 };
-
-struct rigid_body_constraint_contact;
 
 struct __attribute__((aligned(16))) contact_point_info {
   struct pulse_sum_cache_info {
@@ -916,6 +914,7 @@ public:
 };
 class __attribute__((aligned(8))) rigid_body_constraint_wheel
     : rigid_body_constraint {
+public:
   pulse_sum_cache m_ps_cache_list[4];
   pulse_sum_normal *m_ps_suspension;
   pulse_sum_normal *m_ps_side_fric;
@@ -983,7 +982,8 @@ public:
   pulse_sum_cache m_ps_cache_list[1];
 };
 class __attribute__((aligned(8))) rigid_body_constraint_custom_orientation
-    : rigid_body_constraint {
+    : public rigid_body_constraint {
+public:
   pulse_sum_cache m_ps_cache_list[5];
   bool m_active;
   bool m_no_orientation_correction;
