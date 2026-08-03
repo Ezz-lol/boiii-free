@@ -464,6 +464,74 @@ inline bool builtin_function(ScrVarCanonicalName_t name) {
              name);
 }
 
+#ifndef NDEBUG
+inline std::optional<const char *>
+builtin_function_name(ScrVarCanonicalName_t id) {
+  // TODO: store custom builtin function names in debug profile builds
+  // if (custom_builtins::functions.names.contains(id)) {
+  //   return custom_builtins::functions.names[id];
+  // }
+  if (game::scr::builtin::table::gscr::BuiltinFunctionTable::hashes.contains(
+          id)) {
+    return game::scr::builtin::table::gscr::BuiltinFunctionTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::cscr::BuiltinFunctionTable::hashes.contains(
+          id)) {
+    return game::scr::builtin::table::cscr::BuiltinFunctionTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::cscr::GfxFunctionTable::hashes.contains(id)) {
+    return game::scr::builtin::table::cscr::GfxFunctionTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::cscr::MathFunctionTable::hashes.contains(id)) {
+    return game::scr::builtin::table::cscr::MathFunctionTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::cscr::SoundFunctionTable::hashes.contains(
+          id)) {
+    return game::scr::builtin::table::cscr::SoundFunctionTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::cscr::UIFunctionTable::hashes.contains(id)) {
+    return game::scr::builtin::table::cscr::UIFunctionTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::cscr::UtilFunctionTable::hashes.contains(id)) {
+    return game::scr::builtin::table::cscr::UtilFunctionTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::CommonFunctionTable::hashes.contains(id)) {
+    return game::scr::builtin::table::CommonFunctionTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::MathFunctionTable::hashes.contains(id)) {
+    return game::scr::builtin::table::MathFunctionTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::SentientFunctionTable::hashes.contains(id)) {
+    return game::scr::builtin::table::SentientFunctionTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::UtilFunctionTable::hashes.contains(id)) {
+    return game::scr::builtin::table::UtilFunctionTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::bg::CommonFunctionTable::hashes.contains(id)) {
+    return game::scr::builtin::table::bg::CommonFunctionTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::bg::MathFunctionTable::hashes.contains(id)) {
+    return game::scr::builtin::table::bg::MathFunctionTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::bg::WeaponFunctionTable::hashes.contains(id)) {
+    return game::scr::builtin::table::bg::WeaponFunctionTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::bg::UtilFunctionTable::hashes.contains(id)) {
+    return game::scr::builtin::table::bg::UtilFunctionTable::hashes.at(id).name;
+  }
+
+  return std::nullopt;
+}
+#endif
+
 inline bool custom_builtin_function(const char *name) {
   return custom_builtin_function(game::scr::builtin::fnv1a(name));
 }
@@ -511,6 +579,77 @@ inline bool builtin_method(ScrVarCanonicalName_t name) {
              name) ||
          game::scr::builtin::table::SentientMethodTable::hashes.contains(name);
 }
+
+#ifndef NDEBUG
+inline std::optional<const char *>
+builtin_method_name(ScrVarCanonicalName_t id) {
+  // TODO: store custom builtin method names in debug profile builds
+  // if (custom_builtins::methods.names.contains(id)) {
+  //   return custom_builtins::methods.names[id];
+  // }
+  if (game::scr::builtin::table::gscr::BuiltinMethodTable::hashes.contains(
+          id)) {
+    return game::scr::builtin::table::gscr::BuiltinMethodTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::cscr::BuiltinMethodTable::hashes.contains(
+          id)) {
+    return game::scr::builtin::table::cscr::BuiltinMethodTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::cscr::GfxMethodTable::hashes.contains(id)) {
+    return game::scr::builtin::table::cscr::GfxMethodTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::cscr::SoundMethodTable::hashes.contains(id)) {
+    return game::scr::builtin::table::cscr::SoundMethodTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::cscr::UtilMethodTable::hashes.contains(id)) {
+    return game::scr::builtin::table::cscr::UtilMethodTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::ActorInterfaceMethodTable::hashes.contains(
+          id)) {
+    return game::scr::builtin::table::ActorInterfaceMethodTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::ActorMethodTable::hashes.contains(id)) {
+    return game::scr::builtin::table::ActorMethodTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::BotMethodTable::hashes.contains(id)) {
+    return game::scr::builtin::table::BotMethodTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::PlayerMethodTable::hashes.contains(id)) {
+    return game::scr::builtin::table::PlayerMethodTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::CommonMethodTable::hashes.contains(id)) {
+    return game::scr::builtin::table::CommonMethodTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::HelicopterMethodTable::hashes.contains(id)) {
+    return game::scr::builtin::table::HelicopterMethodTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::HudElemMethodTable::hashes.contains(id)) {
+    return game::scr::builtin::table::HudElemMethodTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::ScriptEntMethodTable::hashes.contains(id)) {
+    return game::scr::builtin::table::ScriptEntMethodTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::ScriptVehicleMethodTable::hashes.contains(
+          id)) {
+    return game::scr::builtin::table::ScriptVehicleMethodTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::SentientMethodTable::hashes.contains(id)) {
+    return game::scr::builtin::table::SentientMethodTable::hashes.at(id).name;
+  }
+
+  return std::nullopt;
+}
+
+inline std::optional<const char *> builtin_name(ScrVarCanonicalName_t id) {
+  std::optional<const char *> result = builtin_function_name(id);
+  return result.has_value() ? result : builtin_method_name(id);
+}
+#endif
 
 inline bool custom_builtin_method(const std::string_view &name) {
   return custom_builtin_method(game::scr::builtin::fnv1a(name.data()));

@@ -300,11 +300,79 @@ std::optional<std::pair<void *, void *>> iat(const nt::library &library,
   return {{ptr, stub}};
 }
 
-void nop(void *place, const size_t length) {
-  DWORD old_protect{};
-  VirtualProtect(place, length, PAGE_EXECUTE_READWRITE, &old_protect);
+void nop(void *place_arg, const size_t length) {
+  if (!place_arg || length == 0)
+    return;
 
-  std::memset(place, 0x90, length);
+  auto *place = static_cast<uint8_t *>(place_arg);
+  DWORD old_protect{};
+
+  // Validate memory region and ensure VirtualProtect covers the exact length
+  // (inherently handles cross-page boundaries if within the same allocation)
+  MEMORY_BASIC_INFORMATION mbi;
+  if (!VirtualQuery(place, &mbi, sizeof(mbi))) {
+    throw std::runtime_error("VirtualQuery failed during NOP patch");
+  }
+
+  if (!VirtualProtect(place, length, PAGE_EXECUTE_READWRITE, &old_protect)) {
+    throw std::runtime_error("VirtualProtect failed during NOP patch");
+  }
+
+  // Generate multi-byte NOPs (Intel recommended sequences)
+  std::vector<uint8_t> nop_buffer(length);
+  size_t offset = 0;
+
+  while (offset < length) {
+    size_t remaining = length - offset;
+    size_t chunk = std::min<size_t>(remaining, 9);
+
+    switch (chunk) {
+    case 1:
+      nop_buffer[offset] = 0x90;
+      break;
+    case 2:
+      memcpy(&nop_buffer[offset], "\x66\x90", 2);
+      break;
+    case 3:
+      memcpy(&nop_buffer[offset], "\x0F\x1F\x00", 3);
+      break;
+    case 4:
+      memcpy(&nop_buffer[offset], "\x0F\x1F\x40\x00", 4);
+      break;
+    case 5:
+      memcpy(&nop_buffer[offset], "\x0F\x1F\x44\x00\x00", 5);
+      break;
+    case 6:
+      memcpy(&nop_buffer[offset], "\x66\x0F\x1F\x44\x00\x00", 6);
+      break;
+    case 7:
+      memcpy(&nop_buffer[offset], "\x0F\x1F\x80\x00\x00\x00\x00", 7);
+      break;
+    case 8:
+      memcpy(&nop_buffer[offset], "\x0F\x1F\x84\x00\x00\x00\x00\x00", 8);
+      break;
+    case 9:
+      memcpy(&nop_buffer[offset], "\x66\x0F\x1F\x84\x00\x00\x00\x00\x00", 9);
+      break;
+    }
+    offset += chunk;
+  }
+
+  // Staged hot-patching implementation
+  if (length == 1) {
+    _InterlockedExchange8(reinterpret_cast<volatile char *>(place),
+                          nop_buffer[0]);
+  } else {
+    // Write the tail of the instruction first
+    std::memcpy(place + 1, nop_buffer.data() + 1, length - 1);
+
+    // Prevent the compiler and CPU from reordering the memory writes
+    MemoryBarrier();
+
+    // Atomically swap the first byte to validate the NOP
+    _InterlockedExchange8(reinterpret_cast<volatile char *>(place),
+                          nop_buffer[0]);
+  }
 
   VirtualProtect(place, length, old_protect, &old_protect);
   FlushInstructionCache(GetCurrentProcess(), place, length);
@@ -349,7 +417,7 @@ bool is_relatively_far(const size_t pointer, const size_t data,
   return diff != static_cast<int64_t>(small_diff);
 }
 
-void call(void *pointer, void *data) {
+void call(void *pointer, const void *data) {
   if (is_relatively_far(pointer, data)) {
     auto *trampoline = get_memory_near(pointer, 14);
     if (!trampoline) {
@@ -370,7 +438,7 @@ void call(void *pointer, void *data) {
   copy(patch_pointer, copy_data, sizeof(copy_data));
 }
 
-void call(const size_t pointer, void *data) {
+void call(const size_t pointer, const void *data) {
   return call(reinterpret_cast<void *>(pointer), data);
 }
 
@@ -378,7 +446,8 @@ void call(const size_t pointer, const size_t data) {
   return call(pointer, reinterpret_cast<void *>(data));
 }
 
-void jump(void *pointer, void *data, const bool use_far, const bool use_safe) {
+void jump(void *pointer, const void *data, const bool use_far,
+          const bool use_safe) {
   static const unsigned char jump_data[] = {0x48, 0xb8, 0x88, 0x77, 0x66, 0x55,
                                             0x44, 0x33, 0x22, 0x11, 0xff, 0xe0};
 
@@ -421,7 +490,7 @@ void jump(void *pointer, void *data, const bool use_far, const bool use_safe) {
   }
 }
 
-void jump(const size_t pointer, void *data, const bool use_far,
+void jump(const size_t pointer, const void *data, const bool use_far,
           const bool use_safe) {
   return jump(reinterpret_cast<void *>(pointer), data, use_far, use_safe);
 }
@@ -697,4 +766,88 @@ void *follow_branch(void *address) {
 
   return extract<void *>(data + 1);
 }
+
+void nop_branch(uint8_t *ptr) {
+  if (ptr) {
+
+    size_t len = 0;
+
+    // 1. Consume any legacy or REX prefixes
+    while (true) {
+      uint8_t b = ptr[len];
+      if (b == 0x26 || b == 0x2E || b == 0x36 ||
+          b == 0x3E ||              // Segment overrides
+          b == 0x64 || b == 0x65 || // FS/GS overrides
+          b == 0x66 || b == 0x67 || // Operand/Address size overrides
+          b == 0xF0 || b == 0xF2 || b == 0xF3) { // LOCK/BND/REP prefixes
+        len++;
+      } else if (b >= 0x40 && b <= 0x4F) {
+        // REX prefix
+        len++;
+      } else {
+        break; // No more prefixes found
+      }
+    }
+
+    uint8_t opcode = ptr[len];
+    size_t branch_len = 0;
+
+    // 2. Identify the branch instruction and its length
+    if (opcode == 0xEB || (opcode >= 0x70 && opcode <= 0x7F) ||
+        opcode == 0xE3) {
+      // JMP rel8 (EB), Jcc rel8 (70-7F), or JCXZ/JECXZ/JRCXZ (E3)
+      branch_len = len + 2;
+    } else if (opcode == 0xE8 || opcode == 0xE9) {
+      // CALL rel32 (E8) or JMP rel32 (E9)
+      branch_len = len + 5;
+    } else if (opcode == 0x0F) {
+      // Two-byte opcode map (checking for Jcc rel32)
+      uint8_t op2 = ptr[len + 1];
+      if (op2 >= 0x80 && op2 <= 0x8F) {
+        branch_len = len + 6;
+      }
+    } else if (opcode == 0xFF) {
+      // Group 5: CALL/JMP r/m64 (Requires ModR/M parsing)
+      uint8_t modrm = ptr[len + 1];
+      uint8_t mod = (modrm >> 6) & 3;
+      uint8_t reg = (modrm >> 3) & 7;
+      uint8_t rm = modrm & 7;
+
+      // reg == 2 (CALL near), reg == 3 (CALL far), reg == 4 (JMP near), reg ==
+      // 5 (JMP far)
+      if (reg >= 2 && reg <= 5) {
+        branch_len = len + 2; // Prefix(es) + Opcode + ModR/M byte
+
+        if (mod !=
+            3) { // Memory addressing (not a direct register like 'call rax')
+          bool has_sib = (rm == 4);
+
+          if (has_sib) {
+            uint8_t sib = ptr[branch_len];
+            branch_len += 1; // SIB byte
+            uint8_t sib_base = sib & 7;
+
+            if (mod == 0 && sib_base == 5) {
+              branch_len += 4; // disp32 attached to SIB base 5
+            }
+          } else if (mod == 0 && rm == 5) {
+            branch_len += 4; // RIP-relative address (disp32)
+          }
+
+          // Add displacement sizes depending on the mode
+          if (mod == 1)
+            branch_len += 1; // disp8
+          if (mod == 2)
+            branch_len += 4; // disp32
+        }
+      }
+    }
+
+    // 3. Dispatch to the existing nop() hook using the calculated length
+    if (branch_len > 0) {
+      nop(ptr, branch_len);
+    }
+  }
+}
+
 } // namespace utils::hook

@@ -163,21 +163,33 @@ void copy_string(size_t place, const char *str);
 bool is_relatively_far(const void *pointer, const void *data, int offset = 5);
 bool is_relatively_far(size_t pointer, size_t data, int offset = 5);
 
-void call(void *pointer, void *data);
-void call(size_t pointer, void *data);
-void call(size_t pointer, size_t data);
-template <typename F, typename H> inline void call(F *pointer, H *data) {
+void call(void *pointer, const void *data);
+void call(const size_t pointer, const void *data);
+void call(const size_t pointer, const size_t data);
+template <typename F, typename H> inline void call(F *pointer, const H *data) {
   return call(reinterpret_cast<void *>(pointer),
-              reinterpret_cast<void *>(data));
+              reinterpret_cast<const void *>(data));
 }
 
-template <typename H> inline void call(size_t pointer, H *data) {
-  return call(pointer, reinterpret_cast<void *>(data));
+template <typename H> inline void call(const size_t pointer, const H *data) {
+  return call(pointer, reinterpret_cast<const void *>(data));
 }
 
-void jump(void *pointer, void *data, bool use_far = false,
+template <typename H>
+  requires(!std::is_pointer_v<H>)
+inline void call(const size_t pointer, const H &data) {
+  return call(pointer, reinterpret_cast<const void *>(&data));
+}
+
+template <typename H>
+  requires(!std::is_pointer_v<H>)
+inline void call(const size_t pointer, const H data) {
+  return call(pointer, reinterpret_cast<const void *>(&data));
+}
+
+void jump(void *pointer, const void *data, bool use_far = false,
           bool use_safe = false);
-void jump(size_t pointer, void *data, bool use_far = false,
+void jump(size_t pointer, const void *data, bool use_far = false,
           bool use_safe = false);
 void jump(size_t pointer, size_t data, bool use_far = false,
           bool use_safe = false);
@@ -215,5 +227,20 @@ static T invoke(size_t func, Args... args) {
 template <typename T, typename... Args>
 static T invoke(void *func, Args... args) {
   return static_cast<T (*)(Args...)>(func)(args...);
+}
+void nop_branch(uint8_t *address);
+
+template <typename T>
+  requires(!std::is_same_v<T, uint8_t>)
+void nop_branch(T *address) {
+  return nop_branch(reinterpret_cast<uint8_t *>(
+      const_cast<std::remove_const_t<std::remove_volatile_t<T>> *>(address)));
+}
+inline void nop_branch(const uintptr_t address) {
+  return nop_branch(reinterpret_cast<const uint8_t *>(address));
+}
+
+inline void nop_branch(const intptr_t address) {
+  return nop_branch(reinterpret_cast<const uint8_t *>(address));
 }
 } // namespace utils::hook

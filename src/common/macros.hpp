@@ -181,3 +181,7 @@ append_hex(const str<BaseSize> &base, T val,
 
   return result;
 }
+
+template <typename T> inline constexpr const char *reflect_name() {
+  return __PRETTY_FUNCTION__;
+}
