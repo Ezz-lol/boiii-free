@@ -243,20 +243,21 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
 
     constexpr int32_t connectPrefixLen = 8; // "connect "
     constexpr int32_t infoStrQuotesLen = 2;
-    constexpr int32_t destLen =
+    constexpr int32_t connectPacketLen =
         infoStrLen + connectPrefixLen + infoStrQuotesLen;
-    char dest[destLen];
+    char connectPacket[connectPacketLen];
 
-    const int32_t writtenLength = snprintf(dest, destLen, "connect \"%s\"", s);
+    const int32_t writtenLength =
+        snprintf(connectPacket, connectPacketLen, "connect \"%s\"", s);
 
     // ORIGINAL:
     // if (!net::NET_OutOfBandData(networkId, &clc->serverAddress,
     //                             reinterpret_cast<const uint8_t *>(dest),
     //                             writtenLength)) {
     // PATCHED:
-    if (!auth::send_fragmented_connect_packet(
-            controllerIndex, networkId, &clc->serverAddress,
-            reinterpret_cast<const char *>(dest), writtenLength)) {
+    if (!auth::send_fragmented_connect_packet(controllerIndex, networkId,
+                                              &clc->serverAddress,
+                                              connectPacket, writtenLength)) {
       if (!*com::com_errorEntered) {
         com::Com_Error_("q:\\t7\\pc\\code\\src\\client\\cl_main.cpp", 2391,
                         errorParm::SERVERDISCONNECT, "EXE_DISCONNECTED");

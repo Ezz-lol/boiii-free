@@ -284,6 +284,19 @@ enum LocalClientNum_t : int32_t {
 };
 IMPL_ENUM_OPERATORS(LocalClientNum_t);
 
+#ifndef NDEBUG
+inline constexpr const char *serialize(LocalClientNum_t localClientNum) {
+  switch (localClientNum) {
+  case LOCAL_CLIENT_0:
+    return "LOCAL_CLIENT_0";
+  case LOCAL_CLIENT_1:
+    return "LOCAL_CLIENT_1";
+  default:
+    return "INVALID_LOCAL_CLIENT";
+  }
+}
+#endif
+
 enum class LocalClientNum8_t : int8_t {
   INVALID_LOCAL_CLIENT = -1,
   LOCAL_CLIENT_0 = 0x0,

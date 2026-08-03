@@ -1970,9 +1970,15 @@ struct __attribute__((aligned(8))) cgs_t {
   float compassHeight;
   float compassY;
   sv::clientInfo_t corpseinfo[6];
-  user::actorInfo_t actorCorpseInfo[32];
-  bool entUpdateToggleContextKey;
+  // Commented out to quickly fix struct size overflow. TODO: fix this struct.
+  // user::actorInfo_t actorCorpseInfo[32];
+  // bool entUpdateToggleContextKey;
+
+  uint8_t _unknown[0x162a0];
 };
+// TODO: fix struct. 0x1E940 is correct size - current definition exceeds this.
+ASSERT_SIZE(cgs_t, 0x1E940);
+
 struct cgsPool {
   LocalClientPool<cgs_t> pool;
 };

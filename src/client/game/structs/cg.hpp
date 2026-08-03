@@ -62,6 +62,42 @@ struct ClientPlayerAttachmentInfo {
   const char *translatedDisplayName;
 };
 
+struct ClientPlayerAttachmentInfoPool {
+  static constexpr size_t LEN = 64;
+  ClientPlayerAttachmentInfo pool[LEN];
+
+  static inline constexpr void assert_range(size_t index) {
+    assert(index < LEN && "index to ClientPlayerAttachmentInfoPool must be "
+                          "within range 0 <= index < 64");
+  }
+
+  template <IntegralLike<size_t> Index>
+  inline constexpr const ClientPlayerAttachmentInfo &
+  get(Index index_arg) const {
+    const size_t index = static_cast<size_t>(index_arg);
+    assert_range(index);
+    return pool[index];
+  }
+
+  template <IntegralLike<size_t> Index>
+  inline constexpr const ClientPlayerAttachmentInfo &
+  operator[](Index index) const {
+    return get(index);
+  }
+
+  template <IntegralLike<size_t> Index>
+  inline constexpr ClientPlayerAttachmentInfo &get(Index index_arg) {
+    const size_t index = static_cast<size_t>(index_arg);
+    assert_range(index);
+    return pool[index];
+  }
+
+  template <IntegralLike<size_t> Index>
+  inline constexpr ClientPlayerAttachmentInfo &operator[](Index index) {
+    return get(index);
+  }
+};
+
 #pragma pack(push, 1)
 struct ClientPlayerWeaponInfo {
   db::xasset::XModel *handModel;
@@ -88,6 +124,10 @@ struct LocalClientCgDestructiblesPools {
 };
 
 struct LocalClientIkBufs {
+  LocalClientPool<ik::IkBufRef> bufs;
+};
+
+struct LocalClientIkBufPool {
   LocalClientPool<ik::IkBuf> bufs;
 };
 

@@ -17,6 +17,9 @@ void CG_AllocateClientMemory_Impl(
     hunk::HunkUser *hunk,
     LocalClientNum_t maxLocalClients = game::LOCAL_CLIENT_COUNT);
 
-bool CG_IsFullyInitialized_Impl(LocalClientNum_t localClientNum);
+inline bool CG_IsFullyInitialized_Impl(LocalClientNum_t localClientNum) {
+  return localClientNum < *cl::cl_maxLocalClients &&
+         cgArray[localClientNum].nextSnap != nullptr;
+}
 } // namespace cg
 } // namespace game

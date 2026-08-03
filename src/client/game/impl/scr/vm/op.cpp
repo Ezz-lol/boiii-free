@@ -19,10 +19,9 @@ void VM_OP_GetTime_Handler_Impl(scriptInstance_t inst,
     break;
   }
   case SCRIPTINSTANCE_CLIENT: {
-    const cgPool *cgArray = game::cg::get_cgArray();
-    if (cgArray != nullptr && *primaryLocalClientNum < *cl_maxLocalClients) {
+    if (*primaryLocalClientNum < *cl_maxLocalClients) {
       fs->top[1].type = var::ScrVarType::INT;
-      fs->top[1].u.intValue = cgArray->pool[*primaryLocalClientNum].time;
+      fs->top[1].u.intValue = game::cg::cgArray[*primaryLocalClientNum].time;
     } else {
       goto unreachable;
     }

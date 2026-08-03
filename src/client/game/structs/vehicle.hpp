@@ -781,65 +781,134 @@ PACKED(struct NitrousVehicle {
     ANIMSCRIPTED = 0x20000,
   };
 
-  static constexpr symbol<thiscall_t<void(NitrousVehicle *, float throttle)>>
-      set_throttle{0x0, 0x140321840};
-  static constexpr symbol<thiscall_t<float(NitrousVehicle *, float delta_t)>>
-      get_stuck_accel_factor{0x0, 0x1405C2030};
-  static constexpr symbol<
-      thiscall_t<void(NitrousVehicle *, LocalClientNum_t localClientNum)>>
-      setup_wheels{0x0, 0x1405C2180};
-  static constexpr symbol<
-      thiscall_t<void(NitrousVehicle *, const float delta_t)>>
-      update_boost{0x0, 0x1405C26D0};
-  static constexpr symbol<
-      thiscall_t<void(NitrousVehicle *, float inTq, float spinVel0,
-                      float spinVel1, float *outTq0, float *outTq1)>>
-      update_differential{0x0, 0x1405C27C0};
-  static constexpr symbol<
-      thiscall_t<void(NitrousVehicle *, const float delta_t)>>
-      update_fakey_stuff{0x0, 0x1405C2AA0};
-  static constexpr symbol<
-      thiscall_t<void(NitrousVehicle *, const float delta_t)>>
-      update_gravity{0x0, 0x1405C3090};
-  static constexpr symbol<thiscall_t<void(NitrousVehicle *)>>
-      update_orientation_constraint{0x0, 0x1405C3D20};
-  static constexpr symbol<thiscall_t<void(NitrousVehicle *)>> update_pause{
-      0x0, 0x1405C3EF0};
-  static constexpr symbol<
-      thiscall_t<void(NitrousVehicle *, const float delta_t)>>
-      update_prolog{0x0, 0x1405C4050};
-  static constexpr symbol<fastcall_t<NitrousVehicle *(int32_t id)>> add_vehicle{
-      0x0, 0x1405C4510};
-  static constexpr symbol<fastcall_t<void(float delta_t)>>
-      frame_Epilog_All_Systems{0x0, 0x1405C55A0};
-  static constexpr symbol<fastcall_t<void(const float delta_t)>>
-      frame_prolog_all_systems{0x0, 0x1405C5610};
-  static constexpr symbol<thiscall_t<float(const NitrousVehicle *)>>
-      get_throttle{0x0, 0x1405C58B0};
-  static constexpr symbol<
-      thiscall_t<void(NitrousVehicle *, level::gentity_t * owner,
-                      const VehicleParameter *parameter)>>
-      init{0x0, 0x1405C5980};
-  static constexpr symbol<thiscall_t<bool(NitrousVehicle *)>> is_path_moving{
-      0x0, 0x1405C5D60};
-  static constexpr symbol<thiscall_t<void(NitrousVehicle *, bool shutdown)>>
-      pause_physics{0x0, 0x1405C5EF0};
-  static constexpr symbol<thiscall_t<void(NitrousVehicle *const v)>>
-      remove_vehicle{0x0, 0x1405C6240};
-  static constexpr symbol<
-      thiscall_t<void(NitrousVehicle *, int32_t attach_mode)>>
-      start_path{0x0, 0x1405C6470};
-  static constexpr symbol<thiscall_t<void(NitrousVehicle *)>> unpause_physics{
-      0x0, 0x1405C65F0};
-  static constexpr symbol<
-      thiscall_t<void(NitrousVehicle *, const float desired_speed_factor)>>
-      update_braking_and_acceleration{0x0, 0x1405C69D0};
-  static constexpr symbol<thiscall_t<void(
-      NitrousVehicle *, const VehicleDef *vehicleDef, bool initialization)>>
-      update_parms{0x0, 0x1405C7860};
-  static constexpr symbol<
-      thiscall_t<void(NitrousVehicle *, const float acceleration_factor)>>
-      update_steering{0x0, 0x1405C82B0};
+  struct syms {
+    static constexpr symbol<thiscall_t<void(NitrousVehicle *, float throttle)>>
+        set_throttle{0x0, 0x140321840};
+    static constexpr symbol<thiscall_t<float(NitrousVehicle *, float delta_t)>>
+        get_stuck_accel_factor{0x0, 0x1405C2030};
+    static constexpr symbol<
+        thiscall_t<void(NitrousVehicle *, LocalClientNum_t localClientNum)>>
+        setup_wheels{0x0, 0x1405C2180};
+    static constexpr symbol<
+        thiscall_t<void(NitrousVehicle *, const float delta_t)>>
+        update_boost{0x0, 0x1405C26D0};
+    static constexpr symbol<
+        thiscall_t<void(NitrousVehicle *, float inTq, float spinVel0,
+                        float spinVel1, float *outTq0, float *outTq1)>>
+        update_differential{0x0, 0x1405C27C0};
+    static constexpr symbol<
+        thiscall_t<void(NitrousVehicle *, const float delta_t)>>
+        update_fakey_stuff{0x0, 0x1405C2AA0};
+    static constexpr symbol<
+        thiscall_t<void(NitrousVehicle *, const float delta_t)>>
+        update_gravity{0x0, 0x1405C3090};
+    static constexpr symbol<thiscall_t<void(NitrousVehicle *)>>
+        update_orientation_constraint{0x0, 0x1405C3D20};
+    static constexpr symbol<thiscall_t<void(NitrousVehicle *)>> update_pause{
+        0x0, 0x1405C3EF0};
+    static constexpr symbol<
+        thiscall_t<void(NitrousVehicle *, const float delta_t)>>
+        update_prolog{0x0, 0x1405C4050};
+    static constexpr symbol<fastcall_t<NitrousVehicle *(int32_t id)>>
+        add_vehicle{0x0, 0x1405C4510};
+    static constexpr symbol<fastcall_t<void(float delta_t)>>
+        frame_Epilog_All_Systems{0x0, 0x1405C55A0};
+    static constexpr symbol<fastcall_t<void(const float delta_t)>>
+        frame_prolog_all_systems{0x0, 0x1405C5610};
+    static constexpr symbol<thiscall_t<float(const NitrousVehicle *)>>
+        get_throttle{0x0, 0x1405C58B0};
+    static constexpr symbol<
+        thiscall_t<void(NitrousVehicle *, level::gentity_t *owner,
+                        const VehicleParameter *parameter)>>
+        init{0x0, 0x1405C5980};
+    static constexpr symbol<thiscall_t<bool(NitrousVehicle *)>> is_path_moving{
+        0x0, 0x1405C5D60};
+    static constexpr symbol<thiscall_t<void(NitrousVehicle *, bool shutdown)>>
+        pause_physics{0x0, 0x1405C5EF0};
+    static constexpr symbol<thiscall_t<void(const NitrousVehicle *v)>>
+        remove_vehicle{0x0, 0x1405C6240};
+    static constexpr symbol<
+        thiscall_t<void(NitrousVehicle *, int32_t attach_mode)>>
+        start_path{0x0, 0x1405C6470};
+    static constexpr symbol<thiscall_t<void(NitrousVehicle *)>> unpause_physics{
+        0x0, 0x1405C65F0};
+    static constexpr symbol<
+        thiscall_t<void(NitrousVehicle *, const float desired_speed_factor)>>
+        update_braking_and_acceleration{0x0, 0x1405C69D0};
+    static constexpr symbol<thiscall_t<void(
+        NitrousVehicle *, const VehicleDef *vehicleDef, bool initialization)>>
+        update_parms{0x0, 0x1405C7860};
+    static constexpr symbol<
+        thiscall_t<void(NitrousVehicle *, const float acceleration_factor)>>
+        update_steering{0x0, 0x1405C82B0};
+  };
+
+  inline void set_throttle(float throttle) {
+    return syms::set_throttle(this, throttle);
+  }
+  inline float get_stuck_accel_factor(float delta_t) {
+    return syms::get_stuck_accel_factor(this, delta_t);
+  }
+  inline void setup_wheels(LocalClientNum_t localClientNum) {
+    return syms::setup_wheels(this, localClientNum);
+  }
+  inline void update_boost(const float delta_t) {
+    return syms::update_boost(this, delta_t);
+  }
+  inline void update_differential(float inTq, float spinVel0, float spinVel1,
+                                  float *outTq0, float *outTq1) {
+    return syms::update_differential(this, inTq, spinVel0, spinVel1, outTq0,
+                                     outTq1);
+  }
+  inline void update_fakey_stuff(const float delta_t) {
+    return syms::update_fakey_stuff(this, delta_t);
+  }
+  inline void update_gravity(const float delta_t) {
+    return syms::update_gravity(this, delta_t);
+  }
+  inline void update_orientation_constraint() {
+    return syms::update_orientation_constraint(this);
+  }
+  inline void update_pause() { return syms::update_pause(this); }
+  inline void update_prolog(const float delta_t) {
+    return syms::update_prolog(this, delta_t);
+  }
+  static inline NitrousVehicle *add_vehicle(int32_t id) {
+    return syms::add_vehicle(id);
+  }
+  static inline void frame_Epilog_All_Systems(float delta_t) {
+    return syms::frame_Epilog_All_Systems(delta_t);
+  }
+  static inline void frame_prolog_all_systems(const float delta_t) {
+    return syms::frame_prolog_all_systems(delta_t);
+  }
+  inline float get_throttle() { return syms::get_throttle(this); }
+  inline void init(level::gentity_t * owner,
+                   const VehicleParameter *parameter) {
+    return syms::init(this, owner, parameter);
+  }
+  inline bool is_path_moving() { return syms::is_path_moving(this); }
+  inline void pause_physics(bool shutdown) {
+    return syms::pause_physics(this, shutdown);
+  }
+  static inline void remove_vehicle(const NitrousVehicle *v) {
+    return syms::remove_vehicle(v);
+  }
+  inline void start_path(int32_t attach_mode) {
+    return syms::start_path(this, attach_mode);
+  }
+  inline void unpause_physics() { return syms::unpause_physics(this); }
+  inline void update_braking_and_acceleration(
+      const float desired_speed_factor) {
+    return syms::update_braking_and_acceleration(this, desired_speed_factor);
+  }
+
+  inline void update_parms(const VehicleDef *vehicleDef, bool initialization) {
+    return syms::update_parms(this, vehicleDef, initialization);
+  }
+  inline void update_steering(const float acceleration_factor) {
+    return syms::update_steering(this, acceleration_factor);
+  }
 
   phys::PhysObjUserData *m_phys_user_data;
   WheelState m_wheel_state[6];
@@ -897,10 +966,9 @@ PACKED(struct NitrousVehicle {
   float m_drivepath_scale;
   float m_accel_scale;
   int32_t m_throttle_held_down;
-  bool m_throttle_time_started;
-  bool m_last_all_wheel_contact_was_wall;
-  bool m_is_being_drop_deployed;
-  uint8_t _padding4D3[1];
+  qboolean m_throttle_time_started;
+  qboolean m_last_all_wheel_contact_was_wall;
+  qboolean m_is_being_drop_deployed;
   vec3_t m_last_origin;
   vec3_t m_last_angles;
   float m_buoyancyOffset;

@@ -567,8 +567,8 @@ struct server_t {
   int32_t checksumFeed;
   qboolean wroteConfigStrings;
   scr::ScrString_t emptyConfigString;
-  volatile scr::ScrString_t configstrings[3568];
-  svEntity_t svEntities[2048];
+  volatile scr::ScrString_t configstrings[0xdf0];
+  svEntity_t svEntities[0x800];
   level::gentity_t *gentities;
   int32_t gentitySize;
   int32_t num_entities;
@@ -580,11 +580,11 @@ struct server_t {
   int32_t checksum;
   int32_t skelTimeStamp;
   int32_t skelMemPos;
-  int32_t bpsWindow[20];
+  int32_t bpsWindow[0x14];
   int32_t bpsWindowSteps;
   int32_t bpsTotalBytes;
   int32_t bpsMaxBytes;
-  int32_t ubpsWindow[20];
+  int32_t ubpsWindow[0x14];
   int32_t ubpsTotalBytes;
   int32_t ubpsMaxBytes;
   float ucompAve;
@@ -592,16 +592,16 @@ struct server_t {
   volatile int32_t serverFrameTime;
   volatile int32_t serverFrameTimeMin;
   volatile int32_t serverFrameTimeMax;
-  recentFrame recentFrameInfo[200];
-  uint8_t _unknown139B8[36];
-  char gametype[64];
+  recentFrame recentFrameInfo[0xc8];
+  uint8_t _unknown139B8[0x24];
+  char gametype[0x40];
   qboolean killServer;
   const char *killReason;
   int32_t currentFrameNum;
   int32_t nextClientsPositionArchive;
   clientsPositionArchive_t clientsPositionArchive[40];
   int32_t nextClientsFlashbackArchive;
-  clientsFlashbackArchive_t clientsFlashBackArchive[512];
+  clientsFlashbackArchive_t clientsFlashBackArchive[0x200];
   clientsFlashbackArchive_t clientsLatestFlashBack;
   // Each field XORed with client XUID to generate client gamestate security
   // checksum

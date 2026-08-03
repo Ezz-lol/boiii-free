@@ -3,7 +3,6 @@
 #include <game/symbols/sym_include.hpp>
 
 #include <cstdint>
-#include <atomic>
 
 namespace game {
 namespace level {
@@ -16,11 +15,12 @@ WEAK symbol<level::gentity_pool> g_entities{0x0, 0x1471031B0};
    Notes:
      - 0x27C000 == sizeof(level::gentity_t) * 2048
      - **DO NOT** use `g_entities_cl` directly. Use `g_entities_cl_allocation`
-      instead. See note above `store_g_entities_cl_allocation` in
-      src/client/component/client_patches.cpp for context.
+      instead. `g_entities_cl` is TAC-protected, and is modified to only ever
+  store an address to our static `g_entities_cl_allocation` pools, if it
+  contains a valid address.
 */
 WEAK symbol<level::gentity_pool *> g_entities_cl{0x14A5F25F8};
-extern std::atomic<level::gentity_pool *> g_entities_cl_allocation;
+extern level::gentity_pool g_entities_cl_allocation;
 inline gentity_pool *get_g_entities() {
   if (game::is_client()) {
     /*
@@ -41,15 +41,12 @@ inline gentity_pool *get_g_entities() {
 
       To circumvent this, and to avoid having to find some way of
       deterministically computing where the correct g_entities pointer was
-      copied, we can instead store the g_entities pointer at time of
-      allocation into our own global, and use this identically and reliably
-      within boiii's code.
+      copied, we can instead statically allocate the g_entities pool and return
+      its address where heap allocation is attempted in the engine, then use
+      this identically and reliably within boiii's code.
     */
-    gentity_pool *stored = g_entities_cl_allocation.load();
-    if (stored) {
-      return stored;
-    }
-    return *g_entities_cl;
+
+    return &g_entities_cl_allocation;
   }
 
   return g_entities.get();

@@ -1448,6 +1448,16 @@ struct scr_entref_t {
   uint16_t classnum;
   LocalClientNum_t client;
   inline constexpr bool is_hudelem() const noexcept;
+
+#ifndef NDEBUG
+  template <size_t N>
+  inline const char *serialize(char (&buf)[N]) const noexcept {
+    snprintf(buf, N,
+             "scr_entref_t { u.val: 0x%016llX, classnum: 0x%04X, client: %s }",
+             u.val, classnum, game::serialize(client));
+    return buf;
+  }
+#endif
 };
 
 ASSERT_SIZE(scr_entref_t, 0x10);

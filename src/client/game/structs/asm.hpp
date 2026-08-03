@@ -1054,6 +1054,43 @@ struct __attribute__((aligned(8))) ViewModelInfo {
   db::xasset::XModelPtr altModels[4];
   uint32_t numAltModels;
 };
+// Verified
+ASSERT_SIZE(ViewModelInfo, 0x3A0);
+
+struct ViewModelInfoPool {
+  static constexpr size_t LEN = 64;
+  LocalClientPool<ViewModelInfo> pool;
+
+  static inline constexpr void assert_range(size_t index) {
+    assert(index < LocalClientNum_t::LOCAL_CLIENT_COUNT &&
+           "index to ViewModelInfoPool must be "
+           "within range LOCAL_CLIENT_0 <= index < LOCAL_CLIENT_COUNT");
+  }
+
+  template <IntegralLike<size_t> Index>
+  inline constexpr const ViewModelInfo &get(Index index_arg) const {
+    const size_t index = static_cast<size_t>(index_arg);
+    assert_range(index);
+    return pool[index];
+  }
+
+  template <IntegralLike<size_t> Index>
+  inline constexpr const ViewModelInfo &operator[](Index index) const {
+    return get(index);
+  }
+
+  template <IntegralLike<size_t> Index>
+  inline constexpr ViewModelInfo &get(Index index_arg) {
+    const size_t index = static_cast<size_t>(index_arg);
+    assert_range(index);
+    return pool[index];
+  }
+
+  template <IntegralLike<size_t> Index>
+  inline constexpr ViewModelInfo &operator[](Index index) {
+    return get(index);
+  }
+};
 
 } // namespace anim
 } // namespace game
