@@ -1133,6 +1133,11 @@ bool relaunch_exe_with_launch_options(const std::string &exe_path,
   std::string command_line = "\"" + exe_path + "\"";
   command_line += " \"-launch\"";
 
+  if (utils::flags::has_flag("noupdate") &&
+      std::find(options.begin(), options.end(), "noupdate") == options.end()) {
+    command_line += " -noupdate";
+  }
+
   for (const auto &option : options) {
     command_line += " -";
     command_line += option;

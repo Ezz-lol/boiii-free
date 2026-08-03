@@ -157,6 +157,9 @@
   var _latestVersionTag = "";
 
   var workshopBrowseGrid = document.getElementById("workshopBrowseGrid");
+  var workshopViewToggleBtn = document.getElementById(
+    "workshopViewToggleBtn"
+  );
   var workshopSearchInput = document.getElementById("workshopSearchInput");
   var workshopSearchBtn = document.getElementById("workshopSearchBtn");
   var workshopBrowseRefreshBtn = document.getElementById(
@@ -178,6 +181,41 @@
   var workshopBrowseSource = "none";
   var workshopBrowseCacheKey = "workshopBrowseCache";
   var _workshopBrowsePollInterval = null;
+
+  var workshopViewMode = "grid";
+  try {
+    if (localStorage.getItem("workshopViewMode") === "single") {
+      workshopViewMode = "single";
+    }
+  } catch (e) {}
+
+  function applyWorkshopViewMode() {
+    var single = workshopViewMode === "single";
+    if (workshopBrowseGrid) {
+      if (single) workshopBrowseGrid.classList.add("single-column");
+      else workshopBrowseGrid.classList.remove("single-column");
+    }
+    if (workshopViewToggleBtn) {
+      workshopViewToggleBtn.textContent = single
+        ? "Two columns"
+        : "Single column";
+      workshopViewToggleBtn.setAttribute(
+        "aria-pressed",
+        single ? "true" : "false"
+      );
+    }
+  }
+
+  if (workshopViewToggleBtn) {
+    workshopViewToggleBtn.onclick = function () {
+      workshopViewMode = workshopViewMode === "single" ? "grid" : "single";
+      try {
+        localStorage.setItem("workshopViewMode", workshopViewMode);
+      } catch (e) {}
+      applyWorkshopViewMode();
+    };
+  }
+  applyWorkshopViewMode();
 
   var workshopOverlay = document.getElementById("workshopOverlay");
   var workshopModal = document.getElementById("workshopModal");
