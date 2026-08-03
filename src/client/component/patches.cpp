@@ -101,6 +101,36 @@ std::string resolve_hashes_in_string(const std::string &input) {
   return resolve_bare_hashes(resolve_quoted_hashes(input));
 }
 
+utils::hook::detour Sys_Error_hook;
+void Sys_Error_LogCaller(const char *fmt, ...) {
+  void *callerAddr = _ReturnAddress();
+  va_list ap;
+  va_start(ap, fmt);
+  int32_t len = vsnprintf(nullptr, 0, fmt, ap);
+  va_end(ap);
+  va_start(ap, fmt);
+  std::vector<char> infoBuf(len + 1);
+  vsnprintf(infoBuf.data(), infoBuf.size(), fmt, ap);
+  va_end(ap);
+  const char *msg = infoBuf.data();
+  if (msg == nullptr || msg[0] == '\0') {
+    msg = "No message provided!";
+  }
+  fprintf(stderr, "[Sys_Error] Called from 0x%p with message: \"%s\"",
+          game::derelocate(callerAddr), msg);
+  fflush(stderr);
+  game::trace("[Sys_Error] Called from 0x%p with message: \"%s\"",
+              game::derelocate(callerAddr), msg);
+  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
+                        "[Sys_Error] Called from 0x%p with message: \"%s\"",
+                        game::derelocate(callerAddr), msg);
+  if (game::is_server() && server_restart::restart_pending.load()) {
+
+    return;
+  }
+  Sys_Error_hook.invoke("%s", msg);
+}
+
 #define MS 1ms
 #define SECOND 1000 * MS
 #define MINUTE 60 * SECOND
@@ -121,12 +151,16 @@ void com_error_stub(const char *file, int line, game::errorParm code,
   if (msg == nullptr || msg[0] == '\0') {
     msg = "No message provided!";
   }
-  printf("[Com_Error] Called from 0x%p with message: \"%s\", code: %d\n",
-         callerAddr, msg, static_cast<int32_t>(code));
+  fprintf(stderr,
+          "[Com_Error] Called from 0x%p with message: \"%s\", code: %d\n",
+          game::derelocate(callerAddr), msg, static_cast<int32_t>(code));
+  fflush(stderr);
+  game::trace("[Com_Error] Called from 0x%p with message: \"%s\", code: %d\n",
+              game::derelocate(callerAddr), msg, static_cast<int32_t>(code));
   game::com::Com_Printf(
       0, game::consoleLabel_e::DEFAULT,
-      "ComError called from 0x%p with message: \"%s\", code: %d\n", callerAddr,
-      msg, static_cast<int32_t>(code));
+      "ComError called from 0x%p with message: \"%s\", code: %d\n",
+      game::derelocate(callerAddr), msg, static_cast<int32_t>(code));
   static bool suppress_next_lua_error = false;
   static bool client_script_error_pending = false;
 
@@ -419,6 +453,7 @@ struct component final : generic_component {
 #endif
     // Clientfield Mismatch -> recoverable ERR_DROP
     com_error_hook.create(game::com::Com_Error_, com_error_stub);
+    Sys_Error_hook.create(game::sys::Sys_Error, Sys_Error_LogCaller);
 
     /*
        Fix memory access exception in Sys_WaitForSingleObject during mapswitch.
