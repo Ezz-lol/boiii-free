@@ -2242,11 +2242,11 @@ void workshop_download_thread(std::string workshop_id) {
     }
 
     set_workshop_status("Installing files...", 99.9,
-                        "Type: " + mod_type + " | Folder: " + folder_name);
+                        "Type: " + mod_type + " | Folder: " + workshop_id);
 
     std::filesystem::path dest_parent =
         (mod_type == "mod") ? (game_path / "mods") : (game_path / "usermaps");
-    std::filesystem::path dest = dest_parent / folder_name / "zone";
+    std::filesystem::path dest = dest_parent / workshop_id / "zone";
     std::error_code ec;
     std::filesystem::create_directories(dest, ec);
     if (ec) {
