@@ -2106,16 +2106,23 @@ bool run() {
               rapidjson::Document sdoc;
               if (!sdoc.Parse(sdata.c_str()).HasParseError() &&
                   sdoc.IsObject()) {
-                auto al = sdoc.FindMember("asset_limits_enabled");
-                if (al != sdoc.MemberEnd() && al->value.IsString()) {
-                  w.Key("assetLimits");
-                  w.String(al->value.GetString());
-                }
+                for (auto it = sdoc.MemberBegin(); it != sdoc.MemberEnd();
+                     ++it) {
+                  if (!it->value.IsString())
+                    continue;
 
-                auto fo = sdoc.FindMember("friends_only");
-                if (fo != sdoc.MemberEnd() && fo->value.IsString()) {
-                  w.Key("friendsOnly");
-                  w.String(fo->value.GetString());
+                  const std::string key = it->name.GetString();
+                  if (key == "asset_limits_enabled") {
+                    w.Key("assetLimits");
+                  } else if (key == "friends_only") {
+                    w.Key("friendsOnly");
+                  } else if (key == "disable_asset_pools" ||
+                             key.starts_with("ap_")) {
+                    w.Key(key.c_str());
+                  } else {
+                    continue;
+                  }
+                  w.String(it->value.GetString());
                 }
               }
             }
@@ -2139,7 +2146,8 @@ bool run() {
           char cwd[MAX_PATH] = {};
           GetCurrentDirectoryA(MAX_PATH, cwd);
 
-          if (key == "asset_limits_enabled") {
+          if (key == "asset_limits_enabled" ||
+              key == "disable_asset_pools" || key.starts_with("ap_")) {
             const auto path = std::filesystem::path("boiii_players") / "user" /
                               "launcher_settings.json";
             std::error_code ec;
@@ -2148,26 +2156,27 @@ bool run() {
             rapidjson::Document doc;
             std::string data;
             if (utils::io::read_file(path.string(), &data) && !data.empty()) {
-              if (doc.Parse(data.c_str()).HasParseError())
+              if (doc.Parse(data.c_str()).HasParseError() || !doc.IsObject())
                 doc.SetObject();
             } else {
               doc.SetObject();
             }
 
-            if (doc.HasMember("asset_limits_enabled"))
-              doc["asset_limits_enabled"].SetString(value.c_str(),
-                                                    doc.GetAllocator());
+            if (doc.HasMember(key.c_str()))
+              doc[key.c_str()].SetString(value.c_str(), doc.GetAllocator());
             else
-              doc.AddMember("asset_limits_enabled",
+              doc.AddMember(rapidjson::Value(key.c_str(), doc.GetAllocator()),
                             rapidjson::Value(value.c_str(), doc.GetAllocator()),
                             doc.GetAllocator());
 
             rapidjson::StringBuffer sb;
             rapidjson::Writer<rapidjson::StringBuffer> w(sb);
             doc.Accept(w);
-            utils::io::write_file(path.string(),
-                                  std::string(sb.GetString(), sb.GetSize()));
-            return CComVariant("ok");
+            return CComVariant(
+                utils::io::write_file(
+                    path.string(), std::string(sb.GetString(), sb.GetSize()))
+                    ? "ok"
+                    : "write_error");
           }
 
           if (key == "networkpassword" || key == "netpassword" ||
