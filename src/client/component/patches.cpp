@@ -434,6 +434,35 @@ void SV_RestartCmd_RotateOrDefault() {
   }
 }
 
+#ifndef NDEBUG
+utils::hook::detour PhysPrint_hook;
+void PhysPrint_AllOutputs(const char *fmt, ...) {
+  void *callerAddr = _ReturnAddress();
+  va_list ap;
+  va_start(ap, fmt);
+  int32_t len = vsnprintf(nullptr, 0, fmt, ap);
+  va_end(ap);
+  va_start(ap, fmt);
+  std::vector<char> infoBuf(len + 1);
+  vsnprintf(infoBuf.data(), infoBuf.size(), fmt, ap);
+  va_end(ap);
+  const char *msg = infoBuf.data();
+  if (msg == nullptr) {
+    msg = "";
+  }
+
+  const char *formatted_msg =
+      utils::string::va("[Phys][Print(0x%p)]%s%s", game::derelocate(callerAddr),
+                        msg[0] ? " " : "", msg);
+  fprintf(stdout, "%s\n", formatted_msg);
+  fflush(stdout);
+
+  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s\n",
+                        formatted_msg);
+  game::trace("%s", formatted_msg);
+}
+#endif
+
 utils::hook::detour SV_FastRestart_f_hook;
 utils::hook::detour SV_MapRestart_f_hook;
 
@@ -488,6 +517,9 @@ struct component final : generic_component {
     SV_FastRestart_f_hook.create(
         game::sv::SV_FastRestart_f.get(),
         SV_RestartCmd_RotateOrDefault<game::RestartMethod_t::ROUND>);
+#ifndef NDEBUG
+    PhysPrint_hook.create(game::phys::PhysPrint, PhysPrint_AllOutputs);
+#endif
   } // namespace patches
 };
 } // namespace patches

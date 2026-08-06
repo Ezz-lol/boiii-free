@@ -520,7 +520,7 @@ public:
       Total replacement of a function can usually be performed by `hook`ing
       the function and instead executing another function which does not invoke
       the hooked function. In this case, the crash-triggering instruction would
-      still be executed, as hook invocation executes the hooked function's
+      still be executed, as detour invocation executes the hooked function's
       prologue.
 
       To resolve this, we instead replace all known calls to the original
