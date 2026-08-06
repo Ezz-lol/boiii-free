@@ -106,10 +106,14 @@ void invoke_main_frame_with_jmp() {
 #pragma warning(pop)
 
 void invoke_server_main_frame_seh() {
+#ifndef NDEBUG
   __try {
+#endif
     invoke_main_frame_with_jmp();
+#ifndef NDEBUG
     server_restart::consecutive_crash_count.store(0);
     server_restart::restart_recovery_active.store(false);
+
   } __except (server_seh_filter(GetExceptionInformation(), "Game frame")) {
     server_restart::game_frame_jmp_set = false;
     if (!server_restart::restart_pending.load()) {
@@ -118,6 +122,7 @@ void invoke_server_main_frame_seh() {
       }
     }
   }
+#endif
 }
 
 void safe_invoke_main_frame() {
@@ -132,8 +137,11 @@ void safe_invoke_main_frame() {
 
 void main_frame_stub() {
   safe_invoke_main_frame();
+#ifndef NDEBUG
   __try {
+#endif
     execute(main);
+#ifndef NDEBUG
   } __except (server_seh_filter(GetExceptionInformation(), "Scheduler task")) {
     if (game::is_server() && !server_restart::restart_pending.load()) {
       if (server_restart::consecutive_crash_count.fetch_add(1) < 3) {
@@ -142,6 +150,7 @@ void main_frame_stub() {
     }
   }
   server_restart::check_and_execute();
+#endif
 }
 } // namespace
 
