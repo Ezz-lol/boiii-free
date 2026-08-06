@@ -64,6 +64,7 @@ inline void log_all_builtin_calls() {
 #ifndef LOG_TABLE_FUNCTION_CALL
 #define LOG_TABLE_FUNCTION_CALL(table, function)                               \
   {                                                                            \
+    const_cast<BuiltinFunctionDef *>(&table->function)->type.devblockOnly = 0; \
     using HookTag = decltype([] {});                                           \
     HookStateFunction<HookTag>::original_func = table->function.actionFunc;    \
     HookStateFunction<HookTag>::canon_id = table->function.canonId;            \
@@ -81,6 +82,7 @@ inline void log_all_builtin_calls() {
 #ifndef LOG_TABLE_METHOD_CALL
 #define LOG_TABLE_METHOD_CALL(table, method)                                   \
   {                                                                            \
+    const_cast<BuiltinMethodDef *>(&table->method)->type.devblockOnly = 0;     \
     using HookTag = decltype([] {});                                           \
     HookStateMethod<HookTag>::original_func = table->method.actionFunc;        \
     HookStateMethod<HookTag>::canon_id = table->method.canonId;                \

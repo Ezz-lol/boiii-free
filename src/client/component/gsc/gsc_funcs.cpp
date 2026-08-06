@@ -14,6 +14,7 @@
 
 #include "../command.hpp"
 #include "game/impl/scr/var.hpp"
+#include "game/impl/scr/scr.hpp"
 #include "game/impl/sv/sv.hpp"
 #include "gsc_funcs.hpp"
 
@@ -478,6 +479,23 @@ void gscr_println(scriptInstance_t inst) {
   trace("[Scr] %s", out.c_str());
 #endif
 }
+
+#ifdef NDEBUG
+void gscr_trace(scriptInstance_t inst) {}
+#else
+void gscr_trace(scriptInstance_t inst) {
+  uint32_t argc = Scr_GetNumParam(inst);
+  std::string out = "";
+  for (uint32_t idx = 0; idx < argc; ++idx) {
+    const char *msg = Scr_GetString(inst, idx);
+    if (msg && msg[0]) {
+      out += msg;
+    }
+  }
+
+  trace("[Scr] %s", out.c_str());
+}
+#endif
 
 void gscr_print(scriptInstance_t inst) {
   uint32_t argc = Scr_GetNumParam(inst);
@@ -1173,6 +1191,53 @@ void gscr_ismenucached(scriptInstance_t inst) {
   }
 }
 
+void gscr_vector(scriptInstance_t inst) {
+  const uint32_t argc = Scr_GetNumParam(inst);
+  {
+
+    vec3_t result = vec3_t::fill(std::numeric_limits<float>::quiet_NaN());
+    if (argc > 0) {
+
+      if (argc == 1) {
+        switch (Scr_GetType(inst, 0)) {
+
+        case ScrVarType::VECTOR: {
+          Scr_GetVector(inst, 0, &result);
+          break;
+        }
+
+        case ScrVarType::POINTER: {
+          const std::vector<volatile var::ScrVarValue_t *> arg =
+              Scr_GetArray(inst, 0);
+
+          for (size_t i = 0; i < std::min(arg.size(), result.size()); ++i) {
+            result[i] = ScrVar_CastFloat(arg[i]);
+          }
+          break;
+        }
+        default: {
+          result.x = ScrVar_CastFloat(Scr_GetValue(inst, 0));
+          break;
+        }
+        }
+      } else {
+
+        result.x = ScrVar_CastFloat(Scr_GetValue(inst, 0));
+
+        if (argc > 1) {
+          result.y = ScrVar_CastFloat(Scr_GetValue(inst, 1));
+        }
+
+        if (argc > 2) {
+          result.z = ScrVar_CastFloat(Scr_GetValue(inst, 2));
+        }
+      }
+    }
+
+    push(inst, &result);
+  }
+}
+
 // =====================================================
 // Player name/tag overrides (server-only)
 // =====================================================
@@ -1384,6 +1449,7 @@ struct component final : generic_component {
     register_builtin("tell", gscr_tell::func, 2);
     register_builtin("tell", gscr_tell::method, 1);
     register_variadic_builtin("println", gscr_println, 0);
+    register_variadic_builtin("trace", gscr_trace, 0);
     register_variadic_builtin("print", gscr_print, 0);
     register_variadic_builtin("printf", gscr_printf, 1);
 
@@ -1448,6 +1514,7 @@ struct component final : generic_component {
     register_builtin("conststring", gscr_conststring, 1);
     register_builtin("isstruct", gscr_isstruct, 1);
     register_builtin("ismenucached", gscr_ismenucached, 1);
+    register_builtin("vector", gscr_vector, 0, 3);
 
     apply_hudelem_hooks();
 

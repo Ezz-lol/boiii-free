@@ -504,6 +504,56 @@ if (isdedicated()) {
 }
 ```
 
+### vector
+
+`vector(x, y, z)` returns a vector constructed from the best-effort float-casted
+values passed as arguments.
+
+This can be used to cast values of other types to a vector.
+
+```
+basic_vec = vector(1.0, 2.0, 3.0);
+/#
+assert(isvec(basic_vec) && basic_vec.x == 1.0);
+#/
+
+vec_from_array = vector(array(1.0, 2.0, 3.0));
+/#
+assert(isvec(vec_from_array) &&
+       vec_from_array.x == 1.0 &&
+       vec_from_array.y == 2.0 &&
+       vec_from_array.z == 3.0);
+#/
+
+vec_from_strings = vector("1.0", "2.0", "3.0");
+/#
+assert(isvec(vec_from_strings) &&
+       vec_from_strings.x == 1.0 &&
+       vec_from_strings.y == 2.0 &&
+       vec_from_strings.z == 3.0);
+#/
+
+// Useful for:
+// - Casting a function's argument to a vector where the argument could either be a vector or
+//   otherwise convertible to one.
+// - Copying the given vector.
+vec_from_vec = ( 1.0 2.0 3.0 );
+/#
+assert(isvec(vec_from_vec) &&
+       vec_from_vec.x == 1.0 &&
+       vec_from_vec.y == 2.0 &&
+       vec_from_vec.z == 3.0);
+#/
+
+vec_from_assorted = vector("1.0", 2, 3.0);
+/#
+assert(isvec(vec_from_assorted) &&
+       vec_from_assorted.x == 1.0 &&
+       vec_from_assorted.y == 2.0 &&
+       vec_from_assorted.z == 3.0);
+#/
+```
+
 ## Method-style custom calls
 
 The project also supports the cleaner entity-style form for a few helpers:

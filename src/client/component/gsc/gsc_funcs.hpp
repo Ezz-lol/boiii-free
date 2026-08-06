@@ -689,6 +689,21 @@ inline bool builtin(ScrVarCanonicalName_t name) {
   return builtin_function(name) || builtin_method(name);
 }
 
+inline void push_vector(scriptInstance_t inst, const vec3_t *vec) {
+  Scr_AddVector(inst, vec);
+}
+inline void push_vector(scriptInstance_t inst, vec3_t vec) {
+  push_vector(inst, &vec);
+}
+
+inline void push_vec(scriptInstance_t inst, const vec3_t *vec) {
+  push_vector(inst, vec);
+}
+
+inline void push_vec(scriptInstance_t inst, const vec3_t vec) {
+  push_vector(inst, &vec);
+}
+
 inline void push_conststring(scriptInstance_t inst, ScrString_t hash) {
   Scr_AddConstString(inst, hash);
 }
@@ -709,6 +724,11 @@ inline void push_string(scriptInstance_t inst, const std::string_view &val) {
 
 inline void push_string(scriptInstance_t inst, const std::string &val) {
   Scr_AddString(inst, val.c_str());
+}
+
+inline void push(scriptInstance_t inst, vec3_t vec) { push_vector(inst, &vec); }
+inline void push(scriptInstance_t inst, const vec3_t *vec) {
+  push_vector(inst, vec);
 }
 
 inline void push(scriptInstance_t inst, const char *val) {
