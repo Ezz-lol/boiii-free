@@ -38,6 +38,8 @@ std::vector<friend_entry> get_friends();
 bool invite_to_game(uint64_t steam_id);
 
 bool connect_to_friend(uint64_t steam_id);
+void refresh_presence();
+void notify_presence_changed();
 
 // Live routes discovered through the configured Ezz master servers.
 void reset_master_presence();

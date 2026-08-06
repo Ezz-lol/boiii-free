@@ -481,6 +481,10 @@ void setup_functions() {
                }),
                HksObjectType::TCFUNCTION);
 
+  lua["game"]["refreshfriends"] =
+      function(convert_function([] { friends::refresh_presence(); }),
+               HksObjectType::TCFUNCTION);
+
   lua["game"]["addfriend"] =
       function(convert_function([](const std::string &steam_id_str,
                                    const std::string &name) {

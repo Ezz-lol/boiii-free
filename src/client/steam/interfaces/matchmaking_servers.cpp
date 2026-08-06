@@ -233,6 +233,7 @@ void finish_friend_scan(const uint64_t generation) {
 
   const auto response = friends_response.load();
   friends_refreshing = false;
+  ::friends::notify_presence_changed();
   if (!response)
     return;
   for (int i = 0; i < static_cast<int>(entries.size()); ++i)
@@ -512,8 +513,23 @@ void matchmaking_servers::RefreshServer(void *hRequest, const int iServer) {
     if (!steam_id)
       return;
 
+    uint64_t generation{};
+    matchmaking_server_list_response *expected_response{};
+    {
+      std::lock_guard lock(friend_scan_mutex);
+      generation = friend_scan_generation;
+      expected_response = friends_response.load();
+    }
     nat::refresh_friends(
-        {steam_id}, [steam_id](std::vector<nat::friend_presence> live) {
+        {steam_id}, [steam_id, generation, expected_response](
+                        std::vector<nat::friend_presence> live) {
+          {
+            std::lock_guard lock(friend_scan_mutex);
+            if (generation != friend_scan_generation ||
+                expected_response != friends_response.load()) {
+              return;
+            }
+          }
           const auto presence = std::ranges::find(
               live, steam_id, &nat::friend_presence::steam_id);
           const bool online = presence != live.end();
@@ -530,6 +546,7 @@ void matchmaking_servers::RefreshServer(void *hRequest, const int iServer) {
             return;
 
           std::optional<int> row_index;
+          int item_count{};
           friends_servers.access([&](servers &items) {
             for (size_t i = 0; i < items.size(); ++i) {
               if (items[i].server_item.m_steamID.bits != steam_id)
@@ -559,18 +576,41 @@ void matchmaking_servers::RefreshServer(void *hRequest, const int iServer) {
               row_index = static_cast<int>(i);
               break;
             }
+            std::stable_sort(
+                items.begin(), items.end(),
+                [](const server &left, const server &right) {
+                  const bool left_online =
+                      std::strcmp(left.server_item.m_szGameDescription,
+                                  "Offline") != 0;
+                  const bool right_online =
+                      std::strcmp(right.server_item.m_szGameDescription,
+                                  "Offline") != 0;
+                  return left_online && !right_online;
+                });
+            for (size_t i = 0; i < items.size(); ++i) {
+              if (items[i].server_item.m_steamID.bits == steam_id) {
+                row_index = static_cast<int>(i);
+                break;
+              }
+            }
+            item_count = static_cast<int>(items.size());
           });
 
           if (!row_index)
             return;
-          ::friends::forget_browser_routes(steam_id);
+          ::friends::clear_browser_routes();
           friends_servers.access([&](const servers &items) {
-            ::friends::remember_browser_route(
-                steam_id,
-                network::address_to_string(items[*row_index].address));
+            for (const auto &item : items) {
+              ::friends::remember_browser_route(
+                  item.server_item.m_steamID.bits,
+                  network::address_to_string(item.address));
+            }
           });
-          if (const auto response = friends_response.load())
-            response->ServerResponded(friends_request, *row_index);
+          ::friends::notify_presence_changed();
+          if (const auto response = friends_response.load()) {
+            for (int i = 0; i < item_count; ++i)
+              response->ServerResponded(friends_request, i);
+          }
         });
     return;
   }

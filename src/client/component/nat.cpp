@@ -49,12 +49,30 @@ struct host_probe {
 join_attempt joining;
 std::vector<host_probe> host_probes;
 
+struct lookup_state {
+  std::unordered_set<uint64_t> pending;
+  std::vector<friend_presence> results;
+  lookup_callback done;
+};
+
 std::mutex lookup_mutex;
-uint64_t lookup_generation{};
-std::string lookup_request;
-std::unordered_set<uint64_t> lookup_pending;
-std::vector<friend_presence> lookup_results;
-lookup_callback lookup_done;
+std::unordered_map<std::string, lookup_state> lookup_requests;
+
+void finish_lookup(const std::string &request) {
+  lookup_callback done;
+  std::vector<friend_presence> results;
+  {
+    std::lock_guard lock(lookup_mutex);
+    const auto found = lookup_requests.find(request);
+    if (found == lookup_requests.end())
+      return;
+    results = std::move(found->second.results);
+    done = std::move(found->second.done);
+    lookup_requests.erase(found);
+  }
+  if (done)
+    done(std::move(results));
+}
 
 std::string payload_string(const network::data_view &data) {
   return {reinterpret_cast<const char *>(data.data()), data.size()};
@@ -347,14 +365,25 @@ void receive_friend_presence(const game::net::netadr_t &sender,
     return;
   const auto steam_id = std::strtoull(parts[2].c_str(), nullptr, 10);
   const auto endpoint = network::address_from_string(parts[4]);
-  std::lock_guard lock(lookup_mutex);
-  if (parts[1] != lookup_request || !lookup_pending.contains(steam_id))
-    return;
-  lookup_pending.erase(steam_id);
-  lookup_results.push_back({steam_id, parts[3],
-                            network::is_connectable_address(endpoint)
-                                ? network::address_to_string(endpoint)
-                                : std::string{}});
+  bool complete{};
+  {
+    std::lock_guard lock(lookup_mutex);
+    const auto request = lookup_requests.find(parts[1]);
+    if (request == lookup_requests.end() ||
+        !request->second.pending.erase(steam_id)) {
+      return;
+    }
+    request->second.results.push_back(
+        {steam_id, parts[3],
+         network::is_connectable_address(endpoint)
+             ? network::address_to_string(endpoint)
+             : std::string{}});
+    complete = request->second.pending.empty();
+  }
+  if (complete) {
+    scheduler::once([request = parts[1]] { finish_lookup(request); },
+                    scheduler::main);
+  }
 }
 
 void receive_friend_offline(const game::net::netadr_t &sender,
@@ -366,9 +395,19 @@ void receive_friend_offline(const game::net::netadr_t &sender,
   if (parts.size() != 3 || parts[0] != "1")
     return;
   const auto steam_id = std::strtoull(parts[2].c_str(), nullptr, 10);
-  std::lock_guard lock(lookup_mutex);
-  if (parts[1] == lookup_request) {
-    lookup_pending.erase(steam_id);
+  bool complete{};
+  {
+    std::lock_guard lock(lookup_mutex);
+    const auto request = lookup_requests.find(parts[1]);
+    if (request == lookup_requests.end() ||
+        !request->second.pending.erase(steam_id)) {
+      return;
+    }
+    complete = request->second.pending.empty();
+  }
+  if (complete) {
+    scheduler::once([request = parts[1]] { finish_lookup(request); },
+                    scheduler::main);
   }
 }
 } // namespace
@@ -417,35 +456,35 @@ bool set_open_to_friends(const bool enabled) {
 
 void refresh_friends(const std::vector<uint64_t> &steam_ids,
                      lookup_callback callback) {
-  const auto generation = ++lookup_generation;
-  const auto request = new_token();
+  std::unordered_set<uint64_t> pending;
+  for (const auto steam_id : steam_ids) {
+    if (steam_id)
+      pending.insert(steam_id);
+  }
+  if (pending.empty()) {
+    scheduler::once(
+        [done = std::move(callback)]() mutable {
+          if (done)
+            done(std::vector<friend_presence>{});
+        },
+        scheduler::main);
+    return;
+  }
+
+  std::string request;
   {
     std::lock_guard lock(lookup_mutex);
-    lookup_request = request;
-    lookup_pending = {steam_ids.begin(), steam_ids.end()};
-    lookup_results.clear();
-    lookup_done = std::move(callback);
+    do {
+      request = new_token();
+    } while (lookup_requests.contains(request));
+    lookup_requests.emplace(request,
+                            lookup_state{pending, {}, std::move(callback)});
   }
-  for (const auto steam_id : steam_ids)
+  for (const auto steam_id : pending)
     send_rendezvous("friendLookup",
                     utils::string::va("1 %s %llu", request.c_str(), steam_id));
 
-  scheduler::once(
-      [generation] {
-        lookup_callback done;
-        std::vector<friend_presence> results;
-        {
-          std::lock_guard lock(lookup_mutex);
-          if (generation != lookup_generation)
-            return;
-          results = lookup_results;
-          done = std::move(lookup_done);
-          lookup_pending.clear();
-        }
-        if (done)
-          done(std::move(results));
-      },
-      scheduler::main, 2s);
+  scheduler::once([request] { finish_lookup(request); }, scheduler::main, 2s);
 }
 
 class component final : public client_component {
@@ -468,6 +507,11 @@ public:
 
     scheduler::loop(update_punching, scheduler::main, 250ms);
     scheduler::loop(update_hosting, scheduler::main, REGISTER_INTERVAL);
+  }
+
+  void pre_destroy() override {
+    std::lock_guard lock(lookup_mutex);
+    lookup_requests.clear();
   }
 };
 } // namespace nat

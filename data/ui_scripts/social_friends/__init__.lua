@@ -204,6 +204,7 @@ local customSocialPlayers = {
     list.players = {}
     local socialRoot = Engine.CreateModel(Engine.GetGlobalModel(), "socialRoot")
     local friendsRoot = Engine.CreateModel(socialRoot, "friends")
+    local updateModel = Engine.CreateModel(friendsRoot, "update")
     for index = 1, list.numElementsInList do
       list.players[index] = createPlayerSlot(friendsRoot, index)
     end
@@ -219,6 +220,25 @@ local customSocialPlayers = {
     end
 
     list.updateModels(controller, list, 0, list.numElementsInList)
+    if list.socialUpdateSubscription then
+      list:removeSubscription(list.socialUpdateSubscription)
+    end
+    list.socialUpdateSubscription = list:subscribeToModel(updateModel, function()
+      if list.boiiiFriends then
+        RefreshListFindSelectedXuid(controller, list)
+      end
+    end, false)
+    if not list.boiiiFriendsRefreshTimer then
+      list.boiiiFriendsRefreshTimer = LUI.UITimer.newElementTimer(5000, false, function()
+        if list.boiiiFriends and game.refreshfriends then
+          game.refreshfriends()
+        end
+      end)
+      list:addElement(list.boiiiFriendsRefreshTimer)
+    end
+    if game.refreshfriends then
+      game.refreshfriends()
+    end
   end,
   getCount = function(list)
     if list.boiiiFriends then
@@ -239,6 +259,20 @@ local customSocialPlayers = {
       return list.players[(index - 1) % list.numElementsInList + 1].properties
     end
     return nativeSocialPlayers.getCustomPropertiesForItem(list, index)
+  end,
+  cleanup = function(list)
+    list.boiiiFriends = false
+    if list.socialUpdateSubscription then
+      list:removeSubscription(list.socialUpdateSubscription)
+      list.socialUpdateSubscription = nil
+    end
+    if list.boiiiFriendsRefreshTimer then
+      list.boiiiFriendsRefreshTimer:close()
+      list.boiiiFriendsRefreshTimer = nil
+    end
+    if nativeSocialPlayers.cleanup then
+      return nativeSocialPlayers.cleanup(list)
+    end
   end,
 }
 

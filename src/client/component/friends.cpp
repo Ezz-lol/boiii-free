@@ -101,6 +101,35 @@ utils::concurrency::container<friend_state> friends_data;
 
 std::mutex browser_routes_mutex;
 std::unordered_map<std::string, game::XUID> browser_routes;
+std::atomic<bool> presence_refreshing{};
+std::atomic<bool> social_update_pending{};
+std::atomic<int32_t> social_update_revision{};
+
+void sort_by_presence(std::vector<friend_entry> &entries) {
+  std::stable_sort(entries.begin(), entries.end(),
+                   [](const friend_entry &left, const friend_entry &right) {
+                     return static_cast<int>(left.state) >
+                            static_cast<int>(right.state);
+                   });
+}
+
+void queue_social_update() {
+  if (social_update_pending.exchange(true))
+    return;
+  scheduler::once(
+      [] {
+        social_update_pending = false;
+        const auto global = game::ui::UI_Model_GetGlobalModel();
+        if (!global)
+          return;
+        const auto update = game::ui::UI_Model_GetModelFromPath(
+            global, "socialRoot.friends.update");
+        if (!update)
+          return;
+        game::ui::UI_Model_SetInt(update, ++social_update_revision);
+      },
+      scheduler::main);
+}
 
 void save_friends() {
   friends_data.access([](const friend_state &state) {
@@ -290,6 +319,7 @@ void add_friend(game::XUID steam_id, const std::string &fname) {
     state.list.push_back(std::move(entry));
   });
   save_friends();
+  notify_presence_changed();
 }
 
 void remove_friend(game::XUID steam_id) {
@@ -299,6 +329,7 @@ void remove_friend(game::XUID steam_id) {
     });
   });
   save_friends();
+  notify_presence_changed();
 }
 
 bool is_friend(game::XUID steam_id) {
@@ -330,6 +361,7 @@ std::vector<friend_entry> get_friends() {
     std::erase_if(result, [own_id](const friend_entry &entry) {
       return entry.steam_id == own_id;
     });
+  sort_by_presence(result);
   return result;
 }
 
@@ -391,9 +423,7 @@ std::vector<friend_server_info> get_friend_server_addresses() {
   std::vector<friend_server_info> result;
   std::unordered_set<game::XUID> seen_ids;
 
-  std::vector<friend_entry> all_friends;
-  friends_data.access(
-      [&](const friend_state &state) { all_friends = state.list; });
+  const auto all_friends = get_friends();
 
   for (const friend_entry &entry : all_friends) {
     if (entry.steam_id == 0 || seen_ids.count(entry.steam_id))
@@ -527,6 +557,62 @@ bool connect_to_friend(game::XUID steam_id) {
   }
 
   return false;
+}
+
+void notify_presence_changed() { queue_social_update(); }
+
+void refresh_presence() {
+  if (presence_refreshing.exchange(true))
+    return;
+
+  const auto saved = get_friends();
+  std::vector<uint64_t> ids;
+  std::unordered_set<uint64_t> queried;
+  ids.reserve(saved.size());
+  queried.reserve(saved.size());
+  for (const auto &entry : saved) {
+    ids.push_back(entry.steam_id);
+    queried.insert(entry.steam_id);
+  }
+
+  nat::refresh_friends(ids, [queried = std::move(queried)](
+                                std::vector<nat::friend_presence> live) {
+    std::unordered_map<game::XUID, nat::friend_presence> available;
+    available.reserve(live.size());
+    for (auto &entry : live) {
+      const auto address = network::address_from_string(entry.endpoint);
+      if (entry.steam_id && network::is_connectable_address(address)) {
+        entry.endpoint = network::address_to_string(address);
+        available.insert_or_assign(entry.steam_id, std::move(entry));
+      }
+    }
+
+    bool changed{};
+    friends_data.access([&](friend_state &state) {
+      for (auto &entry : state.list) {
+        if (!queried.contains(entry.steam_id))
+          continue;
+        const auto found = available.find(entry.steam_id);
+        const auto next_state =
+            found == available.end() ? status::offline : status::in_game;
+        const auto next_address =
+            found == available.end() ? std::string{} : found->second.endpoint;
+        const auto next_token =
+            found == available.end() ? std::string{} : found->second.token;
+        if (entry.state != next_state || entry.server_address != next_address ||
+            entry.join_token != next_token) {
+          entry.state = next_state;
+          entry.server_address = next_address;
+          entry.join_token = next_token;
+          changed = true;
+        }
+      }
+    });
+
+    presence_refreshing = false;
+    if (changed)
+      notify_presence_changed();
+  });
 }
 
 void reset_master_presence() {
