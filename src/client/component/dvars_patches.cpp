@@ -10,11 +10,58 @@
 
 namespace dvars_patches {
 namespace {
+
 using namespace game;
+void dvar_disablebool_cb(EngineDependentDvarMut dvar) {
+  if (dvar.get_bool()) {
+    dvar.set(false);
+  }
+}
+
+#ifndef NDEBUG
+void dvar_enablebool_cb(EngineDependentDvarMut dvar) {
+  if (!dvar.get_bool()) {
+    dvar.set(true);
+  }
+}
+
+inline void dvar_force_enable(EngineDependentDvarMut dvar) {
+  dvar.set(true);
+  Dvar_SetModifiedCallback(dvar, dvar_enablebool_cb);
+}
+
+void dvar_enableboolstring_cb(EngineDependentDvarMut dvar) {
+  if (dvar.get_string().value_or("0") != "1") {
+    dvar.set("1");
+  }
+}
+
+inline void dvar_force_enable_boolstring(EngineDependentDvarMut dvar) {
+  dvar.set(true);
+  Dvar_SetModifiedCallback(dvar, dvar_enableboolstring_cb);
+}
+
+inline void enable_cheat_dvars() {
+  dvar_force_enable(*dvar_cheats);
+  dvar_force_enable(*sv_cheats);
+}
+
+inline void enable_debug_dvars() {
+  dvar_force_enable_boolstring(*game::g_vehicleDrawPath);
+  dvar_force_enable(*game::g_vehicleDrawSplines);
+  dvar_force_enable(*game::g_vehicleDebug);
+}
+#endif
+
 void patch_dvars() {
   com_pauseSupported = register_sessionmode_dvar_bool(
       "com_pauseSupported", !is_server(), DVAR_SERVERINFO,
       "Whether pause is supported by the game mode");
+
+#ifndef NDEBUG
+  enable_cheat_dvars();
+  enable_debug_dvars();
+#endif
 }
 
 void patch_flags() {
@@ -60,12 +107,6 @@ void dof_enabled_stub(utils::hook::assembler &a) {
   a.jmp(0x141116EC2_g); // CG_UpdateAdsDof
 }
 
-void dvar_disablebool_cb(EngineDependentDvarMut dvar) {
-  if (dvar.get_bool()) {
-    dvar.set(false);
-  }
-}
-
 EngineDependentDvarMut Dvar_RegisterDisable_Bool(dvarStrHash_t hash,
                                                  const char *dvarName,
                                                  [[maybe_unused]] bool value,
@@ -91,6 +132,7 @@ EngineDependentDvarMut Dvar_RegisterDisable_Bool_Inlined(
 }
 
 inline void disable_sv_cheats() {
+#ifndef NDEBUG
   /*
      1. sv_cheats used to enable/disable cheat commands - both in console
      and in SV commands.
@@ -106,12 +148,14 @@ inline void disable_sv_cheats() {
      protection on a dvar to be modified is checked and respected in internal
      setters.
      Global is named `dvar_cheats` in engine.
-     This is the one that GSC scripts can modify. If not for this hook, anyway.
+     This is the one that GSC scripts can modify. If not for this hook,
+     anyway.
   */
   {
     // Dvar_Init
     utils::hook::call(0x1405767F5_g, Dvar_RegisterDisable_Bool_Inlined);
   }
+#endif
 }
 
 inline constexpr const char *serialize(eModes mode) {
@@ -142,8 +186,9 @@ EngineDependentDvar Dvar_GetSessionModeSpecificDvarInternal_FallbackDefault(
     EngineDependentDvar resolved = base.sessionModeSpecific(mode);
 
     // Try to get sessionmode-specific dvar for _current_ mode.
-    // Internally, this falls back to the base dvar if the sessionmode-specific
-    // dvar for the current mode is a nullptr - just as the engine does.
+    // Internally, this falls back to the base dvar if the
+    // sessionmode-specific dvar for the current mode is a nullptr - just as
+    // the engine does.
     if (!resolved) {
       resolved = base.resolve();
     }
