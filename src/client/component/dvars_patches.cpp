@@ -132,7 +132,7 @@ EngineDependentDvarMut Dvar_RegisterDisable_Bool_Inlined(
 }
 
 inline void disable_sv_cheats() {
-#ifndef NDEBUG
+#ifdef NDEBUG
   /*
      1. sv_cheats used to enable/disable cheat commands - both in console
      and in SV commands.
