@@ -76,6 +76,10 @@ WEAK symbol<EngineDependentDvarMut> g_vehicleDrawPath{0x14A3D1500, 0x1478368C8};
 WEAK symbol<EngineDependentDvarMut> g_vehicleDrawSplines{0x14A3D1508,
                                                          0x1478368D0};
 WEAK symbol<EngineDependentDvarMut> g_vehicleDebug{0x14A3D1510, 0x1478368D8};
+WEAK symbol<EngineDependentDvarMut> safeArea_horizontal{0x1457FA6D0,
+                                                        0x142CF1340};
+WEAK symbol<EngineDependentDvarMut> safeArea_vertical{0x1457FA6D8, 0x142CF1348};
+WEAK symbol<EngineDependentDvarMut> ui_safeArea{0x1457FA6E0};
 
 WEAK symbol<int32_t> g_dvarCount{0x157AC61CC, 0x14A3CB5FC};
 WEAK symbol<DvarPool> s_dvarPool{0x0, 0x14A3CB620};

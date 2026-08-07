@@ -31,7 +31,7 @@ WEAK symbol<void(LocalClientNum_t localClientNum, int32_t index)>
 
 WEAK symbol<volatile BGCacheTypePool<bgCacheTypeInfo>> s_bgCacheTypeInfo{
     0x1432D5720, 0x14106B720};
-WEAK symbol<volatile bgCachePool> s_bgCache{0x1436841F0, 0x1413862A};
+WEAK symbol<volatile bgCachePool> s_bgCache{0x1436841F0, 0x1413862A0};
 } // namespace cache
 } // namespace bg
 } // namespace game

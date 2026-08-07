@@ -249,9 +249,9 @@ PACKED(struct bgCachedGenericData {
 
   inline constexpr void setName(const char *new_name) volatile {
     if (new_name) {
-      this->nameHash = djb2<BGCACHE_NAMEHASH_DJB2_INITIAL_SEED,
-                            BGCACHE_NAMEHASH_DJB2_CONSTANT>(new_name);
-      strscpy(this->name, new_name);
+      nameHash = djb2<BGCACHE_NAMEHASH_DJB2_INITIAL_SEED,
+                      BGCACHE_NAMEHASH_DJB2_CONSTANT>(new_name);
+      strscpy(name, new_name);
     } else {
       clearName();
     }
@@ -286,7 +286,7 @@ PACKED(struct bgCachedGenericData {
     return refCount;
   }
 });
-
+ASSERT_SIZE(bgCachedGenericData, 0x408);
 // Verified
 struct bgCacheDataSet {
   bgCachedModels models[0x4000];
@@ -313,6 +313,7 @@ struct bgCacheDataSet {
   bgCachedGenericData luiMenuData[0x80];
   bgCachedGenericData subXCamNames[0x1F];
 };
+ASSERT_OFFSET(bgCacheDataSet, localizedStrings, 0xE2B30);
 ASSERT_SIZE(bgCacheDataSet, 0x45FDF8);
 
 struct bgCache {

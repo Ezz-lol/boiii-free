@@ -161,26 +161,6 @@ ASSERT_SIZE(clientLogo_t, 0x20);
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-// Unverified
-struct vidConfig_t {
-  uint32_t sceneWidth;
-  uint32_t sceneHeight;
-  float sceneAspectRatio;
-  uint32_t displayWidth;
-  uint32_t displayHeight;
-  float displayAspectRatio;
-  qboolean isWideScreen;
-  qboolean isFullscreen;
-  float aspectRatioWindow;
-  float aspectRatioUI;
-  float aspectRatioDisplayPixel;
-  uint32_t maxTextureSize;
-  qboolean deviceSupportsGamma;
-};
-ASSERT_SIZE(vidConfig_t, 0x34);
-#pragma pack(pop)
-
-#pragma pack(push, 1)
 
 struct clSnapshot_t {
   bool valid;
@@ -260,7 +240,7 @@ struct clientStatic_t {
   // FontHandle consoleFont;
   // cinematic_id logoMovieId;
   // qboolean playedLogoCinematic;
-  // vidConfig_t vidConfig;
+  // r::vidConfig_t vidConfig;
   // vec3_t renderForward;
   // vec3_t renderPos;
   // lobby::LobbyClientPool<net::XNADDR> xnaddrs;

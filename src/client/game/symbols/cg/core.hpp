@@ -29,6 +29,8 @@ WEAK symbol<bool(int32_t *hitNum, const vec3_t *start, const vec3_t *end,
                  contents_t mask, cm::trace_t *trace)>
     CG_SightTracePoint{0x1412B4380};
 
+WEAK symbol<float> cg_hudSplitscreenScale{0x1457FA6E8, 0x142CF12BC};
+
 extern LocalClientPool<level::cl::cg_t> cgArray;
 extern LocalClientPool<level::cl::cgs_t> cgsArray;
 extern LocalClientPool<game::level::cl::centityPool_t> cg_entitiesArray;
