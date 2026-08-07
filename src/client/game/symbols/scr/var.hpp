@@ -1,5 +1,7 @@
 #pragma once
 
+#include "game/symbols/scr/mt.hpp"
+#include "game/symbols/scr/vm/core.hpp"
 #include <game/symbols/sym_include.hpp>
 
 namespace game {
@@ -63,7 +65,7 @@ WEAK symbol<ScrVarIndex_t(scriptInstance_t inst, uint32_t classnum,
 WEAK symbol<ScrVarIndex_t(scriptInstance_t inst, ScrVarIndex_t self)>
     ScrVar_AllocThread{0x1412D9940, 0x140165D70};
 WEAK symbol<const float *(scriptInstance_t inst, const vec3_t *v)>
-    ScrVar_AllocVector{0x1412D9B90};
+    ScrVar_AllocVector{0x1412D9B90, 0x140166070};
 WEAK symbol<void(scriptInstance_t inst, ScrVarIndex_t parentId,
                  ScrVarIndex_t id)>
     ScrVar_AppendChild{0x1412D9BD0, 0x1401660B0};
@@ -189,6 +191,99 @@ WEAK symbol<ScrVarValue_t *(ScrVarValue_t *retstr, scriptInstance_t inst,
 
 WEAK symbol<ScrVarTypePool<const char *>> var_typename{0x1432E6240,
                                                        0x14107C040};
+inline constexpr bool valid_scrvar_index(scriptInstance_t inst,
+                                         ScrVarIndex_t index) {
+  return index < SCRIPTVARIABLE_POOL_SIZE.instance[inst];
+}
+
+inline ScrVarIndex_t scrvar_index(scriptInstance_t inst,
+                                  volatile ScrVar_t *var) {
+  uintptr_t scriptVariablesPtr = reinterpret_cast<uintptr_t>(
+      vm::gScrVarGlob->instance[inst].scriptVariables);
+  uintptr_t varPtr = reinterpret_cast<uintptr_t>(var);
+  return static_cast<ScrVarIndex_t>((varPtr - scriptVariablesPtr) /
+                                    sizeof(ScrVar_t));
+}
+
+inline bool valid_scrvar_ptr(scriptInstance_t inst, volatile ScrVar_t *var) {
+  return valid_engine_ptr(var) // Static or stack allocation
+         ||
+         valid_scrvar_index(inst, scrvar_index(inst, var)); // Pool allocation
+}
+
+inline ScrVarIndex_t scrvarvalue_index(scriptInstance_t inst,
+                                       volatile ScrVarValue_t *val) {
+  return scrvar_index(inst, val->var());
+}
+
+inline bool valid_scrvarvalue_ptr(scriptInstance_t inst,
+                                  volatile ScrVarValue_t *val) {
+  return valid_engine_ptr(val) // Static or stack allocation
+         || valid_scrvar_index(inst,
+                               scrvarvalue_index(inst, val)); // Pool allocation
+}
+
+inline bool valid_val_allocation_ptr(uintptr_t ptr) {
+  return valid_stack_ptr(ptr) ||
+         (scr::mt::gScrMemTreePub->mt_buffer &&
+          scr::mt::gScrMemTreePub->mt_buffer->contains(ptr));
+}
+
+template <typename T> inline bool valid_val_allocation_ptr(volatile T *ptr) {
+  return valid_val_allocation_ptr(reinterpret_cast<uintptr_t>(ptr));
+}
+
+/*
+  Note: this does not work for pointer-typed `ScrVarValue_t` values stored
+  in the VM runtime stack, as seen in `Scr_GetValue`'s
+  return. Those pointers are an index from the _top_ of the VM runtime stack,
+  rather than an absolute index to a value in the `scriptVariables` pool.
+
+  The aforementioned pointer type functions similarly to x86's RIP-relative
+  addressing, whereas those handled here function similarly to x86's absolute
+  addressing.
+*/
+inline volatile ScrVar_t *ScrVar_t::deref(scriptInstance_t inst) volatile {
+  switch (value.type) {
+  case ScrVarType::POINTER:
+    if (valid_scrvar_index(inst, value.u.pointerValue)) {
+      return &vm::gScrVarGlob->instance[inst]
+                  .scriptVariables[value.u.pointerValue];
+    }
+    break;
+  default:
+    break;
+  }
+
+  return this;
+}
+
+inline volatile ScrVarValue_t *
+ScrVarValue_t::deref(scriptInstance_t inst) volatile {
+  return &this->var()->deref(inst)->value;
+}
+
+inline bool ScrVarValue_t::array_like(scriptInstance_t inst) volatile {
+  switch (type) {
+  case ScrVarType::POINTER: {
+    volatile ScrVarValue_t *dereferenced = this->deref(inst);
+    return dereferenced && dereferenced->type == ScrVarType::ARRAY;
+  }
+  case ScrVarType::STRING:
+  case ScrVarType::VECTOR: {
+    return true;
+  }
+  default: {
+    return false;
+  }
+  }
+}
+
+inline volatile ScrVar_t *
+ScrVar_t::next_sibling(scriptInstance_t inst) volatile {
+  return &vm::gScrVarGlob->instance[inst].scriptVariables[nextSibling];
+}
+
 } // namespace var
 } // namespace scr
 } // namespace game

@@ -72,6 +72,11 @@ WEAK symbol<EngineDependentDvarMut> splitscreen_playerCount{0x1453D4A00,
 WEAK symbol<EngineDependentDvarMut> r_vsync{0x14AE95098, 0x147CBC1E0};
 WEAK symbol<EngineDependentDvarMut> r_fullscreen{0x14AE94DF8, 0x147CBBF48};
 
+WEAK symbol<EngineDependentDvarMut> g_vehicleDrawPath{0x14A3D1500, 0x1478368C8};
+WEAK symbol<EngineDependentDvarMut> g_vehicleDrawSplines{0x14A3D1508,
+                                                         0x1478368D0};
+WEAK symbol<EngineDependentDvarMut> g_vehicleDebug{0x14A3D1510, 0x1478368D8};
+
 WEAK symbol<int32_t> g_dvarCount{0x157AC61CC, 0x14A3CB5FC};
 WEAK symbol<DvarPool> s_dvarPool{0x0, 0x14A3CB620};
 WEAK symbol<EncryptedDvarPool> s_dvarPool_cl{0x157AC6220};

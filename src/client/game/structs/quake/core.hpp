@@ -35,6 +35,10 @@ struct qboolean {
   static inline constexpr qboolean from(T val) noexcept {
     return qboolean{.value = static_cast<int32_t>(val)};
   }
+
+  inline constexpr const char *serialize() const noexcept {
+    return value == 0 ? "false" : "true";
+  }
 };
 
 ASSERT_SIZE(qboolean, sizeof(int32_t));

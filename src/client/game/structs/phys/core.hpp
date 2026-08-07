@@ -8,7 +8,6 @@
 #include <cstdint>
 
 namespace game {
-namespace phys {
 
 namespace vehicle {
 struct NitrousVehicle;
@@ -18,6 +17,9 @@ namespace level {
 struct gentity_s;
 typedef gentity_s gentity_t;
 } // namespace level
+
+namespace phys {
+
 #pragma pack(push, 1)
 
 struct hitinfo_t {
@@ -39,7 +41,7 @@ enum class PhysicsOwnerType : int32_t {
   COUNT = 0x6,
 };
 
-class broad_phase_memory_info {
+struct broad_phase_memory_info {
 public:
   static constexpr symbol<thiscall_t<void(broad_phase_memory_info *)>>
       constructor{0x0, 0x14000EEC0};
@@ -72,10 +74,12 @@ public:
 
 typedef vec3<math::Float4> phys_mat33;
 
-class rigid_body;
+struct rigid_body;
 
-class pulse_sum_node : phys_link_list_base<pulse_sum_node> {
-public:
+struct pulse_sum_node {
+  // This is inherited. Inheritance breaks standard layout, so it's added as a
+  // field here instead.
+  phys_link_list_base<pulse_sum_node> base;
   phys_mat33 m_world_inv_inertia;
   uint8_t _padding38[8];
   math::Dir3 t_vel;
@@ -109,18 +113,18 @@ struct PhysPreset {
   snd::SoundsImpactTablePtr impactSounds;
 };
 
-class rigid_body_constraint_contact;
-class rigid_body_constraint_custom_path;
-class rigid_body_constraint_custom_orientation;
-class rigid_body_constraint_upright;
-class rigid_body_constraint_angular_actuator;
-class rigid_body_constraint_ragdoll;
-class rigid_body_constraint_distance;
-class rigid_body_constraint_hinge;
+struct rigid_body_constraint_contact;
+struct rigid_body_constraint_custom_path;
+struct rigid_body_constraint_custom_orientation;
+struct rigid_body_constraint_upright;
+struct rigid_body_constraint_angular_actuator;
+struct rigid_body_constraint_ragdoll;
+struct rigid_body_constraint_distance;
+struct rigid_body_constraint_hinge;
 
-class rigid_body_constraint;
+struct rigid_body_constraint;
 
-class rigid_body_constraint {
+struct rigid_body_constraint {
 public:
   rigid_body *b1;
   rigid_body *b2;
@@ -128,14 +132,16 @@ public:
 };
 ASSERT_SIZE(rigid_body_constraint, 0x18);
 
-class pulse_sum_cache {
+struct pulse_sum_cache {
 public:
   float m_pulse_sum;
 };
 ASSERT_SIZE(pulse_sum_cache, 0x4);
 
-class rigid_body_constraint_point : public rigid_body_constraint {
-public:
+struct rigid_body_constraint_point {
+  // This is inherited. Inheritance breaks standard layout, so it's added as a
+  // field here instead.
+  rigid_body_constraint base;
   math::Dir3 m_b1_r_loc;
   math::Dir3 m_b2_r_loc;
   pulse_sum_cache m_ps_cache_list[3];
@@ -147,9 +153,9 @@ public:
 };
 ASSERT_SIZE(rigid_body_constraint_point, 0x58);
 
-class pulse_sum_node;
-class rigid_body;
-class rigid_body_constraint_wheel;
+struct pulse_sum_node;
+struct rigid_body;
+struct rigid_body_constraint_wheel;
 
 struct rb_inplace_partition_node {
   rigid_body_constraint_point *m_rbc_point_first;
@@ -170,7 +176,7 @@ struct rb_inplace_partition_node {
 };
 ASSERT_SIZE(rb_inplace_partition_node, 0x70);
 
-class rigid_body {
+struct rigid_body {
 public:
   static constexpr symbol<thiscall_t<void(
       rigid_body *, const float mass, const math::Dir3 *inertia,
@@ -221,7 +227,7 @@ struct rigid_body_pair_key {
 };
 ASSERT_SIZE(rigid_body_pair_key, 0x10);
 
-class phys_gjk_geom {
+struct phys_gjk_geom {
 public:
   // int32_t (**_vptr$phys_gjk_geom)(void);
   void *vtablePtr;
@@ -234,15 +240,17 @@ typedef uint32_t phys_gjk_geom_id;
 namespace gjk_unique_id_database_t {
 typedef phys_gjk_geom_id unique_id;
 
-class gjk_unique_id_database_t {
+struct gjk_unique_id_database_t {
 public:
   unique_id m_counter;
 };
 
 } // namespace gjk_unique_id_database_t
 
-class gjk_base_t : phys_gjk_geom {
-public:
+struct gjk_base_t {
+  // This is inherited. Inheritance breaks standard layout, so it's added as a
+  // field here instead.
+  phys_gjk_geom base;
   uint8_t _padding00[8];
   math::Dir3 m_aabb_mn_loc;
   math::Dir3 m_aabb_mx_loc;
@@ -257,14 +265,14 @@ public:
 };
 ASSERT_SIZE(gjk_base_t, 0x60);
 
-class gjk_geom_list_t {
+struct gjk_geom_list_t {
 public:
   gjk_base_t *m_first_geom;
   int32_t m_geom_count;
   uint8_t _padding0C[4];
 };
 ASSERT_SIZE(gjk_geom_list_t, 0x10);
-class PhysObjUserData {
+struct PhysObjUserData {
 public:
   const PhysPreset *physPreset;
   rigid_body *body;
@@ -656,26 +664,28 @@ struct col_prim_t {
 };
 ASSERT_SIZE(col_prim_t, 0x10);
 
-class float4 {
+struct float4 {
 public:
   uint8_t gap0[16];
 };
 
-class hybrid_vector {
+struct hybrid_vector {
 public:
   float4 vec;
 };
 ASSERT_SIZE(hybrid_vector, 0x10);
 
-class visitor_base_t {
+struct visitor_base_t {
 public:
   int32_t (**_vptr$visitor_base_t)(void);
 };
 
 struct TraceThreadInfo; // TODO
 
-class colgeom_visitor_t : visitor_base_t {
-public:
+struct colgeom_visitor_t {
+  // This is inherited. Inheritance breaks standard layout, so it's added as a
+  // field here instead.
+  visitor_base_t base;
   uint8_t _padding0[0xF];
   hybrid_vector m_mn;
   hybrid_vector m_mx;
@@ -690,12 +700,39 @@ public:
 
 #pragma pack(pop)
 #pragma pack(push, 16)
-template <size_t T> class colgeom_visitor_inlined_t : colgeom_visitor_t {
+template <size_t T> class colgeom_visitor_inlined_t {
+  // This is inherited. Inheritance breaks standard layout, so it's added as a
+  // field here instead.
+  colgeom_visitor_t base;
   int32_t nprims;
   bool overflow;
   col_prim_t prims[T];
 };
 #pragma pack(pop)
+
+struct IgnoreEntParams {
+  int baseEntity;
+  int parentEntity;
+  int ignoreEntType;
+  bool ignoreSelf;
+  bool ignoreParent;
+  bool ignoreSiblings;
+  bool ignoreChildren;
+};
+typedef fastcallPtr_t<qboolean(int)> collide_entity_func_ptr;
+
+struct col_context_t {
+  contents_t mask;
+  const col_prim_t *prims;
+  int nprims;
+  IgnoreEntParams *ignoreEntParams;
+  int passEntityNum0;
+  int passEntityNum1;
+  qboolean staticmodels;
+  qboolean locational;
+  unsigned __int8 *priorityMap;
+  collide_entity_func_ptr collide_entity_func;
+};
 
 enum class JointType : int32_t {
   NONE = 0x0,
@@ -779,10 +816,10 @@ template <typename T> struct phys_inplace_avl_tree_node {
   uint8_t _padding14[4];
 };
 
-class pulse_sum_node;
+struct pulse_sum_node;
 
-class PhysObjUserData;
-class rigid_body;
+struct PhysObjUserData;
+struct rigid_body;
 
 struct WheelState {
   int32_t m_state;
@@ -792,8 +829,10 @@ struct WheelState {
 
 typedef uint32_t phys_gjk_geom_id;
 
-class broad_phase_info : public broad_phase_base {
-public:
+struct broad_phase_info {
+  // This is inherited. Inheritance breaks standard layout, so it's added as a
+  // field here instead
+  broad_phase_base base;
   rigid_body *m_rb;
   const math::RotTranMat43 *m_rb_to_world_xform;
   const math::RotTranMat43 *m_cg_to_world_xform;
@@ -807,7 +846,7 @@ struct cached_simplex_info {
   math::Dir3 m_indices[3];
 };
 
-class phys_gjk_geom_id_pair_key {
+struct phys_gjk_geom_id_pair_key {
 public:
   phys_gjk_geom_id m_id1;
   phys_gjk_geom_id m_id2;
@@ -822,8 +861,10 @@ struct phys_gjk_cache_info {
   uint32_t m_flags;
 };
 
-class phys_collision_pair : phys_link_list_base<phys_collision_pair> {
-public:
+struct phys_collision_pair {
+  // This is inherited. Inheritance breaks standard layout, so it's added as a
+  // field here instead
+  phys_link_list_base<phys_collision_pair> base;
   broad_phase_info *m_bpi1;
   broad_phase_info *m_bpi2;
   float m_hit_time;
@@ -851,8 +892,10 @@ struct __attribute__((aligned(16))) contact_point_info {
   rigid_body_constraint_contact *m_rbc_contact;
 };
 
-class rigid_body_constraint_contact : rigid_body_constraint {
-public:
+struct rigid_body_constraint_contact {
+  // This is inherited. Inheritance breaks standard layout, so it's added as a
+  // field here instead
+  rigid_body_constraint base;
   phys_simple_link_list<contact_point_info> m_list_contact_point_info_buffer_1;
   phys_simple_link_list<contact_point_info> m_list_contact_point_info_buffer_2;
   uint32_t m_solver_priority;
@@ -860,8 +903,10 @@ public:
   rigid_body_pair_key m_avl_key;
 };
 
-class rigid_body_constraint_hinge : rigid_body_constraint {
-public:
+struct rigid_body_constraint_hinge {
+  // This is inherited. Inheritance breaks standard layout, so it's added as a
+  // field here instead.
+  rigid_body_constraint base;
   __attribute__((aligned(16))) math::Dir3 m_b1_r_loc;
   math::Dir3 m_b2_r_loc;
   math::Dir3 m_b1_axis_loc;
@@ -875,8 +920,10 @@ public:
   uint32_t m_flags;
   pulse_sum_cache m_ps_cache[8];
 };
-class rigid_body_constraint_distance : rigid_body_constraint {
-public:
+struct rigid_body_constraint_distance {
+  // This is inherited. Inheritance breaks standard layout, so it's added as a
+  // field here instead.
+  rigid_body_constraint base;
   __attribute__((aligned(16))) math::Dir3 m_b1_r_loc;
   math::Dir3 m_b2_r_loc;
   float m_min_distance;
@@ -895,8 +942,10 @@ struct __attribute__((aligned(8))) ragdoll_joint_limit_info {
   float m_b1_ud_active_limit_co_;
 };
 
-class rigid_body_constraint_ragdoll : rigid_body_constraint {
-public:
+struct rigid_body_constraint_ragdoll {
+  // This is inherited. Inheritance breaks standard layout, so it's added as a
+  // field here instead.
+  rigid_body_constraint base;
   __attribute__((aligned(16))) math::Dir3 m_b1_r_loc;
   math::Dir3 m_b2_r_loc;
   uint32_t m_flags;
@@ -912,8 +961,10 @@ public:
   int32_t m_joint_limits_count;
   float m_damp_k;
 };
-class pulse_sum_normal : phys_link_list_base<pulse_sum_normal> {
-public:
+struct pulse_sum_normal {
+  // This is inherited. Inheritance breaks standard layout, so it's added as a
+  // field here instead.
+  phys_link_list_base<pulse_sum_normal> base;
   __attribute__((aligned(16))) math::Dir3 m_ud;
   math::Dir3 m_b1_r;
   math::Dir3 m_b2_r;
@@ -933,22 +984,28 @@ public:
   pulse_sum_node *m_b2;
   pulse_sum_cache *m_pulse_sum_cache;
 };
-class __attribute__((aligned(8))) rigid_body_constraint_wheel
-    : rigid_body_constraint {
-public:
-  static constexpr symbol<thiscall_t<void(rigid_body_constraint_wheel *,
-                                          float torque, float delta_t)>>
-      add_wheel_torque{0x0, 0x14002A710};
-  static constexpr symbol<thiscall_t<void(rigid_body_constraint_wheel *)>>
-      set_no_collision{0x0, 0x14002B110};
-  static constexpr symbol<thiscall_t<void(
-      const rigid_body_constraint_wheel *, const math::RotTranMat43 *b1_mat,
-      math::Dir3 *const p0, math::Dir3 *const p1)>>
-      get_wheel_collide_segment{0x0, 0x14002AB70};
-  static constexpr symbol<
-      thiscall_t<void(rigid_body_constraint_wheel *, rigid_body *const rb,
-                      const math::Dir3 *hitp_loc, const math::Dir3 *hitn_loc)>>
-      set_collision{0x0, 0x14002B0B0};
+struct __attribute__((aligned(8))) rigid_body_constraint_wheel {
+  // This is inherited. Inheritance breaks standard layout, so it's added as a
+  // field here instead.
+  rigid_body_constraint base;
+
+  struct syms {
+    static constexpr symbol<thiscall_t<void(rigid_body_constraint_wheel *,
+                                            float torque, double delta_t)>>
+        add_wheel_torque{0x14002A9A0, 0x14002A710};
+    static constexpr symbol<thiscall_t<void(rigid_body_constraint_wheel *)>>
+        set_no_collision{0x14002B3A0, 0x14002B110};
+    static constexpr symbol<thiscall_t<void(
+        const rigid_body_constraint_wheel *, const math::RotTranMat43 *b1_mat,
+        math::Dir3 *const p0, math::Dir3 *const p1)>>
+        get_wheel_collide_segment{0x14002AE00, 0x14002AB70};
+    static constexpr symbol<thiscall_t<void(
+        rigid_body_constraint_wheel *, const rigid_body *rb,
+        const math::Dir3 *hitp_loc, const math::Dir3 *hitn_loc)>>
+        set_collision{0x14002B340, 0x14002B0B0};
+    static constexpr symbol<thiscall_t<void(rigid_body_constraint_wheel *)>>
+        calc_penetration_depth{0x14002A9D0, 0x14002A740};
+  };
 
   pulse_sum_cache m_ps_cache_list[4];
   pulse_sum_normal *m_ps_suspension;
@@ -986,9 +1043,29 @@ public:
   float m_hard_limit_dist;
   float m_penetration_depth;
   float m_max_climb_angle;
+
+  inline void add_wheel_torque(float torque, double delta_t) {
+    return syms::add_wheel_torque(this, torque, delta_t);
+  }
+
+  inline void set_no_collision() { return syms::set_no_collision(this); }
+  inline void get_wheel_collide_segment(const math::RotTranMat43 *b1_mat,
+                                        math::Dir3 *const p0,
+                                        math::Dir3 *const p1) const {
+    return syms::get_wheel_collide_segment(this, b1_mat, p0, p1);
+  }
+  inline void set_collision(const rigid_body *rb, const math::Dir3 *hitp_loc,
+                            const math::Dir3 *hitn_loc) {
+    return syms::set_collision(this, rb, hitp_loc, hitn_loc);
+  }
+  inline void calc_penetration_depth() {
+    return syms::calc_penetration_depth(this);
+  }
 };
-class rigid_body_constraint_angular_actuator : rigid_body_constraint {
-public:
+struct rigid_body_constraint_angular_actuator {
+  // This is inherited. Inheritance breaks standard layout, so it's added as a
+  // field here instead.
+  rigid_body_constraint base;
   __attribute__((aligned(16))) math::RotTranMat43 m_target_mat;
   math::RotTranMat43 m_next_target_mat;
   math::Dir3 m_a_vel;
@@ -997,8 +1074,10 @@ public:
   bool m_enabled;
   pulse_sum_cache m_ps_cache_list[3];
 };
-class rigid_body_constraint_upright : rigid_body_constraint {
-public:
+struct rigid_body_constraint_upright {
+  // This is inherited. Inheritance breaks standard layout, so it's added as a
+  // field here instead.
+  rigid_body_constraint base;
   __attribute__((aligned(16))) math::Dir3 m_b1_forward_axis_loc;
   math::Dir3 m_b1_right_axis_loc;
   math::Dir3 m_b1_up_axis_loc;
@@ -1016,9 +1095,10 @@ public:
   bool m_enabled;
   pulse_sum_cache m_ps_cache_list[1];
 };
-class __attribute__((aligned(8))) rigid_body_constraint_custom_orientation
-    : public rigid_body_constraint {
-public:
+struct __attribute__((aligned(8))) rigid_body_constraint_custom_orientation {
+  // This is inherited. Inheritance breaks standard layout, so it's added as a
+  // field here instead.
+  rigid_body_constraint base;
   pulse_sum_cache m_ps_cache_list[5];
   bool m_active;
   bool m_no_orientation_correction;
@@ -1029,21 +1109,28 @@ public:
   float m_desired_roll_angle;
 };
 
-class user_rigid_body : rigid_body {
-public:
+struct user_rigid_body {
+  // This is inherited. Inheritance breaks standard layout, so it's added as a
+  // field here instead.
+  rigid_body base;
   const math::RotTranMat43 *m_dictator;
   math::RotTranMat43 m_dictator_mat;
 };
 
-class rigid_body_constraint_custom_path : rigid_body_constraint {
-public:
-  __attribute__((aligned(16))) math::RotTranMat43 m_path_mat;
+PACKED(struct rigid_body_constraint_custom_path {
+  // This is inherited. Inheritance breaks standard layout, so it's added as a
+  // field here instead.
+  rigid_body_constraint base;
+  uint8_t _padding18[8];
+  math::RotTranMat43 m_path_mat;
   math::Dir3 b1_r_loc;
   user_rigid_body *m_urb;
   int32_t m_timestamp;
   float m_spring_scale;
   pulse_sum_cache m_list_psc[4];
-};
+});
+ASSERT_OFFSET(rigid_body_constraint_custom_path, b1_r_loc, 0x60);
+ASSERT_OFFSET(rigid_body_constraint_custom_path, m_path_mat, 0x20);
 
 struct BodyState {
   vec3_t position;
@@ -1064,9 +1151,7 @@ struct BodyState {
   PhysicsOwnerType owner_type;
 };
 
-class environment_rigid_body : public rigid_body {
-public:
-};
+typedef rigid_body environment_rigid_body;
 
 typedef fastcallPtr_t<void()> phys_collision_callback_t;
 
@@ -1076,7 +1161,7 @@ typedef fastcallPtr_t<bool(const broad_phase_base *b1,
 
 typedef fastcallPtr_t<void(void *)> phys_debug_callback_t;
 
-class phys_sys {
+struct phys_sys {
 public:
   static constexpr symbol<rigid_body_constraint_custom_orientation *(
       rigid_body *const b1, rigid_body *const b2, const int no_error)>
@@ -1107,10 +1192,27 @@ public:
                                                                  0x14000C520};
 };
 
-enum TraceBrushType : int32_t {
-  TRACE_BRUSHTYPE_NONE = 0x0,
-  TRACE_BRUSHTYPE_BRUSH = 0x1,
+enum class TraceBrushType : int32_t {
+  NONE = 0x0,
+  BRUSH = 0x1,
 };
 
+struct TraceExtents {
+  hybrid_vector start;
+  hybrid_vector end;
+  hybrid_vector invDelta;
+};
+
+struct moveclip_t {
+  vec3_t mins;
+  vec3_t maxs;
+  vec3_t outerSize;
+  __declspec(align(16)) TraceExtents extents;
+  int passEntityNum;
+  int passEntityNum1;
+  int passOwnerNum;
+  contents_t contentmask;
+  collide_entity_func_ptr collide_entity_func;
+};
 } // namespace phys
 } // namespace game

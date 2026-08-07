@@ -52,9 +52,8 @@ inline gentity_pool *get_g_entities() {
   return g_entities.get();
 }
 
-template <typename T, typename = typename std::enable_if<
-                          std::is_convertible<T, uint32_t>::value>::type>
-inline gentity_t *entity(T input_index) {
+template <IntegralLike<uint32_t> Index>
+inline gentity_t *entity(Index input_index) {
   uint32_t index = static_cast<uint32_t>(input_index);
   if (index < GENTITY_POOL_LEN) {
     gentity_pool *pool = get_g_entities();

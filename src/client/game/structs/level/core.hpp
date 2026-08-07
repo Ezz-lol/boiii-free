@@ -221,9 +221,59 @@ struct LerpEntityStateAnonymous {
   int32_t data[26];
 };
 
+enum class trTypeField_t : uint8_t {
+  STATIONARY = 0x0,
+  INTERPOLATE = 0x1,
+  INTERPOLATE_MOVER = 0x2,
+  LINEAR = 0x3,
+  LINEAR_STOP = 0x4,
+  SINE = 0x5,
+  GRAVITY = 0x6,
+  LOW_GRAVITY = 0x7,
+  WATER_GRAVITY = 0x8,
+  ACCELERATE = 0x9,
+  DECELERATE = 0xA,
+  DECELERATE_GRAVITY = 0xB,
+  PHYSICS = 0xC,
+  XDOLL = 0xD,
+  FIRST_RAGDOLL = 0xE,
+  RAGDOLL = 0xE,
+  RAGDOLL_GRAVITY = 0xF,
+  RAGDOLL_INTERPOLATE = 0x10,
+  LAST_RAGDOLL = 0x10,
+  MOON_GRAVITY = 0x11,
+  COUNT = 0x12,
+};
+IMPL_ENUM_OPERATORS(trTypeField_t);
+
+enum class trType_t : uint32_t {
+  STATIONARY = 0x0,
+  INTERPOLATE = 0x1,
+  INTERPOLATE_MOVER = 0x2,
+  LINEAR = 0x3,
+  LINEAR_STOP = 0x4,
+  SINE = 0x5,
+  GRAVITY = 0x6,
+  LOW_GRAVITY = 0x7,
+  WATER_GRAVITY = 0x8,
+  ACCELERATE = 0x9,
+  DECELERATE = 0xA,
+  DECELERATE_GRAVITY = 0xB,
+  PHYSICS = 0xC,
+  XDOLL = 0xD,
+  FIRST_RAGDOLL = 0xE,
+  RAGDOLL = 0xE,
+  RAGDOLL_GRAVITY = 0xF,
+  RAGDOLL_INTERPOLATE = 0x10,
+  LAST_RAGDOLL = 0x10,
+  MOON_GRAVITY = 0x11,
+  COUNT = 0x12,
+};
+IMPL_ENUM_OPERATORS(trType_t);
+
 #pragma pack(push, 1)
 struct trajectory_t {
-  uint8_t trType;
+  trTypeField_t trType;
   uint8_t _padding01[3];
   int32_t trTime;
   int32_t trDuration;
@@ -257,7 +307,9 @@ union LerpEntityStateTypeUnion {
 struct LerpEntityState {
   int32_t eFlags;
   int32_t eFlags2;
+  // Position - placement
   trajectory_t pos;
+  // Angular position
   trajectory_t apos;
   LerpEntityStateTypeUnion u;
   int16_t useCount;
@@ -292,17 +344,6 @@ struct playerAnimState_t {
   uint8_t _padding0F[1];
 };
 
-#pragma pack(push, 1)
-struct vehicleState_t {
-  int32_t flags;
-  int16_t animId;
-  int16_t attachModelIndex[2];
-  uint8_t attachTagIndex[2];
-  uint8_t vehicleDefIndex;
-  uint8_t _padding0D[3];
-};
-#pragma pack(pop)
-
 struct hardlineHint_t {
   uint8_t team;
   uint8_t perk;
@@ -328,7 +369,7 @@ struct fxLightingState_t {
 
 union entityStateUn2 {
   playerAnimState_t anim;
-  vehicleState_t vehicleState;
+  vehicle::vehicleState_t vehicleState;
   hardlineHint_t hardline;
   scriptMoverState_t moverState;
   fxLightingState_t fxState;
@@ -1700,8 +1741,9 @@ struct PlayerLens {
   float focalLength;
   float focalDistance;
   float fStop;
+  float unknown;
 };
-ASSERT_SIZE(PlayerLens, 0x10);
+ASSERT_SIZE(PlayerLens, 0x14);
 
 enum class OffhandSecondaryClass : int32_t {
   SMOKE = 0x0,
@@ -2029,7 +2071,7 @@ struct playerState_s {
   int16_t unpredictableEventSequence;
   int16_t unpredictableEventSequenceOld;
   int32_t unpredictableEvents[4];
-  uint8_t _padding26C[4];
+  // uint8_t _padding26C[4];
   EventParm_t unpredictableEventParms[4];
   weapon::Weapon offHandWeapon;
   OffhandSecondaryClass offhandSecondary;
@@ -2227,6 +2269,11 @@ ASSERT_OFFSET(playerState_s, _paddingBBB, 0xBBB);
 ASSERT_OFFSET(playerState_s, _paddingB58, 0xB58);
 ASSERT_OFFSET(playerState_s, _padding6BCB, 0x6BCB);
 ASSERT_SIZE(playerState_s, 0xB566);
+/*
+   TODO: this correct size is `0xB570`. This struct needs corrected,
+  Other structs using this one as a field also need to be corrected such that
+  all other known-correct offsets stay valid.
+*/
 typedef playerState_s playerState_t;
 #pragma pack(pop)
 

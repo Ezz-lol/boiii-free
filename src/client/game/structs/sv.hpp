@@ -1190,5 +1190,34 @@ struct ucmd_t {
 ASSERT_SIZE(ucmd_t, 0x18);
 #pragma pack(pop)
 
+PACKED(struct BitField {
+  const uint64_t *array;
+  uint32_t rowSize;
+  uint32_t count;
+  uint32_t mbits;
+  uint8_t _padding14[4];
+});
+
+PACKED(struct NetField {
+  const char *name;
+  int offset;
+  int size;
+  int bits;
+  uint8_t changeHints;
+  uint8_t _padding15[3];
+  const char *bitsStr;
+  const char *changeHintsStr;
+});
+
+struct NetFieldList {
+  const NetField *array;
+  uint32_t count;
+  uint32_t bbPrintRandMax;
+  uint32_t bbPrintCount;
+  unsigned int bbChecksum;
+  BitField bitFields;
+  const char *fieldArrayName;
+};
+
 } // namespace sv
 } // namespace game

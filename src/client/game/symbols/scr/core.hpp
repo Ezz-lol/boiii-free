@@ -43,8 +43,8 @@ WEAK symbol<var::ScrVarType_t(scriptInstance_t inst, var::ScrVarIndex_t index)>
     Scr_GetType{0x1412EBD30, 0x140171700};
 WEAK symbol<const char *(scriptInstance_t inst, var::ScrVarIndex_t index)>
     Scr_GetTypeName{0x1412EBD90, 0x140171760};
-WEAK symbol<var::ScrVarValue_t *(scriptInstance_t inst,
-                                 var::ScrVarIndex_t index)>
+WEAK symbol<volatile var::ScrVarValue_t *(scriptInstance_t inst,
+                                          var::ScrVarIndex_t index)>
     Scr_GetValue{0x1412EBF30, 0x140171900};
 WEAK symbol<void(scriptInstance_t inst, var::ScrVarIndex_t index,
                  vec3_t *vectorValue)>

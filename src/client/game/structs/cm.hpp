@@ -326,7 +326,7 @@ ASSERT_OFFSET(clipMap_t, nodes, 0xC0);
 PACKED(struct trace_t {
   hybrid_vector normal;
   float fraction;
-  int sflags;
+  int32_t sflags;
   contents_t cflags;
   TraceBrushType brushType;
   uint16_t brushId;
@@ -344,7 +344,7 @@ PACKED(struct trace_t {
   bool walkable;
   uint8_t _padding3A[5];
   cStaticModel_s *staticModel;
-  int hitPartition;
+  int32_t hitPartition;
   uint8_t _padding4C[4];
 });
 ASSERT_SIZE(trace_t, 0x50);
@@ -367,7 +367,7 @@ PACKED(struct BulletTraceResults {
   vec3_t hitPos;
   bool ignoreHitEnt;
   uint8_t _padding65[3];
-  int depthSurfaceType;
+  int32_t depthSurfaceType;
   uint8_t _padding6C[4];
 });
 
@@ -377,7 +377,7 @@ PACKED(struct BulletTrace_Cmd {
   const weapon::WeaponDef *weapDef;
   level::cl::centity_t *attacker;
   BulletTraceResults br;
-  int lastSurfaceType;
+  int32_t lastSurfaceType;
   bool traceHit;
   uint8_t _paddingD5[3];
   weapon::Weapon weapon;
@@ -385,9 +385,19 @@ PACKED(struct BulletTrace_Cmd {
   bool drawTracer;
   bool isPlayer;
   uint8_t _paddingED[2];
-  int command_index;
+  int32_t command_index;
   uint8_t _paddingF4[12];
 });
+
+PACKED(struct GroundTrace {
+  trace_t trace;
+  vec3_t location;
+  int32_t onGround;
+  int32_t hasGround;
+  int32_t validGroundNormal;
+  uint8_t _padding68[8];
+});
+ASSERT_SIZE(GroundTrace, 0x70);
 
 } // namespace cm
 } // namespace game

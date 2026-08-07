@@ -166,6 +166,11 @@ struct ScrVarValue_t {
   operator const ScrVar_t *() const noexcept { return var(); }
   operator ScrVar_t *() noexcept { return var(); }
   operator volatile ScrVar_t *() volatile noexcept { return var(); }
+
+  volatile ScrVarValue_t *deref(scriptInstance_t inst) volatile;
+  bool array_like(scriptInstance_t inst) volatile;
+
+  volatile ScrVarValue_t *next_sibling(scriptInstance_t inst) volatile;
 };
 ASSERT_SIZE(ScrVarValue_t, 0x10);
 #pragma pack(pop)
@@ -204,6 +209,13 @@ struct ScrVar_t {
   ScrVarIndex_t prevSibling;
   ScrVarIndex_t parentId;
   ScrVarIndex_t nameSearchHashList;
+
+  volatile ScrVar_t *deref(scriptInstance_t inst) volatile;
+  inline bool array_like(scriptInstance_t inst) volatile {
+    return value.array_like(inst);
+  }
+  inline uint32_t array_len() volatile noexcept { return o.size; }
+  volatile ScrVar_t *next_sibling(scriptInstance_t inst) volatile;
 };
 ASSERT_SIZE(ScrVar_t, 0x40);
 #pragma pack(pop)
@@ -221,6 +233,11 @@ inline volatile ScrVar_t *ScrVarValue_t::var() volatile noexcept {
 inline ScrVar_t *ScrVarValue_t::var() noexcept {
   return reinterpret_cast<ScrVar_t *>(reinterpret_cast<uintptr_t>(this) -
                                       offsetof(ScrVar_t, value) /* 0 */);
+}
+
+inline volatile ScrVarValue_t *
+ScrVarValue_t::next_sibling(scriptInstance_t inst) volatile {
+  return &var()->next_sibling(inst)->value;
 }
 
 #pragma pack(push, 1)

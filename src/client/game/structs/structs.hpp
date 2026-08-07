@@ -48,3 +48,4 @@
 #include "mem.hpp"             // IWYU pragma: export
 #include "sys.hpp"             // IWYU pragma: export
 #include "r.hpp"               // IWYU pragma: export
+#include "move.hpp"            // IWYU pragma: export

@@ -363,51 +363,6 @@ inline level::gentity_t *client_ent(T index) {
 }
 } // namespace level
 
-namespace scr {
-namespace var {
-inline constexpr bool valid_scrvar_index(scriptInstance_t inst,
-                                         ScrVarIndex_t index) {
-  return index < SCRIPTVARIABLE_POOL_SIZE.instance[inst];
-}
-
-inline ScrVarIndex_t scrvar_index(scriptInstance_t inst,
-                                  volatile ScrVar_t *var) {
-  uintptr_t scriptVariablesPtr = reinterpret_cast<uintptr_t>(
-      vm::gScrVarGlob->instance[inst].scriptVariables);
-  uintptr_t varPtr = reinterpret_cast<uintptr_t>(var);
-  return static_cast<ScrVarIndex_t>((varPtr - scriptVariablesPtr) /
-                                    sizeof(ScrVar_t));
-}
-
-inline bool valid_scrvar_ptr(scriptInstance_t inst, volatile ScrVar_t *var) {
-  return valid_engine_ptr(var) // Static or stack allocation
-         ||
-         valid_scrvar_index(inst, scrvar_index(inst, var)); // Pool allocation
-}
-
-inline ScrVarIndex_t scrvarvalue_index(scriptInstance_t inst,
-                                       volatile ScrVarValue_t *val) {
-  return scrvar_index(inst, val->var());
-}
-
-inline bool valid_scrvarvalue_ptr(scriptInstance_t inst,
-                                  volatile ScrVarValue_t *val) {
-  return valid_engine_ptr(val) // Static or stack allocation
-         || valid_scrvar_index(inst,
-                               scrvarvalue_index(inst, val)); // Pool allocation
-}
-
-inline bool valid_val_allocation_ptr(uintptr_t ptr) {
-  return valid_stack_ptr(ptr) ||
-         (scr::mt::gScrMemTreePub->mt_buffer &&
-          scr::mt::gScrMemTreePub->mt_buffer->contains(ptr));
-}
-
-template <typename T> inline bool valid_val_allocation_ptr(volatile T *ptr) {
-  return valid_val_allocation_ptr(reinterpret_cast<uintptr_t>(ptr));
-}
-} // namespace var
-} // namespace scr
 namespace sl {
 inline bool valid_refstring_ptr(volatile RefString *ref) {
   return valid_stack_ptr(ref) ||
