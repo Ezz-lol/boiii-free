@@ -110,7 +110,7 @@ public:
   T invoke(const std::string &name, Args... args) const {
     cdeclPtr_t<T(Args...)> f = get_proc<cdeclPtr_t<T(Args...)>>(name);
     if (!f)
-      return T{};
+      return {};
 
     return f(args...);
   }
@@ -119,7 +119,7 @@ public:
   T invoke_pascal(const std::string &name, Args... args) const {
     stdcallPtr_t<T(Args...)> f = get_proc<stdcallPtr_t<T(Args...)>>(name);
     if (!f)
-      return T();
+      return {};
 
     return f(args...);
   }
@@ -129,7 +129,7 @@ public:
     thiscallPtr_t<T(void *__this, Args...)> f =
         get_proc<thiscallPtr_t<T(void *__this, Args...)>>(name);
     if (!f)
-      return T{};
+      return {};
 
     return f(this_ptr, args...);
   }
