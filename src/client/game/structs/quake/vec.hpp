@@ -29,7 +29,8 @@ inline constexpr T normalizeAngle(T angle) noexcept {
   return static_cast<T>(
       static_cast<float>(
           static_cast<float>(angle * constants<float>::ONE_DIV_360) -
-          floor(static_cast<float>(angle * constants<float>::ONE_DIV_360) + 0.5f)) *
+          floor(static_cast<float>(angle * constants<float>::ONE_DIV_360) +
+                0.5f)) *
       360.0f);
 }
 } // namespace math

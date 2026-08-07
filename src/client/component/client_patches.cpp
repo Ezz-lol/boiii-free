@@ -12,6 +12,7 @@
 #include <game/impl/cl/cl.hpp>
 #include <game/impl/cg/cg.hpp>
 
+#include <utils/string.hpp>
 #include <utils/hook.hpp>
 
 #include <mmeapi.h>
@@ -439,6 +440,50 @@ void fix_mapswitch_crashes() {
       game::dw::task::TaskManager2_ProcessDemonwareTask.get(),
       TaskManager2_ProcessDemonwareTask_Safe);
 }
+
+utils::hook::detour SV_FastRestart_f_hook;
+utils::hook::detour SV_MapRestart_f_hook;
+
+inline constexpr std::string_view TDM_GAMETYPE = "tdm";
+inline constexpr std::string_view ZCLASSIC_GAMETYPE = "zclassic";
+inline constexpr std::string_view CAMPAIGN_GAMETYPE = "cp";
+inline constexpr std::string_view MULTIPLAYER_MAP_PREFIX = "mp_";
+inline constexpr std::string_view ZOMBIES_MAP_PREFIX = "zm_";
+inline constexpr std::string_view CAMPAIGN_MAP_PREFIX = "cp_";
+template <const game::RestartMethod_t RestartMethod>
+void SV_RestartCmd_RotateOrDefault() {
+  if (game::get_sv_running() &&
+      !game::com::Com_SessionMode_IsMode(game::eModes::COUNT) /* main menu */) {
+    if (game::maprotation().value_or("").empty()) {
+      std::string_view curr_gametype;
+      const std::string_view curr_mapname =
+          game::get_mapname().value_or("mp_nuketown");
+
+      const std::optional<std::string_view> gametype_dvar_val =
+          game::gametype();
+      if (gametype_dvar_val.has_value()) {
+        curr_gametype = gametype_dvar_val.value();
+
+      } else if (utils::string::starts_with(curr_mapname,
+                                            MULTIPLAYER_MAP_PREFIX)) {
+        curr_gametype = TDM_GAMETYPE;
+
+      } else if (utils::string::starts_with(curr_mapname, ZOMBIES_MAP_PREFIX)) {
+        curr_gametype = ZCLASSIC_GAMETYPE;
+      } else if (utils::string::starts_with(curr_mapname,
+                                            CAMPAIGN_MAP_PREFIX)) {
+        curr_gametype = CAMPAIGN_GAMETYPE;
+      }
+
+      const char *rotate_cmd = utils::string::va(
+          "gametype %s map %s", curr_gametype.data(), curr_mapname.data());
+      game::sv_maprotation->set(rotate_cmd);
+    }
+    game::cbuf::Cbuf_AddText(0, "map_rotate\n");
+  } else {
+    game::sv::SV_MapRestart(RestartMethod);
+  }
+}
 } // namespace
 
 class component final : public client_component {
@@ -535,6 +580,12 @@ public:
 
     CL_CheckForResendHook.create(game::cl::CL_CheckForResend.get(),
                                  game::cl::CL_CheckForResend_Impl);
+    SV_MapRestart_f_hook.create(
+        game::sv::SV_MapRestart_f.get(),
+        SV_RestartCmd_RotateOrDefault<game::RestartMethod_t::FULL>);
+    SV_FastRestart_f_hook.create(
+        game::sv::SV_FastRestart_f.get(),
+        SV_RestartCmd_RotateOrDefault<game::RestartMethod_t::ROUND>);
 
     patch_players_folder_name();
   }

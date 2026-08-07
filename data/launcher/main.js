@@ -157,9 +157,7 @@
   var _latestVersionTag = "";
 
   var workshopBrowseGrid = document.getElementById("workshopBrowseGrid");
-  var workshopViewToggleBtn = document.getElementById(
-    "workshopViewToggleBtn"
-  );
+  var workshopViewToggleBtn = document.getElementById("workshopViewToggleBtn");
   var workshopSearchInput = document.getElementById("workshopSearchInput");
   var workshopSearchBtn = document.getElementById("workshopSearchBtn");
   var workshopBrowseRefreshBtn = document.getElementById(
