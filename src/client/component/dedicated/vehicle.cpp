@@ -1,16 +1,14 @@
 #include <std_include.hpp>
+
 #include <loader/component_loader.hpp>
+
 #include <component/scheduler.hpp>
+#include <component/game_event.hpp>
+
 #include <game/game.hpp>
 #include <game/utils.hpp>
 
-#include "../game_event.hpp"
-
-#include <utils/string.hpp>
-
-#include <std_include.hpp>
 #include "game/impl/phys/phys.hpp"
-#include "loader/component_loader.hpp"
 
 #include <utils/flags.hpp>
 #include <utils/hook.hpp>
@@ -132,12 +130,12 @@ static constexpr const uintptr_t NO_CG_ARRAY_SYS_ERROR_BRANCHES[] = {
 
 };
 
+using namespace game;
 using namespace game::vehicle;
 using namespace game::phys;
 using namespace game::cg;
 using namespace game::level;
 using namespace game::level::cl;
-using namespace game;
 namespace {
 
 inline void remove_no_cg_array_sys_error_branches() {
@@ -165,7 +163,7 @@ void reset_pools() {
   memset(&cg_entitiesArray, 0, sizeof(cg_entitiesArray));
 }
 
-inline void use_client_entities() {
+inline void enable_client_game_pools() {
   remove_no_cg_array_sys_error_branches();
 
   game_event::on_g_init_game([]() -> void {
@@ -197,6 +195,7 @@ void NitrousVehicle_unpause_physics_always_collide_wheels(
         game::sys::ScopedCriticalSection(
             sys::CriticalSection::PHYSICS,
             sys::ScopedCriticalSection::ScopedCriticalSectionType::NORMAL);
+
     if (!self->m_vehicle_def->useHeliBoneControllers &&
         self->m_flags.initialized) {
       phys::collide_vehicle_wheels(self);
@@ -222,7 +221,7 @@ void NitrousVehicle_pause_physics_if_not_sentient(NitrousVehicle *self,
 
 struct component final : server_component {
   void post_unpack() override {
-    use_client_entities();
+    enable_client_game_pools();
     path_constraint_update_hook.create(path_constraint_update,
                                        path_constraint_update_sv);
     NitrousVehicle_is_path_moving_hook.create(
