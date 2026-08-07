@@ -83,6 +83,7 @@ void server_frame_stub() {
   execute(server);
 }
 
+#ifdef NDEBUG
 LONG server_seh_filter(LPEXCEPTION_POINTERS info, const char * /*context*/) {
   if (game::is_server() && info && info->ExceptionRecord) {
     const auto code = info->ExceptionRecord->ExceptionCode;
@@ -92,6 +93,7 @@ LONG server_seh_filter(LPEXCEPTION_POINTERS info, const char * /*context*/) {
   }
   return EXCEPTION_EXECUTE_HANDLER;
 }
+#endif
 
 #pragma warning(push)
 #pragma warning(disable : 4611)

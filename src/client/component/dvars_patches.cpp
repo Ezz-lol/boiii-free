@@ -119,6 +119,7 @@ EngineDependentDvarMut Dvar_RegisterDisable_Bool(dvarStrHash_t hash,
 
   return dvar;
 }
+#ifdef NDEBUG
 EngineDependentDvarMut Dvar_RegisterDisable_Bool_Inlined(
     dvarStrHash_t hash, const char *dvarName, dvarType_t type, DvarFlags flags,
     DvarValue *value, DvarLimits *domain, const char *description,
@@ -130,6 +131,7 @@ EngineDependentDvarMut Dvar_RegisterDisable_Bool_Inlined(
   Dvar_SetModifiedCallback(dvar, dvar_disablebool_cb);
   return dvar;
 }
+#endif
 
 inline void disable_sv_cheats() {
 #ifdef NDEBUG
