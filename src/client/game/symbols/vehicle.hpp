@@ -15,7 +15,5 @@ WEAK symbol<void(phys::rigid_body_constraint_custom_path *vpc,
 WEAK symbol<void(phys::rigid_body *rb)> fixup_wheel_constraints{0x0,
                                                                 0x1405E8010};
 
-WEAK symbol<void()> G_ClearVehicleInputs{0x0, 0x1405C1200};
-
 } // namespace vehicle
 } // namespace game

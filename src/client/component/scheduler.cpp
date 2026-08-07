@@ -77,8 +77,9 @@ void r_end_frame_stub() {
   r_end_frame_hook.invoke<void>();
 }
 
-void g_clear_vehicle_inputs_stub() {
-  game::G_ClearVehicleInputs();
+utils::hook::detour server_frame_hook;
+void server_frame_stub() {
+  server_frame_hook.invoke();
   execute(server);
 }
 
@@ -257,15 +258,13 @@ struct component final : generic_component {
 
   void post_unpack() override {
     if (!game::is_server()) {
-      // some func called before R_EndFrame, maybe SND_EndFrame?
-      r_end_frame_hook.create(0x142272B00_g, r_end_frame_stub);
+      r_end_frame_hook.create(game::snd::SND_EndFrame, r_end_frame_stub);
     }
 
     main_frame_hook.create(game::com::Com_Frame_Try_Block_Function.get(),
                            main_frame_stub);
 
-    utils::hook::call(game::select(0x14225522E, 0x140538427),
-                      g_clear_vehicle_inputs_stub);
+    server_frame_hook.create(game::G_ClearVehicleInputs, server_frame_stub);
   }
 
   void pre_destroy() override {
