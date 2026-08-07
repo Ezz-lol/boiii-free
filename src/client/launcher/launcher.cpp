@@ -2146,8 +2146,8 @@ bool run() {
           char cwd[MAX_PATH] = {};
           GetCurrentDirectoryA(MAX_PATH, cwd);
 
-          if (key == "asset_limits_enabled" ||
-              key == "disable_asset_pools" || key.starts_with("ap_")) {
+          if (key == "asset_limits_enabled" || key == "disable_asset_pools" ||
+              key.starts_with("ap_")) {
             const auto path = std::filesystem::path("boiii_players") / "user" /
                               "launcher_settings.json";
             std::error_code ec;
@@ -2173,8 +2173,8 @@ bool run() {
             rapidjson::Writer<rapidjson::StringBuffer> w(sb);
             doc.Accept(w);
             return CComVariant(
-                utils::io::write_file(
-                    path.string(), std::string(sb.GetString(), sb.GetSize()))
+                utils::io::write_file(path.string(),
+                                      std::string(sb.GetString(), sb.GetSize()))
                     ? "ok"
                     : "write_error");
           }

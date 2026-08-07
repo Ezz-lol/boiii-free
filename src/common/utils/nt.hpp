@@ -54,9 +54,9 @@ public:
   [[nodiscard]] HMODULE get_handle() const;
 
 private:
-  template <typename Fn> static Fn cast_proc(FARPROC proc) {
-    static_assert(std::is_pointer_v<Fn>, "Fn must be function pointer");
-
+  template <typename Fn>
+    requires(std::is_pointer_v<Fn>)
+  static Fn cast_proc(FARPROC proc) {
 // Clang/GCC warnings with -Weverything
 #if defined(__clang__)
 #pragma clang diagnostic push
@@ -69,7 +69,7 @@ private:
 #pragma GCC diagnostic ignored                                                 \
     "-Wpragmas" // warning: unknown option after '#pragma GCC diagnostic' kind
 #pragma GCC diagnostic ignored                                                 \
-    "-Wcast-function-type" // warning: cst between incompatible function types
+    "-Wcast-function-type" // warning: cast between incompatible function types
                            // (for loader)
 #endif
 
@@ -85,14 +85,14 @@ private:
 
 public:
   template <typename Fn> Fn get_proc(const char *name) const {
-    if (!module_)
-      return nullptr;
+    if (module_) {
+      FARPROC p = GetProcAddress(module_, name);
+      if (p) {
+        return cast_proc<Fn>(p);
+      }
+    }
 
-    FARPROC p = GetProcAddress(module_, name);
-    if (!p)
-      return nullptr;
-
-    return cast_proc<Fn>(p);
+    return nullptr;
   }
 
   template <typename Fn> Fn get_proc(const std::string &name) const {
@@ -101,37 +101,76 @@ public:
 
   template <typename Fn> std::function<Fn> get(const std::string &name) const {
     Fn *fp = get_proc<Fn *>(name);
-    if (!fp)
-      return {};
-    return std::function<Fn>(fp);
+    if (fp) {
+      return std::function<Fn>(fp);
+    }
+
+    return {};
   }
 
   template <typename T, typename... Args>
+    requires(!std::is_same_v<T, void>)
   T invoke(const std::string &name, Args... args) const {
     cdeclPtr_t<T(Args...)> f = get_proc<cdeclPtr_t<T(Args...)>>(name);
-    if (!f)
-      return {};
+    if (f) {
+      return f(args...);
+    }
 
-    return f(args...);
+    return T{};
   }
 
   template <typename T, typename... Args>
+    requires(!std::is_same_v<T, void>)
   T invoke_pascal(const std::string &name, Args... args) const {
     stdcallPtr_t<T(Args...)> f = get_proc<stdcallPtr_t<T(Args...)>>(name);
-    if (!f)
-      return {};
+    if (f) {
+      return f(args...);
+    }
 
-    return f(args...);
+    return T{};
   }
 
   template <typename T, typename... Args>
+    requires(!std::is_same_v<T, void>)
   T invoke_this(const std::string &name, void *this_ptr, Args... args) const {
     thiscallPtr_t<T(void *__this, Args...)> f =
         get_proc<thiscallPtr_t<T(void *__this, Args...)>>(name);
-    if (!f)
-      return {};
+    if (f) {
+      return f(this_ptr, args...);
+    }
+    return T{};
+  }
 
-    return f(this_ptr, args...);
+  template <typename T, typename... Args>
+    requires(std::is_same_v<T, void>)
+  void invoke(const std::string &name, Args... args) const {
+    cdeclPtr_t<void(Args...)> f = get_proc<cdeclPtr_t<void(Args...)>>(name);
+
+    if (f) {
+      return f(args...);
+    }
+  }
+
+  template <typename T, typename... Args>
+    requires(std::is_same_v<T, void>)
+  void invoke_pascal(const std::string &name, Args... args) const {
+    stdcallPtr_t<void(Args...)> f = get_proc<stdcallPtr_t<void(Args...)>>(name);
+
+    if (f) {
+      return f(args...);
+    }
+  }
+
+  template <typename T, typename... Args>
+    requires(std::is_same_v<T, void>)
+  void invoke_this(const std::string &name, void *this_ptr,
+                   Args... args) const {
+    thiscallPtr_t<void(void *__this, Args...)> f =
+        get_proc<thiscallPtr_t<void(void *__this, Args...)>>(name);
+
+    if (f) {
+      return f(this_ptr, args...);
+    }
   }
 
   [[nodiscard]] std::vector<PIMAGE_SECTION_HEADER> get_section_headers() const;

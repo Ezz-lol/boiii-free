@@ -55,8 +55,7 @@ ast_ptr parse_unary(parser_state &s);
 // ---- Expression parsing (precedence climbing) ----
 
 ast_ptr parse_parenthesized_or_vector(parser_state &s) {
-  const token opening =
-      s.expect(token_type::t_lparen, "Expected '('");
+  const token opening = s.expect(token_type::t_lparen, "Expected '('");
   ast_ptr first = parse_expression(s);
 
   if (!s.match(token_type::t_comma)) {
@@ -65,8 +64,7 @@ ast_ptr parse_parenthesized_or_vector(parser_state &s) {
   }
 
   ast_ptr second = parse_expression(s);
-  s.expect(token_type::t_comma,
-           "Expected three components in vector literal");
+  s.expect(token_type::t_comma, "Expected three components in vector literal");
   ast_ptr third = parse_expression(s);
 
   if (s.check(token_type::t_comma)) {

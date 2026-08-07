@@ -33,7 +33,7 @@ constexpr uintptr_t ENGINE_ADDRESS_SPACE_SIZE = 0x030000000;
 
 inline uintptr_t relocate(const uintptr_t ptr) {
   if (ptr) {
-    const uintptr_t base = get_base();
+    const uintptr_t base = get_engine_base();
     return base + (ptr - ENGINE_MODULE_BASE);
   }
 
@@ -42,7 +42,7 @@ inline uintptr_t relocate(const uintptr_t ptr) {
 
 inline uintptr_t derelocate(const uintptr_t ptr) {
   if (ptr) {
-    const uintptr_t base = get_base();
+    const uintptr_t base = get_engine_base();
     return (ptr - base) + ENGINE_MODULE_BASE;
   }
 
@@ -116,8 +116,25 @@ template <typename T> inline bool valid_stack_ptr(const T *ptr) {
   return valid_stack_ptr(reinterpret_cast<uintptr_t>(ptr));
 }
 
+inline bool valid_engine_module_ptr(uintptr_t ptr) {
+  return ptr >= get_engine_base() &&
+         ptr < (get_engine_base() + ENGINE_ADDRESS_SPACE_SIZE);
+}
+
+template <typename T> inline bool valid_engine_module_ptr(const T *ptr) {
+  return valid_engine_module_ptr(reinterpret_cast<uintptr_t>(ptr));
+}
+
+inline bool valid_current_module_ptr(uintptr_t ptr) {
+  return ptr >= get_base() && ptr < (get_base() + current_module_size());
+}
+
+template <typename T> inline bool valid_current_module_ptr(const T *ptr) {
+  return valid_current_module_ptr(reinterpret_cast<uintptr_t>(ptr));
+}
+
 inline bool valid_module_ptr(uintptr_t ptr) {
-  return ptr >= get_base() && ptr < (get_base() + ENGINE_ADDRESS_SPACE_SIZE);
+  return ptr && (valid_engine_module_ptr(ptr) || valid_current_module_ptr(ptr));
 }
 
 template <typename T> inline bool valid_module_ptr(const T *ptr) {
@@ -134,6 +151,8 @@ template <typename T> inline bool valid_engine_ptr(const T *ptr) {
   return valid_engine_ptr(reinterpret_cast<uintptr_t>(ptr));
 }
 
+/// NOTE: DO NOT USE ON WINDOWS. Wine performs this check very quickly, but
+/// using this on Windows _throttles_ performance.
 /// @brief Rapidly checks if a memory address is committed and readable.
 /// Safe to use in high-frequency loops.
 bool readable_ptr(uintptr_t ptr);
