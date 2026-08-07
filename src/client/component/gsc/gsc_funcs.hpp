@@ -1,6 +1,8 @@
 #pragma once
 
 #include <game/game.hpp>
+#include <utils/string.hpp>
+#include <macros.hpp>
 
 namespace gsc {
 using namespace game;
@@ -22,6 +24,21 @@ template <typename Def> struct CustomBuiltinMap {
 extern CustomBuiltinMap<BuiltinFunctionDef> functions;
 extern CustomBuiltinMap<BuiltinMethodDef> methods;
 } // namespace custom_builtins
+
+template <std::remove_pointer_t<BuiltinFunction> Fn, ConstString APIName,
+          ConstString ReplacementAPIName, ConstString InfoMsg>
+void deprecate(scriptInstance_t inst) {
+  const char *deprecation_warning = utils::string::va(
+      "Warning: %s has been deprecated, and will be removed in the next minor "
+      "version - update your scripts to use %s instead. %s %s",
+      APIName, ReplacementAPIName, ReplacementAPIName, InfoMsg);
+  fprintf(stderr, "%s\n", deprecation_warning);
+  fflush(stderr);
+  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s\n",
+                        deprecation_warning);
+
+  Fn(inst);
+}
 
 inline void register_builtin(BuiltinFunctionDef def) {
   custom_builtins::functions.map[def.canonId] = def;
@@ -447,6 +464,74 @@ inline bool builtin_function(ScrVarCanonicalName_t name) {
              name);
 }
 
+#ifndef NDEBUG
+inline std::optional<const char *>
+builtin_function_name(ScrVarCanonicalName_t id) {
+  // TODO: store custom builtin function names in debug profile builds
+  // if (custom_builtins::functions.names.contains(id)) {
+  //   return custom_builtins::functions.names[id];
+  // }
+  if (game::scr::builtin::table::gscr::BuiltinFunctionTable::hashes.contains(
+          id)) {
+    return game::scr::builtin::table::gscr::BuiltinFunctionTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::cscr::BuiltinFunctionTable::hashes.contains(
+          id)) {
+    return game::scr::builtin::table::cscr::BuiltinFunctionTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::cscr::GfxFunctionTable::hashes.contains(id)) {
+    return game::scr::builtin::table::cscr::GfxFunctionTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::cscr::MathFunctionTable::hashes.contains(id)) {
+    return game::scr::builtin::table::cscr::MathFunctionTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::cscr::SoundFunctionTable::hashes.contains(
+          id)) {
+    return game::scr::builtin::table::cscr::SoundFunctionTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::cscr::UIFunctionTable::hashes.contains(id)) {
+    return game::scr::builtin::table::cscr::UIFunctionTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::cscr::UtilFunctionTable::hashes.contains(id)) {
+    return game::scr::builtin::table::cscr::UtilFunctionTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::CommonFunctionTable::hashes.contains(id)) {
+    return game::scr::builtin::table::CommonFunctionTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::MathFunctionTable::hashes.contains(id)) {
+    return game::scr::builtin::table::MathFunctionTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::SentientFunctionTable::hashes.contains(id)) {
+    return game::scr::builtin::table::SentientFunctionTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::UtilFunctionTable::hashes.contains(id)) {
+    return game::scr::builtin::table::UtilFunctionTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::bg::CommonFunctionTable::hashes.contains(id)) {
+    return game::scr::builtin::table::bg::CommonFunctionTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::bg::MathFunctionTable::hashes.contains(id)) {
+    return game::scr::builtin::table::bg::MathFunctionTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::bg::WeaponFunctionTable::hashes.contains(id)) {
+    return game::scr::builtin::table::bg::WeaponFunctionTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::bg::UtilFunctionTable::hashes.contains(id)) {
+    return game::scr::builtin::table::bg::UtilFunctionTable::hashes.at(id).name;
+  }
+
+  return std::nullopt;
+}
+#endif
+
 inline bool custom_builtin_function(const char *name) {
   return custom_builtin_function(game::scr::builtin::fnv1a(name));
 }
@@ -495,6 +580,77 @@ inline bool builtin_method(ScrVarCanonicalName_t name) {
          game::scr::builtin::table::SentientMethodTable::hashes.contains(name);
 }
 
+#ifndef NDEBUG
+inline std::optional<const char *>
+builtin_method_name(ScrVarCanonicalName_t id) {
+  // TODO: store custom builtin method names in debug profile builds
+  // if (custom_builtins::methods.names.contains(id)) {
+  //   return custom_builtins::methods.names[id];
+  // }
+  if (game::scr::builtin::table::gscr::BuiltinMethodTable::hashes.contains(
+          id)) {
+    return game::scr::builtin::table::gscr::BuiltinMethodTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::cscr::BuiltinMethodTable::hashes.contains(
+          id)) {
+    return game::scr::builtin::table::cscr::BuiltinMethodTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::cscr::GfxMethodTable::hashes.contains(id)) {
+    return game::scr::builtin::table::cscr::GfxMethodTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::cscr::SoundMethodTable::hashes.contains(id)) {
+    return game::scr::builtin::table::cscr::SoundMethodTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::cscr::UtilMethodTable::hashes.contains(id)) {
+    return game::scr::builtin::table::cscr::UtilMethodTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::ActorInterfaceMethodTable::hashes.contains(
+          id)) {
+    return game::scr::builtin::table::ActorInterfaceMethodTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::ActorMethodTable::hashes.contains(id)) {
+    return game::scr::builtin::table::ActorMethodTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::BotMethodTable::hashes.contains(id)) {
+    return game::scr::builtin::table::BotMethodTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::PlayerMethodTable::hashes.contains(id)) {
+    return game::scr::builtin::table::PlayerMethodTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::CommonMethodTable::hashes.contains(id)) {
+    return game::scr::builtin::table::CommonMethodTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::HelicopterMethodTable::hashes.contains(id)) {
+    return game::scr::builtin::table::HelicopterMethodTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::HudElemMethodTable::hashes.contains(id)) {
+    return game::scr::builtin::table::HudElemMethodTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::ScriptEntMethodTable::hashes.contains(id)) {
+    return game::scr::builtin::table::ScriptEntMethodTable::hashes.at(id).name;
+  }
+  if (game::scr::builtin::table::ScriptVehicleMethodTable::hashes.contains(
+          id)) {
+    return game::scr::builtin::table::ScriptVehicleMethodTable::hashes.at(id)
+        .name;
+  }
+  if (game::scr::builtin::table::SentientMethodTable::hashes.contains(id)) {
+    return game::scr::builtin::table::SentientMethodTable::hashes.at(id).name;
+  }
+
+  return std::nullopt;
+}
+
+inline std::optional<const char *> builtin_name(ScrVarCanonicalName_t id) {
+  std::optional<const char *> result = builtin_function_name(id);
+  return result.has_value() ? result : builtin_method_name(id);
+}
+#endif
+
 inline bool custom_builtin_method(const std::string_view &name) {
   return custom_builtin_method(game::scr::builtin::fnv1a(name.data()));
 }
@@ -533,6 +689,21 @@ inline bool builtin(ScrVarCanonicalName_t name) {
   return builtin_function(name) || builtin_method(name);
 }
 
+inline void push_vector(scriptInstance_t inst, const vec3_t *vec) {
+  Scr_AddVector(inst, vec);
+}
+inline void push_vector(scriptInstance_t inst, vec3_t vec) {
+  push_vector(inst, &vec);
+}
+
+inline void push_vec(scriptInstance_t inst, const vec3_t *vec) {
+  push_vector(inst, vec);
+}
+
+inline void push_vec(scriptInstance_t inst, const vec3_t vec) {
+  push_vector(inst, &vec);
+}
+
 inline void push_conststring(scriptInstance_t inst, ScrString_t hash) {
   Scr_AddConstString(inst, hash);
 }
@@ -553,6 +724,11 @@ inline void push_string(scriptInstance_t inst, const std::string_view &val) {
 
 inline void push_string(scriptInstance_t inst, const std::string &val) {
   Scr_AddString(inst, val.c_str());
+}
+
+inline void push(scriptInstance_t inst, vec3_t vec) { push_vector(inst, &vec); }
+inline void push(scriptInstance_t inst, const vec3_t *vec) {
+  push_vector(inst, vec);
 }
 
 inline void push(scriptInstance_t inst, const char *val) {

@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include "../core.hpp"
-#include "../func.hpp"
+#include <structs/func.hpp>
 #include "../quake/core.hpp"
 #include "../db/xpak.hpp"
 

@@ -18,18 +18,18 @@ typedef uint16_t OP_TYPE;
 
 /*
   Logical map of unique opcode types.
-  These do note correspond to bytecode value,
-  or jump table order.
 
-  Jump table mapping in the T7 engine is highly irregular, even across all other
-  CoD engines. Opcodes are ordered seemingly randomly across and within the jump
-  tables, and most are repeated many times - there are 0x4000 combined entries
-  in the two jump tables, but < 0xFF unique opcodes.
+  These do not correspond to bytecode value or jump table order.
+
+  The jump table mapping in the T7 engine is highly irregular, even across all
+  other CoD engines. Opcodes are ordered seemingly randomly across and within
+  the jump tables, and most are repeated many times - there are 0x4000 combined
+  entries in the two jump tables, but < 0xFF unique opcodes.
 
   As such, this mapping serves to differentiate known opcodes by functionality,
   uniquely, for use in:
   - the GSC compiler opcode emitter
-  - The opcode -> corresponding opcode bytecode value(s) mapping, belowi
+  - The opcode -> corresponding bytecode value(s) mapping, below
 */
 enum class Opcode : uint8_t {
   Bit_And = 0x00,
@@ -152,34 +152,275 @@ enum class Opcode : uint8_t {
   WaitRealTime = 0x73,
 
   /*
-   This is an all-emcompassing enumeration for opcodes which have
-   stubbed handlers in the engine - their handler functions immediately return.
+    This is an all-emcompassing enumeration for opcodes which have
+    stubbed handlers in the engine - their handler functions immediately return.
 
-   Some of these are simply unused or invalid functions.
+    Some of these are simply unused or invalid functions.
 
-   Others are special functions which are conditionally compiled to perform
-   functionality in specific build profiles - profiling or debug builds,
-   generally.
+    Others are special functions which are conditionally compiled to perform
+    functionality in specific build profiles - profiling or debug builds,
+    generally.
 
-   In any case, for most of these functions, we do not have access to the
-   conditionally compiled, complete contents in the latest bytecode revision
-   (0x1C)
-   - we cannot reverse engineer the operation executed by the function. Thus,
-   each is instead labelled with a generic `StubbedUnknownOrInvalid`
-  enumeration.
+    In any case, for most of these functions, we do not have access to the
+    conditionally compiled, complete contents in the latest bytecode revision
+    (0x1C) - we cannot reverse engineer the operation executed by the function.
+    Thus, each is instead labelled with a generic `StubbedUnknownOrInvalid`
+    enumeration.
 
-   This should be inconsequential - none of these opcodes are useful in release
-   builds.
-*/
+    This should be inconsequential - none of these opcodes are useful in release
+    builds.
+  */
   UnknownOrInvalid = 0xFF,
 
   Count = 0x74,
 };
 IMPL_ENUM_OPERATORS(Opcode);
 
+// For debug logging
+#ifndef NDEBUG
+inline constexpr const char *serialize(vm::op::Opcode opcode) {
+  switch (opcode) {
+  case vm::op::Opcode::Bit_And:
+    return "OP_Bit_And";
+  case vm::op::Opcode::Bit_Or:
+    return "OP_Bit_Or";
+  case vm::op::Opcode::Bit_Xor:
+    return "OP_Bit_Xor";
+  case vm::op::Opcode::BoolComplement:
+    return "OP_BoolComplement";
+  case vm::op::Opcode::BoolNot:
+    return "OP_BoolNot";
+  case vm::op::Opcode::CallBuiltin:
+    return "OP_CallBuiltin";
+  case vm::op::Opcode::CallBuiltinMethod:
+    return "OP_CallBuiltinMethod";
+  case vm::op::Opcode::CastBool:
+    return "OP_CastBool";
+  case vm::op::Opcode::CastFieldObject:
+    return "OP_CastFieldObject";
+  case vm::op::Opcode::CheckClearParams:
+    return "OP_CheckClearParams";
+  case vm::op::Opcode::ClearArray:
+    return "OP_ClearArray";
+  case vm::op::Opcode::ClearFieldVariable:
+    return "OP_ClearFieldVariable";
+  case vm::op::Opcode::ClearParams:
+    return "OP_ClearParams";
+  case vm::op::Opcode::Dec:
+    return "OP_Dec";
+  case vm::op::Opcode::DecTop:
+    return "OP_DecTop";
+  case vm::op::Opcode::Divide:
+    return "OP_Divide";
+  case vm::op::Opcode::End:
+    return "OP_End";
+  case vm::op::Opcode::EndOn:
+    return "OP_EndOn";
+  case vm::op::Opcode::EndSwitch:
+    return "OP_EndSwitch";
+  case vm::op::Opcode::Equal:
+    return "OP_Equal";
+  case vm::op::Opcode::EvalArray:
+    return "OP_EvalArray";
+  case vm::op::Opcode::EvalArrayRef:
+    return "OP_EvalArrayRef";
+  case vm::op::Opcode::EvalFieldVariable:
+    return "OP_EvalFieldVariable";
+  case vm::op::Opcode::EvalFieldVariableRef:
+    return "OP_EvalFieldVariableRef";
+  case vm::op::Opcode::EvalLocalVariableCached:
+    return "OP_EvalLocalVariableCached";
+  case vm::op::Opcode::EvalLocalVariableCachedDebug:
+    return "OP_EvalLocalVariableCachedDebug";
+  case vm::op::Opcode::EvalLocalVariableRefCached:
+    return "OP_EvalLocalVariableRefCached";
+  case vm::op::Opcode::EvalLocalVariableRefCachedDebug:
+    return "OP_EvalLocalVariableRefCachedDebug";
+  case vm::op::Opcode::FirstArrayKey:
+    return "OP_FirstArrayKey";
+  case vm::op::Opcode::GetAnim:
+    return "OP_GetAnim";
+  case vm::op::Opcode::GetAnimation:
+    return "OP_GetAnimation";
+  case vm::op::Opcode::GetAnimObject:
+    return "OP_GetAnimObject";
+  case vm::op::Opcode::GetAPIFunction:
+    return "OP_GetAPIFunction";
+  case vm::op::Opcode::GetByte:
+    return "OP_GetByte";
+  case vm::op::Opcode::GetClasses:
+    return "OP_GetClasses";
+  case vm::op::Opcode::GetClassesObject:
+    return "OP_GetClassesObject";
+  case vm::op::Opcode::GetEmptyArray:
+    return "OP_GetEmptyArray";
+  case vm::op::Opcode::GetFloat:
+    return "OP_GetFloat";
+  case vm::op::Opcode::GetFunction:
+    return "OP_GetFunction";
+  case vm::op::Opcode::GetGame:
+    return "OP_GetGame";
+  case vm::op::Opcode::GetGameRef:
+    return "OP_GetGameRef";
+  case vm::op::Opcode::GetHash:
+    return "OP_GetHash";
+  case vm::op::Opcode::GetInteger:
+    return "OP_GetInteger";
+  case vm::op::Opcode::GetIString:
+    return "OP_GetIString";
+  case vm::op::Opcode::GetLevel:
+    return "OP_GetLevel";
+  case vm::op::Opcode::GetLevelObject:
+    return "OP_GetLevelObject";
+  case vm::op::Opcode::GetNegByte:
+    return "OP_GetNegByte";
+  case vm::op::Opcode::GetNegUnsignedShort:
+    return "OP_GetNegUnsignedShort";
+  case vm::op::Opcode::GetSelf:
+    return "OP_GetSelf";
+  case vm::op::Opcode::GetSelfObject:
+    return "OP_GetSelfObject";
+  case vm::op::Opcode::GetString:
+    return "OP_GetString";
+  case vm::op::Opcode::GetTime:
+    return "OP_GetTime";
+  case vm::op::Opcode::GetUintptr:
+    return "OP_GetUintptr";
+  case vm::op::Opcode::GetUndefined:
+    return "OP_GetUndefined";
+  case vm::op::Opcode::GetUnsignedShort:
+    return "OP_GetUnsignedShort";
+  case vm::op::Opcode::GetVector:
+    return "OP_GetVector";
+  case vm::op::Opcode::GetZero:
+    return "OP_GetZero";
+  case vm::op::Opcode::GreaterThan:
+    return "OP_GreaterThan";
+  case vm::op::Opcode::GreaterThanOrEqualTo:
+    return "OP_GreaterThanOrEqualTo";
+  case vm::op::Opcode::Inc:
+    return "OP_Inc";
+  case vm::op::Opcode::IsDefined:
+    return "OP_IsDefined";
+  case vm::op::Opcode::Jump:
+    return "OP_Jump";
+  case vm::op::Opcode::JumpOnFalse:
+    return "OP_JumpOnFalse";
+  case vm::op::Opcode::JumpOnFalseExpr:
+    return "OP_JumpOnFalseExpr";
+  case vm::op::Opcode::JumpOnTrue:
+    return "OP_JumpOnTrue";
+  case vm::op::Opcode::JumpOnTrueExpr:
+    return "OP_JumpOnTrueExpr";
+  case vm::op::Opcode::LessThan:
+    return "OP_LessThan";
+  case vm::op::Opcode::LessThanOrEqualTo:
+    return "OP_LessThanOrEqualTo";
+  case vm::op::Opcode::Minus:
+    return "OP_Minus";
+  case vm::op::Opcode::Modulus:
+    return "OP_Modulus";
+  case vm::op::Opcode::Multiply:
+    return "OP_Multiply";
+  case vm::op::Opcode::New:
+    return "OP_New";
+  case vm::op::Opcode::NextArrayKey:
+    return "OP_NextArrayKey";
+  case vm::op::Opcode::NotEqual:
+    return "OP_NotEqual";
+  case vm::op::Opcode::Notify:
+    return "OP_Notify";
+  case vm::op::Opcode::Plus:
+    return "OP_Plus";
+  case vm::op::Opcode::PreScriptCall:
+    return "OP_PreScriptCall";
+  case vm::op::Opcode::ProfileStart:
+    return "OP_ProfileStart";
+  case vm::op::Opcode::ProfileStop:
+    return "OP_ProfileStop";
+  case vm::op::Opcode::Return:
+    return "OP_Return";
+  case vm::op::Opcode::SafeCreateLocalVariables:
+    return "OP_SafeCreateLocalVariables";
+  case vm::op::Opcode::SafeDecTop:
+    return "OP_SafeDecTop";
+  case vm::op::Opcode::SafeSetVariableFieldCached:
+    return "OP_SafeSetVariableFieldCached";
+  case vm::op::Opcode::SafeSetWaittillVariableFieldCached:
+    return "OP_SafeSetWaittillVariableFieldCached";
+  case vm::op::Opcode::ScriptFunctionCall:
+    return "OP_ScriptFunctionCall";
+  case vm::op::Opcode::ScriptFunctionCallClass:
+    return "OP_ScriptFunctionCallClass";
+  case vm::op::Opcode::ScriptFunctionCallPointer:
+    return "OP_ScriptFunctionCallPointer";
+  case vm::op::Opcode::ScriptMethodCall:
+    return "OP_ScriptMethodCall";
+  case vm::op::Opcode::ScriptMethodCallPointer:
+    return "OP_ScriptMethodCallPointer";
+  case vm::op::Opcode::ScriptMethodThreadCall:
+    return "OP_ScriptMethodThreadCall";
+  case vm::op::Opcode::ScriptMethodThreadCallPointer:
+    return "OP_ScriptMethodThreadCallPointer";
+  case vm::op::Opcode::ScriptThreadCall:
+    return "OP_ScriptThreadCall";
+  case vm::op::Opcode::ScriptThreadCallClass:
+    return "OP_ScriptThreadCallClass";
+  case vm::op::Opcode::ScriptThreadCallPointer:
+    return "OP_ScriptThreadCallPointer";
+  case vm::op::Opcode::SetVariableField:
+    return "OP_SetVariableField";
+  case vm::op::Opcode::ShiftLeft:
+    return "OP_ShiftLeft";
+  case vm::op::Opcode::ShiftRight:
+    return "OP_ShiftRight";
+  case vm::op::Opcode::SizeOf:
+    return "OP_SizeOf";
+  case vm::op::Opcode::Switch:
+    return "OP_Switch";
+  case vm::op::Opcode::Vector:
+    return "OP_Vector";
+  case vm::op::Opcode::VectorConstant:
+    return "OP_VectorConstant";
+  case vm::op::Opcode::VectorScale:
+    return "OP_VectorScale";
+  case vm::op::Opcode::Wait:
+    return "OP_Wait";
+  case vm::op::Opcode::WaitTill:
+    return "OP_WaitTill";
+  case vm::op::Opcode::WaitTillFrameEnd:
+    return "OP_WaitTillFrameEnd";
+  case vm::op::Opcode::WaitTillMatch:
+    return "OP_WaitTillMatch";
+  case vm::op::Opcode::DevblockBegin:
+    return "OP_DevblockBegin";
+  case vm::op::Opcode::EvalLevelFieldVariable:
+    return "OP_EvalLevelFieldVariable";
+  case vm::op::Opcode::EvalLevelFieldVariableRef:
+    return "OP_EvalLevelFieldVariableRef";
+  case vm::op::Opcode::EvalSelfFieldVariable:
+    return "OP_EvalSelfFieldVariable";
+  case vm::op::Opcode::EvalSelfFieldVariableRef:
+    return "OP_EvalSelfFieldVariableRef";
+  case vm::op::Opcode::GetWorld:
+    return "OP_GetWorld";
+  case vm::op::Opcode::GetWorldObject:
+    return "OP_GetWorldObject";
+  case vm::op::Opcode::SuperEqual:
+    return "OP_SuperEqual";
+  case vm::op::Opcode::SuperNotEqual:
+    return "OP_SuperNotEqual";
+  case vm::op::Opcode::WaitRealTime:
+    return "OP_WaitRealTime";
+  default:
+    return "OP_UnknownOrInvalid";
+  }
+}
+#endif
+
 // Map of unique opcode type to all the possible (usually duplicitous)
 // bytecode representations of the opcode.
-static constexpr const frozen::unordered_map<Opcode, std::array<OP_TYPE, 0x86>,
+inline constexpr const frozen::unordered_map<Opcode, std::array<OP_TYPE, 0x86>,
                                              +Opcode::Count +
                                                  1 /* UnknownOrInvalid */>
     OPCODE_BYTECODE_MAP = frozen::make_unordered_map<
@@ -2533,7 +2774,7 @@ static constexpr const frozen::unordered_map<Opcode, std::array<OP_TYPE, 0x86>,
            0x3879, 0x38CB, 0x39CB, 0x3A4F, 0x3BB2, 0x3C83, 0x3CAB, 0x3CB4,
            0x3CC2, 0x3CC8, 0x3E2B, 0x3E73, 0x3E9A, 0x3EA9, 0x3ED1}},
          {Opcode::New,
-          {0030,   0x01DA, 0x022F, 0x02FC, 0x03B2, 0x0406, 0x040E, 0x0450,
+          {0x0030, 0x01DA, 0x022F, 0x02FC, 0x03B2, 0x0406, 0x040E, 0x0450,
            0x045D, 0x057B, 0x0580, 0x0662, 0x06BB, 0x076F, 0x0794, 0x07DB,
            0x0876, 0x09E2, 0x0A9F, 0x0AC2, 0x0AF6, 0x0B33, 0x0B83, 0x0BAB,
            0x0C4A, 0x0CBC, 0x0DD3, 0x10C0, 0x10FB, 0x1127, 0x114E, 0x11CE,
@@ -3072,9 +3313,10 @@ static constexpr const frozen::unordered_map<Opcode, std::array<OP_TYPE, 0x86>,
            0x3AE8, 0x3CC3, 0x3D2C, 0x3DE7, 0x3F40, 0x3F64}}});
 
 /*
-   Currently only used to get the length of a VM jump table elsewhere.
-   Definition is retained here rather than only a definition for the length of a
-   jump table because this is very useful:
+   This is currently only used to get the length of a VM jump table elsewhere.
+
+   The definition is retained here rather than only a definition for the length
+   of a jump table because this is useful:
     - As a reference for reverse engineering the jump tables in the engine and
    straightforward conceptual understanding of opcode-related logic and other
    opcode-related datasets
@@ -3084,6 +3326,9 @@ static constexpr const frozen::unordered_map<Opcode, std::array<OP_TYPE, 0x86>,
    being executed. We can then either view or use them at runtime, or dump them
    on exception, showing a callstack similar to what is displayed for a native
    exception.
+
+   Also, the full size of the table in memory is 8KB, so the additional overhead
+   provided by this definition is negligible.
 */
 /*
    The VM jump table opcode handler entries, in order, represented by the opcode
@@ -3094,7 +3339,7 @@ static constexpr const frozen::unordered_map<Opcode, std::array<OP_TYPE, 0x86>,
    indexed by any of the opcode's bytecode representation values to get its
    handler.
 */
-static constexpr std::array<std::array<Opcode, 0x2000>, 2>
+inline constexpr std::array<std::array<Opcode, 0x2000>, 2>
     OPCODE_JUMPTABLE_ENTRY_MAP = {
         // Jump table 2. Bytecode values 0x0000-0x1FFF
         std::to_array<Opcode, 0x2000>(
@@ -19483,9 +19728,7 @@ static constexpr std::array<std::array<Opcode, 0x2000>, 2>
              Opcode::UnknownOrInvalid,
              Opcode::GetVector,
              Opcode::GetWorld,
-             Opcode::GetEmptyArray
-
-            })};
+             Opcode::GetEmptyArray})};
 } // namespace op
 } // namespace vm
 } // namespace scr

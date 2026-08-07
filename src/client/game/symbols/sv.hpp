@@ -27,7 +27,7 @@ WEAK symbol<void(net::netadr_t from)> SV_DirectConnect{0x142249880,
 WEAK
     symbol<void(ClientNum_t clientNum, net::svscmd_type type, const char *text)>
         SV_GameSendServerCommand{0x14224F580, 0x140532CA0};
-WEAK symbol<void(client_s *cl_0, net::svscmd_type type, const char *fmt, ...)>
+WEAK symbol<void(client_s *cl, net::svscmd_type type, const char *fmt, ...)>
     SV_SendServerCommand{0x142254D30, 0x140537F10};
 WEAK symbol<bool(ClientNum_t clientNum)> SV_IsTestClient{0x14224AB60,
                                                          0x14052FF40};
@@ -40,14 +40,16 @@ WEAK symbol<void()> SV_Cmd_EndTokenizedString{0x1420EF0E0, 0x1404FA670};
 WEAK symbol<void(client_s *client, net::msg::msg_t *msg)>
     SV_ExecuteClientMessage{0x14224A460, 0x14052F840};
 
-WEAK symbol<void(int index, const char *val)> SV_SetConfigstring{0x1422513A0,
-                                                                 0x1405355B0};
+WEAK symbol<void(int32_t index, const char *val)> SV_SetConfigString{
+    0x1422513A0, 0x1405355B0};
 
 WEAK symbol<void(client_s *drop, const char *reason, bool tellThem,
                  bool removeFromLobby)>
     SV_DropClient{0x14224A050, 0x14052F430};
 WEAK symbol<void(client_s *cl_0, const char *reason)> SV_Live_RemoveClient{
     0x142242510, 0x140527530};
+WEAK symbol<void *(level::gentity_t *gEnt)> SV_LinkEntity{0x1422633E0,
+                                                          0x140542DB0};
 /*
   Server only. Function exists on client but requires accessing areas of memory
   which are only initialized when running as dedicated server. Also might not
@@ -65,6 +67,9 @@ WEAK symbol<void(level::gentity_t *ent)> SV_DObjDumpInfo{0x14224E980,
                                                          0x1405320C0};
 WEAK symbol<BoneIndex(const level::gentity_t *ent, scr::ScrString_t boneName)>
     SV_DObjGetBoneIndex{0x14224E9E0, 0x140532120};
-
+WEAK symbol<void(RestartMethod_t restartMethod)> SV_MapRestart{0x142245D70,
+                                                               0x14052B450};
+WEAK symbol<cmd::xcommandFunc_t> SV_MapRestart_f{0x142245F50, 0x14052B640};
+WEAK symbol<cmd::xcommandFunc_t> SV_FastRestart_f{0x1422453E0, 0x14052A9C0};
 } // namespace sv
 } // namespace game

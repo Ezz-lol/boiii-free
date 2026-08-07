@@ -19,7 +19,6 @@ void sync_name_override_to_clients(game::ClientNum_t client_num);
 void sync_clan_abbrev_override_to_clients(game::ClientNum_t client_num);
 void sync_name_reset_to_clients(game::ClientNum_t client_num);
 void sync_clan_abbrev_reset_to_clients(game::ClientNum_t client_num);
-void sync_all_overrides_to_client(game::ClientNum_t target_client);
 void client_update(game::sv::client_s *cl);
 void trigger_client_update(game::ClientNum_t client_num);
 } // namespace name

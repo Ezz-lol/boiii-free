@@ -8,6 +8,7 @@
 #include "launcher.hpp"
 #include "launcher_workshop.hpp"
 #include "html/html_window.hpp"
+#include "component/auth.hpp"
 
 #include <game/game.hpp>
 
@@ -56,26 +57,6 @@ std::string sanitize_player_name(const std::string &name) {
       result += c;
   }
   return result;
-}
-
-std::uint64_t get_active_steam_id() {
-  HKEY key{};
-  if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Valve\\Steam\\ActiveProcess",
-                    0, KEY_READ, &key) != ERROR_SUCCESS)
-    return 0;
-
-  DWORD account_id{};
-  DWORD type{};
-  DWORD size = sizeof(account_id);
-  const auto result =
-      RegQueryValueExW(key, L"ActiveUser", nullptr, &type,
-                       reinterpret_cast<BYTE *>(&account_id), &size);
-  RegCloseKey(key);
-
-  if (result != ERROR_SUCCESS || type != REG_DWORD || account_id == 0)
-    return 0;
-
-  return 76561197960265728ULL + account_id;
 }
 
 std::mutex library_list_mutex;
@@ -1152,6 +1133,11 @@ bool relaunch_exe_with_launch_options(const std::string &exe_path,
   std::string command_line = "\"" + exe_path + "\"";
   command_line += " \"-launch\"";
 
+  if (utils::flags::has_flag("noupdate") &&
+      std::find(options.begin(), options.end(), "noupdate") == options.end()) {
+    command_line += " -noupdate";
+  }
+
   for (const auto &option : options) {
     command_line += " -";
     command_line += option;
@@ -1799,18 +1785,18 @@ bool run() {
     window.get_html_frame()->register_callback(
         "readFriendIdentity",
         [](const std::vector<html_argument> & /*params*/) -> CComVariant {
-          const auto steam_id = get_active_steam_id();
-          if (steam_id == 0)
+          const auto friend_code = auth::get_client_guid();
+          if (friend_code == 0)
             return CComVariant("{}");
 
           rapidjson::Document doc(rapidjson::kObjectType);
           auto &allocator = doc.GetAllocator();
-          const auto steam_id_string = std::to_string(steam_id);
-          doc.AddMember("steam_id",
-                        rapidjson::Value(steam_id_string.c_str(), allocator),
+          const auto friend_code_string = std::to_string(friend_code);
+          doc.AddMember("friend_code",
+                        rapidjson::Value(friend_code_string.c_str(), allocator),
                         allocator);
           doc.AddMember("name",
-                        rapidjson::Value("Signed-in Steam account", allocator),
+                        rapidjson::Value("Your BOIII identity", allocator),
                         allocator);
 
           rapidjson::StringBuffer buffer;
@@ -2120,16 +2106,23 @@ bool run() {
               rapidjson::Document sdoc;
               if (!sdoc.Parse(sdata.c_str()).HasParseError() &&
                   sdoc.IsObject()) {
-                auto al = sdoc.FindMember("asset_limits_enabled");
-                if (al != sdoc.MemberEnd() && al->value.IsString()) {
-                  w.Key("assetLimits");
-                  w.String(al->value.GetString());
-                }
+                for (auto it = sdoc.MemberBegin(); it != sdoc.MemberEnd();
+                     ++it) {
+                  if (!it->value.IsString())
+                    continue;
 
-                auto fo = sdoc.FindMember("friends_only");
-                if (fo != sdoc.MemberEnd() && fo->value.IsString()) {
-                  w.Key("friendsOnly");
-                  w.String(fo->value.GetString());
+                  const std::string key = it->name.GetString();
+                  if (key == "asset_limits_enabled") {
+                    w.Key("assetLimits");
+                  } else if (key == "friends_only") {
+                    w.Key("friendsOnly");
+                  } else if (key == "disable_asset_pools" ||
+                             key.starts_with("ap_")) {
+                    w.Key(key.c_str());
+                  } else {
+                    continue;
+                  }
+                  w.String(it->value.GetString());
                 }
               }
             }
@@ -2153,7 +2146,8 @@ bool run() {
           char cwd[MAX_PATH] = {};
           GetCurrentDirectoryA(MAX_PATH, cwd);
 
-          if (key == "asset_limits_enabled") {
+          if (key == "asset_limits_enabled" || key == "disable_asset_pools" ||
+              key.starts_with("ap_")) {
             const auto path = std::filesystem::path("boiii_players") / "user" /
                               "launcher_settings.json";
             std::error_code ec;
@@ -2162,26 +2156,27 @@ bool run() {
             rapidjson::Document doc;
             std::string data;
             if (utils::io::read_file(path.string(), &data) && !data.empty()) {
-              if (doc.Parse(data.c_str()).HasParseError())
+              if (doc.Parse(data.c_str()).HasParseError() || !doc.IsObject())
                 doc.SetObject();
             } else {
               doc.SetObject();
             }
 
-            if (doc.HasMember("asset_limits_enabled"))
-              doc["asset_limits_enabled"].SetString(value.c_str(),
-                                                    doc.GetAllocator());
+            if (doc.HasMember(key.c_str()))
+              doc[key.c_str()].SetString(value.c_str(), doc.GetAllocator());
             else
-              doc.AddMember("asset_limits_enabled",
+              doc.AddMember(rapidjson::Value(key.c_str(), doc.GetAllocator()),
                             rapidjson::Value(value.c_str(), doc.GetAllocator()),
                             doc.GetAllocator());
 
             rapidjson::StringBuffer sb;
             rapidjson::Writer<rapidjson::StringBuffer> w(sb);
             doc.Accept(w);
-            utils::io::write_file(path.string(),
-                                  std::string(sb.GetString(), sb.GetSize()));
-            return CComVariant("ok");
+            return CComVariant(
+                utils::io::write_file(path.string(),
+                                      std::string(sb.GetString(), sb.GetSize()))
+                    ? "ok"
+                    : "write_error");
           }
 
           if (key == "networkpassword" || key == "netpassword" ||

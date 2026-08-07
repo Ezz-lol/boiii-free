@@ -1,11 +1,12 @@
 #pragma once
 
-#include "func.hpp"
+#include <structs/func.hpp>
 #include <cstdint>
 namespace game {
 namespace cmd {
 
 typedef fastcallPtr_t<void()> xcommand_t;
+typedef std::remove_pointer_t<xcommand_t> xcommandFunc_t;
 
 struct cmd_function_s {
   cmd_function_s *next;

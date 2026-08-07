@@ -1,7 +1,7 @@
 #pragma once
 
 #include <game/structs/core.hpp>
-#include <game/structs/func.hpp>
+#include <structs/func.hpp>
 #include <game/structs/quake/core.hpp>
 #include <game/ptr.hpp>
 
@@ -451,32 +451,18 @@ union hksInstruction {
 
   inline constexpr hksInt32 OpSBx() const { return opBx - 0xFFFF; }
 
-  constexpr hksInstruction() noexcept = default;
-  constexpr hksInstruction(const hksInstruction &) noexcept = default;
-  constexpr hksInstruction(hksInstruction &&) noexcept = default;
-
-  constexpr hksInstruction(bool b) noexcept : code(b ? 1 : 0) {}
-
-  // Implicit conversion from all standard integer types
-  template <typename T, typename = std::enable_if_t<std::is_integral_v<T>>>
-  constexpr hksInstruction(T val) noexcept : code(static_cast<int32_t>(val)) {}
-
-  constexpr operator bool() const noexcept { return code != 0; }
+  inline constexpr operator bool() const noexcept { return code != 0; }
 
   template <typename T, typename = std::enable_if_t<std::is_integral_v<T> &&
                                                     !std::is_same_v<T, bool>>>
-  constexpr operator T() const noexcept {
+  inline constexpr operator T() const noexcept {
     return static_cast<T>(code);
   }
-
-  constexpr hksInstruction &
-  operator=(const hksInstruction &) noexcept = default;
-  constexpr hksInstruction &operator=(hksInstruction &&) noexcept = default;
 
   constexpr bool operator!() const noexcept { return code == 0; }
 };
 ASSERT_SIZE(hksInstruction, sizeof(hksUint32));
-ASSERT_POD(hksInstruction);
+ASSERT_CPP03_POD(hksInstruction);
 #pragma pack(push, 1)
 struct CallStack {
   struct ActivationRecord {

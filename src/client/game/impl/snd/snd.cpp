@@ -50,7 +50,7 @@ void SND_EnqueueLoadedAssets_Impl(SndBankLoad *load) {
 
   load->loadedDataSize = loadedDataSize;
   if (entryCount) {
-    sys::Sys_EnterCriticalSection(CriticalSection::SOUND_BANK);
+    sys::Sys_EnterCriticalSection(sys::CriticalSection::SOUND_BANK);
 
     uint32_t allocationSize =
         sizeof(SndAssetBankEntry) * load->loadedEntryCount;
@@ -66,7 +66,7 @@ void SND_EnqueueLoadedAssets_Impl(SndBankLoad *load) {
     com::Com_Printf(0x9, consoleLabel_e::LUI, "SOUND loaded alloc %s %p %p\n",
                     load->loadAssetBank.filename, load->loadedEntries,
                     allocation);
-    sys::Sys_LeaveCriticalSection(CriticalSection::SOUND_BANK);
+    sys::Sys_LeaveCriticalSection(sys::CriticalSection::SOUND_BANK);
   } else {
     load->loadedEntries = 0;
     load->loadedData = 0;

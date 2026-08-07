@@ -1,12 +1,13 @@
 #include <std_include.hpp>
 #include "execution.hpp"
+#include "stack_guard.hpp"
 
 namespace ui_scripting {
 using namespace game::ui::lua::hks;
 namespace {
 script_value get_field(void *ptr, HksObjectType type, const script_value &key) {
   lua_State *state = *primary_luaVM;
-  const auto top = state->m_apistack.top;
+  const detail::api_stack_guard stack_guard{state};
 
   push_value(key);
 
@@ -16,7 +17,6 @@ script_value get_field(void *ptr, HksObjectType type, const script_value &key) {
   obj.v.ptr = ptr;
 
   hks_obj_gettable(&value, state, &obj, &state->m_apistack.top[-1]);
-  state->m_apistack.top = top;
   return value;
 }
 
@@ -116,7 +116,7 @@ bool notify(const std::string &name, const event_arguments &arguments) {
 arguments call_script_function(const function &function,
                                const arguments &arguments) {
   lua_State *state = *primary_luaVM;
-  HksObject *top = state->m_apistack.top;
+  const detail::api_stack_guard stack_guard{state};
 
   push_value(function);
   for (auto i = arguments.begin(); i != arguments.end(); ++i) {
@@ -124,9 +124,7 @@ arguments call_script_function(const function &function,
   }
 
   hksi_lua_call(state, static_cast<int>(arguments.size()), -1, nullptr);
-  const ::ui_scripting::arguments args = get_return_values(top);
-  state->m_apistack.top = top;
-  return args;
+  return get_return_values(stack_guard.saved_top());
 }
 
 script_value get_field(const userdata &self, const script_value &key) {

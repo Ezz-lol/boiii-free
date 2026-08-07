@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <type_traits>
 
 #ifndef __inline_def
@@ -82,6 +83,8 @@ concept SizedIntegralLike =
     (std::is_convertible_v<From, To> || ScopedIntegralLike<From, To>) &&
     !SizeGreaterThan<From, sizeof(To)>;
 
+template <typename T> using element_of = std::remove_all_extents_t<T>;
+
 #ifndef WITH_DIAG_DISABLED
 
 // Helper macro to properly evaluate and stringify arguments for standard
@@ -113,9 +116,72 @@ concept SizedIntegralLike =
 #endif
 #endif // WITH_DIAG_DISABLED
 
+#ifdef ARRAYSIZE
+#undef ARRAYSIZE
+#endif
+
 #ifndef ARRAYSIZE
-template <typename Element, size_t Count>
-inline constexpr auto ARRAYSIZE(Element (&)[Count]) {
+template <typename Element, const size_t Count>
+inline constexpr auto ARRAYSIZE(const Element (&)[Count]) {
   return Count;
 }
+
+template <typename Element, const size_t Count>
+inline constexpr auto ARRAYSIZE(const std::array<Element, Count> &arr) {
+  return arr.size();
+}
 #endif
+
+template <int32_t N> struct ConstString {
+  char buf[N] = {};
+
+  constexpr ConstString(const char (&s)[N]) {
+    for (int32_t i = 0; i < N; ++i)
+      buf[i] = s[i];
+  }
+
+  inline constexpr const char *c_str() const noexcept { return buf; }
+  inline constexpr operator const char *() const noexcept { return c_str(); }
+};
+
+// Deduction guide
+template <int32_t N> ConstString(const char (&)[N]) -> ConstString<N>;
+
+template <const auto N> using str = char[static_cast<size_t>(N)];
+
+// Helper to convert a byte/integer to hex characters at compile-time
+template <IntegralLike Index> inline constexpr char hex_digit(Index v) {
+  return "0123456789ABCDEF"[static_cast<uint8_t>(v) & 0xF];
+}
+
+template <typename T> inline constexpr auto num_hex_characters() {
+  constexpr auto NUM_HEX_CHARS_PER_BYTE = 2;
+  return sizeof(T) * NUM_HEX_CHARS_PER_BYTE;
+}
+
+template <const size_t BaseSize, IntegralLike T>
+constexpr const char *
+append_hex(const str<BaseSize> &base, T val,
+           str<BaseSize + num_hex_characters<T>()> &result = {0}) {
+  // Determine max hex characters needed
+  constexpr size_t hex_len = num_hex_characters<T>();
+
+  int32_t idx = 0;
+  // Copy base string (excluding old null-terminator)
+  for (size_t i = 0; i < BaseSize - 1; ++i) {
+    result[idx++] = base[i];
+  }
+
+  // Append hex representation backwards or forwards
+  for (int32_t i = hex_len - 1; i >= 0; --i) {
+    result[idx + i] = hex_digit(val >> (4 * (hex_len - 1 - i)));
+  }
+  idx += hex_len;
+  result[idx] = '\0';
+
+  return result;
+}
+
+template <typename T> inline constexpr const char *reflect_name() {
+  return __PRETTY_FUNCTION__;
+}

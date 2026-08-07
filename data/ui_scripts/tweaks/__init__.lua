@@ -10,12 +10,54 @@ pcall(function()
 end)
 
 if isPrivateGame then
+  local tweakNames = {
+    g_speed = "Movement Speed",
+    bg_gravity = "Gravity",
+    player_sustainAmmo = "Infinite Ammo",
+    timescale = "Game Speed",
+    cg_drawGun = "Weapon Model",
+    r_fog = "Fog",
+    cg_fov_default = "Field of View",
+    cg_fovScale = "FOV Scale",
+  }
+
+  local function showTweakToast(dvarName, value)
+    pcall(function()
+      if CoD.OverlayUtility and CoD.OverlayUtility.ShowToast then
+        local label = tweakNames[dvarName] or dvarName
+        CoD.OverlayUtility.ShowToast(
+          "DefaultState",
+          "GAME TWEAKS",
+          label .. ": " .. tostring(value),
+          "t7_icon_info_overlays_bkg"
+        )
+      end
+    end)
+  end
+
+  local lastTweakValues = {}
+  for dvarName, _ in pairs(tweakNames) do
+    pcall(function()
+      lastTweakValues[dvarName] = tostring(Engine.DvarString(nil, dvarName))
+    end)
+  end
+
+  local function showTweakToastIfChanged(dvarName, value)
+    local normalizedValue = tostring(value)
+    local previousValue = lastTweakValues[dvarName]
+    lastTweakValues[dvarName] = normalizedValue
+    if previousValue ~= nil and previousValue ~= normalizedValue then
+      showTweakToast(dvarName, value)
+    end
+  end
+
   local function updateDvar(f1_arg0, f1_arg1, f1_arg2, dvarName, f1_arg4)
     UpdateInfoModels(f1_arg1)
     local val = f1_arg1.value
     pcall(function()
       Engine.Exec(f1_arg2, dvarName .. " " .. tostring(val))
     end)
+    showTweakToastIfChanged(dvarName, val)
   end
 
   DataSources.BoiiiGameTweaks = DataSourceHelpers.ListSetup("BoiiiGameTweaks", function(controller)
@@ -194,6 +236,7 @@ if isPrivateGame then
         function(f1_arg0, f1_arg1, f1_arg2, dvarName, f1_arg4)
           UpdateInfoModels(f1_arg1)
           Engine.SetDvar(dvarName, f1_arg1.value)
+          showTweakToastIfChanged(dvarName, f1_arg1.value)
         end
       )
     )
@@ -207,7 +250,6 @@ if isPrivateGame then
     pcall(require, "ui.uieditor.widgets.StartMenu.StartMenu_Options_Slider_Control_Item")
     pcall(require, "ui.uieditor.widgets.Lobby.Common.FE_FocusBarContainer")
     pcall(require, "ui.uieditor.widgets.GameSettings.GameSettings_ChangedIndicator")
-    pcall(require, "ui.uieditor.widgets.Controls.Slider_Small")
     pcall(require, "ui.uieditor.widgets.StartMenu.StartMenu_Options_Slider")
 
     local SliderWidget = CoD.Slider_Small or CoD.StartMenu_Options_Slider

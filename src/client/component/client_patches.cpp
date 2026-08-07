@@ -12,6 +12,7 @@
 #include <game/impl/cl/cl.hpp>
 #include <game/impl/cg/cg.hpp>
 
+#include <utils/string.hpp>
 #include <utils/hook.hpp>
 
 #include <mmeapi.h>
@@ -219,13 +220,6 @@ void live_delayed_com_error_stub(const char *comErrorString, int32_t code) {
 
 utils::hook::detour CL_CheckForResendHook;
 
-template <typename T, std::atomic<T *> &storage> T *malloc_store(size_t size) {
-  T *result = reinterpret_cast<T *>(malloc(size));
-  storage.store(result, std::memory_order_seq_cst);
-
-  return result;
-}
-
 utils::hook::detour CG_SightTrace_Safe_hook;
 bool CG_SightTrace_Safe(int32_t *hitNum, const game::vec3_t *start,
                         const game::vec3_t *end, game::contents_t mask,
@@ -254,80 +248,57 @@ int32_t CM_SightTraceThroughTree_Safe(const game::cm::traceWork_t *tw,
                                                             p1_, p2, trace);
 }
 
-template <auto &storage>
-using StoredPtr =
-    typename std::remove_reference_t<decltype(storage)>::value_type;
-template <auto &storage> using StoredArrayPtr = StoredPtr<storage[0]>;
+template <auto &allocation,
+          typename T = std::remove_reference_t<decltype(allocation)>>
+T *return_static_alloc([[maybe_unused]] size_t size) {
+  assert(sizeof(T) >= size &&
+         "Size of static allocation must be >= size of heap allocation");
 
-template <auto &storage> StoredPtr<storage> malloc_store(size_t size) {
-  using Stored = StoredPtr<storage>;
-  Stored result = reinterpret_cast<Stored>(malloc(size));
-  storage.store(result, std::memory_order_seq_cst);
+  return &allocation;
+}
+
+template <auto &allocation,
+          typename T = std::remove_reference_t<decltype(allocation)>>
+void clear(T *ptr) {
+  memset(ptr, 0, sizeof(T));
+}
+
+template <auto &allocation,
+          typename T = std::remove_reference_t<decltype(allocation)>>
+T *Hunk_UserAlloc_ReturnStaticAllocation(
+    [[maybe_unused]] game::hunk::HunkUser *user, [[maybe_unused]] size_t size,
+    [[maybe_unused]] int32_t alignment, [[maybe_unused]] const char *name) {
+
+  assert(sizeof(T) >= size + alignment_size(size, alignment) &&
+         "Size of static allocation must be >= size of heap allocation");
+  return &allocation;
+}
+
+template <auto &allocation, typename T = std::remove_extent_t<
+                                std::remove_reference_t<decltype(allocation)>>>
+
+T *Hunk_UserAlloc_ReturnStaticAllocation_FirstNull(
+    [[maybe_unused]] game::hunk::HunkUser *user, [[maybe_unused]] size_t size,
+    [[maybe_unused]] int32_t alignment, [[maybe_unused]] const char *name) {
+  assert(sizeof(T) >= size + alignment_size(size, alignment) &&
+         "Size of static allocation must be >= size of heap allocation");
+  static std::atomic_uint32_t next_alloc_index = 0;
+
+  T *result = &allocation[next_alloc_index.load(std::memory_order_acquire)];
+
+  next_alloc_index.fetch_add(1, std::memory_order_release);
+  uint32_t storage_len = ARRAYSIZE(allocation);
+  next_alloc_index.compare_exchange_strong(
+      storage_len, 0, std::memory_order_release, std::memory_order_acquire);
 
   return result;
 }
 
-template <auto &storage> void free_zero(StoredPtr<storage> ptr) {
-  free(ptr);
-  storage.store(nullptr, std::memory_order_seq_cst);
-}
-
-template <auto &storage>
-StoredPtr<storage> Hunk_UserAlloc_StoreGlobal(game::hunk::HunkUser *user,
-                                              size_t size, int32_t alignment,
-                                              const char *name) {
-  static_assert(
-      std::is_same_v<std::atomic<StoredPtr<storage>> &, decltype(storage)>,
-      "storage must be a std::atomic<StoredPtr<storage>>!");
-  StoredPtr<storage> result = reinterpret_cast<StoredPtr<storage>>(
-      game::hunk::Hunk_UserAlloc(user, size, alignment, name));
-  storage.store(result, std::memory_order_seq_cst);
-
-  return result;
-}
-
-/*
-   `storage` must be an `atomicarray` with item type `T`.
-   Its length cannot be automatically derived in the template, so the array's
-   type is specified as `auto` to allow count (`N`) computation in the function,
-   with a proceeding assertion to ensure the passed `storage` type is an
-   `atomicarray<T, N>`.
-*/
-template <auto &storage>
-StoredArrayPtr<storage>
-Hunk_UserAlloc_StoreGlobal_FirstNull(game::hunk::HunkUser *user, size_t size,
-                                     int32_t alignment, const char *name) {
-  using Stored = StoredArrayPtr<storage>;
-  constexpr uint32_t N = ARRAYSIZE(storage);
-  static_assert(
-      std::is_same_v<std::remove_reference_t<decltype(storage)>,
-                     atomicarray<Stored, N>>,
-      "Type Error: 'storage' MUST be a atomicarray<StoredPtr<storage>, N>");
-
-  Stored result = reinterpret_cast<Stored>(
-      game::hunk::Hunk_UserAlloc(user, size, alignment, name));
-  /*
-     compare_exchange_strong requires an lvalue - cannot use an inlined
-     `nullptr` rvalue
-  */
-  Stored null = nullptr;
-  for (uint32_t i = 0; i < N && !storage[i].compare_exchange_strong(
-                                    null, result, std::memory_order_seq_cst,
-                                    std::memory_order_relaxed);
-       ++i) {
-  }
-
-  return result;
-}
-
-template <auto &storage>
-void Hunk_UserFree_ResetGlobal(game::hunk::HunkUser *user,
-                               StoredPtr<storage> ptr) {
-  static_assert(
-      std::is_same_v<std::atomic<StoredPtr<storage>> &, decltype(storage)>,
-      "storage must be a std::atomic<StoredPtr<storage>>!");
-  game::hunk::Hunk_UserFree(user, reinterpret_cast<void *>(ptr));
-  storage.store(nullptr, std::memory_order_seq_cst);
+template <auto &allocation,
+          typename T = std::remove_reference_t<decltype(allocation)>>
+void Hunk_UserFree_ResetGlobal([[maybe_unused]] game::hunk::HunkUser *user,
+                               T *ptr) {
+  memset(ptr, 0, sizeof(T));
 }
 
 utils::hook::detour CG_FreeCGEnts_hook;
@@ -348,11 +319,13 @@ utils::hook::detour CG_ClearCGEnts_hook;
   and are dependent on access occurring in the specific location of
   de/encryption, we cannot feasibly access these globals in boiii.
 
-  To circumvent this, we can instead get each global's allocation pointer at the
-  site of allocation, and store them in our own globals for use elsewhere.
+  To circumvent this, rather than allocate these pools at a varying address on
+  the heap, we can instead statically allocate these pool and return the address
+  to our allocation where the pool would be dynamically allocated in the base
+  game.
 
-  We then clear each global's allocation pointer when freed by hooking its
-  corresponding free call in the engine.
+  We then clear each pool with `memset(pool, 0, sizeof(pool));` where it would
+  be freed in the basegame by hooking its corresponding free call in the engine.
 */
 void store_tac_protected_allocs() {
   /*
@@ -363,48 +336,41 @@ void store_tac_protected_allocs() {
   */
 
   /*
-     TODO: remove this block and the `Hunk_UserAlloc_StoreGlobal` and
-    `Hunk_UserAlloc_StoreGlobal_FirstNull` functions after TAC protection
-    removed
+     TODO: remove this block and the `Hunk_UserAlloc_ReturnStaticAllocation` and
+    `Hunk_UserAlloc_ReturnStaticAllocation_FirstNull` functions after TAC
+    protection removed
   */
   {
     utils::hook::call(0x140840929_g,
-                      reinterpret_cast<void *>(
-                          Hunk_UserAlloc_StoreGlobal<game::cg::cgArray_store>));
+                      Hunk_UserAlloc_ReturnStaticAllocation<game::cg::cgArray>);
     utils::hook::call(
         0x1408421C3_g,
-        reinterpret_cast<void *>(
-            Hunk_UserAlloc_StoreGlobal<game::cg::cgsArray_store>));
+
+        Hunk_UserAlloc_ReturnStaticAllocation<game::cg::cgsArray>);
     utils::hook::call(
         0x140843A4F_g,
-        reinterpret_cast<void *>(
-            Hunk_UserAlloc_StoreGlobal<game::cg::cg_viewModelArray_store>));
+        Hunk_UserAlloc_ReturnStaticAllocation<game::cg::cg_viewModelArray>);
     utils::hook::call(
         0x140843A70_g,
-        reinterpret_cast<void *>(
-            Hunk_UserAlloc_StoreGlobal<game::cg::cg_attachmentsArray_store>));
-    utils::hook::call(
-        0x14085B9F5_g,
-        reinterpret_cast<void *>(Hunk_UserAlloc_StoreGlobal_FirstNull<
-                                 game::cg::cg_entitiesArray_store>));
+        Hunk_UserAlloc_ReturnStaticAllocation<game::cg::cg_attachmentsArray>);
+    utils::hook::call(0x14085B9F5_g,
+
+                      Hunk_UserAlloc_ReturnStaticAllocation_FirstNull<
+                          game::cg::cg_entitiesArray>);
   }
 
   // CG global hunk frees
   {
-    utils::hook::call(
-        0x140853E13_g,
-        reinterpret_cast<void *>(
-            Hunk_UserFree_ResetGlobal<game::cg::cg_attachmentsArray_store>));
-    utils::hook::call(
-        0x140853E22_g,
-        reinterpret_cast<void *>(
-            Hunk_UserFree_ResetGlobal<game::cg::cg_viewModelArray_store>));
+    utils::hook::call(0x140853E13_g,
+                      Hunk_UserFree_ResetGlobal<game::cg::cg_attachmentsArray>);
+    utils::hook::call(0x140853E22_g,
+
+                      Hunk_UserFree_ResetGlobal<game::cg::cg_viewModelArray>);
     utils::hook::call(0x140855728_g,
-                      reinterpret_cast<void *>(
-                          Hunk_UserFree_ResetGlobal<game::cg::cgsArray_store>));
+
+                      Hunk_UserFree_ResetGlobal<game::cg::cgsArray>);
     utils::hook::call(0x140856EC3_g,
-                      reinterpret_cast<void *>(
-                          Hunk_UserFree_ResetGlobal<game::cg::cgArray_store>));
+                      Hunk_UserFree_ResetGlobal<game::cg::cgArray>);
 
     CG_FreeCGEnts_hook.create(game::cg::CG_FreeCGEnts.get(),
                               game::cg::CG_FreeCGEnts_Impl);
@@ -419,9 +385,9 @@ void store_tac_protected_allocs() {
      are being freed.
   */
   {
-    utils::hook::call(0x1419D7E22_g,
-                      reinterpret_cast<void *>(
-                          malloc_store<game::level::g_entities_cl_allocation>));
+    utils::hook::call(
+        0x1419D7E22_g,
+        return_static_alloc<game::level::g_entities_cl_allocation>);
   }
 }
 
@@ -473,6 +439,50 @@ void fix_mapswitch_crashes() {
   TaskManager2_ProcessDemonwareTask_Safe_hook.create(
       game::dw::task::TaskManager2_ProcessDemonwareTask.get(),
       TaskManager2_ProcessDemonwareTask_Safe);
+}
+
+utils::hook::detour SV_FastRestart_f_hook;
+utils::hook::detour SV_MapRestart_f_hook;
+
+inline constexpr std::string_view TDM_GAMETYPE = "tdm";
+inline constexpr std::string_view ZCLASSIC_GAMETYPE = "zclassic";
+inline constexpr std::string_view CAMPAIGN_GAMETYPE = "cp";
+inline constexpr std::string_view MULTIPLAYER_MAP_PREFIX = "mp_";
+inline constexpr std::string_view ZOMBIES_MAP_PREFIX = "zm_";
+inline constexpr std::string_view CAMPAIGN_MAP_PREFIX = "cp_";
+template <const game::RestartMethod_t RestartMethod>
+void SV_RestartCmd_RotateOrDefault() {
+  if (game::get_sv_running() &&
+      !game::com::Com_SessionMode_IsMode(game::eModes::COUNT) /* main menu */) {
+    if (game::maprotation().value_or("").empty()) {
+      std::string_view curr_gametype;
+      const std::string_view curr_mapname =
+          game::get_mapname().value_or("mp_nuketown");
+
+      const std::optional<std::string_view> gametype_dvar_val =
+          game::gametype();
+      if (gametype_dvar_val.has_value()) {
+        curr_gametype = gametype_dvar_val.value();
+
+      } else if (utils::string::starts_with(curr_mapname,
+                                            MULTIPLAYER_MAP_PREFIX)) {
+        curr_gametype = TDM_GAMETYPE;
+
+      } else if (utils::string::starts_with(curr_mapname, ZOMBIES_MAP_PREFIX)) {
+        curr_gametype = ZCLASSIC_GAMETYPE;
+      } else if (utils::string::starts_with(curr_mapname,
+                                            CAMPAIGN_MAP_PREFIX)) {
+        curr_gametype = CAMPAIGN_GAMETYPE;
+      }
+
+      const char *rotate_cmd = utils::string::va(
+          "gametype %s map %s", curr_gametype.data(), curr_mapname.data());
+      game::sv_maprotation->set(rotate_cmd);
+    }
+    game::cbuf::Cbuf_AddText(0, "map_rotate\n");
+  } else {
+    game::sv::SV_MapRestart(RestartMethod);
+  }
 }
 } // namespace
 
@@ -555,7 +565,7 @@ public:
       Total replacement of a function can usually be performed by `hook`ing
       the function and instead executing another function which does not invoke
       the hooked function. In this case, the crash-triggering instruction would
-      still be executed, as hook invocation executes the hooked function's
+      still be executed, as detour invocation executes the hooked function's
       prologue.
 
       To resolve this, we instead replace all known calls to the original
@@ -570,6 +580,12 @@ public:
 
     CL_CheckForResendHook.create(game::cl::CL_CheckForResend.get(),
                                  game::cl::CL_CheckForResend_Impl);
+    SV_MapRestart_f_hook.create(
+        game::sv::SV_MapRestart_f.get(),
+        SV_RestartCmd_RotateOrDefault<game::RestartMethod_t::FULL>);
+    SV_FastRestart_f_hook.create(
+        game::sv::SV_FastRestart_f.get(),
+        SV_RestartCmd_RotateOrDefault<game::RestartMethod_t::ROUND>);
 
     patch_players_folder_name();
   }

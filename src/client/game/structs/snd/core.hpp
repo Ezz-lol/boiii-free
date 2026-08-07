@@ -5,7 +5,8 @@
 #include "../core.hpp"
 #include "../quake/core.hpp"
 #include "../db/xasset/core.hpp"
-#include "../scr/scr.hpp"
+#include "../scr/primitives.hpp"
+#include "../weapon.hpp"
 #include "../stream.hpp"
 
 namespace game {

@@ -1,8 +1,9 @@
 #pragma once
 
 #include <macros.hpp>
+#include "game/ptr.hpp"
 #include "macros.hpp"
-#include "func.hpp"
+#include <structs/func.hpp>
 #include "quake/vec.hpp"
 #include "core.hpp"
 
@@ -17,6 +18,7 @@ namespace game {
 template <typename T>
 concept PtrLike = std::is_convertible_v<T, uintptr_t>;
 
+struct dvarCallBack_t;
 struct dvar_t;
 struct encryptedDvar_t;
 
@@ -24,6 +26,7 @@ enum class DvarSetSource : uint32_t {
   INTERNAL = 0x0,
   EXTERNAL = 0x1,
   SCRIPT = 0x2,
+  DEVGUI = 0x3
 };
 
 bool is_server();
@@ -66,7 +69,10 @@ enum dvarFlags_e : uint32_t {
   DVAR_CHEAT = 1 << 8,
   // DVAR_UNKNOWN = 1 << 9,
   DVAR_EXTERNAL = 1 << 10,
-  // DVAR_UNKNOWN3x = 1 << 11-14,
+  // DVAR_UNKNOWN2x = 1<< 11-12
+  // Sets `findCallBackForDvar(dvar)->needsCallback = true;` on change
+  DVAR_MODIFIED_CALLBACK = 1 << 13,
+  // DVAR_UNKNOWN1x = 1 << 14,
   DVAR_SESSIONMODE = 1 << 15,
   // Modvars have flags |= DVAR_MODVAR|DVAR_SESSIONMODE -
   // dvars specific to mod session
@@ -92,7 +98,9 @@ union DvarFlags {
     uint32_t cheat : 1;
     uint32_t unknown_9 : 1;
     uint32_t external : 1;
-    uint32_t unknown_11_14 : 4;
+    uint32_t unknown_11_12 : 2;
+    uint32_t modifiedCallback : 1;
+    uint32_t unknown_14 : 1;
     uint32_t sessionmode : 1;
     uint32_t unknown_16 : 1;
     uint32_t modvar : 1;
@@ -213,7 +221,7 @@ inline constexpr bool operator!=(T lhs, DvarFlags rhs) noexcept {
   return static_cast<uint32_t>(lhs) != rhs._raw;
 };
 ASSERT_SIZE(DvarFlags, sizeof(uint32_t));
-ASSERT_POD(DvarFlags);
+ASSERT_CPP03_POD(DvarFlags);
 
 /*
   Labeled as rgba in engine.
@@ -246,13 +254,6 @@ union DvarColor {
 
   uint8_t raw[4];
 
-  inline constexpr DvarColor() noexcept = default;
-  inline constexpr DvarColor(uint8_t r, uint8_t g, uint8_t b,
-                             uint8_t a) noexcept
-      : r(r), g(g), b(b), a(a) {}
-  inline constexpr DvarColor(uint8_t x, uint8_t y, uint8_t z) noexcept
-      : xyz{x, y, z} {}
-
   // operators for implicit conversion to uint8_t[4], array semantics
   inline constexpr operator uint8_t *() noexcept { return raw; }
   inline constexpr operator const uint8_t *() const noexcept { return raw; }
@@ -263,7 +264,7 @@ union DvarColor {
     return raw[index];
   }
 };
-ASSERT_POD(DvarColor);
+ASSERT_CPP03_POD(DvarColor);
 ASSERT_SIZE(DvarColor, 4);
 #pragma pack(pop)
 
@@ -322,35 +323,145 @@ template <typename T_DvarValue> union TemplateDvarValue {
   inline const SessionModePool<T_DvarValue *> &indirect() const {
     return _indirect;
   }
+
+  inline T_DvarValue *indirect(eModes mode) {
+    return valid_mode(mode) ? _indirect[mode] : nullptr;
+  }
+  inline SessionModePool<T_DvarValue *> &indirect() { return _indirect; }
   inline const T_DvarValue *sessionModeSpecific(eModes mode) const {
+    return indirect(mode);
+  }
+  inline T_DvarValue *sessionModeSpecific(eModes mode) {
     return indirect(mode);
   }
   inline const T_DvarValue *sessionModeSpecific() const {
     return indirect(com::Com_SessionMode_GetMode());
   }
 
-  inline T_DvarValue *indirect(eModes mode) {
-    return valid_mode(mode) ? _indirect[mode] : nullptr;
-  }
-  inline SessionModePool<T_DvarValue *> &indirect() { return _indirect; }
-  inline T_DvarValue *sessionModeSpecific(eModes mode) {
-    return indirect(mode);
-  }
   inline T_DvarValue *sessionModeSpecific() {
     return indirect(com::Com_SessionMode_GetMode());
   }
+  inline constexpr bool
+  set(bool val,
+      /* added for API compatbility with `EncryptionCapableDvarValue`.
+          Should be optimized away by compiler. */
+      [[maybe_unused]] bool shouldEncrypt = true) noexcept {
+    const bool prev = enabled();
+    enabled() = val;
+    return prev;
+  }
+
+  inline constexpr int32_t
+  set(int32_t val,
+      /* added for API compatbility with `EncryptionCapableDvarValue`.
+          Should be optimized away by compiler. */
+      [[maybe_unused]] bool shouldEncrypt = true) noexcept {
+    const int32_t prev = integer();
+    integer() = val;
+    return prev;
+  }
+
+  inline constexpr uint32_t
+  set(uint32_t val,
+      /* added for API compatbility with `EncryptionCapableDvarValue`.
+          Should be optimized away by compiler. */
+      [[maybe_unused]] bool shouldEncrypt = true) noexcept {
+    const uint32_t prev = unsignedInt();
+    unsignedInt() = val;
+    return prev;
+  }
+
+  inline constexpr int64_t
+  set(int64_t val,
+      /* added for API compatbility with `EncryptionCapableDvarValue`.
+          Should be optimized away by compiler. */
+      [[maybe_unused]] bool shouldEncrypt = true) noexcept {
+    const int64_t prev = integer64();
+    integer64() = val;
+    return prev;
+  }
+
+  inline constexpr uint64_t
+  set(uint64_t val,
+      /* added for API compatbility with `EncryptionCapableDvarValue`.
+          Should be optimized away by compiler. */
+      [[maybe_unused]] bool shouldEncrypt = true) noexcept {
+    const uint64_t prev = unsignedInt64();
+    unsignedInt64() = val;
+    return prev;
+  }
+
+  inline constexpr float
+  set(float val,
+      /* added for API compatbility with `EncryptionCapableDvarValue`.
+          Should be optimized away by compiler. */
+      [[maybe_unused]] bool shouldEncrypt = true) noexcept {
+    const float prev = value();
+    value() = val;
+    return prev;
+  }
+
+  inline constexpr vec4_t
+  set(vec4_t val,
+      /* added for API compatbility with `EncryptionCapableDvarValue`.
+          Should be optimized away by compiler. */
+      [[maybe_unused]] bool shouldEncrypt = true) noexcept {
+    const vec4_t prev = vector();
+    vector() = val;
+    return prev;
+  }
+
+  /*
+    Note: this needs particular handling in the `dvar` struct
+    to either re-use the `reset` value string pointer or re-allocate the string
+    in the SL string pool, then assign with `sl::CopyString`. Direct assignment
+    with a new string pointer will lead to unexpected behaviour.
+  */
+  // TODO: overrides for `std::string`, `std::string_view`
+  inline constexpr const char *
+  set(const char *val,
+      /* added for API compatbility with `EncryptionCapableDvarValue`.
+          Should be optimized away by compiler. */
+      [[maybe_unused]] bool shouldEncrypt = true) noexcept {
+
+    const char *prev = string();
+    string() = val;
+    return prev;
+  }
+  inline constexpr const char *
+  set(const std::string_view &val,
+      /* added for API compatbility with `EncryptionCapableDvarValue`.
+          Should be optimized away by compiler. */
+      bool shouldEncrypt = true) {
+    return set(val.data(), shouldEncrypt);
+  }
+  inline constexpr const char *
+  set(const std::string &val,
+      /* added for API compatbility with `EncryptionCapableDvarValue`.
+          Should be optimized away by compiler. */
+      bool shouldEncrypt = true) {
+    return set(val.c_str(), shouldEncrypt);
+  }
+  inline constexpr DvarColor
+  set(DvarColor val,
+      /* added for API compatbility with `EncryptionCapableDvarValue`.
+          Should be optimized away by compiler. */
+      [[maybe_unused]] bool shouldEncrypt = true) noexcept {
+    const DvarColor prev = color();
+    color() = val;
+    return prev;
+  }
 };
-ASSERT_POD(TemplateDvarValue<void>);
+ASSERT_CPP03_POD(TemplateDvarValue<void>);
 
 typedef TemplateDvarValue<dvar_t> DvarValue;
 ASSERT_SIZE(DvarValue, 0x18);
-ASSERT_POD(DvarValue);
+ASSERT_CPP03_POD(DvarValue);
 
 struct EncryptionCapableDvarValue {
   TemplateDvarValue<encryptedDvar_t> _value;
-  uint64_t encryptedValue;
+  uint64_t _encryptedValue;
 
-  inline constexpr EncryptionCapableDvarValue() noexcept = default;
   // Fields renamed with "_" prefix in favor of consolidated method interface
   // to allow identical usage of both DvarValue and EncryptionCapableDvarValue.
   // in the `EngineDependentDvar` methods
@@ -421,9 +532,317 @@ struct EncryptionCapableDvarValue {
   inline encryptedDvar_t *sessionModeSpecific() {
     return _value.sessionModeSpecific();
   }
+
+  inline const uint64_t &encryptedValue() const noexcept {
+    return _encryptedValue;
+  }
+
+  inline uint64_t &encryptedValue() noexcept { return _encryptedValue; }
+
+  static inline uint64_t encrypt(bool val) noexcept {
+    uint32_t peb = PEB32();
+    uint32_t x = val ? 1 : 0;
+    uint32_t z = 0;
+
+    // 1) key == 0x4F48F38
+    z = static_cast<uint16_t>((peb ^ 0xC8C0u) - x * 0x56DDu);
+    x = std::rotr(x, 16);
+
+    // 2) key == 0xCAE3A886
+    x ^= z;
+
+    // 3) key == 0x6250C961
+    uint32_t t = std::rotr(x, 16);
+    uint16_t u = static_cast<uint16_t>((peb ^ 0xC3ECu) - x * 0xC67u);
+    x = u ^ t;
+    z = static_cast<uint16_t>(x);
+
+    // 4) key == 0x5C395230
+    z = static_cast<uint16_t>((peb ^ 0xBC84u) - z * 0x1C72u);
+
+    // 5) key == 0x6AAA441D
+    uint32_t tmp = z ^ std::rotl(x, 16);
+    z = static_cast<uint16_t>((peb ^ 0xC8ADu) + tmp * 0x5C92u);
+    x = std::rotl(tmp, 16);
+
+    // 6) key == 0x62078B4F
+    x ^= z;
+
+    // 7) key == 0x69456FAD
+    x = std::rotr(x, 16);
+
+    return x;
+  }
+
+  static inline uint32_t encrypt(float val) {
+    uint32_t peb = PEB32();
+    uint32_t result = std::bit_cast<uint32_t>(val);
+    uint32_t s = 0;
+
+    // 1) key == 0x3546219F
+    s = static_cast<uint16_t>(result);
+
+    // 2) key == 0xD96A6946
+    result = std::rotl(result, 16);
+    uint32_t t = static_cast<uint16_t>((peb ^ 0xAE44u) + s * 450u);
+    result ^= t;
+    s = static_cast<uint16_t>(result);
+
+    // 3) key == 0x2E207F95
+    s = static_cast<uint16_t>((peb ^ 0x8065u) - s * 0x760Bu);
+
+    // 4) key == 0x3C08BA56
+    result = std::rotl(result, 16);
+
+    // 5) key == 0xB5A9DE39
+    result ^= s;
+    s = static_cast<uint16_t>(result);
+
+    // 6) key == 0xB1242083
+    result = std::rotl(result, 16);
+    s = static_cast<uint16_t>((peb ^ 0x252u) + s * 0x78F8u);
+
+    // 7) key == 0x1CD815D5
+    result ^= s;
+    s = static_cast<uint16_t>(result);
+
+    // 8) key == 0xC65161C4
+    s = static_cast<uint16_t>((peb ^ 0x9FFAu) + s * 0x2C23u);
+
+    // 9) key == 0xFF6FF984 -> terminal 0x4843D1BC
+    result = std::rotl(s ^ std::rotl(result, 16), 16);
+
+    return result; // zero‑extend to 64 bits when stored
+  }
+
+  static inline uint64_t encrypt(uint32_t val) noexcept {
+    int32_t peb = PEB32();
+
+    uint32_t result = val; // ebx
+    uint32_t y = 0;        // edx
+
+    // 1) key == 0x9CF31C5
+    y = static_cast<uint16_t>((peb ^ 0x7C35u) - result * 0x565Bu);
+    // key ^= 0xA6B5A745 == new key = 0xAF7A9680
+
+    // 2) key == 0xAF7A9680 (break)
+    result = std::rotl(result, 16);
+    // key ^= 0x0F78FD3E == new key = 0xA0026BBE
+
+    // 3) key == 0xA0026BBE
+    uint32_t temp = result ^ y; // ebx ^ edx
+    y = static_cast<uint16_t>((peb ^ 0x6BFAu) + temp * 0x54F1u);
+    result = std::rotr(temp, 16) ^ y;
+    // key ^= 0x9521BEB4 == 0x3523D50A
+
+    // 4) key == 0x3523D50A
+    y = static_cast<uint16_t>(result); // movzx edx, bx
+    // key ^= 0xD7A4E0B7 == 0xE28735BD
+
+    // 5) key == 0xE28735BD
+    y = static_cast<uint16_t>((peb ^ 0x0FFFF9674u) - y * 0x5534u);
+    // key ^= 0x08E45694 == 0xEA636329
+
+    // 6) key == 0xEA636329
+    result = std::rotl(result, 16);
+    // key ^= 0x02A35792 == 0xE8C034BB
+
+    // 7) key == 0xE8C034BB
+    result ^= y;
+    y = static_cast<uint16_t>(result);
+    // key ^= 0xB69644E4 == 0x5E56705F
+
+    // 8) key == 0x5E56705F
+    y = static_cast<uint16_t>((peb ^ 0x6A32u) + y * 0x1757u);
+    // key ^= 0x79E6DDA5 == 0x27B0ADFA
+
+    // 9) key == 0x27B0ADFA
+    result = std::rotr(result, 16) ^ y;
+    // key ^= 0x8CC787D4 == 0xAB772A2E
+
+    // 10) key == 0xAB772A2E
+    result = std::rotl(result, 16);
+    // key ^= 0x0D0BAF21 == terminal 0xA67C850F
+
+    return result; // zero‑extended to 64 bits
+  }
+
+  // Enum only. String is not encrypted.
+  static inline uint64_t encrypt(const char *val) noexcept {
+    return encrypt(static_cast<uint32_t>(reinterpret_cast<uint64_t>(val)));
+  }
+
+  static inline uint64_t encrypt(int32_t val) noexcept {
+    return encrypt(std::bit_cast<uint32_t>(val));
+  }
+
+  static constexpr uint32_t INVALID_DVAR_TYPE_DEFAULT_SEED = 0;
+
+  // Invalid or otherwise unknown dvar type
+  static inline uint64_t encrypt() noexcept {
+    return encrypt(INVALID_DVAR_TYPE_DEFAULT_SEED);
+  }
+
+  static inline uint64_t encrypt(uint64_t value) {
+    uint64_t peb = PEB();
+    uint64_t enc = value;
+    uint64_t t = 0;
+
+    // 1) key == 0x1EC7CB6
+    int64_t c1 = static_cast<int64_t>(0xFFFFFFFF836D435AULL);
+    uint64_t p1 = peb ^ 0xFFFFFFFF8131F8BEULL;
+    uint64_t prod1 = static_cast<uint64_t>(static_cast<int64_t>(enc) * c1);
+    t = static_cast<uint32_t>(p1 + prod1);
+
+    // 2) key == 0xFD2C81D
+    enc = std::rotr(enc, 32) ^ t;
+
+    // 3) key == 0xD02E43C5
+    t = static_cast<uint32_t>(enc);
+
+    // 4) key == 0x567C7575
+    int64_t c4 = static_cast<int64_t>(0xFFFFFFFFAD28AB13ULL);
+    uint64_t p4 = peb ^ 0x6BD3B7D9ULL; // zero‑extended 32‑bit constant
+    uint64_t prod4 = static_cast<uint64_t>(static_cast<int64_t>(t) * c4);
+    t = static_cast<uint32_t>(p4 + prod4);
+
+    // 5) key == 0x5208D556
+    enc = std::rotr(enc, 32) ^ t;
+
+    // 6) key == 0x4EB19C7F
+    uint64_t original = enc;
+    int64_t c6 = static_cast<int64_t>(0xFFFFFFFFE6A38132ULL);
+    uint64_t p6 = peb ^ 0xFFFFFFFF8671D5D2ULL;
+    uint64_t prod6 = static_cast<uint64_t>(static_cast<int64_t>(original) * c6);
+    uint32_t trunc6 = static_cast<uint32_t>(p6 + prod6);
+    enc = std::rotl(original, 32) ^ trunc6;
+    t = static_cast<uint32_t>(enc);
+
+    // 7) key == 0x4279D8C4
+    int64_t c7 = 0x4075B22; // positive, sign‑extended to 64 bits
+    uint64_t p7 = peb ^ 0x4D3B7FF4ULL;
+    uint64_t prod7 = static_cast<uint64_t>(static_cast<int64_t>(t) * c7);
+    t = static_cast<uint32_t>(p7 + prod7);
+
+    // 8) key == 0xE70F62A0
+    enc = std::rotr(enc, 32) ^ t;
+
+    // 9) key == 0x3B923398 -> terminal 0x9B48C62B
+    enc = std::rotr(enc, 32);
+
+    return enc;
+  }
+
+  static inline uint64_t encrypt(int64_t val) noexcept {
+    return encrypt(std::bit_cast<uint64_t>(val));
+  }
+
+  static constexpr uint64_t UNENCRYPTED_DVAR_TYPE_ENCRYPTED_VALUE = 0;
+  static inline uint64_t encrypt([[maybe_unused]] vec2_t val) noexcept {
+    return UNENCRYPTED_DVAR_TYPE_ENCRYPTED_VALUE;
+  }
+  static inline uint64_t encrypt([[maybe_unused]] vec3_t val) noexcept {
+    return UNENCRYPTED_DVAR_TYPE_ENCRYPTED_VALUE;
+  }
+  static inline uint64_t encrypt([[maybe_unused]] vec4_t val) noexcept {
+    return UNENCRYPTED_DVAR_TYPE_ENCRYPTED_VALUE;
+  }
+  static inline uint64_t encrypt([[maybe_unused]] DvarColor val) noexcept {
+    return UNENCRYPTED_DVAR_TYPE_ENCRYPTED_VALUE;
+  }
+
+  inline constexpr bool set(bool val, bool shouldEncrypt = true) noexcept {
+    if (shouldEncrypt) {
+      encryptedValue() = encrypt(val);
+    }
+
+    return _value.set(val);
+  }
+
+  inline constexpr int32_t set(int32_t val,
+                               bool shouldEncrypt = true) noexcept {
+    if (shouldEncrypt) {
+      encryptedValue() = encrypt(val);
+    }
+
+    return _value.set(val);
+  }
+
+  inline constexpr uint32_t set(uint32_t val,
+                                bool shouldEncrypt = true) noexcept {
+    if (shouldEncrypt) {
+      encryptedValue() = encrypt(val);
+    }
+
+    return _value.set(val);
+  }
+
+  inline constexpr int64_t set(int64_t val,
+                               bool shouldEncrypt = true) noexcept {
+    encryptedValue() = encrypt(val);
+    return _value.set(val);
+  }
+
+  inline constexpr uint64_t set(uint64_t val,
+                                bool shouldEncrypt = true) noexcept {
+    if (shouldEncrypt) {
+      encryptedValue() = encrypt(val);
+    }
+
+    return _value.set(val);
+  }
+
+  inline constexpr float set(float val, bool shouldEncrypt = true) noexcept {
+    if (shouldEncrypt) {
+      encryptedValue() = encrypt(val);
+    }
+
+    return _value.set(val);
+  }
+
+  inline constexpr vec4_t set(vec4_t val, bool shouldEncrypt = true) noexcept {
+    if (shouldEncrypt) {
+      encryptedValue() = encrypt(val);
+    }
+
+    return _value.set(val);
+  }
+
+  /*
+    Note: this needs particular handling in the `dvar` struct
+    to either re-use the `reset` value string pointer or re-allocate the string
+    in the SL string pool, then assign with `sl::CopyString`. Direct assignment
+    with a new string pointer will lead to unexpected behaviour.
+
+    The caller also needs to set `shouldEncrypt` to `false` for string-type
+    dvar values, and `true` for enum-type dvar values.
+  */
+  // TODO: overrides for `std::string`, `std::string_view`
+  inline constexpr const char *set(const char *val,
+                                   bool shouldEncrypt = true) noexcept {
+    if (shouldEncrypt) {
+      encryptedValue() = encrypt(val);
+    }
+    return _value.set(val);
+  }
+  inline constexpr const char *set(const std::string_view &val,
+                                   bool shouldEncrypt) {
+    return set(val.data(), shouldEncrypt);
+  }
+  inline constexpr const char *set(const std::string &val,
+                                   bool shouldEncrypt = true) {
+    return set(val.c_str(), shouldEncrypt);
+  }
+  inline constexpr DvarColor set(DvarColor val,
+                                 bool shouldEncrypt = true) noexcept {
+    if (shouldEncrypt) {
+      encryptedValue() = encrypt(val);
+    }
+    return _value.set(val);
+  }
 };
+ASSERT_CPP03_POD(EncryptionCapableDvarValue);
 ASSERT_SIZE(EncryptionCapableDvarValue, 0x20);
-ASSERT_POD(EncryptionCapableDvarValue);
 #pragma pack(pop)
 
 template <typename T> struct PrimitiveLimit {
@@ -438,11 +857,77 @@ union DvarLimits {
   } enumeration;
 
   PrimitiveLimit<int32_t> integer;
+  PrimitiveLimit<uint32_t> unsignedInteger;
   PrimitiveLimit<int64_t> integer64;
   PrimitiveLimit<uint64_t> unsignedInt64;
   PrimitiveLimit<float> value;
   PrimitiveLimit<vec_t> vector;
+
+  inline constexpr bool contains(const char *val) noexcept {
+    if (val) {
+      for (int32_t i = 0; i < enumeration.stringCount; ++i) {
+        if (enumeration.strings[i] &&
+            std::strcmp(enumeration.strings[i], val) == 0) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }
+
+  inline constexpr bool contains([[maybe_unused]] bool val) noexcept {
+    return true;
+  }
+
+  inline constexpr bool contains(int32_t val) noexcept {
+    assert(integer.min <= integer.max &&
+           "invalid DvarLimits domain - minimum is greater than maximum!");
+    return val >= integer.min && val <= integer.max;
+  }
+
+  inline constexpr bool contains(uint32_t val) noexcept {
+    assert(unsignedInteger.min <= unsignedInteger.max &&
+           "invalid DvarLimits domain - minimum is greater than maximum!");
+    return val >= unsignedInteger.min && val <= unsignedInteger.max;
+  }
+  inline constexpr bool contains(int64_t val) noexcept {
+    assert(integer64.min <= integer64.max &&
+           "invalid DvarLimits domain - minimum is greater than maximum!");
+    return val >= integer64.min && val <= integer64.max;
+  }
+  inline constexpr bool contains(uint64_t val) noexcept {
+    assert(unsignedInt64.min <= unsignedInt64.max &&
+           "invalid DvarLimits domain - minimum is greater than maximum!");
+    return val >= unsignedInt64.min && val <= unsignedInt64.max;
+  }
+  inline constexpr bool contains(vec_t val) noexcept {
+    assert(vector.min <= vector.max &&
+           "invalid DvarLimits domain - minimum is greater than maximum!");
+    return val >= vector.min && val <= vector.max;
+  }
+
+  inline constexpr bool contains(vec2_t val) noexcept {
+    return contains(val.x) && contains(val.y);
+  }
+
+  inline constexpr bool contains(vec3_t val) noexcept {
+    return contains(val.x) && contains(val.y) && contains(val.z);
+  }
+
+  inline constexpr bool contains(vec4_t val) noexcept {
+    return contains(val.x) && contains(val.y) && contains(val.z) &&
+           contains(val.w);
+  }
+
+  inline constexpr bool contains(DvarColor val) noexcept {
+    return contains(static_cast<vec_t>(val.r)) &&
+           contains(static_cast<vec_t>(val.g)) &&
+           contains(static_cast<vec_t>(val.b)) &&
+           contains(static_cast<vec_t>(val.a));
+  }
 };
+ASSERT_CPP03_POD(DvarLimits);
 ASSERT_SIZE(DvarLimits, 0x10);
 
 union EngineDependentDvar;
@@ -465,19 +950,6 @@ public:
   DvarLimits _domain;
   dvar<T_DvarValue> *_hashNext;
 
-  std::optional<std::string>
-  set(const char *val, DvarSetSource source = DvarSetSource::INTERNAL) const;
-  float set(float val, DvarSetSource source = DvarSetSource::INTERNAL) const;
-  uint64_t set(uint64_t val,
-               DvarSetSource source = DvarSetSource::INTERNAL) const;
-  int64_t set(int64_t val,
-              DvarSetSource source = DvarSetSource::INTERNAL) const;
-  int32_t set(int32_t val,
-              DvarSetSource source = DvarSetSource::INTERNAL) const;
-  inline uint32_t set(uint32_t val, DvarSetSource source) const noexcept {
-    return static_cast<uint32_t>(set(static_cast<int32_t>(val), source));
-  }
-  bool set(bool val, DvarSetSource source = DvarSetSource::INTERNAL) const;
   inline dvarType_t type() const noexcept { return _type; }
   inline dvarType_t &type() noexcept { return _type; }
 
@@ -545,6 +1017,13 @@ public:
       return _current.sessionModeSpecific(mode);
     }
     return nullptr;
+  }
+
+  inline constexpr const uint64_t &encryptedValue() const noexcept {
+    return _current.encryptedValue();
+  }
+  inline constexpr uint64_t &encryptedValue() noexcept {
+    return _current.encryptedValue();
   }
 
   inline const dvar<T_DvarValue> *resolve() const noexcept {
@@ -637,6 +1116,89 @@ public:
   constexpr operator EngineDependentDvar() const noexcept;
   constexpr operator EngineDependentDvarMut() const noexcept;
   constexpr operator EngineDependentDvarMut() noexcept;
+
+  dvarCallBack_t *modifiedCallback() noexcept;
+
+  template <typename T>
+    requires(!std::same_as<T, const char *> &&
+             !std::same_as<T, const std::string_view &> &&
+             !std::same_as<T, const std::string &>)
+  std::optional<T> set(T val) noexcept;
+
+  std::optional<std::string> set(const char *val) noexcept;
+  std::optional<std::string> set(const std::string_view &val) noexcept;
+  std::optional<std::string> set(const std::string &val) noexcept;
+
+  inline int32_t get_int() noexcept { return resolve()->current().integer(); }
+  inline constexpr uint32_t get_uint() noexcept {
+    return resolve()->current().unsignedInt();
+  }
+  inline int64_t get_int64() noexcept {
+    return resolve()->current().integer64();
+  }
+  inline uint64_t get_uint64() noexcept {
+    return resolve()->current().unsignedInt64();
+  }
+  inline bool get_bool() noexcept { return resolve()->current().enabled(); }
+  inline float get_float() noexcept { return resolve()->current().value(); }
+  inline const char *get_cstring() noexcept {
+    return resolve()->current().string();
+  }
+  inline std::optional<std::string_view> get_string() noexcept {
+    const char *str = get_cstring();
+    return str ? std::optional(std::string_view(str)) : std::nullopt;
+  }
+  template <typename T> inline constexpr T get() noexcept {
+    constexpr size_t T_Size = sizeof(T);
+    if constexpr (std::is_same_v<T, int32_t>) {
+      return get_int();
+    }
+    if constexpr (std::is_same_v<T, uint32_t>) {
+      return get_uint();
+    }
+    if constexpr (std::is_same_v<T, int64_t>) {
+      return get_int64();
+    }
+    if constexpr (std::is_same_v<T, uint64_t>) {
+      return get_uint64();
+    }
+    if constexpr (std::is_same_v<T, bool>) {
+      return get_bool();
+    }
+    if constexpr (std::is_same_v<T, const char *>) {
+      return get_cstring();
+    }
+    if constexpr (std::is_same_v<T, std::optional<std::string_view>>) {
+      return get_string();
+    }
+    if constexpr (std::is_same_v<T, std::string>) {
+      return get_string().value_or("");
+    }
+    if constexpr (std::is_same_v<T, std::string_view>) {
+      return get_string().value_or("");
+    }
+
+    if constexpr (T_Size <= sizeof(uint64_t)) {
+      T result;
+
+      if constexpr (T_Size > sizeof(uint32_t)) {
+        memcpy(result, get_uint64(), T_Size);
+        return result;
+      } else if constexpr (T_Size > sizeof(uint16_t)) {
+        memcpy(result, get_uint32(), T_Size);
+      } else if constexpr (T_Size > sizeof(uint8_t)) {
+        memcpy(result, get_uint16(), T_Size);
+      } else {
+        memcpy(result, get_bool(), T_Size /* 1 */);
+      }
+      return result;
+    }
+
+    unreachable();
+    return {};
+  }
+
+  constexpr operator EngineDependentDvar() noexcept;
 };
 #pragma pack(pop)
 
@@ -648,7 +1210,7 @@ ASSERT_OFFSET(dvar_t, _type, 0x1C);
 ASSERT_OFFSET(dvar_t, _modified, 0x20);
 ASSERT_OFFSET(dvar_t, _current, 0x28);
 ASSERT_SIZE(dvar_t, 0x88);
-ASSERT_POD(dvar_t);
+ASSERT_CPP03_POD(dvar_t);
 
 struct encryptedDvar_t : public dvar<EncryptionCapableDvarValue> {};
 ASSERT_OFFSET(encryptedDvar_t, _debugName, 0x8);
@@ -658,61 +1220,55 @@ ASSERT_OFFSET(encryptedDvar_t, _type, 0x1C);
 ASSERT_OFFSET(encryptedDvar_t, _modified, 0x20);
 ASSERT_OFFSET(encryptedDvar_t, _current, 0x28);
 ASSERT_SIZE(encryptedDvar_t, 0xA0);
-ASSERT_POD(encryptedDvar_t);
+ASSERT_CPP03_POD(encryptedDvar_t);
 
 union EngineDependentDvarMut {
   dvar_t *sv;
   encryptedDvar_t *cl;
 
-  inline std::optional<std::string>
-  set(const char *val, DvarSetSource source = DvarSetSource::INTERNAL) const {
+  inline std::optional<std::string> set(const char *val) {
     if (is_server()) {
-      return sv->set(val, source);
+      return sv->set(val);
     }
-    return cl->set(val, source);
+    return cl->set(val);
   }
-  inline float set(float val,
-                   DvarSetSource source = DvarSetSource::INTERNAL) const {
+  inline std::optional<float> set(float val) {
     if (is_server()) {
-      return sv->set(val, source);
+      return sv->set(val);
     }
-    return cl->set(val, source);
+    return cl->set(val);
   }
-  inline uint64_t set(uint64_t val,
-                      DvarSetSource source = DvarSetSource::INTERNAL) const {
+  inline std::optional<uint64_t> set(uint64_t val) {
     if (is_server()) {
-      return sv->set(val, source);
+      return sv->set(val);
     }
-    return cl->set(val, source);
+    return cl->set(val);
   }
-  inline int64_t set(int64_t val,
-                     DvarSetSource source = DvarSetSource::INTERNAL) const {
+  inline std::optional<int64_t> set(int64_t val) {
     if (is_server()) {
-      return sv->set(val, source);
+      return sv->set(val);
     }
-    return cl->set(val, source);
+    return cl->set(val);
   }
-  inline int32_t set(int32_t val,
-                     DvarSetSource source = DvarSetSource::INTERNAL) const {
+  inline std::optional<int32_t> set(int32_t val) {
     if (is_server()) {
-      return sv->set(val, source);
+      return sv->set(val);
     }
-    return cl->set(val, source);
+    return cl->set(val);
   }
-  inline uint32_t set(uint32_t val,
-                      DvarSetSource source = DvarSetSource::INTERNAL) const {
+  inline std::optional<uint32_t> set(uint32_t val) {
     if (is_server()) {
-      return sv->set(val, source);
+      return sv->set(val);
     }
-    return cl->set(val, source);
+    return cl->set(val);
   }
-  inline bool set(bool val,
-                  DvarSetSource source = DvarSetSource::INTERNAL) const {
+  inline std::optional<bool> set(bool val) {
     if (is_server()) {
-      return sv->set(val, source);
+      return sv->set(val);
     }
-    return cl->set(val, source);
+    return cl->set(val);
   }
+
   inline int32_t get_int() const {
     if (is_server()) {
       return sv->get_int();
@@ -768,6 +1324,20 @@ union EngineDependentDvarMut {
     return cl->get<T>();
   }
 
+  inline uint64_t encryptedValue() const noexcept {
+    if (is_server()) {
+      return 0;
+    }
+    return cl->encryptedValue();
+  }
+
+  inline uint64_t encryptedValue() noexcept {
+    if (is_server()) {
+      return 0;
+    }
+    return cl->encryptedValue();
+  }
+
   inline dvarStrHash_t &name() noexcept {
     if (is_server()) {
       return sv->name();
@@ -787,7 +1357,7 @@ union EngineDependentDvarMut {
       cl->debugName() = name;
     }
   }
-  inline const char *&debugName() noexcept {
+  inline ConstCharPtr &debugName() noexcept {
     if (is_server()) {
       return sv->debugName();
     }
@@ -799,7 +1369,7 @@ union EngineDependentDvarMut {
     }
     return cl->debugName();
   }
-  inline const char *&description() noexcept {
+  inline ConstCharPtr &description() noexcept {
     if (is_server()) {
       return sv->description();
     }
@@ -836,6 +1406,7 @@ union EngineDependentDvarMut {
     }
     return cl->flags();
   }
+
   inline dvarType_t &type() noexcept {
     if (is_server()) {
       return sv->type();
@@ -930,10 +1501,10 @@ union EngineDependentDvarMut {
     return result;
   }
 
-  inline constexpr bool nonnull() const noexcept { return sv != nullptr; }
-  inline constexpr bool null() const noexcept { return sv == nullptr; }
+  inline constexpr bool nonnull() noexcept { return sv != nullptr; }
+  inline constexpr bool null() noexcept { return sv == nullptr; }
 
-  inline constexpr bool operator!() const noexcept { return null(); }
+  inline constexpr bool operator!() noexcept { return null(); }
   inline constexpr bool
   operator>(const EngineDependentDvarMut &rhs) const noexcept {
     return sv > rhs.sv;
@@ -942,13 +1513,19 @@ union EngineDependentDvarMut {
   operator<(const EngineDependentDvarMut &rhs) const noexcept {
     return sv < rhs.sv;
   }
-  inline constexpr operator bool() const noexcept { return nonnull(); }
+
+  inline constexpr bool operator>(const EngineDependentDvarMut &rhs) noexcept {
+    return sv > rhs.sv;
+  }
+  inline constexpr bool operator<(const EngineDependentDvarMut &rhs) noexcept {
+    return sv < rhs.sv;
+  }
+
+  inline constexpr operator bool() noexcept { return nonnull(); }
+  inline constexpr operator dvar_t *() noexcept { return sv; }
+  inline constexpr operator encryptedDvar_t *() noexcept { return cl; }
   inline constexpr operator dvar_t *() const noexcept { return sv; }
   inline constexpr operator encryptedDvar_t *() const noexcept { return cl; }
-  inline constexpr operator const dvar_t *() const noexcept { return sv; }
-  inline constexpr operator const encryptedDvar_t *() const noexcept {
-    return cl;
-  }
 
   template <typename T_DvarValue>
   inline constexpr operator const dvar<T_DvarValue> *() const noexcept {
@@ -988,67 +1565,26 @@ union EngineDependentDvarMut {
 };
 
 ASSERT_SIZE(EngineDependentDvarMut, 8);
-ASSERT_POD(EngineDependentDvarMut);
+ASSERT_CPP03_POD(EngineDependentDvarMut);
 
 union EngineDependentDvar {
   const dvar_t *sv;
   const encryptedDvar_t *cl;
 
-  inline std::optional<std::string>
-  set(const char *val,
-      DvarSetSource source = DvarSetSource::INTERNAL) const noexcept {
+  inline uint64_t encryptedValue() const noexcept {
     if (is_server()) {
-      return sv->set(val, source);
+      return 0;
     }
-    return cl->set(val, source);
+    return cl->encryptedValue();
   }
-  inline float
-  set(float val,
-      DvarSetSource source = DvarSetSource::INTERNAL) const noexcept {
+
+  inline uint64_t encryptedValue() noexcept {
     if (is_server()) {
-      return sv->set(val, source);
+      return 0;
     }
-    return cl->set(val, source);
+    return cl->encryptedValue();
   }
-  inline uint64_t
-  set(uint64_t val,
-      DvarSetSource source = DvarSetSource::INTERNAL) const noexcept {
-    if (is_server()) {
-      return sv->set(val, source);
-    }
-    return cl->set(val, source);
-  }
-  inline int64_t
-  set(int64_t val,
-      DvarSetSource source = DvarSetSource::INTERNAL) const noexcept {
-    if (is_server()) {
-      return sv->set(val, source);
-    }
-    return cl->set(val, source);
-  }
-  inline int32_t
-  set(int32_t val,
-      DvarSetSource source = DvarSetSource::INTERNAL) const noexcept {
-    if (is_server()) {
-      return sv->set(val, source);
-    }
-    return cl->set(val, source);
-  }
-  inline uint32_t
-  set(uint32_t val,
-      DvarSetSource source = DvarSetSource::INTERNAL) const noexcept {
-    if (is_server()) {
-      return sv->set(val, source);
-    }
-    return cl->set(val, source);
-  }
-  inline bool
-  set(bool val, DvarSetSource source = DvarSetSource::INTERNAL) const noexcept {
-    if (is_server()) {
-      return sv->set(val, source);
-    }
-    return cl->set(val, source);
-  }
+
   inline int32_t get_int() const noexcept {
     if (is_server()) {
       return sv->get_int();
@@ -1247,84 +1783,13 @@ union EngineDependentDvar {
 };
 
 ASSERT_SIZE(EngineDependentDvar, 8);
-ASSERT_POD(EngineDependentDvar);
+ASSERT_CPP03_POD(EngineDependentDvar);
 
 inline constexpr bool operator==(const EngineDependentDvarMut &lhs,
                                  const EngineDependentDvar &rhs) noexcept {
   return lhs.sv == rhs.sv;
 }
 
-void Dvar_SetStringFromSource(EngineDependentDvar dvar, const char *val,
-                              DvarSetSource source);
-void Dvar_SetIntFromSource(EngineDependentDvar dvar, int32_t val,
-                           DvarSetSource source);
-void Dvar_SetInt64FromSource(EngineDependentDvar dvar, int64_t val,
-                             DvarSetSource source);
-void Dvar_SetUInt64FromSource(EngineDependentDvar dvar, uint64_t val,
-                              DvarSetSource source);
-void Dvar_SetBoolFromSource(EngineDependentDvar dvar, bool val,
-                            DvarSetSource source);
-void Dvar_SetFloatFromSource(EngineDependentDvar dvar, float val,
-                             DvarSetSource source);
-
-template <typename T_DvarValue>
-inline std::optional<std::string>
-dvar<T_DvarValue>::set(const char *val, DvarSetSource source) const {
-  const std::optional<std::string_view> prev_val = get_string();
-  std::optional<std::string> prev_val_copy;
-  if (prev_val.has_value()) {
-    prev_val_copy = std::optional(std::string(prev_val.value()));
-  } else {
-    prev_val_copy = std::nullopt;
-  }
-
-  Dvar_SetStringFromSource(
-      EngineDependentDvar{reinterpret_cast<const dvar_t *>(resolve())}, val,
-      source);
-  return prev_val_copy;
-}
-template <typename T_DvarValue>
-inline float dvar<T_DvarValue>::set(float val, DvarSetSource source) const {
-  const float prev_val = get_float();
-  Dvar_SetFloatFromSource(
-      EngineDependentDvar{reinterpret_cast<const dvar_t *>(resolve())}, val,
-      source);
-  return prev_val;
-}
-template <typename T_DvarValue>
-inline uint64_t dvar<T_DvarValue>::set(uint64_t val,
-                                       DvarSetSource source) const {
-  const uint64_t prev_val = get_uint64();
-  Dvar_SetUInt64FromSource(
-      EngineDependentDvar{reinterpret_cast<const dvar_t *>(resolve())}, val,
-      source);
-  return prev_val;
-}
-template <typename T_DvarValue>
-inline int64_t dvar<T_DvarValue>::set(int64_t val, DvarSetSource source) const {
-  const int64_t prev_val = get_int64();
-  Dvar_SetInt64FromSource(
-      EngineDependentDvar{reinterpret_cast<const dvar_t *>(resolve())}, val,
-      source);
-  return prev_val;
-}
-template <typename T_DvarValue>
-inline int32_t dvar<T_DvarValue>::set(int32_t val, DvarSetSource source) const {
-  const int32_t prev_val = get_int();
-  Dvar_SetIntFromSource(
-      EngineDependentDvar{reinterpret_cast<const dvar_t *>(resolve())}, val,
-      source);
-  return prev_val;
-}
-
-template <typename T_DvarValue>
-inline bool dvar<T_DvarValue>::set(bool val, DvarSetSource source) const {
-  const bool prev_val = get_bool();
-  Dvar_SetBoolFromSource(
-      EngineDependentDvar{reinterpret_cast<const dvar_t *>(resolve())}, val,
-      source);
-  return prev_val;
-}
 template <typename T_DvarValue>
 
 inline constexpr dvar<T_DvarValue>::operator EngineDependentDvar()
@@ -1451,7 +1916,7 @@ union EngineDependentDvarPool {
   }
 };
 
-typedef fastcallPtr_t<void(EngineDependentDvar dvar)> modifiedCallback;
+typedef fastcallPtr_t<void(EngineDependentDvarMut dvar)> modifiedCallback;
 
 #pragma pack(push, 1)
 struct dvarCallBack_t {

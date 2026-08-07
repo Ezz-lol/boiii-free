@@ -1,12 +1,8 @@
 #include <std_include.hpp>
 #include "../steam.hpp"
 
-#include <utils/nt.hpp>
-#include <utils/string.hpp>
-
 #include "component/name.hpp"
 #include "component/chat.hpp"
-#include "component/friends.hpp"
 #include "component/steam_proxy.hpp"
 
 namespace steam {
@@ -18,66 +14,23 @@ unsigned long long friends::SetPersonaName(const char *pchPersonaName) {
 
 int friends::GetPersonaState() { return 1; }
 
-int friends::GetFriendCount(int eFriendFlags) {
-  return ::friends::get_friend_count();
-}
+int friends::GetFriendCount(int eFriendFlags) { return 0; }
 
 steam_id friends::GetFriendByIndex(int iFriend, int iFriendFlags) {
-  auto entry = ::friends::get_friend_by_index(iFriend);
-  steam_id id{};
-  id.bits = entry.steam_id;
-  return id;
+  return steam_id{};
 }
 
-int friends::GetFriendRelationship(steam_id steamIDFriend) {
-  return ::friends::is_friend(steamIDFriend.bits) ? 3 : 0;
-}
+int friends::GetFriendRelationship(steam_id steamIDFriend) { return 0; }
 
-int friends::GetFriendPersonaState(steam_id steamIDFriend) {
-  auto all = ::friends::get_friends();
-  for (const auto &f : all) {
-    if (f.steam_id == steamIDFriend.bits)
-      return static_cast<int>(f.state);
-  }
-  return 0;
-}
+int friends::GetFriendPersonaState(steam_id steamIDFriend) { return 0; }
 
 const char *friends::GetFriendPersonaName(steam_id steamIDFriend) {
-  static thread_local std::string name_buf;
-  auto all = ::friends::get_friends();
-  for (const auto &f : all) {
-    if (f.steam_id == steamIDFriend.bits && !f.name.empty()) {
-      name_buf = f.name;
-      return name_buf.c_str();
-    }
-  }
   return chat::get_client_name(steamIDFriend.bits);
 }
 
-struct FriendGameInfo_t {
-  uint64_t m_gameID;
-  uint32_t m_unGameIP;
-  uint16_t m_usGamePort;
-  uint16_t m_usQueryPort;
-  uint64_t m_steamIDLobby;
-};
-
 bool friends::GetFriendGamePlayed(steam_id steamIDFriend,
                                   void *pFriendGameInfo) {
-  if (::friends::get_presence_server(steamIDFriend.bits).empty()) {
-    return false;
-  }
-
-  if (pFriendGameInfo) {
-    auto *info = static_cast<FriendGameInfo_t *>(pFriendGameInfo);
-    info->m_gameID = 311210; // Black Ops 3 AppID
-    info->m_unGameIP = 0;
-    info->m_usGamePort = 0;
-    info->m_usQueryPort = 0;
-    info->m_steamIDLobby = 0;
-  }
-
-  return true;
+  return false;
 }
 
 const char *friends::GetFriendPersonaNameHistory(steam_id steamIDFriend,
@@ -86,7 +39,7 @@ const char *friends::GetFriendPersonaNameHistory(steam_id steamIDFriend,
 }
 
 bool friends::HasFriend(steam_id steamIDFriend, int eFriendFlags) {
-  return ::friends::is_friend(steamIDFriend.bits);
+  return false;
 }
 
 int friends::GetClanCount() { return 0; }
@@ -171,10 +124,7 @@ void friends::ClearRichPresence() { steam_proxy::clear_rich_presence(); }
 
 const char *friends::GetFriendRichPresence(steam_id steamIDFriend,
                                            const char *pchKey) {
-  static thread_local std::string rp_buf;
-  rp_buf = steam_proxy::get_friend_rich_presence(steamIDFriend.bits,
-                                                 pchKey ? pchKey : "");
-  return rp_buf.c_str();
+  return "";
 }
 
 int friends::GetFriendRichPresenceKeyCount(steam_id steamIDFriend) { return 0; }
@@ -188,7 +138,7 @@ void friends::RequestFriendRichPresence(steam_id steamIDFriend) {}
 
 bool friends::InviteUserToGame(steam_id steamIDFriend,
                                const char *pchConnectString) {
-  return ::friends::invite_to_game(steamIDFriend.bits);
+  return false;
 }
 
 int friends::GetCoplayFriendCount() { return 0; }

@@ -28,6 +28,18 @@ typedef uint32_t SndAliasId;
 namespace db {
 namespace xasset {
 
+struct RumbleInfo;
+typedef RumbleInfo *RumbleInfoPtr;
+
+struct ShellshockParams;
+typedef ShellshockParams *ShellshockParamsPtr;
+
+struct DestructibleDef;
+typedef DestructibleDef *DestructibleDefPtr;
+
+struct StreamerHint;
+typedef StreamerHint *StreamerHintPtr;
+
 namespace maptable {
 struct MapTable;
 }

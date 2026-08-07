@@ -156,8 +156,11 @@ void GScr_BBPrint_StdoutRedirect(scriptInstance_t inst) {
     }
   }
 
-  fprintf(stdout, "[BB][0] %s: %s\n", eventName, messageStream.str().c_str());
+  const char *out = utils::string::va("[BB][0] %s: %s", eventName,
+                                      messageStream.str().c_str());
+  fprintf(stdout, "%s\n", out);
   fflush(stdout);
+  game::trace("%s", out);
 #endif
 }
 } // namespace gscr
@@ -180,13 +183,18 @@ void BB_Print_StdoutRedirect(game::ControllerIndex_t controllerIndex,
   va_end(args);
 
   if (name && name[0]) {
-    fprintf(stdout, "[BB][%d] %s: %s\n", static_cast<int32_t>(controllerIndex),
-            name, buffer.c_str());
+    const char *out = utils::string::va("[BB][%d] %s: %s",
+                                        static_cast<int32_t>(controllerIndex),
+                                        name, buffer.c_str());
+    fprintf(stdout, "%s\n", out);
     fflush(stdout);
+    game::trace("%s", out);
   } else {
-    fprintf(stdout, "[BB][%d]: %s\n", static_cast<int32_t>(controllerIndex),
-            buffer.c_str());
+    const char *out = utils::string::va(
+        "[BB][%d]: %s", static_cast<int32_t>(controllerIndex), buffer.c_str());
+    fprintf(stdout, "%s\n", out);
     fflush(stdout);
+    game::trace("%s", out);
   }
 #endif
 }

@@ -21,6 +21,9 @@ WEAK symbol<void(scriptInstance_t inst, function_stack_t *fs_0,
 // `VM_OP_FUNC`. Used internally by several other opcode handlers.
 WEAK symbol<op::VM_OP_FUNC> VM_PostCallBuiltin{0x1412CFC40, 0x14015D9E0};
 
+WEAK symbol<op::OP_TYPE> g_endPos{0x1432E6340, 0x14107C140};
+WEAK symbol<ScrPool<function_stack_t>> gFs{0x1451C4F30, 0x1426D7680};
+
 } // namespace vm
 } // namespace scr
 } // namespace game

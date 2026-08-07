@@ -4,10 +4,8 @@
 
 #include <game/structs/structs.hpp>
 
-#include <atomic>
-
 namespace game {
 namespace level {
-std::atomic<gentity_pool *> g_entities_cl_allocation = nullptr;
+gentity_pool g_entities_cl_allocation{};
 } // namespace level
 } // namespace game

@@ -18,6 +18,7 @@
 #include <utils/cryptography.hpp>
 #include <utils/io.hpp>
 #include <utils/flags.hpp>
+#include <utils/named_mutex.hpp>
 #include <utils/properties.hpp>
 
 #include <game/fragment_handler.hpp>
@@ -38,40 +39,36 @@ std::string get_hdd_serial() {
 }
 
 std::string get_hw_profile_guid() {
-  HW_PROFILE_INFO info;
+  HW_PROFILE_INFO info{};
   if (!GetCurrentHwProfileA(&info)) {
     return {};
   }
 
-  return std::string{info.szHwProfileGuid, sizeof(info.szHwProfileGuid)};
+  return info.szHwProfileGuid;
 }
 
-std::string get_protected_data() {
-  std::string input = game::alias() ? "ezz-boiii-auth-alias" : "ezz-boiii-auth";
-
-  DATA_BLOB data_in{}, data_out{};
-  data_in.pbData = reinterpret_cast<uint8_t *>(input.data());
-  data_in.cbData = static_cast<DWORD>(input.size());
-  if (CryptProtectData(&data_in, nullptr, nullptr, nullptr, nullptr,
-                       CRYPTPROTECT_LOCAL_MACHINE, &data_out) != TRUE) {
+std::string get_machine_guid() {
+  char guid[256]{};
+  DWORD size = sizeof(guid);
+  const auto result = RegGetValueA(
+      HKEY_LOCAL_MACHINE, "SOFTWARE\\Microsoft\\Cryptography", "MachineGuid",
+      RRF_RT_REG_SZ | RRF_SUBKEY_WOW6464KEY, nullptr, guid, &size);
+  if (result != ERROR_SUCCESS || size <= 1) {
     return {};
   }
 
-  const uint32_t size = std::min(data_out.cbData, 52ul);
-  std::string result{reinterpret_cast<char *>(data_out.pbData), size};
-  LocalFree(data_out.pbData);
-
-  return result;
+  return std::string{guid, size - 1};
 }
 
 std::string get_key_entropy(game::ControllerIndex_t controllerIndex) {
-  std::string entropy{};
+  std::string entropy =
+      game::alias() ? "ezz-boiii-auth-alias-v2" : "ezz-boiii-auth-v2";
   entropy.append(utils::smbios::get_uuid());
+  entropy.append(get_machine_guid());
   entropy.append(get_hw_profile_guid());
-  entropy.append(get_protected_data());
   entropy.append(get_hdd_serial());
 
-  if (entropy.empty()) {
+  if (entropy == "ezz-boiii-auth-v2" || entropy == "ezz-boiii-auth-alias-v2") {
     entropy.resize(32);
     utils::cryptography::random::get_data(entropy.data(), entropy.size());
   }
@@ -85,7 +82,7 @@ std::string get_key_entropy(game::ControllerIndex_t controllerIndex) {
   return entropy;
 }
 
-static std::mutex key_file_mutex;
+static utils::named_mutex key_file_mutex{"ezz-boiii-auth-key-lock"};
 
 std::filesystem::path key_file_path(game::ControllerIndex_t controllerIndex,
                                     bool isPublic = false) {
@@ -100,19 +97,38 @@ std::filesystem::path key_file_path(game::ControllerIndex_t controllerIndex,
   return utils::properties::get_key_path() / key_filename;
 }
 
-bool load_key(utils::cryptography::ecc::key &key,
-              game::ControllerIndex_t controllerIndex) {
+bool load_key(const std::filesystem::path &key_path,
+              utils::cryptography::ecc::key &key) {
   std::string data{};
-
-  std::filesystem::path key_path = key_file_path(controllerIndex);
-  std::lock_guard lock(key_file_mutex);
-  if (!utils::io::read_file(key_path.generic_string(), &data)) {
+  if (!utils::io::read_file(key_path, &data)) {
     return false;
   }
 
   key.deserialize(data);
-  if (!key.is_valid()) {
-    printf("Loaded key is invalid!\n");
+  return key.is_valid();
+}
+
+bool write_key(const std::filesystem::path &key_path,
+               const utils::cryptography::ecc::key &key) {
+  auto temp_path = key_path;
+  temp_path += ".new";
+
+  const auto serialized = key.serialize();
+  if (serialized.empty() || !utils::io::write_file(temp_path, serialized)) {
+    utils::io::remove_file(temp_path);
+    return false;
+  }
+
+  utils::cryptography::ecc::key written_key{};
+  if (!load_key(temp_path, written_key) ||
+      written_key.get_hash() != key.get_hash()) {
+    utils::io::remove_file(temp_path);
+    return false;
+  }
+
+  if (!MoveFileExW(temp_path.wstring().c_str(), key_path.wstring().c_str(),
+                   MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+    utils::io::remove_file(temp_path);
     return false;
   }
 
@@ -120,30 +136,47 @@ bool load_key(utils::cryptography::ecc::key &key,
 }
 
 utils::cryptography::ecc::key
-generate_key(game::ControllerIndex_t controllerIndex) {
-  utils::cryptography::ecc::key key = utils::cryptography::ecc::generate_key(
+load_or_generate_key(game::ControllerIndex_t controllerIndex) {
+  const std::unique_lock lock(key_file_mutex);
+  const auto key_path = key_file_path(controllerIndex);
+  auto backup_path = key_path;
+  backup_path += ".bak";
+
+  utils::cryptography::ecc::key key{};
+  if (load_key(key_path, key)) {
+    utils::cryptography::ecc::key backup_key{};
+    if (!load_key(backup_path, backup_key) ||
+        backup_key.get_hash() != key.get_hash()) {
+      if (!write_key(backup_path, key)) {
+        printf("Failed to back up cryptographic key!\n");
+      }
+    }
+
+    return key;
+  }
+
+  if (load_key(backup_path, key)) {
+    printf("Restoring cryptographic key from backup.\n");
+    if (!write_key(key_path, key)) {
+      printf("Failed to restore cryptographic key!\n");
+    }
+
+    return key;
+  }
+
+  key = utils::cryptography::ecc::generate_key(
       512, get_key_entropy(controllerIndex));
   if (!key.is_valid()) {
     throw std::runtime_error("Failed to generate cryptographic key!");
   }
 
-  std::filesystem::path key_path = key_file_path(controllerIndex);
-  std::lock_guard lock(key_file_mutex);
-  if (!utils::io::write_file(key_path.generic_string(), key.serialize())) {
+  if (!write_key(key_path, key)) {
     printf("Failed to write cryptographic key!\n");
+  } else if (!write_key(backup_path, key)) {
+    printf("Failed to back up cryptographic key!\n");
   }
 
   return key;
-}
-
-utils::cryptography::ecc::key
-load_or_generate_key(game::ControllerIndex_t controllerIndex) {
-  utils::cryptography::ecc::key key{};
-  if (load_key(key, controllerIndex)) {
-    return key;
-  }
-
-  return generate_key(controllerIndex);
 }
 
 utils::cryptography::ecc::key
@@ -151,7 +184,6 @@ get_key_internal(game::ControllerIndex_t controllerIndex) {
   auto key = load_or_generate_key(controllerIndex);
 
   std::filesystem::path key_path = key_file_path(controllerIndex, true);
-  std::lock_guard lock(key_file_mutex);
   if (!utils::io::write_file(key_path.generic_string(), key.get_public_key())) {
     printf("Failed to write public key!\n");
   }
@@ -401,24 +433,24 @@ void direct_connect_bots_stub(const game::net::netadr_t address) {
   handle_new_player(address);
 }
 
-game::XUID get_guid(game::ControllerIndex_t controllerIndex) {
-  static const std::array<game::XUID, 2> guids =
-      []() -> std::array<game::XUID, 2> {
-    if (game::is_server()) {
-      return {static_cast<game::XUID>(
-                  0x110000100000000 |
-                  (::utils::cryptography::random::get_integer() & ~0x80000000)),
-              0};
-    }
-
-    return {get_key(game::CONTROLLER_INDEX_0).get_hash(),
-            get_key(game::CONTROLLER_INDEX_1).get_hash()};
-  }();
-
+game::XUID get_client_guid(game::ControllerIndex_t controllerIndex) {
+  static const std::array<game::XUID, 2> guids = {
+      get_key(game::CONTROLLER_INDEX_0).get_hash(),
+      get_key(game::CONTROLLER_INDEX_1).get_hash()};
   controllerIndex = game::valid_controller_index(controllerIndex)
                         ? controllerIndex
                         : game::CONTROLLER_INDEX_0;
   return guids[static_cast<uint32_t>(controllerIndex)];
+}
+
+game::XUID get_guid(game::ControllerIndex_t controllerIndex) {
+  if (!game::is_server())
+    return get_client_guid(controllerIndex);
+
+  static const game::XUID server_guid = static_cast<game::XUID>(
+      0x110000100000000 |
+      (::utils::cryptography::random::get_integer() & ~0x80000000));
+  return controllerIndex == game::CONTROLLER_INDEX_0 ? server_guid : 0;
 }
 
 game::XUID get_guid(const size_t client_num) {

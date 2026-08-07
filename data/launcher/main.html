@@ -381,7 +381,16 @@
 
             <div class="workshop-browse-container">
               <div class="workshop-browse-header">
-                <h3 class="workshop-browse-title">Browse Workshop</h3>
+                <div class="workshop-browse-heading">
+                  <h3 class="workshop-browse-title">Browse Workshop</h3>
+                  <button
+                    type="button"
+                    class="btn workshop-view-toggle"
+                    id="workshopViewToggleBtn"
+                  >
+                    Single column
+                  </button>
+                </div>
                 <div class="workshop-browse-controls">
                   <div class="workshop-filter-wrap">
                     <select
@@ -589,37 +598,30 @@
             <div class="page-header">
               <h2 class="page-title">Friends</h2>
               <p class="page-sub">
-                Manage your friends list. Add friends by their Steam ID to see
-                them here.
+                Manage your friends list. Add friends by their BOIII Friend Code
+                to see them here.
               </p>
             </div>
 
             <div class="friend-identity-card">
               <div>
-                <div class="friends-add-label">Your Steam ID</div>
+                <div class="friends-add-label">Your BOIII Friend Code</div>
                 <div class="friend-identity-name" id="friendIdentityName">
-                  Start Steam to show your account
+                  Your BOIII identity
                 </div>
                 <div class="friend-identity-code" id="friendIdentityCode">
                   Unavailable
                 </div>
               </div>
               <button type="button" class="btn" id="friendCodeCopyBtn" disabled>
-                Copy Steam ID
+                Copy Friend Code
               </button>
             </div>
 
             <div class="friends-add-card">
               <div class="friends-add-label">Add Friend</div>
               <p class="friends-add-sub">
-                Enter a display name and Steam ID to add a friend
-              </p>
-              <p
-                class="friends-add-sub"
-                style="font-size: 0.75rem; opacity: 0.5; margin-top: -6px"
-              >
-                &#9432; Friends will also be auto-added when invited through
-                Steam.
+                Enter a display name and BOIII Friend Code to add a friend
               </p>
               <div class="friends-add-row">
                 <input
@@ -631,8 +633,8 @@
                 />
                 <input
                   type="text"
-                  id="friendSteamIdInput"
-                  placeholder="Steam ID (e.g. 76561198...)"
+                  id="friendCodeInput"
+                  placeholder="BOIII Friend Code"
                   autocomplete="off"
                   maxlength="20"
                 />

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "bb.hpp"          // IWYU pragma: export
-#include "bg.hpp"          // IWYU pragma: export
+#include "bg/bg.hpp"       // IWYU pragma: export
 #include "cbuf.hpp"        // IWYU pragma: export
 #include "cg/cg.hpp"       // IWYU pragma: export
 #include "cinematic.hpp"   // IWYU pragma: export
@@ -17,7 +17,7 @@
 #include "dw/dw.hpp"       // IWYU pragma: export
 #include "fs.hpp"          // IWYU pragma: export
 #include "fx.hpp"          // IWYU pragma: export
-#include "game.hpp"        // IWYU pragma: export
+#include "game/game.hpp"   // IWYU pragma: export
 #include "gfx.hpp"         // IWYU pragma: export
 #include "glasssv.hpp"     // IWYU pragma: export
 #include "hunk.hpp"        // IWYU pragma: export
@@ -50,3 +50,6 @@
 #include "ugc.hpp"         // IWYU pragma: export
 #include "ui/ui.hpp"       // IWYU pragma: export
 #include "utils.hpp"       // IWYU pragma: export
+#include "r.hpp"           // IWYU pragma: export
+#include "vehicle.hpp"     // IWYU pragma: export
+#include "phys.hpp"        // IWYU pragma: export

@@ -204,6 +204,7 @@ Launch BOIII with these arguments for extra features:
 | `-keep-launcher`      | Keep the launcher process running after starting the game.                                                                                                         |
 | `-noconsole`          | Suppress the external launcher console window.                                                                                                                     |
 | `-nobranding`         | Disable EZZ watermark and console prefix.                                                                                                                          |
+| `-nocinematics`       | Disable playing all cinematics.                                                                                                                                    |
 | `-noratelimit`        | Disable rate limiting in dedicated server.                                                                                                                         |
 | `-quiet-crash`        | On crash, disable message box and minidump directory popups.                                                                                                       |
 | `-mitigatepacketspam` | In dedicated server, attempt to reduce unnecessary reliable command packets sent by some custom maps' scripts. Fixes Kowloon and Daybreak client load-in failures. |
@@ -364,8 +365,9 @@ Want to build Ezz BOIII yourself? Here's how! 🔨
 
 ### Prerequisites
 
-- [Visual Studio 2022](https://visualstudio.microsoft.com/downloads/) (Community
-  Edition is free)
+- [Visual Studio 2022 or newer](https://visualstudio.microsoft.com/downloads/)
+  (Community Edition is free), with the **Desktop development with C++**
+  workload
 - [Git](https://git-scm.com/downloads)
 - Windows 10/11 SDK
 - [clang-format](https://releases.llvm.org/) (for C/C++ formatting — install via
@@ -384,27 +386,26 @@ Want to build Ezz BOIII yourself? Here's how! 🔨
    cd boiii-free
    ```
 
-2. **Initialize submodules:**
-
-   ```bash
-   git submodule update --init --recursive
-   ```
-
-3. **Generate project files:**
+2. **Generate project files:**
 
    ```bash
    generate.bat
    ```
 
-4. **Open in Visual Studio:**
-   - Open `boiii.sln`
+   This initializes all Git submodules and downloads the pinned Premake version
+   automatically.
+
+   To generate the project and build `Release|x64` entirely from the command
+   line, run `build.bat` instead. The script pauses at the end so you can review
+   the build result.
+
+3. **Open in Visual Studio:**
+   - Open `build/boiii.sln`
    - Set configuration to `Release` and platform to `x64`
    - Build the solution (Ctrl+Shift+B)
 
-5. **Find your build:**
+4. **Find your build:**
    - Output will be in `build/bin/x64/Release/`
-
-> [!TIP] You can also use `build.bat` to compile directly from the command line!
 
 ---
 

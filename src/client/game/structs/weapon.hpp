@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core.hpp"
-#include "db/db.hpp"
+#include "db/xasset/core.hpp"
 #include <cstdint>
 namespace game {
 namespace scr {
@@ -2320,6 +2320,120 @@ enum class gadgetHeldSlot_e : uint32_t {
   GADGET_HELD_3 = 0x3,
   GADGET_HELD_COUNT = 0x4,
 };
+
+PACKED(struct WeaponVariantDef {
+  const char *szInternalName;
+  const char *szModeIndependentName;
+  int sessionMode;
+  int iVariantCount;
+  WeaponDef *weapDef;
+  const char *szDisplayName;
+  const char *szAltWeaponName;
+  const char *szAttachmentUnique;
+  WeaponAttachmentPtr *attachments;
+  WeaponAttachmentUniquePtr *attachmentUniques;
+  const char **szXAnims;
+  scr::ScrString_t *hideTags;
+  db::xasset::XModelPtr *attachViewModel;
+  db::xasset::XModelPtr *attachWorldModel;
+  const char **attachViewModelTag;
+  const char **attachWorldModelTag;
+  float attachViewModelOffsets[15];
+  float attachWorldModelOffsets[15];
+  float attachViewModelRotations[15];
+  float attachWorldModelRotations[15];
+  vec3_t stowedModelOffsets;
+  vec3_t stowedModelRotations;
+  uint32_t altWeaponIndex;
+  uint8_t _padding184[4];
+  AttachmentMask iAttachments;
+  bool bIgnoreAttachments;
+  uint8_t _padding191[3];
+  int iClipSize;
+  int iReloadTime;
+  int iReloadEmptyTime;
+  int iReloadQuickTime;
+  int iReloadQuickEmptyTime;
+  int iReloadSpecialComboTime;
+  int iReloadSpecialComboEmptyTime;
+  int iReloadSpecialComboQuickTime;
+  int iReloadSpecialComboQuickEmptyTime;
+  int iAdsTransInTime;
+  int iAdsTransOutTime;
+  int iAltRaiseTime;
+  int iAdsAltRaiseTime;
+  int meleeAssassinationStateTimeTransInTime;
+  int meleeAssassinationStateTimeTransOutTime;
+  const char *szAmmoDisplayName;
+  const char *szAmmoName;
+  int iAmmoIndex;
+  uint8_t _padding1E4[4];
+  const char *szClipName;
+  int iClipIndex;
+  float fAimAssistRangeAds;
+  float fAdsSwayHorizScale;
+  float fAdsSwayVertScale;
+  float fkickAlignedInputScalar;
+  float fkickOpposedInputScalar;
+  float fAdsViewKickCenterSpeed;
+  float fHipViewKickCenterSpeed;
+  float fAdsFlinchScalar;
+  float fAdsFiringFlinchScalar;
+  float fAdsTurnRateScalar;
+  float fAdsWallRunBobScalar;
+  float fAdsAdditiveFallScalar;
+  float fAdsAdditiveJumpScalar;
+  float fAdsAdditiveJumpLandScalar;
+  float fAdsZoom1_focalLength;
+  float fAdsZoom1_fStop;
+  float fAdsZoom2_focalLength;
+  float fAdsZoom2_fStop;
+  float fAdsZoom3_focalLength;
+  float fAdsZoom3_fStop;
+  float fAdsZoomFov1;
+  float fAdsZoomFov2;
+  float fAdsZoomFov3;
+  float fAdsZoomInFrac;
+  float fAdsZoomOutFrac;
+  float fOverlayAlphaScale;
+  float fOOPosAnimLength[4];
+  bool bSilenced;
+  bool bDualMag;
+  bool bInfraRed;
+  bool bTVGuided;
+  uint32_t perks[4];
+  bool bAntiQuickScope;
+  uint8_t _padding281[7];
+  gfx::GfxImagePtr overlayMaterial;
+  gfx::GfxImagePtr overlayMaterialLowRes;
+  gfx::GfxImagePtr dpadIcon;
+  weaponIconRatioType_t dpadIconRatio;
+  bool noAmmoOnDpadIcon;
+  uint8_t _padding2A5[3];
+  vec3_t ikLeftHandIdlePos;
+  vec3_t ikLeftHandOffset;
+  vec3_t ikLeftHandRotation;
+  bool bUsingLeftHandProneIK;
+  uint8_t _padding2CD[3];
+  vec3_t ikLeftHandProneOffset;
+  vec3_t ikLeftHandProneRotation;
+  vec3_t ikLeftHandUiViewerOffset;
+  vec3_t ikLeftHandUiViewerRotation;
+});
+
+PACKED(struct weaponParms {
+  vec3_t forward;
+  vec3_t right;
+  vec3_t up;
+  vec3_t muzzleTrace;
+  vec3_t gunForward;
+  uint8_t _padding3C[4];
+  Weapon weapon;
+  const WeaponVariantDef *weapVariantDef;
+  const WeaponDef *weapDef;
+  bool reflected;
+  uint8_t _padding59[7];
+});
 
 } // namespace weapon
 } // namespace game

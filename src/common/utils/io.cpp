@@ -1,5 +1,6 @@
 #include "io.hpp"
 #include <fstream>
+#include <iostream>
 #include <windows.h>
 
 namespace utils::io {
@@ -120,7 +121,15 @@ std::size_t file_size(const std::filesystem::path &file) {
 }
 
 bool create_directory(const std::filesystem::path &directory) {
-  return std::filesystem::create_directories(directory);
+  try {
+    return std::filesystem::create_directories(directory);
+  } catch (const std::filesystem::filesystem_error &ex) {
+    std::cerr << "Caught standard filesystem error!\n";
+    std::cerr << "What:  " << ex.what() << '\n'; // Human-readable error message
+    std::cerr << "Path1: " << ex.path1()
+              << '\n'; // The path that caused the failure
+    return false;
+  }
 }
 
 bool directory_exists(const std::filesystem::path &directory) {

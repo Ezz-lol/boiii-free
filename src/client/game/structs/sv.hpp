@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core.hpp"
-#include "phys.hpp"
+#include "phys/core.hpp"
 #include "quake/core.hpp"
 #include "net/net.hpp"
 #include "scr/core.hpp"
@@ -38,31 +38,64 @@ typedef gentity_s gentity_t;
 
 namespace sv {
 
+constexpr auto MAXIMUM_SERVER_COMMAND_LEN = 0x3FF;
+
+constexpr auto RELIABLE_COMMAND_PREFIX_LEN =
+    2; // "%c ", where %c is the `ReliableCommand`
+constexpr auto MAXIMUM_RELIABLE_COMMAND_DATA_LEN =
+    MAXIMUM_SERVER_COMMAND_LEN - RELIABLE_COMMAND_PREFIX_LEN;
+static_assert(MAXIMUM_RELIABLE_COMMAND_DATA_LEN == 0x3FD,
+              "MAXIMUM_RELIABLE_COMMAND_DATA_LEN == 0x3FD");
+
 enum class ReliableCommand : char {
   NOP = '\0',             // 0x00: Empty command / return
   GIVE_ACHIEVEMENT = '#', // 0x23: LiveAchievements_GiveAchievement
-  BLUR_SERVER_CMD = '(',  // 0x28: CG_BlurServerCommand
+
+  /* Commands for `BCS` (BigConfigString) command sequence
+     BCS command sequences are used to send config strings with length exceeding
+     the per-packet combined config string, serialized index string length of
+     0x3FD.
+
+     BCS command sequences begin with a `BCS_INIT` command,
+     followed by the required number of `BCS_APPEND` commands to send
+     remaining (0x3FD - serialized index string length)-sized partitions of the
+     configstring aside from the final, then terminated with a `BCS_FINALIZE`
+     command.
+
+     Total BCS sequence joined config string length limit is 0x5000
+   */
+  BCS_INIT = '%',      // 0x25
+  BCS_APPEND = '&',    // 0x26
+  BCS_FINALIZE = '\'', // 0x27
+
+  BLUR_SERVER_CMD = '(', // 0x28: CG_BlurServerCommand
   // 0x29: CG_TranslateHudElemMessage / CG_BoldGameMessage
   ANNOUNCEMENT_MSG = ')',
   CHAT_MSG = '+',                  // 0x2B: CG_ChatMessage
   NITROUS_VEHICLE_TELEPPORT = '/', // 0x2F: NitrousVehicle::Teleport
   SET_CLIENT_SYSTEM_STATE = '0',   // 0x30: CG_ParseClientSystemStateChange
   CHECKPOINT_COMMIT = '1',         // 0x31: CL_Checkpoint_Commit
-  CONFIG_STRING_MODIFIED = '2',    // 0x32: CG_ConfigStringModified
-  DYN_ENT_DESTROY_EVENT = '7',     // 0x37: DynEntCl_DestroyEvent
-  EXPLODER = ':',                  // 0x3A: CG_ParseExploderCommand
-  GAME_MSG = ';',                  // 0x3B: CG_GameMessage
-  BOLD_GAME_MSG_CENTER = '<',      // 0x3C: CG_BoldGameMessageCenter
-  CHECKPOINT_SAVE = '=',           // 0x3D: CL_Checkpoint_Save
-  RESET_WEAPON_STATE = '>',        // 0x3E: PM_ResetWeaponState
-  CLOSE_IN_GAME_MENU = '@',        // 0x40: UI_CloseInGameMenu
-  LOCAL_SOUND = 'B',               // 0x42: LocalSound
-  LOCAL_SOUND_STOP = 'C',          // 0x43: LocalSoundStop
-  LUI_NOTIFY = 'D',                // 0x44: CG_ParseLUINotify
-  RADIANT_EXPLODER = 'E',          // 0x45: CG_ParseRadiantExploderCommand
-  MAP_RESTART = 'J',               // 0x4A: CG_MapRestart(..., 0)
-  HIT_MARKER = 'M',                // 0x4D: HitMarker
-  OPEN_SCRIPT_MENU = 'N',          // 0x4E: CG_OpenScriptMenu
+  // Inline config string length limit of 0x3FD.
+  // Must use a `BCS` (BigConfigString) reliable command sequence for
+  // config strings with length > 0x3FD.
+  CONFIG_STRING_MODIFIED = '2', // 0x32: CG_ConfigStringModified
+  // 0x35: LiveStats_GameHistory_FinishMatch, then unconditional
+  // EXE_SERVER_DISCONNECTED error
+  DISCONNECT = '5',
+  DYN_ENT_DESTROY_EVENT = '7', // 0x37: DynEntCl_DestroyEvent
+  EXPLODER = ':',              // 0x3A: CG_ParseExploderCommand
+  GAME_MSG = ';',              // 0x3B: CG_GameMessage
+  BOLD_GAME_MSG_CENTER = '<',  // 0x3C: CG_BoldGameMessageCenter
+  CHECKPOINT_SAVE = '=',       // 0x3D: CL_Checkpoint_Save
+  RESET_WEAPON_STATE = '>',    // 0x3E: PM_ResetWeaponState
+  CLOSE_IN_GAME_MENU = '@',    // 0x40: UI_CloseInGameMenu
+  LOCAL_SOUND = 'B',           // 0x42: LocalSound
+  LOCAL_SOUND_STOP = 'C',      // 0x43: LocalSoundStop
+  LUI_NOTIFY = 'D',            // 0x44: CG_ParseLUINotify
+  RADIANT_EXPLODER = 'E',      // 0x45: CG_ParseRadiantExploderCommand
+  MAP_RESTART = 'J',           // 0x4A: CG_MapRestart(..., 0)
+  HIT_MARKER = 'M',            // 0x4D: HitMarker
+  OPEN_SCRIPT_MENU = 'N',      // 0x4E: CG_OpenScriptMenu
   // 0x4F: LiveTracker_WriteForAllLocalUsers / CG_GameMessage
   TRACKER_GAME_MSG = 'O',
   MAP_RESTART_FAST = 'U',       // 0x55: CG_MapRestart(..., 1)
@@ -104,7 +137,7 @@ enum class ReliableCommand : char {
 };
 
 struct client_s {
-  int32_t state;
+  net::clientState_t state;
   char __pad0[0x28];
   net::netadr_t address;
   char __pad1[20468];
@@ -446,9 +479,9 @@ struct clientsFlashbackArchive_t {
 };
 
 enum class serverState_t : uint32_t {
-  SS_DEAD = 0x0,
-  SS_LOADING = 0x1,
-  SS_GAME = 0x2,
+  DEAD = 0x0,
+  LOADING = 0x1,
+  GAME = 0x2,
 };
 
 struct recentFrame {
@@ -519,7 +552,7 @@ ASSERT_SIZE(clientsPositionArchive_t, 0x1B9C);
 
 #pragma pack(push, 1)
 struct server_t {
-  serverState_t state;
+  volatile serverState_t state;
   int32_t physicsTime;
   int32_t timeResidual;
   int32_t lastTickMS;
@@ -529,13 +562,13 @@ struct server_t {
   bool isRunnable;
   bool allowSelfTick;
   bool allowNetPackets;
-  qboolean restarting;
+  volatile qboolean restarting;
   int32_t start_frameTime;
   int32_t checksumFeed;
   qboolean wroteConfigStrings;
   scr::ScrString_t emptyConfigString;
-  scr::ScrString_t configstrings[3568];
-  svEntity_t svEntities[2048];
+  volatile scr::ScrString_t configstrings[0xdf0];
+  svEntity_t svEntities[0x800];
   level::gentity_t *gentities;
   int32_t gentitySize;
   int32_t num_entities;
@@ -547,11 +580,11 @@ struct server_t {
   int32_t checksum;
   int32_t skelTimeStamp;
   int32_t skelMemPos;
-  int32_t bpsWindow[20];
+  int32_t bpsWindow[0x14];
   int32_t bpsWindowSteps;
   int32_t bpsTotalBytes;
   int32_t bpsMaxBytes;
-  int32_t ubpsWindow[20];
+  int32_t ubpsWindow[0x14];
   int32_t ubpsTotalBytes;
   int32_t ubpsMaxBytes;
   float ucompAve;
@@ -559,21 +592,25 @@ struct server_t {
   volatile int32_t serverFrameTime;
   volatile int32_t serverFrameTimeMin;
   volatile int32_t serverFrameTimeMax;
-  recentFrame recentFrameInfo[200];
-  uint8_t _unknown139B8[36];
-  char gametype[64];
+  recentFrame recentFrameInfo[0xc8];
+  uint8_t _unknown139B8[0x24];
+  char gametype[0x40];
   qboolean killServer;
   const char *killReason;
   int32_t currentFrameNum;
   int32_t nextClientsPositionArchive;
   clientsPositionArchive_t clientsPositionArchive[40];
   int32_t nextClientsFlashbackArchive;
-  clientsFlashbackArchive_t clientsFlashBackArchive[512];
+  clientsFlashbackArchive_t clientsFlashBackArchive[0x200];
   clientsFlashbackArchive_t clientsLatestFlashBack;
   // Each field XORed with client XUID to generate client gamestate security
   // checksum
   scr::scrChecksum_t securityChecksum;
   uint8_t _padding7BEFC[4];
+
+  inline constexpr bool running() volatile noexcept {
+    return this->state == serverState_t::GAME || this->restarting;
+  }
 };
 ASSERT_SIZE(server_t, 0xBC5C0);
 #pragma pack(pop)
@@ -1152,6 +1189,35 @@ struct ucmd_t {
 };
 ASSERT_SIZE(ucmd_t, 0x18);
 #pragma pack(pop)
+
+PACKED(struct BitField {
+  const uint64_t *array;
+  uint32_t rowSize;
+  uint32_t count;
+  uint32_t mbits;
+  uint8_t _padding14[4];
+});
+
+PACKED(struct NetField {
+  const char *name;
+  int offset;
+  int size;
+  int bits;
+  uint8_t changeHints;
+  uint8_t _padding15[3];
+  const char *bitsStr;
+  const char *changeHintsStr;
+});
+
+struct NetFieldList {
+  const NetField *array;
+  uint32_t count;
+  uint32_t bbPrintRandMax;
+  uint32_t bbPrintCount;
+  unsigned int bbChecksum;
+  BitField bitFields;
+  const char *fieldArrayName;
+};
 
 } // namespace sv
 } // namespace game

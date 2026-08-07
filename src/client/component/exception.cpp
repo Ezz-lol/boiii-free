@@ -493,16 +493,41 @@ std::string generate_crash_info(const LPEXCEPTION_POINTERS exceptioninfo) {
         target < 0x10000 ? " (NULL pointer dereference)" : ""));
   }
 
-#pragma warning(push)
-#pragma warning(disable : 4996)
-  OSVERSIONINFOEXA version_info;
-  ZeroMemory(&version_info, sizeof(version_info));
+  RTL_OSVERSIONINFOW version_info{};
   version_info.dwOSVersionInfoSize = sizeof(version_info);
-  GetVersionExA(reinterpret_cast<LPOSVERSIONINFOA>(&version_info));
-#pragma warning(pop)
 
-  line(utils::string::va("OS Version: %u.%u", version_info.dwMajorVersion,
-                         version_info.dwMinorVersion));
+  // Clang/GCC warnings with -Weverything
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored                                               \
+    "-Wcast-function-type" // warning: cast between incompatible function types
+                           // (for loader)
+#endif
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored                                                 \
+    "-Wpragmas" // warning: unknown option after '#pragma GCC diagnostic' kind
+#pragma GCC diagnostic ignored                                                 \
+    "-Wcast-function-type" // warning: cast between incompatible function types
+                           // (for loader)
+#endif
+  const auto rtl_get_version =
+      reinterpret_cast<NTSTATUS(NTAPI *)(PRTL_OSVERSIONINFOW)>(
+          GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlGetVersion"));
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
+
+  if (rtl_get_version && NT_SUCCESS(rtl_get_version(&version_info))) {
+    line(utils::string::va("OS Version: %u.%u.%u", version_info.dwMajorVersion,
+                           version_info.dwMinorVersion,
+                           version_info.dwBuildNumber));
+  } else {
+    line("OS Version: unavailable");
+  }
   line(std::string{});
   line(get_callstack_summary(exceptioninfo));
   const std::string registers = get_memory_registers(exceptioninfo);

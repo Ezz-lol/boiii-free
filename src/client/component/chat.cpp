@@ -58,7 +58,7 @@ divert_xuid_to_client_num_stub(int, const game::ClientNum_t client_num, int) {
 
 void send_chat_message(game::ClientNum_t client_num, const std::string &text) {
   game::sv::SV_GameSendServerCommand(
-      client_num, game::net::SV_CMD_CAN_IGNORE_0,
+      client_num, game::net::SV_CMD_CAN_IGNORE,
       utils::string::va("v \"%Iu %d %d %s\"", -1, 0, 0, text.data()));
 }
 

@@ -622,6 +622,38 @@ void emit_owner(emitter_state &s, const ast_ptr &node) {
     emit_expression(s, node);
 }
 
+bool try_get_vector_constant(const ast_ptr &node, float &value) {
+  if (!node) {
+    return false;
+  }
+
+  try {
+    if (node->type == node_type::n_float_number) {
+      value = std::stof(node->value);
+      return true;
+    }
+
+    if (node->type == node_type::n_number) {
+      const int base = node->value.size() > 2 && node->value[0] == '0' &&
+                               (node->value[1] == 'x' || node->value[1] == 'X')
+                           ? 16
+                           : 10;
+      value = static_cast<float>(std::stoll(node->value, nullptr, base));
+      return true;
+    }
+
+    if (node->type == node_type::n_unary_op && node->value == "-" &&
+        node->children.size() == 1 &&
+        try_get_vector_constant(node->children[0], value)) {
+      value = -value;
+      return true;
+    }
+  } catch (const std::exception &) {
+  }
+
+  return false;
+}
+
 void emit_expression(emitter_state &s, const ast_ptr &node) {
   if (!node)
     return;
@@ -719,6 +751,24 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
   }
 
   case node_type::n_vector: {
+    if (node->children.size() != 3) {
+      throw std::runtime_error("Vector expression must have three components");
+    }
+
+    float x = 0.0f;
+    float y = 0.0f;
+    float z = 0.0f;
+    if (try_get_vector_constant(node->children[0], x) &&
+        try_get_vector_constant(node->children[1], y) &&
+        try_get_vector_constant(node->children[2], z)) {
+      s.emit_op(Opcode::GetVector);
+      s.emit_u32_aligned();
+      s.emit_float(x);
+      s.emit_float(y);
+      s.emit_float(z);
+      break;
+    }
+
     emit_expression(s, node->children[2]); // z
     emit_expression(s, node->children[1]); // y
     emit_expression(s, node->children[0]); // x

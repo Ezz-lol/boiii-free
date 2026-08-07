@@ -20,5 +20,7 @@ inline level::gentity_t *Scr_GetEntity_Impl(uint32_t index) {
 }
 
 void Scr_PlaySoundAtPosition_Impl(scriptInstance_t inst);
+std::vector<volatile var::ScrVarValue_t *> Scr_GetArray(scriptInstance_t inst,
+                                                        var::ScrVarIndex_t idx);
 } // namespace scr
 } // namespace game

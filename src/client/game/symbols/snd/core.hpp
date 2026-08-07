@@ -226,7 +226,6 @@ WEAK symbol<void(snd::SndDuckCategoryType category, uint32_t duckId,
                  const snd::SndDuck *duck, float amount)>
     SND_SetDuckByCategory{0x0, 0x140646A50};
 WEAK symbol<void()> SND_DuckReset{0x0, 0x140643C20};
-WEAK symbol<void()> SND_EndFrame{0x0, 0x140547DF0};
 WEAK symbol<void(SndEntHandle handle, scr::ScrString_t animation)>
     SND_FacialAnimationNotify{0x142272B60, 0x140547EA0};
 WEAK symbol<void(snd::SndEntHandle handle)> SND_EntStateRequest{0x0,
@@ -408,6 +407,7 @@ WEAK symbol<bool()> G_SNDEnabled{0x0, 0x140584DB0};
 WEAK symbol<SndDuck *(SndStringHash id)> SND_GetDuckById{0x0, 0x14064BF00};
 WEAK symbol<SndReverb *(SndStringHash id, const char *name)> SND_GetReverb{
     0x0, 0x14064C320};
+WEAK symbol<void()> SND_EndFrame{0x142272B00, 0x140547DF0};
 
 } // namespace snd
 } // namespace game

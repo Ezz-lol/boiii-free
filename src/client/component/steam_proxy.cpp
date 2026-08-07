@@ -60,17 +60,11 @@ struct callback_msg_t {
 
 // Callback IDs we care about
 constexpr int k_GameRichPresenceJoinRequested =
-    337;                                      // k_iSteamFriendsCallbacks + 37
-constexpr int k_GameLobbyJoinRequested = 333; // k_iSteamFriendsCallbacks + 33
+    337; // k_iSteamFriendsCallbacks + 37
 
 struct game_rich_presence_join_requested_t {
   uint64_t steam_id_friend;
   char connect[256];
-};
-
-struct game_lobby_join_requested_t {
-  uint64_t steam_id_lobby;
-  uint64_t steam_id_friend;
 };
 
 utils::hook::detour steam_bgetcallback_hook;
@@ -87,21 +81,11 @@ bool steam_bgetcallback_stub(int32_t pipe, callback_msg_t *msg) {
         reinterpret_cast<const game_rich_presence_join_requested_t *>(
             msg->data);
     std::string connect_str(join->connect);
-    printf("[SteamProxy] Invite received: connect='%s' from=%llu\n",
-           connect_str.c_str(), join->steam_id_friend);
     if (!connect_str.empty()) {
       std::lock_guard lock(pending_connect_mutex);
       pending_connect_addr = connect_str;
       pending_connect_friend_id = join->steam_id_friend;
     }
-  }
-
-  if (msg->callback_id == k_GameLobbyJoinRequested && msg->data &&
-      msg->data_size >= static_cast<int>(sizeof(game_lobby_join_requested_t))) {
-    const auto *lobby =
-        reinterpret_cast<const game_lobby_join_requested_t *>(msg->data);
-    printf("[SteamProxy] Lobby join request: lobby=%llu friend=%llu\n",
-           lobby->steam_id_lobby, lobby->steam_id_friend);
   }
 
   return result;
@@ -356,46 +340,6 @@ struct component final : client_component {
                                steam::SteamUtils()->GetAppID());
     evaluate_ownership_state(res);
     clean_up_on_error();
-
-    // install callback hook immediately so we don't miss any invites
-    if (steam_client_module && !hook_installed.load()) {
-      auto *bget = steam_client_module.get_proc<void *>("Steam_BGetCallback");
-      if (bget) {
-        steam_bgetcallback_hook.create(bget, &steam_bgetcallback_stub);
-        hook_installed.store(true);
-        printf("[SteamProxy] Hooked Steam_BGetCallback\n");
-      }
-    }
-
-    // actively pump Steam callbacks so invite notifications (337) are received
-    scheduler::loop(
-        [] {
-          if (!steam_client_module || !hook_installed.load())
-            return;
-
-          static auto bget_fn =
-              steam_client_module.get_proc<bool (*)(int32_t, callback_msg_t *)>(
-                  "Steam_BGetCallback");
-          static auto bfree_fn =
-              steam_client_module.get_proc<void (*)(int32_t)>(
-                  "Steam_FreeLastCallback");
-          if (!bget_fn || !bfree_fn)
-            return;
-
-          auto pump = [](int32_t pipe) {
-            if (!pipe)
-              return;
-            callback_msg_t msg{};
-            while (bget_fn(pipe, &msg)) {
-              bfree_fn(pipe);
-            }
-          };
-
-          pump(static_cast<int32_t>(steam_pipe));
-          if (original_pipe && original_pipe != steam_pipe)
-            pump(static_cast<int32_t>(original_pipe));
-        },
-        scheduler::main, 500ms);
   }
 
   void pre_destroy() override {
@@ -616,18 +560,13 @@ void invite_friend(uint64_t xuid, const std::string &connect_string) {
   steam_id sid{};
   sid.bits = xuid;
 
-  printf("[SteamProxy] Sending invite to %llu, connect=%s\n", xuid,
-         connect_string.c_str());
-
   // set rich presence invite key so receiver can detect it via RP polling
   set_rich_presence("boiii_invite",
                     utils::string::va("%llu:%s", xuid, connect_string.c_str()));
 
   if (steam_friends_real) {
     try {
-      auto result =
-          steam_friends_real.invoke<bool>(49, sid, connect_string.c_str());
-      printf("[SteamProxy] InviteUserToGame = %s\n", result ? "true" : "false");
+      steam_friends_real.invoke<bool>(49, sid, connect_string.c_str());
       return;
     } catch (...) {
     }
@@ -671,7 +610,6 @@ std::string get_pending_game_invite(uint64_t *out_friend_id) {
     if (bget) {
       steam_bgetcallback_hook.create(bget, &steam_bgetcallback_stub);
       hook_installed.store(true);
-      printf("[SteamProxy] Hooked Steam_BGetCallback (late)\n");
     }
   }
 
@@ -710,12 +648,20 @@ std::string get_steam_friend_name(uint64_t friend_steam_id) {
 }
 
 uint64_t get_own_steam_id() {
-  // Try client_user fis better
+  const auto valid_individual_id = [](const uint64_t id) {
+    return (id >> 56) == 1 && ((id >> 52) & 0xF) == 1 &&
+           ((id >> 32) & 0xFFFFF) == 1 && (id & 0xFFFFFFFF) != 0;
+  };
+  const auto accept = [&](const uint64_t id) {
+    return valid_individual_id(id) ? id : uint64_t{};
+  };
+
+  // Prefer the active Steam client identity.
   if (client_user) {
     try {
       auto id = client_user.invoke<uint64_t>("GetSteamID");
-      if (id > 0x0110000100000000ULL)
-        return id;
+      if (const auto accepted = accept(id))
+        return accepted;
     } catch (...) {
     }
   }
@@ -728,16 +674,69 @@ uint64_t get_own_steam_id() {
           rc.invoke<void *>(5, global_user, steam_pipe, "SteamUser021");
       if (user_iface) {
         steam::interface su(user_iface);
-        auto id = su.invoke<uint64_t>(0); // GetSteamID is index 0
-        if (id > 0x0110000100000000ULL)
-          return id;
+        // ISteamUser021: GetHSteamUser=0, BLoggedOn=1, GetSteamID=2.
+        const auto id = su.invoke<uint64_t>(2);
+        if (const auto accepted = accept(id))
+          return accepted;
       }
     } catch (...) {
     }
   }
 
-  // fallback: use emulated steam user
-  return steam::SteamUser() ? steam::SteamUser()->GetSteamID().bits : 0;
+  // Steam's ActiveUser registry value is the same identity displayed by the
+  // launcher as the Friend Code. It is safer than accepting an arbitrary
+  // value returned by a mismatched Steam interface revision.
+  HKEY key{};
+  if (RegOpenKeyExW(HKEY_CURRENT_USER, L"Software\\Valve\\Steam\\ActiveProcess",
+                    0, KEY_READ, &key) == ERROR_SUCCESS) {
+    DWORD account_id{};
+    DWORD type{};
+    DWORD size = sizeof(account_id);
+    const auto result =
+        RegQueryValueExW(key, L"ActiveUser", nullptr, &type,
+                         reinterpret_cast<BYTE *>(&account_id), &size);
+    RegCloseKey(key);
+    if (result == ERROR_SUCCESS && type == REG_DWORD && account_id != 0) {
+      const auto id = 76561197960265728ULL + account_id;
+      if (const auto accepted = accept(id))
+        return accepted;
+    }
+  }
+
+  // ActiveUser can be zero while Steam is starting or in offline mode.
+  try {
+    const auto path =
+        std::filesystem::path(steam::SteamAPI_GetSteamInstallPath()) /
+        "config" / "loginusers.vdf";
+    std::ifstream file(path, std::ios::binary);
+    if (file) {
+      const std::string data((std::istreambuf_iterator<char>(file)), {});
+      const std::regex account_block(
+          R"steam("([0-9]{17})"\s*\{([\s\S]*?)\})steam", std::regex::icase);
+      const std::regex most_recent(R"steam("MostRecent"\s*"1")steam",
+                                   std::regex::icase);
+      uint64_t first_valid{};
+      for (auto it =
+               std::sregex_iterator(data.begin(), data.end(), account_block);
+           it != std::sregex_iterator(); ++it) {
+        const auto id = std::strtoull((*it)[1].str().c_str(), nullptr, 10);
+        if (!valid_individual_id(id))
+          continue;
+        if (!first_valid)
+          first_valid = id;
+        if (std::regex_search((*it)[2].str(), most_recent))
+          return accept(id);
+      }
+      if (first_valid)
+        return accept(first_valid);
+    }
+  } catch (...) {
+  }
+
+  // Last resort: accept the emulated identity only if it is a real SteamID64.
+  const auto emulated =
+      steam::SteamUser() ? steam::SteamUser()->GetSteamID().bits : 0;
+  return accept(emulated);
 }
 
 std::string get_friend_rich_presence(uint64_t friend_id,

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include "func.hpp"
+#include <structs/func.hpp>
 #include "macros.hpp"
 
 namespace game {

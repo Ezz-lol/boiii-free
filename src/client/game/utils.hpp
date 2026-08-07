@@ -16,30 +16,19 @@ get_dvar_string(const char *dvar_name);
 [[nodiscard]] std::optional<float> get_dvar_float(const char *dvar_name);
 [[nodiscard]] std::optional<bool> get_dvar_bool(const char *dvar_name);
 
-std::optional<int> set_dvar_int(const char *dvar_name, int32_t val,
-                                DvarSetSource source = DvarSetSource::INTERNAL);
-std::optional<int64_t>
-set_dvar_int64(const char *dvar_name, int64_t val,
-               DvarSetSource source = DvarSetSource::INTERNAL);
-std::optional<uint64_t>
-set_dvar_uint64(const char *dvar_name, uint64_t val,
-                DvarSetSource source = DvarSetSource::INTERNAL);
-bool set_dvar_bool(EngineDependentDvar dvar, bool val,
-                   DvarSetSource source = DvarSetSource::INTERNAL);
-std::optional<bool>
-set_dvar_bool(const char *dvar_name, bool val,
-              DvarSetSource source = DvarSetSource::INTERNAL);
-std::optional<float>
-set_dvar_float(const char *dvar_name, float val,
-               DvarSetSource source = DvarSetSource::INTERNAL);
-std::optional<std::string>
-set_dvar_string(const char *dvar_name, const char *val,
-                DvarSetSource source = DvarSetSource::INTERNAL);
+std::optional<int> set_dvar_int(const char *dvar_name, int32_t val);
+std::optional<int64_t> set_dvar_int64(const char *dvar_name, int64_t val);
+std::optional<uint64_t> set_dvar_uint64(const char *dvar_name, uint64_t val);
+bool set_dvar_bool(EngineDependentDvar dvar, bool val);
+std::optional<bool> set_dvar_bool(const char *dvar_name, bool val);
+std::optional<float> set_dvar_float(const char *dvar_name, float val);
+std::optional<std::string> set_dvar_string(const char *dvar_name,
+                                           const char *val);
 
 void record_registered_dvar_name(const char *dvar_name);
 
 template <DvarFlagLike T>
-EngineDependentDvar
+EngineDependentDvarMut
 register_sessionmode_dvar_bool(const char *dvar_name, const bool value, T flags,
                                const char *description,
                                const eModes mode = eModes::COUNT) {
@@ -64,8 +53,9 @@ register_sessionmode_dvar_bool(const char *dvar_name, const bool value, T flags,
 }
 
 template <DvarFlagLike T>
-EngineDependentDvar register_dvar_bool(const char *dvar_name, const bool value,
-                                       T flags, const char *description) {
+EngineDependentDvarMut register_dvar_bool(const char *dvar_name,
+                                          const bool value, T flags,
+                                          const char *description) {
   const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
   EngineDependentDvarMut registered_dvar = Dvar_RegisterBool(
       hash, dvar_name, value, DvarFlags::from(flags), description);
@@ -79,9 +69,9 @@ EngineDependentDvar register_dvar_bool(const char *dvar_name, const bool value,
 }
 
 template <DvarFlagLike T>
-EngineDependentDvar register_dvar_int(const char *dvar_name, int32_t value,
-                                      int32_t min, int32_t max, T flags,
-                                      const char *description) {
+EngineDependentDvarMut register_dvar_int(const char *dvar_name, int32_t value,
+                                         int32_t min, int32_t max, T flags,
+                                         const char *description) {
   const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
   EngineDependentDvarMut registered_dvar = Dvar_RegisterInt(
       hash, dvar_name, value, min, max, DvarFlags::from(flags), description);
@@ -95,9 +85,9 @@ EngineDependentDvar register_dvar_int(const char *dvar_name, int32_t value,
 }
 
 template <DvarFlagLike T>
-EngineDependentDvar register_dvar_float(const char *dvar_name, float value,
-                                        float min, float max, T flags,
-                                        const char *description) {
+EngineDependentDvarMut register_dvar_float(const char *dvar_name, float value,
+                                           float min, float max, T flags,
+                                           const char *description) {
   const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
   EngineDependentDvarMut registered_dvar = Dvar_RegisterFloat(
       hash, dvar_name, value, min, max, DvarFlags::from(flags), description);
@@ -111,9 +101,9 @@ EngineDependentDvar register_dvar_float(const char *dvar_name, float value,
 }
 
 template <DvarFlagLike T>
-EngineDependentDvar register_dvar_string(const char *dvar_name,
-                                         const char *value, T flags,
-                                         const char *description) {
+EngineDependentDvarMut register_dvar_string(const char *dvar_name,
+                                            const char *value, T flags,
+                                            const char *description) {
   const game::CanonHash_t hash = Dvar_GenerateHash(dvar_name);
   EngineDependentDvarMut registered_dvar = Dvar_RegisterString(
       hash, dvar_name, value, DvarFlags::from(flags), description);
@@ -317,6 +307,16 @@ void first_connected_client(
 bool access_connected_client(
     size_t index, const std::function<void(sv::client_s &)> &callback);
 
+void foreach_active_client(
+    const std::function<void(sv::client_s &, size_t index)> &callback);
+void foreach_active_client(const std::function<void(sv::client_s &)> &callback);
+void first_active_client(
+    const std::function<bool(sv::client_s &, size_t index)> &callback);
+void first_active_client(const std::function<bool(sv::client_s &)> &callback);
+
+bool access_active_client(size_t index,
+                          const std::function<void(sv::client_s &)> &callback);
+
 template <typename E>
 concept EnumType = std::is_enum_v<E>;
 
@@ -363,51 +363,6 @@ inline level::gentity_t *client_ent(T index) {
 }
 } // namespace level
 
-namespace scr {
-namespace var {
-inline constexpr bool valid_scrvar_index(scriptInstance_t inst,
-                                         ScrVarIndex_t index) {
-  return index < SCRIPTVARIABLE_POOL_SIZE.instance[inst];
-}
-
-inline ScrVarIndex_t scrvar_index(scriptInstance_t inst,
-                                  volatile ScrVar_t *var) {
-  uintptr_t scriptVariablesPtr = reinterpret_cast<uintptr_t>(
-      vm::gScrVarGlob->instance[inst].scriptVariables);
-  uintptr_t varPtr = reinterpret_cast<uintptr_t>(var);
-  return static_cast<ScrVarIndex_t>((varPtr - scriptVariablesPtr) /
-                                    sizeof(ScrVar_t));
-}
-
-inline bool valid_scrvar_ptr(scriptInstance_t inst, volatile ScrVar_t *var) {
-  return valid_engine_ptr(var) // Static or stack allocation
-         ||
-         valid_scrvar_index(inst, scrvar_index(inst, var)); // Pool allocation
-}
-
-inline ScrVarIndex_t scrvarvalue_index(scriptInstance_t inst,
-                                       volatile ScrVarValue_t *val) {
-  return scrvar_index(inst, val->var());
-}
-
-inline bool valid_scrvarvalue_ptr(scriptInstance_t inst,
-                                  volatile ScrVarValue_t *val) {
-  return valid_engine_ptr(val) // Static or stack allocation
-         || valid_scrvar_index(inst,
-                               scrvarvalue_index(inst, val)); // Pool allocation
-}
-
-inline bool valid_val_allocation_ptr(uintptr_t ptr) {
-  return valid_stack_ptr(ptr) ||
-         (scr::mt::gScrMemTreePub->mt_buffer &&
-          scr::mt::gScrMemTreePub->mt_buffer->contains(ptr));
-}
-
-template <typename T> inline bool valid_val_allocation_ptr(volatile T *ptr) {
-  return valid_val_allocation_ptr(reinterpret_cast<uintptr_t>(ptr));
-}
-} // namespace var
-} // namespace scr
 namespace sl {
 inline bool valid_refstring_ptr(volatile RefString *ref) {
   return valid_stack_ptr(ref) ||

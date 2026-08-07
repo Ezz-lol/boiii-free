@@ -98,7 +98,8 @@ void finalize_master_query(state &s) {
   }
 
   s.masters.clear();
-  cb(any_success, merged);
+  if (cb)
+    cb(any_success, merged);
 }
 
 void handle_server_list_response(const game::net::netadr_t &target,
@@ -343,34 +344,41 @@ inline void parse_master_server_hosts() {
   }
 }
 
-static std::atomic_bool parsed_master_servers{false};
+static std::once_flag parse_master_servers_once;
 std::vector<game::net::netadr_t> get_master_servers() {
-
-  if (!parsed_master_servers.exchange(true)) {
-    parse_master_server_hosts();
-  }
+  std::call_once(parse_master_servers_once, parse_master_server_hosts);
   return master_server_hosts;
 }
 
 void request_servers(callback callback) {
-  master_state.access([&callback](state &s) {
+  bool unavailable = false;
+  master_state.access([&](state &s) {
     std::vector<game::net::netadr_t> masters = get_master_servers();
-    if (!masters.empty()) {
-      s.requesting = true;
-      s.masters.clear();
+    if (masters.empty()) {
+      unavailable = true;
+      return;
+    }
+    if (s.requesting) {
       s.callback = std::move(callback);
-      s.query_start = std::chrono::high_resolution_clock::now();
+      return;
+    }
 
-      for (const game::net::netadr_t &addr : masters) {
-        master_query mq{};
-        mq.address = addr;
-        s.masters.push_back(mq);
+    s.requesting = true;
+    s.masters.clear();
+    s.callback = std::move(callback);
+    s.query_start = std::chrono::high_resolution_clock::now();
 
-        network::send(addr, "getservers",
-                      utils::string::va("T7 %i full empty", PROTOCOL));
-      }
+    for (const game::net::netadr_t &addr : masters) {
+      master_query mq{};
+      mq.address = addr;
+      s.masters.push_back(mq);
+      network::send(addr, "getservers",
+                    utils::string::va("T7 %i full empty", PROTOCOL));
     }
   });
+
+  if (unavailable)
+    callback(false, {});
 }
 
 void add_favorite_server(game::net::netadr_t addr) {

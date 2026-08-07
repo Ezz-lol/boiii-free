@@ -29,5 +29,7 @@ WEAK symbol<void(HANDLE *event)> Sys_WaitForSingleObject{0x142C7A8E0,
 WEAK symbol<fs::PathList(char *directory, const char *extension, char *filter,
                          int *numfiles, qboolean wantsubs)>
     Sys_ListFiles{0x1422EAA10, 0x1405827C0};
+WEAK symbol<void(const char *fmt, ...)> Sys_Error{0x1422F4A00, 0x140584F50};
+
 } // namespace sys
 } // namespace game

@@ -5,6 +5,7 @@
 
 #include "component/party.hpp"
 #include "component/network.hpp"
+#include "component/nat.hpp"
 #include "component/server_list.hpp"
 #include "component/friends.hpp"
 #include "component/steam_proxy.hpp"
@@ -37,6 +38,15 @@ std::atomic<matchmaking_server_list_response *> favorites_response{};
 std::atomic<matchmaking_server_list_response *> history_response{};
 std::atomic<matchmaking_server_list_response *> friends_response{};
 std::atomic<bool> internet_refreshing{false};
+std::atomic<bool> friends_refreshing{false};
+
+struct friend_scan_result {
+  game::net::netadr_t address{};
+  gameserveritem_t item{};
+};
+std::mutex friend_scan_mutex;
+uint64_t friend_scan_generation{};
+std::unordered_map<uint64_t, friend_scan_result> friend_scan_results;
 
 template <typename T> void copy_safe(T &dest, const char *in) {
   ::utils::string::copy(dest, in);
@@ -173,18 +183,66 @@ void handle_history_server_response(const bool success,
                         history_response, history_request);
 }
 
-void handle_friends_server_response(const bool success,
-                                    const game::net::netadr_t &host,
-                                    const ::utils::info_string &info,
-                                    const uint32_t ping) {
-  handle_server_respone(success, host, info, ping, friends_servers,
-                        friends_response, friends_request);
-}
-
 void ping_server(const game::net::netadr_t &server,
                  party::query_callback callback) {
   party::query_server(server, callback);
 }
+
+void finish_friend_scan(const uint64_t generation) {
+  std::unordered_map<uint64_t, friend_scan_result> discovered;
+  {
+    std::lock_guard lock(friend_scan_mutex);
+    if (generation != friend_scan_generation)
+      return;
+    discovered = friend_scan_results;
+  }
+
+  const auto entries = ::friends::get_friend_server_addresses();
+  ::friends::clear_browser_routes();
+  friends_servers.access([&](servers &output) {
+    output.clear();
+    output.reserve(entries.size());
+    for (size_t i = 0; i < entries.size(); ++i) {
+      const auto &entry = entries[i];
+      server row{};
+      const auto live = discovered.find(entry.steam_id);
+      if (live != discovered.end()) {
+        row.address = live->second.address;
+        row.server_item = live->second.item;
+        copy_safe(row.server_item.m_szServerName, entry.player_name.c_str());
+        copy_safe(row.server_item.m_szGameDescription, "Friend match");
+      } else {
+        // RFC 5737 TEST-NET-1 is deliberately non-routable. party::connect_stub
+        // maps it back to the SteamID before any connection is attempted.
+        const auto placeholder = ::utils::string::va(
+            "192.0.2.%u:%u", static_cast<unsigned>((i % 250) + 1),
+            static_cast<unsigned>(40000 + (i % 20000)));
+        row.address = network::address_from_string(placeholder);
+        row.server_item = create_server_item(row.address, {}, 0, true);
+        row.server_item.m_nAppID = 311210;
+        row.server_item.m_steamID.bits = entry.steam_id;
+        copy_safe(row.server_item.m_szServerName, entry.player_name.c_str());
+        copy_safe(row.server_item.m_szGameDescription, "Offline");
+      }
+      row.handled = true;
+      const auto route = network::address_to_string(row.address);
+      ::friends::remember_browser_route(entry.steam_id, route);
+      output.push_back(row);
+    }
+  });
+
+  const auto response = friends_response.load();
+  friends_refreshing = false;
+  ::friends::notify_presence_changed();
+  if (!response)
+    return;
+  for (int i = 0; i < static_cast<int>(entries.size()); ++i)
+    response->ServerResponded(friends_request, i);
+  response->RefreshComplete(friends_request,
+                            entries.empty() ? eNoServersListedOnMasterServer
+                                            : eServerResponded);
+}
+
 } // namespace
 
 void *matchmaking_servers::RequestInternetServerList(
@@ -245,127 +303,42 @@ void *matchmaking_servers::RequestFriendsServerList(
     unsigned int iApp, void **ppchFilters, unsigned int nFilters,
     matchmaking_server_list_response *pRequestServersResponse) {
   friends_response = pRequestServersResponse;
+  friends_refreshing = true;
 
-  std::vector<::friends::friend_server_info> friend_infos =
-      ::friends::get_friend_server_addresses();
-
-  const auto res = friends_response.load();
-  if (!res) {
-    return friends_request;
+  ::friends::reset_master_presence();
+  uint64_t generation{};
+  {
+    std::lock_guard lock(friend_scan_mutex);
+    generation = ++friend_scan_generation;
+    friend_scan_results.clear();
   }
 
-  if (friend_infos.empty()) {
-    res->RefreshComplete(friends_request, eNoServersListedOnMasterServer);
-    return friends_request;
-  }
+  const auto saved = ::friends::get_friends();
+  std::vector<uint64_t> ids;
+  ids.reserve(saved.size());
+  for (const auto &entry : saved)
+    ids.push_back(entry.steam_id);
 
-  // Separate friends into online (have address) and offline (no address)
-  std::vector<std::pair<game::net::netadr_t, std::string>> online_friends;
-  std::vector<int> offline_indices;
-
-  int total_index = 0;
-  for (const ::friends::friend_server_info &info : friend_infos) {
-    if (!info.address.empty()) {
-      game::net::netadr_t addr = network::address_from_string(info.address);
-      if (addr.type != game::net::NA_BAD) {
-        online_friends.emplace_back(addr, info.player_name);
-        total_index++;
-        continue;
-      }
-    }
-    // Offline friend
-    offline_indices.push_back(total_index);
-    total_index++;
-  }
-
-  friends_servers.access([&](servers &srvs) {
-    srvs = {};
-    srvs.reserve(total_index);
-
-    int online_idx = 0;
-    for (int i = 0; i < total_index; i++) {
-      bool is_offline = false;
-      for (auto oi : offline_indices) {
-        if (oi == i) {
-          is_offline = true;
-          break;
-        }
-      }
-
-      server new_server{};
-      if (is_offline) {
-        // Create a valid server entry for offline friends
-        new_server.address = {};
-        new_server.address.type = game::net::NA_RAWIP;
-
-        gameserveritem_t item{};
-        item.m_NetAdr.m_usConnectionPort = 0;
-        item.m_NetAdr.m_usQueryPort = 0;
-        item.m_NetAdr.m_unIP = 0;
-        item.m_nPing = 0;
-        item.m_bHadSuccessfulResponse = true;
-        item.m_bDoNotRefresh = false;
+  nat::refresh_friends(ids, [generation](
+                                std::vector<nat::friend_presence> live) {
+    {
+      std::lock_guard lock(friend_scan_mutex);
+      if (generation != friend_scan_generation)
+        return;
+      for (const auto &presence : live) {
+        const auto address = network::address_from_string(presence.endpoint);
+        if (!network::is_connectable_address(address))
+          continue;
+        ::friends::set_master_presence(presence.steam_id, presence.endpoint,
+                                       presence.token);
+        auto item = create_server_item(address, {}, 0, true);
         item.m_nAppID = 311210;
-        item.m_nPlayers = 0;
-        item.m_nMaxPlayers = 0;
-        item.m_nBotPlayers = 0;
-        item.m_bPassword = false;
-        item.m_bSecure = true;
-        item.m_ulTimeLastPlayed = 0;
-        item.m_nServerVersion = 1000;
-
-        copy_safe(item.m_szServerName, friend_infos[i].player_name.c_str());
-        copy_safe(item.m_szMap, "");
-        copy_safe(item.m_szGameDir, "");
-        copy_safe(item.m_szGameDescription, "Offline");
-        copy_safe(
-            item.m_szGameTags,
-            R"(\gametype\\dedicated\false\ranked\false\hardcore\false\zombies\false\campaign\false\playerCount\0\bots\0\modName\)");
-        item.m_steamID.bits = friend_infos[i].steam_id;
-
-        new_server.server_item = item;
-        new_server.handled = true;
-      } else {
-        new_server.address = online_friends[online_idx].first;
-        new_server.server_item =
-            create_server_item(new_server.address, {}, 0, false);
-        new_server.server_item.m_nAppID = 311210;
-        copy_safe(new_server.server_item.m_szServerName,
-                  online_friends[online_idx].second.c_str());
-        online_idx++;
+        item.m_steamID.bits = presence.steam_id;
+        friend_scan_results[presence.steam_id] = {address, item};
       }
-
-      srvs.push_back(new_server);
     }
+    finish_friend_scan(generation);
   });
-
-  // Defer callbacks so they fire AFTER RequestFriendsServerList returns
-  std::vector<int> offline_copy = offline_indices;
-  bool has_online = !online_friends.empty();
-  scheduler::once(
-      [offline_copy, has_online] {
-        const auto resp = friends_response.load();
-        if (!resp)
-          return;
-
-        // Report offline friends as responded (so the game shows them)
-        for (auto idx : offline_copy) {
-          resp->ServerResponded(friends_request, idx);
-        }
-
-        // If no online friends to ping, complete immediately
-        if (!has_online) {
-          resp->RefreshComplete(friends_request, eServerResponded);
-        }
-      },
-      scheduler::async, 50ms);
-
-  // Ping online friends (responses handled asynchronously by
-  // handle_friends_server_response)
-  for (auto &[addr, name] : online_friends) {
-    ping_server(addr, handle_friends_server_response);
-  }
-
   return friends_request;
 }
 
@@ -492,9 +465,21 @@ gameserveritem_t *matchmaking_servers::GetServerDetails(void *hRequest,
 
 void matchmaking_servers::CancelQuery(void *hRequest) {}
 
-void matchmaking_servers::RefreshQuery(void *hRequest) {}
+void matchmaking_servers::RefreshQuery(void *hRequest) {
+  if (hRequest == friends_request) {
+    const auto response = friends_response.load();
+    if (response)
+      RequestFriendsServerList(311210, nullptr, 0, response);
+  }
+}
 
-bool matchmaking_servers::IsRefreshing(void *hRequest) { return false; }
+bool matchmaking_servers::IsRefreshing(void *hRequest) {
+  if (hRequest == friends_request)
+    return friends_refreshing;
+  if (hRequest == internet_request)
+    return internet_refreshing;
+  return false;
+}
 
 int matchmaking_servers::GetServerCount(void *hRequest) {
   if (internet_request != hRequest && favorites_request != hRequest &&
@@ -516,10 +501,123 @@ void matchmaking_servers::RefreshServer(void *hRequest, const int iServer) {
     return;
   }
 
+  if (hRequest == friends_request) {
+    if (friends_refreshing)
+      return;
+
+    uint64_t steam_id{};
+    friends_servers.access([&](const servers &items) {
+      if (iServer >= 0 && static_cast<size_t>(iServer) < items.size())
+        steam_id = items[iServer].server_item.m_steamID.bits;
+    });
+    if (!steam_id)
+      return;
+
+    uint64_t generation{};
+    matchmaking_server_list_response *expected_response{};
+    {
+      std::lock_guard lock(friend_scan_mutex);
+      generation = friend_scan_generation;
+      expected_response = friends_response.load();
+    }
+    nat::refresh_friends(
+        {steam_id}, [steam_id, generation, expected_response](
+                        std::vector<nat::friend_presence> live) {
+          {
+            std::lock_guard lock(friend_scan_mutex);
+            if (generation != friend_scan_generation ||
+                expected_response != friends_response.load()) {
+              return;
+            }
+          }
+          const auto presence = std::ranges::find(
+              live, steam_id, &nat::friend_presence::steam_id);
+          const bool online = presence != live.end();
+          if (online)
+            ::friends::set_master_presence(steam_id, presence->endpoint,
+                                           presence->token);
+          else
+            ::friends::clear_master_presence(steam_id);
+
+          const auto saved = ::friends::get_friend_server_addresses();
+          const auto entry = std::ranges::find(
+              saved, steam_id, &::friends::friend_server_info::steam_id);
+          if (entry == saved.end())
+            return;
+
+          std::optional<int> row_index;
+          int item_count{};
+          friends_servers.access([&](servers &items) {
+            for (size_t i = 0; i < items.size(); ++i) {
+              if (items[i].server_item.m_steamID.bits != steam_id)
+                continue;
+
+              server row{};
+              if (online) {
+                row.address = network::address_from_string(presence->endpoint);
+                row.server_item = create_server_item(row.address, {}, 0, true);
+                row.server_item.m_nAppID = 311210;
+                row.server_item.m_steamID.bits = steam_id;
+                copy_safe(row.server_item.m_szGameDescription, "Friend match");
+              } else {
+                const auto placeholder = ::utils::string::va(
+                    "192.0.2.%u:%u", static_cast<unsigned>((i % 250) + 1),
+                    static_cast<unsigned>(40000 + (i % 20000)));
+                row.address = network::address_from_string(placeholder);
+                row.server_item = create_server_item(row.address, {}, 0, true);
+                row.server_item.m_nAppID = 311210;
+                row.server_item.m_steamID.bits = steam_id;
+                copy_safe(row.server_item.m_szGameDescription, "Offline");
+              }
+              copy_safe(row.server_item.m_szServerName,
+                        entry->player_name.c_str());
+              row.handled = true;
+              items[i] = row;
+              row_index = static_cast<int>(i);
+              break;
+            }
+            std::stable_sort(
+                items.begin(), items.end(),
+                [](const server &left, const server &right) {
+                  const bool left_online =
+                      std::strcmp(left.server_item.m_szGameDescription,
+                                  "Offline") != 0;
+                  const bool right_online =
+                      std::strcmp(right.server_item.m_szGameDescription,
+                                  "Offline") != 0;
+                  return left_online && !right_online;
+                });
+            for (size_t i = 0; i < items.size(); ++i) {
+              if (items[i].server_item.m_steamID.bits == steam_id) {
+                row_index = static_cast<int>(i);
+                break;
+              }
+            }
+            item_count = static_cast<int>(items.size());
+          });
+
+          if (!row_index)
+            return;
+          ::friends::clear_browser_routes();
+          friends_servers.access([&](const servers &items) {
+            for (const auto &item : items) {
+              ::friends::remember_browser_route(
+                  item.server_item.m_steamID.bits,
+                  network::address_to_string(item.address));
+            }
+          });
+          ::friends::notify_presence_changed();
+          if (const auto response = friends_response.load()) {
+            for (int i = 0; i < item_count; ++i)
+              response->ServerResponded(friends_request, i);
+          }
+        });
+    return;
+  }
+
   std::optional<game::net::netadr_t> address{};
   auto &servers_list = hRequest == favorites_request ? favorites_servers
                        : hRequest == history_request ? history_servers
-                       : hRequest == friends_request ? friends_servers
                                                      : internet_servers;
   servers_list.access([&](const servers &s) {
     if (iServer < 0 || static_cast<size_t>(iServer) >= s.size()) {
@@ -533,7 +631,6 @@ void matchmaking_servers::RefreshServer(void *hRequest, const int iServer) {
     auto callback =
         hRequest == favorites_request ? handle_favorites_server_response
         : hRequest == history_request ? handle_history_server_response
-        : hRequest == friends_request ? handle_friends_server_response
                                       : handle_internet_server_response;
     ping_server(*address, callback);
   }

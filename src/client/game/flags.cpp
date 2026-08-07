@@ -46,4 +46,30 @@ std::filesystem::path asset_output() {
   return output;
 }
 
+#ifndef NDEBUG
+static std::filesystem::path tracing;
+static std::once_flag tracing_flag;
+void set_tracing() {
+  const std::optional<std::string> arg =
+      utils::flags::get<std::string>("tracing");
+  if (arg.has_value() && !arg.value().empty()) {
+    tracing = std::filesystem::weakly_canonical(arg.value());
+    if (game::is_server()) {
+      std::filesystem::path filename = tracing.filename();
+      const std::string extension = filename.extension().string();
+      filename.replace_extension("");
+      tracing =
+          tracing.parent_path() / (filename.string() + "-server" + extension);
+    }
+  } else {
+    tracing = game_directory() /
+              (game::is_client() ? "debug.log" : "debug-server.log");
+  }
+}
+std::filesystem::path tracing_logfile() {
+  std::call_once(tracing_flag, set_tracing);
+  return tracing;
+}
+#endif
+
 } // namespace game

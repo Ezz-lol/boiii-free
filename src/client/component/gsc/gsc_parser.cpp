@@ -54,26 +54,41 @@ ast_ptr parse_unary(parser_state &s);
 
 // ---- Expression parsing (precedence climbing) ----
 
+ast_ptr parse_parenthesized_or_vector(parser_state &s) {
+  const token opening = s.expect(token_type::t_lparen, "Expected '('");
+  ast_ptr first = parse_expression(s);
+
+  if (!s.match(token_type::t_comma)) {
+    s.expect(token_type::t_rparen, "Expected ')' after expression");
+    return first;
+  }
+
+  ast_ptr second = parse_expression(s);
+  s.expect(token_type::t_comma, "Expected three components in vector literal");
+  ast_ptr third = parse_expression(s);
+
+  if (s.check(token_type::t_comma)) {
+    throw std::runtime_error(
+        "Vector literal must contain exactly three components at line " +
+        std::to_string(s.current().line) + ", column " +
+        std::to_string(s.current().column));
+  }
+
+  s.expect(token_type::t_rparen, "Expected ')' after vector literal");
+
+  const ast_ptr vector =
+      make_node(node_type::n_vector, "", opening.line, opening.column);
+  vector->children.push_back(std::move(first));
+  vector->children.push_back(std::move(second));
+  vector->children.push_back(std::move(third));
+  return vector;
+}
+
 ast_ptr parse_primary(parser_state &s) {
   const token &t = s.current();
 
   if (s.check(token_type::t_lparen)) {
-    s.advance();
-    const ast_ptr expr = parse_expression(s);
-
-    if (s.check(token_type::t_comma)) {
-      const ast_ptr vec = make_node(node_type::n_vector, "", t.line, t.column);
-      vec->children.push_back(std::move(expr));
-      s.expect(token_type::t_comma, "Expected ','");
-      vec->children.push_back(parse_expression(s));
-      s.expect(token_type::t_comma, "Expected ','");
-      vec->children.push_back(parse_expression(s));
-      s.expect(token_type::t_rparen, "Expected ')'");
-      return vec;
-    }
-
-    s.expect(token_type::t_rparen, "Expected ')'");
-    return expr;
+    return parse_parenthesized_or_vector(s);
   }
 
   if (s.check(token_type::t_lbracket)) {

@@ -157,6 +157,7 @@
   var _latestVersionTag = "";
 
   var workshopBrowseGrid = document.getElementById("workshopBrowseGrid");
+  var workshopViewToggleBtn = document.getElementById("workshopViewToggleBtn");
   var workshopSearchInput = document.getElementById("workshopSearchInput");
   var workshopSearchBtn = document.getElementById("workshopSearchBtn");
   var workshopBrowseRefreshBtn = document.getElementById(
@@ -178,6 +179,41 @@
   var workshopBrowseSource = "none";
   var workshopBrowseCacheKey = "workshopBrowseCache";
   var _workshopBrowsePollInterval = null;
+
+  var workshopViewMode = "grid";
+  try {
+    if (localStorage.getItem("workshopViewMode") === "single") {
+      workshopViewMode = "single";
+    }
+  } catch (e) {}
+
+  function applyWorkshopViewMode() {
+    var single = workshopViewMode === "single";
+    if (workshopBrowseGrid) {
+      if (single) workshopBrowseGrid.classList.add("single-column");
+      else workshopBrowseGrid.classList.remove("single-column");
+    }
+    if (workshopViewToggleBtn) {
+      workshopViewToggleBtn.textContent = single
+        ? "Two columns"
+        : "Single column";
+      workshopViewToggleBtn.setAttribute(
+        "aria-pressed",
+        single ? "true" : "false"
+      );
+    }
+  }
+
+  if (workshopViewToggleBtn) {
+    workshopViewToggleBtn.onclick = function () {
+      workshopViewMode = workshopViewMode === "single" ? "grid" : "single";
+      try {
+        localStorage.setItem("workshopViewMode", workshopViewMode);
+      } catch (e) {}
+      applyWorkshopViewMode();
+    };
+  }
+  applyWorkshopViewMode();
 
   var workshopOverlay = document.getElementById("workshopOverlay");
   var workshopModal = document.getElementById("workshopModal");
@@ -2848,7 +2884,10 @@
       if (selectedVersion !== "latest" && _versionsData[selectedVersion]) {
         exeName = _versionsData[selectedVersion].name;
         exeUrl = _versionsData[selectedVersion].url;
-        if (opts.toLowerCase().indexOf("-noupdate") === -1) {
+        if (
+          selectedVersion !== "beta" &&
+          opts.toLowerCase().indexOf("-noupdate") === -1
+        ) {
           opts = (opts + " -noupdate").trim();
         }
       }
@@ -3585,7 +3624,7 @@
       var ex = getExternal();
       if (!ex || !ex.readFriendIdentity) return;
       var identity = JSON.parse(ex.readFriendIdentity() || "{}");
-      var code = identity.steam_id ? String(identity.steam_id) : "";
+      var code = identity.friend_code ? String(identity.friend_code) : "";
       var nameEl = document.getElementById("friendIdentityName");
       var codeEl = document.getElementById("friendIdentityCode");
       var copyBtn = document.getElementById("friendCodeCopyBtn");
@@ -3679,7 +3718,7 @@
   if (friendAddBtn) {
     friendAddBtn.onclick = function () {
       var nameInput = document.getElementById("friendNameInput");
-      var sidInput = document.getElementById("friendSteamIdInput");
+      var sidInput = document.getElementById("friendCodeInput");
       if (!nameInput || !sidInput) return;
 
       var name = nameInput.value.replace(/^\s+|\s+$/g, "");
@@ -3688,15 +3727,12 @@
       if (!name || !sid) {
         showMessage(
           "Add Friend",
-          "Please enter both a display name and a Steam ID."
+          "Please enter both a display name and a BOIII Friend Code."
         );
         return;
       }
       if (!/^\d{5,20}$/.test(sid)) {
-        showMessage(
-          "Add Friend",
-          "Steam ID must be a numeric value (e.g. 76561198...)."
-        );
+        showMessage("Add Friend", "BOIII Friend Code must be a numeric value.");
         return;
       }
 
@@ -3707,7 +3743,7 @@
           if (result === "duplicate") {
             showMessage(
               "Add Friend",
-              "This Steam ID is already in your friends list."
+              "This BOIII Friend Code is already in your friends list."
             );
             return;
           } else if (result === "error") {

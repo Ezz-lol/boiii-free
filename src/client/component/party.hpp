@@ -5,11 +5,14 @@
 
 namespace party {
 
-extern game::EngineDependentDvar cl_connected_to_dedi;
+extern game::EngineDependentDvarMut cl_connected_to_dedi;
 
 using query_callback_func = void(bool success, const game::net::netadr_t &host,
                                  const utils::info_string &info, uint32_t ping);
 using query_callback = std::function<query_callback_func>;
+
+// Connect directly without passing through the console/browser route hook.
+void connect(const game::net::netadr_t &target);
 
 void query_server(const game::net::netadr_t &host, query_callback callback);
 

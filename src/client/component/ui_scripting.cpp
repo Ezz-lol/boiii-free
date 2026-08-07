@@ -9,6 +9,7 @@
 #include "ui_scripting.hpp"
 #include "scheduler.hpp"
 #include "friends.hpp"
+#include "getinfo.hpp"
 #include "discord.hpp"
 #include "name.hpp"
 
@@ -480,6 +481,10 @@ void setup_functions() {
                }),
                HksObjectType::TCFUNCTION);
 
+  lua["game"]["refreshfriends"] =
+      function(convert_function([] { friends::refresh_presence(); }),
+               HksObjectType::TCFUNCTION);
+
   lua["game"]["addfriend"] =
       function(convert_function([](const std::string &steam_id_str,
                                    const std::string &name) {
@@ -528,6 +533,92 @@ void setup_functions() {
                  return friends::connect_to_friend(id);
                }),
                HksObjectType::TCFUNCTION);
+
+  lua["game"]["issocialfriend"] =
+      function(convert_function([](const std::string &id_hex) -> bool {
+                 try {
+                   return friends::is_friend(std::stoull(id_hex, nullptr, 16));
+                 } catch (...) {
+                   return false;
+                 }
+               }),
+               HksObjectType::TCFUNCTION);
+
+  lua["game"]["connectsocialfriend"] = function(
+      convert_function([](const std::string &id_hex) -> bool {
+        try {
+          return friends::connect_to_friend(std::stoull(id_hex, nullptr, 16));
+        } catch (...) {
+          return false;
+        }
+      }),
+      HksObjectType::TCFUNCTION);
+
+  lua["game"]["getkickableplayers"] =
+      function(convert_function([]() -> table {
+                 table players{};
+                 if (!getinfo::is_host())
+                   return players;
+
+                 int list_index = 1;
+                 game::foreach_connected_client([&players, &list_index](
+                                                    game::sv::client_s &client,
+                                                    const size_t client_index) {
+                   if (client_index == 0 ||
+                       game::sv::SV_IsTestClient(
+                           static_cast<game::ClientNum_t>(client_index))) {
+                     return;
+                   }
+
+                   char name_buffer[64]{};
+                   std::string display_name;
+                   if (game::cl::CL_GetClientName(
+                           game::LOCAL_CLIENT_0, static_cast<int>(client_index),
+                           name_buffer, sizeof(name_buffer), false) &&
+                       name_buffer[0]) {
+                     display_name = name_buffer;
+                   } else if (client.name[0]) {
+                     display_name = client.name;
+                   } else {
+                     display_name = "Player " + std::to_string(client_index);
+                   }
+
+                   table player{};
+                   player.set("client_num", static_cast<int>(client_index));
+                   player.set("name", display_name);
+                   players.set(list_index++, player);
+                 });
+                 return players;
+               }),
+               HksObjectType::TCFUNCTION);
+
+  lua["game"]["ishost"] =
+      function(convert_function([]() -> bool { return getinfo::is_host(); }),
+               HksObjectType::TCFUNCTION);
+
+  lua["game"]["kickplayer"] = function(
+      convert_function([](const int client_num) -> bool {
+        if (!getinfo::is_host() || client_num <= 0)
+          return false;
+
+        bool kicked = false;
+        std::string player_name;
+        game::access_connected_client(
+            static_cast<size_t>(client_num), [&](game::sv::client_s &client) {
+              if (game::sv::SV_IsTestClient(
+                      static_cast<game::ClientNum_t>(client_num))) {
+                return;
+              }
+              player_name = client.name;
+              game::sv::SV_DropClient(&client, "EXE_PLAYERKICKED", true, true);
+              kicked = true;
+            });
+
+        if (kicked)
+          toast::warn("PLAYER KICKED", player_name + " was removed.");
+        return kicked;
+      }),
+      HksObjectType::TCFUNCTION);
 
   // HTTP functions
   lua["game"]["httpget"] =
@@ -710,6 +801,53 @@ void try_start() {
   }
 }
 
+void reload_ingame_menu_scripts() {
+  const utils::nt::library host{};
+  const std::filesystem::path roots[] = {
+      game::get_appdata_path() / "data/ui_scripts",
+      host.get_folder() / "boiii/ui_scripts",
+  };
+  const char *files[] = {
+      "party/datasources_start_menu_game_options.lua",
+      "party/__init__.lua",
+      "kick_menu/__init__.lua",
+      "tweaks/__init__.lua",
+      "social_friends/__init__.lua",
+  };
+
+  for (const auto &root : roots) {
+    if (!utils::io::directory_exists(root.string())) {
+      continue;
+    }
+
+    load_local_script_files((root / "party").string());
+    load_local_script_files((root / "kick_menu").string());
+    load_local_script_files((root / "tweaks").string());
+    load_local_script_files((root / "social_friends").string());
+    for (const auto *file : files) {
+      const auto path = root / file;
+      std::string data;
+      if (!utils::io::read_file(path.string(), &data)) {
+        continue;
+      }
+
+      load_script(path.generic_string(), data, file);
+    }
+  }
+}
+
+void schedule_ingame_menu_reload() {
+  scheduler::once(
+      [] {
+        try {
+          reload_ingame_menu_scripts();
+          toast::patch_hud();
+        } catch (...) {
+        }
+      },
+      scheduler::main, 2s);
+}
+
 void ui_init_stub(lua_Alloc allocFunction, void *outOfMemoryFunction) {
   ui_init_hook.invoke(allocFunction, outOfMemoryFunction);
 
@@ -717,6 +855,7 @@ void ui_init_stub(lua_Alloc allocFunction, void *outOfMemoryFunction) {
 }
 
 std::atomic<bool> doneFirstSnapshot = false;
+std::atomic<bool> reloadIngameMenusAfterRestart = false;
 
 void ui_cod_init_stub(const bool frontend) {
   ui_cod_init_hook.invoke(frontend);
@@ -726,6 +865,7 @@ void ui_cod_init_stub(const bool frontend) {
     globals = {};
     const utils::nt::library host{};
     doneFirstSnapshot.store(false, std::memory_order_seq_cst);
+    reloadIngameMenusAfterRestart.store(false, std::memory_order_seq_cst);
 
     load_local_script_files(
         (game::get_appdata_path() / "data/ui_scripts/").string());
@@ -772,13 +912,26 @@ void inject_discord_score_subscriptions() {
 
 void cl_first_snapshot_stub(game::LocalClientNum_t localClientNum) {
   cl_first_snapshot_hook.invoke(localClientNum);
-  if (game::com::Com_IsRunningUILevel() ||
-      doneFirstSnapshot.load(std::memory_order_seq_cst)) {
+  if (game::com::Com_IsRunningUILevel()) {
     return;
   }
-  doneFirstSnapshot.store(true, std::memory_order_seq_cst);
+
+  if (doneFirstSnapshot.exchange(true, std::memory_order_seq_cst)) {
+    if (!reloadIngameMenusAfterRestart.exchange(false,
+                                                std::memory_order_seq_cst)) {
+      return;
+    }
+
+    schedule_ingame_menu_reload();
+    return;
+  }
+
   hot_reload_in_game.store(true, std::memory_order_seq_cst);
   try_start();
+  try {
+    reload_ingame_menu_scripts();
+  } catch (...) {
+  }
 
   toast::patch_hud();
 
@@ -1384,20 +1537,16 @@ public:
     scheduler::once(
         []() {
           game::ui_error_callstack_ship->flags().clear();
-          // TODO: why does setting the dvar directly here cause
-          // the game to freeze?
-          // Why do we have to use Dvar_SetFromStringByName?
-          // ui_error_callstack_ship->set(true);
-          game::Dvar_SetFromStringByName("ui_error_callstack_ship", "1", true);
+          game::ui_error_callstack_ship->set(true);
 
           game::ui_error_report_delay->flags().clear();
-          // TODO: why does setting the dvar directly here cause
-          // the game to freeze?
-          // Why do we have to use Dvar_SetFromStringByName?
-          // ui_error_report_delay->set(true);
-          game::Dvar_SetFromStringByName("ui_error_report_delay", "1", true);
+          game::ui_error_report_delay->set(true);
         },
         scheduler::pipeline::renderer);
+
+    command::add("boiii_prepare_menu_restart", [](const command::params &) {
+      reloadIngameMenusAfterRestart.store(true, std::memory_order_seq_cst);
+    });
 
     command::add("luiReload", [] {
       if (game::com::Com_IsRunningUILevel()) {
@@ -1421,6 +1570,7 @@ public:
         // that opens up the loading screen that can't be easily closed
         rawfile_source_cache.clear();
         game::cg::CG_LUIHUDRestart(game::LOCAL_CLIENT_0);
+        schedule_ingame_menu_reload();
       }
     });
 

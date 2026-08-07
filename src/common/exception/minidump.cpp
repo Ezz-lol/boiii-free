@@ -1,21 +1,17 @@
 #include "minidump.hpp"
 
+#include <utils/nt.hpp>
 #include <dbghelp.h>
 #pragma comment(lib, "dbghelp.lib")
 
 namespace exception {
 namespace {
-constexpr MINIDUMP_TYPE get_minidump_type() {
-  constexpr auto type = MiniDumpIgnoreInaccessibleMemory //
-                        | MiniDumpWithHandleData         //
-                        | MiniDumpScanMemory             //
-                        | MiniDumpWithProcessThreadData  //
-                        | MiniDumpWithFullMemoryInfo     //
-                        | MiniDumpWithThreadInfo         //
-                        | MiniDumpWithUnloadedModules;
-
-  return static_cast<MINIDUMP_TYPE>(type);
-}
+constexpr MINIDUMP_TYPE OUTPUT_MINIDUMP_TYPE = static_cast<MINIDUMP_TYPE>(
+    MiniDumpIgnoreInaccessibleMemory | MiniDumpWithHandleData |
+    MiniDumpScanMemory | MiniDumpWithProcessThreadData |
+    MiniDumpWithFullMemoryInfo | MiniDumpWithThreadInfo |
+    MiniDumpWithUnloadedModules | MiniDumpWithDataSegs |
+    MiniDumpWithIndirectlyReferencedMemory);
 
 std::string get_temp_filename() {
   char filename[MAX_PATH] = {0};
@@ -30,13 +26,13 @@ HANDLE write_dump_to_temp_file(const LPEXCEPTION_POINTERS exceptioninfo) {
   MINIDUMP_EXCEPTION_INFORMATION minidump_exception_info = {
       GetCurrentThreadId(), exceptioninfo, FALSE};
 
-  auto *const file_handle = CreateFileA(
+  HANDLE file_handle = CreateFileA(
       get_temp_filename().data(), GENERIC_WRITE | GENERIC_READ,
       FILE_SHARE_READ | FILE_SHARE_WRITE, nullptr, OPEN_ALWAYS,
       FILE_ATTRIBUTE_TEMPORARY | FILE_FLAG_DELETE_ON_CLOSE, nullptr);
 
   if (!MiniDumpWriteDump(GetCurrentProcess(), GetCurrentProcessId(),
-                         file_handle, get_minidump_type(),
+                         file_handle, OUTPUT_MINIDUMP_TYPE,
                          &minidump_exception_info, nullptr, nullptr)) {
     MessageBoxA(nullptr,
                 "There was an error creating the minidump! Hit OK to close the "

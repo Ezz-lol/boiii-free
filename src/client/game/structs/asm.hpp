@@ -1,7 +1,9 @@
 #pragma once
 #include "core.hpp"
 #include "quake/core.hpp"
-#include "scr/core.hpp"
+#include "scr/primitives.hpp"
+#include "db/xasset/core.hpp"
+#include "weapon.hpp"
 #include "fp16.hpp"
 
 namespace game {
@@ -16,61 +18,65 @@ namespace anim {
 #pragma pack(push, 1)
 
 enum class StateMachineStatus : int32_t {
-
-  BSM_INVALID = 0x0,
-  BSM_DEFAULT = 0x0,
-  BSM_UNUSED1 = 0x1,
-  BSM_UNUSED2 = 0x2,
-  BSM_FAILURE = 0x3,
-  BSM_SUCCESS = 0x4,
-  BSM_RUNNING = 0x5,
-  BSM_VALID = 0x6,
-  BSM_TERMINATE = 0x7,
-  BSM_STATUS_COUNT = 0x8,
+  INVALID = 0x0,
+  DEFAULT = 0x0,
+  UNUSED1 = 0x1,
+  UNUSED2 = 0x2,
+  FAILURE = 0x3,
+  SUCCESS = 0x4,
+  RUNNING = 0x5,
+  VALID = 0x6,
+  TERMINATE = 0x7,
+  STATUS_COUNT = 0x8,
 };
+IMPL_ENUM_OPERATORS(StateMachineStatus);
 
 enum class aiPathMode : int32_t {
-
-  AI_PATH_MODE_INVALID = 0x0,
-  AI_PATH_DONT_MOVE = 0x1,
-  AI_PATH_MOVE_ALLOWED = 0x2,
-  AI_PATH_MOVE_DELAYED = 0x3,
+  MODE_INVALID = 0x0,
+  DONT_MOVE = 0x1,
+  MOVE_ALLOWED = 0x2,
+  MOVE_DELAYED = 0x3,
 };
+IMPL_ENUM_OPERATORS(aiPathMode);
 
 enum class aiGoalSources : int32_t {
-  AI_GOAL_SRC_SCRIPT_GOAL = 0x0,
-  AI_GOAL_SRC_SCRIPT_ENTITY_GOAL = 0x1,
-  AI_GOAL_SRC_SCRIPT_FORCED_GOAL = 0x2,
-  AI_GOAL_SRC_ENEMY = 0x3,
+  SCRIPT_GOAL = 0x0,
+  SCRIPT_ENTITY_GOAL = 0x1,
+  SCRIPT_FORCED_GOAL = 0x2,
+  ENEMY = 0x3,
 };
+IMPL_ENUM_OPERATORS(aiGoalSources);
 
 enum class asmAnimSource_t : int32_t {
-  ASM_ANIM_SOURCE_NONE = 0x0,
-  ASM_ANIM_SOURCE_SUBSTATE = 0x1,
-  ASM_ANIM_SOURCE_TRANSITION = 0x2,
-  ASM_ANIM_SOURCE_TRANSDEC = 0x3,
-  ASM_ANIM_SOURCE_EXTERNAL = 0x4,
-  ASM_ANIM_SOURCE_COUNT = 0x5,
+  NONE = 0x0,
+  SUBSTATE = 0x1,
+  TRANSITION = 0x2,
+  TRANSDEC = 0x3,
+  EXTERNAL = 0x4,
+  COUNT = 0x5,
 };
+IMPL_ENUM_OPERATORS(asmAnimSource_t);
 
 enum class asmSubstateEndReason_t : int32_t {
-  END_REASON_NONE = 0x0,
-  END_REASON_SUBSTATE = 0x1,
-  END_REASON_TRANSITION = 0x2,
-  END_REASON_TRANSDEC = 0x3,
-  END_REASON_NEW_REQUEST = 0x4,
-  END_REASON_EXTERNAL = 0x5,
-  END_REASON_COUNT = 0x6,
+  NONE = 0x0,
+  SUBSTATE = 0x1,
+  TRANSITION = 0x2,
+  TRANSDEC = 0x3,
+  NEW_REQUEST = 0x4,
+  EXTERNAL = 0x5,
+  COUNT = 0x6,
 };
+IMPL_ENUM_OPERATORS(asmSubstateEndReason_t);
 
 enum class asmStatus_t : int32_t {
-
-  ASM_STATUS_INACTIVE = 0x0,
-  ASM_STATUS_RUNNING = 0x1,
-  ASM_STATUS_COMPLETE = 0x2,
-  ASM_STATUS_TERMINATED = 0x3,
-  ASM_STATUS_COUNT = 0x4,
+  INACTIVE = 0x0,
+  RUNNING = 0x1,
+  COMPLETE = 0x2,
+  TERMINATED = 0x3,
+  COUNT = 0x4,
 };
+IMPL_ENUM_OPERATORS(asmStatus_t);
+
 // sizeof=0x90
 struct RumbleGraph {
   const char *name;
@@ -1047,6 +1053,43 @@ struct __attribute__((aligned(8))) ViewModelInfo {
   ViewModelHand hand[2];
   db::xasset::XModelPtr altModels[4];
   uint32_t numAltModels;
+};
+// Verified
+ASSERT_SIZE(ViewModelInfo, 0x3A0);
+
+struct ViewModelInfoPool {
+  static constexpr size_t LEN = 64;
+  LocalClientPool<ViewModelInfo> pool;
+
+  static inline constexpr void assert_range(size_t index) {
+    assert(index < LocalClientNum_t::LOCAL_CLIENT_COUNT &&
+           "index to ViewModelInfoPool must be "
+           "within range LOCAL_CLIENT_0 <= index < LOCAL_CLIENT_COUNT");
+  }
+
+  template <IntegralLike<size_t> Index>
+  inline constexpr const ViewModelInfo &get(Index index_arg) const {
+    const size_t index = static_cast<size_t>(index_arg);
+    assert_range(index);
+    return pool[index];
+  }
+
+  template <IntegralLike<size_t> Index>
+  inline constexpr const ViewModelInfo &operator[](Index index) const {
+    return get(index);
+  }
+
+  template <IntegralLike<size_t> Index>
+  inline constexpr ViewModelInfo &get(Index index_arg) {
+    const size_t index = static_cast<size_t>(index_arg);
+    assert_range(index);
+    return pool[index];
+  }
+
+  template <IntegralLike<size_t> Index>
+  inline constexpr ViewModelInfo &operator[](Index index) {
+    return get(index);
+  }
 };
 
 } // namespace anim

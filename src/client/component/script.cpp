@@ -5,7 +5,6 @@
 
 #include "game_event.hpp"
 #include "gsc/gsc_compiler.hpp"
-#include "gsc/gsc.hpp"
 #include "dump.hpp"
 
 #include <unordered_map>
@@ -167,7 +166,7 @@ void fixup_script_imports(uint8_t *buf, int32_t len) {
     uint32_t path_hash = gsc::gsc_hash(inc_path);
 
     // Look up the actual game SPT for this include path (try .gsc then .csc)
-    auto *asset = db_find_x_asset_header_hook.invoke<RawFile *>(
+    RawFile *asset = db_find_x_asset_header_hook.invoke<RawFile *>(
         XAssetType::SCRIPTPARSETREE, (inc_path + ".gsc").c_str(), false, 0);
     if (!asset || !asset->buffer)
       asset = db_find_x_asset_header_hook.invoke<RawFile *>(
@@ -176,7 +175,7 @@ void fixup_script_imports(uint8_t *buf, int32_t len) {
     if (!asset || !asset->buffer)
       continue;
 
-    auto *spt = reinterpret_cast<const uint8_t *>(asset->buffer);
+    const uint8_t *spt = reinterpret_cast<const uint8_t *>(asset->buffer);
     uint64_t spt_magic;
     std::memcpy(&spt_magic, spt, sizeof(spt_magic));
     if (spt_magic != GSC_MAGIC)
@@ -351,9 +350,9 @@ void apply_pending_detours() {
   remaining_detours.reserve(pending_detours.size());
 
   for (pending_detour &d : pending_detours) {
-    const auto target = resolve_export_address_internal(
+    const export_lookup_result target = resolve_export_address_internal(
         d.target_script, d.target_func_hash, d.target_params);
-    const auto replace = resolve_export_address_internal(
+    const export_lookup_result replace = resolve_export_address_internal(
         d.replace_script, d.replace_func_hash, d.replace_params);
 
     if (target.address && replace.address) {
@@ -822,6 +821,58 @@ std::string get_source_line(const std::string &file, int32_t line_num) {
   return {};
 }
 
+#ifndef NDEBUG
+const char *Scr_PrevCodePos(scriptInstance_t inst, volatile uint8_t *codePos) {
+  char *filename = nullptr;
+  int32_t lineNum = 0;
+  char *sourceLine = nullptr;
+
+  if (codePos != nullptr &&
+      codePos != reinterpret_cast<uint8_t *>(vm::g_endPos.get())) {
+    Scr_GetFileAndLineNum(inst, const_cast<uint8_t *>(codePos) - 1,
+                          const_cast<const char **>(&filename), &lineNum,
+                          const_cast<const char **>(&sourceLine));
+    if (lineNum < 0) {
+      return utils::string::va("\tfile '%s' - missing line information\n",
+                               filename);
+    } else {
+      char *i = sourceLine;
+      for (; i != nullptr; sourceLine = ++i) {
+        if (*i != ' ' && *i != '\t') {
+          break;
+        }
+      }
+      return utils::string::va("\tfile '%s', line %d :: %s\n", filename,
+                               lineNum + 1, i);
+    }
+  }
+
+  return "Missing file and line information - no executing code or "
+         "reached end of executed code.";
+}
+
+utils::hook::detour Scr_Error_hook;
+void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
+  if (game::is_server()) {
+    game::sv_detailedScriptErrors->set(true);
+  }
+  if (terminal) {
+    vm::gScrVarPub->instance[inst].developer = true;
+  }
+  void *callerAddr = _ReturnAddress();
+  const char *error_log = utils::string::va(
+      "Scr_Error called from 0x%p with inst: %s, error: \"%s\", terminal: "
+      "%s\n%s\n",
+      game::derelocate(callerAddr), serialize(inst), error ? error : "NULL",
+      terminal ? "true" : "false",
+      Scr_PrevCodePos(inst, vm::gFs->instance[inst].pos));
+
+  game::trace("%s", error_log);
+
+  return Scr_Error_hook.invoke(inst, error, terminal);
+}
+#endif
+
 struct component final : generic_component {
   void post_unpack() override {
 
@@ -841,9 +892,14 @@ struct component final : generic_component {
                       server_script_checksum_stub);
 
     // Workaround for "Out of X" gobblegum
-    gscr_get_bgb_tokens_remaining_hook.create(
-        gscr::GScr_GetBGBTokensRemaining.get(),
-        gscr_getbgbtokensremaining_stub);
+    gscr_get_bgb_tokens_remaining_hook.create(gscr::GScr_GetBGBTokensRemaining,
+                                              gscr_getbgbtokensremaining_stub);
+
+#ifndef NDEBUG
+    // Log all script errors, even when non-fatal and/or `developer` is
+    // disabled
+    Scr_Error_hook.create(Scr_Error, Scr_Error_LogAll);
+#endif
   }
 };
 } // namespace script

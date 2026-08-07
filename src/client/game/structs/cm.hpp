@@ -8,13 +8,20 @@
 #include "rope.hpp"
 
 namespace game {
-namespace cm {
+namespace level {
+namespace cl {
+struct centity_t;
+}
+struct gentity_s;
+typedef gentity_s gentity_t;
 
-typedef vec4_t float4;
+} // namespace level
+
+namespace cm {
 
 class hybrid_vector {
 public:
-  float4 vec;
+  math::float4 vec;
 };
 
 struct TraceExtents {
@@ -316,11 +323,10 @@ ASSERT_SIZE(clipMap_t, 0x2D0);
 ASSERT_OFFSET(clipMap_t, nodes, 0xC0);
 #pragma pack(pop)
 
-#pragma pack(push, 1)
-struct trace_t {
+PACKED(struct trace_t {
   hybrid_vector normal;
   float fraction;
-  int sflags;
+  int32_t sflags;
   contents_t cflags;
   TraceBrushType brushType;
   uint16_t brushId;
@@ -338,11 +344,60 @@ struct trace_t {
   bool walkable;
   uint8_t _padding3A[5];
   cStaticModel_s *staticModel;
-  int hitPartition;
+  int32_t hitPartition;
   uint8_t _padding4C[4];
-};
+});
 ASSERT_SIZE(trace_t, 0x50);
-#pragma pack(pop)
+
+struct BulletFireParams {
+  int32_t weaponEntIndex;
+  int32_t ignoreEntIndex;
+  float damageMultiplier;
+  int32_t methodOfDeath;
+  vec3_t origStart;
+  vec3_t start;
+  vec3_t end;
+  vec3_t dir;
+  vec3_t origDir;
+};
+
+PACKED(struct BulletTraceResults {
+  trace_t trace;
+  level::gentity_t *hitEnt;
+  vec3_t hitPos;
+  bool ignoreHitEnt;
+  uint8_t _padding65[3];
+  int32_t depthSurfaceType;
+  uint8_t _padding6C[4];
+});
+
+PACKED(struct BulletTrace_Cmd {
+  LocalClientNum_t localClientNum;
+  BulletFireParams bp;
+  const weapon::WeaponDef *weapDef;
+  level::cl::centity_t *attacker;
+  BulletTraceResults br;
+  int32_t lastSurfaceType;
+  bool traceHit;
+  uint8_t _paddingD5[3];
+  weapon::Weapon weapon;
+  vec3_t tracerStart;
+  bool drawTracer;
+  bool isPlayer;
+  uint8_t _paddingED[2];
+  int32_t command_index;
+  uint8_t _paddingF4[12];
+});
+
+PACKED(struct GroundTrace {
+  trace_t trace;
+  vec3_t location;
+  int32_t onGround;
+  int32_t hasGround;
+  int32_t validGroundNormal;
+  uint8_t _padding68[8];
+});
+ASSERT_SIZE(GroundTrace, 0x70);
 
 } // namespace cm
 } // namespace game

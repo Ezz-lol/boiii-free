@@ -37,7 +37,7 @@ struct WorkshopData {
     memset(static_cast<void *>(this), 0, sizeof(WorkshopData));
   }
 };
-ASSERT_POD(WorkshopData);
+ASSERT_CPP03_POD(WorkshopData);
 ASSERT_SIZE(WorkshopData, 0x4C8);
 
 enum class ModLoadState : uint32_t {

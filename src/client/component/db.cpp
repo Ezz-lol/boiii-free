@@ -66,7 +66,7 @@ void Com_GametypeSettings_SetGametype_GetOrInitGameTypeSettingsDDL(
 static std::recursive_mutex Com_GametypeSettings_Init_Lock;
 utils::hook::detour Com_GametypeSettings_Init_hook;
 void Com_GametypeSettings_Init_Once() {
-  std::lock_guard<std::recursive_mutex> lock(Com_GametypeSettings_Init_Lock);
+  std::scoped_lock<std::recursive_mutex> lock(Com_GametypeSettings_Init_Lock);
   if (Com_GametypeSettings_ShouldInit()) {
     Com_GametypeSettings_Init_hook.invoke();
     Com_GametypeSettings_Initialised.store(true, std::memory_order_seq_cst);

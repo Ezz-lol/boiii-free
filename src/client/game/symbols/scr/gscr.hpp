@@ -16,6 +16,9 @@ WEAK symbol<void()> GScr_LoadConsts{0x141C353B0, 0x14032E640};
 // Client only
 WEAK symbol<void(scriptInstance_t inst)> GScr_BBPrint{0x1422A0940};
 
+WEAK symbol<int32_t(const char *pszMenu)> GScr_GetScriptMenuIndex{0x141A93CA0,
+                                                                  0x1402D4590};
+
 } // namespace gscr
 } // namespace scr
 } // namespace game

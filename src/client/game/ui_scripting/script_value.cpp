@@ -2,6 +2,7 @@
 #include "execution.hpp"
 #include "types.hpp"
 #include "script_value.hpp"
+#include "stack_guard.hpp"
 
 namespace ui_scripting {
 using namespace game::ui::lua::hks;
@@ -29,7 +30,9 @@ hks_object &hks_object::operator=(hks_object &&other) noexcept {
   if (this != &other) {
     this->release();
     this->value_ = other.value_;
+    this->ref_ = other.ref_;
     other.value_.t = HksObjectType::TNONE;
+    other.ref_ = 0;
   }
 
   return *this;
@@ -44,11 +47,10 @@ void hks_object::assign(const HksObject &value) {
 
   lua_State *state = *primary_luaVM;
   if (state) {
-    const auto top = state->m_apistack.top;
+    const detail::api_stack_guard stack_guard{state};
 
     push_value(this->value_);
     this->ref_ = hksi_luaL_ref(state, -10000);
-    state->m_apistack.top = top;
   }
 }
 
@@ -57,6 +59,7 @@ void hks_object::release() {
   if (this->ref_ && state) {
     hksi_luaL_unref(state, -10000, this->ref_);
     this->value_.t = HksObjectType::TNONE;
+    this->ref_ = 0;
   }
 }
 
@@ -115,10 +118,9 @@ script_value::script_value(const char *value, const std::size_t len) {
     return;
   }
 
-  HksObject *top = state->m_apistack.top;
+  const detail::api_stack_guard stack_guard{state};
   hksi_lua_pushlstring(state, value, static_cast<std::uint32_t>(len));
   this->value_ = hks_object(state->m_apistack.top[-1]);
-  state->m_apistack.top = top;
 }
 
 script_value::script_value(const char *value)

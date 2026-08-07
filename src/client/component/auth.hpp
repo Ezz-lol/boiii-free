@@ -4,6 +4,8 @@
 namespace auth {
 extern game::EngineDependentDvar password;
 
+game::XUID get_client_guid(
+    game::ControllerIndex_t controllerIndex = game::CONTROLLER_INDEX_0);
 game::XUID
 get_guid(game::ControllerIndex_t controllerIndex = game::CONTROLLER_INDEX_0);
 game::XUID get_guid(size_t client_num);

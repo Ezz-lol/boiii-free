@@ -1,6 +1,7 @@
 #pragma once
 
 #include "game/structs/scr/builtin/core.hpp"
+#include "game/structs/scr/builtin/table/macros.hpp"
 
 namespace game {
 namespace scr {
@@ -44,9 +45,11 @@ union CommonFunctionTable {
     const BuiltinFunctionDef SessionModeIsCampaignZombiesGame;
     const BuiltinFunctionDef IsArchetypeLoaded;
   };
-  const BuiltinFunctionDef functions[34];
 
-  static constexpr const char *names[34] = {
+  static inline constexpr size_t COUNT = 34;
+  const BuiltinFunctionDef functions[COUNT];
+
+  static inline constexpr std::array<const char *, COUNT> names = {
       "ClearAllCharacterTables",
       "GetCharacterBodyStyleIndex",
       "GetAllCharacterBodies",
@@ -82,9 +85,12 @@ union CommonFunctionTable {
       "SessionModeIsCampaignZombiesGame",
       "IsArchetypeLoaded",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+
+  DEFINE_NAME_MAP(names, hashes);
+  static_assert(hashes.size() == names.size(),
+                "name hashmap does not include all names!");
+
+  IMPL_TABLE_OPERATORS(functions);
 };
 ASSERT_SIZE(CommonFunctionTable, sizeof(CommonFunctionTable::functions));
 
@@ -140,9 +146,11 @@ union MathFunctionTable {
     const BuiltinFunctionDef ForwardRotateAroundUpByAngle;
     const BuiltinFunctionDef RotatePointAroundAxis;
   };
-  const BuiltinFunctionDef functions[49];
 
-  static constexpr const char *names[49] = {
+  static inline constexpr size_t COUNT = 49;
+  const BuiltinFunctionDef functions[COUNT];
+
+  static inline constexpr std::array<const char *, COUNT> names = {
       "Log",
       "Sin",
       "Cos",
@@ -193,9 +201,12 @@ union MathFunctionTable {
       "ForwardRotateAroundUpByAngle",
       "RotatePointAroundAxis",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+
+  DEFINE_NAME_MAP(names, hashes);
+  static_assert(hashes.size() == names.size(),
+                "name hashmap does not include all names!");
+
+  IMPL_TABLE_OPERATORS(functions);
 };
 ASSERT_SIZE(MathFunctionTable, sizeof(MathFunctionTable::functions));
 
@@ -203,12 +214,18 @@ union WeaponFunctionTable {
   struct {
     const BuiltinFunctionDef EnumerateWeapons;
   };
-  const BuiltinFunctionDef functions[1];
 
-  static constexpr const char *names[1] = {"EnumerateWeapons"};
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+  static inline constexpr size_t COUNT = 1;
+  const BuiltinFunctionDef functions[COUNT];
+
+  static inline constexpr std::array<const char *, COUNT> names = {
+      "EnumerateWeapons"};
+
+  DEFINE_NAME_MAP(names, hashes);
+  static_assert(hashes.size() == names.size(),
+                "name hashmap does not include all names!");
+
+  IMPL_TABLE_OPERATORS(functions);
 };
 ASSERT_SIZE(WeaponFunctionTable, sizeof(WeaponFunctionTable::functions));
 
@@ -258,7 +275,7 @@ union UtilFunctionTable {
     const BuiltinFunctionDef StrIsInt;
     const BuiltinFunctionDef StrStrip;
     const BuiltinFunctionDef MakeLocalizedString;
-    const BuiltinFunctionDef Sprintf;
+    const BuiltinFunctionDef SPrintf;
     const BuiltinFunctionDef TableLookup;
     const BuiltinFunctionDef TableLookupIString;
     const BuiltinFunctionDef TableLookupRowNum;
@@ -284,80 +301,85 @@ union UtilFunctionTable {
     const BuiltinFunctionDef IsUsingMods;
     const BuiltinFunctionDef Modvar;
   };
-  const BuiltinFunctionDef functions[69];
+  static inline constexpr size_t COUNT = 69;
+  const BuiltinFunctionDef functions[COUNT];
 
-  static constexpr const char *names[69] = {"GetDvarString",
-                                            "GetDvarInt",
-                                            "GetDvarFloat",
-                                            "GetDvarVector",
-                                            "Throw",
-                                            "Array",
-                                            "AssociativeArray",
-                                            "ArrayRemoveValue",
-                                            "ArrayRemoveIndex",
-                                            "ArrayInsert",
-                                            "ArrayCombine",
-                                            "ArrayCopy",
-                                            "IsInArray",
-                                            "GetArrayKeys",
-                                            "GetFirstArrayKey",
-                                            "GetNextArrayKey",
-                                            "GetLastArrayKey",
-                                            "GetPrevArrayKey",
-                                            "ArrayIntersect",
-                                            "ArrayGetClosest",
-                                            "ArrayGetFarthest",
-                                            "GetStructField",
-                                            "IsFunctionPtr",
-                                            "IsString",
-                                            "IsArray",
-                                            "IsWeapon",
-                                            "IsInt",
-                                            "IsFloat",
-                                            "IsVec",
-                                            "IsClass",
-                                            "IString",
-                                            "IsSubStr",
-                                            "GetSubStr",
-                                            "ToLower",
-                                            "ToUpper",
-                                            "StrTok",
-                                            "StrTok2",
-                                            "StrStartsWith",
-                                            "StrEndsWith",
-                                            "StrIsNumber",
-                                            "StrIsFloat",
-                                            "StrIsInt",
-                                            "StrStrip",
-                                            "MakeLocalizedString",
-                                            "Sprintf",
-                                            "TableLookup",
-                                            "TableLookupIString",
-                                            "TableLookupRowNum",
-                                            "TableLookupColumnForRow",
-                                            "TableLookupFindCoreAsset",
-                                            "TableLookupRowCount",
-                                            "TableLookupColumnCount",
-                                            "TableLookupRow",
-                                            "GetItemIndexFromRef",
-                                            "GetAttachmentTableIndex",
-                                            "OpenFile",
-                                            "CloseFile",
-                                            "FPrintln",
-                                            "FPrintFields",
-                                            "FReadLn",
-                                            "FGetArg",
-                                            "DebugBreak",
-                                            "Assert",
-                                            "AssertMsg",
-                                            "ErrorMsg",
-                                            "IsPC",
-                                            "IsProfileBuild",
-                                            "IsUsingMods",
-                                            "Modvar"};
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+  static inline constexpr std::array<const char *, COUNT> names = {
+      "GetDvarString",
+      "GetDvarInt",
+      "GetDvarFloat",
+      "GetDvarVector",
+      "Throw",
+      "Array",
+      "AssociativeArray",
+      "ArrayRemoveValue",
+      "ArrayRemoveIndex",
+      "ArrayInsert",
+      "ArrayCombine",
+      "ArrayCopy",
+      "IsInArray",
+      "GetArrayKeys",
+      "GetFirstArrayKey",
+      "GetNextArrayKey",
+      "GetLastArrayKey",
+      "GetPrevArrayKey",
+      "ArrayIntersect",
+      "ArrayGetClosest",
+      "ArrayGetFarthest",
+      "GetStructField",
+      "IsFunctionPtr",
+      "IsString",
+      "IsArray",
+      "IsWeapon",
+      "IsInt",
+      "IsFloat",
+      "IsVec",
+      "IsClass",
+      "IString",
+      "IsSubStr",
+      "GetSubStr",
+      "ToLower",
+      "ToUpper",
+      "StrTok",
+      "StrTok2",
+      "StrStartsWith",
+      "StrEndsWith",
+      "StrIsNumber",
+      "StrIsFloat",
+      "StrIsInt",
+      "StrStrip",
+      "MakeLocalizedString",
+      "SPrintf",
+      "TableLookup",
+      "TableLookupIString",
+      "TableLookupRowNum",
+      "TableLookupColumnForRow",
+      "TableLookupFindCoreAsset",
+      "TableLookupRowCount",
+      "TableLookupColumnCount",
+      "TableLookupRow",
+      "GetItemIndexFromRef",
+      "GetAttachmentTableIndex",
+      "OpenFile",
+      "CloseFile",
+      "FPrintln",
+      "FPrintFields",
+      "FReadLn",
+      "FGetArg",
+      "DebugBreak",
+      "Assert",
+      "AssertMsg",
+      "ErrorMsg",
+      "IsPC",
+      "IsProfileBuild",
+      "IsUsingMods",
+      "Modvar"};
+
+  DEFINE_NAME_MAP(names, hashes);
+  static_assert(hashes.size() == names.size(),
+                "name hashmap does not include all names!");
+
+  IMPL_TABLE_OPERATORS(functions);
 };
 ASSERT_SIZE(UtilFunctionTable, sizeof(UtilFunctionTable::functions));
 ASSERT_SIZE(UtilFunctionTable, 0x8A0);

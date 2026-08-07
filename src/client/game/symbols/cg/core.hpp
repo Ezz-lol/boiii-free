@@ -29,31 +29,45 @@ WEAK symbol<bool(int32_t *hitNum, const vec3_t *start, const vec3_t *end,
                  contents_t mask, cm::trace_t *trace)>
     CG_SightTracePoint{0x1412B4380};
 
-extern std::atomic<level::cl::cgPool *> cgArray_store;
-level::cl::cgPool *get_cgArray();
-WEAK symbol<level::cl::cgPool *> cgArray{0x144D17C80, 0x14222BCB0};
-extern std::atomic<level::cl::cgsPool *> cgsArray_store;
-level::cl::cgsPool *get_cgsArray();
-WEAK symbol<level::cl::cgsPool *> cgsArray{0x144D17B70};
-
-extern level::cl::AtomicLocalClientCentityPools cg_entitiesArray_store;
-level::cl::LocalClientCentityPools get_cg_entitiesArray();
-void clear_cgEntitiesArray_store();
-WEAK symbol<level::cl::LocalClientCentityPools> cg_entitiesArray{0x144D17B60};
-
-extern std::atomic<anim::ViewModelInfo *> cg_viewModelArray_store;
-anim::ViewModelInfo *get_cg_viewModelArray();
-WEAK symbol<anim::ViewModelInfo *> cg_viewModelArray{0x1449D9428};
-extern std::atomic<ClientPlayerAttachmentInfo *> cg_attachmentsArray_store;
-ClientPlayerAttachmentInfo *get_cg_attachmentsArray();
-WEAK symbol<ClientPlayerAttachmentInfo *> cg_attachmentsArray{0x1449D9420};
+extern LocalClientPool<level::cl::cg_t> cgArray;
+extern LocalClientPool<level::cl::cgs_t> cgsArray;
+extern LocalClientPool<game::level::cl::centityPool_t> cg_entitiesArray;
+extern anim::ViewModelInfoPool cg_viewModelArray;
+extern ClientPlayerAttachmentInfoPool cg_attachmentsArray;
+extern LocalClientPool<ClientPlayerWeaponInfo> cg_weaponsArray;
+extern LocalClientPool<phys::Destructible> cg_destructibles;
+extern LocalClientPool<ik::IkBuf> cg_ikBuf;
 
 WEAK symbol<CGFakeEntitiesInuseBitArray> cg_fakeEntitiesInuseBitArray{
     0x144D17B80};
 
-WEAK symbol<LocalClientCgWeaponsPools> cg_weaponsArray{0x1449D9410};
-WEAK symbol<LocalClientCgDestructiblesPools> cg_destructibles{0x157F00FF0};
-WEAK symbol<LocalClientIkBufs> cg_ikBuf{0x144A315C0};
+/*
+    The builtin pools below are replaced with the above, statically allocated
+  pools in boiii.
+
+    In the client, these were originally statically allocated, but are intended
+  to be heap allocated in the released client engine to allow the allocation
+  address to be protected by TAC at runtime. Boiii modifies the engine to
+  instead use these statically allocated pools. This is done both for the sake
+  of performance and to allow convenient access to the otherwise TAC-protected
+  pools.
+
+    In dedicated server, these are - in the base game - never allocated, so the
+  pool pointers stored in the below globals are either `nullptr` and unused, or
+  filled by boiii with the addresses to the above statically allocated pools.
+*/
+WEAK symbol<level::cl::cgPool *> builtin_cgArray{0x144D17C80, 0x14222BCB0};
+WEAK symbol<level::cl::cgsPool *> builtin_cgsArray{0x144D17B70, 0x14222BCB8};
+WEAK symbol<level::cl::LocalClientCentityPools> builtin_cg_entitiesArray{
+    0x144D17B60, 0x14222BCC0};
+WEAK symbol<anim::ViewModelInfoPool *> builtin_cg_viewModelArray{0x1449D9428};
+WEAK symbol<ClientPlayerAttachmentInfoPool *> builtin_cg_attachmentsArray{
+    0x1449D9420};
+
+WEAK symbol<LocalClientCgWeaponsPools> builtin_cg_weaponsArray{0x1449D9410};
+WEAK symbol<LocalClientCgDestructiblesPools> builtin_cg_destructibles{
+    0x157F00FF0};
+WEAK symbol<LocalClientIkBufs> builtin_cg_ikBuf{0x144A315C0};
 
 } // namespace cg
 } // namespace game

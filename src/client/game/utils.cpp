@@ -48,11 +48,10 @@ std::optional<int32_t> get_dvar_int(const char *dvar_name) {
   return std::nullopt;
 }
 
-std::optional<int32_t> set_dvar_int(const char *dvar_name, int32_t val,
-                                    DvarSetSource source) {
+std::optional<int32_t> set_dvar_int(const char *dvar_name, int32_t val) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
   if (dvar) {
-    return dvar.set(val, source);
+    return dvar.set(val);
   }
 
   return std::nullopt;
@@ -76,11 +75,10 @@ std::optional<uint64_t> get_dvar_uint64(const char *dvar_name) {
   return std::nullopt;
 }
 
-std::optional<uint64_t> set_dvar_uint64(const char *dvar_name, uint64_t val,
-                                        DvarSetSource source) {
+std::optional<uint64_t> set_dvar_uint64(const char *dvar_name, uint64_t val) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
   if (dvar) {
-    return dvar.set(val, source);
+    return dvar.set(val);
   }
   return std::nullopt;
 }
@@ -94,11 +92,10 @@ std::optional<int64_t> get_dvar_int64(const char *dvar_name) {
   return std::nullopt;
 }
 
-std::optional<int64_t> set_dvar_int64(const char *dvar_name, int64_t val,
-                                      DvarSetSource source) {
+std::optional<int64_t> set_dvar_int64(const char *dvar_name, int64_t val) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
   if (dvar) {
-    return dvar.set(val, source);
+    return dvar.set(val);
   }
   return std::nullopt;
 }
@@ -112,11 +109,10 @@ std::optional<bool> get_dvar_bool(const char *dvar_name) {
   return std::nullopt;
 }
 
-std::optional<bool> set_dvar_bool(const char *dvar_name, bool val,
-                                  DvarSetSource source) {
+std::optional<bool> set_dvar_bool(const char *dvar_name, bool val) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
   if (dvar) {
-    return dvar.set(val, source);
+    return dvar.set(val);
   }
   return std::nullopt;
 }
@@ -130,20 +126,19 @@ std::optional<float> get_dvar_float(const char *dvar_name) {
   return std::nullopt;
 }
 
-std::optional<float> set_dvar_float(const char *dvar_name, float val,
-                                    DvarSetSource source) {
+std::optional<float> set_dvar_float(const char *dvar_name, float val) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
   if (dvar) {
-    return dvar.set(val, source);
+    return dvar.set(val);
   }
   return std::nullopt;
 }
 
-std::optional<std::string>
-set_dvar_string(const char *dvar_name, const char *val, DvarSetSource source) {
+std::optional<std::string> set_dvar_string(const char *dvar_name,
+                                           const char *val) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
   if (dvar) {
-    return dvar.set(val, source);
+    return dvar.set(val);
   }
   return std::nullopt;
 }
@@ -188,7 +183,7 @@ static bool access_client(T *client_states, const size_t index,
   }
 
   T &client = client_states[index];
-  if (client.state == net::CS_FREE) {
+  if (client.state == net::clientState_t::FREE) {
     return false;
   }
 
@@ -224,7 +219,7 @@ void first_client(const std::function<bool(sv::client_s &)> &callback) {
 void foreach_connected_client(
     const std::function<void(sv::client_s &, size_t index)> &callback) {
   foreach_client([&](sv::client_s &client, const size_t index) {
-    if (client.state != net::CS_FREE) {
+    if (client.state != net::clientState_t::FREE) {
       callback(client, index);
     }
   });
@@ -239,7 +234,7 @@ void foreach_connected_client(
 void first_connected_client(
     const std::function<bool(sv::client_s &, size_t index)> &callback) {
   first_client([&](sv::client_s &client, const size_t index) {
-    if (client.state != net::CS_FREE) {
+    if (client.state != net::clientState_t::FREE) {
       return callback(client, index);
     }
     return false;
@@ -254,6 +249,45 @@ void first_connected_client(
 
 bool access_connected_client(
     const size_t index, const std::function<void(sv::client_s &)> &callback) {
+  if (is_server()) {
+    return access_client(*svs_clients, index, callback);
+  }
+
+  return access_client(*svs_clients_cl, index, callback);
+}
+
+void foreach_active_client(
+    const std::function<void(sv::client_s &, size_t index)> &callback) {
+  foreach_client([&](sv::client_s &client, const size_t index) {
+    if (client.state > net::clientState_t::CONNECTED) {
+      callback(client, index);
+    }
+  });
+}
+
+void foreach_active_client(
+    const std::function<void(sv::client_s &)> &callback) {
+  foreach_active_client(
+      [&](sv::client_s &client, size_t) { callback(client); });
+}
+
+void first_active_client(
+    const std::function<bool(sv::client_s &, size_t index)> &callback) {
+  first_client([&](sv::client_s &client, const size_t index) {
+    if (client.state > net::clientState_t::CONNECTED) {
+      return callback(client, index);
+    }
+    return false;
+  });
+}
+
+void first_active_client(const std::function<bool(sv::client_s &)> &callback) {
+  first_active_client(
+      [&](sv::client_s &client, size_t) { return callback(client); });
+}
+
+bool access_active_client(const size_t index,
+                          const std::function<void(sv::client_s &)> &callback) {
   if (is_server()) {
     return access_client(*svs_clients, index, callback);
   }

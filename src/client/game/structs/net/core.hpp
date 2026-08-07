@@ -159,23 +159,24 @@ struct HostInfo {
   uint32_t serverLocation;
 };
 enum svscmd_type {
-  SV_CMD_CAN_IGNORE_0 = 0x0,
-  SV_CMD_RELIABLE_0 = 0x1,
+  SV_CMD_CAN_IGNORE = 0x0,
+  SV_CMD_RELIABLE = 0x1,
 };
 
-enum clientState_t {
-  CS_FREE = 0x0, // can be used for a new connection
+enum class clientState_t : int32_t {
+  FREE = 0x0, // can be used for a new connection
   /*
     Client has been disconnected, but don't use connection
     for a new client for a couple seconds
     (`sv_zombietime` dvar value) in case of reconnect
   */
-  CS_ZOMBIE = 0x1,
-  CS_RECONNECTING = 0x2,
-  CS_CONNECTED = 0x3, // has been assigned to a client_t, but no gamestate yet
-  CS_PRIMED = 0x4, // gamestate has been sent, but client hasn't sent a usercmd
-  CS_ACTIVE = 0x5, // client is fully in game
+  ZOMBIE = 0x1,
+  RECONNECTING = 0x2,
+  CONNECTED = 0x3, // has been assigned to a client_t, but no gamestate yet
+  PRIMED = 0x4,    // gamestate has been sent, but client hasn't sent a usercmd
+  ACTIVE = 0x5,    // client is fully in game
 };
+IMPL_ENUM_OPERATORS(clientState_t);
 
 struct netProfilePacket_t {
   int32_t iTime;

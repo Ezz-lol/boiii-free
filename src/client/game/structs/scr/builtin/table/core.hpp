@@ -19,9 +19,11 @@ union ActorInterfaceMethodTable {
     const BuiltinMethodDef BB_GetLocomotionMotionAngle;
     const BuiltinMethodDef BB_GetLocomotionTurnYaw;
   };
-  const BuiltinMethodDef methods[8];
 
-  static constexpr const char *names[8] = {
+  static inline constexpr size_t COUNT = 8;
+  const BuiltinMethodDef methods[COUNT];
+
+  static inline constexpr std::array<const char *, COUNT> names = {
       "ChooseBetterCoverNode",
       "GetFireMode",
       "BB_GetArrivalStance",
@@ -31,9 +33,9 @@ union ActorInterfaceMethodTable {
       "BB_GetLocomotionMotionAngle",
       "BB_GetLocomotionTurnYaw",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+
+  DEFINE_NAME_MAP(names, hashes);
+  IMPL_TABLE_OPERATORS(methods);
 };
 ASSERT_SIZE(ActorInterfaceMethodTable,
             sizeof(ActorInterfaceMethodTable::methods));
@@ -182,9 +184,11 @@ union ActorMethodTable {
     const BuiltinMethodDef CalcApproximatePathToPosition;
     const BuiltinMethodDef GetNextFindBestCoverTime;
   };
-  const BuiltinMethodDef methods[141];
 
-  static constexpr const char *names[141] = {
+  static inline constexpr size_t COUNT = 141;
+  const BuiltinMethodDef methods[COUNT];
+
+  static inline constexpr std::array<const char *, COUNT> names = {
       "StartCoverArrival",
       "Melee",
       "ReacquireStep",
@@ -327,9 +331,9 @@ union ActorMethodTable {
       "CalcApproximatePathToPosition",
       "GetNextFindBestCoverTime",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+
+  DEFINE_NAME_MAP(names, hashes);
+  IMPL_TABLE_OPERATORS(methods);
 };
 ASSERT_SIZE(ActorMethodTable, sizeof(ActorMethodTable::methods));
 
@@ -405,9 +409,11 @@ union BotMethodTable {
     const BuiltinMethodDef PressAds;
     const BuiltinMethodDef PressMelee;
   };
-  const BuiltinMethodDef methods[69];
 
-  static constexpr const char *names[69] = {
+  static inline constexpr size_t COUNT = 69;
+  const BuiltinMethodDef methods[COUNT];
+
+  static inline constexpr std::array<const char *, COUNT> names = {
       "BotDropClient",
       "BotInLastStand",
       "BotInLowReady",
@@ -478,9 +484,9 @@ union BotMethodTable {
       "PressAds",
       "PressMelee",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+
+  DEFINE_NAME_MAP(names, hashes);
+  IMPL_TABLE_OPERATORS(methods);
 };
 ASSERT_SIZE(BotMethodTable, sizeof(BotMethodTable::methods));
 
@@ -889,9 +895,11 @@ union PlayerMethodTable {
     const BuiltinMethodDef ResetInactivityTimer;
     const BuiltinMethodDef SetViewClamp;
   };
-  const BuiltinMethodDef methods[402];
 
-  static constexpr const char *names[402] = {
+  static inline constexpr size_t COUNT = 402;
+  const BuiltinMethodDef methods[COUNT];
+
+  static inline constexpr std::array<const char *, COUNT> names = {
       "GiveWeapon",
       "HasMaxPrimaryWeapons",
       "UpdateWeaponOptions",
@@ -1295,9 +1303,9 @@ union PlayerMethodTable {
       "ResetInactivityTimer",
       "SetViewClamp",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+
+  DEFINE_NAME_MAP(names, hashes);
+  IMPL_TABLE_OPERATORS(methods);
 };
 ASSERT_SIZE(PlayerMethodTable, sizeof(PlayerMethodTable::methods));
 
@@ -1591,9 +1599,11 @@ union CommonFunctionTable {
     const BuiltinFunctionDef HideInfoVolume;
     const BuiltinFunctionDef InfoVolumeDebugInit;
   };
-  const BuiltinFunctionDef functions[287];
 
-  static constexpr const char *names[287] = {
+  static inline constexpr size_t COUNT = 287;
+  const BuiltinFunctionDef functions[COUNT];
+
+  static inline constexpr std::array<const char *, COUNT> names = {
       "ReportStubUsage",
       "Record3DText",
       "RecordEntText",
@@ -1882,9 +1892,9 @@ union CommonFunctionTable {
       "HideInfoVolume",
       "InfoVolumeDebugInit",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+
+  DEFINE_NAME_MAP(names, hashes);
+  IMPL_TABLE_OPERATORS(functions);
 };
 ASSERT_SIZE(CommonFunctionTable, sizeof(CommonFunctionTable::functions));
 
@@ -2109,9 +2119,11 @@ union CommonMethodTable {
     const BuiltinMethodDef OverrideSpawnflags;
     const BuiltinMethodDef ExperimentsGetVariant;
   };
-  const BuiltinMethodDef methods[218];
 
-  static constexpr const char *names[218] = {
+  static inline constexpr size_t COUNT = 218;
+  const BuiltinMethodDef methods[COUNT];
+
+  static inline constexpr std::array<const char *, COUNT> names = {
       "Attach",
       "Detach",
       "DetachAll",
@@ -2175,8 +2187,8 @@ union CommonMethodTable {
       "DoubleXPTimerFired",
       "ReportLootReward",
       "ReportLootConsume",
-      "__protected__NoteLootConsume",
-      "__protected__ReportNotedLoot",
+      PROTECTED_STR(NoteLootConsume),
+      PROTECTED_STR(ReportNotedLoot),
       "HasSeasonPass",
       "IsStarterPack",
       "SetEMPJammed",
@@ -2331,9 +2343,9 @@ union CommonMethodTable {
       "OverrideSpawnflags",
       "ExperimentsGetVariant",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+
+  DEFINE_NAME_MAP(names, hashes);
+  IMPL_TABLE_OPERATORS(methods);
 };
 ASSERT_SIZE(CommonMethodTable, sizeof(CommonMethodTable::methods));
 
@@ -2347,16 +2359,18 @@ union HelicopterMethodTable {
     const BuiltinMethodDef GetHeliHeightLockHeight;
     const BuiltinMethodDef SetHeliDogfighting;
   };
-  const BuiltinMethodDef methods[7];
 
-  static constexpr const char *names[7] = {
+  static inline constexpr size_t COUNT = 7;
+  const BuiltinMethodDef methods[COUNT];
+
+  static inline constexpr std::array<const char *, COUNT> names = {
       "SetDamageStage",     "SetHeliHeightLock",      "SetHeliHeightCap",
       "GetHeliHeightLock",  "IsInsideHeliHeightLock", "GetHeliHeightLockHeight",
       "SetHeliDogfighting",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+
+  DEFINE_NAME_MAP(names, hashes);
+  IMPL_TABLE_OPERATORS(methods);
 };
 ASSERT_SIZE(HelicopterMethodTable, sizeof(HelicopterMethodTable::methods));
 
@@ -2391,9 +2405,11 @@ union HudElemMethodTable {
     const BuiltinMethodDef SetWarGameData;
     const BuiltinMethodDef ChangeFontScaleOverTime;
   };
-  const BuiltinMethodDef methods[28];
 
-  static constexpr const char *names[28] = {
+  static inline constexpr size_t COUNT = 28;
+  const BuiltinMethodDef methods[COUNT];
+
+  static inline constexpr std::array<const char *, COUNT> names = {
       "SetText",          "SetShader",
       "SetTargetEnt",     "ClearTargetEnt",
       "SetTimer",         "SetTimerUp",
@@ -2409,9 +2425,9 @@ union HudElemMethodTable {
       "SetMapNameString", "SetGameTypeString",
       "SetWarGameData",   "ChangeFontScaleOverTime",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+
+  DEFINE_NAME_MAP(names, hashes);
+  IMPL_TABLE_OPERATORS(methods);
 };
 ASSERT_SIZE(HudElemMethodTable, sizeof(HudElemMethodTable::methods));
 
@@ -2422,17 +2438,19 @@ union MathFunctionTable {
     const BuiltinFunctionDef RandomIntRange;
     const BuiltinFunctionDef RandomFloatRange;
   };
-  const BuiltinFunctionDef functions[4];
 
-  static constexpr const char *names[4] = {
+  static inline constexpr size_t COUNT = 4;
+  const BuiltinFunctionDef functions[COUNT];
+
+  static inline constexpr std::array<const char *, COUNT> names = {
       "RandomInt",
       "RandomFloat",
       "RandomIntRange",
       "RandomFloatRange",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+
+  DEFINE_NAME_MAP(names, hashes);
+  IMPL_TABLE_OPERATORS(functions);
 };
 ASSERT_SIZE(MathFunctionTable, sizeof(MathFunctionTable::functions));
 
@@ -2456,18 +2474,20 @@ union ScriptEntMethodTable {
     const BuiltinMethodDef SetCanDamage;
     const BuiltinMethodDef PhysicsLaunch;
   };
-  const BuiltinMethodDef methods[17];
 
-  static constexpr const char *names[17] = {
+  static inline constexpr size_t COUNT = 17;
+  const BuiltinMethodDef methods[COUNT];
+
+  static inline constexpr std::array<const char *, COUNT> names = {
       "MoveTo",        "MoveX",     "MoveY",          "MoveZ",
       "MoveGravity",   "MoveSlide", "StopMoveSlide",  "RotateTo",
       "RotatePitch",   "RotateYaw", "RotateRoll",     "Vibrate",
       "Bobbing",       "Rotate",    "RotateVelocity", "SetCanDamage",
       "PhysicsLaunch",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+
+  DEFINE_NAME_MAP(names, hashes);
+  IMPL_TABLE_OPERATORS(methods);
 };
 ASSERT_SIZE(ScriptEntMethodTable, sizeof(ScriptEntMethodTable::methods));
 
@@ -2601,9 +2621,11 @@ union ScriptVehicleMethodTable {
     const BuiltinMethodDef VehDriverAimAtCrosshairs;
     const BuiltinMethodDef GetVehDamageMultiplier;
   };
-  const BuiltinMethodDef methods[127];
 
-  static constexpr const char *names[127] = {
+  static inline constexpr size_t COUNT = 127;
+  const BuiltinMethodDef methods[COUNT];
+
+  static inline constexpr std::array<const char *, COUNT> names = {
       "AttachPath",
       "GetAttachPos",
       "StartPath",
@@ -2732,9 +2754,9 @@ union ScriptVehicleMethodTable {
       "VehDriverAimAtCrosshairs",
       "GetVehDamageMultiplier",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+
+  DEFINE_NAME_MAP(names, hashes);
+  IMPL_TABLE_OPERATORS(methods);
 };
 ASSERT_SIZE(ScriptVehicleMethodTable,
             sizeof(ScriptVehicleMethodTable::methods));
@@ -2750,17 +2772,19 @@ union SentientFunctionTable {
     const BuiltinFunctionDef SetStealthSigh;
     const BuiltinFunctionDef ResetVisibilityCacheWithinRadius;
   };
-  const BuiltinFunctionDef functions[8];
 
-  static constexpr const char *names[8] = {
+  static inline constexpr size_t COUNT = 8;
+  const BuiltinFunctionDef functions[COUNT];
+
+  static inline constexpr std::array<const char *, COUNT> names = {
       "CreateThreatBiasGroup",   "ThreatBiasGroupExists",
       "GetThreatBias",           "SetThreatBias",
       "SetThreatBiasAgainstAll", "SetIgnoreMeGroup",
       "SetStealthSigh",          "ResetVisibilityCacheWithinRadius",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+
+  DEFINE_NAME_MAP(names, hashes);
+  IMPL_TABLE_OPERATORS(functions);
 };
 ASSERT_SIZE(SentientFunctionTable, sizeof(SentientFunctionTable::functions));
 
@@ -2798,9 +2822,11 @@ union SentientMethodTable {
     const BuiltinMethodDef SetStealthSightAwareness;
     const BuiltinMethodDef GetMotionAngle;
   };
-  const BuiltinMethodDef methods[31];
 
-  static constexpr const char *names[31] = {
+  static inline constexpr size_t COUNT = 31;
+  const BuiltinMethodDef methods[COUNT];
+
+  static inline constexpr std::array<const char *, COUNT> names = {
       "GetClosestEnemySqDist",
       "SetThreatBiasGroup",
       "GetThreatBiasGroup",
@@ -2833,9 +2859,9 @@ union SentientMethodTable {
       "SetStealthSightAwareness",
       "GetMotionAngle",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+
+  DEFINE_NAME_MAP(names, hashes);
+  IMPL_TABLE_OPERATORS(methods);
 };
 ASSERT_SIZE(SentientMethodTable, sizeof(SentientMethodTable::methods));
 
@@ -2845,16 +2871,18 @@ union UtilFunctionTable {
     const BuiltinFunctionDef SetTopDownCameraYaw;
     const BuiltinFunctionDef SetJumpHeight;
   };
-  const BuiltinFunctionDef functions[3];
 
-  static constexpr const char *names[3] = {
+  static inline constexpr size_t COUNT = 3;
+  const BuiltinFunctionDef functions[COUNT];
+
+  static inline constexpr std::array<const char *, COUNT> names = {
       "SetSharedViewPort",
       "SetTopDownCameraYaw",
       "SetJumpHeight",
   };
-  static constexpr const frozen::unordered_set<fnv1aHashNull_t,
-                                               ARRAYSIZE(names)>
-      hashes = make_frozen_set(fnv1a<ARRAYSIZE(names)>(names));
+
+  DEFINE_NAME_MAP(names, hashes);
+  IMPL_TABLE_OPERATORS(functions);
 };
 ASSERT_SIZE(UtilFunctionTable, sizeof(UtilFunctionTable::functions));
 

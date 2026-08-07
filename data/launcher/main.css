@@ -3146,6 +3146,15 @@ h1 {
 .workshop-input-row { gap: 8px; }
 .workshop-browse-controls { gap: 6px; }
 .workshop-browse-title { flex-basis: 100%; }
+.workshop-browse-heading {
+  flex-basis: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.workshop-browse-heading .workshop-browse-title { flex-basis: auto; }
+.workshop-view-toggle { padding: 5px 9px; font-size: .7rem; }
 .workshop-browse-controls { width: 100%; flex-wrap: nowrap; }
 .workshop-browse-controls .workshop-search-input { flex: 1; min-width: 0; }
 .workshop-browse-controls .btn { margin-left: 0; margin-right: 0; }
@@ -3183,6 +3192,7 @@ h1 {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }
+.workshop-browse-grid.single-column { grid-template-columns: minmax(0, 1fr); }
 .workshop-item-card {
   height: 156px;
   min-height: 156px;
