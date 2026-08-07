@@ -537,7 +537,7 @@ assert(isvec(vec_from_strings) &&
 // - Casting a function's argument to a vector where the argument could either be a vector or
 //   has a type otherwise convertible to one.
 // - Copying the given vector.
-vec_from_vec = ( 1.0 2.0 3.0 );
+vec_from_vec = ( 1.0, 2.0, 3.0 );
 /#
 assert(isvec(vec_from_vec) &&
        vec_from_vec.x == 1.0 &&

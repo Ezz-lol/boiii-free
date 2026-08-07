@@ -23,16 +23,16 @@ void write_u16(std::vector<uint8_t> &buf, uint16_t v) {
 }
 void write_u32(std::vector<uint8_t> &buf, uint32_t v) {
   const size_t s = buf.size();
-  buf.resize(s + 4);
-  std::memcpy(&buf[s], &v, 4);
+  buf.resize(s + sizeof(uint32_t));
+  std::memcpy(&buf[s], &v, sizeof(uint32_t));
 }
 void write_i16(std::vector<uint8_t> &buf, int16_t v) {
   write_u16(buf, static_cast<uint16_t>(v));
 }
 void write_float(std::vector<uint8_t> &buf, float v) {
   const size_t s = buf.size();
-  buf.resize(s + 4);
-  std::memcpy(&buf[s], &v, 4);
+  buf.resize(s + sizeof(float));
+  std::memcpy(&buf[s], &v, sizeof(float));
 }
 
 void write_at_u16(std::vector<uint8_t> &buf, size_t offset, uint16_t v) {
@@ -41,7 +41,7 @@ void write_at_u16(std::vector<uint8_t> &buf, size_t offset, uint16_t v) {
 }
 
 void write_at_u32(std::vector<uint8_t> &buf, size_t offset, uint32_t v) {
-  std::memcpy(&buf[offset], &v, 4);
+  std::memcpy(&buf[offset], &v, sizeof(uint32_t));
 }
 
 void write_at_i16(std::vector<uint8_t> &buf, size_t offset, int16_t v) {
@@ -532,14 +532,6 @@ bool try_emit_builtin(emitter_state &s, const std::string &name) {
     s.emit_op(Opcode::NextArrayKey);
     return true;
   }
-  /*
-    TODO: `waitrealtime` and `realwait`.
-    - `waitrealtime` is already handled elsewhere.
-
-    - `realwait` is not handled at all. This seems to be a `waitrealtime`
-    equivalent that is specific to CSC code, where it waits for a client-side
-    amount of time, rather than a time interval synchronized with the server.
-  */
   return false;
 }
 
