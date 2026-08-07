@@ -150,68 +150,92 @@ void save_friends() {
   });
 }
 
-void load_friends() {
+bool load_friends() {
   if (!utils::io::file_exists(FRIENDS_FILE))
-    return;
+    return false;
 
   std::string data;
   if (!utils::io::read_file(FRIENDS_FILE, &data) || data.empty())
-    return;
+    return false;
 
   rapidjson::Document doc;
   if (doc.Parse(data.c_str()).HasParseError() || !doc.IsArray())
-    return;
+    return false;
 
-  friends_data.access([&doc](friend_state &state) {
-    state.list.clear();
+  std::vector<friend_entry> loaded;
+  loaded.reserve(std::min<size_t>(doc.Size(), MAX_FRIENDS));
+  std::unordered_set<game::XUID> seen;
+  seen.reserve(loaded.capacity());
 
-    for (auto &item : doc.GetArray()) {
-      if (!item.IsObject())
-        continue;
+  for (auto &item : doc.GetArray()) {
+    if (!item.IsObject())
+      continue;
 
-      friend_entry entry{};
+    friend_entry entry{};
 
-      auto si = item.FindMember("steam_id");
-      if (si != item.MemberEnd()) {
-        if (si->value.IsUint64())
-          entry.steam_id = si->value.GetUint64();
-        else if (si->value.IsString())
-          entry.steam_id = std::strtoull(si->value.GetString(), nullptr, 10);
+    auto si = item.FindMember("steam_id");
+    if (si != item.MemberEnd()) {
+      if (si->value.IsUint64())
+        entry.steam_id = si->value.GetUint64();
+      else if (si->value.IsString())
+        entry.steam_id = std::strtoull(si->value.GetString(), nullptr, 10);
+    }
+
+    // backwards compat with old "xuid" field
+    if (entry.steam_id == 0) {
+      auto xi = item.FindMember("xuid");
+      if (xi != item.MemberEnd()) {
+        if (xi->value.IsUint64())
+          entry.steam_id = xi->value.GetUint64();
+        else if (xi->value.IsString())
+          entry.steam_id = std::strtoull(xi->value.GetString(), nullptr, 10);
       }
+    }
 
-      // backwards compat with old "xuid" field
-      if (entry.steam_id == 0) {
-        auto xi = item.FindMember("xuid");
-        if (xi != item.MemberEnd()) {
-          if (xi->value.IsUint64())
-            entry.steam_id = xi->value.GetUint64();
-          else if (xi->value.IsString())
-            entry.steam_id = std::strtoull(xi->value.GetString(), nullptr, 10);
-        }
-      }
+    if (entry.steam_id == 0 || seen.contains(entry.steam_id))
+      continue;
 
-      if (entry.steam_id == 0)
-        continue;
+    auto ni = item.FindMember("name");
+    if (ni != item.MemberEnd() && ni->value.IsString())
+      entry.name = ni->value.GetString();
+    else
+      entry.name = "Unknown";
 
-      auto ni = item.FindMember("name");
-      if (ni != item.MemberEnd() && ni->value.IsString())
-        entry.name = ni->value.GetString();
-      else
-        entry.name = "Unknown";
+    seen.insert(entry.steam_id);
+    loaded.push_back(std::move(entry));
+    if (loaded.size() == MAX_FRIENDS)
+      break;
+  }
 
-      entry.state = status::offline;
-
-      bool exists = false;
-      for (const friend_entry &e : state.list) {
-        if (e.steam_id == entry.steam_id) {
-          exists = true;
+  bool changed{};
+  friends_data.access([&](friend_state &state) {
+    changed = state.list.size() != loaded.size();
+    if (!changed) {
+      for (size_t i = 0; i < loaded.size(); ++i) {
+        if (state.list[i].steam_id != loaded[i].steam_id ||
+            state.list[i].name != loaded[i].name) {
+          changed = true;
           break;
         }
       }
-      if (!exists)
-        state.list.push_back(std::move(entry));
     }
+
+    if (!changed)
+      return;
+
+    for (auto &entry : loaded) {
+      const auto existing = std::ranges::find(state.list, entry.steam_id,
+                                              &friend_entry::steam_id);
+      if (existing == state.list.end())
+        continue;
+      entry.state = existing->state;
+      entry.server_address = existing->server_address;
+      entry.join_token = existing->join_token;
+    }
+    state.list = std::move(loaded);
   });
+
+  return changed;
 }
 
 // Resolves the address other players can use to connect to us
@@ -294,6 +318,11 @@ std::string get_own_connect_address() {
 }
 
 } // namespace
+
+void reload_from_disk() {
+  if (load_friends())
+    notify_presence_changed();
+}
 
 void add_friend(game::XUID steam_id, const std::string &fname) {
   if (steam_id == 0)
@@ -562,6 +591,8 @@ bool connect_to_friend(game::XUID steam_id) {
 void notify_presence_changed() { queue_social_update(); }
 
 void refresh_presence() {
+  reload_from_disk();
+
   if (presence_refreshing.exchange(true))
     return;
 
@@ -692,7 +723,7 @@ game::XUID find_browser_route(const std::string &address) {
 
 struct component final : client_component {
   void post_unpack() override {
-    load_friends();
+    reload_from_disk();
 
     game::register_dvar_bool("friends_open", false, game::DVAR_NONE,
                              "Advertise this private match to saved friends");
