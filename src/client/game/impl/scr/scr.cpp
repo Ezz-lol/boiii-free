@@ -30,8 +30,7 @@ Scr_GetArray(scriptInstance_t inst, var::ScrVarIndex_t idx) {
     std::vector<volatile var::ScrVarValue_t *> result = {nullptr};
     result.resize(len);
 
-    for (uint32_t i = 0;
-         i < len && element && element->value.type == var::ScrVarType::ARRAY;
+    for (uint32_t i = 0; i < len && element;
          ++i, element = element->next_sibling(inst)) {
       result.push_back(&element->value);
     }
