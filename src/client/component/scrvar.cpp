@@ -13,6 +13,7 @@ namespace scrvar {
 using namespace game;
 using namespace game::scr;
 using namespace game::scr::var;
+using namespace scr::mt;
 
 utils::hook::detour ScrVar_AddRefValue_hook;
 void ScrVar_AddRefValue_Safe(scriptInstance_t inst,
@@ -50,7 +51,17 @@ utils::hook::detour ScrVar_ReleaseValue_hook;
 void ScrVar_ReleaseValue_Safe(scriptInstance_t inst,
                               volatile ScrVarValue_t *value) {
   if (valid_scrvarvalue_ptr(inst, value)) {
-    if (valid_scrvarvalue(value)) {
+    if (valid_scrvarvalue(value) &&
+        /* Do not attempt to free compile-time constant vectors
+           embedded in script bytecode.
+
+           Required in addition to the `MT_Free` hook below to ensure
+           that there is no attempt to decrement the non-existent refcount for
+           the vector in the memory pool.
+        */
+        (value->type != ScrVarType::VECTOR ||
+         gScrMemTreeGlob->nodePool->contains(value->u.vectorValue))) {
+
       ScrVar_ReleaseValue_hook.invoke(inst, value);
     } else {
       value->type = ScrVarType::UNDEFINED;
@@ -92,7 +103,38 @@ void ScrVar_EvalArray_DefaultEmpty(scriptInstance_t inst,
     }
   }
 }
-void stub_func() { return; }
+
+/*
+  The engine attempts to free compile-time constant, bytecode-allocated
+  vectors upon release, under the erroneous assumption that all script vectors
+  were allocated by the script memory tree.
+
+  This is a bug. Compile-time constant vectors can also be embedded directly
+  into the script bytecode when using the `GetVector` opcode. Attempt to free a
+  vector embedded into the script bytecode as though it were allocated in the
+  script MemoryTree node pool results in a memory access exception.
+
+  Treyarch circumvents this issue by never emitting the `GetVector` opcode
+  in their GSC compiler. Upon attempting to use this opcode in our GSC compiler,
+  this bug was encountered.
+
+  We _could_ circumvent this bug the same way Treyarch does - by always
+  using MemoryTree-allocated vectors via the `Vector` opcode, even where
+  the vector is a compile-time constant - but this would be less performant at
+  runtime.
+
+  Thus, the below hook is used to ensure that a given allocation pointer is
+  only used for an attempted free if it is a valid pointer to a node in
+  gScrMemTreeGlob's node pool. Usage of an invalid node pointer - such as a
+  pointer to a vector embedded in a script's bytecode - will result in an
+  immediate return, without an attempted free.
+*/
+utils::hook::detour MT_Free_hook;
+void MT_Free_IfValid(volatile void *ptr, int32_t numBytes) {
+  if (gScrMemTreeGlob->nodePool && gScrMemTreeGlob->nodePool->contains(ptr)) {
+    MT_Free_hook.invoke(ptr, numBytes);
+  }
+}
 
 utils::hook::detour ScrVar_CastBool_NonInteger_hook;
 utils::hook::detour Scr_IsTrue_hook;
@@ -117,9 +159,16 @@ inline void handle_invalid_scrvars() {
                          game::scr::var::Scr_IsTrue_Impl);
 }
 
-class component final : public client_component {
+inline void handle_invalid_mt_allocs() {
+  MT_Free_hook.create(MT_Free, MT_Free_IfValid);
+}
+
+class component final : public generic_component {
 public:
-  void post_unpack() override { handle_invalid_scrvars(); }
+  void post_unpack() override {
+    handle_invalid_scrvars();
+    handle_invalid_mt_allocs();
+  }
 };
 } // namespace scrvar
 REGISTER_COMPONENT(scrvar::component);
