@@ -138,21 +138,19 @@ namespace {
 
 inline void remove_no_cg_array_sys_error_branches() {
   for (const uintptr_t branch : NO_CG_ARRAY_SYS_ERROR_BRANCHES) {
-    utils::hook::nop_branch(game::relocate(branch));
+    utils::hook::nop_branch(relocate(branch));
   }
 }
 
 static std::once_flag assign_pool_pointers_flag;
 void assign_pool_pointers() {
-  *game::cg::builtin_cgArray =
-      reinterpret_cast<game::level::cl::cgPool *>(&cgArray);
+  *builtin_cgArray = reinterpret_cast<cgPool *>(&cgArray);
 
-  *game::cg::builtin_cgsArray =
-      reinterpret_cast<game::level::cl::cgsPool *>(&cgsArray);
+  *builtin_cgsArray = reinterpret_cast<cgsPool *>(&cgsArray);
 
-  game::cg::builtin_cg_entitiesArray->pools[0] = &cg_entitiesArray[0];
+  builtin_cg_entitiesArray->pools[0] = &cg_entitiesArray[0];
 
-  game::cg::builtin_cg_entitiesArray->pools[1] = &cg_entitiesArray[1];
+  builtin_cg_entitiesArray->pools[1] = &cg_entitiesArray[1];
 }
 
 void reset_pools() {
@@ -189,10 +187,9 @@ void NitrousVehicle_unpause_physics_always_collide_wheels(
     NitrousVehicle *self) {
   NitrousVehicle_unpause_physics_hook.invoke(self);
   {
-    const sys::ScopedCriticalSection _critsect =
-        game::sys::ScopedCriticalSection(
-            sys::CriticalSection::PHYSICS,
-            sys::ScopedCriticalSection::ScopedCriticalSectionType::NORMAL);
+    const sys::ScopedCriticalSection _critsect = sys::ScopedCriticalSection(
+        sys::CriticalSection::PHYSICS,
+        sys::ScopedCriticalSection::ScopedCriticalSectionType::NORMAL);
 
     if (!self->m_vehicle_def->useHeliBoneControllers &&
         self->m_flags.initialized) {
