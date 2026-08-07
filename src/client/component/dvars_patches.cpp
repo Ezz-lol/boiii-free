@@ -6,6 +6,7 @@
 #include "scheduler.hpp"
 
 #include <utils/string.hpp>
+#include <utils/flags.hpp>
 #include <utils/hook.hpp>
 
 namespace dvars_patches {
@@ -47,9 +48,11 @@ inline void enable_cheat_dvars() {
 }
 
 inline void enable_debug_dvars() {
-  dvar_force_enable_boolstring(*game::g_vehicleDrawPath);
-  dvar_force_enable(*game::g_vehicleDrawSplines);
-  dvar_force_enable(*game::g_vehicleDebug);
+  if (utils::flags::has_flag("vehicle-debug")) {
+    dvar_force_enable_boolstring(*game::g_vehicleDrawPath);
+    dvar_force_enable(*game::g_vehicleDrawSplines);
+    dvar_force_enable(*game::g_vehicleDebug);
+  }
 }
 #endif
 

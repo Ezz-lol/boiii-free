@@ -32,6 +32,10 @@ inline void add_debug_profile_arguments() {
       .help("Trace all script built-in API function and method calls.")
       .default_value(false)
       .implicit_value(true);
+  program.add_argument("-vd", "-vehicle-debug", "--vehicle-debug")
+      .help("Enable vehicle debug dvars.")
+      .default_value(false)
+      .implicit_value(true);
 }
 #endif
 
