@@ -40,10 +40,10 @@ struct Mat43 {
   }
 
   /*
-      Constructs a Mat43 from 3D vectors, expanding them into 4D homogeneous
-     vectors. Direction axes (x, y, z) receive a homogeneous w-component of
-     0.0f. The position vector (w) receives a homogeneous w-component of 1.0f.
-    */
+    Constructs a Mat43 from 3D vectors, expanding them into 4D homogeneous
+    vectors. Direction axes (x, y, z) receive a homogeneous w-component of
+    0.0f. The position vector (w) receives a homogeneous w-component of 1.0f.
+  */
   static inline constexpr Mat43 from(const vec3_t x, const vec3_t y,
                                      const vec3_t z, const vec3_t w) {
     Mat43 m;
