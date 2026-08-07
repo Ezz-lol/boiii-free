@@ -28,6 +28,10 @@ inline void add_debug_profile_arguments() {
             "before the file extension, if any, or the end of the file name "
             "otherwise.")
       .default_value(std::string("debug.log"));
+  program.add_argument("-sct", "-scr-trace", "--scr-trace")
+      .help("Trace all script built-in API function and method calls.")
+      .default_value(false)
+      .implicit_value(true);
 }
 #endif
 
