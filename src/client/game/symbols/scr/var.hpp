@@ -281,7 +281,11 @@ inline bool ScrVarValue_t::array_like(scriptInstance_t inst) volatile {
 
 inline volatile ScrVar_t *
 ScrVar_t::next_sibling(scriptInstance_t inst) volatile {
-  return &vm::gScrVarGlob->instance[inst].scriptVariables[nextSibling];
+  if (valid_scrvar_index(inst, nextSibling)) {
+    return &vm::gScrVarGlob->instance[inst].scriptVariables[nextSibling];
+  }
+
+  return nullptr;
 }
 
 } // namespace var

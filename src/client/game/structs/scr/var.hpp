@@ -237,7 +237,8 @@ inline ScrVar_t *ScrVarValue_t::var() noexcept {
 
 inline volatile ScrVarValue_t *
 ScrVarValue_t::next_sibling(scriptInstance_t inst) volatile {
-  return &var()->next_sibling(inst)->value;
+  volatile ScrVar_t *next_sibling_var = var()->next_sibling(inst);
+  return next_sibling_var ? &next_sibling_var->value : nullptr;
 }
 
 #pragma pack(push, 1)

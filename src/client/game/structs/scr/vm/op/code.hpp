@@ -21,10 +21,10 @@ typedef uint16_t OP_TYPE;
 
   These do not correspond to bytecode value or jump table order.
 
-  The jump table mapping in the T7 engine is highly irregular, even across all other
-  CoD engines. Opcodes are ordered seemingly randomly across and within the jump
-  tables, and most are repeated many times - there are 0x4000 combined entries
-  in the two jump tables, but < 0xFF unique opcodes.
+  The jump table mapping in the T7 engine is highly irregular, even across all
+  other CoD engines. Opcodes are ordered seemingly randomly across and within
+  the jump tables, and most are repeated many times - there are 0x4000 combined
+  entries in the two jump tables, but < 0xFF unique opcodes.
 
   As such, this mapping serves to differentiate known opcodes by functionality,
   uniquely, for use in:
@@ -163,8 +163,8 @@ enum class Opcode : uint8_t {
 
     In any case, for most of these functions, we do not have access to the
     conditionally compiled, complete contents in the latest bytecode revision
-    (0x1C) - we cannot reverse engineer the operation executed by the function. Thus,
-    each is instead labelled with a generic `StubbedUnknownOrInvalid`
+    (0x1C) - we cannot reverse engineer the operation executed by the function.
+    Thus, each is instead labelled with a generic `StubbedUnknownOrInvalid`
     enumeration.
 
     This should be inconsequential - none of these opcodes are useful in release
@@ -3315,8 +3315,8 @@ inline constexpr const frozen::unordered_map<Opcode, std::array<OP_TYPE, 0x86>,
 /*
    This is currently only used to get the length of a VM jump table elsewhere.
 
-   The definition is retained here rather than only a definition for the length of a
-   jump table because this is useful:
+   The definition is retained here rather than only a definition for the length
+   of a jump table because this is useful:
     - As a reference for reverse engineering the jump tables in the engine and
    straightforward conceptual understanding of opcode-related logic and other
    opcode-related datasets
@@ -19728,8 +19728,7 @@ inline constexpr std::array<std::array<Opcode, 0x2000>, 2>
              Opcode::UnknownOrInvalid,
              Opcode::GetVector,
              Opcode::GetWorld,
-             Opcode::GetEmptyArray
-            })};
+             Opcode::GetEmptyArray})};
 } // namespace op
 } // namespace vm
 } // namespace scr
