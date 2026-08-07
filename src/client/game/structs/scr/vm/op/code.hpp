@@ -18,10 +18,10 @@ typedef uint16_t OP_TYPE;
 
 /*
   Logical map of unique opcode types.
-  These do note correspond to bytecode value,
-  or jump table order.
 
-  Jump table mapping in the T7 engine is highly irregular, even across all other
+  These do not correspond to bytecode value or jump table order.
+
+  The jump table mapping in the T7 engine is highly irregular, even across all other
   CoD engines. Opcodes are ordered seemingly randomly across and within the jump
   tables, and most are repeated many times - there are 0x4000 combined entries
   in the two jump tables, but < 0xFF unique opcodes.
@@ -29,7 +29,7 @@ typedef uint16_t OP_TYPE;
   As such, this mapping serves to differentiate known opcodes by functionality,
   uniquely, for use in:
   - the GSC compiler opcode emitter
-  - The opcode -> corresponding opcode bytecode value(s) mapping, belowi
+  - The opcode -> corresponding bytecode value(s) mapping, below
 */
 enum class Opcode : uint8_t {
   Bit_And = 0x00,
@@ -152,25 +152,24 @@ enum class Opcode : uint8_t {
   WaitRealTime = 0x73,
 
   /*
-   This is an all-emcompassing enumeration for opcodes which have
-   stubbed handlers in the engine - their handler functions immediately return.
+    This is an all-emcompassing enumeration for opcodes which have
+    stubbed handlers in the engine - their handler functions immediately return.
 
-   Some of these are simply unused or invalid functions.
+    Some of these are simply unused or invalid functions.
 
-   Others are special functions which are conditionally compiled to perform
-   functionality in specific build profiles - profiling or debug builds,
-   generally.
+    Others are special functions which are conditionally compiled to perform
+    functionality in specific build profiles - profiling or debug builds,
+    generally.
 
-   In any case, for most of these functions, we do not have access to the
-   conditionally compiled, complete contents in the latest bytecode revision
-   (0x1C)
-   - we cannot reverse engineer the operation executed by the function. Thus,
-   each is instead labelled with a generic `StubbedUnknownOrInvalid`
-  enumeration.
+    In any case, for most of these functions, we do not have access to the
+    conditionally compiled, complete contents in the latest bytecode revision
+    (0x1C) - we cannot reverse engineer the operation executed by the function. Thus,
+    each is instead labelled with a generic `StubbedUnknownOrInvalid`
+    enumeration.
 
-   This should be inconsequential - none of these opcodes are useful in release
-   builds.
-*/
+    This should be inconsequential - none of these opcodes are useful in release
+    builds.
+  */
   UnknownOrInvalid = 0xFF,
 
   Count = 0x74,
@@ -179,7 +178,7 @@ IMPL_ENUM_OPERATORS(Opcode);
 
 // For debug logging
 #ifndef NDEBUG
-inline const char *serialize(vm::op::Opcode opcode) {
+inline constexpr const char *serialize(vm::op::Opcode opcode) {
   switch (opcode) {
   case vm::op::Opcode::Bit_And:
     return "OP_Bit_And";
@@ -3314,9 +3313,10 @@ inline constexpr const frozen::unordered_map<Opcode, std::array<OP_TYPE, 0x86>,
            0x3AE8, 0x3CC3, 0x3D2C, 0x3DE7, 0x3F40, 0x3F64}}});
 
 /*
-   Currently only used to get the length of a VM jump table elsewhere.
-   Definition is retained here rather than only a definition for the length of a
-   jump table because this is very useful:
+   This is currently only used to get the length of a VM jump table elsewhere.
+
+   The definition is retained here rather than only a definition for the length of a
+   jump table because this is useful:
     - As a reference for reverse engineering the jump tables in the engine and
    straightforward conceptual understanding of opcode-related logic and other
    opcode-related datasets
@@ -3326,6 +3326,9 @@ inline constexpr const frozen::unordered_map<Opcode, std::array<OP_TYPE, 0x86>,
    being executed. We can then either view or use them at runtime, or dump them
    on exception, showing a callstack similar to what is displayed for a native
    exception.
+
+   Also, the full size of the table in memory is 8KB, so the additional overhead
+   provided by this definition is negligible.
 */
 /*
    The VM jump table opcode handler entries, in order, represented by the opcode
@@ -19726,7 +19729,6 @@ inline constexpr std::array<std::array<Opcode, 0x2000>, 2>
              Opcode::GetVector,
              Opcode::GetWorld,
              Opcode::GetEmptyArray
-
             })};
 } // namespace op
 } // namespace vm

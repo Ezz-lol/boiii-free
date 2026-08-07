@@ -1450,7 +1450,7 @@ struct scr_entref_t {
   inline constexpr bool is_hudelem() const noexcept;
 
 #ifndef NDEBUG
-  template <size_t N>
+  template <const size_t N>
   inline const char *serialize(char (&buf)[N]) const noexcept {
     snprintf(buf, N,
              "scr_entref_t { u.val: 0x%016llX, classnum: 0x%04X, client: %s }",

@@ -19,23 +19,23 @@ void Scr_PlaySoundAtPosition_Impl(scriptInstance_t inst) {
 std::vector<volatile var::ScrVarValue_t *>
 Scr_GetArray(scriptInstance_t inst, var::ScrVarIndex_t idx) {
 
-  volatile var::ScrVarValue_t *array_val = Scr_GetValue(inst, idx);
-  if (array_val) {
-    volatile var::ScrVar_t *array = array_val->var();
-    if (array->value.type == var::ScrVarType::POINTER) {
-      volatile var::ScrVar_t *element = array->deref(inst);
-      if (element->value.type == var::ScrVarType::ARRAY) {
-        const uint32_t len = array->array_len();
-        std::vector<volatile var::ScrVarValue_t *> result = {nullptr};
-        result.resize(len);
-        for (uint32_t i = 0; i < len && element &&
-                             element->value.type == var::ScrVarType::ARRAY;
-             ++i, element = element->next_sibling(inst)) {
-          result.push_back(&element->value);
-        }
-        return result;
-      }
+  if (Scr_GetPointerType(inst, idx) == var::ScrVarType::ARRAY) {
+    const var::ScrVarIndex_t arrayIdx = Scr_GetObject(inst, idx);
+    volatile var::ScrVar_t *element =
+        &vm::gScrVarGlob->instance[inst].scriptVariables[arrayIdx];
+
+    // First array element also contains size of array
+    const uint32_t len = element->array_len();
+
+    std::vector<volatile var::ScrVarValue_t *> result = {nullptr};
+    result.resize(len);
+
+    for (uint32_t i = 0;
+         i < len && element && element->value.type == var::ScrVarType::ARRAY;
+         ++i, element = element->next_sibling(inst)) {
+      result.push_back(&element->value);
     }
+    return result;
   }
   return {};
 }
