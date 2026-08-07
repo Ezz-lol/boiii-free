@@ -2270,9 +2270,9 @@ ASSERT_OFFSET(playerState_s, _paddingB58, 0xB58);
 ASSERT_OFFSET(playerState_s, _padding6BCB, 0x6BCB);
 ASSERT_SIZE(playerState_s, 0xB566);
 /*
-   TODO: this correct size is `0xB570`. This struct needs corrected,
-  Other structs using this one as a field also need to be corrected such that
-  all other known-correct offsets stay valid.
+   TODO: this correct size is `0xB570`. This struct needs corrected.
+   Other structs using this one as a field also need to be corrected such that
+   all other known-correct offsets stay valid.
 */
 typedef playerState_s playerState_t;
 #pragma pack(pop)

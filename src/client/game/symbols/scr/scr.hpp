@@ -12,4 +12,5 @@
 #include "vehicle.hpp"         // IWYU pragma: export
 #include "vm/vm.hpp"           // IWYU pragma: export
 #include "mt.hpp"              // IWYU pragma: export
+#include "place.hpp"           // IWYU pragma: export
 #include "builtin/builtin.hpp" // IWYU pragma: export

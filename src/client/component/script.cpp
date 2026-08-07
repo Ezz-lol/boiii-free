@@ -416,7 +416,8 @@ void load_script(const std::string &input_name, const std::string &data,
 
   std::string base_name = name;
   if (!is_gsc && !is_csc) {
-    printf("Script '%s' failed to load due to invalid suffix.\n", name.data());
+    fprintf(stderr, "Script '%s' failed to load due to invalid suffix.\n",
+            name.data());
     return;
   }
 
@@ -427,7 +428,8 @@ void load_script(const std::string &input_name, const std::string &data,
 
   base_name = name.substr(0, name.size() - 4);
   if (base_name.empty()) {
-    printf("Script '%s' failed to load due to invalid name.\n", name.data());
+    fprintf(stderr, "Script '%s' failed to load due to invalid name.\n",
+            name.data());
     return;
   }
 
@@ -440,7 +442,8 @@ void load_script(const std::string &input_name, const std::string &data,
   fixup_script_imports(const_cast<uint8_t *>(raw_file->buffer), raw_file->len);
 
   loaded_scripts[name] = raw_file;
-  printf("Loaded script '%s' (size %llu bytes)\n", name.data(), raw_file->len);
+  fprintf(stdout, "Loaded script '%s' (size %llu bytes)\n", name.data(),
+          raw_file->len);
 
   if (load) {
     const scriptInstance_t inst =
@@ -449,16 +452,18 @@ void load_script(const std::string &input_name, const std::string &data,
   }
 }
 
-void load_script_file(std::string &data, const std::string &script_file,
+void load_script_file(std::string &data,
+                      const std::filesystem::path &script_file,
                       const bool load) {
+  const std::string script_file_str = script_file.generic_string();
   if (data.size() >= sizeof(GSC_MAGIC) &&
       !std::memcmp(data.data(), &GSC_MAGIC, sizeof(GSC_MAGIC))) {
-    print_loading_script(script_file);
-    load_script(script_file, data, load);
-  } else if ((utils::string::ends_with(script_file, ".gsc") ||
-              utils::string::ends_with(script_file, ".csc")) &&
+    print_loading_script(script_file_str);
+    load_script(script_file_str, data, load);
+  } else if ((utils::string::ends_with(script_file_str, ".gsc") ||
+              utils::string::ends_with(script_file_str, ".csc")) &&
              !data.empty()) {
-    const bool is_csc = utils::string::ends_with(script_file, ".csc");
+    const bool is_csc = utils::string::ends_with(script_file_str, ".csc");
     const char *script_type = is_csc ? "CSC" : "GSC";
 
     // Skip CSC on dedicated server
@@ -468,9 +473,9 @@ void load_script_file(std::string &data, const std::string &script_file,
     // Strip devblocks before compilation
     std::string cleaned_source = strip_devblocks(data);
 
-    printf("Compiling %s script '%s'\n", script_type, script_file.data());
+    printf("Compiling %s script '%s'\n", script_type, script_file_str.c_str());
     gsc_compiler::compile_result result =
-        gsc_compiler::compile(cleaned_source, script_file);
+        gsc_compiler::compile(cleaned_source, script_file_str);
     if (result.success) {
       std::string bytecode(result.bytecode.begin(), result.bytecode.end());
 
@@ -480,14 +485,23 @@ void load_script_file(std::string &data, const std::string &script_file,
       }
 
       // Store original source text for this file
-      script_sources[script_file] = data;
+      script_sources[script_file_str] = data;
 
-      print_loading_script(script_file);
-      load_script(script_file, bytecode, load);
+#ifndef NDEBUG
+      // Dump compiled bytecode to file for debugging
+      // ".gsc" -> ".gscc", ".csc" -> ".cscc"
+      const std::filesystem::path compile_out_path = script_file_str + "c";
+
+      utils::io::write_file_bytes(compile_out_path, result.bytecode.data(),
+                                  result.bytecode.size(), false);
+#endif
+
+      print_loading_script(script_file_str);
+      load_script(script_file_str, bytecode, load);
 
       // Register replacefunc entries as pending detours
       if (!result.replacefuncs.empty()) {
-        std::string replace_base = script_file;
+        std::string replace_base = script_file_str;
         if (utils::string::ends_with(replace_base, ".gsc") ||
             utils::string::ends_with(replace_base, ".csc"))
           replace_base = replace_base.substr(0, replace_base.size() - 4);
@@ -555,11 +569,10 @@ void load_scripts_folder(const std::string &script_dir, const bool load,
       utils::io::list_files(script_dir, recurse, false);
   for (const auto &script : scripts) {
     std::string data;
-    std::string script_path_str = script.generic_string();
     if (!std::filesystem::is_directory(script) &&
-        utils::io::read_file(script_path_str, &data)) {
+        utils::io::read_file(script, &data)) {
 
-      load_script_file(data, script_path_str, load);
+      load_script_file(data, script, load);
     }
   }
 }

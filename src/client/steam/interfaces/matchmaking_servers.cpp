@@ -305,6 +305,7 @@ void *matchmaking_servers::RequestFriendsServerList(
   friends_response = pRequestServersResponse;
   friends_refreshing = true;
 
+  ::friends::reload_from_disk();
   ::friends::reset_master_presence();
   uint64_t generation{};
   {

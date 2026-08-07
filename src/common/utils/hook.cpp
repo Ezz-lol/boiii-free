@@ -843,7 +843,7 @@ void nop_branch(uint8_t *ptr) {
       }
     }
 
-    // 3. Dispatch to the existing nop() hook using the calculated length
+    // 3. Nop the calculated number of branch op bytes
     if (branch_len > 0) {
       nop(ptr, branch_len);
     }

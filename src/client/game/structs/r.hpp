@@ -27,8 +27,8 @@ struct vidConfig_t {
   uint32_t sceneWidth;
   uint32_t sceneHeight;
   float sceneAspectRatio;
-  float displayWidth;
-  float displayHeight;
+  int32_t displayWidth;
+  int32_t displayHeight;
   float displayAspectRatio;
   qboolean isFullscreen;
   qboolean isWideScreen;

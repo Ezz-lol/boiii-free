@@ -30,6 +30,7 @@ struct friend_server_info {
 void add_friend(uint64_t steam_id, const std::string &name);
 void remove_friend(uint64_t steam_id);
 bool is_friend(uint64_t steam_id);
+void reload_from_disk();
 
 int get_friend_count();
 friend_entry get_friend_by_index(int index);

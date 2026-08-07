@@ -36,7 +36,10 @@ inline void flush_stack(scriptInstance_t inst,
   _mm_clflush(&game::scr::vm::gScrVarGlob->instance[inst]);
   _mm_mfence();
 
-  _mm_clflush(&game::scr::vm::gScrVarGlob->instance[inst].scriptVariables);
+  _mm_clflush(game::scr::vm::gScrVarGlob->instance[inst].scriptVariables);
+  _mm_mfence();
+
+  _mm_clflush(&game::scr::vm::gFs->instance[inst]);
   _mm_mfence();
 }
 

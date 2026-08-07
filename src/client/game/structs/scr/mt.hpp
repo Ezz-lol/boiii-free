@@ -118,7 +118,7 @@ ASSERT_SIZE(scrMemTreePub_t, 0x8);
 // Verified
 PACKED(struct scrMemTreeGlob_t {
   // Field is defined as `MemoryNode *nodes` in engine
-  GScrMemoryTreeServerNodePool *nodePool;
+  volatile GScrMemoryTreeServerNodePool *nodePool;
   uint8_t _padding08[0x78];
   uint8_t leftBits[256];
   uint8_t numBits[256];

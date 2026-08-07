@@ -2,6 +2,9 @@
 #ifndef NDEBUG
 
 #include "gsc_funcs.hpp"
+
+#include <utils/flags.hpp>
+
 #include "loader/component_interface.hpp"
 #include "loader/component_loader.hpp"
 
@@ -5732,7 +5735,11 @@ inline void log_all_builtin_calls() {
 }
 
 struct component final : server_component {
-  void post_unpack() override { log_all_builtin_calls(); }
+  void post_unpack() override {
+    if (utils::flags::has_flag("scr-trace")) {
+      log_all_builtin_calls();
+    }
+  }
 };
 } // namespace debug
 } // namespace gsc
