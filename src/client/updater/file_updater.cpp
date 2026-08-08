@@ -171,7 +171,7 @@ void file_updater::create_config_file_if_not_exists() const {
     return;
   }
 
-  utils::io::write_file(config_path.string(), {}, false);
+  utils::io::write_file(config_path.string(), std::string(), false);
 }
 
 void file_updater::run() const {

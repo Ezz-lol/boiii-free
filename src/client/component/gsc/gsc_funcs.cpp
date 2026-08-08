@@ -332,6 +332,15 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
 
       volatile bgCachedGenericData *data =
           &s_bgCache->server.dataSet.localizedStrings[pool_entry->get_idx()];
+
+#ifndef NDEBUG
+      trace("[Scr][HECmd_SetText] Localized config string entry with "
+            "index 0x%lX, "
+            "absolute config string index 0x%lX: got localized string data "
+            "pointer: 0x%p",
+            pool_entry->get_idx(), pool_entry->abs_idx(),
+            game::derelocate(data));
+#endif
       data->setName(cleaned_message_buf);
       if (!data->refCount) {
         data->add_ref();

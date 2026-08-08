@@ -32,29 +32,6 @@ bool file_exists(const std::filesystem::path &file) {
   return std::ifstream(file).good();
 }
 
-bool write_file(const std::filesystem::path &file, const std::string &data,
-                const bool append) {
-  if (file.has_parent_path()) {
-    const std::filesystem::path parent = file.parent_path();
-    utils::io::create_directory(parent);
-  }
-
-  int32_t flags = std::ios::binary | std::ofstream::out;
-  if (append) {
-    flags |= std::ofstream::app;
-  }
-  std::ofstream stream(file, flags);
-
-  if (stream.is_open()) {
-    stream.write(data.data(), static_cast<std::streamsize>(data.size()));
-    stream.flush();
-    stream.close();
-    return true;
-  }
-
-  return false;
-}
-
 bool write_file_bytes(const std::filesystem::path &file, const uint8_t *data,
                       size_t size, const bool append) {
   if (file.has_parent_path()) {

@@ -25,7 +25,7 @@ template <typename T> union ScrPool {
   };
 
   // Minimum, optimized primitive for indexing the pool that can contain all
-  // values 0 < index < BGCachecTypes::COUNT
+  // values 0 <= index < BGCachecTypes::COUNT
   using index_t = uint8_t;
 
   inline constexpr void assert_range(size_t index) const {
@@ -1685,12 +1685,12 @@ struct Camera {
   vec3_t lastTagCameraAngles;
 };
 
-#pragma pack(push, 1)
-struct GSC_OBJ {
+PACKED(struct GSC_OBJ {
   str8_t magic;
   uint32_t source_crc;
   uint32_t include_offset;
   uint32_t animtree_offset;
+  // Bytecode
   uint32_t cseg_offset;
   uint32_t stringtablefixup_offset;
   uint32_t devblock_stringtablefixup_offset;
@@ -1698,7 +1698,9 @@ struct GSC_OBJ {
   uint32_t imports_offset;
   uint32_t fixup_offset;
   uint32_t profile_offset;
+  // Bytecode
   uint32_t cseg_size;
+  // Offset
   uint32_t name;
   uint16_t stringtablefixup_count;
   uint16_t exports_count;
@@ -1710,9 +1712,41 @@ struct GSC_OBJ {
   uint8_t animtree_count;
   uint8_t flags;
   uint8_t _padding47[1];
-};
+
+  inline constexpr void setMagic(const str8_t &val) noexcept {
+    magic[0] = val[0];
+    magic[1] = val[1];
+    magic[2] = val[2];
+    magic[3] = val[3];
+    magic[4] = val[4];
+    magic[5] = val[5];
+    magic[6] = val[6];
+    magic[7] = val[7];
+  }
+
+  inline constexpr void setMagic(
+      const std::array<char, sizeof(uint64_t)> &val) noexcept {
+    magic[0] = val[0];
+    magic[1] = val[1];
+    magic[2] = val[2];
+    magic[3] = val[3];
+    magic[4] = val[4];
+    magic[5] = val[5];
+    magic[6] = val[6];
+    magic[7] = val[7];
+  }
+
+  static inline constexpr const std::array<char, sizeof(uint64_t)> T7_MAGIC = {
+      '\x80', 'G', 'S', 'C', '\r', '\n', '\x00', '\x1C'};
+  // static inline constexpr const uint32_t T7_SRC_CRC = 0x4C492053;
+
+  static inline constexpr GSC_OBJ t7() noexcept {
+    GSC_OBJ result = {};
+    result.setMagic(T7_MAGIC);
+    return result;
+  }
+});
 ASSERT_SIZE(GSC_OBJ, 0x48);
-#pragma pack(pop)
 
 struct GSC_ANIMTREE_ITEM {
   uint32_t name;
@@ -1747,6 +1781,90 @@ union scrChecksum_t {
 };
 ASSERT_SIZE(scrChecksum_t, sizeof(uint32_t) * 3);
 ASSERT_CPP03_POD(scrChecksum_t);
+
+struct GSC_GDB {
+  str8_t magic;
+  uint32_t version;
+  uint32_t source_crc;
+  uint32_t lineinfo_offset;
+  uint32_t lineinfo_count;
+  uint32_t devblock_stringtable_offset;
+  uint32_t devblock_stringtable_count;
+  uint32_t stringtable_offset;
+  uint32_t stringtable_count;
+
+  static inline constexpr const std::array<char, sizeof(uint64_t)> T7_MAGIC = {
+      '\x80', 'G', 'D', 'B', '\r', '\n', '\x00', '\x13'};
+  static inline constexpr const uint32_t T7_VERSION = 0;
+
+  inline constexpr void setMagic(const str8_t &val) noexcept {
+    magic[0] = val[0];
+    magic[1] = val[1];
+    magic[2] = val[2];
+    magic[3] = val[3];
+    magic[4] = val[4];
+    magic[5] = val[5];
+    magic[6] = val[6];
+    magic[7] = val[7];
+  }
+
+  inline constexpr void
+  setMagic(const std::array<char, sizeof(uint64_t)> &val) noexcept {
+    magic[0] = val[0];
+    magic[1] = val[1];
+    magic[2] = val[2];
+    magic[3] = val[3];
+    magic[4] = val[4];
+    magic[5] = val[5];
+    magic[6] = val[6];
+    magic[7] = val[7];
+  }
+
+  static inline constexpr GSC_GDB t7() noexcept {
+    GSC_GDB result = {};
+    result.setMagic(T7_MAGIC);
+    return result;
+  }
+  // static inline constexpr const uint32_t T7_SRC_CRC = 0xCA50E0EF;
+};
+ASSERT_SIZE(GSC_GDB, 0x28);
+
+PACKED(struct debugFileInfo_t {
+  const char *filename;
+  void *startAddr;
+  void *endAddr;
+  uint8_t **lineStartAddr;
+  int32_t lineStartAddrCount;
+  uint8_t _padding24[4];
+  char *source;
+  int32_t sourceLen;
+  uint8_t _padding34[4];
+  GSC_GDB *gdb;
+});
+
+struct gscProfileInfo_t;
+PACKED(struct gscProfileInfo_t {
+  gscProfileInfo_t *execNext;
+  ScrVarCanonicalName_t fileName;
+  ScrVarCanonicalName_t funcName;
+  uint64_t inclusive_time;
+  uint64_t exclusive_time;
+  uint64_t hit_count;
+});
+ASSERT_SIZE(gscProfileInfo_t, 0x28);
+
+PACKED(struct objFileInfo_t {
+  GSC_OBJ *activeVersion;
+  int32_t slot;
+  int32_t refCount;
+  uint32_t groupId;
+  uint8_t _padding14[4];
+  debugFileInfo_t debugInfo;
+  gscProfileInfo_t *profileInfo;
+  int32_t profileInfoCount;
+  uint8_t _padding64[4];
+});
+ASSERT_SIZE(objFileInfo_t, 0x68);
 
 } // namespace scr
 } // namespace game

@@ -6,8 +6,6 @@
 namespace gsc {
 using namespace game::scr;
 
-constexpr uint64_t T7_MAGIC = 0x1C000A0D43534780;
-
 struct hash_name_pair {
   uint32_t hash;
   std::string name;

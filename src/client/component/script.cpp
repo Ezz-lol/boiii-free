@@ -9,6 +9,7 @@
 
 #include <unordered_map>
 #include <utils/memory.hpp>
+#include <utils/compression.hpp>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include <utils/io.hpp>
@@ -379,8 +380,13 @@ struct hash_info {
   uint8_t params;
 };
 std::unordered_map<uint32_t, std::vector<hash_info>> script_hash_names;
-
 std::unordered_map<std::string, std::string> script_sources;
+
+std::unordered_map<std::string, std::vector<uint8_t>> script_gdbs;
+
+void add_gdb(const std::string &name, std::vector<uint8_t> gdb) {
+  script_gdbs[name + ".gdb"] = std::move(gdb);
+}
 
 RawFile *get_loaded_script(const std::string &name) {
   const auto itr = loaded_scripts.find(name);
@@ -392,24 +398,8 @@ void print_loading_script(const std::string &name) {
   printf("Loading %s script '%s'\n", type, name.data());
 }
 
-void load_script(const std::string &input_name, const std::string &data,
+void load_script(const std::string &name, const std::string &data,
                  const bool load) {
-
-  std::string name = std::string(input_name);
-  const std::string appdata_path =
-      (game::get_appdata_path() / "data/").generic_string();
-  const std::string host_path =
-      (utils::nt::library{}.get_folder() / "boiii/").generic_string();
-
-  size_t i = name.find(appdata_path);
-  if (i != std::string::npos) {
-    name.erase(i, appdata_path.length());
-  }
-
-  i = name.find(host_path);
-  if (i != std::string::npos) {
-    name.erase(i, host_path.length());
-  }
 
   const bool is_csc = utils::string::ends_with(name, ".csc");
   const bool is_gsc = utils::string::ends_with(name, ".gsc");
@@ -466,6 +456,22 @@ void load_script_file(std::string &data,
     const bool is_csc = utils::string::ends_with(script_file_str, ".csc");
     const char *script_type = is_csc ? "CSC" : "GSC";
 
+    std::string name = script_file_str;
+    const std::string appdata_path =
+        (game::get_appdata_path() / "data/").generic_string();
+    const std::string host_path =
+        (utils::nt::library{}.get_folder() / "boiii/").generic_string();
+
+    size_t i = name.find(appdata_path);
+    if (i != std::string::npos) {
+      name.erase(0, i + appdata_path.length());
+    }
+
+    i = name.find(host_path);
+    if (i != std::string::npos) {
+      name.erase(0, i + host_path.length());
+    }
+
     // Skip CSC on dedicated server
     if (is_csc && game::is_server())
       return;
@@ -473,9 +479,9 @@ void load_script_file(std::string &data,
     // Strip devblocks before compilation
     std::string cleaned_source = strip_devblocks(data);
 
-    printf("Compiling %s script '%s'\n", script_type, script_file_str.c_str());
+    printf("Compiling %s script '%s'\n", script_type, name.c_str());
     gsc_compiler::compile_result result =
-        gsc_compiler::compile(cleaned_source, script_file_str);
+        gsc_compiler::compile(cleaned_source, name);
     if (result.success) {
       std::string bytecode(result.bytecode.begin(), result.bytecode.end());
 
@@ -485,23 +491,29 @@ void load_script_file(std::string &data,
       }
 
       // Store original source text for this file
-      script_sources[script_file_str] = data;
+      script_sources[name] = data;
 
 #ifndef NDEBUG
       // Dump compiled bytecode to file for debugging
       // ".gsc" -> ".gscc", ".csc" -> ".cscc"
-      const std::filesystem::path compile_out_path = script_file_str + "c";
+      const std::filesystem::path bytecode_out_path = script_file_str + "c";
 
-      utils::io::write_file_bytes(compile_out_path, result.bytecode.data(),
+      utils::io::write_file_bytes(bytecode_out_path, result.bytecode.data(),
                                   result.bytecode.size(), false);
-#endif
 
-      print_loading_script(script_file_str);
-      load_script(script_file_str, bytecode, load);
+      const std::filesystem::path gdb_out_path = script_file_str + ".gdb";
+      utils::io::write_file_bytes(gdb_out_path, result.gdb.data(),
+                                  result.gdb.size(), false);
+
+#endif
+      add_gdb(name, result.gdb);
+
+      print_loading_script(name);
+      load_script(name, bytecode, load);
 
       // Register replacefunc entries as pending detours
       if (!result.replacefuncs.empty()) {
-        std::string replace_base = script_file_str;
+        std::string replace_base = name;
         if (utils::string::ends_with(replace_base, ".gsc") ||
             utils::string::ends_with(replace_base, ".csc"))
           replace_base = replace_base.substr(0, replace_base.size() - 4);
@@ -516,8 +528,9 @@ void load_script_file(std::string &data,
         }
       }
     } else {
-      auto get_source_line = [](const std::string &src,
-                                int32_t line_num) -> std::string {
+      const std::function<std::string(const std::string &src, int32_t line_num)>
+          get_source_line =
+              [](const std::string &src, int32_t line_num) -> std::string {
         if (line_num <= 0)
           return "";
         int32_t current = 1;
@@ -612,33 +625,33 @@ void load_tree(std::filesystem::path tree, bool execImmediate = false) {
     load_scripts_folder((boiii_folder / folder).string(), load, recurse);
   };
 
-  std::vector<std::filesystem::path> applicable_custom_script_paths = {
+  std::vector<std::filesystem::path> applicable_tree_dirs = {
       tree / "shared", tree / "core", tree / "codescripts"};
   const std::optional<std::filesystem::path> game_type =
       get_game_type_specific_folder();
   if (game_type.has_value()) {
-    applicable_custom_script_paths.push_back(tree / game_type.value());
+    applicable_tree_dirs.push_back(tree / game_type.value());
   }
 
   const std::optional<std::filesystem::path> map_name =
       get_map_specific_folder();
   if (map_name.has_value()) {
-    applicable_custom_script_paths.push_back(tree / map_name.value());
+    applicable_tree_dirs.push_back(tree / map_name.value());
   }
 
   /*
     First, compile and load each script into our lookup table.
     We must do this before loading any scripts into the VM to ensure all
-    dependencies are available for lookup upon first custom script load.
+    dependencies are available for lookup upon first script load.
   */
-  for (const std::filesystem::path &path : applicable_custom_script_paths) {
+  for (const std::filesystem::path &path : applicable_tree_dirs) {
     load(path, false, true);
   }
   load(tree, false, false);
 
   if (execImmediate) {
-    // Now, load the custom scripts into the VM.
-    for (const std::filesystem::path &path : applicable_custom_script_paths) {
+    // Now, load the scripts into the VM.
+    for (const std::filesystem::path &path : applicable_tree_dirs) {
       load(path, true, true);
     }
     load(tree, true, false);
@@ -707,10 +720,33 @@ void clear_script_memory() {
   std::lock_guard lock(script_load_lock);
 
   loaded_scripts.clear();
+  script_gdbs.clear();
   script_hash_names.clear();
   script_sources.clear();
   pending_detours.clear();
   allocator.clear();
+}
+
+void rebuild_script_gdb() {
+  const std::filesystem::path scriptgdb_archive_path =
+      game::get_game_path() / "zone" / "scriptgdb.zip";
+
+  if (std::filesystem::exists(scriptgdb_archive_path)) {
+    const std::string data = utils::io::read_file(scriptgdb_archive_path);
+    try {
+      const std::unordered_map<std::string, std::vector<uint8_t>>
+          existing_entries = utils::compression::zip::extract(data);
+      for (const auto &[key, value] : existing_entries) {
+        if (!script_gdbs.contains(key)) {
+          script_gdbs[key] = std::move(value);
+        }
+      }
+    } catch (...) {
+    }
+    std::filesystem::remove(scriptgdb_archive_path);
+  }
+
+  utils::compression::zip::write_file(scriptgdb_archive_path, script_gdbs);
 }
 
 void begin_load_scripts_stub(scriptInstance_t inst, int32_t user) {
@@ -721,8 +757,11 @@ void begin_load_scripts_stub(scriptInstance_t inst, int32_t user) {
   if (game::com::Com_IsInGame() && !game::com::Com_IsRunningUILevel()) {
     load_scripts();
 
-    if (!pending_detours.empty())
+    if (!pending_detours.empty()) {
       apply_pending_detours();
+    }
+
+    rebuild_script_gdb();
   }
 }
 
@@ -866,19 +905,21 @@ const char *Scr_PrevCodePos(scriptInstance_t inst, volatile uint8_t *codePos) {
 
 utils::hook::detour Scr_Error_hook;
 void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
+  void *callerAddr = _ReturnAddress();
   if (game::is_server()) {
     game::sv_detailedScriptErrors->set(true);
   }
   if (terminal) {
     vm::gScrVarPub->instance[inst].developer = true;
   }
-  void *callerAddr = _ReturnAddress();
-  const char *error_log = utils::string::va(
-      "Scr_Error called from 0x%p with inst: %s, error: \"%s\", terminal: "
-      "%s\n%s\n",
-      game::derelocate(callerAddr), serialize(inst), error ? error : "NULL",
-      terminal ? "true" : "false",
-      Scr_PrevCodePos(inst, vm::gFs->instance[inst].pos));
+  const char *error_log =
+      utils::string::va("Scr_Error called from 0x%p with inst: %s, pos: 0x%p, "
+                        "error: \"%s\", terminal: "
+                        "%s\n%s\n",
+                        game::derelocate(callerAddr), serialize(inst),
+                        vm::gFs->instance[inst].pos, error ? error : "NULL",
+                        terminal ? "true" : "false",
+                        Scr_PrevCodePos(inst, vm::gFs->instance[inst].pos));
 
   game::trace("%s", error_log);
 

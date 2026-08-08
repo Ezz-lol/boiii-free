@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <filesystem>
 #include <unordered_map>
 
 #define CHUNK 16384u
@@ -21,6 +22,10 @@ private:
   std::unordered_map<std::string, std::string> files_;
 };
 
-std::unordered_map<std::string, std::string> extract(const std::string &data);
+std::unordered_map<std::string, std::vector<uint8_t>>
+extract(const std::string &data);
+void write_file(
+    const std::filesystem::path output,
+    const std::unordered_map<std::string, std::vector<uint8_t>> &entries);
 } // namespace zip
 }; // namespace utils::compression

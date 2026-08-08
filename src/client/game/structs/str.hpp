@@ -1,6 +1,6 @@
 #pragma once
 
-#include "array.hpp"
+#include <structs/array.hpp>
 
 template <const auto N> using str = array<char, N>;
 

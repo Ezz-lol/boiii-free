@@ -52,6 +52,13 @@ uint64_t align_value64(uint64_t val, uint64_t alignment) {
   return (val + alignment - 1) & ~(alignment - 1);
 }
 
+template <typename T>
+void write_aligned(std::vector<uint8_t> &buf, T val, uint64_t alignment) {
+  const uint64_t aligned = align_value64(buf.size(), alignment);
+  buf.resize(aligned + sizeof(val));
+  memcpy(buf.data() + aligned, &val, sizeof(val));
+}
+
 // T7 PC opcode table
 inline OP_TYPE map_opcode(Opcode op) {
   if (OPCODE_BYTECODE_MAP.contains(op)) {
@@ -120,6 +127,11 @@ struct loop_context {
   int32_t continue_label;
 };
 
+struct LineStartAddress {
+  size_t export_index;
+  uint64_t export_offset;
+};
+
 struct emitter_state {
   export_entry *current_func;
   size_t current_export_index;
@@ -148,6 +160,11 @@ struct emitter_state {
   std::vector<gsc::hash_name_pair> hash_names;
   std::vector<replacefunc_entry> replacefuncs;
 
+  struct {
+    std::vector<LineStartAddress> start_addresses;
+    uint64_t current;
+  } line;
+
   void record_hash(const std::string &name, int32_t line = 0,
                    uint8_t params = 0) {
     std::string lower = name;
@@ -168,9 +185,23 @@ struct emitter_state {
     label_positions[id] = static_cast<uint32_t>(current_func->bytecode.size());
   }
 
-  void emit_op(Opcode op) { write_u16(current_func->bytecode, map_opcode(op)); }
+  void update_line_info(uint64_t val) {
+    while (val > line.current || line.start_addresses.empty()) {
+      line.start_addresses.push_back(
+          {.export_index = current_export_index,
+           .export_offset = current_func->bytecode.size()});
+      line.current = std::min(line.current + 1, val);
+    }
+  }
+  void emit_op(Opcode op, uint64_t line) {
+    update_line_info(line);
+    write_u16(current_func->bytecode, map_opcode(op));
+  }
 
-  void emit_u8(uint8_t v) { write_u8(current_func->bytecode, v); }
+  void emit_u8(uint8_t v, uint64_t line) {
+    update_line_info(line);
+    write_u8(current_func->bytecode, v);
+  }
 
   void emit_u16_aligned() {
     uint32_t pos = static_cast<uint32_t>(current_func->bytecode.size());
@@ -186,16 +217,29 @@ struct emitter_state {
       current_func->bytecode.push_back(0);
   }
 
-  void emit_u16(uint16_t v) { write_u16(current_func->bytecode, v); }
-  void emit_u32(uint32_t v) { write_u32(current_func->bytecode, v); }
-  void emit_i16(int16_t v) { write_i16(current_func->bytecode, v); }
-  void emit_float(float v) { write_float(current_func->bytecode, v); }
+  void emit_u16(uint16_t v, uint64_t line) {
+    update_line_info(line);
+    write_u16(current_func->bytecode, v);
+  }
+  void emit_u32(uint32_t v, uint64_t line) {
+    update_line_info(line);
+    write_u32(current_func->bytecode, v);
+  }
+  void emit_i16(int16_t v, uint64_t line) {
+    update_line_info(line);
+    write_i16(current_func->bytecode, v);
+  }
+  void emit_float(float v, uint64_t line) {
+    update_line_info(line);
+    write_float(current_func->bytecode, v);
+  }
 
-  void emit_jump(Opcode op, int32_t target_label) {
-    emit_op(op);
+  void emit_jump(Opcode op, int32_t target_label, uint64_t line) {
+    update_line_info(line);
+    emit_op(op, line);
     emit_u16_aligned();
     uint32_t offset_loc = static_cast<uint32_t>(current_func->bytecode.size());
-    emit_i16(0); // placeholder
+    emit_i16(0, line); // placeholder
     jump_fixups.push_back({offset_loc, offset_loc + 2, target_label});
   }
 
@@ -209,14 +253,14 @@ struct emitter_state {
     return idx;
   }
 
-  void emit_string_ref(Opcode op, const std::string &str) {
+  void emit_string_ref(Opcode op, const std::string &str, uint64_t line) {
     size_t idx = add_string(str);
-    emit_op(op);
+    emit_op(op, line);
     emit_u32_aligned();
     strings[idx].references.push_back(
         {current_export_index,
          static_cast<uint32_t>(current_func->bytecode.size())});
-    emit_u32(0xFFFFFFFF);
+    emit_u32(0xFFFFFFFF, line);
   }
 
   uint64_t make_import_key(uint32_t func, uint32_t ns, uint8_t params,
@@ -241,7 +285,7 @@ struct emitter_state {
 
   void emit_call(ScrVarCanonicalName_t func_hash, ScrVarCanonicalName_t ns_hash,
                  uint8_t num_params, bool is_method, bool is_thread,
-                 bool same_namespace, bool builtin = false) {
+                 bool same_namespace, uint64_t line, bool builtin = false) {
 
     if (!builtin && same_namespace) {
       if (is_method) {
@@ -283,13 +327,13 @@ struct emitter_state {
     }
 
     uint32_t opcode_pos = static_cast<uint32_t>(current_func->bytecode.size());
-    emit_op(op);
+    emit_op(op, line);
 
     size_t import_idx = add_import(func_hash, ns_hash, num_params, flags);
     imports[import_idx].references.push_back(
         {current_export_index, opcode_pos});
 
-    emit_u8(num_params);
+    emit_u8(num_params, line);
     // QWord align
     {
       uint32_t pad_pos = static_cast<uint32_t>(current_func->bytecode.size());
@@ -297,11 +341,12 @@ struct emitter_state {
       while (current_func->bytecode.size() < aligned)
         current_func->bytecode.push_back(0);
     }
-    emit_u32(func_hash);
-    emit_u32(0);
+    emit_u32(func_hash, line);
+    emit_u32(0, line);
   }
 
-  void emit_call_ptr(uint8_t num_params, bool is_method, bool is_thread) {
+  void emit_call_ptr(uint8_t num_params, bool is_method, bool is_thread,
+                     uint64_t line) {
     Opcode op;
     if (is_method)
       op = is_thread ? Opcode::ScriptMethodThreadCallPointer
@@ -310,8 +355,8 @@ struct emitter_state {
       op = is_thread ? Opcode::ScriptThreadCallPointer
                      : Opcode::ScriptFunctionCallPointer;
 
-    emit_op(op);
-    emit_u16(static_cast<uint16_t>(num_params));
+    emit_op(op, line);
+    emit_u16(static_cast<uint16_t>(num_params), line);
   }
 
   std::string temp_var_name() {
@@ -498,69 +543,70 @@ bool is_builtin(const std::string &name) {
          lower == "waitrealtime" || lower == "realwait";
 }
 
-bool try_emit_builtin(emitter_state &s, const std::string &name) {
+bool try_emit_builtin(emitter_state &s, const std::string &name,
+                      uint64_t line) {
   std::string lower = name;
   std::transform(
       lower.begin(), lower.end(), lower.begin(),
       [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
   if (lower == "isdefined") {
-    s.emit_op(Opcode::IsDefined);
+    s.emit_op(Opcode::IsDefined, line);
     return true;
   }
   if (lower == "vectorscale") {
-    s.emit_op(Opcode::VectorScale);
+    s.emit_op(Opcode::VectorScale, line);
     return true;
   }
   if (lower == "gettime") {
-    s.emit_op(Opcode::GetTime);
+    s.emit_op(Opcode::GetTime, line);
     return true;
   }
   if (lower == "firstarraykey") {
-    s.emit_op(Opcode::FirstArrayKey);
+    s.emit_op(Opcode::FirstArrayKey, line);
     return true;
   }
   if (lower == "nextarraykey") {
-    s.emit_op(Opcode::NextArrayKey);
+    s.emit_op(Opcode::NextArrayKey, line);
     return true;
   }
   if (lower == "getfirstarraykey") {
-    s.emit_op(Opcode::FirstArrayKey);
+    s.emit_op(Opcode::FirstArrayKey, line);
     return true;
   }
   if (lower == "getnextarraykey") {
-    s.emit_op(Opcode::NextArrayKey);
+    s.emit_op(Opcode::NextArrayKey, line);
     return true;
   }
   return false;
 }
 
-void emit_get_number(emitter_state &s, int64_t value) {
+void emit_get_number(emitter_state &s, int64_t value, uint64_t line) {
   if (value == 0) {
-    s.emit_op(Opcode::GetZero);
+    s.emit_op(Opcode::GetZero, line);
   } else if (value > 0 && value <= 255) {
-    s.emit_op(Opcode::GetByte);
-    s.emit_u16(static_cast<uint16_t>(value));
+    s.emit_op(Opcode::GetByte, line);
+    s.emit_u16(static_cast<uint16_t>(value), line);
   } else if (value < 0 && value >= -255) {
-    s.emit_op(Opcode::GetNegByte);
-    s.emit_u16(static_cast<uint16_t>(-value));
+    s.emit_op(Opcode::GetNegByte, line);
+    s.emit_u16(static_cast<uint16_t>(-value), line);
   } else if (value > 0 && value <= 65535) {
-    s.emit_op(Opcode::GetUnsignedShort);
+    s.emit_op(Opcode::GetUnsignedShort, line);
     s.emit_u16_aligned();
-    s.emit_u16(static_cast<uint16_t>(value));
+    s.emit_u16(static_cast<uint16_t>(value), line);
   } else if (value < 0 && value >= -65535) {
-    s.emit_op(Opcode::GetNegUnsignedShort);
+    s.emit_op(Opcode::GetNegUnsignedShort, line);
     s.emit_u16_aligned();
-    s.emit_u16(static_cast<uint16_t>(-value));
+    s.emit_u16(static_cast<uint16_t>(-value), line);
   } else {
-    s.emit_op(Opcode::GetInteger);
+    s.emit_op(Opcode::GetInteger, line);
     s.emit_u32_aligned();
-    s.emit_u32(static_cast<uint32_t>(value));
+    s.emit_u32(static_cast<uint32_t>(value), line);
   }
 }
 
 void emit_eval_local(emitter_state &s, const std::string &name, bool is_ref,
-                     bool is_waittill = false) {
+                     uint64_t line, bool is_waittill = false) {
   std::string lower = name;
   std::transform(
       lower.begin(), lower.end(), lower.begin(),
@@ -573,43 +619,43 @@ void emit_eval_local(emitter_state &s, const std::string &name, bool is_ref,
   }
 
   if (is_waittill) {
-    s.emit_op(Opcode::SafeSetWaittillVariableFieldCached);
-    s.emit_u16(static_cast<uint16_t>(idx));
+    s.emit_op(Opcode::SafeSetWaittillVariableFieldCached, line);
+    s.emit_u16(static_cast<uint16_t>(idx), line);
   } else if (is_ref) {
-    s.emit_op(Opcode::EvalLocalVariableRefCached);
-    s.emit_u16(static_cast<uint16_t>(idx));
+    s.emit_op(Opcode::EvalLocalVariableRefCached, line);
+    s.emit_u16(static_cast<uint16_t>(idx), line);
   } else {
-    s.emit_op(Opcode::EvalLocalVariableCached);
-    s.emit_u16(static_cast<uint16_t>(idx));
+    s.emit_op(Opcode::EvalLocalVariableCached, line);
+    s.emit_u16(static_cast<uint16_t>(idx), line);
   }
 }
 
 void emit_object(emitter_state &s, const ast_ptr &node) {
   if (node->type == node_type::n_self)
-    s.emit_op(Opcode::GetSelfObject);
+    s.emit_op(Opcode::GetSelfObject, node->line);
   else if (node->type == node_type::n_level)
-    s.emit_op(Opcode::GetLevelObject);
+    s.emit_op(Opcode::GetLevelObject, node->line);
   else if (node->type == node_type::n_world)
-    s.emit_op(Opcode::GetWorldObject);
+    s.emit_op(Opcode::GetWorldObject, node->line);
   else if (node->type == node_type::n_anim)
-    s.emit_op(Opcode::GetAnimObject);
+    s.emit_op(Opcode::GetAnimObject, node->line);
   else {
     emit_expression(s, node);
-    s.emit_op(Opcode::CastFieldObject);
+    s.emit_op(Opcode::CastFieldObject, node->line);
   }
 }
 
 void emit_owner(emitter_state &s, const ast_ptr &node) {
   if (node->type == node_type::n_self)
-    s.emit_op(Opcode::GetSelf);
+    s.emit_op(Opcode::GetSelf, node->line);
   else if (node->type == node_type::n_level)
-    s.emit_op(Opcode::GetLevel);
+    s.emit_op(Opcode::GetLevel, node->line);
   else if (node->type == node_type::n_world)
-    s.emit_op(Opcode::GetWorld);
+    s.emit_op(Opcode::GetWorld, node->line);
   else if (node->type == node_type::n_anim)
-    s.emit_op(Opcode::GetAnim);
+    s.emit_op(Opcode::GetAnim, node->line);
   else if (node->type == node_type::n_game)
-    s.emit_op(Opcode::GetGame);
+    s.emit_op(Opcode::GetGame, node->line);
   else
     emit_expression(s, node);
 }
@@ -658,55 +704,55 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
       val = std::stoll(v, nullptr, 16);
     else
       val = std::stoll(v);
-    emit_get_number(s, val);
+    emit_get_number(s, val, node->line);
     break;
   }
   case node_type::n_float_number: {
     float fval = std::stof(node->value);
-    s.emit_op(Opcode::GetFloat);
+    s.emit_op(Opcode::GetFloat, node->line);
     s.emit_u32_aligned();
-    s.emit_float(fval);
+    s.emit_float(fval, node->line);
     break;
   }
   case node_type::n_string:
-    s.emit_string_ref(Opcode::GetString, node->value);
+    s.emit_string_ref(Opcode::GetString, node->value, node->line);
     break;
   case node_type::n_istring:
-    s.emit_string_ref(Opcode::GetIString, node->value);
+    s.emit_string_ref(Opcode::GetIString, node->value, node->line);
     break;
   case node_type::n_hash_string: {
     uint32_t hash = gsc::gsc_hash(node->value);
-    s.emit_op(Opcode::GetHash);
+    s.emit_op(Opcode::GetHash, node->line);
     s.emit_u32_aligned();
-    s.emit_u32(hash);
+    s.emit_u32(hash, node->line);
     break;
   }
   case node_type::n_true_val:
-    emit_get_number(s, 1);
+    emit_get_number(s, 1, node->line);
     break;
   case node_type::n_false_val:
-    s.emit_op(Opcode::GetZero);
+    s.emit_op(Opcode::GetZero, node->line);
     break;
   case node_type::n_undefined:
-    s.emit_op(Opcode::GetUndefined);
+    s.emit_op(Opcode::GetUndefined, node->line);
     break;
   case node_type::n_self:
-    s.emit_op(Opcode::GetSelf);
+    s.emit_op(Opcode::GetSelf, node->line);
     break;
   case node_type::n_level:
-    s.emit_op(Opcode::GetLevel);
+    s.emit_op(Opcode::GetLevel, node->line);
     break;
   case node_type::n_game:
-    s.emit_op(Opcode::GetGame);
+    s.emit_op(Opcode::GetGame, node->line);
     break;
   case node_type::n_anim:
-    s.emit_op(Opcode::GetAnim);
+    s.emit_op(Opcode::GetAnim, node->line);
     break;
   case node_type::n_world:
-    s.emit_op(Opcode::GetWorld);
+    s.emit_op(Opcode::GetWorld, node->line);
     break;
   case node_type::n_empty_array:
-    s.emit_op(Opcode::GetEmptyArray);
+    s.emit_op(Opcode::GetEmptyArray, node->line);
     break;
 
   case node_type::n_identifier: {
@@ -714,7 +760,7 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
     std::transform(
         lower.begin(), lower.end(), lower.begin(),
         [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-    emit_eval_local(s, lower, false);
+    emit_eval_local(s, lower, false, node->line);
     break;
   }
 
@@ -722,9 +768,9 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
     // children[0] = object
     emit_object(s, node->children[0]);
     uint32_t field_hash = gsc::gsc_hash(node->value);
-    s.emit_op(Opcode::EvalFieldVariable);
+    s.emit_op(Opcode::EvalFieldVariable, node->line);
     s.emit_u32_aligned();
-    s.emit_u32(field_hash);
+    s.emit_u32(field_hash, node->line);
     break;
   }
 
@@ -732,13 +778,13 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
     // children[0] = array, children[1] = key
     emit_expression(s, node->children[1]); // key first
     emit_expression(s, node->children[0]); // then array
-    s.emit_op(Opcode::EvalArray);
+    s.emit_op(Opcode::EvalArray, node->line);
     break;
   }
 
   case node_type::n_size: {
     emit_expression(s, node->children[0]);
-    s.emit_op(Opcode::SizeOf);
+    s.emit_op(Opcode::SizeOf, node->line);
     break;
   }
 
@@ -753,18 +799,18 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
     if (try_get_vector_constant(node->children[0], x) &&
         try_get_vector_constant(node->children[1], y) &&
         try_get_vector_constant(node->children[2], z)) {
-      s.emit_op(Opcode::GetVector);
+      s.emit_op(Opcode::GetVector, node->line);
       s.emit_u32_aligned();
-      s.emit_float(x);
-      s.emit_float(y);
-      s.emit_float(z);
+      s.emit_float(x, node->line);
+      s.emit_float(y, node->line);
+      s.emit_float(z, node->line);
       break;
     }
 
     emit_expression(s, node->children[2]); // z
     emit_expression(s, node->children[1]); // y
     emit_expression(s, node->children[0]); // x
-    s.emit_op(Opcode::Vector);
+    s.emit_op(Opcode::Vector, node->line);
     break;
   }
 
@@ -772,9 +818,9 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
     int32_t false_label = s.new_label();
     int32_t end_label = s.new_label();
     emit_expression(s, node->children[0]); // condition
-    s.emit_jump(Opcode::JumpOnFalseExpr, false_label);
+    s.emit_jump(Opcode::JumpOnFalseExpr, false_label, node->line);
     emit_expression(s, node->children[1]); // true value
-    s.emit_jump(Opcode::Jump, end_label);
+    s.emit_jump(Opcode::Jump, end_label, node->line);
     s.set_label(false_label);
     emit_expression(s, node->children[2]); // false value
     s.set_label(end_label);
@@ -787,14 +833,14 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
     // Short-circuit for && and ||
     if (node->value == "&&") {
       int32_t skip_label = s.new_label();
-      s.emit_jump(Opcode::JumpOnFalseExpr, skip_label);
+      s.emit_jump(Opcode::JumpOnFalseExpr, skip_label, node->line);
       emit_expression(s, node->children[1]);
       s.set_label(skip_label);
       break;
     }
     if (node->value == "||") {
       int32_t skip_label = s.new_label();
-      s.emit_jump(Opcode::JumpOnTrueExpr, skip_label);
+      s.emit_jump(Opcode::JumpOnTrueExpr, skip_label, node->line);
       emit_expression(s, node->children[1]);
       s.set_label(skip_label);
       break;
@@ -803,41 +849,41 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
     emit_expression(s, node->children[1]); // right
 
     if (node->value == "+")
-      s.emit_op(Opcode::Plus);
+      s.emit_op(Opcode::Plus, node->line);
     else if (node->value == "-")
-      s.emit_op(Opcode::Minus);
+      s.emit_op(Opcode::Minus, node->line);
     else if (node->value == "*")
-      s.emit_op(Opcode::Multiply);
+      s.emit_op(Opcode::Multiply, node->line);
     else if (node->value == "/")
-      s.emit_op(Opcode::Divide);
+      s.emit_op(Opcode::Divide, node->line);
     else if (node->value == "%")
-      s.emit_op(Opcode::Modulus);
+      s.emit_op(Opcode::Modulus, node->line);
     else if (node->value == "&")
-      s.emit_op(Opcode::Bit_And);
+      s.emit_op(Opcode::Bit_And, node->line);
     else if (node->value == "|")
-      s.emit_op(Opcode::Bit_Or);
+      s.emit_op(Opcode::Bit_Or, node->line);
     else if (node->value == "^")
-      s.emit_op(Opcode::Bit_Xor);
+      s.emit_op(Opcode::Bit_Xor, node->line);
     else if (node->value == "<<")
-      s.emit_op(Opcode::ShiftLeft);
+      s.emit_op(Opcode::ShiftLeft, node->line);
     else if (node->value == ">>")
-      s.emit_op(Opcode::ShiftRight);
+      s.emit_op(Opcode::ShiftRight, node->line);
     else if (node->value == "==")
-      s.emit_op(Opcode::Equal);
+      s.emit_op(Opcode::Equal, node->line);
     else if (node->value == "!=")
-      s.emit_op(Opcode::NotEqual);
+      s.emit_op(Opcode::NotEqual, node->line);
     else if (node->value == "<")
-      s.emit_op(Opcode::LessThan);
+      s.emit_op(Opcode::LessThan, node->line);
     else if (node->value == ">")
-      s.emit_op(Opcode::GreaterThan);
+      s.emit_op(Opcode::GreaterThan, node->line);
     else if (node->value == "<=")
-      s.emit_op(Opcode::LessThanOrEqualTo);
+      s.emit_op(Opcode::LessThanOrEqualTo, node->line);
     else if (node->value == ">=")
-      s.emit_op(Opcode::GreaterThanOrEqualTo);
+      s.emit_op(Opcode::GreaterThanOrEqualTo, node->line);
     else if (node->value == "===")
-      s.emit_op(Opcode::SuperEqual);
+      s.emit_op(Opcode::SuperEqual, node->line);
     else if (node->value == "!==")
-      s.emit_op(Opcode::SuperNotEqual);
+      s.emit_op(Opcode::SuperNotEqual, node->line);
     else
       throw std::runtime_error("Unknown binary operator: " + node->value);
     break;
@@ -846,18 +892,18 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
   case node_type::n_unary_op: {
     emit_expression(s, node->children[0]);
     if (node->value == "!")
-      s.emit_op(Opcode::BoolNot);
+      s.emit_op(Opcode::BoolNot, node->line);
     else if (node->value == "~") {
       /*
          No `Bit_Not` opcode in BO3,
          but we can compute the equivalent with:
          `NOT(A) = A XOR -1`
       */
-      emit_get_number(s, -1);
-      s.emit_op(Opcode::Bit_Xor);
+      emit_get_number(s, -1, node->line);
+      s.emit_op(Opcode::Bit_Xor, node->line);
     } else if (node->value == "-") {
-      emit_get_number(s, -1);
-      s.emit_op(Opcode::Multiply);
+      emit_get_number(s, -1, node->line);
+      s.emit_op(Opcode::Multiply, node->line);
     }
     break;
   }
@@ -879,7 +925,7 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
 
     uint32_t opcode_pos =
         static_cast<uint32_t>(s.current_func->bytecode.size());
-    s.emit_op(Opcode::GetFunction);
+    s.emit_op(Opcode::GetFunction, node->line);
     s.imports[import_idx].references.push_back(
         {s.current_export_index, opcode_pos});
     {
@@ -888,8 +934,8 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
       while (s.current_func->bytecode.size() < aligned)
         s.current_func->bytecode.push_back(0);
     }
-    s.emit_u32(func_hash);
-    s.emit_u32(0);
+    s.emit_u32(func_hash, node->line);
+    s.emit_u32(0, node->line);
     break;
   }
 
@@ -907,11 +953,11 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
     if (ns_node->value.empty() && is_builtin(lower_name)) {
       for (const std::shared_ptr<ast_node> &arg : args_node->children)
         emit_expression(s, arg);
-      try_emit_builtin(s, lower_name);
+      try_emit_builtin(s, lower_name, node->line);
       break;
     }
 
-    s.emit_op(Opcode::PreScriptCall);
+    s.emit_op(Opcode::PreScriptCall, node->line);
 
     for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0; i--)
       emit_expression(s, args_node->children[i]);
@@ -929,7 +975,8 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
     bool is_local = !has_explicit_ns;
 
     s.record_hash(lower_name, node->line, num_params);
-    s.emit_call(func_hash, ns_hash, num_params, false, false, is_local);
+    s.emit_call(func_hash, ns_hash, num_params, false, false, is_local,
+                node->line);
     break;
   }
 
@@ -944,7 +991,7 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
         lower_name.begin(), lower_name.end(), lower_name.begin(),
         [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-    s.emit_op(Opcode::PreScriptCall);
+    s.emit_op(Opcode::PreScriptCall, node->line);
 
     for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0; i--)
       emit_expression(s, args_node->children[i]);
@@ -965,7 +1012,8 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
     bool is_local = !has_explicit_ns;
 
     s.record_hash(lower_name, node->line, num_params);
-    s.emit_call(func_hash, ns_hash, num_params, true, false, is_local);
+    s.emit_call(func_hash, ns_hash, num_params, true, false, is_local,
+                node->line);
     break;
   }
 
@@ -974,7 +1022,7 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
     uint8_t num_params = static_cast<uint8_t>(args_node->children.size());
     bool has_caller = node->children[0]->type != node_type::n_undefined;
 
-    s.emit_op(Opcode::PreScriptCall);
+    s.emit_op(Opcode::PreScriptCall, node->line);
 
     for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0; i--)
       emit_expression(s, args_node->children[i]);
@@ -983,7 +1031,7 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
       emit_expression(s, node->children[0]);
 
     emit_expression(s, node->children[1]); // func ptr
-    s.emit_call_ptr(num_params, has_caller, false);
+    s.emit_call_ptr(num_params, has_caller, false, node->line);
     break;
   }
 
@@ -999,7 +1047,7 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
           lower_name.begin(), lower_name.end(), lower_name.begin(),
           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-      s.emit_op(Opcode::PreScriptCall);
+      s.emit_op(Opcode::PreScriptCall, node->line);
       for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0;
            i--)
         emit_expression(s, args_node->children[i]);
@@ -1013,7 +1061,8 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
         auto_include_path(s, ns_node->value);
       bool is_local = !has_explicit_ns;
       s.record_hash(lower_name, inner->line, num_params);
-      s.emit_call(func_hash, ns_hash, num_params, false, true, is_local);
+      s.emit_call(func_hash, ns_hash, num_params, false, true, is_local,
+                  node->line);
     } else if (inner->type == node_type::n_method_call) {
       const std::shared_ptr<ast_node> &obj = inner->children[0];
       const std::shared_ptr<ast_node> &args_node = inner->children[1];
@@ -1024,7 +1073,7 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
           lower_name.begin(), lower_name.end(), lower_name.begin(),
           [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-      s.emit_op(Opcode::PreScriptCall);
+      s.emit_op(Opcode::PreScriptCall, node->line);
       for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0;
            i--)
         emit_expression(s, args_node->children[i]);
@@ -1041,13 +1090,14 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
         auto_include_path(s, inner->children[2]->value);
       bool is_local = !has_ns;
       s.record_hash(lower_name, inner->line, num_params);
-      s.emit_call(func_hash, ns_hash, num_params, true, true, is_local);
+      s.emit_call(func_hash, ns_hash, num_params, true, true, is_local,
+                  node->line);
     } else if (inner->type == node_type::n_call_ptr) {
       const std::shared_ptr<ast_node> &args_node = inner->children[2];
       uint8_t num_params = static_cast<uint8_t>(args_node->children.size());
       bool has_caller = inner->children[0]->type != node_type::n_undefined;
 
-      s.emit_op(Opcode::PreScriptCall);
+      s.emit_op(Opcode::PreScriptCall, node->line);
       for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0;
            i--)
         emit_expression(s, args_node->children[i]);
@@ -1056,7 +1106,7 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
         emit_expression(s, inner->children[0]);
 
       emit_expression(s, inner->children[1]);
-      s.emit_call_ptr(num_params, has_caller, true);
+      s.emit_call_ptr(num_params, has_caller, true, node->line);
     }
     break;
   }
@@ -1064,9 +1114,9 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
   case node_type::n_inc_dec: {
     emit_lvalue(s, node->children[0], true);
     if (node->value == "post++" || node->value == "pre++")
-      s.emit_op(Opcode::Inc);
+      s.emit_op(Opcode::Inc, node->line);
     else
-      s.emit_op(Opcode::Dec);
+      s.emit_op(Opcode::Dec, node->line);
     break;
   }
 
@@ -1084,27 +1134,27 @@ void emit_lvalue(emitter_state &s, const ast_ptr &node, bool is_ref) {
     std::transform(
         lower.begin(), lower.end(), lower.begin(),
         [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-    emit_eval_local(s, lower, is_ref);
+    emit_eval_local(s, lower, is_ref, node->line);
     break;
   }
   case node_type::n_field_access: {
     emit_object(s, node->children[0]);
     uint32_t field_hash = gsc::gsc_hash(node->value);
     if (is_ref) {
-      s.emit_op(Opcode::EvalFieldVariableRef);
+      s.emit_op(Opcode::EvalFieldVariableRef, node->line);
       s.emit_u32_aligned();
-      s.emit_u32(field_hash);
+      s.emit_u32(field_hash, node->line);
     } else {
-      s.emit_op(Opcode::EvalFieldVariable);
+      s.emit_op(Opcode::EvalFieldVariable, node->line);
       s.emit_u32_aligned();
-      s.emit_u32(field_hash);
+      s.emit_u32(field_hash, node->line);
     }
     break;
   }
   case node_type::n_array_access: {
     emit_expression(s, node->children[1]);   // key
     emit_lvalue(s, node->children[0], true); // array ref
-    s.emit_op(Opcode::EvalArrayRef);
+    s.emit_op(Opcode::EvalArrayRef, node->line);
     break;
   }
   default:
@@ -1195,7 +1245,7 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
         expr->type == node_type::n_method_call ||
         expr->type == node_type::n_call_ptr ||
         expr->type == node_type::n_thread_call) {
-      s.emit_op(Opcode::DecTop);
+      s.emit_op(Opcode::DecTop, node->line);
     }
     break;
   }
@@ -1211,64 +1261,64 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
       emit_expression(s, target);
       emit_expression(s, value);
       if (op == "+=")
-        s.emit_op(Opcode::Plus);
+        s.emit_op(Opcode::Plus, node->line);
       else if (op == "-=")
-        s.emit_op(Opcode::Minus);
+        s.emit_op(Opcode::Minus, node->line);
       else if (op == "*=")
-        s.emit_op(Opcode::Multiply);
+        s.emit_op(Opcode::Multiply, node->line);
       else if (op == "/=")
-        s.emit_op(Opcode::Divide);
+        s.emit_op(Opcode::Divide, node->line);
       else if (op == "%=")
-        s.emit_op(Opcode::Modulus);
+        s.emit_op(Opcode::Modulus, node->line);
       else if (op == "&=")
-        s.emit_op(Opcode::Bit_And);
+        s.emit_op(Opcode::Bit_And, node->line);
       else if (op == "|=")
-        s.emit_op(Opcode::Bit_Or);
+        s.emit_op(Opcode::Bit_Or, node->line);
       else if (op == "^=")
-        s.emit_op(Opcode::Bit_Xor);
+        s.emit_op(Opcode::Bit_Xor, node->line);
       else if (op == "<<=")
-        s.emit_op(Opcode::ShiftLeft);
+        s.emit_op(Opcode::ShiftLeft, node->line);
       else if (op == ">>=")
-        s.emit_op(Opcode::ShiftRight);
+        s.emit_op(Opcode::ShiftRight, node->line);
     }
 
     emit_lvalue(s, target, true);
-    s.emit_op(Opcode::SetVariableField);
+    s.emit_op(Opcode::SetVariableField, node->line);
     break;
   }
 
   case node_type::n_inc_dec: {
     emit_lvalue(s, node->children[0], true);
     if (node->value == "post++" || node->value == "pre++")
-      s.emit_op(Opcode::Inc);
+      s.emit_op(Opcode::Inc, node->line);
     else
-      s.emit_op(Opcode::Dec);
+      s.emit_op(Opcode::Dec, node->line);
     break;
   }
 
   case node_type::n_return: {
     if (!node->children.empty()) {
       emit_expression(s, node->children[0]);
-      s.emit_op(Opcode::Return);
+      s.emit_op(Opcode::Return, node->line);
     } else {
-      s.emit_op(Opcode::End);
+      s.emit_op(Opcode::End, node->line);
     }
     break;
   }
 
   case node_type::n_wait: {
     emit_expression(s, node->children[0]);
-    s.emit_op(Opcode::Wait);
+    s.emit_op(Opcode::Wait, node->line);
     break;
   }
 
   case node_type::n_waittillframeend:
-    s.emit_op(Opcode::WaitTillFrameEnd);
+    s.emit_op(Opcode::WaitTillFrameEnd, node->line);
     break;
 
   case node_type::n_waitrealtime: {
     emit_expression(s, node->children[0]);
-    s.emit_op(Opcode::WaitRealTime);
+    s.emit_op(Opcode::WaitRealTime, node->line);
     break;
   }
 
@@ -1277,12 +1327,12 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
     int32_t end_label = s.new_label();
 
     emit_expression(s, node->children[0]); // condition
-    s.emit_jump(Opcode::JumpOnFalse, else_label);
+    s.emit_jump(Opcode::JumpOnFalse, else_label, node->line);
 
     emit_statement(s, node->children[1]); // if body
 
     if (node->children.size() > 2) {
-      s.emit_jump(Opcode::Jump, end_label);
+      s.emit_jump(Opcode::Jump, end_label, node->line);
       s.set_label(else_label);
       emit_statement(s, node->children[2]); // else body
       s.set_label(end_label);
@@ -1301,9 +1351,9 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
 
     s.set_label(loop_start);
     emit_expression(s, node->children[0]); // condition
-    s.emit_jump(Opcode::JumpOnFalse, loop_end);
+    s.emit_jump(Opcode::JumpOnFalse, loop_end, node->line);
     emit_statement(s, node->children[1]); // body
-    s.emit_jump(Opcode::Jump, loop_start);
+    s.emit_jump(Opcode::Jump, loop_start, node->line);
     s.set_label(loop_end);
 
     s.loop_stack.pop_back();
@@ -1321,7 +1371,7 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
     emit_statement(s, node->children[1]); // body
     s.set_label(loop_continue);
     emit_expression(s, node->children[0]); // condition
-    s.emit_jump(Opcode::JumpOnTrue, loop_start);
+    s.emit_jump(Opcode::JumpOnTrue, loop_start, node->line);
     s.set_label(loop_end);
 
     s.loop_stack.pop_back();
@@ -1343,7 +1393,7 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
 
     if (node->children[1]->type != node_type::n_true_val) {
       emit_expression(s, node->children[1]);
-      s.emit_jump(Opcode::JumpOnFalse, loop_end);
+      s.emit_jump(Opcode::JumpOnFalse, loop_end, node->line);
     }
 
     emit_statement(s, node->children[3]);
@@ -1352,7 +1402,7 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
     if (node->children[2]->type != node_type::n_undefined)
       emit_statement(s, node->children[2]);
 
-    s.emit_jump(Opcode::Jump, loop_cond);
+    s.emit_jump(Opcode::Jump, loop_cond, node->line);
     s.set_label(loop_end);
 
     s.loop_stack.pop_back();
@@ -1375,14 +1425,14 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
 
     // array_temp = <array_expr>
     emit_expression(s, node->children[1]);
-    emit_eval_local(s, array_temp, true);
-    s.emit_op(Opcode::SetVariableField);
+    emit_eval_local(s, array_temp, true, node->line);
+    s.emit_op(Opcode::SetVariableField, node->line);
 
     // key = firstArrayKey(array_temp)
-    emit_eval_local(s, array_temp, false);
-    s.emit_op(Opcode::FirstArrayKey);
-    emit_eval_local(s, key_name, true);
-    s.emit_op(Opcode::SetVariableField);
+    emit_eval_local(s, array_temp, false, node->line);
+    s.emit_op(Opcode::FirstArrayKey, node->line);
+    emit_eval_local(s, key_name, true, node->line);
+    s.emit_op(Opcode::SetVariableField, node->line);
 
     int32_t loop_start = s.new_label();
     int32_t loop_end = s.new_label();
@@ -1393,29 +1443,29 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
     s.set_label(loop_start);
 
     // if (!isDefined(key)) break
-    emit_eval_local(s, key_name, false);
-    s.emit_op(Opcode::IsDefined);
-    s.emit_jump(Opcode::JumpOnFalse, loop_end);
+    emit_eval_local(s, key_name, false, node->line);
+    s.emit_op(Opcode::IsDefined, node->line);
+    s.emit_jump(Opcode::JumpOnFalse, loop_end, node->line);
 
     // val = array_temp[key]
-    emit_eval_local(s, key_name, false);
-    emit_eval_local(s, array_temp, false);
-    s.emit_op(Opcode::EvalArray);
-    emit_eval_local(s, val_name, true);
-    s.emit_op(Opcode::SetVariableField);
+    emit_eval_local(s, key_name, false, node->line);
+    emit_eval_local(s, array_temp, false, node->line);
+    s.emit_op(Opcode::EvalArray, node->line);
+    emit_eval_local(s, val_name, true, node->line);
+    s.emit_op(Opcode::SetVariableField, node->line);
 
     emit_statement(s, node->children[2]);
 
     s.set_label(loop_continue);
 
     // key = nextArrayKey(array_temp, key)
-    emit_eval_local(s, key_name, false);
-    emit_eval_local(s, array_temp, false);
-    s.emit_op(Opcode::NextArrayKey);
-    emit_eval_local(s, key_name, true);
-    s.emit_op(Opcode::SetVariableField);
+    emit_eval_local(s, key_name, false, node->line);
+    emit_eval_local(s, array_temp, false, node->line);
+    s.emit_op(Opcode::NextArrayKey, node->line);
+    emit_eval_local(s, key_name, true, node->line);
+    s.emit_op(Opcode::SetVariableField, node->line);
 
-    s.emit_jump(Opcode::Jump, loop_start);
+    s.emit_jump(Opcode::Jump, loop_start, node->line);
     s.set_label(loop_end);
 
     s.loop_stack.pop_back();
@@ -1428,8 +1478,8 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
     s.current_func->add_local(gsc::gsc_hash(switch_temp));
 
     emit_expression(s, node->children[0]);
-    emit_eval_local(s, switch_temp, true);
-    s.emit_op(Opcode::SetVariableField);
+    emit_eval_local(s, switch_temp, true, node->line);
+    s.emit_op(Opcode::SetVariableField, node->line);
 
     int32_t switch_end = s.new_label();
     s.loop_stack.push_back({switch_end, -1}); // break goes to switch_end
@@ -1448,16 +1498,16 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
       } else {
         // Compare switch_temp == case_value
         emit_expression(s, case_node->children[0]);
-        emit_eval_local(s, switch_temp, false);
-        s.emit_op(Opcode::Equal);
-        s.emit_jump(Opcode::JumpOnTrue, label);
+        emit_eval_local(s, switch_temp, false, node->line);
+        s.emit_op(Opcode::Equal, node->line);
+        s.emit_jump(Opcode::JumpOnTrue, label, node->line);
       }
     }
 
     if (default_label >= 0)
-      s.emit_jump(Opcode::Jump, default_label);
+      s.emit_jump(Opcode::Jump, default_label, node->line);
     else
-      s.emit_jump(Opcode::Jump, switch_end);
+      s.emit_jump(Opcode::Jump, switch_end, node->line);
 
     for (size_t i = 1; i < node->children.size(); i++) {
       s.set_label(case_labels[i - 1]);
@@ -1482,7 +1532,7 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
     if (s.loop_stack.empty())
       throw std::runtime_error("'break' outside of loop at line " +
                                std::to_string(node->line));
-    s.emit_jump(Opcode::Jump, s.loop_stack.back().break_label);
+    s.emit_jump(Opcode::Jump, s.loop_stack.back().break_label, node->line);
     break;
   }
 
@@ -1490,7 +1540,7 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
     if (s.loop_stack.empty())
       throw std::runtime_error("'continue' outside of loop at line " +
                                std::to_string(node->line));
-    s.emit_jump(Opcode::Jump, s.loop_stack.back().continue_label);
+    s.emit_jump(Opcode::Jump, s.loop_stack.back().continue_label, node->line);
     break;
   }
 
@@ -1507,14 +1557,14 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
 
     emit_expression(s, args->children[0]); // event name
     emit_owner(s, obj); // object (uses GetLevel, not GetLevelObject)
-    s.emit_op(Opcode::WaitTill);
+    s.emit_op(Opcode::WaitTill, node->line);
 
     for (size_t i = 1; i < args->children.size(); i++) {
       if (args->children[i]->type == node_type::n_identifier) {
         emit_eval_local(s, args->children[i]->value, false, true);
       }
     }
-    s.emit_op(Opcode::ClearParams);
+    s.emit_op(Opcode::ClearParams, node->line);
     break;
   }
 
@@ -1524,14 +1574,14 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
     const std::shared_ptr<ast_node> &obj = node->children[0];
     const std::shared_ptr<ast_node> &args = node->children[1];
 
-    s.emit_op(Opcode::PreScriptCall);
+    s.emit_op(Opcode::PreScriptCall, node->line);
 
     for (int i = static_cast<int>(args->children.size()) - 1; i >= 1; i--)
       emit_expression(s, args->children[i]);
 
     emit_expression(s, args->children[0]);
     emit_owner(s, obj);
-    s.emit_op(Opcode::Notify);
+    s.emit_op(Opcode::Notify, node->line);
     break;
   }
 
@@ -1543,7 +1593,7 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
     if (!args->children.empty())
       emit_expression(s, args->children[0]); // event name
     emit_owner(s, obj);
-    s.emit_op(Opcode::EndOn);
+    s.emit_op(Opcode::EndOn, node->line);
     break;
   }
 
@@ -1552,7 +1602,7 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
   case node_type::n_call_ptr:
   case node_type::n_thread_call:
     emit_expression(s, node);
-    s.emit_op(Opcode::DecTop);
+    s.emit_op(Opcode::DecTop, node->line);
     break;
 
   default:
@@ -1624,16 +1674,17 @@ void emit_function(emitter_state &s, const ast_ptr &node) {
   s.temp_var_counter = saved_temp;
 
   if (s.current_func->local_hashes.empty()) {
-    s.emit_op(Opcode::CheckClearParams);
+    s.emit_op(Opcode::CheckClearParams, node->line);
   } else {
-    s.emit_op(Opcode::SafeCreateLocalVariables);
-    s.emit_u8(static_cast<uint8_t>(s.current_func->local_hashes.size()));
+    s.emit_op(Opcode::SafeCreateLocalVariables, node->line);
+    s.emit_u8(static_cast<uint8_t>(s.current_func->local_hashes.size()),
+              node->line);
     for (size_t vi = 0; vi < s.current_func->local_hashes.size(); vi++) {
       s.emit_u32_aligned();
-      s.emit_u32(s.current_func->local_hashes[vi]); // hash
-      s.emit_u8(0); // null terminator after each hash
+      s.emit_u32(s.current_func->local_hashes[vi], node->line); // hash
+      s.emit_u8(0, node->line); // null terminator after each hash
     }
-    s.emit_u8(0); // final null byte (no CheckClearParams!)
+    s.emit_u8(0, node->line); // final null byte (no CheckClearParams!)
 
     // Reverse variable indices (last declared = index 0)
     uint8_t N = static_cast<uint8_t>(s.current_func->local_hashes.size());
@@ -1652,20 +1703,20 @@ void emit_function(emitter_state &s, const ast_ptr &node) {
 
     int32_t skip_label = s.new_label();
 
-    emit_eval_local(s, pname, false);            // push param value
-    s.emit_op(Opcode::IsDefined);                // isdefined check
-    s.emit_jump(Opcode::JumpOnTrue, skip_label); // skip if defined
+    emit_eval_local(s, pname, false, node->line);            // push param value
+    s.emit_op(Opcode::IsDefined, node->line);                // isdefined check
+    s.emit_jump(Opcode::JumpOnTrue, skip_label, node->line); // skip if defined
 
-    emit_expression(s, param->children[0]); // push default value
-    emit_eval_local(s, pname, true);        // push param ref
-    s.emit_op(Opcode::SetVariableField);    // assign
+    emit_expression(s, param->children[0]);          // push default value
+    emit_eval_local(s, pname, true, node->line);     // push param ref
+    s.emit_op(Opcode::SetVariableField, node->line); // assign
 
     s.set_label(skip_label);
   }
 
   emit_block(s, body_node);
 
-  s.emit_op(Opcode::End);
+  s.emit_op(Opcode::End, node->line);
 
   for (const jump_fixup &fixup : s.jump_fixups) {
     auto it = s.label_positions.find(fixup.target_label);
@@ -1690,12 +1741,16 @@ uint32_t crc32_calc(const uint8_t *data, size_t len) {
   return ~crc;
 }
 
+uint32_t resolve_ref(emitter_state &s, const std::pair<size_t, uint32_t> &ref) {
+  return s.exports[ref.first].bytecode_offset + ref.second;
+};
+
 // Binary assembly: Header | Strings | Includes | Code | Exports | Imports |
 // AnimTrees | StringFixups
 std::vector<uint8_t> assemble(emitter_state &s) {
   std::vector<uint8_t> output;
 
-  output.resize(sizeof(t7_script_header), 0);
+  output.resize(sizeof(GSC_OBJ), 0);
 
   // Include path strings
   std::vector<uint32_t> include_string_offsets;
@@ -1756,14 +1811,10 @@ std::vector<uint8_t> assemble(emitter_state &s) {
   uint32_t total_bytecode_size = bytecode_end - bytecode_start;
 
   // Patch string placeholders with actual offsets
-  const std::function<uint32_t(const std::pair<size_t, uint32_t> &ref)>
-      resolve_ref = [&](const std::pair<size_t, uint32_t> &ref) -> uint32_t {
-    return s.exports[ref.first].bytecode_offset + ref.second;
-  };
 
   for (const string_entry &str : s.strings) {
     for (const std::pair<size_t, uint32_t> &ref : str.references) {
-      uint32_t abs_offset = resolve_ref(ref);
+      uint32_t abs_offset = resolve_ref(s, ref);
       write_at_u32(output, abs_offset, str.offset);
     }
   }
@@ -1795,7 +1846,7 @@ std::vector<uint8_t> assemble(emitter_state &s) {
     write_u8(output, imp.flags);
 
     for (const std::pair<size_t, uint32_t> &ref : imp.references)
-      write_u32(output, resolve_ref(ref));
+      write_u32(output, resolve_ref(s, ref));
   }
 
   // AnimTree section (empty)
@@ -1813,37 +1864,70 @@ std::vector<uint8_t> assemble(emitter_state &s) {
     write_u32(output, static_cast<uint32_t>(str.references.size()));
 
     for (size_t j = 0; j < str.references.size(); j++)
-      write_u32(output, resolve_ref(str.references[j]));
+      write_u32(output, resolve_ref(s, str.references[j]));
   }
 
   uint32_t file_size = static_cast<uint32_t>(output.size());
 
   // Header
-  t7_script_header header{};
-  header.magic = gsc::T7_MAGIC;
-  header.source_crc = 0x4C492053;
-  header.include_offset = include_offset;
-  header.animtree_offset = animtree_offset;
-  header.bytecode_offset = bytecode_start;
-  header.string_offset = string_fixup_offset;
-  header.debug_string_offset = file_size;
-  header.export_offset = export_offset;
-  header.import_offset = import_offset;
-  header.fixup_offset = file_size;
-  header.profile_offset = file_size;
-  header.bytecode_size = total_bytecode_size;
-  header.name_offset = name_offset;
-  header.string_count = string_count;
-  header.export_count = static_cast<uint16_t>(s.exports.size());
-  header.import_count = static_cast<uint16_t>(s.imports.size());
-  header.fixup_count = 0;
-  header.profile_count = 0;
-  header.debug_string_count = 0;
-  header.include_count = static_cast<uint8_t>(s.includes.size());
-  header.animtree_count = 0;
-  header.flags = 0;
+  const uint32_t source_crc = crc32_calc(output.data() + sizeof(GSC_OBJ),
+                                         output.size() - sizeof(GSC_OBJ));
+  GSC_OBJ *header = reinterpret_cast<GSC_OBJ *>(output.data());
+  header->setMagic(GSC_OBJ::T7_MAGIC);
+  header->source_crc = source_crc;
+  header->include_offset = include_offset;
+  header->animtree_offset = animtree_offset;
+  header->cseg_offset = bytecode_start;
+  header->stringtablefixup_offset = string_fixup_offset;
+  header->devblock_stringtablefixup_offset = file_size;
+  header->exports_offset = export_offset;
+  header->imports_offset = import_offset;
+  header->fixup_offset = file_size;
+  header->profile_offset = file_size;
+  header->cseg_size = total_bytecode_size;
+  header->name = name_offset;
+  header->stringtablefixup_count = string_count;
+  header->exports_count = static_cast<uint16_t>(s.exports.size());
+  header->imports_count = static_cast<uint16_t>(s.imports.size());
+  header->fixup_count = 0;
+  header->profile_count = 0;
+  header->devblock_stringtablefixup_count = 0;
+  header->include_count = static_cast<uint8_t>(s.includes.size());
+  header->animtree_count = 0;
+  header->flags = 0;
 
-  std::memcpy(output.data(), &header, sizeof(header));
+  return output;
+}
+
+std::vector<uint8_t> build_gdb(emitter_state &s, const GSC_OBJ *obj) {
+  std::vector<uint8_t> output;
+  output.resize(sizeof(GSC_GDB));
+
+  for (const LineStartAddress &line : s.line.start_addresses) {
+    const uint64_t bytecode_offset =
+        s.exports[line.export_index].bytecode_offset + line.export_offset;
+    write_aligned(output, bytecode_offset, sizeof(uint64_t));
+  }
+
+  // TODO: these are supposed to be fix-up strings. What are fix-up strings?
+  const uint32_t stringtable_offset = output.size();
+  for (string_entry &str : s.strings) {
+    output.insert(output.end(), str.value.begin(), str.value.end());
+    output.push_back('\0');
+  }
+
+  GSC_GDB *header = reinterpret_cast<GSC_GDB *>(output.data());
+  header->setMagic(GSC_GDB::T7_MAGIC);
+  header->source_crc = obj->source_crc;
+
+  header->lineinfo_offset = sizeof(GSC_GDB);
+  header->lineinfo_count = s.line.start_addresses.size();
+  header->stringtable_offset = stringtable_offset;
+  header->stringtable_count = s.strings.size();
+
+  // TODO
+  header->devblock_stringtable_offset = output.size();
+  header->devblock_stringtable_count = 0;
 
   return output;
 }
@@ -1865,8 +1949,7 @@ emitter_result emit(const ast_ptr &root, const std::string &script_name) {
     std::transform(
         ns_fallback.begin(), ns_fallback.end(), ns_fallback.begin(),
         [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-    state.script_namespace = ns_fallback.empty() ? gsc::gsc_hash("ilcustom")
-                                                 : gsc::gsc_hash(ns_fallback);
+    state.script_namespace = gsc::gsc_hash(ns_fallback);
   }
   uint32_t default_namespace = state.script_namespace;
 
@@ -1950,6 +2033,8 @@ emitter_result emit(const ast_ptr &root, const std::string &script_name) {
       result.hash_names.push_back(
           {hn.hash, std::move(hn.name), hn.line, hn.params});
     result.replacefuncs = std::move(state.replacefuncs);
+    result.gdb =
+        build_gdb(state, reinterpret_cast<const GSC_OBJ *>(result.data.data()));
     result.success = true;
   } catch (const std::runtime_error &e) {
     result.success = false;

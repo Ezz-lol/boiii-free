@@ -1,5 +1,6 @@
 #pragma once
 
+#include <bit>
 #include <cstdint>
 #include <cassert>
 #include <macros.hpp>
@@ -121,3 +122,21 @@ struct aligned_array_ref {
   }
   inline constexpr void *allocation() noexcept { return ref->allocation(); }
 };
+
+inline constexpr std::array<char, sizeof(uint64_t)>
+byteswap(std::array<char, sizeof(uint64_t)> val) {
+  return std::bit_cast<std::array<char, sizeof(uint64_t)>>(
+      byteswap(std::bit_cast<uint64_t>(val)));
+}
+
+inline constexpr std::array<char, sizeof(uint32_t)>
+byteswap(std::array<char, sizeof(uint32_t)> val) {
+  return std::bit_cast<std::array<char, sizeof(uint32_t)>>(
+      byteswap(std::bit_cast<uint32_t>(val)));
+}
+
+inline constexpr std::array<char, sizeof(uint16_t)>
+byteswap(std::array<char, sizeof(uint16_t)> val) {
+  return std::bit_cast<std::array<char, sizeof(uint16_t)>>(
+      byteswap(std::bit_cast<uint16_t>(val)));
+}
