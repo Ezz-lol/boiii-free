@@ -209,11 +209,10 @@ std::string &rtrim(std::string &str) {
 std::string join(std::vector<std::string> strings,
                  const std::string &separator) {
   std::string result;
-  for (size_t i = 0; i < strings.size(); ++i) {
-    if (i > 0) {
-      result += separator;
-    }
+  result += strings[0];
 
+  for (size_t i = 1; i < strings.size(); ++i) {
+    result += separator;
     result += strings[i];
   }
 

@@ -146,5 +146,28 @@ WEAK symbol<void(scriptInstance_t inst, int32_t channel, uint8_t codePos)>
 WEAK symbol<void(scriptInstance_t inst, uint8_t *pos, const char **filename,
                  int32_t *lineNum, const char **sourceLine)>
     Scr_GetFileAndLineNum{0x1412CBE50, 0x140159E90};
+WEAK symbol<void(scriptInstance_t inst, objFileInfo_t *fileInfo)> LoadScriptGDB{
+    0x0, 0x140159360};
+// Named LoadScriptGDB in engine - overload
+WEAK symbol<void(scriptInstance_t inst)> LoadScriptGDB2{0x0, 0x140158EF0};
+WEAK symbol<objFileInfo_t *(scriptInstance_t inst, void *addr)>
+    Scr_FindObjFileInfo{0x1412CBD90, 0x140159DD0};
+
+WEAK symbol<ObjFileInfoPool> gObjFileInfo{0x1450DC2E0, 0x1425DCA80};
+WEAK symbol<ScrPool<uint32_t>> gObjFileInfoCount{0x1450EFB60, 0x1425F0300};
+
+inline objFileInfo_t *get_obj_by_name(scriptInstance_t inst,
+                                      const std::string_view &script) {
+  for (size_t i = 0; i < gObjFileInfoCount->instance[inst]; ++i) {
+    if (std::string_view(
+            gObjFileInfo->instance[inst][i].activeVersion->get_name()) ==
+        script) {
+      return &gObjFileInfo->instance[inst][i];
+    }
+  }
+
+  return nullptr;
+}
+
 } // namespace scr
 } // namespace game

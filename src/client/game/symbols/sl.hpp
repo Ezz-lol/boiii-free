@@ -18,6 +18,8 @@ WEAK symbol<void(scr::ScrString_t stringValue, volatile RefString *refStr)>
 WEAK symbol<const char *(const char *name)> CopyString{0x1422AC220,
                                                        0x14056BD70};
 WEAK symbol<void(const char *str)> FreeString{0x1422AC240, 0x14056BD90};
+WEAK symbol<scr::ScrVarCanonicalName_t(const char *name)>
+    SL_GenerateCanonicalString{0x1412CB930, 0x140159970};
 
 /*
   No clue what this is. It does not exist in the client, nor in any prior server

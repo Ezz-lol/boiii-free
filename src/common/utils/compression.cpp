@@ -335,7 +335,7 @@ extract(const std::string &data) {
 }
 
 void write_file(
-    const std::filesystem::path output,
+    const std::filesystem::path &output, // Optimized: Pass by const reference
     const std::unordered_map<std::string, std::vector<uint8_t>> &entries) {
   // Open the ZIP archive for writing.
   // APPEND_STATUS_CREATE will create a new file or overwrite an existing one.
@@ -344,45 +344,65 @@ void write_file(
     throw std::runtime_error("Failed to create zip file: " + output.string());
   }
 
-  // Iterate through the map using C++17 structured bindings
-  for (const auto &[filename, data] : entries) {
+  // Use a try-catch block to guarantee the zip_file handle is closed if an
+  // exception is thrown
+  try {
+    for (const auto &[filename, data] : entries) {
 
-    // Initialize file info with zeros.
-    // This defaults the file timestamp inside the zip to standard/empty values.
-    zip_fileinfo zi;
-    std::memset(&zi, 0, sizeof(zip_fileinfo));
+      zip_fileinfo zi{};
 
-    // Open a new file entry inside the ZIP archive.
-    // Z_DEFLATED applies standard ZIP compression.
-    // compression.
-    int err = zipOpenNewFileInZip64(zip_file, filename.c_str(), &zi, nullptr, 0,
-                                    nullptr, 0, nullptr, Z_DEFLATED,
-                                    Z_NO_COMPRESSION, 1);
+      // Determine if ZIP64 extensions are needed (file size >= 4GB).
+      // 0xffffffffULL is exactly 4GB - 1 byte.
+      const int needs_zip64 = (data.size() >= 0xffffffffULL) ? 1 : 0;
 
-    if (err != ZIP_OK) {
-      zipClose(zip_file, nullptr); // Clean up the main archive before throwing
-      throw std::runtime_error("Failed to add new file to zip: " + filename);
-    }
+      // Open a new file entry inside the ZIP archive.
+      int err = zipOpenNewFileInZip64(zip_file, filename.c_str(), &zi, nullptr,
+                                      0, nullptr, 0, nullptr, Z_DEFLATED,
+                                      Z_BEST_SPEED, needs_zip64);
 
-    // Write the byte vector into the compressed file.
-    // Minizip expects unsigned int for the size.
-    if (!data.empty()) {
-      err = zipWriteInFileInZip(zip_file, data.data(),
-                                static_cast<unsigned int>(data.size()));
-      if (err < 0) {
-        zipCloseFileInZip(zip_file);
-        zipClose(zip_file, nullptr);
-        throw std::runtime_error("Error writing data to file in zip: " +
-                                 filename);
+      if (err != ZIP_OK) {
+        throw std::runtime_error("Failed to add new file to zip: " + filename);
+      }
+
+      if (!data.empty()) {
+        constexpr size_t chunk_size = 0x40000000; // 1 GB chunks
+        size_t bytes_written = 0;
+        const uint8_t *ptr = data.data();
+
+        while (bytes_written < data.size()) {
+          size_t bytes_to_write =
+              std::min(chunk_size, data.size() - bytes_written);
+
+          err = zipWriteInFileInZip(zip_file, ptr + bytes_written,
+                                    static_cast<unsigned int>(bytes_to_write));
+
+          if (err < 0) {
+            zipCloseFileInZip(zip_file); // Clean up the inner file
+            throw std::runtime_error("Error writing data to file in zip: " +
+                                     filename);
+          }
+
+          bytes_written += bytes_to_write;
+        }
+      }
+
+      // Close the current file inside the archive before moving to the next
+      err = zipCloseFileInZip(zip_file);
+      if (err != ZIP_OK) {
+        throw std::runtime_error("Error closing file in zip: " + filename);
       }
     }
-
-    // Close the current file inside the archive before moving to the next
-    zipCloseFileInZip(zip_file);
+  } catch (...) {
+    // If any exception occurs, clean up the main archive before propagating
+    zipClose(zip_file, nullptr);
+    throw;
   }
 
   // Close and finalize the entire ZIP archive on disk
-  zipClose(zip_file, nullptr);
+  if (zipClose(zip_file, nullptr) != ZIP_OK) {
+    throw std::runtime_error("Failed to finalize and close zip file: " +
+                             output.string());
+  }
 }
 } // namespace zip
 } // namespace utils::compression

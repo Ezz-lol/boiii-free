@@ -49,6 +49,13 @@ typedef time64_t time_t;
 
 typedef uint32_t CanonHash_t;
 
+inline constexpr const char IW_ASSET_SHEBANG = '\x80';
+// Carriage return
+inline constexpr const char CR = '\r';
+// Linefeed
+inline constexpr const char LF = '\n';
+inline constexpr const char CRLF[2] = {'\r', '\n'};
+
 enum class CampaignMode : int32_t {
   DEFAULT = 0,
   ZOMBIES = 1,
@@ -466,9 +473,21 @@ enum class ZoneType : uint32_t {
   OFFICIAL = 0x0,
 
   MOD = 0x1,
-  USERMAP = 0x2
+  USERMAP = 0x2,
+  COUNT = 0x3
 };
 IMPL_ENUM_OPERATORS(ZoneType);
+
+inline constexpr const char *dirname(ZoneType zoneType) {
+  switch (zoneType) {
+  case ZoneType::MOD:
+    return "mods";
+  case ZoneType::USERMAP:
+    return "usermaps";
+  default:
+    return "";
+  }
+}
 
 enum class StorageFileType : int32_t {
   COMMON_SETTINGS = 0,

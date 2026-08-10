@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 #include "../core.hpp"
 #include "../weapon.hpp"
 #include "game/structs/scr/primitives.hpp"
@@ -16,6 +17,7 @@ namespace hunk {
 struct HunkUser;
 }
 namespace scr {
+typedef str<272> scr_path_t;
 
 template <typename T> union ScrPool {
   array<T, SCRIPTINSTANCE_MAX> instance;
@@ -1736,8 +1738,32 @@ PACKED(struct GSC_OBJ {
     magic[7] = val[7];
   }
 
+  inline const char *get_name() const noexcept {
+    return reinterpret_cast<const char *>(this) + name;
+  }
+
+  inline char *get_name() noexcept {
+    return reinterpret_cast<char *>(this) + name;
+  }
+
+  inline const uint8_t *cseg() const noexcept {
+    return reinterpret_cast<const uint8_t *>(this) + cseg_offset;
+  }
+
+  inline uint8_t *cseg() noexcept {
+    return reinterpret_cast<uint8_t *>(this) + cseg_offset;
+  }
+
+  static inline constexpr uint8_t T7_LATEST_VERSION = 0x1C;
   static inline constexpr const std::array<char, sizeof(uint64_t)> T7_MAGIC = {
-      '\x80', 'G', 'S', 'C', '\r', '\n', '\x00', '\x1C'};
+      IW_ASSET_SHEBANG,
+      'G',
+      'S',
+      'C',
+      CR,
+      LF,
+      NULL,
+      static_cast<char>(T7_LATEST_VERSION)};
   // static inline constexpr const uint32_t T7_SRC_CRC = 0x4C492053;
 
   static inline constexpr GSC_OBJ t7() noexcept {
@@ -1746,6 +1772,7 @@ PACKED(struct GSC_OBJ {
     return result;
   }
 });
+ASSERT_OFFSET(GSC_OBJ, cseg_size, 0x30);
 ASSERT_SIZE(GSC_OBJ, 0x48);
 
 struct GSC_ANIMTREE_ITEM {
@@ -1782,7 +1809,7 @@ union scrChecksum_t {
 ASSERT_SIZE(scrChecksum_t, sizeof(uint32_t) * 3);
 ASSERT_CPP03_POD(scrChecksum_t);
 
-struct GSC_GDB {
+PACKED(struct GSC_GDB {
   str8_t magic;
   uint32_t version;
   uint32_t source_crc;
@@ -1793,8 +1820,16 @@ struct GSC_GDB {
   uint32_t stringtable_offset;
   uint32_t stringtable_count;
 
+  static inline constexpr uint8_t T7_LATEST_VERSION = 0x13;
   static inline constexpr const std::array<char, sizeof(uint64_t)> T7_MAGIC = {
-      '\x80', 'G', 'D', 'B', '\r', '\n', '\x00', '\x13'};
+      IW_ASSET_SHEBANG,
+      'G',
+      'D',
+      'B',
+      CR,
+      LF,
+      NULL,
+      static_cast<char>(T7_LATEST_VERSION)};
   static inline constexpr const uint32_t T7_VERSION = 0;
 
   inline constexpr void setMagic(const str8_t &val) noexcept {
@@ -1808,8 +1843,8 @@ struct GSC_GDB {
     magic[7] = val[7];
   }
 
-  inline constexpr void
-  setMagic(const std::array<char, sizeof(uint64_t)> &val) noexcept {
+  inline constexpr void setMagic(
+      const std::array<char, sizeof(uint64_t)> &val) noexcept {
     magic[0] = val[0];
     magic[1] = val[1];
     magic[2] = val[2];
@@ -1825,22 +1860,83 @@ struct GSC_GDB {
     result.setMagic(T7_MAGIC);
     return result;
   }
+
+  inline const uint64_t *lineinfo() const noexcept {
+    return reinterpret_cast<const uint64_t *>(
+        reinterpret_cast<const uint8_t *>(this) + lineinfo_offset);
+  }
+
+  inline uint64_t *lineinfo() noexcept {
+    return reinterpret_cast<uint64_t *>(reinterpret_cast<uint8_t *>(this) +
+                                        lineinfo_offset);
+  }
+
+  inline const char *stringtable() const noexcept {
+    return reinterpret_cast<const char *>(
+        reinterpret_cast<const uint8_t *>(this) + stringtable_offset);
+  }
+
+  inline char *stringtable() noexcept {
+    return reinterpret_cast<char *>(reinterpret_cast<uint8_t *>(this) +
+                                    stringtable_offset);
+  }
+
+  inline std::vector<uint64_t> line_start_addresses() const noexcept {
+    std::vector<uint64_t> result;
+    result.resize(lineinfo_count);
+    const uint64_t *info = lineinfo();
+    for (uint32_t line = 0; line < lineinfo_count; ++line) {
+      result[line] = info[line];
+    }
+    return result;
+  }
+
+  inline uint32_t line(uint64_t pos) const noexcept {
+    const uint64_t *info = lineinfo();
+    uint32_t line = 0;
+    for (; line < lineinfo_count && info[line] < pos; ++line) {
+    }
+    return line;
+  }
   // static inline constexpr const uint32_t T7_SRC_CRC = 0xCA50E0EF;
-};
+});
+ASSERT_OFFSET(GSC_GDB, magic, 0x0);
+ASSERT_OFFSET(GSC_GDB, version, 0x8);
+ASSERT_OFFSET(GSC_GDB, source_crc, 0xC);
+ASSERT_OFFSET(GSC_GDB, lineinfo_offset, 0x10);
+ASSERT_OFFSET(GSC_GDB, lineinfo_count, 0x14);
+ASSERT_OFFSET(GSC_GDB, devblock_stringtable_offset, 0x18);
+ASSERT_OFFSET(GSC_GDB, devblock_stringtable_count, 0x1C);
+ASSERT_OFFSET(GSC_GDB, stringtable_offset, 0x20);
+ASSERT_OFFSET(GSC_GDB, stringtable_count, 0x24);
+
 ASSERT_SIZE(GSC_GDB, 0x28);
 
 PACKED(struct debugFileInfo_t {
   const char *filename;
   void *startAddr;
   void *endAddr;
+  // Relative bytecode offsets or 
+  // absolute memory bytecode addresses
   uint8_t **lineStartAddr;
   int32_t lineStartAddrCount;
   uint8_t _padding24[4];
-  char *source;
+  const char *source;
   int32_t sourceLen;
   uint8_t _padding34[4];
   GSC_GDB *gdb;
+
+  std::vector<uint64_t> get_line_start_addrs() const noexcept {
+    std::vector<uint64_t> result;
+    result.resize(lineStartAddrCount);
+
+    for (int32_t line = 0; line < lineStartAddrCount; ++line) {
+      result.push_back(reinterpret_cast<uint64_t>(lineStartAddr[line]));
+    }
+    return result;
+  }
 });
+ASSERT_SIZE(debugFileInfo_t, 0x40);
 
 struct gscProfileInfo_t;
 PACKED(struct gscProfileInfo_t {
@@ -1855,16 +1951,12 @@ ASSERT_SIZE(gscProfileInfo_t, 0x28);
 
 PACKED(struct objFileInfo_t {
   GSC_OBJ *activeVersion;
-  int32_t slot;
-  int32_t refCount;
-  uint32_t groupId;
-  uint8_t _padding14[4];
+  GSC_OBJ *baselineVersion;
   debugFileInfo_t debugInfo;
-  gscProfileInfo_t *profileInfo;
-  int32_t profileInfoCount;
-  uint8_t _padding64[4];
 });
-ASSERT_SIZE(objFileInfo_t, 0x68);
+ASSERT_SIZE(objFileInfo_t, 0x50);
 
+typedef ScrPool<array<objFileInfo_t, 500>> ObjFileInfoPool;
+ASSERT_SIZE(ObjFileInfoPool, 0x13880);
 } // namespace scr
 } // namespace game

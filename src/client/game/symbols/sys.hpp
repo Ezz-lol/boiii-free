@@ -31,5 +31,8 @@ WEAK symbol<fs::PathList(char *directory, const char *extension, char *filter,
     Sys_ListFiles{0x1422EAA10, 0x1405827C0};
 WEAK symbol<void(const char *fmt, ...)> Sys_Error{0x1422F4A00, 0x140584F50};
 
+WEAK symbol<const char *()> Sys_GetAbsZoneDir{0x1422A4810, 0x140564EC0};
+WEAK symbol<str<272>> s_absZoneDir{0x157A6B860, 0x14A3A2BA0};
+
 } // namespace sys
 } // namespace game

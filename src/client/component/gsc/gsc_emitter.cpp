@@ -26,6 +26,11 @@ void write_u32(std::vector<uint8_t> &buf, uint32_t v) {
   buf.resize(s + sizeof(uint32_t));
   std::memcpy(&buf[s], &v, sizeof(uint32_t));
 }
+template <typename T> void write(std::vector<uint8_t> &buf, T v) {
+  const size_t s = buf.size();
+  buf.resize(s + sizeof(T));
+  std::memcpy(&buf[s], &v, sizeof(T));
+}
 void write_i16(std::vector<uint8_t> &buf, int16_t v) {
   write_u16(buf, static_cast<uint16_t>(v));
 }
@@ -191,6 +196,15 @@ struct emitter_state {
           {.export_index = current_export_index,
            .export_offset = current_func->bytecode.size()});
       line.current = std::min(line.current + 1, val);
+      fprintf(stderr,
+              "%s: Updating current line to %llu, export index: %llu, export "
+              "offset: %llu\n",
+              script_name.c_str(), line.current, current_export_index,
+              current_func->bytecode.size());
+      trace("%s: Updating current line to %llu, export index: %llu, export "
+            "offset: %llu",
+            script_name.c_str(), line.current, current_export_index,
+            current_func->bytecode.size());
     }
   }
   void emit_op(Opcode op, uint64_t line) {
@@ -801,9 +815,9 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
         try_get_vector_constant(node->children[2], z)) {
       s.emit_op(Opcode::GetVector, node->line);
       s.emit_u32_aligned();
-      s.emit_float(x, node->line);
-      s.emit_float(y, node->line);
-      s.emit_float(z, node->line);
+      s.emit_float(x, node->children[0]->line);
+      s.emit_float(y, node->children[1]->line);
+      s.emit_float(z, node->children[2]->line);
       break;
     }
 
@@ -1906,14 +1920,22 @@ std::vector<uint8_t> build_gdb(emitter_state &s, const GSC_OBJ *obj) {
   for (const LineStartAddress &line : s.line.start_addresses) {
     const uint64_t bytecode_offset =
         s.exports[line.export_index].bytecode_offset + line.export_offset;
-    write_aligned(output, bytecode_offset, sizeof(uint64_t));
+    write(output, bytecode_offset);
   }
 
-  // TODO: these are supposed to be fix-up strings. What are fix-up strings?
   const uint32_t stringtable_offset = output.size();
-  for (string_entry &str : s.strings) {
-    output.insert(output.end(), str.value.begin(), str.value.end());
-    output.push_back('\0');
+  uint16_t string_count = 0;
+  for (const string_entry &str : s.strings) {
+    if (!str.references.empty()) {
+      string_count++;
+
+      write_u32(output, str.offset);
+      write_u32(output, static_cast<uint32_t>(str.references.size()));
+
+      for (size_t j = 0; j < str.references.size(); j++) {
+        write_u32(output, resolve_ref(s, str.references[j]));
+      }
+    }
   }
 
   GSC_GDB *header = reinterpret_cast<GSC_GDB *>(output.data());
@@ -1923,7 +1945,7 @@ std::vector<uint8_t> build_gdb(emitter_state &s, const GSC_OBJ *obj) {
   header->lineinfo_offset = sizeof(GSC_GDB);
   header->lineinfo_count = s.line.start_addresses.size();
   header->stringtable_offset = stringtable_offset;
-  header->stringtable_count = s.strings.size();
+  header->stringtable_count = string_count;
 
   // TODO
   header->devblock_stringtable_offset = output.size();

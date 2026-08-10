@@ -543,5 +543,32 @@ WorkshopData *UGC_LoadUsermapByPublisherId_Impl(const char *publisherId) {
   UGC_SetActiveUsermap(usermap);
   return usermap;
 }
+
+#include <cstdio>
+#include <cstdint>
+
+int32_t UGC_ZoneSourcePath_Impl(const char *name, const char *extension,
+                                int32_t size, char *buf, ZoneType zoneType,
+                                const char *publisherId) {
+  const char *cwd = sys::Sys_Cwd();
+
+  switch (zoneType) {
+  case ZoneType::OFFICIAL: {
+    return std::snprintf(buf, size, "%s/zone_source/%s%s", cwd, name,
+                         extension);
+  }
+  default: {
+    const WorkshopData *data = UGC_GetByPublisherId_Impl(zoneType, publisherId);
+
+    // Fall back to publisherId if WorkshopData is invalid or internalName is
+    // empty
+    const char *targetDir =
+        data && data->internalName[0] ? data->internalName : publisherId;
+
+    return std::snprintf(buf, size, "%s/%s/%s/zone_source/%s%s", cwd,
+                         dirname(zoneType), targetDir, name, extension);
+  }
+  }
+}
 } // namespace ugc
 } // namespace game

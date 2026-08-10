@@ -290,4 +290,12 @@ WEAK symbol<void()> G_InitSentients{0x0, 0x1406410C0};
 WEAK symbol<aligned_array_ref<uint8_t, 0x500000, 0x10>>
     G_PHYSICS_TOTAL_MEMORY_BUFFER{0x0, 0x14A7522C8};
 
+namespace mz_unzip {
+WEAK symbol<void(void *)> mz_unzip{0x0, 0x1404DE4A0};
+WEAK symbol<void *(void *, const char *fileName, size_t *size)> ReadFileAlloc{
+    0x0, 0x1404DE580};
+WEAK symbol<bool(void *, const char *fileName)> OpenFile{0x0, 0x1404DE510};
+
+} // namespace mz_unzip
+
 } // namespace game
