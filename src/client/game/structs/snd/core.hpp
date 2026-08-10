@@ -1144,6 +1144,10 @@ struct SndBankLoad {
      progress.
   */
   uint32_t pendingIoCount;
+
+  inline constexpr const char *zone() const noexcept {
+    return bank ? bank->zone : nullptr;
+  }
 };
 
 ASSERT_SIZE(SndBankLoad, 0x1278);

@@ -36,7 +36,8 @@ inline constexpr T normalizeAngle(T angle) noexcept {
 } // namespace math
 
 template <typename T = vec_t> union vec2 {
-  T v[2];
+  static inline constexpr auto SIZE = 2;
+  T v[SIZE];
   struct {
     T x;
     T y;
@@ -132,7 +133,7 @@ template <typename T = vec_t> union vec2 {
     return {.x = std::cos(rad), .y = std::sin(rad)};
   }
 
-  inline constexpr auto size() const noexcept { return ARRAYSIZE(v); }
+  static inline constexpr auto size() noexcept { return SIZE; }
 
   using IndexType = uint8_t;
 
@@ -160,7 +161,8 @@ ASSERT_SIZE(vec2_t, sizeof(vec_t) * 2);
 ASSERT_CPP03_POD(vec2_t);
 
 template <typename T = vec_t> union vec3 {
-  T v[3];
+  static inline constexpr auto SIZE = 3;
+  T v[SIZE];
   struct {
     T x;
     T y;
@@ -291,7 +293,7 @@ template <typename T = vec_t> union vec3 {
             .z = -std::sin(pitch)};
   }
 
-  inline constexpr auto size() const noexcept { return ARRAYSIZE(v); }
+  static inline constexpr auto size() noexcept { return SIZE; }
 
   using IndexType = uint8_t;
 
@@ -319,7 +321,8 @@ ASSERT_SIZE(vec3_t, sizeof(vec_t) * 3);
 ASSERT_CPP03_POD(vec3_t);
 
 template <typename T = vec_t> union vec4 {
-  T v[4];
+  static inline constexpr auto SIZE = 4;
+  T v[SIZE];
   struct {
     T x;
     T y;
@@ -456,7 +459,7 @@ template <typename T = vec_t> union vec4 {
             .w = cr * cp * cy + sr * sp * sy};
   }
 
-  inline constexpr auto size() const noexcept { return ARRAYSIZE(v); }
+  static inline constexpr auto size() noexcept { return SIZE; }
 
   using IndexType = uint8_t;
 

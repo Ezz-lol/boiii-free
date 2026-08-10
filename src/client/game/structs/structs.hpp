@@ -35,8 +35,6 @@
 #include "cg.hpp"              // IWYU pragma: export
 #include "steam.hpp"           // IWYU pragma: export
 #include "stream.hpp"          // IWYU pragma: export
-#include "atomic.hpp"          // IWYU pragma: export
-#include "str.hpp"             // IWYU pragma: export
 #include "macros.hpp"          // IWYU pragma: export
 #include "sv.hpp"              // IWYU pragma: export
 #include "ugc.hpp"             // IWYU pragma: export

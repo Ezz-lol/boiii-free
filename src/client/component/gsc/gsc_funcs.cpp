@@ -1219,7 +1219,8 @@ void gscr_vector(scriptInstance_t inst) {
           const std::vector<volatile var::ScrVarValue_t *> arg =
               Scr_GetArray(inst, 0);
 
-          for (size_t i = 0; i < std::min(arg.size(), result.size()); ++i) {
+          for (size_t i = 0; i < std::min<size_t>(arg.size(), result.size());
+               ++i) {
             result[i] = ScrVar_CastFloat(arg[i]);
           }
           break;

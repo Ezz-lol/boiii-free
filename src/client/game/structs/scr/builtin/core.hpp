@@ -2,7 +2,6 @@
 
 #include "game/structs/scr/core.hpp"
 #include "hash.hpp"
-#include <functional>
 
 namespace game {
 namespace scr {

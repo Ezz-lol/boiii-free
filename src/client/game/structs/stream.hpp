@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include "str.hpp"
+#include <structs/str.hpp>
 
 namespace game {
 namespace stream {

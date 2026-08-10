@@ -89,8 +89,7 @@ void ScrVar_EvalArray_DefaultEmpty(scriptInstance_t inst,
                                    volatile ScrVarValue_t *index) {
   if (valid_scrvarvalue_ptr(inst, value) &&
       valid_scrvarvalue_ptr(inst, index)) {
-    if (ScrVar_ArrayLike(inst, value) &&
-        ScrVar_ValidIndex(inst, value, index)) {
+    if (value->array_like(inst) && value->valid_index(inst, index)) {
 
       return ScrVar_EvalArray_hook.invoke<void>(inst, value, index);
     } else {

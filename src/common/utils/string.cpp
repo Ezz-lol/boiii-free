@@ -5,7 +5,7 @@
 #include <sstream>
 #include <windows.h>
 
-#include "../str.hpp"
+#include <str.hpp>
 
 namespace utils::string {
 const char *va(const char *fmt, ...) {

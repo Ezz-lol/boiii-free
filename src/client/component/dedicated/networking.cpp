@@ -305,7 +305,7 @@ void snd_bank_load_error_stub(game::snd::SndBankLoad *load) {
           "files are "
           "missing, copy them to '%s'. Dedicated-server sound files are "
           "optional; restart with '-nosnd' to run without them.\n",
-          zone, sound_path.c_str());
+          zone.data(), sound_path.c_str());
   fflush(stderr);
   snd_bank_load_error_hook.invoke(load);
 }

@@ -12,13 +12,13 @@ namespace demonware {
 namespace {
 #pragma pack(push, 1)
 struct auth_ticket {
-  unsigned int m_magicNumber;
+  uint32_t m_magicNumber;
   char m_type;
-  unsigned int m_titleID;
-  unsigned int m_timeIssued;
-  unsigned int m_timeExpires;
-  unsigned __int64 m_licenseID;
-  unsigned __int64 m_userID;
+  uint32_t m_titleID;
+  uint32_t m_timeIssued;
+  uint32_t m_timeExpires;
+  uint64_t m_licenseID;
+  uint64_t m_userID;
   char m_username[64];
   char m_sessionKey[24];
   char m_usingHashMagicNumber[3];
@@ -41,8 +41,8 @@ void auth3_server::handle(const std::string &packet) {
     return;
   }
 
-  unsigned int title_id = 0;
-  unsigned int iv_seed = 0;
+  uint32_t title_id = 0;
+  uint32_t iv_seed = 0;
   std::string identity{};
   std::string token{};
 

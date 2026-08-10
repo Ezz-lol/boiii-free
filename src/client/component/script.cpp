@@ -519,7 +519,6 @@ void load_script_file(std::string &data,
 
       print_loading_script(name);
       std::string bytecode(result.bytecode.begin(), result.bytecode.end());
-
       load_script(name, bytecode, load);
       add_gdb(name, result.gdb);
       objFileInfo_t *obj =
