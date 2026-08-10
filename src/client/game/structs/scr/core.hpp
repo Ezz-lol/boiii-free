@@ -1916,7 +1916,7 @@ PACKED(struct debugFileInfo_t {
   const char *filename;
   void *startAddr;
   void *endAddr;
-  // Relative bytecode offsets or 
+  // Relative bytecode offsets or
   // absolute memory bytecode addresses
   uint8_t **lineStartAddr;
   int32_t lineStartAddrCount;
