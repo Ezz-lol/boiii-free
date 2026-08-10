@@ -315,15 +315,23 @@ std::string preprocess_impl(const std::string &source,
             output += "\n";
         } else {
           try {
-            const std::string appdata_scripts =
-                (game::get_appdata_path() / "data" / "scripts").string();
-            printf(
-                "^3[GSC] Warning: #insert file not found: '%s' — "
-                "download/create the .gsh headers and place them in '%s\\'\n",
-                insert_path.data(), appdata_scripts.data());
+            std::string normalized_path = insert_path;
+            std::replace(normalized_path.begin(), normalized_path.end(), '\\',
+                         '/');
+            const std::filesystem::path manual_path =
+                game::get_appdata_path() / "data" / normalized_path;
+            fprintf(stderr,
+                    "^3[GSC] Missing #insert file '%s'. Download or create the "
+                    ".gsh file and place it manually at:\n^3  %s\n",
+                    insert_path.c_str(), manual_path.string().c_str());
+            fflush(stderr);
           } catch (...) {
-            printf("^3[GSC] Warning: #insert file not found: '%s'\n",
-                   insert_path.data());
+            fprintf(stderr,
+                    "^3[GSC] Missing #insert file '%s'. Place the .gsh file "
+                    "under '%%LOCALAPPDATA%%/boiii/data' using the same "
+                    "relative path.\n",
+                    insert_path.c_str());
+            fflush(stderr);
           }
           output += "\n";
         }

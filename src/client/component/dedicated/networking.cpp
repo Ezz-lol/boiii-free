@@ -290,6 +290,25 @@ void stub_func() { return; }
 
 utils::hook::detour snd_enqueueloadedassets_hook;
 utils::hook::detour snd_starttocread_hook;
+utils::hook::detour snd_bank_load_error_hook;
+
+void snd_bank_load_error_stub(game::snd::SndBankLoad *load) {
+  const std::string sound_path =
+      (game::get_game_path() / "zone" / "snd").string();
+  const std::string_view zone =
+      load && load->bank && load->bank->zone && load->bank->zone[0]
+          ? load->bank->zone
+          : "UNKNOWN";
+
+  fprintf(stderr,
+          "^3[Sound] A sound bank for zone %s could not be loaded. If its "
+          "files are "
+          "missing, copy them to '%s'. Dedicated-server sound files are "
+          "optional; restart with '-nosnd' to run without them.\n",
+          zone, sound_path.c_str());
+  fflush(stderr);
+  snd_bank_load_error_hook.invoke(load);
+}
 
 /*
   Sound load, processing, and data access functionality was consistently either
@@ -318,6 +337,9 @@ utils::hook::detour snd_starttocread_hook;
 */
 
 inline void enable_sound() {
+  snd_bank_load_error_hook.create(game::snd::SND_BankLoadError.get(),
+                                  snd_bank_load_error_stub);
+
   /*
     In the lines of code where the client versions of SND_EnqueueLoadedAssets
     and SND_StartTocRead require usage of `SD_Alloc`, in dedicated server, a
