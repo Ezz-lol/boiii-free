@@ -888,7 +888,6 @@ std::string get_source_line(const std::string &file, int32_t line_num) {
   return {};
 }
 
-#ifndef NDEBUG
 const char *Scr_PrevCodePos(scriptInstance_t inst, volatile uint8_t *codePos) {
   char *filename = nullptr;
   int32_t lineNum = 0;
@@ -973,7 +972,6 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
 
   return Scr_Error_hook.invoke(inst, error, terminal);
 }
-#endif
 
 utils::hook::detour Hunk_UserFree_hook;
 void Hunk_UserFree_NotScriptPoolAlloc(hunk::HunkUser *user, void *ptr) {
