@@ -26,8 +26,11 @@
 #include <condition_variable>
 #include <mutex>
 #include <regex>
-#include <unordered_map>
 #include <shellapi.h>
+
+#include <frozen/unordered_map.h>
+#include <frozen/unordered_set.h>
+#include <frozen/string.h>
 
 using namespace game::db;
 using XZoneName = xzone::XZoneName;
@@ -39,7 +42,7 @@ std::thread download_thread{};
 
 utils::hook::detour CL_SetupForNewServerMap_hook;
 
-static const std::unordered_map<std::string, std::string> dlc_links = {
+inline constexpr std::pair<frozen::string, frozen::string> DLC_LINK_ARRAY[] = {
     {"zm_zod", "https://forum.ezz.lol/topic/6/bo3-dlc"},
     {"zm_castle", "https://forum.ezz.lol/topic/6/bo3-dlc"},
     {"zm_island", "https://forum.ezz.lol/topic/6/bo3-dlc"},
@@ -54,6 +57,9 @@ static const std::unordered_map<std::string, std::string> dlc_links = {
     {"zm_sumpf", "https://forum.ezz.lol/topic/6/bo3-dlc"},
     {"zm_factory", "https://forum.ezz.lol/topic/6/bo3-dlc"},
     {"zm_asylum", "https://forum.ezz.lol/topic/6/bo3-dlc"}};
+inline constexpr frozen::unordered_map<frozen::string, frozen::string,
+                                       std::size(DLC_LINK_ARRAY)>
+    DLC_LINKS = frozen::make_unordered_map(DLC_LINK_ARRAY);
 std::mutex dlc_mutex;
 std::condition_variable dlc_cv;
 std::string pending_dlc_map;
@@ -74,9 +80,8 @@ void dlc_popup_thread_func() {
     pending_dlc_map.clear();
     lock.unlock();
 
-    const auto it = dlc_links.find(map);
-    if (it != dlc_links.end()) {
-      const std::string link = it->second;
+    if (DLC_LINKS.contains(frozen::string(map.data()))) {
+      const char *link = DLC_LINKS.at(frozen::string(map.data())).data();
       const std::string map_copy = map;
       scheduler::once(
           [map_copy, link] {
@@ -84,11 +89,10 @@ void dlc_popup_thread_func() {
                 0, game::errorCode::UI,
                 utils::string::va(
                     "Missing DLC map: %s\n\nOpening download page...\n%s",
-                    map_copy.c_str(), link.c_str()));
+                    map_copy.c_str(), link));
           },
           scheduler::main);
-      ShellExecuteA(nullptr, "open", link.c_str(), nullptr, nullptr,
-                    SW_SHOWNORMAL);
+      ShellExecuteA(nullptr, "open", link, nullptr, nullptr, SW_SHOWNORMAL);
     }
   }
 }
@@ -524,14 +528,17 @@ std::string get_mod_publisher_id() {
 
   return loaded_mod_id;
 }
+inline constexpr frozen::string ZM_DLC_MAP_ARRAY[] = {
+    "zm_asylum", "zm_castle",  "zm_cosmodrome", "zm_factory",    "zm_genesis",
+    "zm_island", "zm_moon",    "zm_prototype",  "zm_stalingrad", "zm_sumpf",
+    "zm_temple", "zm_theater", "zm_tomb",       "zm_zod",
+};
 
-constexpr bool is_zm_dlc_map(const std::string_view mapname) {
-  constexpr std::array<std::string_view, 14> ZM_DLC_MAPS = {
-      "zm_asylum", "zm_castle",  "zm_cosmodrome", "zm_factory",    "zm_genesis",
-      "zm_island", "zm_moon",    "zm_prototype",  "zm_stalingrad", "zm_sumpf",
-      "zm_temple", "zm_theater", "zm_tomb",       "zm_zod",
-  };
-  return std::binary_search(ZM_DLC_MAPS.begin(), ZM_DLC_MAPS.end(), mapname);
+inline constexpr frozen::unordered_set<frozen::string,
+                                       std::size(ZM_DLC_MAP_ARRAY)>
+    ZM_DLC_MAPS = frozen::make_unordered_set(ZM_DLC_MAP_ARRAY);
+inline constexpr bool is_zm_dlc_map(const std::string_view mapname) {
+  return ZM_DLC_MAPS.contains(mapname);
 }
 
 std::atomic<bool> downloading_workshop_item{false};

@@ -2,6 +2,8 @@
 
 #include <std_include.hpp>
 #include <game/structs/scr/scr.hpp>
+#include <frozen/unordered_set.h>
+#include <frozen/string.h>
 
 namespace gsc {
 using namespace game::scr;
@@ -13,24 +15,17 @@ struct hash_name_pair {
   uint8_t params;
 };
 
-// Special namespace that immediately indicates to engine's linker that this is
-// a builtin function
-constexpr const char *GSCR_SYS_NS = "sys";
-constexpr ScrVarCanonicalName_t GSCR_SYS_NS_HASH =
-    game::scr::builtin::fnv1a(GSCR_SYS_NS);
+inline constexpr frozen::string SCR_HASH_LITERAL_PREFIX_ARRAY[] = {
+    "hash", "var",  "variable",  "id", "function",
+    "fn",   "func", "namespace", "ns"};
 
-inline constexpr std::string_view SCR_HASH_LITERAL_PREFIXES[] = {
-    "hash", "var",  "variable", "id",        "function",
-    "fn",   "func", "var",      "namespace", "ns"};
+inline constexpr frozen::unordered_set<frozen::string,
+                                       std::size(SCR_HASH_LITERAL_PREFIX_ARRAY)>
+    SCR_HASH_LITERAL_PREFIXES =
+        frozen::make_unordered_set(SCR_HASH_LITERAL_PREFIX_ARRAY);
 
 inline constexpr bool hash_literal_prefix(const std::string_view &s) {
-  for (uint32_t i = 0; i < ARRAYSIZE(SCR_HASH_LITERAL_PREFIXES); ++i) {
-    if (s == SCR_HASH_LITERAL_PREFIXES[i]) {
-      return true;
-    }
-  }
-
-  return false;
+  return SCR_HASH_LITERAL_PREFIXES.contains(s);
 }
 
 inline constexpr std::optional<ScrVarCanonicalName_t>
