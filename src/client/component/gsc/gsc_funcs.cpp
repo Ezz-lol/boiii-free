@@ -874,8 +874,6 @@ void gscr_ls(scriptInstance_t inst) {
     push(inst);
     return;
   }
-  fprintf(stderr, "ls: called with path %s\n", path);
-  fflush(stderr);
 
   bool recurse = Scr_GetBoolOptional(inst, 1, false);
   bool include_directories = Scr_GetBoolOptional(inst, 2, false);
