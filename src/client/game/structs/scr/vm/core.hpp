@@ -75,6 +75,15 @@ ASSERT_OFFSET(scrVmPub_t, function_frame_start, 0x40);
 ASSERT_SIZE(scrVmPub_t, 0x8A40);
 
 typedef ScrPool<scrVmPub_t> ScrVmPubPool;
+
+PACKED(struct scrVmGlob_t {
+  var::ScrVarValue_t eval_stack[2];
+  const char *dialog_error_message;
+  int32_t loading;
+  int32_t starttime;
+  var::ScrVarIndex_t localVarsStack[4096];
+});
+typedef ScrPool<scrVmGlob_t> ScrVmGlobPool;
 } // namespace vm
 } // namespace scr
 } // namespace game
