@@ -42,4 +42,5 @@ private:
   mutable MutexType mutex_{};
   T object_{};
 };
+
 } // namespace utils::concurrency

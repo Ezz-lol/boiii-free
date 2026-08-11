@@ -303,7 +303,7 @@ struct emitter_state {
     }
 
     if (builtin) {
-      ns_hash = gsc::GSCR_SYS_NS_HASH;
+      ns_hash = builtin::SYS_NS_HASH;
       is_thread = false;
     }
 

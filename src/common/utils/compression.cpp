@@ -336,7 +336,8 @@ extract(const std::string &data) {
 
 void write_file(
     const std::filesystem::path &output, // Optimized: Pass by const reference
-    const std::unordered_map<std::string, std::vector<uint8_t>> &entries) {
+    const std::pair<std::string, std::vector<uint8_t>> *entries,
+    const size_t count) {
   // Open the ZIP archive for writing.
   // APPEND_STATUS_CREATE will create a new file or overwrite an existing one.
   zipFile zip_file = zipOpen64(output.string().c_str(), APPEND_STATUS_CREATE);
@@ -347,7 +348,8 @@ void write_file(
   // Use a try-catch block to guarantee the zip_file handle is closed if an
   // exception is thrown
   try {
-    for (const auto &[filename, data] : entries) {
+    for (size_t entryIdx = 0; entryIdx < count; ++entryIdx) {
+      const auto &[filename, data] = entries[entryIdx];
 
       zip_fileinfo zi{};
 
