@@ -450,7 +450,7 @@ value = conststring(hash);
 `isstruct(val)` returns a boolean value representing whether the given `val` is
 a `struct`
 
-```
+```gsc
 ex_struct = spawnstruct();
 /#
   assert(isstruct(ex_struct));
@@ -477,7 +477,7 @@ This can be used to check if an `openmenu("MenuName")` or
 `closemenu("MenuName")` method call can be executed without error prior to the
 call.
 
-```
+```gsc
 /#
 assert(!ismenucached("asdfgasdfgsdfhgsdfhsdfh"));
 // Initial black screen - always exists and is cached, regardless of map or gamemode.
@@ -511,7 +511,7 @@ values passed as arguments.
 
 This can be used to cast values of other types to a vector.
 
-```
+```gsc
 basic_vec = vector(1.0, 2.0, 3.0);
 /#
 assert(isvec(basic_vec) && basic_vec.x == 1.0);
@@ -553,6 +553,56 @@ assert(isvec(vec_from_assorted) &&
        vec_from_assorted.z == 3.0);
 #/
 ```
+
+### typename
+
+`typename(var)` returns the type of the given argument represented as a string.
+
+```
+/#
+assert(typename("I am a string") == "string");
+assert(typename(1.0) == "float");
+assert(typename((1.0, 1.0, 1.0)) == "vector");
+#/
+test_struct = spawnstruct();
+/#
+assert(typename(test_struct) == "struct");
+#/
+```
+
+For the sake of completeness, the following is the full list of `ScrVarType`s
+and the corresponding string representation of each.
+
+- `UNDEFINED`: `"undefined"`
+- `POINTER`: `"pointer"`
+- `STRING` : `"string"`
+- `LOCALIZED_STRING`: `"localized string"`
+- `VECTOR`: `"vector"`
+- `HASH`: `"hash"`
+- `FLOAT`: `"float"`
+- `INT`: `"int"`
+- `UINT64`: `"uint64"`
+- `UINTPTR_T`: `"uintptr_t"`
+- `ENTITY_OFFSET`: `"entity offset"`
+- `CODEPOS`: `"codepos"`
+- `PRECODEPOS`: `"precodepos"`
+- `API_FUNCTION`: `"api_function"`
+- `FUNCTION`: `"function"`
+- `STACK`: `"stack"`
+- `ANIMATION`: `"animation"`
+- `THREAD`: `"thread"`
+- `NOTIFY_THREAD`: `"notify thread"`
+- `TIME_THREAD`: `"time thread"`
+- `CHILD_THREAD`: `"child thread"`
+- `CLASS`: `"class"`
+- `STRUCT`: `"struct"`
+- `REMOVED_ENTITY`: `"removed entity"`
+- `ENTITY`: `"entity"`
+- `ARRAY`: `"array"`
+- `REMOVED_THREAD`: `"removed thread"`
+- `FREE`: `"<free>"`
+- `THREAD_LIST`: `"thread list"`
+- `ENT_LIST`: `"ent list"`
 
 ## Method-style custom calls
 

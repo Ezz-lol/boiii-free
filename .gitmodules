@@ -51,3 +51,6 @@
 [submodule "deps/frozen"]
 	path = deps/frozen
 	url = https://github.com/serge-sans-paille/frozen
+[submodule "deps/gtl"]
+	path = deps/gtl
+	url = https://github.com/greg7mdp/gtl
