@@ -1177,6 +1177,21 @@ void gscr_isstruct(scriptInstance_t inst) {
   }
 }
 
+void gscr_typename(scriptInstance_t inst) {
+  const uint32_t argc = Scr_GetNumParam(inst);
+  if (argc == 0) {
+    Scr_ParamError(inst, 0,
+                   "No argument provided to typename. syntax: typename(var)");
+  } else {
+    const ScrVarType var_type = Scr_GetValue(inst, 0)->type;
+    const char *name = var_typename->valid_index(var_type)
+                           ? var_typename->get(var_type)
+                           : "INVALID";
+
+    push(inst, name);
+  }
+}
+
 void gscr_ismenucached(scriptInstance_t inst) {
   const uint32_t argc = Scr_GetNumParam(inst);
   if (argc == 0) {
@@ -1538,6 +1553,7 @@ struct component final : generic_component {
 
     register_builtin("conststring", gscr_conststring, 1);
     register_builtin("isstruct", gscr_isstruct, 1);
+    register_builtin("typename", gscr_typename, 1);
     register_builtin("ismenucached", gscr_ismenucached, 1);
     register_builtin("vector", gscr_vector, 0, 3);
 
