@@ -214,14 +214,14 @@ constexpr char hudelem_cfgstr_pool_entry_name_prefix[] =
 constexpr uint8_t hudelem_cfgstr_pool_entry_name_number_max_suffix_len =
     sizeof(uint16_t) * 2 /* characters per byte */;
 constexpr uint8_t hudelem_cfgstr_pool_entry_name_len =
-    ARRAYSIZE(hudelem_cfgstr_pool_entry_name_prefix) +
+    std::size(hudelem_cfgstr_pool_entry_name_prefix) +
     hudelem_cfgstr_pool_entry_name_number_max_suffix_len;
 typedef str<hudelem_cfgstr_pool_entry_name_len> HudElemCfgStrPoolEntryName;
 consteval ui::he::HudElementPool<HudElemCfgStrPoolEntryName>
 build_hudelem_cfgstr_name_pool(
     ui::he::HudElementPool<HudElemCfgStrPoolEntryName> pool = {}) {
   for (uint16_t i = 0; i < pool.size(); ++i) {
-    append_hex<ARRAYSIZE(hudelem_cfgstr_pool_entry_name_prefix), uint16_t>(
+    append_hex<std::size(hudelem_cfgstr_pool_entry_name_prefix), uint16_t>(
         hudelem_cfgstr_pool_entry_name_prefix, i, pool.pool[i]);
   }
   return pool;
@@ -286,8 +286,8 @@ namespace hecmd_settext {
 static HudElemMessage message_buf = {0};
 static HudElemMessage cleaned_message_buf = {0};
 inline void clear_message_bufs() {
-  memset(message_buf, 0, ARRAYSIZE(message_buf));
-  memset(cleaned_message_buf, 0, ARRAYSIZE(cleaned_message_buf));
+  memset(message_buf, 0, std::size(message_buf));
+  memset(cleaned_message_buf, 0, std::size(cleaned_message_buf));
 }
 
 void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
@@ -395,7 +395,7 @@ void BG_Cache_HandleConfigStringChange_ReuseExisting(
       index >= s_bgCacheTypeInfo->locstring.configStringStart &&
       index < s_bgCacheTypeInfo->locstring.configStringStart +
                   static_cast<int32_t>(
-                      ARRAYSIZE(s_bgCache->client.dataSet.localizedStrings));
+                      std::size(s_bgCache->client.dataSet.localizedStrings));
 
   if (is_localized_string) {
     volatile bgCachedGenericData *data =
@@ -419,7 +419,7 @@ void BG_Cache_HandleConfigStringChange_ReuseExisting(
      second it is occurring, so it seems preferable to skip this.
     */
   } else if (index != s_bgCacheTypeInfo->debugstring.configStringStart +
-                          static_cast<int32_t>(ARRAYSIZE(
+                          static_cast<int32_t>(std::size(
                               s_bgCache->client.dataSet.debugStrings))) {
     BG_Cache_HandleConfigStringChange_hook.invoke(localClientNum, index);
   }
@@ -861,27 +861,6 @@ void gscr_directoryexists(scriptInstance_t inst) {
     return;
   }
   push(inst, utils::io::directory_exists(resolve_path(path)));
-}
-
-void gscr_listfiles(scriptInstance_t inst) {
-  const char *path = Scr_GetString(inst, 0);
-  if (!path || !is_safe_path(path)) {
-    push_string(inst, "");
-    return;
-  }
-  const std::filesystem::path full = resolve_path(path);
-  if (!utils::io::directory_exists(full)) {
-    push_string(inst, "");
-    return;
-  }
-  const std::vector<std::filesystem::path> files = utils::io::list_files(full);
-  std::string result;
-  for (const std::filesystem::path &f : files) {
-    if (!result.empty())
-      result += ",";
-    result += f.filename().string();
-  }
-  push_string(inst, result.c_str());
 }
 
 /*
@@ -1503,14 +1482,6 @@ struct component final : generic_component {
     register_builtin("filesize", gscr_filesize, 1);
     register_builtin({"mkdir", "createdirectory"}, gscr_createdirectory, 1);
     register_builtin("directoryexists", gscr_directoryexists, 1);
-
-    register_builtin(
-        "listfiles",
-        deprecate<gscr_listfiles, "listfiles", "ls",
-                  "is being phased out in favor of `ls`. `ls` returns an "
-                  "array of paths rather than a line-delimited "
-                  "list of paths, returned as one string.">,
-        1);
     register_builtin("ls", gscr_ls, 1, 3);
 
     // JSON
