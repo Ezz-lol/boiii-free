@@ -31,6 +31,19 @@ inline void dvar_force_enable(EngineDependentDvarMut dvar) {
   Dvar_SetModifiedCallback(dvar, dvar_enablebool_cb);
 }
 
+template <const int32_t Value>
+inline void dvar_set_int_cb(EngineDependentDvarMut dvar) {
+  if (dvar.get_int() != Value) {
+    dvar.set(Value);
+  }
+}
+
+template <const int32_t Value>
+inline void dvar_force_set_int(EngineDependentDvarMut dvar) {
+  dvar.set(Value);
+  Dvar_SetModifiedCallback(dvar, dvar_set_int_cb<Value>);
+}
+
 void dvar_enableboolstring_cb(EngineDependentDvarMut dvar) {
   if (dvar.get_string().value_or("0") != "1") {
     dvar.set("1");
@@ -51,7 +64,7 @@ inline void enable_debug_dvars() {
   if (utils::flags::has_flag("vehicle-debug")) {
     dvar_force_enable_boolstring(*game::g_vehicleDrawPath);
     dvar_force_enable(*game::g_vehicleDrawSplines);
-    dvar_force_enable(*game::g_vehicleDebug);
+    dvar_force_set_int<1>(*game::g_vehicleDebug);
   }
 }
 #endif

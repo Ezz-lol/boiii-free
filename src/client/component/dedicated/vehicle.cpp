@@ -166,20 +166,15 @@ inline void enable_client_game_pools() {
     std::call_once(assign_pool_pointers_flag, assign_pool_pointers);
     reset_pools();
   });
-  game_event::on_g_shutdown_game([]() -> void { reset_pools(); });
+  game_event::on_g_shutdown_game(reset_pools);
 }
 
 utils::hook::detour path_constraint_update_hook;
 utils::hook::detour NitrousVehicle_is_path_moving_hook;
 bool NitrousVehicle_is_path_moving_sv(NitrousVehicle *self) {
-  if (self) {
-    level::gentity_t *ent = self->m_owner;
-    return ent && ent->vehicle &&
-           (ent->vehicle->moveState != VehicleMoveState::STOP ||
-            (ent->vehicle->phys.prevOrigin != ent->vehicle->phys.origin) ||
-            (ent->vehicle->phys.prevAngles != ent->vehicle->phys.angles));
-  }
-  return false;
+  return self && self->m_owner && self->m_owner->vehicle &&
+         (self->m_owner->vehicle->moveState != VehicleMoveState::STOP ||
+          !self->m_owner->vehicle->stopping);
 }
 
 utils::hook::detour NitrousVehicle_unpause_physics_hook;

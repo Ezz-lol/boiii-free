@@ -154,6 +154,14 @@ template <typename T = vec_t> union vec2 {
     assert_range(index);
     return v[index];
   }
+
+  inline constexpr bool cmp_epsilon(const vec2<T> &b,
+                                    const T epsilon) const noexcept {
+
+    const T epsilon_sq = epsilon * epsilon;
+    return std::pow(x - b.x, 2) <= epsilon_sq &&
+           std::pow(y - b.y, 2) <= epsilon_sq;
+  }
 };
 
 typedef vec2<vec_t> vec2_t;
@@ -313,6 +321,15 @@ template <typename T = vec_t> union vec3 {
     const IndexType index = static_cast<IndexType>(index_arg);
     assert_range(index);
     return v[index];
+  }
+
+  inline constexpr bool cmp_epsilon(const vec3<T> &b,
+                                    const T epsilon) const noexcept {
+
+    const T epsilon_sq = std::pow(epsilon, 2);
+    return std::pow(x - b.x, 2) <= epsilon_sq &&
+           std::pow(y - b.y, 2) <= epsilon_sq &&
+           std::pow(z - b.z, 2) <= epsilon_sq;
   }
 };
 
@@ -479,6 +496,16 @@ template <typename T = vec_t> union vec4 {
     const IndexType index = static_cast<IndexType>(index_arg);
     assert_range(index);
     return v[index];
+  }
+
+  inline constexpr bool cmp_epsilon(const vec4<T> &b,
+                                    const T epsilon) const noexcept {
+
+    const T epsilon_sq = std::pow(epsilon, 2);
+    return std::pow(x - b.x, 2) <= epsilon_sq &&
+           std::pow(y - b.y, 2) <= epsilon_sq &&
+           std::pow(z - b.z, 2) <= epsilon_sq &&
+           std::pow(w - b.w, 2) <= epsilon_sq;
   }
 };
 
