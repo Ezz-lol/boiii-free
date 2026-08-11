@@ -931,13 +931,9 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
     if (node->value == "!")
       s.emit_op(Opcode::BoolNot, node->line);
     else if (node->value == "~") {
-      /*
-         No `Bit_Not` opcode in BO3,
-         but we can compute the equivalent with:
-         `NOT(A) = A XOR -1`
-      */
-      emit_get_number(s, -1, node->line);
-      s.emit_op(Opcode::Bit_Xor, node->line);
+      // See note above the `BoolComplement` enumeration in the `Opcode` enum
+      // definition
+      s.emit_op(Opcode::BoolComplement, node->line);
     } else if (node->value == "-") {
       emit_get_number(s, -1, node->line);
       s.emit_op(Opcode::Multiply, node->line);
