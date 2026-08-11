@@ -28,7 +28,7 @@ template <typename T, const IntegralLike auto N, const IntegralLike auto Align>
 struct aligned_array {
   alignas(Align) array<T, N> items;
 
-  inline constexpr void assert_range(size_t index) const {
+  inline constexpr void assert_range([[maybe_unused]] size_t index) const {
     assert(index < N && "index to aligned_array must be < array length");
   }
   template <IntegralLike Index>
@@ -83,7 +83,7 @@ template <typename T, const IntegralLike auto N, const IntegralLike auto Align>
 struct aligned_array_ref {
   aligned_array<T, N, Align> *ref;
 
-  inline constexpr void assert_range(size_t index) const {
+  inline constexpr void assert_range([[maybe_unused]] size_t index) const {
     assert(index < N && "index to aligned_array must be < array length");
   }
   template <IntegralLike Index>

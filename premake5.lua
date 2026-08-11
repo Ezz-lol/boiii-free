@@ -416,6 +416,7 @@ files({
 includedirs({
   "./deps/argparse/include",
   "./deps/SteamworkSDK/public",
+  "./deps/gtl/include",
   "./deps/frozen/include",
   "./deps/Microsoft.Web.WebView2/build/native/include",
   "./src/client",
