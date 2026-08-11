@@ -42,7 +42,7 @@ ASSERT_SIZE(ScrVmContext_t, 0x20);
 PACKED(struct scrVmPub_t {
   uint32_t *localVars;
   var::ScrVarValue_t *maxstack;
-  uint32_t function_count;
+  int32_t function_count;
   uint8_t _padding10[4]; // Probably just padding
   function_frame_t *function_frame;
   var::ScrVarValue_t *top;

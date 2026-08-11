@@ -287,7 +287,7 @@ T *Hunk_UserAlloc_ReturnStaticAllocation_FirstNull(
   T *result = &allocation[next_alloc_index.load(std::memory_order_acquire)];
 
   next_alloc_index.fetch_add(1, std::memory_order_release);
-  uint32_t storage_len = ARRAYSIZE(allocation);
+  uint32_t storage_len = std::size(allocation);
   next_alloc_index.compare_exchange_strong(
       storage_len, 0, std::memory_order_release, std::memory_order_acquire);
 

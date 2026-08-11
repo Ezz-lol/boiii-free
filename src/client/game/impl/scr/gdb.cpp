@@ -83,7 +83,7 @@ static void LoadGDBDataForDebugInfo(objFileInfo_t *const info) {
 void LoadScriptGDB2_Impl(const scriptInstance_t inst) {
   // 1. Load GDBs from the global script debug ZIP archive
   scr_path_t zipPath;
-  fs::FS_JoinPath(zipPath, ARRAYSIZE(zipPath), sys::Sys_GetAbsZoneDir(),
+  fs::FS_JoinPath(zipPath, std::size(zipPath), sys::Sys_GetAbsZoneDir(),
                   "scriptgdb.zip");
 
   ZipFile zipFile(zipPath);
@@ -98,7 +98,7 @@ void LoadScriptGDB2_Impl(const scriptInstance_t inst) {
 
       // Build the expected filename inside the ZIP: "<original>.gdb"
       scr_path_t gdbFileName;
-      snprintf(gdbFileName, ARRAYSIZE(gdbFileName), "%s.gdb",
+      snprintf(gdbFileName, std::size(gdbFileName), "%s.gdb",
                info->debugInfo.filename);
 
       // Normalise backslashes to forward slashes (required by ZIP loader)
@@ -146,14 +146,14 @@ void LoadScriptGDB2_Impl(const scriptInstance_t inst) {
 
         // Build the virtual path: "all/scriptgdb/<filename>"
         scr_path_t relPath;
-        snprintf(relPath, ARRAYSIZE(relPath), "all/scriptgdb/%s",
+        snprintf(relPath, std::size(relPath), "all/scriptgdb/%s",
                  info->debugInfo.filename);
 
         scr_path_t fullPath;
         const char *const pubId = ugc::active_mod->publisherId;
 
         // Resolve the virtual path into a concrete filesystem location
-        if (ugc::UGC_ZoneSourcePath_Impl(relPath, ".gdb", ARRAYSIZE(fullPath),
+        if (ugc::UGC_ZoneSourcePath_Impl(relPath, ".gdb", std::size(fullPath),
                                          fullPath, zoneType, pubId)) {
           // Open the file using a modern C++ stream
           std::ifstream file(fullPath, std::ios::binary);
@@ -188,7 +188,7 @@ void LoadScriptGDB_Impl([[maybe_unused]] const scriptInstance_t inst,
 
   // 1. Try to load from the global script debug ZIP archive.
   scr_path_t zipPath;
-  fs::FS_JoinPath(zipPath, ARRAYSIZE(zipPath), sys::Sys_GetAbsZoneDir(),
+  fs::FS_JoinPath(zipPath, std::size(zipPath), sys::Sys_GetAbsZoneDir(),
                   "scriptgdb.zip");
 
   ZipFile zipFile(zipPath);
@@ -197,7 +197,7 @@ void LoadScriptGDB_Impl([[maybe_unused]] const scriptInstance_t inst,
 
     // Build the expected filename inside the ZIP: "<script>.gdb"
     scr_path_t gdbFileName;
-    snprintf(gdbFileName, ARRAYSIZE(gdbFileName), "%s.gdb",
+    snprintf(gdbFileName, std::size(gdbFileName), "%s.gdb",
              fileInfo->debugInfo.filename);
 
     // Normalise backslashes to forward slashes.
@@ -234,13 +234,13 @@ void LoadScriptGDB_Impl([[maybe_unused]] const scriptInstance_t inst,
 
       // Build the virtual path: "all/scriptgdb/<filename>"
       scr_path_t relPath;
-      snprintf(relPath, ARRAYSIZE(relPath), "all/scriptgdb/%s",
+      snprintf(relPath, std::size(relPath), "all/scriptgdb/%s",
                fileInfo->debugInfo.filename);
 
       scr_path_t fullPath;
       const char *const pubId = ugc::active_mod->publisherId;
 
-      if (ugc::UGC_ZoneSourcePath_Impl(relPath, ".gdb", ARRAYSIZE(fullPath),
+      if (ugc::UGC_ZoneSourcePath_Impl(relPath, ".gdb", std::size(fullPath),
                                        fullPath, zoneType, pubId)) {
         std::ifstream file(fullPath, std::ios::binary);
         if (file.is_open()) {

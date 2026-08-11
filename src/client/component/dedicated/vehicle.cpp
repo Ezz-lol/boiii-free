@@ -189,7 +189,7 @@ void NitrousVehicle_unpause_physics_always_collide_wheels(
     if (!self->m_vehicle_def->useHeliBoneControllers &&
         self->m_flags.initialized) {
       phys::collide_vehicle_wheels(self);
-      for (uint8_t wheelIdx = 0; wheelIdx < ARRAYSIZE(self->m_wheels);
+      for (uint8_t wheelIdx = 0; wheelIdx < std::size(self->m_wheels);
            ++wheelIdx) {
         phys::rigid_body_constraint_wheel *rbc_wheel = self->m_wheels[wheelIdx];
         if (rbc_wheel) {

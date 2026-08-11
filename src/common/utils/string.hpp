@@ -15,7 +15,7 @@ public:
   va_provider() : current_buffer_(0) {}
 
   char *get(const char *format, const va_list ap) {
-    ++this->current_buffer_ %= ARRAYSIZE(this->string_pool_);
+    ++this->current_buffer_ %= std::size(this->string_pool_);
     auto entry = &this->string_pool_[this->current_buffer_];
 
     if (!entry->size || !entry->buffer) {

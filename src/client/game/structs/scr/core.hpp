@@ -31,7 +31,7 @@ template <typename T> union ScrPool {
   using index_t = uint8_t;
 
   inline constexpr void assert_range(size_t index) const {
-    assert(index < +SCRIPTINSTANCE_MAX &&
+    assert(index < std::size(instance) &&
            "index to ScrPool must be within range SCRIPTINSTANCE_SERVER <= "
            "index < SCRIPTINSTANCE_MAX");
   }
@@ -56,7 +56,7 @@ template <typename T> union ScrPool {
     return get(index);
   }
 
-  inline constexpr auto size() const noexcept { return SCRIPTINSTANCE_MAX; }
+  inline constexpr auto size() const noexcept { return std::size(instance); }
 };
 
 enum class scriptBundleKVPType_t : int32_t {

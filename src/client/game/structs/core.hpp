@@ -963,13 +963,13 @@ template <const IntegralLike<size_t> auto B> struct bitarray {
   }
 
   inline constexpr const BitArrayChunk &end() const noexcept {
-    return data[ARRAYSIZE(data) - 1];
+    return data[std::size(data) - 1];
   }
 
   inline constexpr BitArrayChunk &begin() noexcept { return data[0]; }
 
   inline constexpr BitArrayChunk &end() noexcept {
-    return data[ARRAYSIZE(data) - 1];
+    return data[std::size(data) - 1];
   }
 
   template <IntegralLike<BitArrayChunk> T>
