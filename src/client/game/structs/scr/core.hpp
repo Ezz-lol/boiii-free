@@ -1921,7 +1921,7 @@ PACKED(struct debugFileInfo_t {
   uint8_t **lineStartAddr;
   int32_t lineStartAddrCount;
   uint8_t _padding24[4];
-  const char *source;
+  char *source;
   int32_t sourceLen;
   uint8_t _padding34[4];
   GSC_GDB *gdb;

@@ -196,15 +196,6 @@ struct emitter_state {
           {.export_index = current_export_index,
            .export_offset = current_func->bytecode.size()});
       line.current = std::min(line.current + 1, val);
-      fprintf(stderr,
-              "%s: Updating current line to %llu, export index: %llu, export "
-              "offset: %llu\n",
-              script_name.c_str(), line.current, current_export_index,
-              current_func->bytecode.size());
-      trace("%s: Updating current line to %llu, export index: %llu, export "
-            "offset: %llu",
-            script_name.c_str(), line.current, current_export_index,
-            current_func->bytecode.size());
     }
   }
   void emit_op(Opcode op, uint64_t line) {

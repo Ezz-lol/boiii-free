@@ -335,7 +335,7 @@ void Scr_GetFileAndLineNum_Impl(const scriptInstance_t inst, uint8_t *const pos,
       //    extract the corresponding text from the source buffer.
       if (sourceLine != nullptr && *lineNum >= 0 &&
           fileInfo->debugInfo.source != nullptr) {
-        const char *src = fileInfo->debugInfo.source;
+        char *src = fileInfo->debugInfo.source;
         const int32_t srcLen = fileInfo->debugInfo.sourceLen;
         int32_t currentLine = 0;
         int32_t lineStartOff = 0;

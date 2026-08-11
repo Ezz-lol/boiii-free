@@ -488,7 +488,7 @@ void load_script_file(std::string &data,
       return;
 
     // Strip devblocks before compilation
-    std::string cleaned_source = strip_devblocks(data);
+    const std::string cleaned_source = strip_devblocks(data);
 
     printf("Compiling %s script '%s'\n", script_type, name.c_str());
     gsc_compiler::compile_result result =
@@ -501,7 +501,7 @@ void load_script_file(std::string &data,
       }
 
       // Store original source text for this file
-      script_sources[name] = std::string(cleaned_source.c_str());
+      script_sources[name] = std::move(cleaned_source);
 
 #ifndef NDEBUG
       // Dump compiled bytecode to file for debugging
@@ -524,8 +524,14 @@ void load_script_file(std::string &data,
       objFileInfo_t *obj =
           get_obj_by_name(scriptInstance_t::SCRIPTINSTANCE_SERVER, name);
       if (obj) {
-        obj->debugInfo.source = script_sources[name].c_str();
+        obj->debugInfo.source = script_sources[name].data();
         obj->debugInfo.sourceLen = script_sources[name].size();
+        for (int32_t i = 0; i < obj->debugInfo.sourceLen; ++i) {
+          char *c = &obj->debugInfo.source[i];
+          if (*c == '\n' || *c == '\r') {
+            *c = '\0';
+          }
+        }
         GSC_GDB *gdb = get_gdb(name);
         obj->debugInfo.lineStartAddrCount = gdb->lineinfo_count;
         obj->debugInfo.lineStartAddr =
@@ -910,14 +916,12 @@ const char *Scr_PrevCodePos(scriptInstance_t inst, volatile uint8_t *codePos) {
       return utils::string::va("\tfile '%s' - missing line information\n",
                                filename);
     } else {
-      char *i = sourceLine;
-      for (; i != nullptr; sourceLine = ++i) {
-        if (*i != ' ' && *i != '\t') {
-          break;
+      if (sourceLine) {
+        for (; *sourceLine == ' ' || *sourceLine == '\t'; ++sourceLine) {
         }
       }
       return utils::string::va("\tfile '%s', line %d :: %s\n", filename,
-                               lineNum + 1, i);
+                               lineNum + 1, sourceLine ? sourceLine : "");
     }
   }
 
