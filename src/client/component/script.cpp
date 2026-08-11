@@ -391,14 +391,6 @@ void add_gdb(const std::string &name, std::vector<uint8_t> gdb) {
   script_gdbs[name + ".gdb"] = std::move(gdb);
 }
 
-GSC_GDB *get_gdb(const std::string_view &name) {
-  const std::string gdb_name = std::string(name) + ".gdb";
-  if (script_gdbs.contains(gdb_name)) {
-    return reinterpret_cast<GSC_GDB *>(script_gdbs[gdb_name].data());
-  }
-  return nullptr;
-}
-
 RawFile *get_loaded_script(const std::string &name) {
   const auto itr = loaded_scripts.find(name);
   return (itr == loaded_scripts.end()) ? nullptr : itr->second;
@@ -532,11 +524,6 @@ void load_script_file(std::string &data,
             *c = '\0';
           }
         }
-        GSC_GDB *gdb = get_gdb(name);
-        obj->debugInfo.lineStartAddrCount = gdb->lineinfo_count;
-        obj->debugInfo.lineStartAddr =
-            reinterpret_cast<uint8_t **>(gdb->lineinfo());
-        obj->debugInfo.gdb = gdb;
       }
 
       // Register replacefunc entries as pending detours

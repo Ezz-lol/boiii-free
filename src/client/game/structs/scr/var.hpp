@@ -114,6 +114,44 @@ template <typename T> union ScrVarTypePool {
     T t_ent_list;
   };
   T pool[static_cast<size_t>(ScrVarType::COUNT)];
+
+  template <IntegralLike<size_t> Index>
+  inline constexpr bool valid_index(Index index_arg) {
+    const size_t index = static_cast<size_t>(index_arg);
+    return index < +ScrVarType::COUNT;
+  }
+
+  inline constexpr void assert_range(size_t index) {
+    assert(valid_index(index) &&
+           "Index to ScrVarTypePool must be within range 0 <= index < "
+           "ScrVarType::COUNT");
+  }
+
+  template <IntegralLike<size_t> Index>
+  inline constexpr const T &get(Index index_arg) const noexcept {
+    const size_t index = static_cast<size_t>(index_arg);
+    assert_range(index);
+
+    return pool[index];
+  }
+
+  template <IntegralLike<size_t> Index>
+  inline constexpr T &get(Index index_arg) noexcept {
+    const size_t index = static_cast<size_t>(index_arg);
+    assert_range(index);
+
+    return pool[index];
+  }
+
+  template <IntegralLike<size_t> Index>
+  inline constexpr const T &operator[](Index index) const noexcept {
+    return get(index);
+  }
+
+  template <IntegralLike<size_t> Index>
+  inline constexpr T &operator[](Index index) noexcept {
+    return get(index);
+  }
 };
 #pragma pack(pop)
 

@@ -1564,9 +1564,9 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
     emit_owner(s, obj); // object (uses GetLevel, not GetLevelObject)
     s.emit_op(Opcode::WaitTill, node->line);
 
-    for (size_t i = 1; i < args->children.size(); i++) {
+    for (size_t i = 1; i < args->children.size(); ++i) {
       if (args->children[i]->type == node_type::n_identifier) {
-        emit_eval_local(s, args->children[i]->value, false, true);
+        emit_eval_local(s, args->children[i]->value, node->line, false, true);
       }
     }
     s.emit_op(Opcode::ClearParams, node->line);
@@ -1581,10 +1581,10 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
 
     s.emit_op(Opcode::PreScriptCall, node->line);
 
-    for (int i = static_cast<int>(args->children.size()) - 1; i >= 1; i--)
+    for (int i = static_cast<int>(args->children.size()) - 1; i >= 0; --i) {
       emit_expression(s, args->children[i]);
+    }
 
-    emit_expression(s, args->children[0]);
     emit_owner(s, obj);
     s.emit_op(Opcode::Notify, node->line);
     break;
