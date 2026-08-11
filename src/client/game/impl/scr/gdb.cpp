@@ -321,7 +321,7 @@ void Scr_GetFileAndLineNum_Impl(const scriptInstance_t inst, uint8_t *const pos,
 
         // Find the last line whose starting address is <= 'pos'.
         while (lineIdx < lineAddrCount &&
-               pos >= reinterpret_cast<uint8_t *>(lineTable[lineIdx])) {
+               pos > reinterpret_cast<uint8_t *>(lineTable[lineIdx])) {
           ++lineIdx;
         }
 

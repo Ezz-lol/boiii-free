@@ -227,7 +227,9 @@ inline bool valid_scrvarvalue_ptr(scriptInstance_t inst,
 inline bool valid_val_allocation_ptr(uintptr_t ptr) {
   return valid_stack_ptr(ptr) ||
          (scr::mt::gScrMemTreePub->mt_buffer &&
-          scr::mt::gScrMemTreePub->mt_buffer->contains(ptr));
+          scr::mt::gScrMemTreePub->mt_buffer->contains(ptr)) ||
+         (scr::mt::gScrMemTreeGlob->nodePool &&
+          scr::mt::gScrMemTreeGlob->nodePool->contains(ptr));
 }
 
 template <typename T> inline bool valid_val_allocation_ptr(volatile T *ptr) {
