@@ -331,28 +331,29 @@ void nop(void *place_arg, const size_t length) {
       nop_buffer[offset] = 0x90;
       break;
     case 2:
-      memcpy(&nop_buffer[offset], "\x66\x90", 2);
+      memcpy(&nop_buffer[offset], "\x66\x90", chunk);
       break;
     case 3:
-      memcpy(&nop_buffer[offset], "\x0F\x1F\x00", 3);
+      memcpy(&nop_buffer[offset], "\x0F\x1F\x00", chunk);
       break;
     case 4:
-      memcpy(&nop_buffer[offset], "\x0F\x1F\x40\x00", 4);
+      memcpy(&nop_buffer[offset], "\x0F\x1F\x40\x00", chunk);
       break;
     case 5:
-      memcpy(&nop_buffer[offset], "\x0F\x1F\x44\x00\x00", 5);
+      memcpy(&nop_buffer[offset], "\x0F\x1F\x44\x00\x00", chunk);
       break;
     case 6:
-      memcpy(&nop_buffer[offset], "\x66\x0F\x1F\x44\x00\x00", 6);
+      memcpy(&nop_buffer[offset], "\x66\x0F\x1F\x44\x00\x00", chunk);
       break;
     case 7:
-      memcpy(&nop_buffer[offset], "\x0F\x1F\x80\x00\x00\x00\x00", 7);
+      memcpy(&nop_buffer[offset], "\x0F\x1F\x80\x00\x00\x00\x00", chunk);
       break;
     case 8:
-      memcpy(&nop_buffer[offset], "\x0F\x1F\x84\x00\x00\x00\x00\x00", 8);
+      memcpy(&nop_buffer[offset], "\x0F\x1F\x84\x00\x00\x00\x00\x00", chunk);
       break;
     case 9:
-      memcpy(&nop_buffer[offset], "\x66\x0F\x1F\x84\x00\x00\x00\x00\x00", 9);
+      memcpy(&nop_buffer[offset], "\x66\x0F\x1F\x84\x00\x00\x00\x00\x00",
+             chunk);
       break;
     }
     offset += chunk;
