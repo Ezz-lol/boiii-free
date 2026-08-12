@@ -1,14 +1,18 @@
 #include <std_include.hpp>
+
 #include <loader/component_loader.hpp>
+#include <component/scheduler.hpp>
+#include <component/game_event.hpp>
+#include <component/gsc/gsc_compiler.hpp>
+#include <component/dump.hpp>
+
 #include <game/game.hpp>
 #include <game/utils.hpp>
 
-#include "game/impl/scr/gdb.hpp"
-#include "game_event.hpp"
-#include "gsc/gsc_compiler.hpp"
-#include "dump.hpp"
+#include <game/impl/scr/gdb.hpp>
 
 #include <execution>
+
 #include <utils/memory.hpp>
 #include <utils/compression.hpp>
 #include <utils/hook.hpp>
@@ -753,10 +757,10 @@ RawFile *get_loaded_map_script(const char *name) {
   return nullptr;
 }
 
-XAssetHeader db_find_x_asset_header_stub(const XAssetType type,
-                                         const char *name,
-                                         const bool error_if_missing,
-                                         const int32_t wait_time) {
+XAssetHeader DB_FindXAssetHeader_TryOverride(const XAssetType type,
+                                             const char *name,
+                                             const bool error_if_missing,
+                                             const int32_t wait_time) {
   XAssetHeader result{.rawfile = nullptr};
   // Check our loaded scripts FIRST to avoid "Could not find scriptparsetree"
   // spam
@@ -818,23 +822,6 @@ void rebuild_script_gdb() {
   utils::compression::zip::write_file(scriptgdb_archive_path, gdb_pairs);
 }
 
-void begin_load_scripts_stub(scriptInstance_t inst, int32_t user) {
-  std::scoped_lock lock(script_load_lock);
-
-  scr::Scr_BeginLoadScripts(inst, user);
-
-  if (com::Com_IsInGame() && !com::Com_IsRunningUILevel()) {
-    load_scripts();
-
-    if (!pending_detours.access<bool>(
-            [](auto &pending_detours) { return pending_detours.empty(); })) {
-      apply_pending_detours();
-    }
-
-    rebuild_script_gdb();
-  }
-}
-
 int server_script_checksum_stub() { return 1; }
 
 void gscr_getbgbtokensremaining_stub(scriptInstance_t inst,
@@ -874,14 +861,31 @@ void load_global_hash_table() {
     // Try appdata path first, then exe-relative path
     const std::filesystem::path appdata =
         get_appdata_path() / "data" / "lookup_tables" / "hash_names.txt";
-    if (try_load(appdata))
-      return;
-    const std::filesystem::path host = utils::nt::library{}.get_folder() /
-                                       "boiii" / "data" / "lookup_tables" /
-                                       "hash_names.txt";
-    if (try_load(host))
-      return;
+    if (!try_load(appdata)) {
+      const std::filesystem::path host = utils::nt::library{}.get_folder() /
+                                         "boiii" / "data" / "lookup_tables" /
+                                         "hash_names.txt";
+      try_load(host);
+    }
   });
+}
+
+void begin_load_scripts_stub(scriptInstance_t inst, int32_t user) {
+  std::scoped_lock lock(script_load_lock);
+  load_global_hash_table();
+
+  scr::Scr_BeginLoadScripts(inst, user);
+
+  if (com::Com_IsInGame() && !com::Com_IsRunningUILevel()) {
+    load_scripts();
+
+    if (!pending_detours.access<bool>(
+            [](auto &pending_detours) { return pending_detours.empty(); })) {
+      apply_pending_detours();
+    }
+
+    rebuild_script_gdb();
+  }
 }
 
 std::string resolve_hash(uint32_t hash) {
@@ -1015,8 +1019,10 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
                                 .function_frame_start[final_stack_idx]
                                 .fs.pos);
 
+#ifndef NDEBUG
   const vm::function_frame_t *current_frame =
       &vm::gScrVmPub->instance[inst].function_frame_start[0];
+#endif
   const char *error_log = utils::string::va(
       "Scr_Error called from 0x%p with inst: %s, "
 #ifndef NDEBUG
@@ -1092,11 +1098,9 @@ utils::hook::detour Scr_FindObjFileInfo_hook;
 utils::hook::detour Scr_GetFileAndLineNum_hook;
 struct component final : generic_component {
   void post_unpack() override {
-    load_global_hash_table();
-
     // Return custom or overrided scripts if found
     db_find_x_asset_header_hook.create(DB_FindXAssetHeader.get(),
-                                       db_find_x_asset_header_stub);
+                                       DB_FindXAssetHeader_TryOverride);
 
     // Free our scripts when the game ends
     game_event::on_g_shutdown_game(clear_script_memory);

@@ -348,16 +348,16 @@ dvar<T_DvarValue>::set(const char *val) noexcept {
       }
     } else if (val != current().string()) {
       *g_dvar_modifiedFlags |= flags();
-      const char *new_alloc =
-          val == reset().string() || val == latched().string()
-              ? val
-              : sl::CopyString(val);
+      const bool new_alloc_eq_latched = val == latched().string();
+      const char *new_alloc = val == reset().string() || new_alloc_eq_latched
+                                  ? val
+                                  : sl::CopyString(val);
       const char *prev_alloc = current().set(new_alloc, false);
       prev = prev_alloc;
       if (prev_alloc != reset().string()) {
         sl::FreeString(prev_alloc);
       }
-      if (new_alloc != latched().string()) {
+      if (!new_alloc_eq_latched) {
         latched().string() = new_alloc;
       }
       modified() = true;
