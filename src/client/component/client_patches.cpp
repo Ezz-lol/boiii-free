@@ -454,32 +454,28 @@ template <const game::RestartMethod_t RestartMethod>
 void SV_RestartCmd_RotateOrDefault() {
   if (game::get_sv_running() &&
       !game::com::Com_SessionMode_IsMode(game::eModes::COUNT) /* main menu */) {
-    if (game::maprotation().value_or("").empty()) {
-      std::string_view curr_gametype;
-      const std::string_view curr_mapname =
-          game::get_mapname().value_or("mp_nuketown");
+    std::string_view curr_gametype;
+    const std::string_view curr_mapname =
+        game::get_mapname().value_or("mp_nuketown");
 
-      const std::optional<std::string_view> gametype_dvar_val =
-          game::gametype();
-      if (gametype_dvar_val.has_value()) {
-        curr_gametype = gametype_dvar_val.value();
+    const std::optional<std::string_view> gametype_dvar_val = game::gametype();
+    if (gametype_dvar_val.has_value()) {
+      curr_gametype = gametype_dvar_val.value();
 
-      } else if (utils::string::starts_with(curr_mapname,
-                                            MULTIPLAYER_MAP_PREFIX)) {
-        curr_gametype = TDM_GAMETYPE;
+    } else if (utils::string::starts_with(curr_mapname,
+                                          MULTIPLAYER_MAP_PREFIX)) {
+      curr_gametype = TDM_GAMETYPE;
 
-      } else if (utils::string::starts_with(curr_mapname, ZOMBIES_MAP_PREFIX)) {
-        curr_gametype = ZCLASSIC_GAMETYPE;
-      } else if (utils::string::starts_with(curr_mapname,
-                                            CAMPAIGN_MAP_PREFIX)) {
-        curr_gametype = CAMPAIGN_GAMETYPE;
-      }
-
-      const char *rotate_cmd = utils::string::va(
-          "gametype %s map %s", curr_gametype.data(), curr_mapname.data());
-      game::sv_maprotation->set(rotate_cmd);
+    } else if (utils::string::starts_with(curr_mapname, ZOMBIES_MAP_PREFIX)) {
+      curr_gametype = ZCLASSIC_GAMETYPE;
+    } else if (utils::string::starts_with(curr_mapname, CAMPAIGN_MAP_PREFIX)) {
+      curr_gametype = CAMPAIGN_GAMETYPE;
     }
-    game::cbuf::Cbuf_AddText(0, "map_rotate\n");
+
+    const char *rotate_cmd = utils::string::va(
+        "gametype %s map %s", curr_gametype.data(), curr_mapname.data());
+    game::sv_maprotation->set(rotate_cmd);
+    game::sv::SV_MapRotate_f();
   } else {
     game::sv::SV_MapRestart(RestartMethod);
   }
