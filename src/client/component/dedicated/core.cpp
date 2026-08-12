@@ -5,7 +5,6 @@
 #include <utils/flags.hpp>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
-#include <vector>
 
 namespace dedicated {
 namespace {
@@ -24,15 +23,15 @@ bool is_online_stub() { return true; }
 bool is_mod_loaded_stub() { return false; }
 
 void patch_is_mod_loaded_checks() {
-  const std::vector<uintptr_t> is_mod_loaded_addresses = {
-      0x14019CFC4_g, 0x14024D4A0_g, 0x14024D669_g, 0x14024D939_g,
-      0x14024DC64_g, 0x14024E13A_g, 0x14024E5A3_g, 0x14024FFB9_g,
-      0x140251E9E_g, 0x140253680_g, 0x140257BF6_g, 0x1402D296D_g,
-      0x1402D58E9_g, 0x140468374_g, 0x14046B796_g, 0x14048003D_g,
+  constexpr uintptr_t is_mod_loaded_addresses[] = {
+      0x14019CFC4, 0x14024D4A0, 0x14024D669, 0x14024D939,
+      0x14024DC64, 0x14024E13A, 0x14024E5A3, 0x14024FFB9,
+      0x140251E9E, 0x140253680, 0x140257BF6, 0x1402D296D,
+      0x1402D58E9, 0x140468374, 0x14046B796, 0x14048003D,
   };
 
-  for (const auto &address : is_mod_loaded_addresses) {
-    utils::hook::call(address, is_mod_loaded_stub);
+  for (const uintptr_t address : is_mod_loaded_addresses) {
+    utils::hook::call(game::relocate(address), is_mod_loaded_stub);
   }
 }
 
@@ -48,11 +47,7 @@ void spawn_server_stub(game::ControllerIndex_t controllerIndex,
 
 uint64_t sv_get_player_xuid_stub(const int client_num) {
   const game::sv::client_s *clients = *game::sv::svs_clients;
-  if (!clients) {
-    return 0;
-  }
-
-  return clients[client_num].xuid;
+  return clients ? clients[client_num].xuid : 0;
 }
 
 void info_set_value_for_key_stub(char *s, const char *key,
@@ -65,6 +60,17 @@ const char *va_stub([[maybe_unused]] const char *fmt, const char *name,
   return utils::string::va("%s", name);
 }
 
+template <const uint8_t Count> inline void set_max_name_characters() {
+  constexpr uintptr_t patch_addresses[] = {/* SV_UserinfoChanged */
+                                           0x14053136A,
+                                           /* G_ClientSessionInfoChanged */
+                                           0x1402799E9, 0x140279A04,
+                                           0x140279A21, 0x140279A85};
+  for (const uintptr_t addr : patch_addresses) {
+    utils::hook::set<uint8_t>(game::relocate(addr), Count);
+  }
+}
+
 } // namespace
 
 struct component final : server_component {
@@ -75,10 +81,6 @@ struct component final : server_component {
     // Online classes
     utils::hook::jump(0x1405003E0_g, get_online_mode_stub);
     utils::hook::jump(0x1405003B0_g, get_online_mode_stub);
-
-    if (utils::flags::has_flag("nopatch")) {
-      return;
-    }
 
     // Progression / Ranked
     utils::hook::jump(0x140500A50_g, is_online_stub);
@@ -98,13 +100,7 @@ struct component final : server_component {
     utils::hook::set<uint8_t>(0x1405063C0_g, 0xC3);
 
     // change 32 character max name limit to 15
-    // SV_UserinfoChanged
-    utils::hook::set<uint8_t>(0x14053136A_g, 15);
-    // G_ClientSessionInfoChanged
-    utils::hook::set<uint8_t>(0x1402799E9_g, 15);
-    utils::hook::set<uint8_t>(0x140279A04_g, 15);
-    utils::hook::set<uint8_t>(0x140279A21_g, 15);
-    utils::hook::set<uint8_t>(0x140279A85_g, 15);
+    set_max_name_characters<15>();
 
     // Disable Unknown Soldier with a number
     utils::hook::call(0x140531311_g, info_set_value_for_key_stub);

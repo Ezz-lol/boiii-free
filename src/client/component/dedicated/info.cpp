@@ -3,9 +3,9 @@
 #include <game/game.hpp>
 #include <game/utils.hpp>
 
-#include "../scheduler.hpp"
-#include "../getinfo.hpp"
-#include "../console.hpp"
+#include <component/scheduler.hpp>
+#include <component/getinfo.hpp>
+#include <component/console.hpp>
 
 #include <string>
 #include <utils/string.hpp>
@@ -39,8 +39,10 @@ void set_server_info_in_console_title() {
 class component final : public server_component {
 public:
   void post_unpack() override {
-    scheduler::loop([]() { set_server_info_in_console_title(); },
-                    scheduler::pipeline::main, 1s);
+    if (!utils::flags::has_flag("headless")) {
+      scheduler::loop(set_server_info_in_console_title,
+                      scheduler::pipeline::main, 1s);
+    }
   }
 };
 } // namespace info
