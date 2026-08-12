@@ -498,7 +498,9 @@ menu_names = array( "PreGameMenu", "Intermission_Main", "Endgame_menu",
 if (isdedicated()) {
   foreach (menu in menu_names) {
     if (ismenucached(menu)) {
-      closemenu(menu);
+      foreach(player in level.players) {
+        player closemenu(menu);
+      }
     }
   }
 }
