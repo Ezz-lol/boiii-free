@@ -498,7 +498,9 @@ menu_names = array( "PreGameMenu", "Intermission_Main", "Endgame_menu",
 if (isdedicated()) {
   foreach (menu in menu_names) {
     if (ismenucached(menu)) {
-      closemenu(menu);
+      foreach(player in level.players) {
+        player closemenu(menu);
+      }
     }
   }
 }
@@ -514,23 +516,23 @@ This can be used to cast values of other types to a vector.
 ```gsc
 basic_vec = vector(1.0, 2.0, 3.0);
 /#
-assert(isvec(basic_vec) && basic_vec.x == 1.0);
+assert(isvec(basic_vec) && basic_vec[0] == 1.0);
 #/
 
 vec_from_array = vector(array(1.0, 2.0, 3.0));
 /#
 assert(isvec(vec_from_array) &&
-       vec_from_array.x == 1.0 &&
-       vec_from_array.y == 2.0 &&
-       vec_from_array.z == 3.0);
+       vec_from_array[0] == 1.0 &&
+       vec_from_array[1] == 2.0 &&
+       vec_from_array[2] == 3.0);
 #/
 
 vec_from_strings = vector("1.0", "2.0", "3.0");
 /#
 assert(isvec(vec_from_strings) &&
-       vec_from_strings.x == 1.0 &&
-       vec_from_strings.y == 2.0 &&
-       vec_from_strings.z == 3.0);
+       vec_from_strings[0] == 1.0 &&
+       vec_from_strings[1] == 2.0 &&
+       vec_from_strings[2] == 3.0);
 #/
 
 // Useful for:
@@ -540,17 +542,17 @@ assert(isvec(vec_from_strings) &&
 vec_from_vec = ( 1.0, 2.0, 3.0 );
 /#
 assert(isvec(vec_from_vec) &&
-       vec_from_vec.x == 1.0 &&
-       vec_from_vec.y == 2.0 &&
-       vec_from_vec.z == 3.0);
+       vec_from_vec[0] == 1.0 &&
+       vec_from_vec[1] == 2.0 &&
+       vec_from_vec[2] == 3.0);
 #/
 
 vec_from_assorted = vector("1.0", 2, 3.0);
 /#
 assert(isvec(vec_from_assorted) &&
-       vec_from_assorted.x == 1.0 &&
-       vec_from_assorted.y == 2.0 &&
-       vec_from_assorted.z == 3.0);
+       vec_from_assorted[0] == 1.0 &&
+       vec_from_assorted[1] == 2.0 &&
+       vec_from_assorted[2] == 3.0);
 #/
 ```
 

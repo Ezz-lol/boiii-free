@@ -197,7 +197,6 @@ Launch BOIII with these arguments for extra features:
 | `-update`             | Force enable updates (including host binary in debug builds).                                                                                                      |
 | `-norelaunch`         | Skip automatic relaunch after updates.                                                                                                                             |
 | `-headless`           | Run in headless mode (no GUI).                                                                                                                                     |
-| `-nopatch`            | Disable selected runtime patches.                                                                                                                                  |
 | `-noplugins`          | Disable plugin load.                                                                                                                                               |
 | `-plugins`            | Load additional plugins from the `plugins/` directory.                                                                                                             |
 | `-trimlogs`           | Trim or rotate old log files on startup.                                                                                                                           |

@@ -130,10 +130,6 @@ int32_t parse_flags(int argc, char *argv[]) {
       .help("Run in headless mode (no GUI)")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-nopatch", "--nopatch")
-      .help("Disable selected runtime patches")
-      .default_value(false)
-      .implicit_value(true);
   program.add_argument("-plugins", "--plugins")
       .help("Load additional plugins from the `plugins/` directory")
       .default_value(false)

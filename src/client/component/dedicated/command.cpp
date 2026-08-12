@@ -52,7 +52,7 @@ void trigger_map_rotation() {
   scheduler::once(
       [] {
         if (!game::maprotation().value_or("").empty()) {
-          game::cbuf::Cbuf_AddText(0, "map_rotate\n");
+          game::sv::SV_MapRotate_f();
           send_heartbeat();
         }
       },
