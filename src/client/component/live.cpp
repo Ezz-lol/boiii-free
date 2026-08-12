@@ -52,7 +52,7 @@ LiveUser_GetClientName_GetOrInit(const ControllerIndex_t controllerIndex) {
   const userDataRef data = s_userDataForControllerMap->data[controllerIndex];
   if (!data->gamertag[0]) {
     LiveUser_UserGetName_ConsoleSuffix(controllerIndex, data->gamertag,
-                                       ARRAYSIZE(data->gamertag));
+                                       std::size(data->gamertag));
   }
   return data->gamertag;
 }
@@ -130,7 +130,7 @@ void clientinfo_activateallcontent(MutableClientInfo *clientInfo) {
   clientInfo->dlcBits = ContentFlags::allContent();
   clientInfo->easterEggBits = -1;
   clientInfo->isStarterPack = false;
-  for (uint32_t i = 0; i < ARRAYSIZE(clientInfo->chunkStatuses); ++i) {
+  for (uint32_t i = 0; i < std::size(clientInfo->chunkStatuses); ++i) {
     clientInfo->chunkStatuses[i] = 3;
   }
 }

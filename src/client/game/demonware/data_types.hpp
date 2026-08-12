@@ -1,7 +1,7 @@
 #pragma once
 
 #include "byte_buffer.hpp"
-#include "../structs/structs.hpp"
+#include <game/structs/structs.hpp>
 
 namespace demonware {
 class bdTaskResult {
@@ -362,7 +362,7 @@ struct bdCommonAddr : bdTaskResult {
     buffer->set_use_data_types(false);
 
     auto valid = true;
-    for (uint32_t i = 0; i < 5 && i < ARRAYSIZE(this->m_local_addrs) && valid;
+    for (uint32_t i = 0; i < 5 && i < std::size(this->m_local_addrs) && valid;
          ++i) {
       this->m_local_addrs[i].serialize(buffer);
       valid = this->m_local_addrs[i].m_address.is_valid();
@@ -381,7 +381,7 @@ struct bdCommonAddr : bdTaskResult {
     buffer->set_use_data_types(false);
 
     auto valid = true;
-    for (uint32_t i = 0; i < ARRAYSIZE(this->m_local_addrs) && valid; ++i) {
+    for (uint32_t i = 0; i < std::size(this->m_local_addrs) && valid; ++i) {
       bdAddr addr;
       addr.deserialize(buffer);
       this->m_local_addrs[i] = addr;

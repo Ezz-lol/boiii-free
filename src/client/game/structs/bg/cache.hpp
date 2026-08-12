@@ -1,6 +1,7 @@
 #pragma once
-#include "game/structs/macros.hpp"
-#include "game/structs/db/xasset/core.hpp"
+
+#include <game/structs/macros.hpp>
+#include <game/structs/db/xasset/core.hpp>
 
 #include <cstdint>
 #include <str.hpp>

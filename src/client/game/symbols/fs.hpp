@@ -14,6 +14,9 @@ WEAK symbol<fileHandle_t(const char *filename, const char *dir,
                          const char *osbasepath)>
     FS_FOpenFileReadFromDir{0x1422A3510};
 WEAK symbol<void(PathList list)> FS_FreePathList{0x1422EA960, 0x140582720};
+WEAK symbol<const char *(char *final, size_t finalLen, const char *a,
+                         const char *b)>
+    FS_JoinPath{0x1422A3B50, 0x1405641D0};
 
 } // namespace fs
 } // namespace game

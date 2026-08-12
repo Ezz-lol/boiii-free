@@ -132,56 +132,68 @@ inline constexpr auto ARRAYSIZE(const std::array<Element, Count> &arr) {
 }
 #endif
 
-template <int32_t N> struct ConstString {
-  char buf[N] = {};
-
-  constexpr ConstString(const char (&s)[N]) {
-    for (int32_t i = 0; i < N; ++i)
-      buf[i] = s[i];
-  }
-
-  inline constexpr const char *c_str() const noexcept { return buf; }
-  inline constexpr operator const char *() const noexcept { return c_str(); }
-};
-
-// Deduction guide
-template <int32_t N> ConstString(const char (&)[N]) -> ConstString<N>;
-
-template <const auto N> using str = char[static_cast<size_t>(N)];
-
-// Helper to convert a byte/integer to hex characters at compile-time
-template <IntegralLike Index> inline constexpr char hex_digit(Index v) {
-  return "0123456789ABCDEF"[static_cast<uint8_t>(v) & 0xF];
-}
-
-template <typename T> inline constexpr auto num_hex_characters() {
-  constexpr auto NUM_HEX_CHARS_PER_BYTE = 2;
-  return sizeof(T) * NUM_HEX_CHARS_PER_BYTE;
-}
-
-template <const size_t BaseSize, IntegralLike T>
-constexpr const char *
-append_hex(const str<BaseSize> &base, T val,
-           str<BaseSize + num_hex_characters<T>()> &result = {0}) {
-  // Determine max hex characters needed
-  constexpr size_t hex_len = num_hex_characters<T>();
-
-  int32_t idx = 0;
-  // Copy base string (excluding old null-terminator)
-  for (size_t i = 0; i < BaseSize - 1; ++i) {
-    result[idx++] = base[i];
-  }
-
-  // Append hex representation backwards or forwards
-  for (int32_t i = hex_len - 1; i >= 0; --i) {
-    result[idx + i] = hex_digit(val >> (4 * (hex_len - 1 - i)));
-  }
-  idx += hex_len;
-  result[idx] = '\0';
-
-  return result;
-}
-
 template <typename T> inline constexpr const char *reflect_name() {
   return __PRETTY_FUNCTION__;
+}
+
+inline constexpr uint64_t byteswap(uint64_t val) {
+#if defined(__GNUC__) || defined(__clang__)
+  return __builtin_bswap64(val);
+#elif defined(_MSC_VER)
+  return _byteswap_uint64(val);
+#else
+  // Fallback if compiler is unknown
+  return ((val & 0xFF00000000000000ULL) >> 56) |
+         ((val & 0x00FF000000000000ULL) >> 40) |
+         ((val & 0x0000FF0000000000ULL) >> 24) |
+         ((val & 0x000000FF00000000ULL) >> 8) |
+         ((val & 0x00000000FF000000ULL) << 8) |
+         ((val & 0x0000000000FF0000ULL) << 24) |
+         ((val & 0x000000000000FF00ULL) << 40) |
+         ((val & 0x00000000000000FFULL) << 56);
+#endif
+}
+
+template <typename T>
+  requires(sizeof(T) == sizeof(uint64_t) && !std::is_same_v<T, uint64_t> &&
+           std::is_convertible_v<T, uint64_t>)
+inline constexpr T byteswap(T val) {
+  return static_cast<T>(byteswap(static_cast<uint64_t>(val)));
+}
+
+inline constexpr uint32_t byteswap(uint32_t val) {
+#if defined(__GNUC__) || defined(__clang__)
+  return __builtin_bswap32(val);
+#elif defined(_MSC_VER)
+  return _byteswap_ulong(val);
+#else
+  // Fallback if compiler is unknown
+  return ((val & 0xFF000000U) >> 24) | ((val & 0x00FF0000U) >> 8) |
+         ((val & 0x0000FF00U) << 8) | ((val & 0x000000FFU) << 24);
+#endif
+}
+
+template <typename T>
+  requires(sizeof(T) == sizeof(uint32_t) && !std::is_same_v<T, uint32_t> &&
+           std::is_convertible_v<T, uint32_t>)
+inline constexpr T byteswap(T val) {
+  return static_cast<T>(byteswap(static_cast<uint32_t>(val)));
+}
+
+inline constexpr uint16_t byteswap(uint16_t val) {
+#if defined(__GNUC__) || defined(__clang__)
+  return __builtin_bswap16(val);
+#elif defined(_MSC_VER)
+  return _byteswap_ushort(val);
+#else
+  // Fallback if compiler is unknown
+  return static_cast<uint16_t>(((val & 0xFF00U) >> 8) | ((val & 0x00FFU) << 8));
+#endif
+}
+
+template <typename T>
+  requires(sizeof(T) == sizeof(uint16_t) && !std::is_same_v<T, uint16_t>,
+           std::is_convertible_v<T, uint16_t>)
+inline constexpr T byteswap(T val) {
+  return static_cast<T>(byteswap(static_cast<uint16_t>(val)));
 }

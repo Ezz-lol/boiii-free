@@ -51,17 +51,7 @@ utils::hook::detour ScrVar_ReleaseValue_hook;
 void ScrVar_ReleaseValue_Safe(scriptInstance_t inst,
                               volatile ScrVarValue_t *value) {
   if (valid_scrvarvalue_ptr(inst, value)) {
-    if (valid_scrvarvalue(value) &&
-        /* Do not attempt to free compile-time constant vectors
-           embedded in script bytecode.
-
-           Required in addition to the `MT_Free` hook below to ensure
-           that there is no attempt to decrement the non-existent refcount for
-           the vector in the memory pool.
-        */
-        (value->type != ScrVarType::VECTOR ||
-         gScrMemTreeGlob->nodePool->contains(value->u.vectorValue))) {
-
+    if (valid_scrvarvalue(value)) {
       ScrVar_ReleaseValue_hook.invoke(inst, value);
     } else {
       value->type = ScrVarType::UNDEFINED;
@@ -89,8 +79,7 @@ void ScrVar_EvalArray_DefaultEmpty(scriptInstance_t inst,
                                    volatile ScrVarValue_t *index) {
   if (valid_scrvarvalue_ptr(inst, value) &&
       valid_scrvarvalue_ptr(inst, index)) {
-    if (ScrVar_ArrayLike(inst, value) &&
-        ScrVar_ValidIndex(inst, value, index)) {
+    if (value->array_like(inst) && value->valid_index(inst, index)) {
 
       return ScrVar_EvalArray_hook.invoke<void>(inst, value, index);
     } else {
@@ -112,7 +101,7 @@ void ScrVar_EvalArray_DefaultEmpty(scriptInstance_t inst,
   This is a bug. Compile-time constant vectors can also be embedded directly
   into the script bytecode when using the `GetVector` opcode. Attempt to free a
   vector embedded into the script bytecode as though it were allocated in the
-  script MemoryTree node pool results in a memory access exception.
+  MemoryTree node pool results in a memory access exception.
 
   Treyarch circumvents this issue by never emitting the `GetVector` opcode
   in their GSC compiler. Upon attempting to use this opcode in our GSC compiler,
@@ -123,7 +112,7 @@ void ScrVar_EvalArray_DefaultEmpty(scriptInstance_t inst,
   the vector is a compile-time constant - but this would be less performant at
   runtime.
 
-  Thus, the below hook is used to ensure that a given allocation pointer is
+  Thus, the below hook is used to ensure that a given pointer is
   only used for an attempted free if it is a valid pointer to a node in
   gScrMemTreeGlob's node pool. Usage of an invalid node pointer - such as a
   pointer to a vector embedded in a script's bytecode - will result in an

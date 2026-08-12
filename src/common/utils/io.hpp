@@ -11,10 +11,18 @@ bool remove_directory(const std::filesystem::path &directory,
 bool move_file(const std::filesystem::path &src,
                const std::filesystem::path &target);
 bool file_exists(const std::filesystem::path &file);
-bool write_file(const std::filesystem::path &file, const std::string &data,
-                bool append = false);
+
 bool write_file_bytes(const std::filesystem::path &file, const uint8_t *data,
                       size_t size, const bool append = false);
+inline bool write_file(const std::filesystem::path &file,
+                       const std::vector<uint8_t> &data, bool append = false) {
+  return write_file_bytes(file, data.data(), data.size(), append);
+}
+inline bool write_file(const std::filesystem::path &file,
+                       const std::string &data, bool append = false) {
+  return write_file_bytes(file, reinterpret_cast<const uint8_t *>(data.data()),
+                          data.size(), append);
+}
 bool read_file(const std::filesystem::path &file, std::string *data);
 std::string read_file(const std::filesystem::path &file);
 size_t file_size(const std::filesystem::path &file);

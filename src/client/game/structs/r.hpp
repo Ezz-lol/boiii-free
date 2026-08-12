@@ -39,6 +39,23 @@ struct vidConfig_t {
                          // viewAspectRatioPX
   float viewScalePx;     // Scale of viewAspectRatio / viewAspectRatioPx
   uint32_t maxTextureSize;
+
+#ifndef NDEBUG
+  template <const size_t N>
+  inline str<N> &serialize(str<N> &buf) const noexcept {
+    snprintf(buf, N,
+             "vidConfig_t { sceneWidth: %u, sceneHeight: %u, sceneAspectRatio: "
+             "%f, displayWidth: %u, displayHeight: %u, displayAspectRatio: %f, "
+             "isFullScreen: %s, isWideScreen: %s, viewAspectRatioPX: %f, "
+             "viewWidth: %u, viewHeight: %u, viewAspectRatio: %f, viewScalePx: "
+             "%f, maxTextureSize: %u }",
+             sceneWidth, sceneHeight, sceneAspectRatio, displayWidth,
+             displayHeight, displayAspectRatio, isFullscreen.serialize(),
+             isWideScreen.serialize(), viewAspectRatioPx, viewWidth, viewHeight,
+             viewAspectRatio, viewScalePx, maxTextureSize);
+    return buf;
+  }
+#endif
 };
 ASSERT_SIZE(vidConfig_t, 0x38);
 

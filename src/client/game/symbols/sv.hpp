@@ -71,5 +71,6 @@ WEAK symbol<void(RestartMethod_t restartMethod)> SV_MapRestart{0x142245D70,
                                                                0x14052B450};
 WEAK symbol<cmd::xcommandFunc_t> SV_MapRestart_f{0x142245F50, 0x14052B640};
 WEAK symbol<cmd::xcommandFunc_t> SV_FastRestart_f{0x1422453E0, 0x14052A9C0};
+WEAK symbol<cmd::xcommandFunc_t> SV_MapRotate_f{0x142245F60, 0x14052B650};
 } // namespace sv
 } // namespace game

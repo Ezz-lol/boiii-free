@@ -1,0 +1,1 @@
+#define FLASHBACK_CLONE_DURATION				1.0

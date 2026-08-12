@@ -6,10 +6,10 @@
 #include <csetjmp>
 #include <variant>
 
-#include "game/structs/atomic.hpp"
-#include "str.hpp"
-#include "macros.hpp"
-#include "quake/vec.hpp"
+#include <structs/str.hpp>
+#include <structs/atomic.hpp>
+#include <game/structs/macros.hpp>
+#include <game/structs/quake/vec.hpp>
 
 #define PROTOCOL 8
 #define SUB_PROTOCOL 1
@@ -48,6 +48,13 @@ typedef int64_t time64_t;
 typedef time64_t time_t;
 
 typedef uint32_t CanonHash_t;
+
+inline constexpr const char IW_ASSET_SHEBANG = '\x80';
+// Carriage return
+inline constexpr const char CR = '\r';
+// Linefeed
+inline constexpr const char LF = '\n';
+inline constexpr const char CRLF[2] = {'\r', '\n'};
 
 enum class CampaignMode : int32_t {
   DEFAULT = 0,
@@ -466,9 +473,21 @@ enum class ZoneType : uint32_t {
   OFFICIAL = 0x0,
 
   MOD = 0x1,
-  USERMAP = 0x2
+  USERMAP = 0x2,
+  COUNT = 0x3
 };
 IMPL_ENUM_OPERATORS(ZoneType);
+
+inline constexpr const char *dirname(ZoneType zoneType) {
+  switch (zoneType) {
+  case ZoneType::MOD:
+    return "mods";
+  case ZoneType::USERMAP:
+    return "usermaps";
+  default:
+    return "";
+  }
+}
 
 enum class StorageFileType : int32_t {
   COMMON_SETTINGS = 0,
@@ -893,42 +912,79 @@ IMPL_ENUM_OPERATORS(CharacterItemType);
 using BGEmblemBackgroundID = int16_t;
 
 typedef int32_t BitArrayChunk;
-constexpr const size_t BITARRAY_CHUNK_SIZE = sizeof(BitArrayChunk);
-constexpr const size_t BITS_PER_BYTE = 8;
-constexpr const size_t BITARRAY_CHUNK_BITS =
-    BITARRAY_CHUNK_SIZE * BITS_PER_BYTE;
+constexpr const size_t BITARRAY_CHUNK_BITS = bitsizeof<BitArrayChunk>();
 
 #pragma pack(push, 1)
-template <const size_t B> struct bitarray {
-  array<BitArrayChunk, (B + BITARRAY_CHUNK_BITS - 1) / BITARRAY_CHUNK_BITS>
+template <const IntegralLike<size_t> auto B> struct bitarray {
+  array<BitArrayChunk, (static_cast<size_t>(B) + BITARRAY_CHUNK_BITS - 1) /
+                           BITARRAY_CHUNK_BITS>
       data;
 
-  inline constexpr void set(size_t index) noexcept {
+  inline constexpr void assert_range(size_t index) {
+    assert(index < static_cast<size_t>(B) &&
+           "Index to bitarray must be within bounds 0 <= index < B");
+  }
+
+  template <IntegralLike<size_t> Index>
+  inline constexpr void set(Index index_arg) noexcept {
+    const size_t index = static_cast<size_t>(index_arg);
+    assert_range(index);
+
     return this->data[index / BITARRAY_CHUNK_BITS] |=
            (1 << (index % BITARRAY_CHUNK_BITS));
   }
 
-  inline constexpr void clear(size_t index) noexcept {
+  template <IntegralLike<size_t> Index>
+  inline constexpr void clear(Index index_arg) noexcept {
+    const size_t index = static_cast<size_t>(index_arg);
+    assert_range(index);
+
     return this->data[index / BITARRAY_CHUNK_BITS] &=
            ~(1 << (index % BITARRAY_CHUNK_BITS));
   }
 
-  inline constexpr bool get(size_t index) const noexcept {
+  template <IntegralLike<size_t> Index>
+  inline constexpr bool get(Index index_arg) const noexcept {
+    const size_t index = static_cast<size_t>(index_arg);
+    assert_range(index);
+
     return (this->data[index / BITARRAY_CHUNK_BITS] &
             (1 << (index % BITARRAY_CHUNK_BITS))) != 0;
   }
 
-  inline constexpr void reset() noexcept {
-    INLINE_MEMSET(&this->data, 0, sizeof(this->data));
+  // Bit indexing operator
+  template <IntegralLike Index>
+  inline constexpr bool operator[](Index index) const noexcept {
+    return get(static_cast<size_t>(index));
   }
+
+  inline constexpr const BitArrayChunk &begin() const noexcept {
+    return data[0];
+  }
+
+  inline constexpr const BitArrayChunk &end() const noexcept {
+    return data[std::size(data) - 1];
+  }
+
+  inline constexpr BitArrayChunk &begin() noexcept { return data[0]; }
+
+  inline constexpr BitArrayChunk &end() noexcept {
+    return data[std::size(data) - 1];
+  }
+
+  template <IntegralLike<BitArrayChunk> T>
+  inline constexpr void fill(const T val) noexcept {
+    std::fill(&begin(), &end(), static_cast<BitArrayChunk>(val));
+  }
+
+  inline constexpr void reset() noexcept { fill(0); }
 
   // Function name used by engine
   inline constexpr void resetAllBits() noexcept { reset(); }
 };
+#pragma pack(pop)
 ASSERT_SIZE(bitarray<32>, 0x4);
 ASSERT_CPP03_POD(bitarray<32>);
-
-#pragma pack(pop)
 
 typedef bitarray<72> game_button_bits_t;
 ASSERT_SIZE(game_button_bits_t, 0xC);

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "array.hpp"
+#include <structs/array.hpp>
 #include <atomic>
 #include <macros.hpp>
 #include <optional>

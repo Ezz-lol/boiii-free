@@ -27,5 +27,17 @@ void UGC_SetMapLoadingImage_Impl();
 void UGC_LoadManifest_Impl(bool usermaps, bool mods,
                            steam::PublishedFileId_t publisherId);
 WorkshopData *UGC_LoadUsermapByPublisherId_Impl(const char *publisherId);
+
+int32_t UGC_ZoneSourcePath_Impl(const char *name, const char *extension,
+                                int32_t size, char *buf, ZoneType zoneType,
+                                const char *publisherId);
+
+template <const size_t N>
+inline int32_t UGC_ZoneSourcePath_Impl(const char *name, const char *extension,
+                                       char (&buf)[N], ZoneType zoneType,
+                                       const char *publisherId) {
+  return UGC_ZoneSourcePath_Impl(name, extension, N, buf, zoneType,
+                                 publisherId);
+}
 } // namespace ugc
 } // namespace game

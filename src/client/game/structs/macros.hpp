@@ -1,4 +1,6 @@
 #pragma once
+
+#include <macros.hpp>
 #include <bit>
 #include <cassert>
 #include <type_traits>
@@ -151,12 +153,17 @@ template <typename T> consteval bool is_cpp03_pod() { return CPP03PoD<T>; }
 #endif
 #endif
 
-template <typename T> constexpr size_t bits() noexcept {
-  return sizeof(T) * CHAR_BIT;
+#define BITS_PER_BYTE CHAR_BIT
+template <typename T> inline constexpr size_t bitsizeof() noexcept {
+  return sizeof(T) * BITS_PER_BYTE;
 }
 
-template <typename T, typename = typename std::enable_if<
-                          std::is_convertible<T, uint64_t>::value>::type>
+template <typename T>
+inline constexpr size_t bitsizeof([[maybe_unused]] const T) noexcept {
+  return sizeof(T) * BITS_PER_BYTE;
+}
+
+template <IntegralLike<uint64_t> T>
 consteval int32_t min_bits_unsigned(T val_in) {
   uint64_t val = static_cast<uint64_t>(val_in);
   if (val == 0) {
@@ -164,12 +171,10 @@ consteval int32_t min_bits_unsigned(T val_in) {
   }
 
   // Total bits (64) minus leading zeros gives the bits used
-  return bits<uint64_t>() - std::countl_zero(val);
+  return bitsizeof<uint64_t>() - std::countl_zero(val);
 }
 
-template <typename T, typename = typename std::enable_if<
-                          std::is_convertible<T, uint64_t>::value>::type>
-consteval uint32_t min_bits_mask(T val_in) {
+template <IntegralLike<uint64_t> T> consteval uint32_t min_bits_mask(T val_in) {
   uint64_t val = static_cast<uint64_t>(val_in);
   int32_t min_bits = min_bits_unsigned(val);
   return (1 << min_bits) - 1;

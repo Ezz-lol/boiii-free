@@ -175,8 +175,12 @@ void dvar_remove_flags(const char *dvar_name, const T flags) {
 [[nodiscard]] inline std::optional<std::string_view> get_g_gametype() {
   return *g_gametype ? g_gametype->get_string() : std::nullopt;
 }
+[[nodiscard]] inline std::optional<std::string_view> get_sv_gametype() {
+  return *sv_gametype ? sv_gametype->get_string() : std::nullopt;
+}
 [[nodiscard]] inline std::optional<std::string_view> gametype() {
-  return get_g_gametype();
+  const std::optional<std::string_view> sv_gametype = get_sv_gametype();
+  return sv_gametype.has_value() ? sv_gametype : get_g_gametype();
 }
 [[nodiscard]] inline std::optional<std::string_view> get_g_password() {
   return *g_password ? g_password->get_string() : std::nullopt;

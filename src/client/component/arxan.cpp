@@ -385,12 +385,12 @@ void restore_debug_functions() {
   };
 
   using buffer = uint8_t[15];
-  static buffer buffers[ARRAYSIZE(functions)] = {};
+  static buffer buffers[std::size(functions)] = {};
   static bool loaded = false;
 
   const utils::nt::library ntdll("ntdll.dll");
 
-  for (uint8_t i = 0; i < ARRAYSIZE(functions); ++i) {
+  for (uint8_t i = 0; i < std::size(functions); ++i) {
     void *func = ntdll.get_proc<void *>(functions[i]);
     if (func) {
       if (!loaded) {

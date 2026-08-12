@@ -1,4 +1,3 @@
-#include "memory.hpp"
 #include "compression.hpp"
 
 #include <zlib.h>
@@ -56,7 +55,9 @@ std::string decompress(const std::string &data) {
   do {
     const auto input_size = std::min(sizeof(dest), data.size() - offset);
     stream.avail_in = static_cast<uInt>(input_size);
-    stream.next_in = reinterpret_cast<const Bytef *>(data.data()) + offset;
+    stream.next_in = const_cast<decltype(stream.next_in)>(
+                         reinterpret_cast<const Bytef *>(data.data())) +
+                     offset;
     offset += stream.avail_in;
 
     do {
@@ -124,7 +125,7 @@ void archive::add(std::string filename, std::string data) {
 }
 
 bool archive::write(const std::string &filename, const std::string &comment) {
-  io::write_file(filename, {});
+  io::write_file(filename, std::string());
   io::remove_file(filename);
 
   auto *zip_file = zipOpen64(filename.data(), 0);
@@ -151,7 +152,7 @@ bool archive::write(const std::string &filename, const std::string &comment) {
 }
 
 namespace {
-std::optional<std::pair<std::string, std::string>>
+std::optional<std::pair<std::string, std::vector<uint8_t>>>
 read_zip_file_entry(unzFile &zip_file) {
   char filename[1024]{};
   unz_file_info file_info{};
@@ -166,23 +167,23 @@ read_zip_file_entry(unzFile &zip_file) {
 
   auto _ = finally([&zip_file] { unzCloseCurrentFile(zip_file); });
 
-  int error = UNZ_OK;
-  std::string out_buffer{};
-  thread_local char buffer[0x2000];
+  int len = UNZ_OK;
+  std::vector<uint8_t> out_buffer{};
+  thread_local uint8_t buffer[0x2000];
 
   do {
-    error = unzReadCurrentFile(zip_file, buffer, sizeof(buffer));
-    if (error < 0) {
+    len = unzReadCurrentFile(zip_file, buffer, sizeof(buffer));
+    if (len < 0) {
       return {};
     }
 
     // Write data to file.
-    if (error > 0) {
-      out_buffer.append(buffer, error);
+    if (len > 0) {
+      out_buffer.insert(out_buffer.end(), &buffer[0], &buffer[len]);
     }
-  } while (error > 0);
+  } while (len > 0);
 
-  return std::pair<std::string, std::string>{filename, out_buffer};
+  return std::pair<std::string, std::vector<uint8_t>>{filename, out_buffer};
 }
 
 class memory_file {
@@ -294,7 +295,8 @@ private:
 };
 } // namespace
 
-std::unordered_map<std::string, std::string> extract(const std::string &data) {
+std::unordered_map<std::string, std::vector<uint8_t>>
+extract(const std::string &data) {
   memory_file mem_file(data);
 
   auto zip_file = unzOpen2_64(mem_file.get_name(), mem_file.get_func_def());
@@ -313,7 +315,7 @@ std::unordered_map<std::string, std::string> extract(const std::string &data) {
     return {};
   }
 
-  std::unordered_map<std::string, std::string> files{};
+  std::unordered_map<std::string, std::vector<uint8_t>> files{};
   files.reserve(global_info.number_entry);
 
   for (auto i = 0ul; i < global_info.number_entry; ++i) {
@@ -330,6 +332,79 @@ std::unordered_map<std::string, std::string> extract(const std::string &data) {
   }
 
   return files;
+}
+
+void write_file(
+    const std::filesystem::path &output, // Optimized: Pass by const reference
+    const std::pair<std::string, std::vector<uint8_t>> *entries,
+    const size_t count) {
+  // Open the ZIP archive for writing.
+  // APPEND_STATUS_CREATE will create a new file or overwrite an existing one.
+  zipFile zip_file = zipOpen64(output.string().c_str(), APPEND_STATUS_CREATE);
+  if (!zip_file) {
+    throw std::runtime_error("Failed to create zip file: " + output.string());
+  }
+
+  // Use a try-catch block to guarantee the zip_file handle is closed if an
+  // exception is thrown
+  try {
+    for (size_t entryIdx = 0; entryIdx < count; ++entryIdx) {
+      const auto &[filename, data] = entries[entryIdx];
+
+      zip_fileinfo zi{};
+
+      // Determine if ZIP64 extensions are needed (file size >= 4GB).
+      // 0xffffffffULL is exactly 4GB - 1 byte.
+      const int needs_zip64 = (data.size() >= 0xffffffffULL) ? 1 : 0;
+
+      // Open a new file entry inside the ZIP archive.
+      int err = zipOpenNewFileInZip64(zip_file, filename.c_str(), &zi, nullptr,
+                                      0, nullptr, 0, nullptr, Z_DEFLATED,
+                                      Z_BEST_SPEED, needs_zip64);
+
+      if (err != ZIP_OK) {
+        throw std::runtime_error("Failed to add new file to zip: " + filename);
+      }
+
+      if (!data.empty()) {
+        constexpr size_t chunk_size = 0x40000000; // 1 GB chunks
+        size_t bytes_written = 0;
+        const uint8_t *ptr = data.data();
+
+        while (bytes_written < data.size()) {
+          size_t bytes_to_write =
+              std::min(chunk_size, data.size() - bytes_written);
+
+          err = zipWriteInFileInZip(zip_file, ptr + bytes_written,
+                                    static_cast<unsigned int>(bytes_to_write));
+
+          if (err < 0) {
+            zipCloseFileInZip(zip_file); // Clean up the inner file
+            throw std::runtime_error("Error writing data to file in zip: " +
+                                     filename);
+          }
+
+          bytes_written += bytes_to_write;
+        }
+      }
+
+      // Close the current file inside the archive before moving to the next
+      err = zipCloseFileInZip(zip_file);
+      if (err != ZIP_OK) {
+        throw std::runtime_error("Error closing file in zip: " + filename);
+      }
+    }
+  } catch (...) {
+    // If any exception occurs, clean up the main archive before propagating
+    zipClose(zip_file, nullptr);
+    throw;
+  }
+
+  // Close and finalize the entire ZIP archive on disk
+  if (zipClose(zip_file, nullptr) != ZIP_OK) {
+    throw std::runtime_error("Failed to finalize and close zip file: " +
+                             output.string());
+  }
 }
 } // namespace zip
 } // namespace utils::compression

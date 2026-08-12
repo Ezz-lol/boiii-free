@@ -10,63 +10,19 @@ namespace var {
 // types to allow graceful handling without error
 qboolean Scr_IsTrue_Impl([[maybe_unused]] scriptInstance_t inst,
                          volatile ScrVarValue_t *value) {
-  ScrVarType_t type = value->type;
-
-  switch (type) {
-  case ScrVarType::FLOAT: {
-    if (value->u.floatValue == 0.0) {
-      value->type = ScrVarType::INT;
-      value->u.uintValue = qfalse;
-      return qfalse;
-    }
+  const std::optional<qboolean> result = value->cast_bool();
+  if (result.has_value()) {
     value->type = ScrVarType::INT;
-    value->u.uintValue = qtrue;
-    return qtrue;
+    value->u.intValue = result.value();
+    return result.value();
   }
 
-  case ScrVarType::INT: {
-    if (value->u.uintValue == 0) {
-      value->type = ScrVarType::INT;
-      value->u.uintValue = qfalse;
-      return qfalse;
-    }
-    value->type = ScrVarType::INT;
-    value->u.uintValue = qtrue;
-    return qtrue;
-  }
-  case ScrVarType::UINT64: {
-    if (value->u.uint64Value == 0) {
-      value->type = ScrVarType::INT;
-      value->u.uintValue = qfalse;
-      return qfalse;
-    }
-    value->type = ScrVarType::INT;
-    value->u.uintValue = qtrue;
-    return qtrue;
-  }
-  case ScrVarType::UINTPTR_T: {
-    if (value->u.uintptrValue == 0) {
-      value->type = ScrVarType::INT;
-      value->u.uintValue = qfalse;
-      return qfalse;
-    }
-    value->type = ScrVarType::INT;
-    value->u.uintValue = qtrue;
-    return qtrue;
-  }
-  case ScrVarType::UNDEFINED: {
-    value->type = ScrVarType::INT;
-    value->u.uintValue = qfalse;
-    return qfalse;
-  }
-  default: {
-    var::ScrVar_ReleaseValue(inst, value);
-    Scr_Error(inst,
-              utils::string::va("cannot cast %s to bool", Scr_TypeName(type)),
-              false);
-    return qfalse;
-  }
-  }
+  var::ScrVar_ReleaseValue(inst, value);
+  Scr_Error(
+      inst,
+      utils::string::va("cannot cast %s to bool", Scr_TypeName(value->type)),
+      false);
+  return qfalse;
 }
 } // namespace var
 

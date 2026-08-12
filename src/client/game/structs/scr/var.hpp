@@ -66,6 +66,16 @@ enum class ScrVarType : uint32_t {
 };
 IMPL_ENUM_OPERATORS(ScrVarType);
 
+inline constexpr bool string_like(ScrVarType type) {
+  switch (type) {
+  case ScrVarType::LOCALIZED_STRING:
+  case ScrVarType::STRING:
+    return true;
+  default:
+    return false;
+  }
+}
+
 typedef ScrVarType ScrVarType_t;
 
 #pragma pack(push, 1)
@@ -104,6 +114,44 @@ template <typename T> union ScrVarTypePool {
     T t_ent_list;
   };
   T pool[static_cast<size_t>(ScrVarType::COUNT)];
+
+  template <IntegralLike<size_t> Index>
+  inline constexpr bool valid_index(Index index_arg) {
+    const size_t index = static_cast<size_t>(index_arg);
+    return index < +ScrVarType::COUNT;
+  }
+
+  inline constexpr void assert_range(size_t index) {
+    assert(valid_index(index) &&
+           "Index to ScrVarTypePool must be within range 0 <= index < "
+           "ScrVarType::COUNT");
+  }
+
+  template <IntegralLike<size_t> Index>
+  inline constexpr const T &get(Index index_arg) const noexcept {
+    const size_t index = static_cast<size_t>(index_arg);
+    assert_range(index);
+
+    return pool[index];
+  }
+
+  template <IntegralLike<size_t> Index>
+  inline constexpr T &get(Index index_arg) noexcept {
+    const size_t index = static_cast<size_t>(index_arg);
+    assert_range(index);
+
+    return pool[index];
+  }
+
+  template <IntegralLike<size_t> Index>
+  inline constexpr const T &operator[](Index index) const noexcept {
+    return get(index);
+  }
+
+  template <IntegralLike<size_t> Index>
+  inline constexpr T &operator[](Index index) noexcept {
+    return get(index);
+  }
 };
 #pragma pack(pop)
 
@@ -171,6 +219,36 @@ struct ScrVarValue_t {
   bool array_like(scriptInstance_t inst) volatile;
 
   volatile ScrVarValue_t *next_sibling(scriptInstance_t inst) volatile;
+
+  inline constexpr bool string_like() volatile noexcept {
+    return game::scr::var::string_like(type);
+  }
+  constexpr bool size(scriptInstance_t inst) volatile noexcept;
+
+  std::optional<float> cast_float() volatile noexcept;
+  std::optional<qboolean> cast_bool() volatile noexcept;
+
+  inline bool valid_index(scriptInstance_t inst,
+                          volatile ScrVarValue_t *index) volatile noexcept {
+    switch (type) {
+    case ScrVarType::POINTER: {
+      volatile ScrVarValue_t *resolved = deref(inst);
+      // Anything can be an index here - the VM uses hashing to resolve the
+      // numeric index where required
+      return resolved && resolved->type == ScrVarType::ARRAY;
+    }
+    case ScrVarType::STRING:
+    case ScrVarType::VECTOR: {
+      return index->type == ScrVarType::INT;
+    }
+    default: {
+      return false;
+    }
+    }
+  }
+
+  bool valid_index(scriptInstance_t inst,
+                   volatile ScrVar_t *index) volatile noexcept;
 };
 ASSERT_SIZE(ScrVarValue_t, 0x10);
 #pragma pack(pop)
@@ -214,8 +292,49 @@ struct ScrVar_t {
   inline bool array_like(scriptInstance_t inst) volatile {
     return value.array_like(inst);
   }
-  inline uint32_t array_len() volatile noexcept { return o.size; }
+  inline constexpr uint32_t size(scriptInstance_t inst) volatile noexcept {
+    volatile ScrVar_t *resolved = deref(inst);
+    switch (resolved->value.type) {
+    case ScrVarType::VECTOR:
+      return vec3_t::size();
+    case ScrVarType::ARRAY:
+    default:
+      return resolved->o.size;
+    }
+  }
+  inline constexpr bool string_like() volatile noexcept {
+    return value.string_like();
+  }
   volatile ScrVar_t *next_sibling(scriptInstance_t inst) volatile;
+
+  inline std::optional<float> cast_float() volatile noexcept {
+    return value.cast_float();
+  }
+  inline std::optional<qboolean> cast_bool() volatile noexcept {
+    return value.cast_bool();
+  }
+
+  inline constexpr operator volatile ScrVarValue_t &() volatile noexcept {
+    return value;
+  }
+
+  inline constexpr operator const ScrVarValue_t &() const noexcept {
+    return value;
+  }
+
+  inline constexpr operator ScrVarType_t() volatile noexcept {
+    return value.type;
+  }
+
+  inline bool valid_index(scriptInstance_t inst,
+                          volatile ScrVar_t *index) volatile noexcept {
+    return value.valid_index(inst, index);
+  }
+
+  inline bool valid_index(scriptInstance_t inst,
+                          volatile ScrVarValue_t *index) volatile noexcept {
+    return value.valid_index(inst, index);
+  }
 };
 ASSERT_SIZE(ScrVar_t, 0x40);
 #pragma pack(pop)
@@ -239,6 +358,17 @@ inline volatile ScrVarValue_t *
 ScrVarValue_t::next_sibling(scriptInstance_t inst) volatile {
   volatile ScrVar_t *next_sibling_var = var()->next_sibling(inst);
   return next_sibling_var ? &next_sibling_var->value : nullptr;
+}
+
+inline constexpr bool
+ScrVarValue_t::size(scriptInstance_t inst) volatile noexcept {
+  return var()->size(inst);
+}
+
+inline bool
+ScrVarValue_t::valid_index(scriptInstance_t inst,
+                           volatile ScrVar_t *index) volatile noexcept {
+  return valid_index(inst, &index->value);
 }
 
 #pragma pack(push, 1)

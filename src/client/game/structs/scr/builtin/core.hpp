@@ -2,7 +2,6 @@
 
 #include "game/structs/scr/core.hpp"
 #include "hash.hpp"
-#include <functional>
 
 namespace game {
 namespace scr {
@@ -163,6 +162,18 @@ ASSERT_SIZE(BuiltinFunctionDef, 0x20);
 
 typedef BuiltinDef<BuiltinMethod> BuiltinMethodDef;
 ASSERT_SIZE(BuiltinMethodDef, 0x20);
+
+// Special namespace that immediately indicates to engine's linker that this is
+// a builtin function
+constexpr const char *SYS_NS = "sys";
+constexpr ScrVarCanonicalName_t SYS_NS_HASH = game::scr::builtin::fnv1a(SYS_NS);
+
+// Field ID used by the engine to access a given `CLASS`-typed `ScrVar_t`'s
+// virtual method table
+constexpr const char *VTABLE_FIELD_ID = "__vtable";
+constexpr ScrVarCanonicalName_t VTABLE_FIELD_ID_HASH =
+    game::scr::builtin::fnv1a(VTABLE_FIELD_ID);
+
 } // namespace builtin
 } // namespace scr
 } // namespace game

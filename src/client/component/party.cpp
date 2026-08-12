@@ -25,12 +25,30 @@
 namespace party {
 game::EngineDependentDvarMut cl_connected_to_dedi;
 namespace {
+constexpr uint16_t default_server_port = 27017;
+
 std::atomic_bool is_connecting_to_dedi{false};
 game::net::netadr_t connect_host{{}, {}, game::net::NA_BAD, {}};
 
 std::mutex hostname_mutex;
 std::string cached_server_hostname;
 int cached_server_max_clients = 0;
+
+std::string normalize_connect_address(std::string address) {
+  utils::string::trim(address);
+
+  const size_t separator = address.find(':');
+  const std::string host = address.substr(0, separator);
+  if (utils::string::to_lower(host) == "localhost") {
+    address.replace(0, host.size(), "127.0.0.1");
+  }
+
+  if (separator == std::string::npos) {
+    address.append(":" + std::to_string(default_server_port));
+  }
+
+  return address;
+}
 
 void update_dedi_dvar(bool on_dedi) { cl_connected_to_dedi.set(on_dedi); }
 
@@ -372,19 +390,13 @@ void connect_finish(const game::net::netadr_t &target, const char *address) {
 
 void connect_stub(const char *address) {
   if (address) {
-    std::string address_copy = address;
+    const std::string address_copy = normalize_connect_address(address);
 
     if (const auto friend_id = friends::find_browser_route(address_copy)) {
       if (!friends::connect_to_friend(friend_id))
         toast::show("Friend unavailable", "No joinable match was found",
                     "t7_icon_connect_overlays");
       return;
-    }
-
-    if (address_copy == "localhost") {
-      address_copy = "127.0.0.1:27017";
-    } else if (address_copy.find(':') == std::string::npos) {
-      address_copy.append(":27017");
     }
 
     if (address_copy == "0.0.0.0" || address_copy.starts_with("0.0.0.0:")) {
@@ -394,7 +406,7 @@ void connect_stub(const char *address) {
       return;
     }
 
-    toast::show("Connecting", address, "t7_icon_connect_overlays");
+    toast::show("Connecting", address_copy, "t7_icon_connect_overlays");
 
     network::resolvedAddrCallback_t resolveCb =
         [address_copy](game::net::netadr_t target) -> void {

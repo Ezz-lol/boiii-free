@@ -35,6 +35,13 @@ enum class Opcode : uint8_t {
   Bit_And = 0x00,
   Bit_Or = 0x01,
   Bit_Xor = 0x02,
+  /*
+   Note: `BoolComplement` is the name
+   of this opcode in the engine, but
+   it is actually a 64-bit Bitwise NOT
+   operation that can only be used with
+   an `INT`-typed `ScrVar_t`.
+  */
   BoolComplement = 0x03,
   BoolNot = 0x04,
   CallBuiltin = 0x05,
@@ -147,7 +154,17 @@ enum class Opcode : uint8_t {
   EvalSelfFieldVariableRef = 0x6E,
   GetWorld = 0x6F,
   GetWorldObject = 0x70,
+  /*
+     Same as `Equal`, but also ensures that the gives operands have comparable
+     types - either the same type, or int and float.
+
+     Note: BO4 expanded this to also allow comparison of a `HASH`-typed
+     `ScrVar_t` and a `STRING`-typed `ScrVar_t`, but this is not permitted in
+     the latest BO3 engine's `ScrVar_EvalEquality`'s implementation
+  */
   SuperEqual = 0x71,
+  // Same as `NotEqual`, with the additional operand type requirements seen in
+  // `SuperEqual`.
   SuperNotEqual = 0x72,
   WaitRealTime = 0x73,
 

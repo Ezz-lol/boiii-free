@@ -1674,7 +1674,7 @@ struct entityState_s {
   uint8_t _padding1EA[6];
 };
 constexpr uint32_t ENTITYSTATE_CLIENTMASK_BITS =
-    bits<decltype(entityState_s::clientMask)>();
+    bitsizeof<decltype(entityState_s::clientMask)>();
 
 typedef entityState_s entityState_t;
 #pragma pack(pop)

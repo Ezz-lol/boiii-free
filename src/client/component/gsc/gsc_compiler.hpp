@@ -9,8 +9,8 @@ namespace gsc_compiler {
 struct compile_error {
   std::string message;
   std::string file;
-  int line;
-  int column;
+  int32_t line;
+  int32_t column;
 };
 
 struct replacefunc_entry {
@@ -26,6 +26,7 @@ struct replacefunc_entry {
 struct compile_result {
   bool success;
   std::vector<uint8_t> bytecode;
+  std::vector<uint8_t> gdb;
   std::vector<compile_error> errors;
   std::vector<gsc::hash_name_pair> hash_names;
   std::vector<replacefunc_entry> replacefuncs;

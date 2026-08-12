@@ -214,14 +214,14 @@ constexpr char hudelem_cfgstr_pool_entry_name_prefix[] =
 constexpr uint8_t hudelem_cfgstr_pool_entry_name_number_max_suffix_len =
     sizeof(uint16_t) * 2 /* characters per byte */;
 constexpr uint8_t hudelem_cfgstr_pool_entry_name_len =
-    ARRAYSIZE(hudelem_cfgstr_pool_entry_name_prefix) +
+    std::size(hudelem_cfgstr_pool_entry_name_prefix) +
     hudelem_cfgstr_pool_entry_name_number_max_suffix_len;
 typedef str<hudelem_cfgstr_pool_entry_name_len> HudElemCfgStrPoolEntryName;
 consteval ui::he::HudElementPool<HudElemCfgStrPoolEntryName>
 build_hudelem_cfgstr_name_pool(
     ui::he::HudElementPool<HudElemCfgStrPoolEntryName> pool = {}) {
   for (uint16_t i = 0; i < pool.size(); ++i) {
-    append_hex<ARRAYSIZE(hudelem_cfgstr_pool_entry_name_prefix), uint16_t>(
+    append_hex<std::size(hudelem_cfgstr_pool_entry_name_prefix), uint16_t>(
         hudelem_cfgstr_pool_entry_name_prefix, i, pool.pool[i]);
   }
   return pool;
@@ -286,8 +286,8 @@ namespace hecmd_settext {
 static HudElemMessage message_buf = {0};
 static HudElemMessage cleaned_message_buf = {0};
 inline void clear_message_bufs() {
-  memset(message_buf, 0, ARRAYSIZE(message_buf));
-  memset(cleaned_message_buf, 0, ARRAYSIZE(cleaned_message_buf));
+  memset(message_buf, 0, std::size(message_buf));
+  memset(cleaned_message_buf, 0, std::size(cleaned_message_buf));
 }
 
 void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
@@ -332,6 +332,15 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
 
       volatile bgCachedGenericData *data =
           &s_bgCache->server.dataSet.localizedStrings[pool_entry->get_idx()];
+
+#ifndef NDEBUG
+      trace("[Scr][HECmd_SetText] Localized config string entry with "
+            "index 0x%lX, "
+            "absolute config string index 0x%lX: got localized string data "
+            "pointer: 0x%p",
+            pool_entry->get_idx(), pool_entry->abs_idx(),
+            game::derelocate(data));
+#endif
       data->setName(cleaned_message_buf);
       if (!data->refCount) {
         data->add_ref();
@@ -386,7 +395,7 @@ void BG_Cache_HandleConfigStringChange_ReuseExisting(
       index >= s_bgCacheTypeInfo->locstring.configStringStart &&
       index < s_bgCacheTypeInfo->locstring.configStringStart +
                   static_cast<int32_t>(
-                      ARRAYSIZE(s_bgCache->client.dataSet.localizedStrings));
+                      std::size(s_bgCache->client.dataSet.localizedStrings));
 
   if (is_localized_string) {
     volatile bgCachedGenericData *data =
@@ -410,7 +419,7 @@ void BG_Cache_HandleConfigStringChange_ReuseExisting(
      second it is occurring, so it seems preferable to skip this.
     */
   } else if (index != s_bgCacheTypeInfo->debugstring.configStringStart +
-                          static_cast<int32_t>(ARRAYSIZE(
+                          static_cast<int32_t>(std::size(
                               s_bgCache->client.dataSet.debugStrings))) {
     BG_Cache_HandleConfigStringChange_hook.invoke(localClientNum, index);
   }
@@ -854,27 +863,6 @@ void gscr_directoryexists(scriptInstance_t inst) {
   push(inst, utils::io::directory_exists(resolve_path(path)));
 }
 
-void gscr_listfiles(scriptInstance_t inst) {
-  const char *path = Scr_GetString(inst, 0);
-  if (!path || !is_safe_path(path)) {
-    push_string(inst, "");
-    return;
-  }
-  const std::filesystem::path full = resolve_path(path);
-  if (!utils::io::directory_exists(full)) {
-    push_string(inst, "");
-    return;
-  }
-  const std::vector<std::filesystem::path> files = utils::io::list_files(full);
-  std::string result;
-  for (const std::filesystem::path &f : files) {
-    if (!result.empty())
-      result += ",";
-    result += f.filename().string();
-  }
-  push_string(inst, result.c_str());
-}
-
 /*
  ls(path, recurse = false, include_directories = false)
  Lists files in a directory, optionally recursively and including
@@ -886,8 +874,6 @@ void gscr_ls(scriptInstance_t inst) {
     push(inst);
     return;
   }
-  fprintf(stderr, "ls: called with path %s\n", path);
-  fflush(stderr);
 
   bool recurse = Scr_GetBoolOptional(inst, 1, false);
   bool include_directories = Scr_GetBoolOptional(inst, 2, false);
@@ -1168,6 +1154,21 @@ void gscr_isstruct(scriptInstance_t inst) {
   }
 }
 
+void gscr_typename(scriptInstance_t inst) {
+  const uint32_t argc = Scr_GetNumParam(inst);
+  if (argc == 0) {
+    Scr_ParamError(inst, 0,
+                   "No argument provided to typename. syntax: typename(var)");
+  } else {
+    const ScrVarType var_type = Scr_GetValue(inst, 0)->type;
+    const char *name = var_typename->valid_index(var_type)
+                           ? var_typename->get(var_type)
+                           : "INVALID";
+
+    push(inst, name);
+  }
+}
+
 void gscr_ismenucached(scriptInstance_t inst) {
   const uint32_t argc = Scr_GetNumParam(inst);
   if (argc == 0) {
@@ -1210,7 +1211,8 @@ void gscr_vector(scriptInstance_t inst) {
           const std::vector<volatile var::ScrVarValue_t *> arg =
               Scr_GetArray(inst, 0);
 
-          for (size_t i = 0; i < std::min(arg.size(), result.size()); ++i) {
+          for (size_t i = 0; i < std::min<size_t>(arg.size(), result.size());
+               ++i) {
             result[i] = ScrVar_CastFloat(arg[i]);
           }
           break;
@@ -1478,14 +1480,6 @@ struct component final : generic_component {
     register_builtin("filesize", gscr_filesize, 1);
     register_builtin({"mkdir", "createdirectory"}, gscr_createdirectory, 1);
     register_builtin("directoryexists", gscr_directoryexists, 1);
-
-    register_builtin(
-        "listfiles",
-        deprecate<gscr_listfiles, "listfiles", "ls",
-                  "is being phased out in favor of `ls`. `ls` returns an "
-                  "array of paths rather than a line-delimited "
-                  "list of paths, returned as one string.">,
-        1);
     register_builtin("ls", gscr_ls, 1, 3);
 
     // JSON
@@ -1528,6 +1522,7 @@ struct component final : generic_component {
 
     register_builtin("conststring", gscr_conststring, 1);
     register_builtin("isstruct", gscr_isstruct, 1);
+    register_builtin("typename", gscr_typename, 1);
     register_builtin("ismenucached", gscr_ismenucached, 1);
     register_builtin("vector", gscr_vector, 0, 3);
 

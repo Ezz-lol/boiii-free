@@ -1,8 +1,9 @@
 #pragma once
 
-#include "game/symbols/scr/mt.hpp"
-#include "game/symbols/scr/vm/core.hpp"
+#include <game/symbols/scr/mt.hpp>
+#include <game/symbols/scr/vm/core.hpp>
 #include <game/symbols/sym_include.hpp>
+#include <game/symbols/sl.hpp>
 
 namespace game {
 namespace scr {
@@ -226,7 +227,9 @@ inline bool valid_scrvarvalue_ptr(scriptInstance_t inst,
 inline bool valid_val_allocation_ptr(uintptr_t ptr) {
   return valid_stack_ptr(ptr) ||
          (scr::mt::gScrMemTreePub->mt_buffer &&
-          scr::mt::gScrMemTreePub->mt_buffer->contains(ptr));
+          scr::mt::gScrMemTreePub->mt_buffer->contains(ptr)) ||
+         (scr::mt::gScrMemTreeGlob->nodePool &&
+          scr::mt::gScrMemTreeGlob->nodePool->contains(ptr));
 }
 
 template <typename T> inline bool valid_val_allocation_ptr(volatile T *ptr) {
@@ -286,6 +289,99 @@ ScrVar_t::next_sibling(scriptInstance_t inst) volatile {
   }
 
   return nullptr;
+}
+
+inline std::optional<float> ScrVarValue_t::cast_float() volatile noexcept {
+  switch (type) {
+  case ScrVarType::POINTER:
+  case ScrVarType::UINT64:
+  case ScrVarType::UINTPTR_T:
+  case ScrVarType::CODEPOS:
+  case ScrVarType::PRECODEPOS:
+  case ScrVarType::API_FUNCTION:
+  case ScrVarType::FUNCTION:
+  case ScrVarType::ANIMATION:
+  case ScrVarType::CLASS:
+  case ScrVarType::STRUCT:
+  case ScrVarType::ENTITY:
+  case ScrVarType::ARRAY: {
+    /*
+      Blindly re-interpret the value as an integer, then cast to float.
+      This will only lead to erroneous behaviour if the user unknowingly
+      passed a non-floating point value. In this case, we can only assume
+      they intended to have the passed value converted to a float, rather
+      than throwing an error.
+    */
+    return static_cast<float>(u.uint64Value);
+  }
+  case ScrVarType::INT:
+  case ScrVarType::ENTITY_OFFSET:
+  case ScrVarType::HASH: {
+    return static_cast<float>(u.uintValue);
+  }
+  case ScrVarType::FLOAT: {
+    return u.floatValue;
+  }
+
+  case ScrVarType::VECTOR: {
+    if (u.vectorValue) {
+      return *u.vectorValue;
+    }
+    break;
+  }
+  case ScrVarType::STRING:
+  case ScrVarType::LOCALIZED_STRING: {
+    const char *str = sl::SL_ConvertToString(u.stringValue);
+    if (str && str[0]) {
+      const size_t len = strlen(str);
+      float f = 0.0f;
+      auto [ptr, ec] = std::from_chars(str, str + len, f);
+      if (ec == std::errc()) {
+        return f;
+      }
+    }
+    break;
+  }
+  default:
+    break;
+  }
+
+  return std::nullopt;
+}
+
+inline std::optional<qboolean> ScrVarValue_t::cast_bool() volatile noexcept {
+
+  switch (type) {
+  case ScrVarType::FLOAT: {
+    return qboolean::from(u.floatValue != 0.0);
+  }
+
+  case ScrVarType::INT: {
+    return qboolean::from(u.uintValue != 0);
+  }
+  case ScrVarType::UINT64: {
+    return qboolean::from(u.uint64Value != 0);
+  }
+  case ScrVarType::POINTER:
+  case ScrVarType::UINTPTR_T:
+  case ScrVarType::CODEPOS:
+  case ScrVarType::PRECODEPOS:
+  case ScrVarType::API_FUNCTION:
+  case ScrVarType::FUNCTION:
+  case ScrVarType::ANIMATION:
+  case ScrVarType::CLASS:
+  case ScrVarType::STRUCT:
+  case ScrVarType::ENTITY:
+  case ScrVarType::ARRAY: {
+    return qboolean::from(u.uintptrValue != 0);
+  }
+  case ScrVarType::UNDEFINED: {
+    return qfalse;
+  }
+  default: {
+    return std::nullopt;
+  }
+  }
 }
 
 } // namespace var

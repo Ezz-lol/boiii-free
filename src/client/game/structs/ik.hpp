@@ -1,6 +1,6 @@
 #pragma once
 
-#include "game/structs/array.hpp"
+#include <structs/array.hpp>
 #include <cstdint>
 namespace game {
 namespace ik {

@@ -168,7 +168,7 @@ qboolean WINAPI mini_dump_write_dump_stub(
     const PMINIDUMP_USER_STREAM_INFORMATION user_stream_param,
     const PMINIDUMP_CALLBACK_INFORMATION callback_param) {
   wchar_t filename[MAX_PATH];
-  if (GetFinalPathNameByHandleW(h_file, filename, ARRAYSIZE(filename),
+  if (GetFinalPathNameByHandleW(h_file, filename, std::size(filename),
                                 VOLUME_NAME_DOS)) {
     std::wstring path = filename;
     if (path.find(L"\\\\?\\") == 0) {
