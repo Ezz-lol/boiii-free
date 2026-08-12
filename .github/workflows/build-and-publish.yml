@@ -109,12 +109,6 @@ jobs:
           echo "  [\"boiii.exe\", $size, \"$hash\"]" >> ../${{ env.MANIFEST_FILE }}
           first=false
 
-          # Add ext.dll entry (static, fetched from existing R2 or provided via secret)
-          # You can update EXT_DLL_SIZE and EXT_DLL_HASH secrets if needed
-          if [ -n "${{ secrets.EXT_DLL_SIZE }}" ] && [ -n "${{ secrets.EXT_DLL_HASH }}" ]; then
-            echo "  ,[\"ext.dll\", ${{ secrets.EXT_DLL_SIZE }}, \"${{ secrets.EXT_DLL_HASH }}\"]" >> ../${{ env.MANIFEST_FILE }}
-          fi
-
           # Process all files in data directory
           find data -type f | sort | while read file; do
             size=$(stat -c%s "$file")

@@ -93,11 +93,6 @@ jobs:
           hash=$(sha1sum "boiii.exe" | awk '{print toupper($1)}')
           echo "  [\"boiii.exe\", $size, \"$hash\"]" >> ../../${{ env.MANIFEST_FILE }}
 
-          # Add ext.dll entry if available
-          if [ -n "${{ secrets.EXT_DLL_SIZE }}" ] && [ -n "${{ secrets.EXT_DLL_HASH }}" ]; then
-            echo "  ,[\"ext.dll\", ${{ secrets.EXT_DLL_SIZE }}, \"${{ secrets.EXT_DLL_HASH }}\"]" >> ../../${{ env.MANIFEST_FILE }}
-          fi
-
           # Process all files in data directory
           find data -type f | sort | while read file; do
             size=$(stat -c%s "$file")

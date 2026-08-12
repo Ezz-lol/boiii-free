@@ -380,20 +380,10 @@ static concurrent_hash_map<game::net::netadr_t, IssuedChallenge>
 
 thread_local challenge_t challenge_buf = {0};
 const challenge_t &get_challenge(const game::net::netadr_t &target) {
-  if (game::no_ext()) {
-    while (issued_challenges.try_emplace_l(target, [](auto &v) {
-      v.second.refresh();
-      memcpy(challenge_buf, &v.second.challenge, std::size(challenge_buf));
-    })) {
-    }
-  } else {
-    typedef fastcallPtr_t<void(const game::net::netadr_t *adr, void *buf,
-                               size_t size)>
-        get_challenge_func_t;
-    const get_challenge_func_t get_challenge =
-        reinterpret_cast<const get_challenge_func_t>(
-            game::select(0x1412E15E0, 0x14016DDC0));
-    get_challenge(&target, challenge_buf, std::size(challenge_buf));
+  while (issued_challenges.try_emplace_l(target, [](auto &v) {
+    v.second.refresh();
+    memcpy(challenge_buf, &v.second.challenge, std::size(challenge_buf));
+  })) {
   }
   return challenge_buf;
 }
@@ -624,19 +614,14 @@ utils::hook::detour LiveUser_GetXuid_hook;
 
 struct component final : generic_component {
   void post_unpack() override {
-
-    if (game::no_ext()) {
-      scheduler::loop(evict_stale_challenges, scheduler::pipeline::async, 5min);
-    }
+    scheduler::loop(evict_stale_challenges, scheduler::pipeline::async, 5min);
 
     // Skip connect handler
     utils::hook::set<uint8_t>(game::select(0x142253EFA, 0x14053714A), 0xEB);
     network::on("connect", handle_connect_packet_fragment);
     network::on("playerXuid", handle_player_xuid_packet);
     network::on("getChallengeResponse", set_challenge);
-    if (game::no_ext()) {
-      network::on("getchallenge", send_challenge);
-    }
+    network::on("getchallenge", send_challenge);
 
     // Intercept SV_DirectConnect in SV_AddTestClient
     utils::hook::call(game::select(0x1422490DC, 0x14052E582),
