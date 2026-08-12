@@ -207,6 +207,10 @@ int32_t parse_flags(int argc, char *argv[]) {
             "value.")
       .implicit_value(true)
       .default_value(false);
+  program.add_argument("-ne", "-no-ext", "--no-ext")
+      .help("Disable load and usage of ext.dll.")
+      .implicit_value(true)
+      .default_value(false);
 #ifndef NDEBUG
   add_debug_profile_arguments();
 #endif

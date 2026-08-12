@@ -11,4 +11,6 @@ std::filesystem::path asset_output();
 #ifndef NDEBUG
 std::filesystem::path tracing_logfile();
 #endif
+
+bool no_ext();
 } // namespace game

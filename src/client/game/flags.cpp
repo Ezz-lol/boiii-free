@@ -72,4 +72,12 @@ std::filesystem::path tracing_logfile() {
 }
 #endif
 
+static bool no_ext_value;
+static std::once_flag no_ext_flag;
+void set_no_ext_value() { no_ext_value = utils::flags::has_flag("no-ext"); }
+
+bool no_ext() {
+  std::call_once(no_ext_flag, set_no_ext_value);
+  return no_ext_value;
+}
 } // namespace game

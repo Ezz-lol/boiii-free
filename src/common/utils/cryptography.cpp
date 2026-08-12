@@ -1,9 +1,9 @@
 #include "string.hpp"
 #include "cryptography.hpp"
 
+#include <windows.h>
 #include <random>
 
-#include "nt.hpp"
 #include "finally.hpp"
 
 #undef max
@@ -286,15 +286,16 @@ std::string ecc::sign_message(const key &key, const std::string &message) {
   return std::string(cs(buffer), length);
 }
 
-bool ecc::verify_message(const key &key, const std::string &message,
-                         const std::string &signature) {
+bool ecc::verify_message(const key &key, const uint8_t *message,
+                         size_t message_size, const uint8_t *signature,
+                         size_t signature_size) {
   if (!key.is_valid()) {
     return false;
   }
 
-  const auto hash = sha512::compute(message);
+  const std::string hash = sha512::compute(message, message_size);
 
-  auto result = 0;
+  int32_t result = 0;
   ltc_ecc_sig_opts opts = {.type = LTC_ECCSIG_ANSIX962,
                            .prng = prng_.get_state(),
                            .wprng = prng_.get_id(),
@@ -302,9 +303,9 @@ bool ecc::verify_message(const key &key, const std::string &message,
                            .rfc6979_hash_alg = nullptr
 
   };
-  auto status = ecc_verify_hash_v2(cs(signature.data()), ul(signature.size()),
-                                   cs(hash.data()), ul(hash.size()), &opts,
-                                   &result, &key.get());
+  int32_t status =
+      ecc_verify_hash_v2(signature, ul(signature_size), cs(hash.data()),
+                         ul(hash.size()), &opts, &result, &key.get());
   return status == CRYPT_OK && result != 0;
 }
 

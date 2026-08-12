@@ -1,3 +1,4 @@
+#include "structs/concurrent.hpp"
 #include <std_include.hpp>
 
 #include <loader/component_loader.hpp>
@@ -19,8 +20,6 @@
 #include <utils/string.hpp>
 #include <utils/io.hpp>
 #include <utils/concurrency.hpp>
-
-#include <gtl/phmap.hpp>
 
 using namespace game;
 using namespace game::db::xasset;
@@ -47,15 +46,10 @@ utils::hook::detour gscr_get_bgb_tokens_remaining_hook;
 static utils::memory::allocator allocator;
 static std::mutex allocator_mutex;
 
-template <typename K, typename V>
-using parallel_hash_map = gtl::parallel_node_hash_map<
-    K, V, gtl::priv::hash_default_hash<K>, gtl::priv::hash_default_eq<K>,
-    std::allocator<std::pair<const K, V>>, 12, std::mutex>;
-static parallel_hash_map<std::string, RawFile *> loaded_scripts;
-static parallel_hash_map<uint32_t, std::vector<hash_info>> script_hash_names;
-static parallel_hash_map<std::string, std::string> script_sources;
-
-static parallel_hash_map<std::string, std::vector<uint8_t>> script_gdbs;
+static concurrent_hash_map<std::string, RawFile *> loaded_scripts;
+static concurrent_hash_map<uint32_t, std::vector<hash_info>> script_hash_names;
+static concurrent_hash_map<std::string, std::string> script_sources;
+static concurrent_hash_map<std::string, std::vector<uint8_t>> script_gdbs;
 
 std::string normalize_script_name(std::string script_name) {
   size_t start = script_name.find('<');
