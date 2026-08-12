@@ -3,7 +3,6 @@
 
 #include <game/game.hpp>
 
-#include "game/utils.hpp"
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 #include "auth.hpp"
@@ -101,20 +100,19 @@ Live_IsMinimalDemonwareFetchingDone(ControllerIndex_t controllerIndex) {
 bool Live_IsDemonwareFetchingDone_FetchIncomplete(
     ControllerIndex_t controllerIndex) {
 
-  if (!Live_IsMinimalDemonwareFetchingDone(controllerIndex)) {
+  const bool result = Live_IsMinimalDemonwareFetchingDone(controllerIndex);
+  if (!result) {
     game::live::storage::Storage_Pump(controllerIndex);
     game::live::storage::LiveStorage_FetchRequiredFiles(controllerIndex);
     game::live::storage::Storage_Pump(controllerIndex);
-
-    return false;
   }
-  return true;
+  return result;
 }
 
 utils::hook::detour Live_LocalClient_StorageAndStats_Ready_hook;
 bool Live_LocalClient_StorageAndStats_Ready_PumpRequired(
     ControllerIndex_t controllerIndex) {
-  bool result =
+  const bool result =
       Live_LocalClient_StorageAndStats_Ready_hook.invoke<bool>(controllerIndex);
   if (!result) {
     storage::Storage_Pump(controllerIndex);
@@ -163,17 +161,17 @@ void Lua_SetTableBool_Always(const char *key, [[maybe_unused]] bool value,
 
 namespace live {
 void stub_func() { return; }
-
 bool return_true() { return true; }
 bool return_false() { return false; }
 uint32_t return_zero() { return 0; }
+
 game::ContentFlags return_all_content() {
   return game::ContentFlags::allContent();
 }
 
-utils::hook::detour LiveUser_UserGetName_hook;
-utils::hook::detour LiveUser_GetLocalXuid_hook;
 utils::hook::detour LiveUser_GetClientName_hook;
+utils::hook::detour LiveUser_GetLocalXuid_hook;
+utils::hook::detour LiveUser_UserGetName_hook;
 
 utils::hook::detour LiveConnect_WasPlayerQueueSuccessful_hook;
 utils::hook::detour LiveConnect_GetPlayerQueuePosition_hook;

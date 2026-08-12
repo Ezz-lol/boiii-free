@@ -1018,20 +1018,29 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
   const vm::function_frame_t *current_frame =
       &vm::gScrVmPub->instance[inst].function_frame_start[0];
   const char *error_log = utils::string::va(
-      "Scr_Error called from 0x%p with inst: %s, pos: 0x%p, "
-      "top: 0x%p, startTop: 0x%p, threadId: 0x%08X, localVarCount: %lu,"
+      "Scr_Error called from 0x%p with inst: %s, "
+#ifndef NDEBUG
+      "gScrVmPub->instance[inst].function_frame_start[0].fs.pos: 0x%p, "
+      "gScrVmPub->instance[inst].function_frame_start[0].fs.top: 0x%p, "
+      "gScrVmPub->instance[inst].function_frame_start[0].fs.startTop: 0x%p, "
+      "gScrVmPub->instance[inst].function_frame_start[0].fs.threadId: 0x%08X, "
+      "gScrVmPub->instance[inst].function_frame_start[0].fs.localVarCount: %lu,"
       "gFs.pos: 0x%p, "
       "gFs.top: 0x%p, gFs.startTop: 0x%p, gFs.threadId: 0x%08X, "
       "gFs.localVarCount: %lu, "
+#endif
       "error: \"%s\", terminal: "
       "%s\nCallstack:\n%s",
-      derelocate(callerAddr), serialize(inst), current_frame->fs.pos,
-      current_frame->fs.top, current_frame->fs.startTop,
+      derelocate(callerAddr), serialize(inst),
+#ifndef NDEBUG
+      current_frame->fs.pos, current_frame->fs.top, current_frame->fs.startTop,
       current_frame->fs.threadId, current_frame->fs.localVarCount,
       vm::gFs->instance[inst].pos, vm::gFs->instance[inst].top,
       vm::gFs->instance[inst].startTop, vm::gFs->instance[inst].threadId,
-      vm::gFs->instance[inst].localVarCount, error ? error : "NULL",
-      terminal ? "true" : "false", prevCodePositionsString.c_str());
+      vm::gFs->instance[inst].localVarCount,
+#endif
+      error ? error : "NULL", terminal ? "true" : "false",
+      prevCodePositionsString.c_str());
 
   fprintf(stderr, "%s\n", error_log);
   fflush(stderr);
