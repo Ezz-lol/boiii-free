@@ -314,7 +314,7 @@ std::string get_client_patch_prompt_message(const client_binary_state /*state*/,
              "this BOIII build.\n\n"
              "This usually means Black Ops 3 was updated and BOIII needs "
              "the older compatible BlackOps3.exe version.\n\n"
-             "BOIII can download and install that compatible version "
+             "BOIII can download and install the compatible BlackOps3.exe "
              "automatically before launch.") +
          close_message + "\n\nPress OK to continue or Cancel to stop.";
 }

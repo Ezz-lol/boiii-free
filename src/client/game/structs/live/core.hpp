@@ -13,9 +13,7 @@ typedef int32_t StorageSlot;
 enum class LiveAuthFlags_t : uint32_t {
   AUTH_BLOB_REQUESTED = 0x1,
   AUTH_BLOB_RECEIVED = 0x2,
-  AUTH_BLOB_SENT_TO_STEAM = 0x4,
-  AUTH_APPROVE = 0x8,
-  AUTH_DENY = 0x10,
+  AUTH_BLOB_AUTHENTICATED = 0x4,
 };
 
 struct SteamIDComponent_t // sizeof=0x8
@@ -42,9 +40,7 @@ union LiveAuthFlags {
   struct {
     uint32_t authBlobRequested : 1;
     uint32_t authBlobReceived : 1;
-    uint32_t authBlobSentToSteam : 1;
-    uint32_t authApprove : 1;
-    uint32_t authDeny : 1;
+    uint32_t authBlobAuthenticated : 1;
   };
   uint32_t value;
 };
