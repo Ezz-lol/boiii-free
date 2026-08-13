@@ -489,7 +489,8 @@ std::string get_friend_game_info_by_address(const game::net::netadr_t target) {
       continue;
 
     // Check if the address in the RP data matches the requested address
-    if (parts[0] == std::string_view(target.toString()))
+    game::net::netadr_str_t addr_serialization_buf;
+    if (parts[0] == std::string_view(target.toString(addr_serialization_buf)))
       return game_info;
 
     // Also try matching resolved addresses

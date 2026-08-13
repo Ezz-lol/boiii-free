@@ -163,7 +163,7 @@ template <typename T> inline bool readable_ptr(const T *ptr) {
 }
 
 inline constexpr bool nonnull(uintptr_t ptr) {
-  return ptr > 0x000000100000000 && ptr < 0x00007FFFFFFFFFFF;
+  return ptr >= 0x00000000'00010000 && ptr <= 0x00007FFF'FFFFFFFF;
 }
 
 template <typename T> inline constexpr bool nonnull(const T *ptr) {

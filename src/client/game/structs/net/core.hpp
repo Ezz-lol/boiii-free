@@ -67,8 +67,9 @@ enum netsrc_t : int32_t {
   NS_PACKET = 0x5,
 };
 
-constexpr size_t NETADR_STR_BUF_LEN =
-    NET_IPV4_STR_BUF_LEN + UINT16_STR_BUF_LEN /*port*/ + 1 /*colon*/;
+constexpr size_t NETADR_STR_BUF_LEN = NET_IPV4_STR_BUF_LEN +
+                                      UINT16_STR_BUF_LEN /*port*/ +
+                                      1 /*colon*/ + 1 /* NULL */;
 typedef str<NETADR_STR_BUF_LEN> netadr_str_t;
 
 struct netadr_t {
@@ -87,6 +88,7 @@ struct netadr_t {
 
     ptr[0] = ':';
     ptr = std::to_chars(ptr + 1, ptr + 1 + UINT16_STR_BUF_LEN, port).ptr;
+    *ptr = '\0';
 
     return {buf, ptr};
   }

@@ -20,25 +20,10 @@ bool DB_IsXAssetDefault_Safe(XAssetType type, const char *name) {
   return false;
 }
 
-utils::hook::detour DDL_Buffer_ResetContext_hook;
-bool DDL_Buffer_ResetContext_Safe(void *buff, int32_t len,
-                                  const ddl::DDLDef *ddlDef,
-                                  ddl::DDLContext *const ddlContext,
-                                  ddl::DDLWriteCB writeCB, void *userData) {
-  if ((nonnull(buff) || valid_stack_ptr(buff)) &&
-      (nonnull(ddlDef) || valid_stack_ptr(ddlDef)) &&
-      (nonnull(ddlContext) || valid_stack_ptr(ddlContext))) {
-    return DDL_Buffer_ResetContext_hook.invoke<bool>(
-        buff, len, ddlDef, ddlContext, writeCB, userData);
-  }
-
-  return false;
-}
-
 static std::atomic_bool Com_GametypeSettings_Initialised = false;
 inline bool Com_GametypeSettings_ShouldInit() {
   return !nonnull(*com::gts::s_gametypeSettingsDDL) ||
-         !Com_GametypeSettings_Initialised.load(std::memory_order_seq_cst);
+         !Com_GametypeSettings_Initialised.load(std::memory_order_acquire);
 }
 
 utils::hook::detour Com_GametypeSettings_GametypeSetting_f_hook;
@@ -54,8 +39,9 @@ utils::hook::detour Com_GametypeSettings_SetGametype_hook;
 void Com_GametypeSettings_SetGametype_GetOrInitGameTypeSettingsDDL(
     const char *gametype, bool loadDefaultSettings, bool isModified) {
 
-  if (!com::Com_SessionMode_IsMode(eModes::COUNT) && loadDefaultSettings &&
-      Com_GametypeSettings_ShouldInit()) {
+  if ((!com::Com_SessionMode_IsMode(eModes::COUNT) ||
+       com::Com_IsRunningUILevel()) &&
+      (!loadDefaultSettings || Com_GametypeSettings_ShouldInit())) {
     com::gts::Com_GametypeSettings_Init();
   }
 
@@ -69,7 +55,7 @@ void Com_GametypeSettings_Init_Once() {
   std::scoped_lock<std::recursive_mutex> lock(Com_GametypeSettings_Init_Lock);
   if (Com_GametypeSettings_ShouldInit()) {
     Com_GametypeSettings_Init_hook.invoke();
-    Com_GametypeSettings_Initialised.store(true, std::memory_order_seq_cst);
+    Com_GametypeSettings_Initialised.store(true, std::memory_order_release);
   }
 }
 
@@ -114,8 +100,6 @@ public:
   void post_unpack() override {
     DB_IsXAssetDefault_hook.create(DB_IsXAssetDefault.get(),
                                    DB_IsXAssetDefault_Safe);
-    DDL_Buffer_ResetContext_hook.create(
-        game::ddl::DDL_Buffer_ResetContext.get(), DDL_Buffer_ResetContext_Safe);
     Com_GametypeSettings_GametypeSetting_f_hook.create(
         game::com::gts::Com_GametypeSettings_GametypeSetting_f.get(),
         Com_GametypeSettings_GametypeSetting_f_GetOrInitGameTypeSettingsDDL);
