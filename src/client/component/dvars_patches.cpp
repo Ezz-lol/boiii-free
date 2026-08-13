@@ -52,11 +52,7 @@ inline void dvar_bool_force(EngineDependentDvarMut dvar) {
   Dvar_SetModifiedCallback(dvar, dvar_bool_modification_force<Value>);
 }
 
-inline void enable_cheat_dvars() {
-  dvar_bool_force<true>(*dvar_cheats);
-  dvar_bool_force<true>(*sv_cheats);
-}
-
+#ifndef NDEBUG
 inline void enable_debug_dvars() {
   if (utils::flags::has_flag("vehicle-debug")) {
     dvar_boolstring_force<"1">(*game::g_vehicleDrawPath);
@@ -64,6 +60,7 @@ inline void enable_debug_dvars() {
     dvar_int_force<1>(*game::g_vehicleDebug);
   }
 }
+#endif
 
 void patch_dvars() {
   com_pauseSupported = register_sessionmode_dvar_bool(
@@ -71,7 +68,6 @@ void patch_dvars() {
       "Whether pause is supported by the game mode");
 
 #ifndef NDEBUG
-  enable_cheat_dvars();
   enable_debug_dvars();
 #endif
 }
