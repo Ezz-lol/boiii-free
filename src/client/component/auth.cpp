@@ -408,9 +408,8 @@ void send_challenge(const game::net::netadr_t &addr,
 #ifndef NDEBUG
   const std::string hex_challenge_resp = utils::string::hexdump(
       challenge_response_buf, std::size(challenge_response_buf));
-  game::net::netadr_str_t addr_buf;
   game::trace("[Auth][Challenge] sending challenge to %s: \"%s\"",
-              addr.toString(addr_buf), hex_challenge_resp.c_str());
+              addr.toString(), hex_challenge_resp.c_str());
 #endif
 
   memcpy(&challenge_response_buf[std::size(CHALLENGE_RESPONSE_COMMAND_PREFIX)],
