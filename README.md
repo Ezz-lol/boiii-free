@@ -201,6 +201,7 @@ Launch BOIII with these arguments for extra features:
 | `-plugins`            | Load additional plugins from the `plugins/` directory.                                                                                                             |
 | `-trimlogs`           | Trim or rotate old log files on startup.                                                                                                                           |
 | `-keep-launcher`      | Keep the launcher process running after starting the game.                                                                                                         |
+| `-ultrawide`          | Enable ultrawide UI scaling. Note: this is unstable and can break UI alignment where implemented assuming <= 1920x1080 aspect ratio - use at your own risk.        |
 | `-noconsole`          | Suppress the external launcher console window.                                                                                                                     |
 | `-nobranding`         | Disable EZZ watermark and console prefix.                                                                                                                          |
 | `-nocinematics`       | Disable playing all cinematics.                                                                                                                                    |

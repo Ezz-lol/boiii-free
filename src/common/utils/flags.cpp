@@ -211,6 +211,12 @@ int32_t parse_flags(int argc, char *argv[]) {
       .help("Disable load and usage of ext.dll.")
       .implicit_value(true)
       .default_value(false);
+  program.add_argument("-u", "-uw", "-ultrawide", "--ultrawide")
+      .help("Enable ultrawide UI scaling. Note: this is unstable and can break "
+            "UI alignment where implemented assuming <= 1920x1080 aspect ratio "
+            "- use at your own risk.")
+      .implicit_value(true)
+      .default_value(false);
 #ifndef NDEBUG
   add_debug_profile_arguments();
 #endif

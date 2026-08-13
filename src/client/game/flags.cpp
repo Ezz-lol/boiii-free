@@ -71,4 +71,15 @@ std::filesystem::path tracing_logfile() {
   return tracing;
 }
 #endif
+
+static bool ultrawide_enabled;
+static std::once_flag ultrawide_flag;
+void set_ultrawide() {
+  ultrawide_enabled = utils::flags::has_flag("ultrawide");
+}
+
+bool ultrawide() {
+  std::call_once(ultrawide_flag, set_ultrawide);
+  return ultrawide_enabled;
+}
 } // namespace game
