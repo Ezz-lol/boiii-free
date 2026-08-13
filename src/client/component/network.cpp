@@ -402,6 +402,7 @@ struct component final : generic_component {
       utils::hook::call(0x14134D146_g,
                         utils::hook::assemble(handle_command_stub));
 
+      // Disable `echo` command in `CL_DispatchConnectionlessPacket`
       utils::hook::set<uint8_t>(0x14134D0FB_g, 0xEB);
     }
 

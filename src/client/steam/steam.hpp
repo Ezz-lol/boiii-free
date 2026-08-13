@@ -13,27 +13,27 @@
 #endif
 
 struct raw_steam_id final {
-  unsigned int account_id : 32;
-  unsigned int account_instance : 20;
-  unsigned int account_type : 4;
-  int universe : 8;
+  uint32_t account_id : 32;
+  uint32_t account_instance : 20;
+  uint32_t account_type : 4;
+  int32_t universe : 8;
 };
 
 using steam_id = union {
   raw_steam_id raw;
-  unsigned long long bits;
+  uint64_t bits;
 };
 
 #pragma pack(push, 1)
 struct raw_game_id final {
-  unsigned int app_id : 24;
-  unsigned int type : 8;
-  unsigned int mod_id : 32;
+  uint32_t app_id : 24;
+  uint32_t type : 8;
+  uint32_t mod_id : 32;
 };
 
 using game_id = union {
   raw_game_id raw;
-  unsigned long long bits;
+  uint64_t bits;
 };
 #pragma pack(pop)
 
@@ -64,34 +64,35 @@ public:
 
     virtual void run(void *pv_param) = 0;
     virtual void run(void *pv_param, bool failure, uint64_t handle) = 0;
-    virtual int get_callback_size_bytes() = 0;
+    virtual int32_t get_callback_size_bytes() = 0;
 
-    int get_i_callback() const { return callback_; }
-    void set_i_callback(const int i_callback) { callback_ = i_callback; }
+    int32_t get_i_callback() const { return callback_; }
+    void set_i_callback(const int32_t i_callback) { callback_ = i_callback; }
 
   protected:
     ~base() = default;
 
     unsigned char flags_;
-    int callback_;
+    int32_t callback_;
   };
 
   struct result final {
     void *data{};
-    int size{};
-    int type{};
+    int32_t size{};
+    int32_t type{};
     uint64_t call{};
   };
 
   static uint64_t register_call();
 
-  static void register_callback(base *handler, int callback);
+  static void register_callback(base *handler, int32_t callback);
   static void unregister_callback(base *handler);
 
   static void register_call_result(uint64_t call, base *result);
   static void unregister_call_result(uint64_t call, base *result);
 
-  static void return_call(void *data, int size, int type, uint64_t call);
+  static void return_call(void *data, int32_t size, int32_t type,
+                          uint64_t call);
   static void run_callbacks();
 
 private:
@@ -108,7 +109,7 @@ STEAM_EXPORT bool SteamAPI_Init();
 STEAM_EXPORT void SteamAPI_RegisterCallResult(callbacks::base *result,
                                               uint64_t call);
 STEAM_EXPORT void SteamAPI_RegisterCallback(callbacks::base *handler,
-                                            int callback);
+                                            int32_t callback);
 STEAM_EXPORT void SteamAPI_RunCallbacks();
 STEAM_EXPORT void SteamAPI_Shutdown();
 STEAM_EXPORT void SteamAPI_UnregisterCallResult(callbacks::base *result,
