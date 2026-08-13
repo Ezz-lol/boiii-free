@@ -82,4 +82,13 @@ bool ultrawide() {
   std::call_once(ultrawide_flag, set_ultrawide);
   return ultrawide_enabled;
 }
+
+static bool cheats_enabled;
+static std::once_flag cheats_flag;
+void set_cheats() { cheats_enabled = utils::flags::has_flag("cheats"); }
+
+bool cheats() {
+  std::call_once(cheats_flag, set_cheats);
+  return cheats_enabled;
+}
 } // namespace game

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "array.hpp"
+#include <string_view>
 
 template <const auto N> using str = array<char, N>;
 
@@ -31,6 +32,10 @@ template <int32_t N> struct ConstString {
 
   inline constexpr const char *c_str() const noexcept { return buf; }
   inline constexpr operator const char *() const noexcept { return c_str(); }
+  inline constexpr operator std::string_view() const noexcept {
+    return c_str();
+  }
+  inline constexpr auto size() const noexcept { return std::size(buf); }
 };
 
 // Deduction guide

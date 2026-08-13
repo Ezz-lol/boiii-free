@@ -217,6 +217,15 @@ int32_t parse_flags(int argc, char *argv[]) {
             "- use at your own risk.")
       .implicit_value(true)
       .default_value(false);
+  program
+      .add_argument("-c", "-cheats", "--cheats", "-enable-cheats",
+                    "--enable-cheats")
+      .help("Enable cheat dvar modification and cheat command execution. Note: "
+            "enabling when hosting a private match in client or in dedicated "
+            "server allows non-host players to execute cheat commands (e.g. "
+            "`god`, `noclip`) - use at your own risk.")
+      .implicit_value(true)
+      .default_value(false);
 #ifndef NDEBUG
   add_debug_profile_arguments();
 #endif

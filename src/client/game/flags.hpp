@@ -13,4 +13,5 @@ std::filesystem::path tracing_logfile();
 #endif
 
 bool ultrawide();
+bool cheats();
 } // namespace game

@@ -13,61 +13,57 @@ namespace dvars_patches {
 namespace {
 
 using namespace game;
-void dvar_disablebool_cb(EngineDependentDvarMut dvar) {
-  if (dvar.get_bool()) {
-    dvar.set(false);
+template <const bool Value>
+void dvar_bool_modification_force(EngineDependentDvarMut dvar) {
+  if (dvar.get_bool() != Value) {
+    dvar.set(Value);
   }
-}
-
-#ifndef NDEBUG
-void dvar_enablebool_cb(EngineDependentDvarMut dvar) {
-  if (!dvar.get_bool()) {
-    dvar.set(true);
-  }
-}
-
-inline void dvar_force_enable(EngineDependentDvarMut dvar) {
-  dvar.set(true);
-  Dvar_SetModifiedCallback(dvar, dvar_enablebool_cb);
 }
 
 template <const int32_t Value>
-inline void dvar_set_int_cb(EngineDependentDvarMut dvar) {
+inline void dvar_int_modification_force(EngineDependentDvarMut dvar) {
   if (dvar.get_int() != Value) {
     dvar.set(Value);
   }
 }
 
 template <const int32_t Value>
-inline void dvar_force_set_int(EngineDependentDvarMut dvar) {
+inline void dvar_int_force(EngineDependentDvarMut dvar) {
   dvar.set(Value);
-  Dvar_SetModifiedCallback(dvar, dvar_set_int_cb<Value>);
+  Dvar_SetModifiedCallback(dvar, dvar_int_modification_force<Value>);
 }
 
-void dvar_enableboolstring_cb(EngineDependentDvarMut dvar) {
-  if (dvar.get_string().value_or("0") != "1") {
-    dvar.set("1");
+template <const ConstString Value>
+void dvar_boolstring_modification_force(EngineDependentDvarMut dvar) {
+  if (dvar.get_string().value_or("0") != Value) {
+    dvar.set(Value);
   }
 }
 
-inline void dvar_force_enable_boolstring(EngineDependentDvarMut dvar) {
-  dvar.set(true);
-  Dvar_SetModifiedCallback(dvar, dvar_enableboolstring_cb);
+template <const ConstString Value>
+inline void dvar_boolstring_force(EngineDependentDvarMut dvar) {
+  dvar.set(Value);
+  Dvar_SetModifiedCallback(dvar, dvar_boolstring_modification_force<Value>);
+}
+
+template <const bool Value>
+inline void dvar_bool_force(EngineDependentDvarMut dvar) {
+  dvar.set(Value);
+  Dvar_SetModifiedCallback(dvar, dvar_bool_modification_force<Value>);
 }
 
 inline void enable_cheat_dvars() {
-  dvar_force_enable(*dvar_cheats);
-  dvar_force_enable(*sv_cheats);
+  dvar_bool_force<true>(*dvar_cheats);
+  dvar_bool_force<true>(*sv_cheats);
 }
 
 inline void enable_debug_dvars() {
   if (utils::flags::has_flag("vehicle-debug")) {
-    dvar_force_enable_boolstring(*game::g_vehicleDrawPath);
-    dvar_force_enable(*game::g_vehicleDrawSplines);
-    dvar_force_set_int<1>(*game::g_vehicleDebug);
+    dvar_boolstring_force<"1">(*game::g_vehicleDrawPath);
+    dvar_bool_force<true>(*game::g_vehicleDrawSplines);
+    dvar_int_force<1>(*game::g_vehicleDebug);
   }
 }
-#endif
 
 void patch_dvars() {
   com_pauseSupported = register_sessionmode_dvar_bool(
@@ -123,43 +119,43 @@ void dof_enabled_stub(utils::hook::assembler &a) {
   a.jmp(0x141116EC2_g); // CG_UpdateAdsDof
 }
 
-EngineDependentDvarMut Dvar_RegisterDisable_Bool(dvarStrHash_t hash,
-                                                 const char *dvarName,
-                                                 [[maybe_unused]] bool value,
-                                                 DvarFlags flags,
-                                                 const char *description) {
+template <const bool Value>
+EngineDependentDvarMut
+Dvar_RegisterBool_Force(dvarStrHash_t hash, const char *dvarName,
+                        [[maybe_unused]] bool value, DvarFlags flags,
+                        const char *description) {
+  flags.archive = false;
   const EngineDependentDvarMut dvar =
-      Dvar_RegisterBool(hash, dvarName, false, flags, description);
+      Dvar_RegisterBool(hash, dvarName, Value, flags, description);
 
-  Dvar_SetModifiedCallback(dvar, dvar_disablebool_cb);
+  Dvar_SetModifiedCallback(dvar, dvar_bool_force<Value>);
 
   return dvar;
 }
-#ifdef NDEBUG
-EngineDependentDvarMut Dvar_RegisterDisable_Bool_Inlined(
+template <const bool Value>
+EngineDependentDvarMut Dvar_RegisterBool_Inlined_Force(
     dvarStrHash_t hash, const char *dvarName, dvarType_t type, DvarFlags flags,
     DvarValue *value, DvarLimits *domain, const char *description,
     bool isSessionModeDvar) {
-  value->enabled() = false;
+  value->enabled() = Value;
+  flags.archive = false;
   const EngineDependentDvarMut dvar =
       Dvar_RegisterVariant(hash, dvarName, type, flags, value, domain,
                            description, isSessionModeDvar);
-  Dvar_SetModifiedCallback(dvar, dvar_disablebool_cb);
+  Dvar_SetModifiedCallback(dvar, dvar_bool_modification_force<Value>);
   return dvar;
 }
-#endif
 
-inline void disable_sv_cheats() {
-#ifdef NDEBUG
+template <const bool Value> inline void toggle_sv_cheats() {
   /*
      1. sv_cheats used to enable/disable cheat commands - both in console
      and in SV commands.
   */
   {
     // R_RegisterDvars
-    utils::hook::call(0x140379E80_g, Dvar_RegisterDisable_Bool);
+    utils::hook::call(0x140379E80_g, Dvar_RegisterBool_Force<Value>);
     // SV_Init
-    utils::hook::call(0x140534DF2_g, Dvar_RegisterDisable_Bool);
+    utils::hook::call(0x140534DF2_g, Dvar_RegisterBool_Force<Value>);
   }
   /*
      2. sv_cheats used to enable/disable cheat dvars - controls whether cheat
@@ -171,9 +167,8 @@ inline void disable_sv_cheats() {
   */
   {
     // Dvar_Init
-    utils::hook::call(0x1405767F5_g, Dvar_RegisterDisable_Bool_Inlined);
+    utils::hook::call(0x1405767F5_g, Dvar_RegisterBool_Inlined_Force<Value>);
   }
-#endif
 }
 
 inline constexpr const char *serialize(eModes mode) {
@@ -264,9 +259,13 @@ public:
   static void patch_client() {
 
     // Disable `live_uselpc`
-    utils::hook::call(0x141E0CEA1_g, Dvar_RegisterDisable_Bool);
+    utils::hook::call(0x141E0CEA1_g, Dvar_RegisterBool_Force<false>);
     // toggle ADS dof based on r_dof_enable
     utils::hook::jump(0x141116EBB_g, utils::hook::assemble(dof_enabled_stub));
+
+    if (game::cheats()) {
+      toggle_sv_cheats<true>();
+    }
   }
 
   static void patch_server() {
@@ -277,7 +276,11 @@ public:
     utils::hook::set<uint32_t>(0x140534FD8_g, game::DVAR_NONE);
 
     // Disable both (??) sv_cheats dvars immediately after registration
-    disable_sv_cheats();
+    if (game::cheats()) {
+      toggle_sv_cheats<true>();
+    } else {
+      toggle_sv_cheats<false>();
+    }
   }
 };
 } // namespace dvars_patches
