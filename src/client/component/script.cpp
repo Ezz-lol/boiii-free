@@ -1093,6 +1093,8 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
       Scr_PrevCodePos(inst, vm::gScrVmPub->instance[inst]
                                 .function_frame_start[final_stack_idx]
                                 .fs.pos);
+  std::string lastGoodCodePositionString =
+      Scr_PrevCodePos(inst, vm::gFs->instance[inst].pos);
 
 #ifndef NDEBUG
   volatile vm::function_frame_t *current_frame =
@@ -1111,7 +1113,7 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
       "gFs.localVarCount: %lu, "
 #endif
       "error: \"%s\", terminal: "
-      "%s\nCallstack:\n%s",
+      "%s\nCallstack:\n%s\nLast good position: %s",
       derelocate(callerAddr), serialize(inst),
 #ifndef NDEBUG
       current_frame->fs.pos, current_frame->fs.top, current_frame->fs.startTop,
@@ -1121,7 +1123,7 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
       vm::gFs->instance[inst].localVarCount,
 #endif
       error ? error : "NULL", terminal ? "true" : "false",
-      prevCodePositionsString.c_str());
+      prevCodePositionsString.c_str(), lastGoodCodePositionString.c_str());
 
   fprintf(stderr, "%s\n", error_log);
   fflush(stderr);
