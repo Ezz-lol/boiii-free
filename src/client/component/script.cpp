@@ -1,3 +1,4 @@
+#include "structs/concurrent.hpp"
 #include <std_include.hpp>
 
 #include <loader/component_loader.hpp>
@@ -19,8 +20,6 @@
 #include <utils/string.hpp>
 #include <utils/io.hpp>
 #include <utils/concurrency.hpp>
-
-#include <gtl/phmap.hpp>
 
 using namespace game;
 using namespace game::db::xasset;
@@ -47,15 +46,10 @@ utils::hook::detour gscr_get_bgb_tokens_remaining_hook;
 static utils::memory::allocator allocator;
 static std::mutex allocator_mutex;
 
-template <typename K, typename V>
-using parallel_hash_map = gtl::parallel_node_hash_map<
-    K, V, gtl::priv::hash_default_hash<K>, gtl::priv::hash_default_eq<K>,
-    std::allocator<std::pair<const K, V>>, 12, std::mutex>;
-static parallel_hash_map<std::string, RawFile *> loaded_scripts;
-static parallel_hash_map<uint32_t, std::vector<hash_info>> script_hash_names;
-static parallel_hash_map<std::string, std::string> script_sources;
-
-static parallel_hash_map<std::string, std::vector<uint8_t>> script_gdbs;
+static concurrent_hash_map<std::string, RawFile *> loaded_scripts;
+static concurrent_hash_map<uint32_t, std::vector<hash_info>> script_hash_names;
+static concurrent_hash_map<std::string, std::string> script_sources;
+static concurrent_hash_map<std::string, std::vector<uint8_t>> script_gdbs;
 
 std::string normalize_script_name(std::string script_name) {
   size_t start = script_name.find('<');
@@ -397,10 +391,13 @@ void apply_pending_detours() {
           continue;
         }
 
-        printf("[gsc] detour bind failed %s::%s(%d) -> %s::%s(%d)\n",
-               d.target_script.c_str(), d.target_func.c_str(), d.target_params,
-               d.replace_script.c_str(), d.replace_func.c_str(),
-               d.replace_params);
+        const char *err = utils::string::va(
+            "[gsc] detour bind failed %s::%s(%d) -> %s::%s(%d)",
+            d.target_script.c_str(), d.target_func.c_str(), d.target_params,
+            d.replace_script.c_str(), d.replace_func.c_str(), d.replace_params);
+        fprintf(stderr, "%s\n", err);
+        fflush(stderr);
+        game::trace("%s", err);
       }
     }
 
@@ -423,7 +420,10 @@ RawFile *get_loaded_script(const std::string &name) {
 
 void print_loading_script(const std::string &name) {
   const char *type = utils::string::ends_with(name, ".csc") ? "CSC" : "GSC";
-  printf("Loading %s script '%s'\n", type, name.data());
+  const char *log =
+      utils::string::va("Loading %s script '%s'", type, name.data());
+  printf("%s\n", log);
+  game::trace("%s", log);
 }
 
 void load_script(const std::string &name, const std::string &data,
@@ -434,8 +434,11 @@ void load_script(const std::string &name, const std::string &data,
 
   std::string base_name = name;
   if (!is_gsc && !is_csc) {
-    fprintf(stderr, "Script '%s' failed to load due to invalid suffix.\n",
-            name.data());
+    const char *err = utils::string::va(
+        "Script '%s' failed to load due to invalid suffix.", name.data());
+    fprintf(stderr, "%s\n", err);
+    fflush(stderr);
+    game::trace("%s", err);
     return;
   }
 
@@ -446,8 +449,11 @@ void load_script(const std::string &name, const std::string &data,
 
   base_name = name.substr(0, name.size() - 4);
   if (base_name.empty()) {
-    fprintf(stderr, "Script '%s' failed to load due to invalid name.\n",
-            name.data());
+    const char *err = utils::string::va(
+        "Script '%s' failed to load due to invalid name.", name.data());
+    fprintf(stderr, "%s\n", err);
+    fflush(stderr);
+    game::trace("%s", err);
     return;
   }
 
@@ -466,8 +472,11 @@ void load_script(const std::string &name, const std::string &data,
   while (loaded_scripts.try_emplace_l(name,
                                       [&](auto &v) { v.second = raw_file; })) {
   }
-  fprintf(stdout, "Loaded script '%s' (size %llu bytes)\n", name.data(),
-          raw_file->len);
+  const char *log = utils::string::va("Loaded script '%s' (size %llu bytes)",
+                                      name.data(), raw_file->len);
+  fprintf(stdout, "%s\n", log);
+  fflush(stdout);
+  game::trace("%s", log);
 
   if (load) {
     const scriptInstance_t inst =
@@ -513,7 +522,11 @@ void load_script_file(std::string &data,
     // Strip devblocks before compilation
     const std::string cleaned_source = strip_devblocks(data);
 
-    printf("Compiling %s script '%s'\n", script_type, name.c_str());
+    const char *log = utils::string::va("Compiling %s script '%s'", script_type,
+                                        name.c_str());
+    fprintf(stdout, "%s\n", log);
+    fflush(stdout);
+    game::trace("%s", log);
     gsc_compiler::compile_result result =
         gsc_compiler::compile(cleaned_source, name);
     if (result.success) {
@@ -612,23 +625,49 @@ void load_script_file(std::string &data,
         return line;
       };
 
-      printf("^1*********************%s COMPILE ERROR*********************\n",
-             script_type);
+      const char *err_header = utils::string::va(
+          "^1*********************%s COMPILE ERROR*********************",
+          script_type);
+      fprintf(stderr, "%s\n", err_header);
+      fflush(stderr);
+      game::trace("%s", err_header);
       for (const auto &err : result.errors) {
-        printf("^1  File:    ^5%s\n", err.file.data());
+        const char *file_log =
+            utils::string::va("^1  File:    ^5%s", err.file.data());
+        fprintf(stderr, "%s\n", file_log);
+        fflush(stderr);
+        game::trace("%s", file_log);
         if (err.line > 0) {
-          printf("^1  Line:    ^2%d^7, ^1Column: ^2%d\n", err.line, err.column);
+          const char *line_column_log = utils::string::va(
+              "^1  Line:    ^2%d^7, ^1Column: ^2%d", err.line, err.column);
+          fprintf(stderr, "%s\n", line_column_log);
+          fflush(stderr);
+          game::trace("%s", line_column_log);
           std::string src_line = get_source_line(data, err.line);
           if (!src_line.empty()) {
-            printf("^1  Source:  ^7%s\n", src_line.data());
+            const char *src_log =
+                utils::string::va("^1  Source:  ^7%s", src_line.data());
+            fprintf(stderr, "%s\n", src_log);
+            fflush(stderr);
+            game::trace("%s", src_log);
           }
         }
-        printf("^1  Error:   ^1%s\n", err.message.data());
-        printf("^1---------------------------------------------------------"
-               "---\n");
+        const char *error_log =
+            utils::string::va("^1  Error:   ^1%s", err.message.data());
+        fprintf(stderr, "%s\n", error_log);
+        fflush(stderr);
+        game::trace("%s", error_log);
+        const char *footer_p1_log = utils::string::va(
+            "^1------------------------------------------------------------");
+        fprintf(stderr, "%s\n", footer_p1_log);
+        fflush(stderr);
+        game::trace("%s", footer_p1_log);
       }
-      printf("^1***********************************************************"
-             "*\n");
+      const char *footer_p2_log = utils::string::va(
+          "^1************************************************************");
+      fprintf(stderr, "%s\n", footer_p2_log);
+      fflush(stderr);
+      game::trace("%s", footer_p2_log);
     }
   }
 }
@@ -680,6 +719,39 @@ std::optional<std::filesystem::path> get_map_specific_folder() {
   return mapname;
 }
 
+constexpr const std::string_view gametype_prefixes[] = {"zm", "mp", "cp"};
+bool is_shared_tree_dir(const std::filesystem::path &dir) {
+  if (std::filesystem::is_directory(dir)) {
+    const std::filesystem::path dirname = dir.filename();
+    const std::string dirname_str = dirname.generic_string();
+    for (const std::string_view prefix : gametype_prefixes) {
+      if (prefix == dirname_str ||
+          (dirname_str.size() > prefix.size() &&
+           utils::string::starts_with(prefix, dirname_str) &&
+           dirname_str[2] == '_') /* map override script tree */) {
+        return false;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
+std::vector<std::filesystem::path>
+shared_tree_directories(const std::filesystem::path &tree) {
+  std::vector<std::filesystem::path> root_entries =
+      utils::io::list_files(tree, false, true);
+  // Iterate from end to start so as not to invalidate subsequently iterated
+  // indices upon removing entry
+  for (size_t i = root_entries.size(); i > 0; --i) {
+    const size_t idx = i - 1;
+    if (!is_shared_tree_dir(root_entries[idx])) {
+      root_entries.erase(root_entries.begin() + idx);
+    }
+  }
+  return root_entries;
+}
+
 void load_tree(std::filesystem::path tree, bool execImmediate = false) {
   const utils::nt::library host{};
 
@@ -693,8 +765,8 @@ void load_tree(std::filesystem::path tree, bool execImmediate = false) {
     load_scripts_directory((boiii_folder / folder).string(), load, recurse);
   };
 
-  std::vector<std::filesystem::path> applicable_tree_dirs = {
-      tree / "shared", tree / "core", tree / "codescripts"};
+  std::vector<std::filesystem::path> applicable_tree_dirs =
+      shared_tree_directories(tree);
   const std::optional<std::filesystem::path> game_type =
       get_game_type_specific_folder();
   if (game_type.has_value()) {
@@ -715,7 +787,7 @@ void load_tree(std::filesystem::path tree, bool execImmediate = false) {
   std::for_each(
       std::execution::par, applicable_tree_dirs.begin(),
       applicable_tree_dirs.end(),
-      [&](const std::filesystem::path &path) { load(path, false, true); });
+      [load](const std::filesystem::path &path) { load(path, false, true); });
   load(tree, false, false);
 
   if (execImmediate) {
@@ -723,7 +795,7 @@ void load_tree(std::filesystem::path tree, bool execImmediate = false) {
     std::for_each(
         std::execution::seq, applicable_tree_dirs.begin(),
         applicable_tree_dirs.end(),
-        [&](const std::filesystem::path &path) { load(path, true, true); });
+        [load](const std::filesystem::path &path) { load(path, true, true); });
     load(tree, true, false);
   }
 }
@@ -854,7 +926,10 @@ void load_global_hash_table() {
           global_hash_table[hash] = line.substr(space + 1);
         count++;
       }
-      printf("Loaded %zu hash names from '%s'\n", count, path.string().c_str());
+      const char *log = utils::string::va("Loaded %zu hash names from '%s'",
+                                          count, path.string().c_str());
+      printf("%s\n", log);
+      game::trace("%s", log);
       return true;
     };
 
@@ -1020,7 +1095,7 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
                                 .fs.pos);
 
 #ifndef NDEBUG
-  const vm::function_frame_t *current_frame =
+  volatile vm::function_frame_t *current_frame =
       &vm::gScrVmPub->instance[inst].function_frame_start[0];
 #endif
   const char *error_log = utils::string::va(

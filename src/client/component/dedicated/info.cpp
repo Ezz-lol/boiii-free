@@ -39,10 +39,8 @@ void set_server_info_in_console_title() {
 class component final : public server_component {
 public:
   void post_unpack() override {
-    if (!utils::flags::has_flag("headless")) {
-      scheduler::loop(set_server_info_in_console_title,
-                      scheduler::pipeline::main, 1s);
-    }
+    scheduler::loop(set_server_info_in_console_title, scheduler::pipeline::main,
+                    1s);
   }
 };
 } // namespace info

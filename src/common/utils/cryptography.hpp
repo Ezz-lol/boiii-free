@@ -1,8 +1,10 @@
 #pragma once
 
+#include "structs/array.hpp"
 #include <fstream>
 #include <string>
 #include <tomcrypt.h>
+#include <vector>
 
 namespace utils::cryptography {
 namespace ecc {
@@ -46,8 +48,291 @@ private:
 key generate_key(int bits);
 key generate_key(int bits, const std::string &entropy);
 std::string sign_message(const key &key, const std::string &message);
-bool verify_message(const key &key, const std::string &message,
-                    const std::string &signature);
+bool verify_message(const key &key, const uint8_t *message, size_t message_len,
+                    const uint8_t *signature, size_t signature_size);
+inline bool verify_message(const key &key, const std::string_view &message,
+                           const std::string_view &signature) {
+  return verify_message(
+      key, reinterpret_cast<const uint8_t *>(message.data()), message.size(),
+      reinterpret_cast<const uint8_t *>(signature.data()), signature.size());
+}
+template <const size_t N>
+inline bool verify_message(const key &key, const std::string_view &message,
+                           const array<uint8_t, N> &signature) {
+  return verify_message(key, message, signature, N);
+}
+
+template <const size_t N>
+inline bool verify_message(const key &key, const std::string_view &message,
+                           const std::array<uint8_t, N> &signature) {
+  return verify_message(key, message, signature.data(), N);
+}
+
+inline bool verify_message(const key &key, const std::string_view &message,
+                           const std::vector<uint8_t> &signature) {
+  return verify_message(key, reinterpret_cast<const uint8_t *>(message.data()),
+                        message.size(), signature.data(), signature.size());
+}
+
+inline bool verify_message(const key &key, const std::string_view &message,
+                           const char *signature, size_t signature_size) {
+  return verify_message(
+      key, reinterpret_cast<const uint8_t *>(message.data()), message.size(),
+      reinterpret_cast<const uint8_t *>(signature), signature_size);
+}
+
+template <const size_t N>
+inline bool verify_message(const key &key, const std::string_view &message,
+                           const array<char, N> &signature) {
+  return verify_message(key, message,
+                        reinterpret_cast<const uint8_t *>(signature), N);
+}
+
+template <const size_t N>
+inline bool verify_message(const key &key, const std::string_view &message,
+                           const std::array<char, N> &signature) {
+  return verify_message(key, message,
+                        reinterpret_cast<const uint8_t *>(signature.data()), N);
+}
+
+inline bool verify_message(const key &key, const std::string_view &message,
+                           const std::vector<char> &signature) {
+  return verify_message(
+      key, reinterpret_cast<const uint8_t *>(message.data()), message.size(),
+      reinterpret_cast<const uint8_t *>(signature.data()), signature.size());
+}
+
+inline bool verify_message(const key &key, const uint8_t *message,
+                           size_t message_size,
+                           const std::string_view &signature) {
+  return verify_message(key, message, message_size,
+                        reinterpret_cast<const uint8_t *>(signature.data()),
+                        signature.size());
+}
+template <const size_t N>
+inline bool verify_message(const key &key, const uint8_t *message,
+                           size_t message_size,
+                           const array<uint8_t, N> &signature) {
+  return verify_message(key, message, message_size, signature, N);
+}
+
+template <const size_t N>
+inline bool verify_message(const key &key, const uint8_t *message,
+                           size_t message_size,
+                           const std::array<uint8_t, N> &signature) {
+  return verify_message(key, message, message_size, signature.data(), N);
+}
+
+inline bool verify_message(const key &key, const uint8_t *message,
+                           size_t message_size,
+                           const std::vector<uint8_t> &signature) {
+  return verify_message(key, message, message_size, signature.data(),
+                        signature.size());
+}
+
+inline bool verify_message(const key &key, const uint8_t *message,
+                           size_t message_size, const char *signature,
+                           size_t signature_size) {
+  return verify_message(key, message, message_size,
+                        reinterpret_cast<const uint8_t *>(signature),
+                        signature_size);
+}
+
+template <const size_t N>
+inline bool verify_message(const key &key, const uint8_t *message,
+                           size_t message_size,
+                           const array<char, N> &signature) {
+  return verify_message(key, message, message_size,
+                        reinterpret_cast<const uint8_t *>(signature), N);
+}
+
+template <const size_t N>
+inline bool verify_message(const key &key, const uint8_t *message,
+                           size_t message_size,
+                           const std::array<char, N> &signature) {
+  return verify_message(key, message, message_size,
+                        reinterpret_cast<const uint8_t *>(signature.data()), N);
+}
+
+inline bool verify_message(const key &key, const uint8_t *message,
+                           size_t message_size,
+                           const std::vector<char> &signature) {
+  return verify_message(key, message, message_size,
+                        reinterpret_cast<const uint8_t *>(signature.data()),
+                        signature.size());
+}
+
+template <const size_t C>
+inline bool verify_message(const key &key, const array<uint8_t, C> &message,
+                           const std::string_view &signature) {
+  return verify_message(key, message, C,
+                        reinterpret_cast<const uint8_t *>(signature.data()),
+                        signature.size());
+}
+template <const size_t C, const size_t N>
+inline bool verify_message(const key &key, const array<uint8_t, C> &message,
+                           const array<uint8_t, N> &signature) {
+  return verify_message(key, message, C, signature, N);
+}
+
+template <const size_t C, const size_t N>
+inline bool verify_message(const key &key, const array<uint8_t, C> &message,
+                           const std::array<uint8_t, N> &signature) {
+  return verify_message(key, message, C, signature.data(), N);
+}
+
+template <const size_t C>
+inline bool verify_message(const key &key, const array<uint8_t, C> &message,
+                           const std::vector<uint8_t> &signature) {
+  return verify_message(key, message, C, signature.data(), signature.size());
+}
+
+template <const size_t C>
+inline bool verify_message(const key &key, const array<uint8_t, C> &message,
+                           const char *signature, size_t signature_size) {
+  return verify_message(key, message, C,
+                        reinterpret_cast<const uint8_t *>(signature),
+                        signature_size);
+}
+
+template <const size_t C, const size_t N>
+inline bool verify_message(const key &key, const array<uint8_t, C> &message,
+                           const array<char, N> &signature) {
+  return verify_message(key, message, C,
+                        reinterpret_cast<const uint8_t *>(signature), N);
+}
+
+template <const size_t C, const size_t N>
+inline bool verify_message(const key &key, const array<uint8_t, C> &message,
+                           const std::array<char, N> &signature) {
+  return verify_message(key, message, C,
+                        reinterpret_cast<const uint8_t *>(signature.data()), N);
+}
+
+template <const size_t C>
+inline bool verify_message(const key &key, const array<uint8_t, C> &message,
+                           const std::vector<char> &signature) {
+  return verify_message(key, message, C,
+                        reinterpret_cast<const uint8_t *>(signature.data()),
+                        signature.size());
+}
+
+template <const size_t C>
+inline bool verify_message(const key &key,
+                           const std::array<uint8_t, C> &message,
+                           const std::string_view &signature) {
+  return verify_message(key, message, C,
+                        reinterpret_cast<const uint8_t *>(signature.data()),
+                        signature.size());
+}
+template <const size_t C, const size_t N>
+inline bool verify_message(const key &key,
+                           const std::array<uint8_t, C> &message,
+                           const array<uint8_t, N> &signature) {
+  return verify_message(key, message, C, signature, N);
+}
+
+template <const size_t C, const size_t N>
+inline bool verify_message(const key &key,
+                           const std::array<uint8_t, C> &message,
+                           const std::array<uint8_t, N> &signature) {
+  return verify_message(key, message, C, signature.data(), N);
+}
+
+template <const size_t C>
+inline bool verify_message(const key &key,
+                           const std::array<uint8_t, C> &message,
+                           const std::vector<uint8_t> &signature) {
+  return verify_message(key, message, C, signature.data(), signature.size());
+}
+
+template <const size_t C>
+inline bool verify_message(const key &key,
+                           const std::array<uint8_t, C> &message,
+                           const char *signature, size_t signature_size) {
+  return verify_message(key, message, C,
+                        reinterpret_cast<const uint8_t *>(signature),
+                        signature_size);
+}
+
+template <const size_t C, const size_t N>
+inline bool verify_message(const key &key,
+                           const std::array<uint8_t, C> &message,
+                           const array<char, N> &signature) {
+  return verify_message(key, message, C,
+                        reinterpret_cast<const uint8_t *>(signature), N);
+}
+
+template <const size_t C, const size_t N>
+inline bool verify_message(const key &key,
+                           const std::array<uint8_t, C> &message,
+                           const std::array<char, N> &signature) {
+  return verify_message(key, message, C,
+                        reinterpret_cast<const uint8_t *>(signature.data()), N);
+}
+
+template <const size_t C>
+inline bool verify_message(const key &key,
+                           const std::array<uint8_t, C> &message,
+                           const std::vector<char> &signature) {
+  return verify_message(key, message, C,
+                        reinterpret_cast<const uint8_t *>(signature.data()),
+                        signature.size());
+}
+
+template <const size_t C>
+inline bool verify_message(const key &key, const std::vector<uint8_t> &message,
+                           const std::string_view &signature) {
+  return verify_message(key, message.data(), message.size(),
+                        reinterpret_cast<const uint8_t *>(signature.data()),
+                        signature.size());
+}
+template <const size_t N>
+inline bool verify_message(const key &key, const std::vector<uint8_t> &message,
+                           const array<uint8_t, N> &signature) {
+  return verify_message(key, message.data(), message.size(), signature, N);
+}
+
+template <const size_t N>
+inline bool verify_message(const key &key, const std::vector<uint8_t> &message,
+                           const std::array<uint8_t, N> &signature) {
+  return verify_message(key, message.data(), message.size(), signature.data(),
+                        N);
+}
+
+inline bool verify_message(const key &key, const std::vector<uint8_t> &message,
+                           const std::vector<uint8_t> &signature) {
+  return verify_message(key, message.data(), message.size(), signature.data(),
+                        signature.size());
+}
+
+inline bool verify_message(const key &key, const std::vector<uint8_t> &message,
+                           const char *signature, size_t signature_size) {
+  return verify_message(key, message.data(), message.size(),
+                        reinterpret_cast<const uint8_t *>(signature),
+                        signature_size);
+}
+
+template <const size_t N>
+inline bool verify_message(const key &key, const std::vector<uint8_t> &message,
+                           const array<char, N> &signature) {
+  return verify_message(key, message.data(), message.size(),
+                        reinterpret_cast<const uint8_t *>(signature), N);
+}
+
+template <const size_t N>
+inline bool verify_message(const key &key, const std::vector<uint8_t> &message,
+                           const std::array<char, N> &signature) {
+  return verify_message(key, message.data(), message.size(),
+                        reinterpret_cast<const uint8_t *>(signature.data()), N);
+}
+
+inline bool verify_message(const key &key, const std::vector<uint8_t> &message,
+                           const std::vector<char> &signature) {
+  return verify_message(key, message.data(), message.size(),
+                        reinterpret_cast<const uint8_t *>(signature.data()),
+                        signature.size());
+}
 
 bool encrypt(const key &key, std::string &data);
 bool decrypt(const key &key, std::string &data);

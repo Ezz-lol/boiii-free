@@ -371,6 +371,7 @@ void print_error(const std::string &error) {
 
 void print_loading_script(const std::string &name) {
   printf("Loading LUI script '%s'\n", name.data());
+  game::trace("Loading LUI script '%s'", name.data());
 }
 
 std::string get_current_script(lua_State *state) {

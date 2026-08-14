@@ -23,7 +23,7 @@ bool LiveUser_UserGetName_ConsoleSuffix(ControllerIndex_t controllerIndex,
          // PATCH:
          24 /* passed buffer always has length 24 */);
   uint32_t usernameBufLen =
-      (std::min)(static_cast<uint32_t>(bufsize), MAX_USERNAME_LEN);
+      std::min<uint32_t>(static_cast<uint32_t>(bufsize), MAX_USERNAME_LEN);
 
   steam::LiveSteam_GetUserName(username, usernameBufLen, true);
   // steam::LiveSteam_GetUserName(username, usernameBufLen, true);
@@ -38,6 +38,9 @@ bool LiveUser_UserGetName_ConsoleSuffix(ControllerIndex_t controllerIndex,
         // PATCH:
         controllerIndex + 1);
     I_strcat(username, bufsize, guestSuffix);
+  }
+  if (game::alias()) {
+    I_strcat(username, bufsize, "(A)");
   }
   return true;
 }

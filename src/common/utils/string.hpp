@@ -108,4 +108,9 @@ std::string join(std::vector<std::string> strings,
 template <size_t Size> void copy(char (&dest)[Size], const char *src) {
   copy(dest, Size, src);
 }
+
+std::string hexdump(uintptr_t ptr, size_t size);
+template <typename T> inline std::string hexdump(const T *ptr, size_t size) {
+  return hexdump(reinterpret_cast<uintptr_t>(ptr), size);
+}
 } // namespace utils::string

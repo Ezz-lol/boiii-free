@@ -710,15 +710,15 @@ void remember_browser_route(const game::XUID steam_id,
 }
 
 game::XUID find_browser_route(const std::string &address) {
-  const auto parsed = network::address_from_string(address);
+  const game::net::netadr_t parsed = network::address_from_string(address);
   if (!network::is_ip_address(parsed))
     return 0;
-  const auto normalized = network::address_to_string(parsed);
+  const std::string normalized = network::address_to_string(parsed);
   std::lock_guard lock(browser_routes_mutex);
-  const auto found = browser_routes.find(normalized);
-  if (found == browser_routes.end())
-    return 0;
-  return found->second;
+  if (browser_routes.contains(normalized)) {
+    return browser_routes[normalized];
+  }
+  return 0;
 }
 
 struct component final : client_component {

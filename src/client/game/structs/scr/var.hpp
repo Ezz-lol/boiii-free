@@ -373,9 +373,9 @@ ScrVarValue_t::valid_index(scriptInstance_t inst,
 
 #pragma pack(push, 1)
 struct scrVarGlob_t {
-  ScrVarIndex_t *scriptNameSearchHashList;
+  volatile ScrVarIndex_t *scriptNameSearchHashList;
   uint8_t _padding08[0x78];
-  ScrVar_t *scriptVariables;
+  volatile ScrVar_t *scriptVariables;
   uint8_t _padding88[0x78];
 };
 ASSERT_SIZE(scrVarGlob_t, 0x100);

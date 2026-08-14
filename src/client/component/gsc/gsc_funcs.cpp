@@ -210,7 +210,7 @@ using namespace game::bg::cache;
 using namespace game::ui::he;
 using namespace game::scr::he;
 constexpr char hudelem_cfgstr_pool_entry_name_prefix[] =
-    "__hudelem_cfgstr_pool_entry_";
+    "__HUDELEM_CFGSTR_POOL_ENTRY_";
 constexpr uint8_t hudelem_cfgstr_pool_entry_name_number_max_suffix_len =
     sizeof(uint16_t) * 2 /* characters per byte */;
 constexpr uint8_t hudelem_cfgstr_pool_entry_name_len =

@@ -481,35 +481,38 @@ void handle_info_response(const game::net::netadr_t &target,
 void cleanup_queried_servers() {
   std::vector<server_query> removed_queries{};
 
-  get_server_queries().access([&](std::vector<server_query> &server_queries) {
-    size_t sent_queries = 0;
+  if (game::com::Com_SessionMode_IsMode(game::eModes::COUNT) &&
+      game::com::Com_IsRunningUILevel()) {
+    get_server_queries().access([&](std::vector<server_query> &server_queries) {
+      size_t sent_queries = 0;
 
-    const std::chrono::high_resolution_clock::time_point now =
-        std::chrono::high_resolution_clock::now();
-    for (std::vector<server_query>::iterator i = server_queries.begin();
-         i != server_queries.end();) {
-      if (!i->sent) {
-        if (++sent_queries < 40) {
-          send_server_query(*i);
+      const std::chrono::high_resolution_clock::time_point now =
+          std::chrono::high_resolution_clock::now();
+      for (std::vector<server_query>::iterator i = server_queries.begin();
+           i != server_queries.end();) {
+        if (!i->sent) {
+          if (++sent_queries < 40) {
+            send_server_query(*i);
+          }
+
+          ++i;
+          continue;
         }
 
-        ++i;
-        continue;
-      }
+        if ((now - i->query_time) < 1s) {
+          ++i;
+          continue;
+        }
 
-      if ((now - i->query_time) < 1s) {
-        ++i;
-        continue;
+        removed_queries.emplace_back(std::move(*i));
+        i = server_queries.erase(i);
       }
+    });
 
-      removed_queries.emplace_back(std::move(*i));
-      i = server_queries.erase(i);
+    const utils::info_string empty{};
+    for (const server_query &query : removed_queries) {
+      query.callback(false, query.host, empty, 0);
     }
-  });
-
-  const utils::info_string empty{};
-  for (const server_query &query : removed_queries) {
-    query.callback(false, query.host, empty, 0);
   }
 }
 } // namespace

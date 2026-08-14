@@ -94,79 +94,74 @@ struct component final : generic_component {
     network::on("getInfo", [](const game::net::netadr_t &target,
                               const network::data_view &data,
                               game::LocalClientNum_t clientNum) {
-      if (is_host()) {
+      utils::info_string info{};
+      info.set("challenge", std::string{data.begin(), data.end()});
+      info.set("gamename", "T7");
+      info.set("hostname", game::hostname().value_or(""));
+      info.set("gametype", game::gametype().value_or(""));
+      /*
+         Unsure why this is commented out, but important notes in case of
+        future restoration:
+          - The `sv_motd` dvar does not exist in the engine.
+          - The engine _does_ have:
+              - g_motd - most closely matching the usage of `sv_motd`.
+                Used to set SV config string index 11 on `G_InitGame`.
+                Description is "The message of the day".
+                Never seems to be set in engine.
+              - `cl_motdstring` - unused after initial registration
+              - `motd_enabled` - used for the `LiveStats` MOTD
+              - `live_motdEnabled` - used to check if LiveStorage should fetch
+                latest pub online data MOTD.
 
-        utils::info_string info{};
-        info.set("challenge", std::string{data.begin(), data.end()});
-        info.set("gamename", "T7");
-        info.set("hostname", game::hostname().value_or(""));
-        info.set("gametype", game::gametype().value_or(""));
-        /*
-           Unsure why this is commented out, but important notes in case of
-          future restoration:
-            - The `sv_motd` dvar does not exist in the engine.
-            - The engine _does_ have:
-                - g_motd - most closely matching the usage of `sv_motd`.
-                  Used to set SV config string index 11 on `G_InitGame`.
-                  Description is "The message of the day".
-                  Never seems to be set in engine.
-                - `cl_motdstring` - unused after initial registration
-                - `motd_enabled` - used for the `LiveStats` MOTD
-                - `live_motdEnabled` - used to check if LiveStorage should fetch
-                  latest pub online data MOTD.
+                This may be the same MOTD used later,
+                conditionally upon the potentially duplicitous
+                `motd_enabled` dvar.
 
-                  This may be the same MOTD used later,
-                  conditionally upon the potentially duplicitous
-                  `motd_enabled` dvar.
+                Unsure currently.
+              - `motddelay` - used for the `LiveStats` MOTD
 
-                  Unsure currently.
-                - `motddelay` - used for the `LiveStats` MOTD
+        TL;DR: this should either be set with the value of `g_motd` or
+        we should register a new `sv_motd` dvar.
+      */
+      // info.set("sv_motd", get_dvar_string("sv_motd"));
+      info.set("description",
+               game::is_server()
+                   ? game::get_live_steam_server_description().value_or("")
+                   : "");
+      info.set("xuid", utils::string::va("%llX", auth::get_guid()));
+      info.set("mapname", game::get_mapname().value_or(""));
+      info.set("isPrivate", game::password().value_or("").empty() ? "0" : "1");
+      info.set("clients", std::to_string(get_client_count()));
+      info.set("bots", std::to_string(get_bot_count()));
+      info.set("sv_maxclients", std::to_string(game::get_max_client_count()));
+      info.set("protocol", std::to_string(PROTOCOL));
+      info.set("sub_protocol", std::to_string(SUB_PROTOCOL));
+      info.set("playmode", std::to_string(static_cast<int32_t>(
+                               game::com::Com_SessionMode_GetMode())));
+      info.set("gamemode", std::to_string(static_cast<int32_t>(
+                               game::com::Com_SessionMode_GetGameMode())));
+      info.set("sv_running", game::server_running() ? "1" : "0");
+      info.set("dedicated", game::is_server() ? "1" : "0");
+      info.set("hc",
+               std::to_string(game::com::gts::Com_GametypeSettings_GetUInt(
+                   "hardcoremode", false)));
+      info.set("modName", workshop::get_mod_resized_name());
+      info.set("modId", workshop::get_mod_publisher_id());
+      info.set("rounds_played",
+               std::to_string(*game::level::level_rounds_played));
+      info.set("shortversion", SHORTVERSION);
 
-          TL;DR: this should either be set with the value of `g_motd` or
-          we should register a new `sv_motd` dvar.
-        */
-        // info.set("sv_motd", get_dvar_string("sv_motd"));
-        info.set("description",
-                 game::is_server()
-                     ? game::get_live_steam_server_description().value_or("")
-                     : "");
-        const auto friend_code = auth::get_guid();
-        info.set("xuid", utils::string::va("%llX", friend_code));
-        info.set("mapname", game::get_mapname().value_or(""));
-        info.set("isPrivate",
-                 game::password().value_or("").empty() ? "0" : "1");
-        info.set("clients", std::to_string(get_client_count()));
-        info.set("bots", std::to_string(get_bot_count()));
-        info.set("sv_maxclients", std::to_string(game::get_max_client_count()));
-        info.set("protocol", std::to_string(PROTOCOL));
-        info.set("sub_protocol", std::to_string(SUB_PROTOCOL));
-        info.set("playmode", std::to_string(static_cast<int32_t>(
-                                 game::com::Com_SessionMode_GetMode())));
-        info.set("gamemode", std::to_string(static_cast<int32_t>(
-                                 game::com::Com_SessionMode_GetGameMode())));
-        info.set("sv_running", std::to_string(game::server_running()));
-        info.set("dedicated", game::is_server() ? "1" : "0");
-        info.set("hc",
-                 std::to_string(game::com::gts::Com_GametypeSettings_GetUInt(
-                     "hardcoremode", false)));
-        info.set("modName", workshop::get_mod_resized_name());
-        info.set("modId", workshop::get_mod_publisher_id());
-        info.set("rounds_played",
-                 std::to_string(*game::level::level_rounds_played));
-        info.set("shortversion", SHORTVERSION);
+      info.set("sv_wwwBaseURL", game::fastdl_uri().value_or(""));
+      info.set("sv_wwwBaseUrl", game::fastdl_uri().value_or(""));
+      info.set("workshop_id", game::get_workshop_id().value_or(""));
+      info.set("usermapId", game::get_workshop_id().value_or(""));
 
-        info.set("sv_wwwBaseURL", game::fastdl_uri().value_or(""));
-        info.set("sv_wwwBaseUrl", game::fastdl_uri().value_or(""));
-        info.set("workshop_id", game::get_workshop_id().value_or(""));
-        info.set("usermapId", game::get_workshop_id().value_or(""));
-
-        if (network_password::is_password_set()) {
-          info.set("net_password_hash",
-                   network_password::get_password_hash_string());
-        }
-
-        network::send(target, "infoResponse", info.build(), '\n');
+      if (network_password::is_password_set()) {
+        info.set("net_password_hash",
+                 network_password::get_password_hash_string());
       }
+
+      network::send(target, "infoResponse", info.build(), '\n');
     });
   }
 };

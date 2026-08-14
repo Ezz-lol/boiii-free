@@ -61,16 +61,19 @@ std::string get_machine_guid() {
 }
 
 std::string get_key_entropy(game::ControllerIndex_t controllerIndex) {
-  std::string entropy =
-      game::alias() ? "ezz-boiii-auth-alias-v2" : "ezz-boiii-auth-v2";
+  std::string entropy = utils::smbios::get_uuid();
+
   entropy.append(utils::smbios::get_uuid());
   entropy.append(get_machine_guid());
   entropy.append(get_hw_profile_guid());
   entropy.append(get_hdd_serial());
 
-  if (entropy == "ezz-boiii-auth-v2" || entropy == "ezz-boiii-auth-alias-v2") {
+  if (entropy.empty()) {
     entropy.resize(32);
     utils::cryptography::random::get_data(entropy.data(), entropy.size());
+  } else {
+    entropy.append(game::alias() ? "ezz-boiii-auth-alias-v2"
+                                 : "ezz-boiii-auth-v2");
   }
 
   if (controllerIndex != game::ControllerIndex_t::CONTROLLER_INDEX_0) {
@@ -110,10 +113,10 @@ bool load_key(const std::filesystem::path &key_path,
 
 bool write_key(const std::filesystem::path &key_path,
                const utils::cryptography::ecc::key &key) {
-  auto temp_path = key_path;
+  std::filesystem::path temp_path = key_path;
   temp_path += ".new";
 
-  const auto serialized = key.serialize();
+  const std::string serialized = key.serialize();
   if (serialized.empty() || !utils::io::write_file(temp_path, serialized)) {
     utils::io::remove_file(temp_path);
     return false;
@@ -138,8 +141,8 @@ bool write_key(const std::filesystem::path &key_path,
 utils::cryptography::ecc::key
 load_or_generate_key(game::ControllerIndex_t controllerIndex) {
   const std::unique_lock lock(key_file_mutex);
-  const auto key_path = key_file_path(controllerIndex);
-  auto backup_path = key_path;
+  const std::filesystem::path key_path = key_file_path(controllerIndex);
+  std::filesystem::path backup_path = key_path;
   backup_path += ".bak";
 
   utils::cryptography::ecc::key key{};
@@ -181,7 +184,8 @@ load_or_generate_key(game::ControllerIndex_t controllerIndex) {
 
 utils::cryptography::ecc::key
 get_key_internal(game::ControllerIndex_t controllerIndex) {
-  auto key = load_or_generate_key(controllerIndex);
+  const utils::cryptography::ecc::key key =
+      load_or_generate_key(controllerIndex);
 
   std::filesystem::path key_path = key_file_path(controllerIndex, true);
   if (!utils::io::write_file(key_path.generic_string(), key.get_public_key())) {
@@ -197,7 +201,8 @@ utils::cryptography::ecc::key get_key(game::ControllerIndex_t controllerIndex) {
 
 static const size_t CHALLENGE_LENGTH = 32;
 static std::mutex latest_challenge_mutex;
-static uint8_t latest_challenge[CHALLENGE_LENGTH] = {0};
+typedef array<uint8_t, CHALLENGE_LENGTH> challenge_t;
+static challenge_t latest_challenge = {0};
 
 void set_challenge(const game::net::netadr_t &target,
                    const network::data_view &data,
@@ -209,9 +214,9 @@ void set_challenge(const game::net::netadr_t &target,
     // We probably do not need to bother zeroing the latest_challenge bytes
     // first, as if an incomplete challenge has been received, this will cause
     // an error either way, cleanly handling this exceptional case for us.
-    memcpy(reinterpret_cast<void *>(latest_challenge), data.data(),
+    memcpy(latest_challenge, data.data(),
 
-           (std::min)(CHALLENGE_LENGTH, data.size()));
+           std::min<size_t>(std::size(latest_challenge), data.size()));
   }
 
   for (game::LocalClientNum_t localClientIdx = game::LOCAL_CLIENT_0;
@@ -266,8 +271,7 @@ bool send_fragmented_connect_packet(game::ControllerIndex_t controllerIndex,
       (connect_data.data(), connect_data.size(),
        [&](const utils::byte_buffer &buffer) {
          utils::byte_buffer packet_buffer{};
-         packet_buffer.write("connect");
-         packet_buffer.write(" ");
+         packet_buffer.write("connect ");
          packet_buffer.write(buffer);
 
          const auto &fragment_packet = packet_buffer.get_buffer();
@@ -334,6 +338,108 @@ inline bool is_invalid_char(const int c) {
   return c == '%' || c == '~' || c < 32 || c > 126;
 }
 
+static constexpr uint64_t CHALLENGE_EVICT_MS =
+    std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::minutes(10))
+        .count();
+struct IssuedChallenge {
+  uint64_t time;
+  challenge_t challenge;
+  bool initialized;
+
+  inline bool valid() const noexcept {
+    if (initialized) {
+      const uint64_t now_ms =
+          std::chrono::duration_cast<std::chrono::milliseconds>(
+              std::chrono::system_clock::now().time_since_epoch())
+              .count();
+      return now_ms - time < CHALLENGE_EVICT_MS;
+    }
+    return true;
+  }
+
+  inline bool stale() const noexcept { return !valid(); }
+
+  inline void refresh() noexcept {
+    if (stale()) {
+      utils::cryptography::random::get_data(reinterpret_cast<void *>(challenge),
+                                            std::size(challenge));
+      time = static_cast<uint64_t>(
+          std::chrono::duration_cast<std::chrono::milliseconds>(
+              std::chrono::system_clock::now().time_since_epoch())
+              .count());
+      initialized = true;
+    }
+  }
+
+  inline IssuedChallenge generate() noexcept {
+    IssuedChallenge result;
+    result.refresh();
+
+    return result;
+  }
+};
+static concurrent_hash_map<game::net::netadr_t, IssuedChallenge>
+    issued_challenges = {};
+
+thread_local challenge_t challenge_buf = {0};
+const challenge_t &get_challenge(const game::net::netadr_t &target) {
+  while (issued_challenges.try_emplace_l(target, [](auto &v) {
+    v.second.refresh();
+    memcpy(challenge_buf, &v.second.challenge, std::size(challenge_buf));
+  })) {
+  }
+  return challenge_buf;
+}
+
+void send_challenge(const game::net::netadr_t &addr,
+                    [[maybe_unused]] const network::data_view &,
+                    [[maybe_unused]] game::LocalClientNum_t localClientNum) {
+
+  constexpr char CHALLENGE_RESPONSE_COMMAND_PREFIX[] = {
+      '\xFF', '\xFF', '\xFF', '\xFF', 'g', 'e', 't', 'C', 'h',
+      'a',    'l',    'l',    'e',    'n', 'g', 'e', 'R', 'e',
+      's',    'p',    'o',    'n',    's', 'e', ' '};
+  constexpr size_t CHALLENGE_RESPONSE_BUF_LEN =
+      std::size(CHALLENGE_RESPONSE_COMMAND_PREFIX) + sizeof(challenge_t);
+
+  str<CHALLENGE_RESPONSE_BUF_LEN> challenge_response_buf;
+  memcpy(challenge_response_buf, CHALLENGE_RESPONSE_COMMAND_PREFIX,
+         std::size(CHALLENGE_RESPONSE_COMMAND_PREFIX));
+
+  const challenge_t &challenge = get_challenge(addr);
+
+#ifndef NDEBUG
+  const std::string hex_challenge_resp = utils::string::hexdump(
+      challenge_response_buf, std::size(challenge_response_buf));
+  game::trace("[Auth][Challenge] sending challenge to %s: \"%s\"",
+              addr.toString(), hex_challenge_resp.c_str());
+#endif
+
+  memcpy(&challenge_response_buf[std::size(CHALLENGE_RESPONSE_COMMAND_PREFIX)],
+         challenge, std::size(challenge));
+
+  network::send_data(addr, challenge_response_buf,
+                     std::size(challenge_response_buf));
+}
+
+void evict_stale_challenges() {
+  std::vector<game::net::netadr_t> evict_addresses;
+
+  issued_challenges.for_each([&evict_addresses](const auto &v) {
+    if (v.second.stale()) {
+      evict_addresses.push_back(v.first);
+    }
+  });
+
+  for (const game::net::netadr_t addr : evict_addresses) {
+    issued_challenges.erase_if(addr, [](const auto &v) {
+      // In case of modification in the interim
+      return v.second.stale();
+    });
+  }
+}
+
 void dispatch_connect_packet(const game::net::netadr_t &target,
                              const std::string &data,
                              game::LocalClientNum_t clientNum) {
@@ -344,16 +450,8 @@ void dispatch_connect_packet(const game::net::netadr_t &target,
   std::string signature_serialized_str = buffer.read_string();
   key.deserialize(&key_ser);
 
-  std::string challenge{};
-  challenge.resize(CHALLENGE_LENGTH);
-
-  const auto get_challenge =
-      reinterpret_cast<void (*)(const game::net::netadr_t *, void *, size_t)>(
-          game::select(0x1412E15E0, 0x14016DDC0));
-  get_challenge(&target, challenge.data(), challenge.size());
-
-  if (!utils::cryptography::ecc::verify_message(
-          key, std::move(challenge), std::move(signature_serialized_str))) {
+  if (!utils::cryptography::ecc::verify_message<CHALLENGE_LENGTH>(
+          key, get_challenge(target), signature_serialized_str)) {
 
     network::send(target, "error", "Bad signature");
     return;
@@ -368,7 +466,8 @@ void dispatch_connect_packet(const game::net::netadr_t &target,
     return;
   }
 
-  const auto _ = profile_infos::acquire_profile_lock();
+  const std::unique_lock<std::recursive_mutex> _ =
+      profile_infos::acquire_profile_lock();
 
   const utils::info_string info_string(params[1]);
   const game::XUID xuid = strtoull(info_string.get("xuid").data(), nullptr, 16);
@@ -377,11 +476,11 @@ void dispatch_connect_packet(const game::net::netadr_t &target,
     return;
   }
 
-  const auto name = info_string.get("name");
+  const std::string name = info_string.get("name");
 
   const auto is_name_invalid = [&name]() -> bool {
     return std::ranges::any_of(name,
-                               [](const auto c) { return is_invalid_char(c); });
+                               [](const char c) { return is_invalid_char(c); });
   };
 
   if (name.empty() || is_name_invalid()) {
@@ -450,7 +549,7 @@ game::XUID get_guid(game::ControllerIndex_t controllerIndex) {
   static const game::XUID server_guid = static_cast<game::XUID>(
       0x110000100000000 |
       (::utils::cryptography::random::get_integer() & ~0x80000000));
-  return controllerIndex == game::CONTROLLER_INDEX_0 ? server_guid : 0;
+  return server_guid;
 }
 
 game::XUID get_guid(const size_t client_num) {
@@ -477,7 +576,7 @@ game::XUID get_guid(const size_t client_num) {
 
 void clear_stored_guids() {
   std::lock_guard lock(client_xuids_mutex);
-  for (auto &xuid : client_xuids) {
+  for (game::XUID &xuid : client_xuids) {
     xuid = 0;
   }
 }
@@ -498,16 +597,17 @@ bool LiveUser_UserGetXuid_stub(int64_t controllerIndex, game::XUID *xuid) {
 }
 
 utils::hook::detour CL_DisconnectPacket_hook;
-void CL_DisconnectPacket_stub(game::LocalClientNum_t localClientNum,
-                              game::net::netadr_t *from, const char *reason) {
+void CL_DisconnectPacket_ClearStoredChallenge(
+    game::LocalClientNum_t localClientNum, game::net::netadr_t *from,
+    const char *reason) {
   if (localClientNum == game::LOCAL_CLIENT_0) {
     clear_stored_challenge();
   }
   CL_DisconnectPacket_hook.invoke(localClientNum, from, reason);
 }
 utils::hook::detour CL_Disconnect_hook;
-void CL_Disconnect_stub(game::LocalClientNum_t localClientNum,
-                        bool deactivateClient) {
+void CL_Disconnect_ClearStoredChallenge(game::LocalClientNum_t localClientNum,
+                                        bool deactivateClient) {
   if (localClientNum == game::LOCAL_CLIENT_0) {
     clear_stored_challenge();
   }
@@ -518,12 +618,14 @@ utils::hook::detour LiveUser_GetXuid_hook;
 
 struct component final : generic_component {
   void post_unpack() override {
+    scheduler::loop(evict_stale_challenges, scheduler::pipeline::async, 5min);
 
     // Skip connect handler
     utils::hook::set<uint8_t>(game::select(0x142253EFA, 0x14053714A), 0xEB);
     network::on("connect", handle_connect_packet_fragment);
     network::on("playerXuid", handle_player_xuid_packet);
     network::on("getChallengeResponse", set_challenge);
+    network::on("getchallenge", send_challenge);
 
     // Intercept SV_DirectConnect in SV_AddTestClient
     utils::hook::call(game::select(0x1422490DC, 0x14052E582),
@@ -583,9 +685,9 @@ struct component final : generic_component {
       LiveUser_GetXuid_hook.create(game::live::user::LiveUser_GetXuid.get(),
                                    get_guid);
       CL_DisconnectPacket_hook.create(game::cl::CL_DisconnectPacket.get(),
-                                      CL_DisconnectPacket_stub);
+                                      CL_DisconnectPacket_ClearStoredChallenge);
       CL_Disconnect_hook.create(game::cl::CL_Disconnect.get(),
-                                CL_Disconnect_stub);
+                                CL_Disconnect_ClearStoredChallenge);
     }
 
     for (const auto &patch : patches) {

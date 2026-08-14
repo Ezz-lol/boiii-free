@@ -15,9 +15,9 @@ enum class connectionType_e : uint32_t {
 constexpr size_t UINT8_STR_BUF_LEN = 3;
 constexpr size_t UINT16_STR_BUF_LEN = sizeof(uint16_t) * UINT8_STR_BUF_LEN;
 constexpr size_t NET_IPV4_STR_BUF_LEN =
-    4 /* a, b, c, d */ * UINT8_STR_BUF_LEN + 3 /* periods */;
+    4 /* a, b, c, d */ * UINT8_STR_BUF_LEN + 3 /* periods */ + 1 /* NULL */;
 typedef str<NET_IPV4_STR_BUF_LEN> netipv4_str_t;
-
+inline thread_local netipv4_str_t default_netipv4_serialization_buf;
 union netipv4_t {
   struct {
     uint8_t a;
@@ -28,7 +28,8 @@ union netipv4_t {
   uint8_t parts[4];
 
   inline constexpr ToStringResult
-  toString(netipv4_str_t buf = {}) const noexcept {
+  toString(netipv4_str_t buf = default_netipv4_serialization_buf,
+           bool terminate = true) const noexcept {
     // a
     char *ptr = std::to_chars(buf, buf + UINT8_STR_BUF_LEN, a).ptr;
 
@@ -44,6 +45,10 @@ union netipv4_t {
     ptr[0] = '.';
     ptr = std::to_chars(ptr + 1, ptr + 1 + UINT8_STR_BUF_LEN, d).ptr;
 
+    if (terminate) {
+      ptr[0] = '\0';
+      ++ptr;
+    }
     return ToStringResult{buf, ptr};
   }
 };
@@ -68,8 +73,11 @@ enum netsrc_t : int32_t {
 };
 
 constexpr size_t NETADR_STR_BUF_LEN =
-    NET_IPV4_STR_BUF_LEN + UINT16_STR_BUF_LEN /*port*/ + 1 /*colon*/;
+    NET_IPV4_STR_BUF_LEN + UINT16_STR_BUF_LEN /*port*/ +
+    1 /*colon*/; // +1 for NULL is included in NET_IPV4_STR_BUF_LEN - only one
+                 // can be terminated
 typedef str<NETADR_STR_BUF_LEN> netadr_str_t;
+inline thread_local netadr_str_t default_netadr_serialization_buf;
 
 struct netadr_t {
   union {
@@ -82,11 +90,17 @@ struct netadr_t {
   netsrc_t localNetID;
 
   inline constexpr ToStringResult
-  toString(netadr_str_t buf = {}) const noexcept {
-    char *ptr = ipv4.toString(&buf[0]).ptr;
+  toString(netadr_str_t buf = default_netadr_serialization_buf,
+           bool terminate = true) const noexcept {
+    char *ptr = ipv4.toString(&buf[0], false).ptr;
 
     ptr[0] = ':';
     ptr = std::to_chars(ptr + 1, ptr + 1 + UINT16_STR_BUF_LEN, port).ptr;
+
+    if (terminate) {
+      ptr[0] = '\0';
+      ++ptr;
+    }
 
     return {buf, ptr};
   }

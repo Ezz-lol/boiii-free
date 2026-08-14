@@ -21,7 +21,7 @@ uint64_t callbacks::register_call() {
   return call_id_;
 }
 
-void callbacks::register_callback(base *handler, const int callback) {
+void callbacks::register_callback(base *handler, const int32_t callback) {
   std::lock_guard<std::recursive_mutex> _(mutex_);
   handler->set_i_callback(callback);
   callback_list_.push_back(handler);
@@ -51,7 +51,7 @@ void callbacks::unregister_call_result(const uint64_t call, base * /*result*/) {
   }
 }
 
-void callbacks::return_call(void *data, const int size, const int type,
+void callbacks::return_call(void *data, const int32_t size, const int32_t type,
                             const uint64_t call) {
   std::lock_guard<std::recursive_mutex> _(mutex_);
 
@@ -109,7 +109,8 @@ void SteamAPI_RegisterCallResult(callbacks::base *result, const uint64_t call) {
   callbacks::register_call_result(call, result);
 }
 
-void SteamAPI_RegisterCallback(callbacks::base *handler, const int callback) {
+void SteamAPI_RegisterCallback(callbacks::base *handler,
+                               const int32_t callback) {
   callbacks::register_callback(handler, callback);
 }
 

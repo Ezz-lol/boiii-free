@@ -388,6 +388,7 @@ files({ "./src/common/**.hpp", "./src/common/**.cpp" })
 includedirs({
   "./deps/argparse/include",
   "./src/common",
+  "./deps/gtl/include",
   "./src",
   -- version.h and version.hpp headers
   "%{prj.location}/src",
