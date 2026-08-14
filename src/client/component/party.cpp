@@ -481,8 +481,7 @@ void handle_info_response(const game::net::netadr_t &target,
 void cleanup_queried_servers() {
   std::vector<server_query> removed_queries{};
 
-  if (game::com::Com_SessionMode_IsMode(game::eModes::COUNT) &&
-      game::com::Com_IsRunningUILevel()) {
+  if (game::com::Com_IsRunningUILevel()) {
     get_server_queries().access([&](std::vector<server_query> &server_queries) {
       size_t sent_queries = 0;
 
