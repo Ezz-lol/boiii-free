@@ -1095,7 +1095,7 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
                                 .fs.pos);
 
 #ifndef NDEBUG
-  const vm::function_frame_t *current_frame =
+  volatile vm::function_frame_t *current_frame =
       &vm::gScrVmPub->instance[inst].function_frame_start[0];
 #endif
   const char *error_log = utils::string::va(
