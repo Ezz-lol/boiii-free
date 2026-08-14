@@ -721,17 +721,20 @@ std::optional<std::filesystem::path> get_map_specific_folder() {
 
 constexpr const std::string_view gametype_prefixes[] = {"zm", "mp", "cp"};
 bool is_shared_tree_dir(const std::filesystem::path &dir) {
-  const std::filesystem::path dirname = dir.filename();
-  const std::string dirname_str = dirname.generic_string();
-  for (const std::string_view prefix : gametype_prefixes) {
-    if (prefix == dirname_str ||
-        (dirname_str.size() > prefix.size() &&
-         utils::string::starts_with(prefix, dirname_str) &&
-         dirname_str[2] == '_') /* map override script tree */) {
-      return false;
+  if (std::filesystem::is_directory(dir)) {
+    const std::filesystem::path dirname = dir.filename();
+    const std::string dirname_str = dirname.generic_string();
+    for (const std::string_view prefix : gametype_prefixes) {
+      if (prefix == dirname_str ||
+          (dirname_str.size() > prefix.size() &&
+           utils::string::starts_with(prefix, dirname_str) &&
+           dirname_str[2] == '_') /* map override script tree */) {
+        return false;
+      }
     }
+    return true;
   }
-  return true;
+  return false;
 }
 
 std::vector<std::filesystem::path>
