@@ -147,11 +147,22 @@ WEAK symbol<void(scriptInstance_t inst, uint8_t *pos, const char **filename,
                  int32_t *lineNum, const char **sourceLine)>
     Scr_GetFileAndLineNum{0x1412CBE50, 0x140159E90};
 WEAK symbol<void(scriptInstance_t inst, objFileInfo_t *fileInfo)> LoadScriptGDB{
-    0x0, 0x140159360};
+    0x1412CB100, 0x140159360};
 // Named LoadScriptGDB in engine - overload
-WEAK symbol<void(scriptInstance_t inst)> LoadScriptGDB2{0x0, 0x140158EF0};
+WEAK symbol<void(scriptInstance_t inst)> LoadScriptGDB2{0x1412CAC90,
+                                                        0x140158EF0};
 WEAK symbol<objFileInfo_t *(scriptInstance_t inst, void *addr)>
     Scr_FindObjFileInfo{0x1412CBD90, 0x140159DD0};
+WEAK symbol<void(scriptInstance_t inst, GSC_OBJ *prime_obj,
+                 objFileInfo_t *fileInfo, GSC_IMPORT_ITEM *import,
+                 char *errorString, int32_t errorStringLength)>
+    ReportObjLinkError{0x1412CB4F0, 0x140159750};
+// Duplicate. Exactly the same as ReportObjLinkError - not sure why this
+// function exists.
+WEAK symbol<void(scriptInstance_t inst, GSC_OBJ *prime_obj,
+                 objFileInfo_t *fileInfo, GSC_IMPORT_ITEM *import,
+                 char *errorString, int32_t errorStringLength)>
+    ReportObjLinkError2{0x1412CB710};
 
 WEAK symbol<ObjFileInfoPool> gObjFileInfo{0x1450DC2E0, 0x1425DCA80};
 WEAK symbol<ScrPool<uint32_t>> gObjFileInfoCount{0x1450EFB60, 0x1425F0300};

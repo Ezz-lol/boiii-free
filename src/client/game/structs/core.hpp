@@ -577,7 +577,8 @@ enum class consoleLabel_e : int32_t {
   MARKETING = 0x2D,
   STORE = 0x2E,
   TESTING = 0x2F,
-  COUNT = 0x30,
+  CHANNEL_ERROR = 0x36,
+  COUNT = 0x37,
 };
 IMPL_ENUM_OPERATORS(consoleLabel_e);
 

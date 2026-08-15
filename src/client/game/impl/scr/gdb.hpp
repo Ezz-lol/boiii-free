@@ -13,6 +13,9 @@ void Scr_GetFileAndLineNum_Impl(const scriptInstance_t inst, uint8_t *const pos,
                                 const char **const filename,
                                 int32_t *const lineNum,
                                 const char **const sourceLine);
+void ReportObjLinkError_Impl(scriptInstance_t inst, GSC_OBJ *prime_obj,
+                             objFileInfo_t *fileInfo, GSC_IMPORT_ITEM *import,
+                             char *errorString, int errorStringLength);
 
 } // namespace scr
 } // namespace game

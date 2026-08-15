@@ -483,23 +483,9 @@ void load_script(const std::string &name, const std::string &data,
 
 void load_script_file(std::string &data,
                       const std::filesystem::path &script_file,
-                      const bool load) {
+                      const std::string &name, const bool load) {
   const std::string script_file_str = script_file.generic_string();
-  std::string name = script_file_str;
-  const std::string appdata_path =
-      (get_appdata_path() / "data/").generic_string();
-  const std::string host_path =
-      (utils::nt::library{}.get_folder() / "boiii/").generic_string();
 
-  size_t i = name.find(appdata_path);
-  if (i != std::string::npos) {
-    name.erase(0, i + appdata_path.length());
-  }
-
-  i = name.find(host_path);
-  if (i != std::string::npos) {
-    name.erase(0, i + host_path.length());
-  }
   if (data.size() >= sizeof(GSC_MAGIC) &&
       !std::memcmp(data.data(), &GSC_MAGIC, sizeof(GSC_MAGIC))) {
     print_loading_script(name);
@@ -564,6 +550,7 @@ void load_script_file(std::string &data,
           script_sources.modify_if(name, [&](auto &v) {
             char *src = v.second.data();
             obj->debugInfo.source = src;
+            obj->debugInfo.gdb = nullptr;
             obj->debugInfo.sourceLen = v.second.size();
             for (size_t i = 0; i < v.second.size(); ++i) {
               char *c = &src[i];
@@ -652,18 +639,44 @@ void load_script_file(std::string &data,
   }
 }
 
-void load_scripts_directory(const std::string &script_dir, const bool load,
-                            const bool recurse) {
+void load_scripts_directory(
+    const std::string &script_dir, const bool load, const bool recurse,
+    const std::optional<std::string> strip_base = std::nullopt) {
   if (utils::io::directory_exists(script_dir)) {
     std::vector<std::filesystem::path> scripts =
         utils::io::list_files(script_dir, recurse, false);
 
-    const auto load_dir_file_cb = [load](const std::filesystem::path &script) {
+    const auto load_dir_file_cb = [load, strip_base](
+                                      const std::filesystem::path &script) {
       std::string data;
       if (!std::filesystem::is_directory(script) &&
           utils::io::read_file(script, &data)) {
 
-        load_script_file(data, script, load);
+        std::string name = script.generic_string();
+        const std::string appdata_path =
+            (get_appdata_path() / "data/").generic_string();
+        const std::string host_path =
+            (utils::nt::library{}.get_folder() / "boiii/").generic_string();
+
+        size_t i = name.find(appdata_path);
+        if (i != std::string::npos) {
+          name.erase(0, i + appdata_path.length());
+        }
+
+        i = name.find(host_path);
+        if (i != std::string::npos) {
+          name.erase(0, i + host_path.length());
+        }
+        if (strip_base.has_value()) {
+          std::vector<std::string> name_parts = utils::string::split(name, '/');
+          if (name_parts[0] == "scripts" &&
+              name_parts[1] == strip_base.value()) {
+            name_parts.erase(name_parts.begin() + 1);
+            name = utils::string::join(name_parts, "/");
+          }
+        }
+
+        load_script_file(data, script, name, load);
       }
     };
     if (load) {
@@ -738,23 +751,31 @@ void load_tree(std::filesystem::path tree, bool execImmediate = false) {
   const std::filesystem::path data_folder = get_appdata_path() / "data";
   const std::filesystem::path boiii_folder = host.get_folder() / "boiii";
 
-  const auto load = [&data_folder,
-                     &boiii_folder](const std::filesystem::path &folder,
+  const std::optional<std::filesystem::path> map_name =
+      get_map_specific_folder();
+  std::optional<std::string> map_name_str = std::nullopt;
+  if (map_name.has_value()) {
+    map_name_str = map_name->generic_string();
+  }
+
+  const auto load = [&data_folder, &boiii_folder,
+                     &map_name_str](const std::filesystem::path &folder,
                                     const bool load, const bool recurse) {
-    load_scripts_directory((data_folder / folder).string(), load, recurse);
-    load_scripts_directory((boiii_folder / folder).string(), load, recurse);
+    load_scripts_directory((data_folder / folder).string(), load, recurse,
+                           map_name_str);
+    load_scripts_directory((boiii_folder / folder).string(), load, recurse,
+                           map_name_str);
   };
 
   std::vector<std::filesystem::path> applicable_tree_dirs =
       shared_tree_directories(tree);
+
   const std::optional<std::filesystem::path> game_type =
       get_game_type_specific_folder();
   if (game_type.has_value()) {
     applicable_tree_dirs.push_back(tree / game_type.value());
   }
 
-  const std::optional<std::filesystem::path> map_name =
-      get_map_specific_folder();
   if (map_name.has_value()) {
     applicable_tree_dirs.push_back(tree / map_name.value());
   }
@@ -787,28 +808,6 @@ void load_scripts() {
   load_tree("custom_scripts", true);
 }
 
-RawFile *get_loaded_map_script(const char *name) {
-  // "scripts/${mapname}/${scripts_sub_path}"
-  const std::optional<std::string_view> mapname = get_mapname();
-  if (mapname.has_value() && !mapname.value().empty()) {
-    const std::string_view search_name = name;
-    // Replace "scripts/" tree name with "scripts/${mapname}/"
-    size_t first_sep = search_name.find('/');
-    if (first_sep != std::string::npos) {
-      const std::string_view tree = search_name.substr(0, first_sep + 1);
-      if (tree == "scripts/") {
-        const std::string override_path =
-            std::string(tree) /* "scripts/" */ + std::string(mapname.value()) +
-            std::string(search_name.substr(
-                first_sep)) /* "/" + relative path under "scripts" tree */;
-        return get_loaded_script(override_path);
-      }
-    }
-  }
-
-  return nullptr;
-}
-
 XAssetHeader DB_FindXAssetHeader_TryOverride(const XAssetType type,
                                              const char *name,
                                              const bool error_if_missing,
@@ -818,11 +817,6 @@ XAssetHeader DB_FindXAssetHeader_TryOverride(const XAssetType type,
   // spam
   if (name && name[0] && type == XAssetType::SCRIPTPARSETREE) {
     result.rawfile = get_loaded_script(name);
-
-    // Try to get map-specific script override
-    if (result.rawfile == nullptr) {
-      result.rawfile = get_loaded_map_script(name);
-    }
   }
 
   if (result.rawfile == nullptr) {
@@ -1163,6 +1157,13 @@ void Hunk_UserFree_NotScriptPoolAlloc(hunk::HunkUser *user, void *ptr) {
     return;
   }
 
+  if (user == *hunk::g_scriptDebugHunk) {
+    if (ptr) {
+      free(ptr);
+    }
+    return;
+  }
+
   return Hunk_UserFree_hook.invoke(user, ptr);
 }
 
@@ -1170,6 +1171,9 @@ utils::hook::detour LoadScriptGDB2_hook;
 utils::hook::detour LoadScriptGDB_hook;
 utils::hook::detour Scr_FindObjFileInfo_hook;
 utils::hook::detour Scr_GetFileAndLineNum_hook;
+utils::hook::detour ReportObjLinkError_hook;
+utils::hook::detour ReportObjLinkError2_hook;
+
 struct component final : generic_component {
   void post_unpack() override {
     // Return custom or overrided scripts if found
@@ -1193,12 +1197,14 @@ struct component final : generic_component {
 
     Scr_Error_hook.create(Scr_Error, Scr_Error_LogAll);
 
-    if (is_server()) {
-      Hunk_UserFree_hook.create(hunk::Hunk_UserFree,
-                                Hunk_UserFree_NotScriptPoolAlloc);
-
-      LoadScriptGDB_hook.create(LoadScriptGDB, LoadScriptGDB_Impl);
-      LoadScriptGDB2_hook.create(LoadScriptGDB2, LoadScriptGDB2_Impl);
+    LoadScriptGDB_hook.create(LoadScriptGDB, LoadScriptGDB_Impl);
+    Hunk_UserFree_hook.create(hunk::Hunk_UserFree,
+                              Hunk_UserFree_NotScriptPoolAlloc);
+    ReportObjLinkError_hook.create(ReportObjLinkError, ReportObjLinkError_Impl);
+    LoadScriptGDB2_hook.create(LoadScriptGDB2, LoadScriptGDB2_Impl);
+    if (is_client()) {
+      ReportObjLinkError2_hook.create(ReportObjLinkError2,
+                                      ReportObjLinkError_Impl);
     }
 
     Scr_FindObjFileInfo_hook.create(Scr_FindObjFileInfo,

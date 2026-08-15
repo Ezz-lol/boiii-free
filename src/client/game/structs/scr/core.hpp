@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <span>
 #include <vector>
 #include "../core.hpp"
 #include "../weapon.hpp"
@@ -1958,5 +1959,28 @@ ASSERT_SIZE(objFileInfo_t, 0x50);
 
 typedef ScrPool<array<objFileInfo_t, 500>> ObjFileInfoPool;
 ASSERT_SIZE(ObjFileInfoPool, 0x13880);
+
+struct GSC_IMPORT_ITEM {
+  ScrVarCanonicalName_t name;
+  ScrVarCanonicalName_t name_space;
+  uint16_t num_address;
+  uint8_t param_count;
+  uint8_t flags;
+
+  inline std::span<const uint32_t> addresses() const {
+    return std::span(
+        reinterpret_cast<const uint32_t *>(reinterpret_cast<uintptr_t>(this) +
+                                           sizeof(GSC_IMPORT_ITEM)),
+        num_address);
+  }
+
+  inline std::span<uint32_t> addresses() {
+    return std::span(
+        reinterpret_cast<uint32_t *>(reinterpret_cast<uintptr_t>(this) +
+                                     sizeof(GSC_IMPORT_ITEM)),
+        num_address);
+  }
+};
+
 } // namespace scr
 } // namespace game

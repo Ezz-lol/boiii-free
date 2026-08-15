@@ -364,5 +364,80 @@ void Scr_GetFileAndLineNum_Impl(const scriptInstance_t inst, uint8_t *const pos,
     }
   }
 }
+
+void ReportObjLinkError_Impl(scriptInstance_t inst, GSC_OBJ *prime_obj,
+                             objFileInfo_t *fileInfo, GSC_IMPORT_ITEM *import,
+                             char *errorString, int errorStringLength) {
+  if (fileInfo) {
+    LoadScriptGDB(inst, fileInfo);
+
+    std::string linesBuffer;
+
+    // The addresses are stored contiguously in memory immediately following the
+    // GSC_IMPORT_ITEM.
+    std::span<const uint32_t> addressOffsets = import->addresses();
+
+    // Calculate line numbers for each address
+    for (size_t i = 0; i < addressOffsets.size(); ++i) {
+      const int32_t lineAddrCount = fileInfo->debugInfo.lineStartAddrCount;
+      int32_t lineIdx = 0;
+      if (lineAddrCount > 0) {
+        // The line table contains absolute addresses of the start of each line.
+        uint64_t *const lineTable = reinterpret_cast<uint64_t *const>(
+            fileInfo->debugInfo.lineStartAddr);
+
+        // Find the last line whose starting address is <= 'pos'.
+        while (lineIdx<lineAddrCount &&reinterpret_cast<uint8_t *>(
+                   static_cast<uint64_t>(
+                       addressOffsets[i]))> reinterpret_cast<uint8_t
+                                                                 *>(
+            lineTable[lineIdx])) {
+          ++lineIdx;
+        }
+
+        // If we advanced at least once, the previous entry is the desired line.
+        lineIdx = (lineIdx > 0) ? (lineIdx - 1) : -1;
+      } else {
+        lineIdx = -1;
+      }
+
+      linesBuffer += std::to_string(lineIdx);
+    }
+
+    // Free GDB debug context if it exists
+    if (fileInfo->debugInfo.gdb != nullptr) {
+      free(fileInfo->debugInfo.gdb);
+      fileInfo->debugInfo.gdb = nullptr;
+    }
+
+    // Lookup function name in the global linked-list hashmap
+    std::string functionName;
+    const char *lookupResult = sl::SL_LookupCanonicalString(import->name);
+    if (lookupResult && lookupResult[0]) {
+      functionName = lookupResult;
+    } else {
+      // Fallback: format name ID as Hex if string hash isn't found
+      functionName = std::format("{:X}", import->name);
+    }
+
+    // Format the final error message (replaces 'va' and 'Com_sprintf')
+    std::string errorMessage =
+        std::format(" \"{}\" with {} parameters in \"{}\" at {} {} ****\n",
+                    functionName, import->param_count, prime_obj->get_name(),
+                    (import->num_address > 1) ? "lines" : "line", linesBuffer);
+
+    // Append to the provided C-style buffer safely (replaces 'I_strcat')
+    if (errorString != nullptr && errorStringLength > 0) {
+      size_t currentLen = std::strlen(errorString);
+      size_t spaceLeft =
+          static_cast<size_t>(errorStringLength) - currentLen - 1;
+      std::strncat(errorString, errorMessage.c_str(), spaceLeft);
+    }
+
+    // Print to the engine console
+    com::Com_Printf(8, consoleLabel_e::CHANNEL_ERROR, "%s",
+                    errorMessage.c_str());
+  }
+}
 } // namespace scr
 } // namespace game

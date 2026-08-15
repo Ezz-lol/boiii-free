@@ -19,11 +19,11 @@ get_and_validate_rcon_command(const std::string &data) {
   const command::params params{data};
 
   if (params.size() <= 1) {
-    return {};
+    return std::nullopt;
   }
 
   if (params[0] != game::get_rcon_password().value_or("")) {
-    return {};
+    return std::nullopt;
   }
 
   return params.join(1);
