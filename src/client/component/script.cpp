@@ -42,6 +42,8 @@ constexpr size_t GSC_MAGIC = 0x1C000A0D43534780;
 
 void print_script_log(const char *message) {
   game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s\n", message);
+  fprintf(stderr, "%s\n", message);
+  fflush(stderr);
   game::trace("%s", message);
 }
 
@@ -1039,21 +1041,8 @@ const char *Scr_PrevCodePos(scriptInstance_t inst, volatile uint8_t *codePos) {
 
 utils::hook::detour Scr_Error_hook;
 void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
-  static thread_local bool logging_error = false;
-  if (logging_error || inst < SCRIPTINSTANCE_SERVER ||
-      inst >= SCRIPTINSTANCE_MAX) {
-    return Scr_Error_hook.invoke(inst, error, terminal);
-  }
-
-  struct logging_guard {
-    bool &active;
-    explicit logging_guard(bool &active_) : active(active_) { active = true; }
-    ~logging_guard() { active = false; }
-    void release() { active = false; }
-  } guard(logging_error);
-
   void *callerAddr = _ReturnAddress();
-  if (is_server() && *sv_detailedScriptErrors) {
+  if (is_server()) {
     sv_detailedScriptErrors->set(true);
   }
   if (terminal) {
@@ -1061,38 +1050,30 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
     vm::gScrVmPub->instance[inst].debugCode = true;
   }
 
-  const int32_t function_count =
-      vm::gScrVmPub->instance[inst].function_count;
-  std::string prevCodePositionsString;
-  const bool valid_function_count =
-      function_count >= 0 &&
-      function_count <= static_cast<int32_t>(
-                            std::size(vm::gScrVmPub->instance[inst]
-                                          .function_frame_start));
+  std::string prevCodePositionsString = "";
   for (int32_t stackIdx = 0;
-       valid_function_count && stackIdx < function_count; ++stackIdx) {
-    if (!prevCodePositionsString.empty()) {
-      prevCodePositionsString += "\n";
-    }
+       stackIdx < vm::gScrVmPub->instance[inst].function_count - 1;
+       ++stackIdx) {
     prevCodePositionsString += std::format("[{}] ", stackIdx);
     prevCodePositionsString += Scr_PrevCodePos(
         inst,
         vm::gScrVmPub->instance[inst].function_frame_start[stackIdx].fs.pos);
+    prevCodePositionsString += "\n";
   }
-  if (prevCodePositionsString.empty()) {
-    prevCodePositionsString = valid_function_count
-                                  ? "No active script frames."
-                                  : "Invalid script frame count.";
-  }
+
+  const uint8_t final_stack_idx =
+      vm::gScrVmPub->instance[inst].function_count - 1;
+  prevCodePositionsString += std::format("[{}] ", final_stack_idx);
+  prevCodePositionsString +=
+      Scr_PrevCodePos(inst, vm::gScrVmPub->instance[inst]
+                                .function_frame_start[final_stack_idx]
+                                .fs.pos);
   std::string lastGoodCodePositionString =
       Scr_PrevCodePos(inst, vm::gFs->instance[inst].pos);
 
 #ifndef NDEBUG
-  vm::function_frame_t empty_frame{};
   volatile vm::function_frame_t *current_frame =
-      valid_function_count && function_count > 0
-          ? &vm::gScrVmPub->instance[inst].function_frame_start[0]
-          : &empty_frame;
+      &vm::gScrVmPub->instance[inst].function_frame_start[0];
 #endif
   const char *error_log = utils::string::va(
       "Scr_Error called from 0x%p with inst: %s, "
@@ -1119,8 +1100,11 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
       error ? error : "NULL", terminal ? "true" : "false",
       prevCodePositionsString.c_str(), lastGoodCodePositionString.c_str());
 
-  print_script_log(error_log);
-  guard.release();
+  fprintf(stderr, "%s\n", error_log);
+  fflush(stderr);
+#ifndef NDEBUG
+  trace("%s", error_log);
+#endif
 
   return Scr_Error_hook.invoke(inst, error, terminal);
 }
@@ -1195,7 +1179,11 @@ struct component final : generic_component {
     gscr_get_bgb_tokens_remaining_hook.create(gscr::GScr_GetBGBTokensRemaining,
                                               gscr_getbgbtokensremaining_stub);
 
-    Scr_Error_hook.create(Scr_Error, Scr_Error_LogAll);
+    if (utils::flags::has_flag("log-script-errors")) {
+      // Log all script errors, even when non-fatal and/or `developer` is
+      // disabled
+      Scr_Error_hook.create(Scr_Error, Scr_Error_LogAll);
+    }
 
     LoadScriptGDB_hook.create(LoadScriptGDB, LoadScriptGDB_Impl);
     Hunk_UserFree_hook.create(hunk::Hunk_UserFree,
