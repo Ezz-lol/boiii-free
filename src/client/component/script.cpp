@@ -489,185 +489,185 @@ void load_script_file(std::string &data,
                       const std::filesystem::path &script_file,
                       const bool load) {
   const std::string script_file_str = script_file.generic_string();
+  std::string name = script_file_str;
+  const std::string appdata_path =
+      (get_appdata_path() / "data/").generic_string();
+  const std::string host_path =
+      (utils::nt::library{}.get_folder() / "boiii/").generic_string();
+
+  size_t i = name.find(appdata_path);
+  if (i != std::string::npos) {
+    name.erase(0, i + appdata_path.length());
+  }
+
+  i = name.find(host_path);
+  if (i != std::string::npos) {
+    name.erase(0, i + host_path.length());
+  }
   if (data.size() >= sizeof(GSC_MAGIC) &&
       !std::memcmp(data.data(), &GSC_MAGIC, sizeof(GSC_MAGIC))) {
-    print_loading_script(script_file_str);
-    load_script(script_file_str, data, load);
+    print_loading_script(name);
+    load_script(name, data, load);
   } else if ((utils::string::ends_with(script_file_str, ".gsc") ||
               utils::string::ends_with(script_file_str, ".csc")) &&
              !data.empty()) {
     const bool is_csc = utils::string::ends_with(script_file_str, ".csc");
     const char *script_type = is_csc ? "CSC" : "GSC";
 
-    std::string name = script_file_str;
-    const std::string appdata_path =
-        (get_appdata_path() / "data/").generic_string();
-    const std::string host_path =
-        (utils::nt::library{}.get_folder() / "boiii/").generic_string();
-
-    size_t i = name.find(appdata_path);
-    if (i != std::string::npos) {
-      name.erase(0, i + appdata_path.length());
-    }
-
-    i = name.find(host_path);
-    if (i != std::string::npos) {
-      name.erase(0, i + host_path.length());
-    }
-
     // Skip CSC on dedicated server
-    if (is_csc && is_server())
-      return;
+    if (is_client() || !is_csc) {
 
-    // Strip devblocks before compilation
-    const std::string cleaned_source = strip_devblocks(data);
+      // Strip devblocks before compilation
+      const std::string cleaned_source = strip_devblocks(data);
 
-    const char *log = utils::string::va("Compiling %s script '%s'", script_type,
-                                        name.c_str());
-    fprintf(stdout, "%s\n", log);
-    fflush(stdout);
-    game::trace("%s", log);
-    gsc_compiler::compile_result result =
-        gsc_compiler::compile(cleaned_source, name);
-    if (result.success) {
+      const char *log = utils::string::va("Compiling %s script '%s'",
+                                          script_type, name.c_str());
+      fprintf(stdout, "%s\n", log);
+      fflush(stdout);
+      game::trace("%s", log);
+      gsc_compiler::compile_result result =
+          gsc_compiler::compile(cleaned_source, name);
+      if (result.success) {
 
-      // Store hash-to-name+line map from this compilation
-      for (gsc::hash_name_pair &hn : result.hash_names) {
-        // Will loop at most twice. Once if the value vector needs initialized
-        // (entry did not already exist), and once to append this entry to the
-        // vector
-        while (script_hash_names.try_emplace_l(
-            hn.hash, [&](decltype(script_hash_names)::value_type &v) {
-              v.second.push_back({hn.name, hn.line, hn.params});
-            })) {
+        // Store hash-to-name+line map from this compilation
+        for (gsc::hash_name_pair &hn : result.hash_names) {
+          // Will loop at most twice. Once if the value vector needs initialized
+          // (entry did not already exist), and once to append this entry to the
+          // vector
+          while (script_hash_names.try_emplace_l(
+              hn.hash, [&](decltype(script_hash_names)::value_type &v) {
+                v.second.push_back({hn.name, hn.line, hn.params});
+              })) {
+          }
         }
-      }
 
-      // Store original source text for this file
-      while (script_sources.try_emplace_l(
-          name, [&](auto &v) { v.second = std::move(cleaned_source); })) {
-      }
+        // Store original source text for this file
+        while (script_sources.try_emplace_l(
+            name, [&](auto &v) { v.second = std::move(cleaned_source); })) {
+        }
 
 #ifndef NDEBUG
-      // Dump compiled bytecode to file for debugging
-      // ".gsc" -> ".gscc", ".csc" -> ".cscc"
-      const std::filesystem::path bytecode_out_path = script_file_str + "c";
+        // Dump compiled bytecode to file for debugging
+        // ".gsc" -> ".gscc", ".csc" -> ".cscc"
+        const std::filesystem::path bytecode_out_path = script_file_str + "c";
 
-      utils::io::write_file_bytes(bytecode_out_path, result.bytecode.data(),
-                                  result.bytecode.size(), false);
+        utils::io::write_file_bytes(bytecode_out_path, result.bytecode.data(),
+                                    result.bytecode.size(), false);
 
-      const std::filesystem::path gdb_out_path = script_file_str + ".gdb";
-      utils::io::write_file_bytes(gdb_out_path, result.gdb.data(),
-                                  result.gdb.size(), false);
+        const std::filesystem::path gdb_out_path = script_file_str + ".gdb";
+        utils::io::write_file_bytes(gdb_out_path, result.gdb.data(),
+                                    result.gdb.size(), false);
 
 #endif
 
-      print_loading_script(name);
-      std::string bytecode(result.bytecode.begin(), result.bytecode.end());
-      load_script(name, bytecode, load);
-      add_gdb(name, result.gdb);
-      objFileInfo_t *obj =
-          get_obj_by_name(scriptInstance_t::SCRIPTINSTANCE_SERVER, name);
-      if (obj) {
-        script_sources.modify_if(name, [&](auto &v) {
-          char *src = v.second.data();
-          obj->debugInfo.source = src;
-          obj->debugInfo.sourceLen = v.second.size();
-          for (size_t i = 0; i < v.second.size(); ++i) {
-            char *c = &src[i];
-            if (*c == '\n' || *c == '\r') {
-              *c = '\0';
+        print_loading_script(name);
+        std::string bytecode(result.bytecode.begin(), result.bytecode.end());
+        load_script(name, bytecode, load);
+        add_gdb(name, result.gdb);
+        objFileInfo_t *obj =
+            get_obj_by_name(scriptInstance_t::SCRIPTINSTANCE_SERVER, name);
+        if (obj) {
+          script_sources.modify_if(name, [&](auto &v) {
+            char *src = v.second.data();
+            obj->debugInfo.source = src;
+            obj->debugInfo.sourceLen = v.second.size();
+            for (size_t i = 0; i < v.second.size(); ++i) {
+              char *c = &src[i];
+              if (*c == '\n' || *c == '\r') {
+                *c = '\0';
+              }
             }
-          }
-        });
-      }
-
-      // Register replacefunc entries as pending detours
-      if (!result.replacefuncs.empty()) {
-        std::string replace_base = name;
-        if (utils::string::ends_with(replace_base, ".gsc") ||
-            utils::string::ends_with(replace_base, ".csc"))
-          replace_base = replace_base.substr(0, replace_base.size() - 4);
-
-        for (gsc_compiler::replacefunc_entry &rf : result.replacefuncs) {
-          const std::string replace_script =
-              rf.replace_script.empty() ? replace_base : rf.replace_script;
-          pending_detours.access([&](auto &pending_detours) {
-            pending_detours.push_back(
-                {rf.target_script, rf.target_func,
-                 gsc::gsc_hash(rf.target_func), rf.target_params,
-                 replace_script, rf.replace_func,
-                 gsc::gsc_hash(rf.replace_func), rf.replace_params});
           });
         }
-      }
-    } else {
-      const std::function<std::string(const std::string &src, int32_t line_num)>
-          get_source_line =
-              [](const std::string &src, int32_t line_num) -> std::string {
-        if (line_num <= 0)
-          return "";
-        int32_t current = 1;
-        size_t start = 0;
-        while (current < line_num && start < src.size()) {
-          if (src[start] == '\n')
-            current++;
-          start++;
-        }
-        if (current != line_num)
-          return "";
-        size_t end = src.find('\n', start);
-        if (end == std::string::npos)
-          end = src.size();
-        std::string line = src.substr(start, end - start);
-        if (!line.empty() && line.back() == '\r')
-          line.pop_back();
-        return line;
-      };
 
-      const char *err_header = utils::string::va(
-          "^1*********************%s COMPILE ERROR*********************",
-          script_type);
-      fprintf(stderr, "%s\n", err_header);
-      fflush(stderr);
-      game::trace("%s", err_header);
-      for (const auto &err : result.errors) {
-        const char *file_log =
-            utils::string::va("^1  File:    ^5%s", err.file.data());
-        fprintf(stderr, "%s\n", file_log);
-        fflush(stderr);
-        game::trace("%s", file_log);
-        if (err.line > 0) {
-          const char *line_column_log = utils::string::va(
-              "^1  Line:    ^2%d^7, ^1Column: ^2%d", err.line, err.column);
-          fprintf(stderr, "%s\n", line_column_log);
-          fflush(stderr);
-          game::trace("%s", line_column_log);
-          std::string src_line = get_source_line(data, err.line);
-          if (!src_line.empty()) {
-            const char *src_log =
-                utils::string::va("^1  Source:  ^7%s", src_line.data());
-            fprintf(stderr, "%s\n", src_log);
-            fflush(stderr);
-            game::trace("%s", src_log);
+        // Register replacefunc entries as pending detours
+        if (!result.replacefuncs.empty()) {
+          std::string replace_base = name;
+          if (utils::string::ends_with(replace_base, ".gsc") ||
+              utils::string::ends_with(replace_base, ".csc"))
+            replace_base = replace_base.substr(0, replace_base.size() - 4);
+
+          for (gsc_compiler::replacefunc_entry &rf : result.replacefuncs) {
+            const std::string replace_script =
+                rf.replace_script.empty() ? replace_base : rf.replace_script;
+            pending_detours.access([&](auto &pending_detours) {
+              pending_detours.push_back(
+                  {rf.target_script, rf.target_func,
+                   gsc::gsc_hash(rf.target_func), rf.target_params,
+                   replace_script, rf.replace_func,
+                   gsc::gsc_hash(rf.replace_func), rf.replace_params});
+            });
           }
         }
-        const char *error_log =
-            utils::string::va("^1  Error:   ^1%s", err.message.data());
-        fprintf(stderr, "%s\n", error_log);
+      } else {
+        const std::function<std::string(const std::string &src,
+                                        int32_t line_num)>
+            get_source_line =
+                [](const std::string &src, int32_t line_num) -> std::string {
+          if (line_num <= 0)
+            return "";
+          int32_t current = 1;
+          size_t start = 0;
+          while (current < line_num && start < src.size()) {
+            if (src[start] == '\n')
+              current++;
+            start++;
+          }
+          if (current != line_num)
+            return "";
+          size_t end = src.find('\n', start);
+          if (end == std::string::npos)
+            end = src.size();
+          std::string line = src.substr(start, end - start);
+          if (!line.empty() && line.back() == '\r')
+            line.pop_back();
+          return line;
+        };
+
+        const char *err_header = utils::string::va(
+            "^1*********************%s COMPILE ERROR*********************",
+            script_type);
+        fprintf(stderr, "%s\n", err_header);
         fflush(stderr);
-        game::trace("%s", error_log);
-        const char *footer_p1_log = utils::string::va(
-            "^1------------------------------------------------------------");
-        fprintf(stderr, "%s\n", footer_p1_log);
+        game::trace("%s", err_header);
+        for (const gsc_compiler::compile_error &err : result.errors) {
+          const char *file_log =
+              utils::string::va("^1  File:    ^5%s", err.file.data());
+          fprintf(stderr, "%s\n", file_log);
+          fflush(stderr);
+          game::trace("%s", file_log);
+          if (err.line > 0) {
+            const char *line_column_log = utils::string::va(
+                "^1  Line:    ^2%d^7, ^1Column: ^2%d", err.line, err.column);
+            fprintf(stderr, "%s\n", line_column_log);
+            fflush(stderr);
+            game::trace("%s", line_column_log);
+            std::string src_line = get_source_line(data, err.line);
+            if (!src_line.empty()) {
+              const char *src_log =
+                  utils::string::va("^1  Source:  ^7%s", src_line.data());
+              fprintf(stderr, "%s\n", src_log);
+              fflush(stderr);
+              game::trace("%s", src_log);
+            }
+          }
+          const char *error_log =
+              utils::string::va("^1  Error:   ^1%s", err.message.data());
+          fprintf(stderr, "%s\n", error_log);
+          fflush(stderr);
+          game::trace("%s", error_log);
+          const char *footer_p1_log = utils::string::va(
+              "^1------------------------------------------------------------");
+          fprintf(stderr, "%s\n", footer_p1_log);
+          fflush(stderr);
+          game::trace("%s", footer_p1_log);
+        }
+        const char *footer_p2_log = utils::string::va(
+            "^1************************************************************");
+        fprintf(stderr, "%s\n", footer_p2_log);
         fflush(stderr);
-        game::trace("%s", footer_p1_log);
+        game::trace("%s", footer_p2_log);
       }
-      const char *footer_p2_log = utils::string::va(
-          "^1************************************************************");
-      fprintf(stderr, "%s\n", footer_p2_log);
-      fflush(stderr);
-      game::trace("%s", footer_p2_log);
     }
   }
 }

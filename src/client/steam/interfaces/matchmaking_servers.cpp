@@ -22,10 +22,10 @@ struct server {
   gameserveritem_t server_item{};
 };
 
-auto *const internet_request = reinterpret_cast<void *>(1);
-auto *const favorites_request = reinterpret_cast<void *>(4);
-auto *const history_request = reinterpret_cast<void *>(5);
-auto *const friends_request = reinterpret_cast<void *>(3);
+void *const internet_request = reinterpret_cast<void *>(1);
+void *const favorites_request = reinterpret_cast<void *>(4);
+void *const history_request = reinterpret_cast<void *>(5);
+void *const friends_request = reinterpret_cast<void *>(3);
 
 using servers = std::vector<server>;
 

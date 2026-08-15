@@ -48,8 +48,43 @@ static_assert(MAXIMUM_RELIABLE_COMMAND_DATA_LEN == 0x3FD,
               "MAXIMUM_RELIABLE_COMMAND_DATA_LEN == 0x3FD");
 
 enum class ReliableCommand : char {
-  NOP = '\0',             // 0x00: Empty command / return
-  GIVE_ACHIEVEMENT = '#', // 0x23: LiveAchievements_GiveAchievement
+  NOP = '\0',                   // 0x00: Empty command / return
+  RESERVED_UNUSED_01 = '\x01',  // 0x01
+  RESERVED_UNUSED_02 = '\x02',  // 0x02
+  RESERVED_UNUSED_03 = '\x03',  // 0x03
+  RESERVED_UNUSED_04 = '\x04',  // 0x04
+  RESERVED_UNUSED_05 = '\x05',  // 0x05
+  RESERVED_UNUSED_06 = '\x06',  // 0x06
+  RESERVED_UNUSED_07 = '\x07',  // 0x07
+  RESERVED_UNUSED_08 = '\x08',  // 0x08
+  RESERVED_UNUSED_09 = '\x09',  // 0x09
+  RESERVED_UNUSED_0A = '\x0A',  // 0x0A
+  RESERVED_UNUSED_0B = '\x0B',  // 0x0B
+  RESERVED_UNUSED_0C = '\x0C',  // 0x0C
+  RESERVED_UNUSED_0D = '\x0D',  // 0x0D
+  RESERVED_UNUSED_0E = '\x0E',  // 0x0E
+  RESERVED_UNUSED_0F = '\x0F',  // 0x0F
+  RESERVED_UNUSED_10 = '\x10',  // 0x10
+  RESERVED_UNUSED_11 = '\x11',  // 0x11
+  RESERVED_UNUSED_12 = '\x12',  // 0x12
+  RESERVED_UNUSED_13 = '\x13',  // 0x13
+  RESERVED_UNUSED_14 = '\x14',  // 0x14
+  RESERVED_UNUSED_15 = '\x15',  // 0x15
+  RESERVED_UNUSED_16 = '\x16',  // 0x16
+  RESERVED_UNUSED_17 = '\x17',  // 0x17
+  RESERVED_UNUSED_18 = '\x18',  // 0x18
+  RESERVED_UNUSED_19 = '\x19',  // 0x19
+  RESERVED_UNUSED_1A = '\x1A',  // 0x1A
+  RESERVED_UNUSED_1B = '\x1B',  // 0x1B
+  RESERVED_UNUSED_1C = '\x1C',  // 0x1C
+  RESERVED_UNUSED_1D = '\x1D',  // 0x1D
+  RESERVED_UNUSED_1E = '\x1E',  // 0x1E
+  RESERVED_UNUSED_1F = '\x1F',  // 0x1F
+  RESERVED_UNUSED_SPACE = ' ',  // 0x20
+  RESERVED_UNUSED_EXCLAM = '!', // 0x21
+  RESERVED_UNUSED_QUOTE = '"',  // 0x22
+  GIVE_ACHIEVEMENT = '#',       // 0x23: LiveAchievements_GiveAchievement
+  RESERVED_UNUSED_DOLLAR = '$', // 0x24
 
   /* Commands for `BCS` (BigConfigString) command sequence
      BCS command sequences are used to send config strings with length exceeding
@@ -71,25 +106,30 @@ enum class ReliableCommand : char {
   BLUR_SERVER_CMD = '(', // 0x28: CG_BlurServerCommand
   // 0x29: CG_TranslateHudElemMessage / CG_BoldGameMessage
   ANNOUNCEMENT_MSG = ')',
-  CHAT_MSG = '+',                  // 0x2B: CG_ChatMessage
-  NITROUS_VEHICLE_TELEPPORT = '/', // 0x2F: NitrousVehicle::Teleport
-  SET_CLIENT_SYSTEM_STATE = '0',   // 0x30: CG_ParseClientSystemStateChange
-  CHECKPOINT_COMMIT = '1',         // 0x31: CL_Checkpoint_Commit
-  // Inline config string length limit of 0x3FD.
-  // Must use a `BCS` (BigConfigString) reliable command sequence for
-  // config strings with length > 0x3FD.
+  RESERVED_UNUSED_ASTERISK = '*', // 0x2A
+  CHAT_MSG = '+',                 // 0x2B: CG_ChatMessage
+  NITROUS_VEHICLE_TELEPORT = '/', // 0x2F: NitrousVehicle::Teleport
+  SET_CLIENT_SYSTEM_STATE = '0',  // 0x30: CG_ParseClientSystemStateChange
+  CHECKPOINT_COMMIT = '1',        // 0x31: CL_Checkpoint_Commit
+  // Inline combined config string, serialized index string length limit is
+  // 0x3FD. Must use a `BCS` (BigConfigString) reliable command sequence for
+  // config strings with length > (0x3FD - serialized index string length).
   CONFIG_STRING_MODIFIED = '2', // 0x32: CG_ConfigStringModified
+  RESERVED_UNUSED_3 = '3',      // 0x33
+  RESERVED_UNUSED_4 = '4',      // 0x34
   // 0x35: LiveStats_GameHistory_FinishMatch, then unconditional
   // EXE_SERVER_DISCONNECTED error
   DISCONNECT = '5',
   DYN_ENT_DESTROY_EVENT = '7', // 0x37: DynEntCl_DestroyEvent
+  RESERVED_UNUSED_8 = '8',     // 0x38
+  RESERVED_UNUSED_9 = '9',     // 0x39
   EXPLODER = ':',              // 0x3A: CG_ParseExploderCommand
   GAME_MSG = ';',              // 0x3B: CG_GameMessage
   BOLD_GAME_MSG_CENTER = '<',  // 0x3C: CG_BoldGameMessageCenter
   CHECKPOINT_SAVE = '=',       // 0x3D: CL_Checkpoint_Save
   RESET_WEAPON_STATE = '>',    // 0x3E: PM_ResetWeaponState
   CLOSE_IN_GAME_MENU = '@',    // 0x40: UI_CloseInGameMenu
-  LOCAL_SOUND = 'B',           // 0x42: LocalSound
+  LOCAL_SOUND_START = 'B',     // 0x42: LocalSound
   LOCAL_SOUND_STOP = 'C',      // 0x43: LocalSoundStop
   LUI_NOTIFY = 'D',            // 0x44: CG_ParseLUINotify
   RADIANT_EXPLODER = 'E',      // 0x45: CG_ParseRadiantExploderCommand
@@ -97,22 +137,33 @@ enum class ReliableCommand : char {
   HIT_MARKER = 'M',            // 0x4D: HitMarker
   OPEN_SCRIPT_MENU = 'N',      // 0x4E: CG_OpenScriptMenu
   // 0x4F: LiveTracker_WriteForAllLocalUsers / CG_GameMessage
-  TRACKER_GAME_MSG = 'O',
-  MAP_RESTART_FAST = 'U',       // 0x55: CG_MapRestart(..., 1)
-  AIRSUPPORT = 'V',             // 0x56: CG_ParseAirsupport
-  BURN = 'W',                   // 0x57: CG_BurnServerCommand
-  SCR_CAMERA = 'X',             // 0x58: CG_ScrCamera
-  ELECTRIFIED = 'Y',            // 0x59: CG_ElectrifiedServerCommand
-  SET_EQUIPPED_OFF_HAND = '\\', // 0x5C: CG_SetEquippedOffHand
-  SET_CLIENT_DVAR = '^',        // 0x5E: CG_SetClientDvarFromServer
+  TRACKER_GAME_MSG = 'O',             // 0x4F
+  RESERVED_UNUSED_UP = 'P',           // 0x50
+  RESERVED_UNUSED_UQ = 'Q',           // 0x51
+  RESERVED_UNUSED_UR = 'R',           // 0x52
+  RESERVED_UNUSED_US = 'S',           // 0x53
+  RESERVED_UNUSED_UT = 'T',           // 0x54
+  MAP_RESTART_FAST = 'U',             // 0x55: CG_MapRestart(..., 1)
+  AIRSUPPORT = 'V',                   // 0x56: CG_ParseAirsupport
+  BURN = 'W',                         // 0x57: CG_BurnServerCommand
+  SCR_CAMERA = 'X',                   // 0x58: CG_ScrCamera
+  ELECTRIFIED = 'Y',                  // 0x59: CG_ElectrifiedServerCommand
+  RESERVED_UNUSED_UZ = 'Z',           // 0x5A
+  RESERVED_UNUSED_LBRACK = '[',       // 0x5B
+  SET_EQUIPPED_OFF_HAND = '\\',       // 0x5C: CG_SetEquippedOffHand
+  SET_CLIENT_DVAR = '^',              // 0x5E: CG_SetClientDvarFromServer
+  RESERVED_UNUSED_UNDERSCORE = '_',   // 0x5F
+  RESERVED_UNUSED_GRAVE_ACCENT = '`', // 0x60
   // // 0x61: cgameGlob->hideViewModel = 0;
   SHOW_VIEW_MODEL = 'a',
+  RESERVED_UNUSED_B = 'b', // 0x62
   // 0x63: R_Stream_ProcessHintEntity (or CG_SpawnPrediction)
   PROCESS_HINT_ENTITY = 'c',
   START_FADING_BLUR = 'd', // 0x64: CG_StartFadingBlurServerCommand
   // 0x65: LiveStats_SetStatChanged / LiveStats_SetStatChangedNoCache
   SET_STAT_CHANGED = 'e',
-  SET_CHECK_SUM = 'f',  // 0x66: LiveStats_SetCheckSumFromServer
+  SET_CHECK_SUM = 'f',     // 0x66: LiveStats_SetCheckSumFromServer
+  RESERVED_UNUSED_G = 'g', // 0x67
   SELECT_WEAPON = 'h',  // 0x68: CG_SwitchToLatestPrimary / CG_SelectWeaponIndex
   SET_TEAM_SCORE = 'i', // 0x69: CG_SetTeamScore
   /*
@@ -121,11 +172,14 @@ enum class ReliableCommand : char {
     Unsure currently why there are two commands for chat messages.
   */
   CHAT_MSG_ALT = 'j',
-  GET_USER_SPONSOR = 'm',        // 0x6D: Live_GetUserSponsor
-  UPLOAD_STATS = 'n',            // 0x6E: LiveStats_CompareStatsVsStableBuffer /
-                                 // LiveStorage_UploadStatsForController
-  VISION_SET_LERP_TO = 'o',      // 0x6F: CG_VisionSetStartLerp_To
-  WATER_DROPS = 'p',             // 0x70: CG_WaterDropsServerCommand
+  RESERVED_UNUSED_K = 'k',  // 0x6B
+  RESERVED_UNUSED_L = 'l',  // 0x6C
+  GET_USER_SPONSOR = 'm',   // 0x6D: Live_GetUserSponsor
+  UPLOAD_STATS = 'n',       // 0x6E: LiveStats_CompareStatsVsStableBuffer /
+                            // LiveStorage_UploadStatsForController
+  VISION_SET_LERP_TO = 'o', // 0x6F: CG_VisionSetStartLerp_To
+  WATER_DROPS = 'p',        // 0x70: CG_WaterDropsServerCommand
+  RESERVED_UNUSED_Q = 'q',
   SET_WORLD_FOG_BANK = 'r',      // 0x72: CG_SetWorldFogActiveBank
   UPDATE_FOV = 's',              // 0x73: CG_UpdateFov
   TEAM_OPS = 't',                // 0x74: CG_TeamOpsSetID / Progress / ShowHUD
@@ -134,6 +188,7 @@ enum class ReliableCommand : char {
   UPDATE_ZOMBIE_DOUBLE_XP = 'w', // 0x77: Live_DoubleXPUpdateZombieDoubleXP
   INC_LOOT_CURRENCY = 'x',       // 0x78: Loot_IncCurrency (Vials or MP Loot XP)
   CONSUME_INVENTORY_ITEM = 'y',  // 0x79: LiveInventory_ConsumeItem
+  RESERVED_UNUSED_Z = 'z'        // 0x80
 };
 
 struct client_s {
