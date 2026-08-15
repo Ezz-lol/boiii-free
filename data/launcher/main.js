@@ -445,17 +445,17 @@
   var gearBtn = document.getElementById("gearBtn");
   var launchDropdown = document.getElementById("launchDropdown");
 
+  function setLaunchDropdownOpen(open) {
+    if (!gearBtn || !launchDropdown) return;
+    launchDropdown.classList.toggle("open", open);
+    gearBtn.classList.toggle("open", open);
+    gearBtn.setAttribute("aria-expanded", open ? "true" : "false");
+  }
+
   if (gearBtn && launchDropdown) {
     gearBtn.onclick = function (e) {
       e.stopPropagation();
-      var isOpen = launchDropdown.classList.contains("open");
-      if (isOpen) {
-        launchDropdown.classList.remove("open");
-        gearBtn.classList.remove("open");
-      } else {
-        launchDropdown.classList.add("open");
-        gearBtn.classList.add("open");
-      }
+      setLaunchDropdownOpen(!launchDropdown.classList.contains("open"));
     };
     launchDropdown.onclick = function (e) {
       e.stopPropagation();
@@ -464,8 +464,18 @@
 
   document.addEventListener("click", function () {
     if (launchDropdown && launchDropdown.classList.contains("open")) {
-      launchDropdown.classList.remove("open");
-      if (gearBtn) gearBtn.classList.remove("open");
+      setLaunchDropdownOpen(false);
+    }
+  });
+
+  document.addEventListener("keydown", function (e) {
+    if (
+      e.key === "Escape" &&
+      launchDropdown &&
+      launchDropdown.classList.contains("open")
+    ) {
+      setLaunchDropdownOpen(false);
+      gearBtn.focus();
     }
   });
 
@@ -506,8 +516,14 @@
         var optVal = (
           launchOptionCards[i].getAttribute("data-option") || ""
         ).toLowerCase();
+        var legacyOptVal = (
+          launchOptionCards[i].getAttribute("data-option-legacy") || ""
+        ).toLowerCase();
         for (var j = 0; j < parts.length; j++) {
-          if (optVal && optVal === parts[j]) {
+          if (
+            optVal &&
+            (optVal === parts[j] || legacyOptVal === parts[j])
+          ) {
             launchOptionCards[i].classList.add("active");
             break;
           }
@@ -2892,7 +2908,10 @@
         }
       }
 
-      var hasKeepLauncher = opts.toLowerCase().indexOf("keeplauncher") !== -1;
+      var launchOptionTokens = opts.toLowerCase().split(/\s+/);
+      var hasKeepLauncher =
+        launchOptionTokens.indexOf("keep-launcher") !== -1 ||
+        launchOptionTokens.indexOf("keeplauncher") !== -1;
       if (window._workshopPollInterval && !hasKeepLauncher) {
         showConfirm(
           "Download in progress",

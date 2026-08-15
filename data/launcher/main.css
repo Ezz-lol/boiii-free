@@ -1718,6 +1718,28 @@ h1 {
   z-index: 10;
 }
 
+@keyframes launch-options-border-spin {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+@keyframes launch-options-glow {
+  from {
+    box-shadow: 0 0 0 rgba(249, 115, 22, 0);
+  }
+
+  to {
+    box-shadow:
+      0 0 0 2px rgba(249, 115, 22, 0.08),
+      0 0 16px rgba(249, 115, 22, 0.3);
+  }
+}
+
 .gear-btn {
   min-width: 156px;
   height: 40px;
@@ -1752,13 +1774,25 @@ h1 {
 }
 
 .gear-btn:hover {
+  animation: none;
   border-color: rgba(249, 115, 22, 0.5);
   background: rgba(26, 24, 23, 0.95);
+  box-shadow: 0 0 12px rgba(249, 115, 22, 0.2);
+}
+
+.gear-btn:focus-visible {
+  animation: none;
+  outline: 2px solid rgba(249, 115, 22, 0.8);
+  outline-offset: 3px;
+  border-color: rgba(249, 115, 22, 0.6);
+  box-shadow: 0 0 14px rgba(249, 115, 22, 0.22);
 }
 
 .gear-btn.open {
+  animation: none;
   border-color: rgba(249, 115, 22, 0.6);
   background: rgba(249, 115, 22, 0.09);
+  box-shadow: 0 0 14px rgba(249, 115, 22, 0.22);
 }
 
 .launch-dropdown {
@@ -3165,10 +3199,54 @@ h1 {
 .gear-btn {
   filter: none;
   border-radius: 10px;
+  border-color: transparent;
   background: rgba(14,13,12,.94);
+  isolation: isolate;
+  overflow: hidden;
+  animation: launch-options-glow 1.3s ease-in-out infinite alternate;
   transition: transform 130ms ease, border-color 130ms ease, background-color 130ms ease;
 }
-.gear-btn:hover { transform: translateY(-1px); }
+.gear-btn::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 240px;
+  height: 240px;
+  z-index: 0;
+  pointer-events: none;
+  background: conic-gradient(
+    rgba(249,115,22,.12) 0deg,
+    rgba(249,115,22,.12) 245deg,
+    rgba(249,115,22,.95) 285deg,
+    rgba(255,228,196,1) 315deg,
+    rgba(249,115,22,.95) 340deg,
+    rgba(249,115,22,.12) 360deg
+  );
+  animation: launch-options-border-spin 2.6s linear infinite;
+}
+.gear-btn::after {
+  content: "";
+  position: absolute;
+  inset: 1px;
+  z-index: 1;
+  pointer-events: none;
+  border-radius: 9px;
+  background: rgba(14,13,12,.94);
+  transition: background-color 130ms ease;
+}
+.gear-btn > * {
+  position: relative;
+  z-index: 2;
+}
+.gear-btn:hover {
+  transform: translateY(-1px);
+  border-color: transparent;
+}
+.gear-btn:hover::after { background: rgba(26,24,23,.95); }
+.gear-btn:focus-visible { border-color: transparent; }
+.gear-btn.open::after { background: rgba(249,115,22,.09); }
+.gear-btn.open::before { animation: none; opacity: .25; }
 .launch-dropdown {
   width: 184px;
   border-radius: 12px;

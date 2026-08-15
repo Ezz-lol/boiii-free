@@ -61,7 +61,7 @@ void show() {
 
     if (image) {
       window = CreateWindowExA(WS_EX_APPWINDOW, "Black Ops III Splash Screen",
-                               "BOIII", WS_POPUP | WS_SYSMENU,
+                               "EZZ BOIII", WS_POPUP | WS_SYSMENU,
                                (x_pixels - 320) / 2, (y_pixels - 100) / 2, 320,
                                100, nullptr, nullptr, self, nullptr);
 

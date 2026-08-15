@@ -97,6 +97,10 @@ int32_t parse_flags(int argc, char *argv[]) {
       .help("Launch in windowed mode")
       .default_value(false)
       .implicit_value(true);
+  program.add_argument("-borderless", "--borderless")
+      .help("Launch in borderless fullscreen mode")
+      .default_value(false)
+      .implicit_value(true);
   program.add_argument("-safe", "--safe")
       .help("Launch in safe mode (disable mods)")
       .default_value(false)
@@ -200,11 +204,6 @@ int32_t parse_flags(int argc, char *argv[]) {
       .default_value(std::string("assets"));
   program.add_argument("-nc", "-nocinematics", "--nocinematics")
       .help("Skip playing all cinematics.")
-      .implicit_value(true)
-      .default_value(false);
-  program.add_argument("-ls", "-log-script-errors", "--log-script-errors")
-      .help("Log all script errors, regardless of severity or `developer` dvar "
-            "value.")
       .implicit_value(true)
       .default_value(false);
   program.add_argument("-ne", "-no-ext", "--no-ext")

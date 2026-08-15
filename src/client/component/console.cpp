@@ -6,6 +6,14 @@
 #include <game/game.hpp>
 #include "command.hpp"
 
+#if __has_include("version.hpp")
+#include "version.hpp"
+#else
+#ifndef SHORTVERSION
+#define SHORTVERSION "0"
+#endif
+#endif
+
 #include <utils/thread.hpp>
 #include <utils/hook.hpp>
 #include <utils/flags.hpp>
@@ -68,6 +76,10 @@ HWND completion_hint_hwnd{nullptr};
 std::vector<std::string> tab_cycle_matches{};
 std::string tab_cycle_partial{};
 size_t tab_cycle_index{0};
+
+bool hide_external_console() {
+  return utils::flags::has_flag("noconsole");
+}
 
 std::vector<std::string> command_history{};
 size_t history_index{0};
@@ -1227,9 +1239,19 @@ std::atomic_bool console_shown_once{false};
 void sys_show_console_stub() {
   if (!console_shown_once.exchange(true)) {
     sys_show_console_hook.invoke<void>();
+    if (hide_external_console() && *game::s_wcd::hWnd) {
+      ShowWindow(*game::s_wcd::hWnd, SW_HIDE);
+    }
     reset_tab_cycle();
     update_completion_hint("");
     restore_input_caret();
+    return;
+  }
+
+  if (hide_external_console()) {
+    if (*game::s_wcd::hWnd) {
+      ShowWindow(*game::s_wcd::hWnd, SW_HIDE);
+    }
     return;
   }
 
@@ -1255,7 +1277,8 @@ void sys_create_console_stub(const HINSTANCE h_instance) {
 
   const char *class_name = "BOIII WinConsole";
   const char *window_name =
-      game::is_server() ? "BOIII Server" : "BOIII Console";
+      game::is_server() ? "BOIII V" SHORTVERSION " - Server"
+                        : "BOIII V" SHORTVERSION " - Console";
 
   WNDCLASSA wnd_class{};
   wnd_class.style = 0;
@@ -1409,13 +1432,17 @@ void set_title(const std::string &title) {
 
 struct component final : generic_component {
   component() {
+    SetConsoleTitleA("EZZ BOIII V" SHORTVERSION);
+
     if (game::is_headless()) {
       if (!AttachConsole(ATTACH_PARENT_PROCESS)) {
         AllocConsole();
         AttachConsole(GetCurrentProcessId());
       }
 
-      ShowWindow(GetConsoleWindow(), SW_SHOW);
+      SetConsoleTitleA("EZZ BOIII V" SHORTVERSION);
+      ShowWindow(GetConsoleWindow(),
+                 hide_external_console() ? SW_HIDE : SW_SHOW);
 
       FILE *fp;
       freopen_s(&fp, "CONIN$", "r", stdin);

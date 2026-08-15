@@ -97,6 +97,9 @@
               class="gear-btn"
               id="gearBtn"
               title="Launch Options"
+              aria-haspopup="true"
+              aria-expanded="false"
+              aria-controls="launchDropdown"
             >
               <span class="gear-btn-icon">&#9655;</span>
               <span class="gear-btn-label">Launch Options</span>
@@ -106,11 +109,85 @@
               <div class="launch-dropdown-list">
                 <div
                   class="launch-option-card"
+                  data-option="noconsole"
+                  data-option-legacy="nologs"
+                  title="Hide the external console window without disabling logs"
+                >
+                  <span class="launch-option-dot"></span
+                  ><span class="launch-option-name">No Console</span>
+                </div>
+                <div
+                  class="launch-option-card"
+                  data-option="keep-launcher"
+                  data-option-legacy="keeplauncher"
+                  title="Keep the launcher open after starting the game"
+                >
+                  <span class="launch-option-dot"></span
+                  ><span class="launch-option-name">Keep Launcher</span>
+                </div>
+                <div
+                  class="launch-option-card"
+                  data-option="cheats"
+                  title="Enable cheat dvars and commands; other players can use them in a hosted private match"
+                >
+                  <span class="launch-option-dot"></span
+                  ><span class="launch-option-name">Enable Cheats</span>
+                </div>
+                <div
+                  class="launch-option-card"
                   data-option="nointro"
                   title="Skip the intro cinematic on startup"
                 >
                   <span class="launch-option-dot"></span
                   ><span class="launch-option-name">Skip Intro</span>
+                </div>
+                <div
+                  class="launch-option-card"
+                  data-option="borderless"
+                  title="Run in borderless fullscreen mode"
+                >
+                  <span class="launch-option-dot"></span
+                  ><span class="launch-option-name">Borderless</span>
+                </div>
+                <div
+                  class="launch-option-card"
+                  data-option="windowed"
+                  title="Run the game in a windowed window"
+                >
+                  <span class="launch-option-dot"></span
+                  ><span class="launch-option-name">Windowed</span>
+                </div>
+                <div
+                  class="launch-option-card"
+                  data-option="ultrawide"
+                  title="Enable ultrawide UI scaling; some interfaces may not align correctly"
+                >
+                  <span class="launch-option-dot"></span
+                  ><span class="launch-option-name">Ultrawide UI</span>
+                </div>
+                <div
+                  class="launch-option-card"
+                  data-option="nocinematics"
+                  title="Skip every cinematic, including in-game cutscenes"
+                >
+                  <span class="launch-option-dot"></span
+                  ><span class="launch-option-name">Skip Cinematics</span>
+                </div>
+                <div
+                  class="launch-option-card"
+                  data-option="fulllogs"
+                  title="Show full untruncated log output (logs are trimmed by default)"
+                >
+                  <span class="launch-option-dot"></span
+                  ><span class="launch-option-name">Full Logs</span>
+                </div>
+                <div
+                  class="launch-option-card"
+                  data-option="console"
+                  title="Enable the developer console in-game"
+                >
+                  <span class="launch-option-dot"></span
+                  ><span class="launch-option-name">Dev Console</span>
                 </div>
                 <div
                   class="launch-option-card"
@@ -130,19 +207,11 @@
                 </div>
                 <div
                   class="launch-option-card"
-                  data-option="windowed"
-                  title="Run the game in a windowed window"
+                  data-option="noplugins"
+                  title="Disable loading of custom plugins (plugins are enabled by default)"
                 >
                   <span class="launch-option-dot"></span
-                  ><span class="launch-option-name">Windowed</span>
-                </div>
-                <div
-                  class="launch-option-card"
-                  data-option="borderless"
-                  title="Run in borderless fullscreen mode"
-                >
-                  <span class="launch-option-dot"></span
-                  ><span class="launch-option-name">Borderless</span>
+                  ><span class="launch-option-name">No Plugins</span>
                 </div>
                 <div
                   class="launch-option-card"
@@ -154,51 +223,11 @@
                 </div>
                 <div
                   class="launch-option-card"
-                  data-option="console"
-                  title="Enable the developer console in-game"
-                >
-                  <span class="launch-option-dot"></span
-                  ><span class="launch-option-name">Dev Console</span>
-                </div>
-                <div
-                  class="launch-option-card"
                   data-option="headless"
                   title="Run the server without a visible window"
                 >
                   <span class="launch-option-dot"></span
                   ><span class="launch-option-name">Headless</span>
-                </div>
-                <div
-                  class="launch-option-card"
-                  data-option="fulllogs"
-                  title="Show full untruncated log output (logs are trimmed by default)"
-                >
-                  <span class="launch-option-dot"></span
-                  ><span class="launch-option-name">Full Logs</span>
-                </div>
-                <div
-                  class="launch-option-card"
-                  data-option="nologs"
-                  title="Disable the external console window"
-                >
-                  <span class="launch-option-dot"></span
-                  ><span class="launch-option-name">No Console</span>
-                </div>
-                <div
-                  class="launch-option-card"
-                  data-option="keeplauncher"
-                  title="Keep the launcher open after starting the game"
-                >
-                  <span class="launch-option-dot"></span
-                  ><span class="launch-option-name">Keep Launcher</span>
-                </div>
-                <div
-                  class="launch-option-card"
-                  data-option="noplugins"
-                  title="Disable loading of custom plugins (plugins are enabled by default)"
-                >
-                  <span class="launch-option-dot"></span
-                  ><span class="launch-option-name">No Plugins</span>
                 </div>
               </div>
             </div>

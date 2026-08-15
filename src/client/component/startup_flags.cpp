@@ -9,7 +9,9 @@
 namespace startup_flags {
 namespace {
 void apply_startup_flags() {
-  if (utils::flags::has_flag("windowed")) {
+  if (utils::flags::has_flag("borderless")) {
+    game::r_fullscreen->set(2);
+  } else if (utils::flags::has_flag("windowed")) {
     game::r_fullscreen->set(false);
   }
 
