@@ -4,6 +4,7 @@
 #include "updater_ui.hpp"
 #include "file_updater.hpp"
 
+#include <game/game.hpp>
 #include <utils/cryptography.hpp>
 #include <utils/flags.hpp>
 #include <utils/http.hpp>
@@ -137,7 +138,8 @@ file_updater::file_updater(progress_listener &listener,
       dead_process_file_(process_file_) {
   this->dead_process_file_.replace_extension(".exe.old");
 
-  if (this->process_file_.extension() == ".old") {
+  if (this->process_file_.extension() == ".old" &&
+      !is_dedicated_server() && !game::is_headless()) {
     utils::progress_ui::show_error(
         "Update Error", "You are running from a backup file (boiii.exe.old). "
                         "Please restore boiii.exe and try again.");
@@ -231,7 +233,9 @@ void file_updater::run() const {
     }
   }
 
-  this->update_files(remaining_files);
+  if (!remaining_files.empty()) {
+    this->update_files(remaining_files);
+  }
 
   std::this_thread::sleep_for(1s);
 }
@@ -345,9 +349,15 @@ void file_updater::update_host_binary(
     return;
   }
 
+  bool process_file_moved = false;
   try {
     OutputDebugStringA("Starting exe update process...\n");
-    this->move_current_process_file();
+    process_file_moved = this->move_current_process_file();
+    if (!process_file_moved) {
+      OutputDebugStringA(
+          "Exe update skipped because the executable is in use\n");
+      return;
+    }
 
     OutputDebugStringA("Waiting for file system to settle...\n");
     std::this_thread::sleep_for(500ms);
@@ -397,7 +407,8 @@ void file_updater::update_host_binary(
   } catch (...) {
     const auto update_error = std::current_exception();
     OutputDebugStringA("Exe update failed, restoring old file...\n");
-    if (utils::io::file_exists(this->dead_process_file_)) {
+    if (process_file_moved &&
+        utils::io::file_exists(this->dead_process_file_)) {
       this->restore_current_process_file();
     }
 
@@ -519,7 +530,7 @@ file_updater::get_drive_filename(const file_info &file) const {
   return this->base_ / file.name;
 }
 
-void file_updater::move_current_process_file() const {
+bool file_updater::move_current_process_file() const {
   OutputDebugStringA(("Moving exe from " + this->process_file_.string() +
                       " to " + this->dead_process_file_.string() + "\n")
                          .c_str());
@@ -537,7 +548,7 @@ void file_updater::move_current_process_file() const {
                     MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH |
                         MOVEFILE_COPY_ALLOWED)) {
       OutputDebugStringA("Successfully moved exe to .old\n");
-      return;
+      return true;
     }
 
     const DWORD error = GetLastError();
@@ -545,9 +556,8 @@ void file_updater::move_current_process_file() const {
                         "/5, error: " + std::to_string(error) + "\n")
                            .c_str());
 
-    if (is_dedicated_server() &&
-        (error == ERROR_SHARING_VIOLATION || error == ERROR_ACCESS_DENIED)) {
-      throw std::runtime_error("Dedicated server executable is in use");
+    if (error == ERROR_SHARING_VIOLATION || error == ERROR_ACCESS_DENIED) {
+      return false;
     }
 
     if (i < 4) {

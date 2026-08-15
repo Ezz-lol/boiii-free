@@ -1117,6 +1117,13 @@ std::string normalize_option_token(std::string token) {
   return token;
 }
 
+bool has_launch_option(const std::vector<std::string> &options,
+                       const std::string_view wanted) {
+  return std::ranges::any_of(options, [wanted](const std::string &option) {
+    return normalize_option_token(option) == wanted;
+  });
+}
+
 bool relaunch_with_launch_options(const std::vector<std::string> &options);
 
 bool relaunch_exe_with_launch_options(const std::string &exe_path,
@@ -1126,6 +1133,8 @@ bool relaunch_exe_with_launch_options(const std::string &exe_path,
   ZeroMemory(&startup_info, sizeof(startup_info));
   ZeroMemory(&process_info, sizeof(process_info));
   startup_info.cb = sizeof(startup_info);
+  char console_title[] = "EZZ BOIII V" SHORTVERSION;
+  startup_info.lpTitle = console_title;
 
   char current_dir[MAX_PATH];
   GetCurrentDirectoryA(sizeof(current_dir), current_dir);
@@ -1143,8 +1152,10 @@ bool relaunch_exe_with_launch_options(const std::string &exe_path,
     command_line += option;
   }
 
+  const DWORD creation_flags =
+      has_launch_option(options, "noconsole") ? 0 : CREATE_NEW_CONSOLE;
   if (CreateProcessA(exe_path.c_str(), command_line.data(), nullptr, nullptr,
-                     FALSE, CREATE_NEW_CONSOLE, nullptr, current_dir,
+                     FALSE, creation_flags, nullptr, current_dir,
                      &startup_info, &process_info)) {
     CloseHandle(process_info.hProcess);
     CloseHandle(process_info.hThread);
@@ -1202,6 +1213,8 @@ bool relaunch_with_launch_options(const std::vector<std::string> &options) {
   ZeroMemory(&startup_info, sizeof(startup_info));
   ZeroMemory(&process_info, sizeof(process_info));
   startup_info.cb = sizeof(startup_info);
+  char console_title[] = "EZZ BOIII V" SHORTVERSION;
+  startup_info.lpTitle = console_title;
 
   char current_dir[MAX_PATH];
   GetCurrentDirectoryA(sizeof(current_dir), current_dir);
@@ -1236,8 +1249,10 @@ bool relaunch_with_launch_options(const std::vector<std::string> &options) {
     command_line += " \"-" + token + "\"";
   }
 
+  const DWORD creation_flags =
+      has_launch_option(options, "noconsole") ? 0 : CREATE_NEW_CONSOLE;
   if (CreateProcessA(exe_path.data(), command_line.data(), nullptr, nullptr,
-                     false, CREATE_NEW_CONSOLE, nullptr, current_dir,
+                     false, creation_flags, nullptr, current_dir,
                      &startup_info, &process_info)) {
     if (process_info.hThread && process_info.hThread != INVALID_HANDLE_VALUE) {
       CloseHandle(process_info.hThread);

@@ -2,10 +2,18 @@
 #include "updater_ui.hpp"
 #include "update_cancelled.hpp"
 
+#include <game/game.hpp>
+#include <utils/flags.hpp>
 #include <utils/string.hpp>
 
 namespace updater {
-updater_ui::updater_ui() = default;
+namespace {
+bool use_headless_updater() {
+  return game::is_headless() || utils::flags::has_flag("dedicated");
+}
+} // namespace
+
+updater_ui::updater_ui() : progress_ui_(use_headless_updater()) {}
 updater_ui::~updater_ui() = default;
 
 void updater_ui::update_files(const std::vector<file_info> &files) {
@@ -16,7 +24,7 @@ void updater_ui::update_files(const std::vector<file_info> &files) {
   this->downloaded_files_.clear();
   this->downloading_files_.clear();
 
-  this->progress_ui_ = {game::is_headless()};
+  this->progress_ui_ = {use_headless_updater()};
   this->progress_ui_.set_title("BOIII Updater");
   this->progress_ui_.show(false);
 

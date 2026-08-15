@@ -8,6 +8,20 @@
 #include <updater/updater.hpp>
 
 namespace updater {
+namespace {
+bool show_updater_errors() {
+  return !game::is_headless() && !utils::flags::has_flag("dedicated");
+}
+
+void report_updater_error(const char *message) {
+  OutputDebugStringA(message);
+  OutputDebugStringA("\n");
+  if (show_updater_errors()) {
+    utils::progress_ui::show_error("Updater Error", message);
+  }
+}
+} // namespace
+
 void update() {
   if (utils::flags::has_flag("noupdate")) {
     return;
@@ -18,10 +32,9 @@ void update() {
   } catch (update_cancelled &) {
     TerminateProcess(GetCurrentProcess(), 0);
   } catch (const std::exception &e) {
-    utils::progress_ui::show_error("Updater Error", e.what());
+    report_updater_error(e.what());
   } catch (...) {
-    utils::progress_ui::show_error("Updater Error",
-                                   "Unknown error occurred during update.");
+    report_updater_error("Unknown error occurred during update.");
   }
 }
 
