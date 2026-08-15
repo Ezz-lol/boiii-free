@@ -1100,11 +1100,7 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
       error ? error : "NULL", terminal ? "true" : "false",
       prevCodePositionsString.c_str(), lastGoodCodePositionString.c_str());
 
-  fprintf(stderr, "%s\n", error_log);
-  fflush(stderr);
-#ifndef NDEBUG
-  trace("%s", error_log);
-#endif
+  print_script_log(error_log);
 
   return Scr_Error_hook.invoke(inst, error, terminal);
 }
