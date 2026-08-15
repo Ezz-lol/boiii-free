@@ -40,6 +40,11 @@ struct hash_info {
 
 constexpr size_t GSC_MAGIC = 0x1C000A0D43534780;
 
+void print_script_log(const char *message) {
+  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s\n", message);
+  game::trace("%s", message);
+}
+
 utils::hook::detour db_find_x_asset_header_hook;
 utils::hook::detour gscr_get_bgb_tokens_remaining_hook;
 
@@ -395,9 +400,7 @@ void apply_pending_detours() {
             "[gsc] detour bind failed %s::%s(%d) -> %s::%s(%d)",
             d.target_script.c_str(), d.target_func.c_str(), d.target_params,
             d.replace_script.c_str(), d.replace_func.c_str(), d.replace_params);
-        fprintf(stderr, "%s\n", err);
-        fflush(stderr);
-        game::trace("%s", err);
+        print_script_log(err);
       }
     }
 
@@ -422,8 +425,7 @@ void print_loading_script(const std::string &name) {
   const char *type = utils::string::ends_with(name, ".csc") ? "CSC" : "GSC";
   const char *log =
       utils::string::va("Loading %s script '%s'", type, name.data());
-  printf("%s\n", log);
-  game::trace("%s", log);
+  print_script_log(log);
 }
 
 void load_script(const std::string &name, const std::string &data,
@@ -436,9 +438,7 @@ void load_script(const std::string &name, const std::string &data,
   if (!is_gsc && !is_csc) {
     const char *err = utils::string::va(
         "Script '%s' failed to load due to invalid suffix.", name.data());
-    fprintf(stderr, "%s\n", err);
-    fflush(stderr);
-    game::trace("%s", err);
+    print_script_log(err);
     return;
   }
 
@@ -451,9 +451,7 @@ void load_script(const std::string &name, const std::string &data,
   if (base_name.empty()) {
     const char *err = utils::string::va(
         "Script '%s' failed to load due to invalid name.", name.data());
-    fprintf(stderr, "%s\n", err);
-    fflush(stderr);
-    game::trace("%s", err);
+    print_script_log(err);
     return;
   }
 
@@ -474,9 +472,7 @@ void load_script(const std::string &name, const std::string &data,
   }
   const char *log = utils::string::va("Loaded script '%s' (size %llu bytes)",
                                       name.data(), raw_file->len);
-  fprintf(stdout, "%s\n", log);
-  fflush(stdout);
-  game::trace("%s", log);
+  print_script_log(log);
 
   if (load) {
     const scriptInstance_t inst =
@@ -522,9 +518,7 @@ void load_script_file(std::string &data,
 
       const char *log = utils::string::va("Compiling %s script '%s'",
                                           script_type, name.c_str());
-      fprintf(stdout, "%s\n", log);
-      fflush(stdout);
-      game::trace("%s", log);
+      print_script_log(log);
       gsc_compiler::compile_result result =
           gsc_compiler::compile(cleaned_source, name);
       if (result.success) {
@@ -627,46 +621,32 @@ void load_script_file(std::string &data,
         const char *err_header = utils::string::va(
             "^1*********************%s COMPILE ERROR*********************",
             script_type);
-        fprintf(stderr, "%s\n", err_header);
-        fflush(stderr);
-        game::trace("%s", err_header);
+        print_script_log(err_header);
         for (const gsc_compiler::compile_error &err : result.errors) {
           const char *file_log =
               utils::string::va("^1  File:    ^5%s", err.file.data());
-          fprintf(stderr, "%s\n", file_log);
-          fflush(stderr);
-          game::trace("%s", file_log);
+          print_script_log(file_log);
           if (err.line > 0) {
             const char *line_column_log = utils::string::va(
                 "^1  Line:    ^2%d^7, ^1Column: ^2%d", err.line, err.column);
-            fprintf(stderr, "%s\n", line_column_log);
-            fflush(stderr);
-            game::trace("%s", line_column_log);
+            print_script_log(line_column_log);
             std::string src_line = get_source_line(data, err.line);
             if (!src_line.empty()) {
               const char *src_log =
                   utils::string::va("^1  Source:  ^7%s", src_line.data());
-              fprintf(stderr, "%s\n", src_log);
-              fflush(stderr);
-              game::trace("%s", src_log);
+              print_script_log(src_log);
             }
           }
           const char *error_log =
               utils::string::va("^1  Error:   ^1%s", err.message.data());
-          fprintf(stderr, "%s\n", error_log);
-          fflush(stderr);
-          game::trace("%s", error_log);
+          print_script_log(error_log);
           const char *footer_p1_log = utils::string::va(
               "^1------------------------------------------------------------");
-          fprintf(stderr, "%s\n", footer_p1_log);
-          fflush(stderr);
-          game::trace("%s", footer_p1_log);
+          print_script_log(footer_p1_log);
         }
         const char *footer_p2_log = utils::string::va(
             "^1************************************************************");
-        fprintf(stderr, "%s\n", footer_p2_log);
-        fflush(stderr);
-        game::trace("%s", footer_p2_log);
+        print_script_log(footer_p2_log);
       }
     }
   }
@@ -928,8 +908,7 @@ void load_global_hash_table() {
       }
       const char *log = utils::string::va("Loaded %zu hash names from '%s'",
                                           count, path.string().c_str());
-      printf("%s\n", log);
-      game::trace("%s", log);
+      print_script_log(log);
       return true;
     };
 
@@ -1066,8 +1045,21 @@ const char *Scr_PrevCodePos(scriptInstance_t inst, volatile uint8_t *codePos) {
 
 utils::hook::detour Scr_Error_hook;
 void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
+  static thread_local bool logging_error = false;
+  if (logging_error || inst < SCRIPTINSTANCE_SERVER ||
+      inst >= SCRIPTINSTANCE_MAX) {
+    return Scr_Error_hook.invoke(inst, error, terminal);
+  }
+
+  struct logging_guard {
+    bool &active;
+    explicit logging_guard(bool &active_) : active(active_) { active = true; }
+    ~logging_guard() { active = false; }
+    void release() { active = false; }
+  } guard(logging_error);
+
   void *callerAddr = _ReturnAddress();
-  if (is_server()) {
+  if (is_server() && *sv_detailedScriptErrors) {
     sv_detailedScriptErrors->set(true);
   }
   if (terminal) {
@@ -1075,30 +1067,38 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
     vm::gScrVmPub->instance[inst].debugCode = true;
   }
 
-  std::string prevCodePositionsString = "";
+  const int32_t function_count =
+      vm::gScrVmPub->instance[inst].function_count;
+  std::string prevCodePositionsString;
+  const bool valid_function_count =
+      function_count >= 0 &&
+      function_count <= static_cast<int32_t>(
+                            std::size(vm::gScrVmPub->instance[inst]
+                                          .function_frame_start));
   for (int32_t stackIdx = 0;
-       stackIdx < vm::gScrVmPub->instance[inst].function_count - 1;
-       ++stackIdx) {
+       valid_function_count && stackIdx < function_count; ++stackIdx) {
+    if (!prevCodePositionsString.empty()) {
+      prevCodePositionsString += "\n";
+    }
     prevCodePositionsString += std::format("[{}] ", stackIdx);
     prevCodePositionsString += Scr_PrevCodePos(
         inst,
         vm::gScrVmPub->instance[inst].function_frame_start[stackIdx].fs.pos);
-    prevCodePositionsString += "\n";
   }
-
-  const uint8_t final_stack_idx =
-      vm::gScrVmPub->instance[inst].function_count - 1;
-  prevCodePositionsString += std::format("[{}] ", final_stack_idx);
-  prevCodePositionsString +=
-      Scr_PrevCodePos(inst, vm::gScrVmPub->instance[inst]
-                                .function_frame_start[final_stack_idx]
-                                .fs.pos);
+  if (prevCodePositionsString.empty()) {
+    prevCodePositionsString = valid_function_count
+                                  ? "No active script frames."
+                                  : "Invalid script frame count.";
+  }
   std::string lastGoodCodePositionString =
       Scr_PrevCodePos(inst, vm::gFs->instance[inst].pos);
 
 #ifndef NDEBUG
+  vm::function_frame_t empty_frame{};
   volatile vm::function_frame_t *current_frame =
-      &vm::gScrVmPub->instance[inst].function_frame_start[0];
+      valid_function_count && function_count > 0
+          ? &vm::gScrVmPub->instance[inst].function_frame_start[0]
+          : &empty_frame;
 #endif
   const char *error_log = utils::string::va(
       "Scr_Error called from 0x%p with inst: %s, "
@@ -1125,11 +1125,8 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
       error ? error : "NULL", terminal ? "true" : "false",
       prevCodePositionsString.c_str(), lastGoodCodePositionString.c_str());
 
-  fprintf(stderr, "%s\n", error_log);
-  fflush(stderr);
-#ifndef NDEBUG
-  trace("%s", error_log);
-#endif
+  print_script_log(error_log);
+  guard.release();
 
   return Scr_Error_hook.invoke(inst, error, terminal);
 }
@@ -1194,11 +1191,7 @@ struct component final : generic_component {
     gscr_get_bgb_tokens_remaining_hook.create(gscr::GScr_GetBGBTokensRemaining,
                                               gscr_getbgbtokensremaining_stub);
 
-    if (utils::flags::has_flag("log-script-errors")) {
-      // Log all script errors, even when non-fatal and/or `developer` is
-      // disabled
-      Scr_Error_hook.create(Scr_Error, Scr_Error_LogAll);
-    }
+    Scr_Error_hook.create(Scr_Error, Scr_Error_LogAll);
 
     if (is_server()) {
       Hunk_UserFree_hook.create(hunk::Hunk_UserFree,
