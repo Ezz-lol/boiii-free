@@ -240,20 +240,20 @@ struct RegisteredCfgString {
 
   static constexpr BGCacheTypes CACHE_TYPE = BGCacheTypes::LOCSTRING;
 
-  inline void clear() noexcept {
+  inline void clear() volatile noexcept {
     idx.store(std::nullopt, std::memory_order_release);
   }
 
-  inline void set(int32_t loc_cfgstr_idx) {
+  inline void set(int32_t loc_cfgstr_idx) volatile {
     idx.store(loc_cfgstr_idx, std::memory_order_release);
   }
 
-  inline bool has_value() {
+  inline bool has_value() volatile {
     return idx.load(std::memory_order_acquire).has_value();
   }
 
   // Caller needs to have checked if idx has value prior to call
-  inline int32_t get_idx() {
+  inline int32_t get_idx() volatile {
     return idx.load(std::memory_order_acquire).value();
   }
 
@@ -263,7 +263,7 @@ struct RegisteredCfgString {
 
      Safety: Caller needs to have checked if `idx` has value prior to call
   */
-  inline int32_t abs_idx() {
+  inline int32_t abs_idx() volatile {
     return s_bgCacheTypeInfo->get(CACHE_TYPE).configStringStart + get_idx();
   }
 };
@@ -295,26 +295,20 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
     game_hudelem_t *elem = &g_hudelems->get(entref->u.hudElemIndex);
 
     elem->reset_value();
-    const uint32_t argc = Scr_GetNumParam(inst);
+    clear_message_bufs();
 
+    const uint32_t argc = Scr_GetNumParam(inst);
     Scr_ConstructMessageString(0, argc - 1, "Hud Elem String", message_buf,
-                               MAX_HUDELEM_MESSAGE_LEN);
+                               std::size(message_buf));
     com::Com_CleanStringForNetwork(message_buf, cleaned_message_buf,
-                                   MAX_HUDELEM_MESSAGE_LEN);
+                                   std::size(cleaned_message_buf));
 
     elem->elem.type = he_type_field_t::TEXT;
     const uint16_t hudElemIdx = entref->u.hudElemIndex;
-    RegisteredCfgString *pool_entry = &hudelem_cfgstr_pool[hudElemIdx];
+    volatile RegisteredCfgString *pool_entry = &hudelem_cfgstr_pool[hudElemIdx];
 
     const bgCacheInstance cache_inst = static_cast<bgCacheInstance>(inst);
-    const int32_t localized_cfgstring_index =
-        BG_Cache_GetLocStringIndex(cache_inst, cleaned_message_buf);
-    if (localized_cfgstring_index > 0) {
-      elem->elem.text = localized_cfgstring_index;
-    }
-    // Not a localized string. Need to register and/or modify the config string
-    // value.
-    else if (get_sv_running()) {
+    if (get_sv_running()) {
       if (!pool_entry->has_value()) {
         // Register new config string
         pool_entry->set(
@@ -356,7 +350,6 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
       sv::SV_SetConfigString_Impl(pool_entry->abs_idx(), cleaned_message_buf);
       elem->elem.text = pool_entry->get_idx();
     }
-    clear_message_bufs();
   } else [[unlikely]] {
     Scr_ObjectError(inst, "not a hud element");
   }
@@ -409,14 +402,14 @@ void BG_Cache_HandleConfigStringChange_ReuseExisting(
 
     /*
       Registration or modification of a config string with this index causes the
-     client to recompute its BG Cache checksum and validate it against the
-     server's - this is not a true config string modification.
+      client to recompute its BG Cache checksum and validate it against the
+      server's - this is not a true config string modification.
 
-     In a release profile build (ours), an invalid checksum does not trigger an
-     error or corrective behaviour otherwise - it simply logs the mismatch to
-     BB, re-computes the checksum, and continues. This recomputation of the
-     checksum causes a noticeable, slight drop in performance for the ~1/2 a
-     second it is occurring, so it seems preferable to skip this.
+      In a release profile build (ours), an invalid checksum does not trigger
+      an error or corrective behaviour otherwise - it simply logs the mismatch
+      to BB, re-computes the checksum, and continues. This recomputation of the
+      checksum causes a noticeable, slight drop in performance for the ~1/2 a
+      second it is occurring, so it seems preferable to skip this.
     */
   } else if (index != s_bgCacheTypeInfo->debugstring.configStringStart +
                           static_cast<int32_t>(std::size(

@@ -1228,8 +1228,8 @@ bool relaunch_exe_with_launch_options(const std::string &exe_path,
   const DWORD creation_flags =
       has_launch_option(options, "noconsole") ? 0 : CREATE_NEW_CONSOLE;
   if (CreateProcessA(exe_path.c_str(), command_line.data(), nullptr, nullptr,
-                     FALSE, creation_flags, nullptr, current_dir,
-                     &startup_info, &process_info)) {
+                     FALSE, creation_flags, nullptr, current_dir, &startup_info,
+                     &process_info)) {
     CloseHandle(process_info.hProcess);
     CloseHandle(process_info.hThread);
     return true;
@@ -1325,8 +1325,8 @@ bool relaunch_with_launch_options(const std::vector<std::string> &options) {
   const DWORD creation_flags =
       has_launch_option(options, "noconsole") ? 0 : CREATE_NEW_CONSOLE;
   if (CreateProcessA(exe_path.data(), command_line.data(), nullptr, nullptr,
-                     false, creation_flags, nullptr, current_dir,
-                     &startup_info, &process_info)) {
+                     false, creation_flags, nullptr, current_dir, &startup_info,
+                     &process_info)) {
     if (process_info.hThread && process_info.hThread != INVALID_HANDLE_VALUE) {
       CloseHandle(process_info.hThread);
     }

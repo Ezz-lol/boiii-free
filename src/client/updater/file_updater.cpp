@@ -138,8 +138,8 @@ file_updater::file_updater(progress_listener &listener,
       dead_process_file_(process_file_) {
   this->dead_process_file_.replace_extension(".exe.old");
 
-  if (this->process_file_.extension() == ".old" &&
-      !is_dedicated_server() && !game::is_headless()) {
+  if (this->process_file_.extension() == ".old" && !is_dedicated_server() &&
+      !game::is_headless()) {
     utils::progress_ui::show_error(
         "Update Error", "You are running from a backup file (boiii.exe.old). "
                         "Please restore boiii.exe and try again.");

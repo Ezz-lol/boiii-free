@@ -245,7 +245,9 @@ PACKED(struct bgCachedGenericData {
 
   inline constexpr void clearName() volatile {
     nameHash = BGCACHE_NAMEHASH_NULLPTR;
-    name[0] = '\0';
+    for (size_t i = 0; i < std::size(name); ++i) {
+      name[i] = '\0';
+    }
   }
 
   inline constexpr void setName(const char *new_name) volatile {

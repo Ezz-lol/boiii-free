@@ -673,6 +673,7 @@ ASSERT_OFFSET(centity_t, tmodeFlags, 0x822);
 ASSERT_OFFSET(centity_t, miscTime, 0x5F0);
 ASSERT_OFFSET(centity_t, loopSounds, 0x8BC);
 ASSERT_OFFSET(centity_t, lastAimTargetVisCheckTime, 0x8EC);
+ASSERT_OFFSET(centity_t, nextState, 0x400);
 #pragma pack(pop)
 
 struct ExtentBounds {

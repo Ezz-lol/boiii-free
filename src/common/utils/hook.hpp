@@ -103,10 +103,21 @@ public:
 
   void create(void *place, void *target);
   void create(size_t place, void *target);
-  template <typename T> inline void create(T *place, T *target) {
+
+  template <typename T>
+    requires(!std::is_same_v<T, void>)
+  inline void create(T *place, T *target) {
     return create(reinterpret_cast<void *>(place),
                   reinterpret_cast<void *>(target));
   }
+
+  template <typename P, typename T>
+    requires(!std::is_same_v<P, T>)
+  inline void create(P *place, T *target) {
+    return create(reinterpret_cast<void *>(place),
+                  reinterpret_cast<void *>(target));
+  }
+
   void clear();
 
   void move();

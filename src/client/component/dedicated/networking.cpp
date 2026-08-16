@@ -27,49 +27,59 @@ struct connect_attempt {
   int attempts;
 };
 
-static std::mutex rate_limit_mutex;
-static std::unordered_map<uint32_t, connect_attempt> connect_attempts;
+static concurrent_hash_map<uint32_t, connect_attempt> connect_attempts;
 constexpr int MAX_CONNECT_ATTEMPTS = 5;
 constexpr auto RATE_LIMIT_WINDOW = std::chrono::seconds(10);
 
 bool rate_limited(uint32_t ip) {
-  std::scoped_lock lock(rate_limit_mutex);
-  const auto now = std::chrono::steady_clock::now();
+  const std::chrono::time_point now = std::chrono::steady_clock::now();
 
-  auto it = connect_attempts.find(ip);
-  if (it == connect_attempts.end()) {
-    connect_attempts[ip] = {ip, now, 1};
+  const connect_attempt new_val = {ip, now, 1};
+  bool result = false;
+  if (connect_attempts.try_emplace_l(
+          ip,
+          [now, &ip, &result](auto &v) {
+            auto &attempt = v.second;
+            if ((now - attempt.last_attempt) > RATE_LIMIT_WINDOW) {
+              attempt.attempts = 1;
+              attempt.last_attempt = now;
+              result = false;
+            } else {
+
+              attempt.attempts++;
+              attempt.last_attempt = now;
+
+              if (attempt.attempts > MAX_CONNECT_ATTEMPTS) {
+                fprintf(stderr,
+                        "[Security] Rate limited connection from IP 0x%08X (%d "
+                        "attempts)\n",
+                        ip, attempt.attempts);
+                fflush(stderr);
+                result = true;
+              }
+            }
+          },
+          new_val)) {
     return false;
   }
 
-  auto &attempt = it->second;
-  if ((now - attempt.last_attempt) > RATE_LIMIT_WINDOW) {
-    attempt.attempts = 1;
-    attempt.last_attempt = now;
-    return false;
-  }
-
-  attempt.attempts++;
-  attempt.last_attempt = now;
-
-  if (attempt.attempts > MAX_CONNECT_ATTEMPTS) {
-    printf("[Security] Rate limited connection from IP 0x%08X (%d attempts)\n",
-           ip, attempt.attempts);
-    return true;
-  }
-
-  return false;
+  return result;
 }
 
 void cleanup_rate_limits() {
-  std::scoped_lock lock(rate_limit_mutex);
-  const auto now = std::chrono::steady_clock::now();
+  std::chrono::time_point now = std::chrono::steady_clock::now();
 
-  for (auto it = connect_attempts.begin(); it != connect_attempts.end();) {
-    if ((now - it->second.last_attempt) > std::chrono::seconds(60))
-      it = connect_attempts.erase(it);
-    else
-      ++it;
+  std::vector<uint32_t> erase_keys;
+  connect_attempts.for_each([now, &erase_keys](const auto &v) {
+    if ((now - v.second.last_attempt) > std::chrono::seconds(60)) {
+      erase_keys.push_back(v.first);
+    }
+  });
+  now = std::chrono::steady_clock::now();
+  for (const uint32_t key : erase_keys) {
+    connect_attempts.erase_if(key, [now](auto &v) {
+      return (now - v.second.last_attempt) > std::chrono::seconds(60);
+    });
   }
 }
 

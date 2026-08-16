@@ -35,11 +35,10 @@ void set_server_info_in_console_title() {
 
   const std::string_view mapname = game::get_mapname().value_or("");
 
-  const std::string window_text =
-      utils::string::va("BOIII V%s - %s on %s [%zu/%zu] (%zu)", SHORTVERSION,
-                        clean_server_name, mapname.data(),
-                        getinfo::get_client_count(),
-                        game::get_max_client_count(), getinfo::get_bot_count());
+  const std::string window_text = utils::string::va(
+      "BOIII V%s - %s on %s [%zu/%zu] (%zu)", SHORTVERSION, clean_server_name,
+      mapname.data(), getinfo::get_client_count(), game::get_max_client_count(),
+      getinfo::get_bot_count());
 
   console::set_title(window_text);
 }
