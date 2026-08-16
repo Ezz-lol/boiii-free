@@ -392,9 +392,8 @@ void store_tac_protected_allocs() {
 }
 
 template <const int32_t NonZeroVal>
+  requires(NonZeroVal != 0)
 int32_t Dvar_GetInt_NonZero(game::EngineDependentDvar dvar) {
-  static_assert(NonZeroVal != 0, "NonZeroVal == 0");
-
   int32_t val = game::Dvar_GetInt(dvar);
   if (val == 0) {
     return NonZeroVal;
@@ -480,6 +479,13 @@ void SV_RestartCmd_RotateOrDefault() {
     game::sv::SV_MapRestart(RestartMethod);
   }
 }
+
+template <const IntegralLike auto Val> decltype(Val) return_const() {
+  return Val;
+}
+
+utils::hook::detour Com_FPSLimit_hook;
+
 } // namespace
 
 class component final : public client_component {
@@ -582,6 +588,10 @@ public:
     SV_FastRestart_f_hook.create(
         game::sv::SV_FastRestart_f.get(),
         SV_RestartCmd_RotateOrDefault<game::RestartMethod_t::ROUND>);
+    // Remove hard-coded FPS limiting - always defer to `com_maxfps` dvar value
+    Com_FPSLimit_hook.create(
+        game::com::Com_FPSLimit.get(),
+        return_const<std::numeric_limits<uint32_t>::max()>);
 
     patch_players_folder_name();
   }

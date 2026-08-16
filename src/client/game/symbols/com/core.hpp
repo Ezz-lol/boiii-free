@@ -58,5 +58,11 @@ WEAK symbol<void()> Com_Frame_Try_Block_Function{0x1420F8E00, 0x1405020E0};
 WEAK symbol<ControllerIndex_t()> Com_ControllerIndexes_GetPrimary{0x1420EF880};
 WEAK symbol<void(const char *inString, char *outString, int32_t outStringSize)>
     Com_CleanStringForNetwork{0x1422E8C30, 0x140580A60};
+
+// Unsure of exact name. This function does not exist in any prior engine
+// versions, nor in the dedicated server. It's return value is compared to
+// com_maxfps and the minimum of the two is used as the FPS limit.
+WEAK symbol<uint32_t(LocalClientNum_t localClientNum)> Com_FPSLimit{
+    0x140F7CFD0};
 } // namespace com
 } // namespace game
