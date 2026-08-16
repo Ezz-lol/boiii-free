@@ -144,9 +144,7 @@
   var modsNextPageBtn = document.getElementById("modsNextPageBtn");
   var modsPageLabel = document.getElementById("modsPageLabel");
   var librarySearchInput = document.getElementById("librarySearchInput");
-  var librarySearchClearBtn = document.getElementById(
-    "librarySearchClearBtn"
-  );
+  var librarySearchClearBtn = document.getElementById("librarySearchClearBtn");
   var libraryViewToggleBtn = document.getElementById("libraryViewToggleBtn");
   var libraryItemCount = document.getElementById("libraryItemCount");
   var workshopRefreshBtn = document.getElementById("workshopRefreshBtn");
@@ -1978,8 +1976,7 @@
     var remaining = [];
     for (var i = 0; i < modsItemsCache.length; i++) {
       var item = modsItemsCache[i] || {};
-      var samePath =
-        path && String(item.path || "").toLowerCase() === path;
+      var samePath = path && String(item.path || "").toLowerCase() === path;
       var sameFolder =
         folder && String(item.folder || "").toLowerCase() === folder;
       if (!samePath && !sameFolder) remaining.push(item);
@@ -3303,11 +3300,17 @@
       var ex = getExternal();
       var result = ex && ex.saveBind ? ex.saveBind(key, command) : "error";
       if (result === "invalid_key") {
-        showMessage("Binds", "The key must not contain spaces, quotes, or semicolons.");
+        showMessage(
+          "Binds",
+          "The key must not contain spaces, quotes, or semicolons."
+        );
         return;
       }
       if (result === "invalid_command") {
-        showMessage("Binds", "The command must not contain quotes or line breaks.");
+        showMessage(
+          "Binds",
+          "The command must not contain quotes or line breaks."
+        );
         return;
       }
       if (result !== "ok") {
@@ -3335,7 +3338,8 @@
 
   function runDiagnostics() {
     if (!diagnosticsResults) return;
-    diagnosticsResults.innerHTML = '<div class="diagnostics-empty">Checking installation...</div>';
+    diagnosticsResults.innerHTML =
+      '<div class="diagnostics-empty">Checking installation...</div>';
     if (diagnosticsRunBtn) {
       diagnosticsRunBtn.disabled = true;
       diagnosticsRunBtn.textContent = "Checking...";
@@ -3349,23 +3353,33 @@
         diagnosticsResults.innerHTML = "";
         var paths = document.createElement("div");
         paths.className = "diagnostics-paths";
-        paths.textContent = "Game: " + (report.gamePath || "Unknown") +
-          " | Data: " + (report.appDataPath || "Unknown");
+        paths.textContent =
+          "Game: " +
+          (report.gamePath || "Unknown") +
+          " | Data: " +
+          (report.appDataPath || "Unknown");
         diagnosticsResults.appendChild(paths);
         var checks = report.checks || [];
         var summary = [];
         for (var di = 0; di < checks.length; di++) {
           var check = checks[di];
           summary.push(
-            (check.status === "ok" ? "PASS" : check.status === "error" ? "ERROR" : "WARNING") +
-            "  " + (check.name || "Check") + "\n" + (check.details || "")
+            (check.status === "ok"
+              ? "PASS"
+              : check.status === "error"
+                ? "ERROR"
+                : "WARNING") +
+              "  " +
+              (check.name || "Check") +
+              "\n" +
+              (check.details || "")
           );
           var item = document.createElement("div");
           item.className = "diagnostic-item " + (check.status || "warning");
           var marker = document.createElement("span");
           marker.className = "diagnostic-marker";
-          marker.textContent = check.status === "ok" ? "OK" :
-            check.status === "error" ? "!" : "?";
+          marker.textContent =
+            check.status === "ok" ? "OK" : check.status === "error" ? "!" : "?";
           var text = document.createElement("div");
           var name = document.createElement("div");
           name.className = "diagnostic-name";
@@ -3380,16 +3394,23 @@
           diagnosticsResults.appendChild(item);
         }
         if (!checks.length)
-          diagnosticsResults.innerHTML = '<div class="diagnostics-empty">No diagnostic results were returned.</div>';
+          diagnosticsResults.innerHTML =
+            '<div class="diagnostics-empty">No diagnostic results were returned.</div>';
         if (diagnosticsState) diagnosticsState.textContent = "Complete";
         showMessage(
           "Diagnostics Results",
-          summary.length ? summary.join("\n\n") : "No diagnostic results were returned."
+          summary.length
+            ? summary.join("\n\n")
+            : "No diagnostic results were returned."
         );
       } catch (e) {
-        diagnosticsResults.innerHTML = '<div class="diagnostics-empty">Diagnostics could not run.</div>';
+        diagnosticsResults.innerHTML =
+          '<div class="diagnostics-empty">Diagnostics could not run.</div>';
         if (diagnosticsState) diagnosticsState.textContent = "Failed";
-        showMessage("Diagnostics", "The launcher could not run diagnostics. Make sure the executable and launcher data are from the same build.");
+        showMessage(
+          "Diagnostics",
+          "The launcher could not run diagnostics. Make sure the executable and launcher data are from the same build."
+        );
       } finally {
         if (diagnosticsRunBtn) {
           diagnosticsRunBtn.disabled = false;
@@ -3408,10 +3429,16 @@
     diagnosticsRepairWorkshopBtn.onclick = function () {
       try {
         if (getExternal().repairWorkshopFolders() === "ok") {
-          showMessage("Diagnostics", "Workshop and profile folders were repaired.");
+          showMessage(
+            "Diagnostics",
+            "Workshop and profile folders were repaired."
+          );
           runDiagnostics();
         } else {
-          showMessage("Diagnostics", "Some folders could not be created. Check folder permissions.");
+          showMessage(
+            "Diagnostics",
+            "Some folders could not be created. Check folder permissions."
+          );
         }
       } catch (e) {
         showMessage("Diagnostics", "Workshop folders could not be repaired.");
@@ -3439,15 +3466,27 @@
           try {
             var result = getExternal().clearProfileData();
             if (result === "game_running")
-              showMessage("Clear Profile Data", "Close the game before clearing profile data.");
+              showMessage(
+                "Clear Profile Data",
+                "Close the game before clearing profile data."
+              );
             else if (result === "ok") {
               loadBinds();
-              showMessage("Clear Profile Data", "Profile data was removed. New defaults will be created on next launch.");
+              showMessage(
+                "Clear Profile Data",
+                "Profile data was removed. New defaults will be created on next launch."
+              );
               runDiagnostics();
             } else
-              showMessage("Clear Profile Data", "Profile data could not be removed.");
+              showMessage(
+                "Clear Profile Data",
+                "Profile data could not be removed."
+              );
           } catch (e) {
-            showMessage("Clear Profile Data", "Profile data could not be removed.");
+            showMessage(
+              "Clear Profile Data",
+              "Profile data could not be removed."
+            );
           }
         }
       );

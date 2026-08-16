@@ -320,8 +320,7 @@ void trim_console_buffer(const HWND richedit) {
   }
 
   if (too_many_chars) {
-    const LONG char_cut =
-        text_len - static_cast<LONG>(MAX_CONSOLE_CHARS / 2);
+    const LONG char_cut = text_len - static_cast<LONG>(MAX_CONSOLE_CHARS / 2);
     cut_at = (std::max)(cut_at, line_start_from_char(richedit, char_cut));
   }
 

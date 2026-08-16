@@ -83,8 +83,7 @@ std::map<std::string, std::string> read_launcher_binds() {
     auto command = rest.substr(separator + 1);
     utils::string::trim(key);
     utils::string::trim(command);
-    if (command.size() >= 2 && command.front() == '"' &&
-        command.back() == '"')
+    if (command.size() >= 2 && command.front() == '"' && command.back() == '"')
       command = command.substr(1, command.size() - 2);
     if (!key.empty() && !command.empty())
       binds[key] = command;
@@ -1859,7 +1858,8 @@ bool run() {
         });
 
     window.get_html_frame()->register_callback(
-        "saveBind", [](const std::vector<html_argument> &params) -> CComVariant {
+        "saveBind",
+        [](const std::vector<html_argument> &params) -> CComVariant {
           if (params.size() < 2 || !params[0].is_string() ||
               !params[1].is_string())
             return CComVariant("error");
@@ -2642,8 +2642,7 @@ bool run() {
                     has_game ? game_exe.string()
                              : "BlackOps3.exe was not found");
 
-          const auto ui_file =
-              appdata_path / "data" / "launcher" / "main.html";
+          const auto ui_file = appdata_path / "data" / "launcher" / "main.html";
           filesystem_error.clear();
           const auto has_ui =
               std::filesystem::is_regular_file(ui_file, filesystem_error);
@@ -2674,11 +2673,11 @@ bool run() {
 
           const auto binds_file = get_binds_file();
           filesystem_error.clear();
-          add_check("Custom binds", "ok",
-                    std::filesystem::is_regular_file(binds_file,
-                                                     filesystem_error)
-                        ? binds_file.string()
-                        : "No custom binds saved yet");
+          add_check(
+              "Custom binds", "ok",
+              std::filesystem::is_regular_file(binds_file, filesystem_error)
+                  ? binds_file.string()
+                  : "No custom binds saved yet");
 
           ULARGE_INTEGER available{};
           if (GetDiskFreeSpaceExW(game_path.c_str(), &available, nullptr,
@@ -2708,8 +2707,8 @@ bool run() {
           const std::array paths = {
               game_path / "mods", game_path / "usermaps",
               game_path / "boiii_players" / "user",
-              game_path / "steamcmd" / "steamapps" / "workshop" /
-                  "downloads" / game::APP_ID_STR,
+              game_path / "steamcmd" / "steamapps" / "workshop" / "downloads" /
+                  game::APP_ID_STR,
               game_path / "steamcmd" / "steamapps" / "workshop" / "content" /
                   game::APP_ID_STR};
           for (const auto &path : paths) {
