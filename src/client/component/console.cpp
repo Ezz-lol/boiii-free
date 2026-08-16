@@ -76,9 +76,7 @@ std::vector<std::string> tab_cycle_matches{};
 std::string tab_cycle_partial{};
 size_t tab_cycle_index{0};
 
-bool hide_external_console() {
-  return utils::flags::has_flag("noconsole");
-}
+bool hide_external_console() { return utils::flags::has_flag("noconsole"); }
 
 std::vector<std::string> command_history{};
 size_t history_index{0};
@@ -360,8 +358,7 @@ void trim_console_buffer(const HWND richedit) {
   }
 
   if (too_many_chars) {
-    const LONG char_cut =
-        text_len - static_cast<LONG>(MAX_CONSOLE_CHARS / 2);
+    const LONG char_cut = text_len - static_cast<LONG>(MAX_CONSOLE_CHARS / 2);
     cut_at = (std::max)(cut_at, line_start_from_char(richedit, char_cut));
   }
 
@@ -1357,9 +1354,9 @@ void sys_create_console_stub(const HINSTANCE h_instance) {
   char text[CONSOLE_BUFFER_SIZE]{0};
 
   const char *class_name = "BOIII WinConsole";
-  const char *window_name =
-      game::is_server() ? "BOIII V" SHORTVERSION " - Server"
-                        : "BOIII V" SHORTVERSION " - Console";
+  const char *window_name = game::is_server()
+                                ? "BOIII V" SHORTVERSION " - Server"
+                                : "BOIII V" SHORTVERSION " - Console";
 
   WNDCLASSA wnd_class{};
   wnd_class.style = 0;
@@ -1455,13 +1452,13 @@ void sys_create_console_stub(const HINSTANCE h_instance) {
   }
   utils::hook::set<HWND>(
       game::s_wcd::hwndBuffer,
-      CreateWindowExW(
-          0, L"RICHEDIT50W", nullptr,
-          WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_HSCROLL | WS_CLIPSIBLINGS |
-              ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_READONLY |
-              ES_NOHIDESEL,
-          CONSOLE_MARGIN, CONSOLE_HEADER_HEIGHT, 0, 0, *game::s_wcd::hWnd,
-          reinterpret_cast<HMENU>(0x64), h_instance, nullptr));
+      CreateWindowExW(0, L"RICHEDIT50W", nullptr,
+                      WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_HSCROLL |
+                          WS_CLIPSIBLINGS | ES_MULTILINE | ES_AUTOVSCROLL |
+                          ES_AUTOHSCROLL | ES_READONLY | ES_NOHIDESEL,
+                      CONSOLE_MARGIN, CONSOLE_HEADER_HEIGHT, 0, 0,
+                      *game::s_wcd::hWnd, reinterpret_cast<HMENU>(0x64),
+                      h_instance, nullptr));
   SendMessageA(*game::s_wcd::hwndBuffer, WM_SETFONT,
                reinterpret_cast<WPARAM>(*game::s_wcd::hfBufferFont), 0);
   SendMessageA(*game::s_wcd::hwndBuffer, EM_SETBKGNDCOLOR, 0,
