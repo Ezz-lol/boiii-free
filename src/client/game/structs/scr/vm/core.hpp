@@ -85,6 +85,89 @@ PACKED(struct scrVmGlob_t {
 });
 typedef ScrPool<scrVmGlob_t> ScrVmGlobPool;
 
+union VectorConstant {
+  uint8_t value;
+  struct {
+    // Defined from Least Significant Bit (LSB) to Most Significant Bit (MSB)
+    uint8_t z_neg : 1; // Bit 0 (0x01)
+    uint8_t z_pos : 1; // Bit 1 (0x02)
+
+    uint8_t y_neg : 1; // Bit 2 (0x04)
+    uint8_t y_pos : 1; // Bit 3 (0x08)
+
+    uint8_t x_neg : 1; // Bit 4 (0x10)
+    uint8_t x_pos : 1; // Bit 5 (0x20)
+
+    uint8_t unused : 2; // Bits 6 & 7 (0x40, 0x80)
+  };
+
+  inline constexpr vec3_t unpack() const noexcept {
+    vec3_t result;
+
+    if (x_pos) {
+      result.x = 1.0f;
+    } else if (x_neg) {
+      result.x = -1.0f;
+    }
+
+    if (y_pos) {
+      result.y = 1.0f;
+    } else if (y_neg) {
+      result.y = -1.0f;
+    }
+
+    if (z_pos) {
+      result.z = 1.0f;
+    } else if (z_neg) {
+      result.z = -1.0f;
+    }
+
+    return result;
+  }
+
+  inline static constexpr bool can_pack(float component) {
+    return component == 1.0f || component == 0.0f || component == -1.0f;
+  }
+
+  inline static constexpr bool can_pack(float x, float y, float z) {
+    return can_pack(x) && can_pack(y) && can_pack(z);
+  }
+
+  inline static constexpr bool can_pack(const vec3_t &vec) {
+    return can_pack(vec.x, vec.y, vec.z);
+  }
+
+  inline static constexpr VectorConstant pack(float x, float y, float z) {
+    VectorConstant result;
+
+    if (x == 1.0f) {
+      result.x_pos = 1;
+    } else if (x == -1.0f) {
+      result.x_neg = 1;
+    }
+
+    if (y == 1.0f) {
+      result.y_pos = 1;
+    } else if (y == -1.0f) {
+      result.y_neg = 1;
+    }
+
+    if (z == 1.0f) {
+      result.z_pos = 1;
+    } else if (z == -1.0f) {
+      result.z_neg = 1;
+    }
+
+    return result;
+  }
+
+  inline static constexpr VectorConstant pack(const vec3_t &vec) {
+    return pack(vec.x, vec.y, vec.z);
+  }
+
+  inline constexpr operator uint8_t() const noexcept { return value; }
+};
+
 } // namespace vm
 } // namespace scr
 } // namespace game
