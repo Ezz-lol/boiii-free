@@ -992,8 +992,10 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
     uint8_t num_params = static_cast<uint8_t>(args_node->children.size());
 
     if (ns_node->value.empty() && is_builtin(lower_name)) {
-      for (const std::shared_ptr<ast_node> &arg : args_node->children)
-        emit_expression(s, arg);
+      for (int i = static_cast<int>(args_node->children.size()) - 1; i >= 0;
+           i--) {
+        emit_expression(s, args_node->children[i]);
+      }
       try_emit_builtin(s, lower_name, node->line);
       break;
     }
