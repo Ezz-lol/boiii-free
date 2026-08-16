@@ -10,6 +10,7 @@ namespace gsc_compiler {
 namespace {
 using namespace game;
 using namespace game::scr;
+using namespace game::scr::vm;
 using namespace game::scr::vm::op;
 
 uint32_t align_value(uint32_t val, uint32_t alignment) {
@@ -804,43 +805,50 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
     if (try_get_vector_constant(node->children[0], x) &&
         try_get_vector_constant(node->children[1], y) &&
         try_get_vector_constant(node->children[2], z)) {
-      s.emit_op(Opcode::GetVector, node->line);
+      if (VectorConstant::can_pack(x, y, z)) {
+        const VectorConstant packed = VectorConstant::pack(x, y, z);
+        s.emit_op(Opcode::VectorConstant, node->line);
+        s.emit_u8(packed, node->children[2]->line);
 
-      /*
-       Everywhere that script vectors are accessed in the engine,
-       the vector's address is assumed to be that of an allocated node in the
-       script memory tree pool.
+      } else {
+        s.emit_op(Opcode::GetVector, node->line);
 
-       Following access, the engine checks the node's refcount (the `uint8_t`
-       immediately preceding the vector's value pointer), and attempts to free
-       the allocation if the refcount is 0.
+        /*
+         Everywhere that script vectors are accessed in the engine,
+         the vector's address is assumed to be that of an allocated node in the
+         script memory tree pool.
 
-       This is obviously problematic in the case of a vector embedded in the
-       script bytecode via `GetVector`, because if the byte immediately
-       preceding the vector's float values is a `0x00` alignment byte, the
-       refcount will be seen as zero, the engine will attempt to free the
-       address of the vector's first float value as though it were a memory
-       tree allocation, and an exception will be thrown.
+         Following access, the engine checks the node's refcount (the `uint8_t`
+         immediately preceding the vector's value pointer), and attempts to free
+         the allocation if the refcount is 0.
 
-       If the byte immediately preceding the first vector float value is the
-       high byte of the opcode (no alignment bytes were needed), the refcount
-       will not be seen as zero, and this will not occur.
+         This is obviously problematic in the case of a vector embedded in the
+         script bytecode via `GetVector`, because if the byte immediately
+         preceding the vector's float values is a `0x00` alignment byte, the
+         refcount will be seen as zero, the engine will attempt to free the
+         address of the vector's first float value as though it were a memory
+         tree allocation, and an exception will be thrown.
 
-       Usually, the engine would try to _decrement_ the refcount upon the
-       variable's release, but we have modified this behaviour to only
-       decrement the vector's refcount and attempt to free if the vector was
-       allocated in the script memory tree pool. This is done via a hook to
-       `ScrVar_ReleaseValue`.
+         If the byte immediately preceding the first vector float value is the
+         high byte of the opcode (no alignment bytes were needed), the refcount
+         will not be seen as zero, and this will not occur.
 
-       Thus, in order to ensure the engine never attempts to erroneously free
-       this compile time constant vector, we fill its alignment bytes with
-       `0xFF`.
-      */
-      s.emit_u32_aligned(0xFF);
+         Usually, the engine would try to _decrement_ the refcount upon the
+         variable's release, but we have modified this behaviour to only
+         decrement the vector's refcount and attempt to free if the vector was
+         allocated in the script memory tree pool. This is done via a hook to
+         `ScrVar_ReleaseValue`.
 
-      s.emit_float(x, node->children[0]->line);
-      s.emit_float(y, node->children[1]->line);
-      s.emit_float(z, node->children[2]->line);
+         Thus, in order to ensure the engine never attempts to erroneously free
+         this compile time constant vector, we fill its alignment bytes with
+         `0xFF`.
+        */
+        s.emit_u32_aligned(0xFF);
+
+        s.emit_float(x, node->children[0]->line);
+        s.emit_float(y, node->children[1]->line);
+        s.emit_float(z, node->children[2]->line);
+      }
       break;
     }
 
