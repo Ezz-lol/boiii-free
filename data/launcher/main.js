@@ -540,10 +540,7 @@
           launchOptionCards[i].getAttribute("data-option-legacy") || ""
         ).toLowerCase();
         for (var j = 0; j < parts.length; j++) {
-          if (
-            optVal &&
-            (optVal === parts[j] || legacyOptVal === parts[j])
-          ) {
+          if (optVal && (optVal === parts[j] || legacyOptVal === parts[j])) {
             launchOptionCards[i].classList.add("active");
             break;
           }
