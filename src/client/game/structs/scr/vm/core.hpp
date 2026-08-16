@@ -84,6 +84,7 @@ PACKED(struct scrVmGlob_t {
   var::ScrVarIndex_t localVarsStack[4096];
 });
 typedef ScrPool<scrVmGlob_t> ScrVmGlobPool;
+
 } // namespace vm
 } // namespace scr
 } // namespace game

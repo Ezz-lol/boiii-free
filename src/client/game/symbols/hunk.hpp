@@ -36,7 +36,7 @@ WEAK symbol<HunkUser *(HunkUserNull *user)> Hunk_UserCreateNull{0x1422D38E0,
                                                                 0x14057DBE0};
 
 WEAK symbol<HunkUser *> s_localClientHunk{0x14573B200};
-WEAK symbol<HunkUser *> g_scriptDebugHunk{0x0, 0x14A6376C0};
+WEAK symbol<HunkUser *> g_scriptDebugHunk{0x157D43020, 0x14A6376C0};
 
 WEAK symbol<HunkUserAllocationSchemeMap> g_HunkUserAllocationSchemeMap{
     0x1434418D0, 0x14114BC40};
