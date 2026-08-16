@@ -14,12 +14,6 @@ argparse::ArgumentParser program("boiii");
 
 #ifndef NDEBUG
 inline void add_debug_profile_arguments() {
-  program.add_argument("-alias", "--alias")
-      .help("For development: use a different key for XUID generation, "
-            "allowing two local clients (the first launched without this flag) "
-            "to connect to the same server.")
-      .default_value(false)
-      .implicit_value(true);
   program
       .add_argument("-d", "-debug", "--debug", "-t", "-trace", "--trace",
                     "-tracing", "--tracing")
@@ -225,6 +219,14 @@ int32_t parse_flags(int argc, char *argv[]) {
             "`god`, `noclip`) - use at your own risk.")
       .implicit_value(true)
       .default_value(false);
+  program.add_argument("-alias", "--alias")
+      .help("Use a different key for XUID generation, "
+            "allowing two local client instances (the first launched without "
+            "this flag) "
+            "to connect to the same server.")
+      .default_value(false)
+      .implicit_value(true);
+
 #ifndef NDEBUG
   add_debug_profile_arguments();
 #endif

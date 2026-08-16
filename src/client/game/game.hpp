@@ -19,11 +19,7 @@ namespace game {
 constexpr uint32_t APP_ID = 311210;
 constexpr const char *APP_ID_STR = "311210";
 
-#ifdef NDEBUG
-inline bool alias() { return false; }
-#else
 bool alias();
-#endif
 bool quiet_crash();
 bool is_headless();
 
