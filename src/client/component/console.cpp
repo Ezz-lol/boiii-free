@@ -273,6 +273,37 @@ void append_colored_text(const HWND richedit, const char *text, size_t len,
                reinterpret_cast<LPARAM>(wbuf.data()));
 }
 
+// Last known-good buffer size. While minimized (or over RDP) GetClientRect
+// can be 0, and RichEdit then wraps every status field onto its own line.
+int32_t last_buffer_width = 900;
+int32_t last_buffer_height = 400;
+
+// Word wrap at a 0-width window turns "0 19660 57 ..." into one token per
+// line. Dedicated consoles should not wrap; long lines scroll horizontally.
+void disable_richedit_wrap(const HWND richedit) {
+  if (!richedit || !IsWindow(richedit)) {
+    return;
+  }
+
+  // lParam == 1 is the documented "no wrapping" value.
+  SendMessageW(richedit, EM_SETTARGETDEVICE, 0, 1);
+}
+
+void remember_buffer_size(const HWND richedit) {
+  if (!richedit || !IsWindow(richedit)) {
+    return;
+  }
+
+  RECT rc{};
+  GetClientRect(richedit, &rc);
+  const int32_t width = rc.right - rc.left;
+  const int32_t height = rc.bottom - rc.top;
+  if (width > 32 && height > 32) {
+    last_buffer_width = width;
+    last_buffer_height = height;
+  }
+}
+
 // RichEdit caches a wrap rectangle. Minimize or deleting from the start of
 // the document can leave it stuck at a tiny width.
 void refresh_richedit_layout(const HWND richedit) {
@@ -282,11 +313,18 @@ void refresh_richedit_layout(const HWND richedit) {
 
   RECT rc{};
   GetClientRect(richedit, &rc);
-  if ((rc.right - rc.left) <= 1 || (rc.bottom - rc.top) <= 1) {
-    return;
+  if ((rc.right - rc.left) <= 32 || (rc.bottom - rc.top) <= 32) {
+    rc.left = 0;
+    rc.top = 0;
+    rc.right = last_buffer_width;
+    rc.bottom = last_buffer_height;
+  } else {
+    last_buffer_width = rc.right - rc.left;
+    last_buffer_height = rc.bottom - rc.top;
   }
 
   SendMessageW(richedit, EM_SETRECT, 0, reinterpret_cast<LPARAM>(&rc));
+  disable_richedit_wrap(richedit);
 }
 
 LONG line_start_from_char(const HWND richedit, const LONG index) {
@@ -421,6 +459,8 @@ void append_text_with_severity(const HWND richedit, const std::string &text) {
   if (!richedit || text.empty()) {
     return;
   }
+
+  disable_richedit_wrap(richedit);
 
   static std::string run_buffer;
 
@@ -1040,7 +1080,7 @@ void resize_console_controls(const HWND hwnd) {
     return;
   }
 
-  if (IsIconic(hwnd)) {
+  if (IsIconic(hwnd) || !IsWindowVisible(hwnd)) {
     return;
   }
 
@@ -1083,6 +1123,7 @@ void resize_console_controls(const HWND hwnd) {
              buffer_height, TRUE);
   MoveWindow(*game::s_wcd::hwndInputLine, margin, input_y, client_width,
              input_height, TRUE);
+  remember_buffer_size(*game::s_wcd::hwndBuffer);
   refresh_richedit_layout(*game::s_wcd::hwndBuffer);
 
   if (completion_hint_hwnd && IsWindowVisible(completion_hint_hwnd)) {
@@ -1128,6 +1169,14 @@ LRESULT con_wnd_proc(const HWND hwnd, const UINT msg, const WPARAM wparam,
       resize_console_controls(hwnd);
     }
     return 0;
+  case WM_SHOWWINDOW:
+    if (wparam) {
+      resize_console_controls(hwnd);
+    }
+    break;
+  case WM_EXITSIZEMOVE:
+    resize_console_controls(hwnd);
+    break;
   case WM_VSCROLL:
   case WM_MOUSEWHEEL:
 
@@ -1408,8 +1457,9 @@ void sys_create_console_stub(const HINSTANCE h_instance) {
       game::s_wcd::hwndBuffer,
       CreateWindowExW(
           0, L"RICHEDIT50W", nullptr,
-          WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_CLIPSIBLINGS | ES_MULTILINE |
-              ES_AUTOVSCROLL | ES_READONLY | ES_NOHIDESEL,
+          WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_HSCROLL | WS_CLIPSIBLINGS |
+              ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_READONLY |
+              ES_NOHIDESEL,
           CONSOLE_MARGIN, CONSOLE_HEADER_HEIGHT, 0, 0, *game::s_wcd::hWnd,
           reinterpret_cast<HMENU>(0x64), h_instance, nullptr));
   SendMessageA(*game::s_wcd::hwndBuffer, WM_SETFONT,
@@ -1424,6 +1474,7 @@ void sys_create_console_stub(const HINSTANCE h_instance) {
   SendMessageW(*game::s_wcd::hwndBuffer, EM_SETUNDOLIMIT, 0, 0);
   SendMessageW(*game::s_wcd::hwndBuffer, EM_SETEVENTMASK, 0, 0);
   SendMessageW(*game::s_wcd::hwndBuffer, EM_AUTOURLDETECT, FALSE, 0);
+  disable_richedit_wrap(*game::s_wcd::hwndBuffer);
 
   utils::hook::set<WNDPROC>(
       game::s_wcd::SysInputLineWndProc,
