@@ -522,8 +522,30 @@
             </div>
 
             <div class="library-toolbar">
-              <span class="library-toolbar-title">Installed Items</span>
+              <div class="library-toolbar-heading">
+                <span class="library-toolbar-title">Installed Items</span>
+                <span class="library-item-count" id="libraryItemCount">0</span>
+              </div>
               <div class="library-toolbar-actions">
+                <div class="library-search">
+                  <input
+                    type="text"
+                    id="librarySearchInput"
+                    placeholder="Search installed items..."
+                    autocomplete="off"
+                  />
+                  <button
+                    type="button"
+                    class="library-search-clear"
+                    id="librarySearchClearBtn"
+                    aria-label="Clear library search"
+                  >
+                    &times;
+                  </button>
+                </div>
+                <button type="button" class="btn" id="libraryViewToggleBtn">
+                  List View
+                </button>
                 <button type="button" class="btn" id="workshopRefreshBtn">
                   Refresh
                 </button>
@@ -711,6 +733,16 @@
               </button>
               <button type="button" class="settings-tab" data-stab="patches">
                 Patches
+              </button>
+              <button type="button" class="settings-tab" data-stab="binds">
+                Binds
+              </button>
+              <button
+                type="button"
+                class="settings-tab"
+                data-stab="diagnostics"
+              >
+                Diagnostics
               </button>
             </div>
 
@@ -1954,6 +1986,73 @@
                       data-setting="fullVram"
                     ></button>
                   </div>
+                </div>
+              </div>
+
+              <div
+                class="settings-tab-content"
+                id="settingsTabBinds"
+                data-stab="binds"
+              >
+                <div class="settings-section">
+                  <div class="settings-section-title">Custom Key Binds</div>
+                  <div class="bind-editor">
+                    <input
+                      type="text"
+                      class="settings-input bind-key-input"
+                      id="bindKeyInput"
+                      placeholder="Key (e.g. F5)"
+                      maxlength="32"
+                      autocomplete="off"
+                    />
+                    <input
+                      type="text"
+                      class="settings-input bind-command-input"
+                      id="bindCommandInput"
+                      placeholder="Command (e.g. cg_fov 100)"
+                      maxlength="512"
+                      autocomplete="off"
+                    />
+                    <button type="button" class="btn btn-primary" id="bindSaveBtn">
+                      Add / Update
+                    </button>
+                  </div>
+                </div>
+                <div class="settings-section bind-list-section">
+                  <div class="bind-list" id="bindList"></div>
+                </div>
+              </div>
+
+              <div
+                class="settings-tab-content"
+                id="settingsTabDiagnostics"
+                data-stab="diagnostics"
+              >
+                <div class="settings-section">
+                  <div class="settings-section-title">
+                    Repair Tools
+                    <span class="diagnostics-state" id="diagnosticsState">Ready</span>
+                  </div>
+                  <div class="diagnostic-actions">
+                    <button type="button" class="btn btn-primary" id="diagnosticsRunBtn">
+                      Run Diagnostics
+                    </button>
+                    <button type="button" class="btn" id="diagnosticsRepairWorkshopBtn">
+                      Repair Workshop Folders
+                    </button>
+                    <button type="button" class="btn" id="diagnosticsVerifyBtn">
+                      Verify Game Files
+                    </button>
+                    <button type="button" class="btn btn-danger" id="diagnosticsClearProfileBtn">
+                      Clear Profile Data
+                    </button>
+                  </div>
+                  <div class="settings-row-desc diagnostics-warning">
+                    Clearing profile data permanently removes boiii_players, including settings, saves, and binds.
+                  </div>
+                </div>
+                <div class="settings-section diagnostics-results" id="diagnosticsResults">
+                  <div class="diagnostics-empty">Run diagnostics to check the installation.</div>
                 </div>
               </div>
             </div>

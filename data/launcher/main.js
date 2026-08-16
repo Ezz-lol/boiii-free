@@ -143,10 +143,24 @@
   var modsPrevPageBtn = document.getElementById("modsPrevPageBtn");
   var modsNextPageBtn = document.getElementById("modsNextPageBtn");
   var modsPageLabel = document.getElementById("modsPageLabel");
+  var librarySearchInput = document.getElementById("librarySearchInput");
+  var librarySearchClearBtn = document.getElementById(
+    "librarySearchClearBtn"
+  );
+  var libraryViewToggleBtn = document.getElementById("libraryViewToggleBtn");
+  var libraryItemCount = document.getElementById("libraryItemCount");
+  var workshopRefreshBtn = document.getElementById("workshopRefreshBtn");
   var modsItemsCache = [];
   var modsPage = 1;
   var modsPageSize = 12;
   var modsInitialized = false;
+  var modsRefreshInFlight = false;
+  var modsRefreshQueued = false;
+  var libraryViewMode = "grid";
+  try {
+    if (localStorage.getItem("libraryViewMode") === "list")
+      libraryViewMode = "list";
+  } catch (e) {}
 
   var versionDropdown = document.getElementById("versionDropdown");
   var verDropDisplay = document.getElementById("verDropDisplay");
@@ -499,11 +513,17 @@
   } catch (e) {}
 
   try {
-    var storedOpts =
-      getExternal() &&
-      getExternal().readLaunchOptions &&
-      getExternal().readLaunchOptions();
-    if (storedOpts) {
+    var storedOpts = null;
+    try {
+      storedOpts = localStorage.getItem("boiii_launch_options");
+    } catch (e) {}
+    if (storedOpts === null) {
+      storedOpts =
+        getExternal() &&
+        getExternal().readLaunchOptions &&
+        getExternal().readLaunchOptions();
+    }
+    if (storedOpts !== null) {
       var rawParts = (storedOpts || "").split(" ");
       var parts = [];
       for (var pi = 0; pi < rawParts.length; pi++) {
@@ -591,6 +611,15 @@
       card.onclick = function (e) {
         e.stopPropagation();
         card.classList.toggle("active");
+        try {
+          localStorage.setItem(
+            "boiii_launch_options",
+            window.getSelectedLaunchOption()
+          );
+          var ex = getExternal();
+          if (ex && ex.saveLaunchOptions)
+            ex.saveLaunchOptions(window.getSelectedLaunchOption());
+        } catch (e2) {}
       };
     })(launchOptionCards[oi]);
   }
@@ -1892,6 +1921,108 @@
   var _modsListPollInterval = null;
   var _removeProgressPollInterval = null;
 
+  function getFilteredModsItems() {
+    var items = modsItemsCache || [];
+    var query = librarySearchInput
+      ? (librarySearchInput.value || "").replace(/^\s+|\s+$/g, "").toLowerCase()
+      : "";
+    if (!query) return items.slice(0);
+    var filtered = [];
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i] || {};
+      var searchable = [
+        item.name,
+        item.folder,
+        item.type,
+        item.description,
+        item.id,
+        item.source,
+      ]
+        .join(" ")
+        .toLowerCase();
+      if (searchable.indexOf(query) !== -1) filtered.push(item);
+    }
+    return filtered;
+  }
+
+  function updateLibraryCount(visibleCount) {
+    if (!libraryItemCount) return;
+    var total = (modsItemsCache || []).length;
+    libraryItemCount.textContent =
+      visibleCount === total ? String(total) : visibleCount + " / " + total;
+  }
+
+  function setLibraryRefreshing(refreshing) {
+    modsRefreshInFlight = refreshing;
+    if (!workshopRefreshBtn) return;
+    workshopRefreshBtn.disabled = refreshing;
+    workshopRefreshBtn.textContent = refreshing ? "Refreshing..." : "Refresh";
+  }
+
+  function applyLibraryViewMode() {
+    var listMode = libraryViewMode === "list";
+    modsPageSize = listMode ? 20 : 12;
+    if (modsGrid) {
+      if (listMode) modsGrid.classList.add("list-view");
+      else modsGrid.classList.remove("list-view");
+    }
+    if (libraryViewToggleBtn) {
+      libraryViewToggleBtn.textContent = listMode ? "Grid View" : "List View";
+      libraryViewToggleBtn.setAttribute(
+        "aria-pressed",
+        listMode ? "true" : "false"
+      );
+    }
+  }
+
+  function removeLibraryItemFromCache(folderName, itemPath) {
+    var folder = String(folderName || "").toLowerCase();
+    var path = String(itemPath || "").toLowerCase();
+    var remaining = [];
+    for (var i = 0; i < modsItemsCache.length; i++) {
+      var item = modsItemsCache[i] || {};
+      var samePath =
+        path && String(item.path || "").toLowerCase() === path;
+      var sameFolder =
+        folder && String(item.folder || "").toLowerCase() === folder;
+      if (!samePath && !sameFolder) remaining.push(item);
+    }
+    modsItemsCache = remaining;
+    renderModsPage();
+  }
+
+  if (librarySearchInput) {
+    librarySearchInput.oninput = function () {
+      modsPage = 1;
+      renderModsPage();
+    };
+  }
+
+  if (librarySearchClearBtn) {
+    librarySearchClearBtn.onclick = function () {
+      if (librarySearchInput) {
+        librarySearchInput.value = "";
+        librarySearchInput.focus();
+      }
+      modsPage = 1;
+      renderModsPage();
+    };
+  }
+
+  if (libraryViewToggleBtn) {
+    libraryViewToggleBtn.onclick = function () {
+      libraryViewMode = libraryViewMode === "list" ? "grid" : "list";
+      try {
+        localStorage.setItem("libraryViewMode", libraryViewMode);
+      } catch (e) {}
+      modsPage = 1;
+      applyLibraryViewMode();
+      renderModsPage();
+    };
+  }
+
+  applyLibraryViewMode();
+
   function startRemoveProgressPoll() {
     var bar = document.getElementById("removeProgressBar");
     var msg = document.getElementById("removeMsg");
@@ -1945,43 +2076,46 @@
               fill.style.transform = "";
             }
             refreshModsGrid();
-          }, 600);
+          }, 150);
         }
       } catch (e) {}
     }, 200);
   }
 
   function refreshModsGrid() {
+    if (modsRefreshInFlight) {
+      modsRefreshQueued = true;
+      return;
+    }
     try {
       var ex = getExternal();
       if (!ex) {
         modsInitialized = true;
-        modsItemsCache = [];
-        modsGrid.innerHTML =
-          '<div class="empty-state"><div class="empty-state-icon">&#128230;</div><div class="empty-state-text">No workshop items installed yet</div></div>';
-        if (modsPagination) modsPagination.style.display = "none";
+        if (!modsItemsCache.length) renderModsPage();
         return;
       }
       if (ex.workshopList) {
-        modsInitialized = true;
         var cached = ex.workshopList();
         if (cached && cached !== "[]") {
           var ci = typeof cached === "string" ? JSON.parse(cached) : cached;
-          if (ci && ci.length > 0) {
+          if (ci && ci.length > 0 && !modsInitialized) {
             modsItemsCache = ci;
+            modsInitialized = true;
             modsPage = 1;
             renderModsPage();
-          } else {
-            modsItemsCache = [];
-            renderModsPage();
           }
-        } else {
-          modsItemsCache = [];
-          renderModsPage();
         }
       }
       if (ex.workshopListAsync) {
-        ex.workshopListAsync();
+        setLibraryRefreshing(true);
+        if (!modsInitialized && !modsItemsCache.length) {
+          modsGrid.innerHTML =
+            '<div class="empty-state"><div class="loading-spinner"></div><div class="empty-state-text">Scanning installed items...</div></div>';
+          updateLibraryCount(0);
+          if (modsPagination) modsPagination.style.display = "none";
+        }
+        var refreshResult = ex.workshopListAsync();
+        if (refreshResult === "already_loading") modsRefreshQueued = true;
         if (_modsListPollInterval) clearInterval(_modsListPollInterval);
         var pc = 0;
         _modsListPollInterval = setInterval(function () {
@@ -1989,6 +2123,11 @@
           if (pc > 300) {
             clearInterval(_modsListPollInterval);
             _modsListPollInterval = null;
+            setLibraryRefreshing(false);
+            if (modsRefreshQueued) {
+              modsRefreshQueued = false;
+              refreshModsGrid();
+            }
             return;
           }
           try {
@@ -2001,48 +2140,74 @@
               clearInterval(_modsListPollInterval);
               _modsListPollInterval = null;
               var list = ex2.workshopList();
-              if (list && list !== "[]") {
-                var items = typeof list === "string" ? JSON.parse(list) : list;
-                if (items && items.length > 0) {
-                  modsItemsCache = items;
-                  modsPage = 1;
-                  renderModsPage();
-                } else {
-                  modsItemsCache = [];
-                  renderModsPage();
-                }
-              } else {
-                modsItemsCache = [];
+              var items = list
+                ? typeof list === "string"
+                  ? JSON.parse(list)
+                  : list
+                : [];
+              var runQueuedRefresh = modsRefreshQueued;
+              if (!runQueuedRefresh) {
+                modsItemsCache = items && items.length ? items : [];
+                modsInitialized = true;
+                modsPage = 1;
                 renderModsPage();
               }
+              setLibraryRefreshing(false);
+              if (runQueuedRefresh) {
+                modsRefreshQueued = false;
+                refreshModsGrid();
+              }
             }
-          } catch (e) {}
+          } catch (e) {
+            clearInterval(_modsListPollInterval);
+            _modsListPollInterval = null;
+            setLibraryRefreshing(false);
+            if (!modsItemsCache.length) {
+              modsInitialized = true;
+              modsGrid.innerHTML =
+                '<div class="empty-state"><div class="empty-state-icon">&#9888;</div><div class="empty-state-text">Error loading workshop items</div></div>';
+            }
+          }
         }, 100);
+      } else {
+        modsInitialized = true;
+        renderModsPage();
       }
     } catch (e) {
-      modsItemsCache = [];
-      modsGrid.innerHTML =
-        '<div class="empty-state"><div class="empty-state-icon">&#9888;</div><div class="empty-state-text">Error loading workshop items</div></div>';
+      setLibraryRefreshing(false);
+      if (!modsItemsCache.length) {
+        modsInitialized = true;
+        modsGrid.innerHTML =
+          '<div class="empty-state"><div class="empty-state-icon">&#9888;</div><div class="empty-state-text">Error loading workshop items</div></div>';
+      }
       if (modsPagination) modsPagination.style.display = "none";
     }
   }
 
   function renderModsPage() {
     modsGrid.innerHTML = "";
+    var visibleItems = getFilteredModsItems();
+    updateLibraryCount(visibleItems.length);
     if (!modsItemsCache || modsItemsCache.length === 0) {
       modsGrid.innerHTML =
         '<div class="empty-state"><div class="empty-state-icon">&#128230;</div><div class="empty-state-text">No workshop items installed yet</div></div>';
       if (modsPagination) modsPagination.style.display = "none";
       return;
     }
-    var totalPages = Math.ceil(modsItemsCache.length / modsPageSize) || 1;
+    if (visibleItems.length === 0) {
+      modsGrid.innerHTML =
+        '<div class="empty-state"><div class="empty-state-icon">&#128269;</div><div class="empty-state-text">No installed items match your search</div></div>';
+      if (modsPagination) modsPagination.style.display = "none";
+      return;
+    }
+    var totalPages = Math.ceil(visibleItems.length / modsPageSize) || 1;
     if (modsPage < 1) modsPage = 1;
     if (modsPage > totalPages) modsPage = totalPages;
     var start = (modsPage - 1) * modsPageSize;
-    var end = Math.min(start + modsPageSize, modsItemsCache.length);
+    var end = Math.min(start + modsPageSize, visibleItems.length);
     var fragment = document.createDocumentFragment();
     for (var i = start; i < end; i++) {
-      var item = modsItemsCache[i];
+      var item = visibleItems[i];
       var card = document.createElement("div");
       card.className = "mod-card";
 
@@ -2217,29 +2382,36 @@
               return;
             }
             var done = false;
+            var removeResult = "";
             if (itemSource === "steam" && itemPath) {
               try {
-                ex.workshopRemoveByPath(itemPath);
-                done = true;
+                removeResult = ex.workshopRemoveByPath(itemPath);
+                done = removeResult === "started";
               } catch (e1) {}
               if (!done)
                 try {
-                  ex.invoke("workshopRemoveByPath", itemPath);
-                  done = true;
+                  removeResult = ex.invoke("workshopRemoveByPath", itemPath);
+                  done = removeResult === "started";
                 } catch (e2) {}
             } else {
               try {
-                ex.workshopRemove(folderName);
-                done = true;
+                removeResult = ex.workshopRemove(folderName);
+                done = removeResult === "started";
               } catch (e1) {}
               if (!done)
                 try {
-                  ex.invoke("workshopRemove", folderName);
-                  done = true;
+                  removeResult = ex.invoke("workshopRemove", folderName);
+                  done = removeResult === "started";
                 } catch (e2) {}
             }
-            if (done) startRemoveProgressPoll();
-            else showMessage("Remove", "Workshop remove is not available.");
+            if (done) {
+              removeLibraryItemFromCache(folderName, itemPath);
+              startRemoveProgressPoll();
+            } else if (removeResult === "already_running") {
+              showMessage("Remove", "Another removal is already running.");
+            } else {
+              showMessage("Remove", "Workshop remove is not available.");
+            }
           });
         };
       })(
@@ -2325,7 +2497,7 @@
 
   if (modsNextPageBtn) {
     modsNextPageBtn.onclick = function () {
-      var tp = Math.ceil((modsItemsCache || []).length / modsPageSize) || 1;
+      var tp = Math.ceil(getFilteredModsItems().length / modsPageSize) || 1;
       if (modsPage < tp) {
         modsPage++;
         renderModsPage();
@@ -2333,9 +2505,10 @@
     };
   }
 
-  document.getElementById("workshopRefreshBtn").onclick = function () {
-    refreshModsGrid();
-  };
+  if (workshopRefreshBtn)
+    workshopRefreshBtn.onclick = function () {
+      refreshModsGrid();
+    };
 
   document.getElementById("deleteAllModsBtn").onclick = function () {
     var items = modsItemsCache || [];
@@ -2379,16 +2552,24 @@
       var ex = getExternal();
       if (!ex) return;
       var done = false;
+      var removeResult = "";
       try {
-        ex.workshopRemoveAll();
-        done = true;
+        removeResult = ex.workshopRemoveAll();
+        done = removeResult === "started";
       } catch (e1) {}
       if (!done)
         try {
-          ex.invoke("workshopRemoveAll", "");
-          done = true;
+          removeResult = ex.invoke("workshopRemoveAll", "");
+          done = removeResult === "started";
         } catch (e2) {}
-      if (done) startRemoveProgressPoll();
+      if (done) {
+        modsItemsCache = [];
+        modsPage = 1;
+        renderModsPage();
+        startRemoveProgressPoll();
+      } else if (removeResult === "already_running") {
+        showMessage("Delete all mods", "Another removal is already running.");
+      }
     });
   };
 
@@ -2912,7 +3093,8 @@
       var hasKeepLauncher =
         launchOptionTokens.indexOf("keep-launcher") !== -1 ||
         launchOptionTokens.indexOf("keeplauncher") !== -1;
-      if (window._workshopPollInterval && !hasKeepLauncher) {
+      var keepLauncher = hasKeepLauncher || !getSetting("closeLauncher");
+      if (window._workshopPollInterval && !keepLauncher) {
         showConfirm(
           "Download in progress",
           "A workshop download is in progress. Keep the launcher open while you play?",
@@ -2934,7 +3116,7 @@
         return;
       }
 
-      if (hasKeepLauncher) {
+      if (keepLauncher) {
         if (exeName && exeUrl) {
           getExternal().launchGame(
             window.getPlayerName(),
@@ -3043,8 +3225,236 @@
           '.settings-tab-content[data-stab="' + target + '"]'
         );
         if (contentEl) contentEl.classList.add("active");
+        if (target === "binds") loadBinds();
       };
     })(settingsTabs[sti]);
+  }
+
+  var bindKeyInput = document.getElementById("bindKeyInput");
+  var bindCommandInput = document.getElementById("bindCommandInput");
+  var bindSaveBtn = document.getElementById("bindSaveBtn");
+  var bindList = document.getElementById("bindList");
+
+  function loadBinds() {
+    if (!bindList) return;
+    bindList.innerHTML = "";
+    var binds = [];
+    try {
+      var ex = getExternal();
+      if (ex && ex.readBinds) binds = JSON.parse(ex.readBinds() || "[]");
+    } catch (e) {}
+    if (!binds.length) {
+      var empty = document.createElement("div");
+      empty.className = "bind-empty";
+      empty.textContent = "No custom binds saved.";
+      bindList.appendChild(empty);
+      return;
+    }
+    for (var bi = 0; bi < binds.length; bi++) {
+      (function (bind) {
+        var row = document.createElement("div");
+        row.className = "bind-row";
+        var key = document.createElement("span");
+        key.className = "bind-row-key";
+        key.textContent = bind.key;
+        var command = document.createElement("span");
+        command.className = "bind-row-command";
+        command.textContent = bind.command;
+        var actions = document.createElement("div");
+        actions.className = "bind-row-actions";
+        var edit = document.createElement("button");
+        edit.type = "button";
+        edit.className = "btn";
+        edit.textContent = "Edit";
+        edit.onclick = function () {
+          bindKeyInput.value = bind.key;
+          bindCommandInput.value = bind.command;
+          bindCommandInput.focus();
+        };
+        var remove = document.createElement("button");
+        remove.type = "button";
+        remove.className = "btn btn-danger";
+        remove.textContent = "Remove";
+        remove.onclick = function () {
+          try {
+            var ex = getExternal();
+            if (ex && ex.removeBind && ex.removeBind(bind.key) === "ok")
+              loadBinds();
+            else showMessage("Binds", "Could not remove this bind.");
+          } catch (e) {
+            showMessage("Binds", "Could not remove this bind.");
+          }
+        };
+        actions.appendChild(edit);
+        actions.appendChild(remove);
+        row.appendChild(key);
+        row.appendChild(command);
+        row.appendChild(actions);
+        bindList.appendChild(row);
+      })(binds[bi]);
+    }
+  }
+
+  function saveBind() {
+    var key = (bindKeyInput.value || "").replace(/^\s+|\s+$/g, "");
+    var command = (bindCommandInput.value || "").replace(/^\s+|\s+$/g, "");
+    if (!key || !command) {
+      showMessage("Binds", "Enter both a key and a command.");
+      return;
+    }
+    try {
+      var ex = getExternal();
+      var result = ex && ex.saveBind ? ex.saveBind(key, command) : "error";
+      if (result === "invalid_key") {
+        showMessage("Binds", "The key must not contain spaces, quotes, or semicolons.");
+        return;
+      }
+      if (result === "invalid_command") {
+        showMessage("Binds", "The command must not contain quotes or line breaks.");
+        return;
+      }
+      if (result !== "ok") {
+        showMessage("Binds", "Could not save the binds file.");
+        return;
+      }
+      bindKeyInput.value = "";
+      bindCommandInput.value = "";
+      loadBinds();
+    } catch (e) {
+      showMessage("Binds", "Could not save the binds file.");
+    }
+  }
+
+  if (bindSaveBtn) bindSaveBtn.onclick = saveBind;
+  if (bindCommandInput) {
+    bindCommandInput.onkeydown = function (e) {
+      if (e.key === "Enter" || e.keyCode === 13) saveBind();
+    };
+  }
+
+  var diagnosticsResults = document.getElementById("diagnosticsResults");
+  var diagnosticsRunBtn = document.getElementById("diagnosticsRunBtn");
+  var diagnosticsState = document.getElementById("diagnosticsState");
+
+  function runDiagnostics() {
+    if (!diagnosticsResults) return;
+    diagnosticsResults.innerHTML = '<div class="diagnostics-empty">Checking installation...</div>';
+    if (diagnosticsRunBtn) {
+      diagnosticsRunBtn.disabled = true;
+      diagnosticsRunBtn.textContent = "Checking...";
+    }
+    if (diagnosticsState) diagnosticsState.textContent = "Running";
+    window.setTimeout(function () {
+      try {
+        var ex = getExternal();
+        if (!ex) throw new Error("Native launcher bridge is unavailable");
+        var report = JSON.parse(ex.runDiagnostics() || "{}");
+        diagnosticsResults.innerHTML = "";
+        var paths = document.createElement("div");
+        paths.className = "diagnostics-paths";
+        paths.textContent = "Game: " + (report.gamePath || "Unknown") +
+          " | Data: " + (report.appDataPath || "Unknown");
+        diagnosticsResults.appendChild(paths);
+        var checks = report.checks || [];
+        var summary = [];
+        for (var di = 0; di < checks.length; di++) {
+          var check = checks[di];
+          summary.push(
+            (check.status === "ok" ? "PASS" : check.status === "error" ? "ERROR" : "WARNING") +
+            "  " + (check.name || "Check") + "\n" + (check.details || "")
+          );
+          var item = document.createElement("div");
+          item.className = "diagnostic-item " + (check.status || "warning");
+          var marker = document.createElement("span");
+          marker.className = "diagnostic-marker";
+          marker.textContent = check.status === "ok" ? "OK" :
+            check.status === "error" ? "!" : "?";
+          var text = document.createElement("div");
+          var name = document.createElement("div");
+          name.className = "diagnostic-name";
+          name.textContent = check.name || "Check";
+          var details = document.createElement("div");
+          details.className = "diagnostic-details";
+          details.textContent = check.details || "";
+          text.appendChild(name);
+          text.appendChild(details);
+          item.appendChild(marker);
+          item.appendChild(text);
+          diagnosticsResults.appendChild(item);
+        }
+        if (!checks.length)
+          diagnosticsResults.innerHTML = '<div class="diagnostics-empty">No diagnostic results were returned.</div>';
+        if (diagnosticsState) diagnosticsState.textContent = "Complete";
+        showMessage(
+          "Diagnostics Results",
+          summary.length ? summary.join("\n\n") : "No diagnostic results were returned."
+        );
+      } catch (e) {
+        diagnosticsResults.innerHTML = '<div class="diagnostics-empty">Diagnostics could not run.</div>';
+        if (diagnosticsState) diagnosticsState.textContent = "Failed";
+        showMessage("Diagnostics", "The launcher could not run diagnostics. Make sure the executable and launcher data are from the same build.");
+      } finally {
+        if (diagnosticsRunBtn) {
+          diagnosticsRunBtn.disabled = false;
+          diagnosticsRunBtn.textContent = "Run Diagnostics";
+        }
+      }
+    }, 0);
+  }
+
+  if (diagnosticsRunBtn) diagnosticsRunBtn.onclick = runDiagnostics;
+
+  var diagnosticsRepairWorkshopBtn = document.getElementById(
+    "diagnosticsRepairWorkshopBtn"
+  );
+  if (diagnosticsRepairWorkshopBtn) {
+    diagnosticsRepairWorkshopBtn.onclick = function () {
+      try {
+        if (getExternal().repairWorkshopFolders() === "ok") {
+          showMessage("Diagnostics", "Workshop and profile folders were repaired.");
+          runDiagnostics();
+        } else {
+          showMessage("Diagnostics", "Some folders could not be created. Check folder permissions.");
+        }
+      } catch (e) {
+        showMessage("Diagnostics", "Workshop folders could not be repaired.");
+      }
+    };
+  }
+
+  var diagnosticsVerifyBtn = document.getElementById("diagnosticsVerifyBtn");
+  if (diagnosticsVerifyBtn) {
+    diagnosticsVerifyBtn.onclick = function () {
+      var verifyBtn = document.getElementById("verifyBtn");
+      if (verifyBtn) verifyBtn.click();
+    };
+  }
+
+  var diagnosticsClearProfileBtn = document.getElementById(
+    "diagnosticsClearProfileBtn"
+  );
+  if (diagnosticsClearProfileBtn) {
+    diagnosticsClearProfileBtn.onclick = function () {
+      showConfirm(
+        "Clear Profile Data",
+        "Permanently delete boiii_players? This removes saves, settings, and custom binds and cannot be undone.",
+        function () {
+          try {
+            var result = getExternal().clearProfileData();
+            if (result === "game_running")
+              showMessage("Clear Profile Data", "Close the game before clearing profile data.");
+            else if (result === "ok") {
+              loadBinds();
+              showMessage("Clear Profile Data", "Profile data was removed. New defaults will be created on next launch.");
+              runDiagnostics();
+            } else
+              showMessage("Clear Profile Data", "Profile data could not be removed.");
+          } catch (e) {
+            showMessage("Clear Profile Data", "Profile data could not be removed.");
+          }
+        }
+      );
+    };
   }
 
   var SETTINGS_DEFAULTS = {
@@ -3106,6 +3516,12 @@
       var stored = localStorage.getItem("boiii_settings");
       if (stored) settings = JSON.parse(stored);
     } catch (e) {}
+    try {
+      var ex = getExternal();
+      var nativeSettings =
+        ex && ex.readLauncherSettings ? ex.readLauncherSettings() : "";
+      if (nativeSettings) settings = JSON.parse(nativeSettings);
+    } catch (e) {}
     var merged = {};
     for (var k in SETTINGS_DEFAULTS) {
       merged[k] = settings.hasOwnProperty(k)
@@ -3116,8 +3532,13 @@
   }
 
   function saveAllSettings(settings) {
+    var data = JSON.stringify(settings);
     try {
-      localStorage.setItem("boiii_settings", JSON.stringify(settings));
+      localStorage.setItem("boiii_settings", data);
+    } catch (e) {}
+    try {
+      var ex = getExternal();
+      if (ex && ex.saveLauncherSettings) ex.saveLauncherSettings(data);
     } catch (e) {}
   }
 

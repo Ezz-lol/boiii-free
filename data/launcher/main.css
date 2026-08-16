@@ -1476,10 +1476,72 @@ h1 {
   letter-spacing: 0.12em;
 }
 
+.library-toolbar-heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.library-item-count {
+  min-width: 24px;
+  padding: 2px 7px;
+  border: 1px solid rgba(249, 115, 22, 0.2);
+  border-radius: 999px;
+  color: rgba(244, 240, 235, 0.68);
+  background: rgba(249, 115, 22, 0.08);
+  font-size: 0.67rem;
+  text-align: center;
+}
+
 .library-toolbar-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 16px;
+  align-items: center;
+  gap: 7px;
+}
+
+.library-search {
+  position: relative;
+  width: min(240px, 32vw);
+  min-width: 175px;
+}
+
+.library-search input {
+  width: 100%;
+  height: 36px;
+  padding: 7px 30px 7px 11px;
+  border: 1px solid rgba(68, 65, 63, 0.55);
+  border-radius: 6px;
+  outline: none;
+  color: rgba(244, 240, 235, 0.9);
+  background: rgba(12, 11, 10, 0.82);
+  font-family: inherit;
+  font-size: 0.76rem;
+}
+
+.library-search input:focus {
+  border-color: rgba(249, 115, 22, 0.52);
+}
+
+.library-search-clear {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  color: rgba(215, 210, 205, 0.5);
+  background: transparent;
+  cursor: pointer;
+  transform: translateY(-50%);
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.library-search-clear:hover {
+  color: rgba(249, 115, 22, 0.9);
 }
 
 .remove-progress-bar {
@@ -1556,6 +1618,44 @@ h1 {
   grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
   gap: 12px;
   padding: 12px;
+}
+
+.mods-grid.list-view {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 7px;
+}
+
+.mods-grid.list-view .mod-card {
+  min-height: 78px;
+  padding: 9px 11px;
+}
+
+.mods-grid.list-view .mod-card-image-wrap {
+  width: 56px;
+  height: 56px;
+}
+
+.mods-grid.list-view .mod-card-body {
+  margin-left: 10px;
+}
+
+.mods-grid.list-view .mod-card-header {
+  margin-bottom: 3px;
+}
+
+.mods-grid.list-view .mod-card-description {
+  -webkit-line-clamp: 1;
+  line-clamp: 1;
+}
+
+.mods-grid.list-view .mod-card-meta,
+.mods-grid.list-view .mod-card-actions {
+  margin-top: 6px;
+}
+
+.mods-grid.list-view .mod-card-actions .btn {
+  padding: 5px 10px;
+  font-size: 0.72rem;
 }
 
 .mods-pagination {
@@ -3357,6 +3457,102 @@ h1 {
 .progress-fill, .workshop-progress-fill, .verify-progress-fill, .remove-fill {
   transition: width 160ms linear;
 }
+
+.bind-editor {
+  display: grid;
+  grid-template-columns: 120px minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+}
+.bind-editor .settings-input { width: 100%; min-width: 0; }
+.bind-list-section { padding: 8px; }
+.bind-list { display: flex; flex-direction: column; gap: 6px; }
+.bind-row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 10px;
+  border: 1px solid rgba(255,255,255,.075);
+  border-radius: 7px;
+  background: rgba(12,11,10,.72);
+}
+.bind-row-key {
+  color: #f97316;
+  font: 600 .78rem Consolas, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bind-row-command {
+  color: rgba(230,226,222,.78);
+  font: .76rem Consolas, monospace;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bind-row-actions, .diagnostic-actions { display: flex; gap: 7px; flex-wrap: wrap; }
+.bind-row-actions .btn { padding: 5px 9px; font-size: .7rem; }
+.bind-empty, .diagnostics-empty {
+  padding: 24px;
+  color: rgba(215,210,205,.48);
+  text-align: center;
+}
+.diagnostics-warning { margin-top: 10px; color: rgba(248,113,113,.72); }
+.diagnostics-state {
+  margin-left: 8px;
+  color: rgba(215,210,205,.48);
+  font-size: .68rem;
+  font-weight: 500;
+  text-transform: none;
+}
+.diagnostics-results {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 9px;
+  max-height: 340px;
+  overflow-y: auto;
+  border: 1px solid rgba(255,255,255,.075);
+  border-radius: 8px;
+  background: rgba(12,11,10,.5);
+}
+#messagePopupBody {
+  max-height: 360px;
+  overflow-y: auto;
+  white-space: pre-line;
+  text-align: left;
+}
+.diagnostics-paths {
+  padding: 7px 9px;
+  color: rgba(215,210,205,.45);
+  font: .67rem Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+.diagnostic-item {
+  display: grid;
+  grid-template-columns: 34px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  padding: 9px 10px;
+  border: 1px solid rgba(255,255,255,.075);
+  border-radius: 7px;
+  background: rgba(12,11,10,.72);
+}
+.diagnostic-marker {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  font-size: .68rem;
+  font-weight: 700;
+}
+.diagnostic-item.ok .diagnostic-marker { color: #86efac; background: rgba(34,197,94,.13); }
+.diagnostic-item.warning .diagnostic-marker { color: #facc15; background: rgba(250,204,21,.13); }
+.diagnostic-item.error .diagnostic-marker { color: #fca5a5; background: rgba(239,68,68,.14); }
+.diagnostic-name { color: rgba(245,242,238,.9); font-size: .78rem; font-weight: 600; }
+.diagnostic-details { color: rgba(215,210,205,.48); font-size: .69rem; margin-top: 2px; overflow-wrap: anywhere; }
 
 body.reduced-motion *, body.reduced-motion *::before, body.reduced-motion *::after {
   animation: none !important;

@@ -1,5 +1,6 @@
-#include "structs/concurrent.hpp"
 #include <std_include.hpp>
+
+#include "structs/concurrent.hpp"
 
 #include <loader/component_loader.hpp>
 #include <component/scheduler.hpp>

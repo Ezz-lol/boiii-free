@@ -59,6 +59,79 @@ std::string sanitize_player_name(const std::string &name) {
   return result;
 }
 
+std::filesystem::path get_binds_file() {
+  return game::get_game_path() / "boiii_players" / "user" / "binds.cfg";
+}
+
+std::map<std::string, std::string> read_launcher_binds() {
+  std::map<std::string, std::string> binds;
+  std::string data;
+  if (!utils::io::read_file(get_binds_file(), &data))
+    return binds;
+
+  std::istringstream stream(data);
+  std::string line;
+  while (std::getline(stream, line)) {
+    utils::string::trim(line);
+    if (line.size() < 7 || _strnicmp(line.c_str(), "bind ", 5) != 0)
+      continue;
+    auto rest = line.substr(5);
+    const auto separator = rest.find(' ');
+    if (separator == std::string::npos)
+      continue;
+    auto key = utils::string::to_lower(rest.substr(0, separator));
+    auto command = rest.substr(separator + 1);
+    utils::string::trim(key);
+    utils::string::trim(command);
+    if (command.size() >= 2 && command.front() == '"' &&
+        command.back() == '"')
+      command = command.substr(1, command.size() - 2);
+    if (!key.empty() && !command.empty())
+      binds[key] = command;
+  }
+  return binds;
+}
+
+bool valid_bind_key(const std::string &key) {
+  if (key.empty() || key.size() > 32)
+    return false;
+  return std::none_of(key.begin(), key.end(), [](const unsigned char c) {
+    return std::isspace(c) || c == '"' || c == ';';
+  });
+}
+
+bool valid_bind_command(const std::string &command) {
+  return !command.empty() && command.size() <= 512 &&
+         command.find_first_of("\r\n\"") == std::string::npos;
+}
+
+bool write_launcher_binds(const std::map<std::string, std::string> &binds) {
+  std::error_code ec;
+  std::filesystem::create_directories(get_binds_file().parent_path(), ec);
+  if (ec)
+    return false;
+  std::string data;
+  for (const auto &[key, command] : binds)
+    data += "bind " + key + " \"" + command + "\"\n";
+  return utils::io::write_file(get_binds_file(), data);
+}
+
+std::string launcher_binds_json() {
+  rapidjson::StringBuffer buffer;
+  rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+  writer.StartArray();
+  for (const auto &[key, command] : read_launcher_binds()) {
+    writer.StartObject();
+    writer.Key("key");
+    writer.String(key.c_str());
+    writer.Key("command");
+    writer.String(command.c_str());
+    writer.EndObject();
+  }
+  writer.EndArray();
+  return {buffer.GetString(), buffer.GetSize()};
+}
+
 std::mutex library_list_mutex;
 std::string library_list_cache;
 std::atomic<bool> library_list_loading{false};
@@ -1750,6 +1823,74 @@ bool run() {
         });
 
     window.get_html_frame()->register_callback(
+        "saveLaunchOptions",
+        [](const std::vector<html_argument> &params) -> CComVariant {
+          if (params.empty() || !params[0].is_string())
+            return CComVariant("error");
+          utils::properties::store("launchOptions", params[0].get_string());
+          return CComVariant("ok");
+        });
+
+    window.get_html_frame()->register_callback(
+        "readLauncherSettings",
+        [](const std::vector<html_argument> & /*params*/) -> CComVariant {
+          const auto stored = utils::properties::load("launcherUiSettings");
+          return CComVariant(stored ? stored->c_str() : "");
+        });
+
+    window.get_html_frame()->register_callback(
+        "saveLauncherSettings",
+        [](const std::vector<html_argument> &params) -> CComVariant {
+          if (params.empty() || !params[0].is_string())
+            return CComVariant("error");
+          const auto data = params[0].get_string();
+          rapidjson::Document document;
+          if (document.Parse(data.c_str()).HasParseError() ||
+              !document.IsObject())
+            return CComVariant("invalid_json");
+          utils::properties::store("launcherUiSettings", data);
+          return CComVariant("ok");
+        });
+
+    window.get_html_frame()->register_callback(
+        "readBinds",
+        [](const std::vector<html_argument> & /*params*/) -> CComVariant {
+          return CComVariant(launcher_binds_json().c_str());
+        });
+
+    window.get_html_frame()->register_callback(
+        "saveBind", [](const std::vector<html_argument> &params) -> CComVariant {
+          if (params.size() < 2 || !params[0].is_string() ||
+              !params[1].is_string())
+            return CComVariant("error");
+          auto key = utils::string::to_lower(params[0].get_string());
+          auto command = params[1].get_string();
+          utils::string::trim(key);
+          utils::string::trim(command);
+          if (!valid_bind_key(key))
+            return CComVariant("invalid_key");
+          if (!valid_bind_command(command))
+            return CComVariant("invalid_command");
+          auto binds = read_launcher_binds();
+          binds[key] = command;
+          return CComVariant(write_launcher_binds(binds) ? "ok"
+                                                         : "write_error");
+        });
+
+    window.get_html_frame()->register_callback(
+        "removeBind",
+        [](const std::vector<html_argument> &params) -> CComVariant {
+          if (params.empty() || !params[0].is_string())
+            return CComVariant("error");
+          auto key = utils::string::to_lower(params[0].get_string());
+          utils::string::trim(key);
+          auto binds = read_launcher_binds();
+          binds.erase(key);
+          return CComVariant(write_launcher_binds(binds) ? "ok"
+                                                         : "write_error");
+        });
+
+    window.get_html_frame()->register_callback(
         "setSelectedVersion",
         [](const std::vector<html_argument> &params) -> CComVariant {
           if (!params.empty() && params[0].is_string()) {
@@ -2464,6 +2605,134 @@ bool run() {
         "isGameRunning",
         [](const std::vector<html_argument> & /*params*/) -> CComVariant {
           return CComVariant(is_game_process_running() ? "1" : "0");
+        });
+
+    window.get_html_frame()->register_callback(
+        "runDiagnostics",
+        [](const std::vector<html_argument> & /*params*/) -> CComVariant {
+          const auto game_path = game::get_game_path();
+          const auto appdata_path = game::get_appdata_path();
+          rapidjson::StringBuffer buffer;
+          rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+          writer.StartObject();
+          writer.Key("gamePath");
+          writer.String(game_path.string().c_str());
+          writer.Key("appDataPath");
+          writer.String(appdata_path.string().c_str());
+          writer.Key("checks");
+          writer.StartArray();
+
+          const auto add_check = [&](const char *name, const char *status,
+                                     const std::string &details) {
+            writer.StartObject();
+            writer.Key("name");
+            writer.String(name);
+            writer.Key("status");
+            writer.String(status);
+            writer.Key("details");
+            writer.String(details.c_str());
+            writer.EndObject();
+          };
+
+          std::error_code filesystem_error;
+          const auto game_exe = game_path / "BlackOps3.exe";
+          const auto has_game =
+              std::filesystem::is_regular_file(game_exe, filesystem_error);
+          add_check("Game executable", has_game ? "ok" : "error",
+                    has_game ? game_exe.string()
+                             : "BlackOps3.exe was not found");
+
+          const auto ui_file =
+              appdata_path / "data" / "launcher" / "main.html";
+          filesystem_error.clear();
+          const auto has_ui =
+              std::filesystem::is_regular_file(ui_file, filesystem_error);
+          add_check("Launcher data", has_ui ? "ok" : "error",
+                    has_ui ? ui_file.parent_path().string()
+                           : "Launcher UI data is missing or incomplete");
+
+          const auto steamcmd_exe = game_path / "steamcmd" / "steamcmd.exe";
+          filesystem_error.clear();
+          const auto has_steamcmd =
+              std::filesystem::is_regular_file(steamcmd_exe, filesystem_error);
+          add_check("SteamCMD", has_steamcmd ? "ok" : "warning",
+                    has_steamcmd
+                        ? steamcmd_exe.string()
+                        : "Not installed yet; it will download when needed");
+
+          const auto workshop_root = game_path / "steamcmd" / "steamapps" /
+                                     "workshop" / "downloads" /
+                                     game::APP_ID_STR;
+          filesystem_error.clear();
+          const auto has_workshop_root =
+              std::filesystem::is_directory(workshop_root, filesystem_error);
+          add_check("Workshop staging folder",
+                    has_workshop_root ? "ok" : "warning",
+                    has_workshop_root
+                        ? workshop_root.string()
+                        : "Folder is missing; use Repair Workshop Folders");
+
+          const auto binds_file = get_binds_file();
+          filesystem_error.clear();
+          add_check("Custom binds", "ok",
+                    std::filesystem::is_regular_file(binds_file,
+                                                     filesystem_error)
+                        ? binds_file.string()
+                        : "No custom binds saved yet");
+
+          ULARGE_INTEGER available{};
+          if (GetDiskFreeSpaceExW(game_path.c_str(), &available, nullptr,
+                                  nullptr)) {
+            const auto free_space = available.QuadPart;
+            add_check("Free disk space",
+                      free_space >= 5ULL * 1024ULL * 1024ULL * 1024ULL
+                          ? "ok"
+                          : "warning",
+                      human_readable_size(free_space) + " available");
+          }
+
+          if (utils::nt::is_wine())
+            add_check("Wine compatibility", "warning",
+                      "Workshop downloads through SteamCMD may be unavailable");
+
+          writer.EndArray();
+          writer.EndObject();
+          return CComVariant(
+              std::string(buffer.GetString(), buffer.GetSize()).c_str());
+        });
+
+    window.get_html_frame()->register_callback(
+        "repairWorkshopFolders",
+        [](const std::vector<html_argument> & /*params*/) -> CComVariant {
+          const auto game_path = game::get_game_path();
+          const std::array paths = {
+              game_path / "mods", game_path / "usermaps",
+              game_path / "boiii_players" / "user",
+              game_path / "steamcmd" / "steamapps" / "workshop" /
+                  "downloads" / game::APP_ID_STR,
+              game_path / "steamcmd" / "steamapps" / "workshop" / "content" /
+                  game::APP_ID_STR};
+          for (const auto &path : paths) {
+            std::error_code ec;
+            std::filesystem::create_directories(path, ec);
+            if (ec)
+              return CComVariant("error");
+          }
+          return CComVariant("ok");
+        });
+
+    window.get_html_frame()->register_callback(
+        "clearProfileData",
+        [](const std::vector<html_argument> & /*params*/) -> CComVariant {
+          if (is_game_process_running())
+            return CComVariant("game_running");
+          const auto profile_path = game::get_game_path() / "boiii_players";
+          if (profile_path.filename() != "boiii_players")
+            return CComVariant("invalid_path");
+          std::error_code ec;
+          if (std::filesystem::exists(profile_path, ec))
+            std::filesystem::remove_all(profile_path, ec);
+          return CComVariant(ec ? "error" : "ok");
         });
 
     window.get_html_frame()->register_callback(
