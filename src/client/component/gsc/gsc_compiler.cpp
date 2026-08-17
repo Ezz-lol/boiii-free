@@ -42,7 +42,7 @@ resolve_insert_file(const std::string &insert_path,
     return {result, candidate.generic_string()};
 
   std::filesystem::path parent = src_dir;
-  for (int depth = 0; depth < 10 && parent.has_parent_path(); depth++) {
+  for (int32_t depth = 0; depth < 10 && parent.has_parent_path(); depth++) {
     parent = parent.parent_path();
     candidate = parent / norm_path;
     result = try_read_file(candidate);
@@ -167,24 +167,24 @@ std::string preprocess_impl(const std::string &source,
 
       // Conditional compilation directives must be processed even when skipping
       if (trimmed.substr(0, 6) == "#ifdef") {
-        auto macro = extract_directive_arg(trimmed, 6);
+        std::string macro = extract_directive_arg(trimmed, 6);
         bool defined = is_macro_defined(macro);
         bool parent_active = !is_skipping();
         cond_stack.push_back(
             {parent_active && defined, parent_active && defined});
         output += "\n";
-        for (int ci = 0; ci < continuation_count; ci++)
+        for (int32_t ci = 0; ci < continuation_count; ci++)
           output += "\n";
         continue;
       }
       if (trimmed.substr(0, 7) == "#ifndef") {
-        auto macro = extract_directive_arg(trimmed, 7);
+        std::string macro = extract_directive_arg(trimmed, 7);
         bool defined = is_macro_defined(macro);
         bool parent_active = !is_skipping();
         cond_stack.push_back(
             {parent_active && !defined, parent_active && !defined});
         output += "\n";
-        for (int ci = 0; ci < continuation_count; ci++)
+        for (int32_t ci = 0; ci < continuation_count; ci++)
           output += "\n";
         continue;
       }
@@ -201,7 +201,7 @@ std::string preprocess_impl(const std::string &source,
           top.active = parent_active && !top.has_matched;
         }
         output += "\n";
-        for (int ci = 0; ci < continuation_count; ci++)
+        for (int32_t ci = 0; ci < continuation_count; ci++)
           output += "\n";
         continue;
       }
@@ -209,7 +209,7 @@ std::string preprocess_impl(const std::string &source,
         if (!cond_stack.empty())
           cond_stack.pop_back();
         output += "\n";
-        for (int ci = 0; ci < continuation_count; ci++)
+        for (int32_t ci = 0; ci < continuation_count; ci++)
           output += "\n";
         continue;
       }
@@ -217,17 +217,17 @@ std::string preprocess_impl(const std::string &source,
       // All other directives are skipped when inside a false conditional block
       if (is_skipping()) {
         output += "\n";
-        for (int ci = 0; ci < continuation_count; ci++)
+        for (int32_t ci = 0; ci < continuation_count; ci++)
           output += "\n";
         continue;
       }
 
       if (trimmed.substr(0, 6) == "#undef") {
-        auto macro = extract_directive_arg(trimmed, 6);
+        std::string macro = extract_directive_arg(trimmed, 6);
         defines.erase(macro);
         func_defines.erase(macro);
         output += "\n";
-        for (int ci = 0; ci < continuation_count; ci++)
+        for (int32_t ci = 0; ci < continuation_count; ci++)
           output += "\n";
         continue;
       }
@@ -268,7 +268,7 @@ std::string preprocess_impl(const std::string &source,
           while (i < rest.size() && (rest[i] == ' ' || rest[i] == '\t'))
             i++;
           std::string body = rest.substr(i);
-          auto comment_pos = body.find("//");
+          const size_t comment_pos = body.find("//");
           if (comment_pos != std::string::npos)
             body = body.substr(0, comment_pos);
           while (!body.empty() && (body.back() == ' ' || body.back() == '\t'))
@@ -278,7 +278,7 @@ std::string preprocess_impl(const std::string &source,
           while (i < rest.size() && (rest[i] == ' ' || rest[i] == '\t'))
             i++;
           std::string value = rest.substr(i);
-          auto comment_pos = value.find("//");
+          const size_t comment_pos = value.find("//");
           if (comment_pos != std::string::npos)
             value = value.substr(0, comment_pos);
           while (!value.empty() &&
@@ -288,7 +288,7 @@ std::string preprocess_impl(const std::string &source,
         }
 
         output += "\n";
-        for (int ci = 0; ci < continuation_count; ci++)
+        for (int32_t ci = 0; ci < continuation_count; ci++)
           output += "\n";
         continue;
       }
@@ -342,7 +342,7 @@ std::string preprocess_impl(const std::string &source,
     // Skip code lines inside false conditional blocks
     if (is_skipping()) {
       output += "\n";
-      for (int ci = 0; ci < continuation_count; ci++)
+      for (int32_t ci = 0; ci < continuation_count; ci++)
         output += "\n";
       continue;
     }
@@ -480,7 +480,7 @@ std::string preprocess_impl(const std::string &source,
 
     output += processed;
     output += "\n";
-    for (int ci = 0; ci < continuation_count; ci++)
+    for (int32_t ci = 0; ci < continuation_count; ci++)
       output += "\n";
   }
 

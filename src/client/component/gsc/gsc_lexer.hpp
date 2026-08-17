@@ -118,16 +118,16 @@ enum class token_type {
 struct token {
   token_type type;
   std::string value;
-  int line;
-  int column;
+  int32_t line;
+  int32_t column;
 };
 
 struct lexer_result {
   bool success;
   std::vector<token> tokens;
   std::string error;
-  int error_line;
-  int error_column;
+  int32_t error_line;
+  int32_t error_column;
 };
 
 lexer_result tokenize(const std::string &source);

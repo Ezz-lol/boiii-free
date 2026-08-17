@@ -1688,6 +1688,77 @@ struct Camera {
   vec3_t lastTagCameraAngles;
 };
 
+struct GSC_PROFILE_ITEM {
+  uintptr_t name;
+  uintptr_t address;
+};
+
+struct GSC_GLOBALVAR_ITEM {
+  uint32_t name;
+  uint32_t num_address;
+};
+
+struct GSC_ANIMNODE_ITEM {
+  uintptr_t name;
+  uintptr_t address;
+};
+
+struct GSC_FIXUP_ITEM {
+  uintptr_t offset;
+  uintptr_t address;
+};
+
+struct GSC_STRINGTABLE_ITEM {
+  uint32_t string;
+  uint8_t num_address;
+  uint8_t type;
+  uint8_t pad[2];
+};
+
+PACKED(struct GSC_EXPORT_ITEM {
+  // crc32
+  uint32_t checksum;
+  // Bytecode offset
+  uint32_t address;
+
+  // Function name hash
+  ScrVarCanonicalName_t name;
+  // Namespace hash
+  ScrVarCanonicalName_t name_space;
+  uint8_t param_count;
+  uint8_t flags;
+  uint8_t _padding12[2];
+});
+ASSERT_SIZE(GSC_EXPORT_ITEM, 0x14);
+
+struct GSC_IMPORT_ITEM {
+  ScrVarCanonicalName_t name;
+  ScrVarCanonicalName_t name_space;
+  uint16_t num_address;
+  uint8_t param_count;
+  uint8_t flags;
+
+  inline std::span<const uint32_t> addresses() const {
+    return std::span(
+        reinterpret_cast<const uint32_t *>(reinterpret_cast<uintptr_t>(this) +
+                                           sizeof(GSC_IMPORT_ITEM)),
+        num_address);
+  }
+
+  inline std::span<uint32_t> addresses() {
+    return std::span(
+        reinterpret_cast<uint32_t *>(reinterpret_cast<uintptr_t>(this) +
+                                     sizeof(GSC_IMPORT_ITEM)),
+        num_address);
+  }
+};
+
+struct GSC_ANIMTREE_ITEM {
+  uint32_t name;
+  uint16_t num_tree_address;
+  uint16_t num_node_address;
+};
+
 PACKED(struct GSC_OBJ {
   str8_t magic;
   uint32_t source_crc;
@@ -1739,6 +1810,19 @@ PACKED(struct GSC_OBJ {
     magic[7] = val[7];
   }
 
+  inline constexpr bool hasMagic(const std::array<char, sizeof(uint64_t)> &val)
+      const noexcept {
+    return magic[0] == val[0] && magic[1] == val[1] && magic[2] == val[2] &&
+           magic[3] == val[3] && magic[4] == val[4] && magic[5] == val[5] &&
+           magic[6] == val[6] && magic[7] == val[7];
+  }
+
+  inline constexpr bool hasMagic(const str8_t &val) const noexcept {
+    return magic[0] == val[0] && magic[1] == val[1] && magic[2] == val[2] &&
+           magic[3] == val[3] && magic[4] == val[4] && magic[5] == val[5] &&
+           magic[6] == val[6] && magic[7] == val[7];
+  }
+
   inline const char *get_name() const noexcept {
     return reinterpret_cast<const char *>(this) + name;
   }
@@ -1747,12 +1831,74 @@ PACKED(struct GSC_OBJ {
     return reinterpret_cast<char *>(this) + name;
   }
 
-  inline const uint8_t *cseg() const noexcept {
-    return reinterpret_cast<const uint8_t *>(this) + cseg_offset;
+  inline std::span<const uint8_t> cseg() const noexcept {
+    return std::span(reinterpret_cast<const uint8_t *>(this) + cseg_offset,
+                     cseg_size);
   }
 
-  inline uint8_t *cseg() noexcept {
-    return reinterpret_cast<uint8_t *>(this) + cseg_offset;
+  inline std::span<uint8_t> cseg() noexcept {
+    return std::span(reinterpret_cast<uint8_t *>(this) + cseg_offset,
+                     cseg_size);
+  }
+
+  inline std::span<const GSC_EXPORT_ITEM> exports() const noexcept {
+    return std::span(reinterpret_cast<const GSC_EXPORT_ITEM *>(
+                         reinterpret_cast<uintptr_t>(this) + exports_offset),
+                     exports_count);
+  }
+
+  inline std::span<GSC_EXPORT_ITEM> exports() noexcept {
+    return std::span(reinterpret_cast<GSC_EXPORT_ITEM *>(
+                         reinterpret_cast<uintptr_t>(this) + exports_offset),
+                     exports_count);
+  }
+
+  inline std::span<const ScrVarCanonicalName_t> includes() const noexcept {
+    return std::span(reinterpret_cast<const ScrVarCanonicalName_t *>(
+                         reinterpret_cast<uintptr_t>(this) + include_offset),
+                     include_count);
+  }
+
+  inline std::span<ScrVarCanonicalName_t> includes() noexcept {
+    return std::span(reinterpret_cast<ScrVarCanonicalName_t *>(
+                         reinterpret_cast<uintptr_t>(this) + include_offset),
+                     include_count);
+  }
+
+  inline std::span<const GSC_IMPORT_ITEM> imports() const noexcept {
+    return std::span(reinterpret_cast<const GSC_IMPORT_ITEM *>(
+                         reinterpret_cast<uintptr_t>(this) + imports_offset),
+                     imports_count);
+  }
+
+  inline std::span<GSC_IMPORT_ITEM> imports() noexcept {
+    return std::span(reinterpret_cast<GSC_IMPORT_ITEM *>(
+                         reinterpret_cast<uintptr_t>(this) + imports_offset),
+                     imports_count);
+  }
+
+  inline std::span<const GSC_FIXUP_ITEM> fixups() const noexcept {
+    return std::span(reinterpret_cast<const GSC_FIXUP_ITEM *>(
+                         reinterpret_cast<uintptr_t>(this) + fixup_offset),
+                     fixup_count);
+  }
+
+  inline std::span<GSC_FIXUP_ITEM> fixups() noexcept {
+    return std::span(reinterpret_cast<GSC_FIXUP_ITEM *>(
+                         reinterpret_cast<uintptr_t>(this) + fixup_offset),
+                     fixup_count);
+  }
+
+  inline std::span<const GSC_ANIMTREE_ITEM> animtrees() const noexcept {
+    return std::span(reinterpret_cast<const GSC_ANIMTREE_ITEM *>(
+                         reinterpret_cast<uintptr_t>(this) + animtree_offset),
+                     animtree_count);
+  }
+
+  inline std::span<GSC_ANIMTREE_ITEM> animtrees() noexcept {
+    return std::span(reinterpret_cast<GSC_ANIMTREE_ITEM *>(
+                         reinterpret_cast<uintptr_t>(this) + animtree_offset),
+                     animtree_count);
   }
 
   static inline constexpr uint8_t T7_LATEST_VERSION = 0x1C;
@@ -1775,12 +1921,6 @@ PACKED(struct GSC_OBJ {
 });
 ASSERT_OFFSET(GSC_OBJ, cseg_size, 0x30);
 ASSERT_SIZE(GSC_OBJ, 0x48);
-
-struct GSC_ANIMTREE_ITEM {
-  uint32_t name;
-  uint16_t num_tree_address;
-  uint16_t num_node_address;
-};
 
 #pragma pack(push, 1)
 struct ScriptParseTree {
@@ -1959,28 +2099,6 @@ ASSERT_SIZE(objFileInfo_t, 0x50);
 
 typedef ScrPool<array<objFileInfo_t, 500>> ObjFileInfoPool;
 ASSERT_SIZE(ObjFileInfoPool, 0x13880);
-
-struct GSC_IMPORT_ITEM {
-  ScrVarCanonicalName_t name;
-  ScrVarCanonicalName_t name_space;
-  uint16_t num_address;
-  uint8_t param_count;
-  uint8_t flags;
-
-  inline std::span<const uint32_t> addresses() const {
-    return std::span(
-        reinterpret_cast<const uint32_t *>(reinterpret_cast<uintptr_t>(this) +
-                                           sizeof(GSC_IMPORT_ITEM)),
-        num_address);
-  }
-
-  inline std::span<uint32_t> addresses() {
-    return std::span(
-        reinterpret_cast<uint32_t *>(reinterpret_cast<uintptr_t>(this) +
-                                     sizeof(GSC_IMPORT_ITEM)),
-        num_address);
-  }
-};
 
 } // namespace scr
 } // namespace game

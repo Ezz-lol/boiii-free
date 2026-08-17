@@ -272,7 +272,7 @@ objFileInfo_t *Scr_FindObjFileInfo_Impl(const scriptInstance_t inst,
   for (uint32_t i = 0; i < gObjFileInfoCount->instance[inst]; ++i) {
     objFileInfo_t *const info = &gObjFileInfo->instance[inst][i];
     const GSC_OBJ *const obj = info->activeVersion;
-    if (obj != nullptr && contains(obj->cseg(), obj->cseg_size, addr)) {
+    if (obj != nullptr && contains(obj->cseg(), addr)) {
       return info;
     }
   }

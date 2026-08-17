@@ -39,8 +39,6 @@ struct hash_info {
   uint8_t params;
 };
 
-constexpr size_t GSC_MAGIC = 0x1C000A0D43534780;
-
 void print_script_log(const char *message) {
   game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s\n", message);
   fprintf(stderr, "%s\n", message);
@@ -76,19 +74,6 @@ std::string normalize_script_name(std::string script_name) {
   }
   return script_name;
 }
-
-// T7 export table entry layout (matches game binary, 20 bytes)
-#pragma pack(push, 1)
-struct t7_export_entry {
-  uint32_t crc32;     // +0
-  uint32_t offset;    // +4  bytecode offset
-  uint32_t func_name; // +8  function name hash
-  uint32_t ns_name;   // +12 namespace hash
-  uint8_t num_params; // +16
-  uint8_t flags;      // +17
-  uint16_t _pad;      // +18
-};
-#pragma pack(pop)
 
 struct pending_detour {
   std::string target_script;
@@ -144,7 +129,7 @@ std::string strip_devblocks(const std::string &source) {
     }
     if (pos + 1 < source.size() && source[pos] == '/' &&
         source[pos + 1] == '#') {
-      auto end = source.find("#/", pos + 2);
+      const size_t end = source.find("#/", pos + 2);
       if (end != std::string::npos) {
         // Preserve newlines to keep line numbering intact
         for (size_t i = pos; i < end + 2; i++)
@@ -158,104 +143,10 @@ std::string strip_devblocks(const std::string &source) {
   }
   return result;
 }
+
 static std::mutex db_mutex;
-void fixup_script_imports(uint8_t *buf, int32_t len) {
-  if (len < 0x48)
-    return;
-
-  uint64_t magic;
-  std::memcpy(&magic, buf, sizeof(magic));
-  if (magic != GSC_MAGIC)
-    return;
-
-  uint32_t include_offset, import_offset;
-  uint8_t include_count;
-  uint16_t import_count;
-  std::memcpy(&include_offset, buf + 0x0C, 4);
-  std::memcpy(&import_offset, buf + 0x24, 4);
-  std::memcpy(&include_count, buf + 0x44, 1);
-  std::memcpy(&import_count, buf + 0x3C, 2);
-
-  if (include_count == 0 || import_count == 0)
-    return;
-
-  // Build map: path_hash → actual namespace hash from target script exports
-  std::unordered_map<uint32_t, uint32_t> path_to_ns;
-  for (uint8_t i = 0; i < include_count; i++) {
-    uint32_t str_off;
-    std::memcpy(&str_off, buf + include_offset + i * 4, 4);
-    if (str_off >= static_cast<uint32_t>(len))
-      continue;
-
-    std::string inc_path(reinterpret_cast<char *>(buf) + str_off);
-    // Normalize include path (forward slashes, lowercase) before hashing
-    for (char &c : inc_path) {
-      if (c == '\\')
-        c = '/';
-      c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    }
-    uint32_t path_hash = gsc::gsc_hash(inc_path);
-
-    RawFile *asset = nullptr;
-    {
-      std::scoped_lock<std::mutex> db_lock(db_mutex);
-      // Look up the actual game SPT for this include path (try .gsc then .csc)
-      RawFile *asset = db_find_x_asset_header_hook.invoke<RawFile *>(
-          XAssetType::SCRIPTPARSETREE, (inc_path + ".gsc").c_str(), false, 0);
-      if (!asset || !asset->buffer) {
-        asset = db_find_x_asset_header_hook.invoke<RawFile *>(
-            XAssetType::SCRIPTPARSETREE, (inc_path + ".csc").c_str(), false, 0);
-      }
-    }
-
-    if (asset && !asset->buffer) {
-      const uint8_t *spt = reinterpret_cast<const uint8_t *>(asset->buffer);
-      uint64_t spt_magic;
-      std::memcpy(&spt_magic, spt, sizeof(spt_magic));
-      if (spt_magic != GSC_MAGIC)
-        continue;
-
-      uint32_t exp_off;
-      uint16_t exp_cnt;
-      std::memcpy(&exp_off, spt + 0x20, 4);
-      std::memcpy(&exp_cnt, spt + 0x3A, 2);
-
-      if (exp_cnt > 0) {
-        const t7_export_entry *exps =
-            reinterpret_cast<const t7_export_entry *>(spt + exp_off);
-        uint32_t actual_ns = exps[0].ns_name;
-        if (actual_ns != path_hash)
-          path_to_ns[path_hash] = actual_ns;
-      }
-    }
-  }
-
-  if (path_to_ns.empty())
-    return;
-
-  // Walk import table and patch ns_hash where it matches a path hash
-  size_t pos = import_offset;
-  for (uint16_t i = 0; i < import_count; i++) {
-    if (pos + 12 > static_cast<size_t>(len))
-      break;
-
-    uint32_t func_hash, ns_hash;
-    uint16_t num_refs;
-    std::memcpy(&func_hash, buf + pos, 4);
-    std::memcpy(&ns_hash, buf + pos + 4, 4);
-    std::memcpy(&num_refs, buf + pos + 8, 2);
-
-    auto it = path_to_ns.find(ns_hash);
-    if (it != path_to_ns.end()) {
-      std::memcpy(buf + pos + 4, &it->second, 4);
-    }
-
-    pos += 12 + 4 * static_cast<size_t>(num_refs);
-  }
-}
-
-const uint8_t *get_spt_buffer(const std::string &name) {
-  auto normalize_path = [](std::string path) {
+const GSC_OBJ *get_linked_obj(const std::string &name) {
+  auto normalize_path = [](std::string path) -> std::string {
     for (char &c : path) {
       if (c == '\\')
         c = '/';
@@ -263,62 +154,82 @@ const uint8_t *get_spt_buffer(const std::string &name) {
     return path;
   };
 
-  std::string normalized_name = normalize_script_name(name);
+  const std::string normalized_name = normalize_script_name(name);
 
   // Try with extension first, then without
   std::string with_ext = normalized_name;
   const bool has_ext = utils::string::ends_with(with_ext, ".gsc") ||
                        utils::string::ends_with(with_ext, ".csc");
-  if (!has_ext)
+  if (!has_ext) {
     with_ext += ".gsc";
+  }
+
   std::string without_ext = normalized_name;
   if (utils::string::ends_with(without_ext, ".gsc") ||
-      utils::string::ends_with(without_ext, ".csc"))
+      utils::string::ends_with(without_ext, ".csc")) {
     without_ext = without_ext.substr(0, without_ext.size() - 4);
+  }
 
   std::string with_ext_norm = normalize_path(with_ext);
   std::string without_ext_norm = normalize_path(without_ext);
 
+  GSC_OBJ *result;
   // Check our custom scripts (case-insensitive key search)
-  for (auto &[key, rf] : loaded_scripts) {
-    if (!rf || !rf->buffer)
-      continue;
-    std::string key_norm = normalize_path(key);
-    if (_stricmp(key_norm.c_str(), with_ext_norm.c_str()) == 0 ||
-        _stricmp(key_norm.c_str(), without_ext_norm.c_str()) == 0)
-      return reinterpret_cast<const uint8_t *>(rf->buffer);
+  loaded_scripts.for_each([&result, &normalize_path, &with_ext_norm,
+                           &without_ext_norm](const auto &v) {
+    RawFile *rf = v.second;
+    if (!result && rf && rf->buffer) {
+      std::string key_norm = normalize_path(v.first);
+      if (_stricmp(key_norm.c_str(), with_ext_norm.c_str()) == 0 ||
+          _stricmp(key_norm.c_str(), without_ext_norm.c_str()) == 0)
+        result = reinterpret_cast<GSC_OBJ *>(rf->buffer);
+    }
+  });
+
+  if (result) {
+    return result;
   }
 
   // Suffix match: handles full disk paths from runtime replacefunc
   // e.g., "C:/.../data/custom_scripts/foo" matches loaded key
   // "custom_scripts/foo.gsc"
-  for (auto &[key, rf] : loaded_scripts) {
-    if (!rf || !rf->buffer)
-      continue;
-    std::string key_no_ext = key;
-    if (utils::string::ends_with(key_no_ext, ".gsc") ||
-        utils::string::ends_with(key_no_ext, ".csc"))
-      key_no_ext = key_no_ext.substr(0, key_no_ext.size() - 4);
-    std::string key_no_ext_norm = normalize_path(key_no_ext);
+  loaded_scripts.for_each(
+      [&result, &normalize_path, &without_ext_norm](const auto &v) {
+        RawFile *rf = v.second;
+        if (!result && rf && rf->buffer) {
+          std::string key_no_ext = v.first;
+          if (utils::string::ends_with(key_no_ext, ".gsc") ||
+              utils::string::ends_with(key_no_ext, ".csc"))
+            key_no_ext = key_no_ext.substr(0, key_no_ext.size() - 4);
+          std::string key_no_ext_norm = normalize_path(key_no_ext);
 
-    if (without_ext_norm.size() > key_no_ext_norm.size()) {
-      char sep = without_ext_norm[without_ext_norm.size() -
-                                  key_no_ext_norm.size() - 1];
-      if (sep == '/' &&
-          _stricmp(without_ext_norm.c_str() + without_ext_norm.size() -
-                       key_no_ext_norm.size(),
-                   key_no_ext_norm.c_str()) == 0)
-        return reinterpret_cast<const uint8_t *>(rf->buffer);
-    }
+          if (without_ext_norm.size() > key_no_ext_norm.size()) {
+            char sep = without_ext_norm[without_ext_norm.size() -
+                                        key_no_ext_norm.size() - 1];
+            if (sep == '/' &&
+                _stricmp(without_ext_norm.c_str() + without_ext_norm.size() -
+                             key_no_ext_norm.size(),
+                         key_no_ext_norm.c_str()) == 0)
+              result = reinterpret_cast<GSC_OBJ *>(rf->buffer);
+          }
+        }
+      });
+  if (result) {
+    return result;
   }
 
   // Fall back to game's asset database (try .gsc, .csc, and without ext)
   std::string with_csc = without_ext + ".csc";
   for (const std::string &lookup : {with_ext, with_csc, without_ext}) {
-    RawFile *asset = db_find_x_asset_header_hook.invoke<RawFile *>(
-        XAssetType::SCRIPTPARSETREE, lookup.c_str(), false, 0);
-    if (asset && asset->buffer)
-      return reinterpret_cast<const uint8_t *>(asset->buffer);
+    RawFile *asset;
+    {
+      std::scoped_lock<std::mutex> db_lock(db_mutex);
+      asset = db_find_x_asset_header_hook.invoke<RawFile *>(
+          XAssetType::SCRIPTPARSETREE, lookup.c_str(), false, 0);
+    }
+    if (asset && asset->buffer) {
+      return reinterpret_cast<const GSC_OBJ *>(asset->buffer);
+    }
   }
 
   return nullptr;
@@ -335,36 +246,26 @@ resolve_export_address_internal(const std::string &script_name,
                                 int32_t expected_params = -1) {
   export_lookup_result result{};
 
-  const uint8_t *buffer = get_spt_buffer(script_name);
-  result.script_loaded = (buffer != nullptr);
-  if (!buffer) {
+  const GSC_OBJ *obj = get_linked_obj(script_name);
+  result.script_loaded = (obj != nullptr);
+  if (!obj) {
     return result;
   }
 
-  uint64_t magic = 0;
-  std::memcpy(&magic, buffer, sizeof(magic));
-  if (magic != GSC_MAGIC) {
+  if (!obj->hasMagic(GSC_OBJ::T7_MAGIC)) {
     return result;
   }
 
-  uint32_t export_offset = 0;
-  std::memcpy(&export_offset, buffer + 0x20, sizeof(export_offset));
-  uint16_t export_count = 0;
-  std::memcpy(&export_count, buffer + 0x3A, sizeof(export_count));
-
-  const t7_export_entry *exports =
-      reinterpret_cast<const t7_export_entry *>(buffer + export_offset);
-  for (uint16_t i = 0; i < export_count; i++) {
-    if (exports[i].func_name == func_hash) {
-      if (expected_params >= 0 &&
-          exports[i].num_params != static_cast<uint8_t>(expected_params)) {
-        continue;
-      }
-
-      result.address = reinterpret_cast<uint8_t *>(
-          reinterpret_cast<uintptr_t>(buffer) + exports[i].offset);
-      if (expected_params >= 0) {
-        break;
+  const std::span<const GSC_EXPORT_ITEM> exports = obj->exports();
+  for (uint16_t i = 0; i < exports.size(); i++) {
+    if (exports[i].name == func_hash) {
+      if (expected_params < 0 ||
+          exports[i].param_count == static_cast<uint8_t>(expected_params)) {
+        result.address = reinterpret_cast<uint8_t *>(
+            reinterpret_cast<uintptr_t>(obj) + exports[i].address);
+        if (expected_params >= 0) {
+          break;
+        }
       }
     }
   }
@@ -468,8 +369,6 @@ void load_script(const std::string &name, const std::string &data,
   }
   raw_file->len = static_cast<int>(data.length());
 
-  fixup_script_imports(const_cast<uint8_t *>(raw_file->buffer), raw_file->len);
-
   while (loaded_scripts.try_emplace_l(name,
                                       [&](auto &v) { v.second = raw_file; })) {
   }
@@ -489,8 +388,8 @@ void load_script_file(std::string &data,
                       const std::string &name, const bool load) {
   const std::string script_file_str = script_file.generic_string();
 
-  if (data.size() >= sizeof(GSC_MAGIC) &&
-      !std::memcmp(data.data(), &GSC_MAGIC, sizeof(GSC_MAGIC))) {
+  if (data.size() >= sizeof(GSC_OBJ::T7_MAGIC) &&
+      reinterpret_cast<GSC_OBJ *>(data.data())->hasMagic(GSC_OBJ::T7_MAGIC)) {
     print_loading_script(name);
     load_script(name, data, load);
   } else if ((utils::string::ends_with(script_file_str, ".gsc") ||

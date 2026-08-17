@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <intrin.h>
+#include <span>
 
 namespace game {
 
@@ -180,6 +181,12 @@ template <typename A, typename B, IntegralLike<size_t> S>
 inline constexpr bool contains(const A *base, const S size, const B *cmp) {
   return contains<S>(reinterpret_cast<uintptr_t>(base), size,
                      reinterpret_cast<uintptr_t>(cmp));
+}
+
+template <typename A, typename B>
+inline constexpr bool contains(const std::span<const A> base, const B *cmp) {
+  return contains<uint64_t>(reinterpret_cast<uintptr_t>(base.data()),
+                            base.size(), reinterpret_cast<uintptr_t>(cmp));
 }
 
 template <typename T, IntegralLike<T> Align>

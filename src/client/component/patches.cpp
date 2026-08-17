@@ -151,16 +151,13 @@ void com_error_stub(const char *file, int line, game::errorParm code,
   if (msg == nullptr || msg[0] == '\0') {
     msg = "No message provided!";
   }
-  fprintf(stderr,
-          "[Com_Error] Called from 0x%p with message: \"%s\", code: %d\n",
-          game::derelocate(callerAddr), msg, static_cast<int32_t>(code));
-  fflush(stderr);
-  game::trace("[Com_Error] Called from 0x%p with message: \"%s\", code: %d\n",
-              game::derelocate(callerAddr), msg, static_cast<int32_t>(code));
-  game::com::Com_Printf(
-      0, game::consoleLabel_e::DEFAULT,
-      "ComError called from 0x%p with message: \"%s\", code: %d\n",
+  const char *log = utils::string::va(
+      "[Com_Error] Called from 0x%p with message: \"%s\", code: %d\n",
       game::derelocate(callerAddr), msg, static_cast<int32_t>(code));
+  fprintf(stderr, "%s\n", log);
+  fflush(stderr);
+  game::trace("%s", log);
+  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s\n", log);
   static bool suppress_next_lua_error = false;
   static bool client_script_error_pending = false;
 

@@ -251,7 +251,7 @@ ASSERT_SIZE(NamedXAsset, 0x8);
 #pragma pack(push, 1)
 struct RawFile : NamedXAsset {
   uint64_t len;
-  const uint8_t *buffer;
+  uint8_t *buffer;
 };
 ASSERT_SIZE(RawFile, 0x18);
 #pragma pack(pop)
