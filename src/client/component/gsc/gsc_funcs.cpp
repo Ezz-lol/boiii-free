@@ -295,8 +295,6 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
     game_hudelem_t *elem = &g_hudelems->get(entref->u.hudElemIndex);
 
     elem->reset_value();
-    clear_message_bufs();
-
     const uint32_t argc = Scr_GetNumParam(inst);
     Scr_ConstructMessageString(0, argc - 1, "Hud Elem String", message_buf,
                                std::size(message_buf));
@@ -308,7 +306,14 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
     volatile RegisteredCfgString *pool_entry = &hudelem_cfgstr_pool[hudElemIdx];
 
     const bgCacheInstance cache_inst = static_cast<bgCacheInstance>(inst);
-    if (get_sv_running()) {
+    const int32_t localized_cfgstring_index =
+        BG_Cache_GetLocStringIndex(cache_inst, cleaned_message_buf);
+    if (localized_cfgstring_index > 0) {
+      elem->elem.text = localized_cfgstring_index;
+    }
+    // Not a localized string. Need to register and/or modify the config string
+    // value.
+    else if (get_sv_running()) {
       if (!pool_entry->has_value()) {
         // Register new config string
         pool_entry->set(
@@ -350,6 +355,7 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
       sv::SV_SetConfigString_Impl(pool_entry->abs_idx(), cleaned_message_buf);
       elem->elem.text = pool_entry->get_idx();
     }
+    clear_message_bufs();
   } else [[unlikely]] {
     Scr_ObjectError(inst, "not a hud element");
   }
