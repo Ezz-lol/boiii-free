@@ -32,12 +32,19 @@ template <typename T> union BGCacheInstancePool {
            "bgCacheInstance::SERVER <= index < bgCacheInstance::COUNT");
   }
 
+  inline constexpr void assert_range(size_t index) volatile {
+    assert(index < +bgCacheInstance::COUNT &&
+           "index to BGCacheInstancePool must be within range "
+           "bgCacheInstance::SERVER <= index < bgCacheInstance::COUNT");
+  }
+
   template <IntegralLike Index>
   inline constexpr const T &get(Index index_arg) const {
     const index_t index = static_cast<index_t>(index_arg);
     assert_range(index);
     return pool[index];
   }
+
   template <IntegralLike Index>
   inline constexpr const T &operator[](Index index) const {
     return get(index);
@@ -52,7 +59,23 @@ template <typename T> union BGCacheInstancePool {
     return get(index);
   }
 
+  template <IntegralLike Index>
+  inline constexpr volatile T &get(Index index_arg) volatile {
+    const index_t index = static_cast<index_t>(index_arg);
+    assert_range(index);
+    return pool[index];
+  }
+
+  template <IntegralLike Index>
+  inline constexpr volatile T &operator[](Index index) volatile {
+    return get(index);
+  }
+
   inline constexpr auto size() const noexcept {
+    return +bgCacheInstance::COUNT;
+  }
+
+  inline constexpr auto size() volatile noexcept {
     return +bgCacheInstance::COUNT;
   }
 };

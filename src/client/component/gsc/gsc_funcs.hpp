@@ -88,7 +88,7 @@ inline void register_builtin(BuiltinMethodDef def) {
 }
 
 template <const IntegralLike auto AliasCount>
-inline void register_builtin(const array<const char *, AliasCount> &&aliases,
+inline void register_builtin(array<const char *, AliasCount> aliases,
                              BuiltinFunction func, uint32_t min_args,
                              uint32_t max_args, BuiltinType type) {
   for (size_t aliasIdx = 0; aliasIdx < static_cast<size_t>(AliasCount);
@@ -107,13 +107,13 @@ inline void register_builtin(const array<const char *, AliasCount> &&aliases,
 }
 
 template <const IntegralLike auto AliasCount>
-inline void register_builtin(const array<const char *, AliasCount> &&aliases,
+inline void register_builtin(array<const char *, AliasCount> aliases,
                              BuiltinFunction func) {
   return register_builtin<AliasCount>(aliases, func, MIN_BUILTIN_ARGS,
                                       MAX_BUILTIN_ARGS, DEFAULT_BUILTIN_TYPE);
 }
 template <const IntegralLike auto AliasCount>
-inline void register_builtin(const array<const char *, AliasCount> &&aliases,
+inline void register_builtin(array<const char *, AliasCount> aliases,
                              BuiltinFunction func, uint32_t min_args,
                              uint32_t max_args) {
   return register_builtin<AliasCount>(aliases, func, min_args, max_args,
@@ -121,10 +121,10 @@ inline void register_builtin(const array<const char *, AliasCount> &&aliases,
 }
 
 template <const IntegralLike auto AliasCount>
-inline void
-register_variadic_builtin(const array<const char *, AliasCount> &&aliases,
-                          BuiltinFunction func, uint32_t min_args = 1,
-                          BuiltinType type = DEFAULT_BUILTIN_TYPE) {
+inline void register_variadic_builtin(array<const char *, AliasCount> aliases,
+                                      BuiltinFunction func,
+                                      uint32_t min_args = 1,
+                                      BuiltinType type = DEFAULT_BUILTIN_TYPE) {
   return register_builtin<AliasCount>(aliases, func, min_args, MAX_BUILTIN_ARGS,
                                       type);
 }
@@ -132,17 +132,16 @@ register_variadic_builtin(const array<const char *, AliasCount> &&aliases,
 // If only min_args is specified, assume this is an absolute required argument
 // count (min == max)
 template <const IntegralLike auto AliasCount>
-inline void register_builtin(const array<const char *, AliasCount> &&aliases,
+inline void register_builtin(array<const char *, AliasCount> aliases,
                              BuiltinFunction func, uint32_t min_args) {
-  return register_builtin<AliasCount>(func, min_args, min_args,
+  return register_builtin<AliasCount>(aliases, func, min_args, min_args,
                                       DEFAULT_BUILTIN_TYPE);
 }
 
 template <const IntegralLike auto AliasCount>
-inline void
-register_builtin(const std::array<const char *, AliasCount> &&aliases,
-                 BuiltinFunction func, uint32_t min_args, uint32_t max_args,
-                 BuiltinType type) {
+inline void register_builtin(std::array<const char *, AliasCount> aliases,
+                             BuiltinFunction func, uint32_t min_args,
+                             uint32_t max_args, BuiltinType type) {
   for (size_t aliasIdx = 0; aliasIdx < static_cast<size_t>(AliasCount);
        ++aliasIdx) {
     ScrVarCanonicalName_t hash = game::scr::builtin::fnv1a(aliases[aliasIdx]);
@@ -159,23 +158,22 @@ register_builtin(const std::array<const char *, AliasCount> &&aliases,
 }
 
 template <const IntegralLike auto AliasCount>
-inline void
-register_builtin(const std::array<const char *, AliasCount> &&aliases,
-                 BuiltinFunction func) {
+inline void register_builtin(std::array<const char *, AliasCount> aliases,
+                             BuiltinFunction func) {
   return register_builtin<AliasCount>(aliases, func, MIN_BUILTIN_ARGS,
                                       MAX_BUILTIN_ARGS, DEFAULT_BUILTIN_TYPE);
 }
 template <const IntegralLike auto AliasCount>
-inline void
-register_builtin(const std::array<const char *, AliasCount> &&aliases,
-                 BuiltinFunction func, uint32_t min_args, uint32_t max_args) {
+inline void register_builtin(std::array<const char *, AliasCount> aliases,
+                             BuiltinFunction func, uint32_t min_args,
+                             uint32_t max_args) {
   return register_builtin<AliasCount>(aliases, func, min_args, max_args,
                                       DEFAULT_BUILTIN_TYPE);
 }
 
 template <const IntegralLike auto AliasCount>
 inline void
-register_variadic_builtin(const std::array<const char *, AliasCount> &&aliases,
+register_variadic_builtin(std::array<const char *, AliasCount> aliases,
                           BuiltinFunction func, uint32_t min_args = 1,
                           BuiltinType type = DEFAULT_BUILTIN_TYPE) {
   return register_builtin<AliasCount>(aliases, func, min_args, MAX_BUILTIN_ARGS,
@@ -185,10 +183,9 @@ register_variadic_builtin(const std::array<const char *, AliasCount> &&aliases,
 // If only min_args is specified, assume this is an absolute required argument
 // count (min == max)
 template <const IntegralLike auto AliasCount>
-inline void
-register_builtin(const std::array<const char *, AliasCount> &&aliases,
-                 BuiltinFunction func, uint32_t min_args) {
-  return register_builtin<AliasCount>(func, min_args, min_args,
+inline void register_builtin(std::array<const char *, AliasCount> aliases,
+                             BuiltinFunction func, uint32_t min_args) {
+  return register_builtin<AliasCount>(aliases, func, min_args, min_args,
                                       DEFAULT_BUILTIN_TYPE);
 }
 
@@ -276,7 +273,7 @@ inline void register_builtin(const char *name, BuiltinMethod method,
 }
 
 template <const IntegralLike auto AliasCount>
-inline void register_builtin(const array<const char *, AliasCount> &&aliases,
+inline void register_builtin(array<const char *, AliasCount> aliases,
                              BuiltinMethod method, uint32_t min_args,
                              uint32_t max_args, BuiltinType type) {
   for (size_t aliasIdx = 0; aliasIdx < static_cast<size_t>(AliasCount);
@@ -295,13 +292,13 @@ inline void register_builtin(const array<const char *, AliasCount> &&aliases,
 }
 
 template <const IntegralLike auto AliasCount>
-inline void register_builtin(const array<const char *, AliasCount> &&aliases,
+inline void register_builtin(array<const char *, AliasCount> aliases,
                              BuiltinMethod method) {
   return register_builtin<AliasCount>(aliases, method, MIN_BUILTIN_ARGS,
                                       MAX_BUILTIN_ARGS, DEFAULT_BUILTIN_TYPE);
 }
 template <const IntegralLike auto AliasCount>
-inline void register_builtin(const array<const char *, AliasCount> &&aliases,
+inline void register_builtin(array<const char *, AliasCount> aliases,
                              BuiltinMethod method, uint32_t min_args,
                              uint32_t max_args) {
   return register_builtin<AliasCount>(aliases, method, min_args, max_args,
@@ -309,10 +306,10 @@ inline void register_builtin(const array<const char *, AliasCount> &&aliases,
 }
 
 template <const IntegralLike auto AliasCount>
-inline void
-register_variadic_builtin(const array<const char *, AliasCount> &&aliases,
-                          BuiltinMethod method, uint32_t min_args = 1,
-                          BuiltinType type = DEFAULT_BUILTIN_TYPE) {
+inline void register_variadic_builtin(array<const char *, AliasCount> aliases,
+                                      BuiltinMethod method,
+                                      uint32_t min_args = 1,
+                                      BuiltinType type = DEFAULT_BUILTIN_TYPE) {
   return register_builtin<AliasCount>(aliases, method, min_args,
                                       MAX_BUILTIN_ARGS, type);
 }
@@ -320,16 +317,15 @@ register_variadic_builtin(const array<const char *, AliasCount> &&aliases,
 // If only min_args is specified, assume this is an absolute required argument
 // count (min == max)
 template <const IntegralLike auto AliasCount>
-inline void register_builtin(const array<const char *, AliasCount> &&aliases,
+inline void register_builtin(array<const char *, AliasCount> aliases,
                              BuiltinMethod method, uint32_t min_args) {
   return register_builtin<AliasCount>(aliases, method, min_args, min_args,
                                       DEFAULT_BUILTIN_TYPE);
 }
 template <const IntegralLike auto AliasCount>
-inline void
-register_builtin(const std::array<const char *, AliasCount> &&aliases,
-                 BuiltinMethod method, uint32_t min_args, uint32_t max_args,
-                 BuiltinType type) {
+inline void register_builtin(std::array<const char *, AliasCount> aliases,
+                             BuiltinMethod method, uint32_t min_args,
+                             uint32_t max_args, BuiltinType type) {
   for (size_t aliasIdx = 0; aliasIdx < static_cast<size_t>(AliasCount);
        ++aliasIdx) {
     ScrVarCanonicalName_t hash = game::scr::builtin::fnv1a(aliases[aliasIdx]);
@@ -346,23 +342,22 @@ register_builtin(const std::array<const char *, AliasCount> &&aliases,
 }
 
 template <const IntegralLike auto AliasCount>
-inline void
-register_builtin(const std::array<const char *, AliasCount> &&aliases,
-                 BuiltinMethod method) {
+inline void register_builtin(std::array<const char *, AliasCount> aliases,
+                             BuiltinMethod method) {
   return register_builtin<AliasCount>(aliases, method, MIN_BUILTIN_ARGS,
                                       MAX_BUILTIN_ARGS, DEFAULT_BUILTIN_TYPE);
 }
 template <const IntegralLike auto AliasCount>
-inline void
-register_builtin(const std::array<const char *, AliasCount> &&aliases,
-                 BuiltinMethod method, uint32_t min_args, uint32_t max_args) {
+inline void register_builtin(std::array<const char *, AliasCount> aliases,
+                             BuiltinMethod method, uint32_t min_args,
+                             uint32_t max_args) {
   return register_builtin<AliasCount>(aliases, method, min_args, max_args,
                                       DEFAULT_BUILTIN_TYPE);
 }
 
 template <const IntegralLike auto AliasCount>
 inline void
-register_variadic_builtin(const std::array<const char *, AliasCount> &&aliases,
+register_variadic_builtin(std::array<const char *, AliasCount> aliases,
                           BuiltinMethod method, uint32_t min_args = 1,
                           BuiltinType type = DEFAULT_BUILTIN_TYPE) {
   return register_builtin<AliasCount>(aliases, method, min_args,
@@ -372,9 +367,8 @@ register_variadic_builtin(const std::array<const char *, AliasCount> &&aliases,
 // If only min_args is specified, assume this is an absolute required argument
 // count (min == max)
 template <const IntegralLike auto AliasCount>
-inline void
-register_builtin(const std::array<const char *, AliasCount> &&aliases,
-                 BuiltinMethod method, uint32_t min_args) {
+inline void register_builtin(std::array<const char *, AliasCount> aliases,
+                             BuiltinMethod method, uint32_t min_args) {
   return register_builtin<AliasCount>(aliases, method, min_args, min_args,
                                       DEFAULT_BUILTIN_TYPE);
 }

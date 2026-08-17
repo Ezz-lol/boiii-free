@@ -355,6 +355,7 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
       if (!data->refCount) {
         data->add_ref();
       }
+      s_bgCache->get(cache_inst).checksum.isDirty = true;
 
 #ifndef NDEBUG
       trace("[Scr][HECmd_SetText] Localized config string entry with "
@@ -416,6 +417,7 @@ void BG_Cache_HandleConfigStringChange_ReuseExisting(
     if (!data->refCount) {
       data->add_ref();
     }
+    s_bgCache->client.checksum.isDirty = true;
 
     /*
       Registration or modification of a config string with this index causes the
