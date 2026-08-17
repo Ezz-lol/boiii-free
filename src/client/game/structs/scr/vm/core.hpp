@@ -85,7 +85,7 @@ PACKED(struct scrVmGlob_t {
 });
 typedef ScrPool<scrVmGlob_t> ScrVmGlobPool;
 
-union VectorConstant {
+PACKED(union VectorConstant {
   uint8_t value;
   struct {
     // Defined from Least Significant Bit (LSB) to Most Significant Bit (MSB)
@@ -166,7 +166,7 @@ union VectorConstant {
   }
 
   inline constexpr operator uint8_t() const noexcept { return value; }
-};
+});
 
 } // namespace vm
 } // namespace scr

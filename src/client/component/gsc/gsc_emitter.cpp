@@ -808,7 +808,9 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
       if (VectorConstant::can_pack(x, y, z)) {
         const VectorConstant packed = VectorConstant::pack(x, y, z);
         s.emit_op(Opcode::VectorConstant, node->line);
-        s.emit_u8(packed, node->children[2]->line);
+        s.emit_u8(packed, node->children[0]->line);
+        s.emit_u8(0,
+                  node->children[2]->line); // Padding byte
 
       } else {
         s.emit_op(Opcode::GetVector, node->line);
