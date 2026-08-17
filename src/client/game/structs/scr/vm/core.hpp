@@ -138,7 +138,7 @@ PACKED(union VectorConstant {
   }
 
   inline static constexpr VectorConstant pack(float x, float y, float z) {
-    VectorConstant result;
+    VectorConstant result{0};
 
     if (x == 1.0f) {
       result.x_pos = 1;
