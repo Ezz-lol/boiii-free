@@ -124,7 +124,7 @@ Dvar_RegisterBool_Force(dvarStrHash_t hash, const char *dvarName,
   const EngineDependentDvarMut dvar =
       Dvar_RegisterBool(hash, dvarName, Value, flags, description);
 
-  Dvar_SetModifiedCallback(dvar, dvar_bool_force<Value>);
+  Dvar_SetModifiedCallback(dvar, dvar_bool_modification_force<Value>);
 
   return dvar;
 }
@@ -142,14 +142,15 @@ EngineDependentDvarMut Dvar_RegisterBool_Inlined_Force(
   return dvar;
 }
 
-template <const bool Value> inline void toggle_sv_cheats() {
+template <const bool Value> inline void sv_cheats_force() {
   /*
      1. sv_cheats used to enable/disable cheat commands - both in console
      and in SV commands.
   */
   {
     // R_RegisterDvars
-    utils::hook::call(0x140379E80_g, Dvar_RegisterBool_Force<Value>);
+    utils::hook::call(game::select(0x141CA6C43, 0x140379E80),
+                      Dvar_RegisterBool_Force<Value>);
     // SV_Init
     utils::hook::call(0x140534DF2_g, Dvar_RegisterBool_Force<Value>);
   }
@@ -246,10 +247,11 @@ public:
         game::Dvar_GetSessionModeSpecificDvarInternal.get(),
         Dvar_GetSessionModeSpecificDvarInternal_FallbackDefault);
 
-    if (game::is_client())
+    if (game::is_client()) {
       this->patch_client();
-    else
+    } else {
       this->patch_server();
+    }
   }
 
   static void patch_client() {
@@ -260,7 +262,16 @@ public:
     utils::hook::jump(0x141116EBB_g, utils::hook::assemble(dof_enabled_stub));
 
     if (game::cheats()) {
-      toggle_sv_cheats<true>();
+      scheduler::schedule(
+          []() {
+            if (*sv_cheats && *dvar_cheats) {
+              dvar_bool_force<true>(*sv_cheats);
+              dvar_bool_force<true>(*dvar_cheats);
+              return scheduler::cond_end;
+            }
+            return scheduler::cond_continue;
+          },
+          scheduler::pipeline::main);
     }
   }
 
@@ -273,9 +284,9 @@ public:
 
     // Disable both (??) sv_cheats dvars immediately after registration
     if (game::cheats()) {
-      toggle_sv_cheats<true>();
+      sv_cheats_force<true>();
     } else {
-      toggle_sv_cheats<false>();
+      sv_cheats_force<false>();
     }
   }
 };
