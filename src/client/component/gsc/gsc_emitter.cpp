@@ -831,8 +831,9 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
            ```
 
            This will hold true for any vector where all elements have the same
-           value. It will also hold true for vectors where all elements of a
-           differing value have value `0.0`, e.g.:
+           value, or the same value negated, where the corresponding constant
+           element will be `-1`. It will also hold true for vectors where all
+           elements of a differing value have value `0.0`, e.g.:
            ```gscasm
            OP_GetFloat 128.0
            OP_VectorConstant 0x02 ; ( 0, 0, 1 )
