@@ -36,7 +36,6 @@ void SV_SetConfigString_Impl(const int32_t index, const char *val) {
               "%c %i %s", ReliableCommand::CONFIG_STRING_MODIFIED, index,
               set_val);
           foreach_active_client(
-
               [packet](client_t &cl,
                        [[maybe_unused]] size_t client_index) -> void {
                 SV_AddServerCommand(&cl, net::SV_CMD_RELIABLE, packet);

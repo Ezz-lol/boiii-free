@@ -267,7 +267,17 @@ struct RegisteredCfgString {
     return s_bgCacheTypeInfo->get(CACHE_TYPE).configStringStart + get_idx();
   }
 };
-static ui::he::HudElementPool<RegisteredCfgString> hudelem_cfgstr_pool = {};
+struct HudElemCfgStringPool : ui::he::HudElementPool<RegisteredCfgString> {
+  inline bool contains(int32_t loc_cfgstr_idx) volatile {
+    for (size_t i = 0; i < SIZE; ++i) {
+      if (this->pool[i].has_value() &&
+          this->pool[i].get_idx() == loc_cfgstr_idx) {
+        return true;
+      }
+    }
+    return false;
+  }
+} static hudelem_cfgstr_pool = {};
 
 void unregister_clear_hudelem_cfgstr(uint16_t hudElemIdx) {
   RegisteredCfgString *entry = &hudelem_cfgstr_pool[hudElemIdx];
@@ -308,7 +318,8 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
     const bgCacheInstance cache_inst = static_cast<bgCacheInstance>(inst);
     const int32_t localized_cfgstring_index =
         BG_Cache_GetLocStringIndex(cache_inst, cleaned_message_buf);
-    if (localized_cfgstring_index > 0) {
+    if (localized_cfgstring_index > 0 &&
+        !hudelem_cfgstr_pool.contains(localized_cfgstring_index)) {
       elem->elem.text = localized_cfgstring_index;
     }
     // Not a localized string. Need to register and/or modify the config string
@@ -1474,10 +1485,10 @@ struct component final : generic_component {
     register_builtin("readfile", gscr_readfile, 1);
     register_builtin("appendfile", gscr_appendfile, 2);
     register_builtin("fileexists", gscr_fileexists, 1);
-    register_builtin({"removefile", "rm"}, gscr_rm, 1, 2);
-    register_builtin({"rmdir", "removedirectory"}, gscr_removedirectory, 1);
+    register_builtin<2>({"removefile", "rm"}, gscr_rm, 1, 2);
+    register_builtin<2>({"rmdir", "removedirectory"}, gscr_removedirectory, 1);
     register_builtin("filesize", gscr_filesize, 1);
-    register_builtin({"mkdir", "createdirectory"}, gscr_createdirectory, 1);
+    register_builtin<2>({"mkdir", "createdirectory"}, gscr_createdirectory, 1);
     register_builtin("directoryexists", gscr_directoryexists, 1);
     register_builtin("ls", gscr_ls, 1, 3);
 
