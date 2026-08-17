@@ -813,6 +813,33 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
                   node->children[2]->line); // Padding byte
 
       } else {
+        /*
+           The mod tools compiler also prefers to use a `vectorscale`d vector
+           constant, where possible, rather than hard-code the same vector with
+           the `Vector` opcode. However, we have fixed handling of the
+           `GetVector` opcode in the engine, which is more efficient than
+           computing the compile-time constant vector, so we will prefer
+           to use `GetVector` here instead.
+
+           An example of where this applies is for the vector
+           `(128.0, 128.0, 128.0)`. In this case, the mod tools compiler would
+           emit:
+           ```gscasm
+           OP_GetFloat 128.0
+           OP_VectorConstant 0x2A ; ( 1, 1, 1 )
+           OP_VectorScale
+           ```
+
+           This will hold true for any vector where all elements have the same
+           value. It will also hold true for vectors where all elements of a
+           differing value have value `0.0`, e.g.:
+           ```gscasm
+           OP_GetFloat 128.0
+           OP_VectorConstant 0x02 ; ( 0, 0, 1 )
+           OP_VectorScale
+           ```
+           for generation of the vector `( 0.0, 0.0, 128.0 )`.
+        */
         s.emit_op(Opcode::GetVector, node->line);
 
         /*
