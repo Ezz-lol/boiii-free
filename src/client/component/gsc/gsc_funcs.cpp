@@ -430,9 +430,7 @@ void BG_Cache_HandleConfigStringChange_ReuseExisting(
       checksum causes a noticeable, slight drop in performance for the ~1/2 a
       second it is occurring, so it seems preferable to skip this.
     */
-  } else if (index != s_bgCacheTypeInfo->debugstring.configStringStart +
-                          static_cast<int32_t>(std::size(
-                              s_bgCache->client.dataSet.debugStrings))) {
+  } else {
     BG_Cache_HandleConfigStringChange_hook.invoke(localClientNum, index);
   }
 }
