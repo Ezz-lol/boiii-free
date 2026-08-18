@@ -1544,47 +1544,41 @@ struct component final : generic_component {
     register_builtin(SCRIPTINSTANCE_SERVER, "replacefunc", gscr_replacefunc, 2);
     register_builtin(SCRIPTINSTANCE_SERVER, "executecommand",
                      gscr_executecommand, 1);
-    register_builtin(SCRIPTINSTANCE_SERVER, "say", gscr_say, 1);
-    register_builtin(SCRIPTINSTANCE_SERVER, "tell", gscr_tell::func, 2);
-    register_builtin(SCRIPTINSTANCE_SERVER, "tell", gscr_tell::method, 1);
-    register_variadic_builtin(SCRIPTINSTANCE_SERVER, "println", gscr_println,
-                              0);
-    register_variadic_builtin(SCRIPTINSTANCE_SERVER, "trace", gscr_trace, 0);
-    register_variadic_builtin(SCRIPTINSTANCE_SERVER, "print", gscr_print, 0);
-    register_variadic_builtin(SCRIPTINSTANCE_SERVER, "printf", gscr_printf, 1);
+    register_builtin("say", gscr_say, 1);
+    register_builtin("tell", gscr_tell::func, 2);
+    register_builtin("tell", gscr_tell::method, 1);
+    register_variadic_builtin("println", gscr_println, 0);
+    register_variadic_builtin("trace", gscr_trace, 0);
+    register_variadic_builtin("print", gscr_print, 0);
+    register_variadic_builtin("printf", gscr_printf, 1);
 
     // File I/O
-    register_builtin(SCRIPTINSTANCE_SERVER, "writefile", gscr_writefile, 2, 3);
-    register_builtin(SCRIPTINSTANCE_SERVER, "readfile", gscr_readfile, 1);
-    register_builtin(SCRIPTINSTANCE_SERVER, "appendfile", gscr_appendfile, 2);
-    register_builtin(SCRIPTINSTANCE_SERVER, "fileexists", gscr_fileexists, 1);
-    register_builtin<2>(SCRIPTINSTANCE_SERVER, {"removefile", "rm"}, gscr_rm, 1,
-                        2);
-    register_builtin<2>(SCRIPTINSTANCE_SERVER, {"rmdir", "removedirectory"},
-                        gscr_removedirectory, 1);
-    register_builtin(SCRIPTINSTANCE_SERVER, "filesize", gscr_filesize, 1);
-    register_builtin<2>(SCRIPTINSTANCE_SERVER, {"mkdir", "createdirectory"},
-                        gscr_createdirectory, 1);
-    register_builtin(SCRIPTINSTANCE_SERVER, "directoryexists",
-                     gscr_directoryexists, 1);
-    register_builtin(SCRIPTINSTANCE_SERVER, "ls", gscr_ls, 1, 3);
+    register_builtin("writefile", gscr_writefile, 2, 3);
+    register_builtin("readfile", gscr_readfile, 1);
+    register_builtin("appendfile", gscr_appendfile, 2);
+    register_builtin("fileexists", gscr_fileexists, 1);
+    register_builtin<2>({"removefile", "rm"}, gscr_rm, 1, 2);
+    register_builtin<2>({"rmdir", "removedirectory"}, gscr_removedirectory, 1);
+    register_builtin("filesize", gscr_filesize, 1);
+    register_builtin<2>({"mkdir", "createdirectory"}, gscr_createdirectory, 1);
+    register_builtin("directoryexists", gscr_directoryexists, 1);
+    register_builtin("ls", gscr_ls, 1, 3);
 
     // JSON
-    register_builtin(SCRIPTINSTANCE_SERVER, "jsonvalid", gscr_jsonvalid, 1);
-    register_builtin(SCRIPTINSTANCE_SERVER, "jsonparse", gscr_jsonparse, 2);
-    register_builtin(SCRIPTINSTANCE_SERVER, "jsonset", gscr_jsonset, 3);
-    register_builtin(SCRIPTINSTANCE_SERVER, "jsondump", gscr_jsondump, 2);
+    register_builtin("jsonvalid", gscr_jsonvalid, 1);
+    register_builtin("jsonparse", gscr_jsonparse, 2);
+    register_builtin("jsonset", gscr_jsonset, 3);
+    register_builtin("jsondump", gscr_jsondump, 2);
 
     // Int64
-    register_builtin(SCRIPTINSTANCE_SERVER, "int64_op", gscr_int64_op, 3);
-    register_builtin(SCRIPTINSTANCE_SERVER, "int64_isint", gscr_int64_isint, 1);
-    register_builtin(SCRIPTINSTANCE_SERVER, "int64_toint", gscr_int64_toint, 1);
-    register_builtin(SCRIPTINSTANCE_SERVER, "int64_min", gscr_int64_min, 2);
-    register_builtin(SCRIPTINSTANCE_SERVER, "int64_max", gscr_int64_max, 2);
-    register_builtin(SCRIPTINSTANCE_SERVER, "int64_abs", gscr_int64_abs, 1);
-    register_builtin(SCRIPTINSTANCE_SERVER, "int64_clamp", gscr_int64_clamp, 3);
-    register_builtin(SCRIPTINSTANCE_SERVER, "int64_tostring",
-                     gscr_int64_tostring, 1);
+    register_builtin("int64_op", gscr_int64_op, 3);
+    register_builtin("int64_isint", gscr_int64_isint, 1);
+    register_builtin("int64_toint", gscr_int64_toint, 1);
+    register_builtin("int64_min", gscr_int64_min, 2);
+    register_builtin("int64_max", gscr_int64_max, 2);
+    register_builtin("int64_abs", gscr_int64_abs, 1);
+    register_builtin("int64_clamp", gscr_int64_clamp, 3);
+    register_builtin("int64_tostring", gscr_int64_tostring, 1);
 
     // Function lookup
     register_builtin(SCRIPTINSTANCE_SERVER, "getfunction", gscr_getfunction, 2);
@@ -1616,12 +1610,11 @@ struct component final : generic_component {
     register_builtin(SCRIPTINSTANCE_SERVER, "setclientdvar",
                      gscr_setclientdvar::method, 1);
 
-    register_builtin(SCRIPTINSTANCE_SERVER, "conststring", gscr_conststring, 1);
-    register_builtin(SCRIPTINSTANCE_SERVER, "isstruct", gscr_isstruct, 1);
-    register_builtin(SCRIPTINSTANCE_SERVER, "typename", gscr_typename, 1);
-    register_builtin(SCRIPTINSTANCE_SERVER, "ismenucached", gscr_ismenucached,
-                     1);
-    register_builtin(SCRIPTINSTANCE_SERVER, "vector", gscr_vector, 0, 3);
+    register_builtin("conststring", gscr_conststring, 1);
+    register_builtin("isstruct", gscr_isstruct, 1);
+    register_builtin("typename", gscr_typename, 1);
+    register_builtin("ismenucached", gscr_ismenucached, 1);
+    register_builtin("vector", gscr_vector, 0, 3);
 
     apply_hudelem_hooks();
 

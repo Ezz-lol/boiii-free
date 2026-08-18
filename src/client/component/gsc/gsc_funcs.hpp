@@ -455,6 +455,346 @@ inline void register_builtin(scriptInstance_t inst,
                           DEFAULT_BUILTIN_TYPE);
 }
 
+inline void register_builtin(BuiltinFunctionDef def) {
+  register_builtin(SCRIPTINSTANCE_SERVER, def);
+  register_builtin(SCRIPTINSTANCE_CLIENT, def);
+}
+
+inline void register_builtin(const char *name, BuiltinFunction func,
+                             uint32_t min_args, uint32_t max_args,
+                             BuiltinType type) {
+  register_builtin(SCRIPTINSTANCE_SERVER, name, func, min_args, max_args, type);
+  register_builtin(SCRIPTINSTANCE_CLIENT, name, func, min_args, max_args, type);
+}
+
+inline void register_builtin(const char *name, BuiltinFunction func) {
+  register_builtin(SCRIPTINSTANCE_SERVER, name, func);
+  register_builtin(SCRIPTINSTANCE_CLIENT, name, func);
+}
+
+inline void register_builtin(const char *name, BuiltinFunction func,
+                             uint32_t min_args, uint32_t max_args) {
+  register_builtin(SCRIPTINSTANCE_SERVER, name, func, min_args, max_args);
+  register_builtin(SCRIPTINSTANCE_CLIENT, name, func, min_args, max_args);
+}
+
+inline void register_variadic_builtin(const char *name, BuiltinFunction func,
+                                      uint32_t min_args = 1,
+                                      BuiltinType type = DEFAULT_BUILTIN_TYPE) {
+  register_variadic_builtin(SCRIPTINSTANCE_SERVER, name, func, min_args, type);
+  register_variadic_builtin(SCRIPTINSTANCE_CLIENT, name, func, min_args, type);
+}
+
+inline void register_builtin(const char *name, BuiltinFunction func,
+                             uint32_t min_args) {
+  register_builtin(SCRIPTINSTANCE_SERVER, name, func, min_args);
+  register_builtin(SCRIPTINSTANCE_CLIENT, name, func, min_args);
+}
+
+inline void register_builtin(BuiltinMethodDef def) {
+  register_builtin(SCRIPTINSTANCE_SERVER, def);
+  register_builtin(SCRIPTINSTANCE_CLIENT, def);
+}
+
+template <const IntegralLike auto AliasCount>
+inline void register_builtin(array<const char *, AliasCount> aliases,
+                             BuiltinFunction func, uint32_t min_args,
+                             uint32_t max_args, BuiltinType type) {
+  register_builtin<AliasCount>(SCRIPTINSTANCE_SERVER, aliases, func, min_args,
+                               max_args, type);
+  register_builtin<AliasCount>(SCRIPTINSTANCE_CLIENT, aliases, func, min_args,
+                               max_args, type);
+}
+
+template <const IntegralLike auto AliasCount>
+inline void register_builtin(array<const char *, AliasCount> aliases,
+                             BuiltinFunction func) {
+  register_builtin<AliasCount>(SCRIPTINSTANCE_SERVER, aliases, func);
+  register_builtin<AliasCount>(SCRIPTINSTANCE_CLIENT, aliases, func);
+}
+
+template <const IntegralLike auto AliasCount>
+inline void register_builtin(array<const char *, AliasCount> aliases,
+                             BuiltinFunction func, uint32_t min_args,
+                             uint32_t max_args) {
+  register_builtin<AliasCount>(SCRIPTINSTANCE_SERVER, aliases, func, min_args,
+                               max_args);
+  register_builtin<AliasCount>(SCRIPTINSTANCE_CLIENT, aliases, func, min_args,
+                               max_args);
+}
+
+template <const IntegralLike auto AliasCount>
+inline void register_variadic_builtin(array<const char *, AliasCount> aliases,
+                                      BuiltinFunction func,
+                                      uint32_t min_args = 1,
+                                      BuiltinType type = DEFAULT_BUILTIN_TYPE) {
+  register_variadic_builtin<AliasCount>(SCRIPTINSTANCE_SERVER, aliases, func,
+                                        min_args, type);
+  register_variadic_builtin<AliasCount>(SCRIPTINSTANCE_CLIENT, aliases, func,
+                                        min_args, type);
+}
+
+template <const IntegralLike auto AliasCount>
+inline void register_builtin(array<const char *, AliasCount> aliases,
+                             BuiltinFunction func, uint32_t min_args) {
+  register_builtin<AliasCount>(SCRIPTINSTANCE_SERVER, aliases, func, min_args);
+  register_builtin<AliasCount>(SCRIPTINSTANCE_CLIENT, aliases, func, min_args);
+}
+
+template <const IntegralLike auto AliasCount>
+inline void register_builtin(std::array<const char *, AliasCount> aliases,
+                             BuiltinFunction func, uint32_t min_args,
+                             uint32_t max_args, BuiltinType type) {
+  register_builtin<AliasCount>(SCRIPTINSTANCE_SERVER, aliases, func, min_args,
+                               max_args, type);
+  register_builtin<AliasCount>(SCRIPTINSTANCE_CLIENT, aliases, func, min_args,
+                               max_args, type);
+}
+
+template <const IntegralLike auto AliasCount>
+inline void register_builtin(std::array<const char *, AliasCount> aliases,
+                             BuiltinFunction func) {
+  register_builtin<AliasCount>(SCRIPTINSTANCE_SERVER, aliases, func);
+  register_builtin<AliasCount>(SCRIPTINSTANCE_CLIENT, aliases, func);
+}
+
+template <const IntegralLike auto AliasCount>
+inline void register_builtin(std::array<const char *, AliasCount> aliases,
+                             BuiltinFunction func, uint32_t min_args,
+                             uint32_t max_args) {
+  register_builtin<AliasCount>(SCRIPTINSTANCE_SERVER, aliases, func, min_args,
+                               max_args);
+  register_builtin<AliasCount>(SCRIPTINSTANCE_CLIENT, aliases, func, min_args,
+                               max_args);
+}
+
+template <const IntegralLike auto AliasCount>
+inline void
+register_variadic_builtin(std::array<const char *, AliasCount> aliases,
+                          BuiltinFunction func, uint32_t min_args = 1,
+                          BuiltinType type = DEFAULT_BUILTIN_TYPE) {
+  register_variadic_builtin<AliasCount>(SCRIPTINSTANCE_SERVER, aliases, func,
+                                        min_args, type);
+  register_variadic_builtin<AliasCount>(SCRIPTINSTANCE_CLIENT, aliases, func,
+                                        min_args, type);
+}
+
+template <const IntegralLike auto AliasCount>
+inline void register_builtin(std::array<const char *, AliasCount> aliases,
+                             BuiltinFunction func, uint32_t min_args) {
+  register_builtin<AliasCount>(SCRIPTINSTANCE_SERVER, aliases, func, min_args);
+  register_builtin<AliasCount>(SCRIPTINSTANCE_CLIENT, aliases, func, min_args);
+}
+
+inline void register_builtin(const std::vector<const char *> &&aliases,
+                             BuiltinFunction func, uint32_t min_args,
+                             uint32_t max_args, BuiltinType type) {
+  register_builtin(SCRIPTINSTANCE_SERVER, std::move(aliases), func, min_args,
+                   max_args, type);
+  register_builtin(SCRIPTINSTANCE_CLIENT, std::move(aliases), func, min_args,
+                   max_args, type);
+}
+
+inline void register_builtin(const std::vector<const char *> &&aliases,
+                             BuiltinFunction func) {
+  register_builtin(SCRIPTINSTANCE_SERVER, std::move(aliases), func);
+  register_builtin(SCRIPTINSTANCE_CLIENT, std::move(aliases), func);
+}
+
+inline void register_builtin(const std::vector<const char *> &&aliases,
+                             BuiltinFunction func, uint32_t min_args,
+                             uint32_t max_args) {
+  register_builtin(SCRIPTINSTANCE_SERVER, std::move(aliases), func, min_args,
+                   max_args);
+  register_builtin(SCRIPTINSTANCE_CLIENT, std::move(aliases), func, min_args,
+                   max_args);
+}
+
+inline void register_variadic_builtin(const std::vector<const char *> &&aliases,
+                                      BuiltinFunction func,
+                                      uint32_t min_args = 1,
+                                      BuiltinType type = DEFAULT_BUILTIN_TYPE) {
+  register_variadic_builtin(SCRIPTINSTANCE_SERVER, std::move(aliases), func,
+                            min_args, type);
+  register_variadic_builtin(SCRIPTINSTANCE_CLIENT, std::move(aliases), func,
+                            min_args, type);
+}
+
+inline void register_builtin(const std::vector<const char *> &&aliases,
+                             BuiltinFunction func, uint32_t min_args) {
+  register_builtin(SCRIPTINSTANCE_SERVER, std::move(aliases), func, min_args);
+  register_builtin(SCRIPTINSTANCE_CLIENT, std::move(aliases), func, min_args);
+}
+
+inline void register_builtin(const char *name, BuiltinMethod method,
+                             uint32_t min_args, uint32_t max_args,
+                             BuiltinType type) {
+  register_builtin(SCRIPTINSTANCE_SERVER, name, method, min_args, max_args,
+                   type);
+  register_builtin(SCRIPTINSTANCE_CLIENT, name, method, min_args, max_args,
+                   type);
+}
+
+inline void register_builtin(const char *name, BuiltinMethod method) {
+  register_builtin(SCRIPTINSTANCE_SERVER, name, method);
+  register_builtin(SCRIPTINSTANCE_CLIENT, name, method);
+}
+
+inline void register_builtin(const char *name, BuiltinMethod method,
+                             uint32_t min_args, uint32_t max_args) {
+  register_builtin(SCRIPTINSTANCE_SERVER, name, method, min_args, max_args);
+  register_builtin(SCRIPTINSTANCE_CLIENT, name, method, min_args, max_args);
+}
+
+inline void register_variadic_builtin(const char *name, BuiltinMethod method,
+                                      uint32_t min_args = 1,
+                                      BuiltinType type = DEFAULT_BUILTIN_TYPE) {
+  register_variadic_builtin(SCRIPTINSTANCE_SERVER, name, method, min_args,
+                            type);
+  register_variadic_builtin(SCRIPTINSTANCE_CLIENT, name, method, min_args,
+                            type);
+}
+
+inline void register_builtin(const char *name, BuiltinMethod method,
+                             uint32_t min_args) {
+  register_builtin(SCRIPTINSTANCE_SERVER, name, method, min_args);
+  register_builtin(SCRIPTINSTANCE_CLIENT, name, method, min_args);
+}
+
+template <const IntegralLike auto AliasCount>
+inline void register_builtin(array<const char *, AliasCount> aliases,
+                             BuiltinMethod method, uint32_t min_args,
+                             uint32_t max_args, BuiltinType type) {
+  register_builtin<AliasCount>(SCRIPTINSTANCE_SERVER, aliases, method, min_args,
+                               max_args, type);
+  register_builtin<AliasCount>(SCRIPTINSTANCE_CLIENT, aliases, method, min_args,
+                               max_args, type);
+}
+
+template <const IntegralLike auto AliasCount>
+inline void register_builtin(array<const char *, AliasCount> aliases,
+                             BuiltinMethod method) {
+  register_builtin<AliasCount>(SCRIPTINSTANCE_SERVER, aliases, method);
+  register_builtin<AliasCount>(SCRIPTINSTANCE_CLIENT, aliases, method);
+}
+
+template <const IntegralLike auto AliasCount>
+inline void register_builtin(array<const char *, AliasCount> aliases,
+                             BuiltinMethod method, uint32_t min_args,
+                             uint32_t max_args) {
+  register_builtin<AliasCount>(SCRIPTINSTANCE_SERVER, aliases, method, min_args,
+                               max_args);
+  register_builtin<AliasCount>(SCRIPTINSTANCE_CLIENT, aliases, method, min_args,
+                               max_args);
+}
+
+template <const IntegralLike auto AliasCount>
+inline void register_variadic_builtin(array<const char *, AliasCount> aliases,
+                                      BuiltinMethod method,
+                                      uint32_t min_args = 1,
+                                      BuiltinType type = DEFAULT_BUILTIN_TYPE) {
+  register_variadic_builtin<AliasCount>(SCRIPTINSTANCE_SERVER, aliases, method,
+                                        min_args, type);
+  register_variadic_builtin<AliasCount>(SCRIPTINSTANCE_CLIENT, aliases, method,
+                                        min_args, type);
+}
+
+template <const IntegralLike auto AliasCount>
+inline void register_builtin(array<const char *, AliasCount> aliases,
+                             BuiltinMethod method, uint32_t min_args) {
+  register_builtin<AliasCount>(SCRIPTINSTANCE_SERVER, aliases, method,
+                               min_args);
+  register_builtin<AliasCount>(SCRIPTINSTANCE_CLIENT, aliases, method,
+                               min_args);
+}
+
+template <const IntegralLike auto AliasCount>
+inline void register_builtin(std::array<const char *, AliasCount> aliases,
+                             BuiltinMethod method, uint32_t min_args,
+                             uint32_t max_args, BuiltinType type) {
+  register_builtin<AliasCount>(SCRIPTINSTANCE_SERVER, aliases, method, min_args,
+                               max_args, type);
+  register_builtin<AliasCount>(SCRIPTINSTANCE_CLIENT, aliases, method, min_args,
+                               max_args, type);
+}
+
+template <const IntegralLike auto AliasCount>
+inline void register_builtin(std::array<const char *, AliasCount> aliases,
+                             BuiltinMethod method) {
+  register_builtin<AliasCount>(SCRIPTINSTANCE_SERVER, aliases, method);
+  register_builtin<AliasCount>(SCRIPTINSTANCE_CLIENT, aliases, method);
+}
+
+template <const IntegralLike auto AliasCount>
+inline void register_builtin(std::array<const char *, AliasCount> aliases,
+                             BuiltinMethod method, uint32_t min_args,
+                             uint32_t max_args) {
+  register_builtin<AliasCount>(SCRIPTINSTANCE_SERVER, aliases, method, min_args,
+                               max_args);
+  register_builtin<AliasCount>(SCRIPTINSTANCE_CLIENT, aliases, method, min_args,
+                               max_args);
+}
+
+template <const IntegralLike auto AliasCount>
+inline void
+register_variadic_builtin(std::array<const char *, AliasCount> aliases,
+                          BuiltinMethod method, uint32_t min_args = 1,
+                          BuiltinType type = DEFAULT_BUILTIN_TYPE) {
+  register_variadic_builtin<AliasCount>(SCRIPTINSTANCE_SERVER, aliases, method,
+                                        min_args, type);
+  register_variadic_builtin<AliasCount>(SCRIPTINSTANCE_CLIENT, aliases, method,
+                                        min_args, type);
+}
+
+template <const IntegralLike auto AliasCount>
+inline void register_builtin(std::array<const char *, AliasCount> aliases,
+                             BuiltinMethod method, uint32_t min_args) {
+  register_builtin<AliasCount>(SCRIPTINSTANCE_SERVER, aliases, method,
+                               min_args);
+  register_builtin<AliasCount>(SCRIPTINSTANCE_CLIENT, aliases, method,
+                               min_args);
+}
+
+inline void register_builtin(const std::vector<const char *> &&aliases,
+                             BuiltinMethod method, uint32_t min_args,
+                             uint32_t max_args, BuiltinType type) {
+  register_builtin(SCRIPTINSTANCE_SERVER, std::move(aliases), method, min_args,
+                   max_args, type);
+  register_builtin(SCRIPTINSTANCE_CLIENT, std::move(aliases), method, min_args,
+                   max_args, type);
+}
+
+inline void register_builtin(const std::vector<const char *> &&aliases,
+                             BuiltinMethod method) {
+  register_builtin(SCRIPTINSTANCE_SERVER, std::move(aliases), method);
+  register_builtin(SCRIPTINSTANCE_CLIENT, std::move(aliases), method);
+}
+
+inline void register_builtin(const std::vector<const char *> &&aliases,
+                             BuiltinMethod method, uint32_t min_args,
+                             uint32_t max_args) {
+  register_builtin(SCRIPTINSTANCE_SERVER, std::move(aliases), method, min_args,
+                   max_args);
+  register_builtin(SCRIPTINSTANCE_CLIENT, std::move(aliases), method, min_args,
+                   max_args);
+}
+
+inline void register_variadic_builtin(const std::vector<const char *> &&aliases,
+                                      BuiltinMethod method,
+                                      uint32_t min_args = 1,
+                                      BuiltinType type = DEFAULT_BUILTIN_TYPE) {
+  register_variadic_builtin(SCRIPTINSTANCE_SERVER, std::move(aliases), method,
+                            min_args, type);
+  register_variadic_builtin(SCRIPTINSTANCE_CLIENT, std::move(aliases), method,
+                            min_args, type);
+}
+
+inline void register_builtin(const std::vector<const char *> &&aliases,
+                             BuiltinMethod method, uint32_t min_args) {
+  register_builtin(SCRIPTINSTANCE_SERVER, std::move(aliases), method, min_args);
+  register_builtin(SCRIPTINSTANCE_CLIENT, std::move(aliases), method, min_args);
+}
+
 inline bool custom_builtin_function(scriptInstance_t inst,
                                     ScrVarCanonicalName_t name) {
   return custom_builtins::functions[inst].map.contains(name);
