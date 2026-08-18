@@ -210,18 +210,18 @@ int32_t parse_flags(int argc, char *argv[]) {
       .implicit_value(true)
       .default_value(false);
   program.add_argument("-u", "-uw", "-ultrawide", "--ultrawide")
-      .help("Enable ultrawide UI scaling. Note: this is unstable and can break "
-            "UI alignment where implemented assuming <= 1920x1080 aspect ratio "
-            "- use at your own risk.")
+      .help("Enable ultrawide UI scaling. Note: this is unstable and commonly "
+            "breaks UI alignment where implemented assuming <= 1920x1080 "
+            "aspect ratio.")
       .implicit_value(true)
       .default_value(false);
   program
       .add_argument("-c", "-cheats", "--cheats", "-enable-cheats",
                     "--enable-cheats")
       .help("Enable cheat dvar modification and cheat command execution. Note: "
-            "enabling when hosting a private match in client or in dedicated "
-            "server allows non-host players to execute cheat commands (e.g. "
-            "`god`, `noclip`) - use at your own risk.")
+            "usage when hosting a private match in client or when running "
+            "dedicated server allows non-host players to execute cheat "
+            "commands (e.g. `god`, `noclip`) - use with caution.")
       .implicit_value(true)
       .default_value(false);
   program.add_argument("-alias", "--alias")
