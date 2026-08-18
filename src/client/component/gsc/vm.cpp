@@ -217,6 +217,7 @@ inline void flush_exec_all() {
   // Uses TAC encryption when accessing the `cgArray` in client. Hangs forever
   // if original implementation is called from outside the BO3 engine address
   // space.
+  HOOK_FLUSH_EXEC(GetTime);
   HOOKED_OPCODE_HANDLERS[+op::Opcode::GetTime] =
       &op::VM_OP_GetTime_Handler_Impl;
 
