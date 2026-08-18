@@ -607,7 +607,7 @@ std::optional<std::filesystem::path> get_game_type_specific_folder() {
   }
 }
 
-std::optional<std::filesystem::path> get_map_specific_folder() {
+std::optional<std::filesystem::path> get_map_specific_directory() {
   const std::string_view mapname = get_mapname().value_or("");
   if (mapname.empty()) {
     return {};
@@ -624,8 +624,8 @@ bool is_shared_tree_dir(const std::filesystem::path &dir) {
     for (const std::string_view prefix : gametype_prefixes) {
       if (prefix == dirname_str ||
           (dirname_str.size() > prefix.size() &&
-           utils::string::starts_with(prefix, dirname_str) &&
-           dirname_str[2] == '_') /* map override script tree */) {
+           utils::string::starts_with(dirname_str, prefix) &&
+           dirname_str[prefix.size()] == '_') /* map override script tree */) {
         return false;
       }
     }
@@ -634,54 +634,56 @@ bool is_shared_tree_dir(const std::filesystem::path &dir) {
   return false;
 }
 
-std::vector<std::filesystem::path>
-shared_tree_directories(const std::filesystem::path &tree) {
-  std::vector<std::filesystem::path> root_entries =
-      utils::io::list_files(tree, false, true);
-  // Iterate from end to start so as not to invalidate subsequently iterated
-  // indices upon removing entry
-  for (size_t i = root_entries.size(); i > 0; --i) {
-    const size_t idx = i - 1;
-    if (!is_shared_tree_dir(root_entries[idx])) {
-      root_entries.erase(root_entries.begin() + idx);
+template <const size_t N>
+std::unordered_set<std::filesystem::path>
+shared_tree_directories(const array<const std::filesystem::path, N> &roots,
+                        const std::filesystem::path &tree) {
+  std::unordered_set<std::filesystem::path> root_entries;
+  for (const std::filesystem::path &root : roots) {
+    for (const std::filesystem::path &entry :
+         utils::io::list_files(root / tree, false, true)) {
+      if (is_shared_tree_dir(entry)) {
+        root_entries.insert(std::filesystem::relative(entry, root));
+      }
     }
   }
+
   return root_entries;
 }
 
 void load_tree(std::filesystem::path tree, bool execImmediate = false) {
   const utils::nt::library host{};
 
-  const std::filesystem::path data_folder = get_appdata_path() / "data";
-  const std::filesystem::path boiii_folder = host.get_folder() / "boiii";
+  const std::filesystem::path data_directory = get_appdata_path() / "data";
+  const std::filesystem::path boiii_directory = host.get_folder() / "boiii";
 
   const std::optional<std::filesystem::path> map_name =
-      get_map_specific_folder();
+      get_map_specific_directory();
   std::optional<std::string> map_name_str = std::nullopt;
   if (map_name.has_value()) {
     map_name_str = map_name->generic_string();
   }
 
-  const auto load = [&data_folder, &boiii_folder,
-                     &map_name_str](const std::filesystem::path &folder,
+  const auto load = [&data_directory, &boiii_directory,
+                     &map_name_str](const std::filesystem::path &directory,
                                     const bool load, const bool recurse) {
-    load_scripts_directory((data_folder / folder).string(), load, recurse,
+    load_scripts_directory((data_directory / directory).string(), load, recurse,
                            map_name_str);
-    load_scripts_directory((boiii_folder / folder).string(), load, recurse,
-                           map_name_str);
+    load_scripts_directory((boiii_directory / directory).string(), load,
+                           recurse, map_name_str);
   };
 
-  std::vector<std::filesystem::path> applicable_tree_dirs =
-      shared_tree_directories(tree);
+  std::unordered_set<std::filesystem::path> applicable_tree_dirs =
+      shared_tree_directories<2>({data_directory, boiii_directory}, tree);
 
   const std::optional<std::filesystem::path> game_type =
       get_game_type_specific_folder();
   if (game_type.has_value()) {
-    applicable_tree_dirs.push_back(tree / game_type.value());
+    applicable_tree_dirs.insert(tree / game_type.value());
   }
 
   if (map_name.has_value()) {
-    applicable_tree_dirs.push_back(tree / map_name.value());
+    applicable_tree_dirs.insert(tree / map_name.value());
   }
 
   /*
@@ -706,9 +708,9 @@ void load_tree(std::filesystem::path tree, bool execImmediate = false) {
 }
 
 void load_scripts() {
-  // scripts tree is for overriding stock scripts the game uses
+  // The "scripts" tree is for overriding stock scripts the game uses
   load_tree("scripts", false);
-  // Custom scripts is for new scripts we must execute
+  // The "custom_scripts" tree is for new scripts we must execute
   load_tree("custom_scripts", true);
 }
 
@@ -717,7 +719,7 @@ XAssetHeader DB_FindXAssetHeader_TryOverride(const XAssetType type,
                                              const bool error_if_missing,
                                              const int32_t wait_time) {
   XAssetHeader result{.rawfile = nullptr};
-  // Check our loaded scripts FIRST to avoid "Could not find scriptparsetree"
+  // Check our loaded scripts first to avoid "Could not find scriptparsetree"
   // spam
   if (name && name[0] && type == XAssetType::SCRIPTPARSETREE) {
     result.rawfile = get_loaded_script(name);
@@ -727,6 +729,7 @@ XAssetHeader DB_FindXAssetHeader_TryOverride(const XAssetType type,
     result = db_find_x_asset_header_hook.invoke<XAssetHeader>(
         type, name, error_if_missing, wait_time);
   }
+
   if (nonnull(result.rawfile)) {
     dump::dump_requested_assets(type, name, result);
   }

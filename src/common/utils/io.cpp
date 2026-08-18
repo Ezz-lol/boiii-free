@@ -98,15 +98,7 @@ std::size_t file_size(const std::filesystem::path &file) {
 }
 
 bool create_directory(const std::filesystem::path &directory) {
-  try {
-    return std::filesystem::create_directories(directory);
-  } catch (const std::filesystem::filesystem_error &ex) {
-    std::cerr << "Caught standard filesystem error!\n";
-    std::cerr << "What:  " << ex.what() << '\n'; // Human-readable error message
-    std::cerr << "Path1: " << ex.path1()
-              << '\n'; // The path that caused the failure
-    return false;
-  }
+  return std::filesystem::create_directories(directory);
 }
 
 bool directory_exists(const std::filesystem::path &directory) {
@@ -144,15 +136,18 @@ list_files(const std::filesystem::path &directory, const bool recursive,
   std::vector<std::filesystem::path> files;
 
   if (recursive) {
-    for (auto &file :
+    for (const std::filesystem::directory_entry &file :
          std::filesystem::recursive_directory_iterator(directory, code)) {
-      if (include_directories || !file.is_directory())
+      if (include_directories || !file.is_directory()) {
         files.push_back(file.path());
+      }
     }
   } else {
-    for (auto &file : std::filesystem::directory_iterator(directory, code)) {
-      if (include_directories || !file.is_directory())
+    for (const std::filesystem::directory_entry &file :
+         std::filesystem::directory_iterator(directory, code)) {
+      if (include_directories || !file.is_directory()) {
         files.push_back(file.path());
+      }
     }
   }
 
