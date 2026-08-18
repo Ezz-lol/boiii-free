@@ -1510,7 +1510,7 @@ typedef ScriptBundle *ScriptBundlePtr;
 
 union EntRefUnion {
   int32_t entnum;
-  uint32_t hudElemIndex;
+  uint16_t hudElemIndex;
   uint32_t pathNodeIndex;
   int16_t vehicleNodeIndex;
   uint16_t absDynEntIndex;

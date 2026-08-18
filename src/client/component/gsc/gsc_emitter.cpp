@@ -436,7 +436,9 @@ void collect_locals(const ast_ptr &node, std::vector<std::string> &locals,
     }
   }
 
-  if (node->type == node_type::n_waittill && node->children.size() > 1) {
+  if ((node->type == node_type::n_waittill ||
+       node->type == node_type::n_waittillmatch) &&
+      node->children.size() > 1) {
     const std::shared_ptr<ast_node> &args = node->children[1]; // args block
     for (size_t i = 1; i < args->children.size();
          i++) // skip first (event name)
@@ -1317,6 +1319,7 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
 
     if (expr->type == node_type::n_endon || expr->type == node_type::n_notify ||
         expr->type == node_type::n_waittill ||
+        expr->type == node_type::n_waittillmatch ||
         expr->type == node_type::n_assign ||
         expr->type == node_type::n_inc_dec) {
       emit_statement(s, expr);
@@ -1626,7 +1629,8 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
     break;
   }
 
-  case node_type::n_waittill: {
+  case node_type::n_waittill:
+  case node_type::n_waittillmatch: {
     // children[0] = object, children[1] = args (first is event name, rest are
     // vars)
     const std::shared_ptr<ast_node> &obj = node->children[0];
@@ -1639,7 +1643,12 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
 
     emit_expression(s, args->children[0]); // event name
     emit_owner(s, obj); // object (uses GetLevel, not GetLevelObject)
-    s.emit_op(Opcode::WaitTill, node->line);
+    /*
+      `WaitTillMatch` == `WaitTill`; `WaitTill`'s handler defers to
+      `WaitTillMatch`.
+      `WaitTillMatch` is slightly more efficient as a result.
+    */
+    s.emit_op(Opcode::WaitTillMatch, node->line);
 
     for (size_t i = 1; i < args->children.size(); ++i) {
       if (args->children[i]->type == node_type::n_identifier) {

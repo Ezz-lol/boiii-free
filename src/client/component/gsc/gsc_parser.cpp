@@ -387,6 +387,8 @@ ast_ptr parse_postfix(parser_state &s) {
           node_type nt = node_type::n_method_call;
           if (method_name == "waittill")
             nt = node_type::n_waittill;
+          else if (method_name == "waittillmatch")
+            nt = node_type::n_waittillmatch;
           else if (method_name == "notify")
             nt = node_type::n_notify;
           else if (method_name == "endon")

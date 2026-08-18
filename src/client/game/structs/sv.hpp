@@ -5,10 +5,10 @@
 #include "quake/core.hpp"
 #include "net/net.hpp"
 #include "scr/core.hpp"
+#include "lobby/core.hpp"
 #include "scr/scr.hpp"
 #include "snd/snd.hpp"
 #include "asm.hpp"
-#include "lobby/core.hpp"
 
 #include <cstdint>
 

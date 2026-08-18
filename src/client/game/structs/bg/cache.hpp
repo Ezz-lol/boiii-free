@@ -257,7 +257,7 @@ typedef bgCachedData<db::xasset::TagFxSet> bgCachedTagFxSet;
 typedef djb2Hash_t BGCacheNameHash;
 PACKED(struct bgCachedGenericData {
   str1024_t name;
-  int32_t nameHash;
+  djb2Hash_t nameHash;
   volatile uint8_t refCount;
   uint8_t _padding0D[3];
 
@@ -273,10 +273,15 @@ PACKED(struct bgCachedGenericData {
     }
   }
 
+  inline static constexpr djb2Hash_t hashName(const char *name) {
+    return djb2<BGCACHE_NAMEHASH_DJB2_INITIAL_SEED,
+                BGCACHE_NAMEHASH_DJB2_CONSTANT>(name);
+    ;
+  }
+
   inline constexpr void setName(const char *new_name) volatile {
     if (new_name) {
-      nameHash = djb2<BGCACHE_NAMEHASH_DJB2_INITIAL_SEED,
-                      BGCACHE_NAMEHASH_DJB2_CONSTANT>(new_name);
+      nameHash = hashName(new_name);
       strscpy(name, new_name);
     } else {
       clearName();

@@ -418,18 +418,6 @@ void BG_Cache_HandleConfigStringChange_ReuseExisting(
       data->add_ref();
     }
     s_bgCache->client.checksum.isDirty = true;
-
-    /*
-      Registration or modification of a config string with this index causes the
-      client to recompute its BG Cache checksum and validate it against the
-      server's - this is not a true config string modification.
-
-      In a release profile build (ours), an invalid checksum does not trigger
-      an error or corrective behaviour otherwise - it simply logs the mismatch
-      to BB, re-computes the checksum, and continues. This recomputation of the
-      checksum causes a noticeable, slight drop in performance for the ~1/2 a
-      second it is occurring, so it seems preferable to skip this.
-    */
   } else {
     BG_Cache_HandleConfigStringChange_hook.invoke(localClientNum, index);
   }
