@@ -423,11 +423,42 @@ void BG_Cache_HandleConfigStringChange_ReuseExisting(
   }
 }
 
+template <const BuiltinMethod &hooked>
+void HECmd_ClearInvoke(scriptInstance_t inst, scr_entref_t *entref) {
+  if (entref->is_hudelem() && sv::sv->running()) {
+    unregister_clear_hudelem_cfgstr(entref->u.hudElemIndex);
+  }
+  hooked(inst, entref);
+}
+
 // HECmd script VM method hooks
 inline void apply_hecmd_hooks() {
   BuiltinMethodDef *HECmd_SetText_def = const_cast<BuiltinMethodDef *>(
       &game::scr::builtin::table::hudElem_methods->SetText);
   HECmd_SetText_def->actionFunc = &hecmd_settext::HECmd_SetText_ReuseCfgString;
+
+#ifndef HOOK_CLEAR_HECMD
+#define HOOK_CLEAR_HECMD(name)                                                 \
+  static const BuiltinMethod HECmd_##name##_Orig =                             \
+      game::scr::builtin::table::hudElem_methods->name.actionFunc;             \
+  const_cast<BuiltinMethodDef *>(                                              \
+      &game::scr::builtin::table::hudElem_methods->name)                       \
+      ->actionFunc = HECmd_ClearInvoke<HECmd_##name##_Orig>;
+#endif
+
+  HOOK_CLEAR_HECMD(SetValue);
+  HOOK_CLEAR_HECMD(SetTimerUp);
+  HOOK_CLEAR_HECMD(SetTimer);
+  HOOK_CLEAR_HECMD(SetTenthsTimerUp);
+  HOOK_CLEAR_HECMD(SetTenthsTimer);
+  HOOK_CLEAR_HECMD(SetShader);
+  HOOK_CLEAR_HECMD(SetPlayerNameString);
+  HOOK_CLEAR_HECMD(SetMapNameString);
+  HOOK_CLEAR_HECMD(SetGameTypeString);
+  HOOK_CLEAR_HECMD(SetClockUp);
+  HOOK_CLEAR_HECMD(SetClock);
+  HOOK_CLEAR_HECMD(Reset);
+  HOOK_CLEAR_HECMD(Destroy);
 }
 
 inline void apply_hudelem_hooks() {
