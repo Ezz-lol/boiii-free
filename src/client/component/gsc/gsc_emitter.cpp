@@ -142,7 +142,7 @@ struct emitter_state {
   scriptInstance_t inst;
   export_entry *current_func;
   size_t current_export_index;
-  uint32_t script_namespace;
+  ScrVarCanonicalName_t script_namespace;
   std::string script_name;
   std::unordered_map<std::string, uint8_t> local_function_params;
 
@@ -294,7 +294,7 @@ struct emitter_state {
                  uint8_t num_params, bool is_method, bool is_thread,
                  bool same_namespace, uint64_t line, bool builtin = false) {
 
-    if (!builtin && same_namespace) {
+    if (!builtin && (same_namespace || ns_hash == builtin::SYS_NS_HASH)) {
       if (is_method) {
         if (gsc::builtin_method(inst, func_hash)) {
           builtin = true;
@@ -983,21 +983,29 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
   case node_type::n_func_ref: {
     ScrVarCanonicalName_t func_hash = gsc::gsc_hash(node->value);
     ScrVarCanonicalName_t ns_hash = s.script_namespace;
+    uint8_t flags = IMPORT_FUNC_GETFUNCTION;
+    Opcode op = Opcode::GetFunction;
+
     if (!node->children.empty() && !node->children[0]->value.empty()) {
       ns_hash = gsc::gsc_hash(normalize_ns(node->children[0]->value));
-      if (is_path_namespace(node->children[0]->value))
+      if (is_path_namespace(node->children[0]->value)) {
         auto_include_path(s, node->children[0]->value);
+      }
     }
 
-    uint8_t flags = IMPORT_FUNC_GETFUNCTION;
-    if (ns_hash == s.script_namespace)
+    if (ns_hash == s.script_namespace || ns_hash == builtin::SYS_NS_HASH) {
+      if (gsc::builtin(s.inst, func_hash)) {
+        ns_hash = builtin::SYS_NS_HASH;
+        op = Opcode::GetAPIFunction;
+      }
       flags |= IMPORT_CALL_LOCAL;
+    }
 
     size_t import_idx = s.add_import(func_hash, ns_hash, 0, flags);
 
     uint32_t opcode_pos =
         static_cast<uint32_t>(s.current_func->bytecode.size());
-    s.emit_op(Opcode::GetFunction, node->line);
+    s.emit_op(op, node->line);
     s.imports[import_idx].references.push_back(
         {s.current_export_index, opcode_pos});
     {
