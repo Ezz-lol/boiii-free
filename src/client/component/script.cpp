@@ -956,23 +956,21 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
   }
 
   std::string prevCodePositionsString = "";
-  for (int32_t stackIdx = 0;
-       stackIdx < vm::gScrVmPub->instance[inst].function_count - 1;
-       ++stackIdx) {
-    prevCodePositionsString += std::format("[{}] ", stackIdx);
+  int32_t callIdx = 0;
+  for (int32_t stackIdx = vm::gScrVmPub->instance[inst].function_count - 1;
+       stackIdx > 0; --stackIdx, ++callIdx) {
+    prevCodePositionsString += std::format("[{}] ", callIdx);
     prevCodePositionsString += Scr_PrevCodePos(
         inst,
         vm::gScrVmPub->instance[inst].function_frame_start[stackIdx].fs.pos);
     prevCodePositionsString += "\n";
   }
 
-  const uint8_t final_stack_idx =
-      vm::gScrVmPub->instance[inst].function_count - 1;
-  prevCodePositionsString += std::format("[{}] ", final_stack_idx);
-  prevCodePositionsString +=
-      Scr_PrevCodePos(inst, vm::gScrVmPub->instance[inst]
-                                .function_frame_start[final_stack_idx]
-                                .fs.pos);
+  if (vm::gScrVmPub->instance[inst].function_count > 0) {
+    prevCodePositionsString += std::format("[{}] ", callIdx);
+    prevCodePositionsString += Scr_PrevCodePos(
+        inst, vm::gScrVmPub->instance[inst].function_frame_start[0].fs.pos);
+  }
   std::string lastGoodCodePositionString =
       Scr_PrevCodePos(inst, vm::gFs->instance[inst].pos);
 
