@@ -1644,11 +1644,21 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
     emit_expression(s, args->children[0]); // event name
     emit_owner(s, obj); // object (uses GetLevel, not GetLevelObject)
     /*
-      `WaitTillMatch` == `WaitTill`; `WaitTill`'s handler defers to
-      `WaitTillMatch`.
-      `WaitTillMatch` is slightly more efficient as a result.
+      In the VM opcode handlers, `WaitTillMatch` == `WaitTill`; `WaitTill`'s
+      handler defers to `WaitTillMatch`.
+
+      However, script thread wake and notification also explicitly checks the
+      currently executed opcode and behaves differently depending on whether
+      WaitTillMatch` is the currently executed opcode.
+
+      `WaitTillMatch` also increments the executed bytecode position in its
+      error handler, while `WaitTill` does not.
+
+      As such, we must use the opcode specified by the script's implementation.
     */
-    s.emit_op(Opcode::WaitTillMatch, node->line);
+    s.emit_op(node->type == node_type::n_waittill ? Opcode::WaitTill
+                                                  : Opcode::WaitTillMatch,
+              node->line);
 
     for (size_t i = 1; i < args->children.size(); ++i) {
       if (args->children[i]->type == node_type::n_identifier) {
