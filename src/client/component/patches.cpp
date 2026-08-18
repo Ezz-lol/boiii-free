@@ -12,11 +12,12 @@
 #ifndef NDEBUG
 #include <game/impl/snd/snd.hpp>
 #endif
+#include <component/gsc/gsc.hpp>
 
 namespace script {
 std::string resolve_hash(uint32_t hash);
-int resolve_hash_line(uint32_t hash, int num_params = -1);
-std::string get_source_line(const std::string &file, int line_num);
+int resolve_hash_line(uint32_t hash, int32_t num_params = -1);
+std::string get_source_line(const std::string &file, int32_t line_num);
 } // namespace script
 
 namespace patches {
@@ -136,7 +137,7 @@ void Sys_Error_LogCaller(const char *fmt, ...) {
 #define MINUTE 60 * SECOND
 #define HOUR 60 * MINUTE
 
-void com_error_stub(const char *file, int line, game::errorParm code,
+void com_error_stub(const char *file, int32_t line, game::errorParm code,
                     const char *fmt, ...) {
   void *callerAddr = _ReturnAddress();
   va_list ap;
@@ -249,18 +250,11 @@ void com_error_stub(const char *file, int line, game::errorParm code,
           if (!resolved_name.empty())
             func = resolved_name;
         } else {
-          // func was already resolved to a name - hash it back
-          uint32_t h = 0x4B9ACE2F;
-          for (char c : func)
-            h = (static_cast<uint32_t>(
-                     std::tolower(static_cast<unsigned char>(c))) ^
-                 h) *
-                0x1000193;
-          h *= 0x1000193;
-          func_hash = h;
+          func_hash = gsc::gsc_hash(func);
         }
-        int num_params_int = params.empty() ? -1 : std::atoi(params.c_str());
-        int src_line = script::resolve_hash_line(func_hash, num_params_int);
+        int32_t num_params_int =
+            params.empty() ? -1 : std::atoi(params.c_str());
+        int32_t src_line = script::resolve_hash_line(func_hash, num_params_int);
 
         printf("^1  Function:  ^5%s^1(%s)\n", func.c_str(), params.c_str());
         printf("^1  Reason:    ^1Unresolved external (function not found)\n");

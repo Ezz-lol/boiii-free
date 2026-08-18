@@ -20,15 +20,27 @@ struct HunkUser;
 namespace scr {
 typedef str<272> scr_path_t;
 
-template <typename T> union ScrPool {
-  array<T, SCRIPTINSTANCE_MAX> instance;
+#include <cstdint>
+#include <cassert>
+#include <array>
+#include <type_traits>
+
+// Primary template declaration
+template <typename T,
+          template <typename Element, size_t N> typename T_Array = array,
+          bool TrivialConstruct = std::is_trivially_constructible_v<T>>
+union ScrPool;
+
+// Specialization for trivially constructible types that comply with CPP03 PoD
+// constraints
+template <typename T, template <typename Element, size_t N> typename T_Array>
+union ScrPool<T, T_Array, true> {
+  T_Array<T, SCRIPTINSTANCE_MAX> instance;
   struct {
     T server;
     T client;
   };
 
-  // Minimum, optimized primitive for indexing the pool that can contain all
-  // values 0 <= index < BGCachecTypes::COUNT
   using index_t = uint8_t;
 
   inline constexpr void assert_range(size_t index) const {
@@ -43,6 +55,7 @@ template <typename T> union ScrPool {
     assert_range(index);
     return instance[index];
   }
+
   template <IntegralLike Index>
   inline constexpr const T &operator[](Index index) const {
     return get(index);
@@ -53,12 +66,71 @@ template <typename T> union ScrPool {
     assert_range(index);
     return instance[index];
   }
+
   template <IntegralLike Index> inline constexpr T &operator[](Index index) {
     return get(index);
   }
 
   inline constexpr auto size() const noexcept { return std::size(instance); }
 };
+
+//  Specialization for non-trivially constructible types
+template <typename T, template <typename Element, size_t N> typename T_Array>
+union ScrPool<T, T_Array, false> {
+  T_Array<T, SCRIPTINSTANCE_MAX> instance;
+  struct {
+    T server;
+    T client;
+  };
+
+  using index_t = uint8_t;
+
+  inline constexpr void assert_range(size_t index) const {
+    assert(index < std::size(instance) &&
+           "index to ScrPool must be within range SCRIPTINSTANCE_SERVER <= "
+           "index < SCRIPTINSTANCE_MAX");
+  }
+
+  template <IntegralLike Index>
+  inline constexpr const T &get(Index index_arg) const {
+    const index_t index = static_cast<index_t>(index_arg);
+    assert_range(index);
+    return instance[index];
+  }
+
+  template <IntegralLike Index>
+  inline constexpr const T &operator[](Index index) const {
+    return get(index);
+  }
+
+  template <IntegralLike Index> inline constexpr T &get(Index index_arg) {
+    const index_t index = static_cast<index_t>(index_arg);
+    assert_range(index);
+    return instance[index];
+  }
+
+  template <IntegralLike Index> inline constexpr T &operator[](Index index) {
+    return get(index);
+  }
+
+  inline constexpr auto size() const noexcept { return std::size(instance); }
+
+  // Constructors and Destructors permitted here - `T` already makes this
+  // non-conformant to CPP03 PoD.
+  inline ScrPool() : server(T()), client(T()) {}
+
+  ~ScrPool()
+    requires(!std::is_trivially_destructible_v<T>)
+  {
+    server.~T();
+    client.~T();
+  }
+
+  ~ScrPool()
+    requires(std::is_trivially_destructible_v<T>)
+  = default;
+};
+ASSERT_CPP03_POD(ScrPool<uint64_t>);
 
 enum class scriptBundleKVPType_t : int32_t {
   KVP_STRING = 0x0,

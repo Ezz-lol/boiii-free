@@ -282,7 +282,8 @@ public:
     // Set the flag of 'sv_network_fps'
     utils::hook::set<uint32_t>(0x140534FD8_g, game::DVAR_NONE);
 
-    // Disable both (??) sv_cheats dvars immediately after registration
+    // Enable or disable both (??) sv_cheats dvars immediately after
+    // registration
     if (game::cheats()) {
       sv_cheats_force<true>();
     } else {

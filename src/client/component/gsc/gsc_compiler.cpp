@@ -802,7 +802,8 @@ bool append_generated_addcommand_dispatch(const ast_ptr &root,
 }
 } // namespace
 
-compile_result compile(const std::string &source, const std::string &filename) {
+compile_result compile(game::scr::scriptInstance_t inst,
+                       const std::string &source, const std::string &filename) {
   compile_result result{};
 
   // Step 0: Preprocess (#define, #insert)
@@ -839,7 +840,7 @@ compile_result compile(const std::string &source, const std::string &filename) {
   }
 
   // Step 3: Emit bytecode
-  emitter_result emit_result = emit(parse_res.root, filename);
+  emitter_result emit_result = emit(inst, parse_res.root, filename);
   if (!emit_result.success) {
     result.errors.push_back({emit_result.error, filename,
                              emit_result.error_line, emit_result.error_column});

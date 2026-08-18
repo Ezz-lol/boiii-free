@@ -38,10 +38,8 @@ try_parse_raw_hash(const std::string_view &input) {
     const size_t underscoreIdx = inputSubstr.find('_');
     if (underscoreIdx != std::string::npos &&
         underscoreIdx < inputSubstr.size()) {
-
       const std::string_view prefix = inputSubstr.substr(0, underscoreIdx);
       if (hash_literal_prefix(prefix)) {
-
         const std::string_view hex_part = inputSubstr.substr(underscoreIdx + 1);
         if (hex_part.size() == 8) {
 

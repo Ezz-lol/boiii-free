@@ -139,6 +139,7 @@ struct LineStartAddress {
 };
 
 struct emitter_state {
+  scriptInstance_t inst;
   export_entry *current_func;
   size_t current_export_index;
   uint32_t script_namespace;
@@ -181,9 +182,9 @@ struct emitter_state {
     hash_names.push_back({h, lower, line, params});
   }
 
-  emitter_state()
-      : current_func(nullptr), current_export_index(0), script_namespace(0),
-        next_label_id(0), temp_var_counter(0) {}
+  emitter_state(scriptInstance_t inst)
+      : inst(inst), current_func(nullptr), current_export_index(0),
+        script_namespace(0), next_label_id(0), temp_var_counter(0) {}
 
   int32_t new_label() { return next_label_id++; }
 
@@ -295,10 +296,10 @@ struct emitter_state {
 
     if (!builtin && same_namespace) {
       if (is_method) {
-        if (gsc::builtin_method(func_hash)) {
+        if (gsc::builtin_method(inst, func_hash)) {
           builtin = true;
         }
-      } else if (gsc::builtin_function(func_hash)) {
+      } else if (gsc::builtin_function(inst, func_hash)) {
         builtin = true;
       }
     }
@@ -2014,9 +2015,10 @@ std::vector<uint8_t> build_gdb(emitter_state &s, const GSC_OBJ *obj) {
 }
 } // namespace
 
-emitter_result emit(const ast_ptr &root, const std::string &script_name) {
+emitter_result emit(scriptInstance_t inst, const ast_ptr &root,
+                    const std::string &script_name) {
   emitter_result result{};
-  emitter_state state;
+  emitter_state state(inst);
   state.script_name = script_name;
 
   {

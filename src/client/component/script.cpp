@@ -407,8 +407,10 @@ void load_script_file(std::string &data,
       const char *log = utils::string::va("Compiling %s script '%s'",
                                           script_type, name.c_str());
       print_script_log(log);
+      const scriptInstance_t inst =
+          is_csc ? SCRIPTINSTANCE_CLIENT : SCRIPTINSTANCE_SERVER;
       gsc_compiler::compile_result result =
-          gsc_compiler::compile(cleaned_source, name);
+          gsc_compiler::compile(inst, cleaned_source, name);
       if (result.success) {
 
         // Store hash-to-name+line map from this compilation
@@ -796,7 +798,7 @@ void load_global_hash_table() {
         size_t space = line.find(' ');
         if (space == std::string::npos)
           continue;
-        uint32_t hash = static_cast<uint32_t>(
+        ScrVarCanonicalName_t hash = static_cast<uint32_t>(
             std::strtoul(line.substr(0, space).c_str(), nullptr, 16));
         if (hash != 0)
           global_hash_table[hash] = line.substr(space + 1);
@@ -838,7 +840,7 @@ void begin_load_scripts_stub(scriptInstance_t inst, int32_t user) {
   }
 }
 
-std::string resolve_hash(uint32_t hash) {
+std::string resolve_hash(ScrVarCanonicalName_t hash) {
 
   std::optional<std::string> result;
   script_hash_names.if_contains(hash, [&result](const auto &v) {
@@ -861,7 +863,7 @@ uint8_t *find_export_address(const std::string &script_name,
                                       expected_params);
 }
 
-int resolve_hash_line(uint32_t hash, int32_t num_params) {
+int32_t resolve_hash_line(ScrVarCanonicalName_t hash, int32_t num_params) {
   int32_t result = 0;
   script_hash_names.if_contains(hash, [&result, num_params](const auto &v) {
     for (const hash_info &entry : v.second) {
@@ -982,7 +984,8 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
       "gScrVmPub->instance[inst].function_frame_start[0].fs.top: 0x%p, "
       "gScrVmPub->instance[inst].function_frame_start[0].fs.startTop: 0x%p, "
       "gScrVmPub->instance[inst].function_frame_start[0].fs.threadId: 0x%08X, "
-      "gScrVmPub->instance[inst].function_frame_start[0].fs.localVarCount: %lu,"
+      "gScrVmPub->instance[inst].function_frame_start[0].fs.localVarCount: "
+      "%lu, "
       "gFs.pos: 0x%p, "
       "gFs.top: 0x%p, gFs.startTop: 0x%p, gFs.threadId: 0x%08X, "
       "gFs.localVarCount: %lu, "

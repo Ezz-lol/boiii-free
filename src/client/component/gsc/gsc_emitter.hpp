@@ -37,5 +37,6 @@ struct emitter_result {
   std::vector<replacefunc_entry> replacefuncs;
 };
 
-emitter_result emit(const ast_ptr &root, const std::string &script_name);
+emitter_result emit(game::scr::scriptInstance_t inst, const ast_ptr &root,
+                    const std::string &script_name);
 } // namespace gsc_compiler

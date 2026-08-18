@@ -33,6 +33,7 @@ struct compile_result {
 };
 
 // Compile raw GSC source code to T7 PC bytecode.
-compile_result compile(const std::string &source,
+compile_result compile(game::scr::scriptInstance_t inst,
+                       const std::string &source,
                        const std::string &source_name);
 } // namespace gsc_compiler

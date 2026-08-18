@@ -22,8 +22,8 @@ using namespace game;
 using namespace game::scr;
 
 namespace gsc::custom_builtins {
-CustomBuiltinMap<BuiltinFunctionDef> functions;
-CustomBuiltinMap<BuiltinMethodDef> methods;
+static ScrPool<CustomBuiltinMap<BuiltinFunctionDef>> functions;
+static ScrPool<CustomBuiltinMap<BuiltinMethodDef>> methods;
 } // namespace gsc::custom_builtins
 
 namespace script {
@@ -1382,8 +1382,9 @@ BuiltinFunction Scr_GetFunction_SearchCustom(ScrVarCanonicalName_t canonId,
                                              BuiltinType *type,
                                              int32_t *min_args,
                                              int32_t *max_args) {
-  if (custom_builtins::functions.map.contains(canonId)) {
-    const BuiltinFunctionDef *def = &custom_builtins::functions.map[canonId];
+  if (custom_builtins::functions.server.map.contains(canonId)) {
+    const BuiltinFunctionDef *def =
+        &custom_builtins::functions.server.map[canonId];
 
     *type = def->type;
     *min_args = def->min_args;
@@ -1400,8 +1401,8 @@ utils::hook::detour Scr_GetMethod_hook;
 BuiltinMethod Scr_GetMethod_SearchCustom(ScrVarCanonicalName_t canonId,
                                          BuiltinType *type, int32_t *min_args,
                                          int32_t *max_args) {
-  if (custom_builtins::methods.map.contains(canonId)) {
-    const BuiltinMethodDef *def = &custom_builtins::methods.map[canonId];
+  if (custom_builtins::methods.server.map.contains(canonId)) {
+    const BuiltinMethodDef *def = &custom_builtins::methods.server.map[canonId];
 
     *type = def->type;
     *min_args = def->min_args;
@@ -1417,8 +1418,8 @@ BuiltinMethod Scr_GetMethod_SearchCustom(ScrVarCanonicalName_t canonId,
 utils::hook::detour Scr_GetFunctionReverseLookup_hook;
 ScrVarCanonicalName_t
 Scr_GetFunctionReverseLookup_SearchCustom(BuiltinFunction func) {
-  if (custom_builtins::functions.reverse.contains(func)) {
-    return custom_builtins::functions.reverse[func];
+  if (custom_builtins::functions.server.reverse.contains(func)) {
+    return custom_builtins::functions.server.reverse[func];
   }
   return Scr_GetFunctionReverseLookup_hook.invoke<ScrVarCanonicalName_t>(func);
 }
@@ -1426,11 +1427,68 @@ Scr_GetFunctionReverseLookup_SearchCustom(BuiltinFunction func) {
 utils::hook::detour Scr_GetMethodReverseLookup_hook;
 ScrVarCanonicalName_t
 Scr_GetMethodReverseLookup_SearchCustom(BuiltinMethod method) {
-  if (custom_builtins::methods.reverse.contains(method)) {
-    return custom_builtins::methods.reverse[method];
+  if (custom_builtins::methods.server.reverse.contains(method)) {
+    return custom_builtins::methods.server.reverse[method];
   }
   return Scr_GetMethodReverseLookup_hook.invoke<ScrVarCanonicalName_t>(method);
 }
+
+utils::hook::detour CScr_GetFunction_hook;
+BuiltinFunction CScr_GetFunction_SearchCustom(ScrVarCanonicalName_t canonId,
+                                              BuiltinType *type,
+                                              int32_t *min_args,
+                                              int32_t *max_args) {
+  if (custom_builtins::functions.client.map.contains(canonId)) {
+    const BuiltinFunctionDef *def =
+        &custom_builtins::functions.client.map[canonId];
+
+    *type = def->type;
+    *min_args = def->min_args;
+    *max_args = def->max_args;
+
+    return def->actionFunc;
+  }
+
+  return CScr_GetFunction_hook.invoke<BuiltinFunction>(canonId, type, min_args,
+                                                       max_args);
+}
+
+utils::hook::detour CScr_GetMethod_hook;
+BuiltinMethod CScr_GetMethod_SearchCustom(ScrVarCanonicalName_t canonId,
+                                          BuiltinType *type, int32_t *min_args,
+                                          int32_t *max_args) {
+  if (custom_builtins::methods.client.map.contains(canonId)) {
+    const BuiltinMethodDef *def = &custom_builtins::methods.client.map[canonId];
+
+    *type = def->type;
+    *min_args = def->min_args;
+    *max_args = def->max_args;
+
+    return def->actionFunc;
+  }
+
+  return CScr_GetMethod_hook.invoke<BuiltinMethod>(canonId, type, min_args,
+                                                   max_args);
+}
+
+utils::hook::detour CScr_GetFunctionReverseLookup_hook;
+ScrVarCanonicalName_t
+CScr_GetFunctionReverseLookup_SearchCustom(BuiltinFunction func) {
+  if (custom_builtins::functions.client.reverse.contains(func)) {
+    return custom_builtins::functions.client.reverse[func];
+  }
+  return CScr_GetFunctionReverseLookup_hook.invoke<ScrVarCanonicalName_t>(func);
+}
+
+utils::hook::detour CScr_GetMethodReverseLookup_hook;
+ScrVarCanonicalName_t
+CScr_GetMethodReverseLookup_SearchCustom(BuiltinMethod method) {
+  if (custom_builtins::methods.client.reverse.contains(method)) {
+    return custom_builtins::methods.client.reverse[method];
+  }
+  return CScr_GetMethodReverseLookup_hook.invoke<ScrVarCanonicalName_t>(method);
+}
+
 void PlayerCmd_IsHost_DelegateToFirstClient(scriptInstance_t inst,
                                             scr_entref_t *entref) {
   if (entref->classnum == 0) {
@@ -1469,72 +1527,101 @@ struct component final : generic_component {
     Scr_GetMethod_hook.create(game::scr::builtin::Scr_GetMethod.get(),
                               Scr_GetMethod_SearchCustom);
 
+    CScr_GetFunctionReverseLookup_hook.create(
+        game::scr::builtin::cscr::CScr_GetFunctionReverseLookup.get(),
+        CScr_GetFunctionReverseLookup_SearchCustom);
+    CScr_GetMethodReverseLookup_hook.create(
+        game::scr::builtin::cscr::CScr_GetMethodReverseLookup.get(),
+        CScr_GetMethodReverseLookup_SearchCustom);
+
+    CScr_GetFunction_hook.create(
+        game::scr::builtin::cscr::CScr_GetFunction.get(),
+        CScr_GetFunction_SearchCustom);
+    CScr_GetMethod_hook.create(game::scr::builtin::cscr::CScr_GetMethod.get(),
+                               CScr_GetMethod_SearchCustom);
+
     // Core
-    register_builtin("replacefunc", gscr_replacefunc, 2);
-    register_builtin("executecommand", gscr_executecommand, 1);
-    register_builtin("say", gscr_say, 1);
-    register_builtin("tell", gscr_tell::func, 2);
-    register_builtin("tell", gscr_tell::method, 1);
-    register_variadic_builtin("println", gscr_println, 0);
-    register_variadic_builtin("trace", gscr_trace, 0);
-    register_variadic_builtin("print", gscr_print, 0);
-    register_variadic_builtin("printf", gscr_printf, 1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "replacefunc", gscr_replacefunc, 2);
+    register_builtin(SCRIPTINSTANCE_SERVER, "executecommand",
+                     gscr_executecommand, 1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "say", gscr_say, 1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "tell", gscr_tell::func, 2);
+    register_builtin(SCRIPTINSTANCE_SERVER, "tell", gscr_tell::method, 1);
+    register_variadic_builtin(SCRIPTINSTANCE_SERVER, "println", gscr_println,
+                              0);
+    register_variadic_builtin(SCRIPTINSTANCE_SERVER, "trace", gscr_trace, 0);
+    register_variadic_builtin(SCRIPTINSTANCE_SERVER, "print", gscr_print, 0);
+    register_variadic_builtin(SCRIPTINSTANCE_SERVER, "printf", gscr_printf, 1);
 
     // File I/O
-    register_builtin("writefile", gscr_writefile, 2, 3);
-    register_builtin("readfile", gscr_readfile, 1);
-    register_builtin("appendfile", gscr_appendfile, 2);
-    register_builtin("fileexists", gscr_fileexists, 1);
-    register_builtin<2>({"removefile", "rm"}, gscr_rm, 1, 2);
-    register_builtin<2>({"rmdir", "removedirectory"}, gscr_removedirectory, 1);
-    register_builtin("filesize", gscr_filesize, 1);
-    register_builtin<2>({"mkdir", "createdirectory"}, gscr_createdirectory, 1);
-    register_builtin("directoryexists", gscr_directoryexists, 1);
-    register_builtin("ls", gscr_ls, 1, 3);
+    register_builtin(SCRIPTINSTANCE_SERVER, "writefile", gscr_writefile, 2, 3);
+    register_builtin(SCRIPTINSTANCE_SERVER, "readfile", gscr_readfile, 1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "appendfile", gscr_appendfile, 2);
+    register_builtin(SCRIPTINSTANCE_SERVER, "fileexists", gscr_fileexists, 1);
+    register_builtin<2>(SCRIPTINSTANCE_SERVER, {"removefile", "rm"}, gscr_rm, 1,
+                        2);
+    register_builtin<2>(SCRIPTINSTANCE_SERVER, {"rmdir", "removedirectory"},
+                        gscr_removedirectory, 1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "filesize", gscr_filesize, 1);
+    register_builtin<2>(SCRIPTINSTANCE_SERVER, {"mkdir", "createdirectory"},
+                        gscr_createdirectory, 1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "directoryexists",
+                     gscr_directoryexists, 1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "ls", gscr_ls, 1, 3);
 
     // JSON
-    register_builtin("jsonvalid", gscr_jsonvalid, 1);
-    register_builtin("jsonparse", gscr_jsonparse, 2);
-    register_builtin("jsonset", gscr_jsonset, 3);
-    register_builtin("jsondump", gscr_jsondump, 2);
+    register_builtin(SCRIPTINSTANCE_SERVER, "jsonvalid", gscr_jsonvalid, 1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "jsonparse", gscr_jsonparse, 2);
+    register_builtin(SCRIPTINSTANCE_SERVER, "jsonset", gscr_jsonset, 3);
+    register_builtin(SCRIPTINSTANCE_SERVER, "jsondump", gscr_jsondump, 2);
 
     // Int64
-    register_builtin("int64_op", gscr_int64_op, 3);
-    register_builtin("int64_isint", gscr_int64_isint, 1);
-    register_builtin("int64_toint", gscr_int64_toint, 1);
-    register_builtin("int64_min", gscr_int64_min, 2);
-    register_builtin("int64_max", gscr_int64_max, 2);
-    register_builtin("int64_abs", gscr_int64_abs, 1);
-    register_builtin("int64_clamp", gscr_int64_clamp, 3);
-    register_builtin("int64_tostring", gscr_int64_tostring, 1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "int64_op", gscr_int64_op, 3);
+    register_builtin(SCRIPTINSTANCE_SERVER, "int64_isint", gscr_int64_isint, 1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "int64_toint", gscr_int64_toint, 1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "int64_min", gscr_int64_min, 2);
+    register_builtin(SCRIPTINSTANCE_SERVER, "int64_max", gscr_int64_max, 2);
+    register_builtin(SCRIPTINSTANCE_SERVER, "int64_abs", gscr_int64_abs, 1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "int64_clamp", gscr_int64_clamp, 3);
+    register_builtin(SCRIPTINSTANCE_SERVER, "int64_tostring",
+                     gscr_int64_tostring, 1);
 
     // Function lookup
-    register_builtin("getfunction", gscr_getfunction, 2);
+    register_builtin(SCRIPTINSTANCE_SERVER, "getfunction", gscr_getfunction, 2);
 
     // Console commands
-    register_builtin("addcommand", gscr_addcommand, 1, 2);
-    register_builtin("getcommand", gscr_getcommand, 0, 1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "addcommand", gscr_addcommand, 1,
+                     2);
+    register_builtin(SCRIPTINSTANCE_SERVER, "getcommand", gscr_getcommand, 0,
+                     1);
 
     // Utility
-    register_builtin("clearreplacefuncs", gscr_clearreplacefuncs, 0);
+    register_builtin(SCRIPTINSTANCE_SERVER, "clearreplacefuncs",
+                     gscr_clearreplacefuncs, 0);
 
     // Player name/tag overrides (server-only)
-    register_builtin("setname", gscr_setname::func, 2);
-    register_builtin("setname", gscr_setname::method, 1);
-    register_builtin("settag", gscr_settag::func, 2);
-    register_builtin("settag", gscr_settag::method, 1);
-    register_builtin("resetname", gscr_resetname::func, 1);
-    register_builtin("resetname", gscr_resetname::method, 0);
-    register_builtin("resettag", gscr_resettag::func, 1);
-    register_builtin("resettag", gscr_resettag::method, 0);
-    register_builtin("setclientdvar", gscr_setclientdvar::func, 2);
-    register_builtin("setclientdvar", gscr_setclientdvar::method, 1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "setname", gscr_setname::func, 2);
+    register_builtin(SCRIPTINSTANCE_SERVER, "setname", gscr_setname::method, 1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "settag", gscr_settag::func, 2);
+    register_builtin(SCRIPTINSTANCE_SERVER, "settag", gscr_settag::method, 1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "resetname", gscr_resetname::func,
+                     1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "resetname", gscr_resetname::method,
+                     0);
+    register_builtin(SCRIPTINSTANCE_SERVER, "resettag", gscr_resettag::func, 1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "resettag", gscr_resettag::method,
+                     0);
+    register_builtin(SCRIPTINSTANCE_SERVER, "setclientdvar",
+                     gscr_setclientdvar::func, 2);
+    register_builtin(SCRIPTINSTANCE_SERVER, "setclientdvar",
+                     gscr_setclientdvar::method, 1);
 
-    register_builtin("conststring", gscr_conststring, 1);
-    register_builtin("isstruct", gscr_isstruct, 1);
-    register_builtin("typename", gscr_typename, 1);
-    register_builtin("ismenucached", gscr_ismenucached, 1);
-    register_builtin("vector", gscr_vector, 0, 3);
+    register_builtin(SCRIPTINSTANCE_SERVER, "conststring", gscr_conststring, 1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "isstruct", gscr_isstruct, 1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "typename", gscr_typename, 1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "ismenucached", gscr_ismenucached,
+                     1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "vector", gscr_vector, 0, 3);
 
     apply_hudelem_hooks();
 
