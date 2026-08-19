@@ -35,20 +35,20 @@ void report_updater_error(const char *message) {
 }
 } // namespace
 
-void update() {
-  if (utils::flags::has_flag("noupdate") ||
-      (!utils::flags::has_flag("update") && !automatic_updates_enabled())) {
-    return;
-  }
+void update(bool force) {
+  if (force ||
+      (!utils::flags::has_flag("noupdate") &&
+       (utils::flags::has_flag("update") || automatic_updates_enabled()))) {
 
-  try {
-    run(game::get_appdata_path());
-  } catch (update_cancelled &) {
-    TerminateProcess(GetCurrentProcess(), 0);
-  } catch (const std::exception &e) {
-    report_updater_error(e.what());
-  } catch (...) {
-    report_updater_error("Unknown error occurred during update.");
+    try {
+      run(game::get_appdata_path());
+    } catch (update_cancelled &) {
+      TerminateProcess(GetCurrentProcess(), 0);
+    } catch (const std::exception &e) {
+      report_updater_error(e.what());
+    } catch (...) {
+      report_updater_error("Unknown error occurred during update.");
+    }
   }
 }
 

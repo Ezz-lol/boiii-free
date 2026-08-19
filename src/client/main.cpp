@@ -906,6 +906,10 @@ function doSelect() {
   return path_set;
 }
 } // namespace
+inline bool needs_initial_update() {
+  return !utils::io::file_exists(
+      launcher::get_launcher_ui_file().generic_wstring());
+}
 
 int main(int argc, char *argv[]) {
   if (handle_process_runner()) {
@@ -957,13 +961,18 @@ int main(int argc, char *argv[]) {
           utils::flags::has_flag("dedicated") || (!has_client && has_server);
 
       if (!is_server && !launcher::is_game_process_running()) {
-        updater::update();
+        updater::update(needs_initial_update());
       }
 
-      if (!utils::io::file_exists(
-              launcher::get_launcher_ui_file().generic_wstring())) {
-        throw std::runtime_error("BOIII needs an active internet connection "
-                                 "for the first time you launch it.");
+      if (needs_initial_update()) {
+        const std::filesystem::path appdata_path = game::get_appdata_path();
+        const std::string appdata_path_str = appdata_path.generic_string();
+        const char *err = utils::string::va(
+            "Missing required data in %s; Initial data download has failed. "
+            "BOIII needs an active internet connection "
+            "for the first time you launch it.",
+            appdata_path_str.c_str());
+        throw std::runtime_error(err);
       }
 
       if (!is_server) {

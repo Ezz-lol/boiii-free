@@ -6,8 +6,8 @@
 
 namespace updater {
 void run(const std::filesystem::path &base) {
-  const auto self = utils::nt::library::get_by_address(run);
-  const auto self_file = self.get_path();
+  const utils::nt::library self = utils::nt::library::get_by_address(run);
+  const std::filesystem::path self_file = self.get_path();
 
   updater_ui updater_ui{};
   const file_updater file_updater{updater_ui, base, self_file};

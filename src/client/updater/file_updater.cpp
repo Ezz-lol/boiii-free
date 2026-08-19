@@ -179,7 +179,7 @@ void file_updater::create_config_file_if_not_exists() const {
 void file_updater::run() const {
   this->create_config_file_if_not_exists();
 
-  const auto files = get_file_infos();
+  const std::vector<file_info> files = get_file_infos();
 
   OutputDebugStringA(
       ("Found " + std::to_string(files.size()) + " files in update manifest\n")
@@ -189,24 +189,25 @@ void file_updater::run() const {
     this->cleanup_directories(files);
   }
 
-  const auto outdated_files = this->get_outdated_files(files);
+  const std::vector<file_info> outdated_files = this->get_outdated_files(files);
 
   OutputDebugStringA(
       ("Found " + std::to_string(outdated_files.size()) + " outdated files\n")
           .c_str());
 
-  for (const auto &file : outdated_files) {
+  for (const file_info &file : outdated_files) {
     OutputDebugStringA(("  - " + file.name + "\n").c_str());
   }
 
 #ifndef NDEBUG
-  const auto *host_file =
+  const file_info *host_file =
       should_skip_host_update() ? nullptr : find_host_file_info(files);
   if (host_file) {
     std::string data{};
-    const auto drive_name = this->get_drive_filename(*host_file);
+    const std::filesystem::path drive_name =
+        this->get_drive_filename(*host_file);
     if (utils::io::read_file(drive_name, &data)) {
-      const auto hash = get_hash(data);
+      const std::string hash = get_hash(data);
       if (hash != host_file->hash) {
         if (!utils::flags::has_flag("update")) {
           OutputDebugStringA("WARNING: Host binary is outdated but not "
@@ -227,7 +228,7 @@ void file_updater::run() const {
 
   std::vector<file_info> remaining_files;
   remaining_files.reserve(outdated_files.size());
-  for (const auto &file : outdated_files) {
+  for (const file_info &file : outdated_files) {
     if (file.name != UPDATE_HOST_BINARY) {
       remaining_files.emplace_back(file);
     }
