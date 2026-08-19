@@ -185,7 +185,7 @@ ASSERT_SIZE(KVPItemUnion, 8);
 
 union ScriptBundleKVPData {
   uint32_t _data;
-  int integer;
+  int32_t integer;
   float v;
 };
 ASSERT_SIZE(ScriptBundleKVPData, 4);
@@ -1553,98 +1553,6 @@ struct scr_animtree_t {
   XAnim *anims;
 };
 
-typedef fastcallPtr_t<void(LocalClientNum_t, uint32_t, float, float, bool, bool,
-                           ScrString_t, bool, bool)>
-    ClientFieldCodeCallbackFuncFloatVal;
-typedef fastcallPtr_t<void(LocalClientNum_t, uint32_t, uint32_t, uint32_t, bool,
-                           bool, ScrString_t, bool, bool)>
-    ClientFieldCodeCallbackFuncUintVal;
-
-struct clientFieldCodeCallback_t {
-  struct {
-    uint64_t bHasCodeCallback : 1;
-    uint64_t bCodeCallbackIsFloatVal : 1;
-  };
-  union {
-    ClientFieldCodeCallbackFuncFloatVal floatCallbackFunc;
-    ClientFieldCodeCallbackFuncUintVal uintCallbackFunc;
-  };
-};
-
-struct clientFieldUnionClient_t {
-  uint8_t bSplitscreenHostOnly;
-  uint8_t bCallbacksFor0WhenNew;
-};
-
-struct clientFieldUnionServer_t {
-  uint8_t gap0;
-};
-
-union clientFieldUnion_t {
-  clientFieldUnionClient_t client;
-  clientFieldUnionServer_t server;
-};
-
-typedef intptr_t scr_funcptr_t;
-struct scr_func_t {
-  char funcinfo[260];
-  scr_funcptr_t func;
-};
-
-struct __attribute__((aligned(8))) clientField_t {
-  scr::scr_func_t scriptCallbackFunc;
-  clientFieldCodeCallback_t codeCallbackFunc;
-  scr::ScrString_t nameHash;
-  uint32_t fieldOffset;
-  uint32_t accessMask;
-  uint8_t bitOffset;
-  uint8_t fieldType;
-  uint8_t obsolete;
-  uint8_t clientFieldSet;
-  uint32_t numBits;
-  uint32_t version;
-  clientFieldUnion_t u;
-};
-
-struct bgs_clientfieldapi_t {
-  void (*CompareHashToGameState)(uint32_t);
-  bool (*AllowVersionReRegistration)(void);
-  bool (*FieldVersionAllowsRegistration)(clientField_t *, uint32_t);
-  bool (*ServerVersionAllowsRegistration)(uint32_t);
-};
-
-struct clientFieldCallback_t {
-  clientField_t *pField;
-  union {
-    float oldFloat;
-    uint32_t oldInt;
-  };
-  union {
-    float newFloat;
-    uint32_t newInt;
-  };
-  uint32_t localClientNum;
-  uint32_t entNum;
-  struct {
-    uint64_t bInitialSnap : 1;
-    uint64_t bNewEnt : 1;
-    uint64_t bWasDemoJump : 1;
-    uint64_t bWasKillcamTransition : 1;
-  };
-};
-
-struct clientNetField_t {
-  int bitsUsed;
-  int netFieldOffset;
-};
-
-struct clientFieldSet_t {
-  int numFields;
-  clientField_t *pFields[2048];
-  int numNetFields;
-  clientNetField_t *pNetFields;
-};
-
 struct XCamFrame {
   int32_t frameNum;
   vec3_t origin;
@@ -1685,6 +1593,12 @@ public:
   int32_t xcamLerpEndTime;
   XCamFrame lerpFrame;
   XCamTargetModelFrame lerpModelFrame;
+};
+
+typedef intptr_t scr_funcptr_t;
+struct scr_func_t {
+  char funcinfo[260];
+  scr_funcptr_t func;
 };
 
 struct ScriptCamera {
