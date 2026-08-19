@@ -906,7 +906,7 @@ function doSelect() {
   return path_set;
 }
 } // namespace
-inline bool needs_initial_update() {
+inline bool initial_update_required() {
   return !utils::io::file_exists(
       launcher::get_launcher_ui_file().generic_wstring());
 }
@@ -961,10 +961,10 @@ int main(int argc, char *argv[]) {
           utils::flags::has_flag("dedicated") || (!has_client && has_server);
 
       if (!is_server && !launcher::is_game_process_running()) {
-        updater::update(needs_initial_update());
+        updater::update(initial_update_required());
       }
 
-      if (needs_initial_update()) {
+      if (initial_update_required()) {
         const std::filesystem::path appdata_path = game::get_appdata_path();
         const std::string appdata_path_str = appdata_path.generic_string();
         const char *err = utils::string::va(
