@@ -53,12 +53,18 @@ inline void dvar_bool_force(EngineDependentDvarMut dvar) {
 }
 
 #ifndef NDEBUG
-inline void enable_debug_dvars() {
-  if (utils::flags::has_flag("vehicle-debug")) {
-    dvar_boolstring_force<"1">(*game::g_vehicleDrawPath);
-    dvar_bool_force<true>(*game::g_vehicleDrawSplines);
-    dvar_int_force<1>(*game::g_vehicleDebug);
+inline bool enable_debug_dvars() {
+  if (*game::g_vehicleDrawPath && *game::g_vehicleDrawSplines &&
+      *game::g_vehicleDebug && *game::com_clientfieldsdebug) {
+    if (utils::flags::has_flag("vehicle-debug")) {
+      dvar_boolstring_force<"1">(*game::g_vehicleDrawPath);
+      dvar_bool_force<true>(*game::g_vehicleDrawSplines);
+      dvar_int_force<1>(*game::g_vehicleDebug);
+    }
+    dvar_bool_force<true>(*game::com_clientfieldsdebug);
+    return scheduler::cond_end;
   }
+  return scheduler::cond_continue;
 }
 #endif
 
@@ -66,10 +72,6 @@ void patch_dvars() {
   com_pauseSupported = register_sessionmode_dvar_bool(
       "com_pauseSupported", !is_server(), DVAR_SERVERINFO,
       "Whether pause is supported by the game mode");
-
-#ifndef NDEBUG
-  enable_debug_dvars();
-#endif
 }
 
 void patch_flags() {
@@ -85,15 +87,14 @@ void patch_flags() {
 }
 
 void strip_cheat_flags() {
-  if (!is_client())
-    return;
-
-  dvar_remove_flags("cg_drawGun", DVAR_CHEAT);
-  dvar_remove_flags("g_speed", DVAR_CHEAT);
-  dvar_remove_flags("bg_gravity", DVAR_CHEAT);
-  dvar_remove_flags("player_sustainAmmo", DVAR_CHEAT);
-  dvar_remove_flags("r_fog", DVAR_CHEAT);
-  dvar_remove_flags("timescale", DVAR_CHEAT);
+  if (is_client()) {
+    dvar_remove_flags("cg_drawGun", DVAR_CHEAT);
+    dvar_remove_flags("g_speed", DVAR_CHEAT);
+    dvar_remove_flags("bg_gravity", DVAR_CHEAT);
+    dvar_remove_flags("player_sustainAmmo", DVAR_CHEAT);
+    dvar_remove_flags("r_fog", DVAR_CHEAT);
+    dvar_remove_flags("timescale", DVAR_CHEAT);
+  }
 }
 
 void dof_enabled_stub(utils::hook::assembler &a) {
@@ -241,6 +242,10 @@ class component final : public generic_component {
 public:
   void post_unpack() override {
     scheduler::once(patch_dvars, scheduler::pipeline::main);
+#ifndef NDEBUG
+    scheduler::schedule(enable_debug_dvars, scheduler::pipeline::main);
+#endif
+
     scheduler::once(patch_flags, scheduler::pipeline::main);
     scheduler::loop(strip_cheat_flags, scheduler::pipeline::main, 5s);
     Dvar_GetSessionModeSpecificDvarInternal_hook.create(

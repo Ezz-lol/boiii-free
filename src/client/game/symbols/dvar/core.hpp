@@ -8,9 +8,11 @@
 namespace game {
 
 WEAK symbol<EngineDependentDvarMut> com_maxclients{0x1568ED850, 0x14948EE70};
-// "sv_running" is name of dvar. com_sv_running is name used internally by
-// engine to label dvar global
+// "sv_running" is the name of the dvar. `com_sv_running` is the name used
+// internally by the engine to label dvar global
 WEAK symbol<EngineDependentDvarMut> com_sv_running{0x1568ED848, 0x14948EE68};
+WEAK symbol<EngineDependentDvarMut> com_clientfieldsdebug{0x1568ED830,
+                                                          0x14948EE50};
 
 WEAK symbol<EngineDependentDvarMut> g_gametype{0x14A399348, 0x147836878};
 WEAK symbol<EngineDependentDvarMut> g_password{0x14A399350, 0x147836880};
@@ -19,13 +21,13 @@ WEAK symbol<EngineDependentDvarMut> sv_hostname{0x1577C5790, 0x14A1797A8};
 WEAK symbol<EngineDependentDvarMut> sv_maprotation{0x1577C5888, 0x14A179948};
 WEAK symbol<EngineDependentDvarMut> sv_maprotationcurrent{0x1577C5890,
                                                           0x14A189980};
-// sv_cheats used to enable/disable cheat commands - both in console
+// The sv_cheats dvar used to enable/disable cheat commands - both in console
 // and in SV commands
 WEAK symbol<EngineDependentDvarMut> sv_cheats{0x1576F8698, 0x14A189A18};
-// Also named sv_cheats, but global is called "dvar_cheats" in engine.
+// Also named sv_cheats, but global is named `dvar_cheats` in the engine.
 // Used to enable/disable cheat dvars - controls whether cheat
 // protection on a dvar to be modified is checked and respected in internal
-// setters. Dvar_Init
+// setters.
 WEAK symbol<EngineDependentDvarMut> dvar_cheats{0x157AC6210, 0x14A3CB610};
 WEAK symbol<EngineDependentDvarMut> sv_gametype{0x1577C57F0, 0x14A179888};
 WEAK symbol<qboolean> sv_running{0x1457D9928, 0x142CE04A8};

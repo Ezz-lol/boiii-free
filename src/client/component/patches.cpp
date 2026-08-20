@@ -323,17 +323,6 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
            buffer);
   }
 
-  // Suppress Clientfield Mismatch errors - convert to a recoverable ERR_DROP
-  if (strstr(buffer, "Clientfield Mismatch")) {
-    printf("[Com_Error] Suppressing Clientfield Mismatch error, converting to "
-           "ERR_DROP\n");
-    com_error_hook.invoke<void>(file, line, game::errorParm::DROP,
-                                "Mod compatibility issue: %s\nThis mod may "
-                                "require additional patches for boiii.",
-                                buffer);
-    return;
-  }
-
   if (!game::is_server() && code == game::errorParm::DROP) {
     std::string deferred_error = std::string(buffer);
     scheduler::once(
