@@ -5,6 +5,7 @@
 
 #include <game/game.hpp>
 #include "command.hpp"
+#include "component/lua_state.hpp"
 
 #if __has_include("version.hpp")
 #include "version.hpp"
@@ -917,7 +918,8 @@ void print_message(const char *message) {
 #endif
 
   if (started.load(std::memory_order_seq_cst) && !terminate_runner) {
-    game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s", message);
+    game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                          game::consoleLabel_e::DEFAULT, "%s", message);
   }
 }
 
@@ -1459,6 +1461,101 @@ void set_title(const std::string &title) {
   }
 }
 
+namespace lua {
+using namespace game::lua;
+using namespace game::lua::hks;
+
+void print(std::string msg) {
+#ifndef NDEBUG
+  game::trace("Print: %s", msg.c_str());
+#endif
+  msg = "^7" + msg + "\n";
+  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                        game::consoleLabel_e::DEFAULT, "%s\n", msg.c_str());
+}
+
+void print_info(std::string msg) {
+#ifndef NDEBUG
+  game::trace("print_info: %s", msg.c_str());
+#endif
+  msg = "^4" + msg + "\n";
+  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                        game::consoleLabel_e::DEFAULT, "%s\n", msg.c_str());
+}
+
+void print_error(std::string msg) {
+#ifndef NDEBUG
+  game::trace("print_error: %s", msg.c_str());
+#endif
+  if (msg.find("error") != std::string::npos) {
+    msg = "^1" + msg + "\n";
+  } else {
+    msg = "^1Error: " + msg + "\n";
+  }
+
+  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                        game::consoleLabel_e::DEFAULT, "%s\n", msg.c_str());
+}
+
+void print_warning(std::string msg) {
+#ifndef NDEBUG
+  game::trace("print_warning: %s", msg.c_str());
+#endif
+  msg = "^3" + msg + "\n";
+  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                        game::consoleLabel_e::DEFAULT, "%s\n", msg.c_str());
+}
+
+luaReturnCount_e print(lua::lua_State *s) {
+  if (hks::hksi_lua_gettop(s) != 1) {
+    hksi_luaL_error(s,
+                    "Print required 1 argment. Called with %i argument(s). "
+                    "Arguments expected: ( const char * info )",
+                    hks::hksi_lua_gettop(s));
+  }
+
+  const std::string text = game::lua::lua_tostring(s, 1);
+  print(text);
+  return luaReturnCount_e::ONE;
+}
+
+luaReturnCount_e print_info(lua::lua_State *s) {
+  const std::string text = game::lua::lua_tostring(s, 1);
+  print_info(text);
+  return luaReturnCount_e::ONE;
+}
+
+luaReturnCount_e print_error(lua::lua_State *s) {
+  const std::string text = game::lua::lua_tostring(s, 1);
+  print_error(text);
+  return luaReturnCount_e::ONE;
+}
+
+luaReturnCount_e print_warning(lua::lua_State *s) {
+  const char *text = game::lua::lua_tostring(s, 1);
+  print_warning(text);
+  return luaReturnCount_e::ONE;
+}
+
+luaReturnCount_e show_external_console(lua::lua_State *s) {
+  game::sys::Sys_ShowConsole();
+  return luaReturnCount_e::ONE;
+}
+
+void register_lua_libs() {
+  static constexpr const luaL_Reg ConsoleLibrary[] = {
+      {"Print", print},
+      {"PrintInfo", print_info},
+      {"PrintError", print_error},
+      {"PrintWarning", print_warning},
+      {"ShowExternalConsole", show_external_console},
+      {nullptr, nullptr},
+  };
+  lua_state::register_lib("Console", ConsoleLibrary);
+}
+
+} // namespace lua
+
 struct component final : generic_component {
   component() {
     SetConsoleTitleA("EZZ BOIII V" SHORTVERSION);
@@ -1481,6 +1578,7 @@ struct component final : generic_component {
   }
 
   void post_unpack() override {
+    lua::register_lua_libs();
     if (utils::flags::has_flag("nologs")) {
       return;
     }

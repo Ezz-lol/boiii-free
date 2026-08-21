@@ -128,7 +128,7 @@ void handle_server_list_response(const game::net::netadr_t &target,
   }
 }
 
-void lua_server_info_to_table_stub(game::ui::lua::hks::lua_State *state,
+void lua_server_info_to_table_stub(game::lua::hks::lua_State *state,
                                    game::lobby::ServerInfo server_info,
                                    int index) {
   lua_server_info_to_table_hook.invoke(state, server_info, index);
@@ -136,17 +136,17 @@ void lua_server_info_to_table_stub(game::ui::lua::hks::lua_State *state,
   if (state) {
     const int32_t bot_count =
         atoi(game::info::Info_ValueForKey(server_info.tags, "bots"));
-    game::ui::lua::Lua_SetTableInt("botCount", bot_count, state);
+    game::lua::Lua_SetTableInt("botCount", bot_count, state);
 
     const int32_t rounds =
         atoi(game::info::Info_ValueForKey(server_info.tags, "rounds"));
-    game::ui::lua::Lua_SetTableInt("rounds", rounds, state);
+    game::lua::Lua_SetTableInt("rounds", rounds, state);
 
     const char *campaign_str =
         game::info::Info_ValueForKey(server_info.tags, "campaign");
     const qboolean is_campaign =
         qboolean::from(campaign_str && std::strcmp(campaign_str, "true") == 0);
-    game::ui::lua::Lua_SetTableInt("campaign", is_campaign, state);
+    game::lua::Lua_SetTableInt("campaign", is_campaign, state);
   }
 }
 

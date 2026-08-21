@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <structs/str.hpp>
+#include <game/structs/macros.hpp>
 
 namespace game {
 namespace stream {
@@ -24,24 +25,29 @@ typedef int32_t stream_fileid;
 typedef int32_t stream_id;
 typedef stream_fileid stream_platform_handle;
 
-#pragma pack(push, 1)
+// This is a guess. Engine never defines this, and I have not yet
+// investigated what type(s) are reinterpret casted to `FileSysHandle`
+// in the engine.
+typedef FILE DB_IFileSysFile;
+
+typedef DB_IFileSysFile *FileSysHandle;
+
+// Verified
 struct stream_fh {
-  str256_t name;
-  stream_platform_handle h;
-  uint8_t _unknown106[4];
+  char name[256];
+  FileSysHandle h;
+  bool inUse;
   bool shouldOpen;
-  uint8_t _unknown109[1];
   bool shouldClose;
   bool error;
-  int flags;
-  bool inUse;
-  bool synchronous;
-  uint8_t unknown[38];
+  int32_t flags;
   int64_t readOffset;
   int64_t easyOffset;
   int64_t fileSize;
   int64_t fakeGlobalOffset;
+  uint8_t cipherKey[32];
+  uint8_t cipherIV[8];
 };
-#pragma pack(pop)
+ASSERT_SIZE(stream_fh, 0x158);
 } // namespace stream
 } // namespace game

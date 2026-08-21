@@ -6,7 +6,7 @@
 #include "../../component/ui_scripting.hpp"
 
 namespace ui_scripting {
-using namespace game::ui::lua::hks;
+using namespace game::lua::hks;
 class lightuserdata {
 public:
   lightuserdata(void *);
@@ -96,7 +96,7 @@ private:
 
 class function {
 public:
-  function(lua_function);
+  function(lua_CFunction *);
   function(cclosure *, HksObjectType);
 
   template <typename F> function(F f) {

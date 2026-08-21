@@ -2,7 +2,6 @@
 #include "lua.hpp"
 
 namespace game {
-namespace ui {
 namespace lua {
 uint32_t Mods_Lists_GetInfoEntries_Slice_Impl(ZoneType zoneType,
                                               int32_t sliceStart,
@@ -26,7 +25,7 @@ uint32_t Mods_Lists_GetInfoEntries_Slice_Impl(ZoneType zoneType,
   if (endIdx == 0) {
     return 0;
   }
-  endIdx = (std::min)(endIdx, sliceStart + sliceLen);
+  endIdx = std::min<int32_t>(endIdx, sliceStart + sliceLen);
 
   sliceLen = endIdx - sliceStart;
   if (sliceLen <= 0) {
@@ -46,5 +45,4 @@ uint32_t Mods_Lists_GetInfoEntries_Slice_Impl(ZoneType zoneType,
   return static_cast<uint32_t>(sliceLen);
 }
 } // namespace lua
-} // namespace ui
 } // namespace game

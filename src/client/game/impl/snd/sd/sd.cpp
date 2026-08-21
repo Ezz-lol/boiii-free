@@ -50,7 +50,7 @@ sd_byte *SD_HeapAlloc(const char *name, uint32_t size, uint32_t align) {
   if (allocation) {
     sd_allocations[name] = allocation;
   } else {
-    com::Com_Printf(0x8, consoleLabel_e::LUI,
+    com::Com_Printf(consoleChannel_e::CHANNEL_ERROR, consoleLabel_e::LUI,
                     "SOUND ERROR: unable to allocate %u bytes for %s\n", size,
                     name);
     sd_allocations[name] = nullptr;

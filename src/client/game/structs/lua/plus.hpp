@@ -3,7 +3,6 @@
 #include "hks.hpp"
 
 namespace game {
-namespace ui {
 namespace lua {
 namespace plus {
 
@@ -23,5 +22,4 @@ public:
 
 } // namespace plus
 } // namespace lua
-} // namespace ui
 } // namespace game

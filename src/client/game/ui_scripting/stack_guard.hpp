@@ -5,7 +5,7 @@
 #include <cstddef>
 
 namespace ui_scripting::detail {
-using namespace game::ui::lua::hks;
+using namespace game::lua::hks;
 
 class api_stack_guard final {
 public:

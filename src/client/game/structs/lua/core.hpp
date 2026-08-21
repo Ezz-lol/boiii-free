@@ -2,11 +2,10 @@
 
 #include <cstdint>
 #include "hks.hpp"
-#include "../../core.hpp"
-#include "../../sys.hpp"
+#include <game/structs/core.hpp>
+#include <game/structs/sys.hpp>
 
 namespace game {
-namespace ui {
 namespace lua {
 enum class PresencePrimary : int32_t {
   UNKNOWN = -1,
@@ -1564,6 +1563,9 @@ template <typename T> union LuaStatePool {
 
 typedef LuaStatePool<LuaStateContext> CodLuaStates;
 
+inline constexpr auto LUA_REGISTRYINDEX = -10000;
+inline constexpr auto LUA_ENVIRONINDEX = -10001;
+inline constexpr auto LUA_GLOBALSINDEX = -10002;
+
 } // namespace lua
-} // namespace ui
 } // namespace game

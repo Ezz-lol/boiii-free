@@ -3,7 +3,6 @@
 #include <game/game.hpp>
 
 namespace game {
-namespace ui {
 namespace lua {
 namespace hks {
 
@@ -74,5 +73,4 @@ inline luaReturnCount_e execute(lua_State *s, const hksInstruction *PC,
 
 } // namespace hks
 } // namespace lua
-} // namespace ui
 } // namespace game

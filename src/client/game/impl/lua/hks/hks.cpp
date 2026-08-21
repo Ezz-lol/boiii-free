@@ -5,7 +5,6 @@
 #include <cstring>
 
 namespace game {
-namespace ui {
 namespace lua {
 namespace hks {
 
@@ -1438,5 +1437,4 @@ luaReturnCount_e executeIsolated(lua_State *s, const hksInstruction *PC,
 
 } // namespace hks
 } // namespace lua
-} // namespace ui
 } // namespace game

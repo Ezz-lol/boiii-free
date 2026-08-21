@@ -6,7 +6,7 @@
 #include <string>
 
 namespace ui_scripting {
-using namespace game::ui::lua::hks;
+using namespace game::lua::hks;
 
 class lightuserdata;
 class userdata_value;

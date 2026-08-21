@@ -5,7 +5,7 @@
 #include "stack_guard.hpp"
 
 namespace ui_scripting {
-using namespace game::ui::lua::hks;
+using namespace game::lua::hks;
 
 hks_object::hks_object(const HksObject &value) { this->assign(value); }
 

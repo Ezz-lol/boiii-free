@@ -208,7 +208,8 @@ void live_delayed_com_error_stub(const char *comErrorString, int32_t code) {
   void *return_address = _ReturnAddress();
   // Log caller and error message
   game::com::Com_Printf(
-      0, game::consoleLabel_e::DEFAULT,
+      game::consoleChannel_e::CHANNEL_DONT_FILTER,
+      game::consoleLabel_e::DEFAULT,
       "Live_DelayedComError called from 0x%p with message: %s and code: %d\n",
       return_address, comErrorString, code);
   printf(

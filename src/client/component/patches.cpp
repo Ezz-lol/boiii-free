@@ -122,7 +122,8 @@ void Sys_Error_LogCaller(const char *fmt, ...) {
   fflush(stderr);
   game::trace("[Sys_Error] Called from 0x%p with message: \"%s\"",
               game::derelocate(callerAddr), msg);
-  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT,
+  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                        game::consoleLabel_e::DEFAULT,
                         "[Sys_Error] Called from 0x%p with message: \"%s\"",
                         game::derelocate(callerAddr), msg);
   if (game::is_server() && server_restart::restart_pending.load()) {
@@ -158,7 +159,8 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
   fprintf(stderr, "%s\n", log);
   fflush(stderr);
   game::trace("%s", log);
-  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s\n", log);
+  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                        game::consoleLabel_e::DEFAULT, "%s\n", log);
   static bool suppress_next_lua_error = false;
   static bool client_script_error_pending = false;
 
@@ -415,8 +417,8 @@ void PhysPrint_AllOutputs(const char *fmt, ...) {
   fprintf(stdout, "%s\n", formatted_msg);
   fflush(stdout);
 
-  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s\n",
-                        formatted_msg);
+  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                        game::consoleLabel_e::DEFAULT, "%s\n", formatted_msg);
   game::trace("%s", formatted_msg);
 }
 #endif

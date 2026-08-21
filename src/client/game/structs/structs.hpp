@@ -31,6 +31,7 @@
 #include "db/db.hpp"           // IWYU pragma: export
 #include "cl.hpp"              // IWYU pragma: export
 #include "ui/ui.hpp"           // IWYU pragma: export
+#include "lua/lua.hpp"         // IWYU pragma: export
 #include "cmd.hpp"             // IWYU pragma: export
 #include "cg.hpp"              // IWYU pragma: export
 #include "steam.hpp"           // IWYU pragma: export

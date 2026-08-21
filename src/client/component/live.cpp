@@ -144,7 +144,6 @@ void LobbyActiveList_SetClientInfo_ActivateAllContent(
 }
 } // namespace active
 } // namespace lobby
-namespace ui {
 namespace lua {
 template <const hks::lua_Integer Value>
 void Lua_SetTableInt_Always(const char *key,
@@ -159,7 +158,6 @@ void Lua_SetTableBool_Always(const char *key, [[maybe_unused]] bool value,
 }
 } // namespace lua
 
-} // namespace ui
 } // namespace game
 
 namespace live {

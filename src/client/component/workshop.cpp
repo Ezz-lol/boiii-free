@@ -20,7 +20,7 @@
 #include "toast.hpp"
 
 #include <game/impl/db/xzone/xzone.hpp>
-#include <game/impl/ui/lua/lua.hpp>
+#include <game/impl/lua/lua.hpp>
 #include <game/impl/ugc/ugc.hpp>
 
 #include <condition_variable>
@@ -1098,8 +1098,8 @@ void extend_ugc_pools() {
 
   if (game::is_client()) {
     Mods_Lists_GetInfoEntries_Slice_hook.create(
-        game::ui::lua::Mods_Lists_GetInfoEntries_Slice.get(),
-        game::ui::lua::Mods_Lists_GetInfoEntries_Slice_Impl);
+        game::lua::Mods_Lists_GetInfoEntries_Slice.get(),
+        game::lua::Mods_Lists_GetInfoEntries_Slice_Impl);
 
     UGC_SetMapLoadingImage_hook.create(game::ugc::UGC_SetMapLoadingImage.get(),
                                        game::ugc::UGC_SetMapLoadingImage_Impl);

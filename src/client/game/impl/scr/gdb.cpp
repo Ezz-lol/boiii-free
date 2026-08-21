@@ -435,8 +435,8 @@ void ReportObjLinkError_Impl(scriptInstance_t inst, GSC_OBJ *prime_obj,
     }
 
     // Print to the engine console
-    com::Com_Printf(8, consoleLabel_e::CHANNEL_ERROR, "%s",
-                    errorMessage.c_str());
+    com::Com_Printf(consoleChannel_e::CHANNEL_ERROR,
+                    consoleLabel_e::CHANNEL_ERROR, "%s", errorMessage.c_str());
   }
 }
 } // namespace scr

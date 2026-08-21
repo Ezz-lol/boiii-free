@@ -208,8 +208,8 @@ void com_error_oob_stub(const char *file, int32_t line, game::errorParm code,
                         "line: %d, code: %d,  message: \"%s\"\n",
                         callerAddr, file_str.c_str(), line,
                         static_cast<int32_t>(code), buffer, code);
-  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s",
-                        log_str.c_str());
+  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                        game::consoleLabel_e::DEFAULT, "%s", log_str.c_str());
   printf("%s", log_str.c_str());
   game::com::Com_Error_(file, line, code, "%s", buffer);
 }

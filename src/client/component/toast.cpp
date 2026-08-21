@@ -9,7 +9,7 @@
 #include <utils/string.hpp>
 
 namespace toast {
-using namespace game::ui::lua::hks;
+using namespace game::lua::hks;
 namespace {
 
 std::string escape_lua_string(const std::string &s) {

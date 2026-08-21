@@ -35,7 +35,8 @@ void deprecate(scriptInstance_t inst) {
       APIName, ReplacementAPIName, ReplacementAPIName, InfoMsg);
   fprintf(stderr, "%s\n", deprecation_warning);
   fflush(stderr);
-  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s\n",
+  game::com::Com_Printf(consoleChannel_e::CHANNEL_DONT_FILTER,
+                        game::consoleLabel_e::DEFAULT, "%s\n",
                         deprecation_warning);
 
   Fn(inst);

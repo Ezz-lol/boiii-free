@@ -211,7 +211,8 @@ EngineDependentDvar Dvar_GetSessionModeSpecificDvarInternal_FallbackDefault(
     const char *name =
         debugName ? debugName
                   : utils::string::va("UNKNOWN(hash: 0x%X)", base.name());
-    com::Com_Printf(0, consoleLabel_e::DEFAULT,
+    com::Com_Printf(consoleChannel_e::CHANNEL_DONT_FILTER,
+                    consoleLabel_e::DEFAULT,
                     "Warning: Sessionmode not set while attempting to get "
                     "sessionmode specific dvar for mode: %s from base dvar : "
                     "\"%s\". Falling back to "
@@ -226,7 +227,7 @@ EngineDependentDvar Dvar_GetSessionModeSpecificDvarInternal_FallbackDefault(
       }
     }
     com::Com_Printf(
-        0, consoleLabel_e::DEFAULT,
+        consoleChannel_e::CHANNEL_DONT_FILTER, consoleLabel_e::DEFAULT,
         "Warning: Sessionmode not set while attempting to get "
         "sessionmode specific dvar for mode: %s from base dvar : \"%s\", and "
         "none of the "

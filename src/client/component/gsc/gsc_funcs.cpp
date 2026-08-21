@@ -511,7 +511,8 @@ void gscr_println(scriptInstance_t inst) {
   }
   fprintf(stdout, "[Scr] %s\n", out.c_str());
   fflush(stdout);
-  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s\n", out.c_str());
+  game::com::Com_Printf(consoleChannel_e::CHANNEL_DONT_FILTER,
+                        game::consoleLabel_e::DEFAULT, "%s\n", out.c_str());
 
 #ifndef NDEBUG
   trace("[Scr] %s", out.c_str());
@@ -546,7 +547,8 @@ void gscr_print(scriptInstance_t inst) {
   }
   fprintf(stdout, "[Scr] %s", out.c_str());
   fflush(stdout);
-  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s", out.c_str());
+  game::com::Com_Printf(consoleChannel_e::CHANNEL_DONT_FILTER,
+                        game::consoleLabel_e::DEFAULT, "%s", out.c_str());
 
 #ifndef NDEBUG
   trace("[Scr] %s", out.c_str());
@@ -666,7 +668,8 @@ void gscr_printf(scriptInstance_t inst) {
     }
   }
 
-  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s", buffer.data());
+  game::com::Com_Printf(consoleChannel_e::CHANNEL_DONT_FILTER,
+                        game::consoleLabel_e::DEFAULT, "%s", buffer.data());
   fprintf(stdout, "%s", buffer.data());
   fflush(stdout);
 

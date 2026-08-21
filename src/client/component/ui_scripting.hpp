@@ -6,7 +6,7 @@
 #include <game/ui_scripting/script_value.hpp>
 
 namespace ui_scripting {
-using namespace game::ui::lua::hks;
+using namespace game::lua::hks;
 
 extern std::atomic<bool> ui_initialized;
 

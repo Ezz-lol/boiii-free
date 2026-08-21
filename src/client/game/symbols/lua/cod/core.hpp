@@ -3,7 +3,6 @@
 #include <game/symbols/sym_include.hpp>
 
 namespace game {
-namespace ui {
 namespace lua {
 namespace cod {
 WEAK symbol<void(hks::lua_State *, const char *)> Lua_CoD_LoadLuaFile{
@@ -11,9 +10,6 @@ WEAK symbol<void(hks::lua_State *, const char *)> Lua_CoD_LoadLuaFile{
 
 WEAK symbol<game::db::xasset::XAssetHeader(const char *filename)>
     Lua_CoD_GetRawFile{0x141F0EFE0, 0x1404BCB70};
-WEAK symbol<hks::luaReturnCount_e(hks::lua_State *luaVM)>
-    Lua_CoD_LuaCall_ForceHUDRefresh{0x141F45740};
-WEAK symbol<bool> s_luaInitialized{0x159C76D90};
 
 // If generating a `lua_State` in boiii, call this function.
 WEAK symbol<hks::lua_State *(hks::luaState_e luaState, void *memoryLocation,
@@ -28,5 +24,4 @@ WEAK symbol<hks::lua_State *(hks::luaState_e luaState,
 WEAK symbol<CodLuaStates> s_codLuaStates{0x1434100A0, 0x141122FB0};
 } // namespace cod
 } // namespace lua
-} // namespace ui
 } // namespace game

@@ -53,3 +53,4 @@
 #include "r.hpp"           // IWYU pragma: export
 #include "vehicle.hpp"     // IWYU pragma: export
 #include "phys.hpp"        // IWYU pragma: export
+#include "lua/lua.hpp"     // IWYU pragma: export

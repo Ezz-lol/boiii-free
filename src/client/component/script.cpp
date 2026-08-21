@@ -40,7 +40,8 @@ struct hash_info {
 };
 
 void print_script_log(const char *message) {
-  game::com::Com_Printf(0, game::consoleLabel_e::DEFAULT, "%s\n", message);
+  game::com::Com_Printf(consoleChannel_e::CHANNEL_DONT_FILTER,
+                        game::consoleLabel_e::DEFAULT, "%s\n", message);
   fprintf(stderr, "%s\n", message);
   fflush(stderr);
   game::trace("%s", message);

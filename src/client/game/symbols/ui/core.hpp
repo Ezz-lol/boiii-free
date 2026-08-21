@@ -12,10 +12,10 @@ WEAK symbol<void(int localClientNumber, errorCode errorcode,
 WEAK symbol<void(bool frontend)> UI_CoD_Init{0x141F29010, 0x1404A0A50};
 WEAK symbol<void()> UI_CoD_LobbyUI_Init{0x141F2BD80, 0x1404A1F50};
 WEAK symbol<void()> UI_CoD_Shutdown{0x141F32E10, 0x0};
-WEAK symbol<void(const char *, const char *, int, lua::hks::lua_State *)>
+WEAK symbol<void(const char *, const char *, int32_t, lua::hks::lua_State *)>
     UI_AddMenu{0x1427018F0, 0x0};
-WEAK symbol<const char *(int)> UI_CoD_GetRootNameForController{0x141F28940,
-                                                               0x0};
+WEAK symbol<const char *(int32_t)> UI_CoD_GetRootNameForController{0x141F28940,
+                                                                   0x0};
 WEAK symbol<UIModelIndex(live::settings::ProfileSetting setting,
                          ControllerIndex_t controllerIndex)>
     UI_Model_GetProfileModelForController{0x14164E990};
