@@ -213,6 +213,9 @@ WEAK symbol<const char *(lua_State *s, HksObject *obj, size_t *len)>
     hks_obj_tolstring{0x141D4B6C0, 0x1403F4210};
 WEAK symbol<HksNumber(lua_State *s, const HksObject *obj)> hks_obj_tonumber{
     0x141D4BA10, 0x1403F4560};
+WEAK symbol<luaReturnCount_e(lua_State *s, const char *filename,
+                             const char *func_name)>
+    load_dll{0x141D52B70, 0x1403FB6F0};
 
 WEAK symbol<lua_CFunction> vm_intern_inext{0x141D712E0, 0x140419140};
 WEAK symbol<lua_CFunction> vm_intern_next{0x141D713A0, 0x140419200};

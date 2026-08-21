@@ -121,5 +121,12 @@ inline const char *lua_tostring(hks::lua_State *s, int32_t index) {
   hks::HksObject *object = getObjectForIndex(s, index);
   return hks::hks_obj_tolstring(s, object, nullptr);
 }
+
+inline void lua_pushboolean(hks::lua_State *s, qboolean b) {
+  hks::HksObject *top = s->m_apistack.top;
+  top->v.boolean = b;
+  top->t = hks::HksObjectType::TBOOLEAN;
+  s->m_apistack.top = top + 1;
+}
 } // namespace lua
 } // namespace game

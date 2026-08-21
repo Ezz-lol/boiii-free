@@ -1515,6 +1515,22 @@ void lua_cod_luastatemanager_error_stub(const char *error, lua_State *luaVM) {
       scheduler::main, 500ms);
 }
 
+inline constexpr const std::string_view BLACKLISTED_DLLS[] = {"T7Overcharged"};
+
+utils::hook::detour load_dll_hook;
+luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
+                                           const char *func_name) {
+  const std::string_view filename_view = filename;
+  for (const std::string_view &blacklisted : BLACKLISTED_DLLS) {
+    if (utils::string::contains(filename_view, blacklisted)) {
+      lua_pushboolean(s, qtrue);
+      return luaReturnCount_e::ONE;
+    }
+  }
+
+  return load_dll_hook.invoke<luaReturnCount_e>(s, filename, func_name);
+}
+
 void lua_error_print_stub(int, const char *, ...) {}
 } // namespace
 
@@ -1522,6 +1538,7 @@ class component final : public generic_component {
 public:
   void post_unpack() override {
     utils::hook::call(game::select(0x141D4979A, 0x1403F233A), hks_load_stub);
+    load_dll_hook.create(load_dll, load_dll_skip_blacklisted);
 
     hks_package_require_hook.create(game::select(0x141D28EF0, 0x1403D7FC0),
                                     hks_package_require_stub);
