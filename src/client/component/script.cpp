@@ -941,8 +941,7 @@ const char *Scr_PrevCodePos(scriptInstance_t inst, volatile uint8_t *codePos) {
   }
 
   return "Missing file and line information - not currently executing script "
-         "bytecode or "
-         "reached end of executed script bytecode.";
+         "bytecode or reached end of executed script bytecode.";
 }
 
 utils::hook::detour Scr_Error_hook;
@@ -956,54 +955,33 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
     vm::gScrVmPub->instance[inst].debugCode = true;
   }
 
-  std::string prevCodePositionsString = "";
-  int32_t callIdx = 0;
+  std::string prevCodePositionsString = std::format(
+      "[{}] {}", 0, Scr_PrevCodePos(inst, vm::gFs->instance[inst].pos));
+  int32_t callIdx = 1;
   for (int32_t stackIdx = vm::gScrVmPub->instance[inst].function_count - 1;
-       stackIdx > 0; --stackIdx, ++callIdx) {
-    prevCodePositionsString += std::format("[{}] ", callIdx);
-    prevCodePositionsString += Scr_PrevCodePos(
-        inst,
-        vm::gScrVmPub->instance[inst].function_frame_start[stackIdx].fs.pos);
-    prevCodePositionsString += "\n";
+       stackIdx > -1; --stackIdx, ++callIdx) {
+    prevCodePositionsString +=
+        std::format("\n[{}] {}", callIdx,
+                    Scr_PrevCodePos(inst, vm::gScrVmPub->instance[inst]
+                                              .function_frame_start[stackIdx]
+                                              .fs.pos));
   }
 
-  if (vm::gScrVmPub->instance[inst].function_count > 0) {
-    prevCodePositionsString += std::format("[{}] ", callIdx);
-    prevCodePositionsString += Scr_PrevCodePos(
-        inst, vm::gScrVmPub->instance[inst].function_frame_start[0].fs.pos);
-  }
-  std::string lastGoodCodePositionString =
-      Scr_PrevCodePos(inst, vm::gFs->instance[inst].pos);
-
-#ifndef NDEBUG
-  volatile vm::function_frame_t *current_frame =
-      &vm::gScrVmPub->instance[inst].function_frame_start[0];
-#endif
   const char *error_log = utils::string::va(
       "Scr_Error called from 0x%p with inst: %s, "
 #ifndef NDEBUG
-      "gScrVmPub->instance[inst].function_frame_start[0].fs.pos: 0x%p, "
-      "gScrVmPub->instance[inst].function_frame_start[0].fs.top: 0x%p, "
-      "gScrVmPub->instance[inst].function_frame_start[0].fs.startTop: 0x%p, "
-      "gScrVmPub->instance[inst].function_frame_start[0].fs.threadId: 0x%08X, "
-      "gScrVmPub->instance[inst].function_frame_start[0].fs.localVarCount: "
-      "%lu, "
-      "gFs.pos: 0x%p, "
-      "gFs.top: 0x%p, gFs.startTop: 0x%p, gFs.threadId: 0x%08X, "
+      "gFs.pos: 0x%p, gFs.top: 0x%p, gFs.startTop: 0x%p, gFs.threadId: 0x%08X, "
       "gFs.localVarCount: %lu, "
 #endif
-      "error: \"%s\", terminal: "
-      "%s\nCallstack:\n%s\nLast good position: %s",
+      "error: \"%s\", terminal: %s, callstack:\n%s",
       derelocate(callerAddr), serialize(inst),
 #ifndef NDEBUG
-      current_frame->fs.pos, current_frame->fs.top, current_frame->fs.startTop,
-      current_frame->fs.threadId, current_frame->fs.localVarCount,
       vm::gFs->instance[inst].pos, vm::gFs->instance[inst].top,
       vm::gFs->instance[inst].startTop, vm::gFs->instance[inst].threadId,
       vm::gFs->instance[inst].localVarCount,
 #endif
       error ? error : "NULL", terminal ? "true" : "false",
-      prevCodePositionsString.c_str(), lastGoodCodePositionString.c_str());
+      prevCodePositionsString.c_str());
 
   print_script_log(error_log);
 

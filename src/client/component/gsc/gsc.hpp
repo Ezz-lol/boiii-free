@@ -4,6 +4,7 @@
 #include <game/structs/scr/scr.hpp>
 #include <frozen/unordered_set.h>
 #include <frozen/string.h>
+#include <str.hpp>
 
 namespace gsc {
 using namespace game::scr;
@@ -16,8 +17,8 @@ struct hash_name_pair {
 };
 
 inline constexpr frozen::string SCR_HASH_LITERAL_PREFIX_ARRAY[] = {
-    "hash", "var",  "variable",  "id", "function",
-    "fn",   "func", "namespace", "ns"};
+    "hash", "var",    "variable", "id",        "function", "fn",
+    "func", "method", "meth",     "namespace", "ns"};
 
 inline constexpr frozen::unordered_set<frozen::string,
                                        std::size(SCR_HASH_LITERAL_PREFIX_ARRAY)>
@@ -40,17 +41,30 @@ try_parse_raw_hash(const std::string_view &input) {
         underscoreIdx < inputSubstr.size()) {
       const std::string_view prefix = inputSubstr.substr(0, underscoreIdx);
       if (hash_literal_prefix(prefix)) {
-        const std::string_view hex_part = inputSubstr.substr(underscoreIdx + 1);
-        if (hex_part.size() == 8) {
+        std::string_view hex_part = inputSubstr.substr(underscoreIdx + 1);
+        constexpr uint32_t EXPECTED_HEX_DIGITS =
+            sizeof(uint32_t) * 2 /* digits per byte */;
+        while (hex_part.size() > EXPECTED_HEX_DIGITS && hex_part[0] == '0') {
+          hex_part = hex_part.substr(1);
+        }
+        if (hex_part.size() > 0 && hex_part.size() <= EXPECTED_HEX_DIGITS) {
+          char padded_hex_part_buf[EXPECTED_HEX_DIGITS + 1 /* NULL */] = {
+              '0', '0', '0', '0', '0', '0', '0', '0', '\0'};
+          const size_t num_padding_bytes =
+              EXPECTED_HEX_DIGITS - hex_part.size();
+          strscpy(&padded_hex_part_buf[num_padding_bytes], hex_part.data(),
+                  hex_part.size() + 1 /* NULL */);
+          const std::string_view padded_hex_part = padded_hex_part_buf;
 
-          for (char c : hex_part) {
+          for (char c : padded_hex_part) {
             if (!std::isxdigit(static_cast<unsigned char>(c)))
               return std::nullopt;
           }
 
           ScrVarCanonicalName_t out = 0;
           auto [ptr, ec] = std::from_chars(
-              hex_part.data(), hex_part.data() + hex_part.size(), out, 16);
+              padded_hex_part.data(),
+              padded_hex_part.data() + padded_hex_part.size(), out, 16);
 
           if (ec == std::errc{} && out != 0) {
             return out;
