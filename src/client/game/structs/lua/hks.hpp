@@ -227,6 +227,8 @@ struct UpValue;
 
 typedef double HksDouble;
 typedef qboolean hksBool;
+inline constexpr hksBool htrue = qtrue;
+inline constexpr hksBool hfalse = qfalse;
 typedef char hksChar;
 typedef uint8_t hksByte;
 typedef int16_t hksShort16;

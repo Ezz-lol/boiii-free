@@ -1062,7 +1062,9 @@ xasset::XAssetHeader lua_cod_getrawfile_stub(char *filename) {
   return lua_cod_getrawfile_hook.invoke<xasset::XAssetHeader>(filename);
 }
 
-int luaopen_stub([[maybe_unused]] lua_State *l) { return 0; }
+luaReturnCount_e lua_stub_func([[maybe_unused]] lua_State *l) {
+  return luaReturnCount_e::NONE;
+}
 
 template <size_t Key>
 int32_t lua_unsafe_function_require_permissions(lua_State *l) {
@@ -1082,12 +1084,20 @@ template <size_t Key> void hook_unsafe_function(size_t address) {
 
 #define HOOK_UNSAFE_FUNCTION(addr) hook_unsafe_function<addr>(addr##_g)
 
+utils::hook::detour Lua_CoD_LuaCall_OpenURL_hook;
 void patch_unsafe_lua_functions() {
+  /*
+     Disable the `OpenURL` API function. This is never required for in-game
+     functionality, and has historically almost always been used for obnoxious
+     advertising.
+  */
+  Lua_CoD_LuaCall_OpenURL_hook.create(api::Lua_CoD_LuaCall_OpenURL,
+                                      lua_stub_func);
   if (!utils::flags::has_flag("unsafe-lua")) {
 
     // Do not allow the HKS vm to open LUA's libraries
     // Disable unsafe functions (debug library stays completely blocked)
-    utils::hook::jump(0x141D34190_g, luaopen_stub); // debug
+    utils::hook::jump(0x141D34190_g, lua_stub_func); // debug
 
     HOOK_UNSAFE_FUNCTION(0x141D300B0); // base_loadfile
     HOOK_UNSAFE_FUNCTION(0x141D31EE0); // base_load
@@ -1523,10 +1533,12 @@ utils::hook::detour load_dll_hook;
 luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
                                            const char *func_name) {
   if (filename) {
-    const std::string_view filename_view = filename;
+    std::filesystem::path file_path = filename;
+    const std::filesystem::path file_basename = file_path.filename();
+    const std::string file_basename_str = file_basename.generic_string();
     for (const std::string_view &blacklisted : BLACKLISTED_DLLS) {
-      if (utils::string::contains(filename_view, blacklisted)) {
-        lua_pushboolean(s, qtrue);
+      if (utils::string::contains(file_basename_str, blacklisted)) {
+        lua_pushboolean(s, htrue);
         return luaReturnCount_e::ONE;
       }
     }

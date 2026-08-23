@@ -122,7 +122,7 @@ inline const char *lua_tostring(hks::lua_State *s, int32_t index) {
   return hks::hks_obj_tolstring(s, object, nullptr);
 }
 
-inline void lua_pushboolean(hks::lua_State *s, qboolean b) {
+inline void lua_pushboolean(hks::lua_State *s, hks::hksBool b) {
   hks::HksObject *top = s->m_apistack.top;
   top->v.boolean = b;
   top->t = hks::HksObjectType::TBOOLEAN;
