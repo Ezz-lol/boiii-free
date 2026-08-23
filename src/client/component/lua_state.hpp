@@ -2,6 +2,7 @@
 
 #include <game/game.hpp>
 #include <utils/concurrency.hpp>
+#include "ui_scripting.hpp"
 
 namespace lua_state {
 using namespace game::lua;
@@ -31,6 +32,17 @@ inline void register_lib(const char *name,
 
 inline void register_lib(const char *name, const luaL_Reg *lib) {
   custom_libs.access([name, &lib](libmap_t &libs) { libs[name] = lib; });
+}
+
+template <lua_CFunction *func>
+luaReturnCount_e unsafe_function(lua_State *luaVM) {
+  if (game::is_server() || ui_scripting::unsafe_lua_approved_for_session.load(
+                               std::memory_order_release)) {
+    return func(luaVM);
+  }
+
+  ui_scripting::show_unsafe_lua_dialog();
+  return luaReturnCount_e::NONE;
 }
 
 } // namespace lua_state

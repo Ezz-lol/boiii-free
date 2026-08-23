@@ -38,7 +38,47 @@ using namespace game::lua::cod;
 using namespace game::lua::hks;
 
 namespace ui_scripting {
-std::atomic<bool> ui_initialized = false;
+static std::atomic<bool> ui_initialized = false;
+
+static std::atomic<bool> unsafe_function_called_message_shown = false;
+static std::atomic<bool> unsafe_lua_approved_for_session = false;
+
+void show_unsafe_lua_dialog() {
+  if (unsafe_function_called_message_shown) {
+    return;
+  }
+
+  unsafe_function_called_message_shown.store(true, std::memory_order_seq_cst);
+
+  scheduler::once(
+      [] {
+        const int32_t result = MessageBoxA(
+            nullptr,
+            "The map/mod you are playing tried to run code that can be "
+            "unsafe.\n\n"
+            "This can include:\n"
+            "  - Writing or reading files on your system\n"
+            "  - Accessing environment variables\n"
+            "  - Running system commands\n"
+            "  - Loading DLLs\n\n"
+            "These features are usually used for storing data across games, "
+            "integrating third party software like Discord, or fetching data "
+            "from a server.\n\n"
+            "However, malicious mods could use these to harm your system.\n\n"
+            "Do you want to enable unsafe lua functions for this session?\n\n"
+            "Click 'Yes' to enable for this session only.\n"
+            "Click 'No' to keep them blocked (recommended if you don't trust "
+            "this mod).",
+            "Unsafe Lua Function Called",
+            MB_YESNO | MB_ICONWARNING | MB_TOPMOST | MB_SETFOREGROUND);
+
+        if (result == IDYES) {
+          unsafe_lua_approved_for_session.store(true,
+                                                std::memory_order_seq_cst);
+        }
+      },
+      scheduler::pipeline::main);
+}
 
 namespace {
 std::unordered_map<cclosure *,
@@ -55,9 +95,6 @@ utils::hook::detour lua_cod_getrawfile_hook;
 utils::hook::detour lua_error_hook;
 utils::hook::detour lua_error_print_hook;
 utils::hook::detour hksi_lua_getinfo_detour;
-
-std::atomic<bool> unsafe_function_called_message_shown = false;
-std::atomic<bool> unsafe_lua_approved_for_session = false;
 
 std::unordered_map<uintptr_t, std::string> rawfile_source_cache{};
 
@@ -1027,44 +1064,8 @@ xasset::XAssetHeader lua_cod_getrawfile_stub(char *filename) {
 
 int luaopen_stub([[maybe_unused]] lua_State *l) { return 0; }
 
-void show_unsafe_lua_dialog() {
-  if (unsafe_function_called_message_shown) {
-    return;
-  }
-
-  unsafe_function_called_message_shown.store(true, std::memory_order_seq_cst);
-
-  scheduler::once(
-      [] {
-        const int32_t result = MessageBoxA(
-            nullptr,
-            "The map/mod you are playing tried to run code that can be "
-            "unsafe.\n\n"
-            "This can include:\n"
-            "  - Writing or reading files on your system\n"
-            "  - Accessing environment variables\n"
-            "  - Running system commands\n"
-            "  - Loading DLLs\n\n"
-            "These features are usually used for storing data across games, "
-            "integrating third party software like Discord, or fetching data "
-            "from a server.\n\n"
-            "However, malicious mods could use these to harm your system.\n\n"
-            "Do you want to enable unsafe lua functions for this session?\n\n"
-            "Click 'Yes' to enable for this session only.\n"
-            "Click 'No' to keep them blocked (recommended if you don't trust "
-            "this mod).",
-            "Unsafe Lua Function Called",
-            MB_YESNO | MB_ICONWARNING | MB_TOPMOST | MB_SETFOREGROUND);
-
-        if (result == IDYES) {
-          unsafe_lua_approved_for_session.store(true,
-                                                std::memory_order_seq_cst);
-        }
-      },
-      scheduler::pipeline::main);
-}
-
-template <size_t Key> int32_t lua_unsafe_function_stub(lua_State *l) {
+template <size_t Key>
+int32_t lua_unsafe_function_require_permissions(lua_State *l) {
   if (unsafe_lua_approved_for_session) {
     return unsafe_function_detours[Key].invoke<int>(l);
   }
@@ -1075,7 +1076,8 @@ template <size_t Key> int32_t lua_unsafe_function_stub(lua_State *l) {
 
 template <size_t Key> void hook_unsafe_function(size_t address) {
   unsafe_function_detours[Key].create(
-      address, reinterpret_cast<void *>(lua_unsafe_function_stub<Key>));
+      address,
+      reinterpret_cast<void *>(lua_unsafe_function_require_permissions<Key>));
 }
 
 #define HOOK_UNSAFE_FUNCTION(addr) hook_unsafe_function<addr>(addr##_g)
@@ -1534,6 +1536,284 @@ luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
 }
 
 void lua_error_print_stub(int, const char *, ...) {}
+
+inline void register_lui_commands() {
+  command::add("boiii_prepare_menu_restart", [](const command::params &) {
+    reloadIngameMenusAfterRestart.store(true, std::memory_order_seq_cst);
+  });
+
+  command::add("luiReload", [] {
+    if (game::com::Com_IsRunningUILevel()) {
+      converted_functions.clear();
+      rawfile_source_cache.clear();
+
+      globals.loaded_scripts.clear();
+      globals.local_scripts.clear();
+
+      UI_CoD_Shutdown();
+      UI_CoD_Init(true);
+
+      // Com_LoadFrontEnd stripped
+      Lua_CoD_LoadLuaFile(*primary_luaVM, "ui_mp.T6.main");
+      UI_AddMenu(UI_CoD_GetRootNameForController(0), "main", -1,
+                 *primary_luaVM);
+
+      UI_CoD_LobbyUI_Init();
+    } else {
+      // TODO: Find a way to do a full shutdown & restart like in frontend,
+      // that opens up the loading screen that can't be easily closed
+      rawfile_source_cache.clear();
+      game::cg::CG_LUIHUDRestart(game::LOCAL_CLIENT_0);
+      schedule_ingame_menu_reload();
+    }
+  });
+
+  command::add("lua_hotreload", [](const command::params &params) {
+    std::string dir;
+    if (params.size() >= 2) {
+      dir = params.get(1);
+    } else {
+      dir = (game::get_appdata_path() / "data" / "ui_scripts").string();
+    }
+
+    scheduler::once(
+        [dir] {
+          start_hot_reload(dir);
+          scheduler::once([] { toast::info("Lua", "Hot-reload started"); },
+                          scheduler::pipeline::renderer, 1s);
+        },
+        scheduler::pipeline::renderer);
+  });
+
+  command::add("lua_hotreload_stop", [](const command::params &) {
+    scheduler::once(
+        [] {
+          stop_hot_reload();
+          scheduler::once([] { toast::info("Lua", "Hot-reload stopped"); },
+                          scheduler::pipeline::renderer, 1s);
+        },
+        scheduler::pipeline::renderer);
+  });
+
+  command::add("lua_reload", [](const command::params &params) {
+    std::string dir;
+    if (params.size() >= 2) {
+      dir = params.get(1);
+    } else {
+      dir = (game::get_appdata_path() / "data" / "ui_scripts").string();
+    }
+
+    scheduler::once(
+        [dir] {
+          try {
+            int32_t count = 0;
+            std::string errors;
+            const std::function<void(const std::string &script_dir)>
+                reload_dir = [&](const std::string &script_dir) {
+                  if (!utils::io::directory_exists(script_dir))
+                    return;
+                  for (const std::filesystem::directory_entry &entry :
+                       std::filesystem::recursive_directory_iterator(
+                           script_dir)) {
+                    if (!entry.is_regular_file())
+                      continue;
+                    if (entry.path().extension() != ".lua")
+                      continue;
+
+                    std::string data;
+                    if (utils::io::read_file(entry.path().string(), &data)) {
+                      std::string chunk = entry.path().string();
+                      if (chunk.starts_with(script_dir))
+                        chunk = chunk.substr(script_dir.size());
+                      if (execute_raw_lua(data, chunk.c_str()))
+                        count++;
+                      else
+                        errors += chunk + "\n";
+                    }
+                  }
+                };
+
+            rawfile_source_cache.clear();
+
+            reload_dir(dir);
+
+            const utils::nt::library host{};
+            reload_dir((host.get_folder() / "boiii" / "ui_scripts").string());
+
+            game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                                  game::consoleLabel_e::DEFAULT,
+                                  "^2Lua Reload: Reloaded %d file(s)\n", count);
+            const std::string toast_msg =
+                "Reloaded " + std::to_string(count) + " file(s)";
+            scheduler::once(
+                [toast_msg] {
+                  toast::success("Lua Reload", toast_msg.c_str());
+                },
+                scheduler::pipeline::renderer, 2s);
+
+            // Refresh current page
+            fire_debug_reload("UIRootFull");
+            if (hot_reload_in_game.load(std::memory_order_seq_cst)) {
+              fire_debug_reload("UIRoot0");
+              fire_debug_reload("UIRoot1");
+            }
+
+            // Show collected errors in one popup after reload is done
+            if (!errors.empty()) {
+              std::string popup_msg =
+                  std::string("^1Lua Reload Errors:\n") + errors;
+              scheduler::once(
+                  [popup_msg] {
+                    UI_OpenErrorPopupWithMessage(0, game::errorCode::UI,
+                                                 popup_msg.c_str());
+                  },
+                  scheduler::pipeline::renderer, 1s);
+            }
+          } catch (const std::exception &ex) {
+            game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                                  game::consoleLabel_e::DEFAULT,
+                                  "^1Lua Reload: Error: %s\n", ex.what());
+          }
+        },
+        scheduler::pipeline::renderer);
+  });
+
+  command::add("lua_reload_mod", [](const command::params & /*params*/) {
+    const std::string mod_id = game::ugc::UGC_ActiveMod_PublisherId();
+    if (mod_id.empty() || mod_id == "usermaps") {
+      scheduler::once([] { toast::success("Lua Reload Mod", "No mod loaded"); },
+                      scheduler::pipeline::renderer, 2s);
+      game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                            game::consoleLabel_e::DEFAULT,
+                            "^3Lua Reload Mod: No mod currently loaded\n");
+      return;
+    }
+
+    // Find the mod's content folder from the workshop pool
+    std::string mod_content_path;
+    for (uint32_t i = 0; i < game::ugc::modsPool.count; ++i) {
+      const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool.data[i];
+      if (mod_data->publisherId == mod_id || mod_data->internalName == mod_id) {
+        mod_content_path = mod_data->absolutePathContentDirectory;
+        break;
+      }
+    }
+
+    if (mod_content_path.empty()) {
+      game::com::Com_Printf(
+          game::consoleChannel_e::CHANNEL_DONT_FILTER,
+          game::consoleLabel_e::DEFAULT,
+          "^3Lua Reload Mod: Could not find content folder for mod '%s'\n",
+          mod_id.c_str());
+      return;
+    }
+
+    const std::string script_dir =
+        (std::filesystem::path(mod_content_path) / "mods" / mod_id).string();
+
+    scheduler::once(
+        [script_dir, mod_id] {
+          try {
+            int32_t count = 0;
+            std::string errors;
+            if (utils::io::directory_exists(script_dir)) {
+              for (const std::filesystem::directory_entry &entry :
+                   std::filesystem::recursive_directory_iterator(script_dir)) {
+                if (!entry.is_regular_file())
+                  continue;
+                if (entry.path().extension() != ".lua")
+                  continue;
+
+                std::string data;
+                if (utils::io::read_file(entry.path().string(), &data)) {
+                  std::string chunk = entry.path().string();
+                  if (chunk.starts_with(script_dir))
+                    chunk = chunk.substr(script_dir.size());
+                  if (execute_raw_lua(data, chunk.c_str()))
+                    count++;
+                  else
+                    errors += chunk + "\n";
+                }
+              }
+            }
+
+            game::com::Com_Printf(
+                game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                game::consoleLabel_e::DEFAULT,
+                "^2Lua Reload Mod: Reloaded %d file(s) for mod "
+                "'%s' from %s\n",
+                count, mod_id.c_str(), script_dir.c_str());
+            const std::string toast_msg = std::string("Mod '") + mod_id +
+                                          "': " + std::to_string(count) +
+                                          " file(s)";
+            scheduler::once(
+                [toast_msg] {
+                  toast::success("Lua Reload Mod", toast_msg.c_str());
+                },
+                scheduler::pipeline::renderer, 2s);
+
+            fire_debug_reload("UIRootFull");
+            if (hot_reload_in_game.load(std::memory_order_seq_cst)) {
+              fire_debug_reload("UIRoot0");
+              fire_debug_reload("UIRoot1");
+            }
+
+            if (!errors.empty()) {
+              std::string popup_msg =
+                  std::string("^1Lua Reload Mod Errors:\n") + errors;
+              scheduler::once(
+                  [popup_msg] {
+                    UI_OpenErrorPopupWithMessage(0, game::errorCode::UI,
+                                                 popup_msg.c_str());
+                  },
+                  scheduler::pipeline::renderer, 1s);
+            }
+          } catch (const std::exception &ex) {
+            game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                                  game::consoleLabel_e::DEFAULT,
+                                  "^1Lua Reload Mod: Error: %s\n", ex.what());
+          }
+        },
+        scheduler::pipeline::renderer);
+  });
+
+  command::add("lua_exec", [](const command::params &params) {
+    if (params.size() < 2) {
+      game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                            game::consoleLabel_e::DEFAULT,
+                            "Usage: lua_exec <file.lua>\n");
+      return;
+    }
+
+    const std::string file = params.get(1);
+    std::string data;
+    if (!utils::io::read_file(file, &data)) {
+      game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                            game::consoleLabel_e::DEFAULT,
+                            "^1Failed to read file: %s\n", file.c_str());
+      return;
+    }
+
+    scheduler::once(
+        [data, file] {
+          const std::string name =
+              std::filesystem::path(file).filename().string();
+          if (execute_raw_lua(data, file.c_str())) {
+            game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                                  game::consoleLabel_e::DEFAULT,
+                                  "^2Executed Lua file successfully\n");
+            const std::string msg = "Executed " + name;
+            scheduler::once([msg] { toast::success("Lua", msg.c_str()); },
+                            scheduler::pipeline::renderer, 1s);
+          } else {
+            const std::string msg = "Failed: " + name;
+            scheduler::once([msg] { toast::error("Lua", msg.c_str()); },
+                            scheduler::pipeline::renderer, 1s);
+          }
+        },
+        scheduler::pipeline::renderer);
+  });
+}
 } // namespace
 
 class component final : public generic_component {
@@ -1555,308 +1835,28 @@ public:
     hksi_lua_getinfo_detour.create(game::select(0x141D4D8D0, 0x1403F64B0),
                                    hksi_lua_getinfo_stub);
 
-    if (game::is_server()) {
-      return;
+    if (game::is_client()) {
+
+      ui_init_hook.create(UI_Init.get(), ui_init_stub);
+      cl_first_snapshot_hook.create(game::cl::CL_FirstSnapshot.get(),
+                                    cl_first_snapshot_stub);
+
+      lua_error_hook.create(0x141F11DA0_g, lua_cod_luastatemanager_error_stub);
+      lua_error_print_hook.create(0x141F132B0_g, lua_error_print_stub);
+
+      scheduler::once(
+          []() {
+            game::ui_error_callstack_ship->flags().clear();
+            game::ui_error_callstack_ship->set(true);
+
+            game::ui_error_report_delay->flags().clear();
+            game::ui_error_report_delay->set(true);
+          },
+          scheduler::pipeline::renderer);
+
+      register_lui_commands();
+      patch_unsafe_lua_functions();
     }
-
-    ui_init_hook.create(UI_Init.get(), ui_init_stub);
-    cl_first_snapshot_hook.create(game::cl::CL_FirstSnapshot.get(),
-                                  cl_first_snapshot_stub);
-
-    lua_error_hook.create(0x141F11DA0_g, lua_cod_luastatemanager_error_stub);
-    lua_error_print_hook.create(0x141F132B0_g, lua_error_print_stub);
-
-    scheduler::once(
-        []() {
-          game::ui_error_callstack_ship->flags().clear();
-          game::ui_error_callstack_ship->set(true);
-
-          game::ui_error_report_delay->flags().clear();
-          game::ui_error_report_delay->set(true);
-        },
-        scheduler::pipeline::renderer);
-
-    command::add("boiii_prepare_menu_restart", [](const command::params &) {
-      reloadIngameMenusAfterRestart.store(true, std::memory_order_seq_cst);
-    });
-
-    command::add("luiReload", [] {
-      if (game::com::Com_IsRunningUILevel()) {
-        converted_functions.clear();
-        rawfile_source_cache.clear();
-
-        globals.loaded_scripts.clear();
-        globals.local_scripts.clear();
-
-        UI_CoD_Shutdown();
-        UI_CoD_Init(true);
-
-        // Com_LoadFrontEnd stripped
-        Lua_CoD_LoadLuaFile(*primary_luaVM, "ui_mp.T6.main");
-        UI_AddMenu(UI_CoD_GetRootNameForController(0), "main", -1,
-                   *primary_luaVM);
-
-        UI_CoD_LobbyUI_Init();
-      } else {
-        // TODO: Find a way to do a full shutdown & restart like in frontend,
-        // that opens up the loading screen that can't be easily closed
-        rawfile_source_cache.clear();
-        game::cg::CG_LUIHUDRestart(game::LOCAL_CLIENT_0);
-        schedule_ingame_menu_reload();
-      }
-    });
-
-    command::add("lua_hotreload", [](const command::params &params) {
-      std::string dir;
-      if (params.size() >= 2) {
-        dir = params.get(1);
-      } else {
-        dir = (game::get_appdata_path() / "data" / "ui_scripts").string();
-      }
-
-      scheduler::once(
-          [dir] {
-            start_hot_reload(dir);
-            scheduler::once([] { toast::info("Lua", "Hot-reload started"); },
-                            scheduler::pipeline::renderer, 1s);
-          },
-          scheduler::pipeline::renderer);
-    });
-
-    command::add("lua_hotreload_stop", [](const command::params &) {
-      scheduler::once(
-          [] {
-            stop_hot_reload();
-            scheduler::once([] { toast::info("Lua", "Hot-reload stopped"); },
-                            scheduler::pipeline::renderer, 1s);
-          },
-          scheduler::pipeline::renderer);
-    });
-
-    command::add("lua_reload", [](const command::params &params) {
-      std::string dir;
-      if (params.size() >= 2) {
-        dir = params.get(1);
-      } else {
-        dir = (game::get_appdata_path() / "data" / "ui_scripts").string();
-      }
-
-      scheduler::once(
-          [dir] {
-            try {
-              int32_t count = 0;
-              std::string errors;
-              const std::function<void(const std::string &script_dir)>
-                  reload_dir = [&](const std::string &script_dir) {
-                    if (!utils::io::directory_exists(script_dir))
-                      return;
-                    for (const std::filesystem::directory_entry &entry :
-                         std::filesystem::recursive_directory_iterator(
-                             script_dir)) {
-                      if (!entry.is_regular_file())
-                        continue;
-                      if (entry.path().extension() != ".lua")
-                        continue;
-
-                      std::string data;
-                      if (utils::io::read_file(entry.path().string(), &data)) {
-                        std::string chunk = entry.path().string();
-                        if (chunk.starts_with(script_dir))
-                          chunk = chunk.substr(script_dir.size());
-                        if (execute_raw_lua(data, chunk.c_str()))
-                          count++;
-                        else
-                          errors += chunk + "\n";
-                      }
-                    }
-                  };
-
-              rawfile_source_cache.clear();
-
-              reload_dir(dir);
-
-              const utils::nt::library host{};
-              reload_dir((host.get_folder() / "boiii" / "ui_scripts").string());
-
-              game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                                    game::consoleLabel_e::DEFAULT,
-                                    "^2Lua Reload: Reloaded %d file(s)\n",
-                                    count);
-              const std::string toast_msg =
-                  "Reloaded " + std::to_string(count) + " file(s)";
-              scheduler::once(
-                  [toast_msg] {
-                    toast::success("Lua Reload", toast_msg.c_str());
-                  },
-                  scheduler::pipeline::renderer, 2s);
-
-              // Refresh current page
-              fire_debug_reload("UIRootFull");
-              if (hot_reload_in_game.load(std::memory_order_seq_cst)) {
-                fire_debug_reload("UIRoot0");
-                fire_debug_reload("UIRoot1");
-              }
-
-              // Show collected errors in one popup after reload is done
-              if (!errors.empty()) {
-                std::string popup_msg =
-                    std::string("^1Lua Reload Errors:\n") + errors;
-                scheduler::once(
-                    [popup_msg] {
-                      UI_OpenErrorPopupWithMessage(0, game::errorCode::UI,
-                                                   popup_msg.c_str());
-                    },
-                    scheduler::pipeline::renderer, 1s);
-              }
-            } catch (const std::exception &ex) {
-              game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                                    game::consoleLabel_e::DEFAULT,
-                                    "^1Lua Reload: Error: %s\n", ex.what());
-            }
-          },
-          scheduler::pipeline::renderer);
-    });
-
-    command::add("lua_reload_mod", [](const command::params & /*params*/) {
-      const std::string mod_id = game::ugc::UGC_ActiveMod_PublisherId();
-      if (mod_id.empty() || mod_id == "usermaps") {
-        scheduler::once(
-            [] { toast::success("Lua Reload Mod", "No mod loaded"); },
-            scheduler::pipeline::renderer, 2s);
-        game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                              game::consoleLabel_e::DEFAULT,
-                              "^3Lua Reload Mod: No mod currently loaded\n");
-        return;
-      }
-
-      // Find the mod's content folder from the workshop pool
-      std::string mod_content_path;
-      for (uint32_t i = 0; i < game::ugc::modsPool.count; ++i) {
-        const game::ugc::WorkshopData *mod_data = &game::ugc::modsPool.data[i];
-        if (mod_data->publisherId == mod_id ||
-            mod_data->internalName == mod_id) {
-          mod_content_path = mod_data->absolutePathContentDirectory;
-          break;
-        }
-      }
-
-      if (mod_content_path.empty()) {
-        game::com::Com_Printf(
-            game::consoleChannel_e::CHANNEL_DONT_FILTER,
-            game::consoleLabel_e::DEFAULT,
-            "^3Lua Reload Mod: Could not find content folder for mod '%s'\n",
-            mod_id.c_str());
-        return;
-      }
-
-      const std::string script_dir =
-          (std::filesystem::path(mod_content_path) / "mods" / mod_id).string();
-
-      scheduler::once(
-          [script_dir, mod_id] {
-            try {
-              int32_t count = 0;
-              std::string errors;
-              if (utils::io::directory_exists(script_dir)) {
-                for (const std::filesystem::directory_entry &entry :
-                     std::filesystem::recursive_directory_iterator(
-                         script_dir)) {
-                  if (!entry.is_regular_file())
-                    continue;
-                  if (entry.path().extension() != ".lua")
-                    continue;
-
-                  std::string data;
-                  if (utils::io::read_file(entry.path().string(), &data)) {
-                    std::string chunk = entry.path().string();
-                    if (chunk.starts_with(script_dir))
-                      chunk = chunk.substr(script_dir.size());
-                    if (execute_raw_lua(data, chunk.c_str()))
-                      count++;
-                    else
-                      errors += chunk + "\n";
-                  }
-                }
-              }
-
-              game::com::Com_Printf(
-                  game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                  game::consoleLabel_e::DEFAULT,
-                  "^2Lua Reload Mod: Reloaded %d file(s) for mod "
-                  "'%s' from %s\n",
-                  count, mod_id.c_str(), script_dir.c_str());
-              const std::string toast_msg = std::string("Mod '") + mod_id +
-                                            "': " + std::to_string(count) +
-                                            " file(s)";
-              scheduler::once(
-                  [toast_msg] {
-                    toast::success("Lua Reload Mod", toast_msg.c_str());
-                  },
-                  scheduler::pipeline::renderer, 2s);
-
-              fire_debug_reload("UIRootFull");
-              if (hot_reload_in_game.load(std::memory_order_seq_cst)) {
-                fire_debug_reload("UIRoot0");
-                fire_debug_reload("UIRoot1");
-              }
-
-              if (!errors.empty()) {
-                std::string popup_msg =
-                    std::string("^1Lua Reload Mod Errors:\n") + errors;
-                scheduler::once(
-                    [popup_msg] {
-                      UI_OpenErrorPopupWithMessage(0, game::errorCode::UI,
-                                                   popup_msg.c_str());
-                    },
-                    scheduler::pipeline::renderer, 1s);
-              }
-            } catch (const std::exception &ex) {
-              game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                                    game::consoleLabel_e::DEFAULT,
-                                    "^1Lua Reload Mod: Error: %s\n", ex.what());
-            }
-          },
-          scheduler::pipeline::renderer);
-    });
-
-    command::add("lua_exec", [](const command::params &params) {
-      if (params.size() < 2) {
-        game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                              game::consoleLabel_e::DEFAULT,
-                              "Usage: lua_exec <file.lua>\n");
-        return;
-      }
-
-      const std::string file = params.get(1);
-      std::string data;
-      if (!utils::io::read_file(file, &data)) {
-        game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                              game::consoleLabel_e::DEFAULT,
-                              "^1Failed to read file: %s\n", file.c_str());
-        return;
-      }
-
-      scheduler::once(
-          [data, file] {
-            const std::string name =
-                std::filesystem::path(file).filename().string();
-            if (execute_raw_lua(data, file.c_str())) {
-              game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                                    game::consoleLabel_e::DEFAULT,
-                                    "^2Executed Lua file successfully\n");
-              const std::string msg = "Executed " + name;
-              scheduler::once([msg] { toast::success("Lua", msg.c_str()); },
-                              scheduler::pipeline::renderer, 1s);
-            } else {
-              const std::string msg = "Failed: " + name;
-              scheduler::once([msg] { toast::error("Lua", msg.c_str()); },
-                              scheduler::pipeline::renderer, 1s);
-            }
-          },
-          scheduler::pipeline::renderer);
-    });
-
-    patch_unsafe_lua_functions();
   }
 };
 } // namespace ui_scripting

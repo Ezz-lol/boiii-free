@@ -40,8 +40,8 @@ class component final : public generic_component {
 public:
   void post_unpack() override {
     static constexpr const luaL_Reg AxiosLibrary[3] = {
-        {"Get", get},
-        {"Post", post},
+        {"Get", lua_state::unsafe_function<get>},
+        {"Post", lua_state::unsafe_function<post>},
         {nullptr, nullptr},
     };
     lua_state::register_lib("Axios", AxiosLibrary);
