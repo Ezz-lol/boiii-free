@@ -1520,11 +1520,13 @@ inline constexpr const std::string_view BLACKLISTED_DLLS[] = {"T7Overcharged"};
 utils::hook::detour load_dll_hook;
 luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
                                            const char *func_name) {
-  const std::string_view filename_view = filename;
-  for (const std::string_view &blacklisted : BLACKLISTED_DLLS) {
-    if (utils::string::contains(filename_view, blacklisted)) {
-      lua_pushboolean(s, qtrue);
-      return luaReturnCount_e::ONE;
+  if (filename) {
+    const std::string_view filename_view = filename;
+    for (const std::string_view &blacklisted : BLACKLISTED_DLLS) {
+      if (utils::string::contains(filename_view, blacklisted)) {
+        lua_pushboolean(s, qtrue);
+        return luaReturnCount_e::ONE;
+      }
     }
   }
 
