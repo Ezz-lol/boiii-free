@@ -169,6 +169,9 @@ void dvar_remove_flags(const char *dvar_name, const T flags) {
   }
 }
 
+[[nodiscard]] inline std::optional<std::string_view> get_fs_game() {
+  return *fs_game ? fs_game->get_string() : std::nullopt;
+}
 [[nodiscard]] inline std::optional<std::string_view> get_mapname() {
   return *mapname ? mapname->get_string() : std::nullopt;
 }

@@ -262,6 +262,9 @@ typedef fastcallPtr_t<int32_t(const char *filename, int32_t lua_line)>
 typedef fastcallPtr_t<void(lua_State *s, int64_t nargs, int32_t nresults,
                            const hksInstruction *pc)>
     Hkslua_Caller;
+typedef fastcall_t<void(lua_State *luaVM, void *arg, int numResults,
+                        const hksInstruction *)>
+    lua_caller;
 
 typedef hksInt32 lua_Integer;
 typedef HksDouble LightUserData;

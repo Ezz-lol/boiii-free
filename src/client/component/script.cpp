@@ -617,6 +617,15 @@ std::optional<std::filesystem::path> get_map_specific_directory() {
   return mapname;
 }
 
+std::optional<std::filesystem::path> get_mod_specific_directory() {
+  const std::string_view mod = get_fs_game().value_or("");
+  if (mod.empty()) {
+    return {};
+  }
+
+  return mod;
+}
+
 constexpr const std::string_view gametype_prefixes[] = {"zm", "mp", "cp"};
 bool is_shared_tree_dir(const std::filesystem::path &dir) {
   if (std::filesystem::is_directory(dir)) {
@@ -635,16 +644,23 @@ bool is_shared_tree_dir(const std::filesystem::path &dir) {
   return false;
 }
 
+struct TreeDirectory {
+  std::filesystem::path path;
+  std::optional<std::string> strip_base;
+  bool load_recursively;
+};
+
 template <const size_t N>
-std::unordered_set<std::filesystem::path>
+std::unordered_set<TreeDirectory>
 shared_tree_directories(const array<const std::filesystem::path, N> &roots,
                         const std::filesystem::path &tree) {
-  std::unordered_set<std::filesystem::path> root_entries;
+  std::unordered_set<TreeDirectory> root_entries;
   for (const std::filesystem::path &root : roots) {
     for (const std::filesystem::path &entry :
          utils::io::list_files(root / tree, false, true)) {
       if (is_shared_tree_dir(entry)) {
-        root_entries.insert(std::filesystem::relative(entry, root));
+        root_entries.insert(
+            {std::filesystem::relative(entry, root), std::nullopt, true});
       }
     }
   }
@@ -658,53 +674,58 @@ void load_tree(std::filesystem::path tree, bool execImmediate = false) {
   const std::filesystem::path data_directory = get_appdata_path() / "data";
   const std::filesystem::path boiii_directory = host.get_folder() / "boiii";
 
-  const std::optional<std::filesystem::path> map_name =
-      get_map_specific_directory();
-  std::optional<std::string> map_name_str = std::nullopt;
-  if (map_name.has_value()) {
-    map_name_str = map_name->generic_string();
-  }
-
-  const auto load = [&data_directory, &boiii_directory,
-                     &map_name_str](const std::filesystem::path &directory,
-                                    const bool load, const bool recurse) {
+  const auto load = [&data_directory, &boiii_directory](
+                        const std::filesystem::path &directory, const bool load,
+                        const bool recurse,
+                        const std::optional<std::string> strip_base =
+                            std::nullopt) {
     load_scripts_directory((data_directory / directory).string(), load, recurse,
-                           map_name_str);
+                           strip_base);
     load_scripts_directory((boiii_directory / directory).string(), load,
-                           recurse, map_name_str);
+                           recurse, strip_base);
   };
 
-  std::unordered_set<std::filesystem::path> applicable_tree_dirs =
+  std::unordered_set<TreeDirectory> applicable_tree_dirs =
       shared_tree_directories<2>({data_directory, boiii_directory}, tree);
 
   const std::optional<std::filesystem::path> game_type =
       get_game_type_specific_folder();
   if (game_type.has_value()) {
-    applicable_tree_dirs.insert(tree / game_type.value());
+    applicable_tree_dirs.insert({tree / game_type.value(), std::nullopt, true});
   }
 
+  const std::optional<std::filesystem::path> map_name =
+      get_map_specific_directory();
   if (map_name.has_value()) {
-    applicable_tree_dirs.insert(tree / map_name.value());
+    const std::string map_name_str = map_name->generic_string();
+    applicable_tree_dirs.insert({tree / map_name.value(), map_name_str, true});
   }
+
+  const std::optional<std::filesystem::path> mod_name =
+      get_mod_specific_directory();
+  if (mod_name.has_value() && mod_name.value() != "usermaps") {
+    const std::string mod_name_str = mod_name->generic_string();
+    applicable_tree_dirs.insert({tree / mod_name.value(), mod_name_str, true});
+  }
+
+  applicable_tree_dirs.insert({tree, std::nullopt, false});
 
   /*
     First, compile and load each script into our lookup table.
     We must do this before loading any scripts into the VM to ensure all
     dependencies are available for lookup upon first script load.
   */
-  std::for_each(
-      std::execution::par, applicable_tree_dirs.begin(),
-      applicable_tree_dirs.end(),
-      [load](const std::filesystem::path &path) { load(path, false, true); });
-  load(tree, false, false);
+  std::for_each(std::execution::par, applicable_tree_dirs.begin(),
+                applicable_tree_dirs.end(), [load](const TreeDirectory &dir) {
+                  load(dir.path, false, dir.load_recursively, dir.strip_base);
+                });
 
   if (execImmediate) {
     // Now, load the scripts into the VM.
-    std::for_each(
-        std::execution::seq, applicable_tree_dirs.begin(),
-        applicable_tree_dirs.end(),
-        [load](const std::filesystem::path &path) { load(path, true, true); });
-    load(tree, true, false);
+    std::for_each(std::execution::par, applicable_tree_dirs.begin(),
+                  applicable_tree_dirs.end(), [load](const TreeDirectory &dir) {
+                    load(dir.path, true, dir.load_recursively, dir.strip_base);
+                  });
   }
 }
 
@@ -970,7 +991,8 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
   const char *error_log = utils::string::va(
       "Scr_Error called from 0x%p with inst: %s, "
 #ifndef NDEBUG
-      "gFs.pos: 0x%p, gFs.top: 0x%p, gFs.startTop: 0x%p, gFs.threadId: 0x%08X, "
+      "gFs.pos: 0x%p, gFs.top: 0x%p, gFs.startTop: 0x%p, gFs.threadId: "
+      "0x%08X, "
       "gFs.localVarCount: %lu, "
 #endif
       "error: \"%s\", terminal: %s, callstack:\n%s",

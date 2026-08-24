@@ -35,6 +35,7 @@ WEAK symbol<qboolean> sv_running{0x1457D9928, 0x142CE04A8};
 WEAK symbol<EngineDependentDvarMut> sv_detailedScriptErrors{0x0, 0x14A1797D0};
 
 WEAK symbol<EngineDependentDvarMut> mapname{0x1577C57C8, 0x14A179858};
+WEAK symbol<EngineDependentDvarMut> fs_game{0x157A652F8, 0x14A39C638};
 
 WEAK symbol<EngineDependentDvarMut> live_steam_server_name{0x15142E120,
                                                            0x14837F770};
