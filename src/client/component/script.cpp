@@ -650,10 +650,14 @@ std::optional<std::filesystem::path> get_mod_specific_directory() {
 }
 
 constexpr const std::string_view gametype_prefixes[] = {"zm", "mp", "cp"};
-bool is_shared_tree_dir(const std::filesystem::path &dir) {
+bool is_shared_tree_dir(const std::filesystem::path &dir,
+                        const std::unordered_set<std::string_view> &mod_names) {
   if (std::filesystem::is_directory(dir)) {
     const std::filesystem::path dirname = dir.filename();
     const std::string dirname_str = dirname.generic_string();
+    if (mod_names.contains(dirname_str)) {
+      return false;
+    }
     for (const std::string_view prefix : gametype_prefixes) {
       if (prefix == dirname_str ||
           (dirname_str.size() > prefix.size() &&
@@ -671,11 +675,19 @@ template <const size_t N>
 std::unordered_set<TreeDirectory>
 shared_tree_directories(const array<const std::filesystem::path, N> &roots,
                         const std::filesystem::path &tree) {
+  std::unordered_set<std::string_view> mod_names;
+  for (uint32_t modIdx = 0; modIdx < game::ugc::modsPool.count; ++modIdx) {
+    const std::string_view mod_name =
+        game::ugc::modsPool.data[modIdx].internalName;
+    if (!mod_name.empty()) {
+      mod_names.insert(mod_name);
+    }
+  }
   std::unordered_set<TreeDirectory> root_entries;
   for (const std::filesystem::path &root : roots) {
     for (const std::filesystem::path &entry :
          utils::io::list_files(root / tree, false, true)) {
-      if (is_shared_tree_dir(entry)) {
+      if (is_shared_tree_dir(entry, mod_names)) {
         root_entries.insert(
             {std::filesystem::relative(entry, root), std::nullopt, true});
       }
