@@ -641,7 +641,7 @@ std::optional<std::filesystem::path> get_map_specific_directory() {
 }
 
 std::optional<std::filesystem::path> get_mod_specific_directory() {
-  const std::string_view mod = get_fs_game().value_or("");
+  const std::string_view mod = game::ugc::active_mod->internalName;
   if (mod.empty()) {
     return {};
   }
