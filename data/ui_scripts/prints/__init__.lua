@@ -1,4 +1,8 @@
-if not Engine.IsInGame() then
+local function isZombieGame()
+  return Engine and type(Engine.IsZombiesGame) == "function" and Engine.IsZombiesGame()
+end
+
+if not Engine.IsInGame() or not isZombieGame() then
   return
 end
 
@@ -33,7 +37,7 @@ local function scaleElement(element, scale)
 end
 
 local function positionConsoleEntry(instance)
-  if not instance then
+  if not isZombieGame() or not instance then
     return
   end
 
@@ -72,7 +76,7 @@ if widget.boiiiPrintsNew ~= widget.new then
 end
 
 local function ensureZombieConsole(hud, controller)
-  if not CoD.isZombie or not hud or hud.Console or not hud.addElement then
+  if not isZombieGame() or not hud or hud.Console or not hud.addElement then
     return
   end
 
