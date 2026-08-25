@@ -26,6 +26,29 @@ using namespace game;
 using namespace game::db::xasset;
 using namespace game::scr;
 
+struct TreeDirectory {
+  std::filesystem::path path;
+  std::optional<std::string> strip_base;
+  bool load_recursively;
+  bool operator==(const TreeDirectory &other) const = default;
+};
+namespace std {
+template <> struct hash<TreeDirectory> {
+  std::size_t operator()(const TreeDirectory &p) const noexcept {
+    // Fetch individual hash values for the members
+    std::size_t h1 = std::hash<std::filesystem::path>{}(p.path);
+    std::size_t h2 = std::hash<std::optional<std::string>>{}(p.strip_base);
+    std::size_t h3 = std::hash<bool>{}(p.load_recursively);
+
+    std::size_t seed = h1;
+    seed ^= h2 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    seed ^= h3 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+
+    return seed;
+  }
+};
+} // namespace std
+
 namespace gsc_funcs {
 void add_detour(uint8_t *target_addr, uint8_t *replacement_addr);
 }
@@ -643,12 +666,6 @@ bool is_shared_tree_dir(const std::filesystem::path &dir) {
   }
   return false;
 }
-
-struct TreeDirectory {
-  std::filesystem::path path;
-  std::optional<std::string> strip_base;
-  bool load_recursively;
-};
 
 template <const size_t N>
 std::unordered_set<TreeDirectory>
