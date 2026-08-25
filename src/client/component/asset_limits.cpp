@@ -18,7 +18,7 @@ struct pool_config {
   unsigned int default_size;
 };
 
-static const pool_config pool_configs[] = {
+inline constexpr pool_config pool_configs[] = {
     {XAssetType::PHYSPRESET, "ap_physpreset", 256},
     {XAssetType::DESTRUCTIBLEDEF, "ap_destructibledef", 256},
     {XAssetType::XANIMPARTS, "ap_xanim", 4096},
@@ -51,7 +51,7 @@ static const pool_config pool_configs[] = {
     {XAssetType::TRACER, "ap_tracer", 128},
     {XAssetType::VEHICLEDEF, "ap_vehicledef", 128},
     {XAssetType::TTF, "ap_ttf", 64},
-};
+    {XAssetType::CUSTOMIZATION_TABLE, "ap_customization_table", 8}};
 
 rapidjson::Document load_settings_doc() {
   rapidjson::Document doc;
