@@ -641,7 +641,7 @@ std::optional<std::filesystem::path> get_map_specific_directory() {
 }
 
 std::optional<std::filesystem::path> get_mod_specific_directory() {
-  const std::string_view mod = game::ugc::active_mod->internalName;
+  const std::string_view mod = game::ugc::active_mod->publisherId;
   if (mod.empty()) {
     return {};
   }
@@ -730,11 +730,11 @@ void load_tree(std::filesystem::path tree, bool execImmediate = false) {
     applicable_tree_dirs.insert({tree / map_name.value(), map_name_str, true});
   }
 
-  const std::optional<std::filesystem::path> mod_name =
+  const std::optional<std::filesystem::path> mod_id =
       get_mod_specific_directory();
-  if (mod_name.has_value() && mod_name.value() != "usermaps") {
-    const std::string mod_name_str = mod_name->generic_string();
-    applicable_tree_dirs.insert({tree / mod_name.value(), mod_name_str, true});
+  if (mod_id.has_value()) {
+    const std::string mod_id_str = mod_id->generic_string();
+    applicable_tree_dirs.insert({tree / mod_id.value(), mod_id_str, true});
   }
 
   applicable_tree_dirs.insert({tree, std::nullopt, false});
