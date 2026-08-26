@@ -238,13 +238,14 @@ template <typename T> struct TypedXAssetPool {
   T *pool;
   uint32_t itemSize;
   int32_t itemCount;
-  qboolean isSingleton;
+  bool isSingleton;
+  uint8_t _padding11[3];
   int32_t itemAllocCount;
   AssetLink *freeHead;
 
   inline bool contains(uintptr_t ptr) const noexcept {
     const uintptr_t pool_ptr = reinterpret_cast<uintptr_t>(pool);
-    return ptr >= pool_ptr && ptr < pool_ptr + itemSize * itemCount;
+    return ptr >= pool_ptr && ptr < pool_ptr + sizeof(T) * itemCount;
   }
 
   template <typename P> inline bool contains(const P *ptr) const noexcept {
@@ -253,39 +254,30 @@ template <typename T> struct TypedXAssetPool {
 };
 
 ASSERT_SIZE(XAssetPool, 0x20);
-#pragma pack(push, 1)
-// sizeof=x10
-struct ScriptStringList {
+PACKED(struct ScriptStringList {
   int count;
   uint8_t _padding04[4];
   const char **strings;
-};
+});
 ASSERT_SIZE(ScriptStringList, 0x10);
-#pragma pack(pop)
 
 /*
   All XAssets union members have first field `const char * name;`
   The engine uses this shared field to use shared utility functions to access
-  name of the asset Prior to REing and verifying all XAsset union member
+  name of the asset. Prior to REing and verifying all XAsset union member
   structures, we can start with using the known-shared field only - name.
   Later we can define each of the XAsset structs with `: NamedXAsset` and
-  declare the shared util function symbols using type signature `*NamedXAsset`
+  declare the shared util function symbols using type signature `NamedXAsset *`
   to more succintly type what is being passed to the function.
 */
-#pragma pack(push, 1)
-struct NamedXAsset {
-  const char *name;
-};
+PACKED(struct NamedXAsset { const char *name; });
 ASSERT_SIZE(NamedXAsset, 0x8);
-#pragma pack(pop)
 
-#pragma pack(push, 1)
-struct RawFile : NamedXAsset {
+PACKED(struct RawFile : NamedXAsset {
   uint64_t len;
   uint8_t *buffer;
-};
+});
 ASSERT_SIZE(RawFile, 0x18);
-#pragma pack(pop)
 
 struct MaterialTechniqueSet;
 typedef MaterialTechniqueSet *MaterialTechniqueSetPtr;

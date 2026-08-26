@@ -170,7 +170,7 @@ unsigned int get_pool_size(const rapidjson::Document &doc,
   if (!val.empty()) {
     try {
       const uint32_t parsed = std::stoul(val);
-      if (parsed >= 32 && parsed <= 65536) {
+      if (parsed <= std::numeric_limits<int32_t>::max()) {
         return parsed;
       }
     } catch (...) {
@@ -199,9 +199,9 @@ void apply_asset_limits() {
   applied = true;
 }
 
-utils::hook::detour db_init_hook;
-void db_init_stub() {
-  db_init_hook.invoke();
+utils::hook::detour DB_AssetPoolInit_hook;
+void DB_AssetPoolInit_stub() {
+  DB_AssetPoolInit_hook.invoke();
   apply_asset_limits();
 }
 } // namespace
@@ -209,8 +209,8 @@ void db_init_stub() {
 class component final : public generic_component {
 public:
   void post_unpack() override {
-    db_init_hook.create(game::db::DB_Init.get(), db_init_stub);
-    apply_asset_limits();
+    DB_AssetPoolInit_hook.create(game::db::DB_AssetPoolInit.get(),
+                                 DB_AssetPoolInit_stub);
   }
 };
 } // namespace asset_limits

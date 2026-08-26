@@ -245,6 +245,9 @@ void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
 
   // Skip if pool already meets or exceeds requested size
   if (!pool->isSingleton && pool->itemCount < static_cast<int32_t>(new_size)) {
+    fprintf(stdout, "Resizing asset pool with type %d to size %u\n", +type,
+            new_size);
+    fflush(stdout);
     void *new_pool = calloc(new_size, entry_size);
     if (new_pool == nullptr) {
       fprintf(stderr, "Failed to allocate asset pool for type %d (size: %u)\n",
@@ -282,8 +285,9 @@ void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
     pool->itemSize = entry_size;
     pool->itemCount = new_size;
 
-    printf("Reallocated asset pool type %d: %d -> %u entries\n", +type,
-           pool->itemCount, new_size);
+    fprintf(stdout, "Reallocated asset pool type %d: %d -> %u entries\n", +type,
+            pool->itemCount, new_size);
+    fflush(stdout);
   }
 }
 

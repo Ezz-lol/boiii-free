@@ -1101,21 +1101,64 @@
 
                 <div id="assetPoolsFieldset">
                   <div class="settings-section">
-                    <div class="settings-section-title">Core Pools</div>
+                    <div class="settings-section-title">Physics & Models</div>
+
                     <div class="settings-row">
                       <div>
-                        <div class="settings-row-label">XModel</div>
-                        <div class="settings-row-desc">
-                          3D model assets (default: 2048, min: 512)
-                        </div>
+                        <div class="settings-row-label">Phys Preset</div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
-                        id="apXModel"
+                        id="apPhyspreset"
+                        data-pool="ap_physpreset"
+                        min="0"
+                        value="275"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Phys Constraints</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apPhysconstraints"
+                        data-pool="ap_physconstraints"
+                        min="0"
+                        value="128"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Destructible Def</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apDestructibledef"
+                        data-pool="ap_destructibledef"
+                        min="0"
+                        value="128"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">XModel</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apXmodel"
                         data-pool="ap_xmodel"
-                        min="512"
-                        value="2048"
+                        min="0"
+                        value="11264"
                         autocomplete="off"
                         style="width: 90px"
                       />
@@ -1123,125 +1166,29 @@
                     <div class="settings-row">
                       <div>
                         <div class="settings-row-label">XModel Mesh</div>
-                        <div class="settings-row-desc">
-                          Model mesh assets (default: 2048, min: 512)
-                        </div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
-                        id="apXModelMesh"
+                        id="apXmodelmesh"
                         data-pool="ap_xmodelmesh"
-                        min="512"
-                        value="2048"
+                        min="0"
+                        value="35840"
                         autocomplete="off"
                         style="width: 90px"
                       />
                     </div>
                     <div class="settings-row">
                       <div>
-                        <div class="settings-row-label">Image</div>
-                        <div class="settings-row-desc">
-                          Texture/image assets (default: 8192, min: 1024)
-                        </div>
+                        <div class="settings-row-label">XModel Alias</div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
-                        id="apImage"
-                        data-pool="ap_image"
-                        min="1024"
-                        value="8192"
-                        autocomplete="off"
-                        style="width: 90px"
-                      />
-                    </div>
-                    <div class="settings-row">
-                      <div>
-                        <div class="settings-row-label">Material</div>
-                        <div class="settings-row-desc">
-                          Material/shader assets (default: 8192, min: 1024)
-                        </div>
-                      </div>
-                      <input
-                        type="number"
-                        class="settings-input asset-pool-input"
-                        id="apMaterial"
-                        data-pool="ap_material"
-                        min="1024"
-                        value="8192"
-                        autocomplete="off"
-                        style="width: 90px"
-                      />
-                    </div>
-                    <div class="settings-row">
-                      <div>
-                        <div class="settings-row-label">Technique Set</div>
-                        <div class="settings-row-desc">
-                          Shader technique sets (default: 2048, min: 256)
-                        </div>
-                      </div>
-                      <input
-                        type="number"
-                        class="settings-input asset-pool-input"
-                        id="apTechSet"
-                        data-pool="ap_techset"
-                        min="256"
-                        value="2048"
-                        autocomplete="off"
-                        style="width: 90px"
-                      />
-                    </div>
-                    <div class="settings-row">
-                      <div>
-                        <div class="settings-row-label">XAnim</div>
-                        <div class="settings-row-desc">
-                          Animation assets (default: 4096, min: 512)
-                        </div>
-                      </div>
-                      <input
-                        type="number"
-                        class="settings-input asset-pool-input"
-                        id="apXAnim"
-                        data-pool="ap_xanim"
-                        min="512"
-                        value="4096"
-                        autocomplete="off"
-                        style="width: 90px"
-                      />
-                    </div>
-                    <div class="settings-row">
-                      <div>
-                        <div class="settings-row-label">Sound</div>
-                        <div class="settings-row-desc">
-                          Sound/audio assets (default: 4096, min: 512)
-                        </div>
-                      </div>
-                      <input
-                        type="number"
-                        class="settings-input asset-pool-input"
-                        id="apSound"
-                        data-pool="ap_sound"
-                        min="512"
-                        value="4096"
-                        autocomplete="off"
-                        style="width: 90px"
-                      />
-                    </div>
-                    <div class="settings-row">
-                      <div>
-                        <div class="settings-row-label">TrueType Font</div>
-                        <div class="settings-row-desc">
-                          TTF font assets (default: 64, min: 32)
-                        </div>
-                      </div>
-                      <input
-                        type="number"
-                        class="settings-input asset-pool-input"
-                        id="apTtf"
-                        data-pool="ap_ttf"
-                        min="32"
-                        value="64"
+                        id="apXmodelalias"
+                        data-pool="ap_xmodelalias"
+                        min="0"
+                        value="48"
                         autocomplete="off"
                         style="width: 90px"
                       />
@@ -1250,94 +1197,157 @@
 
                   <div class="settings-section">
                     <div class="settings-section-title">
-                      Script &amp; Data Pools
+                      Materials & Rendering
                     </div>
+
                     <div class="settings-row">
                       <div>
-                        <div class="settings-row-label">Raw File</div>
-                        <div class="settings-row-desc">
-                          Raw data files (default: 2048, min: 256)
-                        </div>
+                        <div class="settings-row-label">Material</div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
-                        id="apRawFile"
-                        data-pool="ap_rawfile"
-                        min="256"
-                        value="2048"
+                        id="apMaterial"
+                        data-pool="ap_material"
+                        min="0"
+                        value="22528"
                         autocomplete="off"
                         style="width: 90px"
                       />
                     </div>
                     <div class="settings-row">
                       <div>
-                        <div class="settings-row-label">Script Parse Tree</div>
-                        <div class="settings-row-desc">
-                          Compiled GSC scripts (default: 2048, min: 256)
-                        </div>
+                        <div class="settings-row-label">Compute Shader Set</div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
-                        id="apScriptParseTree"
-                        data-pool="ap_scriptparsetree"
-                        min="256"
-                        value="2048"
+                        id="apComputeshaderset"
+                        data-pool="ap_computeshaderset"
+                        min="0"
+                        value="256"
                         autocomplete="off"
                         style="width: 90px"
                       />
                     </div>
                     <div class="settings-row">
                       <div>
-                        <div class="settings-row-label">String Table</div>
-                        <div class="settings-row-desc">
-                          CSV string tables (default: 512, min: 32)
-                        </div>
+                        <div class="settings-row-label">Technique Set</div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
-                        id="apStringTable"
-                        data-pool="ap_stringtable"
-                        min="32"
-                        value="512"
+                        id="apTechset"
+                        data-pool="ap_techset"
+                        min="0"
+                        value="1024"
                         autocomplete="off"
                         style="width: 90px"
                       />
                     </div>
                     <div class="settings-row">
                       <div>
-                        <div class="settings-row-label">Script Bundle</div>
-                        <div class="settings-row-desc">
-                          Script bundle assets (default: 512, min: 64)
-                        </div>
+                        <div class="settings-row-label">Image</div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
-                        id="apScriptBundle"
-                        data-pool="ap_scriptbundle"
-                        min="64"
-                        value="512"
+                        id="apImage"
+                        data-pool="ap_image"
+                        min="0"
+                        value="49152"
                         autocomplete="off"
                         style="width: 90px"
                       />
                     </div>
                     <div class="settings-row">
                       <div>
-                        <div class="settings-row-label">Localize</div>
-                        <div class="settings-row-desc">
-                          Localization string entries (default: 2048, min: 256)
+                        <div class="settings-row-label">Light Def</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apLightdef"
+                        data-pool="ap_lightdef"
+                        min="0"
+                        value="32"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Light Description</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apLightdescription"
+                        data-pool="ap_lightdescription"
+                        min="0"
+                        value="550"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Lensflare Def</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apLensflaredef"
+                        data-pool="ap_lensflaredef"
+                        min="0"
+                        value="70"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">
+                          KLF (New Lensflare)
                         </div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
-                        id="apLocalize"
-                        data-pool="ap_localize"
-                        min="256"
-                        value="2048"
+                        id="apKlf"
+                        data-pool="ap_klf"
+                        min="0"
+                        value="70"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Texture List</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apTexturelist"
+                        data-pool="ap_texturelist"
+                        min="0"
+                        value="8"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Texture Combo</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apTexturecombo"
+                        data-pool="ap_texturecombo"
+                        min="0"
+                        value="16"
                         autocomplete="off"
                         style="width: 90px"
                       />
@@ -1345,38 +1355,254 @@
                   </div>
 
                   <div class="settings-section">
-                    <div class="settings-section-title">Gameplay Pools</div>
+                    <div class="settings-section-title">
+                      Maps, Volumes & Visibility
+                    </div>
+
                     <div class="settings-row">
                       <div>
-                        <div class="settings-row-label">FX</div>
-                        <div class="settings-row-desc">
-                          Visual effects (default: 1024, min: 128)
-                        </div>
+                        <div class="settings-row-label">Col Map</div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
-                        id="apFx"
-                        data-pool="ap_fx"
-                        min="128"
-                        value="1024"
+                        id="apColMap"
+                        data-pool="ap_col_map"
+                        min="0"
+                        value="2"
                         autocomplete="off"
                         style="width: 90px"
                       />
                     </div>
                     <div class="settings-row">
                       <div>
-                        <div class="settings-row-label">Tag FX</div>
-                        <div class="settings-row-desc">
-                          Tag-attached effects (default: 256, min: 64)
+                        <div class="settings-row-label">Com Map</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apComMap"
+                        data-pool="ap_com_map"
+                        min="0"
+                        value="2"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Game Map</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apGameMap"
+                        data-pool="ap_game_map"
+                        min="0"
+                        value="2"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Map Ents</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apMapEnts"
+                        data-pool="ap_map_ents"
+                        min="0"
+                        value="2"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Gfx Map</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apGfxMap"
+                        data-pool="ap_gfx_map"
+                        min="0"
+                        value="2"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">UI Map</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apUiMap"
+                        data-pool="ap_ui_map"
+                        min="0"
+                        value="0"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Addon Map Ents</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apAddonMapEnts"
+                        data-pool="ap_addon_map_ents"
+                        min="0"
+                        value="1"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Umbra Tome</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apUmbraTome"
+                        data-pool="ap_umbra_tome"
+                        min="0"
+                        value="0"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Navmesh</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apNavmesh"
+                        data-pool="ap_navmesh"
+                        min="0"
+                        value="2"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Nav Volume</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apNavvolume"
+                        data-pool="ap_navvolume"
+                        min="0"
+                        value="2"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="settings-section">
+                    <div class="settings-section-title">Audio & Sound</div>
+
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Sound</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apSound"
+                        data-pool="ap_sound"
+                        min="0"
+                        value="32"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Sound Patch</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apSoundPatch"
+                        data-pool="ap_sound_patch"
+                        min="0"
+                        value="16"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">
+                          Player Sounds Table
                         </div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
-                        id="apTagFx"
-                        data-pool="ap_tagfx"
-                        min="64"
+                        id="apPlayersoundstable"
+                        data-pool="ap_playersoundstable"
+                        min="0"
+                        value="16"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Snd Driver Globals</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apSnddriverglobals"
+                        data-pool="ap_snddriverglobals"
+                        min="0"
+                        value="1"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">
+                          Impact Sounds Table
+                        </div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apImpactsoundstable"
+                        data-pool="ap_impactsoundstable"
+                        min="0"
+                        value="64"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Surface Sound Def</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apSurfacesounddef"
+                        data-pool="ap_surfacesounddef"
+                        min="0"
                         value="256"
                         autocomplete="off"
                         style="width: 90px"
@@ -1384,72 +1610,84 @@
                     </div>
                     <div class="settings-row">
                       <div>
-                        <div class="settings-row-label">Weapon</div>
-                        <div class="settings-row-desc">
-                          Weapon definition assets (default: 512, min: 64)
+                        <div class="settings-row-label">
+                          Entity Sound Impacts
                         </div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apEntitysoundimpacts"
+                        data-pool="ap_entitysoundimpacts"
+                        min="0"
+                        value="256"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="settings-section">
+                    <div class="settings-section-title">
+                      Weapons & Attachments
+                    </div>
+
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Weapon</div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
                         id="apWeapon"
                         data-pool="ap_weapon"
-                        min="64"
-                        value="512"
+                        min="0"
+                        value="1536"
                         autocomplete="off"
                         style="width: 90px"
                       />
                     </div>
                     <div class="settings-row">
                       <div>
-                        <div class="settings-row-label">Attachment</div>
-                        <div class="settings-row-desc">
-                          Weapon attachment assets (default: 512, min: 64)
-                        </div>
+                        <div class="settings-row-label">Weapon Def</div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
-                        id="apAttachment"
-                        data-pool="ap_attachment"
-                        min="64"
-                        value="512"
+                        id="apWeapondef"
+                        data-pool="ap_weapondef"
+                        min="0"
+                        value="0"
                         autocomplete="off"
                         style="width: 90px"
                       />
                     </div>
                     <div class="settings-row">
                       <div>
-                        <div class="settings-row-label">Attachment Unique</div>
-                        <div class="settings-row-desc">
-                          Unique attachment variants (default: 1024, min: 128)
-                        </div>
+                        <div class="settings-row-label">Weapon Variant</div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
-                        id="apAttachUnique"
-                        data-pool="ap_attachunique"
-                        min="128"
-                        value="1024"
+                        id="apWeaponvariant"
+                        data-pool="ap_weaponvariant"
+                        min="0"
+                        value="0"
                         autocomplete="off"
                         style="width: 90px"
                       />
                     </div>
                     <div class="settings-row">
                       <div>
-                        <div class="settings-row-label">Weapon Camo</div>
-                        <div class="settings-row-desc">
-                          Weapon camouflage assets (default: 256, min: 64)
-                        </div>
+                        <div class="settings-row-label">Weapon Full</div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
-                        id="apWeaponCamo"
-                        data-pool="ap_weaponcamo"
-                        min="64"
-                        value="256"
+                        id="apWeaponfull"
+                        data-pool="ap_weaponfull"
+                        min="0"
+                        value="0"
                         autocomplete="off"
                         style="width: 90px"
                       />
@@ -1459,17 +1697,171 @@
                         <div class="settings-row-label">
                           Shared Weapon Sounds
                         </div>
-                        <div class="settings-row-desc">
-                          Shared weapon sound assets (default: 128, min: 32)
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apSharedweaponsounds"
+                        data-pool="ap_sharedweaponsounds"
+                        min="0"
+                        value="64"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Attachment</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apAttachment"
+                        data-pool="ap_attachment"
+                        min="0"
+                        value="128"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Attachment Unique</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apAttachmentunique"
+                        data-pool="ap_attachmentunique"
+                        min="0"
+                        value="2148"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Weapon Camo</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apWeaponcamo"
+                        data-pool="ap_weaponcamo"
+                        min="0"
+                        value="512"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">
+                          Attachment Cosmetic Variant
                         </div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
-                        id="apSharedWeaponSounds"
-                        data-pool="ap_sharedweaponsounds"
-                        min="32"
-                        value="128"
+                        id="apAttachmentcosmeticvariant"
+                        data-pool="ap_attachmentcosmeticvariant"
+                        min="0"
+                        value="640"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="settings-section">
+                    <div class="settings-section-title">FX, Mechanics & UI</div>
+
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">FX</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apFx"
+                        data-pool="ap_fx"
+                        min="0"
+                        value="2000"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Tag FX</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apTagfx"
+                        data-pool="ap_tagfx"
+                        min="0"
+                        value="64"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Player FX Table</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apPlayerfxtable"
+                        data-pool="ap_playerfxtable"
+                        min="0"
+                        value="16"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Impacts FX Table</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apImpactsfxtable"
+                        data-pool="ap_impactsfxtable"
+                        min="0"
+                        value="256"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Surface FX Table</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apSurfacefxtable"
+                        data-pool="ap_surfacefxtable"
+                        min="0"
+                        value="64"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Entity FX Impacts</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apEntityfximpacts"
+                        data-pool="ap_entityfximpacts"
+                        min="0"
+                        value="256"
                         autocomplete="off"
                         style="width: 90px"
                       />
@@ -1477,17 +1869,216 @@
                     <div class="settings-row">
                       <div>
                         <div class="settings-row-label">Tracer</div>
-                        <div class="settings-row-desc">
-                          Bullet tracer effects (default: 128, min: 32)
-                        </div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
                         id="apTracer"
                         data-pool="ap_tracer"
-                        min="32"
-                        value="128"
+                        min="0"
+                        value="100"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Slug</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apSlug"
+                        data-pool="ap_slug"
+                        min="0"
+                        value="5"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Bullet Penetration</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apBulletpenetration"
+                        data-pool="ap_bulletpenetration"
+                        min="0"
+                        value="1"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Loc Dmg Table</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apLocdmgtable"
+                        data-pool="ap_locdmgtable"
+                        min="0"
+                        value="1"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Aim Table</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apAimtable"
+                        data-pool="ap_aimtable"
+                        min="0"
+                        value="12"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Shellshock</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apShellshock"
+                        data-pool="ap_shellshock"
+                        min="0"
+                        value="64"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Flame Table</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apFlametable"
+                        data-pool="ap_flametable"
+                        min="0"
+                        value="16"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Font</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apFont"
+                        data-pool="ap_font"
+                        min="0"
+                        value="16"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Font Icon</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apFonticon"
+                        data-pool="ap_fonticon"
+                        min="0"
+                        value="16"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">TrueType Font</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apTtf"
+                        data-pool="ap_ttf"
+                        min="0"
+                        value="48"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">CG Media Table</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apCgmediatable"
+                        data-pool="ap_cgmediatable"
+                        min="0"
+                        value="5"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="settings-section">
+                    <div class="settings-section-title">
+                      Characters, AI & Vehicles
+                    </div>
+
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Player Character</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apPlayerCharacter"
+                        data-pool="ap_player_character"
+                        min="0"
+                        value="8"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">AI Type</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apAitype"
+                        data-pool="ap_aitype"
+                        min="0"
+                        value="96"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Character</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apCharacter"
+                        data-pool="ap_character"
+                        min="0"
+                        value="150"
                         autocomplete="off"
                         style="width: 90px"
                       />
@@ -1495,16 +2086,174 @@
                     <div class="settings-row">
                       <div>
                         <div class="settings-row-label">Vehicle</div>
-                        <div class="settings-row-desc">
-                          Vehicle definition assets (default: 128, min: 32)
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apVehicle"
+                        data-pool="ap_vehicle"
+                        min="0"
+                        value="64"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Vehicle FX Def</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apVehiclefxdef"
+                        data-pool="ap_vehiclefxdef"
+                        min="0"
+                        value="32"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Vehicle Sound Def</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apVehiclesounddef"
+                        data-pool="ap_vehiclesounddef"
+                        min="0"
+                        value="32"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Footstep Table</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apFootsteptable"
+                        data-pool="ap_footsteptable"
+                        min="0"
+                        value="32"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="settings-section">
+                    <div class="settings-section-title">
+                      Animation & Behaviors
+                    </div>
+
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">XAnim</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apXanim"
+                        data-pool="ap_xanim"
+                        min="0"
+                        value="25200"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">SAnim</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apSanim"
+                        data-pool="ap_sanim"
+                        min="0"
+                        value="1024"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">
+                          Anim Selector Table
                         </div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
-                        id="apVehicleDef"
-                        data-pool="ap_vehicledef"
-                        min="32"
+                        id="apAnimselectortable"
+                        data-pool="ap_animselectortable"
+                        min="0"
+                        value="64"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Anim Mapping Table</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apAnimmappingtable"
+                        data-pool="ap_animmappingtable"
+                        min="0"
+                        value="64"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Anim State Machine</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apAnimstatemachine"
+                        data-pool="ap_animstatemachine"
+                        min="0"
+                        value="64"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Behavior Tree</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apBehaviortree"
+                        data-pool="ap_behaviortree"
+                        min="0"
+                        value="64"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">
+                          Behavior State Machine
+                        </div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apBehaviorstatemachine"
+                        data-pool="ap_behaviorstatemachine"
+                        min="0"
                         value="128"
                         autocomplete="off"
                         style="width: 90px"
@@ -1514,76 +2263,49 @@
 
                   <div class="settings-section">
                     <div class="settings-section-title">
-                      Environment &amp; AI Pools
+                      Data, Scripts & Tables
                     </div>
+
                     <div class="settings-row">
                       <div>
-                        <div class="settings-row-label">Phys Preset</div>
-                        <div class="settings-row-desc">
-                          Physics preset definitions (default: 256, min: 64)
-                        </div>
+                        <div class="settings-row-label">Raw File</div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
-                        id="apPhysPreset"
-                        data-pool="ap_physpreset"
-                        min="64"
-                        value="256"
+                        id="apRawfile"
+                        data-pool="ap_rawfile"
+                        min="0"
+                        value="5000"
                         autocomplete="off"
                         style="width: 90px"
                       />
                     </div>
                     <div class="settings-row">
                       <div>
-                        <div class="settings-row-label">Destructible Def</div>
-                        <div class="settings-row-desc">
-                          Destructible object definitions (default: 256, min:
-                          64)
-                        </div>
+                        <div class="settings-row-label">Script Parse Tree</div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
-                        id="apDestructibleDef"
-                        data-pool="ap_destructibledef"
-                        min="64"
-                        value="256"
+                        id="apScriptparsetree"
+                        data-pool="ap_scriptparsetree"
+                        min="0"
+                        value="1150"
                         autocomplete="off"
                         style="width: 90px"
                       />
                     </div>
                     <div class="settings-row">
                       <div>
-                        <div class="settings-row-label">Light Def</div>
-                        <div class="settings-row-desc">
-                          Light definition assets (default: 256, min: 64)
-                        </div>
+                        <div class="settings-row-label">Script Bundle</div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
-                        id="apLightDef"
-                        data-pool="ap_lightdef"
-                        min="64"
-                        value="256"
-                        autocomplete="off"
-                        style="width: 90px"
-                      />
-                    </div>
-                    <div class="settings-row">
-                      <div>
-                        <div class="settings-row-label">Light Description</div>
-                        <div class="settings-row-desc">
-                          Light description assets (default: 1024, min: 128)
-                        </div>
-                      </div>
-                      <input
-                        type="number"
-                        class="settings-input asset-pool-input"
-                        id="apLightDescription"
-                        data-pool="ap_lightdescription"
-                        min="128"
+                        id="apScriptbundle"
+                        data-pool="ap_scriptbundle"
+                        min="0"
                         value="1024"
                         autocomplete="off"
                         style="width: 90px"
@@ -1591,17 +2313,74 @@
                     </div>
                     <div class="settings-row">
                       <div>
-                        <div class="settings-row-label">AI Type</div>
-                        <div class="settings-row-desc">
-                          AI type definitions (default: 256, min: 64)
-                        </div>
+                        <div class="settings-row-label">Script Bundle List</div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
-                        id="apAiType"
-                        data-pool="ap_aitype"
-                        min="64"
+                        id="apScriptbundlelist"
+                        data-pool="ap_scriptbundlelist"
+                        min="0"
+                        value="64"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Localize</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apLocalize"
+                        data-pool="ap_localize"
+                        min="0"
+                        value="25600"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">String Table</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apStringtable"
+                        data-pool="ap_stringtable"
+                        min="0"
+                        value="220"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Structured Table</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apStructuredtable"
+                        data-pool="ap_structuredtable"
+                        min="0"
+                        value="105"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Leaderboard Def</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apLeaderboarddef"
+                        data-pool="ap_leaderboarddef"
+                        min="0"
                         value="256"
                         autocomplete="off"
                         style="width: 90px"
@@ -1609,90 +2388,143 @@
                     </div>
                     <div class="settings-row">
                       <div>
-                        <div class="settings-row-label">Character</div>
-                        <div class="settings-row-desc">
-                          Character definition assets (default: 256, min: 64)
-                        </div>
+                        <div class="settings-row-label">DDL</div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
-                        id="apCharacter"
-                        data-pool="ap_character"
-                        min="64"
-                        value="256"
+                        id="apDdl"
+                        data-pool="ap_ddl"
+                        min="0"
+                        value="64"
                         autocomplete="off"
                         style="width: 90px"
                       />
                     </div>
                     <div class="settings-row">
                       <div>
-                        <div class="settings-row-label">Shellshock</div>
-                        <div class="settings-row-desc">
-                          Shellshock effect definitions (default: 128, min: 32)
-                        </div>
+                        <div class="settings-row-label">Key Value Pairs</div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
-                        id="apShellshock"
-                        data-pool="ap_shellshock"
-                        min="32"
-                        value="128"
+                        id="apKeyvaluepairs"
+                        data-pool="ap_keyvaluepairs"
+                        min="0"
+                        value="64"
                         autocomplete="off"
                         style="width: 90px"
                       />
                     </div>
                     <div class="settings-row">
                       <div>
-                        <div class="settings-row-label">Rumble</div>
-                        <div class="settings-row-desc">
-                          Controller rumble definitions (default: 128, min: 32)
+                        <div class="settings-row-label">
+                          Customization Table
                         </div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
-                        id="apRumble"
-                        data-pool="ap_rumble"
-                        min="32"
-                        value="128"
+                        id="apCustomizationtable"
+                        data-pool="ap_customizationtable"
+                        min="0"
+                        value="8"
                         autocomplete="off"
                         style="width: 90px"
                       />
                     </div>
                     <div class="settings-row">
                       <div>
-                        <div class="settings-row-label">XCam</div>
-                        <div class="settings-row-desc">
-                          Scripted camera assets (default: 256, min: 64)
+                        <div class="settings-row-label">
+                          Customization Table FE Images
                         </div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
-                        id="apXCam"
-                        data-pool="ap_xcam"
-                        min="64"
-                        value="256"
+                        id="apCustomizationtableFeimages"
+                        data-pool="ap_customizationtable_feimages"
+                        min="0"
+                        value="8"
                         autocomplete="off"
                         style="width: 90px"
                       />
                     </div>
                     <div class="settings-row">
                       <div>
-                        <div class="settings-row-label">New Lensflare Def</div>
-                        <div class="settings-row-desc">
-                          Lensflare definition assets (default: 128, min: 32)
+                        <div class="settings-row-label">
+                          Customization Table Color
                         </div>
                       </div>
                       <input
                         type="number"
                         class="settings-input asset-pool-input"
-                        id="apNewLensflareDef"
-                        data-pool="ap_newlensflaredef"
-                        min="32"
-                        value="128"
+                        id="apCustomizationtablecolor"
+                        data-pool="ap_customizationtablecolor"
+                        min="0"
+                        value="1024"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Map Table</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apMaptable"
+                        data-pool="ap_maptable"
+                        min="0"
+                        value="25"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">
+                          Map Table Loading Images
+                        </div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apMaptableloadingimages"
+                        data-pool="ap_maptableloadingimages"
+                        min="0"
+                        value="25"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Medal</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apMedal"
+                        data-pool="ap_medal"
+                        min="0"
+                        value="768"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Medal Table</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apMedaltable"
+                        data-pool="ap_medaltable"
+                        min="0"
+                        value="32"
                         autocomplete="off"
                         style="width: 90px"
                       />
@@ -1700,13 +2532,202 @@
                   </div>
 
                   <div class="settings-section">
-                    <div class="asset-pools-crash-warning">
-                      <span class="asset-pools-warning-icon">&#9888;</span>
-                      <span
-                        >Values above 16384 for large pools or 2048 for small
-                        pools may cause out-of-memory crashes. Changes require a
-                        game restart.</span
-                      >
+                    <div class="settings-section-title">Misc & Advanced</div>
+
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Objective</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apObjective"
+                        data-pool="ap_objective"
+                        min="0"
+                        value="256"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Objective List</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apObjectivelist"
+                        data-pool="ap_objectivelist"
+                        min="0"
+                        value="64"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">ZBarrier</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apZbarrier"
+                        data-pool="ap_zbarrier"
+                        min="0"
+                        value="16"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Glasses</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apGlasses"
+                        data-pool="ap_glasses"
+                        min="0"
+                        value="2"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Type Info</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apTypeinfo"
+                        data-pool="ap_typeinfo"
+                        min="0"
+                        value="0"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Rumble</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apRumble"
+                        data-pool="ap_rumble"
+                        min="0"
+                        value="280"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">XCam</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apXcam"
+                        data-pool="ap_xcam"
+                        min="0"
+                        value="532"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">BG Cache</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apBgcache"
+                        data-pool="ap_bgcache"
+                        min="0"
+                        value="32"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Bitfield</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apBitfield"
+                        data-pool="ap_bitfield"
+                        min="0"
+                        value="52"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Binary HTML</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apBinaryhtml"
+                        data-pool="ap_binaryhtml"
+                        min="0"
+                        value="2048"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Laser</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apLaser"
+                        data-pool="ap_laser"
+                        min="0"
+                        value="50"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Beam</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apBeam"
+                        data-pool="ap_beam"
+                        min="0"
+                        value="50"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
+                    </div>
+                    <div class="settings-row">
+                      <div>
+                        <div class="settings-row-label">Streamer Hint</div>
+                      </div>
+                      <input
+                        type="number"
+                        class="settings-input asset-pool-input"
+                        id="apStreamerhint"
+                        data-pool="ap_streamerhint"
+                        min="0"
+                        value="50"
+                        autocomplete="off"
+                        style="width: 90px"
+                      />
                     </div>
                     <button
                       type="button"
@@ -1714,7 +2735,7 @@
                       id="assetPoolsResetBtn"
                       style="width: 100%; margin-top: 12px"
                     >
-                      Reset Asset Pools to Defaults
+                      Reset Asset Pool Sizes to Default
                     </button>
                   </div>
                 </div>
