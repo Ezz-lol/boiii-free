@@ -238,9 +238,6 @@ int32_t DB_GetXAssetTypeSize_Impl(XAssetType type) {
 void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
   const int32_t entry_size = DB_GetXAssetTypeSize_Impl(type);
   if (entry_size <= 0) {
-    fprintf(stderr, "[AssetLimits] Invalid entry size for type %d\n",
-            static_cast<int32_t>(type));
-    fflush(stderr);
     return;
   }
   volatile XAssetPool *pool = &pool::s_assetPools->pools[+type];

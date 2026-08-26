@@ -85,10 +85,11 @@ maptable::MapTable *Com_GetMapTable_Safe(const char *mapTableName) {
 utils::hook::detour Image_AssignDefaultTexture_hook;
 bool Image_AssignDefaultTexture_SkipMissingVTable(gfx::GfxImage *to,
                                                   gfx::GfxImage *from) {
-  if (nonnull(to) && nonnull(from) &&
-      (!pool::s_assetPools->typed.image.contains(to) ||
-       (nonnull(to->texture.basemap) &&
-        nonnull(to->texture.basemap->lpVtbl)))) {
+  if ((nonnull(to) || valid_stack_ptr(to)) &&
+      (nonnull(from) || valid_stack_ptr(from)) &&
+      ((nonnull(to->texture.basemap) || valid_stack_ptr(to->texture.basemap)) &&
+       (nonnull(to->texture.basemap->lpVtbl) ||
+        valid_stack_ptr(to->texture.basemap->lpVtbl)))) {
     return Image_AssignDefaultTexture_hook.invoke<bool>(to, from);
   }
 
