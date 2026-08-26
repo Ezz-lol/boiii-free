@@ -10,6 +10,12 @@
 
 namespace game {
 
+namespace vehicle {
+struct VehicleDef;
+struct VehicleFxDef;
+struct VehicleSoundDef;
+} // namespace vehicle
+
 namespace ddl {
 struct DDLDef;
 }
@@ -26,11 +32,6 @@ struct ScriptParseTree;
 } // namespace scr
 
 namespace snd {
-/*
-  Must #include <structs/structs.hpp> or <structs/snd.hpp> directly
-  to use full structures - we need to only use forward declarations here to
-  avoid circular dependencies between header files.
-*/
 struct SndBank;
 struct SndPatch;
 struct SndDriverGlobals;
@@ -945,7 +946,7 @@ union XAssetHeader {
   // TextureList *textureList;
   scr::ScriptParseTree *scriptParseTree;
   // KeyValuePairs *keyValuePairs;
-  // VehicleDef *vehicleDef;
+  vehicle::VehicleDef *vehicleDef;
   // AddonMapEnts *addonMapEnts;
   // TracerDef *tracerDef;
   // Qdb *qdb;
@@ -956,8 +957,8 @@ union XAssetHeader {
   // EntitySoundImpacts *entitySoundImpacts;
   // EntityFxImpacts *entityFxImpacts;
   // ZBarrierDef *zbarrierDef;
-  // VehicleFxDef *vehicleFxDef;
-  // VehicleSoundDef *vehicleSoundDef;
+  vehicle::VehicleFxDef *vehicleFxDef;
+  vehicle::VehicleSoundDef *vehicleSoundDef;
   // ArchiveTypeInfoArray *typeInfo;
   // ScriptBundle *scriptBundle;
   // ScriptBundleList *scriptBundleList;

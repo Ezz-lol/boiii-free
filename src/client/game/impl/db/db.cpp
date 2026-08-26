@@ -134,7 +134,7 @@ int32_t DB_GetXAssetTypeSize_Impl(XAssetType type) {
   case XAssetType::KEYVALUEPAIRS:
     return 0x18;
   case XAssetType::VEHICLEDEF:
-    return 0xAA8;
+    return sizeof(vehicle::VehicleDef);
   case XAssetType::ADDON_MAP_ENTS:
     return 0x68;
   case XAssetType::TRACER:
@@ -154,9 +154,9 @@ int32_t DB_GetXAssetTypeSize_Impl(XAssetType type) {
   case XAssetType::ZBARRIER:
     return 0x300;
   case XAssetType::VEHICLEFXDEF:
-    return 0x3D8;
+    return sizeof(vehicle::VehicleFxDef);
   case XAssetType::VEHICLESOUNDDEF:
-    return 0x1000;
+    return sizeof(vehicle::VehicleSoundDef);
   case XAssetType::TYPEINFO:
     return 0x2010;
   case XAssetType::SCRIPTBUNDLE:

@@ -384,6 +384,7 @@ PACKED(struct VehicleSoundDef {
   AircraftSound aircraftSounds[20];
   VehicleSurfaceSound surfaceSounds[40];
 });
+// Verified
 ASSERT_SIZE(VehicleSoundDef, 0x1000);
 
 typedef VehicleSoundDef *VehicleSoundDefPtr;
@@ -401,10 +402,13 @@ PACKED(struct VehicleFxDef {
   const char *name;
   char *csvInclude;
   VehicleFxDefType type;
+  uint8_t _padding14[4];
   db::xasset::FxEffectDefHandle treadFx[40];
   db::xasset::FxEffectDefHandle peelFx[40];
   db::xasset::FxEffectDefHandle skidFx[40];
 });
+// Verified
+ASSERT_SIZE(VehicleFxDef, 0x3D8);
 
 typedef VehicleFxDef *VehicleFxDefPtr;
 
@@ -864,6 +868,7 @@ PACKED(struct VehicleDef {
 });
 ASSERT_OFFSET(VehicleDef, useHeliBoneControllers, 0x188);
 ASSERT_OFFSET(VehicleDef, isSentient, 0x9D0);
+// Correct
 ASSERT_SIZE(VehicleDef, 0xAA8);
 
 PACKED(struct VehicleStun {

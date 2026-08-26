@@ -12,6 +12,12 @@ namespace ddl {
 struct DDLDef;
 }
 
+namespace vehicle {
+struct VehicleDef;
+struct VehicleFxDef;
+struct VehicleSoundDef;
+} // namespace vehicle
+
 namespace db {
 namespace xasset {
 namespace pool {
@@ -21,7 +27,7 @@ union XAssetEntryPoolEntry {
   XAssetEntryPoolEntry *next;
 };
 ASSERT_SIZE(XAssetEntryPoolEntry, 0x20);
-constexpr std::size_t XASSET_ENTRY_POOL_LENGTH = 156671;
+constexpr std::size_t XASSET_ENTRY_POOL_LENGTH = 0x263ff;
 
 #pragma pack(push, 1)
 struct XAssetEntryPool {
@@ -31,7 +37,6 @@ struct XAssetEntryPool {
 #pragma pack(pop)
 
 #pragma pack(push, 1)
-
 struct TypedXAssetPools {
   XAssetPool physpreset;
   XAssetPool physconstraints;
@@ -89,7 +94,7 @@ struct TypedXAssetPools {
   XAssetPool texturelist;
   TypedXAssetPool<scr::ScriptParseTree> scriptparsetree;
   XAssetPool keyvaluepairs;
-  XAssetPool vehicledef;
+  TypedXAssetPool<vehicle::VehicleDef> vehicledef;
   XAssetPool addon_map_ents;
   XAssetPool tracer;
   XAssetPool slug;
@@ -99,8 +104,8 @@ struct TypedXAssetPools {
   XAssetPool entityfximpacts;
   XAssetPool entitysoundimpacts;
   XAssetPool zbarrier;
-  XAssetPool vehiclefxdef;
-  XAssetPool vehiclesounddef;
+  TypedXAssetPool<vehicle::VehicleFxDef> vehiclefxdef;
+  TypedXAssetPool<vehicle::VehicleSoundDef> vehiclesounddef;
   XAssetPool typeinfo;
   XAssetPool scriptbundle;
   XAssetPool scriptbundlelist;
@@ -130,7 +135,7 @@ struct TypedXAssetPools {
   XAssetPool objective;
   XAssetPool objective_list;
   XAssetPool umbra_tome;
-  XAssetPool navmesh;
+  TypedXAssetPool<gfx::GfxUmbraTome> navmesh;
   XAssetPool navvolume;
   XAssetPool binaryhtml;
   XAssetPool laser;
