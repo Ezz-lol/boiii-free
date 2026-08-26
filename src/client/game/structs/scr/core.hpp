@@ -1595,7 +1595,6 @@ public:
   XCamTargetModelFrame lerpModelFrame;
 };
 
-typedef intptr_t scr_funcptr_t;
 struct scr_func_t {
   char funcinfo[260];
   scr_funcptr_t func;

@@ -360,6 +360,18 @@ struct bgCacheChecksumInfo {
   volatile uint32_t clientChecksum;
 };
 
+struct BGCacheInfoDef {
+  BGCacheTypes type;
+  str128_t name;
+};
+
+PACKED(struct BGCacheInfo {
+  const char *name;
+  BGCacheInfoDef *def;
+  int32_t defCount;
+  uint8_t _padding14[4];
+});
+ASSERT_SIZE(BGCacheInfo, 0x18);
 } // namespace cache
 } // namespace bg
 } // namespace game

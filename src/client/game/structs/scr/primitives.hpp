@@ -23,5 +23,7 @@ inline constexpr const char *serialize(scriptInstance_t inst) {
     return "SCRIPTINSTANCE_INVALID";
   }
 }
+
+typedef intptr_t scr_funcptr_t;
 } // namespace scr
 } // namespace game

@@ -1,5 +1,4 @@
-#ifndef STRUCTS_SND_HPP
-#define STRUCTS_SND_HPP
+#pragma once
 
 #include <cstdint>
 #include "../core.hpp"
@@ -174,9 +173,7 @@ enum class SndMenuCategory : uint32_t {
   SND_CATEGORY_COUNT = 0x5,
 };
 
-#pragma pack(push, 1)
-// sizeof==0x800
-struct SndAssetBankHeader {
+PACKED(struct SndAssetBankHeader {
   uint32_t magic;
   uint32_t version;
   uint32_t entrySize;
@@ -210,9 +207,8 @@ struct SndAssetBankHeader {
   */
   uint32_t padding0;
   uint8_t padding[1366];
-};
+});
 ASSERT_SIZE(SndAssetBankHeader, 0x800);
-#pragma pack(pop)
 
 /*
   This struct is not 100% verified to be correct yet, but the fields
@@ -221,8 +217,7 @@ ASSERT_SIZE(SndAssetBankHeader, 0x800);
   structure implementations most closely matching the latest versions seen in
   BO3 client and dedicated server.
 */
-#pragma pack(push, 1)
-struct SndAssetBankEntry {
+PACKED(struct SndAssetBankEntry {
   uint32_t id; // correct
   uint32_t size;
   uint32_t frameCount; // correct
@@ -238,13 +233,10 @@ struct SndAssetBankEntry {
   uint8_t EnvelopeLoudness3;
   uint16_t EnvelopeTime1;
   uint16_t EnvelopeTime2;
-};
+});
 ASSERT_SIZE(SndAssetBankEntry, 0x24);
-#pragma pack(pop)
 
-#pragma pack(push, 1)
-// sizeof=0x918
-struct SndAssetBankLoad {
+PACKED(struct SndAssetBankLoad {
   SndAssetBankHeader header;
   char filename[256];
   SndAssetBankEntry *entries;
@@ -252,14 +244,12 @@ struct SndAssetBankLoad {
   stream::stream_fileid fileHandle;
   qboolean indicesLoaded;
   qboolean indicesAllocated;
-};
+});
 ASSERT_SIZE(SndAssetBankLoad, 0x918);
-#pragma pack(pop)
 
 #define G_SND_INITIALIZED_MAGIC 0x23459876
 
-#pragma pack(push, 1)
-struct SndVolumeGroup {
+PACKED(struct SndVolumeGroup {
   name_t name;
   name_t parentName;
   uint32_t id;
@@ -267,27 +257,21 @@ struct SndVolumeGroup {
   SndMenuCategory category;
   uint16_t attenuationSp;
   uint16_t attenuationMp;
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
-struct SndCurve {
+PACKED(struct SndCurve {
   name_t name;
   uint32_t id;
   game::vec2_t points[8];
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
-struct SndDuckGroup {
+PACKED(struct SndDuckGroup {
   name_t name;
   uint32_t id;
-};
-#pragma pack(pop)
+});
 
 // Unverified
-#pragma pack(push, 1)
-struct SndMaster {
+PACKED(struct SndMaster {
   char name[64];
   SndStringHash id;
   int32_t lowE;
@@ -352,19 +336,14 @@ struct SndMaster {
   int32_t hdrfxCompE;
   int32_t voiceEqE;
   int32_t voiceCompE;
-};
+});
 
-#pragma pack(pop)
-
-#pragma pack(push, 1)
-struct SndContext {
+PACKED(struct SndContext {
   uint32_t type;
   uint32_t values[8];
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
-struct SndPan {
+PACKED(struct SndPan {
   name_t name;
   uint32_t id;
   float front;
@@ -373,11 +352,9 @@ struct SndPan {
   float lfe;
   float left;
   float right;
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
-struct SndFutz {
+PACKED(struct SndFutz {
   name_t name;
   uint32_t id;
   float bpfF;
@@ -396,11 +373,9 @@ struct SndFutz {
   uint32_t startAliasId;
   uint32_t stopAliasId;
   uint32_t loopAliasId;
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
-struct SndDriverGlobals {
+PACKED(struct SndDriverGlobals {
   const char *name;
   uint32_t groupCount;
   uint8_t _padding0C[4];
@@ -423,12 +398,10 @@ struct SndDriverGlobals {
   uint32_t futzCount;
   uint8_t _padding6C[4];
   SndFutz *futzes;
-};
-#pragma pack(pop)
+});
+ASSERT_SIZE(SndDriverGlobals, 0x78);
 
-#pragma pack(push, 1)
-
-struct SndOcclusionTrace {
+PACKED(struct SndOcclusionTrace {
   SndPlaybackId id;
   int32_t voiceIndex;
   vec3_t listener;
@@ -436,22 +409,18 @@ struct SndOcclusionTrace {
   int32_t cache[5];
   float occlusion;
   uint8_t padding[8];
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
 struct SndQueue;
 typedef void (*SND_QueueCallback)(SndQueue *);
-struct SndQueue {
+PACKED(struct SndQueue {
   tlAtomicMutex mutex;
   cmd::SndCommandBuffer *active;
   cmd::SndCommandBuffer *submitted;
   cmd::SndQueueBuffers *buffers;
   SND_QueueCallback processNotify;
-};
+});
 ASSERT_SIZE(SndQueue, 0x38);
-
-#pragma pack(pop)
 
 /*
   The SndLocal struct used in the latest BO3 client and dedicated server engines
@@ -494,8 +463,7 @@ ASSERT_SIZE(SndQueue, 0x38);
 #define SND_LOCAL_SIZE 0x1CD168
 static inline const size_t SND_LOCAL_CGQ_OFFSET =
     SND_LOCAL_SIZE - 2 * sizeof(SndQueue);
-#pragma pack(push, 1)
-partial_def(SND_LOCAL_SIZE, struct, SndLocal, {
+PACKED(partial_def(SND_LOCAL_SIZE, struct, SndLocal, {
   inline_partial_def(0, SND_LOCAL_CGQ_OFFSET, struct, {
     int32_t magic;
     qboolean init;
@@ -530,7 +498,7 @@ partial_def(SND_LOCAL_SIZE, struct, SndLocal, {
    global (function-specific, static variable) that is allocated just after
    SNDQ. Either an alignment change, or size of non-pointer field(s) change.
   */
-});
+}));
 static_assert(offsetof(SndLocal, CGQ) == SND_LOCAL_CGQ_OFFSET);
 static_assert(offsetof(SndLocal, SNDQ) ==
               SND_LOCAL_CGQ_OFFSET + sizeof(SndQueue));
@@ -542,11 +510,9 @@ ASSERT_SIZE(SndLocal, SND_LOCAL_SIZE);
     - Real memory addresses of definite-last field in g_snd and definite-first
 field in g_snd
 */
-#pragma pack(pop)
 
 // Not verified to be correct.
-#pragma pack(push, 1)
-struct SndAlias {
+PACKED(struct SndAlias {
   const char *name;
   SndStringHash id;
   uint8_t _padding0C[4];
@@ -610,21 +576,16 @@ struct SndAlias {
   uint8_t duckGroup;
   uint8_t bus;
   uint8_t _paddingD7[1];
-};
-#pragma pack(pop)
+});
 
 // correct
-#pragma pack(push, 1)
-struct SndIndexEntry {
+PACKED(struct SndIndexEntry {
   uint16_t value;
   uint16_t next;
-};
-#pragma pack(pop)
+});
 
 // correct
-// sizeof=0x28
-#pragma pack(push, 1)
-struct SndAliasList : db::xasset::NamedXAsset {
+PACKED(struct SndAliasList : db::xasset::NamedXAsset {
   SndAliasId id;
   uint8_t _padding0C[4];
   SndAlias *head; // correct
@@ -632,39 +593,31 @@ struct SndAliasList : db::xasset::NamedXAsset {
   uint32_t sequence;
   float cullDistance;
   qboolean spatial;
-};
-#pragma pack(pop)
+});
 ASSERT_SIZE(SndAliasList, 0x28);
 
-#pragma pack(push, 1)
 // Correct
-struct SndPatch : db::xasset::NamedXAsset {
+PACKED(struct SndPatch : db::xasset::NamedXAsset {
   uint64_t elementCount;
   uint32_t *elements;
-};
+});
 ASSERT_SIZE(SndPatch, 0x18);
-#pragma pack(pop)
 
-#pragma pack(push, 1)
-struct SndAliasLookupNode {
+PACKED(struct SndAliasLookupNode {
   SndStringHash id;
   uint8_t _padding04[4];
   SndAliasList *list;
-};
+});
 ASSERT_SIZE(SndAliasLookupNode, 0x10);
-#pragma pack(pop)
 
-#pragma pack(push, 1)
-// sizeof=0xFE20
-struct SndAliasLookupCache {
+PACKED(struct SndAliasLookupCache {
   uint32_t hit;
   uint32_t miss;
   uint32_t collision;
   uint8_t _padding0C[4];
   SndAliasLookupNode cache[4065];
-};
+});
 ASSERT_SIZE(SndAliasLookupCache, 0xFE20);
-#pragma pack(pop)
 
 enum class SndFileLoadingState : int32_t {
   SFLS_UNLOADED = 0x0,
@@ -672,8 +625,7 @@ enum class SndFileLoadingState : int32_t {
   SFLS_LOADED = 0x2,
 };
 
-#pragma pack(push, 1)
-union SndEntHandle {
+PACKED(union SndEntHandle {
   struct {
     uint64_t entIndex : 12;
     uint64_t fxIndex : 16;
@@ -686,12 +638,10 @@ union SndEntHandle {
     uint64_t pad : 15;
   } field;
   uint64_t handle;
-};
-#pragma pack(pop)
+});
 
 // Not yet known to be correct.
-#pragma pack(push, 1)
-struct SndAmbient {
+PACKED(struct SndAmbient {
   char name[64];
   SndStringHash id;
   qboolean defaultRoom;
@@ -714,13 +664,11 @@ struct SndAmbient {
   SndStringHash entityContextValue2;
   SndStringHash globalContextType;
   SndStringHash globalContextValue;
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
 struct SndEntState;
 // Known correct.
-struct SndEntState {
+PACKED(struct SndEntState {
   SndStringHash contexts[64];
   SndEntHandle handle;
   SndEntState *next;
@@ -731,11 +679,9 @@ struct SndEntState {
   vec3_t velocity;
   uint32_t lastUsed;
   uint32_t hasPosition;
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
-struct SndListener {
+PACKED(struct SndListener {
   SndEntHandle entHandle;
   orientation_t orient;
   ClientNum_t clientNum;
@@ -744,12 +690,10 @@ struct SndListener {
   team_t team;
   float distanceTraveled;
   uint8_t _padding4C[4];
-};
-#pragma pack(pop)
+});
 
 // sizeof=0x88
-#pragma pack(push, 1)
-struct SndDuck {
+PACKED(struct SndDuck {
   char name[64]; // Correct
   SndStringHash id;
   float fadeIn;
@@ -767,13 +711,11 @@ struct SndDuck {
   float aliasAttenuation;
   float aliasLpf;
   SndStringHash duckAlias;
-};
-#pragma pack(pop)
+});
 
 struct SndVoice;
 
-#pragma pack(push, 1)
-struct SndDuckActive {
+PACKED(struct SndDuckActive {
   const SndDuck *duck; // correct
   SndVoice *voice;     // correct
   SndDuckCategoryType category;
@@ -786,11 +728,9 @@ struct SndDuckActive {
   float amount;
   float effect;
   float amplitude;
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
-struct SndPlayState {
+PACKED(struct SndPlayState {
   SndEntHandle entHandle;
   vec3_t position;
   vec3_t direction;
@@ -810,41 +750,31 @@ struct SndPlayState {
   uint32_t fireTimeMs;
   SndCallLocation location;
   int32_t gpadFlags;
-};
-#pragma pack(pop)
+});
 
 typedef void *SndLengthNotifyData;
-#pragma pack(push, 1)
-struct SndLengthNotifyInfo {
+PACKED(struct SndLengthNotifyInfo {
   SndLengthType id[4];
   SndLengthNotifyData data[4];
   int32_t count;
   uint8_t _padding[4];
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
-struct SndFader {
+PACKED(struct SndFader {
   float value;
   float goal;
   float rate;
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
-
-struct SndSpeakerMap {
+PACKED(struct SndSpeakerMap {
   int32_t inputChannelCount;
   int32_t outputChannelCount;
   float volumes[16];
-};
-
-#pragma pack(pop)
+});
 
 // Correct.
-#pragma pack(push, 1)
 struct SndPlayback;
-struct SndPlayback {
+PACKED(struct SndPlayback {
   SndPlaybackId id;
   float attenuation;
   int32_t lengthMs;
@@ -853,15 +783,13 @@ struct SndPlayback {
   int32_t use;
   SndEntHandle entHandle;
   SndPlayback *next;
-};
+});
 ASSERT_SIZE(SndPlayback, 0x28);
-#pragma pack(pop)
 
-#pragma pack(push, 1)
 // Length known correct, and all but the SndFade fields are verified to be
 // correct, though not necessarily the fields contained within structs
 // included by pointers here; see those structs for verification progress.
-struct SndVoice {
+PACKED(struct SndVoice {
   SndPlayState state;
   SndFileLoadingState loadingState;
   int32_t assetChannelCount;
@@ -933,7 +861,7 @@ struct SndVoice {
   bool continueLoop;
   bool softStop;
   bool isSilent;
-};
+});
 
 // Correct
 enum class SndMusicStateStatus : uint32_t {
@@ -943,7 +871,7 @@ enum class SndMusicStateStatus : uint32_t {
 
 // Unverified.
 // Size: 0x8C
-struct SndMusicAsset {
+PACKED(struct SndMusicAsset {
   char alias[64];
   SndStringHash aliasId;
   qboolean looping;
@@ -964,7 +892,7 @@ struct SndMusicAsset {
   int32_t stopFadeBeats;
   int32_t startOffsetFrames;
   int32_t meter;
-};
+});
 ASSERT_SIZE(SndMusicAsset, 0x8C);
 
 /*
@@ -973,7 +901,7 @@ ASSERT_SIZE(SndMusicAsset, 0x8C);
   `isSequential`, and `skipPreviousExit` are known to be correct.
 */
 // sizeof=0x178
-struct SndMusicState {
+PACKED(struct SndMusicState {
   char name[64];
   SndStringHash id;
   SndMusicAsset intro;
@@ -987,7 +915,7 @@ struct SndMusicState {
   uint8_t _padding16F[1];
   SndMusicStateStatus status;
   uint8_t _padding174[4];
-};
+});
 ASSERT_SIZE(SndMusicState, 0x178);
 
 // Unverified.
@@ -1000,35 +928,35 @@ struct SndMusicSet {
 ASSERT_SIZE(SndMusicSet, 0x50);
 
 // Unverified.
-struct SndAmbientBspVolume {
+PACKED(struct SndAmbientBspVolume {
   uint32_t id;
   int32_t planeIndex;
   int32_t planeCount;
-};
+});
 ASSERT_SIZE(SndAmbientBspVolume, 0xC);
 
 // Unverified.
-struct SndAmbientBspTrigger {
+PACKED(struct SndAmbientBspTrigger {
   uint32_t id;
   int32_t priority;
   SndStringHash roomId;
   char roomName[64];
-};
+});
 ASSERT_SIZE(SndAmbientBspTrigger, 0x4C);
 
 // Unverified.
 // sizeof=0x20
-struct SndAmbientBspNode {
+PACKED(struct SndAmbientBspNode {
   vec4_t split;
   int32_t frontIndex;
   int32_t backIndex;
   int32_t frontCount;
   int32_t backCount;
-};
+});
 ASSERT_SIZE(SndAmbientBspNode, 0x20);
 
 // sizeof=0x22020
-struct SndAmbientBsp {
+PACKED(struct SndAmbientBsp {
   SndAmbientBspNode nodes[512];
   int32_t numNodes;
   uint8_t _padding4004[12];
@@ -1039,22 +967,22 @@ struct SndAmbientBsp {
   SndAmbientBspTrigger triggers[1024];
   int32_t numTriggers;
   uint8_t __padding2201C[4];
-};
+});
 ASSERT_SIZE(SndAmbientBsp, 0x22020);
 
 // Unverified.
-struct SndReverbEarly {
+PACKED(struct SndReverbEarly {
   float preDelayMs;
   float inputLpf;
   float feedback;
   float smear;
   float baseDelayMs;
   float returnDB;
-};
+});
 ASSERT_SIZE(SndReverbEarly, 0x18);
 
 // Unverified.
-struct SndReverbLate {
+PACKED(struct SndReverbLate {
   float inputLpf;
   float feedback;
   float returnDB;
@@ -1063,29 +991,29 @@ struct SndReverbLate {
   float decayTime;
   float smear;
   float preDelayMs;
-};
+});
 ASSERT_SIZE(SndReverbLate, 0x20);
 
 // Unverified.
-struct SndReverb {
+PACKED(struct SndReverb {
   char name[64];
   SndStringHash id;
   float masterReturn;
   SndReverbEarly earlyVerb;
   SndReverbLate nearVerb;
   SndReverbLate farVerb;
-};
+});
 ASSERT_SIZE(SndReverb, 0xA0);
 
 // Unverified. Most likely unchanged.
-struct SndDialogScriptIdLookup {
+PACKED(struct SndDialogScriptIdLookup {
   SndStringHash scriptId;
   SndStringHash aliasId;
-};
+});
 ASSERT_SIZE(SndDialogScriptIdLookup, 0x8);
 
 // Correct! Must be length 0x220B0.
-struct SndBank : db::xasset::NamedXAsset {
+PACKED(struct SndBank : db::xasset::NamedXAsset {
   const char *zone;
   const char *gameLanguage;
   const char *soundLanguage;
@@ -1110,18 +1038,12 @@ struct SndBank : db::xasset::NamedXAsset {
   uint32_t musicSetCount;
   uint8_t _padding220A4[4];
   SndMusicSet *musicSets;
-};
+});
 ASSERT_SIZE(SndBank, 0x220B0);
 typedef SndBank *SndBankPtr;
 
-#pragma pack(pop)
-
 // Correct.
-
-#pragma pack(push, 1)
-
-// sizeof=x01278, verified
-struct SndBankLoad {
+PACKED(struct SndBankLoad {
   const SndBank *bank;
   SndAssetBankLoad streamAssetBank;
   SndAssetBankLoad loadAssetBank;
@@ -1148,14 +1070,12 @@ struct SndBankLoad {
   inline constexpr const char *zone() const noexcept {
     return bank ? bank->zone : nullptr;
   }
-};
+});
 
 ASSERT_SIZE(SndBankLoad, 0x1278);
-#pragma pack(pop)
 
-#pragma pack(push, 1)
 // sizeof=0x39594
-struct SndBankGlobals {
+PACKED(struct SndBankGlobals {
   uint32_t bankMagic;
   uint32_t bankCount;
   uint32_t patchCount;
@@ -1172,23 +1092,19 @@ struct SndBankGlobals {
   uint32_t headerMagic;
   float assetLoadPercent;
   uint8_t _padding317F8[8];
-};
+});
 ASSERT_SIZE(SndBankGlobals, 0x39594);
-#pragma pack(pop)
 
 // Not yet verified to be correct.
-#pragma pack(push, 1)
-struct snd_fire_manager {
+PACKED(struct snd_fire_manager {
   int active;
   vec3_t location;
   float level;
   int id;
-};
-#pragma pack(pop)
+});
 ASSERT_SIZE(snd_fire_manager, 0x18);
 
-#pragma pack(push, 1)
-struct snd_weapon_shot {
+PACKED(struct snd_weapon_shot {
   LocalClientNum_t localClientNum;
   uint8_t _padding04[4];
   SndEntHandle shooter;
@@ -1205,10 +1121,10 @@ struct snd_weapon_shot {
   bool doubleTap;
   bool fakeFire;
   bool firstShotOfBurst;
-};
+});
 ASSERT_SIZE(snd_weapon_shot, 0x40);
 
-struct snd_autosim {
+PACKED(struct snd_autosim {
   snd_weapon_shot shot;
   uint32_t lastPing;
   uint32_t lastShot;
@@ -1217,66 +1133,64 @@ struct snd_autosim {
   uint16_t eventCount;
   int32_t used;
   int32_t isNew;
-};
+});
 ASSERT_SIZE(snd_autosim, 0x58);
 
-struct snd_autosim_play {
+PACKED(struct snd_autosim_play {
   uint32_t frame;
   uint8_t _padding04[4];
   snd_weapon_shot shot;
-};
+});
 ASSERT_SIZE(snd_autosim_play, 0x48);
 
 // sizeof=0x18
-struct EntityImpactPositions {
-  uint32_t entityImpactPositions[6];
-};
+PACKED(struct EntityImpactPositions { uint32_t entityImpactPositions[6]; });
 ASSERT_SIZE(EntityImpactPositions, 0x18);
 
 // sizeof=0x110
-struct EntitySoundImpacts {
+PACKED(struct EntitySoundImpacts {
   const char *name;
   EntityImpactPositions entityImpacts[11];
-};
+});
 ASSERT_SIZE(EntitySoundImpacts, 0x110);
 
 // sizeof=0xA8
-struct SurfaceSoundDef {
+PACKED(struct SurfaceSoundDef {
   const char *name;
   snd::SndAliasId surfaceSound[40];
-};
+});
 ASSERT_SIZE(SurfaceSoundDef, 0xA8);
 
 typedef SurfaceSoundDef *SurfaceSoundDefPtr;
 typedef EntitySoundImpacts *EntitySoundImpactsPtr;
 // sizeof=0x20
-struct SoundsImpactTable {
+PACKED(struct SoundsImpactTable {
   const char *name;
   SurfaceSoundDefPtr surfaceSoundTable;
   EntitySoundImpactsPtr entitySoundImpacts;
   EntitySoundImpactsPtr victimSoundImpacts;
-};
+});
 ASSERT_SIZE(SoundsImpactTable, 0x20);
 
 typedef SoundsImpactTable *SoundsImpactTablePtr;
 
 // sizeof=0x20
-struct SndEntLoop {
+PACKED(struct SndEntLoop {
   SndAliasId id;
   uint8_t _padding04[4];
   SndEntHandle handle;
   vec3_t origin;
   int32_t fade;
-};
+});
 ASSERT_SIZE(SndEntLoop, 0x20);
 
 // sizeof=0x14
-struct SndOcclusionStartCache {
+PACKED(struct SndOcclusionStartCache {
   vec3_t position;
   float value;
   bool valid;
   uint8_t _padding11[3];
-};
+});
 ASSERT_SIZE(SndOcclusionStartCache, 0x14);
 
 enum class SndMusicAssetPlaybackState : int32_t {
@@ -1287,7 +1201,7 @@ enum class SndMusicAssetPlaybackState : int32_t {
 };
 
 // sizeof=0x28
-struct SndMusicAssetInstance {
+PACKED(struct SndMusicAssetInstance {
   const SndMusicAsset *asset;
   const SndMusicState *state;
   SndPlaybackId id;
@@ -1297,19 +1211,15 @@ struct SndMusicAssetInstance {
   int queuedNextLoop;
 
   uint8_t _padding24[4];
-};
+});
 ASSERT_SIZE(SndMusicAssetInstance, 0x28);
-#pragma pack(pop)
-#pragma pack(push, 1)
 
-struct LoopSoundInfo {
+PACKED(struct LoopSoundInfo {
   SndAliasId id;
   int16_t fade;
   uint8_t _padding06[2];
-};
+});
 ASSERT_SIZE(LoopSoundInfo, 0x8);
-#pragma pack(pop)
 
 } // namespace snd
 } // namespace game
-#endif

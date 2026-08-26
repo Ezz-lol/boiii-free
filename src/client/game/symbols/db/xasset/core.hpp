@@ -7,10 +7,6 @@
 namespace game {
 namespace db {
 namespace xasset {
-
-WEAK symbol<XAssetPools> s_assetPools{0x1494093F0, 0x1468F84E0};
-WEAK symbol<XAssetEntryPool> g_assetEntryPool{0x1494C7B80, 0x1469BB270};
-
 WEAK symbol<void(XAssetType type, XAssetEnum *func, void *inData,
                  bool includeOverride)>
     DB_EnumXAssets{0x141420970, 0x1401D5A50};
@@ -23,7 +19,6 @@ WEAK symbol<int(XAssetType type)> DB_GetXAssetTypeSize{0x1413E9DD0,
                                                        0x14019F0B0};
 WEAK symbol<bool(XAssetType type, const char *name)> DB_IsXAssetDefault{
     0x141422140, 0x1401D7260};
-
 } // namespace xasset
 } // namespace db
 } // namespace game

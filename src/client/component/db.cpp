@@ -86,7 +86,7 @@ utils::hook::detour Image_AssignDefaultTexture_hook;
 bool Image_AssignDefaultTexture_SkipMissingVTable(gfx::GfxImage *to,
                                                   gfx::GfxImage *from) {
   if (nonnull(to) && nonnull(from) &&
-      (!s_assetPools->typed.image.contains(to) ||
+      (!pool::s_assetPools->typed.image.contains(to) ||
        (nonnull(to->texture.basemap) &&
         nonnull(to->texture.basemap->lpVtbl)))) {
     return Image_AssignDefaultTexture_hook.invoke<bool>(to, from);

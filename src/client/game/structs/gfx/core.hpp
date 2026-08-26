@@ -250,12 +250,12 @@ struct GfxImage {
   uint32_t fallbackSize;
   GfxPixelFormat format;
   uint8_t _paddingEC[4];
-  const char *name;
-  uint32_t hash;
-  uint8_t _paddingFC[4];
   // This might not be here, but the struct has size
   // 0x100 otherwise - correct size is known to be 0x108.
   uint8_t _unknown100[8];
+  const char *name;
+  uint32_t hash;
+  uint8_t _paddingFC[4];
 };
 ASSERT_SIZE(GfxImage, 0x108);
 #pragma pack(pop)

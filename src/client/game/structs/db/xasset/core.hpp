@@ -7,6 +7,16 @@
 
 namespace game {
 
+namespace ddl {
+struct DDLDef;
+}
+
+namespace bg {
+namespace cache {
+struct BGCacheInfo;
+}
+} // namespace bg
+
 namespace scr {
 typedef uint32_t ScrString_t;
 struct ScriptParseTree;
@@ -25,8 +35,27 @@ struct SndDriverGlobals;
 typedef uint32_t SndAliasId;
 
 } // namespace snd
+
+namespace cm {
+struct clipMap_t;
+}
+
 namespace db {
 namespace xasset {
+
+namespace ttf {
+struct TTFDef;
+}
+
+namespace font {
+struct FontIcon;
+struct Font_s;
+typedef Font_s Font;
+} // namespace font
+
+namespace world {
+struct GameWorld;
+}
 
 struct RumbleInfo;
 typedef RumbleInfo *RumbleInfoPtr;
@@ -179,17 +208,19 @@ enum class XAssetType : int32_t {
   DEPEND = 0x68,
   FULL_COUNT = 0x6C,
 };
+IMPL_ENUM_OPERATORS(XAssetType);
 
 struct AssetLink;
 struct AssetLink {
   AssetLink *next;
 };
 
-struct XAssetPool {
+PACKED(struct XAssetPool {
   void *pool;
   uint32_t itemSize;
   int32_t itemCount;
-  qboolean isSingleton;
+  bool isSingleton;
+  uint8_t _padding11[3];
   int32_t itemAllocCount;
   AssetLink *freeHead;
 
@@ -201,7 +232,7 @@ struct XAssetPool {
   template <typename P> inline bool contains(const P *ptr) const noexcept {
     return contains(reinterpret_cast<uintptr_t>(ptr));
   }
-};
+});
 
 template <typename T> struct TypedXAssetPool {
   T *pool;
@@ -736,6 +767,90 @@ struct XAnimTree;
 
 struct LocalizeEntry;
 
+// TODO
+struct PlayerRoleTemplate;
+typedef PlayerRoleTemplate *PlayerRoleTemplatePtr;
+PACKED(struct PlayerRoleLevels {
+  bool enabled;
+  uint8_t _padding01[3];
+  uint32_t numLevels;
+  PlayerRoleTemplatePtr *levels;
+});
+
+// TODO
+struct CharacterHead;
+
+typedef PlayerRoleLevels *PlayerRoleLevelsPtr;
+// Verified
+PACKED(struct CustomizationTable {
+  const char *name;
+  uint32_t numPlayerRoles;
+  uint8_t _padding0C[4];
+  PlayerRoleLevelsPtr *playerRoles;
+  uint32_t numHeads;
+  uint8_t _padding1C[4];
+  CharacterHead *heads;
+});
+ASSERT_SIZE(CustomizationTable, 0x28);
+
+struct CamoBaseMaterial {
+  MaterialHandle material;
+  gfx::GfxImage *mask;
+};
+
+struct CamoMaterial {
+  uint16_t replaceFlags;
+  uint16_t numBaseMaterials;
+  CamoBaseMaterial *baseMaterials;
+  MaterialHandle camoMaterial;
+  float translationX;
+  float translationY;
+  float scaleX;
+  float scaleY;
+  float rotation;
+  float normalBlend;
+  float glossBlend;
+  gfx::GfxColor albedoTint;
+  vec2_t glossRange;
+  vec_t specColor;
+  vec_t specOffset;
+};
+
+struct CharacterBodyType_FrontendImages {
+  gfx::GfxImageHandle background;
+  gfx::GfxImageHandle backgroundWithCharacter;
+  gfx::GfxImageHandle lockedImage;
+  gfx::GfxImageHandle personalizeRender;
+  gfx::GfxImageHandle frozenMomentRender;
+  gfx::GfxImageHandle frozenMomentOverlay;
+  gfx::GfxImage *equippedLoadoutIcons[2];
+  gfx::GfxImage *unequippedLoadoutIcons[2];
+  gfx::GfxImageHandle cardBackIcon;
+  gfx::GfxImageHandle weaponCardBackIcon;
+  gfx::GfxImageHandle weaponCardBackSubIcon;
+  gfx::GfxImageHandle abilityCardBackIcon;
+  gfx::GfxImageHandle abilityCardBackSubIcon;
+};
+
+// Verified
+struct CustomizationTable_FEImages {
+  const char *name;
+  uint32_t numBodyTypes;
+  CharacterBodyType_FrontendImages *bodyTypes;
+};
+ASSERT_SIZE(CustomizationTable_FEImages, 0x18);
+
+// Verified
+struct CustomizationColorInfo {
+  const char *name;
+  XString displayName;
+  gfx::GfxColor uiColor;
+  gfx::GfxImage *icon;
+  uint32_t numCamoMaterials;
+  CamoMaterial *camoMaterials;
+};
+ASSERT_SIZE(CustomizationColorInfo, 0x30);
+
 union XAssetHeader {
   NamedXAsset *named;
   // PhysPreset *physPreset;
@@ -750,22 +865,23 @@ union XAssetHeader {
   gfx::GfxImage *image;
   snd::SndBank *sound;
   snd::SndPatch *soundPatch;
-  // clipMap_t *clipMap;
+  cm::clipMap_t *clipMap;
   // ComWorld *comWorld;
-  // GameWorld *gameWorld;
+  world::GameWorld *gameWorld;
   // MapEnts *mapEnts;
   // GfxWorld *gfxWorld;
   // GfxLightDef *lightDef;
   // GfxLensFlareDef *lensFlareDef;
-  // Font *font;
-  // FontIcon *fontIcon;
+  font::Font *font;
+  font::FontIcon *fontIcon;
   LocalizeEntry *localize;
   // WeaponVariantDef *weapon;
   // WeaponAttachment *attachment;
   // WeaponAttachmentUnique *attachmentUnique;
   // WeaponCamo *weaponCamo;
-  // CustomizationTable *customizationTable;
-  // CustomizationColorInfo *customizationColorInfo;
+  CustomizationTable *customizationTable;
+  CustomizationTable_FEImages *customizationTable_feimages;
+  CustomizationColorInfo *customizationColorInfo;
   snd::SndDriverGlobals *sndDriverGlobals;
   // FxEffectDefHandleRaw fx;
   // TagFxSet *tagFX;
@@ -783,7 +899,7 @@ union XAssetHeader {
   // StringTable *stringTable;
   // StructuredTable *structuredTable;
   // LeaderboardDef *leaderboardDef;
-  // DDLRoot *ddlRoot;
+  ddl::DDLDef *ddl;
   // Glasses *glasses;
   // TextureList *textureList;
   scr::ScriptParseTree *scriptParseTree;
@@ -817,12 +933,12 @@ union XAssetHeader {
   // AnimStateMachine *animStateMachine;
   // BehaviorTree *behaviorTree;
   // BehaviorStateMachine *behaviorStateMachine;
-  // TTFDef *ttfDef;
+  ttf::TTFDef *ttfDef;
   // GfxSiegeAnim *sanim;
   // GfxLightDescription *lightDescription;
   // ShellshockParams *shellshock;
   // XCam *xcam;
-  // BGCacheInfo *bgCache;
+  bg::cache::BGCacheInfo *bgCache;
   // TextureCombo *textureCombo;
   // FlameTable *flameTable;
   // Bitfield *bitfield;
@@ -880,152 +996,6 @@ ASSERT_SIZE(XAssetEntry, 0x20);
 typedef XAssetEntry *XAssetEntryPtr;
 #pragma pack(pop)
 
-union XAssetEntryPoolEntry;
-union XAssetEntryPoolEntry {
-  XAssetEntry entry;
-  XAssetEntryPoolEntry *next;
-};
-ASSERT_SIZE(XAssetEntryPoolEntry, 0x20);
-constexpr std::size_t XASSET_ENTRY_POOL_LENGTH = 156671;
-
-#pragma pack(push, 1)
-struct XAssetEntryPool {
-  XAssetEntryPoolEntry pool[XASSET_ENTRY_POOL_LENGTH];
-};
-
-#pragma pack(pop)
-
-#pragma pack(push, 1)
-
-struct TypedXAssetPools {
-  XAssetPool physpreset;
-  XAssetPool physconstraints;
-  XAssetPool destructibledef;
-  XAssetPool xanimparts;
-  XAssetPool xmodel;
-  XAssetPool xmodelmesh;
-  XAssetPool material;
-  XAssetPool compute_shader_set;
-  XAssetPool technique_set;
-  TypedXAssetPool<gfx::GfxImage> image;
-  TypedXAssetPool<snd::SndBank> sound;
-  TypedXAssetPool<snd::SndPatch> sound_patch;
-  XAssetPool clipmap;
-  XAssetPool comworld;
-  XAssetPool gameworld;
-  XAssetPool map_ents;
-  XAssetPool gfxworld;
-  XAssetPool light_def;
-  XAssetPool lensflare_def;
-  XAssetPool ui_map;
-  XAssetPool font;
-  XAssetPool fonticon;
-  XAssetPool localize_entry;
-  XAssetPool weapon;
-  XAssetPool weapondef;
-  XAssetPool weapon_variant;
-  XAssetPool weapon_full;
-  XAssetPool cgmedia;
-  XAssetPool playersounds;
-  XAssetPool playerfx;
-  XAssetPool sharedweaponsounds;
-  XAssetPool attachment;
-  XAssetPool attachment_unique;
-  XAssetPool weapon_camo;
-  XAssetPool customization_table;
-  XAssetPool customization_table_fe_images;
-  XAssetPool customization_table_color;
-  TypedXAssetPool<snd::SndDriverGlobals> snddriver_globals;
-  XAssetPool fx;
-  XAssetPool tagfx;
-  XAssetPool new_lensflare_def;
-  XAssetPool impact_fx;
-  XAssetPool impact_sound;
-  XAssetPool player_character;
-  XAssetPool aitype;
-  XAssetPool character;
-  XAssetPool xmodelalias;
-  TypedXAssetPool<RawFile> rawfile;
-  XAssetPool stringtable;
-  XAssetPool structured_table;
-  XAssetPool leaderboard;
-  XAssetPool ddl;
-  XAssetPool glasses;
-  XAssetPool texturelist;
-  TypedXAssetPool<scr::ScriptParseTree> scriptparsetree;
-  XAssetPool keyvaluepairs;
-  XAssetPool vehicledef;
-  XAssetPool addon_map_ents;
-  XAssetPool tracer;
-  XAssetPool slug;
-  XAssetPool surfacefx_table;
-  XAssetPool surfacesounddef;
-  XAssetPool footstep_table;
-  XAssetPool entityfximpacts;
-  XAssetPool entitysoundimpacts;
-  XAssetPool zbarrier;
-  XAssetPool vehiclefxdef;
-  XAssetPool vehiclesounddef;
-  XAssetPool typeinfo;
-  XAssetPool scriptbundle;
-  XAssetPool scriptbundlelist;
-  XAssetPool rumble;
-  XAssetPool bulletpenetration;
-  XAssetPool locdmgtable;
-  XAssetPool aimtable;
-  XAssetPool animselectortableset;
-  XAssetPool animmappingtable;
-  XAssetPool animstatemachine;
-  XAssetPool behaviortree;
-  XAssetPool behaviorstatemachine;
-  XAssetPool ttf;
-  XAssetPool sanim;
-  XAssetPool light_description;
-  XAssetPool shellshock;
-  XAssetPool xcam;
-  XAssetPool bg_cache;
-  XAssetPool texture_combo;
-  XAssetPool flametable;
-  XAssetPool bitfield;
-  XAssetPool attachment_cosmetic_variant;
-  TypedXAssetPool<maptable::MapTable> maptable;
-  XAssetPool maptable_loading_images;
-  XAssetPool medal;
-  XAssetPool medaltable;
-  XAssetPool objective;
-  XAssetPool objective_list;
-  XAssetPool umbra_tome;
-  XAssetPool navmesh;
-  XAssetPool navvolume;
-  XAssetPool binaryhtml;
-  XAssetPool laser;
-  XAssetPool beam;
-  XAssetPool streamer_hint;
-};
-
-#pragma pack(pop)
-
-#pragma pack(push, 1)
-
-union XAssetPools {
-  XAssetPool pools[static_cast<int>(XAssetType::COUNT)];
-  TypedXAssetPools typed;
-
-  inline bool contains(uintptr_t ptr) const noexcept {
-    const uintptr_t this_ptr = reinterpret_cast<uintptr_t>(this);
-    return ptr >= this_ptr && ptr < (this_ptr + sizeof(XAssetPools));
-  }
-
-  template <typename P> inline bool contains(const P *ptr) const noexcept {
-    return contains(reinterpret_cast<uintptr_t>(ptr));
-  }
-};
-static_assert(sizeof(XAssetPools) ==
-                  sizeof(XAssetPool) * static_cast<int>(XAssetType::COUNT),
-              "sizeof(XAssetPools) must be sizeof(XAssetPool) * COUNT");
-ASSERT_SIZE(XAssetPools, sizeof(TypedXAssetPools));
-#pragma pack(pop)
-
 struct ManagedNotetrack_t {
   scr::ScrString_t elemType;
   scr::ScrString_t param1;
@@ -1080,7 +1050,7 @@ PACKED(struct LocalizeEntry {
   const char *value;
   const char *name;
 });
-ASSERT_SIZE(LocalizeEntry, 16);
+ASSERT_SIZE(LocalizeEntry, 0x10);
 
 struct accoladeCache {
   uint8_t accoladeIndex;

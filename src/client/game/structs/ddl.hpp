@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include <structs/func.hpp>
+#include <game/structs/macros.hpp>
 
 namespace game {
 
@@ -69,6 +70,7 @@ struct DDLDef {
   int32_t userFlagsSize;
   bool paddingUsed;
 };
+ASSERT_SIZE(DDLDef, 0x60);
 
 struct DDLContext;
 typedef fastcallPtr_t<void(DDLContext *ctx, void *data)> DDLWriteCB;
