@@ -3,6 +3,10 @@
 #include <cstdint>
 #include <span>
 #include <vector>
+#include <cassert>
+#include <array>
+#include <type_traits>
+
 #include "../core.hpp"
 #include "../weapon.hpp"
 #include "game/structs/scr/primitives.hpp"
@@ -19,11 +23,6 @@ struct HunkUser;
 }
 namespace scr {
 typedef str<272> scr_path_t;
-
-#include <cstdint>
-#include <cassert>
-#include <array>
-#include <type_traits>
 
 // Primary template declaration
 template <typename T,

@@ -2,8 +2,11 @@
 #define GAME_STRUCTS_DB_XASSETS_HPP
 
 #include <cstdint>
-#include "../../quake/core.hpp"
-#include "../../gfx/gfx.hpp"
+#ifndef NDEBUG
+#include <string>
+#include <format>
+#endif
+#include <game/structs/gfx/gfx.hpp>
 
 namespace game {
 
@@ -55,7 +58,9 @@ typedef Font_s Font;
 
 namespace world {
 struct GameWorld;
-}
+struct GfxWorld;
+struct ComWorld;
+} // namespace world
 
 struct RumbleInfo;
 typedef RumbleInfo *RumbleInfoPtr;
@@ -122,8 +127,11 @@ enum class XAssetType : int32_t {
   FONTICON = 0x15,
   LOCALIZE_ENTRY = 0x16,
   WEAPON = 0x17,
+  // Probably `WeaponDef`
   WEAPONDEF = 0x18,
+  // Probably `WeaponVariantDef`
   WEAPON_VARIANT = 0x19,
+  // Probably `WeaponFullDef`
   WEAPON_FULL = 0x1A,
   CGMEDIA = 0x1B,
   PLAYERSOUNDS = 0x1C,
@@ -232,6 +240,17 @@ PACKED(struct XAssetPool {
   template <typename P> inline bool contains(const P *ptr) const noexcept {
     return contains(reinterpret_cast<uintptr_t>(ptr));
   }
+
+#ifndef NDEBUG
+  inline constexpr std::string serialize() const noexcept {
+    return std::format("XAssetPool {{ \"pool\": 0x{:p}, \"itemSize\": 0x{:X}, "
+                       "\"itemCount\": 0x{:X}, \"isSingleton\": {}, "
+                       "\"itemAllocCount\": 0x{:X}, \"freeHead\": 0x{:p} }}",
+                       pool, itemSize, itemCount,
+                       isSingleton ? "true" : "false", itemAllocCount,
+                       static_cast<void *>(freeHead));
+  }
+#endif
 });
 
 template <typename T> struct TypedXAssetPool {
@@ -251,9 +270,22 @@ template <typename T> struct TypedXAssetPool {
   template <typename P> inline bool contains(const P *ptr) const noexcept {
     return contains(reinterpret_cast<uintptr_t>(ptr));
   }
+
+#ifndef NDEBUG
+  inline constexpr std::string serialize() const noexcept {
+    return std::format(
+        "TypedXAssetPool<{}> {{ \"pool\": 0x{:p}, \"itemSize\": 0x{:X}, "
+        "\"itemCount\": 0x{:X}, \"isSingleton\": {}, "
+        "\"itemAllocCount\": 0x{:X}, \"freeHead\": 0x{:p} }}",
+        reflect_name<T>(), static_cast<void *>(pool), itemSize, itemCount,
+        isSingleton ? "true" : "false", itemAllocCount,
+        static_cast<void *>(freeHead));
+  }
+#endif
 };
 
 ASSERT_SIZE(XAssetPool, 0x20);
+ASSERT_SIZE(TypedXAssetPool<void>, sizeof(XAssetPool));
 PACKED(struct ScriptStringList {
   int count;
   uint8_t _padding04[4];
@@ -843,6 +875,23 @@ struct CustomizationColorInfo {
 };
 ASSERT_SIZE(CustomizationColorInfo, 0x30);
 
+struct XSurface;
+typedef int XPartBits[12];
+// Verified
+struct __declspec(align(4)) XModelMesh {
+  const char *name;
+  XSurface *surfs;
+  XSurfaceShared *shared;
+  XPakEntryInfo xpakEntry;
+  XPartBits partBits;
+  float avgRenderTriArea;
+  float avgCollisionTriArea;
+  uint32_t nameHash;
+  uint8_t numSurfs;
+  uint8_t lodEstimate;
+};
+ASSERT_SIZE(XModelMesh, 0x78);
+
 union XAssetHeader {
   NamedXAsset *named;
   // PhysPreset *physPreset;
@@ -850,7 +899,7 @@ union XAssetHeader {
   // DestructibleDef *destructibleDef;
   // XAnimParts *parts;
   // XModel *model;
-  // XModelMesh *modelMesh;
+  XModelMesh *modelMesh;
   // Material *material;
   // MaterialComputeShaderSet *computeShaderSet;
   MaterialTechniqueSet *techniqueSet;
@@ -858,12 +907,12 @@ union XAssetHeader {
   snd::SndBank *sound;
   snd::SndPatch *soundPatch;
   cm::clipMap_t *clipMap;
-  // ComWorld *comWorld;
+  world::ComWorld *comWorld;
   world::GameWorld *gameWorld;
   // MapEnts *mapEnts;
-  // GfxWorld *gfxWorld;
-  // GfxLightDef *lightDef;
-  // GfxLensFlareDef *lensFlareDef;
+  world::GfxWorld *gfxWorld;
+  gfx::GfxLightDef *lightDef;
+  // gfx::GfxLensFlareDef *lensFlareDef;
   font::Font *font;
   font::FontIcon *fontIcon;
   LocalizeEntry *localize;

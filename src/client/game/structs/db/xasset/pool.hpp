@@ -38,7 +38,7 @@ struct TypedXAssetPools {
   XAssetPool destructibledef;
   XAssetPool xanimparts;
   XAssetPool xmodel;
-  XAssetPool xmodelmesh;
+  TypedXAssetPool<XModelMesh> xmodelmesh;
   XAssetPool material;
   XAssetPool compute_shader_set;
   XAssetPool technique_set;
@@ -46,10 +46,10 @@ struct TypedXAssetPools {
   TypedXAssetPool<snd::SndBank> sound;
   TypedXAssetPool<snd::SndPatch> sound_patch;
   TypedXAssetPool<cm::clipMap_t> clipmap;
-  XAssetPool comworld;
+  TypedXAssetPool<world::ComWorld> comworld;
   TypedXAssetPool<world::GameWorld> gameworld;
   XAssetPool map_ents;
-  XAssetPool gfxworld;
+  TypedXAssetPool<world::GfxWorld> gfxworld;
   XAssetPool light_def;
   XAssetPool lensflare_def;
   XAssetPool ui_map;
@@ -143,7 +143,7 @@ struct TypedXAssetPools {
 #pragma pack(push, 1)
 
 union XAssetPools {
-  XAssetPool pools[static_cast<int>(XAssetType::COUNT)];
+  XAssetPool pools[+XAssetType::COUNT];
   TypedXAssetPools typed;
 
   inline bool contains(uintptr_t ptr) const noexcept {

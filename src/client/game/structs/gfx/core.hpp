@@ -9,6 +9,10 @@
 #include "HLSL.hpp"
 namespace game {
 
+namespace cm {
+struct cplane_t;
+}
+
 namespace scr {
 typedef uint32_t ScrString_t;
 }
@@ -16,6 +20,7 @@ typedef uint32_t ScrString_t;
 namespace db {
 namespace xasset {
 struct Material;
+struct MaterialMemory;
 struct XModel;
 typedef XModel *XModelPtr;
 
@@ -1422,6 +1427,8 @@ struct __attribute__((aligned(4))) GfxSiegeAnim {
   uint16_t startupEventsEnd;
   uint16_t shutdownEventsEnd;
 };
+typedef GfxSiegeAnim *GfxSiegeAnimPtr;
+struct SiegeAutoPlay;
 
 struct FastCriticalSection {
   volatile int32_t readCount;
@@ -1521,5 +1528,425 @@ ASSERT_SIZE(GfxEntityPreFrame, 0x60);
 
 #pragma pack(pop)
 
+struct GfxStreamingAabbTree {
+  vec4_t mins;
+  vec4_t maxs;
+  float maxStreamingDistance;
+  uint32_t firstItem;
+  uint16_t firstChild;
+  uint16_t childCount;
+  uint16_t smodelCount;
+  uint16_t surfaceCount;
+};
+
+struct GfxWorldStreamInfo {
+  int32_t aabbTreeCount;
+  GfxStreamingAabbTree *aabbTrees;
+  int32_t leafRefCount;
+  int32_t *leafRefs;
+};
+
+class GfxConfig_FogBank {
+public:
+  gfx::HLSL::float3 _fogcolor;
+  float fogopacity;
+  float fogintensity;
+  float basedist;
+  float halfdist;
+  float baseheight;
+  float halfheight;
+  float skyhalfheightoffset;
+  float probebakeworldfogdensityscaler;
+  gfx::HLSL::float3 _sunfogcolor;
+  float sunfogopacity;
+  float sunfogintensity;
+  float sunfoginner;
+  float sunfogouter;
+  float sunPitchOffset;
+  float sunYawOffset;
+  gfx::HLSL::float3 _atmospherefogcolor;
+  float atmospherefogdensity;
+  gfx::HLSL::float3 _atmospherehazecolor;
+  float atmospherehazebasedist;
+  float atmospherehazefadedist;
+  float atmospherehazedensity;
+  float atmospherehazespread;
+  float atmosphereinscatterstrength;
+  float atmosphereextinctionstrength;
+  float atmospheresunstrength;
+  float atmospherepbramount;
+  float worldfogskysize;
+};
+
+struct WorldSpawnConfig {
+  char name[64];
+  float fogTransitionTime;
+  GfxConfig_FogBank defaultFog;
+  uint32_t expEvAuto;
+  uint16_t numSpotShadowSlices;
+  uint16_t numOmniShadowSlices;
+};
+
+struct GfxLightCorona {
+  vec3_t origin;
+  float radius;
+  vec3_t color;
+  float intensity;
+};
+
+typedef GfxStreamedShadowTreeBuffer *GfxStreamedShadowTreeBufferPtr;
+
+struct GfxVCOLORGPU {
+  vec4_t vLumaM;
+  vec4_t vRangeM;
+  vec4_t vRangeA;
+  vec4_t vMtxSR;
+  vec4_t vMtxSG;
+  vec4_t vMtxSB;
+  vec4_t vMtxMR;
+  vec4_t vMtxMG;
+  vec4_t vMtxMB;
+  vec4_t vMtxHR;
+  vec4_t vMtxHG;
+  vec4_t vMtxHB;
+  vec4_t vMixR;
+  vec4_t vMixG;
+  vec4_t vMixB;
+  char nLVI[32];
+};
+
+struct GfxOutdoorForState {
+  GfxConfig_SST sst;
+  GfxStreamedShadowTreeBufferPtr outdoorTree;
+  float pitch;
+  float yaw;
+};
+
+struct GfxOutdoorVolume {
+  int32_t planeStart;
+  int32_t planeCount;
+  GfxOutdoorForState state[4];
+};
+
+struct __attribute__((aligned(4))) GfxExposureVolume {
+  int32_t priority;
+  vec3_t angles;
+  int32_t planeStart;
+  int32_t planeCount;
+  float blends[6];
+  uint16_t evmin[4];
+  uint16_t evmax[4];
+  uint16_t evcmp[4];
+  float exposure[4];
+  float adaptation[4];
+  uint8_t bankMask;
+};
+
+struct GfxWorldFogVolume {
+  int32_t planeStart;
+  int32_t planeCount;
+  vec3_t mins;
+  vec3_t maxs;
+  float fogTransitionTime;
+  uint32_t controlEx;
+  uint32_t lightingStateMask;
+  GfxConfig_FogBank bank[4];
+};
+
+struct GfxWorldFogModifierVolume {
+  uint32_t control;
+  uint16_t minX;
+  uint16_t minY;
+  uint16_t minZ;
+  uint16_t maxX;
+  uint16_t maxY;
+  uint16_t maxZ;
+  uint32_t controlEx;
+  float transitionTime;
+  float depthScale;
+  float heightScale;
+  vec4_t colorAdjust;
+};
+
+struct GfxVolumePlane {
+  vec4_t plane;
+};
+struct GfxLutVolume {
+  vec3_t mins;
+  uint32_t control;
+  vec3_t maxs;
+  float blends[6];
+  float lutTransitionTime;
+  uint32_t lutIndex;
+};
+
+struct GfxWeatherGrimeVolume {
+  int32_t planeStart;
+  int32_t planeCount;
+  bool enabled;
+  float rain;
+  float windDirection;
+  float windSpeed;
+  float weatherPitch;
+  float weatherYaw;
+  float weatherTiling;
+  vec3_t weatherTint;
+  vec3_t weatherTint2;
+  GfxImage *weatherGlossMap;
+  GfxImage *weatherColorMap;
+  GfxImage *weatherNormalMap;
+  GfxImage *weatherGlossMap2;
+  GfxImage *weatherColorMap2;
+  GfxImage *weatherNormalMap2;
+};
+struct GfxGenericVolume {
+  int32_t type;
+  int32_t planeStart;
+  int32_t planeCount;
+};
+struct GfxConfig_LightAttenuationVolume {
+  vec4_t planes[8];
+  vec3_t color;
+  uint32_t planeCount;
+};
+struct GfxSkyDynamicIntensity {
+  float angle0;
+  float angle1;
+  float factor0;
+  float factor1;
+};
+struct GfxWorldDpvsPlanes {
+  int32_t cellCount;
+  cm::cplane_t *planes;
+  uint32_t *nodes;
+  uint32_t *sceneEntCellBits;
+};
+
+typedef uint8_t byte16;
+
+struct GfxUmbraParameterVolume {
+  vec3_t min;
+  vec3_t max;
+  int32_t priority;
+  float distanceScale;
+  float accurateOcclusionThreshold;
+  int32_t minimumContributionThreshold;
+};
+
+// Unverified, but also seemingly unused in engine.
+struct GfxUmbraTome {
+  uint32_t tomeSize;
+  byte16 *tome;
+  void *tomePtr;
+  uint32_t numParameterVolumes;
+  GfxUmbraParameterVolume *parameterVolumes;
+};
+ASSERT_SIZE(GfxUmbraTome, 0x28);
+
+struct GfxWaveWaterDiskNode {
+  int32_t children[4];
+  int32_t parent;
+  vec2_t min;
+  vec2_t max;
+  int32_t obstruction;
+};
+
+struct __attribute__((aligned(8))) GfxWaveWaterPolygon {
+  vec2_t *vertices;
+  int32_t vertexCount;
+  vec2_t min;
+  vec2_t max;
+};
+
+struct GfxWaveWaterClamp {
+  float height;
+  GfxWaveWaterPolygon polygon;
+  char *name;
+};
+
+struct GfxWaveWaterCommonDisk {
+  float height;
+  vec3_t min;
+  vec3_t max;
+  int32_t nodeCount;
+  GfxWaveWaterDiskNode *nodes;
+  int32_t polygonCount;
+  GfxWaveWaterPolygon *polygons;
+  int32_t clampCount;
+  GfxWaveWaterClamp *clamps;
+  const db::xasset::Material *material;
+  char *name;
+  vec3_t textureTransform[2];
+  float himipRadiusInvSq;
+  float minGridSize;
+  float maxGridSize;
+  float gridDetailScale;
+};
+
+struct GfxWaveWaterGenerator {
+  vec2_t pos;
+  float radius;
+  float amplitudeMin;
+  float amplitudeMax;
+  float periodMin;
+  float periodMax;
+  float changeTimeMin;
+  float changeTimeMax;
+  float curPhase;
+  float curFreq;
+  float curAmp;
+  float deltaAmp;
+  float deltaFreq;
+  float nextChange;
+  char *name;
+};
+
+struct __attribute__((aligned(8))) GfxInteractiveWaveWaterDisk {
+  GfxWaveWaterCommonDisk common;
+  int32_t generatorCount;
+  GfxWaveWaterGenerator *generators;
+  float interactionScale;
+  float damping;
+  float timeScale;
+  float waterDepth;
+  float playerRadiusScale;
+  float physicsRadiusScale;
+  float otherRadiusScale;
+  float convolutionWidth;
+  float emergencyDamping;
+};
+
+struct GfxWorldWaterDisk {
+  int32_t totalWaterCount;
+  int32_t interactiveWaveWaterCount;
+  GfxInteractiveWaveWaterDisk *interactiveWaveWaters;
+  int32_t gridMemSize;
+  int32_t gridCount;
+  uint8_t *gridMem;
+};
+
+struct GfxCell;
+struct GfxBrushModel;
+struct GfxSceneDynModel;
+struct GfxWorldDpvsStatic;
+struct GfxWorldDpvsDynamic;
+
+struct GfxWorldVertexData {
+  uint8_t *data;
+  GfxVertexBuffer vb;
+};
+
+typedef uint16_t r_index_t;
+struct GfxWorldDraw {
+  int32_t cookieCount;
+  GfxImagePtr cookieArray;
+  uint32_t vertexCount;
+  uint32_t vertexDataSize0;
+  GfxWorldVertexData vd0;
+  uint32_t vertexDataSize1;
+  GfxWorldVertexData vd1;
+  int32_t indexCount;
+  r_index_t *indices;
+  GfxIndexBuffer indexBuffer;
+};
+
+typedef uint8_t visdata_t;
+
+struct GfxVisArray {
+  uint32_t visDataCount;
+  visdata_t *visData;
+};
+
+struct srfTriangles_t {
+  vec3_t mins;
+  int32_t vertexDataOffset0;
+  vec3_t maxs;
+  int32_t vertexDataOffset1;
+  int32_t firstVertex;
+  vec_t himipRadiusInvSq;
+  uint16_t vertexCount;
+  uint16_t triCount;
+  int32_t baseIndex;
+};
+
+struct __declspec(align(16)) GfxSurface {
+  srfTriangles_t tris;
+  vec3_t bounds[2];
+  db::xasset::Material *material;
+  uint8_t flags;
+  uint8_t decalSort;
+};
+
+struct GfxWorldDpvsStatic {
+  int32_t smodelUpdateFrame;
+  uint32_t smodelCount;
+  uint32_t staticSurfaceCount;
+  uint32_t gbufferSurfsBegin;
+  uint32_t gbufferSurfsEnd;
+  uint32_t gbufferDecalSurfsBegin;
+  uint32_t gbufferDecalSurfsEnd;
+  uint32_t litForwardSurfsBegin;
+  uint32_t litForwardSurfsEnd;
+  uint32_t litTransSurfsBegin;
+  uint32_t litTransSurfsEnd;
+  GfxVisArray smodelVisData[4];
+  GfxVisArray surfaceVisData[4];
+  GfxVisArray volDecalVisData[4];
+  GfxVisArray smodelVisDataCameraSaved;
+  GfxVisArray surfaceVisDataCameraSaved;
+  uint16_t *sortedSurfIndex;
+  uint16_t *umbraIdToSmodelIndex;
+  uint32_t semiStaticModelCount;
+  uint32_t fullyStaticModelCount;
+  uint16_t *semiStaticModelList;
+  uint16_t *fullyStaticModelList;
+  GfxSurface *surfaces;
+  GfxStaticModelDrawInst *smodelDrawInsts;
+  GfxSortKey *surfaceMaterials;
+  GfxVisArray surfaceCastsSunShadow;
+  GfxVisArray surfaceCastsShadow;
+  GfxVisArray smodelCastsShadow;
+};
+
+struct GfxVisDynamic {
+  GfxVisArray visArray[2];
+};
+
+struct GfxWorldDpvsDynamic {
+  uint32_t dynEntClientCount[2];
+  GfxVisDynamic dynEntVisData[4];
+  GfxVisDynamic umbraDynEntVisData;
+};
+
+struct Occluder {
+  uint32_t flags;
+  char name[16];
+  vec3_t points[4];
+};
+
+struct GfxCameraLens;
+struct GfxLitFogVolume;
+struct GfxVolumeDecal;
+
+struct GfxVATLASUKKOGPU {
+  vec4_t vMxSkyR;
+  vec4_t vMxSkyG;
+  vec4_t vMxSkyB;
+  vec4_t vMxSunR;
+  vec4_t vMxSunG;
+  vec4_t vMxSunB;
+  vec4_t vTrgSkyRGB;
+  vec4_t vTrgSunRGB;
+};
+
+struct GfxModVUKKO;
+struct GfxBoxVUKKO;
+struct GfxModVBLOOM;
+struct GfxBoxVBLOOM;
+struct GfxModVLUT;
+struct GfxBoxVLUT;
+struct GfxModVCOLOR;
+struct GfxBoxVCOLOR;
+struct GfxBoxUNDERWATER;
 } // namespace gfx
 } // namespace game

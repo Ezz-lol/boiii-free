@@ -24,10 +24,21 @@ inline constexpr pool_config pool_configs[] = {
     {XAssetType::DESTRUCTIBLEDEF, "ap_destructibledef", 0x80},
     {XAssetType::XANIMPARTS, "ap_xanim", 0x6270},
     {XAssetType::XMODEL, "ap_xmodel", 0x2C00},
+    /*
+      Limit is hard-coded in `DB_GetMeshPoolSize` (inlined at all callsites),
+      and underlying pool static allocation in engine is used directly in some
+      functions.
+      Cannot be extended solely by asset pool item count extension.
+    */
     {XAssetType::XMODELMESH, "ap_xmodelmesh", 0x8C00},
     {XAssetType::MATERIAL, "ap_material", 0x5800},
     {XAssetType::COMPUTE_SHADER_SET, "ap_computeshaderset", 0x100},
     {XAssetType::TECHNIQUE_SET, "ap_techset", 0x400},
+    /*
+      Limit is hard-coded in `DB_GetImagePoolSize`, and underlying pool static
+      allocation in engine is used directly in some functions.
+      Cannot be extended solely by asset pool item count extension.
+    */
     {XAssetType::IMAGE, "ap_image", 0xC000},
     {XAssetType::SOUND, "ap_sound", 0x20},
     {XAssetType::SOUND_PATCH, "ap_sound_patch", 0x10},
@@ -180,11 +191,15 @@ unsigned int get_pool_size(const rapidjson::Document &doc,
 }
 
 void apply_asset_limits() {
-  static bool applied = false;
-  if (applied)
-    return;
-
   const rapidjson::Document doc = load_settings_doc();
+
+  // Ensure asset pool initialized and not already extended
+  for (const pool_config &cfg : pool_configs) {
+    if (static_cast<uint32_t>(pool::s_assetPools->pools[+cfg.type].itemCount) !=
+        cfg.default_size) {
+      return;
+    }
+  }
 
   if (!is_enabled(doc)) {
     printf("Asset pool expansion disabled by user settings\n");
@@ -195,14 +210,13 @@ void apply_asset_limits() {
     const uint32_t size = get_pool_size(doc, cfg);
     reallocate_asset_pool(cfg.type, size);
   }
-
-  applied = true;
 }
 
 utils::hook::detour DB_AssetPoolInit_hook;
 void DB_AssetPoolInit_stub() {
   DB_AssetPoolInit_hook.invoke();
   apply_asset_limits();
+  DB_InitBSPGlobals_Impl();
 }
 } // namespace
 

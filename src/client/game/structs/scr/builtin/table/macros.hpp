@@ -1,10 +1,13 @@
 #pragma once
 
-#include <frozen/unordered_map.h> // IWYU pragma: export
-#include "hash.hpp"               // IWYU pragma: export
 #include <ranges>                 // IWYU pragma: export
 #include <array>                  // IWYU pragma: export
-#include <macros.hpp>             // IWYU pragma: export
+#include <cstdint>                // IWYU pragma: export
+#include <frozen/unordered_map.h> // IWYU pragma: export
+
+#include <macros.hpp> // IWYU pragma: export
+
+#include "hash.hpp" // IWYU pragma: export
 
 template <typename T>
 struct Enumerate : public std::ranges::view_interface<Enumerate<T>> {

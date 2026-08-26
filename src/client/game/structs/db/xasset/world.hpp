@@ -3,6 +3,7 @@
 #include <cstdint>
 
 #include <game/structs/quake/vec.hpp>
+#include <game/structs/gfx/core.hpp>
 #include <game/structs/scr/primitives.hpp>
 
 namespace game {
@@ -154,6 +155,203 @@ struct GameWorld {
   PathData path;
 };
 ASSERT_SIZE(GameWorld, 0x50);
+
+// Verified
+struct GfxWorld {
+  const char *name;
+  const char *baseName;
+  int32_t planeCount;
+  int32_t nodeCount;
+  int32_t surfaceCount;
+  gfx::GfxWorldStreamInfo streamInfo;
+  gfx::WorldSpawnConfig worldSpawnConfig;
+  uint32_t coronaCount;
+  gfx::GfxLightCorona *coronas;
+  uint32_t sunVolumeCount;
+  gfx::GfxSunVolume *sunVolumes;
+  uint32_t sunVolumePlanesCount;
+  vec4_t *sunVolumePlanes;
+  uint32_t outdoorVolumeCount;
+  gfx::GfxOutdoorVolume *outdoorVolumes;
+  uint32_t outdoorVolumePlanesCount;
+  vec4_t *outdoorVolumePlanes;
+  uint32_t exposureVolumeCount;
+  gfx::GfxExposureVolume *exposureVolumes;
+  uint32_t exposureVolumePlaneCount;
+  vec4_t *exposureVolumePlanes;
+  uint32_t worldFogVolumeCount;
+  gfx::GfxWorldFogVolume *worldFogVolumes;
+  uint32_t worldFogVolumePlaneCount;
+  vec4_t *worldFogVolumePlanes;
+  uint32_t worldFogModifierVolumeCount;
+  gfx::GfxWorldFogModifierVolume *worldFogModifierVolumes;
+  uint32_t worldFogModifierVolumePlaneCount;
+  gfx::GfxVolumePlane *worldFogModifierVolumePlanes;
+  uint32_t lutVolumeCount;
+  gfx::GfxLutVolume *lutVolumes;
+  uint32_t lutVolumePlaneCount;
+  gfx::GfxVolumePlane *lutVolumePlanes;
+  uint32_t weatherGrimeVolumeCount;
+  gfx::GfxWeatherGrimeVolume *weatherGrimeVolumes;
+  uint32_t weatherGrimeVolumePlaneCount;
+  vec4_t *weatherGrimeVolumePlanes;
+  uint32_t genericVolumeCount;
+  gfx::GfxGenericVolume *genericVolumes;
+  uint32_t genericVolumePlaneCount;
+  vec4_t *genericVolumePlanes;
+  uint32_t attenuationVolumeCount;
+  gfx::GfxConfig_LightAttenuationVolume *attenuationVolumes;
+  gfx::GfxSkyDynamicIntensity skyDynIntensity;
+  gfx::GfxWorldDpvsPlanes dpvsPlanes;
+  int32_t cellBitsCount;
+  gfx::GfxCell *cells;
+  gfx::GfxWorldDraw draw;
+  int32_t modelCount;
+  gfx::GfxBrushModel *models;
+  vec3_t mins;
+  vec3_t maxs;
+  uint32_t checksum;
+  int32_t materialMemoryCount;
+  MaterialMemory *materialMemory;
+  uint32_t *cellCasterBits;
+  gfx::GfxSceneDynModel *sceneDynModel;
+  gfx::GfxWorldDpvsStatic dpvs;
+  gfx::GfxWorldDpvsDynamic dpvsDyn;
+  const Material *coronaMaterial;
+  const Material *ropeMaterial;
+  const Material *lutMaterial;
+  const Material *lutMaterialALT;
+  uint32_t numOccluders;
+  gfx::Occluder *occluders;
+  uint32_t lightingFlags;
+  int32_t lightingQuality;
+  int32_t umbraNumTomes;
+  gfx::GfxUmbraTome *umbraTomes;
+  bool umbraTomeIncludesLightsAndFx;
+  uint32_t numSiegeAnims;
+  gfx::GfxSiegeAnimPtr *siegeAnims;
+  uint32_t numSiegeAnimsAutoPlay;
+  gfx::SiegeAutoPlay *siegeAnimsAutoPlay;
+  uint32_t lensPackCount;
+  gfx::GfxCameraLens *lensPackData;
+  uint32_t litFogVolumeCount;
+  gfx::GfxLitFogVolume *litFogVolumes;
+  uint32_t volumeDecalCount;
+  gfx::GfxVolumeDecal *volumeDecals;
+  gfx::GfxImagePtr volumeDecalRevealTexture;
+  gfx::GfxWorldWaterDisk water;
+  gfx::GfxVATLASUKKOGPU vukkoLVX[32];
+  uint32_t baseGfxVUKKO[4];
+  uint32_t nGfxModOverVUKKO;
+  gfx::GfxModVUKKO *pGfxModOverVUKKO;
+  uint32_t nGfxBoxOverVUKKO;
+  gfx::GfxBoxVUKKO *pGfxBoxOverVUKKO;
+  uint32_t nGfxBoxBaseVUKKO;
+  gfx::GfxBoxVUKKO *pGfxBoxBaseVUKKO;
+  gfx::GfxVBLOOMGPU baseGfxVBLOOMGPU[4];
+  uint32_t nGfxModOverVBLOOM;
+  gfx::GfxModVBLOOM *pGfxModOverVBLOOM;
+  uint32_t nGfxBoxOverVBLOOM;
+  gfx::GfxBoxVBLOOM *pGfxBoxOverVBLOOM;
+  uint32_t nGfxBoxBaseVBLOOM;
+  gfx::GfxBoxVBLOOM *pGfxBoxBaseVBLOOM;
+  uint32_t baseGfxVLUT[4];
+  uint32_t nGfxModOverVLUT;
+  gfx::GfxModVLUT *pGfxModOverVLUT;
+  uint32_t nGfxBoxOverVLUT;
+  gfx::GfxBoxVLUT *pGfxBoxOverVLUT;
+  uint32_t nGfxBoxBaseVLUT;
+  gfx::GfxBoxVLUT *pGfxBoxBaseVLUT;
+  gfx::GfxVCOLORGPU baseGfxVCOLORGPU[4];
+  uint32_t nGfxModOverVCOLOR;
+  gfx::GfxModVCOLOR *pGfxModOverVCOLOR;
+  uint32_t nGfxBoxOverVCOLOR;
+  gfx::GfxBoxVCOLOR *pGfxBoxOverVCOLOR;
+  uint32_t nGfxBoxBaseVCOLOR;
+  gfx::GfxBoxVCOLOR *pGfxBoxBaseVCOLOR;
+  uint32_t nGfxBoxOverUNDERWATER;
+  gfx::GfxBoxUNDERWATER *pGfxBoxOverUNDERWATER;
+  uint32_t nGfxBoxBaseUNDERWATER;
+  gfx::GfxBoxUNDERWATER *pGfxBoxBaseUNDERWATER;
+};
+ASSERT_SIZE(GfxWorld, 0x2040);
+
+typedef uint8_t byte4;
+
+struct ComUmbraVolume {
+  vec3_t min;
+  vec3_t max;
+};
+
+struct ComUmbraGate {
+  const char *name;
+  int32_t umbraId;
+  int32_t gateIndex;
+};
+
+struct ComUmbraTome {
+  const char *name;
+  uint32_t numVolumes;
+  ComUmbraVolume *volumes;
+  uint32_t indicesSize;
+  byte4 *indicesSTQuery;
+  byte4 *indicesMTQuery;
+  uint32_t numGates;
+  ComUmbraGate *gates;
+};
+
+struct __attribute__((aligned(4))) ComProbeTriggerData {
+  int32_t probeID;
+  int32_t volumeID;
+  int32_t delayOn;
+  int32_t delayOff;
+  int32_t fadeIn;
+  int32_t fadeOut;
+  bool reversed;
+};
+
+struct ComProbeExploder {
+  int32_t nameHash;
+  int32_t triggerCount;
+  ComProbeTriggerData *triggerData;
+};
+
+struct __attribute__((aligned(2))) ComLightTriggerData {
+  int32_t delayOn;
+  int32_t delayOff;
+  int32_t fadeIn;
+  int32_t fadeOut;
+  uint16_t primaryLightIndex;
+  bool reversed;
+};
+
+struct ComLightExploder {
+  int32_t nameHash;
+  int32_t triggerCount;
+  ComLightTriggerData *triggerData;
+};
+
+struct ComPrimaryLight;
+
+struct ComWorld {
+  const char *name;
+  qboolean isInUse;
+  uint32_t primaryLightCount;
+  ComPrimaryLight *primaryLights;
+  uint32_t lightExploderCount;
+  ComLightExploder *lightExploders;
+  uint32_t sunVolumeCount;
+  uint32_t *sunVolumeProbeCount;
+  uint32_t probeCount;
+  uint32_t *probeGuids;
+  uint32_t probeExploderCount;
+  ComProbeExploder *probeExploders;
+  uint32_t umbraTomeCount;
+  ComUmbraTome *umbraTomes;
+  uint8_t _unknown68[0x20];
+};
+ASSERT_SIZE(ComWorld, 0x88); // Correct size
+
 } // namespace world
 } // namespace xasset
 } // namespace db

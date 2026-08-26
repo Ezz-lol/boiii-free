@@ -24,7 +24,7 @@ int32_t DB_GetXAssetTypeSize_Impl(XAssetType type) {
   case XAssetType::XMODEL:
     return 0x188;
   case XAssetType::XMODELMESH:
-    return 0x78;
+    return sizeof(XModelMesh);
   case XAssetType::MATERIAL:
     return 0x2A0;
   case XAssetType::COMPUTE_SHADER_SET:
@@ -40,13 +40,13 @@ int32_t DB_GetXAssetTypeSize_Impl(XAssetType type) {
   case XAssetType::CLIPMAP:
     return sizeof(cm::clipMap_t);
   case XAssetType::COMWORLD:
-    return 0x88;
+    return sizeof(world::ComWorld);
   case XAssetType::GAMEWORLD:
     return sizeof(world::GameWorld);
   case XAssetType::MAP_ENTS:
     return 0x48;
   case XAssetType::GFXWORLD:
-    return 0x2040;
+    return sizeof(world::GfxWorld);
   case XAssetType::LIGHT_DEF:
     return 0x28;
   case XAssetType::LENSFLARE_DEF:
@@ -214,9 +214,11 @@ int32_t DB_GetXAssetTypeSize_Impl(XAssetType type) {
   case XAssetType::OBJECTIVE_LIST:
     return 0x18;
   case XAssetType::UMBRA_TOME:
-    // Unknown. Pool entry is never populated, and asset type is not handled by
-    // DB.
-    return -1;
+    // Unverified. Pool entry is never populated, and asset type is not handled
+    // by DB.
+    // Currently also unverified whether this is a `GfxUmbraTome`,
+    // `ComUmbraTome`, or some other data structure.
+    return sizeof(gfx::GfxUmbraTome);
   case XAssetType::NAVMESH:
     return 0x68;
   case XAssetType::NAVVOLUME:
@@ -241,12 +243,12 @@ void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
     fflush(stderr);
     return;
   }
-  XAssetPool *pool = &pool::s_assetPools->pools[+type];
+  volatile XAssetPool *pool = &pool::s_assetPools->pools[+type];
 
   // Skip if pool already meets or exceeds requested size
   if (!pool->isSingleton && pool->itemCount < static_cast<int32_t>(new_size)) {
     fprintf(stdout, "Reallocating asset pool type %d: %d -> %u entries\n",
-            +type, new_size);
+            +type, pool->itemCount, new_size);
     fflush(stdout);
     void *new_pool = calloc(new_size, entry_size);
     if (new_pool == nullptr) {
@@ -281,13 +283,13 @@ void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
         reinterpret_cast<char *>(new_pool) + entry_size * (new_size - 1));
     last->next = nullptr;
 
-    pool->pool = new_pool;
-    pool->itemSize = entry_size;
-    pool->itemCount = new_size;
-
     fprintf(stdout, "Reallocated asset pool type %d: %d -> %u entries\n", +type,
             pool->itemCount, new_size);
     fflush(stdout);
+
+    pool->pool = new_pool;
+    pool->itemSize = entry_size;
+    pool->itemCount = new_size;
   }
 }
 
@@ -322,6 +324,14 @@ DB_GetAssetEntryPoolEntryByName(const char *name, const XAssetType type) {
   }
 
   return entry;
+}
+
+void DB_InitBSPGlobals_Impl() {
+  *cm::cm = pool::s_assetPools->typed.clipmap.pool;
+  *world::s_world = pool::s_assetPools->typed.gfxworld.pool;
+  *world::comWorld = pool::s_assetPools->typed.comworld.pool;
+  *world::gameWorld = pool::s_assetPools->typed.gameworld.pool;
+  *world::gameWorldCurrent = *world::gameWorld;
 }
 } // namespace xasset
 } // namespace db

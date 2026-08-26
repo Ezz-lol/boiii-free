@@ -65,13 +65,15 @@ struct aligned_array {
   inline constexpr const void *allocation() const noexcept {
     return reintepret_cast<const void *>(
         static_cast<uintptr_t>(this) -
-        /* padding */ std::max(alignment_size(sizeof(T) * N, Align), 0x8) -
+        /* padding */
+        std::max<size_t>(alignment_size(sizeof(T) * N, Align), 0x8) -
         /* original allocation pointer */ sizeof(void *));
   }
   inline constexpr void *allocation() noexcept {
     return reinterpret_cast<void *>(
         static_cast<uintptr_t>(this) -
-        /* padding */ std::max(alignment_size(sizeof(T) * N, Align), 0x8) -
+        /* padding */
+        std::max<size_t>(alignment_size(sizeof(T) * N, Align), 0x8) -
         /* original allocation pointer */ sizeof(void *));
   }
 };

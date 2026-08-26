@@ -1,7 +1,7 @@
 #pragma once
 
-#include "game/structs/scr/builtin/table/macros.hpp"
-#include "game/structs/scr/weapon.hpp"
+#include <game/structs/scr/builtin/table/macros.hpp>
+#include <game/structs/scr/weapon.hpp>
 
 namespace game {
 namespace scr {
