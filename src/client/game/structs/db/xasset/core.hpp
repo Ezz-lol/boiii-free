@@ -79,30 +79,6 @@ namespace maptable {
 struct MapTable;
 }
 
-/*
- For future reference, some known-correct asset struct sizes as per
- `DB_GetXAssetTypeSize`:
-  - PHYSPRESET: 120 or 0x78
-  - XMODELMESH: 120 or 0x78
-  - PHYSCONSTRAINTS: 1680 or 0x690
-  - DESTRUCTIBLEDEF: 48 or 0x30
-  - XANIMPARTS: 248 or 0xF8
-  - XMODEL: 392 or 0x188
-  - MATERIAL: 672 or 0x2A0
-  - COMPUTE_SHADER_SET: 24 or 0x18
-  - SOUND_PATCH: 24 or 0x18
-  - TECHNIQUE_SET: 112 or 0x70
-  - IMAGE: 264 or 0x108
-  - SOUND: 139440 or 0x220B0
-  - CLIPMAP: 720 or 0x2D0
-  - COMWORLD: 136 or 0x88
-  - GAMEWORLD: 80 or 0x50
-  - MAP_ENTS: 72 or 0x48
-  - GFXWORLD: 8256 or 0x2040
-  - LIGHT_DEF: 40 or 0x28
-  - LENSFLARE_DEF: 536 or 0x218
-*/
-
 enum class XAssetType : int32_t {
   PHYSPRESET = 0x0,
   PHYSCONSTRAINTS = 0x1,

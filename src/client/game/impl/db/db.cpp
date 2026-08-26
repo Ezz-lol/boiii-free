@@ -240,7 +240,7 @@ void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
   if (entry_size <= 0) {
     return;
   }
-  volatile XAssetPool *pool = &pool::s_assetPools->pools[+type];
+  XAssetPool *pool = &pool::s_assetPools->pools[+type];
 
   // Skip if pool already meets or exceeds requested size
   if (!pool->isSingleton && pool->itemCount < static_cast<int32_t>(new_size)) {
