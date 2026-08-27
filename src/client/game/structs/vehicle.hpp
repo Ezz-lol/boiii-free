@@ -868,7 +868,7 @@ PACKED(struct VehicleDef {
 });
 ASSERT_OFFSET(VehicleDef, useHeliBoneControllers, 0x188);
 ASSERT_OFFSET(VehicleDef, isSentient, 0x9D0);
-// Correct
+// Verified
 ASSERT_SIZE(VehicleDef, 0xAA8);
 
 PACKED(struct VehicleStun {

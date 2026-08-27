@@ -1733,7 +1733,6 @@ struct GfxUmbraParameterVolume {
   int32_t minimumContributionThreshold;
 };
 
-// Unverified, but also seemingly unused in engine.
 struct GfxUmbraTome {
   uint32_t tomeSize;
   byte16 *tome;
@@ -1741,6 +1740,7 @@ struct GfxUmbraTome {
   uint32_t numParameterVolumes;
   GfxUmbraParameterVolume *parameterVolumes;
 };
+// Verified
 ASSERT_SIZE(GfxUmbraTome, 0x28);
 
 struct GfxWaveWaterDiskNode {

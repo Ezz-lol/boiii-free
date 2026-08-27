@@ -596,7 +596,7 @@ PACKED(struct SndAliasList : db::xasset::NamedXAsset {
 });
 ASSERT_SIZE(SndAliasList, 0x28);
 
-// Correct
+// Verified
 PACKED(struct SndPatch : db::xasset::NamedXAsset {
   uint64_t elementCount;
   uint32_t *elements;
@@ -694,7 +694,7 @@ PACKED(struct SndListener {
 
 // sizeof=0x88
 PACKED(struct SndDuck {
-  char name[64]; // Correct
+  char name[64]; // Verified
   SndStringHash id;
   float fadeIn;
   float fadeOut;
@@ -863,7 +863,7 @@ PACKED(struct SndVoice {
   bool isSilent;
 });
 
-// Correct
+// Verified
 enum class SndMusicStateStatus : uint32_t {
   SND_MUSIC_STATE_INACTIVE = 0x0,
   SND_MUSIC_STATE_ACTIVE = 0x1,

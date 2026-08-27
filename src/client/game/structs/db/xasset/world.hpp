@@ -298,7 +298,10 @@ struct ComUmbraTome {
   byte4 *indicesMTQuery;
   uint32_t numGates;
   ComUmbraGate *gates;
+  uint8_t _unknown40[0x10];
 };
+// Verified
+ASSERT_SIZE(ComUmbraTome, 0x50);
 
 struct __attribute__((aligned(4))) ComProbeTriggerData {
   int32_t probeID;

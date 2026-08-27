@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
+#include <frozen/unordered_map.h>
 
 #include "db.hpp"
 
@@ -52,8 +53,17 @@ int32_t DB_GetXAssetTypeSize_Impl(XAssetType type) {
   case XAssetType::LENSFLARE_DEF:
     return 0x218;
   case XAssetType::UI_MAP:
-    // Unknown. Pool entry is never populated, and asset type is not handled by
-    // DB.
+    /* Unknown. Pool entry is never populated, and asset type is not handled by
+       DB.
+
+       Given that there are no data structures with a remotely similar name in
+       the engine, the asset type is never handled in any Black Ops 3 engine
+       binary regardless of build profile or version, and the XAssetType
+       enumeration was entirely removed in Black Ops 4, it is probable that this
+       XAsset type no longer exists in the engine, but the XAssetType
+       enumeration was (perhaps mistakenly) never removed from the Black Ops 3
+       engine.
+    */
     return -1;
   case XAssetType::FONT:
     return sizeof(font::Font);
@@ -62,18 +72,31 @@ int32_t DB_GetXAssetTypeSize_Impl(XAssetType type) {
   case XAssetType::LOCALIZE_ENTRY:
     return sizeof(LocalizeEntry);
   case XAssetType::WEAPON:
-    return 0x300;
+    return sizeof(weapon::WeaponVariantDef);
   case XAssetType::WEAPONDEF:
-    // Unknown. Pool entry is never populated, and asset type is not handled by
-    // DB.
-    return -1;
+    return 0x15F0;
   case XAssetType::WEAPON_VARIANT:
-    // Unknown. Pool entry is never populated, and asset type is not handled by
-    // DB.
-    return -1;
+    /*
+      Unknown. Pool entry is never populated, and asset type is not handled by
+      DB.
+      This is most likely `WeaponVariantDef`, as there are no other likely
+      candidates.
+
+      Note: BO4 removes the `WEAPON` type and instead differentiates using
+      `WEAPONDEF` and `WEAPONVARIANTDEF` more cleanly. This type could simply
+      be unused and left here for future engine updates which were not provided
+      to the BO3 engine.
+    */
+    return sizeof(weapon::WeaponVariantDef);
   case XAssetType::WEAPON_FULL:
-    // Unknown. Pool entry is never populated, and asset type is not handled by
-    // DB.
+    /*
+      Unknown. Pool entry is never populated, and asset type is not handled by
+      DB.
+      This seems to only be used in Treyarch's development internal remote GDT
+      commands, which can only be used with debug profile engine builds. As
+      such, we cannot find the current size of this struct in the latest
+      release-profile (Steam) builds.
+    */
     return -1;
   case XAssetType::CGMEDIA:
     return 0x420;
@@ -132,7 +155,7 @@ int32_t DB_GetXAssetTypeSize_Impl(XAssetType type) {
   case XAssetType::SCRIPTPARSETREE:
     return sizeof(scr::ScriptParseTree);
   case XAssetType::KEYVALUEPAIRS:
-    return 0x18;
+    return sizeof(KeyValuePairs);
   case XAssetType::VEHICLEDEF:
     return sizeof(vehicle::VehicleDef);
   case XAssetType::ADDON_MAP_ENTS:
@@ -235,6 +258,114 @@ int32_t DB_GetXAssetTypeSize_Impl(XAssetType type) {
     return -1;
   }
 }
+
+inline constexpr frozen::unordered_map<XAssetType, uint32_t, +XAssetType::COUNT>
+    DEFAULT_POOL_SIZES = frozen::make_unordered_map<XAssetType, uint32_t>({
+        {XAssetType::PHYSPRESET, 0x113},
+        {XAssetType::PHYSCONSTRAINTS, 0x80},
+        {XAssetType::DESTRUCTIBLEDEF, 0x80},
+        {XAssetType::XANIMPARTS, 0x6270},
+        {XAssetType::XMODEL, 0x2C00},
+        {XAssetType::XMODELMESH, 0x8C00},
+        {XAssetType::MATERIAL, 0x5800},
+        {XAssetType::COMPUTE_SHADER_SET, 0x100},
+        {XAssetType::TECHNIQUE_SET, 0x400},
+        {XAssetType::IMAGE, 0xC000},
+        {XAssetType::SOUND, 0x20},
+        {XAssetType::SOUND_PATCH, 0x10},
+        {XAssetType::CLIPMAP, 0x2},
+        {XAssetType::COMWORLD, 0x2},
+        {XAssetType::GAMEWORLD, 0x2},
+        {XAssetType::MAP_ENTS, 0x2},
+        {XAssetType::GFXWORLD, 0x2},
+        {XAssetType::LIGHT_DEF, 0x20},
+        {XAssetType::LENSFLARE_DEF, 0x46},
+        {XAssetType::UI_MAP, 0x00},
+        {XAssetType::FONT, 0x10},
+        {XAssetType::FONTICON, 0x10},
+        {XAssetType::LOCALIZE_ENTRY, 0x6400},
+        {XAssetType::WEAPON, 0x600},
+        {XAssetType::WEAPONDEF, 0x00},
+        {XAssetType::WEAPON_VARIANT, 0x00},
+        {XAssetType::WEAPON_FULL, 0x00},
+        {XAssetType::CGMEDIA, 0x5},
+        {XAssetType::PLAYERSOUNDS, 0x10},
+        {XAssetType::PLAYERFX, 0x10},
+        {XAssetType::SHAREDWEAPONSOUNDS, 0x40},
+        {XAssetType::ATTACHMENT, 0x80},
+        {XAssetType::ATTACHMENT_UNIQUE, 0x864},
+        {XAssetType::WEAPON_CAMO, 0x200},
+        {XAssetType::CUSTOMIZATION_TABLE, 0x8},
+        {XAssetType::CUSTOMIZATION_TABLE_FE_IMAGES, 0x8},
+        {XAssetType::CUSTOMIZATION_TABLE_COLOR, 0x400},
+        {XAssetType::SNDDRIVER_GLOBALS, 0x1},
+        {XAssetType::FX, 0x7D0},
+        {XAssetType::TAGFX, 0x40},
+        {XAssetType::NEW_LENSFLARE_DEF, 0x46},
+        {XAssetType::IMPACT_FX, 0x100},
+        {XAssetType::IMPACT_SOUND, 0x40},
+        {XAssetType::PLAYER_CHARACTER, 0x8},
+        {XAssetType::AITYPE, 0x60},
+        {XAssetType::CHARACTER, 0x96},
+        {XAssetType::XMODELALIAS, 0x30},
+        {XAssetType::RAWFILE, 0x1388},
+        {XAssetType::STRINGTABLE, 0xDC},
+        {XAssetType::STRUCTURED_TABLE, 0x69},
+        {XAssetType::LEADERBOARD, 0x100},
+        {XAssetType::DDL, 0x40},
+        {XAssetType::GLASSES, 0x2},
+        {XAssetType::TEXTURELIST, 0x8},
+        {XAssetType::SCRIPTPARSETREE, 0x47E},
+        {XAssetType::KEYVALUEPAIRS, 0x40},
+        {XAssetType::VEHICLEDEF, 0x40},
+        {XAssetType::ADDON_MAP_ENTS, 0x1},
+        {XAssetType::TRACER, 0x64},
+        {XAssetType::SLUG, 0x5},
+        {XAssetType::SURFACEFX_TABLE, 0x40},
+        {XAssetType::SURFACESOUNDDEF, 0x100},
+        {XAssetType::FOOTSTEP_TABLE, 0x20},
+        {XAssetType::ENTITYFXIMPACTS, 0x100},
+        {XAssetType::ENTITYSOUNDIMPACTS, 0x100},
+        {XAssetType::ZBARRIER, 0x10},
+        {XAssetType::VEHICLEFXDEF, 0x20},
+        {XAssetType::VEHICLESOUNDDEF, 0x20},
+        {XAssetType::TYPEINFO, 0x00},
+        {XAssetType::SCRIPTBUNDLE, 0x400},
+        {XAssetType::SCRIPTBUNDLELIST, 0x40},
+        {XAssetType::RUMBLE, 0x118},
+        {XAssetType::BULLETPENETRATION, 0x1},
+        {XAssetType::LOCDMGTABLE, 0x1},
+        {XAssetType::AIMTABLE, 0xC},
+        {XAssetType::ANIMSELECTORTABLESET, 0x40},
+        {XAssetType::ANIMMAPPINGTABLE, 0x40},
+        {XAssetType::ANIMSTATEMACHINE, 0x40},
+        {XAssetType::BEHAVIORTREE, 0x40},
+        {XAssetType::BEHAVIORSTATEMACHINE, 0x80},
+        {XAssetType::TTF, 0x30},
+        {XAssetType::SANIM, 0x400},
+        {XAssetType::LIGHT_DESCRIPTION, 0x226},
+        {XAssetType::SHELLSHOCK, 0x40},
+        {XAssetType::XCAM, 0x214},
+        {XAssetType::BG_CACHE, 0x20},
+        {XAssetType::TEXTURE_COMBO, 0x10},
+        {XAssetType::FLAMETABLE, 0x10},
+        {XAssetType::BITFIELD, 0x34},
+        {XAssetType::ATTACHMENT_COSMETIC_VARIANT, 0x280},
+        {XAssetType::MAPTABLE, 0x19},
+        {XAssetType::MAPTABLE_LOADING_IMAGES, 0x19},
+        {XAssetType::MEDAL, 0x300},
+        {XAssetType::MEDALTABLE, 0x20},
+        {XAssetType::OBJECTIVE, 0x100},
+        {XAssetType::OBJECTIVE_LIST, 0x40},
+        {XAssetType::UMBRA_TOME, 0x00},
+        {XAssetType::NAVMESH, 0x2},
+        {XAssetType::NAVVOLUME, 0x2},
+        {XAssetType::BINARYHTML, 0x800},
+        {XAssetType::LASER, 0x32},
+        {XAssetType::BEAM, 0x32},
+        {XAssetType::STREAMER_HINT, 0x32},
+    });
+
 void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
   const int32_t entry_size = DB_GetXAssetTypeSize_Impl(type);
   if (entry_size <= 0) {
@@ -284,7 +415,18 @@ void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
             pool->itemCount, new_size);
     fflush(stdout);
 
-    pool->pool = new_pool;
+    // Free previously extended allocation
+    if (nonnull(pool->pool) && !valid_module_ptr(pool->pool) &&
+        !valid_stack_ptr(pool->pool) && pool->itemCount != 0 &&
+        DEFAULT_POOL_SIZES.contains(type) &&
+        static_cast<int32_t>(DEFAULT_POOL_SIZES.at(type)) != pool->itemCount) {
+      void *prev = pool->pool;
+      pool->pool = new_pool;
+      free(prev);
+    } else {
+      pool->pool = new_pool;
+    }
+
     pool->itemSize = entry_size;
     pool->itemCount = new_size;
   }

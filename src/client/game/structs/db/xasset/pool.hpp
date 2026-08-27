@@ -61,7 +61,10 @@ struct TypedXAssetPools {
   TypedXAssetPool<font::Font> font;
   TypedXAssetPool<font::FontIcon> fonticon;
   TypedXAssetPool<LocalizeEntry> localize_entry;
-  XAssetPool weapon;
+  // This is correct. Unsure what type resides in the `weapon_variant`
+  // XAsset pool and xassets, if any, but the `weapon` pool verifiably contains
+  // `WeaponVariantDef`s. This was cleaned up in the BO4 engine.
+  TypedXAssetPool<weapon::WeaponVariantDef> weapon;
   XAssetPool weapondef;
   XAssetPool weapon_variant;
   XAssetPool weapon_full;
@@ -93,7 +96,7 @@ struct TypedXAssetPools {
   XAssetPool glasses;
   XAssetPool texturelist;
   TypedXAssetPool<scr::ScriptParseTree> scriptparsetree;
-  XAssetPool keyvaluepairs;
+  TypedXAssetPool<KeyValuePairs> keyvaluepairs;
   TypedXAssetPool<vehicle::VehicleDef> vehicledef;
   XAssetPool addon_map_ents;
   XAssetPool tracer;

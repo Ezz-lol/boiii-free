@@ -10,6 +10,10 @@
 
 namespace game {
 
+namespace weapon {
+struct WeaponVariantDef;
+}
+
 namespace vehicle {
 struct VehicleDef;
 struct VehicleFxDef;
@@ -106,7 +110,8 @@ enum class XAssetType : int32_t {
   WEAPON = 0x17,
   // Probably `WeaponDef`
   WEAPONDEF = 0x18,
-  // Probably `WeaponVariantDef`
+  // Probably `WeaponVariantDef`, but unsure, as `WeaponVariantDef` is
+  // verified to be the type used for `Weapon` `XAsset` types.
   WEAPON_VARIANT = 0x19,
   // Probably `WeaponFullDef`
   WEAPON_FULL = 0x1A,
@@ -264,7 +269,7 @@ template <typename T> struct TypedXAssetPool {
 ASSERT_SIZE(XAssetPool, 0x20);
 ASSERT_SIZE(TypedXAssetPool<void>, sizeof(XAssetPool));
 PACKED(struct ScriptStringList {
-  int count;
+  int32_t count;
   uint8_t _padding04[4];
   const char **strings;
 });
@@ -312,12 +317,12 @@ struct FxFloatRange {
   float amplitude;
 };
 
-typedef int FxElemDefFlags;
-typedef int FxElemDefExtraFlags;
+typedef int32_t FxElemDefFlags;
+typedef int32_t FxElemDefExtraFlags;
 
 struct FxIntRange {
-  int base;
-  int amplitude;
+  int32_t base;
+  int32_t amplitude;
 };
 
 // sizeof=0x10
@@ -353,7 +358,7 @@ struct __attribute__((aligned(8))) MaterialInfo {
   uint8_t textureAtlasColumnCount;
   gfx::GfxSortKey drawSurf;
   uint32_t bindlessMaterialSortIndex;
-  int surfaceFlags;
+  int32_t surfaceFlags;
   contents_t contents;
 };
 
@@ -548,7 +553,7 @@ struct FxElemDef {
 };
 ASSERT_SIZE(FxElemDef, 0x260);
 
-typedef int FxEffectDefFlags;
+typedef int32_t FxEffectDefFlags;
 typedef const FxEffectDef *FxEffectDefHandle;
 typedef uint8_t FxNormalsShape;
 
@@ -853,7 +858,7 @@ struct CustomizationColorInfo {
 ASSERT_SIZE(CustomizationColorInfo, 0x30);
 
 struct XSurface;
-typedef int XPartBits[12];
+typedef int32_t XPartBits[12];
 // Verified
 struct __declspec(align(4)) XModelMesh {
   const char *name;
@@ -868,6 +873,19 @@ struct __declspec(align(4)) XModelMesh {
   uint8_t lodEstimate;
 };
 ASSERT_SIZE(XModelMesh, 0x78);
+
+struct KeyValuePair {
+  int32_t keyHash;
+  const char *value;
+};
+
+// Verified
+struct KeyValuePairs {
+  const char *name;
+  int32_t numVariables;
+  KeyValuePair *keyValuePairs;
+};
+ASSERT_SIZE(KeyValuePairs, 0x18);
 
 union XAssetHeader {
   NamedXAsset *named;
@@ -893,7 +911,7 @@ union XAssetHeader {
   font::Font *font;
   font::FontIcon *fontIcon;
   LocalizeEntry *localize;
-  // WeaponVariantDef *weapon;
+  weapon::WeaponVariantDef *weapon;
   // WeaponAttachment *attachment;
   // WeaponAttachmentUnique *attachmentUnique;
   // WeaponCamo *weaponCamo;
@@ -921,7 +939,7 @@ union XAssetHeader {
   // Glasses *glasses;
   // TextureList *textureList;
   scr::ScriptParseTree *scriptParseTree;
-  // KeyValuePairs *keyValuePairs;
+  KeyValuePairs *keyValuePairs;
   vehicle::VehicleDef *vehicleDef;
   // AddonMapEnts *addonMapEnts;
   // TracerDef *tracerDef;
@@ -992,7 +1010,7 @@ using XAssetEnum = void(XAssetHeader, void *);
 // sizeof=0x20
 struct XAssetList {
   ScriptStringList stringList;
-  int assetCount;
+  int32_t assetCount;
   uint8_t _padding14[4];
   XAsset *assets;
 };

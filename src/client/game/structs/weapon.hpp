@@ -2420,6 +2420,8 @@ PACKED(struct WeaponVariantDef {
   vec3_t ikLeftHandUiViewerOffset;
   vec3_t ikLeftHandUiViewerRotation;
 });
+// Verified
+ASSERT_SIZE(WeaponVariantDef, 0x300);
 
 PACKED(struct weaponParms {
   vec3_t forward;
