@@ -32,7 +32,7 @@ template <typename T> std::optional<T> parse_int(const std::string_view &str) {
   return std::nullopt;
 }
 
-std::vector<pool_config> parse_assetlimits(std::string &data) {
+std::vector<pool_config> parse_list(std::string &data) {
   std::vector<pool_config> result;
   data = utils::string::replace(utils::string::replace(data, "\r\n", "\n"),
                                 "\r", "");
