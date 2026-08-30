@@ -283,7 +283,7 @@ WEAK symbol<void(uint32_t table, snd::SndDuck *duck, uint32_t fieldIndex,
 WEAK symbol<void(const char *alias, int fadeTimeMs, float attenuation,
                  SndEntHandle entHandle, const vec3_t *position,
                  const vec3_t *direction, bool notify)>
-    SND_Play{0x0, 0x140548140};
+    SND_Play{0x142272E60, 0x140548140};
 WEAK symbol<void(SndAliasId aliasId, int fadeTimeMs, float attenuation,
                  SndEntHandle entHandle, const vec3_t *position,
                  const vec3_t *direction, bool notify, float scriptPitch,

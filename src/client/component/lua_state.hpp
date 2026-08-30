@@ -37,7 +37,7 @@ inline void register_lib(const char *name, const luaL_Reg *lib) {
 template <lua_CFunction *func>
 luaReturnCount_e unsafe_function(lua_State *luaVM) {
   if (game::is_server() || ui_scripting::unsafe_lua_approved_for_session.load(
-                               std::memory_order_release)) {
+                               std::memory_order_acquire)) {
     return func(luaVM);
   }
 

@@ -21,6 +21,7 @@ WEAK symbol<hks::lua_State *(hks::luaState_e luaState,
                              hks::HksStateSettings *settings,
                              hks::lua_CFunction *panicFn)>
     Lua_CoD_GenerateLuaState_Internal{0x141F115D0, 0x1404BDE40};
+WEAK symbol<hks::lua_Reader> Lua_CoD_FFReader{0x141F0EF60, 0x1404BCAF0};
 WEAK symbol<CodLuaStates> s_codLuaStates{0x1434100A0, 0x141122FB0};
 } // namespace cod
 } // namespace lua

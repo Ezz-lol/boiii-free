@@ -16,7 +16,7 @@ class table;
 class function;
 class script_value;
 
-template <typename T> std::string get_typename();
+template <typename T> constexpr const char *get_typename();
 
 class hks_object {
 public:
@@ -63,6 +63,7 @@ public:
   script_value(const lightuserdata &value);
   script_value(const userdata &value);
   script_value(const table &value);
+  script_value(HashTable *value);
   script_value(const function &value);
 
   template <template <class, class> class C, class T,

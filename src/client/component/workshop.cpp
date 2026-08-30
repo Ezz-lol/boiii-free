@@ -86,7 +86,7 @@ void dlc_popup_thread_func() {
       scheduler::once(
           [map_copy, link] {
             game::ui::UI_OpenErrorPopupWithMessage(
-                0, game::errorCode::UI,
+                game::LOCAL_CLIENT_0, game::errorCode::UI,
                 utils::string::va(
                     "Missing DLC map: %s\n\nOpening download page...\n%s",
                     map_copy.c_str(), link));
@@ -780,7 +780,7 @@ bool check_valid_usermap_id(const std::string &mapname,
       scheduler::once(
           [] {
             game::ui::UI_OpenErrorPopupWithMessage(
-                0, game::errorCode::UI,
+                game::LOCAL_CLIENT_0, game::errorCode::UI,
                 "You are already downloading a map in the background. You can "
                 "download only one item at a time.");
           },
@@ -848,7 +848,7 @@ bool check_valid_usermap_id(const std::string &mapname,
       scheduler::once(
           [name_copy] {
             game::ui::UI_OpenErrorPopupWithMessage(
-                0, game::errorCode::UI,
+                game::LOCAL_CLIENT_0, game::errorCode::UI,
                 utils::string::va(
                     "Missing usermap: %s\n\nThis server did not provide FastDL "
                     "and did not set workshop_id.\n\nSubscribe on Steam "
@@ -874,7 +874,7 @@ bool check_valid_mod_id(const std::string &mod,
       scheduler::once(
           [] {
             game::ui::UI_OpenErrorPopupWithMessage(
-                0, game::errorCode::UI,
+                game::LOCAL_CLIENT_0, game::errorCode::UI,
                 "You are already downloading a mod in the background. You can "
                 "download only one item at a time.");
           },
@@ -944,7 +944,7 @@ bool check_valid_mod_id(const std::string &mod,
         scheduler::once(
             [name_copy] {
               game::ui::UI_OpenErrorPopupWithMessage(
-                  0, game::errorCode::UI,
+                  game::LOCAL_CLIENT_0, game::errorCode::UI,
                   utils::string::va(
                       "Could not download: folder name is not numeric and "
                       "'workshop_id' dvar is empty.\nMod: %s\nSet workshop_id "
@@ -1032,7 +1032,8 @@ void com_error_missing_map_stub(const char *file, int line,
     scheduler::once(
         [addr_copy] {
           game::cbuf::Cbuf_AddText(
-              0, utils::string::va("connect %s\n", addr_copy.c_str()));
+              game::LOCAL_CLIENT_0,
+              utils::string::va("connect %s\n", addr_copy.c_str()));
         },
         scheduler::main, 3s);
 
@@ -1148,7 +1149,7 @@ public:
           return;
         if (is_any_download_active()) {
           game::ui::UI_OpenErrorPopupWithMessage(
-              0, game::errorCode::UI,
+              game::LOCAL_CLIENT_0, game::errorCode::UI,
               "A download is already in progress. Wait for it to finish.");
           return;
         }

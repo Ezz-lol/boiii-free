@@ -78,48 +78,65 @@ WEAK symbol<uint32_t(ZoneType zoneType, int32_t sliceStart, int32_t sliceLen,
                      hks::lua_State *luaState)>
     Mods_Lists_GetInfoEntries_Slice{0x1420D61E0};
 
-inline hks::HksObject *getObjectForIndex(hks::lua_State *s, int32_t index) {
-  hks::HksObject *object = nullptr;
-
-  if (index <= LUA_REGISTRYINDEX) {
-    switch (index) {
-    case LUA_REGISTRYINDEX:
-      object = &s->m_global->m_registry;
-      break;
-    case LUA_GLOBALSINDEX:
-      object = &s->globals;
-      break;
-    case LUA_ENVIRONINDEX:
-      s->m_cEnv.v.cClosure = reinterpret_cast<hks::cclosure *>(
-          s->m_apistack.base[-1].v.cClosure->m_env);
-      s->m_cEnv.t = hks::HksObjectType::TTABLE;
-      object = &s->m_cEnv;
-      break;
-    default:
-      object = reinterpret_cast<hks::HksObject *>(
-          &s->m_apistack.base[-1].v.cClosure->m_numUpvalues +
-          8 * (LUA_GLOBALSINDEX - index));
-      break;
-    }
-  } else if (index < 0) {
-    if (&s->m_apistack.top[index] >= s->m_apistack.base) {
-      object = &s->m_apistack.top[index];
-    }
-  } else if (&s->m_apistack.base[index - 1] < s->m_apistack.top) {
-    object = &s->m_apistack.base[index - 1];
-  }
-  // TODO: Handle failures
-  return object;
+inline hks::hksInt32 lua_gettop(hks::lua_State *s) {
+  return hksi_lua_gettop(s);
 }
 
 inline hks::HksNumber lua_tonumber(hks::lua_State *s, int32_t index) {
-  const hks::HksObject *object = getObjectForIndex(s, index);
-  return object->v.number;
+  const hks::HksObject *object = hks::getObjectForIndex(s, index);
+  if (object && object->t == hks::HksObjectType::TNUMBER) {
+    return object->v.number;
+  }
+
+  return 0.0f;
+}
+
+inline bool lua_toboolean(hks::lua_State *s, int32_t index) {
+  const hks::HksObject *object = hks::getObjectForIndex(s, index);
+  if (object) {
+    return object->truthy();
+  }
+
+  return false;
+}
+
+inline int32_t lua_tointeger(hks::lua_State *s, int32_t index) {
+  return static_cast<int32_t>(lua_tonumber(s, index));
 }
 
 inline const char *lua_tostring(hks::lua_State *s, int32_t index) {
-  hks::HksObject *object = getObjectForIndex(s, index);
-  return hks::hks_obj_tolstring(s, object, nullptr);
+  hks::HksObject *object = hks::getObjectForIndex(s, index);
+  if (object) {
+    return hks::hks_obj_tolstring(s, object, nullptr);
+  }
+  return nullptr;
+}
+
+inline hks::HashTable *lua_totable(hks::lua_State *s, int32_t index) {
+  hks::HksObject *object = hks::getObjectForIndex(s, index);
+  if (object && object->t == hks::HksObjectType::TTABLE) {
+    return object->v.table;
+  }
+  return nullptr;
+}
+
+inline void lua_pushnumber(hks::lua_State *s, hks::HksNumber n) {
+  hks::HksObject *top = s->m_apistack.top;
+  top->v.number = n;
+  top->t = hks::HksObjectType::TNUMBER;
+  s->m_apistack.top = top + 1;
+}
+
+template <IntegralLike<int32_t> Value>
+inline void lua_pushinteger(hks::lua_State *s, Value n) {
+  return lua_pushnumber(s, float(static_cast<int32_t>(n)));
+}
+
+inline void lua_pushnil(hks::lua_State *s) {
+  hks::HksObject *top = s->m_apistack.top;
+  top->v.number = 0;
+  top->t = hks::HksObjectType::TNIL;
+  s->m_apistack.top = top + 1;
 }
 
 inline void lua_pushboolean(hks::lua_State *s, hks::hksBool b) {
@@ -127,6 +144,29 @@ inline void lua_pushboolean(hks::lua_State *s, hks::hksBool b) {
   top->v.boolean = b;
   top->t = hks::HksObjectType::TBOOLEAN;
   s->m_apistack.top = top + 1;
+}
+
+inline void lua_pushvalue(hks::lua_State *s, int32_t index) {
+  hks::HksObject *object = getObjectForIndex(s, index);
+  hks::HksObject *st = s->m_apistack.top;
+  *st = *object;
+  s->m_apistack.top = st + 1;
+}
+
+inline void lua_pushvfstring(hks::lua_State *s, const char *fmt, va_list argp) {
+  hks::hksi_lua_pushvfstring(s, fmt, argp);
+}
+inline bool lua_isstring(hks::lua_State *s, int32_t index) {
+  return hks::hksi_lua_isstring(s, index);
+}
+
+inline bool lua_isnumber(hks::lua_State *s, int32_t index) {
+  return hks::hksi_lua_isnumber(s, index);
+}
+
+inline bool lua_isboolean(hks::lua_State *s, int32_t index) {
+  hks::HksObject *object = hks::getObjectForIndex(s, index);
+  return object && object->t == hks::HksObjectType::TBOOLEAN;
 }
 } // namespace lua
 } // namespace game

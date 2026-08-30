@@ -161,7 +161,7 @@ int32_t verify_checksum_stub(void * /*data*/, const int32_t length) {
   return length + (socket_byte_missing() ? 1 : 0);
 }
 
-void con_restricted_execute_buf_stub(int local_client_num,
+void con_restricted_execute_buf_stub(game::LocalClientNum_t local_client_num,
                                      game::ControllerIndex_t controller_index,
                                      const char *buffer) {
   game::cbuf::Cbuf_ExecuteBuffer(local_client_num, controller_index, buffer);

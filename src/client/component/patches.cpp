@@ -307,11 +307,12 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
           [deferred_error]() {
             client_script_error_pending = false;
             if (game::com::Com_IsInGame())
-              game::cbuf::Cbuf_AddText(0, "disconnect\n");
+              game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, "disconnect\n");
             scheduler::once(
                 [deferred_error]() {
                   game::ui::UI_OpenErrorPopupWithMessage(
-                      0, game::errorCode::NONE, deferred_error.c_str());
+                      game::LOCAL_CLIENT_0, game::errorCode::NONE,
+                      deferred_error.c_str());
                 },
                 scheduler::pipeline::main, 500ms);
           },
@@ -329,7 +330,8 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
     std::string deferred_error = std::string(buffer);
     scheduler::once(
         [deferred_error]() {
-          game::ui::UI_OpenErrorPopupWithMessage(0, game::errorCode::NONE,
+          game::ui::UI_OpenErrorPopupWithMessage(game::LOCAL_CLIENT_0,
+                                                 game::errorCode::NONE,
                                                  deferred_error.c_str());
         },
         scheduler::pipeline::main, 500ms);
@@ -347,8 +349,8 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
 
     scheduler::once(
         [msg]() {
-          game::ui::UI_OpenErrorPopupWithMessage(0, game::errorCode::NONE,
-                                                 msg.c_str());
+          game::ui::UI_OpenErrorPopupWithMessage(
+              game::LOCAL_CLIENT_0, game::errorCode::NONE, msg.c_str());
         },
         scheduler::pipeline::main, 500ms);
 

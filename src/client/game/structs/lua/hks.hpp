@@ -6,6 +6,11 @@
 #include <game/ptr.hpp>
 
 namespace game {
+namespace db {
+namespace xasset {
+struct RawFile;
+}
+} // namespace db
 namespace lua {
 
 struct LuaStateContext;
@@ -250,7 +255,8 @@ typedef fastcallPtr_t<void *(void *userData, void *ptr, size_t osize,
                              size_t nsize)>
     lua_Alloc;
 typedef fastcall_t<luaReturnCount_e(lua_State *s)> lua_CFunction;
-typedef fastcallPtr_t<char *(lua_State *s, void *data, size_t *size)>
+typedef fastcall_t<uint8_t *(lua_State *s, db::xasset::RawFile *data,
+                             size_t *size)>
     lua_Reader;
 typedef fastcallPtr_t<void(lua_State *s, const char *fmt, ...)> HksLogFunc;
 typedef fastcallPtr_t<void(lua_State *s, size_t requestSize)>
@@ -262,8 +268,9 @@ typedef fastcallPtr_t<int32_t(const char *filename, int32_t lua_line)>
 typedef fastcallPtr_t<void(lua_State *s, int64_t nargs, int32_t nresults,
                            const hksInstruction *pc)>
     Hkslua_Caller;
-typedef fastcall_t<void(lua_State *luaVM, void *arg, int numResults,
-                        const hksInstruction *)>
+struct HksCompilerFuncArg;
+typedef fastcall_t<void(lua_State *luaVM, HksCompilerFuncArg *arg,
+                        int numResults, const hksInstruction *)>
     lua_caller;
 
 typedef hksInt32 lua_Integer;
@@ -753,6 +760,15 @@ struct HksCompilerSettings {
   hks_debug_map m_debugMap;
 };
 ASSERT_SIZE(HksCompilerSettings, 0x20);
+
+struct HksCompilerFuncArg {
+  const HksCompilerSettings *m_options;
+  lua_Reader m_reader;
+  db::xasset::RawFile *m_readerData;
+  lua_Reader m_debugReader;
+  void *m_debugReaderData;
+  const char *m_chunkName;
+};
 
 enum class HksBytecodeSharingMode : int64_t { OFF = 0, ON = 1, SECURE = 2 };
 

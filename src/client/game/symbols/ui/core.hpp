@@ -6,7 +6,7 @@ namespace game {
 namespace ui {
 
 // UI
-WEAK symbol<void(int localClientNumber, errorCode errorcode,
+WEAK symbol<void(LocalClientNum_t localClientNumber, errorCode errorcode,
                  const char *errorMessage)>
     UI_OpenErrorPopupWithMessage{0x14228DEE0};
 WEAK symbol<void(bool frontend)> UI_CoD_Init{0x141F29010, 0x1404A0A50};
@@ -39,6 +39,9 @@ WEAK symbol<bool(const UIModelIndex nodeIndex, const char *newValue)>
     UI_Model_SetString{0x142019DB0};
 WEAK symbol<bool(const UIModelIndex nodeIndex, uint64_t newValue)>
     UI_Model_SetUInt64{0x142019EB0};
+WEAK symbol<void(LocalClientNum_t localClientNum)> UI_CloseAllMenus{
+    0x14228B0E0};
+WEAK symbol<void()> UI_Shutdown{0x14270DE00};
 
 WEAK symbol<void(const char *rootName)> UI_CoD_ProcessEvents{0x141F2DDA0};
 WEAK symbol<void(bool frontend)> UI_CoD_ShutdownAndInit{0x141F32F80};

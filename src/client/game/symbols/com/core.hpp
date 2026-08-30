@@ -54,16 +54,49 @@ WEAK symbol<qboolean> com_errorEntered{0x1568ED8B8};
 WEAK symbol<const char *()> Com_SessionMode_GetAbbreviationForCurrentMode{
     0x1420F6790};
 WEAK symbol<LocalClientNum_t(ControllerIndex_t controllerIndex)>
-    Com_ControllerIndex_GetLocalClientNum{0x1420EF7C0};
+    Com_ControllerIndex_GetLocalClientNum{0x1420EF7C0, 0x1404FACB0};
 WEAK symbol<void()> Com_Frame_Try_Block_Function{0x1420F8E00, 0x1405020E0};
-WEAK symbol<ControllerIndex_t()> Com_ControllerIndexes_GetPrimary{0x1420EF880};
+WEAK symbol<ControllerIndex_t()> Com_ControllerIndexes_GetPrimary{0x1420EF880,
+                                                                  0x1404FAD70};
 WEAK symbol<void(const char *inString, char *outString, int32_t outStringSize)>
     Com_CleanStringForNetwork{0x1422E8C30, 0x140580A60};
+WEAK symbol<void()> Com_ShutdownUILevelAndReinitialize{0x142149D60};
+WEAK symbol<void()> Com_ShutdownUILevel{0x142149D10};
 
 // Unsure of exact name. This function does not exist in any prior engine
 // versions, nor in the dedicated server. It's return value is compared to
 // com_maxfps and the minimum of the two is used as the FPS limit.
 WEAK symbol<uint32_t(LocalClientNum_t localClientNum)> Com_FPSLimit{
     0x140F7CFD0};
+
+WEAK symbol<void()> ParseBuildInfo{0x1420EF5F0, 0x1404FAAE0};
+WEAK symbol<const char *()> Com_GetBuildConfig{0x1420EF270, 0x1404FA7D0};
+WEAK symbol<const char *()> Com_GetBuildDisplayNameR{0x1420EF280, 0x1404FA7E0};
+WEAK symbol<const char *()> Com_GetBuildID{0x1420EF290, 0x1404FA7F0};
+// Does not exist in server
+WEAK symbol<const char *()> Com_GetBuildInfoName{0x1420EF2E0};
+WEAK symbol<const char *()> Com_GetBuildInfoString{0x1420EF300, 0x1404FA840};
+// Does not exist in server
+WEAK symbol<int32_t()> Com_GetBuildInfoVersion{0x1420EF370};
+WEAK symbol<const char *()> Com_GetBuildMachine{0x1420EF3D0, 0x1404FA8F0};
+WEAK symbol<const char *()> Com_GetBuildName{0x1420EF3E0, 0x1404FA900};
+WEAK symbol<const char *()> Com_GetBuildTime{0x1420EF530, 0x1404FAA40};
+WEAK symbol<const char *()> Com_GetBuildVersion{0x1420EF550, 0x1404FAA50};
+
+WEAK symbol<int32_t> s_buildInfoVersion{0x1568CE6E0, 0x14946FFA0};
+WEAK symbol<bool> s_buildInfoParsed{0x1568CE6E4, 0x14946FFA4};
+WEAK symbol<bool> s_buildInfoValid{0x1568CE6E5, 0x14946FFA5};
+WEAK symbol<str128_t> s_buildInfoName{0x1568CE6F0, 0x14946FFB0};
+WEAK symbol<str64_t> s_buildInfoSource{0x1568CE770, 0x149470030};
+
+WEAK symbol<const char *> BUILD_MACHINE{0x14337B220, 0x14110B3D0};
+WEAK symbol<const char *> BUILD_TYPE{0x14337B228, 0x14110B3D8};
+WEAK symbol<const char *> BUILD_TIME{0x14337B230, 0x14337B230};
+
+WEAK symbol<int32_t(BuildIntField field)> Com_GetBuildIntField{0x1420EF390,
+                                                               0x1404FA8B0};
+WEAK symbol<const char *(BuildStringField field)> Com_GetBuildStringField{
+    0x1420EF400, 0x1404FA910};
+
 } // namespace com
 } // namespace game

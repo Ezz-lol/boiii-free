@@ -42,6 +42,7 @@ WEAK symbol<void(LocalClientNum_t localClientNum, bool checkStatus)>
     CL_LoadoutChanged{0x141359960};
 WEAK symbol<void(LocalClientNum_t localClientNum, bool deactivateClient)>
     CL_Disconnect{0x14135D860};
+WEAK symbol<void()> CL_Disconnect_f{0x14134CCB0};
 WEAK symbol<void(LocalClientNum_t localClientNum, net::netadr_t *from,
                  const char *reason)>
     CL_DisconnectPacket{0x14134CB90};

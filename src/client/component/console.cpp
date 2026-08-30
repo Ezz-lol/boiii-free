@@ -917,6 +917,10 @@ void print_message(const char *message) {
   OutputDebugStringA(message);
 #endif
 
+#ifndef NDEBUG
+  game::trace("[printf] %s", message);
+#endif
+
   if (started.load(std::memory_order_seq_cst) && !terminate_runner) {
     game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                           game::consoleLabel_e::DEFAULT, "%s", message);
@@ -1173,7 +1177,7 @@ LRESULT con_wnd_proc(const HWND hwnd, const UINT msg, const WPARAM wparam,
     if (!close_requested.exchange(true)) {
       ShowWindow(hwnd, SW_HIDE);
       force_exit_after(3000);
-      game::cbuf::Cbuf_AddText(0, "quit\n");
+      game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, "quit\n");
     }
     [[fallthrough]];
   default:
@@ -1465,79 +1469,70 @@ namespace lua {
 using namespace game::lua;
 using namespace game::lua::hks;
 
-void print(std::string msg) {
+void print(const std::string_view &msg) {
 #ifndef NDEBUG
-  game::trace("Print: %s", msg.c_str());
+  game::trace("[Lua][Console] %s", msg.data());
 #endif
-  msg = "^7" + msg + "\n";
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                        game::consoleLabel_e::DEFAULT, "%s\n", msg.c_str());
+                        game::consoleLabel_e::DEFAULT, "^7%s\n", msg.data());
 }
 
-void print_info(std::string msg) {
+void print_info(const std::string_view &msg) {
 #ifndef NDEBUG
-  game::trace("print_info: %s", msg.c_str());
+  game::trace("[Lua][Console][Info] %s", msg.data());
 #endif
-  msg = "^4" + msg + "\n";
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                        game::consoleLabel_e::DEFAULT, "%s\n", msg.c_str());
+                        game::consoleLabel_e::DEFAULT, "^4%s^7\n", msg.data());
 }
 
-void print_error(std::string msg) {
+void print_error(const std::string_view &msg) {
 #ifndef NDEBUG
-  game::trace("print_error: %s", msg.c_str());
+  game::trace("[Lua][Console][Error] %s", msg.data());
 #endif
-  if (msg.find("error") != std::string::npos) {
-    msg = "^1" + msg + "\n";
-  } else {
-    msg = "^1Error: " + msg + "\n";
+
+  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                        game::consoleLabel_e::DEFAULT, "^1Error: %s^7\n",
+                        msg.data());
+}
+
+void print_warning(const std::string_view &msg) {
+#ifndef NDEBUG
+  game::trace("[Lua][Console][Warn] %s", msg.data());
+#endif
+  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                        game::consoleLabel_e::DEFAULT, "^3%s^7\n", msg.data());
+}
+
+std::string concat_string_args(lua_State *s) {
+  std::string text;
+  for (hksInt32 i = 1; i <= lua_gettop(s); ++i) {
+    text += lua_tostring(s, i);
   }
-
-  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                        game::consoleLabel_e::DEFAULT, "%s\n", msg.c_str());
+  return text;
 }
 
-void print_warning(std::string msg) {
-#ifndef NDEBUG
-  game::trace("print_warning: %s", msg.c_str());
-#endif
-  msg = "^3" + msg + "\n";
-  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                        game::consoleLabel_e::DEFAULT, "%s\n", msg.c_str());
-}
+luaReturnCount_e print(lua_State *s) {
 
-luaReturnCount_e print(lua::lua_State *s) {
-  if (hks::hksi_lua_gettop(s) != 1) {
-    hksi_luaL_error(s,
-                    "Print required 1 argment. Called with %i argument(s). "
-                    "Arguments expected: ( const char * info )",
-                    hks::hksi_lua_gettop(s));
-  }
-
-  const std::string text = game::lua::lua_tostring(s, 1);
-  print(text);
+  print(concat_string_args(s));
   return luaReturnCount_e::ONE;
 }
 
-luaReturnCount_e print_info(lua::lua_State *s) {
-  const std::string text = game::lua::lua_tostring(s, 1);
-  print_info(text);
+luaReturnCount_e print_info(lua_State *s) {
+  print_info(concat_string_args(s));
   return luaReturnCount_e::ONE;
 }
 
-luaReturnCount_e print_error(lua::lua_State *s) {
-  const std::string text = game::lua::lua_tostring(s, 1);
-  print_error(text);
+luaReturnCount_e print_error(lua_State *s) {
+  print_error(concat_string_args(s));
   return luaReturnCount_e::ONE;
 }
 
-luaReturnCount_e print_warning(lua::lua_State *s) {
-  const char *text = game::lua::lua_tostring(s, 1);
-  print_warning(text);
+luaReturnCount_e print_warning(lua_State *s) {
+  print_warning(concat_string_args(s));
   return luaReturnCount_e::ONE;
 }
 
-luaReturnCount_e show_external_console(lua::lua_State *s) {
+luaReturnCount_e show_external_console(lua_State *s) {
   game::sys::Sys_ShowConsole();
   return luaReturnCount_e::ONE;
 }

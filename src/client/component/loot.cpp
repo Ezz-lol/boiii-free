@@ -256,48 +256,74 @@ struct component final : generic_component {
       const char *mode_name = nullptr;
 
       if (mode == game::eModes::MULTIPLAYER) {
-        game::cbuf::Cbuf_AddText(0, "PrestigeStatsMaster 1\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname plevel 11\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname hasprestiged 1\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname rank 54\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname paragon_rank 944\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname paragon_rankxp 56800000\n");
-        game::cbuf::Cbuf_AddText(0, "uploadstats 1\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "PrestigeStatsMaster 1\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "statsetbyname plevel 11\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "statsetbyname hasprestiged 1\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "statsetbyname rank 54\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "statsetbyname paragon_rank 944\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "statsetbyname paragon_rankxp 56800000\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, "uploadstats 1\n");
         mode_name = "Multiplayer";
       } else if (mode == game::eModes::ZOMBIES) {
-        game::cbuf::Cbuf_AddText(0, "PrestigeStatsMaster 0\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname plevel 11\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname hasprestiged 1\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname rank 34\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname paragon_rank 999\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname paragon_rankxp 56800000\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_zod_ee 1\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_zod_super_ee 1\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_factory_ee 1\n");
-        game::cbuf::Cbuf_AddText(0,
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "PrestigeStatsMaster 0\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "statsetbyname plevel 11\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "statsetbyname hasprestiged 1\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "statsetbyname rank 34\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "statsetbyname paragon_rank 999\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "statsetbyname paragon_rankxp 56800000\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "statsetbyname darkops_zod_ee 1\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "statsetbyname darkops_zod_super_ee 1\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "statsetbyname darkops_factory_ee 1\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
                                  "statsetbyname darkops_factory_super_ee 1\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_castle_ee 1\n");
-        game::cbuf::Cbuf_AddText(0,
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "statsetbyname darkops_castle_ee 1\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
                                  "statsetbyname darkops_castle_super_ee 1\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_island_ee 1\n");
-        game::cbuf::Cbuf_AddText(0,
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "statsetbyname darkops_island_ee 1\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
                                  "statsetbyname darkops_island_super_ee 1\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_stalingrad_ee 1\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "statsetbyname darkops_stalingrad_ee 1\n");
         game::cbuf::Cbuf_AddText(
-            0, "statsetbyname darkops_stalingrad_super_ee 1\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname darkops_genesis_ee 1\n");
-        game::cbuf::Cbuf_AddText(0,
+            game::LOCAL_CLIENT_0,
+            "statsetbyname darkops_stalingrad_super_ee 1\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "statsetbyname darkops_genesis_ee 1\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
                                  "statsetbyname DARKOPS_GENESIS_SUPER_EE 1\n");
-        game::cbuf::Cbuf_AddText(0, "uploadstats 0\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, "uploadstats 0\n");
         mode_name = "Zombies";
       } else {
-        game::cbuf::Cbuf_AddText(0, "PrestigeStatsMaster 2\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname plevel 11\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname hasprestiged 1\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname rank 19\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname paragon_rank 999\n");
-        game::cbuf::Cbuf_AddText(0, "statsetbyname paragon_rankxp 0\n");
-        game::cbuf::Cbuf_AddText(0, "uploadstats 2\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "PrestigeStatsMaster 2\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "statsetbyname plevel 11\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "statsetbyname hasprestiged 1\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "statsetbyname rank 19\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "statsetbyname paragon_rank 999\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                                 "statsetbyname paragon_rankxp 0\n");
+        game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, "uploadstats 2\n");
         mode_name = "Campaign";
       }
 

@@ -494,9 +494,10 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetBindingButtonString{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetBubbleGumBuff{0x141FD8080};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetBubbleGumPackName{
     0x141FD8150};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetBuildIntField{0x141FC69D0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetBuildIntField{0x141FC69D0,
+                                                                 0x1404CB540};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetBuildStringField{
-    0x141FC6A20};
+    0x141FC6A20, 0x1404CB590};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetBurnDupeProgress{
     0x141F207F0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetBurnDupeState{0x141F20850};

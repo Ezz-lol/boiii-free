@@ -681,7 +681,8 @@ void gscr_printf(scriptInstance_t inst) {
 void gscr_executecommand(scriptInstance_t inst) {
   const char *cmd = Scr_GetString(inst, 0);
   if (cmd) {
-    game::cbuf::Cbuf_AddText(0, utils::string::va("%s\n", cmd));
+    game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                             utils::string::va("%s\n", cmd));
   }
 }
 

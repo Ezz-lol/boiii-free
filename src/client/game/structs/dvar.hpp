@@ -1226,6 +1226,13 @@ union EngineDependentDvarMut {
   dvar_t *sv;
   encryptedDvar_t *cl;
 
+  dvarCallBack_t *modifiedCallback() noexcept {
+    if (is_server()) {
+      return sv->modifiedCallback();
+    }
+    return cl->modifiedCallback();
+  }
+
   inline std::optional<std::string> set(const char *val) {
     if (is_server()) {
       return sv->set(val);

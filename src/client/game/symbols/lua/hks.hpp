@@ -71,8 +71,9 @@ WEAK symbol<void(lua_State *s, hksInt64 nargs, hksInt32 nresults,
     hksi_lua_call{0x141D70FE0, 0x140418E40};
 
 WEAK symbol<hksInt32(lua_State *s, const HksCompilerSettings *options,
-                     lua_Reader reader, void *data, lua_Reader debugReader,
-                     void *debugData, const char *chunkName)>
+                     lua_Reader *reader, db::xasset::RawFile *data,
+                     lua_Reader *debugReader, void *debugData,
+                     const char *chunkName)>
     Compiler{0x141D3AFB0, 0x1403E4090};
 
 WEAK symbol<HksRegister> NilValue{0x150BBCC40, 0x14820D720};
@@ -187,7 +188,7 @@ WEAK symbol<void(lua_State *s, const char *str)> hksi_lua_pushstring{
     0x140A18430, 0x1401DE6F0};
 WEAK symbol<void(lua_State *s, int32_t index)> hksi_lua_pushvalue{0x1414295D0};
 WEAK symbol<const char *(lua_State *s, const char *fmt, va_list argp)>
-    hksi_lua_pushvfstring{0x141D4E5A0};
+    hksi_lua_pushvfstring{0x141D4E5A0, 0x1403F7210};
 WEAK symbol<int32_t(lua_State *s, int32_t narg)> hksi_lua_resume{0x141D4EAF0,
                                                                  0x1403F7760};
 WEAK symbol<void(lua_State *s, int32_t index)> hksi_lua_settable{0x141429750,
@@ -213,6 +214,8 @@ WEAK symbol<const char *(lua_State *s, HksObject *obj, size_t *len)>
     hks_obj_tolstring{0x141D4B6C0, 0x1403F4210};
 WEAK symbol<HksNumber(lua_State *s, const HksObject *obj)> hks_obj_tonumber{
     0x141D4BA10, 0x1403F4560};
+WEAK symbol<int32_t(lua_State *s, const HksObject *obj)> hks_obj_isnumber{
+    0x141D4AEB0, 0x1403F3A10};
 WEAK symbol<luaReturnCount_e(lua_State *s, const char *filename,
                              const char *func_name)>
     load_dll{0x141D52B70, 0x1403FB6F0};
@@ -256,9 +259,58 @@ WEAK symbol<HksRegister *(HksRegister *retstr, lua_State *s, HksObject *left,
     OpcodeUnm{0x141D37A00, 0x1403E0DA0};
 } // namespace op
 
+inline hks::HksObject *getObjectForIndex(hks::lua_State *s, int32_t index) {
+  hks::HksObject *object = nullptr;
+
+  if (index <= LUA_REGISTRYINDEX) {
+    switch (index) {
+    case LUA_REGISTRYINDEX:
+      object = &s->m_global->m_registry;
+      break;
+    case LUA_GLOBALSINDEX:
+      object = &s->globals;
+      break;
+    case LUA_ENVIRONINDEX:
+      s->m_cEnv.v.cClosure = reinterpret_cast<hks::cclosure *>(
+          s->m_apistack.base[-1].v.cClosure->m_env);
+      s->m_cEnv.t = hks::HksObjectType::TTABLE;
+      object = &s->m_cEnv;
+      break;
+    default:
+      object = reinterpret_cast<hks::HksObject *>(
+          &s->m_apistack.base[-1].v.cClosure->m_numUpvalues +
+          8 * (LUA_GLOBALSINDEX - index));
+      break;
+    }
+  } else if (index < 0) {
+    if (&s->m_apistack.top[index] >= s->m_apistack.base) {
+      object = &s->m_apistack.top[index];
+    }
+  } else if (&s->m_apistack.base[index - 1] < s->m_apistack.top) {
+    object = &s->m_apistack.base[index - 1];
+  }
+  // TODO: Handle failures
+  return object;
+}
+
 inline hksInt32 hksi_lua_gettop(lua_State *s) {
   return s->m_apistack.top - s->m_apistack.base;
 }
+
+inline bool hks_obj_isstring(const HksObject *x) {
+  return x->t == HksObjectType::TSTRING || x->t == HksObjectType::TNUMBER;
+}
+
+inline bool hksi_lua_isstring(lua_State *s, int index) {
+  const HksObject *obj = getObjectForIndex(s, index);
+  return obj && hks_obj_isstring(obj);
+}
+
+inline bool hksi_lua_isnumber(lua_State *s, int index) {
+  const HksObject *obj = getObjectForIndex(s, index);
+  return obj && hks_obj_isnumber(s, obj);
+}
+
 } // namespace hks
 } // namespace lua
 } // namespace game

@@ -5,6 +5,7 @@
 #ifndef NDEBUG
 #include <string>
 #include <format>
+#include <game/ptr.hpp>
 #endif
 #include <game/structs/gfx/gfx.hpp>
 
@@ -225,9 +226,9 @@ PACKED(struct XAssetPool {
 
 #ifndef NDEBUG
   inline constexpr std::string serialize() const noexcept {
-    return std::format("XAssetPool {{ \"pool\": 0x{:p}, \"itemSize\": 0x{:X}, "
+    return std::format("XAssetPool {{ \"pool\": {:p}, \"itemSize\": 0x{:X}, "
                        "\"itemCount\": 0x{:X}, \"isSingleton\": {}, "
-                       "\"itemAllocCount\": 0x{:X}, \"freeHead\": 0x{:p} }}",
+                       "\"itemAllocCount\": 0x{:X}, \"freeHead\": {:p} }}",
                        pool, itemSize, itemCount,
                        isSingleton ? "true" : "false", itemAllocCount,
                        static_cast<void *>(freeHead));
@@ -256,9 +257,9 @@ template <typename T> struct TypedXAssetPool {
 #ifndef NDEBUG
   inline constexpr std::string serialize() const noexcept {
     return std::format(
-        "TypedXAssetPool<{}> {{ \"pool\": 0x{:p}, \"itemSize\": 0x{:X}, "
+        "TypedXAssetPool<{}> {{ \"pool\": {:p}, \"itemSize\": 0x{:X}, "
         "\"itemCount\": 0x{:X}, \"isSingleton\": {}, "
-        "\"itemAllocCount\": 0x{:X}, \"freeHead\": 0x{:p} }}",
+        "\"itemAllocCount\": 0x{:X}, \"freeHead\": {:p} }}",
         reflect_name<T>(), static_cast<void *>(pool), itemSize, itemCount,
         isSingleton ? "true" : "false", itemAllocCount,
         static_cast<void *>(freeHead));
@@ -288,8 +289,17 @@ PACKED(struct NamedXAsset { const char *name; });
 ASSERT_SIZE(NamedXAsset, 0x8);
 
 PACKED(struct RawFile : NamedXAsset {
-  uint64_t len;
+  size_t len;
   uint8_t *buffer;
+
+#ifndef NDEBUG
+  inline constexpr std::string serialize() const noexcept {
+    return std::format(
+        "RawFile {{ \"name\": \"{}\", \"len\": 0x{:X}, \"buffer\": {:p} }}",
+        game::readable_ptr(name) ? name : "NULL", len,
+        static_cast<const void *>(buffer));
+  }
+#endif
 });
 ASSERT_SIZE(RawFile, 0x18);
 
@@ -992,7 +1002,7 @@ union XAssetHeader {
   // StreamerHint *streamerHint;
   void *data;
 };
-ASSERT_SIZE(XAssetHeader, 0x8);
+ASSERT_SIZE(XAssetHeader, sizeof(void *));
 
 // sizeof=0x10
 #pragma pack(push, 1)

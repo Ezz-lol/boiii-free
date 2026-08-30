@@ -237,7 +237,7 @@ void check_and_execute() {
   fprintf(stderr, "check_and_execute: map_restart\n");
   fflush(stderr);
 #endif
-  game::cbuf::Cbuf_AddText(0, "map_restart\n");
+  game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, "map_restart\n");
 }
 
 void abort_game_frame() {

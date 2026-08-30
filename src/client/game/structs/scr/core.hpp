@@ -1909,8 +1909,7 @@ ASSERT_SIZE(GSC_OBJ, 0x48);
 #pragma pack(push, 1)
 struct ScriptParseTree {
   const char *name;
-  int32_t len;
-  uint8_t _padding0C[4];
+  size_t len;
   GSC_OBJ *buffer;
 };
 ASSERT_SIZE(ScriptParseTree, 0x18);

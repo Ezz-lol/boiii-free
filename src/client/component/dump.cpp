@@ -37,7 +37,8 @@ AssetBytes asset_bytes(const XAssetType type, const char *name,
         header.rawfile->name[0] && readable_ptr(header.rawfile->buffer)) {
       result.name = header.rawfile->name;
       result.size = header.rawfile->len;
-      result.buffers.push_back({header.rawfile->buffer, header.rawfile->len});
+      result.buffers.push_back(
+          {header.rawfile->buffer, static_cast<size_t>(header.rawfile->len)});
     }
     break;
   }
@@ -78,7 +79,7 @@ void dump_requested_assets(const XAssetType type, const char *name,
   if (extract_assets() && readable_ptr(name) && name[0] &&
       readable_ptr(header.named) && readable_ptr(header.named->name) &&
       header.named->name[0] && std::regex_match(name, extract_pattern())) {
-    std::lock_guard<std::recursive_mutex> lock(dump_lock);
+    std::scoped_lock<std::recursive_mutex> lock(dump_lock);
     const DumpEntry map_entry = {type, std::string(name)};
     if (dumped.contains(map_entry)) {
       return;
@@ -108,7 +109,6 @@ void dump_requested_assets(const XAssetType type, const char *name,
                 output_path.string(),
                 reinterpret_cast<const uint8_t *>(buffer.buffer), buffer.size,
                 true)) {
-
           successful = false;
           break;
         }

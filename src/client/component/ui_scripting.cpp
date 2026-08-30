@@ -6,6 +6,7 @@
 #include <game/ui_scripting/execution.hpp>
 
 #include "command.hpp"
+#include "script.hpp"
 #include "ui_scripting.hpp"
 #include "scheduler.hpp"
 #include "friends.hpp"
@@ -28,6 +29,11 @@
 #include <filesystem>
 #include <unordered_map>
 #include <atomic>
+#include <frozen/unordered_set.h>
+#include "frozen/string.h"
+
+#include <game/impl/ugc/ugc.hpp>
+#include <game/impl/com/com.hpp>
 
 using namespace game::db;
 using namespace game::db::xasset;
@@ -207,27 +213,26 @@ int hot_reload_check_files() {
 
   rawfile_source_cache.clear();
 
-  for (const auto &entry : changed) {
-    const auto path_str = entry.path().string();
+  for (const std::filesystem::directory_entry &entry : changed) {
+    const std::string path_str = entry.path().string();
     std::string data;
-    if (!utils::io::read_file(path_str, &data))
-      continue;
+    if (utils::io::read_file(path_str, &data)) {
+      // Use relative path as chunk name
+      std::string chunk = path_str;
+      if (chunk.starts_with(hot_reload_path)) {
+        chunk = chunk.substr(hot_reload_path.size());
+      }
 
-    // Use relative path as chunk name
-    auto chunk = path_str;
-    if (chunk.starts_with(hot_reload_path)) {
-      chunk = chunk.substr(hot_reload_path.size());
-    }
-
-    if (execute_raw_lua(data, chunk.c_str())) {
-      game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                            game::consoleLabel_e::DEFAULT,
-                            "^2Hot Reload: Reloaded %s\n", chunk.c_str());
-    } else {
-      game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                            game::consoleLabel_e::DEFAULT,
-                            "^1Hot Reload: Error reloading %s\n",
-                            chunk.c_str());
+      if (execute_raw_lua(data, chunk.c_str())) {
+        game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                              game::consoleLabel_e::DEFAULT,
+                              "^2Hot Reload: Reloaded %s\n", chunk.c_str());
+      } else {
+        game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                              game::consoleLabel_e::DEFAULT,
+                              "^1Hot Reload: Error reloading %s\n",
+                              chunk.c_str());
+      }
     }
   }
 
@@ -394,8 +399,11 @@ arguments lua_print(variadic_args args) {
 
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                         game::consoleLabel_e::DEFAULT, "%s\n", message.c_str());
-  printf("%s\n", message.c_str());
+  fprintf(stdout, "%s\n", message.c_str());
   fflush(stdout);
+#ifndef NDEBUG
+  game::trace("[Lua] %s", message.c_str());
+#endif
 
   return {};
 }
@@ -413,7 +421,8 @@ void print_error(const std::string &error) {
   auto popup_msg = error;
   scheduler::once(
       [popup_msg] {
-        UI_OpenErrorPopupWithMessage(0, game::errorCode::UI, popup_msg.c_str());
+        UI_OpenErrorPopupWithMessage(game::LOCAL_CLIENT_0, game::errorCode::UI,
+                                     popup_msg.c_str());
       },
       scheduler::main, 1s);
 }
@@ -432,7 +441,8 @@ std::string get_current_script(lua_State *state) {
 
 int load_buffer(const std::string &name, const std::string &data) {
   lua_State *state = *primary_luaVM;
-  const auto sharing_mode = state->m_global->m_bytecodeSharingMode;
+  const HksBytecodeSharingMode sharing_mode =
+      state->m_global->m_bytecodeSharingMode;
   state->m_global->m_bytecodeSharingMode = HksBytecodeSharingMode::ON;
 
   const auto _0 = utils::finally(
@@ -446,7 +456,7 @@ int load_buffer(const std::string &name, const std::string &data) {
 void load_script(const std::string &name, const std::string &data,
                  const std::string &display_name = "") {
   globals.loaded_scripts[name] = name;
-  const auto chunk = display_name.empty() ? name : display_name;
+  const std::string &chunk = display_name.empty() ? name : display_name;
   if (!display_name.empty() && display_name != name) {
     globals.loaded_scripts[display_name] = name;
   }
@@ -458,7 +468,7 @@ void load_script(const std::string &name, const std::string &data,
   state->m_global->m_bytecodeSharingMode = HksBytecodeSharingMode::SECURE;
 
   if (load_results[0].is<function>()) {
-    const auto results = lua["pcall"](load_results);
+    const script_value results = lua["pcall"](load_results);
     if (!results[0].as<bool>()) {
       print_error(results[1].as<std::string>());
     }
@@ -468,21 +478,20 @@ void load_script(const std::string &name, const std::string &data,
 }
 
 void load_local_script_files(const std::string &script_dir) {
-  if (!utils::io::directory_exists(script_dir)) {
-    return;
-  }
+  if (utils::io::directory_exists(script_dir)) {
+    const std::vector<std::filesystem::path> scripts =
+        utils::io::list_files(script_dir);
 
-  const auto scripts = utils::io::list_files(script_dir);
+    for (const std::filesystem::path &script : scripts) {
+      const std::string script_file = script.generic_string();
 
-  for (const auto &script : scripts) {
-    const auto script_file = script.generic_string();
-
-    if (std::filesystem::is_regular_file(script)) {
-      const std::string file_path =
-          script_file.substr(script_file.find("ui_scripts") + 11);
-      globals.local_scripts[file_path] = script_file;
-    } else if (std::filesystem::is_directory(script)) {
-      load_local_script_files(script_file);
+      if (std::filesystem::is_regular_file(script)) {
+        const std::string file_path =
+            script_file.substr(script_file.find("ui_scripts") + 11);
+        globals.local_scripts[file_path] = script_file;
+      } else if (std::filesystem::is_directory(script)) {
+        load_local_script_files(script_file);
+      }
     }
   }
 }
@@ -813,6 +822,31 @@ void enable_globals() {
   state->m_global->m_bytecodeSharingMode = HksBytecodeSharingMode::SECURE;
 }
 
+// List of mods by publisher ID that attempt to detect usage of a BOIII client
+// and purposely trigger game crash, load failures, or other unexpected or
+// malicious behaviour when detected.
+constexpr frozen::string KNOWN_MALICIOUS_MODS_ARRAY[] = {
+    // AAE
+    "2631943123",
+    // AAE Lite
+    "2994481309",
+    // AAE beta
+    "2283794212",
+    // UEM
+    "2942053577"};
+constexpr frozen::unordered_set<frozen::string,
+                                std::size(KNOWN_MALICIOUS_MODS_ARRAY)>
+    KNOWN_MALICIOUS_MODS =
+        frozen::make_unordered_set<frozen::string,
+                                   std::size(KNOWN_MALICIOUS_MODS_ARRAY)>(
+            KNOWN_MALICIOUS_MODS_ARRAY);
+
+inline bool malicious_mod_loaded() {
+  return active_mod->publisherId[0] &&
+         KNOWN_MALICIOUS_MODS.contains(
+             std::string_view(active_mod->publisherId));
+}
+
 void setup_lua_globals() {
   globals = {};
 
@@ -828,10 +862,14 @@ void setup_lua_globals() {
   lua["table"]["unpack"] = lua["unpack"];
   lua["luiglobals"] = lua;
 
-  // Expose IsBOIII for mod compatibility - both as a value and function
-  lua["Engine"]["IsBOIII"] = true;
-  lua["Engine"]["IsEZZBOIII"] = true;
-  // lua["IsBOIII"] = function([]() { return false; });
+  if (malicious_mod_loaded()) {
+    lua["Engine"]["IsBOIII"] = *NilValue;
+    lua["Engine"]["IsEZZBOIII"] = *NilValue;
+
+  } else {
+    lua["Engine"]["IsBOIII"] = true;
+    lua["Engine"]["IsEZZBOIII"] = true;
+  }
 }
 
 void start() {
@@ -908,6 +946,7 @@ std::atomic<bool> doneFirstSnapshot = false;
 std::atomic<bool> reloadIngameMenusAfterRestart = false;
 
 void ui_cod_init_stub(const bool frontend) {
+  script::load_rawfiles();
   ui_cod_init_hook.invoke(frontend);
 
   if (!game::is_server() && game::com::Com_IsRunningUILevel()) {
@@ -927,6 +966,7 @@ void ui_cod_init_stub(const bool frontend) {
 }
 
 void ui_cod_lobbyui_init_stub() {
+  script::load_rawfiles();
   ui_cod_lobbyui_init_hook.invoke();
   try_start();
 }
@@ -993,8 +1033,11 @@ void cl_first_snapshot_stub(game::LocalClientNum_t localClientNum) {
 
 void ui_shutdown_stub() {
   hot_reload_in_game.store(false, std::memory_order_seq_cst);
-  unsafe_function_called_message_shown.store(false, std::memory_order_seq_cst);
-  unsafe_lua_approved_for_session.store(false, std::memory_order_seq_cst);
+  if (!utils::flags::has_flag("unsafe-lua")) {
+    unsafe_function_called_message_shown.store(false,
+                                               std::memory_order_seq_cst);
+    unsafe_lua_approved_for_session.store(false, std::memory_order_seq_cst);
+  }
   ui_shutdown_hook.invoke<void>();
   converted_functions.clear();
   rawfile_source_cache.clear();
@@ -1011,8 +1054,8 @@ void *hks_package_require_stub(lua_State *state) {
 }
 
 hksInt32 hks_load_stub(lua_State *state, HksCompilerSettings *compiler_options,
-                       lua_Reader reader, void *reader_data,
-                       lua_Reader debug_reader, void *debug_reader_data,
+                       lua_Reader *reader, RawFile *reader_data,
+                       lua_Reader *debug_reader, void *debug_reader_data,
                        const char *chunk_name) {
   if (globals.load_raw_script) {
     globals.load_raw_script = false;
@@ -1084,7 +1127,39 @@ template <size_t Key> void hook_unsafe_function(size_t address) {
 
 #define HOOK_UNSAFE_FUNCTION(addr) hook_unsafe_function<addr>(addr##_g)
 
+constexpr frozen::string BLACKLISTED_COMMANDS_ARRAY[] = {"quit"};
+constexpr frozen::unordered_set<frozen::string,
+                                std::size(BLACKLISTED_COMMANDS_ARRAY)>
+    BLACKLISTED_COMMANDS =
+        frozen::make_unordered_set<frozen::string,
+                                   std::size(BLACKLISTED_COMMANDS_ARRAY)>(
+            BLACKLISTED_COMMANDS_ARRAY);
 utils::hook::detour Lua_CoD_LuaCall_OpenURL_hook;
+utils::hook::detour Lua_CoD_LuaCall_Exec_hook;
+luaReturnCount_e Lua_CoD_LuaCall_Exec_DisableBlacklisted(lua_State *luaVM) {
+  if (lua_gettop(luaVM) == 2) {
+    if (lua_isstring(luaVM, 2)) {
+      const game::ControllerIndex_t controllerIndex =
+          lua_isnumber(luaVM, 1)
+              ? static_cast<game::ControllerIndex_t>(lua_tointeger(luaVM, 1))
+              : game::com::Com_ControllerIndexes_GetPrimary();
+      const char *cmd = lua_tostring(luaVM, 2);
+
+      if (cmd && !BLACKLISTED_COMMANDS.contains(std::string_view(cmd))) {
+        const game::LocalClientNum_t localClientNum =
+            game::com::Com_ControllerIndex_GetLocalClientNum(controllerIndex);
+
+        game::cbuf::Cbuf_AddText(localClientNum, cmd);
+        game::cbuf::Cbuf_AddText(localClientNum, "\n");
+      }
+    } else {
+      hksi_luaL_error(luaVM, "%s", "lua_isstring( luaVM, 2 )");
+    }
+  } else {
+    hksi_luaL_error(luaVM, "%s", "lua_gettop( luaVM ) == 2");
+  }
+  return luaReturnCount_e::NONE;
+}
 void patch_unsafe_lua_functions() {
   /*
      Disable the `OpenURL` API function. This is never required for in-game
@@ -1093,7 +1168,11 @@ void patch_unsafe_lua_functions() {
   */
   Lua_CoD_LuaCall_OpenURL_hook.create(api::Lua_CoD_LuaCall_OpenURL,
                                       lua_stub_func);
-  if (!utils::flags::has_flag("unsafe-lua")) {
+  Lua_CoD_LuaCall_Exec_hook.create(api::Lua_CoD_LuaCall_Exec,
+                                   Lua_CoD_LuaCall_Exec_DisableBlacklisted);
+  if (utils::flags::has_flag("unsafe-lua")) {
+    unsafe_lua_approved_for_session.store(true, std::memory_order_release);
+  } else {
 
     // Do not allow the HKS vm to open LUA's libraries
     // Disable unsafe functions (debug library stays completely blocked)
@@ -1430,104 +1509,104 @@ const char *safe_get_lua_error_stack(lua_State *luaVM) {
 }
 
 void lua_cod_luastatemanager_error_stub(const char *error, lua_State *luaVM) {
-  if (!error || !luaVM) {
-    return;
-  }
+  if (error && luaVM) {
+    // Suppress duplicate errors - the engine often fires the same error twice
+    static std::string last_error;
+    static std::chrono::steady_clock::time_point last_error_time;
+    const std::chrono::time_point now = std::chrono::steady_clock::now();
 
-  // Suppress duplicate errors - the engine often fires the same error twice
-  static std::string last_error;
-  static std::chrono::steady_clock::time_point last_error_time;
-  const auto now = std::chrono::steady_clock::now();
+    const char *error_stack = safe_get_lua_error_stack(luaVM);
+    if (!error_stack) {
+      error_stack = error;
+    }
 
-  const char *error_stack = safe_get_lua_error_stack(luaVM);
-  if (!error_stack) {
-    error_stack = error;
-  }
-
-  // Skip empty/useless errors with no real traceback info
-  const std::string stack_str(error_stack);
-  if (stack_str.find('\n') != std::string::npos) {
-    // Check if traceback is empty (just "stack traceback:" with no frames)
-    bool has_frames = false;
-    std::istringstream check(stack_str);
-    std::string check_line;
-    while (std::getline(check, check_line)) {
-      std::string trimmed = check_line;
-      while (!trimmed.empty() && (trimmed[0] == ' ' || trimmed[0] == '\t'))
-        trimmed.erase(trimmed.begin());
-      if (trimmed.find(':') != std::string::npos &&
-          trimmed != "stack traceback:") {
-        has_frames = true;
-        break;
+    // Skip empty/useless errors with no real traceback info
+    const std::string stack_str(error_stack);
+    if (stack_str.find('\n') != std::string::npos) {
+      // Check if traceback is empty (just "stack traceback:" with no frames)
+      bool has_frames = false;
+      std::istringstream check(stack_str);
+      std::string check_line;
+      while (std::getline(check, check_line)) {
+        std::string trimmed = check_line;
+        while (!trimmed.empty() && (trimmed[0] == ' ' || trimmed[0] == '\t'))
+          trimmed.erase(trimmed.begin());
+        if (trimmed.find(':') != std::string::npos &&
+            trimmed != "stack traceback:") {
+          has_frames = true;
+          break;
+        }
+      }
+      if (!has_frames) {
+        return; // Skip errors with empty stack traces (duplicates from engine)
       }
     }
-    if (!has_frames) {
-      return; // Skip errors with empty stack traces (duplicates from engine)
+
+    // Deduplicate: skip if same error within 2 seconds
+    if (stack_str == last_error &&
+        (now - last_error_time) < std::chrono::seconds(2)) {
+      return;
     }
-  }
+    last_error = stack_str;
+    last_error_time = now;
 
-  // Deduplicate: skip if same error within 2 seconds
-  if (stack_str == last_error &&
-      (now - last_error_time) < std::chrono::seconds(2)) {
-    return;
-  }
-  last_error = stack_str;
-  last_error_time = now;
+    const char *resolved_stack = error_stack;
 
-  const char *resolved_stack = error_stack;
+    // Suppress known benign nil errors from server_browser scripts
+    if (stack_str.find("Attempt to call a nil value") != std::string::npos &&
+        stack_str.find("server_browser/") != std::string::npos) {
+      const std::string colored =
+          colorize_lua_error("LUI script (suppressed)", error_stack);
+      game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                            game::consoleLabel_e::DEFAULT, "%s",
+                            colored.c_str());
+      return;
+    }
 
-  // Suppress known benign nil errors from server_browser scripts
-  if (stack_str.find("Attempt to call a nil value") != std::string::npos &&
-      stack_str.find("server_browser/") != std::string::npos) {
-    const std::string colored =
-        colorize_lua_error("LUI script (suppressed)", error_stack);
+    const bool is_ui = (*primary_luaVM == luaVM);
+    const char *error_loc =
+        is_ui ? "LUI script execution error" : "LobbyVM script execution error";
+
+    const std::string colored = colorize_lua_error(error_loc, resolved_stack);
+
+    try {
+      const std::filesystem::path root_path =
+          utils::nt::library{}.get_path().parent_path();
+      const std::filesystem::path logs_dir = root_path / "logs";
+      std::filesystem::create_directories(logs_dir);
+      const std::string log_path = (logs_dir / "boiii_lua_errors.log").string();
+
+      std::chrono::time_point now_sys = std::chrono::system_clock::now();
+      time_t now = std::chrono::system_clock::to_time_t(now_sys);
+      tm ltime{};
+      localtime_s(&ltime, &now);
+      char timestamp[64]{};
+      strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &ltime);
+
+      std::ofstream log_file(log_path, std::ios::app);
+      if (log_file.is_open()) {
+        log_file << "\n[" << timestamp << "] " << error_loc << "\n"
+                 << resolved_stack << "\n";
+      }
+    } catch (...) {
+    }
+
     game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                           game::consoleLabel_e::DEFAULT, "%s", colored.c_str());
-    return;
+
+    // Show colored error popup with delay to ensure UI is ready
+    std::string popup_text = colorize_lua_error(nullptr, resolved_stack);
+    scheduler::once(
+        [popup_text] {
+          UI_OpenErrorPopupWithMessage(game::LOCAL_CLIENT_0,
+                                       game::errorCode::UI, popup_text.c_str());
+        },
+        scheduler::main, 500ms);
   }
-
-  const bool is_ui = (*primary_luaVM == luaVM);
-  const char *error_loc =
-      is_ui ? "LUI script execution error" : "LobbyVM script execution error";
-
-  const std::string colored = colorize_lua_error(error_loc, resolved_stack);
-
-  try {
-    const std::filesystem::path root_path =
-        utils::nt::library{}.get_path().parent_path();
-    const std::filesystem::path logs_dir = root_path / "logs";
-    std::filesystem::create_directories(logs_dir);
-    const std::string log_path = (logs_dir / "boiii_lua_errors.log").string();
-
-    auto now_sys = std::chrono::system_clock::now();
-    time_t now = std::chrono::system_clock::to_time_t(now_sys);
-    tm ltime{};
-    localtime_s(&ltime, &now);
-    char timestamp[64]{};
-    strftime(timestamp, sizeof(timestamp), "%Y-%m-%d %H:%M:%S", &ltime);
-
-    std::ofstream log_file(log_path, std::ios::app);
-    if (log_file.is_open()) {
-      log_file << "\n[" << timestamp << "] " << error_loc << "\n"
-               << resolved_stack << "\n";
-    }
-  } catch (...) {
-  }
-
-  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                        game::consoleLabel_e::DEFAULT, "%s", colored.c_str());
-
-  // Show colored error popup with delay to ensure UI is ready
-  std::string popup_text = colorize_lua_error(nullptr, resolved_stack);
-  scheduler::once(
-      [popup_text] {
-        UI_OpenErrorPopupWithMessage(0, game::errorCode::UI,
-                                     popup_text.c_str());
-      },
-      scheduler::main, 500ms);
 }
 
-inline constexpr const std::string_view BLACKLISTED_DLLS[] = {"T7Overcharged"};
+inline constexpr const std::string_view BLACKLISTED_DLLS[] = {
+    "T7Overcharged", "discord_game_sdk"};
 
 utils::hook::detour load_dll_hook;
 luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
@@ -1549,6 +1628,23 @@ luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
 
 void lua_error_print_stub(int, const char *, ...) {}
 
+inline void lui_reload() {
+  converted_functions.clear();
+  rawfile_source_cache.clear();
+
+  globals.loaded_scripts.clear();
+  globals.local_scripts.clear();
+
+  UI_CoD_Shutdown();
+  UI_CoD_Init(true);
+
+  // Com_LoadFrontEnd stripped
+  Lua_CoD_LoadLuaFile(*primary_luaVM, "ui_mp.T6.main");
+  UI_AddMenu(UI_CoD_GetRootNameForController(0), "main", -1, *primary_luaVM);
+
+  UI_CoD_LobbyUI_Init();
+}
+
 inline void register_lui_commands() {
   command::add("boiii_prepare_menu_restart", [](const command::params &) {
     reloadIngameMenusAfterRestart.store(true, std::memory_order_seq_cst);
@@ -1556,21 +1652,7 @@ inline void register_lui_commands() {
 
   command::add("luiReload", [] {
     if (game::com::Com_IsRunningUILevel()) {
-      converted_functions.clear();
-      rawfile_source_cache.clear();
-
-      globals.loaded_scripts.clear();
-      globals.local_scripts.clear();
-
-      UI_CoD_Shutdown();
-      UI_CoD_Init(true);
-
-      // Com_LoadFrontEnd stripped
-      Lua_CoD_LoadLuaFile(*primary_luaVM, "ui_mp.T6.main");
-      UI_AddMenu(UI_CoD_GetRootNameForController(0), "main", -1,
-                 *primary_luaVM);
-
-      UI_CoD_LobbyUI_Init();
+      lui_reload();
     } else {
       // TODO: Find a way to do a full shutdown & restart like in frontend,
       // that opens up the loading screen that can't be easily closed
@@ -1676,7 +1758,8 @@ inline void register_lui_commands() {
                   std::string("^1Lua Reload Errors:\n") + errors;
               scheduler::once(
                   [popup_msg] {
-                    UI_OpenErrorPopupWithMessage(0, game::errorCode::UI,
+                    UI_OpenErrorPopupWithMessage(game::LOCAL_CLIENT_0,
+                                                 game::errorCode::UI,
                                                  popup_msg.c_str());
                   },
                   scheduler::pipeline::renderer, 1s);
@@ -1775,7 +1858,8 @@ inline void register_lui_commands() {
                   std::string("^1Lua Reload Mod Errors:\n") + errors;
               scheduler::once(
                   [popup_msg] {
-                    UI_OpenErrorPopupWithMessage(0, game::errorCode::UI,
+                    UI_OpenErrorPopupWithMessage(game::LOCAL_CLIENT_0,
+                                                 game::errorCode::UI,
                                                  popup_msg.c_str());
                   },
                   scheduler::pipeline::renderer, 1s);
@@ -1828,9 +1912,381 @@ inline void register_lui_commands() {
 }
 } // namespace
 
+utils::hook::detour Lua_CoD_FFReader_hook;
+inline const uint8_t *
+Lua_CoD_FFReader_EnforceOverride(lua_State *luaVM, RawFile *ud, size_t *size) {
+  if (ud == nullptr) {
+    return nullptr;
+  }
+  if (ud->name && ud->name[0]) {
+    RawFile *override = script::get_loaded_rawfile(ud->name);
+    if (override && override->buffer != ud->buffer) {
+// TODO: how and why does this happen? How do scripts arrive here if not fetched
+// with `DB_FindXAssetHeader`?
+#ifndef NDEBUG
+      game::trace(
+          "Rawfile override failed for script \"%s\". Override buffer: 0x%p, "
+          "original buffer: 0x%p, override len: 0x%016X, original len: 0x%016X",
+          ud->name, override->buffer, ud->buffer, override->len, ud->len);
+#endif
+      ud->buffer = override->buffer;
+      ud->len = override->len;
+    }
+  }
+  *size = ud->len;
+  if (*size == 0) {
+    return nullptr;
+  }
+  return ud->buffer;
+}
+
+utils::hook::detour R_CopyTextureRegionMips_hook;
+void R_CopyTextureRegionMips_Safe(void *a1, void *a2, uint32_t a3, int32_t a4,
+                                  int32_t a5, void *a6, int32_t a7, int32_t a8,
+                                  int32_t a9, int32_t a10, int32_t a11,
+                                  int32_t a12, int32_t a13, int32_t a14) {
+  if (game::is_server() || a6 == nullptr || a2 == nullptr ||
+      /*
+        See note above `R_CopyTextureRegionMips`'s symbol definition.
+        None of the data structures used in the function arguments are presently
+        known or reverse engineered.
+
+        However, a crash occurs here upon AAE load if not for the following
+        (ugly) check using inlined offsets, so this needed to be implemented
+        immediately.
+
+        TODO: reverse engineer this function and the types used therein, then
+        use struct fields for this check instead.
+      */
+      game::readable_ptr(reinterpret_cast<void *>(
+          *reinterpret_cast<void (**)(void *, int64_t *)>(
+              **(reinterpret_cast<int64_t **>(a6) + 0x15) + 0x38LL)))) {
+    R_CopyTextureRegionMips_hook.invoke(a1, a2, a3, a4, a5, a6, a7, a8, a9, a10,
+                                        a11, a12, a13, a14);
+  }
+}
+
+#ifndef NDEBUG
+void print_info(game::consoleLabel_e label, const std::string_view &msg) {
+  game::trace("[Lua][Info] %s", msg.data());
+  fprintf(stdout, "[Lua][Info] %s\n", msg.data());
+  fflush(stdout);
+  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER, label,
+                        "%s\n", msg.data());
+}
+
+void print_error(game::consoleLabel_e label, const std::string_view &msg) {
+  game::trace("[Lua][Error] %s", msg.data());
+  fprintf(stderr, "[Lua][Error] %s\n", msg.data());
+  fflush(stderr);
+  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER, label,
+                        "%s\n", msg.data());
+}
+
+void print_warning(game::consoleLabel_e label, const std::string_view &msg) {
+  game::trace("[Lua][Warn] %s", msg.data());
+  fprintf(stdout, "[Lua][Warn] %s\n", msg.data());
+  fflush(stdout);
+  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER, label,
+                        "%s\n", msg.data());
+}
+
+std::string concat_string_args(lua_State *s, hksInt32 startIdx = 1) {
+  std::string text;
+  for (hksInt32 i = startIdx; i <= lua_gettop(s); ++i) {
+    text += lua_tostring(s, i);
+  }
+  return text;
+}
+
+utils::hook::detour Lua_CoD_LuaCall_PrintInfo_hook;
+luaReturnCount_e Lua_CoD_LuaCall_PrintInfo_AllOutputs(lua_State *s) {
+  if (lua_gettop(s) >= 2) {
+    const game::consoleLabel_e label =
+        static_cast<game::consoleLabel_e>(lua_tonumber(s, 1));
+    print_info(label, concat_string_args(s, 2));
+  }
+  return luaReturnCount_e::NONE;
+}
+
+utils::hook::detour Lua_CoD_LuaCall_PrintError_hook;
+luaReturnCount_e Lua_CoD_LuaCall_PrintError_AllOutputs(lua_State *s) {
+  if (lua_gettop(s) >= 2) {
+    const game::consoleLabel_e label =
+        static_cast<game::consoleLabel_e>(lua_tonumber(s, 1));
+    print_error(label, concat_string_args(s, 2));
+  }
+  return luaReturnCount_e::NONE;
+}
+
+utils::hook::detour Lua_CoD_LuaCall_PrintWarning_hook;
+luaReturnCount_e Lua_CoD_LuaCall_PrintWarning_AllOutputs(lua_State *s) {
+  if (lua_gettop(s) >= 2) {
+    const game::consoleLabel_e label =
+        static_cast<game::consoleLabel_e>(lua_tonumber(s, 1));
+    print_warning(label, concat_string_args(s, 2));
+  }
+  return luaReturnCount_e::NONE;
+}
+#endif
+
+utils::hook::detour Com_GetBuildIntField_hook;
+utils::hook::detour Com_GetBuildStringField_hook;
+utils::hook::detour Lua_CoD_LuaCall_Mods_SetMod_hook;
+luaReturnCount_e Lua_CoD_LuaCall_Mods_SetMod_LoadImmediately(lua_State *luaVM) {
+  if (lua_gettop(luaVM) > 0 && lua_isstring(luaVM, 1)) {
+    const char *publisherId = lua_tostring(luaVM, 1);
+    if (publisherId) {
+      scheduler::once(
+          [publisherId]() {
+            UGC_LoadModByPublisherId_Impl(
+                game::LocalClientNum_t::LOCAL_CLIENT_0, publisherId, true);
+          },
+          scheduler::pipeline::main);
+    }
+  }
+  return luaReturnCount_e::NONE;
+}
+
+typedef fastcallPtr_t<void(lua_State *luaVM)> LobbyVM_CallFunc_Handler;
+constexpr std::pair<frozen::string, LobbyVM_CallFunc_Handler>
+    LOBBYVM_CALLFUNC_HANDLER_ARRAY[] = {
+        {"LoadMod", nullptr},
+        {"CanClientLaunch", nullptr},
+        {"CanLobbyCanMigrate", nullptr},
+        {"ChangeSigninState", nullptr},
+        {"CheckAdvertizeSteamServer", nullptr},
+        {"CheckDLCBit", nullptr},
+        {"CheckInitSteamServer", nullptr},
+        {"CheckNeedInstallUGC", nullptr},
+        {"CheckSpecialPlaylistRules", nullptr},
+        {"CheckStarterPack", nullptr},
+        {"ClearLobbyStatus", nullptr},
+        {"ClientLaunch", nullptr},
+        {"ClientLaunchClear", nullptr},
+        {"ClientLaunchInit", nullptr},
+        {"ClientLaunchPump", nullptr},
+        {"ComErrorCodeToString", nullptr},
+        {"CreateDedicatedLANLobby", nullptr},
+        {"CreateDedicatedLobby", nullptr},
+        {"CreateDedicatedModsLobby", nullptr},
+        {"DemoEndFinished", nullptr},
+        {"DevGui", nullptr},
+        {"Devmap", nullptr},
+        {"DevmapClient", nullptr},
+        {"DLCMapCheck", nullptr},
+        {"DoChunksAllowJoin", nullptr},
+        {"ErrorShutdown", nullptr},
+        {"ErrorShutdownMessage", nullptr},
+        {"ExecuteLobbyVMRequest", nullptr},
+        {"ForceToMenu", nullptr},
+        {"GameLobbyClientDataUpdate", nullptr},
+        {"GameLobbyGameServerDataUpdate", nullptr},
+        {"GameModeChanged", nullptr},
+        {"GetJoinProcess", nullptr},
+        {"GetLootItemCategory", nullptr},
+        {"GetLootItemList", nullptr},
+        {"GetLootPossibleCount", nullptr},
+        {"GetMatchmakingExperimentActive", nullptr},
+        {"GetNeededDLCBits", nullptr},
+        {"GetRecentItemTags", nullptr},
+        {"GoBack", nullptr},
+        {"GoForward", nullptr},
+        {"Gunsmith", nullptr},
+        {"HopperClientJoin", nullptr},
+        {"HopperIsParked", nullptr},
+        {"HostLaunch", nullptr},
+        {"HostLaunchClear", nullptr},
+        {"HostLaunchInit", nullptr},
+        {"HostLaunchPump", nullptr},
+        {"InGameJoin", nullptr},
+        {"IngameMonitor", nullptr},
+        {"InitilizeGunsmithBuffer", nullptr},
+        {"InitilizeZMLoadoutBuffer", nullptr},
+        {"Invite", nullptr},
+        {"IsHostLaunching", nullptr},
+        {"IsInTheaterLobby", nullptr},
+        {"Join", nullptr},
+        {"JoinableCheck", nullptr},
+        {"JoinResultToString", nullptr},
+        {"JoinSystemlink", nullptr},
+        {"LaunchDemo", nullptr},
+        {"LaunchDemoExec", nullptr},
+        {"LaunchGame", nullptr},
+        {"LaunchGameExec", nullptr},
+        {"Leaderboard_CalculateLBColValue", nullptr},
+        {"Leaderboard_PopulateCustomList", nullptr},
+        {"LobbyClientLeftEvent", nullptr},
+        {"LobbyClientPromoteToHost", nullptr},
+        {"LobbyHost_ClientSelectionReceived", nullptr},
+        {"LobbyHostLeft_InGameMigrateFinished", nullptr},
+        {"LobbyHostLeftNoMigration", nullptr},
+        {"LobbyLeaveWithParty", nullptr},
+        {"LobbyLocalClientLeave", nullptr},
+        {"LobbyMonitor", nullptr},
+        {"LobbySettings", nullptr},
+        {"LobbyStatusUpdate", nullptr},
+        {"LogGlobalData", nullptr},
+        {"ManagePartyLeave", nullptr},
+        {"MatchmakingPriorityQuit", nullptr},
+        {"NetworkModeChanged", nullptr},
+        {"OnBuyCrate", nullptr},
+        {"OnCanBroadcastHostInfo", nullptr},
+        {"OnCanFitLobbys", nullptr},
+        {"OnCheckPrestigeFeatureBan", nullptr},
+        {"OnClientAdded", nullptr},
+        {"OnClientRemoved", nullptr},
+        {"OnClientSelectionReceived", nullptr},
+        {"OnComError", nullptr},
+        {"OnComErrorCleanup", nullptr},
+        {"OnCookGobbleGumRecipe", nullptr},
+        {"OnDediQosReady", nullptr},
+        {"OnDisconnect", nullptr},
+        {"OnDWDisconnect", nullptr},
+        {"OnEnableJoins", nullptr},
+        {"OnErrorShutdown", nullptr},
+        {"OnExperimentReset", nullptr},
+        {"OnFeatureBan", nullptr},
+        {"OnGametypeSettingsChange", nullptr},
+        {"OnGetAnticheatReputation", nullptr},
+        {"OnGetBanTimeRemaining", nullptr},
+        {"OnInit", nullptr},
+        {"OnInitializeLoadouts", nullptr},
+        {"OnInitializeStats", nullptr},
+        {"OnInventoryFetched", nullptr},
+        {"OnIsFeatureBanned", nullptr},
+        {"OnIsPermaBanned", nullptr},
+        {"OnJoinComplete", nullptr},
+        {"OnJoinPartyPrivacyCheck", nullptr},
+        {"OnKVSFlush", nullptr},
+        {"OnLeaveWithParty", nullptr},
+        {"OnLimitedItemPromoUpdate", nullptr},
+        {"OnLobbyOnlineUpdate", nullptr},
+        {"OnLobbyServerCountUpdated", nullptr},
+        {"OnLobbyServerListRetrieved", nullptr},
+        {"OnLobbyServerListSorted", nullptr},
+        {"OnMatchChangeGameType", nullptr},
+        {"OnMatchChangeMap", nullptr},
+        {"OnMatchEnd", nullptr},
+        {"OnMatchLaunchClient", nullptr},
+        {"OnMatchRecordStart", nullptr},
+        {"OnMatchStart", nullptr},
+        {"OnMaxClientsChanged", nullptr},
+        {"OnModUpdate", nullptr},
+        {"OnPartyPrivacyChange", nullptr},
+        {"OnPlatformJoin", nullptr},
+        {"OnPlatformPlayTogether", nullptr},
+        {"OnPlatformResume", nullptr},
+        {"OnPlatformSessionDataUpdate", nullptr},
+        {"OnPlatformSessionMultiplayerSessionChanged", nullptr},
+        {"OnPlatformSessionMultiplayerSubscriptionLost", nullptr},
+        {"OnPlatformSuspend", nullptr},
+        {"OnPlayerBanned", nullptr},
+        {"OnPopAnticheatMessage", nullptr},
+        {"OnPostExecFFOTD", nullptr},
+        {"OnPreExecFFOTD", nullptr},
+        {"OnPushAnticheatMessageToUI", nullptr},
+        {"OnRecordComScoreEvent", nullptr},
+        {"OnSessionEnd", nullptr},
+        {"OnSessionModeChanged", nullptr},
+        {"OnSessionStart", nullptr},
+        {"OnShouldWriteLeaderboard", nullptr},
+        {"OnSpendVials", nullptr},
+        {"OnStorageOperationReadResult", nullptr},
+        {"OnStorageRead", nullptr},
+        {"OnStorageWrite", nullptr},
+        {"OnStorageWriteDispatch", nullptr},
+        {"OnUILoad", nullptr},
+        {"OnUpdateAdvertising", nullptr},
+        {"OnUsermapUpdate", nullptr},
+        {"PlaySound", nullptr},
+        {"PopulateMutableClientDDLBuff", nullptr},
+        {"PrivateLobbyServerDataUpdate", nullptr},
+        {"ProcessCompleteError", nullptr},
+        {"ProcessCompleteFailure", nullptr},
+        {"ProcessCompleteSuccess", nullptr},
+        {"ProcessUpdate", nullptr},
+        {"Pump", nullptr},
+        {"ReceiveMutableClientDDLBuff", nullptr},
+        {"SessionSQJRefreshInfo", nullptr},
+        {"SetDefaultShowcaseWeapon", nullptr},
+        {"SetMaxLocalPlayers", nullptr},
+        {"ShouldShowContentChangedMessage", nullptr},
+        {"ShutdownCleanup", nullptr},
+        {"ShutdownCleanupCP", nullptr},
+        {"ShutdownCleanupMP", nullptr},
+        {"ShutdownCleanupZM", nullptr},
+        {"StopLobbyTimer", nullptr},
+        {"SwitchTeam", nullptr},
+        {"UGCOffensiveEmblemAdd", nullptr},
+        {"UpdateLobbyStatusInfo", nullptr},
+        {"UpdateUI", nullptr}};
+constexpr frozen::unordered_map<frozen::string, LobbyVM_CallFunc_Handler,
+                                std::size(LOBBYVM_CALLFUNC_HANDLER_ARRAY)>
+    LOBBYVM_CALLFUNC_HANDLERS =
+        frozen::make_unordered_map<frozen::string, LobbyVM_CallFunc_Handler,
+                                   std::size(LOBBYVM_CALLFUNC_HANDLER_ARRAY)>(
+            LOBBYVM_CALLFUNC_HANDLER_ARRAY);
+
+utils::hook::detour LobbyVM_CallFunc_hook;
+luaReturnCount_e LobbyVM_CallFunc_Redirect(lua_State *luaVM) {
+  if (lua_gettop(luaVM) > 0 && lua_isstring(luaVM, 1)) {
+    const char *func = lua_tostring(luaVM, 1);
+    if (func && func[0]) {
+      const std::string_view func_view = func;
+#ifndef NDEBUG
+      game::trace("LobbyVM_CallFunc called with func: %s, argc: ",
+                  func_view.data(), lua_gettop(luaVM));
+#endif
+      if (LOBBYVM_CALLFUNC_HANDLERS.contains(func_view)) {
+        LobbyVM_CallFunc_Handler handler =
+            LOBBYVM_CALLFUNC_HANDLERS.at(func_view);
+        if (handler != nullptr) {
+          handler(luaVM);
+          return luaReturnCount_e::NONE;
+        }
+      }
+    }
+  }
+
+  return LobbyVM_CallFunc_hook.invoke<luaReturnCount_e>(luaVM);
+}
 class component final : public generic_component {
 public:
   void post_unpack() override {
+#ifndef NDEBUG
+    Lua_CoD_LuaCall_PrintInfo_hook.create(api::Lua_CoD_LuaCall_PrintInfo,
+                                          Lua_CoD_LuaCall_PrintInfo_AllOutputs);
+    if (game::is_client()) {
+      Lua_CoD_LuaCall_PrintError_hook.create(
+          api::Lua_CoD_LuaCall_PrintError,
+          Lua_CoD_LuaCall_PrintError_AllOutputs);
+      Lua_CoD_LuaCall_PrintWarning_hook.create(
+          api::Lua_CoD_LuaCall_PrintWarning,
+          Lua_CoD_LuaCall_PrintWarning_AllOutputs);
+    }
+#endif
+
+    /*
+       Spoof client build info returned to lua scripts to
+       circumvent build info checks in mod scripts intended to disable usage of
+       boiii
+    */
+    Com_GetBuildIntField_hook.create(game::com::Com_GetBuildIntField,
+                                     game::com::Com_GetBuildIntField_Impl);
+    Com_GetBuildStringField_hook.create(
+        game::com::Com_GetBuildStringField,
+        game::com::Com_GetBuildStringField_Impl);
+    Lua_CoD_LuaCall_Mods_SetMod_hook.create(
+        api::Lua_CoD_LuaCall_Mods_SetMod,
+        Lua_CoD_LuaCall_Mods_SetMod_LoadImmediately);
+    LobbyVM_CallFunc_hook.create(api::Lua_CoD_LuaCall_LobbyVM_CallFunc,
+                                 LobbyVM_CallFunc_Redirect);
+
+    R_CopyTextureRegionMips_hook.create(game::r::R_CopyTextureRegionMips,
+                                        R_CopyTextureRegionMips_Safe);
+    Lua_CoD_FFReader_hook.create(Lua_CoD_FFReader,
+                                 Lua_CoD_FFReader_EnforceOverride);
     utils::hook::call(game::select(0x141D4979A, 0x1403F233A), hks_load_stub);
     load_dll_hook.create(load_dll, load_dll_skip_blacklisted);
 

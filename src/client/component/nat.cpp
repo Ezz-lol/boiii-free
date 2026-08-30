@@ -212,7 +212,7 @@ void complete_join(const game::net::netadr_t &endpoint) {
 
 void show_join_failure() {
   game::ui::UI_OpenErrorPopupWithMessage(
-      0, game::errorCode::UI,
+      game::LOCAL_CLIENT_0, game::errorCode::UI,
       "The friend could not be reached. Their match may have closed, or one "
       "of the networks may block UDP hole punching.");
 }

@@ -110,8 +110,8 @@ bool is_safe_relative_path(const std::string &path_string) {
 void show_ingame_error(const std::string &error) {
   scheduler::once(
       [error] {
-        game::ui::UI_OpenErrorPopupWithMessage(0, game::errorCode::UI,
-                                               error.data());
+        game::ui::UI_OpenErrorPopupWithMessage(
+            game::LOCAL_CLIENT_0, game::errorCode::UI, error.data());
       },
       scheduler::main);
 }
@@ -437,11 +437,10 @@ void perform_download(const download_context &context) {
 
 void start_map_download(const download_context &context) {
   bool expected = false;
-  if (!download_active.compare_exchange_strong(expected, true)) {
-    return;
+  if (download_active.compare_exchange_strong(expected, true)) {
+    scheduler::once([context]() { perform_download(context); },
+                    scheduler::async);
   }
-
-  scheduler::once([context]() { perform_download(context); }, scheduler::async);
 }
 
 void cancel_download() { download_cancelled.store(true); }

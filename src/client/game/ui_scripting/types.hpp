@@ -132,40 +132,41 @@ private:
   int ref{};
 };
 
-template <typename T> std::string get_typename() {
-  auto &info = typeid(T);
+template <typename T> constexpr const char *get_typename() {
 
-  if (info == typeid(std::string) || info == typeid(const char *)) {
+  if (std::is_same_v<T, std::string> || std::is_same_v<T, std::string_view> ||
+      std::is_same_v<T, const char *>) {
     return "string";
   }
-  if (info == typeid(lightuserdata)) {
+  if (std::is_same_v<T, lightuserdata>) {
     return "lightuserdata";
   }
-  if (info == typeid(userdata)) {
+  if (std::is_same_v<T, userdata>) {
     return "userdata";
   }
-  if (info == typeid(table)) {
+  if (std::is_same_v<T, table> ||
+      std::is_same_v<std::remove_pointer_t<T>, HashTable>) {
     return "table";
   }
-  if (info == typeid(function)) {
+  if (std::is_same_v<T, function>) {
     return "function";
   }
-  if (info == typeid(int) || info == typeid(float) ||
-      info == typeid(unsigned int)) {
+  if (std::is_same_v<T, int> || std::is_same_v<T, float> ||
+      std::is_same_v<T, unsigned int>) {
     return "number";
   }
-  if (info == typeid(bool)) {
+  if constexpr (std::is_same_v<T, bool>) {
     return "boolean";
   }
 
-  return info.name();
+  return reflect_name<T>();
 }
 
 template <typename T> T script_value::as() const {
   if (!this->is<T>()) {
     const char *hks_typename =
         s_compilerTypeName->pool[static_cast<int32_t>(this->get_raw().t)];
-    const std::string typename_ = get_typename<T>();
+    const std::string_view typename_ = get_typename<T>();
 
     throw std::runtime_error(utils::string::va("%s expected, got %s",
                                                typename_.data(), hks_typename));
@@ -193,7 +194,7 @@ template <typename T> T function_argument::as() const {
 template <template <class, class> class C, class T, typename TableType>
 script_value::script_value(const C<T, std::allocator<T>> &container) {
   TableType table_{};
-  int index = 1;
+  int32_t index = 1;
 
   for (const auto &value : container) {
     table_.set(index++, value);

@@ -535,7 +535,7 @@ bool connect_to_friend(game::XUID steam_id) {
     scheduler::once(
         [] {
           game::ui::UI_OpenErrorPopupWithMessage(
-              0, game::errorCode::UI,
+              game::LOCAL_CLIENT_0, game::errorCode::UI,
               "Friend is not online or not in a joinable game.");
         },
         scheduler::main);
@@ -581,7 +581,8 @@ bool connect_to_friend(game::XUID steam_id) {
     const char *sanitized = utils::string::va(
         "%i.%i.%i.%i:%hu", fallback_addr.ipv4.a, fallback_addr.ipv4.b,
         fallback_addr.ipv4.c, fallback_addr.ipv4.d, fallback_addr.port);
-    game::cbuf::Cbuf_AddText(0, utils::string::va("connect %s\n", sanitized));
+    game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0,
+                             utils::string::va("connect %s\n", sanitized));
     return true;
   }
 
@@ -732,7 +733,7 @@ struct component final : client_component {
           game::get_dvar_bool("friends_open").value_or(false);
       if (!currently_open && !getinfo::is_host()) {
         game::ui::UI_OpenErrorPopupWithMessage(
-            0, game::errorCode::UI,
+            game::LOCAL_CLIENT_0, game::errorCode::UI,
             "Start a private match before allowing friends to join.");
         return;
       }

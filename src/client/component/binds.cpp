@@ -290,8 +290,8 @@ void init_hooks_and_load() {
   printf("[Binds] Loading %zu custom bind(s)...\n", custom_binds.size());
 
   current_phase = phase::loading;
-  game::cbuf::Cbuf_AddText(0, data.c_str());
-  game::cbuf::Cbuf_AddText(0, "binds_loaded\n");
+  game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, data.c_str());
+  game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, "binds_loaded\n");
 }
 } // namespace
 

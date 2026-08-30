@@ -1300,30 +1300,7 @@ enum class StorageResult : int32_t {
   FAILURE_DDL = 2,
   FAILURE_NOTFOUND = 3,
 };
-enum class BuildIntField : int32_t {
-  BUILD_NUMBER = 0,
-  CHANGELIST = 1,
-  INFO_VERSION = 2,
-};
-enum class BuildStringField : int32_t {
-  MAJOR_VERSION = 0,
-  MINOR_VERSION = 1,
-  BUILD_ID = 2,
-  BUILD_VERSION = 3,
-  BUILD_MACHINE = 4,
-  BUILD_TYPE = 5,
-  BUILD_TIME = 6,
-  BUILD_DISPLAY_NAME = 7,
-  BUILD_NAME = 8,
-  BUILD_BASE_NAME = 9,
-  BUILD_CONFIG = 10,
-  BUILD_MODE = 11,
-  BUILD_PROJECT_NAME = 12,
-  BUILD_LOCAL_CHANGES = 13,
-  BUILD_INFO_NAME = 14,
-  BUILD_INFO_SOURCE = 15,
-  BUILD_INFO_STRING = 16,
-};
+
 enum class LiveMetPlayerUpdate : int32_t {
   INTERNAL = 0,
   RESET = 1,

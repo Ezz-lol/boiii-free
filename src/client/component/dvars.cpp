@@ -158,7 +158,8 @@ void read_archive_dvars() {
   std::string filedata;
   utils::io::read_file(path, &filedata);
 
-  game::cbuf::Cbuf_ExecuteBuffer(0, game::ControllerIndex_t::CONTROLLER_INDEX_0,
+  game::cbuf::Cbuf_ExecuteBuffer(game::LOCAL_CLIENT_0,
+                                 game::ControllerIndex_t::CONTROLLER_INDEX_0,
                                  filedata.c_str());
   initial_config_read = true;
   scheduler::execute(scheduler::pipeline::dvars_loaded);
