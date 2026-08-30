@@ -1,5 +1,7 @@
 #include <std_include.hpp>
 
+#include "script.hpp"
+
 #include "structs/concurrent.hpp"
 
 #include <loader/component_loader.hpp>
@@ -8,7 +10,6 @@
 #include <component/gsc/gsc_compiler.hpp>
 #include <component/dump.hpp>
 
-#include <game/game.hpp>
 #include <game/utils.hpp>
 
 #include <game/impl/scr/gdb.hpp>
@@ -23,8 +24,6 @@
 #include <utils/concurrency.hpp>
 
 using namespace game;
-using namespace game::db::xasset;
-using namespace game::scr;
 
 struct TreeDirectory {
   std::filesystem::path path;
@@ -54,7 +53,6 @@ void add_detour(uint8_t *target_addr, uint8_t *replacement_addr);
 }
 
 namespace script {
-namespace {
 
 struct hash_info {
   std::string name;
@@ -74,9 +72,9 @@ utils::hook::detour db_find_x_asset_header_hook;
 utils::hook::detour gscr_get_bgb_tokens_remaining_hook;
 
 static utils::memory::allocator allocator;
-static std::mutex allocator_mutex;
 
-static concurrent_hash_map<std::string, RawFile *> loaded_scripts;
+static concurrent_hash_map<std::string, RawFile *> loaded_rawfiles;
+static concurrent_hash_map<std::string, ScriptParseTree *> loaded_scripts;
 static concurrent_hash_map<uint32_t, std::vector<hash_info>> script_hash_names;
 static concurrent_hash_map<std::string, std::string> script_sources;
 static concurrent_hash_map<std::string, std::vector<uint8_t>> script_gdbs;
@@ -201,12 +199,12 @@ const GSC_OBJ *get_linked_obj(const std::string &name) {
   // Check our custom scripts (case-insensitive key search)
   loaded_scripts.for_each([&result, &normalize_path, &with_ext_norm,
                            &without_ext_norm](const auto &v) {
-    RawFile *rf = v.second;
+    ScriptParseTree *rf = v.second;
     if (!result && rf && rf->buffer) {
       std::string key_norm = normalize_path(v.first);
       if (_stricmp(key_norm.c_str(), with_ext_norm.c_str()) == 0 ||
           _stricmp(key_norm.c_str(), without_ext_norm.c_str()) == 0)
-        result = reinterpret_cast<GSC_OBJ *>(rf->buffer);
+        result = rf->buffer;
     }
   });
 
@@ -219,7 +217,7 @@ const GSC_OBJ *get_linked_obj(const std::string &name) {
   // "custom_scripts/foo.gsc"
   loaded_scripts.for_each(
       [&result, &normalize_path, &without_ext_norm](const auto &v) {
-        RawFile *rf = v.second;
+        ScriptParseTree *rf = v.second;
         if (!result && rf && rf->buffer) {
           std::string key_no_ext = v.first;
           if (utils::string::ends_with(key_no_ext, ".gsc") ||
@@ -234,7 +232,7 @@ const GSC_OBJ *get_linked_obj(const std::string &name) {
                 _stricmp(without_ext_norm.c_str() + without_ext_norm.size() -
                              key_no_ext_norm.size(),
                          key_no_ext_norm.c_str()) == 0)
-              result = reinterpret_cast<GSC_OBJ *>(rf->buffer);
+              result = rf->buffer;
           }
         }
       });
@@ -245,14 +243,14 @@ const GSC_OBJ *get_linked_obj(const std::string &name) {
   // Fall back to game's asset database (try .gsc, .csc, and without ext)
   std::string with_csc = without_ext + ".csc";
   for (const std::string &lookup : {with_ext, with_csc, without_ext}) {
-    RawFile *asset;
+    ScriptParseTree *asset;
     {
       std::scoped_lock<std::mutex> db_lock(db_mutex);
-      asset = db_find_x_asset_header_hook.invoke<RawFile *>(
+      asset = db_find_x_asset_header_hook.invoke<ScriptParseTree *>(
           XAssetType::SCRIPTPARSETREE, lookup.c_str(), false, 0);
     }
     if (asset && asset->buffer) {
-      return reinterpret_cast<const GSC_OBJ *>(asset->buffer);
+      return asset->buffer;
     }
   }
 
@@ -343,16 +341,25 @@ void add_gdb(const std::string &name, std::vector<uint8_t> gdb) {
   }
 }
 
-RawFile *get_loaded_script(const std::string &name) {
-  RawFile *result = nullptr;
+ScriptParseTree *get_loaded_script(const std::string &name) {
+  ScriptParseTree *result = nullptr;
   loaded_scripts.if_contains(name, [&](const auto &v) { result = v.second; });
   return result;
 }
 
 void print_loading_script(const std::string &name) {
-  const char *type = utils::string::ends_with(name, ".csc") ? "CSC" : "GSC";
-  const char *log =
-      utils::string::va("Loading %s script '%s'", type, name.data());
+  const char *type = nullptr;
+  if (name.ends_with(".lua")) {
+    type = "LUA script";
+  } else if (name.ends_with(".csc")) {
+    type = "CSC script";
+  } else if (name.ends_with(".gsc")) {
+    type = "GSC script";
+  } else {
+    type = "";
+  }
+  const char *log = utils::string::va("Loading %s%s'%s'", type,
+                                      type[0] ? " " : "", name.data());
   print_script_log(log);
 }
 
@@ -383,21 +390,17 @@ void load_script(const std::string &name, const std::string &data,
     return;
   }
 
-  RawFile *raw_file;
-  {
-    std::scoped_lock<std::mutex> alloc_lock(allocator_mutex);
-    raw_file = allocator.allocate<RawFile>();
-    raw_file->name = allocator.duplicate_string(name);
-    raw_file->buffer =
-        reinterpret_cast<uint8_t *>(allocator.duplicate_string(data));
-  }
-  raw_file->len = static_cast<int>(data.length());
+  ScriptParseTree *parse_tree = allocator.allocate<ScriptParseTree>();
+  parse_tree->name = allocator.duplicate_string(name);
+  parse_tree->buffer =
+      reinterpret_cast<GSC_OBJ *>(allocator.duplicate_string(data));
+  parse_tree->len = data.length();
 
-  while (loaded_scripts.try_emplace_l(name,
-                                      [&](auto &v) { v.second = raw_file; })) {
+  while (loaded_scripts.try_emplace_l(
+      name, [&](auto &v) { v.second = parse_tree; })) {
   }
   const char *log = utils::string::va("Loaded script '%s' (size %llu bytes)",
-                                      name.data(), raw_file->len);
+                                      name.data(), parse_tree->len);
   print_script_log(log);
 
   if (load) {
@@ -616,7 +619,6 @@ void load_scripts_directory(
     }
   }
 }
-} // namespace
 
 std::optional<std::filesystem::path> get_game_type_specific_folder() {
   switch (com::Com_SessionMode_GetMode()) {
@@ -765,6 +767,174 @@ void load_scripts() {
   load_tree("custom_scripts", true);
 }
 
+void load_rawfile(const std::string &name, const std::string &data) {
+
+  /*
+     This will permanently leak the memory allocated for the asset's name and
+     contents. However, if we _do not_ leak this memory, the lua VM continues to
+     access the freed memory, even after shutdown.
+
+     This also means that we can never replace an overridden asset in the
+     `loaded_rawfiles`, even where it has been modified or should be overriden
+     by a mod-specific or map-specific script.
+
+     TODO: find the correct point of engine execution to free these assets and
+     hook it accordingly.
+  */
+
+  if (!loaded_rawfiles.if_contains(name, [](const auto &) {})) {
+    RawFile *raw_file = reinterpret_cast<RawFile *>(
+        db::xasset::pool::DB_AssetPoolAlloc(XAssetType::RAWFILE));
+    char *rawfile_name = reinterpret_cast<char *>(malloc(name.size() + 1));
+    strscpy(rawfile_name, name.data(), name.size() + 1);
+    raw_file->name = rawfile_name;
+    raw_file->buffer = reinterpret_cast<uint8_t *>(malloc(data.length()));
+    memcpy(raw_file->buffer, data.data(), data.length());
+    raw_file->len = data.length();
+
+    while (loaded_rawfiles.try_emplace_l(
+        name, [&](auto &v) { v.second = raw_file; })) {
+    }
+    const char *log = utils::string::va("Loaded rawfile '%s' (size %llu bytes)",
+                                        name.data(), raw_file->len);
+    print_script_log(log);
+  }
+}
+
+constexpr uint8_t HKS_LUA_BYTECODE_MAGIC[8] = {'\x1b', 'L',    'u',    'a',
+                                               'Q',    '\x0e', '\x01', '\x04'};
+bool lua_bytecode(std::string &data) {
+  return data.size() > std::size(HKS_LUA_BYTECODE_MAGIC) &&
+         !memcmp(HKS_LUA_BYTECODE_MAGIC, data.data(),
+                 std::size(HKS_LUA_BYTECODE_MAGIC));
+}
+void load_rawfile_file(std::string &data,
+                       const std::filesystem::path &script_file,
+                       const std::string &name) {
+  if (!name.ends_with(".lua") || lua_bytecode(data)) {
+    print_loading_script(name);
+    load_rawfile(name, data);
+  } else {
+    // TODO: compile script
+  }
+}
+
+void load_rawfiles_directory(
+    const std::string &script_dir, const bool recurse,
+    const std::optional<std::string> strip_base = std::nullopt) {
+  if (utils::io::directory_exists(script_dir)) {
+    std::vector<std::filesystem::path> scripts =
+        utils::io::list_files(script_dir, recurse, false);
+
+    const auto load_dir_file_cb = [strip_base](
+                                      const std::filesystem::path &script) {
+      std::string data;
+      if (!std::filesystem::is_directory(script) &&
+          utils::io::read_file(script, &data)) {
+
+        std::string name = script.generic_string();
+        const std::string appdata_path =
+            (get_appdata_path() / "data/").generic_string();
+        const std::string host_path =
+            (utils::nt::library{}.get_folder() / "boiii/").generic_string();
+
+        size_t i = name.find(appdata_path);
+        if (i != std::string::npos) {
+          name.erase(0, i + appdata_path.length());
+        }
+
+        i = name.find(host_path);
+        if (i != std::string::npos) {
+          name.erase(0, i + host_path.length());
+        }
+        if (strip_base.has_value()) {
+          std::vector<std::string> name_parts = utils::string::split(name, '/');
+          if (name_parts[0] == strip_base.value()) {
+            name_parts.erase(name_parts.begin());
+            name = utils::string::join(name_parts, "/");
+          }
+        }
+
+        load_rawfile_file(data, script, name);
+      }
+    };
+
+    std::for_each(std::execution::par, scripts.begin(), scripts.end(),
+                  load_dir_file_cb);
+  }
+}
+
+static std::mutex script_load_mutex;
+void load_rawfiles() {
+  std::scoped_lock lock(script_load_mutex);
+
+  const utils::nt::library host{};
+
+  const std::filesystem::path data_directory = get_appdata_path() / "data";
+  const std::filesystem::path boiii_directory = host.get_folder() / "boiii";
+
+  const auto load =
+      [&data_directory, &boiii_directory](
+          const std::filesystem::path &directory, const bool recurse,
+          const std::optional<std::string> strip_base = std::nullopt) {
+        load_rawfiles_directory((data_directory / directory).string(), recurse,
+                                strip_base);
+        load_rawfiles_directory((boiii_directory / directory).string(), recurse,
+                                strip_base);
+      };
+
+  std::unordered_set<TreeDirectory> applicable_tree_dirs = {
+      {"lua", std::nullopt, true}, {"", std::nullopt, false}};
+
+  if (game::is_client()) {
+    applicable_tree_dirs.insert({"ui", std::nullopt, true});
+    applicable_tree_dirs.insert({"ui_mp", std::nullopt, true});
+  }
+
+  const std::optional<std::filesystem::path> map_name =
+      get_map_specific_directory();
+  std::unordered_set<TreeDirectory> map_override_directories;
+  if (map_name.has_value()) {
+    for (const TreeDirectory &tree : applicable_tree_dirs) {
+      TreeDirectory override_tree = tree;
+      override_tree.path = map_name.value() / tree.path;
+      override_tree.strip_base = map_name->generic_string();
+      map_override_directories.insert(override_tree);
+    }
+  }
+
+  const std::optional<std::filesystem::path> mod_id =
+      get_mod_specific_directory();
+  std::unordered_set<TreeDirectory> mod_override_directories;
+  if (mod_id.has_value()) {
+    for (const TreeDirectory &tree : applicable_tree_dirs) {
+      TreeDirectory override_tree = tree;
+      override_tree.path = mod_id.value() / tree.path;
+      override_tree.strip_base = mod_id->generic_string();
+      mod_override_directories.insert(override_tree);
+    }
+  }
+  applicable_tree_dirs.reserve(applicable_tree_dirs.size() +
+                               mod_override_directories.size() +
+                               map_override_directories.size());
+  applicable_tree_dirs.insert(mod_override_directories.begin(),
+                              mod_override_directories.end());
+  applicable_tree_dirs.insert(map_override_directories.begin(),
+                              map_override_directories.end());
+
+  std::for_each(std::execution::par, applicable_tree_dirs.begin(),
+                applicable_tree_dirs.end(), [load](const TreeDirectory &dir) {
+                  load(dir.path, dir.load_recursively, dir.strip_base);
+                });
+}
+
+RawFile *get_loaded_rawfile(const std::string &name) {
+  std::scoped_lock script_load_lock(script_load_mutex);
+  RawFile *result = nullptr;
+  loaded_rawfiles.if_contains(name, [&](const auto &v) { result = v.second; });
+  return result;
+}
+
 XAssetHeader DB_FindXAssetHeader_TryOverride(const XAssetType type,
                                              const char *name,
                                              const bool error_if_missing,
@@ -772,11 +942,22 @@ XAssetHeader DB_FindXAssetHeader_TryOverride(const XAssetType type,
   XAssetHeader result{.rawfile = nullptr};
   // Check our loaded scripts first to avoid "Could not find scriptparsetree"
   // spam
-  if (name && name[0] && type == XAssetType::SCRIPTPARSETREE) {
-    result.rawfile = get_loaded_script(name);
+  if (name && name[0]) {
+    switch (type) {
+    case XAssetType::SCRIPTPARSETREE: {
+      result.scriptParseTree = get_loaded_script(name);
+      break;
+    }
+    case XAssetType::RAWFILE: {
+      result.rawfile = get_loaded_rawfile(name);
+      break;
+    }
+    default:
+      break;
+    }
   }
 
-  if (result.rawfile == nullptr) {
+  if (result.data == nullptr) {
     result = db_find_x_asset_header_hook.invoke<XAssetHeader>(
         type, name, error_if_missing, wait_time);
   }
@@ -788,10 +969,8 @@ XAssetHeader DB_FindXAssetHeader_TryOverride(const XAssetType type,
   return result;
 }
 
-static std::mutex script_load_lock;
-
 void clear_script_memory() {
-  std::scoped_lock lock(script_load_lock);
+  std::scoped_lock lock(script_load_mutex);
 
   loaded_scripts.clear();
   script_gdbs.clear();
@@ -877,7 +1056,7 @@ void load_global_hash_table() {
 }
 
 void begin_load_scripts_stub(scriptInstance_t inst, int32_t user) {
-  std::scoped_lock lock(script_load_lock);
+  std::scoped_lock lock(script_load_mutex);
   load_global_hash_table();
 
   scr::Scr_BeginLoadScripts(inst, user);
@@ -1041,15 +1220,11 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
 
 utils::hook::detour Hunk_UserFree_hook;
 void Hunk_UserFree_NotScriptPoolAlloc(hunk::HunkUser *user, void *ptr) {
-  bool should_skip = false;
-  loaded_scripts.for_each([&should_skip, ptr](const auto &v) {
-    if (!should_skip && contains(v.second, sizeof(RawFile), ptr)) {
-      should_skip = true;
-    }
-  });
-  if (should_skip) {
+  if (allocator.find(ptr)) {
     return;
   }
+
+  bool should_skip = false;
 
   script_gdbs.for_each([&should_skip, ptr](const auto &v) {
     if (!should_skip && contains(v.second.data(), v.second.size(), ptr)) {
