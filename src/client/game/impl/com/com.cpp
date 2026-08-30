@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 
-#include "com.hpp"
+#include <game/impl/com/com.hpp>
 
 namespace game {
 namespace com {
