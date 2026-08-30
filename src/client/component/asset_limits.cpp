@@ -13,7 +13,7 @@
 
 namespace asset_limits {
 
-void apply_assetlimits_list(const std::vector<pool_config> &limits) {
+void apply_list(const std::vector<pool_config> &limits) {
   for (const pool_config &limit : limits) {
     reallocate_asset_pool(limit.type, limit.size);
   }

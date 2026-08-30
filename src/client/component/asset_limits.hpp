@@ -16,6 +16,6 @@ struct pool_config {
 };
 
 std::vector<pool_config> parse_list(std::string &data);
-void apply_assetlimits_list(const std::vector<pool_config> &limits);
+void apply_list(const std::vector<pool_config> &limits);
 
 } // namespace asset_limits
