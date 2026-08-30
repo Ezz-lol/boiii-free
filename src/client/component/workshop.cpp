@@ -1165,6 +1165,19 @@ public:
             "workshop_download", steamcmd::initialize_download, id, type_str);
         download_thread.detach();
       });
+      command::add("loadmod", [](const command::params &params) {
+        if (params.size() > 0) {
+          const std::string mod = params.get(1);
+          for (size_t i = 0; i < game::ugc::modsPool.count; ++i) {
+            const game::ugc::WorkshopData *data = &game::ugc::modsPool.data[i];
+            if (std::string_view(data->internalName) == mod ||
+                std::string_view(data->publisherId) == mod) {
+              return game::ugc::UGC_LoadModByPublisherId(
+                  game::LOCAL_CLIENT_0, data->publisherId, true);
+            }
+          }
+        }
+      });
 
       CL_SetupForNewServerMap_hook.create(
           game::cl::CL_SetupForNewServerMap.get(),
