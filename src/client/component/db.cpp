@@ -12,14 +12,6 @@ using namespace game::com;
 using namespace game::db;
 using namespace game::db::xasset;
 
-utils::hook::detour DB_IsXAssetDefault_hook;
-bool DB_IsXAssetDefault_Safe(XAssetType type, const char *name) {
-  if ((nonnull(name) || valid_stack_ptr(name)) && name[0]) {
-    return DB_IsXAssetDefault_hook.invoke<bool>(type, name);
-  }
-  return false;
-}
-
 static std::atomic_bool Com_GametypeSettings_Initialised = false;
 inline bool Com_GametypeSettings_ShouldInit() {
   return !nonnull(*com::gts::s_gametypeSettingsDDL) ||
@@ -82,25 +74,9 @@ maptable::MapTable *Com_GetMapTable_Safe(const char *mapTableName) {
   return mapTable;
 }
 
-utils::hook::detour Image_AssignDefaultTexture_hook;
-bool Image_AssignDefaultTexture_SkipMissingVTable(gfx::GfxImage *to,
-                                                  gfx::GfxImage *from) {
-  if ((nonnull(to) || valid_stack_ptr(to)) &&
-      (nonnull(from) || valid_stack_ptr(from)) &&
-      ((nonnull(to->texture.basemap) || valid_stack_ptr(to->texture.basemap)) &&
-       (nonnull(to->texture.basemap->lpVtbl) ||
-        valid_stack_ptr(to->texture.basemap->lpVtbl)))) {
-    return Image_AssignDefaultTexture_hook.invoke<bool>(to, from);
-  }
-
-  return false;
-}
-
 class component final : public generic_component {
 public:
   void post_unpack() override {
-    DB_IsXAssetDefault_hook.create(DB_IsXAssetDefault.get(),
-                                   DB_IsXAssetDefault_Safe);
     Com_GametypeSettings_GametypeSetting_f_hook.create(
         game::com::gts::Com_GametypeSettings_GametypeSetting_f.get(),
         Com_GametypeSettings_GametypeSetting_f_GetOrInitGameTypeSettingsDDL);
@@ -112,9 +88,6 @@ public:
     Com_GametypeSettings_SetGametype_hook.create(
         game::com::gts::Com_GametypeSettings_SetGametype.get(),
         Com_GametypeSettings_SetGametype_GetOrInitGameTypeSettingsDDL);
-    Image_AssignDefaultTexture_hook.create(
-        game::gfx::Image_AssignDefaultTexture.get(),
-        Image_AssignDefaultTexture_SkipMissingVTable);
   }
 };
 } // namespace db
