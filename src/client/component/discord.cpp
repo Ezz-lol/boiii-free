@@ -6,6 +6,7 @@
 #include "scheduler.hpp"
 #include "discord.hpp"
 #include "party.hpp"
+#include "lua_state.hpp"
 
 #include <discord_rpc.h>
 
@@ -382,22 +383,47 @@ void set_player_score(const int score) { s_player_score = score; }
 void set_enemy_score(const int score) { s_enemy_score = score; }
 void set_rounds_played(const int round) { s_rounds_played = round; }
 
-class component final : public client_component {
+namespace lua {
+using namespace game;
+using namespace game::lua;
+using namespace game::lua::hks;
+
+luaReturnCount_e lua_returntrue(lua_State *s) {
+  lua_pushboolean(s, htrue);
+  return luaReturnCount_e::ONE;
+}
+void register_lua_libs() {
+  // All functions stubbed - lua discord RPC control by mods is disabled.
+  static constexpr const luaL_Reg DiscordRPC_Library[] = {
+      {"Shutdown", lua_returntrue},
+      {"IsAvailable", lua_returntrue},
+      {"ClearPresence", lua_returntrue},
+      {"Enable", lua_returntrue},
+      {nullptr, nullptr},
+  };
+  lua_state::register_lib("DiscordRPC", DiscordRPC_Library);
+}
+} // namespace lua
+
+class component final : public generic_component {
 public:
   void post_load() override {
-    start_time = time(nullptr);
+    if (game::is_client()) {
+      start_time = time(nullptr);
 
-    DiscordEventHandlers handlers{};
-    ZeroMemory(&handlers, sizeof(handlers));
-    handlers.ready = ready;
-    handlers.errored = errored;
-    handlers.disconnected = errored;
+      DiscordEventHandlers handlers{};
+      ZeroMemory(&handlers, sizeof(handlers));
+      handlers.ready = ready;
+      handlers.errored = errored;
+      handlers.disconnected = errored;
 
-    Discord_Initialize(DISCORD_APP_ID, &handlers, 1, nullptr);
+      Discord_Initialize(DISCORD_APP_ID, &handlers, 1, nullptr);
 
-    scheduler::loop(Discord_RunCallbacks, scheduler::pipeline::async, 1s);
-    scheduler::loop(update_discord, scheduler::pipeline::main, 5s);
+      scheduler::loop(Discord_RunCallbacks, scheduler::pipeline::async, 1s);
+      scheduler::loop(update_discord, scheduler::pipeline::main, 5s);
+    }
   }
+  void post_unpack() override { lua::register_lua_libs(); }
 
   void pre_destroy() override { Discord_Shutdown(); }
 };
