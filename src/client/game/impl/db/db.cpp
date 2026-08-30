@@ -366,6 +366,7 @@ inline constexpr frozen::unordered_map<XAssetType, uint32_t, +XAssetType::COUNT>
         {XAssetType::STREAMER_HINT, 0x32},
     });
 
+static std::mutex reallocation_mutex;
 void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
   const int32_t entry_size = DB_GetXAssetTypeSize_Impl(type);
   if (entry_size <= 0) {
@@ -373,62 +374,69 @@ void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
   }
   XAssetPool *pool = &pool::s_assetPools->pools[+type];
 
-  // Skip if pool already meets or exceeds requested size
-  if (!pool->isSingleton && pool->itemCount < static_cast<int32_t>(new_size)) {
-    fprintf(stdout, "Reallocating asset pool type %d: %d -> %u entries\n",
-            +type, pool->itemCount, new_size);
-    fflush(stdout);
-    void *new_pool = calloc(new_size, entry_size);
-    if (new_pool == nullptr) {
-      fprintf(stderr, "Failed to allocate asset pool for type %d (size: %u)\n",
-              static_cast<int32_t>(type), new_size);
-      fflush(stderr);
-      return;
-    }
+  {
+    std::scoped_lock<std::mutex> reallocation_lock(reallocation_mutex);
 
-    if (pool->pool != nullptr && pool->itemAllocCount > 0) {
-      // Copy existing entries
-      memcpy(new_pool, pool->pool, pool->itemAllocCount * entry_size);
-    }
+    // Skip if pool already meets or exceeds requested size
+    if (!pool->isSingleton &&
+        pool->itemCount < static_cast<int32_t>(new_size)) {
+      fprintf(stdout, "Reallocating asset pool type %d: %d -> %u entries\n",
+              +type, pool->itemCount, new_size);
+      fflush(stdout);
+      void *new_pool = calloc(new_size, entry_size);
+      if (new_pool == nullptr) {
+        fprintf(stderr,
+                "Failed to allocate asset pool for type %d (size: %u)\n",
+                static_cast<int32_t>(type), new_size);
+        fflush(stderr);
+        return;
+      }
 
-    // Rebuild free list for new entries
-    pool->freeHead = reinterpret_cast<AssetLink *>(
-        reinterpret_cast<char *>(new_pool) +
-        static_cast<size_t>(entry_size) * pool->itemAllocCount);
+      if (pool->pool != nullptr && pool->itemAllocCount > 0) {
+        // Copy existing entries
+        memcpy(new_pool, pool->pool, pool->itemAllocCount * entry_size);
+      }
 
-    for (int32_t i = pool->itemAllocCount;
-         i < static_cast<int32_t>(new_size) - 1; i++) {
-      AssetLink *current =
-          reinterpret_cast<AssetLink *>(reinterpret_cast<char *>(new_pool) +
-                                        static_cast<size_t>(entry_size) * i);
-      current->next = reinterpret_cast<AssetLink *>(
+      // Rebuild free list for new entries
+      pool->freeHead = reinterpret_cast<AssetLink *>(
           reinterpret_cast<char *>(new_pool) +
-          static_cast<size_t>(entry_size) * (i + 1));
+          static_cast<size_t>(entry_size) * pool->itemAllocCount);
+
+      for (int32_t i = pool->itemAllocCount;
+           i < static_cast<int32_t>(new_size) - 1; i++) {
+        AssetLink *current =
+            reinterpret_cast<AssetLink *>(reinterpret_cast<char *>(new_pool) +
+                                          static_cast<size_t>(entry_size) * i);
+        current->next = reinterpret_cast<AssetLink *>(
+            reinterpret_cast<char *>(new_pool) +
+            static_cast<size_t>(entry_size) * (i + 1));
+      }
+
+      // Last entry points to null
+      AssetLink *last = reinterpret_cast<AssetLink *>(
+          reinterpret_cast<char *>(new_pool) + entry_size * (new_size - 1));
+      last->next = nullptr;
+
+      fprintf(stdout, "Reallocated asset pool type %d: %d -> %u entries\n",
+              +type, pool->itemCount, new_size);
+      fflush(stdout);
+
+      // Free previously extended allocation
+      if (nonnull(pool->pool) && !valid_module_ptr(pool->pool) &&
+          !valid_stack_ptr(pool->pool) && pool->itemCount != 0 &&
+          DEFAULT_POOL_SIZES.contains(type) &&
+          static_cast<int32_t>(DEFAULT_POOL_SIZES.at(type)) !=
+              pool->itemCount) {
+        void *prev = pool->pool;
+        pool->pool = new_pool;
+        free(prev);
+      } else {
+        pool->pool = new_pool;
+      }
+
+      pool->itemSize = entry_size;
+      pool->itemCount = new_size;
     }
-
-    // Last entry points to null
-    AssetLink *last = reinterpret_cast<AssetLink *>(
-        reinterpret_cast<char *>(new_pool) + entry_size * (new_size - 1));
-    last->next = nullptr;
-
-    fprintf(stdout, "Reallocated asset pool type %d: %d -> %u entries\n", +type,
-            pool->itemCount, new_size);
-    fflush(stdout);
-
-    // Free previously extended allocation
-    if (nonnull(pool->pool) && !valid_module_ptr(pool->pool) &&
-        !valid_stack_ptr(pool->pool) && pool->itemCount != 0 &&
-        DEFAULT_POOL_SIZES.contains(type) &&
-        static_cast<int32_t>(DEFAULT_POOL_SIZES.at(type)) != pool->itemCount) {
-      void *prev = pool->pool;
-      pool->pool = new_pool;
-      free(prev);
-    } else {
-      pool->pool = new_pool;
-    }
-
-    pool->itemSize = entry_size;
-    pool->itemCount = new_size;
   }
 }
 

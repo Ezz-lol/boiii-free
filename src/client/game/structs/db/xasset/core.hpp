@@ -201,6 +201,13 @@ enum class XAssetType : int32_t {
 };
 IMPL_ENUM_OPERATORS(XAssetType);
 
+template <IntegralLike<std::underlying_type_t<XAssetType>> Value>
+inline constexpr bool valid_xassettype(Value val_arg) {
+  const std::underlying_type_t<XAssetType> val =
+      static_cast<std::underlying_type_t<XAssetType>>(val_arg);
+  return val >= +XAssetType::PHYSPRESET && val < +XAssetType::COUNT;
+}
+
 struct AssetLink;
 struct AssetLink {
   AssetLink *next;

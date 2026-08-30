@@ -15,7 +15,9 @@
 #include <utils/string.hpp>
 #include <str.hpp>
 
-#include "../../../component/workshop.hpp"
+#include <component/workshop.hpp>
+#include <component/asset_limits.hpp>
+#include <utils/io.hpp>
 
 namespace game {
 namespace ugc {
@@ -275,6 +277,22 @@ void UGC_LoadPools_Impl() {
   UGC_LoadModsPool_Impl();
 }
 
+void UGC_LoadItem_PrepareAssetPool(const std::filesystem::path &root) {
+  if (std::filesystem::is_directory(root)) {
+    for (const std::filesystem::path &file :
+         utils::io::list_files(root, true, false)) {
+      if (file.filename() == "assetlimits.txt") {
+        std::string data = utils::io::read_file(file);
+        const std::vector<asset_limits::pool_config> limits =
+            asset_limits::parse_assetlimits(data);
+        asset_limits::apply_assetlimits_list(limits);
+
+        break;
+      }
+    }
+  }
+}
+
 void UGC_LoadModByPublisherId_Impl(LocalClientNum_t localClientNum,
                                    const char *publisherId, bool reloadFS) {
   UGC_LoadPools_Impl();
@@ -305,6 +323,8 @@ void UGC_LoadModByPublisherId_Impl(LocalClientNum_t localClientNum,
     genMod.type = ZoneType::MOD;
     mod = &genMod;
   }
+  // PATCH: load "assetlimits.txt" asset pool configuration from zone tree
+  UGC_LoadItem_PrepareAssetPool(mod->absolutePathZoneFiles);
   UGC_LoadMod(localClientNum, mod, reloadFS);
 }
 
@@ -540,12 +560,13 @@ void UGC_LoadManifest_Impl(bool usermaps, bool mods,
 WorkshopData *UGC_LoadUsermapByPublisherId_Impl(const char *publisherId) {
 
   WorkshopData *usermap = UGC_GetUsermapByPublisherId(publisherId);
+  // PATCH: load "assetlimits.txt" asset pool configuration from zone tree
+  if (usermap) {
+    UGC_LoadItem_PrepareAssetPool(usermap->absolutePathZoneFiles);
+  }
   UGC_SetActiveUsermap(usermap);
   return usermap;
 }
-
-#include <cstdio>
-#include <cstdint>
 
 int32_t UGC_ZoneSourcePath_Impl(const char *name, const char *extension,
                                 int32_t size, char *buf, ZoneType zoneType,

@@ -1,24 +1,67 @@
 #include <std_include.hpp>
 #include <loader/component_loader.hpp>
-#include <game/game.hpp>
 #include <game/impl/db/db.hpp>
 
 #include <utils/hook.hpp>
 #include <utils/io.hpp>
+#include <utils/string.hpp>
 
 #include <rapidjson/document.h>
+#include <frozen/unordered_map.h>
 
-using namespace game::db::xasset;
+#include "asset_limits.hpp"
 
 namespace asset_limits {
-namespace {
-struct pool_config {
-  XAssetType type;
-  const char *setting_key;
-  uint32_t default_size;
-};
 
-inline constexpr pool_config pool_configs[] = {
+void apply_assetlimits_list(const std::vector<pool_config> &limits) {
+  for (const pool_config &limit : limits) {
+    reallocate_asset_pool(limit.type, limit.size);
+  }
+}
+
+template <typename T> std::optional<T> parse_int(const std::string_view &str) {
+  const char *first = str.data();
+  const char *last = str.data() + str.size();
+
+  T result = {};
+  auto [ptr, ec] = std::from_chars(first, last, result);
+
+  if (ec == std::errc() && ptr == last) {
+    return result;
+  }
+  return std::nullopt;
+}
+
+std::vector<pool_config> parse_assetlimits(std::string &data) {
+  std::vector<pool_config> result;
+  data = utils::string::replace(utils::string::replace(data, "\r\n", "\n"),
+                                "\r", "");
+  const std::vector<std::string> lines = utils::string::split(data, '\n');
+  for (const std::string &line : lines) {
+    // int_type_value string_type_name default_pool_size extended_pool_size
+    const std::vector<std::string> parts = utils::string::split(line, ' ');
+    if (parts.size() > 3) {
+      const std::optional<int32_t> parsed_type_val =
+          parse_int<int32_t>(parts[0]);
+      if (parsed_type_val.has_value() &&
+          valid_xassettype(parsed_type_val.value())) {
+        const std::optional<uint32_t> parsed_size_val =
+            parse_int<uint32_t>(parts[3]);
+        if (parsed_size_val.has_value()) {
+          result.push_back(
+              {.type = static_cast<XAssetType>(parsed_type_val.value()),
+               .size = parsed_size_val.value()});
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
+namespace {
+
+inline constexpr default_pool_config default_pool_configs[] = {
     {XAssetType::PHYSPRESET, "ap_physpreset", 0x113},
     {XAssetType::PHYSCONSTRAINTS, "ap_physconstraints", 0x80},
     {XAssetType::DESTRUCTIBLEDEF, "ap_destructibledef", 0x80},
@@ -175,8 +218,8 @@ bool is_enabled(const rapidjson::Document &doc) {
   return true;
 }
 
-unsigned int get_pool_size(const rapidjson::Document &doc,
-                           const pool_config &cfg) {
+uint32_t get_pool_size(const rapidjson::Document &doc,
+                       const default_pool_config &cfg) {
   const std::string val = get_setting(doc, cfg.setting_key);
   if (!val.empty()) {
     try {
@@ -193,20 +236,12 @@ unsigned int get_pool_size(const rapidjson::Document &doc,
 void apply_asset_limits() {
   const rapidjson::Document doc = load_settings_doc();
 
-  // Ensure asset pool initialized and not already extended
-  for (const pool_config &cfg : pool_configs) {
-    if (static_cast<uint32_t>(pool::s_assetPools->pools[+cfg.type].itemCount) !=
-        cfg.default_size) {
-      return;
-    }
-  }
-
   if (!is_enabled(doc)) {
     printf("Asset pool expansion disabled by user settings\n");
     return;
   }
 
-  for (const pool_config &cfg : pool_configs) {
+  for (const default_pool_config &cfg : default_pool_configs) {
     const uint32_t size = get_pool_size(doc, cfg);
     reallocate_asset_pool(cfg.type, size);
   }
