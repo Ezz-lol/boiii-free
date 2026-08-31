@@ -833,7 +833,16 @@ constexpr frozen::string KNOWN_MALICIOUS_MODS_ARRAY[] = {
     // AAE beta
     "2283794212",
     // UEM
-    "2942053577"};
+    "2942053577",
+    // UEM beta
+    "3035353403",
+    // Unknown workshop ID listed by UEM internally - workshop page is empty or
+    // private
+    "2987384358",
+    // UEM dev
+    "2975670972",
+    // UEM barebones
+    "3064538158"};
 constexpr frozen::unordered_set<frozen::string,
                                 std::size(KNOWN_MALICIOUS_MODS_ARRAY)>
     KNOWN_MALICIOUS_MODS =
@@ -870,6 +879,8 @@ void setup_lua_globals() {
     lua["Engine"]["IsBOIII"] = true;
     lua["Engine"]["IsEZZBOIII"] = true;
   }
+
+  lua["T7Overcharged"] = true;
 }
 
 void start() {
@@ -1127,7 +1138,7 @@ template <size_t Key> void hook_unsafe_function(size_t address) {
 
 #define HOOK_UNSAFE_FUNCTION(addr) hook_unsafe_function<addr>(addr##_g)
 
-constexpr frozen::string BLACKLISTED_COMMANDS_ARRAY[] = {"quit"};
+constexpr frozen::string BLACKLISTED_COMMANDS_ARRAY[] = {"quit", "disconnect"};
 constexpr frozen::unordered_set<frozen::string,
                                 std::size(BLACKLISTED_COMMANDS_ARRAY)>
     BLACKLISTED_COMMANDS =
@@ -1152,6 +1163,12 @@ luaReturnCount_e Lua_CoD_LuaCall_Exec_DisableBlacklisted(lua_State *luaVM) {
         game::cbuf::Cbuf_AddText(localClientNum, cmd);
         game::cbuf::Cbuf_AddText(localClientNum, "\n");
       }
+#ifndef NDEBUG
+      else if (cmd) {
+        game::trace(
+            "[Lua][Exec] Blocked execution of blacklisted command \"%s\"", cmd);
+      }
+#endif
     } else {
       hksi_luaL_error(luaVM, "%s", "lua_isstring( luaVM, 2 )");
     }
