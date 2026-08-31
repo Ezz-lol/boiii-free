@@ -5,6 +5,17 @@
 namespace game {
 namespace com {
 
+constexpr int32_t CHANGELIST_NUMBER_SV = 0x343723;
+// Also matches changelist number in latest client.
+constexpr int32_t CHANGELIST_NUMBER_CL = 0xD3FC12;
+
+constexpr const char BUILD_MACHINE_VAL[] = "CODBUILD8-764";
+constexpr const char BUILD_TYPE_VAL[] = "P4";
+
+constexpr const char BUILD_TIME_CL[] = "Fri Feb 24 15:18:05 2023";
+constexpr const char BUILD_TIME_SV[] = "Mon Dec 16 10:44:20 2019";
+constexpr const char *LATEST_CLIENT_BUILD_TIME = "Wed Dec 10 17:10:46 2025";
+
 #define Com_Error(code, fmt, ...)                                              \
   Com_Error_(__FILE__, __LINE__, code, fmt, ##__VA_ARGS__)
 

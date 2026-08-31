@@ -1,9 +1,10 @@
 #include <std_include.hpp>
 
-#include <game/impl/com/com.hpp>
+#include "com.hpp"
 
 namespace game {
 namespace com {
+
 int32_t Com_GetBuildIntField_Impl(BuildIntField field) {
 
   switch (field) {
@@ -13,7 +14,7 @@ int32_t Com_GetBuildIntField_Impl(BuildIntField field) {
        Dec 10, 2025 client version. It seems to have been unchanged in that
        version.
     */
-    return 0xD3FC12;
+    return CHANGELIST_NUMBER_CL;
   case BuildIntField::INFO_VERSION:
     ParseBuildInfo();
     return *s_buildInfoVersion;
@@ -23,17 +24,32 @@ int32_t Com_GetBuildIntField_Impl(BuildIntField field) {
   }
 }
 
-constexpr const char *LATEST_CLIENT_BUILD_TIME = "Wed Dec 10 17:10:46 2025";
-
-const char *Com_GetBuildVersion_Impl() {
-  static str128_t buf = {0};
-  snprintf(buf, std::size(buf), "CL(%d) %s %s [%s]", 3421987, *BUILD_MACHINE,
-           *BUILD_TYPE,
+static str128_t build_version = {0};
+static std::once_flag set_build_version_flag;
+void set_build_version() {
+  snprintf(build_version, std::size(build_version), "CL(%d) %s %s [%s]",
+           CHANGELIST_NUMBER_CL, BUILD_MACHINE_VAL, BUILD_TYPE_VAL,
            // ORIGINAL:
            // *BUILD_TIME
            // PATCH: spoof latest version
            LATEST_CLIENT_BUILD_TIME);
-  return buf;
+}
+
+const char *Com_GetBuildVersion_Impl() {
+  std::call_once(set_build_version_flag, set_build_version);
+  return build_version;
+}
+
+static str128_t build_id = {0};
+static std::once_flag set_build_id_flag;
+void set_build_id() {
+  snprintf(build_id, std::size(build_id), "%s CL(%d)", BUILD_MACHINE_VAL,
+           CHANGELIST_NUMBER_CL);
+}
+
+const char *Com_GetBuildID_Impl() {
+  std::call_once(set_build_id_flag, set_build_id);
+  return build_id;
 }
 
 const char *Com_GetBuildStringField_Impl(BuildStringField field) {
@@ -44,18 +60,13 @@ const char *Com_GetBuildStringField_Impl(BuildStringField field) {
   case BuildStringField::MINOR_VERSION:
     return "0";
   case BuildStringField::BUILD_ID:
-    // Resolves to "CODBUILD8-764 CL(3421987)"
-    return Com_GetBuildID();
+    return Com_GetBuildID_Impl();
   case BuildStringField::BUILD_VERSION:
-    // Resolves to:
-    // "CL(3421987) CODBUILD8-764 P4 Mon Dec 16 10:44:20 2019"
     return Com_GetBuildVersion_Impl();
   case BuildStringField::BUILD_MACHINE:
-    // "CODBUILD8-764"
-    return *BUILD_MACHINE;
+    return BUILD_MACHINE_VAL;
   case BuildStringField::BUILD_TYPE:
-    // P4
-    return *BUILD_TYPE;
+    return BUILD_TYPE_VAL;
   case BuildStringField::BUILD_TIME:
     // ORIGINAL - "Mon Dec 16 10:44:20 2019":
     // return *BUILD_TIME;
