@@ -1,8 +1,8 @@
 #pragma once
 
-#include <functional>
+#include <structs/func.hpp>
 namespace com {
-using LoadTask = std::function<void(const char *level)>;
+using LoadTask = fastcallPtr_t<void(const char *level)>;
 
 void on_level_load(const LoadTask &callback);
 

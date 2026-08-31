@@ -157,7 +157,7 @@ bool dvar_name_less(const std::string &a, const std::string &b) {
 std::string to_lower_copy(const std::string_view s) {
   std::string out(s);
   for (char &c : out) {
-    const unsigned char uc = static_cast<unsigned char>(c);
+    const uint8_t uc = static_cast<uint8_t>(c);
     c = static_cast<char>(std::tolower(uc));
   }
   return out;
@@ -175,8 +175,8 @@ bool ci_contains(const std::string_view haystack,
   for (size_t i = 0; i < end; ++i) {
     size_t j = 0;
     for (; j < needle.size(); ++j) {
-      const unsigned char a = static_cast<unsigned char>(haystack[i + j]);
-      const unsigned char b = static_cast<unsigned char>(needle[j]);
+      const uint8_t a = static_cast<uint8_t>(haystack[i + j]);
+      const uint8_t b = static_cast<uint8_t>(needle[j]);
       if (std::tolower(a) != std::tolower(b)) {
         break;
       }
@@ -638,10 +638,10 @@ void merge_dynamic_names() {
   }
 
   merged.reserve(merged.size() + custom_dvars.size() + custom_commands.size());
-  for (auto &name : custom_dvars) {
+  for (std::string &name : custom_dvars) {
     merged.push_back(std::move(name));
   }
-  for (auto &name : custom_commands) {
+  for (std::string &name : custom_commands) {
     merged.push_back(std::move(name));
   }
 
@@ -713,19 +713,26 @@ bool collect_dvar_matches(const std::string &current,
   constexpr size_t max_matches = 50;
   matches.clear();
 
-  const auto begin_it =
-      std::lower_bound(snapshot.begin(), snapshot.end(), partial,
-                       [](const std::string &s, const std::string &p) {
-                         return compare_dvar_names_ci(s, p) < 0;
-                       });
+  const std::_Vector_iterator<
+      std::_Vector_val<std::_Simple_types<std::basic_string<char>>>>
+      begin_it =
+          std::lower_bound(snapshot.begin(), snapshot.end(), partial,
+                           [](const std::string &s, const std::string &p) {
+                             return compare_dvar_names_ci(s, p) < 0;
+                           });
 
-  auto end_it = begin_it;
+  std::_Vector_iterator<
+      std::_Vector_val<std::_Simple_types<std::basic_string<char>>>>
+      end_it = begin_it;
   while (end_it != snapshot.end() && starts_with_ci(*end_it, partial)) {
     ++end_it;
   }
 
   std::unordered_set<std::string> added_ci;
-  for (auto it = begin_it; it != end_it && matches.size() < max_matches; ++it) {
+  for (std::_Vector_iterator<
+           std::_Vector_val<std::_Simple_types<std::basic_string<char>>>>
+           it = begin_it;
+       it != end_it && matches.size() < max_matches; ++it) {
     matches.push_back(*it);
     added_ci.insert(to_lower_copy(*it));
   }
@@ -733,7 +740,8 @@ bool collect_dvar_matches(const std::string &current,
   if (matches.size() < max_matches) {
     const std::string partial_lower = to_lower_copy(partial);
 
-    std::vector<std::pair<size_t, const std::string *>> substring_hits;
+    typedef std::pair<size_t, const std::string *> substring_hit_t;
+    std::vector<substring_hit_t> substring_hits;
     substring_hits.reserve(snapshot.size());
 
     for (const std::string &name : snapshot) {
@@ -749,14 +757,14 @@ bool collect_dvar_matches(const std::string &current,
     }
 
     std::sort(substring_hits.begin(), substring_hits.end(),
-              [](const auto &a, const auto &b) {
+              [](substring_hit_t &a, substring_hit_t &b) {
                 if (a.first != b.first) {
                   return a.first < b.first;
                 }
                 return dvar_name_less(*a.second, *b.second);
               });
 
-    for (const auto &hit : substring_hits) {
+    for (const substring_hit_t &hit : substring_hits) {
       if (matches.size() >= max_matches) {
         break;
       }
@@ -872,10 +880,9 @@ bool try_autocomplete_dvar(const HWND input_hwnd) {
       bool all_match = true;
       for (size_t i = 1; i < matches.size(); ++i) {
         if (common_len >= matches[i].size() ||
-            static_cast<char>(std::tolower(
-                static_cast<unsigned char>(matches[i][common_len]))) !=
-                static_cast<char>(
-                    std::tolower(static_cast<unsigned char>(c)))) {
+            static_cast<char>(
+                std::tolower(static_cast<uint8_t>(matches[i][common_len]))) !=
+                static_cast<char>(std::tolower(static_cast<uint8_t>(c)))) {
           all_match = false;
           break;
         }

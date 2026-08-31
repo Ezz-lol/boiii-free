@@ -395,11 +395,8 @@ void store_tac_protected_allocs() {
 template <const int32_t NonZeroVal>
   requires(NonZeroVal != 0)
 int32_t Dvar_GetInt_NonZero(game::EngineDependentDvar dvar) {
-  int32_t val = game::Dvar_GetInt(dvar);
-  if (val == 0) {
-    return NonZeroVal;
-  }
-  return val;
+  const int32_t val = game::Dvar_GetInt(dvar);
+  return val ? val : NonZeroVal;
 }
 
 utils::hook::detour TaskManager2_ProcessDemonwareTask_Safe_hook;

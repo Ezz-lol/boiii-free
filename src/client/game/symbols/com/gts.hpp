@@ -15,7 +15,7 @@ WEAK symbol<void()> Com_GametypeSettings_GametypeSetting_f{0x1420F4A40,
 WEAK symbol<void()> Com_GametypeSettings_Init{0x1420F4ED0, 0x1404FE6E0};
 WEAK symbol<void(const char *gametype, bool loadDefaultSettings)>
     Com_GametypeSettings_SetGametype{0x1420F5980, 0x1404FF120};
-WEAK symbol<unsigned int(const char *settingName, bool getDefault)>
+WEAK symbol<uint32_t(const char *settingName, bool getDefault)>
     Com_GametypeSettings_GetUInt{0x1420F4E00, 0x1404FE5C0};
 
 } // namespace gts

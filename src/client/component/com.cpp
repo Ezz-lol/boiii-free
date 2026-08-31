@@ -18,7 +18,7 @@ void Com_LoadLevelFastFiles_stub(const char *level) {
   Com_LoadLevelFastFiles_hook.invoke(level);
   if (level) {
     com_loadlevelfastfiles_tasks.access([level](LoadTasks &tasks) {
-      for (const auto &func : tasks) {
+      for (const LoadTask &func : tasks) {
         func(level);
       }
     });
@@ -28,7 +28,7 @@ void Com_LoadLevelFastFiles_stub(const char *level) {
 void execute_unload_callbacks(const char *level) {
   if (level && level[0]) {
     com_unloadlevelfastfiles_tasks.access([level](LoadTasks &tasks) {
-      for (const auto &func : tasks) {
+      for (const LoadTask &func : tasks) {
         func(level);
       }
     });
@@ -61,7 +61,7 @@ void DB_LoadXAssets_stub(game::db::xzone::XZoneInfo *zoneInfo,
   }
   DB_LoadXAssets_hook.invoke(zoneInfo, zoneCount, sync, suppressSync);
   if (is_level_fastfile_unload) {
-    char *level = reinterpret_cast<char *>(*game::g_mapname);
+    const char *level = *game::g_mapname;
     if (level[0]) {
       execute_unload_callbacks(level);
     }
