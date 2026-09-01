@@ -59,10 +59,11 @@ void patch_color(const uint8_t r, const uint8_t g, const uint8_t b,
   int_color_t *color_table = reinterpret_cast<int_color_t *>(0x142FEFE20_g);
   game::vec4_t *g_color_table = reinterpret_cast<game::vec4_t *>(0x142FB5CF0_g);
 
-  color_table[index] = {r, g, b, a};
-  g_color_table[index] = {
-      static_cast<float>(r) / 255.0f, static_cast<float>(g) / 255.0f,
-      static_cast<float>(b) / 255.0f, static_cast<float>(a) / 255.0f};
+  color_table[index] = {.r = r, .g = g, .b = b, .a = a};
+  g_color_table[index] = {.r = static_cast<float>(r) / 255.0f,
+                          .g = static_cast<float>(g) / 255.0f,
+                          .b = static_cast<float>(b) / 255.0f,
+                          .a = static_cast<float>(a) / 255.0f};
 }
 
 bool cl_get_client_name_stub(const int local_client_num, const int index,
