@@ -1,5 +1,21 @@
 #include <std_include.hpp>
 
+/*
+  When compiling with MSBuild + clang-cl,
+  there is a very unexpected bug where all objects with base name "com.cpp"
+  have their temporary files cleaned up when one requires removal.
+
+  This results in erroneous build failure due to a failure to move a temporary
+  object generated from one of these "com.cpp" objects to its final ".o" output,
+  due to its prior, erroneous removal.
+
+  As such, we have to rename this header to some other name than "com.cpp" to
+  circumvent this bug. "g_com.cpp" was selected to specify that this header
+  pertains to the game's `COM_`-prefixed functions - not Windows COM.
+
+  Note: this bug does not occur when compiling with gmake + clang.
+*/
+
 #include "com.hpp"
 
 namespace game {
