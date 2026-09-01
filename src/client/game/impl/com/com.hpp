@@ -4,7 +4,6 @@
 
 namespace game {
 namespace com {
-
 int32_t Com_GetBuildIntField_Impl(BuildIntField field);
 const char *Com_GetBuildVersion_Impl();
 const char *Com_GetBuildID_Impl();

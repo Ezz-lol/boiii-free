@@ -6,7 +6,11 @@ namespace game {
 namespace com {
 
 constexpr int32_t CHANGELIST_NUMBER_SV = 0x343723;
-// Also matches changelist number in latest client.
+/*
+  Note: this also matches the changelist version used in the
+  Dec 10, 2025 client version. It seems to have been unchanged in that
+  version.
+*/
 constexpr int32_t CHANGELIST_NUMBER_CL = 0xD3FC12;
 
 constexpr const char BUILD_MACHINE_VAL[] = "CODBUILD8-764";

@@ -25,11 +25,6 @@ int32_t Com_GetBuildIntField_Impl(BuildIntField field) {
 
   switch (field) {
   case BuildIntField::CHANGELIST:
-    /*
-       Note: this also matches the changelist version used in the
-       Dec 10, 2025 client version. It seems to have been unchanged in that
-       version.
-    */
     return CHANGELIST_NUMBER_CL;
   case BuildIntField::INFO_VERSION:
     ParseBuildInfo();
