@@ -275,7 +275,6 @@ Available helpers:
 - `filesize(path)`
 - `createdirectory(path)` / `mkdir(path)`
 - `directoryexists(path)`
-- `listfiles(path)`
 - `ls(path[, recurse[, include_directories]])`
 
 Example:
@@ -290,11 +289,6 @@ println(content);
 
 entries = ls("logs", false, false);
 ```
-
-Notes:
-
-- `listfiles` returns a comma-separated string.
-- `ls` returns an array, which is usually easier to work with in scripts.
 
 ## JSON helpers
 
