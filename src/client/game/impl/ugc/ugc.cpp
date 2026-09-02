@@ -346,7 +346,7 @@ void UGC_SetMapPreviewImageByPublisherId_Impl(const char *publisherId) {
     }
     gfx::GfxTexture texture = gfx::Gfx_LoadTextureFromPng(pathBuf);
 
-    bool is_client = game::is_client();
+    const bool is_client = game::is_client();
     if (is_client) {
       gfx::Gfx_TexturePool_ReleaseRef(previewImage->texture, 0);
     }

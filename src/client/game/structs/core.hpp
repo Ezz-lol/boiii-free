@@ -5,7 +5,10 @@
 #include <stdfloat>
 #include <csetjmp>
 #include <variant>
+#include <windows.h>
 
+#include <game/symbol.hpp>
+#include <structs/func.hpp>
 #include <structs/str.hpp>
 #include <structs/atomic.hpp>
 #include <game/structs/macros.hpp>
@@ -1185,18 +1188,45 @@ struct outPacket_t {
   int32_t p_realtime;
 };
 
-#pragma pack(push, 1)
 class tlAtomicMutex {
 public:
-  uint64_t ThreadId;
-  int LockCount;
+  int64_t ThreadId;
+  int32_t LockCount;
   uint8_t _padding0C[4];
-  tlAtomicMutex *ThisPtr;
+  volatile tlAtomicMutex *ThisPtr;
+
+  struct syms {
+    static constexpr symbol<thiscall_t<void(volatile tlAtomicMutex *)>> Lock{
+        0x140009CB0, 0x140009B20};
+  };
+
+  void Lock() volatile {
+    // PATCH: ensure `ThisPtr` non-null
+    if (!this->ThisPtr) {
+      this->ThisPtr = this;
+    }
+
+    uint32_t thread_id = GetCurrentThreadId();
+    if (this->ThreadId == thread_id) {
+      this->LockCount += 1;
+    } else {
+      if (_InterlockedCompareExchange64(&this->ThisPtr->ThreadId, thread_id,
+                                        0) != 0) {
+        while (_InterlockedCompareExchange64(&this->ThisPtr->ThreadId,
+                                             thread_id, 0) != 0) {
+          Sleep(0);
+        }
+      }
+      long _fence = 0;
+      _InterlockedExchange(&_fence, 0);
+      this->LockCount = 1;
+    }
+  }
+
+  static void Lock(volatile tlAtomicMutex *self) { return self->Lock(); }
 };
 ASSERT_SIZE(tlAtomicMutex, 0x18);
-#pragma pack(pop)
 
-// Unverified.
 enum class consoleChannel_e : uint32_t {
   CHANNEL_DONT_FILTER = 0x0,
   CHANNEL_GAMENOTIFY = 0x1,
@@ -1211,6 +1241,7 @@ enum class consoleChannel_e : uint32_t {
   BUILTIN_CHANNEL_COUNT = 0xA,
   FIRST_DEBUG_CHANNEL = 0x9,
 };
+IMPL_ENUM_OPERATORS(consoleChannel_e);
 
 enum class RestartMethod_t : uint32_t {
   FULL = 0x0,

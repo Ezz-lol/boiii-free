@@ -430,6 +430,8 @@ utils::hook::detour G_RegisterSoundWait_hook;
 utils::hook::detour SND_HashName_hook;
 #endif
 
+utils::hook::detour tlAtomicMutex_Lock_hook;
+
 struct component final : generic_component {
   void post_unpack() override {
 
@@ -442,6 +444,9 @@ struct component final : generic_component {
     // Clientfield Mismatch -> recoverable ERR_DROP
     com_error_hook.create(game::com::Com_Error_, com_error_stub);
     Sys_Error_hook.create(game::sys::Sys_Error, Sys_Error_LogCaller);
+
+    tlAtomicMutex_Lock_hook.create(game::tlAtomicMutex::syms::Lock.get(),
+                                   game::tlAtomicMutex::Lock);
 
     /*
        Fix memory access exception in Sys_WaitForSingleObject during mapswitch.

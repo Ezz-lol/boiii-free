@@ -555,6 +555,7 @@ struct UpValue : ChunkHeader {
   HksObject *loc;
   UpValue *m_next;
 };
+ASSERT_SIZE(UpValue, 0x30);
 
 struct CallSite {
   float128_t m_jumpBuffer[16];

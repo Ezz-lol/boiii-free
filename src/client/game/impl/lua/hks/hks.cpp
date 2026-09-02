@@ -47,7 +47,7 @@ constexpr hksUint32 RK_FLAG_BIT_IDX = 8; // zero-indexed
 
 // Register-Constant
 inline constexpr bool rk_reg(hksUint32 reg) {
-  return static_cast<bool>(reg >> RK_FLAG_BIT_IDX);
+  return static_cast<bool>((reg >> RK_FLAG_BIT_IDX) & 0b1);
 }
 // Register-Register
 inline constexpr bool rr_reg(hksUint32 reg) { return !rk_reg(reg); }
@@ -993,10 +993,10 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
       const HksObject *opLeft = rr_reg(opB_RK) ? &fp[opB_RK] : &consts[opB];
       const HksObject *opRight = rr_reg(opC_RK) ? &fp[opC_RK] : &consts[opC];
 
-      bool isNumbers = opLeft->type() == HksObjectType::TNUMBER &&
-                       opRight->type() == HksObjectType::TNUMBER;
+      const bool numericOperands = opLeft->type() == HksObjectType::TNUMBER &&
+                                   opRight->type() == HksObjectType::TNUMBER;
 
-      if (isNumbers) {
+      if (numericOperands) {
         destReg->t = HksObjectType::TNUMBER;
         if (opcode == Opcode::LEFT_SHIFT || opcode == Opcode::LEFT_SHIFT_BK) {
           destReg->v.number = static_cast<HksNumber>(
@@ -1356,7 +1356,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
             if (pending == nullptr) {
               closure->m_mayHaveUpvalues = 1;
               pending = reinterpret_cast<UpValue *>(
-                  getMemory(s, 0x30, AllocTypes::Upvalue));
+                  getMemory(s, sizeof(UpValue), AllocTypes::Upvalue));
               pending->m_storage.t = HksObjectType::TNIL;
               pending->m_storage.v.ptr = nullptr;
               pending->loc = &fp[opBx];
