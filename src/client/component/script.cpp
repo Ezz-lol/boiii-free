@@ -29,6 +29,7 @@ struct TreeDirectory {
   std::filesystem::path path;
   std::optional<std::string> strip_base;
   bool load_recursively;
+  bool exclude_map_subtrees = false;
   bool operator==(const TreeDirectory &other) const = default;
 };
 namespace std {
@@ -38,10 +39,12 @@ template <> struct hash<TreeDirectory> {
     std::size_t h1 = std::hash<std::filesystem::path>{}(p.path);
     std::size_t h2 = std::hash<std::optional<std::string>>{}(p.strip_base);
     std::size_t h3 = std::hash<bool>{}(p.load_recursively);
+    std::size_t h4 = std::hash<bool>{}(p.exclude_map_subtrees);
 
     std::size_t seed = h1;
     seed ^= h2 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
     seed ^= h3 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    seed ^= h4 + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 
     return seed;
   }
@@ -570,15 +573,37 @@ void load_script_file(std::string &data,
   }
 }
 
+constexpr const std::string_view gametype_prefixes[] = {"zm", "mp", "cp"};
+
+bool is_map_override_directory_name(const std::string &name) {
+  for (const auto prefix : gametype_prefixes) {
+    if (name.size() > prefix.size() &&
+        utils::string::starts_with(name, prefix) &&
+        name[prefix.size()] == '_')
+      return true;
+  }
+  return false;
+}
+
 void load_scripts_directory(
     const std::string &script_dir, const bool load, const bool recurse,
-    const std::optional<std::string> strip_base = std::nullopt) {
+    const std::optional<std::string> strip_base = std::nullopt,
+    const bool exclude_map_subtrees = false) {
   if (utils::io::directory_exists(script_dir)) {
     std::vector<std::filesystem::path> scripts =
         utils::io::list_files(script_dir, recurse, false);
 
-    const auto load_dir_file_cb = [load, strip_base](
+    const auto load_dir_file_cb = [load, strip_base, exclude_map_subtrees,
+                                   script_dir](
                                       const std::filesystem::path &script) {
+      if (exclude_map_subtrees) {
+        std::error_code ec;
+        const auto relative =
+            std::filesystem::relative(script, script_dir, ec);
+        if (!ec && relative.begin() != relative.end() &&
+            is_map_override_directory_name(relative.begin()->string()))
+          return;
+      }
       std::string data;
       if (!std::filesystem::is_directory(script) &&
           utils::io::read_file(script, &data)) {
@@ -600,9 +625,14 @@ void load_scripts_directory(
         }
         if (strip_base.has_value()) {
           std::vector<std::string> name_parts = utils::string::split(name, '/');
-          if (name_parts[0] == "scripts" &&
-              name_parts[1] == strip_base.value()) {
-            name_parts.erase(name_parts.begin() + 1);
+          const auto strip_parts =
+              utils::string::split(strip_base.value(), '/');
+          bool matches = name_parts.size() > strip_parts.size();
+          for (size_t part = 0; matches && part < strip_parts.size(); ++part)
+            matches = name_parts[part + 1] == strip_parts[part];
+          if (matches) {
+            name_parts.erase(name_parts.begin() + 1,
+                             name_parts.begin() + 1 + strip_parts.size());
             name = utils::string::join(name_parts, "/");
           }
         }
@@ -651,7 +681,6 @@ std::optional<std::filesystem::path> get_mod_specific_directory() {
   return mod;
 }
 
-constexpr const std::string_view gametype_prefixes[] = {"zm", "mp", "cp"};
 bool is_shared_tree_dir(const std::filesystem::path &dir,
                         const std::unordered_set<std::string_view> &mod_ids) {
   if (std::filesystem::is_directory(dir)) {
@@ -708,12 +737,12 @@ void load_tree(std::filesystem::path tree, bool execImmediate = false) {
   const auto load = [&data_directory, &boiii_directory](
                         const std::filesystem::path &directory, const bool load,
                         const bool recurse,
-                        const std::optional<std::string> strip_base =
-                            std::nullopt) {
+                        const std::optional<std::string> strip_base,
+                        const bool exclude_map_subtrees) {
     load_scripts_directory((data_directory / directory).string(), load, recurse,
-                           strip_base);
+                           strip_base, exclude_map_subtrees);
     load_scripts_directory((boiii_directory / directory).string(), load,
-                           recurse, strip_base);
+                           recurse, strip_base, exclude_map_subtrees);
   };
 
   std::unordered_set<TreeDirectory> applicable_tree_dirs =
@@ -722,7 +751,8 @@ void load_tree(std::filesystem::path tree, bool execImmediate = false) {
   const std::optional<std::filesystem::path> game_type =
       get_game_type_specific_folder();
   if (game_type.has_value()) {
-    applicable_tree_dirs.insert({tree / game_type.value(), std::nullopt, true});
+    applicable_tree_dirs.insert(
+        {tree / game_type.value(), std::nullopt, true, true});
   }
 
   const std::optional<std::filesystem::path> map_name =
@@ -730,6 +760,11 @@ void load_tree(std::filesystem::path tree, bool execImmediate = false) {
   if (map_name.has_value()) {
     const std::string map_name_str = map_name->generic_string();
     applicable_tree_dirs.insert({tree / map_name.value(), map_name_str, true});
+    if (game_type.has_value()) {
+      const auto nested_base = game_type.value() / map_name.value();
+      applicable_tree_dirs.insert(
+          {tree / nested_base, nested_base.generic_string(), true});
+    }
   }
 
   const std::optional<std::filesystem::path> mod_id =
@@ -748,14 +783,16 @@ void load_tree(std::filesystem::path tree, bool execImmediate = false) {
   */
   std::for_each(std::execution::par, applicable_tree_dirs.begin(),
                 applicable_tree_dirs.end(), [load](const TreeDirectory &dir) {
-                  load(dir.path, false, dir.load_recursively, dir.strip_base);
+                  load(dir.path, false, dir.load_recursively, dir.strip_base,
+                       dir.exclude_map_subtrees);
                 });
 
   if (execImmediate) {
     // Now, load the scripts into the VM.
     std::for_each(std::execution::par, applicable_tree_dirs.begin(),
                   applicable_tree_dirs.end(), [load](const TreeDirectory &dir) {
-                    load(dir.path, true, dir.load_recursively, dir.strip_base);
+                    load(dir.path, true, dir.load_recursively, dir.strip_base,
+                         dir.exclude_map_subtrees);
                   });
   }
 }
