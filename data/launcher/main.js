@@ -2032,6 +2032,7 @@
     }
     if (_removeProgressPollInterval) clearInterval(_removeProgressPollInterval);
     var pollCount = 0;
+    var removalFailure = "";
     _removeProgressPollInterval = setInterval(function () {
       pollCount++;
       if (pollCount > 600) {
@@ -2047,6 +2048,12 @@
         var sj = ex.getRemoveStatus();
         if (!sj) return;
         var st = typeof sj === "string" ? JSON.parse(sj) : sj;
+        if (
+          st.message &&
+          (st.message.toLowerCase().indexOf("failed") !== -1 ||
+            st.message.toLowerCase().indexOf("error") !== -1)
+        )
+          removalFailure = st.details || st.message;
         if (msg) msg.textContent = st.message || "Removing...";
         if (det) det.textContent = st.details || "";
         if (fill) {
@@ -2070,6 +2077,8 @@
               fill.style.transform = "";
             }
             refreshModsGrid();
+            if (removalFailure)
+              showMessage("Removal failed", removalFailure);
           }, 150);
         }
       } catch (e) {}
@@ -2322,8 +2331,17 @@
             }
             try {
               var ex = getExternal();
-              if (ex && ex.workshopDownload) {
-                ex.workshopDownload(String(itemId));
+              if (ex && (ex.workshopUpdate || ex.workshopDownload)) {
+                var updateResult = ex.workshopUpdate
+                  ? ex.workshopUpdate(String(itemId))
+                  : ex.workshopDownload(String(itemId));
+                if (
+                  updateResult &&
+                  String(updateResult).indexOf("Error:") === 0
+                ) {
+                  showMessage("Update", String(updateResult));
+                  return;
+                }
                 workshopProgress.style.display = "block";
                 workshopProgressFill.style.width = "0%";
                 workshopDownloadBtn.disabled = true;
@@ -2358,7 +2376,7 @@
       removeBtn.className = "btn btn-remove";
       removeBtn.type = "button";
       removeBtn.textContent = "Remove";
-      (function (folderName, itemName, itemSource, itemPath) {
+      (function (folderName, itemName, itemPath) {
         removeBtn.onclick = function (e) {
           e.stopPropagation();
           if (!folderName && !itemPath) {
@@ -2377,7 +2395,7 @@
             }
             var done = false;
             var removeResult = "";
-            if (itemSource === "steam" && itemPath) {
+            if (itemPath) {
               try {
                 removeResult = ex.workshopRemoveByPath(itemPath);
                 done = removeResult === "started";
@@ -2411,7 +2429,6 @@
       })(
         item.folder || "",
         item.name || item.folder,
-        item.source || "",
         item.path || ""
       );
       actions.appendChild(removeBtn);
@@ -2631,7 +2648,10 @@
               }
               var it = toUpdate[idx];
               try {
-                ex2.workshopDownload(String(it.id));
+                if (ex2.workshopUpdate)
+                  ex2.workshopUpdate(String(it.id));
+                else
+                  ex2.workshopDownload(String(it.id));
               } catch (e) {}
               var upi = setInterval(function () {
                 pollWorkshopStatus();

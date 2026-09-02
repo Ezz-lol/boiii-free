@@ -602,9 +602,7 @@ void workshop_remove_one(const std::string &folder_name) {
   if (name.empty())
     return;
 
-  char cwd[MAX_PATH];
-  GetCurrentDirectoryA(sizeof(cwd), cwd);
-  std::filesystem::path base(cwd);
+  const auto base = game::get_game_path();
 
   std::error_code ec;
   std::filesystem::path mods_dir = base / "mods" / name;
@@ -618,18 +616,83 @@ void workshop_remove_one(const std::string &folder_name) {
   launcher::workshop::try_refresh_workshop_content();
 }
 
-void workshop_remove_by_path(const std::string &path_str) {
+bool is_safe_workshop_item_path(const std::filesystem::path &target) {
+  if (!target.is_absolute())
+    return false;
+
+  std::error_code ec;
+  const auto normalized_target = std::filesystem::weakly_canonical(target, ec);
+  if (ec)
+    return false;
+
+  std::vector<std::filesystem::path> roots = {
+      game::get_game_path() / "mods", game::get_game_path() / "usermaps"};
+  const auto steam_workshop = get_steam_workshop_path();
+  if (!steam_workshop.empty())
+    roots.push_back(steam_workshop);
+
+  const auto lower_path = [](const std::filesystem::path &path) {
+    auto value = path.wstring();
+    std::transform(value.begin(), value.end(), value.begin(),
+                   [](const wchar_t c) {
+                     return static_cast<wchar_t>(::towlower(c));
+                   });
+    return value;
+  };
+
+  const auto target_value = lower_path(normalized_target);
+  for (const auto &root : roots) {
+    ec.clear();
+    const auto normalized_root = std::filesystem::weakly_canonical(root, ec);
+    if (ec)
+      continue;
+    auto root_value = lower_path(normalized_root);
+    if (!root_value.empty() && root_value.back() != L'\\' &&
+        root_value.back() != L'/')
+      root_value.push_back(L'\\');
+    if (target_value.starts_with(root_value))
+      return true;
+  }
+  return false;
+}
+
+bool workshop_remove_by_path(const std::string &path_str,
+                             std::string &error) {
   std::string p = path_str;
   utils::string::trim(p);
-  if (p.empty())
-    return;
+  if (p.empty()) {
+    error = "The installation path is empty.";
+    return false;
+  }
   std::filesystem::path target(p);
+  if (!is_safe_workshop_item_path(target)) {
+    error = "The installation path is outside the allowed Workshop folders.";
+    return false;
+  }
   std::error_code ec;
-  if (std::filesystem::exists(target) &&
-      std::filesystem::is_directory(target)) {
-    std::filesystem::remove_all(target, ec);
+  if (!std::filesystem::exists(target, ec)) {
+    if (ec) {
+      error = ec.message();
+      return false;
+    }
+    launcher::workshop::try_refresh_workshop_content();
+    return true;
+  }
+  if (!std::filesystem::is_directory(target, ec) || ec) {
+    error = ec ? ec.message() : "The installation path is not a folder.";
+    return false;
+  }
+  std::filesystem::remove_all(target, ec);
+  if (ec) {
+    error = ec.message();
+    return false;
+  }
+  if (std::filesystem::exists(target, ec)) {
+    error = ec ? ec.message() : "The folder still exists after removal.";
+    return false;
   }
   launcher::workshop::try_refresh_workshop_content();
+  return true;
 }
 
 static const std::vector<std::string> IMAGE_EXTENSIONS = {
@@ -890,9 +953,7 @@ std::string human_readable_size(std::uint64_t bytes) {
 }
 
 std::filesystem::path get_steam_workshop_path() {
-  char cwd[MAX_PATH];
-  GetCurrentDirectoryA(sizeof(cwd), cwd);
-  std::filesystem::path base(cwd);
+  const auto base = game::get_game_path();
 
   auto steamapps = base.parent_path().parent_path();
   auto workshop_path = steamapps / "workshop" / "content" / game::APP_ID_STR;
@@ -980,9 +1041,7 @@ bool try_parse_workshop_json(const std::filesystem::path &dir,
 }
 
 std::string workshop_list_json() {
-  char cwd[MAX_PATH];
-  GetCurrentDirectoryA(sizeof(cwd), cwd);
-  std::filesystem::path base(cwd);
+  const auto base = game::get_game_path();
 
   std::vector<mod_item_info> items;
   std::set<std::string> seen_paths;
@@ -1560,9 +1619,7 @@ bool run() {
           std::thread([]() {
             set_remove_status("Preparing removal...", -1.0);
 
-            char cwd[MAX_PATH];
-            GetCurrentDirectoryA(sizeof(cwd), cwd);
-            std::filesystem::path base(cwd);
+            const auto base = game::get_game_path();
 
             // Collect all directories to remove
             std::vector<std::filesystem::path> dirs_to_remove;
@@ -1626,12 +1683,15 @@ bool run() {
           std::string path = params[0].get_string();
           std::thread([path]() {
             set_remove_status("Removing mod...", -1.0, path);
-            workshop_remove_by_path(path);
-            {
+            std::string error;
+            const auto removed = workshop_remove_by_path(path, error);
+            if (removed) {
               std::lock_guard lock(library_list_mutex);
               library_list_cache.clear();
+              set_remove_status("Removal complete", 100.0);
+            } else {
+              set_remove_status("Removal failed", 0.0, error);
             }
-            set_remove_status("Removal complete", 100.0);
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
             reset_remove_status();
             remove_running = false;
@@ -1796,12 +1856,15 @@ bool run() {
             remove_running = true;
             std::thread([a = arg]() {
               set_remove_status("Removing mod...", -1.0, a);
-              workshop_remove_by_path(a);
-              {
+              std::string error;
+              const auto removed = workshop_remove_by_path(a, error);
+              if (removed) {
                 std::lock_guard lock(library_list_mutex);
                 library_list_cache.clear();
+                set_remove_status("Removal complete", 100.0);
+              } else {
+                set_remove_status("Removal failed", 0.0, error);
               }
-              set_remove_status("Removal complete", 100.0);
               std::this_thread::sleep_for(std::chrono::milliseconds(500));
               reset_remove_status();
               remove_running = false;
