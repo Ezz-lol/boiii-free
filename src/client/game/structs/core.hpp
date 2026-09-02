@@ -1188,7 +1188,7 @@ struct outPacket_t {
   int32_t p_realtime;
 };
 
-class tlAtomicMutex {
+PACKED(class alignas(8) tlAtomicMutex {
 public:
   int64_t ThreadId;
   int32_t LockCount;
@@ -1223,8 +1223,8 @@ public:
     }
   }
 
-  static void Lock(volatile tlAtomicMutex *self) { return self->Lock(); }
-};
+  static void Lock(volatile tlAtomicMutex * self) { return self->Lock(); }
+});
 ASSERT_SIZE(tlAtomicMutex, 0x18);
 
 enum class consoleChannel_e : uint32_t {

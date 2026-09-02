@@ -67,11 +67,12 @@ template <typename NodeType> class jqAtomicQueuePtr {
 
 template <typename Batch> class jqAtomicQueue {
 public:
-  struct NodeType {
-    jqAtomicQueuePtr<NodeType> Next;
-    jqBatch Data;
-  };
+  struct NodeType;
   typedef jqAtomicQueuePtr<NodeType> NodePtrType;
+  struct NodeType {
+    NodePtrType Next;
+    Batch Data;
+  };
 
   NodeType *NodeStorage;
   NodePtrType Head;
@@ -86,9 +87,10 @@ struct jqQueue {
   int32_t QueuedBatchCount;
   u32 ProcessorsMask;
 };
+ASSERT_SIZE(jqQueue, 0x28);
 
 class jqAtomicHeap;
-class jqAtomicHeap {
+PACKED(class alignas(8) jqAtomicHeap {
 public:
   typedef u64 CellType;
 
@@ -96,6 +98,7 @@ public:
     u32 BlockSize;
     int32_t NBlocks;
     int32_t NCells;
+    uint8_t _padding0C[4];
     jqAtomicHeap::CellType *CellAvailable;
     jqAtomicHeap::CellType *CellAllocated;
   };
@@ -108,6 +111,7 @@ public:
   volatile u32 TotalUsed;
   volatile u32 TotalBlocks;
   int32_t NLevels;
+  uint8_t _padding3C[4];
   jqAtomicHeap::LevelInfo Levels[13];
   u8 *LevelData;
 
@@ -115,10 +119,14 @@ public:
     static constexpr symbol<
         thiscall_t<void(volatile jqAtomicHeap *, void *Ptr)>>
         Free{0x140009920, 0x140009790};
+    static constexpr symbol<fastcall_t<void *(u32 Size)>> Alloc{0x14000A2E0,
+                                                                0x14000A150};
   };
 
-  inline void Free(void *Ptr) volatile { syms::Free(this, Ptr); }
-};
+  inline void Free(void *Ptr) volatile { return syms::Free(this, Ptr); }
+  static inline void *Alloc(u32 Size) { return syms::Alloc(Size); }
+});
+ASSERT_SIZE(jqAtomicHeap, 0x1E8);
 
 struct jqBatchPool {
   jqQueue BaseQueue;
@@ -131,6 +139,7 @@ struct jqBatchPool {
   };
   jqAtomicHeap BatchDataHeap;
 };
+ASSERT_SIZE(jqBatchPool, 0x218);
 
 } // namespace jq
 } // namespace game
