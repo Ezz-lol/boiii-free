@@ -23,9 +23,14 @@ void apply_list(const std::vector<pool_config> &limits) {
 template <typename T> std::optional<T> parse_int(const std::string_view &str) {
   const char *first = str.data();
   const char *last = str.data() + str.size();
+  int32_t base = 10;
+  if (str.starts_with("0x")) {
+    base = 16;
+    first = str.data() + 2;
+  }
 
   T result = {};
-  auto [ptr, ec] = std::from_chars(first, last, result);
+  auto [ptr, ec] = std::from_chars(first, last, result, base);
 
   if (ec == std::errc() && ptr == last) {
     return result;
@@ -41,15 +46,17 @@ std::vector<pool_config> parse_list(std::string &data) {
       "\t", " ");
   const std::vector<std::string> lines = utils::string::split(data, '\n');
   for (const std::string &line : lines) {
+    // T7Recharged syntax:
     // int_type_value string_type_name default_pool_size extended_pool_size
+    // Minimal sntax: int_type_value extended_pool_size
     const std::vector<std::string> parts = utils::string::split(line, ' ');
-    if (parts.size() > 3) {
+    if (parts.size() > 1) {
       const std::optional<int32_t> parsed_type_val =
           parse_int<int32_t>(parts[0]);
       if (parsed_type_val.has_value() &&
           valid_xassettype(parsed_type_val.value())) {
         const std::optional<uint32_t> parsed_size_val =
-            parse_int<uint32_t>(parts[3]);
+            parse_int<uint32_t>(parts[parts.size() - 1]);
         if (parsed_size_val.has_value()) {
           result.push_back(
               {.type = static_cast<XAssetType>(parsed_type_val.value()),

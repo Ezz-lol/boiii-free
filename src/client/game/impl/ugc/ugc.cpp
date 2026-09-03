@@ -281,7 +281,8 @@ void UGC_LoadItem_PrepareAssetPool(const std::filesystem::path &root) {
   if (std::filesystem::is_directory(root)) {
     for (const std::filesystem::path &file :
          utils::io::list_files(root, true, false)) {
-      if (file.filename() == "assetlimits.txt") {
+      if (file.filename() == "assetlimits.txt" ||
+          file.filename() == "assetpools.txt") {
         std::string data = utils::io::read_file(file);
         const std::vector<asset_limits::pool_config> limits =
             asset_limits::parse_list(data);
