@@ -10,27 +10,17 @@ using namespace game::lua::hks;
 using namespace game::lua;
 
 luaReturnCount_e revision(lua_State *s) {
-#ifndef NDEBUG
-  game::trace("MainLUA.Revision called with argc: %d", lua_gettop(s));
-#endif
-
   // Ensure minimum T7Recharged DLL revision checks always pass
   lua_pushnumber(s, std::numeric_limits<float>::max());
   return luaReturnCount_e::ONE;
 }
 
 luaReturnCount_e module_loaded(lua_State *s) {
-#ifndef NDEBUG
-  game::trace("MainLUA.ModuleLoaded called with argc: %d", lua_gettop(s));
-#endif
   lua_pushboolean(s, htrue);
   return luaReturnCount_e::ONE;
 }
 
 luaReturnCount_e unload_mod([[maybe_unused]] lua_State *s) {
-#ifndef NDEBUG
-  game::trace("MainLUA.UnloadMod called with argc: %d", lua_gettop(s));
-#endif
   return luaReturnCount_e::NONE;
 }
 
@@ -38,10 +28,6 @@ luaReturnCount_e unload_mod([[maybe_unused]] lua_State *s) {
 // And of the parameters used, how are they formatted or otherwise used to
 // generate the final output?
 luaReturnCount_e hardware_cpu(lua_State *s) {
-#ifndef NDEBUG
-  game::trace("MainLUA.HardwareCPU called with argc: %d", lua_gettop(s));
-#endif
-
   lua_pushstring(s, "generic");
   return luaReturnCount_e::ONE;
 }
@@ -50,10 +36,6 @@ luaReturnCount_e hardware_cpu(lua_State *s) {
 // TODO: reverse engineer T7Recharged's `GetHardwareId` implementation to
 // re-create its generation logic
 luaReturnCount_e hardware_id(lua_State *s) {
-#ifndef NDEBUG
-  game::trace("MainLUA.HardwareID called with argc: %d", lua_gettop(s));
-#endif
-
   lua_pushstring(s, "generic");
   return luaReturnCount_e::ONE;
 }
@@ -62,11 +44,14 @@ class component final : public generic_component {
 public:
   void post_unpack() override {
     static constexpr const luaL_Reg MainLUALibrary[] = {
-        {"GetHardwareCPU", lua_state::unsafe_function<hardware_cpu>},
-        {"GetHardwareID", lua_state::unsafe_function<hardware_id>},
-        {"ModuleLoaded", lua_state::unsafe_function<module_loaded>},
-        {"Revision", revision},
-        {"UnloadMod", unload_mod},
+        lua_state::luaL_LoggedReg<"MainLUA", "GetHardwareCPU",
+                                  lua_state::unsafe_function<hardware_cpu>>(),
+        lua_state::luaL_LoggedReg<"MainLUA", "GetHardwareID",
+                                  lua_state::unsafe_function<hardware_id>>(),
+        lua_state::luaL_LoggedReg<"MainLUA", "ModuleLoaded",
+                                  lua_state::unsafe_function<module_loaded>>(),
+        lua_state::luaL_LoggedReg<"MainLUA", "Revision", revision>(),
+        lua_state::luaL_LoggedReg<"MainLUA", "UnloadMod", unload_mod>(),
         {nullptr, nullptr},
     };
     lua_state::register_lib("MainLUA", MainLUALibrary);

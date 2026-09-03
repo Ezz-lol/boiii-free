@@ -19,13 +19,13 @@ class component final : public generic_component {
 public:
   void post_unpack() override {
     static constexpr const luaL_Reg HotReloadLibrary[] = {
-        {"Start", lua_stub_func},
+        lua_state::luaL_LoggedReg<"HotReload", "Start", lua_stub_func>(),
         {nullptr, nullptr},
     };
     lua_state::register_lib("HotReload", HotReloadLibrary);
 
     static constexpr const luaL_Reg UIErrorHashLibrary[] = {
-        {"Remove", lua_stub_func},
+        lua_state::luaL_LoggedReg<"UIErrorHash", "Remove", lua_stub_func>(),
         {nullptr, nullptr},
     };
     lua_state::register_lib("UIErrorHash", UIErrorHashLibrary);

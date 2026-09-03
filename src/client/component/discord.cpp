@@ -395,10 +395,11 @@ luaReturnCount_e lua_returntrue(lua_State *s) {
 void register_lua_libs() {
   // All functions stubbed - lua discord RPC control by mods is disabled.
   static constexpr const luaL_Reg DiscordRPC_Library[] = {
-      {"Shutdown", lua_returntrue},
-      {"IsAvailable", lua_returntrue},
-      {"ClearPresence", lua_returntrue},
-      {"Enable", lua_returntrue},
+      lua_state::luaL_LoggedReg<"DiscordRPC", "Shutdown", lua_returntrue>(),
+      lua_state::luaL_LoggedReg<"DiscordRPC", "IsAvailable", lua_returntrue>(),
+      lua_state::luaL_LoggedReg<"DiscordRPC", "ClearPresence",
+                                lua_returntrue>(),
+      lua_state::luaL_LoggedReg<"DiscordRPC", "Enable", lua_returntrue>(),
       {nullptr, nullptr},
   };
   lua_state::register_lib("DiscordRPC", DiscordRPC_Library);

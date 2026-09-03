@@ -51,12 +51,18 @@ class component final : public generic_component {
 public:
   void post_unpack() override {
     static constexpr const luaL_Reg AxiosLibrary[] = {
-        {"Get", lua_state::unsafe_function<get>},
-        {"GetRetrieve", lua_state::unsafe_function<get>},
-        {"GetUpdate", lua_state::unsafe_function<get>},
-        {"GetUpdateEncrypted", lua_state::unsafe_function<get>},
-        {"Post", lua_state::unsafe_function<post>},
-        {"PostEncrypted", lua_state::unsafe_function<post>},
+        lua_state::luaL_LoggedReg<"Axios", "Get",
+                                  lua_state::unsafe_function<get>>(),
+        lua_state::luaL_LoggedReg<"Axios", "GetRetrieve",
+                                  lua_state::unsafe_function<get>>(),
+        lua_state::luaL_LoggedReg<"Axios", "GetUpdate",
+                                  lua_state::unsafe_function<get>>(),
+        lua_state::luaL_LoggedReg<"Axios", "GetUpdateEncrypted",
+                                  lua_state::unsafe_function<get>>(),
+        lua_state::luaL_LoggedReg<"Axios", "Post",
+                                  lua_state::unsafe_function<post>>(),
+        lua_state::luaL_LoggedReg<"Axios", "PostEncrypted",
+                                  lua_state::unsafe_function<post>>(),
         {nullptr, nullptr},
     };
     lua_state::register_lib("Axios", AxiosLibrary);

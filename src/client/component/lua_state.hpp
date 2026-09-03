@@ -34,7 +34,7 @@ inline void register_lib(const char *name, const luaL_Reg *lib) {
   custom_libs.access([name, &lib](libmap_t &libs) { libs[name] = lib; });
 }
 
-template <lua_CFunction *func>
+template <lua_CFunction &func>
 luaReturnCount_e unsafe_function(lua_State *luaVM) {
   if (game::is_server() || ui_scripting::unsafe_lua_approved_for_session.load(
                                std::memory_order_acquire)) {
@@ -44,5 +44,28 @@ luaReturnCount_e unsafe_function(lua_State *luaVM) {
   ui_scripting::show_unsafe_lua_dialog();
   return luaReturnCount_e::NONE;
 }
+
+template <const char *Library, const char *Name, lua_CFunction *func>
+luaReturnCount_e log_call(lua_State *luaVM) {
+#ifndef NDEBUG
+  game::trace("%s.%s called with argc: %d", Library, Name, lua_gettop(luaVM));
+  return func(luaVM);
+#endif
+}
+
+template <ConstString Library, ConstString Name, lua_CFunction *Function>
+struct luaL_LoggedReg : public luaL_Reg {
+#ifdef NDEBUG
+  constexpr luaL_LoggedReg() {
+    this->name = Name;
+    this->function = Function;
+  }
+#else
+  constexpr luaL_LoggedReg() {
+    this->name = Name;
+    this->function = log_call<Library, Name, Function>;
+  }
+#endif
+};
 
 } // namespace lua_state

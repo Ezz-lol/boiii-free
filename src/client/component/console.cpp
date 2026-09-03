@@ -1546,11 +1546,12 @@ luaReturnCount_e show_external_console(lua_State *s) {
 
 void register_lua_libs() {
   static constexpr const luaL_Reg ConsoleLibrary[] = {
-      {"Print", print},
-      {"PrintInfo", print_info},
-      {"PrintError", print_error},
-      {"PrintWarning", print_warning},
-      {"ShowExternalConsole", show_external_console},
+      lua_state::luaL_LoggedReg<"Console", "Print", print>(),
+      lua_state::luaL_LoggedReg<"Console", "PrintInfo", print_info>(),
+      lua_state::luaL_LoggedReg<"Console", "PrintError", print_error>(),
+      lua_state::luaL_LoggedReg<"Console", "PrintWarning", print_warning>(),
+      lua_state::luaL_LoggedReg<"Console", "ShowExternalConsole",
+                                show_external_console>(),
       {nullptr, nullptr},
   };
   lua_state::register_lib("Console", ConsoleLibrary);
