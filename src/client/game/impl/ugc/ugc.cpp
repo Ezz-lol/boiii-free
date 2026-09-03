@@ -332,7 +332,7 @@ void UGC_LoadModByPublisherId_Impl(LocalClientNum_t localClientNum,
     genMod.type = ZoneType::MOD;
     mod = &genMod;
   }
-  // PATCH: load "assetlimits.txt" asset pool configuration from zone tree
+  // PATCH: load asset pool configuration from zone tree
   UGC_LoadItem_PrepareAssetPool(mod->absolutePathZoneFiles);
 
   UGC_LoadMod(localClientNum, mod, reloadFS);
@@ -574,7 +574,7 @@ void UGC_LoadManifest_Impl(bool usermaps, bool mods,
 WorkshopData *UGC_LoadUsermapByPublisherId_Impl(const char *publisherId) {
 
   WorkshopData *usermap = UGC_GetUsermapByPublisherId(publisherId);
-  // PATCH: load "assetlimits.txt" asset pool configuration from zone tree
+  // PATCH: load asset pool configuration from zone tree
   if (usermap) {
     UGC_LoadItem_PrepareAssetPool(usermap->absolutePathZoneFiles);
   }

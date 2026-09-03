@@ -141,3 +141,22 @@ the corresponding hex representation of each.
 - `LASER`: 0x64
 - `BEAM`: 0x65
 - `STREAMER_HINT`: 0x66
+
+# Caveats
+
+Due to internal engine handling quirks, not all asset pools can be cleanly,
+safely, or even feasibly expanded.
+
+The GFX World, COM World, and Game World asset pools will only ever use two
+assets - the world in use, and a loading world, if any. The statically allocated
+pools for these world assets are accessed directly in many places in the engine,
+and as such, pool reallocation will cause incorrect world assets to be used or
+modified in some functions in the engine. Re-allocation of these pools is
+therefore both unsafe and non-beneficial.
+
+The engine also accesses the statically allocated GFX Image pool directly in
+some functions, and is known to use hard-coded asset pool size when handling the
+XModel Mesh asset pool. Re-allocation of these pools will not be beneficial, and
+may be unsafe.
+
+Use with caution, on a trial-and-error basis.
