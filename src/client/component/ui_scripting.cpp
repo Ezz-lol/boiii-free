@@ -386,6 +386,9 @@ std::string stringify_print_arg(const script_value &value) {
   }
 }
 
+constexpr std::string_view BLACKLISTED_LUA_PRINT_CONTENTS[] = {
+    "LUI_NULL_FUNCTION:"};
+
 arguments lua_print(variadic_args args) {
   std::string message;
 
@@ -395,6 +398,13 @@ arguments lua_print(variadic_args args) {
     }
 
     message += stringify_print_arg(args[i]);
+  }
+
+  for (const std::string_view &blacklisted_contents :
+       BLACKLISTED_LUA_PRINT_CONTENTS) {
+    if (message.find(blacklisted_contents) != std::string::npos) {
+      return {};
+    }
   }
 
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
