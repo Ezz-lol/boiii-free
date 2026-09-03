@@ -1651,7 +1651,9 @@ inline void lui_reload() {
 
   // Com_LoadFrontEnd stripped
   Lua_CoD_LoadLuaFile(*primary_luaVM, "ui_mp.T6.main");
-  UI_AddMenu(UI_CoD_GetRootNameForController(0), "main", -1, *primary_luaVM);
+  UI_AddMenu(UI_CoD_GetRootNameForController(
+                 game::ControllerIndex_t::CONTROLLER_INDEX_0),
+             "main", -1, *primary_luaVM);
 
   UI_CoD_LobbyUI_Init();
 }
