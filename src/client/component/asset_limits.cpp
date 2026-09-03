@@ -16,7 +16,7 @@ namespace asset_limits {
 
 void apply_list(const std::vector<pool_config> &limits) {
   for (const pool_config &limit : limits) {
-    reallocate_asset_pool(limit.type, limit.size);
+    pool::reallocate_asset_pool(limit.type, limit.size);
   }
 }
 
@@ -246,7 +246,7 @@ void apply_asset_limits() {
 
   for (const default_pool_config &cfg : default_pool_configs) {
     const uint32_t size = get_pool_size(doc, cfg);
-    reallocate_asset_pool(cfg.type, size);
+    pool::reallocate_asset_pool(cfg.type, size);
   }
 }
 
@@ -254,10 +254,12 @@ utils::hook::detour DB_AssetPoolInit_hook;
 void DB_AssetPoolInit_stub() {
   DB_AssetPoolInit_hook.invoke();
   apply_asset_limits();
-  DB_InitBSPGlobals_Impl();
+  pool::DB_InitBSPGlobals_Impl();
 
   script::load_rawfiles();
 }
+
+utils::hook::detour DB_AssetPoolAlloc_hook;
 } // namespace
 
 class component final : public generic_component {
@@ -265,6 +267,9 @@ public:
   void post_unpack() override {
     DB_AssetPoolInit_hook.create(game::db::DB_AssetPoolInit.get(),
                                  DB_AssetPoolInit_stub);
+    DB_AssetPoolInit_hook.create(
+        game::db::xasset::pool::DB_AssetPoolAlloc,
+        game::db::xasset::pool::DB_AssetPoolAlloc_Impl);
   }
 };
 } // namespace asset_limits

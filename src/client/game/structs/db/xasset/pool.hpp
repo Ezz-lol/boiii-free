@@ -21,6 +21,76 @@ struct VehicleSoundDef;
 namespace db {
 namespace xasset {
 namespace pool {
+
+struct AssetLink;
+struct AssetLink {
+  AssetLink *next;
+};
+
+PACKED(struct XAssetPool {
+  void *pool;
+  uint32_t itemSize;
+  int32_t itemCount;
+  bool isSingleton;
+  uint8_t _padding11[3];
+  int32_t itemAllocCount;
+  AssetLink *freeHead;
+
+  inline bool contains(uintptr_t ptr) const noexcept {
+    const uintptr_t pool_ptr = reinterpret_cast<uintptr_t>(pool);
+    return ptr >= pool_ptr && ptr < pool_ptr + itemSize * itemCount;
+  }
+
+  template <typename P> inline bool contains(const P *ptr) const noexcept {
+    return contains(reinterpret_cast<uintptr_t>(ptr));
+  }
+
+#ifndef NDEBUG
+  inline constexpr std::string serialize() const noexcept {
+    return std::format("XAssetPool {{ \"pool\": {:p}, \"itemSize\": 0x{:X}, "
+                       "\"itemCount\": 0x{:X}, \"isSingleton\": {}, "
+                       "\"itemAllocCount\": 0x{:X}, \"freeHead\": {:p} }}",
+                       pool, itemSize, itemCount,
+                       isSingleton ? "true" : "false", itemAllocCount,
+                       static_cast<void *>(freeHead));
+  }
+#endif
+});
+
+template <typename T> struct TypedXAssetPool {
+  T *pool;
+  uint32_t itemSize;
+  int32_t itemCount;
+  bool isSingleton;
+  uint8_t _padding11[3];
+  int32_t itemAllocCount;
+  AssetLink *freeHead;
+
+  inline bool contains(uintptr_t ptr) const noexcept {
+    const uintptr_t pool_ptr = reinterpret_cast<uintptr_t>(pool);
+    return ptr >= pool_ptr && ptr < pool_ptr + sizeof(T) * itemCount;
+  }
+
+  template <typename P> inline bool contains(const P *ptr) const noexcept {
+    return contains(reinterpret_cast<uintptr_t>(ptr));
+  }
+
+#ifndef NDEBUG
+  inline constexpr std::string serialize() const noexcept {
+    return std::format(
+        "TypedXAssetPool<{}> {{ \"pool\": {:p}, \"itemSize\": 0x{:X}, "
+        "\"itemCount\": 0x{:X}, \"isSingleton\": {}, "
+        "\"itemAllocCount\": 0x{:X}, \"freeHead\": {:p} }}",
+        reflect_name<T>(), static_cast<void *>(pool), itemSize, itemCount,
+        isSingleton ? "true" : "false", itemAllocCount,
+        static_cast<void *>(freeHead));
+  }
+#endif
+};
+
+ASSERT_SIZE(XAssetPool, 0x20);
+ASSERT_SIZE(TypedXAssetPool<void>, sizeof(XAssetPool));
+
 union XAssetEntryPoolEntry;
 union XAssetEntryPoolEntry {
   XAssetEntry entry;
@@ -163,8 +233,7 @@ union XAssetPools {
     return contains(reinterpret_cast<uintptr_t>(ptr));
   }
 };
-static_assert(sizeof(XAssetPools) ==
-                  sizeof(XAssetPool) * static_cast<int>(XAssetType::COUNT),
+static_assert(sizeof(XAssetPools) == sizeof(XAssetPool) * +XAssetType::COUNT,
               "sizeof(XAssetPools) must be sizeof(XAssetPool) * COUNT");
 ASSERT_SIZE(XAssetPools, sizeof(TypedXAssetPools));
 #pragma pack(pop)

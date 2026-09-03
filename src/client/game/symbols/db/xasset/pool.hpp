@@ -7,8 +7,8 @@ namespace db {
 namespace xasset {
 namespace pool {
 
-WEAK symbol<void(xasset::XAssetType, xasset::AssetLink *ptr)>
-    DB_AssetPoolRelease{0x1401A15A0, 0x1401A15A0};
+WEAK symbol<void(xasset::XAssetType, AssetLink *ptr)> DB_AssetPoolRelease{
+    0x1401A15A0, 0x1401A15A0};
 WEAK symbol<void *(xasset::XAssetType type)> DB_AssetPoolAlloc{0x1413E9E30,
                                                                0x14019F0E0};
 

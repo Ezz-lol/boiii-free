@@ -208,81 +208,6 @@ inline constexpr bool valid_xassettype(Value val_arg) {
   return val >= +XAssetType::PHYSPRESET && val < +XAssetType::COUNT;
 }
 
-struct AssetLink;
-struct AssetLink {
-  AssetLink *next;
-};
-
-PACKED(struct XAssetPool {
-  void *pool;
-  uint32_t itemSize;
-  int32_t itemCount;
-  bool isSingleton;
-  uint8_t _padding11[3];
-  int32_t itemAllocCount;
-  AssetLink *freeHead;
-
-  inline bool contains(uintptr_t ptr) const noexcept {
-    const uintptr_t pool_ptr = reinterpret_cast<uintptr_t>(pool);
-    return ptr >= pool_ptr && ptr < pool_ptr + itemSize * itemCount;
-  }
-
-  template <typename P> inline bool contains(const P *ptr) const noexcept {
-    return contains(reinterpret_cast<uintptr_t>(ptr));
-  }
-
-#ifndef NDEBUG
-  inline constexpr std::string serialize() const noexcept {
-    return std::format("XAssetPool {{ \"pool\": {:p}, \"itemSize\": 0x{:X}, "
-                       "\"itemCount\": 0x{:X}, \"isSingleton\": {}, "
-                       "\"itemAllocCount\": 0x{:X}, \"freeHead\": {:p} }}",
-                       pool, itemSize, itemCount,
-                       isSingleton ? "true" : "false", itemAllocCount,
-                       static_cast<void *>(freeHead));
-  }
-#endif
-});
-
-template <typename T> struct TypedXAssetPool {
-  T *pool;
-  uint32_t itemSize;
-  int32_t itemCount;
-  bool isSingleton;
-  uint8_t _padding11[3];
-  int32_t itemAllocCount;
-  AssetLink *freeHead;
-
-  inline bool contains(uintptr_t ptr) const noexcept {
-    const uintptr_t pool_ptr = reinterpret_cast<uintptr_t>(pool);
-    return ptr >= pool_ptr && ptr < pool_ptr + sizeof(T) * itemCount;
-  }
-
-  template <typename P> inline bool contains(const P *ptr) const noexcept {
-    return contains(reinterpret_cast<uintptr_t>(ptr));
-  }
-
-#ifndef NDEBUG
-  inline constexpr std::string serialize() const noexcept {
-    return std::format(
-        "TypedXAssetPool<{}> {{ \"pool\": {:p}, \"itemSize\": 0x{:X}, "
-        "\"itemCount\": 0x{:X}, \"isSingleton\": {}, "
-        "\"itemAllocCount\": 0x{:X}, \"freeHead\": {:p} }}",
-        reflect_name<T>(), static_cast<void *>(pool), itemSize, itemCount,
-        isSingleton ? "true" : "false", itemAllocCount,
-        static_cast<void *>(freeHead));
-  }
-#endif
-};
-
-ASSERT_SIZE(XAssetPool, 0x20);
-ASSERT_SIZE(TypedXAssetPool<void>, sizeof(XAssetPool));
-PACKED(struct ScriptStringList {
-  int32_t count;
-  uint8_t _padding04[4];
-  const char **strings;
-});
-ASSERT_SIZE(ScriptStringList, 0x10);
-
 /*
   All XAssets union members have first field `const char * name;`
   The engine uses this shared field to use shared utility functions to access
@@ -1024,7 +949,14 @@ ASSERT_SIZE(XAsset, 0x10);
 using XAssetEnum = void(XAssetHeader, void *);
 
 #pragma pack(push, 1)
-// sizeof=0x20
+
+PACKED(struct ScriptStringList {
+  int32_t count;
+  uint8_t _padding04[4];
+  const char **strings;
+});
+ASSERT_SIZE(ScriptStringList, 0x10);
+
 struct XAssetList {
   ScriptStringList stringList;
   int32_t assetCount;
@@ -1034,9 +966,7 @@ struct XAssetList {
 ASSERT_SIZE(XAssetList, 0x20);
 #pragma pack(pop)
 
-#pragma pack(push, 1)
-// sizeof=0x20
-struct XAssetEntry {
+PACKED(struct XAssetEntry {
   XAsset asset;
   uint8_t zoneIndex;
   bool inuse;
@@ -1044,10 +974,9 @@ struct XAssetEntry {
   uint32_t nextHash;
   uint32_t nextType;
   uint32_t nextOverride;
-};
+});
 ASSERT_SIZE(XAssetEntry, 0x20);
 typedef XAssetEntry *XAssetEntryPtr;
-#pragma pack(pop)
 
 struct ManagedNotetrack_t {
   scr::ScrString_t elemType;

@@ -11,6 +11,21 @@
 namespace game {
 namespace db {
 namespace xasset {
+// The engine always inlines this function, so we reimplement it here for use
+// elsewhere.
+__inline_def uint32_t DB_HashForName(const char *name, const XAssetType type) {
+  uint32_t hash = static_cast<uint32_t>(type);
+  while (*name) {
+    char c = *name++;
+    if (c == '\\') {
+      c = '/';
+    }
+    c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+    hash = (hash << 16) + (hash << 6) + c - hash;
+  }
+  return hash;
+}
+
 int32_t DB_GetXAssetTypeSize_Impl(XAssetType type) {
 
   switch (type) {
@@ -366,13 +381,14 @@ inline constexpr frozen::unordered_map<XAssetType, uint32_t, +XAssetType::COUNT>
         {XAssetType::STREAMER_HINT, 0x32},
     });
 
+namespace pool {
 static std::mutex reallocation_mutex;
 void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
   const int32_t entry_size = DB_GetXAssetTypeSize_Impl(type);
   if (entry_size <= 0) {
     return;
   }
-  XAssetPool *pool = &pool::s_assetPools->pools[+type];
+  pool::XAssetPool *pool = &pool::s_assetPools->pools[+type];
 
   {
     std::scoped_lock<std::mutex> reallocation_lock(reallocation_mutex);
@@ -440,21 +456,6 @@ void reallocate_asset_pool(const XAssetType type, const uint32_t new_size) {
   }
 }
 
-// The engine always inlines this function, so we reimplement it here for use
-// elsewhere.
-__inline_def uint32_t DB_HashForName(const char *name, const XAssetType type) {
-  uint32_t hash = static_cast<uint32_t>(type);
-  while (*name) {
-    char c = *name++;
-    if (c == '\\') {
-      c = '/';
-    }
-    c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
-    hash = (hash << 16) + (hash << 6) + c - hash;
-  }
-  return hash;
-}
-
 pool::XAssetEntryPoolEntry *
 DB_GetAssetEntryPoolEntryByName(const char *name, const XAssetType type) {
   uint32_t hash = DB_HashForName(name, type);
@@ -480,6 +481,39 @@ void DB_InitBSPGlobals_Impl() {
   *world::gameWorld = pool::s_assetPools->typed.gameworld.pool;
   *world::gameWorldCurrent = *world::gameWorld;
 }
+
+static std::mutex asset_alloc_mutex;
+void *DB_AssetPoolAlloc_Impl(XAssetType type) {
+  // PATCH disallow concurrent allocations in case of concurrent pool
+  // reallocation
+  std::scoped_lock<std::mutex> asset_alloc_lock(asset_alloc_mutex);
+
+  XAssetPool *pool = &s_assetPools->pools[+type];
+  if (game::is_server() && type == XAssetType::IMAGE) {
+    ++pool->itemAllocCount;
+    return pool->freeHead;
+  }
+  if (pool->isSingleton) {
+    return pool->pool;
+  }
+
+  // PATCH: expand asset pool if we have reached capacity
+  if (pool->freeHead == nullptr) {
+    reallocate_asset_pool(
+        type, std::max<int32_t>(pool->itemCount * 2,
+                                2 /* In case current pool size is 0 */));
+  }
+
+  AssetLink *freeHead = pool->freeHead;
+  if (freeHead) {
+    AssetLink *next = freeHead->next;
+    ++pool->itemAllocCount;
+    pool->freeHead = next;
+  }
+
+  return freeHead;
+}
+} // namespace pool
 } // namespace xasset
 } // namespace db
 } // namespace game
