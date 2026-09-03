@@ -118,8 +118,9 @@ size_t get_optimal_concurrent_download_count(const size_t file_count) {
 
 bool is_inside_folder(const std::filesystem::path &file,
                       const std::filesystem::path &folder) {
-  const auto relative = std::filesystem::relative(file, folder);
-  const auto start = relative.begin();
+  const std::filesystem::path relative =
+      std::filesystem::relative(file, folder);
+  const std::filesystem::path::iterator start = relative.begin();
   return start != relative.end() && start->string() != "..";
 }
 
@@ -635,9 +636,11 @@ void file_updater::cleanup_directories(
 
 void file_updater::cleanup_root_directory(
     const std::vector<file_info> &files) const {
-  const auto existing_files = utils::io::list_files(this->base_);
+  const std::vector<std::filesystem::path> existing_files =
+      utils::io::list_files(this->base_);
   for (const auto &file : existing_files) {
-    const auto entry = std::filesystem::relative(file, this->base_);
+    const std::filesystem::path entry =
+        std::filesystem::relative(file, this->base_);
     if ((entry.string() == "user" || entry.string() == "data") &&
         utils::io::directory_exists(file)) {
       continue;

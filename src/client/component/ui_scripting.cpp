@@ -1648,6 +1648,10 @@ luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
     }
   }
 
+#ifndef NDEBUG
+  game::trace("Calling load_dll with filename: \"%s\", func_name: \"%s\"",
+              filename ? filename : "NULL", func_name ? func_name : "NULL");
+#endif
   return load_dll_hook.invoke<luaReturnCount_e>(s, filename, func_name);
 }
 
@@ -2061,6 +2065,10 @@ utils::hook::detour Lua_CoD_LuaCall_Mods_SetMod_hook;
 luaReturnCount_e Lua_CoD_LuaCall_Mods_SetMod_LoadImmediately(lua_State *luaVM) {
   if (lua_gettop(luaVM) > 0 && lua_isstring(luaVM, 1)) {
     const char *publisherId = lua_tostring(luaVM, 1);
+#ifndef NDEBUG
+    game::trace("[Lua] Mods_SetMod called with publisherId: \"%s\"",
+                publisherId);
+#endif
     if (publisherId) {
       scheduler::once(
           [publisherId]() {

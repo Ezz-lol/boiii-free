@@ -479,6 +479,18 @@ enum class ZoneType : uint32_t {
   USERMAP = 0x2,
   COUNT = 0x3
 };
+inline constexpr const char *serialize(ZoneType zoneType) {
+  switch (zoneType) {
+  case ZoneType::OFFICIAL:
+    return "ZoneType::OFFICIAL";
+  case ZoneType::MOD:
+    return "ZoneType::MOD";
+  case ZoneType::USERMAP:
+    return "ZoneType::USERMAP";
+  default:
+    return "ZoneType::INVALID";
+  }
+}
 IMPL_ENUM_OPERATORS(ZoneType);
 
 inline constexpr const char *dirname(ZoneType zoneType) {

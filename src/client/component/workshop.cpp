@@ -1045,6 +1045,19 @@ void com_error_missing_map_stub(const char *file, int line,
   game::com::Com_Error_(file, line, code, "%s", "Missing map!");
 }
 
+#ifndef NDEBUG
+utils::hook::detour UGC_LoadMod_hook;
+void UGC_LoadMod_LogFirst(game::LocalClientNum_t localClientNum,
+                          game::ugc::WorkshopData *mod, bool reloadFS) {
+  const std::string mod_str = mod ? mod->serialize() : "NULL";
+  game::trace(
+      "UGC_LoadMod called with localClientNum: %s, mod: %s, reloadFS: %s",
+      serialize(localClientNum), mod_str.data(), reloadFS ? "true" : "false");
+
+  return UGC_LoadMod_hook.invoke(localClientNum, mod, reloadFS);
+}
+#endif
+
 utils::hook::detour DB_CheckModXFile_hook;
 utils::hook::detour UGC_GetByPublisherId_hook;
 utils::hook::detour UGC_GetCount_hook;
@@ -1105,6 +1118,10 @@ void extend_ugc_pools() {
     UGC_SetMapLoadingImage_hook.create(game::ugc::UGC_SetMapLoadingImage.get(),
                                        game::ugc::UGC_SetMapLoadingImage_Impl);
   }
+
+#ifndef NDEBUG
+  UGC_LoadMod_hook.create(game::ugc::UGC_LoadMod, UGC_LoadMod_LogFirst);
+#endif
 }
 
 class component final : public generic_component {

@@ -36,6 +36,20 @@ struct WorkshopData {
   inline void clear() {
     memset(static_cast<void *>(this), 0, sizeof(WorkshopData));
   }
+
+#ifndef NDEBUG
+  inline std::string serialize() {
+    return std::format(
+        "WorkshopData {{ \"title\": \"{}\", \"internalName\": \"{}\", "
+        "\"publisherId\": \"{}\", \"description\": \"{}\", "
+        "\"contentPathToZoneFiles\": \"{}\", \"absolutePathContentDirectory\": "
+        "\"{}\", \"absolutePathZoneFiles\", \"{}\", \"version\": {}, "
+        "\"publisherIdInteger\": {}, \"publisherIdHash\": {}, type: {} }}",
+        title, internalName, publisherId, description, contentPathToZoneFiles,
+        absolutePathContentDirectory, absolutePathZoneFiles, version,
+        publisherIdInteger, publisherIdHash, ::game::serialize(type));
+  }
+#endif
 };
 ASSERT_CPP03_POD(WorkshopData);
 ASSERT_SIZE(WorkshopData, 0x4C8);

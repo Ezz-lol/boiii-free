@@ -633,10 +633,9 @@ bool is_safe_workshop_item_path(const std::filesystem::path &target) {
 
   const auto lower_path = [](const std::filesystem::path &path) {
     auto value = path.wstring();
-    std::transform(value.begin(), value.end(), value.begin(),
-                   [](const wchar_t c) {
-                     return static_cast<wchar_t>(::towlower(c));
-                   });
+    std::transform(
+        value.begin(), value.end(), value.begin(),
+        [](const wchar_t c) { return static_cast<wchar_t>(::towlower(c)); });
     return value;
   };
 
@@ -656,8 +655,7 @@ bool is_safe_workshop_item_path(const std::filesystem::path &target) {
   return false;
 }
 
-bool workshop_remove_by_path(const std::string &path_str,
-                             std::string &error) {
+bool workshop_remove_by_path(const std::string &path_str, std::string &error) {
   std::string p = path_str;
   utils::string::trim(p);
   if (p.empty()) {

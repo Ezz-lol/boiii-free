@@ -295,6 +295,14 @@ void UGC_LoadItem_PrepareAssetPool(const std::filesystem::path &root) {
 
 void UGC_LoadModByPublisherId_Impl(LocalClientNum_t localClientNum,
                                    const char *publisherId, bool reloadFS) {
+#ifndef NDEBUG
+  const void *callerAddr = _ReturnAddress();
+  game::trace(
+      "UGC_LoadModByPublisherId called at 0x%p with localClientNum: %s, "
+      "publisherId: \"%s\", reloadFS: %s",
+      game::derelocate(callerAddr), serialize(localClientNum),
+      publisherId ? publisherId : "NULL", reloadFS ? "true" : "false");
+#endif
   UGC_LoadPools_Impl();
   WorkshopData genMod{};
   WorkshopData *mod = UGC_GetModByPublisherId(publisherId);

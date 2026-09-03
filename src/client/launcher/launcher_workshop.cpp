@@ -602,7 +602,8 @@ bool copy_directory_recursive_with_progress(
     if (workshop_cancel_requested.load())
       return false;
 
-    const auto rel = std::filesystem::relative(entry.path(), from, ec);
+    const std::filesystem::path rel =
+        std::filesystem::relative(entry.path(), from, ec);
     if (ec)
       return false;
     const auto dest_path = to / rel;
@@ -1454,8 +1455,8 @@ void workshop_download_thread(std::string workshop_id,
     }
 
     ::workshop::launcher_downloading = true;
-    const auto reset_downloading = utils::finally(
-        []() { ::workshop::launcher_downloading = false; });
+    const auto reset_downloading =
+        utils::finally([]() { ::workshop::launcher_downloading = false; });
     reset_workshop_status();
     workshop_cancel_requested = false;
     workshop_paused = false;
@@ -2265,8 +2266,7 @@ void workshop_download_thread(std::string workshop_id,
     } else {
       std::error_code existing_ec;
       for (const auto &entry :
-           std::filesystem::directory_iterator(existing_install,
-                                               existing_ec)) {
+           std::filesystem::directory_iterator(existing_install, existing_ec)) {
         if (entry.is_directory(existing_ec) &&
             has_zone_content(entry.path() / "zone")) {
           dest = entry.path() / "zone";
@@ -2466,7 +2466,6 @@ void workshop_download_thread(std::string workshop_id,
   } catch (...) {
     set_workshop_status("Error: Workshop download crashed.", 0.0, "");
   }
-
 }
 } // namespace
 
