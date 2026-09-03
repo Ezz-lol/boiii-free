@@ -2359,7 +2359,7 @@ public:
     Lua_CoD_FFReader_hook.create(Lua_CoD_FFReader,
                                  Lua_CoD_FFReader_EnforceOverride);
     utils::hook::call(game::select(0x141D4979A, 0x1403F233A), hks_load_stub);
-    load_dll_hook.create(load_dll, load_dll_disable);
+    load_dll_hook.create(load_dll, load_dll_skip_blacklisted);
 
     hks_package_require_hook.create(game::select(0x141D28EF0, 0x1403D7FC0),
                                     hks_package_require_stub);

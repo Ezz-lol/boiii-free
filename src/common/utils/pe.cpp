@@ -7,6 +7,8 @@
 
 #include <utils/string.hpp>
 
+#pragma comment(lib, "version.lib")
+
 #if !(defined(_WIN32) || defined(_WIN64) || defined(__CYGWIN__) ||             \
       defined(__MINGW64__)) &&                                                 \
     !defined(_MSC_VER)

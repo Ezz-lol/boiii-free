@@ -56,7 +56,7 @@ them - they return a value that is minimally sufficient to achieve this goal.
 
 - `GetHardwareCPU()`
 - `GetHardwareID()`
-- `ModuleLoaded()`
+- `ModuleLoaded(dll)`
 - `Revision()`
 - `UnloadMod()`
 
