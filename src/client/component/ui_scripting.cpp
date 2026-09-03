@@ -132,11 +132,11 @@ bool execute_raw_lua(const std::string &code,
   try {
     const table lua = state->globals.v.table;
     state->m_global->m_bytecodeSharingMode = HksBytecodeSharingMode::ON;
-    const script_value load_results = lua["loadstring"](code, chunk_name);
+    const arguments load_results = lua["loadstring"](code, chunk_name);
     state->m_global->m_bytecodeSharingMode = HksBytecodeSharingMode::SECURE;
 
     if (load_results[0].is<function>()) {
-      const script_value results = lua["pcall"](load_results);
+      const arguments results = lua["pcall"](load_results);
       if (!results[0].as<bool>()) {
         auto err = results[1].as<std::string>();
         game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
@@ -475,11 +475,11 @@ void load_script(const std::string &name, const std::string &data,
   lua_State *state = *primary_luaVM;
   const table lua = get_globals();
   state->m_global->m_bytecodeSharingMode = HksBytecodeSharingMode::ON;
-  const script_value load_results = lua["loadstring"](data, chunk);
+  const arguments load_results = lua["loadstring"](data, chunk);
   state->m_global->m_bytecodeSharingMode = HksBytecodeSharingMode::SECURE;
 
   if (load_results[0].is<function>()) {
-    const script_value results = lua["pcall"](load_results);
+    const arguments results = lua["pcall"](load_results);
     if (!results[0].as<bool>()) {
       print_error(results[1].as<std::string>());
     }
@@ -829,7 +829,7 @@ void enable_globals() {
 
   lua_State *state = *primary_luaVM;
   state->m_global->m_bytecodeSharingMode = HksBytecodeSharingMode::ON;
-  const script_value _f = lua["loadstring"](code)[0]();
+  const arguments _f = lua["loadstring"](code)[0]();
   state->m_global->m_bytecodeSharingMode = HksBytecodeSharingMode::SECURE;
 }
 
