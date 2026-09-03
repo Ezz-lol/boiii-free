@@ -307,7 +307,7 @@ uint8_t *find_export_address_internal(const std::string &script_name,
 }
 
 void apply_pending_detours() {
-  pending_detours.access([](auto &pending_detours) {
+  pending_detours.access([](std::vector<pending_detour> &pending_detours) {
     std::vector<pending_detour> remaining_detours;
     remaining_detours.reserve(pending_detours.size());
 
@@ -505,13 +505,14 @@ void load_script_file(std::string &data,
           for (gsc_compiler::replacefunc_entry &rf : result.replacefuncs) {
             const std::string replace_script =
                 rf.replace_script.empty() ? replace_base : rf.replace_script;
-            pending_detours.access([&](auto &pending_detours) {
-              pending_detours.push_back(
-                  {rf.target_script, rf.target_func,
-                   gsc::gsc_hash(rf.target_func), rf.target_params,
-                   replace_script, rf.replace_func,
-                   gsc::gsc_hash(rf.replace_func), rf.replace_params});
-            });
+            pending_detours.access(
+                [&](std::vector<pending_detour> &pending_detours) {
+                  pending_detours.push_back(
+                      {rf.target_script, rf.target_func,
+                       gsc::gsc_hash(rf.target_func), rf.target_params,
+                       replace_script, rf.replace_func,
+                       gsc::gsc_hash(rf.replace_func), rf.replace_params});
+                });
           }
         }
       } else {
@@ -576,7 +577,7 @@ void load_script_file(std::string &data,
 constexpr const std::string_view gametype_prefixes[] = {"zm", "mp", "cp"};
 
 bool is_map_override_directory_name(const std::string &name) {
-  for (const auto prefix : gametype_prefixes) {
+  for (const std::string_view &prefix : gametype_prefixes) {
     if (name.size() > prefix.size() &&
         utils::string::starts_with(name, prefix) && name[prefix.size()] == '_')
       return true;
@@ -760,7 +761,8 @@ void load_tree(std::filesystem::path tree, bool execImmediate = false) {
     const std::string map_name_str = map_name->generic_string();
     applicable_tree_dirs.insert({tree / map_name.value(), map_name_str, true});
     if (game_type.has_value()) {
-      const auto nested_base = game_type.value() / map_name.value();
+      const std::filesystem::path nested_base =
+          game_type.value() / map_name.value();
       applicable_tree_dirs.insert(
           {tree / nested_base, nested_base.generic_string(), true});
     }
