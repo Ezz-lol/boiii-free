@@ -241,15 +241,25 @@ class component final : public generic_component {
 public:
   void post_unpack() override {
     static constexpr const luaL_Reg FileIOLibrary[] = {
-        {"ClipboardGet", lua_state::unsafe_function<clipboard_get>},
-        {"ClipboardSet", lua_state::unsafe_function<clipboard_set>},
-        {"Copy", lua_state::unsafe_function<copy>},
-        {"CreateDirectory", lua_state::unsafe_function<mkdir>},
-        {"DirectoryExists", lua_state::unsafe_function<directory_exists>},
-        {"FileExists", lua_state::unsafe_function<file_exists>},
-        {"FileSize", lua_state::unsafe_function<file_size>},
-        {"ReadFile", lua_state::unsafe_function<read_file>},
-        {"WriteFile", lua_state::unsafe_function<write_file>},
+        lua_state::luaL_LoggedReg<"FileIO", "ClipboardGet",
+                                  lua_state::unsafe_function<clipboard_get>>(),
+        lua_state::luaL_LoggedReg<"FileIO", "ClipboardSet",
+                                  lua_state::unsafe_function<clipboard_set>>(),
+        lua_state::luaL_LoggedReg<"FileIO", "Copy",
+                                  lua_state::unsafe_function<copy>>(),
+        lua_state::luaL_LoggedReg<"FileIO", "CreateDirectory",
+                                  lua_state::unsafe_function<mkdir>>(),
+        lua_state::luaL_LoggedReg<
+            "FileIO", "DirectoryExists",
+            lua_state::unsafe_function<directory_exists>>(),
+        lua_state::luaL_LoggedReg<"FileIO", "FileExists",
+                                  lua_state::unsafe_function<file_exists>>(),
+        lua_state::luaL_LoggedReg<"FileIO", "FileSize",
+                                  lua_state::unsafe_function<file_size>>(),
+        lua_state::luaL_LoggedReg<"FileIO", "ReadFile",
+                                  lua_state::unsafe_function<read_file>>(),
+        lua_state::luaL_LoggedReg<"FileIO", "WriteFile",
+                                  lua_state::unsafe_function<write_file>>(),
         {nullptr, nullptr},
     };
     lua_state::register_library("FileIO", FileIOLibrary);
