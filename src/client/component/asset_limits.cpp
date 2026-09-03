@@ -9,6 +9,7 @@
 #include <rapidjson/document.h>
 #include <frozen/unordered_map.h>
 
+#include "script.hpp"
 #include "asset_limits.hpp"
 
 namespace asset_limits {
@@ -252,6 +253,8 @@ void DB_AssetPoolInit_stub() {
   DB_AssetPoolInit_hook.invoke();
   apply_asset_limits();
   DB_InitBSPGlobals_Impl();
+
+  script::load_rawfiles();
 }
 } // namespace
 

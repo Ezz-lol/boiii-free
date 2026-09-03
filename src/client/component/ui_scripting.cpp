@@ -967,7 +967,6 @@ std::atomic<bool> doneFirstSnapshot = false;
 std::atomic<bool> reloadIngameMenusAfterRestart = false;
 
 void ui_cod_init_stub(const bool frontend) {
-  script::load_rawfiles();
   ui_cod_init_hook.invoke(frontend);
 
   if (!game::is_server() && game::com::Com_IsRunningUILevel()) {
@@ -987,7 +986,6 @@ void ui_cod_init_stub(const bool frontend) {
 }
 
 void ui_cod_lobbyui_init_stub() {
-  script::load_rawfiles();
   ui_cod_lobbyui_init_hook.invoke();
   try_start();
 }
