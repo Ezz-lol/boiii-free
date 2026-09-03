@@ -213,6 +213,7 @@ Launch BOIII with these arguments for extra features:
 | `-mitigatepacketspam` | In dedicated server, attempt to reduce unnecessary reliable command packets sent by some custom maps' scripts. Fixes Kowloon and Daybreak client load-in failures.                                                                           |
 | `-nosnd`              | Disable attempt to load and use sound assets in dedicated server.                                                                                                                                                                            |
 | `-dump`               | Dump game or server executable to file in containing directory after Arxan unpack.                                                                                                                                                           |
+| `-disable-loadlib`    | Disable loading DLLs via `package.loadlib` in Lua. Can fix compatibility with mods that load DLLs that apply conflicting engine modifications.                                                                                               |
 
 **Example:**
 

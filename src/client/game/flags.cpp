@@ -91,4 +91,15 @@ bool cheats() {
   std::call_once(cheats_flag, set_cheats);
   return cheats_enabled;
 }
+
+static bool loadlib_disabled;
+static std::once_flag loadlib_disabled_flag;
+void set_loadlib_disabled() {
+  loadlib_disabled = utils::flags::has_flag("disable-loadlib");
+}
+
+bool disable_loadlib() {
+  std::call_once(loadlib_disabled_flag, set_loadlib_disabled);
+  return loadlib_disabled;
+}
 } // namespace game

@@ -1638,14 +1638,25 @@ std::string_view remove_extension(const std::string_view &basename) {
 }
 
 inline constexpr const frozen::string BLACKLISTED_DLL_ARRAY[] = {
-    "T7Overcharged",   "discord_game_sdk", "AAE",        "T7Recharged",
-    "CoDAxiosUtility", "discord-rpc",      "LibCurlShim"};
+    "T7Overcharged",   "discord_game_sdk", "AAE",         "T7Recharged",
+    "CoDAxiosUtility", "discord-rpc",      "LibCurlShim", "arxan",
+    "dependencies"};
 inline constexpr const frozen_case_insensitive_unordered_set BLACKLISTED_DLLS =
     make_frozen_case_insensitive_unordered_set(BLACKLISTED_DLL_ARRAY);
 
 utils::hook::detour load_dll_hook;
 luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
                                            const char *func_name) {
+#ifndef STUB_LOAD
+#define STUB_LOAD()                                                            \
+  lua_pushfunction(s, lua_stub_func, func_name);                               \
+  return luaReturnCount_e::ONE;
+#endif
+
+  if (game::disable_loadlib()) {
+    STUB_LOAD();
+  }
+
   if (filename) {
     std::filesystem::path file_path = filename;
     const std::filesystem::path file_basename = file_path.filename();
@@ -1653,8 +1664,7 @@ luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
     const std::string_view library_name = remove_extension(file_basename_str);
 
     if (BLACKLISTED_DLLS.contains(library_name)) {
-      lua_pushfunction(s, lua_stub_func, func_name);
-      return luaReturnCount_e::ONE;
+      STUB_LOAD();
     }
 
     if (std::filesystem::exists(file_path) &&
@@ -1667,8 +1677,7 @@ luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
             remove_extension(original_dll_name.value());
 
         if (BLACKLISTED_DLLS.contains(original_library_name)) {
-          lua_pushfunction(s, lua_stub_func, func_name);
-          return luaReturnCount_e::ONE;
+          STUB_LOAD();
         }
       }
     }

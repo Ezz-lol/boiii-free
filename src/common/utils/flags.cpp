@@ -231,6 +231,12 @@ int32_t parse_flags(int argc, char *argv[]) {
             "to connect to the same server.")
       .default_value(false)
       .implicit_value(true);
+  program.add_argument("-disable-loadlib", "--disable-loadlib")
+      .help("Disable loading DLLs via package.loadlib in Lua. Can fix "
+            "compatibility with mods that load DLLs that apply conflicting "
+            "engine modifications.")
+      .default_value(false)
+      .implicit_value(true);
 
 #ifndef NDEBUG
   add_debug_profile_arguments();
