@@ -15,7 +15,7 @@ extern std::atomic<bool> ui_initialized;
 
 extern std::atomic<bool> unsafe_function_called_message_shown;
 extern std::atomic<bool> unsafe_lua_approved_for_session;
-void show_unsafe_lua_dialog();
+bool show_unsafe_lua_dialog();
 
 template <class... Args, std::size_t... I>
 auto wrap_function(const std::function<void(Args...)> &f,

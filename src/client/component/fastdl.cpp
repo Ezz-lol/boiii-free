@@ -403,7 +403,8 @@ void perform_download(const download_context &context) {
         utils::string::va("You don't have this map. Would you like to download "
                           "it?\nMap: %s\nDownload size: %.2f GB",
                           context.mapname.data(), size_gb),
-        "FastDL - Map Download", MB_YESNO | MB_ICONQUESTION);
+        "FastDL - Map Download",
+        MB_YESNO | MB_ICONQUESTION | MB_TOPMOST | MB_SETFOREGROUND);
 
     if (result != IDYES) {
       throw download_is_cancelled();

@@ -50,41 +50,39 @@ static std::atomic<bool> ui_initialized = false;
 static std::atomic<bool> unsafe_function_called_message_shown = false;
 static std::atomic<bool> unsafe_lua_approved_for_session = false;
 
-void show_unsafe_lua_dialog() {
-  if (unsafe_function_called_message_shown.load(std::memory_order_acquire)) {
-    return;
+bool show_unsafe_lua_dialog() {
+  bool not_loaded = false;
+  if (!unsafe_function_called_message_shown.compare_exchange_strong(not_loaded,
+                                                                    true)) {
+    return unsafe_lua_approved_for_session.load(std::memory_order_acquire);
   }
 
-  unsafe_function_called_message_shown.store(true, std::memory_order_release);
+  const int32_t result = MessageBoxA(
+      nullptr,
+      "The map/mod you are playing tried to run code that can be "
+      "unsafe.\n\n"
+      "This can include:\n"
+      "  - Writing or reading files on your system\n"
+      "  - Accessing environment variables\n"
+      "  - Running system commands\n"
+      "  - Loading DLLs\n\n"
+      "These features are usually used for storing data across games, "
+      "integrating third party software like Discord, or fetching data "
+      "from a server.\n\n"
+      "However, malicious mods could use these to harm your system.\n\n"
+      "Do you want to enable unsafe lua functions for this session?\n\n"
+      "Click 'Yes' to enable for this session only.\n"
+      "Click 'No' to keep them blocked (recommended if you don't trust "
+      "this mod).",
+      "Unsafe Lua Function Called",
+      MB_YESNO | MB_ICONWARNING | MB_TOPMOST | MB_SETFOREGROUND);
 
-  scheduler::once(
-      [] {
-        const int32_t result = MessageBoxA(
-            nullptr,
-            "The map/mod you are playing tried to run code that can be "
-            "unsafe.\n\n"
-            "This can include:\n"
-            "  - Writing or reading files on your system\n"
-            "  - Accessing environment variables\n"
-            "  - Running system commands\n"
-            "  - Loading DLLs\n\n"
-            "These features are usually used for storing data across games, "
-            "integrating third party software like Discord, or fetching data "
-            "from a server.\n\n"
-            "However, malicious mods could use these to harm your system.\n\n"
-            "Do you want to enable unsafe lua functions for this session?\n\n"
-            "Click 'Yes' to enable for this session only.\n"
-            "Click 'No' to keep them blocked (recommended if you don't trust "
-            "this mod).",
-            "Unsafe Lua Function Called",
-            MB_YESNO | MB_ICONWARNING | MB_TOPMOST | MB_SETFOREGROUND);
+  if (result == IDYES) {
+    unsafe_lua_approved_for_session.store(true, std::memory_order_release);
+    return true;
+  }
 
-        if (result == IDYES) {
-          unsafe_lua_approved_for_session.store(true,
-                                                std::memory_order_seq_cst);
-        }
-      },
-      scheduler::pipeline::main);
+  return false;
 }
 
 namespace {
@@ -1053,11 +1051,7 @@ void cl_first_snapshot_stub(game::LocalClientNum_t localClientNum) {
 
 void ui_shutdown_stub() {
   hot_reload_in_game.store(false, std::memory_order_release);
-  if (!utils::flags::has_flag("unsafe-lua")) {
-    unsafe_function_called_message_shown.store(false,
-                                               std::memory_order_release);
-    unsafe_lua_approved_for_session.store(false, std::memory_order_release);
-  }
+
   ui_shutdown_hook.invoke<void>();
   converted_functions.clear();
   rawfile_source_cache.clear();
@@ -1130,13 +1124,12 @@ luaReturnCount_e lua_stub_func([[maybe_unused]] lua_State *l) {
 }
 
 template <size_t Key>
-int32_t lua_unsafe_function_require_permissions(lua_State *l) {
-  if (unsafe_lua_approved_for_session) {
-    return unsafe_function_detours[Key].invoke<int>(l);
+luaReturnCount_e lua_unsafe_function_require_permissions(lua_State *luaVM) {
+  if (unsafe_lua_approved_for_session.load(std::memory_order_acquire) ||
+      show_unsafe_lua_dialog()) {
+    return unsafe_function_detours[Key].invoke<luaReturnCount_e>(luaVM);
   }
-
-  show_unsafe_lua_dialog();
-  return 0;
+  return luaReturnCount_e::NONE;
 }
 
 template <size_t Key> void hook_unsafe_function(size_t address) {
@@ -1649,7 +1642,10 @@ luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
                                            const char *func_name) {
 #ifndef STUB_LOAD
 #define STUB_LOAD()                                                            \
-  lua_pushfunction(s, lua_stub_func, func_name);                               \
+  game::trace(                                                                 \
+      "[Lua] Skipping load of blacklisted DLL: \"%s\" with func_name: \"%s\"", \
+      filename ? filename : "NULL", func_name ? func_name : "NULL");
+  lua_pushfunction(s, lua_stub_func, func_name);
   return luaReturnCount_e::ONE;
 #endif
 

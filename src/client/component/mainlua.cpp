@@ -44,12 +44,9 @@ class component final : public generic_component {
 public:
   void post_unpack() override {
     static constexpr const luaL_Reg MainLUALibrary[] = {
-        lua_state::luaL_LoggedReg<"MainLUA", "GetHardwareCPU",
-                                  lua_state::unsafe_function<hardware_cpu>>(),
-        lua_state::luaL_LoggedReg<"MainLUA", "GetHardwareID",
-                                  lua_state::unsafe_function<hardware_id>>(),
-        lua_state::luaL_LoggedReg<"MainLUA", "ModuleLoaded",
-                                  lua_state::unsafe_function<module_loaded>>(),
+        lua_state::luaL_LoggedReg<"MainLUA", "GetHardwareCPU", hardware_cpu>(),
+        lua_state::luaL_LoggedReg<"MainLUA", "GetHardwareID", hardware_id>(),
+        lua_state::luaL_LoggedReg<"MainLUA", "ModuleLoaded", module_loaded>(),
         lua_state::luaL_LoggedReg<"MainLUA", "Revision", revision>(),
         lua_state::luaL_LoggedReg<"MainLUA", "UnloadMod", unload_mod>(),
         {nullptr, nullptr},
