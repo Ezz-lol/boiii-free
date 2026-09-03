@@ -922,11 +922,20 @@ void load_rawfiles() {
       };
 
   std::unordered_set<TreeDirectory> applicable_tree_dirs = {
-      {"lua", std::nullopt, true}, {"", std::nullopt, false}};
+      {"lua", std::nullopt, true},        {"", std::nullopt, false},
+      {"aim_assist", std::nullopt, true}, {"con_restrict", std::nullopt, true},
+      {"devgui", std::nullopt, true},     {"fpstool", std::nullopt, true},
+      {"gamedata", std::nullopt, true},   {"leaderboards", std::nullopt, true},
+      {"radiant", std::nullopt, true},    {"scriptbundle", std::nullopt, true},
+      {"ui", std::nullopt, true},         {"ui_mp", std::nullopt, true},
+      {"vehicle", std::nullopt, true},    {"video", std::nullopt, true},
+      {"vision", std::nullopt, true},     {"zone", std::nullopt, true},
+      {"zone_source", std::nullopt, true}};
 
   if (game::is_client()) {
     applicable_tree_dirs.insert({"ui", std::nullopt, true});
     applicable_tree_dirs.insert({"ui_mp", std::nullopt, true});
+    applicable_tree_dirs.insert({"lui", std::nullopt, true});
   }
 
   const std::optional<std::filesystem::path> map_name =
