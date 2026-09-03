@@ -382,10 +382,10 @@ enum class HksObjectType : int32_t {
   // idk
   TUSERDATA = 0x7,
   TTHREAD = 0x8,
-  TIFUNCTION = 0x9,
   // Lua function
-  TCFUNCTION = 0xA,
+  TIFUNCTION = 0x9,
   // C function
+  TCFUNCTION = 0xA,
   TUI64 = 0xB,
   TSTRUCT = 0xC,
   COUNT = 0xD,
@@ -733,8 +733,8 @@ struct cclosure : ChunkHeader {
   hksShort16 m_numUpvalues;
   hksShort16 m_flags;
   InternString *m_name;
-  HksObject m_upvalues[1];
 };
+ASSERT_SIZE(cclosure, 0x30);
 
 struct HksCompilerSettings {
   enum class BytecodeSharingFormat : uint32_t {

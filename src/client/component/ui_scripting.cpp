@@ -1642,7 +1642,7 @@ luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
     const std::string file_basename_str = file_basename.generic_string();
     for (const std::string_view &blacklisted : BLACKLISTED_DLLS) {
       if (utils::string::contains(file_basename_str, blacklisted)) {
-        lua_pushboolean(s, htrue);
+        lua_pushfunction(s, lua_stub_func, func_name);
         return luaReturnCount_e::ONE;
       }
     }
@@ -2284,6 +2284,7 @@ luaReturnCount_e LobbyVM_CallFunc_Redirect(lua_State *luaVM) {
 
   return LobbyVM_CallFunc_hook.invoke<luaReturnCount_e>(luaVM);
 }
+
 class component final : public generic_component {
 public:
   void post_unpack() override {

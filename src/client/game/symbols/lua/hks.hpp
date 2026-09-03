@@ -162,9 +162,12 @@ WEAK symbol<lua_State *(const HksStateSettings *settings)> hksi_hks_newstate{
     0x141D4C250, 0x1403F4DA0};
 WEAK symbol<void(lua_State *s, lua_CFunction *fn, int32_t n,
                  const char *functionName, hksBool treatClosureAsFuncForProf)>
-    hksi_hks_pushnamedcclosure{0x141D4C460};
+    hks_pushnamedclosure{0x141D4BA70, 0x1403F45C0};
+WEAK symbol<void(lua_State *s, lua_CFunction *fn, int32_t n,
+                 const char *functionName, hksBool treatClosureAsFuncForProf)>
+    hksi_hks_pushnamedcclosure{0x141D4C460, 0x1403F4FB0};
 WEAK symbol<void(lua_State *s, const char *name)> hksi_hks_setfname{
-    0x141D4C4E0};
+    0x141D4C4E0, 0x1403F5030};
 WEAK symbol<void(lua_State *s, const char *name)> hksi_hks_setname{0x141D4C5E0,
                                                                    0x1403F5130};
 WEAK symbol<void(lua_State *targetstate, lua_State *tracedstate,
