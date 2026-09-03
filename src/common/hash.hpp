@@ -109,23 +109,61 @@ inline constexpr fnv1aHash64_t fnv1a64(const char *str) noexcept {
   return hash;
 }
 
+template <const fnv1aHash64_t PRIME = 0x100000001b3>
+inline constexpr fnv1aHash64_t fnv1a64(fnv1aHash64_t iv,
+                                       const char *str) noexcept {
+  fnv1aHash64_t hash = iv;
+  for (const char *c = str; *c; ++c) {
+    hash =
+        PRIME *
+        (static_cast<fnv1aHash64_t>(tolower(static_cast<unsigned char>(*c))) ^
+         hash);
+  }
+  return hash;
+}
+
 template <const fnv1aHash64_t IV = 0xcbf29ce484222325,
           const fnv1aHash64_t PRIME = 0x100000001b3>
 inline constexpr fnv1aHash64_t fnv1a64(const uint8_t *buf,
                                        size_t len) noexcept {
   fnv1aHash64_t hash = IV;
   for (size_t idx = 0; idx < len; ++idx) {
-    hash = PRIME * (static_cast<fnv1aHash64_t>(buf[idx]) ^ hash);
+    hash = PRIME * (static_cast<fnv1aHash64_t>(
+                        tolower(static_cast<unsigned char>(buf[idx]))) ^
+                    hash);
+  }
+  return hash;
+}
+
+template <const fnv1aHash64_t PRIME = 0x100000001b3>
+inline constexpr fnv1aHash64_t fnv1a64(fnv1aHash64_t iv, const uint8_t *buf,
+                                       size_t len) noexcept {
+  fnv1aHash64_t hash = iv;
+  for (size_t idx = 0; idx < len; ++idx) {
+    hash = PRIME * (static_cast<fnv1aHash64_t>(tolower(buf[idx])) ^ hash);
   }
   return hash;
 }
 
 typedef hash32_t djb2Hash_t;
-template <const djb2Hash_t INITIAL_SEED, const djb2Hash_t CONSTANT>
+template <const djb2Hash_t INITIAL_SEED = 0x1505,
+          const djb2Hash_t CONSTANT = 0x21>
 inline constexpr djb2Hash_t djb2(const char *str) noexcept {
   djb2Hash_t hash = INITIAL_SEED;
   for (const char *c = str; *c; ++c) {
     hash = static_cast<djb2Hash_t>(tolower(static_cast<unsigned char>(*c))) +
+           hash * CONSTANT;
+  }
+  return hash;
+}
+
+typedef hash64_t djb2Hash64_t;
+template <const djb2Hash64_t INITIAL_SEED = 0x1505,
+          const djb2Hash_t CONSTANT = 0x21>
+inline constexpr djb2Hash64_t djb264(const char *str) noexcept {
+  djb2Hash64_t hash = INITIAL_SEED;
+  for (const char *c = str; *c; ++c) {
+    hash = static_cast<djb2Hash64_t>(tolower(static_cast<unsigned char>(*c))) +
            hash * CONSTANT;
   }
   return hash;

@@ -338,4 +338,6 @@ bool dump_loaded_pe(
     const std::filesystem::path &destination_path,
     const std::vector<uint8_t> &pe_buffer = std::vector<uint8_t>());
 bool loaded_pe(std::vector<uint8_t> &pe_buffer);
+
+std::optional<std::string> dll_filename(const std::filesystem::path &filePath);
 } // namespace utils::pe

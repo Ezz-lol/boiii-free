@@ -5,6 +5,9 @@
 
 #include <game/ui_scripting/script_value.hpp>
 
+#include <frozen/unordered_set.h>
+#include <frozen/string.h>
+
 namespace ui_scripting {
 using namespace game::lua::hks;
 
@@ -46,4 +49,42 @@ template <class F> auto wrap_function(F f) {
 }
 
 template <typename F> cclosure *convert_function(F f);
+
+struct CaseInsensitiveHash {
+  constexpr djb2Hash64_t operator()(frozen::string key) const {
+    return djb264(key.data());
+  }
+
+  constexpr fnv1aHash64_t operator()(frozen::string key,
+                                     fnv1aHash64_t seed) const {
+    return fnv1a64(seed, key.data());
+  }
+};
+
+// Custom case-insensitive equality functor
+struct CaseInsensitiveEqual {
+  constexpr bool operator()(frozen::string a, frozen::string b) const {
+    if (a.size() != b.size())
+      return false;
+    for (std::size_t i = 0; i < a.size(); ++i) {
+      if (std::tolower(a.data()[i]) != std::tolower(b.data()[i]))
+        return false;
+    }
+    return true;
+  }
+};
+
+template <const size_t Size>
+using frozen_case_insensitive_unordered_set =
+    frozen::unordered_set<frozen::string, Size, CaseInsensitiveHash,
+                          CaseInsensitiveEqual>;
+
+template <const size_t Size>
+inline constexpr frozen_case_insensitive_unordered_set<Size>
+make_frozen_case_insensitive_unordered_set(frozen::string const (&keys)[Size]) {
+  return frozen::make_unordered_set<frozen::string, Size, CaseInsensitiveHash,
+                                    CaseInsensitiveEqual>(
+      keys, CaseInsensitiveHash{}, CaseInsensitiveEqual{});
+}
+
 } // namespace ui_scripting

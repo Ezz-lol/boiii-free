@@ -5,6 +5,8 @@
 #include <iostream>
 #include <cwchar>
 
+#include <utils/string.hpp>
+
 #if !(defined(_WIN32) || defined(_WIN64) || defined(__CYGWIN__) ||             \
       defined(__MINGW64__)) &&                                                 \
     !defined(_MSC_VER)
@@ -133,5 +135,48 @@ bool dump_loaded_pe(const std::filesystem::path &output_path,
   } catch (...) {
     return false;
   }
+}
+
+std::optional<std::string> dll_filename(const std::filesystem::path &filePath) {
+  try {
+    unsigned long dummy = 0;
+    const unsigned long infoSize =
+        GetFileVersionInfoSizeW(filePath.c_str(), &dummy);
+    if (infoSize == 0)
+      return std::nullopt;
+
+    std::vector<uint8_t> buffer(infoSize);
+    if (!GetFileVersionInfoW(filePath.c_str(), 0, infoSize, buffer.data())) {
+      return std::nullopt;
+    }
+
+    struct LANGANDCODEPAGE {
+      uint16_t wLanguage;
+      uint16_t wCodePage;
+    } *translate = nullptr;
+
+    uint32_t translateCount = 0;
+    if (VerQueryValueW(buffer.data(), L"\\VarFileInfo\\Translation",
+                       reinterpret_cast<void **>(&translate),
+                       &translateCount)) {
+      if (translateCount > 0) {
+        wchar_t subBlock[64];
+        swprintf_s(subBlock, L"\\StringFileInfo\\%04x%04x\\OriginalFilename",
+                   translate[0].wLanguage, translate[0].wCodePage);
+
+        wchar_t *fileVersion = nullptr;
+        uint32_t bytes = 0;
+        if (VerQueryValueW(buffer.data(), subBlock,
+                           reinterpret_cast<void **>(&fileVersion), &bytes) &&
+            fileVersion) {
+          if (fileVersion && fileVersion[0]) {
+            return utils::string::convert(std::wstring(fileVersion));
+          }
+        }
+      }
+    }
+  } catch (...) {
+  }
+  return std::nullopt;
 }
 } // namespace utils::pe

@@ -31,6 +31,7 @@
 #include <atomic>
 #include <frozen/unordered_set.h>
 #include "frozen/string.h"
+#include "utils/pe.hpp"
 
 #include <game/impl/ugc/ugc.hpp>
 #include <game/impl/com/com.hpp>
@@ -50,11 +51,11 @@ static std::atomic<bool> unsafe_function_called_message_shown = false;
 static std::atomic<bool> unsafe_lua_approved_for_session = false;
 
 void show_unsafe_lua_dialog() {
-  if (unsafe_function_called_message_shown) {
+  if (unsafe_function_called_message_shown.load(std::memory_order_acquire)) {
     return;
   }
 
-  unsafe_function_called_message_shown.store(true, std::memory_order_seq_cst);
+  unsafe_function_called_message_shown.store(true, std::memory_order_release);
 
   scheduler::once(
       [] {
@@ -238,7 +239,7 @@ int hot_reload_check_files() {
 
   // Fire debug_reload events to refresh UI
   fire_debug_reload("UIRootFull");
-  if (hot_reload_in_game.load(std::memory_order_seq_cst)) {
+  if (hot_reload_in_game.load(std::memory_order_acquire)) {
     fire_debug_reload("UIRoot0");
     fire_debug_reload("UIRoot1");
   }
@@ -249,7 +250,7 @@ int hot_reload_check_files() {
 void start_hot_reload(const std::string &path) {
   hot_reload_path = path;
   hot_reload_files.clear();
-  hot_reload_running.store(true, std::memory_order_seq_cst);
+  hot_reload_running.store(true, std::memory_order_release);
 
   // Initial scan to populate timestamps
   hot_reload_check_files();
@@ -274,14 +275,14 @@ void start_hot_reload(const std::string &path) {
 }
 
 void stop_hot_reload() {
-  if (!hot_reload_running.load(std::memory_order_seq_cst)) {
+  if (!hot_reload_running.load(std::memory_order_acquire)) {
     game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                           game::consoleLabel_e::DEFAULT,
                           "^3Hot Reload: Not currently watching.\n");
     return;
   }
 
-  hot_reload_running.store(false, std::memory_order_seq_cst);
+  hot_reload_running.store(false, std::memory_order_release);
   hot_reload_files.clear();
   hot_reload_path.clear();
 
@@ -720,7 +721,7 @@ void setup_functions() {
   // Hot reload functions (callable from Lua timers)
   lua["game"]["hotreloadcheck"] =
       function(convert_function([]() {
-                 if (hot_reload_running.load(std::memory_order_seq_cst)) {
+                 if (hot_reload_running.load(std::memory_order_acquire)) {
                    hot_reload_check_files();
                  }
                }),
@@ -973,8 +974,8 @@ void ui_cod_init_stub(const bool frontend) {
     // Fetch the names of the local files so file overrides are already handled
     globals = {};
     const utils::nt::library host{};
-    doneFirstSnapshot.store(false, std::memory_order_seq_cst);
-    reloadIngameMenusAfterRestart.store(false, std::memory_order_seq_cst);
+    doneFirstSnapshot.store(false, std::memory_order_release);
+    reloadIngameMenusAfterRestart.store(false, std::memory_order_release);
 
     load_local_script_files(
         (game::get_appdata_path() / "data/ui_scripts/").string());
@@ -982,7 +983,7 @@ void ui_cod_init_stub(const bool frontend) {
     return;
   }
   try_start();
-  ui_initialized.store(true, std::memory_order_seq_cst);
+  ui_initialized.store(true, std::memory_order_release);
 }
 
 void ui_cod_lobbyui_init_stub() {
@@ -1035,7 +1036,7 @@ void cl_first_snapshot_stub(game::LocalClientNum_t localClientNum) {
     return;
   }
 
-  hot_reload_in_game.store(true, std::memory_order_seq_cst);
+  hot_reload_in_game.store(true, std::memory_order_release);
   try_start();
   try {
     reload_ingame_menu_scripts();
@@ -1051,18 +1052,18 @@ void cl_first_snapshot_stub(game::LocalClientNum_t localClientNum) {
 }
 
 void ui_shutdown_stub() {
-  hot_reload_in_game.store(false, std::memory_order_seq_cst);
+  hot_reload_in_game.store(false, std::memory_order_release);
   if (!utils::flags::has_flag("unsafe-lua")) {
     unsafe_function_called_message_shown.store(false,
-                                               std::memory_order_seq_cst);
-    unsafe_lua_approved_for_session.store(false, std::memory_order_seq_cst);
+                                               std::memory_order_release);
+    unsafe_lua_approved_for_session.store(false, std::memory_order_release);
   }
   ui_shutdown_hook.invoke<void>();
   converted_functions.clear();
   rawfile_source_cache.clear();
   globals = {};
 
-  ui_initialized.store(false, std::memory_order_seq_cst);
+  ui_initialized.store(false, std::memory_order_release);
 }
 
 void *hks_package_require_stub(lua_State *state) {
@@ -1630,11 +1631,54 @@ void lua_cod_luastatemanager_error_stub(const char *error, lua_State *luaVM) {
   }
 }
 
+std::string_view remove_extension(const std::string_view &basename) {
+  size_t lastExtIdx = basename.find_last_of('.');
+  return lastExtIdx == std::string::npos ? basename
+                                         : basename.substr(0, lastExtIdx);
+}
+
+inline constexpr const frozen::string BLACKLISTED_DLL_ARRAY[] = {
+    "T7Overcharged",   "discord_game_sdk", "AAE",        "T7Recharged",
+    "CoDAxiosUtility", "discord-rpc",      "LibCurlShim"};
+inline constexpr const frozen_case_insensitive_unordered_set BLACKLISTED_DLLS =
+    make_frozen_case_insensitive_unordered_set(BLACKLISTED_DLL_ARRAY);
+
 utils::hook::detour load_dll_hook;
-luaReturnCount_e load_dll_disable(lua_State *s, const char *filename,
-                                  const char *func_name) {
-  lua_pushfunction(s, lua_stub_func, func_name);
-  return luaReturnCount_e::ONE;
+luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
+                                           const char *func_name) {
+  if (filename) {
+    std::filesystem::path file_path = filename;
+    const std::filesystem::path file_basename = file_path.filename();
+    const std::string file_basename_str = file_basename.generic_string();
+    const std::string_view library_name = remove_extension(file_basename_str);
+
+    if (BLACKLISTED_DLLS.contains(library_name)) {
+      lua_pushfunction(s, lua_stub_func, func_name);
+      return luaReturnCount_e::ONE;
+    }
+
+    if (std::filesystem::exists(file_path) &&
+        std::filesystem::is_regular_file(file_path)) {
+      const std::optional<std::string> original_dll_name =
+          utils::pe::dll_filename(file_path);
+
+      if (original_dll_name.has_value() && !original_dll_name->empty()) {
+        const std::string_view original_library_name =
+            remove_extension(original_dll_name.value());
+
+        if (BLACKLISTED_DLLS.contains(original_library_name)) {
+          lua_pushfunction(s, lua_stub_func, func_name);
+          return luaReturnCount_e::ONE;
+        }
+      }
+    }
+  }
+
+#ifndef NDEBUG
+  game::trace("Calling load_dll with filename: \"%s\", func_name: \"%s\"",
+              filename ? filename : "NULL", func_name ? func_name : "NULL");
+#endif
+  return load_dll_hook.invoke<luaReturnCount_e>(s, filename, func_name);
 }
 
 void lua_error_print_stub(int, const char *, ...) {}
@@ -1660,7 +1704,7 @@ inline void lui_reload() {
 
 inline void register_lui_commands() {
   command::add("boiii_prepare_menu_restart", [](const command::params &) {
-    reloadIngameMenusAfterRestart.store(true, std::memory_order_seq_cst);
+    reloadIngameMenusAfterRestart.store(true, std::memory_order_release);
   });
 
   command::add("luiReload", [] {
@@ -1760,7 +1804,7 @@ inline void register_lui_commands() {
 
             // Refresh current page
             fire_debug_reload("UIRootFull");
-            if (hot_reload_in_game.load(std::memory_order_seq_cst)) {
+            if (hot_reload_in_game.load(std::memory_order_acquire)) {
               fire_debug_reload("UIRoot0");
               fire_debug_reload("UIRoot1");
             }
@@ -1861,7 +1905,7 @@ inline void register_lui_commands() {
                 scheduler::pipeline::renderer, 2s);
 
             fire_debug_reload("UIRootFull");
-            if (hot_reload_in_game.load(std::memory_order_seq_cst)) {
+            if (hot_reload_in_game.load(std::memory_order_acquire)) {
               fire_debug_reload("UIRoot0");
               fire_debug_reload("UIRoot1");
             }
