@@ -67,7 +67,7 @@ The `DiscordRPC` library is added with the following stubbed functions.
 - `Shutdown()`
 - `IsAvailable()`
 - `ClearPresence()`
-- `Enable()`
+- `Enable(id)`
 
 ### HotReload
 
