@@ -1146,7 +1146,7 @@ template <size_t Key> void hook_unsafe_function(size_t address) {
 
 #define HOOK_UNSAFE_FUNCTION(addr) hook_unsafe_function<addr>(addr##_g)
 
-constexpr frozen::string BLACKLISTED_COMMANDS_ARRAY[] = {"quit", "disconnect"};
+constexpr frozen::string BLACKLISTED_COMMANDS_ARRAY[] = {"quit"};
 constexpr frozen::unordered_set<frozen::string,
                                 std::size(BLACKLISTED_COMMANDS_ARRAY)>
     BLACKLISTED_COMMANDS =
@@ -2260,7 +2260,7 @@ luaReturnCount_e LobbyVM_CallFunc_Redirect(lua_State *luaVM) {
     if (func && func[0]) {
       const std::string_view func_view = func;
 #ifndef NDEBUG
-      game::trace("LobbyVM_CallFunc called with func: %s, argc: ",
+      game::trace("LobbyVM_CallFunc called with func: %s, argc: %d",
                   func_view.data(), lua_gettop(luaVM));
 #endif
       if (LOBBYVM_CALLFUNC_HANDLERS.contains(func_view)) {

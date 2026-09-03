@@ -35,8 +35,10 @@ template <typename T> std::optional<T> parse_int(const std::string_view &str) {
 
 std::vector<pool_config> parse_list(std::string &data) {
   std::vector<pool_config> result;
-  data = utils::string::replace(utils::string::replace(data, "\r\n", "\n"),
-                                "\r", "");
+  data = utils::string::replace(
+      utils::string::replace(utils::string::replace(data, "\r\n", "\n"), "\r",
+                             ""),
+      "\t", " ");
   const std::vector<std::string> lines = utils::string::split(data, '\n');
   for (const std::string &line : lines) {
     // int_type_value string_type_name default_pool_size extended_pool_size

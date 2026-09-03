@@ -578,8 +578,7 @@ constexpr const std::string_view gametype_prefixes[] = {"zm", "mp", "cp"};
 bool is_map_override_directory_name(const std::string &name) {
   for (const auto prefix : gametype_prefixes) {
     if (name.size() > prefix.size() &&
-        utils::string::starts_with(name, prefix) &&
-        name[prefix.size()] == '_')
+        utils::string::starts_with(name, prefix) && name[prefix.size()] == '_')
       return true;
   }
   return false;
@@ -598,7 +597,7 @@ void load_scripts_directory(
                                       const std::filesystem::path &script) {
       if (exclude_map_subtrees) {
         std::error_code ec;
-        const auto relative =
+        const std::filesystem::path relative =
             std::filesystem::relative(script, script_dir, ec);
         if (!ec && relative.begin() != relative.end() &&
             is_map_override_directory_name(relative.begin()->string()))
