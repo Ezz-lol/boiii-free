@@ -1554,7 +1554,7 @@ void register_lua_libs() {
                                 show_external_console>(),
       {nullptr, nullptr},
   };
-  lua_state::register_lib("Console", ConsoleLibrary);
+  lua_state::register_library("Console", ConsoleLibrary);
 }
 
 } // namespace lua

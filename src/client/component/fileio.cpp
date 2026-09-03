@@ -252,7 +252,7 @@ public:
         {"WriteFile", lua_state::unsafe_function<write_file>},
         {nullptr, nullptr},
     };
-    lua_state::register_lib("FileIO", FileIOLibrary);
+    lua_state::register_library("FileIO", FileIOLibrary);
   }
 };
 } // namespace fileio

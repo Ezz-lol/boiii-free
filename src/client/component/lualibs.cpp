@@ -22,13 +22,13 @@ public:
         lua_state::luaL_LoggedReg<"HotReload", "Start", lua_stub_func>(),
         {nullptr, nullptr},
     };
-    lua_state::register_lib("HotReload", HotReloadLibrary);
+    lua_state::register_library("HotReload", HotReloadLibrary);
 
     static constexpr const luaL_Reg UIErrorHashLibrary[] = {
         lua_state::luaL_LoggedReg<"UIErrorHash", "Remove", lua_stub_func>(),
         {nullptr, nullptr},
     };
-    lua_state::register_lib("UIErrorHash", UIErrorHashLibrary);
+    lua_state::register_library("UIErrorHash", UIErrorHashLibrary);
   }
 };
 } // namespace lualibs

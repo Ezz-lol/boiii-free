@@ -16,21 +16,22 @@ typedef std::unordered_map<const char *, const luaL_Reg *> libmap_t;
 extern utils::concurrency::container<libmap_t> custom_libs;
 
 template <const IntegralLike<size_t> auto N>
-inline void register_lib(const char *name, const array<luaL_Reg, N> &lib) {
+inline void register_library(const char *name, const array<luaL_Reg, N> &lib) {
   custom_libs.access([name, &lib](libmap_t &libs) { libs[name] = &lib; });
 }
 
 template <const IntegralLike<size_t> auto N>
-inline void register_lib(const char *name, const std::array<luaL_Reg, N> &lib) {
+inline void register_library(const char *name,
+                             const std::array<luaL_Reg, N> &lib) {
   custom_libs.access([name, &lib](libmap_t &libs) { libs[name] = lib.data(); });
 }
 
-inline void register_lib(const char *name,
-                         const std::span<const luaL_Reg> &lib) {
+inline void register_library(const char *name,
+                             const std::span<const luaL_Reg> &lib) {
   custom_libs.access([name, &lib](libmap_t &libs) { libs[name] = lib.data(); });
 }
 
-inline void register_lib(const char *name, const luaL_Reg *lib) {
+inline void register_library(const char *name, const luaL_Reg *lib) {
   custom_libs.access([name, &lib](libmap_t &libs) { libs[name] = lib; });
 }
 

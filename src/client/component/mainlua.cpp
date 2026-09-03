@@ -54,7 +54,7 @@ public:
         lua_state::luaL_LoggedReg<"MainLUA", "UnloadMod", unload_mod>(),
         {nullptr, nullptr},
     };
-    lua_state::register_lib("MainLUA", MainLUALibrary);
+    lua_state::register_library("MainLUA", MainLUALibrary);
   }
 };
 } // namespace mainlua

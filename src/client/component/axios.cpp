@@ -65,7 +65,7 @@ public:
                                   lua_state::unsafe_function<post>>(),
         {nullptr, nullptr},
     };
-    lua_state::register_lib("Axios", AxiosLibrary);
+    lua_state::register_library("Axios", AxiosLibrary);
   }
 };
 } // namespace axios

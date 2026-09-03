@@ -402,7 +402,7 @@ void register_lua_libs() {
       lua_state::luaL_LoggedReg<"DiscordRPC", "Enable", lua_returntrue>(),
       {nullptr, nullptr},
   };
-  lua_state::register_lib("DiscordRPC", DiscordRPC_Library);
+  lua_state::register_library("DiscordRPC", DiscordRPC_Library);
 }
 } // namespace lua
 
