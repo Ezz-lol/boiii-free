@@ -31,12 +31,18 @@ The loader checks a few places, depending on what kind of script you are adding.
 │       ├── core/
 │       ├── codescripts/
 │       └── <mode-specific folder>
+│   └── <mod publisher ID>/
+│       ├── shared/
+│       ├── core/
+│       ├── codescripts/
+│       └── <mode-specific folder>
 ├── custom_scripts/
 │   ├── shared/
 │   ├── core/
 │   ├── codescripts/
 │   ├── <mode-specific folder>
 │   ├── <mapname>/
+│   ├── <mod publisher ID>/
 │   └── your_script.gsc
 └── other files used by your scripts
 
@@ -58,6 +64,13 @@ Small notes:
   For example, to replace the script `zm/zm_example.gsc` in the map
   `zm_example`, its replacement script must be stored in
   `scripts/zm_example/zm/zm_example.gsc`.
+
+- `scripts/<mod publisher ID>` is for scripts which override a script in a
+  specific mod only - they are not loaded when any other mod is loaded.
+
+  For example, to replace the script `zm/bo3_mc_playerweapontrade.gsc` in a mod
+  with publisher ID `2631943123`, its replacement script must be stored in
+  `scripts/2631943123/zm/bo3_mc_playerweapontrade.gsc`.
 
 - `custom_scripts/` is for your own extra scripts that BOIII compiles and loads
   for you.
@@ -510,7 +523,10 @@ This can be used to cast values of other types to a vector.
 ```gsc
 basic_vec = vector(1.0, 2.0, 3.0);
 /#
-assert(isvec(basic_vec) && basic_vec[0] == 1.0);
+assert(isvec(basic_vec) &&
+       basic_vec[0] == 1.0 &&
+       basic_vec[1] == 2.0 &&
+       basic_vec[2] == 3.0);
 #/
 
 vec_from_array = vector(array(1.0, 2.0, 3.0));
@@ -533,7 +549,7 @@ assert(isvec(vec_from_strings) &&
 // - Casting a function's argument to a vector where the argument could either be a vector or
 //   has a type otherwise convertible to one.
 // - Copying the given vector.
-vec_from_vec = ( 1.0, 2.0, 3.0 );
+vec_from_vec = vector ( ( 1.0, 2.0, 3.0 ) );
 /#
 assert(isvec(vec_from_vec) &&
        vec_from_vec[0] == 1.0 &&
