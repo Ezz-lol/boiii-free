@@ -1659,6 +1659,12 @@ luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
 
   if (filename) {
     std::filesystem::path file_path = filename;
+
+    if (!std::filesystem::exists(file_path) ||
+        !std::filesystem::is_regular_file(file_path)) {
+      STUB_LOAD();
+    }
+
     const std::filesystem::path file_basename = file_path.filename();
     const std::string file_basename_str = file_basename.generic_string();
     const std::string library_name = remove_extension(file_basename_str);
@@ -1667,19 +1673,15 @@ luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
       STUB_LOAD();
     }
 
-    if (std::filesystem::exists(file_path) &&
-        std::filesystem::is_regular_file(file_path)) {
-      const std::optional<std::string> original_dll_name =
-          utils::pe::dll_filename(file_path);
+    const std::optional<std::string> original_dll_name =
+        utils::pe::dll_filename(file_path);
 
-      if (original_dll_name.has_value() && !original_dll_name->empty()) {
-        const std::string original_library_name =
-            remove_extension(original_dll_name.value());
+    if (original_dll_name.has_value() && !original_dll_name->empty()) {
+      const std::string original_library_name =
+          remove_extension(original_dll_name.value());
 
-        if (BLACKLISTED_DLLS.contains(
-                std::string_view(original_library_name))) {
-          STUB_LOAD();
-        }
+      if (BLACKLISTED_DLLS.contains(std::string_view(original_library_name))) {
+        STUB_LOAD();
       }
     }
   }
