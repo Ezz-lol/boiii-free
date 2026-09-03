@@ -49,8 +49,8 @@ template <const char *Library, const char *Name, lua_CFunction *func>
 luaReturnCount_e log_call(lua_State *luaVM) {
 #ifndef NDEBUG
   game::trace("%s.%s called with argc: %d", Library, Name, lua_gettop(luaVM));
-  return func(luaVM);
 #endif
+  return func(luaVM);
 }
 
 template <ConstString Library, ConstString Name, lua_CFunction *Function>
