@@ -2077,8 +2077,7 @@
               fill.style.transform = "";
             }
             refreshModsGrid();
-            if (removalFailure)
-              showMessage("Removal failed", removalFailure);
+            if (removalFailure) showMessage("Removal failed", removalFailure);
           }, 150);
         }
       } catch (e) {}
@@ -2426,11 +2425,7 @@
             }
           });
         };
-      })(
-        item.folder || "",
-        item.name || item.folder,
-        item.path || ""
-      );
+      })(item.folder || "", item.name || item.folder, item.path || "");
       actions.appendChild(removeBtn);
 
       var body = document.createElement("div");
@@ -2648,10 +2643,8 @@
               }
               var it = toUpdate[idx];
               try {
-                if (ex2.workshopUpdate)
-                  ex2.workshopUpdate(String(it.id));
-                else
-                  ex2.workshopDownload(String(it.id));
+                if (ex2.workshopUpdate) ex2.workshopUpdate(String(it.id));
+                else ex2.workshopDownload(String(it.id));
               } catch (e) {}
               var upi = setInterval(function () {
                 pollWorkshopStatus();
