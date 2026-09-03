@@ -334,6 +334,7 @@ void UGC_LoadModByPublisherId_Impl(LocalClientNum_t localClientNum,
   // PATCH: load "assetlimits.txt" asset pool configuration from zone tree
   UGC_LoadItem_PrepareAssetPool(mod->absolutePathZoneFiles);
   UGC_LoadMod(localClientNum, mod, reloadFS);
+  fs_game->set(mod->publisherId, false);
 }
 
 void UGC_SetMapPreviewImageByPublisherId_Impl(const char *publisherId) {
