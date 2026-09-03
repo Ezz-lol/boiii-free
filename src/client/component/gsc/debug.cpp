@@ -5734,7 +5734,7 @@ inline void log_all_builtin_calls() {
                           Modvar);
 }
 
-struct component final : server_component {
+struct component final : generic_component {
   void post_unpack() override {
     if (utils::flags::has_flag("scr-trace")) {
       log_all_builtin_calls();

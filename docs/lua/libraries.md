@@ -30,6 +30,7 @@ The `FileIO` library is added with the following functions.
 The `Console` library is added with the following functions.
 
 - `Print(message)`
+- `PrintFile(file, message)`
 - `PrintInfo(message)`
 - `PrintError(message)`
 - `PrintWarning(message)`

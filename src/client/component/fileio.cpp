@@ -126,6 +126,8 @@ luaReturnCount_e copy(lua_State *s) {
     if (lua_gettop(s) > 1 && lua_isstring(s, 1) && lua_isstring(s, 2)) {
       const char *src_path_arg = lua_tostring(s, 1);
       const char *dest_path_arg = lua_tostring(s, 2);
+      // Third arg is boolean, and can take boolean-like string ("true"). Not
+      // sure what it is for.
       if (src_path_arg && dest_path_arg) {
         const std::filesystem::path src_path = src_path_arg;
         const std::filesystem::path dest_path = dest_path_arg;

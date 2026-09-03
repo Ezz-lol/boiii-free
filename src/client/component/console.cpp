@@ -1510,9 +1510,9 @@ void print_warning(const std::string_view &msg) {
                         game::consoleLabel_e::DEFAULT, "^3%s^7\n", msg.data());
 }
 
-std::string concat_string_args(lua_State *s) {
+std::string concat_string_args(lua_State *s, hksInt32 firstIndex = 1) {
   std::string text;
-  for (hksInt32 i = 1; i <= lua_gettop(s); ++i) {
+  for (hksInt32 i = firstIndex; i <= lua_gettop(s); ++i) {
     text += lua_tostring(s, i);
   }
   return text;
@@ -1526,6 +1526,16 @@ luaReturnCount_e print(lua_State *s) {
 
 luaReturnCount_e print_info(lua_State *s) {
   print_info(concat_string_args(s));
+  return luaReturnCount_e::ONE;
+}
+
+luaReturnCount_e print_file(lua_State *s) {
+  if (lua_gettop(s) > 1 && lua_isstring(s, 1)) {
+    std::string msg =
+        std::format("[Lua][Console][File][{}] ", lua_tostring(s, 1));
+    msg += concat_string_args(s, 2);
+    print_info(msg);
+  }
   return luaReturnCount_e::ONE;
 }
 
@@ -1547,6 +1557,7 @@ luaReturnCount_e show_external_console(lua_State *s) {
 void register_lua_libs() {
   static constexpr const luaL_Reg ConsoleLibrary[] = {
       lua_state::luaL_LoggedReg<"Console", "Print", print>(),
+      lua_state::luaL_LoggedReg<"Console", "PrintFile", print_file>(),
       lua_state::luaL_LoggedReg<"Console", "PrintInfo", print_info>(),
       lua_state::luaL_LoggedReg<"Console", "PrintError", print_error>(),
       lua_state::luaL_LoggedReg<"Console", "PrintWarning", print_warning>(),
