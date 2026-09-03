@@ -924,7 +924,7 @@ void reload_ingame_menu_scripts() {
       "social_friends/__init__.lua",
   };
 
-  for (const auto &root : roots) {
+  for (const std::filesystem::path &root : roots) {
     if (!utils::io::directory_exists(root.string())) {
       continue;
     }
@@ -933,8 +933,8 @@ void reload_ingame_menu_scripts() {
     load_local_script_files((root / "kick_menu").string());
     load_local_script_files((root / "tweaks").string());
     load_local_script_files((root / "social_friends").string());
-    for (const auto *file : files) {
-      const auto path = root / file;
+    for (const char *file : files) {
+      const std::filesystem::path path = root / file;
       std::string data;
       if (!utils::io::read_file(path.string(), &data)) {
         continue;
@@ -1630,29 +1630,11 @@ void lua_cod_luastatemanager_error_stub(const char *error, lua_State *luaVM) {
   }
 }
 
-inline constexpr const std::string_view BLACKLISTED_DLLS[] = {
-    "T7Overcharged", "discord_game_sdk"};
-
 utils::hook::detour load_dll_hook;
-luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
-                                           const char *func_name) {
-  if (filename) {
-    std::filesystem::path file_path = filename;
-    const std::filesystem::path file_basename = file_path.filename();
-    const std::string file_basename_str = file_basename.generic_string();
-    for (const std::string_view &blacklisted : BLACKLISTED_DLLS) {
-      if (utils::string::contains(file_basename_str, blacklisted)) {
-        lua_pushfunction(s, lua_stub_func, func_name);
-        return luaReturnCount_e::ONE;
-      }
-    }
-  }
-
-#ifndef NDEBUG
-  game::trace("Calling load_dll with filename: \"%s\", func_name: \"%s\"",
-              filename ? filename : "NULL", func_name ? func_name : "NULL");
-#endif
-  return load_dll_hook.invoke<luaReturnCount_e>(s, filename, func_name);
+luaReturnCount_e load_dll_disable(lua_State *s, const char *filename,
+                                  const char *func_name) {
+  lua_pushfunction(s, lua_stub_func, func_name);
+  return luaReturnCount_e::ONE;
 }
 
 void lua_error_print_stub(int, const char *, ...) {}
@@ -2322,7 +2304,7 @@ public:
     Lua_CoD_FFReader_hook.create(Lua_CoD_FFReader,
                                  Lua_CoD_FFReader_EnforceOverride);
     utils::hook::call(game::select(0x141D4979A, 0x1403F233A), hks_load_stub);
-    load_dll_hook.create(load_dll, load_dll_skip_blacklisted);
+    load_dll_hook.create(load_dll, load_dll_disable);
 
     hks_package_require_hook.create(game::select(0x141D28EF0, 0x1403D7FC0),
                                     hks_package_require_stub);

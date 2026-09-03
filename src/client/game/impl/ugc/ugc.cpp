@@ -333,6 +333,7 @@ void UGC_LoadModByPublisherId_Impl(LocalClientNum_t localClientNum,
   }
   // PATCH: load "assetlimits.txt" asset pool configuration from zone tree
   UGC_LoadItem_PrepareAssetPool(mod->absolutePathZoneFiles);
+
   UGC_LoadMod(localClientNum, mod, reloadFS);
 
   // PATCH: ensure a mod's LobbyVM override script does not attempt to load
