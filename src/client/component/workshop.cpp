@@ -418,7 +418,7 @@ void supplement_ugc_from_workshop(game::ZoneType zoneType) {
 
 utils::hook::detour UGC_LoadUsermapByPublisherId_hook;
 game::ugc::WorkshopData *
-UGC_LoadUsermapByPublisherId_stub(const char *maybePublisherId) {
+UGC_LoadUsermapByPublisherId_HandleInternalName(const char *maybePublisherId) {
   std::string publisherId = maybePublisherId;
   if (!utils::string::is_numeric(maybePublisherId)) {
     publisherId = get_usermap_publisher_id(maybePublisherId);
@@ -428,8 +428,9 @@ UGC_LoadUsermapByPublisherId_stub(const char *maybePublisherId) {
 }
 
 utils::hook::detour UGC_VerifyVersion_hook;
-bool UGC_VerifyVersion_stub(game::ZoneType type, const char *maybePublisherId,
-                            uint32_t version) {
+bool UGC_VerifyVersion_HandleInternalName(game::ZoneType type,
+                                          const char *maybePublisherId,
+                                          uint32_t version) {
   std::string publisherId = maybePublisherId;
   if (!utils::string::is_numeric(maybePublisherId) &&
       type == game::ZoneType::USERMAP) {
@@ -1089,7 +1090,7 @@ void extend_ugc_pools() {
   UGC_GetCount_hook.create(game::ugc::UGC_GetCount.get(),
                            game::ugc::UGC_GetCount_Impl);
   UGC_VerifyVersion_hook.create(game::ugc::UGC_VerifyVersion.get(),
-                                UGC_VerifyVersion_stub);
+                                UGC_VerifyVersion_HandleInternalName);
   UGC_LoadPool_hook.create(game::ugc::UGC_LoadPool.get(),
                            game::ugc::UGC_LoadPool_Impl);
   UGC_LoadModsPool_hook.create(game::ugc::UGC_LoadModsPool.get(),
@@ -1108,7 +1109,7 @@ void extend_ugc_pools() {
                                game::ugc::UGC_LoadManifest_Impl);
   UGC_LoadUsermapByPublisherId_hook.create(
       game::ugc::UGC_LoadUsermapByPublisherId.get(),
-      UGC_LoadUsermapByPublisherId_stub);
+      UGC_LoadUsermapByPublisherId_HandleInternalName);
 
   if (game::is_client()) {
     Mods_Lists_GetInfoEntries_Slice_hook.create(
@@ -1194,6 +1195,35 @@ public:
                   game::LOCAL_CLIENT_0, data->publisherId, true);
             }
           }
+        }
+      });
+
+      command::add("printmod", [](const command::params &params) {
+        const auto print = [](const std::string_view &msg) -> void {
+          fprintf(stdout, "%s\n", msg.data());
+          fflush(stdout);
+
+          game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                                game::consoleLabel_e::DEFAULT, "%s\n",
+                                msg.data());
+          game::trace("[printmod] %s", msg.data());
+        };
+
+        if (params.size() > 0) {
+          const std::string field = utils::string::to_lower(params.get(1));
+
+          if (field == "publisherid" || field == "publisher_id" ||
+              field == "ugcname" || field == "ugc_name") {
+            print(game::ugc::active_mod->publisherId);
+          } else if (field == "internal_name" || field == "internalname") {
+            print(game::ugc::active_mod->internalName);
+          } else if (field == "title") {
+            print(game::ugc::active_mod->title);
+          } else if (field == "description") {
+            print(game::ugc::active_mod->description);
+          }
+        } else {
+          print(game::ugc::active_mod->internalName);
         }
       });
 
