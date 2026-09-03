@@ -58,6 +58,10 @@ WEAK symbol<void(WorkshopData *usermap)> UGC_SetActiveUsermap{0x1420D5560,
                                                               0x1404E1740};
 WEAK symbol<void(EngineDependentDvarMut fs_game)> UGC_ModChange_ProcessQueued{
     0x1420D5E30, 0x1404E1FB0};
+WEAK symbol<void(LocalClientNum_t LocalClientNum)> UGC_ModChange_ApplyQueued{
+    0x1420D5C40, 0x1404E1DD0};
+WEAK symbol<void(const char *publisherId)> UGC_ModChange_Queue{0x1420D7140,
+                                                               0x1404E2F70};
 
 // Server only.
 WEAK symbol<steam::PublishedFileId_t()> UGC_DownloadedModPublisherId{

@@ -270,7 +270,8 @@ template <typename T>
   requires(!std::same_as<T, const char *> &&
            !std::same_as<T, const std::string_view &> &&
            !std::same_as<T, const std::string &>)
-inline std::optional<T> dvar<T_DvarValue>::set(T val) noexcept {
+inline std::optional<T>
+dvar<T_DvarValue>::set(T val, bool execModifiedCallback) noexcept {
   dvar<T_DvarValue> *sessionModeSpecificDvar = sessionModeSpecific();
   if (sessionModeSpecificDvar) {
     return sessionModeSpecificDvar->set(val);
@@ -286,7 +287,7 @@ inline std::optional<T> dvar<T_DvarValue>::set(T val) noexcept {
       (void)latched().set(val);
       modified() = true;
 
-      if (flags().modifiedCallback) {
+      if (execModifiedCallback && flags().modifiedCallback) {
         dvarCallBack_t *cb = modifiedCallback();
         if (cb) {
           cb->needsCallback = true;
@@ -302,7 +303,7 @@ inline std::optional<T> dvar<T_DvarValue>::set(T val) noexcept {
 
 template <typename T_DvarValue>
 inline std::optional<std::string>
-dvar<T_DvarValue>::set(const char *val) noexcept {
+dvar<T_DvarValue>::set(const char *val, bool execModifiedCallback) noexcept {
   dvar<T_DvarValue> *sessionModeSpecificDvar = sessionModeSpecific();
   if (sessionModeSpecificDvar) {
     return sessionModeSpecificDvar->set(val);
@@ -320,7 +321,7 @@ dvar<T_DvarValue>::set(const char *val) noexcept {
         *g_dvar_modifiedFlags |= flags();
         modified() = true;
 
-        if (flags().modifiedCallback) {
+        if (execModifiedCallback && flags().modifiedCallback) {
           dvarCallBack_t *cb = modifiedCallback();
           if (cb) {
             cb->needsCallback = true;
@@ -365,7 +366,7 @@ dvar<T_DvarValue>::set(const char *val) noexcept {
       }
       modified() = true;
 
-      if (flags().modifiedCallback) {
+      if (execModifiedCallback && flags().modifiedCallback) {
         dvarCallBack_t *cb = modifiedCallback();
         if (cb) {
           cb->needsCallback = true;
@@ -386,13 +387,15 @@ dvar<T_DvarValue>::set(const char *val) noexcept {
 }
 template <typename T_DvarValue>
 inline std::optional<std::string>
-dvar<T_DvarValue>::set(const std::string_view &val) noexcept {
-  return set(val.data());
+dvar<T_DvarValue>::set(const std::string_view &val,
+                       bool execModifiedCallback) noexcept {
+  return set(val.data(), true);
 }
 
 template <typename T_DvarValue>
 inline std::optional<std::string>
-dvar<T_DvarValue>::set(const std::string &val) noexcept {
-  return set(val.c_str());
+dvar<T_DvarValue>::set(const std::string &val,
+                       bool execModifiedCallback) noexcept {
+  return set(val.c_str(), execModifiedCallback);
 }
 } // namespace game

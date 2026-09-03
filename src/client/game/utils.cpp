@@ -48,10 +48,11 @@ std::optional<int32_t> get_dvar_int(const char *dvar_name) {
   return std::nullopt;
 }
 
-std::optional<int32_t> set_dvar_int(const char *dvar_name, int32_t val) {
+std::optional<int32_t> set_dvar_int(const char *dvar_name, int32_t val,
+                                    bool execModifiedCallback) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
   if (dvar) {
-    return dvar.set(val);
+    return dvar.set(val, execModifiedCallback);
   }
 
   return std::nullopt;
@@ -75,10 +76,11 @@ std::optional<uint64_t> get_dvar_uint64(const char *dvar_name) {
   return std::nullopt;
 }
 
-std::optional<uint64_t> set_dvar_uint64(const char *dvar_name, uint64_t val) {
+std::optional<uint64_t> set_dvar_uint64(const char *dvar_name, uint64_t val,
+                                        bool execModifiedCallback) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
   if (dvar) {
-    return dvar.set(val);
+    return dvar.set(val, execModifiedCallback);
   }
   return std::nullopt;
 }
@@ -92,10 +94,11 @@ std::optional<int64_t> get_dvar_int64(const char *dvar_name) {
   return std::nullopt;
 }
 
-std::optional<int64_t> set_dvar_int64(const char *dvar_name, int64_t val) {
+std::optional<int64_t> set_dvar_int64(const char *dvar_name, int64_t val,
+                                      bool execModifiedCallback) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
   if (dvar) {
-    return dvar.set(val);
+    return dvar.set(val, execModifiedCallback);
   }
   return std::nullopt;
 }
@@ -109,10 +112,11 @@ std::optional<bool> get_dvar_bool(const char *dvar_name) {
   return std::nullopt;
 }
 
-std::optional<bool> set_dvar_bool(const char *dvar_name, bool val) {
+std::optional<bool> set_dvar_bool(const char *dvar_name, bool val,
+                                  bool execModifiedCallback) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
   if (dvar) {
-    return dvar.set(val);
+    return dvar.set(val, execModifiedCallback);
   }
   return std::nullopt;
 }
@@ -126,19 +130,21 @@ std::optional<float> get_dvar_float(const char *dvar_name) {
   return std::nullopt;
 }
 
-std::optional<float> set_dvar_float(const char *dvar_name, float val) {
+std::optional<float> set_dvar_float(const char *dvar_name, float val,
+                                    bool execModifiedCallback) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
   if (dvar) {
-    return dvar.set(val);
+    return dvar.set(val, execModifiedCallback);
   }
   return std::nullopt;
 }
 
 std::optional<std::string> set_dvar_string(const char *dvar_name,
-                                           const char *val) {
+                                           const char *val,
+                                           bool execModifiedCallback) {
   EngineDependentDvarMut dvar = get_dvar(dvar_name);
   if (dvar) {
-    return dvar.set(val);
+    return dvar.set(val, execModifiedCallback);
   }
   return std::nullopt;
 }
