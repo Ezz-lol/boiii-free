@@ -72,7 +72,6 @@ void print_script_log(const char *message) {
 }
 
 utils::hook::detour db_find_x_asset_header_hook;
-utils::hook::detour gscr_get_bgb_tokens_remaining_hook;
 
 static utils::memory::allocator allocator;
 
@@ -1054,11 +1053,6 @@ void rebuild_script_gdb() {
 
 int server_script_checksum_stub() { return 1; }
 
-void gscr_getbgbtokensremaining_stub(scriptInstance_t inst,
-                                     [[maybe_unused]] scr_entref_t entref) {
-  scr::Scr_AddInt(inst, 255);
-}
-
 // Global hash→name lookup table loaded from data/lookup_tables/hash_names.txt
 static std::unordered_map<uint32_t, std::string> global_hash_table;
 static std::once_flag hash_table_load_flag;
@@ -1326,10 +1320,6 @@ struct component final : generic_component {
     // Force GSC checksums to be valid
     utils::hook::call(select(0x1408F2E5D, 0x1400E2D22),
                       server_script_checksum_stub);
-
-    // Workaround for "Out of X" gobblegum
-    gscr_get_bgb_tokens_remaining_hook.create(gscr::GScr_GetBGBTokensRemaining,
-                                              gscr_getbgbtokensremaining_stub);
 
     if (utils::flags::has_flag("log-script-errors")) {
       // Log all script errors, even when non-fatal and/or `developer` is

@@ -433,17 +433,15 @@ void HECmd_ClearInvoke(scriptInstance_t inst, scr_entref_t *entref) {
 
 // HECmd script VM method hooks
 inline void apply_hecmd_hooks() {
-  BuiltinMethodDef *HECmd_SetText_def = const_cast<BuiltinMethodDef *>(
-      &game::scr::builtin::table::hudElem_methods->SetText);
-  HECmd_SetText_def->actionFunc = &hecmd_settext::HECmd_SetText_ReuseCfgString;
+  game::scr::builtin::table::hudElem_methods->SetText.actionFunc =
+      hecmd_settext::HECmd_SetText_ReuseCfgString;
 
 #ifndef HOOK_CLEAR_HECMD
 #define HOOK_CLEAR_HECMD(name)                                                 \
   static const BuiltinMethod HECmd_##name##_Orig =                             \
       game::scr::builtin::table::hudElem_methods->name.actionFunc;             \
-  const_cast<BuiltinMethodDef *>(                                              \
-      &game::scr::builtin::table::hudElem_methods->name)                       \
-      ->actionFunc = HECmd_ClearInvoke<HECmd_##name##_Orig>;
+  game::scr::builtin::table::hudElem_methods->name.actionFunc =                \
+      HECmd_ClearInvoke<HECmd_##name##_Orig>;
 #endif
 
   HOOK_CLEAR_HECMD(SetValue);
@@ -1535,6 +1533,31 @@ void add_detour(uint8_t *target_addr, uint8_t *replacement_addr) {
   detours_enabled.store(true, std::memory_order_release);
 }
 
+// Add template overloads for other types (e.g. bool, string) as needed.
+template <const bool Value> void Scr_Return(scriptInstance_t inst) {
+  scr::Scr_AddInt(inst, qboolean::from(Value));
+}
+
+// Method variant.
+// Add template overloads for other types (e.g. bool, string) as needed.
+template <const IntegralLike<int32_t> auto Value>
+void ScrCmd_Return(scriptInstance_t inst,
+                   [[maybe_unused]] scr_entref_t *entref) {
+  scr::Scr_AddInt(inst, static_cast<int32_t>(Value));
+}
+
+void Scr_StubFunc([[maybe_unused]] scriptInstance_t inst) {}
+
+void apply_bgb_hooks() {
+  // Workaround for "Out of X" gobblegum
+  game::scr::builtin::table::gscr::builtin_methods->GetBGBRemaining.actionFunc =
+      ScrCmd_Return<std::numeric_limits<uint8_t>::max()>;
+  game::scr::builtin::table::gscr::builtin_functions
+      ->__protected__SetBGBUnlocked.actionFunc = &Scr_StubFunc;
+  game::scr::builtin::table::gscr::builtin_functions
+      ->__protected__GetBGBUnlocked.actionFunc = &Scr_Return<true>;
+}
+
 struct component final : generic_component {
   void post_unpack() override {
 
@@ -1640,6 +1663,7 @@ struct component final : generic_component {
     register_builtin("vector", gscr_vector, 0, 3);
 
     apply_hudelem_hooks();
+    apply_bgb_hooks();
 
     /*
       In dedicated server, there is no host player.
@@ -1656,9 +1680,8 @@ struct component final : generic_component {
       \`true\` if the player has `clientIndex` `0`, and false otherwise.
     */
     if (game::is_server()) {
-      const_cast<BuiltinMethodDef *>(
-          &game::scr::builtin::table::player_methods->IsHost)
-          ->actionFunc = PlayerCmd_IsHost_DelegateToFirstClient;
+      game::scr::builtin::table::player_methods->IsHost.actionFunc =
+          PlayerCmd_IsHost_DelegateToFirstClient;
     }
 
     game_event::on_g_shutdown_game([] {

@@ -67,36 +67,34 @@ inline void log_all_builtin_calls() {
 #ifndef LOG_TABLE_FUNCTION_CALL
 #define LOG_TABLE_FUNCTION_CALL(table, function)                               \
   {                                                                            \
-    const_cast<BuiltinFunctionDef *>(&table->function)->type.devblockOnly = 0; \
+    table->function.type.devblockOnly = 0;                                     \
     using HookTag = decltype([] {});                                           \
     HookStateFunction<HookTag>::original_func = table->function.actionFunc;    \
     HookStateFunction<HookTag>::canon_id = table->function.canonId;            \
     HookStateFunction<HookTag>::table_name = #table;                           \
-    const_cast<BuiltinFunctionDef *>(&table->function)->actionFunc =           \
-        [](scriptInstance_t inst) {                                            \
-          log_function_call_helper(HookStateFunction<HookTag>::table_name,     \
-                                   HookStateFunction<HookTag>::original_func,  \
-                                   HookStateFunction<HookTag>::canon_id,       \
-                                   inst);                                      \
-        };                                                                     \
+    table->function.actionFunc = [](scriptInstance_t inst) {                   \
+      log_function_call_helper(HookStateFunction<HookTag>::table_name,         \
+                               HookStateFunction<HookTag>::original_func,      \
+                               HookStateFunction<HookTag>::canon_id, inst);    \
+    };                                                                         \
   }
 #endif
 
 #ifndef LOG_TABLE_METHOD_CALL
 #define LOG_TABLE_METHOD_CALL(table, method)                                   \
   {                                                                            \
-    const_cast<BuiltinMethodDef *>(&table->method)->type.devblockOnly = 0;     \
+    table->method.type.devblockOnly = 0;                                       \
     using HookTag = decltype([] {});                                           \
     HookStateMethod<HookTag>::original_func = table->method.actionFunc;        \
     HookStateMethod<HookTag>::canon_id = table->method.canonId;                \
     HookStateMethod<HookTag>::table_name = #table;                             \
-    const_cast<BuiltinMethodDef *>(&table->method)->actionFunc =               \
-        [](scriptInstance_t inst, scr_entref_t *entref) {                      \
-          log_method_call_helper(HookStateMethod<HookTag>::table_name,         \
-                                 HookStateMethod<HookTag>::original_func,      \
-                                 HookStateMethod<HookTag>::canon_id, inst,     \
-                                 entref);                                      \
-        };                                                                     \
+    table->method.actionFunc = [](scriptInstance_t inst,                       \
+                                  scr_entref_t *entref) {                      \
+      log_method_call_helper(HookStateMethod<HookTag>::table_name,             \
+                             HookStateMethod<HookTag>::original_func,          \
+                             HookStateMethod<HookTag>::canon_id, inst,         \
+                             entref);                                          \
+    };                                                                         \
   }
 #endif
   LOG_TABLE_METHOD_CALL(game::scr::builtin::table::gscr::builtin_methods,

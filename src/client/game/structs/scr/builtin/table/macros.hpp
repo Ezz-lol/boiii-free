@@ -155,12 +155,12 @@ struct NameIdxPair {
     return table[static_cast<size_t>(index)];                                  \
   }                                                                            \
   template <IntegralLike Index>                                                \
-  inline constexpr element_of<decltype(table)> &operator[](Index index)        \
+  inline constexpr const element_of<decltype(table)> &operator[](Index index)  \
       const noexcept {                                                         \
     return table[static_cast<size_t>(index)];                                  \
   }                                                                            \
                                                                                \
-  inline constexpr element_of<decltype(table)> *get(                           \
+  inline constexpr const element_of<decltype(table)> *get(                     \
       ScrVarCanonicalName_t hash) const noexcept {                             \
     if (hashes.contains(hash)) {                                               \
       return &table[hashes.at(hash).idx];                                      \
@@ -168,14 +168,31 @@ struct NameIdxPair {
     return nullptr;                                                            \
   }                                                                            \
                                                                                \
-  inline constexpr element_of<decltype(table)> *get(const char *name)          \
+  inline constexpr const element_of<decltype(table)> *get(const char *name)    \
       const noexcept {                                                         \
     const ScrVarCanonicalName_t hash = fnv1a(name);                            \
     return get(hash);                                                          \
   }                                                                            \
                                                                                \
-  inline constexpr element_of<decltype(table)> *operator[](const char *name)   \
-      const noexcept {                                                         \
+  inline constexpr const element_of<decltype(table)> *operator[](              \
+      const char *name) const noexcept {                                       \
+    return get(name);                                                          \
+  }                                                                            \
+  inline constexpr element_of<decltype(table)> *get(                           \
+      ScrVarCanonicalName_t hash) noexcept {                                   \
+    if (hashes.contains(hash)) {                                               \
+      return &table[hashes.at(hash).idx];                                      \
+    }                                                                          \
+    return nullptr;                                                            \
+  }                                                                            \
+                                                                               \
+  inline constexpr element_of<decltype(table)> *get(char *name) noexcept {     \
+    const ScrVarCanonicalName_t hash = fnv1a(name);                            \
+    return get(hash);                                                          \
+  }                                                                            \
+                                                                               \
+  inline constexpr element_of<decltype(table)> *operator[](                    \
+      char *name) noexcept {                                                   \
     return get(name);                                                          \
   }
 #endif
