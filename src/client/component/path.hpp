@@ -2,14 +2,19 @@
 
 #include <filesystem>
 namespace path {
-std::filesystem::path cwd();
+const std::filesystem::path &cwd();
+// E.g. "C:\\"
+const std::filesystem::path &root();
 
-std::filesystem::path players_directory();
-std::filesystem::path boiii_players_directory();
+const std::filesystem::path &players_directory();
+const std::filesystem::path &boiii_players_directory();
 
-std::filesystem::path steam_workshop_content_directory();
-std::filesystem::path usermaps_directory();
-std::filesystem::path mods_directory();
+const std::filesystem::path &steam_workshop_content_directory();
+bool have_steam_workshop_content_directory();
+const std::filesystem::path &usermaps_directory();
+const std::filesystem::path &mods_directory();
+
+const std::filesystem::path &lpc_directory();
 
 bool is_subpath(const std::filesystem::path &child,
                 const std::filesystem::path &parent);
