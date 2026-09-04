@@ -31,12 +31,13 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_AddThumbnail{0x141FC4220};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_AddToErrorString{0x141FB0360,
                                                                  0x1404C8A50};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_AdvertiseErrorShutdown{
-    0x141F1C760};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_AdvertiseLobby{0x141F1C7B0};
+    0x141F1C760, 0x1404C5490};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_AdvertiseLobby{0x141F1C7B0,
+                                                               0x1404C54E0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_AllowVoiceChatForAll{
-    0x141F17EF0};
+    0x141F17EF0, 0x1404C3CE0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_AllowVoiceChatForClient{
-    0x141F17F30};
+    0x141F17F30, 0x1404C3D20};
 WEAK symbol<hks::lua_CFunction>
     Lua_CoD_LuaCall_AnyAttachmentRestrictionStateChanged{0x141FB03E0,
                                                          0x1404C8AD0};
@@ -93,7 +94,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_CanHostServer{0x141F13CD0,
                                                               0x1404C02C0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_CanLivestream{0x141FC44F0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_CanMergeSegments{0x141F12A70,
-                                                                 0x1404BF270};
+                                                                 0x1404BF110};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_CanPauseGame{0x141FC4510};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_CanRenderClip{0x141FB0500,
                                                               0x1404C8BF0};
@@ -108,9 +109,9 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ChangeHistory{0x141FC4620};
 WEAK symbol<hks::lua_CFunction>
     Lua_CoD_LuaCall_CharacterCustomizationNewItemCount{0x141FD6BE0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_CharacterLoadoutDrafted{
-    0x141F17F80};
+    0x141F17F80, 0x1404C3D70};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ChatClient_ChannelColorGet{
-    0x141FC4630};
+    0x141FC4630, 0x1404CB1A0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ChatClient_ChannelColorSet{
     0x141FC4750};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ChatClient_ChannelStringGet{
@@ -156,9 +157,10 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_CheckNetConnection{0x141FE15F0,
                                                                    0x1404D5C80};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_CheckPasswordForEliteAccount{
     0x141FC4F90};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_CheckPSPlus{0x141FD1DC0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_CheckPSPlus{0x141FD1DC0,
+                                                            0x1404CC9F0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ChoosePreferredDownloadOrder{
-    0x141FD1DF0};
+    0x141FD1DF0, 0x1404CCA20};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ClearBunkCollectible{
     0x141FD58D0, 0x1404CD350};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ClearError{0x141FE1630,
@@ -172,7 +174,8 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ClearLocalPSCharacter{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ClearMapVoteData{0x141F1D220};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ClearObjectiveIcon{0x141F3A7D0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ClearReadyUpData{0x141F1D240};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ClearTeamData{0x141F1FF10};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ClearTeamData{0x141F1FF10,
+                                                              0x1404C7CA0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ClearUI3DWindow{0x141FE1640,
                                                                 0x1404D5CD0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ClientHasCollectible{
@@ -242,10 +245,12 @@ WEAK symbol<hks::lua_CFunction>
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_Durango_ContinueAs{0x141FE17D0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_Durango_TryToSetXUIDToGPad{
     0x141FE17E0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_DvarBool{0x141FE17F0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_DvarBool{0x141FE17F0,
+                                                         0x1404D5E50};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_DvarFloat{0x141FE18C0,
                                                           0x1404D5F20};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_DvarInt{0x141FE1980};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_DvarInt{0x141FE1980,
+                                                        0x1404D5FE0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_DvarString{0x141FE1A40,
                                                            0x1404D60A0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ECACImport_PlayerDecision{
@@ -268,7 +273,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_EnableQuickJoinCacheAutoupdate{
     0x141FD3170};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_EnableSceneFilter{0x141F43E50};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_EncodePlaylistNumber{
-    0x141F1E0F0};
+    0x141F1E0F0, 0x1404C68C0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_EndSendTextMessage{0x141FC56B0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_EntitlementExists{0x141F35560};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_EquipBubbleGumPack{0x141FD6EB0};
@@ -285,7 +290,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_EWelcomePopup_ShouldShow{
     0x141FC5690};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_Exec{0x141FE1B10, 0x1404D6160};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ExecAutoEventRuleSet{
-    0x141FC56D0};
+    0x141FC56D0, 0x1404CB200};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ExecNow{0x141FE1BB0,
                                                         0x1404D6200};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ExperimentsGetVariant{
@@ -351,6 +356,8 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ForceLobbyUIScreen{0x141F13F50,
                                                                    0x1404C04C0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ForceNotifyModelSubscriptions{
     0x141FAFA10};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ForceUploadCounters{
+    0x0, 0x1404CB240};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_FormatNumberWithCommas{
     0x141FE1C40, 0x1404D6290};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_FreeTheaterMemoryIfAllocated{
@@ -361,9 +368,9 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GadgetHasTakeTwoAttachment{
     0x141FD6FE0, 0x1404CE6B0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GameHost{0x141FB08C0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GameLobbyChooseNextPlaylist{
-    0x141F1E140};
+    0x141F1E140, 0x1404C6980};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GameLobbyChoosePreviousPlaylist{
-    0x141F1E1B0};
+    0x141F1E1B0, 0x1404C6910};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GameLobbyChooseRandomPlaylist{
     0x141F1E220};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GameLobbyGetGameType{
@@ -376,8 +383,10 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GameLobbySetGameType{
     0x141F14050, 0x1404C05C0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GameLobbySetMap{0x141F14090,
                                                                 0x1404C0600};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GameModeIsMode{0x141FC65E0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GameModeResetModes{0x141FC6640};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GameModeIsMode{0x141FC65E0,
+                                                               0x1404CB250};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GameModeResetModes{0x141FC6640,
+                                                                   0x1404CB2B0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GameModeSetMode{0x141FC6660};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GamepadsConnectedController{
     0x141FE1D90, 0x1404D63A0};
@@ -412,15 +421,17 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetAbbreviationForMode{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetActiveLocalClientsCount{
     0x141FB2350, 0x1404C8CC0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetAdjustedWinPercentage{
-    0x141FC6670};
+    0x141FC6670, 0x1404CB2D0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetAllResolutions{0x141FD1ED0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetAmmoForGadget{0x141F4A1D0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetAnticheatReputation{
     0x141FC6770};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetArenaInfo{0x141FC6860};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetArenaPoints{0x141FC68F0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetArenaInfo{0x141FC6860,
+                                                             0x1404CB3D0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetArenaPoints{0x141FC68F0,
+                                                               0x1404CB460};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetArenaSeasonStartTime{
-    0x141FC6980};
+    0x141FC6980, 0x1404CB4F0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetAspectRatio{0x141FE20C0,
                                                                0x1404D66D0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetAssetInfo{0x141FE20F0,
@@ -447,7 +458,7 @@ WEAK symbol<hks::lua_CFunction>
     Lua_CoD_LuaCall_GetAttachmentDescByAttachmentIndex{0x141FD7580,
                                                        0x1404CEA10};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetAttachmentGroupVote{
-    0x141F18020};
+    0x141F18020, 0x1404C3E10};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetAttachmentImage{0x141FD75F0,
                                                                    0x1404CEAF0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetAttachmentImageByIndex{
@@ -476,7 +487,8 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetAttachmentUniqueImageByIndex{
     0x141FD7CC0, 0x1404CF070};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetAttachmentUnlockString{
     0x141FB2440};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetAttachmentVote{0x141F180B0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetAttachmentVote{0x141F180B0,
+                                                                  0x1404C3EA0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetAvailableRefreshRates{
     0x141FD1F90};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetAvailableResolutions{
@@ -484,7 +496,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetAvailableResolutions{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetBackgroundsForCategoryName{
     0x141FD7EF0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetbdServerTimestampStr{
-    0x141FCC050};
+    0x141FCC050, 0x1404CBE10};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetBGBTokensGained{0x141FD7DA0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetBGBTokensRemaining{
     0x141FD7E00};
@@ -534,9 +546,9 @@ WEAK symbol<hks::lua_CFunction>
 WEAK symbol<hks::lua_CFunction>
     Lua_CoD_LuaCall_GetCharacterCustomizationItemUnlockInfo{0x141FD8760};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetChunkStatusForMainMode{
-    0x141FD2180};
+    0x141FD2180, 0x1404CCA80};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetChunkStatusForMode{
-    0x141FD21E0};
+    0x141FD21E0, 0x1404CCAE0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCinematicTimeRemaining{
     0x141F4D550};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetClanName{0x141FB24A0,
@@ -562,7 +574,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetClientDemoFileInfo{
     0x141FB25A0, 0x1404C8880};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetClientNum{0x141F4EF50};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetClientPregameState{
-    0x141F18100};
+    0x141F18100, 0x1404C3EF0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCoDPoints{0x141F20890};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCodtvRoot{0x141FC6F70};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCollectibleInBunkSlot{
@@ -581,26 +593,31 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCombatRecordSummaryInfo{
     0x141FC7290};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetConnectionPort{0x141FC7340};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetConnectionType{0x141FC7380};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetContracts{0x141FC73C0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetContracts{0x141FC73C0,
+                                                             0x1404CB640};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetControllerForXuid{
     0x141FE24D0, 0x1404D6AE0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetControllerType{0x141FE2520};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCounterValue{0x0,
+                                                                0x1404CB660};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCountLanguagesInSKU{
     0x141FE2540, 0x1404D6B50};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCountryNames{0x141FC74D0};
 WEAK symbol<hks::lua_CFunction>
-    Lua_CoD_LuaCall_GetCountUsedAndSignedInLocalClients{0x141FC73E0};
+    Lua_CoD_LuaCall_GetCountUsedAndSignedInLocalClients{0x141FC73E0,
+                                                        0x140051B20};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCryptoKeyCount{0x141F20910};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCryptoKeyProgress{
     0x141F209A0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCryptokeysDue{0x141F20A40};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCryptoScale{0x141FC7510};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCurrentArenaSeason{
-    0x141FC7560};
+    0x141FC7560, 0x1404CB6E0};
 WEAK symbol<hks::lua_CFunction>
-    Lua_CoD_LuaCall_GetCurrentArenaSeasonTimeRemaining{0x141FC75A0};
+    Lua_CoD_LuaCall_GetCurrentArenaSeasonTimeRemaining{0x141FC75A0,
+                                                       0x1404CB720};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCurrentArenaSlot{
-    0x141FC75E0};
+    0x141FC75E0, 0x1404CB760};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCurrentClassSetIndex{
     0x141FD8C50, 0x1404CF660};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCurrentExe{0x141FE2580,
@@ -623,13 +640,13 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCurrentModeDownloadString{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCurrentPlatform{0x141FE2630,
                                                                    0x1404D6C40};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCurrentRotatingEvent{
-    0x141FC9170};
+    0x141FC9170, 0x1404CB7A0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCurrentTeamCount{
     0x141FB26A0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCurrentTokens{0x141FD8D30,
                                                                  0x1404CF740};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCurrentUTCTimeStr{
-    0x141FC9310};
+    0x141FC9310, 0x1404CB940};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCurrentYearForElite{
     0x141FC9380};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCustomClass{0x141FD8E10};
@@ -644,6 +661,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetCustomGamesCount{
     0x141FC9480};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetDailyChallengeInfo{
     0x141FD91D0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetDDLVersion{0x0, 0x1404CB9B0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetDecalDesc{0x141FB2750};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetDecimalDelimiter{
     0x141FE2C90, 0x1404D72A0};
@@ -654,15 +672,15 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetDefaultClassName{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetDefaultClassSlot{
     0x141FB27C0, 0x1404C8EF0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetDemoSaveScreenDescription{
-    0x0, 0x1404BF350};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetDemoSaveScreenName{
     0x0, 0x1404BF150};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetDemoSaveScreenName{
+    0x0, 0x1404BF1C0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetDemoSegmentCount{
-    0x141F12B90, 0x1404BF1C0};
+    0x141F12B90, 0x1404BF230};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetDemoSegmentInformation{
-    0x141F12BD0, 0x1404BF230};
+    0x141F12BD0, 0x1404BF270};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetDemoStreamedDownloadProgress{
-    0x141F12C80, 0x1404BF110};
+    0x141F12C80, 0x1404BF320};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetDisplayLevelByXUID{
     0x141FB28A0, 0x1404C8FD0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetDLCBitForDLCIndex{
@@ -676,7 +694,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetDLCBitsForLobby{0x141F143F0,
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetDLCNameForItem{0x141FD9100,
                                                                   0x1404CF8C0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetDollyCamMarkerCount{
-    0x141F12CB0, 0x1404BF3E0};
+    0x141F12CB0, 0x1404BF350};
 WEAK symbol<hks::lua_CFunction>
     Lua_CoD_LuaCall_GetDollyCamMarkerInformationForTime{0x141FB2920,
                                                         0x1404C9050};
@@ -745,7 +763,8 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetFactionForTeam{0x141FB5100,
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetFeaturedCard{0x141FB5160};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetFeaturedCardsData{
     0x141FB51B0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetFFOTDVersion{0x141FC9740};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetFFOTDVersion{0x141FC9740,
+                                                                0x1404CBA50};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetFileshareFileCategory{
     0x141FC9780};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetFileshareNextSlot{
@@ -833,7 +852,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetHeroBundleInfo{0x141FD9D70,
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetHeroCustomizationTable{
     0x141FD9E00, 0x1404D02B0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetHeroIndexForClientNum{
-    0x141F18150};
+    0x141F18150, 0x1404C3F40};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetHeroInfo{0x141FD9E80,
                                                             0x1404D0330};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetHeroItemInfo{0x141FD9F00,
@@ -878,7 +897,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetItemAttachmentRank{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetItemAttachmentReward{
     0x141FDA760, 0x1404D0A30};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetItemAttachmentVote{
-    0x141F1B300};
+    0x141F1B300, 0x1404C4080};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetItemAttachmentXP{
     0x141FDA830, 0x1404D0B00};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetItemCost{0x141FDA900,
@@ -917,7 +936,8 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetItemSortKey{0x141FDB340,
                                                                0x1404D1610};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetItemUnlockLevel{0x141FDB3F0,
                                                                    0x1404D16C0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetItemVote{0x141F1B390};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetItemVote{0x141F1B390,
+                                                            0x1404C4110};
 WEAK symbol<hks::lua_CFunction>
     Lua_CoD_LuaCall_GetJoinableFriendsOfAllLocalPlayers{0x141FC9C10};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetKeyBindingLocalizedString{
@@ -966,7 +986,8 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetLobbyHostInfo{0x141F14A10,
                                                                  0x1404C0F80};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetLobbyHostXuid{0x141F14BD0,
                                                                  0x1404C1140};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetLobbyLobbyID{0x141F1D160};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetLobbyLobbyID{0x141F1D160,
+                                                                0x1404C5E90};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetLobbyLocalClientCount{
     0x141F14C40, 0x1404C11B0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetLobbyMainMode{0x141F14CA0,
@@ -990,7 +1011,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetLobbyNetworkModeName{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetLobbyOnlineState{
     0x141F15000, 0x1404C1570};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetLobbyPregameState{
-    0x141F1B3E0};
+    0x141F1B3E0, 0x1404C4160};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetLobbySession{0x141F15040,
                                                                 0x1404C15B0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetLobbySessionGameData{
@@ -1006,7 +1027,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetLobbyXUIDForClientNum{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetLocalClientNum{0x141FE32C0,
                                                                   0x1404D7880};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetLocalizedTimeStr{
-    0x141FC9EE0};
+    0x141FC9EE0, 0x1404CBA90};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetLootDuplicateCount{
     0x141F20B90};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetLootItemCount{0x141F20C30};
@@ -1017,7 +1038,8 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetLootResults{0x141F20E40,
                                                                0x1404C8780};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetLPCCompletionPercentage{
     0x141FE31B0, 0x1404D7780};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetLuaCodeVersion{0x141FD22E0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetLuaCodeVersion{0x141FD22E0,
+                                                                  0x1404CCB30};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetMarketingMessage{
     0x141FC9F80};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetMarketplaceItems{
@@ -1039,7 +1061,8 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetMaxAllocation{0x141FBA4F0,
                                                                  0x1404C9840};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetMaxAmmoForItem{0x141FDB850,
                                                                   0x1404D1A90};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetMaxArenaPoints{0x141FCA3C0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetMaxArenaPoints{0x141FCA3C0,
+                                                                  0x1404CBB30};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetMaxControllerCount{
     0x141FE3370, 0x1404D7930};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetMaxFetchedGroupsCount{
@@ -1068,7 +1091,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetModelValue{0x141FAFC40};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetModeName{0x141FE3510,
                                                             0x1404D7AB0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetMonthStringForTimestamp{
-    0x141FCA440};
+    0x141FCA440, 0x1404CBB70};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetMostRecentPlayedMode{
     0x141FE3570, 0x1404D7B10};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetMOTD{0x141FBA2D0};
@@ -1087,7 +1110,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetNumberOfChallengesForUnlock{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetNumberOfClassSetsOwned{
     0x141FDBC90};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetNumberOfHighlightReelMoments{
-    0x141F12CF0, 0x1404BF700};
+    0x141F12CF0, 0x1404BF390};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetNumberOfPlayersAlive{
     0x141F53B00};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetNumBulletWeapons{
@@ -1147,7 +1170,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetParagonRankDisplayLevel{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetParagonXPCap{0x141FDBD80,
                                                                 0x1404D1EB0};
 WEAK symbol<hks::lua_CFunction>
-    Lua_CoD_LuaCall_GetParkingPlaylistForRealPlaylist{0x141F1E290};
+    Lua_CoD_LuaCall_GetParkingPlaylistForRealPlaylist{0x141F1E290, 0x1404C69F0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPartyPrivacy{0x141F15380,
                                                                 0x1404C18F0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPartyPrivacyName{
@@ -1157,7 +1180,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPermanentUnlockCount{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPingForScoreboardIndex{
     0x141FBAA20};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPingForServerLocation{
-    0x141F1CA50};
+    0x141F1CA50, 0x14074B8C0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPingImageCount{0x141FCA850};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPingStepMS{0x141FCA870};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlayerBalanceByCurrencyId{
@@ -1192,41 +1215,47 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlayerStats{0x141FCAD00};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlayerStatsNightmare{
     0x141FCAEE0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlaylistCategories{
-    0x141F1E2E0};
+    0x141F1E2E0, 0x1404C6A40};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlaylistCategoryFilter{
-    0x141F1E350};
+    0x141F1E350, 0x1404C6AB0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlaylistCategoryIdByName{
+    0x0, 0x1404C6B70};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlaylistCategoryName{
-    0x141F1E460};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlaylistDesc{0x141F1E540};
+    0x141F1E460, 0x1404C6BC0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlaylistDesc{0x141F1E540,
+                                                                0x1404C6CA0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlaylistGameType{
-    0x141F1E5E0};
+    0x141F1E5E0, 0x1404C6D40};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlaylistIconName{
-    0x141F1E6C0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlaylistID{0x141F1E680};
+    0x141F1E6C0, 0x1404C6E20};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlaylistID{0x141F1E680,
+                                                              0x1404C6DE0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlaylistInfoByID{
-    0x141F1E760};
+    0x141F1E760, 0x1404C6EC0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlaylistMaxPartySize{
-    0x141F1E7B0};
+    0x141F1E7B0, 0x1404C6F10};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlaylistMinorVersionNumber{
-    0x141F1E850};
+    0x141F1E850, 0x1404C6FB0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlaylistMinPartySize{
-    0x141F1E800};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlaylistName{0x141F1E8C0};
+    0x141F1E800, 0x1404C6F60};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlaylistName{0x141F1E8C0,
+                                                                0x1404C7020};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlaylistPrevCount{
-    0x141F1E960};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlaylists{0x141F1EAD0};
+    0x141F1E960, 0x1404C70C0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlaylists{0x141F1EAD0,
+                                                             0x1404C7230};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlaylistSuperCategories{
-    0x141F1E9F0};
+    0x141F1E9F0, 0x1404C7150};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlaylistSuperCategoryID{
-    0x141F1EA20};
+    0x141F1EA20, 0x1404C7180};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPlaylistVersionNumber{
-    0x141F1EA90};
+    0x141F1EA90, 0x1404C71F0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPollNameByID{0x141FCB050};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPollValue{0x141FCB0C0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPredictedClientNum{
     0x141F5C380};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPregameItemVotes{
-    0x141F1B430};
+    0x141F1B430, 0x1404C41B0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPreReqChallengeValue{
     0x141FDBED0, 0x1404D2000};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetPrestigeByXUID{0x141FBAA80};
@@ -1316,9 +1345,9 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetScoreboardTeamClientCount{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetSearchQuery{0x141F1D080};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetSearchResults{0x141F1D0A0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetSecondsRemaining{
-    0x141FCB790};
+    0x141FCB790, 0x1404CBBE0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetSecondsRemainingServer{
-    0x141FCB830};
+    0x141FCB830, 0x1404CBC80};
 WEAK symbol<hks::lua_CFunction>
     Lua_CoD_LuaCall_GetSelectedEmblemLayerProperties{0x141FBCEE0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetSelectedGestureForHero{
@@ -1367,9 +1396,10 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetSelfGamertag{0x141FE3C50,
                                                                 0x1404D7EB0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetServerPingsReady{
     0x141F1CAC0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetServerUTCOffset{0x141FCB8D0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetServerUTCOffset{0x141FCB8D0,
+                                                                   0x1404CBD20};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetServerUTCTimeStr{
-    0x141FCB910};
+    0x141FCB910, 0x1404CBD60};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetSessionModeFromLobbyMainMode{
     0x141FE3CE0, 0x1404D7F40};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetSessionPartyPrivacy{
@@ -1413,13 +1443,15 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetTableRowCount{0x141FE3D80,
                                                                  0x1404D7FE0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetTacticalMenuItems{
     0x141F65940};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetTeamForXUID{0x141F1FF60};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetTeamForXUID{0x141F1FF60,
+                                                               0x1404C7CF0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetTeamID{0x141F659E0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetTeamIDByXUID{0x141F672D0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetTeamName{0x141FBF2A0,
                                                             0x1404CA490};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetTeamPositions{0x141FBF300};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetTeams{0x141F20050};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetTeams{0x141F20050,
+                                                         0x1404C7DE0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetTermsOfService{0x141FCBBE0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetTextureQuality{0x141FD24B0};
 WEAK symbol<hks::lua_CFunction>
@@ -1473,7 +1505,8 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetUserSafeAreaForController{
     0x141FE4350, 0x1404D82F0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetUserTier{0x141FBF7A0,
                                                             0x1404CA4F0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetUTCOffset{0x141FCBC40};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetUTCOffset{0x141FCBC40,
+                                                             0x1404CBDD0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetVolumetricQuality{
     0x141FD24F0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_GetVote{0x141FCBD90};
@@ -1546,7 +1579,8 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IncrementBGBTokensGained{
     0x141FDCEF0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IncrementBGBTokensUsed{
     0x141FDCF70};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IncrementCounter{0x141FCC0D0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IncrementCounter{0x141FCC0D0,
+                                                                 0x1404CBE80};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IncrementCurrency{0x141F20F50};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IncrementStoreTransaction{
     0x141FCC140};
@@ -1564,7 +1598,8 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_InvalidateWCItemRender{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_Is4K{0x141FE60E0, 0x1404D8440};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsACVItemNew{0x141FDD0E0,
                                                              0x1404D2C30};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsAdvertisedLobby{0x141F1C850};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsAdvertisedLobby{0x141F1C850,
+                                                                  0x1404C5580};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsAmmoBasedGadget{0x141F68DB0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsAmmoClipLow{0x141F6A6D0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsAnyACVItemNew{0x141FDD1E0,
@@ -1578,7 +1613,8 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsAnyLocalClientLeader{
     0x141F15790, 0x1404C1D00};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsAnythingInCACNew{0x141FDD2C0,
                                                                    0x1404D2E10};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsArenaMaster{0x141FCC180};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsArenaMaster{0x141FCC180,
+                                                              0x1404CBEF0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsAttachmentNew{0x141FDD360,
                                                                 0x1404D2EB0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsAttachmentRestricted{
@@ -1622,7 +1658,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsClientLoaded{0x141FCC270};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsClipboardEmblemGrouped{
     0x141FBFD60};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsClipModified{0x141F12D40,
-                                                               0x1404BF5C0};
+                                                               0x1404BF3E0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsCodtvContentLoaded{
     0x141FCC2E0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsCommandBound{0x141FE6330,
@@ -1639,9 +1675,10 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsControllerUsed{0x141FE64C0,
                                                                  0x1404D8780};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsCPInProgress{0x141FD6200,
                                                                0x1404CDC70};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsCpOwned{0x141FD2570};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsCpOwned{0x141FD2570,
+                                                          0x1404CCB50};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsCpStillDownloading{
-    0x141FD25B0};
+    0x141FD25B0, 0x1404CCB90};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsCurrentLanguageReversed{
     0x141FE6560, 0x1404D8820};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsCurrentLanguageSkuReversed{
@@ -1659,32 +1696,33 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsDedicatedServer{0x141F158C0,
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsDedicatedServerMods{
     0x141F158E0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsDemoCameraEditMode{
-    0x141F12D80, 0x1404BF600};
+    0x141F12D80, 0x1404BF420};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsDemoClipPlaying{0x141F12DC0,
-                                                                  0x1404BFA20};
+                                                                  0x1404BF460};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsDemoClipPreviewRunning{
-    0x141F12E20, 0x1404BF460};
+    0x141F12E20, 0x1404BF4C0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsDemoClipRecording{
-    0x141F12E60, 0x1404BF4C0};
+    0x141F12E60, 0x1404BF500};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsDemoDollyCamera{0x141F12EA0,
-                                                                  0x1404BF420};
+                                                                  0x1404BF540};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsDemoHighlightReelMode{
-    0x141F12EE0, 0x1404BF500};
+    0x141F12EE0, 0x1404BF580};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsDemoMovieRendering{
-    0x141F12F20, 0x1404BF580};
+    0x141F12F20, 0x1404BF5C0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsDemonwareFetchingDone{
     0x141FE6640, 0x1404D8900};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsDemoPlaying{0x141F12F60,
-                                                              0x1404BF680};
+                                                              0x1404BF600};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsDemoShoutcaster{0x141F70BE0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsDemoStreamingFinished{
-    0x141F12FA0, 0x1404BF320};
+    0x141F12FA0, 0x1404BF640};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsDevelopmentBuild{0x141F15900};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsDeviceRestrictingContent{
     0x141FD2610};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsDOAGame{0x141FE65E0,
                                                           0x1404D88A0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsDoubleXPWeekend{0x141FCC300};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsDoubleXPWeekend{0x141FCC300,
+                                                                  0x1404CBF80};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsDWAmmoClipLow{0x141F6F2F0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsEliteAvailable{0x141FCC360};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsEliteButtonAvailable{
@@ -1735,9 +1773,11 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsHiDef{0x141FE67C0,
                                                         0x1404D8A70};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsInComError{0x141F15920,
                                                              0x1404C1E30};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsInGame{0x141FCC750};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsInGame{0x141FCC750,
+                                                         0x1404CBFE0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsInputLocked{0x141FE6800};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsInRange{0x141FCC7B0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsInRange{0x141FCC7B0,
+                                                          0x1404CC020};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsInventoryBusy{0x141FAF240};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsItemAttachmentLocked{
     0x141FDDA00, 0x1404D3240};
@@ -1807,15 +1847,17 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsMigrating{0x141F7EDF0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsMouseInsideElement{
     0x141FE6A10};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsMpInitialStillDownloading{
-    0x141FD2670};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsMpOwned{0x141FD26B0};
+    0x141FD2670, 0x1404CCBD0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsMpOwned{0x141FD26B0,
+                                                          0x1404CCC10};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsMpStillDownloading{
-    0x141FD26F0};
+    0x141FD26F0, 0x1404CCC50};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsMTXAvailable{0x141F358F0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsMultiplayerGame{0x141FE6B00,
                                                                   0x1404D8C40};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsOfferPurchased{0x141F359D0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsOnboarding{0x141FCC950};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsOnboarding{0x141FCC950,
+                                                             0x1404CC1A0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsOptic{0x141FDE2B0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsOpticByAttachmentIndex{
     0x141FDE390, 0x1404D3BD0};
@@ -1841,9 +1883,10 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsPlayerInVehicle{0x141F83900};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsPlayerInvitable{0x141FE6C30,
                                                                   0x1404D8D70};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsPlayerJoinable{0x141FCCAB0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsPlayerMuted{0x141F20220};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsPlayerMuted{0x141F20220,
+                                                              0x1404C7FB0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsPlayerMutedByClientNum{
-    0x141F202C0};
+    0x141F202C0, 0x1404C8050};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsPlayerMuteToggled{
     0x141FCCB60};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsPlayerQueued{0x141FE6CF0};
@@ -1853,7 +1896,8 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsPlayerUnderage{0x141FCCB70};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsPlayerWeaponViewOnlyLinked{
     0x141F86AA0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsPlayGoEnabled{0x141FCC9D0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsPlaylistLocked{0x141F1EB40};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsPlaylistLocked{0x141F1EB40,
+                                                                 0x1404C72A0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsPlusAuthorized{0x141FD2730};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsPowerBarGadget{0x141F88370};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsPowerBasedGadget{0x141F89C90};
@@ -1881,14 +1925,16 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsRecentGameBookmarked{
     0x141FCCC80};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsReleaseBuild{0x141F15C50};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsRepositioningCameraMarker{
-    0x141F12FE0, 0x1404BF390};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsRequestingJoin{0x141F1BE70};
+    0x141F12FE0, 0x1404BF680};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsRequestingJoin{0x141F1BE70,
+                                                                 0x1404C4BA0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsRig{0x141FDE670};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsRunningUILevel{0x141FCCD10};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsScreenshotReady{0x141FCCD50};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsScrSystemActive{0x141FE6E50,
                                                                   0x1404D8EF0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsServerRunning{0x141FCCDD0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsServerRunning{0x141FCCDD0,
+                                                                0x1404CC220};
 WEAK symbol<hks::lua_CFunction>
     Lua_CoD_LuaCall_IsSharedLoadoutAvailableForClient{0x141FDE750};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsShipBuild{0x141F15C70};
@@ -1896,7 +1942,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsShoutcaster{0x141F8B5B0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsSignedIn{0x141FE6F00,
                                                            0x1404D8FA0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsSignedInToDemonware{
-    0x141FCCE10};
+    0x141FCCE10, 0x1404CC260};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsSignedInToLive{0x141FE6F70,
                                                                  0x1404D9010};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsSignedIntoPSN{0x141FD2750};
@@ -1942,8 +1988,10 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsUserGuest{0x141FCCFD0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsUsingCursor{0x141FE7180};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsUsingDemonwareAuthentication{
     0x141F15D50, 0x1404C6860};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsUsingMods{0x141FD2820};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsUsingUsermap{0x141FD2860};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsUsingMods{0x141FD2820,
+                                                            0x1404CCC90};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsUsingUsermap{0x141FD2860,
+                                                               0x1404CCCD0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsValidGadgetSlot{0x141FAD570};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsVisibilityBitSet{0x141FE71A0,
                                                                    0x1404D9140};
@@ -1964,10 +2012,11 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsYouTubeAccountChecked{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsYouTubeAccountRegistered{
     0x141FCD050};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsZmInitialStillDownloading{
-    0x141FD28A0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsZmOwned{0x141FD28E0};
+    0x141FD28A0, 0x1404CCD10};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsZmOwned{0x141FD28E0,
+                                                          0x1404CCD50};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsZmStillDownloading{
-    0x141FD2920};
+    0x141FD2920, 0x1404CCD90};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_IsZombiesGame{0x141FE8B40,
                                                               0x1404D92A0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ItemIndexHasIncentive{
@@ -1979,11 +2028,14 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ItemIndexValid{0x141FDF1B0,
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_JBMatchmakingEvent{0x141F15D70,
                                                                    0x1404C2130};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_JoinGroup{0x141F37C00};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_JoinHost{0x141F1BEB0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_JoinHost{0x141F1BEB0,
+                                                         0x1404C4BE0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_JoinPlayerSessionByXuid{
     0x141FCD070};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_JoinXUID{0x141F1C040};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_JoinXUIDExt{0x141F1C120};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_JoinXUID{0x141F1C040,
+                                                         0x1404C4D70};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_JoinXUIDExt{0x141F1C120,
+                                                            0x1404C4E50};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_KeyBinding{0x141FE8B80,
                                                            0x1404D92E0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_KickClient{0x141F15DB0,
@@ -2025,7 +2077,10 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LiveIsControllerSignedIn{
 WEAK symbol<hks::lua_CFunction>
     Lua_CoD_LuaCall_LiveMetPlayerUpdateMetPlayerList{0x141FE9060, 0x1404D9730};
 WEAK symbol<hks::lua_CFunction>
-    Lua_CoD_LuaCall_LivePlatformSessionCanProcessLaunchData{0x141F1DA30};
+    Lua_CoD_LuaCall_LivePlatformSessionCanProcessLaunchData{0x141F1DA30,
+                                                            0x1404C65E0};
+WEAK symbol<hks::lua_CFunction>
+    Lua_CoD_LuaCall_LivePlatformSessionDisableInviteHotJoin{0x0, 0x1404C6620};
 WEAK symbol<hks::lua_CFunction>
     Lua_CoD_LuaCall_LivePlatformSessionIsInviteJoinInfoAvailable{0x141F1DA90};
 WEAK symbol<hks::lua_CFunction>
@@ -2036,35 +2091,40 @@ WEAK symbol<hks::lua_CFunction>
 WEAK symbol<hks::lua_CFunction>
     Lua_CoD_LuaCall_LiveSteamLobby_AddRequestLobbyListStringFilter{0x141F1EE50};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LiveSteamLobby_GetLobbyData{
-    0x141F1EEF0};
+    0x141F1EEF0, 0x1404C76B0};
 WEAK symbol<hks::lua_CFunction>
-    Lua_CoD_LuaCall_LiveSteamLobby_GetLobbyDataForIndex{0x141F1EFA0};
+    Lua_CoD_LuaCall_LiveSteamLobby_GetLobbyDataForIndex{0x141F1EFA0,
+                                                        0x1404C7760};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LiveSteamLobby_RefreshLobbyList{
+    0x0, 0x1404C7860};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LiveSteamLobby_SetLobbyData{
-    0x141F1F0B0};
+    0x141F1F0B0, 0x1404C7870};
 WEAK symbol<hks::lua_CFunction>
-    Lua_CoD_LuaCall_LiveSteamServer_AddKvpToGameTags{0x141F1F120};
+    Lua_CoD_LuaCall_LiveSteamServer_AddKvpToGameTags{0x141F1F120, 0x1404C78E0};
 WEAK symbol<hks::lua_CFunction>
-    Lua_CoD_LuaCall_LiveSteamServer_GetGameDescription{0x141F1F190};
+    Lua_CoD_LuaCall_LiveSteamServer_GetGameDescription{0x141F1F190,
+                                                       0x1404C7950};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LiveSteamServer_GetServerName{
-    0x141F1F1F0};
+    0x141F1F1F0, 0x1404C79B0};
 WEAK symbol<hks::lua_CFunction>
-    Lua_CoD_LuaCall_LiveSteamServer_GetServerPassword{0x141F1F250};
+    Lua_CoD_LuaCall_LiveSteamServer_GetServerPassword{0x141F1F250, 0x1404C7A10};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LiveSteamServer_SetBotCount{
-    0x141F1F2B0};
+    0x141F1F2B0, 0x1404C7A70};
 WEAK symbol<hks::lua_CFunction>
-    Lua_CoD_LuaCall_LiveSteamServer_SetGameDescription{0x141F1F2F0};
+    Lua_CoD_LuaCall_LiveSteamServer_SetGameDescription{0x141F1F2F0,
+                                                       0x1404C7AB0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LiveSteamServer_SetGameTags{
-    0x141F1F330};
+    0x141F1F330, 0x1404C7AF0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LiveSteamServer_SetKeyValue{
-    0x141F1F370};
+    0x141F1F370, 0x1404C7B30};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LiveSteamServer_SetMapName{
     0x141F1F3E0, 0x1404C7BA0};
 WEAK symbol<hks::lua_CFunction>
-    Lua_CoD_LuaCall_LiveSteamServer_SetMaxPlayerCount{0x141F1F420};
+    Lua_CoD_LuaCall_LiveSteamServer_SetMaxPlayerCount{0x141F1F420, 0x1404C7BE0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LiveSteamServer_SetServerName{
-    0x141F1F460};
+    0x141F1F460, 0x1404C7C20};
 WEAK symbol<hks::lua_CFunction>
-    Lua_CoD_LuaCall_LiveSteamServer_SetServerPassword{0x141F1F4A0};
+    Lua_CoD_LuaCall_LiveSteamServer_SetServerPassword{0x141F1F4A0, 0x1404C7C60};
 WEAK symbol<hks::lua_CFunction>
     Lua_CoD_LuaCall_LiveStorageSetAllStatsNotFetched{0x141FE90C0, 0x1404D9790};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LivestreamDisableAsync{
@@ -2080,7 +2140,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LoadLeaderboard{0x141FCD310};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LoadSaveGame{0x141FE9100,
                                                              0x1404D97D0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyClearDemoInformation{
-    0x141F13020};
+    0x141F13020, 0x1404BF6C0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyClientEnd{0x141F16000,
                                                                0x1404C2380};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyClientErrorShutdown{
@@ -2100,7 +2160,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyConnectedToDedicatedHost{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyDisconnectClient{
     0x141F16200, 0x1404C2520};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyGetDemoInformation{
-    0x141F13060, 0x1404BF830};
+    0x141F13060, 0x1404BF700};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyGetReservationData{
     0x141F162B0, 0x1404C25D0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyGetSessionClients{
@@ -2114,14 +2174,15 @@ WEAK symbol<hks::lua_CFunction>
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyHostAssignMapVoteToClient{
     0x141F1D490};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyHostAssignTeamToClient{
-    0x141F20170};
+    0x141F20170, 0x1404C7F00};
 WEAK symbol<hks::lua_CFunction>
     Lua_CoD_LuaCall_LobbyHost_ClearCharacterDraftSelectionData{0x141F1B5D0,
                                                                0x14048BAE0};
 WEAK symbol<hks::lua_CFunction>
-    Lua_CoD_LuaCall_LobbyHost_ClearItemRestrictionVoteData{0x141F1B5F0};
+    Lua_CoD_LuaCall_LobbyHost_ClearItemRestrictionVoteData{0x141F1B5F0,
+                                                           0x1404C4370};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyHost_ClearPregameState{
-    0x141F1B610};
+    0x141F1B610, 0x1404C4390};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyHost_DisconnectClient{
     0x141F16900, 0x1404C2C20};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyHostEnd{0x141F164E0,
@@ -2129,11 +2190,13 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyHostEnd{0x141F164E0,
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyHostErrorShutdown{
     0x141F16580, 0x1404C28A0};
 WEAK symbol<hks::lua_CFunction>
-    Lua_CoD_LuaCall_LobbyHost_ForceClientCharacterSelection{0x141F1B630};
+    Lua_CoD_LuaCall_LobbyHost_ForceClientCharacterSelection{0x141F1B630,
+                                                            0x1404C43B0};
 WEAK symbol<hks::lua_CFunction>
-    Lua_CoD_LuaCall_LobbyHost_ForceClientEditComplete{0x141F1B6C0};
+    Lua_CoD_LuaCall_LobbyHost_ForceClientEditComplete{0x141F1B6C0, 0x1404C4440};
 WEAK symbol<hks::lua_CFunction>
-    Lua_CoD_LuaCall_LobbyHost_ForceClientRoundComplete{0x141F1B700};
+    Lua_CoD_LuaCall_LobbyHost_ForceClientRoundComplete{0x141F1B700,
+                                                       0x1404C4480};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyHostIsPrivateSession{
     0x141F165C0, 0x1404C28E0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyHostLaunchGetServerStatus{
@@ -2145,22 +2208,25 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyHostMigrateSetIndexBits{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyHostSessionSetDirty{
     0x141F16680, 0x1404C29A0};
 WEAK symbol<hks::lua_CFunction>
-    Lua_CoD_LuaCall_LobbyHost_SetAllClientsPregameState{0x141F1B740};
+    Lua_CoD_LuaCall_LobbyHost_SetAllClientsPregameState{0x141F1B740,
+                                                        0x1404C44C0};
 WEAK symbol<hks::lua_CFunction>
-    Lua_CoD_LuaCall_LobbyHost_SetClientPregamePosition{0x141F1B780};
+    Lua_CoD_LuaCall_LobbyHost_SetClientPregamePosition{0x141F1B780,
+                                                       0x1404C4500};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyHost_SetClientPregameState{
-    0x141F1B7D0};
+    0x141F1B7D0, 0x1404C4550};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyHost_SetCustomGameName{
-    0x141F1B820};
+    0x141F1B820, 0x1404C45A0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyHost_SetOfficialCustomGame{
-    0x141F1B860};
+    0x141F1B860, 0x1404C45E0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyHost_SetPregameState{
-    0x141F1B8B0};
+    0x141F1B8B0, 0x1404C4630};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyHostSetPrivateSession{
     0x141F166E0, 0x1404C2A00};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyHostStart{0x141F16750,
                                                                0x1404C2A70};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyInfoProbe{0x141F1C3C0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyInfoProbe{0x141F1C3C0,
+                                                               0x1404C50F0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyInRecovery{0x141F1D740,
                                                                 0x1404C6410};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyIsPlayerInLobby{
@@ -2169,10 +2235,14 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyIsPlayerInLobbyByGamertag{
     0x141F16A40, 0x1404C2D60};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyIsPlayerInLobbyByXuid{
     0x141F16AD0, 0x1404C2DF0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyJoinAdd{0x141F1C430};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyJoinBegin{0x141F1C5B0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyJoinCount{0x141F1C690};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyJoinFinalize{0x141F1C6E0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyJoinAdd{0x141F1C430,
+                                                             0x1404C5160};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyJoinBegin{0x141F1C5B0,
+                                                               0x1404C52E0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyJoinCount{0x141F1C690,
+                                                               0x1404C53C0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyJoinFinalize{0x141F1C6E0,
+                                                                  0x1404C5410};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyLaunchClear{0x0,
                                                                  0x1404C2E70};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyLaunchGetServerStatus{
@@ -2196,7 +2266,7 @@ WEAK symbol<hks::lua_CFunction>
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyServerRefreshLocalServers{
     0x141F136F0, 0x1404BFD90};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyUpdateDemoInformation{
-    0x141F13190, 0x1404BF6C0};
+    0x141F13190, 0x1404BF830};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LobbyVM_CallFunc{0x141F16E20,
                                                                  0x1404C3120};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_Localize{0x141FE9110,
@@ -2247,7 +2317,8 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_Mods_SetMod{0x141FE9630,
                                                             0x1404D9BC0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_Mods_SubscribeUGC{0x141FE9660,
                                                                   0x1404D98F0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_MutePlayer{0x141F20370};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_MutePlayer{0x141F20370,
+                                                           0x1404C8100};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_MutePlayerByXuid{0x141FC1B60,
                                                                  0x1404CAC40};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_NotifyPsPlus{0x141FD2960};
@@ -2286,7 +2357,7 @@ WEAK symbol<hks::lua_CFunction>
 WEAK symbol<hks::lua_CFunction>
     Lua_CoD_LuaCall_PlatformSessionClearPlayTogetherInfo{0x141F1DAF0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_PlatformSessionGetDebugInfo{
-    0x141F1DB00};
+    0x141F1DB00, 0x1404C6650};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_PlatformSessionIsTaskProgress{
     0x141F1DBF0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_PlatformSessionPCClearData{
@@ -2318,7 +2389,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_PlatformSessionPS4SetData{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_PlatformSessionPS4Update{
     0x141F1DD70};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_PlatformSessionSetDebugInfo{
-    0x141F1DD90};
+    0x141F1DD90, 0x1404C6780};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_PlatformSessionXboxClearData{
     0x141F1DE70};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_PlatformSessionXboxCreateJoin{
@@ -2359,7 +2430,7 @@ WEAK symbol<hks::lua_CFunction>
 WEAK symbol<hks::lua_CFunction>
     Lua_CoD_LuaCall_PlatformSessionXboxSetSessionVisibility{0x141F1E040};
 WEAK symbol<hks::lua_CFunction>
-    Lua_CoD_LuaCall_PlatformSessionXboxSubscribeToRTA{0x141F1E060};
+    Lua_CoD_LuaCall_PlatformSessionXboxSubscribeToRTA{0x141F1E060, 0x1404C6880};
 WEAK symbol<hks::lua_CFunction>
     Lua_CoD_LuaCall_PlatformSessionXboxSubscriptionsEnabled{0x141F1E0A0};
 WEAK symbol<hks::lua_CFunction>
@@ -2405,7 +2476,8 @@ WEAK symbol<hks::lua_CFunction>
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ProbationCheckInProbation{
     0x141FCDF30};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ProcessingAutoFill{0x141FCE000};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ProcessingJoin{0x141F1C720};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ProcessingJoin{0x141F1C720,
+                                                               0x1404C5450};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ProfileBool{0x141FE9960,
                                                             0x1404D9D80};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ProfileFloat{0x141FE99F0,
@@ -2456,7 +2528,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ReadOtherPlayerStats{
     0x141FCEB10};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_RebootGame{0x141FE9CD0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_RecordComScoreEvent{
-    0x141FCEB90};
+    0x141FCEB90, 0x1404CC2F0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_RecordContentAvailable{
     0x141FCEF30};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_RecordDailyChallengeAbandoned{
@@ -2483,7 +2555,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_RemoveItemFromInventory{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_RemoveKeyCatcherSubscriber{
     0x141FE9CE0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_RemoveLobbyClientExtracam{
-    0x141FC1C20};
+    0x141FC1C20, 0x1408782F0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ReportItemUsageTime{
     0x141FAF820};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ReportMarketingMessageViewed{
@@ -2495,23 +2567,24 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_RequestMultiLeaderboardData{
     0x141FCF6B0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ResetDvar{0x141FE9D20,
                                                           0x1404DA0F0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ResetGametypeSettings{
+    0x0, 0x1404CC690};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ResetHardwareProfileSettings{
     0x141FD2A10};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ResetThumbnail{0x141FCF990};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_RestrictVoiceChatForClient{
-    0x141F1B8F0};
+    0x141F1B8F0, 0x1404C4670};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_RetryCryptokeysDue{0x141F212C0};
 WEAK symbol<hks::lua_CFunction>
-    Lua_CoD_LuaCall_RollbackArenaPregameMatchHistory{0x141FCF9B0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_RunPlaylistRules{0x141F1EC10};
+    Lua_CoD_LuaCall_RollbackArenaPregameMatchHistory{0x141FCF9B0, 0x1404CC6A0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_RunPlaylistRules{0x141F1EC10,
+                                                                 0x1404C7370};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_RunPlaylistSettings{
-    0x141F1EC50};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SaveAndUploadClip{0x0,
-                                                                  0x1404BF9A0};
+    0x141F1EC50, 0x1404C73B0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SaveGame{0x141FE9D60,
                                                          0x1404DA130};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SaveScreenshot{0x141F13300,
-                                                               0x1404BF640};
+                                                               0x1404BF9A0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SearchForLobby{0x141F1D100};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SearchGroups{0x141F37FF0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SearchPlayerByGamertag{
@@ -2527,9 +2600,10 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SelectTaunt{0x141FDF490,
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SelectWeapon{0x141F91CC0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SendApplicationToSelectedGroup{
     0x141F380C0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SendAttachmentVote{0x141F1B940};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SendAttachmentVote{0x141F1B940,
+                                                                   0x1404C46C0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SendCharacterDraftSelection{
-    0x141F1BA00};
+    0x141F1BA00, 0x1404C4780};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SendClientHeartbeat{
     0x141F17430, 0x1404C33F0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SendClientScriptEntityNotify{
@@ -2545,22 +2619,25 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SendGroupBatchInvites{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SendGroupInvite{0x141F38150};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SendInviteByXuid{0x141FCFCA0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SendItemAttachmentVote{
-    0x141F1BA90};
+    0x141F1BA90, 0x1404C4810};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SendItemGroupAttachmentVote{
-    0x141F1BB70};
+    0x141F1BB70, 0x1404C48F0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SendItemRestrictionVote{
     0x141F1BC50};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SendItemVote{0x141F1BC60};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SendItemVote{0x141F1BC60,
+                                                             0x1404C49D0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SendMenuResponse{0x141F93860};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SendPregameEditComplete{
-    0x141F1BD20};
+    0x141F1BD20, 0x1404C4A90};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SendRecordEvent{0x141FCFD40};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SendSPReminderRecordEvent{
     0x141FCFE00};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SendVotingRecordEvent{
     0x141FCFF60};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SerializedAdrToLua{0x141FD2A80};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SessionModeIsMode{0x141FD0100};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SerializedAdrToLua{0x141FD2A80,
+                                                                   0x1404CCDD0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SessionModeIsMode{0x141FD0100,
+                                                                  0x1404CC6F0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SessionMode_IsOnlineGame{
     0x141FE9E10, 0x1404DA1E0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SessionMode_IsPublicOnlineGame{
@@ -2568,15 +2645,15 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SessionMode_IsPublicOnlineGame{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SessionMode_IsSystemlinkGame{
     0x141FE9E90, 0x1404DA260};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SessionModeSetOffline{
-    0x141FD0170};
+    0x141FD0170, 0x1404CC760};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SessionModeSetOnlineGame{
-    0x141FD01A0};
+    0x141FD01A0, 0x1404CC790};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SessionModeSetPrivate{
-    0x141FD01E0};
+    0x141FD01E0, 0x1404CC7D0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SessionModeSetSystemLink{
-    0x141FD0220};
+    0x141FD0220, 0x1404CC810};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SessionModeSetTheater{
-    0x141FD0260};
+    0x141FD0260, 0x1404CC850};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetAccountLinkViewed{
     0x141FD02A0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetActiveMenu{0x141FE9ED0,
@@ -2584,7 +2661,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetActiveMenu{0x141FE9ED0,
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetACVItemOld{0x141FDF570,
                                                               0x1404D4B90};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetArenaPregameMatchHistory{
-    0x141FD0320};
+    0x141FD0320, 0x1404CC890};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetAttachmentAsOld{0x141FDF650,
                                                                    0x1404D4C70};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetAttachmentRestrictionState{
@@ -2616,14 +2693,16 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetCurrentlyOpenedGroup{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetCustomElementScrollSpeed{
     0x141FC1CD0, 0x1404CAD90};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetDebugTimerInfo{0x141F93950};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetDvar{0x141FE9F40};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetDvar{0x141FE9F40,
+                                                        0x1404DA310};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetEmblemBackgroundAsOld{
     0x141FC1D30};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetEmblemIconAsOld{0x141FC1DA0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetEmblemIconOld{0x141FC1E10};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetExtraCamRenderPriority{
     0x141FE9FB0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetFakeDLCBits{0x141F1ECB0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetFakeDLCBits{0x141F1ECB0,
+                                                               0x1404C7410};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetFirstSelectedHeroLoadout{
     0x141FDFEB0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetFirstTimeComplete{
@@ -2678,7 +2757,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetLobbyNetworkMode{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetLobbyUIScreen{0x141F176D0,
                                                                  0x1404C3640};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetLocalClientToInactive{
-    0x141F17710, 0x1404C3680};
+    0x141F17710, 0x14005B660};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetLuiKeyCatcher{0x141FEA0A0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetModelValue{0x141FAFF10};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetMostRecentPlayedMode{
@@ -2698,9 +2777,10 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetObjectiveRotateWithEntity{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetObjectiveStencilToPartialMap{
     0x141F9D1F0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetPartyPrivacy{0x141F17790};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetPlaylistID{0x141F1ECC0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetPlaylistID{0x141F1ECC0,
+                                                              0x1404C7450};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetPlaylistPrevCount{
-    0x141F1ED00};
+    0x141F1ED00, 0x1404C7490};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetPrimaryGroup{0x141F384B0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetPrimaryGroupName{
     0x141F38500};
@@ -2867,7 +2947,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_Start3DCinematic{0x141FA1EA0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_StartLoadingCinematic{
     0x141FA1FD0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_StartPrivateLobbyMigrateTo{
-    0x141F1D1C0};
+    0x141F1D1C0, 0x1404C5EF0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_StartServer{0x141FEA4D0,
                                                             0x1404DA740};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SteamIsFamilySharing{
@@ -2925,11 +3005,12 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_StorageCreateScratch{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_StorageGetBuffer{0x141FD0ED0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_StorageGetScratchBuffer{
     0x141FD0F80};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_StorageIsFileReady{0x141FD0FF0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_StorageIsFileReady{0x141FD0FF0,
+                                                                   0x1404CC920};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_StorageReset{0x141FD10C0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_StorageWrite{0x141FD1170};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_StorePlaylistNextPrev{
-    0x141F1ED40};
+    0x141F1ED40, 0x1404C74D0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_StreamForceImage{0x141FA2110};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_StreamSetCustomClass{
     0x141FA2180};
@@ -2961,12 +3042,13 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SubmitPollVote{0x141FD1220};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SwitchCampaignMode{0x141FEADA0,
                                                                    0x1404DB010};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SwitchDemoCameraMode{
-    0x141F13340, 0x1404BF540};
+    0x141F13340, 0x1404BF9E0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SwitchDemoFreeCameraMode{
-    0x141F13380, 0x1404BF9E0};
+    0x141F13380, 0x1404BFA20};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SwitchMode{0x141FEADE0,
                                                            0x1404DB050};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SwitchPlaylists{0x141F1EDB0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SwitchPlaylists{0x141F1EDB0,
+                                                                0x1404C7540};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SwitchToInventoryWeapon{
     0x141FA2270};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SystemNeedsUpdate{0x141FEAEA0};
@@ -2984,13 +3066,14 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_TableLookupColumnNumForValue{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_TableLookupGetColumnValueForRow{
     0x141FEB670, 0x1404DB680};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_Team{0x141FC2110, 0x1404CB030};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_TeamSelection{0x141F201C0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_TeamSelection{0x141F201C0,
+                                                              0x1404C7F50};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_TEMPGameModeSetMode{
     0x141F17D50, 0x1404C3B40};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ToggleGroupAdminPrivilege{
     0x141F38800};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ToggleMuteAllButParty{
-    0x141F1C8B0};
+    0x141F1C8B0, 0x1404C55E0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_TogglePlayerMute{0x141FD13F0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_ToUpper{0x0, 0x1404DB770};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_Twitch_Get{0x141FD1460};
@@ -3009,7 +3092,8 @@ WEAK symbol<hks::lua_CFunction>
     Lua_CoD_LuaCall_UnfavoriteFileFromGroupsShowcase{0x141F38900};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UnfeatureFileFromGroupsShowcase{
     0x141F38970};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UnMutePlayer{0x141F203E0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UnMutePlayer{0x141F203E0,
+                                                             0x1404C8170};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UnpackRgba{0x141FEB7D0,
                                                            0x1404DB7E0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UnsubscribeAndFreeModel{
@@ -3022,11 +3106,13 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UpdateFeaturedCardsCRMMessage{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UpdateFriends{0x141FEB960,
                                                               0x1404DB8A0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UpdateKillcamUIModels{
-    0x141FA3D70};
+    0x141FA3D70, 0x1407CA4A0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UpdateMessages{0x141FEB9C0,
                                                                0x1404DB900};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_updateModPreviewImage{
     0x141FD2F00};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UpdateModPreviewImage{
+    0x0, 0x1404CD060};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UpdateSelectedGroupProfile{
     0x141F38A20};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UpdateStatsForQuit{0x141FD14D0};
@@ -3048,12 +3134,17 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UserData{0x141FEBA00,
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UserTestBuildPauseEvent{
     0x141FEBA50};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UsingModsInternalName{
-    0x141FD2F40};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UsingModsUgcName{0x141FD2FA0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UsingModsVersion{0x141FD3000};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UsingUsermapTitle{0x141FD3040};
+    0x141FD2F40, 0x1404CD0A0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UsingModsUgcName{0x141FD2FA0,
+                                                                 0x1404CD100};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UsingModsVersion{0x141FD3000,
+                                                                 0x1404CD160};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UsingUsermapTitle{0x141FD3040,
+                                                                  0x1404CD1A0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_usingUsermapUgcName{
     0x141FD30A0};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UsingUsermapUgcName{
+    0x0, 0x1404CD200};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_WeaponGroupHasNewItem{
     0x141FE0AE0, 0x1404D5380};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_WeaponGroupNewItemCount{
