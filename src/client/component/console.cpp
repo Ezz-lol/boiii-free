@@ -60,7 +60,6 @@ constexpr int32_t COMPLETION_HINT_MAX_HEIGHT = 8 + 14 * 11;
 
 namespace console {
 namespace {
-utils::image::object logo;
 std::atomic_bool started{false};
 std::atomic_bool terminate_runner{false};
 utils::concurrency::container<std::function<void(const std::string &message)>>
@@ -1386,15 +1385,6 @@ void sys_create_console_stub(const HINSTANCE h_instance) {
 
   ReleaseDC(*game::s_wcd::hWnd, dc);
 
-  if (logo) {
-    utils::hook::set<HWND>(game::s_wcd::codLogo,
-                           CreateWindowExA(0, "Static", nullptr, 0x5000000Eu, 5,
-                                           5, 0, 0, *game::s_wcd::hWnd,
-                                           reinterpret_cast<HMENU>(1),
-                                           h_instance, nullptr));
-    SendMessageA(*game::s_wcd::codLogo, STM_SETIMAGE, IMAGE_BITMAP, logo);
-  }
-
   utils::hook::set<HWND>(
       game::s_wcd::hwndInputLine,
       CreateWindowExA(0, "edit", nullptr, 0x50800080u, CONSOLE_MARGIN, 500, 0,
@@ -1618,10 +1608,6 @@ struct component final : generic_component {
     utils::hook::jump(game::select(0x142332C30, 0x1405976B0), queue_message);
     utils::hook::nop(game::select(0x142332C4A, 0x1405976CA),
                      2); // Print from every thread
-
-    const std::string res = utils::nt::load_resource(IMAGE_LOGO);
-    const utils::image::image img = utils::image::load_image(res);
-    logo = utils::image::create_bitmap(img);
 
     terminate_runner = false;
     load_dvar_list();
