@@ -440,7 +440,7 @@ FILE *fsopen_adjustpath(const char *FileName, const char *Mode,
     return nullptr;
   }
   std::filesystem::path path = FileName;
-  path = path::normalize_path(path);
+  path = path::normalize(path);
   const std::string path_str = path.generic_string();
   return fsopen_hook.invoke<FILE *>(path_str.c_str(), Mode, ShFlag);
 }
@@ -452,7 +452,7 @@ FILE *wfsopen_adjustpath(const wchar_t *FileName, const wchar_t *Mode,
     return nullptr;
   }
   std::filesystem::path path = FileName;
-  path = path::normalize_path(path);
+  path = path::normalize(path);
   const std::wstring path_str = path.native();
   return wfsopen_hook.invoke<FILE *>(path_str.data(), Mode, ShFlag);
 }

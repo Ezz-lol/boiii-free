@@ -130,10 +130,8 @@ luaReturnCount_e copy(lua_State *s) {
       // Third arg is boolean, and can take boolean-like string ("true"). Not
       // sure what it is for.
       if (src_path_arg && dest_path_arg) {
-        const std::filesystem::path src_path =
-            path::normalize_path(src_path_arg);
-        const std::filesystem::path dest_path =
-            path::normalize_path(dest_path_arg);
+        const std::filesystem::path src_path = path::normalize(src_path_arg);
+        const std::filesystem::path dest_path = path::normalize(dest_path_arg);
         if (std::filesystem::is_regular_file(src_path) &&
             std::filesystem::is_directory(dest_path.parent_path())) {
           std::filesystem::copy_file(src_path, dest_path);
@@ -150,7 +148,7 @@ luaReturnCount_e mkdir(lua_State *s) {
     if (lua_gettop(s) > 0 && lua_isstring(s, 1)) {
       const char *arg_path = lua_tostring(s, 1);
       if (arg_path) {
-        const std::filesystem::path path = path::normalize_path(arg_path);
+        const std::filesystem::path path = path::normalize(arg_path);
         if (!std::filesystem::exists(path)) {
           utils::io::create_directory(path);
         }
@@ -164,9 +162,9 @@ luaReturnCount_e mkdir(lua_State *s) {
 luaReturnCount_e directory_exists(lua_State *s) {
   if (lua_gettop(s) > 0 && lua_isstring(s, 1)) {
     const char *arg_path = lua_tostring(s, 1);
-    lua_pushboolean(
-        s, hksBool::from(arg_path && std::filesystem::is_directory(
-                                         path::normalize_path(arg_path))));
+    lua_pushboolean(s,
+                    hksBool::from(arg_path && std::filesystem::is_directory(
+                                                  path::normalize(arg_path))));
   } else {
     lua_pushboolean(s, hfalse);
   }
@@ -177,8 +175,8 @@ luaReturnCount_e file_exists(lua_State *s) {
   if (lua_gettop(s) > 0 && lua_isstring(s, 1)) {
     const char *arg_path = lua_tostring(s, 1);
     lua_pushboolean(
-        s, hksBool::from(arg_path && std::filesystem::exists(
-                                         path::normalize_path(arg_path))));
+        s, hksBool::from(arg_path &&
+                         std::filesystem::exists(path::normalize(arg_path))));
   } else {
     lua_pushboolean(s, hfalse);
   }
@@ -190,7 +188,7 @@ luaReturnCount_e file_size(lua_State *s) {
   if (lua_gettop(s) > 0 && lua_isstring(s, 1)) {
     const char *arg_path = lua_tostring(s, 1);
     if (arg_path) {
-      const std::filesystem::path path = path::normalize_path(arg_path);
+      const std::filesystem::path path = path::normalize(arg_path);
       if (std::filesystem::is_regular_file(path)) {
         result = std::filesystem::file_size(path);
       }
@@ -206,7 +204,7 @@ luaReturnCount_e read_file(lua_State *s) {
     if (lua_gettop(s) > 0 && lua_isstring(s, 1)) {
       const char *arg_path = lua_tostring(s, 1);
       if (arg_path) {
-        const std::filesystem::path path = path::normalize_path(arg_path);
+        const std::filesystem::path path = path::normalize(arg_path);
         if (std::filesystem::is_regular_file(path)) {
           result = utils::io::read_file(path);
         }
@@ -241,7 +239,7 @@ luaReturnCount_e write_file(lua_State *s) {
           lua_gettop(s) > 3 && lua_isboolean(s, 4) ? lua_toboolean(s, 4)
                                                    : false;
       if (arg_path && data) {
-        const std::filesystem::path path = path::normalize_path(arg_path);
+        const std::filesystem::path path = path::normalize(arg_path);
         if (std::filesystem::is_directory(path.parent_path()) &&
             !std::filesystem::is_directory(path)) {
           utils::io::write_file(path, data);
