@@ -141,6 +141,10 @@ inline void lua_pushboolean(hks::lua_State *s, hks::hksBool b) {
   s->m_apistack.top = top + 1;
 }
 
+inline void lua_pushboolean(hks::lua_State *s, bool b) {
+  return lua_pushboolean(s, hks::hksBool::from(b));
+}
+
 inline void lua_pushfunction(hks::lua_State *s, hks::lua_CFunction *func,
                              const char *name = nullptr) {
   hks::hks_pushnamedclosure(s, func, 0, name, hks::hfalse);

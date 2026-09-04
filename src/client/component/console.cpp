@@ -1521,11 +1521,13 @@ std::string concat_string_args(lua_State *s, hksInt32 firstIndex = 1) {
 luaReturnCount_e print(lua_State *s) {
 
   print(concat_string_args(s));
+  lua_pushboolean(s, htrue);
   return luaReturnCount_e::ONE;
 }
 
 luaReturnCount_e print_info(lua_State *s) {
   print_info(concat_string_args(s));
+  lua_pushboolean(s, htrue);
   return luaReturnCount_e::ONE;
 }
 
@@ -1536,21 +1538,25 @@ luaReturnCount_e print_file(lua_State *s) {
     msg += concat_string_args(s, 2);
     print_info(msg);
   }
+  lua_pushboolean(s, htrue);
   return luaReturnCount_e::ONE;
 }
 
 luaReturnCount_e print_error(lua_State *s) {
   print_error(concat_string_args(s));
+  lua_pushboolean(s, htrue);
   return luaReturnCount_e::ONE;
 }
 
 luaReturnCount_e print_warning(lua_State *s) {
   print_warning(concat_string_args(s));
+  lua_pushboolean(s, htrue);
   return luaReturnCount_e::ONE;
 }
 
 luaReturnCount_e show_external_console(lua_State *s) {
   game::sys::Sys_ShowConsole();
+  lua_pushboolean(s, htrue);
   return luaReturnCount_e::ONE;
 }
 
