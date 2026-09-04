@@ -2,7 +2,7 @@
 
 #include "core.hpp"
 #include "quake/core.hpp"
-#include "db/xasset/core.hpp"
+#include "db/xasset/xmodel.hpp"
 #include "dyn/ent.hpp"
 #include "asm.hpp"
 #include "rope.hpp"
@@ -33,32 +33,6 @@ struct TraceCheckCount {
   uint16_t global;
   uint16_t *partitions;
   uint16_t *brushes;
-};
-
-struct cplane_t {
-  vec3_t normal;
-  float dist;
-  uint8_t type;
-  uint8_t signbits;
-  uint8_t pad[2];
-};
-
-struct cbrushside_t {
-  cplane_t *plane;
-  contents_t cflags;
-  int32_t sflags;
-};
-
-struct __attribute__((aligned(16))) cbrush_t {
-  vec3_t mins;
-  contents_t contents;
-  vec3_t maxs;
-  uint32_t numsides;
-  cbrushside_t *sides;
-  contents_t axial_cflags[2][3];
-  int32_t axial_sflags[2][3];
-  uint32_t numverts;
-  vec3_t *verts;
 };
 
 struct ClipMaterial {
@@ -102,7 +76,7 @@ struct ClipInfo {
   uint32_t numMaterials;
   ClipMaterial *materials;
   uint32_t numBrushSides;
-  cbrushside_t *brushsides;
+  db::xasset::phys::cbrushside_t *brushsides;
   uint32_t leafbrushNodesCount;
   cLeafBrushNode_t *leafbrushNodes;
   uint32_t numLeafBrushes;
@@ -112,7 +86,7 @@ struct ClipInfo {
   uint32_t nuinds;
   uint32_t *uinds;
   uint32_t numBrushes;
-  cbrush_t *brushes;
+  db::xasset::phys::cbrush_t *brushes;
   Bounds *brushBounds;
   contents_t *brushContents;
 };
@@ -136,38 +110,11 @@ struct cmodel_t {
   cLeaf_t leaf;
 };
 
-struct BrushWrapper {
-  vec3_t mins;
-  contents_t contents;
-  vec3_t maxs;
-  uint32_t numsides;
-  cbrushside_t *sides;
-  contents_t axial_cflags[2][3];
-  int32_t axial_sflags[2][3];
-  uint32_t numverts;
-  vec3_t *verts;
-  cplane_t *planes;
-};
-
-struct PhysGeomInfo {
-  BrushWrapper *brush;
-  int32_t type;
-  vec3_t orientation[3];
-  vec3_t offset;
-  vec3_t halfLengths;
-};
-
-struct __attribute__((aligned(8))) PhysGeomList {
-  uint32_t count;
-  PhysGeomInfo *geoms;
-  contents_t contents;
-};
-
 struct TraceThreadInfo {
   TraceCheckCount checkcount;
-  cbrush_t *box_brush;
+  db::xasset::phys::cbrush_t *box_brush;
   cmodel_t *box_model;
-  PhysGeomList **geoms;
+  db::xasset::phys::PhysGeomList **geoms;
 };
 
 struct traceWork_t {
@@ -241,7 +188,7 @@ struct cStaticModelWritable {
 struct cStaticModel_s {
   cStaticModelWritable writable;
   uint8_t _padding02[6];
-  db::xasset::XModel *xmodel;
+  db::xasset::xmodel::XModel *xmodel;
   contents_t contents;
   vec3_t origin;
   vec3_t invScaledAxis[3];
@@ -299,7 +246,7 @@ struct clipMap_t {
   qboolean vised;
   uint8_t _padding144[4];
   MapEnts *mapEnts;
-  cbrush_t *box_brush;
+  db::xasset::phys::cbrush_t *box_brush;
   cmodel_t box_model;
   dyn::ent::DynEntityId originalDynEntCount;
   dyn::ent::DynEntityId dynEntCount[4];
@@ -311,7 +258,7 @@ struct clipMap_t {
   dyn::ent::DynEntityColl *dynEntCollList[4];
   int32_t num_constraints;
   uint8_t _padding22C[4];
-  phys::PhysConstraint *constraints;
+  db::xasset::phys::PhysConstraint *constraints;
   int32_t max_ropes;
   uint8_t _padding23C[4];
   rope::rope_t *ropes;

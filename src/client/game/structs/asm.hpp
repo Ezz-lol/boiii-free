@@ -2,7 +2,7 @@
 #include "core.hpp"
 #include "quake/core.hpp"
 #include "scr/primitives.hpp"
-#include "db/xasset/core.hpp"
+#include "db/xasset/xmodel.hpp"
 #include "weapon.hpp"
 #include "fp16.hpp"
 
@@ -722,7 +722,7 @@ struct __attribute__((aligned(8))) DObj {
   XAnimTree *tree;
   uint8_t *ikState;
   gfx::GfxSiegeAnimState **siegeAnimations;
-  db::xasset::XModel **models;
+  db::xasset::xmodel::XModel **models;
   volatile int64_t locked;
   DSkel skel;
   uint32_t hidePartBits[12];
@@ -746,7 +746,7 @@ struct __attribute__((aligned(8))) DObj {
 };
 
 struct DObjModel {
-  db::xasset::XModel *model;
+  db::xasset::xmodel::XModel *model;
   scr::ScrString_t boneName;
   uint16_t parentModel;
   bool ignoreCollision;
@@ -1051,7 +1051,7 @@ struct __attribute__((aligned(8))) ViewModelInfo {
   XAnim *anims;
   unsigned int partBits[12];
   ViewModelHand hand[2];
-  db::xasset::XModelPtr altModels[4];
+  db::xasset::xmodel::XModelPtr altModels[4];
   uint32_t numAltModels;
 };
 // Verified

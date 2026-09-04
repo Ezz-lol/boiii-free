@@ -100,8 +100,8 @@ struct ClientPlayerAttachmentInfoPool {
 
 #pragma pack(push, 1)
 struct ClientPlayerWeaponInfo {
-  db::xasset::XModel *handModel;
-  db::xasset::XModel *rocketModel;
+  db::xasset::xmodel::XModel *handModel;
+  db::xasset::xmodel::XModel *rocketModel;
   qboolean registered;
   uint8_t _padding14[4];
   weapon::Weapon weapon;

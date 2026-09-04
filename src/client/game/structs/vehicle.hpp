@@ -11,6 +11,7 @@
 #include "hk/ai.hpp"
 #include "cm.hpp"
 #include "move.hpp"
+#include "db/xasset/xmodel.hpp"
 #include <game/symbols/macros.hpp>
 #include <game/symbol.hpp>
 
@@ -240,9 +241,6 @@ PACKED(struct VehicleEngineSound {
   float params[7];
 });
 ASSERT_SIZE(VehicleEngineSound, 0x28);
-
-struct XModel; // TODO
-typedef XModel *XModelPtr;
 
 PACKED(struct VehicleEngine {
   bool simpleEngine;
@@ -674,9 +672,9 @@ PACKED(struct VehicleDef {
   float rotorArmFlapInfluence[8];
   scr::ScrString_t driverHideTag;
   scr::ScrString_t driverOtherHideTags[4];
-  XModelPtr attachmentModels[4];
+  db::xasset::xmodel::XModelPtr attachmentModels[4];
   scr::ScrString_t attachmentTags[4];
-  XModelPtr deathAttachmentModels[4];
+  db::xasset::xmodel::XModelPtr deathAttachmentModels[4];
   scr::ScrString_t deathAttachmentTags[4];
   uint32_t targetingImmunePerk;
   scr::ScrString_t targetTags[4];
@@ -684,10 +682,10 @@ PACKED(struct VehicleDef {
   vec3_t aimAssistMaxs;
   float tracerOffset[2];
   uint8_t _padding504[4];
-  XModelPtr model;
-  XModelPtr viewModel;
-  XModelPtr deathModel;
-  XModelPtr enemyModel;
+  db::xasset::xmodel::XModelPtr model;
+  db::xasset::xmodel::XModelPtr viewModel;
+  db::xasset::xmodel::XModelPtr deathModel;
+  db::xasset::xmodel::XModelPtr enemyModel;
   float modelSwapDelay;
   uint8_t _padding52C[4];
   db::xasset::FxEffectDefHandle exhaustFx;
@@ -861,7 +859,7 @@ PACKED(struct VehicleDef {
   qboolean customBool2;
   snd::SurfaceSoundDefPtr vehicleFootstepTable;
   db::xasset::SurfaceFXTableDefPtr vehicleFootstepFXTable;
-  phys::DestructibleDefPtr destructibleDef;
+  db::xasset::destructible::DestructibleDefPtr destructibleDef;
   gfx::GfxImage *tacticalModeIcon;
   float tacticalModeHeight;
   uint8_t _paddingAA4[4];
@@ -1159,7 +1157,7 @@ PACKED(struct NitrousVehicle {
   int32_t m_entnum;
   uint8_t _padding2D4[4];
   const VehicleDef *m_vehicle_def;
-  db::xasset::XModel *m_xmodel;
+  db::xasset::xmodel::XModel *m_xmodel;
   phys::rigid_body_constraint_custom_orientation *m_orientation_constraint;
   phys::rigid_body_constraint_custom_path *m_vpc;
   VehicleFlags m_flags;
@@ -1815,8 +1813,8 @@ typedef fastcallPtr_t<vehicle_proximity_data_t *(
 
 typedef fastcallPtr_t<qboolean(const move::pmove_t *pm, int, vec3_t *)>
     get_wheel;
-typedef fastcallPtr_t<const cm::PhysGeomList *(LocalClientNum_t localClientNum,
-                                               const int)>
+typedef fastcallPtr_t<const db::xasset::phys::PhysGeomList *(
+    LocalClientNum_t localClientNum, const int)>
     get_vehicle_collmap;
 
 typedef fastcallPtr_t<void(LocalClientNum_t localClientNum, const int,

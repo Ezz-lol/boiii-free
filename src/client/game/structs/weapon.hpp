@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core.hpp"
-#include "db/xasset/core.hpp"
+#include "db/xasset/xmodel.hpp"
 #include <cstdint>
 namespace game {
 namespace scr {
@@ -377,16 +377,16 @@ struct gadgetProperties_t {
 #pragma pack(pop)
 
 struct WeaponAttachmentUniqueModelInfo {
-  db::xasset::XModelPtr model;
-  db::xasset::XModelPtr modelADS;
+  db::xasset::xmodel::XModelPtr model;
+  db::xasset::xmodel::XModelPtr modelADS;
   XString tag;
   vec3_t offset;
   vec3_t rotation;
 };
 
 struct AttachmentCosmeticVariantModelInfo {
-  db::xasset::XModelPtr model;
-  db::xasset::XModelPtr modelADS;
+  db::xasset::xmodel::XModelPtr model;
+  db::xasset::xmodel::XModelPtr modelADS;
   XString tag;
   vec3_t offset;
   vec3_t rotation;
@@ -495,8 +495,8 @@ struct WeaponAttachmentUnique {
   uint8_t _padding5C[4];
   scr::ScrString_t *hideTags;
   WeaponAttachmentUniqueModelSet attachmentModelSets[2];
-  db::xasset::XModelPtr *attachViewModel;
-  db::xasset::XModelPtr *attachWorldModel;
+  db::xasset::xmodel::XModelPtr *attachViewModel;
+  db::xasset::xmodel::XModelPtr *attachWorldModel;
   const char **attachViewModelTag;
   const char **attachWorldModelTag;
   float attachViewModelOffsets[15];
@@ -1032,18 +1032,18 @@ struct WeaponDef {
   const char *szAttachmentUnique;
   const char *szOverlayName;
   const char **szXAnims;
-  game::db::xasset::XModelPtr viewModel;
-  game::db::xasset::XModelPtr viewDamagedModel1;
-  game::db::xasset::XModelPtr viewDamagedModel2;
-  game::db::xasset::XModelPtr viewDamagedModel3;
-  game::db::xasset::XModelPtr frontendModel;
+  game::db::xasset::xmodel::XModelPtr viewModel;
+  game::db::xasset::xmodel::XModelPtr viewDamagedModel1;
+  game::db::xasset::xmodel::XModelPtr viewDamagedModel2;
+  game::db::xasset::xmodel::XModelPtr viewDamagedModel3;
+  game::db::xasset::xmodel::XModelPtr frontendModel;
   scr::ScrString_t viewmodelTag;
   scr::ScrString_t persistentViewModelTag;
   scr::ScrString_t persistentWorldModelTag;
   scr::ScrString_t stowedModelTag;
   scr::ScrString_t *hideTags;
-  game::db::xasset::XModelPtr *attachViewModel;
-  game::db::xasset::XModelPtr *attachWorldModel;
+  game::db::xasset::xmodel::XModelPtr *attachViewModel;
+  game::db::xasset::xmodel::XModelPtr *attachWorldModel;
   const char **attachViewModelTag;
   const char **attachWorldModelTag;
   float attachViewModelOffsets[15];
@@ -1055,7 +1055,7 @@ struct WeaponDef {
   scr::ScrString_t worldModelTagRight;
   scr::ScrString_t worldModelTagLeft;
   bool worldModelNoTagAttach;
-  game::db::xasset::XModelPtr handModel;
+  game::db::xasset::xmodel::XModelPtr handModel;
   const char *szModeName;
   AttachmentCosmeticVariantPtr *attachmentCosmeticVariants;
   int32_t playerAnimType;
@@ -1267,16 +1267,16 @@ struct WeaponDef {
   int32_t iWeaponDamage1HitPoints;
   int32_t iWeaponDamage2HitPoints;
   int32_t iWeaponDamage3HitPoints;
-  game::db::xasset::XModelPtr worldModel;
-  game::db::xasset::XModelPtr worldModelLeft;
-  game::db::xasset::XModelPtr worldDamagedModel1;
-  game::db::xasset::XModelPtr worldDamagedModel2;
-  game::db::xasset::XModelPtr worldDamagedModel3;
-  game::db::xasset::XModelPtr stowedModel;
-  game::db::xasset::XModelPtr worldClipModel;
-  game::db::xasset::XModelPtr rocketModel;
-  game::db::xasset::XModelPtr mountedModel;
-  game::db::xasset::XModelPtr worldGlowingModel;
+  game::db::xasset::xmodel::XModelPtr worldModel;
+  game::db::xasset::xmodel::XModelPtr worldModelLeft;
+  game::db::xasset::xmodel::XModelPtr worldDamagedModel1;
+  game::db::xasset::xmodel::XModelPtr worldDamagedModel2;
+  game::db::xasset::xmodel::XModelPtr worldDamagedModel3;
+  game::db::xasset::xmodel::XModelPtr stowedModel;
+  game::db::xasset::xmodel::XModelPtr worldClipModel;
+  game::db::xasset::xmodel::XModelPtr rocketModel;
+  game::db::xasset::xmodel::XModelPtr mountedModel;
+  game::db::xasset::xmodel::XModelPtr worldGlowingModel;
   bool bShownEnemyEquip;
   bool bShownEnemyExplo;
   bool bShownRetrievable;
@@ -1801,8 +1801,8 @@ struct WeaponDef {
   float projLifetime;
   float timeToAccelerate;
   float projectileCurvature;
-  game::db::xasset::XModelPtr projectileModel;
-  game::db::xasset::XModelPtr projectileModelEnemy;
+  game::db::xasset::xmodel::XModelPtr projectileModel;
+  game::db::xasset::xmodel::XModelPtr projectileModelEnemy;
   weapProjExposion_t projExplosion;
   db::xasset::FxEffectDefHandle projExplosionEffect;
   db::xasset::FxEffectDefHandle projExplosionEffectPlayer;
@@ -2334,8 +2334,8 @@ PACKED(struct WeaponVariantDef {
   WeaponAttachmentUniquePtr *attachmentUniques;
   const char **szXAnims;
   scr::ScrString_t *hideTags;
-  db::xasset::XModelPtr *attachViewModel;
-  db::xasset::XModelPtr *attachWorldModel;
+  db::xasset::xmodel::XModelPtr *attachViewModel;
+  db::xasset::xmodel::XModelPtr *attachWorldModel;
   const char **attachViewModelTag;
   const char **attachWorldModelTag;
   float attachViewModelOffsets[15];

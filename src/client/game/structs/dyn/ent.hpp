@@ -1,10 +1,10 @@
 #pragma once
 
 #include <cstdint>
-#include "../snd/snd.hpp"
-#include "../scr/core.hpp"
-#include "../phys/core.hpp"
-#include "../gfx/core.hpp"
+#include <game/structs/snd/snd.hpp>
+#include <game/structs/scr/core.hpp>
+#include <game/structs/phys/core.hpp>
+#include <game/structs/gfx/core.hpp>
 
 namespace game {
 namespace dyn {
@@ -52,8 +52,8 @@ struct DynEntityClient {
 struct DynEntityDef {
   gfx::GfxPlacement pose;
   uint8_t _padding1C[4];
-  db::xasset::XModel *xModel;
-  db::xasset::XModel *destroyedxModel;
+  db::xasset::xmodel::XModel *xModel;
+  db::xasset::xmodel::XModel *destroyedxModel;
   uint16_t brushModel;
   uint16_t physicsBrushModel;
   uint8_t _padding34[4];
@@ -64,7 +64,7 @@ struct DynEntityDef {
   snd::SndAliasId rattleSound;
   uint8_t _padding54[4];
   db::xasset::FxEffectDefHandle splashUpFx[3];
-  phys::PhysPreset *physPreset;
+  game::db::xasset::phys::PhysPreset *physPreset;
   int16_t physConstraints[4];
   int32_t health;
   int32_t flags;

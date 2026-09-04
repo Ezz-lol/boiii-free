@@ -56,11 +56,34 @@ namespace ttf {
 struct TTFDef;
 }
 
+namespace destructible {
+struct DestructibleDef;
+typedef DestructibleDef *DestructibleDefPtr;
+} // namespace destructible
+
+namespace xmodel {
+struct XModel;
+typedef XModel *XModelPtr;
+
+struct XModelMesh;
+typedef XModelMesh *XModelMeshPtr;
+
+struct XModelAlias;
+typedef XModelAlias *XModelAliasPtr;
+
+} // namespace xmodel
+
 namespace font {
 struct FontIcon;
 struct Font_s;
 typedef Font_s Font;
 } // namespace font
+
+namespace phys {
+struct PhysPreset;
+struct PhysGeomList;
+struct PhysConstraints;
+} // namespace phys
 
 namespace world {
 struct GameWorld;
@@ -73,9 +96,6 @@ typedef RumbleInfo *RumbleInfoPtr;
 
 struct ShellshockParams;
 typedef ShellshockParams *ShellshockParamsPtr;
-
-struct DestructibleDef;
-typedef DestructibleDef *DestructibleDefPtr;
 
 struct StreamerHint;
 typedef StreamerHint *StreamerHintPtr;
@@ -238,10 +258,6 @@ ASSERT_SIZE(RawFile, 0x18);
 struct MaterialTechniqueSet;
 typedef MaterialTechniqueSet *MaterialTechniqueSetPtr;
 
-// TODO
-struct XModel;
-typedef XModel *XModelPtr;
-
 typedef const char *XString;
 
 struct Set;
@@ -315,7 +331,6 @@ struct FxElemInheritStateSample;
 struct FxElemVelStateSample;
 struct FxEffectDef;
 struct Material;
-struct XModel;
 
 typedef Material *MaterialHandle;
 
@@ -345,7 +360,7 @@ typedef Material FxMaterial;
 typedef FxMaterial *FxMaterialHandle;
 typedef MaterialHandle MaterialDeferredHandle;
 
-typedef XModel *FxModelHandle;
+typedef xmodel::XModel *FxModelHandle;
 
 typedef const FxEffectDef *FxEffectDefHandleRaw;
 
@@ -681,9 +696,6 @@ enum class MapType : uint8_t {
 struct ScriptBundle;
 typedef ScriptBundle *ScriptBundlePtr;
 
-struct XModel;
-typedef XModel *XModelPtr;
-
 struct PlayerFXTable;
 typedef PlayerFXTable *PlayerFXTablePtr;
 
@@ -801,20 +813,6 @@ ASSERT_SIZE(CustomizationColorInfo, 0x30);
 
 struct XSurface;
 typedef int32_t XPartBits[12];
-// Verified
-struct __declspec(align(4)) XModelMesh {
-  const char *name;
-  XSurface *surfs;
-  XSurfaceShared *shared;
-  XPakEntryInfo xpakEntry;
-  XPartBits partBits;
-  float avgRenderTriArea;
-  float avgCollisionTriArea;
-  uint32_t nameHash;
-  uint8_t numSurfs;
-  uint8_t lodEstimate;
-};
-ASSERT_SIZE(XModelMesh, 0x78);
 
 struct KeyValuePair {
   int32_t keyHash;
@@ -831,12 +829,12 @@ ASSERT_SIZE(KeyValuePairs, 0x18);
 
 union XAssetHeader {
   NamedXAsset *named;
-  // PhysPreset *physPreset;
-  // PhysConstraints *physConstraints;
-  // DestructibleDef *destructibleDef;
+  phys::PhysPreset *physPreset;
+  phys::PhysConstraints *physConstraints;
+  destructible::DestructibleDef *destructibleDef;
   // XAnimParts *parts;
-  // XModel *model;
-  XModelMesh *modelMesh;
+  xmodel::XModel *model;
+  xmodel::XModelMesh *modelMesh;
   // Material *material;
   // MaterialComputeShaderSet *computeShaderSet;
   MaterialTechniqueSet *techniqueSet;
@@ -902,7 +900,7 @@ union XAssetHeader {
   // BulletPenetrationTable *bulletPenetration;
   // LocDmgTable *locDmgTable;
   // AimTable *aimTable;
-  // XModelAlias *xModelAlias;
+  xmodel::XModelAlias *xModelAlias;
   // Character *character;
   // AIType *aiType;
   // PlayerCharacter *player_character;
@@ -1021,13 +1019,6 @@ struct XSurfaceShared {
 };
 #pragma pack(pop)
 
-struct XModelAlias {
-  const char *name;
-  db::xasset::XModelPtr model[50];
-};
-
-typedef XModelAlias *XModelAliasPtr;
-
 PACKED(struct LocalizeEntry {
   const char *value;
   const char *name;
@@ -1052,6 +1043,11 @@ PACKED(struct mapTableCache {
   uint8_t _padding1801[7];
 });
 ASSERT_SIZE(mapTableCache, 0x1808);
+
+struct __declspec(align(8)) Collmap {
+  phys::PhysGeomList *geomList;
+  BoneIndex boneIndex;
+};
 
 } // namespace xasset
 } // namespace db

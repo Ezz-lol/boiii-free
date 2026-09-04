@@ -245,11 +245,12 @@ template <typename Asset> struct bgCachedData {
     memset(this, 0, sizeof(std::remove_pointer_t<decltype(this)>));
   }
 };
-typedef bgCachedData<db::xasset::XModel> bgCachedModels;
+typedef bgCachedData<db::xasset::xmodel::XModel> bgCachedModels;
 typedef bgCachedData<db::xasset::RumbleInfo> bgCachedRumbles;
 typedef bgCachedData<db::xasset::ShellshockParams> bgCachedShellshocks;
 typedef bgCachedData<db::xasset::XCam> bgCachedXCams;
-typedef bgCachedData<db::xasset::DestructibleDef> bgCachedDestructibles;
+typedef bgCachedData<db::xasset::destructible::DestructibleDef>
+    bgCachedDestructibles;
 typedef bgCachedData<db::xasset::StreamerHint> bgCachedStreamerHint;
 typedef bgCachedData<db::xasset::FxEffectDefHandle> bgCachedFX;
 typedef bgCachedData<db::xasset::TagFxSet> bgCachedTagFxSet;

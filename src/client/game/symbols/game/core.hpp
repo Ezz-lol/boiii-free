@@ -50,7 +50,8 @@ WEAK symbol<level::gentity_t *(const vec3_t *origin, snd::SndAliasId alias)>
 WEAK symbol<str64_t> g_mapname{0x1579DF840, 0x14A30C300};
 WEAK symbol<int32_t(const char *string)> G_LocalizedStringIndex{0x141B7B820,
                                                                 0x1403071E0};
-WEAK symbol<db::xasset::XModel *(int32_t index)> G_GetModel{0x0, 0x140044390};
+WEAK symbol<db::xasset::xmodel::XModel *(int32_t index)> G_GetModel{
+    0x0, 0x140044390};
 WEAK symbol<int64_t()> G_RelinkAllEntities{0x0, 0x14004B460};
 WEAK symbol<void(mem::MemoryFile *memFile)> G_LoadMain{0x0, 0x140052B00};
 WEAK symbol<void(mem::MemoryFile *memFile)> G_SaveInitConfigstrings{

@@ -1,10 +1,11 @@
 #pragma once
 
 #include <cstdint>
-#include "../core.hpp"
 #include <structs/func.hpp>
-#include "../quake/core.hpp"
-#include "../db/xpak.hpp"
+#include <game/structs/core.hpp>
+#include <game/structs/quake/core.hpp>
+#include <game/structs/db/xpak.hpp>
+#include <game/structs/db/xasset/xbone.hpp>
 
 #include "HLSL.hpp"
 namespace game {
@@ -21,10 +22,12 @@ namespace db {
 namespace xasset {
 struct Material;
 struct MaterialMemory;
+struct XSurfaceShared;
+
+namespace xmodel {
 struct XModel;
 typedef XModel *XModelPtr;
-
-struct XSurfaceShared;
+} // namespace xmodel
 } // namespace xasset
 } // namespace db
 
@@ -283,7 +286,17 @@ union GfxColor {
 
 // TODO
 struct GfxLightDescription;
-struct GfxLightDef;
+
+// Verified
+struct GfxLightDef {
+  const char *name;
+  float angle;
+  float rotation;
+  HLSL::float2 offset;
+  HLSL::float2 scroll;
+  GfxImage *gfxImage;
+};
+ASSERT_SIZE(GfxLightDef, 0x28);
 
 struct GfxSkinCacheEntry {
   uint32_t frameCount;
@@ -522,7 +535,7 @@ struct GfxSkyBoxImage {
 };
 
 struct GfxSkyBox {
-  db::xasset::XModelPtr model;
+  db::xasset::xmodel::XModelPtr model;
   float rotation;
   float size;
   bool dynamicCookie;
@@ -1403,20 +1416,13 @@ struct GfxSiegeAnimEvent {
   scr::ScrString_t param;
 };
 
-struct __attribute__((aligned(4))) XBoneInfo {
-  vec3_t bounds[2];
-  vec3_t offset;
-  float radiusSquared;
-  uint8_t collmap;
-};
-
 struct __attribute__((aligned(4))) GfxSiegeAnim {
   const char *name;
   GfxSiegeAnimUncompressed *uncomp;
   GfxSiegeAnimCompressed *comp;
   GfxSiegeAnimShot *shots;
   GfxSiegeAnimEvent *events;
-  XBoneInfo bonesBounds;
+  game::db::xasset::xbone::XBoneInfo bonesBounds;
   uint32_t numBones;
   uint32_t numFrames;
   float timeScale;
@@ -1450,7 +1456,7 @@ struct GfxSiegeAnimState;
 struct GfxStaticModelDrawInst {
   vec3_t mins;
   vec3_t maxs;
-  db::xasset::XModel *model;
+  db::xasset::xmodel::XModel *model;
   uint8_t hidden;
   uint8_t noVolumeDecal;
   uint16_t modelSeed;

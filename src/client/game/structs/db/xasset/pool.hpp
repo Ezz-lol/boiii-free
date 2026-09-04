@@ -4,6 +4,8 @@
 #include <game/structs/db/xasset/world.hpp>
 #include <game/structs/db/xasset/font.hpp>
 #include <game/structs/db/xasset/ttf.hpp>
+#include <game/structs/db/xasset/xmodel.hpp>
+#include <game/structs/db/xasset/destructible.hpp>
 #include <game/structs/bg/cache.hpp>
 #include <game/structs/cm.hpp>
 namespace game {
@@ -108,12 +110,12 @@ struct XAssetEntryPool {
 
 #pragma pack(push, 1)
 struct TypedXAssetPools {
-  XAssetPool physpreset;
-  XAssetPool physconstraints;
-  XAssetPool destructibledef;
+  TypedXAssetPool<phys::PhysPreset> physpreset;
+  TypedXAssetPool<phys::PhysConstraints> physconstraints;
+  TypedXAssetPool<destructible::DestructibleDef> destructibledef;
   XAssetPool xanimparts;
-  XAssetPool xmodel;
-  TypedXAssetPool<XModelMesh> xmodelmesh;
+  TypedXAssetPool<xmodel::XModel> xmodel;
+  TypedXAssetPool<xmodel::XModelMesh> xmodelmesh;
   XAssetPool material;
   XAssetPool compute_shader_set;
   XAssetPool technique_set;
@@ -125,7 +127,7 @@ struct TypedXAssetPools {
   TypedXAssetPool<world::GameWorld> gameworld;
   XAssetPool map_ents;
   TypedXAssetPool<world::GfxWorld> gfxworld;
-  XAssetPool light_def;
+  TypedXAssetPool<gfx::GfxLightDef> light_def;
   XAssetPool lensflare_def;
   XAssetPool ui_map;
   TypedXAssetPool<font::Font> font;
@@ -157,7 +159,7 @@ struct TypedXAssetPools {
   XAssetPool player_character;
   XAssetPool aitype;
   XAssetPool character;
-  XAssetPool xmodelalias;
+  TypedXAssetPool<xmodel::XModelAlias> xmodelalias;
   TypedXAssetPool<RawFile> rawfile;
   XAssetPool stringtable;
   XAssetPool structured_table;

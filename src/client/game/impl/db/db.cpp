@@ -30,17 +30,17 @@ int32_t DB_GetXAssetTypeSize_Impl(XAssetType type) {
 
   switch (type) {
   case XAssetType::PHYSPRESET:
-    return 0x78;
+    return sizeof(phys::PhysPreset);
   case XAssetType::PHYSCONSTRAINTS:
-    return 0x690;
+    return sizeof(phys::PhysConstraints);
   case XAssetType::DESTRUCTIBLEDEF:
-    return 0x30;
+    return sizeof(destructible::DestructibleDef);
   case XAssetType::XANIMPARTS:
     return 0xF8;
   case XAssetType::XMODEL:
-    return 0x188;
+    return sizeof(xmodel::XModel);
   case XAssetType::XMODELMESH:
-    return sizeof(XModelMesh);
+    return sizeof(xmodel::XModelMesh);
   case XAssetType::MATERIAL:
     return 0x2A0;
   case XAssetType::COMPUTE_SHADER_SET:
@@ -64,7 +64,7 @@ int32_t DB_GetXAssetTypeSize_Impl(XAssetType type) {
   case XAssetType::GFXWORLD:
     return sizeof(world::GfxWorld);
   case XAssetType::LIGHT_DEF:
-    return 0x28;
+    return sizeof(gfx::GfxLightDef);
   case XAssetType::LENSFLARE_DEF:
     return 0x218;
   case XAssetType::UI_MAP:
@@ -152,7 +152,7 @@ int32_t DB_GetXAssetTypeSize_Impl(XAssetType type) {
   case XAssetType::CHARACTER:
     return 0x270;
   case XAssetType::XMODELALIAS:
-    return 0x198;
+    return sizeof(xmodel::XModelAlias);
   case XAssetType::RAWFILE:
     return sizeof(RawFile);
   case XAssetType::STRINGTABLE:

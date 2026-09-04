@@ -773,7 +773,7 @@ struct CharacterItemInfo {
   const char *assetName;
   const char *displayName;
   gfx::GfxImageHandle icon;
-  db::xasset::XModelPtr models[11];
+  db::xasset::xmodel::XModelPtr models[11];
   uint32_t accentColorCount;
   ColorOptionSet *colorOptions;
   int32_t impactType[2];
@@ -827,7 +827,7 @@ struct CharacterBodyType {
   XString frontendVignetteStruct;
   db::xasset::XCamPtr frontendVignetteXCam;
   db::xasset::XAnimPartsPtr frontendVignetteXAnim;
-  db::xasset::XModelPtr frontendVignetteWeaponModel;
+  db::xasset::xmodel::XModelPtr frontendVignetteWeaponModel;
   uint32_t kvpCount;
   scr::ScriptBundleKVP *kvpItems;
   db::xasset::PlayerSoundsTablePtr characterMovementSounds;
@@ -837,8 +837,8 @@ struct CharacterBodyType {
   db::xasset::FootstepTableDefPtr characterFootstepsNPC;
   db::xasset::FootstepTableDefPtr characterFootstepsNPCLoud;
   db::xasset::FootstepTableDefPtr characterFootstepsNPCQuiet;
-  db::xasset::XModelPtr dogtagFriendly;
-  db::xasset::XModelPtr dogTagEnemy;
+  db::xasset::xmodel::XModelPtr dogtagFriendly;
+  db::xasset::xmodel::XModelPtr dogTagEnemy;
   XString cardBackIcon;
   XString realName;
   int32_t age;
