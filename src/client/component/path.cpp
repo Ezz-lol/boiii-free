@@ -6,6 +6,7 @@
 
 #ifndef NDEBUG
 #include <utils/string.hpp>
+#endif
 
 namespace path {
 using namespace game::sys;

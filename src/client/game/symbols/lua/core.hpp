@@ -45,21 +45,17 @@ WEAK symbol<void *(void *userData, void *ptr, size_t osize, size_t nsize)>
     lua_mem_alloc{0x141F12A50, 0x1404BF0F0};
 WEAK symbol<void *(hks::lua_State *s, size_t size)> lua_newuserdata{
     0x141D53D50};
-WEAK symbol<int32_t(hks::lua_State *s)> luaopen_base{0x141D32F30, 0x1403DBDA0};
-WEAK symbol<int32_t(hks::lua_State *s)> luaopen_debug{0x141D34190, 0x1403DD000};
-WEAK symbol<int32_t(hks::lua_State *s)> luaopen_hks{0x141D34B10, 0x1403DD990};
-WEAK symbol<int32_t(hks::lua_State *s)> luaopen_io{0x141D33510, 0x1403DC380};
-WEAK symbol<int32_t(hks::lua_State *s)> luaopen_math{0x141D34070, 0x1403DCEE0};
-WEAK symbol<int32_t(hks::lua_State *s)> luaopen_os{0x141D33D20, 0x1403DCB90};
-WEAK symbol<int32_t(hks::lua_State *s)> luaopen_package{0x141D34390,
-                                                        0x1403DD200};
-WEAK symbol<int32_t(hks::lua_State *s)> luaopen_profile{0x141D341C0,
-                                                        0x1403DD030};
-WEAK symbol<int32_t(hks::lua_State *s)> luaopen_serialize{0x141D34B40,
-                                                          0x1403DD9C0};
-WEAK symbol<int32_t(hks::lua_State *s)> luaopen_string{0x141D33D50,
-                                                       0x1403DCBC0};
-WEAK symbol<int32_t(hks::lua_State *s)> luaopen_table{0x141D334E0, 0x1403DC350};
+WEAK symbol<hks::lua_CFunction> luaopen_base{0x141D32F30, 0x1403DBDA0};
+WEAK symbol<hks::lua_CFunction> luaopen_debug{0x141D34190, 0x1403DD000};
+WEAK symbol<hks::lua_CFunction> luaopen_hks{0x141D34B10, 0x1403DD990};
+WEAK symbol<hks::lua_CFunction> luaopen_io{0x141D33510, 0x1403DC380};
+WEAK symbol<hks::lua_CFunction> luaopen_math{0x141D34070, 0x1403DCEE0};
+WEAK symbol<hks::lua_CFunction> luaopen_os{0x141D33D20, 0x1403DCB90};
+WEAK symbol<hks::lua_CFunction> luaopen_package{0x141D34390, 0x1403DD200};
+WEAK symbol<hks::lua_CFunction> luaopen_profile{0x141D341C0, 0x1403DD030};
+WEAK symbol<hks::lua_CFunction> luaopen_serialize{0x141D34B40, 0x1403DD9C0};
+WEAK symbol<hks::lua_CFunction> luaopen_string{0x141D33D50, 0x1403DCBC0};
+WEAK symbol<hks::lua_CFunction> luaopen_table{0x141D334E0, 0x1403DC350};
 WEAK symbol<const char *(hks::lua_State *s, const char *fmt)> lua_pushfstring{
     0x141D53DC0};
 WEAK symbol<void(hks::lua_State *s, const char *str)> lua_pushstring{
@@ -71,8 +67,7 @@ WEAK symbol<void(hks::lua_State *s, int32_t index, const char *k)> lua_setfield{
     0x141429680, 0x1401DEA20};
 WEAK symbol<void *(hks::lua_State *s, int32_t index)> lua_touserdata{
     0x141D4F140};
-WEAK symbol<int32_t(hks::lua_State *s)> luaWrapper_finalizeUserdata{
-    0x141D53590};
+WEAK symbol<hks::lua_CFunction> luaWrapper_finalizeUserdata{0x141D53590};
 
 WEAK symbol<uint32_t(ZoneType zoneType, int32_t sliceStart, int32_t sliceLen,
                      hks::lua_State *luaState)>

@@ -245,12 +245,15 @@ luaReturnCount_e write_file(lua_State *s) {
         if (std::filesystem::is_directory(path.parent_path()) &&
             !std::filesystem::is_directory(path)) {
           utils::io::write_file(path, data);
+          lua_pushboolean(s, htrue);
+          return luaReturnCount_e::ONE;
         }
       }
     }
   } catch (...) {
   }
-  return luaReturnCount_e::NONE;
+  lua_pushboolean(s, hfalse);
+  return luaReturnCount_e::ONE;
 }
 
 class component final : public generic_component {
