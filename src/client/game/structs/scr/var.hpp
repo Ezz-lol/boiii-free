@@ -238,8 +238,10 @@ struct ScrVarValue_t {
       return resolved && resolved->type == ScrVarType::ARRAY;
     }
     case ScrVarType::STRING:
-    case ScrVarType::VECTOR: {
       return index->type == ScrVarType::INT;
+    case ScrVarType::VECTOR: {
+      return index->type == ScrVarType::INT &&
+             index->u.uintValue < vec3_t::size();
     }
     default: {
       return false;

@@ -74,9 +74,9 @@ volatile ScrVarValue_t *ScrVar_EvalVariable_Safe(volatile ScrVarValue_t *retstr,
 }
 
 utils::hook::detour ScrVar_EvalArray_hook;
-void ScrVar_EvalArray_DefaultEmpty(scriptInstance_t inst,
-                                   volatile ScrVarValue_t *value,
-                                   volatile ScrVarValue_t *index) {
+void ScrVar_EvalArray_DefaultUndefined(scriptInstance_t inst,
+                                       volatile ScrVarValue_t *value,
+                                       volatile ScrVarValue_t *index) {
   if (valid_scrvarvalue_ptr(inst, value) &&
       valid_scrvarvalue_ptr(inst, index)) {
     if (value->array_like(inst) && value->valid_index(inst, index)) {
@@ -84,11 +84,7 @@ void ScrVar_EvalArray_DefaultEmpty(scriptInstance_t inst,
       return ScrVar_EvalArray_hook.invoke<void>(inst, value, index);
     } else {
       index->u.pointerValue = 0;
-      index->type = ScrVarType::INT;
-
-      const ScrVarIndex_t allocated = ScrVar_AllocArray(inst);
-      value->type = ScrVarType::POINTER;
-      value->u.pointerValue = allocated;
+      index->type = ScrVarType::UNDEFINED;
     }
   }
 }
@@ -138,7 +134,7 @@ inline void handle_invalid_scrvars() {
   ScrVar_EvalVariable_hook.create(ScrVar_EvalVariable.get(),
                                   ScrVar_EvalVariable_Safe);
   ScrVar_EvalArray_hook.create(ScrVar_EvalArray.get(),
-                               ScrVar_EvalArray_DefaultEmpty);
+                               ScrVar_EvalArray_DefaultUndefined);
   // Fix common "cannot cast undefined to bool" error in flagsys.gsc on
   // launching usermap in private match
   ScrVar_CastBool_NonInteger_hook.create(
