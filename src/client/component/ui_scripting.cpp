@@ -86,9 +86,10 @@ bool show_unsafe_lua_dialog() {
 }
 
 namespace {
-std::unordered_map<cclosure *,
-                   std::function<arguments(const function_arguments &args)>>
-    converted_functions;
+
+typedef std::function<arguments(const function_arguments &args)>
+    convertedFunction_t;
+std::unordered_map<cclosure *, convertedFunction_t> converted_functions;
 
 utils::hook::detour ui_init_hook;
 utils::hook::detour ui_cod_init_hook;
@@ -136,7 +137,7 @@ bool execute_raw_lua(const std::string &code,
     if (load_results[0].is<function>()) {
       const arguments results = lua["pcall"](load_results);
       if (!results[0].as<bool>()) {
-        auto err = results[1].as<std::string>();
+        const std::string err = results[1].as<std::string>();
         game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                               game::consoleLabel_e::DEFAULT,
                               "^1Lua Error [%s]: %s\n", chunk_name,
@@ -176,17 +177,18 @@ int hot_reload_check_files() {
   std::vector<std::filesystem::directory_entry> changed;
 
   try {
-    for (const auto &entry :
+    for (const std::filesystem::directory_entry &entry :
          std::filesystem::recursive_directory_iterator(hot_reload_path)) {
       if (!entry.is_regular_file())
         continue;
       if (entry.path().extension() != ".lua")
         continue;
 
-      const auto path_str = entry.path().string();
-      const auto mod_time = entry.last_write_time();
+      const std::string path_str = entry.path().string();
+      const std::filesystem::file_time_type mod_time = entry.last_write_time();
 
-      auto it = hot_reload_files.find(path_str);
+      std::map<std::string, std::filesystem::file_time_type>::iterator it =
+          hot_reload_files.find(path_str);
       if (it == hot_reload_files.end()) {
         hot_reload_files[path_str] = mod_time;
         changed.push_back(entry);
@@ -312,7 +314,8 @@ bool is_local_script(const std::string &name) {
 }
 
 std::string get_root_script(const std::string &name) {
-  const auto itr = globals.loaded_scripts.find(name);
+  const std::unordered_map<std::string, std::string>::iterator itr =
+      globals.loaded_scripts.find(name);
   return (itr == globals.loaded_scripts.end()) ? std::string() : itr->second;
 }
 
@@ -335,12 +338,12 @@ const char *get_hks_type_name(const HksObjectType type) {
 bool try_stringify_with_lua(const script_value &value, std::string &out) {
   try {
     const table lua = get_globals();
-    const auto tostring_fn = lua["tostring"];
+    const table_value tostring_fn = lua["tostring"];
     if (!tostring_fn.is<function>()) {
       return false;
     }
 
-    const auto results = tostring_fn(value);
+    const arguments results = tostring_fn(value);
     if (!results.empty() && results[0].is<std::string>()) {
       out = results[0].as<std::string>();
       return true;
@@ -352,7 +355,7 @@ bool try_stringify_with_lua(const script_value &value, std::string &out) {
 }
 
 std::string stringify_print_arg(const script_value &value) {
-  const auto &raw = value.get_raw();
+  const HksObject &raw = value.get_raw();
 
   switch (raw.t) {
   case HksObjectType::TNONE:
@@ -363,7 +366,7 @@ std::string stringify_print_arg(const script_value &value) {
     return raw.v.boolean ? "true" : "false";
 
   case HksObjectType::TNUMBER: {
-    const auto number = raw.v.number;
+    const HksNumber number = raw.v.number;
     if (std::isfinite(number) && std::floor(number) == number) {
       return utils::string::va("%.0f", number);
     }
@@ -427,7 +430,7 @@ void print_error(const std::string &error) {
                         game::consoleLabel_e::DEFAULT,
                         "^1**********************************************\n");
 
-  auto popup_msg = error;
+  const std::string popup_msg = error;
   scheduler::once(
       [popup_msg] {
         UI_OpenErrorPopupWithMessage(game::LOCAL_CLIENT_0, game::errorCode::UI,
@@ -454,8 +457,9 @@ int load_buffer(const std::string &name, const std::string &data) {
       state->m_global->m_bytecodeSharingMode;
   state->m_global->m_bytecodeSharingMode = HksBytecodeSharingMode::ON;
 
-  const auto _0 = utils::finally(
-      [&] { state->m_global->m_bytecodeSharingMode = sharing_mode; });
+  auto _0 = utils::finally([state, sharing_mode] {
+    state->m_global->m_bytecodeSharingMode = sharing_mode;
+  });
 
   HksCompilerSettings compiler_settings{};
   return hksi_hksL_loadbuffer(state, &compiler_settings, data.data(),
@@ -539,8 +543,9 @@ void setup_functions() {
 
   lua["game"]["getfriend"] =
       function(convert_function([](int index) -> table {
-                 auto f = friends::get_friend_by_index(index);
-                 auto t = table();
+                 const friends::friend_entry f =
+                     friends::get_friend_by_index(index);
+                 table t = table();
                  t.set("steam_id", utils::string::va("%llu", f.steam_id));
                  t.set("name", std::string(f.name));
                  t.set("status", static_cast<int>(f.state));
@@ -691,7 +696,8 @@ void setup_functions() {
   // HTTP functions
   lua["game"]["httpget"] =
       function(convert_function([](const std::string &url) -> std::string {
-                 const auto result = utils::http::get_data(url);
+                 const std::optional<std::string> result =
+                     utils::http::get_data(url);
                  return result.value_or("");
                }),
                HksObjectType::TCFUNCTION);
@@ -699,7 +705,8 @@ void setup_functions() {
   lua["game"]["httppost"] =
       function(convert_function([](const std::string &url,
                                    const std::string &body) -> std::string {
-                 const auto result = utils::http::post_data(url, body);
+                 const std::optional<std::string> result =
+                     utils::http::post_data(url, body);
                  return result.value_or("");
                }),
                HksObjectType::TCFUNCTION);
@@ -737,7 +744,7 @@ void setup_functions() {
 
   lua["game"]["getclientoverridename"] = function(
       convert_function([](const int32_t client_num) -> std::string {
-        const auto cn = static_cast<game::ClientNum_t>(client_num);
+        const game::ClientNum_t cn = static_cast<game::ClientNum_t>(client_num);
         if (!game::valid_client_num(cn) || !name::has_name_override(cn)) {
           return "";
         }
@@ -748,7 +755,8 @@ void setup_functions() {
 
   lua["game"]["getclientoverridetag"] =
       function(convert_function([](const int32_t client_num) -> std::string {
-                 const auto cn = static_cast<game::ClientNum_t>(client_num);
+                 const game::ClientNum_t cn =
+                     static_cast<game::ClientNum_t>(client_num);
                  if (!game::valid_client_num(cn) ||
                      !name::has_clan_abbrev_override(cn)) {
                    return "";
@@ -771,8 +779,9 @@ void setup_functions() {
 
   lua["game"]["getrawserverinfo"] =
       function(convert_function([](const int32_t index) -> table {
-                 auto t = table();
-                 const auto *item = steam::get_raw_internet_server_item(index);
+                 table t = table();
+                 const steam::gameserveritem_t *item =
+                     steam::get_raw_internet_server_item(index);
                  if (!item) {
                    return t;
                  }
@@ -787,9 +796,9 @@ void setup_functions() {
                  t.set("password", item->m_bPassword);
                  t.set("secure", item->m_bSecure);
 
-                 const auto tags = std::string(item->m_szGameTags);
+                 const std::string tags = std::string(item->m_szGameTags);
                  const auto get_tag = [&](const char *key) -> std::string {
-                   const auto *val =
+                   const char *val =
                        game::info::Info_ValueForKey(tags.c_str(), key);
                    return val ? val : "";
                  };
@@ -803,8 +812,8 @@ void setup_functions() {
                  t.set("rounds", std::atoi(get_tag("rounds").c_str()));
                  t.set("modName", get_tag("modName"));
 
-                 const auto ip = item->m_NetAdr.m_unIP;
-                 const auto port = item->m_NetAdr.m_usConnectionPort;
+                 const uint32_t ip = item->m_NetAdr.m_unIP;
+                 const uint16_t port = item->m_NetAdr.m_usConnectionPort;
                  t.set("connectAddr",
                        utils::string::va("%u.%u.%u.%u:%u", (ip >> 24) & 0xFF,
                                          (ip >> 16) & 0xFF, (ip >> 8) & 0xFF,
@@ -1217,13 +1226,13 @@ luaReturnCount_e main_handler(lua_State *state) {
     return luaReturnCount_e::NONE;
   }
 
-  const auto &function = converted_functions[closure];
+  const convertedFunction_t &function = converted_functions[closure];
 
   try {
-    const auto args = get_return_values();
-    const auto results = function(args);
+    const arguments args = get_return_values();
+    const arguments results = function(args);
 
-    for (const auto &result : results) {
+    for (const script_value &result : results) {
       push_value(result);
     }
 
@@ -1246,14 +1255,15 @@ namespace {
 thread_local char getinfo_name_buf[256]{};
 thread_local char getinfo_source_buf[512]{};
 
-const char *resolve_c_function_name(uintptr_t c_func_ptr) {
-  if (!c_func_ptr || game::is_server())
-    return nullptr;
-  uintptr_t list_head = *reinterpret_cast<uintptr_t *>(0x14365C5E0_g);
-  while (list_head) {
-    if (*reinterpret_cast<uintptr_t *>(list_head + 0x8) == c_func_ptr)
-      return *reinterpret_cast<const char **>(list_head);
-    list_head = *reinterpret_cast<uintptr_t *>(list_head + 0x18);
+const char *resolve_c_function_name(lua_CFunction *c_func_ptr) {
+  if (c_func_ptr) {
+    for (EngineDependentLuaEngineFunction func =
+             *api::LuaEngineFunctionListTail;
+         func; func = func.next()) {
+      if (func.func() == c_func_ptr) {
+        return func.name();
+      }
+    }
   }
   return nullptr;
 }
@@ -1262,7 +1272,8 @@ const char *resolve_source_from_rawfiles(uintptr_t bytecode_header) {
   if (!bytecode_header)
     return nullptr;
 
-  auto it = rawfile_source_cache.find(bytecode_header);
+  const std::unordered_map<uintptr_t, std::string>::iterator it =
+      rawfile_source_cache.find(bytecode_header);
   if (it != rawfile_source_cache.end()) {
     return it->second.empty() ? nullptr : it->second.c_str();
   }
@@ -1292,14 +1303,17 @@ const char *resolve_source_from_rawfiles(uintptr_t bytecode_header) {
 
 int hksi_lua_getinfo_stub(lua_State *s, const char *what, lua_Debug *ar) {
   const int32_t result = hksi_lua_getinfo_detour.invoke<int32_t>(s, what, ar);
-  if (!result || !s || !ar)
+  if (!result || !s || !ar) {
     return result;
-  if (!what || !strchr(what, 'n'))
+  }
+  if (!what || !strchr(what, 'n')) {
     return result;
+  }
 
   CallStack *callstack = &s->m_callStack;
-  if (!callstack->m_records || !callstack->m_current)
+  if (!callstack->m_records || !callstack->m_current) {
     return result;
+  }
 
   const int32_t stack_level = ar->callstack_level;
   const int32_t num_records =
@@ -1309,64 +1323,57 @@ int hksi_lua_getinfo_stub(lua_State *s, const char *what, lua_Debug *ar) {
 
   HksObject *func_obj = nullptr;
   if (stack_level >= num_records) {
-    if (s->m_apistack.bottom)
+    if (s->m_apistack.bottom) {
       func_obj = s->m_apistack.bottom - 1;
+    }
   } else if (stack_level + 1 <= num_records) {
     CallStack::ActivationRecord *next_record =
         &callstack->m_records[stack_level + 1];
-    if (next_record->m_base)
+    if (next_record->m_base) {
       func_obj = next_record->m_base - 1;
+    }
   }
 
-  if (!func_obj)
+  if (!func_obj) {
     return result;
+  }
 
   const HksObjectType obj_type = func_obj->t;
-  const uintptr_t obj_value = reinterpret_cast<uintptr_t>(func_obj->v.cClosure);
-  if (!obj_value)
+  const HksValue obj_value = func_obj->v;
+  if (!obj_value.cClosure) {
     return result;
+  }
 
   if (obj_type == HksObjectType::TCFUNCTION) {
-    uintptr_t c_func_ptr = *reinterpret_cast<uintptr_t *>(obj_value + 16);
-    const char *resolved = resolve_c_function_name(c_func_ptr);
-    if (resolved && resolved[0])
+    const char *resolved =
+        resolve_c_function_name(obj_value.cClosure->m_function);
+    if (resolved && resolved[0]) {
       ar->name = resolved;
-    else if (!ar->name || !ar->name[0])
+    } else if (!ar->name || !ar->name[0]) {
       ar->name = "(luaC_unknown)";
+    }
   } else if (obj_type == HksObjectType::TIFUNCTION) {
-    uintptr_t proto = *reinterpret_cast<uintptr_t *>(obj_value + 16);
+    Method *proto = obj_value.closure->m_method;
     if (proto) {
-      uint32_t m_hash = *reinterpret_cast<uint32_t *>(proto + 16);
-      uint8_t m_numParams = *reinterpret_cast<uint8_t *>(proto + 0x18);
-      uintptr_t m_debug = *reinterpret_cast<uintptr_t *>(proto + 80);
 
-      bool name_fixed = false;
-      if (m_debug) {
-        uintptr_t debug_name_ptr = *reinterpret_cast<uintptr_t *>(m_debug + 48);
-        if (debug_name_ptr) {
-          ar->name = reinterpret_cast<const char *>(debug_name_ptr + 20);
-          name_fixed = true;
-        }
-      }
-
-      if (!name_fixed && m_hash &&
-          (!ar->name || strcmp(ar->name, "(*stripped)") == 0 || !ar->name[0])) {
+      if (proto->m_debug && proto->m_debug->name) {
+        ar->name = proto->m_debug->name->m_data;
+      } else if (proto->hash &&
+                 (!ar->name || strcmp(ar->name, "(*stripped)") == 0 ||
+                  !ar->name[0])) {
         snprintf(getinfo_name_buf, sizeof(getinfo_name_buf), "func_%X(%d)",
-                 m_hash, m_numParams);
+                 proto->hash, proto->num_params);
         ar->name = getinfo_name_buf;
       }
 
-      uintptr_t pc = 0;
-      if (!game::is_server()) {
-        using getPC_t = fastcallPtr_t<uintptr_t, lua_State *, lua_Debug *>;
-        getPC_t fn_getPC = reinterpret_cast<getPC_t>(0x141D46310_g);
-        pc = fn_getPC(s, ar);
-      }
+      const hksInstruction *pc = getPC(s, ar);
 
       const char *resolved_source = nullptr;
       if (pc) {
-        uintptr_t scan = pc & ~static_cast<uintptr_t>(0xF);
+        uintptr_t scan =
+            reinterpret_cast<uintptr_t>(pc) & ~static_cast<uintptr_t>(0xF);
         for (int i = 0; i < 0x10000; i++, scan -= 0x10) {
+          // Scan for bytecode magic
           if (*reinterpret_cast<uint32_t *>(scan) == 0x61754C1B) {
             resolved_source = resolve_source_from_rawfiles(scan);
             break;

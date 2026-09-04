@@ -305,32 +305,49 @@ struct InternString : GenericChunkHeader {
 };
 #pragma pack(pop)
 
-#pragma pack(push, 1)
-struct Method : ChunkHeader {
-
+PACKED(struct Method : ChunkHeader {
   template <typename T> struct Array {
     hksUint32 size;
     uint8_t _padding04[4];
-    const T *data;
+    T *data;
   };
-  typedef Array<hksInstruction> Instructions;
+  struct LocalInfo {
+    hks::InternString *name;
+    hksInt32 start_pc;
+    hksInt32 end_pc;
+  };
+
+  typedef Array<hksUint32> LineInfo;
+  typedef Array<hks::InternString *> UpValueInfo;
+  typedef Array<LocalInfo> Locals;
+  typedef Array<const hksInstruction> Instructions;
   typedef Array<HksObject> Constants;
   typedef Array<Method *> Children;
+
+  struct DebugInfo {
+    hksUint32 line_defined;
+    hksUint32 last_line_defined;
+    LineInfo lineInfo;
+    UpValueInfo upvalInfo;
+    hks::InternString *source;
+    hks::InternString *name;
+    Locals localInfo;
+  };
+
   hksUint32 hash;
   hksUshort16 num_upvals;
   hksUshort16 m_numRegisters;
   hksByte num_params;
   hksByte m_flags;
-  Method::Instructions instructions;
-  Method::Constants constants;
-  Method::Children children;
-};
+  uint8_t _padding1A[6];
+  Instructions instructions;
+  Constants constants;
+  Children children;
+  DebugInfo *m_debug;
+});
+ASSERT_SIZE(Method, 0x58);
 
-#pragma pack(pop)
-
-#pragma pack(push, 1)
-
-struct HksClosure : ChunkHeader {
+PACKED(struct HksClosure : ChunkHeader {
   struct MethodCache {
     const HksObject *consts;
     const hksInstruction *inst;
@@ -345,8 +362,7 @@ struct HksClosure : ChunkHeader {
   MethodCache m_cache;
   uint8_t _padding35[3];
   UpValue *m_upvalues[1];
-};
-#pragma pack(pop)
+});
 
 // Only ever declared. Intentionally, correctly undefined.
 struct StructInst;

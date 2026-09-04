@@ -68,6 +68,9 @@ WEAK symbol<void(hks::lua_State *s, int32_t index, const char *k)> lua_setfield{
 WEAK symbol<void *(hks::lua_State *s, int32_t index)> lua_touserdata{
     0x141D4F140};
 WEAK symbol<hks::lua_CFunction> luaWrapper_finalizeUserdata{0x141D53590};
+WEAK symbol<const hks::hksInstruction *(hks::lua_State *s,
+                                        const hks::lua_Debug *db)>
+    getPC{0x141D46310, 0x1403EEF10};
 
 WEAK symbol<uint32_t(ZoneType zoneType, int32_t sliceStart, int32_t sliceLen,
                      hks::lua_State *luaState)>

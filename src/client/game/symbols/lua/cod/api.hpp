@@ -3083,6 +3083,8 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_XuidIsValid{0x141F17E00,
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_XUIDToGamertag{0x141FD3F50};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_YouTube_Get{0x141FD1950};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_YouTube_Set{0x141FD1970};
+WEAK symbol<EngineDependentLuaEngineFunction> LuaEngineFunctionListTail{
+    0x159C76D80, 0x149114E60};
 } // namespace api
 } // namespace cod
 } // namespace lua
