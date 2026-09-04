@@ -1,5 +1,6 @@
 #include <std_include.hpp>
 #include <loader/component_loader.hpp>
+#include "component/path.hpp"
 #include "scheduler.hpp"
 
 #include <game/game.hpp>
@@ -432,6 +433,30 @@ utils::hook::detour SND_HashName_hook;
 
 utils::hook::detour tlAtomicMutex_Lock_hook;
 
+utils::hook::detour fsopen_hook;
+FILE *fsopen_adjustpath(const char *FileName, const char *Mode,
+                        int32_t ShFlag) {
+  if (!FileName) {
+    return nullptr;
+  }
+  std::filesystem::path path = FileName;
+  path = path::normalize_path(path);
+  const std::string path_str = path.generic_string();
+  return fsopen_hook.invoke<FILE *>(path_str.c_str(), Mode, ShFlag);
+}
+
+utils::hook::detour wfsopen_hook;
+FILE *wfsopen_adjustpath(const wchar_t *FileName, const wchar_t *Mode,
+                         int32_t ShFlag) {
+  if (!FileName) {
+    return nullptr;
+  }
+  std::filesystem::path path = FileName;
+  path = path::normalize_path(path);
+  const std::wstring path_str = path.native();
+  return wfsopen_hook.invoke<FILE *>(path_str.data(), Mode, ShFlag);
+}
+
 struct component final : generic_component {
   void post_unpack() override {
 
@@ -474,6 +499,8 @@ struct component final : generic_component {
 
     utils::hook::jump(game::select(0x141A7BCF0, 0x1402CB900),
                       scr_get_num_expected_players, true);
+    fsopen_hook.create(game::fs::fsopen, fsopen_adjustpath);
+    wfsopen_hook.create(game::fs::wfsopen, wfsopen_adjustpath);
 
 #ifndef NDEBUG
     PhysPrint_hook.create(game::phys::PhysPrint, PhysPrint_AllOutputs);

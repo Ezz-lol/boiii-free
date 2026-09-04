@@ -18,5 +18,10 @@ WEAK symbol<const char *(char *final, size_t finalLen, const char *a,
                          const char *b)>
     FS_JoinPath{0x1422A3B50, 0x1405641D0};
 
+WEAK symbol<FILE *(const char *FileName, const char *Mode, int32_t ShFlag)>
+    fsopen{0x142C3C654, 0x140AB5B44};
+WEAK
+    symbol<FILE *(const wchar_t *FileName, const wchar_t *Mode, int32_t ShFlag)>
+        wfsopen{0x142C4B628, 0x140AC7808};
 } // namespace fs
 } // namespace game

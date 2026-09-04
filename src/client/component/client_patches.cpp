@@ -80,15 +80,15 @@ MMRESULT mixer_open_stub() { return MMSYSERR_NODRIVER; }
 bool is_mod_loaded_stub() { return false; }
 
 void patch_is_mod_loaded_checks() {
-  const std::vector<uintptr_t> is_mod_loaded_addresses = {
-      0x1420F7484_g, 0x1420F74A4_g, 0x1420F73E4_g, 0x1420F73B4_g, 0x1420F6E57_g,
-      0x1413E6A54_g, 0x1415E7EBB_g, 0x1415E87BB_g, 0x1415EBAC9_g, 0x1415F1F09_g,
-      0x1415F1FB9_g, 0x1415F2080_g, 0x1415F7F40_g, 0x141A8D0ED_g, 0x141AA70F9_g,
-      0x141EA06FB_g, 0x141EA8C7E_g, 0x141EB1A39_g, 0x141ECBA9D_g, 0x1420F6E1D_g,
+  static constexpr uintptr_t is_mod_loaded_addresses[] = {
+      0x1420F7484, 0x1420F74A4, 0x1420F73E4, 0x1420F73B4, 0x1420F6E57,
+      0x1413E6A54, 0x1415E7EBB, 0x1415E87BB, 0x1415EBAC9, 0x1415F1F09,
+      0x1415F1FB9, 0x1415F2080, 0x1415F7F40, 0x141A8D0ED, 0x141AA70F9,
+      0x141EA06FB, 0x141EA8C7E, 0x141EB1A39, 0x141ECBA9D, 0x1420F6E1D,
   };
 
-  for (const auto &address : is_mod_loaded_addresses) {
-    utils::hook::call(address, is_mod_loaded_stub);
+  for (const uintptr_t &address : is_mod_loaded_addresses) {
+    utils::hook::call(game::relocate(address), is_mod_loaded_stub);
   }
 }
 
