@@ -22,6 +22,17 @@ const std::filesystem::path &mods_directory();
 
 const std::filesystem::path &lpc_directory();
 
+inline std::filesystem::path part(const std::filesystem::path &p,
+                                  size_t partIdx) {
+  return partIdx == 0 ? *p.begin() : *std::next(p.begin(), partIdx);
+}
+
+std::filesystem::path strip_parts(const std::filesystem::path &p, size_t count);
+
+inline size_t part_count(const std::filesystem::path &path) {
+  return std::distance(path.begin(), path.end());
+}
+
 // Assumes both paths have already been canonicalized prior to call
 inline bool has_parent(const std::filesystem::path &child,
                        const std::filesystem::path &base) {

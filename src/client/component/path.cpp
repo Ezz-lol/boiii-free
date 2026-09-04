@@ -72,6 +72,23 @@ bool reparent(std::filesystem::path &path, const std::filesystem::path &current,
   return false;
 }
 
+std::filesystem::path strip_parts(const std::filesystem::path &p,
+                                  size_t count) {
+  if (p.empty() || p.begin() == p.end()) {
+    return {};
+  }
+
+  std::filesystem::path::iterator it = p.begin();
+  std::advance(it, count);
+
+  std::filesystem::path result;
+  for (; it != p.end(); ++it) {
+    result /= *it; // Append each subsequent part
+  }
+
+  return result;
+}
+
 bool try_replace_workshop_root(std::filesystem::path &path) {
   if (!have_steam_workshop_content_directory()) {
 
@@ -80,7 +97,11 @@ bool try_replace_workshop_root(std::filesystem::path &path) {
         std::filesystem::relative(path, steam_workshop_content_directory());
     // Check if path is a child of the Steam workshop content directory
     if (!rel.empty() && rel.native()[0] != '.') {
-      const std::filesystem::path in_usermaps_tree = usermaps_directory() / rel;
+      const std::filesystem::path rel_zone_parented =
+          part_count(rel) == 1 ? std::move(rel) / "zone"
+                               : part(rel, 0) / "zone" / strip_parts(rel, 1);
+      const std::filesystem::path in_usermaps_tree =
+          usermaps_directory() / rel_zone_parented;
 
       if (std::filesystem::exists(in_usermaps_tree)) {
         path = in_usermaps_tree;
@@ -88,7 +109,7 @@ bool try_replace_workshop_root(std::filesystem::path &path) {
       }
 
       const std::filesystem::path in_mods_tree =
-          mods_directory() / std::move(rel);
+          mods_directory() / std::move(rel_zone_parented);
       if (std::filesystem::exists(in_mods_tree)) {
         path = in_mods_tree;
         return true;
