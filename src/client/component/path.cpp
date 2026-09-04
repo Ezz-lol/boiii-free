@@ -12,14 +12,36 @@ namespace path {
 using namespace game::sys;
 using namespace game::fs;
 
+std::filesystem::path cwd() { return std::filesystem::path(Sys_Cwd()); }
+
 std::filesystem::path players_directory() {
-  return std::filesystem::weakly_canonical(std::filesystem::path(Sys_Cwd()) /
-                                           "players");
+  static const std::filesystem::path path =
+      std::filesystem::weakly_canonical(cwd() / "players");
+  return path;
 }
 
 std::filesystem::path boiii_players_directory() {
-  return std::filesystem::weakly_canonical(std::filesystem::path(Sys_Cwd()) /
-                                           "boiii_players");
+  static const std::filesystem::path path =
+      std::filesystem::weakly_canonical(cwd() / "boiii_players");
+  return path;
+}
+
+std::filesystem::path steam_workshop_content_directory() {
+  static const std::filesystem::path path = std::filesystem::weakly_canonical(
+      cwd() / "../../workshop/content" / game::APP_ID_STR);
+  return path;
+}
+
+std::filesystem::path usermaps_directory() {
+  static const std::filesystem::path path =
+      std::filesystem::weakly_canonical(cwd() / "usermaps");
+  return path;
+}
+
+std::filesystem::path mods_directory() {
+  static const std::filesystem::path path =
+      std::filesystem::weakly_canonical(cwd() / "mods");
+  return path;
 }
 
 bool is_subpath(const std::filesystem::path &child,
@@ -55,6 +77,23 @@ void set_root_replacements() {
   root_replacements.push_back({players_directory(), boiii_players_directory()});
 }
 
+std::filesystem::path
+try_replace_workshop_root(const std::filesystem::path &path) {
+  if (!std::filesystem::exists(steam_workshop_content_directory()) &&
+      is_subpath(path, steam_workshop_content_directory())) {
+    const std::filesystem::path with_usermaps_root = replace_root(
+        path, steam_workshop_content_directory(), usermaps_directory());
+    if (std::filesystem::exists(with_usermaps_root)) {
+      return with_usermaps_root;
+    }
+
+    return replace_root(path, steam_workshop_content_directory(),
+                        mods_directory());
+  }
+
+  return path;
+}
+
 std::filesystem::path normalize_path(const std::filesystem::path &path) {
   std::call_once(root_replacements_flag, set_root_replacements);
 
@@ -63,6 +102,8 @@ std::filesystem::path normalize_path(const std::filesystem::path &path) {
   for (const auto &[root, replacement] : root_replacements) {
     canonicalized = replace_root(canonicalized, root, replacement);
   }
+
+  canonicalized = try_replace_workshop_root(canonicalized);
 
 #ifndef NDEBUG
   const std::string path_str = utils::string::convert(path.native());
