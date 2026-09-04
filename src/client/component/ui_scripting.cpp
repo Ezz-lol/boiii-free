@@ -1140,6 +1140,7 @@ template <size_t Key> void hook_unsafe_function(size_t address) {
 
 #define HOOK_UNSAFE_FUNCTION(addr) hook_unsafe_function<addr>(addr##_g)
 
+namespace exec {
 constexpr frozen::string BLACKLISTED_COMMANDS_ARRAY[] = {"quit"};
 constexpr frozen::unordered_set<frozen::string,
                                 std::size(BLACKLISTED_COMMANDS_ARRAY)>
@@ -1147,8 +1148,28 @@ constexpr frozen::unordered_set<frozen::string,
         frozen::make_unordered_set<frozen::string,
                                    std::size(BLACKLISTED_COMMANDS_ARRAY)>(
             BLACKLISTED_COMMANDS_ARRAY);
-utils::hook::detour Lua_CoD_LuaCall_OpenURL_hook;
-utils::hook::detour Lua_CoD_LuaCall_Exec_hook;
+
+typedef fastcall_t<void(game::ControllerIndex_t controllerIndex,
+                        const char *cmd)>
+    execHandler_t;
+__inline_def void exec_handler(game::ControllerIndex_t controllerIndex,
+                               const char *cmd) {
+  const game::LocalClientNum_t localClientNum =
+      game::com::Com_ControllerIndex_GetLocalClientNum(controllerIndex);
+
+  game::cbuf::Cbuf_AddText(localClientNum, cmd);
+  game::cbuf::Cbuf_AddText(localClientNum, "\n");
+}
+
+__inline_def void execnow_handler(game::ControllerIndex_t controllerIndex,
+                                  const char *cmd) {
+  const game::LocalClientNum_t localClientNum =
+      game::com::Com_ControllerIndex_GetLocalClientNum(controllerIndex);
+
+  game::cbuf::Cbuf_ExecuteBuffer(localClientNum, controllerIndex, cmd);
+}
+
+template <ConstString Func, execHandler_t &ExecHandler>
 luaReturnCount_e Lua_CoD_LuaCall_Exec_DisableBlacklisted(lua_State *luaVM) {
   if (lua_gettop(luaVM) == 2) {
     if (lua_isstring(luaVM, 2)) {
@@ -1158,19 +1179,16 @@ luaReturnCount_e Lua_CoD_LuaCall_Exec_DisableBlacklisted(lua_State *luaVM) {
               : game::com::Com_ControllerIndexes_GetPrimary();
       const char *cmd = lua_tostring(luaVM, 2);
 
-      if (cmd && !BLACKLISTED_COMMANDS.contains(std::string_view(cmd))) {
-        const game::LocalClientNum_t localClientNum =
-            game::com::Com_ControllerIndex_GetLocalClientNum(controllerIndex);
-
-        game::cbuf::Cbuf_AddText(localClientNum, cmd);
-        game::cbuf::Cbuf_AddText(localClientNum, "\n");
-      }
+      if (cmd) {
+        std::string_view cmd_view = std::string_view(cmd);
+        if (!BLACKLISTED_COMMANDS.contains(utils::string::trim(cmd_view))) {
+          ExecHandler(controllerIndex, cmd);
+        }
 #ifndef NDEBUG
-      else if (cmd) {
-        game::trace(
-            "[Lua][Exec] Blocked execution of blacklisted command \"%s\"", cmd);
-      }
+        game::trace("[Lua][%s] Blocked execution of blacklisted command \"%s\"",
+                    Func, cmd);
 #endif
+      }
     } else {
       hksi_luaL_error(luaVM, "%s", "lua_isstring( luaVM, 2 )");
     }
@@ -1179,6 +1197,20 @@ luaReturnCount_e Lua_CoD_LuaCall_Exec_DisableBlacklisted(lua_State *luaVM) {
   }
   return luaReturnCount_e::NONE;
 }
+
+utils::hook::detour Lua_CoD_LuaCall_Exec_hook;
+utils::hook::detour Lua_CoD_LuaCall_ExecNow_hook;
+void apply_exec_hooks() {
+  Lua_CoD_LuaCall_Exec_hook.create(
+      api::Lua_CoD_LuaCall_Exec.get(),
+      Lua_CoD_LuaCall_Exec_DisableBlacklisted<"Exec", exec_handler>);
+  Lua_CoD_LuaCall_ExecNow_hook.create(
+      api::Lua_CoD_LuaCall_ExecNow.get(),
+      Lua_CoD_LuaCall_Exec_DisableBlacklisted<"ExecNow", execnow_handler>);
+}
+} // namespace exec
+
+utils::hook::detour Lua_CoD_LuaCall_OpenURL_hook;
 void patch_unsafe_lua_functions() {
   /*
      Disable the `OpenURL` API function. This is never required for in-game
@@ -1187,8 +1219,9 @@ void patch_unsafe_lua_functions() {
   */
   Lua_CoD_LuaCall_OpenURL_hook.create(api::Lua_CoD_LuaCall_OpenURL,
                                       lua_stub_func);
-  Lua_CoD_LuaCall_Exec_hook.create(api::Lua_CoD_LuaCall_Exec,
-                                   Lua_CoD_LuaCall_Exec_DisableBlacklisted);
+
+  exec::apply_exec_hooks();
+
   if (utils::flags::has_flag("unsafe-lua")) {
     unsafe_lua_approved_for_session.store(true, std::memory_order_release);
   } else {

@@ -101,6 +101,12 @@ std::string replace(std::string str, const std::string &from,
 
 void trim(std::string &str);
 
+std::string_view &ltrim(std::string_view &str);
+std::string_view &rtrim(std::string_view &str);
+inline std::string_view &trim(std::string_view &str) {
+  return ltrim(rtrim(str));
+}
+
 void copy(char *dest, size_t max_size, const char *src);
 std::string join(std::vector<std::string> strings,
                  const std::string &separator);

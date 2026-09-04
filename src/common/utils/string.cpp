@@ -187,6 +187,20 @@ std::string replace(std::string str, const std::string &from,
   return str;
 }
 
+std::string_view &ltrim(std::string_view &str) {
+  while (str.size() && std::isspace(str[0])) {
+    str = str.substr(1);
+  }
+  return str;
+}
+
+std::string_view &rtrim(std::string_view &str) {
+  while (str.size() && std::isspace(str[str.size() - 1])) {
+    str = str.substr(0, str.size() - 1);
+  }
+  return str;
+}
+
 std::string &ltrim(std::string &str) {
   str.erase(str.begin(),
             std::find_if(str.begin(), str.end(), [](const unsigned char input) {
