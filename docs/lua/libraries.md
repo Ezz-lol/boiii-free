@@ -70,6 +70,17 @@ The `DiscordRPC` library is added with the following stubbed functions.
 - `ClearPresence()`
 - `Enable(id)`
 
+### NET
+
+The `NET` library is added with the following stubbed functions.
+
+- `DisableDemonware()`
+- `DisableSteam()`
+- `EnableDemonware()`
+- `EnableSteam()`
+- `IsDemonwareDisabled()`
+- `IsSteamDisabled()`
+
 ### HotReload
 
 The `HotReload` library is added with the following stubbed functions.
