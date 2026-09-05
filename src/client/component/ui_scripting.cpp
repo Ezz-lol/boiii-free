@@ -860,7 +860,15 @@ constexpr frozen::string KNOWN_MALICIOUS_MODS_ARRAY[] = {
     // UEM dev
     "2975670972",
     // UEM barebones
-    "3064538158"};
+    "3064538158",
+    // Reforged public
+    "3667377161",
+    // Reforged beta
+    "3694474709",
+    // Reforged development
+    "3766910073",
+    // Reforced Weapons Pack | DLC
+    "3771417423"};
 constexpr frozen::unordered_set<frozen::string,
                                 std::size(KNOWN_MALICIOUS_MODS_ARRAY)>
     KNOWN_MALICIOUS_MODS =
