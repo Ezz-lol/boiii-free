@@ -62,66 +62,6 @@ std::filesystem::path get_game_path() {
 }
 
 #ifndef NDEBUG
-#define UNIX_EPOCH                                                             \
-  std::chrono::system_clock::time_point(std::chrono::seconds(0))
-static std::chrono::system_clock::time_point last_log_time = UNIX_EPOCH;
-static std::recursive_mutex log_mutex;
-void trace(const char *format, ...) {
-
-  // Get current time for timestamp
-  std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-  std::time_t now_time_t = std::chrono::system_clock::to_time_t(now);
-  std::chrono::milliseconds now_ms =
-      std::chrono::duration_cast<std::chrono::milliseconds>(
-          now.time_since_epoch()) %
-      1000;
-
-  char time_buf[26];
-  ctime_s(time_buf, sizeof(time_buf), &now_time_t);
-
-  std::string now_str(time_buf);
-  if (!now_str.empty() && now_str.back() == '\n') {
-    now_str.pop_back(); // Remove trailing newline from ctime_s
-  }
-
-  va_list args;
-  va_start(args, format);
-  int32_t buf_len = vsnprintf(nullptr, 0, format, args);
-
-  std::string buffer;
-  buffer.resize(buf_len + 1);
-  va_start(args, format);
-  vsnprintf(buffer.data(), buffer.size(), format, args);
-
-  va_end(args);
-
-  std::lock_guard<std::recursive_mutex> lock(log_mutex);
-  std::ofstream debug_log =
-      std::ofstream(tracing_logfile(), std::ios_base::app);
-  if (!debug_log.is_open()) {
-    return;
-  }
-
-  debug_log << "[" << now_str << "." << std::setfill('0') << std::setw(3)
-            << now_ms.count() << "] [Debug]";
-  // Trace location/category formatting
-  if (buffer[0] != '[') {
-    debug_log << " ";
-  }
-  for (const char c : buffer) {
-    if (c == '\n') {
-      debug_log << "\\n";
-    } else if (c == '\r') {
-      debug_log << "\\r";
-    } else {
-      debug_log << c;
-    }
-  }
-  debug_log << std::endl;
-
-  debug_log.flush();
-  debug_log.close();
-  last_log_time = (std::max)(last_log_time, now);
-}
+std::recursive_mutex log_mutex;
 #endif
 } // namespace game

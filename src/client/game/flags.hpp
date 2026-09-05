@@ -9,7 +9,8 @@ bool extract_assets();
 std::regex extract_pattern();
 std::filesystem::path asset_output();
 #ifndef NDEBUG
-std::filesystem::path tracing_logfile();
+std::filesystem::path tracing_logfile_path();
+std::ofstream &tracing_logfile();
 #endif
 
 bool ultrawide();

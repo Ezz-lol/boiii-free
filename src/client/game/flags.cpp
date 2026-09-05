@@ -66,9 +66,20 @@ void set_tracing() {
               (game::is_client() ? "debug.log" : "debug-server.log");
   }
 }
-std::filesystem::path tracing_logfile() {
+std::filesystem::path tracing_logfile_path() {
   std::call_once(tracing_flag, set_tracing);
   return tracing;
+}
+
+static std::ofstream logfile;
+static std::once_flag tracing_logfile_flag;
+void set_tracing_logfile() {
+  logfile = std::ofstream(tracing_logfile_path(), std::ios::app);
+}
+
+std::ofstream &tracing_logfile() {
+  std::call_once(tracing_logfile_flag, set_tracing_logfile);
+  return logfile;
 }
 #endif
 
