@@ -110,10 +110,8 @@ bool try_replace_workshop_root(std::filesystem::path &path) {
 
       const std::filesystem::path in_mods_tree =
           mods_directory() / std::move(rel_zone_parented);
-      if (std::filesystem::exists(in_mods_tree)) {
-        path = in_mods_tree;
-        return true;
-      }
+      path = in_mods_tree;
+      return true;
     }
   }
   return false;
