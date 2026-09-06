@@ -54,7 +54,7 @@ jobs:
         uses: ammaraskar/msvc-problem-matcher@master
 
       - name: Build ${{matrix.configuration}}
-        run: msbuild /m /v:normal /p:Configuration=${{matrix.configuration}} /p:Platform=x64 /p:PlatformToolset=ClangCL build/boiii.sln
+        run: msbuild /m /v:normal /p:Configuration=${{matrix.configuration}} /p:Platform=x64 /p:PlatformToolset=ClangCL build/boiii.slnx
 
       - name: Upload ${{matrix.configuration}} symbols
         if: matrix.configuration == 'Release'
