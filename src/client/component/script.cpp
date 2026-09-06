@@ -199,16 +199,18 @@ const GSC_OBJ *get_linked_obj(const std::string &name) {
 
   GSC_OBJ *result;
   // Check our custom scripts (case-insensitive key search)
-  loaded_scripts.for_each([&result, &normalize_path, &with_ext_norm,
-                           &without_ext_norm](const auto &v) {
-    ScriptParseTree *rf = v.second;
-    if (!result && rf && rf->buffer) {
-      std::string key_norm = normalize_path(v.first);
-      if (_stricmp(key_norm.c_str(), with_ext_norm.c_str()) == 0 ||
-          _stricmp(key_norm.c_str(), without_ext_norm.c_str()) == 0)
-        result = rf->buffer;
-    }
-  });
+  loaded_scripts.for_each(
+      [&result, &normalize_path, &with_ext_norm, &without_ext_norm](
+          const concurrent_hash_map<std::string, ScriptParseTree *>::value_type
+              &v) {
+        ScriptParseTree *rf = v.second;
+        if (!result && rf && rf->buffer) {
+          std::string key_norm = normalize_path(v.first);
+          if (_stricmp(key_norm.c_str(), with_ext_norm.c_str()) == 0 ||
+              _stricmp(key_norm.c_str(), without_ext_norm.c_str()) == 0)
+            result = rf->buffer;
+        }
+      });
 
   if (result) {
     return result;
@@ -218,7 +220,9 @@ const GSC_OBJ *get_linked_obj(const std::string &name) {
   // e.g., "C:/.../data/custom_scripts/foo" matches loaded key
   // "custom_scripts/foo.gsc"
   loaded_scripts.for_each(
-      [&result, &normalize_path, &without_ext_norm](const auto &v) {
+      [&result, &normalize_path, &without_ext_norm](
+          const concurrent_hash_map<std::string, ScriptParseTree *>::value_type
+              &v) {
         ScriptParseTree *rf = v.second;
         if (!result && rf && rf->buffer) {
           std::string key_no_ext = v.first;
@@ -339,13 +343,18 @@ void apply_pending_detours() {
 void add_gdb(const std::string &name, std::vector<uint8_t> gdb) {
   const std::string gdb_name = name + ".gdb";
   while (script_gdbs.try_emplace_l(
-      gdb_name, [&](auto &v) { v.second = std::move(gdb); })) {
+      gdb_name,
+      [&](concurrent_hash_map<std::string, std::vector<uint8_t>>::value_type
+              &v) { v.second = std::move(gdb); })) {
   }
 }
 
 ScriptParseTree *get_loaded_script(const std::string &name) {
   ScriptParseTree *result = nullptr;
-  loaded_scripts.if_contains(name, [&](const auto &v) { result = v.second; });
+  loaded_scripts.if_contains(
+      name,
+      [&](const concurrent_hash_map<std::string, ScriptParseTree *>::value_type
+              &v) { result = v.second; });
   return result;
 }
 
@@ -396,7 +405,9 @@ void load_script(const std::string &name, const std::string &data,
     parse_tree->len = data.length();
 
     while (loaded_scripts.try_emplace_l(
-        name, [&](auto &v) { v.second = parse_tree; })) {
+        name,
+        [&](concurrent_hash_map<std::string, ScriptParseTree *>::value_type
+                &v) { v.second = parse_tree; })) {
     }
     const char *log = utils::string::va("Loaded script '%s' (size %llu bytes)",
                                         name.data(), parse_tree->len);
@@ -454,7 +465,10 @@ void load_script_file(std::string &data,
 
         // Store original source text for this file
         while (script_sources.try_emplace_l(
-            name, [&](auto &v) { v.second = std::move(cleaned_source); })) {
+            name,
+            [&](concurrent_hash_map<std::string, std::string>::value_type &v) {
+              v.second = std::move(cleaned_source);
+            })) {
         }
 
 #ifndef NDEBUG
@@ -478,18 +492,20 @@ void load_script_file(std::string &data,
         objFileInfo_t *obj =
             get_obj_by_name(scriptInstance_t::SCRIPTINSTANCE_SERVER, name);
         if (obj) {
-          script_sources.modify_if(name, [&](auto &v) {
-            char *src = v.second.data();
-            obj->debugInfo.source = src;
-            obj->debugInfo.gdb = nullptr;
-            obj->debugInfo.sourceLen = v.second.size();
-            for (size_t i = 0; i < v.second.size(); ++i) {
-              char *c = &src[i];
-              if (*c == '\n' || *c == '\r') {
-                *c = '\0';
-              }
-            }
-          });
+          script_sources.modify_if(
+              name, [&](concurrent_hash_map<std::string,
+                                            std::string>::value_type &v) {
+                char *src = v.second.data();
+                obj->debugInfo.source = src;
+                obj->debugInfo.gdb = nullptr;
+                obj->debugInfo.sourceLen = v.second.size();
+                for (size_t i = 0; i < v.second.size(); ++i) {
+                  char *c = &src[i];
+                  if (*c == '\n' || *c == '\r') {
+                    *c = '\0';
+                  }
+                }
+              });
         }
 
         // Register replacefunc entries as pending detours
@@ -701,7 +717,7 @@ bool is_shared_tree_dir(const std::filesystem::path &dir,
 
 template <const size_t N>
 std::unordered_set<TreeDirectory>
-shared_tree_directories(const array<const std::filesystem::path, N> &roots,
+shared_tree_directories(const std::filesystem::path (&roots)[N],
                         const std::filesystem::path &tree) {
   std::unordered_set<std::string_view> mod_ids;
   for (uint32_t modIdx = 0; modIdx < game::ugc::modsPool.count; ++modIdx) {
@@ -743,7 +759,7 @@ void load_tree(std::filesystem::path tree, bool execImmediate = false) {
   };
 
   std::unordered_set<TreeDirectory> applicable_tree_dirs =
-      shared_tree_directories<2>({data_directory, boiii_directory}, tree);
+      shared_tree_directories({data_directory, boiii_directory}, tree);
 
   const std::optional<std::filesystem::path> game_type =
       get_game_type_specific_directory();
@@ -802,7 +818,7 @@ void load_scripts() {
   load_tree("custom_scripts", true);
 }
 
-void load_rawfile(const std::string &name, const std::string &data) {
+void load_rawfile_buf(const std::string &name, const std::string &data) {
 
   /*
      This will permanently leak the memory allocated for the asset's name and
@@ -817,7 +833,9 @@ void load_rawfile(const std::string &name, const std::string &data) {
      hook it accordingly.
   */
 
-  if (!loaded_rawfiles.if_contains(name, [](const auto &) {})) {
+  if (!loaded_rawfiles.if_contains(
+          name, []([[maybe_unused]] const concurrent_hash_map<
+                    std::string, RawFile *>::value_type &) {})) {
     RawFile *raw_file = reinterpret_cast<RawFile *>(
         db::xasset::pool::DB_AssetPoolAlloc(XAssetType::RAWFILE));
     char *rawfile_name = reinterpret_cast<char *>(malloc(name.size() + 1));
@@ -828,7 +846,9 @@ void load_rawfile(const std::string &name, const std::string &data) {
     raw_file->len = data.length();
 
     while (loaded_rawfiles.try_emplace_l(
-        name, [&](auto &v) { v.second = raw_file; })) {
+        name, [&](concurrent_hash_map<std::string, RawFile *>::value_type &v) {
+          v.second = raw_file;
+        })) {
     }
     const char *log = utils::string::va("Loaded rawfile '%s' (size %llu bytes)",
                                         name.data(), raw_file->len);
@@ -848,7 +868,7 @@ void load_rawfile_file(std::string &data,
                        const std::string &name) {
   if (!name.ends_with(".lua") || lua_bytecode(data)) {
     print_loading_script(name);
-    load_rawfile(name, data);
+    load_rawfile_buf(name, data);
   } else {
     // TODO: compile script
   }
@@ -975,7 +995,11 @@ void load_rawfiles() {
 RawFile *get_loaded_rawfile(const std::string &name) {
   std::scoped_lock script_load_lock(script_load_mutex);
   RawFile *result = nullptr;
-  loaded_rawfiles.if_contains(name, [&](const auto &v) { result = v.second; });
+  loaded_rawfiles.if_contains(
+      name,
+      [&](const concurrent_hash_map<std::string, RawFile *>::value_type &v) {
+        result = v.second;
+      });
   return result;
 }
 
@@ -1115,11 +1139,13 @@ void begin_load_scripts_stub(scriptInstance_t inst, int32_t user) {
 std::string resolve_hash(ScrVarCanonicalName_t hash) {
 
   std::optional<std::string> result;
-  script_hash_names.if_contains(hash, [&result](const auto &v) {
-    if (!v.second.empty()) {
-      result = v.second[0].name;
-    }
-  });
+  script_hash_names.if_contains(
+      hash, [&result](const concurrent_hash_map<
+                      uint32_t, std::vector<hash_info>>::value_type &v) {
+        if (!v.second.empty()) {
+          result = v.second[0].name;
+        }
+      });
 
   // Fallback: global hash table from data file
   if (global_hash_table.contains(hash))
@@ -1137,51 +1163,58 @@ uint8_t *find_export_address(const std::string &script_name,
 
 int32_t resolve_hash_line(ScrVarCanonicalName_t hash, int32_t num_params) {
   int32_t result = 0;
-  script_hash_names.if_contains(hash, [&result, num_params](const auto &v) {
-    for (const hash_info &entry : v.second) {
-      if (entry.params == static_cast<uint8_t>(num_params) && entry.line > 0) {
-        result = entry.line;
-        break;
-      }
-    }
-  });
+  script_hash_names.if_contains(
+      hash,
+      [&result, num_params](
+          const concurrent_hash_map<uint32_t,
+                                    std::vector<hash_info>>::value_type &v) {
+        for (const hash_info &entry : v.second) {
+          if (entry.params == static_cast<uint8_t>(num_params) &&
+              entry.line > 0) {
+            result = entry.line;
+            break;
+          }
+        }
+      });
   return result;
 }
 
 std::string get_source_line(const std::string &file, int32_t line_num) {
   std::optional<std::string> result = std::nullopt;
   // Try to find source by matching file path suffix
-  script_sources.for_each([&result, file, line_num](const auto &v) {
-    if (!result.has_value()) {
-      const std::string path = v.first;
-      const std::string src = v.second;
-      if (file.find(path) != std::string::npos ||
-          path.find(file) != std::string::npos ||
-          file.find(std::filesystem::path(path).filename().string()) !=
-              std::string::npos) {
-        if (line_num > 0) {
-          int32_t current = 1;
-          size_t start = 0;
-          while (current < line_num && start < src.size()) {
-            if (src[start] == '\n')
-              current++;
-            start++;
-          }
-          if (current == line_num) {
-            size_t end = src.find('\n', start);
-            if (end == std::string::npos) {
-              end = src.size();
+  script_sources.for_each(
+      [&result, file, line_num](
+          const concurrent_hash_map<std::string, std::string>::value_type &v) {
+        if (!result.has_value()) {
+          const std::string path = v.first;
+          const std::string src = v.second;
+          if (file.find(path) != std::string::npos ||
+              path.find(file) != std::string::npos ||
+              file.find(std::filesystem::path(path).filename().string()) !=
+                  std::string::npos) {
+            if (line_num > 0) {
+              int32_t current = 1;
+              size_t start = 0;
+              while (current < line_num && start < src.size()) {
+                if (src[start] == '\n')
+                  current++;
+                start++;
+              }
+              if (current == line_num) {
+                size_t end = src.find('\n', start);
+                if (end == std::string::npos) {
+                  end = src.size();
+                }
+                std::string line = src.substr(start, end - start);
+                if (!line.empty() && line.back() == '\r') {
+                  line.pop_back();
+                }
+                result = std::optional(line);
+              }
             }
-            std::string line = src.substr(start, end - start);
-            if (!line.empty() && line.back() == '\r') {
-              line.pop_back();
-            }
-            result = std::optional(line);
           }
         }
-      }
-    }
-  });
+      });
   return result.value_or("");
 }
 
@@ -1265,21 +1298,26 @@ void Hunk_UserFree_NotScriptPoolAlloc(hunk::HunkUser *user, void *ptr) {
 
   bool should_skip = false;
 
-  script_gdbs.for_each([&should_skip, ptr](const auto &v) {
-    if (!should_skip && contains(v.second.data(), v.second.size(), ptr)) {
-      should_skip = true;
-    }
-  });
+  script_gdbs.for_each(
+      [&should_skip,
+       ptr](const concurrent_hash_map<std::string,
+                                      std::vector<uint8_t>>::value_type &v) {
+        if (!should_skip && contains(v.second.data(), v.second.size(), ptr)) {
+          should_skip = true;
+        }
+      });
 
   if (should_skip) {
     return;
   }
 
-  script_sources.for_each([&should_skip, ptr](const auto &v) {
-    if (!should_skip && contains(v.second.data(), v.second.size(), ptr)) {
-      should_skip = true;
-    }
-  });
+  script_sources.for_each(
+      [&should_skip, ptr](
+          const concurrent_hash_map<std::string, std::string>::value_type &v) {
+        if (!should_skip && contains(v.second.data(), v.second.size(), ptr)) {
+          should_skip = true;
+        }
+      });
 
   if (should_skip) {
     return;

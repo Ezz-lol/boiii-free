@@ -197,3 +197,9 @@ template <typename T>
 inline constexpr T byteswap(T val) {
   return static_cast<T>(byteswap(static_cast<uint16_t>(val)));
 }
+
+#ifndef APPENDCHAR
+#define APPENDCHAR(ptr, c)                                                     \
+  ptr[0] = c;                                                                  \
+  ++ptr
+#endif

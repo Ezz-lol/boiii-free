@@ -34,10 +34,11 @@ int64_t handle_command(const game::net::netadr_t *address, const char *command,
                        game::LocalClientNum_t localClientNum) {
 
 #ifndef NDEBUG
+  game::net::netadr_str_t addrBuf = {0};
   game::trace(
       "[Network] handle_command called with address: \"%s\", command: \"%s\", "
       "localClientNum: %s",
-      address ? address->toString() : "NULL", command ? command : "NULL",
+      address ? address->toString(addrBuf) : "NULL", command ? command : "NULL",
       serialize(localClientNum));
 #endif
 

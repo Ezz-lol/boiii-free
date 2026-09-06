@@ -1,7 +1,10 @@
 #pragma once
 
-#include "../core.hpp"
-#include "../quake/core.hpp"
+#include "structs/array.hpp"
+#include <game/structs/core.hpp>
+#include <game/structs/quake/core.hpp>
+#include <macros.hpp>
+
 #include <charconv>
 namespace game {
 namespace net {
@@ -12,12 +15,13 @@ enum class connectionType_e : uint32_t {
   WIRELESS = 0x2,
 };
 
-constexpr size_t UINT8_STR_BUF_LEN = 3;
+constexpr size_t UINT8_STR_BUF_LEN = 3; // Decimal; 0 - 255
 constexpr size_t UINT16_STR_BUF_LEN = sizeof(uint16_t) * UINT8_STR_BUF_LEN;
 constexpr size_t NET_IPV4_STR_BUF_LEN =
-    4 /* a, b, c, d */ * UINT8_STR_BUF_LEN + 3 /* periods */ + 1 /* NULL */;
+    sizeof(uint8_t) * 4 /* a, b, c, d */ * UINT8_STR_BUF_LEN +
+    3 * sizeof(char) /* periods */ + 1 /* NULL */;
 typedef str<NET_IPV4_STR_BUF_LEN> netipv4_str_t;
-inline thread_local netipv4_str_t default_netipv4_serialization_buf;
+
 union netipv4_t {
   struct {
     uint8_t a;
@@ -27,27 +31,29 @@ union netipv4_t {
   };
   uint8_t parts[4];
 
+  inline std::string toString() const noexcept {
+    return std::format("{}.{}.{}.{}", a, b, c, d);
+  }
+
   inline constexpr ToStringResult
-  toString(netipv4_str_t buf = default_netipv4_serialization_buf,
-           bool terminate = true) const noexcept {
+  toString(netipv4_str_t &buf, bool terminate = true) const noexcept {
     // a
     char *ptr = std::to_chars(buf, buf + UINT8_STR_BUF_LEN, a).ptr;
 
     // b
-    ptr[0] = '.';
-    ptr = std::to_chars(ptr + 1, ptr + 1 + UINT8_STR_BUF_LEN, b).ptr;
+    APPENDCHAR(ptr, '.');
+    ptr = std::to_chars(ptr, ptr + UINT8_STR_BUF_LEN, b).ptr;
 
     // c
-    ptr[0] = '.';
-    ptr = std::to_chars(ptr + 1, ptr + 1 + UINT8_STR_BUF_LEN, c).ptr;
+    APPENDCHAR(ptr, '.');
+    ptr = std::to_chars(ptr, ptr + UINT8_STR_BUF_LEN, c).ptr;
 
     // d
-    ptr[0] = '.';
-    ptr = std::to_chars(ptr + 1, ptr + 1 + UINT8_STR_BUF_LEN, d).ptr;
+    APPENDCHAR(ptr, '.');
+    ptr = std::to_chars(ptr, ptr + UINT8_STR_BUF_LEN, d).ptr;
 
     if (terminate) {
-      ptr[0] = '\0';
-      ++ptr;
+      APPENDCHAR(ptr, '\0');
     }
     return ToStringResult{buf, ptr};
   }
@@ -73,11 +79,11 @@ enum netsrc_t : int32_t {
 };
 
 constexpr size_t NETADR_STR_BUF_LEN =
-    NET_IPV4_STR_BUF_LEN + UINT16_STR_BUF_LEN /*port*/ +
-    1 /*colon*/; // +1 for NULL is included in NET_IPV4_STR_BUF_LEN - only one
-                 // can be terminated
+    NET_IPV4_STR_BUF_LEN + sizeof(char) /*colon*/ +
+    UINT16_STR_BUF_LEN /*port*/; /*  +1 for NULL is included in
+                                     NET_IPV4_STR_BUF_LEN - only one can be
+                                     terminated */
 typedef str<NETADR_STR_BUF_LEN> netadr_str_t;
-inline thread_local netadr_str_t default_netadr_serialization_buf;
 
 struct netadr_t {
   union {
@@ -89,17 +95,19 @@ struct netadr_t {
   netadrtype_t type;
   netsrc_t localNetID;
 
-  inline constexpr ToStringResult
-  toString(netadr_str_t buf = default_netadr_serialization_buf,
-           bool terminate = true) const noexcept {
-    char *ptr = ipv4.toString(&buf[0], false).ptr;
+  inline std::string toString() const noexcept {
+    return std::format("{}:{}", ipv4.toString(), port);
+  }
 
-    ptr[0] = ':';
-    ptr = std::to_chars(ptr + 1, ptr + 1 + UINT16_STR_BUF_LEN, port).ptr;
+  inline constexpr ToStringResult
+  toString(netadr_str_t &buf, bool terminate = true) const noexcept {
+    char *ptr = ipv4.toString(slice<NET_IPV4_STR_BUF_LEN>(buf), false).ptr;
+
+    APPENDCHAR(ptr, ':');
+    ptr = std::to_chars(ptr, ptr + UINT16_STR_BUF_LEN, port).ptr;
 
     if (terminate) {
-      ptr[0] = '\0';
-      ++ptr;
+      APPENDCHAR(ptr, '\0');
     }
 
     return {buf, ptr};

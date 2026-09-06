@@ -14,7 +14,7 @@ enum class status : int {
 };
 
 struct friend_entry {
-  uint64_t steam_id{};
+  game::XUID steam_id{};
   std::string name;
   status state{status::offline};
   std::string server_address;
@@ -22,7 +22,7 @@ struct friend_entry {
 };
 
 struct friend_server_info {
-  uint64_t steam_id{};
+  game::XUID steam_id{};
   std::string address;
   std::string player_name;
 };

@@ -384,10 +384,12 @@ static concurrent_hash_map<game::net::netadr_t, IssuedChallenge>
 
 thread_local challenge_t challenge_buf = {0};
 const challenge_t &get_challenge(const game::net::netadr_t &target) {
-  while (issued_challenges.try_emplace_l(target, [](auto &v) {
-    v.second.refresh();
-    memcpy(challenge_buf, &v.second.challenge, std::size(challenge_buf));
-  })) {
+  while (issued_challenges.try_emplace_l(
+      target, [](concurrent_hash_map<game::net::netadr_t,
+                                     IssuedChallenge>::value_type &v) {
+        v.second.refresh();
+        memcpy(challenge_buf, &v.second.challenge, std::size(challenge_buf));
+      })) {
   }
   return challenge_buf;
 }
@@ -412,8 +414,9 @@ void send_challenge(const game::net::netadr_t &addr,
 #ifndef NDEBUG
   const std::string hex_challenge_resp = utils::string::hexdump(
       challenge_response_buf, std::size(challenge_response_buf));
+  game::net::netadr_str_t addrBuf = {0};
   game::trace("[Auth][Challenge] sending challenge to %s: \"%s\"",
-              addr.toString(), hex_challenge_resp.c_str());
+              addr.toString(addrBuf), hex_challenge_resp.c_str());
 #endif
 
   memcpy(&challenge_response_buf[std::size(CHALLENGE_RESPONSE_COMMAND_PREFIX)],
