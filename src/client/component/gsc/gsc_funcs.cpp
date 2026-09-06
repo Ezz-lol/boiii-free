@@ -1558,6 +1558,31 @@ void apply_bgb_hooks() {
       ->__protected__GetBGBUnlocked.actionFunc = &Scr_Return<true>;
 }
 
+static std::atomic_bool exitlevel_restrict = true;
+void gscr_exitlevel_togglerestrict(scriptInstance_t inst) {
+  const bool current_value = exitlevel_restrict.load(std::memory_order_acquire);
+  const bool new_value = static_cast<bool>(
+      Scr_GetIntOptional(inst, 0, qboolean::from(!current_value)));
+  exitlevel_restrict.store(new_value, std::memory_order_release);
+  Scr_AddInt(inst, qboolean::from(current_value));
+}
+
+template <const BuiltinFunction &Orig>
+void GScr_ExitLevel_RespectRestriction(scriptInstance_t inst) {
+  if (exitlevel_restrict.load(std::memory_order_acquire)) {
+    Orig(inst);
+  }
+}
+
+void apply_exitlevel_hooks() {
+  register_builtin(SCRIPTINSTANCE_SERVER, "exitlevel_togglerestrict",
+                   gscr_exitlevel_togglerestrict, 0, 1);
+  static const BuiltinFunction GScr_ExitLevel_orig =
+      game::scr::builtin::table::gscr::builtin_functions->ExitLevel.actionFunc;
+  game::scr::builtin::table::gscr::builtin_functions->ExitLevel.actionFunc =
+      &GScr_ExitLevel_RespectRestriction<GScr_ExitLevel_orig>;
+}
+
 struct component final : generic_component {
   void post_unpack() override {
 
@@ -1664,6 +1689,7 @@ struct component final : generic_component {
 
     apply_hudelem_hooks();
     apply_bgb_hooks();
+    apply_exitlevel_hooks();
 
     /*
       In dedicated server, there is no host player.

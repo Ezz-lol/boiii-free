@@ -111,7 +111,7 @@ const char *get_client_name(const uint64_t xuid) {
     game::cl::CL_GetClientName(game::LOCAL_CLIENT_0, static_cast<int>(xuid - 1),
                                buffer, sizeof(buffer), true);
     std::string name(buffer);
-    auto pipe = name.find('|');
+    const size_t pipe = name.find('|');
     if (pipe != std::string::npos)
       name = name.substr(0, pipe);
     return utils::string::va("%s", name.c_str());

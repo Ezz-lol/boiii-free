@@ -616,6 +616,27 @@ and the corresponding string representation of each.
 - `THREAD_LIST`: `"thread list"`
 - `ENT_LIST`: `"ent list"`
 
+## exitlevel_togglerestrict
+
+`exitlevel_togglerestrict()` toggles whether the `exitlevel` builtin function
+can be used.
+
+`exitlevel_togglerestrict` returns the previous value of `exitlevel`
+restriction.
+
+`exitlevel_togglerestrict` can also be called with a boolean value argument to
+set `exitlevel` restriction to a particular value. An argument value of `true`
+allows `exitlevel` usage, and `false` disables it.
+
+When `exitlevel` is disabled, a call to `exitlevel` will do nothing. When
+`exitlevel` is enabled, a call to `exitlevel` will execute the same logic as
+usual.
+
+This function is useful for dedicated servers which have custom end game logic -
+e.g. map vote - that is circumvented by custom end game logic in either a custom
+map or mod which exits the level prior to execution of the server's end game
+logic.
+
 ## Method-style custom calls
 
 The project also supports the cleaner entity-style form for a few helpers:
