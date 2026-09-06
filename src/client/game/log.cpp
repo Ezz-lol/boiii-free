@@ -1,5 +1,5 @@
-#ifndef NDEBUG
 #include <std_include.hpp>
+#ifndef NDEBUG
 
 #include "log.hpp"
 
