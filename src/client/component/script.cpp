@@ -68,7 +68,7 @@ void print_script_log(const char *message) {
                         game::consoleLabel_e::DEFAULT, "%s\n", message);
   fprintf(stderr, "%s\n", message);
   fflush(stderr);
-  game::trace("%s", message);
+  game::trace("{}", message);
 }
 
 utils::hook::detour db_find_x_asset_header_hook;

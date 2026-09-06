@@ -160,7 +160,7 @@ void GScr_BBPrint_StdoutRedirect(scriptInstance_t inst) {
                                       messageStream.str().c_str());
   fprintf(stdout, "%s\n", out);
   fflush(stdout);
-  game::trace("%s", out);
+  game::trace("{}", out);
 #endif
 }
 } // namespace gscr
@@ -188,13 +188,13 @@ void BB_Print_StdoutRedirect(game::ControllerIndex_t controllerIndex,
                                         name, buffer.c_str());
     fprintf(stdout, "%s\n", out);
     fflush(stdout);
-    game::trace("%s", out);
+    game::trace("{}", out);
   } else {
     const char *out = utils::string::va(
         "[BB][%d]: %s", static_cast<int32_t>(controllerIndex), buffer.c_str());
     fprintf(stdout, "%s\n", out);
     fflush(stdout);
-    game::trace("%s", out);
+    game::trace("{}", out);
   }
 #endif
 }

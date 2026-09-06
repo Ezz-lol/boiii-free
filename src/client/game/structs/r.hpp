@@ -1,6 +1,13 @@
 #pragma once
 
+#include <structs/str.hpp>
 #include "game/structs/quake/core.hpp"
+
+#ifndef NDEBUG
+#include <string>
+#include <format>
+#endif
+
 namespace game {
 namespace r {
 
@@ -41,20 +48,19 @@ struct vidConfig_t {
   uint32_t maxTextureSize;
 
 #ifndef NDEBUG
-  template <const size_t N>
-  inline str<N> &serialize(str<N> &buf) const noexcept {
-    snprintf(buf, N,
-             "vidConfig_t { sceneWidth: %u, sceneHeight: %u, sceneAspectRatio: "
-             "%f, displayWidth: %u, displayHeight: %u, displayAspectRatio: %f, "
-             "isFullScreen: %s, isWideScreen: %s, viewAspectRatioPX: %f, "
-             "viewWidth: %u, viewHeight: %u, viewAspectRatio: %f, viewScalePx: "
-             "%f, maxTextureSize: %u }",
-             sceneWidth, sceneHeight, sceneAspectRatio, displayWidth,
-             displayHeight, displayAspectRatio, isFullscreen.serialize(),
-             isWideScreen.serialize(), viewAspectRatioPx, viewWidth, viewHeight,
-             viewAspectRatio, viewScalePx, maxTextureSize);
-    return buf;
+  inline std::string serialize() const noexcept {
+    return std::format(
+        "vidConfig_t {{ sceneWidth: {}, sceneHeight: {}, sceneAspectRatio: "
+        "{}, displayWidth: {}, displayHeight: {}, displayAspectRatio: {}, "
+        "isFullScreen: {}, isWideScreen: {}, viewAspectRatioPX: {}, "
+        "viewWidth: {}, viewHeight: {}, viewAspectRatio: {}, viewScalePx: "
+        "{}, maxTextureSize: {} }}",
+        sceneWidth, sceneHeight, sceneAspectRatio, displayWidth, displayHeight,
+        displayAspectRatio, isFullscreen.serialize(), isWideScreen.serialize(),
+        viewAspectRatioPx, viewWidth, viewHeight, viewAspectRatio, viewScalePx,
+        maxTextureSize);
   }
+
 #endif
 };
 ASSERT_SIZE(vidConfig_t, 0x38);

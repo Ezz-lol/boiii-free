@@ -334,8 +334,8 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
 #ifndef NDEBUG
         trace("[Scr][HECmd_SetText] Registered localized string "
               "configstring for "
-              "hudelement 0x%03X with "
-              "index 0x%lX",
+              "hudelement 0x{:03X} with "
+              "index 0x{:X}",
               hudElemIdx, pool_entry->get_idx());
 #endif
       }
@@ -345,11 +345,12 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
 
 #ifndef NDEBUG
       trace("[Scr][HECmd_SetText] Localized config string entry with "
-            "index 0x%lX, "
+            "index 0x{:X}, "
             "absolute config string index 0x%lX: got localized string data "
-            "pointer: 0x%p",
+            "pointer: {:p}",
             pool_entry->get_idx(), pool_entry->abs_idx(),
-            game::derelocate(data));
+            const_cast<void *>(
+                static_cast<volatile void *>(game::derelocate(data))));
 #endif
       data->setName(cleaned_message_buf);
       if (!data->refCount) {
@@ -359,8 +360,8 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
 
 #ifndef NDEBUG
       trace("[Scr][HECmd_SetText] Localized config string entry with "
-            "index 0x%lX, "
-            "absolute config string index 0x%lX: setting value to \"%s\"",
+            "index 0x{:X}, "
+            "absolute config string index 0x%lX: setting value to \"{}\"",
             pool_entry->get_idx(), pool_entry->abs_idx(), cleaned_message_buf);
 #endif
       // TAC-protected on client, so we use a re-implementation to circumvent.
@@ -397,8 +398,8 @@ void BG_Cache_HandleConfigStringChange_ReuseExisting(
     [[maybe_unused]] LocalClientNum_t localClientNum, int32_t index) {
   const char *name = cl::CL_GetConfigString(index);
 #ifndef NDEBUG
-  trace("[BGCache][%u][%d] Received config string change with index: 0x%lX, "
-        "name: \"%s\"",
+  trace("[BGCache][{}][{}] Received config string change with index: 0x{:X}, "
+        "name: \"{}\"",
         +bgCacheInstance::CLIENT, +localClientNum, index,
         readable_ptr(name) ? name : "");
 #endif
@@ -513,7 +514,7 @@ void gscr_println(scriptInstance_t inst) {
                         game::consoleLabel_e::DEFAULT, "%s\n", out.c_str());
 
 #ifndef NDEBUG
-  trace("[Scr] %s", out.c_str());
+  trace("[Scr] {}", out);
 #endif
 }
 
@@ -530,7 +531,7 @@ void gscr_trace(scriptInstance_t inst) {
     }
   }
 
-  trace("[Scr] %s", out.c_str());
+  trace("[Scr] {}", out);
 }
 #endif
 
@@ -549,7 +550,7 @@ void gscr_print(scriptInstance_t inst) {
                         game::consoleLabel_e::DEFAULT, "%s", out.c_str());
 
 #ifndef NDEBUG
-  trace("[Scr] %s", out.c_str());
+  trace("[Scr] {}", out);
 #endif
 }
 
@@ -672,7 +673,7 @@ void gscr_printf(scriptInstance_t inst) {
   fflush(stdout);
 
 #ifndef NDEBUG
-  trace("[Scr] %s", buffer.data());
+  trace("[Scr] {}", buffer);
 #endif
 }
 

@@ -135,8 +135,8 @@ std::filesystem::path normalize(const std::filesystem::path &path) {
   const std::string path_str = utils::string::convert(path.native());
   const std::string canonicalized_str =
       utils::string::convert(canonicalized.native());
-  game::trace("[Path] Normalized \"%s\" -> \"%s\"", path_str.c_str(),
-              canonicalized_str.c_str());
+  game::trace("[Path] Normalized \"{}\" -> \"{}\"", path_str,
+              canonicalized_str);
 #endif
 
   return canonicalized;

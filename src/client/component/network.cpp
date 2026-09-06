@@ -36,8 +36,8 @@ int64_t handle_command(const game::net::netadr_t *address, const char *command,
 #ifndef NDEBUG
   game::net::netadr_str_t addrBuf = {0};
   game::trace(
-      "[Network] handle_command called with address: \"%s\", command: \"%s\", "
-      "localClientNum: %s",
+      "[Network] handle_command called with address: \"{}\", command: \"{}\", "
+      "localClientNum: {}",
       address ? address->toString(addrBuf) : "NULL", command ? command : "NULL",
       serialize(localClientNum));
 #endif
@@ -58,7 +58,7 @@ int64_t handle_command(const game::net::netadr_t *address, const char *command,
       fprintf(stderr, "[Network] handle_command error: %s\n", e.what());
       fflush(stderr);
 #ifndef NDEBUG
-      game::trace("[Network] handle_command error: %s\n", e.what());
+      game::trace("[Network] handle_command error: {}\n", e.what());
 #endif
 
     } catch (...) {

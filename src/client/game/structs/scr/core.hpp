@@ -1985,6 +1985,19 @@ PACKED(struct GSC_GDB {
     return result;
   }
 
+  inline constexpr bool hasMagic(const std::array<char, sizeof(uint64_t)> &val)
+      const noexcept {
+    return magic[0] == val[0] && magic[1] == val[1] && magic[2] == val[2] &&
+           magic[3] == val[3] && magic[4] == val[4] && magic[5] == val[5] &&
+           magic[6] == val[6] && magic[7] == val[7];
+  }
+
+  inline constexpr bool hasMagic(const str8_t &val) const noexcept {
+    return magic[0] == val[0] && magic[1] == val[1] && magic[2] == val[2] &&
+           magic[3] == val[3] && magic[4] == val[4] && magic[5] == val[5] &&
+           magic[6] == val[6] && magic[7] == val[7];
+  }
+
   inline const uint64_t *lineinfo() const noexcept {
     return reinterpret_cast<const uint64_t *>(
         reinterpret_cast<const uint8_t *>(this) + lineinfo_offset);

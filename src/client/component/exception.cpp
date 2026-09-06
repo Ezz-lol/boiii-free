@@ -48,7 +48,7 @@ void exception_log(bool err, const char *fmt, ...) {
   fprintf(io, "%s\n", buffer.c_str());
   fflush(io);
 
-  game::trace("%s%s", err ? "[Error] " : "", buffer.c_str());
+  game::trace("{}{}", err ? "[Error] " : "", buffer.c_str());
 }
 uint32_t main_thread_id{};
 std::once_flag sym_init_flag{};

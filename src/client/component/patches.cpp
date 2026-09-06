@@ -121,7 +121,7 @@ void Sys_Error_LogCaller(const char *fmt, ...) {
   fprintf(stderr, "[Sys_Error] Called from 0x%p with message: \"%s\"",
           game::derelocate(callerAddr), msg);
   fflush(stderr);
-  game::trace("[Sys_Error] Called from 0x%p with message: \"%s\"",
+  game::trace("[Sys_Error] Called from {:p} with message: \"{}\"",
               game::derelocate(callerAddr), msg);
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                         game::consoleLabel_e::DEFAULT,
@@ -159,7 +159,7 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
       game::derelocate(callerAddr), msg, static_cast<int32_t>(code));
   fprintf(stderr, "%s\n", log);
   fflush(stderr);
-  game::trace("%s", log);
+  game::trace("{}", log);
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                         game::consoleLabel_e::DEFAULT, "%s\n", log);
   static bool suppress_next_lua_error = false;
@@ -422,7 +422,7 @@ void PhysPrint_AllOutputs(const char *fmt, ...) {
 
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                         game::consoleLabel_e::DEFAULT, "%s\n", formatted_msg);
-  game::trace("%s", formatted_msg);
+  game::trace("{}", formatted_msg);
 }
 #endif
 

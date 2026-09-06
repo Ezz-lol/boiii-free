@@ -65,7 +65,7 @@ inline void __attribute__((optnone))
 invoke_opcode_err(scriptInstance_t inst, volatile vm::function_stack_t *fs,
                   volatile vm::ScrVmContext_t *vmc, volatile bool *terminate) {
 #ifndef NDEBUG
-  game::trace("[Scr][VM] Entered VM_%s_ErrRecovery\n", vm::op::serialize(Op));
+  game::trace("[Scr][VM] Entered VM_{}_ErrRecovery\n", vm::op::serialize(Op));
 #endif
   HOOKED_OPCODE_ERR_HANDLERS[+Op](inst, fs, vmc, terminate);
 }

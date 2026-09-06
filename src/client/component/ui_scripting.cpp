@@ -414,7 +414,7 @@ arguments lua_print(variadic_args args) {
   fprintf(stdout, "%s\n", message.c_str());
   fflush(stdout);
 #ifndef NDEBUG
-  game::trace("[Lua] %s", message.c_str());
+  game::trace("[Lua] {}", message.c_str());
 #endif
 
   return {};
@@ -439,9 +439,9 @@ void print_error(const std::string &error) {
       scheduler::main, 1s);
 }
 
-void print_loading_script(const std::string &name) {
+void print_loading_script(const std::string_view &name) {
   printf("Loading LUI script '%s'\n", name.data());
-  game::trace("Loading LUI script '%s'", name.data());
+  game::trace("Loading LUI script '{}'", name);
 }
 
 std::string get_current_script(lua_State *state) {
@@ -1619,7 +1619,7 @@ luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
 #ifndef STUB_LOAD
 #define STUB_LOAD()                                                            \
   game::trace(                                                                 \
-      "[Lua] Skipping load of blacklisted DLL: \"%s\" with func_name: \"%s\"", \
+      "[Lua] Skipping load of blacklisted DLL: \"{}\" with func_name: \"{}\"", \
       filename ? filename : "NULL", func_name ? func_name : "NULL");
   lua_pushfunction(s, lua_stub_func, func_name);
   return luaReturnCount_e::ONE;
@@ -1659,7 +1659,7 @@ luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
   }
 
 #ifndef NDEBUG
-  game::trace("Calling load_dll with filename: \"%s\", func_name: \"%s\"",
+  game::trace("Calling load_dll with filename: \"{}\", func_name: \"{}\"",
               filename ? filename : "NULL", func_name ? func_name : "NULL");
 #endif
   return load_dll_hook.invoke<luaReturnCount_e>(s, filename, func_name);
@@ -1966,9 +1966,11 @@ Lua_CoD_FFReader_EnforceOverride(lua_State *luaVM, RawFile *ud, size_t *size) {
 // with `DB_FindXAssetHeader`?
 #ifndef NDEBUG
       game::trace(
-          "Rawfile override failed for script \"%s\". Override buffer: 0x%p, "
-          "original buffer: 0x%p, override len: 0x%016X, original len: 0x%016X",
-          ud->name, override->buffer, ud->buffer, override->len, ud->len);
+          "Rawfile override failed for script \"{}\". Override buffer: {:p}, "
+          "original buffer: {:p}, override len: 0x{:016X}, original len: "
+          "0x{:016X}",
+          ud->name, static_cast<void *>(override->buffer),
+          static_cast<void *>(ud->buffer), override->len, ud->len);
 #endif
       ud->buffer = override->buffer;
       ud->len = override->len;
@@ -2009,7 +2011,7 @@ void R_CopyTextureRegionMips_Safe(void *a1, void *a2, uint32_t a3, int32_t a4,
 
 #ifndef NDEBUG
 void print_info(game::consoleLabel_e label, const std::string_view &msg) {
-  game::trace("[Lua][Info] %s", msg.data());
+  game::trace("[Lua][Info] {}", msg);
   fprintf(stdout, "[Lua][Info] %s\n", msg.data());
   fflush(stdout);
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER, label,
@@ -2017,7 +2019,7 @@ void print_info(game::consoleLabel_e label, const std::string_view &msg) {
 }
 
 void print_error(game::consoleLabel_e label, const std::string_view &msg) {
-  game::trace("[Lua][Error] %s", msg.data());
+  game::trace("[Lua][Error] {}", msg);
   fprintf(stderr, "[Lua][Error] %s\n", msg.data());
   fflush(stderr);
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER, label,
@@ -2025,7 +2027,7 @@ void print_error(game::consoleLabel_e label, const std::string_view &msg) {
 }
 
 void print_warning(game::consoleLabel_e label, const std::string_view &msg) {
-  game::trace("[Lua][Warn] %s", msg.data());
+  game::trace("[Lua][Warn] {}", msg);
   fprintf(stdout, "[Lua][Warn] %s\n", msg.data());
   fflush(stdout);
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER, label,
@@ -2078,7 +2080,7 @@ luaReturnCount_e Lua_CoD_LuaCall_Mods_SetMod_LoadImmediately(lua_State *luaVM) {
   if (lua_gettop(luaVM) > 0 && lua_isstring(luaVM, 1)) {
     const char *publisherId = lua_tostring(luaVM, 1);
 #ifndef NDEBUG
-    game::trace("[Lua] Mods_SetMod called with publisherId: \"%s\"",
+    game::trace("[Lua] Mods_SetMod called with publisherId: \"{}\"",
                 publisherId);
 #endif
     if (publisherId) {
@@ -2280,8 +2282,8 @@ luaReturnCount_e LobbyVM_CallFunc_Redirect(lua_State *luaVM) {
     if (func && func[0]) {
       const std::string_view func_view = func;
 #ifndef NDEBUG
-      game::trace("LobbyVM_CallFunc called with func: %s, argc: %d",
-                  func_view.data(), lua_gettop(luaVM));
+      game::trace("LobbyVM_CallFunc called with func: {}, argc: {}", func_view,
+                  lua_gettop(luaVM));
 #endif
       if (LOBBYVM_CALLFUNC_HANDLERS.contains(func_view)) {
         LobbyVM_CallFunc_Handler handler =

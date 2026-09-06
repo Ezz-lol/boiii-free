@@ -33,13 +33,39 @@ size_t get_registered_dvar_name_count();
 
 #ifdef NDEBUG
 template <typename... Args>
+inline void tracef([[maybe_unused]] const std::string_view &fmt,
+                   [[maybe_unused]] Args &&...args) {}
+template <typename... Args>
 inline void trace([[maybe_unused]] const std::string_view &fmt,
                   [[maybe_unused]] Args &&...args) {}
 #else
 extern std::recursive_mutex log_mutex;
 
 template <typename... Args>
-void trace(const std::string_view &fmt, Args &&...args) {
+inline std::string __tracef_formatter(const std::string_view &fmt,
+                                      Args &&...args) {
+  const int32_t buf_len = std::snprintf(nullptr, 0, fmt.data(), args...);
+
+  std::string buffer;
+  if (buf_len > 0) {
+    buffer.resize(buf_len);
+    std::snprintf(buffer.data(), buf_len + 1, fmt.data(), args...);
+  }
+  return buffer;
+}
+
+template <typename... Args>
+inline std::string __trace_formatter(const std::string_view &fmt,
+                                     Args &&...args) {
+  return std::vformat(fmt, std::make_format_args(args...));
+}
+
+template <typename... Args>
+using FormatFunc =
+    fastcall_t<std::string(const std::string_view &fmt, Args &&...args)>;
+template <typename... Args>
+void __trace_impl(FormatFunc<Args...> &formatter, const std::string_view &fmt,
+                  Args &&...args) {
   // Get current time for timestamp
   const std::chrono::time_point now = std::chrono::system_clock::now();
   const std::time_t now_time_t = std::chrono::system_clock::to_time_t(now);
@@ -56,36 +82,50 @@ void trace(const std::string_view &fmt, Args &&...args) {
     now_str.pop_back(); // Remove trailing newline from ctime_s
   }
 
-  const int32_t buf_len = std::snprintf(nullptr, 0, fmt.data(), args...);
+  // Generate printable output buffer in duplicated memory
+  // to ensure minimal output lock time
+  std::string out_buffer;
+  {
+    const std::string buffer = formatter(fmt, std::forward<Args>(args)...);
+    out_buffer.reserve(buffer.size());
 
-  std::string buffer;
-  if (buf_len > 0) {
-    buffer.resize(buf_len);
-    std::snprintf(buffer.data(), buf_len + 1, fmt.data(), args...);
-  }
-
-  std::scoped_lock<std::recursive_mutex> lock(log_mutex);
-  std::ofstream &debug_log = game::tracing_logfile();
-  if (debug_log.is_open()) {
-    debug_log << "[" << now_str << "." << std::setfill('0') << std::setw(3)
-              << now_ms.count() << "] [Debug]";
+    out_buffer += std::format("[{}.{:03}][Debug]", now_str, now_ms.count());
 
     // Trace location/category formatting
     if (!buffer.empty() && buffer[0] != '[') {
-      debug_log << " ";
+      out_buffer += " ";
     }
 
     for (const char c : buffer) {
       if (c == '\n') {
-        debug_log << "\\n";
+        out_buffer += "\\n";
       } else if (c == '\r') {
-        debug_log << "\\r";
+        out_buffer += "\\r";
       } else if (std::isprint(static_cast<unsigned char>(c))) {
-        debug_log << c;
+        out_buffer += c;
       }
     }
-    debug_log << std::endl;
   }
+
+  {
+    std::scoped_lock<std::recursive_mutex> lock(log_mutex);
+    std::ofstream &debug_log = game::tracing_logfile();
+    if (debug_log.is_open()) {
+      debug_log << out_buffer;
+      debug_log.flush();
+    }
+  }
+}
+
+template <typename... Args>
+inline void tracef(const std::string_view &fmt, Args &&...args) {
+  return __trace_impl(__tracef_formatter<Args...>, fmt,
+                      std::forward<Args>(args)...);
+}
+template <typename... Args>
+inline void trace(const std::string_view &fmt, Args &&...args) {
+  return __trace_impl(__trace_formatter<Args...>, fmt,
+                      std::forward<Args>(args)...);
 }
 #endif
 

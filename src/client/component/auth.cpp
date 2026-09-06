@@ -415,8 +415,8 @@ void send_challenge(const game::net::netadr_t &addr,
   const std::string hex_challenge_resp = utils::string::hexdump(
       challenge_response_buf, std::size(challenge_response_buf));
   game::net::netadr_str_t addrBuf = {0};
-  game::trace("[Auth][Challenge] sending challenge to %s: \"%s\"",
-              addr.toString(addrBuf), hex_challenge_resp.c_str());
+  game::trace("[Auth][Challenge] sending challenge to {}: \"{}\"",
+              addr.toString(addrBuf).buf, hex_challenge_resp.c_str());
 #endif
 
   memcpy(&challenge_response_buf[std::size(CHALLENGE_RESPONSE_COMMAND_PREFIX)],

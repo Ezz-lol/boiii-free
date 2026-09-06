@@ -29,18 +29,18 @@ inline void log_method_call_helper(const char *table_name,
   char entref_str_buf[93] = {0};
   const char *method_name =
       gsc::builtin_method_name(canonId).value_or("UNKNOWN");
-  trace("[Scr][Method] Calling built-in method with inst: %s, entref: %s, name "
-        "\"%s::%s\", address: 0x%p",
+  trace("[Scr][Method] Calling built-in method with inst: {}, entref: {}, name "
+        "\"{}::{}\", address: {:p}",
         serialize(inst), entref->serialize(entref_str_buf), table_name,
-        method_name, game::derelocate(original_func));
+        method_name, static_cast<void *>(game::derelocate(original_func)));
 
   original_func(inst, entref);
 
   entref->serialize(entref_str_buf);
   trace("[Scr][Method] Returning from call to built-in method with "
-        "inst: %s, entref: %s, name \"%s::%s\", address: 0x%p",
+        "inst: {}, entref: {}, name \"{}::{}\", address: {:p}",
         serialize(inst), entref->serialize(entref_str_buf), table_name,
-        method_name, game::derelocate(original_func));
+        method_name, static_cast<void *>(game::derelocate(original_func)));
 }
 
 inline void log_function_call_helper(const char *table_name,
@@ -50,16 +50,16 @@ inline void log_function_call_helper(const char *table_name,
   const char *function_name =
       gsc::builtin_function_name(canonId).value_or("UNKNOWN");
   trace("[Scr][Function] Calling built-in function with inst: "
-        "%s, name \"%s::%s\", address: 0x%p",
+        "{}, name \"{}::{}\", address: {:p}",
         serialize(inst), table_name, function_name,
-        game::derelocate(original_func));
+        static_cast<void *>(game::derelocate(original_func)));
 
   original_func(inst);
 
   trace("[Scr][Function] Returning from call to built-in function "
-        "with inst: %s, name \"%s::%s\", address: 0x%p",
+        "with inst: {}, name \"{}::{}\", address: {:p}",
         serialize(inst), table_name, function_name,
-        game::derelocate(original_func));
+        static_cast<void *>(game::derelocate(original_func)));
 }
 
 inline void log_all_builtin_calls() {

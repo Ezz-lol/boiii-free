@@ -50,7 +50,7 @@ luaReturnCount_e unsafe_function(lua_State *luaVM) {
 template <const char *Library, const char *Name, lua_CFunction *func>
 luaReturnCount_e log_call(lua_State *luaVM) {
 #ifndef NDEBUG
-  game::trace("[Lua][%s] %s called with argc: %d", Library, Name,
+  game::trace("[Lua][{}] {} called with argc: {}", Library, Name,
               lua_gettop(luaVM));
 #endif
   return func(luaVM);

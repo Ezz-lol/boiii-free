@@ -1052,7 +1052,7 @@ void UGC_LoadMod_LogFirst(game::LocalClientNum_t localClientNum,
                           game::ugc::WorkshopData *mod, bool reloadFS) {
   const std::string mod_str = mod ? mod->serialize() : "NULL";
   game::trace(
-      "UGC_LoadMod called with localClientNum: %s, mod: %s, reloadFS: %s",
+      "UGC_LoadMod called with localClientNum: {}, mod: {}, reloadFS: {}",
       serialize(localClientNum), mod_str.data(), reloadFS ? "true" : "false");
 
   return UGC_LoadMod_hook.invoke(localClientNum, mod, reloadFS);
@@ -1206,7 +1206,7 @@ public:
           game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                                 game::consoleLabel_e::DEFAULT, "%s\n",
                                 msg.data());
-          game::trace("[printmod] %s", msg.data());
+          game::trace("[printmod] {}", msg.data());
         };
 
         if (params.size() > 0) {

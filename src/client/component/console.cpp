@@ -924,7 +924,7 @@ void print_message(const char *message) {
 #endif
 
 #ifndef NDEBUG
-  game::trace("[printf] %s", message);
+  game::trace("[printf] {}", message);
 #endif
 
   if (started.load(std::memory_order_seq_cst) && !terminate_runner) {
@@ -1436,7 +1436,7 @@ void sys_create_console_stub(const HINSTANCE h_instance) {
   SetFocus(*game::s_wcd::hwndInputLine);
   restore_input_caret();
   game::con::Con_GetTextCopy(
-      text, std::min(0x4000, static_cast<int32_t>(sizeof(text))));
+      text, std::min<int32_t>(0x4000, static_cast<int32_t>(sizeof(text))));
   append_text_with_severity(*game::s_wcd::hwndBuffer, text);
   resize_console_controls(*game::s_wcd::hWnd);
 }
@@ -1468,7 +1468,7 @@ using namespace game::lua::hks;
 
 void print(const std::string_view &msg) {
 #ifndef NDEBUG
-  game::trace("[Lua][Console] %s", msg.data());
+  game::trace("[Lua][Console] {}", msg);
 #endif
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                         game::consoleLabel_e::DEFAULT, "^7%s\n", msg.data());
@@ -1476,7 +1476,7 @@ void print(const std::string_view &msg) {
 
 void print_info(const std::string_view &msg) {
 #ifndef NDEBUG
-  game::trace("[Lua][Console][Info] %s", msg.data());
+  game::trace("[Lua][Console][Info] {}", msg);
 #endif
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                         game::consoleLabel_e::DEFAULT, "^4%s^7\n", msg.data());
@@ -1484,7 +1484,7 @@ void print_info(const std::string_view &msg) {
 
 void print_error(const std::string_view &msg) {
 #ifndef NDEBUG
-  game::trace("[Lua][Console][Error] %s", msg.data());
+  game::trace("[Lua][Console][Error] {}", msg);
 #endif
 
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
@@ -1494,7 +1494,7 @@ void print_error(const std::string_view &msg) {
 
 void print_warning(const std::string_view &msg) {
 #ifndef NDEBUG
-  game::trace("[Lua][Console][Warn] %s", msg.data());
+  game::trace("[Lua][Console][Warn] {}", msg);
 #endif
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                         game::consoleLabel_e::DEFAULT, "^3%s^7\n", msg.data());

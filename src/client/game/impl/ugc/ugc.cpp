@@ -299,8 +299,8 @@ void UGC_LoadModByPublisherId_Impl(LocalClientNum_t localClientNum,
 #ifndef NDEBUG
   const void *callerAddr = _ReturnAddress();
   game::trace(
-      "UGC_LoadModByPublisherId called at 0x%p with localClientNum: %s, "
-      "publisherId: \"%s\", reloadFS: %s",
+      "UGC_LoadModByPublisherId called at {:p} with localClientNum: {}, "
+      "publisherId: \"{}\", reloadFS: {}",
       game::derelocate(callerAddr), serialize(localClientNum),
       publisherId ? publisherId : "NULL", reloadFS ? "true" : "false");
 #endif

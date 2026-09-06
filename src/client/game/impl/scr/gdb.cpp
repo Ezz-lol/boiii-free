@@ -2,7 +2,7 @@
 #include "gdb.hpp"
 
 #include <game/impl/ugc/ugc.hpp>
-#include <unzip.h> // minizip
+#include <unzip.h>
 
 namespace game {
 namespace scr {
@@ -39,13 +39,14 @@ static void LoadGDBDataForDebugInfo(objFileInfo_t *const info) {
   debugFileInfo_t *const debug = &info->debugInfo;
   GSC_GDB *header = debug->gdb;
 
-  if (!memcmp(&debug->gdb->magic, &GSC_GDB::T7_MAGIC,
-              sizeof(debug->gdb->magic))) {
+  if (header->hasMagic(GSC_GDB::T7_MAGIC)) {
 
-    // Convert relative line‑info offsets to absolute addresses.
-    // The line‑info table resides at header->lineinfo_offset and must be
-    // 8‑byte aligned. Each entry is a 32‑bit offset that becomes an
-    // absolute pointer into the gdbBuffer.
+    /*
+       Convert relative line‑info offsets to absolute addresses.
+       The line‑info table resides at header->lineinfo_offset and must be
+       8‑byte aligned. Each entry is a 32‑bit offset that becomes an
+       absolute pointer into the gdbBuffer.
+    */
     uint64_t *lineInfo = align(header->lineinfo(), sizeof(uint64_t));
 
     const uint32_t lineinfoCount = header->lineinfo_count;
@@ -81,7 +82,7 @@ static void LoadGDBDataForDebugInfo(objFileInfo_t *const info) {
 /// UGC mod is active. The resulting line‑to‑address mappings and string tables
 /// are attached to the global objFileInfo records.
 void LoadScriptGDB2_Impl(const scriptInstance_t inst) {
-  // 1. Load GDBs from the global script debug ZIP archive
+  // Load GDBs from the global script debug ZIP archive
   scr_path_t zipPath;
   fs::FS_JoinPath(zipPath, std::size(zipPath), sys::Sys_GetAbsZoneDir(),
                   "scriptgdb.zip");
@@ -134,7 +135,7 @@ void LoadScriptGDB2_Impl(const scriptInstance_t inst) {
     }
   } // zipFile destroyed here
 
-  // 2. If a UGC mod is active, also try per‑zone GDB files
+  // If a mod is active, also try to load from per‑zone GDB files
   if (ugc::active_mod->publisherId[0]) {
     const uint32_t objCount = gObjFileInfoCount->instance[inst];
 
@@ -155,7 +156,6 @@ void LoadScriptGDB2_Impl(const scriptInstance_t inst) {
         // Resolve the virtual path into a concrete filesystem location
         if (ugc::UGC_ZoneSourcePath_Impl(relPath, ".gdb", std::size(fullPath),
                                          fullPath, zoneType, pubId)) {
-          // Open the file using a modern C++ stream
           std::ifstream file(fullPath, std::ios::binary);
           if (file.is_open()) {
             file.seekg(0, std::ios::end);
@@ -186,7 +186,7 @@ void LoadScriptGDB2_Impl(const scriptInstance_t inst) {
 void LoadScriptGDB_Impl([[maybe_unused]] const scriptInstance_t inst,
                         objFileInfo_t *const fileInfo) {
 
-  // 1. Try to load from the global script debug ZIP archive.
+  // Try to load from the global script debug ZIP archive.
   scr_path_t zipPath;
   fs::FS_JoinPath(zipPath, std::size(zipPath), sys::Sys_GetAbsZoneDir(),
                   "scriptgdb.zip");
@@ -226,7 +226,7 @@ void LoadScriptGDB_Impl([[maybe_unused]] const scriptInstance_t inst,
     }
   }
 
-  // 2. If a UGC mod is active, attempt to load from per‑zone GDB files.
+  // If a UGC mod is active, attempt to load from per‑zone GDB files.
   if (ugc::active_mod->publisherId[0]) {
 
     for (ZoneType zoneType = ZoneType::MOD; zoneType < ZoneType::COUNT;
@@ -262,10 +262,10 @@ void LoadScriptGDB_Impl([[maybe_unused]] const scriptInstance_t inst,
   }
 }
 
-/// @brief  Locate the objFileInfo that contains the given code address.
+/// @brief  Locate the objFileInfo that contains the given bytecode address.
 ///
-/// Iterates over all active versions of script objects for the specified
-/// instance and returns the first whose code segment encompasses 'addr'.
+/// Iterates over all active script objects for the specified instance and
+/// returns the first with bytecode containing the given `addr`ess.
 /// Returns nullptr if no match is found.
 objFileInfo_t *Scr_FindObjFileInfo_Impl(const scriptInstance_t inst,
                                         void *const addr) {
@@ -283,9 +283,8 @@ objFileInfo_t *Scr_FindObjFileInfo_Impl(const scriptInstance_t inst,
 /// @brief  For a given code address, retrieve source filename, line number,
 ///         and the text of that source line.
 ///
-/// Uses the GDB debug data (loaded on demand) to map the address to a line
-/// in the original script file. The GDB buffer is freed immediately after
-/// the lookup to conserve memory.
+/// Attempts to load the GDB debug data for the given bytecode position. If
+/// successful, maps the address to a line in the original script file.
 void Scr_GetFileAndLineNum_Impl(const scriptInstance_t inst, uint8_t *const pos,
                                 const char **const filename,
                                 int32_t *const lineNum,
@@ -300,10 +299,10 @@ void Scr_GetFileAndLineNum_Impl(const scriptInstance_t inst, uint8_t *const pos,
     *sourceLine = "";
   }
 
-  // 2. Find the owning script object.
+  // Find the script object containing the given bytecode pointer.
   objFileInfo_t *fileInfo = Scr_FindObjFileInfo_Impl(inst, pos);
   if (fileInfo != nullptr) {
-    // 3. Always provide the filename if it exists.
+    // Always provide the filename if it exists.
     if (filename != nullptr) {
       *filename = fileInfo->debugInfo.filename;
     }
@@ -319,7 +318,7 @@ void Scr_GetFileAndLineNum_Impl(const scriptInstance_t inst, uint8_t *const pos,
             fileInfo->debugInfo.lineStartAddr);
         int32_t lineIdx = 0;
 
-        // Find the last line whose starting address is <= 'pos'.
+        // Find the last line with start address <= 'pos'.
         while (lineIdx < lineAddrCount &&
                pos > reinterpret_cast<uint8_t *>(lineTable[lineIdx])) {
           ++lineIdx;
@@ -331,8 +330,8 @@ void Scr_GetFileAndLineNum_Impl(const scriptInstance_t inst, uint8_t *const pos,
         *lineNum = -1;
       }
 
-      // 5. If a valid line number was found and a source line is requested,
-      //    extract the corresponding text from the source buffer.
+      // If a valid line number was found and a source line is requested,
+      // extract the corresponding text from the source buffer.
       if (sourceLine != nullptr && *lineNum >= 0 &&
           fileInfo->debugInfo.source != nullptr) {
         char *src = fileInfo->debugInfo.source;
@@ -355,7 +354,7 @@ void Scr_GetFileAndLineNum_Impl(const scriptInstance_t inst, uint8_t *const pos,
         *sourceLine = &src[lineStartOff];
       }
 
-      // 6. Release the GDB buffer immediately – it is only needed for the
+      // Release the GDB buffer immediately – it is only needed for the
       // lookup.
       if (fileInfo->debugInfo.gdb != nullptr) {
         free(fileInfo->debugInfo.gdb);
@@ -386,7 +385,7 @@ void ReportObjLinkError_Impl(scriptInstance_t inst, GSC_OBJ *prime_obj,
         uint64_t *const lineTable = reinterpret_cast<uint64_t *const>(
             fileInfo->debugInfo.lineStartAddr);
 
-        // Find the last line whose starting address is <= 'pos'.
+        // Find the last line with start address <= 'pos'.
         while (lineIdx<lineAddrCount &&reinterpret_cast<uint8_t *>(
                    static_cast<uint64_t>(
                        addressOffsets[i]))> reinterpret_cast<uint8_t
@@ -410,23 +409,16 @@ void ReportObjLinkError_Impl(scriptInstance_t inst, GSC_OBJ *prime_obj,
       fileInfo->debugInfo.gdb = nullptr;
     }
 
-    // Lookup function name in the global linked-list hashmap
-    std::string functionName;
     const char *lookupResult = sl::SL_LookupCanonicalString(import->name);
-    if (lookupResult && lookupResult[0]) {
-      functionName = lookupResult;
-    } else {
-      // Fallback: format name ID as Hex if string hash isn't found
-      functionName = std::format("{:X}", import->name);
-    }
+    const std::string functionName = lookupResult && lookupResult[0]
+                                         ? lookupResult
+                                         : std::format("{:X}", import->name);
 
-    // Format the final error message (replaces 'va' and 'Com_sprintf')
-    std::string errorMessage =
+    const std::string errorMessage =
         std::format(" \"{}\" with {} parameters in \"{}\" at {} {} ****\n",
                     functionName, import->param_count, prime_obj->get_name(),
                     (import->num_address > 1) ? "lines" : "line", linesBuffer);
 
-    // Append to the provided C-style buffer safely (replaces 'I_strcat')
     if (errorString != nullptr && errorStringLength > 0) {
       size_t currentLen = std::strlen(errorString);
       size_t spaceLeft =
@@ -434,9 +426,11 @@ void ReportObjLinkError_Impl(scriptInstance_t inst, GSC_OBJ *prime_obj,
       std::strncat(errorString, errorMessage.c_str(), spaceLeft);
     }
 
-    // Print to the engine console
     com::Com_Printf(consoleChannel_e::CHANNEL_ERROR,
                     consoleLabel_e::CHANNEL_ERROR, "%s", errorMessage.c_str());
+    fprintf(stderr, "%s", errorMessage.c_str());
+    fflush(stderr);
+    game::trace("{}", errorMessage);
   }
 }
 } // namespace scr

@@ -21,11 +21,8 @@ void R_StoreWindowSettings_AllowPositiveViewScale(
   R_StoreWindowSettings_hook.invoke(wndParms);
 
 #ifndef NDEBUG
-  str1024_t vidConfigSerializationBuf;
-  game::trace("R_StoreWindowSettings called at 0x%p with vidConfig: %s",
-              game::derelocate(callerAddr),
-              vidConfig->serialize<std::size(vidConfigSerializationBuf)>(
-                  vidConfigSerializationBuf));
+  game::trace("R_StoreWindowSettings called at {:p} with vidConfig: {}",
+              game::derelocate(callerAddr), vidConfig->serialize());
 #endif
 
   if (vidConfig->sceneAspectRatio > DEFAULT_UI_VIEW_ASPECT_RATIO &&
@@ -43,12 +40,9 @@ void R_StoreWindowSettings_AllowPositiveViewScale(
   }
 
 #ifndef NDEBUG
-  memset(vidConfigSerializationBuf, 0, std::size(vidConfigSerializationBuf));
   game::trace(
-      "R_StoreWindowSettings returning from call at 0x%p with vidConfig: %s",
-      game::derelocate(callerAddr),
-      vidConfig->serialize<std::size(vidConfigSerializationBuf)>(
-          vidConfigSerializationBuf));
+      "R_StoreWindowSettings returning from call at {:p} with vidConfig: {}",
+      game::derelocate(callerAddr), vidConfig->serialize());
 #endif
 }
 
