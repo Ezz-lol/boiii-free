@@ -346,7 +346,7 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
 #ifndef NDEBUG
       trace("[Scr][HECmd_SetText] Localized config string entry with "
             "index 0x{:X}, "
-            "absolute config string index 0x%lX: got localized string data "
+            "absolute config string index 0x{:X}: got localized string data "
             "pointer: {:p}",
             pool_entry->get_idx(), pool_entry->abs_idx(),
             const_cast<void *>(
@@ -361,7 +361,7 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
 #ifndef NDEBUG
       trace("[Scr][HECmd_SetText] Localized config string entry with "
             "index 0x{:X}, "
-            "absolute config string index 0x%lX: setting value to \"{}\"",
+            "absolute config string index 0x{:X}: setting value to \"{}\"",
             pool_entry->get_idx(), pool_entry->abs_idx(), cleaned_message_buf);
 #endif
       // TAC-protected on client, so we use a re-implementation to circumvent.
