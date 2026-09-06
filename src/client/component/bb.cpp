@@ -208,8 +208,6 @@ utils::hook::detour BB_Print_hook;
 utils::hook::detour BB_Send_hook;
 utils::hook::detour BB_CheckSend_hook;
 
-utils::hook::detour GScr_BBPrint_hook;
-
 void redirect_bb_logging_to_stdout() {
   BB_Send_hook.create(
       game::bb::BB_Send.get(),
@@ -219,10 +217,11 @@ void redirect_bb_logging_to_stdout() {
       game::bb::BB_CheckSend.get(),
       reinterpret_cast<fastcallPtr_t<void(game::ControllerIndex_t)>>(
           stub_func));
-  GScr_BBPrint_hook.create(game::scr::gscr::GScr_BBPrint.get(),
-                           game::scr::gscr::GScr_BBPrint_StdoutRedirect);
   BB_Print_hook.create(game::bb::BB_Print.get(),
                        game::bb::BB_Print_StdoutRedirect);
+
+  game::scr::builtin::table::common_functions->BBPrint.actionFunc =
+      game::scr::gscr::GScr_BBPrint_StdoutRedirect;
 }
 
 class component final : public client_component {
