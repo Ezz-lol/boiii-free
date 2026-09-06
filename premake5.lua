@@ -271,7 +271,7 @@ targetdir("%{wks.location}/bin/%{cfg.platform}/%{cfg.buildcfg}")
 configurations({ "Debug", "Release" })
 
 language("C++")
-cppdialect("C++23")
+cppdialect("C++20")
 
 architecture("x86_64")
 platforms("x64")
