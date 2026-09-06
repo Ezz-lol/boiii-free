@@ -604,7 +604,7 @@ cflags=(
 	"-L${WINDOWS_MSVC_TOOLCHAIN_BIN_PATH}"
 	"-I${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}")
 cxxflags=(
-	"-std=c++20"
+	"-std=c++23"
 	"-Oz"
 	"-march=${MARCH}" "-m64" "-mno-sse4.1" "-mno-sse4.2"
 	"-isystem" "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}/c++/msstl/"
