@@ -1,5 +1,5 @@
-#include <std_include.hpp>
 #ifndef NDEBUG
+#include <std_include.hpp>
 
 #include "log.hpp"
 
@@ -8,7 +8,7 @@
 #include <utils/thread.hpp>
 
 namespace game {
-namespace log {
+namespace logger {
 static moodycamel::BlockingConcurrentQueue<std::string> message_queue(0xFF);
 
 namespace thread {
@@ -50,6 +50,6 @@ __inline_def void enqueue(const std::string &msg) {
   message_queue.enqueue(std::move(msg));
 }
 
-} // namespace log
+} // namespace logger
 } // namespace game
 #endif

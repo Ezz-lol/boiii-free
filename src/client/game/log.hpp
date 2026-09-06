@@ -4,13 +4,13 @@
 
 namespace game {
 #ifndef NDEBUG
-namespace log {
+namespace logger {
 namespace thread {
 void startup();
 void shutdown();
 } // namespace thread
 void enqueue(const std::string &msg);
-} // namespace log
+} // namespace logger
 #endif
 
 #ifdef NDEBUG

@@ -4,16 +4,16 @@
 
 #include <game/log.hpp>
 
-namespace log {
+namespace logger {
 
 class component final : public generic_component {
 public:
-  void post_load() override { game::log::thread::startup(); }
-  void pre_destroy() override { game::log::thread::shutdown(); }
+  void post_load() override { game::logger::thread::startup(); }
+  void pre_destroy() override { game::logger::thread::shutdown(); }
   component_priority priority() const override {
     return component_priority::log;
   }
 };
-} // namespace log
-REGISTER_COMPONENT(log::component);
+} // namespace logger
+REGISTER_COMPONENT(logger::component);
 #endif
