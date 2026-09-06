@@ -54,17 +54,22 @@ inline void dvar_bool_force(EngineDependentDvarMut dvar) {
 
 #ifndef NDEBUG
 inline bool enable_debug_dvars() {
-  if (*game::g_vehicleDrawPath && *game::g_vehicleDrawSplines &&
-      *game::g_vehicleDebug && *game::com_clientfieldsdebug) {
-    if (utils::flags::has_flag("vehicle-debug")) {
-      dvar_boolstring_force<"1">(*game::g_vehicleDrawPath);
-      dvar_bool_force<true>(*game::g_vehicleDrawSplines);
-      dvar_int_force<1>(*game::g_vehicleDebug);
+  static const EngineDependentDvarMut *dependencies[] = {
+      game::g_vehicleDebug.get(), game::g_vehicleDrawSplines.get(),
+      game::g_vehicleDrawPath.get(), game::com_clientfieldsdebug.get()};
+  for (const EngineDependentDvarMut *dependency : dependencies) {
+    if (!*dependency) {
+      return scheduler::cond_continue;
     }
-    dvar_bool_force<true>(*game::com_clientfieldsdebug);
-    return scheduler::cond_end;
   }
-  return scheduler::cond_continue;
+
+  if (utils::flags::has_flag("vehicle-debug")) {
+    dvar_boolstring_force<"1">(*game::g_vehicleDrawPath);
+    dvar_bool_force<true>(*game::g_vehicleDrawSplines);
+    dvar_int_force<1>(*game::g_vehicleDebug);
+  }
+  dvar_bool_force<true>(*game::com_clientfieldsdebug);
+  return scheduler::cond_end;
 }
 #endif
 
@@ -237,11 +242,33 @@ EngineDependentDvar Dvar_GetSessionModeSpecificDvarInternal_FallbackDefault(
   }
   }
 }
+
+bool return_false() { return false; }
 } // namespace
 
 class component final : public generic_component {
 public:
   void post_unpack() override {
+    /*
+      Disable error:
+      "Attempt to set ClientField pre finalization of ClientField system.
+      Fields cannot be set pre the script systems first wait command."
+      when `com_clientfieldsdebug` is enabled. This error is intended only for
+      internal Treyarch script testing to optimize clientfield modification
+      timing, and is not necessary outside of hyper-optimized script
+      development.
+
+      Each of these patches is either in `BG_CheckForFieldSetPreFinalize` or in
+      an inlined call to `BG_CheckForFieldSetPreFinalize`.
+    */
+    // BG_IncrementClientFieldCounterVal (CL) /
+    // BG_CheckForFieldSetPreFinalize (SV)
+    utils::hook::call(game::select(0x140134368, 0x1400577A0), return_false);
+    // BG_SetClientFieldFloatVal
+    utils::hook::call(game::select(0x140136DB4, 0x14005AC64), return_false);
+    // BG_SetClientFieldIntVal
+    utils::hook::call(game::select(0x140136E85, 0x14005AD45), return_false);
+
     scheduler::once(patch_dvars, scheduler::pipeline::main);
 #ifndef NDEBUG
     scheduler::schedule(enable_debug_dvars, scheduler::pipeline::main);
@@ -264,6 +291,7 @@ public:
 
     // Disable `live_uselpc`
     utils::hook::call(0x141E0CEA1_g, Dvar_RegisterBool_Force<false>);
+
     // toggle ADS dof based on r_dof_enable
     utils::hook::jump(0x141116EBB_g, utils::hook::assemble(dof_enabled_stub));
 

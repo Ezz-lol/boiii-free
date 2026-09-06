@@ -1519,10 +1519,10 @@ union EngineDependentDvarMut {
     return result;
   }
 
-  inline constexpr bool nonnull() noexcept { return sv != nullptr; }
-  inline constexpr bool null() noexcept { return sv == nullptr; }
+  inline constexpr bool nonnull() const noexcept { return sv != nullptr; }
+  inline constexpr bool null() const noexcept { return sv == nullptr; }
 
-  inline constexpr bool operator!() noexcept { return null(); }
+  inline constexpr bool operator!() const noexcept { return null(); }
   inline constexpr bool
   operator>(const EngineDependentDvarMut &rhs) const noexcept {
     return sv > rhs.sv;
