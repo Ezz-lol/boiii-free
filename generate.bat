@@ -14,7 +14,7 @@ if %ERRORLEVEL%==1 (
   goto :error
 )
 
-premake5 %* vs2022
+premake5 %* vs2026
 if errorlevel 1 goto :error
 
 popd
