@@ -380,35 +380,33 @@ void load_script(const std::string &name, const std::string &data,
   }
 
   // Skip CSC on dedicated server (no client script instance)
-  if (is_csc && is_server()) {
-    return;
-  }
+  if (!is_csc || is_client()) {
+    base_name = name.substr(0, name.size() - 4);
+    if (base_name.empty()) {
+      const char *err = utils::string::va(
+          "Script '%s' failed to load due to invalid name.", name.data());
+      print_script_log(err);
+      return;
+    }
 
-  base_name = name.substr(0, name.size() - 4);
-  if (base_name.empty()) {
-    const char *err = utils::string::va(
-        "Script '%s' failed to load due to invalid name.", name.data());
-    print_script_log(err);
-    return;
-  }
+    ScriptParseTree *parse_tree = allocator.allocate<ScriptParseTree>();
+    parse_tree->name = allocator.duplicate_string(name);
+    parse_tree->buffer =
+        reinterpret_cast<GSC_OBJ *>(allocator.duplicate_string(data));
+    parse_tree->len = data.length();
 
-  ScriptParseTree *parse_tree = allocator.allocate<ScriptParseTree>();
-  parse_tree->name = allocator.duplicate_string(name);
-  parse_tree->buffer =
-      reinterpret_cast<GSC_OBJ *>(allocator.duplicate_string(data));
-  parse_tree->len = data.length();
+    while (loaded_scripts.try_emplace_l(
+        name, [&](auto &v) { v.second = parse_tree; })) {
+    }
+    const char *log = utils::string::va("Loaded script '%s' (size %llu bytes)",
+                                        name.data(), parse_tree->len);
+    print_script_log(log);
 
-  while (loaded_scripts.try_emplace_l(
-      name, [&](auto &v) { v.second = parse_tree; })) {
-  }
-  const char *log = utils::string::va("Loaded script '%s' (size %llu bytes)",
-                                      name.data(), parse_tree->len);
-  print_script_log(log);
-
-  if (load) {
-    const scriptInstance_t inst =
-        is_csc ? SCRIPTINSTANCE_CLIENT : SCRIPTINSTANCE_SERVER;
-    scr::Scr_LoadScript(inst, base_name.data());
+    if (load) {
+      const scriptInstance_t inst =
+          is_csc ? SCRIPTINSTANCE_CLIENT : SCRIPTINSTANCE_SERVER;
+      scr::Scr_LoadScript(inst, base_name.data());
+    }
   }
 }
 
@@ -649,7 +647,7 @@ void load_scripts_directory(
   }
 }
 
-std::optional<std::filesystem::path> get_game_type_specific_folder() {
+std::optional<std::filesystem::path> get_game_type_specific_directory() {
   switch (com::Com_SessionMode_GetMode()) {
   case eModes::MULTIPLAYER:
     return "mp";
@@ -748,7 +746,7 @@ void load_tree(std::filesystem::path tree, bool execImmediate = false) {
       shared_tree_directories<2>({data_directory, boiii_directory}, tree);
 
   const std::optional<std::filesystem::path> game_type =
-      get_game_type_specific_folder();
+      get_game_type_specific_directory();
   if (game_type.has_value()) {
     applicable_tree_dirs.insert(
         {tree / game_type.value(), std::nullopt, true, true});
@@ -781,7 +779,7 @@ void load_tree(std::filesystem::path tree, bool execImmediate = false) {
     We must do this before loading any scripts into the VM to ensure all
     dependencies are available for lookup upon first script load.
   */
-  std::for_each(std::execution::par, applicable_tree_dirs.begin(),
+  std::for_each(std::execution::seq, applicable_tree_dirs.begin(),
                 applicable_tree_dirs.end(), [load](const TreeDirectory &dir) {
                   load(dir.path, false, dir.load_recursively, dir.strip_base,
                        dir.exclude_map_subtrees);
@@ -789,7 +787,7 @@ void load_tree(std::filesystem::path tree, bool execImmediate = false) {
 
   if (execImmediate) {
     // Now, load the scripts into the VM.
-    std::for_each(std::execution::par, applicable_tree_dirs.begin(),
+    std::for_each(std::execution::seq, applicable_tree_dirs.begin(),
                   applicable_tree_dirs.end(), [load](const TreeDirectory &dir) {
                     load(dir.path, true, dir.load_recursively, dir.strip_base,
                          dir.exclude_map_subtrees);
