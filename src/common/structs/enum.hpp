@@ -16,11 +16,19 @@
 */
 template <IntegralLike Underlying> struct Enum {
 #pragma pack(push, 1)
-  Underlying __value;
+  Underlying underlying;
 #pragma pack(pop)
 private:
-  inline constexpr const Underlying &value() const noexcept { return __value; }
-  inline constexpr Underlying &value() noexcept { return __value; }
+  inline constexpr const Underlying &value() const noexcept {
+    return underlying;
+  }
+  inline constexpr Underlying &value() noexcept { return underlying; }
+  inline constexpr volatile Underlying &value() volatile noexcept {
+    return underlying;
+  }
+  inline constexpr const volatile Underlying &value() const volatile noexcept {
+    return underlying;
+  }
 
 public:
   /*
@@ -43,14 +51,26 @@ public:
     return value();
   }
 
+  template <IntegralLike<Underlying> Rhs>
+  inline constexpr volatile Enum &operator=(const Rhs &rhs) volatile noexcept {
+    value() = static_cast<Underlying>(rhs);
+    return value();
+  }
+
   inline constexpr Enum<Underlying> &operator=(const Underlying &rhs) noexcept {
+    value() = static_cast<Underlying>(rhs);
+    return value();
+  }
+
+  inline constexpr volatile Enum<Underlying> &
+  operator=(const Underlying &rhs) volatile noexcept {
     value() = static_cast<Underlying>(rhs);
     return value();
   }
 
   // Implicit conversion to any integral type
   template <IntegralLike<Underlying> Out> inline operator Out() const noexcept {
-    return std::bit_cast<Out>(__value);
+    return std::bit_cast<Out>(underlying);
   }
 
   // Explicit conversion to bool (truthiness)
@@ -75,7 +95,16 @@ public:
     ++value();
     return *this;
   }
+  inline constexpr volatile Enum &operator++() volatile noexcept {
+    ++value();
+    return *this;
+  }
   inline constexpr Enum &operator--() noexcept {
+    --value();
+    return *this;
+  }
+
+  inline constexpr volatile Enum &operator--() volatile noexcept {
     --value();
     return *this;
   }
@@ -86,7 +115,19 @@ public:
     ++value();
     return temp;
   }
+  inline constexpr Enum operator++(int) volatile noexcept {
+    Enum temp = *this;
+    ++value();
+    return temp;
+  }
+
   inline constexpr Enum operator--(int) noexcept {
+    Enum temp = *this;
+    --value();
+    return temp;
+  }
+
+  inline constexpr Enum operator--(int) volatile noexcept {
     Enum temp = *this;
     --value();
     return temp;
@@ -103,47 +144,106 @@ public:
     return *this;
   }
   template <IntegralLike<Underlying> Rhs>
+  inline constexpr volatile Enum &operator+=(const Rhs &v) volatile noexcept {
+    value() += static_cast<Underlying>(v);
+    return *this;
+  }
+
+  template <IntegralLike<Underlying> Rhs>
   inline constexpr Enum &operator-=(const Rhs &v) noexcept {
     value() -= static_cast<Underlying>(v);
     return *this;
   }
+  template <IntegralLike<Underlying> Rhs>
+  inline constexpr volatile Enum &operator-=(const Rhs &v) volatile noexcept {
+    value() -= static_cast<Underlying>(v);
+    return *this;
+  }
+
   template <IntegralLike<Underlying> Rhs>
   inline constexpr Enum &operator*=(const Rhs &v) noexcept {
     value() *= static_cast<Underlying>(v);
     return *this;
   }
   template <IntegralLike<Underlying> Rhs>
+  inline constexpr volatile Enum &operator*=(const Rhs &v) volatile noexcept {
+    value() *= static_cast<Underlying>(v);
+    return *this;
+  }
+
+  template <IntegralLike<Underlying> Rhs>
   inline constexpr Enum &operator/=(const Rhs &v) noexcept {
     value() /= static_cast<Underlying>(v);
     return *this;
   }
+  template <IntegralLike<Underlying> Rhs>
+  inline constexpr volatile Enum &operator/=(const Rhs &v) volatile noexcept {
+    value() /= static_cast<Underlying>(v);
+    return *this;
+  }
+
   template <IntegralLike<Underlying> Rhs>
   inline constexpr Enum &operator%=(const Rhs &v) noexcept {
     value() %= static_cast<Underlying>(v);
     return *this;
   }
   template <IntegralLike<Underlying> Rhs>
+  inline constexpr volatile Enum &operator%=(const Rhs &v) volatile noexcept {
+    value() %= static_cast<Underlying>(v);
+    return *this;
+  }
+
+  template <IntegralLike<Underlying> Rhs>
   inline constexpr Enum &operator|=(const Rhs &v) noexcept {
     value() |= static_cast<Underlying>(v);
     return *this;
   }
+  template <IntegralLike<Underlying> Rhs>
+  inline constexpr volatile Enum &operator|=(const Rhs &v) volatile noexcept {
+    value() |= static_cast<Underlying>(v);
+    return *this;
+  }
+
   template <IntegralLike<Underlying> Rhs>
   inline constexpr Enum &operator^=(const Rhs &v) noexcept {
     value() ^= static_cast<Underlying>(v);
     return *this;
   }
   template <IntegralLike<Underlying> Rhs>
+  inline constexpr volatile Enum &operator^=(const Rhs &v) volatile noexcept {
+    value() ^= static_cast<Underlying>(v);
+    return *this;
+  }
+
+  template <IntegralLike<Underlying> Rhs>
   inline constexpr Enum &operator&=(const Rhs &v) noexcept {
     value() &= static_cast<Underlying>(v);
     return *this;
   }
+  template <IntegralLike<Underlying> Rhs>
+  inline constexpr volatile Enum &operator&=(const Rhs &v) volatile noexcept {
+    value() &= static_cast<Underlying>(v);
+    return *this;
+  }
+
   template <IntegralLike<Underlying> Rhs>
   inline constexpr Enum &operator<<=(const Rhs &v) noexcept {
     value() <<= static_cast<Underlying>(v);
     return *this;
   }
   template <IntegralLike<Underlying> Rhs>
+  inline constexpr volatile Enum &operator<<=(const Rhs &v) volatile noexcept {
+    value() <<= static_cast<Underlying>(v);
+    return *this;
+  }
+
+  template <IntegralLike<Underlying> Rhs>
   inline constexpr Enum &operator>>=(const Rhs &v) noexcept {
+    value() >>= static_cast<Underlying>(v);
+    return *this;
+  }
+  template <IntegralLike<Underlying> Rhs>
+  inline constexpr volatile Enum &operator>>=(const Rhs &v) volatile noexcept {
     value() >>= static_cast<Underlying>(v);
     return *this;
   }
@@ -153,39 +253,88 @@ public:
     value() += v.value();
     return *this;
   }
+  inline constexpr volatile Enum &operator+=(const Enum &v) volatile noexcept {
+    value() += v.value();
+    return *this;
+  }
+
   inline constexpr Enum &operator-=(const Enum &v) noexcept {
     value() -= v.value();
     return *this;
   }
+  inline constexpr volatile Enum &operator-=(const Enum &v) volatile noexcept {
+    value() -= v.value();
+    return *this;
+  }
+
   inline constexpr Enum &operator*=(const Enum &v) noexcept {
     value() *= v.value();
     return *this;
   }
+  inline constexpr volatile Enum &operator*=(const Enum &v) volatile noexcept {
+    value() *= v.value();
+    return *this;
+  }
+
   inline constexpr Enum &operator/=(const Enum &v) noexcept {
     value() /= v.value();
     return *this;
   }
+  inline constexpr volatile Enum &operator/=(const Enum &v) volatile noexcept {
+    value() /= v.value();
+    return *this;
+  }
+
   inline constexpr Enum &operator%=(const Enum &v) noexcept {
     value() %= v.value();
     return *this;
   }
+  inline constexpr volatile Enum &operator%=(const Enum &v) volatile noexcept {
+    value() %= v.value();
+    return *this;
+  }
+
   inline constexpr Enum &operator|=(const Enum &v) noexcept {
     value() |= v.value();
     return *this;
   }
+  inline constexpr volatile Enum &operator|=(const Enum &v) volatile noexcept {
+    value() |= v.value();
+    return *this;
+  }
+
   inline constexpr Enum &operator^=(const Enum &v) noexcept {
     value() ^= v.value();
     return *this;
   }
+  inline constexpr volatile Enum &operator^=(const Enum &v) volatile noexcept {
+    value() ^= v.value();
+    return *this;
+  }
+
   inline constexpr Enum &operator&=(const Enum &v) noexcept {
     value() &= v.value();
     return *this;
   }
+  inline constexpr volatile Enum &operator&=(const Enum &v) volatile noexcept {
+    value() &= v.value();
+    return *this;
+  }
+
   inline constexpr Enum &operator<<=(const Enum &v) noexcept {
     value() <<= v.value();
     return *this;
   }
+  inline constexpr volatile Enum &operator<<=(const Enum &v) volatile noexcept {
+    value() <<= v.value();
+    return *this;
+  }
+
   inline constexpr Enum &operator>>=(const Enum &v) noexcept {
+    value() >>= v.value();
+    return *this;
+  }
+  inline constexpr volatile Enum &operator>>=(const Enum &v) volatile noexcept {
     value() >>= v.value();
     return *this;
   }

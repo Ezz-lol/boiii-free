@@ -18,42 +18,56 @@ template <typename T> struct HudElementPool {
   using index_t = uint16_t;
   array<T, SIZE> pool;
 
-  template <IntegralLike Index>
-  inline constexpr bool valid_index(Index index) const noexcept {
-    return static_cast<size_t>(index) < SIZE;
+  template <IntegralLike<index_t> Index>
+  static inline constexpr bool valid_index(Index index)  noexcept {
+    return static_cast<index_t>(index) < SIZE;
   }
-  inline constexpr void assert_range(size_t index) const {
+  static inline constexpr void assert_range(index_t index) {
     assert(valid_index(index) &&
            "index to HudElementPool must be within range 0 <= index < 0x45C");
   }
 
-  template <IntegralLike Index>
+  template <IntegralLike<index_t> Index>
   inline constexpr const T &operator[](Index index_arg) const {
     const index_t index = static_cast<index_t>(index_arg);
     assert_range(index);
     return pool[index];
   }
 
-  template <IntegralLike Index>
+  template <IntegralLike<index_t> Index>
   inline constexpr const T &get(Index index_arg) const {
     const index_t index = static_cast<index_t>(index_arg);
     assert_range(index);
     return pool[index];
   }
 
-  template <IntegralLike Index> inline constexpr T &get(Index index_arg) {
+  template <IntegralLike<index_t> Index>
+  inline constexpr T &get(Index index_arg) {
     const index_t index = static_cast<index_t>(index_arg);
     assert_range(index);
     return pool[index];
   }
 
-  template <IntegralLike Index> inline constexpr T &operator[](Index index) {
+  template <IntegralLike<index_t> Index>
+  inline constexpr T &operator[](Index index) {
     return get(index);
   }
 
-  inline constexpr auto size() const noexcept { return SIZE; }
+    template <IntegralLike<index_t> Index>
+  inline constexpr volatile T &get(Index index_arg) volatile {
+    const index_t index = static_cast<index_t>(index_arg);
+    assert_range(index);
+    return pool[index];
+  }
 
-  template <IntegralLike Index>
+  template <IntegralLike<index_t> Index>
+  inline constexpr volatile T &operator[](Index index) volatile {
+    return get(index);
+  }
+
+  inline static constexpr auto size() noexcept { return SIZE; }
+
+  template <IntegralLike<index_t> Index>
   inline constexpr void clear(Index index_arg) noexcept {
     const index_t index = static_cast<index_t>(index_arg);
     assert_range(index);
@@ -61,7 +75,21 @@ template <typename T> struct HudElementPool {
     this->pool[index] = default_val;
   }
 
+    template <IntegralLike<index_t> Index>
+  inline constexpr void clear(Index index_arg) volatile noexcept {
+    const index_t index = static_cast<index_t>(index_arg);
+    assert_range(index);
+    const T default_val = {};
+    this->pool[index] = default_val;
+  }
+
   inline constexpr void clear() noexcept {
+    for (index_t i = 0; i < size(); ++i) {
+      clear(i);
+    }
+  }
+
+    inline constexpr void clear() volatile noexcept {
     for (index_t i = 0; i < size(); ++i) {
       clear(i);
     }
@@ -196,7 +224,7 @@ PACKED(struct hudelem_s {
   uint8_t soundID;
   uint8_t _padding[1];
 
-  inline constexpr void reset_value() noexcept {
+  inline constexpr void reset_value() volatile noexcept {
     width = 0;
     height = 0;
     fromWidth = 0;
@@ -227,7 +255,7 @@ struct game_hudelem_s {
   team_t team;
   qboolean archived;
 
-  inline constexpr void reset_value() noexcept { elem.reset_value(); }
+  inline constexpr void reset_value() volatile noexcept { elem.reset_value(); }
 };
 ASSERT_SIZE(game_hudelem_s, 0x88);
 typedef game_hudelem_s game_hudelem_t;

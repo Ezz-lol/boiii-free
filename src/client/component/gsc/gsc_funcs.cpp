@@ -280,7 +280,7 @@ struct HudElemCfgStringPool : ui::he::HudElementPool<RegisteredCfgString> {
 } static hudelem_cfgstr_pool = {};
 
 void unregister_clear_hudelem_cfgstr(uint16_t hudElemIdx) {
-  RegisteredCfgString *entry = &hudelem_cfgstr_pool[hudElemIdx];
+  volatile RegisteredCfgString *entry = &hudelem_cfgstr_pool[hudElemIdx];
   if (entry->has_value()) {
     ui::he::g_hudelems->get(hudElemIdx).elem.text = 0;
     // TAC-protected on client, so we use a re-implementation to circumvent.
@@ -302,7 +302,8 @@ inline void clear_message_bufs() {
 
 void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
   if (entref->is_hudelem()) [[likely]] {
-    game_hudelem_t *elem = &g_hudelems->get(entref->u.hudElemIndex);
+    const uint16_t hudElemIdx = entref->u.hudElemIndex;
+    volatile game_hudelem_t *elem = &g_hudelems->get(hudElemIdx);
 
     elem->reset_value();
     const uint32_t argc = Scr_GetNumParam(inst);
@@ -311,8 +312,11 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
     com::Com_CleanStringForNetwork(message_buf, cleaned_message_buf,
                                    std::size(cleaned_message_buf));
 
-    elem->elem.type = he_type_field_t::TEXT;
-    const uint16_t hudElemIdx = entref->u.hudElemIndex;
+    // Assign to underlying directly to allow copy-assignment to volatile.
+    // Volatile copy-assign is not provided by default and definition breaks
+    // C++-03 PoD constraints :(.
+    elem->elem.type.underlying = he_type_field_t::TEXT;
+
     volatile RegisteredCfgString *pool_entry = &hudelem_cfgstr_pool[hudElemIdx];
 
     const bgCacheInstance cache_inst = static_cast<bgCacheInstance>(inst);
