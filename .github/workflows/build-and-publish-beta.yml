@@ -23,7 +23,7 @@ env:
 jobs:
   build:
     name: Build Beta
-    runs-on: windows-2022
+    runs-on: windows-2025
     steps:
       - name: Check out files
         uses: actions/checkout@v4
@@ -34,15 +34,19 @@ jobs:
           lfs: false
 
       - name: Add msbuild to PATH
-        uses: microsoft/setup-msbuild@v1.3.1
+        uses: microsoft/setup-msbuild@v3
+        with:
+          # Use '[17.0,)' for VS 2022 (C++23 Preview)
+          # Use '[18.0,)' for VS 2026 (Full C++23 Support)
+          vs-version: "[18.0,)"
 
       - name: Install premake5
         uses: Jarod42/install-premake5@v7
         with:
-          msdev: vs2022
+          msdev: vs2026
 
       - name: Generate project files
-        run: premake5 vs2022
+        run: premake5 vs2026
 
       - name: Set up problem matching
         uses: ammaraskar/msvc-problem-matcher@master

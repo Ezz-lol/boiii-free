@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <cstring>
+#include <string_view>
 #include <string>
 #include <vector>
 #include <stdexcept>
@@ -19,11 +20,13 @@ public:
 
   void write(const void *buffer, size_t length);
 
-  void write(const char *text) { this->write(text, strlen(text)); }
+  void write(const char *text) {
+    this->write(static_cast<const void *>(text), strlen(text));
+  }
 
   void write_string(const char *str, const size_t length) {
     this->write<uint32_t>(static_cast<uint32_t>(length));
-    this->write(str, length);
+    this->write(static_cast<const void *>(str), length);
   }
 
   void write_string(const std::string &str) {
@@ -33,16 +36,16 @@ public:
   void write_string(const char *str) { this->write_string(str, strlen(str)); }
 
   template <typename T> void write(const T &object) {
-    this->write(&object, sizeof(object));
+    this->write(static_cast<const void *>(&object), sizeof(object));
   }
 
   template <> void write<byte_buffer>(const byte_buffer &object) {
-    const auto &buffer = object.get_buffer();
-    this->write(buffer.data(), buffer.size());
+    const std::string &buffer = object.get_buffer();
+    this->write(static_cast<const void *>(buffer.data()), buffer.size());
   }
 
   template <typename T> void write(const std::vector<T> &vec) {
-    this->write(vec.data(), vec.size() * sizeof(T));
+    this->write(static_cast<const void *>(vec.data()), vec.size() * sizeof(T));
   }
 
   template <typename T> void write_vector(const std::vector<T> &vec) {
@@ -76,7 +79,7 @@ public:
     }
 
     result.resize(size);
-    this->read(result.data(), totalSize);
+    this->read(static_cast<void *>(result.data()), totalSize);
 
     return result;
   }
@@ -90,7 +93,7 @@ public:
     }
 
     result.resize(size);
-    this->read(result.data(), size);
+    this->read(static_cast<void *>(result.data()), size);
 
     return result;
   }
