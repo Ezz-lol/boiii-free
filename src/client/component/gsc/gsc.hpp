@@ -78,8 +78,8 @@ try_parse_raw_hash(const std::string_view &input) {
 }
 
 inline constexpr game::scr::ScrVarCanonicalName_t
-gsc_hash(const std::string &input) {
+gsc_hash(const std::string_view &input) {
   return try_parse_raw_hash(input).value_or(
-      game::scr::builtin::fnv1a(input.c_str()));
+      game::scr::builtin::fnv1a(input.data()));
 }
 } // namespace gsc

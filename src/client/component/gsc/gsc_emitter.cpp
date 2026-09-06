@@ -165,6 +165,7 @@ struct emitter_state {
   int32_t temp_var_counter;
 
   std::vector<gsc::hash_name_pair> hash_names;
+  std::unordered_set<ScrVarCanonicalName_t> function_names;
   std::vector<replacefunc_entry> replacefuncs;
 
   struct {
@@ -173,13 +174,17 @@ struct emitter_state {
   } line;
 
   void record_hash(const std::string &name, int32_t line = 0,
-                   uint8_t params = 0) {
+                   uint8_t params = 0, bool function_def = false) {
     std::string lower = name;
     std::transform(
         lower.begin(), lower.end(), lower.begin(),
         [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
-    uint32_t h = gsc::gsc_hash(lower);
-    hash_names.push_back({h, lower, line, params});
+    ScrVarCanonicalName_t h = gsc::gsc_hash(lower);
+    gsc::hash_name_pair pair = {h, lower, line, params};
+    hash_names.push_back(pair);
+    if (function_def) {
+      function_names.insert(h);
+    }
   }
 
   emitter_state(scriptInstance_t inst)
@@ -294,7 +299,8 @@ struct emitter_state {
                  uint8_t num_params, bool is_method, bool is_thread,
                  bool same_namespace, uint64_t line, bool builtin = false) {
 
-    if (!builtin && (same_namespace || ns_hash == builtin::SYS_NS_HASH)) {
+    if (!builtin && ((same_namespace && !function_names.contains(func_hash)) ||
+                     ns_hash == builtin::SYS_NS_HASH)) {
       if (is_method) {
         if (gsc::builtin_method(inst, func_hash)) {
           builtin = true;
@@ -995,11 +1001,17 @@ void emit_expression(emitter_state &s, const ast_ptr &node) {
       }
     }
 
+    const bool is_builtin = ((ns_hash == s.script_namespace &&
+                              !s.function_names.contains(func_hash)) ||
+                             ns_hash == builtin::SYS_NS_HASH) &&
+                            gsc::builtin(s.inst, func_hash);
+    if (is_builtin) {
+      ns_hash = builtin::SYS_NS_HASH;
+      op = Opcode::GetAPIFunction;
+    }
+
     if (ns_hash == s.script_namespace || ns_hash == builtin::SYS_NS_HASH) {
-      if (gsc::builtin(s.inst, func_hash)) {
-        ns_hash = builtin::SYS_NS_HASH;
-        op = Opcode::GetAPIFunction;
-      }
+
       flags |= IMPORT_CALL_LOCAL;
     }
 
@@ -2078,7 +2090,7 @@ emitter_result emit(scriptInstance_t inst, const ast_ptr &root,
                 ? static_cast<uint8_t>(child->children[1]->children.size())
                 : 0;
         state.local_function_params[lower] = param_count;
-        state.record_hash(lower, child->line, param_count);
+        state.record_hash(lower, child->line, param_count, true);
       }
     }
 
