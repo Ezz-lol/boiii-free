@@ -54,3 +54,6 @@
 [submodule "deps/gtl"]
 	path = deps/gtl
 	url = https://github.com/greg7mdp/gtl
+[submodule "deps/concurrentqueue"]
+	path = deps/concurrentqueue
+	url = https://github.com/cameron314/concurrentqueue

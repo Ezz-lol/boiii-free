@@ -113,4 +113,19 @@ bool disable_loadlib() {
   std::call_once(loadlib_disabled_flag, set_loadlib_disabled);
   return loadlib_disabled;
 }
+
+bool quiet_crash() {
+  static const bool quiet_crash = utils::flags::has_flag("quiet-crash");
+  return quiet_crash;
+}
+
+bool alias() {
+  static const bool alias = utils::flags::has_flag("alias");
+  return alias;
+}
+
+bool is_headless() {
+  static const bool headless = utils::flags::has_flag("headless");
+  return headless;
+}
 } // namespace game

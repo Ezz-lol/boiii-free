@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 
 #include "game.hpp"
+#include "log.hpp"
 
 #include <utils/flags.hpp>
 #include <utils/finally.hpp>
@@ -8,21 +9,6 @@
 #include <combaseapi.h>
 
 namespace game {
-bool quiet_crash() {
-  static const bool quiet_crash = utils::flags::has_flag("quiet-crash");
-  return quiet_crash;
-}
-
-bool alias() {
-  static const bool alias = utils::flags::has_flag("alias");
-  return alias;
-}
-
-bool is_headless() {
-  static const bool headless = utils::flags::has_flag("headless");
-  return headless;
-}
-
 void show_error(const std::string &text, const std::string &title) {
   if (quiet_crash()) {
     fflush(stdout);
@@ -31,6 +17,8 @@ void show_error(const std::string &text, const std::string &title) {
     fprintf(stderr, "%s\n%s\n", title.c_str(), text.c_str());
 
     fflush(stderr);
+
+    trace("[Error]{}\n{}\n", title, text);
   } else if (is_headless()) {
     puts(text.data());
   } else {
@@ -60,8 +48,4 @@ std::filesystem::path get_appdata_path() {
 std::filesystem::path get_game_path() {
   return std::filesystem::current_path();
 }
-
-#ifndef NDEBUG
-std::recursive_mutex log_mutex;
-#endif
 } // namespace game

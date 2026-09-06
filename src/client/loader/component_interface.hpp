@@ -7,6 +7,10 @@ enum class component_priority {
   // must run after the updater
   steam_proxy,
   updater,
+#ifndef NDEBUG
+  // Logger thread startup
+  log,
+#endif
   // must have the highest priority
   arxan,
 };
@@ -18,7 +22,7 @@ enum class component_type {
 };
 
 struct generic_component {
-  static constexpr auto type = component_type::any;
+  static constexpr component_type type = component_type::any;
 
   virtual ~generic_component() = default;
 
@@ -34,9 +38,9 @@ struct generic_component {
 };
 
 struct client_component : generic_component {
-  static constexpr auto type = component_type::client;
+  static constexpr component_type type = component_type::client;
 };
 
 struct server_component : generic_component {
-  static constexpr auto type = component_type::server;
+  static constexpr component_type type = component_type::server;
 };

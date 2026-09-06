@@ -16,4 +16,8 @@ std::ofstream &tracing_logfile();
 bool ultrawide();
 bool cheats();
 bool disable_loadlib();
+
+bool alias();
+bool quiet_crash();
+bool is_headless();
 } // namespace game
