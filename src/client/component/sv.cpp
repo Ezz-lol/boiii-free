@@ -56,11 +56,11 @@ void on_removeclient(const RemoveTask &callback) {
 game::ClientNum_t get_client_num(game::sv::client_s *client) {
   if (game::valid_engine_ptr(client)) {
     if (game::is_client()) {
-      const uint64_t svs_clients_addr =
-          reinterpret_cast<uint64_t>(game::sv::svs_clients_cl.get());
-      const uint64_t client_addr = reinterpret_cast<uint64_t>(client);
+      const uintptr_t svs_clients_addr =
+          reinterpret_cast<uintptr_t>(game::sv::svs_clients_cl.get());
+      const uintptr_t client_addr = reinterpret_cast<uintptr_t>(client);
       if (client_addr >= svs_clients_addr) {
-        const uint64_t client_displacement = client_addr - svs_clients_addr;
+        const uintptr_t client_displacement = client_addr - svs_clients_addr;
         const game::ClientNum_t client_num = static_cast<game::ClientNum_t>(
             client_displacement / sizeof(game::sv::client_s_cl));
         if (game::valid_client_num(client_num)) {
@@ -69,11 +69,11 @@ game::ClientNum_t get_client_num(game::sv::client_s *client) {
       }
 
     } else {
-      const uint64_t svs_clients_addr =
-          reinterpret_cast<uint64_t>(game::sv::svs_clients.get());
-      const uint64_t client_addr = reinterpret_cast<uint64_t>(client);
+      const uintptr_t svs_clients_addr =
+          reinterpret_cast<uintptr_t>(game::sv::svs_clients.get());
+      const uintptr_t client_addr = reinterpret_cast<uintptr_t>(client);
       if (client_addr >= svs_clients_addr) {
-        const uint64_t client_displacement = client_addr - svs_clients_addr;
+        const uintptr_t client_displacement = client_addr - svs_clients_addr;
         const game::ClientNum_t client_num = static_cast<game::ClientNum_t>(
             client_displacement / sizeof(game::sv::client_s));
         if (game::valid_client_num(client_num)) {
