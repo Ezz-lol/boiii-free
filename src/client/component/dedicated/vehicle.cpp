@@ -142,7 +142,6 @@ inline void remove_no_cg_array_sys_error_branches() {
   }
 }
 
-static std::once_flag assign_pool_pointers_flag;
 void assign_pool_pointers() {
   *builtin_cgArray = reinterpret_cast<cgPool *>(&cgArray);
 
@@ -160,13 +159,9 @@ void reset_pools() {
 }
 
 inline void enable_client_game_pools() {
+  assign_pool_pointers();
   remove_no_cg_array_sys_error_branches();
-
-  game_event::on_g_init_game([]() -> void {
-    std::call_once(assign_pool_pointers_flag, assign_pool_pointers);
-    reset_pools();
-  });
-  game_event::on_g_shutdown_game(reset_pools);
+  game_event::on_g_init_game(reset_pools);
 }
 
 utils::hook::detour path_constraint_update_hook;
@@ -201,8 +196,8 @@ void NitrousVehicle_unpause_physics_always_collide_wheels(
 }
 
 utils::hook::detour NitrousVehicle_pause_physics_hook;
-void NitrousVehicle_pause_physics_if_not_sentient(NitrousVehicle *self,
-                                                  bool shutdown) {
+void NitrousVehicle_pause_insentient_physics(NitrousVehicle *self,
+                                             bool shutdown) {
   if (self && self->m_vehicle_def && !self->m_vehicle_def->isSentient) {
     return NitrousVehicle_pause_physics_hook.invoke(self, shutdown);
   }
@@ -221,7 +216,7 @@ struct component final : server_component {
         NitrousVehicle_unpause_physics_always_collide_wheels);
     NitrousVehicle_pause_physics_hook.create(
         NitrousVehicle::syms::pause_physics,
-        NitrousVehicle_pause_physics_if_not_sentient);
+        NitrousVehicle_pause_insentient_physics);
   }
 };
 } // namespace vehicle

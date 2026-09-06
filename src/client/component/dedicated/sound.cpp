@@ -30,7 +30,7 @@ bool DB_LoadXFile_LoadSoundBanksBlocking(
     const char *path, game::db::DBFile f,
     game::db::xzone::XZoneBuffer *fileBuffer, const char *filename,
     game::db::XBlock *blocks, game::db::DB_Interrupt *interrupt, uint8_t *buf,
-    game::PMemStack side, int flags) {
+    game::PMemStack side, int32_t flags) {
   bool succeeded = DB_LoadXFile_hook.invoke<bool>(
       path, f, fileBuffer, filename, blocks, interrupt, buf, side, flags);
 
@@ -222,7 +222,6 @@ inline void enable_sound() {
 
 struct component final : server_component {
   void post_unpack() override {
-
     if (!utils::flags::has_flag("nosnd")) {
       enable_sound();
     }

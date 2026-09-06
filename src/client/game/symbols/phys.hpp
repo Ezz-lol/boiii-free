@@ -27,7 +27,8 @@ WEAK symbol<int()> Phys_GetCurrentTime{0x0, 0x1405E2B70};
 WEAK symbol<void()> Phys_Init{0x0, 0x1405E2F00};
 WEAK symbol<void(PhysObjId physObjId, int collFlags)> Phys_ObjAddCollFlags{
     0x0, 0x1405E37B0};
-WEAK symbol<void(PhysObjUserData *userData)> Phys_ObjDestroy{0x0, 0x1405E4240};
+WEAK symbol<void(PhysObjUserData *userData)> Phys_ObjDestroy{0x1423FA9E0,
+                                                             0x1405E4240};
 WEAK symbol<void(PhysObjId physObjId, int collFlags)> Phys_ObjRemoveCollFlags{
     0x0, 0x1405E4700};
 WEAK symbol<void()> Phys_RagdollCollideWithWorld{0x0, 0x1405E4AC0};
