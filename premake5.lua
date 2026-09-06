@@ -330,10 +330,35 @@ buildoptions({
 linkoptions({ "/IGNORE:4702", "/LTCG" })
 filter({})
 filter({ "configurations:Release", "toolset:not msc*" })
--- incompatible with LTCG, and Windows libraries are not released with LTO
--- None of full, fat, or thin LTO work - tested.
-buildoptions({ "-march=x86-64", "-mno-sse4.1", "-mno-sse4.2", "-fno-lto" })
-linkoptions({ "-fno-lto" })
+buildoptions({
+  "-march=x86-64",
+  "-mno-sse4.1",
+  "-mno-sse4.2",
+  "-ffat-lto-objects",
+  "-flto=full",
+  "-fwhole-program-vtables",
+  "-fvisibility=hidden",
+  "-ffunction-sections",
+  "-fdata-sections",
+  "-Wl,-fat-lto-objects",
+  "-Wl,-opt:lldltocgo=3",
+  "-Wl,-opt:lldlto=3",
+  "-Wl,-opt:icf=safe",
+  "-Wl,-opt:ref",
+})
+linkoptions({
+  "-ffat-lto-objects",
+  "-flto=full",
+  "-fwhole-program-vtables",
+  "-fvisibility=hidden",
+  "-ffunction-sections",
+  "-fdata-sections",
+  "-Wl,-fat-lto-objects",
+  "-Wl,-opt:lldltocgo=3",
+  "-Wl,-opt:lldlto=3",
+  "-Wl,-opt:icf=safe",
+  "-Wl,-opt:ref",
+})
 filter({})
 
 filter("configurations:Debug")
@@ -487,12 +512,17 @@ filter({})
 
 filter("toolset:not msc*")
 
+buildoptions({ "-fno-lto" })
 -- equivalents for /NODEFAULTLIB and /IGNORE:4210 for gcc/clang
-linkoptions({ "-nodefaultlibs", "-nostdlib" })
+linkoptions({
+  "-nodefaultlibs",
+  "-nostdlib",
+  "-fno-lto",
+})
 filter({})
 
--- removebuildoptions({ "/GL" })
-removelinkoptions({ "/LTCG" })
+removebuildoptions({ "-fwhole-program-vtables" })
+removelinkoptions({ "/LTCG", "-fwhole-program-vtables" })
 
 files({ "./src/tlsdll/**.rc", "./src/tlsdll/**.hpp", "./src/tlsdll/**.cpp", "./src/tlsdll/resources/**.*" })
 

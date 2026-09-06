@@ -66,16 +66,17 @@ resolve_path() {
 
 	if [ -z "$path_to_resolve" ]; then
 		echo "Error: No path provided to resolve_path." >&2
-		exit 1
+		return 1
 	fi
 
 	resolved="$(which "$path_to_resolve" 2>/dev/null || command -v "$path_to_resolve" 2>/dev/null)"
 	if [ -z "$resolved" ]; then
 		echo "Error: Could not resolve path for '$path_to_resolve'." >&2
-		exit 1
+		return 1
 	fi
 
 	normalize_path "$resolved"
+	return 0
 }
 
 ext() {

@@ -79,8 +79,48 @@ build_type() {
 	fi
 }
 
+cc_is_gcc() {
+	local cc
+	cc="$1"
+	if [ -z "$cc" ]; then
+		if [ -n "$CC" ]; then
+			cc="$(resolve_path "$CC")"
+		else
+			return 1
+		fi
+	fi
+
+	if [ -n "$cc" ] && [ -f "$cc" ]; then
+		grep -q '__GNUC__' <<<"$("$cc" -E -dM - </dev/null)"
+	else
+		return 1
+	fi
+}
+
+cc_is_clang() {
+	local cc
+	cc="$1"
+	if [ -z "$cc" ]; then
+		if [ -n "$CC" ]; then
+			cc="$(resolve_path "$CC")"
+		else
+			return 1
+		fi
+	fi
+
+	if [ -n "$cc" ] && [ -f "$cc" ]; then
+		grep -q '__clang__' <<<"$("$cc" -E -dM - </dev/null)"
+	else
+		return 1
+	fi
+}
+
 get_clang() {
-	resolve_path "clang"
+	if cc_is_clang "$CC"; then
+		resolve_path "$CC"
+	else
+		resolve_path "clang"
+	fi
 }
 
 get_llvm_bin() {
@@ -140,7 +180,9 @@ get_llvm_lld_link() {
 }
 
 get_llvm_clangpp() {
-	if ! first_in_dir "$(get_llvm_bin)" "clang++" "clangpp"; then
+	if cc_is_clang "$CXX"; then
+		resolve_path "$CXX"
+	elif ! first_in_dir "$(get_llvm_bin)" "clang++" "clangpp"; then
 		echo "Error: Could not find clang++ or clangpp in LLVM bin directory: \"$(get_llvm_bin)\"." >&2
 		exit 1
 	fi
@@ -200,6 +242,10 @@ get_llvm_coverage() {
 		echo "Error: Could not find llvm-cov in LLVM bin directory: \"$(get_llvm_bin)\"." >&2
 		exit 1
 	fi
+}
+
+get_ld_mold() {
+	resolve_path "ld.mold"
 }
 
 # shellcheck disable=SC2329

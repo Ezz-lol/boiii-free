@@ -19,7 +19,7 @@ template <typename T> struct HudElementPool {
   array<T, SIZE> pool;
 
   template <IntegralLike<index_t> Index>
-  static inline constexpr bool valid_index(Index index)  noexcept {
+  static inline constexpr bool valid_index(Index index) noexcept {
     return static_cast<index_t>(index) < SIZE;
   }
   static inline constexpr void assert_range(index_t index) {
@@ -53,7 +53,7 @@ template <typename T> struct HudElementPool {
     return get(index);
   }
 
-    template <IntegralLike<index_t> Index>
+  template <IntegralLike<index_t> Index>
   inline constexpr volatile T &get(Index index_arg) volatile {
     const index_t index = static_cast<index_t>(index_arg);
     assert_range(index);
@@ -75,7 +75,7 @@ template <typename T> struct HudElementPool {
     this->pool[index] = default_val;
   }
 
-    template <IntegralLike<index_t> Index>
+  template <IntegralLike<index_t> Index>
   inline constexpr void clear(Index index_arg) volatile noexcept {
     const index_t index = static_cast<index_t>(index_arg);
     assert_range(index);
@@ -89,7 +89,7 @@ template <typename T> struct HudElementPool {
     }
   }
 
-    inline constexpr void clear() volatile noexcept {
+  inline constexpr void clear() volatile noexcept {
     for (index_t i = 0; i < size(); ++i) {
       clear(i);
     }
