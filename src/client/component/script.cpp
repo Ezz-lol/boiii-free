@@ -758,13 +758,19 @@ void load_tree(std::filesystem::path tree, bool execImmediate = false) {
                            recurse, strip_base, exclude_map_subtrees);
   };
 
-  std::unordered_set<TreeDirectory> applicable_tree_dirs =
-      shared_tree_directories({data_directory, boiii_directory}, tree);
+  std::vector<TreeDirectory> applicable_tree_dirs;
+  {
+    const std::unordered_set<TreeDirectory> shared_tree_dirs =
+        shared_tree_directories({data_directory, boiii_directory}, tree);
+
+    applicable_tree_dirs = std::vector<TreeDirectory>(shared_tree_dirs.begin(),
+                                                      shared_tree_dirs.end());
+  }
 
   const std::optional<std::filesystem::path> game_type =
       get_game_type_specific_directory();
   if (game_type.has_value()) {
-    applicable_tree_dirs.insert(
+    applicable_tree_dirs.push_back(
         {tree / game_type.value(), std::nullopt, true, true});
   }
 
@@ -772,11 +778,12 @@ void load_tree(std::filesystem::path tree, bool execImmediate = false) {
       get_map_specific_directory();
   if (map_name.has_value()) {
     const std::string map_name_str = map_name->generic_string();
-    applicable_tree_dirs.insert({tree / map_name.value(), map_name_str, true});
+    applicable_tree_dirs.push_back(
+        {tree / map_name.value(), map_name_str, true});
     if (game_type.has_value()) {
       const std::filesystem::path nested_base =
           game_type.value() / map_name.value();
-      applicable_tree_dirs.insert(
+      applicable_tree_dirs.push_back(
           {tree / nested_base, nested_base.generic_string(), true});
     }
   }
@@ -785,10 +792,10 @@ void load_tree(std::filesystem::path tree, bool execImmediate = false) {
       get_mod_specific_directory();
   if (mod_id.has_value()) {
     const std::string mod_id_str = mod_id->generic_string();
-    applicable_tree_dirs.insert({tree / mod_id.value(), mod_id_str, true});
+    applicable_tree_dirs.push_back({tree / mod_id.value(), mod_id_str, true});
   }
 
-  applicable_tree_dirs.insert({tree, std::nullopt, false});
+  applicable_tree_dirs.push_back({tree, std::nullopt, false});
 
   /*
     First, compile and load each script into our lookup table.
