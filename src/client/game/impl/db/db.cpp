@@ -484,7 +484,7 @@ void DB_InitBSPGlobals_Impl() {
 
 static std::mutex asset_alloc_mutex;
 void *DB_AssetPoolAlloc_Impl(XAssetType type) {
-  // PATCH disallow concurrent allocations in case of concurrent pool
+  // PATCH: disallow concurrent allocations in case of concurrent pool
   // reallocation
   std::scoped_lock<std::mutex> asset_alloc_lock(asset_alloc_mutex);
 
@@ -498,14 +498,14 @@ void *DB_AssetPoolAlloc_Impl(XAssetType type) {
   }
 
   // PATCH: expand asset pool if we have reached capacity
-  if (pool->freeHead == nullptr) {
+  if (!nonnull(pool->freeHead)) {
     reallocate_asset_pool(
         type, std::max<int32_t>(pool->itemCount * 2,
                                 2 /* In case current pool size is 0 */));
   }
 
   AssetLink *freeHead = pool->freeHead;
-  if (freeHead) {
+  if (nonnull(freeHead)) {
     AssetLink *next = freeHead->next;
     ++pool->itemAllocCount;
     pool->freeHead = next;
