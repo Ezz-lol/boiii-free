@@ -177,7 +177,7 @@ public:
       scheduler::once(
           [] {
             sv_sayname = game::register_dvar_string(
-                "sv_sayname", "", game::DVAR_SERVERINFO,
+                "sv_sayname", "Server", game::DVAR_SERVERINFO,
                 "Custom name for server chat messages");
           },
           scheduler::pipeline::main);
