@@ -1,3 +1,7 @@
+if Engine.IsUsingMods() and Engine.UsingModsUgcName() ~= "" and Engine.UsingModsUgcName ~= "usermaps" then
+  return
+end
+
 DataSources.OptionGraphicsVideo = DataSourceHelpers.ListSetup("PC.OptionGraphicsVideo", function(controller)
   local videoSettings = {}
   table.insert(videoSettings, {

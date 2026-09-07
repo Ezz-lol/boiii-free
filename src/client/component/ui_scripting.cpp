@@ -2148,7 +2148,9 @@ constexpr std::pair<frozen::string, LobbyVM_CallFunc_Handler>
         {"HostLaunchPump", nullptr},
         {"InGameJoin", nullptr},
         {"IngameMonitor", nullptr},
+        // Not a typo (here) - this is the actual name of the function
         {"InitilizeGunsmithBuffer", nullptr},
+        // Not a typo (here) - this is the actual name of the function
         {"InitilizeZMLoadoutBuffer", nullptr},
         {"Invite", nullptr},
         {"IsHostLaunching", nullptr},

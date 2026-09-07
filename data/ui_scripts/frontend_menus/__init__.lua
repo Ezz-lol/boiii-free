@@ -6,6 +6,10 @@ if not CoD.LobbyButtons then
   return
 end
 
+if Engine.IsUsingMods() and Engine.UsingModsUgcName() ~= "" and Engine.UsingModsUgcName ~= "usermaps" then
+  return
+end
+
 local enableLobbyMapVote = true -- toggle map vote in public lobby
 local enableLargeServerBrowserButton = true -- toggle large server browser button
 
