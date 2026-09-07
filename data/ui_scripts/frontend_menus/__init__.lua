@@ -8,7 +8,7 @@ end
 
 if Engine.IsUsingMods() then
   local ugcName = Engine.UsingModsUgcName()
-  if not ugcName or (ugcName ~= "" and Engine.UsingModsUgcName ~= "usermaps") then
+  if not ugcName or (ugcName ~= "" and ugcName ~= "usermaps") then
     return
   end
 end
