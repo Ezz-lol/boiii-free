@@ -44,7 +44,7 @@ struct WorkshopData {
         "\"publisherId\": \"{}\", \"description\": \"{}\", "
         "\"contentPathToZoneFiles\": \"{}\", \"absolutePathContentDirectory\": "
         "\"{}\", \"absolutePathZoneFiles\", \"{}\", \"version\": {}, "
-        "\"publisherIdInteger\": {}, \"publisherIdHash\": {}, type: {} }}",
+        "\"publisherIdInteger\": {}, \"publisherIdHash\": {}, \"type\": {} }}",
         title, internalName, publisherId, description, contentPathToZoneFiles,
         absolutePathContentDirectory, absolutePathZoneFiles, version,
         publisherIdInteger, publisherIdHash, ::game::serialize(type));
