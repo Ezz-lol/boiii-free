@@ -6,8 +6,11 @@ if not CoD.LobbyButtons then
   return
 end
 
-if Engine.IsUsingMods() and Engine.UsingModsUgcName() ~= "" and Engine.UsingModsUgcName ~= "usermaps" then
-  return
+if Engine.IsUsingMods() then
+  local ugcName = Engine.UsingModsUgcName()
+  if not ugcName or (ugcName ~= "" and Engine.UsingModsUgcName ~= "usermaps") then
+    return
+  end
 end
 
 local enableLobbyMapVote = true -- toggle map vote in public lobby
