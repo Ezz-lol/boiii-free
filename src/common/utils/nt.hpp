@@ -276,6 +276,7 @@ private:
 
 registry_key open_or_create_registry_key(HKEY base, const std::string &input);
 
+const library &ntdll();
 bool is_wine();
 bool is_shutdown_in_progress();
 

@@ -62,8 +62,8 @@ void **library::get_iat_entry(const std::string &module_name,
 std::vector<PIMAGE_SECTION_HEADER> library::get_section_headers() const {
   std::vector<PIMAGE_SECTION_HEADER> headers;
 
-  auto nt_headers = this->get_nt_headers();
-  auto section = IMAGE_FIRST_SECTION(nt_headers);
+  PIMAGE_NT_HEADERS nt_headers = this->get_nt_headers();
+  PIMAGE_SECTION_HEADER section = IMAGE_FIRST_SECTION(nt_headers);
 
   for (uint16_t i = 0; i < nt_headers->FileHeader.NumberOfSections;
        ++i, ++section) {
@@ -110,8 +110,8 @@ std::string library::get_name() const {
   if (!this->is_valid())
     return {};
 
-  const auto path = this->get_path();
-  const auto pos = path.generic_string().find_last_of("/\\");
+  const std::filesystem::path path = this->get_path();
+  const size_t pos = path.generic_string().find_last_of("/\\");
   if (pos == std::string::npos)
     return path.generic_string();
 
@@ -132,7 +132,7 @@ std::filesystem::path library::get_folder() const {
   if (!this->is_valid())
     return {};
 
-  const auto path = std::filesystem::path(this->get_path());
+  const std::filesystem::path path = std::filesystem::path(this->get_path());
   return path.parent_path().generic_string();
 }
 
@@ -154,25 +154,27 @@ void **library::get_iat_entry(const std::string &module_name,
   if (!other_module.is_valid())
     return nullptr;
 
-  auto *const target_function = other_module.get_proc<void *>(proc_name);
+  void *const target_function = other_module.get_proc<void *>(proc_name);
   if (!target_function)
     return nullptr;
 
-  auto *header = this->get_optional_header();
+  PIMAGE_OPTIONAL_HEADER header = this->get_optional_header();
   if (!header)
     return nullptr;
 
-  auto *import_descriptor = reinterpret_cast<PIMAGE_IMPORT_DESCRIPTOR>(
-      this->get_ptr() +
-      header->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
+  PIMAGE_IMPORT_DESCRIPTOR import_descriptor =
+      reinterpret_cast<PIMAGE_IMPORT_DESCRIPTOR>(
+          this->get_ptr() +
+          header->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT].VirtualAddress);
 
   while (import_descriptor->Name) {
     if (!_stricmp(
             reinterpret_cast<char *>(this->get_ptr() + import_descriptor->Name),
             module_name.data())) {
-      auto *original_thunk_data = reinterpret_cast<PIMAGE_THUNK_DATA>(
-          import_descriptor->OriginalFirstThunk + this->get_ptr());
-      auto *thunk_data = reinterpret_cast<PIMAGE_THUNK_DATA>(
+      PIMAGE_THUNK_DATA original_thunk_data =
+          reinterpret_cast<PIMAGE_THUNK_DATA>(
+              import_descriptor->OriginalFirstThunk + this->get_ptr());
+      PIMAGE_THUNK_DATA thunk_data = reinterpret_cast<PIMAGE_THUNK_DATA>(
           import_descriptor->FirstThunk + this->get_ptr());
 
       while (original_thunk_data->u1.AddressOfData) {
@@ -185,8 +187,8 @@ void **library::get_iat_entry(const std::string &module_name,
             original_thunk_data->u1.AddressOfData & 0xFFFFFFF;
 
         if (ordinal_number <= 0xFFFF) {
-          auto *proc = GetProcAddress(other_module.module_,
-                                      reinterpret_cast<char *>(ordinal_number));
+          FARPROC proc = GetProcAddress(
+              other_module.module_, reinterpret_cast<char *>(ordinal_number));
           if (reinterpret_cast<void *>(proc) == target_function) {
             return reinterpret_cast<void **>(&thunk_data->u1.Function);
           }
@@ -207,11 +209,11 @@ void **library::get_iat_entry(const std::string &module_name,
 
 registry_key open_or_create_registry_key(const HKEY base,
                                          const std::string &input) {
-  const auto parts = string::split(input, '\\');
+  const std::vector<std::string> parts = string::split(input, '\\');
 
   registry_key current_key = base;
 
-  for (const auto &part : parts) {
+  for (const std::string &part : parts) {
     registry_key new_key{};
     if (RegOpenKeyExA(current_key, part.data(), 0, KEY_ALL_ACCESS, &new_key) ==
         ERROR_SUCCESS) {
@@ -231,40 +233,39 @@ registry_key open_or_create_registry_key(const HKEY base,
   return current_key;
 }
 
-bool is_wine() {
-  static const auto has_wine_export = []() -> bool {
-    const library ntdll("ntdll.dll");
-    return ntdll.get_proc<void *>("wine_get_version");
-  }();
+const library &ntdll() {
+  static const library result = library("ntdll.dll");
+  return result;
+}
 
-  return has_wine_export;
+bool is_wine() {
+  static const bool result =
+      ntdll().get_proc<void *>("wine_get_version") != nullptr;
+  return result;
 }
 
 bool is_shutdown_in_progress() {
-  static auto *shutdown_in_progress = [] {
-    const library ntdll("ntdll.dll");
-    return ntdll.get_proc<BOOLEAN (*)()>("RtlDllShutdownInProgress");
-  }();
+  static const fastcallPtr_t<BOOLEAN()> shutdown_in_progress =
+      ntdll().get_proc<fastcallPtr_t<BOOLEAN()>>("RtlDllShutdownInProgress");
 
   return shutdown_in_progress();
 }
 
 void raise_hard_exception() {
-  int data = false;
-  const library ntdll("ntdll.dll");
-  ntdll.invoke_pascal<void>("RtlAdjustPrivilege", 19, true, false, &data);
-  ntdll.invoke_pascal<void>("NtRaiseHardError", 0xC000007B, 0, nullptr, nullptr,
-                            6, &data);
+  BOOLEAN data = false;
+  ntdll().invoke_pascal<void>("RtlAdjustPrivilege", 19, true, false, &data);
+  ntdll().invoke_pascal<void>("NtRaiseHardError", 0xC000007B, 0, nullptr,
+                              nullptr, 6, &data);
   _Exit(0);
 }
 
 std::string load_resource(const int id) {
-  const auto lib = library::get_by_address(load_resource);
-  auto *const res = FindResource(lib, MAKEINTRESOURCE(id), RT_RCDATA);
+  const library lib = library::get_by_address(load_resource);
+  const HRSRC res = FindResource(lib, MAKEINTRESOURCE(id), RT_RCDATA);
   if (!res)
     return {};
 
-  auto *const handle = LoadResource(lib, res);
+  const HGLOBAL handle = LoadResource(lib, res);
   if (!handle)
     return {};
 
@@ -273,7 +274,7 @@ std::string load_resource(const int id) {
 }
 
 void relaunch_self() {
-  const auto self = library::get_by_address(relaunch_self);
+  const library self = library::get_by_address(relaunch_self);
 
   STARTUPINFOA startup_info;
   PROCESS_INFORMATION process_info;
@@ -285,13 +286,13 @@ void relaunch_self() {
   char current_dir[MAX_PATH];
   GetCurrentDirectoryA(sizeof(current_dir), current_dir);
 
-  const auto exe_path = self.get_path().generic_string();
+  const std::string exe_path = self.get_path().generic_string();
   std::string command_line = "\"" + exe_path + "\"";
 
-  int num_args = 0;
-  auto *const argv = CommandLineToArgvW(GetCommandLineW(), &num_args);
+  int32_t num_args = 0;
+  LPWSTR *const argv = CommandLineToArgvW(GetCommandLineW(), &num_args);
 
-  for (auto i = 1; i < num_args; ++i) {
+  for (int32_t i = 1; i < num_args; ++i) {
     std::wstring wide_arg(argv[i]);
     std::string arg = string::convert(wide_arg);
 
@@ -340,7 +341,7 @@ std::string get_user_name() {
 
   std::string result;
   for (DWORD i = 0; i < username_len - 1; ++i) {
-    const auto c = static_cast<unsigned char>(username[i]);
+    const uint8_t c = static_cast<uint8_t>(username[i]);
     if (c >= 32 && c <= 126) {
       result += static_cast<char>(c);
     }

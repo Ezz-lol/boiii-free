@@ -264,6 +264,11 @@ luaReturnCount_e write_file(lua_State *s) {
   return luaReturnCount_e::ONE;
 }
 
+luaReturnCount_e wine(lua_State *luaVM) {
+  lua_pushboolean(luaVM, utils::nt::is_wine());
+  return luaReturnCount_e::ONE;
+}
+
 class component final : public generic_component {
 public:
   void post_unpack() override {
@@ -285,6 +290,8 @@ public:
                                   lua_state::unsafe_function<file_size>>(),
         lua_state::luaL_LoggedReg<"FileIO", "ReadFile",
                                   lua_state::unsafe_function<read_file>>(),
+        lua_state::luaL_LoggedReg<"FileIO", "Wine",
+                                  lua_state::unsafe_function<wine>>(),
         lua_state::luaL_LoggedReg<"FileIO", "WriteFile",
                                   lua_state::unsafe_function<write_file>>(),
         {nullptr, nullptr},
