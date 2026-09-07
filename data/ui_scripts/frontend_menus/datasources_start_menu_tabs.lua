@@ -1,6 +1,6 @@
-DataSources.StartMenuTabs = ListHelper_SetupDataSource("StartMenuTabs", function(f44_arg0)
-  local f44_local0 = {}
-  table.insert(f44_local0, {
+DataSources.StartMenuTabs = ListHelper_SetupDataSource("StartMenuTabs", function(controllerIndex)
+  local tabs = {}
+  table.insert(tabs, {
     models = {
       tabIcon = CoD.buttonStrings.shoulderl,
     },
@@ -9,14 +9,14 @@ DataSources.StartMenuTabs = ListHelper_SetupDataSource("StartMenuTabs", function
     },
   })
   if Engine.IsDemoPlaying() then
-    local f44_local1 = "CoD.StartMenu_GameOptions"
+    local gameOptionsWidget = "CoD.StartMenu_GameOptions"
     if Engine.IsZombiesGame() then
-      f44_local1 = "CoD.StartMenu_GameOptions_ZM"
+      gameOptionsWidget = "CoD.StartMenu_GameOptions_ZM"
     end
-    table.insert(f44_local0, {
+    table.insert(tabs, {
       models = {
         tabName = Engine.Localize("MENU_THEATER_CAPS"),
-        tabWidget = f44_local1,
+        tabWidget = gameOptionsWidget,
         tabIcon = "",
       },
       properties = {
@@ -25,7 +25,7 @@ DataSources.StartMenuTabs = ListHelper_SetupDataSource("StartMenuTabs", function
     })
   elseif Engine.IsInGame() then
     if IsGameTypeDOA() and not InSafehouse() then
-      table.insert(f44_local0, {
+      table.insert(tabs, {
         models = {
           tabName = "DOA",
           tabWidget = "CoD.StartMenu_GameOptions_DOA",
@@ -36,7 +36,7 @@ DataSources.StartMenuTabs = ListHelper_SetupDataSource("StartMenuTabs", function
         },
       })
     elseif CoD.isCampaign then
-      table.insert(f44_local0, {
+      table.insert(tabs, {
         models = {
           tabName = SessionModeToUnlocalizedSessionModeCaps(Engine.CurrentSessionMode()),
           tabWidget = "CoD.StartMenu_GameOptions_CP",
@@ -50,11 +50,11 @@ DataSources.StartMenuTabs = ListHelper_SetupDataSource("StartMenuTabs", function
         if
           CoD.isSafehouse
           and CoD.isOnlineGame()
-          and not IsInTrainingSim(f44_arg0)
+          and not IsInTrainingSim(controllerIndex)
           and Dvar.ui_safehousebarracks:get()
-          and not IsPlayerAGuest(f44_arg0)
+          and not IsPlayerAGuest(controllerIndex)
         then
-          table.insert(f44_local0, {
+          table.insert(tabs, {
             models = {
               tabName = "CPUI_BARRACKS_CAPS",
               tabWidget = "CoD.CombatRecordCP_Contents",
@@ -65,8 +65,8 @@ DataSources.StartMenuTabs = ListHelper_SetupDataSource("StartMenuTabs", function
             },
           })
         end
-        if HighestMapReachedGreaterThan(f44_arg0, 1) or LUI.DEV ~= nil then
-          table.insert(f44_local0, {
+        if HighestMapReachedGreaterThan(controllerIndex, 1) or LUI.DEV ~= nil then
+          table.insert(tabs, {
             models = {
               tabName = "CPUI_TACTICAL_MODE_CAPS",
               tabWidget = "CoD.StartMenu_TacticalMode",
@@ -77,8 +77,8 @@ DataSources.StartMenuTabs = ListHelper_SetupDataSource("StartMenuTabs", function
             },
           })
         end
-        if not CoD.isSafehouse and not IsPlayerAGuest(f44_arg0) then
-          table.insert(f44_local0, {
+        if not CoD.isSafehouse and not IsPlayerAGuest(controllerIndex) then
+          table.insert(tabs, {
             models = {
               tabName = "CPUI_ACCOLADES",
               tabWidget = "CoD.MissionRecordVault_Challenges",
@@ -91,7 +91,7 @@ DataSources.StartMenuTabs = ListHelper_SetupDataSource("StartMenuTabs", function
         end
       end
     elseif Engine.IsZombiesGame() then
-      table.insert(f44_local0, {
+      table.insert(tabs, {
         models = {
           tabName = SessionModeToUnlocalizedSessionModeCaps(Engine.CurrentSessionMode()),
           tabWidget = "CoD.StartMenu_GameOptions_ZM",
@@ -102,7 +102,7 @@ DataSources.StartMenuTabs = ListHelper_SetupDataSource("StartMenuTabs", function
         },
       })
     else
-      table.insert(f44_local0, {
+      table.insert(tabs, {
         models = {
           tabName = SessionModeToUnlocalizedSessionModeCaps(Engine.CurrentSessionMode()),
           tabWidget = "CoD.StartMenu_GameOptions",
@@ -114,8 +114,8 @@ DataSources.StartMenuTabs = ListHelper_SetupDataSource("StartMenuTabs", function
       })
     end
   else
-    if not IsPlayerAGuest(f44_arg0) then
-      table.insert(f44_local0, {
+    if not IsPlayerAGuest(controllerIndex) then
+      table.insert(tabs, {
         models = {
           tabName = "MENU_TAB_IDENTITY_CAPS",
           tabWidget = "CoD.StartMenu_Identity",
@@ -131,9 +131,9 @@ DataSources.StartMenuTabs = ListHelper_SetupDataSource("StartMenuTabs", function
       not IsLobbyNetworkModeLAN()
       and not Dvar.ui_execdemo:get()
       and not Engine.IsCampaignModeZombies()
-      and not IsPlayerAGuest(f44_arg0)
+      and not IsPlayerAGuest(controllerIndex)
     then
-      table.insert(f44_local0, {
+      table.insert(tabs, {
         models = {
           tabName = "MENU_TAB_CHALLENGES_CAPS",
           tabWidget = "CoD.StartMenu_Challenges",
@@ -143,25 +143,25 @@ DataSources.StartMenuTabs = ListHelper_SetupDataSource("StartMenuTabs", function
           tabId = "challenges",
         },
       })
-      local f44_local1 = CoD.isPC
-      if f44_local1 then
-        f44_local1 = false --Mods_IsUsingMods()
+      local disableBarracks = CoD.isPC
+      if disableBarracks then
+        disableBarracks = false --Mods_IsUsingMods()
       end
-      table.insert(f44_local0, {
+      table.insert(tabs, {
         models = {
           tabName = "MENU_TAB_BARRACKS_CAPS",
           tabWidget = "CoD.StartMenu_Barracks",
           tabIcon = "",
-          disabled = f44_local1,
+          disabled = disableBarracks,
         },
         properties = {
           tabId = "barracks",
         },
       })
       if CommunityOptionsEnabled() then
-        local f44_local2 = CoD.perController[f44_arg0].openMediaTabAfterClosingGroups
-        CoD.perController[f44_arg0].openMediaTabAfterClosingGroups = false
-        table.insert(f44_local0, {
+        local openMediaTab = CoD.perController[controllerIndex].openMediaTabAfterClosingGroups
+        CoD.perController[controllerIndex].openMediaTabAfterClosingGroups = false
+        table.insert(tabs, {
           models = {
             tabName = "MENU_TAB_MEDIA_CAPS",
             tabWidget = "CoD.StartMenu_Media",
@@ -169,54 +169,54 @@ DataSources.StartMenuTabs = ListHelper_SetupDataSource("StartMenuTabs", function
           },
           properties = {
             tabId = "media",
-            selectIndex = f44_local2,
+            selectIndex = openMediaTab,
           },
         })
       end
     end
   end
   if IsGameTypeDOA() and Engine.IsInGame() and not InSafehouse() then
-    local f44_local1 = table.insert
-    local f44_local2 = f44_local0
-    local f44_local3 = {
+    local tableInsert = table.insert
+    local tabsRef = tabs
+    local optionsTab = {
       models = {
         tabName = "MENU_TAB_OPTIONS_CAPS",
         tabWidget = "CoD.StartMenu_Options_DOA",
         tabIcon = "",
       },
     }
-    local f44_local4 = {
+    local optionsProperties = {
       tabId = "options",
     }
-    local f44_local5 = Dvar.ui_execdemo:get()
-    if f44_local5 then
-      f44_local5 = not Engine.IsInGame()
+    local isDemoSelected = Dvar.ui_execdemo:get()
+    if isDemoSelected then
+      isDemoSelected = not Engine.IsInGame()
     end
-    f44_local4.selectIndex = f44_local5
-    f44_local3.properties = f44_local4
-    f44_local1(f44_local2, f44_local3)
+    optionsProperties.selectIndex = isDemoSelected
+    optionsTab.properties = optionsProperties
+    tableInsert(tabsRef, optionsTab)
   else
-    local f44_local1 = table.insert
-    local f44_local2 = f44_local0
-    local f44_local3 = {
+    local tableInsert = table.insert
+    local tabsRef = tabs
+    local optionsTab = {
       models = {
         tabName = "MENU_TAB_OPTIONS_CAPS",
         tabWidget = "CoD.StartMenu_Options",
         tabIcon = "",
       },
     }
-    local f44_local4 = {
+    local optionsProperties = {
       tabId = "options",
     }
-    local f44_local5 = Dvar.ui_execdemo_gamescom:get()
-    if f44_local5 then
-      f44_local5 = not Engine.IsInGame()
+    local isGamescomDemo = Dvar.ui_execdemo_gamescom:get()
+    if isGamescomDemo then
+      isGamescomDemo = not Engine.IsInGame()
     end
-    f44_local4.selectIndex = f44_local5
-    f44_local3.properties = f44_local4
-    f44_local1(f44_local2, f44_local3)
+    optionsProperties.selectIndex = isGamescomDemo
+    optionsTab.properties = optionsProperties
+    tableInsert(tabsRef, optionsTab)
   end
-  table.insert(f44_local0, {
+  table.insert(tabs, {
     models = {
       tabIcon = CoD.buttonStrings.shoulderr,
     },
@@ -224,5 +224,5 @@ DataSources.StartMenuTabs = ListHelper_SetupDataSource("StartMenuTabs", function
       m_mouseDisabled = true,
     },
   })
-  return f44_local0
+  return tabs
 end, true)

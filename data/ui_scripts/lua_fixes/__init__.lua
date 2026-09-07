@@ -1,5 +1,6 @@
 -- Fix LUI_NULL_FUNCTION messages
 function Engine.PIXBeginEvent() end
+
 function Engine.PIXEndEvent() end
 
 -- XP bar pcall fix
@@ -27,11 +28,11 @@ pcall(function()
   if CoD.AARUtilityZM then
     local origSetup = CoD.AARUtilityZM.SetupUIModels
     if origSetup then
-      CoD.AARUtilityZM.SetupUIModels = function(arg0)
-        local ok, err = pcall(origSetup, arg0)
+      CoD.AARUtilityZM.SetupUIModels = function(controller)
+        local ok, err = pcall(origSetup, controller)
         if not ok then
           pcall(function()
-            local root = Engine.GetModelForController(arg0)
+            local root = Engine.GetModelForController(controller)
             local sm = Engine.CreateModel(root, "aarStats.performanceTabStats")
             local defs = {
               kills = 0,

@@ -20,7 +20,7 @@ local RemoveButton = function(buttonTable, button)
   if not button then
     return
   end
-  for id, v in pairs(buttonTable) do
+  for id, item in pairs(buttonTable) do
     if buttonTable[id].optionDisplay == button.stringRef then
       table.remove(buttonTable, id)
     end
@@ -28,7 +28,7 @@ local RemoveButton = function(buttonTable, button)
 end
 
 local RemoveSpaces = function(buttonTable)
-  for id, v in pairs(buttonTable) do
+  for id, item in pairs(buttonTable) do
     buttonTable[id].isLastButtonInGroup = false
   end
 end
@@ -37,7 +37,7 @@ local GetButtonIndex = function(buttonTable, button)
   if not button then
     return nil
   end
-  for id, v in pairs(buttonTable) do
+  for id, item in pairs(buttonTable) do
     if buttonTable[id].optionDisplay == button.stringRef then
       return id
     end
@@ -81,12 +81,12 @@ local AddButton = function(controller, options, button, isLargeButton, index)
     button.selected = CoD.LobbyMenus.History[lobbyNav] == button.customId
   end
   if button.newBreadcrumbFunc then
-    local f8_local1 = button.newBreadcrumbFunc
-    if type(f8_local1) == "string" then
-      f8_local1 = LUI.getTableFromPath(f8_local1)
+    local breadcrumbGetter = button.newBreadcrumbFunc
+    if type(breadcrumbGetter) == "string" then
+      breadcrumbGetter = LUI.getTableFromPath(breadcrumbGetter)
     end
-    if f8_local1 then
-      button.isBreadcrumbNew = f8_local1(controller)
+    if breadcrumbGetter then
+      button.isBreadcrumbNew = breadcrumbGetter(controller)
     end
   end
   if button.warningFunc ~= nil then

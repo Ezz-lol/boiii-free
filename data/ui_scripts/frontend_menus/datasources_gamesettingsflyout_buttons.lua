@@ -1,62 +1,67 @@
-local f0_local0 = function(f1_arg0, f1_arg1)
+local SetupPCMouseHandling = function(menu, controller)
   if not CoD.useMouse then
     return
   else
-    f1_arg0.Options:setHandleMouse(true)
-    f1_arg0.Options:registerEventHandler("leftclick_outside", function(element, event)
+    menu.Options:setHandleMouse(true)
+    menu.Options:registerEventHandler("leftclick_outside", function(element, event)
       CoD.PCUtil.SimulateButtonPress(event.controller, Enum.LUIButton.LUI_KEY_XBB_PSCIRCLE)
       return true
     end)
   end
 end
 
-local PostLoadFunc = function(f3_arg0, f3_arg1)
-  f0_local0(f3_arg0, f3_arg1)
-  f3_arg0.disableBlur = true
-  f3_arg0.disablePopupOpenCloseAnim = true
+local PostLoadFunc = function(menu, controller)
+  SetupPCMouseHandling(menu, controller)
+  menu.disableBlur = true
+  menu.disablePopupOpenCloseAnim = true
   Engine.SetModelValue(Engine.CreateModel(Engine.GetGlobalModel(), "GameSettingsFlyoutOpen"), true)
-  LUI.OverrideFunction_CallOriginalSecond(f3_arg0, "close", function(element)
+  LUI.OverrideFunction_CallOriginalSecond(menu, "close", function(element)
     Engine.SetModelValue(Engine.CreateModel(Engine.GetGlobalModel(), "GameSettingsFlyoutOpen"), false)
   end)
-  f3_arg0:registerEventHandler("occlusion_change", function(element, event)
-    local f5_local0 = element:getParent()
-    if f5_local0 then
-      local f5_local1 = f5_local0:getFirstChild()
-      while f5_local1 ~= nil do
-        if f5_local1.menuName == "Lobby" then
+  menu:registerEventHandler("occlusion_change", function(element, event)
+    local parentElement = element:getParent()
+    if parentElement then
+      local siblingElement = parentElement:getFirstChild()
+      while siblingElement ~= nil do
+        if siblingElement.menuName == "Lobby" then
           break
         end
-        f5_local1 = f5_local1:getNextSibling()
+        siblingElement = siblingElement:getNextSibling()
       end
-      if f5_local1 then
+      if siblingElement then
         if event.occluded == true then
-          f5_local1:setAlpha(0)
+          siblingElement:setAlpha(0)
         end
-        f5_local1:setAlpha(1)
+        siblingElement:setAlpha(1)
       end
     end
     element:OcclusionChange(event)
   end)
-  f3_arg0:subscribeToModel(Engine.CreateModel(Engine.GetGlobalModel(), "lobbyRoot.lobbyNav", true), function(model)
-    local f6_local0 = f3_arg0.occludedBy
-    while f6_local0 do
-      if f6_local0.occludedBy ~= nil then
-        f6_local0 = f6_local0.occludedBy
+  menu:subscribeToModel(Engine.CreateModel(Engine.GetGlobalModel(), "lobbyRoot.lobbyNav", true), function(model)
+    local occludingMenu = menu.occludedBy
+    while occludingMenu do
+      if occludingMenu.occludedBy ~= nil then
+        occludingMenu = occludingMenu.occludedBy
       end
-      while f6_local0 and f6_local0.menuName ~= "Lobby" do
-        f6_local0 = GoBack(f6_local0, f3_arg1)
+      while occludingMenu and occludingMenu.menuName ~= "Lobby" do
+        occludingMenu = GoBack(occludingMenu, controller)
       end
-      Engine.SendClientScriptNotify(f3_arg1, "menu_change" .. Engine.GetLocalClientNum(f3_arg1), "Main", "closeToMenu")
+      Engine.SendClientScriptNotify(
+        controller,
+        "menu_change" .. Engine.GetLocalClientNum(controller),
+        "Main",
+        "closeToMenu"
+      )
       return
     end
-    GoBack(f3_arg0, f3_arg1)
+    GoBack(menu, controller)
   end, false)
 end
 
 DataSources.GameSettingsFlyoutButtonsCustom = DataSourceHelpers.ListSetup(
   "GameSettingsFlyoutButtonsCustom",
-  function(f7_arg0)
-    local f7_local0 = {
+  function(controller)
+    local buttonDefinitions = {
       {
         optionDisplay = "MPUI_CHANGE_MAP_CAPS",
         customId = "btnChangeMap",
@@ -79,29 +84,29 @@ DataSources.GameSettingsFlyoutButtonsCustom = DataSourceHelpers.ListSetup(
       },
     }
     -- if CoD.isPC and IsServerBrowserEnabled() then
-    -- table.insert( f7_local0, {
+    -- table.insert( buttonDefinitions, {
     -- optionDisplay = "PLATFORM_SERVER_SETTINGS_CAPS",
     -- customID = "btnServerSettings",
     -- action = OpenServerSettings
     -- } )
     -- end
-    local f7_local1 = {}
-    for f7_local5, f7_local6 in ipairs(f7_local0) do
-      table.insert(f7_local1, {
+    local customButtonsList = {}
+    for index, buttonData in ipairs(buttonDefinitions) do
+      table.insert(customButtonsList, {
         models = {
-          displayText = Engine.Localize(f7_local6.optionDisplay),
-          customId = f7_local6.customId,
-          disabled = f7_local6.disabled,
+          displayText = Engine.Localize(buttonData.optionDisplay),
+          customId = buttonData.customId,
+          disabled = buttonData.disabled,
         },
         properties = {
-          title = f7_local6.optionDisplay,
-          desc = f7_local6.desc,
-          action = f7_local6.action,
-          actionParam = f7_local6.actionParam,
+          title = buttonData.optionDisplay,
+          desc = buttonData.desc,
+          action = buttonData.action,
+          actionParam = buttonData.actionParam,
         },
       })
     end
-    return f7_local1
+    return customButtonsList
   end,
   nil,
   nil,
@@ -131,23 +136,23 @@ LUI.createMenu.GameSettingsFlyoutMPCustom = function(controller)
   Options:setSpacing(-2)
   Options:setDataSource("GameSettingsFlyoutButtonsCustom")
   Options:registerEventHandler("gain_focus", function(element, event)
-    local f9_local0 = nil
+    local returnValue = nil
     if element.gainFocus then
-      f9_local0 = element:gainFocus(event)
+      returnValue = element:gainFocus(event)
     elseif element.super.gainFocus then
-      f9_local0 = element.super:gainFocus(event)
+      returnValue = element.super:gainFocus(event)
     end
     CoD.Menu.UpdateButtonShownState(element, self, controller, Enum.LUIButton.LUI_KEY_XBA_PSCROSS)
-    return f9_local0
+    return returnValue
   end)
   Options:registerEventHandler("lose_focus", function(element, event)
-    local f10_local0 = nil
+    local returnValue = nil
     if element.loseFocus then
-      f10_local0 = element:loseFocus(event)
+      returnValue = element:loseFocus(event)
     elseif element.super.loseFocus then
-      f10_local0 = element.super:loseFocus(event)
+      returnValue = element.super:loseFocus(event)
     end
-    return f10_local0
+    return returnValue
   end)
   self:AddButtonCallbackFunction(
     Options,
@@ -176,24 +181,24 @@ LUI.createMenu.GameSettingsFlyoutMPCustom = function(controller)
     },
   })
   self:subscribeToModel(Engine.GetModel(Engine.GetGlobalModel(), "lobbyRoot.lobbyNetworkMode"), function(model)
-    local f14_local0 = self
-    local f14_local1 = {
+    local menu = self
+    local eventData = {
       controller = controller,
       name = "model_validation",
       modelValue = Engine.GetModelValue(model),
       modelName = "lobbyRoot.lobbyNetworkMode",
     }
-    CoD.Menu.UpdateButtonShownState(f14_local0, self, controller, Enum.LUIButton.LUI_KEY_XBY_PSTRIANGLE)
+    CoD.Menu.UpdateButtonShownState(menu, self, controller, Enum.LUIButton.LUI_KEY_XBY_PSTRIANGLE)
   end)
   self:subscribeToModel(Engine.GetModel(Engine.GetGlobalModel(), "lobbyRoot.lobbyNav"), function(model)
-    local f15_local0 = self
-    local f15_local1 = {
+    local menu = self
+    local eventData = {
       controller = controller,
       name = "model_validation",
       modelValue = Engine.GetModelValue(model),
       modelName = "lobbyRoot.lobbyNav",
     }
-    CoD.Menu.UpdateButtonShownState(f15_local0, self, controller, Enum.LUIButton.LUI_KEY_XBY_PSTRIANGLE)
+    CoD.Menu.UpdateButtonShownState(menu, self, controller, Enum.LUIButton.LUI_KEY_XBY_PSTRIANGLE)
   end)
   self:AddButtonCallbackFunction(
     self,

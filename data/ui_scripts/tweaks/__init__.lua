@@ -51,11 +51,11 @@ if isPrivateGame then
     end
   end
 
-  local function updateDvar(f1_arg0, f1_arg1, f1_arg2, dvarName, f1_arg4)
-    UpdateInfoModels(f1_arg1)
-    local val = f1_arg1.value
+  local function updateDvar(controller, optionModel, optionsList, dvarName, extraParam)
+    UpdateInfoModels(optionModel)
+    local val = optionModel.value
     pcall(function()
-      Engine.Exec(f1_arg2, dvarName .. " " .. tostring(val))
+      Engine.Exec(optionsList, dvarName .. " " .. tostring(val))
     end)
     showTweakToastIfChanged(dvarName, val)
   end
@@ -233,10 +233,10 @@ if isPrivateGame then
         "cg_fovScale",
         fovScaleOptions,
         nil,
-        function(f1_arg0, f1_arg1, f1_arg2, dvarName, f1_arg4)
-          UpdateInfoModels(f1_arg1)
-          Engine.SetDvar(dvarName, f1_arg1.value)
-          showTweakToastIfChanged(dvarName, f1_arg1.value)
+        function(controller, optionModel, optionsList, dvarName, extraParam)
+          UpdateInfoModels(optionModel)
+          Engine.SetDvar(dvarName, optionModel.value)
+          showTweakToastIfChanged(dvarName, optionModel.value)
         end
       )
     )

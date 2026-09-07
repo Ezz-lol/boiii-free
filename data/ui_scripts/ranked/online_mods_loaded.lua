@@ -2,7 +2,7 @@ if Engine.GetCurrentMap() ~= "core_frontend" then
   return
 end
 
-function ShouldUnloadMod(arg0)
+function ShouldUnloadMod(mod)
   return false
 end
 

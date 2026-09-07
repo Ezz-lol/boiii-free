@@ -5,14 +5,14 @@ end
 DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings", function(controller)
   local optionsTable = {}
 
-  local updateDvar = function(f1_arg0, f1_arg1, f1_arg2, dvarName, f1_arg4)
+  local updateDvar = function(controller, optionModel, optionsList, dvarName, extraParam)
     local oldValue = Engine.DvarInt(nil, dvarName)
-    local newValue = f1_arg1.value
-    UpdateInfoModels(f1_arg1)
+    local newValue = optionModel.value
+    UpdateInfoModels(optionModel)
     if oldValue == newValue then
       return
     end
-    Engine.SetDvar(dvarName, f1_arg1.value)
+    Engine.SetDvar(dvarName, optionModel.value)
   end
 
   -- FOV (65-120 in steps of 5)
@@ -65,9 +65,9 @@ DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings
       "cg_fovScale",
       fovScaleOptions,
       nil,
-      function(f1_arg0, f1_arg1, f1_arg2, dvarName, f1_arg4)
-        UpdateInfoModels(f1_arg1)
-        Engine.SetDvar(dvarName, f1_arg1.value)
+      function(controller, optionModel, optionsList, dvarName, extraParam)
+        UpdateInfoModels(optionModel)
+        Engine.SetDvar(dvarName, optionModel.value)
       end
     )
   )
@@ -285,9 +285,9 @@ DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings
         },
       },
       nil,
-      function(f1_arg0, f1_arg1, f1_arg2, dvarName, f1_arg4)
-        UpdateInfoModels(f1_arg1)
-        Engine.SetDvar(dvarName, f1_arg1.value)
+      function(controller, optionModel, optionsList, dvarName, extraParam)
+        UpdateInfoModels(optionModel)
+        Engine.SetDvar(dvarName, optionModel.value)
       end
     )
   )

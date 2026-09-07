@@ -1115,7 +1115,7 @@ pcall(function()
   end
 
   -- Base maps (non-DLC)
-  DataSources.ServerBrowserFilter = DataSourceHelpers.ListSetup("ServerBrowserFilter", function(arg0, arg1)
+  DataSources.ServerBrowserFilter = DataSourceHelpers.ListSetup("ServerBrowserFilter", function(controller)
     local items = {}
     table.insert(items, {
       models = {
@@ -1159,7 +1159,7 @@ pcall(function()
   end, false)
 
   -- DLC maps
-  DataSources.ServerBrowserDLCFilter = DataSourceHelpers.ListSetup("ServerBrowserDLCFilter", function(arg0, arg1)
+  DataSources.ServerBrowserDLCFilter = DataSourceHelpers.ListSetup("ServerBrowserDLCFilter", function(controller)
     local items = {}
     if CoD.mapsTable then
       local sessionMode = getSessionModeForTab()
@@ -1198,7 +1198,7 @@ pcall(function()
   -- Game modes
   DataSources.ServerBrowserGameModeFilter = DataSourceHelpers.ListSetup(
     "ServerBrowserGameModeFilter",
-    function(arg0, arg1)
+    function(controller)
       local items = {}
       table.insert(items, {
         models = {
