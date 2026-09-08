@@ -199,6 +199,10 @@ WEAK symbol<void(lua_State *s, int32_t index)> hksi_lua_settable{0x141429750,
 WEAK symbol<void(lua_State *s, const char *libname, const luaL_Reg *l,
                  int32_t nup, const hksBool isHksFunc)>
     hksI_openlib{0x141D49440, 0x1403F1FE0};
+WEAK symbol<void(lua_State *s, hks::hksInt32 index)> hksi_luasettable{
+    0x141429750, 0x1401DEAF0};
+WEAK symbol<void *(lua_State *s, size_t size)> hksi_lua_newuserdata{
+    0x141D53D50, 0x1403FC810};
 WEAK symbol<int32_t(lua_State *s, const HksCompilerSettings *options,
                     const char *filename)>
     hksL_loadfile{0x141D49700};

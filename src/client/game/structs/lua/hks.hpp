@@ -418,6 +418,8 @@ struct HksObject {
   uint8_t _padding04[4];
   HksValue v;
 
+  inline constexpr HksObject(HksObjectType type, HksValue value)
+      : t(type), v(Value) {}
   inline constexpr bool truthy() const {
     return this->t != HksObjectType::TNIL &&
            (this->t != HksObjectType::TBOOLEAN || this->v.native != 0);
