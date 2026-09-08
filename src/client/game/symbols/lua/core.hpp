@@ -297,7 +297,7 @@ inline void Lua_SetTableString(hks::lua_Integer key, const char *value,
 // bool
 inline void lua_pusharray(hks::lua_State *luaVM, const std::span<bool> &arr) {
   lua_createtable(luaVM, arr.size(), 0);
-  for (hks::hksInt32 i = 0; i < arr.size(); ++i) {
+  for (hks::hksInt32 i = 0; i < static_cast<hks::hksInt32>(arr.size()); ++i) {
     Lua_SetTableBool(i, arr[i], luaVM);
   }
 }
@@ -307,7 +307,7 @@ inline void lua_pusharray(hks::lua_State *luaVM, const std::vector<bool> &arr) {
   // `std::span` or a `bool*` from `arr.data(). As such, we need to iterate the
   // values here, inline.
   lua_createtable(luaVM, arr.size(), 0);
-  for (hks::hksInt32 i = 0; i < arr.size(); ++i) {
+  for (hks::hksInt32 i = 0; i < static_cast<hks::hksInt32>(arr.size()); ++i) {
     Lua_SetTableBool(i, arr[i], luaVM);
   }
 }
@@ -326,7 +326,7 @@ inline void lua_pusharray(hks::lua_State *luaVM,
 inline void lua_pusharray(hks::lua_State *luaVM, const hks::hksBool *arr,
                           size_t size) {
   lua_createtable(luaVM, size, 0);
-  for (hks::hksInt32 i = 0; i < size; ++i) {
+  for (hks::hksInt32 i = 0; i < static_cast<hks::hksInt32>(size); ++i) {
     Lua_SetTableBool(i, arr[i], luaVM);
   }
 }
@@ -356,7 +356,7 @@ inline void lua_pusharray(hks::lua_State *luaVM,
 inline void lua_pusharray(hks::lua_State *luaVM, const char *const *arr,
                           size_t size) {
   lua_createtable(luaVM, size, 0);
-  for (hks::hksInt32 i = 0; i < size; ++i) {
+  for (hks::hksInt32 i = 0; i < static_cast<hks::hksInt32>(size); ++i) {
     Lua_SetTableString(i, arr[i], luaVM);
   }
 }
@@ -385,7 +385,7 @@ inline void lua_pusharray(hks::lua_State *luaVM,
 inline void lua_pusharray(hks::lua_State *luaVM, const std::string_view *arr,
                           size_t size) {
   lua_createtable(luaVM, size, 0);
-  for (hks::hksInt32 i = 0; i < size; ++i) {
+  for (hks::hksInt32 i = 0; i < static_cast<hks::hksInt32>(size); ++i) {
     Lua_SetTableString(i, arr[i].data(), luaVM);
   }
 }
@@ -415,7 +415,7 @@ inline void lua_pusharray(hks::lua_State *luaVM,
 inline void lua_pusharray(hks::lua_State *luaVM, const std::string *arr,
                           size_t size) {
   lua_createtable(luaVM, size, 0);
-  for (hks::hksInt32 i = 0; i < size; ++i) {
+  for (hks::hksInt32 i = 0; i < static_cast<hks::hksInt32>(size); ++i) {
     Lua_SetTableString(i, arr[i].data(), luaVM);
   }
 }
@@ -444,7 +444,7 @@ inline void lua_pusharray(hks::lua_State *luaVM,
 inline void lua_pusharray(hks::lua_State *luaVM,
                           const std::filesystem::path *arr, size_t size) {
   lua_createtable(luaVM, size, 0);
-  for (hks::hksInt32 i = 0; i < size; ++i) {
+  for (hks::hksInt32 i = 0; i < static_cast<hks::hksInt32>(size); ++i) {
     const std::string path_str = arr[i].generic_string();
     Lua_SetTableString(i, path_str.c_str(), luaVM);
   }
@@ -479,7 +479,7 @@ template <IntegralLike<hks::HksNumber> Number>
 inline void lua_pusharray(hks::lua_State *luaVM, const Number *arr,
                           size_t size) {
   lua_createtable(luaVM, size, 0);
-  for (hks::hksInt32 i = 0; i < size; ++i) {
+  for (hks::hksInt32 i = 0; i < static_cast<hks::hksInt32>(size); ++i) {
     Lua_SetTableNumber(i, arr[i], luaVM);
   }
 }

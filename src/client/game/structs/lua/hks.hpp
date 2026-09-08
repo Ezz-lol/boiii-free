@@ -418,8 +418,6 @@ struct HksObject {
   uint8_t _padding04[4];
   HksValue v;
 
-  inline constexpr HksObject(HksObjectType type, HksValue value)
-      : t(type), v(Value) {}
   inline constexpr bool truthy() const {
     return this->t != HksObjectType::TNIL &&
            (this->t != HksObjectType::TBOOLEAN || this->v.native != 0);
@@ -434,7 +432,7 @@ struct HksObject {
   constexpr HksObject(const HksObject &) noexcept = default;
   constexpr HksObject &operator=(const HksObject &) = default;
 
-  constexpr HksObject(const HksObjectType ty, const HksValue value) noexcept
+  inline constexpr HksObject(const HksObjectType ty, const HksValue value) noexcept
       : t(ty), _padding04{0, 0, 0, 0}, v(value) {}
 };
 ASSERT_SIZE(HksObject, 0x10);
