@@ -152,6 +152,38 @@ luaReturnCount_e copy(lua_State *s) {
   return luaReturnCount_e::ONE;
 }
 
+luaReturnCount_e copy_directory(lua_State *s) {
+  try {
+    if (lua_gettop(s) > 1 && lua_isstring(s, 1) && lua_isstring(s, 2)) {
+      const char *src_path_arg = lua_tostring(s, 1);
+      const char *dest_path_arg = lua_tostring(s, 2);
+      // Third arg is boolean, and can take boolean-like string ("true"). Not
+      // sure what it is for.
+      if (src_path_arg && dest_path_arg) {
+        const std::filesystem::path src_path = path::normalize(src_path_arg);
+        const std::filesystem::path dest_path = path::normalize(dest_path_arg);
+        if (std::filesystem::is_directory(src_path)) {
+          const std::filesystem::path dest_parent = dest_path.parent_path();
+          if (!std::filesystem::exists(dest_parent) ||
+              std::filesystem::is_directory(dest_parent)) {
+            std::filesystem::create_directories(dest_parent);
+            std::filesystem::copy(
+                src_path, dest_path,
+                std::filesystem::copy_options::overwrite_existing |
+                    std::filesystem::copy_options::recursive);
+
+            lua_pushboolean(s, htrue);
+            return luaReturnCount_e::ONE;
+          }
+        }
+      }
+    }
+  } catch (...) {
+  }
+  lua_pushboolean(s, hfalse);
+  return luaReturnCount_e::ONE;
+}
+
 luaReturnCount_e mkdir(lua_State *s) {
   try {
     if (lua_gettop(s) > 0 && lua_isstring(s, 1)) {
@@ -269,6 +301,54 @@ luaReturnCount_e wine(lua_State *luaVM) {
   return luaReturnCount_e::ONE;
 }
 
+luaReturnCount_e t7_patch_loaded(lua_State *luaVM) {
+  lua_pushboolean(luaVM, htrue);
+  return luaReturnCount_e::ONE;
+}
+
+/*
+   Note: for T7Recharged compatibility, this is implemented incorrectly.
+
+   T7Recharged seems to instead return a space-delimited list of paths as one
+   string here. This breaks parsing of paths that contain a space, making this
+   function essentially useless.
+
+   It also is a poor API choice - users will have to always manually split
+   returned paths into separate items for any usage (iteration, global storage).
+
+   This is likely the reason why there are no known, published mods currently
+   using this function.
+
+   As such, we likely do not need to maintain compatibility for the poorly
+   designed API used in T7Recharged for `ListFiles`, and both could and should
+   improve on it here.
+*/
+
+luaReturnCount_e list_files(lua_State *luaVM) {
+  std::vector<std::filesystem::path> entries;
+  try {
+    if (lua_gettop(luaVM) > 0 && lua_isstring(luaVM, 1)) {
+      // Argument path is either first argument or default to PWD
+      const char *arg_path =
+          lua_gettop(luaVM) > 0 && lua_isstring(luaVM, 1)
+              ? lua_tostring(luaVM, 1)
+              : nullptr; /* This allows us to cleanly handle both missing
+                          argument or nullptr stack value below */
+      const std::filesystem::path path =
+          arg_path ? path::normalize(arg_path) : path::cwd();
+      if (std::filesystem::is_directory(path)) {
+        for (const std::filesystem::directory_entry &entry :
+             std::filesystem::recursive_directory_iterator(path)) {
+          entries.push_back(entry);
+        }
+      }
+    }
+  } catch (...) {
+  }
+  lua_pusharray(luaVM, entries);
+  return luaReturnCount_e::ONE;
+}
+
 class component final : public generic_component {
 public:
   void post_unpack() override {
@@ -279,6 +359,8 @@ public:
                                   lua_state::unsafe_function<clipboard_set>>(),
         lua_state::luaL_LoggedReg<"FileIO", "Copy",
                                   lua_state::unsafe_function<copy>>(),
+        lua_state::luaL_LoggedReg<"FileIO", "CopyDirectory",
+                                  lua_state::unsafe_function<copy_directory>>(),
         lua_state::luaL_LoggedReg<"FileIO", "CreateDirectory",
                                   lua_state::unsafe_function<mkdir>>(),
         lua_state::luaL_LoggedReg<
@@ -288,12 +370,18 @@ public:
                                   lua_state::unsafe_function<file_exists>>(),
         lua_state::luaL_LoggedReg<"FileIO", "FileSize",
                                   lua_state::unsafe_function<file_size>>(),
+        lua_state::luaL_LoggedReg<"FileIO", "ListFiles",
+                                  lua_state::unsafe_function<list_files>>(),
         lua_state::luaL_LoggedReg<"FileIO", "ReadFile",
                                   lua_state::unsafe_function<read_file>>(),
+        lua_state::luaL_LoggedReg<
+            "FileIO", "T7PatchLoaded",
+            lua_state::unsafe_function<t7_patch_loaded>>(),
         lua_state::luaL_LoggedReg<"FileIO", "Wine",
                                   lua_state::unsafe_function<wine>>(),
         lua_state::luaL_LoggedReg<"FileIO", "WriteFile",
                                   lua_state::unsafe_function<write_file>>(),
+
         {nullptr, nullptr},
     };
     lua_state::register_library("FileIO", FileIOLibrary);
