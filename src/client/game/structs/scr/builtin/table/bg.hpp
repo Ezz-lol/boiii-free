@@ -49,47 +49,9 @@ union CommonFunctionTable {
   static inline constexpr size_t COUNT = 34;
   BuiltinFunctionDef functions[COUNT];
 
-  static inline constexpr std::array<const char *, COUNT> names = {
-      "ClearAllCharacterTables",
-      "GetCharacterBodyStyleIndex",
-      "GetAllCharacterBodies",
-      "GetAllCharacterHeads",
-      "GetCharacterBodyModelCount",
-      "GetCharacterBodyModelColorCount",
-      "GetCharacterHelmetModelCount",
-      "GetCharacterHelmetModelColorCount",
-      "GetAnimForCharacter",
-      "GetXCamForCharacter",
-      "GetSpawnStructForCharacter",
-      "GetWeaponModelForCharacter",
-      "GetWeaponForCharacter",
-      "GetCharacterFields",
-      "GetCharacterDisplayName",
-      "GetCharacterAssetName",
-      "GetCharacterBodyModel",
-      "GetCharacterHelmetModel",
-      "GetCharacterHelmetHidesHead",
-      "GetCharacterHeadModel",
-      "GetCharacterBodyRenderOptions",
-      "GetCharacterHelmetRenderOptions",
-      "GetCharacterHeadRenderOptions",
-      "GetCharacterModeRenderOptions",
-      "GetXModelCenterOffset",
-      "GetNextMap",
-      "GetMapOrder",
-      "GetMapAtIndex",
-      "GetMapIntroMovie",
-      "GetMapOutroMovie",
-      "GetMapFields",
-      "SetupFieldOpsKitLoadouts",
-      "SessionModeIsCampaignZombiesGame",
-      "IsArchetypeLoaded",
-  };
+  static const std::array<const char *, COUNT> names;
 
-  DEFINE_NAME_MAP(names, hashes);
-  static_assert(hashes.size() == names.size(),
-                "name hashmap does not include all names!");
-
+  DECLARE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(functions);
 };
 ASSERT_SIZE(CommonFunctionTable, sizeof(CommonFunctionTable::functions));
@@ -150,62 +112,9 @@ union MathFunctionTable {
   static inline constexpr size_t COUNT = 49;
   BuiltinFunctionDef functions[COUNT];
 
-  static inline constexpr std::array<const char *, COUNT> names = {
-      "Log",
-      "Sin",
-      "Cos",
-      "Tan",
-      "Asin",
-      "Acos",
-      "Atan",
-      "Abs",
-      "Min",
-      "Max",
-      "Floor",
-      "Ceil",
-      "Sqrt",
-      "Pow",
-      "LerpFloat",
-      "LerpVector",
-      "GetMinBitCountForNum",
-      "MapFloat",
-      "DiffTrack",
-      "DiffTrackAngle",
-      "PackRgba",
-      "Int",
-      "CastFloat",
-      "Distance2DSquared",
-      "AngleLerp",
-      "RotatePoint",
-      "VectorFromLineToPoint",
-      "PointOnSegmentNearestToPoint",
-      "Distance",
-      "Distance2D",
-      "DistanceSquared",
-      "Length",
-      "LengthSquared",
-      "Closer",
-      "VectorDot",
-      "VectorCross",
-      "VectorNormalize",
-      "VectorProjection",
-      "VectorToAngles",
-      "VectorLerp",
-      "AnglesToUp",
-      "AnglesToRight",
-      "AnglesToForward",
-      "CombineAngles",
-      "AngleClamp180",
-      "AbsAngleClamp180",
-      "AbsAngleClamp360",
-      "ForwardRotateAroundUpByAngle",
-      "RotatePointAroundAxis",
-  };
+  static const std::array<const char *, COUNT> names;
 
-  DEFINE_NAME_MAP(names, hashes);
-  static_assert(hashes.size() == names.size(),
-                "name hashmap does not include all names!");
-
+  DECLARE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(functions);
 };
 ASSERT_SIZE(MathFunctionTable, sizeof(MathFunctionTable::functions));
@@ -218,13 +127,9 @@ union WeaponFunctionTable {
   static inline constexpr size_t COUNT = 1;
   BuiltinFunctionDef functions[COUNT];
 
-  static inline constexpr std::array<const char *, COUNT> names = {
-      "EnumerateWeapons"};
+  static const std::array<const char *, COUNT> names;
 
-  DEFINE_NAME_MAP(names, hashes);
-  static_assert(hashes.size() == names.size(),
-                "name hashmap does not include all names!");
-
+  DECLARE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(functions);
 };
 ASSERT_SIZE(WeaponFunctionTable, sizeof(WeaponFunctionTable::functions));
@@ -304,81 +209,9 @@ union UtilFunctionTable {
   static inline constexpr size_t COUNT = 69;
   BuiltinFunctionDef functions[COUNT];
 
-  static inline constexpr std::array<const char *, COUNT> names = {
-      "GetDvarString",
-      "GetDvarInt",
-      "GetDvarFloat",
-      "GetDvarVector",
-      "Throw",
-      "Array",
-      "AssociativeArray",
-      "ArrayRemoveValue",
-      "ArrayRemoveIndex",
-      "ArrayInsert",
-      "ArrayCombine",
-      "ArrayCopy",
-      "IsInArray",
-      "GetArrayKeys",
-      "GetFirstArrayKey",
-      "GetNextArrayKey",
-      "GetLastArrayKey",
-      "GetPrevArrayKey",
-      "ArrayIntersect",
-      "ArrayGetClosest",
-      "ArrayGetFarthest",
-      "GetStructField",
-      "IsFunctionPtr",
-      "IsString",
-      "IsArray",
-      "IsWeapon",
-      "IsInt",
-      "IsFloat",
-      "IsVec",
-      "IsClass",
-      "IString",
-      "IsSubStr",
-      "GetSubStr",
-      "ToLower",
-      "ToUpper",
-      "StrTok",
-      "StrTok2",
-      "StrStartsWith",
-      "StrEndsWith",
-      "StrIsNumber",
-      "StrIsFloat",
-      "StrIsInt",
-      "StrStrip",
-      "MakeLocalizedString",
-      "SPrintf",
-      "TableLookup",
-      "TableLookupIString",
-      "TableLookupRowNum",
-      "TableLookupColumnForRow",
-      "TableLookupFindCoreAsset",
-      "TableLookupRowCount",
-      "TableLookupColumnCount",
-      "TableLookupRow",
-      "GetItemIndexFromRef",
-      "GetAttachmentTableIndex",
-      "OpenFile",
-      "CloseFile",
-      "FPrintln",
-      "FPrintFields",
-      "FReadLn",
-      "FGetArg",
-      "DebugBreak",
-      "Assert",
-      "AssertMsg",
-      "ErrorMsg",
-      "IsPC",
-      "IsProfileBuild",
-      "IsUsingMods",
-      "Modvar"};
+  static const std::array<const char *, COUNT> names;
 
-  DEFINE_NAME_MAP(names, hashes);
-  static_assert(hashes.size() == names.size(),
-                "name hashmap does not include all names!");
-
+  DECLARE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(functions);
 };
 ASSERT_SIZE(UtilFunctionTable, sizeof(UtilFunctionTable::functions));

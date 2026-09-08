@@ -12,7 +12,7 @@ using namespace game::scr;
 struct hash_name_pair {
   uint32_t hash;
   std::string name;
-  int line;
+  int32_t line;
   uint8_t params;
 };
 
