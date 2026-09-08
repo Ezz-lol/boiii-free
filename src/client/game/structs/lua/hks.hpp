@@ -6,12 +6,28 @@
 #include <game/ptr.hpp>
 
 namespace game {
+
+namespace ui {
+typedef uint16_t UIModelIndex;
+}
+
+namespace gfx {
+struct GfxImage;
+}
+
 namespace db {
 namespace xasset {
 struct RawFile;
-}
+struct Material;
+typedef Material *MaterialHandle;
+} // namespace xasset
 } // namespace db
 namespace lua {
+
+namespace lui {
+// TODO
+struct LUIElement;
+} // namespace lui
 
 struct LuaStateContext;
 
@@ -274,7 +290,21 @@ typedef fastcall_t<void(lua_State *luaVM, HksCompilerFuncArg *arg,
     lua_caller;
 
 typedef hksInt32 lua_Integer;
-typedef HksDouble LightUserData;
+typedef HksNumber lua_Number;
+
+typedef gfx::GfxImage *LUA_IMAGE_DATATYPE;
+typedef db::xasset::MaterialHandle LUA_MATERIAL_DATATYPE;
+
+union LightUserData {
+  LUA_IMAGE_DATATYPE image;
+  LUA_MATERIAL_DATATYPE material;
+  lui::LUIElement *uiElement;
+  ui::UIModelIndex uiModelIndex;
+  double fp;
+  uint64_t raw;
+  void *ptr;
+};
+ASSERT_SIZE(LightUserData, sizeof(uint64_t));
 
 struct GenericChunkHeader {
   hksSize m_flags;
@@ -432,7 +462,8 @@ struct HksObject {
   constexpr HksObject(const HksObject &) noexcept = default;
   constexpr HksObject &operator=(const HksObject &) = default;
 
-  inline constexpr HksObject(const HksObjectType ty, const HksValue value) noexcept
+  inline constexpr HksObject(const HksObjectType ty,
+                             const HksValue value) noexcept
       : t(ty), _padding04{0, 0, 0, 0}, v(value) {}
 };
 ASSERT_SIZE(HksObject, 0x10);

@@ -2,7 +2,8 @@
 
 #include <cstdint>
 
-namespace game::ui {
+namespace game {
+namespace ui {
 typedef uint16_t UIModelIndex;
 
 struct CurrentWeaponModel {
@@ -94,4 +95,5 @@ struct PerkModel {
   ui::UIModelIndex nameModel;
   ui::UIModelIndex imageModel;
 };
-} // namespace game::ui
+} // namespace ui
+} // namespace game

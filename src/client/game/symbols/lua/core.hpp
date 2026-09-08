@@ -5,6 +5,9 @@
 
 namespace game {
 namespace lua {
+// All of the below `_Lua_SetTable...` functions do not have a `_` prefix in the
+// engine. Thee are added to allow usage of inlined function overloads
+// elsewhere; symbols cannot be overloaded.
 WEAK symbol<void(const char *key, hks::hksInt32 value, hks::lua_State *luaVM)>
     _Lua_SetTableInt{0x141F066E0, 0x1404B4540};
 WEAK symbol<void(const char *key, bool value, hks::lua_State *luaVM)>
@@ -14,6 +17,9 @@ WEAK symbol<void(const char *key, const char *value, hks::lua_State *luaVM)>
 WEAK symbol<void(const char *key, void *value, int32_t size,
                  hks::lua_State *luaVM)>
     _Lua_SetTableUserData{0x141F068D0, 0x1404B4640};
+WEAK symbol<void(const char *key, hks::lua_Number value, hks::lua_State *luaVM)>
+    _Lua_SetTableNumber{0x141F06750, 0x1404B45B0};
+
 WEAK symbol<void(hks::lua_Integer key, hks::lua_State *luaVM)> Lua_BeginTable{
     0x141F04DD0, 0x1404B2CC0};
 // Overload - name in engine is `LuaBeginTable`
@@ -162,6 +168,15 @@ inline void lua_pushfunction(hks::lua_State *s, hks::lua_CFunction *func,
   hks::hks_pushnamedclosure(s, func, 0, name, hks::hfalse);
 }
 
+template <typename T>
+  requires(sizeof(T) <= sizeof(uint64_t))
+inline void lua_pushlightuserdata(hks::lua_State *s, T val) {
+  hks::HksObject *top = s->m_apistack.top;
+  top->v.lightUserData = hks::LightUserData{.raw = static_cast<uint64_t>(val)};
+  top->t = hks::HksObjectType::TLIGHTUSERDATA;
+  s->m_apistack.top = top + 1;
+}
+
 inline void lua_pushvalue(hks::lua_State *s, int32_t index) {
   hks::HksObject *object = getObjectForIndex(s, index);
   hks::HksObject *st = s->m_apistack.top;
@@ -223,11 +238,16 @@ inline void Lua_SetTableUserData(const char *key, void *value, int32_t size,
   profile builds. Function was thus re-created here accordingly.
   Adds value to table by integer key.
 */
-inline void Lua_SetTableNumber(hks::lua_Integer key, hks::HksNumber value,
+inline void Lua_SetTableNumber(hks::lua_Integer key, hks::lua_Number value,
                                hks::lua_State *luaVM) {
   lua_pushinteger(luaVM, key);
   lua_pushnumber(luaVM, value);
   lua_settable(luaVM, -3);
+}
+
+inline void Lua_SetTableNumber(const char *key, hks::lua_Number value,
+                               hks::lua_State *luaVM) {
+  return _Lua_SetTableNumber(key, value, luaVM);
 }
 
 inline void Lua_SetTableInt(const char *key, hks::hksInt32 value,
