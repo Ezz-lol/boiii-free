@@ -18,11 +18,15 @@ The `FileIO` library is added with the following functions.
 - `ClipboardGet()`
 - `ClipboardSet(contents)`
 - `Copy(srcPath, destPath)`
+- `CopyDirectory(srcPath, destPath)`
 - `CreateDirectory(path)`
 - `DirectoryExists(path)`
 - `FileExists(path)`
 - `FileSize(path)`
+- `ListFiles(path)`
 - `ReadFile(path)`
+- `T7PatchLoaded()` - always returns `true`
+- `Wine()`
 - `WriteFile(path, contents)`
 
 ### Console
