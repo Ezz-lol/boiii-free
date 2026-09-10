@@ -120,7 +120,8 @@ bool try_replace_workshop_root(std::filesystem::path &path) {
 std::filesystem::path normalize(const std::filesystem::path &path) {
   static const ParentMatch parent_replacements[] = {
       {players_directory(), boiii_players_directory()},
-      {root() / "LPC", lpc_directory()}};
+      {root() / "LPC", lpc_directory()},
+      {"\\LPC", lpc_directory()}};
 
   std::filesystem::path canonicalized = std::filesystem::weakly_canonical(path);
 
