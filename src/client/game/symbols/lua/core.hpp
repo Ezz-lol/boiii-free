@@ -20,10 +20,11 @@ WEAK symbol<void(const char *key, void *value, int32_t size,
 WEAK symbol<void(const char *key, hks::lua_Number value, hks::lua_State *luaVM)>
     _Lua_SetTableNumber{0x141F06750, 0x1404B45B0};
 
-WEAK symbol<void(hks::lua_Integer key, hks::lua_State *luaVM)> Lua_BeginTable{
+// Name in engine is `LuaBeginTable`
+WEAK symbol<void(const char *key, hks::lua_State *luaVM)> _Lua_BeginTable{
     0x141F04DD0, 0x1404B2CC0};
 // Overload - name in engine is `LuaBeginTable`
-WEAK symbol<void(hks::lua_Integer key, hks::lua_State *luaVM)> Lua_BeginTable2{
+WEAK symbol<void(hks::lua_Integer key, hks::lua_State *luaVM)> _Lua_BeginTable2{
     0x141F04D30, 0x1404B2C90};
 WEAK symbol<void(hks::lua_State *luaVM)> Lua_EndTable{0x141F04F10, 0x1404B3090};
 
@@ -85,6 +86,14 @@ WEAK symbol<const hks::hksInstruction *(hks::lua_State *s,
 WEAK symbol<uint32_t(ZoneType zoneType, int32_t sliceStart, int32_t sliceLen,
                      hks::lua_State *luaState)>
     Mods_Lists_GetInfoEntries_Slice{0x1420D61E0};
+
+inline void Lua_BeginTable(const char *key, hks::lua_State *luaVM) {
+  return _Lua_BeginTable(key, luaVM);
+}
+
+inline void Lua_BeginTable(hks::lua_Integer key, hks::lua_State *luaVM) {
+  return _Lua_BeginTable2(key, luaVM);
+}
 
 inline hks::hksInt32 lua_gettop(hks::lua_State *s) {
   return hksi_lua_gettop(s);
