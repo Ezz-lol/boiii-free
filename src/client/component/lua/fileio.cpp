@@ -3,9 +3,11 @@
 
 #include <game/game.hpp>
 
-#include "component/lua_state.hpp"
-#include "component/path.hpp"
 #include <loader/component_loader.hpp>
+
+#include <component/lua/lua_state.hpp>
+#include <component/path.hpp>
+
 #include <utils/io.hpp>
 
 namespace fileio {
@@ -152,6 +154,66 @@ luaReturnCount_e copy(lua_State *s) {
   return luaReturnCount_e::ONE;
 }
 
+luaReturnCount_e move(lua_State *s) {
+  try {
+    if (lua_gettop(s) > 1 && lua_isstring(s, 1) && lua_isstring(s, 2)) {
+      const char *src_path_arg = lua_tostring(s, 1);
+      const char *dest_path_arg = lua_tostring(s, 2);
+      // Third arg is boolean, and can take boolean-like string ("true"). Not
+      // sure what it is for.
+      if (src_path_arg && dest_path_arg) {
+        const std::filesystem::path src_path = path::normalize(src_path_arg);
+        const std::filesystem::path dest_path = path::normalize(dest_path_arg);
+        const std::filesystem::path dest_parent = dest_path.parent_path();
+        if (!std::filesystem::exists(dest_parent) ||
+            std::filesystem::is_directory(dest_parent)) {
+          std::filesystem::create_directories(dest_parent);
+          if (std::filesystem::exists(dest_path)) {
+            std::filesystem::remove_all(dest_path);
+          }
+          std::filesystem::rename(src_path, dest_path);
+
+          lua_pushboolean(s, htrue);
+          return luaReturnCount_e::ONE;
+        }
+      }
+    }
+  } catch (...) {
+  }
+  lua_pushboolean(s, hfalse);
+  return luaReturnCount_e::ONE;
+}
+
+luaReturnCount_e hard_link(lua_State *s) {
+  try {
+    if (lua_gettop(s) > 1 && lua_isstring(s, 1) && lua_isstring(s, 2)) {
+      const char *src_path_arg = lua_tostring(s, 1);
+      const char *dest_path_arg = lua_tostring(s, 2);
+      // Third arg is boolean, and can take boolean-like string ("true"). Not
+      // sure what it is for.
+      if (src_path_arg && dest_path_arg) {
+        const std::filesystem::path src_path = path::normalize(src_path_arg);
+        const std::filesystem::path dest_path = path::normalize(dest_path_arg);
+        if (std::filesystem::is_regular_file(src_path)) {
+          const std::filesystem::path dest_parent = dest_path.parent_path();
+          if ((!std::filesystem::exists(dest_parent) ||
+               std::filesystem::is_directory(dest_parent)) &&
+              !std::filesystem::exists(dest_path)) {
+            std::filesystem::create_directories(dest_parent);
+            std::filesystem::create_hard_link(src_path, dest_path);
+
+            lua_pushboolean(s, htrue);
+            return luaReturnCount_e::ONE;
+          }
+        }
+      }
+    }
+  } catch (...) {
+  }
+  lua_pushboolean(s, hfalse);
+  return luaReturnCount_e::ONE;
+}
+
 luaReturnCount_e copy_directory(lua_State *s) {
   try {
     if (lua_gettop(s) > 1 && lua_isstring(s, 1) && lua_isstring(s, 2)) {
@@ -265,27 +327,15 @@ luaReturnCount_e write_file(lua_State *s) {
     if (lua_gettop(s) > 1 && lua_isstring(s, 1) && lua_isstring(s, 2)) {
       const char *arg_path = lua_tostring(s, 1);
       const char *data = lua_tostring(s, 2);
-      /*
-        Not sure what arg3 and arg4 are.
-        One of arg3 or arg4 is probably "Append" based on common file write API
-        function arguments and flags, but I am uncertain what the other would
-        be. "Create" is the default behaviour for this function, so it is
-        probably not "Create".
 
-        These arguments are unused (always `0`) in AAE's lua code, which is
-        where this function was encountered.
-      */
-      [[maybe_unused]] const bool arg3 =
-          lua_gettop(s) > 2 && lua_isboolean(s, 3) ? lua_toboolean(s, 3)
-                                                   : false;
-      [[maybe_unused]] const bool arg4 =
-          lua_gettop(s) > 3 && lua_isboolean(s, 4) ? lua_toboolean(s, 4)
-                                                   : false;
+      const bool append = lua_gettop(s) > 2 && lua_isboolean_like(s, 3)
+                              ? lua_toboolean(s, 3)
+                              : false;
       if (arg_path && data) {
         const std::filesystem::path path = path::normalize(arg_path);
         if (std::filesystem::is_directory(path.parent_path()) &&
             !std::filesystem::is_directory(path)) {
-          lua_pushboolean(s, utils::io::write_file(path, data));
+          lua_pushboolean(s, utils::io::write_file(path, data, append));
           return luaReturnCount_e::ONE;
         }
       }
@@ -370,8 +420,12 @@ public:
                                   lua_state::unsafe_function<file_exists>>(),
         lua_state::luaL_LoggedReg<"FileIO", "FileSize",
                                   lua_state::unsafe_function<file_size>>(),
+        lua_state::luaL_LoggedReg<"FileIO", "HardLink",
+                                  lua_state::unsafe_function<hard_link>>(),
         lua_state::luaL_LoggedReg<"FileIO", "ListFiles",
                                   lua_state::unsafe_function<list_files>>(),
+        lua_state::luaL_LoggedReg<"FileIO", "Move",
+                                  lua_state::unsafe_function<move>>(),
         lua_state::luaL_LoggedReg<"FileIO", "ReadFile",
                                   lua_state::unsafe_function<read_file>>(),
         lua_state::luaL_LoggedReg<

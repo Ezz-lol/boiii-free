@@ -11,6 +11,9 @@ namespace game {
 struct qboolean {
   int32_t value;
 
+  static constexpr const char FALSE_STR[] = "false";
+  static constexpr const char TRUE_STR[] = "true";
+
   inline constexpr operator bool() noexcept { return value != 0; }
   template <IntegralLike<int32_t> T> inline constexpr operator T() noexcept {
     return static_cast<T>(value);
@@ -37,7 +40,7 @@ struct qboolean {
   }
 
   inline constexpr const char *serialize() const noexcept {
-    return value == 0 ? "false" : "true";
+    return value == 0 ? FALSE_STR : TRUE_STR;
   }
 };
 

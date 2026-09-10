@@ -68,7 +68,7 @@ WEAK symbol<hks::lua_CFunction> luaopen_string{0x141D33D50, 0x1403DCBC0};
 WEAK symbol<hks::lua_CFunction> luaopen_table{0x141D334E0, 0x1403DC350};
 WEAK symbol<const char *(hks::lua_State *s, const char *fmt)> lua_pushfstring{
     0x141D53DC0};
-WEAK symbol<void(hks::lua_State *s, const char *str)> lua_pushstring{
+WEAK symbol<void(hks::lua_State *s, const char *str)> _lua_pushstring{
     0x140A186B0, 0x1401DEE30};
 WEAK symbol<void(hks::lua_State *s, int32_t index, int32_t n)> lua_rawgeti{
     0x141D4B510};
@@ -90,6 +90,16 @@ inline hks::hksInt32 lua_gettop(hks::lua_State *s) {
   return hksi_lua_gettop(s);
 }
 
+inline std::optional<hks::HksObjectType> lua_gettype(hks::lua_State *s,
+                                                     int32_t index) {
+  const hks::HksObject *top = hks::getObjectForIndex(s, index);
+  if (top) {
+    return top->type();
+  }
+
+  return std::nullopt;
+}
+
 inline hks::HksNumber lua_tonumber(hks::lua_State *s, int32_t index) {
   const hks::HksObject *object = hks::getObjectForIndex(s, index);
   if (object && object->t == hks::HksObjectType::TNUMBER) {
@@ -100,22 +110,54 @@ inline hks::HksNumber lua_tonumber(hks::lua_State *s, int32_t index) {
 }
 
 inline bool lua_toboolean(hks::lua_State *s, int32_t index) {
-  const hks::HksObject *object = hks::getObjectForIndex(s, index);
+  hks::HksObject *object = hks::getObjectForIndex(s, index);
   if (object) {
-    return object->truthy();
+    switch (object->t) {
+    case game::lua::hks::HksObjectType::TSTRING: {
+      if (object->v.str) {
+        const char *arg_raw = hks::hks_obj_tolstring(s, object, nullptr);
+        return (arg_raw && ((arg_raw[0] == '1' && arg_raw[1] == '\0') ||
+                            ((arg_raw[0] == 't' || arg_raw[0] == 'T') &&
+                             (arg_raw[1] == 'r' || arg_raw[1] == 'R') &&
+                             (arg_raw[2] == 'u' || arg_raw[2] == 'U') &&
+                             (arg_raw[3] == 'e' || arg_raw[3] == 'E') &&
+                             arg_raw[4] == '\0')));
+      }
+      return false;
+    }
+    default: {
+      return object->truthy();
+    }
+    }
   }
 
   return false;
 }
 
-inline int32_t lua_tointeger(hks::lua_State *s, int32_t index) {
-  return static_cast<int32_t>(lua_tonumber(s, index));
+template <IntegralLike<int32_t> T = int32_t>
+inline T lua_tointeger(hks::lua_State *s, int32_t index) {
+  return static_cast<T>(lua_tonumber(s, index));
 }
 
-inline const char *lua_tostring(hks::lua_State *s, int32_t index) {
+inline const char *lua_tostring(hks::lua_State *s, int32_t index,
+                                size_t *length = nullptr) {
   hks::HksObject *object = hks::getObjectForIndex(s, index);
   if (object) {
-    return hks::hks_obj_tolstring(s, object, nullptr);
+    switch (object->t) {
+    case hks::HksObjectType::TSTRING:
+    case hks::HksObjectType::TNUMBER:
+      return hks::hks_obj_tolstring(s, object, length);
+    case hks::HksObjectType::TBOOLEAN: {
+      if (length) {
+        *length = (object->v.boolean ? std::size(hks::hksBool::TRUE_STR)
+                                     : std::size(hks::hksBool::FALSE_STR)) -
+                  sizeof(char) /* NUL */;
+      }
+      return object->v.boolean.serialize();
+    }
+    default:
+      return nullptr;
+    }
   }
   return nullptr;
 }
@@ -128,8 +170,31 @@ inline hks::HashTable *lua_totable(hks::lua_State *s, int32_t index) {
   return nullptr;
 }
 
+inline void lua_pushstring(hks::lua_State *s, const char *str) {
+  return _lua_pushstring(s, str);
+}
+
+inline void lua_pushstring(hks::lua_State *s, const std::string_view &str) {
+  return lua_pushstring(s, str.data());
+}
+
+inline void lua_pushstring(hks::lua_State *s, const std::string &str) {
+  return lua_pushstring(s, str.data());
+}
+
+inline void lua_pushstring(hks::lua_State *s,
+                           const std::filesystem::path &path) {
+  const std::string path_str = path.generic_string();
+  return lua_pushstring(s, path_str.data());
+}
+
 inline void lua_push(hks::lua_State *s, const hks::HksObject &obj) {
   *s->m_apistack.top = obj;
+  s->m_apistack.top += 1;
+}
+
+inline void lua_push(hks::lua_State *s, const hks::HksObject *obj) {
+  *s->m_apistack.top = *obj;
   s->m_apistack.top += 1;
 }
 
@@ -200,6 +265,58 @@ inline bool lua_isboolean(hks::lua_State *s, int32_t index) {
   return object && object->t == hks::HksObjectType::TBOOLEAN;
 }
 
+inline bool lua_is(hks::lua_State *s, int32_t index, hks::HksObjectType type) {
+  hks::HksObject *object = hks::getObjectForIndex(s, index);
+  return object && object->t == type;
+}
+
+inline bool lua_is(hks::lua_State *s, int32_t index,
+                   const hks::HksObjectType *types, size_t count) {
+  hks::HksObject *object = hks::getObjectForIndex(s, index);
+  if (object) {
+    for (size_t i = 0; i < count; ++i) {
+      if (object->t == types[i]) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+template <const size_t N>
+inline bool lua_is(hks::lua_State *s, int32_t index,
+                   const hks::HksObjectType (&types)[N]) {
+  return lua_is(s, index, types, N);
+}
+
+template <const size_t N>
+inline bool lua_is(hks::lua_State *s, int32_t index,
+                   const std::array<hks::HksObjectType, N> &types) {
+  return lua_is(s, index, types.data(), types.size());
+}
+
+template <const size_t N>
+inline bool lua_is(hks::lua_State *s, int32_t index,
+                   const std::span<hks::HksObjectType, N> &types) {
+  return lua_is(s, index, types.data(), types.size());
+}
+
+inline bool lua_is(hks::lua_State *s, int32_t index,
+                   const std::span<hks::HksObjectType> &types) {
+  return lua_is(s, index, types.data(), types.size());
+}
+
+inline bool lua_is(hks::lua_State *s, int32_t index,
+                   const std::vector<hks::HksObjectType> &types) {
+  return lua_is(s, index, types.data(), types.size());
+}
+
+inline bool lua_isboolean_like(hks::lua_State *s, int32_t index) {
+  return lua_is(s, index,
+                {hks::HksObjectType::TBOOLEAN, hks::HksObjectType::TSTRING,
+                 hks::HksObjectType::TNUMBER});
+}
+
 /*
   Function confirmed to not exist in release build engine, but exists in debug
   profile builds. Function was thus re-created here accordingly.
@@ -256,9 +373,9 @@ inline void Lua_SetTableInt(const char *key, hks::hksInt32 value,
 }
 /*
   Function confirmed to not exist in release build of server engine, but does
-  exist in release build of client engine. It exists in debug profile builds of
-  both client and server engine. Function was thus re-created here accordingly,
-  to allow usage regardless of current engine being executed.
+  exist in release build of client engine. It exists in debug profile builds
+  of both client and server engine. Function was thus re-created here
+  accordingly, to allow usage regardless of current engine being executed.
 
   Adds value to table by integer key.
 */
@@ -324,8 +441,8 @@ inline void lua_pusharray(hks::lua_State *luaVM, const std::span<bool> &arr) {
 
 inline void lua_pusharray(hks::lua_State *luaVM, const std::vector<bool> &arr) {
   // boolean values are 1-byte, packed, so cannot be converted to either an
-  // `std::span` or a `bool*` from `arr.data(). As such, we need to iterate the
-  // values here, inline.
+  // `std::span` or a `bool*` from `arr.data(). As such, we need to iterate
+  // the values here, inline.
   lua_createtable(luaVM, arr.size(), 0);
   for (hks::hksInt32 i = 0; i < static_cast<hks::hksInt32>(arr.size()); ++i) {
     Lua_SetTableBool(i, arr[i], luaVM);
@@ -493,8 +610,8 @@ inline void lua_pusharray(hks::lua_State *luaVM,
 }
 
 // Primitive numeric types.
-// Note: this is also valid for arrays of integer values, as integer values are
-// pushed to the stack as casted floating-point values internally anyway.
+// Note: this is also valid for arrays of integer values, as integer values
+// are pushed to the stack as casted floating-point values internally anyway.
 template <IntegralLike<hks::HksNumber> Number>
 inline void lua_pusharray(hks::lua_State *luaVM, const Number *arr,
                           size_t size) {

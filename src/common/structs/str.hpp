@@ -49,9 +49,9 @@ inline constexpr char hex_digit(Index v) {
   return "0123456789ABCDEF"[static_cast<uint8_t>(v) & 0xF];
 }
 
+constexpr auto NUM_HEX_CHARS_PER_BYTE = 2;
 namespace {
 template <typename T> inline constexpr auto num_hex_characters() {
-  constexpr auto NUM_HEX_CHARS_PER_BYTE = 2;
   return sizeof(T) * NUM_HEX_CHARS_PER_BYTE;
 }
 } // namespace
@@ -75,6 +75,45 @@ append_hex(const str<BaseSize> &base, T val,
   }
   idx += hex_len;
   result[idx] = '\0';
+
+  return result;
+}
+
+template <typename T> using hexStr_t = str<num_hex_characters<T>() + 1>;
+template <typename T>
+using hexArray_t = std::array<char, num_hex_characters<T>() + 1>;
+
+template <typename T> constexpr hexArray_t<T> to_hex(const T &val) {
+  hexArray_t<T> result = {0};
+  constexpr size_t hex_len = num_hex_characters<T>();
+
+  if constexpr (std::is_integral_v<T>) {
+    // Cast to unsigned to ensure logical shifts instead of arithmetic shifts
+    // for negative values
+    using U = std::make_unsigned_t<T>;
+    U uval = static_cast<U>(val);
+
+    for (int32_t i = hex_len - 1; i >= 0; --i) {
+      result[i] = hex_digit(uval >> (4 * (hex_len - 1 - i)));
+    }
+  } else {
+    /*
+      Fallback to strict byte memory representation for non-integral types
+      (e.g. `float`).
+      Wraps the array in a struct to allow valid `std::bit_cast` usage.
+    */
+    struct Bytes {
+      uint8_t data[sizeof(T)];
+    };
+    Bytes bytes = std::bit_cast<Bytes>(val);
+
+    for (size_t i = 0; i < sizeof(T); ++i) {
+      result[i * NUM_HEX_CHARS_PER_BYTE] = hex_digit(bytes.data[i] >> 4);
+      result[i * NUM_HEX_CHARS_PER_BYTE + 1] = hex_digit(bytes.data[i] & 0xF);
+    }
+  }
+
+  result[hex_len] = '\0';
 
   return result;
 }

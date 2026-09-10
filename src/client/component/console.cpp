@@ -1,11 +1,13 @@
 #include <std_include.hpp>
 #include "console.hpp"
-#include <loader/component_loader.hpp>
+
 #include <resource.hpp>
 
 #include <game/game.hpp>
-#include "command.hpp"
-#include "component/lua_state.hpp"
+
+#include <loader/component_loader.hpp>
+#include <component/command.hpp>
+#include <component/lua/lua_state.hpp>
 
 #if __has_include("version.hpp")
 #include "version.hpp"

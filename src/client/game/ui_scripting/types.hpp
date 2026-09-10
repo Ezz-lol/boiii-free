@@ -3,7 +3,7 @@
 #include <utils/string.hpp>
 #include "script_value.hpp"
 
-#include "../../component/ui_scripting.hpp"
+#include <component/lua/ui_scripting.hpp>
 
 namespace ui_scripting {
 using namespace game::lua::hks;

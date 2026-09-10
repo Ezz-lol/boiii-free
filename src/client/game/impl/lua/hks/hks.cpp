@@ -180,8 +180,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
       *upval->loc = opReg;
 
       if (s->m_global->m_collector.m_phase == 1) {
-        GarbageCollector::writeBarrier(&s->m_global->m_collector, upval,
-                                       upval->loc);
+        s->m_global->m_collector.writeBarrier(upval, upval->loc);
         consts = closure->m_cache.consts;
         call_m_end = tailcall_m_end;
       }
@@ -193,7 +192,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
       HashTable *env = closure->m_env;
       HksRegister key = consts[opBx];
       opReg.t = HksObjectType::TTABLE;
-      HashTable::getByString(env, &opReg, &key);
+      env->getByString(&opReg, &key);
       opReg1 = opReg;
 
       if (opReg.type() != HksObjectType::TNIL) {
@@ -238,7 +237,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
       InternString *keyString = consts[opBx].v.str;
 
       if (env->m_meta == nullptr) {
-        HashTable::insertString(env, s, keyString, destReg);
+        env->insertString(s, keyString, destReg);
       } else {
         HksRegister tableObj;
         tableObj.t = HksObjectType::TTABLE;
@@ -309,7 +308,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
         settable_event_outofline_string(s, &opReg, keyStr, fieldStackObj, PC,
                                         0x20);
       } else {
-        HashTable::insertString(opReg1.v.table, s, keyStr, fieldStackObj);
+        opReg1.v.table->insertString(s, keyStr, fieldStackObj);
       }
       fp = s->m_apistack.base;
       consts = closure->m_cache.consts;
@@ -440,8 +439,8 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
 
         closure = destReg->v.closure;
         ++current_call_depth;
-        HksRegister *returnCount = CallStack::functionCall(
-            &s->m_callStack, s, expectedReturns, destReg, top, PC);
+        HksRegister *returnCount =
+            s->m_callStack.functionCall(s, expectedReturns, destReg, top, PC);
         PC = closure->m_cache.inst;
         fp = returnCount;
         m_base = returnCount;
@@ -458,7 +457,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
         }
 
         cclosure *cClosure = destReg->v.cClosure;
-        CallStack::push(&s->m_callStack, s, expectedReturns, destReg, top, PC);
+        s->m_callStack.push(s, expectedReturns, destReg, top, PC);
         lua_CFunction *m_function = cClosure->m_function;
 
         if (++s->m_numberOfCCalls > 128) {
@@ -475,7 +474,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
           return retCount;
         }
 
-        HksObject *popped = CallStack::pop(&s->m_callStack, s, retCount);
+        HksObject *popped = s->m_callStack.pop(s, retCount);
         consts = closure->m_cache.consts;
         fp = popped;
         m_base = popped;
@@ -525,7 +524,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
         }
 
         closure = destReg->v.closure;
-        CallStack::functionTailCall(&s->m_callStack, s, destReg, argEnd);
+        s->m_callStack.functionTailCall(s, destReg, argEnd);
 
         PC = closure->m_cache.inst;
         consts = closure->m_cache.consts;
@@ -547,7 +546,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
         }
 
         cclosure *cClosure = destReg->v.cClosure;
-        CallStack::push(&s->m_callStack, s, -1, destReg, top, PC);
+        s->m_callStack.push(s, -1, destReg, top, PC);
         lua_CFunction *m_function = cClosure->m_function;
 
         if (++s->m_numberOfCCalls > 128) {
@@ -564,7 +563,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
           return retCount;
         }
 
-        HksObject *popped = CallStack::pop(&s->m_callStack, s, retCount);
+        HksObject *popped = s->m_callStack.pop(s, retCount);
         consts = closure->m_cache.consts;
         fp = popped;
         m_base = popped;
@@ -601,7 +600,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
             getcomphandler(&handler, s, opLeft, opRight, Metamethod::M_EQ);
             if (handler.type() != HksObjectType::TNIL) {
               if (&s->m_apistack.top[3] > s->m_apistack.alloc_top) {
-                CallStack::growApiStack(&s->m_callStack, s, 3);
+                s->m_callStack.growApiStack(s, 3);
                 fp = s->m_apistack.base;
                 opLeft = rr_reg(opB_RK) ? &fp[opB_RK] : &consts[opB];
                 opRight = rr_reg(opC_RK) ? &fp[opC_RK] : &consts[opC];
@@ -679,7 +678,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
         }
 
         if (&s->m_apistack.top[3] > s->m_apistack.alloc_top) {
-          CallStack::growApiStack(&s->m_callStack, s, 3);
+          s->m_callStack.growApiStack(s, 3);
           fp = s->m_apistack.base;
           opLeft = rr_reg(opB_RK) ? &fp[opB_RK] : &consts[opB];
           opRight = rr_reg(opC_RK) ? &fp[opC_RK] : &consts[opC];
@@ -728,7 +727,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
       destReg[1] = *tableObj; // Store 'self' in R(A+1)
 
       if (tableObj->type() == HksObjectType::TTABLE) {
-        HashTable::getByString(tableObj->v.table, &opReg, keyObj);
+        tableObj->v.table->getByString(&opReg, keyObj);
         if (opReg.type() == HksObjectType::TNIL) {
           gettable_event_string_outofline_table(&opReg, s, tableObj, keyObj, PC,
                                                 0x20);
@@ -762,7 +761,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
         HksObjectType keyType = keyObj->type();
 
         if (keyType == HksObjectType::TSTRING) {
-          HashTable::getByString(tableObj->v.table, &m_value, keyObj);
+          tableObj->v.table->getByString(&m_value, keyObj);
         } else if (keyType == HksObjectType::TNUMBER) {
           HksNumber number = keyObj->v.number;
           if (std::floor(number) == number &&
@@ -770,15 +769,13 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
             m_value = tableObj->v.table
                           ->m_arrayPart[static_cast<hksUint32>(number) - 1];
           } else {
-            HashTable::Node *node =
-                HashTable::findKeyPosition(tableObj->v.table, keyObj);
+            HashTable::Node *node = tableObj->v.table->findKeyPosition(keyObj);
             if (node) {
               m_value = node->m_value;
             }
           }
         } else {
-          HashTable::Node *node =
-              HashTable::findKeyPosition(tableObj->v.table, keyObj);
+          HashTable::Node *node = tableObj->v.table->findKeyPosition(keyObj);
           if (node) {
             m_value = node->m_value;
           }
@@ -824,7 +821,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
       if (destReg->type() == HksObjectType::TTABLE) {
         HashTable *table = destReg->v.table;
         if (table->m_meta == nullptr) {
-          HashTable::tableInsert(table, s, keyObj, valObj);
+          table->tableInsert(s, keyObj, valObj);
         } else {
           settable_event_outofline(s, destReg, keyObj, valObj, PC, 0x20);
         }
@@ -1078,11 +1075,11 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
                                                    HKS_STR_LEN_BITS_MASK);
       } else if (targetType == HksObjectType::TTABLE) {
         destReg->t = HksObjectType::TNUMBER;
-        destReg->v.number = static_cast<HksNumber>(
-            HashTable::contiguousArraySize(target->v.table));
+        destReg->v.number =
+            static_cast<HksNumber>(target->v.table->contiguousArraySize());
       } else {
         if (&s->m_apistack.top[3] > s->m_apistack.alloc_top) {
-          CallStack::growApiStack(&s->m_callStack, s, 3);
+          s->m_callStack.growApiStack(s, 3);
           target = &s->m_apistack.base[opB];
           destReg = &s->m_apistack.base[opA];
         }
@@ -1117,7 +1114,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
       hksInt32 count = end - start + 1;
 
       if (&s->m_apistack.top[count] > s->m_apistack.alloc_top) {
-        CallStack::growApiStack(&s->m_callStack, s, count);
+        s->m_callStack.growApiStack(s, count);
         fp = s->m_apistack.base;
       }
 
@@ -1211,7 +1208,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
         } else if (destReg->v.cClosure->m_function == *vm_intern_next) {
           HksRegister keyObj = destReg[2];
           HashTable::Node *nextNode =
-              HashTable::getNext(destReg[1].v.table, &keyObj, &destReg[2]);
+              destReg[1].v.table->getNext(&keyObj, &destReg[2]);
 
           if (nextNode->m_key.type() == HksObjectType::TNIL) {
             destReg[2].t = HksObjectType::TNIL;
@@ -1228,8 +1225,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
           checkInstructionPointer(s, PC, closure->m_method);
           break;
         } else if (destReg->v.cClosure->m_function == *hks_next_placeholder) {
-          HashTable::hksNext(destReg[1].v.table, &destReg[2], &destReg[3],
-                             &destReg[4]);
+          destReg[1].v.table->hksNext(&destReg[2], &destReg[3], &destReg[4]);
           if (destReg[2].type() == HksObjectType::TNIL) {
             destReg[3].t = HksObjectType::TNIL;
           }
@@ -1246,7 +1242,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
 
       // Fallback generic TFORLOOP implementation
       if (&s->m_apistack.top[3] > s->m_apistack.alloc_top) {
-        CallStack::growApiStack(&s->m_callStack, s, 3);
+        s->m_callStack.growApiStack(s, 3);
         fp = s->m_apistack.base;
         destReg = &fp[opA];
       }
@@ -1302,11 +1298,10 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
         insertLen = (reinterpret_cast<char *>(s->m_apistack.top) -
                      reinterpret_cast<char *>(destReg) - sizeof(HksObject)) /
                     sizeof(HksObject);
-        HashTable::setArraySize(tbl, s, insertIdx + insertLen);
+        tbl->setArraySize(s, insertIdx + insertLen);
       }
 
-      HashTable::arrayInserts(tbl, s, insertIdx + 1, insertIdx + insertLen,
-                              destReg + 1);
+      tbl->arrayInserts(s, insertIdx + 1, insertIdx + insertLen, destReg + 1);
 
       HksObject *top = s->m_apistack.top;
       HksObject *endLimit =
@@ -1372,8 +1367,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
           }
 
           if (s->m_global->m_collector.m_phase == 1) {
-            GarbageCollector::writeBarrier(&s->m_global->m_collector,
-                                           newClosure, pending->loc);
+            s->m_global->m_collector.writeBarrier(newClosure, pending->loc);
           }
           newClosure->m_upvalues[i] = pending;
         }
@@ -1393,7 +1387,7 @@ __optimize __inline_def luaReturnCount_e executeSharedSecure(
            reinterpret_cast<char *>(top)) /
           sizeof(HksObject);
       if (extraSpace > 0 && &top[extraSpace] > s->m_apistack.alloc_top) {
-        CallStack::growApiStack(&s->m_callStack, s, extraSpace);
+        s->m_callStack.growApiStack(s, extraSpace);
         fp = s->m_apistack.base;
         m_base = fp;
         destReg = &fp[opA];

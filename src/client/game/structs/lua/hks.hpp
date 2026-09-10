@@ -326,14 +326,12 @@ struct UserData : ChunkHeader {
   char m_data[8];
 };
 
-#pragma pack(push, 1)
-struct InternString : GenericChunkHeader {
+PACKED(struct InternString : GenericChunkHeader {
   hksSize m_lengthbits;
   hksUint32 m_hash;
   char m_data[30];
   uint8_t _padding32[6];
-};
-#pragma pack(pop)
+});
 
 PACKED(struct Method : ChunkHeader {
   template <typename T> struct Array {
@@ -442,20 +440,29 @@ constexpr uint32_t HKS_OBJECT_TYPE_MASK =
     min_bits_mask(static_cast<int32_t>(HksObjectType::COUNT));
 static_assert(HKS_OBJECT_TYPE_MASK == 0xF, "HKS_OBJECT_TYPE_MASK != 0xF");
 
-#pragma pack(push, 1)
-struct HksObject {
+PACKED(struct HksObject {
   HksObjectType t;
   uint8_t _padding04[4];
   HksValue v;
 
-  inline constexpr bool truthy() const {
-    return this->t != HksObjectType::TNIL &&
-           (this->t != HksObjectType::TBOOLEAN || this->v.native != 0);
+  inline constexpr HksObjectType type() const {
+    return static_cast<HksObjectType>(static_cast<uint32_t>(t) &
+                                      HKS_OBJECT_TYPE_MASK);
   }
 
-  inline constexpr HksObjectType type() const {
-    return static_cast<HksObjectType>(static_cast<uint32_t>(this->t) &
-                                      HKS_OBJECT_TYPE_MASK);
+  inline constexpr bool truthy() const {
+    switch (type()) {
+    case HksObjectType::TNIL:
+    case HksObjectType::TNONE:
+      return false;
+    // 32-bit values
+    case HksObjectType::TNUMBER:
+    case HksObjectType::TBOOLEAN:
+      return v.boolean;
+    // 64-bit values
+    default:
+      return v.native != 0;
+    }
   }
 
   constexpr HksObject() noexcept = default;
@@ -465,9 +472,8 @@ struct HksObject {
   inline constexpr HksObject(const HksObjectType ty,
                              const HksValue value) noexcept
       : t(ty), _padding04{0, 0, 0, 0}, v(value) {}
-};
+});
 ASSERT_SIZE(HksObject, 0x10);
-#pragma pack(pop)
 
 typedef HksObject HksRegister;
 
@@ -521,8 +527,8 @@ union hksInstruction {
 };
 ASSERT_SIZE(hksInstruction, sizeof(hksUint32));
 ASSERT_CPP03_POD(hksInstruction);
-#pragma pack(push, 1)
-struct CallStack {
+
+PACKED(struct CallStack {
   struct ActivationRecord {
     HksObject *m_base;
     const hksInstruction *m_returnAddress;
@@ -539,55 +545,58 @@ struct CallStack {
   hksInt32 m_hook_level;
   uint8_t _padding2C[4];
 
-  static inline HksRegister *functionCall(hks::CallStack *callstack,
-                                          lua_State *s, hksInt32 nresults,
-                                          HksObject *arg_end,
-                                          HksObject *stackTop,
-                                          const hksInstruction *instruction) {
-    using funcType = decltype(functionCall);
-    funcType *functionCallImpl =
-        reinterpret_cast<funcType *>(game::select(0x141D362A0, 0x1403DF640));
-    return functionCallImpl(callstack, s, nresults, arg_end, stackTop,
-                            instruction);
+  struct syms {
+    static constexpr symbol<thiscall_t<HksRegister *(
+        hks::CallStack *, lua_State *s, hksInt32 nresults, HksObject *arg_end,
+        HksObject *stackTop, const hksInstruction *instruction)>>
+        functionCall{0x141D362A0, 0x1403DF640};
+
+    static constexpr symbol<thiscall_t<void(
+        hks::CallStack *, lua_State *s, int32_t m_numExpectedReturns,
+        HksObject *fp, HksObject *stackTop,
+        const hksInstruction *m_returnAddress)>>
+        push{0x141D36410, 0x1403DF7B0};
+
+    static constexpr symbol<thiscall_t<HksObject *(
+        CallStack *, lua_State *s, luaReturnCount_e returnCount)>>
+        pop{0x141D35FF0, 0x1403DF390};
+
+    static constexpr symbol<thiscall_t<void(
+        CallStack *, lua_State *s, HksObject *function, HksObject *arg_end)>>
+        functionTailCall{0x141D44D70, 0x1403ED990};
+
+    static constexpr symbol<
+        thiscall_t<void(CallStack *, lua_State *s, hksInt32 extra)>>
+        growApiStack{0x141D48E90, 0x1403F1A30};
+  };
+
+  inline HksRegister *functionCall(lua_State * s, hksInt32 nresults,
+                                   HksObject * arg_end, HksObject * stackTop,
+                                   const hksInstruction *instruction) {
+    return syms::functionCall(this, s, nresults, arg_end, stackTop,
+                              instruction);
   }
 
-  static inline void push(hks::CallStack *callstack, lua_State *s,
-                          int32_t m_numExpectedReturns, HksObject *fp,
-                          HksObject *stackTop,
-                          const hksInstruction *m_returnAddress) {
-    using funcType = decltype(push);
-    funcType *pushImpl =
-        reinterpret_cast<funcType *>(game::select(0x141D36410, 0x1403DF7B0));
-    return pushImpl(callstack, s, m_numExpectedReturns, fp, stackTop,
-                    m_returnAddress);
+  inline void push(lua_State * s, int32_t m_numExpectedReturns, HksObject *fp,
+                   HksObject *stackTop, const hksInstruction *m_returnAddress) {
+    return syms::push(this, s, m_numExpectedReturns, fp, stackTop,
+                      m_returnAddress);
   }
 
-  static inline HksObject *pop(CallStack *callStack, lua_State *s,
-                               luaReturnCount_e returnCount) {
-    using funcType = decltype(pop);
-    funcType *popImpl =
-        reinterpret_cast<funcType *>(game::select(0x141D35FF0, 0x1403DF390));
-    return popImpl(callStack, s, returnCount);
+  inline HksObject *pop(lua_State * s, luaReturnCount_e returnCount) {
+    return syms::pop(this, s, returnCount);
   }
 
-  static inline void functionTailCall(CallStack *callstack, lua_State *s,
-                                      HksObject *function, HksObject *arg_end) {
-    using funcType = decltype(functionTailCall);
-    funcType *functionTailCallImpl =
-        reinterpret_cast<funcType *>(game::select(0x141D44D70, 0x1403ED990));
-    return functionTailCallImpl(callstack, s, function, arg_end);
+  inline void functionTailCall(lua_State * s, HksObject * function,
+                               HksObject * arg_end) {
+    return syms::functionTailCall(this, s, function, arg_end);
   }
 
-  static inline void growApiStack(CallStack *callstack, lua_State *s,
-                                  hksInt32 extra) {
-    using funcType = decltype(growApiStack);
-    funcType *growApiStackImpl =
-        reinterpret_cast<funcType *>(game::select(0x141D48E90, 0x1403F1A30));
-    return growApiStackImpl(callstack, s, extra);
+  inline void growApiStack(lua_State * s, hksInt32 extra) {
+    return syms::growApiStack(this, s, extra);
   }
-};
+});
 ASSERT_SIZE(CallStack, 0x30);
-#pragma pack(pop)
 
 struct ApiStack {
   HksObject *top;
@@ -667,8 +676,7 @@ struct MetaTable {
   uint8_t gap0;
 };
 
-#pragma pack(push, 1)
-struct HashTable : public ChunkHeader {
+PACKED(struct HashTable : public ChunkHeader {
   struct Node {
     HksObject m_key;
     HksObject m_value;
@@ -684,85 +692,90 @@ struct HashTable : public ChunkHeader {
   uint8_t _padding34[4];
   Node *m_freeNode;
 
+  struct syms {
+    static constexpr symbol<thiscall_t<HksRegister *(
+        HashTable *, HksRegister *retstr, const HksRegister *key)>>
+        getByString{0x141D45550, 0x1403EE160};
+    static constexpr symbol<thiscall_t<void(
+        HashTable *, lua_State *s, InternString *key, const HksObject *value)>>
+        insertString{0x141D51850, 0x1403FA3D0};
+    static constexpr symbol<
+        thiscall_t<Node *(HashTable *, const HksObject *key)>>
+        findKeyPosition{0x141D43F00, 0x1403ECB20};
+    static constexpr symbol<
+        thiscall_t<void(HashTable *, lua_State *s, const HksObject *key,
+                        const HksObject *value)>>
+        tableInsert{0x141D6D310, 0x140415420};
+    static constexpr symbol<thiscall_t<hksUint32(const HashTable *)>>
+        contiguousArraySize{0x141D3E850, 0x1403E7930};
+    static constexpr symbol<fastcall_t<HashTable *(
+        lua_State *s, hksUint32 arraySize, hksUint32 hashSize)>>
+        Create{0x141D3B5F0, 0x1403E46D0};
+    static constexpr symbol<
+        thiscall_t<Node *(HashTable *, HksObject *key, HksRegister *nextArray)>>
+        getNext{0x141D45F40, 0x1403EEB40};
+    static constexpr symbol<thiscall_t<void(HashTable *, HksObject *it,
+                                            HksObject *key, HksObject *val)>>
+        hksNext{0x141D49C10, 0x1403F27B0};
+    static constexpr symbol<
+        thiscall_t<void(HashTable *, lua_State *s, hksUint32 arraySize)>>
+        setArraySize{0x141D6A430, 0x140412550};
+    static constexpr symbol<
+        thiscall_t<void(hks::HashTable *, lua_State *s, hksUint32 from,
+                        hksUint32 to, HksObject *src)>>
+        arrayInserts{0x141D3CC00, 0x1403E5CE0};
+  };
+
   inline constexpr HashTable() noexcept = default;
-  static HksRegister *getByString(HashTable *self, HksRegister *retstr,
+
+  inline HksRegister *getByString(HksRegister * retstr,
                                   const HksRegister *key) {
-    using funcType = decltype(getByString);
-    funcType *getByStringImpl =
-        reinterpret_cast<funcType *>(game::select(0x141D45550, 0x1403EE160));
-
-    return getByStringImpl(self, retstr, key);
+    return syms::getByString(this, retstr, key);
   }
 
-  static void insertString(HashTable *self, lua_State *s, InternString *key,
+  inline void insertString(lua_State * s, InternString * key,
                            const HksObject *value) {
-    using funcType = decltype(insertString);
-    funcType *insertStringImpl =
-        reinterpret_cast<funcType *>(game::select(0x141D51850, 0x1403FA3D0));
-    return insertStringImpl(self, s, key, value);
-  }
-  static HashTable::Node *findKeyPosition(HashTable *self,
-                                          const HksObject *key) {
-    using funcType = decltype(findKeyPosition);
-    funcType *findKeyPositionImpl =
-        reinterpret_cast<funcType *>(game::select(0x141D43F00, 0x1403ECB20));
-    return findKeyPositionImpl(self, key);
+    return syms::insertString(this, s, key, value);
   }
 
-  static void tableInsert(HashTable *self, lua_State *s, const HksObject *key,
+  inline HashTable::Node *findKeyPosition(const HksObject *key) {
+
+    return syms::findKeyPosition(this, key);
+  }
+
+  inline void tableInsert(lua_State * s, const HksObject *key,
                           const HksObject *value) {
-    using funcType = decltype(tableInsert);
-    funcType *tableInsertImpl =
-        reinterpret_cast<funcType *>(game::select(0x141D6D310, 0x140415420));
-    return tableInsertImpl(self, s, key, value);
+    return syms::tableInsert(this, s, key, value);
   }
 
-  static hksUint32 contiguousArraySize(const HashTable *self) {
-    using funcType = decltype(contiguousArraySize);
-    funcType *contiguousArraySizeImpl =
-        reinterpret_cast<funcType *>(game::select(0x141D3E850, 0x1403E7930));
-    return contiguousArraySizeImpl(self);
+  inline hksUint32 contiguousArraySize() const {
+
+    return syms::contiguousArraySize(this);
   }
 
-  static HashTable *Create(lua_State *s, hksUint32 arraySize,
-                           hksUint32 hashSize) {
-    using funcType = decltype(Create);
-    funcType *CreateImpl =
-        reinterpret_cast<funcType *>(game::select(0x141D3B5F0, 0x1403E46D0));
-    return CreateImpl(s, arraySize, hashSize);
+  inline static HashTable *Create(lua_State * s, hksUint32 arraySize,
+                                  hksUint32 hashSize) {
+    return syms::Create(s, arraySize, hashSize);
   }
 
-  static Node *getNext(HashTable *self, HksObject *key,
-                       HksRegister *nextArray) {
-    using funcType = decltype(getNext);
-    funcType *getNextImpl =
-        reinterpret_cast<funcType *>(game::select(0x141D45F40, 0x1403EEB40));
-    return getNextImpl(self, key, nextArray);
+  inline Node *getNext(HksObject * key, HksRegister * nextArray) {
+    return syms::getNext(this, key, nextArray);
   }
 
-  static void hksNext(HashTable *self, HksObject *it, HksObject *key,
-                      HksObject *val) {
-    using funcType = decltype(hksNext);
-    funcType *hksNextImpl =
-        reinterpret_cast<funcType *>(game::select(0x141D49C10, 0x1403F27B0));
-    return hksNextImpl(self, it, key, val);
+  inline void hksNext(HksObject * it, HksObject * key, HksObject * val) {
+    return syms::hksNext(this, it, key, val);
   }
 
-  static void setArraySize(HashTable *self, lua_State *s, hksUint32 arraySize) {
-    using funcType = decltype(setArraySize);
-    funcType *setArraySizeImpl =
-        reinterpret_cast<funcType *>(game::select(0x141D6A430, 0x140412550));
-    return setArraySizeImpl(self, s, arraySize);
+  inline void setArraySize(lua_State * s, hksUint32 arraySize) {
+    return syms::setArraySize(this, s, arraySize);
   }
 
-  static void arrayInserts(hks::HashTable *self, lua_State *s, hksUint32 from,
-                           hksUint32 to, HksObject *src) {
-    using funcType = decltype(arrayInserts);
-    funcType *arrayInsertsImpl =
-        reinterpret_cast<funcType *>(game::select(0x141D3CC00, 0x1403E5CE0));
-    return arrayInsertsImpl(self, s, from, to, src);
+  inline void arrayInserts(lua_State * s, hksUint32 from, hksUint32 to,
+                           HksObject * src) {
+
+    return syms::arrayInserts(this, s, from, to, src);
   }
-};
+});
 ASSERT_SIZE(HashTable, 0x40);
 static_assert(std::is_trivially_copyable_v<HashTable>,
               "HashTable must be trivially copyable!");
@@ -772,7 +785,6 @@ static_assert(std::is_trivially_destructible_v<HashTable>,
               "HashTable must be trivially destructible!");
 static_assert(std::is_trivially_copy_constructible_v<HashTable>,
               "HashTable must be trivially copy constructible!");
-#pragma pack(pop)
 
 struct cclosure : ChunkHeader {
   lua_CFunction *m_function;
@@ -858,19 +870,16 @@ enum class GCResumePhase : uint32_t {
   GC_TABLE_MARKING_HASH = 0x7,
 };
 
-#pragma pack(push, 1)
-struct ResumeData_State {
+PACKED(struct ResumeData_State {
   ResumeData_Header h;
   uint8_t _padding04[4];
   lua_State *m_state;
   GCResumePhase m_phase;
   uint8_t _padding14[4];
   UpValue *m_pending;
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
-struct ResumeData_Table {
+PACKED(struct ResumeData_Table {
   ResumeData_Header h;
   uint8_t _padding04[4];
   HashTable *m_table;
@@ -878,36 +887,29 @@ struct ResumeData_Table {
   hksUint32 m_hashIndex;
   hksInt32 m_weakness;
   uint8_t _padding1C[4];
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
-struct ResumeData_Closure {
+PACKED(struct ResumeData_Closure {
   ResumeData_Header h;
   uint8_t _padding04[4];
   HksClosure *m_closure;
   hksInt32 m_index;
   uint8_t _padding14[4];
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
-struct ResumeData_CClosure {
+PACKED(struct ResumeData_CClosure {
   ResumeData_Header h;
   uint8_t _padding04[4];
   cclosure *m_cclosure;
   hksInt32 m_upvalueIndex;
   uint8_t _padding14[4];
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
-struct ResumeData_Userdata {
+PACKED(struct ResumeData_Userdata {
   ResumeData_Header h;
   uint8_t _padding04[4];
   UserData *m_data;
-};
-#pragma pack(pop)
+});
 
 union ResumeData_Entry {
   ResumeData_State State;
@@ -917,17 +919,13 @@ union ResumeData_Entry {
   ResumeData_Userdata Userdata;
 };
 
-#pragma pack(push, 1)
-struct WeakStack_Entry {
+PACKED(struct WeakStack_Entry {
   hksInt32 m_weakness;
   uint8_t _padding04[4];
   HashTable *m_table;
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
-struct GarbageCollector {
-
+PACKED(struct GarbageCollector {
   struct ResumeStack {
     ResumeData_Entry *m_storage;
     hksInt32 m_numEntries;
@@ -997,17 +995,19 @@ struct GarbageCollector {
   UserData *m_lastBlackUD;
   UserData *m_activeUD;
 
-  static void writeBarrier(GarbageCollector *self,
-                           const hks::GenericChunkHeader *to,
+  struct syms {
+    static constexpr symbol<
+        thiscall_t<void(GarbageCollector *, const hks::GenericChunkHeader *to,
+                        const HksObject *from)>>
+        writeBarrier{0x141D71A10, 0x140419870};
+  };
+
+  inline void writeBarrier(const hks::GenericChunkHeader *to,
                            const HksObject *from) {
-    using funcType = decltype(writeBarrier);
-    funcType *writeBarrierImpl =
-        reinterpret_cast<funcType *>(game::select(0x141D71A10, 0x140419870));
-    return writeBarrierImpl(self, to, from);
+    return syms::writeBarrier(this, to, from);
   }
-};
+});
 ASSERT_SIZE(GarbageCollector, 0x168);
-#pragma pack(pop)
 
 struct MemoryManager {
   enum class ChunkColor : int32_t {
@@ -1111,8 +1111,7 @@ struct BreakpointList {
 };
 struct DebugInstance;
 
-#pragma pack(push, 1)
-struct Debugger {
+PACKED(struct Debugger {
   enum class RunMode : uint32_t {
     RUN_CONTINUE = 0x0,
     RUN_STEP_IN = 0x1,
@@ -1135,14 +1134,10 @@ struct Debugger {
   hksUint64 m_lastTime;
   hksBool m_ToggleProfile;
   uint8_t _padding564[4];
-};
-
-#pragma pack(pop)
+});
 
 struct DebugInstance;
-#pragma pack(push, 1)
-struct DebugInstance {
-
+PACKED(struct DebugInstance {
   struct RuntimeProfilerStats {
     hksInt32 hksTime;
     hksInt32 callbackTime;
@@ -1170,11 +1165,9 @@ struct DebugInstance {
   hksInt32 runtimeProfileSendBufferWritePosition;
   uint8_t _padding54[4];
   RuntimeProfilerStats runtimeProfileSendBuffer[30];
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
-struct HksGlobal {
+PACKED(struct HksGlobal {
   MemoryManager m_memory;
   GarbageCollector m_collector;
   StringTable m_stringTable;
@@ -1196,7 +1189,7 @@ struct HksGlobal {
   HksEmergencyGCFailFunc m_emergencyGCFailFunction;
   HksBytecodeEndianness m_bytecodeDumpEndianness;
   uint8_t _padding5B4[4];
-};
+});
 /*
   ## Important Note on Correct Size
 
@@ -1211,8 +1204,6 @@ struct HksGlobal {
   available.
 */
 ASSERT_SIZE(HksGlobal, 0x5B8);
-
-#pragma pack(pop)
 
 struct lua_State : ChunkHeader {
   enum class Status : uint32_t {
@@ -1259,16 +1250,13 @@ template <typename T> union ObjectTypePool {
   array<T, static_cast<size_t>(HksObjectType::COUNT)> pool;
 };
 
-#pragma pack(push, 1)
-struct luaStateMem {
+PACKED(struct luaStateMem {
   void *memoryLocation;
   int32_t size;
   qboolean allocated;
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
-struct HksStateSettings {
+PACKED(struct HksStateSettings {
   hksInt32 m_gcPause;
   hksInt32 m_gcStepMul;
   hksSize m_gcEmergencyMemorySize;
@@ -1291,9 +1279,8 @@ struct HksStateSettings {
   HksBytecodeSharingMode m_bytecodeSharingMode;
   HksBytecodeEndianness m_bytecodeDumpEndianness;
   hksUint32 m_gcWeakStackSize;
-};
+});
 ASSERT_SIZE(HksStateSettings, 0x98);
-#pragma pack(pop)
 
 union Libs {
   struct {

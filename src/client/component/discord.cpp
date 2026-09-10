@@ -6,7 +6,7 @@
 #include "scheduler.hpp"
 #include "discord.hpp"
 #include "party.hpp"
-#include "lua_state.hpp"
+#include <component/lua/lua_state.hpp>
 
 #include <discord_rpc.h>
 
@@ -392,14 +392,23 @@ luaReturnCount_e lua_returntrue(lua_State *s) {
   lua_pushboolean(s, htrue);
   return luaReturnCount_e::ONE;
 }
+
+luaReturnCount_e lua_return_empty_string(lua_State *s) {
+  lua_pushstring(s, "");
+  return luaReturnCount_e::ONE;
+}
 void register_lua_libs() {
   // All functions stubbed - lua discord RPC control by mods is disabled.
   static constexpr const luaL_Reg DiscordRPC_Library[] = {
-      lua_state::luaL_LoggedReg<"DiscordRPC", "Shutdown", lua_returntrue>(),
-      lua_state::luaL_LoggedReg<"DiscordRPC", "IsAvailable", lua_returntrue>(),
       lua_state::luaL_LoggedReg<"DiscordRPC", "ClearPresence",
                                 lua_returntrue>(),
       lua_state::luaL_LoggedReg<"DiscordRPC", "Enable", lua_returntrue>(),
+      lua_state::luaL_LoggedReg<"DiscordRPC", "GetJoinSecret",
+                                lua_returntrue>(),
+      lua_state::luaL_LoggedReg<"DiscordRPC", "IsAvailable", lua_returntrue>(),
+      lua_state::luaL_LoggedReg<"DiscordRPC", "OpenInvitePlayers",
+                                lua_returntrue>(),
+      lua_state::luaL_LoggedReg<"DiscordRPC", "Shutdown", lua_returntrue>(),
       {nullptr, nullptr},
   };
   lua_state::register_library("DiscordRPC", DiscordRPC_Library);

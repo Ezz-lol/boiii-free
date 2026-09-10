@@ -2,7 +2,7 @@
 
 #include <game/game.hpp>
 
-#include "component/lua_state.hpp"
+#include <component/lua/lua_state.hpp>
 #include <loader/component_loader.hpp>
 
 // Adds stubbed variations of miscellaneous lua library API functions seen in
@@ -13,6 +13,11 @@ using namespace game::lua;
 luaReturnCount_e lua_stub_func([[maybe_unused]] lua_State *s) {
 
   return luaReturnCount_e::NONE;
+}
+
+luaReturnCount_e lua_return_true(lua_State *s) {
+  lua_pushboolean(s, htrue);
+  return luaReturnCount_e::ONE;
 }
 
 class component final : public generic_component {
@@ -29,6 +34,12 @@ public:
         {nullptr, nullptr},
     };
     lua_state::register_library("UIErrorHash", UIErrorHashLibrary);
+
+    static constexpr const luaL_Reg VideoLibrary[] = {
+        lua_state::luaL_LoggedReg<"Video", "HookVideoPath", lua_return_true>(),
+        {nullptr, nullptr},
+    };
+    lua_state::register_library("Video", VideoLibrary);
   }
 };
 } // namespace lualibs

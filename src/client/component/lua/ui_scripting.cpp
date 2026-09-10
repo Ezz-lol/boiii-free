@@ -1,22 +1,27 @@
 #include <std_include.hpp>
 #include <loader/component_loader.hpp>
+
 #include <game/game.hpp>
 #include <game/utils.hpp>
 
+#include <game/impl/ugc/ugc.hpp>
+#include <game/impl/com/com.hpp>
+
 #include <game/ui_scripting/execution.hpp>
 
-#include "command.hpp"
-#include "script.hpp"
 #include "ui_scripting.hpp"
-#include "scheduler.hpp"
-#include "friends.hpp"
-#include "getinfo.hpp"
-#include "discord.hpp"
-#include "name.hpp"
+
+#include <component/command.hpp>
+#include <component/script.hpp>
+#include <component/scheduler.hpp>
+#include <component/friends.hpp>
+#include <component/getinfo.hpp>
+#include <component/discord.hpp>
+#include <component/name.hpp>
+#include <component/toast.hpp>
 
 #include <steam/steam.hpp>
 #include <steam/interfaces/matchmaking_servers.hpp>
-#include "toast.hpp"
 
 #include <utils/io.hpp>
 #include <utils/hook.hpp>
@@ -24,17 +29,15 @@
 #include <utils/string.hpp>
 #include <utils/finally.hpp>
 #include <utils/http.hpp>
+#include "utils/pe.hpp"
+
+#include <frozen/unordered_set.h>
+#include <frozen/string.h>
 
 #include <cmath>
 #include <filesystem>
 #include <unordered_map>
 #include <atomic>
-#include <frozen/unordered_set.h>
-#include "frozen/string.h"
-#include "utils/pe.hpp"
-
-#include <game/impl/ugc/ugc.hpp>
-#include <game/impl/com/com.hpp>
 
 using namespace game::db;
 using namespace game::db::xasset;
@@ -900,7 +903,6 @@ void setup_lua_globals() {
   if (malicious_mod_loaded()) {
     lua["Engine"]["IsBOIII"] = *NilValue;
     lua["Engine"]["IsEZZBOIII"] = *NilValue;
-
   } else {
     lua["Engine"]["IsBOIII"] = true;
     lua["Engine"]["IsEZZBOIII"] = true;

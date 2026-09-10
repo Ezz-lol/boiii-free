@@ -23,11 +23,13 @@ The `FileIO` library is added with the following functions.
 - `DirectoryExists(path)`
 - `FileExists(path)`
 - `FileSize(path)`
+- `HardLink(srcPath, destPath)`
 - `ListFiles(path)`
+- `Move(srcPath, destPath)`
 - `ReadFile(path)`
 - `T7PatchLoaded()` - always returns `true`
 - `Wine()`
-- `WriteFile(path, contents)`
+- `WriteFile(path, contents, append = false)`
 
 ### Console
 
@@ -45,9 +47,11 @@ The `Console` library is added with the following functions.
 The `Axios` library is added with the following functions.
 
 - `Get(uri)`
+- `GetEncrypted(uri)` - alias for `Get`
 - `GetRetrieve(uri)` - alias for `Get`
 - `GetUpdate(uri)` - alias for `Get`
 - `GetUpdateEncrypted(uri)` - alias for `Get`
+- `Ping(uri)` - stubbed
 - `Post(uri, body)`
 - `PostEncrypted(uri, body)` - alias for `Post`
 
@@ -55,24 +59,51 @@ The `Axios` library is added with the following functions.
 
 The `MainLUA` library is added with the following functions.
 
-Note: each of these returns either a generic or default value, and is not a true
-implementation. These functions were provided only to support mods which require
-them - they return a value that is minimally sufficient to achieve this goal.
-
-- `GetHardwareCPU()`
-- `GetHardwareID()`
-- `ModuleLoaded(dll)`
+- `GetHardwareCPU()` - always returns "generic"
+- `GetHardwareID()` - always returns "generic"
+- `GetTime()`
+- `GetXuid()`
+- `LuiReload()` - stubbed
+- `ModFolder()`
+- `ModPublisherID()`
+- `ModuleLoaded(dll)` - always returns `true`
+- `RemoveUIError()` - stubbed
+- `RestartHUD()` - stubbed
 - `Revision()`
-- `UnloadMod()`
+- `StartTimer()`
+- `StopTimer()`
+- `UnloadMod()` - stubbed
+- `Version()`
+
+### JSON
+
+The `JSON` library is added with the following functions.
+
+- `ReadJson(file, top_level_key, sub_tree_key, type, default_value)`
+
+  Note: the usage of `top_level_key` and `sub_tree_key` as arguments is a poorly
+  designed API, in my opinion. This function signature is provided for
+  compatibility with T7Recharged, and the next is provided as a more standard
+  API for JSON key specification.
+
+- `ReadJson(file, key, type, default_value)`
+
+  Nested tree keys can be specified with standard JSON path syntax, e.g.
+  `"/key1/key2/key3"`.
+
+- `WriteJson(file, top_level_key, sub_tree_key, type, value)`
+- `WriteJson(file, key, type, value)`
 
 ### DiscordRPC
 
 The `DiscordRPC` library is added with the following stubbed functions.
 
-- `Shutdown()`
-- `IsAvailable()`
 - `ClearPresence()`
 - `Enable(id)`
+- `GetJoinSecret()`
+- `IsAvailable()`
+- `OpenInvitePlayers()`
+- `Shutdown()`
 
 ### NET
 
@@ -96,3 +127,9 @@ The `HotReload` library is added with the following stubbed functions.
 The `UIErrorHash` library is added with the following stubbed functions.
 
 - `Remove()`
+
+### Video
+
+The `Video` library is added with the following stubbed functions.
+
+- `HookVideoPath()`
