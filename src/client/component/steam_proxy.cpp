@@ -25,7 +25,6 @@ utils::nt::library steam_client_module{};
 utils::nt::library steam_overlay_module{};
 
 steam::HSteamPipe steam_pipe = 0;
-steam::HSteamPipe original_pipe = 0;
 steam::HSteamUser global_user = 0;
 
 steam::interface client_engine{};
@@ -211,7 +210,6 @@ void load_client() {
 
   steam_pipe =
       steam_client_module.invoke<steam::HSteamPipe>("Steam_CreateSteamPipe");
-  original_pipe = steam_pipe; // save for callback pumping fallback
   global_user = steam_client_module.invoke<steam::HSteamUser>(
       "Steam_ConnectToGlobalUser", steam_pipe);
 
@@ -231,7 +229,6 @@ void do_cleanup() {
   steam_friends_real = nullptr;
 
   steam_pipe = 0;
-  original_pipe = 0;
   global_user = 0;
 
   steam_client = nullptr;

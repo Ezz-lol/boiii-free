@@ -20,19 +20,24 @@ void dvar_bool_modification_force(EngineDependentDvarMut dvar) {
   }
 }
 
+#ifndef NDEBUG
 template <const int32_t Value>
 inline void dvar_int_modification_force(EngineDependentDvarMut dvar) {
   if (dvar.get_int() != Value) {
     dvar.set(Value);
   }
 }
+#endif
 
+#ifndef NDEBUG
 template <const int32_t Value>
 inline void dvar_int_force(EngineDependentDvarMut dvar) {
   dvar.set(Value);
   Dvar_SetModifiedCallback(dvar, dvar_int_modification_force<Value>);
 }
+#endif
 
+#ifndef NDEBUG
 template <const ConstString Value>
 void dvar_boolstring_modification_force(EngineDependentDvarMut dvar) {
   if (dvar.get_string().value_or("0") != Value) {
@@ -45,6 +50,7 @@ inline void dvar_boolstring_force(EngineDependentDvarMut dvar) {
   dvar.set(Value);
   Dvar_SetModifiedCallback(dvar, dvar_boolstring_modification_force<Value>);
 }
+#endif
 
 template <const bool Value>
 inline void dvar_bool_force(EngineDependentDvarMut dvar) {

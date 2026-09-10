@@ -260,12 +260,6 @@ T *return_static_alloc([[maybe_unused]] size_t size) {
 
 template <auto &allocation,
           typename T = std::remove_reference_t<decltype(allocation)>>
-void clear(T *ptr) {
-  memset(ptr, 0, sizeof(T));
-}
-
-template <auto &allocation,
-          typename T = std::remove_reference_t<decltype(allocation)>>
 T *Hunk_UserAlloc_ReturnStaticAllocation(
     [[maybe_unused]] game::hunk::HunkUser *user, [[maybe_unused]] size_t size,
     [[maybe_unused]] int32_t alignment, [[maybe_unused]] const char *name) {

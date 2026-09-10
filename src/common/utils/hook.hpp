@@ -222,28 +222,28 @@ template <typename T> T extract(void *address) {
 
 void *follow_branch(void *address);
 
-template <typename T> static void set(void *place, T value = false) {
+template <typename T> inline void set(void *place, T value = false) {
   copy(place, &value, sizeof(value));
 }
 
-template <typename T> static void set(const size_t place, T value = false) {
+template <typename T> inline void set(const size_t place, T value = false) {
   return set<T>(reinterpret_cast<void *>(place), value);
 }
 
 template <typename T, typename... Args>
-static T invoke(size_t func, Args... args) {
+inline T invoke(size_t func, Args... args) {
   return reinterpret_cast<T (*)(Args...)>(func)(args...);
 }
 
 template <typename T, typename... Args>
-static T invoke(void *func, Args... args) {
+inline T invoke(void *func, Args... args) {
   return static_cast<T (*)(Args...)>(func)(args...);
 }
 void nop_branch(uint8_t *address);
 
 template <typename T>
   requires(!std::is_same_v<T, uint8_t>)
-void nop_branch(T *address) {
+inline void nop_branch(T *address) {
   return nop_branch(reinterpret_cast<uint8_t *>(
       const_cast<std::remove_const_t<std::remove_volatile_t<T>> *>(address)));
 }

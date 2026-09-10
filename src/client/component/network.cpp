@@ -23,12 +23,6 @@ utils::hook::detour handle_packet_internal_hook{};
 
 static std::unordered_map<std::string, callback> callbacks{};
 
-// Convenience template overload: Allows passing values directly without manual
-// sizeof/pointers
-template <typename T> std::string to_hex(const T &value) {
-  return to_hex(&value, sizeof(T));
-}
-
 int64_t handle_command(const game::net::netadr_t *address, const char *command,
                        const game::net::msg::msg_t *message,
                        game::LocalClientNum_t localClientNum) {
