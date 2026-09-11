@@ -27,7 +27,13 @@ TIDY=0
 EXEC_ARBITRARY=0
 EXEC_ARGS=()
 MARCH="x86-64"
-NUM_THREADS="$(nproc)"
+if command -v nproc &>/dev/null; then
+	NUM_THREADS="$(nproc)"
+elif command -v sysctl &>/dev/null; then
+	NUM_THREADS="$(sysctl -n hw.ncpu)"
+else
+	NUM_THREADS=4
+fi
 BOIII_EXE="boiii.exe"
 TLS_DLL="tlsdll.dll"
 
@@ -126,7 +132,7 @@ get_clang() {
 get_llvm_bin() {
 	"$(get_clang)" -### 2>&1 |
 		grep 'InstalledDir:' |
-		sed 's/.*InstalledDir:\s*//' |
+		sed 's/.*InstalledDir: *//' |
 		normalize_path
 }
 
@@ -297,40 +303,45 @@ cross_env() {
 	TEMP_PATH="$(get_llvm_bin):${PATH}"
 	# ensure LLVM windres with "windres" basename exists on path, somewhere.
 	temp_windres_link_dir="$(mktemp -d)"
-	resolved_windres="$(env PATH="$TEMP_PATH" which windres 2>/dev/null | normalize_path)"
+	resolved_windres="$(env PATH="$TEMP_PATH" which windres 2>/dev/null)"
+	if [ -n "$resolved_windres" ]; then
+		resolved_windres="$(normalize_path "$resolved_windres")"
+	fi
 
-	if ! windres_is_llvm "$resolved_windres"; then
+	if [ -z "$resolved_windres" ] || ! windres_is_llvm "$resolved_windres"; then
 		ln -s "$(get_llvm_windres)" "${temp_windres_link_dir}/windres"
 		TEMP_PATH="${temp_windres_link_dir}:${TEMP_PATH}"
 	fi
 
 	exit_code=0
-	if ! env --chdir="${REPO_DIR}" \
+	if ! (
+		cd "${REPO_DIR}" || exit 1
 		env PATH="${TEMP_PATH}" \
-		CC="$TEMP_CC" \
-		CXX="$TEMP_CXX" \
-		CPP="$TEMP_CPP" \
-		AS="$TEMP_AS" \
-		AR="$TEMP_AR" \
-		WINDRES="$TEMP_WINDRES" \
-		STRIP="$TEMP_STRIP" \
-		LD="$TEMP_LD" \
-		OBJCOPY="$(get_llvm_objcopy)" \
-		OBJDUMP="$(get_llvm_objdump)" \
-		NM="$(get_llvm_nm)" \
-		READELF="$(get_llvm_readelf)" \
-		DLLTOOL="$(get_llvm_dlltool)" \
-		ADDR2LINE="$(get_llvm_addr2line)" \
-		COV="$(get_llvm_coverage)" \
-		SIZE="$(get_llvm_size)" \
-		CFLAGS="$TEMP_CFLAGS" \
-		CXXFLAGS="$TEMP_CXXFLAGS" \
-		LDFLAGS="$TEMP_LDFLAGS" \
-		RESFLAGS="$TEMP_RESFLAGS" \
-		RCFLAGS="$TEMP_RCFLAGS" \
-		CMAKE_BUILD_PARALLEL_LEVEL="$NUM_THREADS" \
-		MAKEOPTS="-j${NUM_THREADS}" \
-		"${args[@]}"; then
+			CC="$TEMP_CC" \
+			CXX="$TEMP_CXX" \
+			CPP="$TEMP_CPP" \
+			AS="$TEMP_AS" \
+			AR="$TEMP_AR" \
+			WINDRES="$TEMP_WINDRES" \
+			STRIP="$TEMP_STRIP" \
+			LD="$TEMP_LD" \
+			OBJCOPY="$(get_llvm_objcopy)" \
+			OBJDUMP="$(get_llvm_objdump)" \
+			NM="$(get_llvm_nm)" \
+			READELF="$(get_llvm_readelf)" \
+			DLLTOOL="$(get_llvm_dlltool)" \
+			ADDR2LINE="$(get_llvm_addr2line)" \
+			COV="$(get_llvm_coverage)" \
+			SIZE="$(get_llvm_size)" \
+			CFLAGS="$TEMP_CFLAGS" \
+			CXXFLAGS="$TEMP_CXXFLAGS" \
+			LDFLAGS="$TEMP_LDFLAGS" \
+			RESFLAGS="$TEMP_RESFLAGS" \
+			RCFLAGS="$TEMP_RCFLAGS" \
+			CMAKE_BUILD_PARALLEL_LEVEL="$NUM_THREADS" \
+			MAKEOPTS="-j${NUM_THREADS}" \
+			"${args[@]}"
+	); then
 		exit_code=1
 	fi
 
@@ -362,7 +373,7 @@ clangd_flag_indent() {
 		in="$(cat -)"
 	fi
 
-	sed "s/^\s*/${FLAG_INDENTATION}/g" <<<"$in"
+	sed "s/^[[:space:]]*/${FLAG_INDENTATION}/g" <<<"$in"
 }
 
 SRC_INCLUDE_PATHS=(
@@ -475,22 +486,24 @@ link_capitalized_headers() {
 
 	for header_lower in "${!needs_capitalized[@]}"; do
 		header="${needs_capitalized["$header_lower"]}"
+		if [ -e "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}/${header}" ]; then
+			continue
+		fi
 		find_capitalized="$(find "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}" -name "${header}")"
 		if [ -z "$find_capitalized" ]; then
-			find_case_insensitive="$(find "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}" -iname "$header_lower")"
-			if [ -n "$find_case_insensitive" ]; then
-				find_dir="$(dirname "$find_case_insensitive")"
+			while IFS= read -r match; do
+				[ -z "$match" ] && continue
+				find_dir="$(dirname "$match")"
 				link_out="${find_dir}/${header}"
-				echo "Linking ${find_case_insensitive} -> ${link_out}"
-				if ! ln -s "$find_case_insensitive" "${link_out}"; then
-					echo "Error: Failed to link ${find_case_insensitive} to ${link_out}" >&2
+				if [ -e "$link_out" ]; then
+					continue
+				fi
+				echo "Linking ${match} -> ${link_out}"
+				if ! ln -sf "$match" "${link_out}"; then
+					echo "Error: Failed to link ${match} to ${link_out}" >&2
 					return 1
 				fi
-
-			else
-				echo "Error: Could not find required header '$header' (case-insensitive) in MSVC toolchain include path: '${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}')." >&2
-				return 1
-			fi
+			done < <(find "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}" -iname "$header_lower")
 		fi
 	done
 
@@ -618,6 +631,10 @@ fi
 REPO_DIR="$(repo_dir)"
 BUILD_DIR="${REPO_DIR}/build"
 
+if [ -z "$WINDOWS_MSVC_SYSROOT" ] && [ -d "/opt/x86_64-unknown-windows-msvc" ]; then
+	WINDOWS_MSVC_SYSROOT="/opt/x86_64-unknown-windows-msvc"
+fi
+
 if [ -z "$WINDOWS_MSVC_SYSROOT" ]; then
 	echo "Error: WINDOWS_MSVC_SYSROOT environment variable is not set." >&2
 	echo "This variable should point to the root of the MSVC toolchain sysroot, which contains the \
@@ -675,7 +692,7 @@ if [ "$RELEASE" -eq 1 ]; then
 	ldflags+=("-Wl,/release")
 fi
 
-resflags=("-I${msvc_toolchain_sysroot}/include")
+resflags=("--target=pe-x86-64" "-I${msvc_toolchain_sysroot}/include")
 
 disabled_warnings=(
 	"unknown-warning-option"

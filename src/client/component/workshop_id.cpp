@@ -148,10 +148,15 @@ void get_map_id_from_json() {
   } else {
     const std::string &usermaps_path =
         std::filesystem::current_path().string() + "/usermaps";
+    std::error_code ec;
+    if (!std::filesystem::is_directory(usermaps_path, ec)) {
+      return;
+    }
+
     std::string_view mapname = game::get_mapname().value_or("");
 
     for (const auto &entry :
-         std::filesystem::directory_iterator(usermaps_path)) {
+         std::filesystem::directory_iterator(usermaps_path, ec)) {
       std::filesystem::path workshop_json = entry.path() / "workshop.json";
       std::filesystem::path workshop_json_zone =
           entry.path() / "zone/workshop.json";
