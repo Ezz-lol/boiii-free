@@ -20,6 +20,10 @@ repo_dir() {
 	realpath "$repo_dir"
 }
 
+REPO_DIR="$(repo_dir)"
+. "${REPO_DIR}/scripts/unix/env.sh"
+BUILD_DIR="${REPO_DIR}/build"
+
 CLEAN=0
 RELEASE=0
 OUTPUT_DIR=""
@@ -27,13 +31,7 @@ TIDY=0
 EXEC_ARBITRARY=0
 EXEC_ARGS=()
 MARCH="x86-64"
-if command -v nproc &>/dev/null; then
-	NUM_THREADS="$(nproc)"
-elif command -v sysctl &>/dev/null; then
-	NUM_THREADS="$(sysctl -n hw.ncpu)"
-else
-	NUM_THREADS=4
-fi
+NUM_THREADS="$(num_threads)"
 BOIII_EXE="boiii.exe"
 TLS_DLL="tlsdll.dll"
 
@@ -132,7 +130,7 @@ get_clang() {
 get_llvm_bin() {
 	"$(get_clang)" -### 2>&1 |
 		grep 'InstalledDir:' |
-		sed 's/.*InstalledDir: *//' |
+		sed 's/^[ \t]*InstalledDir:[ \t]//' |
 		normalize_path
 }
 
@@ -294,12 +292,13 @@ cross_env() {
 		shift
 	done
 
-	# Put LLVM bin path before all others.
+	# Place LLVM bin path before all others.
 	# premake5 uses `windres` verbatim, with first resolved on path, to
 	# compile the resources.
 	# On most unix-like systems, this will not be LLVM windres, but GNU windres, which
 	# does not support COFF relocations, and thus fails to compile the resources with errors.
-	# By placing the LLVM bin directory path first, we ensure that premake5 finds the correct windres, and thus can compile the resources successfully.
+	# By placing the LLVM bin directory path first, we ensure that premake5 finds the correct windres,
+	# and thus can compile the resources successfully.
 	TEMP_PATH="$(get_llvm_bin):${PATH}"
 	# ensure LLVM windres with "windres" basename exists on path, somewhere.
 	temp_windres_link_dir="$(mktemp -d)"
@@ -314,34 +313,33 @@ cross_env() {
 	fi
 
 	exit_code=0
-	if ! (
-		cd "${REPO_DIR}" || exit 1
-		env PATH="${TEMP_PATH}" \
-			CC="$TEMP_CC" \
-			CXX="$TEMP_CXX" \
-			CPP="$TEMP_CPP" \
-			AS="$TEMP_AS" \
-			AR="$TEMP_AR" \
-			WINDRES="$TEMP_WINDRES" \
-			STRIP="$TEMP_STRIP" \
-			LD="$TEMP_LD" \
-			OBJCOPY="$(get_llvm_objcopy)" \
-			OBJDUMP="$(get_llvm_objdump)" \
-			NM="$(get_llvm_nm)" \
-			READELF="$(get_llvm_readelf)" \
-			DLLTOOL="$(get_llvm_dlltool)" \
-			ADDR2LINE="$(get_llvm_addr2line)" \
-			COV="$(get_llvm_coverage)" \
-			SIZE="$(get_llvm_size)" \
-			CFLAGS="$TEMP_CFLAGS" \
-			CXXFLAGS="$TEMP_CXXFLAGS" \
-			LDFLAGS="$TEMP_LDFLAGS" \
-			RESFLAGS="$TEMP_RESFLAGS" \
-			RCFLAGS="$TEMP_RCFLAGS" \
-			CMAKE_BUILD_PARALLEL_LEVEL="$NUM_THREADS" \
-			MAKEOPTS="-j${NUM_THREADS}" \
-			"${args[@]}"
-	); then
+	if ! env --chdir="${REPO_DIR}" \
+		env \
+		PATH="${TEMP_PATH}" \
+		CC="$TEMP_CC" \
+		CXX="$TEMP_CXX" \
+		CPP="$TEMP_CPP" \
+		AS="$TEMP_AS" \
+		AR="$TEMP_AR" \
+		WINDRES="$TEMP_WINDRES" \
+		STRIP="$TEMP_STRIP" \
+		LD="$TEMP_LD" \
+		OBJCOPY="$(get_llvm_objcopy)" \
+		OBJDUMP="$(get_llvm_objdump)" \
+		NM="$(get_llvm_nm)" \
+		READELF="$(get_llvm_readelf)" \
+		DLLTOOL="$(get_llvm_dlltool)" \
+		ADDR2LINE="$(get_llvm_addr2line)" \
+		COV="$(get_llvm_coverage)" \
+		SIZE="$(get_llvm_size)" \
+		CFLAGS="$TEMP_CFLAGS" \
+		CXXFLAGS="$TEMP_CXXFLAGS" \
+		LDFLAGS="$TEMP_LDFLAGS" \
+		RESFLAGS="$TEMP_RESFLAGS" \
+		RCFLAGS="$TEMP_RCFLAGS" \
+		CMAKE_BUILD_PARALLEL_LEVEL="$NUM_THREADS" \
+		MAKEOPTS="-j${NUM_THREADS}" \
+		"${args[@]}"; then
 		exit_code=1
 	fi
 
@@ -373,7 +371,7 @@ clangd_flag_indent() {
 		in="$(cat -)"
 	fi
 
-	sed "s/^[[:space:]]*/${FLAG_INDENTATION}/g" <<<"$in"
+	sed "s/^[ \t]*/${FLAG_INDENTATION}/g" <<<"$in"
 }
 
 SRC_INCLUDE_PATHS=(
@@ -627,13 +625,9 @@ elif [ "${#EXEC_ARGS[@]}" -gt 0 ]; then
 	exit 1
 fi
 
-. "$(repo_dir)/scripts/unix/env.sh"
-REPO_DIR="$(repo_dir)"
-BUILD_DIR="${REPO_DIR}/build"
-
-if [ -z "$WINDOWS_MSVC_SYSROOT" ] && [ -d "/opt/x86_64-unknown-windows-msvc" ]; then
-	WINDOWS_MSVC_SYSROOT="/opt/x86_64-unknown-windows-msvc"
-fi
+TARGET_TRIPLE="x86_64-unknown-windows-msvc"
+DEFAULT_TOOLCHAIN_PATH="/opt/${TARGET_TRIPLE}"
+[ -z "$WINDOWS_MSVC_SYSROOT" ] && [ -d "DEFAULT_TOOLCHAIN_PATH" ] && WINDOWS_MSVC_SYSROOT="${DEFAULT_TOOLCHAIN_PATH}"
 
 if [ -z "$WINDOWS_MSVC_SYSROOT" ]; then
 	echo "Error: WINDOWS_MSVC_SYSROOT environment variable is not set." >&2
