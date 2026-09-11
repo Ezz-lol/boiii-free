@@ -466,6 +466,7 @@ premake() {
 
 	while [ "$#" -gt 0 ]; do
 		args+=("$1")
+		shift
 	done
 
 	args+=("gmake")
