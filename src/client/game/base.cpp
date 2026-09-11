@@ -35,7 +35,8 @@ bool is_server() {
 bool is_client() {
   static const bool is_client = []() -> bool {
     if (utils::flags::has_flag("newsteamclient")) {
-      return get_host_library().get_optional_header()->CheckSum == 0x6517980;
+      return get_host_library().get_optional_header()->CheckSum == 0x6517980 ||
+             get_host_library().get_optional_header()->CheckSum == 0x6531394;
     }
 
     return get_host_library().get_optional_header()->CheckSum == 0x888C368;
