@@ -119,7 +119,7 @@ void remove_crash_file() {
 struct patch_install_cancelled {};
 
 constexpr uint32_t supported_client_checksum = 0x888C368;
-constexpr uint32_t supported_newsteamclient_checksum = 0x6517980;
+constexpr uint32_t supported_newsteamclient_checksum = 0x6531394;
 constexpr uint32_t legacy_client_checksum = 0x8880704;
 
 constexpr const char *supported_client_patch_url =
