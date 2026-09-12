@@ -58,13 +58,6 @@ uint64_t align_value64(uint64_t val, uint64_t alignment) {
   return (val + alignment - 1) & ~(alignment - 1);
 }
 
-template <typename T>
-void write_aligned(std::vector<uint8_t> &buf, T val, uint64_t alignment) {
-  const uint64_t aligned = align_value64(buf.size(), alignment);
-  buf.resize(aligned + sizeof(val));
-  memcpy(buf.data() + aligned, &val, sizeof(val));
-}
-
 // T7 PC opcode table
 inline OP_TYPE map_opcode(Opcode op) {
   if (OPCODE_BYTECODE_MAP.contains(op)) {
