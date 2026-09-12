@@ -1,6 +1,6 @@
 # Asset Override
 
-Assets provided by Treyarch, mod, or custom maps can be overriden.
+Assets provided by Treyarch, mods, or custom maps can be overriden.
 
 At this time, BOIII supports overriding `Rawfile` and `ScriptParseTree` (GSC or
 CSC script) assets.
