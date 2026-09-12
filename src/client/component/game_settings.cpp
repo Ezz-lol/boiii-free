@@ -12,17 +12,18 @@ namespace {
 std::unordered_map<std::string, std::string> game_settings_files;
 
 std::string
-get_game_settings_name(const std::vector<std::string> &sub_strings) {
+get_game_settings_name(const std::vector<std::string_view> &sub_strings) {
   if (sub_strings.size() > 2) {
-    return sub_strings[sub_strings.size() - 2] + '/' +
-           sub_strings[sub_strings.size() - 1];
+    return std::string(sub_strings[sub_strings.size() - 2]) + '/' +
+           std::string(sub_strings[sub_strings.size() - 1]);
   }
 
   return {};
 }
 
 std::string get_game_settings_path(const std::string &name) {
-  const auto itr = game_settings_files.find(name);
+  const std::unordered_map<std::string, std::string>::iterator itr =
+      game_settings_files.find(name);
   return (itr == game_settings_files.end()) ? std::string() : itr->second;
 }
 
@@ -31,11 +32,14 @@ void search_game_settings_folder(const std::string &game_settings_dir) {
     return;
   }
 
-  const auto files = utils::io::list_files(game_settings_dir, true);
+  const std::vector<std::filesystem::path> files =
+      utils::io::list_files(game_settings_dir, true);
 
-  for (const auto &path : files) {
+  for (const std::filesystem::path &path : files) {
     if (!std::filesystem::is_directory(path)) {
-      auto sub_strings = utils::string::split(path.generic_string(), '/');
+      const std::string path_str = path.generic_string();
+      const std::vector<std::string_view> sub_strings =
+          utils::string::split(std::string_view(path_str), '/');
       game_settings_files.insert_or_assign(get_game_settings_name(sub_strings),
                                            path.generic_string());
     }
@@ -47,15 +51,16 @@ bool has_game_settings_file_on_disk(const char *path) {
     return false;
   }
 
-  const auto sub_strings = utils::string::split(path, '/');
-  const auto game_settings_name = get_game_settings_name(sub_strings);
+  const std::vector<std::string_view> sub_strings =
+      utils::string::split(std::string_view(path), '/');
+  const std::string game_settings_name = get_game_settings_name(sub_strings);
 
   return !get_game_settings_path(game_settings_name).empty();
 }
 
 void cmd_exec_stub(utils::hook::assembler &a) {
-  const auto exec_from_fastfile = a.newLabel();
-  const auto exec_from_disk = a.newLabel();
+  const asmjit::Label exec_from_fastfile = a.newLabel();
+  const asmjit::Label exec_from_disk = a.newLabel();
 
   a.pushad64();
 
@@ -75,8 +80,9 @@ void cmd_exec_stub(utils::hook::assembler &a) {
 }
 
 int read_file_stub(const char *qpath, void **buffer) {
-  const auto sub_strings = utils::string::split(qpath, '/');
-  const auto game_settings_name = get_game_settings_name(sub_strings);
+  const std::vector<std::string_view> sub_strings =
+      utils::string::split(std::string_view(qpath), '/');
+  const std::string game_settings_name = get_game_settings_name(sub_strings);
 
   std::string gamesettings_data;
   utils::io::read_file(get_game_settings_path(game_settings_name),
@@ -85,8 +91,8 @@ int read_file_stub(const char *qpath, void **buffer) {
   if (!gamesettings_data.empty()) {
     ++(*game::fs::fs_loadStack);
 
-    auto len = static_cast<int>(gamesettings_data.length());
-    auto buf = game::fs::FS_AllocMem(len + 1);
+    int32_t len = static_cast<int32_t>(gamesettings_data.length());
+    char *buf = game::fs::FS_AllocMem(len + 1);
 
     *buffer = buf;
     gamesettings_data.copy(reinterpret_cast<char *>(*buffer), len);
