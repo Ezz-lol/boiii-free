@@ -4809,7 +4809,7 @@ inline void log_all_builtin_calls() {
   LOG_TABLE_FUNCTION_CALL(game::scr::builtin::table::cscr::ui_functions,
                           SetUIModelValue);
   LOG_TABLE_FUNCTION_CALL(game::scr::builtin::table::cscr::ui_functions,
-                          StopSound);
+                          SetExtraCamRenderReady);
 
   LOG_TABLE_FUNCTION_CALL(game::scr::builtin::table::cscr::util_functions,
                           ReportStubUsage);

@@ -744,7 +744,7 @@ constexpr std::array<const char *, UIFunctionTable::COUNT>
         "GetUIModelForController",
         "GetUIModelValue",
         "SetUIModelValue",
-        "StopSound",
+        "SetExtraCamRenderReady",
 };
 DEFINE_NAME_MAP(UIFunctionTable::names, UIFunctionTable::hashes);
 

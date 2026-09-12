@@ -8,6 +8,7 @@ namespace scr {
 namespace vm {
 namespace anim {
 
+// Verified
 PACKED(struct scrAnimPub_t {
   uint32_t animtrees;
   uint32_t animtree_node;

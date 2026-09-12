@@ -827,7 +827,7 @@ union UIFunctionTable {
     BuiltinFunctionDef GetUIModelForController;
     BuiltinFunctionDef GetUIModelValue;
     BuiltinFunctionDef SetUIModelValue;
-    BuiltinFunctionDef StopSound;
+    BuiltinFunctionDef SetExtraCamRenderReady;
   };
 
   static inline constexpr size_t COUNT = 20;
@@ -871,7 +871,7 @@ union UtilFunctionTable {
   DECLARE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(functions);
 };
-ASSERT_SIZE(BuiltinFunctionTable, sizeof(BuiltinFunctionTable::functions));
+ASSERT_SIZE(UtilFunctionTable, sizeof(UtilFunctionTable::functions));
 
 union UtilMethodTable {
   struct {
