@@ -12,8 +12,8 @@ GSC and CSC script overrides are handled uniquely, and as such are
 
 Asset overrides must be placed in either of the following trees.
 
-- %LOCALAPPDATA/boiii/data
-- <game installation directory>/boiii
+- `%LOCALAPPDATA%/boiii/data`
+- `<game installation directory>/boiii`
 
 The override's path relative to the tree must match the name of the asset in the
 engine.
@@ -44,10 +44,10 @@ will not be loaded otherwise.
 
 - To override the asset with name "lua/lobby/ffotd.lua", you would place the
   override - compiled lua bytecode - in
-  "<game installation>/boiii/lua/lobby/ffotd.lua"
-- To override the asset with name "default_bindings.cfg" in the mod with
-  publisher ID 2631943123, you would place the override in
-  "<game installation>/boiii/2631943123/default_bindings.cfg"
-- To override the asset with name "vision/zm_coast.vision" in the map with
+  `<game installation>/boiii/lua/lobby/ffotd.lua`.
+- To override the asset with name "default_bindings.cfg" in a mod with publisher
+  ID 2631943123, you would place the override in
+  `<game installation>/boiii/2631943123/default_bindings.cfg`
+- To override the asset with name "vision/zm_coast.vision" in a map with
   internal name "zm_coast", you would place the override in
-  "<game installation>/boiii/zm_coast/vision/zm_coast.vision".
+  `<game installation>/boiii/zm_coast/vision/zm_coast.vision`.
