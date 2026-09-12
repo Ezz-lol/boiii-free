@@ -20,7 +20,7 @@ void SV_ClientEnterWorld_stub(game::sv::client_s *client,
                               game::user::usercmd_t *cmd) {
   SV_ClientEnterWorld_hook.invoke(client, cmd);
   sv_cliententerworld_tasks.access([client, cmd](EnterWorldTasks &tasks) {
-    for (const auto &func : tasks) {
+    for (const EnterWorldTask &func : tasks) {
       func(client, cmd);
     }
   });
@@ -29,7 +29,7 @@ void SV_ClientEnterWorld_stub(game::sv::client_s *client,
 utils::hook::detour SV_Live_RemoveClient_hook;
 void SV_Live_RemoveClient_stub(game::sv::client_s *client, const char *reason) {
   sv_live_removeclient_tasks.access([client, reason](RemoveTasks &tasks) {
-    for (const auto &func : tasks) {
+    for (const RemoveTask &func : tasks) {
       func(client, reason);
     }
   });

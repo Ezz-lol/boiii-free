@@ -74,7 +74,17 @@ private:
 
 const char *va(const char *fmt, ...);
 
-std::vector<std::string> split(const std::string &s, char delim);
+std::vector<std::string> split(const std::string &s,
+                               const std::string_view &delim);
+inline std::vector<std::string> split(const std::string &s, char delim) {
+  return split(s, std::string_view(&delim, 1));
+}
+std::vector<std::string_view> split(const std::string_view &s,
+                                    const std::string_view &delim);
+inline std::vector<std::string_view> split(const std::string_view &s,
+                                           char delim) {
+  return split(s, std::string_view(&delim, 1));
+}
 
 std::string to_lower(std::string text);
 std::string to_upper(std::string text);

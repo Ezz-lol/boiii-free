@@ -16,7 +16,6 @@
 #include "scheduler.hpp"
 #include "sv.hpp"
 
-#include <array>
 #include <atomic>
 #include <charconv>
 
@@ -24,7 +23,7 @@ namespace chat {
 namespace {
 game::EngineDependentDvar g_deadChat;
 game::EngineDependentDvar sv_sayname;
-std::array<std::atomic_bool, game::CLIENT_INDEX_COUNT> muted_clients{};
+game::lobby::AtomicLobbyClientPool<bool> muted_clients{};
 
 std::optional<game::ClientNum_t> parse_client_num(const char *value) {
   const std::string_view text(value);
@@ -78,40 +77,32 @@ template <const bool Toggle> void toggle_mute(const command::params &params) {
 }
 
 void cmd_say_f(game::level::gentity_s *ent, const command::params_sv &params) {
-  if (params.size() < 2) {
-    return;
+  if (params.size() > 1 && !is_muted(ent)) {
+    int32_t mode = 0;
+    if (params[0] == "say_team"s) {
+      mode = 1;
+    }
+
+    const std::string p = params.join(1);
+    game::scr::Scr_AddString(game::scr::SCRIPTINSTANCE_SERVER,
+                             p.data() + 1); // Skip special char
+    game::scr::Scr_Notify_Canon(ent, game::CanonHash(params[0]), 1);
+
+    game::G_Say(ent, nullptr, mode, p.data());
   }
-
-  if (is_muted(ent)) {
-    return;
-  }
-
-  int32_t mode = 0;
-  if (params[0] == "say_team"s) {
-    mode = 1;
-  }
-
-  const auto p = params.join(1);
-  game::scr::Scr_AddString(game::scr::SCRIPTINSTANCE_SERVER,
-                           p.data() + 1); // Skip special char
-  game::scr::Scr_Notify_Canon(ent, game::CanonHash(params[0]), 1);
-
-  game::G_Say(ent, nullptr, mode, p.data());
 }
 
 void cmd_chat_f(game::level::gentity_s *ent, const command::params_sv &params) {
-  if (is_muted(ent)) {
-    return;
+  if (!is_muted(ent)) {
+    const std::string p = params.join(1);
+
+    // Not a mistake! + 2 is necessary for the GSC script to receive only the
+    // actual chat text
+    game::scr::Scr_AddString(game::scr::SCRIPTINSTANCE_SERVER, p.data() + 2);
+    game::scr::Scr_Notify_Canon(ent, game::CanonHash(params[0]), 1);
+
+    utils::hook::invoke<void>(0x140298E70_g, ent, p.data());
   }
-
-  auto p = params.join(1);
-
-  // Not a mistake! + 2 is necessary for the GSC script to receive only the
-  // actual chat text
-  game::scr::Scr_AddString(game::scr::SCRIPTINSTANCE_SERVER, p.data() + 2);
-  game::scr::Scr_Notify_Canon(ent, game::CanonHash(params[0]), 1);
-
-  utils::hook::invoke<void>(0x140298E70_g, ent, p.data());
 }
 
 uint64_t *
@@ -158,11 +149,7 @@ void cl_handle_chat(char *dest, size_t dest_size, const char *src) {
 }
 
 inline const char *sv_sayname_val() {
-  if (sv_sayname) {
-    return sv_sayname.get_cstring();
-  }
-
-  return nullptr;
+  return sv_sayname ? sv_sayname.get_cstring() : nullptr;
 }
 } // namespace
 
@@ -212,7 +199,7 @@ public:
             send_chat_message(game::INVALID_CLIENT_INDEX, text);
 
             const char *val = sv_sayname_val();
-            const char *say_prefix = val ? val : "Server";
+            const char *say_prefix = val ?: "Server";
             printf("%s: %s\n", say_prefix, text.data());
           });
 
@@ -244,7 +231,7 @@ public:
       console_command::add_console("unmuteclient", toggle_mute<false>);
 
       sv::on_removeclient([](game::sv::client_s *client, const char *) {
-        const auto client_num = sv::get_client_num(client);
+        const game::ClientNum_t client_num = sv::get_client_num(client);
         if (game::valid_client_num(client_num)) {
           muted_clients[client_num].store(false, std::memory_order_relaxed);
         }

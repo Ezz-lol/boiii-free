@@ -2,7 +2,6 @@
 #include <algorithm>
 #include <cassert>
 #include <cstdarg>
-#include <sstream>
 #include <windows.h>
 
 #include <str.hpp>
@@ -20,17 +19,38 @@ const char *va(const char *fmt, ...) {
   return result;
 }
 
-std::vector<std::string> split(const std::string &s, const char delim) {
-  std::stringstream ss(s);
-  std::string item;
-  std::vector<std::string> elems;
+std::vector<std::string_view> split(const std::string_view &s,
+                                    const std::string_view &delim) {
+  std::vector<std::string_view> result;
+  size_t start = 0;
+  size_t end = s.find(delim);
 
-  while (std::getline(ss, item, delim)) {
-    elems.push_back(item); // elems.push_back(std::move(item)); // if C++11
-                           // (based on comment from @mchiasson)
+  while (end != std::string_view::npos) {
+    result.push_back(s.substr(start, end - start));
+    start = end + 1;
+    end = s.find(delim, start);
   }
+  // Add the final segment (or the only segment if no delimiter is found)
+  result.push_back(s.substr(start));
 
-  return elems;
+  return result;
+}
+
+std::vector<std::string> split(const std::string &s,
+                               const std::string_view &delim) {
+  std::vector<std::string> result;
+  size_t start = 0;
+  size_t end = s.find(delim);
+
+  while (end != std::string_view::npos) {
+    result.push_back(s.substr(start, end - start));
+    start = end + 1;
+    end = s.find(delim, start);
+  }
+  // Add the final segment (or the only segment if no delimiter is found)
+  result.push_back(s.substr(start));
+
+  return result;
 }
 
 std::string to_lower(std::string text) {
@@ -68,8 +88,8 @@ bool ends_with(const std::string_view &text,
 }
 
 bool is_numeric(const std::string &text) {
-  auto it = text.begin();
-  while (it != text.end() && std::isdigit(static_cast<unsigned char>(*it))) {
+  std::string::const_iterator it = text.begin();
+  while (it != text.end() && std::isdigit(static_cast<uint8_t>(*it))) {
     ++it;
   }
 
@@ -79,7 +99,7 @@ bool is_numeric(const std::string &text) {
 std::string dump_hex(const std::string &data, const std::string &separator) {
   std::string result;
 
-  for (unsigned int i = 0; i < data.size(); ++i) {
+  for (uint32_t i = 0; i < data.size(); ++i) {
     if (i > 0) {
       result.append(separator);
     }
@@ -94,9 +114,9 @@ std::string get_clipboard_data() {
   if (OpenClipboard(nullptr)) {
     std::string data;
 
-    auto *const clipboard_data = GetClipboardData(1u);
+    HANDLE clipboard_data = GetClipboardData(1u);
     if (clipboard_data) {
-      auto *const cliptext = static_cast<char *>(GlobalLock(clipboard_data));
+      char *const cliptext = static_cast<char *>(GlobalLock(clipboard_data));
       if (cliptext) {
         data.append(cliptext);
         GlobalUnlock(clipboard_data);
@@ -111,50 +131,48 @@ std::string get_clipboard_data() {
 
 void strip(const char *in, char *out, size_t max) {
   assert(max);
-  if (!in || !out)
-    return;
+  if (in && out) {
+    max--;
+    size_t current = 0;
+    while (*in != '\0' && current < max) {
+      const size_t color_index = (*(in + 1) - 48) >= 0xC ? 7 : (*(in + 1) - 48);
 
-  max--;
-  size_t current = 0;
-  while (*in != '\0' && current < max) {
-    const auto color_index = (*(in + 1) - 48) >= 0xC ? 7 : (*(in + 1) - 48);
+      if (*in == '^' && (color_index != 7 || *(in + 1) == '7')) {
+        ++in;
+      } else {
+        *out = *in;
+        ++out;
+        ++current;
+      }
 
-    if (*in == '^' && (color_index != 7 || *(in + 1) == '7')) {
       ++in;
-    } else {
-      *out = *in;
-      ++out;
-      ++current;
     }
 
-    ++in;
+    *out = '\0';
   }
-
-  *out = '\0';
 }
 
 void strip_material(const char *in, char *out, size_t max) {
   assert(max);
-  if (!in || !out)
-    return;
-
-  size_t i = 0;
-  while (*in != '\0' && i < max - 1) {
-    if (*in != '$' && *in != '{' && *in != '}') {
-      *out++ = *in;
-      ++i;
+  if (in && out) {
+    size_t i = 0;
+    while (*in != '\0' && i < max - 1) {
+      if (*in != '$' && *in != '{' && *in != '}') {
+        *out++ = *in;
+        ++i;
+      }
+      ++in;
     }
-    ++in;
-  }
 
-  *out = '\0';
+    *out = '\0';
+  }
 }
 
 std::string convert(const std::wstring &wstr) {
   std::string result;
   result.reserve(wstr.size());
 
-  for (const auto &chr : wstr) {
+  for (const wchar_t chr : wstr) {
     result.push_back(static_cast<char>(chr));
   }
 
@@ -165,7 +183,7 @@ std::wstring convert(const std::string &str) {
   std::wstring result;
   result.reserve(str.size());
 
-  for (const auto &chr : str) {
+  for (const char chr : str) {
     result.push_back(static_cast<wchar_t>(chr));
   }
 
@@ -178,8 +196,8 @@ std::string replace(std::string str, const std::string &from,
     return str;
   }
 
-  size_t start_pos = 0;
-  while ((start_pos = str.find(from, start_pos)) != std::string::npos) {
+  for (size_t start_pos = 0; start_pos != std::string::npos;
+       start_pos = str.find(from, start_pos)) {
     str.replace(start_pos, from.length(), to);
     start_pos += to.length();
   }
