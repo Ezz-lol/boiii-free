@@ -28,17 +28,14 @@ std::array<std::atomic_bool, game::CLIENT_INDEX_COUNT> muted_clients{};
 
 std::optional<game::ClientNum_t> parse_client_num(const char *value) {
   const std::string_view text(value);
-  int client_num{};
+  std::underlying_type_t<game::ClientNum_t> client_num;
   const auto [ptr, error] =
       std::from_chars(text.data(), text.data() + text.size(), client_num);
-  const auto result = static_cast<game::ClientNum_t>(client_num);
 
-  if (error != std::errc{} || ptr != text.data() + text.size() ||
-      !game::valid_client_num(result)) {
-    return std::nullopt;
-  }
-
-  return result;
+  return game::valid_client_num(static_cast<game::ClientNum_t>(client_num)) &&
+                 error == std::errc() && ptr == text.data() + text.size()
+             ? std::optional(static_cast<game::ClientNum_t>(client_num))
+             : std::nullopt;
 }
 
 bool is_muted(const game::level::gentity_s *ent) {
@@ -46,33 +43,38 @@ bool is_muted(const game::level::gentity_s *ent) {
     return false;
   }
 
-  const auto client_num = static_cast<game::ClientNum_t>(ent->s.number);
+  const game::ClientNum_t client_num =
+      static_cast<game::ClientNum_t>(ent->s.number);
   return game::valid_client_num(client_num) &&
          muted_clients[client_num].load(std::memory_order_relaxed);
 }
 
-void set_muted(const command::params &params, const bool muted) {
-  const char *command_name = muted ? "muteclient" : "unmuteclient";
+template <const bool Toggle> void toggle_mute(const command::params &params) {
+  constexpr const char *command_name = Toggle ? "muteclient" : "unmuteclient";
+  constexpr const char *status_str = Toggle ? "muted" : "unmuted";
   if (params.size() != 2) {
     printf("Usage: %s <client number>\n", command_name);
     return;
   }
 
-  const auto client_num = parse_client_num(params[1]);
-  if (!client_num) {
+  const std::optional<game::ClientNum_t> client_num =
+      parse_client_num(params[1]);
+  if (!client_num.has_value() || !game::valid_client_num(client_num.value())) {
     printf("Invalid client number. Expected a value from 0 to %d.\n",
            game::CLIENT_INDEX_COUNT - 1);
     return;
   }
 
-  if (muted && !game::access_connected_client(*client_num, [](auto &) {})) {
-    printf("Client %d is not connected.\n", *client_num);
-    return;
+  if constexpr (Toggle) {
+    if (!game::access_connected_client(*client_num,
+                                       [](game::sv::client_s &) {})) {
+      printf("Client %d is not connected.\n", *client_num);
+      return;
+    }
   }
 
-  muted_clients[*client_num].store(muted, std::memory_order_relaxed);
-  printf("Client %d is now %s.\n", *client_num,
-         muted ? "muted" : "unmuted");
+  muted_clients[*client_num].store(Toggle, std::memory_order_relaxed);
+  printf("Client %d is now %s.\n", *client_num, status_str);
 }
 
 void cmd_say_f(game::level::gentity_s *ent, const command::params_sv &params) {
@@ -84,7 +86,7 @@ void cmd_say_f(game::level::gentity_s *ent, const command::params_sv &params) {
     return;
   }
 
-  int mode = 0;
+  int32_t mode = 0;
   if (params[0] == "say_team"s) {
     mode = 1;
   }
@@ -238,12 +240,8 @@ public:
       // Kill say fallback
       utils::hook::set<uint8_t>(0x1402FF987_g, 0xEB);
 
-      console_command::add_console(
-          "muteclient",
-          [](const command::params &params) { set_muted(params, true); });
-      console_command::add_console(
-          "unmuteclient",
-          [](const command::params &params) { set_muted(params, false); });
+      console_command::add_console("muteclient", toggle_mute<true>);
+      console_command::add_console("unmuteclient", toggle_mute<false>);
 
       sv::on_removeclient([](game::sv::client_s *client, const char *) {
         const auto client_num = sv::get_client_num(client);
