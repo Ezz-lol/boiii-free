@@ -12,15 +12,75 @@
 
 #include "command.hpp"
 #include "client_command.hpp"
+#include "console_command.hpp"
 #include "scheduler.hpp"
+#include "sv.hpp"
+
+#include <array>
+#include <atomic>
+#include <charconv>
 
 namespace chat {
 namespace {
 game::EngineDependentDvar g_deadChat;
 game::EngineDependentDvar sv_sayname;
+std::array<std::atomic_bool, game::CLIENT_INDEX_COUNT> muted_clients{};
+
+std::optional<game::ClientNum_t> parse_client_num(const char *value) {
+  const std::string_view text(value);
+  int client_num{};
+  const auto [ptr, error] =
+      std::from_chars(text.data(), text.data() + text.size(), client_num);
+  const auto result = static_cast<game::ClientNum_t>(client_num);
+
+  if (error != std::errc{} || ptr != text.data() + text.size() ||
+      !game::valid_client_num(result)) {
+    return std::nullopt;
+  }
+
+  return result;
+}
+
+bool is_muted(const game::level::gentity_s *ent) {
+  if (!ent) {
+    return false;
+  }
+
+  const auto client_num = static_cast<game::ClientNum_t>(ent->s.number);
+  return game::valid_client_num(client_num) &&
+         muted_clients[client_num].load(std::memory_order_relaxed);
+}
+
+void set_muted(const command::params &params, const bool muted) {
+  const char *command_name = muted ? "muteclient" : "unmuteclient";
+  if (params.size() != 2) {
+    printf("Usage: %s <client number>\n", command_name);
+    return;
+  }
+
+  const auto client_num = parse_client_num(params[1]);
+  if (!client_num) {
+    printf("Invalid client number. Expected a value from 0 to %d.\n",
+           game::CLIENT_INDEX_COUNT - 1);
+    return;
+  }
+
+  if (muted && !game::access_connected_client(*client_num, [](auto &) {})) {
+    printf("Client %d is not connected.\n", *client_num);
+    return;
+  }
+
+  muted_clients[*client_num].store(muted, std::memory_order_relaxed);
+  printf("Client %d is now %s.\n", *client_num,
+         muted ? "muted" : "unmuted");
+}
 
 void cmd_say_f(game::level::gentity_s *ent, const command::params_sv &params) {
   if (params.size() < 2) {
+    return;
+  }
+
+  if (is_muted(ent)) {
     return;
   }
 
@@ -38,6 +98,10 @@ void cmd_say_f(game::level::gentity_s *ent, const command::params_sv &params) {
 }
 
 void cmd_chat_f(game::level::gentity_s *ent, const command::params_sv &params) {
+  if (is_muted(ent)) {
+    return;
+  }
+
   auto p = params.join(1);
 
   // Not a mistake! + 2 is necessary for the GSC script to receive only the
@@ -173,6 +237,20 @@ public:
 
       // Kill say fallback
       utils::hook::set<uint8_t>(0x1402FF987_g, 0xEB);
+
+      console_command::add_console(
+          "muteclient",
+          [](const command::params &params) { set_muted(params, true); });
+      console_command::add_console(
+          "unmuteclient",
+          [](const command::params &params) { set_muted(params, false); });
+
+      sv::on_removeclient([](game::sv::client_s *client, const char *) {
+        const auto client_num = sv::get_client_num(client);
+        if (game::valid_client_num(client_num)) {
+          muted_clients[client_num].store(false, std::memory_order_relaxed);
+        }
+      });
 
       scheduler::once(
           [] {
