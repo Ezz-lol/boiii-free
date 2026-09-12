@@ -241,3 +241,30 @@ num_threads() {
 		getconf _NPROCESSORS_ONLN 2>/dev/null ||
 		echo 1
 }
+
+chdir() {
+	local path="$1"
+	shift
+
+	args=()
+	while [ "$#" -gt 0 ]; do
+		args+=("$1")
+		shift
+	done
+
+	local init_pwd="$(pwd)"
+
+	if ! cd "$path"; then
+		return 1
+	fi
+
+	local return_code=0
+
+	if ! "${args[@]}"; then
+		return_code=1
+	fi
+
+	cd "$init_pwd" || true
+
+	return "$return_code"
+}

@@ -313,7 +313,7 @@ cross_env() {
 	fi
 
 	exit_code=0
-	if ! env --chdir="${REPO_DIR}" \
+	if ! chdir "${REPO_DIR}" \
 		env \
 		PATH="${TEMP_PATH}" \
 		CC="$TEMP_CC" \
