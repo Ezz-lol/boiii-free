@@ -20,122 +20,123 @@
 
 function in_whitelist( itemName )
 {
-	if ( !isdefined( itemName ) )
-		return false;
-	
-	switch( itemName )
-	{
-		// Secondaries
-		case "WEAPON_KNIFE_LOADOUT":
-		case "WEAPON_PISTOL_STANDARD":
-		case "WEAPON_PISTOL_BURST":
-		case "WEAPON_PISTOL_FULLAUTO":
-		case "WEAPON_LAUNCHER_STANDARD":
-		case "WEAPON_LAUNCHER_LOCKONLY":
-
-        // Primaries
-		case "WEAPON_SMG_STANDARD":
-		case "WEAPON_SMG_BURST":
-		case "WEAPON_SMG_FASTFIRE":
-		case "WEAPON_SMG_LONGRANGE":
-		case "WEAPON_SMG_VERSATILE":
-		case "WEAPON_SMG_CAPACITY":
-		case "WEAPON_AR_STANDARD":
-		case "WEAPON_AR_ACCURATE":
-		case "WEAPON_AR_CQB":
-		case "WEAPON_AR_DAMAGE":
-		case "WEAPON_AR_FASTBURST":
-		case "WEAPON_AR_LONGBURST":
-		case "WEAPON_AR_MARKSMAN":
-		case "WEAPON_LMG_CQB":
-		case "WEAPON_LMG_HEAVY":
-		case "WEAPON_LMG_LIGHT":
-		case "WEAPON_LMG_SLOWFIRE":
-		case "WEAPON_SNIPER_FASTBOLT":
-		case "WEAPON_SNIPER_FASTSEMI":
-		case "WEAPON_SNIPER_POWERBOLT":
-		case "WEAPON_SNIPER_CHARGESHOT":
-		case "WEAPON_SHOTGUN_FULLAUTO":
-		case "WEAPON_SHOTGUN_PRECISION":
-		case "WEAPON_SHOTGUN_PUMP":
-		case "WEAPON_SHOTGUN_SEMIAUTO":
-		
-		// Lethals
-		case "WEAPON_FRAGGRENADE":
-		case "WEAPON_HATCHET":
-		case "WEAPON_STICKY_GRENADE":
-		case "WEAPON_SATCHEL_CHARGE":
-		case "WEAPON_BOUNCINGBETTY":
-		case "WEAPON_INCENDIARY_GRENADE":
-		
-		// Tacticals
-		case "WEAPON_WILLY_PETE":
-		case "WEAPON_STUN_GRENADE":
-		case "WEAPON_EMPGRENADE":
-		case "WEAPON_FLASHBANG":
-		case "WEAPON_PROXIMITY_GRENADE":
-		case "WEAPON_PDA_HACK":
-		case "WEAPON_TROPHY_SYSTEM":
-		
-		// Killstreaks
-		//case "KILLSTREAK_RCBOMB":
-		case "KILLSTREAK_RECON":
-		case "KILLSTREAK_COUNTER_UAV":
-		//case "KILLSTREAK_SUPPLY_DROP":
-		//case "KILLSTREAK_MICROWAVE_TURRET":
-		case "KILLSTREAK_REMOTE_MISSILE":
-		//case "KILLSTREAK_PLANEMORTAR":
-		//case "KILLSTREAK_AUTO_TURRET":
-		case "KILLSTREAK_AI_TANK_DROP":
-		//case "KILLSTREAK_HELICOPTER_COMLINK":
-		case "KILLSTREAK_SATELLITE":
-		//case "KILLSTREAK_EMP":
-		//case "KILLSTREAK_HELICOPTER_GUNNER":
-		case "KILLSTREAK_RAPS":
-		//case "KILLSTREAK_DRONE_STRIKE":
-		//case "KILLSTREAK_DART":
-		case "KILLSTREAK_SENTINEL":
-		
-		// TU Something Weapons
-		case "WEAPON_MELEE_KNUCKLES":
-		case "WEAPON_MELEE_BUTTERFLY":
-		case "WEAPON_MELEE_WRENCH":
-
-		// TU 6 Weapons
-		case "WEAPON_PISTOL_SHOTGUN":
-		case "WEAPON_AR_GARAND":
-		case "WEAPON_SPECIAL_CROSSBOW":
-		case "WEAPON_MELEE_CROWBAR":
-		case "WEAPON_MELEE_SWORD":
-		case "WEAPON_MELEE_BOXING":	
-		case "WEAPON_SMG_AK74U":
-		case "WEAPON_SMG_MP40":
-		case "WEAPON_SMG_RECHAMBER":
-		case "WEAPON_SMG_NAILGUN":
-		case "WEAPON_AR_AN94":
-		case "WEAPON_AR_FAMAS":
-		case "WEAPON_SMG_MSMC":
-		case "WEAPON_LMG_INFINITE":
-		case "WEAPON_AR_PULSE":
-		case "WEAPON_AR_M16":
-		case "WEAPON_SMG_PPSH":
-		case "WEAPON_LAUNCHER_EX41":
-		case "WEAPON_SHOTGUN_OLYMPIA":
-		case "WEAPON_SNIPER_QUICKSCOPE":
-		case "WEAPON_SNIPER_DOUBLE":
-		case "WEAPON_SMG_STEN":	
-		case "WEAPON_AR_GALIL":	
-		case "WEAPON_LMG_RPK":	
-		case "WEAPON_AR_M14":
-		case "WEAPON_SHOTGUN_ENERGY":
-		case "WEAPON_SPECIAL_CROSSBOW_DW":	
-		case "WEAPON_AR_PEACEKEEPER":	
-		case "WEAPON_MELEE_CHAINSAW":	
-		case "WEAPON_SPECIAL_KNIFE_BALLISTIC":	
-		case "WEAPON_MELEE_CRESCENT":	
-		case "WEAPON_SPECIAL_DISCGUN":	
-			return true;
-	}
+	if ( isstring( itemName ) ) {
+  	switch( itemName )
+  	{
+  		// Secondaries
+  		case "WEAPON_KNIFE_LOADOUT":
+  		case "WEAPON_PISTOL_STANDARD":
+  		case "WEAPON_PISTOL_BURST":
+  		case "WEAPON_PISTOL_FULLAUTO":
+  		case "WEAPON_LAUNCHER_STANDARD":
+  		case "WEAPON_LAUNCHER_LOCKONLY":
+  
+          // Primaries
+  		case "WEAPON_SMG_STANDARD":
+  		case "WEAPON_SMG_BURST":
+  		case "WEAPON_SMG_FASTFIRE":
+  		case "WEAPON_SMG_LONGRANGE":
+  		case "WEAPON_SMG_VERSATILE":
+  		case "WEAPON_SMG_CAPACITY":
+  		case "WEAPON_AR_STANDARD":
+  		case "WEAPON_AR_ACCURATE":
+  		case "WEAPON_AR_CQB":
+  		case "WEAPON_AR_DAMAGE":
+  		case "WEAPON_AR_FASTBURST":
+  		case "WEAPON_AR_LONGBURST":
+  		case "WEAPON_AR_MARKSMAN":
+  		case "WEAPON_LMG_CQB":
+  		case "WEAPON_LMG_HEAVY":
+  		case "WEAPON_LMG_LIGHT":
+  		case "WEAPON_LMG_SLOWFIRE":
+  		case "WEAPON_SNIPER_FASTBOLT":
+  		case "WEAPON_SNIPER_FASTSEMI":
+  		case "WEAPON_SNIPER_POWERBOLT":
+  		case "WEAPON_SNIPER_CHARGESHOT":
+  		case "WEAPON_SHOTGUN_FULLAUTO":
+  		case "WEAPON_SHOTGUN_PRECISION":
+  		case "WEAPON_SHOTGUN_PUMP":
+  		case "WEAPON_SHOTGUN_SEMIAUTO":
+  		
+  		// Lethals
+  		case "WEAPON_FRAGGRENADE":
+  		case "WEAPON_HATCHET":
+  		case "WEAPON_STICKY_GRENADE":
+  		case "WEAPON_SATCHEL_CHARGE":
+  		case "WEAPON_BOUNCINGBETTY":
+  		case "WEAPON_INCENDIARY_GRENADE":
+  		
+  		// Tacticals
+  		case "WEAPON_WILLY_PETE":
+  		case "WEAPON_STUN_GRENADE":
+  		case "WEAPON_EMPGRENADE":
+  		case "WEAPON_FLASHBANG":
+  		case "WEAPON_PROXIMITY_GRENADE":
+  		case "WEAPON_PDA_HACK":
+  		case "WEAPON_TROPHY_SYSTEM":
+  		
+  		// Killstreaks
+  		//case "KILLSTREAK_RCBOMB":
+  		case "KILLSTREAK_RECON":
+  		case "KILLSTREAK_COUNTER_UAV":
+  		//case "KILLSTREAK_SUPPLY_DROP":
+  		//case "KILLSTREAK_MICROWAVE_TURRET":
+  		case "KILLSTREAK_REMOTE_MISSILE":
+  		//case "KILLSTREAK_PLANEMORTAR":
+  		//case "KILLSTREAK_AUTO_TURRET":
+  		case "KILLSTREAK_AI_TANK_DROP":
+  		//case "KILLSTREAK_HELICOPTER_COMLINK":
+  		case "KILLSTREAK_SATELLITE":
+  		//case "KILLSTREAK_EMP":
+  		//case "KILLSTREAK_HELICOPTER_GUNNER":
+  		case "KILLSTREAK_RAPS":
+  		//case "KILLSTREAK_DRONE_STRIKE":
+  		//case "KILLSTREAK_DART":
+  		case "KILLSTREAK_SENTINEL":
+  		
+  		// TU Something Weapons
+  		case "WEAPON_MELEE_KNUCKLES":
+  		case "WEAPON_MELEE_BUTTERFLY":
+  		case "WEAPON_MELEE_WRENCH":
+  
+  		// TU 6 Weapons
+  		case "WEAPON_PISTOL_SHOTGUN":
+  		case "WEAPON_AR_GARAND":
+  		case "WEAPON_SPECIAL_CROSSBOW":
+  		case "WEAPON_MELEE_CROWBAR":
+  		case "WEAPON_MELEE_SWORD":
+  		case "WEAPON_MELEE_BOXING":	
+  		case "WEAPON_SMG_AK74U":
+  		case "WEAPON_SMG_MP40":
+  		case "WEAPON_SMG_RECHAMBER":
+  		case "WEAPON_SMG_NAILGUN":
+  		case "WEAPON_AR_AN94":
+  		case "WEAPON_AR_FAMAS":
+  		case "WEAPON_SMG_MSMC":
+  		case "WEAPON_LMG_INFINITE":
+  		case "WEAPON_AR_PULSE":
+  		case "WEAPON_AR_M16":
+  		case "WEAPON_SMG_PPSH":
+  		case "WEAPON_LAUNCHER_EX41":
+  		case "WEAPON_SHOTGUN_OLYMPIA":
+  		case "WEAPON_SNIPER_QUICKSCOPE":
+  		case "WEAPON_SNIPER_DOUBLE":
+  		case "WEAPON_SMG_STEN":	
+  		case "WEAPON_AR_GALIL":	
+  		case "WEAPON_LMG_RPK":	
+  		case "WEAPON_AR_M14":
+  		case "WEAPON_SHOTGUN_ENERGY":
+  		case "WEAPON_SPECIAL_CROSSBOW_DW":	
+  		case "WEAPON_AR_PEACEKEEPER":	
+  		case "WEAPON_MELEE_CHAINSAW":	
+  		case "WEAPON_SPECIAL_KNIFE_BALLISTIC":	
+  		case "WEAPON_MELEE_CRESCENT":	
+  		case "WEAPON_SPECIAL_DISCGUN":	
+  			return true;
+  		default:
+  		  break;
+  	}
+  }	
 	
 	return false;
 }
@@ -175,8 +176,9 @@ function build_classes()
 		}
 		
 		// Shuffle these selections around a bit so the classes don't all look the same when the allocation is low
-		otherItems = Array ( lethals, tacticals, specialties1, specialties2, specialties3 );
-		otherItems = array::randomize( otherItems );
+    otherItems = array( lethals, tacticals, specialties1, specialties2, specialties3 );
+    otherItems = array::randomize( otherItems );
+
 		
 		for ( i = 0; i < otherItems.size; i ++ )
 		{
@@ -210,14 +212,15 @@ function build_classes()
 	}
 }
 
-function pick_item( &pickedItems, items )
+function pick_item( &pickedItems, &items )
 {
 	if ( !isdefined( items ) || items.size <= 0 )
 	{
-		return;
+		return pickedItems;
 	}
 	
 	pickedItems[pickedItems.size] = array::random( items );
+	return pickedItems;
 }
 
 function pick_classes()
@@ -229,7 +232,7 @@ function pick_classes()
 	{
 		if ( isSubstr( className, "custom" ) )
 		{
-			if ( level.disableCAC )
+			if ( IS_TRUE(level.disableCAC) )
 			{
 				continue;
 			}
@@ -252,7 +255,7 @@ function pick_classes()
 		botClass.value = classValue;
 		botClass.primary = primary;
 		botClass.secondary = secondary;
-		
+
 		if ( botClass.secondary.isRocketLauncher )
 		{
 			self.launcherClassCount++;
@@ -355,7 +358,7 @@ function get_available_items( filterGroup, filterSlot )
 		
 		name = tableLookupColumnForRow( level.statsTableID, row, STATS_TABLE_COL_NAME );
 
-		if ( name == "" || !in_whitelist( name ) )
+		if ( !isstring(name) || name == "" || !in_whitelist( name ) )
 		{
 			continue;
 		}
@@ -376,7 +379,7 @@ function get_available_items( filterGroup, filterSlot )
 			
 		number = Int( tableLookupColumnForRow( level.statsTableID, row, STATS_TABLE_COL_NUMBERING ) );
 /*		
-		if ( SessionModeIsPrivate() && self IsItemLocked( number ) )
+		if ( !SessionModeIsPrivate() && self IsItemLocked( number ) )
 		{
 			continue;
 		}

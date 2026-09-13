@@ -238,7 +238,7 @@ function on_bot_killed()
 
 	wait RESPAWN_DELAY;
 
-	if (self choose_class() && level.playerForceRespawn)
+	if (self choose_class() && IS_TRUE(level.playerForceRespawn))
 	{
 		return;
 	}
@@ -542,7 +542,7 @@ function choose_class()
 		className = self.loadoutClasses[classIndex].name;
 	}
 
-	if (!isdefined(className) || className == currClass)
+	if (!isstring(className) || (isdefined(currClass) && isstring(currClass.name) && className == currClass.name))
 	{
 		return false;
 	}
