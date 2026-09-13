@@ -30,6 +30,8 @@ WEAK symbol<bool(int32_t *hitNum, const vec3_t *start, const vec3_t *end,
     CG_SightTracePoint{0x1412B4380};
 
 WEAK symbol<float> cg_hudSplitscreenScale{0x1457FA6E8, 0x142CF12BC};
+WEAK symbol<int32_t(LocalClientNum_t, scr::scrChecksum_t *scr_checksum)>
+    CG_TestServerScriptChecksum{0x14092EF40, 0x1400E67C0};
 
 extern LocalClientPool<level::cl::cg_t> cgArray;
 extern LocalClientPool<level::cl::cgs_t> cgsArray;

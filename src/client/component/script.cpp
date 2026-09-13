@@ -424,164 +424,164 @@ void load_script(const std::string &name, const std::string &data,
 void load_script_file(std::string &data,
                       const std::filesystem::path &script_file,
                       const std::string &name, const bool load) {
-  const std::string script_file_str = script_file.generic_string();
 
   if (data.size() >= sizeof(GSC_OBJ::T7_MAGIC) &&
       reinterpret_cast<GSC_OBJ *>(data.data())->hasMagic(GSC_OBJ::T7_MAGIC)) {
     print_loading_script(name);
     load_script(name, data, load);
-  } else if ((utils::string::ends_with(script_file_str, ".gsc") ||
-              utils::string::ends_with(script_file_str, ".csc")) &&
-             !data.empty()) {
-    const bool is_csc = utils::string::ends_with(script_file_str, ".csc");
-    const char *script_type = is_csc ? "CSC" : "GSC";
+  } else {
+    const std::string script_file_str = script_file.generic_string();
+    if ((utils::string::ends_with(script_file_str, ".gsc") ||
+         utils::string::ends_with(script_file_str, ".csc")) &&
+        !data.empty()) {
+      const bool is_csc = utils::string::ends_with(script_file_str, ".csc");
+      const char *script_type = is_csc ? "CSC" : "GSC";
 
-    // Skip CSC on dedicated server
-    if (is_client() || !is_csc) {
+      // Skip CSC on dedicated server
+      if (is_client() || !is_csc) {
 
-      // Strip devblocks before compilation
-      const std::string cleaned_source = strip_devblocks(data);
+        // Strip devblocks before compilation
+        const std::string cleaned_source = strip_devblocks(data);
 
-      const char *log = utils::string::va("Compiling %s script '%s'",
-                                          script_type, name.c_str());
-      print_script_log(log);
-      const scriptInstance_t inst =
-          is_csc ? SCRIPTINSTANCE_CLIENT : SCRIPTINSTANCE_SERVER;
-      gsc_compiler::compile_result result =
-          gsc_compiler::compile(inst, cleaned_source, name);
-      if (result.success) {
+        const char *log = utils::string::va("Compiling %s script '%s'",
+                                            script_type, name.c_str());
+        print_script_log(log);
+        const scriptInstance_t inst =
+            is_csc ? SCRIPTINSTANCE_CLIENT : SCRIPTINSTANCE_SERVER;
+        gsc_compiler::compile_result result =
+            gsc_compiler::compile(inst, cleaned_source, name);
+        if (result.success) {
 
-        // Store hash-to-name+line map from this compilation
-        for (gsc::hash_name_pair &hn : result.hash_names) {
-          // Will loop at most twice. Once if the value vector needs initialized
-          // (entry did not already exist), and once to append this entry to the
-          // vector
-          while (script_hash_names.try_emplace_l(
-              hn.hash, [&](decltype(script_hash_names)::value_type &v) {
-                v.second.push_back({hn.name, hn.line, hn.params});
-              })) {
+          // Store hash-to-name+line map from this compilation
+          for (gsc::hash_name_pair &hn : result.hash_names) {
+            // Will loop at most twice. Once if the value vector needs
+            // initialized (entry did not already exist), and once to append
+            // this entry to the vector
+            while (script_hash_names.try_emplace_l(
+                hn.hash, [&](decltype(script_hash_names)::value_type &v) {
+                  v.second.push_back({hn.name, hn.line, hn.params});
+                })) {
+            }
           }
-        }
 
-        // Store original source text for this file
-        while (script_sources.try_emplace_l(
-            name,
-            [&](concurrent_hash_map<std::string, std::string>::value_type &v) {
-              v.second = std::move(cleaned_source);
-            })) {
-        }
+          // Store original source text for this file
+          while (script_sources.try_emplace_l(
+              name,
+              [&](concurrent_hash_map<std::string, std::string>::value_type
+                      &v) { v.second = std::move(cleaned_source); })) {
+          }
 
 #ifndef NDEBUG
-        // Dump compiled bytecode to file for debugging
-        // ".gsc" -> ".gscc", ".csc" -> ".cscc"
-        const std::filesystem::path bytecode_out_path = script_file_str + "c";
+          // Dump compiled bytecode to file for debugging
+          // ".gsc" -> ".gscc", ".csc" -> ".cscc"
+          const std::filesystem::path bytecode_out_path = script_file_str + "c";
 
-        utils::io::write_file_bytes(bytecode_out_path, result.bytecode.data(),
-                                    result.bytecode.size(), false);
+          utils::io::write_file_bytes(bytecode_out_path, result.bytecode.data(),
+                                      result.bytecode.size(), false);
 
-        const std::filesystem::path gdb_out_path = script_file_str + ".gdb";
-        utils::io::write_file_bytes(gdb_out_path, result.gdb.data(),
-                                    result.gdb.size(), false);
+          const std::filesystem::path gdb_out_path = script_file_str + ".gdb";
+          utils::io::write_file_bytes(gdb_out_path, result.gdb.data(),
+                                      result.gdb.size(), false);
 
 #endif
 
-        print_loading_script(name);
-        std::string bytecode(result.bytecode.begin(), result.bytecode.end());
-        load_script(name, bytecode, load);
-        add_gdb(name, result.gdb);
-        objFileInfo_t *obj =
-            get_obj_by_name(scriptInstance_t::SCRIPTINSTANCE_SERVER, name);
-        if (obj) {
-          script_sources.modify_if(
-              name, [&](concurrent_hash_map<std::string,
-                                            std::string>::value_type &v) {
-                char *src = v.second.data();
-                obj->debugInfo.source = src;
-                obj->debugInfo.gdb = nullptr;
-                obj->debugInfo.sourceLen = v.second.size();
-                for (size_t i = 0; i < v.second.size(); ++i) {
-                  char *c = &src[i];
-                  if (*c == '\n' || *c == '\r') {
-                    *c = '\0';
+          print_loading_script(name);
+          std::string bytecode(result.bytecode.begin(), result.bytecode.end());
+          load_script(name, bytecode, load);
+          add_gdb(name, result.gdb);
+          objFileInfo_t *obj =
+              get_obj_by_name(scriptInstance_t::SCRIPTINSTANCE_SERVER, name);
+          if (obj) {
+            script_sources.modify_if(
+                name, [&](concurrent_hash_map<std::string,
+                                              std::string>::value_type &v) {
+                  char *src = v.second.data();
+                  obj->debugInfo.source = src;
+                  obj->debugInfo.gdb = nullptr;
+                  obj->debugInfo.sourceLen = v.second.size();
+                  for (size_t i = 0; i < v.second.size(); ++i) {
+                    char *c = &src[i];
+                    if (*c == '\n' || *c == '\r') {
+                      *c = '\0';
+                    }
                   }
-                }
-              });
-        }
-
-        // Register replacefunc entries as pending detours
-        if (!result.replacefuncs.empty()) {
-          std::string replace_base = name;
-          if (utils::string::ends_with(replace_base, ".gsc") ||
-              utils::string::ends_with(replace_base, ".csc"))
-            replace_base = replace_base.substr(0, replace_base.size() - 4);
-
-          for (gsc_compiler::replacefunc_entry &rf : result.replacefuncs) {
-            const std::string replace_script =
-                rf.replace_script.empty() ? replace_base : rf.replace_script;
-            pending_detours.access(
-                [&](std::vector<pending_detour> &pending_detours) {
-                  pending_detours.push_back(
-                      {rf.target_script, rf.target_func,
-                       gsc::gsc_hash(rf.target_func), rf.target_params,
-                       replace_script, rf.replace_func,
-                       gsc::gsc_hash(rf.replace_func), rf.replace_params});
                 });
           }
-        }
-      } else {
-        const std::function<std::string(const std::string &src,
-                                        int32_t line_num)>
-            get_source_line =
-                [](const std::string &src, int32_t line_num) -> std::string {
-          if (line_num <= 0)
-            return "";
-          int32_t current = 1;
-          size_t start = 0;
-          while (current < line_num && start < src.size()) {
-            if (src[start] == '\n')
-              current++;
-            start++;
-          }
-          if (current != line_num)
-            return "";
-          size_t end = src.find('\n', start);
-          if (end == std::string::npos)
-            end = src.size();
-          std::string line = src.substr(start, end - start);
-          if (!line.empty() && line.back() == '\r')
-            line.pop_back();
-          return line;
-        };
 
-        const char *err_header = utils::string::va(
-            "^1*********************%s COMPILE ERROR*********************",
-            script_type);
-        print_script_log(err_header);
-        for (const gsc_compiler::compile_error &err : result.errors) {
-          const char *file_log =
-              utils::string::va("^1  File:    ^5%s", err.file.data());
-          print_script_log(file_log);
-          if (err.line > 0) {
-            const char *line_column_log = utils::string::va(
-                "^1  Line:    ^2%d^7, ^1Column: ^2%d", err.line, err.column);
-            print_script_log(line_column_log);
-            std::string src_line = get_source_line(data, err.line);
-            if (!src_line.empty()) {
-              const char *src_log =
-                  utils::string::va("^1  Source:  ^7%s", src_line.data());
-              print_script_log(src_log);
+          // Register replacefunc entries as pending detours
+          if (!result.replacefuncs.empty()) {
+            std::string replace_base = name;
+            if (utils::string::ends_with(replace_base, ".gsc") ||
+                utils::string::ends_with(replace_base, ".csc"))
+              replace_base = replace_base.substr(0, replace_base.size() - 4);
+
+            for (gsc_compiler::replacefunc_entry &rf : result.replacefuncs) {
+              const std::string replace_script =
+                  rf.replace_script.empty() ? replace_base : rf.replace_script;
+              pending_detours.access(
+                  [&](std::vector<pending_detour> &pending_detours) {
+                    pending_detours.push_back(
+                        {rf.target_script, rf.target_func,
+                         gsc::gsc_hash(rf.target_func), rf.target_params,
+                         replace_script, rf.replace_func,
+                         gsc::gsc_hash(rf.replace_func), rf.replace_params});
+                  });
             }
           }
-          const char *error_log =
-              utils::string::va("^1  Error:   ^1%s", err.message.data());
-          print_script_log(error_log);
-          const char *footer_p1_log = utils::string::va(
-              "^1------------------------------------------------------------");
-          print_script_log(footer_p1_log);
+        } else {
+          const auto get_source_line = [](const std::string &src,
+                                          int32_t line_num) -> std::string {
+            if (line_num <= 0)
+              return "";
+            int32_t current = 1;
+            size_t start = 0;
+            while (current < line_num && start < src.size()) {
+              if (src[start] == '\n')
+                current++;
+              start++;
+            }
+            if (current != line_num)
+              return "";
+            size_t end = src.find('\n', start);
+            if (end == std::string::npos)
+              end = src.size();
+            std::string line = src.substr(start, end - start);
+            if (!line.empty() && line.back() == '\r')
+              line.pop_back();
+            return line;
+          };
+
+          const char *err_header = utils::string::va(
+              "^1*********************%s COMPILE ERROR*********************",
+              script_type);
+          print_script_log(err_header);
+          for (const gsc_compiler::compile_error &err : result.errors) {
+            const char *file_log =
+                utils::string::va("^1  File:    ^5%s", err.file.data());
+            print_script_log(file_log);
+            if (err.line > 0) {
+              const char *line_column_log = utils::string::va(
+                  "^1  Line:    ^2%d^7, ^1Column: ^2%d", err.line, err.column);
+              print_script_log(line_column_log);
+              std::string src_line = get_source_line(data, err.line);
+              if (!src_line.empty()) {
+                const char *src_log =
+                    utils::string::va("^1  Source:  ^7%s", src_line.data());
+                print_script_log(src_log);
+              }
+            }
+            const char *error_log =
+                utils::string::va("^1  Error:   ^1%s", err.message.data());
+            print_script_log(error_log);
+            const char *footer_p1_log =
+                utils::string::va("^1------------------------------------------"
+                                  "------------------");
+            print_script_log(footer_p1_log);
+          }
+          const char *footer_p2_log = utils::string::va(
+              "^1************************************************************");
+          print_script_log(footer_p2_log);
         }
-        const char *footer_p2_log = utils::string::va(
-            "^1************************************************************");
-        print_script_log(footer_p2_log);
       }
     }
   }
@@ -589,13 +589,12 @@ void load_script_file(std::string &data,
 
 constexpr const std::string_view gametype_prefixes[] = {"zm", "mp", "cp"};
 
-bool is_map_override_directory_name(const std::string &name) {
-  for (const std::string_view &prefix : gametype_prefixes) {
-    if (name.size() > prefix.size() &&
-        utils::string::starts_with(name, prefix) && name[prefix.size()] == '_')
-      return true;
-  }
-  return false;
+bool is_map_override_directory_name(const std::string_view &name) {
+  return std::ranges::any_of(
+      gametype_prefixes, [&name](const std::string_view &prefix) {
+        return name.size() > prefix.size() && name.starts_with(prefix) &&
+               name[prefix.size()] == '_';
+      });
 }
 
 void load_scripts_directory(
@@ -642,8 +641,9 @@ void load_scripts_directory(
           const std::vector<std::string_view> strip_parts =
               utils::string::split(std::string_view(strip_base.value()), '/');
           bool matches = name_parts.size() > strip_parts.size();
-          for (size_t part = 0; matches && part < strip_parts.size(); ++part)
+          for (size_t part = 0; matches && part < strip_parts.size(); ++part) {
             matches = name_parts[part + 1] == strip_parts[part];
+          }
           if (matches) {
             name_parts.erase(name_parts.begin() + 1,
                              name_parts.begin() + 1 + strip_parts.size());
@@ -673,26 +673,18 @@ std::optional<std::filesystem::path> get_game_type_specific_directory() {
   case eModes::CAMPAIGN:
     return "cp";
   default:
-    return {};
+    return std::nullopt;
   }
 }
 
 std::optional<std::filesystem::path> get_map_specific_directory() {
   const std::string_view mapname = get_mapname().value_or("");
-  if (mapname.empty()) {
-    return {};
-  }
-
-  return mapname;
+  return mapname.empty() ? std::nullopt : std::optional(mapname);
 }
 
 std::optional<std::filesystem::path> get_mod_specific_directory() {
   const std::string_view mod = game::ugc::active_mod->publisherId;
-  if (mod.empty()) {
-    return {};
-  }
-
-  return mod;
+  return mod.empty() ? std::nullopt : std::optional(mod);
 }
 
 bool is_shared_tree_dir(const std::filesystem::path &dir,
@@ -858,9 +850,8 @@ void load_rawfile_buf(const std::string &name, const std::string &data) {
           v.second = raw_file;
         })) {
     }
-    const char *log = utils::string::va("Loaded rawfile '%s' (size %llu bytes)",
-                                        name.data(), raw_file->len);
-    print_script_log(log);
+    print_script_log(utils::string::va("Loaded rawfile '%s' (size %llu bytes)",
+                                       name.data(), raw_file->len));
   }
 }
 
@@ -884,43 +875,44 @@ void load_rawfile_file(std::string &data,
 
 void load_rawfiles_directory(
     const std::string &script_dir, const bool recurse,
-    const std::optional<std::string> strip_base = std::nullopt) {
+    const std::optional<std::string_view> strip_base = std::nullopt) {
   if (utils::io::directory_exists(script_dir)) {
     std::vector<std::filesystem::path> scripts =
         utils::io::list_files(script_dir, recurse, false);
 
-    const auto load_dir_file_cb = [strip_base](
-                                      const std::filesystem::path &script) {
-      std::string data;
-      if (!std::filesystem::is_directory(script) &&
-          utils::io::read_file(script, &data)) {
+    const auto load_dir_file_cb =
+        [strip_base](const std::filesystem::path &script) {
+          std::string data;
+          if (!std::filesystem::is_directory(script) &&
+              utils::io::read_file(script, &data)) {
 
-        std::string name = script.generic_string();
-        const std::string appdata_path =
-            (get_appdata_path() / "data/").generic_string();
-        const std::string host_path =
-            (utils::nt::library{}.get_folder() / "boiii/").generic_string();
+            std::string name = script.generic_string();
+            const std::string appdata_path =
+                (get_appdata_path() / "data/").generic_string();
+            const std::string host_path =
+                (utils::nt::library{}.get_folder() / "boiii/").generic_string();
 
-        size_t i = name.find(appdata_path);
-        if (i != std::string::npos) {
-          name.erase(0, i + appdata_path.length());
-        }
+            size_t i = name.find(appdata_path);
+            if (i != std::string::npos) {
+              name.erase(0, i + appdata_path.length());
+            }
 
-        i = name.find(host_path);
-        if (i != std::string::npos) {
-          name.erase(0, i + host_path.length());
-        }
-        if (strip_base.has_value()) {
-          std::vector<std::string> name_parts = utils::string::split(name, '/');
-          if (name_parts[0] == strip_base.value()) {
-            name_parts.erase(name_parts.begin());
-            name = utils::string::join(name_parts, "/");
+            i = name.find(host_path);
+            if (i != std::string::npos) {
+              name.erase(0, i + host_path.length());
+            }
+            if (strip_base.has_value()) {
+              std::vector<std::string_view> name_parts =
+                  utils::string::split(std::string_view(name), '/');
+              if (name_parts[0] == strip_base.value()) {
+                name_parts.erase(name_parts.begin());
+                name = utils::string::join(name_parts, "/");
+              }
+            }
+
+            load_rawfile_file(data, script, name);
           }
-        }
-
-        load_rawfile_file(data, script, name);
-      }
-    };
+        };
 
     std::for_each(std::execution::par, scripts.begin(), scripts.end(),
                   load_dir_file_cb);
@@ -939,7 +931,7 @@ void load_rawfiles() {
   const auto load =
       [&data_directory, &boiii_directory](
           const std::filesystem::path &directory, const bool recurse,
-          const std::optional<std::string> strip_base = std::nullopt) {
+          const std::optional<std::string_view> strip_base = std::nullopt) {
         load_rawfiles_directory((data_directory / directory).string(), recurse,
                                 strip_base);
         load_rawfiles_directory((boiii_directory / directory).string(), recurse,
@@ -1076,12 +1068,12 @@ void rebuild_script_gdb() {
     std::filesystem::remove(scriptgdb_archive_path);
   }
 
-  const std::vector<std::pair<std::string, std::vector<uint8_t>>> gdb_pairs{
-      script_gdbs.begin(), script_gdbs.end()};
-  utils::compression::zip::write_file(scriptgdb_archive_path, gdb_pairs);
+  utils::compression::zip::write_file(
+      scriptgdb_archive_path,
+      std::vector(script_gdbs.begin(), script_gdbs.end()));
 }
 
-int server_script_checksum_stub() { return 1; }
+int32_t CG_TestServerScriptChecksum_AlwaysMatch() { return 1; }
 
 // Global hash→name lookup table loaded from data/lookup_tables/hash_names.txt
 static std::unordered_map<uint32_t, std::string> global_hash_table;
@@ -1099,14 +1091,14 @@ void load_global_hash_table() {
       while (std::getline(stream, line)) {
         if (line.empty())
           continue;
-        size_t space = line.find(' ');
-        if (space == std::string::npos)
-          continue;
-        ScrVarCanonicalName_t hash = static_cast<uint32_t>(
-            std::strtoul(line.substr(0, space).c_str(), nullptr, 16));
-        if (hash != 0)
-          global_hash_table[hash] = line.substr(space + 1);
-        count++;
+        const size_t space = line.find(' ');
+        if (space != std::string::npos) {
+          ScrVarCanonicalName_t hash = static_cast<uint32_t>(
+              std::strtoul(line.substr(0, space).c_str(), nullptr, 16));
+          if (hash != 0)
+            global_hash_table[hash] = line.substr(space + 1);
+          count++;
+        }
       }
       const char *log = utils::string::va("Loaded %zu hash names from '%s'",
                                           count, path.string().c_str());
@@ -1156,8 +1148,9 @@ std::string resolve_hash(ScrVarCanonicalName_t hash) {
       });
 
   // Fallback: global hash table from data file
-  if (global_hash_table.contains(hash))
+  if (global_hash_table.contains(hash)) {
     result = global_hash_table[hash];
+  }
 
   return result.value_or("");
 }
@@ -1341,6 +1334,8 @@ void Hunk_UserFree_NotScriptPoolAlloc(hunk::HunkUser *user, void *ptr) {
   return Hunk_UserFree_hook.invoke(user, ptr);
 }
 
+utils::hook::detour CG_TestServerScriptChecksum_hook;
+
 utils::hook::detour LoadScriptGDB2_hook;
 utils::hook::detour LoadScriptGDB_hook;
 utils::hook::detour Scr_FindObjFileInfo_hook;
@@ -1351,7 +1346,7 @@ utils::hook::detour ReportObjLinkError2_hook;
 struct component final : generic_component {
   void post_unpack() override {
     // Return custom or overrided scripts if found
-    db_find_x_asset_header_hook.create(DB_FindXAssetHeader.get(),
+    db_find_x_asset_header_hook.create(DB_FindXAssetHeader,
                                        DB_FindXAssetHeader_TryOverride);
 
     // Free our scripts when the game ends
@@ -1362,8 +1357,9 @@ struct component final : generic_component {
                       begin_load_scripts_stub);
 
     // Force GSC checksums to be valid
-    utils::hook::call(select(0x1408F2E5D, 0x1400E2D22),
-                      server_script_checksum_stub);
+    CG_TestServerScriptChecksum_hook.create(
+        game::cg::CG_TestServerScriptChecksum,
+        CG_TestServerScriptChecksum_AlwaysMatch);
 
     if (utils::flags::has_flag("log-script-errors")) {
       // Log all script errors, even when non-fatal and/or `developer` is

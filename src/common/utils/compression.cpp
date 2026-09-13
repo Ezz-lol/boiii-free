@@ -152,7 +152,7 @@ bool archive::write(const std::string &filename, const std::string &comment) {
 }
 
 namespace {
-std::optional<std::pair<std::string, std::vector<uint8_t>>>
+std::optional<std::pair<const std::string, std::vector<uint8_t>>>
 read_zip_file_entry(unzFile &zip_file) {
   char filename[1024]{};
   unz_file_info file_info{};
@@ -183,7 +183,8 @@ read_zip_file_entry(unzFile &zip_file) {
     }
   } while (len > 0);
 
-  return std::pair<std::string, std::vector<uint8_t>>{filename, out_buffer};
+  return std::pair<const std::string, std::vector<uint8_t>>{filename,
+                                                            out_buffer};
 }
 
 class memory_file {
@@ -336,7 +337,7 @@ extract(const std::string &data) {
 
 void write_file(
     const std::filesystem::path &output, // Optimized: Pass by const reference
-    const std::pair<std::string, std::vector<uint8_t>> *entries,
+    const std::pair<const std::string, std::vector<uint8_t>> *entries,
     const size_t count) {
   // Open the ZIP archive for writing.
   // APPEND_STATUS_CREATE will create a new file or overwrite an existing one.

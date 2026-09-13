@@ -102,7 +102,15 @@ bool create_directory(const std::filesystem::path &directory) {
 }
 
 bool directory_exists(const std::filesystem::path &directory) {
-  return std::filesystem::is_directory(directory);
+  try {
+    return std::filesystem::is_directory(directory) ||
+           (std::filesystem::is_symlink(directory) &&
+            std::filesystem::is_directory(
+                std::filesystem::read_symlink(directory)));
+  } catch (...) {
+  }
+
+  return false;
 }
 
 bool directory_is_empty(const std::filesystem::path &directory) {
