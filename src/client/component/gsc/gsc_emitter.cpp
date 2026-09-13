@@ -1749,7 +1749,7 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
     s.emit_op(Opcode::PreScriptCall, node->line);
 
     for (int i = static_cast<int>(args->children.size()) - 1; i >= 0; --i) {
-      emit_expression(s, args->children[i], true);
+      emit_expression(s, args->children[i], i == 0);
     }
 
     emit_owner(s, obj);
