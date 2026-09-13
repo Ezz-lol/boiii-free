@@ -1750,9 +1750,9 @@ void emit_function(emitter_state &s, const ast_ptr &node) {
     ParamPassMode pass = {};
     std::string pname;
     switch (param->type) {
-    case node_type::n_move_param: {
-      pass.move = true;
-      pname = param->children[0]->value;
+    case node_type::n_variadic_param: {
+      pass.variadic = true;
+      pname = "vararg";
       break;
     }
     case node_type::n_ref_param: {
@@ -1810,9 +1810,10 @@ void emit_function(emitter_state &s, const ast_ptr &node) {
 
     switch (param->type) {
     case node_type::n_ref_param:
-    case node_type::n_move_param:
       inner_param = param->children[0];
       break;
+    case node_type::n_variadic_param:
+      continue;
     default:
       inner_param = param;
       break;

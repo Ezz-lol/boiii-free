@@ -2096,7 +2096,7 @@ ASSERT_SIZE(objFileInfo_t, 0x50);
 typedef ScrPool<array<objFileInfo_t, 500>> ObjFileInfoPool;
 ASSERT_SIZE(ObjFileInfoPool, 0x13880);
 
-enum class PassFlag : uint8_t { COPY = 0x0, REFERENCE = 0x1, MOVE = 0x2 };
+enum class PassFlag : uint8_t { COPY = 0x0, REFERENCE = 0x1, VARIADIC = 0x2 };
 IMPL_ENUM_OPERATORS(PassFlag);
 
 union ParamPassMode {
@@ -2105,25 +2105,7 @@ union ParamPassMode {
   underlying flags;
   struct {
     underlying reference : 1;
-    /*
-       Not totally sure if this is move, but it does indicate a specific means
-      of passing the argument value. Below is the handling in
-      `VM_OP_SafeCreateLocalVariables_Handler`, for future reference:
-       ```
-        if ( (pass & 2) != 0 )
-      {
-        v13 = 0;
-        for ( i = ScrVar_GetArrayRef(inst: inst_1, id: **p_localVars);
-      fs->top->type != PRECODEPOS; --fs->top )
-        {
-          VariableByIndex = ScrVar_GetVariableByIndex(inst: inst_1, parentId: i,
-      nameIndex: v13++); ScrVar_SetValue(inst: inst_1, id: VariableByIndex,
-      value: (ScrVarValue_t *)fs->top);
-        }
-      }
-      ```
-    */
-    underlying move : 1;
+    underlying variadic : 1;
     underlying : 6;
   };
 

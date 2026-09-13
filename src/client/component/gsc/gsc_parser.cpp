@@ -1028,11 +1028,15 @@ ast_ptr parse_parameters(parser_state &s) {
       ref = s.try_take(token_type::t_double_colon);
     }
 
-    std::optional<token> rval_ref = std::nullopt;
-    if (ref.has_value()) {
-      std::optional<token> rval_ref = s.try_take(token_type::t_ampersand);
-      if (!rval_ref.has_value()) {
-        rval_ref = s.try_take(token_type::t_double_colon);
+    std::optional<token> variadic_arg = std::nullopt;
+    if (!ref.has_value()) {
+      variadic_arg = s.try_take(token_type::t_triple_dot);
+
+      if (variadic_arg.has_value()) {
+        params->children.push_back(
+            make_node(node_type::n_variadic_param, variadic_arg->value,
+                      variadic_arg->line, variadic_arg->column));
+        return;
       }
     }
 
@@ -1050,12 +1054,6 @@ ast_ptr parse_parameters(parser_state &s) {
           make_node(node_type::n_ref_param, ref->value, ref->line, ref->column);
       ref_node->children = {std::move(param_node)};
       params->children.push_back(std::move(ref_node));
-    } else if (rval_ref.has_value()) {
-      const ast_ptr rval_ref_node =
-          make_node(node_type::n_move_param, rval_ref->value, rval_ref->line,
-                    rval_ref->column);
-      rval_ref_node->children = {std::move(param_node)};
-      params->children.push_back(std::move(rval_ref_node));
     } else {
       params->children.push_back(std::move(param_node));
     }

@@ -62,7 +62,7 @@ enum class node_type {
   n_waitrealtime,  // waitrealtime(expr)
   n_ternary,       // cond ? true_expr : false_expr
   n_ref_param,     // (&arg)
-  n_move_param     // (&&arg)
+  n_variadic_param // (...) // TODO: support this
 
 };
 

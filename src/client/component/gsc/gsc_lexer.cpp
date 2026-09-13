@@ -692,10 +692,18 @@ lexer_result tokenize(const std::string &source) {
       tok.type = token_type::t_comma;
       tok.value = ",";
       break;
-    case '.':
-      tok.type = token_type::t_dot;
-      tok.value = ".";
+    case '.': {
+      if (s.peek() == '.' && s.peek_at(2) == '.') {
+        s.advance();
+        s.advance();
+        tok.type = token_type::t_triple_dot;
+        tok.value = "...";
+      } else {
+        tok.type = token_type::t_dot;
+        tok.value = ".";
+      }
       break;
+    }
     case ':':
       tok.type = token_type::t_colon;
       tok.value = ":";

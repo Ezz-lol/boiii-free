@@ -107,6 +107,7 @@ enum class token_type {
   t_semicolon,    // ;
   t_comma,        // ,
   t_dot,          // .
+  t_triple_dot,   // ...
   t_colon,        // :
   t_double_colon, // ::
   t_hash,         // #
