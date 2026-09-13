@@ -27,6 +27,23 @@ template <typename T> inline constexpr T align_value(T val, T alignment) {
   return (val + alignment - 1) & ~(alignment - 1);
 }
 
+template <const size_t Align>
+inline size_t write_align(std::vector<uint8_t> &buf, uint8_t fill = 0x00) {
+  const size_t pos = buf.size();
+  const size_t aligned = align_value(pos, Align);
+  if (aligned > pos) {
+    buf.resize(aligned);
+    memset(&buf[pos], fill, aligned - pos);
+  }
+
+  return aligned;
+}
+
+template <typename T>
+inline size_t write_align(std::vector<uint8_t> &buf, uint8_t fill = 0x00) {
+  return write_align<sizeof(T)>(buf, fill);
+}
+
 template <typename T> void write(std::vector<uint8_t> &buf, T v) {
   const size_t s = buf.size();
   buf.resize(s + sizeof(T));
@@ -196,22 +213,25 @@ struct emitter_state {
     }
   }
 
-  template <typename T> void emit_align(uint8_t fill = 0x00) {
-    const size_t pos = current_func->bytecode.size();
-    const size_t aligned = align_value(pos, sizeof(T));
-    if (aligned > pos) {
-      current_func->bytecode.resize(aligned);
-      memset(&current_func->bytecode[pos], fill, aligned - pos);
-    }
+  template <const size_t Align> inline size_t emit_align(uint8_t fill = 0x00) {
+    return write_align<Align>(current_func->bytecode, fill);
+  }
+
+  template <typename T> inline size_t emit_align(uint8_t fill = 0x00) {
+    return emit_align<sizeof(T)>(fill);
+  }
+
+  template <typename T>
+  inline size_t emit_aligned(T v, uint64_t line, uint8_t fill = 0x00) {
+    const size_t aligned = emit_align<T>(fill);
+    emit<T>(v, line);
+    return aligned;
   }
 
   void emit_jump(Opcode op, int32_t target_label, uint64_t line) {
     update_line_info(line);
     emit<Opcode>(op, line);
-    emit_align<uint16_t>();
-    const uint32_t offset_loc =
-        static_cast<uint32_t>(current_func->bytecode.size());
-    emit<int16_t>(0, line); // placeholder
+    const uint32_t offset_loc = emit_aligned<int16_t>(0, line); // placeholder
     jump_fixups.push_back({offset_loc, offset_loc + 2, target_label});
   }
 
@@ -230,11 +250,9 @@ struct emitter_state {
   void emit_string_ref(Opcode op, const std::string &str, uint64_t line) {
     const size_t idx = add_string(str);
     emit<Opcode>(op, line);
-    emit_align<uint32_t>();
+    size_t aligned_ofs = emit_aligned<uint32_t>(0xFFFFFFFF, line);
     strings[idx].references.push_back(
-        {current_export_index,
-         static_cast<uint32_t>(current_func->bytecode.size())});
-    emit<uint32_t>(0xFFFFFFFF, line);
+        {current_export_index, static_cast<uint32_t>(aligned_ofs)});
   }
 
   uint64_t make_import_key(uint32_t func, uint32_t ns, uint8_t params,
@@ -310,15 +328,7 @@ struct emitter_state {
         {current_export_index, opcode_pos});
 
     emit<uint8_t>(num_params, line);
-    // QWord align
-    {
-      uint32_t pad_pos = static_cast<uint32_t>(current_func->bytecode.size());
-      uint32_t aligned = (pad_pos + 8) & ~7u;
-      while (current_func->bytecode.size() < aligned)
-        current_func->bytecode.push_back(0);
-    }
-    emit<uint32_t>(func_hash, line);
-    emit<uint32_t>(0, line);
+    emit_aligned<uint64_t>(func_hash, line);
   }
 
   void emit_call_ptr(uint8_t num_params, bool is_method, bool is_thread,
@@ -452,8 +462,9 @@ bool is_path_namespace(const std::string_view &ns) {
 void auto_include_path(emitter_state &s, const std::string &ns) {
   std::string normalized = ns;
   for (char &c : normalized) {
-    if (c == '\\')
+    if (c == '\\') {
       c = '/';
+    }
     c = static_cast<char>(std::tolower(static_cast<uint8_t>(c)));
   }
   for (const std::string &inc : s.includes) {
@@ -582,18 +593,15 @@ void emit_get_number(emitter_state &s, int64_t value, uint64_t line) {
   } else if (value > std::numeric_limits<uint16_t>::min() &&
              value <= std::numeric_limits<uint16_t>::max()) {
     s.emit<Opcode>(Opcode::GetUnsignedShort, line);
-    s.emit_align<uint16_t>();
-    s.emit<uint16_t>(static_cast<uint16_t>(value), line);
+    s.emit_aligned<uint16_t>(static_cast<uint16_t>(value), line);
   } else if (value < std::numeric_limits<uint16_t>::min() &&
              value >= -1 * static_cast<int64_t>(
                                std::numeric_limits<uint16_t>::max())) {
     s.emit<Opcode>(Opcode::GetNegUnsignedShort, line);
-    s.emit_align<uint16_t>();
-    s.emit<uint16_t>(static_cast<uint16_t>(-value), line);
+    s.emit_aligned<uint16_t>(static_cast<uint16_t>(-value), line);
   } else {
     s.emit<Opcode>(Opcode::GetInteger, line);
-    s.emit_align<uint32_t>();
-    s.emit<uint32_t>(static_cast<uint32_t>(value), line);
+    s.emit_aligned<uint32_t>(static_cast<uint32_t>(value), line);
   }
 }
 
@@ -685,8 +693,7 @@ void emit_expression(emitter_state &s, const ast_ptr &node,
   case node_type::n_float_number: {
     float fval = std::stof(node->value);
     s.emit<Opcode>(Opcode::GetFloat, node->line);
-    s.emit_align<float>();
-    s.emit<float>(fval, node->line);
+    s.emit_aligned<float>(fval, node->line);
     break;
   }
   case node_type::n_string: {
@@ -701,14 +708,12 @@ void emit_expression(emitter_state &s, const ast_ptr &node,
     s.emit_string_ref(Opcode::GetIString, node->value, node->line);
     break;
   case node_type::n_hash_string:
-  hash_string:
-    {
-      const ScrVarCanonicalName_t hash = gsc::gsc_hash(node->value);
-      s.emit<Opcode>(Opcode::GetHash, node->line);
-      s.emit_align<uint32_t>();
-      s.emit<uint32_t>(hash, node->line);
-      break;
-    }
+  hash_string: {
+    const ScrVarCanonicalName_t hash = gsc::gsc_hash(node->value);
+    s.emit<Opcode>(Opcode::GetHash, node->line);
+    s.emit_aligned<uint32_t>(hash, node->line);
+    break;
+  }
   case node_type::n_true_val:
     emit_get_number(s, 1, node->line);
     break;
@@ -765,8 +770,7 @@ void emit_expression(emitter_state &s, const ast_ptr &node,
       break;
     }
     }
-    s.emit_align<uint32_t>();
-    s.emit<uint32_t>(field_hash, node->line);
+    s.emit_aligned<uint32_t>(field_hash, node->line);
     break;
   }
 
@@ -863,9 +867,7 @@ void emit_expression(emitter_state &s, const ast_ptr &node,
          this compile time constant vector, we fill its alignment bytes with
          `0xFF`.
         */
-        s.emit_align<float>(0xFF);
-
-        s.emit<float>(x, node->children[0]->line);
+        s.emit_aligned<float>(x, node->children[0]->line, 0xFF);
         s.emit<float>(y, node->children[1]->line);
         s.emit<float>(z, node->children[2]->line);
       }
@@ -1010,9 +1012,7 @@ void emit_expression(emitter_state &s, const ast_ptr &node,
     s.emit<Opcode>(op, node->line);
     s.imports[import_idx].references.push_back(
         {s.current_export_index, opcode_pos});
-    s.emit_align<uint64_t>();
-    s.emit<uint32_t>(func_hash, node->line);
-    s.emit<uint32_t>(0, node->line);
+    s.emit_aligned<uint64_t>(func_hash, node->line);
     break;
   }
 
@@ -1215,8 +1215,7 @@ void emit_lvalue(emitter_state &s, const ast_ptr &node, bool is_ref,
     }
     }
 
-    s.emit_align<uint32_t>();
-    s.emit<uint32_t>(field_hash, node->line);
+    s.emit_aligned<uint32_t>(field_hash, node->line);
     break;
   }
   case node_type::n_array_access: {
@@ -1328,8 +1327,7 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
         const ScrVarCanonicalName_t field_hash = gsc::gsc_hash(target->value);
         emit_object(s, target->children[0]);
         s.emit<Opcode>(Opcode::ClearFieldVariable, node->line);
-        s.emit_align<uint32_t>();
-        s.emit<uint32_t>(field_hash, node->line);
+        s.emit_aligned<uint32_t>(field_hash, node->line);
         break;
       }
 
@@ -1791,8 +1789,7 @@ void emit_function(emitter_state &s, const ast_ptr &node) {
     s.emit<uint8_t>(static_cast<uint8_t>(s.current_func->locals.size()),
                     node->line);
     for (ScrVarCanonicalName_t name : s.current_func->local_names) {
-      s.emit_align<uint32_t>();
-      s.emit<uint32_t>(name, node->line); // hash
+      s.emit_aligned<uint32_t>(name, node->line); // hash
       s.emit<uint8_t>(s.current_func->locals[name].pass, node->line);
     }
     s.emit<uint8_t>(0, node->line); // final null byte (no CheckClearParams!)
@@ -1926,15 +1923,7 @@ std::vector<uint8_t> assemble(emitter_state &s) {
     export_entry &exp = s.exports[i];
 
     // Double QWord align before each function
-    {
-      const uint32_t pos = static_cast<uint32_t>(output.size());
-      const uint32_t a1 = (pos + 8) & ~7u;
-      output.resize(a1, 0);
-      const uint32_t a2 = (a1 + 8) & ~7u;
-      output.resize(a2, 0);
-    }
-
-    exp.bytecode_offset = static_cast<uint32_t>(output.size());
+    exp.bytecode_offset = write_align<uint128_t>(output);
 
     output.insert(output.end(), exp.bytecode.begin(), exp.bytecode.end());
   }
