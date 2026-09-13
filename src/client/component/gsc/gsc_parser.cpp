@@ -1047,12 +1047,12 @@ ast_ptr parse_parameters(parser_state &s) {
     }
     if (ref.has_value()) {
       const ast_ptr ref_node =
-          make_node(node_type::n_param_ref, ref->value, ref->line, ref->column);
+          make_node(node_type::n_ref_param, ref->value, ref->line, ref->column);
       ref_node->children = {std::move(param_node)};
       params->children.push_back(std::move(ref_node));
     } else if (rval_ref.has_value()) {
       const ast_ptr rval_ref_node =
-          make_node(node_type::n_param_move, rval_ref->value, rval_ref->line,
+          make_node(node_type::n_move_param, rval_ref->value, rval_ref->line,
                     rval_ref->column);
       rval_ref_node->children = {std::move(param_node)};
       params->children.push_back(std::move(rval_ref_node));

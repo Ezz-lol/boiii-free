@@ -1750,12 +1750,12 @@ void emit_function(emitter_state &s, const ast_ptr &node) {
     ParamPassMode pass = {};
     std::string pname;
     switch (param->type) {
-    case node_type::n_param_move: {
+    case node_type::n_move_param: {
       pass.move = true;
       pname = param->children[0]->value;
       break;
     }
-    case node_type::n_param_ref: {
+    case node_type::n_ref_param: {
       pass.reference = true;
       pname = param->children[0]->value;
       break;
@@ -1809,8 +1809,8 @@ void emit_function(emitter_state &s, const ast_ptr &node) {
     ast_ptr inner_param;
 
     switch (param->type) {
-    case node_type::n_param_ref:
-    case node_type::n_param_move:
+    case node_type::n_ref_param:
+    case node_type::n_move_param:
       inner_param = param->children[0];
       break;
     default:
