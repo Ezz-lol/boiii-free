@@ -529,15 +529,19 @@ function set_player_model( team, weapon )
 
 function get_flag_model( teamRef )
 {
-	assert(isdefined(game["flagmodels"]));
-	assert(isdefined(game["flagmodels"][teamRef]));
+	/# 
+  	assert(isdefined(game["flagmodels"]));
+	  assert(isdefined(game["flagmodels"][teamRef]));
+	#/
 	return ( game["flagmodels"][teamRef] );
 }
 
 function get_flag_carry_model( teamRef )
 {
-	assert(isdefined(game["carry_flagmodels"]));
-	assert(isdefined(game["carry_flagmodels"][teamRef]));
+  /#
+  	assert(isdefined(game["carry_flagmodels"]));
+	  assert(isdefined(game["carry_flagmodels"][teamRef]));
+	#/
 	return ( game["carry_flagmodels"][teamRef] );
 }
 
