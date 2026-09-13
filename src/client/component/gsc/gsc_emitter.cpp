@@ -381,10 +381,12 @@ struct emitter_state {
 };
 
 void emit_expression(emitter_state &s, const ast_ptr &node,
-                     bool hash_literal_strings = false);
+                     bool hash_literal_strings = false,
+                     bool ref_global = false);
 void emit_statement(emitter_state &s, const ast_ptr &node);
 void emit_block(emitter_state &s, const ast_ptr &node);
-void emit_lvalue(emitter_state &s, const ast_ptr &node, bool is_ref);
+void emit_lvalue(emitter_state &s, const ast_ptr &node, bool is_ref,
+                 bool ref_global);
 
 void pre_register_temps(emitter_state &s, const ast_ptr &node) {
   if (node) {
@@ -721,7 +723,7 @@ bool try_get_vector_constant(const ast_ptr &node, float &value) {
 }
 
 void emit_expression(emitter_state &s, const ast_ptr &node,
-                     bool hash_literal_strings) {
+                     bool hash_literal_strings, bool ref_global) {
   if (!node)
     return;
 
@@ -772,7 +774,11 @@ void emit_expression(emitter_state &s, const ast_ptr &node,
     s.emit_op(Opcode::GetLevel, node->line);
     break;
   case node_type::n_game:
-    s.emit_op(Opcode::GetGame, node->line);
+    if (ref_global) {
+      s.emit_op(Opcode::GetGameRef, node->line);
+    } else {
+      s.emit_op(Opcode::GetGame, node->line);
+    }
     break;
   case node_type::n_anim:
     s.emit_op(Opcode::GetAnim, node->line);
@@ -819,8 +825,8 @@ void emit_expression(emitter_state &s, const ast_ptr &node,
 
   case node_type::n_array_access: {
     // children[0] = array, children[1] = key
-    emit_expression(s, node->children[1]); // key first
-    emit_expression(s, node->children[0]); // then array
+    emit_expression(s, node->children[1]);                    // key first
+    emit_expression(s, node->children[0], false, ref_global); // then array
     s.emit_op(Opcode::EvalArray, node->line);
     break;
   }
@@ -1243,7 +1249,7 @@ void emit_expression(emitter_state &s, const ast_ptr &node,
   }
 
   case node_type::n_inc_dec: {
-    emit_lvalue(s, node->children[0], true);
+    emit_lvalue(s, node->children[0], true, false);
     if (node->value == "post++" || node->value == "pre++")
       s.emit_op(Opcode::Inc, node->line);
     else
@@ -1258,7 +1264,8 @@ void emit_expression(emitter_state &s, const ast_ptr &node,
   }
 }
 
-void emit_lvalue(emitter_state &s, const ast_ptr &node, bool is_ref) {
+void emit_lvalue(emitter_state &s, const ast_ptr &node, bool is_ref,
+                 bool ref_global) {
   switch (node->type) {
   case node_type::n_identifier: {
     std::string lower = node->value;
@@ -1297,13 +1304,13 @@ void emit_lvalue(emitter_state &s, const ast_ptr &node, bool is_ref) {
     break;
   }
   case node_type::n_array_access: {
-    emit_expression(s, node->children[1]);   // key
-    emit_lvalue(s, node->children[0], true); // array ref
+    emit_expression(s, node->children[1]);               // key
+    emit_lvalue(s, node->children[0], true, ref_global); // array ref
     s.emit_op(Opcode::EvalArrayRef, node->line);
     break;
   }
   default:
-    emit_expression(s, node);
+    emit_expression(s, node, false, ref_global);
     break;
   }
 }
@@ -1410,9 +1417,18 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
         s.emit_u32_aligned();
         s.emit_u32(field_hash, node->line);
         break;
-      } else {
-        emit_expression(s, value);
       }
+
+      if (value->type == node_type::n_undefined &&
+          target->type == node_type::n_array_access) {
+        emit_expression(s, target->children[1]);         // key
+        emit_lvalue(s, target->children[0], true, true); // array ref
+        s.emit_op(Opcode::ClearArray, node->line);
+        break;
+      }
+
+      emit_expression(s, value);
+
     } else {
       emit_expression(s, target);
       emit_expression(s, value);
@@ -1438,13 +1454,13 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
         s.emit_op(Opcode::ShiftRight, node->line);
     }
 
-    emit_lvalue(s, target, true);
+    emit_lvalue(s, target, true, true);
     s.emit_op(Opcode::SetVariableField, node->line);
     break;
   }
 
   case node_type::n_inc_dec: {
-    emit_lvalue(s, node->children[0], true);
+    emit_lvalue(s, node->children[0], true, false);
     if (node->value == "post++" || node->value == "pre++")
       s.emit_op(Opcode::Inc, node->line);
     else
@@ -1873,7 +1889,7 @@ void emit_function(emitter_state &s, const ast_ptr &node) {
         pname.begin(), pname.end(), pname.begin(),
         [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 
-    int32_t skip_label = s.new_label();
+    const int32_t skip_label = s.new_label();
 
     emit_eval_local(s, pname, false, node->line);            // push param value
     s.emit_op(Opcode::IsDefined, node->line);                // isdefined check
