@@ -36,6 +36,14 @@ struct parser_state {
     return false;
   }
 
+  std::optional<token> try_take(token_type t) {
+    if (check(t)) {
+      return advance();
+    }
+
+    return std::nullopt;
+  }
+
   const token &expect(token_type t, const std::string &msg) {
     if (check(t))
       return advance();
@@ -1015,19 +1023,42 @@ ast_ptr parse_parameters(parser_state &s) {
   s.expect(token_type::t_lparen, "Expected '('");
 
   std::function<void()> parse_one_param = [&]() {
-    // Skip & or :: prefix (pass-by-reference / function-ref marker, handled by
-    // VM)
-    s.match(token_type::t_ampersand);
-    s.match(token_type::t_double_colon);
+    std::optional<token> ref = s.try_take(token_type::t_ampersand);
+    if (!ref.has_value()) {
+      ref = s.try_take(token_type::t_double_colon);
+    }
+
+    std::optional<token> rval_ref = std::nullopt;
+    if (ref.has_value()) {
+      std::optional<token> rval_ref = s.try_take(token_type::t_ampersand);
+      if (!rval_ref.has_value()) {
+        rval_ref = s.try_take(token_type::t_double_colon);
+      }
+    }
+
     const token &p =
         s.expect(token_type::t_identifier, "Expected parameter name");
     const ast_ptr param_node =
         make_node(node_type::n_identifier, p.value, p.line, p.column);
+
     // Optional default value: param = expr
     if (s.match(token_type::t_assign)) {
       param_node->children.push_back(parse_expression(s));
     }
-    params->children.push_back(std::move(param_node));
+    if (ref.has_value()) {
+      const ast_ptr ref_node =
+          make_node(node_type::n_param_ref, ref->value, ref->line, ref->column);
+      ref_node->children = {std::move(param_node)};
+      params->children.push_back(std::move(ref_node));
+    } else if (rval_ref.has_value()) {
+      const ast_ptr rval_ref_node =
+          make_node(node_type::n_param_move, rval_ref->value, rval_ref->line,
+                    rval_ref->column);
+      rval_ref_node->children = {std::move(param_node)};
+      params->children.push_back(std::move(rval_ref_node));
+    } else {
+      params->children.push_back(std::move(param_node));
+    }
   };
 
   if (!s.check(token_type::t_rparen)) {

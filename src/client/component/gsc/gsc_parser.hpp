@@ -61,6 +61,9 @@ enum class node_type {
   n_precache,      // #precache(type, value)
   n_waitrealtime,  // waitrealtime(expr)
   n_ternary,       // cond ? true_expr : false_expr
+  n_param_ref,     // (&arg)
+  n_param_move     // (&&arg)
+
 };
 
 struct ast_node {

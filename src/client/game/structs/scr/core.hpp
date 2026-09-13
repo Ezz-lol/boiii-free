@@ -2096,5 +2096,112 @@ ASSERT_SIZE(objFileInfo_t, 0x50);
 typedef ScrPool<array<objFileInfo_t, 500>> ObjFileInfoPool;
 ASSERT_SIZE(ObjFileInfoPool, 0x13880);
 
+enum class PassFlag : uint8_t { COPY = 0x0, REFERENCE = 0x1, MOVE = 0x2 };
+IMPL_ENUM_OPERATORS(PassFlag);
+
+union ParamPassMode {
+  typedef uint8_t underlying;
+
+  underlying flags;
+  struct {
+    underlying reference : 1;
+    /*
+       Not totally sure if this is move, but it does indicate a specific means
+      of passing the argument value. Below is the handling in
+      `VM_OP_SafeCreateLocalVariables_Handler`, for future reference:
+       ```
+        if ( (pass & 2) != 0 )
+      {
+        v13 = 0;
+        for ( i = ScrVar_GetArrayRef(inst: inst_1, id: **p_localVars);
+      fs->top->type != PRECODEPOS; --fs->top )
+        {
+          VariableByIndex = ScrVar_GetVariableByIndex(inst: inst_1, parentId: i,
+      nameIndex: v13++); ScrVar_SetValue(inst: inst_1, id: VariableByIndex,
+      value: (ScrVarValue_t *)fs->top);
+        }
+      }
+      ```
+    */
+    underlying move : 1;
+    underlying : 6;
+  };
+
+  inline constexpr ParamPassMode operator~() const noexcept {
+    return {.flags = static_cast<underlying>(~flags)};
+  }
+  inline constexpr ParamPassMode operator+() const noexcept {
+    return {.flags = static_cast<underlying>(+flags)};
+  }
+  inline constexpr ParamPassMode operator-() const noexcept {
+    return {.flags = static_cast<underlying>(-flags)};
+  }
+
+  inline constexpr ParamPassMode &operator++() noexcept {
+    ++flags;
+    return *this;
+  }
+  inline constexpr ParamPassMode operator++(int) noexcept {
+    ParamPassMode tmp = *this;
+    ++flags;
+    return tmp;
+  }
+  inline constexpr ParamPassMode &operator--() noexcept {
+    --flags;
+    return *this;
+  }
+  inline constexpr ParamPassMode operator--(int) noexcept {
+    ParamPassMode tmp = *this;
+    --flags;
+    return tmp;
+  }
+
+#ifndef IMPL_PARAMPASS_MODE_PASS_BINARY_OP
+#define IMPL_PARAMPASS_MODE_PASS_BINARY_OP(OP)                                 \
+  template <IntegralLike<underlying> T>                                        \
+  inline constexpr ParamPassMode operator OP(T rhs) const noexcept {           \
+    return {.flags = static_cast<underlying>(                                  \
+                flags OP static_cast<underlying>(rhs))};                       \
+  }                                                                            \
+  inline constexpr ParamPassMode operator OP(PassFlag rhs) const noexcept {    \
+    return {.flags = static_cast<underlying>(                                  \
+                flags OP static_cast<underlying>(rhs))};                       \
+  }
+#endif
+
+  IMPL_PARAMPASS_MODE_PASS_BINARY_OP(|)
+  IMPL_PARAMPASS_MODE_PASS_BINARY_OP(&)
+  IMPL_PARAMPASS_MODE_PASS_BINARY_OP(^)
+  IMPL_PARAMPASS_MODE_PASS_BINARY_OP(+)
+  IMPL_PARAMPASS_MODE_PASS_BINARY_OP(-)
+  IMPL_PARAMPASS_MODE_PASS_BINARY_OP(*)
+  IMPL_PARAMPASS_MODE_PASS_BINARY_OP(/)
+  IMPL_PARAMPASS_MODE_PASS_BINARY_OP(%)
+
+#ifndef IMPL_PARAMPASS_MODE_PASS_ASSIGN_OP
+#define IMPL_PARAMPASS_MODE_PASS_ASSIGN_OP(OP)                                 \
+  template <IntegralLike<underlying> T>                                        \
+  inline constexpr ParamPassMode &operator OP(T rhs) noexcept {                \
+    flags = static_cast<underlying>(flags OP static_cast<underlying>(rhs));    \
+    return *this;                                                              \
+  }                                                                            \
+  inline constexpr ParamPassMode &operator OP(PassFlag rhs) noexcept {         \
+    flags = static_cast<underlying>(flags OP static_cast<underlying>(rhs));    \
+    return *this;                                                              \
+  }
+#endif
+
+  IMPL_PARAMPASS_MODE_PASS_ASSIGN_OP(|=)
+  IMPL_PARAMPASS_MODE_PASS_ASSIGN_OP(&=)
+  IMPL_PARAMPASS_MODE_PASS_ASSIGN_OP(^=)
+  IMPL_PARAMPASS_MODE_PASS_ASSIGN_OP(+=)
+  IMPL_PARAMPASS_MODE_PASS_ASSIGN_OP(-=)
+  IMPL_PARAMPASS_MODE_PASS_ASSIGN_OP(*=)
+  IMPL_PARAMPASS_MODE_PASS_ASSIGN_OP(/=)
+  IMPL_PARAMPASS_MODE_PASS_ASSIGN_OP(%=)
+
+  inline constexpr operator underlying() const noexcept { return flags; }
+};
+
 } // namespace scr
 } // namespace game
