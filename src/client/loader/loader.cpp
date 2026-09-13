@@ -1,5 +1,5 @@
 #include <std_include.hpp>
-#include "loader.hpp"
+#include "loader.hpp" // IWYU pragma: associated
 #include "tls.hpp"
 
 #include <utils/hook.hpp>
@@ -12,19 +12,19 @@ template <typename T> T offset_pointer(void *data, const ptrdiff_t offset) {
 }
 
 void load_imports(const utils::nt::library &target) {
-  const auto *const import_directory =
+  const IMAGE_DATA_DIRECTORY *const import_directory =
       &target.get_optional_header()
            ->DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
 
-  auto *descriptor = PIMAGE_IMPORT_DESCRIPTOR(target.get_ptr() +
-                                              import_directory->VirtualAddress);
+  PIMAGE_IMPORT_DESCRIPTOR descriptor = PIMAGE_IMPORT_DESCRIPTOR(
+      target.get_ptr() + import_directory->VirtualAddress);
 
   while (descriptor->Name) {
     std::string name = LPSTR(target.get_ptr() + descriptor->Name);
 
-    auto *name_table_entry = reinterpret_cast<uintptr_t *>(
+    uintptr_t *name_table_entry = reinterpret_cast<uintptr_t *>(
         target.get_ptr() + descriptor->OriginalFirstThunk);
-    auto *address_table_entry = reinterpret_cast<uintptr_t *>(
+    uintptr_t *address_table_entry = reinterpret_cast<uintptr_t *>(
         target.get_ptr() + descriptor->FirstThunk);
 
     if (!descriptor->OriginalFirstThunk) {
@@ -41,13 +41,14 @@ void load_imports(const utils::nt::library &target) {
         function_name = "#" + std::to_string(IMAGE_ORDINAL(*name_table_entry));
         function_procname = MAKEINTRESOURCEA(IMAGE_ORDINAL(*name_table_entry));
       } else {
-        const auto *import =
+        const PIMAGE_IMPORT_BY_NAME import =
             PIMAGE_IMPORT_BY_NAME(target.get_ptr() + *name_table_entry);
         function_name = import->Name;
         function_procname = function_name.data();
       }
 
-      auto library = utils::nt::library::load(name);
+      const utils::nt::library library =
+          utils::nt::library::load(std::string_view(name));
       if (library) {
         function = GetProcAddress(library, function_procname);
       }
@@ -74,9 +75,10 @@ void load_relocations(const utils::nt::library &target) {
     return;
   }
 
-  auto *current_base = target.get_ptr();
-  const auto initial_base = target.get_optional_header()->ImageBase;
-  const auto delta = reinterpret_cast<ptrdiff_t>(current_base) - initial_base;
+  uint8_t *current_base = target.get_ptr();
+  const ULONGLONG initial_base = target.get_optional_header()->ImageBase;
+  const ptrdiff_t delta =
+      reinterpret_cast<ptrdiff_t>(current_base) - initial_base;
 
   PIMAGE_DATA_DIRECTORY directory =
       &target.get_optional_header()
@@ -85,14 +87,14 @@ void load_relocations(const utils::nt::library &target) {
     return;
   }
 
-  auto *relocation = reinterpret_cast<PIMAGE_BASE_RELOCATION>(
+  PIMAGE_BASE_RELOCATION relocation = reinterpret_cast<PIMAGE_BASE_RELOCATION>(
       current_base + directory->VirtualAddress);
   while (relocation->VirtualAddress > 0) {
     unsigned char *dest = current_base + relocation->VirtualAddress;
 
-    auto *rel_info =
+    uint16_t *rel_info =
         offset_pointer<uint16_t *>(relocation, sizeof(IMAGE_BASE_RELOCATION));
-    const auto *rel_info_end = offset_pointer<uint16_t *>(
+    const uint16_t *rel_info_end = offset_pointer<uint16_t *>(
         rel_info, relocation->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION));
 
     for (; rel_info < rel_info_end; ++rel_info) {
@@ -104,14 +106,14 @@ void load_relocations(const utils::nt::library &target) {
         break;
 
       case IMAGE_REL_BASED_HIGHLOW: {
-        auto *patch_address = reinterpret_cast<DWORD *>(dest + offset);
+        DWORD *patch_address = reinterpret_cast<DWORD *>(dest + offset);
         utils::hook::set(patch_address,
                          *patch_address + static_cast<DWORD>(delta));
         break;
       }
 
       case IMAGE_REL_BASED_DIR64: {
-        auto *patch_address = reinterpret_cast<ULONGLONG *>(dest + offset);
+        ULONGLONG *patch_address = reinterpret_cast<ULONGLONG *>(dest + offset);
         utils::hook::set(patch_address,
                          *patch_address + static_cast<ULONGLONG>(delta));
         break;
@@ -132,17 +134,18 @@ void load_tls(const utils::nt::library &target) {
   if (target.get_optional_header()
           ->DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS]
           .Size) {
-    auto *target_tls = tls::allocate_tls_index();
-    const auto *const source_tls = reinterpret_cast<PIMAGE_TLS_DIRECTORY>(
-        target.get_ptr() + target.get_optional_header()
-                               ->DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS]
-                               .VirtualAddress);
+    PIMAGE_TLS_DIRECTORY target_tls = tls::allocate_tls_index();
+    const PIMAGE_TLS_DIRECTORY source_tls =
+        reinterpret_cast<PIMAGE_TLS_DIRECTORY>(
+            target.get_ptr() + target.get_optional_header()
+                                   ->DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS]
+                                   .VirtualAddress);
 
-    auto *target_tls_start = PVOID(target_tls->StartAddressOfRawData);
-    auto *tls_start = PVOID(source_tls->StartAddressOfRawData);
-    const auto tls_size =
+    void *target_tls_start = PVOID(target_tls->StartAddressOfRawData);
+    void *tls_start = PVOID(source_tls->StartAddressOfRawData);
+    const ULONGLONG tls_size =
         source_tls->EndAddressOfRawData - source_tls->StartAddressOfRawData;
-    const auto tls_index =
+    const DWORD tls_index =
         *reinterpret_cast<DWORD *>(target_tls->AddressOfIndex);
 
     utils::hook::set<DWORD>(source_tls->AddressOfIndex, tls_index);
@@ -154,7 +157,7 @@ void load_tls(const utils::nt::library &target) {
     DWORD old_protect;
     VirtualProtect(target_tls_start, tls_size, PAGE_READWRITE, &old_protect);
 
-    auto *const tls_base =
+    void *tls_base =
         *reinterpret_cast<LPVOID *>(__readgsqword(0x58) + 8ull * tls_index);
     std::memmove(tls_base, tls_start, tls_size);
     std::memmove(target_tls_start, tls_start, tls_size);
@@ -166,10 +169,10 @@ void load_tls(const utils::nt::library &target) {
 }
 } // namespace
 
-utils::nt::library load_binary(const std::string &filename) {
-  const auto target = utils::nt::library::load(filename);
+utils::nt::library load_binary(const std::string_view &filename) {
+  const utils::nt::library target = utils::nt::library::load(filename);
   if (!target) {
-    throw std::runtime_error{"Failed to map: " + filename};
+    throw std::runtime_error{"Failed to map: " + std::string(filename)};
   }
 
   load_relocations(target);

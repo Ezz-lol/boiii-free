@@ -2,5 +2,5 @@
 #include <utils/nt.hpp>
 
 namespace loader {
-utils::nt::library load_binary(const std::string &filename);
+utils::nt::library load_binary(const std::string_view &filename);
 }

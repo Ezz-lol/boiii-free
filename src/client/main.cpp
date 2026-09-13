@@ -545,9 +545,9 @@ void run_tls_callbacks(const unsigned long reason) {
 } tls_runner;
 
 FARPROC load_process(const std::string &procname) {
-  const auto proc = loader::load_binary(procname);
+  const utils::nt::library proc = loader::load_binary(procname);
 
-  auto *const peb = reinterpret_cast<PPEB>(__readgsqword(0x60));
+  PEB *const peb = reinterpret_cast<PEB *const>(__readgsqword(0x60));
   peb->Reserved3[1] = proc.get_ptr();
   static_assert(offsetof(PEB, Reserved3[1]) == 0x10);
 
