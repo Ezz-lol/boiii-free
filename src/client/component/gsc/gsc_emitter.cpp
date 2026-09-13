@@ -957,10 +957,11 @@ void emit_expression(emitter_state &s, const ast_ptr &node,
   }
 
   case node_type::n_unary_op: {
-    emit_expression(s, node->children[0]);
-    if (node->value == "!")
+    if (node->value == "!") {
+      emit_expression(s, node->children[0]);
       s.emit<Opcode>(Opcode::BoolNot, node->line);
-    else if (node->value == "~") {
+    } else if (node->value == "~") {
+      emit_expression(s, node->children[0]);
       // See note above the `BoolComplement` enumeration in the `Opcode` enum
       // definition
       s.emit<Opcode>(Opcode::BoolComplement, node->line);
@@ -971,6 +972,7 @@ void emit_expression(emitter_state &s, const ast_ptr &node,
                         node->line);
         node->children = {};
       } else {
+        emit_expression(s, node->children[0]);
         emit_get_number(s, -1, node->line);
         s.emit<Opcode>(Opcode::Multiply, node->line);
       }
@@ -1410,8 +1412,15 @@ void emit_statement(emitter_state &s, const ast_ptr &node) {
     int32_t else_label = s.new_label();
     int32_t end_label = s.new_label();
 
-    emit_expression(s, node->children[0]); // condition
-    s.emit_jump(Opcode::JumpOnFalse, else_label, node->line);
+    // `if (!! (...))` == `if (...)`
+    if (node->children[0]->type == node_type::n_unary_op &&
+        node->children[0]->value == "!") {
+      emit_expression(s, node->children[0]->children[0]);
+      s.emit_jump(Opcode::JumpOnTrue, else_label, node->line);
+    } else {
+      emit_expression(s, node->children[0]); // condition
+      s.emit_jump(Opcode::JumpOnFalse, else_label, node->line);
+    }
 
     emit_statement(s, node->children[1]); // if body
 

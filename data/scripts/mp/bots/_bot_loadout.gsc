@@ -212,15 +212,14 @@ function build_classes()
 	}
 }
 
-function pick_item( &pickedItems, &items )
+function pick_item( &pickedItems, items )
 {
 	if ( !isdefined( items ) || items.size <= 0 )
 	{
-		return pickedItems;
+		return;
 	}
 	
 	pickedItems[pickedItems.size] = array::random( items );
-	return pickedItems;
 }
 
 function pick_classes()
