@@ -251,6 +251,19 @@ std::string join(std::vector<std::string> strings,
   return result;
 }
 
+std::string join(std::vector<std::string_view> strings,
+                 const std::string &separator) {
+  std::string result;
+  result += strings[0];
+
+  for (size_t i = 1; i < strings.size(); ++i) {
+    result += separator;
+    result += strings[i];
+  }
+
+  return result;
+}
+
 void trim(std::string &str) { ltrim(rtrim(str)); }
 
 void copy(char *dest, const size_t max_size, const char *src) {

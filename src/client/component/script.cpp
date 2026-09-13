@@ -600,7 +600,7 @@ bool is_map_override_directory_name(const std::string &name) {
 
 void load_scripts_directory(
     const std::string &script_dir, const bool load, const bool recurse,
-    const std::optional<std::string> strip_base = std::nullopt,
+    const std::optional<std::string_view> strip_base = std::nullopt,
     const bool exclude_map_subtrees = false) {
   if (utils::io::directory_exists(script_dir)) {
     std::vector<std::filesystem::path> scripts =
@@ -637,9 +637,10 @@ void load_scripts_directory(
           name.erase(0, i + host_path.length());
         }
         if (strip_base.has_value()) {
-          std::vector<std::string> name_parts = utils::string::split(name, '/');
-          const auto strip_parts =
-              utils::string::split(strip_base.value(), '/');
+          std::vector<std::string_view> name_parts =
+              utils::string::split(std::string_view(name), '/');
+          const std::vector<std::string_view> strip_parts =
+              utils::string::split(std::string_view(strip_base.value()), '/');
           bool matches = name_parts.size() > strip_parts.size();
           for (size_t part = 0; matches && part < strip_parts.size(); ++part)
             matches = name_parts[part + 1] == strip_parts[part];
@@ -750,7 +751,7 @@ void load_tree(std::filesystem::path tree, bool execImmediate = false) {
   const auto load = [&data_directory, &boiii_directory](
                         const std::filesystem::path &directory, const bool load,
                         const bool recurse,
-                        const std::optional<std::string> strip_base,
+                        const std::optional<std::string_view> strip_base,
                         const bool exclude_map_subtrees) {
     load_scripts_directory((data_directory / directory).string(), load, recurse,
                            strip_base, exclude_map_subtrees);
@@ -791,8 +792,8 @@ void load_tree(std::filesystem::path tree, bool execImmediate = false) {
   const std::optional<std::filesystem::path> mod_id =
       get_mod_specific_directory();
   if (mod_id.has_value()) {
-    const std::string mod_id_str = mod_id->generic_string();
-    applicable_tree_dirs.push_back({tree / mod_id.value(), mod_id_str, true});
+    applicable_tree_dirs.push_back(
+        {tree / mod_id.value(), mod_id->generic_string(), true});
   }
 
   applicable_tree_dirs.push_back({tree, std::nullopt, false});

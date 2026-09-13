@@ -8,10 +8,12 @@
 namespace utils::nt {
 library library::load(const char *name) { return library(LoadLibraryA(name)); }
 
-library library::load(const std::string &name) { return load(name.data()); }
+library library::load(const std::string_view &name) {
+  return load(name.data());
+}
 
 library library::load(const std::filesystem::path &path) {
-  return load(path.generic_string());
+  return load(std::string_view(path.generic_string()));
 }
 
 library library::get_by_address(const void *address) {
@@ -24,7 +26,7 @@ library library::get_by_address(const void *address) {
 
 library::library() : module_(GetModuleHandleA(nullptr)) {}
 
-library::library(const std::string &name)
+library::library(const std::string_view &name)
     : module_(GetModuleHandleA(name.data())) {}
 
 library::library(const HMODULE handle) : module_(handle) {}
@@ -54,7 +56,7 @@ PIMAGE_OPTIONAL_HEADER library::get_optional_header() const {
   return &this->get_nt_headers()->OptionalHeader;
 }
 
-void **library::get_iat_entry(const std::string &module_name,
+void **library::get_iat_entry(const std::string_view &module_name,
                               std::string proc_name) const {
   return this->get_iat_entry(module_name, proc_name.data());
 }
@@ -128,7 +130,7 @@ std::filesystem::path library::get_path() const {
   return {name};
 }
 
-std::filesystem::path library::get_folder() const {
+std::filesystem::path library::get_directory() const {
   if (!this->is_valid())
     return {};
 
@@ -145,7 +147,7 @@ void library::free() {
 
 HMODULE library::get_handle() const { return this->module_; }
 
-void **library::get_iat_entry(const std::string &module_name,
+void **library::get_iat_entry(const std::string_view &module_name,
                               const char *proc_name) const {
   if (!this->is_valid())
     return nullptr;
@@ -208,12 +210,12 @@ void **library::get_iat_entry(const std::string &module_name,
 }
 
 registry_key open_or_create_registry_key(const HKEY base,
-                                         const std::string &input) {
-  const std::vector<std::string> parts = string::split(input, '\\');
+                                         const std::string_view &input) {
+  const std::vector<std::string_view> parts = string::split(input, '\\');
 
   registry_key current_key = base;
 
-  for (const std::string &part : parts) {
+  for (const std::string_view &part : parts) {
     registry_key new_key{};
     if (RegOpenKeyExA(current_key, part.data(), 0, KEY_ALL_ACCESS, &new_key) ==
         ERROR_SUCCESS) {

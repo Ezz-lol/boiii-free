@@ -120,6 +120,8 @@ inline std::string_view &trim(std::string_view &str) {
 void copy(char *dest, size_t max_size, const char *src);
 std::string join(std::vector<std::string> strings,
                  const std::string &separator);
+std::string join(std::vector<std::string_view> strings,
+                 const std::string &separator);
 
 template <size_t Size> void copy(char (&dest)[Size], const char *src) {
   copy(dest, Size, src);

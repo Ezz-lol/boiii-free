@@ -23,12 +23,12 @@ namespace nt {
 class library final {
 public:
   static library load(const char *name);
-  static library load(const std::string &name);
+  static library load(const std::string_view &name);
   static library load(const std::filesystem::path &path);
   static library get_by_address(const void *address);
 
   library();
-  explicit library(const std::string &name);
+  explicit library(const std::string_view &name);
   explicit library(HMODULE handle);
 
   library &operator=(const library &) = default;
@@ -47,7 +47,10 @@ public:
   [[nodiscard]] bool is_valid() const;
   [[nodiscard]] std::string get_name() const;
   [[nodiscard]] std::filesystem::path get_path() const;
-  [[nodiscard]] std::filesystem::path get_folder() const;
+  [[nodiscard]] std::filesystem::path get_directory() const;
+  [[nodiscard]] inline std::filesystem::path get_folder() const {
+    return get_directory();
+  }
   [[nodiscard]] std::uint8_t *get_ptr() const;
   void free();
 
@@ -63,8 +66,7 @@ private:
 #pragma clang diagnostic ignored                                               \
     "-Wcast-function-type" // warning: cast between incompatible function types
                            // (for loader)
-#endif
-#if defined(__GNUC__)
+#elif defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored                                                 \
     "-Wpragmas" // warning: unknown option after '#pragma GCC diagnostic' kind
@@ -75,11 +77,10 @@ private:
 
     return reinterpret_cast<Fn>(proc);
 
-#if defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif
 #if defined(__clang__)
 #pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
 #endif
   }
 
@@ -95,11 +96,12 @@ public:
     return nullptr;
   }
 
-  template <typename Fn> Fn get_proc(const std::string &name) const {
-    return get_proc<Fn>(name.c_str());
+  template <typename Fn> Fn get_proc(const std::string_view &name) const {
+    return get_proc<Fn>(name.data());
   }
 
-  template <typename Fn> std::function<Fn> get(const std::string &name) const {
+  template <typename Fn>
+  std::function<Fn> get(const std::string_view &name) const {
     Fn *fp = get_proc<Fn *>(name);
     if (fp) {
       return std::function<Fn>(fp);
@@ -110,7 +112,7 @@ public:
 
   template <typename T, typename... Args>
     requires(!std::is_same_v<T, void>)
-  T invoke(const std::string &name, Args... args) const {
+  T invoke(const std::string_view &name, Args... args) const {
     cdeclPtr_t<T(Args...)> f = get_proc<cdeclPtr_t<T(Args...)>>(name);
     if (f) {
       return f(args...);
@@ -121,7 +123,7 @@ public:
 
   template <typename T, typename... Args>
     requires(!std::is_same_v<T, void>)
-  T invoke_pascal(const std::string &name, Args... args) const {
+  T invoke_pascal(const std::string_view &name, Args... args) const {
     stdcallPtr_t<T(Args...)> f = get_proc<stdcallPtr_t<T(Args...)>>(name);
     if (f) {
       return f(args...);
@@ -132,7 +134,8 @@ public:
 
   template <typename T, typename... Args>
     requires(!std::is_same_v<T, void>)
-  T invoke_this(const std::string &name, void *this_ptr, Args... args) const {
+  T invoke_this(const std::string_view &name, void *this_ptr,
+                Args... args) const {
     thiscallPtr_t<T(void *__this, Args...)> f =
         get_proc<thiscallPtr_t<T(void *__this, Args...)>>(name);
     if (f) {
@@ -143,7 +146,7 @@ public:
 
   template <typename T, typename... Args>
     requires(std::is_same_v<T, void>)
-  void invoke(const std::string &name, Args... args) const {
+  void invoke(const std::string_view &name, Args... args) const {
     cdeclPtr_t<void(Args...)> f = get_proc<cdeclPtr_t<void(Args...)>>(name);
 
     if (f) {
@@ -153,7 +156,7 @@ public:
 
   template <typename T, typename... Args>
     requires(std::is_same_v<T, void>)
-  void invoke_pascal(const std::string &name, Args... args) const {
+  void invoke_pascal(const std::string_view &name, Args... args) const {
     stdcallPtr_t<void(Args...)> f = get_proc<stdcallPtr_t<void(Args...)>>(name);
 
     if (f) {
@@ -163,7 +166,7 @@ public:
 
   template <typename T, typename... Args>
     requires(std::is_same_v<T, void>)
-  void invoke_this(const std::string &name, void *this_ptr,
+  void invoke_this(const std::string_view &name, void *this_ptr,
                    Args... args) const {
     thiscallPtr_t<void(void *__this, Args...)> f =
         get_proc<thiscallPtr_t<void(void *__this, Args...)>>(name);
@@ -179,9 +182,9 @@ public:
   [[nodiscard]] PIMAGE_DOS_HEADER get_dos_header() const;
   [[nodiscard]] PIMAGE_OPTIONAL_HEADER get_optional_header() const;
 
-  [[nodiscard]] void **get_iat_entry(const std::string &module_name,
+  [[nodiscard]] void **get_iat_entry(const std::string_view &module_name,
                                      std::string proc_name) const;
-  [[nodiscard]] void **get_iat_entry(const std::string &module_name,
+  [[nodiscard]] void **get_iat_entry(const std::string_view &module_name,
                                      const char *proc_name) const;
 
 private:
@@ -274,7 +277,8 @@ private:
   HKEY key_{};
 };
 
-registry_key open_or_create_registry_key(HKEY base, const std::string &input);
+registry_key open_or_create_registry_key(HKEY base,
+                                         const std::string_view &input);
 
 const library &ntdll();
 bool is_wine();
