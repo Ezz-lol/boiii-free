@@ -28,15 +28,13 @@ std::vector<bot_name> load_bots_names() {
       {"Solar", "Ezz"},
       {"Catsby", "Ezz"},
       {"Skwll", "PP"},
+      {"amkillam", ""},
       {"Frozedy", "Ezz"},
       {"Hellcat", "Ezz"},
-      {"EZZONTOP", "Ezz"},
-      {"EzzBot", "Ezz"},
       {"Ava", "WIFE"},
       {"Zyrow", "Ezz"},
       {"ZACK", "Ezz"},
       {"Aranella", "Ezz"},
-      {"Ezz+", "GOAT"},
       {"Clyde", "Ezz"},
       {"Misty", "Ezz"},
       {"Richtofen", "ZMB"},
@@ -64,36 +62,35 @@ std::vector<bot_name> load_bots_names() {
     return bot_names;
   }
 
-  auto data = utils::string::split(buffer, '\n');
-  for (auto &entry : data) {
+  std::vector<std::string> data = utils::string::split(buffer, '\n');
+  for (std::string &entry : data) {
     utils::string::replace(entry, "\r", "");
     utils::string::trim(entry);
 
-    if (entry.empty()) {
-      continue;
-    }
+    if (!entry.empty()) {
+      std::string clan_abbrev;
+      // Check if there is a clan tag
+      const size_t pos = entry.find(',');
+      if (pos != std::string::npos) {
+        // Only start copying over from non-null characters (otherwise it can be
+        // "<=")
+        if ((pos + 1) < entry.size()) {
+          clan_abbrev = entry.substr(pos + 1);
+        }
 
-    std::string clan_abbrev;
-    // Check if there is a clan tag
-    if (const auto pos = entry.find(','); pos != std::string::npos) {
-      // Only start copying over from non-null characters (otherwise it can be
-      // "<=")
-      if ((pos + 1) < entry.size()) {
-        clan_abbrev = entry.substr(pos + 1);
+        entry = entry.substr(0, pos);
       }
 
-      entry = entry.substr(0, pos);
+      bot_names.emplace_back(entry, clan_abbrev);
     }
-
-    bot_names.emplace_back(entry, clan_abbrev);
   }
 
   return bot_names;
 }
 
 const std::vector<bot_name> &get_bot_names() {
-  static const auto bot_names = [] {
-    auto names = load_bots_names();
+  static const std::vector<bot_name> bot_names = [] {
+    std::vector<bot_name> names = load_bots_names();
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -106,7 +103,7 @@ const std::vector<bot_name> &get_bot_names() {
 
 const char *get_bot_name() {
   static size_t current = 0;
-  const auto &names = get_bot_names();
+  const std::vector<bot_name> &names = get_bot_names();
 
   current = (current + 1) % names.size();
   return names.at(current).first.data();
@@ -117,7 +114,7 @@ int format_bot_string(char *buffer, [[maybe_unused]] const char *format,
                       int protocol, int net_field_chk, const char *session_mode,
                       int qport) {
   const auto find_clan_name = [](const std::string &needle) -> const char * {
-    for (const auto &entry : get_bot_names()) {
+    for (const bot_name &entry : get_bot_names()) {
       if (entry.first == needle) {
         return entry.second.data();
       }
