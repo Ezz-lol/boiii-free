@@ -27,6 +27,7 @@
 - [Zombies Server Setup](#zombies-server-setup)
 - [Compile from Source](#compile-from-source)
 - [GSC Scripting Additions](#gsc-scripting-additions)
+- [CoD Points & Liquid Divinium](#cod-points--liquid-divinium)
 - [Credits](#credits)
 - [Disclaimer](#disclaimer)
 
@@ -435,6 +436,17 @@ extra utility functions to make scripting and mod development easier.
 
 For the full guide and examples, see
 [docs/gsc-scripting.md](docs/gsc-scripting.md).
+
+---
+
+## CoD Points & Liquid Divinium
+
+Both currencies normally come from Demonware, which is not available here, so
+this client keeps a local wallet instead. Use `codpoints <amount>` and
+`divinium <amount>` to set a balance, or play a match to earn some.
+
+For commands, dvars and current limitations, see
+[docs/currency.md](docs/currency.md).
 
 ---
 
