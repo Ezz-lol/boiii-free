@@ -701,13 +701,14 @@ void emit_expression(emitter_state &s, const ast_ptr &node,
     s.emit_string_ref(Opcode::GetIString, node->value, node->line);
     break;
   case node_type::n_hash_string:
-  hash_string: {
-    const ScrVarCanonicalName_t hash = gsc::gsc_hash(node->value);
-    s.emit<Opcode>(Opcode::GetHash, node->line);
-    s.emit_align<uint32_t>();
-    s.emit<uint32_t>(hash, node->line);
-    break;
-  }
+  hash_string:
+    {
+      const ScrVarCanonicalName_t hash = gsc::gsc_hash(node->value);
+      s.emit<Opcode>(Opcode::GetHash, node->line);
+      s.emit_align<uint32_t>();
+      s.emit<uint32_t>(hash, node->line);
+      break;
+    }
   case node_type::n_true_val:
     emit_get_number(s, 1, node->line);
     break;
