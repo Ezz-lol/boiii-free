@@ -501,7 +501,7 @@ function remove_best_bot(players)
 	foreach(bot in bots)
 	{
 		// Don't kick bots in the process of connecting
-		if (bot.sessionstate == "spectator")
+		if (!isstring(bot.sessionstate) || bot.sessionstate == "spectator")
 		{
 			continue;
 		}
@@ -635,7 +635,7 @@ function get_closest_enemy(origin, on_radar)
 
 function use_supply_drop(weapon)
 {
-	if (weapon == "inventory_supplydrop_mp" || weapon == "supplydrop_mp")
+	if (weapon.name == "inventory_supplydrop_mp" || weapon.name == "supplydrop_mp")
 	{
 		if (gettime() - self.spawntime > 5000)
 			return;
@@ -660,7 +660,7 @@ function use_supply_drop(weapon)
 
 	self addgoal(self.origin, 24, 4, "killstreak");
 
-	if (weapon == "missile_drone_mp" || weapon == "inventory_missile_drone_mp")
+	if (weapon.name == "missile_drone_mp" || weapon.name == "inventory_missile_drone_mp")
 		self lookat(drop_point + vectorscale((0, 0, 1), 384.0));
 	else
 		self lookat(drop_point);
@@ -688,7 +688,7 @@ function use_item(weapon)
 
 	for (i = 0; i < 10; i++)
 	{
-		if (self getCurrentWeapon() == weapon || self getCurrentWeapon() == "none")
+		if (self getCurrentWeapon() == weapon || self getCurrentWeapon() == level.weaponNone)
 			self bot::press_attack_button();
 		else
 			return;
