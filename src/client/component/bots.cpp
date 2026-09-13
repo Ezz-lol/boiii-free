@@ -27,9 +27,9 @@ std::vector<bot_name> load_bots_names() {
   std::vector<bot_name> bot_names = {
       {"Solar", "Ezz"},
       {"Catsby", "Ezz"},
-      {"Skwll", "PP"},
-      {"amkillam", ""},
-      {"Frozedy", "Ezz"},
+      {"Skwll", "DEV"},
+      {"amkillam", "DEV"},
+      {"Frozedy", "DEV"},
       {"Hellcat", "Ezz"},
       {"Ava", "WIFE"},
       {"Zyrow", "Ezz"},
