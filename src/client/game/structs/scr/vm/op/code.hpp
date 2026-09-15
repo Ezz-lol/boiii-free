@@ -68,8 +68,11 @@ enum class Opcode : uint8_t {
   EvalLocalVariableRefCached = 0x1A,
   EvalLocalVariableRefCachedDebug = 0x1B,
   FirstArrayKey = 0x1C,
+  // Emits pointer to current anim
   GetAnim = 0x1D,
+  // Used to resolve animation in current tree, e.g. for `%anim_name`.
   GetAnimation = 0x1E,
+  // Sets current object to current anim. Used for field accesses
   GetAnimObject = 0x1F,
   GetAPIFunction = 0x20,
   GetByte = 0x21,

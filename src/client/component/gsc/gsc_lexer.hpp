@@ -38,21 +38,23 @@ enum class token_type {
   t_game,
   t_anim,
   t_autoexec,
-  t_namespace_kw,  // #namespace
-  t_using,         // #using
-  t_include,       // #include
-  t_function_kw,   // function
-  t_private,       // private
-  t_world,         // world
-  t_waitrealtime,  // waitrealtime
-  t_const_kw,      // const
-  t_precache,      // #precache
-  t_insert,        // #insert
-  t_waittill,      // waittill
-  t_waittillmatch, // waittillmatch
-  t_notify_kw,     // notify
-  t_endon_kw,      // endon
-  t_classes,       // classes
+  t_namespace_kw,   // #namespace
+  t_using,          // #using
+  t_include,        // #include
+  t_function_kw,    // function
+  t_private,        // private
+  t_world,          // world
+  t_waitrealtime,   // waitrealtime
+  t_const_kw,       // const
+  t_precache,       // #precache
+  t_insert,         // #insert
+  t_using_animtree, // #using_animtree
+  t_animtree,       // #animtree
+  t_waittill,       // waittill
+  t_waittillmatch,  // waittillmatch
+  t_notify_kw,      // notify
+  t_endon_kw,       // endon
+  t_classes,        // classes
 
   // operators
   t_plus,      // +

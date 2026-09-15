@@ -88,6 +88,17 @@ struct import_entry {
   std::vector<std::pair<size_t, uint32_t>> references;
 };
 
+struct animation_ref {
+  size_t name_str_index;
+  std::pair<size_t, uint32_t> reference;
+};
+
+struct animtree_entry {
+  uint32_t name_str_index;
+  std::vector<std::pair<size_t, uint32_t>> references;
+  std::vector<animation_ref> anims;
+};
+
 struct Local {
   ScrVarCanonicalName_t name;
   size_t index;
@@ -150,6 +161,7 @@ struct emitter_state {
   std::vector<import_entry> imports;
 
   std::vector<std::string> includes;
+  std::vector<animtree_entry> animtrees;
 
   std::vector<export_entry> exports;
 
@@ -253,6 +265,18 @@ struct emitter_state {
     size_t aligned_ofs = emit_aligned<uint32_t>(0xFFFFFFFF, line);
     strings[idx].references.push_back(
         {current_export_index, static_cast<uint32_t>(aligned_ofs)});
+  }
+
+  void emit_tree_anim(const std::string &name, uint64_t line) {
+    emit<Opcode>(Opcode::GetAnimation, line);
+    const size_t name_idx = add_string(name);
+    const size_t animtree_idx = animtrees.size() - 1;
+    const size_t aligned_ofs = emit_aligned<scr_anim_t>(
+        {.index = static_cast<uint16_t>(animtrees[animtree_idx].anims.size()),
+         .tree = static_cast<uint16_t>(animtree_idx)},
+        line);
+    animtrees[animtrees.size() - 1].anims.push_back(
+        {name_idx, {current_export_index, aligned_ofs}});
   }
 
   uint64_t make_import_key(uint32_t func, uint32_t ns, uint8_t params,
@@ -702,6 +726,18 @@ void emit_expression(emitter_state &s, const ast_ptr &node,
     }
     s.emit_string_ref(Opcode::GetString, node->value, node->line);
 
+    break;
+  }
+  case node_type::n_animtree: {
+    s.emit<Opcode>(Opcode::GetInteger, node->line);
+    const size_t aligned_pos = s.emit_aligned<uint32_t>(
+        static_cast<uint32_t>(s.animtrees.size() - 1), node->line);
+    s.animtrees[s.animtrees.size() - 1].references.push_back(
+        {s.current_export_index, aligned_pos});
+    break;
+  }
+  case node_type::n_tree_anim: {
+    s.emit_tree_anim(node->value, node->line);
     break;
   }
   case node_type::n_istring:
@@ -1942,7 +1978,6 @@ std::vector<uint8_t> assemble(emitter_state &s) {
   const uint32_t total_bytecode_size = bytecode_end - bytecode_start;
 
   // Patch string placeholders with actual offsets
-
   for (const string_entry &str : s.strings) {
     for (const std::pair<size_t, uint32_t> &ref : str.references) {
       uint32_t abs_offset = resolve_ref(s, ref);
@@ -1981,8 +2016,27 @@ std::vector<uint8_t> assemble(emitter_state &s) {
     }
   }
 
-  // AnimTree section (empty)
   const uint32_t animtree_offset = static_cast<uint32_t>(output.size());
+  for (const animtree_entry &animtree : s.animtrees) {
+    write<GSC_ANIMTREE_ITEM>(
+        output,
+        {
+            .name = s.strings[animtree.name_str_index].offset,
+            .num_tree_address =
+                static_cast<uint16_t>(animtree.references.size()),
+            .num_node_address = static_cast<uint16_t>(animtree.anims.size()),
+        });
+
+    for (const std::pair<size_t, uint32_t> &ref : animtree.references) {
+      write<uint32_t>(output, resolve_ref(s, ref));
+    }
+
+    for (const animation_ref &anim_ref : animtree.anims) {
+      write<GSC_ANIMNODE_ITEM>(
+          output, {.name = s.strings[anim_ref.name_str_index].offset,
+                   .address = resolve_ref(s, anim_ref.reference)});
+    }
+  }
 
   // String fixup table: u32 string_ptr | u32 num_refs | u32 refs[N]
   const uint32_t string_fixup_offset = static_cast<uint32_t>(output.size());
@@ -2026,7 +2080,7 @@ std::vector<uint8_t> assemble(emitter_state &s) {
   header->profile_count = 0;
   header->devblock_stringtablefixup_count = 0;
   header->include_count = static_cast<uint8_t>(s.includes.size());
-  header->animtree_count = 0;
+  header->animtree_count = static_cast<uint8_t>(s.animtrees.size());
   header->flags = 0;
 
   return output;
@@ -2122,6 +2176,12 @@ emitter_result emit(scriptInstance_t inst, const ast_ptr &root,
         state.script_namespace = gsc::gsc_hash(child->value);
       } else if (child->type == node_type::n_include) {
         state.includes.push_back(child->value);
+      } else if (child->type == node_type::n_using_animtree) {
+        const size_t idx = state.add_string(child->value);
+        state.animtrees.push_back({.name_str_index = static_cast<uint32_t>(idx),
+                                   .references = {},
+                                   .anims = {}});
+
       } else if (child->type == node_type::n_function_def) {
         if (child->children.size() == 4 &&
             child->children[3]->type == node_type::n_func_ref) {

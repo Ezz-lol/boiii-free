@@ -38,9 +38,11 @@ struct lexer_state {
 bool is_ident_start(char c) {
   return std::isalpha(static_cast<unsigned char>(c)) || c == '_';
 }
+
 bool is_ident_char(char c) {
   return std::isalnum(static_cast<unsigned char>(c)) || c == '_';
 }
+bool is_directive_char(char c) { return is_ident_char(c); }
 bool is_digit(char c) { return std::isdigit(static_cast<unsigned char>(c)); }
 bool is_hex_digit(char c) {
   auto cu = static_cast<unsigned char>(c);
@@ -243,6 +245,9 @@ token_type keyword_or_identifier(const std::string &word) {
     return token_type::t_endon_kw;
   if (word == "classes")
     return token_type::t_classes;
+  if (word == "#animtree") {
+    return token_type::t_animtree;
+  }
   return token_type::t_identifier;
 }
 } // namespace
@@ -280,8 +285,16 @@ lexer_result tokenize(const std::string &source) {
         }
       }
 
-      while (!s.at_end() && is_ident_char(s.peek()))
+      while (!s.at_end() && is_directive_char(s.peek())) {
         directive += s.advance();
+      }
+
+      if (directive == "animtree") {
+        tok.type = token_type::t_animtree;
+        tok.value = "#animtree";
+        result.tokens.push_back(std::move(tok));
+        continue;
+      }
 
       if (directive == "namespace") {
         tok.type = token_type::t_namespace_kw;
@@ -295,6 +308,13 @@ lexer_result tokenize(const std::string &source) {
         result.tokens.push_back(std::move(tok));
         continue;
       }
+      if (directive == "using_animtree") {
+        tok.type = token_type::t_using_animtree;
+        tok.value = "#using_animtree";
+        result.tokens.push_back(std::move(tok));
+        continue;
+      }
+
       if (directive == "precache") {
         tok.type = token_type::t_precache;
         tok.value = "#precache";
@@ -351,8 +371,9 @@ lexer_result tokenize(const std::string &source) {
         is_ident_start(s.peek_next())) {
       s.advance();
       std::string word;
-      while (!s.at_end() && is_ident_char(s.peek()))
+      while (!s.at_end() && is_ident_char(s.peek())) {
         word += s.advance();
+      }
 
       // Check for namespace path: &ns\path::func or &ns::func
       if (!s.at_end() && (s.peek() == ':' || s.peek() == '\\')) {

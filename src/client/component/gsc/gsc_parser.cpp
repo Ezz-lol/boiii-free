@@ -149,6 +149,10 @@ ast_ptr parse_primary(parser_state &s) {
     const token &tok = s.advance();
     return make_node(node_type::n_istring, tok.value, tok.line, tok.column);
   }
+  if (s.check(token_type::t_animtree)) {
+    const token &tok = s.advance();
+    return make_node(node_type::n_animtree, tok.value, tok.line, tok.column);
+  }
   if (s.check(token_type::t_hash_string)) {
     const token &tok = s.advance();
     return make_node(node_type::n_hash_string, tok.value, tok.line, tok.column);
@@ -197,6 +201,14 @@ ast_ptr parse_primary(parser_state &s) {
     const token &name =
         s.expect(token_type::t_identifier, "Expected function name after '::'");
     return make_node(node_type::n_func_ref, name.value, t.line, t.column);
+  }
+
+  if (s.check(token_type::t_percent) &&
+      s.peek(1).type == token_type::t_identifier) {
+    s.advance();
+    const token &name =
+        s.expect(token_type::t_identifier, "Expected function name after '::'");
+    return make_node(node_type::n_tree_anim, name.value, t.line, t.column);
   }
 
   if (s.check(token_type::t_ampersand) &&
@@ -363,7 +375,7 @@ ast_ptr parse_postfix(parser_state &s) {
       continue;
     }
 
-    std::function<bool()> is_method_start = [&]() -> bool {
+    std::function<bool()> is_method_start = [&s]() -> bool {
       return s.check(token_type::t_identifier) ||
              s.check(token_type::t_thread) || s.check(token_type::t_waittill) ||
              s.check(token_type::t_waittillmatch) ||
@@ -378,7 +390,7 @@ ast_ptr parse_postfix(parser_state &s) {
         s.advance();
       }
 
-      std::function<bool()> is_callable_token = [&]() -> bool {
+      std::function<bool()> is_callable_token = [&s]() -> bool {
         return s.check(token_type::t_identifier) ||
                s.check(token_type::t_waittill) ||
                s.check(token_type::t_waittillmatch) ||
@@ -435,8 +447,9 @@ ast_ptr parse_postfix(parser_state &s) {
           while (s.check(token_type::t_backslash)) {
             ns += "\\";
             s.advance();
-            if (s.check(token_type::t_identifier))
+            if (s.check(token_type::t_identifier)) {
               ns += s.advance().value;
+            }
           }
 
           if (s.check(token_type::t_double_colon)) {
@@ -1179,19 +1192,86 @@ ast_ptr parse_script(parser_state &s) {
     }
 
     if (s.check(token_type::t_precache)) {
-      s.advance();
+      const token &precache_token = s.advance();
       s.expect(token_type::t_lparen, "Expected '('");
       int depth = 1;
+      std::optional<token> type_tok = std::nullopt;
+      std::optional<token> name_tok = std::nullopt;
       while (!s.at_end() && depth > 0) {
-        if (s.check(token_type::t_lparen))
+        if (s.check(token_type::t_lparen)) {
           depth++;
-        else if (s.check(token_type::t_rparen))
+        } else if (s.check(token_type::t_rparen)) {
           depth--;
-        if (depth > 0)
-          s.advance();
+        }
+        const token &t = s.advance();
+        if (depth > 0) {
+          switch (t.type) {
+          case token_type::t_string: {
+            if (type_tok.has_value()) {
+              name_tok = t;
+            } else {
+              type_tok = t;
+            }
+            break;
+          }
+          default: {
+            break;
+          }
+          }
+        }
       }
-      s.expect(token_type::t_rparen, "Expected ')'");
       s.expect(token_type::t_semicolon, "Expected ';'");
+      ast_ptr precache_node =
+          make_node(node_type::n_precache, "#precache", precache_token.line,
+                    precache_token.column);
+      if (type_tok.has_value()) {
+        const ast_ptr type_node =
+            make_node(node_type::n_string, type_tok->value, type_tok->line,
+                      type_tok->column);
+        precache_node->children.push_back(std::move(type_node));
+        if (name_tok.has_value()) {
+          const ast_ptr name_node =
+              make_node(node_type::n_string, name_tok->value, name_tok->line,
+                        name_tok->column);
+          precache_node->children.push_back(std::move(name_node));
+        }
+      }
+      root->children.push_back(std::move(precache_node));
+      continue;
+    }
+
+    if (s.check(token_type::t_using_animtree)) {
+      const token &using_animtree_token = s.advance();
+      s.expect(token_type::t_lparen, "Expected '('");
+      int depth = 1;
+      std::optional<token> name_tok = std::nullopt;
+      while (!s.at_end() && depth > 0) {
+        if (s.check(token_type::t_lparen)) {
+          depth++;
+        } else if (s.check(token_type::t_rparen)) {
+          depth--;
+        }
+        const token &t = s.advance();
+        if (depth > 0) {
+          switch (t.type) {
+          case token_type::t_string: {
+            if (!name_tok.has_value()) {
+              name_tok = t;
+            }
+            break;
+          }
+          default: {
+            break;
+          }
+          }
+        }
+      }
+      s.expect(token_type::t_semicolon, "Expected ';'");
+      if (name_tok.has_value()) {
+        root->children.push_back(
+            make_node(node_type::n_using_animtree, name_tok->value,
+                      using_animtree_token.line, using_animtree_token.column));
+      }
       continue;
     }
 

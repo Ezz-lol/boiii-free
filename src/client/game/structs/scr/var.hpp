@@ -181,6 +181,7 @@ union ScrVarValueUnion_t {
   uint64_t uint64Value;
   builtin::BuiltinFunction func;
   builtin::BuiltinMethod method;
+  scr_anim_t anim;
   uintptr_t uintptrValue;
   float floatValue;
   ScrString_t stringValue;

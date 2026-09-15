@@ -1686,6 +1686,7 @@ struct GSC_ANIMNODE_ITEM {
   uintptr_t name;
   uintptr_t address;
 };
+ASSERT_SIZE(GSC_ANIMNODE_ITEM, 0x10);
 
 struct GSC_FIXUP_ITEM {
   uintptr_t offset;
@@ -1742,6 +1743,7 @@ struct GSC_ANIMTREE_ITEM {
   uint16_t num_tree_address;
   uint16_t num_node_address;
 };
+ASSERT_SIZE(GSC_ANIMTREE_ITEM, 8);
 
 PACKED(struct GSC_OBJ {
   str8_t magic;
@@ -1895,7 +1897,6 @@ PACKED(struct GSC_OBJ {
       LF,
       NULL,
       static_cast<char>(T7_LATEST_VERSION)};
-  // static inline constexpr const uint32_t T7_SRC_CRC = 0x4C492053;
 
   static inline constexpr GSC_OBJ t7() noexcept {
     GSC_OBJ result = {};
