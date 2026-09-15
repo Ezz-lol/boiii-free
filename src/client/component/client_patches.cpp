@@ -445,7 +445,7 @@ template <const game::RestartMethod_t RestartMethod>
 void SV_RestartCmd_RotateOrDefault() {
   if (game::get_sv_running() &&
       !game::com::Com_SessionMode_IsMode(game::eModes::COUNT) /* main menu */) {
-    std::string_view curr_gametype;
+    std::string_view curr_gametype = TDM_GAMETYPE;
     const std::string_view curr_mapname =
         game::get_mapname().value_or("mp_nuketown");
 
@@ -453,14 +453,15 @@ void SV_RestartCmd_RotateOrDefault() {
     if (gametype_dvar_val.has_value()) {
       curr_gametype = gametype_dvar_val.value();
 
-    } else if (utils::string::starts_with(curr_mapname,
-                                          MULTIPLAYER_MAP_PREFIX)) {
-      curr_gametype = TDM_GAMETYPE;
+    } else if (!utils::string::starts_with(curr_mapname,
+                                           MULTIPLAYER_MAP_PREFIX)) {
 
-    } else if (utils::string::starts_with(curr_mapname, ZOMBIES_MAP_PREFIX)) {
-      curr_gametype = ZCLASSIC_GAMETYPE;
-    } else if (utils::string::starts_with(curr_mapname, CAMPAIGN_MAP_PREFIX)) {
-      curr_gametype = CAMPAIGN_GAMETYPE;
+      if (utils::string::starts_with(curr_mapname, ZOMBIES_MAP_PREFIX)) {
+        curr_gametype = ZCLASSIC_GAMETYPE;
+      } else if (utils::string::starts_with(curr_mapname,
+                                            CAMPAIGN_MAP_PREFIX)) {
+        curr_gametype = CAMPAIGN_GAMETYPE;
+      }
     }
 
     const char *rotate_cmd = utils::string::va(
