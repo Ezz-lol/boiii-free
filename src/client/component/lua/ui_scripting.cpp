@@ -929,6 +929,31 @@ void try_start() {
   }
 }
 
+void load_ingame_menu_scripts() {
+  const utils::nt::library host{};
+  const std::filesystem::path roots[] = {
+      game::get_appdata_path() / "data/ui_scripts",
+      host.get_folder() / "boiii/ui_scripts",
+  };
+  const char *files[] = {
+      "party/datasources_start_menu_game_options.lua",
+      "party/__init__.lua",
+      "kick_menu/__init__.lua",
+      "tweaks/__init__.lua",
+      "social_friends/__init__.lua",
+  };
+
+  for (const std::filesystem::path &root : roots) {
+    for (const char *file : files) {
+      const std::filesystem::path path = root / file;
+      std::string data;
+      if (utils::io::read_file(path.string(), &data)) {
+        load_script(path.generic_string(), data, file);
+      }
+    }
+  }
+}
+
 void ui_init_stub(lua_Alloc allocFunction, void *outOfMemoryFunction) {
   ui_init_hook.invoke(allocFunction, outOfMemoryFunction);
 
@@ -936,6 +961,7 @@ void ui_init_stub(lua_Alloc allocFunction, void *outOfMemoryFunction) {
 }
 
 std::atomic<bool> doneFirstSnapshot = false;
+std::atomic<unsigned int> frontend_scripts_generation = 0;
 
 void ui_cod_init_stub(const bool frontend) {
   ui_cod_init_hook.invoke(frontend);
@@ -957,7 +983,23 @@ void ui_cod_init_stub(const bool frontend) {
 
 void ui_cod_lobbyui_init_stub() {
   ui_cod_lobbyui_init_hook.invoke();
-  try_start();
+
+  if (game::is_server()) {
+    try_start();
+    return;
+  }
+
+  const unsigned int generation =
+      frontend_scripts_generation.fetch_add(1, std::memory_order_acq_rel) + 1;
+  scheduler::once(
+      [generation] {
+        if (frontend_scripts_generation.load(std::memory_order_acquire) ==
+                generation &&
+            game::com::Com_IsRunningUILevel()) {
+          try_start();
+        }
+      },
+      scheduler::main, 500ms);
 }
 
 void inject_discord_score_subscriptions() {
@@ -1001,6 +1043,11 @@ void cl_first_snapshot_stub(game::LocalClientNum_t localClientNum) {
 
   hot_reload_in_game.store(true, std::memory_order_release);
   try_start();
+  try {
+    load_ingame_menu_scripts();
+  } catch (const std::exception &ex) {
+    printf("Failed to load in-game LUI scripts: %s\n", ex.what());
+  }
   toast::patch_hud();
 
   try {
@@ -1011,6 +1058,7 @@ void cl_first_snapshot_stub(game::LocalClientNum_t localClientNum) {
 
 void ui_shutdown_stub() {
   hot_reload_in_game.store(false, std::memory_order_release);
+  frontend_scripts_generation.fetch_add(1, std::memory_order_acq_rel);
 
   ui_shutdown_hook.invoke<void>();
   converted_functions.clear();
