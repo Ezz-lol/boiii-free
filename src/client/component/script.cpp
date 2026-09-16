@@ -374,8 +374,7 @@ void print_loading_script(const std::string &name) {
   print_script_log(log);
 }
 
-void load_script(const std::string &name, const std::string &data,
-                 const bool load) {
+void load_script(const std::string &name, const std::string &data) {
 
   const bool is_csc = utils::string::ends_with(name, ".csc");
   const bool is_gsc = utils::string::ends_with(name, ".gsc");
@@ -412,23 +411,17 @@ void load_script(const std::string &name, const std::string &data,
     const char *log = utils::string::va("Loaded script '%s' (size %llu bytes)",
                                         name.data(), parse_tree->len);
     print_script_log(log);
-
-    if (load) {
-      const scriptInstance_t inst =
-          is_csc ? SCRIPTINSTANCE_CLIENT : SCRIPTINSTANCE_SERVER;
-      scr::Scr_LoadScript(inst, base_name.data());
-    }
   }
 }
 
 void load_script_file(std::string &data,
                       const std::filesystem::path &script_file,
-                      const std::string &name, const bool load) {
+                      const std::string &name) {
 
   if (data.size() >= sizeof(GSC_OBJ::T7_MAGIC) &&
       reinterpret_cast<GSC_OBJ *>(data.data())->hasMagic(GSC_OBJ::T7_MAGIC)) {
     print_loading_script(name);
-    load_script(name, data, load);
+    load_script(name, data);
   } else {
     const std::string script_file_str = script_file.generic_string();
     if ((utils::string::ends_with(script_file_str, ".gsc") ||
@@ -487,26 +480,8 @@ void load_script_file(std::string &data,
 
           print_loading_script(name);
           std::string bytecode(result.bytecode.begin(), result.bytecode.end());
-          load_script(name, bytecode, load);
+          load_script(name, bytecode);
           add_gdb(name, result.gdb);
-          objFileInfo_t *obj =
-              get_obj_by_name(scriptInstance_t::SCRIPTINSTANCE_SERVER, name);
-          if (obj) {
-            script_sources.modify_if(
-                name, [&](concurrent_hash_map<std::string,
-                                              std::string>::value_type &v) {
-                  char *src = v.second.data();
-                  obj->debugInfo.source = src;
-                  obj->debugInfo.gdb = nullptr;
-                  obj->debugInfo.sourceLen = v.second.size();
-                  for (size_t i = 0; i < v.second.size(); ++i) {
-                    char *c = &src[i];
-                    if (*c == '\n' || *c == '\r') {
-                      *c = '\0';
-                    }
-                  }
-                });
-          }
 
           // Register replacefunc entries as pending detours
           if (!result.replacefuncs.empty()) {
@@ -587,6 +562,42 @@ void load_script_file(std::string &data,
   }
 }
 
+void execute_loaded_script(const std::string &name) {
+  const bool is_csc = utils::string::ends_with(name, ".csc");
+  const bool is_gsc = utils::string::ends_with(name, ".gsc");
+  if ((!is_gsc && !is_csc) || (is_csc && !is_client()) ||
+      !get_loaded_script(name)) {
+    return;
+  }
+
+  const std::string base_name = name.substr(0, name.size() - 4);
+  if (base_name.empty()) {
+    return;
+  }
+
+  const scriptInstance_t inst =
+      is_csc ? SCRIPTINSTANCE_CLIENT : SCRIPTINSTANCE_SERVER;
+  scr::Scr_LoadScript(inst, base_name.data());
+
+  objFileInfo_t *obj = get_obj_by_name(inst, name);
+  if (obj) {
+    script_sources.modify_if(
+        name,
+        [&](concurrent_hash_map<std::string, std::string>::value_type &v) {
+          char *src = v.second.data();
+          obj->debugInfo.source = src;
+          obj->debugInfo.gdb = nullptr;
+          obj->debugInfo.sourceLen = v.second.size();
+          for (size_t i = 0; i < v.second.size(); ++i) {
+            char *c = &src[i];
+            if (*c == '\n' || *c == '\r') {
+              *c = '\0';
+            }
+          }
+        });
+  }
+}
+
 constexpr const std::string_view gametype_prefixes[] = {"zm", "mp", "cp"};
 
 bool is_map_override_directory_name(const std::string_view &name) {
@@ -600,14 +611,15 @@ bool is_map_override_directory_name(const std::string_view &name) {
 void load_scripts_directory(
     const std::string &script_dir, const bool load, const bool recurse,
     const std::optional<std::string_view> strip_base = std::nullopt,
-    const bool exclude_map_subtrees = false) {
+    const bool exclude_map_subtrees = false,
+    std::unordered_set<std::string> *executed_scripts = nullptr) {
   if (utils::io::directory_exists(script_dir)) {
     std::vector<std::filesystem::path> scripts =
         utils::io::list_files(script_dir, recurse, false);
 
-    const auto load_dir_file_cb = [load, strip_base, exclude_map_subtrees,
-                                   script_dir](
-                                      const std::filesystem::path &script) {
+    const auto load_dir_file_cb =
+        [load, strip_base, exclude_map_subtrees, executed_scripts,
+         script_dir](const std::filesystem::path &script) {
       if (exclude_map_subtrees) {
         std::error_code ec;
         const std::filesystem::path relative =
@@ -651,7 +663,14 @@ void load_scripts_directory(
           }
         }
 
-        load_script_file(data, script, name, load);
+        if (load) {
+          const std::string key = utils::string::to_lower(name);
+          if (!executed_scripts || executed_scripts->insert(key).second) {
+            execute_loaded_script(name);
+          }
+        } else {
+          load_script_file(data, script, name);
+        }
       }
     };
     if (load) {
@@ -739,16 +758,19 @@ void load_tree(std::filesystem::path tree, bool execImmediate = false) {
 
   const std::filesystem::path data_directory = get_appdata_path() / "data";
   const std::filesystem::path boiii_directory = host.get_folder() / "boiii";
+  std::unordered_set<std::string> executed_scripts;
 
-  const auto load = [&data_directory, &boiii_directory](
+  const auto load = [&data_directory, &boiii_directory, &executed_scripts](
                         const std::filesystem::path &directory, const bool load,
                         const bool recurse,
                         const std::optional<std::string_view> strip_base,
                         const bool exclude_map_subtrees) {
     load_scripts_directory((data_directory / directory).string(), load, recurse,
-                           strip_base, exclude_map_subtrees);
+                           strip_base, exclude_map_subtrees,
+                           load ? &executed_scripts : nullptr);
     load_scripts_directory((boiii_directory / directory).string(), load,
-                           recurse, strip_base, exclude_map_subtrees);
+                           recurse, strip_base, exclude_map_subtrees,
+                           load ? &executed_scripts : nullptr);
   };
 
   std::vector<TreeDirectory> applicable_tree_dirs;
