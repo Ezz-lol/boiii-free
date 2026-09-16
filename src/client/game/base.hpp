@@ -1,8 +1,10 @@
 #pragma once
 
-#include <filesystem>
-#include <psapi.h>
 #include <windows.h>
+
+#include <psapi.h>
+
+#include <filesystem>
 
 #pragma comment(lib, "psapi.lib")
 

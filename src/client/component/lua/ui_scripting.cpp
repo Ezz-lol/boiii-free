@@ -1268,11 +1268,10 @@ thread_local char getinfo_source_buf[512]{};
 
 const char *resolve_c_function_name(lua_CFunction *c_func_ptr) {
   if (c_func_ptr) {
-    for (EngineDependentLuaEngineFunction func =
-             *api::LuaEngineFunctionListTail;
-         func; func = func.next()) {
-      if (func.func() == c_func_ptr) {
-        return func.name();
+    for (LuaEngineFunction *func = *api::LuaEngineFunctionListTail; func;
+         func = func->next) {
+      if (func->func == c_func_ptr) {
+        return func->name;
       }
     }
   }

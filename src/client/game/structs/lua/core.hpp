@@ -1594,91 +1594,18 @@ template <typename T> union LuaStatePool {
 
 typedef LuaStatePool<LuaStateContext> CodLuaStates;
 
-PACKED(struct LuaEngineFunction_SV {
+struct LuaEngineFunction {
   const char *name;
   hks::lua_CFunction *func;
   uint32_t vmFlags;
   uint8_t _padding14[4];
-  LuaEngineFunction_SV *next;
-});
-ASSERT_SIZE(LuaEngineFunction_SV, 0x20);
+  LuaEngineFunction *next;
+};
 
-struct LuaEngineFunction_CL {
+struct LuaUIEngineFunction {
   const char *name;
   hks::lua_CFunction *func;
-  LuaEngineFunction_CL *next;
-};
-
-union EngineDependentLuaEngineFunction {
-  const LuaEngineFunction_SV *sv;
-  const LuaEngineFunction_CL *cl;
-
-  inline const char *name() const noexcept {
-    if (game::is_server()) {
-      return sv->name;
-    }
-
-    return cl->name;
-  }
-
-  inline EngineDependentLuaEngineFunction next() const noexcept {
-    if (game::is_server()) {
-      return EngineDependentLuaEngineFunction{.sv = sv->next};
-    }
-
-    return EngineDependentLuaEngineFunction{.cl = cl->next};
-  }
-
-  inline hks::lua_CFunction *func() const noexcept {
-    if (game::is_server()) {
-      return sv->func;
-    }
-
-    return cl->func;
-  }
-
-  inline constexpr operator bool() const noexcept { return sv != nullptr; }
-  inline operator uintptr_t() const noexcept {
-    return reinterpret_cast<uintptr_t>(sv);
-  }
-};
-
-union EngineDependentLuaEngineFunctionMut {
-  LuaEngineFunction_SV *sv;
-  LuaEngineFunction_CL *cl;
-
-  inline const char *name() const noexcept {
-    if (game::is_server()) {
-      return sv->name;
-    }
-
-    return cl->name;
-  }
-
-  inline EngineDependentLuaEngineFunctionMut next() const noexcept {
-    if (game::is_server()) {
-      return EngineDependentLuaEngineFunctionMut{.sv = sv->next};
-    }
-
-    return EngineDependentLuaEngineFunctionMut{.cl = cl->next};
-  }
-
-  inline hks::lua_CFunction *func() const noexcept {
-    if (game::is_server()) {
-      return sv->func;
-    }
-
-    return cl->func;
-  }
-
-  inline constexpr operator EngineDependentLuaEngineFunction() const noexcept {
-    return EngineDependentLuaEngineFunction{.sv = sv};
-  }
-
-  inline constexpr operator bool() const noexcept { return sv != nullptr; }
-  inline operator uintptr_t() const noexcept {
-    return reinterpret_cast<uintptr_t>(sv);
-  }
+  LuaEngineFunction *next;
 };
 
 } // namespace lua
