@@ -579,6 +579,10 @@ void execute_loaded_script(const std::string &name) {
       is_csc ? SCRIPTINSTANCE_CLIENT : SCRIPTINSTANCE_SERVER;
   scr::Scr_LoadScript(inst, base_name.data());
 
+  const char *log =
+      utils::string::va("Loaded script '%s' into the VM", name.data());
+  print_script_log(log);
+
   objFileInfo_t *obj = get_obj_by_name(inst, name);
   if (obj) {
     script_sources.modify_if(
@@ -617,9 +621,9 @@ void load_scripts_directory(
     std::vector<std::filesystem::path> scripts =
         utils::io::list_files(script_dir, recurse, false);
 
-    const auto load_dir_file_cb =
-        [load, strip_base, exclude_map_subtrees, executed_scripts,
-         script_dir](const std::filesystem::path &script) {
+    const auto load_dir_file_cb = [load, strip_base, exclude_map_subtrees,
+                                   executed_scripts, script_dir](
+                                      const std::filesystem::path &script) {
       if (exclude_map_subtrees) {
         std::error_code ec;
         const std::filesystem::path relative =
