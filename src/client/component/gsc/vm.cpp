@@ -1,4 +1,5 @@
 #include <std_include.hpp>
+
 #include "vm.hpp"
 #include <game/impl/scr/vm/op.hpp>
 #include "gsc_funcs.hpp"

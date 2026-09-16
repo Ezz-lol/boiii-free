@@ -1,4 +1,5 @@
 #include <std_include.hpp>
+
 #include "fragment_handler.hpp"
 
 namespace game::fragment_handler {

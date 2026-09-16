@@ -1,4 +1,5 @@
 #include <std_include.hpp>
+
 #include <loader/component_loader.hpp>
 #include "localized_strings.hpp"
 #include <utils/hook.hpp>

@@ -1,4 +1,5 @@
 #include <std_include.hpp>
+
 #include "game.hpp"
 #include <game/impl/snd/snd.hpp>
 #include "hash.hpp"

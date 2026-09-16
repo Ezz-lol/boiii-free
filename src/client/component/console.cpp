@@ -1,4 +1,5 @@
 #include <std_include.hpp>
+
 #include "console.hpp"
 
 #include <resource.hpp>

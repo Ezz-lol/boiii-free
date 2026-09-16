@@ -1,4 +1,5 @@
 #include <std_include.hpp>
+
 #include "html_argument.hpp"
 
 html_argument::html_argument(VARIANT *val) : html_argument(*val) {}

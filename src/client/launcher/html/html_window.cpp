@@ -1,4 +1,5 @@
 #include <std_include.hpp>
+
 #include "html_window.hpp"
 
 html_window::html_window(const std::string &title, int width, int height,

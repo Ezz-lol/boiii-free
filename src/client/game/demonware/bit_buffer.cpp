@@ -1,4 +1,5 @@
 #include <std_include.hpp>
+
 #include "bit_buffer.hpp"
 
 namespace demonware {

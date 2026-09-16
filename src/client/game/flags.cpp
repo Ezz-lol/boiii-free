@@ -1,4 +1,5 @@
 #include <std_include.hpp>
+
 #include "flags.hpp"
 
 namespace game {
