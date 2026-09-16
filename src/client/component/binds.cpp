@@ -185,20 +185,21 @@ game::cmd::cmd_function_s *find_command(const char *name) {
 }
 
 void bind_wrapper() {
+  const command::params params{};
+  std::string key;
+  std::string cmd;
+  if (params.size() > 2) {
+    key = normalize_key(utils::string::to_lower(params[1]));
+    cmd = params.join(2);
+  }
+
   if (original_bind_fn)
     original_bind_fn();
 
-  if (current_phase == phase::ready) {
-    const command::params params{};
-    if (params.size() > 2) {
-      const std::string_view key =
-          normalize_key(utils::string::to_lower(params[1]));
-      const std::string cmd = params.join(2);
-      if (!key.empty() && !cmd.empty()) {
-        queue_op({pending_op::BIND, std::string(key), cmd});
-      }
-    }
-  }
+  if (current_phase != phase::ready || key.empty() || cmd.empty())
+    return;
+
+  queue_op({pending_op::BIND, key, cmd});
 }
 
 void unbind_wrapper() {
