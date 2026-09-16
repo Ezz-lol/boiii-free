@@ -8,7 +8,7 @@ namespace game {
 
 WEAK symbol<void(level::gentity_s *ent, level::gentity_s *target, int32_t mode,
                  const char *chatText)>
-    G_Say{0x0, 0x140299170};
+    G_Say{0x1419765F0, 0x140299170};
 WEAK symbol<void(const char *fmt, ...)> G_LogPrintf{0x0, 0x1402A7BB0};
 
 WEAK symbol<void(int32_t levelTime, int32_t randomSeed, qboolean restart,
@@ -111,11 +111,11 @@ WEAK symbol<void(level::gentity_t *ent)> G_UpdatePlayerNodes{0x0, 0x1402784C0};
 WEAK symbol<int64_t(ClientNum_t clientNum)> G_ClientSessionInfoChanged{
     0x0, 0x140279960};
 WEAK symbol<void(level::gentity_t *ent, const char *chatText)> G_Chat{
-    0x0, 0x140298E70};
+    0x141972C90, 0x140298E70};
 WEAK symbol<void(level::gentity_t *ent, level::gentity_t *other, int32_t mode,
                  int32_t color, const char *teamString, const char *cleanname,
                  const char *message)>
-    G_SayTo{0x0, 0x140299370};
+    G_SayTo{0x1419783D0, 0x140299370};
 WEAK symbol<void(
     level::gentity_t *targ, level::gentity_t *inflictor,
     level::gentity_t *attacker, const vec3_t *dir, const vec3_t *point,
