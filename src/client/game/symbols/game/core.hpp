@@ -6,6 +6,9 @@
 
 namespace game {
 
+WEAK symbol<void(ClientNum_t clientNum)> ClientCommand{0x14193DFA0,
+                                                       0x140295C40};
+
 WEAK symbol<void(level::gentity_s *ent, level::gentity_s *target, int32_t mode,
                  const char *chatText)>
     G_Say{0x1419765F0, 0x140299170};

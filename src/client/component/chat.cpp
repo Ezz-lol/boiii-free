@@ -88,8 +88,11 @@ void cmd_say_f(game::level::gentity_s *ent, const command::params_sv &params) {
   }
 
   const std::string p = params.join(1);
-  game::scr::Scr_AddString(game::scr::SCRIPTINSTANCE_SERVER,
-                           p.data() + 1); // Skip special char
+  const char *notify_text = p.data();
+  if (!p.empty() && static_cast<unsigned char>(p.front()) < 0x20) {
+    ++notify_text;
+  }
+  game::scr::Scr_AddString(game::scr::SCRIPTINSTANCE_SERVER, notify_text);
   game::scr::Scr_Notify_Canon(ent, game::CanonHash(params[0]), 1);
 
   if (!is_muted(ent)) {
@@ -106,7 +109,7 @@ void cmd_chat_f(game::level::gentity_s *ent, const command::params_sv &params) {
   game::scr::Scr_Notify_Canon(ent, game::CanonHash(params[0]), 1);
 
   if (!is_muted(ent)) {
-    utils::hook::invoke<void>(0x140298E70_g, ent, p.data());
+    game::G_Chat(ent, p.data());
   }
 }
 
@@ -184,12 +187,11 @@ public:
     utils::hook::call(game::select(0x141974B04, 0x14029908A),
                       divert_xuid_to_client_num_stub);
 
+    client_command::add("say", cmd_say_f);
+    client_command::add("say_team", cmd_say_f);
+    client_command::add("chat", cmd_chat_f);
+
     if (game::is_server()) {
-      client_command::add("say", cmd_say_f);
-      client_command::add("say_team", cmd_say_f);
-
-      client_command::add("chat", cmd_chat_f);
-
       // Overwrite say command
       utils::hook::jump(
           0x14052A6C0_g, +[] {
@@ -256,8 +258,6 @@ public:
 
       utils::hook::jump(0x140299051_g, utils::hook::assemble(g_say_to_stub));
     } else {
-      utils::hook::nop(0x141DEA9BD_g, 2);
-
       scheduler::once(
           [] {
             sv_sayname = game::register_dvar_string(

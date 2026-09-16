@@ -72,7 +72,7 @@ WEAK symbol<void(scriptInstance_t inst, level::gentity_s *ent,
 
 WEAK symbol<void(level::gentity_s *ent, ScrVarCanonicalName_t stringValue,
                  uint32_t paramcount)>
-    Scr_Notify_Canon{0x0, 0x1402F5FF0};
+    Scr_Notify_Canon{0x141B46500, 0x1402F5FF0};
 WEAK symbol<uint32_t(scriptInstance_t inst, const char *filename)>
     Scr_LoadScript{0x1412C83F0, 0x140156610};
 WEAK symbol<void(scriptInstance_t inst, int32_t user)> Scr_BeginLoadScripts{
