@@ -616,13 +616,15 @@ void load_scripts_directory(
     const std::string &script_dir, const bool load, const bool recurse,
     const std::optional<std::string_view> strip_base = std::nullopt,
     const bool exclude_map_subtrees = false,
-    std::unordered_set<std::string> *executed_scripts = nullptr) {
+    std::unordered_set<std::string> *processed_scripts = nullptr,
+    std::mutex *processed_scripts_mutex = nullptr) {
   if (utils::io::directory_exists(script_dir)) {
     std::vector<std::filesystem::path> scripts =
         utils::io::list_files(script_dir, recurse, false);
 
     const auto load_dir_file_cb = [load, strip_base, exclude_map_subtrees,
-                                   executed_scripts, script_dir](
+                                   processed_scripts, processed_scripts_mutex,
+                                   script_dir](
                                       const std::filesystem::path &script) {
       if (exclude_map_subtrees) {
         std::error_code ec;
@@ -667,14 +669,16 @@ void load_scripts_directory(
           }
         }
 
-        if (load) {
-          const std::string key = utils::string::to_lower(name);
-          if (!executed_scripts || executed_scripts->insert(key).second) {
-            execute_loaded_script(name);
+        const std::string key = utils::string::to_lower(name);
+        if (processed_scripts) {
+          std::scoped_lock lock(*processed_scripts_mutex);
+          if (!processed_scripts->insert(key).second) {
+            return;
           }
-        } else {
-          load_script_file(data, script, name);
         }
+
+        load ? execute_loaded_script(name)
+             : load_script_file(data, script, name);
       }
     };
     if (load) {
@@ -762,19 +766,24 @@ void load_tree(std::filesystem::path tree, bool execImmediate = false) {
 
   const std::filesystem::path data_directory = get_appdata_path() / "data";
   const std::filesystem::path boiii_directory = host.get_folder() / "boiii";
+  std::unordered_set<std::string> compiled_scripts;
   std::unordered_set<std::string> executed_scripts;
+  std::mutex processed_scripts_mutex;
 
-  const auto load = [&data_directory, &boiii_directory, &executed_scripts](
+  const auto load = [&data_directory, &boiii_directory, &compiled_scripts,
+                     &executed_scripts, &processed_scripts_mutex](
                         const std::filesystem::path &directory, const bool load,
                         const bool recurse,
                         const std::optional<std::string_view> strip_base,
                         const bool exclude_map_subtrees) {
+    std::unordered_set<std::string> *processed_scripts =
+        load ? &executed_scripts : &compiled_scripts;
     load_scripts_directory((data_directory / directory).string(), load, recurse,
-                           strip_base, exclude_map_subtrees,
-                           load ? &executed_scripts : nullptr);
+                           strip_base, exclude_map_subtrees, processed_scripts,
+                           &processed_scripts_mutex);
     load_scripts_directory((boiii_directory / directory).string(), load,
                            recurse, strip_base, exclude_map_subtrees,
-                           load ? &executed_scripts : nullptr);
+                           processed_scripts, &processed_scripts_mutex);
   };
 
   std::vector<TreeDirectory> applicable_tree_dirs;
