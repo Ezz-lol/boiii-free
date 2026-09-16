@@ -1,14 +1,17 @@
 #pragma once
+
 #include <steam/steam.hpp>
 namespace game {
 namespace steam {
+
+#include <steam/steamtypes.h> // IWYU pragma: export
 
 #include <steam/isteamremotestorage.h> // IWYU pragma: export
 #include <steam/isteamugc.h>           // IWYU pragma: export
 #include <steam/isteamuser.h>          // IWYU pragma: export
 
-#include <steam/isteamfriends.h>       // IWYU pragma: export
-#include <steam/isteamapps.h>          // IWYU pragma: export
+#include <steam/isteamapps.h>    // IWYU pragma: export
+#include <steam/isteamfriends.h> // IWYU pragma: export
 
 struct SteamInterfacesBase {
   ISteamClient *pSteamClient;

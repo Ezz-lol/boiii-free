@@ -1,8 +1,8 @@
 #pragma once
 
 #include "../core.hpp"
-#include "../net/net.hpp"
 #include "../dw/net.hpp"
+#include "../net/net.hpp"
 
 #include <cstdint>
 #include <optional>

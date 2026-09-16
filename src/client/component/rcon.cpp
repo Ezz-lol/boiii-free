@@ -2,9 +2,9 @@
 
 #include <loader/component_loader.hpp>
 
-#include "network.hpp"
-#include "console.hpp"
 #include "command.hpp"
+#include "console.hpp"
+#include "network.hpp"
 #include "scheduler.hpp"
 
 #include <game/utils.hpp>

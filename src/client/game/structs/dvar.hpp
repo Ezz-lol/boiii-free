@@ -1,17 +1,17 @@
 #pragma once
 
-#include <macros.hpp>
+#include "core.hpp"
 #include "game/ptr.hpp"
 #include "macros.hpp"
-#include <structs/func.hpp>
 #include "quake/vec.hpp"
-#include "core.hpp"
+#include <macros.hpp>
+#include <structs/func.hpp>
 
 #include <cstddef>
 #include <cstdint>
-#include <type_traits>
 #include <optional>
 #include <string>
+#include <type_traits>
 
 namespace game {
 

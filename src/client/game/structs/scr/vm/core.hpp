@@ -1,8 +1,8 @@
 #pragma once
 
+#include <game/structs/macros.hpp>
 #include <game/structs/scr/core.hpp>
 #include <game/structs/scr/var.hpp>
-#include <game/structs/macros.hpp>
 
 namespace game {
 namespace scr {

@@ -1,7 +1,7 @@
 #include <std_include.hpp>
 
-#include "../steam.hpp"
 #include "../../component/auth.hpp"
+#include "../steam.hpp"
 
 namespace steam {
 namespace {

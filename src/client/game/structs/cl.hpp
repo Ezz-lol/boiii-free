@@ -1,15 +1,15 @@
 #pragma once
 
-#include <cstdint>
 #include "core.hpp"
-#include "net/net.hpp"
 #include "db/xasset/core.hpp"
-#include "scr/core.hpp"
-#include "weapon.hpp"
-#include "vehicle.hpp"
 #include "hunk.hpp"
 #include "level/core.hpp"
+#include "net/net.hpp"
+#include "scr/core.hpp"
 #include "steam.hpp" // IWYU pragma: keep
+#include "vehicle.hpp"
+#include "weapon.hpp"
+#include <cstdint>
 
 namespace game {
 

@@ -2,14 +2,14 @@
 
 #include "finally.hpp"
 
-#include <rapidjson/document.h>
-#include <rapidjson/prettywriter.h>
+#include "rapidjson/encodedstream.h"
 #include "rapidjson/filereadstream.h"
 #include "rapidjson/filewritestream.h"
-#include "rapidjson/encodedstream.h"
+#include <rapidjson/document.h>
+#include <rapidjson/prettywriter.h>
 
-#include "io.hpp"
 #include "com.hpp"
+#include "io.hpp"
 #include "string.hpp"
 
 namespace utils::properties {

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cstdint>
 #include "macros.hpp"
+#include <cstdint>
 
 namespace game {
 namespace mem {

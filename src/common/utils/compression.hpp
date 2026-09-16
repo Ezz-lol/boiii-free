@@ -1,8 +1,8 @@
 #pragma once
 
 #include "structs/array.hpp"
-#include <string>
 #include <filesystem>
+#include <string>
 #include <unordered_map>
 
 #define CHUNK 16384u

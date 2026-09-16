@@ -4,11 +4,11 @@
 
 #include "structs/concurrent.hpp"
 
-#include <loader/component_loader.hpp>
-#include <component/scheduler.hpp>
+#include <component/dump.hpp>
 #include <component/game_event.hpp>
 #include <component/gsc/gsc_compiler.hpp>
-#include <component/dump.hpp>
+#include <component/scheduler.hpp>
+#include <loader/component_loader.hpp>
 
 #include <game/utils.hpp>
 
@@ -16,12 +16,12 @@
 
 #include <execution>
 
-#include <utils/memory.hpp>
 #include <utils/compression.hpp>
-#include <utils/hook.hpp>
-#include <utils/string.hpp>
-#include <utils/io.hpp>
 #include <utils/concurrency.hpp>
+#include <utils/hook.hpp>
+#include <utils/io.hpp>
+#include <utils/memory.hpp>
+#include <utils/string.hpp>
 
 using namespace game;
 

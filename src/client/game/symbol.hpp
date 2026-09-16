@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cstdint>
 #include "ptr.hpp"
+#include <cstdint>
 namespace arxan::detail {
 void set_address_to_call(const void *address);
 extern void *callstack_proxy_addr;

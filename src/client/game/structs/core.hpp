@@ -1,18 +1,18 @@
 #pragma once
 
+#include <csetjmp>
 #include <cstddef>
 #include <cstdint>
 #include <stdfloat>
-#include <csetjmp>
 #include <variant>
 #include <windows.h>
 
-#include <game/symbol.hpp>
-#include <structs/func.hpp>
-#include <structs/str.hpp>
-#include <structs/atomic.hpp>
 #include <game/structs/macros.hpp>
 #include <game/structs/quake/vec.hpp>
+#include <game/symbol.hpp>
+#include <structs/atomic.hpp>
+#include <structs/func.hpp>
+#include <structs/str.hpp>
 
 #define PROTOCOL 8
 #define SUB_PROTOCOL 1

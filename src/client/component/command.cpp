@@ -4,8 +4,8 @@
 
 #include "command.hpp"
 #include <utils/hook.hpp>
-#include <utils/string.hpp>
 #include <utils/memory.hpp>
+#include <utils/string.hpp>
 
 #include <game/game.hpp>
 

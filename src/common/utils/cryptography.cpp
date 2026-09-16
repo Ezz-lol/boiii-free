@@ -1,8 +1,8 @@
-#include "string.hpp"
 #include "cryptography.hpp"
+#include "string.hpp"
 
-#include <windows.h>
 #include <random>
+#include <windows.h>
 
 #include "finally.hpp"
 

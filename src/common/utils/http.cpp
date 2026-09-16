@@ -1,6 +1,6 @@
 #include "http.hpp"
-#include <curl/curl.h>
 #include "finally.hpp"
+#include <curl/curl.h>
 
 #pragma comment(lib, "ws2_32.lib")
 

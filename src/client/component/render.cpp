@@ -2,8 +2,8 @@
 
 #include <loader/component_loader.hpp>
 
-#include <game/game.hpp>
 #include <component/scheduler.hpp>
+#include <game/game.hpp>
 
 #include <game/impl/scr/place.hpp>
 

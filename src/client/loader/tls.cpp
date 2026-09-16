@@ -2,8 +2,8 @@
 
 #include "tls.hpp"
 
-#include <utils/nt.hpp>
 #include <utils/binary_resource.hpp>
+#include <utils/nt.hpp>
 
 #include <resource.hpp>
 

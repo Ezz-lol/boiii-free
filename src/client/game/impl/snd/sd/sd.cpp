@@ -1,11 +1,11 @@
 #include <std_include.hpp>
 
 #include "sd.hpp"
-#include <mutex>
-#include <unordered_map>
-#include <string>
 #include <cstdint>
 #include <cstdlib>
+#include <mutex>
+#include <string>
+#include <unordered_map>
 
 namespace game {
 namespace snd {

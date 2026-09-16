@@ -1,18 +1,18 @@
 #include <std_include.hpp>
 
-#include <loader/component_loader.hpp>
 #include <game/game.hpp>
+#include <loader/component_loader.hpp>
 
+#include "download_overlay.hpp"
 #include "fastdl.hpp"
 #include "scheduler.hpp"
-#include "download_overlay.hpp"
 
-#include <utils/string.hpp>
-#include <utils/io.hpp>
-#include <utils/http.hpp>
-#include <utils/cryptography.hpp>
 #include <utils/concurrency.hpp>
+#include <utils/cryptography.hpp>
 #include <utils/finally.hpp>
+#include <utils/http.hpp>
+#include <utils/io.hpp>
+#include <utils/string.hpp>
 
 #include <curl/curl.h>
 #include <fstream>

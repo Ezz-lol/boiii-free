@@ -4,11 +4,11 @@
 
 #include <game/game.hpp>
 
-#include <utils/hook.hpp>
-#include <utils/string.hpp>
 #include "auth.hpp"
 #include <mmeapi.h>
 #include <str.hpp>
+#include <utils/hook.hpp>
+#include <utils/string.hpp>
 
 namespace game {
 namespace live {

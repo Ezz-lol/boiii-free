@@ -8,8 +8,8 @@
 #include <game/utils.hpp>
 
 #include <utils/hook.hpp>
-#include <utils/string.hpp>
 #include <utils/io.hpp>
+#include <utils/string.hpp>
 
 namespace game_log {
 namespace {

@@ -2,19 +2,19 @@
 
 #include <loader/component_loader.hpp>
 
-#include "profile_infos.hpp"
 #include "network.hpp"
 #include "party.hpp"
+#include "profile_infos.hpp"
 #include "scheduler.hpp"
 
-#include <utils/properties.hpp>
 #include <utils/concurrency.hpp>
+#include <utils/properties.hpp>
 
 #include <steam/steam.hpp>
 #include <utils/io.hpp>
 
-#include <game/utils.hpp>
 #include <game/fragment_handler.hpp>
+#include <game/utils.hpp>
 
 namespace profile_infos {
 namespace {

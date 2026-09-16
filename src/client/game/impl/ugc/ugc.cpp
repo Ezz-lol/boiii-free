@@ -1,10 +1,10 @@
 #include <std_include.hpp>
 
+#include <algorithm>
 #include <cstdint>
+#include <cstdio>
 #include <cstring>
 #include <fstream>
-#include <cstdio>
-#include <algorithm>
 
 #include "hash.hpp"
 #include "rapidjson/document.h"
@@ -12,11 +12,11 @@
 #include "ugc.hpp"
 
 #include <steam/steam.hpp>
-#include <utils/string.hpp>
 #include <str.hpp>
+#include <utils/string.hpp>
 
-#include <component/workshop.hpp>
 #include <component/asset_limits.hpp>
+#include <component/workshop.hpp>
 #include <utils/io.hpp>
 
 namespace game {

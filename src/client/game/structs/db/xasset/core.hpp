@@ -3,9 +3,9 @@
 
 #include <cstdint>
 #ifndef NDEBUG
-#include <string>
 #include <format>
 #include <game/ptr.hpp>
+#include <string>
 #endif
 #include <game/structs/gfx/gfx.hpp>
 

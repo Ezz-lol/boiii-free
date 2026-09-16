@@ -1,15 +1,15 @@
 #include <std_include.hpp>
 
-#include <loader/component_loader.hpp>
 #include "component/path.hpp"
 #include "scheduler.hpp"
+#include <loader/component_loader.hpp>
 
 #include <game/game.hpp>
 #include <game/utils.hpp>
 
+#include <game/impl/game/game.hpp>
 #include <string>
 #include <utils/hook.hpp>
-#include <game/impl/game/game.hpp>
 
 #ifndef NDEBUG
 #include <game/impl/snd/snd.hpp>

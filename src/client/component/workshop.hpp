@@ -1,10 +1,10 @@
 #pragma once
 
-#include <string>
 #include <atomic>
 #include <cstdint>
 #include <filesystem>
 #include <game/game.hpp>
+#include <string>
 
 namespace workshop {
 extern std::atomic<bool> downloading_workshop_item;

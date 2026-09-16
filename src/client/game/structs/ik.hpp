@@ -1,7 +1,7 @@
 #pragma once
 
-#include <structs/array.hpp>
 #include <cstdint>
+#include <structs/array.hpp>
 namespace game {
 namespace ik {
 

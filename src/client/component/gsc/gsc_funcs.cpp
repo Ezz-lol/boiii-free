@@ -1,22 +1,25 @@
-#include <atomic>
 #include <std_include.hpp>
-#include <loader/component_loader.hpp>
-#include <game/utils.hpp>
-#include "../game_event.hpp"
-#include "../name.hpp"
 
+#include "gsc_funcs.hpp"
+
+#include <atomic>
 #include <optional>
 #include <string>
+
+#include <game/impl/scr/scr.hpp>
+#include <game/impl/scr/var.hpp>
+#include <game/impl/sv/sv.hpp>
+#include <game/utils.hpp>
+
+#include <component/command.hpp>
+#include <component/game_event.hpp>
+#include <component/name.hpp>
+#include <loader/component_loader.hpp>
+
 #include <utils/hook.hpp>
 #include <utils/io.hpp>
 
 #include <rapidjson/writer.h>
-
-#include "../command.hpp"
-#include "game/impl/scr/var.hpp"
-#include "game/impl/scr/scr.hpp"
-#include "game/impl/sv/sv.hpp"
-#include "gsc_funcs.hpp"
 
 using namespace game;
 using namespace game::scr;

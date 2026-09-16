@@ -308,7 +308,7 @@ SeparateDefinitionBlocks: Leave
 
 # Sort includes natively.
 # Options: Never, CaseSensitive, CaseInsensitive
-SortIncludes: Never
+SortIncludes: CaseInsensitive
 
 # Sort using declarations.
 # Options: Never, Lexicographic, LexicographicNumeric
@@ -700,7 +700,7 @@ SeparateDefinitionBlocks: Leave
 
 # Sort includes natively.
 # Options: Never, CaseSensitive, CaseInsensitive
-SortIncludes: Never
+SortIncludes: CaseInsensitive
 
 # Sort using declarations.
 # Options: Never, Lexicographic, LexicographicNumeric
@@ -1090,7 +1090,7 @@ SeparateDefinitionBlocks: Leave
 
 # Sort includes natively.
 # Options: Never, CaseSensitive, CaseInsensitive
-SortIncludes: Never
+SortIncludes: CaseInsensitive
 
 # Sort using declarations.
 # Options: Never, Lexicographic, LexicographicNumeric
@@ -1480,7 +1480,7 @@ SeparateDefinitionBlocks: Leave
 
 # Sort includes natively.
 # Options: Never, CaseSensitive, CaseInsensitive
-SortIncludes: Never
+SortIncludes: CaseInsensitive
 
 # Sort using declarations.
 # Options: Never, Lexicographic, LexicographicNumeric
@@ -1870,7 +1870,7 @@ SeparateDefinitionBlocks: Leave
 
 # Sort includes natively.
 # Options: Never, CaseSensitive, CaseInsensitive
-SortIncludes: Never
+SortIncludes: CaseInsensitive
 
 # Sort using declarations.
 # Options: Never, Lexicographic, LexicographicNumeric
@@ -2260,7 +2260,7 @@ SeparateDefinitionBlocks: Leave
 
 # Sort includes natively.
 # Options: Never, CaseSensitive, CaseInsensitive
-SortIncludes: Never
+SortIncludes: CaseInsensitive
 
 # Sort using declarations.
 # Options: Never, Lexicographic, LexicographicNumeric
@@ -2650,7 +2650,7 @@ SeparateDefinitionBlocks: Leave
 
 # Sort includes natively.
 # Options: Never, CaseSensitive, CaseInsensitive
-SortIncludes: Never
+SortIncludes: CaseInsensitive
 
 # Sort using declarations.
 # Options: Never, Lexicographic, LexicographicNumeric
@@ -3040,7 +3040,7 @@ SeparateDefinitionBlocks: Leave
 
 # Sort includes natively.
 # Options: Never, CaseSensitive, CaseInsensitive
-SortIncludes: Never
+SortIncludes: CaseInsensitive
 
 # Sort using declarations.
 # Options: Never, Lexicographic, LexicographicNumeric
@@ -3430,7 +3430,7 @@ SeparateDefinitionBlocks: Leave
 
 # Sort includes natively.
 # Options: Never, CaseSensitive, CaseInsensitive
-SortIncludes: Never
+SortIncludes: CaseInsensitive
 
 # Sort using declarations.
 # Options: Never, Lexicographic, LexicographicNumeric
@@ -3820,7 +3820,7 @@ SeparateDefinitionBlocks: Leave
 
 # Sort includes natively.
 # Options: Never, CaseSensitive, CaseInsensitive
-SortIncludes: Never
+SortIncludes: CaseInsensitive
 
 # Sort using declarations.
 # Options: Never, Lexicographic, LexicographicNumeric
@@ -4210,7 +4210,7 @@ SeparateDefinitionBlocks: Leave
 
 # Sort includes natively.
 # Options: Never, CaseSensitive, CaseInsensitive
-SortIncludes: Never
+SortIncludes: CaseInsensitive
 
 # Sort using declarations.
 # Options: Never, Lexicographic, LexicographicNumeric

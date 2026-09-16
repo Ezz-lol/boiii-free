@@ -1,6 +1,6 @@
 #pragma once
-#include <cstdint>
 #include "../quake/vec.hpp"
+#include <cstdint>
 
 namespace game {
 namespace gfx {

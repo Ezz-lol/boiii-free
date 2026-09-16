@@ -1,8 +1,8 @@
 #pragma once
 
 #include "macros.hpp"
-#include <cstdint>
 #include <array>
+#include <cstdint>
 
 template <typename T, const IntegralLike auto N>
 using array = T[static_cast<size_t>(N)];

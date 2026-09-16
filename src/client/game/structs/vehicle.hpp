@@ -1,19 +1,19 @@
 #pragma once
 
-#include "asm.hpp"
 #include "ai.hpp"
+#include "asm.hpp"
+#include "cm.hpp"
+#include "core.hpp"
+#include "db/xasset/xmodel.hpp"
+#include "gfx/gfx.hpp"
+#include "hk/ai.hpp"
 #include "math.hpp"
+#include "move.hpp"
 #include "phys/core.hpp"
 #include "snd/snd.hpp"
-#include "gfx/gfx.hpp"
-#include "core.hpp"
 #include "user.hpp"
-#include "hk/ai.hpp"
-#include "cm.hpp"
-#include "move.hpp"
-#include "db/xasset/xmodel.hpp"
-#include <game/symbols/macros.hpp>
 #include <game/symbol.hpp>
+#include <game/symbols/macros.hpp>
 
 namespace game {
 namespace level {

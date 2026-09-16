@@ -1,14 +1,14 @@
 #pragma once
 
+#include "asm.hpp"
 #include "core.hpp"
+#include "lobby/core.hpp"
+#include "net/net.hpp"
 #include "phys/core.hpp"
 #include "quake/core.hpp"
-#include "net/net.hpp"
 #include "scr/core.hpp"
-#include "lobby/core.hpp"
 #include "scr/scr.hpp"
 #include "snd/snd.hpp"
-#include "asm.hpp"
 
 #include <cstdint>
 

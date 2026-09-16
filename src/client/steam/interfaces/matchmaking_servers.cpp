@@ -4,16 +4,16 @@
 
 #include <game/game.hpp>
 
-#include "component/party.hpp"
-#include "component/network.hpp"
-#include "component/nat.hpp"
-#include "component/server_list.hpp"
 #include "component/friends.hpp"
-#include "component/steam_proxy.hpp"
+#include "component/nat.hpp"
+#include "component/network.hpp"
+#include "component/party.hpp"
 #include "component/scheduler.hpp"
+#include "component/server_list.hpp"
+#include "component/steam_proxy.hpp"
 
-#include <utils/string.hpp>
 #include <utils/concurrency.hpp>
+#include <utils/string.hpp>
 
 namespace steam {
 namespace {

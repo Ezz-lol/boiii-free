@@ -1,5 +1,7 @@
 #pragma once
+
 #include <std_include.hpp>
+
 #include "dispatch.hpp"
 #include "doc_host_ui_handler.hpp"
 #include "html_argument.hpp"

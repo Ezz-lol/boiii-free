@@ -1,7 +1,7 @@
 #include <std_include.hpp>
 
-#include "gsc_parser.hpp"
 #include "gsc_lexer.hpp"
+#include "gsc_parser.hpp"
 #include <stdexcept>
 
 namespace gsc_compiler {

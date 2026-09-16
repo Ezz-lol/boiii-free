@@ -1,18 +1,18 @@
 #include <std_include.hpp>
 
+#include "file_updater.hpp"
 #include "updater.hpp"
 #include "updater_ui.hpp"
-#include "file_updater.hpp"
 
 #include <game/game.hpp>
+#include <utils/compression.hpp>
 #include <utils/cryptography.hpp>
 #include <utils/flags.hpp>
 #include <utils/http.hpp>
 #include <utils/io.hpp>
 #include <utils/progress_ui.hpp>
-#include <utils/compression.hpp>
-#include <utils/string.hpp>
 #include <utils/properties.hpp>
+#include <utils/string.hpp>
 
 #define UPDATE_SERVER "https://r2.ezz.lol/"
 

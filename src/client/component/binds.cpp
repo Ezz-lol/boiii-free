@@ -1,10 +1,11 @@
 #include <std_include.hpp>
 
-#include <loader/component_loader.hpp>
 #include <game/game.hpp>
-#include "command.hpp"
-#include "scheduler.hpp"
-#include "toast.hpp"
+
+#include <component/command.hpp>
+#include <component/scheduler.hpp>
+#include <component/toast.hpp>
+#include <loader/component_loader.hpp>
 
 #include <utils/hook.hpp>
 #include <utils/io.hpp>

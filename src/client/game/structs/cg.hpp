@@ -1,9 +1,9 @@
 #pragma once
 
 #include "core.hpp"
-#include "weapon.hpp"
-#include "phys/core.hpp"
 #include "ik.hpp"
+#include "phys/core.hpp"
+#include "weapon.hpp"
 
 namespace game {
 namespace cg {

@@ -3,13 +3,13 @@
 #include "command.hpp"
 #include <loader/component_loader.hpp>
 
-#include <game/game.hpp>
-#include <game/utils.hpp>
 #include "../command.hpp"
 #include "../network.hpp"
 #include "../scheduler.hpp"
 #include "../server_list.hpp"
 #include <component/game_event.hpp>
+#include <game/game.hpp>
+#include <game/utils.hpp>
 
 #include <utils/hook.hpp>
 

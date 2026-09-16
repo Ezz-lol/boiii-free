@@ -1,9 +1,9 @@
 #pragma once
 
+#include "gsc.hpp"
+#include <cstdint>
 #include <string>
 #include <vector>
-#include <cstdint>
-#include "gsc.hpp"
 
 namespace gsc_compiler {
 struct compile_error {

@@ -1,13 +1,13 @@
 #include <std_include.hpp>
 
-#include <loader/component_loader.hpp>
 #include "updater.hpp"
 #include <game/game.hpp>
+#include <loader/component_loader.hpp>
 
-#include <utils/flags.hpp>
-#include <utils/properties.hpp>
-#include <utils/progress_ui.hpp>
 #include <updater/updater.hpp>
+#include <utils/flags.hpp>
+#include <utils/progress_ui.hpp>
+#include <utils/properties.hpp>
 
 namespace updater {
 namespace {

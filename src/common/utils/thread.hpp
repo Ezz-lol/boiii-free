@@ -1,6 +1,6 @@
 #pragma once
-#include <thread>
 #include "nt.hpp"
+#include <thread>
 
 namespace utils::thread {
 bool set_name(HANDLE t, const std::string &name);

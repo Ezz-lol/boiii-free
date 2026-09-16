@@ -4,8 +4,8 @@
 #include "game/symbol.hpp"
 #include <cstdint>
 
-#include <structs/func.hpp>
 #include <game/structs/macros.hpp>
+#include <structs/func.hpp>
 
 namespace game {
 namespace jq {

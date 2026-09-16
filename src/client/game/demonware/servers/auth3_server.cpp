@@ -1,7 +1,7 @@
 #include <std_include.hpp>
 
-#include "auth3_server.hpp"
 #include "../keys.hpp"
+#include "auth3_server.hpp"
 
 #include <utils/cryptography.hpp>
 #include <utils/string.hpp>

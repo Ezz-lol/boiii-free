@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core.hpp"
 #include "../quake/core.hpp"
+#include "core.hpp"
 
 namespace game {
 namespace net {

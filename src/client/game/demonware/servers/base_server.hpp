@@ -1,8 +1,8 @@
 #pragma once
 
+#include <cstdint>
 #include <queue>
 #include <string>
-#include <cstdint>
 namespace demonware {
 class base_server {
 public:

@@ -2,13 +2,13 @@
 
 #include <loader/component_loader.hpp>
 
-#include <game/game.hpp>
 #include "scheduler.hpp"
+#include <game/game.hpp>
 
+#include <atomic>
 #include <utils/hook.hpp>
 #include <utils/io.hpp>
 #include <utils/string.hpp>
-#include <atomic>
 
 namespace dvars {
 namespace {

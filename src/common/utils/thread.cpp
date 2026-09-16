@@ -1,6 +1,6 @@
 #include "thread.hpp"
-#include "string.hpp"
 #include "finally.hpp"
+#include "string.hpp"
 
 #include <tlhelp32.h>
 

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <bit>
-#include <cstdint>
 #include <cassert>
+#include <cstdint>
 #include <macros.hpp>
 
 template <typename T, const IntegralLike auto N>

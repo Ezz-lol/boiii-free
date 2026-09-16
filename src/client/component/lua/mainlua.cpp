@@ -2,9 +2,9 @@
 
 #include <game/game.hpp>
 
-#include <loader/component_loader.hpp>
-#include <component/lua/lua_state.hpp>
 #include <component/auth.hpp>
+#include <component/lua/lua_state.hpp>
+#include <loader/component_loader.hpp>
 
 namespace mainlua {
 using namespace game::lua::hks;

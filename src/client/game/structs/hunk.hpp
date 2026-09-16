@@ -1,8 +1,8 @@
 #pragma once
 
+#include "macros.hpp"
 #include <cstdint>
 #include <structs/func.hpp>
-#include "macros.hpp"
 
 namespace game {
 namespace hunk {

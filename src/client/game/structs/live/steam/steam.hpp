@@ -2,8 +2,8 @@
 
 #include <cstdint>
 
-#include "../../steam.hpp"
 #include "../../macros.hpp"
+#include "../../steam.hpp"
 
 namespace game {
 namespace live {

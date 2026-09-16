@@ -1,9 +1,9 @@
 #pragma once
 
-#include <cstdint>
-#include <game/structs/macros.hpp>
 #include "game/structs/db/xasset/core.hpp"
 #include "game/structs/db/xasset/xbone.hpp"
+#include <cstdint>
+#include <game/structs/macros.hpp>
 
 namespace game {
 

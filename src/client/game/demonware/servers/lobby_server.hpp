@@ -1,8 +1,8 @@
 #pragma once
 
-#include "tcp_server.hpp"
-#include "service_server.hpp"
 #include "../service.hpp"
+#include "service_server.hpp"
+#include "tcp_server.hpp"
 
 namespace demonware {
 class lobby_server : public tcp_server, service_server {

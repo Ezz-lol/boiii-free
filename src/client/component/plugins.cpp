@@ -2,11 +2,11 @@
 
 #include <loader/component_loader.hpp>
 
-#include <utils/nt.hpp>
-#include <game/game.hpp>
-#include <utils/io.hpp>
-#include <utils/flags.hpp>
 #include <filesystem>
+#include <game/game.hpp>
+#include <utils/flags.hpp>
+#include <utils/io.hpp>
+#include <utils/nt.hpp>
 #include <vector>
 
 namespace plugins {

@@ -1,7 +1,7 @@
 #include <std_include.hpp>
 
-#include <loader/component_loader.hpp>
 #include "chat.hpp"
+#include <loader/component_loader.hpp>
 
 #include <game/game.hpp>
 #include <game/utils.hpp>
@@ -11,8 +11,8 @@
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
 
-#include "command.hpp"
 #include "client_command.hpp"
+#include "command.hpp"
 #include "console_command.hpp"
 #include "scheduler.hpp"
 #include "sv.hpp"

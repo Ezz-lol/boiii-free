@@ -5,8 +5,8 @@
 #include "game/game.hpp"
 #include "game/utils.hpp"
 
-#include "getinfo.hpp"
 #include "auth.hpp"
+#include "getinfo.hpp"
 #include "nat.hpp"
 #include "network.hpp"
 #include "party.hpp"

@@ -1,7 +1,7 @@
 #include <std_include.hpp>
 
-#include <loader/component_loader.hpp>
 #include <game/game.hpp>
+#include <loader/component_loader.hpp>
 
 // In case of clangd compilation
 #if __has_include("version.hpp")
@@ -17,8 +17,8 @@
 
 #include "scheduler.hpp"
 
-#include <utils/hook.hpp>
 #include <utils/flags.hpp>
+#include <utils/hook.hpp>
 
 namespace branding {
 namespace {

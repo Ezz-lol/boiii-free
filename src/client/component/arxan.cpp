@@ -1,16 +1,16 @@
 #include <std_include.hpp>
 
-#include <loader/component_loader.hpp>
 #include "scheduler.hpp"
+#include <loader/component_loader.hpp>
 
 #include <game/game.hpp>
 #include <steam/steam.hpp>
 
-#include <utils/hook.hpp>
-#include <utils/string.hpp>
-#include <utils/pe.hpp>
 #include <utils/flags.hpp>
+#include <utils/hook.hpp>
+#include <utils/pe.hpp>
 #include <utils/signature.hpp>
+#include <utils/string.hpp>
 
 #include "integrity.hpp"
 

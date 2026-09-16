@@ -1,9 +1,9 @@
 #pragma once
 
-#include <game/structs/core.hpp>
-#include <structs/func.hpp>
-#include <game/structs/quake/core.hpp>
 #include <game/ptr.hpp>
+#include <game/structs/core.hpp>
+#include <game/structs/quake/core.hpp>
+#include <structs/func.hpp>
 
 namespace game {
 

@@ -1,8 +1,8 @@
 #pragma once
 
+#include <component/lua/ui_scripting.hpp>
 #include <game/game.hpp>
 #include <utils/concurrency.hpp>
-#include <component/lua/ui_scripting.hpp>
 
 namespace lua_state {
 using namespace game::lua;

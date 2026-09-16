@@ -2,11 +2,11 @@
 
 #include <loader/component_loader.hpp>
 
-#include "splash.hpp"
 #include "resource.hpp"
+#include "splash.hpp"
 
-#include <utils/nt.hpp>
 #include <utils/image.hpp>
+#include <utils/nt.hpp>
 
 namespace splash {
 namespace {

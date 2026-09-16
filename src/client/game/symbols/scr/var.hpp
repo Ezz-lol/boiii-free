@@ -2,8 +2,8 @@
 
 #include <game/symbols/scr/mt.hpp>
 #include <game/symbols/scr/vm/core.hpp>
-#include <game/symbols/sym_include.hpp>
 #include <game/symbols/sl.hpp>
+#include <game/symbols/sym_include.hpp>
 
 namespace game {
 namespace scr {

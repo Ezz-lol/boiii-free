@@ -2,8 +2,8 @@
 
 #include <cstdint>
 
-#include <game/structs/quake/vec.hpp>
 #include <game/structs/gfx/core.hpp>
+#include <game/structs/quake/vec.hpp>
 #include <game/structs/scr/primitives.hpp>
 
 namespace game {

@@ -1,8 +1,8 @@
 #pragma once
 
 #include <cstdint>
-#include <structs/str.hpp>
 #include <game/structs/macros.hpp>
+#include <structs/str.hpp>
 
 namespace game {
 namespace stream {

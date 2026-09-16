@@ -1,10 +1,10 @@
 #pragma once
 
+#include "cm.hpp"
 #include "game/structs/core.hpp"
 #include "game/structs/quake/core.hpp"
-#include "user.hpp"
 #include "phys/core.hpp"
-#include "cm.hpp"
+#include "user.hpp"
 
 namespace game {
 

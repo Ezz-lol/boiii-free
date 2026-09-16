@@ -1,7 +1,7 @@
 #pragma once
-#include <game/game.hpp>
-#include "types.hpp"
 #include "script_value.hpp"
+#include "types.hpp"
+#include <game/game.hpp>
 
 namespace ui_scripting {
 using namespace game::lua::hks;

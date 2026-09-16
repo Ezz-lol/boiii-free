@@ -12,10 +12,10 @@
 #undef min
 #endif
 
-#include <structs/func.hpp>
-#include <string>
-#include <functional>
 #include <filesystem>
+#include <functional>
+#include <string>
+#include <structs/func.hpp>
 
 namespace utils {
 namespace nt {

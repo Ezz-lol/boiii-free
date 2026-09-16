@@ -1,8 +1,8 @@
 #pragma once
 #include <cstdint>
 #include <cstring>
-#include <unordered_map>
 #include <functional>
+#include <unordered_map>
 
 #include <game/game.hpp>
 

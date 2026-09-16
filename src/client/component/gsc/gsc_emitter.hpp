@@ -1,8 +1,8 @@
 #pragma once
 
-#include "gsc_parser.hpp"
-#include "gsc_compiler.hpp"
 #include "gsc.hpp"
+#include "gsc_compiler.hpp"
+#include "gsc_parser.hpp"
 
 namespace gsc_compiler {
 

@@ -1,7 +1,7 @@
 #pragma once
-#include <string>
 #include <cstddef>
 #include <functional>
+#include <string>
 
 namespace download_overlay {
 struct download_state {

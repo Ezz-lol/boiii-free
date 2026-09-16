@@ -1,8 +1,8 @@
 #pragma once
 
-#include <macros.hpp>
 #include <bit>
 #include <cassert>
+#include <macros.hpp>
 #include <type_traits>
 
 // Automatically pad a partially defined (reverse-engineered, in our case)

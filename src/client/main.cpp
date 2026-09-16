@@ -5,22 +5,22 @@
 #include <loader/component_loader.hpp>
 #include <loader/loader.hpp>
 
-#include <utils/finally.hpp>
-#include <utils/hook.hpp>
-#include <utils/nt.hpp>
-#include <utils/io.hpp>
-#include <utils/http.hpp>
-#include <utils/flags.hpp>
 #include <utils/com.hpp>
 #include <utils/cryptography.hpp>
+#include <utils/finally.hpp>
+#include <utils/flags.hpp>
+#include <utils/hook.hpp>
+#include <utils/http.hpp>
+#include <utils/io.hpp>
+#include <utils/nt.hpp>
 #include <utils/progress_ui.hpp>
 
 #include <steam/steam.hpp>
 
-#include <game/game.hpp>
-#include "launcher/launcher.hpp"
-#include "launcher/html/html_window.hpp"
 #include "component/updater.hpp"
+#include "launcher/html/html_window.hpp"
+#include "launcher/launcher.hpp"
+#include <game/game.hpp>
 
 #include <shlobj.h>
 #include <tlhelp32.h>

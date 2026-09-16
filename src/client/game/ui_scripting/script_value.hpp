@@ -1,9 +1,9 @@
 #pragma once
 #include <game/game.hpp>
 
-#include <vector>
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
+#include <vector>
 
 namespace ui_scripting {
 using namespace game::lua::hks;

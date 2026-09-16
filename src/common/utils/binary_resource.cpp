@@ -1,8 +1,8 @@
 #include "binary_resource.hpp"
 
-#include <utility>
-#include "nt.hpp"
 #include "io.hpp"
+#include "nt.hpp"
+#include <utility>
 
 namespace utils {
 namespace {

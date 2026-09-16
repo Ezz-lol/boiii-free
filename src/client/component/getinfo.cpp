@@ -5,14 +5,14 @@
 #include <game/game.hpp>
 #include <steam/steam.hpp>
 
-#include "network.hpp"
 #include "auth.hpp"
+#include "network.hpp"
 #include "network_password.hpp"
-#include "workshop.hpp"
 #include "scheduler.hpp"
+#include "workshop.hpp"
 
-#include <utils/string.hpp>
 #include <utils/info_string.hpp>
+#include <utils/string.hpp>
 
 // In case of clangd compilation
 #if __has_include("version.hpp")

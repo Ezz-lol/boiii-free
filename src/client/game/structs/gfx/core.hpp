@@ -1,11 +1,11 @@
 #pragma once
 
 #include <cstdint>
-#include <structs/func.hpp>
 #include <game/structs/core.hpp>
-#include <game/structs/quake/core.hpp>
-#include <game/structs/db/xpak.hpp>
 #include <game/structs/db/xasset/xbone.hpp>
+#include <game/structs/db/xpak.hpp>
+#include <game/structs/quake/core.hpp>
+#include <structs/func.hpp>
 
 #include "HLSL.hpp"
 namespace game {

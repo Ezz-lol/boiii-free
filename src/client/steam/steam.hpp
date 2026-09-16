@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
-#include <mutex>
 #include <map>
+#include <mutex>
 #include <vector>
 
 #ifndef STEAM_EXPORT
@@ -38,22 +38,22 @@ using game_id = union {
 #pragma pack(pop)
 
 #include "interfaces/apps.hpp"                // IWYU pragma: export
-#include "interfaces/user.hpp"                // IWYU pragma: export
-#include "interfaces/utils.hpp"               // IWYU pragma: export
+#include "interfaces/client.hpp"              // IWYU pragma: export
+#include "interfaces/controller.hpp"          // IWYU pragma: export
 #include "interfaces/friends.hpp"             // IWYU pragma: export
-#include "interfaces/user_stats.hpp"          // IWYU pragma: export
 #include "interfaces/game_server.hpp"         // IWYU pragma: export
-#include "interfaces/networking.hpp"          // IWYU pragma: export
-#include "interfaces/matchmaking.hpp"         // IWYU pragma: export
-#include "interfaces/matchmaking_servers.hpp" // IWYU pragma: export
-#include "interfaces/remote_storage.hpp"      // IWYU pragma: export
-#include "interfaces/screenshots.hpp"         // IWYU pragma: export
 #include "interfaces/game_server_stats.hpp"   // IWYU pragma: export
 #include "interfaces/http.hpp"                // IWYU pragma: export
-#include "interfaces/unified_messages.hpp"    // IWYU pragma: export
-#include "interfaces/controller.hpp"          // IWYU pragma: export
-#include "interfaces/client.hpp"              // IWYU pragma: export
+#include "interfaces/matchmaking.hpp"         // IWYU pragma: export
+#include "interfaces/matchmaking_servers.hpp" // IWYU pragma: export
+#include "interfaces/networking.hpp"          // IWYU pragma: export
+#include "interfaces/remote_storage.hpp"      // IWYU pragma: export
+#include "interfaces/screenshots.hpp"         // IWYU pragma: export
 #include "interfaces/ugc.hpp"                 // IWYU pragma: export
+#include "interfaces/unified_messages.hpp"    // IWYU pragma: export
+#include "interfaces/user.hpp"                // IWYU pragma: export
+#include "interfaces/user_stats.hpp"          // IWYU pragma: export
+#include "interfaces/utils.hpp"               // IWYU pragma: export
 
 namespace steam {
 class callbacks {

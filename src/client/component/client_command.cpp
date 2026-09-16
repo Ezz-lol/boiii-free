@@ -2,9 +2,9 @@
 
 #include <loader/component_loader.hpp>
 
+#include <game/utils.hpp>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
-#include <game/utils.hpp>
 
 #include "client_command.hpp"
 

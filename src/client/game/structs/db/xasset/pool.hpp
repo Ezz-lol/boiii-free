@@ -1,13 +1,13 @@
 #pragma once
 
-#include <game/structs/db/xasset/core.hpp>
-#include <game/structs/db/xasset/world.hpp>
-#include <game/structs/db/xasset/font.hpp>
-#include <game/structs/db/xasset/ttf.hpp>
-#include <game/structs/db/xasset/xmodel.hpp>
-#include <game/structs/db/xasset/destructible.hpp>
 #include <game/structs/bg/cache.hpp>
 #include <game/structs/cm.hpp>
+#include <game/structs/db/xasset/core.hpp>
+#include <game/structs/db/xasset/destructible.hpp>
+#include <game/structs/db/xasset/font.hpp>
+#include <game/structs/db/xasset/ttf.hpp>
+#include <game/structs/db/xasset/world.hpp>
+#include <game/structs/db/xasset/xmodel.hpp>
 namespace game {
 
 namespace ddl {

@@ -1,18 +1,18 @@
 #include <std_include.hpp>
 
-#include <iomanip>
-#include <utils/io.hpp>
-#include <utils/http.hpp>
-#include <utils/string.hpp>
-#include <game/game.hpp>
-#include "workshop.hpp"
-#include "steamcmd.hpp"
 #include "download_overlay.hpp"
 #include "scheduler.hpp"
-#include <curl/curl.h>
+#include "steamcmd.hpp"
 #include "unzip.h"
-#include <zlib.h>
+#include "workshop.hpp"
+#include <curl/curl.h>
+#include <game/game.hpp>
+#include <iomanip>
+#include <utils/http.hpp>
+#include <utils/io.hpp>
+#include <utils/string.hpp>
 #include <zip.h>
+#include <zlib.h>
 
 namespace steamcmd {
 namespace {

@@ -1,9 +1,9 @@
 #pragma once
 #include "memory.hpp"
 #include <cstdarg>
+#include <macros.hpp>
 #include <stdexcept>
 #include <string>
-#include <macros.hpp>
 
 namespace utils::string {
 

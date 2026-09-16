@@ -2,8 +2,8 @@
 
 #include "game/structs/macros.hpp"
 #include "game/structs/quake/vec.hpp"
-#include "game/structs/scr/primitives.hpp"
 #include "game/structs/scr/builtin/core.hpp"
+#include "game/structs/scr/primitives.hpp"
 #include <cstdint>
 namespace game {
 namespace scr {

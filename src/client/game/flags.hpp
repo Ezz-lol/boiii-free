@@ -1,8 +1,8 @@
 #pragma once
 
+#include <game/base.hpp>
 #include <std_include.hpp>
 #include <utils/flags.hpp>
-#include <game/base.hpp>
 
 namespace game {
 bool extract_assets();

@@ -3,24 +3,24 @@
 #include <loader/component_loader.hpp>
 
 #include "auth.hpp"
-#include "party.hpp"
 #include "command.hpp"
 #include "network.hpp"
-#include "scheduler.hpp"
+#include "party.hpp"
 #include "profile_infos.hpp"
+#include "scheduler.hpp"
 
 #include <game/utils.hpp>
 
-#include <utils/hook.hpp>
-#include <utils/string.hpp>
-#include <utils/smbios.hpp>
 #include <utils/byte_buffer.hpp>
-#include <utils/info_string.hpp>
 #include <utils/cryptography.hpp>
-#include <utils/io.hpp>
 #include <utils/flags.hpp>
+#include <utils/hook.hpp>
+#include <utils/info_string.hpp>
+#include <utils/io.hpp>
 #include <utils/named_mutex.hpp>
 #include <utils/properties.hpp>
+#include <utils/smbios.hpp>
+#include <utils/string.hpp>
 
 #include <game/fragment_handler.hpp>
 

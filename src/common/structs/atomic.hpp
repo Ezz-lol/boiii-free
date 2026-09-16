@@ -1,9 +1,9 @@
 #pragma once
 
-#include <structs/array.hpp>
 #include <atomic>
 #include <macros.hpp>
 #include <optional>
+#include <structs/array.hpp>
 
 template <typename T, const IntegralLike auto N>
 using atomicarray = array<std::atomic<T>, N>;

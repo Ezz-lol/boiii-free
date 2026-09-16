@@ -1,29 +1,34 @@
 #include <std_include.hpp>
 
-#include "html/html_frame.hpp"
-#include "launcher_workshop.hpp"
 #include <game/game.hpp>
-#include "../component/workshop.hpp"
+
+#include <component/workshop.hpp>
+
+#include <launcher/html/html_frame.hpp>
+#include <launcher/launcher_workshop.hpp>
+
 #include <atomic>
 #include <chrono>
 #include <fstream>
 #include <functional>
+#include <iomanip>
 #include <map>
 #include <mutex>
+#include <regex>
+#include <set>
+#include <sstream>
+#include <thread>
+
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
-#include <regex>
-#include <set>
-#include <thread>
+
 #include <utils/compression.hpp>
 #include <utils/finally.hpp>
 #include <utils/http.hpp>
 #include <utils/io.hpp>
 #include <utils/nt.hpp>
 #include <utils/string.hpp>
-#include <sstream>
-#include <iomanip>
 
 namespace launcher::workshop {
 std::chrono::steady_clock::time_point download_start_time;

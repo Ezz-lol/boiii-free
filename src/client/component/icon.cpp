@@ -1,10 +1,10 @@
 #include <std_include.hpp>
 
-#include <loader/component_loader.hpp>
 #include "resource.hpp"
+#include <loader/component_loader.hpp>
 
-#include <utils/nt.hpp>
 #include <utils/hook.hpp>
+#include <utils/nt.hpp>
 
 namespace icon {
 namespace {

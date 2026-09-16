@@ -1,11 +1,11 @@
 #include "compression.hpp"
 
-#include <zlib.h>
-#include <zip.h>
 #include <unzip.h>
+#include <zip.h>
+#include <zlib.h>
 
-#include "io.hpp"
 #include "finally.hpp"
+#include "io.hpp"
 
 namespace utils::compression {
 namespace zlib {

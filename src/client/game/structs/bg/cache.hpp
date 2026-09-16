@@ -1,11 +1,11 @@
 #pragma once
 
-#include <game/structs/macros.hpp>
 #include <game/structs/db/xasset/core.hpp>
+#include <game/structs/macros.hpp>
 
 #include <cstdint>
-#include <str.hpp>
 #include <hash.hpp>
+#include <str.hpp>
 
 namespace game {
 namespace bg {

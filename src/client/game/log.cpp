@@ -3,8 +3,8 @@
 
 #include "log.hpp"
 
-#include <game/flags.hpp>
 #include "concurrentqueue/blockingconcurrentqueue.h"
+#include <game/flags.hpp>
 #include <utils/thread.hpp>
 
 namespace game {

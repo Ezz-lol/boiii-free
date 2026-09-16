@@ -1,11 +1,11 @@
 #pragma once
 
+#include <array>
+#include <cassert>
 #include <cstdint>
 #include <span>
-#include <vector>
-#include <cassert>
-#include <array>
 #include <type_traits>
+#include <vector>
 
 #include "../core.hpp"
 #include "../weapon.hpp"

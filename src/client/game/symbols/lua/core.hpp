@@ -1,7 +1,7 @@
 #pragma once
 
-#include <game/symbols/sym_include.hpp>
 #include <game/symbols/lua/hks.hpp>
+#include <game/symbols/sym_include.hpp>
 
 namespace game {
 namespace lua {

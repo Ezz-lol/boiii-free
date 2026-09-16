@@ -1,11 +1,11 @@
 #include <std_include.hpp>
 
-#include <loader/component_loader.hpp>
 #include "localized_strings.hpp"
+#include <game/game.hpp>
+#include <loader/component_loader.hpp>
+#include <utils/concurrency.hpp>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
-#include <utils/concurrency.hpp>
-#include <game/game.hpp>
 
 namespace localized_strings {
 namespace {

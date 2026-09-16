@@ -2,8 +2,8 @@
 #include "memory.hpp"
 
 #define WIN32_LEAN_AND_MEAN
-#include <windows.h>
 #include <intrin.h>
+#include <windows.h>
 
 namespace utils::smbios {
 namespace {

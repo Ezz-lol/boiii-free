@@ -1,9 +1,11 @@
 #pragma once
 
 #include <std_include.hpp>
-#include <game/structs/scr/scr.hpp>
-#include <frozen/unordered_set.h>
+
 #include <frozen/string.h>
+#include <frozen/unordered_set.h>
+
+#include <game/structs/scr/scr.hpp>
 #include <str.hpp>
 
 namespace gsc {

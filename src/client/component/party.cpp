@@ -1,25 +1,25 @@
 #include <std_include.hpp>
 
-#include <loader/component_loader.hpp>
 #include <game/game.hpp>
 #include <game/utils.hpp>
+#include <loader/component_loader.hpp>
 
-#include "party.hpp"
 #include "auth.hpp"
+#include "friends.hpp"
 #include "network.hpp"
 #include "network_password.hpp"
-#include "scheduler.hpp"
-#include "workshop.hpp"
+#include "party.hpp"
 #include "profile_infos.hpp"
-#include "friends.hpp"
+#include "scheduler.hpp"
 #include "toast.hpp"
+#include "workshop.hpp"
 
 #include <game/utils.hpp>
-#include <utils/hook.hpp>
-#include <utils/string.hpp>
-#include <utils/info_string.hpp>
-#include <utils/cryptography.hpp>
 #include <utils/concurrency.hpp>
+#include <utils/cryptography.hpp>
+#include <utils/hook.hpp>
+#include <utils/info_string.hpp>
+#include <utils/string.hpp>
 
 #include <game/impl/cl/cl.hpp>
 

@@ -1,9 +1,9 @@
 #pragma once
 
-#include "core.hpp"
-#include "weapon.hpp"
 #include "ai.hpp"
 #include "asm.hpp"
+#include "core.hpp"
+#include "weapon.hpp"
 #include <cstdint>
 namespace game {
 namespace user {

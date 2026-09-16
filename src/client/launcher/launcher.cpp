@@ -1,15 +1,15 @@
 #include <std_include.hpp>
 
+#include <utils/http.hpp>
+#include <utils/io.hpp>
 #include <utils/nt.hpp>
 #include <utils/properties.hpp>
-#include <utils/io.hpp>
 #include <utils/string.hpp>
-#include <utils/http.hpp>
 
+#include "component/auth.hpp"
+#include "html/html_window.hpp"
 #include "launcher.hpp"
 #include "launcher_workshop.hpp"
-#include "html/html_window.hpp"
-#include "component/auth.hpp"
 
 #include <game/game.hpp>
 
@@ -29,13 +29,13 @@
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
 
-#include <thread>
 #include <atomic>
-#include <mutex>
 #include <map>
+#include <mutex>
 #include <set>
 #include <shlobj.h>
 #include <shlwapi.h>
+#include <thread>
 #include <tlhelp32.h>
 
 // XXH3 via single-header xxhash library (must be at file scope)

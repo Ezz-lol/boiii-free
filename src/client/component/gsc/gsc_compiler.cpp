@@ -1,17 +1,17 @@
 #include <std_include.hpp>
 
 #include "gsc_compiler.hpp"
+#include "gsc_emitter.hpp"
 #include "gsc_lexer.hpp"
 #include "gsc_parser.hpp"
-#include "gsc_emitter.hpp"
-#include <game/game.hpp>
-#include <utils/nt.hpp>
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
+#include <game/game.hpp>
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
+#include <utils/nt.hpp>
 
 namespace gsc_compiler {
 namespace {

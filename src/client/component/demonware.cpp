@@ -2,17 +2,17 @@
 
 #include <loader/component_loader.hpp>
 
-#include <utils/hook.hpp>
-#include <utils/thread.hpp>
 #include <utils/concurrency.hpp>
+#include <utils/hook.hpp>
 #include <utils/memory.hpp>
+#include <utils/thread.hpp>
 
-#include <game/game.hpp>
-#include <game/demonware/servers/lobby_server.hpp>
+#include <game/demonware/server_registry.hpp>
 #include <game/demonware/servers/auth3_server.hpp>
+#include <game/demonware/servers/lobby_server.hpp>
 #include <game/demonware/servers/stun_server.hpp>
 #include <game/demonware/servers/umbrella_server.hpp>
-#include <game/demonware/server_registry.hpp>
+#include <game/game.hpp>
 
 #include "localized_strings.hpp"
 

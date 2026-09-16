@@ -5,12 +5,12 @@
 #ifndef HTTPREQUEST_HPP
 #define HTTPREQUEST_HPP
 
-#include <cstddef>
-#include <cstdint>
-#include <cstring>
 #include <algorithm>
 #include <array>
 #include <chrono>
+#include <cstddef>
+#include <cstdint>
+#include <cstring>
 #include <memory>
 #include <stdexcept>
 #include <string>
@@ -39,8 +39,8 @@ extern "C" char *_strdup(const char *strSource);
 #else
 #include <errno.h>
 #include <fcntl.h>
-#include <netinet/in.h>
 #include <netdb.h>
+#include <netinet/in.h>
 #include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/types.h>

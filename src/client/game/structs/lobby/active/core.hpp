@@ -1,8 +1,8 @@
 #pragma once
 
+#include "game/structs/ddl.hpp"
 #include "game/structs/lobby/core.hpp"
 #include "game/structs/lobby/session.hpp"
-#include "game/structs/ddl.hpp"
 #include <cstdint>
 
 namespace game {

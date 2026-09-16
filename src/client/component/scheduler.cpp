@@ -5,8 +5,8 @@
 
 #include <game/game.hpp>
 
-#include <utils/hook.hpp>
 #include <utils/concurrency.hpp>
+#include <utils/hook.hpp>
 #include <utils/thread.hpp>
 
 namespace scheduler {

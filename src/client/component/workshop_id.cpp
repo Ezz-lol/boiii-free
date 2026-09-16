@@ -1,12 +1,12 @@
 #include <std_include.hpp>
 
-#include <loader/component_loader.hpp>
+#include <game/game.hpp>
 #include <game/utils.hpp>
+#include <loader/component_loader.hpp>
+#include <utils/flags.hpp>
 #include <utils/io.hpp>
 #include <utils/string.hpp>
 #include <utils/thread.hpp>
-#include <utils/flags.hpp>
-#include <game/game.hpp>
 
 namespace workshop_id {
 namespace {

@@ -3,8 +3,8 @@
 #include "game.hpp"
 #include "log.hpp"
 
-#include <utils/flags.hpp>
 #include <utils/finally.hpp>
+#include <utils/flags.hpp>
 
 #include <combaseapi.h>
 

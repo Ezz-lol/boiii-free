@@ -1,9 +1,9 @@
 #pragma once
 
-#include <cstdint>
 #include "../core.hpp"
-#include "../quake/core.hpp"
 #include "../dw/dw.hpp"
+#include "../quake/core.hpp"
+#include <cstdint>
 
 namespace game {
 namespace live {

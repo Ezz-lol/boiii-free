@@ -1,10 +1,10 @@
 #pragma once
 
 #include <cstdint>
-#include <game/structs/snd/snd.hpp>
-#include <game/structs/scr/core.hpp>
-#include <game/structs/phys/core.hpp>
 #include <game/structs/gfx/core.hpp>
+#include <game/structs/phys/core.hpp>
+#include <game/structs/scr/core.hpp>
+#include <game/structs/snd/snd.hpp>
 
 namespace game {
 namespace dyn {

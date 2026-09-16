@@ -1,7 +1,7 @@
 #pragma once
 
-#include <game/game.hpp>
 #include "command.hpp"
+#include <game/game.hpp>
 
 #include <functional>
 #include <string>

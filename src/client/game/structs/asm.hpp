@@ -1,10 +1,10 @@
 #pragma once
 #include "core.hpp"
+#include "db/xasset/xmodel.hpp"
+#include "fp16.hpp"
 #include "quake/core.hpp"
 #include "scr/primitives.hpp"
-#include "db/xasset/xmodel.hpp"
 #include "weapon.hpp"
-#include "fp16.hpp"
 
 namespace game {
 

@@ -2,13 +2,13 @@
 
 #include <loader/component_loader.hpp>
 
+#include "scheduler.hpp"
 #include <game/game.hpp>
 #include <game/utils.hpp>
-#include "scheduler.hpp"
 
-#include <utils/string.hpp>
 #include <utils/flags.hpp>
 #include <utils/hook.hpp>
+#include <utils/string.hpp>
 
 namespace dvars_patches {
 namespace {

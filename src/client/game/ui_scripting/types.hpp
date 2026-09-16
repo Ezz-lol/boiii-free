@@ -1,7 +1,7 @@
 #pragma once
+#include "script_value.hpp"
 #include <game/game.hpp>
 #include <utils/string.hpp>
-#include "script_value.hpp"
 
 #include <component/lua/ui_scripting.hpp>
 

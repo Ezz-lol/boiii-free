@@ -1,8 +1,11 @@
 #pragma once
-#include <stddef.h>
+
+#include <climits>
 #include <cstddef>
 #include <cstring>
-#include <climits>
+#include <stddef.h>
+
+#include <string_view>
 
 constexpr size_t strlcpy(char *dst, const char *src, size_t siz);
 
@@ -81,4 +84,21 @@ inline constexpr size_t strscpy(volatile char (&dst)[N], const char *src) {
 template <size_t N>
 inline constexpr size_t strscpy_pad(char (&dst)[N], const char *src) {
   return sized_strscpy_pad(dst, src, N);
+}
+
+template <size_t N>
+inline constexpr size_t strscpy(char (&dst)[N], const std::string_view &src) {
+  return sized_strscpy(dst, src.data(), N);
+}
+
+template <size_t N>
+inline constexpr size_t strscpy(volatile char (&dst)[N],
+                                const std::string_view &src) {
+  return sized_strscpy(const_cast<char *>(dst), src.data(), N);
+}
+
+template <size_t N>
+inline constexpr size_t strscpy_pad(char (&dst)[N],
+                                    const std::string_view &src) {
+  return sized_strscpy_pad(dst, src.data(), N);
 }

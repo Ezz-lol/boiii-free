@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cstdint>
 #include "hks.hpp"
+#include <cstdint>
 #include <game/structs/core.hpp>
 #include <game/structs/sys.hpp>
 

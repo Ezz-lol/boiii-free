@@ -4,12 +4,12 @@
 
 #include <game/game.hpp>
 
-#include <utils/nt.hpp>
-#include <utils/flags.hpp>
-#include <utils/string.hpp>
-#include <utils/hook.hpp>
-#include <utils/finally.hpp>
 #include <utils/concurrency.hpp>
+#include <utils/finally.hpp>
+#include <utils/flags.hpp>
+#include <utils/hook.hpp>
+#include <utils/nt.hpp>
+#include <utils/string.hpp>
 
 #include <steam/interface.hpp>
 #include <steam/steam.hpp>

@@ -1,6 +1,6 @@
 #pragma once
-#include "tcp_server.hpp"
 #include "../reply.hpp"
+#include "tcp_server.hpp"
 
 namespace demonware {
 class auth3_server : public tcp_server {

@@ -1,23 +1,23 @@
 #include <std_include.hpp>
 
-#include <loader/component_loader.hpp>
 #include "workshop.hpp"
+#include <loader/component_loader.hpp>
 
-#include <game/utils.hpp>
 #include "command.hpp"
+#include <game/utils.hpp>
 
-#include <utils/hook.hpp>
-#include <utils/string.hpp>
-#include <utils/io.hpp>
-#include <utils/http.hpp>
-#include <utils/thread.hpp>
 #include <utils/flags.hpp>
+#include <utils/hook.hpp>
+#include <utils/http.hpp>
+#include <utils/io.hpp>
+#include <utils/string.hpp>
+#include <utils/thread.hpp>
 
-#include "steamcmd.hpp"
+#include "download_overlay.hpp"
 #include "fastdl.hpp"
 #include "party.hpp"
 #include "scheduler.hpp"
-#include "download_overlay.hpp"
+#include "steamcmd.hpp"
 #include "toast.hpp"
 
 #include <game/impl/db/xzone/xzone.hpp>
@@ -29,9 +29,9 @@
 #include <regex>
 #include <shellapi.h>
 
+#include <frozen/string.h>
 #include <frozen/unordered_map.h>
 #include <frozen/unordered_set.h>
-#include <frozen/string.h>
 
 using namespace game::db;
 using XZoneName = xzone::XZoneName;

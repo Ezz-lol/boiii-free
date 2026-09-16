@@ -1,11 +1,11 @@
 #include <std_include.hpp>
 
-#include <loader/component_loader.hpp>
 #include <game/game.hpp>
 #include <game/utils.hpp>
+#include <loader/component_loader.hpp>
 
-#include "network_password.hpp"
 #include "hash.hpp"
+#include "network_password.hpp"
 #include "scheduler.hpp"
 
 #include <utils/hook.hpp>

@@ -1,17 +1,17 @@
 #include <std_include.hpp>
 
-#include <loader/component_loader.hpp>
 #include <game/impl/db/db.hpp>
+#include <loader/component_loader.hpp>
 
 #include <utils/hook.hpp>
 #include <utils/io.hpp>
 #include <utils/string.hpp>
 
-#include <rapidjson/document.h>
 #include <frozen/unordered_map.h>
+#include <rapidjson/document.h>
 
-#include "script.hpp"
 #include "asset_limits.hpp"
+#include "script.hpp"
 
 namespace asset_limits {
 

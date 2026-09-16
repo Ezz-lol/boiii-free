@@ -1,6 +1,6 @@
 #pragma once
-#include <string>
 #include <game/game.hpp>
+#include <string>
 
 namespace name {
 const char *get_player_name();

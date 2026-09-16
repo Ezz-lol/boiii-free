@@ -1,20 +1,20 @@
 #include <std_include.hpp>
 
-#include <cstdint>
 #include <atomic>
+#include <cstdint>
 #include <loader/component_loader.hpp>
 
 #include "scheduler.hpp"
 
 #include <game/game.hpp>
-#include <game/utils.hpp>
-#include <game/impl/snd/snd.hpp>
-#include <game/impl/snd/sd/sd.hpp>
-#include <game/impl/cl/cl.hpp>
 #include <game/impl/cg/cg.hpp>
+#include <game/impl/cl/cl.hpp>
+#include <game/impl/snd/sd/sd.hpp>
+#include <game/impl/snd/snd.hpp>
+#include <game/utils.hpp>
 
-#include <utils/string.hpp>
 #include <utils/hook.hpp>
+#include <utils/string.hpp>
 
 #include <mmeapi.h>
 

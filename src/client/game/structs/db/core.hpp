@@ -1,8 +1,8 @@
 #ifndef STRUCTS_DB_CORE_HPP
 #define STRUCTS_DB_CORE_HPP
 
-#include <cstdint>
 #include "../macros.hpp"
+#include <cstdint>
 
 namespace game {
 namespace db {

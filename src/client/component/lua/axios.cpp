@@ -4,8 +4,8 @@
 
 #include <utils/HTTPRequest.hpp>
 
-#include <loader/component_loader.hpp>
 #include <component/lua/lua_state.hpp>
+#include <loader/component_loader.hpp>
 
 namespace axios {
 using namespace game::lua::hks;

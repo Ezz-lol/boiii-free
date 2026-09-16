@@ -1,6 +1,6 @@
 #include "signature.hpp"
-#include <thread>
 #include <mutex>
+#include <thread>
 
 #ifndef USE_SSE_TARGET_ATTRIBUTE
 #if (defined(__SSE4_1__) && defined(__SSE4_2__)) || defined(__clang__) ||      \

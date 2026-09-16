@@ -1,13 +1,13 @@
 #include <std_include.hpp>
 
-#include <loader/component_loader.hpp>
 #include "scheduler.hpp"
+#include <loader/component_loader.hpp>
 
 #include "download_overlay.hpp"
 #include "workshop.hpp"
 
-#include <utils/hook.hpp>
 #include <utils/concurrency.hpp>
+#include <utils/hook.hpp>
 
 #include <imgui.h>
 #include <imgui_impl_dx11.h>

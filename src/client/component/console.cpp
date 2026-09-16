@@ -6,9 +6,9 @@
 
 #include <game/game.hpp>
 
-#include <loader/component_loader.hpp>
 #include <component/command.hpp>
 #include <component/lua/lua_state.hpp>
+#include <loader/component_loader.hpp>
 
 #if __has_include("version.hpp")
 #include "version.hpp"
@@ -18,22 +18,22 @@
 #endif
 #endif
 
-#include <utils/thread.hpp>
-#include <utils/hook.hpp>
-#include <utils/flags.hpp>
 #include <utils/concurrency.hpp>
+#include <utils/flags.hpp>
+#include <utils/hook.hpp>
 #include <utils/image.hpp>
+#include <utils/thread.hpp>
 
 #include "scheduler.hpp"
 
 #include <utils/io.hpp>
 #include <utils/nt.hpp>
 
-#include <richedit.h>
 #include <dwmapi.h>
+#include <richedit.h>
 
-#include <atomic>
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <filesystem>
 #include <sstream>

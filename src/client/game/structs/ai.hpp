@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cstdint>
 #include "asm.hpp"
+#include <cstdint>
 namespace game {
 namespace ai {
 struct sentient_t; // TODO

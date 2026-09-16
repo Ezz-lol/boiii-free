@@ -1,11 +1,11 @@
 #pragma once
-#include <cstdint>
-#include "../core.hpp"
 #include "../asm.hpp"
+#include "../core.hpp"
+#include "../lobby/core.hpp"
 #include "../snd/snd.hpp"
 #include "../ui/ui.hpp"
 #include "../vehicle.hpp"
-#include "../lobby/core.hpp"
+#include <cstdint>
 
 namespace game {
 

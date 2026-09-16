@@ -1,10 +1,10 @@
 #pragma once
 
+#include "asm.hpp"
 #include "core.hpp"
-#include "quake/core.hpp"
 #include "db/xasset/xmodel.hpp"
 #include "dyn/ent.hpp"
-#include "asm.hpp"
+#include "quake/core.hpp"
 #include "rope.hpp"
 
 namespace game {

@@ -1,10 +1,10 @@
 #pragma once
 
-#include <cstdint>
 #include "../core.hpp"
-#include "core.hpp"
-#include "../quake/core.hpp"
 #include "../db/xasset/core.hpp"
+#include "../quake/core.hpp"
+#include "core.hpp"
+#include <cstdint>
 
 namespace game {
 namespace snd {

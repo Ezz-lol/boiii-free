@@ -1,8 +1,8 @@
 #pragma once
 
 #include <game/game.hpp>
-#include <utils/string.hpp>
 #include <macros.hpp>
+#include <utils/string.hpp>
 
 namespace gsc {
 using namespace game;

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <structs/str.hpp>
 #include "game/structs/quake/core.hpp"
+#include <structs/str.hpp>
 
 #ifndef NDEBUG
-#include <string>
 #include <format>
+#include <string>
 #endif
 
 namespace game {

@@ -5,40 +5,40 @@
 #include <game/game.hpp>
 #include <game/utils.hpp>
 
-#include <game/impl/ugc/ugc.hpp>
 #include <game/impl/com/com.hpp>
+#include <game/impl/ugc/ugc.hpp>
 
 #include <game/ui_scripting/execution.hpp>
 
 #include "ui_scripting.hpp"
 
 #include <component/command.hpp>
-#include <component/script.hpp>
-#include <component/scheduler.hpp>
+#include <component/discord.hpp>
 #include <component/friends.hpp>
 #include <component/getinfo.hpp>
-#include <component/discord.hpp>
 #include <component/name.hpp>
+#include <component/scheduler.hpp>
+#include <component/script.hpp>
 #include <component/toast.hpp>
 
-#include <steam/steam.hpp>
 #include <steam/interfaces/matchmaking_servers.hpp>
+#include <steam/steam.hpp>
 
-#include <utils/io.hpp>
-#include <utils/hook.hpp>
-#include <utils/flags.hpp>
-#include <utils/string.hpp>
-#include <utils/finally.hpp>
-#include <utils/http.hpp>
 #include "utils/pe.hpp"
+#include <utils/finally.hpp>
+#include <utils/flags.hpp>
+#include <utils/hook.hpp>
+#include <utils/http.hpp>
+#include <utils/io.hpp>
+#include <utils/string.hpp>
 
-#include <frozen/unordered_set.h>
 #include <frozen/string.h>
+#include <frozen/unordered_set.h>
 
+#include <atomic>
 #include <cmath>
 #include <filesystem>
 #include <unordered_map>
-#include <atomic>
 
 using namespace game::db;
 using namespace game::db::xasset;

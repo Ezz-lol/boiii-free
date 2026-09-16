@@ -5,8 +5,8 @@
 
 #include <game/ui_scripting/script_value.hpp>
 
-#include <frozen/unordered_set.h>
 #include <frozen/string.h>
+#include <frozen/unordered_set.h>
 
 namespace ui_scripting {
 using namespace game::lua::hks;

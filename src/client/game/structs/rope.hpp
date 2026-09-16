@@ -1,8 +1,8 @@
 #pragma once
 
-#include "quake/vec.hpp"
-#include "quake/core.hpp"
 #include "db/xasset/core.hpp"
+#include "quake/core.hpp"
+#include "quake/vec.hpp"
 
 namespace game {
 namespace rope {

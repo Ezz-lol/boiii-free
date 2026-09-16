@@ -1,7 +1,7 @@
 #include "minidump.hpp"
 
-#include <utils/nt.hpp>
 #include <dbghelp.h>
+#include <utils/nt.hpp>
 #pragma comment(lib, "dbghelp.lib")
 
 namespace exception {

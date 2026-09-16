@@ -2,9 +2,9 @@
 
 #include <utils/string.hpp>
 
-#include <game/utils.hpp>
 #include <game/impl/game/game.hpp>
 #include <game/impl/scr/scr.hpp>
+#include <game/utils.hpp>
 
 #include "scrcmd.hpp"
 

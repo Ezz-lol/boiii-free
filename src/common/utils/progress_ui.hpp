@@ -1,10 +1,10 @@
 #pragma once
 
 #include "nt.hpp"
-#include <string>
-#include <mutex>
-#include <thread>
 #include <atomic>
+#include <mutex>
+#include <string>
+#include <thread>
 
 namespace utils {
 class progress_ui {

@@ -1,12 +1,12 @@
 #pragma once
 
-#include <cstdint>
 #include "../core.hpp"
-#include "../quake/core.hpp"
 #include "../db/xasset/core.hpp"
+#include "../quake/core.hpp"
 #include "../scr/primitives.hpp"
-#include "../weapon.hpp"
 #include "../stream.hpp"
+#include "../weapon.hpp"
+#include <cstdint>
 
 namespace game {
 namespace snd {

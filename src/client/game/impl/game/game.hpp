@@ -1,6 +1,6 @@
 #pragma once
-#include <game/game.hpp>
 #include <cstdint>
+#include <game/game.hpp>
 
 namespace game {
 game::CanonHash_t CanonHash(const char *str);

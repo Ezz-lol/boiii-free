@@ -3,12 +3,12 @@
 #include <loader/component_loader.hpp>
 
 #include <game/game.hpp>
-#include <game/utils.hpp>
-#include <game/impl/snd/snd.hpp>
 #include <game/impl/snd/sd/sd.hpp>
+#include <game/impl/snd/snd.hpp>
+#include <game/utils.hpp>
 
-#include <component/scheduler.hpp>
 #include <component/game_event.hpp>
+#include <component/scheduler.hpp>
 
 #include <utils/flags.hpp>
 #include <utils/hook.hpp>

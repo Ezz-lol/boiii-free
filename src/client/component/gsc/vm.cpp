@@ -1,9 +1,9 @@
 #include <std_include.hpp>
 
-#include "vm.hpp"
-#include <game/impl/scr/vm/op.hpp>
 #include "gsc_funcs.hpp"
 #include "loader/component_loader.hpp"
+#include "vm.hpp"
+#include <game/impl/scr/vm/op.hpp>
 #include <utils/string.hpp>
 
 namespace gsc {

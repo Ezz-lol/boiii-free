@@ -2,18 +2,18 @@
 
 #include <game/game.hpp>
 
-#include <loader/component_loader.hpp>
 #include <component/lua/lua_state.hpp>
 #include <component/path.hpp>
+#include <loader/component_loader.hpp>
 
 #include <utils/io.hpp>
 
-#include <rapidjson/rapidjson.h>
 #include <rapidjson/document.h>
-#include <rapidjson/pointer.h>
 #include <rapidjson/istreamwrapper.h>
 #include <rapidjson/ostreamwrapper.h>
+#include <rapidjson/pointer.h>
 #include <rapidjson/prettywriter.h>
+#include <rapidjson/rapidjson.h>
 
 namespace json {
 using namespace game::lua::hks;

@@ -744,8 +744,8 @@ void emit_expression(emitter_state &s, const ast_ptr &node,
   case node_type::n_istring:
     s.emit_string_ref(Opcode::GetIString, node->value, node->line);
     break;
-  case node_type::n_hash_string:
-  hash_string: {
+  case node_type::n_hash_string: {
+  hash_string:
     const ScrVarCanonicalName_t hash = gsc::gsc_hash(node->value);
     s.emit<Opcode>(Opcode::GetHash, node->line);
     s.emit_aligned<uint32_t>(hash, node->line);

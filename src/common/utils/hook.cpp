@@ -3,8 +3,8 @@
 #include <MinHook.h>
 
 #include "concurrency.hpp"
-#include "string.hpp"
 #include "nt.hpp"
+#include "string.hpp"
 
 #ifdef max
 #undef max

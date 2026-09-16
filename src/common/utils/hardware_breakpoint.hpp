@@ -1,6 +1,6 @@
 #pragma once
-#include <thread>
 #include "nt.hpp"
+#include <thread>
 
 namespace utils::hardware_breakpoint {
 enum condition { execute = 0, write = 1, read_write = 3 };

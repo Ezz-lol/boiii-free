@@ -1,13 +1,13 @@
 #pragma once
 
+#include <cstdint>
+#include <game/structs/asm.hpp>
+#include <game/structs/core.hpp>
+#include <game/structs/db/xasset/destructible.hpp>
+#include <game/structs/db/xasset/phys.hpp>
 #include <game/structs/math.hpp>
 #include <game/structs/snd/snd.hpp>
-#include <game/structs/core.hpp>
-#include <game/structs/asm.hpp>
-#include <game/structs/db/xasset/phys.hpp>
-#include <game/structs/db/xasset/destructible.hpp>
 #include <game/symbol.hpp>
-#include <cstdint>
 
 namespace game {
 

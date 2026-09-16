@@ -1,9 +1,9 @@
 #include <std_include.hpp>
 
 #include "execution.hpp"
-#include "types.hpp"
 #include "script_value.hpp"
 #include "stack_guard.hpp"
+#include "types.hpp"
 
 namespace ui_scripting {
 using namespace game::lua::hks;

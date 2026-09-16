@@ -1,8 +1,8 @@
 #include <std_include.hpp>
 
-#include <loader/component_loader.hpp>
 #include <game/game.hpp>
 #include <game/utils.hpp>
+#include <loader/component_loader.hpp>
 
 #if __has_include("version.hpp")
 #include "version.hpp"
@@ -12,9 +12,9 @@
 #endif
 #endif
 
-#include <component/scheduler.hpp>
-#include <component/getinfo.hpp>
 #include <component/console.hpp>
+#include <component/getinfo.hpp>
+#include <component/scheduler.hpp>
 
 #include <string>
 #include <utils/string.hpp>

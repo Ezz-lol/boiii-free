@@ -1,7 +1,7 @@
 #pragma once
 
-#include <string>
 #include "nt.hpp"
+#include <string>
 
 namespace utils::image {
 struct image {

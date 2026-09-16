@@ -1,13 +1,13 @@
 #pragma once
 
-#include "core.hpp"
-#include "../core.hpp"
-#include "../vehicle.hpp"
-#include "../user.hpp"
-#include "../phys/core.hpp"
 #include "../ai.hpp"
-#include "../scr/scr.hpp"
+#include "../core.hpp"
 #include "../lobby/core.hpp"
+#include "../phys/core.hpp"
+#include "../scr/scr.hpp"
+#include "../user.hpp"
+#include "../vehicle.hpp"
+#include "core.hpp"
 
 namespace game {
 

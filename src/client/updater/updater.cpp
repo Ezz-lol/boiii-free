@@ -1,8 +1,8 @@
 #include <std_include.hpp>
 
+#include "file_updater.hpp"
 #include "updater.hpp"
 #include "updater_ui.hpp"
-#include "file_updater.hpp"
 
 namespace updater {
 void run(const std::filesystem::path &base) {

@@ -2,10 +2,10 @@
 
 #include <cstdint>
 #include <cstring>
-#include <string_view>
-#include <string>
-#include <vector>
 #include <stdexcept>
+#include <string>
+#include <string_view>
+#include <vector>
 
 namespace utils {
 class byte_buffer {

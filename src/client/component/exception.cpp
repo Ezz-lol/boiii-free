@@ -4,15 +4,15 @@
 
 #include <loader/component_loader.hpp>
 
-#include <game/game.hpp>
 #include "scheduler.hpp"
+#include <game/game.hpp>
 
 #include <errhandlingapi.h>
+#include <utils/compression.hpp>
 #include <utils/hook.hpp>
 #include <utils/io.hpp>
 #include <utils/string.hpp>
 #include <utils/thread.hpp>
-#include <utils/compression.hpp>
 
 #include <exception/minidump.hpp>
 
