@@ -1,20 +1,21 @@
 #include <std_include.hpp>
 
-#include <loader/component_loader.hpp>
+#include <game/game.hpp>
 
-#include "command.hpp"
-#include "scheduler.hpp"
+#include <component/command.hpp>
+#include <component/getinfo.hpp>
+#include <component/scheduler.hpp>
+#include <loader/component_loader.hpp>
 
 #include <utils/hook.hpp>
 #include <utils/io.hpp>
 #include <utils/string.hpp>
 
-#include <game/game.hpp>
-#include "getinfo.hpp"
+#include <str.hpp>
 
 namespace bots {
 namespace {
-constexpr auto *bot_format_string =
+constexpr const char bot_format_string[] =
     "connect "
     "\"\\invited\\1\\cg_predictItems\\1\\cl_"
     "anonymous\\0\\color\\4\\head\\default\\model\\multi\\snaps\\20\\rate\\"
@@ -22,47 +23,60 @@ constexpr auto *bot_format_string =
     "s\\natType\\2\\protocol\\%d\\netfieldchk\\%d\\sessionmode\\%s\\qport\\%"
     "d\"";
 
-using bot_name = std::pair<std::string, std::string>;
+struct BotName {
+  game::playerName_t name;
+  game::clanAbbrev_t clan_abbrev;
+};
 
-std::vector<bot_name> load_bots_names() {
-  std::vector<bot_name> bot_names = {
-      {"Solar", "Ezz"},
-      {"Catsby", "Ezz"},
-      {"Skwll", "DEV"},
-      {"amkillam", "DEV"},
-      {"Frozedy", "DEV"},
-      {"Hellcat", "Ezz"},
-      {"Ava", "WIFE"},
-      {"Zyrow", "Ezz"},
-      {"ZACK", "Ezz"},
-      {"Aranella", "Ezz"},
-      {"Clyde", "Ezz"},
-      {"Misty", "Ezz"},
-      {"Richtofen", "ZMB"},
-      {"Dempsy", "ZMB"},
-      {"Samantha", "ZMB"},
-      {"Takeo", "ZMB"},
-      {"TheBot", "Ezz"},
-      {"ShadowMan", "ZMB"},
-      {"Aimbot.exe", "EXE"},
-      {"Wallhack.exe", "EXE"},
-      {"NotAScammer.exe", "EXE"},
-      {"ThunderCockKiller12", "TF"},
-      {"Alenski", "Ezz"},
-      {"1stPlaceBtw", "YUH"},
-      {"NoIamFirstPlace", "FR"},
-      {"IDied", "LOL"},
-      {"Boiii", "Ezz"},
-      {"Sabino", "Ezz"},
-      {"KST", "Ezz"},
-      {"Faisal", "Ezz"},
-  };
+std::vector<BotName> load_bots_names() {
+  constexpr const BotName DEFAULT_BOT_NAMES[] = {{"Skwll", "DEV"},
+                                                 {"amkillam", "DEV"},
+                                                 {"Frozedy", "DEV"},
+
+                                                 {"Ava", "WIFE"},
+
+                                                 {"Solar", "Ezz"},
+                                                 {"Catsby", "Ezz"},
+                                                 {"Hellcat", "Ezz"},
+                                                 {"Zyrow", "Ezz"},
+                                                 {"ZACK", "Ezz"},
+                                                 {"Aranella", "Ezz"},
+                                                 {"Clyde", "Ezz"},
+                                                 {"Misty", "Ezz"},
+                                                 {"TheBot", "Ezz"},
+                                                 {"Alenski", "Ezz"},
+                                                 {"Boiii", "Ezz"},
+                                                 {"Sabino", "Ezz"},
+                                                 {"KST", "Ezz"},
+                                                 {"Faisal", "Ezz"},
+
+                                                 {"Richtofen", "ZMB"},
+                                                 {"Dempsy", "ZMB"},
+                                                 {"Samantha", "ZMB"},
+                                                 {"Takeo", "ZMB"},
+                                                 {"ShadowMan", "ZMB"},
+
+                                                 {"Aimbot.exe", "EXE"},
+                                                 {"Wallhack.exe", "EXE"},
+                                                 {"NotAScammer.exe", "EXE"},
+
+                                                 {"ThunderCockKiller12", "TF"},
+
+                                                 {"1stPlaceBtw", "YUH"},
+
+                                                 {"NoIamFirstPlace", "FR"},
+
+                                                 {"IDied", "LOL"},
+
+                                                 {"TheLegend27", "GOW"}};
 
   std::string buffer;
   if (!utils::io::read_file("boiii/bots.txt", &buffer) || buffer.empty()) {
-    return bot_names;
+    return std::vector(std::begin(DEFAULT_BOT_NAMES),
+                       std::end(DEFAULT_BOT_NAMES));
   }
 
+  std::vector<BotName> bot_names;
   std::vector<std::string> data = utils::string::split(buffer, '\n');
   for (std::string &entry : data) {
     utils::string::replace(entry, "\r", "");
@@ -82,16 +96,22 @@ std::vector<bot_name> load_bots_names() {
         entry = entry.substr(0, pos);
       }
 
-      bot_names.emplace_back(entry, clan_abbrev);
+      BotName name;
+      strscpy(name.name, entry);
+      strscpy(name.clan_abbrev, clan_abbrev);
+
+      bot_names.emplace_back(name);
     }
   }
 
-  return bot_names;
+  return bot_names.empty() ? std::vector(std::begin(DEFAULT_BOT_NAMES),
+                                         std::end(DEFAULT_BOT_NAMES))
+                           : bot_names;
 }
 
-const std::vector<bot_name> &get_bot_names() {
-  static const std::vector<bot_name> bot_names = [] {
-    std::vector<bot_name> names = load_bots_names();
+const std::vector<BotName> &get_bot_names() {
+  static const std::vector<BotName> bot_names = [] {
+    std::vector<BotName> names = load_bots_names();
 
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -104,25 +124,25 @@ const std::vector<bot_name> &get_bot_names() {
 
 const char *get_bot_name() {
   static size_t current = 0;
-  const std::vector<bot_name> &names = get_bot_names();
+  const std::vector<BotName> &names = get_bot_names();
 
   current = (current + 1) % names.size();
-  return names.at(current).first.data();
+  return names.at(current).name;
+}
+const char *find_clan_name(const std::string &needle) {
+  for (const BotName &entry : get_bot_names()) {
+    if (entry.name == needle) {
+      return entry.clan_abbrev;
+    }
+  }
+
+  return "3arc";
 }
 
 int format_bot_string(char *buffer, [[maybe_unused]] const char *format,
                       const char *name, const char *xuid, const char *xnaddr,
                       int protocol, int net_field_chk, const char *session_mode,
                       int qport) {
-  const auto find_clan_name = [](const std::string &needle) -> const char * {
-    for (const bot_name &entry : get_bot_names()) {
-      if (entry.first == needle) {
-        return entry.second.data();
-      }
-    }
-
-    return "3arc";
-  };
 
   return sprintf_s(buffer, 1024, bot_format_string, name, find_clan_name(name),
                    xuid, xnaddr, protocol, net_field_chk, session_mode, qport);

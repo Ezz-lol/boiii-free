@@ -6,6 +6,7 @@ namespace steam {
 #include <steam/isteamremotestorage.h> // IWYU pragma: export
 #include <steam/isteamugc.h>           // IWYU pragma: export
 #include <steam/isteamuser.h>          // IWYU pragma: export
+
 #include <steam/isteamfriends.h>       // IWYU pragma: export
 #include <steam/isteamapps.h>          // IWYU pragma: export
 
