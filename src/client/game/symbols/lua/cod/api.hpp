@@ -2069,7 +2069,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LeaderboardPopulateCustomList{
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LeaveGroup{0x141F37CE0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LeaveQueue{0x141FE8F40};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LeaveServerImmediately{
-    0x141F15F00};
+    0x141F15F00, 0x1404C22A0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LeaveWithParty{0x141F15F60,
                                                                0x1404C22E0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_LiquefyGobbleGum{0x141F21450};
@@ -2790,7 +2790,8 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetObjectiveRotateWithEntity{
     0x141F9B8B0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetObjectiveStencilToPartialMap{
     0x141F9D1F0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetPartyPrivacy{0x141F17790};
+WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetPartyPrivacy{0x141F17790,
+                                                                0x1404C3700};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetPlaylistID{0x141F1ECC0,
                                                               0x1404C7450};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetPlaylistPrevCount{
@@ -2828,32 +2829,7 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetTextureQuality{0x141FD2E40};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetUI3DWindows{0x141FEA220,
                                                                0x1404DA560};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetUIActive{0x141FEA2B0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupAmITalking{0x1420CE290};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupArmBladeTarget{
-    0x142018AF0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupBleedOutWidget{
-    0x142005F30};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupBowLauncherReticleShader{
-    0x142018C00};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupCancelChargeShotHint{
-    0x1420CE2A0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupClampedShooterWidget{
-    0x142006080};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupCompassColors{0x141FEA320};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupCompassItems{0x14206C0D0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupCompassMap{0x14206C140};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupCompassOverlay{
-    0x14206C1A0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupCompassUnderlay{
-    0x14206C200};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupCursorHint{0x1420CE2D0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupCybercomLockon{
-    0x1420061E0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupDamageFeedback{
-    0x142018C30};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupDeadQuote{0x1420CE330};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupDirectionalHitIndicator{
-    0x1420CE350};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupEmblemData{0x141FD0700};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupEmblemEditBuffer{
     0x141FD0790};
@@ -2861,54 +2837,12 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupFieldOpsKitLoadouts{
     0x141FE0AA0, 0x1404D5340};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupFilesharePaintjobData{
     0x141FD0820};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupFriendlyArrows{
-    0x1420CE380};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupGameMessages{0x14206CB50};
-WEAK symbol<hks::lua_CFunction>
-    Lua_CoD_LuaCall_SetupGuidedMissileTargetHighlights{0x1420CE3B0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupHoldBreathHint{
-    0x1420CE3D0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupHoldBreathZoomHint{
-    0x1420CE400};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupIncomingExplosive{
-    0x1420062F0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupInvalidCmdHint{
-    0x1420CE430};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupLockonHighlights{
-    0x1420CE460};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupLowHealthOverlay{
-    0x1420CE490};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupMantleHint{0x1420CE4C0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupMeleeChargeHint{
-    0x1420CE4F0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupMeleeCounterHint{
-    0x1420CE520};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupObjectiveIndicators3D{
-    0x1420CE550};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupPaintjobData{0x141FD0870};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupPlayerGrappleTargetting{
-    0x1420CE5B0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupPlayerMarkedTarget{
-    0x1420CE5E0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupPlayerPivotTargetting{
-    0x1420CE600};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupPlayerStance{0x1420CE630};
 WEAK symbol<hks::lua_CFunction>
     Lua_CoD_LuaCall_setupPlayerTargetHighlightsLineOfSight_Enemy{0x1420CE660};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupReticle{0x142018C60};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupRocketLauncherTarget{
-    0x142018CF0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupTacticalWidget{
-    0x142006440};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupTargetHighlights_Enemy{
-    0x1420CE690};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupTargetHighlights_Friendly{
-    0x1420CE6C0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupTransferData{0x141FD0920};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupUI3DWindow{0x141FEA360,
                                                                 0x1404DA5F0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetupWeakpointIndicator{
-    0x142006610};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetUserRegulationPreference{
     0x141FD0610};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_SetViewport{0x141FA0460};
@@ -3156,10 +3090,8 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UsingModsVersion{0x141FD3000,
                                                                  0x1404CD160};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UsingUsermapTitle{0x141FD3040,
                                                                   0x1404CD1A0};
-WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_usingUsermapUgcName{
-    0x141FD30A0};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_UsingUsermapUgcName{
-    0x0, 0x1404CD200};
+    0x141FD30A0, 0x1404CD200};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_WeaponGroupHasNewItem{
     0x141FE0AE0, 0x1404D5380};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_WeaponGroupNewItemCount{
@@ -3189,7 +3121,8 @@ WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_XuidIsValid{0x141F17E00,
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_XUIDToGamertag{0x141FD3F50};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_YouTube_Get{0x141FD1950};
 WEAK symbol<hks::lua_CFunction> Lua_CoD_LuaCall_YouTube_Set{0x141FD1970};
-WEAK symbol<LuaEngineFunction *> LuaEngineFunctionListTail{0x159C76D80,
+
+WEAK symbol<LuaEngineFunction *> LuaEngineFunctionListTail{0x1562E1C50,
                                                            0x149114E60};
 } // namespace api
 } // namespace cod

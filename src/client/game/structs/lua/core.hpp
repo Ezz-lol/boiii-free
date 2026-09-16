@@ -1602,10 +1602,10 @@ struct LuaEngineFunction {
   LuaEngineFunction *next;
 };
 
-struct LuaUIEngineFunction {
+struct LuaUIElementFunction {
   const char *name;
   hks::lua_CFunction *func;
-  LuaEngineFunction *next;
+  LuaUIElementFunction *next;
 };
 
 } // namespace lua

@@ -1274,6 +1274,16 @@ const char *resolve_c_function_name(lua_CFunction *c_func_ptr) {
         return func->name;
       }
     }
+
+    if (game::is_client()) {
+      for (LuaUIElementFunction *func =
+               *api::ui::element::LuaUIElementFunctionListTail;
+           func; func = func->next) {
+        if (func->func == c_func_ptr) {
+          return func->name;
+        }
+      }
+    }
   }
   return nullptr;
 }
