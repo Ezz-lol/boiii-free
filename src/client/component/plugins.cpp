@@ -14,9 +14,13 @@ struct component final : generic_component {
   component() {
     namespace fs = std::filesystem;
 
-    clear_log();
-
     const bool is_server = utils::flags::has_flag("dedicated");
+    const std::string log_name =
+        is_server ? "plugins-server-" + std::to_string(GetCurrentProcessId()) +
+                        ".log"
+                  : "plugins.log";
+    log_path_ = fs::path("boiii_players") / log_name;
+    clear_log();
 
     if (!is_server && utils::flags::has_flag("noplugins")) {
       log("Plugin loading is disabled via -noplugins launch flag.");
@@ -70,20 +74,11 @@ private:
   std::filesystem::path log_path_;
 
   void clear_log() {
-    if (log_path_.empty()) {
-      log_path_ = std::filesystem::path("boiii_players") / "plugins.log";
-    }
-
-    if (std::filesystem::exists(log_path_)) {
-      std::filesystem::remove(log_path_);
-    }
+    std::error_code error;
+    std::filesystem::remove(log_path_, error);
   }
 
   void log(const std::string &message) {
-    if (log_path_.empty()) {
-      log_path_ = std::filesystem::path("boiii_players") / "plugins.log";
-    }
-
     const auto timestamp = std::chrono::system_clock::now();
     const auto time_t = std::chrono::system_clock::to_time_t(timestamp);
 
