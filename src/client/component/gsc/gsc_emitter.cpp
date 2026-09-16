@@ -2098,17 +2098,15 @@ std::vector<uint8_t> build_gdb(emitter_state &s, const GSC_OBJ *obj) {
   }
 
   const uint32_t stringtable_offset = output.size();
-  uint16_t string_count = 0;
-  for (const string_entry &str : s.strings) {
-    if (!str.references.empty()) {
-      string_count++;
-
-      write<uint32_t>(output, str.offset);
-      write<uint32_t>(output, static_cast<uint32_t>(str.references.size()));
-
-      for (size_t j = 0; j < str.references.size(); j++) {
-        write<uint32_t>(output, resolve_ref(s, str.references[j]));
-      }
+  uint32_t string_count = 0;
+  std::unordered_set<std::string> canonical_names;
+  for (const gsc::hash_name_pair &entry : s.hash_names) {
+    if (!entry.name.empty() &&
+        !gsc::try_parse_raw_hash(entry.name).has_value() &&
+        canonical_names.insert(entry.name).second) {
+      output.insert(output.end(), entry.name.begin(), entry.name.end());
+      output.push_back('\0');
+      ++string_count;
     }
   }
 

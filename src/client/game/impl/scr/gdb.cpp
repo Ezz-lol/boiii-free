@@ -36,11 +36,44 @@ private:
 /// addresses, stores the line table and its size, and canonicalises the string
 /// table entries. If the buffer is invalid the buffer is freed and the gdb
 /// pointer is cleared.
-static void LoadGDBDataForDebugInfo(objFileInfo_t *const info) {
+static void LoadGDBDataForDebugInfo(objFileInfo_t *const info,
+                                    const size_t gdbSize) {
   debugFileInfo_t *const debug = &info->debugInfo;
   GSC_GDB *header = debug->gdb;
 
-  if (header->hasMagic(GSC_GDB::T7_MAGIC)) {
+  if (gdbSize >= sizeof(GSC_GDB) && header->hasMagic(GSC_GDB::T7_MAGIC) &&
+      header->lineinfo_offset <= gdbSize &&
+      header->lineinfo_count <=
+          (gdbSize - header->lineinfo_offset) / sizeof(uint64_t) &&
+      header->stringtable_offset <= gdbSize) {
+    const char *table = header->stringtable();
+    const char *const end = reinterpret_cast<const char *>(header) + gdbSize;
+    std::vector<const char *> strings;
+    strings.reserve(header->stringtable_count);
+
+    for (uint32_t i = 0; i < header->stringtable_count; ++i) {
+      if (table >= end) {
+        strings.clear();
+        break;
+      }
+
+      const void *terminator = memchr(table, '\0', end - table);
+      if (terminator == nullptr) {
+        strings.clear();
+        break;
+      }
+
+      strings.push_back(table);
+      table = static_cast<const char *>(terminator) + 1;
+    }
+
+    if (strings.size() != header->stringtable_count) {
+      fprintf(stderr, "Invalid GDB string table for script '%s'\n",
+              debug->filename ? debug->filename : "<unknown>");
+      free(debug->gdb);
+      debug->gdb = nullptr;
+      return;
+    }
 
     /*
        Convert relative line‑info offsets to absolute addresses.
@@ -63,11 +96,18 @@ static void LoadGDBDataForDebugInfo(objFileInfo_t *const info) {
 
     // Canonicalise every string in the string table (required for later
     // lookups).
-    const char *table = header->stringtable();
-
-    for (uint32_t i = 0; i < header->stringtable_count; ++i) {
-      sl::SL_GenerateCanonicalString(table);
-      table += strlen(table) + 1;
+    for (const char *name : strings) {
+      const ScrVarCanonicalName_t hash = builtin::fnv1a(name);
+      const char *existing = sl::SL_LookupCanonicalString(hash);
+      if (existing && strcmp(existing, name) != 0) {
+        fprintf(stderr,
+                "Canonical name hash collision in script '%s': '%s' and "
+                "'%s'\n",
+                debug->filename ? debug->filename : "<unknown>", existing,
+                name);
+        fflush(stderr);
+      }
+      sl::SL_GenerateCanonicalString(name);
     }
   } else {
     // Invalid magic – free the buffer and clear the pointer.
@@ -130,7 +170,7 @@ void LoadScriptGDB2_Impl(const scriptInstance_t inst) {
           }
 
           info->debugInfo.gdb = static_cast<GSC_GDB *>(rawGdb);
-          LoadGDBDataForDebugInfo(info);
+          LoadGDBDataForDebugInfo(info, fileSize);
         }
       }
     }
@@ -170,7 +210,7 @@ void LoadScriptGDB2_Impl(const scriptInstance_t inst) {
               file.read(reinterpret_cast<char *>(buffer), fileSize);
               buffer[fileSize] = '\0';
               info->debugInfo.gdb = reinterpret_cast<GSC_GDB *>(buffer);
-              LoadGDBDataForDebugInfo(info);
+              LoadGDBDataForDebugInfo(info, static_cast<size_t>(fileSize));
             }
             // file closed automatically by ifstream destructor
           }
@@ -222,7 +262,7 @@ void LoadScriptGDB_Impl([[maybe_unused]] const scriptInstance_t inst,
         }
 
         fileInfo->debugInfo.gdb = static_cast<GSC_GDB *>(rawGdb);
-        LoadGDBDataForDebugInfo(fileInfo);
+        LoadGDBDataForDebugInfo(fileInfo, fileSize);
       }
     }
   }
@@ -255,7 +295,7 @@ void LoadScriptGDB_Impl([[maybe_unused]] const scriptInstance_t inst,
             file.read(reinterpret_cast<char *>(buffer), fileSize);
             buffer[fileSize] = '\0';
             fileInfo->debugInfo.gdb = reinterpret_cast<GSC_GDB *>(buffer);
-            LoadGDBDataForDebugInfo(fileInfo);
+            LoadGDBDataForDebugInfo(fileInfo, static_cast<size_t>(fileSize));
           }
         }
       }
