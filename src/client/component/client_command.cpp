@@ -25,7 +25,6 @@ void client_command_stub(const game::ClientNum_t client_num) {
   game::level::gentity_t *ent = game::level::client_ent(client_num);
 
   if (ent == nullptr || ent->client == nullptr) {
-    invoke_original(client_num);
     return;
   }
 
