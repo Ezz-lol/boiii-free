@@ -28,11 +28,6 @@ local function addFriendsAccessOption(options, controller)
   })
 end
 
-local function restartGame(self, element, controller, param, menu)
-  Engine.Exec(controller, "boiii_prepare_menu_restart")
-  return RestartGame(self, element, controller, param, menu)
-end
-
 local customStartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOptions", function(controller)
   local options = {}
   local currentMode = Engine.CurrentSessionMode()
@@ -132,7 +127,7 @@ local customStartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOpti
       restartGameOption = {
         models = {
           displayText = "RESTART GAME",
-          action = restartGame,
+          action = RestartGame,
         },
       }
     end
@@ -144,7 +139,7 @@ local customStartMenuGameOptions = ListHelper_SetupDataSource("StartMenuGameOpti
       restartGameOption = {
         models = {
           displayText = "RESTART GAME",
-          action = restartGame,
+          action = RestartGame,
         },
       }
     end
