@@ -196,7 +196,7 @@ can_be_formatted_by_prettier() {
 		return 0
 		;;
 	# Other, misc.
-	"vue" | "svelte" | "handlebars" | "hbs" | "toml")
+	"vue" | "svelte" | "handlebars" | "hbs" | "toml" | "ps1")
 		return 0
 		;;
 	*)
