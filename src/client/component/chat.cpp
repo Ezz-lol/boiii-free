@@ -78,30 +78,34 @@ template <const bool Toggle> void toggle_mute(const command::params &params) {
 }
 
 void cmd_say_f(game::level::gentity_s *ent, const command::params_sv &params) {
-  if (params.size() > 1 && !is_muted(ent)) {
-    int32_t mode = 0;
-    if (params[0] == "say_team"s) {
-      mode = 1;
-    }
+  if (params.size() <= 1) {
+    return;
+  }
 
-    const std::string p = params.join(1);
-    game::scr::Scr_AddString(game::scr::SCRIPTINSTANCE_SERVER,
-                             p.data() + 1); // Skip special char
-    game::scr::Scr_Notify_Canon(ent, game::CanonHash(params[0]), 1);
+  int32_t mode = 0;
+  if (params[0] == "say_team"s) {
+    mode = 1;
+  }
 
+  const std::string p = params.join(1);
+  game::scr::Scr_AddString(game::scr::SCRIPTINSTANCE_SERVER,
+                           p.data() + 1); // Skip special char
+  game::scr::Scr_Notify_Canon(ent, game::CanonHash(params[0]), 1);
+
+  if (!is_muted(ent)) {
     game::G_Say(ent, nullptr, mode, p.data());
   }
 }
 
 void cmd_chat_f(game::level::gentity_s *ent, const command::params_sv &params) {
+  const std::string p = params.join(1);
+
+  // Not a mistake! + 2 is necessary for the GSC script to receive only the
+  // actual chat text
+  game::scr::Scr_AddString(game::scr::SCRIPTINSTANCE_SERVER, p.data() + 2);
+  game::scr::Scr_Notify_Canon(ent, game::CanonHash(params[0]), 1);
+
   if (!is_muted(ent)) {
-    const std::string p = params.join(1);
-
-    // Not a mistake! + 2 is necessary for the GSC script to receive only the
-    // actual chat text
-    game::scr::Scr_AddString(game::scr::SCRIPTINSTANCE_SERVER, p.data() + 2);
-    game::scr::Scr_Notify_Canon(ent, game::CanonHash(params[0]), 1);
-
     utils::hook::invoke<void>(0x140298E70_g, ent, p.data());
   }
 }
