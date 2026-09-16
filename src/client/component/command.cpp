@@ -229,6 +229,8 @@ struct component final : generic_component {
     utils::hook::jump(game::select(0x1420EE860, 0x1404F9CD0),
                       update_whitelist_stub);
 
+    add("savegamerprofilestats", [] {});
+
     if (!game::is_server()) {
       register_client_compatibility_commands();
     }

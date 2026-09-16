@@ -3,6 +3,8 @@ function Engine.PIXBeginEvent() end
 
 function Engine.PIXEndEvent() end
 
+Engine.SetDvar("tu5_enableVialsOwed", 0)
+
 -- XP bar pcall fix
 pcall(function()
   if DataSources and DataSources.XPProgressionBar then
