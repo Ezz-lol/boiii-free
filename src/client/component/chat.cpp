@@ -188,11 +188,11 @@ public:
     utils::hook::call(game::select(0x141974B04, 0x14029908A),
                       divert_xuid_to_client_num_stub);
 
-    client_command::add("say", cmd_say_f);
-    client_command::add("say_team", cmd_say_f);
-    client_command::add("chat", cmd_chat_f);
-
     if (game::is_server()) {
+      client_command::add("say", cmd_say_f);
+      client_command::add("say_team", cmd_say_f);
+      client_command::add("chat", cmd_chat_f);
+
       // Overwrite say command
       utils::hook::jump(
           0x14052A6C0_g, +[] {
@@ -259,6 +259,8 @@ public:
 
       utils::hook::jump(0x140299051_g, utils::hook::assemble(g_say_to_stub));
     } else {
+      utils::hook::nop(0x141DEA9BD_g, 2);
+
       scheduler::once(
           [] {
             sv_sayname = game::register_dvar_string(
