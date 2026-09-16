@@ -13,11 +13,19 @@ namespace {
 std::unordered_map<std::string, callback> handlers;
 utils::hook::detour client_command_hook;
 
+void invoke_original(const game::ClientNum_t client_num) {
+  if (game::is_server()) {
+    game::ClientCommand(client_num);
+  } else {
+    client_command_hook.invoke<void>(client_num);
+  }
+}
+
 void client_command_stub(const game::ClientNum_t client_num) {
   game::level::gentity_t *ent = game::level::client_ent(client_num);
 
-  if (ent->client == nullptr) {
-    // Client is not fully in game
+  if (ent == nullptr || ent->client == nullptr) {
+    invoke_original(client_num);
     return;
   }
 
@@ -29,11 +37,7 @@ void client_command_stub(const game::ClientNum_t client_num) {
     return;
   }
 
-  if (game::is_server()) {
-    game::ClientCommand(client_num);
-  } else {
-    client_command_hook.invoke<void>(client_num);
-  }
+  invoke_original(client_num);
 }
 } // namespace
 

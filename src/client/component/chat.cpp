@@ -96,7 +96,8 @@ void cmd_say_f(game::level::gentity_s *ent, const command::params_sv &params) {
   game::scr::Scr_Notify_Canon(ent, game::CanonHash(params[0]), 1);
 
   if (!is_muted(ent)) {
-    game::G_Say(ent, nullptr, mode, p.data());
+    const std::string chat_message = std::to_string(mode) + " " + p;
+    game::G_Chat(ent, chat_message.data());
   }
 }
 
