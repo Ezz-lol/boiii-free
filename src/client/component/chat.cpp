@@ -252,6 +252,8 @@ public:
 
       utils::hook::jump(0x140299051_g, utils::hook::assemble(g_say_to_stub));
     } else {
+      utils::hook::nop(0x141DEA9BD_g, 2);
+
       scheduler::once(
           [] {
             sv_sayname = game::register_dvar_string(
