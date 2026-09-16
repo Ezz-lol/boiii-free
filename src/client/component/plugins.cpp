@@ -16,9 +16,9 @@ struct component final : generic_component {
 
     const bool is_server = utils::flags::has_flag("dedicated");
     const std::string log_name =
-        is_server ? "plugins-server-" + std::to_string(GetCurrentProcessId()) +
-                        ".log"
-                  : "plugins.log";
+        is_server
+            ? "plugins-server-" + std::to_string(GetCurrentProcessId()) + ".log"
+            : "plugins.log";
     log_path_ = fs::path("boiii_players") / log_name;
     clear_log();
 
