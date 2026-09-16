@@ -8,5 +8,8 @@
   "scripts": {
     "format": "prettier --write \"**/*.{md,markdown,html,htm,js,jsx,ts,tsx,mjs,cjs,mts,cts,graphql,gql,json,json5,webmanifest,yaml,yml,vue,svelte,handlebars,hbs,toml}\"",
     "check": "prettier --check \"**/*.{md,markdown,html,htm,js,jsx,ts,tsx,mjs,cjs,mts,cts,graphql,gql,json,json5,webmanifest,yaml,yml,vue,svelte,handlebars,hbs,toml}\""
+  },
+  "dependencies": {
+    "prettier-plugin-powershell": "^2.1.12"
   }
 }

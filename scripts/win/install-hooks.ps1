@@ -2,7 +2,7 @@ $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $RepoRoot = git -C "$ScriptDir" rev-parse --show-toplevel
 $EnvFile = Join-Path "$ScriptDir" "env.ps1"
 # Load environment
-. "$EnvFile"
+."$EnvFile"
 Check-Dependencies
 
 $RepoGitDir = Join-Path "$RepoRoot" ".git"
@@ -10,7 +10,11 @@ $GitHooksDir = Join-Path "$RepoRoot" ".git/hooks"
 $ScriptsDir = Join-Path "$RepoRoot" "scripts/win"
 
 #exit with error if $RepoRoot does not exist or is not a directory or git repository (.git folder does not exist)
-if (-not (Test-Path "$RepoRoot" -PathType Container) -or -not (Test-Path "$RepoGitDir" -PathType Container)) {
+if (
+    -not (Test-Path "$RepoRoot" -PathType Container) -or -not (
+        Test-Path "$RepoGitDir" -PathType Container
+    )
+) {
     Write-Error "Error: Repository root directory not found or is not a git repository."
     exit 1
 }

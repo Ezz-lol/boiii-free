@@ -8,7 +8,7 @@
   "bracketSpacing": true,
   "arrowParens": "always",
   "endOfLine": "lf",
-  "plugins": ["prettier-plugin-toml"],
+  "plugins": ["prettier-plugin-toml", "prettier-plugin-powershell"],
   "overrides": [
     {
       "files": "*.md",

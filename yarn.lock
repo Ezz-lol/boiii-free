@@ -14,6 +14,13 @@
   dependencies:
     "@taplo/core" "^0.2.0"
 
+prettier-plugin-powershell@^2.1.12:
+  version "2.1.12"
+  resolved "https://registry.yarnpkg.com/prettier-plugin-powershell/-/prettier-plugin-powershell-2.1.12.tgz#accdf99635df46952186805af1a85d60116723c4"
+  integrity sha512-tcN2Vm/TP3ZRePQuXOW12AQXTuR/Dj9JU5c1l4C4BtBhDUDiZ+F6i0bjscHheTD1gr4UbA48AGee+QubHLCxcw==
+  dependencies:
+    ts-extras "^1.3.0"
+
 prettier-plugin-toml@2.0.6:
   version "2.0.6"
   resolved "https://registry.yarnpkg.com/prettier-plugin-toml/-/prettier-plugin-toml-2.0.6.tgz#d581512a585143975efebf89303272a359c3124a"
@@ -25,3 +32,22 @@ prettier@3.9.6:
   version "3.9.6"
   resolved "https://registry.yarnpkg.com/prettier/-/prettier-3.9.6.tgz#b3ea5146515d40fc53f18aa63f74dfab1e10dbf6"
   integrity sha512-OpN0zzVdiaiAhxpuuj5efpIS4sY9j7bY6uR5mnj5yPzGkdkjNKSJeUThPb60Jw29QuAZgA4o+/iB49kFiaBX6g==
+
+tagged-tag@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/tagged-tag/-/tagged-tag-1.0.0.tgz#a0b5917c2864cba54841495abfa3f6b13edcf4d6"
+  integrity sha512-yEFYrVhod+hdNyx7g5Bnkkb0G6si8HJurOoOEgC8B/O0uXLHlaey/65KRv6cuWBNhBgHKAROVpc7QyYqE5gFng==
+
+ts-extras@^1.3.0:
+  version "1.3.0"
+  resolved "https://registry.yarnpkg.com/ts-extras/-/ts-extras-1.3.0.tgz#deacfdb1d51ba03dcdee32a39fe19fcb46680216"
+  integrity sha512-2o31AwfP5q7Sa0RN/KaSNBFkw0jRnWsqUY4W4SwBWrxbge9J6t9YBvJIRX2ZyVhpGj4zE5UYwNzTTBnIHeaDew==
+  dependencies:
+    type-fest "^5.0.1"
+
+type-fest@^5.0.1:
+  version "5.9.0"
+  resolved "https://registry.yarnpkg.com/type-fest/-/type-fest-5.9.0.tgz#0a4dd554d397f1a44447477eaeb3d1f4d8c7680f"
+  integrity sha512-yANm3Jr3GiJ1qgJlxGAVxTOIcEOk1rhQHamlXtnrCK7EHP4HeM9OGxtMg/W7HFdrVzw/ZWJKGVIJusVH85sLtw==
+  dependencies:
+    tagged-tag "^1.0.0"
