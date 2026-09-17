@@ -1,12 +1,14 @@
 #pragma once
-#include "../core.hpp"
-#include "../scr/scr.hpp"
-#include "../snd/snd.hpp"
-#include "../sv.hpp"
-#include "../ui/ui.hpp"
-#include "../vehicle.hpp"
-#include "core.hpp"
+
 #include <cstdint>
+
+#include <game/structs/core.hpp>
+#include <game/structs/level/core.hpp>
+#include <game/structs/scr/scr.hpp>
+#include <game/structs/snd/snd.hpp>
+#include <game/structs/sv.hpp>
+#include <game/structs/ui/ui.hpp>
+#include <game/structs/vehicle.hpp>
 
 namespace game {
 namespace level {

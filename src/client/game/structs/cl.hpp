@@ -372,7 +372,7 @@ partial_def(CLIENTACTIVE_SIZE, struct, clientActive_t, {
   int32_t serverTimeErrorPrev;
   int32_t serverTimeError[20];
   int32_t serverTimeError2[20];
-  str64_t mapname;
+  zoneName_t mapname;
   int32_t parseMatchStateIndex;
   int32_t parseCasterStateIndex;
   int32_t parseCasterClientsIndex;

@@ -3,6 +3,10 @@ curl = {
 }
 
 function curl.import()
+  zstd.import()
+  zlib.import()
+  brotli.import()
+
   links({ "curl" })
 
   links({ "Crypt32.lib" })
@@ -12,6 +16,10 @@ function curl.import()
 end
 
 function curl.includes()
+  zstd.includes()
+  zlib.includes()
+  brotli.includes()
+
   includedirs({
     path.join(curl.source, "include"),
   })
@@ -37,9 +45,6 @@ function curl.includes()
     "HAVE_LIBZ",
     "HAVE_BROTLI",
     "HAVE_ZSTD",
-    "ZSTD_BUILD_STATIC=ON",
-    "DYNAMIC_BMI2=1",
-    "STATIC_BMI2=1",
   })
   filter({})
 end
@@ -48,24 +53,19 @@ function curl.project()
   project("curl")
   language("C")
 
+  zstd.import()
+  zlib.import()
+  brotli.import()
+
   curl.includes()
 
   includedirs({
     path.join(curl.source, "lib"),
-    path.join(dependencies.basePath, "zstd", "lib"),
-    path.join(dependencies.basePath, "zlib"),
-    path.join(dependencies.basePath, "brotli", "c", "include"),
   })
 
   files({
     path.join(curl.source, "lib/**.c"),
     path.join(curl.source, "lib/**.h"),
-    path.join(dependencies.basePath, "zstd", "lib/**.h"),
-    path.join(dependencies.basePath, "zlib", "*.h"),
-    path.join(dependencies.basePath, "brotli", "c", "common/**.h"),
-    path.join(dependencies.basePath, "brotli", "c", "dec/**.h"),
-    path.join(dependencies.basePath, "brotli", "c", "enc/**.h"),
-    path.join(dependencies.basePath, "brotli", "c", "include/**.h"),
   })
 
   defines({
@@ -78,22 +78,12 @@ function curl.project()
     "USE_THREADS_WIN32",
     "CURL_ZSTD=ON",
     "CURL_BROTLI=ON",
-    "ZSTD_BUILD_STATIC=ON",
-    "DYNAMIC_BMI2=1",
-    "STATIC_BMI2=1",
   })
 
   filter({})
 
   warnings("Off")
   kind("StaticLib")
-
-  links({ "zstd" })
-  links({ "zlib" })
-  links({ "brotli" })
-  dependson({ "zstd" })
-  dependson({ "zlib" })
-  dependson({ "brotli" })
 end
 
 table.insert(dependencies, curl)

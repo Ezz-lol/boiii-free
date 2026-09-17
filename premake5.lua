@@ -411,9 +411,7 @@ language("C++")
 files({ "./src/common/**.hpp", "./src/common/**.cpp" })
 
 includedirs({
-  "./deps/argparse/include",
   "./src/common",
-  "./deps/gtl/include",
   "./src",
   -- version.h and version.hpp headers
   "%{prj.location}/src",
@@ -436,16 +434,10 @@ files({
   "./src/client/**.rc",
   "./src/client/**.hpp",
   "./src/client/**.cpp",
-  "./deps/Microsoft.Web.WebView2/build/native/include/*.h",
   "./src/client/resources/**.*",
 })
 includedirs({
-  "./deps/argparse/include",
-  "./deps/SteamworkSDK/public",
   "./deps",
-  "./deps/gtl/include",
-  "./deps/frozen/include",
-  "./deps/Microsoft.Web.WebView2/build/native/include",
   "./src/client",
   "./src/common",
   "./src",
@@ -453,14 +445,11 @@ includedirs({
   "%{prj.location}/src",
 })
 
-syslibdirs({ "./deps/Microsoft.Web.WebView2/build/native/x64" })
-libdirs({ "./deps/Microsoft.Web.WebView2/build/native/x64" })
-
 resincludedirs({ "$(ProjectDir)src" })
 
 dependson({ "tlsdll" })
 
-links({ "common", "WebView2LoaderStatic" })
+links({ "common" })
 
 local hasVersion = (
   os.isfile(path.join(_MAIN_SCRIPT_DIR, "src/version.h"))
