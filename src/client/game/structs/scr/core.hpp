@@ -2110,15 +2110,16 @@ union ParamPassMode {
     underlying : 6;
   };
 
-  inline constexpr ParamPassMode operator~() const noexcept {
-    return {.flags = static_cast<underlying>(~flags)};
+#ifndef IMPL_PARAMPASS_MODE_UNARY_OP
+#define IMPL_PARAMPASS_MODE_UNARY_OP(OP)                                       \
+  inline constexpr ParamPassMode operator OP() const noexcept {                \
+    return {.flags = static_cast<underlying>(OP flags)};                       \
   }
-  inline constexpr ParamPassMode operator+() const noexcept {
-    return {.flags = static_cast<underlying>(+flags)};
-  }
-  inline constexpr ParamPassMode operator-() const noexcept {
-    return {.flags = static_cast<underlying>(-flags)};
-  }
+#endif
+
+  IMPL_PARAMPASS_MODE_UNARY_OP(~)
+  IMPL_PARAMPASS_MODE_UNARY_OP(+)
+  IMPL_PARAMPASS_MODE_UNARY_OP(-)
 
   inline constexpr ParamPassMode &operator++() noexcept {
     ++flags;
