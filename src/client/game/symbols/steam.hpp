@@ -18,14 +18,12 @@ WEAK symbol<bool(SteamInterfaces *interfaces)> InitSteamClientInterfaces{
     0x141D284D0, 0x1403D1880};
 } // namespace cl
 
-inline EngineDependent<steam::cl::SteamInterfaces *,
-                       steam::sv::SteamInterfaces *>
-PrimarySteamInterfaces() {
+inline SteamInterfaces PrimarySteamInterfaces() {
   if (is_server()) {
-    return steam::sv::g_gameserverSteamInterfaces.get();
+    return SteamInterfaces::from(steam::sv::g_gameserverSteamInterfaces.get());
   }
 
-  return steam::cl::g_steamClientInterfaces.get();
+  return SteamInterfaces::from(steam::cl::g_steamClientInterfaces.get());
 }
 
 /*
@@ -33,13 +31,11 @@ PrimarySteamInterfaces() {
   for the given engine, but SteamInterfacesBase represents the shared base of
   each, so used as the argument type for convenience here.
 */
-inline bool InitPrimarySteamInterfaces(SteamInterfacesBase *interfaces) {
+inline bool InitPrimarySteamInterfaces(SteamInterfaces interfaces) {
   if (is_server()) {
-    return sv::InitSteamGameServerInterfaces(
-        reinterpret_cast<sv::SteamInterfaces *>(interfaces));
+    return sv::InitSteamGameServerInterfaces(interfaces.sv);
   }
-  return cl::InitSteamClientInterfaces(
-      reinterpret_cast<cl::SteamInterfaces *>(interfaces));
+  return cl::InitSteamClientInterfaces(interfaces.cl);
 }
 
 } // namespace steam

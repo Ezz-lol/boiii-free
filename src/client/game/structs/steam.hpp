@@ -1,7 +1,14 @@
 #pragma once
 
+#include <game/structs/core.hpp>
+
 #include <steam/steam.hpp>
+
 namespace game {
+
+bool is_server();
+bool is_client();
+
 namespace steam {
 
 #include <steam/steamtypes.h> // IWYU pragma: export
@@ -16,6 +23,8 @@ namespace steam {
 struct SteamInterfacesBase {
   ISteamClient *pSteamClient;
 };
+
+struct SteamInterfaces;
 
 namespace cl {
 // Steam interfaces struct on client engine
@@ -40,6 +49,8 @@ struct SteamInterfaces : SteamInterfacesBase {
   ISteamHTMLSurface *pSteamHTMLSurface;
   ISteamInventory *pSteamInventory;
   ISteamVideo *pSteamVideo;
+
+  constexpr operator game::steam::SteamInterfaces() noexcept;
 };
 } // namespace cl
 namespace sv {
@@ -53,11 +64,105 @@ struct SteamInterfaces : SteamInterfacesBase {
   ISteamInventory *pSteamInventory;
   ISteamUGC *pSteamUGC;
   ISteamApps *pSteamApps;
+
+  constexpr operator game::steam::SteamInterfaces() noexcept;
 };
 } // namespace sv
 
-/* Including steam_api.h overrides/conflicts with some of our steam_proxy types,
-   classes, and defines, so it cannot be included.
+struct SteamInterfaces
+    : public EngineDependentMut<cl::SteamInterfaces, sv::SteamInterfaces> {
+
+  inline ISteamClient *pSteamClient() {
+    if (game::is_server()) {
+      return sv->pSteamClient;
+    }
+    return cl->pSteamClient;
+  }
+
+  inline ISteamUtils *pSteamUtils() {
+    if (game::is_server()) {
+      return sv->pSteamUtils;
+    }
+    return cl->pSteamUtils;
+  }
+
+  inline ISteamApps *pSteamApps() {
+    if (game::is_server()) {
+      return sv->pSteamApps;
+    }
+    return cl->pSteamApps;
+  }
+
+  inline ISteamNetworking *pSteamNetworking() {
+    if (game::is_server()) {
+      return sv->pSteamNetworking;
+    }
+    return cl->pSteamNetworking;
+  }
+
+  inline ISteamHTTP *pSteamHTTP() {
+    if (game::is_server()) {
+      return sv->pSteamHTTP;
+    }
+    return cl->pSteamHTTP;
+  }
+
+  inline ISteamUGC *pSteamUGC() {
+    if (game::is_server()) {
+      return sv->pSteamUGC;
+    }
+    return cl->pSteamUGC;
+  }
+
+  inline ISteamInventory *pSteamInventory() {
+    if (game::is_server()) {
+      return sv->pSteamInventory;
+    }
+    return cl->pSteamInventory;
+  }
+
+  // Function-based constructors to allow usage without violating CPP 2003 PoD
+  // conformance
+  static inline constexpr SteamInterfaces
+  from(sv::SteamInterfaces *s) noexcept {
+    /*
+      Cannot access anonymous union members in inherited struct when used in
+      inline `{.anonMember}` syntax, so we have to declare and define the struct
+      separately.
+    */
+    SteamInterfaces result{};
+    result.sv = s;
+    return result;
+  }
+
+  static inline constexpr SteamInterfaces
+  from(cl::SteamInterfaces *c) noexcept {
+    SteamInterfaces result{};
+    result.cl = c;
+    return result;
+  }
+
+  static inline constexpr SteamInterfaces from(void *v) noexcept {
+    SteamInterfaces result{};
+    result.ptr = v;
+    return result;
+  }
+};
+ASSERT_CPP03_POD(SteamInterfaces);
+
+constexpr cl::SteamInterfaces::operator game::steam::
+    SteamInterfaces() noexcept {
+  return game::steam::SteamInterfaces::from(this);
+}
+
+constexpr sv::SteamInterfaces::operator game::steam::
+    SteamInterfaces() noexcept {
+  return game::steam::SteamInterfaces::from(this);
+}
+
+/*
+   Including steam_api.h here causes conflicts with some of our steam_proxy
+   types, classes, and defines, so it cannot be included.
 
    The following classes are only defined in steam_api.h, so their definitions
    were moved here for usage.

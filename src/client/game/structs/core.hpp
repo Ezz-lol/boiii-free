@@ -447,8 +447,92 @@ template <typename T> using LocalClientPool = array<T, LOCAL_CLIENT_COUNT>;
 template <typename T>
 using AtomicLocalClientPool = atomicarray<T, LOCAL_CLIENT_COUNT>;
 
-template <typename ClientType, typename ServerType>
-using EngineDependent = std::variant<ClientType, ServerType>;
+template <typename ClientType, typename ServerType> struct EngineDependent {
+public:
+  // Unions cannot be used as base struct/class, so we wrap an anonymous union
+  // in a struct here as a workaround.
+  union {
+  public:
+    const ClientType *cl;
+    const ServerType *sv;
+  };
+
+  const void *ptr;
+
+  inline constexpr operator const ServerType *() const noexcept { return sv; }
+
+  inline constexpr operator const ClientType *() const noexcept { return cl; }
+
+  inline constexpr operator const void *() const noexcept { return ptr; }
+
+  inline constexpr operator bool() const noexcept { return sv != nullptr; }
+
+  // Function-based constructors to allow usage without violating CPP 2003 PoD
+  // conformance
+  static inline constexpr EngineDependent<ClientType, ServerType>
+  from(const ServerType *s) noexcept {
+    return {.sv = s};
+  }
+
+  static inline constexpr EngineDependent<ClientType, ServerType>
+  from(const ClientType *c) noexcept {
+    return {.cl = c};
+  }
+
+  static inline constexpr EngineDependent<ClientType, ServerType>
+  from(const void *v) noexcept {
+    return {.ptr = v};
+  }
+};
+
+template <typename ClientType, typename ServerType> struct EngineDependentMut {
+public:
+  // Unions cannot be used as base struct/class, so we wrap an anonymous union
+  // in a struct here as a workaround.
+  union {
+  public:
+    ClientType *cl;
+    ServerType *sv;
+  };
+
+  void *ptr;
+
+  inline constexpr operator ServerType *() noexcept { return sv; }
+
+  inline constexpr operator const ServerType *() const noexcept { return sv; }
+
+  inline constexpr operator ClientType *() noexcept { return cl; }
+
+  inline constexpr operator const ClientType *() const noexcept { return cl; }
+
+  inline constexpr operator void *() noexcept { return ptr; }
+
+  inline constexpr operator const void *() const noexcept { return ptr; }
+
+  inline constexpr operator bool() const noexcept { return sv != nullptr; }
+
+  inline constexpr
+  operator EngineDependent<ClientType, ServerType>() const noexcept {
+    return {.sv = sv};
+  }
+
+  // Function-based constructors to allow usage without violating CPP 2003 PoD
+  // conformance
+  static inline constexpr EngineDependentMut<ClientType, ServerType>
+  from(ServerType *s) noexcept {
+    return {.sv = s};
+  }
+
+  static inline constexpr EngineDependentMut<ClientType, ServerType>
+  from(ClientType *c) noexcept {
+    return {.cl = c};
+  }
+
+  static inline constexpr EngineDependentMut<ClientType, ServerType>
+  from(void *v) noexcept {
+    return {.ptr = v};
+  }
+};
 
 typedef str8_t clanAbbrev_t;
 typedef str32_t name_t;
