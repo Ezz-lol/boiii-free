@@ -363,8 +363,8 @@ inline bool valid_dvar(const EngineDependentDvar dvar) {
 }
 
 namespace level {
-template <typename T, typename = typename std::enable_if<std::is_convertible<
-                          T, game::ClientNum_t>::value>::type>
+template <typename T>
+  requires(std::is_convertible_v<T, game::ClientNum_t>)
 inline level::gentity_t *client_ent(T index) {
   level::gentity_pool *pool = get_g_entities();
   ClientNum_t clientNum = static_cast<game::ClientNum_t>(index);

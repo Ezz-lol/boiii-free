@@ -10,36 +10,37 @@
 
 namespace client_command {
 namespace {
-std::unordered_map<std::string, callback> handlers;
+std::unordered_map<std::string, clientCommandHandler_t> handlers;
 
-void client_command_stub(const game::ClientNum_t client_num) {
+utils::hook::detour ClientCommand_hook;
+void ClientCommand_ExecuteRegistered(game::ClientNum_t client_num) {
   game::level::gentity_t *ent = game::level::client_ent(client_num);
 
-  if (ent == nullptr || ent->client == nullptr) {
-    return;
+  if (ent && ent->client) {
+    const command::params_sv params;
+    const std::string command = utils::string::to_lower(params.get(0));
+    const std::unordered_map<std::string, clientCommandHandler_t>::iterator
+        got = handlers.find(command);
+
+    if (got == handlers.end()) {
+      ClientCommand_hook.invoke(client_num);
+    } else {
+      got->second(ent, params);
+    }
   }
-
-  const command::params_sv params;
-
-  const auto command = utils::string::to_lower(params.get(0));
-  if (const auto got = handlers.find(command); got != handlers.end()) {
-    got->second(ent, params);
-    return;
-  }
-
-  game::ClientCommand(client_num);
 }
 } // namespace
 
-void add(const std::string &name, const callback &cmd) {
+void register_handler(std::string name, clientCommandHandler_t cmd) {
   const std::string command = utils::string::to_lower(name);
   handlers[command] = cmd;
 }
 
-class component final : public server_component {
+class component final : public generic_component {
 public:
   void post_unpack() override {
-    utils::hook::call(0x14052F81B_g, client_command_stub);
+    ClientCommand_hook.create(game::ClientCommand,
+                              ClientCommand_ExecuteRegistered);
   }
 };
 } // namespace client_command

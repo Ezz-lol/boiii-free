@@ -88,6 +88,7 @@ inline std::vector<std::string_view> split(const std::string_view &s,
 
 std::string to_lower(std::string text);
 std::string to_upper(std::string text);
+
 bool contains(const std::string_view &text, const std::string_view &substring);
 bool starts_with(const std::string_view &text,
                  const std::string_view &substring);

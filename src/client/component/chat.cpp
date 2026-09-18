@@ -189,9 +189,9 @@ public:
                       divert_xuid_to_client_num_stub);
 
     if (game::is_server()) {
-      client_command::add("say", cmd_say_f);
-      client_command::add("say_team", cmd_say_f);
-      client_command::add("chat", cmd_chat_f);
+      client_command::register_handler("say", cmd_say_f);
+      client_command::register_handler("say_team", cmd_say_f);
+      client_command::register_handler("chat", cmd_chat_f);
 
       // Overwrite say command
       utils::hook::jump(
