@@ -1,7 +1,8 @@
 #pragma once
 
-#include "core.hpp"
 #include <cstdint>
+
+#include <game/structs/lobby/core.hpp>
 #include <game/structs/macros.hpp>
 #include <game/structs/net/core.hpp>
 #include <game/structs/weapon.hpp>

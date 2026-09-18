@@ -1,8 +1,9 @@
 #pragma once
 
-#include "../core.hpp"
-#include "../quake/core.hpp"
 #include <cstdint>
+
+#include <game/structs/core.hpp>
+#include <game/structs/quake/core.hpp>
 #include <structs/enum.hpp>
 
 namespace game {

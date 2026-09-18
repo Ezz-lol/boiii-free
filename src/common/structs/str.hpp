@@ -3,8 +3,9 @@
 #include "array.hpp"
 #include <string_view>
 
-template <const auto N> using str = array<char, N>;
+template <const IntegralLike<size_t> auto N> using str = array<char, N>;
 
+typedef str<2> str2_t;
 typedef str<8> str8_t;
 typedef str<16> str16_t;
 typedef str<24> str24_t;
@@ -14,6 +15,9 @@ typedef str<128> str128_t;
 typedef str<256> str256_t;
 typedef str<512> str512_t;
 typedef str<1024> str1024_t;
+
+typedef str64_t zoneName_t;
+typedef str2_t localeAbbrev_t;
 
 struct ToStringResult {
   char *buf;
@@ -40,8 +44,6 @@ template <int32_t N> struct ConstString {
 
 // Deduction guide
 template <int32_t N> ConstString(const char (&)[N]) -> ConstString<N>;
-
-template <const auto N> using str = char[static_cast<size_t>(N)];
 
 // Helper to convert a byte/integer to hex characters at compile-time
 template <IntegralLike<uint8_t> Index>

@@ -1,6 +1,7 @@
 #pragma once
 
-#include "../dw/core.hpp"
+#include <game/structs/dw/core.hpp>
+
 #include <cstdint>
 
 namespace game {

@@ -2,9 +2,10 @@
 
 #include <cstdint>
 
+#include <game/structs/scr/scr.hpp>
+
 #include <game/structs/core.hpp>
 #include <game/structs/level/core.hpp>
-#include <game/structs/scr/scr.hpp>
 #include <game/structs/snd/snd.hpp>
 #include <game/structs/sv.hpp>
 #include <game/structs/ui/ui.hpp>

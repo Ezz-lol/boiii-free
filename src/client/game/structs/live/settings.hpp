@@ -1,7 +1,8 @@
 #pragma once
 
-#include "../macros.hpp"
 #include <cstdint>
+
+#include <game/structs/macros.hpp>
 
 namespace game {
 namespace live {

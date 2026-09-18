@@ -1,7 +1,7 @@
 #pragma once
 
-#include "game/structs/scr/core.hpp"
-#include "hash.hpp"
+#include <game/structs/scr/core.hpp>
+#include <hash.hpp>
 
 namespace game {
 namespace scr {

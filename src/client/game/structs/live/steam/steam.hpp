@@ -2,8 +2,8 @@
 
 #include <cstdint>
 
-#include "../../macros.hpp"
-#include "../../steam.hpp"
+#include <game/structs/macros.hpp>
+#include <game/structs/steam.hpp>
 
 namespace game {
 namespace live {

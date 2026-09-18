@@ -1,13 +1,14 @@
 #pragma once
 
-#include "../ai.hpp"
-#include "../core.hpp"
-#include "../lobby/core.hpp"
-#include "../phys/core.hpp"
-#include "../scr/scr.hpp"
-#include "../user.hpp"
-#include "../vehicle.hpp"
-#include "core.hpp"
+#include <game/structs/scr/scr.hpp>
+
+#include <game/structs/ai.hpp>
+#include <game/structs/core.hpp>
+#include <game/structs/level/core.hpp>
+#include <game/structs/lobby/core.hpp>
+#include <game/structs/phys/core.hpp>
+#include <game/structs/user.hpp>
+#include <game/structs/vehicle.hpp>
 
 namespace game {
 

@@ -3,6 +3,7 @@
 #include "game/structs/ddl.hpp"
 #include "game/structs/lobby/core.hpp"
 #include "game/structs/lobby/session.hpp"
+
 #include <cstdint>
 
 namespace game {

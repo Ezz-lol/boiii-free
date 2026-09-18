@@ -1,11 +1,13 @@
 #pragma once
 
-#include "structs/array.hpp"
 #include <game/structs/core.hpp>
 #include <game/structs/quake/core.hpp>
+#include <structs/array.hpp>
+
 #include <macros.hpp>
 
 #include <charconv>
+
 namespace game {
 namespace net {
 

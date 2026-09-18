@@ -1,10 +1,12 @@
 #pragma once
-#include "../asm.hpp"
-#include "../core.hpp"
-#include "../lobby/core.hpp"
-#include "../snd/snd.hpp"
-#include "../ui/ui.hpp"
-#include "../vehicle.hpp"
+
+#include <game/structs/asm.hpp>
+#include <game/structs/core.hpp>
+#include <game/structs/lobby/core.hpp>
+#include <game/structs/snd/snd.hpp>
+#include <game/structs/ui/ui.hpp>
+#include <game/structs/vehicle.hpp>
+
 #include <cstdint>
 
 namespace game {

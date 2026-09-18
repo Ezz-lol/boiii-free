@@ -1,10 +1,11 @@
 #pragma once
 
-#include "../core.hpp"
-#include "../db/xasset/core.hpp"
-#include "../quake/core.hpp"
-#include "core.hpp"
 #include <cstdint>
+
+#include <game/structs/core.hpp>
+#include <game/structs/db/xasset/core.hpp>
+#include <game/structs/quake/core.hpp>
+#include <game/structs/snd/core.hpp>
 
 namespace game {
 namespace snd {
@@ -18,36 +19,30 @@ struct SndCommandPlaybackFree {
   SndPlayback *playback;
 };
 
-#pragma pack(push, 1)
-struct SndCommandPlaybackUpdate {
+PACKED(struct SndCommandPlaybackUpdate {
   SndPlayback *playback;
   float attenuation;
   uint32_t lengthMs;
   uint32_t playedMs;
   uint8_t _padding14[4];
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
-struct SndCommandFacialAnimation {
+PACKED(struct SndCommandFacialAnimation {
   scr::ScrString_t animation;
   uint8_t _padding04[4];
   SndEntHandle ent;
-};
-#pragma pack(pop)
+});
 
 struct SndCommandLength {
   uint32_t lengthMs;
   uint32_t ent;
 };
 
-#pragma pack(push, 1)
-struct SndCommandSubtitle {
+PACKED(struct SndCommandSubtitle {
   uint32_t lengthMs;
   uint8_t _padding04[4];
   const char *subtitle;
-};
-#pragma pack(pop)
+});
 
 struct SndCommandEntUpdate {
   SndEntHandle handle;
@@ -69,19 +64,16 @@ struct SndCommandForceAmbientRoom {
 };
 
 struct SndCommandBankUpdateZone {
-  str64_t zoneName;
+  zoneName_t zoneName;
 };
 
-#pragma pack(push, 1)
-struct SndCommandPlayLoops {
+PACKED(struct SndCommandPlayLoops {
   SndEntLoop loops[5];
   int32_t count;
   uint8_t _paddingA4[4];
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
-struct SndCommandSetLoopState {
+PACKED(struct SndCommandSetLoopState {
   SndEntHandle handle;
   SndAliasId aliasId;
   float attenuation;
@@ -89,8 +81,7 @@ struct SndCommandSetLoopState {
   float pitch;
   float pitchRate;
   uint8_t _padding1C[4];
-};
-#pragma pack(pop)
+});
 
 struct SndCommandSetGlobalFutz {
   SndStringHash futzId;
@@ -125,15 +116,13 @@ struct SndCommandUnloadBank {
   const SndBank *bank;
 };
 
-#pragma pack(push, 1)
-struct SndCommandLoadBank {
+PACKED(struct SndCommandLoadBank {
   const SndBank *bank;
   int32_t priority;
   qboolean patchZone;
   ZoneType zoneType;
   uint8_t _padding14[4];
-};
-#pragma pack(pop)
+});
 
 struct SndCommandScriptTimescale {
   float value;
@@ -176,8 +165,7 @@ struct SndCommandPlayLoopAt {
   vec3_t origin;
 };
 
-#pragma pack(push, 1)
-struct SndCommandSetGameState {
+PACKED(struct SndCommandSetGameState {
   qboolean is_paused;
   qboolean is_mature;
   SndGameMode mode;
@@ -194,18 +182,15 @@ struct SndCommandSetGameState {
   qboolean muteMusic;
   qboolean muteVoice;
   qboolean gpadSounds;
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
-struct SndCommandSetEntState {
+PACKED(struct SndCommandSetEntState {
   SndEntHandle handle;
   vec3_t origin;
   vec3_t velocity;
   vec3_t orientation[3];
   uint8_t _padding44[4];
-};
-#pragma pack(pop)
+});
 
 struct SndCommandDuck {
   SndDuckCategoryType type;
@@ -264,16 +249,13 @@ struct SndCommandStopEnt {
   SndEntHandle ent;
 };
 
-#pragma pack(push, 1)
-struct SndCommandStopAlias {
+PACKED(struct SndCommandStopAlias {
   SndEntHandle ent;
   SndStringHash alias_name;
   uint8_t _padding0C[4];
-};
-#pragma pack(pop)
+});
 
-#pragma pack(push, 1)
-struct SndCommandPlay {
+PACKED(struct SndCommandPlay {
   SndPlaybackHandle playback;
   SndPlayState state;
   qboolean setEntState;
@@ -282,8 +264,7 @@ struct SndCommandPlay {
   vec3_t orientation[3];
   int32_t padding;
   uint8_t _paddingAC[4];
-};
-#pragma pack(pop)
+});
 
 struct SndCommandSetShockAmbientRoom {
   SndStringHash room;
@@ -313,29 +294,24 @@ struct SndCommandHeader {
 struct SndQueueBuffers;
 struct SndCommandBuffer;
 
-typedef void (*SND_QueueBufferProcess)(SndCommandBuffer *);
+typedef fastcallPtr_t<void(SndCommandBuffer *buffer)> SND_QueueBufferProcess;
 
-#pragma pack(push, 1)
-// sizeof=0x8020
-struct SndCommandBuffer {
+PACKED(struct SndCommandBuffer {
   int32_t sequence;
   int32_t used;
   SND_QueueBufferProcess *process;
   SndCommandBuffer *next;
   SndQueueBuffers *buffers;
-  uint8_t data[32768];
-};
+  uint8_t data[0x8000];
+});
 ASSERT_SIZE(SndCommandBuffer, 0x8020);
-#pragma pack(pop)
 
-#pragma pack(push, 1)
-struct SndQueueBuffers {
+PACKED(struct SndQueueBuffers {
   tlAtomicMutex mutex;
   SndCommandBuffer buffers[16];
   SndCommandBuffer *freeList;
-};
+});
 ASSERT_SIZE(SndQueueBuffers, 0x80220);
-#pragma pack(pop)
 
 enum class SndCommandType : uint32_t {
   SND_COMMAND_NOP = 0x0,

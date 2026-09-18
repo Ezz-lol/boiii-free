@@ -1,11 +1,12 @@
 #pragma once
 
-#include "game/structs/core.hpp"
-#include "game/symbol.hpp"
-#include <cstdint>
-
+#include "game/structs/atomic.hpp"
 #include <game/structs/macros.hpp>
 #include <structs/func.hpp>
+
+#include "game/symbol.hpp"
+
+#include <cstdint>
 
 namespace game {
 namespace jq {

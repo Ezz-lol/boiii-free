@@ -2,9 +2,10 @@
 
 #include <cstdint>
 
-#include "../macros.hpp"
-#include <macros.hpp>
+#include <game/structs/macros.hpp>
 #include <structs/func.hpp>
+
+#include <macros.hpp>
 
 namespace game {
 

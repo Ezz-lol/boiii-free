@@ -1,7 +1,7 @@
 #pragma once
 
-#include "../quake/core.hpp"
-#include "core.hpp"
+#include <game/structs/net/core.hpp>
+#include <game/structs/quake/core.hpp>
 
 namespace game {
 namespace net {

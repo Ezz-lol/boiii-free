@@ -1,7 +1,8 @@
 #pragma once
 
-#include <game/structs/scr/builtin/core.hpp>
 #include <game/structs/scr/builtin/table/macros.hpp>
+
+#include <game/structs/scr/builtin/core.hpp>
 
 namespace game {
 namespace scr {

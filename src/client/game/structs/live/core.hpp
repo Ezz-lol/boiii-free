@@ -1,8 +1,9 @@
 #pragma once
 
-#include "../core.hpp"
-#include "../lobby/core.hpp"
 #include <cstdint>
+
+#include <game/structs/core.hpp>
+#include <game/structs/lobby/core.hpp>
 
 namespace game {
 namespace live {

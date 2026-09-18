@@ -1,6 +1,6 @@
 #pragma once
 
-#include "hks.hpp"
+#include <game/structs/lua/hks.hpp>
 
 namespace game {
 namespace lua {

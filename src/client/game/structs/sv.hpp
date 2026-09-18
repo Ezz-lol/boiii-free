@@ -184,7 +184,7 @@ enum class ReliableCommand : char {
   UPDATE_FOV = 's',              // 0x73: CG_UpdateFov
   TEAM_OPS = 't',                // 0x74: CG_TeamOpsSetID / Progress / ShowHUD
   CHECKPOINT_RESTORE = 'u',      // 0x75: CL_Checkpoint_Restore
-  FRIEND_CHAT_MSG = 'v',         // 0x76: CG_FriendChatMessage
+  FRIEND_CHAT_MSG = 'v',         // 0x76: CG_AddToTeamChat
   UPDATE_ZOMBIE_DOUBLE_XP = 'w', // 0x77: Live_DoubleXPUpdateZombieDoubleXP
   INC_LOOT_CURRENCY = 'x',       // 0x78: Loot_IncCurrency (Vials or MP Loot XP)
   CONSUME_INVENTORY_ITEM = 'y',  // 0x79: LiveInventory_ConsumeItem

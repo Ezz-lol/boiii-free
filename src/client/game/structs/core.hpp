@@ -1,11 +1,6 @@
 #pragma once
 
-#include <csetjmp>
-#include <cstddef>
 #include <cstdint>
-#include <stdfloat>
-#include <variant>
-#include <windows.h>
 
 #include <game/structs/macros.hpp>
 #include <game/structs/quake/vec.hpp>
@@ -14,8 +9,8 @@
 #include <structs/func.hpp>
 #include <structs/str.hpp>
 
-#define PROTOCOL 8
-#define SUB_PROTOCOL 1
+inline constexpr auto PROTOCOL = 8;
+inline constexpr auto SUB_PROTOCOL = 1;
 
 namespace game {
 
@@ -1283,45 +1278,6 @@ struct outPacket_t {
   int32_t p_serverTime;
   int32_t p_realtime;
 };
-
-PACKED(class alignas(8) tlAtomicMutex {
-public:
-  int64_t ThreadId;
-  int32_t LockCount;
-  uint8_t _padding0C[4];
-  volatile tlAtomicMutex *ThisPtr;
-
-  struct syms {
-    static constexpr symbol<thiscall_t<void(volatile tlAtomicMutex *)>> Lock{
-        0x140009CB0, 0x140009B20};
-  };
-
-  void Lock() volatile {
-    // PATCH: ensure `ThisPtr` non-null
-    if (!this->ThisPtr) {
-      this->ThisPtr = this;
-    }
-
-    uint32_t thread_id = GetCurrentThreadId();
-    if (this->ThreadId == thread_id) {
-      this->LockCount += 1;
-    } else {
-      if (_InterlockedCompareExchange64(&this->ThisPtr->ThreadId, thread_id,
-                                        0) != 0) {
-        while (_InterlockedCompareExchange64(&this->ThisPtr->ThreadId,
-                                             thread_id, 0) != 0) {
-          Sleep(0);
-        }
-      }
-      long _fence = 0;
-      _InterlockedExchange(&_fence, 0);
-      this->LockCount = 1;
-    }
-  }
-
-  static void Lock(volatile tlAtomicMutex * self) { return self->Lock(); }
-});
-ASSERT_SIZE(tlAtomicMutex, 0x18);
 
 enum class consoleChannel_e : uint32_t {
   CHANNEL_DONT_FILTER = 0x0,

@@ -67,6 +67,12 @@ struct ActiveMod : WorkshopData {
 };
 ASSERT_SIZE(ActiveMod, 0x4D0);
 
+typedef std::optional<std::reference_wrapper<WorkshopData>>
+    OptionalWorkshopDataRef;
+
+typedef std::optional<std::reference_wrapper<const WorkshopData>>
+    OptionalConstWorkshopDataRef;
+
 template <const uint32_t POOL_SIZE> struct WorkshopDataPool {
   uint32_t count;
   uint8_t _padding04[4];
@@ -74,6 +80,110 @@ template <const uint32_t POOL_SIZE> struct WorkshopDataPool {
 
   inline void clear() {
     memset(static_cast<void *>(this), 0, sizeof(WorkshopDataPool<POOL_SIZE>));
+  }
+
+  struct Iterator {
+    using iterator_concept = std::contiguous_iterator_tag;
+    using iterator_category = std::random_access_iterator_tag;
+    using difference_type = std::ptrdiff_t;
+    using value_type = WorkshopData;
+    using pointer = WorkshopData *;
+    using reference = WorkshopData &;
+
+    Iterator() = default;
+
+    Iterator(pointer ptr) : m_ptr(ptr) {}
+
+    reference operator*() const { return *m_ptr; }
+    pointer operator->() const { return m_ptr; }
+
+    Iterator &operator++() {
+      m_ptr++;
+      return *this;
+    }
+    Iterator operator++(int) {
+      Iterator tmp = *this;
+      ++(*this);
+      return tmp;
+    }
+
+    friend bool operator==(const Iterator &a, const Iterator &b) = default;
+
+  private:
+    pointer m_ptr = nullptr;
+  };
+
+  struct ConstIterator {
+    using iterator_concept = std::contiguous_iterator_tag;
+    using iterator_category = std::random_access_iterator_tag;
+    using difference_type = std::ptrdiff_t;
+    using value_type = WorkshopData;
+    using pointer = WorkshopData *;
+    using reference = const WorkshopData &;
+
+    ConstIterator() = default;
+
+    ConstIterator(pointer ptr) : m_ptr(ptr) {}
+
+    reference operator*() const { return *m_ptr; }
+    pointer operator->() const { return m_ptr; }
+
+    ConstIterator &operator++() {
+      m_ptr++;
+      return *this;
+    }
+    ConstIterator operator++(int) {
+      ConstIterator tmp = *this;
+      ++(*this);
+      return tmp;
+    }
+
+    friend bool operator==(const ConstIterator &a,
+                           const ConstIterator &b) = default;
+
+  private:
+    pointer m_ptr = nullptr;
+  };
+
+  struct Iterable {
+    Iterator m_begin;
+    Iterator m_end;
+
+    Iterator begin() { return m_begin; }
+    Iterator end() { return m_end; }
+  };
+
+  struct ConstIterable {
+    ConstIterator m_begin;
+    ConstIterator m_end;
+
+    ConstIterator begin() { return m_begin; }
+    ConstIterator end() { return m_end; }
+  };
+
+  Iterable iter() noexcept {
+    return Iterable{Iterator(data), Iterator(&data[count])};
+  }
+
+  ConstIterable iter() const noexcept {
+    return ConstIterable{ConstIterator(data), ConstIterator(&data[count])};
+  }
+
+  template <typename Predicate>
+  OptionalConstWorkshopDataRef find(Predicate predicate) const noexcept {
+    ConstIterable it = iter();
+    const std::ranges::borrowed_iterator_t<ConstIterable &> result =
+        std::ranges::find_if(it, predicate);
+    return result == it.end() ? std::nullopt
+                              : OptionalConstWorkshopDataRef(*result);
+  }
+
+  template <typename Predicate>
+  OptionalWorkshopDataRef find(Predicate predicate) noexcept {
+    Iterable it = iter();
+    const std::ranges::borrowed_iterator_t<Iterable &> result =
+        std::ranges::find_if(it, predicate);
+    return result == it.end() ? std::nullopt : OptionalWorkshopDataRef(*result);
   }
 };
 

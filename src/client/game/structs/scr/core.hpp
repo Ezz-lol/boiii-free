@@ -7,9 +7,9 @@
 #include <type_traits>
 #include <vector>
 
-#include "../core.hpp"
-#include "../weapon.hpp"
-#include "game/structs/scr/primitives.hpp"
+#include <game/structs/core.hpp>
+#include <game/structs/scr/primitives.hpp>
+#include <game/structs/weapon.hpp>
 
 namespace game {
 
