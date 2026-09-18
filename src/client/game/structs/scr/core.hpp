@@ -2139,8 +2139,8 @@ union ParamPassMode {
     return tmp;
   }
 
-#ifndef IMPL_PARAMPASS_MODE_PASS_BINARY_OP
-#define IMPL_PARAMPASS_MODE_PASS_BINARY_OP(OP)                                 \
+#ifndef IMPL_PARAMPASS_MODE_BINARY_OP
+#define IMPL_PARAMPASS_MODE_BINARY_OP(OP)                                      \
   template <IntegralLike<underlying> T>                                        \
   inline constexpr ParamPassMode operator OP(T rhs) const noexcept {           \
     return {.flags = static_cast<underlying>(                                  \
@@ -2152,17 +2152,17 @@ union ParamPassMode {
   }
 #endif
 
-  IMPL_PARAMPASS_MODE_PASS_BINARY_OP(|)
-  IMPL_PARAMPASS_MODE_PASS_BINARY_OP(&)
-  IMPL_PARAMPASS_MODE_PASS_BINARY_OP(^)
-  IMPL_PARAMPASS_MODE_PASS_BINARY_OP(+)
-  IMPL_PARAMPASS_MODE_PASS_BINARY_OP(-)
-  IMPL_PARAMPASS_MODE_PASS_BINARY_OP(*)
-  IMPL_PARAMPASS_MODE_PASS_BINARY_OP(/)
-  IMPL_PARAMPASS_MODE_PASS_BINARY_OP(%)
+  IMPL_PARAMPASS_MODE_BINARY_OP(|)
+  IMPL_PARAMPASS_MODE_BINARY_OP(&)
+  IMPL_PARAMPASS_MODE_BINARY_OP(^)
+  IMPL_PARAMPASS_MODE_BINARY_OP(+)
+  IMPL_PARAMPASS_MODE_BINARY_OP(-)
+  IMPL_PARAMPASS_MODE_BINARY_OP(*)
+  IMPL_PARAMPASS_MODE_BINARY_OP(/)
+  IMPL_PARAMPASS_MODE_BINARY_OP(%)
 
-#ifndef IMPL_PARAMPASS_MODE_PASS_ASSIGN_OP
-#define IMPL_PARAMPASS_MODE_PASS_ASSIGN_OP(OP)                                 \
+#ifndef IMPL_PARAMPASS_MODE_ASSIGN_OP
+#define IMPL_PARAMPASS_MODE_ASSIGN_OP(OP)                                      \
   template <IntegralLike<underlying> T>                                        \
   inline constexpr ParamPassMode &operator OP(T rhs) noexcept {                \
     flags = static_cast<underlying>(flags OP static_cast<underlying>(rhs));    \
@@ -2174,14 +2174,14 @@ union ParamPassMode {
   }
 #endif
 
-  IMPL_PARAMPASS_MODE_PASS_ASSIGN_OP(|=)
-  IMPL_PARAMPASS_MODE_PASS_ASSIGN_OP(&=)
-  IMPL_PARAMPASS_MODE_PASS_ASSIGN_OP(^=)
-  IMPL_PARAMPASS_MODE_PASS_ASSIGN_OP(+=)
-  IMPL_PARAMPASS_MODE_PASS_ASSIGN_OP(-=)
-  IMPL_PARAMPASS_MODE_PASS_ASSIGN_OP(*=)
-  IMPL_PARAMPASS_MODE_PASS_ASSIGN_OP(/=)
-  IMPL_PARAMPASS_MODE_PASS_ASSIGN_OP(%=)
+  IMPL_PARAMPASS_MODE_ASSIGN_OP(|=)
+  IMPL_PARAMPASS_MODE_ASSIGN_OP(&=)
+  IMPL_PARAMPASS_MODE_ASSIGN_OP(^=)
+  IMPL_PARAMPASS_MODE_ASSIGN_OP(+=)
+  IMPL_PARAMPASS_MODE_ASSIGN_OP(-=)
+  IMPL_PARAMPASS_MODE_ASSIGN_OP(*=)
+  IMPL_PARAMPASS_MODE_ASSIGN_OP(/=)
+  IMPL_PARAMPASS_MODE_ASSIGN_OP(%=)
 
   inline constexpr operator underlying() const noexcept { return flags; }
 };
