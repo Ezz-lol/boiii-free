@@ -1,11 +1,30 @@
 #pragma once
+
 #include <game/game.hpp>
 
 namespace game {
 namespace ugc {
 
-WorkshopData *UGC_GetModByPublisherId(const char *publisherId);
-WorkshopData *UGC_GetUsermapByPublisherId(const char *publisherId);
+inline WorkshopData *
+UGC_UnwrapOptionalWorkshopData(OptionalWorkshopDataRef ref) {
+  if (ref.has_value()) {
+    return &ref.value().get();
+  }
+
+  return nullptr;
+}
+
+inline const WorkshopData *
+UGC_UnwrapOptionalWorkshopData(OptionalConstWorkshopDataRef ref) {
+  if (ref.has_value()) {
+    return &ref.value().get();
+  }
+
+  return nullptr;
+}
+
+OptionalWorkshopDataRef UGC_GetModByPublisherId(const char *publisherId);
+OptionalWorkshopDataRef UGC_GetUsermapByPublisherId(const char *publisherId);
 WorkshopData *UGC_GetByPublisherId_Impl(ZoneType zoneType,
                                         const char *publisherId);
 inline uint32_t UGC_GetModCount() { return modsPool.count; }

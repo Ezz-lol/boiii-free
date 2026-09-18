@@ -10,13 +10,12 @@ namespace xzone {
 
 bool DB_CheckModXFile_Impl(const char *fastfileName) {
   if (ugc::active_mod->publisherId[0]) {
-
-    ugc::WorkshopData *mod =
+    ugc::OptionalWorkshopDataRef mod =
         ugc::UGC_GetModByPublisherId(ugc::active_mod->publisherId);
     char file_path[0x100];
-    if (mod && mod->absolutePathZoneFiles[0]) {
+    if (mod.has_value() && mod->get().absolutePathZoneFiles[0]) {
       snprintf(file_path, sizeof(file_path), "%s/%s/%s%s",
-               mod->absolutePathZoneFiles, "", fastfileName, ".ff");
+               mod->get().absolutePathZoneFiles, "", fastfileName, ".ff");
     } else {
       const char *cwd = sys::Sys_Cwd();
       snprintf(file_path, sizeof(file_path), "%s/%s/%s/%s/%s%s", cwd, "mods",
