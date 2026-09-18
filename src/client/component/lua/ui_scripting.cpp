@@ -929,6 +929,29 @@ void try_start() {
   }
 }
 
+void reload_private_game_menu_scripts() {
+  const utils::nt::library host{};
+  const std::filesystem::path roots[] = {
+      game::get_appdata_path() / "data/ui_scripts",
+      host.get_folder() / "boiii/ui_scripts",
+  };
+  const char *files[] = {
+      "party/datasources_start_menu_game_options.lua",
+      "party/__init__.lua",
+  };
+
+  for (const char *file : files) {
+    for (const std::filesystem::path &root : roots) {
+      const std::filesystem::path path = root / file;
+      std::string data;
+      if (utils::io::read_file(path.string(), &data)) {
+        load_script(path.generic_string(), data, file);
+        break;
+      }
+    }
+  }
+}
+
 void ui_init_stub(lua_Alloc allocFunction, void *outOfMemoryFunction) {
   ui_init_hook.invoke(allocFunction, outOfMemoryFunction);
 
@@ -1013,6 +1036,13 @@ void cl_first_snapshot_stub(game::LocalClientNum_t localClientNum) {
   }
 
   if (doneFirstSnapshot.exchange(true, std::memory_order_seq_cst)) {
+    if (getinfo::is_host()) {
+      try {
+        reload_private_game_menu_scripts();
+      } catch (const std::exception &ex) {
+        printf("Failed to reload private-game menu scripts: %s\n", ex.what());
+      }
+    }
     return;
   }
 
