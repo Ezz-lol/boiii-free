@@ -912,6 +912,99 @@ inline bool initial_update_required() {
       launcher::get_launcher_ui_file().generic_wstring());
 }
 
+std::wstring quote_process_argument(const std::wstring_view argument) {
+  std::wstring result{L"\""};
+  size_t backslashes = 0;
+
+  for (const wchar_t character : argument) {
+    if (character == L'\\') {
+      ++backslashes;
+      continue;
+    }
+
+    if (character == L'\"') {
+      result.append(backslashes * 2 + 1, L'\\');
+      result.push_back(character);
+    } else {
+      result.append(backslashes, L'\\');
+      result.push_back(character);
+    }
+    backslashes = 0;
+  }
+
+  result.append(backslashes * 2, L'\\');
+  result.push_back(L'\"');
+  return result;
+}
+
+bool launch_beta_server_if_needed() {
+  if (!utils::flags::has_flag("beta")) {
+    return false;
+  }
+
+  const utils::nt::library self =
+      utils::nt::library::get_by_address(launch_beta_server_if_needed);
+  const std::filesystem::path target =
+      game::get_game_path() / "versions" / "boiii-beta.exe";
+  std::error_code error;
+  if (std::filesystem::equivalent(self.get_path(), target, error)) {
+    return false;
+  }
+
+  const bool target_exists = utils::io::file_exists(target);
+  const auto data = !utils::flags::has_flag("noupdate") || !target_exists
+                        ? utils::http::get_data(
+                              "https://r2.ezz.lol/boiii/beta/boiii.exe")
+                        : std::nullopt;
+  if (data.has_value()) {
+    utils::io::create_directory(target.parent_path());
+    std::filesystem::path temporary = target;
+    temporary += "." + std::to_string(GetCurrentProcessId()) + ".new";
+    if (utils::io::write_file_executable(temporary, *data)) {
+      if (!MoveFileExW(temporary.wstring().c_str(), target.wstring().c_str(),
+                       MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH)) {
+        utils::io::remove_file(temporary);
+      }
+    }
+  }
+
+  if (!utils::io::file_exists(target)) {
+    throw std::runtime_error("Failed to download the beta server binary");
+  }
+
+  int argument_count = 0;
+  LPWSTR *arguments = CommandLineToArgvW(GetCommandLineW(), &argument_count);
+  if (!arguments) {
+    throw std::runtime_error("Failed to read the server command line");
+  }
+
+  std::wstring command_line = quote_process_argument(target.wstring());
+  for (int index = 1; index < argument_count; ++index) {
+    command_line.push_back(L' ');
+    command_line += quote_process_argument(arguments[index]);
+  }
+  LocalFree(arguments);
+
+  STARTUPINFOW startup_info{};
+  PROCESS_INFORMATION process_info{};
+  startup_info.cb = sizeof(startup_info);
+  const DWORD creation_flags =
+      utils::flags::has_flag("noconsole") ? 0 : CREATE_NEW_CONSOLE;
+  const std::wstring target_path = target.wstring();
+  const std::wstring working_directory = game::get_game_path().wstring();
+
+  if (!CreateProcessW(target_path.c_str(), command_line.data(), nullptr,
+                      nullptr, FALSE, creation_flags, nullptr,
+                      working_directory.c_str(), &startup_info,
+                      &process_info)) {
+    throw std::runtime_error("Failed to launch the beta server binary");
+  }
+
+  CloseHandle(process_info.hThread);
+  CloseHandle(process_info.hProcess);
+  return true;
+}
+
 int main(int argc, char *argv[]) {
   if (handle_process_runner()) {
     return 0;
@@ -960,6 +1053,10 @@ int main(int argc, char *argv[]) {
 
       const bool is_server =
           utils::flags::has_flag("dedicated") || (!has_client && has_server);
+
+      if (is_server && launch_beta_server_if_needed()) {
+        return 0;
+      }
 
       if (!is_server && !launcher::is_game_process_running()) {
         updater::update(initial_update_required());

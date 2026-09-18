@@ -39,7 +39,8 @@ void report_updater_error(const char *message) {
 void update(bool force) {
   if (force ||
       (!utils::flags::has_flag("noupdate") &&
-       (utils::flags::has_flag("update") || automatic_updates_enabled()))) {
+       (utils::flags::has_flag("update") || utils::flags::has_flag("beta") ||
+        automatic_updates_enabled()))) {
 
     try {
       run(game::get_appdata_path());

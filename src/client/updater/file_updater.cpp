@@ -26,7 +26,13 @@
 
 namespace updater {
 namespace {
+bool is_dedicated_server();
+
 std::string get_selected_version() {
+  if (utils::flags::has_flag("beta") && is_dedicated_server()) {
+    return "beta";
+  }
+
   const auto val = utils::properties::load("selectedVersion");
   if (val) {
     return *val;
@@ -34,7 +40,10 @@ std::string get_selected_version() {
   return "latest";
 }
 
-bool should_skip_host_update() { return get_selected_version() != "latest"; }
+bool should_skip_host_update() {
+  return get_selected_version() != "latest" &&
+         !(utils::flags::has_flag("beta") && is_dedicated_server());
+}
 
 std::string get_update_file() {
   if (get_selected_version() == "beta") {
