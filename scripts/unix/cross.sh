@@ -386,7 +386,7 @@ DEP_INCLUDE_PATHS=(
 	"deps/frozen/include"
 	"deps/Microsoft.Web.WebView2/build/native/include"
 	"deps/curl/include"
-	"deps/asmjit/src/asmjit"
+	"deps/asmjit"
 	"deps/imgui"
 	"deps/discord-rpc/include"
 	"deps/libtommath"

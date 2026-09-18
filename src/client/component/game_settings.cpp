@@ -60,23 +60,23 @@ bool has_game_settings_file_on_disk(const char *path) {
 }
 
 void cmd_exec_stub(utils::hook::assembler &a) {
-  const asmjit::Label exec_from_fastfile = a.newLabel();
-  const asmjit::Label exec_from_disk = a.newLabel();
+  const asmjit::Label exec_from_fastfile = a.get().new_label();
+  const asmjit::Label exec_from_disk = a.get().new_label();
 
   a.pushad64();
 
-  a.mov(rcx, r10);
+  a.get().mov(rcx, r10);
   a.call_aligned(has_game_settings_file_on_disk);
-  a.cmp(rax, 1);
+  a.get().cmp(rax, 1);
   a.popad64();
 
-  a.jnz(exec_from_fastfile);
+  a.get().jnz(exec_from_fastfile);
 
-  a.bind(exec_from_disk);
+  a.get().bind(exec_from_disk);
   a.jmp(game::select(0x1420ED087, 0x1404F855E));
 
-  a.bind(exec_from_fastfile);
-  a.lea(rdx, ptr(rsp, (game::is_server() ? 0x30 : 0x40)));
+  a.get().bind(exec_from_fastfile);
+  a.get().lea(rdx, ptr(rsp, (game::is_server() ? 0x30 : 0x40)));
   a.jmp(game::select(0x1420ED007, 0x1404F853F));
 }
 

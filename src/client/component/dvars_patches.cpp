@@ -110,21 +110,21 @@ void strip_cheat_flags() {
 }
 
 void dof_enabled_stub(utils::hook::assembler &a) {
-  const auto update_ads_dof = a.newLabel();
+  const auto update_ads_dof = a.get().new_label();
 
-  a.mov(rax, qword_ptr(0x14AE95478_g)); // r_dof_enable
+  a.get().mov(rax, qword_ptr(0x14AE95478_g)); // r_dof_enable
 
-  a.test(rax, rax);
-  a.jz(update_ads_dof);
+  a.get().test(rax, rax);
+  a.get().jz(update_ads_dof);
 
-  a.cmp(byte_ptr(rax, 0x28), 1);
+  a.get().cmp(byte_ptr(rax, 0x28), 1);
 
-  a.je(update_ads_dof);
+  a.get().je(update_ads_dof);
 
   a.jmp(0x141116ECB_g);
 
-  a.bind(update_ads_dof);
-  a.lea(rdx, ptr(rbx, 0x131EB4));
+  a.get().bind(update_ads_dof);
+  a.get().lea(rdx, ptr(rbx, 0x131EB4));
   a.jmp(0x141116EC2_g); // CG_UpdateAdsDof
 }
 

@@ -130,25 +130,25 @@ void send_chat_message(game::ClientNum_t client_num, const std::string &text) {
 
 // This function has probably a different name
 void g_say_to_stub(utils::hook::assembler &a) {
-  const auto no_dead_chat = a.newLabel();
+  const asmjit::Label no_dead_chat = a.get().new_label();
 
   // game's code
-  a.mov(rax, qword_ptr(rbx));
+  a.get().mov(rax, qword_ptr(rbx));
 
-  a.push(rax);
+  a.get().push(rax);
 
-  a.mov(rax, qword_ptr(reinterpret_cast<std::uintptr_t>(&g_deadChat)));
-  a.mov(al, byte_ptr(rax, 0x28)); // dvar_t.current.value.enabled
-  a.test(al, al);
+  a.get().mov(rax, qword_ptr(reinterpret_cast<std::uintptr_t>(&g_deadChat)));
+  a.get().mov(al, byte_ptr(rax, 0x28)); // dvar_t.current.value.enabled
+  a.get().test(al, al);
 
-  a.pop(rax);
+  a.get().pop(rax);
 
-  a.je(no_dead_chat);
+  a.get().je(no_dead_chat);
 
   a.jmp(0x140299061_g);
 
-  a.bind(no_dead_chat);
-  a.cmp(dword_ptr(rax, 0x16AE0), 0x0); // game's code
+  a.get().bind(no_dead_chat);
+  a.get().cmp(dword_ptr(rax, 0x16AE0), 0x0); // game's code
   a.jmp(0x14029905B_g);
 }
 

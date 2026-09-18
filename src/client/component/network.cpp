@@ -78,18 +78,18 @@ bool cl_dispatch_connectionless_packet_stub(
 void handle_command_stub(utils::hook::assembler &a) {
   a.pushad64();
 
-  a.mov(rdx, rcx);  // command
-  a.mov(r8, r12);   // msg
-  a.mov(rcx, r15);  // address
-  a.mov(r9d, r14d); // localClientNum
+  a.get().mov(rdx, rcx);  // command
+  a.get().mov(r8, r12);   // msg
+  a.get().mov(rcx, r15);  // address
+  a.get().mov(r9d, r14d); // localClientNum
 
   a.call_aligned(handle_command);
 
-  a.mov(qword_ptr(rsp, 0x78), rax);
+  a.get().mov(qword_ptr(rsp, 0x78), rax);
 
   a.popad64();
 
-  a.ret();
+  a.get().ret();
 }
 
 bool socket_set_blocking(const SOCKET s, const bool blocking) {

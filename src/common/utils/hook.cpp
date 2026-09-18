@@ -31,13 +31,13 @@ uint8_t *allocate_somewhere_near(const void *base_address,
   while (true) {
     target_address += granularity;
 
-    auto *target_ptr = reinterpret_cast<uint8_t *>(target_address);
+    uint8_t *target_ptr = reinterpret_cast<uint8_t *>(target_address);
     if (is_relatively_far(base_address, target_ptr)) {
       return nullptr;
     }
 
-    const auto res = VirtualAlloc(target_ptr, size, MEM_RESERVE | MEM_COMMIT,
-                                  PAGE_EXECUTE_READWRITE);
+    void *const res = VirtualAlloc(target_ptr, size, MEM_RESERVE | MEM_COMMIT,
+                                   PAGE_EXECUTE_READWRITE);
     if (res) {
       if (is_relatively_far(base_address, target_ptr)) {
         VirtualFree(res, 0, MEM_RELEASE);
@@ -54,7 +54,7 @@ public:
   memory() = default;
 
   memory(const void *ptr) : memory() {
-    static const auto allocation_granularity = get_allocation_granularity();
+    static const size_t allocation_granularity = get_allocation_granularity();
     this->length_ = allocation_granularity;
 
     this->buffer_ =
@@ -96,7 +96,7 @@ public:
       return nullptr;
     }
 
-    const auto ptr = this->get_ptr();
+    void *const ptr = this->get_ptr();
     this->offset_ += length;
     return ptr;
   }
@@ -113,9 +113,9 @@ void *get_memory_near(const void *address, const size_t size) {
   static concurrency::container<std::vector<memory>> memory_container{};
 
   return memory_container.access<void *>([&](std::vector<memory> &memories) {
-    for (auto &memory : memories) {
+    for (memory &memory : memories) {
       if (!is_relatively_far(address, memory.get_ptr())) {
-        const auto buffer = memory.allocate(size);
+        void *const buffer = memory.allocate(size);
         if (buffer) {
           return buffer;
         }
@@ -143,78 +143,74 @@ void *initialize_min_hook() {
 } // namespace
 
 void assembler::pushad64() {
-  this->push(rax);
-  this->push(rcx);
-  this->push(rdx);
-  this->push(rbx);
-  this->push(rsp);
-  this->push(rbp);
-  this->push(rsi);
-  this->push(rdi);
+  this->get().push(rax);
+  this->get().push(rcx);
+  this->get().push(rdx);
+  this->get().push(rbx);
+  this->get().push(rsp);
+  this->get().push(rbp);
+  this->get().push(rsi);
+  this->get().push(rdi);
 
-  this->push(r8);
-  this->push(r9);
-  this->push(r10);
-  this->push(r11);
-  this->push(r12);
-  this->push(r13);
-  this->push(r14);
-  this->push(r15);
+  this->get().push(r8);
+  this->get().push(r9);
+  this->get().push(r10);
+  this->get().push(r11);
+  this->get().push(r12);
+  this->get().push(r13);
+  this->get().push(r14);
+  this->get().push(r15);
 }
 
 void assembler::popad64() {
-  this->pop(r15);
-  this->pop(r14);
-  this->pop(r13);
-  this->pop(r12);
-  this->pop(r11);
-  this->pop(r10);
-  this->pop(r9);
-  this->pop(r8);
+  this->get().pop(r15);
+  this->get().pop(r14);
+  this->get().pop(r13);
+  this->get().pop(r12);
+  this->get().pop(r11);
+  this->get().pop(r10);
+  this->get().pop(r9);
+  this->get().pop(r8);
 
-  this->pop(rdi);
-  this->pop(rsi);
-  this->pop(rbp);
-  this->pop(rsp);
-  this->pop(rbx);
-  this->pop(rdx);
-  this->pop(rcx);
-  this->pop(rax);
+  this->get().pop(rdi);
+  this->get().pop(rsi);
+  this->get().pop(rbp);
+  this->get().pop(rsp);
+  this->get().pop(rbx);
+  this->get().pop(rdx);
+  this->get().pop(rcx);
+  this->get().pop(rax);
 }
 
 void assembler::prepare_stack_for_call() {
-  const auto reserve_callee_space = this->newLabel();
-  const auto stack_unaligned = this->newLabel();
+  const asmjit::Label reserve_callee_space = this->get().new_label();
+  const asmjit::Label stack_unaligned = this->get().new_label();
 
-  this->test(rsp, 0xF);
-  this->jnz(stack_unaligned);
+  this->get().test(rsp, 0xF);
+  this->get().jnz(stack_unaligned);
 
-  this->sub(rsp, 0x8);
-  this->push(rsp);
+  this->get().sub(rsp, 0x8);
+  this->get().push(rsp);
 
-  this->push(rax);
-  this->mov(rax, ptr(rsp, 8, 8));
-  this->add(rax, 0x8);
-  this->mov(ptr(rsp, 8, 8), rax);
-  this->pop(rax);
+  this->get().push(rax);
+  this->get().mov(rax, ptr(rsp, 8, 8));
+  this->get().add(rax, 0x8);
+  this->get().mov(ptr(rsp, 8, 8), rax);
+  this->get().pop(rax);
 
-  this->jmp(reserve_callee_space);
+  this->get().jmp(reserve_callee_space);
 
-  this->bind(stack_unaligned);
-  this->push(rsp);
+  this->get().bind(stack_unaligned);
+  this->get().push(rsp);
 
-  this->bind(reserve_callee_space);
-  this->sub(rsp, 0x40);
+  this->get().bind(reserve_callee_space);
+  this->get().sub(rsp, 0x40);
 }
 
 void assembler::restore_stack_after_call() {
-  this->lea(rsp, ptr(rsp, 0x40));
-  this->pop(rsp);
+  this->get().lea(rsp, ptr(rsp, 0x40));
+  this->get().pop(rsp);
 }
-
-asmjit::Error assembler::call(void *target) { return Assembler::call(target); }
-
-asmjit::Error assembler::jmp(void *target) { return Assembler::jmp(target); }
 
 detour::detour() { (void)initialize_min_hook(); }
 
@@ -287,7 +283,7 @@ std::optional<std::pair<void *, void *>> iat(const nt::library &library,
   if (!library.is_valid())
     return {};
 
-  auto *const ptr = library.get_iat_entry(target_library, process);
+  void **const ptr = library.get_iat_entry(target_library, process);
   if (!ptr)
     return {};
 
@@ -304,7 +300,7 @@ void nop(void *place_arg, const size_t length) {
   if (!place_arg || length == 0)
     return;
 
-  auto *place = static_cast<uint8_t *>(place_arg);
+  uint8_t *place = static_cast<uint8_t *>(place_arg);
   DWORD old_protect{};
 
   // Validate memory region and ensure VirtualProtect covers the exact length
@@ -413,14 +409,14 @@ bool is_relatively_far(const void *pointer, const void *data,
 
 bool is_relatively_far(const size_t pointer, const size_t data,
                        const int offset) {
-  const auto diff = static_cast<int64_t>(data - (pointer + offset));
-  const auto small_diff = static_cast<int32_t>(diff);
+  const int64_t diff = static_cast<int64_t>(data - (pointer + offset));
+  const int32_t small_diff = static_cast<int32_t>(diff);
   return diff != static_cast<int64_t>(small_diff);
 }
 
 void call(void *pointer, const void *data) {
   if (is_relatively_far(pointer, data)) {
-    auto *trampoline = get_memory_near(pointer, 14);
+    void *trampoline = get_memory_near(pointer, 14);
     if (!trampoline) {
       throw std::runtime_error("Too far away to create 32bit relative branch");
     }
@@ -435,7 +431,7 @@ void call(void *pointer, const void *data) {
   *reinterpret_cast<int32_t *>(&copy_data[1]) = static_cast<int32_t>(
       reinterpret_cast<size_t>(data) - (reinterpret_cast<size_t>(pointer) + 5));
 
-  auto *patch_pointer = static_cast<PBYTE>(pointer);
+  uint8_t *patch_pointer = static_cast<uint8_t *>(pointer);
   copy(patch_pointer, copy_data, sizeof(copy_data));
 }
 
@@ -456,7 +452,7 @@ void jump(void *pointer, const void *data, const bool use_far,
                                                  0x00, 0x00, 0x00};
 
   if (!use_far && is_relatively_far(pointer, data)) {
-    auto *trampoline = get_memory_near(pointer, 14);
+    void *trampoline = get_memory_near(pointer, 14);
     if (!trampoline) {
       throw std::runtime_error("Too far away to create 32bit relative branch");
     }
@@ -465,7 +461,7 @@ void jump(void *pointer, const void *data, const bool use_far,
     return;
   }
 
-  auto *patch_pointer = static_cast<PBYTE>(pointer);
+  uint8_t *patch_pointer = static_cast<uint8_t *>(pointer);
 
   if (use_far) {
     if (use_safe) {
@@ -535,7 +531,7 @@ void inject(const size_t pointer, const void *data) {
 }
 
 void cmp(void *pointer, void *data) {
-  auto *ptr = static_cast<uint8_t *>(pointer);
+  uint8_t *ptr = static_cast<uint8_t *>(pointer);
 
   // Skip instruction prefixes
   while (*ptr == 0x66 || *ptr == 0x67 || (*ptr >= 0x40 && *ptr <= 0x4F) ||
@@ -544,7 +540,7 @@ void cmp(void *pointer, void *data) {
     ptr++;
   }
 
-  const auto opcode = *ptr++;
+  const uint8_t opcode = *ptr++;
   bool has_imm8 = false;
   bool has_imm32 = false;
 
@@ -563,8 +559,8 @@ void cmp(void *pointer, void *data) {
     throw std::runtime_error("Not a RIP-relative CMP instruction");
   }
 
-  auto *disp_ptr = ptr + 1;
-  auto *rip_ptr = disp_ptr + 4;
+  uint8_t *disp_ptr = ptr + 1;
+  uint8_t *rip_ptr = disp_ptr + 4;
 
   if (has_imm8)
     rip_ptr += 1;
@@ -576,7 +572,7 @@ void cmp(void *pointer, void *data) {
     throw std::runtime_error("Too far away to create 32bit relative branch");
   }
 
-  const auto relative_offset = static_cast<int32_t>(
+  const int32_t relative_offset = static_cast<int32_t>(
       reinterpret_cast<size_t>(data) - reinterpret_cast<size_t>(rip_ptr));
 
   set<int32_t>(reinterpret_cast<size_t>(disp_ptr), relative_offset);
@@ -591,7 +587,7 @@ void cmp(const size_t pointer, const size_t data) {
 }
 
 void lea(void *pointer, void *data) {
-  auto *ptr = static_cast<uint8_t *>(pointer);
+  uint8_t *ptr = static_cast<uint8_t *>(pointer);
 
   // Skip instruction prefixes
   while (*ptr == 0x66 || *ptr == 0x67 || (*ptr >= 0x40 && *ptr <= 0x4F) ||
@@ -610,15 +606,15 @@ void lea(void *pointer, void *data) {
     throw std::runtime_error("Not a RIP-relative LEA instruction");
   }
 
-  auto *disp_ptr = ptr + 1;
-  auto *rip_ptr = disp_ptr + 4;
+  uint8_t *disp_ptr = ptr + 1;
+  uint8_t *rip_ptr = disp_ptr + 4;
 
   if (is_relatively_far(reinterpret_cast<size_t>(rip_ptr),
                         reinterpret_cast<size_t>(data), 0)) {
     throw std::runtime_error("Too far away to create 32bit relative branch");
   }
 
-  const auto relative_offset = static_cast<int32_t>(
+  const int32_t relative_offset = static_cast<int32_t>(
       reinterpret_cast<size_t>(data) - reinterpret_cast<size_t>(rip_ptr));
 
   set<int32_t>(reinterpret_cast<size_t>(disp_ptr), relative_offset);
@@ -633,7 +629,7 @@ void lea(const size_t pointer, const size_t data) {
 }
 
 void cmovz(void *pointer, void *data) {
-  auto *ptr = static_cast<uint8_t *>(pointer);
+  uint8_t *ptr = static_cast<uint8_t *>(pointer);
 
   // Skip instruction prefixes
   while (*ptr == 0x66 || *ptr == 0x67 || (*ptr >= 0x40 && *ptr <= 0x4F) ||
@@ -653,15 +649,15 @@ void cmovz(void *pointer, void *data) {
     throw std::runtime_error("Not a RIP-relative CMOVZ instruction");
   }
 
-  auto *disp_ptr = ptr + 1;
-  auto *rip_ptr = disp_ptr + 4;
+  uint8_t *disp_ptr = ptr + 1;
+  uint8_t *rip_ptr = disp_ptr + 4;
 
   if (is_relatively_far(reinterpret_cast<size_t>(rip_ptr),
                         reinterpret_cast<size_t>(data), 0)) {
     throw std::runtime_error("Too far away to create 32bit relative branch");
   }
 
-  const auto relative_offset = static_cast<int32_t>(
+  const int32_t relative_offset = static_cast<int32_t>(
       reinterpret_cast<size_t>(data) - reinterpret_cast<size_t>(rip_ptr));
 
   set<int32_t>(reinterpret_cast<size_t>(disp_ptr), relative_offset);
@@ -676,7 +672,7 @@ void cmovz(const size_t pointer, const size_t data) {
 }
 
 void mov(void *pointer, void *data) {
-  auto *ptr = static_cast<uint8_t *>(pointer);
+  uint8_t *ptr = static_cast<uint8_t *>(pointer);
 
   // Skip instruction prefixes
   while (*ptr == 0x66 || *ptr == 0x67 || (*ptr >= 0x40 && *ptr <= 0x4F) ||
@@ -685,7 +681,7 @@ void mov(void *pointer, void *data) {
     ptr++;
   }
 
-  const auto opcode = *ptr++;
+  const uint8_t opcode = *ptr++;
   bool has_imm8 = false;
   bool has_imm32 = false;
 
@@ -704,8 +700,8 @@ void mov(void *pointer, void *data) {
     throw std::runtime_error("Not a RIP-relative MOV instruction");
   }
 
-  auto *disp_ptr = ptr + 1;
-  auto *rip_ptr = disp_ptr + 4;
+  uint8_t *disp_ptr = ptr + 1;
+  uint8_t *rip_ptr = disp_ptr + 4;
 
   if (has_imm8)
     rip_ptr += 1;
@@ -717,7 +713,7 @@ void mov(void *pointer, void *data) {
     throw std::runtime_error("Too far away to create 32bit relative branch");
   }
 
-  const auto relative_offset = static_cast<int32_t>(
+  const int32_t relative_offset = static_cast<int32_t>(
       reinterpret_cast<size_t>(data) - reinterpret_cast<size_t>(rip_ptr));
 
   set<int32_t>(reinterpret_cast<size_t>(disp_ptr), relative_offset);
@@ -734,12 +730,12 @@ void mov(const size_t pointer, const size_t data) {
 std::vector<uint8_t> move_hook(void *pointer) {
   std::vector<uint8_t> original_data{};
 
-  auto *data_ptr = static_cast<uint8_t *>(pointer);
+  uint8_t *data_ptr = static_cast<uint8_t *>(pointer);
   if (data_ptr[0] == 0xE9) {
     original_data.resize(6);
     memmove(original_data.data(), pointer, original_data.size());
 
-    auto *target = follow_branch(data_ptr);
+    void *target = follow_branch(data_ptr);
     nop(data_ptr, 1);
     jump(data_ptr + 1, target);
   } else if (data_ptr[0] == 0xFF && data_ptr[1] == 0x25) {
@@ -760,7 +756,7 @@ std::vector<uint8_t> move_hook(const size_t pointer) {
 }
 
 void *follow_branch(void *address) {
-  auto *const data = static_cast<uint8_t *>(address);
+  uint8_t *const data = static_cast<uint8_t *>(address);
   if (*data != 0xE8 && *data != 0xE9) {
     throw std::runtime_error("No branch instruction found");
   }

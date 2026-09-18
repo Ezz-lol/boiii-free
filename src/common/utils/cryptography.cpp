@@ -95,16 +95,20 @@ private:
     rng_make_prng(128, this->id_, this->state_.get(), nullptr);
 
     int i[4]; // uninitialized data
-    auto *i_ptr = &i;
+    decltype(i) *i_ptr = &i;
     this->add_entropy(&i, sizeof(i));
-    this->add_entropy(&i_ptr, sizeof(i_ptr));
+    /*
+       `decltype(i_ptr)` is to workaround warning "suspiscious usage of sizeof()
+       on pointer type", which is intentional.
+    */
+    this->add_entropy(&i_ptr, sizeof(decltype(i_ptr)));
 
-    auto t = time(nullptr);
+    std::time_t t = time(nullptr);
     this->add_entropy(&t, sizeof(t));
 
     std::random_device rd{};
-    for (auto j = 0; j < 4; ++j) {
-      const auto x = rd();
+    for (size_t j = 0; j < 4; ++j) {
+      const std::random_device::result_type x = rd();
       this->add_entropy(&x, sizeof(x));
     }
   }
@@ -236,7 +240,7 @@ bool ecc::key::operator==(key &key) const {
 }
 
 uint64_t ecc::key::get_hash() const {
-  const auto hash = sha1::compute(this->get_public_key());
+  const std::string hash = sha1::compute(this->get_public_key());
   if (hash.size() >= 8) {
     return *reinterpret_cast<const uint64_t *>(hash.data());
   }
@@ -269,7 +273,7 @@ std::string ecc::sign_message(const key &key, const std::string &message) {
   unsigned long length = BASE_ECC_ANSIX962_BUFFER_LEN;
   uint8_t buffer[BASE_ECC_ANSIX962_BUFFER_LEN];
 
-  const auto hash = sha512::compute(message);
+  const std::string hash = sha512::compute(message);
 
   ltc_ecc_sig_opts sig_opts = {.type = LTC_ECCSIG_ANSIX962,
                                .prng = prng_.get_state(),
@@ -313,14 +317,14 @@ bool ecc::encrypt(const key &key, std::string &data) {
   std::string out_data{};
   out_data.resize(std::max(ul(data.size() * 3), ul(0x100)));
 
-  auto out_len = ul(out_data.size());
-  auto crypt = [&]() {
+  unsigned long out_len = ul(out_data.size());
+  auto crypt = [&]() -> int32_t {
     return ecc_encrypt_key(cs(data.data()), ul(data.size()),
                            cs(out_data.data()), &out_len, prng_.get_state(),
                            prng_.get_id(), find_hash("sha512"), &key.get());
   };
 
-  auto res = crypt();
+  int32_t res = crypt();
 
   if (res == CRYPT_BUFFER_OVERFLOW) {
     out_data.resize(out_len);
@@ -340,13 +344,13 @@ bool ecc::decrypt(const key &key, std::string &data) {
   std::string out_data{};
   out_data.resize(std::max(ul(data.size() * 3), ul(0x100)));
 
-  auto out_len = ul(out_data.size());
-  auto crypt = [&]() {
+  unsigned long out_len = ul(out_data.size());
+  auto crypt = [&]() -> int32_t {
     return ecc_decrypt_key(cs(data.data()), ul(data.size()),
                            cs(out_data.data()), &out_len, &key.get());
   };
 
-  auto res = crypt();
+  int32_t res = crypt();
 
   if (res == CRYPT_BUFFER_OVERFLOW) {
     out_data.resize(out_len);
@@ -371,15 +375,15 @@ std::string rsa::encrypt(const std::string &data, const std::string &hash,
   std::string out_data{};
   out_data.resize(std::max(ul(data.size() * 3), ul(0x100)));
 
-  auto out_len = ul(out_data.size());
-  auto crypt = [&]() {
+  unsigned long out_len = ul(out_data.size());
+  auto crypt = [&]() -> int32_t {
     return rsa_encrypt_key(cs(data.data()), ul(data.size()),
                            cs(out_data.data()), &out_len, cs(hash.data()),
                            ul(hash.size()), prng_.get_state(), prng_.get_id(),
                            find_hash("sha512"), &new_key);
   };
 
-  auto res = crypt();
+  int32_t res = crypt();
 
   if (res == CRYPT_BUFFER_OVERFLOW) {
     out_data.resize(out_len);
@@ -400,7 +404,7 @@ std::string des3::encrypt(const std::string &data, const std::string &iv,
   enc_data.resize(data.size());
 
   symmetric_CBC cbc;
-  const auto des3 = find_cipher("3des");
+  const int32_t des3 = find_cipher("3des");
 
   cbc_start(des3, cs(iv.data()), cs(key.data()), static_cast<int>(key.size()),
             0, &cbc);
@@ -416,7 +420,7 @@ std::string des3::decrypt(const std::string &data, const std::string &iv,
   dec_data.resize(data.size());
 
   symmetric_CBC cbc;
-  const auto des3 = find_cipher("3des");
+  const int32_t des3 = find_cipher("3des");
 
   cbc_start(des3, cs(iv.data()), cs(key.data()), static_cast<int>(key.size()),
             0, &cbc);
@@ -452,7 +456,7 @@ std::string aes::encrypt(const std::string &data, const std::string &iv,
   enc_data.resize(data.size());
 
   symmetric_CBC cbc;
-  const auto aes = find_cipher("aes");
+  const int32_t aes = find_cipher("aes");
 
   cbc_start(aes, cs(iv.data()), cs(key.data()), static_cast<int>(key.size()), 0,
             &cbc);
@@ -468,7 +472,7 @@ std::string aes::decrypt(const std::string &data, const std::string &iv,
   dec_data.resize(data.size());
 
   symmetric_CBC cbc;
-  const auto aes = find_cipher("aes");
+  const int32_t aes = find_cipher("aes");
 
   cbc_start(aes, cs(iv.data()), cs(key.data()), static_cast<int>(key.size()), 0,
             &cbc);
@@ -487,7 +491,7 @@ std::string hmac_sha1::compute(const std::string &data,
   hmac_init(&state, find_hash("sha1"), cs(key.data()), ul(key.size()));
   hmac_process(&state, cs(data.data()), static_cast<int>(data.size()));
 
-  auto out_len = ul(buffer.size());
+  unsigned long out_len = ul(buffer.size());
   hmac_done(&state, cs(buffer.data()), &out_len);
 
   buffer.resize(out_len);
@@ -590,7 +594,7 @@ std::string base64::encode(const uint8_t *data, const size_t len) {
   std::string result;
   result.resize((len + 2) * 2);
 
-  auto out_len = ul(result.size());
+  unsigned long out_len = ul(result.size());
   if (base64_encode(data, ul(len), result.data(), &out_len) != CRYPT_OK) {
     return {};
   }
@@ -607,7 +611,7 @@ std::string base64::decode(const std::string &data) {
   std::string result;
   result.resize((data.size() + 2) * 2);
 
-  auto out_len = ul(result.size());
+  unsigned long out_len = ul(result.size());
   if (base64_decode(data.data(), ul(data.size()), cs(result.data()),
                     &out_len) != CRYPT_OK) {
     return {};

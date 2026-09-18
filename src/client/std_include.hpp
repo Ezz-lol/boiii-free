@@ -103,8 +103,8 @@
 #include <variant>       // IWYU pragma: export
 #include <vector>        // IWYU pragma: export
 
-#include <asmjit/core/jitruntime.h>  // IWYU pragma: export
-#include <asmjit/x86/x86assembler.h> // IWYU pragma: export
+#include <asmjit/core/jit_runtime.h>  // IWYU pragma: export
+#include <asmjit/x86/x86_assembler.h> // IWYU pragma: export
 
 #include <MinHook.h> // IWYU pragma: export
 

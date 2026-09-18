@@ -1,7 +1,8 @@
 #pragma once
 
-#include <asmjit/core/jitruntime.h>
-#include <asmjit/x86/x86assembler.h>
+#include <asmjit/core/jit_runtime.h>
+#include <asmjit/x86/x86_assembler.h>
+
 #include <optional>
 #include <string>
 #include <utils/nt.hpp>
@@ -48,11 +49,11 @@ void **get_vtable_entry(Class *obj, T (Class::*entry)(Args...)) {
   return &obj_v_table[index];
 }
 
-class assembler : public Assembler {
+class assembler {
 public:
-  using Assembler::Assembler;
-  using Assembler::call;
-  using Assembler::jmp;
+  Assembler wrapped;
+
+  inline assembler(asmjit::CodeHolder *holder) : wrapped(holder) {}
 
   void pushad64();
   void popad64();
@@ -66,8 +67,22 @@ public:
     this->restore_stack_after_call();
   }
 
-  asmjit::Error call(void *target);
-  asmjit::Error jmp(void *target);
+  inline asmjit::Error call(Mem target) { return get().call(target); }
+  inline asmjit::Error call(void *target) { return get().call(target); }
+  inline asmjit::Error call(uintptr_t target) { return get().call(target); }
+
+  inline asmjit::Error jmp(Mem target) { return get().jmp(target); }
+  inline asmjit::Error jmp(void *target) { return get().jmp(target); }
+  inline asmjit::Error jmp(uintptr_t target) { return get().jmp(target); }
+
+  inline constexpr operator Assembler *() noexcept { return &wrapped; }
+
+  inline constexpr operator const Assembler *() const noexcept {
+    return &wrapped;
+  }
+
+  inline constexpr Assembler &get() noexcept { return wrapped; }
+  inline constexpr const Assembler &get() const noexcept { return wrapped; }
 };
 
 class detour {

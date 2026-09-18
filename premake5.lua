@@ -408,6 +408,13 @@ project("common")
 kind("StaticLib")
 language("C++")
 
+filter({ "toolset: msc*" })
+buildoptions({ "-Qunused-arguments", "-Wno-dangling-else" })
+filter({})
+filter({ "toolset:not msc*" })
+buildoptions({ "-Wno-dangling-else" })
+filter({})
+
 files({ "./src/common/**.hpp", "./src/common/**.cpp" })
 
 includedirs({
@@ -424,6 +431,13 @@ dependencies.imports()
 project("client")
 kind("WindowedApp")
 language("C++")
+
+filter({ "toolset: msc*" })
+buildoptions({ "-Qunused-arguments", "-Wno-dangling-else" })
+filter({})
+filter({ "toolset:not msc*" })
+buildoptions({ "-Wno-dangling-else" })
+filter({})
 
 targetname("boiii")
 
@@ -482,6 +496,13 @@ filter({})
 project("tlsdll")
 kind("SharedLib")
 language("C++")
+
+filter({ "toolset: msc*" })
+buildoptions({ "-Qunused-arguments", "-Wno-dangling-else" })
+filter({})
+filter({ "toolset:not msc*" })
+buildoptions({ "-Wno-dangling-else" })
+filter({})
 
 symbols("Off")
 exceptionhandling("Off")

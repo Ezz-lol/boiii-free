@@ -356,8 +356,8 @@ void reset_state() {
 
 size_t get_reset_state_stub() {
   static void *stub = utils::hook::assemble([](utils::hook::assembler &a) {
-    a.sub(rsp, 0x10);
-    a.or_(rsp, 0x8);
+    a.get().sub(rsp, 0x10);
+    a.get().or_(rsp, 0x8);
     a.jmp(reset_state);
   });
 
@@ -779,8 +779,8 @@ void handle_server_script_vm_crash() {
 
 size_t get_script_error_stub() {
   static void *stub = utils::hook::assemble([](utils::hook::assembler &a) {
-    a.sub(rsp, 0x10);
-    a.or_(rsp, 0x8);
+    a.get().sub(rsp, 0x10);
+    a.get().or_(rsp, 0x8);
     a.jmp(handle_server_script_vm_crash);
   });
 
