@@ -13,12 +13,12 @@ first_in_dir() {
 
 	if [ -z "$search_dir" ]; then
 		echo "Error: No search directory provided to first_in_dir." >&2
-		exit 1
+		return 1
 	fi
 
 	if [ "${#search_files[@]}" -eq 0 ]; then
 		echo "Error: No search files provided to first_in_dir." >&2
-		exit 1
+		return 1
 	fi
 
 	for file in "${search_files[@]}"; do
@@ -33,15 +33,17 @@ first_in_dir() {
 
 normalize_path() {
 	local file_path
-	file_path="$1"
+	file_path=""
 
-	if [ -z "$file_path" ]; then
+	if [ "$#" -gt 0 ]; then
+		file_path="$1"
+	else
 		file_path="$(cat -)"
 	fi
 
 	if [ -z "$file_path" ]; then
 		echo "Error: No file path provided to normalize_path." >&2
-		exit 1
+		return 1
 	fi
 
 	if [ -L "$file_path" ]; then
@@ -58,9 +60,11 @@ normalize_path() {
 
 resolve_path() {
 	local path_to_resolve
-	path_to_resolve="$1"
+	path_to_resolve=""
 
-	if [ -z "$path_to_resolve" ]; then
+	if [ "$#" -gt 0 ]; then
+		path_to_resolve="$1"
+	else
 		path_to_resolve="$(cat -)"
 	fi
 
@@ -81,15 +85,17 @@ resolve_path() {
 
 ext() {
 	local file_path
-	file_path="$1"
+	file_path=""
 
-	if [ -z "$file_path" ]; then
+	if [ "$#" -gt 0 ]; then
+		file_path="$1"
+	else
 		file_path="$(cat -)"
 	fi
 
 	if [ -z "$file_path" ]; then
 		echo "Error: No file path provided to ext." >&2
-		exit 1
+		return 1
 	fi
 
 	echo "${file_path##*.}"
@@ -97,22 +103,25 @@ ext() {
 
 starts_with() {
 	local str
-	str="$1"
+	str=""
+
+	if [ "$#" -gt 0 ]; then
+		str="$1"
+	else
+		str="$(cat -)"
+	fi
+
 	local prefix
 	prefix="$2"
 
 	if [ -z "$str" ]; then
-		str="$(cat -)"
-	fi
-
-	if [ -z "$str" ]; then
 		echo "Error: No string provided to starts_with." >&2
-		exit 1
+		return 1
 	fi
 
 	if [ -z "$prefix" ]; then
 		echo "Error: No prefix provided to starts_with." >&2
-		exit 1
+		return 1
 	fi
 
 	[[ "$str" == "$prefix"* ]]
@@ -120,15 +129,17 @@ starts_with() {
 
 to_lowercase() {
 	local input_str
-	input_str="$1"
+	input_str=""
 
-	if [ -z "$input_str" ]; then
+	if [ "$#" -gt 0 ]; then
+		input_str="$1"
+	else
 		input_str="$(cat -)"
 	fi
 
 	if [ -z "$input_str" ]; then
 		echo "Error: No input string provided to to_lowercase." >&2
-		exit 1
+		return 1
 	fi
 
 	echo "${input_str,,}"
@@ -136,15 +147,17 @@ to_lowercase() {
 
 to_uppercase() {
 	local input_str
-	input_str="$1"
+	input_str=""
 
-	if [ -z "$input_str" ]; then
+	if [ "$#" -gt 0 ]; then
+		input_str="$1"
+	else
 		input_str="$(cat -)"
 	fi
 
 	if [ -z "$input_str" ]; then
 		echo "Error: No input string provided to to_uppercase." >&2
-		exit 1
+		return 1
 	fi
 
 	echo "${input_str^^}"
@@ -164,12 +177,12 @@ path_in_tree_by_name() {
 
 	if [ -z "$input_path" ]; then
 		echo "Error: No input path provided to path_in_tree_by_name." >&2
-		exit 1
+		return 1
 	fi
 
 	if [ -z "$dir_name" ]; then
 		echo "Error: No directory name provided to path_in_tree_by_name." >&2
-		exit 1
+		return 1
 	fi
 
 	local PATH_PARTS
@@ -194,12 +207,12 @@ path_remove_tree_by_name() {
 
 	if [ -z "$input_path" ]; then
 		echo "Error: No input path provided to path_remove_tree_by_name." >&2
-		exit 1
+		return 1
 	fi
 
 	if [ -z "$dir_name" ]; then
 		echo "Error: No directory name provided to path_remove_tree_by_name." >&2
-		exit 1
+		return 1
 	fi
 
 	local PATH_PARTS
@@ -384,4 +397,20 @@ host_triple() {
 	elif have_application uname; then
 		echo "$(uname -m)-unknown-$(uname -s | to_lowercase)"
 	fi
+}
+
+tree_depth() {
+	local target_dir="$(normalize_path "${1:-.}")"
+
+	# Ensure the target is a valid directory
+	if [ ! -d "$target_dir" ]; then
+		echo "Error: Directory '$target_dir' not found." >&2
+		return 1
+	fi
+
+	# Calculate max depth
+	local max_depth
+	max_depth=$(chdir "$target_dir" find . -type d | awk -F"/" '{print NF-1}' | sort -nr | head -n 1)
+
+	echo "$((max_depth + 1))"
 }
