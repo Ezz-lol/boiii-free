@@ -406,8 +406,8 @@ void award_for_match(const std::chrono::seconds duration) {
   dvar_cg_last_divinium_award.set(awarded_vials);
 
   if (!summary.empty()) {
-    const char *icon = awarded_vials > 0 ? "t7_hud_zm_vial_256"
-                                         : "uie_t7_icon_codpoints";
+    const char *icon =
+        awarded_vials > 0 ? "t7_hud_zm_vial_256" : "uie_t7_icon_codpoints";
     toast::reward("MATCH REWARDS", summary, icon);
   }
 }
@@ -465,7 +465,7 @@ void add_balance_command(const char *name, const kind k,
                    utils::string::va("Balance set to %lld", get(k)));
   });
 }
-}
+} // namespace
 
 bool enabled() {
   return dvar_cg_local_currency && dvar_cg_local_currency.get_bool();
@@ -606,6 +606,6 @@ struct component final : client_component {
     }
   }
 };
-}
+} // namespace currency
 
 REGISTER_COMPONENT(currency::component)

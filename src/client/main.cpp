@@ -952,10 +952,10 @@ bool launch_beta_server_if_needed() {
   }
 
   const bool target_exists = utils::io::file_exists(target);
-  const auto data = !utils::flags::has_flag("noupdate") || !target_exists
-                        ? utils::http::get_data(
-                              "https://r2.ezz.lol/boiii/beta/boiii.exe")
-                        : std::nullopt;
+  const auto data =
+      !utils::flags::has_flag("noupdate") || !target_exists
+          ? utils::http::get_data("https://r2.ezz.lol/boiii/beta/boiii.exe")
+          : std::nullopt;
   if (data.has_value()) {
     utils::io::create_directory(target.parent_path());
     std::filesystem::path temporary = target;

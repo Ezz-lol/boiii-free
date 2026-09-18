@@ -21,4 +21,4 @@ int32_t owned_quantity(game::eModes mode, int32_t item_id);
 void add_owned(game::eModes mode, int32_t item_id, int32_t quantity = 1);
 
 void save();
-}
+} // namespace currency

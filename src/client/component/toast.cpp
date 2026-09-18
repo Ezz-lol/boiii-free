@@ -84,8 +84,8 @@ void show_as(const std::string &state, const std::string &title,
       "    CoD.OverlayUtility.ShowToast(\"%s\", \"%s\", \"%s\", \"%s\")\n"
       "  end\n"
       "end)\n",
-      escaped_state.c_str(), escaped_title.c_str(),
-      escaped_description.c_str(), escaped_icon.c_str());
+      escaped_state.c_str(), escaped_title.c_str(), escaped_description.c_str(),
+      escaped_icon.c_str());
 
   scheduler::once([code] { execute_lua(code); }, scheduler::main);
 }
