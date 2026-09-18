@@ -1,6 +1,9 @@
 #pragma once
 
 #include <cstdint>
+
+#include <game/structs/quake/vec.hpp>
+
 namespace game {
 namespace fp16 {
 union half {
@@ -12,37 +15,8 @@ union half {
   };
 };
 
-struct half2_pack {
-  union {
-    half h[2];
-    struct {
-      int16_t x;
-      int16_t y;
-    };
-    struct {
-      uint32_t xy;
-    };
-  };
-};
-
-struct half4_pack {
-  union {
-    half h[4];
-    struct {
-      int16_t x;
-      int16_t y;
-      int16_t z;
-      int16_t w;
-    };
-    struct {
-      uint32_t xy;
-      uint32_t zw;
-    };
-    struct {
-      uint64_t xyzw;
-    };
-  };
-};
+typedef vec2<half> half2_pack;
+typedef vec4<half> half4_pack;
 
 } // namespace fp16
 } // namespace game

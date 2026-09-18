@@ -2,14 +2,12 @@
 
 #include "game/structs/db/xasset/core.hpp"
 #include "game/structs/db/xasset/xbone.hpp"
-#include <cstdint>
+#include <game/structs/fp16.hpp>
 #include <game/structs/macros.hpp>
 
-namespace game {
+#include <cstdint>
 
-namespace fp16 {
-struct half4_pack;
-}
+namespace game {
 
 namespace anim {
 struct DObjAnimMat;

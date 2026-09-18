@@ -101,15 +101,11 @@ union XAssetEntryPoolEntry {
 ASSERT_SIZE(XAssetEntryPoolEntry, 0x20);
 constexpr std::size_t XASSET_ENTRY_POOL_LENGTH = 0x263ff;
 
-#pragma pack(push, 1)
-struct XAssetEntryPool {
+PACKED(struct XAssetEntryPool {
   XAssetEntryPoolEntry pool[XASSET_ENTRY_POOL_LENGTH];
-};
+});
 
-#pragma pack(pop)
-
-#pragma pack(push, 1)
-struct TypedXAssetPools {
+PACKED(struct TypedXAssetPools {
   TypedXAssetPool<phys::PhysPreset> physpreset;
   TypedXAssetPool<phys::PhysConstraints> physconstraints;
   TypedXAssetPool<destructible::DestructibleDef> destructibledef;
@@ -216,13 +212,9 @@ struct TypedXAssetPools {
   XAssetPool laser;
   XAssetPool beam;
   XAssetPool streamer_hint;
-};
+});
 
-#pragma pack(pop)
-
-#pragma pack(push, 1)
-
-union XAssetPools {
+PACKED(union XAssetPools {
   XAssetPool pools[+XAssetType::COUNT];
   TypedXAssetPools typed;
 
@@ -234,11 +226,10 @@ union XAssetPools {
   template <typename P> inline bool contains(const P *ptr) const noexcept {
     return contains(reinterpret_cast<uintptr_t>(ptr));
   }
-};
+});
 static_assert(sizeof(XAssetPools) == sizeof(XAssetPool) * +XAssetType::COUNT,
               "sizeof(XAssetPools) must be sizeof(XAssetPool) * COUNT");
 ASSERT_SIZE(XAssetPools, sizeof(TypedXAssetPools));
-#pragma pack(pop)
 } // namespace pool
 } // namespace xasset
 } // namespace db
