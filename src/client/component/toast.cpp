@@ -68,6 +68,28 @@ bool execute_lua(const std::string &code) {
   return false;
 }
 
+void show_as(const std::string &state, const std::string &title,
+             const std::string &description, const std::string &icon) {
+  if (game::is_server())
+    return;
+
+  const auto escaped_state = escape_lua_string(state);
+  const auto escaped_title = escape_lua_string(title);
+  const auto escaped_description = escape_lua_string(description);
+  const auto escaped_icon = escape_lua_string(icon);
+
+  const std::string code = utils::string::va(
+      "pcall(function()\n"
+      "  if CoD and CoD.OverlayUtility and CoD.OverlayUtility.ShowToast then\n"
+      "    CoD.OverlayUtility.ShowToast(\"%s\", \"%s\", \"%s\", \"%s\")\n"
+      "  end\n"
+      "end)\n",
+      escaped_state.c_str(), escaped_title.c_str(),
+      escaped_description.c_str(), escaped_icon.c_str());
+
+  scheduler::once([code] { execute_lua(code); }, scheduler::main);
+}
+
 const char *zombie_toast_patch = R"lua(
 if not CoD.isZombie then return end
 
@@ -129,22 +151,12 @@ void precache_icon(const std::string &material) {
 
 void show(const std::string &title, const std::string &description,
           const std::string &icon) {
-  if (game::is_server())
-    return;
+  show_as("Invite", title, description, icon);
+}
 
-  const auto escaped_title = escape_lua_string(title);
-  const auto escaped_description = escape_lua_string(description);
-  const auto escaped_icon = escape_lua_string(icon);
-
-  const std::string code = utils::string::va(
-      "pcall(function()\n"
-      "  if CoD and CoD.OverlayUtility and CoD.OverlayUtility.ShowToast then\n"
-      "    CoD.OverlayUtility.ShowToast(\"Invite\", \"%s\", \"%s\", \"%s\")\n"
-      "  end\n"
-      "end)\n",
-      escaped_title.c_str(), escaped_description.c_str(), escaped_icon.c_str());
-
-  scheduler::once([code] { execute_lua(code); }, scheduler::main);
+void reward(const std::string &title, const std::string &description,
+            const std::string &icon) {
+  show_as("BlackMarketEquipped", title, description, icon);
 }
 
 void success(const std::string &title, const std::string &description) {

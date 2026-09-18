@@ -5,6 +5,7 @@
 #include <utils/hook.hpp>
 
 #include "command.hpp"
+#include "currency.hpp"
 #include "scheduler.hpp"
 #include "toast.hpp"
 #include <game/game.hpp>
@@ -38,6 +39,11 @@ utils::hook::detour gscr_isitempurchasedforclientnum_hook;
 int loot_getitemquantity_stub(const game::ControllerIndex_t controller_index,
                               const game::eModes mode, const int item_id) {
   if (!dvar_cg_unlockall_loot.get_bool()) {
+    if (const int32_t owned = currency::owned_quantity(mode, item_id);
+        owned > 0) {
+      return owned;
+    }
+
     return loot_getitemquantity_hook.invoke<int>(controller_index, mode,
                                                  item_id);
   }
