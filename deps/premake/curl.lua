@@ -9,7 +9,7 @@ function curl.import()
 
   links({ "curl" })
 
-  links({ "Crypt32.lib" })
+  links({ "crypt32.lib" })
   filter({})
 
   curl.includes()

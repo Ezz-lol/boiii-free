@@ -133,6 +133,6 @@ using namespace std::literals;
 #pragma comment(lib, "ws2_32.lib")
 #pragma comment(lib, "urlmon.lib")
 #pragma comment(lib, "iphlpapi.lib")
-#pragma comment(lib, "Crypt32.lib")
+#pragma comment(lib, "crypt32.lib")
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")

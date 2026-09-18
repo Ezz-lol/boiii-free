@@ -268,3 +268,120 @@ chdir() {
 
 	return "$return_code"
 }
+
+# MacOS `realpath` does not support the `--relative-to` argument.
+# We use this instead to ensure we are not reliant on this GNU extension.
+relative_path() {
+	local relative_to="$1"
+	local path="$2"
+
+	# Guard against empty paths preventing pipeline hangs
+	if [ -z "$relative_to" ] || [ -z "$path" ]; then
+		echo "."
+		return 1
+	fi
+
+	# Safely resolve absolute paths (avoids realpath errors on missing files)
+	if [ -e "$relative_to" ] || [ -L "$relative_to" ]; then
+		relative_to="$(normalize_path "$relative_to")"
+	elif [[ "$relative_to" != /* ]]; then
+		relative_to="$(normalize_path "$PWD")/${relative_to#./}"
+	fi
+
+	if [ -e "$path" ] || [ -L "$path" ]; then
+		path="$(normalize_path "$path")"
+	elif [[ "$path" != /* ]]; then
+		path="$(normalize_path "$PWD")/${path#./}"
+	fi
+
+	local common_prefix="$path"
+
+	# Find the longest common leading subdirectory prefix safely
+	while [[ "${relative_to}/" != "${common_prefix%/}/"* ]]; do
+		common_prefix="${common_prefix%/*}"
+		[ -z "$common_prefix" ] && common_prefix="/"
+	done
+
+	# Get the non-common remaining segments of both paths, stripping leading slashes
+	local path_remainder="${path#"$common_prefix"}"
+	path_remainder="${path_remainder#/}"
+	local relative_to_remainder="${relative_to#"$common_prefix"}"
+	relative_to_remainder="${relative_to_remainder#/}"
+
+	local result=""
+
+	# For directory directory remaining in relative_to, climb up one directory ('../')
+	if [ -n "$relative_to_remainder" ]; then
+		local p="$relative_to_remainder"
+		while [[ "$p" == */* ]]; do
+			result="../$result"
+			p="${p#*/}"
+		done
+		result="../$result"
+	fi
+
+	result="${result}${path_remainder}"
+
+	# Strip trailing slash(es) if result non-empty
+	result="${result%/}"
+	echo "${result:-.}"
+}
+
+# MacOS `ln` does not support the `--relative` argument.
+# We use this instead to ensure we are not reliant on this GNU extension.
+lnrs() {
+	if [ "$#" -ne 2 ]; then
+		echo "Usage: lnrs <target> <link_path>" >&2
+		return 1
+	fi
+
+	local target="$1"
+	local link_path="$2"
+	local link_dir
+	local link_name
+
+	# If link_path is a directory, link becomes file with basename of target
+	# within the directory. Matches behaviour of `ln`.
+	if [ -d "$link_path" ]; then
+		link_dir="$link_path"
+		link_name="$(basename "$target")"
+	else
+		link_dir="$(dirname "$link_path")"
+		link_name="$(basename "$link_path")"
+	fi
+
+	local rel_path="$(relative_path "$link_dir" "$target")"
+
+	chdir "$link_dir" \
+		ln -s "$rel_path" "$link_name"
+}
+
+have_application() {
+	command -v "$1" >/dev/null 2>&1
+}
+
+is_gnu() {
+	local application="$1"
+
+	if [ -n "$application" ] && have_application "$application"; then
+		local version_output="$("$application" --version 2>&1 || true)"
+		version_output="$(to_lowercase "$version_output")"
+		if [[ "$version_output" == *"gnu"* ]] || [[ "$version_output" == *"free software foundation"* ]]; then
+			return 0
+		fi
+	fi
+
+	return 1
+}
+
+host_triple() {
+	if have_application "clang"; then
+		clang -dumpmachine
+	elif have_application "gcc"; then
+		gcc -dumpmachine
+	elif have_application "rustc"; then
+		rustc -vV | sed -n 's/^host: //p'
+	elif have_application uname; then
+		echo "$(uname -m)-unknown-$(uname -s | to_lowercase)"
+	fi
+}

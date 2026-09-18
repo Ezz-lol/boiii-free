@@ -485,24 +485,23 @@ link_capitalized_headers() {
 
 	for header_lower in "${!needs_capitalized[@]}"; do
 		header="${needs_capitalized["$header_lower"]}"
-		if [ -e "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}/${header}" ]; then
-			continue
-		fi
-		find_capitalized="$(find "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}" -name "${header}")"
-		if [ -z "$find_capitalized" ]; then
-			while IFS= read -r match; do
-				[ -z "$match" ] && continue
-				find_dir="$(dirname "$match")"
-				link_out="${find_dir}/${header}"
-				if [ -e "$link_out" ]; then
-					continue
-				fi
-				echo "Linking ${match} -> ${link_out}"
-				if ! ln -sf "$match" "${link_out}"; then
-					echo "Error: Failed to link ${match} to ${link_out}" >&2
-					return 1
-				fi
-			done < <(find "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}" -iname "$header_lower")
+		if ! [ -e "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}/${header}" ]; then
+			find_capitalized="$(find "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}" -name "${header}")"
+			if [ -z "$find_capitalized" ]; then
+				while IFS=$'\n' read -r match; do
+					if [ -n "$match" ]; then
+						find_dir="$(dirname "$match")"
+						link_out="${find_dir}/${header}"
+						if ! [ -e "$link_out" ]; then
+							echo "Linking ${match} -> ${link_out}"
+							if ! ln -sf "$match" "${link_out}"; then
+								echo "Error: Failed to link ${match} to ${link_out}" >&2
+								return 1
+							fi
+						fi
+					fi
+				done < <(find "${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}" -iname "$header_lower")
+			fi
 		fi
 	done
 
@@ -647,8 +646,10 @@ if ! [ -d "$msvc_toolchain_sysroot" ]; then
 	exit 1
 fi
 
-WINDOWS_MSVC_TOOLCHAIN_BIN_PATH="${msvc_toolchain_sysroot}/bin/x86_64-unknown-windows-msvc"
-WINDOWS_MSVC_TOOLCHAIN_LIB_PATH="${msvc_toolchain_sysroot}/lib/x86_64-unknown-windows-msvc"
+WINDOWS_MSVC_TOOLCHAIN_BIN_PATH="${msvc_toolchain_sysroot}/bin"
+WINDOWS_MSVC_TOOLCHAIN_LIB_PATH="${msvc_toolchain_sysroot}/lib"
+# For structure used in https://github.com/trcrsired/windows-msvc-sysroot
+WINDOWS_MSVC_TOOLCHAIN_LIB_PATH_NESTED="${msvc_toolchain_sysroot}/lib/x86_64-unknown-windows-msvc"
 WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH="${msvc_toolchain_sysroot}/include"
 
 cflags=(
@@ -659,6 +660,7 @@ cflags=(
 	"-fuse-ld=lld"
 	"--target=x86_64-windows-msvc"
 	"-L${WINDOWS_MSVC_TOOLCHAIN_LIB_PATH}"
+	"-L${WINDOWS_MSVC_TOOLCHAIN_LIB_PATH_NESTED}"
 	"-L${WINDOWS_MSVC_TOOLCHAIN_BIN_PATH}"
 	"-I${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}")
 cxxflags=(
@@ -677,10 +679,12 @@ ldflags=("-static"
 	"-isystem"
 	"${WINDOWS_MSVC_TOOLCHAIN_INCLUDE_PATH}"
 	"-Wl,-libpath:${WINDOWS_MSVC_TOOLCHAIN_LIB_PATH}"
+	"-Wl,-libpath:${WINDOWS_MSVC_TOOLCHAIN_LIB_PATH_NESTED}"
 	"-Wl,-libpath:${WINDOWS_MSVC_TOOLCHAIN_BIN_PATH}"
 	"-fuse-ld=lld"
 	"--target=x86_64-windows-msvc"
 	"-L${WINDOWS_MSVC_TOOLCHAIN_LIB_PATH}"
+	"-L${WINDOWS_MSVC_TOOLCHAIN_LIB_PATH_NESTED}"
 	"-L${WINDOWS_MSVC_TOOLCHAIN_BIN_PATH}"
 	"-Wl,/subsystem:windows")
 if [ "$RELEASE" -eq 1 ]; then
