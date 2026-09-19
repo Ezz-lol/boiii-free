@@ -8,6 +8,13 @@ namespace game {
 namespace live {
 namespace storage {
 
+WEAK symbol<ddl::DDLContext *(ControllerIndex_t, StorageFileType, StorageSlot)>
+    Storage_GetDDLContext{0x142276AB0};
+WEAK symbol<const ddl::DDLState *(StorageFileType)> Storage_GetDDLRootState{
+    0x142276B80};
+WEAK symbol<bool(ControllerIndex_t, StorageFileType, StorageSlot)>
+    Storage_Write{0x142277960};
+
 WEAK symbol<int32_t(const ControllerIndex_t controllerIndex,
                     uint8_t *transferBuffer, int32_t transferBufferSize)>
     Storage_SerializeTransferData{0x142277710};

@@ -39,11 +39,6 @@ utils::hook::detour gscr_isitempurchasedforclientnum_hook;
 int loot_getitemquantity_stub(const game::ControllerIndex_t controller_index,
                               const game::eModes mode, const int item_id) {
   if (!dvar_cg_unlockall_loot.get_bool()) {
-    if (const int32_t owned = currency::owned_quantity(mode, item_id);
-        owned > 0) {
-      return owned;
-    }
-
     return loot_getitemquantity_hook.invoke<int>(controller_index, mode,
                                                  item_id);
   }
@@ -67,6 +62,11 @@ int liveinventory_getitemquantity_stub(
   // Item id for extra CaC slots
   if (dvar_cg_unlockall_cac_slots.get_bool() && item_id == 99003) {
     return 1;
+  }
+
+  if (const auto quantity =
+          currency::item_quantity(controller_index, item_id)) {
+    return *quantity;
   }
 
   return liveinventory_getitemquantity_hook.invoke<int>(controller_index,

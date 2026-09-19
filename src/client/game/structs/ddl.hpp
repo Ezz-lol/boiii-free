@@ -72,6 +72,15 @@ struct DDLDef {
 };
 ASSERT_SIZE(DDLDef, 0x60);
 
+struct DDLState {
+  bool isValid;
+  int32_t offset;
+  int32_t arrayIndex;
+  DDLMember *member;
+  const DDLDef *ddlDef;
+};
+ASSERT_SIZE(DDLState, 0x20);
+
 struct DDLContext;
 typedef fastcallPtr_t<void(DDLContext *ctx, void *data)> DDLWriteCB;
 
