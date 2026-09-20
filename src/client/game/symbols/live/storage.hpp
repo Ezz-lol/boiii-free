@@ -8,16 +8,18 @@ namespace game {
 namespace live {
 namespace storage {
 
-WEAK symbol<ddl::DDLContext *(ControllerIndex_t, StorageFileType, StorageSlot)>
+WEAK symbol<ddl::DDLContext *(const ControllerIndex_t controllerIndex,
+                              const StorageFileType fileType, StorageSlot slot)>
     Storage_GetDDLContext{0x142276AB0};
-WEAK symbol<const ddl::DDLState *(StorageFileType)> Storage_GetDDLRootState{
-    0x142276B80};
-WEAK symbol<bool(ControllerIndex_t, StorageFileType, StorageSlot)>
-    Storage_Write{0x142277960};
+WEAK symbol<const ddl::DDLState *(const StorageFileType fileType)>
+    Storage_GetDDLRootState{0x142276B80, 0x14054B710};
+WEAK symbol<bool(const ControllerIndex_t controllerIndex,
+                 const StorageFileType fileType, StorageSlot slot)>
+    Storage_Write{0x142277960, 0x14054C120};
 
 WEAK symbol<int32_t(const ControllerIndex_t controllerIndex,
                     uint8_t *transferBuffer, int32_t transferBufferSize)>
-    Storage_SerializeTransferData{0x142277710};
+    Storage_SerializeTransferData{0x142277710, 0x14054BED0};
 
 WEAK symbol<bool()> LiveStorage_DoWeHaveFFOTD{0x141EC3950};
 WEAK symbol<bool()> LiveStorage_ValidateFFOTD{0x141EC4AB0};
