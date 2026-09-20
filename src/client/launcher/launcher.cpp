@@ -1310,7 +1310,8 @@ bool handle_version_launch(const std::string &exe_name,
   const auto game_path = game::get_game_path();
   const auto executable_path = game_path / "versions" / executable_name;
   const auto refresh_beta =
-      executable_path.filename().string() == "boiii-beta.exe";
+      executable_path.filename().string() == "boiii-beta.exe" &&
+      !utils::flags::has_flag("noupdate");
   if (!utils::io::file_exists(executable_path)) {
     const auto legacy_path = game_path / executable_name;
     if (utils::io::file_exists(legacy_path)) {
