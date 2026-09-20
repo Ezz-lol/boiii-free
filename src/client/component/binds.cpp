@@ -36,8 +36,7 @@ constexpr int BATCH_THRESHOLD = 3;
 
 std::string get_binds_path() { return "boiii_players/user/binds.cfg"; }
 
-// Convert raw operator characters to their numpad key names
-std::string_view normalize_key(const std::string_view &key) {
+std::string normalize_key(const std::string_view key) {
   if (key.size() == 1) {
     switch (key[0]) {
     case '+':
@@ -52,7 +51,7 @@ std::string_view normalize_key(const std::string_view &key) {
       break;
     }
   }
-  return key;
+  return std::string{key};
 }
 
 void save_binds() {
@@ -254,7 +253,7 @@ void parse_binds_file(const std::string &data) {
       const std::string rest = line.substr(5);
       const size_t space = rest.find(' ');
       if (space != std::string::npos) {
-        const std::string_view key =
+        const std::string key =
             normalize_key(utils::string::to_lower(rest.substr(0, space)));
         std::string cmd = rest.substr(space + 1);
         if (cmd.size() >= 2 && cmd.front() == '"' && cmd.back() == '"') {
@@ -262,7 +261,7 @@ void parse_binds_file(const std::string &data) {
         }
 
         if (!key.empty() && !cmd.empty()) {
-          custom_binds[std::string(key)] = cmd;
+          custom_binds[key] = cmd;
         }
       }
     }
