@@ -21,6 +21,9 @@ require("datasources_start_menu_tabs")
 require("datasources_change_map_categories")
 require("datasources_gamesettingsflyout_buttons")
 
+CoD.LobbyButtons.PLAY_LOCAL.stringRef = "^1" .. Engine.Localize("MENU_PLAY_LOCAL_CAPS")
+CoD.LobbyButtons.PLAY_ONLINE.stringRef = "^2" .. Engine.Localize("XBOXLIVE_PLAY_ONLINE_CAPS")
+
 CoD.LobbyButtons.MP_PUBLIC_MATCH = {
   stringRef = "MENU_PLAY_CAPS",
   action = NavigateToLobby_SelectionList,
@@ -117,11 +120,24 @@ local addCustomButtons = function(controller, menuId, buttonTable, isLeader)
     menuId == LobbyData.UITargets.UI_MPLOBBYMAIN.id
     or menuId == LobbyData.UITargets.UI_MPLOBBYONLINE.id
     or menuId == LobbyData.UITargets.UI_ZMLOBBYONLINE.id
+    or menuId == LobbyData.UITargets.UI_ZMLOBBYLANGAME.id
     or (LobbyData.UITargets.UI_CPLOBBYONLINE and menuId == LobbyData.UITargets.UI_CPLOBBYONLINE.id)
     or (LobbyData.UITargets.UI_CPLOBBYLANGAME and menuId == LobbyData.UITargets.UI_CPLOBBYLANGAME.id)
   then
     utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.STATS)
     utils.AddSmallButton(controller, buttonTable, CoD.LobbyButtons.QUICK_SETTINGS)
+  end
+
+  if menuId == LobbyData.UITargets.UI_ZMLOBBYLANGAME.id then
+    for _, button in ipairs({
+      CoD.LobbyButtons.ZM_BUBBLEGUM_BUFFS,
+      CoD.LobbyButtons.ZM_MEGACHEW_FACTORY,
+      CoD.LobbyButtons.ZM_GOBBLEGUM_RECIPES,
+    }) do
+      if utils.GetButtonIndex(buttonTable, button) == nil then
+        utils.AddSmallButton(controller, buttonTable, button)
+      end
+    end
   end
 
   if
