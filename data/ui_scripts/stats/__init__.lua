@@ -2,8 +2,50 @@ if Engine.GetCurrentMap() ~= "core_frontend" then
   return
 end
 
+local function refreshCurrencyModels(controller)
+  local controllerModel = Engine.GetModelForController(controller)
+  local currencyModel = Engine.CreateModel(controllerModel, "CryptoKeyProgress")
+  Engine.SetModelValue(Engine.CreateModel(currencyModel, "codPoints"), Engine.GetCoDPoints(controller))
+  local tokenModel = Engine.CreateModel(controllerModel, "MegaChewTokens")
+  Engine.SetModelValue(Engine.CreateModel(tokenModel, "remainingTokens"), Engine.GetZMVials(controller))
+  if DataSources.GobbleGumDistills then
+    DataSources.GobbleGumDistills.getModel(controller)
+  end
+end
+
+local easterEggStats = {
+  "DARKOPS_ZOD_EE",
+  "DARKOPS_ZOD_SUPER_EE",
+  "DARKOPS_FACTORY_EE",
+  "DARKOPS_FACTORY_SUPER_EE",
+  "DARKOPS_CASTLE_EE",
+  "DARKOPS_CASTLE_SUPER_EE",
+  "DARKOPS_ISLAND_EE",
+  "DARKOPS_ISLAND_SUPER_EE",
+  "DARKOPS_STALINGRAD_EE",
+  "DARKOPS_STALINGRAD_SUPER_EE",
+  "DARKOPS_GENESIS_EE",
+  "DARKOPS_GENESIS_SUPER_EE",
+}
+
+local function allEasterEggsCompleted(controller)
+  local stats = Engine.GetPlayerStats(controller, CoD.STATS_LOCATION_NORMAL, Enum.eModes.MODE_ZOMBIES)
+  if not stats or not stats.PlayerStatsList then
+    return false
+  end
+  for _, name in ipairs(easterEggStats) do
+    local stat = stats.PlayerStatsList[name]
+    if not stat or not stat.StatValue or stat.StatValue:get() ~= 1 then
+      return false
+    end
+  end
+  return true
+end
+
 DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", function(controller)
   local optionsTable = {}
+
+  Engine.SetDvar("all_ee_completed", allEasterEggsCompleted(controller) and 1 or 0)
 
   local updateDvar = function(element, itemModel, controllerIndex, dvarName, param)
     local oldValue = Engine.DvarInt(nil, dvarName)
@@ -15,6 +57,12 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
     Engine.SetDvar(dvarName, itemModel.value)
     if dvarName == "cg_unlockall_loot" then
       Engine.SetDvar("ui_enableAllHeroes", itemModel.value)
+      if itemModel.value == 1 then
+        Engine.SetDvar("cg_unlockall_gobblegums", 1)
+      end
+    end
+    if dvarName == "cg_local_currency" then
+      refreshCurrencyModels(controllerIndex)
     end
     if dvarName == "all_ee_completed" then
       Engine.ExecNow(controllerIndex, "statsetbyname darkops_zod_ee " .. itemModel.value)
@@ -29,6 +77,33 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
       Engine.ExecNow(controllerIndex, "statsetbyname darkops_stalingrad_super_ee " .. itemModel.value)
       Engine.ExecNow(controllerIndex, "statsetbyname darkops_genesis_ee " .. itemModel.value)
       Engine.ExecNow(controllerIndex, "statsetbyname DARKOPS_GENESIS_SUPER_EE " .. itemModel.value)
+      game.savestats(controllerIndex, Enum.eModes.MODE_ZOMBIES)
+    end
+  end
+
+  local updateMaxCurrencies = function(element, itemModel, controllerIndex, dvarName, param)
+    local oldValue = Engine.DvarInt(nil, dvarName)
+    local newValue = itemModel.value
+    UpdateInfoModels(itemModel)
+    if oldValue == newValue then
+      return
+    end
+    if game.setcurrenciesmaxed(controllerIndex, newValue == 1) then
+      Engine.SetDvar(dvarName, newValue)
+      refreshCurrencyModels(controllerIndex)
+      CoD.OverlayUtility.ShowToast(
+        "BlackMarketEquipped",
+        newValue == 1 and "Local currencies maxed." or "Local currencies cleared.",
+        nil,
+        "uie_t7_icon_codpoints"
+      )
+    else
+      itemModel.value = oldValue
+      UpdateInfoModels(itemModel)
+      LuaUtils.UI_ShowErrorMessageDialog(
+        controllerIndex,
+        "Could not update currencies. Return to the Zombies menu and try again."
+      )
     end
   end
 
@@ -55,6 +130,60 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
       updateDvar
     )
   )
+  if
+    Engine.CurrentSessionMode() == Enum.eModes.MODE_ZOMBIES
+    and type(game.resetgobblegums) == "function"
+    and type(game.setcurrenciesmaxed) == "function"
+  then
+    table.insert(
+      optionsTable,
+      CoD.OptionsUtility.CreateDvarSettings(
+        controller,
+        "Local Currency",
+        "Uses locally saved COD Points, Liquid Divinium, GobbleGums, and Cookbook Distills.",
+        "MPStatsSettings_local_currency",
+        "cg_local_currency",
+        {
+          { option = "MENU_DISABLED", value = 0 },
+          { option = "MENU_ENABLED", value = 1, default = true },
+        },
+        nil,
+        updateDvar
+      )
+    )
+    table.insert(
+      optionsTable,
+      CoD.OptionsUtility.CreateDvarSettings(
+        controller,
+        "Unlimited GobbleGums",
+        "Uses unlimited GobbleGums without replacing your earned inventory.",
+        "MPStatsSettings_unlimited_gobblegums",
+        "cg_unlockall_gobblegums",
+        {
+          { option = "MENU_DISABLED", value = 0, default = true },
+          { option = "MENU_ENABLED", value = 1 },
+        },
+        nil,
+        updateDvar
+      )
+    )
+    table.insert(
+      optionsTable,
+      CoD.OptionsUtility.CreateDvarSettings(
+        controller,
+        "Max Local Currencies",
+        "Sets COD Points, Liquid Divinium, and Cookbook Distills to maximum or zero.",
+        "MPStatsSettings_max_currencies",
+        "cg_max_local_currencies",
+        {
+          { option = "MENU_DISABLED", value = 0, default = true },
+          { option = "MENU_ENABLED", value = 1 },
+        },
+        nil,
+        updateMaxCurrencies
+      )
+    )
+  end
   if Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER then
     table.insert(
       optionsTable,
@@ -230,6 +359,19 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
   local currentRank = CoD.BlackMarketUtility.GetCurrentRank(controller) + 1
 
   local isMasterPrestige = currentPrestige == 11
+  if isMasterPrestige then
+    local stats = Engine.GetPlayerStats(controller, CoD.STATS_LOCATION_NORMAL, Engine.CurrentSessionMode())
+    if stats and stats.PlayerStatsList and stats.PlayerStatsList.PARAGON_RANK then
+      local paragonRank = stats.PlayerStatsList.PARAGON_RANK.StatValue:get()
+      if Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER then
+        currentRank = paragonRank + 56
+      elseif Engine.CurrentSessionMode() == Enum.eModes.MODE_ZOMBIES then
+        currentRank = paragonRank + 36
+      elseif Engine.CurrentSessionMode() == Enum.eModes.MODE_CAMPAIGN then
+        currentRank = paragonRank + 21
+      end
+    end
+  end
 
   if Engine.CurrentSessionMode() == Enum.eModes.MODE_MULTIPLAYER then
     if not isMasterPrestige then
@@ -339,11 +481,11 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
             UpdateInfoModels(itemModel)
             local newPrestige = itemModel.value
             if newPrestige == 11 then
-              Engine.Exec(controllerIndex, "PrestigeStatsMaster " .. tostring(Engine.CurrentSessionMode()))
+              Engine.ExecNow(controllerIndex, "PrestigeStatsMaster " .. tostring(Engine.CurrentSessionMode()))
             end
             Engine.ExecNow(controllerIndex, "statsetbyname plevel " .. newPrestige)
             Engine.ExecNow(controllerIndex, "statsetbyname hasprestiged " .. (newPrestige > 0 and 1 or 0))
-            Engine.Exec(controllerIndex, "uploadstats " .. tostring(Engine.CurrentSessionMode()))
+            game.savestats(controllerIndex, Engine.CurrentSessionMode())
           end
         ),
       },
@@ -361,7 +503,7 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
           controller,
           "MPStatsSettings_rank_level",
           rankObjs,
-          CoD.BlackMarketUtility.GetCurrentRank(controller),
+          currentRank - 1,
           false,
           function(element, itemModel, controllerIndex, dvarName, param)
             UpdateInfoModels(itemModel)
@@ -423,7 +565,7 @@ DataSources.MPStatsSettings = DataSourceHelpers.ListSetup("MPStatsSettings", fun
               Engine.ExecNow(controllerIndex, "statsetbyname paragon_rank  " .. rank - 1)
               Engine.ExecNow(controllerIndex, "statsetbyname paragon_rankxp " .. maxXp)
             end
-            Engine.Exec(controllerIndex, "uploadstats " .. tostring(Engine.CurrentSessionMode()))
+            game.savestats(controllerIndex, Engine.CurrentSessionMode())
 
             currentRank = rank
           end
