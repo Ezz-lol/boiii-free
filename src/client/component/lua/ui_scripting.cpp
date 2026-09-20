@@ -435,13 +435,17 @@ void print_error(const std::string &error) {
                         game::consoleLabel_e::DEFAULT,
                         "^1**********************************************\n");
 
-  const std::string popup_msg = error;
-  scheduler::once(
-      [popup_msg] {
-        UI_OpenErrorPopupWithMessage(game::LOCAL_CLIENT_0, game::errorCode::UI,
-                                     popup_msg.c_str());
-      },
-      scheduler::main, 1s);
+  if (game::com::Com_IsRunningUILevel()) {
+    const std::string popup_msg = error;
+    scheduler::once(
+        [popup_msg] {
+          if (game::com::Com_IsRunningUILevel()) {
+            UI_OpenErrorPopupWithMessage(
+                game::LOCAL_CLIENT_0, game::errorCode::UI, popup_msg.c_str());
+          }
+        },
+        scheduler::main, 1s);
+  }
 }
 
 void print_loading_script(const std::string_view &name) {
@@ -1675,14 +1679,19 @@ void lua_cod_luastatemanager_error_stub(const char *error, lua_State *luaVM) {
     game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                           game::consoleLabel_e::DEFAULT, "%s", colored.c_str());
 
-    // Show colored error popup with delay to ensure UI is ready
-    std::string popup_text = colorize_lua_error(nullptr, resolved_stack);
-    scheduler::once(
-        [popup_text] {
-          UI_OpenErrorPopupWithMessage(game::LOCAL_CLIENT_0,
-                                       game::errorCode::UI, popup_text.c_str());
-        },
-        scheduler::main, 500ms);
+    if (game::com::Com_IsRunningUILevel()) {
+      const std::string popup_text =
+          colorize_lua_error(nullptr, resolved_stack);
+      scheduler::once(
+          [popup_text] {
+            if (game::com::Com_IsRunningUILevel()) {
+              UI_OpenErrorPopupWithMessage(game::LOCAL_CLIENT_0,
+                                           game::errorCode::UI,
+                                           popup_text.c_str());
+            }
+          },
+          scheduler::main, 500ms);
+    }
   }
 }
 
