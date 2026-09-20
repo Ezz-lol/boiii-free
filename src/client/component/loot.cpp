@@ -14,6 +14,7 @@
 namespace loot {
 namespace {
 game::EngineDependentDvarMut dvar_cg_unlockall_loot;
+game::EngineDependentDvarMut dvar_cg_unlockall_gobblegums;
 game::EngineDependentDvarMut dvar_cg_unlockall_purchases;
 game::EngineDependentDvarMut dvar_cg_unlockall_attachments;
 game::EngineDependentDvarMut dvar_cg_unlockall_camos_and_reticles;
@@ -38,13 +39,15 @@ utils::hook::detour gscr_isitempurchasedforclientnum_hook;
 
 int loot_getitemquantity_stub(const game::ControllerIndex_t controller_index,
                               const game::eModes mode, const int item_id) {
+  if (mode == game::eModes::ZOMBIES) {
+    if (const auto quantity =
+            currency::item_quantity(controller_index, item_id)) {
+      return *quantity;
+    }
+  }
   if (!dvar_cg_unlockall_loot.get_bool()) {
     return loot_getitemquantity_hook.invoke<int>(controller_index, mode,
                                                  item_id);
-  }
-
-  if (mode == game::eModes::ZOMBIES) {
-    return 999;
   }
 
   return 1;
@@ -215,6 +218,9 @@ struct component final : generic_component {
     dvar_cg_unlockall_loot = game::register_dvar_bool(
         "cg_unlockall_loot", false, game::DvarFlags{.archive = 1},
         "Unlocks blackmarket loot");
+    dvar_cg_unlockall_gobblegums = game::register_dvar_bool(
+        "cg_unlockall_gobblegums", false, game::DvarFlags{.archive = 1},
+        "Provides unlimited GobbleGums without changing saved inventory");
     dvar_cg_unlockall_purchases = game::register_dvar_bool(
         "cg_unlockall_purchases", false, game::DvarFlags{.archive = 1},
         "Unlock all purchases with tokens");
@@ -252,6 +258,7 @@ struct component final : generic_component {
       }
 
       dvar_cg_unlockall_loot.set(true);
+      dvar_cg_unlockall_gobblegums.set(true);
       dvar_cg_unlockall_purchases.set(true);
       dvar_cg_unlockall_attachments.set(true);
       dvar_cg_unlockall_camos_and_reticles.set(true);

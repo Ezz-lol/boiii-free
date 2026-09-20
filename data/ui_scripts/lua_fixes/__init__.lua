@@ -58,6 +58,12 @@ pcall(function()
             end
           end)
         end
+        pcall(function()
+          local root = Engine.GetModelForController(controller)
+          local stats = Engine.CreateModel(root, "aarStats.performanceTabStats")
+          local gained = Dvar.cg_last_divinium_award and Dvar.cg_last_divinium_award:get() or 0
+          Engine.SetModelValue(Engine.CreateModel(stats, "bgbTokensGainedThisGame"), gained)
+        end)
       end
     end
     local origGetMatch = CoD.AARUtilityZM.GetMatchStat

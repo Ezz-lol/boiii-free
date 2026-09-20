@@ -13,6 +13,7 @@
 #include "ui_scripting.hpp"
 
 #include <component/command.hpp>
+#include <component/currency.hpp>
 #include <component/discord.hpp>
 #include <component/friends.hpp>
 #include <component/getinfo.hpp>
@@ -672,6 +673,91 @@ void setup_functions() {
   lua["game"]["ishost"] =
       function(convert_function([]() -> bool { return getinfo::is_host(); }),
                HksObjectType::TCFUNCTION);
+
+  lua["game"]["purchasecodpoints"] = function(
+      convert_function([](const int controller, const int amount) -> int {
+        constexpr std::array allowed_amounts{200, 1100, 2400, 5000, 13000};
+        if (std::find(allowed_amounts.begin(), allowed_amounts.end(), amount) ==
+            allowed_amounts.end()) {
+          return -1;
+        }
+
+        const auto balance = currency::add_cod_points(controller, amount);
+        return balance ? static_cast<int>(*balance) : -1;
+      }),
+      HksObjectType::TCFUNCTION);
+
+  lua["game"]["purchasevials"] =
+      function(convert_function([](const int controller, const int cost,
+                                   const int amount) -> bool {
+                 if (cost <= 0 || amount <= 0) {
+                   return false;
+                 }
+                 return currency::purchase_vials(controller, cost, amount);
+               }),
+               HksObjectType::TCFUNCTION);
+
+  lua["game"]["purchasedistills"] = function(
+      convert_function([](const int controller, const std::string &kind,
+                          const int payment) -> bool {
+        return currency::purchase_distills(controller, kind, payment);
+      }),
+      HksObjectType::TCFUNCTION);
+
+  lua["game"]["getfreedistillcooldown"] =
+      function(convert_function(
+                   []() -> int { return currency::free_distill_cooldown(); }),
+               HksObjectType::TCFUNCTION);
+
+  lua["game"]["getdistillbalance"] =
+      function(convert_function([](const bool free) -> int {
+                 return currency::distill_balance(free);
+               }),
+               HksObjectType::TCFUNCTION);
+
+  lua["game"]["cookgobblegumrecipe"] = function(
+      convert_function([](const int controller, const int recipe,
+                          const bool free_distills) -> bool {
+        return currency::cook_recipe(controller, recipe, free_distills);
+      }),
+      HksObjectType::TCFUNCTION);
+
+  lua["game"]["resetgobblegums"] =
+      function(convert_function([](const int controller) -> bool {
+                 return currency::reset_gobblegums(controller);
+               }),
+               HksObjectType::TCFUNCTION);
+
+  lua["game"]["setcurrenciesmaxed"] = function(
+      convert_function([](const int controller, const bool maxed) -> bool {
+        return currency::set_currencies_maxed(controller, maxed);
+      }),
+      HksObjectType::TCFUNCTION);
+
+  lua["game"]["savestats"] = function(
+      convert_function([](const int controller, const int mode) -> bool {
+        if (controller < 0 || controller >= 2 || mode < 0 || mode > 2 ||
+            game::com::Com_IsInGame()) {
+          return false;
+        }
+
+        const bool online = game::com::Com_SessionMode_GetNetworkMode() ==
+                            game::eNetworkModes::ONLINE;
+        game::StorageFileType file;
+        if (mode == static_cast<int>(game::eModes::ZOMBIES)) {
+          file = online ? game::StorageFileType::ZM_STATS_ONLINE
+                        : game::StorageFileType::ZM_STATS_OFFLINE;
+        } else if (mode == static_cast<int>(game::eModes::MULTIPLAYER)) {
+          file = online ? game::StorageFileType::MP_STATS_ONLINE
+                        : game::StorageFileType::MP_STATS_OFFLINE;
+        } else {
+          file = online ? game::StorageFileType::CP_STATS_ONLINE
+                        : game::StorageFileType::CP_STATS_OFFLINE;
+        }
+        return game::live::storage::Storage_Write(
+            static_cast<game::ControllerIndex_t>(controller), file, 0);
+      }),
+      HksObjectType::TCFUNCTION);
 
   lua["game"]["kickplayer"] = function(
       convert_function([](const int client_num) -> bool {

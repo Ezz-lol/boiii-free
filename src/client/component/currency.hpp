@@ -9,6 +9,14 @@
 
 namespace currency {
 std::optional<int> item_quantity(int controller, int inventory_id);
+std::optional<uint32_t> add_cod_points(int controller, uint32_t amount);
+bool purchase_vials(int controller, uint32_t cost, uint32_t amount);
+bool purchase_distills(int controller, std::string_view kind, int currency);
+bool cook_recipe(int controller, int recipe, bool free_distills);
+int distill_balance(bool free);
+int free_distill_cooldown();
+bool reset_gobblegums(int controller);
+bool set_currencies_maxed(int controller, bool maxed);
 
 namespace accounting {
 // HKS numbers are floats; keep displayed balances exactly representable.
