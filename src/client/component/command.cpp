@@ -226,7 +226,7 @@ size_t get_registered_command_count() {
 struct component final : generic_component {
   void post_unpack() override {
     // Disable whitelist
-    utils::hook::jump(game::select(0x1420EE860, 0x1404F9CD0),
+    utils::hook::jump(game::select(0x1420E20E0, 0x1420EE860, 0x1404F9CD0),
                       update_whitelist_stub);
 
     add("savegamerprofilestats", [] {});

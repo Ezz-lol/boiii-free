@@ -185,7 +185,7 @@ const char *get_client_name(const uint64_t xuid) {
 class component final : public generic_component {
 public:
   void post_unpack() override {
-    utils::hook::call(game::select(0x141974B04, 0x14029908A),
+    utils::hook::call(game::select(0x141974B24, 0x141974B04, 0x14029908A),
                       divert_xuid_to_client_num_stub);
 
     client_command::register_handler("say", cmd_say_f);
@@ -267,7 +267,8 @@ public:
           },
           scheduler::pipeline::main);
 
-      utils::hook::call(0x141DEAA0F_g, cl_handle_chat);
+      utils::hook::call(game::select(0x141DDDF7F, 0x141DEAA0F, 0x0),
+                        cl_handle_chat);
     }
   }
 };

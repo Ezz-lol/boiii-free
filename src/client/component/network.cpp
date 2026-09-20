@@ -350,37 +350,41 @@ struct component final : generic_component {
     scheduler::loop(game::fragment_handler::clean, scheduler::async, 5s);
 
     // don't increment data pointer to optionally skip socket byte
-    utils::hook::nop(game::select(0x1423322B6, 0x140596DF6), 4);
+    utils::hook::nop(game::select(0x1422b9146, 0x1423322B6, 0x140596DF6), 4);
 
     // optionally read socket byte
-    utils::hook::call(game::select(0x142332283, 0x140596DC3),
+    utils::hook::call(game::select(0x1422B9113, 0x142332283, 0x140596DC3),
                       read_socket_byte_stub);
 
     // skip checksum verification
-    utils::hook::call(game::select(0x1423322C1, 0x140596E01),
+    utils::hook::call(game::select(0x1422b9113, 0x1423322C1, 0x140596E01),
                       verify_checksum_stub);
 
     // don't add checksum to packet
-    utils::hook::set<uint8_t>(game::select(0x14233249E, 0x140596F2E), 0);
+    utils::hook::set<uint8_t>(
+        game::select(0x1422b932e, 0x14233249E, 0x140596F2E), 0);
 
     // Recreate NET_SendPacket to increase max packet size
-    // utils::hook::jump(game::select(0x1423323B0, 0x140596E40),
+    // utils::hook::jump(game::select(0x1422b9240, 0x1423323B0, 0x140596E40),
     // net_sendpacket_stub);
 
     // set initial connection state to challenging
     utils::hook::set<uint32_t>(
-        game::select(0x14134C6E0, 0x14018E574),
+        game::select(0x14134c700, 0x14134C6E0, 0x14018E574),
         static_cast<uint32_t>(game::connstate_t::CHALLENGING));
 
     // don't kick clients without dw handle
-    utils::hook::set<uint8_t>(game::select(0x14224DEAD, 0x1405315F9), 0xEB);
+    utils::hook::set<uint8_t>(
+        game::select(0x1421F137D, 0x14224DEAD, 0x1405315F9), 0xEB);
 
     // Skip DW stuff in NetAdr_ToString
-    utils::hook::set<uint8_t>(game::select(0x142172EF2, 0x140515881), 0xEB);
+    utils::hook::set<uint8_t>(
+        game::select(0x14211a432, 0x142172EF2, 0x140515881), 0xEB);
 
     // NA_IP -> NA_RAWIP in NetAdr_ToString
-    utils::hook::set<uint8_t>(game::select(0x142172ED4, 0x140515864),
-                              game::net::NA_RAWIP);
+    utils::hook::set<uint8_t>(
+        game::select(0x14211a414, 0x142172ED4, 0x140515864),
+        game::net::NA_RAWIP);
 
     if (game::is_server()) {
       // Remove restrictions for rcon commands
@@ -391,32 +395,38 @@ struct component final : generic_component {
       utils::hook::call(0x14018E698_g, cl_dispatch_connectionless_packet_stub);
     } else {
       // Truncate error string to make sure there are no buffer overruns later
-      utils::hook::call(0x14134D206_g, com_error_oob_stub);
+      utils::hook::call(game::select(0x14134d226, 0x14134D206, 0x0),
+                        com_error_oob_stub);
 
       // intercept command handling (client-side OOB dispatch)
-      utils::hook::call(0x14134D146_g,
+      utils::hook::call(game::select(0x14134d166, 0x14134D146, 0x0),
                         utils::hook::assemble(handle_command_stub));
 
       // Disable `echo` command in `CL_DispatchConnectionlessPacket`
-      utils::hook::set<uint8_t>(0x14134D0FB_g, 0xEB);
+      utils::hook::set<uint8_t>(game::select(0x14134d11b, 0x14134D0FB, 0x0),
+                                0xEB);
     }
 
     // TODO: Fix that
+    // TODO: what was the prior TODO referring to?
     scheduler::once(create_ip_socket, scheduler::main);
 
     // Kill lobby system
-    handle_packet_internal_hook.create(game::select(0x141EF7FE0, 0x1404A5B90),
-                                       &handle_packet_internal_stub);
+    handle_packet_internal_hook.create(
+        game::select(0x141EEB860, 0x141EF7FE0, 0x1404A5B90),
+        &handle_packet_internal_stub);
 
     // Kill voice chat
-    utils::hook::set<uint32_t>(game::select(0x141359310, 0x14018FE40),
-                               0xC3C03148);
+    utils::hook::set<uint32_t>(
+        game::select(0x141359330, 0x141359310, 0x14018FE40), 0xC3C03148);
 
     // Don't let the game bind sockets anymore
-    utils::hook::set(game::select(0x15AAE9344, 0x14B4BD828), bind_stub);
+    utils::hook::set(game::select(0x15AA6A38C, 0x15AAE9344, 0x14B4BD828),
+                     bind_stub);
 
     // Set cl_maxpackets to 100
-    utils::hook::set<uint8_t>(game::select(0x1412FF342, 0x140177A32), 100 - 15);
+    utils::hook::set<uint8_t>(
+        game::select(0x1412ff362, 0x1412FF342, 0x140177A32), 100 - 15);
   }
 };
 } // namespace network

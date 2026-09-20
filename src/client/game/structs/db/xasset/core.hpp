@@ -23,7 +23,8 @@ struct VehicleSoundDef;
 
 namespace ddl {
 struct DDLDef;
-}
+struct StringTable;
+} // namespace ddl
 
 namespace bg {
 namespace cache {
@@ -872,7 +873,7 @@ union XAssetHeader {
   // E.g. compiled lua scripts, game CFGs,
   // some DDL files, vision and anim scripts
   RawFile *rawfile;
-  // StringTable *stringTable;
+  ddl::StringTable *stringTable;
   // StructuredTable *structuredTable;
   // LeaderboardDef *leaderboardDef;
   ddl::DDLDef *ddl;

@@ -484,21 +484,25 @@ struct component final : generic_component {
         game::sys::Sys_WaitForSingleObject.get(), Sys_WaitForSingleObject_Safe);
 
     // print hexadecimal xuids in chat game log command
-    utils::hook::set<char>(game::select(0x142FD9362, 0x140E16FA2), 'x');
+    utils::hook::set<char>(game::select(0x142F5A332, 0x142FD9362, 0x140E16FA2),
+                           'x');
 
     // change 4 character min name limit to 3 characters
-    utils::hook::set<uint8_t>(game::select(0x14224DA53, 0x140531143), 3);
-    utils::hook::set<uint8_t>(game::select(0x14224DBB4, 0x1405312A8), 3);
-    utils::hook::set<uint8_t>(game::select(0x14224DF8C, 0x1405316DC), 3);
+    utils::hook::set<uint8_t>(
+        game::select(0x1421f0f23, 0x14224DA53, 0x140531143), 3);
+    utils::hook::set<uint8_t>(
+        game::select(0x1421f1084, 0x14224DBB4, 0x1405312A8), 3);
+    utils::hook::set<uint8_t>(
+        game::select(0x1421f145c, 0x14224DF8C, 0x1405316DC), 3);
 
     // make sure reliableAck is not negative or too big
-    utils::hook::call(game::select(0x14225489C, 0x140537C4C),
+    utils::hook::call(game::select(0x1421F7D6C, 0x14225489C, 0x140537C4C),
                       sv_execute_client_messages_stub);
 
     lobby_min_players = game::register_dvar_int("lobby_min_players", 0, 0, 8,
                                                 game::DVAR_NONE, "");
 
-    utils::hook::jump(game::select(0x141A7BCF0, 0x1402CB900),
+    utils::hook::jump(game::select(0x141A6F920, 0x141A7BCF0, 0x1402CB900),
                       scr_get_num_expected_players, true);
     fsopen_hook.create(game::fs::fsopen, fsopen_adjustpath);
     wfsopen_hook.create(game::fs::wfsopen, wfsopen_adjustpath);

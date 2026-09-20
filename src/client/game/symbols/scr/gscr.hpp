@@ -18,6 +18,8 @@ WEAK symbol<void(scriptInstance_t inst)> GScr_BBPrint{0x1422A0940};
 
 WEAK symbol<int32_t(const char *pszMenu)> GScr_GetScriptMenuIndex{0x141A93CA0,
                                                                   0x1402D4590};
+WEAK symbol<bool(ClientNum_t clientNum, int32_t itemIndex)>
+    GScr_IsItemPurchasedForClientNum{0x1415F1490, 0x140252A20};
 
 } // namespace gscr
 } // namespace scr

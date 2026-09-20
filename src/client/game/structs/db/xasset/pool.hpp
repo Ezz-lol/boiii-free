@@ -12,7 +12,8 @@ namespace game {
 
 namespace ddl {
 struct DDLDef;
-}
+struct StringTable;
+} // namespace ddl
 
 namespace vehicle {
 struct VehicleDef;
@@ -157,7 +158,7 @@ PACKED(struct TypedXAssetPools {
   XAssetPool character;
   TypedXAssetPool<xmodel::XModelAlias> xmodelalias;
   TypedXAssetPool<RawFile> rawfile;
-  XAssetPool stringtable;
+  TypedXAssetPool<ddl::StringTable> stringtable;
   XAssetPool structured_table;
   XAssetPool leaderboard;
   TypedXAssetPool<ddl::DDLDef> ddl;

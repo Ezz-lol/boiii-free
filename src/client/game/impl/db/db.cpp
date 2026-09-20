@@ -156,7 +156,7 @@ int32_t DB_GetXAssetTypeSize_Impl(XAssetType type) {
   case XAssetType::RAWFILE:
     return sizeof(RawFile);
   case XAssetType::STRINGTABLE:
-    return 0x20;
+    return sizeof(ddl::StringTable);
   case XAssetType::STRUCTURED_TABLE:
     return 0x38;
   case XAssetType::LEADERBOARD:

@@ -1190,12 +1190,14 @@ LRESULT con_wnd_proc(const HWND hwnd, const UINT msg, const WPARAM wparam,
     }
     [[fallthrough]];
   default:
-    return utils::hook::invoke<LRESULT>(game::select(0x142332960, 0x1405973E0),
-                                        hwnd, msg, wparam, lparam);
+    return utils::hook::invoke<LRESULT>(
+        game::select(0x1422B97F0, 0x142332960, 0x1405973E0), hwnd, msg, wparam,
+        lparam);
   }
 
-  return utils::hook::invoke<LRESULT>(game::select(0x142332960, 0x1405973E0),
-                                      hwnd, msg, wparam, lparam);
+  return utils::hook::invoke<LRESULT>(
+      game::select(0x1422B97F0, 0x142332960, 0x1405973E0), hwnd, msg, wparam,
+      lparam);
 }
 
 LRESULT input_line_wnd_proc(const HWND hwnd, const UINT msg,
@@ -1256,7 +1258,8 @@ LRESULT input_line_wnd_proc(const HWND hwnd, const UINT msg,
   }
 
   const LRESULT result = utils::hook::invoke<LRESULT>(
-      game::select(0x142332C60, 0x1405976E0), hwnd, msg, wparam, lparam);
+      game::select(0x1422B9AF0, 0x142332C60, 0x1405976E0), hwnd, msg, wparam,
+      lparam);
 
   if (msg == WM_SETFOCUS) {
     restore_input_caret();
@@ -1596,10 +1599,13 @@ struct component final : generic_component {
       return;
     }
 
-    if (!game::is_server()) {
-      utils::hook::set<uint8_t>(0x14133D2FE_g,
+    if (game::is_client() || game::is_new_client()) {
+      // `Con_ToggleConsole`: skip block executed if `UGC_ActiveMod_Loaded`
+      // returns `true`
+      utils::hook::set<uint8_t>(game::select(0x14133D31E, 0x14133D2FE, 0x0),
                                 0xEB); // Always enable ingame console
-      utils::hook::jump(0x141344E44_g, 0x141344E2E_g);
+      utils::hook::jump(game::select(0x141344E64, 0x141344E44, 0x0),
+                        game::select(0x141344E4E, 0x141344E2E, 0x0));
 
       if (utils::nt::is_wine() && !utils::flags::has_flag("console")) {
         return;
@@ -1608,8 +1614,9 @@ struct component final : generic_component {
 
     utils::hook::jump(printf, print_stub);
 
-    utils::hook::jump(game::select(0x142332C30, 0x1405976B0), queue_message);
-    utils::hook::nop(game::select(0x142332C4A, 0x1405976CA),
+    utils::hook::jump(game::select(0x1422B9AC0, 0x142332C30, 0x1405976B0),
+                      queue_message);
+    utils::hook::nop(game::select(0x1422B9ADA, 0x142332C4A, 0x1405976CA),
                      2); // Print from every thread
 
     terminate_runner = false;

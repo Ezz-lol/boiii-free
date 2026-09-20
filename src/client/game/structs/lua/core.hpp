@@ -1458,7 +1458,7 @@ enum class GPadStickConfigs : int32_t {
   LEGACYSOUTHPAW = 3,
   COUNT = 4,
 };
-enum class LootResultType : int32_t {
+enum class LootResultType : uint32_t {
   INVALID = 0,
   SUCCESS = 1,
   FAILURE_INSUFFICIENT_FUNDS = 2,

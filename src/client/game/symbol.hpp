@@ -23,7 +23,8 @@ public:
       : address_(address), server_address_(server_address) {}
 
   T *get() const {
-    return reinterpret_cast<T *>(select(this->address_, this->server_address_));
+    return reinterpret_cast<T *>(
+        select(0x0, this->address_, this->server_address_));
   }
 
   operator T *() const { return this->get(); }

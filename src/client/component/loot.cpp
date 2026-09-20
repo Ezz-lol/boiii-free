@@ -35,26 +35,28 @@ utils::hook::detour bg_unlockablescharactercustomizationitemlocked_hook;
 utils::hook::detour bg_emblemisentitlementbackgroundgranted_hook;
 utils::hook::detour liveentitlements_isentitlementactiveforcontroller_hook;
 utils::hook::detour bg_unlockablesgetcustomclasscount_hook;
-utils::hook::detour gscr_isitempurchasedforclientnum_hook;
+utils::hook::detour GScr_IsItemPurchasedForClientNum_hook;
 
 int loot_getitemquantity_stub(const game::ControllerIndex_t controller_index,
                               const game::eModes mode, const int item_id) {
   if (mode == game::eModes::ZOMBIES) {
-    if (const auto quantity =
-            currency::item_quantity(controller_index, item_id)) {
-      return *quantity;
+    const std::optional<uint32_t> quantity =
+        currency::item_quantity(controller_index, item_id);
+    if (quantity.has_value()) {
+      return quantity.value();
     }
   }
+
   if (!dvar_cg_unlockall_loot.get_bool()) {
-    return loot_getitemquantity_hook.invoke<int>(controller_index, mode,
-                                                 item_id);
+    return loot_getitemquantity_hook.invoke<uint32_t>(controller_index, mode,
+                                                      item_id);
   }
 
   return 1;
 }
 
-int liveinventory_getitemquantity_stub(
-    const game::ControllerIndex_t controller_index, const int item_id) {
+uint32_t liveinventory_getitemquantity_stub(
+    const game::ControllerIndex_t controller_index, const uint32_t item_id) {
   // Item id's for CWL camo's and paid specialist outfits
   if (dvar_cg_unlockall_loot.get_bool() &&
       (item_id == 99003 || (item_id >= 99018 && item_id <= 99021) ||
@@ -179,7 +181,7 @@ bool bg_emblemisentitlementbackgroundgranted_stub(
 }
 
 bool liveentitlements_isentitlementactiveforcontroller_stub(
-    const game::ControllerIndex_t controllerIndex, int incentiveId) {
+    const game::ControllerIndex_t controllerIndex, uint32_t incentiveId) {
   // incentiveId for unavailable incentive
   if (dvar_cg_unlockall_calling_cards.get_bool() && incentiveId != 29) {
     return true;
@@ -199,17 +201,18 @@ int bg_unlockablesgetcustomclasscount_stub(
                                                             controllerIndex);
 }
 
-bool gscr_isitempurchasedforclientnum_stub(
-    [[maybe_unused]] unsigned int clientNum, [[maybe_unused]] int itemIndex) {
+bool GScr_IsItemPurchasedForClientNum_AlwaysTrue(
+    [[maybe_unused]] game::ClientNum_t clientNum,
+    [[maybe_unused]] int itemIndex) {
   return true;
 }
 }; // namespace
 
 struct component final : generic_component {
   void post_unpack() override {
-    gscr_isitempurchasedforclientnum_hook.create(
-        game::select(0x1415F1490, 0x140252A20),
-        gscr_isitempurchasedforclientnum_stub);
+    GScr_IsItemPurchasedForClientNum_hook.create(
+        game::scr::gscr::GScr_IsItemPurchasedForClientNum,
+        GScr_IsItemPurchasedForClientNum_AlwaysTrue);
 
     if (game::is_server()) {
       return;
@@ -345,31 +348,93 @@ struct component final : generic_component {
                      std::string(mode_name) + " unlocks applied.");
     });
 
-    loot_getitemquantity_hook.create(0x141E82C00_g, loot_getitemquantity_stub);
+    // `uint32_t Loot_GetItemQuantity(const ControllerIndex_t controllerIndex,
+    // const eModes mode, const uint32_t itemId)`
+    // TODO: these inline offsets should be a symbol - strongly typed, named,
+    // and properly namespaced.
+    loot_getitemquantity_hook.create(
+        game::select(0x141E76170, 0x141E82C00, 0x0), loot_getitemquantity_stub);
+    // `uint32_t LiveInventory_GetItemQuantity(const ControllerIndex_t
+    // controllerIndex, const uint32_t itemId)`
+    // TODO: these inline offsets should be a symbol - strongly typed, named,
+    // and properly namespaced.
     liveinventory_getitemquantity_hook.create(
-        0x141E09030_g, liveinventory_getitemquantity_stub);
+        game::select(0x141DFC5A0, 0x141E09030, 0x0),
+        liveinventory_getitemquantity_stub);
+    // `bool LiveInventory_AreExtraSlotsPurchased(const ControllerIndex_t
+    // controllerIndex)`
+    // TODO: these inline offsets should be a symbol - strongly typed, named,
+    // and properly namespaced.
     liveinventory_areextraslotspurchased_hook.create(
-        0x141E08950_g, liveinventory_areextraslotspurchased_stub);
+        game::select(0x141DFBEC0, 0x141E08950, 0x0),
+        liveinventory_areextraslotspurchased_stub);
+    // `bool BG_UnlockablesIsItemPurchased(eModes mode, const
+    // ControllerIndex_t controllerIndex, uint32_t itemIndex)`
+    // TODO: these inline offsets should be a symbol - strongly typed, named,
+    // and properly namespaced.
     bg_unlockablesisitempurchased_hook.create(
-        0x1426A9620_g, bg_unlockablesisitempurchased_stub);
+        game::select(0x1426304B0, 0x1426A9620, 0x0),
+        bg_unlockablesisitempurchased_stub);
+    // `bool BG_UnlockablesIsItemAttachmentLocked(eModes mode, const
+    // ControllerIndex_t controllerIndex, uint32_t itemIndex, uint32_t
+    // attachmentNum)`
+    // TODO: these inline offsets should be a symbol - strongly typed, named,
+    // and properly namespaced.
     bg_unlockablesisitemattachmentlocked_hook.create(
-        0x1426A88D0_g, bg_unlockablesisitemattachmentlocked_stub);
+        game::select(0x14262F760, 0x1426A88D0, 0x0),
+        bg_unlockablesisitemattachmentlocked_stub);
+    // `BG_UnlockablesIsAttachmentSlotLocked(eModes mode, const
+    // ControllerIndex_t controllerIndex, uint32_t itemIndex, uint32_t
+    // attachmentSlotIndex)`
+    // TODO: these inline offsets should be a symbol - strongly typed, named,
+    // and properly namespaced.
     bg_unlockablesisattachmentslotlocked_hook.create(
-        0x1426A86D0_g, bg_unlockablesisattachmentslotlocked_stub);
+        game::select(0x14262F560, 0x1426A86D0, 0x0),
+        bg_unlockablesisattachmentslotlocked_stub);
+    // `bool BG_UnlockablesItemOptionLocked( eModes mode, const
+    // ControllerIndex_t controllerIndex, uint32_t itemIndex, uint32_t
+    // optionIndex)`
+    // TODO: these inline offsets should be a symbol - strongly typed, named,
+    // and properly namespaced.
     bg_unlockablesitemoptionlocked_hook.create(
-        0x1426AA6C0_g, bg_unlockablesitemoptionlocked_stub);
+        game::select(0x142631550, 0x1426AA6C0, 0x0),
+        bg_unlockablesitemoptionlocked_stub);
+    // `bool BG_UnlockablesEmblemOrBackingLockedByChallenge(eModes mode,
+    // ControllerIndex_t controllerIndex, emblemChallengeLookup_t
+    // *challengeLookup, bool otherPlayer)`
+    // TODO: these inline offsets should be a symbol - strongly typed, named,
+    // and properly namespaced.
     bg_unlockablesemblemorbackinglockedbychallenge_hook.create(
-        0x1426A3AE0_g, bg_unlockablesemblemorbackinglockedbychallenge_stub);
+        game::select(0x14262A970, 0x1426A3AE0, 0x0),
+        bg_unlockablesemblemorbackinglockedbychallenge_stub);
+    // `bool BG_UnlockedGetChallengeUnlockedForIndex(eModes mode, const
+    // ControllerIndex_t controllerIndex, uint16_t index, uint32_t
+    // itemIndex)`
+    // TODO: these inline offsets should be a symbol - strongly typed, named,
+    // and properly namespaced.
     bg_unlockedgetchallengeunlockedforindex_hook.create(
-        0x1426AF5F0_g, bg_unlockedgetchallengeunlockedforindex_stub);
+        game::select(0x142636480, 0x1426AF5F0, 0x0),
+        bg_unlockedgetchallengeunlockedforindex_stub);
+    // TODO: these inline offsets should be a symbol - strongly typed, named,
+    // and properly namespaced.
     bg_unlockablescharactercustomizationitemlocked_hook.create(
-        0x1426A2030_g, bg_unlockablescharactercustomizationitemlocked_stub);
+        game::select(0x142628EC0, 0x1426A2030, 0x0),
+        bg_unlockablescharactercustomizationitemlocked_stub);
+    // TODO: these inline offsets should be a symbol - strongly typed, named,
+    // and properly namespaced.
     bg_emblemisentitlementbackgroundgranted_hook.create(
-        0x142667520_g, bg_emblemisentitlementbackgroundgranted_stub);
+        game::select(0x1425EE3B0, 0x142667520, 0x0),
+        bg_emblemisentitlementbackgroundgranted_stub);
+    // TODO: these inline offsets should be a symbol - strongly typed, named,
+    // and properly namespaced.
     liveentitlements_isentitlementactiveforcontroller_hook.create(
-        0x141E124E0_g, liveentitlements_isentitlementactiveforcontroller_stub);
+        game::select(0x141E05A50, 0x141E124E0, 0x0),
+        liveentitlements_isentitlementactiveforcontroller_stub);
+    // TODO: these inline offsets should be a symbol - strongly typed, named,
+    // and properly namespaced.
     bg_unlockablesgetcustomclasscount_hook.create(
-        0x1426A5900_g, bg_unlockablesgetcustomclasscount_stub);
+        game::select(0x14262C790, 0x1426A5900, 0x0),
+        bg_unlockablesgetcustomclasscount_stub);
 
     scheduler::once(
         []() {

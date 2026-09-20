@@ -33,33 +33,63 @@ game::EngineDependentDvarMut free_distills, paid_distills, free_distill_expiry;
 utils::hook::detour currency_hook, spend_hook, increment_hook, consume_hook;
 utils::hook::detour inventory_update_hook;
 
+// FIXME: this symbol should be moved to the proper namespace and file under
+// src/client/game/symbols, named with function name matching that used by the
+// engine, and typed correctly with parameter names
 game::symbol<bool(ControllerIndex_t)> loot_busy{0x141E80BB0};
+// FIXME: this symbol should be moved to the proper namespace and file under
+// src/client/game/symbols, named with function name matching that used by the
+// engine, and typed correctly with parameter names
 game::symbol<bool(ControllerIndex_t)> inventory_valid{0x141E0A3B0};
+// FIXME: this symbol should be moved to the proper namespace and file under
+// src/client/game/symbols, named with function name matching that used by the
+// engine, and typed correctly with parameter names
 game::symbol<bool(ControllerIndex_t, int, int)> update_currency{0x141E0AB50};
+// FIXME: this symbol should be moved to the proper namespace and file under
+// src/client/game/symbols, named with function name matching that used by the
+// engine, and typed correctly with parameter names
 game::symbol<bool(ControllerIndex_t, uint32_t, uint32_t, uint32_t, uint32_t,
                   uint16_t)>
     update_item{0x141E0AA30};
 
-struct string_table;
-game::symbol<int(const string_table *)> table_rows{0x1422AEDE0};
-game::symbol<const char *(const string_table *, int, int)> table_cell{
+// FIXME: this symbol should be moved to the proper namespace and file under
+// src/client/game/symbols, named with function name matching that used by the
+// engine, and typed correctly with parameter names
+game::symbol<const char *(const StringTable *, int, int)> table_cell{
     0x1422AE660};
-game::symbol<const char *(const string_table *, int, const char *, int)>
+// `const char * StringTable_Lookup(const StringTable *table, const
+// int32_t comparisonColumn, const char *value, const int32_t valueColumn)`
+// FIXME: this symbol should be moved to the proper namespace and file under
+// src/client/game/symbols, named with function name matching that used by the
+// engine, and typed correctly with parameter names
+game::symbol<const char *(const StringTable *, int, const char *, int)>
     table_lookup{0x1422AE7F0};
 
+/*
+  FIXME: this is not the real engine struct definition.
+  The struct definition should be completed, defined, properly named and
+  namespaced, and placed in the appropriate file under the
+  "src/client/game/structs" tree.
+*/
 struct loot_item {
   uint32_t id;
   uint32_t quantity;
-  char reference[256];
+  str256_t reference;
 };
-static_assert(sizeof(loot_item) == 264);
+ASSERT_SIZE(loot_item, 0x108);
 
-// Shared with the native factory completion and GetLootResults, not a Lua
-// override.
+/*
+  FIXME: this is not the real engine struct definition.
+  The struct definition should be completed, defined, properly named and
+  namespaced, and placed in the appropriate file under the
+  "src/client/game/structs" tree.
+*/
+// Shared with the native factory completion and
+// GetLootResults, not a Lua override.
 struct loot_results {
   bool ready;
   uint8_t padding[3];
-  int result;
+  game::lua::LootResultType result;
   loot_item granted[5];
   loot_item all[3];
   uint8_t rest[0x954 - 8 - 8 * sizeof(loot_item)];
@@ -100,20 +130,20 @@ struct stats {
                                         : nullptr) {}
 
   std::optional<DDLState> find(std::initializer_list<const char *> path,
-                               int item = -1) const {
+                               int32_t item = -1) const {
     if (!context || !context->buff || !context->def) {
       return std::nullopt;
     }
-    const auto *root = Storage_GetDDLRootState(file);
+    const game::ddl::DDLState *root = Storage_GetDDLRootState(file);
     // The native lookup returns address 80 when the file type is missing.
     if (reinterpret_cast<uintptr_t>(root) < 0x1000) {
       return std::nullopt;
     }
-    auto state = *root;
+    game::ddl::DDLState state = *root;
     if (state.ddlDef != context->def) {
       return std::nullopt;
     }
-    for (const auto name : path) {
+    for (const char *name : path) {
       DDLState next{};
       if (!DDL_MoveToName(&state, &next, name)) {
         return std::nullopt;
@@ -134,7 +164,7 @@ struct stats {
   }
 
   uint32_t get(const DDLState &state) const {
-    for (const auto &entry : changes) {
+    for (const change &entry : changes) {
       if (entry.state.offset == state.offset) {
         return entry.after;
       }
@@ -143,7 +173,7 @@ struct stats {
   }
 
   void set(const DDLState &state, uint32_t value) {
-    for (auto &entry : changes) {
+    for (change &entry : changes) {
       if (entry.state.offset == state.offset) {
         entry.after = value;
         return;
@@ -154,7 +184,7 @@ struct stats {
 
   bool commit() {
     size_t written = 0;
-    for (const auto &entry : changes) {
+    for (const change &entry : changes) {
       if (entry.after > entry.state.member->rangeLimit ||
           !DDL_SetUInt(&entry.state, context, entry.after)) {
         break;
@@ -165,7 +195,7 @@ struct stats {
       return true;
     }
     while (written) {
-      const auto &entry = changes[--written];
+      const change &entry = changes[--written];
       DDL_SetUInt(&entry.state, context, entry.before);
     }
     return false;
@@ -177,16 +207,16 @@ std::optional<DDLState> player_stat(const stats &data, const char *name) {
 }
 
 std::optional<uint32_t> vials(const stats &data) {
-  const auto gained = player_stat(data, "BGB_TOKENS_GAINED");
-  const auto used = player_stat(data, "BGB_TOKENS_USED");
+  const std::optional<DDLState> gained = player_stat(data, "BGB_TOKENS_GAINED");
+  const std::optional<DDLState> used = player_stat(data, "BGB_TOKENS_USED");
   if (!gained || !used) {
     return std::nullopt;
   }
   return accounting::remaining(data.get(*gained), data.get(*used));
 }
 
-const string_table *table(const char *name) {
-  return reinterpret_cast<const string_table *>(
+const StringTable *table(const char *name) {
+  return reinterpret_cast<const StringTable *>(
       game::db::xasset::DB_FindXAssetHeader(
           game::db::xasset::XAssetType::STRINGTABLE, name, false, 0)
           .named);
@@ -194,7 +224,7 @@ const string_table *table(const char *name) {
 
 struct gum {
   uint32_t id;
-  int stat_index;
+  uint32_t stat_index;
   std::string reference;
 };
 
@@ -205,38 +235,38 @@ void invalidate_gum_pool(const char *) { ++gum_generation; }
 const std::vector<gum> &gum_pool() {
   thread_local std::vector<gum> pool;
   thread_local uint64_t generation = 0;
-  const auto current_generation = gum_generation.load();
+  const uint64_t current_generation = gum_generation.load();
   if (generation == current_generation && !pool.empty()) {
     return pool;
   }
   pool.clear();
   generation = current_generation;
-  const auto *items = table("gamedata/loot/zmlootitems.csv");
-  const auto *stat_table = table("gamedata/stats/zm/zm_statsTable.csv");
+  const StringTable *items = table("gamedata/loot/zmlootitems.csv");
+  const StringTable *stat_table = table("gamedata/stats/zm/zm_statsTable.csv");
   if (!items || !stat_table) {
     return pool;
   }
-  for (int row = 0; row < table_rows(stat_table); ++row) {
-    const auto *type = table_cell(stat_table, row, 2);
+  for (int32_t row = 0; row < stat_table->rowCount; ++row) {
+    const char *type = table_cell(stat_table, row, 2);
     if (!type || std::string_view(type) != "bubblegum_consumable") {
       continue;
     }
-    const auto *index_text = table_cell(stat_table, row, 0);
+    const char *index_text = table_cell(stat_table, row, 0);
     const char *ref = table_cell(stat_table, row, 4);
     if (!index_text || !ref || !*ref || strlen(ref) >= 256) {
       continue;
     }
-    const auto index = accounting::parse_amount(index_text);
+    const std::optional<uint32_t> index = accounting::parse_amount(index_text);
     const char *id_text = table_lookup(items, 0, ref, 1);
     if (!id_text) {
       continue;
     }
     uint32_t id = 0;
-    const auto end = id_text + strlen(id_text);
-    const auto parsed = std::from_chars(id_text, end, id);
+    const char *end = id_text + strlen(id_text);
+    const std::from_chars_result parsed = std::from_chars(id_text, end, id);
     if (index && *index < 256 && *ref && strlen(ref) < 256 && id &&
         parsed.ec == std::errc{} && parsed.ptr == end) {
-      pool.push_back({id, static_cast<int>(*index), ref});
+      pool.push_back({id, *index, ref});
     }
   }
   return pool;
@@ -248,33 +278,36 @@ std::optional<DDLState> gum_stat(const stats &data, const gum &item,
 }
 
 std::optional<uint32_t> quantity(const stats &data, const gum &item) {
-  const auto gained = gum_stat(data, item, "bgbconsumablesgained");
-  const auto used = gum_stat(data, item, "bgbconsumablesused");
+  const std::optional<DDLState> gained =
+      gum_stat(data, item, "bgbconsumablesgained");
+  const std::optional<DDLState> used =
+      gum_stat(data, item, "bgbconsumablesused");
   if (!gained || !used) {
     return std::nullopt;
   }
   return accounting::remaining(data.get(*gained), data.get(*used));
 }
 
-int get_currency(ControllerIndex_t controller, int kind) {
+uint32_t get_currency(ControllerIndex_t controller, int32_t kind) {
   if (!enabled() || (kind != 0 && kind != 3)) {
-    return currency_hook.invoke<int>(controller, kind);
+    return currency_hook.invoke<int32_t>(controller, kind);
   }
   const stats data(controller, kind == 3);
   if (kind == 3) {
-    return static_cast<int>(vials(data).value_or(0));
+    return vials(data).value_or(0);
   }
-  const auto state = player_stat(data, "CODPOINTS");
-  return state ? static_cast<int>(
-                     std::min(data.get(*state), accounting::max_balance))
-               : 0;
+  const std::optional<DDLState> state = player_stat(data, "CODPOINTS");
+  return state ? std::min(data.get(*state), accounting::max_balance) : 0;
 }
 
-bool spend_vials(ControllerIndex_t controller, int count) {
+constexpr uint32_t ROLL_SELECTION_POOL_SIZE = 3;
+bool spend_vials(ControllerIndex_t controller, uint32_t count) {
   if (!enabled()) {
     return spend_hook.invoke<bool>(controller, count);
   }
-  if (controller < 0 || controller >= 2 || count < 1 || count > 3 ||
+  if (!valid_controller_index(controller) || count < 1 || count > 3 ||
+      /* FIXME: We have this stored in a global. Why are we needlessly looking
+          up the dvar by name? This needs to be fixed. */
       !game::get_dvar_bool("loot_enabled").value_or(false) ||
       !inventory_valid(controller) || loot_busy(controller) ||
       game::com::Com_IsInGame() ||
@@ -282,34 +315,35 @@ bool spend_vials(ControllerIndex_t controller, int count) {
     return false;
   }
   stats data(controller, true);
-  const auto balance = vials(data);
-  const auto used = player_stat(data, "BGB_TOKENS_USED");
-  const auto &pool = gum_pool();
-  if (!balance || *balance < static_cast<uint32_t>(count) || !used ||
-      pool.empty()) {
+  const std::optional<uint32_t> balance = vials(data);
+  const std::optional<DDLState> used = player_stat(data, "BGB_TOKENS_USED");
+  const std::vector<gum> &pool = gum_pool();
+  if (!balance || *balance < count || !used || pool.empty()) {
     return false;
   }
   data.set(*used, data.get(*used) + count);
   static std::mt19937 random(std::random_device{}());
   std::uniform_int_distribution<size_t> roll(0, pool.size() - 1);
-  std::array<gum, 3> rolled;
-  std::array<uint32_t, 3> quantities{};
-  for (int i = 0; i < 3; ++i) {
+  std::array<gum, ROLL_SELECTION_POOL_SIZE> rolled;
+  std::array<uint32_t, ROLL_SELECTION_POOL_SIZE> quantities{};
+  for (uint32_t i = 0; i < ROLL_SELECTION_POOL_SIZE; ++i) {
     rolled[i] = pool[roll(random)];
     if (i < count) {
-      const auto gained = gum_stat(data, rolled[i], "bgbconsumablesgained");
+      const std::optional<DDLState> gained =
+          gum_stat(data, rolled[i], "bgbconsumablesgained");
       if (!gained || !quantity(data, rolled[i])) {
         return false;
       }
-      const auto next = accounting::credit(data.get(*gained), 1);
+      const std::optional<uint32_t> next =
+          accounting::credit(data.get(*gained), 1);
       if (!next) {
         return false;
       }
       data.set(*gained, *next);
     }
   }
-  for (int i = 0; i < count; ++i) {
-    const auto value = quantity(data, rolled[i]);
+  for (uint32_t i = 0; i < count; ++i) {
+    const std::optional<uint32_t> value = quantity(data, rolled[i]);
     if (!value) {
       return false;
     }
@@ -319,12 +353,11 @@ bool spend_vials(ControllerIndex_t controller, int count) {
     return false;
   }
   *results.get() = {};
-  for (int i = 0; i < 3; ++i) {
-    auto &entry = results->all[i];
+  for (uint32_t i = 0; i < ROLL_SELECTION_POOL_SIZE; ++i) {
+    loot_item &entry = results->all[i];
     entry.id = rolled[i].id;
     entry.quantity = 1;
-    memcpy(entry.reference, rolled[i].reference.c_str(),
-           rolled[i].reference.size() + 1);
+    strscpy(entry.reference, rolled[i].reference);
     if (i < count) {
       results->granted[i] = entry;
       results->granted[i].quantity = 1;
@@ -332,19 +365,19 @@ bool spend_vials(ControllerIndex_t controller, int count) {
     }
   }
   update_currency(controller, 3, *balance - count);
-  results->result = static_cast<int>(game::lua::LootResultType::SUCCESS);
+  results->result = game::lua::LootResultType::SUCCESS;
   results->ready = true;
   return true;
 }
 
-bool increment_currency(ControllerIndex_t controller, int kind,
+bool increment_currency(ControllerIndex_t controller, int32_t kind,
                         uint32_t amount) {
   if (!enabled() || kind != 3) {
     return increment_hook.invoke<bool>(controller, kind, amount);
   }
   stats data(controller, true);
-  const auto pending = data.find({"vialsOwed"});
-  const auto balance = vials(data);
+  const std::optional<DDLState> pending = data.find({"vialsOwed"});
+  const std::optional<uint32_t> balance = vials(data);
   if (!pending || !balance || !amount || data.get(*pending) > amount) {
     return false;
   }
@@ -356,21 +389,21 @@ bool increment_currency(ControllerIndex_t controller, int kind,
   }
   update_currency(controller, 3, *balance);
   using namespace game::ui;
-  const auto root = UI_Model_GetModelForController(controller);
-  const auto tokens = UI_Model_CreateModelFromPath(root, "MegaChewTokens");
+  const uint16_t root = UI_Model_GetModelForController(controller);
+  const uint16_t tokens = UI_Model_CreateModelFromPath(root, "MegaChewTokens");
   UI_Model_SetInt(UI_Model_CreateModelFromPath(tokens, "remainingTokens"),
                   *balance);
-  const auto aar = UI_Model_CreateModelFromPath(
+  const uint16_t aar = UI_Model_CreateModelFromPath(
       root, "aarStats.performanceTabStats.bgbTokensGainedThisGame");
   UI_Model_SetInt(aar, amount);
-  const auto notify = UI_Model_CreateModelFromPath(root, "scriptNotify");
+  const uint16_t notify = UI_Model_CreateModelFromPath(root, "scriptNotify");
   UI_Model_SetInt(UI_Model_CreateModelFromPath(notify, "numArgs"), 0);
   UI_Model_SetString(notify, "zombie_bgb_token_notification");
   UI_Model_ForceNotify(notify);
   return true;
 }
 
-bool increment_from_lua(ControllerIndex_t controller, int kind,
+bool increment_from_lua(ControllerIndex_t controller, int32_t kind,
                         uint32_t amount) {
   if (!enabled() || kind != 3) {
     return increment_currency(controller, kind, amount);
@@ -378,13 +411,14 @@ bool increment_from_lua(ControllerIndex_t controller, int kind,
   // Unlike ReportLootReward, the Lua increment has not credited the earned
   // stat.
   stats data(controller, true);
-  const auto gained = player_stat(data, "BGB_TOKENS_GAINED");
-  const auto balance = vials(data);
+  const std::optional<DDLState> gained = player_stat(data, "BGB_TOKENS_GAINED");
+  const std::optional<uint32_t> balance = vials(data);
   if (!gained || !balance || !amount ||
       amount > accounting::max_balance - *balance) {
     return false;
   }
-  const auto next = accounting::credit(data.get(*gained), amount);
+  const std::optional<uint32_t> next =
+      accounting::credit(data.get(*gained), amount);
   if (!next) {
     return false;
   }
@@ -396,35 +430,41 @@ bool increment_from_lua(ControllerIndex_t controller, int kind,
   return true;
 }
 
-void *consume_items(ControllerIndex_t controller, uint32_t *ids, int count,
+void *consume_items(ControllerIndex_t controller, uint32_t *ids, int32_t count,
                     uint32_t *amounts) {
   if (!enabled()) {
     return consume_hook.invoke<void *>(controller, ids, count, amounts);
   }
-  if (controller < 0 || controller >= 2 || !ids || !amounts || count < 1 ||
+  if (!valid_controller_index(controller) || !ids || !amounts || count < 1 ||
       count > 4000) {
     return nullptr;
   }
-  const auto &pool = gum_pool();
+  const std::vector<gum> &pool = gum_pool();
+  // FIXME: what is "ponytail:"? This needs to be cleaned up.
   // ponytail: stock callers consume one item; batch support needs a native task
   // completion.
   if (count != 1) {
     return consume_hook.invoke<void *>(controller, ids, count, amounts);
   }
-  const auto found =
-      std::find_if(pool.begin(), pool.end(),
-                   [&](const gum &item) { return item.id == ids[0]; });
+  const std::ranges::borrowed_iterator_t<
+      const std::vector<gum, std::allocator<gum>> &>
+      found = std::find_if(pool.begin(), pool.end(),
+                           [&](const gum &item) { return item.id == ids[0]; });
   if (found == pool.end()) {
     return consume_hook.invoke<void *>(controller, ids, count, amounts);
   }
-  if (game::get_dvar_bool("cg_unlockall_gobblegums").value_or(false)) {
+  if (/* FIXME: We have this stored in a global. Why are we needlessly looking
+         up the dvar by name? This needs to be fixed. */
+      game::get_dvar_bool("cg_unlockall_gobblegums").value_or(false)) {
     return nullptr;
   }
   stats data(controller, true);
-  const auto gained = gum_stat(data, *found, "bgbconsumablesgained");
-  const auto used = gum_stat(data, *found, "bgbconsumablesused");
+  const std::optional<DDLState> gained =
+      gum_stat(data, *found, "bgbconsumablesgained");
+  const std::optional<DDLState> used =
+      gum_stat(data, *found, "bgbconsumablesused");
   if (gained && used) {
-    const auto next =
+    const std::optional<uint32_t> next =
         accounting::debit(data.get(*gained), data.get(*used), amounts[0]);
     if (next) {
       data.set(*used, *next);
@@ -440,21 +480,21 @@ void *consume_items(ControllerIndex_t controller, uint32_t *ids, int count,
 }
 
 void inventory_update(ControllerIndex_t controller) {
-  if (controller < 0 || controller >= 2) {
+  if (!valid_controller_index(controller)) {
     return;
   }
   inventory_update_hook.invoke<void>(controller);
-  static bool restored[2]{};
-  static bool points_restored[2]{};
-  static StorageFileType restored_file[2]{};
-  static game::XUID restored_user[2]{};
+  static game::LocalClientPool<bool> restored{};
+  static game::LocalClientPool<bool> points_restored{};
+  static game::LocalClientPool<StorageFileType> restored_file{};
+  static game::LocalClientPool<game::XUID> restored_user{};
   if (!enabled() || !inventory_valid(controller)) {
     restored[controller] = false;
     points_restored[controller] = false;
     return;
   }
   stats data(controller, true);
-  const auto user = game::live::user::LiveUser_GetXuid(controller);
+  const game::XUID user = game::live::user::LiveUser_GetXuid(controller);
   if (restored_file[controller] != data.file ||
       restored_user[controller] != user) {
     restored[controller] = false;
@@ -466,24 +506,23 @@ void inventory_update(ControllerIndex_t controller) {
     restored[controller] = false;
   }
   const stats mp(controller, false);
-  const auto points = player_stat(mp, "CODPOINTS");
+  const std::optional<DDLState> points = player_stat(mp, "CODPOINTS");
   if (!points) {
     points_restored[controller] = false;
   } else if (!points_restored[controller]) {
     points_restored[controller] = update_currency(
-        controller, 0,
-        static_cast<int>(std::min(mp.get(*points), accounting::max_balance)));
+        controller, 0, std::min(mp.get(*points), accounting::max_balance));
   }
   if (!data.context || restored[controller]) {
     return;
   }
-  const auto balance = vials(data);
-  const auto &pool = gum_pool();
+  const std::optional<uint32_t> balance = vials(data);
+  const std::vector<gum> &pool = gum_pool();
   if (!balance || pool.empty()) {
     return;
   }
-  for (const auto &item : pool) {
-    const auto count = quantity(data, item);
+  for (const gum &item : pool) {
+    const std::optional<uint32_t> count = quantity(data, item);
     if (!count || !update_item(controller, item.id, *count, 0, 0, 0)) {
       return;
     }
@@ -499,22 +538,25 @@ void balance_command(const char *name, bool zombies) {
                    "Return to the menu with local currency enabled.");
       return;
     }
-    const auto controller = game::com::Com_ControllerIndexes_GetPrimary();
+    const game::ControllerIndex_t controller =
+        game::com::Com_ControllerIndexes_GetPrimary();
     stats data(controller, zombies);
-    const auto state =
+    const std::optional<DDLState> state =
         player_stat(data, zombies ? "BGB_TOKENS_GAINED" : "CODPOINTS");
-    const auto used = zombies ? player_stat(data, "BGB_TOKENS_USED") : state;
+    const std::optional<DDLState> used =
+        zombies ? player_stat(data, "BGB_TOKENS_USED") : state;
     if (!state || !used) {
       toast::error("Currency", "Native stats are not ready.");
       return;
     }
     if (args.size() == 1) {
-      const auto value = zombies ? vials(data).value() : data.get(*state);
+      const uint32_t value = zombies ? vials(data).value() : data.get(*state);
       toast::info("Currency", utils::string::va("Balance: %u", value));
       return;
     }
-    const auto amount = accounting::parse_amount(args.get(1));
-    const auto next =
+    const std::optional<uint32_t> amount =
+        accounting::parse_amount(args.get(1));
+    const std::optional<uint32_t> next =
         amount ? accounting::credit(zombies ? data.get(*used) : 0, *amount)
                : std::nullopt;
     if (args.size() != 2 || !next) {
@@ -549,21 +591,22 @@ void award_match_points() {
   };
   static std::optional<match> playing;
   static std::optional<match_reward> pending;
-  const auto now = clock::now();
-  const auto controller = game::com::Com_ControllerIndexes_GetPrimary();
-  if (!enabled() || controller < 0 || controller >= 2) {
+  const std::chrono::steady_clock::time_point now = clock::now();
+  const game::ControllerIndex_t controller =
+      game::com::Com_ControllerIndexes_GetPrimary();
+  if (!enabled() || !valid_controller_index(controller)) {
     playing.reset();
     pending.reset();
     return;
   }
-  const auto xuid = game::live::user::LiveUser_GetXuid(controller);
-  const auto file = stats_type(false);
-  const auto same_user = [&](const match &entry) {
+  const game::XUID xuid = game::live::user::LiveUser_GetXuid(controller);
+  const StorageFileType file = stats_type(false);
+  const auto same_user = [&](const match &entry) -> bool {
     return entry.controller == controller && entry.xuid == xuid &&
            entry.file == file;
   };
-  const auto mode = game::com::Com_SessionMode_GetMode();
-  const auto map = game::get_mapname().value_or("");
+  const game::eModes mode = game::com::Com_SessionMode_GetMode();
+  const std::string_view map = game::get_mapname().value_or("");
   const bool zombies = mode == game::eModes::ZOMBIES || map.starts_with("zm_");
   const bool in_game =
       game::com::Com_IsInGame() && !game::com::Com_IsRunningUILevel();
@@ -580,15 +623,13 @@ void award_match_points() {
   } else if (in_game && playing && zombies) {
     playing->zombies = true;
   } else if (!in_game && playing) {
-    const auto seconds =
+    const int64_t seconds =
         std::chrono::duration_cast<std::chrono::seconds>(now - playing->started)
             .count();
-    const auto earned_points = accounting::match_reward(
-        seconds, points_per_minute.get_int(), points_per_match_cap.get_int());
-    const auto earned_vials =
-        playing->zombies && seconds >= 60
-            ? static_cast<uint32_t>(divinium_per_match.get_int())
-            : 0;
+    const uint32_t earned_points = accounting::match_reward(
+        seconds, points_per_minute.get_uint(), points_per_match_cap.get_uint());
+    const uint32_t earned_vials =
+        playing->zombies && seconds >= 60 ? divinium_per_match.get_uint() : 0;
     pending = match_reward{*playing, earned_points, earned_vials,
                            earned_points == 0, earned_vials == 0};
     pending->session.started = now;
@@ -600,9 +641,10 @@ void award_match_points() {
 
   if (!pending->points_saved) {
     stats data(controller, false);
-    const auto points = player_stat(data, "CODPOINTS");
+    const std::optional<DDLState> points = player_stat(data, "CODPOINTS");
     if (points) {
-      const auto before = std::min(data.get(*points), accounting::max_balance);
+      const uint32_t before =
+          std::min(data.get(*points), accounting::max_balance);
       pending->points =
           std::min(pending->points, accounting::max_balance - before);
       data.set(*points, before + pending->points);
@@ -615,25 +657,26 @@ void award_match_points() {
 
   if (!pending->vials_saved) {
     stats data(controller, true);
-    const auto gained = player_stat(data, "BGB_TOKENS_GAINED");
-    const auto balance = vials(data);
+    const std::optional<DDLState> gained =
+        player_stat(data, "BGB_TOKENS_GAINED");
+    const std::optional<uint32_t> balance = vials(data);
     if (gained && balance) {
-      const auto before = data.get(*gained);
-      const auto limit =
+      const uint32_t before = data.get(*gained);
+      const uint32_t limit =
           std::min(accounting::max_balance, gained->member->rangeLimit);
       pending->vials = std::min(pending->vials, limit - before);
       data.set(*gained, before + pending->vials);
       if (!pending->vials || data.commit()) {
         pending->vials_saved = true;
-        last_divinium_award.set(static_cast<int>(pending->vials));
+        last_divinium_award.set(pending->vials);
         update_currency(controller, 3, *balance + pending->vials);
         using namespace game::ui;
-        const auto root = UI_Model_GetModelForController(controller);
-        const auto tokens =
+        const uint16_t root = UI_Model_GetModelForController(controller);
+        const uint16_t tokens =
             UI_Model_CreateModelFromPath(root, "MegaChewTokens");
         UI_Model_SetInt(UI_Model_CreateModelFromPath(tokens, "remainingTokens"),
                         *balance + pending->vials);
-        const auto aar = UI_Model_CreateModelFromPath(
+        const uint16_t aar = UI_Model_CreateModelFromPath(
             root, "aarStats.performanceTabStats.bgbTokensGainedThisGame");
         UI_Model_SetInt(aar, pending->vials);
       }
@@ -668,57 +711,61 @@ void award_match_points() {
 }
 } // namespace
 
-std::optional<uint32_t> add_cod_points(int controller, uint32_t amount) {
-  if (!enabled() || controller < 0 || controller >= 2 || !amount ||
+std::optional<uint32_t> add_cod_points(ControllerIndex_t controller,
+                                       uint32_t amount) {
+  if (!enabled() || !valid_controller_index(controller) || !amount ||
       game::com::Com_IsInGame()) {
     return std::nullopt;
   }
 
-  stats data(static_cast<ControllerIndex_t>(controller), false);
-  const auto points = player_stat(data, "CODPOINTS");
+  stats data(controller, false);
+  const std::optional<DDLState> points = player_stat(data, "CODPOINTS");
   if (!points) {
     return std::nullopt;
   }
 
-  const auto balance = std::min(data.get(*points), accounting::max_balance);
+  const uint32_t balance = std::min(data.get(*points), accounting::max_balance);
   if (amount > accounting::max_balance - balance) {
     return std::nullopt;
   }
 
-  const auto updated = balance + amount;
+  const uint32_t updated = balance + amount;
   data.set(*points, updated);
   if (!data.commit()) {
     return std::nullopt;
   }
 
-  update_currency(static_cast<ControllerIndex_t>(controller), 0, updated);
+  update_currency(controller, 0, updated);
   return updated;
 }
 
-bool purchase_vials(int controller, uint32_t cost, uint32_t amount) {
-  if (!enabled() || controller < 0 || controller >= 2 || !cost || !amount ||
+bool purchase_vials(ControllerIndex_t controller, uint32_t cost,
+                    uint32_t amount) {
+  if (!enabled() || !valid_controller_index(controller) || !cost || !amount ||
       game::com::Com_IsInGame()) {
     return false;
   }
 
-  const auto index = static_cast<ControllerIndex_t>(controller);
+  const ControllerIndex_t index = controller;
   stats points_data(index, false);
   stats vials_data(index, true);
-  const auto points = player_stat(points_data, "CODPOINTS");
-  const auto gained = player_stat(vials_data, "BGB_TOKENS_GAINED");
-  const auto vial_balance = vials(vials_data);
+  const std::optional<DDLState> points = player_stat(points_data, "CODPOINTS");
+  const std::optional<DDLState> gained =
+      player_stat(vials_data, "BGB_TOKENS_GAINED");
+  const std::optional<uint32_t> vial_balance = vials(vials_data);
   if (!points || !gained || !vial_balance) {
     return false;
   }
 
-  const auto point_balance =
+  const uint32_t point_balance =
       std::min(points_data.get(*points), accounting::max_balance);
   if (cost > point_balance ||
       amount > accounting::max_balance - *vial_balance) {
     return false;
   }
 
-  const auto next_gained = accounting::credit(vials_data.get(*gained), amount);
+  const std::optional<uint32_t> next_gained =
+      accounting::credit(vials_data.get(*gained), amount);
   if (!next_gained) {
     return false;
   }
@@ -740,8 +787,9 @@ bool purchase_vials(int controller, uint32_t cost, uint32_t amount) {
   return true;
 }
 
-bool purchase_distills(int controller, std::string_view kind, int currency) {
-  if (!enabled() || controller < 0 || controller >= 2 ||
+bool purchase_distills(ControllerIndex_t controller, std::string_view kind,
+                       uint32_t currency) {
+  if (!enabled() || !valid_controller_index(controller) ||
       game::com::Com_IsInGame()) {
     return false;
   }
@@ -750,52 +798,52 @@ bool purchase_distills(int controller, std::string_view kind, int currency) {
   if (!free && kind != "x3" && kind != "x6" && kind != "x9") {
     return false;
   }
-  if ((free && currency != -1) || (!free && currency != 0 && currency != 3)) {
+  if (free || (!free && currency != 0 && currency != 3)) {
     return false;
   }
   if (free && free_distill_cooldown() > 0) {
     return false;
   }
 
-  const auto amount_name =
+  const char *amount_name =
       free ? "loot_distill_free_quantity"
            : utils::string::va("loot_distill_paid_%.*s_quantity",
-                               static_cast<int>(kind.size()), kind.data());
-  const auto amount = game::get_dvar_int(amount_name).value_or(30);
-  auto &balance_dvar = free ? free_distills : paid_distills;
-  const auto balance = balance_dvar.get_int();
+                               static_cast<int32_t>(kind.size()), kind.data());
+  const uint32_t amount = game::get_dvar_uint(amount_name).value_or(30);
+  game::EngineDependentDvarMut &balance_dvar =
+      free ? free_distills : paid_distills;
+  const uint32_t balance = balance_dvar.get_uint();
   if (amount <= 0 || balance < 0 ||
-      amount > static_cast<int>(accounting::max_balance) - balance ||
-      (free && balance != 0)) {
+      amount > accounting::max_balance - balance || (free && balance != 0)) {
     return false;
   }
 
-  const auto index = static_cast<ControllerIndex_t>(controller);
-  int remaining_currency = 0;
+  const ControllerIndex_t index = controller;
+  int32_t remaining_currency = 0;
   if (!free) {
-    const auto cost_name = utils::string::va(
-        "loot_distill_paid_%.*s_%sCost", static_cast<int>(kind.size()),
+    const char *cost_name = utils::string::va(
+        "loot_distill_paid_%.*s_%sCost", static_cast<int32_t>(kind.size()),
         kind.data(), currency == 3 ? "vial" : "cp");
-    const auto cost = game::get_dvar_int(cost_name).value_or(0);
-    if (cost <= 0) {
+    const std::optional<uint32_t> cost = game::get_dvar_uint(cost_name);
+    if (!cost.has_value()) {
       return false;
     }
 
     stats data(index, currency == 3);
     if (currency == 3) {
-      const auto current = vials(data);
-      const auto used = player_stat(data, "BGB_TOKENS_USED");
-      if (!current || !used || static_cast<uint32_t>(cost) > *current) {
+      const std::optional<uint32_t> current = vials(data);
+      const std::optional<DDLState> used = player_stat(data, "BGB_TOKENS_USED");
+      if (!current || !used || cost.value() > *current) {
         return false;
       }
-      data.set(*used, data.get(*used) + cost);
-      remaining_currency = static_cast<int>(*current) - cost;
+      data.set(*used, data.get(*used) + cost.value());
+      remaining_currency = *current - cost.value();
     } else {
-      const auto points = player_stat(data, "CODPOINTS");
-      if (!points || static_cast<uint32_t>(cost) > data.get(*points)) {
+      const std::optional<DDLState> points = player_stat(data, "CODPOINTS");
+      if (!points || cost.value() > data.get(*points)) {
         return false;
       }
-      remaining_currency = static_cast<int>(data.get(*points)) - cost;
+      remaining_currency = data.get(*points) - cost.value();
       data.set(*points, remaining_currency);
     }
     if (!data.commit()) {
@@ -803,13 +851,14 @@ bool purchase_distills(int controller, std::string_view kind, int currency) {
     }
   }
 
-  const auto previous_balance = balance_dvar.set(balance + amount);
+  const std::optional<int32_t> previous_balance =
+      balance_dvar.set(balance + amount);
   if (!previous_balance) {
     return false;
   }
   if (free) {
-    constexpr int cooldown_seconds = 24 * 60 * 60;
-    const auto now = static_cast<int>(std::time(nullptr));
+    constexpr int32_t cooldown_seconds = 24 * 60 * 60;
+    const int32_t now = static_cast<int32_t>(std::time(nullptr));
     if (!free_distill_expiry.set(now + cooldown_seconds)) {
       balance_dvar.set(*previous_balance);
       return false;
@@ -821,39 +870,60 @@ bool purchase_distills(int controller, std::string_view kind, int currency) {
   return true;
 }
 
-int free_distill_cooldown() {
+uint32_t free_distill_cooldown() {
   if (!free_distill_expiry) {
     return 0;
   }
-  const auto now = static_cast<int>(std::time(nullptr));
+  const int32_t now = static_cast<int32_t>(std::time(nullptr));
   return std::max(0, free_distill_expiry.get_int() - now);
 }
 
-int distill_balance(bool free) {
+uint32_t distill_balance(bool free) {
   if (!enabled()) {
     return -1;
   }
   return (free ? free_distills : paid_distills).get_int();
 }
 
-bool cook_recipe(int controller, int recipe, bool use_free_distills) {
-  if (!enabled() || controller < 0 || controller >= 2 || recipe < 0 ||
+const gum *find_gum_by_name(const std::vector<gum> &pool,
+                            const char *reference) {
+  if (reference && reference[0]) {
+
+    const std::ranges::borrowed_iterator_t<
+        const std::vector<gum, std::allocator<gum>> &>
+        found = std::ranges::find_if(pool, [reference](const gum &item) {
+          return item.reference == reference;
+        });
+
+    if (found != pool.end()) {
+      return &*found;
+    }
+  }
+
+  return nullptr;
+}
+
+bool cook_recipe(ControllerIndex_t controller, uint32_t recipe,
+                 bool use_free_distills) {
+  if (!enabled() || !valid_controller_index(controller) || recipe < 0 ||
       game::com::Com_IsInGame() ||
       game::com::Com_SessionMode_GetMode() != game::eModes::ZOMBIES) {
     return false;
   }
 
-  const auto *recipes = table("gamedata/tables/zm/zm_gobblegumrecipes.csv");
-  const auto &pool = gum_pool();
+  const StringTable *recipes =
+      table("gamedata/tables/zm/zm_gobblegumrecipes.csv");
+  const std::vector<gum> &pool = gum_pool();
   if (!recipes || pool.empty()) {
     return false;
   }
 
-  int recipe_row = -1;
-  for (int row = 0; row < table_rows(recipes); ++row) {
-    const auto *text = table_cell(recipes, row, 0);
-    const auto value = text ? accounting::parse_amount(text) : std::nullopt;
-    if (value && *value == static_cast<uint32_t>(recipe)) {
+  int32_t recipe_row = -1;
+  for (int32_t row = 0; row < recipes->rowCount; ++row) {
+    const char *text = table_cell(recipes, row, 0);
+    const std::optional<uint32_t> value =
+        text ? accounting::parse_amount(text) : std::nullopt;
+    if (value && *value == recipe) {
       recipe_row = row;
       break;
     }
@@ -862,51 +932,47 @@ bool cook_recipe(int controller, int recipe, bool use_free_distills) {
     return false;
   }
 
-  const auto find_gum = [&pool](const char *reference) -> const gum * {
-    if (!reference || !*reference) {
-      return nullptr;
-    }
-    const auto found = std::ranges::find_if(pool, [reference](const gum &item) {
-      return item.reference == reference;
-    });
-    return found == pool.end() ? nullptr : &*found;
-  };
-
-  const auto *result_gum = find_gum(table_cell(recipes, recipe_row, 1));
-  const auto *result_count_text = table_cell(recipes, recipe_row, 2);
-  const auto result_count = result_count_text
-                                ? accounting::parse_amount(result_count_text)
-                                : std::nullopt;
+  const gum *result_gum =
+      find_gum_by_name(pool, table_cell(recipes, recipe_row, 1));
+  const char *result_count_text = table_cell(recipes, recipe_row, 2);
+  const std::optional<uint32_t> result_count =
+      result_count_text ? accounting::parse_amount(result_count_text)
+                        : std::nullopt;
   if (!result_gum || !result_count || !*result_count) {
     return false;
   }
 
-  const auto distill_cost =
+  const int32_t distill_cost =
+      /* FIXME: We have this stored in a global. Why are we needlessly looking
+         up the dvar by name? This needs to be fixed. */
       game::get_dvar_int("loot_recipe_distill_cost").value_or(10);
-  auto &distill_balance = use_free_distills ? free_distills : paid_distills;
+  game::EngineDependentDvarMut &distill_balance =
+      use_free_distills ? free_distills : paid_distills;
   if (distill_cost <= 0 || distill_balance.get_int() < distill_cost) {
     return false;
   }
 
-  stats data(static_cast<ControllerIndex_t>(controller), true);
-  for (int column = 3;; column += 2) {
-    const auto *reference = table_cell(recipes, recipe_row, column);
+  stats data(controller, true);
+  for (int32_t column = 3;; column += 2) {
+    const char *reference = table_cell(recipes, recipe_row, column);
     if (!reference || !*reference || *reference == '#') {
       break;
     }
-    const auto *ingredient = find_gum(reference);
-    const auto *count_text = table_cell(recipes, recipe_row, column + 1);
-    const auto count =
+    const gum *ingredient = find_gum_by_name(pool, reference);
+    const char *count_text = table_cell(recipes, recipe_row, column + 1);
+    const std::optional<uint32_t> count =
         count_text ? accounting::parse_amount(count_text) : std::nullopt;
     if (!ingredient || !count || !*count) {
       return false;
     }
-    const auto gained = gum_stat(data, *ingredient, "bgbconsumablesgained");
-    const auto used = gum_stat(data, *ingredient, "bgbconsumablesused");
+    const std::optional<DDLState> gained =
+        gum_stat(data, *ingredient, "bgbconsumablesgained");
+    const std::optional<DDLState> used =
+        gum_stat(data, *ingredient, "bgbconsumablesused");
     if (!gained || !used) {
       return false;
     }
-    const auto next =
+    const std::optional<uint32_t> next =
         accounting::debit(data.get(*gained), data.get(*used), *count);
     if (!next) {
       return false;
@@ -914,12 +980,12 @@ bool cook_recipe(int controller, int recipe, bool use_free_distills) {
     data.set(*used, *next);
   }
 
-  const auto result_gained =
+  const std::optional<DDLState> result_gained =
       gum_stat(data, *result_gum, "bgbconsumablesgained");
   if (!result_gained) {
     return false;
   }
-  const auto next_result =
+  const std::optional<uint32_t> next_result =
       accounting::credit(data.get(*result_gained), *result_count);
   if (!next_result) {
     return false;
@@ -933,54 +999,64 @@ bool cook_recipe(int controller, int recipe, bool use_free_distills) {
   *results.get() = {};
   results->granted[0].id = result_gum->id;
   results->granted[0].quantity = *result_count;
-  memcpy(results->granted[0].reference, result_gum->reference.c_str(),
-         result_gum->reference.size() + 1);
+  strscpy(results->granted[0].reference, result_gum->reference);
   results->all[0] = results->granted[0];
-  results->result = static_cast<int>(game::lua::LootResultType::SUCCESS);
+  results->result = game::lua::LootResultType::SUCCESS;
   results->ready = true;
   return true;
 }
 
-std::optional<int> item_quantity(int controller, int inventory_id) {
-  if (!enabled() || controller < 0 || controller >= 2) {
+std::optional<uint32_t> item_quantity(ControllerIndex_t controller,
+                                      uint32_t inventory_id) {
+  if (!enabled() || !valid_controller_index(controller)) {
     return std::nullopt;
   }
-  const auto free_id = game::get_dvar_int("loot_distill_free_balance_id");
-  const auto paid_id = game::get_dvar_int("loot_distill_paid_balance_id");
-  if (free_id && inventory_id == *free_id) {
-    return free_distills.get_int();
+  const std::optional<uint32_t> free_id =
+      /* FIXME: We have this stored in a global. Why are we needlessly looking
+         up the dvar by name? This needs to be fixed. */
+      game::get_dvar_uint("loot_distill_free_balance_id");
+  const std::optional<uint32_t> paid_id =
+      /* FIXME: We have this stored in a global. Why are we needlessly looking
+         up the dvar by name? This needs to be fixed. */
+      game::get_dvar_uint("loot_distill_paid_balance_id");
+  if (free_id.has_value() && inventory_id == *free_id) {
+    return free_distills.get_uint();
   }
-  if (paid_id && inventory_id == *paid_id) {
-    return paid_distills.get_int();
+  if (paid_id.has_value() && inventory_id == *paid_id) {
+    return paid_distills.get_uint();
   }
-  const auto &pool = gum_pool();
-  for (const auto &item : pool) {
-    if (item.id == static_cast<uint32_t>(inventory_id)) {
-      if (game::get_dvar_bool("cg_unlockall_gobblegums").value_or(false)) {
+  const std::vector<gum> &pool = gum_pool();
+  for (const gum &item : pool) {
+    if (item.id == inventory_id) {
+      if (/* FIXME: We have this stored in a global. Why are we needlessly
+             looking up the dvar by name? This needs to be fixed. */
+          game::get_dvar_bool("cg_unlockall_gobblegums").value_or(false)) {
         return 999;
       }
-      const stats data(static_cast<ControllerIndex_t>(controller), true);
-      return static_cast<int>(quantity(data, item).value_or(0));
+      const stats data(controller, true);
+      return quantity(data, item).value_or(0);
     }
   }
   return std::nullopt;
 }
 
-bool reset_gobblegums(int controller) {
-  if (!enabled() || controller < 0 || controller >= 2 ||
+bool reset_gobblegums(ControllerIndex_t controller) {
+  if (!enabled() || !valid_controller_index(controller) ||
       game::com::Com_IsInGame()) {
     return false;
   }
 
-  const auto index = static_cast<ControllerIndex_t>(controller);
+  const ControllerIndex_t index = controller;
   stats data(index, true);
-  const auto &pool = gum_pool();
+  const std::vector<gum> &pool = gum_pool();
   if (pool.empty()) {
     return false;
   }
-  for (const auto &item : pool) {
-    const auto gained = gum_stat(data, item, "bgbconsumablesgained");
-    const auto used = gum_stat(data, item, "bgbconsumablesused");
+  for (const gum &item : pool) {
+    const std::optional<DDLState> gained =
+        gum_stat(data, item, "bgbconsumablesgained");
+    const std::optional<DDLState> used =
+        gum_stat(data, item, "bgbconsumablesused");
     if (!gained || !used) {
       return false;
     }
@@ -990,33 +1066,35 @@ bool reset_gobblegums(int controller) {
   if (!data.commit()) {
     return false;
   }
-  for (const auto &item : pool) {
+  for (const gum &item : pool) {
     update_item(index, item.id, 0, 0, 0, 0);
   }
   return true;
 }
 
-bool set_currencies_maxed(int controller, bool maxed) {
-  if (!enabled() || controller < 0 || controller >= 2 ||
+bool set_currencies_maxed(ControllerIndex_t controller, bool maxed) {
+  if (!enabled() || !valid_controller_index(controller) ||
       game::com::Com_IsInGame()) {
     return false;
   }
 
-  const auto index = static_cast<ControllerIndex_t>(controller);
+  const ControllerIndex_t index = controller;
   stats points_data(index, false);
   stats vials_data(index, true);
-  const auto points = player_stat(points_data, "CODPOINTS");
-  const auto gained = player_stat(vials_data, "BGB_TOKENS_GAINED");
-  const auto used = player_stat(vials_data, "BGB_TOKENS_USED");
+  const std::optional<DDLState> points = player_stat(points_data, "CODPOINTS");
+  const std::optional<DDLState> gained =
+      player_stat(vials_data, "BGB_TOKENS_GAINED");
+  const std::optional<DDLState> used =
+      player_stat(vials_data, "BGB_TOKENS_USED");
   if (!points || !gained || !used) {
     return false;
   }
 
-  const auto point_balance =
+  const uint32_t point_balance =
       maxed ? std::min(accounting::max_balance, points->member->rangeLimit) : 0;
-  const auto vial_balance =
+  const uint32_t vial_balance =
       maxed ? std::min(accounting::max_balance, gained->member->rangeLimit) : 0;
-  const auto distill_balance = maxed ? accounting::max_balance : 0;
+  const uint32_t distill_balance = maxed ? accounting::max_balance : 0;
   points_data.set(*points, point_balance);
   vials_data.set(*used, 0);
   vials_data.set(*gained, vial_balance);
@@ -1060,14 +1138,38 @@ struct component final : client_component {
         "cg_paid_distills", 0, 0, accounting::max_balance,
         game::DvarFlags{.archive = 1}, "Saved paid Newton's Cookbook Distills");
     free_distill_expiry = game::register_dvar_int(
-        "cg_free_distill_expiry", 0, 0, std::numeric_limits<int>::max(),
+        "cg_free_distill_expiry", 0, 0, std::numeric_limits<int32_t>::max(),
         game::DvarFlags{.archive = 1}, "Next free Distill claim time");
-    currency_hook.create(0x141E09110_g, get_currency);
-    spend_hook.create(0x141E83860_g, spend_vials);
-    increment_hook.create(0x141E82C50_g, increment_currency);
-    utils::hook::call(0x141F20FC2_g, increment_from_lua);
-    consume_hook.create(0x141E08C10_g, consume_items);
-    inventory_update_hook.create(0x141E0A9A0_g, inventory_update);
+
+    // Loot_GetCurrency
+    // FIXME: these inline offsets should be a symbol - strongly typed, named,
+    // and properly namespaced.
+    currency_hook.create(game::select(0x141DFC680, 0x141E09110, 0x0),
+                         get_currency);
+    // Loot_SpendVials
+    // FIXME: these inline offsets should be a symbol - strongly typed, named,
+    // and properly namespaced.
+    spend_hook.create(game::select(0x141E76DD0, 0x141E83860, 0x0), spend_vials);
+    // Loot_IncCurrency
+    // FIXME: these inline offsets should be a symbol - strongly typed, named,
+    // and properly namespaced.
+    increment_hook.create(game::select(0x141E761C0, 0x141E82C50, 0x0),
+                          increment_currency);
+
+    // `Loot_IncCurrency` call in `Lua_CoD_LuaCall_IncrementCurrency`
+    utils::hook::call(game::select(0x141F14842, 0x141F20FC2, 0x0),
+                      increment_from_lua);
+    // LiveInventory_ConsumeItem
+    // FIXME: these inline offsets should be a symbol - strongly typed, named,
+    // and properly namespaced.
+    consume_hook.create(game::select(0x141DFC180, 0x141E08C10, 0x0),
+                        consume_items);
+    // LiveInventory_Update
+    // FIXME: these inline offsets should be a symbol - strongly typed, named,
+    // and properly namespaced.
+    inventory_update_hook.create(game::select(0x141DFDF10, 0x141E0A9A0, 0x0),
+                                 inventory_update);
+
     balance_command("codpoints", false);
     balance_command("divinium", true);
     scheduler::loop(award_match_points, scheduler::pipeline::main, 1s);

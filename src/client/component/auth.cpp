@@ -625,14 +625,15 @@ struct component final : generic_component {
     scheduler::loop(evict_stale_challenges, scheduler::pipeline::async, 5min);
 
     // Skip connect handler
-    utils::hook::set<uint8_t>(game::select(0x142253EFA, 0x14053714A), 0xEB);
+    utils::hook::set<uint8_t>(
+        game::select(0x1421F73CA, 0x142253EFA, 0x14053714A), 0xEB);
     network::on("connect", handle_connect_packet_fragment);
     network::on("playerXuid", handle_player_xuid_packet);
     network::on("getChallengeResponse", set_challenge);
     network::on("getchallenge", send_challenge);
 
     // Intercept SV_DirectConnect in SV_AddTestClient
-    utils::hook::call(game::select(0x1422490DC, 0x14052E582),
+    utils::hook::call(game::select(0x1421EC58C, 0x1422490DC, 0x14052E582),
                       direct_connect_bots_stub);
 
     scheduler::once(

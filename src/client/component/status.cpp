@@ -31,19 +31,22 @@ void print_client_xuid(const game::consoleChannel_e channel,
 struct component final : generic_component {
   void post_unpack() override {
     // Patch the status command for test clients
-    utils::hook::call(game::select(0x142246E37, 0x14052C527), print_client_num);
-    utils::hook::call(game::select(0x142246EDE, 0x14052C5CE),
+    utils::hook::call(game::select(0x1421EA2E7, 0x142246E37, 0x14052C527),
+                      print_client_num);
+    utils::hook::call(game::select(0x1421EA38E, 0x142246EDE, 0x14052C5CE),
                       print_client_xuid);
 
-    utils::hook::copy_string(game::select(0x143050480, 0x140E85A20),
-                             "num score ping xuid             name             "
-                             "address                  qport  \n");
-    utils::hook::copy_string(game::select(0x1430504E0, 0x140E85A80),
-                             "--- ----- ---- ---------------- ---------------- "
-                             "------------------------ ------ \n");
-
-    utils::hook::copy_string(game::select(0x1430417C0, 0x140E76D50),
-                             "%i.%i.%i.%i:%i");
+    utils::hook::copy_string(
+        game::select(0x142FD13A0, 0x143050480, 0x140E85A20),
+        "num score ping xuid             name             "
+        "address                  qport  \n");
+    utils::hook::copy_string(
+        game::select(0x142FD1400, 0x1430504E0, 0x140E85A80),
+        "--- ----- ---- ---------------- ---------------- "
+        "------------------------ ------ \n");
+    // Removes the "(%d)" `netsrc_t` suffix from `NetAdr_ToString` serialization
+    utils::hook::copy_string(
+        game::select(0x142FC26E0, 0x1430417C0, 0x140E76D50), "%i.%i.%i.%i:%i");
   }
 };
 } // namespace status

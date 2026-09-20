@@ -1388,7 +1388,7 @@ struct component final : generic_component {
     game_event::on_g_shutdown_game(clear_script_memory);
 
     // Load our custom/overriding scripts
-    utils::hook::call(select(0x141AAE92F, 0x1402D81FF),
+    utils::hook::call(select(0x141AA255F, 0x141AAE92F, 0x1402D81FF),
                       begin_load_scripts_stub);
 
     // Force GSC checksums to be valid

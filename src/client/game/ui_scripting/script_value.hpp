@@ -85,6 +85,20 @@ public:
   template <typename T = script_value>
   table_value operator[](const T &key) const;
 
+  template <IntegralLike<int32_t> T>
+    requires(sizeof(T) == sizeof(int32_t))
+  [[nodiscard]] inline bool is() const {
+    const HksNumber number = this->get_raw().v.number;
+    return this->get_raw().t == HksObjectType::TNUMBER &&
+           static_cast<int32_t>(number) == number;
+  }
+
+  template <IntegralLike<int32_t> T>
+    requires(sizeof(T) == sizeof(int32_t))
+  [[nodiscard]] inline T get() const {
+    return static_cast<T>(this->get_raw().v.number);
+  }
+
   template <typename T> [[nodiscard]] bool is() const;
 
   template <typename T> T as() const;

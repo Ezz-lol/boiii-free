@@ -170,26 +170,33 @@ void read_archive_dvars() {
 class component final : public generic_component {
 public:
   void post_unpack() override {
-    if (!game::is_server()) {
+    if (game::is_client() || game::is_new_client()) {
       scheduler::once(read_archive_dvars,
                       scheduler::pipeline::dvars_flags_patched);
-      dvar_set_variant_hook.create(0x1422C9030_g, dvar_set_variant_stub);
+      // TODO: this should be a symbol
+      dvar_set_variant_hook.create(game::select(0x14226C510, 0x1422C9030, 0x0),
+                                   dvar_set_variant_stub);
 
       // Show all known dvars in console
-      utils::hook::jump(0x1422BCE30_g, dvar_for_each_name_stub);
-      utils::hook::jump(0x1422BCD80_g, dvar_for_each_name_client_num_stub);
+      // TODO: this should be a symbol
+      utils::hook::jump(game::select(0x142260310, 0x1422BCE30, 0x0),
+                        dvar_for_each_name_stub);
+      // TODO: this should be a symbol
+      utils::hook::jump(game::select(0x142260260, 0x1422BCD80, 0x0),
+                        dvar_for_each_name_client_num_stub);
     }
 
     scheduler::once(copy_dvar_names_to_pool, scheduler::pipeline::main);
 
     // All dvars are recognized as command
-    utils::hook::nop(game::select(0x142151F1A, 0x14050949A), 2);
+    utils::hook::nop(game::select(0x1420F945A, 0x142151F1A, 0x14050949A), 2);
     // Show all dvars in dvarlist command
-    utils::hook::nop(game::select(0x142152227, 0x140509797), 6);
+    utils::hook::nop(game::select(0x1420F9767, 0x142152227, 0x140509797), 6);
     // Show all dvars in dvardump command
-    utils::hook::nop(game::select(0x142151BF9, 0x140509179), 6);
+    utils::hook::nop(game::select(0x1420F9139, 0x142151BF9, 0x140509179), 6);
     // Stops game from deleting debug names from archive dvars
-    utils::hook::set<uint8_t>(game::select(0x1422C5DE0, 0x1405786D0), 0xC3);
+    utils::hook::set<uint8_t>(
+        game::select(0x1422692C0, 0x1422C5DE0, 0x1405786D0), 0xC3);
   }
 };
 } // namespace dvars

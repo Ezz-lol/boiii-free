@@ -58,7 +58,8 @@ void callstack_return_stub(utils::hook::assembler &a) {
 }
 
 uint64_t get_callstack_return_stub() {
-  const auto placeholder = game::select(0x140001056, 0x140101168);
+  const uintptr_t placeholder =
+      game::select(0x140001056, 0x140001056, 0x140101168);
   utils::hook::set<uint8_t>(placeholder - 2, 0xFF); // fakes a call
   utils::hook::nop(placeholder, 1);
   utils::hook::jump(placeholder + 1,
@@ -1011,7 +1012,7 @@ struct component final : generic_component {
 
   void post_unpack() override {
 
-    if (utils::flags::has_flag("newsteamclient")) {
+    if (utils::flags::has_flag("newsteamclient") && game::is_new_client()) {
       patch_checksum_comparisons_new();
     } else {
       search_and_patch_integrity_checks();

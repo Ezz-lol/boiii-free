@@ -65,8 +65,6 @@ size_t get_bot_count() {
   return count;
 }
 
-int get_assigned_team() { return (rand() % 2) + 1; }
-
 bool is_host() { return game::server_running(); }
 
 struct component final : generic_component {
@@ -88,9 +86,6 @@ struct component final : generic_component {
               "or loaded usermap otherwise.");
         },
         scheduler::pipeline::main);
-
-    // utils::hook::jump(game::select(0x142254EF0, 0x140537730),
-    // get_assigned_team);
 
     network::on("getInfo", [](const game::net::netadr_t &target,
                               const network::data_view &data,

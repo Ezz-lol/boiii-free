@@ -92,5 +92,20 @@ struct DDLContext {
   void *userData;
 };
 
+PACKED(struct StringTableCell {
+  const char *string;
+  int32_t hash;
+  uint8_t _padding0C[4];
+});
+
+struct StringTable {
+  const char *name;
+  int32_t columnCount;
+  int32_t rowCount;
+  StringTableCell *values;
+  int16_t *cellIndex;
+};
+ASSERT_SIZE(StringTable, 0x20);
+
 } // namespace ddl
 } // namespace game

@@ -162,7 +162,7 @@ template <const bool Value> inline void sv_cheats_force() {
   */
   {
     // R_RegisterDvars
-    utils::hook::call(game::select(0x141CA6C43, 0x140379E80),
+    utils::hook::call(game::select(0x141C9A873, 0x141CA6C43, 0x140379E80),
                       Dvar_RegisterBool_Force<Value>);
     // SV_Init
     utils::hook::call(0x140534DF2_g, Dvar_RegisterBool_Force<Value>);
@@ -270,11 +270,14 @@ public:
     */
     // BG_IncrementClientFieldCounterVal (CL) /
     // BG_CheckForFieldSetPreFinalize (SV)
-    utils::hook::call(game::select(0x140134368, 0x1400577A0), return_false);
+    utils::hook::call(game::select(0x140134368, 0x140134368, 0x1400577A0),
+                      return_false);
     // BG_SetClientFieldFloatVal
-    utils::hook::call(game::select(0x140136DB4, 0x14005AC64), return_false);
+    utils::hook::call(game::select(0x140136DB4, 0x140136DB4, 0x14005AC64),
+                      return_false);
     // BG_SetClientFieldIntVal
-    utils::hook::call(game::select(0x140136E85, 0x14005AD45), return_false);
+    utils::hook::call(game::select(0x140136E85, 0x140136E85, 0x14005AD45),
+                      return_false);
 
     scheduler::once(patch_dvars, scheduler::pipeline::main);
 #ifndef NDEBUG

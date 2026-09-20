@@ -171,28 +171,6 @@ script_value::script_value(const function &value) {
 }
 
 /***************************************************************
- * Integer
- **************************************************************/
-
-template <> bool script_value::is<int>() const {
-  const HksNumber number = this->get_raw().v.number;
-  return this->get_raw().t == HksObjectType::TNUMBER &&
-         static_cast<int>(number) == number;
-}
-
-template <> bool script_value::is<unsigned int>() const {
-  return this->is<int>();
-}
-
-template <> int script_value::get() const {
-  return static_cast<int>(this->get_raw().v.number);
-}
-
-template <> uint32_t script_value::get() const {
-  return static_cast<uint32_t>(this->get_raw().v.number);
-}
-
-/***************************************************************
  * Boolean
  **************************************************************/
 
@@ -206,13 +184,7 @@ template <> bool script_value::get() const { return this->get_raw().v.boolean; }
  * Float
  **************************************************************/
 
-template <> bool script_value::is<float>() const {
-  return this->get_raw().t == HksObjectType::TNUMBER;
-}
-
 template <> bool script_value::is<double>() const { return this->is<float>(); }
-
-template <> float script_value::get() const { return this->get_raw().v.number; }
 
 template <> double script_value::get() const {
   return this->get_raw().v.number;

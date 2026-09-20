@@ -61,26 +61,42 @@ template <typename T> inline const T *derelocate(const T *ptr) {
 }
 
 inline uintptr_t select(const uintptr_t client_val,
+                        const uintptr_t old_client_val,
                         const uintptr_t server_val) {
-  return relocate(is_server() ? server_val : client_val);
+  uintptr_t selected;
+  if (is_server()) {
+    selected = server_val;
+  } else if (is_new_client()) {
+    selected = client_val;
+  } else {
+    selected = old_client_val;
+  }
+  return relocate(selected);
 }
 
 template <typename T>
-inline const T *select(const T *client_val, const T *server_val) {
+inline const T *select(const T *client_val, const T *old_client_val,
+                       const T *server_val) {
   return reinterpret_cast<const T *>(
       select(reinterpret_cast<uintptr_t>(client_val),
+             reinterpret_cast<uintptr_t>(old_client_val),
              reinterpret_cast<uintptr_t>(server_val)));
 }
 
-template <typename T> inline T *select(T *client_val, T *server_val) {
-  return reinterpret_cast<T *>(select(reinterpret_cast<uintptr_t>(client_val),
-                                      reinterpret_cast<uintptr_t>(server_val)));
+template <typename T>
+inline T *select(T *client_val, T *old_client_val, T *server_val) {
+  return reinterpret_cast<T *>(
+      select(reinterpret_cast<uintptr_t>(client_val),
+             reinterpret_cast<uintptr_t>(old_client_val),
+             reinterpret_cast<uintptr_t>(server_val)));
 }
 
 template <typename T>
-inline volatile T *select(volatile T *client_val, volatile T *server_val) {
+inline volatile T *select(volatile T *client_val, volatile T *old_client_val,
+                          volatile T *server_val) {
   return reinterpret_cast<volatile T *>(
       select(reinterpret_cast<uintptr_t>(client_val),
+             reinterpret_cast<uintptr_t>(old_client_val),
              reinterpret_cast<uintptr_t>(server_val)));
 }
 

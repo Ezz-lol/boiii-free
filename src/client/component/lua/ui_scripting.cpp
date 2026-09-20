@@ -679,38 +679,42 @@ void setup_functions() {
                HksObjectType::TCFUNCTION);
 
   lua["game"]["purchasecodpoints"] = function(
-      convert_function([](const int controller, const int amount) -> int {
+      convert_function([](const game::ControllerIndex_t controller,
+                          const uint32_t amount) -> int32_t {
         constexpr std::array allowed_amounts{200, 1100, 2400, 5000, 13000};
         if (std::find(allowed_amounts.begin(), allowed_amounts.end(), amount) ==
             allowed_amounts.end()) {
           return -1;
         }
 
-        const auto balance = currency::add_cod_points(controller, amount);
+        const std::optional<uint32_t> balance =
+            currency::add_cod_points(controller, amount);
         return balance ? static_cast<int>(*balance) : -1;
       }),
       HksObjectType::TCFUNCTION);
 
-  lua["game"]["purchasevials"] =
-      function(convert_function([](const int controller, const int cost,
-                                   const int amount) -> bool {
-                 if (cost <= 0 || amount <= 0) {
-                   return false;
-                 }
-                 return currency::purchase_vials(controller, cost, amount);
-               }),
-               HksObjectType::TCFUNCTION);
-
-  lua["game"]["purchasedistills"] = function(
-      convert_function([](const int controller, const std::string &kind,
-                          const int payment) -> bool {
-        return currency::purchase_distills(controller, kind, payment);
+  lua["game"]["purchasevials"] = function(
+      convert_function([](const game::ControllerIndex_t controller,
+                          const int32_t cost, const int32_t amount) -> bool {
+        if (cost <= 0 || amount <= 0) {
+          return false;
+        }
+        return currency::purchase_vials(controller, cost, amount);
       }),
       HksObjectType::TCFUNCTION);
 
+  lua["game"]["purchasedistills"] =
+      function(convert_function([](const game::ControllerIndex_t controller,
+                                   const std::string &kind,
+                                   const uint32_t payment) -> bool {
+                 return currency::purchase_distills(controller, kind, payment);
+               }),
+               HksObjectType::TCFUNCTION);
+
   lua["game"]["getfreedistillcooldown"] =
-      function(convert_function(
-                   []() -> int { return currency::free_distill_cooldown(); }),
+      function(convert_function([]() -> uint32_t {
+                 return currency::free_distill_cooldown();
+               }),
                HksObjectType::TCFUNCTION);
 
   lua["game"]["getdistillbalance"] =
@@ -720,47 +724,49 @@ void setup_functions() {
                HksObjectType::TCFUNCTION);
 
   lua["game"]["cookgobblegumrecipe"] = function(
-      convert_function([](const int controller, const int recipe,
-                          const bool free_distills) -> bool {
+      convert_function([](const game::ControllerIndex_t controller,
+                          const int recipe, const bool free_distills) -> bool {
         return currency::cook_recipe(controller, recipe, free_distills);
       }),
       HksObjectType::TCFUNCTION);
 
-  lua["game"]["resetgobblegums"] =
-      function(convert_function([](const int controller) -> bool {
-                 return currency::reset_gobblegums(controller);
-               }),
-               HksObjectType::TCFUNCTION);
-
-  lua["game"]["setcurrenciesmaxed"] = function(
-      convert_function([](const int controller, const bool maxed) -> bool {
-        return currency::set_currencies_maxed(controller, maxed);
+  lua["game"]["resetgobblegums"] = function(
+      convert_function([](const game::ControllerIndex_t controller) -> bool {
+        return currency::reset_gobblegums(controller);
       }),
       HksObjectType::TCFUNCTION);
 
-  lua["game"]["savestats"] = function(
-      convert_function([](const int controller, const int mode) -> bool {
-        if (controller < 0 || controller >= 2 || mode < 0 || mode > 2 ||
-            game::com::Com_IsInGame()) {
-          return false;
-        }
+  lua["game"]["setcurrenciesmaxed"] =
+      function(convert_function([](const game::ControllerIndex_t controller,
+                                   const bool maxed) -> bool {
+                 return currency::set_currencies_maxed(controller, maxed);
+               }),
+               HksObjectType::TCFUNCTION);
 
-        const bool online = game::com::Com_SessionMode_GetNetworkMode() ==
-                            game::eNetworkModes::ONLINE;
-        game::StorageFileType file;
-        if (mode == static_cast<int>(game::eModes::ZOMBIES)) {
-          file = online ? game::StorageFileType::ZM_STATS_ONLINE
-                        : game::StorageFileType::ZM_STATS_OFFLINE;
-        } else if (mode == static_cast<int>(game::eModes::MULTIPLAYER)) {
-          file = online ? game::StorageFileType::MP_STATS_ONLINE
-                        : game::StorageFileType::MP_STATS_OFFLINE;
-        } else {
-          file = online ? game::StorageFileType::CP_STATS_ONLINE
-                        : game::StorageFileType::CP_STATS_OFFLINE;
-        }
-        return game::live::storage::Storage_Write(
-            static_cast<game::ControllerIndex_t>(controller), file, 0);
-      }),
+  lua["game"]["savestats"] = function(
+      convert_function(
+          [](const game::ControllerIndex_t controller, const int mode) -> bool {
+            if (controller < 0 || controller >= 2 || mode < 0 || mode > 2 ||
+                game::com::Com_IsInGame()) {
+              return false;
+            }
+
+            const bool online = game::com::Com_SessionMode_GetNetworkMode() ==
+                                game::eNetworkModes::ONLINE;
+            game::StorageFileType file;
+            if (mode == static_cast<int>(game::eModes::ZOMBIES)) {
+              file = online ? game::StorageFileType::ZM_STATS_ONLINE
+                            : game::StorageFileType::ZM_STATS_OFFLINE;
+            } else if (mode == static_cast<int>(game::eModes::MULTIPLAYER)) {
+              file = online ? game::StorageFileType::MP_STATS_ONLINE
+                            : game::StorageFileType::MP_STATS_OFFLINE;
+            } else {
+              file = online ? game::StorageFileType::CP_STATS_ONLINE
+                            : game::StorageFileType::CP_STATS_OFFLINE;
+            }
+            return game::live::storage::Storage_Write(
+                static_cast<game::ControllerIndex_t>(controller), file, 0);
+          }),
       HksObjectType::TCFUNCTION);
 
   lua["game"]["kickplayer"] = function(
@@ -837,28 +843,26 @@ void setup_functions() {
                HksObjectType::TCFUNCTION);
 
   lua["game"]["getclientoverridename"] = function(
-      convert_function([](const int32_t client_num) -> std::string {
-        const game::ClientNum_t cn = static_cast<game::ClientNum_t>(client_num);
-        if (!game::valid_client_num(cn) || !name::has_name_override(cn)) {
+      convert_function([](const game::ClientNum_t client_num) -> std::string {
+        if (!game::valid_client_num(client_num) ||
+            !name::has_name_override(client_num)) {
           return "";
         }
 
-        return name::get_name_override(cn).value_or("");
+        return name::get_name_override(client_num).value_or("");
       }),
       HksObjectType::TCFUNCTION);
 
-  lua["game"]["getclientoverridetag"] =
-      function(convert_function([](const int32_t client_num) -> std::string {
-                 const game::ClientNum_t cn =
-                     static_cast<game::ClientNum_t>(client_num);
-                 if (!game::valid_client_num(cn) ||
-                     !name::has_clan_abbrev_override(cn)) {
-                   return "";
-                 }
+  lua["game"]["getclientoverridetag"] = function(
+      convert_function([](const game::ClientNum_t client_num) -> std::string {
+        if (!game::valid_client_num(client_num) ||
+            !name::has_clan_abbrev_override(client_num)) {
+          return "";
+        }
 
-                 return name::get_clan_abbrev_override(cn).value_or("");
-               }),
-               HksObjectType::TCFUNCTION);
+        return name::get_clan_abbrev_override(client_num).value_or("");
+      }),
+      HksObjectType::TCFUNCTION);
 
   lua["game"]["getrawservercount"] =
       function(convert_function([]() -> int32_t {
@@ -1760,8 +1764,6 @@ luaReturnCount_e load_dll_skip_blacklisted(lua_State *s, const char *filename,
   return load_dll_hook.invoke<luaReturnCount_e>(s, filename, func_name);
 }
 
-void lua_error_print_stub(int, const char *, ...) {}
-
 inline void lui_reload() {
   converted_functions.clear();
   rawfile_source_cache.clear();
@@ -2427,44 +2429,52 @@ public:
                                         R_CopyTextureRegionMips_Safe);
     Lua_CoD_FFReader_hook.create(Lua_CoD_FFReader,
                                  Lua_CoD_FFReader_EnforceOverride);
-    utils::hook::call(game::select(0x141D4979A, 0x1403F233A), hks_load_stub);
+    utils::hook::call(game::select(0x141D3CD0A, 0x141D4979A, 0x1403F233A),
+                      hks_load_stub);
     load_dll_hook.create(load_dll, load_dll_skip_blacklisted);
 
-    hks_package_require_hook.create(game::select(0x141D28EF0, 0x1403D7FC0),
-                                    hks_package_require_stub);
+    // TODO: these inline offsets should be a symbol - strongly typed, named,
+    // and properly namespaced.
+    hks_package_require_hook.create(
+        game::select(0x141D1C6C0, 0x141D28EF0, 0x1403D7FC0),
+        hks_package_require_stub);
     ui_cod_init_hook.create(UI_CoD_Init, ui_cod_init_stub);
     ui_cod_lobbyui_init_hook.create(UI_CoD_LobbyUI_Init,
                                     ui_cod_lobbyui_init_stub);
-    ui_shutdown_hook.create(game::select(0x14270DE00, 0x1404A1280),
+    // TODO: these inline offsets should be a symbol - strongly typed, named,
+    // and properly namespaced.
+    ui_shutdown_hook.create(game::select(0x142694C90, 0x14270DE00, 0x1404A1280),
                             ui_shutdown_stub);
     lua_cod_getrawfile_hook.create(Lua_CoD_GetRawFile.get(),
                                    lua_cod_getrawfile_stub);
 
-    hksi_lua_getinfo_detour.create(game::select(0x141D4D8D0, 0x1403F64B0),
-                                   hksi_lua_getinfo_stub);
+    // TODO: these inline offsets should be a symbol - strongly typed, named,
+    // and properly namespaced.
+    hksi_lua_getinfo_detour.create(
+        game::select(0x141D40E40, 0x141D4D8D0, 0x1403F64B0),
+        hksi_lua_getinfo_stub);
 
-    if (game::is_client()) {
+    ui_init_hook.create(UI_Init.get(), ui_init_stub);
+    cl_first_snapshot_hook.create(game::cl::CL_FirstSnapshot.get(),
+                                  cl_first_snapshot_stub);
 
-      ui_init_hook.create(UI_Init.get(), ui_init_stub);
-      cl_first_snapshot_hook.create(game::cl::CL_FirstSnapshot.get(),
-                                    cl_first_snapshot_stub);
+    // TODO: these inline offsets should be a symbol - strongly typed, named,
+    // and properly namespaced.
+    lua_error_hook.create(game::select(0x141F05620, 0x141F11DA0, 0x0),
+                          lua_cod_luastatemanager_error_stub);
 
-      lua_error_hook.create(0x141F11DA0_g, lua_cod_luastatemanager_error_stub);
-      lua_error_print_hook.create(0x141F132B0_g, lua_error_print_stub);
+    scheduler::once(
+        []() {
+          game::ui_error_callstack_ship->flags().clear();
+          game::ui_error_callstack_ship->set(true);
 
-      scheduler::once(
-          []() {
-            game::ui_error_callstack_ship->flags().clear();
-            game::ui_error_callstack_ship->set(true);
+          game::ui_error_report_delay->flags().clear();
+          game::ui_error_report_delay->set(true);
+        },
+        scheduler::pipeline::renderer);
 
-            game::ui_error_report_delay->flags().clear();
-            game::ui_error_report_delay->set(true);
-          },
-          scheduler::pipeline::renderer);
-
-      register_lui_commands();
-      patch_unsafe_lua_functions();
-    }
+    register_lui_commands();
+    patch_unsafe_lua_functions();
   }
 };
 } // namespace ui_scripting
