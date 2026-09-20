@@ -2,6 +2,14 @@ if Engine.GetCurrentMap() ~= "core_frontend" then
   return
 end
 
+if
+  type(Engine.IsUsingMods) == "function"
+  and Engine.IsUsingMods()
+  and (type(Engine.UsingModsUgcName) ~= "function" or Engine.UsingModsUgcName() ~= "usermaps")
+then
+  return
+end
+
 require("ui.uieditor.widgets.Store.Store_NonFeaturedFrame")
 require("ui.uieditor.widgets.CAC.Customization.CACGenericButton")
 require("ui.uieditor.menus.ZM.MegaChewFactory")

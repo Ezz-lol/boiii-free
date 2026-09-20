@@ -5,6 +5,12 @@ function Engine.PIXEndEvent() end
 
 Engine.SetDvar("tu5_enableVialsOwed", 0)
 
+if type(GoBackAndOpenOverlayOnParent) == "function" then
+  GoBackAndOpenOverlayOnParent = function(menu, overlay, controller)
+    return OpenOverlay(GoBack(menu, controller), overlay, controller)
+  end
+end
+
 -- XP bar pcall fix
 pcall(function()
   if DataSources and DataSources.XPProgressionBar then
