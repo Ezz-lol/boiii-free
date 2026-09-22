@@ -381,6 +381,8 @@ Standard: Latest
 # Use CR LF instead of LF.
 UseCRLF: false
 
+InsertNewlineAtEOF: true
+
 # Tab style.
 # Options: Never, ForIndentation, ForContinuationAndIndentation, AlignWithSpaces, Always
 UseTab: Never
@@ -773,6 +775,8 @@ Standard: Latest
 # Use CR LF instead of LF.
 UseCRLF: false
 
+InsertNewlineAtEOF: true
+
 # Tab style.
 # Options: Never, ForIndentation, ForContinuationAndIndentation, AlignWithSpaces, Always
 UseTab: Never
@@ -1162,6 +1166,8 @@ Standard: Latest
 
 # Use CR LF instead of LF.
 UseCRLF: false
+
+InsertNewlineAtEOF: true
 
 # Tab style.
 # Options: Never, ForIndentation, ForContinuationAndIndentation, AlignWithSpaces, Always
@@ -1553,6 +1559,8 @@ Standard: Latest
 # Use CR LF instead of LF.
 UseCRLF: false
 
+InsertNewlineAtEOF: true
+
 # Tab style.
 # Options: Never, ForIndentation, ForContinuationAndIndentation, AlignWithSpaces, Always
 UseTab: Never
@@ -1942,6 +1950,8 @@ Standard: Latest
 
 # Use CR LF instead of LF.
 UseCRLF: false
+
+InsertNewlineAtEOF: true
 
 # Tab style.
 # Options: Never, ForIndentation, ForContinuationAndIndentation, AlignWithSpaces, Always
@@ -2333,6 +2343,8 @@ Standard: Latest
 # Use CR LF instead of LF.
 UseCRLF: false
 
+InsertNewlineAtEOF: true
+
 # Tab style.
 # Options: Never, ForIndentation, ForContinuationAndIndentation, AlignWithSpaces, Always
 UseTab: Never
@@ -2722,6 +2734,8 @@ Standard: Latest
 
 # Use CR LF instead of LF.
 UseCRLF: false
+
+InsertNewlineAtEOF: true
 
 # Tab style.
 # Options: Never, ForIndentation, ForContinuationAndIndentation, AlignWithSpaces, Always
@@ -3113,6 +3127,8 @@ Standard: Latest
 # Use CR LF instead of LF.
 UseCRLF: false
 
+InsertNewlineAtEOF: true
+
 # Tab style.
 # Options: Never, ForIndentation, ForContinuationAndIndentation, AlignWithSpaces, Always
 UseTab: Never
@@ -3502,6 +3518,8 @@ Standard: Latest
 
 # Use CR LF instead of LF.
 UseCRLF: false
+
+InsertNewlineAtEOF: true
 
 # Tab style.
 # Options: Never, ForIndentation, ForContinuationAndIndentation, AlignWithSpaces, Always
@@ -3893,6 +3911,8 @@ Standard: Latest
 # Use CR LF instead of LF.
 UseCRLF: false
 
+InsertNewlineAtEOF: true
+
 # Tab style.
 # Options: Never, ForIndentation, ForContinuationAndIndentation, AlignWithSpaces, Always
 UseTab: Never
@@ -4282,6 +4302,8 @@ Standard: Latest
 
 # Use CR LF instead of LF.
 UseCRLF: false
+
+InsertNewlineAtEOF: true
 
 # Tab style.
 # Options: Never, ForIndentation, ForContinuationAndIndentation, AlignWithSpaces, Always
