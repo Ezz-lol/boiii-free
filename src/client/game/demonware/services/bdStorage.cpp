@@ -32,7 +32,7 @@ bdStorage::bdStorage() : service(10, "bdStorage") {
 
 void bdStorage::map_publisher_resource(const std::string &expression,
                                        const INT id) {
-  auto data = utils::nt::load_resource(id);
+  std::string data = utils::nt::load_resource(id);
   this->map_publisher_resource_variant(expression, std::move(data));
 }
 
@@ -48,7 +48,8 @@ void bdStorage::map_publisher_resource_variant(const std::string &expression,
 
 bool bdStorage::load_publisher_resource(const std::string &name,
                                         std::string &buffer) {
-  for (const auto &resource : this->publisher_resources_) {
+  for (const std::pair<std::regex, resource_variant> &resource :
+       this->publisher_resources_) {
     if (std::regex_match(name, resource.first)) {
       if (std::holds_alternative<std::string>(resource.second)) {
         buffer = std::get<std::string>(resource.second);
@@ -87,10 +88,10 @@ void bdStorage::list_publisher_files(service_server *server,
   printf("[DW]: [bdStorage]: list publisher files: %s\n", filename.data());
 #endif
 
-  auto reply = server->create_reply(this->task_id());
+  service_reply reply = server->create_reply(this->task_id());
 
   if (this->load_publisher_resource(filename, data)) {
-    auto info = std::make_unique<bdFileInfo>();
+    std::unique_ptr<bdFileInfo> info = std::make_unique<bdFileInfo>();
 
     info->file_id = *reinterpret_cast<const uint64_t *>(
         utils::cryptography::sha1::compute(filename).data());
@@ -125,8 +126,8 @@ void bdStorage::get_publisher_file(service_server *server,
            filename.data(), data.size());
 #endif
 
-    auto reply = server->create_reply(this->task_id());
-    auto result = std::make_unique<bdFileData>(data);
+    service_reply reply = server->create_reply(this->task_id());
+    std::unique_ptr<bdFileData> result = std::make_unique<bdFileData>(data);
     reply.add(result);
     reply.send();
   } else {
@@ -147,10 +148,10 @@ void bdStorage::set_user_file(service_server *server,
   buffer->read_blob(&data);
   buffer->read_uint64(&owner);
 
-  const auto path = get_user_file_path(filename);
+  const std::string path = get_user_file_path(filename);
   utils::io::write_file(path, data);
 
-  auto info = std::make_unique<bdFileInfo>();
+  std::unique_ptr<bdFileInfo> info = std::make_unique<bdFileInfo>();
 
   info->file_id = *reinterpret_cast<const uint64_t *>(
       utils::cryptography::sha1::compute(filename).data());
@@ -161,7 +162,7 @@ void bdStorage::set_user_file(service_server *server,
   info->owner_id = owner;
   info->priv = priv;
 
-  auto reply = server->create_reply(this->task_id());
+  service_reply reply = server->create_reply(this->task_id());
   reply.add(info);
   reply.send();
 }
@@ -181,7 +182,7 @@ void bdStorage::upload_files(service_server *server,
   buffer->read_string(&platform);
   buffer->read_uint32(&numfiles);
 
-  auto reply = server->create_reply(this->task_id());
+  service_reply reply = server->create_reply(this->task_id());
 
   for (uint32_t i = 0; i < numfiles; i++) {
     std::string filename, data;
@@ -193,10 +194,10 @@ void bdStorage::upload_files(service_server *server,
     buffer->read_uint32(&unk);
     buffer->read_bool(&priv);
 
-    const auto path = get_user_file_path(filename);
+    const std::string path = get_user_file_path(filename);
     utils::io::write_file(path, data);
 
-    auto info = std::make_unique<bdFile2>();
+    std::unique_ptr<bdFile2> info = std::make_unique<bdFile2>();
 
     info->unk1 = 0;
     info->unk2 = 0;
@@ -228,7 +229,7 @@ void bdStorage::upload_files_new(service_server *server,
   buffer->read_string(&platform);
   buffer->read_uint32(&numfiles);
 
-  auto reply = server->create_reply(this->task_id());
+  service_reply reply = server->create_reply(this->task_id());
 
   for (uint32_t i = 0; i < numfiles; i++) {
     std::string filename, data;
@@ -240,10 +241,11 @@ void bdStorage::upload_files_new(service_server *server,
     buffer->read_uint32(&version);
     buffer->read_bool(&priv);
 
-    const auto path = get_user_file_path(filename);
+    const std::string path = get_user_file_path(filename);
     utils::io::write_file(path, data);
 
-    auto info = std::make_unique<bdContextUserStorageFileInfo>();
+    std::unique_ptr<bdContextUserStorageFileInfo> info =
+        std::make_unique<bdContextUserStorageFileInfo>();
 
     info->modifed_time = static_cast<uint32_t>(time(nullptr));
     info->create_time = info->modifed_time;
@@ -271,7 +273,7 @@ void bdStorage::get_files(service_server *server, byte_buffer *buffer) const {
 
   std::vector<std::pair<uint64_t, std::string>> user_ctxs;
 
-  for (auto i = 0u; i < count; i++) {
+  for (uint32_t i = 0u; i < count; i++) {
     uint64_t user_id;
     std::string acc_type;
     buffer->read_uint64(&user_id);
@@ -290,15 +292,16 @@ void bdStorage::get_files(service_server *server, byte_buffer *buffer) const {
     filenames.push_back(std::move(filename));
   }
 
-  auto reply = server->create_reply(this->task_id());
+  service_reply reply = server->create_reply(this->task_id());
   for (size_t i = 0u; i < filenames.size(); i++) {
-    auto entry = std::make_unique<bdFileQueryResult>();
+    std::unique_ptr<bdFileQueryResult> entry =
+        std::make_unique<bdFileQueryResult>();
     entry->user_id = user_ctxs.at(i).first;
     entry->platform = user_ctxs.at(i).second;
     entry->filename = filenames.at(i);
     entry->errorcode = game::dw::bdLobbyErrorCode::BD_NO_ERROR;
 
-    auto &name = filenames.at(i);
+    std::basic_string<char> &name = filenames.at(i);
     std::string filedata;
     if (utils::io::read_file(get_user_file_path(name), &filedata)) {
       entry->filedata = filedata;
@@ -320,13 +323,13 @@ void bdStorage::get_files(service_server *server, byte_buffer *buffer) const {
 
 void bdStorage::unk12(service_server *server, byte_buffer *buffer) const {
   // TODO:
-  auto reply = server->create_reply(this->task_id());
+  service_reply reply = server->create_reply(this->task_id());
   reply.send();
 }
 
 void bdStorage::get_user_file_list(service_server *server,
                                    byte_buffer * /*buffer*/) const {
-  auto reply = server->create_reply(this->task_id());
+  service_reply reply = server->create_reply(this->task_id());
   reply.send();
 }
 } // namespace demonware
