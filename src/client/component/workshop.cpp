@@ -1232,7 +1232,8 @@ public:
           game::cl::CL_SetupForNewServerMap.get(),
           CL_SetupForNewServerMap_stub);
 
-      utils::hook::call(0x14135CDA1_g, com_error_missing_map_stub);
+      utils::hook::call(game::cl::CL_SetupForNewServerMap.offset(0x81),
+                        com_error_missing_map_stub);
     }
   }
 

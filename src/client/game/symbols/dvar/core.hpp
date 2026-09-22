@@ -83,6 +83,10 @@ WEAK symbol<EngineDependentDvarMut> safeArea_horizontal{0x1457FA6D0,
                                                         0x142CF1340};
 WEAK symbol<EngineDependentDvarMut> safeArea_vertical{0x1457FA6D8, 0x142CF1348};
 WEAK symbol<EngineDependentDvarMut> ui_safeArea{0x1457FA6E0};
+WEAK symbol<EngineDependentDvarMut> r_dof_enable{0x14AE95478, 0x14AE164F8,
+                                                 0x147CBC5B8};
+WEAK symbol<EngineDependentDvarMut> cg_fovScale{0x1449B2A88, 0x144A31A88,
+                                                0x14222BFC0};
 
 WEAK symbol<int32_t> g_dvarCount{0x157AC61CC, 0x14A3CB5FC};
 WEAK symbol<DvarPool> s_dvarPool{0x0, 0x14A3CB620};

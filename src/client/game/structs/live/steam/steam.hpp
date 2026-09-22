@@ -11,8 +11,7 @@ namespace steam {
 
 // Verified on client. Fields - their types and offsets - and total size.
 // Not verified on dedicated server, but also may not exist there.
-#pragma pack(push, 1)
-struct LiveSteamClient {
+PACKED(struct LiveSteamClient {
   game::steam::EResult resultOnRequestEncryptedAppTicket;
   int32_t ticketTime;
   int32_t numFriendsNotifications;
@@ -36,9 +35,20 @@ struct LiveSteamClient {
   game::steam::CCallback<LiveSteamClient,
                          game::steam::MicroTxnAuthorizationResponse_t, 0>
       m_CallbackMicroTxnAuthorizationResponse;
-};
+});
 ASSERT_SIZE(LiveSteamClient, 0xF8);
-#pragma pack(pop)
+
+enum class SteamServerState : uint32_t {
+  INIT_FAILED = 0x0,
+  DISCONNECTED = 0x1,
+  CONNECTING = 0x2,
+  CONNECTED = 0x3,
+  SECURED = 0x4,
+};
+
+// TODO
+struct LiveSteamServer;
+
 } // namespace steam
 } // namespace live
 } // namespace game

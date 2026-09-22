@@ -60,43 +60,53 @@ template <typename T> inline const T *derelocate(const T *ptr) {
       derelocate(reinterpret_cast<uintptr_t>(ptr)));
 }
 
-inline uintptr_t select(const uintptr_t client_val,
-                        const uintptr_t old_client_val,
-                        const uintptr_t server_val) {
-  uintptr_t selected;
+template <typename T>
+inline T select_value(T client, T legacy_client, T server) {
   if (is_server()) {
-    selected = server_val;
-  } else if (is_new_client()) {
-    selected = client_val;
-  } else {
-    selected = old_client_val;
+    return server;
   }
-  return relocate(selected);
+  if (is_new_client()) {
+    return client;
+  }
+  return legacy_client;
 }
 
 template <typename T>
-inline const T *select(const T *client_val, const T *old_client_val,
+  requires(!std::is_pointer_v<T> && !std::is_same_v<T, uintptr_t> &&
+           !std::is_same_v<T, intptr_t>)
+inline T select(T client, T legacy_client, T server) {
+  return select_value(client, legacy_client, server);
+}
+
+inline uintptr_t select(const uintptr_t client_val,
+                        const uintptr_t legacy_client_val,
+                        const uintptr_t server_val) {
+  return relocate(select_value(client_val, legacy_client_val, server_val));
+}
+
+template <typename T>
+inline const T *select(const T *client_val, const T *legacy_client_val,
                        const T *server_val) {
   return reinterpret_cast<const T *>(
       select(reinterpret_cast<uintptr_t>(client_val),
-             reinterpret_cast<uintptr_t>(old_client_val),
+             reinterpret_cast<uintptr_t>(legacy_client_val),
              reinterpret_cast<uintptr_t>(server_val)));
 }
 
 template <typename T>
-inline T *select(T *client_val, T *old_client_val, T *server_val) {
+inline T *select(T *client_val, T *legacy_client_val, T *server_val) {
   return reinterpret_cast<T *>(
       select(reinterpret_cast<uintptr_t>(client_val),
-             reinterpret_cast<uintptr_t>(old_client_val),
+             reinterpret_cast<uintptr_t>(legacy_client_val),
              reinterpret_cast<uintptr_t>(server_val)));
 }
 
 template <typename T>
-inline volatile T *select(volatile T *client_val, volatile T *old_client_val,
+inline volatile T *select(volatile T *client_val, volatile T *legacy_client_val,
                           volatile T *server_val) {
   return reinterpret_cast<volatile T *>(
       select(reinterpret_cast<uintptr_t>(client_val),
-             reinterpret_cast<uintptr_t>(old_client_val),
+             reinterpret_cast<uintptr_t>(legacy_client_val),
              reinterpret_cast<uintptr_t>(server_val)));
 }
 

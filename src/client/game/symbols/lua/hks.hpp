@@ -13,8 +13,9 @@ WEAK symbol<lua_State *> UI_luaVM{0x159C76D88};
 WEAK symbol<lua_State *> s_lobbyLuaVM{0x1557588D0, 0x14858C408};
 /*
    s_lobbyLuaVM static allocation.
-   Is typed as `char s_luaMem[0x400000]` in engine - never used as a `lua_State`
-   directly, but `s_lobbyLuaVM` always contains a pointer to `s_luaMem`.
+   s_luaMem is typed as `char s_luaMem[0x400000]` in the engine.
+   It is never used as a `lua_State` directly, but `s_lobbyLuaVM` always
+   contains a pointer to `s_luaMem` after initialization.
 */
 WEAK symbol<bytearray<0x400000>> s_luaMem{0x1557588F0, 0x14858C420};
 WEAK symbol<lua_State *> primary_luaVM{0x159C76D88, 0x14858C408};
@@ -226,6 +227,72 @@ WEAK symbol<int32_t(lua_State *s, const HksObject *obj)> hks_obj_isnumber{
 WEAK symbol<luaReturnCount_e(lua_State *s, const char *filename,
                              const char *func_name)>
     load_dll{0x141D52B70, 0x1403FB6F0};
+
+WEAK symbol<lua_CFunction> base_loadfile{0x141D232A0, 0x141D300B0, 0x1403D84A0};
+WEAK symbol<lua_CFunction> base_load{0x141D250D0, 0x141D31EE0, 0x1403DB2C0};
+
+WEAK symbol<lua_CFunction> os_clock{0x141D1ED70, 0x141D2B3F0, 0x0};
+WEAK symbol<lua_CFunction> os_clockpersecond{0x141D1EE70, 0x141D2B580,
+                                             0x1403D4070};
+WEAK symbol<lua_CFunction> os_date{0x141D1F210, 0x141D2BE80, 0x1403D45B0};
+WEAK symbol<lua_CFunction> os_difftime{0x141D20440, 0x141D2D030, 0x0};
+// Removed in Sept. 2026 client release
+WEAK symbol<lua_CFunction> os_execute{0x0, 0x141D2AF90, 0x1403D3E00};
+// Removed in Sept. 2026 client release
+WEAK symbol<lua_CFunction> os_exit{0x0, 0x141D2B790, 0x1403D40D0};
+// Removed in Sept. 2026 client release
+WEAK symbol<lua_CFunction> os_getenv{0x0, 0x141D2AFF0, 0x1403D3E60};
+WEAK symbol<lua_CFunction> os_rawclock{0x141D1EE90, 0x141D2B5A0, 0x1403D4090};
+// Removed in Sept. 2026 client release
+WEAK symbol<lua_CFunction> os_remove{0x0, 0x141D2B7C0, 0x1403D4100};
+// Removed in Sept. 2026 client release
+WEAK symbol<lua_CFunction> os_rename{0x0, 0x141D2BB70, 0x1403D4400};
+// Removed in Sept. 2026 client release
+WEAK symbol<lua_CFunction> os_setlocale{0x0, 0x141D2D2E0, 0x1403D5550};
+// Removed in Sept. 2026 client release
+WEAK symbol<lua_CFunction> os_sleep{0x0, 0x141D2B0F0, 0x1403D3F60};
+WEAK symbol<lua_CFunction> os_time{0x141D1FD80, 0x141D2C8E0, 0x1403D4EA0};
+// Removed in Sept. 2026 client release
+WEAK symbol<lua_CFunction> os_tmpname{0x0, 0x141D2B360, 0x1403D3F90};
+
+WEAK symbol<lua_CFunction> io_close{0x141D230F0, 0x141D2FF00, 0x1403D7E00};
+WEAK symbol<lua_CFunction> io_close_file{0x141D22FB0, 0x141D2FDC0, 0x1403D7940};
+WEAK symbol<lua_CFunction> io_flush{0x141D22F80, 0x141D2FD90, 0x1403D7910};
+WEAK symbol<lua_CFunction> io_flush_file{0x141D22F40, 0x141D2FD50, 0x1403D78D0};
+WEAK symbol<lua_CFunction> io_gc{0x141D23120, 0x141D2FF30, 0x1403D7E30};
+WEAK symbol<lua_CFunction> io_input{0x141D24D90, 0x141D31BA0, 0x1403DAC00};
+// Does not exist in dedicated server
+WEAK symbol<lua_CFunction> io_input_or_output{0x141D458A0, 0x141D52330, 0x0};
+WEAK symbol<lua_CFunction> io_lines{0x141D24590, 0x141D313A0, 0x1403DA2A0};
+WEAK symbol<lua_CFunction> io_lines_file{0x141D24450, 0x141D31260, 0x1403DA160};
+WEAK symbol<lua_CFunction> io_open{0x141D24FC0, 0x141D31DD0, 0x1403DB070};
+WEAK symbol<lua_CFunction> io_output{0x141D24DB0, 0x141D31BC0, 0x1403DAC20};
+WEAK symbol<lua_CFunction> io_popen{0x141D270C0, 0x141D33C00, 0x1403DCA70};
+WEAK symbol<lua_CFunction> io_read{0x141D24130, 0x141D30F40, 0x1403D9960};
+WEAK symbol<lua_CFunction> io_read_file{0x141D237B0, 0x141D305C0, 0x1403D89D0};
+WEAK symbol<lua_CFunction> io_seek_file{0x141D25BC0, 0x141D320A0, 0x1403DB480};
+WEAK symbol<lua_CFunction> io_setvbuf{0x141D25D00, 0x141D321E0, 0x1403DB770};
+WEAK symbol<lua_CFunction> io_tmpfile{0x141D24F60, 0x141D31D70, 0x1403DB010};
+WEAK symbol<lua_CFunction> io_tostring{0x141D25EB0, 0x141D32390, 0x1403DBB30};
+WEAK symbol<lua_CFunction> io_type{0x141D24DD0, 0x141D31BE0, 0x1403DAC40};
+WEAK symbol<lua_CFunction> io_write{0x141D22F00, 0x141D2FD10, 0x1403D7890};
+WEAK symbol<lua_CFunction> io_write_file{0x141D22EC0, 0x141D2FCD0, 0x1403D7850};
+
+WEAK symbol<lua_CFunction> compiler_settings{0x141D22750, 0x141D2F560,
+                                             0x1403D6330};
+WEAK symbol<lua_CFunction> set_garbage_collector_weights{
+    0x141D22850, 0x141D2F660, 0x1403D6430};
+WEAK symbol<lua_CFunction> get_garbage_collector_weights{
+    0x141D22D00, 0x141D2FB10, 0x1403D68E0};
+
+WEAK symbol<lua_CFunction> package_loadlib{0x141D1D060, 0x141D299C0,
+                                           0x1403D95E0};
+WEAK symbol<lua_CFunction> serialize_persist{0x141D1FB60, 0x141D2D0C0,
+                                             0x1403DE520};
+WEAK symbol<lua_CFunction> serialize_unpersist{0x141D200E0, 0x141D2D480,
+                                               0x1403DE9C0};
+
+WEAK symbol<lua_CFunction> string_dump{0x141D1F8D0, 0x141D2CF00, 0x1403DE0D0};
 
 WEAK symbol<lua_CFunction> vm_intern_inext{0x141D712E0, 0x140419140};
 WEAK symbol<lua_CFunction> vm_intern_next{0x141D713A0, 0x140419200};

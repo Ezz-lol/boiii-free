@@ -7,6 +7,8 @@ namespace bg {
 namespace cache {
 WEAK symbol<const char *(bgCacheInstance inst, int32_t index)>
     BG_Cache_GetModelNameForIndex{0x1400A7C60, 0x140044430};
+WEAK symbol<void(LocalClientNum_t localClientNum)>
+    BG_Cache_CheckForChecksumMismatchForClient{0x1400A7570, 0x1400A7570, 0x0};
 
 WEAK symbol<int32_t(bgCacheInstance inst, const char *name)>
     BG_Cache_GetScriptMenuIndex{0x1400A7DA0, 0x140044570};

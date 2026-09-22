@@ -644,8 +644,8 @@ struct component final : generic_component {
         scheduler::pipeline::main);
 
     // Patch steam id bit check
-    std::vector<std::pair<size_t, size_t>> patches{};
-    const auto p = [&patches](const size_t a, const size_t b) {
+    std::vector<std::pair<uintptr_t, uintptr_t>> patches{};
+    const auto p = [&patches](const uintptr_t a, const uintptr_t b) {
       patches.emplace_back(a, b);
     };
 
@@ -662,27 +662,67 @@ struct component final : generic_component {
       p(0x140475672_g, 0x1404756B5_g);
       p(0x140477322_g, 0x140477365_g); // ?
     } else {
-      p(0x141E19CED_g, 0x141E19D3B_g);
-      p(0x141EB2C76_g, 0x141EB2CB6_g);
-      p(0x141EB2DAD_g, 0x141EB2DF2_g);
-      p(0x141EB3C35_g, 0x141EB3C76_g);
-      p(0x141E19AD0_g, 0x141E19B26_g);
-      //
-      p(0x141EB0EE8_g, 0x141EB0F29_g);
-      p(0x141EB0FA8_g, 0x141EB0FE9_g);
-      p(0x141EB2525_g, 0x141EB2573_g);
-      p(0x141EB264D_g, 0x141EB26A3_g);
-      p(0x141EB277D_g, 0x141EB27C7_g);
+      p(game::live::metplayer::LiveMetPlayer_AddRecent.offset(0xFD),
+        game::live::metplayer::LiveMetPlayer_AddRecent.offset(0x14B));
+      p(game::live::steam::lobby::LiveSteam_Lobby_RequestJoin.offset(0x16),
+        game::live::steam::lobby::LiveSteam_Lobby_RequestJoin.offset(0x56));
+      p(game::live::steam::lobby::LiveSteamLobby_Pump.offset(0x7D),
+        game::live::steam::lobby::LiveSteamLobby_Pump.offset(0xC2));
+      // LiveSteamLobby_GameLobbyJoinRequested_Handle
+      p(game::live::steam::lobby::LiveSteamLobby_GameLobbyJoinRequested_Handle
+            .offset(0x85),
+        game::live::steam::lobby::LiveSteamLobby_GameLobbyJoinRequested_Handle
+            .offset(0xC6));
+      // XUID_Valid
+      p(game::XUID_Valid.offset(0x0), game::XUID_Valid.offset(0x56));
+      // LiveSteam_Friend_AddByID
+      p(game::live::steam::friends::LiveSteam_Friend_AddByID.offset(0x28),
+        game::live::steam::friends::LiveSteam_Friend_AddByID.offset(0x69));
+      // LiveSteam_Friend_Overlay_ShowFriendByID
+      p(game::live::steam::friends::overlay::
+            LiveSteam_Friend_Overlay_ShowFriendByID.offset(0x28),
+        game::live::steam::friends::overlay::
+            LiveSteam_Friend_Overlay_ShowFriendByID.offset(0x69));
+      // LiveSteamLobby_GetLobbyData_WithCallback
+      p(game::live::steam::lobby::LiveSteamLobby_GetLobbyData_WithCallback
+            .offset(0x65),
+        game::live::steam::lobby::LiveSteamLobby_GetLobbyData_WithCallback
+            .offset(0xB3));
+      // LiveSteamLobby_GetLobbyDataByIndex_WithCallback
+      p(game::live::steam::lobby::
+            LiveSteamLobby_GetLobbyDataByIndex_WithCallback.offset(0x6D),
+        game::live::steam::lobby::
+            LiveSteamLobby_GetLobbyDataByIndex_WithCallback.offset(0xC3));
+      // LiveSteamLobby_GetLobbyDataCount_WithCallback
+      p(game::live::steam::lobby::LiveSteamLobby_GetLobbyDataCount_WithCallback
+            .offset(0x5D),
+        game::live::steam::lobby::LiveSteamLobby_GetLobbyDataCount_WithCallback
+            .offset(0xA7));
 
-      p(0x141EB2AEA_g, 0x141EB2AFA_g);
-      p(0x141EB2B01_g, 0x141EB2B33_g);
+      p(game::live::steam::auth::LiveSteamAuth_Pump.offset(0x2A),
+        game::live::steam::auth::LiveSteamAuth_Pump.offset(0x3A));
+      p(game::live::steam::auth::LiveSteamAuth_Pump.offset(0x41),
+        game::live::steam::auth::LiveSteamAuth_Pump.offset(0x73));
 
-      p(0x141EB3137_g, 0x141EB3147_g);
-      p(0x141EB314E_g, 0x141EB317F_g);
+      p(game::live::steam::lobby::LiveSteamLobby_GetAndValidateID.offset(0x27),
+        game::live::steam::lobby::LiveSteamLobby_GetAndValidateID.offset(0x37));
+      p(game::live::steam::lobby::LiveSteamLobby_GetAndValidateID.offset(0x3E),
+        game::live::steam::lobby::LiveSteamLobby_GetAndValidateID.offset(0x6F));
 
-      p(0x141EB5377_g, 0x141EB53BF_g); // ?
-      p(0x141EB5992_g, 0x141EB59D5_g);
-      p(0x141EB74D2_g, 0x141EB7515_g); // ?
+      // LiveSteamServer_GetAuthDataById
+      p(game::live::steam::server::LiveSteamServer_GetAuthDataById.offset(0x37),
+        game::live::steam::server::LiveSteamServer_GetAuthDataById.offset(
+            0x7F)); // ?
+      // LiveSteamServer_EndAllClientAuthSessions
+      p(game::live::steam::server::LiveSteamServer_EndAllClientAuthSessions
+            .offset(0x42),
+        game::live::steam::server::LiveSteamServer_EndAllClientAuthSessions
+            .offset(0x85));
+      // LiveSteamServer_SteamServersDisconnected_Handle
+      p(game::live::steam::server::
+            LiveSteamServer_SteamServersDisconnected_Handle.offset(0x42),
+        game::live::steam::server::
+            LiveSteamServer_SteamServersDisconnected_Handle.offset(0x85)); // ?
 
       LiveUser_UserGetXuid_hook.create(
           game::live::user::LiveUser_UserGetXuid.get(),
@@ -695,7 +735,7 @@ struct component final : generic_component {
                                 CL_Disconnect_ClearStoredChallenge);
     }
 
-    for (const auto &patch : patches) {
+    for (const std::pair<uintptr_t, uintptr_t> &patch : patches) {
       utils::hook::jump(patch.first, patch.second);
     }
   }

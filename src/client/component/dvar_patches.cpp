@@ -110,9 +110,10 @@ void strip_cheat_flags() {
 }
 
 void dof_enabled_stub(utils::hook::assembler &a) {
-  const auto update_ads_dof = a.get().new_label();
+  const asmjit::Label update_ads_dof = a.get().new_label();
 
-  a.get().mov(rax, qword_ptr(0x14AE95478_g)); // r_dof_enable
+  a.get().mov(rax,
+              qword_ptr(r_dof_enable.get());
 
   a.get().test(rax, rax);
   a.get().jz(update_ads_dof);
@@ -121,11 +122,11 @@ void dof_enabled_stub(utils::hook::assembler &a) {
 
   a.get().je(update_ads_dof);
 
-  a.jmp(0x141116ECB_g);
+  a.jmp(game::select(0x141116eeb, 0x141116ECB, 0x0));
 
   a.get().bind(update_ads_dof);
   a.get().lea(rdx, ptr(rbx, 0x131EB4));
-  a.jmp(0x141116EC2_g); // CG_UpdateAdsDof
+  a.jmp(game::select(0x141116ee2, 0x141116EC2, 0x0)); // CG_UpdateAdsDof
 }
 
 template <const bool Value>
@@ -300,10 +301,12 @@ public:
   static void patch_client() {
 
     // Disable `live_uselpc`
-    utils::hook::call(0x141E0CEA1_g, Dvar_RegisterBool_Force<false>);
+    utils::hook::call(game::select(0x141E00411, 0x141E0CEA1, 0x0),
+                      Dvar_RegisterBool_Force<false>);
 
     // toggle ADS dof based on r_dof_enable
-    utils::hook::jump(0x141116EBB_g, utils::hook::assemble(dof_enabled_stub));
+    utils::hook::jump(game::select(0x141116edb, 0x141116EBB, 0x0),
+                      utils::hook::assemble(dof_enabled_stub));
 
     if (game::cheats()) {
       scheduler::schedule(

@@ -22,6 +22,9 @@ WEAK symbol<void(hunk::HunkUser *hunk, LocalClientNum_t maxLocalClients,
 WEAK symbol<bool(LocalClientNum_t localClientNum)> CG_IsFullyInitialized{
     0x1400AB1A0};
 
+WEAK symbol<void(hunk::HunkUser *user, LocalClientNum_t maxLocalClients,
+                 ClientNum_t maxClients)>
+    CG_FreeClientMemory{0x140853D90, 0x140853D90, 0x0};
 WEAK symbol<void(hunk::HunkUser *user, LocalClientNum_t maxLocalClients)>
     CG_FreeCGEnts{0x140873A30};
 WEAK symbol<void()> CG_ClearCGEnts{0x142D47490};

@@ -27,6 +27,9 @@ WEAK symbol<const char *(int32_t configStringIndex)> CL_GetConfigString{
     0x141321110, 0x14017CCC0};
 WEAK symbol<int64_t(LocalClientNum_t localClientNum)> CL_ClearClientThinkPacket{
     0x1412F33D0};
+WEAK symbol<void(LocalClientNum_t localClientNum, const char *mapname,
+                 const char *gametype)>
+    CL_PreloadMap{0x14135A200, 0x14135A1E0, 0x0};
 WEAK symbol<bool(const char *map)> CL_MapSwitch_IsMapPreloaded{0x14131E9F0};
 WEAK symbol<void(LocalClientNum_t localClientNum, bool isServer)>
     CL_MapSwitch_SwitchNow{0x14131EC60};

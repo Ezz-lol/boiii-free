@@ -409,7 +409,8 @@ utils::concurrency::container<server_list> &get_favorite_servers() {
 
 void add_recent_server(game::net::netadr_t addr) {
   recent_servers.access([&addr](std::vector<game::net::netadr_t> &servers) {
-    for (auto it = servers.begin(); it != servers.end(); ++it) {
+    for (std::vector<game::net::netadr_t>::iterator it = servers.begin();
+         it != servers.end(); ++it) {
       if (network::are_addresses_equal(*it, addr)) {
         servers.erase(it);
         break;
@@ -427,7 +428,8 @@ void add_recent_server(game::net::netadr_t addr) {
 
 void remove_recent_server(game::net::netadr_t addr) {
   recent_servers.access([&addr](std::vector<game::net::netadr_t> &servers) {
-    for (auto it = servers.begin(); it != servers.end(); ++it) {
+    for (std::vector<game::net::netadr_t>::iterator it = servers.begin();
+         it != servers.end(); ++it) {
       if (network::are_addresses_equal(*it, addr)) {
         servers.erase(it);
         break;
@@ -466,7 +468,7 @@ struct component final : client_component {
             }
 
             // Timeout: mark all non-responded masters as done
-            for (auto &m : s.masters) {
+            for (master_query &m : s.masters) {
               m.responded = true;
             }
 
@@ -475,8 +477,9 @@ struct component final : client_component {
         },
         scheduler::async, 200ms);
 
-    lua_server_info_to_table_hook.create(0x141F1FD10_g,
-                                         lua_server_info_to_table_stub);
+    lua_server_info_to_table_hook.create(
+        game::select(0x141F13590, 0x141F1FD10, 0x0),
+        lua_server_info_to_table_stub);
 
     scheduler::once(
         [] {

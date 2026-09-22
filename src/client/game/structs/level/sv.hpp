@@ -183,6 +183,7 @@ struct gclient_s {
   int32_t lastStandTime;
 };
 typedef gclient_s gclient_t;
+// FIXME: correct size is 0x171F0. This struct needs to be corrected.
 ASSERT_SIZE(gclient_s, 0x17200);
 
 #pragma pack(pop)
@@ -493,7 +494,7 @@ ASSERT_SIZE(gentity_s, GENTITY_SIZE);
 
 // level_locals_t has size 0x23A10 on both client and server
 PACKED(struct level_locals_t {
-  gclient_s *clients;
+  gclient_t *clients;
   gentity_t *gentities;
   int32_t gentitySize;
   int32_t num_entities;

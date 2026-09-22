@@ -1,5 +1,4 @@
-#ifndef STRUCTS_DB_XFILE_HPP
-#define STRUCTS_DB_XFILE_HPP
+#pragma once
 
 #include <cstdint>
 
@@ -51,5 +50,3 @@ struct XFile {
 } // namespace xfile
 } // namespace db
 } // namespace game
-
-#endif

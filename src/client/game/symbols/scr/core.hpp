@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdarg>
 #include <game/symbols/sym_include.hpp>
 
 #include <cstdint>
@@ -13,6 +12,10 @@ namespace game {
 namespace scr {
 WEAK symbol<scr_const_t> scr_const{0x14A7290F0, 0x147B91CE0};
 
+// Exactly the same as `UGC_ActiveMod_IsLoaded`, but exclusively used by
+// API functions in the script VM
+// Does not seem to exist in dedicated server.
+WEAK symbol<bool()> Scr_IsModLoaded{0x1420C9420, 0x1420D5BA0, 0x0};
 WEAK symbol<void(scriptInstance_t inst, int32_t value)> Scr_AddInt{0x1412E9870,
                                                                    0x14016F160};
 WEAK symbol<const char *(scriptInstance_t inst, var::ScrVarIndex_t index)>

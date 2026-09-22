@@ -14,10 +14,8 @@ void cg_calc_fov_stub(const game::LocalClientNum_t local_client_num,
   game::cg::CG_CalcFOVfromLens.call_safe(
       local_client_num, fov_x, dx_dz_at_default_aspect_ratio, dx_dz, dy_dz);
 
-  game::EngineDependentDvar cg_fovScale =
-      *reinterpret_cast<const game::EngineDependentDvar *>(0x144A31A88_g);
-  if (cg_fovScale && !game::com::Com_IsRunningUILevel()) {
-    const float scale = cg_fovScale.get_float();
+  if (game::cg_fovScale && !game::com::Com_IsRunningUILevel()) {
+    const float scale = game::cg_fovScale->get_float();
 
     *fov_x *= scale;
     *dx_dz *= scale;
@@ -29,13 +27,16 @@ void cg_calc_fov_stub(const game::LocalClientNum_t local_client_num,
 struct component final : client_component {
   void post_unpack() override {
     // Hook CG_CalcFOVfromLens within CG_CalcFov
-    utils::hook::call(0x1404DADA7_g, cg_calc_fov_stub);
+    utils::hook::call(game::select(0x1404DADA7, 0x1404DADA7, 0x0),
+                      cg_calc_fov_stub);
 
     // Patch cg_fovScale flags
-    utils::hook::set<uint32_t>(0x14090E735_g, game::DVAR_ARCHIVE);
+    utils::hook::set<uint32_t>(game::select(0x14090E735, 0x14090E735, 0x0),
+                               game::DVAR_ARCHIVE);
 
     // Don't reset cg_fovScale
-    utils::hook::set<uint8_t>(0x140926D2A_g, 0xC3);
+    utils::hook::set<uint8_t>(game::select(0x140926D2A, 0x140926D2A, 0x0),
+                              0xC3);
   }
 };
 } // namespace fov

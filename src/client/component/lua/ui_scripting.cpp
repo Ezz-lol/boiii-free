@@ -109,7 +109,8 @@ utils::hook::detour hksi_lua_getinfo_detour;
 
 std::unordered_map<uintptr_t, std::string> rawfile_source_cache{};
 
-std::unordered_map<size_t, utils::hook::detour> unsafe_function_detours;
+std::unordered_map<std::string_view, utils::hook::detour>
+    unsafe_function_detours;
 
 struct globals_t {
   std::string in_require_script;
@@ -1081,7 +1082,7 @@ void ui_cod_lobbyui_init_stub() {
     return;
   }
 
-  const unsigned int generation =
+  const uint32_t generation =
       frontend_scripts_generation.fetch_add(1, std::memory_order_acq_rel) + 1;
   scheduler::once(
       [generation] {
@@ -1095,6 +1096,8 @@ void ui_cod_lobbyui_init_stub() {
 }
 
 void inject_discord_score_subscriptions() {
+  // FIXME: this should be in a separate Lua script file - not inserted inline
+  // within C++ source code.
   const std::string lua_code =
       "LUI.roots.UIRoot0:subscribeToGlobalModel(0, 'GameScore', 'playerScore', "
       "function(model) "
@@ -1225,22 +1228,34 @@ luaReturnCount_e lua_stub_func([[maybe_unused]] lua_State *l) {
   return luaReturnCount_e::NONE;
 }
 
-template <size_t Key>
+template <ConstString Name>
 luaReturnCount_e lua_unsafe_function_require_permissions(lua_State *luaVM) {
   if (unsafe_lua_approved_for_session.load(std::memory_order_acquire) ||
       show_unsafe_lua_dialog()) {
-    return unsafe_function_detours[Key].invoke<luaReturnCount_e>(luaVM);
+    return unsafe_function_detours[Name].template invoke<luaReturnCount_e>(
+        luaVM);
   }
   return luaReturnCount_e::NONE;
 }
 
-template <size_t Key> void hook_unsafe_function(size_t address) {
-  unsafe_function_detours[Key].create(
-      address,
-      reinterpret_cast<void *>(lua_unsafe_function_require_permissions<Key>));
+template <ConstString Key> void hook_unsafe_function(uintptr_t address) {
+  if (address) {
+    unsafe_function_detours[Key].create(
+        game::relocate(address),
+        reinterpret_cast<void *>(lua_unsafe_function_require_permissions<Key>));
+  }
 }
 
-#define HOOK_UNSAFE_FUNCTION(addr) hook_unsafe_function<addr>(addr##_g)
+template <ConstString Key, typename T> void hook_unsafe_function(T *address) {
+  return hook_unsafe_function<Key>(reinterpret_cast<uintptr_t>(address));
+}
+
+template <ConstString Key, typename T>
+void hook_unsafe_function(const game::base_symbol<T> &sym) {
+  return hook_unsafe_function<Key>(sym.get());
+}
+
+#define HOOK_UNSAFE_FUNCTION(name, addr) hook_unsafe_function<#name>(addr)
 
 utils::hook::detour Lua_CoD_LuaCall_OpenURL_hook;
 void patch_unsafe_lua_functions() {
@@ -1255,55 +1270,58 @@ void patch_unsafe_lua_functions() {
   if (utils::flags::has_flag("unsafe-lua")) {
     unsafe_lua_approved_for_session.store(true, std::memory_order_release);
   } else {
-
     // Do not allow the HKS vm to open LUA's libraries
     // Disable unsafe functions (debug library stays completely blocked)
-    utils::hook::jump(0x141D34190_g, lua_stub_func); // debug
+    utils::hook::jump(luaopen_debug,
+                      lua_stub_func); // debug
 
-    HOOK_UNSAFE_FUNCTION(0x141D300B0); // base_loadfile
-    HOOK_UNSAFE_FUNCTION(0x141D31EE0); // base_load
-    HOOK_UNSAFE_FUNCTION(0x141D2CF00); // string_dump
-    HOOK_UNSAFE_FUNCTION(0x141FD3220); // engine_openurl
+    HOOK_UNSAFE_FUNCTION("base_loadfile", base_loadfile);
+    HOOK_UNSAFE_FUNCTION("base_load", base_load);
+    HOOK_UNSAFE_FUNCTION("string_dump", string_dump);
 
-    HOOK_UNSAFE_FUNCTION(0x141D2AFF0); // os_getenv
-    HOOK_UNSAFE_FUNCTION(0x141D2B790); // os_exit
-    HOOK_UNSAFE_FUNCTION(0x141D2B7C0); // os_remove
-    HOOK_UNSAFE_FUNCTION(0x141D2BB70); // os_rename
-    HOOK_UNSAFE_FUNCTION(0x141D2B360); // os_tmpname
-    HOOK_UNSAFE_FUNCTION(0x141D2B0F0); // os_sleep
-    HOOK_UNSAFE_FUNCTION(0x141D2AF90); // os_execute
+    if (!game::is_new_client()) {
+      HOOK_UNSAFE_FUNCTION("os_getenv", os_getenv);
+      HOOK_UNSAFE_FUNCTION("os_tmpname", os_tmpname);
+      HOOK_UNSAFE_FUNCTION("os_execute", os_execute);
+      HOOK_UNSAFE_FUNCTION("os_exit", os_exit);
+      HOOK_UNSAFE_FUNCTION("os_remove", os_remove);
+      HOOK_UNSAFE_FUNCTION("os_rename", os_rename);
+      HOOK_UNSAFE_FUNCTION("os_sleep", os_sleep);
+    }
 
     // io helpers
-    HOOK_UNSAFE_FUNCTION(0x141D32390); // io_tostring
-    HOOK_UNSAFE_FUNCTION(0x141D2FDC0); // io_close_file
-    HOOK_UNSAFE_FUNCTION(0x141D2FD50); // io_flush
-    HOOK_UNSAFE_FUNCTION(0x141D31260); // io_lines
-    HOOK_UNSAFE_FUNCTION(0x141D305C0); // io_read_file
-    HOOK_UNSAFE_FUNCTION(0x141D320A0); // io_seek_file
-    HOOK_UNSAFE_FUNCTION(0x141D321E0); // io_setvbuf
-    HOOK_UNSAFE_FUNCTION(0x141D2FCD0); // io_write
+    HOOK_UNSAFE_FUNCTION("io_tostring", io_tostring);
+    HOOK_UNSAFE_FUNCTION("io_close_file", io_close_file);
+    HOOK_UNSAFE_FUNCTION("io_flush", io_flush);
+    HOOK_UNSAFE_FUNCTION("io_lines", io_lines);
+    HOOK_UNSAFE_FUNCTION("io_read_file", io_read_file);
+    HOOK_UNSAFE_FUNCTION("io_seek_file", io_seek_file);
+    HOOK_UNSAFE_FUNCTION("io_setvbuf", io_setvbuf);
+    HOOK_UNSAFE_FUNCTION("io_write", io_write);
 
     // io functions
-    HOOK_UNSAFE_FUNCTION(0x141D2FD10); // io_write
-    HOOK_UNSAFE_FUNCTION(0x141D30F40); // io_read
-    HOOK_UNSAFE_FUNCTION(0x141D2FF00); // io_close
-    HOOK_UNSAFE_FUNCTION(0x141D2FD90); // io_flush
-    HOOK_UNSAFE_FUNCTION(0x141D313A0); // io_lines
-    HOOK_UNSAFE_FUNCTION(0x141D31BA0); // io_input
-    HOOK_UNSAFE_FUNCTION(0x141D31BC0); // io_output
-    HOOK_UNSAFE_FUNCTION(0x141D31BE0); // io_type
-    HOOK_UNSAFE_FUNCTION(0x141D31DD0); // io_open
-    HOOK_UNSAFE_FUNCTION(0x141D31D70); // io_tmpfile
-    HOOK_UNSAFE_FUNCTION(0x141D33C00); // io_popen
+    HOOK_UNSAFE_FUNCTION("io_write", io_write);
+    HOOK_UNSAFE_FUNCTION("io_read", io_read);
+    HOOK_UNSAFE_FUNCTION("io_close", io_close);
+    HOOK_UNSAFE_FUNCTION("io_flush", io_flush);
+    HOOK_UNSAFE_FUNCTION("io_lines", io_lines);
+    HOOK_UNSAFE_FUNCTION("io_input", io_input);
+    HOOK_UNSAFE_FUNCTION("io_output", io_output);
+    HOOK_UNSAFE_FUNCTION("io_type", io_type);
+    HOOK_UNSAFE_FUNCTION("io_open", io_open);
+    HOOK_UNSAFE_FUNCTION("io_tmpfile", io_tmpfile);
+    HOOK_UNSAFE_FUNCTION("io_popen", io_popen);
 
-    HOOK_UNSAFE_FUNCTION(0x141D2D0C0); // serialize_persist
-    HOOK_UNSAFE_FUNCTION(0x141D2D480); // serialize_unpersist
+    HOOK_UNSAFE_FUNCTION("serialize_persist", serialize_persist);
+    HOOK_UNSAFE_FUNCTION("serialize_unpersist", serialize_unpersist);
 
-    HOOK_UNSAFE_FUNCTION(0x141D2F560); // havokscript_compiler_settings
-    HOOK_UNSAFE_FUNCTION(0x141D2F660); // havokscript_setgcweights
-    HOOK_UNSAFE_FUNCTION(0x141D2FB10); // havokscript_getgcweights
+    HOOK_UNSAFE_FUNCTION("compiler_settings", compiler_settings);
+    HOOK_UNSAFE_FUNCTION("set_garbage_collector_weights",
+                         set_garbage_collector_weights);
+    HOOK_UNSAFE_FUNCTION("get_garbage_collector_weights",
+                         get_garbage_collector_weights);
 
-    HOOK_UNSAFE_FUNCTION(0x141D299C0); // package_loadlib
+    HOOK_UNSAFE_FUNCTION("package_loadlib", package_loadlib);
   }
 }
 } // namespace

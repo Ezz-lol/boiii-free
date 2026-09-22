@@ -13,26 +13,43 @@ public:
   inline constexpr base_symbol(const uintptr_t address) : address_(address) {}
 
   inline constexpr base_symbol(const uintptr_t address,
+                               const uintptr_t legacy_address)
+      : address_(address), legacy_address_(legacy_address) {}
+
+  inline constexpr base_symbol(const uintptr_t address,
+                               const uintptr_t legacy_address,
                                const uintptr_t server_address)
       : address_(address), server_address_(server_address) {}
 
   inline constexpr base_symbol(const intptr_t address) : address_(address) {}
 
   inline constexpr base_symbol(const intptr_t address,
+                               const intptr_t legacy_address)
+      : address_(address), legacy_address_(legacy_address) {}
+
+  inline constexpr base_symbol(const intptr_t address,
+                               const intptr_t legacy_address,
                                const intptr_t server_address)
       : address_(address), server_address_(server_address) {}
 
   T *get() const {
     return reinterpret_cast<T *>(
-        select(0x0, this->address_, this->server_address_));
+        select(this->address_, this->legacy_address_, this->server_address_));
   }
 
   operator T *() const { return this->get(); }
 
   T *operator->() const { return this->get(); }
 
+  template <IntegralLike<uintptr_t> Offset>
+  inline uintptr_t offset(Offset offset) const noexcept {
+    return reinterpret_cast<uintptr_t>(this->get()) +
+           reinterpret_cast<uintptr_t>(offset);
+  }
+
 private:
   uintptr_t address_{};
+  uintptr_t legacy_address_{};
   uintptr_t server_address_{};
 };
 

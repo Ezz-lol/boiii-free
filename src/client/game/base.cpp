@@ -34,8 +34,7 @@ uint32_t header_checksum() {
 }
 
 bool is_new_client() {
-  static const bool result =
-      header_checksum() == 0x6517980 || header_checksum() == 0x6531394;
+  static const bool result = header_checksum() == 0x6531394;
   return result;
 }
 
@@ -57,7 +56,7 @@ bool is_client() {
 }
 
 bool is_legacy_client() {
-  static const bool is_legacy_client = header_checksum() == 0x8880704;
+  static const bool is_legacy_client = header_checksum() == 0x888C368;
   return is_legacy_client;
 }
 

@@ -6,7 +6,7 @@
 
 #include <game/game.hpp>
 
-namespace ezzsec {
+namespace security {
 // =====================================================================
 // Lobby message type enum
 // =====================================================================
@@ -130,35 +130,38 @@ inline void initialize() {
 
   // These offsets are client-only.
   // The _g operator: val_g = game_base + (val - 0x140000000)
-  LobbyMsgRW_PackageInt =
-      reinterpret_cast<tLobbyMsgRW_PackageInt>(0x141EF66D0_g);
-  LobbyMsgRW_PackageUChar =
-      reinterpret_cast<tLobbyMsgRW_PackageUChar>(0x141EF6800_g);
-  LobbyMsgRW_PackageString =
-      reinterpret_cast<tLobbyMsgRW_PackageString>(0x141EF6770_g);
-  LobbyMsgRW_PackageXuid =
-      reinterpret_cast<tLobbyMsgRW_PackageXuid>(0x141EF6940_g);
-  LobbyMsgRW_PackageBool =
-      reinterpret_cast<tLobbyMsgRW_PackageBool>(0x141EF6580_g);
-  LobbyMsgRW_PackageUInt =
-      reinterpret_cast<tLobbyMsgRW_PackageUInt>(0x141EF68A0_g);
-  LobbyMsgRW_PackageShort =
-      reinterpret_cast<tLobbyMsgRW_PackageShort>(0x141EF6750_g);
-  LobbyMsgRW_PackageUInt64 =
-      reinterpret_cast<tLobbyMsgRW_PackageUInt64>(0x141EF6820_g);
+  LobbyMsgRW_PackageInt = reinterpret_cast<tLobbyMsgRW_PackageInt>(
+      game::select(0x0, 0x141EF66D0, 0x0));
+  LobbyMsgRW_PackageUChar = reinterpret_cast<tLobbyMsgRW_PackageUChar>(
+      game::select(0x0, 0x141EF6800, 0x0));
+  LobbyMsgRW_PackageString = reinterpret_cast<tLobbyMsgRW_PackageString>(
+      game::select(0x0, 0x141EF6770, 0x0));
+  LobbyMsgRW_PackageXuid = reinterpret_cast<tLobbyMsgRW_PackageXuid>(
+      game::select(0x0, 0x141EF6940, 0x0));
+  LobbyMsgRW_PackageBool = reinterpret_cast<tLobbyMsgRW_PackageBool>(
+      game::select(0x0, 0x141EF6580, 0x0));
+  LobbyMsgRW_PackageUInt = reinterpret_cast<tLobbyMsgRW_PackageUInt>(
+      game::select(0x0, 0x141EF68A0, 0x0));
+  LobbyMsgRW_PackageShort = reinterpret_cast<tLobbyMsgRW_PackageShort>(
+      game::select(0x0, 0x141EF6750, 0x0));
+  LobbyMsgRW_PackageUInt64 = reinterpret_cast<tLobbyMsgRW_PackageUInt64>(
+      game::select(0x0, 0x141EF6820, 0x0));
   LobbyMsgRW_PackageArrayStart =
-      reinterpret_cast<tLobbyMsgRW_PackageArrayStart>(0x141EF6510_g);
-  LobbyMsgRW_PackageElement =
-      reinterpret_cast<tLobbyMsgRW_PackageElement>(0x141EF65C0_g);
-  LobbyMsgRW_PackageGlob =
-      reinterpret_cast<tLobbyMsgRW_PackageGlob>(0x141EF66B0_g);
-  LobbyMsgRW_PackageFloat =
-      reinterpret_cast<tLobbyMsgRW_PackageFloat>(0x141EF6630_g);
+      reinterpret_cast<tLobbyMsgRW_PackageArrayStart>(
+          game::select(0x0, 0x141EF6510, 0x0));
+  LobbyMsgRW_PackageElement = reinterpret_cast<tLobbyMsgRW_PackageElement>(
+      game::select(0x0, 0x141EF65C0, 0x0));
+  LobbyMsgRW_PackageGlob = reinterpret_cast<tLobbyMsgRW_PackageGlob>(
+      game::select(0x0, 0x141EF66B0, 0x0));
+  LobbyMsgRW_PackageFloat = reinterpret_cast<tLobbyMsgRW_PackageFloat>(
+      game::select(0x0, 0x141EF6630, 0x0));
   MsgMutableClientInfo_Package =
-      reinterpret_cast<tMsgMutableClientInfo_Package>(0x141ED47D0_g);
-  LobbyMsgRW_PrepReadData =
-      reinterpret_cast<tLobbyMsgRW_PrepReadData>(0x141EF69C0_g);
-  MSG_ReadData = reinterpret_cast<tMSG_ReadData>(0x1422154B0_g);
+      reinterpret_cast<tMsgMutableClientInfo_Package>(
+          game::select(0x0, 0x141ED47D0, 0x0));
+  LobbyMsgRW_PrepReadData = reinterpret_cast<tLobbyMsgRW_PrepReadData>(
+      game::select(0x0, 0x141EF69C0, 0x0));
+  MSG_ReadData =
+      reinterpret_cast<tMSG_ReadData>(game::select(0x0, 0x1422154B0, 0x0));
 
   initialized = true;
 }
@@ -207,12 +210,11 @@ inline int MSG_JoinParty_Package_Inspect(char *_this, char *lobbyMsg) {
                                    reinterpret_cast<uint64_t *>(_this + 648));
 
   for (int i = 0; packageOK && (i < 3); i++) {
-    packageOK = packageOK &&
-                fn::LobbyMsgRW_PackageUChar(lobbyMsg, "chunk", _this + i + 689);
+    packageOK &=
+        fn::LobbyMsgRW_PackageUChar(lobbyMsg, "chunk", _this + i + 689);
   }
 
-  packageOK =
-      packageOK &&
+  packageOK &=
       fn::LobbyMsgRW_PackageBool(lobbyMsg, "isStarterPack", _this + 656) &&
       fn::LobbyMsgRW_PackageString(lobbyMsg, "password", _this + 657, 0x20) &&
       fn::LobbyMsgRW_PackageInt(lobbyMsg, "membercount",
@@ -1030,4 +1032,4 @@ inline bool InspectPacket(game::net::msg::msg_t *msg) {
 
   return false; // packet is OK
 }
-} // namespace ezzsec
+} // namespace security

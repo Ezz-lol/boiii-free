@@ -6,6 +6,8 @@
 
 namespace game {
 
+WEAK symbol<bool(XUID xuid)> XUID_Valid{0x141E0D040, 0x141E19AD0, 0x0};
+
 WEAK symbol<void(ClientNum_t clientNum)> ClientCommand{0x14193DFA0,
                                                        0x140295C40};
 

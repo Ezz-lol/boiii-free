@@ -9,14 +9,16 @@
 #include "network.hpp"
 #include "scheduler.hpp"
 
-#include <cstdint>
-#include <functional>
 #include <str.hpp>
-#include <string>
-#include <unordered_map>
+
 #include <utils/finally.hpp>
 #include <utils/hook.hpp>
 #include <utils/string.hpp>
+
+#include <cstdint>
+#include <functional>
+#include <string>
+#include <unordered_map>
 
 namespace network {
 namespace {
@@ -131,7 +133,8 @@ void create_ip_socket() {
   printf("[NET] Socket bound on port %u\n", static_cast<uint32_t>(port - 1));
 
   if (!game::is_server()) {
-    SOCKET *server_socket = reinterpret_cast<SOCKET *>(0x14A640988_g);
+    SOCKET *server_socket =
+        reinterpret_cast<SOCKET *>(game::select(0x14A5B09D8, 0x14A640988, 0x0));
     *server_socket = s;
   }
 }
