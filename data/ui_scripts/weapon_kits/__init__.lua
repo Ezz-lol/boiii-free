@@ -30,6 +30,13 @@ if not __boiii_weapon_kit_originals then
     GetUnlockablesTable = CoD.GetUnlockablesTable,
     GetCustomization = CoD.GetCustomization,
     GetItemRef = Engine.GetItemRef,
+    GetItemName = Engine.GetItemName,
+    GetNumAttachments = Engine.GetNumAttachments,
+    IsOptic = Engine.IsOptic,
+    GetItemAttachment = Engine.GetItemAttachment,
+    GetAttachmentAllocationCost = Engine.GetAttachmentAllocationCost,
+    GetAttachmentRef = Engine.GetAttachmentRef,
+    GetAttachmentDesc = Engine.GetAttachmentDesc,
     GetAttachmentUniqueImage = Engine.GetAttachmentUniqueImageByAttachmentIndex,
     IsItemLocked = Engine.IsItemLocked,
     IsItemLockedForAll = Engine.IsItemLockedForAll,
@@ -74,6 +81,14 @@ for _, definition in ipairs(definitions) do
   end
 end
 
+local function resolveAttachmentLookup(index, mode)
+  local weapon = weaponsByIndex[index]
+  if weapon and weapon.mpIndex and not weapon.zmIndex then
+    return weapon.mpIndex, MP
+  end
+  return index, mode
+end
+
 local function getModelValue(model, name)
   if not model then
     return nil
@@ -104,6 +119,18 @@ end
 local function appendUnique(items, model, ref)
   if not containsRef(items, ref) then
     table.insert(items, model)
+  end
+end
+
+local function populateWeaponAttributes(weapon, model)
+  if weapon.zmIndex or not weapon.mpIndex then
+    return
+  end
+  local unlockables = Engine.CreateModel(Engine.GetGlobalModel(), "Unlockables")
+  local target = Engine.CreateModel(unlockables, weapon.index .. ".weaponAttributes")
+  local source = Engine.GetModel(model, "weaponAttributes")
+  for _, attribute in ipairs({ "damage", "range", "fireRate", "accuracy" }) do
+    setModelValue(target, attribute, getModelValue(source, attribute) or 0)
   end
 end
 
@@ -165,6 +192,7 @@ CoD.GetUnlockablesTable = function(controller, filter, mode)
         setModelValue(model, "isLocked", false)
         setModelValue(model, "isBMClassified", false)
         setModelValue(model, "isContractClassified", false)
+        populateWeaponAttributes(weapon, model)
         result[group] = result[group] or {}
         result[slot] = result[slot] or {}
         appendUnique(result.filterList, model, weapon.ref)
@@ -200,9 +228,61 @@ Engine.GetItemRef = function(index, mode, ...)
   return ref
 end
 
+if original.GetItemName then
+  Engine.GetItemName = function(index, mode, ...)
+    index, mode = resolveAttachmentLookup(index, mode)
+    return original.GetItemName(index, mode, ...)
+  end
+end
+
+if original.GetNumAttachments then
+  Engine.GetNumAttachments = function(index, mode, ...)
+    index, mode = resolveAttachmentLookup(index, mode)
+    return original.GetNumAttachments(index, mode, ...)
+  end
+end
+
+if original.IsOptic then
+  Engine.IsOptic = function(index, attachment, mode, ...)
+    index, mode = resolveAttachmentLookup(index, mode)
+    return original.IsOptic(index, attachment, mode, ...)
+  end
+end
+
+if original.GetItemAttachment then
+  Engine.GetItemAttachment = function(index, attachment, mode, ...)
+    index, mode = resolveAttachmentLookup(index, mode)
+    return original.GetItemAttachment(index, attachment, mode, ...)
+  end
+end
+
+if original.GetAttachmentAllocationCost then
+  Engine.GetAttachmentAllocationCost = function(index, attachment, mode, ...)
+    index, mode = resolveAttachmentLookup(index, mode)
+    return original.GetAttachmentAllocationCost(index, attachment, mode, ...)
+  end
+end
+
+if original.GetAttachmentRef then
+  Engine.GetAttachmentRef = function(index, attachment, mode, ...)
+    index, mode = resolveAttachmentLookup(index, mode)
+    return original.GetAttachmentRef(index, attachment, mode, ...)
+  end
+end
+
+if original.GetAttachmentDesc then
+  Engine.GetAttachmentDesc = function(index, attachment, mode, ...)
+    index, mode = resolveAttachmentLookup(index, mode)
+    return original.GetAttachmentDesc(index, attachment, mode, ...)
+  end
+end
+
 Engine.GetAttachmentUniqueImageByAttachmentIndex = function(mode, weaponIndex, attachmentIndex, ...)
   local weapon = weaponsByIndex[weaponIndex]
-  if weapon and mode == MP and weapon.mpIndex then
+  if weapon and weapon.mpIndex and not weapon.zmIndex then
+    mode = MP
+    weaponIndex = weapon.mpIndex
+  elseif weapon and mode == MP and weapon.mpIndex then
     weaponIndex = weapon.mpIndex
   end
   return original.GetAttachmentUniqueImage(mode, weaponIndex, attachmentIndex, ...)
