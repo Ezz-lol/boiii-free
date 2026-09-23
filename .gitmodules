@@ -57,3 +57,6 @@
 [submodule "deps/concurrentqueue"]
 	path = deps/concurrentqueue
 	url = https://github.com/cameron314/concurrentqueue
+[submodule "deps/hksc"]
+	path = deps/hksc
+	url = https://github.com/Jake-NotTheMuss/hksc.git

@@ -275,7 +275,7 @@ public:
   void post_unpack() override {
     DB_AssetPoolInit_hook.create(game::db::DB_AssetPoolInit.get(),
                                  DB_AssetPoolInit_stub);
-    DB_AssetPoolInit_hook.create(
+    DB_AssetPoolAlloc_hook.create(
         game::db::xasset::pool::DB_AssetPoolAlloc,
         game::db::xasset::pool::DB_AssetPoolAlloc_Impl);
   }

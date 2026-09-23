@@ -23,6 +23,10 @@
 #include <utils/memory.hpp>
 #include <utils/string.hpp>
 
+extern "C" {
+#include <hksclib.h>
+}
+
 using namespace game;
 
 struct TreeDirectory {
@@ -897,14 +901,69 @@ bool lua_bytecode(std::string &data) {
          !memcmp(HKS_LUA_BYTECODE_MAGIC, data.data(),
                  std::size(HKS_LUA_BYTECODE_MAGIC));
 }
+
+int write_lua_bytecode([[maybe_unused]] hksc_State *state, const void *data,
+                       const size_t size, void *output) {
+  try {
+    static_cast<std::string *>(output)->append(static_cast<const char *>(data),
+                                               size);
+    return 0;
+  } catch (...) {
+    return 1;
+  }
+}
+
+int dump_lua_bytecode(hksc_State *state, void *output) {
+  return lua_dump(state, write_lua_bytecode, output);
+}
+
+bool compile_lua(std::string &data, const std::filesystem::path &script_file,
+                 const std::string &name) {
+  hksc_StateSettings settings{};
+  hksI_settings(&settings);
+  settings.mode = HKSC_MODE_SOURCE;
+  settings.compilersettings.strip = BYTECODE_STRIPPING_ALL;
+  settings.compilersettings.ignore_debug = 1;
+
+  hksc_State *state = hksI_newstate(&settings);
+  if (!state) {
+    print_script_log(utils::string::va(
+        "Failed to compile Lua rawfile '%s': out of memory", name.data()));
+    return false;
+  }
+
+  std::string bytecode;
+  const std::string source = script_file.generic_string();
+  const int status =
+      hksI_parser_buffer(state, data.data(), data.size(), source.data(),
+                         dump_lua_bytecode, &bytecode);
+  if (status) {
+    const char *error = lua_geterror(state);
+    print_script_log(
+        utils::string::va("Failed to compile Lua rawfile '%s': %s", name.data(),
+                          error ? error : "unknown compiler error"));
+    hksI_close(state);
+    return false;
+  }
+
+  hksI_close(state);
+  if (!lua_bytecode(bytecode)) {
+    print_script_log(utils::string::va(
+        "Failed to compile Lua rawfile '%s': invalid bytecode", name.data()));
+    return false;
+  }
+
+  data = std::move(bytecode);
+  return true;
+}
+
 void load_rawfile_file(std::string &data,
                        const std::filesystem::path &script_file,
                        const std::string &name) {
-  if (!name.ends_with(".lua") || lua_bytecode(data)) {
+  if (!name.ends_with(".lua") || lua_bytecode(data) ||
+      compile_lua(data, script_file, name)) {
     print_loading_script(name);
     load_rawfile_buf(name, data);
-  } else {
-    // TODO: compile script
   }
 }
 
