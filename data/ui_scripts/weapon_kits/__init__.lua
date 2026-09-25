@@ -149,9 +149,18 @@ local function allowCamos(ref)
   end
 end
 
+local function dvarEnabled(name)
+  local dvar = Dvar[name]
+  return dvar and dvar:get() == true
+end
+
+local function lootUnlocked()
+  return dvarEnabled("cg_unlockall_loot") or dvarEnabled("cg_unlockall_purchases")
+end
+
 if original.BMIsUnreleased then
   CoD.BlackMarketUtility.IsUnreleasedBlackMarketItem = function(ref, ...)
-    if weaponsByRef[ref] then
+    if lootUnlocked() or weaponsByRef[ref] then
       return false
     end
     return original.BMIsUnreleased(ref, ...)
@@ -290,7 +299,7 @@ end
 
 if original.IsItemLocked then
   Engine.IsItemLocked = function(controller, index, ...)
-    if weaponsByIndex[index] then
+    if lootUnlocked() or weaponsByIndex[index] then
       return false
     end
     return original.IsItemLocked(controller, index, ...)
@@ -299,7 +308,7 @@ end
 
 if original.IsItemLockedForAll then
   Engine.IsItemLockedForAll = function(index, ...)
-    if weaponsByIndex[index] then
+    if lootUnlocked() or weaponsByIndex[index] then
       return false
     end
     return original.IsItemLockedForAll(index, ...)
@@ -333,7 +342,7 @@ end
 
 if original.IsItemRefLocked then
   IsItemRefLocked = function(controller, ref, ...)
-    if weaponsByRef[ref] then
+    if lootUnlocked() or weaponsByRef[ref] then
       return false
     end
     return original.IsItemRefLocked(controller, ref, ...)
@@ -353,7 +362,7 @@ end
 if CoD.BlackMarketUtility then
   if original.BMIsItemLocked then
     CoD.BlackMarketUtility.IsItemLocked = function(controller, ref, ...)
-      if weaponsByRef[ref] then
+      if lootUnlocked() or weaponsByRef[ref] then
         return false
       end
       return original.BMIsItemLocked(controller, ref, ...)
@@ -361,7 +370,7 @@ if CoD.BlackMarketUtility then
   end
   if original.BMGetItemQuantity then
     CoD.BlackMarketUtility.GetItemQuantity = function(controller, ref, ...)
-      if weaponsByRef[ref] then
+      if lootUnlocked() or weaponsByRef[ref] then
         return 1
       end
       return original.BMGetItemQuantity(controller, ref, ...)

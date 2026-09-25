@@ -1132,6 +1132,65 @@ void gscr_int64_toint(scriptInstance_t inst) {
   push(inst, static_cast<int>(val));
 }
 
+void gscr_prepareweaponkitassets(scriptInstance_t inst) {
+  const char *base_name = Scr_GetString(inst, 0);
+  const char *upgrade_name = Scr_GetString(inst, 1);
+  if (!base_name || !upgrade_name) {
+    push(inst, false);
+    return;
+  }
+
+  struct context {
+    const char *base_name;
+    const char *upgrade_name;
+    game::weapon::WeaponVariantDef *base{};
+    game::weapon::WeaponVariantDef *upgrade{};
+  } ctx{base_name, upgrade_name};
+
+  game::db::xasset::DB_EnumXAssets(
+      game::db::xasset::XAssetType::WEAPON,
+      [](game::db::xasset::XAssetHeader header, void *data) {
+        context *ctx = static_cast<context *>(data);
+        game::weapon::WeaponVariantDef *variant = header.weapon;
+        if (!variant || !variant->szModeIndependentName)
+          return;
+
+        if (!strcmp(variant->szModeIndependentName, ctx->base_name))
+          ctx->base = variant;
+        else if (!strcmp(variant->szModeIndependentName, ctx->upgrade_name))
+          ctx->upgrade = variant;
+      },
+      &ctx, false);
+
+  if (!ctx.base || !ctx.upgrade) {
+    push(inst, false);
+    return;
+  }
+
+  const auto find_camo = [](const std::string &name) {
+    const auto header = game::db::xasset::DB_FindXAssetHeader(
+        game::db::xasset::XAssetType::WEAPON_CAMO, name.c_str(), false, -1);
+    return const_cast<game::weapon::WeaponCamo *>(
+        reinterpret_cast<const game::weapon::WeaponCamo *>(header.named));
+  };
+
+  auto *weapon_camo = find_camo("camo_t7_" + std::string(base_name));
+
+  if (weapon_camo && weapon_camo->numCamoMaterials && ctx.base->weapDef &&
+      ctx.upgrade->weapDef) {
+    ctx.base->weapDef->weaponCamo = weapon_camo;
+    ctx.upgrade->weapDef->weaponCamo = weapon_camo;
+  }
+
+  ctx.upgrade->szAttachmentUnique = ctx.base->szAttachmentUnique;
+  ctx.upgrade->attachments = ctx.base->attachments;
+  ctx.upgrade->attachmentUniques = ctx.base->attachmentUniques;
+  ctx.upgrade->iAttachments = ctx.base->iAttachments;
+  ctx.upgrade->bIgnoreAttachments = ctx.base->bIgnoreAttachments;
+
+  push(inst, true);
+}
+
 void gscr_int64_min(scriptInstance_t inst) {
   const int64_t a = parse_int64_arg(inst, 0);
   const int64_t b = parse_int64_arg(inst, 1);
@@ -1653,6 +1712,8 @@ struct component final : generic_component {
     register_builtin("int64_op", gscr_int64_op, 3);
     register_builtin("int64_isint", gscr_int64_isint, 1);
     register_builtin("int64_toint", gscr_int64_toint, 1);
+    register_builtin(SCRIPTINSTANCE_SERVER, "prepareweaponkitassets",
+                     gscr_prepareweaponkitassets, 2);
     register_builtin("int64_min", gscr_int64_min, 2);
     register_builtin("int64_max", gscr_int64_max, 2);
     register_builtin("int64_abs", gscr_int64_abs, 1);
