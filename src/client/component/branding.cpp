@@ -30,7 +30,7 @@ void draw_branding() {
     game::vec4_t color = {.r = 0.666f, .g = 0.666f, .b = 0.666f, .a = 0.666f};
 
     const uint32_t *font = reinterpret_cast<const uint32_t *>(
-        game::select(0x1433519B0, 0x1432D2918, 0x1410E1BE0));
+        game::select(0x1432D2918, 0x1433519B0, 0x1410E1BE0));
 
     game::render::R_AddCmdDrawText(
         "EZZ: " VERSION, std::numeric_limits<int>::max(), font, x,
