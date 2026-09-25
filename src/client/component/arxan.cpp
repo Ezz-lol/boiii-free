@@ -830,13 +830,11 @@ struct component final : generic_component {
     utils::hook::move_hook(GetWindowTextA);
 
     AddVectoredExceptionHandler(1, exception_filter);
-    if (game::is_legacy_client() || game::is_server()) {
 
-      void **sys_met_import =
-          utils::nt::library{}.get_iat_entry("user32.dll", "GetSystemMetrics");
-      if (sys_met_import) {
-        utils::hook::set(sys_met_import, get_system_metrics_stub);
-      }
+    void **sys_met_import =
+        utils::nt::library{}.get_iat_entry("user32.dll", "GetSystemMetrics");
+    if (sys_met_import) {
+      utils::hook::set(sys_met_import, get_system_metrics_stub);
     }
   }
 
