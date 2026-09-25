@@ -362,6 +362,10 @@ void register_hook(const std::string &process, void *stub) {
     throw std::runtime_error("Failed to hook: " + process);
   }
 
+#ifndef NDEBUG
+  game::trace("Registering demonware hook {}: {:p} -> {:p}", process,
+              result->first, result->second);
+#endif
   original_imports[result->first] = result->second;
 }
 

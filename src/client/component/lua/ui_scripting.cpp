@@ -1241,7 +1241,7 @@ luaReturnCount_e lua_unsafe_function_require_permissions(lua_State *luaVM) {
 template <ConstString Key> void hook_unsafe_function(uintptr_t address) {
   if (address) {
     unsafe_function_detours[Key].create(
-        game::relocate(address),
+        address,
         reinterpret_cast<void *>(lua_unsafe_function_require_permissions<Key>));
   }
 }

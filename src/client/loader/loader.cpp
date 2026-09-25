@@ -72,62 +72,62 @@ void load_imports(const utils::nt::library &target) {
 }
 
 void load_relocations(const utils::nt::library &target) {
-  if (!utils::nt::is_wine()) {
-    return;
-  }
+  if (utils::nt::is_wine()) {
+    uint8_t *current_base = target.get_ptr();
+    const ULONGLONG initial_base = target.get_optional_header()->ImageBase;
+    const ptrdiff_t delta =
+        reinterpret_cast<ptrdiff_t>(current_base) - initial_base;
 
-  uint8_t *current_base = target.get_ptr();
-  const ULONGLONG initial_base = target.get_optional_header()->ImageBase;
-  const ptrdiff_t delta =
-      reinterpret_cast<ptrdiff_t>(current_base) - initial_base;
-
-  PIMAGE_DATA_DIRECTORY directory =
-      &target.get_optional_header()
-           ->DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC];
-  if (directory->Size == 0) {
-    return;
-  }
-
-  PIMAGE_BASE_RELOCATION relocation = reinterpret_cast<PIMAGE_BASE_RELOCATION>(
-      current_base + directory->VirtualAddress);
-  while (relocation->VirtualAddress > 0) {
-    unsigned char *dest = current_base + relocation->VirtualAddress;
-
-    uint16_t *rel_info =
-        offset_pointer<uint16_t *>(relocation, sizeof(IMAGE_BASE_RELOCATION));
-    const uint16_t *rel_info_end = offset_pointer<uint16_t *>(
-        rel_info, relocation->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION));
-
-    for (; rel_info < rel_info_end; ++rel_info) {
-      const int type = *rel_info >> 12;
-      const int offset = *rel_info & 0xfff;
-
-      switch (type) {
-      case IMAGE_REL_BASED_ABSOLUTE:
-        break;
-
-      case IMAGE_REL_BASED_HIGHLOW: {
-        DWORD *patch_address = reinterpret_cast<DWORD *>(dest + offset);
-        utils::hook::set(patch_address,
-                         *patch_address + static_cast<DWORD>(delta));
-        break;
-      }
-
-      case IMAGE_REL_BASED_DIR64: {
-        ULONGLONG *patch_address = reinterpret_cast<ULONGLONG *>(dest + offset);
-        utils::hook::set(patch_address,
-                         *patch_address + static_cast<ULONGLONG>(delta));
-        break;
-      }
-
-      default:
-        throw std::runtime_error("Unknown relocation type: " +
-                                 std::to_string(type));
-      }
+    PIMAGE_DATA_DIRECTORY directory =
+        &target.get_optional_header()
+             ->DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC];
+    if (directory->Size == 0) {
+      return;
     }
 
-    relocation = offset_pointer<PIMAGE_BASE_RELOCATION>(
-        relocation, relocation->SizeOfBlock);
+    PIMAGE_BASE_RELOCATION relocation =
+        reinterpret_cast<PIMAGE_BASE_RELOCATION>(current_base +
+                                                 directory->VirtualAddress);
+    while (relocation->VirtualAddress > 0) {
+      unsigned char *dest = current_base + relocation->VirtualAddress;
+
+      uint16_t *rel_info =
+          offset_pointer<uint16_t *>(relocation, sizeof(IMAGE_BASE_RELOCATION));
+      const uint16_t *rel_info_end = offset_pointer<uint16_t *>(
+          rel_info, relocation->SizeOfBlock - sizeof(IMAGE_BASE_RELOCATION));
+
+      for (; rel_info < rel_info_end; ++rel_info) {
+        const int type = *rel_info >> 12;
+        const int offset = *rel_info & 0xfff;
+
+        switch (type) {
+        case IMAGE_REL_BASED_ABSOLUTE:
+          break;
+
+        case IMAGE_REL_BASED_HIGHLOW: {
+          DWORD *patch_address = reinterpret_cast<DWORD *>(dest + offset);
+          utils::hook::set(patch_address,
+                           *patch_address + static_cast<DWORD>(delta));
+          break;
+        }
+
+        case IMAGE_REL_BASED_DIR64: {
+          ULONGLONG *patch_address =
+              reinterpret_cast<ULONGLONG *>(dest + offset);
+          utils::hook::set(patch_address,
+                           *patch_address + static_cast<ULONGLONG>(delta));
+          break;
+        }
+
+        default:
+          throw std::runtime_error("Unknown relocation type: " +
+                                   std::to_string(type));
+        }
+      }
+
+      relocation = offset_pointer<PIMAGE_BASE_RELOCATION>(
+          relocation, relocation->SizeOfBlock);
+    }
   }
 }
 
