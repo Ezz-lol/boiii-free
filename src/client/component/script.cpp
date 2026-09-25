@@ -201,7 +201,7 @@ const GSC_OBJ *get_linked_obj(const std::string &name) {
   std::string with_ext_norm = normalize_path(with_ext);
   std::string without_ext_norm = normalize_path(without_ext);
 
-  GSC_OBJ *result;
+  GSC_OBJ *result = nullptr;
   // Check our custom scripts (case-insensitive key search)
   loaded_scripts.for_each(
       [&result, &normalize_path, &with_ext_norm, &without_ext_norm](
@@ -270,6 +270,8 @@ const GSC_OBJ *get_linked_obj(const std::string &name) {
 struct export_lookup_result {
   uint8_t *address = nullptr;
   bool script_loaded = false;
+  bool valid_object = false;
+  std::vector<uint8_t> matching_params;
 };
 
 export_lookup_result
@@ -288,9 +290,12 @@ resolve_export_address_internal(const std::string &script_name,
     return result;
   }
 
+  result.valid_object = true;
+
   const std::span<const GSC_EXPORT_ITEM> exports = obj->exports();
   for (uint16_t i = 0; i < exports.size(); i++) {
     if (exports[i].name == func_hash) {
+      result.matching_params.push_back(exports[i].param_count);
       if (expected_params < 0 ||
           exports[i].param_count == static_cast<uint8_t>(expected_params)) {
         result.address = reinterpret_cast<uint8_t *>(
@@ -332,10 +337,40 @@ void apply_pending_detours() {
           continue;
         }
 
+        const auto describe_failure = [](const export_lookup_result &result,
+                                         const int32_t expected_params) {
+          if (!result.valid_object) {
+            return std::string("invalid script object");
+          }
+
+          if (result.matching_params.empty()) {
+            return std::string("function export not found");
+          }
+
+          std::string params;
+          for (const uint8_t count : result.matching_params) {
+            if (!params.empty()) {
+              params += ", ";
+            }
+            params += std::to_string(count);
+          }
+
+          return std::format("expected {} parameter(s), available: {}",
+                             expected_params, params);
+        };
+
+        std::string reason;
+        if (!target.address) {
+          reason = "target " + describe_failure(target, d.target_params);
+        } else {
+          reason = "replacement " + describe_failure(replace, d.replace_params);
+        }
+
         const char *err = utils::string::va(
-            "[gsc] detour bind failed %s::%s(%d) -> %s::%s(%d)",
+            "[gsc] detour bind failed %s::%s(%d) -> %s::%s(%d): %s",
             d.target_script.c_str(), d.target_func.c_str(), d.target_params,
-            d.replace_script.c_str(), d.replace_func.c_str(), d.replace_params);
+            d.replace_script.c_str(), d.replace_func.c_str(), d.replace_params,
+            reason.c_str());
         print_script_log(err);
       }
     }
