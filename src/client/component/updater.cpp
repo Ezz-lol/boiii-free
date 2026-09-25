@@ -56,6 +56,10 @@ void update(bool force) {
 }
 
 class component final : public generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "updater"; }
+#endif
+
 public:
   component() {
     this->update_thread_ = std::thread([] { update(); });

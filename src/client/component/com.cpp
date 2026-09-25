@@ -81,6 +81,10 @@ void on_level_unload(const LoadTask &callback) {
 }
 
 class component final : public generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "com"; }
+#endif
+
 public:
   void post_unpack() override {
     /*

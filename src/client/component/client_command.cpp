@@ -37,6 +37,10 @@ void register_handler(std::string name, clientCommandHandler_t cmd) {
 }
 
 class component final : public generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "client_command"; }
+#endif
+
 public:
   void post_unpack() override {
     ClientCommand_hook.create(game::ClientCommand,

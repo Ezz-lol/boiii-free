@@ -24,6 +24,10 @@ void apply_startup_flags() {
 } // namespace
 
 class component final : public client_component {
+#ifndef NDEBUG
+  std::string name() override { return "startup_flags"; }
+#endif
+
 public:
   void post_unpack() override {
     // Schedule after dvars are loaded from config so we can override them

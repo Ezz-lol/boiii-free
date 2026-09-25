@@ -47,6 +47,10 @@ void on_g_shutdown_game(const game_event_cb callback) {
 }
 
 class component final : public generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "game_event"; }
+#endif
+
 public:
   void post_unpack() override {
     utils::hook::call(game::select(0x1419D15F9, 0x1419DD6EC, 0x1402ABC1B),

@@ -421,6 +421,10 @@ utils::concurrency::container<recent_list> &get_recent_servers() {
 }
 
 struct component final : client_component {
+#ifndef NDEBUG
+  std::string name() override { return "server_list"; }
+#endif
+
   void post_unpack() override {
 
     network::on("getServersResponse",

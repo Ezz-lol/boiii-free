@@ -489,6 +489,10 @@ void refresh_friends(const std::vector<uint64_t> &steam_ids,
 }
 
 class component final : public client_component {
+#ifndef NDEBUG
+  std::string name() override { return "nat"; }
+#endif
+
 public:
   void post_unpack() override {
     scheduler::once(

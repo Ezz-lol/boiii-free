@@ -43,6 +43,10 @@ luaReturnCount_e steam_disabled(lua_State *luaVM) {
 }
 
 class component final : public generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "net"; }
+#endif
+
 public:
   void post_unpack() override {
 

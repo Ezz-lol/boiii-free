@@ -32,6 +32,10 @@ void override(const std::string &key, const std::string &value) {
 }
 
 class component final : public client_component {
+#ifndef NDEBUG
+  std::string name() override { return "localized_strings"; }
+#endif
+
 public:
   void post_unpack() override {
     // Change some localized strings

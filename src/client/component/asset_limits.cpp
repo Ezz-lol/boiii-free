@@ -271,6 +271,10 @@ utils::hook::detour DB_AssetPoolAlloc_hook;
 } // namespace
 
 class component final : public generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "asset_limits"; }
+#endif
+
 public:
   void post_unpack() override {
     DB_AssetPoolInit_hook.create(game::db::DB_AssetPoolInit.get(),

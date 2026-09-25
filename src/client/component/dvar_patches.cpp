@@ -254,6 +254,10 @@ bool return_false() { return false; }
 } // namespace
 
 class component final : public generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "dvar_patches"; }
+#endif
+
 public:
   void post_unpack() override {
     /*

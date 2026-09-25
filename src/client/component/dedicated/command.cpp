@@ -62,6 +62,10 @@ void trigger_map_rotation() {
 }
 
 struct component final : server_component {
+#ifndef NDEBUG
+  std::string name() override { return "command"; }
+#endif
+
   void post_unpack() override {
     // Ignore "bad stats"
     // utils::hook::set<uint8_t>(0x14052D523_g, 0xEB);

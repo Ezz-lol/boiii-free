@@ -34,6 +34,10 @@ void add_console(const std::string &name, const callback &cmd) {
 }
 
 class component final : public server_component {
+#ifndef NDEBUG
+  std::string name() override { return "console_command"; }
+#endif
+
 public:
   void post_unpack() override {
     console_command_hook.create(0x1402FF8C0_g, &console_command_stub);

@@ -417,6 +417,10 @@ void register_lua_libs() {
 } // namespace lua
 
 class component final : public generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "discord"; }
+#endif
+
 public:
   void post_load() override {
     if (game::is_client()) {

@@ -75,6 +75,10 @@ luaReturnCount_e ping(lua_State *s) {
 }
 
 class component final : public generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "axios"; }
+#endif
+
 public:
   void post_unpack() override {
     static constexpr const luaL_Reg AxiosLibrary[] = {

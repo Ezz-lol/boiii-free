@@ -7,6 +7,10 @@
 namespace log {
 
 class component final : public generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "log"; }
+#endif
+
 public:
   void post_load() override { game::log::thread::startup(); }
   void pre_destroy() override { game::log::thread::shutdown(); }

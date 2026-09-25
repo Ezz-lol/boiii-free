@@ -168,6 +168,10 @@ void read_archive_dvars() {
 } // namespace
 
 class component final : public generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "dvars"; }
+#endif
+
 public:
   void post_unpack() override {
     if (game::is_client()) {

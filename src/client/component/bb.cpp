@@ -228,6 +228,10 @@ void redirect_bb_logging_to_stdout() {
 }
 
 class component final : public generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "bb"; }
+#endif
+
 public:
   void post_unpack() override { redirect_bb_logging_to_stdout(); }
 };

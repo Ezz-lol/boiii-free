@@ -195,6 +195,10 @@ void get_map_id_from_json() {
 } // namespace
 
 class component final : public generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "workshop_id"; }
+#endif
+
 public:
   void pre_destroy() override {
     running = false;

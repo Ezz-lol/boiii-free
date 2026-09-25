@@ -730,6 +730,10 @@ game::XUID find_browser_route(const std::string &address) {
 }
 
 struct component final : client_component {
+#ifndef NDEBUG
+  std::string name() override { return "friends"; }
+#endif
+
   void post_unpack() override {
     reload_from_disk();
 

@@ -74,11 +74,24 @@ bool activate(bool server) {
 }
 
 bool post_load() {
+#ifndef NDEBUG
+  game::trace("Executing component_loader::post_load");
+#endif
   static const bool res = [] {
     try {
       for (const std::unique_ptr<generic_component> &component :
            get_components()) {
+
+#ifndef NDEBUG
+        game::trace("Executing post_load() in component with name: {}",
+                    component->name());
+#endif
         component->post_load();
+#ifndef NDEBUG
+        game::trace(
+            "Successfully executed post_load() in component with name: {}",
+            component->name());
+#endif
       }
     } catch (premature_shutdown_trigger &) {
       return false;
@@ -90,15 +103,32 @@ bool post_load() {
     return true;
   }();
 
+#ifndef NDEBUG
+  game::trace("Executed component_loader::post_load with result: {}",
+              res ? "true" : "false");
+#endif
+
   return res;
 }
 
 void post_unpack() {
+#ifndef NDEBUG
+  game::trace("Executing component_loader::post_unpack");
+#endif
   static const bool res = [] {
     try {
       for (const std::unique_ptr<generic_component> &component :
            get_components()) {
+#ifndef NDEBUG
+        game::trace("Executing post_unpack() in component with name: {}",
+                    component->name());
+#endif
         component->post_unpack();
+#ifndef NDEBUG
+        game::trace(
+            "Successfully executed post_unpack() in component with name: {}",
+            component->name());
+#endif
       }
     } catch (const std::exception &e) {
       game::show_error(e.what());
@@ -108,6 +138,10 @@ void post_unpack() {
     return true;
   }();
 
+#ifndef NDEBUG
+  game::trace("Executed component_loader::post_load with result: {}",
+              res ? "true" : "false");
+#endif
   if (!res) {
     TerminateProcess(GetCurrentProcess(), 1);
   }

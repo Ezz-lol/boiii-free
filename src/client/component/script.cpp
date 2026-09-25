@@ -1473,6 +1473,10 @@ utils::hook::detour ReportObjLinkError_hook;
 utils::hook::detour ReportObjLinkError2_hook;
 
 struct component final : generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "script"; }
+#endif
+
   void post_unpack() override {
     // Return custom or overrided scripts if found
     db_find_x_asset_header_hook.create(DB_FindXAssetHeader,

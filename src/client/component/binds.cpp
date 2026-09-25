@@ -297,6 +297,10 @@ void init_hooks_and_load() {
 } // namespace
 
 struct component final : client_component {
+#ifndef NDEBUG
+  std::string name() override { return "binds"; }
+#endif
+
   void post_unpack() override {
     command::add("binds_loaded", [] {
       current_phase = phase::ready;

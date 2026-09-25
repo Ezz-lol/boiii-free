@@ -862,6 +862,10 @@ void WINAPI set_unhandled_exception_filter_stub(LPTOP_LEVEL_EXCEPTION_FILTER) {
 } // namespace
 
 struct component final : generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "exception"; }
+#endif
+
   component() {
     main_thread_id = GetCurrentThreadId();
     SetUnhandledExceptionFilter(exception_filter);

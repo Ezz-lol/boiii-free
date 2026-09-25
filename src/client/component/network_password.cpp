@@ -40,6 +40,10 @@ bool is_password_set() {
 }
 
 struct component final : generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "network_password"; }
+#endif
+
   void post_unpack() override {
     scheduler::once(
         [] {

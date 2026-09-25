@@ -205,6 +205,10 @@ void NitrousVehicle_pause_insentient_physics(NitrousVehicle *self,
 } // namespace
 
 struct component final : server_component {
+#ifndef NDEBUG
+  std::string name() override { return "vehicle"; }
+#endif
+
   void post_unpack() override {
     enable_client_game_pools();
     path_constraint_update_hook.create(path_constraint_update,

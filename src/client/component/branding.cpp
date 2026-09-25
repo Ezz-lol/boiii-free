@@ -43,6 +43,10 @@ const char *get_ingame_console_prefix_stub() { return "EZZ> "; }
 } // namespace
 
 struct component final : client_component {
+#ifndef NDEBUG
+  std::string name() override { return "branding"; }
+#endif
+
   void post_unpack() override {
     if (!utils::flags::has_flag("nobranding")) {
 

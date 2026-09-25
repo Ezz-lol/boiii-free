@@ -99,6 +99,10 @@ game::sv::client_s *get_client(game::ClientNum_t clientNum) {
 }
 
 class component final : public generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "sv"; }
+#endif
+
 public:
   void post_unpack() override {
     SV_ClientEnterWorld_hook.create(game::sv::SV_ClientEnterWorld.get(),

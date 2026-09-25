@@ -188,6 +188,10 @@ utils::hook::detour LiveAntiCheat_ConsoleDetailsReported_hook;
 utils::hook::detour LiveSteam_NotVacBanned_hook;
 
 class component final : public client_component {
+#ifndef NDEBUG
+  std::string name() override { return "live"; }
+#endif
+
 public:
   void post_unpack() override {
     LiveUser_UserGetName_hook.create(

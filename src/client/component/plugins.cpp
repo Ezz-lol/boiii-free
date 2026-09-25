@@ -11,6 +11,10 @@
 
 namespace plugins {
 struct component final : generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "plugins"; }
+#endif
+
   component() {
     namespace fs = std::filesystem;
 

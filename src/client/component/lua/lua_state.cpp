@@ -53,6 +53,10 @@ void on_state_openlibs(const lua_state_cb callback) {
 }
 
 class component final : public generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "lua_state"; }
+#endif
+
 public:
   void post_unpack() override {
     hks_newstate_hook.create(hks_newstate, hks_newstate_exec_callbacks);

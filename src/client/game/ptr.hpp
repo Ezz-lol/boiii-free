@@ -8,7 +8,6 @@
 #include <span>
 
 namespace game {
-
 #if defined(_WIN64)
 #include <intrin.h>
 inline uintptr_t PEB() {

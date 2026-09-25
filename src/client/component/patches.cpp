@@ -459,6 +459,10 @@ FILE *wfsopen_adjustpath(const wchar_t *FileName, const wchar_t *Mode,
 }
 
 struct component final : generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "patches"; }
+#endif
+
   void post_unpack() override {
 
     G_RegisterSoundWait_hook.create(game::G_RegisterSoundWait.get(),

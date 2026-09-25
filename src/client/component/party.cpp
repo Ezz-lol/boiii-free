@@ -511,6 +511,10 @@ void clear_server_info() {
 }
 
 struct component final : client_component {
+#ifndef NDEBUG
+  std::string name() override { return "party"; }
+#endif
+
   void post_unpack() override {
     cl_connected_to_dedi =
         game::register_dvar_bool("cl_connected_to_dedi", false, game::DVAR_NONE,

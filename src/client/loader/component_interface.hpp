@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 enum class component_priority {
   min = 0,
   // must run after the steam_proxy
@@ -24,6 +26,9 @@ enum class component_type {
 struct generic_component {
   static constexpr component_type type = component_type::any;
 
+#ifndef NDEBUG
+  virtual std::string name() { return "generic"; }
+#endif
   virtual ~generic_component() = default;
 
   virtual void post_load() {}
@@ -38,9 +43,17 @@ struct generic_component {
 };
 
 struct client_component : generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "generic_client"; }
+#endif
+
   static constexpr component_type type = component_type::client;
 };
 
 struct server_component : generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "generic_server"; }
+#endif
+
   static constexpr component_type type = component_type::server;
 };

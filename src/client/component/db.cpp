@@ -76,6 +76,10 @@ maptable::MapTable *Com_GetMapTable_Safe(const char *mapTableName) {
 }
 
 class component final : public generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "db"; }
+#endif
+
 public:
   void post_unpack() override {
     Com_GametypeSettings_GametypeSetting_f_hook.create(

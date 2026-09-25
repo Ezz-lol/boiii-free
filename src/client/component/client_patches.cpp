@@ -444,6 +444,10 @@ utils::hook::detour Com_FPSLimit_hook;
 } // namespace
 
 class component final : public client_component {
+#ifndef NDEBUG
+  std::string name() override { return "client_patches"; }
+#endif
+
 public:
   void post_unpack() override {
 

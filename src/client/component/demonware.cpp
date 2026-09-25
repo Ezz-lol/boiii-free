@@ -369,6 +369,10 @@ const char *get_ffotd_name() { return "core_ffotd_tu32_593"; }
 } // namespace
 
 struct component final : generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "demonware"; }
+#endif
+
   component() {
     udp_servers.create<stun_server>("stun.us.demonware.net");
     udp_servers.create<stun_server>("stun.eu.demonware.net");

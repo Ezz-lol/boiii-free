@@ -68,6 +68,10 @@ size_t get_bot_count() {
 bool is_host() { return game::server_running(); }
 
 struct component final : generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "getinfo"; }
+#endif
+
   void post_unpack() override {
 
     game::sv_wwwDownload = game::register_dvar_bool(

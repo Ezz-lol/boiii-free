@@ -150,6 +150,10 @@ inline void handle_invalid_mt_allocs() {
 }
 
 class component final : public generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "scrvar"; }
+#endif
+
 public:
   void post_unpack() override {
     handle_invalid_scrvars();

@@ -254,6 +254,10 @@ void abort_game_frame() {
 
 namespace scheduler {
 struct component final : generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "scheduler"; }
+#endif
+
   void post_load() override {
     async_thread = utils::thread::create_named_thread("Async Scheduler", []() {
       while (!kill) {

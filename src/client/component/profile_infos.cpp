@@ -206,6 +206,10 @@ void update_profile_info(const profile_info &info) {
 }
 
 struct component final : generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "profile_infos"; }
+#endif
+
   void post_unpack() override {
     scheduler::loop(clean_cached_profile_infos, scheduler::main, 5s);
 

@@ -46,6 +46,10 @@ void set_server_info_in_console_title() {
 } // namespace
 
 class component final : public server_component {
+#ifndef NDEBUG
+  std::string name() override { return "info"; }
+#endif
+
 public:
   void post_unpack() override {
     scheduler::loop(set_server_info_in_console_title, scheduler::pipeline::main,

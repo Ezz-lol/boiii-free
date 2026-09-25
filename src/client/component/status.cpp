@@ -29,6 +29,10 @@ void print_client_xuid(const game::consoleChannel_e channel,
 } // namespace
 
 struct component final : generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "status"; }
+#endif
+
   void post_unpack() override {
     // Patch the status command for test clients
     utils::hook::call(game::select(0x1421EA2E7, 0x142246E37, 0x14052C527),

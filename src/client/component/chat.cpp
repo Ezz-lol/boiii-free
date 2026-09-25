@@ -183,6 +183,10 @@ const char *get_client_name(const uint64_t xuid) {
 }
 
 class component final : public generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "chat"; }
+#endif
+
 public:
   void post_unpack() override {
     utils::hook::call(game::select(0x141974B24, 0x141974B04, 0x14029908A),

@@ -2412,6 +2412,10 @@ luaReturnCount_e LobbyVM_CallFunc_Redirect(lua_State *luaVM) {
 }
 
 class component final : public generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "ui_scripting"; }
+#endif
+
 public:
   void post_unpack() override {
 #ifndef NDEBUG

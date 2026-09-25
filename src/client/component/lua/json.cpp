@@ -339,6 +339,10 @@ luaReturnCount_e write(hks::lua_State *luaVM) {
 }
 
 class component final : public generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "json"; }
+#endif
+
 public:
   void post_unpack() override {
     static constexpr const luaL_Reg JSONLibrary[] = {

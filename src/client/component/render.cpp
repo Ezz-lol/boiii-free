@@ -49,6 +49,10 @@ void R_StoreWindowSettings_AllowPositiveViewScale(
 
 utils::hook::detour ScrPlace_Init_hook;
 class component final : public generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "render"; }
+#endif
+
 public:
   void post_unpack() override {
     if (game::ultrawide()) {
