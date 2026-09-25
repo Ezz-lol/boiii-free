@@ -1,6 +1,6 @@
 #using scripts\zm\_zm_weapons;
 
-#namespace boiii_weapon_kits;
+#namespace ranked;
 
 function supports_added_weapon( weapon )
 {
