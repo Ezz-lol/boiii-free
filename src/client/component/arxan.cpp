@@ -146,7 +146,9 @@ HANDLE WINAPI create_thread_stub(const LPSECURITY_ATTRIBUTES thread_attributes,
                                  const LPDWORD thread_id) {
   if (utils::nt::library::get_by_address(start_address) ==
       utils::nt::library{}) {
-    restore_tls_callbacks();
+    if (game::is_legacy_client() || game::is_server()) {
+      restore_tls_callbacks();
+    }
 
     create_thread_hook.clear();
     return CreateThread(thread_attributes, stack_size, start_address, parameter,
@@ -796,9 +798,7 @@ struct component final : generic_component {
     hide_being_debugged();
     scheduler::loop(hide_being_debugged, scheduler::pipeline::async);
 
-    if (game::is_legacy_client() || game::is_server()) {
-      create_thread_hook.create(CreateThread, create_thread_stub);
-    }
+    create_thread_hook.create(CreateThread, create_thread_stub);
 
     create_mutex_ex_a_hook.create(CreateMutexExA, create_mutex_ex_a_stub);
 
