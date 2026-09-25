@@ -22,7 +22,6 @@
 
 namespace branding {
 namespace {
-constexpr const char FONT[] = "fonts/default.ttf";
 void draw_branding() {
   if (!game::com::Com_IsInGame()) {
     constexpr float x = 4.0;
@@ -30,9 +29,13 @@ void draw_branding() {
     constexpr float scale = 0.45f;
     game::vec4_t color = {.r = 0.666f, .g = 0.666f, .b = 0.666f, .a = 0.666f};
 
+    const uint32_t *font = reinterpret_cast<const uint32_t *>(
+        game::select(0x1433519B0, 0x1432D2918, 0x1410E1BE0));
+
     game::render::R_AddCmdDrawText(
-        "EZZ: " VERSION, std::numeric_limits<int>::max(), FONT, x, y, scale,
-        scale, 0.0f, &color, game::itemTextStyle::NORMAL);
+        "EZZ: " VERSION, std::numeric_limits<int>::max(), font, x,
+        y + static_cast<float>(font[2]) * scale, scale, scale, 0.0f, &color,
+        game::itemTextStyle::NORMAL);
   }
 }
 
