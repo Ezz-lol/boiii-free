@@ -63,9 +63,9 @@ bool restart_app_if_necessary_stub() {
   utils::hook::set(g_original_import.first, g_original_import.second);
   patch_steam_import("SteamAPI_Shutdown", steam::SteamAPI_Shutdown);
 
-  game::trace("Executing post_unpack");
+  game::trace("Executing component post_unpack");
   component_loader::post_unpack();
-  game::trace("Done executing post_unpack");
+  game::trace("Executing component post_unpack");
   return steam::SteamAPI_RestartAppIfNecessary();
 }
 
