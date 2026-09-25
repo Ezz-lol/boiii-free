@@ -126,9 +126,8 @@ void disable_tls_callbacks() {
   void **tls_callbacks = get_tls_callbacks();
   if (tls_callbacks) {
     original_first_tls_callback = *tls_callbacks;
+    utils::hook::set(tls_callbacks, nullptr);
   }
-
-  utils::hook::set(tls_callbacks, nullptr);
 }
 
 void restore_tls_callbacks() {
@@ -146,9 +145,7 @@ HANDLE WINAPI create_thread_stub(const LPSECURITY_ATTRIBUTES thread_attributes,
                                  const LPDWORD thread_id) {
   if (utils::nt::library::get_by_address(start_address) ==
       utils::nt::library{}) {
-    if (game::is_legacy_client() || game::is_server()) {
-      restore_tls_callbacks();
-    }
+    restore_tls_callbacks();
 
     create_thread_hook.clear();
     return CreateThread(thread_attributes, stack_size, start_address, parameter,
@@ -790,9 +787,7 @@ struct component final : generic_component {
                            *dll_characteristics |
                                IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE);
 
-    if (game::is_legacy_client() || game::is_server()) {
-      disable_tls_callbacks();
-    }
+    disable_tls_callbacks();
     restore_debug_functions();
 
     hide_being_debugged();
