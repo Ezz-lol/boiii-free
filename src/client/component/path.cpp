@@ -11,7 +11,7 @@
 namespace path {
 
 const std::filesystem::path &cwd() {
-  static const std::filesystem::path path{game::sys::Sys_Cwd()};
+  static const std::filesystem::path path = std::filesystem::current_path();
   return path;
 }
 

@@ -8,15 +8,15 @@ namespace game {
 namespace live {
 namespace connect {
 WEAK symbol<bool(ControllerIndex_t localControllerIndex)>
-    LiveConnect_WasPlayerQueueSuccessful{0x141DEB850};
+    LiveConnect_WasPlayerQueueSuccessful{0x141DDEDC0, 0x141DEB850, 0x0};
 WEAK symbol<uint32_t(ControllerIndex_t localControllerIndex)>
-    LiveConnect_GetPlayerQueuePosition{0x141DEB0E0};
+    LiveConnect_GetPlayerQueuePosition{0x141DDE650, 0x141DEB0E0, 0x0};
 WEAK symbol<uint32_t(ControllerIndex_t localControllerIndex)>
-    LiveConnect_GetPlayerQueueTimeEstimate{0x141DEB220};
+    LiveConnect_GetPlayerQueueTimeEstimate{0x141DDE790, 0x141DEB220, 0x0};
 WEAK symbol<bool(ControllerIndex_t localControllerIndex)>
-    LiveConnect_IsPlayerQueued{0x141DEB3F0};
+    LiveConnect_IsPlayerQueued{0x141DDE960, 0x141DEB3F0, 0x0};
 WEAK symbol<bool(const ControllerIndex_t controllerIndex, const char **reason)>
-    LiveConnect_DisableDemonwareConnect{0x141E7EEE0};
+    LiveConnect_DisableDemonwareConnect{0x141E72450, 0x141E7EEE0, 0x0};
 
 } // namespace connect
 

@@ -12,8 +12,9 @@ namespace base {
     - `Com_SessionMode` network mode, as set in `sessionModeState`
 */
 WEAK symbol<void(LobbyNetworkMode networkMode)> LobbyBase_SetNetworkMode{
-    0x141EE82F0};
-WEAK symbol<LobbyNetworkMode()> LobbyBase_GetNetworkMode{0x141EE8160};
+    0x141EDB980, 0x141EE82F0, 0x0};
+WEAK symbol<LobbyNetworkMode()> LobbyBase_GetNetworkMode{0x141EDB7F0,
+                                                         0x141EE8160, 0x0};
 } // namespace base
 } // namespace lobby
 } // namespace game

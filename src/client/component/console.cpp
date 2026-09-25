@@ -629,7 +629,8 @@ void merge_dynamic_names() {
     return;
   }
 
-  std::vector<std::string> custom_dvars = game::get_registered_dvar_names();
+  const std::vector<std::string> &custom_dvars =
+      game::get_registered_dvar_names();
   std::vector<std::string> custom_commands =
       command::get_registered_command_names();
 
@@ -640,8 +641,8 @@ void merge_dynamic_names() {
   }
 
   merged.reserve(merged.size() + custom_dvars.size() + custom_commands.size());
-  for (std::string &name : custom_dvars) {
-    merged.push_back(std::move(name));
+  for (const std::string &name : custom_dvars) {
+    merged.push_back(name);
   }
   for (std::string &name : custom_commands) {
     merged.push_back(std::move(name));
@@ -1599,7 +1600,7 @@ struct component final : generic_component {
       return;
     }
 
-    if (game::is_client() || game::is_new_client()) {
+    if (game::is_client()) {
       // `Con_ToggleConsole`: skip block executed if `UGC_ActiveMod_Loaded`
       // returns `true`
       utils::hook::set<uint8_t>(game::select(0x14133D31E, 0x14133D2FE, 0x0),

@@ -157,7 +157,7 @@ struct component final : generic_component {
     utils::hook::call(game::select(0x1421EC547, 0x142249097, 0x14052E53A),
                       format_bot_string);
 
-    if (game::is_client() || game::is_new_client()) {
+    if (game::is_client()) {
       utils::hook::jump(game::select(0x1416542A0, 0x141654280, 0x0),
                         get_bot_name); // SV_ZombieNameRandom
     }

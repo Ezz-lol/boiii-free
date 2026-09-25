@@ -251,7 +251,7 @@ void send_data(const game::net::netadr_t &address, const std::string &data) {
   send_data(address, data.data(), data.size());
 }
 
-game::net::netadr_t address_from_string(const std::string &address) {
+game::net::netadr_t address_from_string(const std::string_view &address) {
   game::net::netadr_t addr{};
   addr.localNetID = game::net::NS_SERVER;
 
@@ -353,19 +353,18 @@ struct component final : generic_component {
     scheduler::loop(game::fragment_handler::clean, scheduler::async, 5s);
 
     // don't increment data pointer to optionally skip socket byte
-    utils::hook::nop(game::select(0x1422b9146, 0x1423322B6, 0x140596DF6), 4);
+    utils::hook::nop(game::sys::Sys_GetPacket.offset(0x106), 4);
 
     // optionally read socket byte
-    utils::hook::call(game::select(0x1422B9113, 0x142332283, 0x140596DC3),
+    utils::hook::call(game::sys::Sys_GetPacket.offset(0xD3),
                       read_socket_byte_stub);
 
     // skip checksum verification
-    utils::hook::call(game::select(0x1422b9113, 0x1423322C1, 0x140596E01),
+    utils::hook::call(game::sys::Sys_GetPacket.offset(0x111),
                       verify_checksum_stub);
 
     // don't add checksum to packet
-    utils::hook::set<uint8_t>(
-        game::select(0x1422b932e, 0x14233249E, 0x140596F2E), 0);
+    utils::hook::set<uint8_t>(game::net::NET_SendPacket.offset(0xEE), 0);
 
     // Recreate NET_SendPacket to increase max packet size
     // utils::hook::jump(game::select(0x1422b9240, 0x1423323B0, 0x140596E40),
@@ -373,7 +372,7 @@ struct component final : generic_component {
 
     // set initial connection state to challenging
     utils::hook::set<uint32_t>(
-        game::select(0x14134c700, 0x14134C6E0, 0x14018E574),
+        game::cl::CL_ConnectFromLobby.offset(game::select(0x170, 0x170, 0x154)),
         static_cast<uint32_t>(game::connstate_t::CHALLENGING));
 
     // don't kick clients without dw handle
@@ -382,11 +381,11 @@ struct component final : generic_component {
 
     // Skip DW stuff in NetAdr_ToString
     utils::hook::set<uint8_t>(
-        game::select(0x14211a432, 0x142172EF2, 0x140515881), 0xEB);
+        game::select(0x14211A432, 0x142172EF2, 0x140515881), 0xEB);
 
     // NA_IP -> NA_RAWIP in NetAdr_ToString
     utils::hook::set<uint8_t>(
-        game::select(0x14211a414, 0x142172ED4, 0x140515864),
+        game::select(0x14211A414, 0x142172ED4, 0x140515864),
         game::net::NA_RAWIP);
 
     if (game::is_server()) {

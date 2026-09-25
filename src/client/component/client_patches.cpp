@@ -114,33 +114,6 @@ float cl_key_state_pitch_speed_stub(void *key) {
   return game::cl::CL_KeyState(key) * cl_pitch_speed.get_float();
 }
 
-game::fileHandle_t
-fs_f_open_file_write_to_dir_stub(const char *filename,
-                                 [[maybe_unused]] const char *dir,
-                                 const char *os_base_path) {
-  return game::fs::FS_FOpenFileWriteToDir(filename, "boiii_players",
-                                          os_base_path);
-}
-
-game::fileHandle_t
-fs_f_open_file_read_from_dir_stub(const char *filename,
-                                  [[maybe_unused]] const char *dir,
-                                  const char *os_base_path) {
-  return game::fs::FS_FOpenFileReadFromDir(filename, "boiii_players",
-                                           os_base_path);
-}
-
-int i_stricmp_stub(const char *s0, [[maybe_unused]] const char *s1) {
-  return game::I_stricmp(s0, "boiii_players");
-}
-
-void fs_add_game_directory_stub(const char *path,
-                                [[maybe_unused]] const char *dir) {
-  //  FS_AddLocalizedGameDirectory
-  utils::hook::invoke<void>(game::select(0x142245FD0, 0x1422A2AF0, 0x0), path,
-                            "boiii_players");
-}
-
 void stub_func() { return; }
 
 utils::hook::detour sd_alloc_block_hook;
@@ -288,9 +261,6 @@ void Hunk_UserFree_ResetGlobal([[maybe_unused]] game::hunk::HunkUser *user,
   memset(ptr, 0, sizeof(T));
 }
 
-utils::hook::detour CG_FreeCGEnts_hook;
-utils::hook::detour CG_ClearCGEnts_hook;
-
 // TODO: use when TAC protection removed
 // utils::hook::detour AllocatePerLocalClientMemory_hook;
 
@@ -359,10 +329,10 @@ void store_tac_protected_allocs() {
     utils::hook::call(game::cg::CG_FreeClientMemory.offset(0x3133),
                       Hunk_UserFree_ResetGlobal<game::cg::cgArray>);
 
-    CG_FreeCGEnts_hook.create(game::cg::CG_FreeCGEnts.get(),
-                              game::cg::CG_FreeCGEnts_Impl);
-    CG_ClearCGEnts_hook.create(game::cg::CG_ClearCGEnts.get(),
-                               game::cg::CG_ClearCGEnts_Impl);
+    utils::hook::jump(game::cg::CG_FreeCGEnts.get(),
+                      game::cg::CG_FreeCGEnts_Impl);
+    utils::hook::jump(game::cg::CG_ClearCGEnts.get(),
+                      game::cg::CG_ClearCGEnts_Impl);
   }
 
   /*

@@ -27,6 +27,7 @@
 #include "level.hpp"       // IWYU pragma: export
 #include "live/live.hpp"   // IWYU pragma: export
 #include "lobby/lobby.hpp" // IWYU pragma: export
+#include "loot.hpp"        // IWYU pragma: export
 #include "lua/lua.hpp"     // IWYU pragma: export
 #include "macros.hpp"      // IWYU pragma: export
 #include "mantle.hpp"      // IWYU pragma: export

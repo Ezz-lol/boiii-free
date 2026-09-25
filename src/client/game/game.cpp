@@ -27,7 +27,7 @@ void show_error(const std::string &text, const std::string &title) {
   }
 }
 
-std::filesystem::path get_appdata_path() {
+const std::filesystem::path &get_appdata_path() {
   static const std::filesystem::path appdata_path =
       []() -> std::filesystem::path {
     PWSTR path = nullptr;
@@ -45,7 +45,8 @@ std::filesystem::path get_appdata_path() {
   return appdata_path;
 }
 
-std::filesystem::path get_game_path() {
-  return std::filesystem::current_path();
+const std::filesystem::path &get_game_path() {
+  static const std::filesystem::path cwd = std::filesystem::current_path();
+  return cwd;
 }
 } // namespace game

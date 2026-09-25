@@ -51,8 +51,8 @@ void exception_log(bool err, const char *fmt, ...) {
 
   game::trace("{}{}", err ? "[Error] " : "", buffer.c_str());
 }
-uint32_t main_thread_id{};
-std::once_flag sym_init_flag{};
+static uint32_t main_thread_id{};
+static std::once_flag sym_init_flag{};
 
 void ensure_symbols_initialized() {
   std::call_once(sym_init_flag, [] {
@@ -170,12 +170,11 @@ capture_stackwalk(const LPEXCEPTION_POINTERS exceptioninfo,
 }
 
 std::string get_crash_module_info(void *address) {
-  resolved_frame frame = resolve_address(address);
-  std::string info =
-      frame.module_name + utils::string::va("+0x%llX", frame.rva);
-  if (!frame.function_name.empty())
-    info += " (" + frame.function_name + ")";
-  return info;
+  const resolved_frame frame = resolve_address(address);
+  return std::format("{}+0x{:X}{}", frame.module_name, frame.rva,
+                     frame.function_name.empty()
+                         ? ""
+                         : std::format(" ({})", frame.function_name.c_str()));
 }
 
 utils::hook::detour mini_dump_write_dump_hook;
@@ -531,9 +530,9 @@ std::string generate_crash_info(const LPEXCEPTION_POINTERS exceptioninfo) {
     "-Wcast-function-type" // warning: cast between incompatible function types
                            // (for loader)
 #endif
-  const auto rtl_get_version =
-      reinterpret_cast<NTSTATUS(NTAPI *)(PRTL_OSVERSIONINFOW)>(
-          GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlGetVersion"));
+  typedef fastcallPtr_t<NTSTATUS(PRTL_OSVERSIONINFOW)> RtlGetVersionFunc;
+  const RtlGetVersionFunc rtl_get_version = reinterpret_cast<RtlGetVersionFunc>(
+      GetProcAddress(GetModuleHandleW(L"ntdll.dll"), "RtlGetVersion"));
 #if defined(__GNUC__)
 #pragma GCC diagnostic pop
 #endif
@@ -576,164 +575,185 @@ void write_minidump(const LPEXCEPTION_POINTERS exceptioninfo) {
 // Empty string used as fallback for null localization pointers
 char ui_localize_fallback[4] = "";
 
-LONG WINAPI crash_fix_exception_handler(PEXCEPTION_POINTERS exception_info) {
+long WINAPI crash_fix_exception_handler(PEXCEPTION_POINTERS exception_info) {
   const PEXCEPTION_RECORD record = exception_info->ExceptionRecord;
   PCONTEXT context = exception_info->ContextRecord;
 
-  if (record->ExceptionCode != EXCEPTION_ACCESS_VIOLATION &&
-      record->ExceptionCode != STATUS_ILLEGAL_INSTRUCTION) {
-    return EXCEPTION_CONTINUE_SEARCH;
-  }
+  long result = EXCEPTION_CONTINUE_SEARCH;
 
-  const uintptr_t addr = reinterpret_cast<uintptr_t>(record->ExceptionAddress);
-  const uintptr_t base = game::get_base();
-  const uintptr_t offset = addr - base;
+  switch (record->ExceptionCode) {
+  case EXCEPTION_ACCESS_VIOLATION:
+  case STATUS_ILLEGAL_INSTRUCTION: {
+    const uintptr_t addr =
+        reinterpret_cast<uintptr_t>(record->ExceptionAddress);
+    const uintptr_t base = game::get_base();
+    const uintptr_t offset = addr - base;
 #ifndef NDEBUG
-  const char *patch_name = nullptr;
+    const char *patch_name = nullptr;
 #endif
 
-  switch (offset) {
-  // Killcam animation crash - invalid anim data access
-  case 0x234B9BD:
+    if (game::is_legacy_client()) {
+      switch (offset) {
+      // Killcam animation crash - invalid anim data access
+      case 0x234B9BD:
 #ifndef NDEBUG
-    patch_name = "Killcam animation (invalid anim data)";
+        patch_name = "Killcam animation (invalid anim data)";
 #endif
-    context->Rax = 0;
-    context->Rip = base + 0x234D14B;
-    break;
+        context->Rax = 0;
+        context->Rip = base + 0x234D14B;
+        goto continue_execution;
 
-  // CG_ZBarrierAttachWeapon - null weapon pointer in zombie barriers
-  case 0x464FEF:
+      // CG_ZBarrierAttachWeapon - null weapon pointer in zombie barriers
+      case 0x464FEF:
 #ifndef NDEBUG
-    patch_name = "ZBarrier weapon attach (null weapon)";
+        patch_name = "ZBarrier weapon attach (null weapon)";
 #endif
-    context->Rax = 0;
-    context->Rip = base + 0x4651A2;
-    break;
+        context->Rax = 0;
+        context->Rip = base + 0x4651A2;
+        goto continue_execution;
 
-  // asmsetanimationrate - bad entity reference
-  case 0x15E4B5A:
+      // asmsetanimationrate - bad entity reference
+      case 0x15E4B5A:
 #ifndef NDEBUG
-    patch_name = "asmsetanimationrate (bad entity ref)";
+        patch_name = "asmsetanimationrate (bad entity ref)";
 #endif
-    context->Rip = base + 0x15E4B83;
-    break;
+        context->Rip = base + 0x15E4B83;
+        goto continue_execution;
 
-  // Orphaned thread crash
-  case 0x12EE4CC:
+      // Orphaned thread crash
+      case 0x12EE4CC:
 #ifndef NDEBUG
-    patch_name = "Orphaned thread";
+        patch_name = "Orphaned thread";
 #endif
-    context->Rip = base + 0x12EE5C8;
-    break;
+        context->Rip = base + 0x12EE5C8;
+        goto continue_execution;
 
-  // Character index out-of-bounds crash
-  case 0x234210C:
+      // Character index out-of-bounds crash
+      case 0x234210C:
 #ifndef NDEBUG
-    patch_name = "Character index out-of-bounds";
+        patch_name = "Character index out-of-bounds";
 #endif
-    context->Rip = base + 0x2342136;
-    break;
+        context->Rip = base + 0x2342136;
+        goto continue_execution;
 
-  // HKS internal crash
-  case 0x1CAB4F1:
+      // HKS internal crash
+      case 0x1CAB4F1:
 #ifndef NDEBUG
-    patch_name = "HKS/Lua internal error";
+        patch_name = "HKS/Lua internal error";
 #endif
-    context->Rip = base + 0x1CAB69E;
-    break;
+        context->Rip = base + 0x1CAB69E;
+        goto continue_execution;
 
-  // Null localization string crashes
-  case 0x2279323:
+      // Null localization string crashes
+      case 0x2279323:
 #ifndef NDEBUG
-    patch_name = "Null localization string (UI)";
+        patch_name = "Null localization string (UI)";
 #endif
-    context->Rdx = reinterpret_cast<uintptr_t>(ui_localize_fallback);
-    break;
+        context->Rdx = reinterpret_cast<uintptr_t>(ui_localize_fallback);
+        goto continue_execution;
 
-  case 0x2278B96:
+      case 0x2278B96:
 #ifndef NDEBUG
-    patch_name = "Null localization string (UI)";
+        patch_name = "Null localization string (UI)";
 #endif
-    context->Rsi = reinterpret_cast<uintptr_t>(ui_localize_fallback);
-    break;
+        context->Rsi = reinterpret_cast<uintptr_t>(ui_localize_fallback);
+        goto continue_execution;
 
-  case 0x228ED56:
+      case 0x228ED56:
 #ifndef NDEBUG
-    patch_name = "Null localization string (UI)";
+        patch_name = "Null localization string (UI)";
 #endif
-    context->Rcx = reinterpret_cast<uintptr_t>(ui_localize_fallback);
-    break;
+        context->Rcx = reinterpret_cast<uintptr_t>(ui_localize_fallback);
+        goto continue_execution;
 
-  // Unknown UI crash
-  case 0x1EAAA27:
+      // Unknown UI crash
+      case 0x1EAAA27:
 #ifndef NDEBUG
-    patch_name = "UI crash (unknown)";
+        patch_name = "UI crash (unknown)";
 #endif
-    context->Rip = base + 0x1EAABB3;
-    break;
+        context->Rip = base + 0x1EAABB3;
+        goto continue_execution;
 
-  // Non-existent clientfield crashes (CSC side)
-  case 0xC15B80:
-  case 0xC15C50:
-  case 0xC18CF5:
+      // Non-existent clientfield crashes (CSC side)
+      case 0xC15B80:
+      case 0xC15C50:
+      case 0xC18CF5:
 #ifndef NDEBUG
-    patch_name = "Non-existent clientfield (CSC)";
+        patch_name = "Non-existent clientfield (CSC)";
 #endif
-    context->Rcx = 1; // CSC instance
-    context->Rdx = reinterpret_cast<uintptr_t>("Clientfield does not exist");
-    context->R8 = 0;
-    context->Rip = base + 0x12EA430; // Scr_Error
-    break;
+        context->Rcx = 1; // CSC instance
+        context->Rdx =
+            reinterpret_cast<uintptr_t>("Clientfield does not exist");
+        context->R8 = 0;
+        context->Rip = base + 0x12EA430; // Scr_Error
+        goto continue_execution;
 
-  // Non-existent clientfield crashes (GSC side)
-  case 0x1A6BD1B:
-  case 0x1A6BE2E:
-  case 0x1A6BF2E:
-  case 0x1A6BFCD:
-  case 0x1A6C246:
-  case 0x1A6C356:
-  case 0x1A6C40D:
-  case 0x1A6C697:
-  case 0x1A6C894:
+      // Non-existent clientfield crashes (GSC side)
+      case 0x1A6BD1B:
+      case 0x1A6BE2E:
+      case 0x1A6BF2E:
+      case 0x1A6BFCD:
+      case 0x1A6C246:
+      case 0x1A6C356:
+      case 0x1A6C40D:
+      case 0x1A6C697:
+      case 0x1A6C894:
 #ifndef NDEBUG
-    patch_name = "Non-existent clientfield (GSC)";
+        patch_name = "Non-existent clientfield (GSC)";
 #endif
-    context->Rcx = 0; // GSC instance
-    context->Rdx = reinterpret_cast<uintptr_t>("Clientfield does not exist");
-    context->R8 = 0;
-    context->Rip = base + 0x12EA430; // Scr_Error
-    break;
+        context->Rcx = 0; // GSC instance
+        context->Rdx =
+            reinterpret_cast<uintptr_t>("Clientfield does not exist");
+        context->R8 = 0;
+        context->Rip = base + 0x12EA430; // Scr_Error
+        goto continue_execution;
 
-  // Non-existent clientfield (additional crash sites)
-  case 0x133EC1:
-  case 0x133EEB:
+      // Non-existent clientfield (additional crash sites)
+      case 0x133EC1:
+      case 0x133EEB:
 #ifndef NDEBUG
-    patch_name = "Non-existent clientfield (additional)";
+        patch_name = "Non-existent clientfield (additional)";
 #endif
-    context->Rip = base + 0x133F12;
-    break;
+        context->Rip = base + 0x133F12;
+        goto continue_execution;
 
-  case 0x133F31:
+      case 0x133F31:
 #ifndef NDEBUG
-    patch_name = "Non-existent clientfield (additional)";
+        patch_name = "Non-existent clientfield (additional)";
 #endif
-    context->Rip = base + 0x133F42;
-    break;
+        context->Rip = base + 0x133F42;
+        goto continue_execution;
 
-  // Random crash on Zetsubou No Shima
-  case 0x13591D3:
+      // Random crash on Zetsubou No Shima
+      case 0x13591D3:
 #ifndef NDEBUG
-    patch_name = "Zetsubou No Shima map bug";
+        patch_name = "Zetsubou No Shima map bug";
 #endif
-    context->Rip = base + 0x13591DA;
-    break;
+        context->Rip = base + 0x13591DA;
+        goto continue_execution;
+      default: {
+        break;
+      }
+      continue_execution: {
+        result = EXCEPTION_CONTINUE_EXECUTION;
+        break;
+      }
+      }
+    }
 
-  default:
+#ifndef NDEBUG
+    if (patch_name) {
+      exception_log(true, "^3[Exception] Known crash patched: %s (base+0x%llX)",
+                    patch_name, offset);
+    }
+#endif
     // Server restart recovery: skip crashes using udis86 instruction decode
-    if (game::is_server() && server_restart::restart_recovery_active.load() &&
+    if (game::is_server() &&
+        server_restart::restart_recovery_active.load(
+            std::memory_order_acquire) &&
         record->ExceptionCode == EXCEPTION_ACCESS_VIOLATION) {
-      const int32_t skips = server_restart::recovery_skip_count.fetch_add(1);
+      const int32_t skips = server_restart::recovery_skip_count.fetch_add(
+          1, std::memory_order_release);
       if (skips < 20) // Max 20 instruction skips per recovery cycle
       {
         ud_t ud;
@@ -746,24 +766,20 @@ LONG WINAPI crash_fix_exception_handler(PEXCEPTION_POINTERS exception_info) {
 
           context->Rip += len;
           context->Rax = 0;
-          return EXCEPTION_CONTINUE_EXECUTION;
+          result = EXCEPTION_CONTINUE_EXECUTION;
         }
       } else {
 
         server_restart::restart_recovery_active.store(false);
       }
     }
-    return EXCEPTION_CONTINUE_SEARCH;
+    break;
   }
-
-#ifndef NDEBUG
-  if (patch_name) {
-    exception_log(true, "^3[Exception] Known crash patched: %s (base+0x%llX)",
-                  patch_name, offset);
+  default: {
+    break;
   }
-#endif
-
-  return EXCEPTION_CONTINUE_EXECUTION;
+  }
+  return result;
 }
 
 bool is_harmless_error(const LPEXCEPTION_POINTERS exceptioninfo) {
@@ -772,61 +788,9 @@ bool is_harmless_error(const LPEXCEPTION_POINTERS exceptioninfo) {
          code == STATUS_SINGLE_STEP;
 }
 
-void handle_server_script_vm_crash() {
-  server_restart::schedule("Script VM crash (auxiliary thread)");
-  SuspendThread(GetCurrentThread());
-}
-
-size_t get_script_error_stub() {
-  static void *stub = utils::hook::assemble([](utils::hook::assembler &a) {
-    a.get().sub(rsp, 0x10);
-    a.get().or_(rsp, 0x8);
-    a.jmp(handle_server_script_vm_crash);
-  });
-
-  return reinterpret_cast<size_t>(stub);
-}
-
-bool is_server_script_vm_crash(uint64_t offset, uint32_t exception_code,
-                               const EXCEPTION_RECORD *record) {
-  if (exception_code != EXCEPTION_ACCESS_VIOLATION)
-    return false;
-
-  if (record->ExceptionInformation[1] >= 0x10000)
-    return false;
-
-  switch (offset) {
-  case 0x269F8A:
-  case 0x2ADCF9:
-  case 0x2ADA49:
-  case 0x2AD551:
-    return true;
-  default:
-    return false;
-  }
-}
-
-LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
+long WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
   if (is_harmless_error(exceptioninfo)) {
     return EXCEPTION_CONTINUE_EXECUTION;
-  }
-
-  const uintptr_t addr = reinterpret_cast<uintptr_t>(
-      exceptioninfo->ExceptionRecord->ExceptionAddress);
-  const uintptr_t base = game::get_base();
-  const uintptr_t filter_offset = addr - base;
-
-  // Handle known server script VM crashes on ANY thread
-  if (game::is_server() &&
-      is_server_script_vm_crash(filter_offset,
-                                exceptioninfo->ExceptionRecord->ExceptionCode,
-                                exceptioninfo->ExceptionRecord)) {
-    if (!is_game_thread()) {
-      exceptioninfo->ContextRecord->Rip = get_script_error_stub();
-      return EXCEPTION_CONTINUE_EXECUTION;
-    } else {
-      return EXCEPTION_CONTINUE_SEARCH;
-    }
   }
 
   const resolved_frame crash_frame =
@@ -855,7 +819,8 @@ LONG WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
         exceptioninfo->ExceptionRecord->ExceptionInformation[0] == 1
             ? "write to"
             : "read from";
-    uintptr_t target = exceptioninfo->ExceptionRecord->ExceptionInformation[1];
+    const uintptr_t target =
+        exceptioninfo->ExceptionRecord->ExceptionInformation[1];
     exception_log(true, "  Details:    Attempted to %s 0x%012llX%s", op, target,
                   target < 0x10000 ? " (NULL pointer dereference)" : "");
   }

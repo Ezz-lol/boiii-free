@@ -112,8 +112,7 @@ void strip_cheat_flags() {
 void dof_enabled_stub(utils::hook::assembler &a) {
   const asmjit::Label update_ads_dof = a.get().new_label();
 
-  a.get().mov(rax,
-              qword_ptr(r_dof_enable.get());
+  a.get().mov(rax, qword_ptr(reinterpret_cast<uintptr_t>(r_dof_enable.get())));
 
   a.get().test(rax, rax);
   a.get().jz(update_ads_dof);

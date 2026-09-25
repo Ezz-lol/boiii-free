@@ -43,7 +43,7 @@ void set_build_version() {
            // ORIGINAL:
            // *BUILD_TIME
            // PATCH: spoof latest version
-           LATEST_CLIENT_BUILD_TIME);
+           BUILD_TIME_CL_10092026);
 }
 
 const char *Com_GetBuildVersion_Impl() {
@@ -82,7 +82,7 @@ const char *Com_GetBuildStringField_Impl(BuildStringField field) {
     // ORIGINAL - "Mon Dec 16 10:44:20 2019":
     // return *BUILD_TIME;
     // PATCH: spoof latest version
-    return LATEST_CLIENT_BUILD_TIME;
+    return BUILD_TIME_CL_10092026;
   case BuildStringField::BUILD_DISPLAY_NAME:
     return "Call of Duty  - ship";
   case BuildStringField::BUILD_NAME:

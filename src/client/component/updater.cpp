@@ -12,7 +12,8 @@
 namespace updater {
 namespace {
 bool automatic_updates_enabled() {
-  const auto stored = utils::properties::load("launcherUiSettings");
+  const std::optional<std::string> stored =
+      utils::properties::load("launcherUiSettings");
   if (!stored)
     return true;
   rapidjson::Document document;

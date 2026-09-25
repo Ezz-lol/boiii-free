@@ -33,7 +33,8 @@ std::string get_selected_version() {
     return "beta";
   }
 
-  const auto val = utils::properties::load("selectedVersion");
+  const std::optional<std::string> val =
+      utils::properties::load("selectedVersion");
   if (val) {
     return *val;
   }

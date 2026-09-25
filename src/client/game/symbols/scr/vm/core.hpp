@@ -8,26 +8,32 @@ namespace vm {
 WEAK symbol<void(scriptInstance_t inst, function_stack_t *fs,
                  volatile ScrVmContext_t *vmc, bool *terminate,
                  builtin::BuiltinFunction builtinFunction)>
-    VM_CallBuiltinFunction{0x1412CE190, 0x14015C160};
+    VM_CallBuiltinFunction{0x1412CE1B0, 0x1412CE190, 0x14015C160};
 WEAK symbol<void(scriptInstance_t inst, function_stack_t *fs,
                  volatile ScrVmContext_t *vmc, bool *terminate,
                  builtin::BuiltinMethod builtinMethod)>
-    VM_CallBuiltinMethod{0x1412CE200, 0x14015C1D0};
+    VM_CallBuiltinMethod{0x1412CE220, 0x1412CE200, 0x14015C1D0};
 // Note: not an opcode handler. Just has the same signature as a
 // `VM_OP_FUNC`. Used internally by several other opcode handlers.
-WEAK symbol<op::VM_OP_FUNC> VM_PostCallBuiltin{0x1412CFC40, 0x14015D9E0};
+WEAK symbol<op::VM_OP_FUNC> VM_PostCallBuiltin{0x1412CFC60, 0x1412CFC40,
+                                               0x14015D9E0};
 
 // Script variable pools
-WEAK symbol<volatile var::ScrVarGlobPool> gScrVarGlob{0x1451A3500, 0x1426BDE80};
-WEAK symbol<volatile var::ScrVarPubPool> gScrVarPub{0x1451A3700, 0x1426BE080};
+WEAK symbol<volatile var::ScrVarGlobPool> gScrVarGlob{0x145124500, 0x1451A3500,
+                                                      0x1426BDE80};
+WEAK symbol<volatile var::ScrVarPubPool> gScrVarPub{0x145124700, 0x1451A3700,
+                                                    0x1426BE080};
 
 // VM runtime data pools
-WEAK symbol<volatile ScrVmGlobPool> gScrVmGlob{0x1451B4CC0, 0x1426CF610};
-WEAK symbol<volatile ScrVmPubPool> gScrVmPub{0x1451A3840, 0x1426BE190};
+WEAK symbol<volatile ScrVmGlobPool> gScrVmGlob{0x145135CC0, 0x1451B4CC0,
+                                               0x1426CF610};
+WEAK symbol<volatile ScrVmPubPool> gScrVmPub{0x145124840, 0x1451A3840,
+                                             0x1426BE190};
 
 // Function stack
-WEAK symbol<volatile ScrPool<function_stack_t>> gFs{0x1451C4F30, 0x1426D7680};
-WEAK symbol<op::OP_TYPE> g_endPos{0x1432E6340, 0x14107C140};
+WEAK symbol<volatile ScrPool<function_stack_t>> gFs{0x14513DD30, 0x1451C4F30,
+                                                    0x1426D7680};
+WEAK symbol<op::OP_TYPE> g_endPos{0x143267340, 0x1432E6340, 0x14107C140};
 
 } // namespace vm
 } // namespace scr

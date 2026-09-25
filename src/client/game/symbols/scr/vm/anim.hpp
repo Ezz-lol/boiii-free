@@ -6,7 +6,8 @@ namespace game {
 namespace scr {
 namespace vm {
 namespace anim {
-WEAK symbol<ScrPool<scrAnimPub_t>> gScrAnimPub{0x144D4DDB0, 0x14224E110};
+WEAK symbol<ScrPool<scrAnimPub_t>> gScrAnimPub{0x144CCEDB0, 0x144D4DDB0,
+                                               0x14224E110};
 }
 
 } // namespace vm

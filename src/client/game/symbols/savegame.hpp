@@ -7,7 +7,7 @@ namespace savegame {
 
 WEAK symbol<bool(const ControllerIndex_t controllerIndex,
                  eNetworkModes networkMode)>
-    SaveGame_IsDataReady{0x1415E2C90};
+    SaveGame_IsDataReady{0x1415E2CB0, 0x1415E2C90, 0x0};
 
 } // namespace savegame
 } // namespace game

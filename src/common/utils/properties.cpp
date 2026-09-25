@@ -8,9 +8,12 @@
 #include <rapidjson/document.h>
 #include <rapidjson/prettywriter.h>
 
-#include "com.hpp"
 #include "io.hpp"
-#include "string.hpp"
+
+#include <windows.h>
+
+#include <knownfolders.h>
+#include <shlobj_core.h>
 
 namespace utils::properties {
 namespace {
@@ -19,15 +22,17 @@ using OutputStream = rapidjson::EncodedOutputStream<rapidjson::UTF8<>,
 using InputStream =
     rapidjson::EncodedInputStream<rapidjson::UTF8<>, rapidjson::FileReadStream>;
 
-std::filesystem::path get_properties_folder() {
-  static auto props = get_appdata_path() / "user";
+const std::filesystem::path &get_properties_folder() {
+  static const std::filesystem::path props = get_appdata_path() / "user";
   return props;
 }
 
-std::filesystem::path get_properties_file() {
-  static auto props = [] {
-    auto path = std::filesystem::path("boiii_players/properties.json");
-    const auto legacy_path = get_properties_folder() / "properties.json";
+const std::filesystem::path &get_properties_file() {
+  static const std::filesystem::path props = [] {
+    const std::filesystem::path path =
+        std::filesystem::path("boiii_players/properties.json");
+    const std::filesystem::path legacy_path =
+        get_properties_folder() / "properties.json";
 
     if (io::file_exists(legacy_path) && !io::file_exists(path)) {
       std::error_code e;
@@ -49,12 +54,12 @@ rapidjson::Document load_properties() {
   const std::wstring &props = get_properties_file();
 
   FILE *fp;
-  auto err = _wfopen_s(&fp, props.data(), L"rb");
+  const errno_t err = _wfopen_s(&fp, props.data(), L"rb");
   if (err || !fp) {
     return default_doc;
   }
 
-  const auto _ = finally([&] {
+  const auto _ = finally([&fp] {
     if (fp) {
       fclose(fp);
     }
@@ -82,7 +87,7 @@ void store_properties(const rapidjson::Document &doc) {
   io::create_directory(get_properties_folder());
 
   FILE *fp;
-  auto err = _wfopen_s(&fp, props.data(), L"wb");
+  const errno_t err = _wfopen_s(&fp, props.data(), L"wb");
   if (err || !fp) {
     return;
   }
@@ -101,35 +106,40 @@ void store_properties(const rapidjson::Document &doc) {
 }
 } // namespace
 
-std::filesystem::path get_appdata_path() {
-  PWSTR path;
-  if (!SUCCEEDED(
-          SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &path))) {
-    throw std::runtime_error("Failed to read APPDATA path!");
-  }
+const std::filesystem::path &get_appdata_path() {
+  static const std::filesystem::path result = []() {
+    PWSTR path;
+    if (!SUCCEEDED(
+            SHGetKnownFolderPath(FOLDERID_LocalAppData, 0, nullptr, &path))) {
+      throw std::runtime_error("Failed to read APPDATA path!");
+    }
 
-  auto _ = finally([&path] { CoTaskMemFree(path); });
-
-  static auto appdata = std::filesystem::path(path) / "boiii";
-  return appdata;
+    const std::filesystem::path result = std::filesystem::path(path) / "boiii";
+    CoTaskMemFree(path);
+    return result;
+  }();
+  return result;
 }
 
-std::filesystem::path get_key_path() { return get_appdata_path() / "user"; }
+const std::filesystem::path &get_key_path() {
+  static const std::filesystem::path result = get_appdata_path() / "user";
+  return result;
+}
 
 std::unique_lock<named_mutex> lock() {
   static named_mutex mutex{"boiii-properties-lock"};
   return std::unique_lock{mutex};
 }
 
-std::optional<std::string> load(const std::string &name) {
-  const auto _ = lock();
-  const auto doc = load_properties();
+std::optional<std::string> load(const std::string_view &name) {
+  const std::unique_lock<named_mutex> _ = lock();
+  const rapidjson::Document doc = load_properties();
 
-  if (!doc.HasMember(name)) {
+  if (!doc.HasMember(name.data())) {
     return {};
   }
 
-  const auto &value = doc[name];
+  const rapidjson::Value &value = doc[name.data()];
   if (!value.IsString()) {
     return {};
   }
@@ -137,19 +147,19 @@ std::optional<std::string> load(const std::string &name) {
   return {std::string{value.GetString()}};
 }
 
-void store(const std::string &name, const std::string &value) {
-  const auto _ = lock();
-  auto doc = load_properties();
+void store(const std::string_view &name, const std::string_view &value) {
+  const std::unique_lock<named_mutex> _ = lock();
+  rapidjson::Document doc = load_properties();
 
-  while (doc.HasMember(name)) {
-    doc.RemoveMember(name);
+  while (doc.HasMember(name.data())) {
+    doc.RemoveMember(name.data());
   }
 
   rapidjson::Value key{};
-  key.SetString(name, doc.GetAllocator());
+  key.SetString(name.data(), doc.GetAllocator());
 
   rapidjson::Value member{};
-  member.SetString(value, doc.GetAllocator());
+  member.SetString(value.data(), doc.GetAllocator());
 
   doc.AddMember(key, member, doc.GetAllocator());
 

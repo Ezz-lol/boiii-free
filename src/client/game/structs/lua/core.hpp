@@ -1458,14 +1458,6 @@ enum class GPadStickConfigs : int32_t {
   LEGACYSOUTHPAW = 3,
   COUNT = 4,
 };
-enum class LootResultType : uint32_t {
-  INVALID = 0,
-  SUCCESS = 1,
-  FAILURE_INSUFFICIENT_FUNDS = 2,
-  FAILURE_BAD_RESPONE = 3,
-  FAILURE = 4,
-  COUNT = 5,
-};
 enum class bunkCollectibleSlots_e : int32_t {
   INVALID_SLOT = -1,
   COLLECTIBLE_SMALL_1 = 0,

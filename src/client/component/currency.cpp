@@ -24,6 +24,7 @@ using game::ControllerIndex_t;
 using game::StorageFileType;
 using namespace game::ddl;
 using namespace game::live::storage;
+using namespace game::loot;
 
 game::EngineDependentDvarMut local_currency;
 game::EngineDependentDvarMut points_per_minute, points_per_match_cap;
@@ -33,70 +34,49 @@ game::EngineDependentDvarMut free_distills, paid_distills, free_distill_expiry;
 utils::hook::detour currency_hook, spend_hook, increment_hook, consume_hook;
 utils::hook::detour inventory_update_hook;
 
+// `bool Loot_RewardIsProcessing(const ControllerIndex_t controllerIndex)`
 // FIXME: this symbol should be moved to the proper namespace and file under
 // src/client/game/symbols, named with function name matching that used by the
 // engine, and typed correctly with parameter names
-game::symbol<bool(ControllerIndex_t)> loot_busy{0x141E80BB0};
+game::symbol<bool(ControllerIndex_t controllerIndex)> Loot_RewardIsProcessing{
+    0x141E74120, 0x141E80BB0, 0x0};
+// `bool __fastcall LiveInventory_IsValid(const ControllerIndex_t
+// controllerIndex)`
 // FIXME: this symbol should be moved to the proper namespace and file under
 // src/client/game/symbols, named with function name matching that used by the
 // engine, and typed correctly with parameter names
-game::symbol<bool(ControllerIndex_t)> inventory_valid{0x141E0A3B0};
+game::symbol<bool(ControllerIndex_t controllerIndex)> LiveInventory_IsValid{
+    0x141DFD920, 0x141E0A3B0, 0x0};
+// `bool LiveInventory_UpdatePlayerBalance(const ControllerIndex_t
+// controllerIndex, InventoryCurrency currencyType, uint32_t newValue)`
 // FIXME: this symbol should be moved to the proper namespace and file under
 // src/client/game/symbols, named with function name matching that used by the
 // engine, and typed correctly with parameter names
-game::symbol<bool(ControllerIndex_t, int, int)> update_currency{0x141E0AB50};
+game::symbol<bool(ControllerIndex_t, int, int)>
+    LiveInventory_UpdatePlayerBalance{0x141DFE0C0, 0x141E0AB50, 0x0};
+// `bool LiveInventory_UpdateItemQuantity(const ControllerIndex_t
+// controllerIndex, const uint32_t itemId, const uint32_t newAmount, const
+// uint32_t modDateTime, const uint32_t collisionField)`
 // FIXME: this symbol should be moved to the proper namespace and file under
 // src/client/game/symbols, named with function name matching that used by the
 // engine, and typed correctly with parameter names
 game::symbol<bool(ControllerIndex_t, uint32_t, uint32_t, uint32_t, uint32_t,
                   uint16_t)>
-    update_item{0x141E0AA30};
-
+    LiveInventory_UpdateItemQuantity{0x141DFDFA0, 0x141E0AA30, 0x0};
+// `const char * StringTable_GetColumnValueForRow(const StringTable *table,
+// const int32_t row, const int32_t column)`
 // FIXME: this symbol should be moved to the proper namespace and file under
 // src/client/game/symbols, named with function name matching that used by the
 // engine, and typed correctly with parameter names
-game::symbol<const char *(const StringTable *, int, int)> table_cell{
-    0x1422AE660};
+game::symbol<const char *(const StringTable *, int, int)>
+    StringTable_GetColumnValueForRow{0x142251B40, 0x1422AE660, 0x0};
 // `const char * StringTable_Lookup(const StringTable *table, const
 // int32_t comparisonColumn, const char *value, const int32_t valueColumn)`
 // FIXME: this symbol should be moved to the proper namespace and file under
 // src/client/game/symbols, named with function name matching that used by the
 // engine, and typed correctly with parameter names
 game::symbol<const char *(const StringTable *, int, const char *, int)>
-    table_lookup{0x1422AE7F0};
-
-/*
-  FIXME: this is not the real engine struct definition.
-  The struct definition should be completed, defined, properly named and
-  namespaced, and placed in the appropriate file under the
-  "src/client/game/structs" tree.
-*/
-struct loot_item {
-  uint32_t id;
-  uint32_t quantity;
-  str256_t reference;
-};
-ASSERT_SIZE(loot_item, 0x108);
-
-/*
-  FIXME: this is not the real engine struct definition.
-  The struct definition should be completed, defined, properly named and
-  namespaced, and placed in the appropriate file under the
-  "src/client/game/structs" tree.
-*/
-// Shared with the native factory completion and
-// GetLootResults, not a Lua override.
-struct loot_results {
-  bool ready;
-  uint8_t padding[3];
-  game::lua::LootResultType result;
-  loot_item granted[5];
-  loot_item all[3];
-  uint8_t rest[0x954 - 8 - 8 * sizeof(loot_item)];
-};
-static_assert(offsetof(loot_results, all) == 0x530);
-static_assert(sizeof(loot_results) == 0x954);
-game::symbol<loot_results> results{0x1512F1BB0};
+    StringTable_Lookup{0x142251CD0, 0x1422AE7F0, 0x0};
 
 bool enabled() {
   return local_currency && local_currency.get_bool() &&
@@ -247,17 +227,18 @@ const std::vector<gum> &gum_pool() {
     return pool;
   }
   for (int32_t row = 0; row < stat_table->rowCount; ++row) {
-    const char *type = table_cell(stat_table, row, 2);
+    const char *type = StringTable_GetColumnValueForRow(stat_table, row, 2);
     if (!type || std::string_view(type) != "bubblegum_consumable") {
       continue;
     }
-    const char *index_text = table_cell(stat_table, row, 0);
-    const char *ref = table_cell(stat_table, row, 4);
+    const char *index_text =
+        StringTable_GetColumnValueForRow(stat_table, row, 0);
+    const char *ref = StringTable_GetColumnValueForRow(stat_table, row, 4);
     if (!index_text || !ref || !*ref || strlen(ref) >= 256) {
       continue;
     }
     const std::optional<uint32_t> index = accounting::parse_amount(index_text);
-    const char *id_text = table_lookup(items, 0, ref, 1);
+    const char *id_text = StringTable_Lookup(items, 0, ref, 1);
     if (!id_text) {
       continue;
     }
@@ -309,8 +290,8 @@ bool spend_vials(ControllerIndex_t controller, uint32_t count) {
       /* FIXME: We have this stored in a global. Why are we needlessly looking
           up the dvar by name? This needs to be fixed. */
       !game::get_dvar_bool("loot_enabled").value_or(false) ||
-      !inventory_valid(controller) || loot_busy(controller) ||
-      game::com::Com_IsInGame() ||
+      !LiveInventory_IsValid(controller) ||
+      Loot_RewardIsProcessing(controller) || game::com::Com_IsInGame() ||
       game::com::Com_SessionMode_GetMode() != game::eModes::ZOMBIES) {
     return false;
   }
@@ -352,21 +333,22 @@ bool spend_vials(ControllerIndex_t controller, uint32_t count) {
   if (!data.commit()) {
     return false;
   }
-  *results.get() = {};
+  *game::loot::s_lastResult.get() = {};
   for (uint32_t i = 0; i < ROLL_SELECTION_POOL_SIZE; ++i) {
-    loot_item &entry = results->all[i];
-    entry.id = rolled[i].id;
-    entry.quantity = 1;
-    strscpy(entry.reference, rolled[i].reference);
+    LootResultItem &entry = game::loot::s_lastResult->all[i];
+    entry.itemId = rolled[i].id;
+    entry.itemQuantity = 1;
+    strscpy(entry.itemName, rolled[i].reference);
     if (i < count) {
-      results->granted[i] = entry;
-      results->granted[i].quantity = 1;
-      update_item(controller, rolled[i].id, quantities[i], 0, 0, 0);
+      game::loot::s_lastResult->granted[i] = entry;
+      game::loot::s_lastResult->granted[i].itemQuantity = 1;
+      LiveInventory_UpdateItemQuantity(controller, rolled[i].id, quantities[i],
+                                       0, 0, 0);
     }
   }
-  update_currency(controller, 3, *balance - count);
-  results->result = game::lua::LootResultType::SUCCESS;
-  results->ready = true;
+  LiveInventory_UpdatePlayerBalance(controller, 3, *balance - count);
+  game::loot::s_lastResult->result = LootResultType::SUCCESS;
+  game::loot::s_lastResult->isValid = true;
   return true;
 }
 
@@ -387,7 +369,7 @@ bool increment_currency(ControllerIndex_t controller, int32_t kind,
   if (!data.commit()) {
     return false;
   }
-  update_currency(controller, 3, *balance);
+  LiveInventory_UpdatePlayerBalance(controller, 3, *balance);
   using namespace game::ui;
   const uint16_t root = UI_Model_GetModelForController(controller);
   const uint16_t tokens = UI_Model_CreateModelFromPath(root, "MegaChewTokens");
@@ -426,7 +408,7 @@ bool increment_from_lua(ControllerIndex_t controller, int32_t kind,
   if (!data.commit()) {
     return false;
   }
-  update_currency(controller, 3, *balance + amount);
+  LiveInventory_UpdatePlayerBalance(controller, 3, *balance + amount);
   return true;
 }
 
@@ -469,8 +451,8 @@ void *consume_items(ControllerIndex_t controller, uint32_t *ids, int32_t count,
     if (next) {
       data.set(*used, *next);
       if (data.commit()) {
-        update_item(controller, found->id, quantity(data, *found).value(), 0, 0,
-                    0);
+        LiveInventory_UpdateItemQuantity(
+            controller, found->id, quantity(data, *found).value(), 0, 0, 0);
         return nullptr;
       }
     }
@@ -488,7 +470,7 @@ void inventory_update(ControllerIndex_t controller) {
   static game::LocalClientPool<bool> points_restored{};
   static game::LocalClientPool<StorageFileType> restored_file{};
   static game::LocalClientPool<game::XUID> restored_user{};
-  if (!enabled() || !inventory_valid(controller)) {
+  if (!enabled() || !LiveInventory_IsValid(controller)) {
     restored[controller] = false;
     points_restored[controller] = false;
     return;
@@ -510,7 +492,7 @@ void inventory_update(ControllerIndex_t controller) {
   if (!points) {
     points_restored[controller] = false;
   } else if (!points_restored[controller]) {
-    points_restored[controller] = update_currency(
+    points_restored[controller] = LiveInventory_UpdatePlayerBalance(
         controller, 0, std::min(mp.get(*points), accounting::max_balance));
   }
   if (!data.context || restored[controller]) {
@@ -523,11 +505,12 @@ void inventory_update(ControllerIndex_t controller) {
   }
   for (const gum &item : pool) {
     const std::optional<uint32_t> count = quantity(data, item);
-    if (!count || !update_item(controller, item.id, *count, 0, 0, 0)) {
+    if (!count || !LiveInventory_UpdateItemQuantity(controller, item.id, *count,
+                                                    0, 0, 0)) {
       return;
     }
   }
-  update_currency(controller, 3, *balance);
+  LiveInventory_UpdatePlayerBalance(controller, 3, *balance);
   restored[controller] = true;
 }
 
@@ -568,7 +551,7 @@ void balance_command(const char *name, bool zombies) {
       toast::error("Currency", "Could not queue the native stats save.");
       return;
     }
-    update_currency(controller, zombies ? 3 : 0, *amount);
+    LiveInventory_UpdatePlayerBalance(controller, zombies ? 3 : 0, *amount);
     toast::success("Currency", utils::string::va("Balance set to %u", *amount));
   });
 }
@@ -650,7 +633,8 @@ void award_match_points() {
       data.set(*points, before + pending->points);
       if (!pending->points || data.commit()) {
         pending->points_saved = true;
-        update_currency(controller, 0, before + pending->points);
+        LiveInventory_UpdatePlayerBalance(controller, 0,
+                                          before + pending->points);
       }
     }
   }
@@ -669,7 +653,8 @@ void award_match_points() {
       if (!pending->vials || data.commit()) {
         pending->vials_saved = true;
         last_divinium_award.set(pending->vials);
-        update_currency(controller, 3, *balance + pending->vials);
+        LiveInventory_UpdatePlayerBalance(controller, 3,
+                                          *balance + pending->vials);
         using namespace game::ui;
         const uint16_t root = UI_Model_GetModelForController(controller);
         const uint16_t tokens =
@@ -735,7 +720,7 @@ std::optional<uint32_t> add_cod_points(ControllerIndex_t controller,
     return std::nullopt;
   }
 
-  update_currency(controller, 0, updated);
+  LiveInventory_UpdatePlayerBalance(controller, 0, updated);
   return updated;
 }
 
@@ -782,8 +767,8 @@ bool purchase_vials(ControllerIndex_t controller, uint32_t cost,
     return false;
   }
 
-  update_currency(index, 0, point_balance - cost);
-  update_currency(index, 3, *vial_balance + amount);
+  LiveInventory_UpdatePlayerBalance(index, 0, point_balance - cost);
+  LiveInventory_UpdatePlayerBalance(index, 3, *vial_balance + amount);
   return true;
 }
 
@@ -865,7 +850,7 @@ bool purchase_distills(ControllerIndex_t controller, std::string_view kind,
     }
   }
   if (!free) {
-    update_currency(index, currency, remaining_currency);
+    LiveInventory_UpdatePlayerBalance(index, currency, remaining_currency);
   }
   return true;
 }
@@ -920,7 +905,7 @@ bool cook_recipe(ControllerIndex_t controller, uint32_t recipe,
 
   int32_t recipe_row = -1;
   for (int32_t row = 0; row < recipes->rowCount; ++row) {
-    const char *text = table_cell(recipes, row, 0);
+    const char *text = StringTable_GetColumnValueForRow(recipes, row, 0);
     const std::optional<uint32_t> value =
         text ? accounting::parse_amount(text) : std::nullopt;
     if (value && *value == recipe) {
@@ -932,9 +917,10 @@ bool cook_recipe(ControllerIndex_t controller, uint32_t recipe,
     return false;
   }
 
-  const gum *result_gum =
-      find_gum_by_name(pool, table_cell(recipes, recipe_row, 1));
-  const char *result_count_text = table_cell(recipes, recipe_row, 2);
+  const gum *result_gum = find_gum_by_name(
+      pool, StringTable_GetColumnValueForRow(recipes, recipe_row, 1));
+  const char *result_count_text =
+      StringTable_GetColumnValueForRow(recipes, recipe_row, 2);
   const std::optional<uint32_t> result_count =
       result_count_text ? accounting::parse_amount(result_count_text)
                         : std::nullopt;
@@ -954,12 +940,14 @@ bool cook_recipe(ControllerIndex_t controller, uint32_t recipe,
 
   stats data(controller, true);
   for (int32_t column = 3;; column += 2) {
-    const char *reference = table_cell(recipes, recipe_row, column);
+    const char *reference =
+        StringTable_GetColumnValueForRow(recipes, recipe_row, column);
     if (!reference || !*reference || *reference == '#') {
       break;
     }
     const gum *ingredient = find_gum_by_name(pool, reference);
-    const char *count_text = table_cell(recipes, recipe_row, column + 1);
+    const char *count_text =
+        StringTable_GetColumnValueForRow(recipes, recipe_row, column + 1);
     const std::optional<uint32_t> count =
         count_text ? accounting::parse_amount(count_text) : std::nullopt;
     if (!ingredient || !count || !*count) {
@@ -996,13 +984,13 @@ bool cook_recipe(ControllerIndex_t controller, uint32_t recipe,
     return false;
   }
 
-  *results.get() = {};
-  results->granted[0].id = result_gum->id;
-  results->granted[0].quantity = *result_count;
-  strscpy(results->granted[0].reference, result_gum->reference);
-  results->all[0] = results->granted[0];
-  results->result = game::lua::LootResultType::SUCCESS;
-  results->ready = true;
+  *game::loot::s_lastResult.get() = {};
+  game::loot::s_lastResult->granted[0].itemId = result_gum->id;
+  game::loot::s_lastResult->granted[0].itemQuantity = *result_count;
+  strscpy(game::loot::s_lastResult->granted[0].itemName, result_gum->reference);
+  game::loot::s_lastResult->all[0] = game::loot::s_lastResult->granted[0];
+  game::loot::s_lastResult->result = game::loot::LootResultType::SUCCESS;
+  game::loot::s_lastResult->isValid = true;
   return true;
 }
 
@@ -1067,7 +1055,7 @@ bool reset_gobblegums(ControllerIndex_t controller) {
     return false;
   }
   for (const gum &item : pool) {
-    update_item(index, item.id, 0, 0, 0, 0);
+    LiveInventory_UpdateItemQuantity(index, item.id, 0, 0, 0, 0);
   }
   return true;
 }
@@ -1105,8 +1093,8 @@ bool set_currencies_maxed(ControllerIndex_t controller, bool maxed) {
     return false;
   }
 
-  update_currency(index, 0, point_balance);
-  update_currency(index, 3, vial_balance);
+  LiveInventory_UpdatePlayerBalance(index, 0, point_balance);
+  LiveInventory_UpdatePlayerBalance(index, 3, vial_balance);
   return true;
 }
 

@@ -301,10 +301,13 @@ bool access_active_client(const size_t index,
   return access_client(*svs_clients_cl, index, callback);
 }
 
-std::vector<std::string> get_registered_dvar_names() {
-  std::vector<std::string> result;
-  registered_dvar_names_.access(
-      [&result](const std::vector<std::string> &names) { result = names; });
+const std::vector<std::string> &get_registered_dvar_names() {
+  static const std::vector<std::string> result = []() {
+    std::vector<std::string> result;
+    registered_dvar_names_.access(
+        [&result](const std::vector<std::string> &names) { result = names; });
+    return result;
+  }();
   return result;
 }
 

@@ -6,7 +6,7 @@ namespace game {
 namespace live {
 namespace anticheat {
 WEAK symbol<bool(const ControllerIndex_t controllerIndex)>
-    LiveAntiCheat_ConsoleDetailsReported{0x141DE8E20};
+    LiveAntiCheat_ConsoleDetailsReported{0x141DDC390, 0x141DE8E20, 0x0};
 }
 } // namespace live
 } // namespace game

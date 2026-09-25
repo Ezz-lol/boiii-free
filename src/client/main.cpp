@@ -63,7 +63,9 @@ bool restart_app_if_necessary_stub() {
   utils::hook::set(g_original_import.first, g_original_import.second);
   patch_steam_import("SteamAPI_Shutdown", steam::SteamAPI_Shutdown);
 
+  game::trace("Executing post_unpack");
   component_loader::post_unpack();
+  game::trace("Done executing post_unpack");
   return steam::SteamAPI_RestartAppIfNecessary();
 }
 
@@ -110,8 +112,8 @@ void patch_imports() {
 
 void remove_crash_file() {
   const utils::nt::library game{};
-  const auto game_file = game.get_path();
-  auto game_path = std::filesystem::path(game_file);
+  const std::filesystem::path game_file = game.get_path();
+  std::filesystem::path game_path = std::filesystem::path(game_file);
   game_path.replace_extension(".start");
 
   utils::io::remove_file(game_path);
@@ -119,14 +121,13 @@ void remove_crash_file() {
 
 struct patch_install_cancelled {};
 
-constexpr uint32_t supported_client_checksum = 0x888C368;
-constexpr uint32_t supported_newsteamclient_checksum = 0x6531394;
-constexpr uint32_t legacy_client_checksum = 0x8880704;
+constexpr uint32_t legacy_client_checksum = 0x888C368;
+constexpr uint32_t supported_client_checksum = 0x6531394;
 
 constexpr const char *supported_client_patch_url =
-    "https://archive.org/download/t7_full_game/BlackOps3.exe";
+    "https://archive.org/download/black-ops-3_202609/BlackOps3.exe";
 constexpr const char *supported_client_patch_sha1 =
-    "9082c9fb766caec756c7b6409127f47aec0c9e51";
+    "9D03F81086112113BFB1DD22B8538B9398AC3B9B";
 
 enum class client_binary_state {
   supported,
@@ -134,12 +135,6 @@ enum class client_binary_state {
   incompatible,
   unreadable,
 };
-
-uint32_t get_expected_client_checksum() {
-  return utils::flags::has_flag("newsteamclient")
-             ? supported_newsteamclient_checksum
-             : supported_client_checksum;
-}
 
 std::optional<uint32_t> get_pe_checksum(const std::filesystem::path &file) {
   std::ifstream stream(file, std::ios::binary);
@@ -211,11 +206,11 @@ bool has_expected_client_patch_hash(const std::filesystem::path &file) {
 client_binary_state
 classify_client_binary(const std::filesystem::path &client_binary) {
   const std::optional<uint32_t> checksum = get_pe_checksum(client_binary);
-  if (!checksum) {
+  if (!checksum.has_value()) {
     return client_binary_state::unreadable;
   }
 
-  if (*checksum == get_expected_client_checksum()) {
+  if (*checksum == supported_client_checksum) {
     return client_binary_state::supported;
   }
 
@@ -237,21 +232,18 @@ std::vector<unsigned long> get_running_client_binary_process_ids() {
 
   PROCESSENTRY32W process_entry{};
   process_entry.dwSize = sizeof(process_entry);
-  const auto self_pid = GetCurrentProcessId();
+  const DWORD self_pid = GetCurrentProcessId();
 
   if (!Process32FirstW(snapshot, &process_entry)) {
     return pids;
   }
 
-  do {
-    if (process_entry.th32ProcessID == self_pid) {
-      continue;
-    }
-
-    if (_wcsicmp(process_entry.szExeFile, L"BlackOps3.exe") == 0) {
+  while (Process32NextW(snapshot, &process_entry)) {
+    if (process_entry.th32ProcessID != self_pid &&
+        _wcsicmp(process_entry.szExeFile, L"BlackOps3.exe") == 0) {
       pids.emplace_back(process_entry.th32ProcessID);
     }
-  } while (Process32NextW(snapshot, &process_entry));
+  };
 
   return pids;
 }
@@ -263,8 +255,8 @@ bool is_client_binary_process_running() {
 void close_running_client_binary_processes() {
   const std::vector<unsigned long> pids =
       get_running_client_binary_process_ids();
-  for (const auto pid : pids) {
-    const auto process =
+  for (const unsigned long pid : pids) {
+    const HANDLE process =
         OpenProcess(PROCESS_TERMINATE | SYNCHRONIZE, FALSE, pid);
     if (!process) {
       throw std::runtime_error(
@@ -275,14 +267,14 @@ void close_running_client_binary_processes() {
     auto _ = utils::finally([&]() { CloseHandle(process); });
 
     if (!TerminateProcess(process, 0)) {
-      const auto error = GetLastError();
+      const DWORD error = GetLastError();
       throw std::runtime_error(
           std::string("Failed to close the running BlackOps3.exe process "
                       "before installing the patch (error ") +
           std::to_string(error) + ").");
     }
 
-    const auto wait_result = WaitForSingleObject(process, 15000);
+    const DWORD wait_result = WaitForSingleObject(process, 15000);
     if (wait_result != WAIT_OBJECT_0) {
       throw std::runtime_error(
           "BlackOps3.exe did not close in time for the patch install.");
@@ -304,7 +296,7 @@ get_manual_client_patch_message(const client_binary_state /*state*/) {
 
 std::string get_client_patch_prompt_message(const client_binary_state /*state*/,
                                             const bool close_running_game) {
-  const auto close_message =
+  const char *close_message =
       close_running_game
           ? "\n\nBlack Ops 3 is already running. BOIII will close it when "
             "the patch is ready, then continue launch."
@@ -317,7 +309,9 @@ std::string get_client_patch_prompt_message(const client_binary_state /*state*/,
              "the older compatible BlackOps3.exe version.\n\n"
              "BOIII can download and install the compatible BlackOps3.exe "
              "automatically before launch.") +
-         close_message + "\n\nPress OK to continue or Cancel to stop.";
+         close_message +
+         "\n\nPress OK to download or cancel to attempt to proceed with "
+         "current BlackOps3.exe.";
 }
 
 bool prompt_to_install_client_patch(const client_binary_state state,
@@ -326,7 +320,7 @@ bool prompt_to_install_client_patch(const client_binary_state state,
     return false;
   }
 
-  const auto result = MessageBoxA(
+  const int result = MessageBoxA(
       nullptr,
       get_client_patch_prompt_message(state, close_running_game).c_str(),
       "BOIII Patch Installer",
@@ -363,9 +357,9 @@ void install_supported_client_binary(
   progress.set_line(2, "Preparing download...");
   progress.show(true);
 
-  const auto temp_binary =
+  const std::filesystem::path temp_binary =
       std::filesystem::path(client_binary.string() + ".boiii_download");
-  const auto backup_binary =
+  const std::filesystem::path backup_binary =
       std::filesystem::path(client_binary.string() + ".boiii_backup");
 
   auto cleanup_temp =
@@ -377,10 +371,11 @@ void install_supported_client_binary(
                              "your game directory.");
   }
 
-  auto last_progress_update = std::chrono::steady_clock::time_point{};
+  std::chrono::steady_clock::time_point last_progress_update =
+      std::chrono::steady_clock::time_point{};
   bool has_total_size = false;
   size_t latest_total_size = 0;
-  const auto curl_code = utils::http::get_data_stream(
+  const int32_t curl_code = utils::http::get_data_stream(
       supported_client_patch_url, {},
       [&](const size_t downloaded, const size_t total_size) {
         if (progress.is_cancelled()) {
@@ -389,7 +384,8 @@ void install_supported_client_binary(
 
         latest_total_size = total_size;
 
-        const auto now = std::chrono::steady_clock::now();
+        const std::chrono::steady_clock::time_point now =
+            std::chrono::steady_clock::now();
         if (last_progress_update == std::chrono::steady_clock::time_point{} ||
             (now - last_progress_update) >= 125ms) {
           if (total_size > 0) {
@@ -412,7 +408,7 @@ void install_supported_client_binary(
       },
       [&](const char *data, const size_t size) {
         temp_stream.write(data, static_cast<std::streamsize>(size));
-        if (!temp_stream) {
+        if (!temp_stream || !temp_stream.is_open()) {
           throw std::runtime_error(
               "Failed while writing the downloaded BlackOps3.exe patch.");
         }
@@ -436,9 +432,10 @@ void install_supported_client_binary(
   progress.set_line(1, "Verifying downloaded BlackOps3.exe...");
   progress.set_line(2, temp_binary.filename().string());
 
-  const auto downloaded_checksum = get_pe_checksum(temp_binary);
+  const std::optional<uint32_t> downloaded_checksum =
+      get_pe_checksum(temp_binary);
   if (!has_expected_client_patch_hash(temp_binary) || !downloaded_checksum ||
-      *downloaded_checksum != get_expected_client_checksum()) {
+      *downloaded_checksum != supported_client_checksum) {
     throw std::runtime_error(
         "The downloaded BlackOps3.exe patch did not match the BOIII-"
         "compatible version that this build expects.");
@@ -484,7 +481,8 @@ void install_supported_client_binary(
         "Failed to replace BlackOps3.exe with the downloaded patch.");
   }
 
-  const auto installed_state = classify_client_binary(client_binary);
+  const client_binary_state installed_state =
+      classify_client_binary(client_binary);
   if (installed_state != client_binary_state::supported) {
     throw std::runtime_error("BlackOps3.exe was replaced, but the new file is "
                              "still not compatible with this BOIII build.");
@@ -500,29 +498,31 @@ void install_supported_client_binary(
 
 void ensure_compatible_client_binary(
     const std::filesystem::path &client_binary) {
-  const auto state = classify_client_binary(client_binary);
-  if (state == client_binary_state::supported ||
-      state == client_binary_state::unreadable) {
-    return;
+  const client_binary_state state = classify_client_binary(client_binary);
+  switch (state) {
+  case client_binary_state::legacy:
+  case client_binary_state::incompatible: {
+    const bool close_running_game = is_client_binary_process_running();
+    if (prompt_to_install_client_patch(state, close_running_game)) {
+      install_supported_client_binary(client_binary, close_running_game);
+    }
+    break;
   }
-
-  const auto close_running_game = is_client_binary_process_running();
-  if (!prompt_to_install_client_patch(state, close_running_game)) {
-    throw patch_install_cancelled{};
+  default: {
+    break;
   }
-
-  install_supported_client_binary(client_binary, close_running_game);
+  }
 }
 
 PIMAGE_TLS_CALLBACK *get_tls_callbacks() {
   const utils::nt::library game{};
-  const auto &entry =
+  const IMAGE_DATA_DIRECTORY &entry =
       game.get_optional_header()->DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];
   if (!entry.VirtualAddress || !entry.Size) {
     return nullptr;
   }
 
-  const auto *tls_dir = reinterpret_cast<IMAGE_TLS_DIRECTORY *>(
+  const IMAGE_TLS_DIRECTORY *tls_dir = reinterpret_cast<IMAGE_TLS_DIRECTORY *>(
       game.get_ptr() + entry.VirtualAddress);
   return reinterpret_cast<PIMAGE_TLS_CALLBACK *>(tls_dir->AddressOfCallBacks);
 }
@@ -532,7 +532,7 @@ void run_tls_callbacks(const unsigned long reason) {
     return;
   }
 
-  auto *callback = get_tls_callbacks();
+  PIMAGE_TLS_CALLBACK *callback = get_tls_callbacks();
   while (callback && *callback) {
     (*callback)(GetModuleHandleA(nullptr), reason, nullptr);
     ++callback;
@@ -612,7 +612,8 @@ void enable_dpi_awareness() {
 
 void trigger_high_performance_gpu_switch() {
   // Make sure to link D3D11, as this might trigger high performance GPU
-  [[maybe_unused]] static volatile auto _ = &D3D11CreateDevice;
+  [[maybe_unused]] static volatile PFN_D3D11_CREATE_DEVICE _ =
+      &D3D11CreateDevice;
 
   const utils::nt::registry_key key = utils::nt::open_or_create_registry_key(
       HKEY_CURRENT_USER, R"(Software\Microsoft\DirectX\UserGpuPreferences)");
@@ -952,7 +953,7 @@ bool launch_beta_server_if_needed() {
   }
 
   const bool target_exists = utils::io::file_exists(target);
-  const auto data =
+  const std::optional<std::string> data =
       !utils::flags::has_flag("noupdate") || !target_exists
           ? utils::http::get_data("https://r2.ezz.lol/boiii/beta/boiii.exe")
           : std::nullopt;
@@ -1021,7 +1022,7 @@ int main(int argc, char *argv[]) {
   enable_dpi_awareness();
 
   {
-    auto premature_shutdown = true;
+    bool premature_shutdown = true;
     const auto _ = utils::finally([&premature_shutdown] {
       if (premature_shutdown) {
         component_loader::pre_destroy();
@@ -1063,7 +1064,7 @@ int main(int argc, char *argv[]) {
       }
 
       if (initial_update_required()) {
-        const std::filesystem::path appdata_path = game::get_appdata_path();
+        const std::filesystem::path &appdata_path = game::get_appdata_path();
         const std::string appdata_path_str = appdata_path.generic_string();
         const char *err = utils::string::va(
             "Missing required data in %s; Initial data download has failed. "

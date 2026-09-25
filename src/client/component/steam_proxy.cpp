@@ -70,14 +70,14 @@ struct game_rich_presence_join_requested_t {
 utils::hook::detour steam_bgetcallback_hook;
 
 bool steam_bgetcallback_stub(int32_t pipe, callback_msg_t *msg) {
-  const auto result = steam_bgetcallback_hook.invoke<bool>(pipe, msg);
+  const bool result = steam_bgetcallback_hook.invoke<bool>(pipe, msg);
   if (!result || !msg)
     return result;
 
   if (msg->callback_id == k_GameRichPresenceJoinRequested && msg->data &&
       msg->data_size >=
           static_cast<int>(sizeof(game_rich_presence_join_requested_t))) {
-    const auto *join =
+    const game_rich_presence_join_requested_t *join =
         reinterpret_cast<const game_rich_presence_join_requested_t *>(
             msg->data);
     std::string connect_str(join->connect);
@@ -120,9 +120,10 @@ std::vector<std::filesystem::path> get_bo3_workshop_content_paths() {
   std::vector<std::filesystem::path> result;
   std::error_code ec;
 
-  const auto game_path = game::get_game_path();
-  const auto game_workshop_path = game_path.parent_path().parent_path() /
-                                  "workshop" / "content" / game::APP_ID_STR;
+  const std::filesystem::path game_path = game::get_game_path();
+  const std::filesystem::path game_workshop_path =
+      game_path.parent_path().parent_path() / "workshop" / "content" /
+      game::APP_ID_STR;
   if (std::filesystem::exists(game_workshop_path, ec)) {
     result.push_back(game_workshop_path);
   }
@@ -130,7 +131,7 @@ std::vector<std::filesystem::path> get_bo3_workshop_content_paths() {
   const std::filesystem::path steam_path =
       steam::SteamAPI_GetSteamInstallPath();
   if (!steam_path.empty()) {
-    const auto steam_workshop_path =
+    const std::filesystem::path steam_workshop_path =
         steam_path / "steamapps" / "workshop" / "content" / game::APP_ID_STR;
     if (std::filesystem::exists(steam_workshop_path, ec) &&
         std::find(result.begin(), result.end(), steam_workshop_path) ==
@@ -145,14 +146,15 @@ std::vector<std::filesystem::path> get_bo3_workshop_content_paths() {
 void merge_local_workshop_content(subscribed_item_map &map) {
   std::error_code ec;
 
-  for (const auto &workshop_root : get_bo3_workshop_content_paths()) {
-    for (const auto &entry :
+  for (const std::filesystem::path &workshop_root :
+       get_bo3_workshop_content_paths()) {
+    for (const std::filesystem::directory_entry &entry :
          std::filesystem::directory_iterator(workshop_root, ec)) {
       if (ec || !entry.is_directory(ec)) {
         continue;
       }
 
-      const auto folder_name = entry.path().filename().string();
+      const std::string folder_name = entry.path().filename().string();
       if (folder_name.empty() ||
           !std::all_of(
               folder_name.begin(), folder_name.end(),
@@ -160,8 +162,9 @@ void merge_local_workshop_content(subscribed_item_map &map) {
         continue;
       }
 
-      const auto workshop_id = std::strtoull(folder_name.c_str(), nullptr, 10);
-      auto &item = map[workshop_id];
+      const unsigned long long workshop_id =
+          std::strtoull(folder_name.c_str(), nullptr, 10);
+      subscribed_item &item = map[workshop_id];
       item.available = true;
       item.path = entry.path().string();
       item.state |= 0x5;
@@ -173,10 +176,10 @@ void *load_client_engine() {
   if (!steam_client_module)
     return nullptr;
 
-  for (auto i = 1; i <= 999; ++i) {
+  for (int i = 1; i <= 999; ++i) {
     std::string name =
         utils::string::va("CLIENTENGINE_INTERFACE_VERSION%03i", i);
-    auto *const temp_client_engine = steam_client_module.invoke<void *>(
+    void *const temp_client_engine = steam_client_module.invoke<void *>(
         "CreateInterface", name.data(), nullptr);
     if (temp_client_engine)
       return temp_client_engine;
@@ -189,7 +192,7 @@ void load_client() {
   if (is_disabled())
     return;
 
-  SetEnvironmentVariableA("SteamAppId", game::APP_ID_STR);
+  SetEnvironmentVariableA("SteamAppId", game::APP_ID_STR.data());
 
   const std::filesystem::path steam_path =
       steam::SteamAPI_GetSteamInstallPath();
@@ -281,9 +284,10 @@ ownership_state start_mod_unsafe(const std::string &title, size_t app_id) {
   char our_directory[MAX_PATH] = {0};
   GetCurrentDirectoryA(sizeof(our_directory), our_directory);
 
-  const auto self = utils::nt::library::get_by_address(start_mod_unsafe);
-  const auto path = self.get_path();
-  const auto *cmdline = utils::string::va(
+  const utils::nt::library self =
+      utils::nt::library::get_by_address(start_mod_unsafe);
+  const std::filesystem::path path = self.get_path();
+  const char *cmdline = utils::string::va(
       "\"%s\" -proc %d", path.generic_string().data(), GetCurrentProcessId());
 
   steam::game_id game_id;
@@ -333,9 +337,9 @@ struct component final : client_component {
   }
 
   void post_unpack() override {
-    const auto res = start_mod("\xE2\x98\x84\xEF\xB8\x8F"
-                               " BOIII"s,
-                               steam::SteamUtils()->GetAppID());
+    const ownership_state res = start_mod("\xE2\x98\x84\xEF\xB8\x8F"
+                                          " BOIII"s,
+                                          steam::SteamUtils()->GetAppID());
     evaluate_ownership_state(res);
     clean_up_on_error();
   }
@@ -419,7 +423,7 @@ void initialize() {
   global_user = steam_client->ConnectToGlobalUser(steam_pipe);
 
   steam::interface rc(static_cast<void *>(steam_client));
-  auto *fp = rc.invoke<void *>(8, global_user, steam_pipe, "SteamFriends015");
+  void *fp = rc.invoke<void *>(8, global_user, steam_pipe, "SteamFriends015");
   if (fp)
     steam_friends_real = steam::interface(fp);
 }
@@ -428,14 +432,14 @@ void create_ugc() {
   if (!steam_client)
     return;
 
-  auto *ugc = steam_client->GetISteamUGC(global_user, steam_pipe,
+  void *ugc = steam_client->GetISteamUGC(global_user, steam_pipe,
                                          "STEAMUGC_INTERFACE_VERSION008");
   steam_ugc = static_cast<steam::ugc *>(ugc);
 }
 
 void update_map_client(subscribed_item_map &map) {
-  const auto app_id = workshop_app_id;
-  const auto num_items =
+  const uint32_t app_id = workshop_app_id;
+  const unsigned int num_items =
       client_ugc.invoke<uint32_t>("GetNumSubscribedItems", app_id);
 
   if (!num_items) {
@@ -445,8 +449,8 @@ void update_map_client(subscribed_item_map &map) {
   std::vector<uint64_t> ids;
   ids.resize(num_items);
 
-  auto result = client_ugc.invoke<uint32_t>("GetSubscribedItems", app_id,
-                                            ids.data(), num_items);
+  unsigned int result = client_ugc.invoke<uint32_t>(
+      "GetSubscribedItems", app_id, ids.data(), num_items);
   result = std::min(num_items, result);
 
   for (uint32_t i = 0; i < result; ++i) {
@@ -464,7 +468,7 @@ void update_map_client(subscribed_item_map &map) {
 }
 
 void update_map_steam(subscribed_item_map &map) {
-  const auto num_items = steam_ugc->GetNumSubscribedItems();
+  const uint32_t num_items = steam_ugc->GetNumSubscribedItems();
 
   if (!num_items) {
     return;
@@ -473,7 +477,7 @@ void update_map_steam(subscribed_item_map &map) {
   std::vector<uint64_t> ids;
   ids.resize(num_items);
 
-  auto result = steam_ugc->GetSubscribedItems(ids.data(), num_items);
+  uint32_t result = steam_ugc->GetSubscribedItems(ids.data(), num_items);
   result = std::min(num_items, result);
 
   for (uint32_t i = 0; i < result; ++i) {
@@ -526,26 +530,26 @@ void access_steam_friends(
       return;
     }
 
-    const auto count = client_friends.invoke<int>("GetFriendCount", 0x04);
+    const int count = client_friends.invoke<int>("GetFriendCount", 0x04);
     if (count <= 0) {
       callback(result);
       return;
     }
 
     for (int i = 0; i < count; ++i) {
-      const auto id =
+      const unsigned long long id =
           client_friends.invoke<uint64_t>("GetFriendByIndex", i, 0x04);
       if (id == 0)
         continue;
 
       steam_id sid{};
       sid.bits = id;
-      const auto state =
+      const int state =
           client_friends.invoke<int>("GetFriendPersonaState", sid);
       if (state == 0)
         continue;
 
-      const auto *name =
+      const char *name =
           client_friends.invoke<const char *>("GetFriendPersonaName", sid);
       result.emplace_back(id, name ? name : "Unknown");
     }
@@ -586,13 +590,13 @@ std::string get_pending_game_invite(uint64_t *out_friend_id) {
   static bool checked_cmdline = false;
   if (!checked_cmdline) {
     checked_cmdline = true;
-    const auto *cmd = GetCommandLineA();
+    const CHAR *cmd = GetCommandLineA();
     if (cmd) {
       std::string cmdline(cmd);
-      auto pos = cmdline.find("+connect ");
+      const size_t pos = cmdline.find("+connect ");
       if (pos != std::string::npos) {
-        auto addr = cmdline.substr(pos + 9);
-        auto end = addr.find(' ');
+        std::string addr = cmdline.substr(pos + 9);
+        size_t end = addr.find(' ');
         if (end != std::string::npos)
           addr = addr.substr(0, end);
         if (!addr.empty())
@@ -604,7 +608,7 @@ std::string get_pending_game_invite(uint64_t *out_friend_id) {
   // fallback: try to install hook if not done yet (e.g. post_unpack was too
   // early)
   if (!hook_installed.load() && steam_client_module) {
-    auto *bget = steam_client_module.get_proc<void *>("Steam_BGetCallback");
+    void *bget = steam_client_module.get_proc<void *>("Steam_BGetCallback");
     if (bget) {
       steam_bgetcallback_hook.create(bget, &steam_bgetcallback_stub);
       hook_installed.store(true);
@@ -614,7 +618,7 @@ std::string get_pending_game_invite(uint64_t *out_friend_id) {
   {
     std::lock_guard lock(pending_connect_mutex);
     if (!pending_connect_addr.empty()) {
-      auto result = std::move(pending_connect_addr);
+      const std::string result = std::move(pending_connect_addr);
       pending_connect_addr.clear();
       if (out_friend_id)
         *out_friend_id = pending_connect_friend_id;
@@ -636,7 +640,7 @@ std::string get_steam_friend_name(uint64_t friend_steam_id) {
   try {
     steam_id sid{};
     sid.bits = friend_steam_id;
-    const auto *name =
+    const char *name =
         client_friends.invoke<const char *>("GetFriendPersonaName", sid);
     if (name && name[0])
       return name;
@@ -657,8 +661,8 @@ uint64_t get_own_steam_id() {
   // Prefer the active Steam client identity.
   if (client_user) {
     try {
-      auto id = client_user.invoke<uint64_t>("GetSteamID");
-      if (const auto accepted = accept(id))
+      unsigned long long id = client_user.invoke<uint64_t>("GetSteamID");
+      if (const uint64_t accepted = accept(id))
         return accepted;
     } catch (...) {
     }
@@ -668,13 +672,13 @@ uint64_t get_own_steam_id() {
   if (steam_client && global_user && steam_pipe) {
     try {
       steam::interface rc(static_cast<void *>(steam_client));
-      auto *user_iface =
+      void *user_iface =
           rc.invoke<void *>(5, global_user, steam_pipe, "SteamUser021");
       if (user_iface) {
         steam::interface su(user_iface);
         // ISteamUser021: GetHSteamUser=0, BLoggedOn=1, GetSteamID=2.
-        const auto id = su.invoke<uint64_t>(2);
-        if (const auto accepted = accept(id))
+        const unsigned long long id = su.invoke<uint64_t>(2);
+        if (const uint64_t accepted = accept(id))
           return accepted;
       }
     } catch (...) {
@@ -690,20 +694,20 @@ uint64_t get_own_steam_id() {
     DWORD account_id{};
     DWORD type{};
     DWORD size = sizeof(account_id);
-    const auto result =
+    const LSTATUS result =
         RegQueryValueExW(key, L"ActiveUser", nullptr, &type,
                          reinterpret_cast<BYTE *>(&account_id), &size);
     RegCloseKey(key);
     if (result == ERROR_SUCCESS && type == REG_DWORD && account_id != 0) {
-      const auto id = 76561197960265728ULL + account_id;
-      if (const auto accepted = accept(id))
+      const unsigned long long id = 76561197960265728ULL + account_id;
+      if (const uint64_t accepted = accept(id))
         return accepted;
     }
   }
 
   // ActiveUser can be zero while Steam is starting or in offline mode.
   try {
-    const auto path =
+    const std::filesystem::path path =
         std::filesystem::path(steam::SteamAPI_GetSteamInstallPath()) /
         "config" / "loginusers.vdf";
     std::ifstream file(path, std::ios::binary);
@@ -714,10 +718,11 @@ uint64_t get_own_steam_id() {
       const std::regex most_recent(R"steam("MostRecent"\s*"1")steam",
                                    std::regex::icase);
       uint64_t first_valid{};
-      for (auto it =
+      for (std::sregex_iterator it =
                std::sregex_iterator(data.begin(), data.end(), account_block);
            it != std::sregex_iterator(); ++it) {
-        const auto id = std::strtoull((*it)[1].str().c_str(), nullptr, 10);
+        const unsigned long long id =
+            std::strtoull((*it)[1].str().c_str(), nullptr, 10);
         if (!valid_individual_id(id))
           continue;
         if (!first_valid)
@@ -732,7 +737,7 @@ uint64_t get_own_steam_id() {
   }
 
   // Last resort: accept the emulated identity only if it is a real SteamID64.
-  const auto emulated =
+  const uint64_t emulated =
       steam::SteamUser() ? steam::SteamUser()->GetSteamID().bits : 0;
   return accept(emulated);
 }
@@ -744,7 +749,7 @@ std::string get_friend_rich_presence(uint64_t friend_id,
   try {
     steam_id sid{};
     sid.bits = friend_id;
-    const auto *val =
+    const char *val =
         steam_friends_real.invoke<const char *>(45, sid, key.c_str());
     if (val && val[0])
       return val;

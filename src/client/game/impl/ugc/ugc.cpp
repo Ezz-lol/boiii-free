@@ -155,7 +155,7 @@ void UGC_LoadPool_Impl(ExtendedWorkshopDataPool *pool, ZoneType zoneType) {
     entry->publisherIdInteger = 0;
     entry->type = zoneType;
   }
-  fs::FS_FreePathList(fileList);
+  fs::FS_FreeFileList(fileList);
   if (game::is_client()) {
     for (ControllerIndex_t controllerIndex = game::CONTROLLER_INDEX_0;
          controllerIndex <= game::CONTROLLER_INDEX_COUNT; ++controllerIndex) {
@@ -504,7 +504,7 @@ void UGC_LoadManifest_Impl(bool usermaps, bool mods,
 
               strscpy(newUgcEntry->absolutePathZoneFiles, dirPath);
 
-              const char *appIdPos = strstr(dirPath, APP_ID_STR);
+              const char *appIdPos = strstr(dirPath, APP_ID_STR.data());
               if (appIdPos) {
                 size_t baseLen = appIdPos - dirPath - 1;
                 size_t maxContentLen =

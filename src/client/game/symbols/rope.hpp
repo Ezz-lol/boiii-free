@@ -5,7 +5,7 @@
 namespace game {
 namespace rope {
 // Rope
-WEAK symbol<void()> Rope_InitRopes{0x1420D8D00, 0x1404E4300};
+WEAK symbol<void()> Rope_InitRopes{0x1420CC580, 0x1420D8D00, 0x1404E4300};
 
 } // namespace rope
 } // namespace game

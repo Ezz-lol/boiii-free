@@ -51,23 +51,21 @@ parse_server_list_data(const network::data_view &data) {
     }
   }
 
-  if (!start.has_value()) {
-    return result;
-  }
+  if (start.has_value()) {
+    for (size_t i = start.value(); i + 6 < data.size(); i += 7) {
+      if (data[i + 6] != '\\') {
+        break;
+      }
 
-  for (auto i = start.value(); i + 6 < data.size(); i += 7) {
-    if (data[i + 6] != '\\') {
-      break;
+      game::net::netadr_t address{};
+      address.type = game::net::NA_RAWIP;
+      address.localNetID = game::net::NS_CLIENT1;
+      memcpy(&address.ipv4.a, data.data() + i + 0, 4);
+      memcpy(&address.port, data.data() + i + 4, 2);
+      address.port = ntohs(address.port);
+
+      result.emplace(address);
     }
-
-    game::net::netadr_t address{};
-    address.type = game::net::NA_RAWIP;
-    address.localNetID = game::net::NS_CLIENT1;
-    memcpy(&address.ipv4.a, data.data() + i + 0, 4);
-    memcpy(&address.port, data.data() + i + 4, 2);
-    address.port = ntohs(address.port);
-
-    result.emplace(address);
   }
 
   return result;
@@ -105,27 +103,23 @@ void finalize_master_query(state &s) {
 
 void handle_server_list_response(const game::net::netadr_t &target,
                                  const network::data_view &data, state &s) {
-  if (!s.requesting) {
-    return;
-  }
-
-  master_query *matched = nullptr;
-  for (auto &m : s.masters) {
-    if (!m.responded && m.address == target) {
-      matched = &m;
-      break;
+  if (s.requesting) {
+    master_query *matched = nullptr;
+    for (master_query &m : s.masters) {
+      if (!m.responded && m.address == target) {
+        matched = &m;
+        break;
+      }
     }
-  }
 
-  if (!matched) {
-    return;
-  }
+    if (matched) {
+      matched->responded = true;
+      matched->results = parse_server_list_data(data);
 
-  matched->responded = true;
-  matched->results = parse_server_list_data(data);
-
-  if (all_masters_done(s)) {
-    finalize_master_query(s);
+      if (all_masters_done(s)) {
+        finalize_master_query(s);
+      }
+    }
   }
 }
 
@@ -145,19 +139,19 @@ void lua_server_info_to_table_stub(game::lua::hks::lua_State *state,
 
     const char *campaign_str =
         game::info::Info_ValueForKey(server_info.tags, "campaign");
-    const qboolean is_campaign =
-        qboolean::from(campaign_str && std::strcmp(campaign_str, "true") == 0);
-    game::lua::Lua_SetTableInt("campaign", is_campaign, state);
+
+    game::lua::Lua_SetTableInt(
+        "campaign",
+        qboolean::from(campaign_str && !std::strcmp(campaign_str, "true")),
+        state);
   }
 }
 
-std::string get_favorite_servers_file_path() {
-  return "boiii_players/user/favorite_servers.txt";
-}
+constexpr std::string_view FAVOURITE_SERVERS_PATH =
+    "boiii_players/user/favorite_servers.txt";
 
-std::string get_recent_servers_file_path() {
-  return "boiii_players/user/recent_servers.txt";
-}
+constexpr std::string_view RECENT_SERVERS_PATH =
+    "boiii_players/user/recent_servers.txt";
 
 void write_favorite_servers() {
   favorite_servers.access(
@@ -169,30 +163,28 @@ void write_favorite_servers() {
                                 itr.ipv4.c, itr.ipv4.d, itr.port));
         }
 
-        utils::io::write_file(get_favorite_servers_file_path(), servers_buffer);
+        utils::io::write_file(FAVOURITE_SERVERS_PATH, servers_buffer);
       });
 }
 
 void read_favorite_servers() {
-  const std::string path = get_favorite_servers_file_path();
-  if (!utils::io::file_exists(path)) {
-    return;
-  }
+  if (utils::io::file_exists(FAVOURITE_SERVERS_PATH)) {
+    favorite_servers.access(
+        [](std::unordered_set<game::net::netadr_t> &servers) {
+          servers.clear();
 
-  favorite_servers.access(
-      [&path](std::unordered_set<game::net::netadr_t> &servers) {
-        servers.clear();
-
-        std::string data;
-        if (utils::io::read_file(path, &data)) {
-          const std::vector<std::string> srv = utils::string::split(data, '\n');
-          for (const std::string &server_address : srv) {
-            game::net::netadr_t server =
-                network::address_from_string(server_address);
-            servers.insert(server);
+          std::string data;
+          if (utils::io::read_file(FAVOURITE_SERVERS_PATH, &data)) {
+            const std::vector<std::string_view> srv =
+                utils::string::split(std::string_view(data), '\n');
+            for (const std::string_view &server_address : srv) {
+              game::net::netadr_t server =
+                  network::address_from_string(server_address);
+              servers.insert(server);
+            }
           }
-        }
-      });
+        });
+  }
 }
 
 void write_recent_servers() {
@@ -203,50 +195,41 @@ void write_recent_servers() {
                                               itr.ipv4.b, itr.ipv4.c,
                                               itr.ipv4.d, itr.port));
     }
-    utils::io::write_file(get_recent_servers_file_path(), servers_buffer);
+    utils::io::write_file(RECENT_SERVERS_PATH, servers_buffer);
   });
 }
 
 void read_recent_servers() {
-  const std::string path = get_recent_servers_file_path();
-  if (!utils::io::file_exists(path)) {
-    return;
-  }
+  if (utils::io::file_exists(RECENT_SERVERS_PATH)) {
+    recent_servers.access([](std::vector<game::net::netadr_t> &servers) {
+      servers.clear();
+      servers.reserve(64);
 
-  recent_servers.access([&path](std::vector<game::net::netadr_t> &servers) {
-    servers.clear();
-    servers.reserve(64);
-
-    std::string data;
-    if (utils::io::read_file(path, &data)) {
-      const std::vector<std::string> srv = utils::string::split(data, '\n');
-      for (const std::string &server_address : srv) {
-        if (server_address.empty()) {
-          continue;
-        }
-
-        game::net::netadr_t server =
-            network::address_from_string(server_address);
-        if (server.type == game::net::NA_BAD) {
-          continue;
-        }
-
-        servers.emplace_back(server);
-        if (servers.size() >= 50) {
-          break;
+      std::string data;
+      if (utils::io::read_file(RECENT_SERVERS_PATH, &data)) {
+        const std::vector<std::string> srv = utils::string::split(data, '\n');
+        for (const std::string &server_address : srv) {
+          if (!server_address.empty()) {
+            game::net::netadr_t server =
+                network::address_from_string(server_address);
+            if (server.type != game::net::NA_BAD) {
+              servers.emplace_back(server);
+              if (servers.size() >= 50) {
+                break;
+              }
+            }
+          }
         }
       }
-    }
-  });
+    });
+  }
 }
 
-std::string get_master_servers_file_path() {
-  return "boiii_players/user/master_servers.txt";
-}
+constexpr std::string_view MASTER_SERVER_PATH =
+    "boiii_players/user/master_servers.txt";
 
-std::string get_lan_servers_file_path() {
-  return "boiii_players/user/lan_servers.txt";
-}
+constexpr std::string_view LAN_SERVER_PATH =
+    "boiii_players/user/lan_servers.txt";
 
 std::string normalize_lan_input(std::string in) {
   in.erase(std::remove(in.begin(), in.end(), '\r'), in.end());
@@ -264,55 +247,50 @@ std::string normalize_lan_input(std::string in) {
 
 void add_lan_server_from_string(const std::string &in) {
   const std::string normalized = normalize_lan_input(in);
-  if (normalized.empty()) {
-    return;
-  }
+  if (!normalized.empty()) {
+    const game::net::netadr_t addr = network::address_from_string(normalized);
+    if (addr.type != game::net::NA_BAD) {
+      std::string data;
+      utils::io::read_file(LAN_SERVER_PATH, &data);
+      const std::vector<std::string> lines = utils::string::split(data, '\n');
 
-  const game::net::netadr_t addr = network::address_from_string(normalized);
-  if (addr.type == game::net::NA_BAD) {
-    return;
-  }
+      std::vector<std::string> out{};
+      out.reserve(lines.size() + 1);
 
-  std::string data;
-  utils::io::read_file(get_lan_servers_file_path(), &data);
-  const std::vector<std::string> lines = utils::string::split(data, '\n');
+      bool already_present = false;
+      for (const std::string &line : lines) {
+        const std::string l = normalize_lan_input(line);
+        if (!l.empty()) {
+          if (l == normalized) {
+            already_present = true;
+          }
+          out.emplace_back(l);
+        }
+      }
 
-  std::vector<std::string> out{};
-  out.reserve(lines.size() + 1);
+      if (!already_present) {
+        out.emplace_back(normalized);
+      }
 
-  bool already_present = false;
-  for (const std::string &line : lines) {
-    const std::string l = normalize_lan_input(line);
-    if (l.empty()) {
-      continue;
+      std::string write;
+      for (const std::string &l : out) {
+        write.append(l);
+        write.push_back('\n');
+      }
+      utils::io::write_file(LAN_SERVER_PATH, write);
     }
-    if (l == normalized) {
-      already_present = true;
-    }
-    out.emplace_back(l);
   }
-
-  if (!already_present) {
-    out.emplace_back(normalized);
-  }
-
-  std::string write;
-  for (const std::string &l : out) {
-    write.append(l);
-    write.push_back('\n');
-  }
-  utils::io::write_file(get_lan_servers_file_path(), write);
 }
 } // namespace
 
 static std::vector<game::net::netadr_t> master_server_hosts{};
-constexpr const char *default_hosts[] = {"master.ezz.lol:20810",
-                                         "m.ezz.lol:20810"};
+constexpr std::string_view default_hosts[] = {"master.ezz.lol:20810",
+                                              "m.ezz.lol:20810"};
 inline void parse_master_server_hosts() {
 
   std::string data;
-  if (utils::io::file_exists(get_master_servers_file_path()) &&
-      utils::io::read_file(get_master_servers_file_path(), &data)) {
+  if (utils::io::file_exists(MASTER_SERVER_PATH) &&
+      utils::io::read_file(MASTER_SERVER_PATH, &data)) {
     const std::vector<std::string> lines = utils::string::split(data, '\n');
     bool read_first = false;
     for (const std::string &line : lines) {
@@ -332,21 +310,20 @@ inline void parse_master_server_hosts() {
   } else {
     // Write defaults
     std::string write;
-    for (const std::string &host : default_hosts) {
-      const game::net::netadr_t addr =
-          network::address_from_string(host.c_str());
+    for (const std::string_view &host : default_hosts) {
+      const game::net::netadr_t addr = network::address_from_string(host);
       if (addr.type != game::net::NA_BAD) {
         master_server_hosts.emplace_back(addr);
       }
       write.append(host);
       write.push_back('\n');
     }
-    utils::io::write_file(get_master_servers_file_path(), write);
+    utils::io::write_file(MASTER_SERVER_PATH, write);
   }
 }
 
 static std::once_flag parse_master_servers_once;
-std::vector<game::net::netadr_t> get_master_servers() {
+std::vector<game::net::netadr_t> &get_master_servers() {
   std::call_once(parse_master_servers_once, parse_master_server_hosts);
   return master_server_hosts;
 }
@@ -357,24 +334,23 @@ void request_servers(callback callback) {
     std::vector<game::net::netadr_t> masters = get_master_servers();
     if (masters.empty()) {
       unavailable = true;
-      return;
-    }
-    if (s.requesting) {
-      s.callback = std::move(callback);
-      return;
-    }
+    } else {
+      if (s.requesting) {
+        s.callback = std::move(callback);
+      } else {
+        s.requesting = true;
+        s.masters.clear();
+        s.callback = std::move(callback);
+        s.query_start = std::chrono::high_resolution_clock::now();
 
-    s.requesting = true;
-    s.masters.clear();
-    s.callback = std::move(callback);
-    s.query_start = std::chrono::high_resolution_clock::now();
-
-    for (const game::net::netadr_t &addr : masters) {
-      master_query mq{};
-      mq.address = addr;
-      s.masters.push_back(mq);
-      network::send(addr, "getservers",
-                    utils::string::va("T7 %i full empty", PROTOCOL));
+        for (const game::net::netadr_t &addr : masters) {
+          master_query mq{};
+          mq.address = addr;
+          s.masters.push_back(mq);
+          network::send(addr, "getservers",
+                        utils::string::va("T7 %i full empty", PROTOCOL));
+        }
+      }
     }
   });
 
@@ -447,32 +423,30 @@ utils::concurrency::container<recent_list> &get_recent_servers() {
 struct component final : client_component {
   void post_unpack() override {
 
-    network::on("getServersResponse", [](const game::net::netadr_t &target,
-                                         const network::data_view &data,
-                                         game::LocalClientNum_t clientNum) {
-      master_state.access(
-          [&](state &s) { handle_server_list_response(target, data, s); });
-    });
+    network::on("getServersResponse",
+                [](const game::net::netadr_t &target,
+                   const network::data_view &data,
+                   [[maybe_unused]] game::LocalClientNum_t clientNum) {
+                  master_state.access([&](state &s) {
+                    handle_server_list_response(target, data, s);
+                  });
+                });
 
     scheduler::loop(
         [] {
           master_state.access([](state &s) {
-            if (!s.requesting) {
-              return;
-            }
+            if (s.requesting) {
+              const std::chrono::time_point<std::chrono::high_resolution_clock>
+                  now = std::chrono::high_resolution_clock::now();
+              if ((now - s.query_start) >= 2s) {
+                // Timeout: mark all non-responded masters as done
+                for (master_query &m : s.masters) {
+                  m.responded = true;
+                }
 
-            const std::chrono::time_point<std::chrono::high_resolution_clock>
-                now = std::chrono::high_resolution_clock::now();
-            if ((now - s.query_start) < 2s) {
-              return;
+                finalize_master_query(s);
+              }
             }
-
-            // Timeout: mark all non-responded masters as done
-            for (master_query &m : s.masters) {
-              m.responded = true;
-            }
-
-            finalize_master_query(s);
           });
         },
         scheduler::async, 200ms);
@@ -489,14 +463,12 @@ struct component final : client_component {
         scheduler::main);
 
     command::add("lan_add", [](const command::params &params) {
-      if (params.size() < 2) {
-        return;
+      if (params.size() > 1) {
+        add_lan_server_from_string(params.get(1));
+        toast::show("Server List",
+                    utils::string::va("Added LAN server: %s", params.get(1)),
+                    "t7_icon_connect_overlays");
       }
-
-      add_lan_server_from_string(params.get(1));
-      toast::show("Server List",
-                  utils::string::va("Added LAN server: %s", params.get(1)),
-                  "t7_icon_connect_overlays");
     });
   }
 

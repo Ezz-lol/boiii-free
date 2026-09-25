@@ -56,7 +56,7 @@ struct SndCommandRattle {
 
 struct SndCommandRattleSetup {
   SndAliasId alias;
-  vec4_t origin;
+  vec3_t origin;
 };
 
 struct SndCommandForceAmbientRoom {

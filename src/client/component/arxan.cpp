@@ -37,7 +37,7 @@ const void *get_address_to_call() { return detail::address_to_call; }
 void store_address(const uint64_t address) { address_stack.push(address); }
 
 uint64_t get_stored_address() {
-  const auto res = address_stack.top();
+  const unsigned long long res = address_stack.top();
   address_stack.pop();
 
   return res;
@@ -58,8 +58,13 @@ void callstack_return_stub(utils::hook::assembler &a) {
 }
 
 uint64_t get_callstack_return_stub() {
-  const uintptr_t placeholder =
-      game::select(0x140001056, 0x140001056, 0x140101168);
+  /*
+     Note: in case of future client or dedicated server updates, this address
+     corresponds to the first series of 13 `0xCC` (`int 3`) unused alignment
+     padding bytes in the module, displaced by +2.
+  */
+  static const uintptr_t placeholder =
+      game::select(0x141DC7FD4, 0x140001056, 0x140101168);
   utils::hook::set<uint8_t>(placeholder - 2, 0xFF); // fakes a call
   utils::hook::nop(placeholder, 1);
   utils::hook::jump(placeholder + 1,
@@ -106,19 +111,19 @@ void *original_first_tls_callback = nullptr;
 
 void **get_tls_callbacks() {
   const utils::nt::library game{};
-  const auto &entry =
+  const IMAGE_DATA_DIRECTORY &entry =
       game.get_optional_header()->DataDirectory[IMAGE_DIRECTORY_ENTRY_TLS];
   if (!entry.VirtualAddress || !entry.Size) {
     return nullptr;
   }
 
-  const auto *tls_dir = reinterpret_cast<IMAGE_TLS_DIRECTORY *>(
+  const IMAGE_TLS_DIRECTORY *tls_dir = reinterpret_cast<IMAGE_TLS_DIRECTORY *>(
       game.get_ptr() + entry.VirtualAddress);
   return reinterpret_cast<void **>(tls_dir->AddressOfCallBacks);
 }
 
 void disable_tls_callbacks() {
-  auto *tls_callbacks = get_tls_callbacks();
+  void **tls_callbacks = get_tls_callbacks();
   if (tls_callbacks) {
     original_first_tls_callback = *tls_callbacks;
   }
@@ -127,7 +132,7 @@ void disable_tls_callbacks() {
 }
 
 void restore_tls_callbacks() {
-  auto *tls_callbacks = get_tls_callbacks();
+  void **tls_callbacks = get_tls_callbacks();
   if (tls_callbacks) {
     utils::hook::set(tls_callbacks, original_first_tls_callback);
   }
@@ -191,9 +196,9 @@ bool remove_evil_keywords_from_string(const UNICODE_STRING &string) {
                                string.Length / sizeof(string.Buffer[0]));
 
   bool modified = false;
-  for (const auto &keyword : evil_keywords) {
+  for (const std::wstring &keyword : evil_keywords) {
     while (true) {
-      const auto pos = path.find(keyword);
+      const size_t pos = path.find(keyword);
       if (pos == std::wstring::npos) {
         break;
       }
@@ -223,7 +228,7 @@ int WINAPI get_window_text_a_stub(const HWND wnd, const LPSTR str,
   std::wstring wstr{};
   wstr.resize(max_count);
 
-  const auto res = GetWindowTextW(wnd, wstr.data(), max_count);
+  const int res = GetWindowTextW(wnd, wstr.data(), max_count);
   if (res) {
     remove_evil_keywords_from_string(wstr.data(), res);
 
@@ -239,7 +244,7 @@ NTSTATUS NTAPI nt_query_system_information_stub(
     const SYSTEM_INFORMATION_CLASS system_information_class,
     const PVOID system_information, const ULONG system_information_length,
     const PULONG return_length) {
-  const auto status = nt_query_system_information_hook.invoke<NTSTATUS>(
+  const long status = nt_query_system_information_hook.invoke<NTSTATUS>(
       system_information_class, system_information, system_information_length,
       return_length);
 
@@ -247,12 +252,14 @@ NTSTATUS NTAPI nt_query_system_information_stub(
     if (system_information_class == SystemProcessInformation &&
         !utils::nt::is_shutdown_in_progress()) {
       bool injected_steam = false;
-      auto addr = static_cast<uint8_t *>(system_information);
+      uint8_t *addr = static_cast<uint8_t *>(system_information);
       while (true) {
-        const auto info = reinterpret_cast<SYSTEM_PROCESS_INFORMATION *>(addr);
+        SYSTEM_PROCESS_INFORMATION *info =
+            reinterpret_cast<SYSTEM_PROCESS_INFORMATION *>(addr);
         remove_evil_keywords_from_string(info->ImageName);
 
-        static const auto our_pid = process_id_to_handle(GetCurrentProcessId());
+        static const HANDLE our_pid =
+            process_id_to_handle(GetCurrentProcessId());
 
         if (!injected_steam && info->UniqueProcessId != our_pid) {
           static wchar_t steam_path[] = L"steam.exe";
@@ -286,11 +293,11 @@ bool handle_pseudo_steam_process(const HANDLE handle,
     return false;
   }
 
-  const auto steam_folder = steam::SteamAPI_GetSteamInstallPath();
-  const auto steam_path = steam_folder + "\\steam.exe"s;
+  const char *steam_folder = steam::SteamAPI_GetSteamInstallPath();
+  const std::string steam_path = steam_folder + "\\steam.exe"s;
   const std::wstring wide_path(steam_path.begin(), steam_path.end());
 
-  const auto required_size =
+  const ULONG required_size =
       static_cast<ULONG>((wide_path.size() + 1u) * 2u + sizeof(UNICODE_STRING));
 
   if (ret_length) {
@@ -304,7 +311,7 @@ bool handle_pseudo_steam_process(const HANDLE handle,
 
   memset(info, 0, info_length);
 
-  auto &str = *static_cast<UNICODE_STRING *>(info);
+  UNICODE_STRING &str = *static_cast<UNICODE_STRING *>(info);
   str.Buffer = reinterpret_cast<wchar_t *>(&str + 1);
   str.Length = static_cast<uint16_t>(wide_path.size() * 2u);
   str.MaximumLength = str.Length;
@@ -363,7 +370,7 @@ NTSTATUS NTAPI nt_close_stub(const HANDLE handle) {
 }
 
 void hide_being_debugged() {
-  auto *const peb = reinterpret_cast<PPEB>(__readgsqword(0x60));
+  struct _PEB *const peb = reinterpret_cast<PPEB>(__readgsqword(0x60));
   peb->BeingDebugged = false;
   *reinterpret_cast<PDWORD>(LPSTR(peb) + 0xBC) &= ~0x70;
 }
@@ -411,7 +418,7 @@ const std::vector<std::pair<uint8_t *, size_t>> &get_text_sections() {
     std::vector<std::pair<uint8_t *, size_t>> texts{};
 
     const utils::nt::library game{};
-    for (const auto &section : game.get_section_headers()) {
+    for (const PIMAGE_SECTION_HEADER &section : game.get_section_headers()) {
       if (section->Characteristics & IMAGE_SCN_MEM_EXECUTE) {
         texts.emplace_back(game.get_ptr() + section->VirtualAddress,
                            section->Misc.VirtualSize);
@@ -425,9 +432,9 @@ const std::vector<std::pair<uint8_t *, size_t>> &get_text_sections() {
 }
 
 bool is_in_texts(const uint64_t addr) {
-  const auto &texts = get_text_sections();
-  for (const auto &text : texts) {
-    const auto start = reinterpret_cast<ULONG_PTR>(text.first);
+  const std::vector<std::pair<uint8_t *, size_t>> &texts = get_text_sections();
+  for (const std::pair<uint8_t *, size_t> &text : texts) {
+    const ULONG_PTR start = reinterpret_cast<ULONG_PTR>(text.first);
     if (addr >= start && addr <= (start + text.second)) {
       return true;
     }
@@ -446,17 +453,17 @@ struct integrity_handler_context {
 };
 
 bool is_on_stack(uint8_t *stack_frame, const void *pointer) {
-  const auto stack_value = reinterpret_cast<uint64_t>(stack_frame);
-  const auto pointer_value = reinterpret_cast<uint64_t>(pointer);
+  const uint64_t stack_value = reinterpret_cast<uint64_t>(stack_frame);
+  const uint64_t pointer_value = reinterpret_cast<uint64_t>(pointer);
 
-  const auto diff = static_cast<int64_t>(stack_value - pointer_value);
+  const int64_t diff = static_cast<int64_t>(stack_value - pointer_value);
   return std::abs(diff) < 0x1000;
 }
 
 // Pretty trashy, but working, heuristic to search the integrity handler context
 bool is_handler_context(uint8_t *stack_frame, const uint32_t computed_checksum,
                         const uint32_t frame_offset) {
-  const auto *potential_context =
+  const integrity_handler_context *potential_context =
       reinterpret_cast<integrity_handler_context *>(stack_frame + frame_offset);
   return is_on_stack(stack_frame, potential_context->computed_checksum) &&
          *potential_context->computed_checksum == computed_checksum &&
@@ -478,8 +485,9 @@ search_handler_context(uint8_t *stack_frame, const uint32_t computed_checksum) {
 uint32_t adjust_integrity_checksum(const uint64_t return_address,
                                    uint8_t *stack_frame,
                                    const uint32_t current_checksum) {
-  const auto handler_address = game::derelocate(return_address - 5);
-  const auto *context = search_handler_context(stack_frame, current_checksum);
+  const uintptr_t handler_address = game::derelocate(return_address - 5);
+  const integrity_handler_context *context =
+      search_handler_context(stack_frame, current_checksum);
 
   if (!context) {
     game::show_error(
@@ -488,7 +496,7 @@ uint32_t adjust_integrity_checksum(const uint64_t return_address,
     return current_checksum;
   }
 
-  const auto correct_checksum = *context->original_checksum;
+  const uint32_t correct_checksum = *context->original_checksum;
   *context->computed_checksum = correct_checksum;
 
   if (current_checksum != correct_checksum) {
@@ -502,10 +510,10 @@ uint32_t adjust_integrity_checksum(const uint64_t return_address,
 }
 
 void patch_intact_basic_block_integrity_check(void *address) {
-  const auto game_address = reinterpret_cast<uint64_t>(address);
-  constexpr auto inst_len = 3;
+  const uint64_t game_address = reinterpret_cast<uint64_t>(address);
+  constexpr int inst_len = 3;
 
-  const auto next_inst_addr = game_address + inst_len;
+  const uint64_t next_inst_addr = game_address + inst_len;
   const uint32_t next_inst = *reinterpret_cast<uint32_t *>(next_inst_addr);
 
   if ((next_inst & 0xFF00FFFF) != 0xFF004583) {
@@ -555,19 +563,19 @@ void patch_intact_basic_block_integrity_check(void *address) {
 }
 
 void patch_split_basic_block_integrity_check(void *address) {
-  const auto game_address = reinterpret_cast<uint64_t>(address);
-  constexpr auto inst_len = 3;
+  const uint64_t game_address = reinterpret_cast<uint64_t>(address);
+  constexpr int inst_len = 3;
 
-  const auto next_inst_addr = game_address + inst_len;
+  const uint64_t next_inst_addr = game_address + inst_len;
 
   if (*reinterpret_cast<uint8_t *>(next_inst_addr) != 0xE9) {
     throw std::runtime_error(utils::string::va(
         "Unable to patch split basic block: %llX", game_address));
   }
 
-  const auto jump_target = utils::hook::extract<void *>(
+  const void *jump_target = utils::hook::extract<void *>(
       reinterpret_cast<void *>(next_inst_addr + 1));
-  const auto stub =
+  const void *stub =
       utils::hook::assemble([jump_target](utils::hook::assembler &a) {
         a.get().push(rax);
 
@@ -600,236 +608,52 @@ void patch_split_basic_block_integrity_check(void *address) {
 
 void search_and_patch_integrity_checks_precomputed() {
   if (game::is_server()) {
-    for (const auto i : intact_integrity_check_blocks_server) {
+    for (const uint64_t i : intact_integrity_check_blocks_server) {
       patch_intact_basic_block_integrity_check(
           reinterpret_cast<void *>(game::relocate(i)));
     }
 
-    for (const auto i : split_integrity_check_blocks_server) {
+    for (const uint64_t i : split_integrity_check_blocks_server) {
       patch_split_basic_block_integrity_check(
           reinterpret_cast<void *>(game::relocate(i)));
     }
   } else {
-    for (const auto i : intact_integrity_check_blocks) {
+    for (const uint64_t i : intact_integrity_check_blocks) {
       patch_intact_basic_block_integrity_check(
           reinterpret_cast<void *>(game::relocate(i)));
     }
 
-    for (const auto i : split_integrity_check_blocks) {
+    for (const uint64_t i : split_integrity_check_blocks) {
       patch_split_basic_block_integrity_check(
           reinterpret_cast<void *>(game::relocate(i)));
     }
   }
 }
 
-struct PatternByte {
-  std::uint8_t value;
-  bool isWildcard;
-};
-
-// Parse a signature string like:
-static std::vector<PatternByte> parse_signature(const char *signature) {
-  if (!signature) {
-    throw std::invalid_argument("signature is null");
-  }
-
-  std::vector<PatternByte> pattern;
-  std::istringstream iss(signature);
-  std::string token;
-
-  while (iss >> token) {
-    // Treat "??" or "?" as wildcard
-    if (token == "??" || token == "?") {
-      pattern.push_back({0u, true});
-      continue;
-    }
-
-    // Basic validation: must be two hex chars
-    if (token.size() != 2 ||
-        !std::isxdigit(static_cast<unsigned char>(token[0])) ||
-        !std::isxdigit(static_cast<unsigned char>(token[1]))) {
-      throw std::invalid_argument("Invalid token in signature: " + token);
-    }
-
-    // Convert hex byte
-    unsigned long val = std::stoul(token, nullptr, 16);
-    pattern.push_back({static_cast<std::uint8_t>(val & 0xFFu), false});
-  }
-
-  if (pattern.empty()) {
-    throw std::invalid_argument("Empty pattern");
-  }
-
-  return pattern;
-}
-
-// Scan a memory range [base, base + size) for the pattern (with wildcards)
-static void scan_range_for_pattern(std::uint8_t *base, std::size_t size,
-                                   const std::vector<PatternByte> &pattern,
-                                   std::vector<std::uint8_t *> &outMatches) {
-  const std::size_t patSize = pattern.size();
-  if (size < patSize) {
-    return;
-  }
-
-  std::uint8_t *end = base + (size - patSize);
-
-  for (std::uint8_t *p = base; p <= end; ++p) {
-    bool match = true;
-    for (std::size_t i = 0; i < patSize; ++i) {
-      const PatternByte &pb = pattern[i];
-      if (!pb.isWildcard && p[i] != pb.value) {
-        match = false;
-        break;
-      }
-    }
-    if (match) {
-      outMatches.push_back(p);
-    }
-  }
-}
-
-// Scan all executable memory in the *current* process
-// for the given signature string, returning all match addresses.
-std::vector<std::uint8_t *>
-scan_executable_memory_for_signature(const char *signature) {
-  std::vector<PatternByte> pattern = parse_signature(signature);
-  std::vector<std::uint8_t *> matches;
-
-  SYSTEM_INFO sysInfo{};
-  GetSystemInfo(&sysInfo);
-
-  auto minAddr =
-      static_cast<std::uint8_t *>(sysInfo.lpMinimumApplicationAddress);
-  auto maxAddr =
-      static_cast<std::uint8_t *>(sysInfo.lpMaximumApplicationAddress);
-
-  MEMORY_BASIC_INFORMATION mbi{};
-  std::uint8_t *addr = minAddr;
-
-  while (addr < maxAddr) {
-    if (!VirtualQuery(addr, &mbi, sizeof(mbi))) {
-      break; // can't query further
-    }
-
-    // Ensure non-zero region size to avoid infinite loops in weird cases
-    if (mbi.RegionSize == 0) {
-      addr += 0x1000; // advance by one page as a fallback
-      continue;
-    }
-
-    bool isCommitted = (mbi.State == MEM_COMMIT);
-    bool isGuard = (mbi.Protect & PAGE_GUARD) != 0;
-    bool isNoAccess = (mbi.Protect & PAGE_NOACCESS) != 0;
-
-    bool isExecutable = (mbi.Protect & PAGE_EXECUTE) ||
-                        (mbi.Protect & PAGE_EXECUTE_READ) ||
-                        (mbi.Protect & PAGE_EXECUTE_READWRITE) ||
-                        (mbi.Protect & PAGE_EXECUTE_WRITECOPY);
-
-    if (isCommitted && !isGuard && !isNoAccess && isExecutable) {
-      auto *regionStart = static_cast<std::uint8_t *>(mbi.BaseAddress);
-      std::size_t regionSize = static_cast<std::size_t>(mbi.RegionSize);
-
-      // Only scan regions that can possibly contain the whole pattern
-      if (regionSize >= pattern.size()) {
-        scan_range_for_pattern(regionStart, regionSize, pattern, matches);
-      }
-    }
-
-    addr += mbi.RegionSize;
-  }
-
-  return matches;
-}
-
-// Scan all executable memory in the current process for `searchSignature`,
-// and replace ONLY the first N bytes of each match, where N is the length
-// of `replacementSignature`. Any remaining bytes in the match (if the search
-// pattern is longer) are left untouched.
-//
-// - `searchSignature` may contain wildcards ("?" / "??").
-// - `replacementSignature` may be shorter than the search pattern, but
-//   NOT longer, and must NOT contain wildcards.
-// - Example: scan_and_replace_pattern("CC ?? CC", "90 90");  // only first 2
-// bytes changed
-std::vector<std::uint8_t *>
-scan_and_replace_pattern(const char *searchSignature,
-                         const char *replacementSignature) {
-  if (!searchSignature || !replacementSignature) {
-    throw std::invalid_argument(
-        "scan_and_replace_pattern: null signature argument");
-  }
-
-  // Parse both signatures.
-  std::vector<PatternByte> searchPattern = parse_signature(searchSignature);
-  std::vector<PatternByte> replacementPattern =
-      parse_signature(replacementSignature);
-
-  if (replacementPattern.empty()) {
-    throw std::invalid_argument(
-        "scan_and_replace_pattern: replacement pattern must not be empty");
-  }
-
-  if (replacementPattern.size() > searchPattern.size()) {
-    throw std::invalid_argument("scan_and_replace_pattern: replacement pattern "
-                                "cannot be longer than search pattern");
-  }
-
-  // Require that the replacement has no wildcards.
-  for (const auto &pb : replacementPattern) {
-    if (pb.isWildcard) {
-      throw std::invalid_argument("scan_and_replace_pattern: replacement "
-                                  "pattern must not contain wildcards");
-    }
-  }
-
-  const std::size_t bytesToPatch = replacementPattern.size();
-
-  // Find all locations that match the full search signature.
-  std::vector<std::uint8_t *> matches =
-      scan_executable_memory_for_signature(searchSignature);
-
-  std::vector<std::uint8_t *> patched; // addresses we actually modified
-
-  for (auto *p : matches) {
-    if (!p) {
-      continue;
-    }
-
-    DWORD oldProtect = 0;
-    // Make just the bytes we are going to overwrite RWX.
-    if (!VirtualProtect(static_cast<LPVOID>(p),
-                        static_cast<SIZE_T>(bytesToPatch),
-                        PAGE_EXECUTE_READWRITE, &oldProtect)) {
-      // Couldn't change protection; skip this match.
-      continue;
-    }
-
-    // Apply the replacement bytes over the first N bytes.
-    for (std::size_t i = 0; i < bytesToPatch; ++i) {
-      p[i] = replacementPattern[i].value;
-    }
-
-    // Make sure the CPU sees the modified code.
-    FlushInstructionCache(GetCurrentProcess(), p, bytesToPatch);
-
-    // Restore original protection.
-    DWORD dummy = 0;
-    VirtualProtect(static_cast<LPVOID>(p), static_cast<SIZE_T>(bytesToPatch),
-                   oldProtect, &dummy);
-
-    patched.push_back(p);
-  }
-
-  return patched;
-}
-
 void patch_checksum_comparisons_new() {
-  scan_and_replace_pattern("8B 0C 8B 33 0C 82", "48 31 C9 90 90 90");
-  scan_and_replace_pattern("8B 0C 8B F7 D9 03 0C 82",
-                           "48 31 C9 90 90 90 90 90");
-  scan_and_replace_pattern("8B 04 82 8B 14 8B 3B C2", "48 31 C0 48 31 D2");
+  // Variant 1: XOR table equality check
+  constexpr uint8_t xor_equality_check_patch[] = {0x48, 0x31, 0xC9,
+                                                  0x90, 0x90, 0x90};
+  for (uint8_t *i : "8B 0C 8B 33 0C 82"_sig) {
+    utils::hook::set<uint8_t, std::size(xor_equality_check_patch)>(
+        i, xor_equality_check_patch);
+  }
+
+  // Variant 2: Subtraction equality check
+  constexpr uint8_t sub_equality_check_patch[] = {0x48, 0x31, 0xC9, 0x90,
+                                                  0x90, 0x90, 0x90, 0x90};
+  for (uint8_t *i : "8B 0C 8B F7 D9 03 0C 82"_sig) {
+    utils::hook::set<uint8_t, std::size(sub_equality_check_patch)>(
+        i, sub_equality_check_patch);
+  }
+
+  // Variant 3: Direct table comparison
+  constexpr uint8_t lut_equality_check_patch[] = {0x48, 0x31, 0xC0,
+                                                  0x48, 0x31, 0xD2};
+  for (uint8_t *i : "8B 04 82 8B 14 8B 3B C2"_sig) {
+    utils::hook::set<uint8_t, std::size(lut_equality_check_patch)>(
+        i, lut_equality_check_patch);
+  }
 }
 
 void search_and_patch_integrity_checks() {
@@ -854,26 +678,23 @@ void search_and_patch_integrity_checks() {
 }
 
 void patch_checksum_comparisons() {
-  constexpr auto xor_ecx = static_cast<uint16_t>(0xC933);
-  constexpr auto xor_edx = static_cast<uint16_t>(0xD233);
+  constexpr uint16_t xor_ecx = static_cast<uint16_t>(0xC933);
+  constexpr uint16_t xor_edx = static_cast<uint16_t>(0xD233);
 
   // Variant 1: XOR table equality check
-  const auto xor_table_compare = "8B 0C 8B 33 0C 82"_sig;
-  for (auto *i : xor_table_compare) {
+  for (uint8_t *i : "8B 0C 8B 33 0C 82"_sig) {
     utils::hook::set<uint16_t>(i, xor_ecx);
     utils::hook::nop(i + 2, 4);
   }
 
   // Variant 2: Subtraction equality check
-  const auto sub_compare = "8B 0C 8B F7 D9 03 0C 82"_sig;
-  for (auto *i : sub_compare) {
+  for (uint8_t *i : "8B 0C 8B F7 D9 03 0C 82"_sig) {
     utils::hook::set<uint16_t>(i, xor_ecx);
     utils::hook::nop(i + 2, 6);
   }
 
   // Variant 3: Direct table comparison
-  const auto cmp_compare = "8B 04 82 8B 14 8B 3B C2"_sig;
-  for (auto *i : cmp_compare) {
+  for (uint8_t *i : "8B 04 82 8B 14 8B 3B C2"_sig) {
     utils::hook::set<uint16_t>(i, xor_ecx);
     utils::hook::set<uint16_t>(i + 2, xor_edx);
     utils::hook::nop(i + 4, 4);
@@ -898,12 +719,13 @@ int WINAPI get_system_metrics_stub(const int index) {
 }
 BOOL WINAPI get_thread_context_stub(const HANDLE thread_handle,
                                     const LPCONTEXT context) {
-  constexpr auto debug_registers_flag =
+  constexpr long debug_registers_flag =
       (CONTEXT_DEBUG_REGISTERS & ~CONTEXT_AMD64);
   if (context->ContextFlags & debug_registers_flag) {
-    auto *source = _ReturnAddress();
-    const auto game = utils::nt::library{};
-    const auto source_module = utils::nt::library::get_by_address(source);
+    void *source = _ReturnAddress();
+    const utils::nt::library game = utils::nt::library{};
+    const utils::nt::library source_module =
+        utils::nt::library::get_by_address(source);
 
     if (source_module == game) {
       context->ContextFlags &= ~debug_registers_flag;
@@ -939,55 +761,6 @@ NTSTATUS zw_terminate_process_stub(const HANDLE process_handle,
 
 struct component final : generic_component {
   void post_load() override {
-    auto *dll_characteristics =
-        &utils::nt::library().get_optional_header()->DllCharacteristics;
-    utils::hook::set<WORD>(dll_characteristics,
-                           *dll_characteristics |
-                               IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE);
-
-    disable_tls_callbacks();
-    restore_debug_functions();
-
-    hide_being_debugged();
-    scheduler::loop(hide_being_debugged, scheduler::pipeline::async);
-
-    create_thread_hook.create(CreateThread, create_thread_stub);
-    create_mutex_ex_a_hook.create(CreateMutexExA, create_mutex_ex_a_stub);
-
-    const utils::nt::library ntdll("ntdll.dll");
-    nt_close_hook.create(ntdll.get_proc<void *>("NtClose"), nt_close_stub);
-
-    void *nt_query_information_process =
-        ntdll.get_proc<void *>("NtQueryInformationProcess");
-    nt_query_information_process_hook.create(nt_query_information_process,
-                                             nt_query_information_process_stub);
-
-    void *nt_query_system_information =
-        ntdll.get_proc<void *>("NtQuerySystemInformation");
-    nt_query_system_information_hook.create(nt_query_system_information,
-                                            nt_query_system_information_stub);
-    nt_query_system_information_hook.move();
-
-    open_process_hook.create(OpenProcess, open_process_stub);
-
-#ifndef NDEBUG
-    void *get_thread_context_func = utils::nt::library("kernelbase.dll")
-                                        .get_proc<void *>("GetThreadContext");
-    get_thread_context_hook.create(get_thread_context_func,
-                                   get_thread_context_stub);
-#endif
-
-    utils::hook::copy(this->window_text_buffer_, GetWindowTextA,
-                      sizeof(this->window_text_buffer_));
-    utils::hook::jump(GetWindowTextA, get_window_text_a_stub, true, true);
-    utils::hook::move_hook(GetWindowTextA);
-
-    AddVectoredExceptionHandler(1, exception_filter);
-
-    void **sys_met_import =
-        utils::nt::library{}.get_iat_entry("user32.dll", "GetSystemMetrics");
-    if (sys_met_import)
-      utils::hook::set(sys_met_import, get_system_metrics_stub);
 
     if (utils::flags::has_flag("dump")) {
       const char *output_file_name =
@@ -1008,19 +781,73 @@ struct component final : generic_component {
                output_file_path.string().c_str());
       }
     }
+
+    WORD *dll_characteristics =
+        &utils::nt::library().get_optional_header()->DllCharacteristics;
+    utils::hook::set<WORD>(dll_characteristics,
+                           *dll_characteristics |
+                               IMAGE_DLLCHARACTERISTICS_DYNAMIC_BASE);
+
+    if (game::is_legacy_client() || game::is_server()) {
+      disable_tls_callbacks();
+    }
+    restore_debug_functions();
+
+    hide_being_debugged();
+    scheduler::loop(hide_being_debugged, scheduler::pipeline::async);
+    if (game::is_legacy_client() || game::is_server()) {
+
+      create_thread_hook.create(CreateThread, create_thread_stub);
+      create_mutex_ex_a_hook.create(CreateMutexExA, create_mutex_ex_a_stub);
+
+      const utils::nt::library ntdll("ntdll.dll");
+      nt_close_hook.create(ntdll.get_proc<void *>("NtClose"), nt_close_stub);
+
+      void *nt_query_information_process =
+          ntdll.get_proc<void *>("NtQueryInformationProcess");
+      nt_query_information_process_hook.create(
+          nt_query_information_process, nt_query_information_process_stub);
+
+      void *nt_query_system_information =
+          ntdll.get_proc<void *>("NtQuerySystemInformation");
+      nt_query_system_information_hook.create(nt_query_system_information,
+                                              nt_query_system_information_stub);
+      nt_query_system_information_hook.move();
+
+      open_process_hook.create(OpenProcess, open_process_stub);
+
+#ifndef NDEBUG
+      void *get_thread_context_func = utils::nt::library("kernelbase.dll")
+                                          .get_proc<void *>("GetThreadContext");
+      get_thread_context_hook.create(get_thread_context_func,
+                                     get_thread_context_stub);
+#endif
+    }
+
+    utils::hook::copy(this->window_text_buffer_, GetWindowTextA,
+                      sizeof(this->window_text_buffer_));
+    utils::hook::jump(GetWindowTextA, get_window_text_a_stub, true, true);
+    utils::hook::move_hook(GetWindowTextA);
+
+    AddVectoredExceptionHandler(1, exception_filter);
+    if (game::is_legacy_client() || game::is_server()) {
+
+      void **sys_met_import =
+          utils::nt::library{}.get_iat_entry("user32.dll", "GetSystemMetrics");
+      if (sys_met_import) {
+        utils::hook::set(sys_met_import, get_system_metrics_stub);
+      }
+    }
   }
 
   void post_unpack() override {
 
-    if (utils::flags::has_flag("newsteamclient") && game::is_new_client()) {
+    if (game::is_new_client()) {
       patch_checksum_comparisons_new();
     } else {
       search_and_patch_integrity_checks();
       patch_checksum_comparisons();
     }
-    // restore_debug_functions();
-
-    detail::callstack_proxy_addr = utils::hook::assemble(callstack_stub);
 
     // Server needs to be dumped here; arxan-packed if dumped prior.
     if (utils::flags::has_flag("dump")) {
@@ -1042,6 +869,8 @@ struct component final : generic_component {
                output_file_path.string().c_str());
       }
     }
+
+    detail::callstack_proxy_addr = utils::hook::assemble(callstack_stub);
   }
 
   component_priority priority() const override {

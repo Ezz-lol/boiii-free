@@ -230,8 +230,8 @@ std::vector<uint8_t> move_hook(void *pointer);
 std::vector<uint8_t> move_hook(size_t pointer);
 
 template <typename T> T extract(void *address) {
-  auto *const data = static_cast<uint8_t *>(address);
-  const auto offset = *reinterpret_cast<int32_t *>(data);
+  uint8_t *const data = static_cast<uint8_t *>(address);
+  const int32_t offset = *reinterpret_cast<int32_t *>(data);
   return reinterpret_cast<T>(data + offset + 4);
 }
 
@@ -241,8 +241,18 @@ template <typename T> inline void set(void *place, T value = false) {
   copy(place, &value, sizeof(value));
 }
 
-template <typename T> inline void set(const size_t place, T value = false) {
+template <typename T, const size_t N>
+inline void set(void *place, const T (&arr)[N]) {
+  copy(place, arr, sizeof(T) * N);
+}
+
+template <typename T> inline void set(const uintptr_t place, T value = false) {
   return set<T>(reinterpret_cast<void *>(place), value);
+}
+
+template <typename T, const size_t N>
+inline void set(uintptr_t place, const T (&arr)[N]) {
+  copy<T, N>(reinterpret_cast<void *>(place), arr, sizeof(T) * N);
 }
 
 template <typename T, typename... Args>

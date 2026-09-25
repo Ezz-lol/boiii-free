@@ -6,18 +6,21 @@ namespace game {
 namespace scr {
 namespace gscr {
 WEAK symbol<void(scriptInstance_t inst, scr_entref_t entref)>
-    GScr_SetWorldFogActiveBank{0x0, 0x1402DF580};
+    GScr_SetWorldFogActiveBank{0x141AB21C0, 0x0, 0x1402DF580};
 
 WEAK symbol<void(scriptInstance_t inst, scr_entref_t entref)>
-    GScr_GetBGBTokensRemaining{0x141A8CAB0, 0x1402D2310};
-WEAK symbol<void(scriptInstance_t inst)> GScr_PIXBeginEvent{0x0, 0x1402DA730};
-WEAK symbol<void(scriptInstance_t inst)> GScr_PIXEndEvent{0x0, 0x140515B60};
-WEAK symbol<void()> GScr_LoadConsts{0x141C353B0, 0x14032E640};
+    GScr_GetBGBTokensRemaining{0x141A80830, 0x141A8CAB0, 0x1402D2310};
+WEAK symbol<void(scriptInstance_t inst)> GScr_PIXBeginEvent{0x141AA6680, 0x0,
+                                                            0x1402DA730};
+WEAK symbol<void(scriptInstance_t inst)> GScr_PIXEndEvent{0x141AA66A0, 0x0,
+                                                          0x140515B60};
+WEAK symbol<void()> GScr_LoadConsts{0x141C28FE0, 0x141C353B0, 0x14032E640};
 // Client only
-WEAK symbol<void(scriptInstance_t inst)> GScr_BBPrint{0x1422A0940};
+WEAK symbol<void(scriptInstance_t inst)> GScr_BBPrint{0x142243E20, 0x1422A0940,
+                                                      0x0};
 
-WEAK symbol<int32_t(const char *pszMenu)> GScr_GetScriptMenuIndex{0x141A93CA0,
-                                                                  0x1402D4590};
+WEAK symbol<int32_t(const char *pszMenu)> GScr_GetScriptMenuIndex{
+    0x141A878D0, 0x141A93CA0, 0x1402D4590};
 WEAK symbol<bool(ClientNum_t clientNum, int32_t itemIndex)>
     GScr_IsItemPurchasedForClientNum{0x1415F14B0, 0x1415F1490, 0x140252A20};
 

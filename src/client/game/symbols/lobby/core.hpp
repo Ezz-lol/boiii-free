@@ -7,6 +7,6 @@
 namespace game {
 namespace lobby {
 WEAK symbol<int32_t(LobbyType lobbyType, LobbyClientType clientType)>
-    LobbyHost_GetClientCount{0x141ED8AC0, 0x14048A360};
+    LobbyHost_GetClientCount{0x141ECC0B0, 0x141ED8AC0, 0x14048A360};
 } // namespace lobby
 } // namespace game

@@ -6,7 +6,7 @@ namespace game {
 namespace lua {
 namespace lobby {
 namespace vm {
-WEAK symbol<void()> LobbyVM_Reload{0x141EF0FB0, 0x1404A1F50};
+WEAK symbol<void()> LobbyVM_Reload{0x141EE4640, 0x141EF0FB0, 0x1404A1F50};
 }
 } // namespace lobby
 } // namespace lua

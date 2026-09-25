@@ -46,7 +46,7 @@ enum class PhysicsOwnerType : int32_t {
 struct broad_phase_memory_info {
 public:
   static constexpr symbol<thiscall_t<void(broad_phase_memory_info *)>>
-      constructor{0x0, 0x14000EEC0};
+      constructor{0x0, 0x0, 0x14000EEC0};
 
   inline broad_phase_memory_info() { constructor(this); }
   int32_t m_max_num_gjk_ci;
@@ -163,10 +163,10 @@ public:
       rigid_body *, const float mass, const math::Dir3 *inertia,
       const math::RotTranMat43 *mat, const math::Dir3 *t_vel,
       const math::Dir3 *a_vel, const int32_t stable_min_contact_count)>>
-      set{0x0, 0x14002C840};
+      set{0x1420C8840, 0x0, 0x14002C840};
   static constexpr symbol<
       thiscall_t<void(rigid_body *, const math::Dir3 *inertia)>>
-      set_inertia{0x0, 0x14002CDA0};
+      set_inertia{0x0, 0x0, 0x14002CDA0};
 
   math::Dir3 m_last_position;
   math::Dir3 m_moved_vec;
@@ -835,19 +835,19 @@ struct __attribute__((aligned(8))) rigid_body_constraint_wheel {
   struct syms {
     static constexpr symbol<thiscall_t<void(rigid_body_constraint_wheel *,
                                             float torque, double delta_t)>>
-        add_wheel_torque{0x14002A9A0, 0x14002A710};
+        add_wheel_torque{0x14002A9A0, 0x14002A9A0, 0x14002A710};
     static constexpr symbol<thiscall_t<void(rigid_body_constraint_wheel *)>>
-        set_no_collision{0x14002B3A0, 0x14002B110};
+        set_no_collision{0x14002B3A0, 0x14002B3A0, 0x14002B110};
     static constexpr symbol<thiscall_t<void(
         const rigid_body_constraint_wheel *, const math::RotTranMat43 *b1_mat,
         math::Dir3 *const p0, math::Dir3 *const p1)>>
-        get_wheel_collide_segment{0x14002AE00, 0x14002AB70};
+        get_wheel_collide_segment{0x14002AE00, 0x14002AE00, 0x14002AB70};
     static constexpr symbol<thiscall_t<void(
         rigid_body_constraint_wheel *, const rigid_body *rb,
         const math::Dir3 *hitp_loc, const math::Dir3 *hitn_loc)>>
-        set_collision{0x14002B340, 0x14002B0B0};
+        set_collision{0x14002B340, 0x14002B340, 0x14002B0B0};
     static constexpr symbol<thiscall_t<void(rigid_body_constraint_wheel *)>>
-        calc_penetration_depth{0x14002A9D0, 0x14002A740};
+        calc_penetration_depth{0x14002A9D0, 0x14002A9D0, 0x14002A740};
   };
 
   pulse_sum_cache m_ps_cache_list[4];
@@ -1008,31 +1008,32 @@ struct phys_sys {
 public:
   static constexpr symbol<rigid_body_constraint_custom_orientation *(
       rigid_body *const b1, rigid_body *const b2, const int no_error)>
-      create_rbc_custom_orientation{0x0, 0x14000B810};
+      create_rbc_custom_orientation{0x14000B9A0, 0x0, 0x14000B810};
   static constexpr symbol<rigid_body *(const int no_error)> create_rigid_body{
-      0x0, 0x14000BC90};
+      0x14000BE20, 0x0, 0x14000BC90};
   static inline void destroy(rigid_body *const rb) {
-    static constexpr symbol<void(rigid_body *const rb)> sym{0x0, 0x14000BD50};
+    static constexpr symbol<void(rigid_body *const rb)> sym{0x0, 0x0,
+                                                            0x14000BD50};
     return sym(rb);
   }
 
   static inline void destroy(user_rigid_body *const rb) {
-    static constexpr symbol<void(user_rigid_body *const rb)> sym{0x0,
+    static constexpr symbol<void(user_rigid_body *const rb)> sym{0x0, 0x0,
                                                                  0x14000BEE0};
     return sym(rb);
   }
   static constexpr symbol<void(rigid_body *const rb)> destroy_all_constraint{
-      0x0, 0x14000BF30};
+      0x14000C0C0, 0x0, 0x14000BF30};
   static constexpr symbol<void(rigid_body *const rb)> fixup_wheel_constraints{
-      0x0, 0x14000C460};
+      0x0, 0x0, 0x14000C460};
   static constexpr symbol<environment_rigid_body *()>
-      get_environment_rigid_body{0x0, 0x14000C4D0};
+      get_environment_rigid_body{0x0, 0x0, 0x14000C4D0};
   static constexpr symbol<void(phys_collision_callback_t collision_callback)>
-      set_collision_callback{0x0, 0x14000C500};
+      set_collision_callback{0x14000C690, 0x0, 0x14000C500};
   static constexpr symbol<void(const float max_delta_t)> set_max_delta_t{
-      0x0, 0x14000C510};
-  static constexpr symbol<void(const int max_v_iters)> set_v_tol{0x0,
-                                                                 0x14000C520};
+      0x14000C6A0, 0x0, 0x14000C510};
+  static constexpr symbol<void(const int max_v_iters)> set_v_tol{
+      0x14000C6B0, 0x0, 0x14000C520};
 };
 
 enum class TraceBrushType : int32_t {

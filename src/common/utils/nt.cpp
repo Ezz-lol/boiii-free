@@ -109,15 +109,7 @@ bool library::is_valid() const {
 }
 
 std::string library::get_name() const {
-  if (!this->is_valid())
-    return {};
-
-  const std::filesystem::path path = this->get_path();
-  const size_t pos = path.generic_string().find_last_of("/\\");
-  if (pos == std::string::npos)
-    return path.generic_string();
-
-  return path.generic_string().substr(pos + 1);
+  return this->is_valid() ? this->get_path().filename().generic_string() : "";
 }
 
 std::filesystem::path library::get_path() const {
@@ -134,8 +126,8 @@ std::filesystem::path library::get_directory() const {
   if (!this->is_valid())
     return {};
 
-  const std::filesystem::path path = std::filesystem::path(this->get_path());
-  return path.parent_path().generic_string();
+  const std::filesystem::path path = this->get_path();
+  return path.parent_path();
 }
 
 void library::free() {

@@ -119,9 +119,9 @@ public:
   struct syms {
     static constexpr symbol<
         thiscall_t<void(volatile jqAtomicHeap *, void *Ptr)>>
-        Free{0x140009920, 0x140009790};
-    static constexpr symbol<fastcall_t<void *(u32 Size)>> Alloc{0x14000A2E0,
-                                                                0x14000A150};
+        Free{0x140009920, 0x140009920, 0x140009790};
+    static constexpr symbol<fastcall_t<void *(u32 Size)>> Alloc{
+        0x14000A2E0, 0x14000A2E0, 0x14000A150};
   };
 
   inline void Free(void *Ptr) volatile { return syms::Free(this, Ptr); }

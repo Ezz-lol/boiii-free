@@ -23,7 +23,7 @@ void dvar_for_each_name_stub(void (*callback)(const char *debugName)) {
 
     if (dvar.debugName() && !dvar.flags().sessionmode &&
         (!game::com::Com_SessionMode_IsMode(game::eModes::COUNT) ||
-         !game::Dvar_IsSessionModeBaseDvar(dvar))) {
+         dvar.type() != game::dvarType_t::SESSIONMODE_BASE_DVAR)) {
       callback(dvar.debugName());
     }
   }
@@ -40,7 +40,7 @@ void dvar_for_each_name_client_num_stub(
 
     if (dvar.debugName() && !dvar.flags().sessionmode &&
         (!game::com::Com_SessionMode_IsMode(game::eModes::COUNT) ||
-         !game::Dvar_IsSessionModeBaseDvar(dvar))) {
+         dvar.type() != game::dvarType_t::SESSIONMODE_BASE_DVAR)) {
       callback(localClientNum, dvar.debugName());
     }
   }
@@ -170,7 +170,7 @@ void read_archive_dvars() {
 class component final : public generic_component {
 public:
   void post_unpack() override {
-    if (game::is_client() || game::is_new_client()) {
+    if (game::is_client()) {
       scheduler::once(read_archive_dvars,
                       scheduler::pipeline::dvars_flags_patched);
       // TODO: this should be a symbol

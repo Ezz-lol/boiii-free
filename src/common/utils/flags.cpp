@@ -166,11 +166,6 @@ int32_t parse_flags(int argc, char *argv[]) {
             "and Daybreak client load-in failures.")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-newsteamclient", "--newsteamclient")
-      .help("For development: patch Arxan checksum comparison patterns for new "
-            "steam client.")
-      .default_value(false)
-      .implicit_value(true);
   program.add_argument("-dump", "--dump")
       .help("Dump game or server executable to file in containing directory "
             "after Arxan unpack")

@@ -549,25 +549,25 @@ PACKED(struct CallStack {
     static constexpr symbol<thiscall_t<HksRegister *(
         hks::CallStack *, lua_State *s, hksInt32 nresults, HksObject *arg_end,
         HksObject *stackTop, const hksInstruction *instruction)>>
-        functionCall{0x141D362A0, 0x1403DF640};
+        functionCall{0x141D29810, 0x141D362A0, 0x1403DF640};
 
     static constexpr symbol<thiscall_t<void(
         hks::CallStack *, lua_State *s, int32_t m_numExpectedReturns,
         HksObject *fp, HksObject *stackTop,
         const hksInstruction *m_returnAddress)>>
-        push{0x141D36410, 0x1403DF7B0};
+        push{0x141D29980, 0x141D36410, 0x1403DF7B0};
 
     static constexpr symbol<thiscall_t<HksObject *(
         CallStack *, lua_State *s, luaReturnCount_e returnCount)>>
-        pop{0x141D35FF0, 0x1403DF390};
+        pop{0x141D29560, 0x141D35FF0, 0x1403DF390};
 
     static constexpr symbol<thiscall_t<void(
         CallStack *, lua_State *s, HksObject *function, HksObject *arg_end)>>
-        functionTailCall{0x141D44D70, 0x1403ED990};
+        functionTailCall{0x141D382E0, 0x141D44D70, 0x1403ED990};
 
     static constexpr symbol<
         thiscall_t<void(CallStack *, lua_State *s, hksInt32 extra)>>
-        growApiStack{0x141D48E90, 0x1403F1A30};
+        growApiStack{0x141D3C400, 0x141D48E90, 0x1403F1A30};
   };
 
   inline HksRegister *functionCall(lua_State * s, hksInt32 nresults,
@@ -695,35 +695,35 @@ PACKED(struct HashTable : public ChunkHeader {
   struct syms {
     static constexpr symbol<thiscall_t<HksRegister *(
         HashTable *, HksRegister *retstr, const HksRegister *key)>>
-        getByString{0x141D45550, 0x1403EE160};
+        getByString{0x141D38AC0, 0x141D45550, 0x1403EE160};
     static constexpr symbol<thiscall_t<void(
         HashTable *, lua_State *s, InternString *key, const HksObject *value)>>
-        insertString{0x141D51850, 0x1403FA3D0};
+        insertString{0x141D44DC0, 0x141D51850, 0x1403FA3D0};
     static constexpr symbol<
         thiscall_t<Node *(HashTable *, const HksObject *key)>>
-        findKeyPosition{0x141D43F00, 0x1403ECB20};
+        findKeyPosition{0x141D37470, 0x141D43F00, 0x1403ECB20};
     static constexpr symbol<
         thiscall_t<void(HashTable *, lua_State *s, const HksObject *key,
                         const HksObject *value)>>
-        tableInsert{0x141D6D310, 0x140415420};
+        tableInsert{0x141D60880, 0x141D6D310, 0x140415420};
     static constexpr symbol<thiscall_t<hksUint32(const HashTable *)>>
-        contiguousArraySize{0x141D3E850, 0x1403E7930};
+        contiguousArraySize{0x141D31DC0, 0x141D3E850, 0x1403E7930};
     static constexpr symbol<fastcall_t<HashTable *(
         lua_State *s, hksUint32 arraySize, hksUint32 hashSize)>>
-        Create{0x141D3B5F0, 0x1403E46D0};
+        Create{0x141D2EB60, 0x141D3B5F0, 0x1403E46D0};
     static constexpr symbol<
         thiscall_t<Node *(HashTable *, HksObject *key, HksRegister *nextArray)>>
-        getNext{0x141D45F40, 0x1403EEB40};
+        getNext{0x141D394B0, 0x141D45F40, 0x1403EEB40};
     static constexpr symbol<thiscall_t<void(HashTable *, HksObject *it,
                                             HksObject *key, HksObject *val)>>
-        hksNext{0x141D49C10, 0x1403F27B0};
+        hksNext{0x141D3D180, 0x141D49C10, 0x1403F27B0};
     static constexpr symbol<
         thiscall_t<void(HashTable *, lua_State *s, hksUint32 arraySize)>>
-        setArraySize{0x141D6A430, 0x140412550};
+        setArraySize{0x141D5D9A0, 0x141D6A430, 0x140412550};
     static constexpr symbol<
         thiscall_t<void(hks::HashTable *, lua_State *s, hksUint32 from,
                         hksUint32 to, HksObject *src)>>
-        arrayInserts{0x141D3CC00, 0x1403E5CE0};
+        arrayInserts{0x141D30170, 0x141D3CC00, 0x1403E5CE0};
   };
 
   inline constexpr HashTable() noexcept = default;
@@ -999,7 +999,7 @@ PACKED(struct GarbageCollector {
     static constexpr symbol<
         thiscall_t<void(GarbageCollector *, const hks::GenericChunkHeader *to,
                         const HksObject *from)>>
-        writeBarrier{0x141D71A10, 0x140419870};
+        writeBarrier{0x141D64F80, 0x141D71A10, 0x140419870};
   };
 
   inline void writeBarrier(const hks::GenericChunkHeader *to,

@@ -7,49 +7,51 @@
 namespace game {
 namespace sv {
 WEAK symbol<void(net::netadr_t *from, net::msg::msg_t *msg)> SV_AuthClient{
-    0x0, 0x140475BB0};
-WEAK symbol<CmdArgs> sv_cmd_args{0x15689AE30, 0x14944C740};
+    0x141EA9420, 0x0, 0x140475BB0};
+WEAK symbol<CmdArgs> sv_cmd_args{0x15681BEB0, 0x15689AE30, 0x14944C740};
 inline CmdArgs *SV_Cmd_Argv() { return sv_cmd_args.get(); }
 
 inline int32_t SV_Cmd_Argc() { return sv_cmd_args->argc[sv_cmd_args->nesting]; }
 // Client and dedi struct size differs :(
-WEAK symbol<client_s_cl *> svs_clients_cl{0x1576F9318, 0};
-WEAK symbol<client_s *> svs_clients{0x0, 0x14A178E98};
+WEAK symbol<client_s_cl *> svs_clients_cl{0x15767a398, 0x1576F9318, 0x0};
+WEAK symbol<client_s *> svs_clients{0x0, 0x0, 0x14A178E98};
 
-WEAK symbol<server_t> sv{0x1576F9C00, 0x14A0BC710};
-WEAK symbol<serverStatic_t> svs{0x1576F8700, 0x14A178280};
-WEAK symbol<serverStaticHeader_t> svsHeader{0x157906580, 0x14A2CE280};
+WEAK symbol<server_t> sv{0x15767AC90, 0x1576F9C00, 0x14A0BC710};
+WEAK symbol<serverStatic_t> svs{0x157679780, 0x1576F8700, 0x14A178280};
+WEAK symbol<serverStaticHeader_t> svsHeader{0x157887680, 0x157906580,
+                                            0x14A2CE280};
 
-WEAK symbol<bool()> SV_Loaded{0x142252250, 0x140535460};
-WEAK symbol<void *()> SV_AddTestClient{0x142248F40, 0x14052E3E0};
-WEAK symbol<void(net::netadr_t from)> SV_DirectConnect{0x142249880,
+WEAK symbol<bool()> SV_Loaded{0x1421F5720, 0x142252250, 0x140535460};
+WEAK symbol<void *()> SV_AddTestClient{0x1421EC3F0, 0x142248F40, 0x14052E3E0};
+WEAK symbol<void(net::netadr_t from)> SV_DirectConnect{0x1421ECD30, 0x142249880,
                                                        0x14052EC60};
 WEAK
     symbol<void(ClientNum_t clientNum, net::svscmd_type type, const char *text)>
-        SV_GameSendServerCommand{0x14224F580, 0x140532CA0};
+        SV_GameSendServerCommand{0x1421F2A50, 0x14224F580, 0x140532CA0};
 WEAK symbol<void(client_s *cl, net::svscmd_type type, const char *fmt, ...)>
-    SV_SendServerCommand{0x142254D30, 0x140537F10};
-WEAK symbol<bool(ClientNum_t clientNum)> SV_IsTestClient{0x14224AB60,
-                                                         0x14052FF40};
+    SV_SendServerCommand{0x1421F8200, 0x142254D30, 0x140537F10};
+WEAK symbol<bool(ClientNum_t clientNum)> SV_IsTestClient{
+    0x1421EE030, 0x14224AB60, 0x14052FF40};
 WEAK symbol<void(ControllerIndex_t controllerIndex, const char *server,
                  MapPreload preload, bool savegame)>
-    SV_SpawnServer{0x1422528C0, 0x140535B20};
-WEAK symbol<void(const char *text_in)> SV_Cmd_TokenizeString{0x1420EF130,
-                                                             0x1404FA6C0};
-WEAK symbol<void()> SV_Cmd_EndTokenizedString{0x1420EF0E0, 0x1404FA670};
+    SV_SpawnServer{0x1421F5D90, 0x1422528C0, 0x140535B20};
+WEAK symbol<void(const char *text_in)> SV_Cmd_TokenizeString{
+    0x1420E29B0, 0x1420EF130, 0x1404FA6C0};
+WEAK symbol<void()> SV_Cmd_EndTokenizedString{0x1420E2960, 0x1420EF0E0,
+                                              0x1404FA670};
 WEAK symbol<void(client_s *client, net::msg::msg_t *msg)>
-    SV_ExecuteClientMessage{0x14224A460, 0x14052F840};
+    SV_ExecuteClientMessage{0x1421ED910, 0x14224A460, 0x14052F840};
 
 WEAK symbol<void(int32_t index, const char *val)> SV_SetConfigString{
-    0x1422513A0, 0x1405355B0};
+    0x1421F5870, 0x1422513A0, 0x1405355B0};
 
 WEAK symbol<void(client_s *drop, const char *reason, bool tellThem,
                  bool removeFromLobby)>
-    SV_DropClient{0x14224A050, 0x14052F430};
+    SV_DropClient{0x1421ED500, 0x14224A050, 0x14052F430};
 WEAK symbol<void(client_s *cl_0, const char *reason)> SV_Live_RemoveClient{
-    0x142242510, 0x140527530};
-WEAK symbol<void *(level::gentity_t *gEnt)> SV_LinkEntity{0x1422633E0,
-                                                          0x140542DB0};
+    0x1421E59C0, 0x142242510, 0x140527530};
+WEAK symbol<void *(level::gentity_t *gEnt)> SV_LinkEntity{
+    0x1422068B0, 0x1422633E0, 0x140542DB0};
 /*
   Server only. Function exists on client but requires accessing areas of memory
   which are only initialized when running as dedicated server. Also might not
@@ -57,20 +59,23 @@ WEAK symbol<void *(level::gentity_t *gEnt)> SV_LinkEntity{0x1422633E0,
   this is of no consequence.
 */
 WEAK symbol<void(client_s *cl_0, const char *reason)>
-    SV_Live_RemoveAllClientsFromAddress{0x142254630, 0x1405379E0};
+    SV_Live_RemoveAllClientsFromAddress{0x1421F7B00, 0x142254630, 0x1405379E0};
 WEAK symbol<void(client_s *client, net::svscmd_type type, const char *cmd)>
-    SV_AddServerCommand{0x142253460, 0x140536660};
+    SV_AddServerCommand{0x1421F6930, 0x142253460, 0x140536660};
 
 WEAK symbol<void(client_s *client, user::usercmd_t *cmd)> SV_ClientEnterWorld{
-    0x142249370, 0x14052E810};
-WEAK symbol<void(level::gentity_t *ent)> SV_DObjDumpInfo{0x14224E980,
-                                                         0x1405320C0};
+    0x1421EC820, 0x142249370, 0x14052E810};
+WEAK symbol<void(level::gentity_t *ent)> SV_DObjDumpInfo{
+    0x1421F1E50, 0x14224E980, 0x1405320C0};
 WEAK symbol<BoneIndex(const level::gentity_t *ent, scr::ScrString_t boneName)>
-    SV_DObjGetBoneIndex{0x14224E9E0, 0x140532120};
-WEAK symbol<void(RestartMethod_t restartMethod)> SV_MapRestart{0x142245D70,
-                                                               0x14052B450};
-WEAK symbol<cmd::xcommandFunc_t> SV_MapRestart_f{0x142245F50, 0x14052B640};
-WEAK symbol<cmd::xcommandFunc_t> SV_FastRestart_f{0x1422453E0, 0x14052A9C0};
-WEAK symbol<cmd::xcommandFunc_t> SV_MapRotate_f{0x142245F60, 0x14052B650};
+    SV_DObjGetBoneIndex{0x1421F1EB0, 0x14224E9E0, 0x140532120};
+WEAK symbol<void(RestartMethod_t restartMethod)> SV_MapRestart{
+    0x1421E9220, 0x142245D70, 0x14052B450};
+WEAK symbol<cmd::xcommandFunc_t> SV_MapRestart_f{0x1421E9400, 0x142245F50,
+                                                 0x14052B640};
+WEAK symbol<cmd::xcommandFunc_t> SV_FastRestart_f{0x1421E8890, 0x1422453E0,
+                                                  0x14052A9C0};
+WEAK symbol<cmd::xcommandFunc_t> SV_MapRotate_f{0x1421E9410, 0x142245F60,
+                                                0x14052B650};
 } // namespace sv
 } // namespace game

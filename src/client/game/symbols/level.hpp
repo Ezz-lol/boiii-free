@@ -6,7 +6,7 @@
 
 namespace game {
 namespace level {
-WEAK symbol<level::gentity_pool> g_entities{0x0, 0x1471031B0};
+WEAK symbol<level::gentity_pool> g_entities{0x14A573608, 0x0, 0x1471031B0};
 
 /*
   Statically allocated on server, heap allocated with `malloc(0x27C000u);` on
@@ -19,7 +19,7 @@ WEAK symbol<level::gentity_pool> g_entities{0x0, 0x1471031B0};
   store an address to our static `g_entities_cl_allocation` pools, if it
   contains a valid address.
 */
-WEAK symbol<level::gentity_pool *> g_entities_cl{0x14A5F25F8};
+WEAK symbol<level::gentity_pool *> g_entities_cl{0x14A573608, 0x14A5F25F8, 0x0};
 extern level::gentity_pool g_entities_cl_allocation;
 inline gentity_pool *get_g_entities() {
   if (game::is_client()) {
@@ -64,7 +64,7 @@ inline gentity_t *entity(Index input_index) {
   return nullptr;
 }
 
-WEAK symbol<int32_t> level_time{0x14A5502C4, 0x1474FDC94};
-WEAK symbol<int32_t> level_rounds_played{0x14A55BDEC, 0x1475097BC};
+WEAK symbol<int32_t> level_time{0x14A1B6C14, 0x14A5502C4, 0x1474FDC94};
+WEAK symbol<int32_t> level_rounds_played{0x14a1c273c, 0x14A55BDEC, 0x1475097BC};
 } // namespace level
 } // namespace game

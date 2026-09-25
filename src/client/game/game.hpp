@@ -19,13 +19,13 @@ extern void *callstack_proxy_addr;
 namespace game {
 
 constexpr uint32_t APP_ID = 311210;
-constexpr const char *APP_ID_STR = "311210";
+constexpr std::string_view APP_ID_STR = "311210";
 
 void show_error(const std::string &text, const std::string &title = "Error");
 
-std::filesystem::path get_appdata_path();
-std::filesystem::path get_game_path();
-std::vector<std::string> get_registered_dvar_names();
+const std::filesystem::path &get_appdata_path();
+const std::filesystem::path &get_game_path();
+const std::vector<std::string> &get_registered_dvar_names();
 size_t get_registered_dvar_name_count();
 
 } // namespace game

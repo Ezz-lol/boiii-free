@@ -30,8 +30,9 @@ public:
     callbacks_.access([&](task_list &tasks) {
       this->merge_callbacks();
 
-      for (auto i = tasks.begin(); i != tasks.end();) {
-        const auto now = std::chrono::high_resolution_clock::now();
+      for (task_list::iterator i = tasks.begin(); i != tasks.end();) {
+        const std::chrono::high_resolution_clock::time_point now =
+            std::chrono::high_resolution_clock::now();
         const auto diff = now - i->last_call;
 
         if (diff < i->interval) {
@@ -209,10 +210,12 @@ bool schedule([[maybe_unused]] const char *reason, std::chrono::seconds delay) {
 
   ++restart_count;
 
-  const auto target = std::chrono::steady_clock::now() + delay;
-  const auto target_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                             target.time_since_epoch())
-                             .count();
+  const std::chrono::steady_clock::time_point target =
+      std::chrono::steady_clock::now() + delay;
+  const long long target_ms =
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          target.time_since_epoch())
+          .count();
   restart_execute_time.store(target_ms);
 
   return true;
@@ -222,10 +225,11 @@ void check_and_execute() {
   if (!game::is_server() || !restart_pending.load())
     return;
 
-  const auto now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
-                          std::chrono::steady_clock::now().time_since_epoch())
-                          .count();
-  const auto target_ms = restart_execute_time.load();
+  const long long now_ms =
+      std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now().time_since_epoch())
+          .count();
+  const int64_t target_ms = restart_execute_time.load();
 
   if (target_ms == 0 || now_ms < target_ms)
     return;

@@ -19,7 +19,8 @@ public:
   inline constexpr base_symbol(const uintptr_t address,
                                const uintptr_t legacy_address,
                                const uintptr_t server_address)
-      : address_(address), server_address_(server_address) {}
+      : address_(address), legacy_address_(legacy_address),
+        server_address_(server_address) {}
 
   inline constexpr base_symbol(const intptr_t address) : address_(address) {}
 
@@ -30,7 +31,8 @@ public:
   inline constexpr base_symbol(const intptr_t address,
                                const intptr_t legacy_address,
                                const intptr_t server_address)
-      : address_(address), server_address_(server_address) {}
+      : address_(address), legacy_address_(legacy_address),
+        server_address_(server_address) {}
 
   T *get() const {
     return reinterpret_cast<T *>(
@@ -44,7 +46,7 @@ public:
   template <IntegralLike<uintptr_t> Offset>
   inline uintptr_t offset(Offset offset) const noexcept {
     return reinterpret_cast<uintptr_t>(this->get()) +
-           reinterpret_cast<uintptr_t>(offset);
+           static_cast<uintptr_t>(offset);
   }
 
 private:

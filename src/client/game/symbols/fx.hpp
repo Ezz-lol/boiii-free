@@ -4,9 +4,9 @@
 
 namespace game {
 namespace fx {
-WEAK symbol<void()> FX_ShutdownLensFlareSystem{0x1414ED6A0};
+WEAK symbol<void()> FX_ShutdownLensFlareSystem{0x1414ED6C0, 0x1414ED6A0, 0x0};
 WEAK symbol<void(hunk::HunkUser *hunk, LocalClientNum_t maxLocalClients,
                  ClientNum_t maxClients, cl::clientAllocFlags_t allocFlags)>
-    FX_AllocateClientMemory{0x1414D4700};
+    FX_AllocateClientMemory{0x1414D4720, 0x1414D4700, 0x0};
 } // namespace fx
 } // namespace game

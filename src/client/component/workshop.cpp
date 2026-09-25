@@ -127,7 +127,7 @@ std::string resolve_mod_workshop_id(const std::string &mod_name) {
   std::error_code ec;
   std::filesystem::path mods_dir("mods");
   if (std::filesystem::exists(mods_dir, ec)) {
-    for (const auto &entry :
+    for (const std::filesystem::directory_entry &entry :
          std::filesystem::directory_iterator(mods_dir, ec)) {
       if (!entry.is_directory(ec))
         continue;
@@ -144,16 +144,19 @@ std::string resolve_mod_workshop_id(const std::string &mod_name) {
       if (doc.Parse(json_str.c_str()).HasParseError() || !doc.IsObject())
         continue;
 
-      auto folder_it = doc.FindMember("FolderName");
+      rapidjson::Document::MemberIterator folder_it =
+          doc.FindMember("FolderName");
       if (folder_it != doc.MemberEnd() && folder_it->value.IsString()) {
         if (std::string(folder_it->value.GetString()) == mod_name) {
-          auto pub_it = doc.FindMember("PublishedFileId");
+          rapidjson::Document::MemberIterator pub_it =
+              doc.FindMember("PublishedFileId");
           if (pub_it != doc.MemberEnd() && pub_it->value.IsString()) {
             std::string pfid = pub_it->value.GetString();
             if (utils::string::is_numeric(pfid.data()))
               return pfid;
           }
-          auto pubid_it = doc.FindMember("PublisherID");
+          rapidjson::Document::MemberIterator pubid_it =
+              doc.FindMember("PublisherID");
           if (pubid_it != doc.MemberEnd() && pubid_it->value.IsString()) {
             std::string pid = pubid_it->value.GetString();
             if (utils::string::is_numeric(pid.data()))
@@ -283,7 +286,8 @@ void supplement_mods_from_disk() {
   }
 
   uint32_t count = 0;
-  for (const auto &entry : std::filesystem::directory_iterator(mods_dir, ec)) {
+  for (const std::filesystem::directory_entry &entry :
+       std::filesystem::directory_iterator(mods_dir, ec)) {
     if (ec || !entry.is_directory(ec)) {
       continue;
     }
@@ -442,7 +446,7 @@ bool UGC_VerifyVersion_HandleInternalName(game::ZoneType type,
 
 const char *va_mods_path(const char *fmt, const char *root_dir,
                          const char *mods_dir, const char *dir_name) {
-  const auto original_path =
+  const char *original_path =
       utils::string::va(fmt, root_dir, mods_dir, dir_name);
 
   if (utils::io::directory_exists(original_path)) {
@@ -454,7 +458,8 @@ const char *va_mods_path(const char *fmt, const char *root_dir,
 
 const char *va_user_content_path(const char *fmt, const char *root_dir,
                                  const char *user_content_dir) {
-  const auto original_path = utils::string::va(fmt, root_dir, user_content_dir);
+  const char *original_path =
+      utils::string::va(fmt, root_dir, user_content_dir);
 
   if (utils::io::directory_exists(original_path)) {
     return original_path;
@@ -578,7 +583,7 @@ void set_pending_download_reconnect(const std::string &address) {
 
 std::string get_pending_download_reconnect() {
   std::lock_guard lock(reconnect_mutex);
-  auto addr = std::move(pending_download_reconnect_address);
+  const std::string addr = std::move(pending_download_reconnect_address);
   pending_download_reconnect_address.clear();
   return addr;
 }
@@ -588,7 +593,8 @@ std::uint64_t compute_folder_size_bytes(const std::filesystem::path &folder) {
   if (!std::filesystem::exists(folder, ec))
     return 0;
   std::uint64_t total = 0;
-  for (const auto &entry : std::filesystem::recursive_directory_iterator(
+  for (const std::filesystem::directory_entry &entry :
+       std::filesystem::recursive_directory_iterator(
            folder, std::filesystem::directory_options::skip_permission_denied,
            ec)) {
     if (ec)
@@ -623,7 +629,7 @@ std::uint64_t parse_human_size_to_bytes(const std::string &text) {
     return 0;
   const double value = std::stod(m[1].str());
   std::string unit = m[2].str();
-  for (auto &c : unit)
+  for (char &c : unit)
     c = static_cast<char>(std::toupper(static_cast<unsigned char>(c)));
 
   double mul = 1.0;
@@ -771,7 +777,7 @@ bool check_valid_usermap_id(const std::string &mapname,
                             const std::string &pub_id,
                             const std::string &workshop_id,
                             const std::string &base_uri) {
-  if (!DB_FileExists(mapname.data(), 0) && pub_id.empty()) {
+  if (!DB_ValidFastFile(mapname.data(), 0) && pub_id.empty()) {
     if (is_zm_dlc_map(mapname.data())) {
       queue_dlc_popup(mapname);
       return false;
@@ -799,8 +805,7 @@ bool check_valid_usermap_id(const std::string &mapname,
       context.map_path = map_path;
       context.map_tree_uri = map_tree_uri;
       context.success_callback = []() {
-        scheduler::once([] { game::ugc::reloadUserContent(); },
-                        scheduler::main);
+        scheduler::once(game::ugc::UGC_LoadPools_Impl, scheduler::main);
       };
       printf("[ Workshop ] Server has FastDL, attempting download for %s from "
              "%s\n",
@@ -811,7 +816,7 @@ bool check_valid_usermap_id(const std::string &mapname,
 
     if (utils::string::is_numeric(mapname.data())) {
       const std::string id_copy = mapname;
-      const auto ws_info = get_steam_workshop_info(id_copy);
+      const workshop_info ws_info = get_steam_workshop_info(id_copy);
       std::string confirm_msg =
           utils::string::va("Usermap '%s' was not found.\n", id_copy.c_str());
       if (!ws_info.title.empty())
@@ -830,7 +835,7 @@ bool check_valid_usermap_id(const std::string &mapname,
                utils::string::is_numeric(workshop_id.data())) {
       const std::string id_copy = workshop_id;
       const std::string name_copy = mapname;
-      const auto ws_info = get_steam_workshop_info(id_copy);
+      const workshop_info ws_info = get_steam_workshop_info(id_copy);
       std::string confirm_msg =
           utils::string::va("Usermap '%s' was not found.\n", name_copy.c_str());
       if (!ws_info.title.empty())
@@ -886,7 +891,7 @@ bool check_valid_mod_id(const std::string &mod,
 
     if (utils::string::is_numeric(mod.data())) {
       const std::string id_copy = mod;
-      const auto ws_info = get_steam_workshop_info(id_copy);
+      const workshop_info ws_info = get_steam_workshop_info(id_copy);
       std::string confirm_msg =
           utils::string::va("Mod '%s' was not found.\n", id_copy.c_str());
       if (!ws_info.title.empty())
@@ -905,7 +910,7 @@ bool check_valid_mod_id(const std::string &mod,
                utils::string::is_numeric(workshop_id.data())) {
       const std::string id_copy = workshop_id;
       const std::string name_copy = mod;
-      const auto ws_info = get_steam_workshop_info(id_copy);
+      const workshop_info ws_info = get_steam_workshop_info(id_copy);
       std::string confirm_msg =
           utils::string::va("Mod '%s' was not found.\n", name_copy.c_str());
       if (!ws_info.title.empty())
@@ -924,7 +929,7 @@ bool check_valid_mod_id(const std::string &mod,
       std::string resolved_id = resolve_mod_workshop_id(mod);
       if (!resolved_id.empty()) {
         const std::string name_copy = mod;
-        const auto ws_info = get_steam_workshop_info(resolved_id);
+        const workshop_info ws_info = get_steam_workshop_info(resolved_id);
         std::string confirm_msg = utils::string::va(
             "Mod '%s' was not found.\nResolved workshop ID: %s\n",
             name_copy.c_str(), resolved_id.c_str());
@@ -1010,9 +1015,9 @@ static std::string last_auto_reconnect_target;
 
 void com_error_missing_map_stub(const char *file, int line,
                                 game::errorParm code, const char *fmt, ...) {
-  const auto target = party::get_connect_host();
+  const game::net::netadr_t target = party::get_connect_host();
   if (target.type != game::net::NA_BAD) {
-    const auto addr_str =
+    const char *addr_str =
         utils::string::va("%i.%i.%i.%i:%hu", target.ipv4.a, target.ipv4.b,
                           target.ipv4.c, target.ipv4.d, target.port);
 
@@ -1146,7 +1151,7 @@ public:
       dlc_popup_thread_obj = std::thread(dlc_popup_thread_func);
 
       command::add("userContentReload", [](const command::params &params) {
-        game::ugc::reloadUserContent();
+        game::ugc::UGC_LoadPools_Impl();
         if (!game::is_server())
           toast::info("Workshop", "User content reloaded");
       });

@@ -4,7 +4,7 @@
 
 #include <unordered_set>
 namespace server_list {
-std::vector<game::net::netadr_t> get_master_servers();
+std::vector<game::net::netadr_t> &get_master_servers();
 
 using callback =
     std::function<void(bool, const std::unordered_set<game::net::netadr_t> &)>;
