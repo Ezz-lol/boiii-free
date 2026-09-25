@@ -795,27 +795,30 @@ struct component final : generic_component {
 
     hide_being_debugged();
     scheduler::loop(hide_being_debugged, scheduler::pipeline::async);
+
     if (game::is_legacy_client() || game::is_server()) {
-
       create_thread_hook.create(CreateThread, create_thread_stub);
-      create_mutex_ex_a_hook.create(CreateMutexExA, create_mutex_ex_a_stub);
+    }
 
-      const utils::nt::library ntdll("ntdll.dll");
-      nt_close_hook.create(ntdll.get_proc<void *>("NtClose"), nt_close_stub);
+    create_mutex_ex_a_hook.create(CreateMutexExA, create_mutex_ex_a_stub);
 
-      void *nt_query_information_process =
-          ntdll.get_proc<void *>("NtQueryInformationProcess");
-      nt_query_information_process_hook.create(
-          nt_query_information_process, nt_query_information_process_stub);
+    const utils::nt::library ntdll("ntdll.dll");
+    nt_close_hook.create(ntdll.get_proc<void *>("NtClose"), nt_close_stub);
 
-      void *nt_query_system_information =
-          ntdll.get_proc<void *>("NtQuerySystemInformation");
-      nt_query_system_information_hook.create(nt_query_system_information,
-                                              nt_query_system_information_stub);
-      nt_query_system_information_hook.move();
+    void *nt_query_information_process =
+        ntdll.get_proc<void *>("NtQueryInformationProcess");
+    nt_query_information_process_hook.create(nt_query_information_process,
+                                             nt_query_information_process_stub);
 
-      open_process_hook.create(OpenProcess, open_process_stub);
+    void *nt_query_system_information =
+        ntdll.get_proc<void *>("NtQuerySystemInformation");
+    nt_query_system_information_hook.create(nt_query_system_information,
+                                            nt_query_system_information_stub);
+    nt_query_system_information_hook.move();
 
+    open_process_hook.create(OpenProcess, open_process_stub);
+
+    if (game::is_legacy_client() || game::is_server()) {
 #ifndef NDEBUG
       void *get_thread_context_func = utils::nt::library("kernelbase.dll")
                                           .get_proc<void *>("GetThreadContext");
