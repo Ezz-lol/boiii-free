@@ -93,7 +93,7 @@ void cmd_say_f(game::level::gentity_s *ent, const command::params_sv &params) {
     ++notify_text;
   }
   game::scr::Scr_AddString(game::scr::SCRIPTINSTANCE_SERVER, notify_text);
-  game::scr::Scr_Notify_Canon(ent, game::CanonHash(params[0]), 1);
+  game::scr::Scr_Notify_Canon(ent, game::CanonHash("chat"), 1);
 
   if (!is_muted(ent)) {
     const std::string chat_message = std::to_string(mode) + " " + p;
@@ -163,9 +163,9 @@ inline const char *sv_sayname_val() {
 } // namespace
 
 const char *get_client_name(const uint64_t xuid) {
-  if (xuid == 0xFFFFFFFF || xuid == 0xFFFFFFFFFFFFFFFF) {
+  if (xuid == 0 || xuid == 0xFFFFFFFF || xuid == 0xFFFFFFFFFFFFFFFF) {
     const char *val = sv_sayname_val();
-    return val ? val : "Server";
+    return val && *val ? val : "Server";
   }
 
   if (xuid > 0 && xuid < 19 && !game::is_server()) {
@@ -179,7 +179,7 @@ const char *get_client_name(const uint64_t xuid) {
     return utils::string::va("%s", name.c_str());
   }
 
-  return "Unknown Soldier";
+  return "Server";
 }
 
 class component final : public generic_component {
