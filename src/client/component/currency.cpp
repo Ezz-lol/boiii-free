@@ -286,6 +286,7 @@ bool spend_vials(ControllerIndex_t controller, uint32_t count) {
   if (!enabled()) {
     return spend_hook.invoke<bool>(controller, count);
   }
+
   if (!valid_controller_index(controller) || count < 1 || count > 3 ||
       /* FIXME: We have this stored in a global. Why are we needlessly looking
           up the dvar by name? This needs to be fixed. */
@@ -349,6 +350,17 @@ bool spend_vials(ControllerIndex_t controller, uint32_t count) {
   LiveInventory_UpdatePlayerBalance(controller, 3, *balance - count);
   game::loot::s_lastResult->result = LootResultType::SUCCESS;
   game::loot::s_lastResult->isValid = true;
+
+  const std::string message =
+      count == 1 ? "Obtained 1 gum"
+                 : "Obtained " + std::to_string(count) + " gums";
+  scheduler::once(
+      [message] {
+        toast::reward("Doctor Monty's Factory", message,
+                      "uie_t7_menu_gobblegum_comsumable");
+      },
+      scheduler::pipeline::main, 3000ms);
+
   return true;
 }
 
@@ -783,7 +795,7 @@ bool purchase_distills(ControllerIndex_t controller, std::string_view kind,
   if (!free && kind != "x3" && kind != "x6" && kind != "x9") {
     return false;
   }
-  if (free || (!free && currency != 0 && currency != 3)) {
+  if (!free && currency != 0 && currency != 3) {
     return false;
   }
   if (free && free_distill_cooldown() > 0) {
@@ -890,7 +902,7 @@ const gum *find_gum_by_name(const std::vector<gum> &pool,
 
 bool cook_recipe(ControllerIndex_t controller, uint32_t recipe,
                  bool use_free_distills) {
-  if (!enabled() || !valid_controller_index(controller) || recipe < 0 ||
+  if (!enabled() || !valid_controller_index(controller) ||
       game::com::Com_IsInGame() ||
       game::com::Com_SessionMode_GetMode() != game::eModes::ZOMBIES) {
     return false;
@@ -938,6 +950,9 @@ bool cook_recipe(ControllerIndex_t controller, uint32_t recipe,
     return false;
   }
 
+  const bool unlockall =
+      game::get_dvar_bool("cg_unlockall_gobblegums").value_or(false);
+
   stats data(controller, true);
   for (int32_t column = 3;; column += 2) {
     const char *reference =
@@ -952,6 +967,9 @@ bool cook_recipe(ControllerIndex_t controller, uint32_t recipe,
         count_text ? accounting::parse_amount(count_text) : std::nullopt;
     if (!ingredient || !count || !*count) {
       return false;
+    }
+    if (unlockall) {
+      continue;
     }
     const std::optional<DDLState> gained =
         gum_stat(data, *ingredient, "bgbconsumablesgained");
@@ -991,6 +1009,14 @@ bool cook_recipe(ControllerIndex_t controller, uint32_t recipe,
   game::loot::s_lastResult->all[0] = game::loot::s_lastResult->granted[0];
   game::loot::s_lastResult->result = game::loot::LootResultType::SUCCESS;
   game::loot::s_lastResult->isValid = true;
+
+  const uint32_t granted_count = *result_count;
+  const std::string message =
+      granted_count == 1
+          ? "Obtained 1 gum"
+          : "Obtained " + std::to_string(granted_count) + " gums";
+  toast::reward("Recipe Cooked", message, "uie_t7_menu_gobblegum_comsumable");
+
   return true;
 }
 
