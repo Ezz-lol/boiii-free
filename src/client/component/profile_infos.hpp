@@ -13,15 +13,14 @@ struct profile_info {
   void serialize(utils::byte_buffer &buffer) const;
 };
 
-void add_profile_info(uint64_t user_id, const profile_info &info);
+void add_profile_info(game::XUID xuid, const profile_info &info);
 void add_and_distribute_profile_info(const game::net::netadr_t &addr,
-                                     uint64_t user_id,
-                                     const profile_info &info);
+                                     game::XUID xuid, const profile_info &info);
 void clear_profile_infos();
 
 std::unique_lock<std::recursive_mutex> acquire_profile_lock();
 
 std::optional<profile_info> get_profile_info();
-std::optional<profile_info> get_profile_info(uint64_t user_id);
+std::optional<profile_info> get_profile_info(game::XUID xuid);
 void update_profile_info(const profile_info &info);
 } // namespace profile_infos

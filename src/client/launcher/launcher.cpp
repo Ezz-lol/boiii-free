@@ -2973,7 +2973,9 @@ bool run() {
   return *run_game;
 }
 
-std::filesystem::path get_launcher_ui_file() {
-  return game::get_appdata_path() / "data/launcher/main.html";
+const std::filesystem::path &get_launcher_ui_file() {
+  static const std::filesystem::path result =
+      game::get_appdata_path() / "data/launcher/main.html";
+  return result;
 }
 } // namespace launcher

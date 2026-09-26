@@ -42,12 +42,12 @@ struct component final : generic_component {
 
   ~component() override {
     log("Unloading " + std::to_string(extensions_.size()) + " plugin(s)...");
-    for (auto &lib : extensions_)
+    for (utils::nt::library &lib : extensions_)
       lib.free();
   }
 
   void post_load() override {
-    for (auto &lib : extensions_) {
+    for (utils::nt::library &lib : extensions_) {
       try {
         lib.invoke<void>("post_load");
       } catch (...) {
@@ -56,7 +56,7 @@ struct component final : generic_component {
   }
 
   void post_unpack() override {
-    for (auto &lib : extensions_) {
+    for (utils::nt::library &lib : extensions_) {
       try {
         lib.invoke<void>("post_unpack");
       } catch (...) {
@@ -65,7 +65,7 @@ struct component final : generic_component {
   }
 
   void pre_destroy() override {
-    for (auto &lib : extensions_) {
+    for (utils::nt::library &lib : extensions_) {
       try {
         lib.invoke<void>("pre_destroy");
       } catch (...) {
@@ -83,8 +83,9 @@ private:
   }
 
   void log(const std::string &message) {
-    const auto timestamp = std::chrono::system_clock::now();
-    const auto time_t = std::chrono::system_clock::to_time_t(timestamp);
+    const std::chrono::system_clock::time_point timestamp =
+        std::chrono::system_clock::now();
+    const std::time_t time_t = std::chrono::system_clock::to_time_t(timestamp);
 
     std::tm time_info{};
     localtime_s(&time_info, &time_t);
@@ -93,7 +94,8 @@ private:
     std::strftime(time_buffer, sizeof(time_buffer), "[%Y-%m-%d %H:%M:%S]",
                   &time_info);
 
-    const auto log_message = std::string(time_buffer) + " " + message + "\n";
+    const std::string log_message =
+        std::string(time_buffer) + " " + message + "\n";
     utils::io::write_file(log_path_.string(), log_message, true);
   }
 
@@ -105,7 +107,8 @@ private:
 
     bool dll_found = false;
 
-    for (const auto &file : std::filesystem::directory_iterator(folder)) {
+    for (const std::filesystem::directory_entry &file :
+         std::filesystem::directory_iterator(folder)) {
       if (file.path().extension() == ".dll") {
         dll_found = true;
 

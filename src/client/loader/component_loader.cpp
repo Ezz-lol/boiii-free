@@ -74,22 +74,23 @@ bool activate(bool server) {
 }
 
 bool post_load() {
-#ifndef NDEBUG
-  game::trace("Executing component_loader::post_load");
-#endif
   static const bool res = [] {
     try {
+#ifndef NDEBUG
+      game::trace("[component_loader] Executing component_loader::post_load");
+#endif
       for (const std::unique_ptr<generic_component> &component :
            get_components()) {
 
 #ifndef NDEBUG
-        game::trace("Executing post_load() in component with name: {}",
+        game::trace("[component_loader] Executing post_load() in component "
+                    "with name: {}",
                     component->name());
 #endif
         component->post_load();
 #ifndef NDEBUG
         game::trace(
-            "Successfully executed post_load() in component with name: {}",
+            "Successfully executed post_load in component with name: {}",
             component->name());
 #endif
       }
@@ -97,51 +98,61 @@ bool post_load() {
       return false;
     } catch (const std::exception &e) {
       game::show_error(e.what());
+#ifndef NDEBUG
+      game::trace("[component_loader] Failed to execute "
+                  "component_loader::post_load. Error: {}",
+                  e.what());
+#endif
       return false;
     }
 
+#ifndef NDEBUG
+    game::trace(
+        "[component_loader] Successfully executed component_loader::post_load");
+#endif
     return true;
   }();
-
-#ifndef NDEBUG
-  game::trace("Executed component_loader::post_load with result: {}",
-              res ? "true" : "false");
-#endif
 
   return res;
 }
 
 void post_unpack() {
-#ifndef NDEBUG
-  game::trace("Executing component_loader::post_unpack");
-#endif
   static const bool res = [] {
     try {
+#ifndef NDEBUG
+      game::trace("[component_loader] Executing component_loader::post_unpack");
+#endif
       for (const std::unique_ptr<generic_component> &component :
            get_components()) {
 #ifndef NDEBUG
-        game::trace("Executing post_unpack() in component with name: {}",
+        game::trace("[component_loader] Executing post_unpack() in component "
+                    "with name: {}",
                     component->name());
 #endif
         component->post_unpack();
 #ifndef NDEBUG
         game::trace(
-            "Successfully executed post_unpack() in component with name: {}",
+            "Successfully executed post_unpack in component with name: {}",
             component->name());
 #endif
       }
     } catch (const std::exception &e) {
       game::show_error(e.what());
+#ifndef NDEBUG
+      game::trace("[component_loader] Failed to execute "
+                  "component_loader::post_unpack. Error: {}",
+                  e.what());
+#endif
       return false;
     }
 
+#ifndef NDEBUG
+    game::trace("[component_loader] Successfully executed "
+                "component_loader::post_unpack");
+#endif
     return true;
   }();
 
-#ifndef NDEBUG
-  game::trace("Executed component_loader::post_load with result: {}",
-              res ? "true" : "false");
-#endif
   if (!res) {
     TerminateProcess(GetCurrentProcess(), 1);
   }
@@ -150,12 +161,31 @@ void post_unpack() {
 void pre_destroy() {
   static const bool res = [] {
     try {
+#ifndef NDEBUG
+      game::trace("[component_loader] Executing component_loader::pre_destroy");
+#endif
       for (const std::unique_ptr<generic_component> &component :
            get_components()) {
+#ifndef NDEBUG
+        game::trace("[component_loader] Executing "
+                    "component_loader::pre_destroy in component with "
+                    "name: {}",
+                    component->name());
+#endif
         component->pre_destroy();
+#ifndef NDEBUG
+        game::trace(
+            "Successfully executed pre_destroy in component with name: {}",
+            component->name());
+#endif
       }
     } catch (const std::exception &e) {
       game::show_error(e.what());
+#ifndef NDEBUG
+      game::trace("[component_loader] Failed to execute "
+                  "component_loader::pre_destroy. Error: {}",
+                  e.what());
+#endif
       return false;
     }
 
