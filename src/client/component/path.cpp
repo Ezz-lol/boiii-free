@@ -64,6 +64,11 @@ const std::filesystem::path &lpc_directory() {
 
 bool reparent(std::filesystem::path &path, const std::filesystem::path &current,
               const std::filesystem::path &replacement) {
+  if (path == current) {
+    path = replacement;
+    return true;
+  }
+
   const std::filesystem::path rel = relative(path, current);
   if (!rel.empty() && rel.native()[0] != '.') {
     path = replacement / std::move(rel);

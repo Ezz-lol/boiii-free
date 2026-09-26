@@ -34,7 +34,7 @@ std::vector<pending_op> pending_ops;
 std::atomic<int> pending_version{0};
 constexpr int BATCH_THRESHOLD = 3;
 
-std::string get_binds_path() { return "boiii_players/user/binds.cfg"; }
+static constexpr std::string_view BINDS_PATH = "boiii_players/user/binds.cfg";
 
 std::string normalize_key(const std::string_view key) {
   if (key.size() == 1) {
@@ -60,7 +60,7 @@ void save_binds() {
   for (const auto &[key, cmd] : custom_binds) {
     buffer += utils::string::va("bind %s \"%s\"\n", key.c_str(), cmd.c_str());
   }
-  utils::io::write_file(get_binds_path(), buffer);
+  utils::io::write_file(BINDS_PATH, buffer);
   printf("[Binds] Saved %zu custom bind(s)\n", custom_binds.size());
 }
 
@@ -281,7 +281,7 @@ void init_hooks_and_load() {
   }
 
   std::string data;
-  if (!utils::io::read_file(get_binds_path(), &data) || data.empty()) {
+  if (!utils::io::read_file(BINDS_PATH, &data) || data.empty()) {
     printf("[Binds] No custom binds file found\n");
     current_phase = phase::ready;
     return;

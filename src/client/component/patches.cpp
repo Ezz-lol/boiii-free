@@ -458,13 +458,77 @@ FILE *wfsopen_adjustpath(const wchar_t *FileName, const wchar_t *Mode,
   return wfsopen_hook.invoke<FILE *>(path_str.data(), Mode, ShFlag);
 }
 
+utils::hook::detour mkdir_hook;
+int64_t mkdir_adjustpath(const wchar_t *path) {
+  if (path) {
+    const std::filesystem::path adjusted =
+        path::normalize(std::filesystem::path(path));
+    const std::wstring adjusted_str = adjusted.native();
+    return mkdir_hook.invoke<int64_t>(adjusted_str.c_str());
+  }
+
+  return mkdir_hook.invoke<int64_t>(path);
+}
+
+utils::hook::detour stat64_hook;
+int32_t stat64_adjustpath(const char *fileName, struct _stat64 *stat) {
+  if (fileName) {
+    const std::filesystem::path adjusted = path::normalize(fileName);
+    const std::string adjusted_str = adjusted.generic_string();
+    return stat64_hook.invoke<int32_t>(adjusted_str.c_str(), stat);
+  }
+
+  return stat64_hook.invoke<int32_t>(fileName, stat);
+}
+
+utils::hook::detour stat64i32_hook;
+int32_t stat64i32_adjustpath(const char *fileName, struct _stat64i32 *stat) {
+  if (fileName) {
+    const std::filesystem::path adjusted = path::normalize(fileName);
+    const std::string adjusted_str = adjusted.generic_string();
+    return stat64i32_hook.invoke<int32_t>(adjusted_str.c_str(), stat);
+  }
+
+  return stat64i32_hook.invoke<int32_t>(fileName, stat);
+}
+
+inline void patch_os_fs_apis() {
+  fsopen_hook.create(game::fs::fsopen, fsopen_adjustpath);
+  wfsopen_hook.create(game::fs::wfsopen, wfsopen_adjustpath);
+  mkdir_hook.create(game::fs::__mkdir, mkdir_adjustpath);
+  stat64_hook.create(game::fs::stat64, stat64_adjustpath);
+  stat64i32_hook.create(game::fs::stat64i32, stat64i32_adjustpath);
+}
+
+constexpr size_t PATH_BUFFER_LEN = 0x100;
+utils::hook::detour FS_BuildOSPath_hook;
+void FS_BuildOSPath_adjustpath(const char *base, const char *game,
+                               const char *qpath, char *ospath) {
+  FS_BuildOSPath_hook.invoke(base, game, qpath, ospath);
+
+  if (ospath) {
+    const std::filesystem::path adjusted = path::normalize(ospath);
+    const std::string adjusted_str = adjusted.generic_string();
+    strscpy(ospath, adjusted_str.c_str(), PATH_BUFFER_LEN);
+  }
+}
+
+inline void patch_sys_path_builders() {
+  FS_BuildOSPath_hook.create(game::fs::FS_BuildOSPath,
+                             FS_BuildOSPath_adjustpath);
+}
+
+inline void patch_fs_functions() {
+  patch_os_fs_apis();
+  patch_sys_path_builders();
+}
+
 struct component final : generic_component {
 #ifndef NDEBUG
   std::string name() override { return "patches"; }
 #endif
 
   void post_unpack() override {
-
     G_RegisterSoundWait_hook.create(game::G_RegisterSoundWait.get(),
                                     game::G_RegisterSoundWait_Impl);
 #ifndef NDEBUG
@@ -508,8 +572,8 @@ struct component final : generic_component {
 
     utils::hook::jump(game::select(0x141A6F920, 0x141A7BCF0, 0x1402CB900),
                       scr_get_num_expected_players, true);
-    fsopen_hook.create(game::fs::fsopen, fsopen_adjustpath);
-    wfsopen_hook.create(game::fs::wfsopen, wfsopen_adjustpath);
+
+    patch_fs_functions();
 
 #ifndef NDEBUG
     PhysPrint_hook.create(game::phys::PhysPrint, PhysPrint_AllOutputs);
