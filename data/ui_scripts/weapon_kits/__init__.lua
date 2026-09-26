@@ -21,8 +21,10 @@ local definitions = {
   { ref = "pistol_shotgun", group = "weapon_pistol", slot = "secondary" },
   { ref = "pistol_energy", group = "weapon_pistol", slot = "secondary" },
   { ref = "pistol_m1911", group = "weapon_pistol", slot = "secondary" },
+  { ref = "pistol_standard", group = "weapon_pistol", slot = "secondary" },
   { ref = "launcher_ex41", group = "weapon_launcher", slot = "secondary" },
   { ref = "launcher_multi", group = "weapon_launcher", slot = "secondary" },
+  { ref = "special_crossbow", group = "weapon_special", slot = "secondary" },
 }
 
 if not __boiii_weapon_kit_originals then
@@ -47,6 +49,10 @@ if not __boiii_weapon_kit_originals then
     BMIsItemLocked = CoD.BlackMarketUtility and CoD.BlackMarketUtility.IsItemLocked,
     BMGetItemQuantity = CoD.BlackMarketUtility and CoD.BlackMarketUtility.GetItemQuantity,
     BMIsUnreleased = CoD.BlackMarketUtility and CoD.BlackMarketUtility.IsUnreleasedBlackMarketItem,
+    WeaponOptionNewItemCount = Engine.WeaponOptionNewItemCount,
+    WeaponOptionNewModeAgnosticItemCount = Engine.WeaponOptionNewModeAgnosticItemCount,
+    GetGunsmithWeaponOptionsTable = CoD.GetGunsmithWeaponOptionsTable,
+    Gunsmith_FocusCamo = Gunsmith_FocusCamo,
   }
 end
 
@@ -86,6 +92,9 @@ local function resolveAttachmentLookup(index, mode)
   if weapon and weapon.mpIndex and not weapon.zmIndex then
     return weapon.mpIndex, MP
   end
+  if weapon and mode == MP and weapon.mpIndex and weapon.mpIndex ~= index then
+    return weapon.mpIndex, MP
+  end
   return index, mode
 end
 
@@ -123,7 +132,7 @@ local function appendUnique(items, model, ref)
 end
 
 local function populateWeaponAttributes(weapon, model)
-  if weapon.zmIndex or not weapon.mpIndex then
+  if not weapon.mpIndex then
     return
   end
   local unlockables = Engine.CreateModel(Engine.GetGlobalModel(), "Unlockables")
@@ -183,9 +192,10 @@ CoD.GetUnlockablesTable = function(controller, filter, mode)
         end
       end
       if not model then
-        local weaponMode = weapon.zmIndex and ZM or MP
+        local lookupIndex = weapon.mpIndex or weapon.index
+        local weaponMode = weapon.mpIndex and MP or ZM
         local ok, candidate =
-          pcall(Engine.GetUnlockableInfoModelByIndex, weapon.index, "BoiiiWeaponKits." .. weapon.index, weaponMode)
+          pcall(Engine.GetUnlockableInfoModelByIndex, lookupIndex, "BoiiiWeaponKits." .. weapon.index, weaponMode)
         if ok then
           model = candidate
         end
@@ -222,6 +232,29 @@ CoD.GetCustomization = function(controller, key, ...)
     end
   end
   return original.GetCustomization(controller, key, ...)
+end
+
+if original.GetGunsmithWeaponOptionsTable then
+  CoD.GetGunsmithWeaponOptionsTable = function(controller, table, group, weaponIndex, ...)
+    if group == Enum.eWeaponOptionGroup.WEAPONOPTION_GROUP_CAMO then
+      local weapon = weaponsByIndex[weaponIndex]
+      if weapon and weapon.mpIndex and weapon.zmIndex and weapon.mpIndex ~= weaponIndex then
+        weaponIndex = weapon.mpIndex
+      end
+    end
+    return original.GetGunsmithWeaponOptionsTable(controller, table, group, weaponIndex, ...)
+  end
+end
+
+if original.Gunsmith_FocusCamo then
+  Gunsmith_FocusCamo = function(menu, element, controller, ...)
+    local index = original.GetCustomization(controller, "weapon_index")
+    local weapon = weaponsByIndex[index]
+    if weapon and weapon.mpIndex and weapon.zmIndex and weapon.mpIndex ~= index then
+      return
+    end
+    return original.Gunsmith_FocusCamo(menu, element, controller, ...)
+  end
 end
 
 Engine.GetItemRef = function(index, mode, ...)
@@ -283,6 +316,26 @@ if original.GetAttachmentDesc then
   Engine.GetAttachmentDesc = function(index, attachment, mode, ...)
     index, mode = resolveAttachmentLookup(index, mode)
     return original.GetAttachmentDesc(index, attachment, mode, ...)
+  end
+end
+
+if original.WeaponOptionNewItemCount then
+  Engine.WeaponOptionNewItemCount = function(controller, index, ...)
+    local weapon = weaponsByIndex[index]
+    if weapon and weapon.mpIndex and weapon.mpIndex ~= index then
+      index = weapon.mpIndex
+    end
+    return original.WeaponOptionNewItemCount(controller, index, ...)
+  end
+end
+
+if original.WeaponOptionNewModeAgnosticItemCount then
+  Engine.WeaponOptionNewModeAgnosticItemCount = function(controller, index, ...)
+    local weapon = weaponsByIndex[index]
+    if weapon and weapon.mpIndex and weapon.mpIndex ~= index then
+      index = weapon.mpIndex
+    end
+    return original.WeaponOptionNewModeAgnosticItemCount(controller, index, ...)
   end
 end
 
