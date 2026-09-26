@@ -40,7 +40,7 @@ CoD.OverlayUtility.AddSystemOverlay("ResetGobbleGumsConfirmation", {
                     "BlackMarketEquipped",
                     "GobbleGum inventory reset to zero.",
                     nil,
-                    "uie_t7_icon_zm_consumable"
+                    "uie_t7_menu_gobblegum_comsumable"
                   )
                 else
                   LuaUtils.UI_ShowErrorMessageDialog(
