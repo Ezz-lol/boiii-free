@@ -4,29 +4,15 @@
 
 namespace game {
 
-static std::once_flag extract_flag;
-static bool extract;
-
-void set_extract_assets() {
-  extract = utils::flags::has_flag("extract-assets");
-}
-
 bool extract_assets() {
-  std::call_once(extract_flag, set_extract_assets);
-  return extract;
-}
-
-static std::once_flag pattern_flag;
-static std::regex pattern;
-
-void set_extract_pattern() {
-  pattern = std::regex(
-      utils::flags::get<std::string>("extract-assets").value_or("^.*$"));
+  static const bool result = utils::flags::has_flag("extract-assets");
+  return result;
 }
 
 std::regex extract_pattern() {
-  std::call_once(pattern_flag, set_extract_pattern);
-  return pattern;
+  static const std::regex result = std::regex(
+      utils::flags::get<std::string>("extract-assets").value_or("^.*$"));
+  return result;
 }
 
 static std::filesystem::path output;
@@ -84,35 +70,19 @@ std::ofstream &tracing_logfile() {
 }
 #endif
 
-static bool ultrawide_enabled;
-static std::once_flag ultrawide_flag;
-void set_ultrawide() {
-  ultrawide_enabled = utils::flags::has_flag("ultrawide");
-}
-
 bool ultrawide() {
-  std::call_once(ultrawide_flag, set_ultrawide);
-  return ultrawide_enabled;
+  static const bool result = utils::flags::has_flag("ultrawide");
+  return result;
 }
-
-static bool cheats_enabled;
-static std::once_flag cheats_flag;
-void set_cheats() { cheats_enabled = utils::flags::has_flag("cheats"); }
 
 bool cheats() {
-  std::call_once(cheats_flag, set_cheats);
-  return cheats_enabled;
-}
-
-static bool loadlib_disabled;
-static std::once_flag loadlib_disabled_flag;
-void set_loadlib_disabled() {
-  loadlib_disabled = utils::flags::has_flag("disable-loadlib");
+  static const bool result = utils::flags::has_flag("cheats");
+  return result;
 }
 
 bool disable_loadlib() {
-  std::call_once(loadlib_disabled_flag, set_loadlib_disabled);
-  return loadlib_disabled;
+  static const bool result = utils::flags::has_flag("disable-loadlib");
+  return result;
 }
 
 bool quiet_crash() {

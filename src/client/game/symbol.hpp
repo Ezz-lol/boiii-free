@@ -2,6 +2,7 @@
 
 #include "ptr.hpp"
 #include <cstdint>
+
 namespace arxan::detail {
 void set_address_to_call(const void *address);
 extern void *callstack_proxy_addr;
@@ -10,38 +11,38 @@ extern void *callstack_proxy_addr;
 namespace game {
 template <typename T> class base_symbol {
 public:
-  inline constexpr base_symbol(const uintptr_t address) : address_(address) {}
+  inline constexpr base_symbol(const uintptr_t address) : address(address) {}
 
   inline constexpr base_symbol(const uintptr_t address,
                                const uintptr_t legacy_address)
-      : address_(address), legacy_address_(legacy_address) {}
+      : address(address), legacy_address(legacy_address) {}
 
   inline constexpr base_symbol(const uintptr_t address,
                                const uintptr_t legacy_address,
                                const uintptr_t server_address)
-      : address_(address), legacy_address_(legacy_address),
-        server_address_(server_address) {}
+      : address(address), legacy_address(legacy_address),
+        server_address(server_address) {}
 
-  inline constexpr base_symbol(const intptr_t address) : address_(address) {}
+  inline constexpr base_symbol(const intptr_t address) : address(address) {}
 
   inline constexpr base_symbol(const intptr_t address,
                                const intptr_t legacy_address)
-      : address_(address), legacy_address_(legacy_address) {}
+      : address(address), legacy_address(legacy_address) {}
 
   inline constexpr base_symbol(const intptr_t address,
                                const intptr_t legacy_address,
                                const intptr_t server_address)
-      : address_(address), legacy_address_(legacy_address),
-        server_address_(server_address) {}
+      : address(address), legacy_address(legacy_address),
+        server_address(server_address) {}
 
-  T *get() const {
+  inline T *get() const {
     return reinterpret_cast<T *>(
-        select(this->address_, this->legacy_address_, this->server_address_));
+        select(this->address, this->legacy_address, this->server_address));
   }
 
-  operator T *() const { return this->get(); }
+  inline operator T *() const { return this->get(); }
 
-  T *operator->() const { return this->get(); }
+  inline T *operator->() const { return this->get(); }
 
   template <IntegralLike<uintptr_t> Offset>
   inline uintptr_t offset(Offset offset) const noexcept {
@@ -50,9 +51,9 @@ public:
   }
 
 private:
-  uintptr_t address_{};
-  uintptr_t legacy_address_{};
-  uintptr_t server_address_{};
+  uintptr_t address{};
+  uintptr_t legacy_address{};
+  uintptr_t server_address{};
 };
 
 template <typename T> struct symbol : base_symbol<T> {

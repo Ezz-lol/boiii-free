@@ -1,8 +1,11 @@
 #pragma once
 
-#include <game/base.hpp>
 #include <std_include.hpp>
+
+#include <game/base.hpp>
 #include <utils/flags.hpp>
+
+#include <regex>
 
 namespace game {
 bool extract_assets();
