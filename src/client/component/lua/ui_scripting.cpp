@@ -109,6 +109,30 @@ utils::hook::detour hksi_lua_getinfo_detour;
 
 std::unordered_map<uintptr_t, std::string> rawfile_source_cache{};
 
+std::unordered_map<std::string, std::string> stock_lua_baseline{};
+bool stock_lua_baseline_captured = false;
+
+void collect_all_lua_rawfiles(
+    std::unordered_map<std::string, std::string> &out) {
+  xasset::DB_EnumXAssets(
+      xasset::XAssetType::RAWFILE,
+      [](xasset::XAssetHeader header, void *data) {
+        auto *out =
+            static_cast<std::unordered_map<std::string, std::string> *>(data);
+        const xasset::RawFile *raw = header.rawfile;
+        if (!raw || !raw->name || !raw->buffer || !raw->len) {
+          return;
+        }
+        const std::string name = raw->name;
+        if (!name.ends_with(".lua")) {
+          return;
+        }
+        (*out)[name] =
+            std::string(reinterpret_cast<const char *>(raw->buffer), raw->len);
+      },
+      &out, false);
+}
+
 std::unordered_map<std::string_view, utils::hook::detour>
     unsafe_function_detours;
 
@@ -1801,7 +1825,92 @@ inline void lui_reload() {
   UI_CoD_LobbyUI_Init();
 }
 
+std::filesystem::path sanitize_rawfile_path(const std::string &name) {
+  std::filesystem::path result;
+  for (const auto &part : std::filesystem::path(name)) {
+    const std::string part_str = part.string();
+    if (part_str.empty() || part_str == "." || part_str == "..") {
+      continue;
+    }
+    if (part.has_root_name() || part.has_root_directory()) {
+      continue;
+    }
+    result /= part;
+  }
+  if (result.extension() != ".lua") {
+    result += ".lua";
+  }
+  return result;
+}
+
 inline void register_lui_commands() {
+  command::add("luadump", [](const command::params &params) {
+    if (params.size() >= 2 && params.get(1) == std::string("reset")) {
+      stock_lua_baseline.clear();
+      collect_all_lua_rawfiles(stock_lua_baseline);
+      stock_lua_baseline_captured = true;
+      game::com::Com_Printf(
+          game::consoleChannel_e::CHANNEL_DONT_FILTER,
+          game::consoleLabel_e::DEFAULT,
+          "[luadump] Baseline reset. Load the mod, then run luadump again.\n");
+      toast::info("Lua Dump", "Baseline reset");
+      return;
+    }
+
+    if (!stock_lua_baseline_captured) {
+      collect_all_lua_rawfiles(stock_lua_baseline);
+      stock_lua_baseline_captured = true;
+      const std::string msg =
+          "Stock baseline captured (" +
+          std::to_string(stock_lua_baseline.size()) +
+          " file(s)). Now load the mod and run luadump again.";
+      game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                            game::consoleLabel_e::DEFAULT, "[luadump] %s\n",
+                            msg.c_str());
+      toast::info("Lua Dump", msg);
+      return;
+    }
+
+    std::unordered_map<std::string, std::string> current;
+    collect_all_lua_rawfiles(current);
+
+    std::unordered_map<std::string, std::string> mod_files;
+    for (const auto &[name, content] : current) {
+      const auto it = stock_lua_baseline.find(name);
+      if (it == stock_lua_baseline.end() || it->second != content) {
+        mod_files[name] = content;
+      }
+    }
+
+    if (mod_files.empty()) {
+      game::com::Com_Printf(
+          game::consoleChannel_e::CHANNEL_DONT_FILTER,
+          game::consoleLabel_e::DEFAULT,
+          "[luadump] No differences from the stock baseline. If you loaded "
+          "a mod, run 'luadump reset', reload the mod, then luadump "
+          "again.\n");
+      toast::info("Lua Dump", "No mod-added Lua scripts found");
+      return;
+    }
+
+    const std::filesystem::path out_dir =
+        game::get_appdata_path() / "dumped_lua";
+    size_t written = 0;
+    for (const auto &[name, content] : mod_files) {
+      const std::filesystem::path dest = out_dir / sanitize_rawfile_path(name);
+      if (utils::io::write_file(dest, content)) {
+        ++written;
+      }
+    }
+
+    const std::string msg =
+        "Dumped " + std::to_string(written) + " file(s) to " + out_dir.string();
+    game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                          game::consoleLabel_e::DEFAULT, "[luadump] %s\n",
+                          msg.c_str());
+    toast::info("Lua Dump", msg);
+  });
+
   command::add("luiReload", [] {
     if (game::com::Com_IsRunningUILevel()) {
       lui_reload();
