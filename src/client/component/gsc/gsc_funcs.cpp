@@ -14,6 +14,7 @@
 #include <component/command.hpp>
 #include <component/game_event.hpp>
 #include <component/name.hpp>
+#include <component/toast.hpp>
 #include <loader/component_loader.hpp>
 
 #include <utils/hook.hpp>
@@ -1718,6 +1719,78 @@ struct component final : generic_component {
     register_builtin("int64_toint", gscr_int64_toint, 1);
     register_builtin(SCRIPTINSTANCE_SERVER, "prepareweaponkitassets",
                      gscr_prepareweaponkitassets, 2);
+
+    command::add("weaponkitdump", [](const command::params &) {
+      rapidjson::Document doc;
+      doc.SetArray();
+      auto &alloc = doc.GetAllocator();
+
+      struct enum_ctx {
+        rapidjson::Document *doc;
+        rapidjson::Document::AllocatorType *alloc;
+      } ctx{&doc, &alloc};
+
+      db::xasset::DB_EnumXAssets(
+          db::xasset::XAssetType::WEAPON,
+          [](db::xasset::XAssetHeader header, void *data) {
+            enum_ctx *ctx = static_cast<enum_ctx *>(data);
+            game::weapon::WeaponVariantDef *variant = header.weapon;
+            if (!variant || !variant->szModeIndependentName) {
+              return;
+            }
+
+            auto &alloc = *ctx->alloc;
+            const game::weapon::WeaponCamo *camo =
+                variant->weapDef ? variant->weapDef->weaponCamo : nullptr;
+
+            rapidjson::Value entry(rapidjson::kObjectType);
+            entry.AddMember(
+                "name", rapidjson::Value(variant->szModeIndependentName, alloc),
+                alloc);
+            entry.AddMember("internalName",
+                            rapidjson::Value(variant->szInternalName
+                                                 ? variant->szInternalName
+                                                 : "",
+                                             alloc),
+                            alloc);
+            entry.AddMember("sessionMode",
+                            static_cast<int>(variant->sessionMode), alloc);
+            entry.AddMember("variantCount",
+                            static_cast<int>(variant->iVariantCount), alloc);
+            entry.AddMember("attachmentMask",
+                            static_cast<uint64_t>(variant->iAttachments),
+                            alloc);
+            entry.AddMember(
+                "camoName",
+                rapidjson::Value(camo && camo->name ? camo->name : "", alloc),
+                alloc);
+            entry.AddMember("camoMaterials",
+                            camo ? static_cast<uint32_t>(camo->numCamoMaterials)
+                                 : 0u,
+                            alloc);
+            entry.AddMember("hasRealCamo",
+                            camo != nullptr && camo->numCamoMaterials > 0,
+                            alloc);
+
+            ctx->doc->PushBack(entry, alloc);
+          },
+          &ctx, false);
+
+      rapidjson::StringBuffer buf;
+      rapidjson::Writer<rapidjson::StringBuffer> writer(buf);
+      doc.Accept(writer);
+
+      const std::filesystem::path out_path =
+          get_appdata_path() / "weapon_dump.json";
+      utils::io::write_file(out_path, std::string(buf.GetString()));
+
+      const std::string msg = "Dumped " + std::to_string(doc.Size()) +
+                              " weapon(s) to " + out_path.string();
+      com::Com_Printf(consoleChannel_e::CHANNEL_DONT_FILTER,
+                      consoleLabel_e::DEFAULT, "[weaponkitdump] %s\n",
+                      msg.c_str());
+      toast::info("Weapon Kit Dump", msg);
+    });
     register_builtin("int64_min", gscr_int64_min, 2);
     register_builtin("int64_max", gscr_int64_max, 2);
     register_builtin("int64_abs", gscr_int64_abs, 1);
