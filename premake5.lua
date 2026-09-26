@@ -376,12 +376,9 @@ buildoptions({
   "/clang:-mno-sse4.1",
   "/clang:-mno-sse4.2",
 })
+filter({ "configurations:Debug", "toolset:msc*", "kind:not StaticLib" })
 linkoptions({
   "/DEBUG",
-  "/NODEFAULTLIB:libcmt.lib",
-  "/NODEFAULTLIB:libucrt.lib",
-  "-l libcmtd.lib",
-  "/MTd",
 })
 filter({})
 filter({ "configurations:Debug", "toolset:not msc*" })
@@ -394,6 +391,7 @@ buildoptions({
   "-Wl,/NODEFAULTLIB:libucrt.lib",
   "-l libcmtd.lib",
 })
+filter({ "configurations:Debug", "toolset:not msc*", "kind:not StaticLib" })
 linkoptions({
   "-fms-extensions",
   "-fms-runtime-lib=static_dbg",
