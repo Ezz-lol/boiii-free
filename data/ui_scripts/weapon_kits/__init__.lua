@@ -24,7 +24,6 @@ local definitions = {
   { ref = "pistol_standard", group = "weapon_pistol", slot = "secondary" },
   { ref = "launcher_ex41", group = "weapon_launcher", slot = "secondary" },
   { ref = "launcher_multi", group = "weapon_launcher", slot = "secondary" },
-  { ref = "special_crossbow", group = "weapon_special", slot = "secondary" },
 }
 
 if not __boiii_weapon_kit_originals then
@@ -52,7 +51,11 @@ if not __boiii_weapon_kit_originals then
     WeaponOptionNewItemCount = Engine.WeaponOptionNewItemCount,
     WeaponOptionNewModeAgnosticItemCount = Engine.WeaponOptionNewModeAgnosticItemCount,
     GetGunsmithWeaponOptionsTable = CoD.GetGunsmithWeaponOptionsTable,
-    Gunsmith_FocusCamo = Gunsmith_FocusCamo,
+    SendClientScriptNotify = Engine.SendClientScriptNotify,
+    NavigateToMenu = NavigateToMenu,
+    SetWeaponOptionAsOld = Engine.SetWeaponOptionAsOld,
+    IsWeaponOptionNew = Engine.IsWeaponOptionNew,
+    IsWeaponOptionGroupNew = Engine.IsWeaponOptionGroupNew,
   }
 end
 
@@ -246,14 +249,71 @@ if original.GetGunsmithWeaponOptionsTable then
   end
 end
 
-if original.Gunsmith_FocusCamo then
-  Gunsmith_FocusCamo = function(menu, element, controller, ...)
-    local index = original.GetCustomization(controller, "weapon_index")
-    local weapon = weaponsByIndex[index]
-    if weapon and weapon.mpIndex and weapon.zmIndex and weapon.mpIndex ~= index then
+local PREVIEW_NOTIFY_PREFIXES = {
+  "CustomClass_update",
+  "CustomClass_focus",
+  "cam_customization_focus",
+}
+
+local function isBrokenPreviewWeapon(controller)
+  local index = original.GetCustomization(controller, "weapon_index")
+  local weapon = weaponsByIndex[index]
+  return weapon and weapon.mpIndex and weapon.zmIndex and weapon.mpIndex ~= index
+end
+
+if original.SendClientScriptNotify then
+  Engine.SendClientScriptNotify = function(controller, name, ...)
+    if type(name) == "string" then
+      for _, prefix in ipairs(PREVIEW_NOTIFY_PREFIXES) do
+        if name:sub(1, #prefix) == prefix then
+          if isBrokenPreviewWeapon(controller) then
+            return
+          end
+          break
+        end
+      end
+    end
+    return original.SendClientScriptNotify(controller, name, ...)
+  end
+end
+
+if original.NavigateToMenu then
+  NavigateToMenu = function(element, menuName, saveState, controller, ...)
+    if menuName == "GunsmithCamoSelect" and isBrokenPreviewWeapon(controller) then
+      LuaUtils.UI_ShowErrorMessageDialog(controller, "Camo is not available for this weapon.")
       return
     end
-    return original.Gunsmith_FocusCamo(menu, element, controller, ...)
+    return original.NavigateToMenu(element, menuName, saveState, controller, ...)
+  end
+end
+
+if original.SetWeaponOptionAsOld then
+  Engine.SetWeaponOptionAsOld = function(controller, weaponIndex, ...)
+    local weapon = weaponsByIndex[weaponIndex]
+    if weapon and weapon.mpIndex and weapon.zmIndex and weapon.mpIndex ~= weaponIndex then
+      return
+    end
+    return original.SetWeaponOptionAsOld(controller, weaponIndex, ...)
+  end
+end
+
+if original.IsWeaponOptionNew then
+  Engine.IsWeaponOptionNew = function(controller, weaponIndex, ...)
+    local weapon = weaponsByIndex[weaponIndex]
+    if weapon and weapon.mpIndex and weapon.zmIndex and weapon.mpIndex ~= weaponIndex then
+      return false
+    end
+    return original.IsWeaponOptionNew(controller, weaponIndex, ...)
+  end
+end
+
+if original.IsWeaponOptionGroupNew then
+  Engine.IsWeaponOptionGroupNew = function(controller, weaponIndex, ...)
+    local weapon = weaponsByIndex[weaponIndex]
+    if weapon and weapon.mpIndex and weapon.zmIndex and weapon.mpIndex ~= weaponIndex then
+      return false
+    end
+    return original.IsWeaponOptionGroupNew(controller, weaponIndex, ...)
   end
 end
 

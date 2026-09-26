@@ -5,7 +5,7 @@
 function supports_added_weapon( weapon )
 {
     name = zm_weapons::get_base_weapon( weapon ).name;
-    return name == "smg_ak74u" || name == "smg_mp40" || name == "smg_ppsh" || name == "ar_peacekeeper" || name == "ar_an94" || name == "ar_garand" || name == "ar_famas" || name == "ar_m16" || name == "ar_galil" || name == "ar_m14" || name == "lmg_rpk" || name == "sniper_chargeshot" || name == "shotgun_energy" || name == "pistol_energy" || name == "pistol_m1911" || name == "pistol_standard" || name == "launcher_multi" || name == "special_crossbow";
+    return name == "smg_ak74u" || name == "smg_mp40" || name == "smg_ppsh" || name == "ar_peacekeeper" || name == "ar_an94" || name == "ar_garand" || name == "ar_famas" || name == "ar_m16" || name == "ar_galil" || name == "ar_m14" || name == "lmg_rpk" || name == "sniper_chargeshot" || name == "shotgun_energy" || name == "pistol_energy" || name == "pistol_m1911" || name == "pistol_standard" || name == "launcher_multi";
 }
 
 detour scripts\zm\_zm_weapons::give_build_kit_weapon( weapon )
