@@ -125,7 +125,7 @@ constexpr uint32_t legacy_client_checksum = 0x888C368;
 constexpr uint32_t supported_client_checksum = 0x6531394;
 
 constexpr const char *supported_client_patch_url =
-    "https://archive.org/download/black-ops-3_202609/BlackOps3.exe";
+    "https://archive.org/download/black-ops-3_20260926/BlackOps3.exe";
 constexpr const char *supported_client_patch_sha1 =
     "9D03F81086112113BFB1DD22B8538B9398AC3B9B";
 
