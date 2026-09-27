@@ -281,7 +281,9 @@ struct HudElemCfgStringPool : ui::he::HudElementPool<RegisteredCfgString> {
     }
     return false;
   }
-} static hudelem_cfgstr_pool = {};
+};
+
+static HudElemCfgStringPool hudelem_cfgstr_pool = {};
 
 void unregister_clear_hudelem_cfgstr(uint16_t hudElemIdx) {
   volatile RegisteredCfgString *entry = &hudelem_cfgstr_pool[hudElemIdx];
