@@ -84,7 +84,7 @@ size_t write_callback_stream(void *contents, const size_t size,
 }
 } // namespace
 
-std::optional<std::string> get_data(const std::string &url,
+std::optional<std::string> get_data(const std::string_view &url,
                                     const headers &headers,
                                     const std::function<void(size_t)> &callback,
                                     const uint32_t retries) {
@@ -141,7 +141,8 @@ std::optional<std::string> get_data(const std::string &url,
       }
 
       throw std::runtime_error("Bad status code " + std::to_string(http_code) +
-                               " met while trying to download file " + url);
+                               " met while trying to download file " +
+                               std::string(url));
     }
 
     if (helper.exception) {
@@ -159,7 +160,7 @@ std::optional<std::string> get_data(const std::string &url,
   return {};
 }
 
-std::optional<std::string> post_data(const std::string &url,
+std::optional<std::string> post_data(const std::string_view &url,
                                      const std::string &post_body,
                                      const uint32_t timeout_sec) {
   auto *curl = curl_easy_init();
@@ -201,7 +202,7 @@ std::optional<std::string> post_data(const std::string &url,
   return {std::move(buffer)};
 }
 
-int get_data_stream(const std::string &url, const headers &headers,
+int get_data_stream(const std::string_view &url, const headers &headers,
                     const std::function<void(size_t, size_t)> &progress_cb,
                     const std::function<void(const char *, size_t)> &write_cb,
                     const uint32_t retries) {
@@ -274,8 +275,8 @@ int get_data_stream(const std::string &url, const headers &headers,
   return CURLE_OPERATION_TIMEDOUT;
 }
 
-std::future<std::optional<std::string>> get_data_async(const std::string &url,
-                                                       const headers &headers) {
+std::future<std::optional<std::string>>
+get_data_async(const std::string_view &url, const headers &headers) {
   return std::async(std::launch::async,
                     [url, headers]() { return get_data(url, headers); });
 }

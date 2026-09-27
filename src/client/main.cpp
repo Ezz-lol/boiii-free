@@ -124,8 +124,10 @@ struct patch_install_cancelled {};
 constexpr uint32_t legacy_client_checksum = 0x888C368;
 constexpr uint32_t supported_client_checksum = 0x6531394;
 
-constexpr const char *supported_client_patch_url =
+constexpr const char supported_client_patch_url[] =
     "https://archive.org/download/black-ops-3_20260926/BlackOps3.exe";
+constexpr const char backup_supported_client_patch_url[] =
+    "https://archive.org/download/black-ops-3_20260927/BlackOps3.exe";
 constexpr const char *supported_client_patch_sha1 =
     "9D03F81086112113BFB1DD22B8538B9398AC3B9B";
 
@@ -330,7 +332,7 @@ std::string format_download_size(const size_t bytes) {
 }
 
 void install_supported_client_binary(
-    const std::filesystem::path &client_binary,
+    const std::string_view &url, const std::filesystem::path &client_binary,
     const bool allow_close_running_client_binary) {
   utils::progress_ui progress(false);
   progress.set_title("BOIII Patch Installer");
@@ -357,7 +359,7 @@ void install_supported_client_binary(
   bool has_total_size = false;
   size_t latest_total_size = 0;
   const int32_t curl_code = utils::http::get_data_stream(
-      supported_client_patch_url, {},
+      url, {},
       [&](const size_t downloaded, const size_t total_size) {
         if (progress.is_cancelled()) {
           throw patch_install_cancelled{};
@@ -485,7 +487,13 @@ void ensure_compatible_client_binary(
   case client_binary_state::incompatible: {
     const bool close_running_game = is_client_binary_process_running();
     if (prompt_to_install_client_patch(state, close_running_game)) {
-      install_supported_client_binary(client_binary, close_running_game);
+      try {
+        install_supported_client_binary(supported_client_patch_url,
+                                        client_binary, close_running_game);
+      } catch (...) {
+        install_supported_client_binary(backup_supported_client_patch_url,
+                                        client_binary, close_running_game);
+      }
     }
     break;
   }
