@@ -7,3 +7,7 @@ nul
 .clangd
 /**/*.gdb
 /**/*.gscc
+/**/*.gscasm
+/**/*.cscc
+/**/*.cscasm
+/**/*.luac
