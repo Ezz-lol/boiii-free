@@ -887,14 +887,34 @@ void emit_expression(emitter_state &s, const ast_ptr &node,
         s.emit<Opcode>(Opcode::GetVector, node->line);
 
         /*
-         The byte immediately before the float values is a constant-vector
-         marker, not the refcount. When it is zero, native AddRef/Release use
-         the uint16_t at vector[-4] as a refcount. For embedded literals this
-         would modify bytecode, even if an MT_Free/Release hook prevents a free.
+         Everywhere that script vectors are accessed in the engine,
+         the vector's address is assumed to be that of an allocated node in the
+         script memory tree pool.
 
-         Fill alignment bytes with 0xFF. When no padding is needed, map_opcode
-         selects a GetVector encoding with a nonzero high byte instead. Both
-         layouts therefore bypass native refcount writes into the script.
+         Following access, the engine checks the node's refcount (the `uint8_t`
+         immediately preceding the vector's value pointer), and attempts to free
+         the allocation if the refcount is 0.
+
+         This is obviously problematic in the case of a vector embedded in the
+         script bytecode via `GetVector`, because if the byte immediately
+         preceding the vector's float values is a `0x00` alignment byte, the
+         refcount will be seen as zero, the engine will attempt to free the
+         address of the vector's first float value as though it were a memory
+         tree allocation, and an exception will be thrown.
+
+         If the byte immediately preceding the first vector float value is the
+         high byte of the opcode (no alignment bytes were needed), the refcount
+         will not be seen as zero, and this will not occur.
+
+         Usually, the engine would try to _decrement_ the refcount upon the
+         variable's release, but we have modified this behaviour to only
+         decrement the vector's refcount and attempt to free if the vector was
+         allocated in the script memory tree pool. This is done via a hook to
+         `ScrVar_ReleaseValue`.
+
+         Thus, in order to ensure the engine never attempts to erroneously free
+         this compile time constant vector, we fill its alignment bytes with
+         `0xFF`.
         */
         s.emit_aligned<float>(x, node->children[0]->line, 0xFF);
         s.emit<float>(y, node->children[1]->line);
