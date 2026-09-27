@@ -2,8 +2,15 @@
 
 Assets provided by Treyarch, mods, or custom maps can be overriden.
 
+## Asset Support
+
 At this time, BOIII supports overriding `Rawfile` and `ScriptParseTree` (GSC or
 CSC script) assets.
+
+Lua `Rawfile` assets can be loaded as either compiled Lua bytecode or Lua source
+code. Lua source code will be compiled to Lua bytecode in memory by boiii at
+time of load. Lua source code does not need to be compiled by the user prior to
+usage.
 
 GSC and CSC script overrides are handled uniquely, and as such are
 [documented separately](gsc-scripting.md#where-scripts-can-live).
@@ -43,7 +50,7 @@ will not be loaded otherwise.
 ## Examples
 
 - To override the asset with name "lua/lobby/ffotd.lua", you would place the
-  override - compiled lua bytecode - in
+  override - compiled Lua bytecode or Lua source code - in
   `<game installation>/boiii/lua/lobby/ffotd.lua`.
 - To override the asset with name "default_bindings.cfg" in a mod with publisher
   ID 2631943123, you would place the override in
