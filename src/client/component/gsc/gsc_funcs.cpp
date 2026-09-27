@@ -299,15 +299,12 @@ void unregister_clear_hudelem_cfgstr(uint16_t hudElemIdx) {
 }
 
 namespace hecmd_settext {
-static HudElemMessage message_buf = {0};
-static HudElemMessage cleaned_message_buf = {0};
-inline void clear_message_bufs() {
-  memset(message_buf, 0, std::size(message_buf));
-  memset(cleaned_message_buf, 0, std::size(cleaned_message_buf));
-}
-
 void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
   if (entref->is_hudelem()) [[likely]] {
+    // Script errors may leave this function through a non-local jump. Keep
+    // message storage local so a later invocation starts with clean buffers.
+    HudElemMessage message_buf = {};
+    HudElemMessage cleaned_message_buf = {};
     const uint16_t hudElemIdx = entref->u.hudElemIndex;
     volatile game_hudelem_t *elem = &g_hudelems->get(hudElemIdx);
 
@@ -350,6 +347,16 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
 #endif
       }
 
+      const int32_t index = pool_entry->get_idx();
+      if (index <= 0 ||
+          index >= static_cast<int32_t>(
+                       std::size(s_bgCache->server.dataSet.localizedStrings))) {
+        pool_entry->clear();
+        Scr_ObjectError(inst, "HUD localized configstring registration "
+                              "returned an invalid index");
+        return;
+      }
+
       volatile bgCachedGenericData *data =
           &s_bgCache->server.dataSet.localizedStrings[pool_entry->get_idx()];
 
@@ -378,19 +385,27 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
       sv::SV_SetConfigString_Impl(pool_entry->abs_idx(), cleaned_message_buf);
       elem->elem.text = pool_entry->get_idx();
     }
-    clear_message_bufs();
   } else [[unlikely]] {
     Scr_ObjectError(inst, "not a hud element");
   }
 }
 } // namespace hecmd_settext
 
+void forget_hudelem_cfgstr_pool() {
+  // Cache indices are only owned within one engine cache lifetime. Forget
+  // old bookkeeping without clearing a new map's strings at those indices.
+  for (uint16_t slot = 0; slot < ui::he::HUD_ELEMENT_POOL_SIZE; ++slot) {
+    hudelem_cfgstr_pool[slot].clear();
+  }
+}
+
 void unregister_clear_hudelem_cfgstr_pool() {
-  if (sv::sv->running()) {
-    for (uint16_t hudElemIdx = 0; hudElemIdx < ui::he::HUD_ELEMENT_POOL_SIZE;
-         ++hudElemIdx) {
-      unregister_clear_hudelem_cfgstr(hudElemIdx);
-    }
+  if (!sv::sv->running()) {
+    forget_hudelem_cfgstr_pool();
+    return;
+  }
+  for (uint16_t slot = 0; slot < ui::he::HUD_ELEMENT_POOL_SIZE; ++slot) {
+    unregister_clear_hudelem_cfgstr(slot);
   }
 }
 
@@ -1859,6 +1874,7 @@ struct component final : generic_component {
     }
 
     game_event::on_g_shutdown_game([] {
+      forget_hudelem_cfgstr_pool();
       function_replacements.clear();
       reset_tracked_client_dvars();
       client_dvar_changes.clear();
@@ -1870,7 +1886,7 @@ struct component final : generic_component {
       function_replacements.clear();
       client_dvar_changes.clear();
       detours_enabled.store(false, std::memory_order_release);
-      unregister_clear_hudelem_cfgstr_pool();
+      forget_hudelem_cfgstr_pool();
     });
   }
 };
