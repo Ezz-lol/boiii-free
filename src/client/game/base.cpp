@@ -50,6 +50,10 @@ bool is_legacy_client() {
   return is_legacy_client;
 }
 
+uint32_t header_checksum() {
+  return get_host_library().get_optional_header()->CheckSum;
+}
+
 std::filesystem::path game_directory() {
   return get_host_library().get_path().parent_path();
 }
