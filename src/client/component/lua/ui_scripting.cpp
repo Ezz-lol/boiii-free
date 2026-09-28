@@ -2520,6 +2520,40 @@ luaReturnCount_e LobbyVM_CallFunc_Redirect(lua_State *luaVM) {
   return LobbyVM_CallFunc_hook.invoke<luaReturnCount_e>(luaVM);
 }
 
+utils::hook::detour Lua_CoD_LuaCall_GetHeroName_hook;
+luaReturnCount_e Lua_CoD_LuaCall_GetHeroName_Safe(lua_State *luaVM) {
+#ifndef GETHERONAME_RETURN_EMPTY_STRING
+#define GETHERONAME_RETURN_EMPTY_STRING()                                      \
+  lua_pushstring(luaVM, "");                                                   \
+  return luaReturnCount_e::ONE;
+#endif
+
+  if (lua_gettop(luaVM) < 2 || !lua_isnumber(luaVM, 1) ||
+      !lua_isnumber(luaVM, 2)) {
+    GETHERONAME_RETURN_EMPTY_STRING();
+  }
+
+  const game::eModes mode = static_cast<game::eModes>(lua_tointeger(luaVM, 1));
+  const uint32_t playerRoleTemplateIndex =
+      static_cast<uint32_t>(lua_tointeger(luaVM, 2));
+  switch (mode) {
+  case game::eModes::ZOMBIES:
+  case game::eModes::INVALID: {
+    GETHERONAME_RETURN_EMPTY_STRING();
+  }
+  default: {
+    const game::db::xasset::CharacterBodyType *bodyType =
+        game::bg::BG_GetCharacterBodyType(mode, playerRoleTemplateIndex);
+    if (!game::nonnull(bodyType) || !game::nonnull(bodyType->displayName)) {
+      GETHERONAME_RETURN_EMPTY_STRING();
+    }
+    break;
+  }
+  }
+
+  return Lua_CoD_LuaCall_GetHeroName_hook.invoke<luaReturnCount_e>(luaVM);
+}
+
 class component final : public generic_component {
 #ifndef NDEBUG
   std::string name() override { return "ui_scripting"; }
@@ -2530,6 +2564,8 @@ public:
 #ifndef NDEBUG
     Lua_CoD_LuaCall_PrintInfo_hook.create(api::Lua_CoD_LuaCall_PrintInfo,
                                           Lua_CoD_LuaCall_PrintInfo_AllOutputs);
+    Lua_CoD_LuaCall_GetHeroName_hook.create(api::Lua_CoD_LuaCall_GetHeroName,
+                                            Lua_CoD_LuaCall_GetHeroName_Safe);
     if (game::is_client()) {
       Lua_CoD_LuaCall_PrintError_hook.create(
           api::Lua_CoD_LuaCall_PrintError,
@@ -2542,8 +2578,8 @@ public:
 
     /*
        Spoof client build info returned to lua scripts to
-       circumvent build info checks in mod scripts intended to disable usage of
-       boiii
+       circumvent build info checks in mod scripts intended to disable usage
+       of boiii
     */
     Com_GetBuildIntField_hook.create(game::com::Com_GetBuildIntField,
                                      game::com::Com_GetBuildIntField_Impl);
@@ -2590,8 +2626,8 @@ public:
       cl_first_snapshot_hook.create(game::cl::CL_FirstSnapshot.get(),
                                     cl_first_snapshot_stub);
 
-      // TODO: these inline offsets should be a symbol - strongly typed, named,
-      // and properly namespaced.
+      // TODO: these inline offsets should be a symbol - strongly typed,
+      // named, and properly namespaced.
       lua_error_hook.create(game::select(0x141F05620, 0x141F11DA0, 0x0),
                             lua_cod_luastatemanager_error_stub);
 

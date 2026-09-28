@@ -1408,9 +1408,10 @@ void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
       "error: \"%s\", terminal: %s, callstack:\n%s",
       derelocate(callerAddr), serialize(inst),
 #ifndef NDEBUG
-      vm::gFs->instance[inst].pos, vm::gFs->instance[inst].top,
-      vm::gFs->instance[inst].startTop, vm::gFs->instance[inst].threadId,
-      vm::gFs->instance[inst].localVarCount,
+      vm::gFs->instance[inst].pos,
+      game::derelocate(vm::gFs->instance[inst].top),
+      game::derelocate(vm::gFs->instance[inst].startTop),
+      vm::gFs->instance[inst].threadId, vm::gFs->instance[inst].localVarCount,
 #endif
       error ? error : "NULL", terminal ? "true" : "false",
       prevCodePositionsString.c_str());

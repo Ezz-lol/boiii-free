@@ -11,6 +11,9 @@ WEAK symbol<void(const level::trajectory_t *tr, int32_t atTime, vec3_t *result)>
     BG_EvaluateTrajectory{0x142601DA0, 0x14267AF10, 0x1406A3DE0};
 WEAK symbol<void(const level::trajectory_t *tr, int32_t atTime, vec3_t *result)>
     BG_EvaluateTrajectoryDelta{0x142601A70, 0x14267ABE0, 0x1406A3AB0};
+WEAK symbol<db::xasset::CharacterBodyType *(
+    eModes mode, const uint32_t playerRoleTemplateIndex)>
+    BG_GetCharacterBodyType{0x1400ADD00, 0x400ADD00, 0x140047EB0};
 
 WEAK symbol<qboolean(int32_t wheel0, int32_t wheel1, int32_t wheel2)>
     BG_VehicleWheelsCollinear{0x142650E20, 0x0, 0x1406D09C0};

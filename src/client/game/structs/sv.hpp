@@ -785,77 +785,6 @@ struct CharacterItemInfo {
   scr::ScriptBundleKVP *kvpItems;
 };
 
-enum class CharacterGenderTypes : int32_t {
-  CHARACTER_GENDER_TYPE_MALE = 0x0,
-  CHARACTER_GENDER_TYPE_MP = 0x0,
-  CHARACTER_GENDER_TYPE_FIRST = 0x0,
-  CHARACTER_GENDER_TYPE_FEMALE = 0x1,
-  CHARACTER_GENDER_TYPE_COUNT = 0x2,
-  CHARACTER_GENDER_TYPE_INVALID = 0x2,
-  CHARACTER_GENDER_TYPE_ANY = 0x3,
-};
-
-struct CharacterBodyType {
-  const char *name;
-  const char *displayName;
-  const char *description;
-  const char *heroWeapon;
-  const char *heroAbility;
-  XString bodySoundContext;
-  scr::ScriptBundlePtr mpDialog;
-  XString chrName;
-  gfx::GfxImageHandle rewardIcon;
-  XString background;
-  XString backgroundWithCharacter;
-  XString lockedImage;
-  XString personalizeRender;
-  XString frozenMomentRender;
-  XString frozenMomentOverlay;
-  gfx::GfxImageHandle defaultHeroRender;
-  gfx::GfxImageHandle defaultHeroRenderAbility;
-  gfx::GfxImageHandle positionDraftPortrait;
-  gfx::GfxImageHandle positionDraftIcon;
-  XString equippedLoadoutIcons[2];
-  XString unequippedLoadoutIcons[2];
-  gfx::GfxImageHandle zombiePlayerIcon;
-  uint32_t numBodyInfos;
-  CharacterItemInfo *bodyInfo;
-  uint32_t numHelmetInfos;
-  CharacterItemInfo *helmetInfo;
-  CharacterGenderTypes gender;
-  bool disabled;
-  XString frontendVignetteStruct;
-  db::xasset::XCamPtr frontendVignetteXCam;
-  db::xasset::XAnimPartsPtr frontendVignetteXAnim;
-  db::xasset::xmodel::XModelPtr frontendVignetteWeaponModel;
-  uint32_t kvpCount;
-  scr::ScriptBundleKVP *kvpItems;
-  db::xasset::PlayerSoundsTablePtr characterMovementSounds;
-  db::xasset::PlayerFXTablePtr characterMovementFx;
-  db::xasset::FootstepTableDefPtr characterFootsteps;
-  db::xasset::FootstepTableDefPtr characterFootstepsQuiet;
-  db::xasset::FootstepTableDefPtr characterFootstepsNPC;
-  db::xasset::FootstepTableDefPtr characterFootstepsNPCLoud;
-  db::xasset::FootstepTableDefPtr characterFootstepsNPCQuiet;
-  db::xasset::xmodel::XModelPtr dogtagFriendly;
-  db::xasset::xmodel::XModelPtr dogTagEnemy;
-  XString cardBackIcon;
-  XString realName;
-  int32_t age;
-  XString genderString;
-  XString bio;
-  XString weaponCardBackIcon;
-  XString weaponCardBackSubIcon;
-  XString weaponCardBackDesc;
-  XString weaponSubItemDesc;
-  XString weaponSchema;
-  XString abilityCardBackIcon;
-  XString abilityCardBackSubIcon;
-  XString abilityCardBackDesc;
-  XString abilitySubItemDesc;
-  XString abilitySchema;
-};
-
 struct PlayerRoleCategory {
   XString name;
   XString displayName;
@@ -920,7 +849,7 @@ struct PlayerEnergy {
 
 struct __attribute__((aligned(2))) PlayerRoleTemplate {
   XString name;
-  CharacterBodyType *bodyType;
+  db::xasset::CharacterBodyType *bodyType;
   PlayerRoleCategory *roleCategory;
   PMoveDef *pmoveDef;
   uint32_t defaultLoadoutCount;

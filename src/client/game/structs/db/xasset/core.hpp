@@ -1050,6 +1050,78 @@ struct __declspec(align(8)) Collmap {
   BoneIndex boneIndex;
 };
 
+struct CharacterItemInfo;
+enum class CharacterGenderTypes : uint32_t {
+  MALE = 0x0,
+  MP = 0x0,
+  FIRST = 0x0,
+  FEMALE = 0x1,
+  COUNT = 0x2,
+  INVALID = 0x2,
+  ANY = 0x3,
+};
+
+struct CharacterBodyType {
+  const char *name;
+  const char *displayName;
+  const char *description;
+  const char *heroWeapon;
+  const char *heroAbility;
+  XString bodySoundContext;
+  ScriptBundlePtr mpDialog;
+  XString chrName;
+  gfx::GfxImageHandle rewardIcon;
+  XString background;
+  XString backgroundWithCharacter;
+  XString lockedImage;
+  XString personalizeRender;
+  XString frozenMomentRender;
+  XString frozenMomentOverlay;
+  gfx::GfxImageHandle defaultHeroRender;
+  gfx::GfxImageHandle defaultHeroRenderAbility;
+  gfx::GfxImageHandle positionDraftPortrait;
+  gfx::GfxImageHandle positionDraftIcon;
+  XString equippedLoadoutIcons[2];
+  XString unequippedLoadoutIcons[2];
+  gfx::GfxImageHandle zombiePlayerIcon;
+  uint32_t numBodyInfos;
+  CharacterItemInfo *bodyInfo;
+  uint32_t numHelmetInfos;
+  CharacterItemInfo *helmetInfo;
+  CharacterGenderTypes gender;
+  bool disabled;
+  XString frontendVignetteStruct;
+  XCamPtr frontendVignetteXCam;
+  XAnimPartsPtr frontendVignetteXAnim;
+  xmodel::XModelPtr frontendVignetteWeaponModel;
+  uint32_t kvpCount;
+  ScriptBundleKVP *kvpItems;
+  PlayerSoundsTablePtr characterMovementSounds;
+  PlayerFXTablePtr characterMovementFx;
+  FootstepTableDefPtr characterFootsteps;
+  FootstepTableDefPtr characterFootstepsQuiet;
+  FootstepTableDefPtr characterFootstepsNPC;
+  FootstepTableDefPtr characterFootstepsNPCLoud;
+  FootstepTableDefPtr characterFootstepsNPCQuiet;
+  xmodel::XModelPtr dogtagFriendly;
+  xmodel::XModelPtr dogTagEnemy;
+  XString cardBackIcon;
+  XString realName;
+  int age;
+  XString genderString;
+  XString bio;
+  XString weaponCardBackIcon;
+  XString weaponCardBackSubIcon;
+  XString weaponCardBackDesc;
+  XString weaponSubItemDesc;
+  XString weaponSchema;
+  XString abilityCardBackIcon;
+  XString abilityCardBackSubIcon;
+  XString abilityCardBackDesc;
+  XString abilitySubItemDesc;
+  XString abilitySchema;
+};
+
 } // namespace xasset
 } // namespace db
 } // namespace game
