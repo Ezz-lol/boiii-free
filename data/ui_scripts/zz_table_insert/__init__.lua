@@ -31,48 +31,48 @@
 -- lobby last time.
 
 if table ~= nil and table.insert ~= nil then
-	local rawinsert = table.insert
+  local rawinsert = table.insert
 
-	if select ~= nil then
-		-- Preferred form: select('#', ...) distinguishes table.insert(t, v)
-		-- from table.insert(t, pos, v), including an explicit nil value.
-		table.insert = function(t, ...)
-			if t == nil then
-				return
-			end
-			local n = select("#", ...)
-			if n == 0 then
-				return
-			end
-			if n == 1 then
-				local v = ...
-				if v == nil then
-					return
-				end
-				return rawinsert(t, v)
-			end
-			local pos, v = ...
-			if v == nil then
-				return
-			end
-			return rawinsert(t, pos, v)
-		end
-	else
-		-- Fallback when select is not exposed. A 3-arg call whose value is
-		-- explicitly nil cannot be told apart from a 2-arg call here, so it is
-		-- dropped rather than guessed at - dropping matches what the nil case
-		-- does anyway, and the alternative would insert the POSITION as a value.
-		table.insert = function(t, a, b)
-			if t == nil then
-				return
-			end
-			if b ~= nil then
-				return rawinsert(t, a, b)
-			end
-			if a == nil then
-				return
-			end
-			return rawinsert(t, a)
-		end
-	end
+  if select ~= nil then
+    -- Preferred form: select('#', ...) distinguishes table.insert(t, v)
+    -- from table.insert(t, pos, v), including an explicit nil value.
+    table.insert = function(t, ...)
+      if t == nil then
+        return
+      end
+      local n = select("#", ...)
+      if n == 0 then
+        return
+      end
+      if n == 1 then
+        local v = ...
+        if v == nil then
+          return
+        end
+        return rawinsert(t, v)
+      end
+      local pos, v = ...
+      if v == nil then
+        return
+      end
+      return rawinsert(t, pos, v)
+    end
+  else
+    -- Fallback when select is not exposed. A 3-arg call whose value is
+    -- explicitly nil cannot be told apart from a 2-arg call here, so it is
+    -- dropped rather than guessed at - dropping matches what the nil case
+    -- does anyway, and the alternative would insert the POSITION as a value.
+    table.insert = function(t, a, b)
+      if t == nil then
+        return
+      end
+      if b ~= nil then
+        return rawinsert(t, a, b)
+      end
+      if a == nil then
+        return
+      end
+      return rawinsert(t, a)
+    end
+  end
 end
