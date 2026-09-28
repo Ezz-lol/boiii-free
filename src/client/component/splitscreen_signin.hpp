@@ -5,8 +5,8 @@
 // returning -1 for controllers 2/3. See gen_signin_header.py for why.
 #pragma once
 
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 
 namespace splitscreen {
 struct signin_ref {

@@ -3,16 +3,16 @@
 // donor PE 0x06517980. Code RVAs >= 0x1DFF150 shifted by -0x6C0; data RVAs
 // unchanged. Every patch still verifies original bytes and skips on mismatch.
 #include <std_include.hpp>
-#include "loader/component_loader.hpp"
 
 #include "game/game.hpp"
 #include "game/utils.hpp"
+#include "loader/component_loader.hpp"
 #include "scheduler.hpp"
 #include "splitscreen_reloc.hpp"
 #include "splitscreen_signin.hpp"
 
-#include <utils/hook.hpp>
 #include <utils/finally.hpp>
+#include <utils/hook.hpp>
 
 #include <d3d11.h> // sun shadow sidecar views (COM calls only, no import library)
 

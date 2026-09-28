@@ -6,8 +6,8 @@
 // a whole relocation.
 #pragma once
 
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 
 namespace splitscreen {
 struct reloc_ref {
