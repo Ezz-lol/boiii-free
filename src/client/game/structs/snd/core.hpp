@@ -25,30 +25,30 @@ typedef uint32_t SndAliasId;
 typedef int64_t SndPlaybackHandle;
 
 enum class SndGameMode : int32_t {
-  SND_GAME_MODE_MULTIPLAYER = 0x0,
-  SND_GAME_MODE_ZOMBIES = 0x1,
-  SND_GAME_MODE_CAMPAIGN = 0x2,
-  SND_GAME_MODE_CAMPAIGN_ZOMBIES = 0x3,
+  MULTIPLAYER = 0x0,
+  ZOMBIES = 0x1,
+  CAMPAIGN = 0x2,
+  CAMPAIGN_ZOMBIES = 0x3,
 };
 
 enum class SndStopSoundFlags : int32_t {
-  SND_STOP_ALL = 0x0,
-  SND_STOP_PAUSED = 0x1,
-  SND_STOP_DEATH = 0x2,
+  ALL = 0x0,
+  PAUSED = 0x1,
+  DEATH = 0x2,
 };
 
 enum class SndGfutzLocation : int32_t {
-  SND_GFUTZ_LOCATION_SCRIPT = 0x0,
-  SND_GFUTZ_LOCATION_GDT = 0x1,
-  SND_GFUTZ_LOCATION_COUNT = 0x2,
+  SCRIPT = 0x0,
+  GDT = 0x1,
+  COUNT = 0x2,
 };
 
 enum class SndLimitType : int32_t {
-  SND_LIMIT_NONE = 0x0,
-  SND_LIMIT_OLDEST = 0x1,
-  SND_LIMIT_REJECT = 0x2,
-  SND_LIMIT_PRIORITY = 0x3,
-  SND_LIMIT_COUNT = 0x4,
+  NONE = 0x0,
+  OLDEST = 0x1,
+  REJECT = 0x2,
+  PRIORITY = 0x3,
+  COUNT = 0x4,
 };
 
 /**
@@ -127,52 +127,52 @@ enum class SndBankState : int32_t {
 };
 
 enum class SndDuckCategoryType : uint32_t {
-  SND_DUCK_CATEGORY_ALIAS = 0x0,
-  SND_DUCK_CATEGORY_AMBIENT = 0x1,
-  SND_DUCK_CATEGORY_SCRIPT = 0x2,
-  SND_DUCK_CATEGORY_SHELLSHOCK = 0x3,
-  SND_DUCK_CATEGORY_BREATH = 0x4,
-  SND_DUCK_CATEGORY_ADS = 0x5,
-  SND_DUCK_CATEGORY_MENU = 0x6,
-  SND_DUCK_CATEGORY_ENEMIES = 0x7,
-  SND_DUCK_CATEGORY_HEALTH = 0x8,
-  SND_DUCK_CATEGORY_DEBUG = 0x9,
-  SND_DUCK_CATEGORY_LEVELFADE = 0xA,
-  SND_DUCK_CATEGORY_MOVIE = 0xB,
-  SND_DUCK_CATEGORY_HIPFIRE = 0xC,
-  SND_DUCK_CATEGORY_XCAM = 0xD,
-  SND_DUCK_CATEGORY_COUNT = 0xE,
+  ALIAS = 0x0,
+  AMBIENT = 0x1,
+  SCRIPT = 0x2,
+  SHELLSHOCK = 0x3,
+  BREATH = 0x4,
+  ADS = 0x5,
+  MENU = 0x6,
+  ENEMIES = 0x7,
+  HEALTH = 0x8,
+  DEBUG = 0x9,
+  LEVELFADE = 0xA,
+  MOVIE = 0xB,
+  HIPFIRE = 0xC,
+  XCAM = 0xD,
+  COUNT = 0xE,
 };
 
 enum class SndLengthType : uint32_t {
-  SND_LENGTH_NOTIFY_NONE = 0x0,
-  SND_LENGTH_NOTIFY_SCRIPT = 0x1,
-  SND_LENGTH_NOTIFY_SUBTITLE = 0x2,
-  SND_LENGTH_NOTIFY_COUNT = 0x3,
+  NONE = 0x0,
+  SCRIPT = 0x1,
+  SUBTITLE = 0x2,
+  COUNT = 0x3,
 };
 
 enum class SndCallLocation : int32_t {
-  SND_CALL_LOCATION_CLIENTSCRIPT = 0x0,
-  SND_CALL_LOCATION_SERVER = 0x1,
-  SND_CALL_LOCATION_GDT = 0x2,
-  SND_CALL_LOCATION_FX = 0x3,
-  SND_CALL_LOCATION_CODE = 0x4,
-  SND_CALL_LOCATION_UNKNOWN = 0x5,
-  SND_CALL_LOCATION_COUNT = 0x6,
+  CLIENTSCRIPT = 0x0,
+  SERVER = 0x1,
+  GDT = 0x2,
+  FX = 0x3,
+  CODE = 0x4,
+  UNKNOWN = 0x5,
+  COUNT = 0x6,
 };
 
 enum class SndEntityUpdate : uint32_t {
-  SND_ENTITY_UPDATE_ALWAYS = 0x0,
-  SND_ENTITY_UPDATE_NEVER = 0x1,
+  ALWAYS = 0x0,
+  NEVER = 0x1,
 };
 
 enum class SndMenuCategory : uint32_t {
-  SND_CATEGORY_SFX = 0x0,
-  SND_CATEGORY_MUSIC = 0x1,
-  SND_CATEGORY_VOICE = 0x2,
-  SND_CATEGORY_UI = 0x3,
-  SND_CATEGORY_CINEMATIC = 0x4,
-  SND_CATEGORY_COUNT = 0x5,
+  SFX = 0x0,
+  MUSIC = 0x1,
+  VOICE = 0x2,
+  UI = 0x3,
+  CINEMATIC = 0x4,
+  COUNT = 0x5,
 };
 
 enum class SndAssetBankVersion : uint32_t {
@@ -649,6 +649,7 @@ PACKED(union SndEntHandle {
   } field;
   uint64_t handle;
 });
+ASSERT_SIZE(SndEntHandle, sizeof(uint64_t));
 
 // Unverified
 PACKED(struct SndAmbient {
@@ -761,26 +762,30 @@ PACKED(struct SndPlayState {
   SndCallLocation location;
   int32_t gpadFlags;
 });
+ASSERT_SIZE(SndPlayState, 0x60);
 
 typedef void *SndLengthNotifyData;
 PACKED(struct SndLengthNotifyInfo {
   SndLengthType id[4];
   SndLengthNotifyData data[4];
   int32_t count;
-  uint8_t _padding[4];
+  uint8_t _padding34[4];
 });
+ASSERT_SIZE(SndLengthNotifyInfo, 0x38);
 
 PACKED(struct SndFader {
   float value;
   float goal;
   float rate;
 });
+ASSERT_SIZE(SndFader, 0xC);
 
 PACKED(struct SndSpeakerMap {
   int32_t inputChannelCount;
   int32_t outputChannelCount;
   float volumes[16];
 });
+ASSERT_SIZE(SndSpeakerMap, 0x48);
 
 // Verified
 struct SndPlayback;
@@ -796,11 +801,6 @@ PACKED(struct SndPlayback {
 });
 ASSERT_SIZE(SndPlayback, 0x28);
 
-/*
-   Length known correct, and all but the SndFade fields are verified to be
-   correct, though not necessarily the fields contained within structs
-   included by pointers here; see those structs for verification progress.
-*/
 PACKED(struct SndVoice {
   SndPlayState state;
   SndFileLoadingState loadingState;
@@ -808,6 +808,7 @@ PACKED(struct SndVoice {
   int32_t assetFrameRate;
   int32_t assetEndTime;
   int32_t assetTotalMsec;
+  uint8_t _padding6C[4];
   SndEntHandle sndEnt;
   SndEntityUpdate entity_update;
   int32_t group;
@@ -816,13 +817,15 @@ PACKED(struct SndVoice {
   uint32_t startFrame;
   int32_t looptime;
   int32_t totalMsec;
+  uint8_t _padding94[4];
   SndPlayback *playback;
   SndPlaybackId playbackId;
   SndPlaybackId firstPlaybackId;
   SndPlaybackId secondaryId;
   SndPlaybackId primaryId;
   SndLengthNotifyInfo lengthNotifyInfo;
-  qboolean isDiscontinuous;
+  bool isDiscontinuous;
+  uint8_t _paddingE9[7];
   const SndAlias *alias;
   vec3_t offset;
   vec3_t position;
@@ -848,7 +851,8 @@ PACKED(struct SndVoice {
   SndFader duckAttenuation;
   SndFader duckLpf;
   int32_t traceCache[5];
-  qboolean needsToStop;
+  bool needsToStop;
+  uint8_t _padding1E9[3];
   SndMenuCategory category;
   int32_t closestListenerIndex;
   int32_t voiceStartTime;
@@ -859,9 +863,11 @@ PACKED(struct SndVoice {
   float earlyTimes[4];
   float futzBlend;
   SndSpeakerMap pan;
+  uint8_t _padding264[4];
   int64_t played;
   int64_t length;
   float amplitude;
+  uint8_t _padding27C[4];
   const SndDuck *duck;
   SndDuckActive *activeDuck;
   bool paused;
@@ -873,7 +879,12 @@ PACKED(struct SndVoice {
   bool continueLoop;
   bool softStop;
   bool isSilent;
-});
+  bool gpadSound;
+  uint8_t _padding29A[2];
+  int32_t gpadFlags;
+};);
+// Verified
+ASSERT_SIZE(SndVoice, 0x2A8);
 
 // Verified
 enum class SndMusicStateStatus : uint32_t {
@@ -1105,10 +1116,10 @@ ASSERT_SIZE(SndBankGlobals, 0x39594);
 
 // Not yet verified to be correct.
 PACKED(struct snd_fire_manager {
-  int active;
+  int32_t active;
   vec3_t location;
   float level;
-  int id;
+  int32_t id;
 });
 ASSERT_SIZE(snd_fire_manager, 0x18);
 
@@ -1208,9 +1219,9 @@ PACKED(struct SndMusicAssetInstance {
   const SndMusicState *state;
   SndPlaybackId id;
   SndMusicAssetPlaybackState playbackState;
-  int startFrame;
-  int loopNumber;
-  int queuedNextLoop;
+  int32_t startFrame;
+  int32_t loopNumber;
+  int32_t queuedNextLoop;
 
   uint8_t _padding24[4];
 });
