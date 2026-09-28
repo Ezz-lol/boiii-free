@@ -761,7 +761,7 @@ struct component final : client_component {
         toast::warn("FRIENDS", "Friends can no longer join.");
       }
     });
-    scheduler::once([] { fetch_public_ip(); }, scheduler::async, 2000ms);
+    scheduler::once(fetch_public_ip, scheduler::async, 2000ms);
   }
 };
 } // namespace friends

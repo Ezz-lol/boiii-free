@@ -184,8 +184,6 @@ void live_delayed_com_error_stub(const char *comErrorString, int32_t code) {
   live_delayed_com_error_hook.invoke(comErrorString, code);
 }
 
-utils::hook::detour CL_CheckForResendHook;
-
 utils::hook::detour CG_SightTrace_Safe_hook;
 bool CG_SightTrace_Safe(int32_t *hitNum, const game::vec3_t *start,
                         const game::vec3_t *end, game::contents_t mask,
@@ -534,27 +532,9 @@ public:
       This crash, as well as a few other patches required to be made to
       CL_CheckForResend's internal logic, presented the need for total
       replacement of the function.
-
-      Total replacement of a function can usually be performed by `hook`ing
-      the function and instead executing another function which does not invoke
-      the hooked function. In this case, the crash-triggering instruction would
-      still be executed, as detour invocation executes the hooked function's
-      prologue.
-
-      To resolve this, we instead replace all known calls to the original
-      function with its replacement function. We also hook and replace the
-      original function in case of unknown, obfuscated callers.
     */
-    // CL_MapLoading call to CL_CheckForResend
-    // Note: crash inconsistently occurs when CL_CheckForResend is called here.
-    utils::hook::call(game::select(0x141359DD4, 0x141359DB4, 0x0),
+    utils::hook::jump(game::cl::CL_CheckForResend.get(),
                       game::cl::CL_CheckForResend_Impl);
-    // CL_Frame call to CL_CheckForResend
-    utils::hook::call(game::select(0x1413514DE, 0x1413514BE, 0x0),
-                      game::cl::CL_CheckForResend_Impl);
-
-    CL_CheckForResendHook.create(game::cl::CL_CheckForResend.get(),
-                                 game::cl::CL_CheckForResend_Impl);
     SV_MapRestart_f_hook.create(
         game::sv::SV_MapRestart_f.get(),
         SV_RestartCmd_RotateOrDefault<game::RestartMethod_t::FULL>);

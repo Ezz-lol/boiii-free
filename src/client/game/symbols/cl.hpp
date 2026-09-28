@@ -74,7 +74,7 @@ WEAK symbol<int32_t> cls_serverId{0x14561C250, 0x14569B250, 0x142BA1F00};
 WEAK symbol<qboolean> cls_forceFullscreen{0x14561C254, 0x14569B254,
                                           0x142BA1F04};
 WEAK symbol<qboolean> cls_exitFullscreen{0x14561C258, 0x14569B258, 0x142BA1F08};
-WEAK symbol<r::vidConfig_t> cls_vidConfig{0x14536571c, 0x1453E471C,
+WEAK symbol<r::vidConfig_t> cls_vidConfig{0x14536571C, 0x1453E471C,
                                           0x1428EB3CC};
 
 WEAK symbol<ClientNum_t> cl_allocatedClients{0x1432A7EE8, 0x143326EE8, 0x0};
