@@ -1,7 +1,7 @@
 # 4-player local splitscreen (PC)
 
-Ezz BOIII now includes a client component that raises the PC local-player
-limit from 2 to 4 for offline splitscreen (Zombies / offline Multiplayer).
+Ezz BOIII now includes a client component that raises the PC local-player limit
+from 2 to 4 for offline splitscreen (Zombies / offline Multiplayer).
 
 ## Origin
 
@@ -20,14 +20,14 @@ checksum `0x06531394`. This port:
 
 ## Files
 
-| Path | Role |
-|------|------|
-| `src/client/component/splitscreen.cpp` | Engine patches / seats / hooks |
-| `src/client/component/splitscreen_reloc.hpp` | Per-local-client array reloc tables |
-| `src/client/component/splitscreen_signin.hpp` | Guest sign-in helpers |
-| `data/ui_scripts/zz_splitscreen/` | Console-style A join / B leave lobby |
-| `data/ui_scripts/zz_table_insert/` | `table.insert` nil-safe (Zombies HUD) |
-| `data/ui_scripts/zz_mplan/` | Offline Multiplayer menu enable |
+| Path                                          | Role                                  |
+| --------------------------------------------- | ------------------------------------- |
+| `src/client/component/splitscreen.cpp`        | Engine patches / seats / hooks        |
+| `src/client/component/splitscreen_reloc.hpp`  | Per-local-client array reloc tables   |
+| `src/client/component/splitscreen_signin.hpp` | Guest sign-in helpers                 |
+| `data/ui_scripts/zz_splitscreen/`             | Console-style A join / B leave lobby  |
+| `data/ui_scripts/zz_table_insert/`            | `table.insert` nil-safe (Zombies HUD) |
+| `data/ui_scripts/zz_mplan/`                   | Offline Multiplayer menu enable       |
 
 Premake already compiles every `src/client/**/*.cpp`, so no project-file change
 is required. UI scripts ship through the normal `data/` updater path into
@@ -38,7 +38,8 @@ is required. UI scripts ship through the normal `data/` updater path into
 1. Use a current Ezz client with the matching `BlackOps3.exe` (`0x06531394`).
 2. Steam Input **on** for Black Ops III; one controller per player.
 3. Play Offline → Zombies (or Multiplayer with `zz_mplan` present).
-4. Extra players press **A** to join, **B** to leave (or use Activate Splitscreen).
+4. Extra players press **A** to join, **B** to leave (or use Activate
+   Splitscreen).
 
 Online stays at two local players per PC (engine / Demonware rule).
 
@@ -58,6 +59,7 @@ Environment switches from the donor still work when set before launch, e.g.
 ## Build / test notes for reviewers
 
 - Release|x64 client build is enough; no new dependencies.
-- Confirm checksum gate: wrong `BlackOps3.exe` → component no-ops, 2-player only.
+- Confirm checksum gate: wrong `BlackOps3.exe` → component no-ops, 2-player
+  only.
 - Smoke: 2-player still works; then 3 and 4 players through a Zombies round on
   Shadows of Evil / The Giant / Der Eisendrache.

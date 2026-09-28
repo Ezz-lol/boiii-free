@@ -441,9 +441,9 @@ For the full guide and examples, see
 
 ## 4-Player Local Splitscreen
 
-Offline local splitscreen can use up to **four** players (stock PC is two).
-See [docs/splitscreen-4p.md](docs/splitscreen-4p.md) for setup, limitations,
-and reviewer notes. Adapted from the public-domain
+Offline local splitscreen can use up to **four** players (stock PC is two). See
+[docs/splitscreen-4p.md](docs/splitscreen-4p.md) for setup, limitations, and
+reviewer notes. Adapted from the public-domain
 [BO3-4-Player-Local-Splitscreen-on-PC](https://github.com/LocalPlayer123/BO3-4-Player-Local-Splitscreen-on-PC)
 component.
 
