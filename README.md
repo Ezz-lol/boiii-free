@@ -4,7 +4,9 @@
 
 ---
 
-> [!NOTE] Feel free to open up Pull requests 😑
+> [!NOTE]
+>
+> Feel free to open up Pull requests 😑
 
 ---
 
@@ -25,6 +27,7 @@
 - [Zombies Server Setup](#zombies-server-setup)
 - [Compile from Source](#compile-from-source)
 - [GSC Scripting Additions](#gsc-scripting-additions)
+- [4-Player Local Splitscreen](#4-player-local-splitscreen)
 - [Credits](#credits)
 - [Disclaimer](#disclaimer)
 
@@ -84,7 +87,9 @@ play!
 3. **Run** `BOIII.exe`
 4. **Play!** 🎮
 
-> [!TIP] The default Steam installation path is usually:
+> [!TIP]
+>
+> The default Steam installation path is usually:
 > `C:/Program Files (x86)/Steam/steamapps/common/Call of Duty Black Ops III`
 
 ---
@@ -103,7 +108,9 @@ for help!
 
 ## Loading Mods & Custom Maps
 
-> [!TIP] **Default Workshop Location (Steam):**
+> [!TIP]
+>
+> **Default Workshop Location (Steam):**
 > `C:/Program Files (x86)/Steam/steamapps/workshop/content/311210/`
 >
 > **BOIII comes with a built-in Workshop Downloader** - see the
@@ -134,7 +141,9 @@ for help!
 
 4. **Launch Ezz BOIII** and select your mod/map from the menu! 🎮
 
-> [!IMPORTANT] **For Workshop Downloads from Steam:**
+> [!IMPORTANT]
+>
+> **For Workshop Downloads from Steam:**
 >
 > - Workshop items are in numbered folders (e.g., `311210/1234567890/`)
 > - Copy the entire numbered folder
@@ -187,6 +196,7 @@ Launch BOIII with these arguments for extra features:
 | `-nosteam`            | Bypass Steam entirely.                                                                                                                                                                                                                       |
 | `-nointro`            | Skip intro videos.                                                                                                                                                                                                                           |
 | `-windowed`           | Launch in windowed mode.                                                                                                                                                                                                                     |
+| `-borderless`         | Launch in borderless fullscreen mode.                                                                                                                                                                                                        |
 | `-safe`               | Launch in safe mode (disable mods).                                                                                                                                                                                                          |
 | `-console`            | Enable developer console.                                                                                                                                                                                                                    |
 | `-nologs`             | Disable all patches to developer console.                                                                                                                                                                                                    |
@@ -203,7 +213,7 @@ Launch BOIII with these arguments for extra features:
 | `-keep-launcher`      | Keep the launcher process running after starting the game.                                                                                                                                                                                   |
 | `-ultrawide`          | Enable ultrawide UI scaling. Note: this is unstable and commonly breaks UI alignment where implemented assuming <= 1920x1080 aspect ratio.                                                                                                   |
 | `-cheats`             | Enable cheat dvar modification and cheat command execution. Note: usage when hosting a private match in client or when running dedicated server allows non-host players to execute cheat commands (e.g. `god`, `noclip`) - use with caution. |
-| `-noconsole`          | Suppress the external launcher console window.                                                                                                                                                                                               |
+| `-noconsole`          | Hide the external console window without disabling logs.                                                                                                                                                                                     |
 | `-nobranding`         | Disable EZZ watermark and console prefix.                                                                                                                                                                                                    |
 | `-nocinematics`       | Disable playing all cinematics.                                                                                                                                                                                                              |
 | `-log-script-errors`  | Log all script errors, regardless of severity or `developer` dvar value.                                                                                                                                                                     |
@@ -212,6 +222,7 @@ Launch BOIII with these arguments for extra features:
 | `-mitigatepacketspam` | In dedicated server, attempt to reduce unnecessary reliable command packets sent by some custom maps' scripts. Fixes Kowloon and Daybreak client load-in failures.                                                                           |
 | `-nosnd`              | Disable attempt to load and use sound assets in dedicated server.                                                                                                                                                                            |
 | `-dump`               | Dump game or server executable to file in containing directory after Arxan unpack.                                                                                                                                                           |
+| `-disable-loadlib`    | Disable loading DLLs via `package.loadlib` in Lua. Can fix compatibility with mods that load DLLs that apply conflicting engine modifications.                                                                                               |
 
 **Example:**
 
@@ -219,9 +230,11 @@ Launch BOIII with these arguments for extra features:
 boiii.exe -nointro -console -unsafe-lua
 ```
 
-> [!WARNING] The `-unsafe-lua` argument is **required** for certain mods that
-> need to modify the UI, menus, or game scripts (like All-Around Enhancement
-> Mod). Only use this with trusted mods!
+> [!WARNING]
+>
+> The `-unsafe-lua` argument is **required** for certain mods that need to
+> modify the UI, menus, or game scripts (like All-Around Enhancement Mod). Only
+> use this with trusted mods!
 >
 > The `-headless` option may not behave correctly on non-server systems.
 
@@ -288,7 +301,10 @@ boiii.exe -nointro -console -unsafe-lua
 - Local: `/connect 192.168.1.100:27017`
 - WAN: `/connect 45.123.67.89:27017`
 
-> [!TIP] Find your local IP: Press `Win + R`, type `cmd`, then type `ipconfig`
+> [!TIP]
+>
+> Find your local IP: Press `Win + R`, type `cmd`, then type `ipconfig`
+>
 > Find your WAN IP: Visit [WhatIsMyIP.com](https://www.whatismyip.com/)
 
 ### Port Forwarding Alternatives
@@ -347,8 +363,10 @@ zone/zm_zod_patch.ff
 2. **Repeat** for each map you want to host
 3. **Skip** `.xpak` files (these are textures/sounds that servers don't need)
 
-> [!NOTE] If the server crashes on startup, check `console_mp.log` for missing
-> zone files
+> [!NOTE]
+>
+> If the server crashes on startup, check `console_mp.log` for missing zone
+> files
 
 **Common Maps:**
 
@@ -421,6 +439,16 @@ For the full guide and examples, see
 
 ---
 
+## 4-Player Local Splitscreen
+
+Offline local splitscreen can use up to **four** players (stock PC is two).
+See [docs/splitscreen-4p.md](docs/splitscreen-4p.md) for setup, limitations,
+and reviewer notes. Adapted from the public-domain
+[BO3-4-Player-Local-Splitscreen-on-PC](https://github.com/LocalPlayer123/BO3-4-Player-Local-Splitscreen-on-PC)
+component.
+
+---
+
 ## Credits
 
 **BOIII Development Team** 💪
@@ -429,6 +457,8 @@ For the full guide and examples, see
 
 **Special Thanks:**
 
+- [LocalPlayer123](https://github.com/LocalPlayer123) - 4-player local
+  splitscreen research / Unlicense component
 - [Likeicareaboutit](https://github.com/Likeicareaboutit) - Steam Workshop
   Downloader
 - [framilano](https://github.com/framilano) - BO3 Server Installer
