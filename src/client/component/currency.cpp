@@ -78,9 +78,10 @@ game::symbol<const char *(const StringTable *, int, int)>
 game::symbol<const char *(const StringTable *, int, const char *, int)>
     StringTable_Lookup{0x142251CD0, 0x1422AE7F0, 0x0};
 
-bool enabled() {
+inline bool enabled() {
   return local_currency && local_currency.get_bool() &&
-         !game::ugc::UGC_ActiveMod_Loaded();
+         (!game::ugc::active_mod->internalName[0] ||
+          std::string_view(game::ugc::active_mod->internalName) == "usermaps");
 }
 
 StorageFileType stats_type(bool zombies) {

@@ -2,6 +2,7 @@
 
 #include <cstdint>
 #include <game/structs/macros.hpp>
+#include <structs/func.hpp>
 #include <structs/str.hpp>
 
 namespace game {
@@ -49,5 +50,10 @@ struct stream_fh {
   uint8_t cipherIV[8];
 };
 ASSERT_SIZE(stream_fh, 0x158);
+
+typedef fastcallPtr_t<void(stream_id id, stream_status result,
+                           int64_t numBytesRead, void *b)>
+    Stream_FileReadCallback;
+
 } // namespace stream
 } // namespace game
