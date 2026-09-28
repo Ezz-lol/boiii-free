@@ -205,5 +205,6 @@ struct DB_LoadData {
   DB_PATCH_STREAM patchStream;
 };
 ASSERT_SIZE(DB_LoadData, 0xA88);
+ASSERT_OFFSET(DB_LoadData, flags, 0x28);
 } // namespace db
 } // namespace game

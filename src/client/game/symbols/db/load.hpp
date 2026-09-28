@@ -14,7 +14,7 @@ WEAK symbol<uint32_t> g_copyInfoCount{0x0, 0x0, 0x146902028};
 WEAK symbol<void(xasset::XAssetEntry *newEntry)> DB_DelayedCopyXAsset{
     0x14141FF20, 0x14141FF00, 0x1401D4FE0};
 
-WEAK symbol<DB_LoadData> g_load{0x14938D3C0, 0x14940C3B0, 0x1468FD4A0};
+WEAK symbol<DB_LoadData> g_load{0x14938D3B0, 0x14940C3B0, 0x1468FD490};
 WEAK symbol<void(xzone::XZoneInfo *zoneInfo, uint32_t zoneCount, bool sync,
                  bool suppressSync)>
     DB_LoadXAssets{0x1414236C0, 0x1414236A0, 0x1401D8740};
