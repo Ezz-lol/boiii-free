@@ -64,18 +64,6 @@ void write_at(std::vector<uint8_t> &buf, size_t offset, T v) {
 // T7 PC opcode table
 inline OP_TYPE map_opcode(Opcode op) {
   if (OPCODE_BYTECODE_MAP.contains(op)) {
-    if (op == Opcode::GetVector) {
-      // Without alignment padding, vector[-1] is the opcode's high byte.
-      // The engine treats zero there as a refcounted vector and increments
-      // the uint16_t at vector[-4], which is preceding script bytecode.
-      // Select an equivalent opcode with a nonzero constant-vector marker.
-      for (const OP_TYPE bytecode : OPCODE_BYTECODE_MAP.at(op)) {
-        if ((bytecode & 0xFF00) != 0) {
-          return bytecode;
-        }
-      }
-      throw std::runtime_error("No safe GetVector bytecode encoding");
-    }
     return OPCODE_BYTECODE_MAP.at(op)[0];
   }
 
