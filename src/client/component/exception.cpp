@@ -4,9 +4,9 @@
 
 #include <loader/component_loader.hpp>
 
+#include "dedicated/map_recovery.hpp"
 #include "scheduler.hpp"
 #include "script_error.hpp"
-#include "dedicated/map_recovery.hpp"
 #include <game/game.hpp>
 
 #include <errhandlingapi.h>

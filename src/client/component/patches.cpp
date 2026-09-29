@@ -1,7 +1,7 @@
 #include <std_include.hpp>
 
-#include "component/path.hpp"
 #include "component/dedicated/map_recovery.hpp"
+#include "component/path.hpp"
 #include "component/script_error.hpp"
 #include "scheduler.hpp"
 #include <loader/component_loader.hpp>
@@ -127,9 +127,9 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
             game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, "disconnect\n");
           scheduler::once(
               [deferred_error]() {
-                game::ui::UI_OpenErrorPopupWithMessage(
-                    game::LOCAL_CLIENT_0, game::errorCode::NONE,
-                    deferred_error.c_str());
+                game::ui::UI_OpenErrorPopupWithMessage(game::LOCAL_CLIENT_0,
+                                                       game::errorCode::NONE,
+                                                       deferred_error.c_str());
               },
               scheduler::pipeline::main, 500ms);
         },

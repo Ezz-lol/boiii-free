@@ -1,7 +1,7 @@
 #include <std_include.hpp>
 
-#include "script_error.hpp"
 #include "script.hpp"
+#include "script_error.hpp"
 
 #include <loader/component_loader.hpp>
 
@@ -102,8 +102,7 @@ std::string function_name(const ScrVarCanonicalName_t hash) {
 }
 
 std::string namespace_name(const ScrVarCanonicalName_t hash) {
-  return hash == EMPTY_NAMESPACE ? std::string()
-                                 : hash_name(hash, "namespace");
+  return hash == EMPTY_NAMESPACE ? std::string() : hash_name(hash, "namespace");
 }
 
 std::string plural(const int32_t count, const std::string_view word) {
@@ -229,8 +228,8 @@ std::string describe_call(const GSC_IMPORT_ITEM &import) {
 std::string describe_export(const known_script &script,
                             const GSC_EXPORT_ITEM &item) {
   const std::string ns = namespace_name(item.name_space);
-  return std::format("{}{}{}({}{}) in {}{}", ns, ns.empty() ? "" : "::",
-                     function_name(item.name),
+  return std::format("{}{}{}({}{}) in {}{}", ns,
+                     ns.empty() ? "" : "::", function_name(item.name),
                      plural(item.param_count, "param"),
                      item.flags & EXPORT_VARARG ? ", vararg" : "", script.name,
                      item.flags & EXPORT_PRIVATE ? " [private]" : "");
@@ -349,10 +348,10 @@ void analyze_unresolved(const scriptInstance_t inst, const GSC_OBJ *obj,
   } else if (consults_builtins && same_kind.exists &&
              import.param_count < same_kind.min_args) {
     failure.error = "Too few arguments";
-    failure.cause = std::format(
-        "builtin {} '{}' requires at least {}, this call passes {}",
-        method ? "method" : "function", name,
-        plural(same_kind.min_args, "argument"), import.param_count);
+    failure.cause =
+        std::format("builtin {} '{}' requires at least {}, this call passes {}",
+                    method ? "method" : "function", name,
+                    plural(same_kind.min_args, "argument"), import.param_count);
     failure.fix = "pass the required arguments";
   } else if (consults_builtins && same_kind.exists &&
              same_kind.type == BUILTIN_DEV_ONLY &&
@@ -375,17 +374,17 @@ void analyze_unresolved(const scriptInstance_t inst, const GSC_OBJ *obj,
                : std::format("'{}' is a builtin method, it must be called on "
                              "an entity",
                              name);
-    failure.fix = method ? std::format("remove the entity before the call: "
-                                       "{}(...)",
-                                       name)
-                         : std::format("call it on an entity: self {}(...)",
-                                       name);
+    failure.fix = method
+                      ? std::format("remove the entity before the call: "
+                                    "{}(...)",
+                                    name)
+                      : std::format("call it on an entity: self {}(...)", name);
   } else if (!not_included.empty()) {
-    failure.cause = std::format(
-        "'{}' is defined in a script this file does not #using: {}",
-        qualified, not_included.front());
-    failure.fix = std::format("add the #using line shown above to {}",
-                              obj->get_name());
+    failure.cause =
+        std::format("'{}' is defined in a script this file does not #using: {}",
+                    qualified, not_included.front());
+    failure.fix =
+        std::format("add the #using line shown above to {}", obj->get_name());
     for (size_t i = 1; i < not_included.size(); ++i) {
       failure.notes.push_back("also defined: " + not_included[i]);
     }
@@ -407,15 +406,14 @@ void analyze_unresolved(const scriptInstance_t inst, const GSC_OBJ *obj,
     failure.fix = "fix the #using path or add the missing script";
   } else {
     failure.cause =
-        local ? std::format("'{}' is not a builtin {} in this build and no "
-                            "loaded script defines it (searched {})",
-                            name, method ? "method" : "function",
-                            plural(static_cast<int32_t>(scripts.size()),
-                                   "script"))
-              : std::format("no loaded script defines '{}' (searched {})",
-                            qualified,
-                            plural(static_cast<int32_t>(scripts.size()),
-                                   "script"));
+        local ? std::format(
+                    "'{}' is not a builtin {} in this build and no "
+                    "loaded script defines it (searched {})",
+                    name, method ? "method" : "function",
+                    plural(static_cast<int32_t>(scripts.size()), "script"))
+              : std::format(
+                    "no loaded script defines '{}' (searched {})", qualified,
+                    plural(static_cast<int32_t>(scripts.size()), "script"));
     failure.fix = local ? "remove the call, or define the function and "
                           "qualify it with its namespace if it lives in "
                           "another script"
@@ -423,10 +421,9 @@ void analyze_unresolved(const scriptInstance_t inst, const GSC_OBJ *obj,
                           "script this file #using's";
   }
 
-  const bool involves_scripts = !local || !param_mismatch.empty() ||
-                                !private_hits.empty() ||
-                                !not_included.empty() ||
-                                !other_namespace.empty();
+  const bool involves_scripts =
+      !local || !param_mismatch.empty() || !private_hits.empty() ||
+      !not_included.empty() || !other_namespace.empty();
   if (involves_scripts && import.name_space != EMPTY_NAMESPACE &&
       import.name_space != SYS_NAMESPACE) {
     const std::vector<std::string> declaring =
@@ -490,17 +487,16 @@ std::optional<link_failure> parse_too_many_parameters(const std::string &text) {
       if (failure.call.empty() && import.param_count == args &&
           function_name(import.name) == name) {
         failure.call = describe_call(import);
-        failure.lines = Scr_GetImportLineNumbers(current_link.inst, current_link.obj, current_link.info,
-                                                 &import);
-        const builtin_info builtin = find_builtin(
-            current_link.inst, import.name,
-            is_method_import(import.flags & IMPORT_TYPE_MASK));
+        failure.lines = Scr_GetImportLineNumbers(
+            current_link.inst, current_link.obj, current_link.info, &import);
+        const builtin_info builtin =
+            find_builtin(current_link.inst, import.name,
+                         is_method_import(import.flags & IMPORT_TYPE_MASK));
         if (builtin.exists) {
-          failure.cause = std::format("builtin '{}' accepts at most {}, this "
-                                      "call passes {}",
-                                      name,
-                                      plural(builtin.max_args, "argument"),
-                                      args);
+          failure.cause =
+              std::format("builtin '{}' accepts at most {}, this "
+                          "call passes {}",
+                          name, plural(builtin.max_args, "argument"), args);
         }
       }
     });
@@ -510,8 +506,8 @@ std::optional<link_failure> parse_too_many_parameters(const std::string &text) {
     failure.call = std::format("{}({})", name, plural(args, "arg"));
   }
   if (failure.cause.empty()) {
-    failure.cause = std::format("'{}' does not accept {}", name,
-                                plural(args, "argument"));
+    failure.cause =
+        std::format("'{}' does not accept {}", name, plural(args, "argument"));
   }
   failure.fix = "remove the extra arguments";
   return failure;
@@ -537,8 +533,8 @@ std::string join_lines(const std::vector<int32_t> &lines) {
 void append_field(std::string &out, const std::string_view label,
                   const std::string_view color, const std::string_view value) {
   if (!value.empty()) {
-    out += std::format("^1  {:<8} {}{}\n", std::string(label) + ":", color,
-                       value);
+    out +=
+        std::format("^1  {:<8} {}{}\n", std::string(label) + ":", color, value);
   }
 }
 
@@ -649,10 +645,10 @@ report build_link_report(const scriptInstance_t inst, const char *message) {
         failure.lines.empty() ? "" : ":" + std::to_string(failure.lines[0]),
         utils::string::to_lower(failure.error), failure.call);
   } else if (!failures.empty()) {
-    result.summary = std::format("{} in {}",
-                                 plural(static_cast<int32_t>(failures.size()),
-                                        "script link error"),
-                                 failures.front().script);
+    result.summary = std::format(
+        "{} in {}",
+        plural(static_cast<int32_t>(failures.size()), "script link error"),
+        failures.front().script);
   } else {
     result.summary = "Script link error";
   }
@@ -766,8 +762,7 @@ report build_runtime_report(const scriptInstance_t inst, const char *message,
 }
 } // namespace
 
-bool is_script_vm_failure(const char *source_file,
-                          const game::errorParm code) {
+bool is_script_vm_failure(const char *source_file, const game::errorParm code) {
   return source_file != nullptr &&
          std::string_view(source_file).find("clientscript") !=
              std::string_view::npos &&
@@ -778,16 +773,17 @@ bool is_script_vm_failure(const char *source_file,
 report build_report(const game::errorParm code, const char *message,
                     const char *source_file) {
   const std::string_view text = message ? message : "";
-  const scriptInstance_t inst =
-      text.find(".csc") != std::string_view::npos ? SCRIPTINSTANCE_CLIENT
-                                                  : SCRIPTINSTANCE_SERVER;
+  const scriptInstance_t inst = text.find(".csc") != std::string_view::npos
+                                    ? SCRIPTINSTANCE_CLIENT
+                                    : SCRIPTINSTANCE_SERVER;
 
   if (code == game::errorParm::FATAL &&
       text.find("script error(s)") != std::string_view::npos) {
     return build_link_report(inst, message);
   }
 
-  static const std::regex missing_pattern(R"re(Script file not found: '([^']*)')re");
+  static const std::regex missing_pattern(
+      R"re(Script file not found: '([^']*)')re");
   std::cmatch match;
   if (message && std::regex_search(message, match, missing_pattern)) {
     return build_missing_script_report(inst, match[1].str());

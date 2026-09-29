@@ -96,11 +96,11 @@ std::string on_map_stopped() {
   failed_map = game::get_mapname().value_or("");
   launch_not_before = now_ms() + delay * 1000ll;
 
-  return delay > 0 ? std::format("map stopped, next launch in {}s "
-                                 "(restart #{})",
-                                 delay, failures)
-                   : std::format("map stopped, relaunching (restart #{})",
-                                 failures);
+  return delay > 0
+             ? std::format("map stopped, next launch in {}s "
+                           "(restart #{})",
+                           delay, failures)
+             : std::format("map stopped, relaunching (restart #{})", failures);
 }
 
 struct component final : server_component {

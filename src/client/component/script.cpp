@@ -644,8 +644,8 @@ void queue_script_execution(const std::string &name) {
 void execute_queued_script(const queued_script &script) {
   scr::Scr_LoadScript(script.inst, script.base_name.data());
 
-  print_script_log(utils::string::va("Loaded script '%s' into the VM",
-                                     script.name.data()));
+  print_script_log(
+      utils::string::va("Loaded script '%s' into the VM", script.name.data()));
 
   objFileInfo_t *obj = get_obj_by_name(script.inst, script.name);
   if (obj) {
@@ -1421,10 +1421,9 @@ std::vector<std::string> get_script_callstack(scriptInstance_t inst) {
   callstack.emplace_back(Scr_PrevCodePos(inst, vm::gFs->instance[inst].pos));
   for (int32_t stackIdx = vm::gScrVmPub->instance[inst].function_count - 1;
        stackIdx > -1; --stackIdx) {
-    callstack.emplace_back(
-        Scr_PrevCodePos(inst, vm::gScrVmPub->instance[inst]
-                                  .function_frame_start[stackIdx]
-                                  .fs.pos));
+    callstack.emplace_back(Scr_PrevCodePos(
+        inst,
+        vm::gScrVmPub->instance[inst].function_frame_start[stackIdx].fs.pos));
   }
   return callstack;
 }
