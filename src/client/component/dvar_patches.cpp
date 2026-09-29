@@ -162,10 +162,10 @@ template <const bool Value> inline void sv_cheats_force() {
   */
   {
     // R_RegisterDvars
-    utils::hook::call(game::select(0x141C9A873, 0x141CA6C43, 0x140379E80),
+    utils::hook::call(game::select(0x141C9A844, 0x141CA6C14, 0x140379E51),
                       Dvar_RegisterBool_Force<Value>);
     // SV_Init
-    utils::hook::call(0x140534DF2_g, Dvar_RegisterBool_Force<Value>);
+    utils::hook::call(0x140534DD2_g, Dvar_RegisterBool_Force<Value>);
   }
   /*
      2. sv_cheats used to enable/disable cheat dvars - controls whether cheat
@@ -331,6 +331,9 @@ public:
 
     // Set the flag of 'sv_network_fps'
     utils::hook::set<uint32_t>(0x140534FD8_g, game::DVAR_NONE);
+
+    // Disable `sv_pure`
+    utils::hook::call(0x140534DF2_g, Dvar_RegisterBool_Force<false>);
 
     // Enable or disable both (??) sv_cheats dvars immediately after
     // registration
