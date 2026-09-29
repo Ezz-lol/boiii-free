@@ -112,12 +112,9 @@ inline constexpr bool std::ranges::enable_view<Enumerate<T>> = true;
 template <typename View, std::size_t... Is>
 inline constexpr auto to_array_expand_internal(View &&view,
                                                std::index_sequence<Is...>) {
-  // Note: This relies on the view providing random access (like an array/vector
-  // source)
   return std::array{view[Is]...};
 }
 
-// Main converter function
 template <const IntegralLike auto N, typename View>
 inline constexpr auto to_array(View &&view) {
   return to_array_expand_internal(
@@ -126,7 +123,7 @@ inline constexpr auto to_array(View &&view) {
 }
 
 struct NameIdxPair {
-  const char *name;
+  std::string_view name;
   size_t idx;
 };
 
@@ -135,7 +132,7 @@ struct NameIdxPair {
   frozen::make_unordered_map(to_array<names.size()>(                           \
       std::views::transform(Enumerate{names}, [](auto &&pair) {                \
         auto [idx, name] = pair;                                               \
-        const fnv1aHashNull_t hash = fnv1a(name);                              \
+        const fnv1aHashNull_t hash = fnv1a(name.data());                       \
         return std::make_pair(hash, NameIdxPair{name, idx});                   \
       })));
 #endif
@@ -174,14 +171,14 @@ struct NameIdxPair {
     return nullptr;                                                            \
   }                                                                            \
                                                                                \
-  inline constexpr const element_of<decltype(table)> *get(const char *name)    \
-      const noexcept {                                                         \
-    const ScrVarCanonicalName_t hash = fnv1a(name);                            \
+  inline constexpr const element_of<decltype(table)> *get(                     \
+      std::string_view name) const noexcept {                                  \
+    const ScrVarCanonicalName_t hash = fnv1a(name.data());                     \
     return get(hash);                                                          \
   }                                                                            \
                                                                                \
   inline constexpr const element_of<decltype(table)> *operator[](              \
-      const char *name) const noexcept {                                       \
+      std::string_view name) const noexcept {                                  \
     return get(name);                                                          \
   }                                                                            \
   inline constexpr element_of<decltype(table)> *get(                           \
@@ -190,15 +187,5 @@ struct NameIdxPair {
       return &table[hashes.at(hash).idx];                                      \
     }                                                                          \
     return nullptr;                                                            \
-  }                                                                            \
-                                                                               \
-  inline constexpr element_of<decltype(table)> *get(char *name) noexcept {     \
-    const ScrVarCanonicalName_t hash = fnv1a(name);                            \
-    return get(hash);                                                          \
-  }                                                                            \
-                                                                               \
-  inline constexpr element_of<decltype(table)> *operator[](                    \
-      char *name) noexcept {                                                   \
-    return get(name);                                                          \
   }
 #endif

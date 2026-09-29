@@ -50,7 +50,7 @@ union CommonFunctionTable {
   static inline constexpr size_t COUNT = 34;
   BuiltinFunctionDef functions[COUNT];
 
-  static const std::array<const char *, COUNT> names;
+  static const std::array<std::string_view, COUNT> names;
 
   DECLARE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(functions);
@@ -113,7 +113,7 @@ union MathFunctionTable {
   static inline constexpr size_t COUNT = 49;
   BuiltinFunctionDef functions[COUNT];
 
-  static const std::array<const char *, COUNT> names;
+  static const std::array<std::string_view, COUNT> names;
 
   DECLARE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(functions);
@@ -128,7 +128,7 @@ union WeaponFunctionTable {
   static inline constexpr size_t COUNT = 1;
   BuiltinFunctionDef functions[COUNT];
 
-  static const std::array<const char *, COUNT> names;
+  static const std::array<std::string_view, COUNT> names;
 
   DECLARE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(functions);
@@ -210,7 +210,7 @@ union UtilFunctionTable {
   static inline constexpr size_t COUNT = 69;
   BuiltinFunctionDef functions[COUNT];
 
-  static const std::array<const char *, COUNT> names;
+  static const std::array<std::string_view, COUNT> names;
 
   DECLARE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(functions);

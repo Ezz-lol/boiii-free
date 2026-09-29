@@ -841,7 +841,7 @@ inline bool builtin_function(scriptInstance_t inst,
 }
 
 #ifndef NDEBUG
-inline std::optional<const char *>
+inline std::optional<std::string_view>
 builtin_function_name(ScrVarCanonicalName_t id) {
   // TODO: store custom builtin function names in debug profile builds
   // if (custom_builtins::functions.names.contains(id)) {
@@ -960,7 +960,7 @@ inline bool builtin_method(scriptInstance_t inst, ScrVarCanonicalName_t name) {
 }
 
 #ifndef NDEBUG
-inline std::optional<const char *>
+inline std::optional<std::string_view>
 builtin_method_name(ScrVarCanonicalName_t id) {
   // TODO: store custom builtin method names in debug profile builds
   // if (custom_builtins::methods.names.contains(id)) {
@@ -1024,8 +1024,8 @@ builtin_method_name(ScrVarCanonicalName_t id) {
   return std::nullopt;
 }
 
-inline std::optional<const char *> builtin_name(ScrVarCanonicalName_t id) {
-  std::optional<const char *> result = builtin_function_name(id);
+inline std::optional<std::string_view> builtin_name(ScrVarCanonicalName_t id) {
+  const std::optional<std::string_view> result = builtin_function_name(id);
   return result.has_value() ? result : builtin_method_name(id);
 }
 #endif

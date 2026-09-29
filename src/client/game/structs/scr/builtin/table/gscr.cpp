@@ -7,7 +7,7 @@ namespace scr {
 namespace builtin {
 namespace table {
 namespace gscr {
-constexpr std::array<const char *, BuiltinFunctionTable::COUNT>
+constexpr std::array<std::string_view, BuiltinFunctionTable::COUNT>
     BuiltinFunctionTable::names = {
         "Spawn",
         "SpawnCollision",
@@ -348,7 +348,7 @@ constexpr std::array<const char *, BuiltinFunctionTable::COUNT>
 };
 DEFINE_NAME_MAP(BuiltinFunctionTable::names, BuiltinFunctionTable::hashes);
 
-constexpr std::array<const char *, BuiltinMethodTable::COUNT>
+constexpr std::array<std::string_view, BuiltinMethodTable::COUNT>
     BuiltinMethodTable::names = {
         "SetStowedWeapon",
         "GetStowedWeapon",

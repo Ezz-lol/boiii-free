@@ -7,7 +7,7 @@ namespace scr {
 namespace builtin {
 namespace table {
 namespace cscr {
-constexpr std::array<const char *, BuiltinFunctionTable::COUNT>
+constexpr std::array<std::string_view, BuiltinFunctionTable::COUNT>
     BuiltinFunctionTable::names = {
         "SpawnStruct",
         "BulletTrace",
@@ -262,7 +262,7 @@ constexpr std::array<const char *, BuiltinFunctionTable::COUNT>
         "EnableVR"};
 DEFINE_NAME_MAP(BuiltinFunctionTable::names, BuiltinFunctionTable::hashes);
 
-constexpr std::array<const char *, BuiltinMethodTable::COUNT>
+constexpr std::array<std::string_view, BuiltinMethodTable::COUNT>
     BuiltinMethodTable::names = {
         "Delete",
         "ForceDelete",
@@ -513,7 +513,7 @@ constexpr std::array<const char *, BuiltinMethodTable::COUNT>
 };
 DEFINE_NAME_MAP(BuiltinMethodTable::names, BuiltinMethodTable::hashes);
 
-constexpr std::array<const char *, GfxFunctionTable::COUNT>
+constexpr std::array<std::string_view, GfxFunctionTable::COUNT>
     GfxFunctionTable::names = {
         "PlayFX",
         "PlayFXOnTag",
@@ -624,7 +624,7 @@ constexpr std::array<const char *, GfxFunctionTable::COUNT>
 };
 DEFINE_NAME_MAP(GfxFunctionTable::names, GfxFunctionTable::hashes);
 
-constexpr std::array<const char *, GfxMethodTable::COUNT>
+constexpr std::array<std::string_view, GfxMethodTable::COUNT>
     GfxMethodTable::names = {
         "OED_Nightvision_Reset",
         "OED_Nightvision_SetTextureLevel",
@@ -671,7 +671,7 @@ constexpr std::array<const char *, GfxMethodTable::COUNT>
 };
 DEFINE_NAME_MAP(GfxMethodTable::names, GfxMethodTable::hashes);
 
-constexpr std::array<const char *, MathFunctionTable::COUNT>
+constexpr std::array<std::string_view, MathFunctionTable::COUNT>
     MathFunctionTable::names = {
         "RandomInt",        "RandomFloat",      "RandomIntRange",
         "RandomFloatRange", "Project2DTo3D",    "Project3DTo2D",
@@ -679,7 +679,7 @@ constexpr std::array<const char *, MathFunctionTable::COUNT>
 };
 DEFINE_NAME_MAP(MathFunctionTable::names, MathFunctionTable::hashes);
 
-constexpr std::array<const char *, SoundFunctionTable::COUNT>
+constexpr std::array<std::string_view, SoundFunctionTable::COUNT>
     SoundFunctionTable::names = {
         "PlaySound",
         "GetSoundFromSurfaceTable",
@@ -715,7 +715,7 @@ constexpr std::array<const char *, SoundFunctionTable::COUNT>
 };
 DEFINE_NAME_MAP(SoundFunctionTable::names, SoundFunctionTable::hashes);
 
-constexpr std::array<const char *, SoundMethodTable::COUNT>
+constexpr std::array<std::string_view, SoundMethodTable::COUNT>
     SoundMethodTable::names = {
         "PlaySound",          "StopSounds",        "PlayLoopSound",
         "StopLoopSound",      "StopAllLoopSounds", "IsPlayingLoopSound",
@@ -723,7 +723,7 @@ constexpr std::array<const char *, SoundMethodTable::COUNT>
 };
 DEFINE_NAME_MAP(SoundMethodTable::names, SoundMethodTable::hashes);
 
-constexpr std::array<const char *, UIFunctionTable::COUNT>
+constexpr std::array<std::string_view, UIFunctionTable::COUNT>
     UIFunctionTable::names = {
         "LUILoad",
         "LUIEnable",
@@ -748,7 +748,7 @@ constexpr std::array<const char *, UIFunctionTable::COUNT>
 };
 DEFINE_NAME_MAP(UIFunctionTable::names, UIFunctionTable::hashes);
 
-constexpr std::array<const char *, UtilFunctionTable::COUNT>
+constexpr std::array<std::string_view, UtilFunctionTable::COUNT>
     UtilFunctionTable::names = {
         "ReportStubUsage",
         "PIXBeginEvent",
@@ -772,7 +772,7 @@ constexpr std::array<const char *, UtilFunctionTable::COUNT>
 };
 DEFINE_NAME_MAP(UtilFunctionTable::names, UtilFunctionTable::hashes);
 
-constexpr std::array<const char *, UtilMethodTable::COUNT>
+constexpr std::array<std::string_view, UtilMethodTable::COUNT>
     UtilMethodTable::names = {
         "ButtonPressed",
         "GetControllerPosition",

@@ -27,7 +27,7 @@ inline void log_method_call_helper(const char *table_name,
                                    scriptInstance_t inst,
                                    scr_entref_t *entref) {
   char entref_str_buf[93] = {0};
-  const char *method_name =
+  const std::string_view method_name =
       gsc::builtin_method_name(canonId).value_or("UNKNOWN");
   trace("[Scr][Method] Calling built-in method with inst: {}, entref: {}, name "
         "\"{}::{}\", address: {:p}",
@@ -47,7 +47,7 @@ inline void log_function_call_helper(const char *table_name,
                                      BuiltinFunction original_func,
                                      ScrVarCanonicalName_t canonId,
                                      scriptInstance_t inst) {
-  const char *function_name =
+  const std::string_view function_name =
       gsc::builtin_function_name(canonId).value_or("UNKNOWN");
   trace("[Scr][Function] Calling built-in function with inst: "
         "{}, name \"{}::{}\", address: {:p}",

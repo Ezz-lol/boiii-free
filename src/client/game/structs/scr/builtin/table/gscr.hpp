@@ -351,7 +351,7 @@ union BuiltinFunctionTable {
   static inline constexpr size_t COUNT = 336;
   BuiltinFunctionDef functions[COUNT];
 
-  static const std::array<const char *, COUNT> names;
+  static const std::array<std::string_view, COUNT> names;
   DECLARE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(functions);
 };
@@ -708,7 +708,7 @@ union BuiltinMethodTable {
   static inline constexpr size_t COUNT = 345;
   BuiltinMethodDef methods[COUNT];
 
-  static const std::array<const char *, COUNT> names;
+  static const std::array<std::string_view, COUNT> names;
 
   DECLARE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(methods);

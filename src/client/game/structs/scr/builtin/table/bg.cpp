@@ -8,7 +8,7 @@ namespace builtin {
 namespace table {
 namespace bg {
 
-constexpr std::array<const char *, CommonFunctionTable::COUNT>
+constexpr std::array<std::string_view, CommonFunctionTable::COUNT>
     CommonFunctionTable::names = {
         "ClearAllCharacterTables",
         "GetCharacterBodyStyleIndex",
@@ -47,7 +47,7 @@ constexpr std::array<const char *, CommonFunctionTable::COUNT>
 };
 DEFINE_NAME_MAP(CommonFunctionTable::names, CommonFunctionTable::hashes);
 
-constexpr std::array<const char *, MathFunctionTable::COUNT>
+constexpr std::array<std::string_view, MathFunctionTable::COUNT>
     MathFunctionTable::names = {
         "Log",
         "Sin",
@@ -101,11 +101,11 @@ constexpr std::array<const char *, MathFunctionTable::COUNT>
 };
 DEFINE_NAME_MAP(MathFunctionTable::names, MathFunctionTable::hashes);
 
-constexpr std::array<const char *, WeaponFunctionTable::COUNT>
+constexpr std::array<std::string_view, WeaponFunctionTable::COUNT>
     WeaponFunctionTable::names = {"EnumerateWeapons"};
 DEFINE_NAME_MAP(WeaponFunctionTable::names, WeaponFunctionTable::hashes);
 
-constexpr std::array<const char *, UtilFunctionTable::COUNT>
+constexpr std::array<std::string_view, UtilFunctionTable::COUNT>
     UtilFunctionTable::names = {"GetDvarString",
                                 "GetDvarInt",
                                 "GetDvarFloat",

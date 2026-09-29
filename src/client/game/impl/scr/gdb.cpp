@@ -427,8 +427,7 @@ std::vector<int32_t> Scr_GetImportLineNumbers(const scriptInstance_t inst,
       while (lineIdx < lineAddrCount && pos > lineTable[lineIdx]) {
         ++lineIdx;
       }
-      if (lineIdx > 0 &&
-          std::ranges::find(lines, lineIdx) == lines.end()) {
+      if (lineIdx > 0 && std::ranges::find(lines, lineIdx) == lines.end()) {
         lines.push_back(lineIdx);
       }
     }

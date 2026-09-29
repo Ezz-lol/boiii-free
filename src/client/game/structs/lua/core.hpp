@@ -12,6 +12,17 @@ inline constexpr auto LUA_REGISTRYINDEX = -10000;
 inline constexpr auto LUA_ENVIRONINDEX = -10001;
 inline constexpr auto LUA_GLOBALSINDEX = -10002;
 
+/*
+  The below enums were programmatically generated from the definitions provided
+  by the engine to the Lua VM.
+
+  All are correct in both Lua and in the engine.
+
+  For each enum below, upon first usage elsewhere, if the enum is not
+  specific to the CoD engine Lua API, the enum should be moved to a more
+  appropriate header and namespace.
+*/
+
 enum class PresencePrimary : int32_t {
   UNKNOWN = -1,
   OFFLINE = 0,
@@ -997,84 +1008,6 @@ enum class prestigeTokenType_e : int32_t {
   COUNT = 3,
 };
 
-// Verified
-enum class consoleLabel : int32_t {
-  DEFAULT = 0,
-  TEMP = 0x1,
-  GFX = 0x2,
-  TASKMGR2 = 0x3,
-  LIVE = 0x4,
-  LIVE_XBOX = 0x5,
-  LIVE_PS4 = 0x6,
-  MATCHMAKING = 0x7,
-  DEMONWARE = 0x8,
-  LEADERBOARDS = 0x9,
-  LOBBY = 0xA,
-  LOBBYHOST = 0xB,
-  LOBBYCLIENT = 0xC,
-  LOBBYVM = 0xD,
-  MIGRATION = 0xE,
-  IG_MIGRATION_HOST = 0xF,
-  IG_MIGRATION_CLIENT = 0x10,
-  SCRIPTER = 0x11,
-  VM = 0x12,
-  DVAR = 0x13,
-  TOOL = 0x14,
-  ANIM = 0x15,
-  NETCHAN = 0x16,
-  BGCACHE = 0x17,
-  PM = 0x18,
-  MAPSWITCH = 0x19,
-  AI = 0x1A,
-  GADGET = 0x1B,
-  SOUND = 0x1C,
-  SNAPSHOT = 0x1D,
-  PLAYGO = 0x1E,
-  LUI = 0x1F,
-  LUA = 0x20,
-  VOIP = 0x21,
-  DEMO = 0x22,
-  DB = 0x23,
-  HTTP = 0x24,
-  COMPANION = 0x25,
-  MEM = 0x26,
-  CINEMATIC = 0x27,
-  DDL = 0x28,
-  STORAGE = 0x29,
-  STEAM = 0x2A,
-  CHKPTSAVE = 0x2B,
-  THUNDERHEAD = 0x2C,
-  COMSCORE = 0x2D,
-  FILESHARE = 0x2E,
-  LPC = 0x2F,
-  MARKETING = 0x30,
-  STORE = 0x31,
-  TESTING = 0x32,
-  LOOT = 0x33,
-  MATCHRECORDER = 0x34,
-  EXCHANGE = 0x35,
-  SCRIPTERROR = 0x36,
-  CONSOLE = 0x37,
-  COUNT = 0x38
-};
-IMPL_ENUM_OPERATORS(consoleLabel);
-
-enum class errorCode : int32_t {
-  NONE = 0,
-  FATAL = 1,
-  DROP = 2,
-  FROM_STARTUP = 4,
-  SERVERDISCONNECT = 8,
-  DISCONNECT = 16,
-  SCRIPT = 32,
-  SCRIPT_DROP = 64,
-  LOCALIZATION = 128,
-  UI = 256,
-  LUA = 512,
-  SOFTRESTART = 1024,
-  SOFTRESTART_KEEPDW = 2048,
-  SOFTRESTART_SILENT = 4096,
-};
 enum class eVoipStatus : int32_t {
   HIDDEN = 0,
   TALKING = 1,

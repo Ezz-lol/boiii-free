@@ -1,15 +1,17 @@
 #pragma once
 
 #include <game/structs/scr/builtin/table/macros.hpp>
-#include <game/structs/scr/weapon.hpp>
+#include <game/structs/scr/field/weapon.hpp>
 
 namespace game {
 namespace scr {
 namespace builtin {
 namespace table {
+namespace field {
 namespace weapon {
 
-using namespace game::scr::weapon;
+using namespace game::scr::field;
+using namespace game::scr::field::weapon;
 // All fields below, except those with comments immediately above indicating
 // otherwise, have `nullptr` `getter`s.
 PACKED(union FieldTable {
@@ -343,13 +345,14 @@ PACKED(union FieldTable {
 
   // Does not include `__reserve_unused`, which is a name defined here only -
   // the `__reserved_unused` field has no `canonId` (0), and thus no name.
-  static inline constexpr size_t DEFINED_COUNT = 0xF0;
-  static const std::array<const char *, DEFINED_COUNT> names;
+  static inline constexpr size_t DEFINED_COUNT = COUNT - 1;
+  static const std::array<std::string_view, DEFINED_COUNT> names;
   DECLARE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(fields);
 });
 ASSERT_SIZE(FieldTable, sizeof(FieldTable::fields));
 } // namespace weapon
+} // namespace field
 } // namespace table
 } // namespace builtin
 } // namespace scr

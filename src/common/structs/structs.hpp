@@ -5,4 +5,5 @@
 #include "concurrent.hpp" // IWYU pragma: export
 #include "enum.hpp"       // IWYU pragma: export
 #include "func.hpp"       // IWYU pragma: export
+#include "primitive.hpp"  // IWYU pragma: export
 #include "str.hpp"        // IWYU pragma: export

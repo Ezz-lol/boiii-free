@@ -1,9 +1,10 @@
 #pragma once
 
+#include <structs/func.hpp>
+
 #include <cstdint>
 
 #include <game/structs/macros.hpp>
-#include <structs/func.hpp>
 
 #include <macros.hpp>
 

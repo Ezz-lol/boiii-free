@@ -6,8 +6,9 @@ namespace game {
 namespace scr {
 namespace builtin {
 namespace table {
+namespace field {
 namespace weapon {
-constexpr std::array<const char *, FieldTable::DEFINED_COUNT>
+constexpr std::array<std::string_view, FieldTable::DEFINED_COUNT>
     FieldTable::names = {
         "AIFuseTime",
         "ProjExplosionSound",
@@ -252,6 +253,7 @@ constexpr std::array<const char *, FieldTable::DEFINED_COUNT>
 };
 DEFINE_NAME_MAP(FieldTable::names, FieldTable::hashes);
 } // namespace weapon
+} // namespace field
 } // namespace table
 } // namespace builtin
 } // namespace scr

@@ -2,12 +2,13 @@
 
 #include <cstdint>
 
-#include <game/structs/macros.hpp>
-#include <game/structs/quake/vec.hpp>
-#include <game/symbol.hpp>
 #include <structs/atomic.hpp>
 #include <structs/func.hpp>
 #include <structs/str.hpp>
+
+#include <game/structs/macros.hpp>
+#include <game/structs/quake/vec.hpp>
+#include <game/symbol.hpp>
 
 inline constexpr auto PROTOCOL = 8;
 inline constexpr auto SUB_PROTOCOL = 1;
@@ -407,21 +408,6 @@ enum class errorParm : uint32_t {
   NONE = 0x0,
   FATAL = 0x1,
   DROP = 0x2,
-  SCRIPT = 0x4,
-  SCRIPT_DROP = 0x40,
-
-  UI = 0x100,
-  LUA = 0x200,
-  SOFTRESTART = 0x400,
-  SOFTRESTART_KEEPDW = 0x800,
-
-};
-IMPL_ENUM_OPERATORS(errorParm);
-
-enum class errorCode : uint32_t {
-  NONE = 0x0,
-  FATAL = 0x1,
-  DROP = 0x2,
   FROM_STARTUP = 0x4,
   SERVERDISCONNECT = 0x8,
   DISCONNECT = 0x10,
@@ -432,8 +418,9 @@ enum class errorCode : uint32_t {
   LUA = 0x200,
   SOFTRESTART = 0x400,
   SOFTRESTART_KEEPDW = 0x800,
+  SOFTRESTART_SILENT = 0x1000,
 };
-IMPL_ENUM_OPERATORS(errorCode);
+IMPL_ENUM_OPERATORS(errorParm);
 
 template <typename T> using LocalClientPool = array<T, LOCAL_CLIENT_COUNT>;
 template <typename T>
@@ -619,59 +606,87 @@ enum class StorageFileType : int32_t {
 };
 IMPL_ENUM_OPERATORS(StorageFileType);
 
-enum class consoleLabel_e : int32_t {
-  DEFAULT = 0x0,
+// Verified
+enum class consoleLabel : int32_t {
+  DEFAULT = 0,
   TEMP = 0x1,
   GFX = 0x2,
   TASKMGR2 = 0x3,
   LIVE = 0x4,
-  DEMONWARE = 0x5,
-  LEADERBOARDS = 0x6,
-  LOBBY = 0x7,
-  LOBBYHOST = 0x8,
-  LOBBYCLIENT = 0x9,
-  LOBBYVM = 0xA,
-  MIGRATION = 0xB,
-  INGAME_MIGRATION_HOST = 0xC,
-  INGAME_MIGRATION_CLIENT = 0xD,
-  SCRIPTER = 0xE,
-  VM = 0xF,
-  DVAR = 0x10,
-  TOOL = 0x11,
-  ANIM = 0x12,
-  NETCHAN = 0x13,
-  BG_CACHE = 0x14,
-  PM = 0x15,
-  MAPSWITCH = 0x16,
-  AI = 0x17,
-  GADGET = 0x18,
-  SOUND = 0x19,
-  SNAPSHOT = 0x1A,
-  PLAYGO = 0x1B,
-  LUI = 0x1C,
-  LUA = 0x1D,
-  VOICE = 0x1E,
-  DEMO = 0x1F,
-  DB = 0x20,
-  HTTP = 0x21,
-  COMPANION = 0x22,
-  MEM = 0x23,
-  CINEMATIC = 0x24,
-  DDL = 0x25,
-  STORAGE = 0x26,
-  STEAM = 0x27,
-  CHECKPOINT = 0x28,
-  THUNDERHEAD = 0x29,
-  COMSCORE = 0x2A,
-  FILESHARE = 0x2B,
-  LPC = 0x2C,
-  MARKETING = 0x2D,
-  STORE = 0x2E,
-  TESTING = 0x2F,
-  CHANNEL_ERROR = 0x36,
-  COUNT = 0x37,
+  LIVE_XBOX = 0x5,
+  LIVE_PS4 = 0x6,
+  MATCHMAKING = 0x7,
+  DEMONWARE = 0x8,
+  LEADERBOARDS = 0x9,
+  LOBBY = 0xA,
+  LOBBYHOST = 0xB,
+  LOBBYCLIENT = 0xC,
+  LOBBYVM = 0xD,
+  MIGRATION = 0xE,
+  IG_MIGRATION_HOST = 0xF,
+  IG_MIGRATION_CLIENT = 0x10,
+  SCRIPTER = 0x11,
+  VM = 0x12,
+  DVAR = 0x13,
+  TOOL = 0x14,
+  ANIM = 0x15,
+  NETCHAN = 0x16,
+  BGCACHE = 0x17,
+  PM = 0x18,
+  MAPSWITCH = 0x19,
+  AI = 0x1A,
+  GADGET = 0x1B,
+  SOUND = 0x1C,
+  SNAPSHOT = 0x1D,
+  PLAYGO = 0x1E,
+  LUI = 0x1F,
+  LUA = 0x20,
+  VOIP = 0x21,
+  DEMO = 0x22,
+  DB = 0x23,
+  HTTP = 0x24,
+  COMPANION = 0x25,
+  MEM = 0x26,
+  CINEMATIC = 0x27,
+  DDL = 0x28,
+  STORAGE = 0x29,
+  STEAM = 0x2A,
+  CHKPTSAVE = 0x2B,
+  THUNDERHEAD = 0x2C,
+  COMSCORE = 0x2D,
+  FILESHARE = 0x2E,
+  LPC = 0x2F,
+  MARKETING = 0x30,
+  STORE = 0x31,
+  TESTING = 0x32,
+  LOOT = 0x33,
+  MATCHRECORDER = 0x34,
+  EXCHANGE = 0x35,
+  SCRIPTERROR = 0x36,
+  CONSOLE = 0x37,
+  COUNT = 0x38
 };
-IMPL_ENUM_OPERATORS(consoleLabel_e);
+IMPL_ENUM_OPERATORS(consoleLabel);
+typedef consoleLabel consoleLabel_e;
+
+// Verified
+enum class errorCode : uint32_t {
+  NONE = 0,
+  FATAL = 1,
+  DROP = 2,
+  FROM_STARTUP = 4,
+  SERVERDISCONNECT = 8,
+  DISCONNECT = 16,
+  SCRIPT = 32,
+  SCRIPT_DROP = 64,
+  LOCALIZATION = 128,
+  UI = 256,
+  LUA = 512,
+  SOFTRESTART = 1024,
+  SOFTRESTART_KEEPDW = 2048,
+  SOFTRESTART_SILENT = 4096,
+};
+IMPL_ENUM_OPERATORS(errorCode);
 
 enum class PMemStack : uint32_t {
   DB = 0x0,
@@ -920,13 +935,6 @@ struct orientation_t {
   vec3_t origin;
   vec3_t axis[3];
 };
-
-#pragma pack(push, 16)
-struct float128_t {
-  int64_t LowPart;
-  int64_t HighPart;
-};
-#pragma pack(pop)
 
 struct CmdArgs {
   int32_t nesting;
@@ -1276,6 +1284,7 @@ struct outPacket_t {
   int32_t p_realtime;
 };
 
+// Verified
 enum class consoleChannel_e : uint32_t {
   CHANNEL_DONT_FILTER = 0x0,
   CHANNEL_GAMENOTIFY = 0x1,
@@ -1285,6 +1294,7 @@ enum class consoleChannel_e : uint32_t {
   CHANNEL_OBITUARY = 0x5,
   CHANNEL_COOPINFO = 0x6,
   CHANNEL_WARNING = 0x7,
+  // Note: this may be missing in dedicated server.
   CHANNEL_ERROR = 0x8,
   CHANNEL_INFO = 0x9,
   BUILTIN_CHANNEL_COUNT = 0xA,

@@ -11,7 +11,7 @@ namespace sv {
 void SV_SetConfigString_Impl(const int32_t index, const char *val) {
   if (static_cast<uint32_t>(index) > 0xE2D) {
     com::Com_Error_("q:\\t7\\pc\\code\\src\\server_mp\\sv_init_mp.cpp", 220,
-                    errorParm::DROP,
+                    errorParm::SERVERDISCONNECT,
                     "SV_SetConfigString: bad index %i\n", index);
     return;
   }

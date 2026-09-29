@@ -1,5 +1,7 @@
 #pragma once
 
+#include "scr/scr.hpp"
+
 #include "asm.hpp"
 #include "core.hpp"
 #include "lobby/core.hpp"
@@ -7,7 +9,6 @@
 #include "phys/core.hpp"
 #include "quake/core.hpp"
 #include "scr/core.hpp"
-#include "scr/scr.hpp"
 #include "snd/snd.hpp"
 
 #include <cstdint>

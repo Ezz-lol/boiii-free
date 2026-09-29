@@ -267,7 +267,7 @@ union BuiltinFunctionTable {
   static inline constexpr size_t COUNT = 251;
   BuiltinFunctionDef functions[COUNT];
 
-  static const std::array<const char *, COUNT> names;
+  static const std::array<std::string_view, COUNT> names;
 
   DECLARE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(functions);
@@ -535,7 +535,7 @@ union BuiltinMethodTable {
   static inline constexpr size_t COUNT = 246;
   BuiltinMethodDef methods[COUNT];
 
-  static const std::array<const char *, COUNT> names;
+  static const std::array<std::string_view, COUNT> names;
 
   DECLARE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(methods);
@@ -655,7 +655,7 @@ union GfxFunctionTable {
   static inline constexpr size_t COUNT = 106;
   BuiltinFunctionDef functions[COUNT];
 
-  static const std::array<const char *, COUNT> names;
+  static const std::array<std::string_view, COUNT> names;
 
   DECLARE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(functions);
@@ -710,7 +710,7 @@ union GfxMethodTable {
   static inline constexpr size_t COUNT = 42;
 
   BuiltinMethodDef methods[COUNT];
-  static const std::array<const char *, COUNT> names;
+  static const std::array<std::string_view, COUNT> names;
 
   DECLARE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(methods);
@@ -733,7 +733,7 @@ union MathFunctionTable {
   static inline constexpr size_t COUNT = 9;
   BuiltinFunctionDef functions[COUNT];
 
-  static const std::array<const char *, COUNT> names;
+  static const std::array<std::string_view, COUNT> names;
 
   DECLARE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(functions);
@@ -778,7 +778,7 @@ union SoundFunctionTable {
   static inline constexpr size_t COUNT = 31;
   BuiltinFunctionDef functions[COUNT];
 
-  static const std::array<const char *, COUNT> names;
+  static const std::array<std::string_view, COUNT> names;
 
   DECLARE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(functions);
@@ -800,7 +800,7 @@ union SoundMethodTable {
   static inline constexpr size_t COUNT = 8;
   BuiltinMethodDef methods[COUNT];
 
-  static const std::array<const char *, COUNT> names;
+  static const std::array<std::string_view, COUNT> names;
 
   DECLARE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(methods);
@@ -834,7 +834,7 @@ union UIFunctionTable {
   static inline constexpr size_t COUNT = 20;
   BuiltinFunctionDef functions[COUNT];
 
-  static const std::array<const char *, COUNT> names;
+  static const std::array<std::string_view, COUNT> names;
 
   DECLARE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(functions);
@@ -867,7 +867,7 @@ union UtilFunctionTable {
   static inline constexpr size_t COUNT = 19;
   BuiltinFunctionDef functions[COUNT];
 
-  static const std::array<const char *, COUNT> names;
+  static const std::array<std::string_view, COUNT> names;
 
   DECLARE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(functions);
@@ -883,7 +883,7 @@ union UtilMethodTable {
 
   static inline constexpr size_t COUNT = 2;
   BuiltinMethodDef methods[COUNT];
-  static const std::array<const char *, COUNT> names;
+  static const std::array<std::string_view, COUNT> names;
 
   DECLARE_NAME_MAP(names, hashes);
   IMPL_TABLE_OPERATORS(methods);

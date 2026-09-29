@@ -1,4 +1,5 @@
-#pragma once
+#ifndef FUNC_HPP
+#define FUNC_HPP
 
 #include <type_traits>
 
@@ -313,4 +314,6 @@ using merge_params_t = typename merge_params<FuncType, AppendedParams...>::type;
 
 #ifdef __clang__
 #pragma clang diagnostic pop
+#endif
+
 #endif

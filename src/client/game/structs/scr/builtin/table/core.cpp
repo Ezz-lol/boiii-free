@@ -7,7 +7,7 @@ namespace scr {
 namespace builtin {
 namespace table {
 
-constexpr std::array<const char *, ActorInterfaceMethodTable::COUNT>
+constexpr std::array<std::string_view, ActorInterfaceMethodTable::COUNT>
     ActorInterfaceMethodTable::names = {
         "ChooseBetterCoverNode",
         "GetFireMode",
@@ -21,7 +21,7 @@ constexpr std::array<const char *, ActorInterfaceMethodTable::COUNT>
 DEFINE_NAME_MAP(ActorInterfaceMethodTable::names,
                 ActorInterfaceMethodTable::hashes);
 
-constexpr std::array<const char *, ActorMethodTable::COUNT>
+constexpr std::array<std::string_view, ActorMethodTable::COUNT>
     ActorMethodTable::names = {
         "StartCoverArrival",
         "Melee",
@@ -167,7 +167,7 @@ constexpr std::array<const char *, ActorMethodTable::COUNT>
 };
 DEFINE_NAME_MAP(ActorMethodTable::names, ActorMethodTable::hashes);
 
-constexpr std::array<const char *, BotMethodTable::COUNT>
+constexpr std::array<std::string_view, BotMethodTable::COUNT>
     BotMethodTable::names = {
         "BotDropClient",
         "BotInLastStand",
@@ -241,7 +241,7 @@ constexpr std::array<const char *, BotMethodTable::COUNT>
 };
 DEFINE_NAME_MAP(BotMethodTable::names, BotMethodTable::hashes);
 
-constexpr std::array<const char *, PlayerMethodTable::COUNT>
+constexpr std::array<std::string_view, PlayerMethodTable::COUNT>
     PlayerMethodTable::names = {
         "GiveWeapon",
         "HasMaxPrimaryWeapons",
@@ -648,7 +648,7 @@ constexpr std::array<const char *, PlayerMethodTable::COUNT>
 };
 DEFINE_NAME_MAP(PlayerMethodTable::names, PlayerMethodTable::hashes);
 
-constexpr std::array<const char *, CommonFunctionTable::COUNT>
+constexpr std::array<std::string_view, CommonFunctionTable::COUNT>
     CommonFunctionTable::names = {
         "ReportStubUsage",
         "Record3DText",
@@ -940,7 +940,7 @@ constexpr std::array<const char *, CommonFunctionTable::COUNT>
 };
 DEFINE_NAME_MAP(CommonFunctionTable::names, CommonFunctionTable::hashes);
 
-constexpr std::array<const char *, CommonMethodTable::COUNT>
+constexpr std::array<std::string_view, CommonMethodTable::COUNT>
     CommonMethodTable::names = {
         "Attach",
         "Detach",
@@ -1163,7 +1163,7 @@ constexpr std::array<const char *, CommonMethodTable::COUNT>
 };
 DEFINE_NAME_MAP(CommonMethodTable::names, CommonMethodTable::hashes);
 
-constexpr std::array<const char *, HelicopterMethodTable::COUNT>
+constexpr std::array<std::string_view, HelicopterMethodTable::COUNT>
     HelicopterMethodTable::names = {
         "SetDamageStage",         "SetHeliHeightLock",
         "SetHeliHeightCap",       "GetHeliHeightLock",
@@ -1172,7 +1172,7 @@ constexpr std::array<const char *, HelicopterMethodTable::COUNT>
 };
 DEFINE_NAME_MAP(HelicopterMethodTable::names, HelicopterMethodTable::hashes);
 
-constexpr std::array<const char *, HudElemMethodTable::COUNT>
+constexpr std::array<std::string_view, HudElemMethodTable::COUNT>
     HudElemMethodTable::names = {
         "SetText",          "SetShader",
         "SetTargetEnt",     "ClearTargetEnt",
@@ -1191,7 +1191,7 @@ constexpr std::array<const char *, HudElemMethodTable::COUNT>
 };
 DEFINE_NAME_MAP(HudElemMethodTable::names, HudElemMethodTable::hashes);
 
-constexpr std::array<const char *, MathFunctionTable::COUNT>
+constexpr std::array<std::string_view, MathFunctionTable::COUNT>
     MathFunctionTable::names = {
         "RandomInt",
         "RandomFloat",
@@ -1200,7 +1200,7 @@ constexpr std::array<const char *, MathFunctionTable::COUNT>
 };
 DEFINE_NAME_MAP(MathFunctionTable::names, MathFunctionTable::hashes);
 
-constexpr std::array<const char *, ScriptEntMethodTable::COUNT>
+constexpr std::array<std::string_view, ScriptEntMethodTable::COUNT>
     ScriptEntMethodTable::names = {
         "MoveTo",        "MoveX",     "MoveY",          "MoveZ",
         "MoveGravity",   "MoveSlide", "StopMoveSlide",  "RotateTo",
@@ -1210,7 +1210,7 @@ constexpr std::array<const char *, ScriptEntMethodTable::COUNT>
 };
 DEFINE_NAME_MAP(ScriptEntMethodTable::names, ScriptEntMethodTable::hashes);
 
-constexpr std::array<const char *, ScriptVehicleMethodTable::COUNT>
+constexpr std::array<std::string_view, ScriptVehicleMethodTable::COUNT>
     ScriptVehicleMethodTable::names = {
         "AttachPath",
         "GetAttachPos",
@@ -1343,7 +1343,7 @@ constexpr std::array<const char *, ScriptVehicleMethodTable::COUNT>
 DEFINE_NAME_MAP(ScriptVehicleMethodTable::names,
                 ScriptVehicleMethodTable::hashes);
 
-constexpr std::array<const char *, SentientFunctionTable::COUNT>
+constexpr std::array<std::string_view, SentientFunctionTable::COUNT>
     SentientFunctionTable::names = {
         "CreateThreatBiasGroup",   "ThreatBiasGroupExists",
         "GetThreatBias",           "SetThreatBias",
@@ -1352,7 +1352,7 @@ constexpr std::array<const char *, SentientFunctionTable::COUNT>
 };
 DEFINE_NAME_MAP(SentientFunctionTable::names, SentientFunctionTable::hashes);
 
-constexpr std::array<const char *, SentientMethodTable::COUNT>
+constexpr std::array<std::string_view, SentientMethodTable::COUNT>
     SentientMethodTable::names = {
         "GetClosestEnemySqDist",
         "SetThreatBiasGroup",
@@ -1388,7 +1388,7 @@ constexpr std::array<const char *, SentientMethodTable::COUNT>
 };
 DEFINE_NAME_MAP(SentientMethodTable::names, SentientMethodTable::hashes);
 
-constexpr std::array<const char *, UtilFunctionTable::COUNT>
+constexpr std::array<std::string_view, UtilFunctionTable::COUNT>
     UtilFunctionTable::names = {
         "SetSharedViewPort",
         "SetTopDownCameraYaw",
