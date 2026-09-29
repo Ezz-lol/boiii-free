@@ -59,7 +59,7 @@ void SV_SetConfigString_Impl(const int32_t index, const char *val) {
                   if (chunk_len == 0) {
                     com::Com_Error_(
                         "q:\\t7\\pc\\code\\src\\server_mp\\sv_init_mp.cpp", 280,
-                        errorParm::DROP,
+                        errorParm::SERVERDISCONNECT,
                         "SV_SetConfigstring: big config string with %d empty "
                         "spaces\n",
                         init_chunk_len);
