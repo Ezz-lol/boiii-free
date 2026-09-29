@@ -78,9 +78,8 @@ struct clientSession_t {
   user::usercmd_t oldcmd;
   bool localClient;
   bool predictItemPickup;
-  name_t newnetname;
-  uint8_t _padding116[2];
-  int32_t maxHealth;
+  str<18> newnetname;
+  int32_t maxHealth; // Verified
   int32_t enterTime;
   playerTeamState_t teamState;
   int32_t voteCount;
@@ -88,6 +87,7 @@ struct clientSession_t {
   float moveSpeedScaleMultiplier;
   int32_t noSpectate;
   qboolean teamInfo;
+  uint8_t _unknown127[16];
   clientState_t cs; // Verified
   int32_t psOffsetTime;
   /*
@@ -99,8 +99,8 @@ struct clientSession_t {
 };
 ASSERT_OFFSET(clientSession_t, localClient, 0xF4);
 ASSERT_OFFSET(clientSession_t, _padding14, 0x14);
-ASSERT_OFFSET(clientSession_t, _padding116, 0x116);
 ASSERT_OFFSET(clientSession_t, cs, 0x138);
+ASSERT_OFFSET(clientSession_t, maxHealth, 0x108);
 ASSERT_SIZE(clientSession_t, CLIENTSESSION_T_SIZE);
 #pragma pack(pop)
 
@@ -185,6 +185,7 @@ struct gclient_s {
 typedef gclient_s gclient_t;
 // FIXME: correct size is 0x171F0. This struct needs to be corrected.
 ASSERT_SIZE(gclient_s, 0x17200);
+ASSERT_OFFSET(gclient_s, sess, 0x16AD0);
 
 #pragma pack(pop)
 
@@ -429,8 +430,8 @@ struct gentity_s {
   int32_t processedFrame;
   EntHandle parent;
   int32_t nextthink;
-  int32_t health;
-  int32_t maxHealth;
+  int32_t health;    // Verified
+  int32_t maxHealth; // Verified
   int32_t damage;
   uint8_t _padding2D4[4];
   flame_timed_damage_t flame_timed_damage[4];
@@ -474,6 +475,8 @@ struct gentity_s {
   int32_t debugRenderTime;
   char tmodeTimeOut;
   uint8_t _padding4F1[7];
+
+  inline constexpr bool dead() const noexcept { return health <= 0; }
 };
 #pragma pack(pop)
 
@@ -489,6 +492,11 @@ ASSERT_OFFSET(gentity_s, snd_wait, GENTITY_SND_WAIT_OFFSET);
 ASSERT_OFFSET(gentity_s, s, 0);
 ASSERT_OFFSET(gentity_s, client, 0x250);
 ASSERT_OFFSET(gentity_s, vehicle, 0x270);
+ASSERT_OFFSET(gentity_s, eventTime, 0x2AC);
+ASSERT_OFFSET(gentity_s, r, 0x1F0);
+ASSERT_OFFSET(gentity_s, takedamage, 0x283);
+ASSERT_OFFSET(gentity_s, health, 0x2C8);
+ASSERT_OFFSET(gentity_s, maxHealth, 0x2CC);
 ASSERT_SIZE(gentity_s, GENTITY_SIZE);
 #endif
 

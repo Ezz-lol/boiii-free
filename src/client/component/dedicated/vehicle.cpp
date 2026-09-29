@@ -164,8 +164,6 @@ inline void enable_client_game_pools() {
   game_event::on_g_init_game(reset_pools);
 }
 
-utils::hook::detour path_constraint_update_hook;
-utils::hook::detour NitrousVehicle_is_path_moving_hook;
 bool NitrousVehicle_is_path_moving_sv(NitrousVehicle *self) {
   return self && self->m_owner && self->m_owner->vehicle &&
          (self->m_owner->vehicle->moveState != VehicleMoveState::STOP ||
@@ -198,7 +196,17 @@ void NitrousVehicle_unpause_physics_always_collide_wheels(
 utils::hook::detour NitrousVehicle_pause_physics_hook;
 void NitrousVehicle_pause_insentient_physics(NitrousVehicle *self,
                                              bool shutdown) {
-  if (self && self->m_vehicle_def && !self->m_vehicle_def->isSentient) {
+
+  bool shouldPause;
+  {
+    const sys::ScopedCriticalSection _critsect = sys::ScopedCriticalSection(
+        sys::CriticalSection::PHYSICS,
+        sys::ScopedCriticalSection::ScopedCriticalSectionType::NORMAL);
+    shouldPause =
+        self && (!self->m_vehicle_def || !self->m_vehicle_def->isSentient ||
+                 !self->m_owner || self->m_owner->dead());
+  }
+  if (shouldPause) {
     return NitrousVehicle_pause_physics_hook.invoke(self, shutdown);
   }
 }
@@ -211,10 +219,9 @@ struct component final : server_component {
 
   void post_unpack() override {
     enable_client_game_pools();
-    path_constraint_update_hook.create(path_constraint_update,
-                                       path_constraint_update_sv);
-    NitrousVehicle_is_path_moving_hook.create(
-        NitrousVehicle::syms::is_path_moving, NitrousVehicle_is_path_moving_sv);
+    utils::hook::jump(path_constraint_update, path_constraint_update_sv);
+    utils::hook::jump(NitrousVehicle::syms::is_path_moving,
+                      NitrousVehicle_is_path_moving_sv);
     NitrousVehicle_unpause_physics_hook.create(
         NitrousVehicle::syms::unpause_physics,
         NitrousVehicle_unpause_physics_always_collide_wheels);

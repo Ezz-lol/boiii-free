@@ -1627,7 +1627,7 @@ constexpr uint32_t ENTITYSTATE_SIZE = 0x1F0;
 constexpr uint32_t ENTITYSTATE_LOOPSOUND_OFFSET = 0xDC;
 constexpr uint32_t ENTITYSTATE_UN3_OFFSET = 0x130;
 constexpr uint32_t ENTITYSTATE_CLIENTMASK_OFFSET = 0x168;
-constexpr uint32_t ENTITYSTATE_ETYPE_OFFSET = 0x198;
+constexpr uint32_t ENTITYSTATE_ETYPE_OFFSET = 0x1A0;
 constexpr uint32_t ENTITYSTATE_OTHERENTITYNUM_OFFSET = 0x1AE;
 
 struct entityState_s {
@@ -1648,16 +1648,15 @@ struct entityState_s {
   uint8_t teamMask;
   uint8_t events[4];
   uint8_t _padding171[7];
-  EventParm_t eventParms[4];
+  EventParm_t eventParms[5];
   entityType_t eType;
-  uint32_t _unknown19C;
   team_t team;
   int16_t owner;
   int16_t groundEntityNum;
   entityStateIndex index;
+  int16_t otherEntityNum;
   int16_t attackerEntityNum;
   int16_t enemyModel;
-  int16_t otherEntityNum;
   weapon::Weapon weapon;
   weapon::Weapon lastStandPrevWeapon;
   scr::ScrString_t targetname;
@@ -1673,7 +1672,7 @@ struct entityState_s {
   entityStateUn1 un1;
   uint32_t _unknown1E4;
   int16_t previousEventSequence;
-  uint8_t _padding1EA[6];
+  uint8_t _padding1EA[2];
 };
 constexpr uint32_t ENTITYSTATE_CLIENTMASK_BITS =
     bitsizeof<decltype(entityState_s::clientMask)>();
@@ -1708,6 +1707,7 @@ struct entityShared_t {
   int32_t eventTime;
 };
 ASSERT_SIZE(entityShared_t, 0x60);
+ASSERT_OFFSET(entityShared_t, eventTime, 0x5C);
 #pragma pack(pop)
 
 enum class EViewAngleEaseMode : uint32_t {
