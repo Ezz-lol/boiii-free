@@ -167,6 +167,12 @@ WEAK symbol<void(scriptInstance_t inst, GSC_OBJ *prime_obj,
                  objFileInfo_t *fileInfo, GSC_IMPORT_ITEM *import,
                  char *errorString, int32_t errorStringLength)>
     ReportObjLinkError2{0x1412CB730, 0x1412CB710, 0x0};
+WEAK symbol<int32_t(scriptInstance_t inst, GSC_OBJ *obj,
+                    objFileInfo_t *fileInfo)>
+    GscObjResolve{0x1412CA2D0, 0x0, 0x140158510};
+WEAK symbol<bool(scriptInstance_t inst, GSC_OBJ *obj, GSC_IMPORT_ITEM *import,
+                 uint16_t index, bool isThreaded)>
+    Scr_ResolveScriptFunction{0x1412CC770, 0x0, 0x14015A7D0};
 
 WEAK symbol<ObjFileInfoPool> gObjFileInfo{0x14505D2E0, 0x1450DC2E0,
                                           0x1425DCA80};

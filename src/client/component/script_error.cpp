@@ -871,14 +871,14 @@ void error_message_print_stub(const char *text) {
     skip_error_newline = true;
     return;
   }
-  utils::hook::invoke<void>(0x1405857A0_g, text);
+  game::sys::Sys_Print(text);
 }
 
 void error_newline_print_stub(const char *text) {
   if (std::exchange(skip_error_newline, false)) {
     return;
   }
-  utils::hook::invoke<void>(0x1405857A0_g, text);
+  game::sys::Sys_Print(text);
 }
 
 void error_banner_print_stub(const int32_t channel, const int32_t label,
@@ -887,8 +887,9 @@ void error_banner_print_stub(const int32_t channel, const int32_t label,
   if (is_reported(message)) {
     return;
   }
-  utils::hook::invoke<void>(0x140505630_g, channel, label, fmt, message,
-                            detail);
+  game::com::Com_Printf(static_cast<game::consoleChannel_e>(channel),
+                        static_cast<game::consoleLabel_e>(label), fmt, message,
+                        detail);
 }
 
 void linker_print_stub(const char *fmt, ...) {
@@ -924,17 +925,23 @@ struct component final : generic_component {
     }
 
     if (game::is_server()) {
-      link_obj_hook.create(0x140158510_g, link_obj_stub);
-      for (const size_t call_site :
-           {0x140158703_g, 0x14015890A_g, 0x140158779_g, 0x140158984_g,
-            0x140158CC4_g, 0x140158AC1_g, 0x14015A911_g, 0x140158E58_g}) {
-        utils::hook::call(call_site, linker_print_stub);
+      link_obj_hook.create(game::scr::GscObjResolve.get(), link_obj_stub);
+      for (const uintptr_t offset :
+           {0x1F3, 0x269, 0x3FA, 0x474, 0x5B1, 0x7B4, 0x948}) {
+        utils::hook::call(game::scr::GscObjResolve.offset(offset),
+                          linker_print_stub);
       }
+      utils::hook::call(game::scr::Scr_ResolveScriptFunction.offset(0x141),
+                        linker_print_stub);
 
-      utils::hook::call(0x1405016D5_g, error_message_print_stub);
-      utils::hook::call(0x1405016E1_g, error_newline_print_stub);
-      utils::hook::call(0x1405018AE_g, error_banner_print_stub);
-      utils::hook::call(0x1405011FB_g, error_banner_print_stub);
+      utils::hook::call(game::com::Com_Error_.offset(0x265),
+                        error_message_print_stub);
+      utils::hook::call(game::com::Com_Error_.offset(0x271),
+                        error_newline_print_stub);
+      utils::hook::call(game::com::Com_Error_.offset(0x43E),
+                        error_banner_print_stub);
+      utils::hook::call(game::com::Com_ErrorCleanup.offset(0x1AB),
+                        error_banner_print_stub);
     }
   }
 };
