@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 
 #include "component/dedicated/map_recovery.hpp"
+#include "component/exception.hpp"
 #include "component/path.hpp"
 #include "component/script_error.hpp"
 #include "scheduler.hpp"
@@ -147,14 +148,14 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
   }
 
   if (!game::is_server() && code == game::errorParm::FATAL) {
-    std::string deferred_error = std::string(buffer);
-    scheduler::once(
-        [deferred_error]() {
-          game::ui::UI_OpenErrorPopupWithMessage(game::LOCAL_CLIENT_0,
-                                                 game::errorCode::NONE,
-                                                 deferred_error.c_str());
-        },
-        scheduler::pipeline::main, 500ms);
+    const std::string message = std::format(
+        "The game hit a fatal error and was returned to the main menu.\n\n{}",
+        buffer);
+    if (exception::try_recover_fatal(message)) {
+      com_error_hook.invoke<void>(file, line, game::errorParm::DROP, "%s",
+                                  message.c_str());
+      return;
+    }
   }
 
   if (strstr(buffer, "Couldn't find the bsp for this map") ||
