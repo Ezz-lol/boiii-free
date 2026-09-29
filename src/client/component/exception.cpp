@@ -308,6 +308,7 @@ void reset_state() {
                          exception_data.code,
                          get_crash_module_info(exception_data.address));
     script_error::mark_reported(reason);
+    map_recovery::notify_clients(reason);
     game::com::Com_Error(game::errorParm::DROP, "%s", reason.c_str());
   }
 
