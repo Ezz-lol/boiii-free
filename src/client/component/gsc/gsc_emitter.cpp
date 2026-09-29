@@ -181,7 +181,7 @@ struct emitter_state {
 
   struct {
     std::vector<LineStartAddress> start_addresses;
-    uint64_t current;
+    uint64_t current = 0;
   } line;
 
   void record_hash(const std::string &name, int32_t line = 0,
@@ -2152,6 +2152,7 @@ emitter_result emit(scriptInstance_t inst, const ast_ptr &root,
     for (std::shared_ptr<ast_node> &child : root->children) {
       if (child->type == node_type::n_namespace) {
         state.script_namespace = gsc::gsc_hash(child->value);
+        state.record_hash(child->value);
       } else if (child->type == node_type::n_function_def) {
         std::string lower = child->value;
         std::transform(

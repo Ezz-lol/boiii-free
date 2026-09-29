@@ -110,7 +110,7 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
                                 sb.cursize)) {
       if (!*com::com_errorEntered) {
         com::Com_Error_("q:\\t7\\pc\\code\\src\\client\\cl_main.cpp", 2305,
-                        errorParm::SERVERDISCONNECT, "EXE_DISCONNECTED");
+                        errorParm::DROP, "EXE_DISCONNECTED");
       }
     }
     return;
@@ -154,7 +154,7 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
                                 sb.cursize)) {
       if (!*com::com_errorEntered) {
         com::Com_Error_("q:\\t7\\pc\\code\\src\\client\\cl_main.cpp", 2434,
-                        errorParm::SERVERDISCONNECT, "EXE_DISCONNECTED");
+                        errorParm::DROP, "EXE_DISCONNECTED");
       }
     }
     return;
@@ -261,7 +261,7 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
                                               connectPacket, writtenLength)) {
       if (!*com::com_errorEntered) {
         com::Com_Error_("q:\\t7\\pc\\code\\src\\client\\cl_main.cpp", 2391,
-                        errorParm::SERVERDISCONNECT, "EXE_DISCONNECTED");
+                        errorParm::DROP, "EXE_DISCONNECTED");
       }
     }
     return;
@@ -304,7 +304,7 @@ void CL_CheckForResend_Impl(game::LocalClientNum_t localClientNum) {
 
   default: {
     com::Com_Error_("q:\\t7\\pc\\code\\src\\client\\cl_main.cpp", 2441,
-                    errorParm::DROP, "CL_CheckForResend: bad connstate");
+                    errorParm::FATAL, "CL_CheckForResend: bad connstate");
     return;
   }
   }

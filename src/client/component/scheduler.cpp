@@ -85,77 +85,9 @@ void server_frame_stub() {
   execute(server);
 }
 
-#ifdef NDEBUG
-LONG server_seh_filter(LPEXCEPTION_POINTERS info, const char * /*context*/) {
-  if (game::is_server() && info && info->ExceptionRecord) {
-    const auto code = info->ExceptionRecord->ExceptionCode;
-    if (code == server_restart::SCRIPT_ERROR_EXCEPTION) {
-      return EXCEPTION_EXECUTE_HANDLER;
-    }
-  }
-  return EXCEPTION_EXECUTE_HANDLER;
-}
-#endif
-
-#pragma warning(push)
-#pragma warning(disable : 4611)
-void invoke_main_frame_with_jmp() {
-  if (setjmp(server_restart::game_frame_jmp) == 0) {
-    server_restart::game_frame_jmp_set = true;
-    main_frame_hook.invoke<void>();
-    server_restart::game_frame_jmp_set = false;
-  } else {
-    server_restart::game_frame_jmp_set = false;
-  }
-}
-#pragma warning(pop)
-
-void invoke_server_main_frame_seh() {
-#ifdef NDEBUG
-  __try {
-#endif
-    invoke_main_frame_with_jmp();
-#ifdef NDEBUG
-    server_restart::consecutive_crash_count.store(0);
-    server_restart::restart_recovery_active.store(false);
-
-  } __except (server_seh_filter(GetExceptionInformation(), "Game frame")) {
-    server_restart::game_frame_jmp_set = false;
-    if (!server_restart::restart_pending.load()) {
-      if (server_restart::consecutive_crash_count.fetch_add(1) < 3) {
-        server_restart::schedule("Game frame crash");
-      }
-    }
-  }
-#endif
-}
-
-void safe_invoke_main_frame() {
-  if (game::is_server()) {
-    if (!server_restart::restart_pending.load(std::memory_order_seq_cst)) {
-      invoke_server_main_frame_seh();
-    }
-  } else {
-    main_frame_hook.invoke<void>();
-  }
-}
-
 void main_frame_stub() {
-  safe_invoke_main_frame();
-#ifdef NDEBUG
-  __try {
-#endif
-    execute(main);
-#ifdef NDEBUG
-  } __except (server_seh_filter(GetExceptionInformation(), "Scheduler task")) {
-    if (game::is_server() && !server_restart::restart_pending.load()) {
-      if (server_restart::consecutive_crash_count.fetch_add(1) < 3) {
-        server_restart::schedule("Scheduler task crash");
-      }
-    }
-  }
-  server_restart::check_and_execute();
-#endif
+  main_frame_hook.invoke<void>();
+  execute(main);
 }
 } // namespace
 
@@ -196,61 +128,6 @@ void once(const std::function<void()> &callback, const pipeline type,
       type, delay);
 }
 } // namespace scheduler
-
-namespace server_restart {
-bool schedule([[maybe_unused]] const char *reason, std::chrono::seconds delay) {
-#ifndef NDEBUG
-  fprintf(stderr, "server_restart::schedule called with reason %s\n", reason);
-  fflush(stderr);
-#endif
-
-  if (!game::is_server() || restart_pending.exchange(true)) {
-    return false;
-  }
-
-  ++restart_count;
-
-  const std::chrono::steady_clock::time_point target =
-      std::chrono::steady_clock::now() + delay;
-  const long long target_ms =
-      std::chrono::duration_cast<std::chrono::milliseconds>(
-          target.time_since_epoch())
-          .count();
-  restart_execute_time.store(target_ms);
-
-  return true;
-}
-
-void check_and_execute() {
-  if (!game::is_server() || !restart_pending.load())
-    return;
-
-  const long long now_ms =
-      std::chrono::duration_cast<std::chrono::milliseconds>(
-          std::chrono::steady_clock::now().time_since_epoch())
-          .count();
-  const int64_t target_ms = restart_execute_time.load();
-
-  if (target_ms == 0 || now_ms < target_ms)
-    return;
-
-  restart_pending.store(false);
-  restart_execute_time.store(0);
-  restart_recovery_active.store(true);
-  recovery_skip_count.store(0);
-#ifndef NDEBUG
-  fprintf(stderr, "check_and_execute: map_restart\n");
-  fflush(stderr);
-#endif
-  game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, "map_restart\n");
-}
-
-void abort_game_frame() {
-  if (game_frame_jmp_set) {
-    longjmp(game_frame_jmp, 1);
-  }
-}
-} // namespace server_restart
 
 namespace scheduler {
 struct component final : generic_component {

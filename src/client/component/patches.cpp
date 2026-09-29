@@ -1,6 +1,8 @@
 #include <std_include.hpp>
 
 #include "component/path.hpp"
+#include "component/dedicated/map_recovery.hpp"
+#include "component/script_error.hpp"
 #include "scheduler.hpp"
 #include <loader/component_loader.hpp>
 
@@ -14,95 +16,10 @@
 #ifndef NDEBUG
 #include <game/impl/snd/snd.hpp>
 #endif
-#include <component/gsc/gsc.hpp>
-
-namespace script {
-std::string resolve_hash(uint32_t hash);
-int resolve_hash_line(uint32_t hash, int32_t num_params = -1);
-std::string get_source_line(const std::string &file, int32_t line_num);
-} // namespace script
 
 namespace patches {
 game::EngineDependentDvar lobby_min_players;
 utils::hook::detour com_error_hook;
-
-std::string try_resolve_hex_token(const std::string &token) {
-  if (token.empty() || token.size() > 8 ||
-      token.find_first_not_of("0123456789ABCDEFabcdef") != std::string::npos)
-    return {};
-  uint32_t hash =
-      static_cast<uint32_t>(std::strtoul(token.c_str(), nullptr, 16));
-  return script::resolve_hash(hash);
-}
-
-std::string resolve_quoted_hashes(const std::string &input) {
-  std::string result = input;
-  size_t pos = 0;
-  while (pos < result.size()) {
-    size_t q1 = result.find('"', pos);
-    if (q1 == std::string::npos)
-      break;
-    size_t q2 = result.find('"', q1 + 1);
-    if (q2 == std::string::npos)
-      break;
-
-    std::string token = result.substr(q1 + 1, q2 - q1 - 1);
-    std::string name = try_resolve_hex_token(token);
-    if (!name.empty()) {
-      result.replace(q1 + 1, q2 - q1 - 1, name);
-      pos = q1 + 1 + name.size() + 1;
-      continue;
-    }
-    pos = q2 + 1;
-  }
-  return result;
-}
-
-std::string resolve_bare_hashes(const std::string &input) {
-  std::string result = input;
-  size_t pos = 0;
-  while (pos < result.size()) {
-    if (result[pos] == '"') {
-      size_t close = result.find('"', pos + 1);
-      pos = (close != std::string::npos) ? close + 1 : pos + 1;
-      continue;
-    }
-
-    if (std::isxdigit(static_cast<unsigned char>(result[pos]))) {
-      size_t start = pos;
-      while (pos < result.size() &&
-             std::isxdigit(static_cast<unsigned char>(result[pos])))
-        pos++;
-      size_t len = pos - start;
-
-      bool preceded_by_alnum =
-          (start > 0 &&
-           (std::isalnum(static_cast<unsigned char>(result[start - 1])) ||
-            result[start - 1] == '_'));
-      bool followed_by_alnum =
-          (pos < result.size() &&
-           (std::isalnum(static_cast<unsigned char>(result[pos])) ||
-            result[pos] == '_'));
-
-      if (len >= 1 && len <= 8 && !preceded_by_alnum && !followed_by_alnum) {
-        std::string token = result.substr(start, len);
-        std::string name = try_resolve_hex_token(token);
-        if (!name.empty()) {
-          result.replace(start, len, name);
-          pos = start + name.size();
-          continue;
-        }
-      }
-      continue;
-    }
-    pos++;
-  }
-  return result;
-}
-
-std::string resolve_hashes_in_string(const std::string &input) {
-  return resolve_bare_hashes(resolve_quoted_hashes(input));
-}
 
 utils::hook::detour Sys_Error_hook;
 void Sys_Error_LogCaller(const char *fmt, ...) {
@@ -128,10 +45,6 @@ void Sys_Error_LogCaller(const char *fmt, ...) {
                         game::consoleLabel_e::DEFAULT,
                         "[Sys_Error] Called from 0x%p with message: \"%s\"",
                         game::derelocate(callerAddr), msg);
-  if (game::is_server() && server_restart::restart_pending.load()) {
-
-    return;
-  }
   Sys_Error_hook.invoke("%s", msg);
 }
 
@@ -143,31 +56,10 @@ void Sys_Error_LogCaller(const char *fmt, ...) {
 void com_error_stub(const char *file, int32_t line, game::errorParm code,
                     const char *fmt, ...) {
   void *callerAddr = _ReturnAddress();
-  va_list ap;
-  va_start(ap, fmt);
-  int32_t len = vsnprintf(nullptr, 0, fmt, ap);
-  va_end(ap);
-  va_start(ap, fmt);
-  std::vector<char> infoBuf(len + 1);
-  vsnprintf(infoBuf.data(), infoBuf.size(), fmt, ap);
-  va_end(ap);
-  const char *msg = infoBuf.data();
-  if (msg == nullptr || msg[0] == '\0') {
-    msg = "No message provided!";
-  }
-  const char *log = utils::string::va(
-      "[Com_Error] Called from 0x%p with message: \"%s\", code: %d\n",
-      game::derelocate(callerAddr), msg, static_cast<int32_t>(code));
-  fprintf(stderr, "%s\n", log);
-  fflush(stderr);
-  game::trace("{}", log);
-  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                        game::consoleLabel_e::DEFAULT, "%s\n", log);
   static bool suppress_next_lua_error = false;
   static bool client_script_error_pending = false;
 
   char buffer[0x1000];
-
   {
     va_list ap;
     va_start(ap, fmt);
@@ -175,9 +67,26 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
     va_end(ap);
   }
 
-  if (game::is_server() && server_restart::restart_pending.load()) {
-
+  if (game::is_server() && script_error::is_script_vm_failure(file, code)) {
+    const script_error::report report =
+        script_error::build_report(code, buffer, file);
+    script_error::print_report(report, map_recovery::on_map_stopped());
+    com_error_hook.invoke<void>(file, line, game::errorParm::DROP, "%s",
+                                report.summary.c_str());
     return;
+  }
+
+  if (!script_error::is_reported(buffer)) {
+    const char *log = utils::string::va(
+        "[Com_Error] Called from 0x%p with message: \"%s\", code: %d\n",
+        game::derelocate(callerAddr),
+        buffer[0] ? buffer : "No message provided!",
+        static_cast<int32_t>(code));
+    fprintf(stderr, "%s\n", log);
+    fflush(stderr);
+    game::trace("{}", log);
+    game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                          game::consoleLabel_e::DEFAULT, "%s\n", log);
   }
 
   // Suppress cascading Lua error (code 512) after a script error
@@ -192,143 +101,51 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
   const bool is_script_not_found =
       strstr(buffer, "Script file not found") != nullptr;
 
-  if (is_script_error || is_link_error || is_script_not_found) {
-    if ((!game::is_server() && client_script_error_pending) ||
-        (game::is_server() && server_restart::restart_pending.load()))
-      return;
-
-    if (!game::is_server())
-      suppress_next_lua_error = true;
-    std::string resolved = resolve_hashes_in_string(buffer);
-    const bool is_csc = resolved.find(".csc") != std::string::npos;
-    const char *script_type = is_csc ? "CSC" : "GSC";
-
-    std::string formatted_error;
-    formatted_error.reserve(2048);
-
-    printf("^1************* %s SCRIPT ERROR *************\n", script_type);
-    formatted_error += script_type;
-    formatted_error += " SCRIPT ERROR\n";
-
-    std::istringstream stream(resolved);
-    std::string err_line;
-    while (std::getline(stream, err_line)) {
-      if (!err_line.empty() && err_line.back() == '\r')
-        err_line.pop_back();
-      if (err_line.empty())
-        continue;
-
-      if (err_line.find("Unresolved external") != std::string::npos) {
-        size_t q1 = err_line.find('"');
-        size_t q2 = (q1 != std::string::npos) ? err_line.find('"', q1 + 1)
-                                              : std::string::npos;
-        std::string func = (q1 != std::string::npos && q2 != std::string::npos)
-                               ? err_line.substr(q1 + 1, q2 - q1 - 1)
-                               : "?";
-
-        std::string params;
-        size_t wp = err_line.find("with ");
-        size_t pp = (wp != std::string::npos) ? err_line.find(" parameters", wp)
-                                              : std::string::npos;
-        if (wp != std::string::npos && pp != std::string::npos)
-          params = err_line.substr(wp + 5, pp - wp - 5);
-
-        size_t fq1 = err_line.find("in \"");
-        size_t fq2 = (fq1 != std::string::npos) ? err_line.find('"', fq1 + 4)
-                                                : std::string::npos;
-        std::string script_file =
-            (fq1 != std::string::npos && fq2 != std::string::npos)
-                ? err_line.substr(fq1 + 4, fq2 - fq1 - 4)
-                : "";
-
-        uint32_t func_hash = 0;
-        bool func_is_hex = !func.empty() && func.size() <= 8 &&
-                           func.find_first_not_of("0123456789ABCDEFabcdef") ==
-                               std::string::npos;
-
-        if (func_is_hex) {
-          // func is still a raw hex hash - parse it directly
-          func_hash =
-              static_cast<uint32_t>(std::strtoul(func.c_str(), nullptr, 16));
-          std::string resolved_name = script::resolve_hash(func_hash);
-          if (!resolved_name.empty())
-            func = resolved_name;
-        } else {
-          func_hash = gsc::gsc_hash(func);
-        }
-        int32_t num_params_int =
-            params.empty() ? -1 : std::atoi(params.c_str());
-        int32_t src_line = script::resolve_hash_line(func_hash, num_params_int);
-
-        printf("^1  Function:  ^5%s^1(%s)\n", func.c_str(), params.c_str());
-        printf("^1  Reason:    ^1Unresolved external (function not found)\n");
-        formatted_error += "Function: " + func + "(" + params + ")\n";
-        formatted_error += "Reason: Unresolved external (function not found)\n";
-        if (!script_file.empty()) {
-          printf("^1  File:      ^5%s\n", script_file.c_str());
-          formatted_error += "File: " + script_file + "\n";
-        }
-        if (src_line > 0) {
-          printf("^1  Line:      ^2%d\n", src_line);
-          formatted_error += "Line: " + std::to_string(src_line) + "\n";
-          std::string src = script::get_source_line(script_file, src_line);
-          if (!src.empty()) {
-            printf("^1  Source:    ^7%s\n", src.c_str());
-            formatted_error += "Source: " + src + "\n";
-          }
-        }
-      } else {
-        printf("^1  %s\n", err_line.c_str());
-        formatted_error += err_line + "\n";
-      }
-    }
-    printf("^1*********************************************\n");
-
-    if (game::is_server()) {
-      server_restart::last_error_is_link.store(is_link_error);
-
-      if (is_link_error) {
-        server_restart::schedule("Link error detected");
-        server_restart::abort_game_frame();
-        return;
-      } else {
-        server_restart::schedule("Script error detected");
-        RaiseException(server_restart::SCRIPT_ERROR_EXCEPTION, 0, 0, nullptr);
-        return;
-      }
-    } else {
-      // No script errors popups for ingame menu , just logs in console since
-      // most are harmless csc erros anyway
-      if (!game::com::Com_IsInGame()) {
-        return;
-      }
-
-      client_script_error_pending = true;
-      std::string deferred_error = formatted_error;
-      scheduler::once(
-          [deferred_error]() {
-            client_script_error_pending = false;
-            if (game::com::Com_IsInGame())
-              game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, "disconnect\n");
-            scheduler::once(
-                [deferred_error]() {
-                  game::ui::UI_OpenErrorPopupWithMessage(
-                      game::LOCAL_CLIENT_0, game::errorCode::NONE,
-                      deferred_error.c_str());
-                },
-                scheduler::pipeline::main, 500ms);
-          },
-          scheduler::pipeline::main);
+  if (!game::is_server() &&
+      (is_script_error || is_link_error || is_script_not_found)) {
+    if (client_script_error_pending) {
       return;
     }
-  } else {
+
+    suppress_next_lua_error = true;
+    const script_error::report report =
+        script_error::build_report(code, buffer, file);
+    script_error::print_report(report, {});
+
+    // No script errors popups for ingame menu , just logs in console since
+    // most are harmless csc erros anyway
+    if (!game::com::Com_IsInGame()) {
+      return;
+    }
+
+    client_script_error_pending = true;
+    const std::string deferred_error = report.text;
+    scheduler::once(
+        [deferred_error]() {
+          client_script_error_pending = false;
+          if (game::com::Com_IsInGame())
+            game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, "disconnect\n");
+          scheduler::once(
+              [deferred_error]() {
+                game::ui::UI_OpenErrorPopupWithMessage(
+                    game::LOCAL_CLIENT_0, game::errorCode::NONE,
+                    deferred_error.c_str());
+              },
+              scheduler::pipeline::main, 500ms);
+        },
+        scheduler::pipeline::main);
+    return;
+  }
+
+  if (!is_script_error && !is_link_error && !is_script_not_found &&
+      !script_error::is_reported(buffer)) {
     printf("[Com_Error] Code=%d, File=%s, Line=%d, Caller=0x%llX: %s\n",
            static_cast<int32_t>(code), file ? file : "unknown", line,
            reinterpret_cast<unsigned long long>(game::derelocate(callerAddr)),
            buffer);
   }
 
-  if (!game::is_server() && code == game::errorParm::DROP) {
+  if (!game::is_server() && code == game::errorParm::FATAL) {
     std::string deferred_error = std::string(buffer);
     scheduler::once(
         [deferred_error]() {

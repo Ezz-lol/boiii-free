@@ -1,5 +1,7 @@
 #include <std_include.hpp>
 
+#include "map_recovery.hpp"
+
 #include <game/game.hpp>
 #include <loader/component_loader.hpp>
 
@@ -44,6 +46,7 @@ void spawn_server_stub(game::ControllerIndex_t controllerIndex,
       game::eGameModes::MATCHMAKING_PLAYLIST);
 
   spawn_server_hook.invoke(controllerIndex, server, preload, savegame);
+  map_recovery::on_map_started();
 }
 
 uint64_t sv_get_player_xuid_stub(const int client_num) {

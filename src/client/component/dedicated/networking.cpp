@@ -151,6 +151,11 @@ void SV_LiveRemoveAllClientsFromAddress_RemoveSingle(game::sv::client_s *client,
                                                      const char *reason) {
   // Skip disconnecting other clients from the same IP -
   // just free the disconnected client's slot, and return.
+  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                        game::consoleLabel_e::DEFAULT,
+                        "Client '%s' (%llX) disconnected: %s\n", client->name,
+                        static_cast<unsigned long long>(client->xuid),
+                        reason ? reason : "no reason given");
   game::sv::SV_Live_RemoveClient(client, reason);
 }
 

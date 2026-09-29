@@ -24,6 +24,7 @@ enum export_flags : uint8_t {
   EXPORT_NONE = 0,
   EXPORT_AUTOEXEC = 2,
   EXPORT_PRIVATE = 4,
+  EXPORT_VARARG = 0x20,
 };
 
 struct emitter_result {

@@ -13,6 +13,10 @@ void Scr_GetFileAndLineNum_Impl(const scriptInstance_t inst, uint8_t *const pos,
                                 const char **const filename,
                                 int32_t *const lineNum,
                                 const char **const sourceLine);
+std::vector<int32_t> Scr_GetImportLineNumbers(scriptInstance_t inst,
+                                              const GSC_OBJ *obj,
+                                              objFileInfo_t *fileInfo,
+                                              const GSC_IMPORT_ITEM *import);
 void ReportObjLinkError_Impl(scriptInstance_t inst, GSC_OBJ *prime_obj,
                              objFileInfo_t *fileInfo, GSC_IMPORT_ITEM *import,
                              char *errorString, int errorStringLength);

@@ -404,14 +404,11 @@ enum class itemTextStyle : uint32_t {
 IMPL_ENUM_OPERATORS(itemTextStyle);
 
 enum class errorParm : uint32_t {
-  FATAL = 0x0,
-  DROP = 0x1,
-  SERVERDISCONNECT = 0x2,
-  DISCONNECT = 0x3,
+  NONE = 0x0,
+  FATAL = 0x1,
+  DROP = 0x2,
   SCRIPT = 0x4,
-  SCRIPT_DROP = 0x5,
-  LOCALIZATION = 0x6,
-  MAPLOADERRORSUMMARY = 0x7,
+  SCRIPT_DROP = 0x40,
 
   UI = 0x100,
   LUA = 0x200,

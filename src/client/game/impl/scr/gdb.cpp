@@ -405,73 +405,78 @@ void Scr_GetFileAndLineNum_Impl(const scriptInstance_t inst, uint8_t *const pos,
   }
 }
 
+std::vector<int32_t> Scr_GetImportLineNumbers(const scriptInstance_t inst,
+                                              const GSC_OBJ *const obj,
+                                              objFileInfo_t *const fileInfo,
+                                              const GSC_IMPORT_ITEM *import) {
+  std::vector<int32_t> lines;
+  if (fileInfo == nullptr || obj == nullptr || import == nullptr) {
+    return lines;
+  }
+
+  LoadScriptGDB(inst, fileInfo);
+
+  const int32_t lineAddrCount = fileInfo->debugInfo.lineStartAddrCount;
+  const uint64_t *const lineTable =
+      reinterpret_cast<const uint64_t *>(fileInfo->debugInfo.lineStartAddr);
+
+  if (lineAddrCount > 0 && lineTable != nullptr) {
+    for (const uint32_t offset : import->addresses()) {
+      const uint64_t pos = reinterpret_cast<uint64_t>(obj) + offset;
+      int32_t lineIdx = 0;
+      while (lineIdx < lineAddrCount && pos > lineTable[lineIdx]) {
+        ++lineIdx;
+      }
+      if (lineIdx > 0 &&
+          std::ranges::find(lines, lineIdx) == lines.end()) {
+        lines.push_back(lineIdx);
+      }
+    }
+  }
+
+  if (fileInfo->debugInfo.gdb != nullptr) {
+    free(fileInfo->debugInfo.gdb);
+    fileInfo->debugInfo.gdb = nullptr;
+  }
+
+  return lines;
+}
+
 void ReportObjLinkError_Impl(scriptInstance_t inst, GSC_OBJ *prime_obj,
                              objFileInfo_t *fileInfo, GSC_IMPORT_ITEM *import,
                              char *errorString, int errorStringLength) {
-  if (fileInfo) {
-    LoadScriptGDB(inst, fileInfo);
+  if (fileInfo == nullptr || errorString == nullptr || errorStringLength <= 0) {
+    return;
+  }
 
-    std::string linesBuffer;
+  const std::vector<int32_t> lines =
+      Scr_GetImportLineNumbers(inst, prime_obj, fileInfo, import);
 
-    // The addresses are stored contiguously in memory immediately following the
-    // GSC_IMPORT_ITEM.
-    std::span<const uint32_t> addressOffsets = import->addresses();
-
-    // Calculate line numbers for each address
-    for (size_t i = 0; i < addressOffsets.size(); ++i) {
-      const int32_t lineAddrCount = fileInfo->debugInfo.lineStartAddrCount;
-      int32_t lineIdx = 0;
-      if (lineAddrCount > 0) {
-        // The line table contains absolute addresses of the start of each line.
-        uint64_t *const lineTable = reinterpret_cast<uint64_t *const>(
-            fileInfo->debugInfo.lineStartAddr);
-
-        // Find the last line with start address <= 'pos'.
-        while (lineIdx<lineAddrCount &&reinterpret_cast<uint8_t *>(
-                   static_cast<uint64_t>(
-                       addressOffsets[i]))> reinterpret_cast<uint8_t
-                                                                 *>(
-            lineTable[lineIdx])) {
-          ++lineIdx;
-        }
-
-        // If we advanced at least once, the previous entry is the desired line.
-        lineIdx = (lineIdx > 0) ? (lineIdx - 1) : -1;
-      } else {
-        lineIdx = -1;
-      }
-
-      linesBuffer += std::to_string(lineIdx);
+  std::string linesBuffer;
+  for (const int32_t line : lines) {
+    if (!linesBuffer.empty()) {
+      linesBuffer += ", ";
     }
+    linesBuffer += std::to_string(line);
+  }
+  if (linesBuffer.empty()) {
+    linesBuffer = "?";
+  }
 
-    // Free GDB debug context if it exists
-    if (fileInfo->debugInfo.gdb != nullptr) {
-      free(fileInfo->debugInfo.gdb);
-      fileInfo->debugInfo.gdb = nullptr;
-    }
+  const char *lookupResult = sl::SL_LookupCanonicalString(import->name);
+  const std::string functionName = lookupResult && lookupResult[0]
+                                       ? lookupResult
+                                       : std::format("{:X}", import->name);
 
-    const char *lookupResult = sl::SL_LookupCanonicalString(import->name);
-    const std::string functionName = lookupResult && lookupResult[0]
-                                         ? lookupResult
-                                         : std::format("{:X}", import->name);
+  const std::string errorMessage =
+      std::format(" \"{}\" with {} parameters in \"{}\" at {} {} ****\n",
+                  functionName, import->param_count, prime_obj->get_name(),
+                  lines.size() > 1 ? "lines" : "line", linesBuffer);
 
-    const std::string errorMessage =
-        std::format(" \"{}\" with {} parameters in \"{}\" at {} {} ****\n",
-                    functionName, import->param_count, prime_obj->get_name(),
-                    (import->num_address > 1) ? "lines" : "line", linesBuffer);
-
-    if (errorString != nullptr && errorStringLength > 0) {
-      size_t currentLen = std::strlen(errorString);
-      size_t spaceLeft =
-          static_cast<size_t>(errorStringLength) - currentLen - 1;
-      std::strncat(errorString, errorMessage.c_str(), spaceLeft);
-    }
-
-    com::Com_Printf(consoleChannel_e::CHANNEL_ERROR,
-                    consoleLabel_e::CHANNEL_ERROR, "%s", errorMessage.c_str());
-    fprintf(stderr, "%s", errorMessage.c_str());
-    fflush(stderr);
-    game::trace("{}", errorMessage);
+  const size_t currentLen = std::strlen(errorString);
+  if (currentLen + 1 < static_cast<size_t>(errorStringLength)) {
+    std::strncat(errorString, errorMessage.c_str(),
+                 static_cast<size_t>(errorStringLength) - currentLen - 1);
   }
 }
 } // namespace scr

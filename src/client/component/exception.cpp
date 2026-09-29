@@ -5,6 +5,8 @@
 #include <loader/component_loader.hpp>
 
 #include "scheduler.hpp"
+#include "script_error.hpp"
+#include "dedicated/map_recovery.hpp"
 #include <game/game.hpp>
 
 #include <errhandlingapi.h>
@@ -296,16 +298,17 @@ void display_error_dialog() {
 
 void reset_state() {
   if (game::is_server()) {
-    if (!server_restart::restart_pending.load()) {
-      if (server_restart::consecutive_crash_count.fetch_add(1) < 3) {
-        server_restart::schedule("Unhandled server exception");
-      }
+    if (!is_game_thread()) {
+      display_error_dialog();
     }
 
-    if (!is_game_thread()) {
-      SuspendThread(GetCurrentThread());
-    }
-    return;
+    static std::string reason;
+    reason = std::format("Server crash: {} (0x{:08X}) at {}",
+                         get_exception_string(exception_data.code),
+                         exception_data.code,
+                         get_crash_module_info(exception_data.address));
+    script_error::mark_reported(reason);
+    game::com::Com_Error(game::errorParm::DROP, "%s", reason.c_str());
   }
 
   if (is_recoverable()) {
@@ -337,7 +340,7 @@ void reset_state() {
         (game::get_appdata_path() / "minidumps").string().c_str());
 
     game::com::Com_Error(
-        game::errorParm::DROP,
+        game::errorParm::FATAL,
         "%s (0x%08X) at %s\n\n"
         "A crash dump has been saved to:\n%s\n\n"
         "Ezz has tried to recover your game, but it may be unstable.\n\n"
@@ -747,32 +750,6 @@ long WINAPI crash_fix_exception_handler(PEXCEPTION_POINTERS exception_info) {
                     patch_name, offset);
     }
 #endif
-    // Server restart recovery: skip crashes using udis86 instruction decode
-    if (game::is_server() &&
-        server_restart::restart_recovery_active.load(
-            std::memory_order_acquire) &&
-        record->ExceptionCode == EXCEPTION_ACCESS_VIOLATION) {
-      const int32_t skips = server_restart::recovery_skip_count.fetch_add(
-          1, std::memory_order_release);
-      if (skips < 20) // Max 20 instruction skips per recovery cycle
-      {
-        ud_t ud;
-        ud_init(&ud);
-        ud_set_mode(&ud, 64);
-        ud_set_pc(&ud, addr);
-        ud_set_input_buffer(&ud, reinterpret_cast<const uint8_t *>(addr), 15);
-        if (ud_decode(&ud)) {
-          const uint32_t len = ud_insn_len(&ud);
-
-          context->Rip += len;
-          context->Rax = 0;
-          result = EXCEPTION_CONTINUE_EXECUTION;
-        }
-      } else {
-
-        server_restart::restart_recovery_active.store(false);
-      }
-    }
     break;
   }
   default: {
@@ -842,12 +819,13 @@ long WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
       fflush(stderr);
     }
   }
+  if (game::is_server() && is_game_thread()) {
+    exception_log(true, "  Result:     %s",
+                  map_recovery::on_map_stopped().c_str());
+  }
   exception_log(true, "=====================================");
 
-  if (!game::is_server()) {
-    const std::string crash_info = generate_crash_info(exceptioninfo);
-    write_minidump(exceptioninfo);
-  }
+  write_minidump(exceptioninfo);
 
   exception_data.code = exceptioninfo->ExceptionRecord->ExceptionCode;
   exception_data.address = exceptioninfo->ExceptionRecord->ExceptionAddress;
