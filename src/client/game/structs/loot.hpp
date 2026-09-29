@@ -29,10 +29,11 @@ PACKED(struct LootResult {
   bool isValid;
   uint8_t _padding01[3];
   LootResultType result;
-  LootResultItem granted[4];
+  LootResultItem granted[5];
   LootResultItem all[4];
   int32_t bonusCryptoKeys;
 });
+static_assert(sizeof(LootResult) == 0x954);
 
 } // namespace loot
 } // namespace game
