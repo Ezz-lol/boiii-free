@@ -1416,14 +1416,56 @@ const char *Scr_PrevCodePos(scriptInstance_t inst, volatile uint8_t *codePos) {
          "bytecode or reached end of executed script bytecode.";
 }
 
-std::vector<std::string> get_script_callstack(scriptInstance_t inst) {
-  std::vector<std::string> callstack;
-  callstack.emplace_back(Scr_PrevCodePos(inst, vm::gFs->instance[inst].pos));
+namespace {
+const uint8_t *containing_function(const scriptInstance_t inst,
+                                   const uint8_t *pos) {
+  if (!pos) {
+    return nullptr;
+  }
+  const objFileInfo_t *info =
+      Scr_FindObjFileInfo_Impl(inst, const_cast<uint8_t *>(pos - 1));
+  if (!info) {
+    return nullptr;
+  }
+
+  const GSC_OBJ *obj = info->activeVersion;
+  const auto *base = reinterpret_cast<const uint8_t *>(obj);
+  const auto offset = static_cast<uint32_t>(pos - 1 - base);
+  const uint8_t *start = nullptr;
+  for (const GSC_EXPORT_ITEM &item : obj->exports()) {
+    if (item.address <= offset && (!start || base + item.address > start)) {
+      start = base + item.address;
+    }
+  }
+  return start;
+}
+} // namespace
+
+std::vector<std::string> get_script_callstack(scriptInstance_t inst,
+                                              const uint8_t *pos) {
+  if (is_server()) {
+    sv_detailedScriptErrors->set(true);
+  }
+
+  std::vector<uint8_t *> frames;
+  frames.emplace_back(pos ? const_cast<uint8_t *>(pos)
+                          : vm::gFs->instance[inst].pos);
   for (int32_t stackIdx = vm::gScrVmPub->instance[inst].function_count - 1;
        stackIdx > -1; --stackIdx) {
-    callstack.emplace_back(Scr_PrevCodePos(
-        inst,
-        vm::gScrVmPub->instance[inst].function_frame_start[stackIdx].fs.pos));
+    frames.emplace_back(
+        vm::gScrVmPub->instance[inst].function_frame_start[stackIdx].fs.pos);
+  }
+
+  if (frames.size() > 1) {
+    const uint8_t *root = containing_function(inst, frames.back());
+    if (root && root == containing_function(inst, frames[frames.size() - 2])) {
+      frames.pop_back();
+    }
+  }
+
+  std::vector<std::string> callstack;
+  for (uint8_t *frame : frames) {
+    callstack.emplace_back(Scr_PrevCodePos(inst, frame));
   }
   return callstack;
 }
