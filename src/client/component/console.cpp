@@ -35,6 +35,7 @@
 #include <algorithm>
 #include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <filesystem>
 #include <sstream>
 #include <unordered_set>
@@ -67,7 +68,11 @@ std::atomic_bool started{false};
 std::atomic_bool terminate_runner{false};
 utils::concurrency::container<std::function<void(const std::string &message)>>
     interceptor{};
-utils::concurrency::container<std::queue<std::string>> message_queue{};
+std::atomic_bool interceptor_set{false};
+std::mutex pending_output_mutex;
+std::condition_variable pending_output_cv;
+std::string pending_output;
+std::atomic_bool output_post_pending{false};
 std::vector<std::string> dvar_name_list{};
 std::mutex dvar_list_mutex;
 std::atomic_bool dvar_list_loaded{false};
@@ -165,30 +170,22 @@ std::string to_lower_copy(const std::string_view s) {
   return out;
 }
 
-bool ci_contains(const std::string_view haystack,
-                 const std::string_view needle) {
-  if (needle.empty()) {
-    return true;
-  }
-  if (haystack.size() < needle.size()) {
-    return false;
-  }
-  const size_t end = haystack.size() - needle.size() + 1;
-  for (size_t i = 0; i < end; ++i) {
-    size_t j = 0;
-    for (; j < needle.size(); ++j) {
-      const uint8_t a = static_cast<uint8_t>(haystack[i + j]);
-      const uint8_t b = static_cast<uint8_t>(needle[j]);
-      if (std::tolower(a) != std::tolower(b)) {
-        break;
-      }
-    }
-    if (j == needle.size()) {
-      return true;
-    }
-  }
-  return false;
-}
+constexpr std::string_view ERROR_KEYWORDS[] = {
+    "error",
+    "failed",
+    "could not find",
+    "stack traceback",
+    "attempt to index a nil value",
+    "function expected instead of nil",
+    "invalid line",
+    "missing asset",
+    "couldn't exec",
+    "tried to load asset",
+    "could not load default asset",
+};
+constexpr std::string_view WARNING_KEYWORDS[] = {"warn", "unknown command"};
+constexpr std::string_view INFO_KEYWORDS[] = {"loading", "loaded",
+                                              "connecting", "connected"};
 
 COLORREF get_line_base_color(const std::string_view line) {
   if (!line.empty() && line[0] == '[' &&
@@ -200,38 +197,29 @@ COLORREF get_line_base_color(const std::string_view line) {
     return RGB(245, 242, 240);
   }
 
-  const std::function<bool(const std::string_view needle)> has =
-      [&](const std::string_view needle) { return ci_contains(line, needle); };
-
-  if (has("com_error:") || has("unrecoverable error") || has("script error")) {
-    return get_error_color();
+  static std::string lowered;
+  lowered.assign(line);
+  for (char &c : lowered) {
+    if (c >= 'A' && c <= 'Z') {
+      c = static_cast<char>(c - 'A' + 'a');
+    }
   }
 
-  if (has("ui error") || has("unable to load module") ||
-      has("stack traceback") || has("attempt to index a nil value") ||
-      has("function expected instead of nil")) {
+  const auto contains_any = [](const auto &keywords) {
+    return std::ranges::any_of(keywords, [](const std::string_view keyword) {
+      return lowered.find(keyword) != std::string::npos;
+    });
+  };
+
+  if (contains_any(ERROR_KEYWORDS)) {
     return get_error_color();
   }
-
-  if (has("error") || has("could not find") || has("exec from disk failed") ||
-      has("invalid line") || has("missing asset") || has("failed")) {
-    return get_error_color();
-  }
-
-  if (has("couldn't exec") || has("failed to open") ||
-      has("tried to load asset") || has("could not load default asset")) {
-    return get_error_color();
-  }
-
-  if (has("warn") || has("unknown command")) {
+  if (contains_any(WARNING_KEYWORDS)) {
     return get_warning_color();
   }
-
-  if (has("loading") || has("loaded") || has("connecting") ||
-      has("connected")) {
+  if (contains_any(INFO_KEYWORDS)) {
     return get_info_color();
   }
-
   return get_default_console_color();
 }
 
@@ -297,20 +285,30 @@ LONG line_start_from_char(const HWND richedit, const LONG index) {
       SendMessageW(richedit, EM_LINEINDEX, static_cast<WPARAM>(line), 0));
 }
 
-void trim_console_buffer(const HWND richedit) {
-  if (full_logs_enabled())
-    return;
+size_t tracked_lines = 0;
+size_t tracked_chars = 0;
+
+LONG trim_console_buffer(const HWND richedit, const size_t limit_scale) {
+  if (full_logs_enabled() ||
+      (tracked_lines <= MAX_CONSOLE_LINES * limit_scale &&
+       tracked_chars <= MAX_CONSOLE_CHARS * limit_scale)) {
+    return 0;
+  }
 
   const LONG line_count =
       static_cast<LONG>(SendMessageW(richedit, EM_GETLINECOUNT, 0, 0));
   const LONG text_len =
       static_cast<LONG>(SendMessageW(richedit, WM_GETTEXTLENGTH, 0, 0));
+  tracked_lines = static_cast<size_t>(line_count);
+  tracked_chars = static_cast<size_t>(text_len);
 
-  const bool too_many_lines = line_count > static_cast<LONG>(MAX_CONSOLE_LINES);
-  const bool too_many_chars = text_len > static_cast<LONG>(MAX_CONSOLE_CHARS);
+  const bool too_many_lines =
+      line_count > static_cast<LONG>(MAX_CONSOLE_LINES * limit_scale);
+  const bool too_many_chars =
+      text_len > static_cast<LONG>(MAX_CONSOLE_CHARS * limit_scale);
 
   if (!too_many_lines && !too_many_chars) {
-    return;
+    return 0;
   }
 
   LONG cut_at = 0;
@@ -328,7 +326,7 @@ void trim_console_buffer(const HWND richedit) {
   }
 
   if (cut_at <= 0 || cut_at >= text_len) {
-    return;
+    return 0;
   }
 
   CHARRANGE cr;
@@ -337,12 +335,13 @@ void trim_console_buffer(const HWND richedit) {
   SendMessageW(richedit, EM_EXSETSEL, 0, reinterpret_cast<LPARAM>(&cr));
   SendMessageW(richedit, EM_REPLACESEL, FALSE, reinterpret_cast<LPARAM>(L""));
 
-  CHARRANGE cr_end;
-  cr_end.cpMin = -1;
-  cr_end.cpMax = -1;
-  SendMessageW(richedit, EM_EXSETSEL, 0, reinterpret_cast<LPARAM>(&cr_end));
+  tracked_lines =
+      static_cast<size_t>(SendMessageW(richedit, EM_GETLINECOUNT, 0, 0));
+  tracked_chars =
+      static_cast<size_t>(SendMessageW(richedit, WM_GETTEXTLENGTH, 0, 0));
 
   refresh_richedit_layout(richedit);
+  return cut_at;
 }
 
 struct run_accumulator {
@@ -435,9 +434,19 @@ void append_text_with_severity(const HWND richedit, const std::string &text) {
       (scroll_info.nPos + static_cast<int32_t>(scroll_info.nPage) + 32 >=
        scroll_info.nMax);
 
+  CHARRANGE selection{};
+  SendMessageW(richedit, EM_EXGETSEL, 0, reinterpret_cast<LPARAM>(&selection));
+  POINT scroll_pos{};
+  SendMessageW(richedit, EM_GETSCROLLPOS, 0,
+               reinterpret_cast<LPARAM>(&scroll_pos));
+
   SendMessageW(richedit, WM_SETREDRAW, FALSE, 0);
 
-  trim_console_buffer(richedit);
+  tracked_lines += static_cast<size_t>(std::ranges::count(text, '\n'));
+  tracked_chars += text.size();
+  const LONG removed = trim_console_buffer(richedit, was_at_bottom ? 1 : 2);
+  selection.cpMin = (std::max)(0L, selection.cpMin - removed);
+  selection.cpMax = (std::max)(0L, selection.cpMax - removed);
 
   run_accumulator acc(richedit, run_buffer);
 
@@ -459,8 +468,16 @@ void append_text_with_severity(const HWND richedit, const std::string &text) {
 
   acc.flush();
 
+  if (!was_at_bottom || selection.cpMin != selection.cpMax) {
+    SendMessageW(richedit, EM_EXSETSEL, 0,
+                 reinterpret_cast<LPARAM>(&selection));
+  }
+
   if (was_at_bottom) {
     SendMessageW(richedit, WM_VSCROLL, SB_BOTTOM, 0);
+  } else {
+    SendMessageW(richedit, EM_SETSCROLLPOS, 0,
+                 reinterpret_cast<LPARAM>(&scroll_pos));
   }
 
   SendMessageW(richedit, WM_SETREDRAW, TRUE, 0);
@@ -938,28 +955,31 @@ void print_message(const char *message) {
 }
 
 void queue_message(const char *message) {
-  std::string msg(message);
+  if (!message || !message[0]) {
+    return;
+  }
 
-  interceptor.access(
-      [&msg](const std::function<void(const std::string &)> &callback) {
-        if (callback) {
-          callback(msg);
-        }
-      });
+  if (interceptor_set.load(std::memory_order_acquire)) {
+    const std::string msg(message);
+    interceptor.access(
+        [&msg](const std::function<void(const std::string &)> &callback) {
+          if (callback) {
+            callback(msg);
+          }
+        });
+  }
 
-  message_queue.access(
-      [&msg](std::queue<std::string> &queue) { queue.push(std::move(msg)); });
+  {
+    std::scoped_lock lock(pending_output_mutex);
+    pending_output.append(message);
+  }
+  pending_output_cv.notify_one();
 }
 
-std::queue<std::string> empty_message_queue() {
-  std::queue<std::string> current_queue{};
-
-  message_queue.access([&](std::queue<std::string> &queue) {
-    current_queue = std::move(queue);
-    queue = {};
-  });
-
-  return current_queue;
+void take_pending_output(std::string &out) {
+  out.clear();
+  std::scoped_lock lock(pending_output_mutex);
+  out.swap(pending_output);
 }
 
 void print_stub(const char *fmt, ...) {
@@ -1155,25 +1175,11 @@ LRESULT con_wnd_proc(const HWND hwnd, const UINT msg, const WPARAM wparam,
     }
     break;
   case WM_APPEND_CONSOLE_TEXT: {
-    std::string *text = reinterpret_cast<std::string *>(lparam);
-    std::string combined;
-    if (text) {
-      combined = std::move(*text);
-      delete text;
-    }
-
-    MSG next_msg{};
-    while (PeekMessageA(&next_msg, hwnd, WM_APPEND_CONSOLE_TEXT,
-                        WM_APPEND_CONSOLE_TEXT, PM_REMOVE)) {
-      std::string *more = reinterpret_cast<std::string *>(next_msg.lParam);
-      if (more) {
-        combined += *more;
-        delete more;
-      }
-    }
-
-    if (!combined.empty()) {
-      append_text_with_severity(*game::s_wcd::hwndBuffer, combined);
+    static std::string text;
+    output_post_pending = false;
+    take_pending_output(text);
+    if (!text.empty()) {
+      append_text_with_severity(*game::s_wcd::hwndBuffer, text);
     }
 
     if (completion_hint_hwnd && IsWindowVisible(completion_hint_hwnd)) {
@@ -1452,6 +1458,7 @@ void sys_create_console_stub(const HINSTANCE h_instance) {
 void set_interceptor(std::function<void(const std::string &message)> callback) {
   interceptor.access([&callback](std::function<void(const std::string &)> &c) {
     c = std::move(callback);
+    interceptor_set.store(static_cast<bool>(c), std::memory_order_release);
   });
 }
 
@@ -1629,32 +1636,30 @@ struct component final : generic_component {
 
     this->message_runner_ =
         utils::thread::create_named_thread("Console IO", [] {
-          std::string message_buffer;
+          std::string output;
           while (!terminate_runner) {
-            message_buffer.clear();
-            std::queue<std::string> current_queue = empty_message_queue();
-
-            while (!current_queue.empty()) {
-              const std::string &msg = current_queue.front();
-              // status (and similar) prints one line as several Com_Printf
-              // fragments. Do not insert newlines between them.
-              message_buffer.append(msg);
-              current_queue.pop();
-            }
-
-            if (!message_buffer.empty()) {
-              if (game::is_headless()) {
-                fputs(message_buffer.data(), stdout);
-              } else if (*game::s_wcd::hWnd) {
-                std::string *payload = new std::string(message_buffer);
-                if (!PostMessageA(*game::s_wcd::hWnd, WM_APPEND_CONSOLE_TEXT, 0,
-                                  reinterpret_cast<LPARAM>(payload))) {
-                  delete payload;
-                }
+            {
+              std::unique_lock lock(pending_output_mutex);
+              pending_output_cv.wait_for(lock, 100ms, [] {
+                return !pending_output.empty() || terminate_runner;
+              });
+              if (pending_output.empty()) {
+                continue;
               }
             }
 
-            std::this_thread::sleep_for(5ms);
+            if (game::is_headless()) {
+              take_pending_output(output);
+              fputs(output.c_str(), stdout);
+            } else if (!*game::s_wcd::hWnd) {
+              take_pending_output(output);
+            } else if (!output_post_pending.exchange(true) &&
+                       !PostMessageA(*game::s_wcd::hWnd, WM_APPEND_CONSOLE_TEXT,
+                                     0, 0)) {
+              output_post_pending = false;
+            }
+
+            std::this_thread::sleep_for(16ms);
           }
         });
 
@@ -1700,6 +1705,7 @@ struct component final : generic_component {
 
   void pre_destroy() override {
     terminate_runner = true;
+    pending_output_cv.notify_all();
 
     if (this->message_runner_.joinable()) {
       this->message_runner_.join();
