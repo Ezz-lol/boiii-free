@@ -30,8 +30,8 @@ WEAK symbol<void(consoleChannel_e channel, consoleLabel_e label,
 WEAK symbol<void(const char *file, int line, errorParm code, const char *fmt,
                  ...)>
     Com_Error_{0x1420EB9F0, 0x1420F8170, 0x140501470};
-WEAK symbol<void(int32_t localClientNum, const char *message)>
-    Com_ErrorCleanup{0x1420EB5D0, 0x0, 0x140501050};
+WEAK symbol<void(int32_t localClientNum, const char *message)> Com_ErrorCleanup{
+    0x1420EB5D0, 0x1420F7D50, 0x140501050};
 WEAK symbol<bool(eModes mode)> Com_SessionMode_IsMode{0x1420EABF0, 0x1420F7370,
                                                       0x140500940};
 
@@ -121,7 +121,7 @@ WEAK symbol<str64_t> s_buildInfoSource{0x15684F7F0, 0x1568CE770, 0x149470030};
 
 WEAK symbol<const char *> BUILD_MACHINE{0x1432FC230, 0x14337B220, 0x14110B3D0};
 WEAK symbol<const char *> BUILD_TYPE{0x1432FC238, 0x14337B228, 0x14110B3D8};
-WEAK symbol<const char *> BUILD_TIME{0x1432FC240, 0x14337B230, 0x14337B230};
+WEAK symbol<const char *> BUILD_TIME{0x1432FC240, 0x14337B230, 0x14110B3E0};
 
 WEAK symbol<int32_t(BuildIntField field)> Com_GetBuildIntField{
     0x1420E2C10, 0x1420EF390, 0x1404FA8B0};

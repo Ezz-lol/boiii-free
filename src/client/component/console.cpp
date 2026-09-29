@@ -184,8 +184,8 @@ constexpr std::string_view ERROR_KEYWORDS[] = {
     "could not load default asset",
 };
 constexpr std::string_view WARNING_KEYWORDS[] = {"warn", "unknown command"};
-constexpr std::string_view INFO_KEYWORDS[] = {"loading", "loaded",
-                                              "connecting", "connected"};
+constexpr std::string_view INFO_KEYWORDS[] = {"loading", "loaded", "connecting",
+                                              "connected"};
 
 COLORREF get_line_base_color(const std::string_view line) {
   if (!line.empty() && line[0] == '[' &&
