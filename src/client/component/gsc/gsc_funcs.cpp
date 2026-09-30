@@ -396,22 +396,12 @@ void forget_hudelem_cfgstr_pool() {
   }
 }
 
-void unregister_clear_hudelem_cfgstr_pool() {
-  if (!sv::sv->running()) {
-    forget_hudelem_cfgstr_pool();
-    return;
-  }
-  for (uint16_t slot = 0; slot < ui::he::HUD_ELEMENT_POOL_SIZE; ++slot) {
-    unregister_clear_hudelem_cfgstr(slot);
-  }
-}
-
 utils::hook::detour HudElem_DestroyAll_hook;
 
-// Unregister and clear all hudelem_cfgstr_pool entries before destroying all
-// pool entries
+// Discard private ownership without de-registering strings during global
+// teardown. The engine owns the configstring/BG cache lifetime.
 void HudElem_DestroyAll_ClearCfgStrEntry_Invoke() {
-  unregister_clear_hudelem_cfgstr_pool();
+  forget_hudelem_cfgstr_pool();
   return HudElem_DestroyAll_hook.invoke();
 }
 
