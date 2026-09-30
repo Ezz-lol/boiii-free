@@ -1387,8 +1387,9 @@ template <typename F> cclosure *convert_function(F f) {
 }
 
 namespace {
-thread_local char getinfo_name_buf[256]{};
+thread_local char getinfo_name_buf[512]{};
 thread_local char getinfo_source_buf[512]{};
+thread_local bool describing_error = false;
 
 const char *resolve_c_function_name(lua_CFunction *c_func_ptr) {
   if (c_func_ptr) {
@@ -1445,96 +1446,238 @@ const char *resolve_source_from_rawfiles(uintptr_t bytecode_header) {
   return ctx.found;
 }
 
+HksObject *frame_function(lua_State *s, const lua_Debug *ar) {
+  const CallStack &callstack = s->m_callStack;
+  if (!callstack.m_records || !callstack.m_current) {
+    return nullptr;
+  }
+
+  const int32_t level = ar->callstack_level;
+  const int32_t num_records =
+      static_cast<int32_t>(callstack.m_current - callstack.m_records);
+  if (level < 0 || level > num_records) {
+    return nullptr;
+  }
+
+  HksObject *base = level == num_records
+                        ? s->m_apistack.base
+                        : callstack.m_records[level + 1].m_base;
+  return base ? base - 1 : nullptr;
+}
+
+constexpr int32_t FUNCTION_SEARCH_DEPTH = 3;
+constexpr uint32_t FUNCTION_SEARCH_BUDGET = 200000;
+
+bool find_in_table(const HashTable *table, const HksClosure *closure,
+                   const int32_t depth, const char **keys, uint32_t &budget) {
+  if (!table || !table->m_hashPart) {
+    return false;
+  }
+  for (hksUint32 i = 0; i <= table->m_mask && budget; ++i, --budget) {
+    const HashTable::Node &node = table->m_hashPart[i];
+    if (node.m_key.type() != HksObjectType::TSTRING || !node.m_key.v.str) {
+      continue;
+    }
+    const char *key = node.m_key.v.str->m_data;
+    if (depth == 1) {
+      if (node.m_value.type() == HksObjectType::TIFUNCTION &&
+          node.m_value.v.closure == closure) {
+        keys[0] = key;
+        return true;
+      }
+    } else if (node.m_value.type() == HksObjectType::TTABLE &&
+               strcmp(key, "_G") != 0 &&
+               find_in_table(node.m_value.v.table, closure, depth - 1, keys + 1,
+                             budget)) {
+      keys[0] = key;
+      return true;
+    }
+  }
+  return false;
+}
+
+const char *stored_function_name(const HksClosure *closure) {
+  const char *keys[FUNCTION_SEARCH_DEPTH]{};
+  uint32_t budget = FUNCTION_SEARCH_BUDGET;
+  __try {
+    for (int32_t depth = 1; depth <= FUNCTION_SEARCH_DEPTH; ++depth) {
+      if (find_in_table(closure->m_env, closure, depth, keys, budget)) {
+        size_t length = 0;
+        for (int32_t i = 0; i < depth && length < sizeof(getinfo_name_buf);
+             ++i) {
+          length += snprintf(getinfo_name_buf + length,
+                             sizeof(getinfo_name_buf) - length, "%s%s",
+                             i ? "." : "", keys[i]);
+        }
+        return getinfo_name_buf;
+      }
+    }
+  } __except (EXCEPTION_EXECUTE_HANDLER) {
+  }
+  return nullptr;
+}
+
+std::string describe_value(const HksObject &value) {
+  switch (value.type()) {
+  case HksObjectType::TNIL:
+    return "nil";
+  case HksObjectType::TBOOLEAN:
+    return value.v.boolean ? "true" : "false";
+  case HksObjectType::TNUMBER:
+    return std::format("{}", value.v.number);
+  case HksObjectType::TSTRING:
+    return value.v.str
+               ? std::format("\"{}\"",
+                             std::string_view(value.v.str->m_data,
+                                              strnlen(value.v.str->m_data, 32)))
+               : "string";
+  case HksObjectType::TTABLE:
+    return "table";
+  case HksObjectType::TIFUNCTION:
+  case HksObjectType::TCFUNCTION:
+    return "function";
+  default:
+    return "userdata";
+  }
+}
+
+std::string frame_arguments(const HksObject *func_obj,
+                            const hksByte num_params) {
+  std::string arguments;
+  for (hksByte i = 0; i < num_params; ++i) {
+    if (i > 0) {
+      arguments += ", ";
+    }
+    arguments += describe_value(func_obj[1 + i]);
+  }
+  return arguments;
+}
+
+const char *resolve_chunk_source(lua_State *s, lua_Debug *ar) {
+  const hksInstruction *pc = getPC(s, ar);
+  if (!pc) {
+    return nullptr;
+  }
+  uintptr_t scan =
+      reinterpret_cast<uintptr_t>(pc) & ~static_cast<uintptr_t>(0xF);
+  for (int i = 0; i < 0x10000; i++, scan -= 0x10) {
+    if (*reinterpret_cast<uint32_t *>(scan) == 0x61754C1B) {
+      return resolve_source_from_rawfiles(scan);
+    }
+  }
+  return nullptr;
+}
+
 int hksi_lua_getinfo_stub(lua_State *s, const char *what, lua_Debug *ar) {
   const int32_t result = hksi_lua_getinfo_detour.invoke<int32_t>(s, what, ar);
-  if (!result || !s || !ar) {
-    return result;
-  }
-  if (!what || !strchr(what, 'n')) {
+  if (!describing_error || !result || !s || !ar || !what || ar->is_tail_call) {
     return result;
   }
 
-  CallStack *callstack = &s->m_callStack;
-  if (!callstack->m_records || !callstack->m_current) {
+  const HksObject *func_obj = frame_function(s, ar);
+  if (!func_obj || !func_obj->v.ptr) {
     return result;
   }
 
-  const int32_t stack_level = ar->callstack_level;
-  const int32_t num_records =
-      static_cast<int32_t>((reinterpret_cast<uintptr_t>(callstack->m_current) -
-                            reinterpret_cast<uintptr_t>(callstack->m_records)) /
-                           sizeof(CallStack::ActivationRecord));
-
-  HksObject *func_obj = nullptr;
-  if (stack_level >= num_records) {
-    if (s->m_apistack.bottom) {
-      func_obj = s->m_apistack.bottom - 1;
-    }
-  } else if (stack_level + 1 <= num_records) {
-    CallStack::ActivationRecord *next_record =
-        &callstack->m_records[stack_level + 1];
-    if (next_record->m_base) {
-      func_obj = next_record->m_base - 1;
-    }
-  }
-
-  if (!func_obj) {
-    return result;
-  }
-
-  const HksObjectType obj_type = func_obj->t;
-  const HksValue obj_value = func_obj->v;
-  if (!obj_value.cClosure) {
-    return result;
-  }
-
-  if (obj_type == HksObjectType::TCFUNCTION) {
-    const char *resolved =
-        resolve_c_function_name(obj_value.cClosure->m_function);
-    if (resolved && resolved[0]) {
-      ar->name = resolved;
-    } else if (!ar->name || !ar->name[0]) {
-      ar->name = "(luaC_unknown)";
-    }
-  } else if (obj_type == HksObjectType::TIFUNCTION) {
-    Method *proto = obj_value.closure->m_method;
-    if (proto) {
-
-      if (proto->m_debug && proto->m_debug->name) {
-        ar->name = proto->m_debug->name->m_data;
-      } else if (proto->hash &&
-                 (!ar->name || strcmp(ar->name, "(*stripped)") == 0 ||
-                  !ar->name[0])) {
-        snprintf(getinfo_name_buf, sizeof(getinfo_name_buf), "func_%X(%d)",
-                 proto->hash, proto->num_params);
-        ar->name = getinfo_name_buf;
+  if (func_obj->type() == HksObjectType::TCFUNCTION) {
+    if (strchr(what, 'n')) {
+      const char *resolved =
+          resolve_c_function_name(func_obj->v.cClosure->m_function);
+      if (resolved && resolved[0]) {
+        ar->name = resolved;
+      } else if (!ar->name || !ar->name[0]) {
+        ar->name = "(luaC_unknown)";
       }
+    }
+    return result;
+  }
 
-      const hksInstruction *pc = getPC(s, ar);
+  if (func_obj->type() != HksObjectType::TIFUNCTION) {
+    return result;
+  }
 
-      const char *resolved_source = nullptr;
-      if (pc) {
-        uintptr_t scan =
-            reinterpret_cast<uintptr_t>(pc) & ~static_cast<uintptr_t>(0xF);
-        for (int i = 0; i < 0x10000; i++, scan -= 0x10) {
-          // Scan for bytecode magic
-          if (*reinterpret_cast<uint32_t *>(scan) == 0x61754C1B) {
-            resolved_source = resolve_source_from_rawfiles(scan);
-            break;
-          }
-        }
+  const Method *proto = func_obj->v.closure->m_method;
+  const bool has_debug_info = proto && proto->m_debug;
+
+  if (strchr(what, 'n')) {
+    std::string name = ar->name ? ar->name : "";
+    if (!has_debug_info || !proto->m_debug->name) {
+      if (const char *stored = stored_function_name(func_obj->v.closure)) {
+        name = stored;
+      } else if (name.empty() || name == "(*stripped)") {
+        name = has_debug_info && proto->m_debug->line_defined > 0
+                   ? std::format("<line {}>", proto->m_debug->line_defined)
+                   : "?";
       }
+    }
+    if (name != "?" && proto && proto->num_params > 0) {
+      name += "(" + frame_arguments(func_obj, proto->num_params) + ")";
+    }
+    snprintf(getinfo_name_buf, sizeof(getinfo_name_buf), "%s", name.c_str());
+    ar->name = getinfo_name_buf;
+  }
 
-      if (resolved_source) {
-        snprintf(getinfo_source_buf, sizeof(getinfo_source_buf), "%s",
-                 resolved_source);
-        ar->source = getinfo_source_buf;
-        snprintf(ar->short_src, sizeof(ar->short_src), "%s", resolved_source);
-      }
+  if (strchr(what, 'S') && (!has_debug_info || !proto->m_debug->source)) {
+    if (const char *source = resolve_chunk_source(s, ar)) {
+      snprintf(getinfo_source_buf, sizeof(getinfo_source_buf), "%s", source);
+      ar->source = getinfo_source_buf;
+      snprintf(ar->short_src, sizeof(ar->short_src), "%s", source);
     }
   }
 
   return result;
+}
+
+std::string clean_traceback(const std::string_view traceback) {
+  constexpr std::string_view unknown_function = " in function '?'";
+  std::string cleaned;
+  size_t start = 0;
+  while (start <= traceback.size()) {
+    const size_t end = std::min(traceback.find('\n', start), traceback.size());
+    std::string_view line = traceback.substr(start, end - start);
+    start = end + 1;
+
+    if (line.find_first_not_of(" \t") != std::string_view::npos &&
+        line.substr(line.find_first_not_of(" \t")) == "(tail call): ?") {
+      continue;
+    }
+    if (line.ends_with(unknown_function)) {
+      line.remove_suffix(unknown_function.size());
+      if (line.ends_with(':')) {
+        line.remove_suffix(1);
+      }
+    }
+    if (!cleaned.empty()) {
+      cleaned += '\n';
+    }
+    cleaned += line;
+  }
+  return cleaned;
+}
+
+utils::hook::detour hks_traceback_hook;
+void hks_traceback_stub(lua_State *target, lua_State *traced,
+                        const int32_t start_level, const hksInt32 max_levels) {
+  describing_error = true;
+  hks_traceback_hook.invoke<void>(target, traced, start_level, max_levels);
+  describing_error = false;
+
+  const HksObject *top = target->m_apistack.top - 1;
+  if (top < target->m_apistack.base || top->type() != HksObjectType::TSTRING ||
+      !top->v.str) {
+    return;
+  }
+  const std::string cleaned = clean_traceback(top->v.str->m_data);
+  --target->m_apistack.top;
+  hksi_lua_pushlstring(target, cleaned.data(),
+                       static_cast<hksUint32>(cleaned.size()));
+}
+
+utils::hook::detour hks_where_hook;
+void hks_where_stub(lua_State *s, const int32_t level) {
+  describing_error = true;
+  hks_where_hook.invoke<void>(s, level);
+  describing_error = false;
 }
 
 std::string colorize_lua_error(const char *error_loc, const char *error_stack) {
@@ -1586,8 +1729,6 @@ std::string colorize_lua_error(const char *error_loc, const char *error_stack) {
       } else {
         result += "\t<^1native^7>: " + trimmed + "\n";
       }
-    } else if (trimmed.find("(tail call)") != std::string::npos) {
-      result += "\t^7(tail call): ?\n";
     } else {
       size_t first_colon = trimmed.find(':');
       if (first_colon != std::string::npos) {
@@ -2622,6 +2763,8 @@ public:
         hksi_lua_getinfo_stub);
 
     if (game::is_client()) {
+      hks_traceback_hook.create(hksi_hks_traceback.get(), hks_traceback_stub);
+      hks_where_hook.create(hksi_luaL_where.get(), hks_where_stub);
       ui_init_hook.create(UI_Init.get(), ui_init_stub);
       cl_first_snapshot_hook.create(game::cl::CL_FirstSnapshot.get(),
                                     cl_first_snapshot_stub);
