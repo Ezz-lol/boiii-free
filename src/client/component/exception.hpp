@@ -1,5 +1,7 @@
 #pragma once
 
 namespace exception {
-bool try_recover_fatal(const std::string &message);
+void recover_fatal_error(const std::string &reason);
+void recover_nested_error(const std::string &reason);
+void restart_after_fatal_error(const std::string &message);
 } // namespace exception

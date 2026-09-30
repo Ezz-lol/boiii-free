@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 
 #include "component/dedicated/map_recovery.hpp"
+#include "component/error_help.hpp"
 #include "component/exception.hpp"
 #include "component/path.hpp"
 #include "component/script_error.hpp"
@@ -46,7 +47,12 @@ void Sys_Error_LogCaller(const char *fmt, ...) {
                         game::consoleLabel_e::DEFAULT,
                         "[Sys_Error] Called from 0x%p with message: \"%s\"",
                         game::derelocate(callerAddr), msg);
-  Sys_Error_hook.invoke("%s", msg);
+  exception::restart_after_fatal_error(msg);
+  const std::string help = error_help::explain_error(msg);
+  Sys_Error_hook.invoke(
+      "%s", help.empty()
+                ? msg
+                : error_help::strip_colors(help + "\n\nError: " + msg).c_str());
 }
 
 #define MS 1ms
@@ -147,15 +153,26 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
            buffer);
   }
 
-  if (!game::is_server() && code == game::errorParm::FATAL) {
-    const std::string message = std::format(
-        "The game hit a fatal error and was returned to the main menu.\n\n{}",
-        buffer);
-    if (exception::try_recover_fatal(message)) {
-      com_error_hook.invoke<void>(file, line, game::errorParm::DROP, "%s",
-                                  message.c_str());
-      return;
-    }
+  static std::string previous_error;
+  const bool reported = script_error::is_reported(buffer);
+  const std::string help =
+      reported ? std::string{} : error_help::explain_error(buffer);
+  const std::string message =
+      help.empty() ? buffer : std::format("{}\n\n^7Error: {}", help, buffer);
+
+  if (!game::is_server() && !reported &&
+      (code == game::errorParm::DROP || code == game::errorParm::FATAL)) {
+    exception::recover_nested_error(
+        std::format("{}\n\n^7This happened while the game was still handling "
+                    "an earlier error: ^1{}^7",
+                    message, previous_error));
+  }
+  const std::string_view first_line(buffer);
+  previous_error = first_line.substr(0, first_line.find('\n'));
+
+  if (!game::is_server() && code == game::errorParm::FATAL &&
+      !strstr(buffer, "DXGI_ERROR_DEVICE")) {
+    exception::recover_fatal_error(message);
   }
 
   if (strstr(buffer, "Couldn't find the bsp for this map") ||
@@ -180,7 +197,7 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
 
   // Removing this skips internal engine error handling,
   // which is preferable to execute if the error is not fatal.
-  com_error_hook.invoke<void>(file, line, code, "%s", buffer);
+  com_error_hook.invoke<void>(file, line, code, "%s", message.c_str());
 }
 
 void scr_get_num_expected_players() {

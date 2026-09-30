@@ -5,6 +5,7 @@
 #include <loader/component_loader.hpp>
 
 #include "dedicated/map_recovery.hpp"
+#include "error_help.hpp"
 #include "exception.hpp"
 #include "scheduler.hpp"
 #include "script_error.hpp"
@@ -34,6 +35,8 @@
 
 #include <dbghelp.h>
 #pragma comment(lib, "dbghelp.lib")
+
+extern "C" unsigned long _tls_index;
 
 namespace exception {
 
@@ -231,6 +234,7 @@ thread_local struct {
   uintptr_t access = 0;
   uintptr_t target = 0;
   void *caller = nullptr;
+  std::string culprit;
 } exception_data{};
 
 constexpr size_t MAX_RECOVERIES_PER_MINUTE = 3;
@@ -238,10 +242,25 @@ game::EngineDependentDvarMut crash_recovery;
 std::mutex recovery_mutex;
 std::deque<std::chrono::steady_clock::time_point> recent_recoveries;
 
+constexpr const wchar_t *CRASH_RESTARTS_ENV = L"BOIII_CRASH_RESTARTS";
+constexpr uint32_t MAX_QUICK_RESTARTS = 2;
+std::atomic<int32_t> archives_in_flight{0};
+const std::chrono::steady_clock::time_point process_start =
+    std::chrono::steady_clock::now();
+std::atomic_bool recovery_in_progress{false};
+
 std::mutex pending_drop_mutex;
-std::string pending_drop_message;
+std::string pending_drop_reason;
+std::string pending_drop_footer;
 std::atomic_bool pending_drop{false};
 thread_local bool worker_recovering = false;
+
+constexpr uint64_t RECOVERY_WATCH_MS = 60000;
+constexpr uint64_t RECOVERY_HANG_MS = 30000;
+std::atomic<uint64_t> last_frame_tick{0};
+std::atomic<uint64_t> last_recovery_tick{0};
+std::string last_recovery_reason;
+bool nested_error_recovered = false;
 
 bool is_game_thread() { return main_thread_id == GetCurrentThreadId(); }
 
@@ -277,24 +296,216 @@ bool can_recover_thread() {
 }
 
 bool can_recover_crash() {
-  return exception_data.code != EXCEPTION_STACK_OVERFLOW && can_recover_thread();
+  return exception_data.code != EXCEPTION_STACK_OVERFLOW &&
+         !recovery_in_progress && can_recover_thread();
 }
 
-void record_recovery() {
-  std::scoped_lock lock(recovery_mutex);
-  recent_recoveries.push_back(std::chrono::steady_clock::now());
+void watch_recovery();
+
+void record_recovery(const std::string &reason) {
+  {
+    std::scoped_lock lock(recovery_mutex);
+    recent_recoveries.push_back(std::chrono::steady_clock::now());
+    last_recovery_reason = reason;
+  }
+  recovery_in_progress = true;
+  watch_recovery();
 }
 
-[[noreturn]] void recover_thread(const std::string &message) {
+constexpr std::array<uint32_t, game::scr::SCRIPTINSTANCE_MAX>
+    SCRIPT_VARIABLE_COUNT{0x1FBD0, 0xFDE8};
+std::array<volatile game::scr::var::ScrVar_t *, game::scr::SCRIPTINSTANCE_MAX>
+    known_variable_tables{};
+constexpr size_t SCRIPT_NAME_SEARCH_HASH_SIZE = 0x40000;
+std::array<std::atomic_bool, game::scr::SCRIPTINSTANCE_MAX>
+    wiped_script_instances{};
+
+void remember_variable_tables() {
+  for (size_t inst = 0; inst < known_variable_tables.size(); ++inst) {
+    if (!known_variable_tables[inst]) {
+      known_variable_tables[inst] =
+          game::scr::vm::gScrVarGlob->instance[inst].scriptVariables;
+    }
+  }
+}
+
+bool is_variable_table_valid(const volatile game::scr::var::ScrVar_t *vars,
+                             const uint32_t count) {
+  __try {
+    for (uint32_t i = 0; i < count; ++i) {
+      if (static_cast<uint32_t>(vars[i].value.type) >=
+          static_cast<uint32_t>(game::scr::var::ScrVarType::COUNT)) {
+        return false;
+      }
+    }
+    return true;
+  } __except (EXCEPTION_EXECUTE_HANDLER) {
+    return false;
+  }
+}
+
+void wipe_script_instance(const game::scr::scriptInstance_t inst) {
+  volatile auto &glob = game::scr::vm::gScrVarGlob->instance[inst];
+  if (glob.scriptNameSearchHashList) {
+    std::memset(const_cast<game::scr::var::ScrVarIndex_t *>(
+                    glob.scriptNameSearchHashList),
+                0, SCRIPT_NAME_SEARCH_HASH_SIZE);
+  }
+  game::scr::var::ScrVar_InitVariables(inst);
+  game::scr::var::ScrVar_InitClassMap(inst);
+  if (uint8_t *saved = game::scr::saved_world_object_valid.get()) {
+    for (const size_t slot :
+         {static_cast<size_t>(inst), static_cast<size_t>(inst) + 2}) {
+      saved[slot * game::scr::SAVED_WORLD_OBJECT_STRIDE] = 0;
+    }
+  }
+}
+
+const char *script_instance_name(const game::scr::scriptInstance_t inst) {
+  return inst == game::scr::SCRIPTINSTANCE_CLIENT ? "CSC" : "GSC";
+}
+
+void reset_vm_runtime(const game::scr::scriptInstance_t inst) {
+  volatile auto &vm = game::scr::vm::gScrVmPub->instance[inst];
+  volatile auto &glob = game::scr::vm::gScrVmGlob->instance[inst];
+  vm.top = const_cast<game::scr::var::ScrVarValue_t *>(vm.stack);
+  vm.function_frame =
+      const_cast<game::scr::vm::function_frame_t *>(vm.function_frame_start);
+  vm.function_count = 0;
+  vm.localVars = const_cast<uint32_t *>(glob.localVarsStack) - 1;
+  vm.callNesting = 0;
+  vm.inparamcount = 0;
+  vm.outparamcount = 0;
+  vm.debugCode = false;
+  vm.abort_on_error = false;
+  vm.terminal_error = false;
+  vm.block_execution = false;
+  glob.dialog_error_message = nullptr;
+}
+
+const char *running_script_name(const game::scr::scriptInstance_t inst) {
+  __try {
+    const uint8_t *pos = game::scr::vm::gFs->instance[inst].pos;
+    for (uint32_t i = 0; i < game::scr::gObjFileInfoCount->instance[inst];
+         ++i) {
+      const game::scr::GSC_OBJ *obj =
+          game::scr::gObjFileInfo->instance[inst][i].activeVersion;
+      const uint8_t *code =
+          reinterpret_cast<const uint8_t *>(obj) + obj->cseg_offset;
+      if (pos >= code && pos < code + obj->cseg_size) {
+        return obj->get_name();
+      }
+    }
+  } __except (EXCEPTION_EXECUTE_HANDLER) {
+  }
+  return nullptr;
+}
+
+std::string stop_aborted_script() {
+  game::scr::scriptInstance_t inst;
   if (is_game_thread()) {
-    static std::string reason;
-    reason = message;
-    game::com::Com_Error(game::errorParm::DROP, "%s", reason.c_str());
+    inst = game::scr::SCRIPTINSTANCE_CLIENT;
+  } else if (game::sys::Sys_IsServerThread.get() &&
+             game::sys::Sys_IsServerThread()) {
+    inst = game::scr::SCRIPTINSTANCE_SERVER;
+  } else {
+    return {};
   }
 
+  if (game::scr::vm::gScrVmPub->instance[inst].function_count <= 0) {
+    return {};
+  }
+  const char *script = running_script_name(inst);
+  reset_vm_runtime(inst);
+  return std::format(
+      "\n\nThe {} script^5{}^7 was running when this happened and has been "
+      "stopped.",
+      script_instance_name(inst),
+      script ? std::format(" '{}'", script) : std::string{});
+}
+
+std::string reset_corrupt_script_vm(const game::scr::scriptInstance_t inst) {
+  const char *name = script_instance_name(inst);
+
+  volatile auto &glob = game::scr::vm::gScrVarGlob->instance[inst];
+  if (!glob.scriptVariables && known_variable_tables[inst]) {
+    glob.scriptVariables = known_variable_tables[inst];
+  }
+  const bool variables_valid =
+      !glob.scriptVariables ||
+      is_variable_table_valid(glob.scriptVariables,
+                              SCRIPT_VARIABLE_COUNT[inst]);
+  if (!variables_valid) {
+    wipe_script_instance(inst);
+    wiped_script_instances[inst] = true;
+  }
+
+  volatile auto &vm = game::scr::vm::gScrVmPub->instance[inst];
+  auto *stack = const_cast<game::scr::var::ScrVarValue_t *>(vm.stack);
+  auto *frames =
+      const_cast<game::scr::vm::function_frame_t *>(vm.function_frame_start);
+  const bool top_valid =
+      vm.top >= stack && vm.top < stack + std::size(vm.stack);
+  const bool frame_valid =
+      vm.function_frame >= frames &&
+      vm.function_frame < frames + std::size(vm.function_frame_start);
+  if (variables_valid && top_valid && frame_valid) {
+    return {};
+  }
+
+  reset_vm_runtime(inst);
+  return std::format(
+      "\n^3The {} script {} corrupted, so its script system was reset.^7", name,
+      !variables_valid ? "variables were"
+      : !top_valid     ? "VM stack was"
+                       : "VM call frames were");
+}
+
+std::string reset_corrupt_script_vms() {
+  return reset_corrupt_script_vm(game::scr::SCRIPTINSTANCE_SERVER) +
+         reset_corrupt_script_vm(game::scr::SCRIPTINSTANCE_CLIENT);
+}
+
+[[noreturn]] void drop_to_main_menu(const std::string &reason,
+                                    const std::string &footer) {
+  static std::string message;
+  message = reason + reset_corrupt_script_vms() + footer;
+  script_error::mark_reported(message);
+  game::com::Com_Error(game::errorParm::DROP, "%s", message.c_str());
+  __assume(false);
+}
+
+constexpr size_t CRITICAL_SECTION_COUNTS_OFFSET = 0xB0;
+
+void leave_script_critical_sections() {
+  auto *const tls_block = *reinterpret_cast<uint8_t **>(
+      __readgsqword(0x58) + sizeof(void *) * _tls_index);
+  auto *const counts = reinterpret_cast<volatile int32_t *>(
+      tls_block + CRITICAL_SECTION_COUNTS_OFFSET);
+  for (const game::sys::CriticalSection critsect :
+       {game::sys::CriticalSection::SCRIPT_STRING,
+        game::sys::CriticalSection::VM}) {
+    while (counts[static_cast<int32_t>(critsect)] > 0) {
+      game::sys::Sys_LeaveCriticalSection(critsect);
+    }
+  }
+}
+
+[[noreturn]] void recover_thread(const std::string &reason,
+                                 const std::string &footer) {
+  leave_script_critical_sections();
+  if (is_game_thread()) {
+    drop_to_main_menu(reason, footer);
+  }
+
+  std::string report = reason;
+  if (game::sys::Sys_IsServerThread.get() && game::sys::Sys_IsServerThread()) {
+    report += reset_corrupt_script_vm(game::scr::SCRIPTINSTANCE_SERVER);
+  }
   {
     std::scoped_lock lock(pending_drop_mutex);
-    pending_drop_message = message;
+    pending_drop_reason = std::move(report);
+    pending_drop_footer = footer;
   }
   pending_drop = true;
   worker_recovering = true;
@@ -308,10 +519,36 @@ void show_mouse_cursor() {
 
 const char *get_exception_string(uint32_t exception);
 
-[[noreturn]] void restart_server(const std::string &reason) {
-  exception_log(true, "Server crash: %s\nRestarting the server process.",
-                reason.c_str());
-  utils::thread::suspend_other_threads();
+uint32_t inherited_restarts() {
+  wchar_t count[16]{};
+  return GetEnvironmentVariableW(CRASH_RESTARTS_ENV, count, std::size(count))
+             ? std::wcstoul(count, nullptr, 10)
+             : 0;
+}
+
+bool started_recently() {
+  return std::chrono::steady_clock::now() - process_start < 1min;
+}
+
+bool restart_allowed() {
+  return game::is_server() &&
+         (!started_recently() || inherited_restarts() < MAX_QUICK_RESTARTS);
+}
+
+void wait_for_archives() {
+  for (int32_t i = 0; archives_in_flight > 0 && i < 1200; ++i) {
+    std::this_thread::sleep_for(50ms);
+  }
+}
+
+[[noreturn]] void restart_process(const std::string &reason) {
+  exception_log(true, "%s\nRestarting the server process.", reason.c_str());
+  wait_for_archives();
+
+  SetEnvironmentVariableW(
+      CRASH_RESTARTS_ENV,
+      std::to_wstring(started_recently() ? inherited_restarts() + 1 : 1)
+          .c_str());
 
   STARTUPINFOW startup_info{};
   startup_info.cb = sizeof(startup_info);
@@ -325,37 +562,23 @@ const char *get_exception_string(uint32_t exception);
   __assume(false);
 }
 
-std::string describe_crash();
+std::string minidumps_folder() {
+  return (game::get_appdata_path() / "minidumps").string();
+}
 
-void display_error_dialog() {
-  if (game::is_server()) {
-    restart_server(describe_crash());
-  }
-
-  const resolved_frame frame = resolve_address(exception_data.address);
-  const char *exception_name = get_exception_string(exception_data.code);
-  const std::string location = get_crash_module_info(exception_data.address);
-  const std::string minidumps_out =
-      (game::get_appdata_path() / "minidumps").string();
-
-  const char *error_str = utils::string::va(
-      "%s (0x%08X) at %s\n\n"
-      "Address: 0x%p (RVA: 0x%llX)\n"
-      "Module: %s\n"
-      "%s%s"
-      "\nA crash dump has been saved to:\n%s\n"
-      "Please report this crash and upload the dump file on our Discord:\n"
-      "https://dc.ezz.lol\n",
-      exception_name, exception_data.code, location.c_str(),
-      exception_data.address, frame.rva, frame.module_name.c_str(),
-      frame.function_name.empty() ? "" : "Function: ",
-      frame.function_name.empty() ? "" : (frame.function_name + "\n").c_str(),
-      minidumps_out.c_str());
+[[noreturn]] void display_error_dialog(const std::string &reason) {
+  wait_for_archives();
+  const std::string minidumps_out = minidumps_folder();
 
   utils::thread::suspend_other_threads();
   show_mouse_cursor();
 
-  game::show_error(error_str, "Ezz ERROR");
+  game::show_error(
+      std::format(
+          "{}\n\nCrash dumps are saved in:\n{}\nPlease report this "
+          "and upload the dump file on our Discord:\nhttps://dc.ezz.lol",
+          error_help::strip_colors(reason), minidumps_out),
+      "Ezz ERROR");
 
   if (game::quiet_crash()) {
     utils::thread::terminate_other_threads(exception_data.code);
@@ -365,6 +588,7 @@ void display_error_dialog() {
   }
 
   TerminateProcess(GetCurrentProcess(), exception_data.code);
+  __assume(false);
 }
 
 std::string describe_crash() {
@@ -372,17 +596,16 @@ std::string describe_crash() {
   switch (exception_data.code) {
   case EXCEPTION_ACCESS_VIOLATION: {
     if (exception_data.caller) {
-      return std::format(
-          "called an invalid function pointer 0x{:X}{} from {}",
-          exception_data.target,
-          exception_data.target < 0x10000 ? " (null pointer)" : "",
-          get_crash_module_info(exception_data.caller));
+      return std::format("called an invalid function pointer 0x{:X}{} from {}",
+                         exception_data.target,
+                         exception_data.target < 0x10000 ? " (null pointer)"
+                                                         : "",
+                         get_crash_module_info(exception_data.caller));
     }
-    what = std::format("invalid memory access: tried to {} 0x{:X}{}",
-                       exception_data.access == 1 ? "write to" : "read",
-                       exception_data.target,
-                       exception_data.target < 0x10000 ? " (null pointer)"
-                                                       : "");
+    what = std::format(
+        "invalid memory access: tried to {} 0x{:X}{}",
+        exception_data.access == 1 ? "write to" : "read", exception_data.target,
+        exception_data.target < 0x10000 ? " (null pointer)" : "");
     break;
   }
   case EXCEPTION_INT_DIVIDE_BY_ZERO:
@@ -396,20 +619,74 @@ std::string describe_crash() {
     what = "stack overflow";
     break;
   default:
-    what = std::format("{} (0x{:08X})", get_exception_string(exception_data.code),
-                       exception_data.code);
+    what = get_exception_string(exception_data.code);
     break;
   }
 
-  what += " in " + get_crash_module_info(exception_data.address);
+  what += std::format(" in {} (0x{:08X})",
+                      get_crash_module_info(exception_data.address),
+                      exception_data.code);
 
   return what;
+}
+
+std::string crash_reason(const std::string_view headline,
+                         const std::string &script) {
+  std::string reason =
+      std::format("^1{}: {}.^7{}", headline, describe_crash(), script);
+  if (!exception_data.culprit.empty()) {
+    reason += "\n\n" + exception_data.culprit;
+  } else if (script.empty()) {
+    reason += "\n\n^3The cause could not be determined from the crash itself. "
+              "^7If it keeps happening: verify the game files in Steam, update "
+              "your graphics driver, disable overlays (Steam, Discord, MSI "
+              "Afterburner/RTSS) and remove CPU/GPU/RAM overclocks.";
+  }
+  return reason;
+}
+
+[[noreturn]] void give_up(const std::string &reason) {
+  if (restart_allowed()) {
+    restart_process(reason);
+  }
+  display_error_dialog(reason);
+}
+
+[[noreturn]] void close_after_hang() {
+  std::string reason;
+  {
+    std::scoped_lock lock(recovery_mutex);
+    reason = last_recovery_reason;
+  }
+  display_error_dialog(std::format("The game stopped responding after "
+                                   "recovering from an error and has to "
+                                   "close.\n\n{}",
+                                   reason));
+}
+
+void watch_recovery() {
+  last_recovery_tick = GetTickCount64();
+  static std::once_flag watchdog;
+  std::call_once(watchdog, [] {
+    std::thread([] {
+      while (true) {
+        std::this_thread::sleep_for(1s);
+        const uint64_t now = GetTickCount64();
+        const uint64_t recovered = last_recovery_tick;
+        if (now - recovered < RECOVERY_WATCH_MS &&
+            now - std::max(last_frame_tick.load(), recovered) >
+                RECOVERY_HANG_MS) {
+          close_after_hang();
+        }
+      }
+    }).detach();
+  });
 }
 
 void reset_state() {
   if (game::is_server()) {
     if (!is_game_thread()) {
-      display_error_dialog();
+      give_up("Server crash: " + describe_crash());
     }
 
     static std::string reason;
@@ -419,16 +696,23 @@ void reset_state() {
     game::com::Com_Error(game::errorParm::DROP, "%s", reason.c_str());
   }
 
+  const std::string script = stop_aborted_script();
   if (!can_recover_crash()) {
-    display_error_dialog();
+    give_up(crash_reason(recovery_in_progress
+                             ? "The game crashed again while recovering "
+                               "from a crash"
+                             : "The game crashed",
+                         script));
   }
 
-  record_recovery();
-  recover_thread(std::format(
-      "The game crashed and was returned to the main menu.\n\n{}\n\n"
-      "A crash dump was saved to:\n{}\n"
-      "If this keeps happening, please report it on https://dc.ezz.lol",
-      describe_crash(), (game::get_appdata_path() / "minidumps").string()));
+  const std::string reason = crash_reason("The game crashed", script);
+  record_recovery(reason);
+  recover_thread(reason,
+                 std::format("\n\nThe game was returned to the main menu. A "
+                             "crash dump was saved to:\n{}\nIf this keeps "
+                             "happening, please report it on "
+                             "https://dc.ezz.lol",
+                             minidumps_folder()));
 }
 
 void call_from_crash_site(CONTEXT &context, void (*target)()) {
@@ -585,6 +869,8 @@ std::string generate_crash_info(const LPEXCEPTION_POINTERS exceptioninfo) {
   if (!crash_frame.file_name.empty() && crash_frame.line_number > 0)
     line(utils::string::va("Source: %s:%lu", crash_frame.file_name.c_str(),
                            crash_frame.line_number));
+  if (!exception_data.culprit.empty())
+    line("Diagnosis: " + exception_data.culprit);
   line(utils::string::va("Base: 0x%llX", game::get_base()));
   line(utils::string::va("Thread ID: %lu (%s)", GetCurrentThreadId(),
                          is_game_thread() ? "main" : "auxiliary"));
@@ -665,7 +951,11 @@ void write_minidump(const LPEXCEPTION_POINTERS exceptioninfo,
   };
 
   if (in_background) {
-    std::thread(std::move(archive)).detach();
+    ++archives_in_flight;
+    std::thread([archive = std::move(archive)] {
+      archive();
+      --archives_in_flight;
+    }).detach();
   } else {
     archive();
   }
@@ -855,6 +1145,42 @@ long WINAPI crash_fix_exception_handler(PEXCEPTION_POINTERS exception_info) {
   return result;
 }
 
+std::string find_culprit(const std::vector<resolved_frame> &frames) {
+  if (exception_data.code == EXCEPTION_IN_PAGE_ERROR) {
+    return "Windows could not read part of the game from the disk.\nFix: "
+           "Check the drive for errors (or reconnect it if it is external), "
+           "then verify the game files in Steam.";
+  }
+
+  const utils::nt::library crashed =
+      utils::nt::library::get_by_address(exception_data.address);
+  if (crashed.get_ptr() == utils::nt::library{}.get_ptr()) {
+    const resolved_frame frame = resolve_address(exception_data.address);
+    return std::format("The crash happened inside the Ezz client itself{}.\n"
+                       "Fix: Please report it on https://dc.ezz.lol with the "
+                       "crash dump.",
+                       frame.function_name.empty()
+                           ? std::string{}
+                           : std::format(" ({})", frame.function_name));
+  }
+
+  std::vector<const void *> addresses{exception_data.address};
+  for (const resolved_frame &frame : frames) {
+    addresses.push_back(reinterpret_cast<const void *>(frame.address));
+  }
+  for (const void *address : addresses) {
+    const utils::nt::library module =
+        utils::nt::library::get_by_address(address);
+    if (module) {
+      if (std::string help = error_help::explain_module(module.get_path());
+          !help.empty()) {
+        return help;
+      }
+    }
+  }
+  return {};
+}
+
 bool is_harmless_error(const LPEXCEPTION_POINTERS exceptioninfo) {
   const uint32_t code = exceptioninfo->ExceptionRecord->ExceptionCode;
   return code == STATUS_INTEGER_OVERFLOW || code == STATUS_FLOAT_OVERFLOW ||
@@ -932,6 +1258,7 @@ long WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
               exception_data.access == 8
           ? *reinterpret_cast<void **>(exceptioninfo->ContextRecord->Rsp)
           : nullptr;
+  exception_data.culprit = find_culprit(frames);
 
   write_minidump(exceptioninfo, !game::is_server() && can_recover_crash());
   call_from_crash_site(*exceptioninfo->ContextRecord, reset_state);
@@ -947,16 +1274,56 @@ void com_error_abort_stub() {
   com_error_abort_hook.invoke<void>();
 }
 
+bool script_system_initialized(const game::scr::scriptInstance_t inst) {
+  return game::scr::vm::gScrVarPub->instance[inst].timeArrayId != 0;
+}
+
+utils::hook::detour scr_exec_thread_hook;
+game::scr::var::ScrVarIndex_t
+scr_exec_thread_stub(const game::scr::scriptInstance_t inst, const uint8_t *pos,
+                     const uint32_t num_params,
+                     game::scr::var::ScrVarValue_t *return_value,
+                     const game::scr::var::ScrVarIndex_t self) {
+  if (recovery_in_progress && !script_system_initialized(inst)) {
+    reset_vm_runtime(inst);
+    return {};
+  }
+  return scr_exec_thread_hook.invoke<game::scr::var::ScrVarIndex_t>(
+      inst, pos, num_params, return_value, self);
+}
+
+utils::hook::detour scr_init_system_hook;
+void scr_init_system_stub(const game::scr::scriptInstance_t inst) {
+  if (wiped_script_instances[inst].exchange(false)) {
+    wipe_script_instance(inst);
+  }
+  scr_init_system_hook.invoke<void>(inst);
+}
+
+utils::hook::detour scr_free_thread_hook;
+void scr_free_thread_stub(const game::scr::scriptInstance_t inst,
+                          const game::scr::var::ScrVarIndex_t thread_id) {
+  if (thread_id) {
+    scr_free_thread_hook.invoke<void>(inst, thread_id);
+  }
+}
+
 utils::hook::detour cl_frame_hook;
 void cl_frame_stub(const int64_t local_client_num, const int32_t msec) {
   if (pending_drop.exchange(false)) {
-    static std::string reason;
+    std::string reason;
+    std::string footer;
     {
       std::scoped_lock lock(pending_drop_mutex);
-      reason = pending_drop_message;
+      reason = pending_drop_reason;
+      footer = pending_drop_footer;
     }
-    game::com::Com_Error(game::errorParm::DROP, "%s", reason.c_str());
+    drop_to_main_menu(reason, footer);
   }
+  recovery_in_progress = false;
+  nested_error_recovered = false;
+  last_frame_tick = GetTickCount64();
+  remember_variable_tables();
   cl_frame_hook.invoke<void>(local_client_num, msec);
 }
 
@@ -965,15 +1332,32 @@ void WINAPI set_unhandled_exception_filter_stub(LPTOP_LEVEL_EXCEPTION_FILTER) {
 }
 } // namespace
 
-bool try_recover_fatal(const std::string &message) {
-  if (!can_recover_thread()) {
-    return false;
+void recover_fatal_error(const std::string &reason) {
+  if (recovery_in_progress || !can_recover_thread()) {
+    return;
   }
-  record_recovery();
-  if (!is_game_thread()) {
-    recover_thread(message);
+  const std::string message = reason + stop_aborted_script();
+  record_recovery(message);
+  recover_thread(message, "\n\nThe game was returned to the main menu.");
+}
+
+void recover_nested_error(const std::string &reason) {
+  game::qboolean *error_entered = game::com::com_errorEntered.get();
+  if (!error_entered || !*error_entered || !is_game_thread() ||
+      nested_error_recovered || !can_recover_thread()) {
+    return;
   }
-  return true;
+  nested_error_recovered = true;
+  const std::string message = reason + stop_aborted_script();
+  record_recovery(message);
+  *error_entered = {};
+  recover_thread(message, "\n\nThe game was returned to the main menu.");
+}
+
+void restart_after_fatal_error(const std::string &message) {
+  if (restart_allowed()) {
+    restart_process("Server fatal error: " + message);
+  }
 }
 
 struct component final : generic_component {
@@ -1018,6 +1402,12 @@ struct component final : generic_component {
       com_error_abort_hook.create(game::com::Com_ErrorAbort.get(),
                                   com_error_abort_stub);
       cl_frame_hook.create(game::cl::CL_Frame.get(), cl_frame_stub);
+      scr_init_system_hook.create(game::scr::Scr_InitSystem.get(),
+                                  scr_init_system_stub);
+      scr_exec_thread_hook.create(game::scr::Scr_ExecThread.get(),
+                                  scr_exec_thread_stub);
+      scr_free_thread_hook.create(game::scr::Scr_FreeThread.get(),
+                                  scr_free_thread_stub);
     }
 
     scheduler::once(
@@ -1030,6 +1420,8 @@ struct component final : generic_component {
         },
         scheduler::pipeline::main);
   }
+
+  void pre_destroy() override { wait_for_archives(); }
 };
 } // namespace exception
 
