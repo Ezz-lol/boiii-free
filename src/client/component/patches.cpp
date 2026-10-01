@@ -1,6 +1,5 @@
 #include <std_include.hpp>
 
-#include "component/dedicated/map_recovery.hpp"
 #include "component/path.hpp"
 #include "component/script_error.hpp"
 #include "scheduler.hpp"
@@ -70,7 +69,6 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
   if (game::is_server() && script_error::is_script_vm_failure(file, code)) {
     const script_error::report report =
         script_error::build_report(code, buffer, file);
-    script_error::print_report(report, map_recovery::on_map_stopped());
     com_error_hook.invoke<void>(file, line, game::errorParm::DROP, "%s",
                                 report.summary.c_str());
     return;

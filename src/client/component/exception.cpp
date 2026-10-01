@@ -4,7 +4,6 @@
 
 #include <loader/component_loader.hpp>
 
-#include "dedicated/map_recovery.hpp"
 #include "scheduler.hpp"
 #include "script_error.hpp"
 #include <game/game.hpp>
@@ -737,10 +736,11 @@ long WINAPI crash_fix_exception_handler(PEXCEPTION_POINTERS exception_info) {
       default: {
         break;
       }
-      continue_execution: {
-        result = EXCEPTION_CONTINUE_EXECUTION;
-        break;
-      }
+      continue_execution:
+        {
+          result = EXCEPTION_CONTINUE_EXECUTION;
+          break;
+        }
       }
     }
 
@@ -818,10 +818,6 @@ long WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
       }
       fflush(stderr);
     }
-  }
-  if (game::is_server() && is_game_thread()) {
-    exception_log(true, "  Result:     %s",
-                  map_recovery::on_map_stopped().c_str());
   }
   exception_log(true, "=====================================");
 
