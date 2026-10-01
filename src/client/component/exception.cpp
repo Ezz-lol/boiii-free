@@ -5,11 +5,9 @@
 #include <loader/component_loader.hpp>
 
 #include "dedicated/map_recovery.hpp"
-#include "exception.hpp"
 #include "scheduler.hpp"
 #include "script_error.hpp"
 #include <game/game.hpp>
-#include <game/utils.hpp>
 
 #include <errhandlingapi.h>
 #include <utils/compression.hpp>
@@ -198,11 +196,9 @@ qboolean WINAPI mini_dump_write_dump_stub(
     }
 
     const std::filesystem::path p(path);
-    const std::filesystem::path minidumps_path =
-        game::get_appdata_path() / "minidumps";
-    std::error_code error;
-    if (p.extension() == L".dmp" &&
-        !std::filesystem::equivalent(p.parent_path(), minidumps_path, error)) {
+    if (p.extension() == L".dmp") {
+      const std::filesystem::path minidumps_path =
+          game::get_appdata_path() / "minidumps";
       std::filesystem::create_directories(minidumps_path);
 
       const std::filesystem::path new_path = minidumps_path / p.filename();
@@ -228,77 +224,33 @@ qboolean WINAPI mini_dump_write_dump_stub(
 thread_local struct {
   uint32_t code = 0;
   void *address = nullptr;
-  uintptr_t access = 0;
-  uintptr_t target = 0;
-  void *caller = nullptr;
 } exception_data{};
 
-constexpr size_t MAX_RECOVERIES_PER_MINUTE = 3;
-game::EngineDependentDvarMut crash_recovery;
-std::mutex recovery_mutex;
-std::deque<std::chrono::steady_clock::time_point> recent_recoveries;
-
-std::mutex pending_drop_mutex;
-std::string pending_drop_message;
-std::atomic_bool pending_drop{false};
-thread_local bool worker_recovering = false;
+struct {
+  std::chrono::time_point<std::chrono::high_resolution_clock> last_recovery{};
+  std::atomic<int32_t> recovery_counts = {0};
+} recovery_data{};
 
 bool is_game_thread() { return main_thread_id == GetCurrentThreadId(); }
 
-game::TLSData *engine_tls() {
-  __try {
-    return game::sys::Sys_GetTLS();
-  } __except (EXCEPTION_EXECUTE_HANDLER) {
-    return nullptr;
-  }
+bool is_exception_interval_too_short() {
+  const std::chrono::nanoseconds delta =
+      std::chrono::high_resolution_clock::now() - recovery_data.last_recovery;
+  return delta < 1min;
 }
 
-jmp_buf *armed_error_jmp_buf() {
-  game::TLSData *tls = engine_tls();
-  if (!tls || !tls->errorJmpBuf) {
-    return nullptr;
-  }
-  const auto *buffer = reinterpret_cast<const _JUMP_BUFFER *>(tls->errorJmpBuf);
-  return buffer->Rip ? tls->errorJmpBuf : nullptr;
+bool too_many_exceptions_occured() {
+  return recovery_data.recovery_counts >= 3;
 }
 
-bool recovery_budget_left() {
-  std::scoped_lock lock(recovery_mutex);
-  const auto now = std::chrono::steady_clock::now();
-  while (!recent_recoveries.empty() && now - recent_recoveries.front() > 1min) {
-    recent_recoveries.pop_front();
-  }
-  return recent_recoveries.size() < MAX_RECOVERIES_PER_MINUTE;
+volatile bool &is_initialized() {
+  static volatile bool initialized = true;
+  return initialized;
 }
 
-bool can_recover_thread() {
-  return (!crash_recovery || crash_recovery.get_bool()) &&
-         armed_error_jmp_buf() && recovery_budget_left();
-}
-
-bool can_recover_crash() {
-  return exception_data.code != EXCEPTION_STACK_OVERFLOW && can_recover_thread();
-}
-
-void record_recovery() {
-  std::scoped_lock lock(recovery_mutex);
-  recent_recoveries.push_back(std::chrono::steady_clock::now());
-}
-
-[[noreturn]] void recover_thread(const std::string &message) {
-  if (is_game_thread()) {
-    static std::string reason;
-    reason = message;
-    game::com::Com_Error(game::errorParm::DROP, "%s", reason.c_str());
-  }
-
-  {
-    std::scoped_lock lock(pending_drop_mutex);
-    pending_drop_message = message;
-  }
-  pending_drop = true;
-  worker_recovering = true;
-  longjmp(*armed_error_jmp_buf(), 1);
+bool is_recoverable() {
+  return is_initialized() && is_game_thread() &&
+         !is_exception_interval_too_short() && !too_many_exceptions_occured();
 }
 
 void show_mouse_cursor() {
@@ -308,30 +260,7 @@ void show_mouse_cursor() {
 
 const char *get_exception_string(uint32_t exception);
 
-[[noreturn]] void restart_server(const std::string &reason) {
-  exception_log(true, "Server crash: %s\nRestarting the server process.",
-                reason.c_str());
-  utils::thread::suspend_other_threads();
-
-  STARTUPINFOW startup_info{};
-  startup_info.cb = sizeof(startup_info);
-  PROCESS_INFORMATION process_info{};
-  if (CreateProcessW(nullptr, GetCommandLineW(), nullptr, nullptr, TRUE, 0,
-                     nullptr, nullptr, &startup_info, &process_info)) {
-    CloseHandle(process_info.hThread);
-    CloseHandle(process_info.hProcess);
-  }
-  TerminateProcess(GetCurrentProcess(), exception_data.code);
-  __assume(false);
-}
-
-std::string describe_crash();
-
 void display_error_dialog() {
-  if (game::is_server()) {
-    restart_server(describe_crash());
-  }
-
   const resolved_frame frame = resolve_address(exception_data.address);
   const char *exception_name = get_exception_string(exception_data.code);
   const std::string location = get_crash_module_info(exception_data.address);
@@ -367,45 +296,6 @@ void display_error_dialog() {
   TerminateProcess(GetCurrentProcess(), exception_data.code);
 }
 
-std::string describe_crash() {
-  std::string what;
-  switch (exception_data.code) {
-  case EXCEPTION_ACCESS_VIOLATION: {
-    if (exception_data.caller) {
-      return std::format(
-          "called an invalid function pointer 0x{:X}{} from {}",
-          exception_data.target,
-          exception_data.target < 0x10000 ? " (null pointer)" : "",
-          get_crash_module_info(exception_data.caller));
-    }
-    what = std::format("invalid memory access: tried to {} 0x{:X}{}",
-                       exception_data.access == 1 ? "write to" : "read",
-                       exception_data.target,
-                       exception_data.target < 0x10000 ? " (null pointer)"
-                                                       : "");
-    break;
-  }
-  case EXCEPTION_INT_DIVIDE_BY_ZERO:
-    what = "integer division by zero";
-    break;
-  case EXCEPTION_ILLEGAL_INSTRUCTION:
-  case EXCEPTION_PRIV_INSTRUCTION:
-    what = "invalid instruction";
-    break;
-  case EXCEPTION_STACK_OVERFLOW:
-    what = "stack overflow";
-    break;
-  default:
-    what = std::format("{} (0x{:08X})", get_exception_string(exception_data.code),
-                       exception_data.code);
-    break;
-  }
-
-  what += " in " + get_crash_module_info(exception_data.address);
-
-  return what;
-}
-
 void reset_state() {
   if (game::is_server()) {
     if (!is_game_thread()) {
@@ -413,43 +303,68 @@ void reset_state() {
     }
 
     static std::string reason;
-    reason = "Server crash: " + describe_crash();
+    reason = std::format("Server crash: {} (0x{:08X}) at {}",
+                         get_exception_string(exception_data.code),
+                         exception_data.code,
+                         get_crash_module_info(exception_data.address));
     script_error::mark_reported(reason);
     map_recovery::notify_clients(reason);
     game::com::Com_Error(game::errorParm::DROP, "%s", reason.c_str());
   }
 
-  if (!can_recover_crash()) {
+  if (is_recoverable()) {
+    const std::string location = get_crash_module_info(exception_data.address);
+    const char *exception_name = get_exception_string(exception_data.code);
+
+    recovery_data.last_recovery = std::chrono::high_resolution_clock::now();
+    ++recovery_data.recovery_counts;
+
+    scheduler::once(
+        [] {
+          if (game::com::Com_IsInGame())
+            game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, "disconnect\n");
+        },
+        scheduler::pipeline::main);
+
+    game::com::Com_Printf(
+        game::consoleChannel_e::CHANNEL_DONT_FILTER,
+        game::consoleLabel_e::DEFAULT,
+        "%s (0x%08X) at %s\n\n"
+        "A crash dump has been saved to:\n%s\n\n"
+        "Ezz has tried to recover your game, but it may be unstable.\n\n"
+        "Make sure to update your graphics card drivers and "
+        "install operating system updates!\n"
+        "Closing or restarting Steam might also help.\n\n"
+        "If this keeps happening, please report it on our Discord: "
+        "https://dc.ezz.lol",
+        exception_name, exception_data.code, location.c_str(),
+        (game::get_appdata_path() / "minidumps").string().c_str());
+
+    game::com::Com_Error(
+        game::errorParm::FATAL,
+        "%s (0x%08X) at %s\n\n"
+        "A crash dump has been saved to:\n%s\n\n"
+        "Ezz has tried to recover your game, but it may be unstable.\n\n"
+        "Make sure to update your graphics card drivers and "
+        "install operating system updates!\n"
+        "Closing or restarting Steam might also help.\n\n"
+        "If this keeps happening, please report it on our Discord: "
+        "https://dc.ezz.lol",
+        exception_name, exception_data.code, location.c_str(),
+        (game::get_appdata_path() / "minidumps").string().c_str());
+  } else {
     display_error_dialog();
   }
-
-  record_recovery();
-  recover_thread(std::format(
-      "The game crashed and was returned to the main menu.\n\n{}\n\n"
-      "A crash dump was saved to:\n{}\n"
-      "If this keeps happening, please report it on https://dc.ezz.lol",
-      describe_crash(), (game::get_appdata_path() / "minidumps").string()));
 }
 
-void call_from_crash_site(CONTEXT &context, void (*target)()) {
-  for (int32_t i = 0; i < 4 && (context.Rsp & 0xF) != 0; ++i) {
-    DWORD64 image_base{};
-    const PRUNTIME_FUNCTION function =
-        RtlLookupFunctionEntry(context.Rip, &image_base, nullptr);
-    if (function) {
-      void *handler_data{};
-      DWORD64 establisher_frame{};
-      RtlVirtualUnwind(UNW_FLAG_NHANDLER, image_base, context.Rip, function,
-                       &context, &handler_data, &establisher_frame, nullptr);
-    } else {
-      context.Rip = *reinterpret_cast<DWORD64 *>(context.Rsp);
-      context.Rsp += 8;
-    }
-  }
+size_t get_reset_state_stub() {
+  static void *stub = utils::hook::assemble([](utils::hook::assembler &a) {
+    a.get().sub(rsp, 0x10);
+    a.get().or_(rsp, 0x8);
+    a.jmp(reset_state);
+  });
 
-  context.Rsp -= 8;
-  *reinterpret_cast<DWORD64 *>(context.Rsp) = context.Rip;
-  context.Rip = reinterpret_cast<DWORD64>(target);
+  return reinterpret_cast<size_t>(stub);
 }
 
 std::string get_timestamp() {
@@ -647,27 +562,17 @@ std::string generate_crash_info(const LPEXCEPTION_POINTERS exceptioninfo) {
   return info;
 }
 
-void write_minidump(const LPEXCEPTION_POINTERS exceptioninfo,
-                    const bool in_background) {
+void write_minidump(const LPEXCEPTION_POINTERS exceptioninfo) {
   const std::string crash_name =
       (game::get_appdata_path() / "minidumps" /
        utils::string::va("ezz-crash-%s.zip", get_timestamp().data()))
           .string();
 
-  auto archive = [crash_name, dump = create_minidump(exceptioninfo),
-                  info = generate_crash_info(exceptioninfo)]() {
-    utils::compression::zip::archive zip_file{};
-    zip_file.add("crash.dmp", dump);
-    zip_file.add("info.txt", info);
-    if (!zip_file.write(crash_name, "Ezz Crash Dump")) {
-      utils::io::remove_file(crash_name);
-    }
-  };
-
-  if (in_background) {
-    std::thread(std::move(archive)).detach();
-  } else {
-    archive();
+  utils::compression::zip::archive zip_file{};
+  zip_file.add("crash.dmp", create_minidump(exceptioninfo));
+  zip_file.add("info.txt", generate_crash_info(exceptioninfo));
+  if (!zip_file.write(crash_name, "Ezz Crash Dump")) {
+    utils::io::remove_file(crash_name);
   }
 }
 
@@ -921,60 +826,19 @@ long WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
   }
   exception_log(true, "=====================================");
 
+  write_minidump(exceptioninfo);
+
   exception_data.code = exceptioninfo->ExceptionRecord->ExceptionCode;
   exception_data.address = exceptioninfo->ExceptionRecord->ExceptionAddress;
-  exception_data.access =
-      exceptioninfo->ExceptionRecord->ExceptionInformation[0];
-  exception_data.target =
-      exceptioninfo->ExceptionRecord->ExceptionInformation[1];
-  exception_data.caller =
-      exception_data.code == EXCEPTION_ACCESS_VIOLATION &&
-              exception_data.access == 8
-          ? *reinterpret_cast<void **>(exceptioninfo->ContextRecord->Rsp)
-          : nullptr;
-
-  write_minidump(exceptioninfo, !game::is_server() && can_recover_crash());
-  call_from_crash_site(*exceptioninfo->ContextRecord, reset_state);
+  exceptioninfo->ContextRecord->Rip = get_reset_state_stub();
 
   return EXCEPTION_CONTINUE_EXECUTION;
-}
-
-utils::hook::detour com_error_abort_hook;
-void com_error_abort_stub() {
-  if (std::exchange(worker_recovering, false)) {
-    return;
-  }
-  com_error_abort_hook.invoke<void>();
-}
-
-utils::hook::detour cl_frame_hook;
-void cl_frame_stub(const int64_t local_client_num, const int32_t msec) {
-  if (pending_drop.exchange(false)) {
-    static std::string reason;
-    {
-      std::scoped_lock lock(pending_drop_mutex);
-      reason = pending_drop_message;
-    }
-    game::com::Com_Error(game::errorParm::DROP, "%s", reason.c_str());
-  }
-  cl_frame_hook.invoke<void>(local_client_num, msec);
 }
 
 void WINAPI set_unhandled_exception_filter_stub(LPTOP_LEVEL_EXCEPTION_FILTER) {
   // Don't register anything here...
 }
 } // namespace
-
-bool try_recover_fatal(const std::string &message) {
-  if (!can_recover_thread()) {
-    return false;
-  }
-  record_recovery();
-  if (!is_game_thread()) {
-    recover_thread(message);
-  }
-  return true;
-}
 
 struct component final : generic_component {
 #ifndef NDEBUG
@@ -1007,28 +871,6 @@ struct component final : generic_component {
     }
 
     AddVectoredExceptionHandler(1, crash_fix_exception_handler);
-  }
-
-  void post_unpack() override {
-    if (!game::is_server()) {
-      crash_recovery = game::register_dvar_bool(
-          "com_crashRecovery", true, game::DVAR_ARCHIVE,
-          "Return to the main menu instead of closing the game after a crash "
-          "or fatal error");
-      com_error_abort_hook.create(game::com::Com_ErrorAbort.get(),
-                                  com_error_abort_stub);
-      cl_frame_hook.create(game::cl::CL_Frame.get(), cl_frame_stub);
-    }
-
-    scheduler::once(
-        [] {
-          game::cbuf::Cbuf_AddText(
-              game::LOCAL_CLIENT_0,
-              utils::string::va(
-                  "dumpdir \"%s\"\n",
-                  (game::get_appdata_path() / "minidumps").string().c_str()));
-        },
-        scheduler::pipeline::main);
   }
 };
 } // namespace exception
