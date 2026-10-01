@@ -736,11 +736,10 @@ long WINAPI crash_fix_exception_handler(PEXCEPTION_POINTERS exception_info) {
       default: {
         break;
       }
-      continue_execution:
-        {
-          result = EXCEPTION_CONTINUE_EXECUTION;
-          break;
-        }
+      continue_execution: {
+        result = EXCEPTION_CONTINUE_EXECUTION;
+        break;
+      }
       }
     }
 
