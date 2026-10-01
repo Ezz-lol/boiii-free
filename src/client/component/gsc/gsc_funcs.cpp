@@ -306,11 +306,19 @@ inline void clear_message_bufs() {
   memset(cleaned_message_buf, 0, std::size(cleaned_message_buf));
 }
 
+inline void ensure_message_bufs_clear() {
+  if (message_buf[0]) {
+    memset(message_buf, 0, std::size(message_buf));
+  }
+
+  if (cleaned_message_buf[0]) {
+    memset(cleaned_message_buf, 0, std::size(cleaned_message_buf));
+  }
+}
+
 void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
   if (entref->is_hudelem()) [[likely]] {
-    if (message_buf[0] != '\0' || cleaned_message_buf[0] != '\0') {
-      clear_message_bufs();
-    }
+    ensure_message_bufs_clear();
     const uint16_t hudElemIdx = entref->u.hudElemIndex;
     volatile game_hudelem_t *elem = &g_hudelems->get(hudElemIdx);
 
@@ -389,8 +397,6 @@ void HECmd_SetText_ReuseCfgString(scriptInstance_t inst, scr_entref_t *entref) {
 } // namespace hecmd_settext
 
 void forget_hudelem_cfgstr_pool() {
-  // Cache indices are only owned within one engine cache lifetime. Forget
-  // old bookkeeping without clearing a new map's strings at those indices.
   for (uint16_t slot = 0; slot < ui::he::HUD_ELEMENT_POOL_SIZE; ++slot) {
     hudelem_cfgstr_pool[slot].clear();
   }
@@ -398,8 +404,6 @@ void forget_hudelem_cfgstr_pool() {
 
 utils::hook::detour HudElem_DestroyAll_hook;
 
-// Discard private ownership without de-registering strings during global
-// teardown. The engine owns the configstring/BG cache lifetime.
 void HudElem_DestroyAll_ClearCfgStrEntry_Invoke() {
   forget_hudelem_cfgstr_pool();
   return HudElem_DestroyAll_hook.invoke();
