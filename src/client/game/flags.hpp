@@ -23,4 +23,9 @@ bool disable_loadlib();
 bool alias();
 bool quiet_crash();
 bool is_headless();
+#ifdef NDEBUG
+inline bool vm_trace() { return false; }
+#else
+bool vm_trace();
+#endif
 } // namespace game

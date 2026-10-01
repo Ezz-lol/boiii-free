@@ -197,7 +197,6 @@ enum class Opcode : uint8_t {
 IMPL_ENUM_OPERATORS(Opcode);
 
 // For debug logging
-#ifndef NDEBUG
 inline constexpr const char *serialize(vm::op::Opcode opcode) {
   switch (opcode) {
   case vm::op::Opcode::Bit_And:
@@ -436,7 +435,6 @@ inline constexpr const char *serialize(vm::op::Opcode opcode) {
     return "OP_UnknownOrInvalid";
   }
 }
-#endif
 
 extern const frozen::unordered_map<Opcode, std::array<OP_TYPE, 0x86>,
                                    +Opcode::Count + 1 /* UnknownOrInvalid */>

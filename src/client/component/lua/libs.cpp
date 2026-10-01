@@ -1,0 +1,51 @@
+#include <std_include.hpp>
+
+#include <game/game.hpp>
+
+#include <component/lua/lua_state.hpp>
+#include <loader/component_loader.hpp>
+
+// Adds stubbed variations of miscellaneous lua library API functions seen in
+// T7Recharged. These would be useless in boiii, so can be safely stubbed.
+namespace lualibs {
+using namespace game::lua::hks;
+using namespace game::lua;
+luaReturnCount_e lua_stub_func([[maybe_unused]] lua_State *s) {
+
+  return luaReturnCount_e::NONE;
+}
+
+luaReturnCount_e lua_return_true(lua_State *s) {
+  lua_pushboolean(s, htrue);
+  return luaReturnCount_e::ONE;
+}
+
+class component final : public generic_component {
+#ifndef NDEBUG
+  std::string name() override { return "lua/lualibs"; }
+#endif
+
+public:
+  void post_unpack() override {
+    static constexpr const luaL_Reg HotReloadLibrary[] = {
+        lua_state::luaL_LoggedReg<"HotReload", "Start", lua_stub_func>(),
+        {nullptr, nullptr},
+    };
+    lua_state::register_library("HotReload", HotReloadLibrary);
+
+    static constexpr const luaL_Reg UIErrorHashLibrary[] = {
+        lua_state::luaL_LoggedReg<"UIErrorHash", "Remove", lua_stub_func>(),
+        {nullptr, nullptr},
+    };
+    lua_state::register_library("UIErrorHash", UIErrorHashLibrary);
+
+    static constexpr const luaL_Reg VideoLibrary[] = {
+        lua_state::luaL_LoggedReg<"Video", "HookVideoPath", lua_return_true>(),
+        {nullptr, nullptr},
+    };
+    lua_state::register_library("Video", VideoLibrary);
+  }
+};
+} // namespace lualibs
+
+REGISTER_COMPONENT(lualibs::component)

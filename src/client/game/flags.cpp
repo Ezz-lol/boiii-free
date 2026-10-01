@@ -99,4 +99,11 @@ bool is_headless() {
   static const bool headless = utils::flags::has_flag("headless");
   return headless;
 }
+
+#ifndef NDEBUG
+bool vm_trace() {
+  static const bool result = utils::flags::has_flag("vm-trace");
+  return result;
+}
+#endif
 } // namespace game

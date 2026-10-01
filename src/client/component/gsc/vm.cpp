@@ -66,7 +66,7 @@ inline void __attribute__((optnone))
 invoke_opcode_err(scriptInstance_t inst, volatile vm::function_stack_t *fs,
                   volatile vm::ScrVmContext_t *vmc, volatile bool *terminate) {
 #ifndef NDEBUG
-  game::trace("[Scr][VM] Entered VM_{}_ErrRecovery\n", vm::op::serialize(Op));
+  game::trace("[Scr][VM] Entered VM_{}_ErrRecovery", vm::op::serialize(Op));
 #endif
   HOOKED_OPCODE_ERR_HANDLERS[+Op](inst, fs, vmc, terminate);
 }
@@ -75,9 +75,19 @@ template <const game::scr::vm::op::Opcode Op>
 __attribute__((optnone)) void
 flush_exec(scriptInstance_t inst, volatile vm::function_stack_t *fs,
            volatile vm::ScrVmContext_t *vmc, volatile bool *terminate) {
-
+#ifndef NDEBUG
+  if (game::vm_trace()) {
+    game::trace("[Scr][VM] Entered VM_{}_Handler", vm::op::serialize(Op));
+  }
+#endif
   flush_stack(inst, fs, vmc, terminate);
   invoke_opcode<Op>(inst, fs, vmc, terminate);
+#ifndef NDEBUG
+  if (game::vm_trace()) {
+    game::trace("[Scr][VM] Completed execution of VM_{}_Handler",
+                vm::op::serialize(Op));
+  }
+#endif
   flush_stack(inst, fs, vmc, terminate);
 }
 
@@ -93,8 +103,8 @@ flush_exec_err(scriptInstance_t inst, volatile vm::function_stack_t *fs,
 
 inline bool try_redirect(scriptInstance_t inst,
                          volatile vm::function_stack_t *fs) {
-  if (gsc::detours_enabled.load(std::memory_order_acquire) &&
-      inst == SCRIPTINSTANCE_SERVER) {
+  if (inst == SCRIPTINSTANCE_SERVER &&
+      gsc::detours_enabled.load(std::memory_order_acquire)) {
     // Step behind the opcode in bytecode. Bytecode position increments past the
     // opcode just prior to execution in `VM_Execute`.
     uint8_t *redirected = fs->pos - sizeof(op::OP_TYPE);
@@ -120,8 +130,7 @@ void hook_opcode(vm::op::Opcode opcode, const vm::op::VM_OP_FUNC_PTR hook,
                  vm::op::VM_OP_FUNC_PTR *out_orig) {
   if (vm::op::OPCODE_BYTECODE_MAP.contains(opcode)) [[likely]] {
     if (!*out_orig) {
-      *out_orig =
-          *vm::op::op_handler(vm::op::OPCODE_BYTECODE_MAP.at(opcode)[0]);
+      *out_orig = *vm::op::handler(vm::op::OPCODE_BYTECODE_MAP.at(opcode)[0]);
     }
 
     for (const vm::op::OP_TYPE bytecode :
@@ -129,26 +138,28 @@ void hook_opcode(vm::op::Opcode opcode, const vm::op::VM_OP_FUNC_PTR hook,
       if (bytecode == 0x0000) {
         break;
       }
-      vm::op::VM_OP_FUNC_PTR *handler = vm::op::op_handler(bytecode);
+      vm::op::VM_OP_FUNC_PTR *handler = vm::op::handler(bytecode);
       if (*handler == *out_orig) [[likely]] {
         *handler = hook;
       } else [[unlikely]] {
-        fprintf(
-            stderr,
-            "Warning: Opcode handler for opcode 0x%02X with jumptable index "
-            "0x%04X at 0x%p did not match expected function pointer. Expected: "
-            "0x%p, "
-            "got: 0x%p. Skipping hook application.\n",
-            +opcode, bytecode, game::derelocate(handler),
+        const char *err_msg = utils::string::va(
+            "Warning: Opcode handler for opcode %s with jumptable index 0x%04X "
+            "at 0x%p did not match expected function pointer. Expected: 0x%p, "
+            "got: 0x%p. Skipping hook application.",
+            op::serialize(opcode), bytecode, game::derelocate(handler),
             game::derelocate(*out_orig), game::derelocate(*handler));
+        game::trace("{}", err_msg);
+        fprintf(stderr, "%s\n", err_msg);
         fflush(stderr);
       }
     }
   } else [[unlikely]] {
-    fprintf(stderr,
-            "Warning: could not find valid bytecode value for opcode: "
-            "0x%02X. Hook will not be applied.\n",
-            static_cast<uint8_t>(opcode));
+    const char *err_msg = utils::string::va(
+        "Warning: could not find valid bytecode value for opcode: "
+        "%s. Hook will not be applied.",
+        op::serialize(opcode));
+    game::trace("{}", err_msg);
+    fprintf(stderr, "%s\n", err_msg);
     fflush(stderr);
   }
 }
@@ -159,7 +170,7 @@ void hook_opcode_err(vm::op::Opcode opcode, const vm::op::VM_OP_FUNC_PTR hook,
 
     if (!*out_orig) {
       *out_orig =
-          *vm::op::op_err_handler(vm::op::OPCODE_BYTECODE_MAP.at(opcode)[0]);
+          *vm::op::error_recovery(vm::op::OPCODE_BYTECODE_MAP.at(opcode)[0]);
     }
 
     for (const vm::op::OP_TYPE bytecode :
@@ -167,26 +178,29 @@ void hook_opcode_err(vm::op::Opcode opcode, const vm::op::VM_OP_FUNC_PTR hook,
       if (bytecode == 0x0000) {
         break;
       }
-      vm::op::VM_OP_FUNC_PTR *handler = vm::op::op_err_handler(bytecode);
+      vm::op::VM_OP_FUNC_PTR *handler = vm::op::error_recovery(bytecode);
       if (*handler == *out_orig) [[likely]] {
         *handler = hook;
       } else [[unlikely]] {
-        fprintf(stderr,
-                "Warning: Opcode error recovery handler for opcode 0x%02X with "
-                "jumptable index "
-                "0x%04X at 0x%p did not match expected function pointer. "
-                "Expected: 0x%p, "
-                "got: 0x%p. Skipping hook application.\n",
-                +opcode, bytecode, game::derelocate(handler),
-                game::derelocate(*out_orig), game::derelocate(*handler));
+        const char *err_msg = utils::string::va(
+            "[Scr][VM] Warning: Opcode error recovery handler for opcode %s "
+            "with jumptable index 0x%04X at 0x%p did not match expected "
+            "function pointer. Expected: 0x%p, got: 0x%p. Skipping hook "
+            "application.",
+            op::serialize(opcode), bytecode, game::derelocate(handler),
+            game::derelocate(*out_orig), game::derelocate(*handler));
+        game::trace("{}", err_msg);
+        fprintf(stderr, "%s\n", err_msg);
         fflush(stderr);
       }
     }
   } else [[unlikely]] {
-    fprintf(stderr,
-            "Warning: could not find valid bytecode value for opcode: "
-            "0x%02X. Hook will not be applied.\n",
-            static_cast<uint8_t>(opcode));
+    const char *err_msg = utils::string::va(
+        "[Scr][VM] Warning: could not find valid bytecode value for opcode: "
+        "%s. Hook will not be applied.",
+        op::serialize(opcode));
+    game::trace("{}", err_msg);
+    fprintf(stderr, "%s\n", err_msg);
     fflush(stderr);
   }
 }
