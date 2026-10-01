@@ -71,7 +71,6 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
     const script_error::report report =
         script_error::build_report(code, buffer, file);
     script_error::print_report(report, map_recovery::on_map_stopped());
-    map_recovery::notify_clients(report.summary);
     com_error_hook.invoke<void>(file, line, game::errorParm::DROP, "%s",
                                 report.summary.c_str());
     return;

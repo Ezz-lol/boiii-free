@@ -9,7 +9,6 @@
 #include <game/game.hpp>
 #include <game/utils.hpp>
 
-#include <utils/hook.hpp>
 #include <utils/string.hpp>
 
 namespace map_recovery {
@@ -75,62 +74,7 @@ void wrap_launchgame() {
         "will not be delayed");
 }
 
-struct dropped_client {
-  game::net::netadr_t address;
-  std::chrono::steady_clock::time_point expires;
-};
-
-constexpr std::chrono::minutes DISCONNECT_NOTICE_LIFETIME{2};
-constexpr size_t MAX_DISCONNECT_REASON = 900;
-std::vector<dropped_client> dropped_clients;
-std::string disconnect_packet;
-
-bool same_address(const game::net::netadr_t &a, const game::net::netadr_t &b) {
-  return a.type == b.type && a.addr == b.addr && a.port == b.port;
-}
-
-bool reply_to_unknown_client(const game::net::netsrc_t sock,
-                             game::net::netadr_t *address, const char *data) {
-  const auto now = std::chrono::steady_clock::now();
-  std::erase_if(dropped_clients, [now](const dropped_client &client) {
-    return client.expires <= now;
-  });
-
-  const bool dropped = std::ranges::any_of(
-      dropped_clients, [address](const dropped_client &client) {
-        return same_address(client.address, *address);
-      });
-
-  return game::net::NET_OutOfBandPrint(
-      sock, address, dropped ? disconnect_packet.c_str() : data);
-}
 } // namespace
-
-void notify_clients(const std::string &reason) {
-  game::sv::client_s *clients = *game::sv::svs_clients;
-  if (!clients) {
-    return;
-  }
-
-  std::string message = "^7" + reason.substr(0, MAX_DISCONNECT_REASON);
-  std::ranges::replace(message, '"', '\'');
-  disconnect_packet = std::format("disconnect \"{}\"", message);
-
-  dropped_clients.clear();
-  const auto expires =
-      std::chrono::steady_clock::now() + DISCONNECT_NOTICE_LIFETIME;
-  for (size_t i = 0; i < game::get_max_client_count(); ++i) {
-    game::sv::client_s &client = clients[i];
-    if (client.state < game::net::clientState_t::RECONNECTING ||
-        client.address.type < game::net::NA_RAWIP) {
-      continue;
-    }
-
-    dropped_clients.push_back({client.address, expires});
-    game::net::NET_OutOfBandPrint(game::net::NS_SERVER, &client.address,
-                                  disconnect_packet.c_str());
-  }
-}
 
 void on_map_started() {
   const int32_t failures = consecutive_failures.exchange(0);
@@ -165,9 +109,6 @@ struct component final : server_component {
 #endif
 
   void post_unpack() override {
-    utils::hook::call(game::sv::SV_PacketEvent.offset(0x124),
-                      reply_to_unknown_client);
-
     restart_delay = game::register_dvar_int(
         "sv_errorRestartDelay", 5, 0, 300, game::DVAR_NONE,
         "Seconds to wait before launching the map again after a script error "
