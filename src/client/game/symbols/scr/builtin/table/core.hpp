@@ -24,8 +24,8 @@ WEAK symbol<PlayerMethodTable> player_methods{0x1432C1C90, 0x143340C90,
                                               0x1410D0EC0};
 WEAK symbol<ScriptEntMethodTable> scriptEnt_methods{0x1432CE140, 0x14334D140,
                                                     0x1410DD370};
-WEAK symbol<ScriptVehicleMethodTable> scriptVehicle_methods{0x1432CECC0,
-                                                            0x14334DCB0, 0x0};
+WEAK symbol<ScriptVehicleMethodTable> scriptVehicle_methods{
+    0x1432CECC0, 0x14334DCB0, 0x1410DDEE0};
 WEAK symbol<SentientFunctionTable> sentient_functions{0x1432BF320, 0x14333E320,
                                                       0x1410CE580};
 WEAK symbol<SentientMethodTable> sentient_methods{0x1432BEF40, 0x14333DF40,
