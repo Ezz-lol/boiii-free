@@ -278,7 +278,8 @@ std::string ecc::sign_message(const key &key, const std::string &message) {
   ltc_ecc_sig_opts sig_opts = {.type = LTC_ECCSIG_ANSIX962,
                                .prng = prng_.get_state(),
                                .wprng = prng_.get_id(),
-                               .recid = nullptr,
+                               .enable_recovery_id = false,
+                               .recovery_id = 0,
                                .rfc6979_hash_alg = nullptr};
   int err = ecc_sign_hash_v2(cs(hash.data()), ul(hash.size()), buffer, &length,
                              &sig_opts, &key.get());
@@ -303,7 +304,8 @@ bool ecc::verify_message(const key &key, const uint8_t *message,
   ltc_ecc_sig_opts opts = {.type = LTC_ECCSIG_ANSIX962,
                            .prng = prng_.get_state(),
                            .wprng = prng_.get_id(),
-                           .recid = nullptr,
+                           .enable_recovery_id = false,
+                           .recovery_id = 0,
                            .rfc6979_hash_alg = nullptr
 
   };
@@ -377,10 +379,21 @@ std::string rsa::encrypt(const std::string &data, const std::string &hash,
 
   unsigned long out_len = ul(out_data.size());
   auto crypt = [&]() -> int32_t {
-    return rsa_encrypt_key(cs(data.data()), ul(data.size()),
-                           cs(out_data.data()), &out_len, cs(hash.data()),
-                           ul(hash.size()), prng_.get_state(), prng_.get_id(),
-                           find_hash("sha512"), &new_key);
+    ltc_rsa_op_parameters rsa_params = {
+        .params = {.saltlen = 0,
+                   .hash_idx = find_hash("sha256"),
+                   .mgf1_hash_idx = find_hash("sha256")},
+        .padding = LTC_PKCS_1_OAEP,
+        .wprng = prng_.get_id(),
+        .prng = prng_.get_state(),
+        .u = {.crypt = {
+                  .lparam = cs(hash.data()),
+                  .lparamlen = ul(hash.size()),
+              }}};
+
+    return rsa_encrypt_key_v2(cs(data.data()), ul(data.size()),
+                              cs(out_data.data()), &out_len, &rsa_params,
+                              &new_key);
   };
 
   int32_t res = crypt();
