@@ -59,12 +59,12 @@ luaReturnCount_e log_call(lua_State *luaVM) {
 template <ConstString Library, ConstString Name, lua_CFunction *Function>
 struct luaL_LoggedReg : public luaL_Reg {
 #ifdef NDEBUG
-  constexpr luaL_LoggedReg() {
+  inline constexpr luaL_LoggedReg() {
     this->name = Name;
     this->function = Function;
   }
 #else
-  constexpr luaL_LoggedReg() {
+  inline constexpr luaL_LoggedReg() {
     this->name = Name;
     this->function = log_call<Library, Name, Function>;
   }

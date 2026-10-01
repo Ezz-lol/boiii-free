@@ -349,7 +349,7 @@ inline void flush_exec_all() {
 
 struct component final : generic_component {
 #ifndef NDEBUG
-  std::string name() override { return "vm"; }
+  std::string name() override { return "gsc/vm"; }
 #endif
 
   void post_unpack() override { flush_exec_all(); }

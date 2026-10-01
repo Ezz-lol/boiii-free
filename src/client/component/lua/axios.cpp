@@ -76,7 +76,7 @@ luaReturnCount_e ping(lua_State *s) {
 
 class component final : public generic_component {
 #ifndef NDEBUG
-  std::string name() override { return "axios"; }
+  std::string name() override { return "lua/axios"; }
 #endif
 
 public:
