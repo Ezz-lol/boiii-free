@@ -428,10 +428,10 @@ void display_error_dialog() {
   const std::string minidumps_out =
       (game::get_appdata_path() / "minidumps").string();
   const std::string error_str = std::format(
-      "{}\n\nDetails: {} (0x{:08X}) at 0x{:X} on the {} thread.\n\n"
+      "{}\n\nDetails: {} (0x{:08X}) at {:p} on the {} thread.\n\n"
       "Crash dump saved in:\n{}\nPlease report it on https://dc.ezz.lol",
       crash_reason(), get_exception_string(exception_data.code),
-      exception_data.code, reinterpret_cast<uintptr_t>(exception_data.address),
+      exception_data.code, game::derelocate(exception_data.address),
       thread_role(), minidumps_out);
 
   utils::thread::suspend_other_threads();
@@ -853,10 +853,11 @@ long WINAPI crash_fix_exception_handler(PEXCEPTION_POINTERS exception_info) {
       default: {
         break;
       }
-      continue_execution: {
-        result = EXCEPTION_CONTINUE_EXECUTION;
-        break;
-      }
+      continue_execution:
+        {
+          result = EXCEPTION_CONTINUE_EXECUTION;
+          break;
+        }
       }
     }
 
@@ -997,16 +998,15 @@ void WINAPI set_unhandled_exception_filter_stub(LPTOP_LEVEL_EXCEPTION_FILTER) {
 } // namespace
 
 void show_fatal_error(const std::string &message) {
-  if (game::quiet_crash() || game::is_headless()) {
-    return;
-  }
-  utils::thread::suspend_other_threads();
-  show_mouse_cursor();
-  if (ask_restart(error_help::strip_colors(message) +
-                      "\n\nIf this keeps happening, please report it on "
-                      "https://dc.ezz.lol",
-                  L"The game hit an error and has to close.")) {
-    restart_game();
+  if (!game::quiet_crash() && !game::is_headless()) {
+    utils::thread::suspend_other_threads();
+    show_mouse_cursor();
+    if (ask_restart(error_help::strip_colors(message) +
+                        "\n\nIf this keeps happening, please report it on "
+                        "https://dc.ezz.lol",
+                    L"The game hit an error and has to close.")) {
+      restart_game();
+    }
   }
   TerminateProcess(GetCurrentProcess(), 1);
 }

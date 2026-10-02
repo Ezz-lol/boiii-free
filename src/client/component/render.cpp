@@ -16,10 +16,10 @@ utils::hook::detour R_StoreWindowSettings_hook;
 utils::hook::detour ScrPlace_Init_hook;
 
 settings::flag_setting ultrawide{
-    "ezz_ultrawide", "ultrawide", true, false,
+    "boiii_ultrawide", "ultrawide", true, false,
     "Use the full width of ultrawide screens (requires a restart)"};
 
-void ScrPlace_Init_stub() {
+void ScrPlace_Init_FlaggedHook() {
   if (ultrawide.enabled()) {
     game::scr::place::ScrPlace_Init_Impl();
   } else {
@@ -34,34 +34,32 @@ void R_StoreWindowSettings_AllowPositiveViewScale(
 #endif
 
   R_StoreWindowSettings_hook.invoke(wndParms);
-  if (!ultrawide.enabled()) {
-    return;
-  }
-
+  if (ultrawide.enabled()) {
 #ifndef NDEBUG
-  game::trace("R_StoreWindowSettings called at {:p} with vidConfig: {}",
-              game::derelocate(callerAddr), vidConfig->serialize());
+    game::trace("R_StoreWindowSettings called at {:p} with vidConfig: {}",
+                game::derelocate(callerAddr), vidConfig->serialize());
 #endif
 
-  if (vidConfig->sceneAspectRatio > DEFAULT_UI_VIEW_ASPECT_RATIO &&
-      vidConfig->sceneAspectRatio !=
-          static_cast<uint32_t>(vidConfig->viewAspectRatio)) {
-    vidConfig->viewHeight = vidConfig->sceneHeight;
-    vidConfig->viewWidth = vidConfig->sceneWidth;
-    vidConfig->displayWidth = vidConfig->viewWidth;
-    vidConfig->displayHeight = vidConfig->viewHeight;
-    vidConfig->displayAspectRatio = vidConfig->sceneAspectRatio;
-    vidConfig->viewScalePx = 1.0;
-    vidConfig->viewAspectRatio = vidConfig->sceneAspectRatio;
-    vidConfig->isWideScreen = qtrue;
-    *game::cl::cls_vidConfig = *vidConfig;
-  }
+    if (vidConfig->sceneAspectRatio > DEFAULT_UI_VIEW_ASPECT_RATIO &&
+        vidConfig->sceneAspectRatio !=
+            static_cast<uint32_t>(vidConfig->viewAspectRatio)) {
+      vidConfig->viewHeight = vidConfig->sceneHeight;
+      vidConfig->viewWidth = vidConfig->sceneWidth;
+      vidConfig->displayWidth = vidConfig->viewWidth;
+      vidConfig->displayHeight = vidConfig->viewHeight;
+      vidConfig->displayAspectRatio = vidConfig->sceneAspectRatio;
+      vidConfig->viewScalePx = 1.0;
+      vidConfig->viewAspectRatio = vidConfig->sceneAspectRatio;
+      vidConfig->isWideScreen = qtrue;
+      *game::cl::cls_vidConfig = *vidConfig;
+    }
 
 #ifndef NDEBUG
-  game::trace(
-      "R_StoreWindowSettings returning from call at {:p} with vidConfig: {}",
-      game::derelocate(callerAddr), vidConfig->serialize());
+    game::trace(
+        "R_StoreWindowSettings returning from call at {:p} with vidConfig: {}",
+        game::derelocate(callerAddr), vidConfig->serialize());
 #endif
+  }
 }
 
 class component final : public generic_component {
@@ -77,7 +75,7 @@ public:
 
     if (game::is_client()) {
       ScrPlace_Init_hook.create(game::scr::place::ScrPlace_Init,
-                                ScrPlace_Init_stub);
+                                ScrPlace_Init_FlaggedHook);
     } else if (ultrawide.enabled()) {
       scheduler::once(game::scr::place::ScrPlace_Init_Impl,
                       scheduler::pipeline::main);

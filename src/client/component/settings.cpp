@@ -20,14 +20,13 @@ std::vector<flag_setting *> &registered_settings() {
 
 void apply_saved_values() {
   std::string config;
-  if (!utils::io::read_file(dvars::get_config_file_path(), &config)) {
-    return;
-  }
-  for (flag_setting *setting : registered_settings()) {
-    const std::string prefix = std::format("set {} \"", setting->dvar_name);
-    const size_t start = config.find(prefix);
-    if (start != std::string::npos) {
-      setting->dvar.set(config[start + prefix.size()] == '1');
+  if (utils::io::read_file(dvars::CONFIG_FILE_PATH, &config)) {
+    for (flag_setting *setting : registered_settings()) {
+      const std::string prefix = std::format("set {} \"", setting->dvar_name);
+      const size_t start = config.find(prefix);
+      if (start != std::string::npos) {
+        setting->dvar.set(config[start + prefix.size()] == '1');
+      }
     }
   }
 }

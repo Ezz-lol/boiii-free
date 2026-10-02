@@ -16,16 +16,16 @@ DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings
   end
 
   local ezzSettings = {
-    { "ezz_skipIntro", "Skip Intro", "Skip the intro video on startup." },
+    { "boiii_skipIntro", "Skip Intro", "Skip the intro video on startup." },
     {
-      "ezz_skipForestCinematic",
+      "boiii_skipForestCinematic",
       "Skip Forest Video",
       "Skip only the forest video before joining a Zombies game. Map videos still play.",
     },
-    { "ezz_skipCinematics", "Skip All Cinematics", "Skip every cinematic and video, including map videos." },
-    { "ezz_fullLogs", "Full Console Logs", "Show every log message in the console." },
-    { "ezz_logScriptErrors", "Log Script Errors", "Log every script error, including non-fatal ones." },
-    { "ezz_ultrawide", "Ultrawide Support", "Use the full width of ultrawide screens. Requires a restart." },
+    { "boiii_skipCinematics", "Skip All Cinematics", "Skip every cinematic and video, including map videos." },
+    { "boiii_fullLogs", "Full Console Logs", "Show every log message in the console." },
+    { "boiii_logScriptErrors", "Log Script Errors", "Log every script error, including non-fatal ones." },
+    { "boiii_ultrawide", "Ultrawide Support", "Use the full width of ultrawide screens. Requires a restart." },
   }
   for _, setting in ipairs(ezzSettings) do
     table.insert(
@@ -354,9 +354,9 @@ LUI.createMenu.BoiiiQuickSettingsMenu = function(controller)
   GameSettingsBackground:setTopBottom(true, true, 0, 0)
   local menuTitle =
     GameSettingsBackground.MenuFrame.cac3dTitleIntermediary0.FE3dTitleContainer0.MenuTitle.TextBox1.Label0
-  GameSettingsBackground.MenuFrame.titleLabel:setText(Engine.Localize("EZZ SETTINGS"))
+  GameSettingsBackground.MenuFrame.titleLabel:setText(Engine.Localize("BOIII SETTINGS"))
   GameSettingsBackground.MenuFrame.titleLabel:setRGB(1, 0.55, 0.1)
-  menuTitle:setText(Engine.Localize("EZZ SETTINGS"))
+  menuTitle:setText(Engine.Localize("BOIII SETTINGS"))
   menuTitle:setRGB(1, 0.55, 0.1)
   GameSettingsBackground.GameSettingsSelectedItemInfo.GameModeInfo:setAlpha(0)
   GameSettingsBackground.GameSettingsSelectedItemInfo.GameModeName:setAlpha(0)
@@ -366,7 +366,7 @@ LUI.createMenu.BoiiiQuickSettingsMenu = function(controller)
   local Options = CoD.Competitive_SettingsList.new(self, controller)
   Options:setLeftRight(true, false, 26, 741)
   Options:setTopBottom(true, false, 135, 720)
-  Options.Title.DescTitle:setText(Engine.Localize("Ezz and Frequently Used Settings"))
+  Options.Title.DescTitle:setText(Engine.Localize("Frequently Used Settings"))
   Options.Title.DescTitle:setRGB(1, 0.55, 0.1)
   Options.ButtonList:setVerticalCount(14)
   Options.ButtonList:setDataSource("BoiiiQuickSettings")

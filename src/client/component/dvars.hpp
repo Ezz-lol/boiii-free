@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string_view>
+
 namespace dvars {
-std::string get_config_file_path();
+constexpr std::string_view CONFIG_FILE_PATH = "boiii_players/user/config.cfg";
 } // namespace dvars

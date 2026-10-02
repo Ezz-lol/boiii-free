@@ -12,8 +12,6 @@
 #include <utils/string.hpp>
 
 namespace dvars {
-std::string get_config_file_path() { return "boiii_players/user/config.cfg"; }
-
 namespace {
 std::atomic_bool dvar_write_scheduled{false};
 bool initial_config_read = false;
@@ -86,26 +84,18 @@ void copy_dvar_names_to_pool() {
   for (int i = 0; i < *game::g_dvarCount; ++i) {
     game::EngineDependentDvarMut dvar = pool[i];
 
-    if (!dvar.debugName()) {
-      if (dvar_hash_name_map.contains(dvar.name())) {
-        dvar.debugName() =
-            game::sl::CopyString(dvar_hash_name_map[dvar.name()].data());
-      }
+    if (!dvar.debugName() && dvar_hash_name_map.contains(dvar.name())) {
+      dvar.debugName() =
+          game::sl::CopyString(dvar_hash_name_map[dvar.name()].data());
     }
   }
 }
 
-bool is_archive_dvar(game::EngineDependentDvar dvar) {
-  if (!dvar.debugName()) {
-    return false;
-  }
-
-  return dvar.flags().archive;
+inline bool is_archive_dvar(game::EngineDependentDvar dvar) {
+  return dvar.debugName() && dvar.flags().archive;
 }
 
 void write_archive_dvars() {
-  const std::string path = get_config_file_path();
-
   std::string config_buffer;
   game::EngineDependentDvarPool pool = game::dvar_pool();
 
@@ -120,11 +110,9 @@ void write_archive_dvars() {
     }
   }
 
-  if (config_buffer.empty()) {
-    return;
+  if (!config_buffer.empty()) {
+    utils::io::write_file(CONFIG_FILE_PATH, config_buffer);
   }
-
-  utils::io::write_file(path, config_buffer);
 }
 
 void schedule_dvar_write() {
@@ -150,21 +138,18 @@ void dvar_set_variant_stub(game::EngineDependentDvar dvar,
 }
 
 void read_archive_dvars() {
-  const std::string path = get_config_file_path();
+  if (utils::io::file_exists(CONFIG_FILE_PATH)) {
+    std::string filedata;
+    utils::io::read_file(CONFIG_FILE_PATH, &filedata);
 
-  if (!utils::io::file_exists(path)) {
+    game::cbuf::Cbuf_ExecuteBuffer(game::LOCAL_CLIENT_0,
+                                   game::ControllerIndex_t::CONTROLLER_INDEX_0,
+                                   filedata.c_str());
     initial_config_read = true;
-    return;
+    scheduler::execute(scheduler::pipeline::dvars_loaded);
+  } else {
+    initial_config_read = true;
   }
-
-  std::string filedata;
-  utils::io::read_file(path, &filedata);
-
-  game::cbuf::Cbuf_ExecuteBuffer(game::LOCAL_CLIENT_0,
-                                 game::ControllerIndex_t::CONTROLLER_INDEX_0,
-                                 filedata.c_str());
-  initial_config_read = true;
-  scheduler::execute(scheduler::pipeline::dvars_loaded);
 }
 } // namespace
 

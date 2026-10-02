@@ -1431,93 +1431,86 @@ std::vector<std::string> get_script_callstack(scriptInstance_t inst) {
 
 utils::hook::detour Scr_Error_hook;
 settings::flag_setting log_script_errors{
-    "ezz_logScriptErrors", "log-script-errors", true, false,
+    "boiii_logScriptErrors", "log-script-errors", true, false,
     "Log every script error, including non-fatal ones"};
 
 void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
-  if (!log_script_errors.enabled()) {
-    return Scr_Error_hook.invoke(inst, error, terminal);
-  }
-  void *callerAddr = _ReturnAddress();
-  if (is_server()) {
-    sv_detailedScriptErrors->set(true);
-  }
-  if (terminal) {
-    vm::gScrVarPub->instance[inst].developer = true;
-    vm::gScrVmPub->instance[inst].debugCode = true;
-  }
+  if (log_script_errors.enabled()) {
+    void *callerAddr = _ReturnAddress();
+    if (is_server()) {
+      sv_detailedScriptErrors->set(true);
+    }
+    if (terminal) {
+      vm::gScrVarPub->instance[inst].developer = true;
+      vm::gScrVmPub->instance[inst].debugCode = true;
+    }
 
-  std::string prevCodePositionsString;
-  const std::vector<std::string> callstack = get_script_callstack(inst);
-  for (size_t i = 0; i < callstack.size(); ++i) {
-    prevCodePositionsString +=
-        std::format("{}[{}] {}", i ? "\n" : "", i, callstack[i]);
-  }
+    std::string prevCodePositionsString;
+    const std::vector<std::string> callstack = get_script_callstack(inst);
+    for (size_t i = 0; i < callstack.size(); ++i) {
+      prevCodePositionsString +=
+          std::format("{}[{}] {}", i ? "\n" : "", i, callstack[i]);
+    }
 
-  const char *error_log = utils::string::va(
-      "Scr_Error called from 0x%p with inst: %s, "
+    const char *error_log = utils::string::va(
+        "Scr_Error called from 0x%p with inst: %s, "
 #ifndef NDEBUG
-      "gFs.pos: 0x%p, gFs.top: 0x%p, gFs.startTop: 0x%p, gFs.threadId: "
-      "0x%08X, "
-      "gFs.localVarCount: %lu, "
+        "gFs.pos: 0x%p, gFs.top: 0x%p, gFs.startTop: 0x%p, gFs.threadId: "
+        "0x%08X, "
+        "gFs.localVarCount: %lu, "
 #endif
-      "error: \"%s\", terminal: %s, callstack:\n%s",
-      derelocate(callerAddr), serialize(inst),
+        "error: \"%s\", terminal: %s, callstack:\n%s",
+        derelocate(callerAddr), serialize(inst),
 #ifndef NDEBUG
-      vm::gFs->instance[inst].pos,
-      game::derelocate(vm::gFs->instance[inst].top),
-      game::derelocate(vm::gFs->instance[inst].startTop),
-      vm::gFs->instance[inst].threadId, vm::gFs->instance[inst].localVarCount,
+        vm::gFs->instance[inst].pos,
+        game::derelocate(vm::gFs->instance[inst].top),
+        game::derelocate(vm::gFs->instance[inst].startTop),
+        vm::gFs->instance[inst].threadId, vm::gFs->instance[inst].localVarCount,
 #endif
-      error ? error : "NULL", terminal ? "true" : "false",
-      prevCodePositionsString.c_str());
+        error ? error : "NULL", terminal ? "true" : "false",
+        prevCodePositionsString.c_str());
 
-  print_script_log(error_log);
-
+    print_script_log(error_log);
+  }
   return Scr_Error_hook.invoke(inst, error, terminal);
 }
 
 utils::hook::detour Hunk_UserFree_hook;
 void Hunk_UserFree_NotScriptPoolAlloc(hunk::HunkUser *user, void *ptr) {
-  if (allocator.find(ptr)) {
-    return;
-  }
+  if (!allocator.find(ptr)) {
+    bool should_skip = false;
 
-  bool should_skip = false;
+    script_gdbs.for_each(
+        [&should_skip,
+         ptr](const concurrent_hash_map<std::string,
+                                        std::vector<uint8_t>>::value_type &v) {
+          if (!should_skip && contains(v.second.data(), v.second.size(), ptr)) {
+            should_skip = true;
+          }
+        });
 
-  script_gdbs.for_each(
-      [&should_skip,
-       ptr](const concurrent_hash_map<std::string,
-                                      std::vector<uint8_t>>::value_type &v) {
-        if (!should_skip && contains(v.second.data(), v.second.size(), ptr)) {
-          should_skip = true;
+    if (!should_skip) {
+      script_sources.for_each(
+          [&should_skip,
+           ptr](const concurrent_hash_map<std::string, std::string>::value_type
+                    &v) {
+            if (!should_skip &&
+                contains(v.second.data(), v.second.size(), ptr)) {
+              should_skip = true;
+            }
+          });
+
+      if (!should_skip) {
+        if (user == *hunk::g_scriptDebugHunk) {
+          if (ptr) {
+            free(ptr);
+          }
+        } else {
+          return Hunk_UserFree_hook.invoke(user, ptr);
         }
-      });
-
-  if (should_skip) {
-    return;
-  }
-
-  script_sources.for_each(
-      [&should_skip, ptr](
-          const concurrent_hash_map<std::string, std::string>::value_type &v) {
-        if (!should_skip && contains(v.second.data(), v.second.size(), ptr)) {
-          should_skip = true;
-        }
-      });
-
-  if (should_skip) {
-    return;
-  }
-
-  if (user == *hunk::g_scriptDebugHunk) {
-    if (ptr) {
-      free(ptr);
+      }
     }
-    return;
   }
-
-  return Hunk_UserFree_hook.invoke(user, ptr);
 }
 
 utils::hook::detour CG_TestServerScriptChecksum_hook;

@@ -96,7 +96,7 @@ constexpr size_t MAX_CONSOLE_CHARS = 1'000'000;
 constexpr size_t MAX_CONSOLE_LINES = 20'000;
 constexpr int32_t COMPLETION_HINT_CONTROL_ID = 0x66;
 
-settings::flag_setting full_logs{"ezz_fullLogs", "fulllogs", true, false,
+settings::flag_setting full_logs{"boiii_fullLogs", "fulllogs", true, false,
                                  "Show every log message in the console"};
 
 bool full_logs_enabled() { return full_logs.enabled(); }

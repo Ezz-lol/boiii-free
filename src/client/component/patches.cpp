@@ -85,7 +85,7 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
 
   if (!script_error::is_reported(buffer)) {
     const char *log = utils::string::va(
-        "[Com_Error] Called from 0x%p with message: \"%s\", code: %d\n",
+        "[Com][Error] Called from 0x%p with message: \"%s\", code: %d\n",
         game::derelocate(callerAddr),
         buffer[0] ? buffer : "No message provided!",
         static_cast<int32_t>(code));
@@ -146,10 +146,9 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
 
   if (!is_script_error && !is_link_error && !is_script_not_found &&
       !script_error::is_reported(buffer)) {
-    printf("[Com_Error] Code=%d, File=%s, Line=%d, Caller=0x%llX: %s\n",
+    printf("[Com][Error] Code=%d, File=%s, Line=%d, Caller=0x%p: %s\n",
            static_cast<int32_t>(code), file ? file : "unknown", line,
-           reinterpret_cast<unsigned long long>(game::derelocate(callerAddr)),
-           buffer);
+           game::derelocate(callerAddr), buffer);
   }
 
   const std::string help = script_error::is_reported(buffer)
@@ -171,7 +170,7 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
         "Missing map BSP detected.\n"
         "You are probably in the main menu or not currently playing a map.";
 
-    printf("[Com_Error] %s Connection error: %s\n", message, buffer);
+    printf("[Com][Error] %s Connection error: %s\n", message, buffer);
 
     std::string msg = std::string(message);
 
