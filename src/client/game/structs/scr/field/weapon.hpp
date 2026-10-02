@@ -31,7 +31,7 @@ PACKED(struct scr_weapon_field_s {
   fieldtype_t type;
   WeaponFieldType weaponType;
   uint8_t _padding14[4];
-  ScriptCallbackWeapon getter;
+  ScriptCallbackWeapon *getter;
 });
 
 typedef scr_weapon_field_s scr_weapon_field_t;

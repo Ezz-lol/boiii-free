@@ -1462,7 +1462,7 @@ union ScriptVehicleMethodTable {
     BuiltinMethodDef GetVehDamageMultiplier;
   };
 
-  static inline constexpr size_t COUNT = 127;
+  static inline constexpr size_t COUNT = 0x7F;
   BuiltinMethodDef methods[COUNT];
 
   static const std::array<std::string_view, COUNT> names;
@@ -1485,7 +1485,7 @@ union SentientFunctionTable {
     BuiltinFunctionDef ResetVisibilityCacheWithinRadius;
   };
 
-  static inline constexpr size_t COUNT = 8;
+  static inline constexpr size_t COUNT = 0x8;
   BuiltinFunctionDef functions[COUNT];
 
   static const std::array<std::string_view, COUNT> names;
@@ -1530,7 +1530,7 @@ union SentientMethodTable {
     BuiltinMethodDef GetMotionAngle;
   };
 
-  static inline constexpr size_t COUNT = 31;
+  static inline constexpr size_t COUNT = 0x1F;
   BuiltinMethodDef methods[COUNT];
 
   static const std::array<std::string_view, COUNT> names;
@@ -1547,7 +1547,7 @@ union UtilFunctionTable {
     BuiltinFunctionDef SetJumpHeight;
   };
 
-  static inline constexpr size_t COUNT = 3;
+  static inline constexpr size_t COUNT = 0x3;
   BuiltinFunctionDef functions[COUNT];
 
   static const std::array<std::string_view, COUNT> names;

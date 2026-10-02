@@ -43,30 +43,32 @@ union ScrPool<T, T_Array, true> {
   using index_t = uint8_t;
 
   inline constexpr void assert_range(size_t index) const {
-    assert(index < std::size(instance) &&
+    assert(index < static_cast<index_t>(std::size(instance)) &&
            "index to ScrPool must be within range SCRIPTINSTANCE_SERVER <= "
            "index < SCRIPTINSTANCE_MAX");
   }
 
-  template <IntegralLike Index>
+  template <IntegralLike<index_t> Index>
   inline constexpr const T &get(Index index_arg) const {
     const index_t index = static_cast<index_t>(index_arg);
     assert_range(index);
     return instance[index];
   }
 
-  template <IntegralLike Index>
+  template <IntegralLike<index_t> Index>
   inline constexpr const T &operator[](Index index) const {
     return get(index);
   }
 
-  template <IntegralLike Index> inline constexpr T &get(Index index_arg) {
+  template <IntegralLike<index_t> Index>
+  inline constexpr T &get(Index index_arg) {
     const index_t index = static_cast<index_t>(index_arg);
     assert_range(index);
     return instance[index];
   }
 
-  template <IntegralLike Index> inline constexpr T &operator[](Index index) {
+  template <IntegralLike<index_t> Index>
+  inline constexpr T &operator[](Index index) {
     return get(index);
   }
 
@@ -84,31 +86,33 @@ union ScrPool<T, T_Array, false> {
 
   using index_t = uint8_t;
 
-  inline constexpr void assert_range(size_t index) const {
-    assert(index < std::size(instance) &&
+  inline constexpr void assert_range(index_t index) const {
+    assert(index < static_cast<index_t>(std::size(instance)) &&
            "index to ScrPool must be within range SCRIPTINSTANCE_SERVER <= "
            "index < SCRIPTINSTANCE_MAX");
   }
 
-  template <IntegralLike Index>
+  template <IntegralLike<index_t> Index>
   inline constexpr const T &get(Index index_arg) const {
     const index_t index = static_cast<index_t>(index_arg);
     assert_range(index);
     return instance[index];
   }
 
-  template <IntegralLike Index>
+  template <IntegralLike<index_t> Index>
   inline constexpr const T &operator[](Index index) const {
     return get(index);
   }
 
-  template <IntegralLike Index> inline constexpr T &get(Index index_arg) {
+  template <IntegralLike<index_t> Index>
+  inline constexpr T &get(Index index_arg) {
     const index_t index = static_cast<index_t>(index_arg);
     assert_range(index);
     return instance[index];
   }
 
-  template <IntegralLike Index> inline constexpr T &operator[](Index index) {
+  template <IntegralLike<index_t> Index>
+  inline constexpr T &operator[](Index index) {
     return get(index);
   }
 

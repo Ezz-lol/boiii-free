@@ -2644,8 +2644,8 @@ luaReturnCount_e LobbyVM_CallFunc_Redirect(lua_State *luaVM) {
     if (func && func[0]) {
       const std::string_view func_view = func;
 #ifndef NDEBUG
-      game::trace("LobbyVM_CallFunc called with func: {}, argc: {}", func_view,
-                  lua_gettop(luaVM));
+      game::trace("[Lua] LobbyVM_CallFunc called with func: {}, argc: {}",
+                  func_view, lua_gettop(luaVM));
 #endif
       if (LOBBYVM_CALLFUNC_HANDLERS.contains(func_view)) {
         LobbyVM_CallFunc_Handler handler =

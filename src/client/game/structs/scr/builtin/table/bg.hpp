@@ -47,7 +47,7 @@ union CommonFunctionTable {
     BuiltinFunctionDef IsArchetypeLoaded;
   };
 
-  static inline constexpr size_t COUNT = 34;
+  static inline constexpr size_t COUNT = 0x22;
   BuiltinFunctionDef functions[COUNT];
 
   static const std::array<std::string_view, COUNT> names;
@@ -110,7 +110,7 @@ union MathFunctionTable {
     BuiltinFunctionDef RotatePointAroundAxis;
   };
 
-  static inline constexpr size_t COUNT = 49;
+  static inline constexpr size_t COUNT = 0x31;
   BuiltinFunctionDef functions[COUNT];
 
   static const std::array<std::string_view, COUNT> names;
@@ -125,7 +125,7 @@ union WeaponFunctionTable {
     BuiltinFunctionDef EnumerateWeapons;
   };
 
-  static inline constexpr size_t COUNT = 1;
+  static inline constexpr size_t COUNT = 0x1;
   BuiltinFunctionDef functions[COUNT];
 
   static const std::array<std::string_view, COUNT> names;
@@ -207,7 +207,7 @@ union UtilFunctionTable {
     BuiltinFunctionDef IsUsingMods;
     BuiltinFunctionDef Modvar;
   };
-  static inline constexpr size_t COUNT = 69;
+  static inline constexpr size_t COUNT = 0x45;
   BuiltinFunctionDef functions[COUNT];
 
   static const std::array<std::string_view, COUNT> names;

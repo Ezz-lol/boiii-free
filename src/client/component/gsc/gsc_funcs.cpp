@@ -414,7 +414,7 @@ void BG_Cache_HandleConfigStringChange_ReuseExisting(
     [[maybe_unused]] LocalClientNum_t localClientNum, int32_t index) {
   const char *name = cl::CL_GetConfigString(index);
 #ifndef NDEBUG
-  trace("[BGCache][{}][{}] Received config string change with index: 0x{:X}, "
+  trace("[BG][Cache][{}][{}] Received config string change with index: 0x{:X}, "
         "name: \"{}\"",
         +bgCacheInstance::CLIENT, +localClientNum, index,
         readable_ptr(name) ? name : "");
