@@ -1499,8 +1499,6 @@ mp_western
 ///////////////////////////////////////////////////////////////////////////
 
 playlist 1
-nameref PLAYLIST_PLAYLIST_TDM
-descriptionref PLAYLIST_PLAYLIST_TDM_DESC
 unlockxp 0
 maxparty 6
 maxlocalplayers 2
@@ -1520,8 +1518,6 @@ dlc3,hs_tdm,1
 dlc4,hs_tdm,1
 
 playlist 2
-nameref PLAYLIST_PLAYLIST_FFA
-descriptionref PLAYLIST_PLAYLIST_FFA_DESC
 unlockxp 0
 maxparty 1
 maxlocalplayers 1
@@ -1539,8 +1535,6 @@ dlc3,hs_ffa,1
 dlc4,hs_ffa,1
 
 playlist 3
-nameref PLAYLIST_PLAYLIST_DOM
-descriptionref PLAYLIST_PLAYLIST_DOM_DESC
 unlockxp 0
 maxparty 6
 maxlocalplayers 2
@@ -1558,8 +1552,6 @@ dlc3,hs_dom,1
 dlc4,hs_dom,1
 
 playlist 4
-nameref PLAYLIST_PLAYLIST_DEMO
-descriptionref PLAYLIST_PLAYLIST_DEMO_DESC
 unlockxp 0
 maxparty 6
 maxlocalplayers 2
@@ -1578,8 +1570,6 @@ dlc3,hs_dem,1
 dlc4,hs_dem,1
 
 playlist 5
-nameref PLAYLIST_PLAYLIST_KC
-descriptionref PLAYLIST_PLAYLIST_KC_DESC
 unlockxp 0
 maxparty 6
 maxlocalplayers 2
@@ -1598,8 +1588,6 @@ dlc3,hs_conf,1
 dlc4,hs_conf,1
 
 playlist 6
-nameref PLAYLIST_PLAYLIST_KOTH
-descriptionref PLAYLIST_PLAYLIST_KOTH_DESC
 unlockxp 0
 maxparty 6
 maxlocalplayers 2
@@ -1618,8 +1606,6 @@ dlc3,hs_koth,1
 dlc4,hs_koth,1
 
 playlist 7
-nameref PLAYLIST_PLAYLIST_CTF
-descriptionref PLAYLIST_PLAYLIST_CTF_DESC
 unlockxp 0
 maxparty 6
 maxlocalplayers 2
@@ -1637,8 +1623,6 @@ dlc3,hs_ctf,1
 dlc4,hs_ctf,1
 
 playlist 8
-nameref PLAYLIST_PLAYLIST_SD
-descriptionref PLAYLIST_PLAYLIST_SD_DESC
 unlockxp 0
 maxparty 6
 maxlocalplayers 2
@@ -1658,8 +1642,6 @@ dlc3,hs_sd,1
 dlc4,hs_sd,1
 
 playlist 9
-nameref PLAYLIST_PLAYLIST_BALL
-descriptionref PLAYLIST_PLAYLIST_BALL_DESC
 unlockxp 0
 maxparty 6
 maxlocalplayers 2
@@ -1677,8 +1659,6 @@ dlc3,hs_ball,1
 dlc4,hs_ball,1
 
 playlist 10
-nameref PLAYLIST_PLAYLIST_ESCORT
-descriptionref PLAYLIST_PLAYLIST_ESCORT_DESC
 unlockxp 0
 maxparty 6
 maxlocalplayers 2
@@ -1750,8 +1730,6 @@ dlc4,hs_clean,1
 ///////////////////////////////////////////////////////////////////////////
 
 playlist 20
-nameref PLAYLIST_PLAYLIST_HC_TDM
-descriptionref PLAYLIST_PLAYLIST_HC_TDM_DESC
 unlockxp 0
 maxparty 6
 maxlocalplayers 2
@@ -1769,8 +1747,6 @@ dlc3,hc_tdm,1
 dlc4,hc_tdm,1
 
 playlist 21
-nameref PLAYLIST_PLAYLIST_HC_FFA
-descriptionref PLAYLIST_PLAYLIST_HC_FFA_DESC
 unlockxp 0
 maxparty 1
 maxlocalplayers 1
@@ -1878,8 +1854,6 @@ dlc3,hc_conf,1
 dlc4,hc_conf,1
 
 playlist 24
-nameref PLAYLIST_PLAYLIST_HC_SD
-descriptionref PLAYLIST_PLAYLIST_HC_SD_DESC
 unlockxp 0
 maxparty 6
 maxlocalplayers 2
@@ -1898,8 +1872,6 @@ dlc3,hc_sd,1
 dlc4,hc_sd,1
 
 playlist 25
-nameref PLAYLIST_PLAYLIST_HC_CTF
-descriptionref PLAYLIST_PLAYLIST_HC_CTF_DESC
 unlockxp 0
 maxparty 6
 maxlocalplayers 2
@@ -2937,8 +2909,6 @@ bigmaps,hs_escort,1
 //hidden
 
 playlist 104
-nameref PLAYLIST_PLAYLIST_INFECT
-descriptionref PLAYLIST_PLAYLIST_INFECT_DESC
 unlockxp 0
 maxparty 1
 maxlocalplayers 2
@@ -2961,8 +2931,6 @@ dlc4,hs_infect,1
 //hidden
 
 playlist 105
-nameref PLAYLIST_PLAYLIST_REDWOOD
-descriptionref PLAYLIST_PLAYLIST_REDWOOD_DESC
 unlockxp 0
 maxparty 6
 maxlocalplayers 2
@@ -2983,8 +2951,6 @@ mp_redwood_ice,hs_clean,1
 hidden
 
 playlist 106
-nameref PLAYLIST_PLAYLIST_PROP
-descriptionref PLAYLIST_PLAYLIST_PROP_DESC
 unlockxp 0
 maxparty 6
 maxlocalplayers 2
@@ -3005,8 +2971,6 @@ dlc4,hs_prop,1
 //hidden
 
 playlist 107
-nameref PLAYLIST_PLAYLIST_VEILED_HEYDAY
-descriptionref PLAYLIST_PLAYLIST_VEILED_HEYDAY_DESC
 unlockxp 0
 maxparty 6
 maxlocalplayers 2
@@ -3027,8 +2991,6 @@ mp_veiled_heyday,hs_clean,1
 //hidden
 
 playlist 108
-nameref PLAYLIST_PLAYLIST_SAS
-descriptionref PLAYLIST_PLAYLIST_SAS_DESC
 unlockxp 0
 maxparty 1
 maxlocalplayers 1
@@ -3048,8 +3010,6 @@ dlc4,hs_sas,1
 //hidden
 
 playlist 109
-nameref PLAYLIST_PLAYLIST_SNIPERONLY
-descriptionref PLAYLIST_PLAYLIST_SNIPERONLY_DESC
 unlockxp 0
 maxparty 6
 maxlocalplayers 2
