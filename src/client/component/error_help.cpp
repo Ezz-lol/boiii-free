@@ -125,11 +125,11 @@ std::string explain_error(const std::string &message) {
     const std::string asset =
         capture(message, R"re(Tried to load asset '([^']+)')re");
     return std::format(
-        "^1A required '{}' asset is missing{}.\n^3Fix: ^7If it belongs to a "
-        "Workshop "
-        "map or mod, re-download or update it. Otherwise: {}",
-        asset.ends_with(".lua") ? "rawfile (Lua UI script)" : type,
-        asset.empty() ? "" : std::format(": '{}'", asset), VERIFY_FILES);
+        "^1The game is missing a file it needs: {} ({}).\n^3Fix: ^7If you are "
+        "playing a Workshop map or mod, re-download or update it. Otherwise: "
+        "{}",
+        asset.empty() ? "unknown" : std::format("'{}'", asset),
+        asset.ends_with(".lua") ? "a UI script" : type, VERIFY_FILES);
   }
 
   if (message.find("EXE_GAMESETTINGS") != std::string::npos ||

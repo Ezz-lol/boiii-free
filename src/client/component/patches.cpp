@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 
 #include "component/error_help.hpp"
+#include "component/exception.hpp"
 #include "component/path.hpp"
 #include "component/script_error.hpp"
 #include "scheduler.hpp"
@@ -45,11 +46,14 @@ void Sys_Error_LogCaller(const char *fmt, ...) {
                         game::consoleLabel_e::DEFAULT,
                         "[Sys_Error] Called from 0x%p with message: \"%s\"",
                         game::derelocate(callerAddr), msg);
-  const std::string help = error_help::explain_error(msg);
-  Sys_Error_hook.invoke(
-      "%s", help.empty()
-                ? msg
-                : error_help::strip_colors(help + "\n\nError: " + msg).c_str());
+  const std::string help = script_error::is_reported(msg)
+                               ? std::string{}
+                               : error_help::explain_error(msg);
+  const std::string message = help.empty() ? msg : help + "\n\nError: " + msg;
+  if (!game::is_server()) {
+    exception::show_fatal_error(message);
+  }
+  Sys_Error_hook.invoke("%s", error_help::strip_colors(message).c_str());
 }
 
 #define MS 1ms
@@ -153,16 +157,12 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
                                : error_help::explain_error(buffer);
   const std::string message =
       help.empty() ? buffer : std::format("{}\n\n^7Error: {}", help, buffer);
+  if (!help.empty()) {
+    script_error::mark_reported(message);
+  }
 
   if (!game::is_server() && code == game::errorParm::FATAL) {
-    std::string deferred_error = message;
-    scheduler::once(
-        [deferred_error]() {
-          game::ui::UI_OpenErrorPopupWithMessage(game::LOCAL_CLIENT_0,
-                                                 game::errorCode::NONE,
-                                                 deferred_error.c_str());
-        },
-        scheduler::pipeline::main, 500ms);
+    exception::show_fatal_error(message);
   }
 
   if (strstr(buffer, "Couldn't find the bsp for this map") ||

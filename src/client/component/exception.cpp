@@ -5,6 +5,7 @@
 #include <loader/component_loader.hpp>
 
 #include "error_help.hpp"
+#include "exception.hpp"
 #include "scheduler.hpp"
 #include "script_error.hpp"
 #include <game/game.hpp>
@@ -391,7 +392,8 @@ std::string crash_reason() {
   __assume(false);
 }
 
-bool ask_restart(const std::string &text) {
+bool ask_restart(const std::string &text,
+                 const wchar_t *headline = L"The game crashed.") {
   constexpr int32_t RESTART_BUTTON = 100;
   constexpr int32_t CLOSE_BUTTON = 101;
   const TASKDIALOG_BUTTON buttons[] = {
@@ -411,7 +413,7 @@ bool ask_restart(const std::string &text) {
   config.dwFlags = TDF_USE_COMMAND_LINKS | TDF_SIZE_TO_CONTENT;
   config.pszWindowTitle = L"Ezz ERROR";
   config.pszMainIcon = TD_ERROR_ICON;
-  config.pszMainInstruction = L"The game crashed.";
+  config.pszMainInstruction = headline;
   config.pszContent = content.c_str();
   config.pButtons = buttons;
   config.cButtons = static_cast<UINT>(std::size(buttons));
@@ -993,6 +995,21 @@ void WINAPI set_unhandled_exception_filter_stub(LPTOP_LEVEL_EXCEPTION_FILTER) {
   // Don't register anything here...
 }
 } // namespace
+
+void show_fatal_error(const std::string &message) {
+  if (game::quiet_crash() || game::is_headless()) {
+    return;
+  }
+  utils::thread::suspend_other_threads();
+  show_mouse_cursor();
+  if (ask_restart(error_help::strip_colors(message) +
+                      "\n\nIf this keeps happening, please report it on "
+                      "https://dc.ezz.lol",
+                  L"The game hit an error and has to close.")) {
+    restart_game();
+  }
+  TerminateProcess(GetCurrentProcess(), 1);
+}
 
 struct component final : generic_component {
 #ifndef NDEBUG
