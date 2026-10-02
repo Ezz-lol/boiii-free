@@ -4,6 +4,7 @@
 
 #include <loader/component_loader.hpp>
 
+#include "error_help.hpp"
 #include "scheduler.hpp"
 #include "script_error.hpp"
 #include <game/game.hpp>
@@ -195,9 +196,11 @@ qboolean WINAPI mini_dump_write_dump_stub(
     }
 
     const std::filesystem::path p(path);
-    if (p.extension() == L".dmp") {
-      const std::filesystem::path minidumps_path =
-          game::get_appdata_path() / "minidumps";
+    const std::filesystem::path minidumps_path =
+        game::get_appdata_path() / "minidumps";
+    std::error_code error;
+    if (p.extension() == L".dmp" &&
+        !std::filesystem::equivalent(p.parent_path(), minidumps_path, error)) {
       std::filesystem::create_directories(minidumps_path);
 
       const std::filesystem::path new_path = minidumps_path / p.filename();
@@ -223,7 +226,113 @@ qboolean WINAPI mini_dump_write_dump_stub(
 thread_local struct {
   uint32_t code = 0;
   void *address = nullptr;
+  uintptr_t access = 0;
+  uintptr_t target = 0;
+  void *caller = nullptr;
+  std::string culprit;
+  std::string scripts;
 } exception_data{};
+
+bool is_game_thread();
+
+constexpr std::array<uint32_t, game::scr::SCRIPTINSTANCE_MAX>
+    SCRIPT_VARIABLE_COUNT{0x1FBD0, 0xFDE8};
+
+struct script_state {
+  const char *running = nullptr;
+  bool executing = false;
+  bool stack_corrupt = false;
+  bool frames_corrupt = false;
+  bool variables_corrupt = false;
+};
+
+bool read_script_state(const game::scr::scriptInstance_t inst,
+                       script_state &state) {
+  __try {
+    volatile auto &vm = game::scr::vm::gScrVmPub->instance[inst];
+    auto *stack = const_cast<game::scr::var::ScrVarValue_t *>(vm.stack);
+    auto *frames =
+        const_cast<game::scr::vm::function_frame_t *>(vm.function_frame_start);
+    state.executing = vm.function_count > 0;
+    state.stack_corrupt =
+        vm.top < stack || vm.top >= stack + std::size(vm.stack);
+    state.frames_corrupt =
+        vm.function_frame < frames ||
+        vm.function_frame >= frames + std::size(vm.function_frame_start);
+
+    const volatile game::scr::var::ScrVar_t *variables =
+        game::scr::vm::gScrVarGlob->instance[inst].scriptVariables;
+    for (uint32_t i = 0; variables && i < SCRIPT_VARIABLE_COUNT[inst]; ++i) {
+      if (static_cast<uint32_t>(variables[i].value.type) >=
+          static_cast<uint32_t>(game::scr::var::ScrVarType::COUNT)) {
+        state.variables_corrupt = true;
+        break;
+      }
+    }
+
+    const uint8_t *pos = game::scr::vm::gFs->instance[inst].pos;
+    for (uint32_t i = 0;
+         state.executing && i < game::scr::gObjFileInfoCount->instance[inst];
+         ++i) {
+      const game::scr::GSC_OBJ *obj =
+          game::scr::gObjFileInfo->instance[inst][i].activeVersion;
+      const uint8_t *code =
+          reinterpret_cast<const uint8_t *>(obj) + obj->cseg_offset;
+      if (pos >= code && pos < code + obj->cseg_size) {
+        state.running = obj->get_name();
+        break;
+      }
+    }
+    return true;
+  } __except (EXCEPTION_EXECUTE_HANDLER) {
+    return false;
+  }
+}
+
+const char *thread_role() {
+  if (is_game_thread()) {
+    return "main";
+  }
+  if (game::sys::Sys_IsServerThread.get() && game::sys::Sys_IsServerThread()) {
+    return "server";
+  }
+  return "auxiliary";
+}
+
+std::string describe_scripts() {
+  const std::string_view role = thread_role();
+  const bool server_thread =
+      role == "server" || (game::is_server() && role == "main");
+
+  std::string report;
+  for (const game::scr::scriptInstance_t inst :
+       {game::scr::SCRIPTINSTANCE_SERVER, game::scr::SCRIPTINSTANCE_CLIENT}) {
+    script_state state{};
+    if (!read_script_state(inst, state)) {
+      continue;
+    }
+
+    const bool client = inst == game::scr::SCRIPTINSTANCE_CLIENT;
+    const char *name = client ? "CSC" : "GSC";
+    const bool crashing_thread =
+        client ? role == "main" && !game::is_server() : server_thread;
+    if (crashing_thread && state.executing) {
+      report += std::format(
+          "\nThe {} script{} was running when the game crashed, so a script "
+          "(often from a mod or custom map) may have triggered it.",
+          name,
+          state.running ? std::format(" '{}'", state.running) : std::string{});
+    }
+    if (state.variables_corrupt || state.stack_corrupt ||
+        state.frames_corrupt) {
+      report += std::format("\nThe {} script {} corrupted.", name,
+                            state.variables_corrupt ? "variables were"
+                            : state.stack_corrupt   ? "VM stack was"
+                                                    : "VM call frames were");
+    }
+  }
+  return report;
+}
 
 struct {
   std::chrono::time_point<std::chrono::high_resolution_clock> last_recovery{};
@@ -259,14 +368,49 @@ void show_mouse_cursor() {
 
 const char *get_exception_string(uint32_t exception);
 
+std::string describe_crash() {
+  if (exception_data.code == EXCEPTION_ACCESS_VIOLATION) {
+    if (exception_data.caller) {
+      return std::format("called an invalid function pointer 0x{:X}{} from {}",
+                         exception_data.target,
+                         exception_data.target < 0x10000 ? " (null pointer)"
+                                                         : "",
+                         get_crash_module_info(exception_data.caller));
+    }
+    return std::format("invalid memory access: tried to {} 0x{:X}{} in {}",
+                       exception_data.access == 1 ? "write to" : "read",
+                       exception_data.target,
+                       exception_data.target < 0x10000 ? " (null pointer)" : "",
+                       get_crash_module_info(exception_data.address));
+  }
+  return std::format("{} in {}", get_exception_string(exception_data.code),
+                     get_crash_module_info(exception_data.address));
+}
+
+std::string crash_reason() {
+  std::string reason = std::format("The game crashed: {}.{}", describe_crash(),
+                                   exception_data.scripts);
+  if (!exception_data.culprit.empty()) {
+    reason += "\n\n" + exception_data.culprit;
+  } else if (exception_data.scripts.empty()) {
+    reason += "\n\nThe cause could not be determined from the crash itself. "
+              "If it keeps happening: verify the game files in Steam, update "
+              "your graphics driver, disable overlays (Steam, Discord, MSI "
+              "Afterburner/RTSS) and remove CPU/GPU/RAM overclocks.";
+  }
+  return error_help::strip_colors(reason);
+}
+
 void display_error_dialog() {
   const resolved_frame frame = resolve_address(exception_data.address);
   const char *exception_name = get_exception_string(exception_data.code);
   const std::string location = get_crash_module_info(exception_data.address);
   const std::string minidumps_out =
       (game::get_appdata_path() / "minidumps").string();
+  const std::string reason = crash_reason();
 
   const char *error_str = utils::string::va(
+      "%s\n\n"
       "%s (0x%08X) at %s\n\n"
       "Address: 0x%p (RVA: 0x%llX)\n"
       "Module: %s\n"
@@ -274,7 +418,7 @@ void display_error_dialog() {
       "\nA crash dump has been saved to:\n%s\n"
       "Please report this crash and upload the dump file on our Discord:\n"
       "https://dc.ezz.lol\n",
-      exception_name, exception_data.code, location.c_str(),
+      reason.c_str(), exception_name, exception_data.code, location.c_str(),
       exception_data.address, frame.rva, frame.module_name.c_str(),
       frame.function_name.empty() ? "" : "Function: ",
       frame.function_name.empty() ? "" : (frame.function_name + "\n").c_str(),
@@ -311,8 +455,13 @@ void reset_state() {
   }
 
   if (is_recoverable()) {
-    const std::string location = get_crash_module_info(exception_data.address);
-    const char *exception_name = get_exception_string(exception_data.code);
+    static std::string message;
+    message = std::format(
+        "{}\n\nA crash dump has been saved to:\n{}\n\n"
+        "Ezz has tried to recover your game, but it may be unstable.\n\n"
+        "If this keeps happening, please report it on our Discord: "
+        "https://dc.ezz.lol",
+        crash_reason(), (game::get_appdata_path() / "minidumps").string());
 
     recovery_data.last_recovery = std::chrono::high_resolution_clock::now();
     ++recovery_data.recovery_counts;
@@ -324,32 +473,10 @@ void reset_state() {
         },
         scheduler::pipeline::main);
 
-    game::com::Com_Printf(
-        game::consoleChannel_e::CHANNEL_DONT_FILTER,
-        game::consoleLabel_e::DEFAULT,
-        "%s (0x%08X) at %s\n\n"
-        "A crash dump has been saved to:\n%s\n\n"
-        "Ezz has tried to recover your game, but it may be unstable.\n\n"
-        "Make sure to update your graphics card drivers and "
-        "install operating system updates!\n"
-        "Closing or restarting Steam might also help.\n\n"
-        "If this keeps happening, please report it on our Discord: "
-        "https://dc.ezz.lol",
-        exception_name, exception_data.code, location.c_str(),
-        (game::get_appdata_path() / "minidumps").string().c_str());
-
-    game::com::Com_Error(
-        game::errorParm::FATAL,
-        "%s (0x%08X) at %s\n\n"
-        "A crash dump has been saved to:\n%s\n\n"
-        "Ezz has tried to recover your game, but it may be unstable.\n\n"
-        "Make sure to update your graphics card drivers and "
-        "install operating system updates!\n"
-        "Closing or restarting Steam might also help.\n\n"
-        "If this keeps happening, please report it on our Discord: "
-        "https://dc.ezz.lol",
-        exception_name, exception_data.code, location.c_str(),
-        (game::get_appdata_path() / "minidumps").string().c_str());
+    game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                          game::consoleLabel_e::DEFAULT, "%s\n",
+                          message.c_str());
+    game::com::Com_Error(game::errorParm::FATAL, "%s", message.c_str());
   } else {
     display_error_dialog();
   }
@@ -498,9 +625,13 @@ std::string generate_crash_info(const LPEXCEPTION_POINTERS exceptioninfo) {
   if (!crash_frame.file_name.empty() && crash_frame.line_number > 0)
     line(utils::string::va("Source: %s:%lu", crash_frame.file_name.c_str(),
                            crash_frame.line_number));
+  if (!exception_data.culprit.empty())
+    line("Diagnosis: " + error_help::strip_colors(exception_data.culprit));
+  if (!exception_data.scripts.empty())
+    line("Scripts:" + exception_data.scripts);
   line(utils::string::va("Base: 0x%llX", game::get_base()));
   line(utils::string::va("Thread ID: %lu (%s)", GetCurrentThreadId(),
-                         is_game_thread() ? "main" : "auxiliary"));
+                         thread_role()));
 
   if (exceptioninfo->ExceptionRecord->ExceptionCode ==
       EXCEPTION_ACCESS_VIOLATION) {
@@ -758,6 +889,44 @@ long WINAPI crash_fix_exception_handler(PEXCEPTION_POINTERS exception_info) {
   return result;
 }
 
+std::string find_culprit(const std::vector<resolved_frame> &frames) {
+  if (exception_data.code == EXCEPTION_IN_PAGE_ERROR) {
+    return "Windows could not read part of the game from the disk.\nFix: "
+           "Check the drive for errors (or reconnect it if it is external), "
+           "then verify the game files in Steam.";
+  }
+
+  const utils::nt::library crashed =
+      utils::nt::library::get_by_address(exception_data.address);
+  if (crashed.get_ptr() == utils::nt::library::get_by_address(
+                               reinterpret_cast<const void *>(&find_culprit))
+                               .get_ptr()) {
+    const resolved_frame frame = resolve_address(exception_data.address);
+    return std::format("The crash happened inside the Ezz client itself{}.\n"
+                       "Fix: Please report it on https://dc.ezz.lol with the "
+                       "crash dump.",
+                       frame.function_name.empty()
+                           ? std::string{}
+                           : std::format(" ({})", frame.function_name));
+  }
+
+  std::vector<const void *> addresses{exception_data.address};
+  for (const resolved_frame &frame : frames) {
+    addresses.push_back(reinterpret_cast<const void *>(frame.address));
+  }
+  for (const void *address : addresses) {
+    const utils::nt::library module =
+        utils::nt::library::get_by_address(address);
+    if (module) {
+      if (std::string help = error_help::explain_module(module.get_path());
+          !help.empty()) {
+        return help;
+      }
+    }
+  }
+  return {};
+}
+
 bool is_harmless_error(const LPEXCEPTION_POINTERS exceptioninfo) {
   const uint32_t code = exceptioninfo->ExceptionRecord->ExceptionCode;
   return code == STATUS_INTEGER_OVERFLOW || code == STATUS_FLOAT_OVERFLOW ||
@@ -787,7 +956,7 @@ long WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
                   crash_frame.line_number);
   exception_log(true, "  Address:    0x%llX", crash_frame.address);
   exception_log(true, "  Thread:     %lu (%s)", GetCurrentThreadId(),
-                is_game_thread() ? "main" : "auxiliary");
+                thread_role());
 
   if (exceptioninfo->ExceptionRecord->ExceptionCode ==
       EXCEPTION_ACCESS_VIOLATION) {
@@ -820,10 +989,21 @@ long WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
   }
   exception_log(true, "=====================================");
 
-  write_minidump(exceptioninfo);
-
   exception_data.code = exceptioninfo->ExceptionRecord->ExceptionCode;
   exception_data.address = exceptioninfo->ExceptionRecord->ExceptionAddress;
+  exception_data.access =
+      exceptioninfo->ExceptionRecord->ExceptionInformation[0];
+  exception_data.target =
+      exceptioninfo->ExceptionRecord->ExceptionInformation[1];
+  exception_data.caller =
+      exception_data.code == EXCEPTION_ACCESS_VIOLATION &&
+              exception_data.access == 8
+          ? *reinterpret_cast<void **>(exceptioninfo->ContextRecord->Rsp)
+          : nullptr;
+  exception_data.culprit = find_culprit(frames);
+  exception_data.scripts = describe_scripts();
+
+  write_minidump(exceptioninfo);
   exceptioninfo->ContextRecord->Rip = get_reset_state_stub();
 
   return EXCEPTION_CONTINUE_EXECUTION;
@@ -865,6 +1045,18 @@ struct component final : generic_component {
     }
 
     AddVectoredExceptionHandler(1, crash_fix_exception_handler);
+  }
+
+  void post_unpack() override {
+    scheduler::once(
+        [] {
+          game::cbuf::Cbuf_AddText(
+              game::LOCAL_CLIENT_0,
+              utils::string::va(
+                  "dumpdir \"%s\"\n",
+                  (game::get_appdata_path() / "minidumps").string().c_str()));
+        },
+        scheduler::pipeline::main);
   }
 };
 } // namespace exception

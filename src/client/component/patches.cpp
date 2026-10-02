@@ -1,5 +1,6 @@
 #include <std_include.hpp>
 
+#include "component/error_help.hpp"
 #include "component/path.hpp"
 #include "component/script_error.hpp"
 #include "scheduler.hpp"
@@ -44,7 +45,11 @@ void Sys_Error_LogCaller(const char *fmt, ...) {
                         game::consoleLabel_e::DEFAULT,
                         "[Sys_Error] Called from 0x%p with message: \"%s\"",
                         game::derelocate(callerAddr), msg);
-  Sys_Error_hook.invoke("%s", msg);
+  const std::string help = error_help::explain_error(msg);
+  Sys_Error_hook.invoke(
+      "%s", help.empty()
+                ? msg
+                : error_help::strip_colors(help + "\n\nError: " + msg).c_str());
 }
 
 #define MS 1ms
@@ -143,8 +148,14 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
            buffer);
   }
 
+  const std::string help = script_error::is_reported(buffer)
+                               ? std::string{}
+                               : error_help::explain_error(buffer);
+  const std::string message =
+      help.empty() ? buffer : std::format("{}\n\n^7Error: {}", help, buffer);
+
   if (!game::is_server() && code == game::errorParm::FATAL) {
-    std::string deferred_error = std::string(buffer);
+    std::string deferred_error = message;
     scheduler::once(
         [deferred_error]() {
           game::ui::UI_OpenErrorPopupWithMessage(game::LOCAL_CLIENT_0,
@@ -176,7 +187,7 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
 
   // Removing this skips internal engine error handling,
   // which is preferable to execute if the error is not fatal.
-  com_error_hook.invoke<void>(file, line, code, "%s", buffer);
+  com_error_hook.invoke<void>(file, line, code, "%s", message.c_str());
 }
 
 void scr_get_num_expected_players() {
