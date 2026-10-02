@@ -70,11 +70,6 @@ std::ofstream &tracing_logfile() {
 }
 #endif
 
-bool ultrawide() {
-  static const bool result = utils::flags::has_flag("ultrawide");
-  return result;
-}
-
 bool cheats() {
   static const bool result = utils::flags::has_flag("cheats");
   return result;

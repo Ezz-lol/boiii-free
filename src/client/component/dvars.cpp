@@ -2,6 +2,7 @@
 
 #include <loader/component_loader.hpp>
 
+#include "dvars.hpp"
 #include "scheduler.hpp"
 #include <game/game.hpp>
 
@@ -11,6 +12,8 @@
 #include <utils/string.hpp>
 
 namespace dvars {
+std::string get_config_file_path() { return "boiii_players/user/config.cfg"; }
+
 namespace {
 std::atomic_bool dvar_write_scheduled{false};
 bool initial_config_read = false;
@@ -91,8 +94,6 @@ void copy_dvar_names_to_pool() {
     }
   }
 }
-
-std::string get_config_file_path() { return "boiii_players/user/config.cfg"; }
 
 bool is_archive_dvar(game::EngineDependentDvar dvar) {
   if (!dvar.debugName()) {

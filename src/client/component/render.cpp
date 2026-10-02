@@ -3,6 +3,7 @@
 #include <loader/component_loader.hpp>
 
 #include <component/scheduler.hpp>
+#include <component/settings.hpp>
 #include <game/game.hpp>
 
 #include <game/impl/scr/place.hpp>
@@ -12,6 +13,19 @@
 namespace render {
 using namespace game::r;
 utils::hook::detour R_StoreWindowSettings_hook;
+utils::hook::detour ScrPlace_Init_hook;
+
+settings::flag_setting ultrawide{
+    "ezz_ultrawide", "ultrawide", true, false,
+    "Use the full width of ultrawide screens (requires a restart)"};
+
+void ScrPlace_Init_stub() {
+  if (ultrawide.enabled()) {
+    game::scr::place::ScrPlace_Init_Impl();
+  } else {
+    ScrPlace_Init_hook.invoke<void>();
+  }
+}
 
 void R_StoreWindowSettings_AllowPositiveViewScale(
     const GfxWindowParms *wndParms) {
@@ -20,6 +34,9 @@ void R_StoreWindowSettings_AllowPositiveViewScale(
 #endif
 
   R_StoreWindowSettings_hook.invoke(wndParms);
+  if (!ultrawide.enabled()) {
+    return;
+  }
 
 #ifndef NDEBUG
   game::trace("R_StoreWindowSettings called at {:p} with vidConfig: {}",
@@ -47,7 +64,6 @@ void R_StoreWindowSettings_AllowPositiveViewScale(
 #endif
 }
 
-utils::hook::detour ScrPlace_Init_hook;
 class component final : public generic_component {
 #ifndef NDEBUG
   std::string name() override { return "render"; }
@@ -55,18 +71,16 @@ class component final : public generic_component {
 
 public:
   void post_unpack() override {
-    if (game::ultrawide()) {
-      R_StoreWindowSettings_hook.create(
-          game::r::R_StoreWindowSettings,
-          R_StoreWindowSettings_AllowPositiveViewScale);
+    R_StoreWindowSettings_hook.create(
+        game::r::R_StoreWindowSettings,
+        R_StoreWindowSettings_AllowPositiveViewScale);
 
-      if (game::is_client()) {
-        ScrPlace_Init_hook.create(game::scr::place::ScrPlace_Init,
-                                  game::scr::place::ScrPlace_Init_Impl);
-      } else {
-        scheduler::once(game::scr::place::ScrPlace_Init_Impl,
-                        scheduler::pipeline::main);
-      }
+    if (game::is_client()) {
+      ScrPlace_Init_hook.create(game::scr::place::ScrPlace_Init,
+                                ScrPlace_Init_stub);
+    } else if (ultrawide.enabled()) {
+      scheduler::once(game::scr::place::ScrPlace_Init_Impl,
+                      scheduler::pipeline::main);
     }
   }
 };

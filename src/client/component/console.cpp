@@ -8,6 +8,7 @@
 
 #include <component/command.hpp>
 #include <component/lua/lua_state.hpp>
+#include <component/settings.hpp>
 #include <loader/component_loader.hpp>
 
 #if __has_include("version.hpp")
@@ -95,10 +96,10 @@ constexpr size_t MAX_CONSOLE_CHARS = 1'000'000;
 constexpr size_t MAX_CONSOLE_LINES = 20'000;
 constexpr int32_t COMPLETION_HINT_CONTROL_ID = 0x66;
 
-bool full_logs_enabled() {
-  static const bool enabled = utils::flags::has_flag("fulllogs");
-  return enabled;
-}
+settings::flag_setting full_logs{"ezz_fullLogs", "fulllogs", true, false,
+                                 "Show every log message in the console"};
+
+bool full_logs_enabled() { return full_logs.enabled(); }
 
 COLORREF get_cod_color(const char code) {
   switch (code) {

@@ -203,6 +203,10 @@ int32_t parse_flags(int argc, char *argv[]) {
       .help("Skip playing all cinematics.")
       .implicit_value(true)
       .default_value(false);
+  program.add_argument("-noforestcinematic", "--noforestcinematic")
+      .help("Skip the forest video that plays before joining a Zombies game.")
+      .implicit_value(true)
+      .default_value(false);
   program.add_argument("-ls", "-log-script-errors", "--log-script-errors")
       .help("Log all script errors, regardless of severity or `developer` dvar "
             "value.")

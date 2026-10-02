@@ -16,7 +16,6 @@ std::filesystem::path tracing_logfile_path();
 std::ofstream &tracing_logfile();
 #endif
 
-bool ultrawide();
 bool cheats();
 bool disable_loadlib();
 

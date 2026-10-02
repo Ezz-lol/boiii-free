@@ -48,7 +48,7 @@ CoD.LobbyButtons.STATS = {
 }
 
 CoD.LobbyButtons.QUICK_SETTINGS = {
-  stringRef = "QUICK SETTINGS",
+  stringRef = "^8" .. Engine.Localize("EZZ SETTINGS"),
   action = function(self, element, controller, param, menu)
     SetPerControllerTableProperty(controller, "disableGameSettingsOptions", true)
     OpenPopup(menu, "BoiiiQuickSettingsMenu", controller)
