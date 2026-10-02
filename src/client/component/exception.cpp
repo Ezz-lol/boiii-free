@@ -30,7 +30,9 @@
 #endif
 #endif
 
+#include <CommCtrl.h>
 #include <dbghelp.h>
+#pragma comment(lib, "comctl32.lib")
 #pragma comment(lib, "dbghelp.lib")
 
 namespace exception {
@@ -334,32 +336,7 @@ std::string describe_scripts() {
   return report;
 }
 
-struct {
-  std::chrono::time_point<std::chrono::high_resolution_clock> last_recovery{};
-  std::atomic<int32_t> recovery_counts = {0};
-} recovery_data{};
-
 bool is_game_thread() { return main_thread_id == GetCurrentThreadId(); }
-
-bool is_exception_interval_too_short() {
-  const std::chrono::nanoseconds delta =
-      std::chrono::high_resolution_clock::now() - recovery_data.last_recovery;
-  return delta < 1min;
-}
-
-bool too_many_exceptions_occured() {
-  return recovery_data.recovery_counts >= 3;
-}
-
-volatile bool &is_initialized() {
-  static volatile bool initialized = true;
-  return initialized;
-}
-
-bool is_recoverable() {
-  return is_initialized() && is_game_thread() &&
-         !is_exception_interval_too_short() && !too_many_exceptions_occured();
-}
 
 void show_mouse_cursor() {
   while (ShowCursor(TRUE) < 0)
@@ -401,36 +378,68 @@ std::string crash_reason() {
   return error_help::strip_colors(reason);
 }
 
+[[noreturn]] void restart_game() {
+  STARTUPINFOW startup_info{};
+  startup_info.cb = sizeof(startup_info);
+  PROCESS_INFORMATION process_info{};
+  if (CreateProcessW(nullptr, GetCommandLineW(), nullptr, nullptr, FALSE, 0,
+                     nullptr, nullptr, &startup_info, &process_info)) {
+    CloseHandle(process_info.hThread);
+    CloseHandle(process_info.hProcess);
+  }
+  TerminateProcess(GetCurrentProcess(), exception_data.code);
+  __assume(false);
+}
+
+bool ask_restart(const std::string &text) {
+  constexpr int32_t RESTART_BUTTON = 100;
+  constexpr int32_t CLOSE_BUTTON = 101;
+  const TASKDIALOG_BUTTON buttons[] = {
+      {RESTART_BUTTON, L"Restart game\nClose the game and start it again."},
+      {CLOSE_BUTTON, L"Close game"},
+  };
+  constexpr std::string_view repeated_headline = "The game crashed: ";
+  std::string body = text;
+  if (body.starts_with(repeated_headline)) {
+    body.erase(0, repeated_headline.size());
+    body[0] = static_cast<char>(std::toupper(body[0]));
+  }
+  const std::wstring content = utils::string::convert(body);
+
+  TASKDIALOGCONFIG config{};
+  config.cbSize = sizeof(config);
+  config.dwFlags = TDF_USE_COMMAND_LINKS | TDF_SIZE_TO_CONTENT;
+  config.pszWindowTitle = L"Ezz ERROR";
+  config.pszMainIcon = TD_ERROR_ICON;
+  config.pszMainInstruction = L"The game crashed.";
+  config.pszContent = content.c_str();
+  config.pButtons = buttons;
+  config.cButtons = static_cast<UINT>(std::size(buttons));
+  config.nDefaultButton = RESTART_BUTTON;
+
+  int32_t pressed = CLOSE_BUTTON;
+  return SUCCEEDED(TaskDialogIndirect(&config, &pressed, nullptr, nullptr)) &&
+         pressed == RESTART_BUTTON;
+}
+
 void display_error_dialog() {
-  const resolved_frame frame = resolve_address(exception_data.address);
-  const char *exception_name = get_exception_string(exception_data.code);
-  const std::string location = get_crash_module_info(exception_data.address);
   const std::string minidumps_out =
       (game::get_appdata_path() / "minidumps").string();
-  const std::string reason = crash_reason();
-
-  const char *error_str = utils::string::va(
-      "%s\n\n"
-      "%s (0x%08X) at %s\n\n"
-      "Address: 0x%p (RVA: 0x%llX)\n"
-      "Module: %s\n"
-      "%s%s"
-      "\nA crash dump has been saved to:\n%s\n"
-      "Please report this crash and upload the dump file on our Discord:\n"
-      "https://dc.ezz.lol\n",
-      reason.c_str(), exception_name, exception_data.code, location.c_str(),
-      exception_data.address, frame.rva, frame.module_name.c_str(),
-      frame.function_name.empty() ? "" : "Function: ",
-      frame.function_name.empty() ? "" : (frame.function_name + "\n").c_str(),
-      minidumps_out.c_str());
+  const std::string error_str = std::format(
+      "{}\n\nDetails: {} (0x{:08X}) at 0x{:X} on the {} thread.\n\n"
+      "Crash dump saved in:\n{}\nPlease report it on https://dc.ezz.lol",
+      crash_reason(), get_exception_string(exception_data.code),
+      exception_data.code, reinterpret_cast<uintptr_t>(exception_data.address),
+      thread_role(), minidumps_out);
 
   utils::thread::suspend_other_threads();
   show_mouse_cursor();
 
-  game::show_error(error_str, "Ezz ERROR");
-
-  if (game::quiet_crash()) {
+  if (game::quiet_crash() || game::is_headless()) {
+    game::show_error(error_str, "Ezz ERROR");
     utils::thread::terminate_other_threads(exception_data.code);
+  } else if (ask_restart(error_str)) {
+    restart_game();
   } else {
     ShellExecuteA(nullptr, "open", minidumps_out.c_str(), nullptr, nullptr,
                   SW_SHOWNORMAL);
@@ -454,32 +463,7 @@ void reset_state() {
     game::com::Com_Error(game::errorParm::DROP, "%s", reason.c_str());
   }
 
-  if (is_recoverable()) {
-    static std::string message;
-    message = std::format(
-        "{}\n\nA crash dump has been saved to:\n{}\n\n"
-        "Ezz has tried to recover your game, but it may be unstable.\n\n"
-        "If this keeps happening, please report it on our Discord: "
-        "https://dc.ezz.lol",
-        crash_reason(), (game::get_appdata_path() / "minidumps").string());
-
-    recovery_data.last_recovery = std::chrono::high_resolution_clock::now();
-    ++recovery_data.recovery_counts;
-
-    scheduler::once(
-        [] {
-          if (game::com::Com_IsInGame())
-            game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, "disconnect\n");
-        },
-        scheduler::pipeline::main);
-
-    game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                          game::consoleLabel_e::DEFAULT, "%s\n",
-                          message.c_str());
-    game::com::Com_Error(game::errorParm::FATAL, "%s", message.c_str());
-  } else {
-    display_error_dialog();
-  }
+  display_error_dialog();
 }
 
 size_t get_reset_state_stub() {
@@ -901,13 +885,9 @@ std::string find_culprit(const std::vector<resolved_frame> &frames) {
   if (crashed.get_ptr() == utils::nt::library::get_by_address(
                                reinterpret_cast<const void *>(&find_culprit))
                                .get_ptr()) {
-    const resolved_frame frame = resolve_address(exception_data.address);
-    return std::format("The crash happened inside the Ezz client itself{}.\n"
-                       "Fix: Please report it on https://dc.ezz.lol with the "
-                       "crash dump.",
-                       frame.function_name.empty()
-                           ? std::string{}
-                           : std::format(" ({})", frame.function_name));
+    return "This is a bug in the Ezz client, not a problem with your PC or "
+           "game files.\nFix: Please report it on https://dc.ezz.lol with the "
+           "crash dump.";
   }
 
   std::vector<const void *> addresses{exception_data.address};
