@@ -17,6 +17,9 @@ WEAK symbol<bool(game::LocalClientNum_t localClientNum, int index, char *buf,
 WEAK symbol<bool(game::LocalClientNum_t localClientNum)>
     CL_LocalClient_IsActive{0x1427C18E0, 0x14283AA50, 0x0};
 WEAK symbol<float(void *key)> CL_KeyState{0x1412FF880, 0x1412FF860, 0x0};
+WEAK symbol<void(LocalClientNum_t localClientNum, int32_t key, int32_t down,
+                 uint32_t time)>
+    CL_KeyEvent{0x141342220, 0x0, 0x0};
 WEAK symbol<void(LocalClientNum_t localClientNum, const char *pszMapName,
                  const char *pszGametype)>
     CL_SetupForNewServerMap{0x14135CD40, 0x14135CD20, 0x0};

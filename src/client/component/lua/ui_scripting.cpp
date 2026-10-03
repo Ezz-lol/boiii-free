@@ -1992,7 +1992,38 @@ std::filesystem::path sanitize_rawfile_path(const std::string &name) {
   return result;
 }
 
+std::unordered_map<int32_t, std::string> custom_key_functions;
+
+utils::hook::detour CL_KeyEvent_hook;
+void CL_KeyEvent_CustomKeymap(const game::LocalClientNum_t localClientNum,
+                              const int32_t key, const int32_t down,
+                              const uint32_t time) {
+  if (down) {
+    if (const auto function = custom_key_functions.find(key);
+        function != custom_key_functions.end()) {
+      execute_raw_lua(
+          std::format("if CoD.Mod and CoD.Mod.CallCustomFunction then "
+                      "CoD.Mod.CallCustomFunction(\"{}\") end",
+                      function->second),
+          "customkeymap");
+    }
+  }
+  CL_KeyEvent_hook.invoke(localClientNum, key, down, time);
+}
+
 inline void register_lui_commands() {
+  command::add("customkeymap", [](const command::params &params) {
+    if (params.size() < 3) {
+      return;
+    }
+    const std::string name = params.get(1);
+    if (std::ranges::all_of(name, [](const char c) {
+          return std::isalnum(static_cast<uint8_t>(c)) || c == '_';
+        })) {
+      custom_key_functions[std::atoi(params.get(2))] = name;
+    }
+  });
+
   command::add("luadump", [](const command::params &params) {
     if (params.size() >= 2 && params.get(1) == std::string("reset")) {
       stock_lua_baseline.clear();
@@ -2791,6 +2822,11 @@ public:
             game::ui_error_report_delay->set(true);
           },
           scheduler::pipeline::renderer);
+
+      if (!game::is_legacy_client()) {
+        CL_KeyEvent_hook.create(game::cl::CL_KeyEvent.get(),
+                                CL_KeyEvent_CustomKeymap);
+      }
 
       register_lui_commands();
       patch_unsafe_lua_functions();
