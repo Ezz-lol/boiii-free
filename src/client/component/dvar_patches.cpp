@@ -55,8 +55,18 @@ inline void dvar_boolstring_force(EngineDependentDvarMut dvar) {
 
 template <const bool Value>
 inline void dvar_bool_force(EngineDependentDvarMut dvar) {
-  dvar.set(Value);
   Dvar_SetModifiedCallback(dvar, dvar_bool_modification_force<Value>);
+  dvar.set(Value);
+}
+
+void apply_cheats_setting(EngineDependentDvarMut) {
+  for (EngineDependentDvarMut dvar : {*sv_cheats, *dvar_cheats}) {
+    if (game::cheats()) {
+      dvar_bool_force<true>(dvar);
+    } else {
+      dvar_bool_force<false>(dvar);
+    }
+  }
 }
 
 #ifndef NDEBUG
@@ -311,18 +321,17 @@ public:
     utils::hook::jump(game::select(0x141116edb, 0x141116EBB, 0x0),
                       utils::hook::assemble(dof_enabled_stub));
 
-    if (game::cheats()) {
-      scheduler::schedule(
-          []() {
-            if (*sv_cheats && *dvar_cheats) {
-              dvar_bool_force<true>(*sv_cheats);
-              dvar_bool_force<true>(*dvar_cheats);
-              return scheduler::cond_end;
-            }
+    scheduler::schedule(
+        []() {
+          if (!*sv_cheats || !*dvar_cheats) {
             return scheduler::cond_continue;
-          },
-          scheduler::pipeline::main);
-    }
+          }
+          apply_cheats_setting({});
+          Dvar_SetModifiedCallback(Dvar_FindVar("boiii_allowCheats"),
+                                   apply_cheats_setting);
+          return scheduler::cond_end;
+        },
+        scheduler::pipeline::main);
   }
 
   static void patch_server() {

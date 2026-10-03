@@ -70,11 +70,6 @@ std::ofstream &tracing_logfile() {
 }
 #endif
 
-bool cheats() {
-  static const bool result = utils::flags::has_flag("cheats");
-  return result;
-}
-
 bool disable_loadlib() {
   static const bool result = utils::flags::has_flag("disable-loadlib");
   return result;

@@ -38,13 +38,16 @@ flag_setting log_script_errors{
 flag_setting ultrawide{
     "boiii_ultrawide", "ultrawide",
     "Use the full width of ultrawide screens (requires a restart)"};
+flag_setting allow_cheats{"boiii_allowCheats", "cheats",
+                          "Allow cheat commands like noclip and god mode"};
 flag_setting allow_unsafe_lua{
     "boiii_allowUnsafeLua", "unsafe-lua",
     "Allow mods to use unsafe Lua functions without asking"};
 
-const std::array<flag_setting *, 7> all_settings{
-    &skip_intro,        &skip_cinematics, &skip_forest_cinematic, &full_logs,
-    &log_script_errors, &ultrawide,       &allow_unsafe_lua,
+const std::array<flag_setting *, 8> all_settings{
+    &skip_intro,   &skip_cinematics,   &skip_forest_cinematic,
+    &full_logs,    &log_script_errors, &ultrawide,
+    &allow_cheats, &allow_unsafe_lua,
 };
 
 void apply_saved_values() {
@@ -97,6 +100,7 @@ bool skip_forest_cinematic() {
 bool full_logs() { return settings::full_logs.enabled(); }
 bool log_script_errors() { return settings::log_script_errors.enabled(); }
 bool ultrawide() { return settings::ultrawide.enabled(); }
+bool cheats() { return settings::allow_cheats.enabled(); }
 bool allow_unsafe_lua() { return settings::allow_unsafe_lua.enabled(); }
 } // namespace game
 

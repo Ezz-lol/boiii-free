@@ -29,6 +29,11 @@ DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings
     { "boiii_logScriptErrors", "Log Script Errors", "Log every script error, including non-fatal ones." },
     { "boiii_ultrawide", "Ultrawide Support", "Use the full width of ultrawide screens. Requires a restart." },
     {
+      "boiii_allowCheats",
+      "Allow Cheats",
+      "Allow cheat commands like noclip and god mode. Only this setting can turn cheats on, maps and scripts can't.",
+    },
+    {
       "boiii_allowUnsafeLua",
       "Allow Unsafe Lua",
       "Let mods read and write files, run commands and load DLLs without asking. Only enable this for mods you trust.",
