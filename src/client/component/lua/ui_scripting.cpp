@@ -1082,6 +1082,7 @@ void ui_init_stub(lua_Alloc allocFunction, void *outOfMemoryFunction) {
 
 std::atomic<bool> doneFirstSnapshot = false;
 std::atomic<unsigned int> frontend_scripts_generation = 0;
+std::atomic<bool> refresh_after_frontend_load = false;
 
 void ui_cod_init_stub(const bool frontend) {
   ui_cod_init_hook.invoke(frontend);
@@ -1117,6 +1118,9 @@ void ui_cod_lobbyui_init_stub() {
                 generation &&
             game::com::Com_IsRunningUILevel()) {
           try_start();
+          if (refresh_after_frontend_load.exchange(false)) {
+            fire_debug_reload("UIRootFull");
+          }
         }
       },
       scheduler::main, 500ms);
@@ -1966,6 +1970,7 @@ inline void lui_reload() {
                  game::ControllerIndex_t::CONTROLLER_INDEX_0),
              "main", -1, *primary_luaVM);
 
+  refresh_after_frontend_load.store(true);
   UI_CoD_LobbyUI_Init();
 }
 
