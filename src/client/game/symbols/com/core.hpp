@@ -45,6 +45,18 @@ WEAK symbol<void(eNetworkModes networkMode)> Com_SessionMode_SetNetworkMode{
     0x1420EAE30, 0x1420F75B0, 0x140500B80};
 WEAK symbol<void(eGameModes mode)> Com_SessionMode_SetGameMode{
     0x1420EADF0, 0x1420F7570, 0x140500B40};
+/*
+  The session mode, network mode and game mode share one packed int32. The
+  server getter reads the low four bits,
+
+    0x1405002D0:  mov eax, dword ptr [rip + ...]   ; sessionModeState
+                  shl eax, 0x1C
+                  sar eax, 0x1C                    ; low 4 bits = eModes
+
+  and the setter 0x20 past Com_SessionMode_SetGameMode writes exactly those
+  bits, in the same shape the network and game mode setters use for theirs.
+*/
+WEAK symbol<void(eModes mode)> Com_SessionMode_SetMode{0x0, 0x0, 0x140500B60};
 WEAK symbol<bool()> Com_IsRunningUILevel{0x1420EF8F0, 0x142148350, 0x140504BD0};
 WEAK symbol<bool()> Com_IsInGame{0x1420EF860, 0x1421482C0, 0x140504B90};
 WEAK symbol<void(int localClientNum, eModes fromMode, eModes toMode,
