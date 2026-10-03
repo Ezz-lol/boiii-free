@@ -83,6 +83,13 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
     return;
   }
 
+  if (code == game::errorParm::SOFTRESTART ||
+      code == game::errorParm::SOFTRESTART_KEEPDW ||
+      code == game::errorParm::SOFTRESTART_SILENT) {
+    com_error_hook.invoke<void>(file, line, code, "%s", buffer);
+    return;
+  }
+
   if (!script_error::is_reported(buffer)) {
     const char *log = utils::string::va(
         "[Com][Error] Called from 0x%p with message: \"%s\", code: %d\n",
