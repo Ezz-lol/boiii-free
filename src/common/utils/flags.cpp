@@ -160,6 +160,11 @@ int32_t parse_flags(int argc, char *argv[]) {
       .help("Disable rate limiting in dedicated server")
       .default_value(false)
       .implicit_value(true);
+  program.add_argument("-detect-loops", "--detect-loops")
+      .help("Report GSC loops that run without waiting and slow them to one "
+            "pass per frame")
+      .default_value(false)
+      .implicit_value(true);
   program.add_argument("-quiet-crash", "--quiet-crash")
       .help("On crash, disable message box and minidump directory popups.")
       .default_value(false)

@@ -719,11 +719,34 @@ std::string_view runtime_cause(const std::string_view source_file) {
   return {};
 }
 
+std::string append_callstack(std::string &out, const scriptInstance_t inst,
+                             const uint8_t *pos) {
+  static const std::regex frame_pattern(
+      R"re(file '([^']*)'(?:, line (\d+) :: ?(.*))?)re");
+
+  std::string location;
+  for (const std::string &frame : script::get_script_callstack(inst, pos)) {
+    std::smatch match;
+    if (!std::regex_search(frame, match, frame_pattern)) {
+      continue;
+    }
+    const std::string where =
+        match[2].matched ? std::format("{}:{}", match[1].str(), match[2].str())
+                         : match[1].str();
+    if (location.empty()) {
+      location = where;
+      append_field(out, "File", "^5", match[1].str());
+      append_field(out, "Line", "^2", match[2].str());
+      append_field(out, "Source", "^7", match[3].str());
+    } else {
+      append_field(out, "Called", "^5", where);
+    }
+  }
+  return location;
+}
+
 report build_runtime_report(const scriptInstance_t inst, const char *message,
                             const char *source_file) {
-  static const std::regex frame_pattern(
-      R"re(file '([^']*)', line (\d+) :: ?(.*))re");
-
   report result{};
   result.text = header(inst == SCRIPTINSTANCE_CLIENT ? "CSC RUNTIME ERROR"
                                                      : "GSC RUNTIME ERROR");
@@ -735,23 +758,7 @@ report build_runtime_report(const scriptInstance_t inst, const char *message,
   append_field(result.text, "Cause", "^7",
                runtime_cause(source_file ? source_file : ""));
 
-  std::string location;
-  for (const std::string &frame : script::get_script_callstack(inst)) {
-    std::smatch match;
-    if (!std::regex_search(frame, match, frame_pattern)) {
-      continue;
-    }
-    const std::string where =
-        std::format("{}:{}", match[1].str(), match[2].str());
-    if (location.empty()) {
-      location = where;
-      append_field(result.text, "File", "^5", match[1].str());
-      append_field(result.text, "Line", "^2", match[2].str());
-      append_field(result.text, "Source", "^7", match[3].str());
-    } else {
-      append_field(result.text, "Called", "^5", where);
-    }
-  }
+  const std::string location = append_callstack(result.text, inst, nullptr);
 
   const std::string error = lines.empty() ? "script error" : lines.front();
   result.summary =
@@ -803,6 +810,27 @@ void print_report(const report &report, const std::string &outcome) {
   game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                         game::consoleLabel_e::DEFAULT, "%s", text.c_str());
   mark_reported(report.summary);
+}
+
+void report_runaway_loop(const game::scr::scriptInstance_t inst,
+                         const uint8_t *pos, const uint32_t elapsed_ms) {
+  report result{};
+  result.text = header(inst == SCRIPTINSTANCE_CLIENT ? "CSC INFINITE LOOP"
+                                                     : "GSC INFINITE LOOP");
+  append_field(result.text, "Error", "^1",
+               std::format("a loop ran for {} ms without a wait", elapsed_ms));
+  append_callstack(result.text, inst, pos);
+  append_field(
+      result.text, "Cause", "^7",
+      inst == SCRIPTINSTANCE_CLIENT
+          ? "the loop never yields, so the client freezes until it ends"
+          : "the loop never yields, so the server frame never ends and "
+            "the whole server freezes");
+  append_field(result.text, "Fix", "^3",
+               "add a wait (or waittill) inside the loop");
+  print_report(result,
+               "a 0.05s wait is now inserted each time this loop "
+               "repeats, so it runs once per frame instead of freezing");
 }
 
 void mark_reported(const std::string &message) {

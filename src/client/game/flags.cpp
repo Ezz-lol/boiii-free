@@ -95,6 +95,11 @@ bool is_headless() {
   return headless;
 }
 
+bool detect_loops() {
+  static const bool result = utils::flags::has_flag("detect-loops");
+  return result;
+}
+
 #ifndef NDEBUG
 bool vm_trace() {
   static const bool result = utils::flags::has_flag("vm-trace");

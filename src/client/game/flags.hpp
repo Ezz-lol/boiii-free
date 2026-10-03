@@ -22,6 +22,7 @@ bool disable_loadlib();
 bool alias();
 bool quiet_crash();
 bool is_headless();
+bool detect_loops();
 
 bool skip_intro();
 bool skip_cinematics();
