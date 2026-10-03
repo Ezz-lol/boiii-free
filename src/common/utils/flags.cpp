@@ -160,9 +160,9 @@ int32_t parse_flags(int argc, char *argv[]) {
       .help("Disable rate limiting in dedicated server")
       .default_value(false)
       .implicit_value(true);
-  program.add_argument("-detect-loops", "--detect-loops")
-      .help("Report GSC loops that run without waiting and slow them to one "
-            "pass per frame")
+  program.add_argument("-scr-debug", "--scr-debug")
+      .help("Add runtime diagnostics for common and programmatically "
+            "detectable erroneous or poorly optimised GSC logic.")
       .default_value(false)
       .implicit_value(true);
   program.add_argument("-quiet-crash", "--quiet-crash")

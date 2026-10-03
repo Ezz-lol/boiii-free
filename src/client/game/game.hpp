@@ -34,6 +34,8 @@ size_t get_registered_dvar_name_count();
 
 #include "structs/structs.hpp" // IWYU pragma: export
 
+#include "settings.hpp" // IWYU pragma: export
+
 #include "symbols/symbols.hpp" // IWYU pragma: export
 
 #include "impl/game/dvar.hpp" // IWYU pragma: export

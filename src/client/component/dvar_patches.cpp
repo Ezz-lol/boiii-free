@@ -323,13 +323,13 @@ public:
 
     scheduler::schedule(
         []() {
-          if (!*sv_cheats || !*dvar_cheats) {
-            return scheduler::cond_continue;
+          if (*sv_cheats && !*dvar_cheats) {
+            apply_cheats_setting({});
+            Dvar_SetModifiedCallback(Dvar_FindVar("boiii_allowCheats"),
+                                     apply_cheats_setting);
+            return scheduler::cond_end;
           }
-          apply_cheats_setting({});
-          Dvar_SetModifiedCallback(Dvar_FindVar("boiii_allowCheats"),
-                                   apply_cheats_setting);
-          return scheduler::cond_end;
+          return scheduler::cond_continue;
         },
         scheduler::pipeline::main);
   }

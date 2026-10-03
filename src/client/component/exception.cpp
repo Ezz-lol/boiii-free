@@ -7,7 +7,6 @@
 #include "error_help.hpp"
 #include "exception.hpp"
 #include "scheduler.hpp"
-#include "script_error.hpp"
 #include <game/game.hpp>
 
 #include <errhandlingapi.h>
@@ -456,16 +455,15 @@ void reset_state() {
       display_error_dialog();
     }
 
-    static std::string reason;
-    reason = std::format("Server crash: {} (0x{:08X}) at {}",
-                         get_exception_string(exception_data.code),
-                         exception_data.code,
-                         get_crash_module_info(exception_data.address));
-    script_error::mark_reported(reason);
+    std::string reason = std::format(
+        "Server crash: {} (0x{:08X}) at {}",
+        get_exception_string(exception_data.code), exception_data.code,
+        get_crash_module_info(exception_data.address));
     game::com::Com_Error(game::errorParm::DROP, "%s", reason.c_str());
-  }
+  } else {
 
-  display_error_dialog();
+    display_error_dialog();
+  }
 }
 
 size_t get_reset_state_stub() {
@@ -853,11 +851,10 @@ long WINAPI crash_fix_exception_handler(PEXCEPTION_POINTERS exception_info) {
       default: {
         break;
       }
-      continue_execution:
-        {
-          result = EXCEPTION_CONTINUE_EXECUTION;
-          break;
-        }
+      continue_execution: {
+        result = EXCEPTION_CONTINUE_EXECUTION;
+        break;
+      }
       }
     }
 

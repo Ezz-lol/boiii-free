@@ -16,21 +16,13 @@ std::filesystem::path tracing_logfile_path();
 std::ofstream &tracing_logfile();
 #endif
 
-bool cheats();
 bool disable_loadlib();
 
 bool alias();
 bool quiet_crash();
 bool is_headless();
-bool detect_loops();
+bool scr_debug();
 
-bool skip_intro();
-bool skip_cinematics();
-bool skip_forest_cinematic();
-bool full_logs();
-bool log_script_errors();
-bool ultrawide();
-bool allow_unsafe_lua();
 #ifdef NDEBUG
 inline bool vm_trace() { return false; }
 #else

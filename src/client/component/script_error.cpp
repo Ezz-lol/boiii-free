@@ -56,14 +56,22 @@ struct builtin_info {
 };
 
 std::mutex link_mutex;
-std::mutex reported_mutex;
-std::string reported_message;
 link_context current_link;
 const GSC_OBJ *script_cache_owner{};
 std::shared_ptr<const std::vector<known_script>> script_cache;
 
-bool valid_object(const GSC_OBJ *obj) {
-  return obj != nullptr && obj->hasMagic(GSC_OBJ::T7_MAGIC);
+inline void print_info(const std::string_view &msg) {
+  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                        game::consoleLabel_e::DEFAULT, "^3%s\n", msg.data());
+  fprintf(stdout, "[Scr][Info] %s\n", msg.data());
+  fflush(stdout);
+#ifndef NDEBUG
+  game::trace("[Scr][Info] {}", msg);
+#endif
+}
+
+inline bool valid_object(const GSC_OBJ *obj) {
+  return obj && obj->hasMagic(GSC_OBJ::T7_MAGIC);
 }
 
 std::string script_key(const std::string_view name) {
@@ -136,13 +144,12 @@ std::vector<known_script> collect_scripts(const scriptInstance_t inst) {
   std::unordered_set<std::string> seen;
 
   const auto add = [&](const std::string_view name, const GSC_OBJ *obj) {
-    if (!valid_object(obj) ||
-        !utils::string::to_lower(std::string(name)).ends_with(extension)) {
-      return;
-    }
-    std::string key = script_key(name);
-    if (seen.insert(key).second) {
-      scripts.push_back({std::string(name), std::move(key), obj});
+    if (valid_object(obj) &&
+        utils::string::to_lower(std::string(name)).ends_with(extension)) {
+      std::string key = script_key(name);
+      if (seen.insert(key).second) {
+        scripts.push_back({std::string(name), std::move(key), obj});
+      }
     }
   };
 
@@ -172,7 +179,9 @@ std::vector<known_script> collect_scripts(const scriptInstance_t inst) {
 const known_script *find_script(const std::vector<known_script> &scripts,
                                 const std::string_view name) {
   const std::string key = script_key(name);
-  const auto it = std::ranges::find(scripts, key, &known_script::key);
+  const std::ranges::borrowed_iterator_t<
+      const std::vector<known_script, std::allocator<known_script>> &>
+      it = std::ranges::find(scripts, key, &known_script::key);
   return it == scripts.end() ? nullptr : &*it;
 }
 
@@ -286,34 +295,32 @@ void analyze_unresolved(const scriptInstance_t inst, const GSC_OBJ *obj,
   std::unordered_set<std::string> included_keys;
   for (const std::string &include : object_includes(obj)) {
     const known_script *script = find_script(scripts, include);
-    if (!script) {
+    if (script) {
+      included_keys.insert(script->key);
+      for (const GSC_EXPORT_ITEM &item : script->obj->exports()) {
+        if (item.name == import.name && item.name_space == import.name_space) {
+          if (item.flags & EXPORT_PRIVATE) {
+            private_hits.push_back(describe_export(*script, item));
+          } else if (!accepts_args(item, import.param_count)) {
+            param_mismatch.push_back(describe_export(*script, item));
+          }
+        }
+      }
+    } else {
       missing_includes.push_back(using_path(include));
-      continue;
-    }
-    included_keys.insert(script->key);
-    for (const GSC_EXPORT_ITEM &item : script->obj->exports()) {
-      if (item.name != import.name || item.name_space != import.name_space) {
-        continue;
-      }
-      if (item.flags & EXPORT_PRIVATE) {
-        private_hits.push_back(describe_export(*script, item));
-      } else if (!accepts_args(item, import.param_count)) {
-        param_mismatch.push_back(describe_export(*script, item));
-      }
     }
   }
 
   for (const known_script &script : scripts) {
     const bool is_self = script.key == self_key;
     for (const GSC_EXPORT_ITEM &item : script.obj->exports()) {
-      if (item.name != import.name) {
-        continue;
-      }
-      if (item.name_space != import.name_space) {
-        other_namespace.push_back(describe_export(script, item));
-      } else if (!is_self && !included_keys.contains(script.key)) {
-        not_included.push_back(describe_export(script, item) + " -> #using " +
-                               using_path(script.name));
+      if (item.name == import.name) {
+        if (item.name_space != import.name_space) {
+          other_namespace.push_back(describe_export(script, item));
+        } else if (!is_self && !included_keys.contains(script.key)) {
+          not_included.push_back(describe_export(script, item) + " -> #using " +
+                                 using_path(script.name));
+        }
       }
     }
   }
@@ -439,78 +446,79 @@ void analyze_unresolved(const scriptInstance_t inst, const GSC_OBJ *obj,
 
 void record_link_failure(const scriptInstance_t inst, const GSC_OBJ *obj,
                          objFileInfo_t *info, const GSC_IMPORT_ITEM *import) {
-  if (!valid_object(obj) || import == nullptr) {
-    return;
-  }
+  if (valid_object(obj) && import) {
 
-  std::shared_ptr<const std::vector<known_script>> scripts;
-  {
-    std::scoped_lock lock(link_mutex);
-    if (script_cache_owner == obj) {
-      scripts = script_cache;
+    std::shared_ptr<const std::vector<known_script>> scripts;
+    {
+      std::scoped_lock lock(link_mutex);
+      if (script_cache_owner == obj) {
+        scripts = script_cache;
+      }
+    }
+    if (!scripts) {
+      scripts = std::make_shared<const std::vector<known_script>>(
+          collect_scripts(inst));
+      std::scoped_lock lock(link_mutex);
+      script_cache_owner = obj;
+      script_cache = scripts;
+    }
+
+    link_failure failure{};
+    failure.script = obj->get_name();
+    failure.lines = Scr_GetImportLineNumbers(inst, obj, info, import);
+    failure.call = describe_call(*import);
+    analyze_unresolved(inst, obj, *import, *scripts, failure);
+
+    {
+      std::scoped_lock lock(link_mutex);
+      current_link.failures.push_back(std::move(failure));
     }
   }
-  if (!scripts) {
-    scripts = std::make_shared<const std::vector<known_script>>(
-        collect_scripts(inst));
-    std::scoped_lock lock(link_mutex);
-    script_cache_owner = obj;
-    script_cache = scripts;
-  }
-
-  link_failure failure{};
-  failure.script = obj->get_name();
-  failure.lines = Scr_GetImportLineNumbers(inst, obj, info, import);
-  failure.call = describe_call(*import);
-  analyze_unresolved(inst, obj, *import, *scripts, failure);
-
-  std::scoped_lock lock(link_mutex);
-  current_link.failures.push_back(std::move(failure));
 }
 
 std::optional<link_failure> parse_too_many_parameters(const std::string &text) {
   static const std::regex pattern(
       R"re(Too many parameters: "([^"]*)" with (\d+) parameters in "([^"]*)")re");
   std::smatch match;
-  if (!std::regex_search(text, match, pattern)) {
-    return std::nullopt;
-  }
+  if (std::regex_search(text, match, pattern)) {
+    link_failure failure{};
+    failure.error = "Too many arguments";
+    failure.script = match[3].str();
+    const std::string name = match[1].str();
+    const int32_t args = std::stoi(match[2].str());
 
-  link_failure failure{};
-  failure.error = "Too many arguments";
-  failure.script = match[3].str();
-  const std::string name = match[1].str();
-  const int32_t args = std::stoi(match[2].str());
-
-  if (valid_object(current_link.obj)) {
-    for_each_import(current_link.obj, [&](const GSC_IMPORT_ITEM &import) {
-      if (failure.call.empty() && import.param_count == args &&
-          function_name(import.name) == name) {
-        failure.call = describe_call(import);
-        failure.lines = Scr_GetImportLineNumbers(
-            current_link.inst, current_link.obj, current_link.info, &import);
-        const builtin_info builtin =
-            find_builtin(current_link.inst, import.name,
-                         is_method_import(import.flags & IMPORT_TYPE_MASK));
-        if (builtin.exists) {
-          failure.cause =
-              std::format("builtin '{}' accepts at most {}, this "
-                          "call passes {}",
-                          name, plural(builtin.max_args, "argument"), args);
+    if (valid_object(current_link.obj)) {
+      for_each_import(current_link.obj, [&](const GSC_IMPORT_ITEM &import) {
+        if (failure.call.empty() && import.param_count == args &&
+            function_name(import.name) == name) {
+          failure.call = describe_call(import);
+          failure.lines = Scr_GetImportLineNumbers(
+              current_link.inst, current_link.obj, current_link.info, &import);
+          const builtin_info builtin =
+              find_builtin(current_link.inst, import.name,
+                           is_method_import(import.flags & IMPORT_TYPE_MASK));
+          if (builtin.exists) {
+            failure.cause =
+                std::format("builtin '{}' accepts at most {}, this "
+                            "call passes {}",
+                            name, plural(builtin.max_args, "argument"), args);
+          }
         }
-      }
-    });
+      });
+    }
+
+    if (failure.call.empty()) {
+      failure.call = std::format("{}({})", name, plural(args, "arg"));
+    }
+    if (failure.cause.empty()) {
+      failure.cause = std::format("'{}' does not accept {}", name,
+                                  plural(args, "argument"));
+    }
+    failure.fix = "remove the extra arguments";
+    return failure;
   }
 
-  if (failure.call.empty()) {
-    failure.call = std::format("{}({})", name, plural(args, "arg"));
-  }
-  if (failure.cause.empty()) {
-    failure.cause =
-        std::format("'{}' does not accept {}", name, plural(args, "argument"));
-  }
-  failure.fix = "remove the extra arguments";
-  return failure;
+  return std::nullopt;
 }
 
 std::string source_line(const std::string &script, const int32_t line) {
@@ -520,12 +528,9 @@ std::string source_line(const std::string &script, const int32_t line) {
 }
 
 std::string join_lines(const std::vector<int32_t> &lines) {
-  std::string result;
-  for (const int32_t line : lines) {
-    if (!result.empty()) {
-      result += ", ";
-    }
-    result += std::to_string(line);
+  std::string result = std::to_string(lines[0]);
+  for (size_t i = 1; i < lines.size(); ++i) {
+    result += std::format(", {}", lines[i]);
   }
   return result;
 }
@@ -727,19 +732,19 @@ std::string append_callstack(std::string &out, const scriptInstance_t inst,
   std::string location;
   for (const std::string &frame : script::get_script_callstack(inst, pos)) {
     std::smatch match;
-    if (!std::regex_search(frame, match, frame_pattern)) {
-      continue;
-    }
-    const std::string where =
-        match[2].matched ? std::format("{}:{}", match[1].str(), match[2].str())
-                         : match[1].str();
-    if (location.empty()) {
-      location = where;
-      append_field(out, "File", "^5", match[1].str());
-      append_field(out, "Line", "^2", match[2].str());
-      append_field(out, "Source", "^7", match[3].str());
-    } else {
-      append_field(out, "Called", "^5", where);
+    if (std::regex_search(frame, match, frame_pattern)) {
+      const std::string where =
+          match[2].matched
+              ? std::format("{}:{}", match[1].str(), match[2].str())
+              : match[1].str();
+      if (location.empty()) {
+        location = where;
+        append_field(out, "File", "^5", match[1].str());
+        append_field(out, "Line", "^2", match[2].str());
+        append_field(out, "Source", "^7", match[3].str());
+      } else {
+        append_field(out, "Called", "^5", where);
+      }
     }
   }
   return location;
@@ -768,14 +773,6 @@ report build_runtime_report(const scriptInstance_t inst, const char *message,
   return result;
 }
 } // namespace
-
-bool is_script_vm_failure(const char *source_file, const game::errorParm code) {
-  return source_file != nullptr &&
-         std::string_view(source_file).find("clientscript") !=
-             std::string_view::npos &&
-         (code == game::errorParm::FATAL || code == game::errorParm::DROP ||
-          code == game::errorParm::SCRIPT_DROP);
-}
 
 report build_report(const game::errorParm code, const char *message,
                     const char *source_file) {
@@ -806,10 +803,6 @@ void print_report(const report &report, const std::string &outcome) {
     append_field(text, "Result", "^7", outcome);
   }
   text += FOOTER;
-
-  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                        game::consoleLabel_e::DEFAULT, "%s", text.c_str());
-  mark_reported(report.summary);
 }
 
 void report_runaway_loop(const game::scr::scriptInstance_t inst,
@@ -833,26 +826,14 @@ void report_runaway_loop(const game::scr::scriptInstance_t inst,
                "repeats, so it runs once per frame instead of freezing");
 }
 
-void mark_reported(const std::string &message) {
-  std::scoped_lock lock(reported_mutex);
-  reported_message = message;
-}
-
-bool is_reported(const char *message) {
-  std::scoped_lock lock(reported_mutex);
-  return message != nullptr && !reported_message.empty() &&
-         reported_message == message;
-}
-
 namespace {
-utils::hook::detour report_obj_link_error_hook;
-utils::hook::detour report_obj_link_error2_hook;
-utils::hook::detour link_obj_hook;
+utils::hook::detour ReportObjLinkError_hook;
+utils::hook::detour ReportObjLinkError2_hook;
+utils::hook::detour GscObjResolve_hook;
 
-void report_obj_link_error_stub(scriptInstance_t inst, GSC_OBJ *prime_obj,
-                                objFileInfo_t *fileInfo,
-                                GSC_IMPORT_ITEM *import, char *errorString,
-                                int errorStringLength) {
+void ReportObjLinkError_Record(scriptInstance_t inst, GSC_OBJ *prime_obj,
+                               objFileInfo_t *fileInfo, GSC_IMPORT_ITEM *import,
+                               char *errorString, int errorStringLength) {
   record_link_failure(inst, prime_obj, fileInfo, import);
   ReportObjLinkError_Impl(inst, prime_obj, fileInfo, import, errorString,
                           errorStringLength);
@@ -871,14 +852,12 @@ void flush_link_messages() {
     script_cache.reset();
   }
   for (const std::string &text : messages) {
-    game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                          game::consoleLabel_e::DEFAULT, "^3%s\n",
-                          text.c_str());
+    print_info(text);
   }
 }
 
-int32_t link_obj_stub(scriptInstance_t inst, GSC_OBJ *obj,
-                      objFileInfo_t *info) {
+int32_t GscObjResolve_FlushLinkLogs(scriptInstance_t inst, GSC_OBJ *obj,
+                                    objFileInfo_t *info) {
   {
     std::scoped_lock lock(link_mutex);
     current_link.inst = inst;
@@ -887,40 +866,12 @@ int32_t link_obj_stub(scriptInstance_t inst, GSC_OBJ *obj,
     current_link.failures.clear();
     current_link.messages.clear();
   }
-  const int32_t result = link_obj_hook.invoke<int32_t>(inst, obj, info);
+  const int32_t result = GscObjResolve_hook.invoke<int32_t>(inst, obj, info);
   flush_link_messages();
   return result;
 }
 
-bool skip_error_newline = false;
-
-void error_message_print_stub(const char *text) {
-  if (is_reported(text)) {
-    skip_error_newline = true;
-    return;
-  }
-  game::sys::Sys_Print(text);
-}
-
-void error_newline_print_stub(const char *text) {
-  if (std::exchange(skip_error_newline, false)) {
-    return;
-  }
-  game::sys::Sys_Print(text);
-}
-
-void error_banner_print_stub(const int32_t channel, const int32_t label,
-                             const char *fmt, const char *message,
-                             const char *detail) {
-  if (is_reported(message)) {
-    return;
-  }
-  game::com::Com_Printf(static_cast<game::consoleChannel_e>(channel),
-                        static_cast<game::consoleLabel_e>(label), fmt, message,
-                        detail);
-}
-
-void linker_print_stub(const char *fmt, ...) {
+void Com_PrintError_RecordLinkerMessage(const char *fmt, ...) {
   char buffer[0x1000]{};
   va_list ap;
   va_start(ap, fmt);
@@ -945,31 +896,23 @@ struct component final : generic_component {
 #endif
 
   void post_unpack() override {
-    report_obj_link_error_hook.create(ReportObjLinkError,
-                                      report_obj_link_error_stub);
+    ReportObjLinkError_hook.create(ReportObjLinkError,
+                                   ReportObjLinkError_Record);
     if (game::is_client()) {
-      report_obj_link_error2_hook.create(ReportObjLinkError2,
-                                         report_obj_link_error_stub);
+      ReportObjLinkError2_hook.create(ReportObjLinkError2,
+                                      ReportObjLinkError_Record);
     }
 
     if (game::is_server()) {
-      link_obj_hook.create(game::scr::GscObjResolve.get(), link_obj_stub);
+      GscObjResolve_hook.create(game::scr::GscObjResolve.get(),
+                                GscObjResolve_FlushLinkLogs);
       for (const uintptr_t offset :
            {0x1F3, 0x269, 0x3FA, 0x474, 0x5B1, 0x7B4, 0x948}) {
         utils::hook::call(game::scr::GscObjResolve.offset(offset),
-                          linker_print_stub);
+                          Com_PrintError_RecordLinkerMessage);
       }
       utils::hook::call(game::scr::Scr_ResolveScriptFunction.offset(0x141),
-                        linker_print_stub);
-
-      utils::hook::call(game::com::Com_Error_.offset(0x265),
-                        error_message_print_stub);
-      utils::hook::call(game::com::Com_Error_.offset(0x271),
-                        error_newline_print_stub);
-      utils::hook::call(game::com::Com_Error_.offset(0x43E),
-                        error_banner_print_stub);
-      utils::hook::call(game::com::Com_ErrorCleanup.offset(0x1AB),
-                        error_banner_print_stub);
+                        Com_PrintError_RecordLinkerMessage);
     }
   }
 };

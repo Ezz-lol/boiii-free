@@ -46,9 +46,7 @@ void Sys_Error_LogCaller(const char *fmt, ...) {
                         game::consoleLabel_e::DEFAULT,
                         "[Sys_Error] Called from 0x%p with message: \"%s\"",
                         game::derelocate(callerAddr), msg);
-  const std::string help = script_error::is_reported(msg)
-                               ? std::string{}
-                               : error_help::explain_error(msg);
+  const std::string help = error_help::explain_error(msg);
   const std::string message = help.empty() ? msg : help + "\n\nError: " + msg;
   if (!game::is_server()) {
     exception::show_fatal_error(message);
@@ -74,23 +72,12 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
     vsnprintf_s(buffer, _TRUNCATE, fmt, ap);
     va_end(ap);
   }
+#ifndef NDEBUG
+  if (code != game::errorParm::SOFTRESTART &&
+      code != game::errorParm::SOFTRESTART_KEEPDW &&
+      code != game::errorParm::SOFTRESTART_SILENT) {
+#endif
 
-  if (game::is_server() && script_error::is_script_vm_failure(file, code)) {
-    const script_error::report report =
-        script_error::build_report(code, buffer, file);
-    com_error_hook.invoke<void>(file, line, game::errorParm::DROP, "%s",
-                                report.summary.c_str());
-    return;
-  }
-
-  if (code == game::errorParm::SOFTRESTART ||
-      code == game::errorParm::SOFTRESTART_KEEPDW ||
-      code == game::errorParm::SOFTRESTART_SILENT) {
-    com_error_hook.invoke<void>(file, line, code, "%s", buffer);
-    return;
-  }
-
-  if (!script_error::is_reported(buffer)) {
     const char *log = utils::string::va(
         "[Com][Error] Called from 0x%p with message: \"%s\", code: %d\n",
         game::derelocate(callerAddr),
@@ -101,99 +88,97 @@ void com_error_stub(const char *file, int32_t line, game::errorParm code,
     game::trace("{}", log);
     game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
                           game::consoleLabel_e::DEFAULT, "%s\n", log);
-  }
 
-  // Suppress cascading Lua error (code 512) after a script error
-  if (suppress_next_lua_error && code == game::errorParm::LUA) {
-    suppress_next_lua_error = false;
-    return;
-  }
-
-  const bool is_script_error = strstr(buffer, "script error") != nullptr;
-  const bool is_link_error = strstr(buffer, "linking") != nullptr ||
-                             strstr(buffer, "Linking") != nullptr;
-  const bool is_script_not_found =
-      strstr(buffer, "Script file not found") != nullptr;
-
-  if (!game::is_server() &&
-      (is_script_error || is_link_error || is_script_not_found)) {
-    if (client_script_error_pending) {
+    // Suppress cascading Lua error (code 512) after a script error
+    if (suppress_next_lua_error && code == game::errorParm::LUA) {
+      suppress_next_lua_error = false;
       return;
     }
 
-    suppress_next_lua_error = true;
-    const script_error::report report =
-        script_error::build_report(code, buffer, file);
-    script_error::print_report(report, {});
+    const bool is_script_error = strstr(buffer, "script error") != nullptr;
+    const bool is_link_error = strstr(buffer, "linking") != nullptr ||
+                               strstr(buffer, "Linking") != nullptr;
+    const bool is_script_not_found =
+        strstr(buffer, "Script file not found") != nullptr;
 
-    // No script errors popups for ingame menu , just logs in console since
-    // most are harmless csc erros anyway
-    if (!game::com::Com_IsInGame()) {
+    if (!game::is_server() &&
+        (is_script_error || is_link_error || is_script_not_found)) {
+      if (client_script_error_pending) {
+        return;
+      }
+
+      suppress_next_lua_error = true;
+      const script_error::report report =
+          script_error::build_report(code, buffer, file);
+      script_error::print_report(report, {});
+
+      // No script errors popups for ingame menu , just logs in console since
+      // most are harmless csc erros anyway
+      if (!game::com::Com_IsInGame()) {
+        return;
+      }
+
+      client_script_error_pending = true;
+      const std::string deferred_error = report.text;
+      scheduler::once(
+          [deferred_error]() {
+            client_script_error_pending = false;
+            if (game::com::Com_IsInGame())
+              game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, "disconnect\n");
+            scheduler::once(
+                [deferred_error]() {
+                  game::ui::UI_OpenErrorPopupWithMessage(
+                      game::LOCAL_CLIENT_0, game::errorCode::NONE,
+                      deferred_error.c_str());
+                },
+                scheduler::pipeline::main, 500ms);
+          },
+          scheduler::pipeline::main);
       return;
     }
 
-    client_script_error_pending = true;
-    const std::string deferred_error = report.text;
-    scheduler::once(
-        [deferred_error]() {
-          client_script_error_pending = false;
-          if (game::com::Com_IsInGame())
-            game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, "disconnect\n");
-          scheduler::once(
-              [deferred_error]() {
-                game::ui::UI_OpenErrorPopupWithMessage(game::LOCAL_CLIENT_0,
-                                                       game::errorCode::NONE,
-                                                       deferred_error.c_str());
-              },
-              scheduler::pipeline::main, 500ms);
-        },
-        scheduler::pipeline::main);
-    return;
+    if (!is_script_error && !is_link_error && !is_script_not_found) {
+      printf("[Com][Error] Code=%d, File=%s, Line=%d, Caller=0x%p: %s\n",
+             static_cast<int32_t>(code), file ? file : "unknown", line,
+             game::derelocate(callerAddr), buffer);
+    }
+
+    const std::string help = error_help::explain_error(buffer);
+    const std::string message =
+        help.empty() ? buffer : std::format("{}\n\n^7Error: {}", help, buffer);
+
+    if (!game::is_server() && code == game::errorParm::FATAL) {
+      exception::show_fatal_error(message);
+    }
+
+    if (strstr(buffer, "Couldn't find the bsp for this map") ||
+        strstr(buffer, "Couldn't find the bsp")) {
+      const char *message =
+          "Missing map BSP detected.\n"
+          "You are probably in the main menu or not currently playing a map.";
+
+      printf("[Com][Error] %s Connection error: %s\n", message, buffer);
+
+      std::string msg = std::string(message);
+
+      scheduler::once(
+          [msg]() {
+            game::ui::UI_OpenErrorPopupWithMessage(
+                game::LOCAL_CLIENT_0, game::errorCode::NONE, msg.c_str());
+          },
+          scheduler::pipeline::main, 500ms);
+
+      return;
+    }
+
+    strscpy(buffer, message);
+#ifndef NDEBUG
   }
-
-  if (!is_script_error && !is_link_error && !is_script_not_found &&
-      !script_error::is_reported(buffer)) {
-    printf("[Com][Error] Code=%d, File=%s, Line=%d, Caller=0x%p: %s\n",
-           static_cast<int32_t>(code), file ? file : "unknown", line,
-           game::derelocate(callerAddr), buffer);
-  }
-
-  const std::string help = script_error::is_reported(buffer)
-                               ? std::string{}
-                               : error_help::explain_error(buffer);
-  const std::string message =
-      help.empty() ? buffer : std::format("{}\n\n^7Error: {}", help, buffer);
-  if (!help.empty()) {
-    script_error::mark_reported(message);
-  }
-
-  if (!game::is_server() && code == game::errorParm::FATAL) {
-    exception::show_fatal_error(message);
-  }
-
-  if (strstr(buffer, "Couldn't find the bsp for this map") ||
-      strstr(buffer, "Couldn't find the bsp")) {
-    const char *message =
-        "Missing map BSP detected.\n"
-        "You are probably in the main menu or not currently playing a map.";
-
-    printf("[Com][Error] %s Connection error: %s\n", message, buffer);
-
-    std::string msg = std::string(message);
-
-    scheduler::once(
-        [msg]() {
-          game::ui::UI_OpenErrorPopupWithMessage(
-              game::LOCAL_CLIENT_0, game::errorCode::NONE, msg.c_str());
-        },
-        scheduler::pipeline::main, 500ms);
-
-    return;
-  }
+#endif
 
   // Removing this skips internal engine error handling,
   // which is preferable to execute if the error is not fatal.
-  com_error_hook.invoke<void>(file, line, code, "%s", message.c_str());
+  com_error_hook.invoke<void>(file, line, code, "%s", buffer);
 }
 
 void scr_get_num_expected_players() {

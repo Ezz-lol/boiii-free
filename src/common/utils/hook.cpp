@@ -258,7 +258,7 @@ void detour::create(void *place, void *target) {
         "Unable to hook %s with %s: %s", describe_address(place).c_str(),
         describe_address(target).c_str(),
         status == MH_ERROR_ALREADY_CREATED
-            ? "this function is already hooked by another component"
+            ? "this function has already been hooked."
             : MH_StatusToString(status)));
   }
 

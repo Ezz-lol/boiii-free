@@ -90,8 +90,8 @@ bool is_headless() {
   return headless;
 }
 
-bool detect_loops() {
-  static const bool result = utils::flags::has_flag("detect-loops");
+bool scr_debug() {
+  static const bool result = utils::flags::has_flag("scr-debug");
   return result;
 }
 
