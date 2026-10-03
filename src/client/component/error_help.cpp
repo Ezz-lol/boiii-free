@@ -1,7 +1,9 @@
 #include <std_include.hpp>
 
 #include "error_help.hpp"
+#include "getinfo.hpp"
 #include "scheduler.hpp"
+#include "script.hpp"
 
 #include <game/game.hpp>
 #include <loader/component_loader.hpp>
@@ -259,6 +261,38 @@ void hook_calls(const std::initializer_list<uintptr_t> client_sites,
   }
 }
 
+std::string explain_server_timeout() {
+  if (!getinfo::is_host()) {
+    return "^1The server stopped sending updates to your game.\n^3Fix: ^7The "
+           "server froze or crashed, or your connection dropped. Check your "
+           "internet connection and join again, or try another server.";
+  }
+  using namespace game::scr;
+  if (vm::gScrVmPub->instance[SCRIPTINSTANCE_SERVER].function_count > 0) {
+    for (const script::script_frame &frame :
+         script::get_script_frames(SCRIPTINSTANCE_SERVER)) {
+      if (!frame.file.empty()) {
+        return std::format(
+            "^1Your game's server froze while running a script, so it "
+            "stopped sending updates.\n^3Script: ^7{}:{}\n^3Source: ^7{}\n"
+            "^3Fix: ^7This script runs without waiting, usually a loop "
+            "without a wait. Report it to the map/mod author with this "
+            "location, or play without that mod.",
+            frame.file, frame.line, frame.source);
+      }
+    }
+  }
+  return "^1Your game's server stopped responding, so it stopped sending "
+         "updates.\n^3Fix: ^7This is usually a map or mod script doing too "
+         "much at once. Try without mods, or start the game with -scr-debug "
+         "to find the script that does not wait.";
+}
+
+void Com_Error_ServerTimeout(const char *file, const int32_t line,
+                             const game::errorParm code, const char *fmt) {
+  Com_Error_Explained(file, line, code, explain_server_timeout(), fmt);
+}
+
 void Com_Error_MissingBsp(const char *, const int32_t, const game::errorParm,
                           const char *fmt, const char *map) {
   printf("[Com][Error] %s\n", utils::string::va(unprefixed(fmt).c_str(), map));
@@ -352,6 +386,7 @@ struct component final : generic_component {
 
     if (game::is_client()) {
       utils::hook::set<uint8_t>(0x1420EBA93_g, 0xEB);
+      utils::hook::jump(0x14135CAB9_g, Com_Error_ServerTimeout);
     }
 
     hook_calls({0x1414251A9}, {0x1401DA2BE}, Com_Error_ZoneNotFound);
