@@ -2,6 +2,8 @@ if Engine.GetCurrentMap() ~= "core_frontend" then
   return
 end
 
+require("ui.uieditor.widgets.Scrollbars.verticalScrollbar")
+
 DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings", function(controller)
   local optionsTable = {}
 
@@ -15,7 +17,7 @@ DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings
     Engine.SetDvar(dvarName, optionModel.value)
   end
 
-  local ezzSettings = {
+  local toggleSettings = {
     { "boiii_skipIntro", "Skip Intro", "Skip the intro video on startup." },
     {
       "boiii_skipForestCinematic",
@@ -26,15 +28,20 @@ DataSources.BoiiiQuickSettings = DataSourceHelpers.ListSetup("BoiiiQuickSettings
     { "boiii_fullLogs", "Full Console Logs", "Show every log message in the console." },
     { "boiii_logScriptErrors", "Log Script Errors", "Log every script error, including non-fatal ones." },
     { "boiii_ultrawide", "Ultrawide Support", "Use the full width of ultrawide screens. Requires a restart." },
+    {
+      "boiii_allowUnsafeLua",
+      "Allow Unsafe Lua",
+      "Let mods read and write files, run commands and load DLLs without asking. Only enable this for mods you trust.",
+    },
   }
-  for _, setting in ipairs(ezzSettings) do
+  for _, setting in ipairs(toggleSettings) do
     table.insert(
       optionsTable,
       CoD.OptionsUtility.CreateDvarSettings(
         controller,
         setting[2],
         setting[3],
-        "EzzSettings_" .. setting[1],
+        "QuickSettings_" .. setting[1],
         setting[1],
         {
           {
@@ -369,6 +376,7 @@ LUI.createMenu.BoiiiQuickSettingsMenu = function(controller)
   Options.Title.DescTitle:setText(Engine.Localize("Frequently Used Settings"))
   Options.Title.DescTitle:setRGB(1, 0.55, 0.1)
   Options.ButtonList:setVerticalCount(14)
+  Options.ButtonList:setVerticalScrollbar(CoD.verticalScrollbar)
   Options.ButtonList:setDataSource("BoiiiQuickSettings")
   self:addElement(Options)
   self.Options = Options

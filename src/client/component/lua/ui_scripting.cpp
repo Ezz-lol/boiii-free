@@ -56,6 +56,9 @@ static std::atomic<bool> unsafe_function_called_message_shown = false;
 static std::atomic<bool> unsafe_lua_approved_for_session = false;
 
 bool show_unsafe_lua_dialog() {
+  if (game::allow_unsafe_lua()) {
+    return true;
+  }
   bool not_loaded = false;
   if (!unsafe_function_called_message_shown.compare_exchange_strong(not_loaded,
                                                                     true)) {

@@ -22,6 +22,14 @@ bool disable_loadlib();
 bool alias();
 bool quiet_crash();
 bool is_headless();
+
+bool skip_intro();
+bool skip_cinematics();
+bool skip_forest_cinematic();
+bool full_logs();
+bool log_script_errors();
+bool ultrawide();
+bool allow_unsafe_lua();
 #ifdef NDEBUG
 inline bool vm_trace() { return false; }
 #else

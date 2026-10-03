@@ -1,7 +1,5 @@
 #include <std_include.hpp>
 
-#include "settings.hpp"
-
 #include <game/game.hpp>
 #include <loader/component_loader.hpp>
 
@@ -11,23 +9,15 @@ namespace intro {
 namespace {
 utils::hook::detour cinematic_start_playback_hook;
 
-settings::flag_setting skip_intro{"boiii_skipIntro", "nointro", true, false,
-                                  "Skip the intro video on startup"};
-settings::flag_setting skip_cinematics{"boiii_skipCinematics", "nocinematics",
-                                       true, false,
-                                       "Skip all cinematics and videos"};
-settings::flag_setting skip_forest{
-    "boiii_skipForestCinematic", "noforestcinematic", true, false,
-    "Skip the forest video that plays before joining a Zombies game"};
-
 constexpr std::string_view LOGOSEQUENCE_CINEMATIC_NAME =
     "BO3_Global_Logo_LogoSequence";
 constexpr std::string_view FOREST_CINEMATIC_NAME = "zm_frontend_load";
 
 inline bool should_skip(const std::string_view &name) {
-  return skip_cinematics.enabled() ||
-         (skip_intro.enabled() && name == LOGOSEQUENCE_CINEMATIC_NAME) ||
-         (skip_forest.enabled() && name.starts_with(FOREST_CINEMATIC_NAME));
+  return game::skip_cinematics() ||
+         (game::skip_intro() && name == LOGOSEQUENCE_CINEMATIC_NAME) ||
+         (game::skip_forest_cinematic() &&
+          name.starts_with(FOREST_CINEMATIC_NAME));
 }
 
 void cinematic_start_playback_stub(const char *name, const char *key,

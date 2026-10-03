@@ -8,7 +8,6 @@
 #include <component/game_event.hpp>
 #include <component/gsc/gsc_compiler.hpp>
 #include <component/scheduler.hpp>
-#include <component/settings.hpp>
 #include <loader/component_loader.hpp>
 
 #include <game/utils.hpp>
@@ -1430,12 +1429,9 @@ std::vector<std::string> get_script_callstack(scriptInstance_t inst) {
 }
 
 utils::hook::detour Scr_Error_hook;
-settings::flag_setting log_script_errors{
-    "boiii_logScriptErrors", "log-script-errors", true, false,
-    "Log every script error, including non-fatal ones"};
 
 void Scr_Error_LogAll(scriptInstance_t inst, const char *error, bool terminal) {
-  if (log_script_errors.enabled()) {
+  if (game::log_script_errors()) {
     void *callerAddr = _ReturnAddress();
     if (is_server()) {
       sv_detailedScriptErrors->set(true);

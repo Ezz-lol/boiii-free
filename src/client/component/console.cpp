@@ -8,7 +8,6 @@
 
 #include <component/command.hpp>
 #include <component/lua/lua_state.hpp>
-#include <component/settings.hpp>
 #include <loader/component_loader.hpp>
 
 #if __has_include("version.hpp")
@@ -95,11 +94,6 @@ constexpr UINT WM_APPEND_CONSOLE_TEXT = WM_APP + 0x1337;
 constexpr size_t MAX_CONSOLE_CHARS = 1'000'000;
 constexpr size_t MAX_CONSOLE_LINES = 20'000;
 constexpr int32_t COMPLETION_HINT_CONTROL_ID = 0x66;
-
-settings::flag_setting full_logs{"boiii_fullLogs", "fulllogs", true, false,
-                                 "Show every log message in the console"};
-
-bool full_logs_enabled() { return full_logs.enabled(); }
 
 COLORREF get_cod_color(const char code) {
   switch (code) {
@@ -290,9 +284,8 @@ size_t tracked_lines = 0;
 size_t tracked_chars = 0;
 
 LONG trim_console_buffer(const HWND richedit, const size_t limit_scale) {
-  if (full_logs_enabled() ||
-      (tracked_lines <= MAX_CONSOLE_LINES * limit_scale &&
-       tracked_chars <= MAX_CONSOLE_CHARS * limit_scale)) {
+  if (game::full_logs() || (tracked_lines <= MAX_CONSOLE_LINES * limit_scale &&
+                            tracked_chars <= MAX_CONSOLE_CHARS * limit_scale)) {
     return 0;
   }
 
@@ -1432,9 +1425,8 @@ void sys_create_console_stub(const HINSTANCE h_instance) {
                get_background_color());
   SendMessageA(*game::s_wcd::hwndBuffer, EM_SETLIMITTEXT, 0, 0);
   SendMessageW(*game::s_wcd::hwndBuffer, EM_EXLIMITTEXT, 0,
-               full_logs_enabled()
-                   ? 0x7FFFFFFF
-                   : static_cast<LPARAM>(MAX_CONSOLE_CHARS * 2));
+               game::full_logs() ? 0x7FFFFFFF
+                                 : static_cast<LPARAM>(MAX_CONSOLE_CHARS * 2));
   SendMessageW(*game::s_wcd::hwndBuffer, EM_SETUNDOLIMIT, 0, 0);
   SendMessageW(*game::s_wcd::hwndBuffer, EM_SETEVENTMASK, 0, 0);
   SendMessageW(*game::s_wcd::hwndBuffer, EM_AUTOURLDETECT, FALSE, 0);
