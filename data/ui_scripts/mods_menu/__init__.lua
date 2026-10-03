@@ -4,6 +4,45 @@ end
 
 require("ui.uieditor.widgets.Scrollbars.verticalScrollbar")
 
+CoD.OverlayUtility.AddSystemOverlay("DeleteModConfirmation", {
+  menuName = "SystemOverlay_Compact",
+  title = "DELETE MOD?",
+  description = function(name)
+    return "This permanently deletes ^3" .. name .. "^7 from your PC. You will need to download it again to play it."
+  end,
+  categoryType = CoD.OverlayUtility.OverlayTypes.GenericMessage,
+  [CoD.OverlayUtility.GoBackPropertyName] = CoD.OverlayUtility.DefaultGoBack,
+  listDatasource = function(name, ugcName)
+    DataSources.DeleteModConfirmationList = DataSourceHelpers.ListSetup("DeleteModConfirmationList", function()
+      return {
+        {
+          models = { displayText = "DELETE" },
+          properties = {
+            action = function(_, _, controller, _, menu)
+              GoBack(menu, controller)
+              local failure = ModsMenu.Delete(ugcName)
+              if failure then
+                LuaUtils.UI_ShowErrorMessageDialog(controller, failure)
+              else
+                Mods_RefreshListMods(controller)
+              end
+            end,
+          },
+        },
+        {
+          models = { displayText = "MENU_CANCEL_CAPS" },
+          properties = {
+            action = function(_, _, controller, _, menu)
+              GoBack(menu, controller)
+            end,
+          },
+        },
+      }
+    end, true)
+    return "DeleteModConfirmationList"
+  end,
+})
+
 local ORANGE = { 1, 0.55, 0.1 }
 local TILE_WIDTH = 222
 local TILE_HEIGHT = 160
@@ -132,7 +171,7 @@ CoD.ModTile.new = function(menu, controller)
     if element.previewShown or not element.ugcName then
       return false
     end
-    local image = ModPreviews.GetImage(element.ugcName)
+    local image = ModsMenu.GetPreview(element.ugcName)
     if not image then
       return false
     end
@@ -283,7 +322,7 @@ LUI.createMenu.MenuModsLoad = function(controller)
       )
       detailsStatus:setRGB(0.6, 0.6, 0.63)
     end
-    local image = ugcName and ModPreviews.GetImage(ugcName)
+    local image = ugcName and ModsMenu.GetPreview(ugcName)
     if image then
       detailsPreview:setImage(RegisterImage(image))
       detailsPreview:setAlpha(1)
@@ -332,6 +371,31 @@ LUI.createMenu.MenuModsLoad = function(controller)
     CoD.Menu.SetButtonLabel(menu, Enum.LUIButton.LUI_KEY_XBX_PSSQUARE, "MENU_REFRESH")
     return true
   end, false)
+
+  self:AddButtonCallbackFunction(
+    list,
+    controller,
+    Enum.LUIButton.LUI_KEY_START,
+    "D",
+    function(element, menu, controller)
+      local model = element:getModel()
+      if model then
+        CoD.OverlayUtility.CreateOverlay(
+          controller,
+          menu,
+          "DeleteModConfirmation",
+          CoD.SafeGetModelValue(model, "name") or "",
+          CoD.SafeGetModelValue(model, "ugcName")
+        )
+      end
+      return true
+    end,
+    function(element, menu)
+      CoD.Menu.SetButtonLabel(menu, Enum.LUIButton.LUI_KEY_START, "Delete")
+      return true
+    end,
+    false
+  )
 
   self:AddButtonCallbackFunction(self, controller, Enum.LUIButton.LUI_KEY_XBY_PSTRIANGLE, "U", function(element)
     if Mods_IsUsingMods() then

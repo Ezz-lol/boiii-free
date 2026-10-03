@@ -163,6 +163,33 @@ luaReturnCount_e get_preview_image(lua_State *luaVM) {
   return luaReturnCount_e::ONE;
 }
 
+luaReturnCount_e delete_mod(lua_State *luaVM) {
+  const char *ugc_name = lua_tostring(luaVM, 1);
+  std::string error = "This mod could not be found.";
+  if (game::ugc::UGC_ActiveMod_Loaded() || game::com::Com_IsInGame()) {
+    error = "Unload mods before deleting one.";
+  } else if (ugc_name) {
+    for (uint32_t i = 0; i < game::ugc::modsPool.count; i++) {
+      const game::ugc::WorkshopData &mod = game::ugc::modsPool.data[i];
+      if (std::string_view(mod.publisherId) != ugc_name) {
+        continue;
+      }
+      std::filesystem::path folder =
+          std::string_view(mod.absolutePathZoneFiles);
+      if (folder.filename() == "zone") {
+        folder = folder.parent_path();
+      }
+      if (launcher::workshop_remove_by_path(folder.string(), error)) {
+        lua_pushnil(luaVM);
+        return luaReturnCount_e::ONE;
+      }
+      break;
+    }
+  }
+  lua_pushstring(luaVM, error);
+  return luaReturnCount_e::ONE;
+}
+
 } // namespace
 
 game::gfx::GfxImage *find_image(const char *name) {
@@ -185,12 +212,13 @@ class component final : public client_component {
 
 public:
   void post_unpack() override {
-    static constexpr const luaL_Reg ModPreviewsLibrary[] = {
-        lua_state::luaL_LoggedReg<"ModPreviews", "GetImage",
+    static constexpr const luaL_Reg ModsMenuLibrary[] = {
+        lua_state::luaL_LoggedReg<"ModsMenu", "GetPreview",
                                   get_preview_image>(),
+        lua_state::luaL_LoggedReg<"ModsMenu", "Delete", delete_mod>(),
         {nullptr, nullptr},
     };
-    lua_state::register_library("ModPreviews", ModPreviewsLibrary);
+    lua_state::register_library("ModsMenu", ModsMenuLibrary);
     scheduler::loop(request_installed_mods, scheduler::pipeline::main, 1s);
   }
 };
