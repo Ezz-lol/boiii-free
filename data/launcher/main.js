@@ -241,6 +241,8 @@
     "workshopModalDownloadBtn"
   );
   var workshopFilterSelect = document.getElementById("workshopFilterSelect");
+  var workshopTypeSelect = document.getElementById("workshopTypeSelect");
+  var workshopModeSelect = document.getElementById("workshopModeSelect");
 
   var libraryOverlay = document.getElementById("libraryOverlay");
   var libraryModal = document.getElementById("libraryModal");
@@ -622,20 +624,6 @@
   var navBtns = document.querySelectorAll(".nav-btn");
   var pages = document.querySelectorAll(".page");
   var activePage = "main";
-  var isWine = false;
-  var wineWorkshopNoticeShown = false;
-
-  try {
-    isWine = getExternal().isWine() === true;
-  } catch (e) {}
-
-  function showWineWorkshopNotice() {
-    showMessage(
-      "Workshop on Wine",
-      "You can browse the Workshop on Wine, but downloads are currently unavailable because SteamCMD does not work through Wine. You can still open item pages on Steam."
-    );
-  }
-
   function setPage(targetPage) {
     activePage = targetPage;
     for (var j = 0; j < navBtns.length; j++) {
@@ -648,11 +636,6 @@
     }
     var targetEl = document.getElementById(targetPage + "Page");
     if (targetEl) targetEl.classList.add("active");
-
-    if (targetPage === "workshop" && isWine && !wineWorkshopNoticeShown) {
-      wineWorkshopNoticeShown = true;
-      showWineWorkshopNotice();
-    }
 
     if (targetPage === "library") {
       if (!modsInitialized) refreshModsGrid();
@@ -700,6 +683,46 @@
     };
   }
 
+  function formatSize(bytes) {
+    if (bytes > 1073741824) return (bytes / 1073741824).toFixed(2) + " GB";
+    if (bytes > 1048576) return (bytes / 1048576).toFixed(1) + " MB";
+    if (bytes > 1024) return (bytes / 1024).toFixed(0) + " KB";
+    return bytes + " B";
+  }
+
+  function lookupMissingSizes(items, onResult) {
+    var ex = getExternal();
+    if (!ex || !ex.workshopGetSize) return;
+    var pending = [];
+    for (var i = 0; i < items.length; i++) {
+      if (!(parseInt(items[i].file_size, 10) > 0)) pending.push(items[i]);
+    }
+    var tries = 0;
+    function poll() {
+      var still = [];
+      for (var j = 0; j < pending.length; j++) {
+        var result = "";
+        try {
+          result = String(ex.workshopGetSize(String(pending[j].id)) || "");
+        } catch (e) {}
+        if (result === "") {
+          still.push(pending[j]);
+        } else {
+          pending[j].file_size = parseInt(result, 10) || 0;
+          onResult(pending[j]);
+        }
+      }
+      pending = still;
+      if (pending.length === 0) return;
+      if (++tries < 30) {
+        setTimeout(poll, 700);
+      } else {
+        for (var k = 0; k < pending.length; k++) onResult(pending[k]);
+      }
+    }
+    if (pending.length > 0) poll();
+  }
+
   function showMessage(title, body) {
     var pop = document.getElementById("messagePopup");
     if (!pop) return;
@@ -710,13 +733,15 @@
     pop.classList.add("active");
   }
 
-  function showConfirm(title, body, onConfirm) {
+  function showConfirm(title, body, onConfirm, confirmLabel) {
     var popup = document.getElementById("confirmPopup");
     if (!popup) return;
     var t = document.getElementById("confirmPopupTitle");
     var b = document.getElementById("confirmPopupBody");
     if (t) t.textContent = title || "Confirm";
     if (b) b.innerHTML = body || "";
+    document.getElementById("confirmPopupConfirm").textContent =
+      confirmLabel || "Confirm";
     popup.classList.add("active");
     var done = false;
     function close() {
@@ -974,10 +999,26 @@
       filteredItems = searched;
     }
 
+    var typeFilter = workshopTypeSelect ? workshopTypeSelect.value : "";
+    var modeFilter = workshopModeSelect ? workshopModeSelect.value : "";
+    if (typeFilter || modeFilter) {
+      filteredItems = filteredItems.filter(function (item) {
+        var tags = item.tags || [];
+        return (
+          (!typeFilter || tags.indexOf(typeFilter) !== -1) &&
+          (!modeFilter || tags.indexOf(modeFilter) !== -1)
+        );
+      });
+    }
+
     var sortMode = workshopFilterSelect
       ? workshopFilterSelect.value
       : "mostrecent";
-    if (sortMode === "trend") {
+    if (sortMode === "mostsubs") {
+      filteredItems = filteredItems.slice(0).sort(function (a, b) {
+        return (parseInt(b.subs, 10) || 0) - (parseInt(a.subs, 10) || 0);
+      });
+    } else if (sortMode === "trend") {
       filteredItems = filteredItems.slice(0).sort(function (a, b) {
         var rA = parseInt(a.starRating, 10) || 0;
         var rB = parseInt(b.starRating, 10) || 0;
@@ -1057,16 +1098,13 @@
       }
 
       var fSize = parseInt(it.file_size, 10) || 0;
-      var fStr =
-        fSize > 0
-          ? fSize > 1073741824
-            ? (fSize / 1073741824).toFixed(2) + " GB"
-            : fSize > 1048576
-              ? (fSize / 1048576).toFixed(1) + " MB"
-              : fSize > 1024
-                ? (fSize / 1024).toFixed(0) + " KB"
-                : fSize + " B"
-          : "";
+      var fStr = fSize > 0 ? formatSize(fSize) : "";
+      var installed = findLibraryItem(it.id);
+      var buttonLabel = installed
+        ? installed.needsUpdate
+          ? "Update"
+          : "Installed"
+        : "Download";
 
       var contentHtml =
         '<div class="workshop-item-content">' +
@@ -1085,12 +1123,18 @@
         "</div>" +
         "</div>" +
         '<div class="workshop-item-actions">' +
-        '<span class="workshop-item-size">' +
+        '<span class="workshop-item-size" data-size-id="' +
+        escapeHtml(it.id) +
+        '">' +
         fStr +
         "</span>" +
-        '<button type="button" class="workshop-item-button" data-workshop-id="' +
+        '<button type="button" class="workshop-item-button' +
+        (installed && !installed.needsUpdate ? " installed" : "") +
+        '" data-workshop-id="' +
         escapeHtml(it.id) +
-        '">Download</button>' +
+        '">' +
+        buttonLabel +
+        "</button>" +
         "</div>" +
         "</div>";
 
@@ -1109,6 +1153,14 @@
       workshopBrowseGrid.appendChild(card);
     }
 
+    lookupMissingSizes(filteredItems.slice(start, end), function (item) {
+      var label = workshopBrowseGrid.querySelector(
+        '[data-size-id="' + item.id + '"]'
+      );
+      if (label && parseInt(item.file_size, 10) > 0)
+        label.textContent = formatSize(item.file_size);
+    });
+
     if (workshopBrowsePagination) {
       if (totalPages > 1) {
         workshopBrowsePagination.style.display = "flex";
@@ -1123,7 +1175,7 @@
           if (workshopBrowseCurrentPage > 1) {
             workshopBrowseCurrentPage--;
             renderWorkshopBrowse();
-            workshopBrowseGrid.scrollTop = 0;
+            workshopBrowseGrid.scrollIntoView();
           }
         };
         workshopBrowsePagination.appendChild(prevBtn);
@@ -1167,7 +1219,7 @@
               if (pg !== workshopBrowseCurrentPage) {
                 workshopBrowseCurrentPage = pg;
                 renderWorkshopBrowse();
-                workshopBrowseGrid.scrollTop = 0;
+                workshopBrowseGrid.scrollIntoView();
               }
             };
             workshopBrowsePagination.appendChild(pageBtn);
@@ -1183,7 +1235,7 @@
           if (workshopBrowseCurrentPage < totalPages) {
             workshopBrowseCurrentPage++;
             renderWorkshopBrowse();
-            workshopBrowseGrid.scrollTop = 0;
+            workshopBrowseGrid.scrollIntoView();
           }
         };
         workshopBrowsePagination.appendChild(nextBtn);
@@ -1258,21 +1310,13 @@
     }
 
     var mSize = parseInt(item.file_size, 10) || 0;
-    var sStr =
-      mSize > 0
-        ? mSize > 1073741824
-          ? (mSize / 1073741824).toFixed(2) + " GB"
-          : mSize > 1048576
-            ? (mSize / 1048576).toFixed(1) + " MB"
-            : mSize > 1024
-              ? (mSize / 1024).toFixed(0) + " KB"
-              : mSize + " B"
-        : "Unknown";
     var modalSizeHtml =
       '<div class="workshop-modal-info-item">' +
       '<div class="workshop-modal-info-label">Size</div>' +
-      '<div class="workshop-modal-info-value">' +
-      sStr +
+      '<div class="workshop-modal-info-value" data-size-id="' +
+      escapeHtml(item.id) +
+      '">' +
+      (mSize > 0 ? formatSize(mSize) : "Checking...") +
       "</div></div>";
 
     workshopModalInfo.innerHTML =
@@ -1307,6 +1351,18 @@
     };
     workshopOverlay.classList.add("active");
     workshopModal.classList.add("active");
+    if (!(mSize > 0)) {
+      lookupMissingSizes([item], function () {
+        var label = workshopModalInfo.querySelector(
+          '[data-size-id="' + item.id + '"]'
+        );
+        if (label)
+          label.textContent =
+            parseInt(item.file_size, 10) > 0
+              ? formatSize(item.file_size)
+              : "Unknown";
+      });
+    }
   }
 
   function hideWorkshopModal() {
@@ -1381,14 +1437,7 @@
     var aSz = parseInt(item.file_size, 10) || 0;
     var mSize = lSz > 0 ? lSz : aSz;
     if (mSize > 0) {
-      var sStr =
-        mSize > 1073741824
-          ? (mSize / 1073741824).toFixed(2) + " GB"
-          : mSize > 1048576
-            ? (mSize / 1048576).toFixed(1) + " MB"
-            : mSize > 1024
-              ? (mSize / 1024).toFixed(0) + " KB"
-              : mSize + " B";
+      var sStr = formatSize(mSize);
       modalSizeHtml =
         '<div class="workshop-modal-info-item">' +
         '<div class="workshop-modal-info-label">Size</div>' +
@@ -1462,12 +1511,15 @@
       e.stopPropagation();
     };
 
-  if (workshopFilterSelect) {
-    workshopFilterSelect.onchange = function () {
-      workshopBrowseCurrentPage = 1;
-      renderWorkshopBrowse();
-    };
-  }
+  [workshopFilterSelect, workshopTypeSelect, workshopModeSelect].forEach(
+    function (select) {
+      if (select)
+        select.onchange = function () {
+          workshopBrowseCurrentPage = 1;
+          renderWorkshopBrowse();
+        };
+    }
+  );
 
   if (workshopSearchBtn) {
     workshopSearchBtn.onclick = function () {
@@ -1573,6 +1625,7 @@
   });
 
   function stopWorkshopDownloadCompletely() {
+    window._workshopCanceled = true;
     try {
       var ex = getExternal();
       if (ex && ex.workshopCancelDownload) ex.workshopCancelDownload();
@@ -1611,83 +1664,91 @@
     setTimeout(refreshModsGrid, 300);
   }
 
-  function doStartWorkshopDownload(id, displayName) {
-    if (isWine) {
-      showWineWorkshopNotice();
-      return;
+  function findLibraryItem(id) {
+    var items = modsItemsCache || [];
+    for (var i = 0; i < items.length; i++) {
+      if (items[i] && String(items[i].id) === String(id)) return items[i];
     }
+    return null;
+  }
+
+  function doStartWorkshopDownload(id, displayName, update) {
     try {
       var ex = getExternal();
-      if (ex && ex.workshopDownload) {
-        if (ex.workshopCheckInstalled) {
-          var inst = ex.workshopCheckInstalled(String(id));
-          if (inst && inst.length > 0) {
-            showMessage(
-              "Already Installed",
-              "This workshop item is already installed at:\n" +
-                inst +
-                "\n\nRemove it first if you want to reinstall."
+      if (!ex || !ex.workshopDownload) return;
+      var libraryItem = findLibraryItem(id);
+      var name = escapeHtml(
+        (libraryItem && (libraryItem.name || libraryItem.folder)) ||
+          displayName ||
+          id
+      );
+      if (!update && ex.workshopCheckInstalled) {
+        var inst = ex.workshopCheckInstalled(String(id));
+        if (inst && inst.length > 0) {
+          if (libraryItem && libraryItem.needsUpdate) {
+            showConfirm(
+              "Update available",
+              "<strong>" +
+                name +
+                "</strong> is installed and a newer version is on the Workshop. Update it now?",
+              function () {
+                doStartWorkshopDownload(id, displayName, true);
+              },
+              "Update"
             );
-            return;
+          } else {
+            showConfirm(
+              "Already installed",
+              "<strong>" +
+                name +
+                "</strong> is already installed. Download it again to get the latest version or repair missing files?",
+              function () {
+                doStartWorkshopDownload(id, displayName, true);
+              },
+              "Reinstall"
+            );
           }
+          return;
         }
-        ex.workshopDownload(String(id));
-        var msgEl = document.getElementById("workshopStatusMessage");
-        var detEl = document.getElementById("workshopStatusDetails");
-        var pctEl = document.getElementById("workshopProgressPercent");
-        if (msgEl) {
-          msgEl.textContent = "Initializing...";
-          msgEl.style.color = "rgba(249,115,22,0.9)";
-        }
-        if (detEl) detEl.textContent = "Workshop ID: " + id;
-        if (pctEl) pctEl.textContent = "";
-        window._lastWorkshopTerminalState = "";
-        window._wsMaxProgress = 0;
-        window._wsIndeterminate = true;
-        workshopProgress.style.display = "block";
-        workshopProgressFill.style.width = "0%";
-        workshopProgressFill.classList.add("indeterminate");
-        workshopDownloadBtn.disabled = true;
-        showProgress(
-          "Starting download for " + (displayName || id) + "...",
-          -1
-        );
-        if (window._workshopPollInterval) {
-          clearInterval(window._workshopPollInterval);
-          window._workshopPollInterval = null;
-        }
-        window._workshopPollInterval = setInterval(function () {
-          pollWorkshopStatus();
-          try {
-            var ex2 = getExternal();
-            if (ex2 && ex2.workshopGetStatus) {
-              var sj = ex2.workshopGetStatus();
-              if (sj) {
-                var st = typeof sj === "string" ? JSON.parse(sj) : sj;
-                if (
-                  st.message &&
-                  (st.message.indexOf("Done") !== -1 ||
-                    st.message.indexOf("Error") !== -1 ||
-                    st.message.indexOf("Canceled") !== -1 ||
-                    st.message.indexOf("Already installed") !== -1)
-                ) {
-                  clearInterval(window._workshopPollInterval);
-                  window._workshopPollInterval = null;
-                  workshopDownloadBtn.disabled = false;
-                }
-              }
-            }
-          } catch (e) {
-            clearInterval(window._workshopPollInterval);
-            window._workshopPollInterval = null;
-            workshopDownloadBtn.disabled = false;
-          }
-        }, 500);
       }
+      var result =
+        update && ex.workshopUpdate
+          ? ex.workshopUpdate(String(id))
+          : ex.workshopDownload(String(id));
+      if (result && String(result).indexOf("Error:") === 0) {
+        showMessage("Workshop", String(result).replace(/^Error:\s*/, ""));
+        return;
+      }
+      var msgEl = document.getElementById("workshopStatusMessage");
+      var detEl = document.getElementById("workshopStatusDetails");
+      var pctEl = document.getElementById("workshopProgressPercent");
+      if (msgEl) {
+        msgEl.textContent = "Initializing...";
+        msgEl.style.color = "rgba(249,115,22,0.9)";
+      }
+      if (detEl) detEl.textContent = "Workshop ID: " + id;
+      if (pctEl) pctEl.textContent = "";
+      window._lastWorkshopTerminalState = "";
+      window._wsMaxProgress = 0;
+      window._wsIndeterminate = true;
+      workshopProgress.style.display = "block";
+      workshopProgressFill.style.width = "0%";
+      workshopProgressFill.classList.add("indeterminate");
+      workshopDownloadBtn.disabled = true;
+      showProgress(
+        (update ? "Starting update for " : "Starting download for ") +
+          (displayName || id) +
+          "...",
+        -1
+      );
+      if (window._workshopPollInterval) {
+        clearInterval(window._workshopPollInterval);
+      }
+      window._workshopPollInterval = setInterval(pollWorkshopStatus, 500);
     } catch (e) {}
   }
 
-  function startWorkshopDownload(id, displayName) {
+  function startWorkshopDownload(id, displayName, update) {
     if (window._workshopPollInterval) {
       showConfirm(
         "Download in progress",
@@ -1697,13 +1758,14 @@
         function () {
           stopWorkshopDownloadCompletely();
           setTimeout(function () {
-            doStartWorkshopDownload(id, displayName);
+            doStartWorkshopDownload(id, displayName, update);
           }, 300);
-        }
+        },
+        "Switch"
       );
       return;
     }
-    doStartWorkshopDownload(id, displayName);
+    doStartWorkshopDownload(id, displayName, update);
   }
 
   function pollWorkshopStatus() {
@@ -2084,105 +2146,84 @@
     }, 200);
   }
 
+  function readLibraryList(ex) {
+    var list = ex.workshopList();
+    return list ? (typeof list === "string" ? JSON.parse(list) : list) : [];
+  }
+
+  function showLibraryState(icon, text) {
+    modsGrid.innerHTML =
+      '<div class="empty-state">' +
+      icon +
+      '<div class="empty-state-text">' +
+      text +
+      "</div></div>";
+    if (modsPagination) modsPagination.style.display = "none";
+  }
+
+  function finishModsRefresh(items) {
+    modsItemsCache = items;
+    modsInitialized = true;
+    renderModsPage();
+    setLibraryRefreshing(false);
+    if (modsRefreshQueued) {
+      modsRefreshQueued = false;
+      refreshModsGrid();
+    }
+  }
+
   function refreshModsGrid() {
     if (modsRefreshInFlight) {
       modsRefreshQueued = true;
       return;
     }
+    var ex = getExternal();
+    if (!ex || !ex.workshopListAsync) {
+      modsInitialized = true;
+      renderModsPage();
+      return;
+    }
     try {
-      var ex = getExternal();
-      if (!ex) {
-        modsInitialized = true;
-        if (!modsItemsCache.length) renderModsPage();
-        return;
-      }
-      if (ex.workshopList) {
-        var cached = ex.workshopList();
-        if (cached && cached !== "[]") {
-          var ci = typeof cached === "string" ? JSON.parse(cached) : cached;
-          if (ci && ci.length > 0 && !modsInitialized) {
-            modsItemsCache = ci;
-            modsInitialized = true;
-            modsPage = 1;
-            renderModsPage();
-          }
-        }
-      }
-      if (ex.workshopListAsync) {
-        setLibraryRefreshing(true);
-        if (!modsInitialized && !modsItemsCache.length) {
-          modsGrid.innerHTML =
-            '<div class="empty-state"><div class="loading-spinner"></div><div class="empty-state-text">Scanning installed items...</div></div>';
+      if (!modsInitialized) {
+        var cached = readLibraryList(ex);
+        if (cached.length) {
+          finishModsRefresh(cached);
+        } else {
           updateLibraryCount(0);
-          if (modsPagination) modsPagination.style.display = "none";
+          showLibraryState(
+            '<div class="loading-spinner"></div>',
+            "Scanning installed items..."
+          );
         }
-        var refreshResult = ex.workshopListAsync();
-        if (refreshResult === "already_loading") modsRefreshQueued = true;
-        if (_modsListPollInterval) clearInterval(_modsListPollInterval);
-        var pc = 0;
-        _modsListPollInterval = setInterval(function () {
-          pc++;
-          if (pc > 300) {
-            clearInterval(_modsListPollInterval);
-            _modsListPollInterval = null;
-            setLibraryRefreshing(false);
-            if (modsRefreshQueued) {
-              modsRefreshQueued = false;
-              refreshModsGrid();
-            }
-            return;
-          }
-          try {
-            var ex2 = getExternal();
-            if (!ex2) return;
-            var isLoading =
-              ex2.workshopListIsLoading &&
-              ex2.workshopListIsLoading() === "true";
-            if (!isLoading) {
-              clearInterval(_modsListPollInterval);
-              _modsListPollInterval = null;
-              var list = ex2.workshopList();
-              var items = list
-                ? typeof list === "string"
-                  ? JSON.parse(list)
-                  : list
-                : [];
-              var runQueuedRefresh = modsRefreshQueued;
-              if (!runQueuedRefresh) {
-                modsItemsCache = items && items.length ? items : [];
-                modsInitialized = true;
-                modsPage = 1;
-                renderModsPage();
-              }
-              setLibraryRefreshing(false);
-              if (runQueuedRefresh) {
-                modsRefreshQueued = false;
-                refreshModsGrid();
-              }
-            }
-          } catch (e) {
-            clearInterval(_modsListPollInterval);
-            _modsListPollInterval = null;
-            setLibraryRefreshing(false);
-            if (!modsItemsCache.length) {
-              modsInitialized = true;
-              modsGrid.innerHTML =
-                '<div class="empty-state"><div class="empty-state-icon">&#9888;</div><div class="empty-state-text">Error loading workshop items</div></div>';
-            }
-          }
-        }, 100);
-      } else {
-        modsInitialized = true;
-        renderModsPage();
       }
+      setLibraryRefreshing(true);
+      ex.workshopListAsync();
+      if (_modsListPollInterval) clearInterval(_modsListPollInterval);
+      var polls = 0;
+      _modsListPollInterval = setInterval(function () {
+        try {
+          if (ex.workshopListIsLoading() === "true" && ++polls < 300) return;
+          clearInterval(_modsListPollInterval);
+          _modsListPollInterval = null;
+          finishModsRefresh(readLibraryList(ex));
+        } catch (e) {
+          clearInterval(_modsListPollInterval);
+          _modsListPollInterval = null;
+          setLibraryRefreshing(false);
+          if (!modsItemsCache.length)
+            showLibraryState(
+              '<div class="empty-state-icon">&#9888;</div>',
+              "Error loading workshop items"
+            );
+        }
+      }, 100);
     } catch (e) {
       setLibraryRefreshing(false);
-      if (!modsItemsCache.length) {
-        modsInitialized = true;
-        modsGrid.innerHTML =
-          '<div class="empty-state"><div class="empty-state-icon">&#9888;</div><div class="empty-state-text">Error loading workshop items</div></div>';
-      }
-      if (modsPagination) modsPagination.style.display = "none";
+      if (!modsItemsCache.length)
+        showLibraryState(
+          '<div class="empty-state-icon">&#9888;</div>',
+          "Error loading workshop items"
+        );
     }
   }
 
@@ -2254,14 +2295,7 @@
       var aSz = parseInt(item.file_size, 10) || 0;
       var sz = lSz > 0 ? lSz : aSz;
       if (sz > 0) {
-        var szStr =
-          sz > 1073741824
-            ? (sz / 1073741824).toFixed(2) + " GB"
-            : sz > 1048576
-              ? (sz / 1048576).toFixed(1) + " MB"
-              : sz > 1024
-                ? (sz / 1024).toFixed(0) + " KB"
-                : sz + " B";
+        var szStr = formatSize(sz);
         var sizeSpan = document.createElement("span");
         sizeSpan.innerHTML =
           '<span class="meta-icon">&#128190;</span> ' + szStr;
@@ -2324,48 +2358,7 @@
         (function (itemId, itemName) {
           updateBtn.onclick = function (e) {
             e.stopPropagation();
-            if (isWine) {
-              showWineWorkshopNotice();
-              return;
-            }
-            try {
-              var ex = getExternal();
-              if (ex && (ex.workshopUpdate || ex.workshopDownload)) {
-                var updateResult = ex.workshopUpdate
-                  ? ex.workshopUpdate(String(itemId))
-                  : ex.workshopDownload(String(itemId));
-                if (
-                  updateResult &&
-                  String(updateResult).indexOf("Error:") === 0
-                ) {
-                  showMessage("Update", String(updateResult));
-                  return;
-                }
-                workshopProgress.style.display = "block";
-                workshopProgressFill.style.width = "0%";
-                workshopDownloadBtn.disabled = true;
-                var pi2 = setInterval(function () {
-                  pollWorkshopStatus();
-                  var ex2 = getExternal();
-                  if (ex2 && ex2.workshopGetStatus) {
-                    var sj = ex2.workshopGetStatus();
-                    if (sj) {
-                      var st = typeof sj === "string" ? JSON.parse(sj) : sj;
-                      if (
-                        st.message &&
-                        (st.message.indexOf("Done") !== -1 ||
-                          st.message.indexOf("Error") !== -1 ||
-                          st.message.indexOf("Already installed") !== -1)
-                      ) {
-                        clearInterval(pi2);
-                        workshopDownloadBtn.disabled = false;
-                        setTimeout(refreshModsGrid, 500);
-                      }
-                    }
-                  }
-                }, 500);
-              }
-            } catch (err) {}
+            startWorkshopDownload(itemId, itemName, true);
           };
         })(item.id, item.name || item.folder);
         actions.appendChild(updateBtn);
@@ -2534,17 +2527,7 @@
         );
         var cSz2 =
           parseInt(cItem.localSize, 10) || parseInt(cItem.file_size, 10) || 0;
-        var cSzStr = "";
-        if (cSz2 > 0) {
-          cSzStr =
-            cSz2 > 1073741824
-              ? (cSz2 / 1073741824).toFixed(2) + " GB"
-              : cSz2 > 1048576
-                ? (cSz2 / 1048576).toFixed(1) + " MB"
-                : cSz2 > 1024
-                  ? (cSz2 / 1024).toFixed(0) + " KB"
-                  : cSz2 + " B";
-        }
+        var cSzStr = cSz2 > 0 ? formatSize(cSz2) : "";
         lh +=
           '<li><span class="item-name">' +
           cName +
@@ -2580,10 +2563,6 @@
   };
 
   document.getElementById("checkUpdatesBtn").onclick = function () {
-    if (isWine) {
-      showWineWorkshopNotice();
-      return;
-    }
     var wsStatus = document.getElementById("workshopStatus");
     try {
       var ex = getExternal();
@@ -2633,9 +2612,10 @@
             }
             workshopProgress.style.display = "block";
             workshopDownloadBtn.disabled = true;
+            window._workshopCanceled = false;
             var idx = 0;
             function updateNext() {
-              if (idx >= toUpdate.length) {
+              if (idx >= toUpdate.length || window._workshopCanceled) {
                 workshopDownloadBtn.disabled = false;
                 document.getElementById("checkUpdatesBtn").disabled = false;
                 setTimeout(refreshModsGrid, 500);
@@ -2647,6 +2627,11 @@
                 else ex2.workshopDownload(String(it.id));
               } catch (e) {}
               var upi = setInterval(function () {
+                if (window._workshopCanceled) {
+                  clearInterval(upi);
+                  updateNext();
+                  return;
+                }
                 pollWorkshopStatus();
                 var ex3 = getExternal();
                 if (ex3 && ex3.workshopGetStatus) {

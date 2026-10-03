@@ -1216,6 +1216,16 @@ h1 {
   transform: scale(0.98);
 }
 
+.workshop-item-button.installed {
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(34, 197, 94, 0.55);
+}
+
+.workshop-item-button.installed:hover {
+  background: rgba(34, 197, 94, 0.28);
+  border-color: rgba(34, 197, 94, 0.8);
+}
+
 .workshop-overlay {
   display: none;
   position: fixed;
@@ -3565,4 +3575,17 @@ body.reduced-motion *, body.reduced-motion *::before, body.reduced-motion *::aft
   h1 { font-size: 2.8rem; }
   .description { margin-bottom: 8px; }
   .main-content > * + * { margin-top: 7px; }
+}
+
+#workshopPage .page-scroll-inner {
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-color: rgba(249, 115, 22, 0.45) rgba(16, 14, 13, 0.6);
+  scrollbar-width: thin;
+}
+
+#workshopPage .workshop-browse-container,
+#workshopPage .workshop-browse-grid {
+  flex: none;
+  overflow: visible;
 }

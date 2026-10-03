@@ -662,6 +662,8 @@ bool is_safe_workshop_item_path(const std::filesystem::path &target) {
   return false;
 }
 
+} // namespace
+
 bool workshop_remove_by_path(const std::string &path_str, std::string &error) {
   std::string p = path_str;
   utils::string::trim(p);
@@ -700,6 +702,7 @@ bool workshop_remove_by_path(const std::string &path_str, std::string &error) {
   return true;
 }
 
+namespace {
 constexpr std::string_view IMAGE_EXTENSIONS[] = {".jpg",  ".jpeg", ".png",
                                                  ".webp", ".gif",  ".bmp"};
 
@@ -980,6 +983,11 @@ bool try_parse_workshop_json(const std::filesystem::path &dir,
   if (!doc.HasMember("Title") || !doc.HasMember("FolderName"))
     return false;
   item.name = doc["Title"].GetString();
+  if (doc.HasMember("Type") && doc["Type"].IsString()) {
+    item.type = utils::string::to_lower(doc["Type"].GetString()) == "map"
+                    ? "map"
+                    : "mod";
+  }
   if (doc.HasMember("Description") && doc["Description"].IsString()) {
     item.description = doc["Description"].GetString();
     if (item.description.size() > 300)
@@ -1003,102 +1011,62 @@ std::string workshop_list_json() {
   std::vector<mod_item_info> items;
   std::set<std::string> seen_paths;
 
-  auto scan = [&](const std::filesystem::path &parent, const char *type_label) {
-    if (!std::filesystem::exists(parent))
-      return;
+  const auto add_item = [&](const std::filesystem::path &dir, const char *type,
+                            const bool from_steam) {
+    std::error_code ec;
+    if (!seen_paths.insert(std::filesystem::absolute(dir, ec).string())
+             .second) {
+      return true;
+    }
+    mod_item_info item;
+    item.folder = dir.filename().string();
+    item.type = type;
+    item.dir_path = dir;
+    if (from_steam) {
+      item.source = "steam";
+      item.path = dir.string();
+    }
+    if (!try_parse_workshop_json(dir, item)) {
+      if (!folder_has_zone_content(dir)) {
+        return false;
+      }
+      item.name = item.folder;
+      if (utils::string::is_numeric(item.folder)) {
+        item.id = item.folder;
+      }
+    }
+    item.local_size = compute_folder_size(dir);
+    const std::string image_path = find_mod_image_path(dir);
+    if (!image_path.empty()) {
+      item.image = path_to_file_url(image_path);
+    }
+    items.push_back(std::move(item));
+    return true;
+  };
+
+  const auto scan = [&](const std::filesystem::path &parent, const char *type,
+                        const bool from_steam) {
     std::error_code ec;
     for (const std::filesystem::directory_entry &entry :
          std::filesystem::directory_iterator(parent, ec)) {
-      if (!entry.is_directory())
+      if (!entry.is_directory(ec) || add_item(entry.path(), type, from_steam) ||
+          !from_steam) {
         continue;
-      std::string abs = std::filesystem::absolute(entry.path(), ec).string();
-      if (seen_paths.count(abs))
-        continue;
-
-      mod_item_info item;
-      item.folder = entry.path().filename().string();
-      item.type = type_label;
-      item.dir_path = entry.path();
-      item.local_size = compute_folder_size(entry.path());
-
-      if (!try_parse_workshop_json(entry.path(), item)) {
-        if (!folder_has_zone_content(entry.path()))
-          continue;
-        item.name = item.folder;
-        if (utils::string::is_numeric(item.folder))
-          item.id = item.folder;
       }
-
-      std::string image_path = find_mod_image_path(entry.path());
-      if (!image_path.empty())
-        item.image = path_to_file_url(image_path);
-      else if (!item.id.empty())
-        item.image = get_steam_workshop_preview_url(item.id);
-
-      seen_paths.insert(abs);
-      items.push_back(std::move(item));
+      for (const std::filesystem::directory_entry &child :
+           std::filesystem::directory_iterator(entry.path(), ec)) {
+        if (child.is_directory(ec)) {
+          add_item(child.path(), type, from_steam);
+        }
+      }
     }
   };
-  scan(base / "usermaps", "map");
-  scan(base / "mods", "mod");
 
-  std::filesystem::path steam_ws = get_steam_workshop_path();
+  scan(base / "usermaps", "map", false);
+  scan(base / "mods", "mod", false);
+  const std::filesystem::path &steam_ws = get_steam_workshop_path();
   if (!steam_ws.empty()) {
-    std::error_code ws_ec;
-    if (std::filesystem::exists(steam_ws, ws_ec)) {
-      auto scan_steam = [&](const std::filesystem::path &dir) {
-        const std::string abs = std::filesystem::absolute(dir, ws_ec).string();
-        if (seen_paths.count(abs))
-          return;
-
-        mod_item_info item;
-        item.folder = dir.filename().string();
-        item.type = "map";
-        item.source = "steam";
-        item.path = dir.string();
-        item.dir_path = dir;
-        item.local_size = compute_folder_size(dir);
-
-        if (!try_parse_workshop_json(dir, item)) {
-          if (!folder_has_zone_content(dir))
-            return;
-          item.name = item.folder;
-          if (utils::string::is_numeric(item.folder))
-            item.id = item.folder;
-        }
-
-        std::string image_path = find_mod_image_path(dir);
-        if (!image_path.empty())
-          item.image = path_to_file_url(image_path);
-        else if (!item.id.empty())
-          item.image = get_steam_workshop_preview_url(item.id);
-
-        seen_paths.insert(abs);
-        items.push_back(std::move(item));
-      };
-
-      std::error_code ec;
-      for (const std::filesystem::directory_entry &ws_entry :
-           std::filesystem::directory_iterator(steam_ws, ec)) {
-        if (!ws_entry.is_directory())
-          continue;
-
-        mod_item_info dummy{};
-        if (try_parse_workshop_json(ws_entry.path(), dummy) ||
-            folder_has_zone_content(ws_entry.path())) {
-          scan_steam(ws_entry.path());
-          continue;
-        }
-
-        std::error_code ec2;
-        for (const std::filesystem::directory_entry &sub :
-             std::filesystem::directory_iterator(ws_entry.path(), ec2)) {
-          if (!sub.is_directory())
-            continue;
-          scan_steam(sub.path());
-        }
-      }
-    }
+    scan(steam_ws, "mod", true);
   }
 
   std::vector<std::string> all_ids;
@@ -1476,15 +1444,6 @@ bool run() {
         "getVersion",
         [](const std::vector<html_argument> & /*params*/) -> CComVariant {
           return CComVariant(SHORTVERSION);
-        });
-
-    window.get_html_frame()->register_callback(
-        "isWine",
-        [](const std::vector<html_argument> & /*params*/) -> CComVariant {
-          CComVariant result;
-          result.vt = VT_BOOL;
-          result.boolVal = utils::nt::is_wine() ? VARIANT_TRUE : VARIANT_FALSE;
-          return result;
         });
 
     window.get_html_frame()->register_callback(

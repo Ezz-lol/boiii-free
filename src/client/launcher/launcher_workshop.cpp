@@ -2,6 +2,7 @@
 
 #include <game/game.hpp>
 
+#include <component/steamcmd.hpp>
 #include <component/workshop.hpp>
 
 #include <launcher/html/html_frame.hpp>
@@ -11,6 +12,7 @@
 #include <chrono>
 #include <fstream>
 #include <functional>
+#include <future>
 #include <iomanip>
 #include <map>
 #include <mutex>
@@ -31,9 +33,6 @@
 #include <utils/string.hpp>
 
 namespace launcher::workshop {
-std::chrono::steady_clock::time_point download_start_time;
-double mod_size = 0.0;
-
 // Convert UTF-8 std::string to a CComVariant with proper wide-string encoding
 CComVariant utf8_variant(const std::string &utf8_str) {
   if (utf8_str.empty())
@@ -49,100 +48,11 @@ CComVariant utf8_variant(const std::string &utf8_str) {
   return CComVariant(wide.c_str());
 }
 
-bool clear_directory_contents(const std::filesystem::path &dir) {
-  std::error_code ec;
-
-  if (!std::filesystem::exists(dir, ec) ||
-      !std::filesystem::is_directory(dir, ec)) {
-    return false;
-  }
-
-  for (const auto &entry : std::filesystem::directory_iterator(dir, ec)) {
-    std::filesystem::remove_all(entry.path(), ec);
-
-    if (ec) {
-#ifdef _WIN32
-      std::filesystem::permissions(entry.path(),
-                                   std::filesystem::perms::owner_all,
-                                   std::filesystem::perm_options::add, ec);
-
-      std::filesystem::remove_all(entry.path(), ec);
-#endif
-    }
-  }
-
-  return true;
-}
-
-bool parse_steam_timestamp(const std::string &line,
-                           std::chrono::system_clock::time_point &out_time) {
-  if (line.size() < 21 || line[0] != '[')
-    return false;
-
-  std::tm tm{};
-  std::istringstream ss(line.substr(1, 19));
-  ss >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
-
-  if (ss.fail())
-    return false;
-
-  std::time_t tt = std::mktime(&tm);
-  if (tt == -1)
-    return false;
-
-  out_time = std::chrono::system_clock::from_time_t(tt);
-  return true;
-}
-
-void monitor_initial_dump_phase(std::string workshop_id) {
-  std::filesystem::path content_log_path = "./steamcmd/logs/content_log.txt";
-  bool running = true;
-
-  std::ifstream file(content_log_path, std::ios::in);
-  if (!file.is_open())
-    return;
-
-  file.seekg(0, std::ios::end);
-
-  const std::string base_pattern = "AppID 311210 update started";
-
-  std::string line;
-
-  while (running) {
-    std::streampos pos = file.tellg();
-
-    if (!std::getline(file, line)) {
-      file.clear();
-      file.seekg(pos);
-      std::this_thread::sleep_for(std::chrono::milliseconds(200));
-      continue;
-    }
-
-    if (line.find(base_pattern) == std::string::npos)
-      continue;
-
-    if (line.find("download 0/") == std::string::npos)
-      continue;
-
-    std::chrono::system_clock::time_point log_time;
-    if (!parse_steam_timestamp(line, log_time))
-      continue;
-
-    auto now_sys = std::chrono::system_clock::now();
-    auto now_steady = std::chrono::steady_clock::now();
-    auto log_duration_since_now = log_time - now_sys;
-    auto log_time_steady = now_steady + log_duration_since_now;
-
-    if (log_time_steady >= download_start_time) {
-      running = false;
-
-      // mod_size = //save mod size before remove
-
-      clear_directory_contents(
-          "./steamcmd/steamapps/workshop/downloads/311210/" + workshop_id);
-      return;
-    }
-  }
+std::string format_duration(const int64_t total_seconds) {
+  char buffer[32];
+  snprintf(buffer, sizeof(buffer), "%02lld:%02lld:%02lld", total_seconds / 3600,
+           (total_seconds % 3600) / 60, total_seconds % 60);
+  return buffer;
 }
 
 void try_refresh_workshop_content() {
@@ -163,8 +73,6 @@ double workshop_progress_percent = 0.0;
 std::string workshop_progress_details = "";
 std::string workshop_download_folder = "";
 
-std::mutex workshop_download_mutex;
-PROCESS_INFORMATION workshop_download_process{};
 std::atomic<bool> workshop_cancel_requested{false};
 std::atomic<bool> workshop_paused{false};
 
@@ -436,68 +344,26 @@ uint64_t parse_human_size_to_bytes(const std::string &text) {
 }
 
 uint64_t scrape_workshop_file_size_bytes(const std::string &workshop_id) {
-  try {
-    utils::http::headers h;
-    h["User-Agent"] =
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
-    h["Accept"] = "text/html";
-    h["Accept-Language"] = "en-US,en;q=0.9";
-    h["Referer"] = "https://steamcommunity.com/app/311210/workshop/";
-
-    const auto url = "https://steamcommunity.com/sharedfiles/filedetails/?id=" +
-                     workshop_id + "&searchtext=";
-    const auto resp = utils::http::get_data(url, h, {}, 2);
-    if (!resp || resp->empty())
-      return 0;
-
-    const std::string &html = *resp;
-
-    {
-      std::regex re(
-          R"(detailsStatRight[^>]*>\s*([\d,\.]+\s*(?:B|KB|MB|GB|TB))\s*<)",
-          std::regex::icase);
-      std::smatch m;
-      if (std::regex_search(html, m, re) && m.size() >= 2) {
-        std::string size_text = m[1].str();
-        size_text.erase(std::remove(size_text.begin(), size_text.end(), ','),
-                        size_text.end());
-        const auto bytes = parse_human_size_to_bytes(size_text);
-        if (bytes > 0)
-          return bytes;
-      }
-    }
-
-    {
-      std::regex re(R"(File\s*Size\s*<\/div>\s*<div[^>]*>([^<]+)<)",
-                    std::regex::icase);
-      std::smatch m;
-      if (std::regex_search(html, m, re) && m.size() >= 2) {
-        std::string size_text = m[1].str();
-        size_text.erase(std::remove(size_text.begin(), size_text.end(), ','),
-                        size_text.end());
-        const auto bytes = parse_human_size_to_bytes(size_text);
-        if (bytes > 0)
-          return bytes;
-      }
-    }
-
-    {
-      std::regex re(R"(File\s*Size[^\d]*(\d+(?:[,.]\d+)?)\s*(B|KB|MB|GB|TB))",
-                    std::regex::icase);
-      std::smatch m;
-      if (std::regex_search(html, m, re) && m.size() >= 3) {
-        std::string num = m[1].str();
-        num.erase(std::remove(num.begin(), num.end(), ','), num.end());
-        const auto bytes = parse_human_size_to_bytes(num + " " + m[2].str());
-        if (bytes > 0)
-          return bytes;
-      }
-    }
-
-    return 0;
-  } catch (...) {
+  utils::http::headers headers;
+  headers["User-Agent"] =
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36";
+  headers["Accept-Language"] = "en-US,en;q=0.9";
+  const std::optional<std::string> html = utils::http::get_data(
+      "https://steamcommunity.com/sharedfiles/filedetails/?id=" + workshop_id,
+      headers, {}, 2);
+  if (!html) {
     return 0;
   }
+  constexpr std::string_view marker = "detailsStatRight\">";
+  const size_t start = html->find(marker);
+  if (start == std::string::npos) {
+    return 0;
+  }
+  std::string text = html->substr(start + marker.size(),
+                                  html->find('<', start + marker.size()) -
+                                      start - marker.size());
+  std::erase(text, ',');
+  return parse_human_size_to_bytes(text);
 }
 
 struct workshop_info {
@@ -549,16 +415,8 @@ workshop_info get_steam_workshop_info(const std::string &workshop_id) {
             std::strtoull(size_it->value.GetString(), nullptr, 10));
     }
 
-    if (info.file_size == 0) {
-      const auto scraped = scrape_workshop_file_size_bytes(workshop_id);
-      if (scraped > 0)
-        info.file_size = scraped;
-    }
     return info;
   } catch (...) {
-    const auto scraped = scrape_workshop_file_size_bytes(workshop_id);
-    if (scraped > 0)
-      info.file_size = scraped;
     return info;
   }
 }
@@ -1138,6 +996,18 @@ build_workshop_items_json(const std::vector<std::string> &ids,
         item_writer.Int64(favorites);
         item_writer.Key("file_size");
         item_writer.Uint64(file_size);
+        item_writer.Key("tags");
+        item_writer.StartArray();
+        const auto tags_it = item.FindMember("tags");
+        if (tags_it != item.MemberEnd() && tags_it->value.IsArray()) {
+          for (const rapidjson::Value &tag : tags_it->value.GetArray()) {
+            const auto name_it = tag.FindMember("tag");
+            if (name_it != tag.MemberEnd() && name_it->value.IsString()) {
+              item_writer.String(name_it->value.GetString());
+            }
+          }
+        }
+        item_writer.EndArray();
         item_writer.EndObject();
 
         item_objects.emplace_back(item_buf.GetString(), item_buf.GetSize());
@@ -1488,94 +1358,27 @@ void workshop_download_thread(std::string workshop_id,
       }
     }
 
+    std::future<workshop_info> ws_info_future =
+        std::async(std::launch::async, get_steam_workshop_info, workshop_id);
+
+    const bool wine = utils::nt::is_wine();
     std::filesystem::path steamcmd_dir = game_path / "steamcmd";
-    std::filesystem::path steamcmd_exe = steamcmd_dir / "steamcmd.exe";
-    std::string steamcmd_dir_str = steamcmd_dir.string();
-
-    if (!std::filesystem::exists(steamcmd_exe)) {
-      set_workshop_status("Downloading SteamCMD...", -1.0,
-                          "First-time setup - downloading from Steam CDN");
-
-      std::error_code ec;
-      std::filesystem::create_directories(steamcmd_dir, ec);
-      if (ec) {
-        set_workshop_status("Error: Cannot create steamcmd folder.", 0.0,
-                            ec.message());
-        return;
-      }
-
-      const auto zip_data = utils::http::get_data(
-          "https://steamcdn-a.akamaihd.net/client/installer/steamcmd.zip", {},
-          {}, 3);
-      if (!zip_data || zip_data->empty()) {
-        set_workshop_status("Error: Failed to download SteamCMD.", 0.0,
-                            "Could not reach steamcdn-a.akamaihd.net. Check "
-                            "your internet connection.");
-        return;
-      }
-
-      set_workshop_status("Extracting SteamCMD...", -1.0, "");
-      try {
-        auto files = utils::compression::zip::extract(*zip_data);
-        if (files.empty()) {
-          set_workshop_status("Error: SteamCMD zip is empty or corrupt.", 0.0,
-                              "");
-          return;
-        }
-        for (const auto &[name, data] : files) {
-          auto dest = steamcmd_dir / name;
-          std::filesystem::create_directories(dest.parent_path(), ec);
-          utils::io::write_file(dest.string(), data, false);
-        }
-      } catch (const std::exception &ex) {
-        set_workshop_status("Error: Failed to extract SteamCMD.", 0.0,
-                            ex.what());
-        return;
-      }
-
-      if (!std::filesystem::exists(steamcmd_exe)) {
-        set_workshop_status(
-            "Error: SteamCMD extraction failed - steamcmd.exe not found.", 0.0,
-            "");
-        return;
-      }
-    }
 
     {
-      std::error_code ec;
-      const auto exe_size = std::filesystem::file_size(steamcmd_exe, ec);
-      if (!ec && exe_size < 3 * 1024 * 1024) {
-        set_workshop_status(
-            "Initializing SteamCMD (first run)...", -1.0,
-            "SteamCMD is updating itself, this may take a minute");
-        std::string init_cmd = "\"" + steamcmd_exe.string() + "\" +quit";
-        STARTUPINFOA si{};
-        PROCESS_INFORMATION pi{};
-        si.cb = sizeof(si);
-        si.dwFlags = STARTF_USESHOWWINDOW;
-        si.wShowWindow = SW_HIDE;
-        if (CreateProcessA(nullptr, const_cast<char *>(init_cmd.c_str()),
-                           nullptr, nullptr, FALSE, 0, nullptr,
-                           steamcmd_dir_str.c_str(), &si, &pi)) {
-          WaitForSingleObject(pi.hProcess, 180000);
-          TerminateProcess(pi.hProcess, 0);
-          CloseHandle(pi.hProcess);
-          CloseHandle(pi.hThread);
-        }
-
-        const auto new_size = std::filesystem::file_size(steamcmd_exe, ec);
-        if (!ec && new_size < 3 * 1024 * 1024) {
-          set_workshop_status("Error: SteamCMD failed to initialize.", 0.0,
-                              "The self-update may have failed. Try again or "
-                              "check your internet connection.");
-          return;
-        }
+      std::string error;
+      if (!steamcmd::ensure_installed(
+              steamcmd_dir, wine,
+              [](const std::string &status) {
+                set_workshop_status(status, -1.0,
+                                    "First-time setup, this may take a minute");
+              },
+              error)) {
+        set_workshop_status("Error: SteamCMD is not ready.", 0.0, error);
+        return;
       }
     }
 
-    set_workshop_status("Fetching file info...", -1.0,
-                        "Workshop ID: " + workshop_id);
-    const auto ws_info = get_steam_workshop_info(workshop_id);
+    const workshop_info ws_info = ws_info_future.get();
     const uint64_t expected_size = ws_info.file_size;
     const std::string workshop_title =
         ws_info.title.empty() ? ("Workshop #" + workshop_id) : ws_info.title;
@@ -1600,38 +1403,28 @@ void workshop_download_thread(std::string workshop_id,
       }
     }
 
-    std::filesystem::path content_path = steamcmd_dir / "steamapps" /
-                                         "workshop" / "content" /
-                                         game::APP_ID_STR / workshop_id;
-    const std::filesystem::path download_path = steamcmd_dir / "steamapps" /
-                                                "workshop" / "downloads" /
-                                                game::APP_ID_STR / workshop_id;
+    const std::vector<std::filesystem::path> roots =
+        steamcmd::workshop_roots(steamcmd_dir, wine);
+    std::filesystem::path content_path =
+        roots[0] / "content" / game::APP_ID_STR / workshop_id;
+    const std::filesystem::path download_path =
+        roots[0] / "downloads" / game::APP_ID_STR / workshop_id;
     const std::filesystem::path alt_content_path =
-        game_path / "steamapps" / "workshop" / "content" / game::APP_ID_STR /
-        workshop_id;
+        roots[1] / "content" / game::APP_ID_STR / workshop_id;
     const std::filesystem::path alt_download_path =
-        game_path / "steamapps" / "workshop" / "downloads" / game::APP_ID_STR /
-        workshop_id;
+        roots[1] / "downloads" / game::APP_ID_STR / workshop_id;
 
-    std::string steamapps_folder = "./steamcmd/steamapps";
-
-    if (std::filesystem::exists(steamapps_folder)) {
-      std::filesystem::remove_all(steamapps_folder);
-      printf("Old steamapps folder removed successfully.\n");
-    }
+    steamcmd::clear_downloads(steamcmd_dir);
 
     std::string cmd_args = "+login anonymous +workshop_download_item 311210 " +
-                           workshop_id + " validate +quit";
+                           workshop_id + " +quit";
 
     constexpr int MAX_ATTEMPTS = 20;
     constexpr int FAIL_THRESHOLD = 5;
     int attempt = 0;
     int fast_fail_count = 0;
 
-    download_start_time = std::chrono::steady_clock::now();
-
-    std::thread log_thread(monitor_initial_dump_phase, workshop_id);
-    log_thread.detach();
+    const auto download_start_time = std::chrono::steady_clock::now();
 
     while (!std::filesystem::exists(content_path) &&
            !std::filesystem::exists(alt_content_path) &&
@@ -1682,382 +1475,76 @@ void workshop_download_thread(std::string workshop_id,
               ? ("File size: " + human_readable_size(expected_size))
               : "Workshop ID: " + workshop_id);
 
-      std::string full_cmd = "\"" + steamcmd_exe.string() + "\" " + cmd_args;
-
-      HANDLE h_pipe_read = nullptr, h_pipe_write = nullptr;
-      {
-        SECURITY_ATTRIBUTES sa_pipe{};
-        sa_pipe.nLength = sizeof(SECURITY_ATTRIBUTES);
-        sa_pipe.bInheritHandle = TRUE;
-        sa_pipe.lpSecurityDescriptor = nullptr;
-        CreatePipe(&h_pipe_read, &h_pipe_write, &sa_pipe, 0);
-        SetHandleInformation(h_pipe_read, HANDLE_FLAG_INHERIT, 0);
-      }
-
-      STARTUPINFOA si{};
-      PROCESS_INFORMATION pi{};
-      si.cb = sizeof(si);
-      si.dwFlags = STARTF_USESHOWWINDOW | STARTF_USESTDHANDLES;
-      si.wShowWindow = SW_HIDE;
-      si.hStdOutput = h_pipe_write;
-      si.hStdError = h_pipe_write;
-
-      if (!CreateProcessA(nullptr, const_cast<char *>(full_cmd.c_str()),
-                          nullptr, nullptr, TRUE, 0, nullptr,
-                          steamcmd_dir_str.c_str(), &si, &pi)) {
-        if (h_pipe_read)
-          CloseHandle(h_pipe_read);
-        if (h_pipe_write)
-          CloseHandle(h_pipe_write);
+      steamcmd::process steamcmd(steamcmd_dir, wine);
+      if (!steamcmd.start(cmd_args)) {
         set_workshop_status("Error: Failed to start SteamCMD.", 0.0,
                             "Attempt " + std::to_string(attempt));
         std::this_thread::sleep_for(std::chrono::seconds(2));
         continue;
       }
-      if (h_pipe_write) {
-        CloseHandle(h_pipe_write);
-        h_pipe_write = nullptr;
-      }
-      {
-        std::lock_guard plock(workshop_download_mutex);
-        workshop_download_process = pi;
-      }
 
-      auto attempt_start = std::chrono::steady_clock::now();
-      bool is_downloading = false;
-      bool is_steamcmd_updating = false;
-      auto last_tick = std::chrono::steady_clock::now();
-      std::string last_speed_str;
-
-      uint64_t net_bytes_prev = 0;
-      bool net_baseline_set = false;
-      auto download_phase_start = std::chrono::steady_clock::time_point{};
-      bool warmup_phase = true;
-      double smoothed_speed = 0.0;
-
-      std::filesystem::path log_path =
-          steamcmd_dir / "logs" / "workshop_log.txt";
-      {
-        std::error_code ec;
-        std::filesystem::create_directories(log_path.parent_path(), ec);
-        try {
-          std::ofstream ofs(log_path.string(), std::ios::trunc);
-        } catch (...) {
-        }
-      }
+      const auto attempt_start = std::chrono::steady_clock::now();
+      steamcmd::progress tracker(steamcmd_dir);
 
       for (;;) {
         if (workshop_cancel_requested.load()) {
-          TerminateProcess(pi.hProcess, 1);
+          steamcmd.terminate();
           break;
         }
 
         if (workshop_paused.load()) {
           set_workshop_status("Paused - " + workshop_title, -1.0,
                               "Download paused. Click Resume to continue.");
-          TerminateProcess(pi.hProcess, 1);
-          // Wait for unpause or cancel
+          steamcmd.terminate();
           while (workshop_paused.load() && !workshop_cancel_requested.load()) {
             std::this_thread::sleep_for(std::chrono::milliseconds(300));
           }
-          break; // Break to outer loop which will restart SteamCMD
+          break;
         }
 
-        const DWORD wait = WaitForSingleObject(pi.hProcess, 1000);
+        const bool exited = steamcmd.wait(std::chrono::seconds(1));
+        tracker.update(steamcmd);
 
-        if (!is_downloading) {
-          std::filesystem::path bootstrap_log =
-              steamcmd_dir / "logs" / "bootstrap_log.txt";
-          try {
-            std::error_code ec;
-            if (std::filesystem::exists(bootstrap_log, ec)) {
-              std::ifstream bsf(bootstrap_log.string());
-              if (bsf.is_open()) {
-                std::string last_line;
-                std::string line;
-                while (std::getline(bsf, line)) {
-                  if (!line.empty())
-                    last_line = line;
-                }
-                if (last_line.find("Downloading update") != std::string::npos ||
-                    last_line.find("downloading") != std::string::npos) {
-                  is_steamcmd_updating = true;
-                  set_workshop_status("Updating SteamCMD..." + attempt_str, 0.0,
-                                      "Please wait");
-                } else if (is_steamcmd_updating) {
-                  is_steamcmd_updating = false;
-                }
-              }
-            }
-          } catch (...) {
+        const std::string elapsed = format_duration(
+            std::chrono::duration_cast<std::chrono::seconds>(
+                std::chrono::steady_clock::now() - download_start_time)
+                .count());
+        const std::string attempt_suffix =
+            attempt > 1 ? " | Attempt " + std::to_string(attempt) : "";
+
+        if (tracker.committing()) {
+          set_workshop_status("Finishing " + workshop_title + "...", 99.0,
+                              "Moving downloaded files into place");
+        } else if (tracker.started()) {
+          std::string details = human_readable_size(tracker.installed_bytes()) +
+                                " / " +
+                                human_readable_size(tracker.install_total());
+          if (tracker.eta_seconds() >= 0) {
+            details +=
+                " | " +
+                human_readable_size(static_cast<uint64_t>(tracker.speed())) +
+                "/s | ETA: " + format_duration(tracker.eta_seconds());
           }
-        }
-
-        if (!is_downloading && !is_steamcmd_updating) {
-          try {
-            std::error_code ec;
-            if (std::filesystem::exists(log_path, ec)) {
-              std::ifstream lf(log_path.string());
-              if (lf.is_open()) {
-                std::string line;
-                while (std::getline(lf, line)) {
-                  std::string lower = line;
-                  for (auto &c : lower)
-                    c = static_cast<char>(
-                        std::tolower(static_cast<unsigned char>(c)));
-
-                  if (lower.find("download item " + workshop_id) !=
-                      std::string::npos) {
-                    is_downloading = true;
-                    last_tick = std::chrono::steady_clock::now();
-                    break;
-                  }
-                }
-              }
-            }
-          } catch (...) {
-          }
-
-          if (!is_downloading) {
-            uint64_t early_bytes = 0;
-            try {
-              std::error_code fec;
-              if (std::filesystem::exists(download_path, fec))
-                early_bytes = compute_folder_size_bytes(download_path);
-              if (early_bytes == 0 &&
-                  std::filesystem::exists(alt_download_path, fec))
-                early_bytes = compute_folder_size_bytes(alt_download_path);
-            } catch (...) {
-            }
-
-            if (early_bytes > 4096) {
-              is_downloading = true;
-              last_tick = std::chrono::steady_clock::now();
-            } else {
-              auto elapsed =
-                  std::chrono::steady_clock::now() - download_start_time;
-              auto elapsed_sec =
-                  std::chrono::duration_cast<std::chrono::seconds>(elapsed)
-                      .count();
-              int h = static_cast<int>(elapsed_sec / 3600);
-              int m = static_cast<int>((elapsed_sec % 3600) / 60);
-              int s = static_cast<int>(elapsed_sec % 60);
-              char time_str[32];
-              snprintf(time_str, sizeof(time_str), "%02d:%02d:%02d", h, m, s);
-
-              set_workshop_status(
-                  is_steamcmd_updating
-                      ? ("Updating SteamCMD..." + attempt_str)
-                      : ("Waiting for SteamCMD..." + attempt_str),
-                  0.0, std::string("Elapsed: ") + time_str);
-            }
-          }
-        }
-
-        if (is_downloading) {
-
-          if (warmup_phase &&
-              download_phase_start == std::chrono::steady_clock::time_point{}) {
-            download_phase_start = std::chrono::steady_clock::now();
-          }
-
-          uint64_t current_size = 0;
-          std::string active_folder;
-          {
-            std::error_code fec;
-            if (std::filesystem::exists(download_path, fec)) {
-              current_size = compute_folder_size_bytes(download_path);
-              if (current_size > 0)
-                active_folder = download_path.string();
-            }
-            if (current_size == 0 &&
-                std::filesystem::exists(content_path, fec)) {
-              current_size = compute_folder_size_bytes(content_path);
-              if (current_size > 0)
-                active_folder = content_path.string();
-            }
-            if (current_size == 0 &&
-                std::filesystem::exists(alt_download_path, fec)) {
-              current_size = compute_folder_size_bytes(alt_download_path);
-              if (current_size > 0)
-                active_folder = alt_download_path.string();
-            }
-            if (current_size == 0 &&
-                std::filesystem::exists(alt_content_path, fec)) {
-              current_size = compute_folder_size_bytes(alt_content_path);
-              if (current_size > 0)
-                active_folder = alt_content_path.string();
-            }
-          }
-
-          {
-            ULARGE_INTEGER free_avail{};
-            if (GetDiskFreeSpaceExW(game_path.c_str(), &free_avail, nullptr,
-                                    nullptr)) {
-              if (free_avail.QuadPart < 100ULL * 1024 * 1024) {
-                TerminateProcess(pi.hProcess, 1);
-                set_workshop_status(
-                    "Error: Disk nearly full during download.", 0.0,
-                    "Only " + human_readable_size(free_avail.QuadPart) +
-                        " remaining. Free up disk space and try again.");
-                CloseHandle(pi.hProcess);
-                CloseHandle(pi.hThread);
-                return;
-              }
-            }
-          }
-
-          uint64_t net_bytes_now = 0;
-          {
-            MIB_IF_TABLE2 *if_table = nullptr;
-            if (GetIfTable2(&if_table) == NO_ERROR && if_table) {
-              for (ULONG i = 0; i < if_table->NumEntries; i++) {
-                net_bytes_now += if_table->Table[i].InOctets;
-              }
-              FreeMibTable(if_table);
-            }
-          }
-
-          if (!net_baseline_set) {
-            net_bytes_prev = net_bytes_now;
-            net_baseline_set = true;
-          }
-
-          uint64_t net_delta = 0;
-          if (net_bytes_now >= net_bytes_prev) {
-            net_delta = net_bytes_now - net_bytes_prev;
-          }
-          net_bytes_prev = net_bytes_now;
-
-          auto dl_elapsed =
-              std::chrono::steady_clock::now() - download_phase_start;
-          auto dl_elapsed_sec =
-              std::chrono::duration_cast<std::chrono::seconds>(dl_elapsed)
-                  .count();
-          if (warmup_phase && (dl_elapsed_sec >= 10 || current_size > 0))
-            warmup_phase = false;
-
-          double percent = -1.0;
-          uint64_t display_size = current_size;
-          const uint64_t effective_expected =
-              expected_size > 0 ? expected_size : 0;
-
-          if (effective_expected > 0 && display_size > effective_expected)
-            display_size = effective_expected;
-
-          if (!warmup_phase) {
-            if (effective_expected > 0 && current_size > 0) {
-              percent = (static_cast<double>(display_size) /
-                         static_cast<double>(effective_expected)) *
-                        100.0;
-            } else if (current_size > 0) {
-              const double mb =
-                  static_cast<double>(current_size) / (1024.0 * 1024.0);
-              percent = (mb / (mb + 2000.0)) * 95.0;
-            } else {
-              percent = 0.1;
-            }
-            if (percent > 99.0)
-              percent = 99.0;
-            if (percent < 0.1 && current_size > 0)
-              percent = 0.1;
-          }
-
-          const auto now = std::chrono::steady_clock::now();
-          const auto dt_ms =
-              std::chrono::duration_cast<std::chrono::milliseconds>(now -
-                                                                    last_tick)
-                  .count();
-          if (dt_ms > 0 && net_delta > 0) {
-            const double bytes_per_sec =
-                (static_cast<double>(net_delta) * 1000.0) /
-                static_cast<double>(dt_ms);
-            if (bytes_per_sec > 0.0) {
-              if (smoothed_speed <= 0.0)
-                smoothed_speed = bytes_per_sec;
-              else
-                smoothed_speed = 0.3 * bytes_per_sec + 0.7 * smoothed_speed;
-              last_speed_str =
-                  human_readable_size(static_cast<uint64_t>(smoothed_speed)) +
-                  "/s";
-            }
-          }
-          last_tick = now;
-
-          // ETA calculation
-          std::string eta_str;
-          if (expected_size > 0 && display_size > 0 &&
-              smoothed_speed > 1024.0) {
-            const auto remaining = (expected_size > display_size)
-                                       ? (expected_size - display_size)
-                                       : 0ULL;
-            const int eta_sec = static_cast<int>(
-                static_cast<double>(remaining) / smoothed_speed);
-            if (eta_sec > 0) {
-              int eta_h = eta_sec / 3600;
-              int eta_m = (eta_sec % 3600) / 60;
-              int eta_s = eta_sec % 60;
-              char eta_buf[32];
-              snprintf(eta_buf, sizeof(eta_buf), "%02d:%02d:%02d", eta_h, eta_m,
-                       eta_s);
-              eta_str = eta_buf;
-            }
-          }
-
-          auto elapsed = std::chrono::steady_clock::now() - download_start_time;
-          auto elapsed_sec =
-              std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
-          int eh = static_cast<int>(elapsed_sec / 3600);
-          int em = static_cast<int>((elapsed_sec % 3600) / 60);
-          int es = static_cast<int>(elapsed_sec % 60);
-          char time_str[32];
-          snprintf(time_str, sizeof(time_str), "%02d:%02d:%02d", eh, em, es);
-
-          std::string details;
-          if (display_size > 0) {
-            details = human_readable_size(display_size);
-            if (expected_size > 0)
-              details += " / " + human_readable_size(expected_size);
-          } else if (expected_size > 0) {
-            details = "0 / " + human_readable_size(expected_size);
-          }
-          if (!last_speed_str.empty()) {
-            if (!details.empty())
-              details += " | ";
-            details += last_speed_str;
-          }
-          details += " | Elapsed: " + std::string(time_str);
-          if (!eta_str.empty()) {
-            details += " | ETA: " + eta_str;
-          }
-          if (attempt > 1) {
-            details += " | Attempt " + std::to_string(attempt);
-          }
-
-          set_workshop_status("Downloading " + workshop_title + "...", percent,
+          details += " | Elapsed: " + elapsed + attempt_suffix;
+          set_workshop_status("Downloading " + workshop_title + "...",
+                              std::min(99.0, tracker.fraction() * 100.0),
                               details);
-
-          if (!active_folder.empty()) {
-            std::lock_guard lock(workshop_status_mutex);
-            workshop_download_folder = active_folder;
-          }
+          std::lock_guard lock(workshop_status_mutex);
+          workshop_download_folder = download_path.string();
+        } else {
+          set_workshop_status(
+              "Waiting for SteamCMD..." +
+                  (attempt > 1 ? " (attempt " + std::to_string(attempt) + ")"
+                               : std::string{}),
+              0.0, "Elapsed: " + elapsed);
         }
 
-        if (wait == WAIT_OBJECT_0 || wait == WAIT_FAILED) {
+        if (exited) {
           break;
         }
       }
 
-      DWORD exit_code = 0;
-      GetExitCodeProcess(pi.hProcess, &exit_code);
-      {
-        std::lock_guard plock(workshop_download_mutex);
-        if (workshop_download_process.hProcess == pi.hProcess) {
-          workshop_download_process = {};
-        }
-      }
-      CloseHandle(pi.hProcess);
-      CloseHandle(pi.hThread);
+      const uint32_t exit_code = steamcmd.exit_code();
 
       if (workshop_cancel_requested.load()) {
         // Clean up partial download files
@@ -2093,6 +1580,17 @@ void workshop_download_thread(std::string workshop_id,
           content_path = alt_content_path;
           break;
         }
+      }
+
+      if (steamcmd.missing_libraries()) {
+        set_workshop_status(
+            "Error: SteamCMD needs 32-bit libraries.", 0.0,
+            "Install them, then try again:\n"
+            "Debian/Ubuntu: sudo dpkg --add-architecture i386 && sudo apt "
+            "install lib32gcc-s1\n"
+            "Fedora: sudo dnf install glibc.i686 libgcc.i686\n"
+            "Arch: sudo pacman -S lib32-gcc-libs");
+        return;
       }
 
       auto attempt_elapsed = std::chrono::steady_clock::now() - attempt_start;
@@ -2349,6 +1847,10 @@ void workshop_download_thread(std::string workshop_id,
         std::filesystem::remove_all(alt_content_path, cleanup_ec);
       if (std::filesystem::exists(alt_download_path, cleanup_ec))
         std::filesystem::remove_all(alt_download_path, cleanup_ec);
+      std::filesystem::last_write_time(
+          existing_install.empty() ? dest_parent / workshop_id
+                                   : existing_install,
+          std::filesystem::file_time_type::clock::now(), cleanup_ec);
     }
 
     try {
@@ -2625,7 +2127,56 @@ batch_get_workshop_meta(const std::vector<std::string> &ids) {
   return result;
 }
 
+CComVariant start_download(const std::vector<html_argument> &params,
+                           const bool update) {
+  if (params.empty() || !params[0].is_string())
+    return CComVariant("Error: no ID");
+  const std::string id = extract_workshop_id(params[0].get_string());
+  if (id.empty())
+    return CComVariant("Error: Invalid Workshop ID or link.");
+  if (::workshop::downloading_workshop_item)
+    return CComVariant("Error: An in-game download is already in progress. "
+                       "Wait for it to finish.");
+  if (::workshop::launcher_downloading.load() &&
+      !workshop_cancel_requested.load())
+    return CComVariant("Error: A launcher download is already in progress.");
+  std::thread([id, update] {
+    while (::workshop::launcher_downloading.load()) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    workshop_cancel_requested = false;
+    reset_workshop_status();
+    workshop_download_thread(id, update);
+  }).detach();
+  return CComVariant(update ? "Update started" : "Download started");
+}
+
+std::mutex size_lookup_mutex;
+std::map<std::string, std::optional<uint64_t>> size_lookup;
+
 void register_callbacks(html_frame *frame) {
+  frame->register_callback(
+      "workshopGetSize",
+      [](const std::vector<html_argument> &params) -> CComVariant {
+        if (params.empty() || !params[0].is_string())
+          return CComVariant("0");
+        const std::string id = extract_workshop_id(params[0].get_string());
+        if (id.empty())
+          return CComVariant("0");
+        std::lock_guard lock(size_lookup_mutex);
+        const auto [entry, added] = size_lookup.try_emplace(id);
+        if (added) {
+          std::thread([id] {
+            const uint64_t size = scrape_workshop_file_size_bytes(id);
+            std::lock_guard lock(size_lookup_mutex);
+            size_lookup[id] = size;
+          }).detach();
+        }
+        return entry->second
+                   ? CComVariant(std::to_string(*entry->second).c_str())
+                   : CComVariant("");
+      });
+
   frame->register_callback(
       "workshopGetStatus",
       [](const std::vector<html_argument> & /*params*/) -> CComVariant {
@@ -2663,41 +2214,13 @@ void register_callbacks(html_frame *frame) {
   frame->register_callback(
       "workshopDownload",
       [](const std::vector<html_argument> &params) -> CComVariant {
-        if (params.empty() || !params[0].is_string())
-          return CComVariant("Error: no ID");
-        auto id = extract_workshop_id(params[0].get_string());
-        if (id.empty())
-          return CComVariant("Error: Invalid Workshop ID or link.");
-        if (::workshop::downloading_workshop_item)
-          return CComVariant("Error: An in-game download is already in "
-                             "progress. Wait for it to finish.");
-        if (::workshop::launcher_downloading.load())
-          return CComVariant(
-              "Error: A launcher download is already in progress.");
-        workshop_cancel_requested = false;
-        reset_workshop_status();
-        std::thread(workshop_download_thread, id, false).detach();
-        return CComVariant("Download started");
+        return start_download(params, false);
       });
 
   frame->register_callback(
       "workshopUpdate",
       [](const std::vector<html_argument> &params) -> CComVariant {
-        if (params.empty() || !params[0].is_string())
-          return CComVariant("Error: no ID");
-        auto id = extract_workshop_id(params[0].get_string());
-        if (id.empty())
-          return CComVariant("Error: Invalid Workshop ID or link.");
-        if (::workshop::downloading_workshop_item)
-          return CComVariant("Error: An in-game download is already in "
-                             "progress. Wait for it to finish.");
-        if (::workshop::launcher_downloading.load())
-          return CComVariant(
-              "Error: A launcher download is already in progress.");
-        workshop_cancel_requested = false;
-        reset_workshop_status();
-        std::thread(workshop_download_thread, id, true).detach();
-        return CComVariant("Update started");
+        return start_download(params, true);
       });
 
   frame->register_callback(
@@ -2705,13 +2228,6 @@ void register_callbacks(html_frame *frame) {
       [](const std::vector<html_argument> & /*params*/) -> CComVariant {
         workshop_cancel_requested = true;
         workshop_paused = false;
-        {
-          std::lock_guard plock(workshop_download_mutex);
-          if (workshop_download_process.hProcess) {
-            TerminateProcess(workshop_download_process.hProcess, 1);
-          }
-        }
-        ::workshop::launcher_downloading = false;
         reset_workshop_status();
         return CComVariant("Cancel requested");
       });
