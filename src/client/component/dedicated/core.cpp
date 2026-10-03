@@ -1,6 +1,7 @@
 #include <std_include.hpp>
 
 #include <game/game.hpp>
+#include <game/utils.hpp>
 #include <loader/component_loader.hpp>
 
 #include <utils/flags.hpp>
@@ -42,6 +43,30 @@ void spawn_server_stub(game::ControllerIndex_t controllerIndex,
   game::com::Com_SessionMode_SetNetworkMode(game::eNetworkModes::ONLINE);
   game::com::Com_SessionMode_SetGameMode(
       game::eGameModes::MATCHMAKING_PLAYLIST);
+
+  // The session mode decides which common fastfiles the level load pulls in.
+  // A dedicated server starts in multiplayer and stays there, so hosting
+  // zm_tomb loads mp_patch and mp_common and never zm_patch, zm_common or
+  // zm_levelcommon. The map then references assets in zones that were never
+  // loaded and the server dies in db_registry.cpp:2401 on
+  // perklistitemfactory.lua, a zombies HUD asset that is in the package, in a
+  // zone nobody asked for.
+  if (server != nullptr) {
+    const bool zombies = std::strncmp(server, "zm_", 3) == 0;
+
+    // g_gametype is per session mode, and the rotation has already written
+    // "zclassic" into the multiplayer slot by now. Carry it across, or the
+    // zombies slot keeps its own default and the server looks for
+    // scripts/zm/gametypes/tdm.gsc.
+    const std::string gametype{game::get_g_gametype().value_or("")};
+
+    game::com::Com_SessionMode_SetMode(zombies ? game::eModes::ZOMBIES
+                                               : game::eModes::MULTIPLAYER);
+
+    if (!gametype.empty() && *game::g_gametype) {
+      game::g_gametype->set(gametype.c_str());
+    }
+  }
 
   spawn_server_hook.invoke(controllerIndex, server, preload, savegame);
 }
