@@ -1,5 +1,6 @@
 #include <std_include.hpp>
 
+#include "scheduler.hpp"
 #include "script.hpp"
 #include "script_error.hpp"
 
@@ -774,28 +775,6 @@ report build_runtime_report(const scriptInstance_t inst, const char *message,
 }
 } // namespace
 
-report build_report(const game::errorParm code, const char *message,
-                    const char *source_file) {
-  const std::string_view text = message ? message : "";
-  const scriptInstance_t inst = text.find(".csc") != std::string_view::npos
-                                    ? SCRIPTINSTANCE_CLIENT
-                                    : SCRIPTINSTANCE_SERVER;
-
-  if (code == game::errorParm::FATAL &&
-      text.find("script error(s)") != std::string_view::npos) {
-    return build_link_report(inst, message);
-  }
-
-  static const std::regex missing_pattern(
-      R"re(Script file not found: '([^']*)')re");
-  std::cmatch match;
-  if (message && std::regex_search(message, match, missing_pattern)) {
-    return build_missing_script_report(inst, match[1].str());
-  }
-
-  return build_runtime_report(inst, message, source_file);
-}
-
 void print_report(const report &report, const std::string &outcome) {
   std::string text = report.text;
   if (!outcome.empty()) {
@@ -803,6 +782,8 @@ void print_report(const report &report, const std::string &outcome) {
     append_field(text, "Result", "^7", outcome);
   }
   text += FOOTER;
+  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
+                        game::consoleLabel_e::DEFAULT, "%s", text.c_str());
 }
 
 void report_runaway_loop(const game::scr::scriptInstance_t inst,
@@ -821,12 +802,84 @@ void report_runaway_loop(const game::scr::scriptInstance_t inst,
             "the whole server freezes");
   append_field(result.text, "Fix", "^3",
                "add a wait (or waittill) inside the loop");
-  print_report(result,
-               "a 0.05s wait is now inserted each time this loop "
-               "repeats, so it runs once per frame instead of freezing");
+  print_report(result, {});
 }
 
 namespace {
+scriptInstance_t instance_of(const std::string_view name) {
+  return name.find(".csc") != std::string_view::npos ? SCRIPTINSTANCE_CLIENT
+                                                     : SCRIPTINSTANCE_SERVER;
+}
+
+bool show_script_error(const report &report) {
+  print_report(report, {});
+  if (game::is_server()) {
+    return false;
+  }
+  static std::atomic<bool> popup_pending{false};
+  if (game::com::Com_IsInGame() && !popup_pending.exchange(true)) {
+    scheduler::once(
+        [text = report.text] {
+          popup_pending = false;
+          if (game::com::Com_IsInGame()) {
+            game::cbuf::Cbuf_AddText(game::LOCAL_CLIENT_0, "disconnect\n");
+          }
+          scheduler::once(
+              [text] {
+                game::ui::UI_OpenErrorPopupWithMessage(
+                    game::LOCAL_CLIENT_0, game::errorCode::NONE, text.c_str());
+              },
+              scheduler::pipeline::main, 500ms);
+        },
+        scheduler::pipeline::main);
+  }
+  return true;
+}
+
+void Com_Error_ScriptNotFound(const char *file, const int32_t line,
+                              const game::errorParm code, const char *fmt,
+                              const char *script) {
+  if (!show_script_error(
+          build_missing_script_report(instance_of(script), script))) {
+    game::com::Com_Error_(file, line, code, fmt, script);
+  }
+}
+
+void Com_Error_LinkErrors(const char *file, const int32_t line,
+                          const game::errorParm code, const char *fmt,
+                          const int32_t count, const char *details) {
+  if (!show_script_error(build_link_report(
+          instance_of(details), utils::string::va(fmt, count, details)))) {
+    game::com::Com_Error_(file, line, code, fmt, count, details);
+  }
+}
+
+void Com_Error_LinkScript(const char *file, const int32_t line,
+                          const game::errorParm code, const char *fmt,
+                          const char *script, const char *reason,
+                          const char *detail) {
+  if (!show_script_error(build_runtime_report(
+          instance_of(script), utils::string::va(fmt, script, reason, detail),
+          file))) {
+    game::com::Com_Error_(file, line, code, fmt, script, reason, detail);
+  }
+}
+
+void Com_Error_ScriptRuntime(const char *file, const int32_t line,
+                             const game::errorParm code, const char *fmt,
+                             const char *vm, const char *error,
+                             const char *detail, const char *extra,
+                             const char *source, const int32_t source_line) {
+  if (!show_script_error(build_runtime_report(
+          std::string_view(vm) == "client" ? SCRIPTINSTANCE_CLIENT
+                                           : SCRIPTINSTANCE_SERVER,
+          utils::string::va(fmt, vm, error, detail, extra, source, source_line),
+          source))) {
+    game::com::Com_Error_(file, line, code, fmt, vm, error, detail, extra,
+                          source, source_line);
+  }
+}
+
 utils::hook::detour ReportObjLinkError_hook;
 utils::hook::detour ReportObjLinkError2_hook;
 utils::hook::detour GscObjResolve_hook;
@@ -896,6 +949,17 @@ struct component final : generic_component {
 #endif
 
   void post_unpack() override {
+    if (!game::is_legacy_client()) {
+      utils::hook::call(game::select(0x1412C84B2, 0x0, 0x1401566B7),
+                        Com_Error_ScriptNotFound);
+      utils::hook::call(game::select(0x1412CAC6D, 0x0, 0x140158EB2),
+                        Com_Error_LinkErrors);
+      utils::hook::call(game::select(0x1412C858C, 0x0, 0x140156796),
+                        Com_Error_LinkScript);
+      utils::hook::call(game::select(0x1412D5065, 0x0, 0x140161174),
+                        Com_Error_ScriptRuntime);
+    }
+
     ReportObjLinkError_hook.create(ReportObjLinkError,
                                    ReportObjLinkError_Record);
     if (game::is_client()) {
