@@ -16,6 +16,17 @@
 
 namespace utils::hook {
 namespace {
+std::string describe_address(const void *address) {
+  const nt::library module = nt::library::get_by_address(address);
+  if (!module) {
+    return string::va("%p", address);
+  }
+  const uintptr_t rva = reinterpret_cast<uintptr_t>(address) -
+                        reinterpret_cast<uintptr_t>(module.get_ptr());
+  return string::va("%s+0x%llX", module.get_name().c_str(),
+                    module.get_optional_header()->ImageBase + rva);
+}
+
 size_t get_allocation_granularity() {
   SYSTEM_INFO info{};
   GetSystemInfo(&info);
@@ -240,10 +251,15 @@ void detour::create(void *place, void *target) {
   this->clear();
   this->place_ = place;
 
-  if (MH_CreateHook(this->place_, target, &this->original_) != MH_OK) {
-    throw std::runtime_error(string::va("Unable to create hook at location: "
-                                        "(place: %p, target: %p, original: %p)",
-                                        place, target, this->original_));
+  const MH_STATUS status =
+      MH_CreateHook(this->place_, target, &this->original_);
+  if (status != MH_OK) {
+    throw std::runtime_error(string::va(
+        "Unable to hook %s with %s: %s", describe_address(place).c_str(),
+        describe_address(target).c_str(),
+        status == MH_ERROR_ALREADY_CREATED
+            ? "this function is already hooked by another component"
+            : MH_StatusToString(status)));
   }
 
   this->enable();
