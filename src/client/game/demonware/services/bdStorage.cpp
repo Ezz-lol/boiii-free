@@ -1,6 +1,6 @@
 #include <std_include.hpp>
 
-#include "../services.hpp"
+#include <game/demonware/services.hpp>
 
 #include <utils/compression.hpp>
 #include <utils/cryptography.hpp>
@@ -8,8 +8,8 @@
 #include <utils/nt.hpp>
 #include <utils/string.hpp>
 
-#include "resource.hpp"
 #include <game/game.hpp>
+#include <resource.hpp>
 
 namespace demonware {
 bdStorage::bdStorage() : service(10, "bdStorage") {
@@ -66,7 +66,7 @@ bool bdStorage::load_publisher_resource(const std::string &name,
   }
 
 #ifndef NDEBUG
-  printf("[DW]: [bdStorage]: missing publisher file: %s\n", name.data());
+  printf("[DW][bdStorage]: missing publisher file: %s\n", name.data());
 #endif
 
   return false;
@@ -85,7 +85,7 @@ void bdStorage::list_publisher_files(service_server *server,
   buffer->read_string(&filename);
 
 #ifndef NDEBUG
-  printf("[DW]: [bdStorage]: list publisher files: %s\n", filename.data());
+  printf("[DW][bdStorage]: list publisher files: %s\n", filename.data());
 #endif
 
   service_reply reply = server->create_reply(this->task_id());
@@ -115,14 +115,14 @@ void bdStorage::get_publisher_file(service_server *server,
   buffer->read_string(&filename);
 
 #ifndef NDEBUG
-  printf("[DW]: [bdStorage]: loading publisher file: %s\n", filename.data());
+  printf("[DW][bdStorage]: loading publisher file: %s\n", filename.data());
 #endif
 
   std::string data;
 
   if (this->load_publisher_resource(filename, data)) {
 #ifndef NDEBUG
-    printf("[DW]: [bdStorage]: sending publisher file: %s, size: %lld\n",
+    printf("[DW][bdStorage]: sending publisher file: %s, size: %lld\n",
            filename.data(), data.size());
 #endif
 
@@ -148,7 +148,7 @@ void bdStorage::set_user_file(service_server *server,
   buffer->read_blob(&data);
   buffer->read_uint64(&owner);
 
-  const std::string path = get_user_file_path(filename);
+  const std::filesystem::path path = get_user_file_path(filename);
   utils::io::write_file(path, data);
 
   std::unique_ptr<bdFileInfo> info = std::make_unique<bdFileInfo>();
@@ -165,10 +165,6 @@ void bdStorage::set_user_file(service_server *server,
   service_reply reply = server->create_reply(this->task_id());
   reply.add(info);
   reply.send();
-}
-
-std::string bdStorage::get_user_file_path(const std::string &name) {
-  return "boiii_players/user/" + name;
 }
 
 void bdStorage::upload_files(service_server *server,
@@ -194,7 +190,7 @@ void bdStorage::upload_files(service_server *server,
     buffer->read_uint32(&unk);
     buffer->read_bool(&priv);
 
-    const std::string path = get_user_file_path(filename);
+    const std::filesystem::path path = get_user_file_path(filename);
     utils::io::write_file(path, data);
 
     std::unique_ptr<bdFile2> info = std::make_unique<bdFile2>();
@@ -209,7 +205,7 @@ void bdStorage::upload_files(service_server *server,
     info->data = data;
 
 #ifndef NDEBUG
-    printf("[DW]: [bdStorage]: set user file: %s\n", filename.data());
+    printf("[DW][bdStorage]: set user file: %s\n", filename.data());
 #endif
 
     reply.add(info);
@@ -241,7 +237,7 @@ void bdStorage::upload_files_new(service_server *server,
     buffer->read_uint32(&version);
     buffer->read_bool(&priv);
 
-    const std::string path = get_user_file_path(filename);
+    const std::filesystem::path path = get_user_file_path(filename);
     utils::io::write_file(path, data);
 
     std::unique_ptr<bdContextUserStorageFileInfo> info =
@@ -255,7 +251,7 @@ void bdStorage::upload_files_new(service_server *server,
     info->filename = filename;
 
 #ifndef NDEBUG
-    printf("[DW]: [bdStorage]: set user file: %s\n", filename.data());
+    printf("[DW][bdStorage]: set user file: %s\n", filename.data());
 #endif
 
     reply.add(info);
@@ -286,7 +282,7 @@ void bdStorage::get_files(service_server *server, byte_buffer *buffer) const {
 
   std::vector<std::string> filenames;
 
-  for (auto i = 0u; i < count; i++) {
+  for (uint32_t i = 0u; i < count; i++) {
     std::string filename;
     buffer->read_string(&filename);
     filenames.push_back(std::move(filename));
@@ -306,12 +302,12 @@ void bdStorage::get_files(service_server *server, byte_buffer *buffer) const {
     if (utils::io::read_file(get_user_file_path(name), &filedata)) {
       entry->filedata = filedata;
 #ifndef NDEBUG
-      printf("[DW]: [bdStorage]: get user file: %s\n", name.data());
+      printf("[DW][bdStorage]: get user file: %s\n", name.data());
 #endif
     } else {
       entry->errorcode = game::dw::bdLobbyErrorCode::NO_FILE;
 #ifndef NDEBUG
-      printf("[DW]: [bdStorage]: missing user file: %s\n", name.data());
+      printf("[DW][bdStorage]: missing user file: %s\n", name.data());
 #endif
     }
 

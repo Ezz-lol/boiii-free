@@ -1,10 +1,6 @@
 #pragma once
 
-#include <functional>
-#include <regex>
-#include <windows.h>
-
-#include "game/demonware/service.hpp"
+#include <game/demonware/service.hpp>
 
 namespace demonware {
 class bdStorage final : public service {
@@ -30,6 +26,10 @@ private:
   void unk12(service_server *server, byte_buffer *buffer) const;
   void get_user_file_list(service_server *server, byte_buffer *buffer) const;
 
-  static std::string get_user_file_path(const std::string &name);
+  static constexpr std::string_view BOIII_USER_DIRECTORY = "boiii_players/user";
+  inline static std::filesystem::path
+  get_user_file_path(const std::filesystem::path &name) {
+    return BOIII_USER_DIRECTORY / name;
+  }
 };
 } // namespace demonware
