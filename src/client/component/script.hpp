@@ -14,6 +14,14 @@ void for_each_loaded_script(
 
 std::string resolve_hash(ScrVarCanonicalName_t hash);
 std::string get_source_line(const std::string &file, int32_t line_num);
+struct script_frame {
+  std::string file;
+  int32_t line{-1};
+  std::string source;
+};
+
+std::vector<script_frame> get_script_frames(scriptInstance_t inst,
+                                            const uint8_t *pos = nullptr);
 std::vector<std::string> get_script_callstack(scriptInstance_t inst,
                                               const uint8_t *pos = nullptr);
 } // namespace script

@@ -1394,33 +1394,6 @@ std::string get_source_line(const std::string &file, int32_t line_num) {
   return result.value_or("");
 }
 
-const char *Scr_PrevCodePos(scriptInstance_t inst, volatile uint8_t *codePos) {
-  char *filename = nullptr;
-  int32_t lineNum = 0;
-  char *sourceLine = nullptr;
-
-  if (codePos != nullptr &&
-      codePos != reinterpret_cast<uint8_t *>(vm::g_endPos.get())) {
-    Scr_GetFileAndLineNum_Impl(inst, const_cast<uint8_t *>(codePos) - 1,
-                               const_cast<const char **>(&filename), &lineNum,
-                               const_cast<const char **>(&sourceLine));
-    if (lineNum < 0) {
-      return utils::string::va("\tfile '%s' - missing line information\n",
-                               filename);
-    } else {
-      if (sourceLine) {
-        for (; *sourceLine == ' ' || *sourceLine == '\t'; ++sourceLine) {
-        }
-      }
-      return utils::string::va("\tfile '%s', line %d :: %s\n", filename,
-                               lineNum + 1, sourceLine ? sourceLine : "");
-    }
-  }
-
-  return "Missing file and line information - not currently executing script "
-         "bytecode or reached end of executed script bytecode.";
-}
-
 namespace {
 const uint8_t *containing_function(const scriptInstance_t inst,
                                    const uint8_t *pos) {
@@ -1446,31 +1419,65 @@ const uint8_t *containing_function(const scriptInstance_t inst,
 }
 } // namespace
 
-std::vector<std::string> get_script_callstack(scriptInstance_t inst,
-                                              const uint8_t *pos) {
+std::vector<script_frame> get_script_frames(scriptInstance_t inst,
+                                            const uint8_t *pos) {
   if (is_server()) {
     sv_detailedScriptErrors->set(true);
   }
 
-  std::vector<uint8_t *> frames;
-  frames.emplace_back(pos ? const_cast<uint8_t *>(pos)
-                          : vm::gFs->instance[inst].pos);
+  std::vector<uint8_t *> positions;
+  positions.emplace_back(pos ? const_cast<uint8_t *>(pos)
+                             : vm::gFs->instance[inst].pos);
   for (int32_t stackIdx = vm::gScrVmPub->instance[inst].function_count - 1;
        stackIdx > -1; --stackIdx) {
-    frames.emplace_back(
+    positions.emplace_back(
         vm::gScrVmPub->instance[inst].function_frame_start[stackIdx].fs.pos);
   }
 
-  if (frames.size() > 1) {
-    const uint8_t *root = containing_function(inst, frames.back());
-    if (root && root == containing_function(inst, frames[frames.size() - 2])) {
-      frames.pop_back();
+  if (positions.size() > 1) {
+    const uint8_t *root = containing_function(inst, positions.back());
+    if (root &&
+        root == containing_function(inst, positions[positions.size() - 2])) {
+      positions.pop_back();
     }
   }
 
+  std::vector<script_frame> frames;
+  for (uint8_t *position : positions) {
+    script_frame &frame = frames.emplace_back();
+    if (!position ||
+        position == reinterpret_cast<uint8_t *>(vm::g_endPos.get())) {
+      continue;
+    }
+    const char *file = nullptr;
+    const char *source = nullptr;
+    Scr_GetFileAndLineNum_Impl(inst, position - 1, &file, &frame.line, &source);
+    frame.file = file ? file : "";
+    if (frame.line >= 0) {
+      ++frame.line;
+      for (; source && (*source == ' ' || *source == '\t'); ++source) {
+      }
+      frame.source = source ? source : "";
+    }
+  }
+  return frames;
+}
+
+std::vector<std::string> get_script_callstack(scriptInstance_t inst,
+                                              const uint8_t *pos) {
   std::vector<std::string> callstack;
-  for (uint8_t *frame : frames) {
-    callstack.emplace_back(Scr_PrevCodePos(inst, frame));
+  for (const script_frame &frame : get_script_frames(inst, pos)) {
+    if (frame.file.empty()) {
+      callstack.emplace_back(
+          "Missing file and line information - not currently executing "
+          "script bytecode or reached end of executed script bytecode.");
+    } else if (frame.line < 0) {
+      callstack.push_back(
+          std::format("\tfile '{}' - missing line information\n", frame.file));
+    } else {
+      callstack.push_back(std::format("\tfile '{}', line {} :: {}\n",
+                                      frame.file, frame.line, frame.source));
+    }
   }
   return callstack;
 }

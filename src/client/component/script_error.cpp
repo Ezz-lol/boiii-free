@@ -35,14 +35,6 @@ struct link_failure {
   std::vector<std::string> notes;
 };
 
-struct link_context {
-  scriptInstance_t inst{};
-  const GSC_OBJ *obj{};
-  objFileInfo_t *info{};
-  std::vector<link_failure> failures;
-  std::vector<std::string> messages;
-};
-
 struct known_script {
   std::string name;
   std::string key;
@@ -55,21 +47,6 @@ struct builtin_info {
   int32_t min_args{};
   int32_t max_args{};
 };
-
-std::mutex link_mutex;
-link_context current_link;
-const GSC_OBJ *script_cache_owner{};
-std::shared_ptr<const std::vector<known_script>> script_cache;
-
-inline void print_info(const std::string_view &msg) {
-  game::com::Com_Printf(game::consoleChannel_e::CHANNEL_DONT_FILTER,
-                        game::consoleLabel_e::DEFAULT, "^3%s\n", msg.data());
-  fprintf(stdout, "[Scr][Info] %s\n", msg.data());
-  fflush(stdout);
-#ifndef NDEBUG
-  game::trace("[Scr][Info] {}", msg);
-#endif
-}
 
 inline bool valid_object(const GSC_OBJ *obj) {
   return obj && obj->hasMagic(GSC_OBJ::T7_MAGIC);
@@ -445,83 +422,6 @@ void analyze_unresolved(const scriptInstance_t inst, const GSC_OBJ *obj,
   }
 }
 
-void record_link_failure(const scriptInstance_t inst, const GSC_OBJ *obj,
-                         objFileInfo_t *info, const GSC_IMPORT_ITEM *import) {
-  if (valid_object(obj) && import) {
-
-    std::shared_ptr<const std::vector<known_script>> scripts;
-    {
-      std::scoped_lock lock(link_mutex);
-      if (script_cache_owner == obj) {
-        scripts = script_cache;
-      }
-    }
-    if (!scripts) {
-      scripts = std::make_shared<const std::vector<known_script>>(
-          collect_scripts(inst));
-      std::scoped_lock lock(link_mutex);
-      script_cache_owner = obj;
-      script_cache = scripts;
-    }
-
-    link_failure failure{};
-    failure.script = obj->get_name();
-    failure.lines = Scr_GetImportLineNumbers(inst, obj, info, import);
-    failure.call = describe_call(*import);
-    analyze_unresolved(inst, obj, *import, *scripts, failure);
-
-    {
-      std::scoped_lock lock(link_mutex);
-      current_link.failures.push_back(std::move(failure));
-    }
-  }
-}
-
-std::optional<link_failure> parse_too_many_parameters(const std::string &text) {
-  static const std::regex pattern(
-      R"re(Too many parameters: "([^"]*)" with (\d+) parameters in "([^"]*)")re");
-  std::smatch match;
-  if (std::regex_search(text, match, pattern)) {
-    link_failure failure{};
-    failure.error = "Too many arguments";
-    failure.script = match[3].str();
-    const std::string name = match[1].str();
-    const int32_t args = std::stoi(match[2].str());
-
-    if (valid_object(current_link.obj)) {
-      for_each_import(current_link.obj, [&](const GSC_IMPORT_ITEM &import) {
-        if (failure.call.empty() && import.param_count == args &&
-            function_name(import.name) == name) {
-          failure.call = describe_call(import);
-          failure.lines = Scr_GetImportLineNumbers(
-              current_link.inst, current_link.obj, current_link.info, &import);
-          const builtin_info builtin =
-              find_builtin(current_link.inst, import.name,
-                           is_method_import(import.flags & IMPORT_TYPE_MASK));
-          if (builtin.exists) {
-            failure.cause =
-                std::format("builtin '{}' accepts at most {}, this "
-                            "call passes {}",
-                            name, plural(builtin.max_args, "argument"), args);
-          }
-        }
-      });
-    }
-
-    if (failure.call.empty()) {
-      failure.call = std::format("{}({})", name, plural(args, "arg"));
-    }
-    if (failure.cause.empty()) {
-      failure.cause = std::format("'{}' does not accept {}", name,
-                                  plural(args, "argument"));
-    }
-    failure.fix = "remove the extra arguments";
-    return failure;
-  }
-
-  return std::nullopt;
-}
-
 std::string source_line(const std::string &script, const int32_t line) {
   std::string source = script::get_source_line(script, line);
   const size_t start = source.find_first_not_of(" \t");
@@ -562,19 +462,28 @@ void append_failure(std::string &out, const link_failure &failure) {
 }
 
 std::string resolve_hex_tokens(const std::string &input) {
-  static const std::regex hex_token(R"re(\b[0-9A-Fa-f]{6,8}\b)re");
   std::string result;
-  std::sregex_iterator it(input.begin(), input.end(), hex_token);
-  size_t last = 0;
-  for (; it != std::sregex_iterator(); ++it) {
-    const std::string token = it->str();
-    const std::string name = script::resolve_hash(
-        static_cast<ScrVarCanonicalName_t>(std::stoul(token, nullptr, 16)));
-    result.append(input, last, it->position() - last);
-    result += name.empty() ? token : name;
-    last = it->position() + token.size();
+  size_t pos = 0;
+  while (pos < input.size()) {
+    size_t end = pos;
+    while (end < input.size() &&
+           std::isxdigit(static_cast<uint8_t>(input[end]))) {
+      ++end;
+    }
+    const bool bounded =
+        (pos == 0 || !std::isalnum(static_cast<uint8_t>(input[pos - 1]))) &&
+        (end == input.size() ||
+         !std::isalnum(static_cast<uint8_t>(input[end])));
+    if (end - pos >= 6 && end - pos <= 8 && bounded) {
+      const std::string name =
+          script::resolve_hash(static_cast<ScrVarCanonicalName_t>(
+              std::stoul(input.substr(pos, end - pos), nullptr, 16)));
+      result += name.empty() ? input.substr(pos, end - pos) : name;
+      pos = end;
+    } else {
+      result += input[pos++];
+    }
   }
-  result.append(input, last);
   return result;
 }
 
@@ -604,60 +513,15 @@ constexpr std::string_view FOOTER =
     "^1************************************************************\n";
 
 report build_link_report(const scriptInstance_t inst, const char *message) {
-  std::vector<link_failure> failures;
-  std::vector<std::string> messages;
-  {
-    std::scoped_lock lock(link_mutex);
-    failures = std::move(current_link.failures);
-    messages = std::move(current_link.messages);
-    current_link.failures.clear();
-    current_link.messages.clear();
-  }
-
-  std::vector<std::string> notes;
-  for (const std::string &text : messages) {
-    if (text.find("Too many parameters") != std::string::npos) {
-      if (std::optional<link_failure> failure =
-              parse_too_many_parameters(text)) {
-        failures.push_back(std::move(*failure));
-      }
-    } else if (text.starts_with("Could not load")) {
-      notes.push_back(text);
-    }
-  }
-
   report result{};
   result.text = header(inst == SCRIPTINSTANCE_CLIENT ? "CSC LINK ERROR"
                                                      : "GSC LINK ERROR");
-  if (failures.empty()) {
-    for (const std::string &line : message_lines(message)) {
-      result.text += std::format("^1  {}\n", line);
-    }
+  for (const std::string &line : message_lines(message)) {
+    result.text += std::format("^1  {}\n", line);
   }
-  for (size_t i = 0; i < failures.size(); ++i) {
-    if (i > 0) {
-      result.text += SEPARATOR;
-    }
-    append_failure(result.text, failures[i]);
-  }
-  for (const std::string &note : notes) {
-    append_field(result.text, "Warning", "^3", note);
-  }
-
-  if (failures.size() == 1) {
-    const link_failure &failure = failures.front();
-    result.summary = std::format(
-        "Script link error in {}{}: {} {}", failure.script,
-        failure.lines.empty() ? "" : ":" + std::to_string(failure.lines[0]),
-        utils::string::to_lower(failure.error), failure.call);
-  } else if (!failures.empty()) {
-    result.summary = std::format(
-        "{} in {}",
-        plural(static_cast<int32_t>(failures.size()), "script link error"),
-        failures.front().script);
-  } else {
-    result.summary = "Script link error";
-  }
+  append_field(result.text, "Details", "^7",
+               "the cause and fix of each error are printed in the console");
+  result.summary = "Script link error";
   return result;
 }
 
@@ -727,25 +591,23 @@ std::string_view runtime_cause(const std::string_view source_file) {
 
 std::string append_callstack(std::string &out, const scriptInstance_t inst,
                              const uint8_t *pos) {
-  static const std::regex frame_pattern(
-      R"re(file '([^']*)'(?:, line (\d+) :: ?(.*))?)re");
-
   std::string location;
-  for (const std::string &frame : script::get_script_callstack(inst, pos)) {
-    std::smatch match;
-    if (std::regex_search(frame, match, frame_pattern)) {
-      const std::string where =
-          match[2].matched
-              ? std::format("{}:{}", match[1].str(), match[2].str())
-              : match[1].str();
-      if (location.empty()) {
-        location = where;
-        append_field(out, "File", "^5", match[1].str());
-        append_field(out, "Line", "^2", match[2].str());
-        append_field(out, "Source", "^7", match[3].str());
-      } else {
-        append_field(out, "Called", "^5", where);
-      }
+  for (const script::script_frame &frame :
+       script::get_script_frames(inst, pos)) {
+    if (frame.file.empty()) {
+      continue;
+    }
+    const std::string where =
+        frame.line < 0 ? frame.file
+                       : std::format("{}:{}", frame.file, frame.line);
+    if (location.empty()) {
+      location = where;
+      append_field(out, "File", "^5", frame.file);
+      append_field(out, "Line", "^2",
+                   frame.line < 0 ? "" : std::to_string(frame.line));
+      append_field(out, "Source", "^7", frame.source);
+    } else {
+      append_field(out, "Called", "^5", where);
     }
   }
   return location;
@@ -882,64 +744,32 @@ void Com_Error_ScriptRuntime(const char *file, const int32_t line,
 
 utils::hook::detour ReportObjLinkError_hook;
 utils::hook::detour ReportObjLinkError2_hook;
-utils::hook::detour GscObjResolve_hook;
 
-void ReportObjLinkError_Record(scriptInstance_t inst, GSC_OBJ *prime_obj,
+void ReportObjLinkError_Report(scriptInstance_t inst, GSC_OBJ *prime_obj,
                                objFileInfo_t *fileInfo, GSC_IMPORT_ITEM *import,
                                char *errorString, int errorStringLength) {
-  record_link_failure(inst, prime_obj, fileInfo, import);
+  if (valid_object(prime_obj) && import) {
+    static const GSC_OBJ *scripts_owner{};
+    static std::vector<known_script> scripts;
+    if (scripts_owner != prime_obj) {
+      scripts = collect_scripts(inst);
+      scripts_owner = prime_obj;
+    }
+
+    link_failure failure{};
+    failure.script = prime_obj->get_name();
+    failure.lines = Scr_GetImportLineNumbers(inst, prime_obj, fileInfo, import);
+    failure.call = describe_call(*import);
+    analyze_unresolved(inst, prime_obj, *import, scripts, failure);
+
+    report result{};
+    result.text = header(inst == SCRIPTINSTANCE_CLIENT ? "CSC LINK ERROR"
+                                                       : "GSC LINK ERROR");
+    append_failure(result.text, failure);
+    print_report(result, {});
+  }
   ReportObjLinkError_Impl(inst, prime_obj, fileInfo, import, errorString,
                           errorStringLength);
-}
-
-void flush_link_messages() {
-  std::vector<std::string> messages;
-  {
-    std::scoped_lock lock(link_mutex);
-    messages = std::move(current_link.messages);
-    current_link.messages.clear();
-    current_link.failures.clear();
-    current_link.obj = nullptr;
-    current_link.info = nullptr;
-    script_cache_owner = nullptr;
-    script_cache.reset();
-  }
-  for (const std::string &text : messages) {
-    print_info(text);
-  }
-}
-
-int32_t GscObjResolve_FlushLinkLogs(scriptInstance_t inst, GSC_OBJ *obj,
-                                    objFileInfo_t *info) {
-  {
-    std::scoped_lock lock(link_mutex);
-    current_link.inst = inst;
-    current_link.obj = obj;
-    current_link.info = info;
-    current_link.failures.clear();
-    current_link.messages.clear();
-  }
-  const int32_t result = GscObjResolve_hook.invoke<int32_t>(inst, obj, info);
-  flush_link_messages();
-  return result;
-}
-
-void Com_PrintError_RecordLinkerMessage(const char *fmt, ...) {
-  char buffer[0x1000]{};
-  va_list ap;
-  va_start(ap, fmt);
-  vsnprintf_s(buffer, _TRUNCATE, fmt, ap);
-  va_end(ap);
-
-  std::string text = buffer;
-  while (!text.empty() && (text.back() == '\n' || text.back() == ' ')) {
-    text.pop_back();
-  }
-  const size_t start = text.find_first_not_of("* ");
-  text = start == std::string::npos ? std::string() : text.substr(start);
-
-  std::scoped_lock lock(link_mutex);
-  current_link.messages.push_back(std::move(text));
 }
 } // namespace
 
@@ -961,22 +791,10 @@ struct component final : generic_component {
     }
 
     ReportObjLinkError_hook.create(ReportObjLinkError,
-                                   ReportObjLinkError_Record);
+                                   ReportObjLinkError_Report);
     if (game::is_client()) {
       ReportObjLinkError2_hook.create(ReportObjLinkError2,
-                                      ReportObjLinkError_Record);
-    }
-
-    if (game::is_server()) {
-      GscObjResolve_hook.create(game::scr::GscObjResolve.get(),
-                                GscObjResolve_FlushLinkLogs);
-      for (const uintptr_t offset :
-           {0x1F3, 0x269, 0x3FA, 0x474, 0x5B1, 0x7B4, 0x948}) {
-        utils::hook::call(game::scr::GscObjResolve.offset(offset),
-                          Com_PrintError_RecordLinkerMessage);
-      }
-      utils::hook::call(game::scr::Scr_ResolveScriptFunction.offset(0x141),
-                        Com_PrintError_RecordLinkerMessage);
+                                      ReportObjLinkError_Report);
     }
   }
 };
