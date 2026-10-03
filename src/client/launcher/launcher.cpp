@@ -889,62 +889,6 @@ std::string remove_mode_files(const std::string &prefixes_csv) {
   return std::string(buf.GetString(), buf.GetSize());
 }
 
-constexpr const char *STEAM_WORKSHOP_API =
-    "https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/"
-    "v1/";
-constexpr int BO3_APP_ID = 311210;
-
-std::string get_steam_workshop_preview_url(const std::string &workshop_id) {
-  if (workshop_id.empty())
-    return {};
-  try {
-    std::string body = "itemcount=1&publishedfileids[0]=" + workshop_id;
-    std::optional<std::string> resp =
-        utils::http::post_data(STEAM_WORKSHOP_API, body, 3);
-    if (!resp || resp->empty())
-      return {};
-
-    rapidjson::Document doc;
-    if (doc.Parse(resp->c_str()).HasParseError() || !doc.IsObject())
-      return {};
-    const rapidjson::Document::ConstMemberIterator resp_it =
-        doc.FindMember("response");
-    if (resp_it == doc.MemberEnd() || !resp_it->value.IsObject())
-      return {};
-    const rapidjson::Document::ConstMemberIterator details_it =
-        resp_it->value.FindMember("publishedfiledetails");
-    if (details_it == resp_it->value.MemberEnd() ||
-        !details_it->value.IsArray() || details_it->value.Empty())
-      return {};
-
-    const rapidjson::Value &first = details_it->value[0];
-    if (!first.IsObject())
-      return {};
-    const rapidjson::Value::ConstMemberIterator consumer_it =
-        first.FindMember("consumer_app_id");
-    if (consumer_it == first.MemberEnd())
-      return {};
-    int app_id = 0;
-    if (consumer_it->value.IsInt())
-      app_id = consumer_it->value.GetInt();
-    else if (consumer_it->value.IsInt64())
-      app_id = static_cast<int>(consumer_it->value.GetInt64());
-    else if (consumer_it->value.IsString())
-      app_id = std::atoi(consumer_it->value.GetString());
-    if (app_id != BO3_APP_ID)
-      return {};
-
-    const rapidjson::Value::ConstMemberIterator preview_it =
-        first.FindMember("preview_url");
-    if (preview_it == first.MemberEnd() || !preview_it->value.IsString())
-      return {};
-    return std::string(preview_it->value.GetString(),
-                       preview_it->value.GetStringLength());
-  } catch (...) {
-    return {};
-  }
-}
-
 std::string human_readable_size(std::uint64_t bytes) {
   const char *suffixes[] = {"B", "KB", "MB", "GB", "TB"};
   double value = static_cast<double>(bytes);
@@ -1419,6 +1363,62 @@ bool relaunch_with_launch_options(const std::vector<std::string> &options) {
   return false;
 }
 } // namespace
+
+constexpr const char *STEAM_WORKSHOP_API =
+    "https://api.steampowered.com/ISteamRemoteStorage/GetPublishedFileDetails/"
+    "v1/";
+constexpr int BO3_APP_ID = 311210;
+
+std::string get_steam_workshop_preview_url(const std::string &workshop_id) {
+  if (workshop_id.empty())
+    return {};
+  try {
+    std::string body = "itemcount=1&publishedfileids[0]=" + workshop_id;
+    std::optional<std::string> resp =
+        utils::http::post_data(STEAM_WORKSHOP_API, body, 3);
+    if (!resp || resp->empty())
+      return {};
+
+    rapidjson::Document doc;
+    if (doc.Parse(resp->c_str()).HasParseError() || !doc.IsObject())
+      return {};
+    const rapidjson::Document::ConstMemberIterator resp_it =
+        doc.FindMember("response");
+    if (resp_it == doc.MemberEnd() || !resp_it->value.IsObject())
+      return {};
+    const rapidjson::Document::ConstMemberIterator details_it =
+        resp_it->value.FindMember("publishedfiledetails");
+    if (details_it == resp_it->value.MemberEnd() ||
+        !details_it->value.IsArray() || details_it->value.Empty())
+      return {};
+
+    const rapidjson::Value &first = details_it->value[0];
+    if (!first.IsObject())
+      return {};
+    const rapidjson::Value::ConstMemberIterator consumer_it =
+        first.FindMember("consumer_app_id");
+    if (consumer_it == first.MemberEnd())
+      return {};
+    int app_id = 0;
+    if (consumer_it->value.IsInt())
+      app_id = consumer_it->value.GetInt();
+    else if (consumer_it->value.IsInt64())
+      app_id = static_cast<int>(consumer_it->value.GetInt64());
+    else if (consumer_it->value.IsString())
+      app_id = std::atoi(consumer_it->value.GetString());
+    if (app_id != BO3_APP_ID)
+      return {};
+
+    const rapidjson::Value::ConstMemberIterator preview_it =
+        first.FindMember("preview_url");
+    if (preview_it == first.MemberEnd() || !preview_it->value.IsString())
+      return {};
+    return std::string(preview_it->value.GetString(),
+                       preview_it->value.GetStringLength());
+  } catch (...) {
+    return {};
+  }
+}
 
 bool is_game_process_running() {
   const DWORD self_pid = GetCurrentProcessId();

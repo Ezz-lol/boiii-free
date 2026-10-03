@@ -7,6 +7,7 @@
 #include <component/dump.hpp>
 #include <component/game_event.hpp>
 #include <component/gsc/gsc_compiler.hpp>
+#include <component/mod_previews.hpp>
 #include <component/scheduler.hpp>
 #include <loader/component_loader.hpp>
 
@@ -1178,6 +1179,10 @@ XAssetHeader DB_FindXAssetHeader_TryOverride(const XAssetType type,
     }
     case XAssetType::RAWFILE: {
       result.rawfile = get_loaded_rawfile(name);
+      break;
+    }
+    case XAssetType::IMAGE: {
+      result.image = mod_previews::find_image(name);
       break;
     }
     default:
