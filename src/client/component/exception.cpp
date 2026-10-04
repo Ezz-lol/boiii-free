@@ -4,6 +4,7 @@
 
 #include <loader/component_loader.hpp>
 
+#include "console.hpp"
 #include "error_help.hpp"
 #include "exception.hpp"
 #include "scheduler.hpp"
@@ -989,6 +990,77 @@ long WINAPI exception_filter(const LPEXCEPTION_POINTERS exceptioninfo) {
   return EXCEPTION_CONTINUE_EXECUTION;
 }
 
+constexpr std::chrono::seconds FREEZE_TIME = 30s;
+std::atomic<uint32_t> frame_count{0};
+std::atomic<DWORD> frame_thread_id{0};
+
+void report_freeze() {
+  const HANDLE thread = OpenThread(THREAD_SUSPEND_RESUME | THREAD_GET_CONTEXT,
+                                   FALSE, frame_thread_id);
+  if (!thread) {
+    return;
+  }
+
+  std::array<DWORD64, 16> frames{};
+  size_t count = 0;
+  CONTEXT context{};
+  context.ContextFlags = CONTEXT_FULL;
+  if (SuspendThread(thread) != static_cast<DWORD>(-1)) {
+    if (GetThreadContext(thread, &context)) {
+      while (count < frames.size() && context.Rip) {
+        frames[count++] = context.Rip;
+        DWORD64 image_base = 0;
+        const PRUNTIME_FUNCTION function =
+            RtlLookupFunctionEntry(context.Rip, &image_base, nullptr);
+        if (!function) {
+          break;
+        }
+        PVOID handler_data = nullptr;
+        DWORD64 establisher_frame = 0;
+        RtlVirtualUnwind(UNW_FLAG_NHANDLER, image_base, context.Rip, function,
+                         &context, &handler_data, &establisher_frame, nullptr);
+      }
+    }
+    ResumeThread(thread);
+  }
+  CloseHandle(thread);
+
+  std::string text = std::format(
+      "The game has not finished a frame for {} seconds, so it is frozen. "
+      "Main thread stack:",
+      FREEZE_TIME.count());
+  for (size_t i = 0; i < count; ++i) {
+    text += "\n" + format_frame(
+                       resolve_address(reinterpret_cast<void *>(frames[i])), i);
+  }
+
+  exception_log(true, "[Freeze] %s", text.c_str());
+  console::print("^1[Freeze] " + text + "\n");
+  utils::io::write_file((game::get_appdata_path() / "minidumps" /
+                         ("freeze-" + get_timestamp() + ".txt"))
+                            .string(),
+                        text, false);
+}
+
+void watch_for_freezes() {
+  uint32_t last_frame = 0;
+  auto last_progress = std::chrono::steady_clock::now();
+  bool reported = false;
+  for (;;) {
+    std::this_thread::sleep_for(1s);
+    const uint32_t frame = frame_count.load();
+    if (frame != last_frame || frame == 0) {
+      last_frame = frame;
+      last_progress = std::chrono::steady_clock::now();
+      reported = false;
+    } else if (!reported && std::chrono::steady_clock::now() - last_progress >=
+                                FREEZE_TIME) {
+      reported = true;
+      report_freeze();
+    }
+  }
+}
+
 void WINAPI set_unhandled_exception_filter_stub(LPTOP_LEVEL_EXCEPTION_FILTER) {
   // Don't register anything here...
 }
@@ -1042,6 +1114,15 @@ struct component final : generic_component {
   }
 
   void post_unpack() override {
+    scheduler::loop(
+        [] {
+          frame_thread_id = GetCurrentThreadId();
+          ++frame_count;
+        },
+        scheduler::pipeline::main, 1s);
+    utils::thread::create_named_thread("Freeze Watchdog", watch_for_freezes)
+        .detach();
+
     scheduler::once(
         [] {
           game::cbuf::Cbuf_AddText(

@@ -1448,6 +1448,8 @@ void sys_create_console_stub(const HINSTANCE h_instance) {
 }
 } // namespace
 
+void print(const std::string &message) { queue_message(message.c_str()); }
+
 void set_interceptor(std::function<void(const std::string &message)> callback) {
   interceptor.access([&callback](std::function<void(const std::string &)> &c) {
     c = std::move(callback);
