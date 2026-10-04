@@ -1994,10 +1994,7 @@ std::filesystem::path sanitize_rawfile_path(const std::string &name) {
 
 std::unordered_map<int32_t, std::string> custom_key_functions;
 
-utils::hook::detour CL_KeyEvent_hook;
-void CL_KeyEvent_CustomKeymap(const game::LocalClientNum_t localClientNum,
-                              const int32_t key, const int32_t down,
-                              const uint32_t time) {
+void run_custom_key_function(const int32_t key, const int32_t down) {
   if (down) {
     if (const auto function = custom_key_functions.find(key);
         function != custom_key_functions.end()) {
@@ -2008,7 +2005,17 @@ void CL_KeyEvent_CustomKeymap(const game::LocalClientNum_t localClientNum,
           "customkeymap");
     }
   }
-  CL_KeyEvent_hook.invoke(localClientNum, key, down, time);
+}
+
+void *CL_KeyEvent_CustomKeymap() {
+  return utils::hook::assemble([](utils::hook::assembler &a) {
+    a.pushad64();
+    a.get().mov(ecx, edx);
+    a.get().mov(edx, r8d);
+    a.call_aligned(run_custom_key_function);
+    a.popad64();
+    a.jmp(game::cl::CL_KeyEvent.get());
+  });
 }
 
 inline void register_lui_commands() {
@@ -2824,8 +2831,7 @@ public:
           scheduler::pipeline::renderer);
 
       if (!game::is_legacy_client()) {
-        CL_KeyEvent_hook.create(game::cl::CL_KeyEvent.get(),
-                                CL_KeyEvent_CustomKeymap);
+        utils::hook::call(0x1420EC3E2_g, CL_KeyEvent_CustomKeymap());
       }
 
       register_lui_commands();
