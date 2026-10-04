@@ -512,15 +512,11 @@ constexpr std::string_view SEPARATOR =
 constexpr std::string_view FOOTER =
     "^1************************************************************\n";
 
-report build_link_report(const scriptInstance_t inst, const char *message) {
+report build_link_report(const scriptInstance_t inst, const char *failures) {
   report result{};
   result.text = header(inst == SCRIPTINSTANCE_CLIENT ? "CSC LINK ERROR"
-                                                     : "GSC LINK ERROR");
-  for (const std::string &line : message_lines(message)) {
-    result.text += std::format("^1  {}\n", line);
-  }
-  append_field(result.text, "Details", "^7",
-               "the cause and fix of each error are printed in the console");
+                                                     : "GSC LINK ERROR") +
+                failures;
   result.summary = "Script link error";
   return result;
 }
@@ -710,8 +706,7 @@ void Com_Error_ScriptNotFound(const char *file, const int32_t line,
 void Com_Error_LinkErrors(const char *file, const int32_t line,
                           const game::errorParm code, const char *fmt,
                           const int32_t count, const char *details) {
-  if (!show_script_error(build_link_report(
-          instance_of(details), utils::string::va(fmt, count, details)))) {
+  if (!show_script_error(build_link_report(instance_of(details), details))) {
     game::com::Com_Error_(file, line, code, fmt, count, details);
   }
 }
@@ -720,9 +715,7 @@ void Com_Error_LinkScript(const char *file, const int32_t line,
                           const game::errorParm code, const char *fmt,
                           const char *script, const char *reason,
                           const char *detail) {
-  if (!show_script_error(build_runtime_report(
-          instance_of(script), utils::string::va(fmt, script, reason, detail),
-          file))) {
+  if (game::is_server()) {
     game::com::Com_Error_(file, line, code, fmt, script, reason, detail);
   }
 }
@@ -748,29 +741,32 @@ utils::hook::detour ReportObjLinkError2_hook;
 void ReportObjLinkError_Report(scriptInstance_t inst, GSC_OBJ *prime_obj,
                                objFileInfo_t *fileInfo, GSC_IMPORT_ITEM *import,
                                char *errorString, int errorStringLength) {
-  if (valid_object(prime_obj) && import) {
-    static const GSC_OBJ *scripts_owner{};
-    static std::vector<known_script> scripts;
-    if (scripts_owner != prime_obj) {
-      scripts = collect_scripts(inst);
-      scripts_owner = prime_obj;
-    }
-
-    link_failure failure{};
-    failure.script = prime_obj->get_name();
-    failure.lines = Scr_GetImportLineNumbers(inst, prime_obj, fileInfo, import);
-    failure.call = describe_call(*import);
-    analyze_unresolved(inst, prime_obj, *import, scripts, failure);
-
-    report result{};
-    result.text = header(inst == SCRIPTINSTANCE_CLIENT ? "CSC LINK ERROR"
-                                                       : "GSC LINK ERROR");
-    append_failure(result.text, failure);
-    print_report(result, {});
+  if (!valid_object(prime_obj) || !import || !errorString ||
+      errorStringLength <= 0) {
+    ReportObjLinkError_Impl(inst, prime_obj, fileInfo, import, errorString,
+                            errorStringLength);
+    return;
   }
-  ReportObjLinkError_Impl(inst, prime_obj, fileInfo, import, errorString,
-                          errorStringLength);
+
+  static const GSC_OBJ *scripts_owner{};
+  static std::vector<known_script> scripts;
+  if (scripts_owner != prime_obj) {
+    scripts = collect_scripts(inst);
+    scripts_owner = prime_obj;
+  }
+
+  link_failure failure{};
+  failure.script = prime_obj->get_name();
+  failure.lines = Scr_GetImportLineNumbers(inst, prime_obj, fileInfo, import);
+  failure.call = describe_call(*import);
+  analyze_unresolved(inst, prime_obj, *import, scripts, failure);
+
+  std::string text = errorString[0] ? std::string(SEPARATOR) : "";
+  append_failure(text, failure);
+  strncat_s(errorString, errorStringLength, text.c_str(), _TRUNCATE);
 }
+
+void ignore_linker_message() {}
 } // namespace
 
 struct component final : generic_component {
@@ -788,6 +784,10 @@ struct component final : generic_component {
                         Com_Error_LinkScript);
       utils::hook::call(game::select(0x1412D5065, 0x0, 0x140161174),
                         Com_Error_ScriptRuntime);
+      utils::hook::call(game::select(0x1412CAC09, 0x0, 0x140158E49),
+                        ignore_linker_message);
+      utils::hook::call(game::select(0x1412CAC18, 0x0, 0x140158E58),
+                        ignore_linker_message);
     }
 
     ReportObjLinkError_hook.create(ReportObjLinkError,
