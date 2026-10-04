@@ -115,6 +115,23 @@ std::unordered_map<uintptr_t, std::string> rawfile_source_cache{};
 std::unordered_map<std::string, std::string> stock_lua_baseline{};
 bool stock_lua_baseline_captured = false;
 
+bool is_mod_rawfile(const std::string &name) {
+  const void *data =
+      DB_FindXAssetHeader(XAssetType::RAWFILE, name.c_str(), false, 0).data;
+  if (!data) {
+    return false;
+  }
+  for (const pool::XAssetEntryPoolEntry &item : pool::g_assetEntryPool->pool) {
+    const XAssetEntry &entry = item.entry;
+    if (entry.inuse && entry.asset.type == XAssetType::RAWFILE &&
+        entry.asset.header.data == data) {
+      return (*xzone::g_zoneNames)[entry.zoneIndex].zoneType ==
+             game::ZoneType::MOD;
+    }
+  }
+  return false;
+}
+
 void collect_all_lua_rawfiles(
     std::unordered_map<std::string, std::string> &out) {
   xasset::DB_EnumXAssets(
@@ -720,6 +737,9 @@ void setup_functions() {
         return balance ? static_cast<int>(*balance) : -1;
       }),
       HksObjectType::TCFUNCTION);
+
+  lua["game"]["ismodrawfile"] =
+      function(convert_function(is_mod_rawfile), HksObjectType::TCFUNCTION);
 
   lua["game"]["purchasevials"] = function(
       convert_function([](const game::ControllerIndex_t controller,

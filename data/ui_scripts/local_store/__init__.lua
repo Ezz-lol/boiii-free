@@ -2,12 +2,14 @@ if Engine.GetCurrentMap() ~= "core_frontend" then
   return
 end
 
-if
-  type(Engine.IsUsingMods) == "function"
-  and Engine.IsUsingMods()
-  and (type(Engine.UsingModsUgcName) ~= "function" or Engine.UsingModsUgcName() ~= "usermaps")
-then
-  return
+for _, file in ipairs({
+  "ui/uieditor/widgets/Store/Store_NonFeaturedFrame.lua",
+  "ui/uieditor/menus/ZM/MegaChewFactory.lua",
+  "ui/uieditor/menus/ZM/GobbleGumCookbook.lua",
+}) do
+  if game.ismodrawfile(file) then
+    return
+  end
 end
 
 require("ui.uieditor.widgets.Store.Store_NonFeaturedFrame")

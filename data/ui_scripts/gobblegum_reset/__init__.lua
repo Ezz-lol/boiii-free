@@ -2,11 +2,7 @@ if Engine.GetCurrentMap() ~= "core_frontend" or type(game.resetgobblegums) ~= "f
   return
 end
 
-if
-  type(Engine.IsUsingMods) == "function"
-  and Engine.IsUsingMods()
-  and (type(Engine.UsingModsUgcName) ~= "function" or Engine.UsingModsUgcName() ~= "usermaps")
-then
+if game.ismodrawfile("ui/uieditor/menus/ZM/BubblegumBuffs.lua") then
   return
 end
 
