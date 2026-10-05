@@ -54,6 +54,10 @@ void exception_log(bool err, const char *fmt, ...) {
   fprintf(io, "%s\n", buffer.c_str());
   fflush(io);
 
+  if (err) {
+    console::print("^1" + buffer + "\n");
+  }
+
   game::trace("{}{}", err ? "[Error] " : "", buffer.c_str());
 }
 static uint32_t main_thread_id{};
