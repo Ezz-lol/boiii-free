@@ -316,17 +316,21 @@ void connect_stub(const char *address) {
   if (address) {
     const std::string address_copy = normalize_connect_address(address);
 
-    if (const auto friend_id = friends::find_browser_route(address_copy)) {
+    const auto friend_unavailable = [](const char *reason) {
+      printf("Connect failed: %s\n", reason);
+      toast::show("Friend unavailable", reason, "t7_icon_connect_overlays");
+    };
+
+    const bool is_loopback = address_copy.starts_with("127.");
+    if (const auto friend_id =
+            is_loopback ? 0 : friends::find_browser_route(address_copy)) {
       if (!friends::connect_to_friend(friend_id))
-        toast::show("Friend unavailable", "No joinable match was found",
-                    "t7_icon_connect_overlays");
+        friend_unavailable("No joinable match was found");
       return;
     }
 
     if (address_copy == "0.0.0.0" || address_copy.starts_with("0.0.0.0:")) {
-      toast::show("Friend unavailable",
-                  "Friend is offline or their party is closed",
-                  "t7_icon_connect_overlays");
+      friend_unavailable("Friend is offline or their party is closed");
       return;
     }
 
