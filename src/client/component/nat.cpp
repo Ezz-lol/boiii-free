@@ -326,7 +326,7 @@ void show_join_failure(const std::string &address) {
       "connection.\n\nTo fix it, the host can enable UPnP on their router or "
       "forward UDP port {} to their PC, and both of you should allow BOIII "
       "through Windows Firewall. Using the same VPN (Radmin VPN, ZeroTier) "
-      "also works.",
+      "also works, or try swapping who hosts.",
       port ? port : local_port()));
 }
 
